@@ -12,6 +12,7 @@ import * as pt from "./phan-thuong.ts";
 import { lichSu } from "./vi.ts";
 import { chaoMung, thanhTich } from "./thanh-tich.ts";
 import { homNay } from "./bao-cao.ts";
+import * as tre from "./choi-tre.ts";
 
 export async function conGoi(req: Request): Promise<(Con & { device_id: string | null }) | null> {
   const t = bearer(req);
@@ -65,6 +66,14 @@ export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
       if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy lời khen", 404);
       return json({ ok: true });
     }
+    // M3 màn Con: Nhà, trò chơi được phép, phiên giải trí mở từ app Con (lib/choi-tre.ts), đổi người
+    if (d === "nha" && get) return json(await tre.nhaTre(c));
+    if (d === "tro-choi" && get) return json({ ds: await tre.troChoi(c) });
+    if (d === "phien/xet" && post) return json(await tre.xetTre(c, String(b.muc ?? "")));
+    if (d === "phien/mo" && post) return json(await tre.moTre(c, String(b.muc ?? "")));
+    if (d === "phien/nhip" && post) return json(await tre.nhipTre(c, String(b.id ?? ""), b.dangDung !== false));
+    if (d === "phien/dung" && post) return json(await tre.dungTre(c, String(b.id ?? "")));
+    if (d === "dang-xuat" && post) { await tre.raTre(bearer(req)!); return json({ ok: true }); }
     return loi("khong_co_duong", "Không có đường này", 404);
   } catch (e) {
     return batLoi(e);
