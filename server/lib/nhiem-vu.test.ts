@@ -144,3 +144,22 @@ test("huy hiệu + chuỗi ngày: nhiệm vụ đầu được duyệt ⇒ «Kh�
   const tt2 = await th.thanhTich(con);
   assert.ok(tt2.huyHieu.find((h) => h.ma === "khoi_dau")!.dat);
 });
+
+test("hoàn tác duyệt trong 30 giây: trừ lại điểm, về chờ duyệt; quá hạn hoặc người khác thì không", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Ken" });
+  const t = await nv.taoNv(fam, { ten: "Rửa chén", diem: 10 });
+  const s = await nv.batDau(con, t);
+  await nv.nop(con, s, { anh: [anhGia("ht")] });
+  const ct = await nv.chiTietLuot(fam, s);
+  assert.equal(ct.lanHomNay, 1);
+  await nv.duyet(fam, s, bm, { loiKhen: "Giỏi lắm!" });
+  assert.equal(await v.soDu(con), 10);
+  await nv.hoanTacDuyet(fam, s, bm);
+  assert.equal(await v.soDu(con), 0);
+  assert.equal(await tt(s), "cho_duyet");
+  assert.equal(await one(`select 1 from messages where child_id = $1`, [con]), undefined);
+  await nv.duyet(fam, s, bm);
+  await q(`update submissions set duyet_luc = now() - interval '31 seconds' where id = $1`, [s]);
+  await loi(nv.hoanTacDuyet(fam, s, bm), "het_hoan_tac");
+});

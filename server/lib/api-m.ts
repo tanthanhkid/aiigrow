@@ -98,6 +98,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
 
     if (d === "cho-duyet" && get) return json({ nhiemVu: await nv.choDuyet(fam), yeuCau: await yc.dsChoYc(fam) });
     if (p[0] === "luot" && p[1]) {
+      if (p.length === 2 && get) return json(await nv.chiTietLuot(fam, p[1]));
+      if (p[2] === "hoan-tac" && post) { await nv.hoanTacDuyet(fam, p[1], bm.id); return json({ ok: true }); }
       if (p[2] === "duyet" && post) return json(await nv.duyet(fam, p[1], bm.id, { diem: b.diem === undefined ? undefined : Number(b.diem), loiKhen: s(b.loiKhen) }));
       if (p[2] === "tu-choi" && post) { await nv.tuChoi(fam, p[1], bm.id, s(b.lyDo), b.boSung === true); return json({ ok: true }); }
       if (p[2] === "anh" && get)
@@ -106,6 +108,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "duyet-hang-loat" && post) return json({ daDuyet: await nv.duyetHangLoat(fam, Array.isArray(b.ids) ? b.ids.map(String) : [], bm.id) });
 
     if (p[0] === "yeu-cau" && p[1]) {
+      if (p.length === 2 && get) return json(await yc.chiTietYc(fam, p[1]));
       if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1]));
       if (p[2] === "dong-y" && post) return json(await yc.dongY(fam, p[1], bm.id, b as yc.DongY));
       if (p[2] === "tu-choi" && post) { await yc.tuChoiYc(fam, p[1], bm.id, s(b.lyDo)); return json({ ok: true }); }
@@ -123,9 +126,25 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       return json({ soDu: (await one<{ quy_voucher: number }>(`select quy_voucher from families where id = $1`, [fam]))!.quy_voucher,
         giaoDich: await q(`select so_tien, loai, ghi_chu, created_at from quy_gd where family_id = $1 order by created_at desc limit 50`, [fam]) });
 
-    if (d === "luat" && get) return json({ ds: await la.dsLuat(fam), heThong: la.ALLOWLIST_HE_THONG });
+    if (d === "luat" && get) {
+      // «Chưa xếp»: mục máy Con đã gặp (phút dùng ghi loại chưa phân loại) mà gia đình chưa có luật
+      const chuaXep = await q<{ muc: string; phut: number }>(
+        `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
+           and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc) group by u.muc order by phut desc limit 50`, [fam]);
+      return json({ ds: await la.dsLuat(fam), heThong: la.ALLOWLIST_HE_THONG, chuaXep });
+    }
     if (d === "luat" && post) return json({ muc: await la.datLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom }) });
 
+    if (d === "ho-tro" && get)
+      return json({ tin: await q(`select id, tu, noi_dung, created_at from ho_tro where family_id = $1 order by created_at, seq limit 200`, [fam]) });
+    if (d === "ho-tro" && post) {
+      const nd = s(b.noiDung, 1000);
+      if (!nd) throw new LoiNghiepVu("thieu_noi_dung", "Viết tin nhắn trước khi gửi");
+      await q(`insert into ho_tro(id, family_id, tu, nguoi, noi_dung) values ($1,$2,'ba_me',$3,$4)`, [newId(), fam, bm.id, nd]);
+      return json({ ok: true });
+    }
+    if (d === "thanh-vien" && get)
+      return json({ ds: await q(`select id, ten, vai, dinh_danh from parents where family_id = $1 order by created_at`, [fam]) });
     if (d === "canh-bao" && get) return json({ ds: await dsCanhBao(fam) });
     if (p[0] === "canh-bao" && p[2] === "doc" && post) { await q(`update alerts set da_doc = true where id = $1 and family_id = $2`, [p[1], fam]); return json({ ok: true }); }
     if (d === "nhat-ky" && get) return json({ ds: await dsSuKien(fam, new URL(req.url).searchParams.get("con")) });
