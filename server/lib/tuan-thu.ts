@@ -227,7 +227,7 @@ export async function chiTietTuanThu(fam: string, mayId: string, now = new Date(
   await mayCua(fam, mayId);
   const may = (await dsTuanThu(fam, now)).find((x) => x.id === mayId)!;
   const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may')
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline')
       order by created_at desc, seq desc limit 50`, [fam, mayId]);
   return { ...may, suKien };
 }
@@ -283,10 +283,13 @@ export async function biMatOfflineMay(deviceId: string): Promise<string | null> 
   const r = await one<{ offline_secret: string | null }>(`select offline_secret from devices where id = $1`, [deviceId]);
   if (!r) return null;
   if (r.offline_secret) return r.offline_secret;
-  const bm = taoBiMatOffline();
+  const moi = taoBiMatOffline();
   // chỉ ghi nếu còn trống (tránh đè khi hai lần song song)
-  const kq = await q<{ offline_secret: string }>(`update devices set offline_secret = $2 where id = $1 and offline_secret is null returning offline_secret`, [deviceId, bm]);
-  return kq[0]?.offline_secret ?? bm;
+  const kq = await q<{ offline_secret: string }>(`update devices set offline_secret = $2 where id = $1 and offline_secret is null returning offline_secret`, [deviceId, moi]);
+  if (kq[0]) return kq[0].offline_secret;
+  // thua cuộc đua: lần thắng vừa ghi bí mật khác ⇒ đọc lại, KHÔNG trả bí mật của mình (kẻo máy chủ và agent lệch nhau).
+  const lai = await one<{ offline_secret: string | null }>(`select offline_secret from devices where id = $1`, [deviceId]);
+  return lai?.offline_secret ?? moi;
 }
 
 /** Ba Mẹ xem mã mở offline của một máy (có kiểm chủ quyền + ghi nhật ký). */
