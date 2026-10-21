@@ -50,8 +50,9 @@ public sealed class ApiClient : IDisposable
         CancellationToken ct = default, HttpMessageHandler? handler = null)
     {
         using var api = new ApiClient(server, null, handler);
-        var res = await api.PostAsync<PairResult>("api/pair",
-            new { code = code.Trim(), platform = "windows", deviceName }, ct);
+        // Máy chủ AiiGrow: POST /api/device/ghep {ma, nen, tenMay} → {deviceId, token, dungChung} (mã 6 số Ba Mẹ tạo trong app).
+        var res = await api.PostAsync<PairResult>("api/device/ghep",
+            new { ma = code.Trim(), nen = "windows", tenMay = deviceName }, ct);
         if (string.IsNullOrEmpty(res.Token)) throw new ApiException("Máy chủ không trả token");
         res.Server = string.IsNullOrWhiteSpace(res.Server) ? NormalizeServer(server) : NormalizeServer(res.Server!);
         return res;
@@ -62,7 +63,7 @@ public sealed class ApiClient : IDisposable
         CancellationToken ct = default, HttpMessageHandler? handler = null)
     {
         using var api = new ApiClient(server, null, handler);
-        return await api.PostAsync<QrPair>("api/pair/qr", new { platform = "windows", deviceName }, ct);
+        return await api.PostAsync<QrPair>("api/device/ghep-qr", new { nen = "windows", tenMay = deviceName }, ct);
     }
 
     /// <summary>Hỏi kết quả quét. Trả <c>null</c> khi chưa quét; <see cref="PairResult"/> khi bố mẹ đã ghép; ném lỗi "het" khi mã hết hạn.</summary>
@@ -70,7 +71,7 @@ public sealed class ApiClient : IDisposable
         CancellationToken ct = default, HttpMessageHandler? handler = null)
     {
         using var api = new ApiClient(server, null, handler);
-        var raw = await api.SendAsync(HttpMethod.Get, "api/pair/qr/" + Uri.EscapeDataString(m.Ma) + "?bi=" + Uri.EscapeDataString(m.Bi), null, ct);
+        var raw = await api.SendAsync(HttpMethod.Post, "api/device/ghep-qr/hoi", new { ma = m.Ma, bi = m.Bi }, ct);
         var st = Deserialize<QrState>(raw);
         if (st.TrangThai == "het") throw new QrExpiredException();
         if (st.TrangThai != "xong" || string.IsNullOrEmpty(st.Token)) return null;

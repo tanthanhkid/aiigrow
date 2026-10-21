@@ -1,6 +1,7 @@
 // API agent thiết bị Con: /api/device/<đường>. Bearer = token thiết bị (ghép bằng mã 6 số). Token thiết bị KHÔNG gọi được API Ba Mẹ
 // (khác bảng, khác hàm kiểm) — không có lệnh «mở khoá» hay «cộng điểm» nào ở đây: điểm, phiên, phê duyệt chỉ máy chủ quyết.
 import { batLoi, docJson, json, loi } from "./api.ts";
+import { docLog, nhanLog } from "./log-may.ts";
 import { chinhSachWindows } from "./agent-windows.ts";
 import { bearer } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -56,6 +57,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "pin") return json({ phienCon: await dangNhapPin(may, String(b.con ?? ""), String(b.pin ?? "")) });
     // M4: sự kiện agent (gửi bù được, `ma` một lần) · gỡ agent bằng mật khẩu Ba Mẹ
     if (d === "su-kien") return json({ nhan: await nhanSuKien(may, con, b.ds) });
+    if (d === "log" && req.method === "POST") return json(await nhanLog(may, b.ds));
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn hồ sơ và nhập mã PIN trước", 409);
     // M4b: máy KHÔNG tuân thủ (fail-closed) ⇒ không xét / mở phiên giải trí; phiên đang chạy dừng ở nhịp kế tiếp. Mở khẩn cấp chỉ do Ba Mẹ.

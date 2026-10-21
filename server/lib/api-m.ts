@@ -1,6 +1,7 @@
 // API app Ba Mẹ: /api/m/<đường> — Bearer = phiên Ba Mẹ. Hợp đồng: docs/API.md. Mọi ID Con / nhiệm vụ / yêu cầu đều kiểm thuộc gia đình
 // của người gọi (lib/* trả «không thấy» như không tồn tại). Vai «xem» (Chỉ xem, FR-01.04) chỉ GET.
 import { batLoi, docJson, json, loi } from "./api.ts";
+import { docLog, nhanLog } from "./log-may.ts";
 import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -101,6 +102,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "goi-cai" && post) return json(await taoGoiCai(fam, b, process.env.AIIGROW_APP_URL || new URL(req.url).origin, bm.id));
     if (p[0] === "may" && p[1]) {
       const sau = p.slice(2).join("/");
+      // nhật ký agent máy con (đọc từ xa khi thử / hỗ trợ): ?gioiHan=200&muc=loi
+      if (sau === "log" && get) { const sp = new URL(req.url).searchParams; return json(await docLog(fam, p[1], { gioiHan: sp.get("gioiHan"), muc: sp.get("muc") })); }
       if (sau === "tuan-thu" && get) return json(await tt.chiTietTuanThu(fam, p[1]));
       if (sau === "cau-hinh-nen-tang" && get) return json(await cauHinhNenTangMay(fam, p[1]));
       if (sau === "mo-khan-cap" && post) return json(await tt.moKhanCap(fam, p[1], b, bm.id));

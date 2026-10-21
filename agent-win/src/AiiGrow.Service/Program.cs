@@ -12,6 +12,12 @@ using Microsoft.Extensions.DependencyInjection;
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWindowsService(o => o.ServiceName = Paths.ServiceName);
 
+// Nhật ký: C:ProgramDataAiiGrowlogsagent-yyyyMMdd.log (giữ 7 ngày) + đẩy lên POST /api/device/log để xem từ xa.
+var fileLog = new FileLog(Path.Combine(Paths.DataDir, "logs"));
+builder.Services.AddSingleton(fileLog);
+builder.Logging.AddProvider(new FileLogProvider(fileLog));
+builder.Services.AddHostedService<LogShipWorker>();
+
 // Thực thi Policy (dùng chung một AgentRuntime).
 builder.Services.AddSingleton<AgentRuntime>();
 builder.Services.AddSingleton<AppLockerController>();

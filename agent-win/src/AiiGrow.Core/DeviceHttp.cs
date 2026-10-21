@@ -116,3 +116,16 @@ public static class OneTouch
         DungChung = res.DungChung,
     };
 }
+
+/// <summary>Gửi nhật ký agent lên máy chủ (POST /api/device/log). Bearer = token thiết bị.</summary>
+public sealed class LogClient : IDisposable
+{
+    private readonly HttpClient _http;
+    public LogClient(string server, string token, HttpMessageHandler? handler = null) { _http = DeviceHttp.New(server, token, handler); }
+
+    public async Task GuiAsync(IReadOnlyList<DongLog> ds, CancellationToken ct = default)
+        => await DeviceHttp.SendAsync(_http, HttpMethod.Post, "api/device/log",
+            new { ds = ds.Select(d => new { luc = d.Luc.ToString("O"), muc = d.Muc, nguon = d.Nguon, noiDung = d.NoiDung }) }, ct);
+
+    public void Dispose() => _http.Dispose();
+}

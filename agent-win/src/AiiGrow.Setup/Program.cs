@@ -13,6 +13,10 @@ internal static class Program
         if (args.Any(a => a.Equals("--uninstall", StringComparison.OrdinalIgnoreCase) || a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
             return Uninstall(silent);
 
+        // Công tắc chế độ (Ba Mẹ chạy, cần quyền admin — manifest đã xin): AiiGrow.Setup.exe --che-do=chan | --che-do=giam-sat
+        var cheDo = args.FirstOrDefault(x => x.StartsWith("--che-do=", StringComparison.OrdinalIgnoreCase));
+        if (cheDo != null) return DoiCheDo(cheDo["--che-do=".Length..], silent);
+
         // CÀI MỘT CHẠM: token máy chủ nhúng sẵn trong bộ cài (tham số / biến môi trường / đuôi tệp / tên tệp) ⇒ cài thẳng, không nhập gì.
         if (EnrollmentReader.TryRead(args, out var pkg))
             return OneTouch(pkg, silent);
@@ -43,6 +47,15 @@ internal static class Program
             if (!silent) MessageBox.Show("Chưa cài được: " + e.Message, "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return 3;
         }
+    }
+
+    private static int DoiCheDo(string moi, bool silent)
+    {
+        var (ok, cau) = CheDoSwitch.Doi(new ConfigStore(), moi);
+        WriteLog(cau);
+        if (ok) Shell.Run("sc.exe", new[] { "stop", Paths.ServiceName }, 30000);   // SCM tự bật lại (recovery) ⇒ dịch vụ đọc chế độ mới
+        if (!silent) MessageBox.Show(cau, "AiiGrow", MessageBoxButtons.OK, ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        return ok ? 0 : 4;
     }
 
     private static int Uninstall(bool silent)

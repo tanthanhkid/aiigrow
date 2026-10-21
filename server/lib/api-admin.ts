@@ -1,6 +1,7 @@
 // API cổng quản trị AiiLab: /api/admin/<đường>. Bearer = phiên Admin (bảng staff, vai admin). Nhân viên quầy bị từ chối (403).
 // Mọi thao tác ghi đều vào nhật ký kiểm toán (audit). KHÔNG có đường nào đọc ảnh bằng chứng của Con (KE-HOACH 5.5).
 import { batLoi, docJson, json, loi } from "./api.ts";
+import { docLog, nhanLog } from "./log-may.ts";
 import { newId, one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import * as ad from "./admin.ts";
@@ -81,6 +82,11 @@ export async function xuLyAdmin(req: Request, p: string[]): Promise<Response> {
     if (d === "toi" && get) return json({ admin: { ten: nv.ten, tenDangNhap: nv.ten_dang_nhap } });
     if (d === "dang-xuat" && post) { await ad.dangXuatNv(req); return json({ ok: true }); }
     if (d === "tong-quan" && get) return json(await tongQuan());
+    // nhật ký agent một máy (hỗ trợ từ xa) — Admin đọc mọi gia đình, có ghi kiểm toán
+    if (p[0] === "may" && p[1] && p[2] === "log" && get) {
+      await ad.ghiKiemToan(nv, "doc_log_may", { may: p[1] });
+      return json(await docLog(null, p[1], { gioiHan: u.get("gioiHan"), muc: u.get("muc") }));
+    }
 
     if (d === "gia-dinh" && get) return json({ ds: await dsGiaDinh(s(u.get("tim"), 60)) });
     if (p[0] === "gia-dinh" && p[1] && p.length === 2 && get) return json(await chiTietGd(p[1]));

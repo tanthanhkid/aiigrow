@@ -50,3 +50,25 @@ public class DongBoAiiGrowTests
         Assert.Equal(1, homSau[0].Minutes);
     }
 }
+
+public class CheDoSwitchTests
+{
+    [Fact]
+    public void Doi_GiamSatSangChanVaNguocLai_SaiThiTuChoi()
+    {
+        var tep = Path.Combine(Path.GetTempPath(), "aiig-chedo-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var store = new ConfigStore(tep);
+            Assert.False(CheDoSwitch.Doi(store, CheDoAgent.Chan).Ok);            // chưa cài
+            store.Save(new AgentConfig { Server = "https://aiigrow.aiilab.vn", DeviceId = "d1", Token = "t" });
+            Assert.Equal(CheDoAgent.GiamSat, store.Load()!.CheDo);               // mặc định giám sát
+            Assert.True(CheDoSwitch.Doi(store, "CHAN").Ok);
+            Assert.Equal(CheDoAgent.Chan, store.Load()!.CheDo);
+            Assert.False(CheDoSwitch.Doi(store, "tat").Ok);
+            Assert.True(CheDoSwitch.Doi(store, CheDoAgent.GiamSat).Ok);
+            Assert.Equal(CheDoAgent.GiamSat, store.Load()!.CheDo);
+        }
+        finally { try { File.Delete(tep); } catch (IOException) { } }
+    }
+}
