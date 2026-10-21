@@ -143,6 +143,15 @@ public sealed class PlayOpen
     public int? ConPhut { get; set; }
 }
 
+/// <summary>Chế độ chạy agent trên máy con. Mặc định GIÁM SÁT để phụ huynh tự thử mà không bị khoá nhầm máy.</summary>
+public static class CheDoAgent
+{
+    /// <summary>Chỉ ghi log việc SẼ chặn/khoá, không áp thật (mặc định).</summary>
+    public const string GiamSat = "giam-sat";
+    /// <summary>Áp thật: AppLocker + đóng app ngoài danh sách + khoá ngoài giờ.</summary>
+    public const string Chan = "chan";
+}
+
 public sealed class AgentConfig
 {
     public string Server { get; set; } = "";
@@ -156,6 +165,10 @@ public sealed class AgentConfig
     public DateTimeOffset? LastPolicyAt { get; set; }
     /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN khi vào).</summary>
     public bool DungChung { get; set; }
+    /// <summary>AiiGrow (thêm): chế độ chạy của agent trên máy con.
+    /// <see cref="CheDoAgent.GiamSat"/> (mặc định) = chỉ GHI LOG việc SẼ chặn/khoá, KHÔNG áp AppLocker, KHÔNG đóng app, KHÔNG ngắt phiên — để phụ huynh thử an toàn.
+    /// <see cref="CheDoAgent.Chan"/> = áp thật (AppLocker + đóng app ngoài danh sách + khoá ngoài giờ).</summary>
+    public string CheDo { get; set; } = CheDoAgent.GiamSat;
     /// <summary>AiiGrow (thêm): hàng đợi sự kiện gửi bù khi mất mạng.</summary>
     public OfflineQueue Queue { get; set; } = new();
 

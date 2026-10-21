@@ -49,6 +49,32 @@ public class ProcessEnforcerTests
         var fake = new FakeProcessControl(new RunningProc(30, ""));
         Assert.Empty(ProcessEnforcer.Enforce(fake, 2, Array.Empty<string>(), Safe));
     }
+
+    [Fact]
+    public void Enforce_GiamSat_DryRun_LietKeMaKhongDongThat()
+    {
+        // Chế độ giám sát: trả về đúng danh sách SẼ đóng, nhưng KHÔNG gọi Close (không khoá nhầm máy khi phụ huynh thử).
+        var fake = new FakeProcessControl(
+            new RunningProc(10, @"C:\Users\An\AppData\Local\game-thu\game-thu.exe"),
+            new RunningProc(11, @"C:\Program Files\Microsoft Office\WINWORD.EXE"));
+
+        var seCho = ProcessEnforcer.Enforce(fake, sessionId: 2, allowedApps: new[] { "winword.exe" }, safeDirs: Safe, dryRun: true);
+
+        Assert.Equal(new[] { "game-thu.exe" }, seCho);  // vẫn nhận diện đúng game sẽ bị chặn
+        Assert.Empty(fake.Closed);                       // nhưng không đóng tiến trình nào
+    }
+}
+
+public class CheDoAgentTests
+{
+    [Fact]
+    public void MacDinh_AgentConfig_LaGiamSat()
+    {
+        // Mặc định an toàn: máy mới cài ở chế độ giám sát, không áp thật.
+        Assert.Equal(CheDoAgent.GiamSat, new AgentConfig().CheDo);
+        Assert.Equal("giam-sat", CheDoAgent.GiamSat);
+        Assert.Equal("chan", CheDoAgent.Chan);
+    }
 }
 
 public class AppLockerBlockListTests
