@@ -148,3 +148,18 @@ export async function dsChoYc(fam: string) {
 
 export const dsYcCuaCon = (con: string) =>
   q<Yc & { ly_do_tu_choi: string | null }>(`select * from requests where child_id = $1 order by created_at desc limit 30`, [con]);
+
+/** Chi tiết một yêu cầu cho màn xử lý: yêu cầu + tên Con + số dư + giá điểm/phút + ngoại lệ tuần này theo người duyệt + xem trước cảnh báo. */
+export async function chiTietYc(fam: string, id: string) {
+  const r = await one<Yc & { ten_con: string; ly_do_tu_choi: string | null; nguoi_duyet: string | null }>(
+    `select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2`, [id, fam]);
+  if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy yêu cầu", 404);
+  const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [fam]))!;
+  const ts = thamSo(f.cau_hinh);
+  const { soDu } = await import("./vi.ts");
+  const xt = await xemTruoc(fam, r.child_id, r.ten_con);
+  const theo = await q<{ ten: string; n: number }>(
+    `select p.ten, count(*)::int as n from exceptions e join parents p on p.id = e.parent_id where e.child_id = $1 and e.created_at > now() - interval '7 days'
+     group by p.ten order by n desc`, [r.child_id]);
+  return { ...r, soDu: await soDu(r.child_id), giaPhut: ts.gia_khac / 1000, xemTruoc: xt, ngoaiLeTheoNguoi: theo };
+}
