@@ -1,11 +1,13 @@
 // Lược đồ CSDL AiiGrow — chạy lại được (create … if not exists) mỗi lần mở DB. Thêm cột mới bằng `alter table … add column if not exists`.
-// Mốc M0: gia đình, Ba Mẹ, OTP, phiên. Các bảng nghiệp vụ (Con, thiết bị, nhiệm vụ, ví điểm, phần thưởng, phiên chơi, yêu cầu, voucher…)
-// thêm ở M1 — xem docs/KE-HOACH.md.
+// Tên cột tiếng Việt không dấu; trạng thái theo BRD Phụ lục A. Tiền (đồng) và điểm là số nguyên; giá điểm/phút lưu theo phần nghìn (int)
+// để không lệch số thực (1 điểm/phút = 1000, 0,5 điểm/phút = 500).
 export const SCHEMA = `
 create table if not exists families (
   id text primary key,
   ten text not null default '',
   tz text not null default 'Asia/Ho_Chi_Minh',
+  cau_hinh jsonb not null default '{}',
+  quy_voucher int not null default 0,
   created_at timestamptz not null default now()
 );
 create table if not exists parents (
@@ -31,6 +33,298 @@ create table if not exists sessions (
   parent_id text not null references parents(id) on delete cascade,
   expires_at timestamptz not null
 );
+
+create table if not exists children (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  ten text not null,
+  nam_sinh int,
+  avatar text not null default 'rob',
+  nhom text not null default 'nhi',
+  pin_hash text,
+  cau_hinh jsonb not null default '{}',
+  lich jsonb not null default '{}',
+  chao_luc timestamptz,
+  created_at timestamptz not null default now()
+);
+create table if not exists devices (
+  id text primary key,
+  child_id text references children(id) on delete set null,
+  family_id text not null references families(id) on delete cascade,
+  platform text not null,
+  name text not null,
+  token_hash text not null unique,
+  dung_chung boolean not null default false,
+  status jsonb not null default '{}',
+  last_seen timestamptz,
+  created_at timestamptz not null default now()
+);
+create table if not exists kid_sessions (
+  id text primary key,
+  child_id text not null references children(id) on delete cascade,
+  device_id text references devices(id) on delete cascade,
+  expires_at timestamptz not null
+);
+create table if not exists pin_sai (
+  khoa text primary key,
+  so_lan int not null default 0,
+  khoa_den timestamptz
+);
+create table if not exists pair_codes (
+  code text primary key,
+  family_id text not null references families(id) on delete cascade,
+  child_id text references children(id) on delete cascade,
+  platform text not null,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  device_id text
+);
+
+create table if not exists tasks (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  ten text not null,
+  mo_ta text not null default '',
+  nhom text not null default 'khac',
+  diem int not null,
+  bang_chung text not null default 'anh',
+  kieu text not null default 'thuong',
+  toi_da_ngay int,
+  toi_da_tuan int,
+  phut_toi_thieu int not null default 0,
+  tu_duyet boolean not null default false,
+  giao_cho text references children(id) on delete cascade,
+  han timestamptz,
+  bat boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create table if not exists submissions (
+  id text primary key,
+  task_id text not null references tasks(id) on delete cascade,
+  child_id text not null references children(id) on delete cascade,
+  trang_thai text not null default 'dang_lam',
+  bat_dau_luc timestamptz not null default now(),
+  nop_luc timestamptz,
+  ghi_chu text,
+  diem int,
+  nghi_trung boolean not null default false,
+  nguoi_duyet text references parents(id) on delete set null,
+  duyet_luc timestamptz,
+  ly_do text,
+  loi_khen text,
+  nguon text not null default 'con',
+  ref text,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists submissions_ref on submissions(child_id, ref) where ref is not null;
+create table if not exists evidence (
+  id text primary key,
+  submission_id text not null references submissions(id) on delete cascade,
+  child_id text not null references children(id) on delete cascade,
+  mime text not null,
+  du_lieu bytea not null,
+  bam text not null,
+  chup_luc timestamptz not null default now()
+);
+create index if not exists evidence_bam on evidence(child_id, bam);
+
+create table if not exists points (
+  id text primary key,
+  child_id text not null references children(id) on delete cascade,
+  delta int not null,
+  loai text not null,
+  ly_do text not null,
+  ref text,
+  nguoi text,
+  seq bigserial,
+  created_at timestamptz not null default now()
+);
+create index if not exists points_con on points(child_id, created_at);
+
+create table if not exists rewards (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  ten text not null,
+  loai text not null,
+  diem int not null,
+  phut int,
+  menh_gia int,
+  ton_kho int,
+  toi_da_thang int,
+  chi_cuoi_tuan boolean not null default false,
+  can_xac_nhan boolean not null default false,
+  bat boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create table if not exists redemptions (
+  id text primary key,
+  child_id text not null references children(id) on delete cascade,
+  reward_id text references rewards(id) on delete set null,
+  ten text not null,
+  loai text not null,
+  diem int not null,
+  trang_thai text not null,
+  xu_ly_boi text,
+  xu_ly_luc timestamptz,
+  created_at timestamptz not null default now()
+);
+create table if not exists vouchers (
+  id text primary key,
+  ma text not null unique,
+  family_id text not null references families(id) on delete cascade,
+  child_id text references children(id) on delete set null,
+  redemption_id text,
+  menh_gia int not null,
+  diem int not null,
+  trang_thai text not null,
+  het_han timestamptz not null,
+  dung_luc timestamptz,
+  quay text,
+  created_at timestamptz not null default now()
+);
+create table if not exists quy_gd (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  so_tien int not null,
+  loai text not null,
+  ghi_chu text not null default '',
+  ref text,
+  nguoi text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists app_rules (
+  family_id text not null references families(id) on delete cascade,
+  child_id text not null default '',
+  muc text not null,
+  ten text not null,
+  loai text not null,
+  nhom text not null default 'khac',
+  het timestamptz,
+  primary key (family_id, child_id, muc)
+);
+create table if not exists usage (
+  device_id text not null,
+  child_id text not null references children(id) on delete cascade,
+  ngay text not null,
+  muc text not null,
+  loai text not null,
+  phut int not null,
+  primary key (device_id, ngay, muc)
+);
+create table if not exists play_sessions (
+  id text primary key,
+  child_id text not null references children(id) on delete cascade,
+  device_id text,
+  muc text not null,
+  nhom text not null,
+  gia_phan_nghin int not null,
+  toi_da_phut int not null,
+  bat_dau timestamptz not null default now(),
+  nhip_cuoi timestamptz not null default now(),
+  phut_dung real not null default 0,
+  phan_nghin_tru int not null default 0,
+  diem_tru int not null default 0,
+  phut_thuong real not null default 0,
+  trang_thai text not null default 'chay',
+  ly_do_ket text,
+  ket_thuc timestamptz,
+  nghi_den timestamptz
+);
+create unique index if not exists play_mot_phien on play_sessions(child_id) where trang_thai in ('chay', 'tam');
+create table if not exists requests (
+  id text primary key,
+  child_id text not null references children(id) on delete cascade,
+  device_id text,
+  loai text not null,
+  phut int,
+  gia_tri text,
+  ly_do text not null default '',
+  trang_thai text not null default 'cho',
+  het_han timestamptz not null,
+  tru_diem boolean,
+  ngoai_le boolean not null default false,
+  pham_vi text,
+  phan_loai text,
+  nguoi_duyet text,
+  tu_dong boolean not null default false,
+  ly_do_tu_choi text,
+  xu_ly_luc timestamptz,
+  created_at timestamptz not null default now()
+);
+create table if not exists grants (
+  id text primary key,
+  child_id text not null references children(id) on delete cascade,
+  request_id text,
+  phut int not null,
+  ngoai_le boolean not null default false,
+  ngay text not null,
+  created_at timestamptz not null default now()
+);
+create table if not exists exceptions (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  child_id text not null references children(id) on delete cascade,
+  parent_id text,
+  loai text not null,
+  ref text,
+  created_at timestamptz not null default now()
+);
+create table if not exists alerts (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  child_id text,
+  device_id text,
+  loai text not null,
+  muc text not null,
+  noi_dung text not null,
+  chi_tiet jsonb not null default '{}',
+  khoa text,
+  da_doc boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists alerts_khoa on alerts(family_id, khoa) where khoa is not null;
+create table if not exists events (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  child_id text,
+  device_id text,
+  loai text not null,
+  chi_tiet jsonb not null default '{}',
+  nguoi text,
+  seq bigserial,
+  created_at timestamptz not null default now()
+);
+create index if not exists events_gd on events(family_id, created_at);
+create table if not exists badges (
+  child_id text not null references children(id) on delete cascade,
+  ma text not null,
+  dat_luc timestamptz not null default now(),
+  primary key (child_id, ma)
+);
+create table if not exists messages (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  child_id text not null references children(id) on delete cascade,
+  parent_id text,
+  noi_dung text not null,
+  phan_hoi text,
+  created_at timestamptz not null default now()
+);
 `;
-// parents.dinh_danh: email (chữ thường) hoặc SĐT 0xxxxxxxxx. parents.vai: chu (Chủ gia đình) | duyet (Thành viên phê duyệt) | xem.
-// parents.sai_lien / khoa_den: khoá đăng nhập sau 5 lần sai (BRD mục 9). otp.muc_dich: dang_ky | quen_mk. sessions.id = sha256(token).
+// Ghi chú cột (giá trị hợp lệ):
+// children.nhom: nhi (6–10) | teen (11–16). children.cau_hinh: ghi đè tham số mục 10 cho riêng Con (lib/cau-hinh.ts kẹp min–max).
+// children.lich: { ngayHoc: Khung[], cuoiTuan: Khung[], ngu: Khung } — rỗng = theo gia đình / mặc định.
+// devices.child_id null + dung_chung = máy dùng chung, chọn Con bằng PIN (FR-01.03).
+// tasks.nhom: doc_sach | viec_nha | hoc_tap | van_dong | ky_nang | khac. tasks.bang_chung: anh | video | ghi_am | van_ban | tu_dong.
+// tasks.kieu: thuong | mot_lan | thu_thach. submissions.trang_thai (Phụ lục A.1): dang_lam | cho_duyet | can_bo_sung | duoc_duyet | tu_choi |
+//   het_han | huy. submissions.nguon: con | aiirob | ba_me (giao xong ghi tay). submissions.ref: mã bài AiiRob (một lần / bài).
+// points.loai: nhiem_vu | phien | doi_qua | hoan | tay | chao_mung | voucher | ngoai_le.
+// rewards.loai: phut | voucher | qua | dac_quyen | tiet_kiem. redemptions.trang_thai: giu (chờ Ba Mẹ trao) | da_trao | huy | xong.
+// vouchers.trang_thai (Phụ lục A.4): cho_xac_nhan | da_phat_hanh | da_dung | het_han | thu_hoi. quy_gd.loai: nap | phat_hanh | hoan.
+// app_rules.het: null = vĩnh viễn; có giá trị = phê duyệt «Lần này / Hôm nay» hết hạn lúc đó. usage.loai: hoc | giai_tri | he_thong | chua_phan_loai.
+// app_rules.muc: tên miền (vd youtube.com) hoặc định danh app (vd roblox.exe, com.roblox.client); child_id '' = cả gia đình.
+//   app_rules.loai: hoc | giai_tri | chan. app_rules.nhom: game | video_ngan | mxh | phim_gd | khac (giá điểm/phút theo nhóm).
+// play_sessions.trang_thai (Phụ lục A.3): chay | tam | ket_thuc. requests.loai: them_gio | mo_web | cai_app | ngoai_le | ngoai_gio | khac.
+//   requests.trang_thai (A.2): cho | dong_y | tu_choi | het_han | huy | da_thuc_thi. requests.pham_vi: lan_nay | hom_nay | vinh_vien.
+// alerts.muc: thong_tin | chu_y | nghiem_trong. alerts.khoa: chặn báo trùng (vd «ngoai_le_mem:2026-W43:<con>»).
