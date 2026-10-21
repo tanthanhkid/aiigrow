@@ -9,10 +9,13 @@
     "start": "next start -p 3310",
     "test": "node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "build:app": "node scripts/build-app.mjs"
+    "build:app": "node scripts/build-app.mjs",
+    "tao-tai-khoan": "node scripts/tao-tai-khoan.ts",
+    "pha-web": "node scripts/pha-web.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
+    "jsqr": "1.4.0",
     "next": "16.4.2",
     "postgres": "3.4.9",
     "qrcode": "1.5.4",

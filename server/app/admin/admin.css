@@ -1,0 +1,55 @@
+/* Cổng quản trị AiiLab — chưa có thiết kế riêng: dùng token màu / phông / thành phần của tinh/app.css (qua ../quay/nen.css), gọn, rõ.
+   Rộng ≥ 1024px: thanh mục bên trái; hẹp hơn: các mục xếp thành chip xuống dòng trên đầu. Bảng rộng cuộn ngang trong khung riêng. */
+.ad .dau-ad{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 20px;background:#fff;border-bottom:1px solid var(--vien);flex-wrap:wrap}
+.ad .dau-ad img{width:32px;height:32px;border-radius:8px;flex:none}
+.ad .dau-ad .ten{font-size:17px;font-weight:800;line-height:1.25}
+.ad .dau-ad .phai{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ad .khung-ad{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;max-width:1360px;margin:0 auto;padding:20px}
+.ad nav.muc{display:flex;flex-direction:column;gap:4px;position:sticky;top:76px;align-self:start}
+.ad nav.muc a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:14px;color:var(--chu2);font-weight:700;text-decoration:none;white-space:nowrap}
+.ad nav.muc a:hover{background:#f6f1e8}
+.ad nav.muc a[aria-current=page]{background:var(--chinh-soft);color:var(--chinh-ink);font-weight:800}
+.ad nav.muc .so{margin-left:auto;background:var(--huy);color:#fff;font-size:12px;font-weight:800;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 6px}
+.ad .noi-dung{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ad .tieu{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.ad .tieu h1{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.ad .tieu p{flex-basis:100%;color:var(--chu3)}
+.ad .tieu .phai{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.ad h2{font-size:18px;font-weight:800;line-height:1.3}
+.ad .luoi-so{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.ad .hai-cot{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+.ad .ba-cot{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start}
+.ad .hang{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.ad .hang>label{flex:1 1 180px;min-width:0}
+.ad .vien-chip{display:flex;gap:8px;flex-wrap:wrap}
+.ad .chip-x{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:0 4px 0 12px;border-radius:99px;background:var(--xam-soft);color:var(--chu2);font-weight:700;font-size:14px;max-width:100%}
+.ad .chip-x span{overflow-wrap:anywhere}
+.ad .chip-x.md{padding:0 12px}
+.ad .chip-x button{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--loi);font-weight:800;cursor:pointer;flex:none}
+.ad .bang{overflow-x:auto;border-radius:var(--bo-the);border:1px solid var(--vien);background:#fff;box-shadow:var(--bong)}
+.ad table{border-collapse:collapse;width:100%;font-size:14.5px}
+.ad th{text-align:left;font-size:13px;color:var(--chu3);font-weight:800;padding:10px 12px;white-space:nowrap;background:#fbf8f2}
+.ad td{padding:10px 12px;border-top:1px solid #f4eee4;vertical-align:top}
+.ad td.so,.ad th.so{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ad td.nw{white-space:nowrap}
+.ad tr.tong td{font-weight:800;background:#fbf8f2}
+.ad td input{width:100px;min-height:40px;border:1.5px solid var(--o-nhap);border-radius:10px;padding:0 8px;background:#fff;font-size:15px}
+.ad .tin-ds{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;padding:4px}
+.ad .tin{max-width:80%;padding:10px 14px;border-radius:18px;background:#fff;border:1px solid var(--vien);align-self:flex-start;overflow-wrap:anywhere}
+.ad .tin.aiilab{align-self:flex-end;background:var(--chinh-soft);border-color:transparent;color:#064e47}
+.ad .tin small{display:block;font-size:12.5px;color:var(--chu3);margin-top:2px}
+.ad .tin.aiilab small{color:#075e55}
+.ad .trong{padding:28px 16px;text-align:center;color:var(--chu3);font-weight:700}
+.ad .lui{display:inline-flex;align-items:center;gap:4px;color:var(--chinh-ink);font-weight:800;text-decoration:none;min-height:44px}
+.ad .the h2{margin-bottom:10px}
+.ad .the.dem{display:flex;flex-direction:column;gap:12px}
+.ad .the.dem>h2{margin-bottom:0}
+@media (max-width:1023px){
+  .ad .khung-ad{grid-template-columns:minmax(0,1fr);padding:16px;gap:16px}
+  .ad nav.muc{position:static;flex-direction:row;flex-wrap:wrap;gap:6px}
+  .ad nav.muc a{border:1.5px solid var(--vien2);background:#fff;border-radius:99px;min-height:40px;font-size:14px}
+  .ad nav.muc .so{margin-left:0}
+  .ad .tieu h1{font-size:22px}
+  .ad .hai-cot,.ad .ba-cot{grid-template-columns:minmax(0,1fr)}
+  .ad .dau-ad{padding:10px 16px}
+}
