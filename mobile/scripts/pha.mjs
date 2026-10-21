@@ -12,6 +12,7 @@ import { readFileSync, existsSync, statSync, mkdtempSync, rmSync } from "node:fs
 import { join, extname } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
+import { deflateSync, crc32 } from "node:zlib";
 
 const DIR = process.argv[2] ?? "dist";
 const CHROME = process.argv.slice(3).find((x) => !x.startsWith("--")) ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -31,7 +32,26 @@ const may = http.createServer((req, res) => {
 
 // ---------------------------------------------------------------- dữ liệu giả (tên dài để lộ lỗi tràn / rớt dòng)
 const bay = Date.now(), luc = (phut) => new Date(bay - phut * 60000).toISOString();
-const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+/** Ảnh bằng chứng giả cỡ thật (640×480, giống ảnh chụp bồn rửa: tường gạch, bồn sáng, nhiễu máy ảnh) — để cổng giao diện đo bố cục
+ * với ảnh thật thay cho ảnh 1px. Tự sinh PNG bằng zlib, không cần tệp ảnh. */
+const anhGia = (w = 640, h = 480) => {
+  const raw = Buffer.alloc((w * 3 + 1) * h); let n = 12345; const rnd = () => ((n = (n * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  for (let y = 0; y < h; y++) {
+    raw[y * (w * 3 + 1)] = 0;
+    for (let x = 0; x < w; x++) {
+      const gach = y < h * 0.45 && ((y % 40) < 2 || ((x + (Math.floor(y / 40) % 2) * 30) % 60) < 2);
+      const dx = (x - w / 2) / (w * 0.42), dy = (y - h * 0.68) / (h * 0.26), bon = dx * dx + dy * dy < 1;
+      let c = y < h * 0.45 ? (gach ? [170, 176, 178] : [214, 222, 224]) : [150, 132, 112];
+      if (bon) { const k = 1 - 0.25 * (dx * dx + dy * dy); c = [236 * k + 10, 240 * k + 8, 242 * k + 6]; }
+      const nhieu = (rnd() - 0.5) * 18, o = y * (w * 3 + 1) + 1 + x * 3;
+      for (let i = 0; i < 3; i++) raw[o + i] = Math.max(0, Math.min(255, Math.round(c[i] + nhieu)));
+    }
+  }
+  const khoi = (loai, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const t = Buffer.from(loai); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(Buffer.concat([t, d])) >>> 0); return Buffer.concat([l, t, d, c]); };
+  const ih = Buffer.alloc(13); ih.writeUInt32BE(w, 0); ih.writeUInt32BE(h, 4); ih[8] = 8; ih[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), khoi("IHDR", ih), khoi("IDAT", deflateSync(raw)), khoi("IEND", Buffer.alloc(0))]).toString("base64");
+};
+const PNG = anhGia();
 const THAM = { tran_ngay: 90, tran_tuan: 420, phien_toi_da: 30, nghi_giua: 60, gia_khac: 1000 };
 const LICH = { ngayThuong: [{ tu: "17:00", den: "20:00" }], cuoiTuan: [{ tu: "09:00", den: "21:00" }], ngu: { tu: "21:30", den: "06:30" } };
 const capDo = { cap: 4, diemCapSau: 1000, conThieu: 155 };
@@ -179,23 +199,28 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-cho-duyet", "/cho-duyet", "4 việc đang chờ"),
     M("bm-cho-duyet (trống)", "/cho-duyet", "Không có việc nào chờ", { kb: { "GET cho-duyet": { nhiemVu: [], yeuCau: [] } } }),
     M("bm-duyet-nv", "/duyet/l1", "Không trùng ảnh cũ"),
+    // bảng lý do phủ lên màn duyệt: đo riêng bảng (ảnh nền phía sau bảng đã đo ở bm-duyet-nv; luật DE-ANH không biết ảnh bị bảng che)
+    M("bm-tu-choi", "/duyet/l1", "cần làm gì thêm?", { kb: { "GET luot/l1/anh": { anh: [] } }, truoc: async () => { await di("/duyet/l1"); await doi("Cần chụp lại"); await bam("Cần chụp lại"); } }),
     M("bm-duyet-xong", "/duyet-xong?luot=l1&con=c1&ten=Ken&diem=10&nv=R%E1%BB%ADa%20ch%C3%A9n&khen=Gi%E1%BB%8Fi%20l%E1%BA%AFm!", "Hoàn tác"),
     M("bm-yeu-cau-web", "/yeu-cau/y1", "Học tập — miễn phí"),
     M("bm-them-gio", "/yeu-cau/y2", "Ngoại lệ thứ 4"),
     M("bm-giao-nv", "/giao-nv", "Việc cần làm"),
     M("bm-vi", "/vi/c1", "Tuần này kiếm"),
     M("bm-nhiem-vu", "/diem-qua", "Nhiệm vụ của nhà mình"),
+    M("bm-qua", "/diem-qua", "Quỹ phiếu quà AiiCafe", { truoc: async () => { await di("/diem-qua"); await doi("Phần thưởng (3)"); await bam("Phần thưởng (3)"); } }),
     M("bm-quy-thieu", "/quy", "Quỹ còn"),
-    M("bm-canh-bao", "/canh-bao", "Rob gợi ý"),
+    M("bm-canh-bao", "/canh-bao", "ROB GỢI Ý"),          // NhomTieu in hoa bằng CSS ⇒ innerText in hoa
     M("bm-canh-bao-may", "/canh-bao/a1", "AiiGrow không đọc nội dung"),
-    M("bm-bao-cao", "/bao-cao", "Giải trí nhiều nhất"),
+    M("bm-bao-cao", "/bao-cao", "GIẢI TRÍ NHIỀU NHẤT"),
     M("bm-gio", "/gio/c1", "Trần mỗi ngày"),
-    M("bm-app-web", "/app-web", "Luôn được dùng"),
+    M("bm-app-web", "/app-web", "LUÔN ĐƯỢC DÙNG"),
     M("bm-ho-so-con", "/ho-so/c1", "Ghép thêm máy"),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
   ];
+  // PHA_MAN=<biểu thức chính quy>: chỉ chạy các màn khớp tên (soát nhanh khi sửa)
+  if (process.env.PHA_MAN) dsMan.splice(0, dsMan.length, ...dsMan.filter((m) => new RegExp(process.env.PHA_MAN).test(m.ten)));
   const vao = async (m) => {
     kb = { ...coBan, ...(m.kb ?? {}) };
     matMang = !!m.matMang;

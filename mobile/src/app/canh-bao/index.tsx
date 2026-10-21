@@ -1,4 +1,5 @@
 // bm-canh-bao: ngoại lệ vượt ngưỡng + gợi ý chỉnh cấu hình (Ba Mẹ chọn, FR-07.01/07.03), an toàn thiết bị (FR-07.02).
+import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, type CanhBao, type GiaDinh } from "@/lib/api";
@@ -11,6 +12,8 @@ export default function DsCanhBao() {
   const { d, loi, matMang, tai } = useTai(async () => ({ ds: (await bm.goi<{ ds: CanhBao[] }>("canh-bao")).ds, g: await bm.goi<GiaDinh>("gia-dinh") }));
   const { lam } = useLam();
   const { bao, noi } = useHoanTac();
+  const [boQua, setBoQua] = useState<string[]>([]);      // «Bỏ qua» gợi ý (thiết kế bm-canh-bao) — chỉ ẩn trên màn này, không đổi cấu hình
+  const an = (k: string) => { setBoQua((x) => [...x, k]); bao("Đã bỏ qua gợi ý", () => setBoQua((x) => x.filter((y) => y !== k))); };
   if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Cảnh báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = (id: string | null) => d.g.con.find((c) => c.id === id)?.ten ?? "";
   const ngoaiLe = d.ds.filter((x) => x.loai.startsWith("ngoai_le") || x.loai === "lech_nguoi_duyet");
@@ -30,19 +33,19 @@ export default function DsCanhBao() {
   return (
     <Man lui={{ chu: "Hôm nay" }} tieu="Cảnh báo" noi={noi}>
       {ngoaiLe.length ? <Canh lv="trong-loi" mau="hong" tieu={manh ? manh.noi_dung.split(".")[0] : "Ngoại lệ đang tăng"} loi="Cảnh báo không chặn quyết định của Ba Mẹ — chỉ để cả nhà cùng nhìn số." /> : null}
-      {ngoaiLe.length ? (
+      {ngoaiLe.length && boQua.length < (ngoaiLe[0].child_id ? 2 : 1) ? (
         <>
           <NhomTieu chu="Rob gợi ý — Ba Mẹ chọn" />
-          <The dem style={{ gap: 8 }}>
+          {boQua.includes("diem") ? null : <The dem style={{ gap: 8 }}>
             <Chu kieu="rat">Tăng điểm nhiệm vụ Con hay làm</Chu>
             <Chu co={13} mau={M.chu3}>Con hết điểm nhanh thì dễ xin ngoại lệ. Tăng điểm một nhiệm vụ để Con tự kiếm thêm.</Chu>
-            <HaiNut><Nut chu="Sửa điểm nhiệm vụ" nho bam={() => router.push("/diem-qua")} /></HaiNut>
-          </The>
-          {ngoaiLe[0].child_id ? (
+            <HaiNut><Nut chu="Sửa điểm nhiệm vụ" nho bam={() => router.push("/diem-qua")} /><Nut chu="Bỏ qua" nho loai="vien" bam={() => an("diem")} /></HaiNut>
+          </The>}
+          {ngoaiLe[0].child_id && !boQua.includes("tu_dong") ? (
             <The dem style={{ gap: 8 }}>
               <Chu kieu="rat">Tự đồng ý 15 phút nếu đủ điểm, 1 lần/ngày</Chu>
               <Chu co={13} mau={M.chu3}>Bớt việc phải duyệt tay. Mọi lần tự duyệt vẫn ghi nhật ký.</Chu>
-              <HaiNut><Nut chu="Bật quy tắc" nho loai="vien" bam={() => tuDong(ngoaiLe[0].child_id!)} /></HaiNut>
+              <HaiNut><Nut chu="Bật quy tắc" nho loai="vien" bam={() => tuDong(ngoaiLe[0].child_id!)} /><Nut chu="Bỏ qua" nho loai="ma" bam={() => an("tu_dong")} /></HaiNut>
             </The>
           ) : null}
         </>

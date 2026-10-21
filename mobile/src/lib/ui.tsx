@@ -114,9 +114,9 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, dangChay, tat, nh
         style={[s.nut, nho && s.nutNho, { backgroundColor: tat ? "#d9d3c7" : m.nen }, m.vien && !tat ? { borderWidth: 1.5, borderColor: m.vien } : null,
           m.bong && !tat ? { borderBottomWidth: 4, borderBottomColor: m.bong } : null]}>
         {dangChay ? <ActivityIndicator color={m.chu} /> : (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            {ic ? <Icon ten={ic} mau={tat ? M.chu3 : m.chu} co={20} /> : null}
-            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: nho ? 14.5 : 16, color: tat ? M.chu3 : m.chu, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "100%" }}>
+            {ic ? <Icon ten={ic} mau={tat ? M.chu2 : m.chu} co={20} /> : null}
+            <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: F.rat, fontSize: nho ? 14.5 : 16, color: tat ? M.chu2 : m.chu, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
           </View>
         )}
       </Pressable>
@@ -326,7 +326,7 @@ export function ONhap({ nhan, loi, ...p }: TextInputProps & { nhan: string; loi?
     <View>
       <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{nhan}</Chu>
       <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} onFocus={() => setDang(true)} onBlur={() => setDang(false)}
-        style={[s.o, dang && s.oDang, loi && s.oSai]} {...p} />
+        {...p} style={[s.o, dang && s.oDang, loi && s.oSai, p.style]} />
       {loi ? <Chu kieu="dam" co={13.5} mau={M.loi} style={{ marginTop: 6 }}>{loi}</Chu> : null}
     </View>
   );

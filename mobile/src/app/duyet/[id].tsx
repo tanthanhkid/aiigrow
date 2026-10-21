@@ -63,13 +63,12 @@ export default function DuyetNv() {
       </View>
       {daXuLy ? <Nhan loai="xam" chu="Nhiệm vụ này đã được xử lý" /> : null}
       {d.anh.length ? d.anh.map((a) => (
-        <View key={a.id} style={{ borderRadius: 20, overflow: "hidden", backgroundColor: "#cfe3e6" }}>
-          <Image source={{ uri: `data:${a.mime};base64,${a.base64}` }} style={{ width: "100%", aspectRatio: 4 / 3 }} contentFit="cover"
+        // Dấu thời gian + nhãn so trùng nằm DƯỚI ảnh (không phủ lên ảnh — chữ trên ảnh thật khó đọc, WCAG 1.4.3 / F104).
+        <View key={a.id} style={{ borderRadius: 20, overflow: "hidden", backgroundColor: M.the, borderWidth: 1, borderColor: M.vien }}>
+          <Image source={{ uri: `data:${a.mime};base64,${a.base64}` }} style={{ width: "100%", aspectRatio: 4 / 3, backgroundColor: "#cfe3e6" }} contentFit="cover"
             accessibilityLabel={`Ảnh ${l.ten_con} chụp lúc ${gioPhut(a.chupLuc)}`} />
-          <View style={{ position: "absolute", left: 10, bottom: 10, backgroundColor: "rgba(0,0,0,.55)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-            <Chu kieu="dam" co={12} mau="#fff" so>{`Ảnh ${l.ten_con} chụp lúc ${gioPhut(a.chupLuc)}`}</Chu>
-          </View>
-          <View style={{ position: "absolute", right: 10, top: 10 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, paddingHorizontal: 12, paddingVertical: 10 }}>
+            <Chu kieu="dam" co={13} mau={M.chu2} so style={{ flexShrink: 1 }}>{`Chụp lúc ${gioPhut(a.chupLuc)} · trong app`}</Chu>
             <Nhan loai={l.nghi_trung ? "canh" : "ok"} ic={l.nghi_trung ? "canh_bao" : "tick"} chu={l.nghi_trung ? "Giống ảnh đã nộp trước" : "Không trùng ảnh cũ"} />
           </View>
         </View>
