@@ -84,16 +84,23 @@ public sealed class ApiClient : IDisposable
     public async Task<(Policy Policy, string Raw)> SyncAsync(AgentStatus status, IReadOnlyList<UsageEntry> usage,
         CancellationToken ct = default)
     {
-        var raw = await SendAsync(HttpMethod.Post, "api/device/sync", new { status, usage }, ct);
-        return (PolicyParser.Parse(raw), raw);
+        // Máy chủ AiiGrow: POST /api/device/dong-bo. Policy cho agent nằm ở trường `windows` (máy chủ dịch sẵn — server/lib/agent-windows.ts).
+        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo app (UsageTotals), không gửi phần tăng.
+        var tong = UsageTotals.Shared.Add(usage);
+        var raw = await SendAsync(HttpMethod.Post, "api/device/dong-bo", new
+        {
+            status, clientTime = DateTimeOffset.Now.ToString("O"),
+            usage = tong.Select(u => new { muc = u.AppId, phut = u.Minutes, day = u.Day }),
+        }, ct);
+        return (PolicyParser.Parse(LayWindows(raw)), raw);
     }
 
     public Task<RequestResult> CreateRequestAsync(string kind, int minutes, string? appId, string? appName,
         string? note, CancellationToken ct = default)
     {
-        if (kind == "doi_diem")
-            return PostAsync<RequestResult>("api/device/requests", new { kind, minutes }, ct);
-        return PostAsync<RequestResult>("api/device/requests", new { kind, minutes, appId, appName, note }, ct);
+        // Máy chủ AiiGrow: POST /api/device/yeu-cau {loai, phut, giaTri, lyDo} → {id, trang_thai}. lyDo bắt buộc.
+        var lyDo = string.IsNullOrWhiteSpace(note) ? (kind == "doi_diem" ? "Con muốn dùng điểm để chơi" : "Con xin thêm giờ") : note!;
+        return PostAsync<RequestResult>("api/device/yeu-cau", new { loai = "them_gio", phut = Math.Clamp(minutes, 5, 240), giaTri = appId, lyDo }, ct);
     }
 
     /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
@@ -110,7 +117,7 @@ public sealed class ApiClient : IDisposable
 
     public async Task<RequestStatus> GetRequestAsync(string id, CancellationToken ct = default)
     {
-        var raw = await SendAsync(HttpMethod.Get, "api/device/requests/" + Uri.EscapeDataString(id), null, ct);
+        var raw = await SendAsync(HttpMethod.Get, "api/device/yeu-cau/" + Uri.EscapeDataString(id), null, ct);
         return Deserialize<RequestStatus>(raw);
     }
 
@@ -170,4 +177,15 @@ public sealed class ApiClient : IDisposable
     }
 
     public void Dispose() => _http.Dispose();
+
+    /// <summary>Lấy trường `windows` (Policy dịch sẵn cho agent) từ phản hồi dong-bo; không có thì trả nguyên văn (máy chủ cũ / test).</summary>
+    public static string LayWindows(string raw)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            return doc.RootElement.TryGetProperty("windows", out var w) && w.ValueKind == JsonValueKind.Object ? w.GetRawText() : raw;
+        }
+        catch (JsonException) { return raw; }
+    }
 }

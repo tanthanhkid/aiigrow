@@ -1,8 +1,10 @@
 // API agent thiết bị Con: /api/device/<đường>. Bearer = token thiết bị (ghép bằng mã 6 số). Token thiết bị KHÔNG gọi được API Ba Mẹ
 // (khác bảng, khác hàm kiểm) — không có lệnh «mở khoá» hay «cộng điểm» nào ở đây: điểm, phiên, phê duyệt chỉ máy chủ quyết.
 import { batLoi, docJson, json, loi } from "./api.ts";
+import { chinhSachWindows } from "./agent-windows.ts";
 import { bearer } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { one } from "./db.ts";
 import { conTuPhien, dangNhapPin, ghepMay, mayTuToken } from "./gia-dinh.ts";
 import { dongBo } from "./may-con.ts";
 import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } from "./may-con.ts";
@@ -41,7 +43,11 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     const k = phienCon ? await conTuPhien(phienCon) : undefined;
     const con = may.child_id ?? (k && k.family_id === may.family_id ? k.id : null);
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
-    if (d === "dong-bo") return json({ ...(await dongBo(may, { ...b, conDangDung: con })), lenh: await lenhCho(may) });
+    if (d === "dong-bo") {
+      const pol = await dongBo(may, { ...b, conDangDung: con });
+      // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi
+      return json({ ...pol, lenh: await lenhCho(may), windows: chinhSachWindows(pol) });
+    }
     if (d === "nhip") return json(await nhipMay(may, con, b));
     // M4b mạng: trình cài một chạm lấy hồ sơ DNS gia đình của chính máy (mobileconfig / Private DNS / DoH Windows) để tự cài
     if (d === "ho-so-dns") return json(await hoSoDns(await thietBiChoMay(may)));
@@ -67,6 +73,12 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "phien/nhip") return json(await nhip(con, String(b.id ?? ""), b.dangDung !== false));
     if (d === "phien/dung") { await dungPhien(con, String(b.id ?? ""), "con_dung"); return json({ ok: true }); }
     if (d === "yeu-cau") return json(await guiYeuCau(con, may.id, b));
+    // agent Windows hỏi trạng thái lời xin đã gửi từ màn chặn (cho | dong_y | tu_choi | het_han | huy | da_thuc_thi) — chỉ lời xin của máy này
+    if (p[0] === "yeu-cau" && p[1] && req.method === "GET") {
+      const r = await one<{ trang_thai: string }>(`select trang_thai from requests where id = $1 and device_id = $2`, [p[1], may.id]);
+      if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy lời xin", 404);
+      return json({ status: r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? "dong_y" : r.trang_thai });
+    }
     // M4: phiên Con cho khung Kid (WebView2) · bù phút chơi khi mất mạng
     if (d === "phien-web") return json(await taoPhienWeb(may, con));
     if (d === "phien/bu") return json(await buPhien(may, con, b));
