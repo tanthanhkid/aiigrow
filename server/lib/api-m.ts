@@ -54,6 +54,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 
     if (d === "gia-dinh" && get) {
+      await tt.quetMatNhip(fam);   // chưa có cron: Ba Mẹ mở «Hôm nay» là quét máy mất nhịp của gia đình (cảnh báo một lần)
       const con = await gd.dsCon(fam);
       const f = (await one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]))!;
       const cho = await nv.choDuyet(fam), ycCho = await yc.dsChoYc(fam);
