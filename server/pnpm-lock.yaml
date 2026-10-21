@@ -11,6 +11,9 @@ importers:
       '@electric-sql/pglite':
         specifier: 0.5.10
         version: 0.5.10
+      jsqr:
+        specifier: 1.4.0
+        version: 1.4.0
       next:
         specifier: 16.4.2
         version: 16.4.2(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -346,6 +349,9 @@ packages:
   is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
     engines: {node: '>=8'}
+
+  jsqr@1.4.0:
+    resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
 
   locate-path@5.0.0:
     resolution: {integrity: sha512-t7hw9pI+WvuwNJXwk5zVHpyhIqzg2qTlklJOf0mVxGSbe3Fp2VieZcduNYjaLDoy6p9uGpQEGWG87WpMKlNq8g==}
@@ -710,6 +716,8 @@ snapshots:
   get-caller-file@2.0.5: {}
 
   is-fullwidth-code-point@3.0.0: {}
+
+  jsqr@1.4.0: {}
 
   locate-path@5.0.0:
     dependencies:
