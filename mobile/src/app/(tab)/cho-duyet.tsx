@@ -7,8 +7,10 @@ import {
 } from "@/lib/ui";
 
 
+type TuDong = { id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null };
+
 export default function ChoDuyet() {
-  const { d, loi, matMang, tai, dangTai } = useTai(() => bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[] }>("cho-duyet"));
+  const { d, loi, matMang, tai, dangTai } = useTai(() => bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; tuDong?: TuDong[] }>("cho-duyet"));
   const hl = useLam();
   const { bao, noi } = useHoanTac();
   useBaoKhiVe(bao);
@@ -64,6 +66,18 @@ export default function ChoDuyet() {
           </View>
         );
       })}
+      {d.tuDong?.length ? (
+        <>
+          <NhomTieu chu="Tự động duyệt hôm nay" />
+          <Nhom>
+            {d.tuDong.map((x, i) => (
+              <Dong key={x.id} dau={i === 0} tieu={x.ghi_chu ? `${x.ten}: ${x.ghi_chu}` : x.ten}
+                phu={`${x.ten_con} · +${x.diem} điểm · ${x.nguon === "aiirob" ? "AiiRob tự cộng" : "tự duyệt"}`}
+                trai={<BieuTron ic="mu" mau="tim" />} phai={<Nhan loai="xam" chu="Đã duyệt" />} />
+            ))}
+          </Nhom>
+        </>
+      ) : null}
     </Man>
   );
 }

@@ -46,7 +46,12 @@ async function tuan(con: string, tz: string, dau: string) {
   const top = await q<{ muc: string; phut: number }>(
     `select muc, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 and loai = 'giai_tri' group by muc order by phut desc limit 5`,
     [con, dau, congNgay(dau, 7)]);
-  return { dau, giaiTriTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: giaiTriNgay[d] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
+  const hocNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
+  for (const x of dung) if (x.loai === "hoc" || x.loai === "he_thong") hocNgay[x.ngay] = (hocNgay[x.ngay] ?? 0) + x.phut;
+  const dungNhieu = await q<{ muc: string; loai: string; phut: number }>(
+    `select muc, max(loai) as loai, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 and loai in ('hoc', 'giai_tri')
+     group by muc order by phut desc limit 5`, [con, dau, congNgay(dau, 7)]);
+  return { dau, hocTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: hocNgay[d] })), dungNhieu, giaiTriTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: giaiTriNgay[d] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
     phutHoc: hoc, diemKiemTheoNhom: kiem, diemTieuTheoLoai: tieu, duyet, ngoaiLe, top };
 }
 
@@ -63,5 +68,8 @@ export async function baoCaoTuan(fam: string, con: string, now = new Date()) {
   const lech = nay.tongGiaiTri - truoc.tongGiaiTri;
   if (truoc.tongGiaiTri && lech) cau.push(`Giờ chơi ${lech > 0 ? "tăng" : "giảm"} ${Math.abs(lech)} phút so với tuần trước`);
   if (nay.ngoaiLe) cau.push(`Có ${nay.ngoaiLe} lần ngoại lệ trong tuần`);
-  return { ten: c.ten, tuanNay: nay, tuanTruoc: truoc, chuGiai: cau.slice(0, 4) };
+  // «Dùng nhiều nhất» kèm % so tuần trước (thiết kế bm-bao-cao); mục mới tuần này ⇒ lech null
+  const dungNhieu = nay.dungNhieu.map((x) => { const cu = truoc.dungNhieu.find((y) => y.muc === x.muc)?.phut;
+    return { ...x, lech: cu ? Math.round(((x.phut - cu) / cu) * 100) : null }; });
+  return { ten: c.ten, tuanNay: { ...nay, dungNhieu }, tuanTruoc: truoc, chuGiai: cau.slice(0, 4) };
 }
