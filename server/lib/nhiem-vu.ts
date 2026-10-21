@@ -253,8 +253,8 @@ export async function duyetHangLoat(fam: string, ids: string[], nguoi: string) {
 /** Hộp thư «Chờ duyệt» (nhiệm vụ) gom theo Con. Chạy xử lý quá hạn trước. */
 export async function choDuyet(fam: string) {
   await xuLyQuaHan(fam);
-  return q<{ id: string; child_id: string; ten_con: string; ten: string; diem: number; nop_luc: Date; ghi_chu: string | null; nghi_trung: boolean; so_anh: number }>(
-    `select s.id, s.child_id, c.ten as ten_con, t.ten, t.diem, s.nop_luc, s.ghi_chu, s.nghi_trung,
+  return q<{ id: string; child_id: string; ten_con: string; ten: string; nhom: string; diem: number; nop_luc: Date; ghi_chu: string | null; nghi_trung: boolean; so_anh: number }>(
+    `select s.id, s.child_id, c.ten as ten_con, t.ten, t.nhom, t.diem, s.nop_luc, s.ghi_chu, s.nghi_trung,
             (select count(*)::int from evidence e where e.submission_id = s.id) as so_anh
      from submissions s join tasks t on t.id = s.task_id join children c on c.id = s.child_id
      where t.family_id = $1 and s.trang_thai = 'cho_duyet' order by s.nop_luc`, [fam]);
@@ -302,4 +302,38 @@ export async function ketQuaAiiRob(con: string, b: { maBai: string; tenBai: stri
     [id, nv.id, con, `${String(b.tenBai ?? "").slice(0, 120)} — ${Math.round(b.diemSo)}%`, `aiirob:${ma}`]);
   if (!moi.length) return null;                                     // bài này đã tính điểm rồi
   return duyet(c.family_id, id, null, { tuDong: true, diem: ts.aiirob_diem });
+}
+
+/** Chi tiết một lượt nộp cho màn duyệt: tên, Con, thời gian làm, lần thứ mấy hôm nay, cờ ảnh trùng. */
+export async function chiTietLuot(fam: string, subId: string) {
+  const s = await one<{ id: string; child_id: string; ten_con: string; ten: string; nhom: string; diem_md: number; diem: number | null; trang_thai: string;
+    bat_dau_luc: Date; nop_luc: Date | null; ghi_chu: string | null; nghi_trung: boolean; ly_do: string | null; loi_khen: string | null;
+    toi_da_ngay: number | null; task_id: string; tz: string }>(
+    `select s.id, s.child_id, c.ten as ten_con, t.ten, t.nhom, t.diem as diem_md, s.diem, s.trang_thai, s.bat_dau_luc, s.nop_luc, s.ghi_chu,
+            s.nghi_trung, s.ly_do, s.loi_khen, t.toi_da_ngay, t.id as task_id, f.tz
+     from submissions s join tasks t on t.id = s.task_id join children c on c.id = s.child_id join families f on f.id = t.family_id
+     where s.id = $1 and t.family_id = $2`, [subId, fam]);
+  if (!s) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ này", 404);
+  const d = await demLuot(q, s.child_id, s.task_id, s.tz);
+  const lamPhut = s.nop_luc ? Math.max(0, Math.round((new Date(s.nop_luc).getTime() - new Date(s.bat_dau_luc).getTime()) / 60000)) : null;
+  return { ...s, lamPhut, lanHomNay: d.ngay };
+}
+
+const HOAN_TAC_GIAY = 30;
+
+/** Hoàn tác một lần duyệt trong 30 giây (Gu Thanh: mỗi thao tác chính rút lại được): trừ lại điểm, lượt về «chờ duyệt», bỏ lời khen. */
+export async function hoanTacDuyet(fam: string, subId: string, nguoi: string) {
+  return tx(async (t) => {
+    const s = (await t<{ id: string; child_id: string; trang_thai: string; diem: number; duyet_luc: Date; nguoi_duyet: string | null; loi_khen: string | null; ten: string }>(
+      `select s.id, s.child_id, s.trang_thai, s.diem, s.duyet_luc, s.nguoi_duyet, s.loi_khen, t.ten from submissions s join tasks t on t.id = s.task_id
+       where s.id = $1 and t.family_id = $2 for update of s`, [subId, fam]))[0];
+    if (!s) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ này", 404);
+    if (s.trang_thai !== "duoc_duyet" || s.nguoi_duyet !== nguoi || Date.now() - new Date(s.duyet_luc).getTime() > HOAN_TAC_GIAY * 1000)
+      throw new LoiNghiepVu("het_hoan_tac", "Đã quá thời gian hoàn tác", 409);
+    await khoaCon(t, s.child_id);
+    await ghiDiem(t, s.child_id, -s.diem, "hoan", `Hoàn tác duyệt ${s.ten}`, { ref: s.id, nguoi });
+    await t(`update submissions set trang_thai = 'cho_duyet', diem = null, nguoi_duyet = null, duyet_luc = null, loi_khen = null where id = $1`, [s.id]);
+    if (s.loi_khen) await t(`delete from messages where id = (select id from messages where child_id = $1 and noi_dung = $2 order by created_at desc limit 1)`, [s.child_id, s.loi_khen]);
+    await ghiSuKien(fam, "hoan_tac_duyet", { ten: s.ten }, { con: s.child_id, nguoi }, t);
+  });
 }
