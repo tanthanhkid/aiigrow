@@ -43,6 +43,9 @@ export const THAM_SO = {
   tuan_thu_nguong: s(80, 0, 100),
   mo_khan_cap_toi_da_phut: s(120, 15, 720),
   goi_cai_gio: s(48, 1, 168),
+  // M4b mạng (chỉ thêm): thiết bị mạng không còn đi qua resolver quá X phút ⇒ báo; số truy vấn ngoài giờ trong ngày để báo «vượt giờ».
+  dns_mat_truy_van_phut: s(180, 30, 1440),
+  dns_vuot_gio_nguong: s(20, 1, 1000),
 } satisfies Record<string, So>;
 
 export type TenThamSo = keyof typeof THAM_SO;

@@ -13,6 +13,7 @@ import { dsCon } from "./gia-dinh.ts";
 import { nhipMay } from "./nhip-may.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
 import { doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
+import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -42,6 +43,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") return json({ ...(await dongBo(may, { ...b, conDangDung: con })), lenh: await lenhCho(may) });
     if (d === "nhip") return json(await nhipMay(may, con, b));
+    // M4b mạng: trình cài một chạm lấy hồ sơ DNS gia đình của chính máy (mobileconfig / Private DNS / DoH Windows) để tự cài
+    if (d === "ho-so-dns") return json(await hoSoDns(await thietBiChoMay(may)));
     if (d === "dong-bo") return json(await dongBo(may, { ...b, conDangDung: con }));
     if (d === "ho-so") return json({ con: (await dsCon(may.family_id)).filter((c) => !may.child_id || c.id === may.child_id).map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar })) });
     if (d === "pin") return json({ phienCon: await dangNhapPin(may, String(b.con ?? ""), String(b.pin ?? "")) });

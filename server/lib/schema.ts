@@ -434,3 +434,39 @@ export const SCHEMA_M4B = [
     created_at timestamptz not null default now()
   )`,
 ];
+
+// ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.
+// dns_gia_dinh: nhà cung cấp DNS của gia đình (tu_host | nextdns) + mã hồ sơ NextDNS do Ba Mẹ tự nhập (không lưu khoá API).
+// dns_thiet_bi: thiết bị đi qua resolver lọc — loai: agent (máy có AiiGrow, device_id) | tv | console | khac («máy con loại mạng»).
+//   nhan: nhãn ngắn trong hostname DoT / đường DoH để resolver biết thiết bị. truy_van_cuoi: lần cuối resolver thấy truy vấn.
+// dns_nhat_ky: nhật ký TÓM TẮT — chỉ tên miền + số lần (+ số lần bị chặn) theo ngày; không lưu URL, nội dung, giờ từng truy vấn.
+export const SCHEMA_M4B_MANG = [
+  `create table if not exists dns_gia_dinh (
+    family_id text primary key references families(id) on delete cascade,
+    nha_cung_cap text not null default 'tu_host',
+    ho_so_ngoai text,
+    updated_at timestamptz not null default now()
+  )`,
+  `create table if not exists dns_thiet_bi (
+    id text primary key,
+    family_id text not null references families(id) on delete cascade,
+    child_id text,
+    device_id text unique,
+    ten text not null,
+    loai text not null,
+    mac text,
+    nhan text not null unique,
+    truy_van_cuoi timestamptz,
+    mat_bao_luc timestamptz,
+    created_at timestamptz not null default now()
+  )`,
+  `create table if not exists dns_nhat_ky (
+    thiet_bi_id text not null references dns_thiet_bi(id) on delete cascade,
+    ngay text not null,
+    ten_mien text not null,
+    so_lan int not null default 0,
+    so_lan_chan int not null default 0,
+    ngoai_gio int not null default 0,
+    primary key (thiet_bi_id, ngay, ten_mien)
+  )`,
+];
