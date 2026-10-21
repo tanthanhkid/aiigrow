@@ -104,6 +104,8 @@ public sealed class PairResult
     public string Token { get; set; } = "";
     public string ChildName { get; set; } = "";
     public string? Server { get; set; }
+    /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN).</summary>
+    public bool DungChung { get; set; }
 }
 
 public sealed class RequestResult
@@ -130,6 +132,10 @@ public sealed class AgentConfig
     public string ChildSid { get; set; } = "";
     public string? LastPolicyJson { get; set; }
     public DateTimeOffset? LastPolicyAt { get; set; }
+    /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN khi vào).</summary>
+    public bool DungChung { get; set; }
+    /// <summary>AiiGrow (thêm): hàng đợi sự kiện gửi bù khi mất mạng.</summary>
+    public OfflineQueue Queue { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);
