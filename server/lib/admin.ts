@@ -128,6 +128,7 @@ export const TEN_THAM_SO: Record<TenThamSo, [string, string]> = {
   chan_lan_gio: ["Báo khi bị chặn nhiều lần mỗi giờ", "lần"], luu_bang_chung_ngay: ["Lưu ảnh bằng chứng", "ngày"],
   mat_nhip_di_dong_phut: ["Báo máy di động mất nhịp sau", "phút"], tuan_thu_nguong: ["Ngưỡng điểm tuân thủ (dưới ⇒ khoá giải trí)", "điểm"],
   mo_khan_cap_toi_da_phut: ["Mở khẩn cấp tối đa", "phút"], goi_cai_gio: ["Gói cài (token ghép) hết hạn sau", "giờ"],
+  dns_mat_truy_van_phut: ["Báo thiết bị mạng mất truy vấn DNS sau", "phút"], dns_vuot_gio_nguong: ["Số truy vấn ngoài giờ trong ngày để cảnh báo", "lần"],
 };
 
 /** Bảng tham số: mặc định trong mã + giá trị hệ thống Admin đặt (đã kẹp min–max). */
