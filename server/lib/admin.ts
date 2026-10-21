@@ -5,6 +5,7 @@ import { bamMatKhau, dungMatKhau, sha, taoToken, bearer } from "./auth.ts";
 import { newId, one, q, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { SCHEMA_M5 } from "./schema.ts";
+import { heThong } from "./he-thong.ts";
 import { THAM_SO, sachCauHinh, type TenThamSo } from "./cau-hinh.ts";
 import { ALLOWLIST_HE_THONG, chuanMuc } from "./luat-app.ts";
 import { MAU, NHOM_NV, BANG_CHUNG } from "./nhiem-vu.ts";
@@ -147,6 +148,7 @@ export async function datThamSo(nv: NhanVien, b: Record<string, unknown>) {
   const doi = Object.keys({ ...cu, ...moi }).filter((k) => cu[k] !== moi[k]).map((k) => ({ khoa: k, cu: cu[k] ?? null, moi: moi[k] ?? null }));
   if (!doi.length) return moi;
   await ghiHt("tham_so", moi, nv.id);
+  heThong.thamSo = moi;
   await ghiKiemToan(nv, "doi_tham_so", { doi });
   return moi;
 }
@@ -176,6 +178,7 @@ export async function suaAllowlist(nv: NhanVien, mucVao: unknown, them: boolean)
     ds.splice(i, 1);
   }
   await ghiHt("allowlist_them", ds, nv.id);
+  heThong.allowlistThem = [...ds];
   await ghiKiemToan(nv, them ? "them_allowlist" : "bo_allowlist", { muc });
   return ds;
 }
