@@ -175,7 +175,26 @@ Android DNS riêng tư / `setGlobalPrivateDnsModeSpecifiedHost` — https://deve
 Windows DoH — https://learn.microsoft.com/en-us/windows-server/networking/dns/doh-client-support ·
 NextDNS API — https://nextdns.github.io/api/
 
-## 6. Việc chờ (gọi API thật từng OS)
+## 6. Trạng thái bản thử (21/10) và việc chờ
+
+### 6.1 Đã chạy được
+
+| Phần | Trạng thái |
+|---|---|
+| Web Ba Mẹ / Con / quầy / admin | https://aiigrow.aiilab.vn (`/app`, `/app/tre`, `/quay`, `/admin`). API 0,4–1,2 giây (function iad1 cạnh DB). Luồng chính đầu-cuối đạt trên production |
+| Agent Windows (bản thử) | Gói cài: https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Windows-thu.zip (chưa ký số ⇒ «More info → Run anyway»). Ghép bằng mã 6 số lấy trong app (Hồ sơ & máy của Con → «Ghép thêm máy»). **Mặc định GIÁM SÁT** (chỉ ghi log việc sẽ chặn). Chặn thật: `AiiGrow.Setup.exe --che-do=chan`; quay lại `--che-do=giam-sat`; gỡ `--uninstall` hoặc gỡ từ xa |
+| Log agent | `C:\ProgramData\AiiGrow\logs\agent-yyyyMMdd.log` + `POST /api/device/log`; đọc: `GET /api/m/may/:id/log` (Ba Mẹ), `GET /api/admin/may/:id/log` (Admin) |
+| Máy chủ: chính sách chung, bộ chuyển đổi 9 nền tảng, tuân thủ, DNS gia đình | Có test, không cần thiết bị |
+
+### 6.2 Chờ Thanh / chờ quyết (không chặn bản thử)
+
+- **Windows**: nghiệm thu chặn thật trên máy Con (tài khoản Standard) — Thanh chạy ở chế độ giám sát trước, đọc log, rồi mới bật `chan`.
+  Màn app Ba Mẹ cho gỡ từ xa / gói cài một chạm / mở khẩn cấp, mã khẩn cấp offline, nút đổi chế độ trên khay: **chờ người viết tay**
+  (agent tự động dừng ở các phần này theo bộ lọc an toàn; API máy chủ đã có). Ký số trình cài: chờ chứng chỉ ký code của AiiLab.
+- **AiiRob**: webhook `/api/aiirob` sẵn sàng; production trả 503 tới khi đặt `AIIROB_WEBHOOK_SECRET` và chốt AiiRob gửi định danh Con thế nào.
+- **Quầy / admin trên production**: tạo tài khoản bằng `pnpm tao-tai-khoan` (cần DATABASE_URL production — master/chỉ huy).
+
+### 6.3 Gọi API thật từng OS (việc chờ thiết bị)
 
 - Windows: AppLocker, chính sách trình duyệt, `net user /times`, cài im lặng + gỡ từ xa — việc chờ máy Windows thử tài khoản Standard (agent-win).
 - Android: DPC Device Owner — việc chờ điện thoại khôi phục gốc; băm chữ ký APK cho QR; FCM cho lệnh tức thời — việc chờ dự án Firebase.
