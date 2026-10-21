@@ -74,6 +74,9 @@ phiếu quà — KHÔNG có ảnh bằng chứng) · `POST gia-dinh/:id/nap-quy 
 Header `X-AiiRob-Timestamp: <giây Unix>`, `X-AiiRob-Signature: sha256=<hex HMAC-SHA256(AIIROB_WEBHOOK_SECRET, "<timestamp>.<thân>")>`; lệch > 5 phút
 hoặc chữ ký sai ⇒ 401; thiếu biến môi trường ⇒ 503. Thân `{suKien: "bai_dat", con, maBai, tenBai, diemSo}` → `{ok, congDiem, lyDo}`.
 Đạt ngưỡng `aiirob_nguong` ⇒ +`aiirob_diem` tự duyệt, một lần mỗi bài (gửi trùng / cùng lúc không cộng đôi).
+Liên kết (M6): Ba Mẹ lấy mã `GET /api/m/con/:id/lien-ket-aiirob` → `{ma: "<family_id>.<child_id>"}` (màn hồ sơ Con, mục «Liên kết AiiRob») và dán vào AiiRob.
+AiiRob gửi lại `giaDinh` (= phần trước dấu chấm) + `con` (= phần sau). Có `giaDinh` mà không khớp gia đình của Con ⇒ 404 như không thấy;
+không có `giaDinh` ⇒ nhận như cũ (tương thích bản AiiRob chưa nâng cấp).
 
 ### Màn Con — bổ sung M3 (`server/lib/choi-tre.ts`, test `choi-tre.test.ts`)
 

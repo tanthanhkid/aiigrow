@@ -92,6 +92,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
       if (sau === "bao-cao" && get) return json(await baoCaoTuan(fam, id));
       if (sau === "thanh-tich" && get) return json(await thanhTich(id));
+      // M6: mã liên kết AiiRob «<family_id>.<child_id>» Ba Mẹ dán vào AiiRob (webhook gửi lại giaDinh + con, xem lib/aiirob.ts)
+      if (sau === "lien-ket-aiirob" && get) return json({ ma: `${fam}.${id}` });
       if (sau === "loi-khen" && post) {
         const nd = s(b.noiDung, 200);
         if (!nd) throw new LoiNghiepVu("thieu_noi_dung", "Viết lời khen ngắn cho Con");

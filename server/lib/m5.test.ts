@@ -249,3 +249,41 @@ test("webhook AiiRob: bài đạt ⇒ +20 điểm tự duyệt; gửi trùng (k�
   assert.equal((await guiAiiRob({ suKien: "khac" })).body.boQua, true);
   assert.equal((await guiAiiRob({ suKien: "bai_dat", con })).status, 400);
 });
+
+// ---------------------------------------------------------------- M6 liên kết AiiRob: mã «<family_id>.<child_id>»
+test("webhook AiiRob + giaDinh: đúng gia đình ⇒ cộng; sai gia đình ⇒ 404 như không thấy; thiếu giaDinh ⇒ cách cũ", async () => {
+  process.env.AIIROB_WEBHOOK_SECRET = KHOA_GIA;
+  const { fam } = await taoNha("Lien");
+  const { fam: famKhac } = await taoNha("Khac");
+  const con = await g.taoCon(fam, { ten: "Na" });
+  const bai = { suKien: "bai_dat", con, maBai: "LK-1", tenBai: "Đếm số", diemSo: 95 };
+  // sai gia đình: 404 giống hệt Con không tồn tại, không cộng
+  const sai = await guiAiiRob({ ...bai, giaDinh: famKhac });
+  const khongCo = await guiAiiRob({ ...bai, con: "khongco", giaDinh: fam });
+  assert.equal(sai.status, 404);
+  assert.deepEqual(sai.body, khongCo.body);
+  assert.equal((await guiAiiRob({ ...bai, giaDinh: "" })).status, 404, "giaDinh rỗng cũng phải khớp");
+  assert.equal(await v.soDu(con), 0);
+  // đúng gia đình: cộng 20
+  const dung = await guiAiiRob({ ...bai, giaDinh: fam });
+  assert.equal(dung.status, 200);
+  assert.equal(dung.body.congDiem, 20);
+  assert.equal(await v.soDu(con), 20);
+  // thiếu giaDinh: vẫn nhận như cũ (bài khác ⇒ cộng tiếp)
+  const cu = await guiAiiRob({ ...bai, maBai: "LK-2" });
+  assert.equal(cu.status, 200);
+  assert.equal(cu.body.congDiem, 20);
+  assert.equal(await v.soDu(con), 40);
+});
+
+test("GET /api/m/con/:id/lien-ket-aiirob ⇒ {ma: <family_id>.<child_id>}; Con nhà khác ⇒ 404", async () => {
+  const { fam, bm } = await taoNha("Ma");
+  const { fam: famKhac } = await taoNha("Xa");
+  const con = await g.taoCon(fam, { ten: "Bo" });
+  const conKhac = await g.taoCon(famKhac, { ten: "Bi" });
+  const tok = await taoPhien(bm);
+  const r = await m(`con/${con}/lien-ket-aiirob`, { tok });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ma, `${fam}.${con}`);
+  assert.equal((await m(`con/${conKhac}/lien-ket-aiirob`, { tok })).status, 404);
+});

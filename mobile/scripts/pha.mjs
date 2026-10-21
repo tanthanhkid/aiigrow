@@ -134,6 +134,10 @@ Object.assign(coBan, {
   "POST con/c1/dong-bang-chuoi": { ngay: "2026-10-21" },
   "GET con/c1/bao-cao/csv": { tenTep: "aiigrow-bao-cao-Ken-2026-10-19.csv", noiDung: "\uFEFFBáo cáo tuần AiiGrow,Ken\r\n" },
 });
+
+// M6 liên kết AiiRob: mã «<family_id>.<child_id>» (id thật dài 20 ký tự ⇒ đo tràn dòng ở 320px)
+const MA_AIIROB = "3f9a1c0e7b2d4a6f8e1c.c1d2e3f4a5b6c7d8e9f0";
+coBan["GET con/c1/lien-ket-aiirob"] = { ma: MA_AIIROB };
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -263,6 +267,7 @@ if (process.argv.includes("--giao-dien")) {
     M("thong-bao/cai-dat", "/thong-bao/cai-dat", "Việc Ba Mẹ khác làm"),
     M("thong-bao/cai-dat (bảng giờ)", "/thong-bao/cai-dat", "Lưu giờ yên lặng", { truoc: async () => { await di("/thong-bao/cai-dat"); await doi("Đổi giờ"); await bam("Đổi giờ"); } }),
   ];
+  dsMan.push(M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"));
   // PHA_MAN=<biểu thức chính quy>: chỉ chạy các màn khớp tên (soát nhanh khi sửa)
   if (process.env.PHA_MAN) dsMan.splice(0, dsMan.length, ...dsMan.filter((m) => new RegExp(process.env.PHA_MAN).test(m.ten)));
   const vao = async (m) => {
@@ -432,6 +437,22 @@ await kichBan("Giờ yên lặng: bật ⇒ lưu ⇒ báo đã bật", async () 
   await sleep(500);
   xet(nhatKy.some((x) => x.d === "thong-bao/cai-dat" && x.body?.yenLang?.bat === true && x.body?.tat?.includes("thanh_tich")), "bật giờ yên lặng, giữ nhóm đã tắt");
   xet(await doi("Đã bật giờ yên lặng"), "báo đã bật");
+});
+
+await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>.<child_id> + nút Sao chép mã; lỗi tải mã không làm hỏng màn", async () => {
+  await goi("Browser.grantPermissions", { origin: GOC, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
+  await di("/ho-so/c1");
+  xet(await doi("Liên kết AiiRob"), "có mục Liên kết AiiRob");
+  xet(await doi(MA_AIIROB), "hiện đúng mã liên kết");
+  xet(nhatKy.some((x) => x.m === "GET" && x.d === "con/c1/lien-ket-aiirob"), "gọi GET con/c1/lien-ket-aiirob");
+  await bam("Sao chép mã");
+  xet((await js("navigator.clipboard.readText().catch(() => null)")) === MA_AIIROB, "Sao chép ⇒ mã vào bộ nhớ tạm");
+  xet(await doi("Đã sao chép mã"), "báo đã sao chép");
+  kb["GET con/c1/lien-ket-aiirob"] = { status: 500, body: { error: "loi", message: "Lỗi máy chủ" } };
+  await di("/ho-so/c1");
+  xet(await doi("Ghép thêm máy"), "lỗi tải mã: màn hồ sơ vẫn hiện");
+  await sleep(800);
+  xet(!(await chu())?.includes("Liên kết AiiRob"), "lỗi tải mã: ẩn mục liên kết");
 });
 
 ws.close();
