@@ -145,8 +145,11 @@ try {
   console.log("\n# Dùng điểm để chơi");
   await api("m", `con/${con.id}/diem`, { delta: 100, lyDo: "Thưởng cuối tuần" }, bmTok);
   await api("m", "luat", { con: con.id, muc: "roblox.exe", ten: "Roblox", loai: "giai_tri" }, bmTok);
+  // kịch bản chạy giờ nào cũng được: mở khung chơi cả ngày, giờ ngủ dời ra 03:00–03:01
+  const caNgay = [{ tu: "00:00", den: "23:59" }];
+  await api("m", `con/${con.id}/lich`, { ngayThuong: caNgay, cuoiTuan: caNgay, ngu: { tu: "03:00", den: "03:01" } }, bmTok);
   const xetPhien = await api("device", "phien/xet", { muc: "roblox.exe" }, may.token);
-  await xet(xetPhien.duoc, `máy hỏi «Dùng điểm để chơi?» — được, tối đa ${xetPhien.phutToiDa} phút`);
+  await xet(xetPhien.duoc, `máy hỏi «Dùng điểm để chơi?» — ${xetPhien.duoc ? `được, tối đa ${xetPhien.phutToiDa} phút` : `không: ${xetPhien.lyDo} ${xetPhien.cau ?? ""}`}`);
   if (xetPhien.duoc) {
     const ph = await api("device", "phien/mo", { muc: "roblox.exe" }, may.token);
     const nh = await api("device", "phien/nhip", { id: ph.id ?? ph.phien?.id, dangDung: true }, may.token);
