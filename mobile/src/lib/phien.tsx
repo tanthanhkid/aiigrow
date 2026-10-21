@@ -24,7 +24,8 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     setCo(false);
     router.replace("/chao");
   }, []);
-  return <Ctx.Provider value={{ san, co, vao, ra }}>{children}</Ctx.Provider>;
+  // Chưa nạp xong token thì chưa dựng màn: mở thẳng một đường dẫn (tải lại trang web, link sâu) không được gọi API khi chưa có Bearer.
+  return <Ctx.Provider value={{ san, co, vao, ra }}>{san ? children : null}</Ctx.Provider>;
 }
 
 export const usePhien = () => useContext(Ctx);
