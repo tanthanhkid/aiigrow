@@ -288,13 +288,15 @@ export async function biMatOfflineMay(deviceId: string): Promise<string | null> 
   const kq = await q<{ offline_secret: string }>(`update devices set offline_secret = $2 where id = $1 and offline_secret is null returning offline_secret`, [deviceId, moi]);
   if (kq[0]) return kq[0].offline_secret;
   // thua cuộc đua: lần thắng vừa ghi bí mật khác ⇒ đọc lại, KHÔNG trả bí mật của mình (kẻo máy chủ và agent lệch nhau).
+  // Máy bị xoá chen giữa ⇒ null (không trả bí mật chưa lưu để rồi hiện mã agent không bao giờ nhận).
   const lai = await one<{ offline_secret: string | null }>(`select offline_secret from devices where id = $1`, [deviceId]);
-  return lai?.offline_secret ?? moi;
+  return lai ? lai.offline_secret ?? moi : null;
 }
 
 /** Ba Mẹ xem mã mở offline của một máy (có kiểm chủ quyền + ghi nhật ký). */
 export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string, now = new Date(), phutMo = 60) {
   const m = await mayCua(fam, mayId);
+  if (m.platform !== "windows") throw new LoiNghiepVu("sai_nen_tang", "Mã mở offline hiện chỉ dùng cho máy Windows", 400);
   const bm = await biMatOfflineMay(m.id);
   if (!bm) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   const ma = maOffline(bm, now);

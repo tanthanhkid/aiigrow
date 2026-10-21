@@ -108,7 +108,11 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "cau-hinh-nen-tang" && get) return json(await cauHinhNenTangMay(fam, p[1]));
       if (sau === "mo-khan-cap" && post) return json(await tt.moKhanCap(fam, p[1], b, bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
-      if (sau === "ma-offline" && get) return json(await tt.maOfflineChoMay(fam, p[1], bm.id));
+      if (sau === "ma-offline" && get) {
+        // Lấy mã = cấp quyền mở máy ⇒ chặn vai Chỉ xem (như các thao tác điều khiển POST ở trên).
+        if (bm.vai === "xem") throw new LoiNghiepVu("chi_xem", "Tài khoản của Ba/Mẹ đang ở quyền Chỉ xem", 403);
+        return json(await tt.maOfflineChoMay(fam, p[1], bm.id));
+      }
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
     }
