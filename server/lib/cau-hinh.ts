@@ -37,6 +37,12 @@ export const THAM_SO = {
   ngung_chay_phut: s(15, 5, 120),          // máy đang bật mà agent im lặng quá ⇒ báo Ba Mẹ (M4b)
   chan_lan_gio: s(10, 3, 50),
   luu_bang_chung_ngay: s(90, 30, 365),
+  // M4b (chỉ thêm): nhịp thưa của điện thoại/máy tính bảng (Android Doze, iOS chạy nền giới hạn) ⇒ ngưỡng mất nhịp riêng; điểm tuân thủ
+  // dưới ngưỡng ⇒ khoá giải trí (fail-closed); mở khẩn cấp tối đa; hạn token gói cài.
+  mat_nhip_di_dong_phut: s(180, 30, 1440),
+  tuan_thu_nguong: s(80, 0, 100),
+  mo_khan_cap_toi_da_phut: s(120, 15, 720),
+  goi_cai_gio: s(48, 1, 168),
 } satisfies Record<string, So>;
 
 export type TenThamSo = keyof typeof THAM_SO;
