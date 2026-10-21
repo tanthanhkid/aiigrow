@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start -p 3310",
     "test": "node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:app": "node scripts/build-app.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
