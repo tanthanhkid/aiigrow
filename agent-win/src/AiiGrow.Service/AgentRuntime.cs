@@ -63,6 +63,8 @@ public sealed class AgentRuntime
             {
                 Config.LastPolicyJson = raw;
                 Config.LastPolicyAt = _policyAt;
+                // Giữ lại bí mật mã offline (máy chủ chỉ gửi khi có) để còn kiểm mã lúc mất mạng.
+                if (!string.IsNullOrEmpty(p.MaOfflineBiMat)) Config.MaOfflineBiMat = p.MaOfflineBiMat;
                 try { Store.Save(Config); _cfgStamp = Store.LastWriteUtc; } catch { }
             }
         }

@@ -64,6 +64,8 @@ public sealed class Policy
     public DateTimeOffset? GrantEndsAt { get; set; }
     public int NextCheckSec { get; set; } = 30;
     public bool CanExchangePoints { get; set; }
+    /// <summary>AiiGrow: bí mật mã mở offline (MaOffline.cs) — máy chủ cấp qua dong-bo.windows khi còn mạng; agent lưu để tự kiểm mã lúc mất mạng.</summary>
+    public string? MaOfflineBiMat { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -171,6 +173,8 @@ public sealed class AgentConfig
     public string CheDo { get; set; } = CheDoAgent.GiamSat;
     /// <summary>AiiGrow (thêm): hàng đợi sự kiện gửi bù khi mất mạng.</summary>
     public OfflineQueue Queue { get; set; } = new();
+    /// <summary>AiiGrow (thêm): bí mật mã mở offline, lưu lại từ Policy để còn dùng khi mất mạng (xem <see cref="Policy.MaOfflineBiMat"/>).</summary>
+    public string? MaOfflineBiMat { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

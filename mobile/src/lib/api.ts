@@ -107,3 +107,6 @@ export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }>
   ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có nhịp", loai: "xam" },
 };
 type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
+
+/** Mã mở offline của một máy (GET may/:id/ma-offline) — Ba Mẹ đọc cho Con gõ khi máy mất mạng. */
+export type MaOffline = { ma: string; conGiay: number; hieuLucPhut: number; phutMo: number };

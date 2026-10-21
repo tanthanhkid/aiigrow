@@ -274,3 +274,28 @@ export async function tinCayAdmin(fam: string, mayId: string, b: { ten?: unknown
   await ghiSuKien(fam, "tin_cay_admin", { ten, tinCay: b.tinCay !== false }, { con: m.child_id, may: m.id, nguoi });
   return { adminTinCay: moi };
 }
+
+// ---------------------------------------------------------------- Mã mở offline (lib/ma-offline.ts): bí mật chung máy ↔ máy chủ
+import { BUOC_GIAY, DUNG_SAI, maOffline, taoBiMatOffline } from "./ma-offline.ts";
+
+/** Lấy (hoặc tạo lần đầu) bí mật mã offline của một máy — dùng cả cho agent (theo deviceId) lẫn Ba Mẹ. */
+export async function biMatOfflineMay(deviceId: string): Promise<string | null> {
+  const r = await one<{ offline_secret: string | null }>(`select offline_secret from devices where id = $1`, [deviceId]);
+  if (!r) return null;
+  if (r.offline_secret) return r.offline_secret;
+  const bm = taoBiMatOffline();
+  // chỉ ghi nếu còn trống (tránh đè khi hai lần song song)
+  const kq = await q<{ offline_secret: string }>(`update devices set offline_secret = $2 where id = $1 and offline_secret is null returning offline_secret`, [deviceId, bm]);
+  return kq[0]?.offline_secret ?? bm;
+}
+
+/** Ba Mẹ xem mã mở offline của một máy (có kiểm chủ quyền + ghi nhật ký). */
+export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string, now = new Date(), phutMo = 60) {
+  const m = await mayCua(fam, mayId);
+  const bm = await biMatOfflineMay(m.id);
+  if (!bm) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+  const ma = maOffline(bm, now);
+  const conGiay = BUOC_GIAY * (DUNG_SAI + 1) - Math.floor((now.getTime() / 1000) % BUOC_GIAY);
+  await ghiSuKien(fam, "xem_ma_offline", {}, { con: m.child_id, may: m.id, nguoi });
+  return { ma, conGiay, hieuLucPhut: Math.round((BUOC_GIAY * (2 * DUNG_SAI + 1)) / 60), phutMo };
+}

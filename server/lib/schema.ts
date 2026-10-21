@@ -433,6 +433,8 @@ export const SCHEMA_M4B = [
     nguoi text,
     created_at timestamptz not null default now()
   )`,
+  // Mã mở offline: bí mật chung cấp lúc ghép máy để agent tự tính/kiểm mã TOTP khi mất mạng (lib/ma-offline.ts).
+  `alter table devices add column if not exists offline_secret text`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

@@ -11,11 +11,13 @@ import type { Policy } from "./may-con.ts";
 export type PolicyWindows = {
   serverTime: string; childName: string; mode: "hoc" | "khoa"; locked: boolean; lockReason: string | null;
   allowedApps: string[]; learningApps: string[]; minutesLeft: null; nextCheckSec: number; canExchangePoints: boolean;
+  /** Bí mật mã mở offline (lib/ma-offline.ts) — agent lưu khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng. */
+  maOfflineBiMat?: string;
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
 
-export function chinhSachWindows(p: Policy): PolicyWindows {
+export function chinhSachWindows(p: Policy, maOfflineBiMat?: string): PolicyWindows {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
   const hoc = p.luat.filter((l) => l.loai === "hoc" && exe(l.muc)).map((l) => l.muc.toLowerCase());
@@ -28,5 +30,6 @@ export function chinhSachWindows(p: Policy): PolicyWindows {
     allowedApps: [...new Set([...p.allowlistHeThong.filter(exe).map((x) => x.toLowerCase()), ...hoc, ...choi])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null, nextCheckSec: p.nextCheckSec, canExchangePoints: p.soDu > 0,
+    ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
   };
 }
