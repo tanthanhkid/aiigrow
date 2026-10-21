@@ -23,6 +23,8 @@ import { lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
 import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
 // M4b kiểm soát mạng (chỉ thêm): hồ sơ DNS gia đình, máy con loại mạng (TV, console), nhật ký tóm tắt, hướng dẫn router / TV
 import * as dns from "./dns-gia-dinh.ts";
+// Thành viên gia đình + thông báo trong app (chỉ thêm)
+import * as gt from "./api-gia-dinh.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -48,11 +50,14 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "dang-ky" && post) return json({ token: await taoPhien(await dangKy(await docJson(req))), moi: true });
     if (d === "dang-nhap" && post) { const b = await docJson(req); return json({ token: await taoPhien(await dangNhap(b.dinhDanh, b.matKhau)) }); }
     if (d === "quen-mat-khau" && post) { const b = await docJson(req); await datLaiMatKhau(b.dinhDanh, b.ma, b.matKhauMoi); return json({ ok: true }); }
+    { const r = await gt.xuLyMoiCongKhai(req, p); if (r) return r; }          // lời mời thành viên (không cần đăng nhập)
     // ---- cần đăng nhập
     const bm = await baMeGoi(req);
     if (!bm) return loi("chua_dang_nhap", "Phiên đăng nhập đã hết — đăng nhập lại nhé", 401);
+    { const r = await gt.xuLyThongBao(req, bm, p); if (r) return r; }       // thông báo riêng từng Ba Mẹ (cả vai Chỉ xem)
     if (post && bm.vai === "xem" && d !== "dang-xuat") throw new LoiNghiepVu("chi_xem", "Tài khoản của Ba/Mẹ đang ở quyền Chỉ xem", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
+    { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
     if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: bm.vai } });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 

@@ -57,6 +57,47 @@ cổng admin, màn quầy.
 | **M5 Quầy AiiCafe + Admin** | `/quay`: một nút quét QR (camera trình duyệt) hoặc gõ mã, kết quả to Hợp lệ / Đã dùng / Hết hạn, âm báo; `/admin`: dashboard, gia đình, ghi nạp quỹ, kho + đối soát voucher, thư viện mẫu, Allowlist hệ thống, tham số, nhật ký kiểm toán | test máy chủ cho quét một lần (song song 2 lượt quét ⇒ 1 thành công); cổng giao diện 0 lỗi cho `cafe-*` |
 | **M6 Tích hợp + bản thử** | webhook AiiRob «bài đạt» ⇒ nhiệm vụ tự duyệt (một lần/bài, ngưỡng đạt), deploy bản thử (Vercel preview) | test webhook (chữ ký sai bị từ chối, gửi trùng không cộng đôi); link bản thử chạy được luồng đầu-cuối |
 
+### 3a. Bảng trạng thái (rà soát 22/10 — KE-HOACH, API.md, BRD mục 4)
+
+«Chờ thiết bị» = cần máy thật (Windows Standard, Android, iPhone/Mac), chứng chỉ ký số, tài khoản Apple / Google, push thật (APNs / FCM)
+hoặc nhà cung cấp SMS / email — làm khi có, không chặn bản thử.
+
+| Mốc | Trạng thái | Còn lại |
+|---|---|---|
+| M0 Khung | **xong** (#1) | — |
+| M1 Lõi máy chủ | **xong** (#5, #14) | các FR «chưa làm» ở bảng dưới |
+| M2 App Ba Mẹ | **xong** — 31 màn thiết kế (#8, #10) + thành viên gia đình, thông báo trong app, giữ chuỗi ngày, xuất CSV (PR rà soát 22/10) | push thật + duyệt từ màn khoá: **chờ thiết bị**; màn điều khiển máy con (gỡ từ xa, mở khẩn cấp, tuân thủ): master đang làm |
+| M3 Màn Con | **xong** bản web (#12) | bản native Android + camera thật trên máy Con: **chờ thiết bị** |
+| M4 Agent Windows | **xong** mã + bản thử chế độ giám sát (#7, #11, #18, #19, #20) | nghiệm thu chặn thật trên máy Con tài khoản Standard, video: **chờ thiết bị**; ký số trình cài: **chờ chứng chỉ**; nút khay đổi chế độ: master đang làm |
+| M4b Độ bền máy con | **xong** phần máy chủ (#13) | agent từng OS (mac / iOS / Android / TV) + `docs/DO-BEN.md` chạy thật: **chờ thiết bị** (Mac / Xcode / tài khoản Apple) |
+| M4c Cài một chạm + gỡ từ xa | **xong** phần máy chủ + Windows (#11, #18) | cài im lặng trên máy sạch, gỡ từ xa chạy thật, .pkg / MDM / Android Device Owner / iOS: **chờ thiết bị** |
+| M4b mạng | **xong** phần máy chủ (#15) | resolver tự host chạy thật, đặt DNS router / TV thật, NextDNS thật: **chờ thiết bị** |
+| M5 Quầy + Admin | **xong** (#9) | — |
+| M6 Tích hợp + bản thử | **xong** webhook (#9) + bản thử https://aiigrow.aiilab.vn | bí mật chung `AIIROB_WEBHOOK_SECRET`: chờ master; trang `/tai`, nâng cấp webhook: agent khác đang làm |
+
+FR theo BRD mục 4 còn chưa trọn (mọi FR khác đã có ở máy chủ + màn):
+
+| FR | Phần còn thiếu | Trạng thái |
+|---|---|---|
+| FR-01.01 | đăng nhập Apple / Google; OTP gửi SMS / email thật; 2FA (khuyến nghị) | Apple / Google, SMS: **chờ thiết bị / tài khoản** (khoá OAuth, nhà cung cấp SMS); 2FA: chưa làm |
+| FR-01.01 | một tài khoản là Thành viên của NHIỀU gia đình | giai đoạn này mỗi tài khoản một gia đình (tài khoản còn trống nhận lời mời thì chuyển nhà được) — CẦN ANH quyết |
+| FR-01.04 | mời Ba / Ông Bà quyền Phê duyệt / Chỉ xem, link / mã / QR, hết hạn 72 giờ, đổi quyền, mời ra | **xong** (PR rà soát 22/10) |
+| FR-01.04 | «cần cả hai người duyệt» cho loại yêu cầu lớn | chưa làm (Should) |
+| FR-01.05, 02.01–02.03 | thực thi trên máy Con (chặn, AppLocker, bộ lọc trình duyệt) | Windows có mã; chạy thật: **chờ thiết bị** |
+| FR-02.04 | chế độ nghỉ hè (lịch khác), «Tạm mở» thủ công | chưa làm (Khoá ngay / Mở lại đã có) |
+| FR-02.06 | Chế độ Tập trung | chưa làm (Should); phần thực thi trên máy: **chờ thiết bị** |
+| FR-03.02 | bằng chứng video ≤ 30 giây, ghi âm | **chờ thiết bị** (camera / micro thật) |
+| FR-03.05 | tuỳ chọn hết hạn điểm (mặc định tắt) | chưa làm |
+| FR-03.06 | Ba Mẹ đóng băng chuỗi ngày 1 lần / tuần | **xong** (PR rà soát 22/10) |
+| FR-04.04 | «nhận xét cảm ơn» khi nhận quà | chưa làm (không bắt buộc) |
+| FR-05.02 | đồng ý / từ chối ngay trên thông báo màn khoá | **chờ thiết bị** (push thật) |
+| FR-06.02 | xuất CSV | **xong** (PR rà soát 22/10); PDF: chưa làm; email tóm tắt tuần: **chờ** nhà cung cấp email |
+| FR-07.02 | cảnh báo nghiêm trọng qua push + email / SMS | **chờ thiết bị** / nhà cung cấp |
+| FR-08.01 | thông báo trong app: danh sách, gộp «Ken vừa nộp 3 nhiệm vụ», chưa đọc, giờ yên lặng, tắt từng nhóm (riêng mỗi Ba Mẹ) | **xong** (PR rà soát 22/10); push (Expo / APNs / FCM): **chờ thiết bị** |
+| FR-09.06 | quản lý phiên bản agent, canary, bản tối thiểu | chưa làm (Should) |
+| FR-09.07, 10.03 | gói trả phí, nhập Screen Time / Family Link | ngoài giai đoạn (mục 5.5) |
+| FR-10.01 | SSO AiiGrow ↔ AiiRob, tiến độ học | chờ AiiRob (webhook bài đạt đã có) |
+
 ### 3b. Độ bền máy con — cách lách → biện pháp
 
 Giới hạn cứng: KHÔNG ẩn mình, không chống gỡ trái phép (không thủ đoạn giữ app khi người có quyền gỡ — gỡ chính hãng luôn dùng được và
