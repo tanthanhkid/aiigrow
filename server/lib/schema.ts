@@ -337,3 +337,52 @@ create table if not exists messages (
 // play_sessions.trang_thai (Phụ lục A.3): chay | tam | ket_thuc. requests.loai: them_gio | mo_web | cai_app | ngoai_le | ngoai_gio | khac.
 //   requests.trang_thai (A.2): cho | dong_y | tu_choi | het_han | huy | da_thuc_thi. requests.pham_vi: lan_nay | hom_nay | vinh_vien.
 // alerts.muc: thong_tin | chu_y | nghiem_trong. alerts.khoa: chặn báo trùng (vd «ngoai_le_mem:2026-W43:<con>»).
+
+// ---------------------------------------------------------------- M5 quầy AiiCafe + cổng admin (lib/admin.ts tự chạy khối này một lần)
+// staff.vai: quay (Nhân viên AiiCafe — chỉ màn /quay) | admin (AiiLab — /admin, dùng được cả /quay). Tạo bằng scripts/tao-tai-khoan.ts
+// (mật khẩu đọc từ biến môi trường, không nằm trong mã). he_thong: khoá 'tham_so' (mặc định hệ thống mục 10), 'allowlist_them' (mục thêm
+// vào Allowlist hệ thống). mau_he_thong.loai: nhiem_vu | qua; nhom: nhi | teen | '' (quà). audit.hanh_dong: dang_nhap, nap_quy, quet_voucher…
+export const SCHEMA_M5 = `
+create table if not exists staff (
+  id text primary key,
+  ten_dang_nhap text not null unique,
+  ten text not null,
+  vai text not null,
+  quay text not null default '',
+  pass_hash text not null,
+  sai_lien int not null default 0,
+  khoa_den timestamptz,
+  bat boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create table if not exists staff_sessions (
+  id text primary key,
+  staff_id text not null references staff(id) on delete cascade,
+  expires_at timestamptz not null
+);
+create table if not exists audit (
+  id text primary key,
+  staff_id text,
+  vai text,
+  hanh_dong text not null,
+  family_id text,
+  chi_tiet jsonb not null default '{}',
+  seq bigserial,
+  created_at timestamptz not null default now()
+);
+create index if not exists audit_luc on audit(created_at);
+create table if not exists he_thong (
+  khoa text primary key,
+  gia_tri jsonb not null default '{}',
+  nguoi text,
+  updated_at timestamptz not null default now()
+);
+create table if not exists mau_he_thong (
+  id text primary key,
+  loai text not null,
+  nhom text not null default '',
+  du_lieu jsonb not null,
+  bat boolean not null default true,
+  created_at timestamptz not null default now()
+)
+`;
