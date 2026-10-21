@@ -80,7 +80,7 @@ public sealed class AgentStatus
     public bool Offline { get; set; }
 }
 
-/// <summary>Mã QR ghép máy (POST /api/pair/qr). Máy con hiện <see cref="Qr"/>, giữ <see cref="Bi"/> để hỏi kết quả — Bi không nằm trong QR.</summary>
+/// <summary>Mã QR ghép máy (POST /api/device/ghep-qr). Máy con hiện <see cref="Qr"/>, giữ <see cref="Bi"/> để hỏi kết quả — Bi không nằm trong QR.</summary>
 public sealed class QrPair
 {
     public string Ma { get; set; } = "";
@@ -90,7 +90,7 @@ public sealed class QrPair
     public List<string> Qr { get; set; } = new();
 }
 
-/// <summary>GET /api/pair/qr/&lt;ma&gt;?bi=… — "cho" | "het" | "xong" (kèm token, chỉ trả một lần).</summary>
+/// <summary>POST /api/device/ghep-qr/hoi {ma, bi} — "cho" | "het" | "xong" (kèm token, chỉ trả một lần).</summary>
 public sealed class QrState
 {
     public string TrangThai { get; set; } = "";
