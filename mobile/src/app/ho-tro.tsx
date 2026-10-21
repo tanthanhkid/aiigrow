@@ -37,7 +37,7 @@ export default function HoTro() {
         </View>
       ) : (
         <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomRightRadius: 6, maxWidth: "78%" }}>
-          <Chu mau="#fff">{t.noi_dung}</Chu><Chu co={12} mau="#d6f1ec">{gioPhut(t.created_at)}</Chu>
+          <Chu mau="#fff">{t.noi_dung}</Chu><Chu co={12} mau="#ffffff">{gioPhut(t.created_at)}</Chu>
         </View>
       ))}
     </Man>

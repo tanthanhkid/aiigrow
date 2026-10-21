@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, tieuYc, type YeuCau } from "@/lib/api";
 import {
-  Bao, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, OChon, ONhap, BangTruot, baoKhiVe, useLam, useTai,
+  Bao, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, gioPhut, HaiNut, M, Man, Nut, OChon, ONhap, BangTruot, baoKhiVe, useLam, useTai,
 } from "@/lib/ui";
 
 type ChiTiet = YeuCau & { trang_thai: string; soDu: number; giaPhut: number;
@@ -29,7 +29,7 @@ export default function XuLyYeuCau() {
   const coTheTru = d.loai === "them_gio" && d.soDu >= diemCan;
   const tru = truDiem ?? false;          // thiết kế bm-them-gio: mặc định «Ngoại lệ» để cảnh báo ngoại lệ hiện TRƯỚC khi xác nhận
   const daXuLy = d.trang_thai !== "cho";
-  const dongY = () => lam(async () => {
+  const dongY = (tru = truDiem ?? false) => lam(async () => {
     await bm.goi(`yeu-cau/${id}/dong-y`, web ? { phanLoai, phamVi } : { truDiem: tru, phut: p });
     baoKhiVe(web ? `Đã đồng ý cho ${d.ten_con} mở ${d.gia_tri}` : tru ? `Đã cho ${d.ten_con} thêm ${p} phút, trừ ${diemCan} điểm` : `Đã cho ${d.ten_con} thêm ${p} phút (ngoại lệ)`);
     router.back();
@@ -44,9 +44,15 @@ export default function XuLyYeuCau() {
     <Man lui={{ chu: "Chờ duyệt" }} tieu={`Yêu cầu của ${d.ten_con}`} day={daXuLy ? <Nut chu="Về hộp chờ duyệt" rong bam={() => router.back()} /> : (
       <>
         <BaoLoi loi={loiLam} />
-        <Nut rong dangChay={dangChay} bam={dongY}
+        <Nut rong dangChay={dangChay} bam={() => dongY()}
           chu={web ? "Đồng ý · mở trong 10 giây" : tru ? `Đồng ý · trừ ${diemCan} điểm` : `Vẫn cho · ngoại lệ ${p} phút`} />
-        <Nut chu="Từ chối, kèm lý do" loai="huy" rong bam={() => setTuChoi(true)} />
+        {/* thiết kế bm-them-gio: nút viền «Đổi sang trừ N điểm» — đồng ý luôn nhưng trừ điểm (không tính ngoại lệ) */}
+        {!web && !tru && coTheTru ? (
+          <HaiNut>
+            <Nut chu={`Đổi sang trừ ${diemCan} điểm`} loai="vien" bam={() => dongY(true)} />
+            <Nut chu="Từ chối" loai="huy" bam={() => setTuChoi(true)} />
+          </HaiNut>
+        ) : <Nut chu="Từ chối, kèm lý do" loai="huy" rong bam={() => setTuChoi(true)} />}
       </>
     )}>
       <Canh lv={web ? "nghi" : "cho"} thap tieu={`${d.ten_con} ${tieuYc(d).toLowerCase()}`} loi={`“${d.ly_do}” · gửi lúc ${gioPhut(d.created_at)}.`} />
