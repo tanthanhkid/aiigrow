@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>AiiGrow.Tray</RootNamespace>
+    <AssemblyName>AiiGrow.Tray</AssemblyName>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />
+  </ItemGroup>
+</Project>
