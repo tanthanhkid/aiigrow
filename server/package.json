@@ -10,7 +10,8 @@
     "test": "node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts",
     "typecheck": "tsc --noEmit",
     "tao-tai-khoan": "node scripts/tao-tai-khoan.ts",
-    "pha-web": "node scripts/pha-web.mjs"
+    "pha-web": "node scripts/pha-web.mjs",
+    "build:app": "node scripts/build-app.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.10",
