@@ -1,0 +1,86 @@
+using System.Text.Json;
+
+namespace AiiGrow.Core;
+
+public sealed class PolicyException : Exception
+{
+    public PolicyException(string message) : base(message) { }
+}
+
+public static class PolicyParser
+{
+    public static Policy Parse(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) throw new PolicyException("Policy rỗng");
+        Policy? p;
+        try { p = JsonSerializer.Deserialize<Policy>(json, Json.Options); }
+        catch (JsonException e) { throw new PolicyException("Policy không đúng JSON: " + e.Message); }
+        if (p == null) throw new PolicyException("Policy rỗng");
+        return Normalize(p);
+    }
+
+    public static bool TryParse(string? json, out Policy? policy)
+    {
+        policy = null;
+        if (json == null) return false;
+        try { policy = Parse(json); return true; }
+        catch (PolicyException) { return false; }
+    }
+
+    private static Policy Normalize(Policy p)
+    {
+        var mode = (p.Mode ?? "").Trim().ToLowerInvariant();
+        if (mode != Modes.Khoa && mode != Modes.Hoc && mode != Modes.TuDo)
+            throw new PolicyException("Chế độ không hợp lệ: '" + p.Mode + "'");
+        p.Mode = mode;
+        p.ChildName ??= "";
+        p.LockReason = string.IsNullOrWhiteSpace(p.LockReason) ? null : p.LockReason.Trim().ToLowerInvariant();
+        p.AllowedApps = CleanList(p.AllowedApps);
+        p.LearningApps = CleanList(p.LearningApps);
+        if (p.NextCheckSec <= 0) p.NextCheckSec = 30;
+        p.NextCheckSec = Math.Clamp(p.NextCheckSec, 10, 600);
+        if (p.MinutesLeft is < 0) p.MinutesLeft = 0;
+        return p;
+    }
+
+    private static List<string> CleanList(List<string>? src)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var res = new List<string>();
+        if (src == null) return res;
+        foreach (var s in src)
+        {
+            if (string.IsNullOrWhiteSpace(s)) continue;
+            var t = s.Trim().ToLowerInvariant();
+            if (seen.Add(t)) res.Add(t);
+        }
+        return res;
+    }
+}
+
+/// <summary>Kết quả sau khi áp policy lên giờ hiện tại (cũng dùng khi mất mạng).</summary>
+public sealed record EffectivePolicy(
+    bool Locked, string? LockReason, double? MinutesLeft, DateTimeOffset? GrantEndsAt, bool AppLockerWanted);
+
+public static class PolicyEvaluator
+{
+    public static EffectivePolicy Evaluate(Policy p, DateTimeOffset now, double usedSecondsSinceSync)
+    {
+        bool grantActive = p.GrantEndsAt.HasValue && p.GrantEndsAt.Value > now;
+        bool locked = p.Locked || p.Mode == Modes.Khoa;
+        string? reason = locked ? (p.LockReason ?? LockReasons.Khoa) : null;
+
+        double? minutes = null;
+        if (p.MinutesLeft.HasValue)
+            minutes = Math.Max(0, p.MinutesLeft.Value - usedSecondsSinceSync / 60.0);
+
+        if (!locked && minutes.HasValue && minutes.Value <= 0 && !grantActive)
+        {
+            locked = true;
+            reason = LockReasons.HetGio;
+        }
+
+        return new EffectivePolicy(locked, reason, minutes,
+            grantActive ? p.GrantEndsAt : null, p.Mode == Modes.Hoc);
+    }
+}
