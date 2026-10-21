@@ -87,3 +87,22 @@ export const NHOM_NV: Record<string, { chu: string; ic: "sach" | "chen" | "mu" |
   doc_sach: { chu: "Đọc sách", ic: "sach", mau: "xanh" }, viec_nha: { chu: "Việc nhà", ic: "chen", mau: "lam" }, hoc_tap: { chu: "Học tập", ic: "mu", mau: "tim" },
   van_dong: { chu: "Vận động", ic: "chay", mau: "cam" }, ky_nang: { chu: "Kỹ năng", ic: "sao", mau: "vang" }, khac: { chu: "Khác", ic: "tia", mau: "xanh" },
 };
+
+// ------------------------------------------------------------------ An toàn thiết bị (tuân thủ + mở khẩn cấp + gỡ từ xa) — /api/m (docs/API.md)
+export type TrangThaiTuanThu = "tuan_thu" | "lech_chuan" | "ngoai_vong" | "tat_may" | "chua_co_nhip";
+export type VanDeTuanThu = { loai: "gio_sai" | "app_tat" | "admin_la" | "khong_toi_may_chu" | "ngoai_vong"; tru: number; cauBaMe: string; cauCon: string; chiTiet?: Record<string, unknown> };
+/** Một máy trong danh sách tuân thủ (GET tuan-thu). */
+export type TuanThuMay = {
+  id: string; ten: string; nen: MayCon["nen"]; con: string | null; dungChung: boolean; lanCuoi: string | null;
+  phienBan: string | null; adminTinCay: string[];
+  trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
+  lenhCho: { id: string; loai: string }[];
+};
+export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };
+export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
+
+export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }> = {
+  tuan_thu: { chu: "Tuân thủ", loai: "ok" }, lech_chuan: { chu: "Lệch chuẩn", loai: "canh" },
+  ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có nhịp", loai: "xam" },
+};
+type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
