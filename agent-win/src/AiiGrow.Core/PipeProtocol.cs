@@ -15,6 +15,8 @@ public static class PipeCmd
     public const string Foreground = "fg";
     public const string Request = "request";
     public const string Status = "status";
+    /// <summary>«Dùng điểm để chơi»: dịch vụ gọi phien/xet → phien/mo rồi trả kết quả cho màn chặn.</summary>
+    public const string Play = "play";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -54,6 +56,8 @@ public sealed class PipeResponse
     public string? Id { get; set; }
     public string? Status { get; set; }
     public DateTimeOffset? GrantEndsAt { get; set; }
+    /// <summary>Câu nhắc do máy chủ trả (ví dụ kết quả «Dùng điểm để chơi»). Không chứa số điểm.</summary>
+    public string? Message { get; set; }
 }
 
 /// <summary>Client named pipe cho tray: mỗi lệnh một kết nối, một dòng JSON hỏi, một dòng JSON đáp.</summary>

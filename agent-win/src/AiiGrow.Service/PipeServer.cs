@@ -111,6 +111,26 @@ public sealed class PipeServer : BackgroundService
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 
+            case PipeCmd.Play:
+            {
+                // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
+                if (!fromChild) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
+                var cfg = _rt.Config;
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
+                var muc = string.IsNullOrWhiteSpace(req.AppId) ? "" : req.AppId!;
+                try
+                {
+                    using var api = new ApiClient(cfg.Server, cfg.Token);
+                    var xet = await api.CheckPlayAsync(muc, ct);
+                    if (!xet.Duoc)
+                        return new PipeResponse { Ok = true, Status = "tu_choi", Message = xet.Cau ?? xet.LyDo };
+                    var mo = await api.OpenPlayAsync(muc, ct);
+                    _rt.RequestSyncSoon();
+                    return new PipeResponse { Ok = true, Status = string.IsNullOrEmpty(mo.TrangThai) ? "mo" : mo.TrangThai, Id = mo.Id, Message = xet.Cau };
+                }
+                catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+            }
+
             case PipeCmd.Status:
             {
                 var cfg = _rt.Config;

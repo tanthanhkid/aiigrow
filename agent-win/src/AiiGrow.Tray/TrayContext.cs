@@ -100,7 +100,9 @@ internal sealed class TrayContext : ApplicationContext
         if (_seenBlocked < 0) { _seenBlocked = _state.BlockedSeq; return; }
         if (_state.BlockedSeq == _seenBlocked || _state.Locked) return;
         _seenBlocked = _state.BlockedSeq;
-        new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, _state.CanExchangePoints).Show();
+        // App bị đóng vì chưa nằm trong danh sách Ba Mẹ cho phép ⇒ mặc định "chưa phân loại"; nếu dịch vụ có lý do rõ thì dùng lý do đó.
+        var reason = string.IsNullOrEmpty(_state.LockReason) ? LockReasons.ChuaPhanLoai : _state.LockReason;
+        new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints).Show();
     }
 
     private void HandleWarnings()

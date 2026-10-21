@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AiiGrow.Core;
 
 namespace AiiGrow.Service;
@@ -8,10 +7,11 @@ public sealed class AgentWorker : BackgroundService
     private readonly ILogger<AgentWorker> _log;
     private readonly AgentRuntime _rt;
     private readonly AppLockerController _locker;
+    private readonly IProcessControl _procs;
 
-    public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker)
+    public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker, IProcessControl? procs = null)
     {
-        _log = log; _rt = rt; _locker = locker;
+        _log = log; _rt = rt; _locker = locker; _procs = procs ?? new WindowsProcessControl();
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -46,16 +46,35 @@ public sealed class AgentWorker : BackgroundService
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
                     if (p != null && eff != null)
                     {
-                        var applied = _locker.Reconcile(eff.AppLockerWanted, cfg.ChildSid, p.AllowedApps);
-                        _rt.AppLockerApplied = applied;
-                        if (eff.AppLockerWanted && sess != null) EnforceAllowList(sess.SessionId, p);
+                        // Chế độ GIÁM SÁT (mặc định): chỉ ghi log việc SẼ chặn/khoá, không áp thật — để phụ huynh thử an toàn.
+                        bool apThat = string.Equals(cfg.CheDo, CheDoAgent.Chan, StringComparison.OrdinalIgnoreCase);
+
+                        if (apThat)
+                        {
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, cfg.ChildSid, p.AllowedApps);
+                            _rt.AppLockerApplied = applied;
+                        }
+                        else if (eff.AppLockerWanted)
+                        {
+                            _rt.AppLockerApplied = false;
+                            _log.LogInformation("GIÁM SÁT: sẽ áp AppLocker (chỉ cho {n} app) — chưa áp thật (CheDo=giam-sat)", p.AllowedApps.Count);
+                        }
+
+                        if (eff.AppLockerWanted && sess != null) EnforceAllowList(sess.SessionId, p, apThat);
 
                         _rt.SetLock(eff.Locked, eff.LockReason, now, active);
                         if (eff.Locked && active && _rt.LockGraceExpired(now) && (now - lastDisconnect).TotalSeconds > 30)
                         {
                             lastDisconnect = now;
-                            _log.LogInformation("Khoá ({reason}): ngắt phiên {id}", eff.LockReason, sess!.SessionId);
-                            SessionHelper.Disconnect(sess.SessionId);
+                            if (apThat)
+                            {
+                                _log.LogInformation("Khoá ({reason}): ngắt phiên {id}", eff.LockReason, sess!.SessionId);
+                                SessionHelper.Disconnect(sess.SessionId);
+                            }
+                            else
+                            {
+                                _log.LogInformation("GIÁM SÁT: sẽ khoá/ngắt phiên {id} ({reason}) — chưa khoá thật (CheDo=giam-sat)", sess!.SessionId, eff.LockReason);
+                            }
                         }
                     }
                 }
@@ -99,43 +118,18 @@ public sealed class AgentWorker : BackgroundService
         }
     }
 
-    /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.</summary>
-    private void EnforceAllowList(int sessionId, Policy p)
+    /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.
+    /// Quyết định "đóng cái nào" nằm ở lớp thuần <see cref="ProcessEnforcer"/>; worker chỉ cung cấp cổng hệ thống.</summary>
+    private void EnforceAllowList(int sessionId, Policy p, bool apThat)
     {
-        var allowed = new HashSet<string>(p.AllowedApps, StringComparer.OrdinalIgnoreCase);
-        var safe = ProcessGuard.DefaultSafeDirs();
-        var allowedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var cand = new List<(Process Proc, string Path)>();
-        foreach (var pr in Process.GetProcesses())
+        // Giám sát (apThat=false): dryRun — liệt kê app SẼ bị đóng nhưng KHÔNG đóng thật.
+        var closed = ProcessEnforcer.Enforce(_procs, sessionId, p.AllowedApps, dryRun: !apThat);
+        foreach (var exe in closed)
         {
-            string? path = null;
-            try
-            {
-                if (pr.SessionId == sessionId) path = pr.MainModule?.FileName;
-            }
-            catch { }
-            if (string.IsNullOrEmpty(path)) { pr.Dispose(); continue; }
-            cand.Add((pr, path));
-            if (allowed.Contains(Path.GetFileName(path)))
-            {
-                var d = Path.GetDirectoryName(path);
-                if (d != null) allowedDirs.Add(d);
-            }
-        }
-        foreach (var (proc, path) in cand)
-        {
-            try
-            {
-                if (ProcessGuard.ShouldClose(path, allowed, allowedDirs, safe))
-                {
-                    var exe = Path.GetFileName(path).ToLowerInvariant();
-                    _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
-                    proc.Kill();
-                    _rt.RecordBlocked(exe, Path.GetFileNameWithoutExtension(path));
-                }
-            }
-            catch { }
-            finally { proc.Dispose(); }
+            if (apThat) _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
+            else _log.LogInformation("GIÁM SÁT: sẽ đóng app ngoài danh sách: {exe} — chưa đóng thật (CheDo=giam-sat)", exe);
+            var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
+            _rt.RecordBlocked(exe, bare);
         }
     }
 }
