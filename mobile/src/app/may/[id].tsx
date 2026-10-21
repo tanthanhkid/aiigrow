@@ -1,15 +1,14 @@
 // bm-an-toan-may: một máy — điểm tuân thủ, vấn đề đang có, nhật ký, MỞ KHẨN CẤP (có hạn giờ) và GỠ TỪ XA (chỉ chủ gia đình,
 // nhập lại mật khẩu). Gọi GET may/:id/tuan-thu, POST may/:id/mo-khan-cap(+/huy), POST may/:id/go-tu-xa (docs/API.md).
 import { useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, TT_TRANG, type ChiTietTuanThu, type SuKienTuanThu } from "@/lib/api";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, Canh, Chips, ChoTai, Chu, Dong, M, Man, Nhan, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, Canh, Chips, ChoTai, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 const PHUT = [15, 30, 60, 120];
-const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" } as const;
 const SU_KIEN: Record<string, string> = {
   tuan_thu_lech: "Lệch chuẩn tuân thủ", tuan_thu_on: "Tuân thủ trở lại", may_ngoai_vong: "Máy ngoài vòng kiểm soát", may_tro_lai: "Máy đồng bộ trở lại",
   mo_khan_cap: "Ba Mẹ mở khẩn cấp", huy_mo_khan_cap: "Huỷ mở khẩn cấp", het_mo_khan_cap: "Hết giờ mở khẩn cấp", tin_cay_admin: "Xác nhận tài khoản quản trị",
@@ -18,10 +17,10 @@ const SU_KIEN: Record<string, string> = {
 
 export default function AnToanMay() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { d, loi, matMang, tai } = useTai(async () => ({
-    m: await bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`),
-    chu: (await bm.goi<{ baMe: { vai: string } }>("toi")).baMe.vai === "chu",
-  }));
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const [m, toi] = await Promise.all([bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`), bm.goi<{ baMe: { vai: string } }>("toi")]);
+    return { m, chu: toi.baMe.vai === "chu" };
+  });
   const [mo, setMo] = useState<"khan" | "go" | null>(null);
   const [phut, setPhut] = useState(30);
   const [lyDo, setLyDo] = useState("");

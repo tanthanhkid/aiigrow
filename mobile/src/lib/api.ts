@@ -35,7 +35,8 @@ function khach(tienTo: "m" | "kid", khoa: string) {
         throw new LoiApi("mat_mang", "Mất kết nối mạng — kiểm tra Wi‑Fi hoặc 4G rồi thử lại.", 0);
       }
       const j = await r.json().catch(() => ({}));
-      if (r.status === 401 && token && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong)) {
+      // 401 = hết phiên ⇒ đăng xuất. TRỪ xác thực lại mật khẩu ngay trong app (gỡ từ xa) — đó là mật khẩu sai, không phải hết phiên.
+      if (r.status === 401 && token && j.error !== "sai_mat_khau" && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong)) {
         token = null;
         await k.xoa();
         hetPhien?.();
