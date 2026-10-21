@@ -9,7 +9,7 @@ internal sealed class LockForm : Form
     private readonly Label _hint = new() { AutoSize = true, MaximumSize = new Size(700, 0), ForeColor = Color.FromArgb(0xd8, 0xe8, 0xdd), Font = UI.F(14f) };
     private readonly Label _count = new() { AutoSize = true, ForeColor = Color.White, Font = UI.F(40f, FontStyle.Bold) };
     private readonly Label _countCap = new() { AutoSize = true, ForeColor = Color.FromArgb(0xd8, 0xe8, 0xdd), Font = UI.F(12f), Text = "máy sẽ khoá sau" };
-    private readonly Label _brand = new() { AutoSize = true, ForeColor = Color.FromArgb(0xa8, 0xc8, 0xb4), Font = UI.F(11f), Text = "AiiGrow · máy này do bố mẹ quản lý" };
+    private readonly Label _brand = new() { AutoSize = true, ForeColor = Color.FromArgb(0xa8, 0xc8, 0xb4), Font = UI.F(11f), Text = "AiiGrow · máy này do Ba Mẹ quản lý" };
     private readonly bool _canExchange;
     private bool _allowClose;
     private bool _locking;

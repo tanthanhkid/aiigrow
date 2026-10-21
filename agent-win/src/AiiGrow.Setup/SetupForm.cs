@@ -2,7 +2,7 @@ using AiiGrow.Core;
 
 namespace AiiGrow.Setup;
 
-/// <summary>Trình cài 3 bước (theo thiết kế tre-win-1..3): quyền quản trị, tài khoản của con, bố mẹ quét mã QR (mã 6 số dự phòng).</summary>
+/// <summary>Trình cài 3 bước (theo thiết kế tre-win-1..3): quyền quản trị, tài khoản của con, Ba Mẹ quét mã QR (mã 6 số dự phòng).</summary>
 internal sealed class SetupForm : Form
 {
     private static readonly Color Green = Color.FromArgb(0x15, 0x80, 0x3d);
@@ -79,7 +79,7 @@ internal sealed class SetupForm : Form
     private void Step1()
     {
         Reset(1, "Cài AiiGrow lên laptop này");
-        _body.Controls.Add(T("Windows hỏi mật khẩu quản trị là mật khẩu của bố mẹ, không phải của con. Đây là bước duy nhất phải gõ mật khẩu."));
+        _body.Controls.Add(T("Windows hỏi mật khẩu quản trị là mật khẩu của Ba Mẹ, không phải của con. Đây là bước duy nhất phải gõ mật khẩu."));
         if (Installer.IsAdmin())
         {
             _body.Controls.Add(T("Đang chạy với quyền quản trị.", 11f, true, Green));
@@ -168,7 +168,7 @@ internal sealed class SetupForm : Form
             var others = _accounts.Count(a => a.IsAdmin && a.Sid != _child.Sid);
             if (others == 0)
             {
-                MessageBox.Show("Máy chỉ có một tài khoản quản trị. Hãy tạo tài khoản quản trị riêng cho bố mẹ (Settings > Accounts > Other users) rồi chạy lại bộ cài.",
+                MessageBox.Show("Máy chỉ có một tài khoản quản trị. Hãy tạo tài khoản quản trị riêng cho Ba Mẹ (Settings > Accounts > Other users) rồi chạy lại bộ cài.",
                     "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -178,7 +178,7 @@ internal sealed class SetupForm : Form
         Step3();
     }
 
-    private static readonly string[] StepLabels = { "Ghép máy với bố mẹ", "{0} là tài khoản thường", "Dịch vụ AiiGrow đang chạy", "Biểu tượng AiiGrow + thông báo khi đăng nhập" };
+    private static readonly string[] StepLabels = { "Ghép máy với Ba Mẹ", "{0} là tài khoản thường", "Dịch vụ AiiGrow đang chạy", "Biểu tượng AiiGrow + thông báo khi đăng nhập" };
     private CancellationTokenSource? _qrCts;
 
     /// <summary>Vẽ ma trận QR ("0"/"1" mỗi hàng) thành ảnh: ô đen trên nền trắng, viền 4 ô.</summary>
@@ -196,15 +196,15 @@ internal sealed class SetupForm : Form
         return bmp;
     }
 
-    /// <summary>Bước 3: hiện mã QR, bố mẹ quét bằng app phụ huynh là ghép xong rồi cài luôn. Mã 6 số chỉ là dự phòng (camera hỏng).</summary>
+    /// <summary>Bước 3: hiện mã QR, Ba Mẹ quét bằng app phụ huynh là ghép xong rồi cài luôn. Mã 6 số chỉ là dự phòng (camera hỏng).</summary>
     private void Step3()
     {
         var child = _child!;
         _qrCts?.Cancel();
         _qrCts = new CancellationTokenSource();
         var ct = _qrCts.Token;
-        Reset(3, "Bố mẹ quét mã để ghép máy");
-        _body.Controls.Add(T("Mở app AiiGrow trên điện thoại bố mẹ → Thêm thiết bị của con → quét mã này. Không cần nhập gì."));
+        Reset(3, "Ba Mẹ quét mã để ghép máy");
+        _body.Controls.Add(T("Mở app AiiGrow trên điện thoại Ba Mẹ → Thêm thiết bị của con → quét mã này. Không cần nhập gì."));
         var pic = new PictureBox { Width = 260, Height = 260, SizeMode = PictureBoxSizeMode.Zoom, Margin = new Padding(0, 0, 0, 8), BackColor = Color.White };
         _body.Controls.Add(pic);
         var status = T("Đang tạo mã…", 11f, true, Green);
@@ -228,7 +228,7 @@ internal sealed class SetupForm : Form
                 }
                 pic.Image?.Dispose();
                 pic.Image = QrBitmap(m.Qr, 520);
-                status.ForeColor = Green; status.Text = "Đang chờ bố mẹ quét… (mã đổi sau 5 phút)";
+                status.ForeColor = Green; status.Text = "Đang chờ Ba Mẹ quét… (mã đổi sau 5 phút)";
                 while (!ct.IsCancellationRequested)
                 {
                     try { await Task.Delay(2000, ct); } catch (OperationCanceledException) { return; }
@@ -245,12 +245,12 @@ internal sealed class SetupForm : Form
         _ = Loop();
     }
 
-    /// <summary>Dự phòng: nhập mã 6 số bố mẹ tạo trong app (Thêm thiết bị của con → Dùng mã số → Windows).</summary>
+    /// <summary>Dự phòng: nhập mã 6 số Ba Mẹ tạo trong app (Thêm thiết bị của con → Dùng mã số → Windows).</summary>
     private void Step3Code()
     {
         var child = _child!;
-        Reset(3, "Nhập mã trên điện thoại bố mẹ");
-        _body.Controls.Add(T("App bố mẹ → Thêm thiết bị của con → Dùng mã số → Windows. Mã 6 số hết hạn sau 15 phút."));
+        Reset(3, "Nhập mã trên điện thoại Ba Mẹ");
+        _body.Controls.Add(T("App Ba Mẹ → Thêm thiết bị của con → Dùng mã số → Windows. Mã 6 số hết hạn sau 15 phút."));
         var code = new TextBox { Width = 260, MaxLength = 6, Font = new Font("Segoe UI", 26f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, Margin = new Padding(0, 0, 0, 12) };
         _body.Controls.Add(code);
         _body.Controls.Add(T("Địa chỉ máy chủ AiiGrow", 10.5f));
@@ -279,7 +279,7 @@ internal sealed class SetupForm : Form
         var labels = StepLabels.Select(l => string.Format(l, child.Name)).ToArray();
         var ticks = labels.Select(l => T("○  " + l, 11f)).ToArray();
         foreach (var t in ticks) { t.Margin = new Padding(0, 0, 0, 4); _body.Controls.Add(t); }
-        _body.Controls.Add(T($"Chế độ Chỉ app học (AppLocker) sẽ tự áp cho riêng {child.Name} khi bố mẹ bật trong app.", 10.5f, false, Color.FromArgb(0x5f, 0x66, 0x60)));
+        _body.Controls.Add(T($"Chế độ Chỉ app học (AppLocker) sẽ tự áp cho riêng {child.Name} khi Ba Mẹ bật trong app.", 10.5f, false, Color.FromArgb(0x5f, 0x66, 0x60)));
         var status = T("Đang cài…", 11f, true, Green);
         _body.Controls.Add(status);
         try

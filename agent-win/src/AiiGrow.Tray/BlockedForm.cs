@@ -2,7 +2,7 @@ using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
 
-/// <summary>"Mở app không được phép": nói rõ tên app và cho con xin bố mẹ.</summary>
+/// <summary>"Mở app không được phép": nói rõ tên app và cho con xin Ba Mẹ.</summary>
 internal sealed class BlockedForm : Form
 {
     public BlockedForm(string? appId, string? appName, bool canExchange)
@@ -22,9 +22,9 @@ internal sealed class BlockedForm : Form
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
             Padding = new Padding(18, 14, 18, 10),
         };
-        flow.Controls.Add(UI.Text(name + " chưa được bố mẹ cho mở", 13f, true, null, 340));
-        flow.Controls.Add(UI.Text("Con có thể xin bố mẹ thêm thời gian.", 11f, false, UI.Muted, 340));
-        var ask = UI.Btn("Xin bố mẹ", true, 340);
+        flow.Controls.Add(UI.Text(name + " chưa được Ba Mẹ cho mở", 13f, true, null, 340));
+        flow.Controls.Add(UI.Text("Con có thể xin Ba Mẹ thêm thời gian.", 11f, false, UI.Muted, 340));
+        var ask = UI.Btn("Xin Ba Mẹ", true, 340);
         ask.Click += (_, _) =>
         {
             Hide();

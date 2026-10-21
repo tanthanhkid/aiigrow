@@ -8,7 +8,7 @@ internal sealed class InstallOptions
 {
     public string Server { get; set; } = "";
     public string Code { get; set; } = "";
-    /// <summary>Đã ghép bằng QR (bố mẹ quét) thì bỏ bước gọi /api/pair bằng mã 6 số.</summary>
+    /// <summary>Đã ghép bằng QR (Ba Mẹ quét) thì bỏ bước gọi /api/pair bằng mã 6 số.</summary>
     public PairResult? Paired { get; set; }
     public LocalAccount Child { get; set; } = new("", "", false);
 }
@@ -17,8 +17,8 @@ internal static class Installer
 {
     private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string PolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
-    private const string LegalCaption = "Máy được bố mẹ quản lý";
-    private const string LegalText = "Laptop này dùng AiiGrow. Bố mẹ đặt giờ dùng và app được mở. Con có thể xin thêm thời gian bất cứ lúc nào.";
+    private const string LegalCaption = "Máy được Ba Mẹ quản lý";
+    private const string LegalText = "Laptop này dùng AiiGrow. Ba Mẹ đặt giờ dùng và app được mở. Con có thể xin thêm thời gian bất cứ lúc nào.";
 
     public static bool IsAdmin()
     {
@@ -86,7 +86,7 @@ internal static class Installer
             $"if (Get-Service -Name {Paths.ServiceName} -ErrorAction SilentlyContinue) {{ " +
             $"& sc.exe config {Paths.ServiceName} binPath= {q} start= auto | Out-Null }} else {{ " +
             $"New-Service -Name {Paths.ServiceName} -BinaryPathName {q} -DisplayName {Shell.PsQuote(Paths.ServiceDisplayName)} " +
-            "-Description 'AiiGrow: tính giờ và áp chính sách dùng máy do bố mẹ đặt. Chạy bằng tài khoản hệ thống.' -StartupType Automatic | Out-Null }; " +
+            "-Description 'AiiGrow: tính giờ và áp chính sách dùng máy do Ba Mẹ đặt. Chạy bằng tài khoản hệ thống.' -StartupType Automatic | Out-Null }; " +
             $"& sc.exe failure {Paths.ServiceName} reset= 86400 actions= restart/5000/restart/5000/restart/30000 | Out-Null; " +
             $"Start-Service -Name {Paths.ServiceName}");
         if (!r.Ok) throw new InvalidOperationException("Không cài được dịch vụ: " + r.Error);

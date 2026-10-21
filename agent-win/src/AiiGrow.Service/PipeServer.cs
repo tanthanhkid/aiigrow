@@ -98,7 +98,7 @@ public sealed class PipeServer : BackgroundService
             {
                 if (!fromChild) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được gửi lời xin" };
                 var cfg = _rt.Config;
-                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với Ba Mẹ" };
                 var kind = req.Kind == "doi_diem" ? "doi_diem" : "them_gio";
                 int minutes = req.Minutes is 30 or 60 or 120 ? req.Minutes : 30;
                 try

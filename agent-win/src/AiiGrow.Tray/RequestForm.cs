@@ -2,13 +2,13 @@ using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
 
-/// <summary>Xin thêm thời gian (30 phút / 1 giờ / 2 giờ + lời nhắn) rồi chờ bố mẹ; hoặc Đổi điểm.</summary>
+/// <summary>Xin thêm thời gian (30 phút / 1 giờ / 2 giờ + lời nhắn) rồi chờ Ba Mẹ; hoặc Đổi điểm.</summary>
 internal sealed class RequestForm : Form
 {
     private readonly int[] _opts = { 30, 60, 120 };
     private readonly RadioButton[] _radios = new RadioButton[3];
     private readonly TextBox _note = new() { Multiline = true, Height = 64, Width = 380, Font = UI.F(11f), MaxLength = 200 };
-    private readonly Button _send = UI.Btn("Xin bố mẹ", true, 380);
+    private readonly Button _send = UI.Btn("Xin Ba Mẹ", true, 380);
     private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, 380);
     private readonly Label _msg = UI.Text("", 11f, true, UI.Green, 380);
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
@@ -46,7 +46,7 @@ internal sealed class RequestForm : Form
             row.Controls.Add(_radios[i]);
         }
         flow.Controls.Add(row);
-        flow.Controls.Add(UI.Text("Nhắn bố mẹ (không bắt buộc)", 10.5f, false, UI.Muted));
+        flow.Controls.Add(UI.Text("Nhắn Ba Mẹ (không bắt buộc)", 10.5f, false, UI.Muted));
         flow.Controls.Add(_note);
         flow.Controls.Add(new Label { Height = 6, Width = 10 });
         flow.Controls.Add(_send);
@@ -97,13 +97,13 @@ internal sealed class RequestForm : Form
             // Chỉ "được / không", không có số dư.
             _msg.Text = res.Status == "tu_duyet"
                 ? "Được rồi! Máy đã được thêm thời gian."
-                : "Chưa đổi được. Con xin bố mẹ nhé.";
+                : "Chưa đổi được. Con xin Ba Mẹ nhé.";
             _send.Enabled = true; _exchange.Enabled = res.Status != "tu_duyet";
             if (res.Status == "tu_duyet") CloseLater();
             return;
         }
         _pendingId = res.Id;
-        _msg.Text = "Đã gửi cho bố mẹ. Đang chờ bố mẹ trả lời…";
+        _msg.Text = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…";
         _poll.Start();
     }
 
@@ -119,12 +119,12 @@ internal sealed class RequestForm : Form
             case "duoc":
             case "tu_duyet":
                 _poll.Stop();
-                _msg.Text = "Bố mẹ đã cho thêm giờ. Học tốt nhé!";
+                _msg.Text = "Ba Mẹ đã cho thêm giờ. Học tốt nhé!";
                 CloseLater();
                 break;
             case "tu_choi":
                 _poll.Stop();
-                _msg.Text = "Bố mẹ chưa đồng ý lần này.";
+                _msg.Text = "Ba Mẹ chưa đồng ý lần này.";
                 _pendingId = null;
                 _send.Enabled = true; _exchange.Enabled = true;
                 break;

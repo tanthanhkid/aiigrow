@@ -95,6 +95,7 @@ public sealed class QrState
     public string? Token { get; set; }
     public string? ChildName { get; set; }
     public string? Server { get; set; }
+    public bool DungChung { get; set; }
 }
 
 public sealed class PairResult
@@ -104,6 +105,8 @@ public sealed class PairResult
     public string Token { get; set; } = "";
     public string ChildName { get; set; } = "";
     public string? Server { get; set; }
+    /// <summary>AiiGrow: máy dùng chung (Con chọn hồ sơ + PIN).</summary>
+    public bool DungChung { get; set; }
 }
 
 public sealed class RequestResult
@@ -130,6 +133,19 @@ public sealed class AgentConfig
     public string ChildSid { get; set; } = "";
     public string? LastPolicyJson { get; set; }
     public DateTimeOffset? LastPolicyAt { get; set; }
+
+    // ---- AiiGrow (thêm) ----
+    /// <summary>Gốc màn Con web cho khung Kid. Trống = <c>{Server}/app/tre</c>.</summary>
+    public string KidUrl { get; set; } = "";
+    public bool DungChung { get; set; }
+    /// <summary>Hàng đợi gửi bù khi mất mạng (sự kiện, phút chơi offline).</summary>
+    public OfflineQueue Queue { get; set; } = new();
+    /// <summary>Phiên chơi đang chạy (giữ qua khởi động lại dịch vụ).</summary>
+    public PlaySession? Session { get; set; }
+    /// <summary>Phần nghìn điểm đã dùng khi mất mạng, máy chủ chưa trừ (BRD 6.7).</summary>
+    public double OfflinePhanNghin { get; set; }
+    /// <summary>Tổng phút dùng theo "ngày|mục" (máy chủ ghi greatest).</summary>
+    public Dictionary<string, int> UsageTotals { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

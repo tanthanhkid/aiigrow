@@ -14,14 +14,14 @@ public static class TrayView
     {
         LockReasons.HetGio => "Hết giờ dùng máy hôm nay",
         LockReasons.Ngu => "Đến giờ nghỉ rồi",
-        _ => "Máy đang được bố mẹ khoá",
+        _ => "Máy đang được Ba Mẹ khoá",
     };
 
     public static string LockHint(string? reason) => reason switch
     {
-        LockReasons.HetGio => "Lưu bài đang làm nhé. Con có thể xin bố mẹ thêm thời gian.",
-        LockReasons.Ngu => "Máy sẽ mở lại khi hết giờ nghỉ. Cần gấp thì xin bố mẹ.",
-        _ => "Con có thể nhắn xin bố mẹ mở máy.",
+        LockReasons.HetGio => "Lưu bài đang làm nhé. Con có thể xin Ba Mẹ thêm thời gian.",
+        LockReasons.Ngu => "Máy sẽ mở lại khi hết giờ nghỉ. Cần gấp thì xin Ba Mẹ.",
+        _ => "Con có thể nhắn xin Ba Mẹ mở máy.",
     };
 
     public static string FormatClock(double seconds)
@@ -37,7 +37,7 @@ public static class TrayView
         if (s.GrantEndsAt.HasValue && s.GrantEndsAt.Value > now)
         {
             var rem = (s.GrantEndsAt.Value - now).TotalSeconds;
-            return (FormatClock(rem), "đang được bố mẹ thêm giờ", rem);
+            return (FormatClock(rem), "đang được Ba Mẹ thêm giờ", rem);
         }
         if (s.MinutesLeft.HasValue)
         {
@@ -65,4 +65,47 @@ public static class TrayView
         if (n.Length == 0) return "App này";
         return char.ToUpperInvariant(n[0]) + n[1..];
     }
+}
+
+/// <summary>Chữ riêng AiiGrow trên khay / màn chặn (tách khỏi WinForms để test).</summary>
+public static class GrowText
+{
+    public static string FunKhoa(string? lyDo) => lyDo switch
+    {
+        "ba_me_khoa" => "Ba Mẹ đang tạm khoá giờ chơi",
+        "gio_may_sai" => "Giờ máy không đúng, hãy nhờ Ba Mẹ chỉnh lại",
+        "gio_ngu" => "Đến giờ ngủ rồi — mai chơi tiếp nhé",
+        "ngoai_khung" => "Bây giờ chưa phải giờ chơi",
+        _ => "",
+    };
+
+    /// <summary>Dòng tiêu đề màn chặn.</summary>
+    public static string BlockTitle(string name, bool fun) => fun ? name + " cần dùng điểm để chơi" : name + " chưa được Ba Mẹ cho phép";
+
+    public static string BlockHint(bool fun, string? funKhoa) =>
+        fun && string.IsNullOrEmpty(funKhoa) ? "Con có thể dùng điểm để chơi, hoặc xin phép Ba Mẹ." :
+        fun ? FunKhoa(funKhoa) + ". Con có thể xin phép Ba Mẹ." :
+        "Con có thể xin phép Ba Mẹ mở ứng dụng này.";
+
+    /// <summary>Câu xác nhận trước khi trừ điểm: giá + số phút tối đa.</summary>
+    public static string XacNhan(string name, XetPhien x)
+    {
+        var gia = x.GiaPhanNghin / 1000.0;
+        var giaChu = gia == Math.Floor(gia) ? ((int)gia).ToString() : gia.ToString("0.#", System.Globalization.CultureInfo.GetCultureInfo("vi-VN"));
+        return $"{name}: {giaChu} điểm/phút. Con có {x.SoDu} điểm, chơi được tối đa {x.PhutToiDa} phút." +
+               (x.Offline ? " (Đang không có mạng — chỉ dùng số điểm đã đồng bộ.)" : "");
+    }
+
+    public static string Ended(string? lyDo) => lyDo switch
+    {
+        "het_diem" => "Hết điểm rồi — làm nhiệm vụ để có thêm điểm nhé",
+        "het_thoi_gian" => "Hết phiên chơi rồi. Nghỉ chút nhé!",
+        "con_dung" => "Con đã dừng sớm, điểm còn lại vẫn giữ nguyên",
+        "khong_hoat_dong" => "Phiên chơi tự đóng vì con không chơi nữa",
+        "gio_ngu" => "Đến giờ ngủ rồi — phiên chơi đã đóng",
+        "het_khung" or "ngoai_khung" => "Hết khung giờ chơi — phiên đã đóng",
+        "ba_me_khoa" => "Ba Mẹ vừa tạm khoá giờ chơi",
+        "gio_may_sai" => "Giờ máy không đúng — phiên đã đóng",
+        _ => "Phiên chơi đã kết thúc",
+    };
 }

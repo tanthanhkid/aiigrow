@@ -20,7 +20,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add("Xem thời gian còn lại", null, (_, _) => _status.ShowNearTray());
         menu.Items.Add("Xin thêm thời gian", null, (_, _) => OpenRequest());
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Máy này do bố mẹ quản lý bằng AiiGrow") { Enabled = false });
+        menu.Items.Add(new ToolStripMenuItem("Máy này do Ba Mẹ quản lý bằng AiiGrow") { Enabled = false });
 
         _ni = new NotifyIcon
         {
@@ -33,7 +33,7 @@ internal sealed class TrayContext : ApplicationContext
         _status.AskClicked += OpenRequest;
         _status.ExchangeClicked += OpenRequest;
 
-        _ni.ShowBalloonTip(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Bấm vào biểu tượng để xem còn bao lâu.", ToolTipIcon.Info);
+        _ni.ShowBalloonTip(5000, "AiiGrow đang bật", "Ba Mẹ đặt giờ dùng máy. Bấm vào biểu tượng để xem còn bao lâu.", ToolTipIcon.Info);
 
         _timer.Tick += async (_, _) => await TickAsync();
         _timer.Start();

@@ -1,6 +1,6 @@
 # AiiGrow cho Windows (tác tử máy con)
 
-Tác tử Windows của AiiGrow: tính giờ dùng máy của con, áp chính sách do bố mẹ đặt, và **luôn nói rõ cho con biết**
+Tác tử Windows của AiiGrow: tính giờ dùng máy của con, áp chính sách do Ba Mẹ đặt, và **luôn nói rõ cho con biết**
 máy đang được quản lý. Chỉ dùng cơ chế chính thức của Windows (tài khoản Standard, dịch vụ hệ thống, AppLocker,
 khoá phiên). Không ẩn mình, không né hệ điều hành. Căn cứ và phần chưa xác minh: [`docs/KHA-THI.md`](../docs/KHA-THI.md) mục 4,
 API máy con: [`docs/PLAN.md`](../docs/PLAN.md) mục 3 và 5.
@@ -30,8 +30,8 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   - Service và tray nói chuyện qua named pipe `\\.\pipe\AiiGrow.Tray`, ACL: SYSTEM + Administrators toàn quyền,
     người dùng đã đăng nhập đọc/ghi; lệnh gửi lời xin và báo app chỉ nhận từ phiên của con.
 - **Tray** (WinForms, Segoe UI, xanh lá `#15803d`): biểu tượng "AiiGrow đang bật" + thời gian còn lại; cửa sổ Xin thêm
-  thời gian (30 phút / 1 giờ / 2 giờ + lời nhắn) rồi chờ bố mẹ; nút Đổi điểm chỉ hiện khi `canExchangePoints`
-  (**không bao giờ hiện số điểm**, tray cũng không nhận số điểm); màn "chưa được bố mẹ cho mở"; màn hết giờ;
+  thời gian (30 phút / 1 giờ / 2 giờ + lời nhắn) rồi chờ Ba Mẹ; nút Đổi điểm chỉ hiện khi `canExchangePoints`
+  (**không bao giờ hiện số điểm**, tray cũng không nhận số điểm); màn "chưa được Ba Mẹ cho mở"; màn hết giờ;
   đếm ngược khi được thêm giờ; nhắc còn 5 phút / 1 phút.
 - **Setup** (3 bước theo thiết kế tre-win-1..3): quyền quản trị, chọn/tạo tài khoản của con (đang là Administrator thì
   hạ xuống Users, bắt buộc còn một quản trị viên khác), nhập mã 6 số. Đồng thời đặt thông báo trước khi đăng nhập
@@ -55,12 +55,12 @@ CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish,
 
 ## Cài thử (máy Windows thật hoặc máy ảo)
 
-1. Có sẵn một tài khoản quản trị của bố mẹ và một tài khoản của con (Administrator hay Standard đều được).
+1. Có sẵn một tài khoản quản trị của Ba Mẹ và một tài khoản của con (Administrator hay Standard đều được).
 2. Chép thư mục `publish` sang máy; (tuỳ chọn) tạo `server.txt` cạnh `AiiGrow.Setup.exe` chứa địa chỉ máy chủ,
    hoặc đặt biến môi trường `AIIGROW_SERVER`.
-3. Chạy `AiiGrow.Setup.exe` bằng quản trị viên, làm theo 3 bước, nhập mã 6 số lấy ở app bố mẹ.
-4. Đăng xuất, con đăng nhập: thấy thông báo "Máy được bố mẹ quản lý" và biểu tượng AiiGrow ở khay.
-5. Đổi chế độ ở app bố mẹ rồi quan sát: `Get-AppLockerPolicy -Local -Xml` (luật `AiiGrow:`), nhật ký dịch vụ trong Event Viewer.
+3. Chạy `AiiGrow.Setup.exe` bằng quản trị viên, làm theo 3 bước, nhập mã 6 số lấy ở app Ba Mẹ.
+4. Đăng xuất, con đăng nhập: thấy thông báo "Máy được Ba Mẹ quản lý" và biểu tượng AiiGrow ở khay.
+5. Đổi chế độ ở app Ba Mẹ rồi quan sát: `Get-AppLockerPolicy -Local -Xml` (luật `AiiGrow:`), nhật ký dịch vụ trong Event Viewer.
 
 ## Giới hạn và việc cần thử (xem KHA-THI mục 4 và 7)
 
