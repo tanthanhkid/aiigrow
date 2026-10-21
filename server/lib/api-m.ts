@@ -16,6 +16,10 @@ import { baoCaoTuan, homNay } from "./bao-cao.ts";
 import { khoaNgay } from "./may-con.ts";
 import { dsCanhBao, dsSuKien, ghiSuKien } from "./nhat-ky.ts";
 import { newId } from "./db.ts";
+// M4b độ bền máy con (chỉ thêm): tuân thủ, mở khẩn cấp, gói cài một chạm, gỡ từ xa, cấu hình nền tảng, luật tầng mạng (TV)
+import * as tt from "./tuan-thu.ts";
+import { lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
+import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -90,6 +94,22 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     }
     if (d === "ma-ghep" && post) return json({ ma: await gd.taoMaGhep(fam, b.con ? s(b.con, 40) : null, s(b.nen, 20)) });
     if (p[0] === "may" && p[2] === "go" && post) { await gd.goMay(fam, p[1], bm.id); return json({ ok: true }); }
+    // M4b
+    if (d === "tuan-thu" && get) return json({ ds: await tt.dsTuanThu(fam) });
+    if (d === "goi-cai" && post) return json(await taoGoiCai(fam, b, process.env.AIIGROW_APP_URL || new URL(req.url).origin, bm.id));
+    if (p[0] === "may" && p[1]) {
+      const sau = p.slice(2).join("/");
+      if (sau === "tuan-thu" && get) return json(await tt.chiTietTuanThu(fam, p[1]));
+      if (sau === "cau-hinh-nen-tang" && get) return json(await cauHinhNenTangMay(fam, p[1]));
+      if (sau === "mo-khan-cap" && post) return json(await tt.moKhanCap(fam, p[1], b, bm.id));
+      if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
+      if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
+      if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
+    }
+    if (p[0] === "con" && p[1] && p[2] === "luat-mang" && get) {
+      const sp = new URL(req.url).searchParams;
+      return json(await luatMangCon(fam, p[1], { mac: sp.get("mac"), ten: sp.get("ten"), nen: sp.get("nen") }));
+    }
 
     if (d === "nhiem-vu" && get) return json({ ds: await q(`select * from tasks where family_id = $1 order by created_at`, [fam]) });
     if (d === "nhiem-vu" && post) return json({ id: await nv.taoNv(fam, b, bm.id) });

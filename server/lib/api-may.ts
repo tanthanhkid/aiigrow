@@ -9,10 +9,17 @@ import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } f
 import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
 import { guiYeuCau } from "./yeu-cau.ts";
 import { dsCon } from "./gia-dinh.ts";
+// M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
+import { nhipMay } from "./nhip-may.ts";
+import { khoaTuanThu } from "./tuan-thu.ts";
+import { doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
     const d = p.join("/");
+    // M4b: ghép bằng token gói cài — đường chính ghep-goi (agent-win PR #11); ghep {token} là bí danh (giữ cách cũ {ma})
+    if (d === "ghep-goi" && req.method === "POST") { const bb = await docJson(req); return json(await doiGoiCai(String(bb.token ?? ""), String(bb.nen ?? ""), String(bb.tenMay ?? ""))); }
+    if (d === "ghep" && req.method === "POST") { const bb = await docJson(req.clone()); if (bb.token) return json(await doiGoiCai(String(bb.token), String(bb.nen ?? ""), String(bb.tenMay ?? ""))); }
     if (d === "ghep" && req.method === "POST") {
       const b = await docJson(req);
       return json(await ghepMay(String(b.ma ?? ""), String(b.nen ?? ""), String(b.tenMay ?? "")));
@@ -23,6 +30,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       return json(await taoQrGhep(process.env.AIIGROW_APP_URL || new URL(req.url).origin, String(b.nen ?? "windows"), String(b.tenMay ?? "")));
     }
     if (d === "ghep-qr/hoi" && req.method === "POST") { const b = await docJson(req); return json(await hoiQrGhep(String(b.ma ?? ""), String(b.bi ?? ""))); }
+    // M4b: agent báo xong lệnh — trước bước kiểm token máy vì máy đã gỡ (đã xoá) vẫn báo lại được, không ghi đôi
+    if (p[0] === "lenh" && p[1] && p[2] === "xong" && req.method === "POST") return json(await xongLenh(bearer(req), p[1]));
     const may = await (async () => { const t = bearer(req); return t ? mayTuToken(t) : undefined; })();
     if (!may) return loi("token_sai", "Thiết bị chưa ghép hoặc đã bị gỡ khỏi gia đình", 401);
     const b = await docJson(req);
@@ -30,6 +39,9 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     const phienCon = req.headers.get("x-phien-con");
     const k = phienCon ? await conTuPhien(phienCon) : undefined;
     const con = may.child_id ?? (k && k.family_id === may.family_id ? k.id : null);
+    // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
+    if (d === "dong-bo") return json({ ...(await dongBo(may, { ...b, conDangDung: con })), lenh: await lenhCho(may) });
+    if (d === "nhip") return json(await nhipMay(may, con, b));
     if (d === "dong-bo") return json(await dongBo(may, { ...b, conDangDung: con }));
     if (d === "ho-so") return json({ con: (await dsCon(may.family_id)).filter((c) => !may.child_id || c.id === may.child_id).map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar })) });
     if (d === "pin") return json({ phienCon: await dangNhapPin(may, String(b.con ?? ""), String(b.pin ?? "")) });
@@ -37,6 +49,16 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "su-kien") return json({ nhan: await nhanSuKien(may, con, b.ds) });
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn hồ sơ và nhập mã PIN trước", 409);
+    // M4b: máy KHÔNG tuân thủ (fail-closed) ⇒ không xét / mở phiên giải trí; phiên đang chạy dừng ở nhịp kế tiếp. Mở khẩn cấp chỉ do Ba Mẹ.
+    if (d === "phien/xet" || d === "phien/mo" || d === "phien/nhip") {
+      const kt = await khoaTuanThu(may);
+      if (kt.khoa && d === "phien/xet") return json({ duoc: false, lyDo: "khong_tuan_thu", cau: kt.cau, tuanThu: kt.tuanThu });
+      if (kt.khoa && d === "phien/mo") return loi("khong_mo_duoc", kt.cau, 409);
+      if (kt.khoa && d === "phien/nhip") {
+        try { await dungPhien(con, String(b.id ?? ""), "ba_me_khoa"); } catch { /* phiên không còn chạy */ }
+        return json({ trangThai: "ket_thuc", conPhut: 0, canhBao: null, lyDoKet: "khong_tuan_thu", cau: kt.cau });
+      }
+    }
     if (d === "phien/xet") { const x = await xetMoPhien(con, String(b.muc ?? ""), { gioMaySai: b.gioMaySai === true, mayId: may.id }); return json({ ...x, cau: x.duoc ? null : lyDoChu(x) }); }
     if (d === "phien/mo") return json(await moPhien(con, may.id, String(b.muc ?? ""), { gioMaySai: b.gioMaySai === true }));
     if (d === "phien/nhip") return json(await nhip(con, String(b.id ?? ""), b.dangDung !== false));

@@ -337,3 +337,51 @@ create table if not exists messages (
 // play_sessions.trang_thai (Phụ lục A.3): chay | tam | ket_thuc. requests.loai: them_gio | mo_web | cai_app | ngoai_le | ngoai_gio | khac.
 //   requests.trang_thai (A.2): cho | dong_y | tu_choi | het_han | huy | da_thuc_thi. requests.pham_vi: lan_nay | hom_nay | vinh_vien.
 // alerts.muc: thong_tin | chu_y | nghiem_trong. alerts.khoa: chặn báo trùng (vd «ngoai_le_mem:2026-W43:<con>»).
+
+// ================================================================ M4b — độ bền máy con (chỉ thêm). Tạo lười trong lib/tuan-thu.ts
+// (bangM4b) để không đổi chuỗi SCHEMA chung. Mỗi câu một lệnh, ngăn bằng dòng trống + «;».
+// tuan_thu_may: nhịp cuối + vấn đề tuân thủ của từng máy (van_de: [{loai, tru, ...}]), mở khẩn cấp do Ba Mẹ cấp (có hạn),
+//   tài khoản quản trị Ba Mẹ đã xác nhận là của mình (admin_tin_cay). tat_luc: agent báo tắt/ngủ sạch ⇒ im lặng sau đó không phải «ngoài vòng».
+// lenh_may: lệnh máy chủ ⇒ agent (loai: go). trang_thai: cho | xong. Giữ cả khi máy đã xoá (token_hash) ⇒ agent báo «xong» lần hai vẫn ok.
+// goi_cai: token ghép nhúng trong gói cài (một lần, có hạn, chỉ lưu băm).
+export const SCHEMA_M4B = [
+  `create table if not exists tuan_thu_may (
+    device_id text primary key references devices(id) on delete cascade,
+    family_id text not null references families(id) on delete cascade,
+    nhip_cuoi timestamptz,
+    phien_ban text,
+    nhip jsonb not null default '{}',
+    van_de jsonb not null default '[]',
+    diem int not null default 100,
+    tat_luc timestamptz,
+    ngoai_vong_tu timestamptz,
+    mo_khan_cap_den timestamptz,
+    mo_khan_cap_nguoi text,
+    mo_khan_cap_ly_do text,
+    admin_tin_cay jsonb not null default '[]',
+    updated_at timestamptz not null default now()
+  )`,
+  `create table if not exists lenh_may (
+    id text primary key,
+    family_id text not null references families(id) on delete cascade,
+    device_id text not null,
+    token_hash text not null,
+    loai text not null,
+    trang_thai text not null default 'cho',
+    nguoi text,
+    created_at timestamptz not null default now(),
+    xong_luc timestamptz
+  )`,
+  `create index if not exists lenh_may_cho on lenh_may(device_id) where trang_thai = 'cho'`,
+  `create table if not exists goi_cai (
+    token_hash text primary key,
+    family_id text not null references families(id) on delete cascade,
+    child_id text,
+    platform text not null,
+    expires_at timestamptz not null,
+    used_at timestamptz,
+    device_id text,
+    nguoi text,
+    created_at timestamptz not null default now()
+  )`,
+];
