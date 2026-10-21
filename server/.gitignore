@@ -1,0 +1,11 @@
+node_modules
+.next
+.data
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+.vercel
+.env*
+public/tai/*.zip
+public/tai/*.pkg
+public/tai/*.apk

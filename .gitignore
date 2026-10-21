@@ -1,0 +1,11 @@
+node_modules
+.next
+.data
+.expo
+dist
+*.tsbuildinfo
+.env*
+.vercel
+next-env.d.ts
+bin
+obj

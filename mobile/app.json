@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "AiiGrow",
+    "slug": "aiigrow",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "vn.aiilab.aiigrow",
+      "config": { "usesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "vn.aiilab.aiigrow",
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-image",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AiiGrow dùng camera để quét mã ghép máy và để Con chụp ảnh bằng chứng nhiệm vụ. Ảnh chỉ gia đình xem.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "scheme": "aiigrow",
+    "experiments": { "typedRoutes": true }
+  }
+}
