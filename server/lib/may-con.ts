@@ -6,7 +6,7 @@ import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { lichCua, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
-import { ALLOWLIST_HE_THONG, dsLuat, phanLoai } from "./luat-app.ts";
+import { allowlistHieuLuc, dsLuat, phanLoai } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
 import { soDu } from "./vi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
@@ -91,7 +91,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   return {
     serverTime: now.toISOString(), nextCheckSec: ph ? 60 : 300, gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
-    allowlistHeThong: ALLOWLIST_HE_THONG,
+    allowlistHeThong: allowlistHieuLuc(),
     luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai, nhom: l.loai === "giai_tri" ? l.nhom : null,
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
     lich: lichCua(c?.lich as never), khoaNgay: c?.cau_hinh?.khoa_ngay === true, soDu: c ? await soDu(c.id) : 0,

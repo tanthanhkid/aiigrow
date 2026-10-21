@@ -1,6 +1,7 @@
 // Phân loại ứng dụng / website (FR-02.01–02.03): Allowlist hệ thống (Admin, Ba Mẹ không bỏ được) → luật riêng của Con → luật gia đình.
 // Chưa phân loại ⇒ CHẶN, gợi ý «Xin phép Ba Mẹ» (an toàn mặc định). Website so theo tên miền, gồm cả tên miền con (m.youtube.com ⇒ youtube.com).
 import { q, one, type Q } from "./db.ts";
+import { heThong } from "./he-thong.ts";
 import { LoiNghiepVu } from "./loi.ts";
 
 export type LoaiMuc = "hoc" | "giai_tri" | "chan";
@@ -49,7 +50,7 @@ export type KetQuaLuat = { loai: LoaiMuc | "he_thong" | "chua_phan_loai"; nhom: 
 export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q = q): Promise<KetQuaLuat> {
   const muc = chuanMuc(mucTho);
   const khoa = khoaSo(muc);
-  if (khoa.some((k) => ALLOWLIST_HE_THONG.includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
+  if (khoa.some((k) => allowlistHieuLuc().includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
   const ds = await t<{ child_id: string; muc: string; loai: LoaiMuc; nhom: NhomGiaiTri }>(
     `select child_id, muc, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and muc = any($3::text[]) and (het is null or het > now())`,
     [fam, con, khoa]);
@@ -63,7 +64,7 @@ export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q =
 export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?: unknown; loai: unknown; nhom?: unknown; het?: Date | null }, t: Q = q) {
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên ứng dụng hoặc website");
-  if (khoaSo(muc).some((k) => ALLOWLIST_HE_THONG.includes(k))) throw new LoiNghiepVu("he_thong", "Mục này thuộc danh sách hệ thống, luôn được dùng", 409);
+  if (khoaSo(muc).some((k) => allowlistHieuLuc().includes(k))) throw new LoiNghiepVu("he_thong", "Mục này thuộc danh sách hệ thống, luôn được dùng", 409);
   const loai = ["hoc", "giai_tri", "chan"].includes(String(b.loai)) ? String(b.loai) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn Học tập, Giải trí hoặc Chặn");
   const nhom = (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
@@ -78,3 +79,6 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
 export const dsLuat = (fam: string) =>
   q<{ child_id: string; muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
     `select child_id, muc, ten, loai, nhom, het from app_rules where family_id = $1 and (het is null or het > now()) order by ten`, [fam]);
+
+/** Allowlist hệ thống hiệu lực: danh sách trong mã + mục Admin AiiLab thêm ở /admin. */
+export const allowlistHieuLuc = () => (heThong.allowlistThem.length ? [...ALLOWLIST_HE_THONG, ...heThong.allowlistThem] : ALLOWLIST_HE_THONG);
