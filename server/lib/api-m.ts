@@ -20,6 +20,8 @@ import { newId } from "./db.ts";
 import * as tt from "./tuan-thu.ts";
 import { lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
 import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
+// M4b kiểm soát mạng (chỉ thêm): hồ sơ DNS gia đình, máy con loại mạng (TV, console), nhật ký tóm tắt, hướng dẫn router / TV
+import * as dns from "./dns-gia-dinh.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -105,6 +107,27 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
+    }
+    // M4b mạng
+    if (d === "dns" && get) return json({ nhaCungCap: (await dns.nhaCungCap(fam)).loai, thietBi: await dns.dsThietBiDns(fam), huongDan: dns.huongDanMang() });
+    if (d === "dns/huong-dan" && get) return json(dns.huongDanMang());
+    if (d === "dns/nha-cung-cap" && post) return json(await dns.datNhaCungCap(fam, b, bm.id));
+    if (d === "dns/thiet-bi" && post) return json({ id: await dns.themThietBiMang(fam, b, bm.id) });
+    if (p[0] === "dns" && p[1] === "thiet-bi" && p[2]) {
+      const sau = p.slice(3).join("/");
+      if (sau === "ho-so" && get) return json(await dns.hoSoDnsThietBi(fam, p[2]));
+      if (sau === "mobileconfig" && get) {
+        const h = await dns.hoSoDnsThietBi(fam, p[2]);
+        return new Response(h.apple.mobileconfig, { headers: { "content-type": "application/x-apple-aspen-config", "content-disposition": `attachment; filename="${h.apple.tep}"`, "cache-control": "no-store" } });
+      }
+      if (sau === "nhat-ky" && get) return json(await dns.tomTatNhatKy(fam, p[2], new URL(req.url).searchParams.get("ngay")));
+      if (sau === "day" && post) return json(await dns.dayChinhSach(fam, p[2]));
+      if (sau === "xoa" && post) { await dns.xoaThietBiMang(fam, p[2], bm.id); return json({ ok: true }); }
+    }
+    if (p[0] === "may" && p[1] && p[2] === "ho-so-dns" && get) {
+      const mc = await one<gd.May>(`select * from devices where id = $1 and family_id = $2`, [p[1], fam]);
+      if (!mc) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+      return json(await dns.hoSoDns(await dns.thietBiChoMay(mc)));
     }
     if (p[0] === "con" && p[1] && p[2] === "luat-mang" && get) {
       const sp = new URL(req.url).searchParams;

@@ -114,3 +114,35 @@ Bảng tính năng × OS: `docs/QUAN-LY-DA-NEN-TANG.md`.
 
 Tham số mới (cau-hinh, kẹp min–max): `mat_nhip_di_dong_phut` 180 (30–1440) · `tuan_thu_nguong` 80 (0–100) · `mo_khan_cap_toi_da_phut` 120
 (15–720) · `goi_cai_gio` 48 (1–168). Ngưỡng mất nhịp máy tính dùng `ngung_chay_phut` 15 có sẵn.
+
+## M4b kiểm soát mạng — hồ sơ DNS gia đình, máy con loại mạng (chỉ thêm)
+
+Xử lý: `server/lib/dns-gia-dinh.ts`, `ho-so-dns.ts` (thuần), `huong-dan-mang.ts` (dữ liệu), `api-dns.ts`. Test: `dns.test.ts`.
+Chi tiết + giới hạn của DNS: `docs/QUAN-LY-DA-NEN-TANG.md` mục 5.
+
+### App Ba Mẹ — `/api/m/*`
+
+| Đường | Ý |
+|---|---|
+| `GET dns` | `{nhaCungCap, thietBi[{id, ten, loai, con, mayId, mac, nhan, truyVanCuoi, trangThai: qua_bo_loc\|mat_truy_van\|chua_thay}], huongDan}` |
+| `GET dns/huong-dan` | `{chiMotLan, router[], tv[], gioiHan[], loaiThietBi}` — dắt tay đặt DNS ở router (TP-Link, Viettel, FPT, VNPT, Tenda, ASUS) / TV, console |
+| `POST dns/nha-cung-cap {loai: tu_host\|nextdns, hoSo?}` | chọn nhà cung cấp; NextDNS cần mã hồ sơ Ba Mẹ tự tạo (không lưu khoá API) |
+| `POST dns/thiet-bi {con?, ten, loai: tv\|console\|khac, mac?}` | thêm máy con loại mạng → `{id}` |
+| `GET dns/thiet-bi/:id/ho-so` | `{thietBi, nhaCungCap, diemCuoi{dohUrl, dotHost, ipv4, ghiChu}, apple{mobileconfig, tep}, android{privateDns, buoc}, windows{mauDoh, powerShell, netsh}, dnsThuong}` |
+| `GET dns/thiet-bi/:id/mobileconfig` | tệp `.mobileconfig` (`application/x-apple-aspen-config`) |
+| `GET dns/thiet-bi/:id/nhat-ky?ngay=` | tóm tắt: `{ngay, ds[{tenMien, soLan, soLanChan, ngoaiGio}], tong}` |
+| `POST dns/thiet-bi/:id/day` | đẩy chính sách lên nhà cung cấp → `{cheDo: khong_can\|gia\|that, yeuCau[]}` |
+| `POST dns/thiet-bi/:id/xoa` | |
+| `GET may/:id/ho-so-dns` | hồ sơ DNS cho máy có agent |
+
+### Agent — `/api/device/*`
+
+`POST ho-so-dns` → hồ sơ DNS của chính máy (trình cài một chạm tự cài: mobileconfig / Private DNS / DoH Windows).
+
+### Resolver tự host — `/api/dns/*` (Bearer = `AIIGROW_DNS_BI_MAT`; chưa đặt ⇒ 503)
+
+`GET chinh-sach/:nhan` → `{thietBi, tz, chan[], giaiTri[], choPhep[], lichMo, chanTatCaNgoaiGio, khoaNgay, giaiTriDuocMo}` ·
+`POST nhat-ky {nhan, ds: [{tenMien, soLan, soLanChan, ngoaiGio}]}` hoặc `{nextdns: [{domain, status, device: {name}}]}` → `{nhan}` ·
+`POST quet` → quét thiết bị mất truy vấn.
+
+Tham số mới: `dns_mat_truy_van_phut` 180 (30–1440) · `dns_vuot_gio_nguong` 20 (1–1000).

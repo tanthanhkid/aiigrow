@@ -1,4 +1,4 @@
-# AiiGrow — quản lý đa nền tảng (M4b · M4c)
+# AiiGrow — quản lý đa nền tảng (M4b · M4c · M4b mạng)
 
 Ngày 21/10/2026. Mục tiêu: MỘT chính sách cho Con, áp lên mọi máy (Windows, Android, iPhone/iPad, Mac, TV) bằng **cơ chế chính hãng**
 mà Apple / Google / Microsoft cho phép — công khai, minh bạch, Con biết rõ quy tắc. Chỉ học **cách tổ chức** từ tài liệu công khai của
@@ -107,14 +107,83 @@ qua `dong-bo` / `nhip` (`lenh: [{id, loai: "go"}]`) ⇒ `POST /api/device/lenh/:
 ngừng cảnh báo mất nhịp); báo xong lần hai trả `lapLai: true`, không ghi đôi. Vai không phải chủ ⇒ 403; sai mật khẩu ⇒ 401 + nhật ký; máy
 nhà khác ⇒ 404.
 
-## 5. Việc chờ (gọi API thật từng OS)
+## 5. Kiểm soát MẠNG — hồ sơ DNS gia đình, router / TV, máy con loại mạng (M4b mạng)
+
+Ý: mọi thiết bị trong nhà đi qua MỘT bộ lọc DNS của gia đình (resolver lọc theo thiết bị, kiểu NextDNS). Máy có agent thì trình cài một
+chạm tự cài hồ sơ DNS (gắn theo thiết bị, không cần router); thiết bị không cài được (TV, console) thì Ba Mẹ đặt DNS ở router MỘT lần
+hoặc trong phần Mạng của TV. Chỉ cơ chế chính hãng (hồ sơ cấu hình Apple, DNS riêng tư Android, DoH của Windows, cài đặt mạng của router /
+TV), minh bạch: hồ sơ hiện rõ tên «AiiGrow — DNS gia đình», gỡ được trong Cài đặt; Ba Mẹ thấy thiết bị nào đang qua bộ lọc.
+
+### 5.1 Thiết bị cài được agent — hồ sơ DNS gắn theo thiết bị
+
+Mỗi thiết bị có một **nhãn** ngắn (`dns_thiet_bi.nhan`) nằm trong địa chỉ resolver ⇒ resolver biết thiết bị nào, áp chính sách của Con.
+
+| OS | Hồ sơ | Máy chủ sinh | Cài |
+|---|---|---|---|
+| iPhone / iPad / Mac | `.mobileconfig` payload `com.apple.dnsSettings.managed`, `DNSProtocol = HTTPS`, `ServerURL = <DoH>`; `PayloadRemovalDisallowed = false` (gỡ được); UUID ổn định theo thiết bị (cài lại thay thế, không nhân bản) | `GET /api/m/dns/thiet-bi/:id/mobileconfig` (tệp) · `GET /api/device/ho-so-dns` | mở tệp ⇒ Cài đặt › Đã tải hồ sơ › Cài (iOS bắt người dùng xác nhận — không có cách cài lặng lẽ, đúng tinh thần minh bạch) |
+| Android | DNS riêng tư (DoT) — hostname `<nhãn>.<gốc resolver>` | `android.privateDns` | máy Device Owner: DPC tự đặt (`setGlobalPrivateDnsModeSpecifiedHost`); máy thường: Cài đặt › Mạng và Internet › DNS riêng tư |
+| Windows 11 | DoH: đăng ký IP resolver + mẫu DoH (`Add-DnsClientDohServerAddress … -AllowFallbackToUdp $False -AutoUpgrade $True`, hoặc `netsh dns add encryption …`), đặt DNS của card mạng về IP đó | `windows.powerShell` / `windows.netsh` | trình cài agent-win chạy bằng quyền SYSTEM khi cài (đã xin quyền quản trị một lần) |
+
+Hồ sơ ký số (để iOS hiện «Đã xác minh») cần chứng chỉ ký của AiiLab — việc chờ (CẦN ANH).
+
+### 5.2 Thiết bị không cài được (TV, console) — làm MỘT lần, phủ cả nhà
+
+(a) **Đặt DNS ở router một lần**: dữ liệu dắt tay theo hãng phổ biến ở VN (`GET /api/m/dns/huong-dan`): TP-Link (web + app Tether / Deco),
+Viettel, FPT (Hi FPT), VNPT (iGate), Tenda, ASUS — địa chỉ trang quản trị, từng màn, lưu ý (modem nhà mạng có thể khoá mục DNS ⇒ nhờ tổng
+đài hoặc đặt trên router riêng phía sau). Ba Mẹ đăng nhập router bằng tài khoản quản trị của chính mình.
+**Tự cấu hình router** chỉ khi hãng có API chính thức VÀ Ba Mẹ tự nhập mật khẩu router trong app (dùng một lần, không lưu). AiiGrow không
+dò, không đoán, không thử mật khẩu. Hiện chưa hãng nào trong danh sách có API chính thức cho người dùng ⇒ `tuCauHinh: false` hết; mốc này
+chỉ có mô tả + giao diện dữ liệu.
+(b) **Đổi DNS trong phần Mạng của TV / console**: Samsung (Tizen), LG (webOS), Google TV / Android TV (Sony, TCL, Xiaomi), Apple TV,
+PlayStation 5, Xbox, Nintendo Switch — từng màn trong `HUONG_DAN_TV`.
+
+**Chỉ làm 1 lần, phủ cả nhà**: đặt ở router thì mọi thiết bị dùng Wi-Fi nhà đi qua bộ lọc. DNS thường (IP, cổng 53) nhận diện theo IP công
+cộng của nhà ⇒ không tách từng TV; muốn tách thì dùng router gán DNS theo thiết bị (vd ASUS DNS Director) hoặc đặt DNS trên chính TV.
+
+### 5.3 «Máy con loại mạng»
+
+TV / console là máy con loại mạng (`dns_thiet_bi.loai = tv | console | khac`, gắn Con): giờ chơi + lọc nội dung thực thi ở TẦNG DNS —
+`chinhSachDns`: `chan` (luôn chặn), `giaiTri` (chỉ mở trong lịch), `choPhep` (hệ thống + học, luôn mở), `lichMo` (khung chơi − giờ ngủ),
+`chanTatCaNgoaiGio = true` (ngoài lịch chặn mọi tên miền trừ danh sách cho phép), khoá ngay. Resolver xét từng truy vấn bằng `xetTruyVan`.
+Báo Ba Mẹ:
+- **vượt giờ**: số truy vấn ngoài lịch trong ngày ≥ `dns_vuot_gio_nguong` (20) ⇒ cảnh báo một lần / ngày / thiết bị;
+- **không còn đi qua resolver**: thiết bị đã từng có truy vấn mà im lặng quá `dns_mat_truy_van_phut` (180) ⇒ cảnh báo một lần mỗi lần mất
+  («nếu thiết bị đang bật, có thể DNS đã bị đổi»); có truy vấn lại ⇒ ghi sự kiện.
+
+### 5.4 Máy chủ (xong, test không cần thiết bị)
+
+- Chính sách DNS theo gia đình / thiết bị, dựng từ chính sách chung (`lib/ho-so-dns.ts`, `lib/dns-gia-dinh.ts`).
+- Nhật ký truy vấn TÓM TẮT: chỉ tên miền + số lần (+ số lần bị chặn, ngoài giờ) theo ngày (`dns_nhat_ky`); không lưu URL, nội dung, giờ
+  từng truy vấn, không lưu IP.
+- Lớp **nhà cung cấp DNS** có adapter:
+  - **tự host** (mặc định): resolver nhẹ của AiiGrow kéo `GET /api/dns/chinh-sach/:nhan`, gửi `POST /api/dns/nhat-ky` (kiểu webhook),
+    Bearer = bí mật chung `AIIGROW_DNS_BI_MAT`; chưa đặt ⇒ 503. Địa chỉ: `AIIGROW_DNS_GOC`, `AIIGROW_DNS_IPV4`;
+  - **NextDNS** (API công khai): hồ sơ do Ba Mẹ tự tạo trong tài khoản của mình, Ba Mẹ nhập mã hồ sơ; DoH `https://dns.nextdns.io/<hồ sơ>/<tên>`,
+    DoT `<tên>-<hồ sơ>.dns.nextdns.io`; đẩy denylist / allowlist qua `api.nextdns.io` với `X-Api-Key` lấy từ biến môi trường. **Không có
+    khoá ⇒ chế độ giả** (trả danh sách yêu cầu sẽ gửi, không gửi gì). AiiGrow KHÔNG đăng ký tài khoản / tạo khoá NextDNS.
+
+### 5.5 Giới hạn của DNS (nói rõ với Ba Mẹ trong app)
+
+- Chỉ lọc được **tên miền**; không thấy, không lọc nội dung **bên trong app** hay trang (một video, một kênh).
+- Không đếm phút dùng thật ⇒ giờ chơi TV / console = chặn tên miền ngoài lịch.
+- App dùng DNS riêng / DoH riêng hoặc kết nối thẳng IP thì không qua bộ lọc.
+- **TV / console đổi DNS tay** (hoặc đặt lại gốc, dùng 4G phát từ điện thoại) **là vượt được** ⇒ AiiGrow chỉ phát hiện «mất truy vấn» và báo
+  Ba Mẹ, không ngăn được.
+
+Nguồn thêm: Apple DNS Settings payload — https://developer.apple.com/documentation/devicemanagement/dnssettings ·
+Android DNS riêng tư / `setGlobalPrivateDnsModeSpecifiedHost` — https://developer.android.com/reference/android/app/admin/DevicePolicyManager ·
+Windows DoH — https://learn.microsoft.com/en-us/windows-server/networking/dns/doh-client-support ·
+NextDNS API — https://nextdns.github.io/api/
+
+## 6. Việc chờ (gọi API thật từng OS)
 
 - Windows: AppLocker, chính sách trình duyệt, `net user /times`, cài im lặng + gỡ từ xa — việc chờ máy Windows thử tài khoản Standard (agent-win).
 - Android: DPC Device Owner — việc chờ điện thoại khôi phục gốc; băm chữ ký APK cho QR; FCM cho lệnh tức thời — việc chờ dự án Firebase.
 - iOS / macOS: xin Apple entitlement Family Controls; app iOS + agent macOS — việc chờ Mac / Xcode + iPhone thật; MDM cần máy chủ MDM + chứng chỉ APNs.
 - TV / router: đẩy luật tự động qua API router / NextDNS — việc chờ thiết bị + khoá API do Ba Mẹ cấp.
+- DNS gia đình: dựng resolver tự host (DoH / DoT + cổng 53, đọc `/api/dns/chinh-sach`, gửi `/api/dns/nhat-ky`), tên miền + IP resolver, chứng chỉ ký .mobileconfig — việc chờ hạ tầng (CẦN ANH).
 
-## 6. Nguồn tham khảo (tài liệu công khai)
+## 7. Nguồn tham khảo (tài liệu công khai)
 
 - Intune — tổng quan tuân thủ: https://learn.microsoft.com/en-us/intune/device-security/compliance/overview
 - Intune — hành động khi không tuân thủ: https://learn.microsoft.com/en-us/intune/device-security/compliance/configure-noncompliance-actions
