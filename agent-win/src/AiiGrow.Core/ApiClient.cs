@@ -7,11 +7,16 @@ namespace AiiGrow.Core;
 public sealed class ApiException : Exception
 {
     public int? StatusCode { get; }
-    public ApiException(string message, int? statusCode = null, Exception? inner = null) : base(message, inner)
+    /// <summary>Mã lỗi máy chủ (`error`) — AiiGrow thêm, vd "token_sai".</summary>
+    public string? Code { get; }
+    public ApiException(string message, int? statusCode = null, Exception? inner = null, string? code = null) : base(message, inner)
     {
         StatusCode = statusCode;
+        Code = code;
     }
     public bool IsUnauthorized => StatusCode is 401 or 403;
+    /// <summary>Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline, giữ hàng đợi.</summary>
+    public bool IsNetwork => StatusCode is null or >= 500;
 }
 
 public sealed class QrExpiredException : Exception
