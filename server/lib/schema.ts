@@ -302,6 +302,15 @@ create table if not exists badges (
   dat_luc timestamptz not null default now(),
   primary key (child_id, ma)
 );
+create table if not exists ho_tro (
+  id text primary key,
+  family_id text not null references families(id) on delete cascade,
+  tu text not null,
+  nguoi text,
+  noi_dung text not null,
+  seq bigserial,
+  created_at timestamptz not null default now()
+);
 create table if not exists messages (
   id text primary key,
   family_id text not null references families(id) on delete cascade,
