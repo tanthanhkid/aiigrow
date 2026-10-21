@@ -129,6 +129,8 @@ export const TEN_THAM_SO: Record<TenThamSo, [string, string]> = {
   ngoai_le_manh_tuan: ["Cảnh báo mạnh: ngoại lệ mỗi tuần", "lần"], offline_gio: ["Báo máy mất kết nối sau", "giờ"],
   lech_gio_phut: ["Khoá giải trí khi giờ máy lệch quá", "phút"], ngung_chay_phut: ["Báo AiiGrow ngừng chạy sau", "phút"],
   chan_lan_gio: ["Báo khi bị chặn nhiều lần mỗi giờ", "lần"], luu_bang_chung_ngay: ["Lưu ảnh bằng chứng", "ngày"],
+  mat_nhip_di_dong_phut: ["Báo máy di động mất nhịp sau", "phút"], tuan_thu_nguong: ["Ngưỡng điểm tuân thủ (dưới ⇒ khoá giải trí)", "điểm"],
+  mo_khan_cap_toi_da_phut: ["Mở khẩn cấp tối đa", "phút"], goi_cai_gio: ["Gói cài (token ghép) hết hạn sau", "giờ"],
 };
 
 /** Bảng tham số: mặc định trong mã + giá trị hệ thống Admin đặt (đã kẹp min–max). */
