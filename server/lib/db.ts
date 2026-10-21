@@ -1,7 +1,8 @@
 // Lớp DB mỏng: Postgres thật khi có DATABASE_URL, không thì PGlite (Postgres chạy trong tiến trình, lưu ở .data/pg).
 // Chỉ dùng SQL tham số $1, $2… — cùng một câu chạy được trên cả hai.
 // Ghi cột jsonb luôn bằng `$n::text::jsonb` + JSON.stringify: postgres.js qua pooler Neon biết kiểu jsonb và bọc chuỗi lần nữa.
-import { SCHEMA } from "./schema.ts";
+import { SCHEMA, SCHEMA_M5 } from "./schema.ts";
+import { napHeThong } from "./he-thong.ts";
 
 export type Row = Record<string, any>;
 export type Q = <T = Row>(sql: string, params?: unknown[]) => Promise<T[]>;
@@ -17,6 +18,8 @@ async function mo(): Promise<Db> {
     const sql = postgres(url, { max: 5, idle_timeout: 20, prepare: false, onnotice: () => {} });
     const q: Q = async (s, p = []) => (await sql.unsafe(s, p as any[])) as any;
     await sql.unsafe(SCHEMA);
+    await sql.unsafe(SCHEMA_M5);
+    napHeThong(await q(`select khoa, gia_tri from he_thong`));
     return {
       q,
       tx: (fn) => sql.begin((t) => fn(async (s, p = []) => (await t.unsafe(s, p as any[])) as any)) as any,
@@ -29,7 +32,9 @@ async function mo(): Promise<Db> {
   if (dir) (await import("node:fs")).mkdirSync(dir, { recursive: true });
   const pg = dir ? new PGlite(dir) : new PGlite();
   await pg.exec(SCHEMA);
+  await pg.exec(SCHEMA_M5);
   const q: Q = async (s, p = []) => (await pg.query(s, p as any[])).rows as any;
+  napHeThong(await q(`select khoa, gia_tri from he_thong`));
   return {
     q,
     tx: (fn) => pg.transaction((t) => fn(async (s, p = []) => (await t.query(s, p as any[])).rows as any)),

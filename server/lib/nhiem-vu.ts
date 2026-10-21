@@ -83,7 +83,9 @@ export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: str
 export async function apDungMau(fam: string, nhom: "nhi" | "teen") {
   const co = new Set((await q<{ ten: string }>(`select ten from tasks where family_id = $1`, [fam])).map((x) => x.ten));
   let n = 0;
-  for (const m of MAU[nhom]) if (!co.has(m.ten)) { await taoNv(fam, { ...m }); n++; }
+  const { mauRiengDangBat } = await import("./admin.ts");   // động: admin.ts import nhiem-vu.ts
+  const rieng = (await mauRiengDangBat())[nhom] as unknown as MauNv[];
+  for (const m of [...MAU[nhom], ...rieng]) if (!co.has(m.ten)) { await taoNv(fam, { ...m }); co.add(m.ten); n++; }
   return n;
 }
 

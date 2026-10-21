@@ -131,7 +131,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       const chuaXep = await q<{ muc: string; phut: number }>(
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
            and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc) group by u.muc order by phut desc limit 50`, [fam]);
-      return json({ ds: await la.dsLuat(fam), heThong: la.ALLOWLIST_HE_THONG, chuaXep });
+      return json({ ds: await la.dsLuat(fam), heThong: la.allowlistHieuLuc(), chuaXep });
     }
     if (d === "luat" && post) return json({ muc: await la.datLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom }) });
 

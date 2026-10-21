@@ -1,6 +1,7 @@
 // Tham số nghiệp vụ (BRD mục 10): mặc định hệ thống + phạm vi cho phép. Ba Mẹ ghi đè cho gia đình (families.cau_hinh) hoặc từng Con
 // (children.cau_hinh); giá trị ngoài phạm vi bị KẸP về min–max, không báo lỗi lặng lẽ ở chỗ khác. Giá điểm/phút lưu phần nghìn.
 import type { Khung } from "./gio.ts";
+import { heThong } from "./he-thong.ts";
 
 type So = { md: number; min: number; max: number };
 const s = (md: number, min: number, max: number): So => ({ md, min, max });
@@ -54,8 +55,9 @@ const kep = (t: So, v: unknown) => {
 };
 
 /** Tham số hiệu lực: mặc định ← gia đình ← Con (lớp sau đè lớp trước), mỗi giá trị kẹp trong phạm vi. */
-export function thamSo(...lop: (Record<string, unknown> | null | undefined)[]): ThamSo {
+export function thamSo(...lopVao: (Record<string, unknown> | null | undefined)[]): ThamSo {
   const ra = {} as ThamSo;
+  const lop = [heThong.thamSo, ...lopVao];          // mặc định hệ thống (Admin) → gia đình → Con
   for (const k of Object.keys(THAM_SO) as TenThamSo[]) {
     let v: unknown = THAM_SO[k].md;
     for (const l of lop) if (l && l[k] !== undefined && l[k] !== null) v = l[k];
