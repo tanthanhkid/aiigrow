@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AiiGrow.Core;
 
 namespace AiiGrow.Service;
@@ -8,10 +7,11 @@ public sealed class AgentWorker : BackgroundService
     private readonly ILogger<AgentWorker> _log;
     private readonly AgentRuntime _rt;
     private readonly AppLockerController _locker;
+    private readonly IProcessControl _procs;
 
-    public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker)
+    public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker, IProcessControl? procs = null)
     {
-        _log = log; _rt = rt; _locker = locker;
+        _log = log; _rt = rt; _locker = locker; _procs = procs ?? new WindowsProcessControl();
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -99,43 +99,16 @@ public sealed class AgentWorker : BackgroundService
         }
     }
 
-    /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.</summary>
+    /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.
+    /// Quyết định "đóng cái nào" nằm ở lớp thuần <see cref="ProcessEnforcer"/>; worker chỉ cung cấp cổng hệ thống.</summary>
     private void EnforceAllowList(int sessionId, Policy p)
     {
-        var allowed = new HashSet<string>(p.AllowedApps, StringComparer.OrdinalIgnoreCase);
-        var safe = ProcessGuard.DefaultSafeDirs();
-        var allowedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var cand = new List<(Process Proc, string Path)>();
-        foreach (var pr in Process.GetProcesses())
+        var closed = ProcessEnforcer.Enforce(_procs, sessionId, p.AllowedApps);
+        foreach (var exe in closed)
         {
-            string? path = null;
-            try
-            {
-                if (pr.SessionId == sessionId) path = pr.MainModule?.FileName;
-            }
-            catch { }
-            if (string.IsNullOrEmpty(path)) { pr.Dispose(); continue; }
-            cand.Add((pr, path));
-            if (allowed.Contains(Path.GetFileName(path)))
-            {
-                var d = Path.GetDirectoryName(path);
-                if (d != null) allowedDirs.Add(d);
-            }
-        }
-        foreach (var (proc, path) in cand)
-        {
-            try
-            {
-                if (ProcessGuard.ShouldClose(path, allowed, allowedDirs, safe))
-                {
-                    var exe = Path.GetFileName(path).ToLowerInvariant();
-                    _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
-                    proc.Kill();
-                    _rt.RecordBlocked(exe, Path.GetFileNameWithoutExtension(path));
-                }
-            }
-            catch { }
-            finally { proc.Dispose(); }
+            _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
+            var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
+            _rt.RecordBlocked(exe, bare);
         }
     }
 }

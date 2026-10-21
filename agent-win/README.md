@@ -62,6 +62,29 @@ CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish,
 4. Đăng xuất, con đăng nhập: thấy thông báo "Máy được bố mẹ quản lý" và biểu tượng AiiGrow ở khay.
 5. Đổi chế độ ở app bố mẹ rồi quan sát: `Get-AppLockerPolicy -Local -Xml` (luật `AiiGrow:`), nhật ký dịch vụ trong Event Viewer.
 
+## Nghiệm thu trong môi trường cách ly (VM / Windows Sandbox)
+
+> **CHƯA CHẠY.** Máy phát triển hiện tại là máy công ty, KHÔNG cài dịch vụ / bật AppIDSvc / áp AppLocker trên đó.
+> Mốc M4 mới chỉ `dotnet build` + `dotnet test` + dry-run (sinh XML/kế hoạch ra thư mục tạm rồi kiểm bằng test,
+> xem `AppLockerBlockListTests`, `InstallPlanTests`). Các bước dưới đây là kịch bản để chạy **khi có máy ảo**.
+
+Chạy trên một **máy ảo Windows riêng** (Hyper-V / VirtualBox) hoặc **Windows Sandbox**, đăng nhập bằng **tài khoản Standard** (không phải máy công ty):
+
+1. **Chuẩn bị exe vô hại giả tên game**: chép `notepad.exe` thành `game-thu.exe`
+   (`Copy-Item C:\Windows\System32\notepad.exe $env:USERPROFILE\Desktop\game-thu.exe`). Không cần phần mềm game thật.
+2. **Cài**: chạy `AiiGrow.Setup.exe` (bộ cài tự xin quyền quản trị MỘT lần qua `app.manifest`), dùng token nhúng sẵn để ghép máy,
+   cài dịch vụ (LocalSystem), đặt recovery, dựng AppLocker. Đăng nhập lại bằng tài khoản con.
+3. **Ngoài giờ ⇒ bị chặn**: ở app Ba Mẹ đặt lịch sao cho đang là giờ nghỉ. Mở `game-thu.exe` ⇒ mong đợi màn chặn hiện
+   tên app + lý do «Ngoài giờ dùng máy», chỉ có nút «Xin phép Ba Mẹ». Kiểm `Get-AppLockerPolicy -Local -Xml` thấy luật `AiiGrow:`.
+4. **«Dùng điểm để chơi» ⇒ mở được**: chuyển sang tình huống chặn giải trí (hết điểm / chưa phân loại). Bấm «Dùng điểm để chơi»
+   ⇒ dịch vụ gọi `phien/xet` → `phien/mo`; máy chủ cho ⇒ phiên bắt đầu, `game-thu.exe` chạy được.
+5. **Hết phiên ⇒ bị đóng**: để phiên chạy tới hết số phút đã đổi ⇒ mong đợi `game-thu.exe` bị đóng và màn chặn hiện lại.
+6. **Thu bằng chứng**: lưu `Get-AppLockerPolicy -Local -Xml > applocker.xml`, nhật ký dịch vụ trong Event Viewer, nhật ký
+   `%ProgramData%\AiiGrow\install.log`, và **ảnh chụp** màn chặn + lúc mở được + lúc hết phiên. Ghi kết quả vào `docs/DO-BEN.md`.
+
+Lưu ý an toàn: toàn bộ bước 2–5 chỉ chạy trong máy ảo/Sandbox; **không** chạy trên máy công ty.
+Khi chưa áp được AppLocker (Windows Home), còn lớp dự phòng đóng tiến trình (`ProcessEnforcer`) — vẫn đóng được `game-thu.exe`.
+
 ## Giới hạn và việc cần thử (xem KHA-THI mục 4 và 7)
 
 - **Chưa chạy thử trên Windows thật.** Mã mới chỉ build và test logic (sinh XML AppLocker, phân tích Policy, đếm phút).

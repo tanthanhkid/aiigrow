@@ -1,10 +1,25 @@
 using AiiGrow.Core;
 using AiiGrow.Service;
+using Microsoft.Extensions.DependencyInjection;
 
-// Mốc này (cài một chạm + heartbeat + gỡ từ xa): dịch vụ chỉ chạy HeartbeatWorker.
-// Lớp áp Policy đầy đủ (AppLockerController, AgentWorker, PipeServer cho khay) + màn chặn / phiên điểm được bật lại ở PR sau
-// (phần bị bộ lọc cắt đang chờ master). Các lớp đó vẫn còn trong mã nguồn, chỉ chưa đăng ký.
+// Dịch vụ AiiGrow chạy như Windows Service (UseWindowsService; bộ cài tạo dịch vụ chạy bằng LocalSystem, tự khởi động lại khi lỗi).
+// Hai nhóm worker chạy song song:
+//   • HeartbeatWorker  — đồng bộ định kỳ + thực thi lệnh GỠ TỪ XA ("go").
+//   • Thực thi Policy   — AgentWorker (đọc Policy từ đồng bộ, đóng tiến trình ngoài danh sách qua IProcessControl, sinh/áp AppLocker),
+//                         AppLockerController (áp/gỡ luật) và PipeServer (màn chặn + phiên điểm nói chuyện với khay qua named pipe).
+// Bước ÁP THẬT (Set-AppLockerPolicy, đóng tiến trình, ngắt phiên) chỉ chạy khi dịch vụ đã được cài trên máy Con và đã ghép máy;
+// không ghép ⇒ các vòng này đứng yên. Trong test chỉ chạy logic thuần + dry-run (không đụng hệ thống).
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddWindowsService(o => o.ServiceName = Paths.ServiceName);
+
+// Thực thi Policy (dùng chung một AgentRuntime).
+builder.Services.AddSingleton<AgentRuntime>();
+builder.Services.AddSingleton<AppLockerController>();
+builder.Services.AddSingleton<IProcessControl, WindowsProcessControl>();
+builder.Services.AddHostedService<AgentWorker>();
+builder.Services.AddHostedService<PipeServer>();
+
+// Heartbeat + gỡ từ xa.
 builder.Services.AddHostedService<HeartbeatWorker>();
+
 builder.Build().Run();

@@ -96,6 +96,18 @@ public sealed class ApiClient : IDisposable
         return PostAsync<RequestResult>("api/device/requests", new { kind, minutes, appId, appName, note }, ct);
     }
 
+    /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
+    public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)
+        => PostAsync<PlayCheck>("api/device/phien/xet", new { muc }, ct);
+
+    /// <summary>Mở phiên chơi bằng điểm (POST phien/mo) sau khi phien/xet trả "được".</summary>
+    public Task<PlayOpen> OpenPlayAsync(string muc, CancellationToken ct = default)
+        => PostAsync<PlayOpen>("api/device/phien/mo", new { muc }, ct);
+
+    /// <summary>Gửi lời xin Ba Mẹ từ màn chặn (POST yeu-cau). Chỉ gửi; quyết định do máy chủ trả về.</summary>
+    public Task<RequestResult> AskParentAsync(string loai, int phut, string? appId, string? lyDo, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/yeu-cau", new { loai, phut, muc = appId, lyDo }, ct);
+
     public async Task<RequestStatus> GetRequestAsync(string id, CancellationToken ct = default)
     {
         var raw = await SendAsync(HttpMethod.Get, "api/device/requests/" + Uri.EscapeDataString(id), null, ct);

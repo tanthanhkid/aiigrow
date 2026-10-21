@@ -44,6 +44,10 @@ public static class LockReasons
     public const string Khoa = "khoa";
     public const string Ngu = "ngu";
     public const string HetGio = "het_gio";
+    /// <summary>Màn chặn giải trí: hết điểm để mở phiên chơi.</summary>
+    public const string HetDiem = "het_diem";
+    /// <summary>Màn chặn giải trí: app chưa được Ba Mẹ phân loại nên chưa cho mở.</summary>
+    public const string ChuaPhanLoai = "chua_phan_loai";
 }
 
 /// <summary>Policy do máy chủ tính sẵn (PLAN.md mục 3). Tác tử chỉ áp và nhớ bản cuối.</summary>
@@ -119,6 +123,24 @@ public sealed class RequestStatus
 {
     public string Status { get; set; } = "";
     public DateTimeOffset? GrantEndsAt { get; set; }
+}
+
+/// <summary>Kết quả xét trước «Dùng điểm để chơi?» (POST phien/xet). KHÔNG mang số điểm/số dư sang khay — chỉ "được / không" + câu nhắc.</summary>
+public sealed class PlayCheck
+{
+    public bool Duoc { get; set; }
+    public string? LyDo { get; set; }
+    /// <summary>Câu hiển thị cho con (do máy chủ soạn).</summary>
+    public string? Cau { get; set; }
+}
+
+/// <summary>Kết quả mở phiên chơi (POST phien/mo).</summary>
+public sealed class PlayOpen
+{
+    [JsonConverter(typeof(FlexStringConverter))]
+    public string? Id { get; set; }
+    public string TrangThai { get; set; } = "";
+    public int? ConPhut { get; set; }
 }
 
 public sealed class AgentConfig
