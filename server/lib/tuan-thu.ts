@@ -5,8 +5,7 @@
 //   · mất nhịp quá ngưỡng (ngung_chay_phut; điện thoại: mat_nhip_di_dong_phut) ⇒ «ngoài vòng kiểm soát» + cảnh báo Ba Mẹ MỘT lần / lần mất;
 //   · Ba Mẹ mở khẩn cấp qua app (có hạn, ghi nhật ký). Không có «chế độ cục bộ»: mọi nới lỏng chỉ do Ba Mẹ duyệt qua máy chủ.
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
-import { one, q, type Q } from "./db.ts";
-import { SCHEMA_M4B } from "./schema.ts";
+import { one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { thamSo, type ThamSo } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
@@ -19,7 +18,7 @@ let coBang = false;
 /** Tạo lười bảng M4b (schema.ts › SCHEMA_M4B). Gọi NGOÀI tx (PGlite một kết nối). */
 export async function bangM4b() {
   if (coBang) return;
-  for (const c of SCHEMA_M4B) await q(c);
+  await sanSang();                       // bảng M4b tạo trong db.ts cùng lược đồ chung
   coBang = true;
 }
 

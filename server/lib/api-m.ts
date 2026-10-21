@@ -54,11 +54,11 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 
     if (d === "gia-dinh" && get) {
-      const con = await gd.dsCon(fam);
-      const f = (await one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]))!;
-      const cho = await nv.choDuyet(fam), ycCho = await yc.dsChoYc(fam);
-      return json({ ten: f.ten, quyVoucher: f.quy_voucher, choDuyet: cho.length + ycCho.length,
-        canhBao: (await dsCanhBao(fam, true)).length,
+      // song song: mỗi câu SQL là một vòng mạng tới DB
+      const [con, f, cho, ycCho, cb] = await Promise.all([gd.dsCon(fam),
+        one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true)]);
+      return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length,
+        canhBao: cb.length,
         con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id)) }))) });
     }
     if (d === "con" && post) return json({ id: await gd.taoCon(fam, b, bm.id) });

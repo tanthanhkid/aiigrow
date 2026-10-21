@@ -2,9 +2,8 @@
 // Tách hẳn khỏi Ba Mẹ: bảng `staff` / `staff_sessions` riêng, token Ba Mẹ / thiết bị / Con không bao giờ khớp ở đây và ngược lại.
 // Admin KHÔNG xem ảnh bằng chứng của Con (KE-HOACH 5.5): không có hàm nào ở đây đọc bảng evidence.
 import { bamMatKhau, dungMatKhau, sha, taoToken, bearer } from "./auth.ts";
-import { newId, one, q, type Q } from "./db.ts";
+import { newId, one, q, sanSang, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { SCHEMA_M5 } from "./schema.ts";
 import { heThong } from "./he-thong.ts";
 import { THAM_SO, sachCauHinh, type TenThamSo } from "./cau-hinh.ts";
 import { ALLOWLIST_HE_THONG, chuanMuc } from "./luat-app.ts";
@@ -20,9 +19,7 @@ const PHIEN_GIO: Record<VaiNv, number> = { quay: 14, admin: 8 };     // một ca
 // ---------------------------------------------------------------- lược đồ M5 (chạy một lần mỗi tiến trình)
 const g = globalThis as unknown as { __aiigM5?: Promise<void> };
 export function damBaoBang() {
-  g.__aiigM5 ??= (async () => {
-    for (const cau of SCHEMA_M5.split(";").map((s) => s.trim()).filter(Boolean)) await q(cau);
-  })().catch((e) => { g.__aiigM5 = undefined; throw e; });
+  g.__aiigM5 ??= sanSang().catch((e) => { g.__aiigM5 = undefined; throw e; });   // bảng M5 tạo trong db.ts
   return g.__aiigM5;
 }
 
