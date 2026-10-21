@@ -337,3 +337,14 @@ export async function hoanTacDuyet(fam: string, subId: string, nguoi: string) {
     await ghiSuKien(fam, "hoan_tac_duyet", { ten: s.ten }, { con: s.child_id, nguoi }, t);
   });
 }
+
+/** «Tự động duyệt hôm nay» ở hộp Chờ duyệt (bm-cho-duyet): lượt AiiRob / nhiệm vụ tự duyệt đã cộng điểm từ đầu ngày theo giờ gia đình. */
+export async function tuDongHomNay(fam: string, now = new Date()) {
+  const f = (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))!;
+  const tu = dauNgayUtc(gioDiaPhuong(now, f.tz).ngay, f.tz);
+  return q<{ id: string; child_id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null; duyet_luc: Date }>(
+    `select s.id, s.child_id, c.ten as ten_con, t.ten, s.diem, s.nguon, s.ghi_chu, s.duyet_luc
+     from submissions s join tasks t on t.id = s.task_id join children c on c.id = s.child_id
+     where t.family_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2 and (s.nguon = 'aiirob' or t.tu_duyet)
+     order by s.duyet_luc desc limit 10`, [fam, tu]);
+}

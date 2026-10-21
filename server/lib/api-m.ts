@@ -96,7 +96,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "nhiem-vu/mau" && post) return json({ taoMoi: await nv.apDungMau(fam, b.nhom === "teen" ? "teen" : "nhi") });
     if (p[0] === "nhiem-vu" && p[1] && p.length === 2 && post) { await nv.suaNv(fam, p[1], b); return json({ ok: true }); }
 
-    if (d === "cho-duyet" && get) return json({ nhiemVu: await nv.choDuyet(fam), yeuCau: await yc.dsChoYc(fam) });
+    if (d === "cho-duyet" && get) return json({ nhiemVu: await nv.choDuyet(fam), yeuCau: await yc.dsChoYc(fam), tuDong: await nv.tuDongHomNay(fam) });
     if (p[0] === "luot" && p[1]) {
       if (p.length === 2 && get) return json(await nv.chiTietLuot(fam, p[1]));
       if (p[2] === "hoan-tac" && post) { await nv.hoanTacDuyet(fam, p[1], bm.id); return json({ ok: true }); }
