@@ -3,6 +3,7 @@
 // Cấp độ tính theo điểm KIẾM ĐƯỢC trọn đời (FR-03.06), không theo số dư.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { ghiNgoaiLe } from "./ngoai-le.ts";
 
 export type LoaiDiem = "nhiem_vu" | "phien" | "doi_qua" | "hoan" | "tay" | "chao_mung" | "voucher" | "ngoai_le";
 
@@ -36,7 +37,7 @@ export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo
   return tx(async (t) => {
     if ((await khoaCon(t, con)) !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
     const du = await ghiDiem(t, con, d, "tay", ly, { nguoi });
-    await t(`insert into exceptions(id, family_id, child_id, parent_id, loai) values ($1,$2,$3,$4,'dieu_chinh_tay')`, [newId(), fam, con, nguoi]);
+    await ghiNgoaiLe(fam, con, nguoi, "dieu_chinh_tay", null, t);                // đếm + cảnh báo ngưỡng như mọi ngoại lệ
     await t(`insert into events(id, family_id, child_id, loai, chi_tiet, nguoi) values ($1,$2,$3,'dieu_chinh_diem',$4::text::jsonb,$5)`,
       [newId(), fam, con, JSON.stringify({ delta: d, ly_do: ly }), nguoi]);
     return du;

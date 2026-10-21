@@ -200,7 +200,17 @@ create table if not exists app_rules (
   ten text not null,
   loai text not null,
   nhom text not null default 'khac',
+  het timestamptz,
   primary key (family_id, child_id, muc)
+);
+create table if not exists usage (
+  device_id text not null,
+  child_id text not null references children(id) on delete cascade,
+  ngay text not null,
+  muc text not null,
+  loai text not null,
+  phut int not null,
+  primary key (device_id, ngay, muc)
 );
 create table if not exists play_sessions (
   id text primary key,
@@ -212,9 +222,10 @@ create table if not exists play_sessions (
   toi_da_phut int not null,
   bat_dau timestamptz not null default now(),
   nhip_cuoi timestamptz not null default now(),
-  phut_dung int not null default 0,
+  phut_dung real not null default 0,
   phan_nghin_tru int not null default 0,
   diem_tru int not null default 0,
+  phut_thuong real not null default 0,
   trang_thai text not null default 'chay',
   ly_do_ket text,
   ket_thuc timestamptz,
@@ -311,6 +322,7 @@ create table if not exists messages (
 // points.loai: nhiem_vu | phien | doi_qua | hoan | tay | chao_mung | voucher | ngoai_le.
 // rewards.loai: phut | voucher | qua | dac_quyen | tiet_kiem. redemptions.trang_thai: giu (chờ Ba Mẹ trao) | da_trao | huy | xong.
 // vouchers.trang_thai (Phụ lục A.4): cho_xac_nhan | da_phat_hanh | da_dung | het_han | thu_hoi. quy_gd.loai: nap | phat_hanh | hoan.
+// app_rules.het: null = vĩnh viễn; có giá trị = phê duyệt «Lần này / Hôm nay» hết hạn lúc đó. usage.loai: hoc | giai_tri | he_thong | chua_phan_loai.
 // app_rules.muc: tên miền (vd youtube.com) hoặc định danh app (vd roblox.exe, com.roblox.client); child_id '' = cả gia đình.
 //   app_rules.loai: hoc | giai_tri | chan. app_rules.nhom: game | video_ngan | mxh | phim_gd | khac (giá điểm/phút theo nhóm).
 // play_sessions.trang_thai (Phụ lục A.3): chay | tam | ket_thuc. requests.loai: them_gio | mo_web | cai_app | ngoai_le | ngoai_gio | khac.
