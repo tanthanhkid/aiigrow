@@ -19,7 +19,7 @@ import { dsCanhBao, dsSuKien, ghiSuKien } from "./nhat-ky.ts";
 import { newId } from "./db.ts";
 // M4b độ bền máy con (chỉ thêm): tuân thủ, mở khẩn cấp, gói cài một chạm, gỡ từ xa, cấu hình nền tảng, luật tầng mạng (TV)
 import * as tt from "./tuan-thu.ts";
-import { lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
+import { datCheDo, goMayAnToan, lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
 import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
 // M4b kiểm soát mạng (chỉ thêm): hồ sơ DNS gia đình, máy con loại mạng (TV, console), nhật ký tóm tắt, hướng dẫn router / TV
 import * as dns from "./dns-gia-dinh.ts";
@@ -103,7 +103,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       }
     }
     if (d === "ma-ghep" && post) return json({ ma: await gd.taoMaGhep(fam, b.con ? s(b.con, 40) : null, s(b.nen, 20)) });
-    if (p[0] === "may" && p[2] === "go" && post) { await gd.goMay(fam, p[1], bm.id); return json({ ok: true }); }
+    // «Gỡ máy này» an toàn: chủ gia đình + mật khẩu; máy đã đồng bộ ⇒ lệnh gỡ (xoá khi agent báo xong) — lib/lenh-may.ts › goMayAnToan
+    if (p[0] === "may" && p[2] === "go" && !p[3] && post) return json(await goMayAnToan(bm, p[1], b));
     // M4b
     if (d === "tuan-thu" && get) return json({ ds: await tt.dsTuanThu(fam) });
     if (d === "goi-cai" && post) return json(await taoGoiCai(fam, b, process.env.AIIGROW_APP_URL || new URL(req.url).origin, bm.id));
@@ -122,6 +123,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       }
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
+      // Giám sát / Chặn thật do Ba Mẹ chọn từ xa (vai Chỉ xem đã bị chặn ở trên cùng mọi POST)
+      if (sau === "che-do" && post) return json(await datCheDo(fam, p[1], b, bm.id));
     }
     // M4b mạng
     if (d === "dns" && get) return json({ nhaCungCap: (await dns.nhaCungCap(fam)).loai, thietBi: await dns.dsThietBiDns(fam), huongDan: dns.huongDanMang() });

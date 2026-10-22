@@ -391,7 +391,7 @@ create table if not exists mau_he_thong (
 // (bangM4b) để không đổi chuỗi SCHEMA chung. Mỗi câu một lệnh, ngăn bằng dòng trống + «;».
 // tuan_thu_may: nhịp cuối + vấn đề tuân thủ của từng máy (van_de: [{loai, tru, ...}]), mở khẩn cấp do Ba Mẹ cấp (có hạn),
 //   tài khoản quản trị Ba Mẹ đã xác nhận là của mình (admin_tin_cay). tat_luc: agent báo tắt/ngủ sạch ⇒ im lặng sau đó không phải «ngoài vòng».
-// lenh_may: lệnh máy chủ ⇒ agent (loai: go). trang_thai: cho | xong. Giữ cả khi máy đã xoá (token_hash) ⇒ agent báo «xong» lần hai vẫn ok.
+// lenh_may: lệnh máy chủ ⇒ agent (loai: go). trang_thai: cho | xong | huy (Ba Mẹ xoá hẳn máy / máy đã gỡ). Giữ cả khi máy đã xoá (token_hash) ⇒ agent báo «xong» lần hai vẫn ok.
 // goi_cai: token ghép nhúng trong gói cài (một lần, có hạn, chỉ lưu băm).
 export const SCHEMA_M4B = [
   `create table if not exists tuan_thu_may (
@@ -435,6 +435,9 @@ export const SCHEMA_M4B = [
   )`,
   // Mã mở offline: bí mật chung cấp lúc ghép máy để agent tự tính/kiểm mã TOTP khi mất mạng (lib/ma-offline.ts).
   `alter table devices add column if not exists offline_secret text`,
+  // Chế độ agent do Ba Mẹ chọn từ xa (lib/lenh-may.ts › datCheDo): giam-sat = chỉ ghi lại, không chặn · chan = chặn thật.
+  // Agent-win bản sau đọc `dong-bo.windows.cheDo` (giá trị máy chủ thắng CheDo cục bộ). Mặc định an toàn: giam-sat.
+  `alter table devices add column if not exists che_do text not null default 'giam-sat'`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

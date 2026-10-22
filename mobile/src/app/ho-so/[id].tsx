@@ -1,5 +1,6 @@
 // bm-ho-so-con: hồ sơ Con & thiết bị — mức bảo vệ (Đầy đủ / Một phần / Chưa), Online/Offline + lần đồng bộ cuối (FR-01.03),
-// nhóm trải nghiệm, đặt lại PIN, ghép thêm máy, gỡ máy (có xác nhận).
+// nhóm trải nghiệm, đặt lại PIN, ghép thêm máy. Gỡ máy: chuyển sang màn máy › «An toàn & gỡ cài đặt» (gỡ an toàn — chủ gia đình +
+// mật khẩu, máy chỉ rời danh sách khi agent báo đã gỡ; không gỡ thẳng ở đây để khỏi bỏ AiiGrow «mồ côi» trên máy Con).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Platform, Share, View } from "react-native";
@@ -67,10 +68,9 @@ export default function HoSoCon() {
         <Chu co={13} mau={M.chu3}>Nhí: icon to, ≤ 3 lựa chọn, Rob đọc to. Teen: gọn, đủ số liệu.</Chu>
       </BangTruot>
       {mo && typeof mo === "object" ? (
-        <BangTruot mo dong={() => setMo(null)} tieu={`Gỡ ${mo.ten}?`}>
-          <Chu mau={M.chu2}>Máy sẽ không còn được AiiGrow bảo vệ. Muốn bảo vệ lại phải ghép lại bằng mã mới.</Chu>
-          <BaoLoi loi={loiLam} />
-          <Nut chu="Gỡ máy này" loai="huy" rong dangChay={dangChay} bam={() => lam(async () => { await bm.goi(`may/${mo.go}/go`, {}); setMo(null); bao(`Đã gỡ ${mo.ten}`); await tai(); })} />
+        <BangTruot mo dong={() => setMo(null)} tieu={`Gỡ ${mo.ten}`}>
+          <Chu mau={M.chu2}>Gỡ an toàn: máy tự gỡ sạch AiiGrow ở lần đồng bộ tới rồi mới rời danh sách, để không có gì «dính» lại trên máy của Con. Cần nhập lại mật khẩu của chủ gia đình. Ở đó cũng có chế độ Giám sát / Chặn thật và cách gỡ tại máy khi không có mạng.</Chu>
+          <Nut chu="Mở An toàn & gỡ cài đặt" rong bam={() => { const id = mo.go; setMo(null); router.push(`/may/${id}`); }} />
           <View><Nut chu="Giữ lại" loai="ma" rong bam={() => setMo(null)} /></View>
         </BangTruot>
       ) : null}
