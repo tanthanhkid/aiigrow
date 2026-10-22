@@ -66,6 +66,9 @@ public sealed class Policy
     public bool CanExchangePoints { get; set; }
     /// <summary>AiiGrow: bí mật mã mở offline (MaOffline.cs) — máy chủ cấp qua dong-bo.windows khi còn mạng; agent lưu để tự kiểm mã lúc mất mạng.</summary>
     public string? MaOfflineBiMat { get; set; }
+    /// <summary>AiiGrow: chế độ Ba Mẹ chọn trên app (dong-bo.windows.cheDo) — «giam-sat» | «chan»; null = Ba Mẹ chưa chọn (giữ chế độ cục bộ).
+    /// Có giá trị thì THẮNG <see cref="AgentConfig.CheDo"/> (xem <see cref="CheDoHieuLuc"/>). Đang có lệnh gỡ ⇒ máy chủ luôn gửi giam-sat.</summary>
+    public string? CheDo { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -80,6 +83,10 @@ public sealed class AgentStatus
     public bool TrayAlive { get; set; }
     public bool ChildSessionActive { get; set; }
     public bool Offline { get; set; }
+    /// <summary>AiiGrow: chế độ THẬT SỰ đang áp trên máy («giam-sat» | «chan») — máy chủ hiển thị đúng sự thật cho Ba Mẹ.</summary>
+    public string CheDo { get; set; } = CheDoAgent.GiamSat;
+    /// <summary>AiiGrow: token bị từ chối lâu ⇒ đã thôi chặn (fail-open). Máy chủ thường không nhận được trường này (token sai) — để ghi log.</summary>
+    public bool MoCoi { get; set; }
 }
 
 /// <summary>Mã QR ghép máy (POST /api/device/ghep-qr). Máy con hiện <see cref="Qr"/>, giữ <see cref="Bi"/> để hỏi kết quả — Bi không nằm trong QR.</summary>
@@ -177,6 +184,8 @@ public sealed class AgentConfig
     public string? MaOfflineBiMat { get; set; }
     /// <summary>AiiGrow (thêm): trạng thái «mở tạm bằng mã offline» (hạn mở, mã đã dùng, lượt sai) — lưu để dịch vụ khởi động lại vẫn giữ.</summary>
     public MoTamOffline MoTamOffline { get; set; } = new();
+    /// <summary>AiiGrow (thêm): lần ĐẦU máy chủ từ chối token (401/403) trong chuỗi liên tục; null = đang ổn. Quá <see cref="MoCoi.Nguong"/> ⇒ fail-open.</summary>
+    public DateTimeOffset? TuChoiTu { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

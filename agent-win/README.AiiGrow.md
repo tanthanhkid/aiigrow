@@ -39,16 +39,20 @@ có giao diện (chạy `AiiGrow.Setup.exe` không kèm token) hoặc do quản 
 Dịch vụ bị dừng/đổ ⇒ **Windows SCM tự khởi động lại** bằng failure actions đặt lúc cài (`sc.exe failure … actions= restart/5000/…`,
 `failureflag 1`). Con dùng tài khoản Standard nên không dừng/xoá được dịch vụ.
 
-## Gỡ
-- **Gỡ từ xa (Ba Mẹ bấm trong app)**: máy chủ trả `lenh:[{id, loai:"go"}]` ở lần đồng bộ. Dịch vụ gỡ sạch (dịch vụ, Run, thông báo
-  đăng nhập, luật AppLocker của AiiGrow, file + token) rồi `POST /api/device/lenh/:id/xong` báo «đã gỡ», rồi tự dừng.
-- **Gỡ tay có mạng**: trên máy, `AiiGrow.Setup.exe --uninstall` — cần **quyền quản trị Windows** (UAC, mật khẩu Ba Mẹ). Con là Standard
-  nên không tự gỡ được.
-- **Gỡ khi offline**: không gọi được máy chủ để kiểm mật khẩu Ba Mẹ, nên **chỉ cần quyền quản trị Windows** (quyết định của master
-  21/10). Con dùng Standard ⇒ vẫn không tự gỡ được; chỉ người có mật khẩu quản trị Windows (Ba Mẹ) mới gỡ offline.
-
-Gỡ dùng chung lõi `SystemCleanup.Run` (Core) cho cả gỡ tay và gỡ từ xa. File đang chạy không xoá được ngay thì hẹn xoá bằng tác vụ
-khởi động của Windows.
+## Chế độ, fail-open, gỡ (an toàn — Ba Mẹ luôn tắt được hạn chế và gỡ sạch được)
+- **Chế độ** `giam-sat` | `chan`: Ba Mẹ chọn trên app ⇒ `dong-bo.windows.cheDo`, **thắng** `CheDo` cục bộ (`Setup --che-do=`), lưu lại cho lúc mất mạng.
+  Máy chủ không gửi (Ba Mẹ chưa chọn) ⇒ giữ cục bộ. Agent báo chế độ THẬT đang áp trong `status.cheDo`. Giám sát = không AppLocker (đổi sang là gỡ
+  ngay), không đóng app, không ngắt phiên, không màn khoá/màn chặn ở khay — chỉ ghi log. Lõi thuần: `Core/AnToan.cs` (`CheDoHieuLuc`).
+- **Fail-open** (`MoCoi`): 401/403 liên tục > 6 giờ (mốc lưu trong cấu hình, qua khởi động lại vẫn tính) ⇒ giám sát, gỡ luật AppLocker, bỏ
+  `LastPolicyJson`, khay báo «máy đã rời gia đình». Vẫn đồng bộ tiếp; đồng bộ được lại là hết. Lỗi mạng không tính.
+- **Gỡ từ xa**: lệnh `go` ⇒ `POST lenh/:id/xong` TRƯỚC (token riêng 30 s, không theo token dừng dịch vụ; mất mạng ⇒ chưa gỡ, lần sau làm lại)
+  ⇒ `SystemCleanup.Run(ops, tuDichVu: true)`: tắt failure actions + `start= disabled` ⇒ hẹn tác vụ `AiiGrow-Dontay` (SYSTEM, chạy ngay + lúc khởi động)
+  chờ dịch vụ thoát rồi `sc delete`, xoá `Program Files\AiiGrow` + `ProgramData\AiiGrow`, tự xoá tác vụ ⇒ gỡ AppLocker, khay, thông báo đăng nhập,
+  mục Ứng dụng, cấu hình ⇒ dịch vụ tự dừng (không `Stop-Service` chính mình).
+- **Gỡ tại máy**: bộ cài chép `AiiGrow.Setup.exe` vào `Program Files\AiiGrow` và đăng ký `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow`
+  (UninstallString `"…\AiiGrow.Setup.exe" --uninstall`, Publisher AiiLab, NoModify/NoRepair) ⇒ Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt, UAC hỏi mật
+  khẩu quản trị (Con là Standard nên không tự gỡ). `--uninstall` gọi `POST /api/device/da-go` trước khi xoá token (máy rời gia đình trên app ngay),
+  rồi `SystemCleanup.Run(ops, tuDichVu: false)`. Mỗi bước bọc riêng, chạy lại bao nhiêu lần cũng được.
 
 ## Build & test (máy không chạy dịch vụ/trình cài thật)
 ```powershell

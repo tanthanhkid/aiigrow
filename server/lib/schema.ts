@@ -436,8 +436,11 @@ export const SCHEMA_M4B = [
   // Mã mở offline: bí mật chung cấp lúc ghép máy để agent tự tính/kiểm mã TOTP khi mất mạng (lib/ma-offline.ts).
   `alter table devices add column if not exists offline_secret text`,
   // Chế độ agent do Ba Mẹ chọn từ xa (lib/lenh-may.ts › datCheDo): giam-sat = chỉ ghi lại, không chặn · chan = chặn thật.
-  // Agent-win bản sau đọc `dong-bo.windows.cheDo` (giá trị máy chủ thắng CheDo cục bộ). Mặc định an toàn: giam-sat.
+  // Agent-win đọc `dong-bo.windows.cheDo` (giá trị máy chủ thắng CheDo cục bộ) — chỉ gửi khi che_do_ba_me (dưới).
   `alter table devices add column if not exists che_do text not null default 'giam-sat'`,
+  // che_do_ba_me: Ba Mẹ đã chọn chế độ chưa. Chưa ⇒ máy chủ không gửi cheDo (agent giữ chế độ đang chạy) và app hiện chế độ agent báo
+  // (status.cheDo) — máy cũ cài sẵn «chặn» không bị hiện nhầm «giám sát» hay lặng lẽ tụt về giám sát.
+  `alter table devices add column if not exists che_do_ba_me boolean not null default false`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

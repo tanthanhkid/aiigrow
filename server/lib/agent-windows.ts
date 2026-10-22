@@ -13,14 +13,14 @@ export type PolicyWindows = {
   allowedApps: string[]; learningApps: string[]; minutesLeft: null; nextCheckSec: number; canExchangePoints: boolean;
   /** Bí mật mã mở offline (lib/ma-offline.ts) — agent lưu khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng. */
   maOfflineBiMat?: string;
-  /** Chế độ do Ba Mẹ chọn từ xa: giam-sat (chỉ ghi lại, không chặn) | chan (chặn thật). Agent-win bản sau: giá trị này thắng CheDo cục bộ.
-   *  Máy đang có lệnh gỡ chờ ⇒ luôn giam-sat (gỡ lỗi giữa chừng cũng không còn chặn). */
-  cheDo: "giam-sat" | "chan";
+  /** Chế độ do Ba Mẹ chọn từ xa: giam-sat (chỉ ghi lại, không chặn) | chan (chặn thật). Agent-win: giá trị này thắng CheDo cục bộ.
+   *  Máy đang có lệnh gỡ chờ ⇒ luôn giam-sat (gỡ lỗi giữa chừng cũng không còn chặn). Ba Mẹ chưa chọn ⇒ bỏ trống (agent giữ chế độ đang chạy). */
+  cheDo?: "giam-sat" | "chan";
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
 
-export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo: "giam-sat" | "chan" = "giam-sat"): PolicyWindows {
+export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan"): PolicyWindows {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
   const hoc = p.luat.filter((l) => l.loai === "hoc" && exe(l.muc)).map((l) => l.muc.toLowerCase());
@@ -32,7 +32,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo: "gia
     mode: khoa ? "khoa" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
     allowedApps: [...new Set([...p.allowlistHeThong.filter(exe).map((x) => x.toLowerCase()), ...hoc, ...choi])],
     learningApps: [...new Set(hoc)],
-    minutesLeft: null, nextCheckSec: p.nextCheckSec, canExchangePoints: p.soDu > 0, cheDo,
+    minutesLeft: null, nextCheckSec: p.nextCheckSec, canExchangePoints: p.soDu > 0,
+    ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
   };
 }

@@ -103,7 +103,8 @@ Bảng tính năng × OS: `docs/QUAN-LY-DA-NEN-TANG.md`.
 |---|---|
 | `POST ghep-goi {token, nen, tenMay}` | đổi token gói cài (một lần, có hạn) ⇒ `{deviceId, token, dungChung, childName?}`. Không cần Bearer. Bí danh: `POST ghep {token, nen, tenMay}` (cách cũ `{ma}` giữ nguyên). Lỗi: `ma_sai` 404 · `ma_da_dung` 409 · `ma_het_han` 410 · `sai_nen_tang` 409 |
 | `POST nhip {phienBan?, clientTime?, trangThaiKhoa?, taiKhoan?: {ten, laAdmin}, taiKhoanAdmin?: string[], appQuanLyBat?, thanhPhan?: {[tên]: bool}, matKetNoiPhut?, nguon?: bat\|sap_tat\|sap_ngu}` | nhịp + tuân thủ ⇒ `{serverTime, tuanThu: {trangThai: tuan_thu\|lech_chuan\|ngoai_vong\|tat_may\|chua_co_nhip, diem, vanDe[{loai, tru, cauBaMe, cauCon, chiTiet}], khoaGiaiTri, moKhanCapDen}, chinhSach (chính sách chung), nenTang (cấu hình đã chuyển cho nền tảng của máy: muc[], khongLamDuoc[], viecCho[], nhipGiay), lenh: [{id, loai: "go"}]}`. `vanDe.loai`: `gio_sai` (−40) · `app_tat` (−50) · `admin_la` (−40) · `khong_toi_may_chu` (−30) · `ngoai_vong` (−100). Điểm < `tuan_thu_nguong` (80) ⇒ `khoaGiaiTri` |
-| `POST dong-bo` | như cũ, thêm `lenh: [{id, loai}]` (lệnh đang chờ, vd gỡ từ xa) và `windows` (Policy dịch cho agent-win, có `cheDo`) |
+| `POST dong-bo {status: {…, cheDo?}}` | như cũ, thêm `lenh: [{id, loai}]` (lệnh đang chờ, vd gỡ từ xa) và `windows` (Policy dịch cho agent-win; `cheDo` chỉ có khi Ba Mẹ đã chọn hoặc đang gỡ). agent-win gửi `status.cheDo` = chế độ THẬT đang áp |
+| `POST da-go` | Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng › AiiGrow / `AiiGrow.Setup.exe --uninstall`): bộ gỡ gọi TRƯỚC khi xoá token ⇒ `{ok: true}`, máy rời gia đình như ack lệnh gỡ (lệnh `go` đang chờ ⇒ `xong`, sự kiện `go_may {cach: "tai_may"}` + cảnh báo). Gọi lại ⇒ 401 `token_sai` |
 | `POST lenh/:id/xong` | agent báo đã làm xong lệnh (Bearer = token máy). Lệnh `go` ⇒ máy «đã gỡ» (xoá khỏi gia đình, token hết hiệu lực, hết cảnh báo mất nhịp). Gọi lại ⇒ `{ok: true, lapLai: true}`, không ghi đôi |
 | `POST phien/xet` · `phien/mo` · `phien/nhip` | máy KHÔNG tuân thủ (đã từng gửi nhịp) ⇒ `phien/xet` → `{duoc: false, lyDo: "khong_tuan_thu", cau}` · `phien/mo` → 409 `khong_mo_duoc` · `phien/nhip` → kết thúc phiên, `{trangThai: "ket_thuc", lyDoKet: "khong_tuan_thu"}` |
 
@@ -127,10 +128,18 @@ Bảng tính năng × OS: `docs/QUAN-LY-DA-NEN-TANG.md`.
 
 Xử lý: `server/lib/lenh-may.ts` (`datCheDo`, `goMayAnToan`, `trangThaiGo`). Test: `an-toan-go.test.ts`. Màn: app Ba Mẹ › máy › «An toàn & gỡ cài đặt».
 
-- **Chế độ** (`devices.che_do`, mặc định `giam-sat`): `giam-sat` = chỉ ghi lại việc sẽ chặn, không chặn · `chan` = chặn thật.
-  `dong-bo.windows.cheDo` mang giá trị này; máy đang có lệnh gỡ chờ ⇒ luôn `giam-sat` (gỡ hỏng giữa chừng cũng không còn chặn).
-  **agent-win ≥ bản kế tiếp** tuân theo `windows.cheDo` — giá trị máy chủ thắng `CheDo` cục bộ (`--che-do=` của Setup) khi agent đã hỗ trợ.
-  Agent cũ bỏ qua trường này (vẫn dùng `CheDo` cục bộ).
+- **Chế độ**: `giam-sat` = chỉ ghi lại việc sẽ chặn, không chặn, không màn khoá · `chan` = chặn thật.
+  `devices.che_do` + `devices.che_do_ba_me` (Ba Mẹ đã chọn chưa). Chưa chọn ⇒ máy chủ **không** gửi `windows.cheDo` (agent giữ chế độ lúc cài) và
+  app hiện chế độ agent báo (`status.cheDo`) — máy cài sẵn «chặn» không bị hiện nhầm «giám sát», cũng không lặng lẽ tụt về giám sát.
+  Đã chọn ⇒ `dong-bo.windows.cheDo` mang lựa chọn; agent-win: giá trị máy chủ thắng `CheDo` cục bộ (`--che-do=` của Setup), lưu lại cho lúc mất mạng;
+  đổi sang `giam-sat` ⇒ agent gỡ ngay luật AppLocker, thôi đóng app / ngắt phiên / màn khoá. Máy đang có lệnh gỡ chờ ⇒ luôn `giam-sat`.
+  Agent cũ bỏ qua trường này và không gửi `status.cheDo` (app ghi «máy chưa báo chế độ — bản cũ»).
+- **Fail-open (agent-win)**: `dong-bo` bị từ chối token (401/403) liên tục > 6 giờ (máy bị xoá khỏi gia đình mà chưa gỡ) ⇒ agent về giám sát,
+  gỡ luật AppLocker, bỏ Policy cuối (không khoá giờ ngủ / allowlist cũ, kể cả sau khởi động lại), khay báo «gỡ ở Cài đặt › Ứng dụng»; vẫn thử đồng bộ.
+  Lỗi mạng không tính (mất mạng vẫn chạy theo Policy cuối như cũ).
+- **Gỡ từ xa (agent-win)**: nhận `go` ⇒ `POST lenh/:id/xong` TRƯỚC (không theo token huỷ của dịch vụ; mất mạng ⇒ chưa gỡ, lần sau nhận lại) ⇒ tắt khôi phục SCM +
+  `start= disabled` ⇒ hẹn tác vụ `AiiGrow-Dontay` (SYSTEM, tách rời) chờ dịch vụ thoát rồi `sc delete` + xoá tệp ⇒ gỡ AppLocker, khay, thông báo,
+  mục Ứng dụng, cấu hình ⇒ dịch vụ tự dừng. Không `Stop-Service` chính mình.
 - **`POST may/:id/go {matKhau, xoaHan?}`** — chỉ **chủ gia đình**, nhập lại mật khẩu (như `go-tu-xa`, vì gỡ = bỏ bảo vệ):
   - máy đã từng đồng bộ (đã gọi `dong-bo` hoặc gửi `nhip`) ⇒ ghi lệnh `go` (cùng lệnh với `go-tu-xa`, bấm lại không tạo lệnh mới) ⇒
     `{trangThai: "dang_go", id, lapLai, cach}`. Máy **không** bị xoá ngay: chỉ rời gia đình khi agent `POST lenh/:id/xong`.
@@ -138,10 +147,12 @@ Xử lý: `server/lib/lenh-may.ts` (`datCheDo`, `goMayAnToan`, `trangThaiGo`). T
   - `xoaHan: true` khi đang gỡ: chỉ được nếu lệnh gỡ đã chờ > 7 ngày **và** máy không liên lạc (dong-bo / nhịp) > 7 ngày ⇒ lệnh chờ chuyển `huy`,
     máy xoá, `{trangThai: "da_xoa", canGoTaiMay: true}` (app nhắc gỡ tại máy). Chưa đủ điều kiện ⇒ 409 `chua_duoc_xoa_han`.
   - Lỗi khác: `sai_mat_khau` 401 · `chi_chu` 403 · `khong_thay` 404. Sự kiện: `lenh_go` · `go_may {cach: tu_xa | xoa_han}`.
-- `GET tuan-thu` / `GET may/:id/tuan-thu` thêm: `cheDo`, `daDongBo`, `dangGo: {lenhId, tu} | null`, `coTheXoaHan`.
-- **Gỡ tại máy** (không có mạng, Windows): Cài đặt → Ứng dụng → AiiGrow → Gỡ cài đặt (cần mật khẩu quản trị = của Ba Mẹ; mục này có từ agent-win
-  bản kế tiếp). Bản hiện tại: chạy `AiiGrow.Setup.exe --uninstall` bằng quyền quản trị (tệp nằm trong thư mục giải nén lúc cài / tải lại ở `/tai`;
-  `C:\Program Files\AiiGrow` chỉ có `AiiGrow.Service.exe` + `AiiGrow.Tray.exe`).
+- `GET tuan-thu` / `GET may/:id/tuan-thu` thêm: `cheDo` (hiển thị; `null` = chưa biết), `cheDoMay` (agent báo; `null` = chưa báo), `cheDoBaMeChon`
+  (`null` = chưa chọn), `daDongBo`, `dangGo: {lenhId, tu} | null`, `coTheXoaHan`.
+- **Gỡ tại máy** (Windows): Cài đặt → Ứng dụng → AiiGrow → Gỡ cài đặt — mục `HKLM\…\Uninstall\AiiGrow` trỏ `"C:\Program Files\AiiGrow\AiiGrow.Setup.exe" --uninstall`
+  (Setup xin quyền quản trị ⇒ Windows hỏi mật khẩu của Ba Mẹ). Bộ gỡ gọi `POST /api/device/da-go` trước khi xoá token, rồi gỡ sạch (dịch vụ, khay,
+  AppLocker, thông báo đăng nhập, mục Ứng dụng, ProgramData). Máy cài bản cũ (chưa có mục này / chưa chép Setup.exe): tải bộ cài ở `/tai`, chạy
+  `AiiGrow.Setup.exe --uninstall` bằng quyền quản trị.
 
 Tham số mới (cau-hinh, kẹp min–max): `mat_nhip_di_dong_phut` 180 (30–1440) · `tuan_thu_nguong` 80 (0–100) · `mo_khan_cap_toi_da_phut` 120
 (15–720) · `goi_cai_gio` 48 (1–168). Ngưỡng mất nhịp máy tính dùng `ngung_chay_phut` 15 có sẵn.

@@ -35,11 +35,13 @@ public sealed class AgentRuntime
         {
             Config = Store.Load();
             _cfgStamp = Store.LastWriteUtc;
-            if (_policy == null && PolicyParser.TryParse(Config?.LastPolicyJson, out var p) && p != null)
+            // Máy mồ côi (token bị từ chối quá MoCoi.Nguong) ⇒ KHÔNG nạp lại Policy cuối (không áp luật cũ sau khởi động lại).
+            if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(Config?.LastPolicyJson, out var p) && p != null)
             {
                 _policy = p;
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
             }
+            _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, DateTimeOffset.UtcNow));
         }
     }
 
@@ -49,6 +51,65 @@ public sealed class AgentRuntime
     }
 
     public bool TokenInvalid { get; set; }
+
+    /// <summary>Đang thực thi lệnh gỡ từ xa ⇒ vòng thực thi đứng yên (không áp lại AppLocker trong lúc gỡ).</summary>
+    public volatile bool DangGo;
+
+    private string _cheDo = CheDoAgent.GiamSat;
+    /// <summary>Chế độ đang áp (lần tính gần nhất ở <see cref="TinhCheDo"/>).</summary>
+    public string CheDoHieuLuc { get { lock (_gate) return _cheDo; } }
+
+    /// <summary>Máy chủ (Ba Mẹ chọn) thắng cấu hình cục bộ; mồ côi ⇒ giám sát. Gọi mỗi vòng thực thi.</summary>
+    public string TinhCheDo(DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, now));
+            return _cheDo;
+        }
+    }
+
+    public bool LaMoCoi(DateTimeOffset now) { lock (_gate) return MoCoi.La(Config, now); }
+
+    /// <summary>Máy chủ từ chối token (401/403). Lưu mốc lần đầu; quá ngưỡng ⇒ fail-open (bỏ Policy cuối, về giám sát).</summary>
+    public void GhiTuChoi(DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            TokenInvalid = true;
+            AgentConfig? moi = null;
+            try { moi = Store.UpdateIf(c => MoCoi.GhiTuChoi(c, now)); } catch { }
+            if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+            else if (Config != null) MoCoi.GhiTuChoi(Config, now);
+            BoPolicyNeuMoCoi(now);
+        }
+    }
+
+    /// <summary>Kiểm mồ côi (kể cả khi chỉ HeartbeatWorker ghi mốc). → true nếu đang mồ côi.</summary>
+    public bool KiemMoCoi(DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            if (!MoCoi.La(Config, now)) return false;
+            if (Config!.LastPolicyJson != null || Config.CheDo != CheDoAgent.GiamSat)
+            {
+                AgentConfig? moi = null;
+                try { moi = Store.UpdateIf(c => MoCoi.ApDung(c, now)); } catch { }
+                if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+                else MoCoi.ApDung(Config, now);
+            }
+            BoPolicyNeuMoCoi(now);
+            return true;
+        }
+    }
+
+    private void BoPolicyNeuMoCoi(DateTimeOffset now)
+    {
+        if (!MoCoi.La(Config, now)) return;
+        _policy = null;          // không áp Policy cuối nữa: không khoá giờ ngủ, không allowlist cũ
+        _usedSeconds = 0;
+        _lockStartedAt = null;
+    }
 
     public void SetPolicy(Policy p, string raw)
     {
@@ -66,6 +127,9 @@ public sealed class AgentRuntime
                 {
                     c.LastPolicyJson = raw;
                     c.LastPolicyAt = at;
+                    // Đồng bộ được ⇒ hết mồ côi. Ba Mẹ đã chọn chế độ trên app ⇒ giá trị máy chủ thắng, lưu lại cho lúc mất mạng.
+                    MoCoi.GhiThanhCong(c);
+                    if (p.CheDo != null) c.CheDo = p.CheDo;
                     // Giữ lại bí mật mã offline (máy chủ chỉ gửi khi có) để còn kiểm mã lúc mất mạng.
                     if (!string.IsNullOrEmpty(p.MaOfflineBiMat)) c.MaOfflineBiMat = p.MaOfflineBiMat;
                     // Có mạng lại: mã offline chỉ dành cho lúc mất mạng ⇒ kết thúc lượt mở, Policy online của Ba Mẹ quyết.
@@ -201,7 +265,7 @@ public sealed class AgentRuntime
     {
         lock (_gate)
         {
-            var s = new TrayState { Paired = Config?.Paired == true, Offline = _offline };
+            var s = new TrayState { Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now) };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);
             var eff = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(_policy, now, _usedSeconds), moTam);
@@ -218,6 +282,8 @@ public sealed class AgentRuntime
             s.BlockedAppName = _blockedName;
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
+            // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.
+            if (!AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo)) AiiGrow.Core.CheDoHieuLuc.ChoKhayGiamSat(s);
             return s;
         }
     }
@@ -250,6 +316,8 @@ public sealed class AgentRuntime
                 TrayAlive = (now - _fgAt).TotalSeconds < 20,
                 ChildSessionActive = childActive,
                 Offline = _offline,
+                CheDo = _cheDo,
+                MoCoi = MoCoi.La(Config, now),
             };
         }
     }

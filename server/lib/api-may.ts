@@ -16,7 +16,7 @@ import { dsCon } from "./gia-dinh.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
 import { nhipMay } from "./nhip-may.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
-import { cheDoCua, doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
+import { cheDoGuiMay, daGoTaiMay, doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
 import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
@@ -52,10 +52,13 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const biMatOffline = may.platform === "windows" ? await biMatOfflineMay(may.id) : null;
       const lenh = await lenhCho(may);
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
-      const cheDo = lenh.some((l) => l.loai === "go") ? "giam-sat" : cheDoCua(may);
+      // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
+      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"));
       return json({ ...pol, lenh, windows: chinhSachWindows(pol, biMatOffline ?? undefined, cheDo) });
     }
     if (d === "nhip") return json(await nhipMay(may, con, b));
+    // Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng / Setup --uninstall): bộ gỡ báo về trước khi xoá token ⇒ máy rời gia đình như gỡ từ xa
+    if (d === "da-go" && req.method === "POST") return json(await daGoTaiMay(may));
     // M4b mạng: trình cài một chạm lấy hồ sơ DNS gia đình của chính máy (mobileconfig / Private DNS / DoH Windows) để tự cài
     if (d === "ho-so-dns") return json(await hoSoDns(await thietBiChoMay(may)));
     if (d === "dong-bo") return json(await dongBo(may, { ...b, conDangDung: con }));

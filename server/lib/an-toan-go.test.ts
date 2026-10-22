@@ -34,11 +34,13 @@ async function nha(ten = "Lan") {
 }
 const ghep = async (fam: string, con: string, ten = "PC của Ken") => g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", ten);
 
-test("chế độ: mặc định giám sát; chủ / Ba Mẹ duyệt đổi được, vai Chỉ xem và nhà khác bị chặn; policy Windows mang cheDo; ghi nhật ký + báo", async () => {
+test("chế độ: Ba Mẹ chưa chọn ⇒ không ép, hiện chế độ máy báo; chủ / Ba Mẹ duyệt đổi được, vai Chỉ xem và nhà khác bị chặn; policy Windows mang cheDo; ghi nhật ký + báo", async () => {
   const { fam, con, bmTok } = await nha();
   const may = await ghep(fam, con);
-  assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.windows.cheDo, "giam-sat");
-  assert.equal((await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body.cheDo, "giam-sat");
+  // chưa ai chọn + agent chưa báo ⇒ «chưa biết», máy chủ không gửi cheDo (agent giữ chế độ đang chạy)
+  assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.windows.cheDo, undefined);
+  const tt0 = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([tt0.cheDo, tt0.cheDoMay, tt0.cheDoBaMeChon], [null, null, null]);
 
   const xem = await taoPhien(await taoBaMe(fam, "Bà", "xem"));
   const r403 = await m(`may/${may.deviceId}/che-do`, { tok: xem, body: { cheDo: "chan" } });
@@ -57,7 +59,7 @@ test("chế độ: mặc định giám sát; chủ / Ba Mẹ duyệt đổi đư
 
   const ev = await q<{ chi_tiet: any; nguoi: string }>(`select chi_tiet, nguoi from events where family_id = $1 and loai = 'doi_che_do' order by seq`, [fam]);
   assert.equal(ev.length, 2, "đổi trùng không ghi");
-  assert.deepEqual(ev[0].chi_tiet, { tu: "giam-sat", sang: "chan" });
+  assert.deepEqual(ev[0].chi_tiet, { tu: null, sang: "chan" });
   assert.ok(ev[0].nguoi);
   assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'doi_che_do'`, [fam])).length, 2);
   assert.ok((await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body.suKien.some((s: any) => s.loai === "doi_che_do"));
@@ -130,4 +132,50 @@ test("xoá hẳn: máy chưa đồng bộ lần nào ⇒ cần xoaHan; đang g�
   // agent cũ nếu còn sống: token hết hiệu lực; báo xong lệnh đã huỷ không làm gì thêm
   assert.equal((await dv("dong-bo", { tok: cu.token, body: {} })).status, 401);
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'go_may' and chi_tiet->>'cach' = 'xoa_han'`, [fam])).length, 2);
+});
+
+test("chế độ thật do agent báo: máy cài sẵn «chặn» hiện đúng «chặn», không bị tụt về giám sát; Ba Mẹ chọn rồi thì lựa chọn thắng", async () => {
+  const { fam, con, bmTok } = await nha();
+  const may = await ghep(fam, con);
+  const p = (await dv("dong-bo", { tok: may.token, body: { status: { agent: "windows", cheDo: "chan" } } })).body;
+  assert.equal(p.windows.cheDo, undefined, "chưa chọn ⇒ không ép giam-sat lên máy đang chặn");
+  let tt = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([tt.cheDo, tt.cheDoMay, tt.cheDoBaMeChon], ["chan", "chan", null]);
+  // Ba Mẹ bấm đúng chế độ đang chạy ⇒ giữ lựa chọn, không ghi «đổi»
+  assert.deepEqual((await m(`may/${may.deviceId}/che-do`, { tok: bmTok, body: { cheDo: "chan" } })).body, { cheDo: "chan", doi: false });
+  assert.equal((await dv("dong-bo", { tok: may.token, body: { status: { cheDo: "chan" } } })).body.windows.cheDo, "chan");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_che_do'`, [fam])).length, 0);
+  // đổi sang giám sát ⇒ máy nhận giam-sat; tới khi agent báo lại, app thấy cả lựa chọn lẫn chế độ thật
+  assert.equal((await m(`may/${may.deviceId}/che-do`, { tok: bmTok, body: { cheDo: "giam-sat" } })).body.doi, true);
+  tt = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([tt.cheDo, tt.cheDoMay, tt.cheDoBaMeChon], ["giam-sat", "chan", "giam-sat"]);
+  assert.equal((await dv("dong-bo", { tok: may.token, body: { status: { cheDo: "giam-sat" } } })).body.windows.cheDo, "giam-sat");
+  tt = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.equal(tt.cheDoMay, "giam-sat");
+  // giá trị lạ từ agent bị bỏ qua
+  await dv("dong-bo", { tok: may.token, body: { status: { cheDo: "tat-het" } } });
+  assert.equal((await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body.cheDoMay, null);
+});
+
+test("gỡ tại máy: POST device/da-go (Bearer) ⇒ máy rời gia đình như gỡ từ xa; lệnh gỡ đang chờ thành xong; gọi lại ⇒ 401", async () => {
+  const { fam, con, bmTok } = await nha();
+  const may = await ghep(fam, con);
+  await dv("dong-bo", { tok: may.token, body: {} });
+  const l = (await m(`may/${may.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  assert.equal(l.trangThai, "dang_go");
+  assert.equal((await dv("da-go", { tok: "token-la", body: {} })).status, 401);
+  assert.deepEqual((await dv("da-go", { tok: may.token, body: {} })).body, { ok: true });
+  assert.equal((await q(`select 1 from devices where id = $1`, [may.deviceId])).length, 0);
+  assert.equal((await q<{ trang_thai: string }>(`select trang_thai from lenh_may where id = $1`, [l.id]))[0].trang_thai, "xong");
+  assert.equal((await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).status, 404, "app thấy «không còn trong gia đình»");
+  assert.equal((await dv("da-go", { tok: may.token, body: {} })).status, 401);
+  // agent (nếu còn chạy) báo xong lệnh cũ ⇒ ok, không ghi đôi
+  assert.deepEqual((await dv(`lenh/${l.id}/xong`, { tok: may.token, body: {} })).body, { ok: true, lapLai: true });
+  const ev = await q<{ chi_tiet: any }>(`select chi_tiet from events where family_id = $1 and loai = 'go_may'`, [fam]);
+  assert.deepEqual(ev.map((e) => e.chi_tiet.cach), ["tai_may"]);
+  assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'go_may'`, [fam])).length, 1);
+  // máy chưa có lệnh gỡ cũng gỡ tại máy được
+  const may2 = await ghep(fam, con, "PC 2");
+  assert.deepEqual((await dv("da-go", { tok: may2.token, body: {} })).body, { ok: true });
+  assert.equal((await q(`select 1 from devices where id = $1`, [may2.deviceId])).length, 0);
 });

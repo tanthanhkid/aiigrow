@@ -7,6 +7,8 @@ public static class Paths
     public const string TrayRunValue = "AiiGrowTray";
     public const string ServiceExeName = "AiiGrow.Service.exe";
     public const string TrayExeName = "AiiGrow.Tray.exe";
+    /// <summary>Bộ cài/gỡ — chép vào thư mục cài để Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt gọi «--uninstall».</summary>
+    public const string SetupExeName = "AiiGrow.Setup.exe";
 
     public static string DataDir =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AiiGrow");

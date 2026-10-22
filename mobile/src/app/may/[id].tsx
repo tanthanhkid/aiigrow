@@ -2,8 +2,8 @@
 // (đổi từ xa), MỞ KHẨN CẤP (có hạn giờ), mã mở khi mất mạng, GỠ AN TOÀN (chỉ chủ gia đình, nhập lại mật khẩu; máy chỉ rời danh sách
 // khi agent báo đã gỡ — không để AiiGrow «dính» lại trên máy Con) + cách gỡ tại máy khi không có mạng.
 // Gọi GET may/:id/tuan-thu, POST may/:id/che-do, POST may/:id/mo-khan-cap(+/huy), GET may/:id/ma-offline, POST may/:id/go (docs/API.md).
-import { useEffect, useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, GOC, LoiApi, type CheDoMay, type ChiTietTuanThu, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
 import {
@@ -18,10 +18,13 @@ const SU_KIEN: Record<string, string> = {
 };
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
-  "giam-sat": "Chỉ ghi lại những gì sẽ chặn, KHÔNG chặn app, không khoá máy. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
-  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Muốn tắt lúc nào cũng được — chọn lại Giám sát.",
+  "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
+  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
+const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 const NGAY_XOA_HAN = 7;
+/** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
+const GIO_MO_COI = 6;
 
 export default function AnToanMay() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -46,14 +49,15 @@ export default function AnToanMay() {
     try { setMaOff(await bm.goi<MaOffline>(`may/${id}/ma-offline`)); } catch (e) { setLoiMa(cauLoi(e)); } finally { setTaiMa(false); }
   };
   const dangGo = !!d?.m?.dangGo;
-  // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong
-  useEffect(() => {
+  // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong — chỉ khi màn đang hiện
+  // (expo-router giữ màn trong stack khi mở màn khác ⇒ useFocusEffect dừng hẹn giờ khi rời màn).
+  useFocusEffect(useCallback(() => {
     if (!dangGo) return;
     const t = setInterval(() => { tai(); }, 20_000);
     return () => clearInterval(t);
-  }, [dangGo, tai]);
+  }, [dangGo, tai]));
   const doiCheDo = (v: CheDoMay) => lam(async () => {
-    if (!d?.m || v === d.m.cheDo) return;
+    if (!d?.m || v === d.m.cheDoBaMeChon) return;
     await bm.goi(`may/${id}/che-do`, { cheDo: v });
     bao(`${d.m.ten}: ${v === "chan" ? "Chặn thật" : "Giám sát"} — máy đổi ở lần đồng bộ tới`); await tai();
   });
@@ -112,12 +116,10 @@ export default function AnToanMay() {
       {win ? (
         <View style={{ gap: 8 }}>
           <Chu kieu="rat" co={14}>Chế độ trên máy</Chu>
-          {d.xem ? <Chu mau={M.chu2}>{m.cheDo === "chan" ? "Chặn thật" : "Giám sát"} (bạn đang ở quyền Chỉ xem)</Chu>
-            : <ChonMot ds={CHE_DO} gia={m.cheDo} doi={doiCheDo} />}
-          <Chu co={13.5} mau={M.chu2}>{GIAI_CHE_DO[m.cheDo]}</Chu>
-          <Chu co={13} mau={M.chu3}>
-            {m.dangGo ? "Máy đang được gỡ nên tạm chạy Giám sát (không chặn gì)." : "Máy sẽ đổi ở lần đồng bộ tới (≤ 1 phút khi có mạng)."}
-          </Chu>
+          {d.xem ? <Chu mau={M.chu2}>{m.cheDo ? TEN_CHE_DO[m.cheDo] : "Chưa biết"} (bạn đang ở quyền Chỉ xem)</Chu>
+            : <ChonMot<CheDoMay | ""> ds={CHE_DO} gia={m.cheDo ?? ""} doi={(v) => { if (v) doiCheDo(v); }} />}
+          {m.cheDo ? <Chu co={13.5} mau={M.chu2}>{GIAI_CHE_DO[m.cheDo]}</Chu> : null}
+          <Chu co={13} mau={M.chu3}>{dongCheDo(m)}</Chu>
         </View>
       ) : null}
 
@@ -132,7 +134,7 @@ export default function AnToanMay() {
 
       {m.dangGo ? (
         <Bao loai="lam" ic="dong_ho_cat" tieu="Đang chờ máy nhận lệnh gỡ…"
-          loi={`Gửi ${truoc(m.dangGo.tu)}. Khi có mạng, máy tự gỡ AiiGrow rồi tự rời danh sách. Máy không bật lại nữa? Sau ${NGAY_XOA_HAN} ngày không liên lạc, bạn xoá hẳn được.`}>
+          loi={`Gửi ${truoc(m.dangGo.tu)}. Trong lúc chờ, máy chạy Giám sát (không chặn gì). Khi có mạng, máy tự gỡ AiiGrow rồi tự rời danh sách; gỡ tại máy cũng tự báo về. Máy không bật lại nữa? Sau ${NGAY_XOA_HAN} ngày không liên lạc, bạn xoá hẳn được.`}>
           {d.chu && m.coTheXoaHan ? <Nut chu="Xoá hẳn khỏi danh sách" loai="vien" nho bam={() => setMo("xoa")} /> : null}
         </Bao>
       ) : null}
@@ -144,7 +146,7 @@ export default function AnToanMay() {
         {d.chu && !m.daDongBo ? (
           <Dong dau tieu="Xoá máy khỏi danh sách" phu="Máy chưa đồng bộ lần nào nên không nhận được lệnh gỡ" trai={<BieuTron ic="thoat" mau="do" />} bam={() => setMo("xoa")} />
         ) : null}
-        <Dong dau={!d.chu || (!!m.dangGo && m.daDongBo)} tieu="Gỡ tại máy (khi không có mạng)" phu="Từng bước gỡ ngay trên máy của Con, cần mật khẩu quản trị của Ba Mẹ" trai={<BieuTron ic="may_tinh" mau="lam" />} bam={() => setMo("tai_may")} />
+        <Dong dau={!d.chu || (!!m.dangGo && m.daDongBo)} tieu="Gỡ tại máy" phu="Cài đặt › Ứng dụng › AiiGrow trên máy của Con — cần mật khẩu quản trị của Ba Mẹ" trai={<BieuTron ic="may_tinh" mau="lam" />} bam={() => setMo("tai_may")} />
       </Nhom>
       {!d.chu ? <Chu co={13} mau={M.chu3}>Chỉ chủ gia đình mới gỡ AiiGrow được.</Chu> : null}
 
@@ -198,14 +200,13 @@ export default function AnToanMay() {
       <BangTruot mo={mo === "tai_may"} dong={dong} tieu="Gỡ AiiGrow ngay trên máy">
         {win ? (
           <>
-            <Chu mau={M.chu2}>Máy có mạng thì dùng «Gỡ từ xa» cho nhanh. Khi máy không có mạng, làm trên chính máy của Con:</Chu>
-            <Chu style={{ marginTop: 10 }}>1. Đăng nhập máy bằng tài khoản quản trị (tài khoản của Ba Mẹ, không phải của Con).</Chu>
-            <Chu style={{ marginTop: 6 }}>2. Mở Cài đặt → Ứng dụng → Ứng dụng đã cài → AiiGrow → Gỡ cài đặt. Windows sẽ hỏi mật khẩu quản trị — chỉ Ba Mẹ biết nên Con không tự gỡ được.</Chu>
-            <Chu co={13} mau={M.chu3} style={{ marginTop: 4 }}>Mục AiiGrow trong «Ứng dụng» có từ bản AiiGrow kế tiếp. Máy đang chạy bản cũ chưa có mục này thì làm bước 3.</Chu>
-            <Chu style={{ marginTop: 6 }}>3. Bản cũ: tìm tệp AiiGrow.Setup.exe trong thư mục đã giải nén lúc cài (mất thì tải lại ở {GOC}/tai). Bấm Start, gõ PowerShell, chuột phải → «Run as administrator», rồi gõ:</Chu>
-            <Chu kieu="rat" co={13.5} style={{ marginTop: 6 }} mau={M.chinhInk}>{'& "$env:USERPROFILE\\Downloads\\AiiGrow\\AiiGrow.Setup.exe" --uninstall'}</Chu>
-            <Chu co={13} mau={M.chu3} style={{ marginTop: 4 }}>(Đổi đường dẫn cho đúng chỗ bạn để tệp. Tệp này không nằm trong C:\Program Files\AiiGrow — thư mục đó chỉ có dịch vụ và khay.) Bấm Yes để gỡ: dịch vụ, luật chặn app, thông báo đăng nhập, tệp & cấu hình đều được xoá.</Chu>
-            <Chu style={{ marginTop: 6 }}>4. Xong, quay lại đây bấm «Gỡ AiiGrow từ xa». Máy đã gỡ rồi nên sẽ không báo lại; sau {NGAY_XOA_HAN} ngày bạn xoá hẳn được máy khỏi danh sách.</Chu>
+            <Chu mau={M.chu2}>Máy có mạng thì dùng «Gỡ từ xa» cho nhanh. Gỡ ngay trên máy của Con (có mạng hay không đều được):</Chu>
+            <Chu style={{ marginTop: 10 }}>1. Trên máy đó, mở Cài đặt → Ứng dụng → Ứng dụng đã cài → AiiGrow → Gỡ cài đặt. Đang ở tài khoản của Con cũng được: Windows sẽ hỏi tài khoản và mật khẩu quản trị — của Ba Mẹ, nên Con không tự gỡ được.</Chu>
+            <Chu style={{ marginTop: 6 }}>2. Bấm Yes. AiiGrow gỡ dịch vụ, luật chặn app, khay, thông báo đăng nhập, tệp và cấu hình. Máy có mạng thì tự báo về và rời danh sách ở đây; không có mạng thì vào lại đây bấm «Gỡ AiiGrow khỏi máy này», sau {NGAY_XOA_HAN} ngày bạn xoá hẳn được.</Chu>
+            <Chu style={{ marginTop: 6 }}>3. Không thấy AiiGrow trong «Ứng dụng» (máy cài bản cũ)? Bấm Start, gõ PowerShell, chuột phải → «Run as administrator», rồi gõ:</Chu>
+            <Chu kieu="rat" co={13.5} style={{ marginTop: 6 }} mau={M.chinhInk}>{'& "C:\\Program Files\\AiiGrow\\AiiGrow.Setup.exe" --uninstall'}</Chu>
+            <Chu co={13} mau={M.chu3} style={{ marginTop: 4 }}>Báo không tìm thấy tệp thì tải lại bộ cài ở {GOC}/tai, giải nén, rồi chạy AiiGrow.Setup.exe --uninstall từ thư mục đó (thường là thư mục Tải về của tài khoản bạn đang dùng).</Chu>
+            <Chu co={13} mau={M.chu3} style={{ marginTop: 6 }}>Lỡ xoá máy khỏi danh sách mà chưa gỡ được tại máy: sau {GIO_MO_COI} giờ không còn trong gia đình, AiiGrow trên máy tự thôi chặn (không khoá, không chặn app) cho tới khi được gỡ.</Chu>
           </>
         ) : (
           <Chu mau={M.chu2}>Trên máy của Con: mở phần quản lý ứng dụng / hồ sơ quản lý của hệ điều hành, gỡ AiiGrow bằng mật khẩu của Ba Mẹ. Cần giúp thì chat với AiiLab.</Chu>
@@ -241,6 +242,15 @@ function DongSuKien({ s, dau }: { s: SuKienTuanThu; dau: boolean }) {
     <Dong dau={dau} tieu={SU_KIEN[s.loai] ?? s.loai} phu={`${truoc(s.created_at)}${chiTiet(s)}`}
       trai={<BieuTron ic={xau ? "canh_bao" : tot ? "tick" : "lich"} mau={xau ? "do" : tot ? "xanh" : "lam"} />} />
   );
+}
+
+/** Dòng nhỏ dưới mục chế độ: chế độ THẬT máy đang chạy (agent báo), đang chờ máy đổi, hay agent cũ chưa hỗ trợ đổi từ xa. */
+function dongCheDo(m: ChiTietTuanThu) {
+  if (m.dangGo) return "Máy đang được gỡ nên tạm chạy Giám sát (không chặn gì).";
+  if (!m.daDongBo) return "Máy chưa đồng bộ lần nào — chế độ áp khi máy có mạng.";
+  if (!m.cheDoMay) return "Máy chưa báo chế độ đang chạy: bản AiiGrow trên máy có thể cũ, chưa đổi chế độ từ xa được. Cập nhật AiiGrow trên máy (tải ở trang /tai) hoặc gỡ tại máy.";
+  if (m.cheDoBaMeChon && m.cheDoBaMeChon !== m.cheDoMay) return `Máy đang chạy ${TEN_CHE_DO[m.cheDoMay]} — sẽ đổi sang ${TEN_CHE_DO[m.cheDoBaMeChon]} ở lần đồng bộ tới (≤ 1 phút khi có mạng).`;
+  return `Máy đang chạy ${TEN_CHE_DO[m.cheDoMay]}${m.lanCuoi ? ` (báo ${truoc(m.lanCuoi)})` : ""}.`;
 }
 
 const gio = (iso: string) => new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });

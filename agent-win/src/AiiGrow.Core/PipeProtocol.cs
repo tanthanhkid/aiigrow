@@ -39,6 +39,10 @@ public sealed class TrayState
     public int? LockGraceLeftSec { get; set; }
     /// <summary>Đang mở tạm bằng mã offline của Ba Mẹ tới lúc này (null = không).</summary>
     public DateTimeOffset? MoOfflineDen { get; set; }
+    /// <summary>Chế độ đang áp («giam-sat» = không khoá, không chặn — chỉ ghi lại).</summary>
+    public string CheDo { get; set; } = CheDoAgent.GiamSat;
+    /// <summary>Máy đã bị bỏ khỏi gia đình (token bị từ chối lâu) ⇒ AiiGrow thôi chặn; khay hiện câu hướng dẫn gỡ.</summary>
+    public bool MoCoi { get; set; }
 }
 
 public sealed class PipeRequest

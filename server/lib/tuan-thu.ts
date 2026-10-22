@@ -14,7 +14,7 @@ import type { May } from "./gia-dinh.ts";
 import type { TrangThaiTuanThu, TuanThu, VanDeTuanThu } from "./chinh-sach.ts";
 import { laDiDong } from "./chuyen-doi.ts";
 
-import { cheDoCua, trangThaiGo } from "./lenh-may.ts";
+import { cheDoBaMeChon, cheDoCua, cheDoMayBao, trangThaiGo } from "./lenh-may.ts";
 
 let coBang = false;
 /** Tạo lười bảng M4b (schema.ts › SCHEMA_M4B). Gọi NGOÀI tx (PGlite một kết nối). */
@@ -223,7 +223,8 @@ export async function dsTuanThu(fam: string, now = new Date()) {
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
-      cheDo: cheDoCua(m), ...(await trangThaiGo(m, now)) };
+      // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn
+      cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...(await trangThaiGo(m, now)) };
   }));
 }
 

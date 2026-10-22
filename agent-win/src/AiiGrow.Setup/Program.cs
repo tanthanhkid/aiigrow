@@ -62,7 +62,7 @@ internal static class Program
     {
         if (!silent && MessageBox.Show("Gỡ AiiGrow khỏi máy này?", "AiiGrow", MessageBoxButtons.YesNo) != DialogResult.Yes)
             return 0;
-        var log = Installer.Uninstall();
+        var log = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();
         WriteLog(log);
         if (!silent) MessageBox.Show(log, "AiiGrow");
         return 0;

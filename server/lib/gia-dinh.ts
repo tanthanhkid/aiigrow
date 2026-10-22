@@ -18,6 +18,8 @@ export type May = {
   status: Record<string, any>; last_seen: Date | null; created_at: Date;
   /** giam-sat | chan (M4b, schema SCHEMA_M4B) — chế độ agent Ba Mẹ chọn từ xa. */
   che_do?: string;
+  /** true = Ba Mẹ đã chọn chế độ trên app (máy chủ gửi che_do cho agent); false = chưa chọn ⇒ hiển thị chế độ agent báo (status.cheDo). */
+  che_do_ba_me?: boolean;
 };
 
 /** Nhí (6–10) / Teen (11–16) đề xuất theo tuổi (FR-01.02); không rõ tuổi ⇒ Nhí. */

@@ -126,18 +126,31 @@ export async function goMayAnToan(bm: BaMe, mayId: string, b: { matKhau?: unknow
 export const CHE_DO = ["giam-sat", "chan"] as const;
 export type CheDo = (typeof CHE_DO)[number];
 export const TEN_CHE_DO: Record<CheDo, string> = { "giam-sat": "Giám sát (chỉ ghi lại, không chặn)", chan: "Chặn thật" };
-export const cheDoCua = (m: Pick<May, "che_do">): CheDo => (m.che_do === "chan" ? "chan" : "giam-sat");
+const laCheDo = (v: unknown): v is CheDo => (CHE_DO as readonly string[]).includes(String(v));
+type MayCheDo = Pick<May, "che_do" | "che_do_ba_me" | "status">;
+/** Chế độ Ba Mẹ đã chọn trên app (null = chưa ai chọn ⇒ máy chủ KHÔNG ép, agent giữ chế độ đang chạy). */
+export const cheDoBaMeChon = (m: MayCheDo): CheDo | null => (m.che_do_ba_me ? (m.che_do === "chan" ? "chan" : "giam-sat") : null);
+/** Chế độ agent THẬT SỰ đang chạy (agent-win báo trong status.cheDo mỗi lần đồng bộ). null = agent chưa báo (bản cũ / chưa đồng bộ). */
+export const cheDoMayBao = (m: Pick<May, "status">): CheDo | null => (laCheDo(m.status?.cheDo) ? m.status.cheDo : null);
+/** Chế độ hiển thị: lựa chọn của Ba Mẹ nếu có, không thì chế độ máy báo; null = chưa biết (không đoán «giám sát» cho máy cài sẵn «chặn»). */
+export const cheDoCua = (m: MayCheDo): CheDo | null => cheDoBaMeChon(m) ?? cheDoMayBao(m);
+/** Giá trị gửi agent trong dong-bo.windows.cheDo: đang gỡ ⇒ luôn giam-sat; Ba Mẹ chưa chọn ⇒ không gửi (agent giữ chế độ đang chạy). */
+export const cheDoGuiMay = (m: MayCheDo, dangGo: boolean): CheDo | undefined => (dangGo ? "giam-sat" : cheDoBaMeChon(m) ?? undefined);
 
 /** POST may/:id/che-do {cheDo} — máy đổi ở lần đồng bộ tới (≤ 1 phút khi có mạng). Ghi nhật ký + báo các Ba Mẹ khác. */
 export async function datCheDo(fam: string, mayId: string, b: { cheDo?: unknown }, nguoi: string, now = new Date()) {
   await bangM4b();
   const sang = String(b.cheDo ?? "") as CheDo;
-  if (!(CHE_DO as readonly string[]).includes(sang)) throw new LoiNghiepVu("che_do_sai", "Chọn Giám sát hoặc Chặn thật");
+  if (!laCheDo(sang)) throw new LoiNghiepVu("che_do_sai", "Chọn Giám sát hoặc Chặn thật");
   const m = await one<May>(`select * from devices where id = $1 and family_id = $2`, [mayId, fam]);
   if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   const tu = cheDoCua(m);
-  if (tu === sang) return { cheDo: sang, doi: false };
-  await q(`update devices set che_do = $2 where id = $1`, [m.id, sang]);
+  if (tu === sang) {
+    // Ba Mẹ xác nhận đúng chế độ máy đang báo ⇒ từ giờ máy chủ giữ lựa chọn này (không ghi nhật ký «đổi»).
+    if (!m.che_do_ba_me) await q(`update devices set che_do = $2, che_do_ba_me = true where id = $1`, [m.id, sang]);
+    return { cheDo: sang, doi: false };
+  }
+  await q(`update devices set che_do = $2, che_do_ba_me = true where id = $1`, [m.id, sang]);
   await ghiSuKien(fam, "doi_che_do", { tu, sang }, { con: m.child_id, may: m.id, nguoi });
   const ten = (await one<{ ten: string }>(`select ten from parents where id = $1`, [nguoi]))?.ten;
   await canhBao(fam, "doi_che_do", sang === "chan" ? "thong_tin" : "chu_y",
@@ -150,6 +163,21 @@ export async function datCheDo(fam: string, mayId: string, b: { cheDo?: unknown 
 export async function lenhCho(may: Pick<May, "id">) {
   await bangM4b();
   return q<{ id: string; loai: "go" }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho' order by created_at`, [may.id]);
+}
+
+/**
+ * POST /api/device/da-go (Bearer = token máy) — Ba Mẹ gỡ AiiGrow NGAY TẠI MÁY (Cài đặt › Ứng dụng › AiiGrow, hoặc `AiiGrow.Setup.exe --uninstall`):
+ * bộ gỡ báo về TRƯỚC khi xoá token ⇒ cùng kết quả như agent báo xong lệnh gỡ: máy rời gia đình, lệnh gỡ đang chờ (nếu có) xong, hết cảnh báo mất nhịp.
+ * Gọi lại sau đó ⇒ 401 token_sai (máy đã xoá) — bộ gỡ coi như đã báo.
+ */
+export async function daGoTaiMay(may: Pick<May, "id" | "family_id" | "child_id" | "name">) {
+  await bangM4b();
+  const cho = await q<{ id: string }>(`update lenh_may set trang_thai = 'xong', xong_luc = now() where device_id = $1 and loai = 'go' and trang_thai = 'cho' returning id`, [may.id]);
+  await q(`update lenh_may set trang_thai = 'huy' where device_id = $1 and trang_thai = 'cho'`, [may.id]);
+  await q(`delete from devices where id = $1`, [may.id]);
+  await ghiSuKien(may.family_id, "go_may", { ten: may.name, cach: "tai_may", coLenhCho: cho.length > 0 }, { con: may.child_id, may: may.id });
+  await canhBao(may.family_id, "go_may", "thong_tin", `Đã gỡ AiiGrow khỏi ${may.name} (gỡ tại máy)`, { con: may.child_id, may: may.id, khoa: `go_tai_may:${may.id}` });
+  return { ok: true };
 }
 
 /** Agent báo đã làm xong lệnh. `token` = Bearer của máy (máy đã xoá vẫn đối chiếu được qua token_hash lưu trong lệnh). */

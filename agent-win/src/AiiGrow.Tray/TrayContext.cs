@@ -12,7 +12,7 @@ internal sealed class TrayContext : ApplicationContext
     private DateTimeOffset _at = DateTimeOffset.Now;
     private int _seenBlocked = -1;
     private bool _polling;
-    private bool _warned5, _warned1, _warnedMo5;
+    private bool _warned5, _warned1, _warnedMo5, _warnedMoCoi;
 
     public TrayContext()
     {
@@ -63,6 +63,11 @@ internal sealed class TrayContext : ApplicationContext
             _at = DateTimeOffset.Now;
             _status.Apply(_state, _at);
             _ni.Text = TrayView.Tooltip(_state, _at, DateTimeOffset.Now);
+            if (_state.MoCoi && !_warnedMoCoi)
+            {
+                _warnedMoCoi = true;
+                _ni.ShowBalloonTip(10000, "AiiGrow không chặn nữa", MoCoi.CauKhay, ToolTipIcon.Info);
+            }
             HandleLock();
             HandleBlocked();
             HandleWarnings();
