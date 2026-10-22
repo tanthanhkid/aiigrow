@@ -100,6 +100,8 @@ export function trangThaiMay(may: Pick<May, "platform" | "last_seen">, r: DongTT
   if (!r) return { trangThai: "chua_co_nhip", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null };
   const ls = may.last_seen ? new Date(may.last_seen) : r.nhip_cuoi ? new Date(r.nhip_cuoi) : null;
   const moKC = r.mo_khan_cap_den ? new Date(r.mo_khan_cap_den) : null;
+  // máy Windows chỉ có dòng vì Ba Mẹ từng «Mở khẩn cấp» (agent Windows không gửi nhịp tuân thủ) ⇒ không tính mất nhịp
+  if (may.platform === "windows" && !r.nhip_cuoi) return tongHop([], ts.tuan_thu_nguong, moKC, now, "chua_co_nhip");
   if (r.tat_luc && ls && ls.getTime() <= new Date(r.tat_luc).getTime() + 60_000) return tongHop([], ts.tuan_thu_nguong, moKC, now, "tat_may");
   if (!ls || now.getTime() - ls.getTime() > nguongMatNhip(may.platform, ts) * 60_000) {
     const phut = ls ? Math.round((now.getTime() - ls.getTime()) / 60_000) : null;
@@ -185,7 +187,7 @@ export async function nhanNhip(may: May, b: NhipVao, now = new Date()): Promise<
 export async function quetMatNhip(fam: string | null, now = new Date()) {
   await bangM4b();
   const ds = await q<May & { tt: DongTT }>(
-    `select d.*, to_jsonb(t) as tt from devices d join tuan_thu_may t on t.device_id = d.id where ($1::text is null or d.family_id = $1)`, [fam]);
+    `select d.*, to_jsonb(t) as tt from devices d join tuan_thu_may t on t.device_id = d.id where t.nhip_cuoi is not null and ($1::text is null or d.family_id = $1)`, [fam]);
   const moi: string[] = [];
   for (const d of ds) {
     const ts = await thamSoMay(d);
@@ -222,6 +224,8 @@ export async function dsTuanThu(fam: string, now = new Date()) {
     return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? banMayBao(m),
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
+      // hạn «đang mở» thật của máy Windows (mở khẩn cấp hoặc thêm giờ đã duyệt) — app hiện «Đang mở tới …» + «Khoá lại ngay»
+      moDen: m.platform === "windows" ? (await hanMoCuaMay(m, m.child_id, now))?.toISOString() ?? null : null,
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
       // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn
@@ -265,11 +269,14 @@ export async function hanMoCuaMay(may: Pick<May, "id">, con: string | null, now 
   return ds.length ? new Date(Math.max(...ds.map((x) => x.getTime()))) : null;
 }
 
-export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string) {
+export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string, now = new Date()) {
   await bangM4b();
   const m = await mayCua(fam, mayId);
   await q(`update tuan_thu_may set mo_khan_cap_den = null, mo_khan_cap_nguoi = null, mo_khan_cap_ly_do = null where device_id = $1`, [m.id]);
-  await ghiSuKien(fam, "huy_mo_khan_cap", {}, { con: m.child_id, may: m.id, nguoi });
+  // «Khoá lại ngay» trên máy Windows đóng luôn cửa sổ thêm giờ đã duyệt của Con (hanMoCuaMay lấy cả hai)
+  const dong = m.platform === "windows" && m.child_id
+    ? (await q(`update grants set cua_so_den = $2 where child_id = $1 and cua_so_den > $2 returning id`, [m.child_id, now])).length : 0;
+  await ghiSuKien(fam, "huy_mo_khan_cap", dong ? { dongCuaSo: dong } : {}, { con: m.child_id, may: m.id, nguoi });
 }
 
 /** Ba Mẹ xác nhận / bỏ xác nhận một tài khoản quản trị trên máy là của Ba Mẹ. */

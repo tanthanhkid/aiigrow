@@ -125,6 +125,8 @@ export type ChinhSachWeb = {
   chan: string[];
   /** Tên miền luôn mở (đè `chan` khi cụ thể hơn): Allowlist hệ thống + trang Cho phép + trang Giải trí đang có phiên điểm. */
   cho: string[];
+  /** Các mục trong `cho` chỉ mở nhờ cửa sổ «mở» có hạn (grantEndsAt) — agent chặn lại khi hết hạn lúc mất mạng. Agent cũ bỏ qua. */
+  choKhiMo?: string[];
 };
 
 /** Hàm THUẦN: Policy ⇒ chính sách web cho agent. Giải trí (giai_tri) bị chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó. */
@@ -136,5 +138,9 @@ export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "p
   const chan = web.filter((l) => l.loai === "chan" || (l.loai === "giai_tri" && !mo(l.muc))).map((l) => l.muc.toLowerCase());
   const cho = [...p.allowlistHeThong.filter((x) => kieuMuc(x) === "web").map((x) => x.toLowerCase()),
     ...web.filter((l) => l.loai === "hoc" || (l.loai === "giai_tri" && mo(l.muc))).map((l) => l.muc.toLowerCase())];
-  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chan)].sort(), cho: [...new Set(cho)].sort() };
+  // choKhiMo: trang Giải trí chỉ mở NHỜ cửa sổ «mở» có hạn ⇒ agent tự chặn lại khi grantEndsAt qua mà máy đang mất mạng
+  const theoPhien = (m: string) => phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));
+  const choKhiMo = o.moGiaiTri ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
+  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chan)].sort(), cho: [...new Set(cho)].sort(),
+    ...(choKhiMo.length ? { choKhiMo: [...new Set(choKhiMo)].sort() } : {}) };
 }

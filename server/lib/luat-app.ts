@@ -14,6 +14,8 @@ export const ALLOWLIST_HE_THONG: string[] = [
   "explorer.exe", "systemsettings.exe", "calculatorapp.exe", "calc.exe", "notepad.exe", "mspaint.exe", "photos.exe", "windowscamera.exe",
   "snippingtool.exe", "taskmgr.exe", "winword.exe", "excel.exe", "powerpnt.exe", "onenote.exe", "ms-teams.exe", "teams.exe",
   "aiigrow.kid.exe", "aiigrow.tray.exe",
+  // gõ tiếng Việt + hỗ trợ từ xa của AiiLab (Thanh 22/10): không bị đóng khi Chặn thật
+  "unikey.exe", "tvnserver.exe", "tailscale-ipn.exe",
   // macOS
   "com.apple.finder", "com.apple.systempreferences", "com.apple.calculator", "com.apple.notes", "com.apple.preview", "com.apple.photos",
   "com.microsoft.word", "com.microsoft.excel", "com.microsoft.powerpoint", "com.apple.iwork.pages", "com.apple.iwork.numbers", "com.apple.iwork.keynote",

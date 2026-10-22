@@ -11,7 +11,7 @@ import { dongBo } from "./may-con.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, nhanSuKien, taoPhienWeb } from "./may-con.ts";
 import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
-import { guiYeuCau } from "./yeu-cau.ts";
+import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
 import * as nv from "./nhiem-vu.ts";
 import { dsCon } from "./gia-dinh.ts";
@@ -62,7 +62,6 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "da-go" && req.method === "POST") return json(await daGoTaiMay(may));
     // M4b mạng: trình cài một chạm lấy hồ sơ DNS gia đình của chính máy (mobileconfig / Private DNS / DoH Windows) để tự cài
     if (d === "ho-so-dns") return json(await hoSoDns(await thietBiChoMay(may)));
-    if (d === "dong-bo") return json(await dongBo(may, { ...b, conDangDung: con }));
     if (d === "ho-so") return json({ con: (await dsCon(may.family_id)).filter((c) => !may.child_id || c.id === may.child_id).map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar })) });
     if (d === "pin") return json({ phienCon: await dangNhapPin(may, String(b.con ?? ""), String(b.pin ?? "")) });
     // M4: sự kiện agent (gửi bù được, `ma` một lần) · gỡ agent bằng mật khẩu Ba Mẹ
@@ -98,12 +97,19 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "phien/mo") return json(await moPhien(con, may.id, String(b.muc ?? ""), { gioMaySai: b.gioMaySai === true }));
     if (d === "phien/nhip") return json(await nhip(con, String(b.id ?? ""), b.dangDung !== false));
     if (d === "phien/dung") { await dungPhien(con, String(b.id ?? ""), "con_dung"); return json({ ok: true }); }
-    if (d === "yeu-cau") return json(await guiYeuCau(con, may.id, b));
+    if (d === "yeu-cau") {
+      // `status` cho agent Windows (RequestResult.Status): «cho» | «tu_duyet» khi quy tắc tự động 15 phút duyệt ngay
+      const r = await guiYeuCau(con, may.id, b);
+      const tu = await apQuyTacTuDong(may.family_id, r.id);
+      return json({ ...r, ...(tu ? { trang_thai: "dong_y" } : {}), status: tu ? "tu_duyet" : r.trang_thai });
+    }
     // agent Windows hỏi trạng thái lời xin đã gửi từ màn chặn (cho | dong_y | tu_choi | het_han | huy | da_thuc_thi) — chỉ lời xin của máy này
     if (p[0] === "yeu-cau" && p[1] && req.method === "GET") {
       const r = await one<{ trang_thai: string }>(`select trang_thai from requests where id = $1 and device_id = $2`, [p[1], may.id]);
       if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy lời xin", 404);
-      return json({ status: r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? "dong_y" : r.trang_thai });
+      // `status` theo từ của khay 0.2.0/0.2.1 (RequestForm hiểu duoc | tu_choi | cho); `trangThai` nguyên văn cho bản mới
+      const st = r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? "duoc" : r.trang_thai === "cho" ? "cho" : "tu_choi";
+      return json({ status: st, trangThai: r.trang_thai });
     }
     // M4: phiên Con cho khung Kid (WebView2) · bù phút chơi khi mất mạng
     if (d === "phien-web") return json(await taoPhienWeb(may, con));

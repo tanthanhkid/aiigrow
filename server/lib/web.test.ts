@@ -90,6 +90,11 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   const co = chinhSachWindows({ ...db, phien: { id: "p", muc: "youtube.com", conPhut: 10 } });
   assert.deepEqual(co.web.chan, ["gamek.vn"]);
   assert.ok(co.web.cho.includes("youtube.com"));
+  assert.equal(co.web.choKhiMo, undefined, "mở nhờ phiên điểm ⇒ không phải choKhiMo");
+  // đang «mở» có hạn ⇒ youtube.com mở nhờ cửa sổ ⇒ có trong choKhiMo (agent chặn lại khi hết hạn lúc mất mạng)
+  const mo = chinhSachWindows(db, undefined, undefined, { moDen: new Date(new Date(db.serverTime).getTime() + 30 * 60000) });
+  assert.ok(mo.web.cho.includes("youtube.com"));
+  assert.deepEqual(mo.web.choKhiMo, ["youtube.com"]);
   await goiBm(`con/${con}/cau-hinh`, tokBm, { web_chi_cho_phep: 1 });
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "chi_cho_phep");
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");

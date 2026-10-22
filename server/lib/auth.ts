@@ -47,11 +47,12 @@ export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk") 
   if (!d) throw new LoiNghiepVu("dinh_danh_sai", "Nhập số điện thoại (10 số) hoặc email");
   const co = await one(`select 1 from parents where dinh_danh = $1`, [d]);
   if (mucDich === "dang_ky" && co) throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — chọn Đăng nhập", 409);
-  if (mucDich === "quen_mk" && !co) return { guiDen: d };          // không lộ số/email nào có tài khoản
-  if (!cheDoThu()) throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
   // Mã thử trả thẳng trong phản hồi: với quên mật khẩu, ai biết số/email cũng chiếm được tài khoản ⇒ prod chặn tới khi có kênh SMS/mail thật.
+  // Chặn TRƯỚC khi xét có tài khoản: cùng một câu trả lời cho mọi số/email (không dò được số nào có tài khoản).
   if (mucDich === "quen_mk" && process.env.NODE_ENV === "production")
     throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
+  if (mucDich === "quen_mk" && !co) return { guiDen: d };          // không lộ số/email nào có tài khoản
+  if (!cheDoThu()) throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
   const ma = String(randomInt(0, 1_000_000)).padStart(6, "0");
   await q(`insert into otp(dinh_danh, ma_hash, muc_dich, het) values ($1, $2, $3, now() + make_interval(mins => $4))
            on conflict (dinh_danh) do update set ma_hash = excluded.ma_hash, muc_dich = excluded.muc_dich, het = excluded.het, so_lan = 0`,
@@ -100,7 +101,7 @@ export async function dangNhap(dinhDanh: unknown, mk: unknown) {
   const p = d ? await one<{ id: string; pass_hash: string | null; khoa_den: Date | null }>(
     `select id, pass_hash, khoa_den from parents where dinh_danh = $1`, [d]) : undefined;
   if (p?.khoa_den && new Date(p.khoa_den) > new Date())
-    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút hoặc chọn Quên mật khẩu`, 429);
+    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút. Quên mật khẩu: nhắn AiiLab để được đặt lại`, 429);
   const dung = p?.pass_hash ? await dungMatKhau(String(mk ?? ""), p.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
   if (!p || !dung) {
     if (p) await q(`update parents set sai_lien = sai_lien + 1,

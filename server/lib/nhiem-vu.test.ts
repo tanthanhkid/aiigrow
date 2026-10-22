@@ -163,3 +163,16 @@ test("hoàn tác duyệt trong 30 giây: trừ lại điểm, về chờ duyệt
   await q(`update submissions set duyet_luc = now() - interval '31 seconds' where id = $1`, [s]);
   await loi(nv.hoanTacDuyet(fam, s, bm), "het_hoan_tac");
 });
+
+test("«một lần»: nộp xong (chờ duyệt) ⇒ không còn «Nhận việc»; tuần sau vẫn không làm lại được", async () => {
+  const { fam } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Mi" });
+  const ml = await nv.taoNv(fam, { ten: "Dọn tủ sách", diem: 30, nhom: "viec_nha", bang_chung: "anh", kieu: "mot_lan" });
+  const s = await nv.batDau(con, ml);
+  await nv.nop(con, s, { anh: [anhGia("tu-sach")] });
+  const mot = (ds: Awaited<ReturnType<typeof nv.nvCuaCon>>) => ds.find((x) => x.id === ml);
+  assert.equal(mot(await nv.nvCuaCon(con))?.trang_thai_con, "du_hom_nay");
+  await loi(nv.batDau(con, ml), "da_xong");
+  const tuanSau = new Date(Date.now() + 8 * 86400_000);
+  assert.notEqual(mot(await nv.nvCuaCon(con, tuanSau))?.trang_thai_con, "san_sang");
+});
