@@ -14,13 +14,15 @@ public sealed class HeartbeatWorker : BackgroundService
     private readonly ConfigStore _store = new();
     private readonly Func<string, string, IHeartbeatApi> _apiFactory;
     private readonly ISystemUninstaller _uninstaller;
+    private readonly AgentRuntime? _rt;
     private bool _online = true;
 
     public HeartbeatWorker(ILogger<HeartbeatWorker> log, IHostApplicationLifetime life,
-        Func<string, string, IHeartbeatApi>? apiFactory = null, ISystemUninstaller? uninstaller = null)
+        Func<string, string, IHeartbeatApi>? apiFactory = null, ISystemUninstaller? uninstaller = null, AgentRuntime? rt = null)
     {
         _log = log;
         _life = life;
+        _rt = rt;
         _apiFactory = apiFactory ?? ((server, token) => new HeartbeatClient(server, token));
         _uninstaller = uninstaller ?? new SystemUninstaller();
     }
@@ -60,7 +62,9 @@ public sealed class HeartbeatWorker : BackgroundService
         var api = _apiFactory(cfg.Server, cfg.Token);
         try
         {
-            var status = new { agent = "windows", version = Version(), online = true };
+            // cheDo: chế độ THẬT đang áp (máy chủ hiển thị đúng cho Ba Mẹ, kể cả máy cài sẵn «chặn» khi Ba Mẹ chưa chọn trên app)
+            var cheDo = _rt?.CheDoHieuLuc ?? CheDoHieuLuc.Chon(null, cfg.CheDo, MoCoi.La(cfg, DateTimeOffset.UtcNow));
+            var status = new { agent = "windows", version = Version(), online = true, cheDo };
             SyncResult sync;
             try
             {
@@ -74,17 +78,28 @@ public sealed class HeartbeatWorker : BackgroundService
             }
             catch (ApiException e) when (e.IsUnauthorized)
             {
-                // Token thiết bị không còn hợp lệ. KHÔNG tự gỡ (tránh gỡ nhầm do lỗi thoáng qua); chờ lệnh "go" tường minh.
-                _log.LogWarning("Token thiết bị bị từ chối — chờ lệnh gỡ hoặc ghép lại");
+                // CHỈ 401 token_sai (máy đã bị gỡ khỏi gia đình) mới tính vào mốc mồ côi 6 giờ — 403 lạ (tường lửa/CDN) coi như lỗi thoáng qua.
+                // FAIL-OPEN: bị từ chối liên tục quá MoCoi.Nguong ⇒ về giám sát, gỡ luật AppLocker, thôi áp Policy cuối (AgentWorker làm). Vẫn thử đồng bộ tiếp.
+                if (e.LaTokenSai)
+                {
+                    var now = DateTimeOffset.UtcNow;
+                    if (_rt != null) _rt.GhiTuChoi(now); else Save(c => MoCoi.GhiTuChoi(c, now));
+                    _log.LogWarning("Token thiết bị bị từ chối (token_sai) — chờ lệnh gỡ hoặc ghép lại; quá {h} giờ liên tục thì thôi chặn", MoCoi.GioNguong);
+                }
+                else _log.LogWarning("Máy chủ trả {code} — chạy offline, KHÔNG tính mồ côi", e.StatusCode);
                 return 120;
             }
             _online = true;
+            // Đồng bộ được ⇒ ghi mốc liên lạc (fail-open 14 ngày tính từ đây) và xoá mốc từ chối nếu có.
+            try { _store.UpdateIf(c => MoCoi.GhiThanhCong(c, DateTimeOffset.UtcNow)); } catch { }
 
-            // Gỡ từ xa: máy chủ trả lenh "go".
+            // Gỡ từ xa: máy chủ trả lenh "go". Báo xong TRƯỚC rồi mới gỡ (CommandProcessor); trong lúc đó vòng thực thi đứng yên.
+            if (sync.LenhGo != null && _rt != null) _rt.DangGo = true;
             var done = await new CommandProcessor(_uninstaller).ProcessAsync(sync, api, ct);
+            if (!done && _rt != null) _rt.DangGo = false;
             if (done)
             {
-                _log.LogInformation("Đã nhận lệnh gỡ từ xa — gỡ sạch xong, dừng dịch vụ");
+                _log.LogInformation("Đã báo máy chủ và gỡ sạch theo lệnh gỡ từ xa — dừng dịch vụ (tác vụ {t} xoá dịch vụ + tệp sau khi dừng)", SystemCleanup.TenTacVuDon);
                 _life.StopApplication();
                 return -1;
             }

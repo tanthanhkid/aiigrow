@@ -98,7 +98,23 @@ export type TuanThuMay = {
   phienBan: string | null; adminTinCay: string[];
   trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
   lenhCho: { id: string; loai: string }[];
+  /** Chế độ hiển thị: Ba Mẹ đã chọn (POST may/:id/che-do), không thì chế độ máy báo; null = chưa biết (agent cũ / chưa đồng bộ).
+   *  giam-sat = chỉ ghi lại, không chặn · chan = chặn thật. */
+  cheDo: CheDoMay | null;
+  /** Chế độ agent THẬT SỰ đang chạy (agent báo mỗi lần đồng bộ); null = agent chưa báo (bản cũ chưa hỗ trợ đổi chế độ từ xa). */
+  cheDoMay: CheDoMay | null;
+  /** Lựa chọn của Ba Mẹ; null = chưa ai chọn (máy giữ chế độ lúc cài). */
+  cheDoBaMeChon: CheDoMay | null;
+  /** Agent đã từng đồng bộ (đã từng nhận được lệnh) — chưa ⇒ «Gỡ máy này» phải xoá hẳn. */
+  daDongBo: boolean;
+  /** Lệnh gỡ đang chờ máy nhận (máy chỉ rời danh sách khi agent báo đã gỡ). */
+  dangGo: { lenhId: string; tu: string } | null;
+  /** Được xoá hẳn khỏi danh sách (chưa đồng bộ lần nào, hoặc đang gỡ > 7 ngày không liên lạc). */
+  coTheXoaHan: boolean;
 };
+export type CheDoMay = "giam-sat" | "chan";
+/** POST may/:id/go {matKhau, xoaHan?} */
+export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };
 export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
 

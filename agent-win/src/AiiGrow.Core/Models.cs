@@ -66,6 +66,9 @@ public sealed class Policy
     public bool CanExchangePoints { get; set; }
     /// <summary>AiiGrow: bí mật mã mở offline (MaOffline.cs) — máy chủ cấp qua dong-bo.windows khi còn mạng; agent lưu để tự kiểm mã lúc mất mạng.</summary>
     public string? MaOfflineBiMat { get; set; }
+    /// <summary>AiiGrow: chế độ Ba Mẹ chọn trên app (dong-bo.windows.cheDo) — «giam-sat» | «chan»; null = Ba Mẹ chưa chọn (giữ chế độ cục bộ).
+    /// Có giá trị thì THẮNG <see cref="AgentConfig.CheDo"/> (xem <see cref="CheDoHieuLuc"/>). Đang có lệnh gỡ ⇒ máy chủ luôn gửi giam-sat.</summary>
+    public string? CheDo { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -80,6 +83,10 @@ public sealed class AgentStatus
     public bool TrayAlive { get; set; }
     public bool ChildSessionActive { get; set; }
     public bool Offline { get; set; }
+    /// <summary>AiiGrow: chế độ THẬT SỰ đang áp trên máy («giam-sat» | «chan») — máy chủ hiển thị đúng sự thật cho Ba Mẹ.</summary>
+    public string CheDo { get; set; } = CheDoAgent.GiamSat;
+    /// <summary>AiiGrow: token bị từ chối lâu ⇒ đã thôi chặn (fail-open). Máy chủ thường không nhận được trường này (token sai) — để ghi log.</summary>
+    public bool MoCoi { get; set; }
 }
 
 /// <summary>Mã QR ghép máy (POST /api/device/ghep-qr). Máy con hiện <see cref="Qr"/>, giữ <see cref="Bi"/> để hỏi kết quả — Bi không nằm trong QR.</summary>
@@ -177,7 +184,25 @@ public sealed class AgentConfig
     public string? MaOfflineBiMat { get; set; }
     /// <summary>AiiGrow (thêm): trạng thái «mở tạm bằng mã offline» (hạn mở, mã đã dùng, lượt sai) — lưu để dịch vụ khởi động lại vẫn giữ.</summary>
     public MoTamOffline MoTamOffline { get; set; } = new();
+    /// <summary>AiiGrow (thêm): lần ĐẦU máy chủ từ chối token (401 token_sai) trong chuỗi liên tục; null = đang ổn. Quá <see cref="MoCoi.Nguong"/> ⇒ fail-open.</summary>
+    public DateTimeOffset? TuChoiTu { get; set; }
+    /// <summary>AiiGrow (thêm): lần CUỐI đồng bộ thành công với máy chủ (ghi mốc ~1 giờ/lần). Không liên lạc được quá
+    /// <see cref="MoCoi.NguongLienLac"/> (14 ngày, mọi loại lỗi) ⇒ fail-open dài hạn: về giám sát, gỡ luật. Đặt lúc cài, cập nhật mỗi lần sync được.</summary>
+    public DateTimeOffset? LienLacCuoi { get; set; }
+    /// <summary>AiiGrow (thêm): thời gian dịch vụ CHẠY kể từ lần liên lạc cuối, cộng dồn theo đồng hồ đơn điệu (Environment.TickCount64, có trần mỗi vòng).
+    /// Fail-open 14 ngày cần cả mốc này lẫn <see cref="LienLacCuoi"/> — chỉnh giờ máy tới trước không mở được chặn. Về 0 mỗi lần đồng bộ được.</summary>
+    public double MatLienLacChayGiay { get; set; }
+    /// <summary>AiiGrow (thêm): các tài khoản Windows đã bị HẠ quyền lúc cài (để TRẢ LẠI khi gỡ — không để «dính» mất quyền admin).</summary>
+    public List<QuyenDaHa> DaHaQuyen { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);
+}
+
+/// <summary>Một tài khoản đã bị hạ quyền lúc cài: SID tài khoản + SID nhóm đã bị gỡ khỏi (để thêm lại khi gỡ AiiGrow).</summary>
+public sealed class QuyenDaHa
+{
+    public string Sid { get; set; } = "";
+    /// <summary>SID nhóm đã bị gỡ khỏi. Mặc định Administrators (S-1-5-32-544).</summary>
+    public string Nhom { get; set; } = "S-1-5-32-544";
 }

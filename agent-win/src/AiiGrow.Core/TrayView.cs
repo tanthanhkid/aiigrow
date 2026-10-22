@@ -49,6 +49,7 @@ public static class TrayView
 
     public static string Tooltip(TrayState s, DateTimeOffset receivedAt, DateTimeOffset now)
     {
+        if (s.MoCoi) return "AiiGrow · máy đã rời gia đình, không chặn gì";
         if (s.Locked) return "AiiGrow đang bật · máy đang khoá";
         var d = Describe(s, receivedAt, now);
         var text = d.RemainingSec.HasValue

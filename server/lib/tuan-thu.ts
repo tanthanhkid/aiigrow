@@ -14,6 +14,8 @@ import type { May } from "./gia-dinh.ts";
 import type { TrangThaiTuanThu, TuanThu, VanDeTuanThu } from "./chinh-sach.ts";
 import { laDiDong } from "./chuyen-doi.ts";
 
+import { cheDoBaMeChon, cheDoCua, cheDoMayBao, trangThaiGo } from "./lenh-may.ts";
+
 let coBang = false;
 /** Tạo lười bảng M4b (schema.ts › SCHEMA_M4B). Gọi NGOÀI tx (PGlite một kết nối). */
 export async function bangM4b() {
@@ -219,7 +221,10 @@ export async function dsTuanThu(fam: string, now = new Date()) {
     return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? null,
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
-      lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])) };
+      lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
+      // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
+      // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn
+      cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...(await trangThaiGo(m, now)) };
   }));
 }
 
@@ -227,7 +232,7 @@ export async function chiTietTuanThu(fam: string, mayId: string, now = new Date(
   await mayCua(fam, mayId);
   const may = (await dsTuanThu(fam, now)).find((x) => x.id === mayId)!;
   const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline')
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do')
       order by created_at desc, seq desc limit 50`, [fam, mayId]);
   return { ...may, suKien };
 }

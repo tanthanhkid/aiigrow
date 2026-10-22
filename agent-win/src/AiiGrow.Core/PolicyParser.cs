@@ -34,6 +34,7 @@ public static class PolicyParser
             throw new PolicyException("Chế độ không hợp lệ: '" + p.Mode + "'");
         p.Mode = mode;
         p.ChildName ??= "";
+        p.CheDo = CheDoHieuLuc.Chuan(p.CheDo);
         p.LockReason = string.IsNullOrWhiteSpace(p.LockReason) ? null : p.LockReason.Trim().ToLowerInvariant();
         p.AllowedApps = CleanList(p.AllowedApps);
         p.LearningApps = CleanList(p.LearningApps);

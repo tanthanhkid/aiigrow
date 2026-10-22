@@ -34,7 +34,7 @@ internal static class Installer
     {
         log("Đang ghép máy với máy chủ AiiGrow…");
         var res = await enroller.EnrollAsync(pkg, Environment.MachineName, ct);
-        new ConfigStore().Save(OneTouch.BuildConfig(pkg, res));
+        CaiLai.GhiGiuQuyen(new ConfigStore(), OneTouch.BuildConfig(pkg, res));   // cài lại: giữ DaHaQuyen cũ
         log("Đã ghép máy. Đang cài dịch vụ…");
         InstallFilesAndService();
         SetTrayAndNotice();
@@ -45,7 +45,9 @@ internal static class Installer
     public static async Task RunAsync(InstallOptions o, Action<int, string?> step)
     {
         var pair = o.Paired ?? await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
-        new ConfigStore().Save(new AgentConfig
+        var store = new ConfigStore();
+        // Cài lại đè lên máy đã hạ quyền: GỘP DaHaQuyen cũ (Con lúc này đã là tài khoản thường ⇒ không ghi lại được).
+        CaiLai.GhiGiuQuyen(store, new AgentConfig
         {
             Server = pair.Server ?? o.Server,
             DeviceId = pair.DeviceId,
@@ -54,10 +56,16 @@ internal static class Installer
             DungChung = pair.DungChung,
             ChildUser = o.Child.Name,
             ChildSid = o.Child.Sid,
+            LienLacCuoi = DateTimeOffset.UtcNow,   // mốc fail-open 14 ngày tính từ lúc cài (chưa sync được lần nào vẫn có mốc)
         });
         step(0, null);
 
-        if (o.Child.IsAdmin && !string.IsNullOrEmpty(o.Child.Sid)) Accounts.Demote(o.Child.Sid);
+        if (o.Child.IsAdmin && !string.IsNullOrEmpty(o.Child.Sid))
+        {
+            Accounts.Demote(o.Child.Sid);
+            // GHI LẠI tài khoản đã bị hạ + nhóm (Administrators) để TRẢ LẠI khi gỡ — không để Con mất quyền admin vĩnh viễn sau khi gỡ AiiGrow.
+            store.UpdateIf(c => CaiLai.ThemDaHa(c, o.Child.Sid));
+        }
         step(1, null);
 
         InstallFilesAndService();
@@ -94,8 +102,15 @@ internal static class Installer
             try { p.Kill(); p.WaitForExit(5000); } catch { }
             p.Dispose();
         }
+        // Lần gỡ trước còn hẹn tác vụ dọn (chạy lúc khởi động) ⇒ huỷ, kẻo nó xoá bản vừa cài.
+        Shell.PowerShell($"try {{ Unregister-ScheduledTask -TaskName {Shell.PsQuote(SystemCleanup.TenTacVuDon)} -Confirm:$false -ErrorAction Stop }} catch {{}}", 60000);
         foreach (var f in want)
             File.Copy(Path.Combine(src, f), Path.Combine(dest, f), true);
+        // Chép chính bộ cài vào thư mục cài (tên cố định) ⇒ Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt gọi được «--uninstall».
+        var self = Environment.ProcessPath;
+        var setupDest = Path.Combine(dest, Paths.SetupExeName);
+        if (!string.IsNullOrEmpty(self) && File.Exists(self) && !string.Equals(Path.GetFullPath(self), Path.GetFullPath(setupDest), StringComparison.OrdinalIgnoreCase))
+            File.Copy(self, setupDest, true);
 
         var bin = "\"" + Path.Combine(dest, Paths.ServiceExeName) + "\"";
         var q = Shell.PsQuote(bin);
@@ -109,8 +124,16 @@ internal static class Installer
             $"& sc.exe failureflag {Paths.ServiceName} 1 | Out-Null; " +
             $"Start-Service -Name {Paths.ServiceName}");
         if (!r.Ok) throw new InvalidOperationException("Không cài được dịch vụ: " + r.Error);
+
+        // Mục «AiiGrow» trong Cài đặt › Ứng dụng: Ba Mẹ gỡ tại máy, Windows hỏi mật khẩu quản trị (Setup.exe xin quyền admin qua manifest).
+        if (File.Exists(setupDest)) AppsEntry.Register(dest, typeof(Installer).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
     }
 
-    /// <summary>Gỡ hoàn toàn (gỡ tay). Gỡ từ xa dùng cùng lõi <see cref="SystemCleanup"/> trong dịch vụ.</summary>
-    public static string Uninstall() => SystemCleanup.Run(deleteService: true);
+    /// <summary>Gỡ hoàn toàn tại máy: báo máy chủ «đã gỡ tại máy» (POST /api/device/da-go) TRƯỚC khi xoá token, rồi gỡ sạch
+    /// (cùng lõi <see cref="SystemCleanup"/> với gỡ từ xa). Chạy lại được nhiều lần.</summary>
+    public static Task<KetQuaGo> UninstallAsync() => LocalUninstall.RunAsync(new ConfigStore(), async (cfg, ct) =>
+    {
+        using var api = new HeartbeatClient(cfg.Server, cfg.Token);
+        await api.DaGoAsync(ct);
+    }, new WindowsCleanupOps());
 }

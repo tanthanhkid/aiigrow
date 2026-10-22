@@ -21,6 +21,8 @@ public sealed class AgentWorker : BackgroundService
         var last = DateTimeOffset.Now;
         var nextSync = DateTimeOffset.MinValue;
         var lastDisconnect = DateTimeOffset.MinValue;
+        string? lastCheDo = null;
+        bool lastMoCoi = false;
 
         while (!ct.IsCancellationRequested)
         {
@@ -30,7 +32,11 @@ public sealed class AgentWorker : BackgroundService
                 var elapsed = Math.Min((now - last).TotalSeconds, 15);
                 last = now;
                 _rt.ReloadIfChanged();
+                // Đồng hồ ĐƠN ĐIỆU cho fail-open 14 ngày (không đổi khi Con chỉnh giờ máy).
+                _rt.GhiNhipChay(Environment.TickCount64);
                 var cfg = _rt.Config;
+                // Đang gỡ từ xa (HeartbeatWorker): đứng yên, không áp lại luật nào trong lúc dọn.
+                if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }
                 if (cfg is { Paired: true })
                 {
                     var sess = string.IsNullOrEmpty(cfg.ChildUser) ? null : SessionHelper.Find(cfg.ChildUser);
@@ -39,16 +45,34 @@ public sealed class AgentWorker : BackgroundService
 
                     CountUsage(now, elapsed, active);
 
+                    _rt.TinhCheDo(now);   // để status gửi lên trong lần đồng bộ này là chế độ THẬT đang áp
                     bool force = _rt.TakeForceSync();
                     if (force || now >= nextSync) nextSync = await SyncAsync(cfg, active, now, ct);
 
+                    // Fail-open: token bị từ chối quá MoCoi.Nguong ⇒ bỏ Policy cuối, về giám sát (kể cả khi chỉ HeartbeatWorker thấy 401).
+                    bool moCoi = _rt.KiemMoCoi(DateTimeOffset.Now);
+                    var cheDo = _rt.TinhCheDo(DateTimeOffset.Now);
+                    if (cheDo != lastCheDo || moCoi != lastMoCoi)
+                    {
+                        _log.LogInformation("Chế độ đang áp: {cheDo}{moCoi}", cheDo, moCoi ? $" (máy mồ côi > {MoCoi.GioNguong} giờ — thôi chặn)" : "");
+                        lastCheDo = cheDo; lastMoCoi = moCoi;
+                    }
+                    // Chế độ GIÁM SÁT (mặc định, Ba Mẹ chọn trên app, hoặc máy mồ côi): chỉ ghi log việc SẼ chặn/khoá, không áp thật.
+                    bool apThat = CheDoHieuLuc.LaChan(cheDo);
+
+                    // Đua AgentWorker ↔ gỡ từ xa: lệnh «go» có thể tới (HeartbeatWorker đặt DangGo) SAU chỗ kiểm đầu vòng, ngay trước khi áp luật.
+                    // Kiểm lại DangGo NGAY TRƯỚC khi áp AppLocker / enforcement để không áp lại luật vào đúng lúc đang gỡ (tránh luật «dính» lại sau khi gỡ).
+                    if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }
+
                     var p = _rt.CurrentPolicy;
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
+                    if (!apThat || p == null || eff == null)
+                    {
+                        // Không chặn thật ⇒ luật AppLocker của AiiGrow phải KHÔNG còn (đổi sang giám sát là gỡ ngay, không chờ khởi động lại).
+                        _rt.AppLockerApplied = _locker.Reconcile(false, cfg.ChildSid, Array.Empty<string>());
+                    }
                     if (p != null && eff != null)
                     {
-                        // Chế độ GIÁM SÁT (mặc định): chỉ ghi log việc SẼ chặn/khoá, không áp thật — để phụ huynh thử an toàn.
-                        bool apThat = string.Equals(cfg.CheDo, CheDoAgent.Chan, StringComparison.OrdinalIgnoreCase);
-
                         if (apThat)
                         {
                             var applied = _locker.Reconcile(eff.AppLockerWanted, cfg.ChildSid, p.AllowedApps);
@@ -56,8 +80,7 @@ public sealed class AgentWorker : BackgroundService
                         }
                         else if (eff.AppLockerWanted)
                         {
-                            _rt.AppLockerApplied = false;
-                            _log.LogInformation("GIÁM SÁT: sẽ áp AppLocker (chỉ cho {n} app) — chưa áp thật (CheDo=giam-sat)", p.AllowedApps.Count);
+                            _log.LogDebug("GIÁM SÁT: sẽ áp AppLocker (chỉ cho {n} app) — chưa áp thật (CheDo=giam-sat)", p.AllowedApps.Count);
                         }
 
                         if (eff.AppLockerWanted && sess != null) EnforceAllowList(sess.SessionId, p, apThat);
@@ -112,7 +135,11 @@ public sealed class AgentWorker : BackgroundService
         {
             _rt.Usage.Restore(usage);
             _rt.SetOffline(true);
-            if (e is ApiException { IsUnauthorized: true }) { _rt.TokenInvalid = true; _log.LogError("Token máy không còn hợp lệ (cần ghép lại)"); }
+            if (e is ApiException { LaTokenSai: true })
+            {
+                _rt.GhiTuChoi(DateTimeOffset.Now);
+                _log.LogError("Token máy bị từ chối (token_sai — máy bị gỡ khỏi gia đình?) — quá {h} giờ liên tục thì AiiGrow tự thôi chặn", MoCoi.GioNguong);
+            }
             else _log.LogWarning("Sync lỗi, chạy theo policy cuối: {m}", e.Message);
             return DateTimeOffset.Now.AddSeconds(30);
         }
@@ -129,7 +156,7 @@ public sealed class AgentWorker : BackgroundService
             if (apThat) _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
             else _log.LogInformation("GIÁM SÁT: sẽ đóng app ngoài danh sách: {exe} — chưa đóng thật (CheDo=giam-sat)", exe);
             var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
-            _rt.RecordBlocked(exe, bare);
+            if (apThat) _rt.RecordBlocked(exe, bare);   // giám sát: app không bị đóng ⇒ không hiện màn «app bị chặn»
         }
     }
 }

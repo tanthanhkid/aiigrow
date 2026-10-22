@@ -101,6 +101,10 @@ public sealed class HeartbeatClient : IHeartbeatApi, IDisposable
     public async Task SuKienAsync(IReadOnlyList<SuKien> ds, CancellationToken ct = default)
         => await DeviceHttp.SendAsync(_http, HttpMethod.Post, "api/device/su-kien", new { ds }, ct);
 
+    /// <summary>Gỡ tại máy: báo máy chủ máy đã tự gỡ (POST /api/device/da-go) ⇒ máy rời gia đình trên app Ba Mẹ. Gọi TRƯỚC khi xoá token.</summary>
+    public async Task DaGoAsync(CancellationToken ct = default)
+        => await DeviceHttp.SendAsync(_http, HttpMethod.Post, "api/device/da-go", new { may = Environment.MachineName }, ct);
+
     public void Dispose() => _http.Dispose();
 }
 
@@ -114,6 +118,7 @@ public static class OneTouch
         Token = res.Token,
         ChildName = res.ChildName,
         DungChung = res.DungChung,
+        LienLacCuoi = DateTimeOffset.UtcNow,   // mốc fail-open 14 ngày tính từ lúc cài
     };
 }
 
