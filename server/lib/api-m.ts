@@ -23,6 +23,8 @@ import { datCheDo, goMayAnToan, lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
 import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
 // M4b kiểm soát mạng (chỉ thêm): hồ sơ DNS gia đình, máy con loại mạng (TV, console), nhật ký tóm tắt, hướng dẫn router / TV
 import * as dns from "./dns-gia-dinh.ts";
+// Giám sát + lọc web theo tên miền (Windows): thống kê, cho phép / chặn từng trang
+import { datTrangWeb, thongKeWeb } from "./web.ts";
 // Thành viên gia đình + thông báo trong app (chỉ thêm)
 import * as gt from "./api-gia-dinh.ts";
 
@@ -86,6 +88,12 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
         await q(`update children set cau_hinh = cau_hinh || $2::text::jsonb where id = $1`, [id, JSON.stringify(moi)]);
         await ghiSuKien(fam, "doi_cau_hinh", moi, { con: id, nguoi: bm.id });
         return json({ ok: true });
+      }
+      if (sau === "web" && get) return json(await thongKeWeb(fam, id, Number(new URL(req.url).searchParams.get("ngay")) || 7));
+      if (sau === "web/trang" && post) {
+        const r = await datTrangWeb(fam, b.caNha === true ? "" : id, b);
+        await ghiSuKien(fam, "doi_luat_web", { muc: r.muc, trang_thai: r.trangThai }, { con: id, nguoi: bm.id });
+        return json(r);
       }
       if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id); return json({ ok: true }); }
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });

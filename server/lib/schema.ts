@@ -444,6 +444,20 @@ export const SCHEMA_M4B = [
   // grants.cua_so_den: «thêm giờ» duyệt cho lời xin từ MÁY WINDOWS = cửa sổ mở tự do tới giờ này (lib/yeu-cau.ts › dongY), đẩy xuống agent qua
   // dong-bo.windows (mode tu_do + grantEndsAt). Phút của cửa sổ KHÔNG còn tính vào «thưởng» của phiên điểm (tránh dùng hai lần). Null = thưởng như cũ.
   `alter table grants add column if not exists cua_so_den timestamptz`,
+  // Giám sát WEB (agent đọc lịch sử trình duyệt của Con, lib/web.ts): CHỈ tên miền (gốc, bỏ www) + số lần mở + số giây ở trang theo ngày —
+  // không lưu URL đầy đủ, tiêu đề trang hay nội dung. Agent gửi TỔNG của ngày (greatest ⇒ gửi lại không cộng đôi). Giữ 90 ngày.
+  // child_id có thể rỗng: máy dùng chung khi chưa biết Con nào đang dùng.
+  `create table if not exists web_nhat_ky (
+    device_id text not null references devices(id) on delete cascade,
+    child_id text,
+    ngay text not null,
+    ten_mien text not null,
+    so_lan int not null default 0,
+    giay int not null default 0,
+    lan_cuoi timestamptz,
+    primary key (device_id, ngay, ten_mien)
+  )`,
+  `create index if not exists web_nhat_ky_con on web_nhat_ky(child_id, ngay)`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

@@ -69,9 +69,20 @@ test("Con 0 điểm nhưng Ba Mẹ đã cho thêm giờ ⇒ khay vẫn hiện «
   assert.equal(chinhSachWindows(goc({ soDu: 0 }), undefined, undefined, { conThuong: 30 }).canExchangePoints, true);
 });
 
-test("phiên chơi cho WEBSITE giải trí ⇒ cho cả trình duyệt chạy (agent chưa lọc theo tên miền)", () => {
+test("phiên chơi cho WEBSITE giải trí ⇒ cho trình duyệt agent lọc được (Chrome/Edge/Brave) chạy, KHÔNG mở Firefox/Opera", () => {
   const p = goc({ luat: [{ muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }], phien: { id: "p1", muc: "youtube.com", conPhut: 20 } });
   const w = chinhSachWindows(p);
   for (const b of TRINH_DUYET) assert.ok(w.allowedApps.includes(b), b);
   assert.ok(!chinhSachWindows(goc({ luat: p.luat })).allowedApps.includes("chrome.exe"), "không có phiên ⇒ trình duyệt vẫn bị chặn");
+  assert.ok(!w.allowedApps.includes("firefox.exe") && !w.allowedApps.includes("opera.exe"), "trình duyệt không lọc được thì không mở");
+});
+
+test("«Mở» có hạn ⇒ trang Giải trí mở trong trình duyệt, trang Ba Mẹ chặn vẫn chặn; hết hạn ⇒ giải trí chặn lại", () => {
+  const luat = [{ muc: "youtube.com", loai: "giai_tri" as const, nhom: "video_ngan", giaPhanNghin: 1000 }, { muc: "gamek.vn", loai: "chan" as const, nhom: null, giaPhanNghin: null }];
+  const now = new Date("2026-10-21T10:00:00.000Z");
+  const mo = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() + 600_000) });
+  assert.deepEqual(mo.web.chan, ["gamek.vn"]);
+  assert.ok(mo.web.cho.includes("youtube.com"));
+  const het = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() - 1000) });
+  assert.deepEqual(het.web.chan, ["gamek.vn", "youtube.com"]);
 });

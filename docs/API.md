@@ -218,3 +218,16 @@ Xử lý: `server/lib/dong-bang.ts`, `xuat-csv.ts`. Test: `dong-bang.test.ts`.
 | `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — `ngay` = ngày sẽ được giữ nếu bấm (hôm qua bỏ lỡ mà trước đó còn chuỗi, không thì hôm nay), null = không cần |
 | `POST con/:id/dong-bang-chuoi` | Ba Mẹ (Phê duyệt / Chủ) giữ chuỗi ngày cho ngày đó → `{ngay}`; tối đa 1 lần mỗi tuần (T2–CN giờ gia đình). Ngày đóng băng không đứt chuỗi, không cộng thêm ngày, không ra điểm. Lỗi `da_dong_bang_tuan` 409 · `khong_can_dong_bang` 409 |
 | `GET con/:id/bao-cao/csv` | `{tenTep, noiDung}` — CSV (BOM UTF-8, CRLF) của báo cáo tuần: theo ngày (giải trí / học), tổng so tuần trước, dùng nhiều nhất, điểm theo nhóm nhiệm vụ, duyệt / từ chối, ngoại lệ. Không có nội dung, ảnh, tin nhắn |
+
+## Giám sát và lọc web theo tên miền (22/10) — chỉ thêm
+
+Xử lý: `server/lib/web.ts`, bảng `web_nhat_ky` (thiết bị, ngày, tên miền → số lượt, giây, lần cuối). Test: `web.test.ts`. Agent: `agent-win` (`WebGuard`, `WebHistory`).
+Chỉ lưu **tên miền gốc + đếm**, không URL đầy đủ, không tiêu đề trang. Luật dùng lại bảng `app_rules` (`hoc` = Cho phép, `chan` = Chặn, `giai_tri` = chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó); allowlist hệ thống (classroom.google.com, zoom.us…) luôn mở.
+
+| Đường | Ý |
+|---|---|
+| `POST /api/device/web/lich-su {ds:[{ngay, tenMien, soLan, giay, lanCuoi}]}` | agent gửi TỔNG theo (ngày, tên miền) mỗi ~5 phút (hôm qua + hôm nay, mỗi lần). Máy chủ lấy giá trị **lớn hơn** (`greatest`) nên gửi lại không cộng đôi; tối đa 400 dòng/lần; giữ 90 ngày. Tên miền sai bị bỏ |
+| `GET /api/m/con/:id/web?ngay=7` | `{soNgay, homNay{giay,soLan,soTrang}, theoNgay[], tongGiay, top[{tenMien, giay, soLan, lanCuoi, trangThai: cho_phep\|chan\|giai_tri\|he_thong\|chua_xep, nguon}], tatCa, luat[], cheDoWeb: mo\|chi_cho_phep, heThong[], mayLoc[{id, ten, cheDo, lanCuoi}]}` — `mayLoc` là máy Windows có thể lọc web, `cheDo` giam-sat ⇒ chưa chặn thật |
+| `POST /api/m/con/:id/web/trang {muc, trangThai: cho_phep\|chan\|mac_dinh, caNha?}` | đặt/bỏ luật cho một tên miền (một Con, hoặc `caNha: true` cho cả gia đình). 409 `he_thong` nếu là trang hệ thống; ghi sự kiện `doi_luat_web` |
+| `POST /api/m/con/:id/cau-hinh {web_chi_cho_phep: 0\|1}` | tham số mới (mặc định 0): 1 = chỉ vào trang Cho phép (chặn `*`, cho phép danh sách) |
+| `dong-bo.windows.web` | `{cheDo: mo\|chi_cho_phep, chan[], cho[]}` cho agent Windows. Agent chỉ ghi vào Chrome/Edge/Brave khi chế độ là **Chặn thật** |

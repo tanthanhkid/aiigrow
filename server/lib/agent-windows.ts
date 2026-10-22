@@ -2,6 +2,7 @@
 // agent đọc (Policy của AiiGrow.Core: mode / locked / allowedApps / learningApps…) — mọi quyết định nằm ở máy chủ, agent chỉ thực thi.
 //   • Bình thường: mode «hoc» = chỉ app trong danh sách được phép chạy (Allowlist hệ thống + app Học tập Ba Mẹ đã xếp).
 //   • App Giải trí chỉ vào danh sách khi đang có phiên chơi bằng điểm cho đúng app đó (máy chủ mở/đóng phiên theo điểm, khung giờ).
+//   • Web: `web` = {cheDo, chan[], cho[]} dịch từ luật tên miền (lib/web.ts) — agent áp bằng chính sách Chrome/Edge (HKLM\SOFTWARE\Policies).
 //   • «Khoá ngay» của Ba Mẹ, hoặc đang trong giờ ngủ ⇒ mode «khoa».
 //   • «Mở» có hạn (Ba Mẹ mở khẩn cấp, hoặc duyệt «thêm giờ» cho lời xin từ máy này): mode «tu_do» + grantEndsAt tới hạn ⇒ agent GỠ AppLocker
 //     «Chỉ app học» ở lần đồng bộ kế, khay hiện đồng hồ «đang được bố mẹ thêm giờ». Khoá ngay / giờ ngủ vẫn thắng. Hết hạn ⇒ máy chủ trả lại «hoc».
@@ -10,6 +11,7 @@
 // Agent mặc định chạy chế độ GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do).
 import { gioDiaPhuong, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
+import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 
 export type PolicyWindows = {
   serverTime: string; childName: string; mode: "hoc" | "khoa" | "tu_do"; locked: boolean; lockReason: string | null;
@@ -21,12 +23,15 @@ export type PolicyWindows = {
   /** Chế độ do Ba Mẹ chọn từ xa: giam-sat (chỉ ghi lại, không chặn) | chan (chặn thật). Agent-win: giá trị này thắng CheDo cục bộ.
    *  Máy đang có lệnh gỡ chờ ⇒ luôn giam-sat (gỡ lỗi giữa chừng cũng không còn chặn). Ba Mẹ chưa chọn ⇒ bỏ trống (agent giữ chế độ đang chạy). */
   cheDo?: "giam-sat" | "chan";
+  /** Lọc web theo tên miền (lib/web.ts): agent ghi chính sách Chrome/Edge URLBlocklist/URLAllowlist — CHỈ khi chế độ hiệu lực là «chan»; giám sát ⇒ gỡ chính sách. */
+  web: ChinhSachWeb;
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
 
-/** Trình duyệt: cho chạy khi có phiên chơi cho một WEBSITE (tên miền không phải .exe) — agent chưa lọc theo tên miền nên phải mở cả trình duyệt. */
-export const TRINH_DUYET = ["chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe"];
+/** Trình duyệt cho chạy khi có phiên chơi cho một WEBSITE (tên miền không phải .exe). CHỈ trình duyệt agent lọc được theo tên miền
+ *  (chính sách Chrome/Edge/Brave — lib/web.ts, agent-win WebGuard): mở Firefox/Opera sẽ lọt mọi trang bị chặn trong lúc chơi. */
+export const TRINH_DUYET = ["chrome.exe", "msedge.exe", "brave.exe"];
 
 /** Chu kỳ đồng bộ (giây): nhàn rỗi 120; có phiên / đang mở / còn «thưởng» chưa dùng 30; đang mở thì không quá hạn mở (để trả chặn đúng giờ). Agent kẹp 10–600. */
 export const NHIP_NHAN_ROI = 120;
@@ -60,6 +65,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     nextCheckSec: nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
     ...(dangMo ? { grantEndsAt: mo.moDen!.toISOString() } : {}),
+    // Đang «mở» có hạn ⇒ trang Giải trí cũng mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
+    web: chinhSachWebCho(p, { moGiaiTri: dangMo }),
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
   };

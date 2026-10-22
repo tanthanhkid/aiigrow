@@ -25,6 +25,10 @@ builder.Services.AddSingleton<IProcessControl, WindowsProcessControl>();
 builder.Services.AddHostedService<AgentWorker>();
 builder.Services.AddHostedService<PipeServer>();
 
+// Giám sát + lọc WEB (Chrome/Edge/Brave): ghi lịch sử tên miền Con vào lên máy chủ (mọi chế độ) và áp URLBlocklist/URLAllowlist (chỉ «Chặn thật»).
+builder.Services.AddHostedService<WebHistoryWorker>();
+builder.Services.AddHostedService<WebGuardWorker>();
+
 // Heartbeat + gỡ từ xa.
 builder.Services.AddHostedService<HeartbeatWorker>();
 
