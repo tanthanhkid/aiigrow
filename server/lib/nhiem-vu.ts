@@ -157,6 +157,7 @@ export async function batDau(con: string, taskId: string) {
     if (nv.toi_da_tuan && d.tuan >= nv.toi_da_tuan) throw new LoiNghiepVu("du_tuan", "Tuần này đã đủ, tuần sau làm tiếp nhé", 409);
     const id = newId();
     await t(`insert into submissions(id, task_id, child_id, trang_thai) values ($1,$2,$3,'dang_lam')`, [id, taskId, con]);
+    await ghiSuKien(fam, "bat_dau_nhiem_vu", { ten: nv.ten }, { con }, t);          // Ba Mẹ thấy «Con đã nhận việc» (khay học viên / app Con)
     return id;
   });
 }

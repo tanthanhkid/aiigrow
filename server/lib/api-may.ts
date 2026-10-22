@@ -12,6 +12,8 @@ import { biMatOfflineMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } from "./may-con.ts";
 import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
 import { guiYeuCau } from "./yeu-cau.ts";
+import * as hocVien from "./hoc-vien.ts";
+import * as nv from "./nhiem-vu.ts";
 import { dsCon } from "./gia-dinh.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
 import { nhipMay } from "./nhip-may.ts";
@@ -69,6 +71,18 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "log" && req.method === "POST") return json(await nhanLog(may, b.ds));
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn hồ sơ và nhập mã PIN trước", 409);
+    // Khay của học viên (agent-win Tray): nhận việc, làm + nộp, xem điểm/quà, thông báo — cổng mỏng trên các hàm của màn Con (lib/hoc-vien.ts).
+    if (p[0] === "hoc-vien") {
+      const get = req.method === "GET", post = req.method === "POST", r = p.slice(1).join("/");
+      if (r === "tong-quan" && get) return json(await hocVien.tongQuan(con));
+      if (r === "tin" && get) { const s = new URL(req.url).searchParams.get("sau"); return json(await hocVien.tinCho(con, s ? new Date(s) : null)); }
+      if (p[1] === "nhiem-vu" && p[3] === "bat-dau" && post) return json({ luot: await nv.batDau(con, p[2]) });
+      if (p[1] === "luot" && p[3] === "nop" && post) return json(await hocVien.nopKhay(con, p[2], { anh: b.anh, ghiChu: b.ghiChu }));
+      if (r === "cua-hang" && get) return json(await hocVien.cuaHangKhay(con));
+      if (p[1] === "doi" && p[2] && post) return json(await hocVien.doiQuaKhay(con, p[2]));
+      if (p[1] === "loi-khen" && p[3] === "phan-hoi" && post) return json(await hocVien.phanHoiLoiKhen(con, p[2], b.phanHoi));
+      return loi("khong_co_duong", "Không có đường này", 404);
+    }
     // M4b: máy KHÔNG tuân thủ (fail-closed) ⇒ không xét / mở phiên giải trí; phiên đang chạy dừng ở nhịp kế tiếp. Mở khẩn cấp chỉ do Ba Mẹ.
     if (d === "phien/xet" || d === "phien/mo" || d === "phien/nhip") {
       const kt = await khoaTuanThu(may);
