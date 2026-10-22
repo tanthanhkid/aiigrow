@@ -67,7 +67,7 @@ export default function TrangTai() {
       </div>
 
       <p style={{ marginTop: 28 }}>
-        <a href="/app" style={{ color: "#1f8a70" }}>
+        <a href="/" style={{ color: "#1f8a70" }}>
           ← Về app AiiGrow
         </a>
       </p>

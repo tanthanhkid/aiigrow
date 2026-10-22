@@ -3,6 +3,8 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
 export const GOC = (process.env.EXPO_PUBLIC_API ?? "http://localhost:3310").replace(/\/$/, "");
+/** Trang tải bộ cài cho máy của Con (server/app/tai) — link công khai cố định, Ba Mẹ gõ tay được trên laptop của Con. */
+export const LINK_TAI = "https://aiigrow.aiilab.vn/tai";
 
 const kho = (khoa: string) => ({
   doc: () => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.getItem(khoa) ?? null) : SecureStore.getItemAsync(khoa)),

@@ -3,8 +3,9 @@
 // mật khẩu, máy chỉ rời danh sách khi agent báo đã gỡ; không gỡ thẳng ở đây để khỏi bỏ AiiGrow «mồ côi» trên máy Con).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Platform, Share, View } from "react-native";
+import { View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
+import { saoChep } from "@/lib/luu-tep";
 import { datTl } from "@/lib/thiet-lap";
 import {
   BangTruot, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, M, Man, Nhan, Nhom, Nut, ONhap, truoc, useHoanTac, useLam, useTai,
@@ -76,13 +77,4 @@ export default function HoSoCon() {
       ) : null}
     </Man>
   );
-}
-
-/** Sao chép mã liên kết: web ⇒ bộ nhớ tạm; máy thật ⇒ bảng Chia sẻ của hệ điều hành (có «Sao chép»), không cần thêm mô-đun gốc. */
-async function saoChep(ma: string) {
-  try {
-    if (Platform.OS === "web") { await navigator.clipboard.writeText(ma); return true; }
-    await Share.share({ message: ma });
-    return false;
-  } catch { return false; }
 }
