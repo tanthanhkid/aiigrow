@@ -18,6 +18,24 @@ builder.Services.AddSingleton(fileLog);
 builder.Logging.AddProvider(new FileLogProvider(fileLog));
 builder.Services.AddHostedService<LogShipWorker>();
 
+// Sentry (Thanh 22/10): log mức Error + ngoại lệ không bắt ⇒ project aiigrow-agent. Không gửi tên máy/tài khoản (máy của Con).
+var sentryDsn = typeof(Program).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+    .OfType<System.Reflection.AssemblyMetadataAttribute>().FirstOrDefault(a => a.Key == "SentryDsn")?.Value;
+if (!string.IsNullOrWhiteSpace(sentryDsn))
+    builder.Logging.AddSentry(o =>
+    {
+        o.Dsn = sentryDsn;
+        o.Release = "aiigrow-agent@" + TuCapNhat.BanHienTai().ToString(3);
+        o.Environment = "production";
+        o.MinimumEventLevel = LogLevel.Error;
+        // KHÔNG đính log thường ngày (tên app Con mở, SID tài khoản Con, mã offline) vào sự kiện
+        o.MinimumBreadcrumbLevel = LogLevel.None;
+        o.SendDefaultPii = false;
+        o.ServerName = "";
+        o.SetBeforeSend(e => SentryLoc.Loc(e, Environment.TickCount64));
+        o.SetBeforeBreadcrumb(_ => null);   // Hub tự thêm breadcrumb «Exception» chưa ẩn — bỏ hết
+    });
+
 // Thực thi Policy (dùng chung một AgentRuntime).
 builder.Services.AddSingleton<AgentRuntime>();
 builder.Services.AddSingleton<AppLockerController>();
