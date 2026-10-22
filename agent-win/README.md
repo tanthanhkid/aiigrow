@@ -50,6 +50,10 @@ foreach ($p in 'Service','Tray','Setup') {
 }
 ```
 
+**Bộ cài MỘT file** (bản phát hành cho phụ huynh): `./build-mot-file.sh` (Mac/Linux, cần .NET 8 SDK) → `ra/AiiGrow-Setup.exe`
+(~180 MB, tự chứa .NET; Service + Tray nhúng bên trong, bộ cài tự giải ra `Program Files\AiiGrow`). Tệp exe đặt cạnh bộ cài vẫn được ưu tiên
+(bản zip cũ chạy như trước). Bộ cài là wizard 5 bước: Chào → Điều khoản → Tài khoản của Con → Ghép máy (mã 6 số) → Cài.
+
 Trên Mac chỉ build/test được logic: thêm `-p:EnableWindowsTargeting=true` (test DPAPI tự bỏ qua ngoài Windows).
 CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish, artifact `AiiGrow-win-x64`).
 
@@ -58,7 +62,7 @@ CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish,
 1. Có sẵn một tài khoản quản trị của bố mẹ và một tài khoản của con (Administrator hay Standard đều được).
 2. Chép thư mục `publish` sang máy; (tuỳ chọn) tạo `server.txt` cạnh `AiiGrow.Setup.exe` chứa địa chỉ máy chủ,
    hoặc đặt biến môi trường `AIIGROW_SERVER`.
-3. Chạy `AiiGrow.Setup.exe` bằng quản trị viên, làm theo 3 bước, nhập mã 6 số lấy ở app bố mẹ.
+3. Chạy `AiiGrow-Setup.exe` (hoặc `AiiGrow.Setup.exe` bản zip) bằng quản trị viên, làm theo từng bước, nhập mã 6 số lấy ở app Ba Mẹ.
 4. Đăng xuất, con đăng nhập: thấy thông báo "Máy được bố mẹ quản lý" và biểu tượng AiiGrow ở khay.
 5. Đổi chế độ ở app bố mẹ rồi quan sát: `Get-AppLockerPolicy -Local -Xml` (luật `AiiGrow:`), nhật ký dịch vụ trong Event Viewer.
 

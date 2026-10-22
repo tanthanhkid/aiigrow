@@ -15,6 +15,10 @@ public static class Paths
 
     public static string ConfigFile => Path.Combine(DataDir, "config.json");
 
+    /// <summary>Lối tắt «AiiGrow» trong menu Start (mọi tài khoản) — mở biểu tượng khay. Bộ cài tạo, bộ gỡ xoá.</summary>
+    public static string StartMenuShortcut =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), "AiiGrow.lnk");
+
     public static string InstallDir =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "AiiGrow");
 

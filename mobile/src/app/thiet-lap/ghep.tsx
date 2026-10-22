@@ -43,7 +43,7 @@ export default function ObGhep() {
               <BieuTron ic="tai" mau="xanh" />
               <View style={{ flex: 1 }}>
                 <Chu kieu="rat" co={16}>{`Tải AiiGrow cho máy của ${ten}`}</Chu>
-                <Chu co={13.5} mau={M.chu3}>{`Trên laptop của ${ten}, mở trình duyệt và gõ:`}</Chu>
+                <Chu co={13.5} mau={M.chu3}>{`Một tệp AiiGrow-Setup.exe duy nhất. Trên laptop của ${ten}, mở trình duyệt và gõ:`}</Chu>
               </View>
             </View>
             <View style={{ borderRadius: 12, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.vien2, paddingVertical: 10, paddingHorizontal: 12, alignItems: "center" }}>
@@ -60,7 +60,7 @@ export default function ObGhep() {
       )}
       <The dem>
         <View style={{ alignItems: "center", gap: 10 }}>
-          <Chu kieu="rat" co={18} style={{ textAlign: "center" }}>{`Trên ${TEN_NEN[nen]} của ${ten}: cài AiiGrow Kid rồi quét mã`}</Chu>
+          <Chu kieu="rat" co={18} style={{ textAlign: "center" }}>{nen === "windows" ? `Mở AiiGrow-Setup.exe trên laptop của ${ten}, làm theo từng bước rồi nhập mã này` : `Trên ${TEN_NEN[nen]} của ${ten}: cài AiiGrow rồi nhập mã`}</Chu>
           {ma ? <MaQr noiDung={`aiigrow:ghep:${ma}`} /> : null}
           <View style={{ flexDirection: "row", gap: 6 }}>
             {(ma ?? "      ").split("").map((c, i) => (

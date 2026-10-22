@@ -122,6 +122,7 @@ public sealed class WindowsCleanupOps : ICleanupOps
     public void GoKhay()
     {
         using (var run = Registry.LocalMachine.OpenSubKey(RunKey, true)) run?.DeleteValue(Paths.TrayRunValue, false);
+        try { if (File.Exists(Paths.StartMenuShortcut)) File.Delete(Paths.StartMenuShortcut); } catch { }
         foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)))
         {
             try { p.Kill(); } catch { }
