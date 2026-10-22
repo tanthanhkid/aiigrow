@@ -89,9 +89,10 @@ public sealed class AgentWorker : BackgroundService
                     }
                     if (p != null && eff != null)
                     {
-                        if (apThat && childSids != null)
+                        // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
+                        if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids, p.AllowedApps);
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps);
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)

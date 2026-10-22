@@ -42,6 +42,8 @@ public static class TaiKhoanCon
             "$ten = (New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544').Translate([Security.Principal.NTAccount]).Value.Split('\\')[-1]; " +
             "$g = [ADSI](\"WinNT://./$ten,group\"); " +
             "$admins = @($g.Invoke('Members') | ForEach-Object { try { [Security.Principal.SecurityIdentifier]::new([byte[]]$_.GetType().InvokeMember('objectSid', 'GetProperty', $null, $_, $null), 0).Value } catch { } }); " +
+            // mọi thành viên đều không đọc được (PowerShell ConstrainedLanguage…) ⇒ LỖI, không coi là «không ai quản trị» (sẽ chặn nhầm Ba Mẹ)
+            "if ($admins.Count -eq 0) { throw 'không đọc được thành viên nhóm quản trị' }; " +
             "$l = @(Get-LocalUser | Where-Object { $_.Enabled } | ForEach-Object { [pscustomobject]@{ Name=$_.Name; Sid=$_.SID.Value; IsAdmin=($admins -contains $_.SID.Value) } }); " +
             "ConvertTo-Json -InputObject $l -Compress");
         if (!r.Ok) throw new InvalidOperationException("Không đọc được danh sách tài khoản: " + r.Error);
