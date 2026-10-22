@@ -16,4 +16,4 @@ dotnet publish src/AiiGrow.Tray "${CHUNG[@]}" -o "$RA/goi"
 dotnet publish src/AiiGrow.Setup "${CHUNG[@]}" -p:GoiDir="$RA/goi" -o "$RA/setup"
 cp "$RA/setup/AiiGrow.Setup.exe" "$RA/AiiGrow-Setup.exe"
 ls -l "$RA/AiiGrow-Setup.exe"
-shasum -a 256 "$RA/AiiGrow-Setup.exe"
+if command -v shasum >/dev/null; then shasum -a 256 "$RA/AiiGrow-Setup.exe"; else sha256sum "$RA/AiiGrow-Setup.exe"; fi   # Git Bash Windows không có shasum

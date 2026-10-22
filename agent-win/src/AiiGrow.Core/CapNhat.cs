@@ -112,7 +112,9 @@ public static class CapNhatMay
             try
             {
                 try { ops.DungDichVuVaKhay(); } catch { }
-                ChepThuMuc(saoLuu, thuMucCai, chep);
+                // khôi phục: bỏ qua tệp đích GIỐNG HỆT bản sao lưu (chưa bị đè — vd tệp đang bị phần mềm diệt virus giữ, chính là
+                // tệp làm bước chép bản mới lỗi; CI e2e KB8 22/10) và chép tiếp các tệp khác thay vì dừng ở tệp lỗi đầu tiên
+                ChepThuMuc(saoLuu, thuMucCai, chep, khoiPhuc: true);
                 ops.ChayDichVuVaKhay();
                 log.Add("Đã khôi phục bản cũ — máy vẫn được bảo vệ.");
                 return new(false, true, string.Join(" ", log));
@@ -120,21 +122,42 @@ public static class CapNhatMay
             catch (Exception e2)
             {
                 log.Add("KHÔNG khôi phục được bản cũ: " + e2.Message + ". Bản sao lưu ở " + saoLuu + ".");
+                // vẫn cố chạy dịch vụ (bản nào đang nằm trong thư mục cài) — dịch vụ đứng là máy mất bảo vệ hẳn
+                try { ops.ChayDichVuVaKhay(); } catch { }
                 return new(false, false, string.Join(" ", log));
             }
         }
     }
 
-    private static void ChepThuMuc(string tu, string toi, Action<string, string> chep)
+    private static void ChepThuMuc(string tu, string toi, Action<string, string> chep, bool khoiPhuc = false)
     {
         Directory.CreateDirectory(toi);
+        Exception? loiDau = null;
         foreach (var f in Directory.GetFiles(tu, "*", SearchOption.AllDirectories))
         {
             if (f.Contains(".cu-")) continue;               // tệp khay cũ đã đổi tên lần trước — không sao lưu/khôi phục
             var dich = Path.Combine(toi, Path.GetRelativePath(tu, f));
             Directory.CreateDirectory(Path.GetDirectoryName(dich)!);
-            ChepDe(f, dich, chep);
+            if (!khoiPhuc) { ChepDe(f, dich, chep); continue; }
+            try { if (!GiongNhau(f, dich)) ChepDe(f, dich, chep); }
+            catch (Exception e) { loiDau ??= e; }
         }
+        if (loiDau != null) throw loiDau;
+    }
+
+    /// <summary>Cùng kích thước + cùng nội dung. Đọc chia sẻ ReadWrite|Delete: tệp đang chạy / bị giữ đọc vẫn so được.</summary>
+    internal static bool GiongNhau(string a, string b)
+    {
+        if (!File.Exists(b)) return false;
+        if (new FileInfo(a).Length != new FileInfo(b).Length) return false;
+        try
+        {
+            using var fa = new FileStream(a, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            using var fb = new FileStream(b, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            return SHA256.HashData(fa).AsSpan().SequenceEqual(SHA256.HashData(fb));
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
     }
 
     /// <summary>Đích đang bị khoá (khay đang chạy, exe SCM vừa bật) ⇒ Windows vẫn cho ĐỔI TÊN tệp đang chạy: đổi sang «.cu-…» rồi chép lại.</summary>

@@ -144,6 +144,38 @@ public class CapNhatMayTests : IDisposable
     }
 
     [Fact]
+    public void KhoiPhuc_TepChuaBiDeDangBiGiu_BoQuaVaKhoiPhucDuoc()
+    {
+        // CI e2e KB8: khay bị giữ (diệt virus) ⇒ chép bản mới lỗi ở khay; khôi phục KHÔNG được chép lại khay (vẫn bị giữ) — nó còn là bản cũ
+        void Chep(string tu, string dich)
+        {
+            if (dich.StartsWith(Cai + Path.DirectorySeparatorChar) && dich.Contains("AiiGrow.Tray.exe")) throw new IOException("tệp đang được dùng");
+            File.Copy(tu, dich, true);
+        }
+        var ops = new Gia { LoiChep = true };
+        var kq = CapNhatMay.Chay(Cai, "0.2.0", ops, Chep);
+        Assert.True(kq.DaKhoiPhuc, kq.Log);
+        Assert.Equal("cu-service", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Service.exe")));
+        Assert.Equal("cu-tray", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Tray.exe")));
+        Assert.Equal("chay", ops.Buoc[^1]);
+    }
+
+    [Fact]
+    public void KhoiPhuc_Loi_VanChayLaiDichVu()
+    {
+        void Chep(string tu, string dich)
+        {
+            if (dich.StartsWith(Cai + Path.DirectorySeparatorChar) && dich.EndsWith("AiiGrow.Service.exe")) throw new IOException("tệp đang được dùng");
+            File.Copy(tu, dich, true);
+        }
+        var ops = new Gia { LoiChep = true };
+        var kq = CapNhatMay.Chay(Cai, "0.2.0", ops, Chep);
+        Assert.False(kq.Ok); Assert.False(kq.DaKhoiPhuc);
+        Assert.Contains("KHÔNG khôi phục", kq.Log);
+        Assert.Equal("chay", ops.Buoc[^1]);   // dịch vụ không bị bỏ ở trạng thái dừng
+    }
+
+    [Fact]
     public void ChepDe_ChepLaiVanLoi_TraTenCu()
     {
         var thu = Path.Combine(_goc, "chep-de"); Directory.CreateDirectory(thu);
