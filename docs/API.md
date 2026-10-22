@@ -108,6 +108,20 @@ Bảng tính năng × OS: `docs/QUAN-LY-DA-NEN-TANG.md`.
 | `POST lenh/:id/xong` | agent báo đã làm xong lệnh (Bearer = token máy). Lệnh `go` ⇒ máy «đã gỡ» (xoá khỏi gia đình, token hết hiệu lực, hết cảnh báo mất nhịp). Gọi lại ⇒ `{ok: true, lapLai: true}`, không ghi đôi |
 | `POST phien/xet` · `phien/mo` · `phien/nhip` | máy KHÔNG tuân thủ (đã từng gửi nhịp) ⇒ `phien/xet` → `{duoc: false, lyDo: "khong_tuan_thu", cau}` · `phien/mo` → 409 `khong_mo_duoc` · `phien/nhip` → kết thúc phiên, `{trangThai: "ket_thuc", lyDoKet: "khong_tuan_thu"}` |
 
+### Khay học viên (máy Con) — `/api/device/hoc-vien/*` (Bearer = token máy riêng của Con)
+
+Cổng mỏng cho ứng dụng khay của agent-win (`HocVienForm`), dùng lại luật của màn Con (`/api/kid/*`): tần suất, thời gian tối thiểu, ảnh trùng, trừ điểm, tồn kho đều do máy chủ quyết. Máy dùng chung chưa có PIN trong khay ⇒ `409 chua_chon_con`. Khay chỉ được gọi các đường dưới đây (agent-win `HocVienPaths.Allowed`).
+
+| Đường | Ý |
+|---|---|
+| `GET tong-quan` | `{con, soDu, tongKiem, capDo{cap, diemCapSau, conThieu}, diemChoDuyet, nhiemVu[{id, ten, moTa, diem, bangChung, kieu, han, phutToiThieu, trangThai: san_sang\|dang_lam\|can_bo_sung\|du_hom_nay\|du_tuan, luot, dangCho, giaoRieng, lyDo}], gan[] (lượt 14 ngày), loiKhen[], phieuCho[]}` |
+| `GET tin?sau=ISO` | thông báo cho Con: `{ds[{id, loai, tieu, noi, luc}], bay}`. Loại: `giao_nhiem_vu` · `nhiem_vu_moi` (việc mở cho cả nhà) · `duyet_nhiem_vu` · `tu_duyet_nhiem_vu` · `tu_choi_nhiem_vu` · `can_bo_sung` · `loi_khen` · `xac_nhan_qua` · `huy_qua` · `huy_hieu`. Không có `sau` ⇒ 7 ngày gần nhất. Máy chủ **lùi `sau` 5 phút** (sự kiện mang giờ mở giao dịch) ⇒ khay lọc trùng theo `id` (`TinTracker`) và truyền `bay` làm `sau` lần kế |
+| `POST nhiem-vu/:id/bat-dau` | Con nhận việc ⇒ `{luot}` (bấm lại trả cùng lượt). Ghi sự kiện `bat_dau_nhiem_vu` ⇒ Ba Mẹ thấy «Ken đã nhận …». Lỗi: `du_hom_nay` · `du_tuan` · `da_xong` · `qua_han` 409 |
+| `POST luot/:id/nop {ghiChu?, anh?: [{mime, base64}]}` | nộp bài ⇒ `{trangThai: cho_duyet\|duoc_duyet, nghiTrung}`. Ảnh ≤ 400 KB (khay nén JPEG ≤ 300 KB, cạnh dài ≤ 1280). Lỗi: `thieu_anh` · `thieu_chu` · `chua_du_gio` · `da_nop` · `anh_qua_lon` |
+| `GET cua-hang` | `{soDu, qua[{id, ten, loai, diem, menhGia, chiCuoiTuan, du, conThieu}]}` |
+| `POST doi/:quaId` | đổi quà ⇒ `{phieu, trangThai: cho_trao\|cho_xac_nhan\|da_phat_hanh, voucher?{ma, hetHan}}`. Lỗi: `khong_du_diem` · `het_hang` · `chi_cuoi_tuan` · `du_thang` · `quy_thieu` 409 |
+| `POST loi-khen/:id/phan-hoi {phanHoi}` | Con nhắn lại Ba Mẹ (≤ 60 ký tự) ⇒ `{ok}`; sự kiện `phan_hoi_con` ⇒ thông báo «Ken nhắn lại Ba Mẹ» ở app Ba Mẹ |
+
 ### App Ba Mẹ — `/api/m/*`
 
 | Đường | Ý |

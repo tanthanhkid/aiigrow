@@ -125,6 +125,22 @@ public sealed class ApiClient : IDisposable
         return Deserialize<RequestStatus>(raw);
     }
 
+    /// <summary>Khay học viên: gọi một đường <c>api/device/…</c> đã qua <see cref="HocVienPaths.Allowed"/>; trả thân JSON nguyên văn.</summary>
+    public Task<string> RawAsync(HttpMethod method, string path, string? bodyJson, CancellationToken ct = default)
+        => SendRawAsync(method, path, bodyJson, ct);
+
+    private Task<string> SendRawAsync(HttpMethod method, string path, string? bodyJson, CancellationToken ct)
+    {
+        object? body = null;
+        if (!string.IsNullOrWhiteSpace(bodyJson))
+        {
+            try { body = JsonSerializer.Deserialize<JsonElement>(bodyJson); }
+            catch (JsonException e) { throw new ApiException("Dữ liệu gửi đi không đúng định dạng", null, e); }
+        }
+        else if (method == HttpMethod.Post) body = new { };
+        return SendAsync(method, path, body, ct);
+    }
+
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)
         => Deserialize<T>(await SendAsync(HttpMethod.Post, path, body, ct));
 
