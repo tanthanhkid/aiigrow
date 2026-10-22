@@ -27,7 +27,7 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   `config.json`, điền `aiicon` + SID như luồng cài có giao diện (`Installer.RunAsync`) sẽ ghi, rồi chạy lại — để vẫn kiểm được đường AppLocker thật.
 - **Giả lỗi (KB8)**: một tiến trình giữ `AiiGrow.Tray.exe` ở chế độ chỉ đọc, không chia sẻ ghi/xoá (như phần mềm diệt virus đang quét) ⇒ không ghi đè, không đổi tên được.
 
-## Giới hạn của runner (Windows Server 2022, một phiên dịch vụ, không người dùng thật)
+## Giới hạn của runner (windows-latest = Windows Server 2025; harness chạy trong phiên console của runneradmin, không có người dùng Con)
 
 - **Không có phiên đăng nhập của Con**: không ai đăng nhập `aiicon` ⇒ `ChildSessionId = -1`. Vì vậy không kiểm được: màn khoá/đếm ngược,
   ngắt phiên (`WTSDisconnectSession`), đóng app ngoài danh sách trong phiên Con, đếm phút dùng app, và «lệnh ghi từ phiên không phải Con bị

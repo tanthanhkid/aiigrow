@@ -1,6 +1,6 @@
 name: agent-win
 
-# Agent Windows AiiGrow trên Windows thật (windows-latest = Windows Server 2022, quyền admin):
+# Agent Windows AiiGrow trên Windows thật (windows-latest, quyền admin):
 #   unit  — dotnet test (gồm test chỉ chạy được trên Windows: DPAPI…)
 #   build — bộ cài một tệp ở ba số bản: bản đang phát (Directory.Build.props) + hai bản cao hơn để thử cập nhật
 #   e2e   — máy chủ Next cục bộ (PGlite) + agent-win/e2e/chay.ps1: cài im lặng, đồng bộ, Chặn thật (AppLocker + web), khoá,

@@ -33,15 +33,15 @@ $TenMienChan = 'chan-thu-e2e.vn'
 $WebQuanTri = 'quan-tri-gia.example.com'
 $KQ = New-Object System.Collections.ArrayList
 $TienTrinh = @()
-$S = @{}   # trạng thái chung giữa các kịch bản
+$Chung = @{}   # trạng thái chung giữa các kịch bản
 
 # ------------------------------------------------------------------ tiện ích
 function Log($m) { Write-Host ("[{0:HH:mm:ss}] {1}" -f (Get-Date), $m) }
-function Ghi($ma, $ten, $kq, $chiTiet) {
-  [void]$KQ.Add([pscustomobject]@{ Ma = $ma; Ten = $ten; KetQua = $kq; ChiTiet = [string]$chiTiet })
-  $mau = 'Yellow'; if ($kq -eq 'PASS') { $mau = 'Green' } elseif ($kq -eq 'FAIL') { $mau = 'Red' }
-  Write-Host ("{0,-4} {1} {2} — {3}" -f $kq, $ma, $ten, $chiTiet) -ForegroundColor $mau
-  if ($kq -eq 'FAIL' -and $env:GITHUB_ACTIONS) { Write-Host ("::error title=E2E {0}::{1} — {2}" -f $ma, $ten, ($chiTiet -replace "`r?`n", ' ')) }
+function Ghi($ma, $ten, $ketQua, $chiTiet) {
+  [void]$KQ.Add([pscustomobject]@{ Ma = $ma; Ten = $ten; KetQua = $ketQua; ChiTiet = [string]$chiTiet })
+  $mau = 'Yellow'; if ($ketQua -eq 'PASS') { $mau = 'Green' } elseif ($ketQua -eq 'FAIL') { $mau = 'Red' }
+  Write-Host ("{0,-4} {1} {2} — {3}" -f $ketQua, $ma, $ten, $chiTiet) -ForegroundColor $mau
+  if ($ketQua -eq 'FAIL' -and $env:GITHUB_ACTIONS) { Write-Host ("::error title=E2E {0}::{1} — {2}" -f $ma, $ten, ($chiTiet -replace "`r?`n", ' ')) }
 }
 function Dat($ma, $ten, $dk, $chiTiet) { if ([bool]$dk) { Ghi $ma $ten 'PASS' $chiTiet } else { Ghi $ma $ten 'FAIL' $chiTiet } }
 function Bo($ma, $ten, $lyDo) { Ghi $ma $ten 'BỎ' $lyDo }
@@ -168,8 +168,8 @@ function ChepLog($nhan) {
 }
 
 function MayCuaToi {
-  $ds = @((Api GET '/api/m/tuan-thu' $null $S.TokenBaMe).ds)
-  return @($ds | Where-Object { $_.nen -eq 'windows' })
+  $ds = @((Api GET '/api/m/tuan-thu' $null $Chung.TokenBaMe).ds)
+  @($ds | Where-Object { $_.nen -eq 'windows' })
 }
 
 Add-Type -Namespace E2E -Name Wts -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint WTSGetActiveConsoleSessionId();'
@@ -199,15 +199,15 @@ try {
   Export-PfxCertificate -Cert $cert -FilePath $pfx -Password (ConvertTo-SecureString $mk -AsPlainText -Force) | Out-Null
   Export-Certificate -Cert $cert -FilePath (Join-Path $ThuMucTep 'e2e.cer') | Out-Null
   Import-Certificate -FilePath (Join-Path $ThuMucTep 'e2e.cer') -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
-  $S.TenTepMoi2 = "AiiGrow-Setup-$BanMoi2.exe"
-  Copy-Item $SetupMoi2 (Join-Path $ThuMucTep $S.TenTepMoi2) -Force
-  $S.ShaMoi2 = (Get-FileHash (Join-Path $ThuMucTep $S.TenTepMoi2) -Algorithm SHA256).Hash.ToLowerInvariant()
+  $Chung.TenTepMoi2 = "AiiGrow-Setup-$BanMoi2.exe"
+  Copy-Item $SetupMoi2 (Join-Path $ThuMucTep $Chung.TenTepMoi2) -Force
+  $Chung.ShaMoi2 = (Get-FileHash (Join-Path $ThuMucTep $Chung.TenTepMoi2) -Algorithm SHA256).Hash.ToLowerInvariant()
 
   $env:CONG_PROXY = "$CONG_PROXY"; $env:CONG_NEXT = "$CONG_NEXT"; $env:CONG_TEP = "$CONG_TEP"
   $env:PFX = $pfx; $env:PFX_MK = $mk; $env:THU_MUC_TEP = $ThuMucTep
   $TienTrinh += Start-Process -FilePath 'node' -ArgumentList "`"$PSScriptRoot\proxy.mjs`"" -RedirectStandardOutput "$ThuMucLog\proxy.log" -RedirectStandardError "$ThuMucLog\proxy.err.log" -WindowStyle Hidden -PassThru
   if (-not (Cho { (Invoke-WebRequest -UseBasicParsing "$MayChu/__e2e/manifest" -TimeoutSec 10).StatusCode -eq 200 } 60 2)) { throw 'proxy không lên' }
-  if (-not (Cho { (Invoke-WebRequest -UseBasicParsing "https://127.0.0.1:$CONG_TEP/$($S.TenTepMoi2)" -Method Head -TimeoutSec 30).StatusCode -eq 200 } 60 2)) { Log 'CẢNH BÁO: https tệp chưa trả 200 (tự cập nhật sẽ lỗi)' }
+  if (-not (Cho { (Invoke-WebRequest -UseBasicParsing "https://127.0.0.1:$CONG_TEP/$($Chung.TenTepMoi2)" -Method Head -TimeoutSec 30).StatusCode -eq 200 } 60 2)) { Log 'CẢNH BÁO: https tệp chưa trả 200 (tự cập nhật sẽ lỗi)' }
 
   # hâm nóng các đường (next dev biên dịch lần đầu chậm — agent chỉ chờ 20 giây mỗi request)
   foreach ($u in @('/api/m/toi', '/api/device/dong-bo', '/api/agent/ban-moi')) { try { Invoke-WebRequest -UseBasicParsing "$MayChu$u" -TimeoutSec 180 | Out-Null } catch { } }
@@ -223,7 +223,7 @@ try {
   Set-AppLockerPolicy -XmlPolicy $tepQt
   # Chính sách web của «IT» (giả): mục tên «1» trong URLBlocklist — AiiGrow chỉ được đụng mục ≥ 90001
   foreach ($k in $KhoaWeb.Values) { New-Item -Path "$k\URLBlocklist" -Force | Out-Null; New-ItemProperty -Path "$k\URLBlocklist" -Name '1' -Value $WebQuanTri -PropertyType String -Force | Out-Null }
-  Log ("luật quản trị giả: AppLocker {0} luật, web «1»={1}" -f (LuatQuanTri (AppLocker)).Count, $WebQuanTri)
+  Log ("luật quản trị giả: AppLocker {0} luật, web «1»={1}" -f @(LuatQuanTri (AppLocker)).Count, $WebQuanTri)
 } catch {
   Ghi 'KB0' 'Chuẩn bị môi trường thử' 'FAIL' $_.Exception.Message
 }
@@ -234,30 +234,30 @@ KichBan 'KB1' 'Đăng ký Ba Mẹ, tạo Con, gói cài một chạm' {
   $otp = Api POST '/api/m/otp' @{ dinhDanh = $sdt; mucDich = 'dang_ky' }
   Dat '1.1' 'OTP chế độ thử trả mã' ($otp.ma -match '^\d{6}$') "gửi đến $($otp.guiDen)"
   $dk = Api POST '/api/m/dang-ky' @{ dinhDanh = $sdt; ma = $otp.ma; ten = 'Ba E2E'; matKhau = 'MatKhau-E2e-' + (Get-Random) }
-  $S.TokenBaMe = $dk.token
+  $Chung.TokenBaMe = $dk.token
   Dat '1.2' 'Đăng ký Ba Mẹ → token phiên' ([bool]$dk.token) 'có token'
-  $con = Api POST '/api/m/con' @{ ten = 'Con E2E'; namSinh = ((Get-Date).Year - 10); pin = '1234' } $S.TokenBaMe
-  $S.ConId = $con.id
+  $con = Api POST '/api/m/con' @{ ten = 'Con E2E'; namSinh = ((Get-Date).Year - 10); pin = '1234' } $Chung.TokenBaMe
+  $Chung.ConId = $con.id
   Dat '1.3' 'Tạo Con' ([bool]$con.id) "con $($con.id)"
   # Bộ cài một chạm KHÔNG hỏi tài khoản Windows (Installer.RunOneTouchAsync); tạo sẵn tài khoản thường của Con để dùng ở KB4.
   $mkCon = ConvertTo-SecureString ('Aa1!' + [guid]::NewGuid().ToString('N')) -AsPlainText -Force
   if (-not (Get-LocalUser -Name $TenCon -ErrorAction SilentlyContinue)) { New-LocalUser -Name $TenCon -Password $mkCon -FullName 'Con E2E' -Description 'Tài khoản thử của e2e AiiGrow' | Out-Null }
   Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $TenCon -ErrorAction SilentlyContinue
-  $S.SidCon = (Get-LocalUser -Name $TenCon).SID.Value
-  $laAdmin = [bool](Get-LocalGroupMember -SID 'S-1-5-32-544' | Where-Object { $_.SID.Value -eq $S.SidCon })
-  Dat '1.4' 'Tài khoản Windows thường của Con' ($S.SidCon -and -not $laAdmin) "$TenCon $($S.SidCon)"
-  $goi = Api POST '/api/m/goi-cai' @{ con = $S.ConId; nen = 'windows' } $S.TokenBaMe
+  $Chung.SidCon = (Get-LocalUser -Name $TenCon).SID.Value
+  $laAdmin = [bool](Get-LocalGroupMember -SID 'S-1-5-32-544' | Where-Object { $_.SID.Value -eq $Chung.SidCon })
+  Dat '1.4' 'Tài khoản Windows thường của Con' ($Chung.SidCon -and -not $laAdmin) "$TenCon $($Chung.SidCon)"
+  $goi = Api POST '/api/m/goi-cai' @{ con = $Chung.ConId; nen = 'windows' } $Chung.TokenBaMe
   if ($env:GITHUB_ACTIONS) { Write-Host "::add-mask::$($goi.token)" }
   $json = '{"server":"' + $MayChu + '","token":"' + $goi.token + '"}'
-  $S.Enroll = [Convert]::ToBase64String($Utf8.GetBytes($json)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
-  if ($env:GITHUB_ACTIONS) { Write-Host "::add-mask::$($S.Enroll)" }
+  $Chung.Enroll = [Convert]::ToBase64String($Utf8.GetBytes($json)).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+  if ($env:GITHUB_ACTIONS) { Write-Host "::add-mask::$($Chung.Enroll)" }
   Dat '1.5' 'Gói cài một chạm (goi-cai)' ([bool]$goi.token -and $goi.het) "hết hạn $($goi.het); lệnh im lặng máy chủ gợi ý: $($goi.cai.chiTiet.lenhIm -replace [regex]::Escape($goi.token), '***')"
 }
 
 # ------------------------------------------------------------------ KB2 — cài im lặng
 KichBan 'KB2' 'Cài im lặng một chạm' {
-  if (-not $S.Enroll) { Bo 'KB2' 'Cài im lặng' 'KB1 không tạo được gói cài'; return }
-  $ma = ChaySetup $SetupGoc @('--silent', "--enroll=$($S.Enroll)")
+  if (-not $Chung.Enroll) { Bo 'KB2' 'Cài im lặng' 'KB1 không tạo được gói cài'; return }
+  $ma = ChaySetup $SetupGoc @('--silent', "--enroll=$($Chung.Enroll)")
   Dat '2.1' 'Mã thoát bộ cài = 0' ($ma -eq 0) "mã $ma · install.log: $(DuoiLog 6)"
   $s = Cho { $x = DichVu; if ($x -and $x.Status -eq 'Running') { $x } } 60 3
   Dat '2.2' 'Dịch vụ AiiGrowService Running' ([bool]$s) "trạng thái $((DichVu).Status)"
@@ -270,28 +270,28 @@ KichBan 'KB2' 'Cài im lặng một chạm' {
   Dat '2.5' 'Tệp cài ở Program Files\AiiGrow' ($thieu.Count -eq 0) ("bản dịch vụ {0}; thiếu: {1}" -f (BanDichVu), ($thieu -join ', '))
   Dat '2.6' 'Bản dịch vụ = bản build' ((BanDichVu) -eq $BanGoc) "ProductVersion $(BanDichVu), mong $BanGoc"
   $cfg = DocConfig
-  $S.TokenHash = Bam $cfg.token; $S.DeviceId = $cfg.deviceId
-  Dat '2.7' 'Config ProgramData mã DPAPI có token máy' ($cfg.token.Length -ge 16 -and $cfg.server -eq $MayChu -and $cfg.deviceId) ("token {0} ký tự (sha256 {1}…), deviceId {2}, server {3}, cheDo {4}" -f $cfg.token.Length, $S.TokenHash.Substring(0, 8), $cfg.deviceId, $cfg.server, $cfg.cheDo)
+  $Chung.TokenHash = Bam $cfg.token; $Chung.DeviceId = $cfg.deviceId
+  Dat '2.7' 'Config ProgramData mã DPAPI có token máy' ($cfg.token.Length -ge 16 -and $cfg.server -eq $MayChu -and $cfg.deviceId) ("token {0} ký tự (sha256 {1}…), deviceId {2}, server {3}, cheDo {4}" -f $cfg.token.Length, $Chung.TokenHash.Substring(0, 8), $cfg.deviceId, $cfg.server, $cfg.cheDo)
   $acl = (Get-Acl $DataDir).Access | ForEach-Object { $_.IdentityReference.Value }
   Dat '2.8' 'Thư mục dữ liệu chỉ SYSTEM + Administrators' (-not ($acl | Where-Object { $_ -notmatch 'SYSTEM|Administrators' })) ($acl -join ', ')
   $app = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow' -ErrorAction SilentlyContinue
   Dat '2.9' 'Mục Ứng dụng (Uninstall\AiiGrow)' ($app -and $app.DisplayVersion -eq $BanGoc) "DisplayVersion $($app.DisplayVersion) · UninstallString $($app.UninstallString)"
-  $S.CfgChildSidLucCai = $cfg.childSid
+  $Chung.CfgChildSidLucCai = $cfg.childSid
 }
 
 # ------------------------------------------------------------------ KB3 — máy xuất hiện ở app Ba Mẹ
 KichBan 'KB3' 'Máy hiện ở app Ba Mẹ, đồng bộ lần đầu ≤ 3 phút' {
-  if (-not $S.TokenBaMe) { Bo 'KB3' 'Máy hiện ở app Ba Mẹ' 'chưa có Ba Mẹ'; return }
+  if (-not $Chung.TokenBaMe) { Bo 'KB3' 'Máy hiện ở app Ba Mẹ' 'chưa có Ba Mẹ'; return }
   $t = Get-Date
   $may = Cho { $m = @(MayCuaToi | Where-Object { $_.lanCuoi -and $_.phienBan }); if ($m.Count) { $m[0] } } 180 5
   $giay = [int]((Get-Date) - $t).TotalSeconds
   Dat '3.1' 'Máy Windows trong tuan-thu, đã đồng bộ' ([bool]$may) "sau $giay giây · $(if ($may) { "id $($may.id) ten $($may.ten) lanCuoi $($may.lanCuoi)" } else { 'không thấy' })"
   if ($may) {
-    $S.MayId = $may.id
+    $Chung.MayId = $may.id
     Dat '3.2' 'status.version = bản build' ($may.phienBan -eq $BanGoc) "phienBan $($may.phienBan), mong $BanGoc"
-    Dat '3.3' 'Máy gắn đúng Con của gói cài' ($may.con -eq $S.ConId) "con $($may.con)"
-    $ct = Api GET "/api/m/con/$($S.ConId)" $null $S.TokenBaMe
-    Dat '3.4' 'Chi tiết Con thấy máy đang trực tuyến' ([bool](@($ct.may) | Where-Object { $_.id -eq $S.MayId -and $_.truc })) ("{0} máy; baoVe {1}" -f @($ct.may).Count, ((@($ct.may) | ForEach-Object { "$($_.baoVe):$($_.baoVeThieu -join '/')" }) -join ','))
+    Dat '3.3' 'Máy gắn đúng Con của gói cài' ($may.con -eq $Chung.ConId) "con $($may.con)"
+    $ct = Api GET "/api/m/con/$($Chung.ConId)" $null $Chung.TokenBaMe
+    Dat '3.4' 'Chi tiết Con thấy máy đang trực tuyến' ([bool](@($ct.may) | Where-Object { $_.id -eq $Chung.MayId -and $_.truc })) ("{0} máy; baoVe {1}" -f @($ct.may).Count, ((@($ct.may) | ForEach-Object { "$($_.baoVe):$($_.baoVeThieu -join '/')" }) -join ','))
   }
   $st = TrangThai
   Dat '3.5' 'Pipe state: paired, chế độ mặc định giám sát' ($st.paired -and $st.cheDo -eq 'giam-sat') "paired $($st.paired) cheDo $($st.cheDo) mode $($st.mode) lastSyncAt $($st.lastSyncAt)"
@@ -315,14 +315,14 @@ KichBan 'KB10' 'Named pipe (lệnh của khay)' {
 
 # ------------------------------------------------------------------ KB4 — Chặn thật: AppLocker + chính sách web
 KichBan 'KB4' 'Chặn thật: AppLocker + web' {
-  if (-not $S.MayId) { Bo 'KB4' 'Chặn thật' 'chưa có máy'; return }
-  $w = Api POST "/api/m/con/$($S.ConId)/web/trang" @{ muc = $TenMienChan; trangThai = 'chan' } $S.TokenBaMe
-  $cd = Api POST "/api/m/may/$($S.MayId)/che-do" @{ cheDo = 'chan' } $S.TokenBaMe
+  if (-not $Chung.MayId) { Bo 'KB4' 'Chặn thật' 'chưa có máy'; return }
+  $w = Api POST "/api/m/con/$($Chung.ConId)/web/trang" @{ muc = $TenMienChan; trangThai = 'chan' } $Chung.TokenBaMe
+  $cd = Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'chan' } $Chung.TokenBaMe
   Dat '4.1' 'Ba Mẹ đặt Chặn thật + chặn một tên miền' ($cd.cheDo -eq 'chan' -and $w.trangThai -eq 'chan') "cheDo $($cd.cheDo) doi $($cd.doi) · web $($w.muc)=$($w.trangThai)"
   DongBoNgay
   $st = Cho { $x = TrangThai; if ($x.cheDo -eq 'chan') { $x } } 60 3
   Dat '4.2' 'Agent nhận chế độ chan sau đồng bộ' ([bool]$st) "cheDo $((TrangThai).cheDo) mode $((TrangThai).mode)"
-  $may = Cho { $m = @(MayCuaToi | Where-Object { $_.id -eq $S.MayId -and $_.cheDoMay -eq 'chan' }); if ($m.Count) { $m[0] } } 90 5
+  $may = Cho { $m = @(MayCuaToi | Where-Object { $_.id -eq $Chung.MayId -and $_.cheDoMay -eq 'chan' }); if ($m.Count) { $m[0] } } 90 5
   Dat '4.3' 'Máy chủ thấy cheDoMay = chan' ([bool]$may) "cheDoMay $((@(MayCuaToi))[0].cheDoMay)"
 
   # 4.4 — chính sách web trong registry (không cần SID Con)
@@ -335,41 +335,41 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
 
   # 4.7 — cài MỘT CHẠM không gắn tài khoản Con ⇒ AppLocker có áp không?
   Start-Sleep -Seconds 30
-  $n = (LuatAiiGrow (AppLocker)).Count
+  $n = @(LuatAiiGrow (AppLocker)).Count
   $cfg = DocConfig
   Dat '4.7' 'Cài một chạm + Chặn thật ⇒ có luật AppLocker AiiGrow' ($n -gt 0) ("{0} luật AiiGrow; config childUser «{1}» childSid «{2}» (one-touch không ghi tài khoản Con ⇒ AppLockerController bỏ qua khi SID rỗng)" -f $n, $cfg.childUser, $cfg.childSid)
 
   # 4.8 — gắn tài khoản Con vào config như luồng cài có giao diện (Installer.RunAsync ghi ChildUser/ChildSid) rồi kiểm AppLocker thật
   Stop-Service $Svc -Force
   $json = DocConfigJson
-  $json = $json -replace '"childUser":"[^"]*"', ('"childUser":"' + $TenCon + '"') -replace '"childSid":"[^"]*"', ('"childSid":"' + $S.SidCon + '"')
-  if ($json -notmatch '"childSid"') { $json = $json.TrimEnd('}') + ',"childUser":"' + $TenCon + '","childSid":"' + $S.SidCon + '"}' }
+  $json = $json -replace '"childUser":"[^"]*"', ('"childUser":"' + $TenCon + '"') -replace '"childSid":"[^"]*"', ('"childSid":"' + $Chung.SidCon + '"')
+  if ($json -notmatch '"childSid"') { $json = $json.TrimEnd('}') + ',"childUser":"' + $TenCon + '","childSid":"' + $Chung.SidCon + '"}' }
   GhiConfigJson $json
   Start-Service $Svc
   [void](Cho { DangChay } 30 2)
   [void](Cho { TrangThai } 30 2)
   DongBoNgay
-  $luat = Cho { $l = LuatAiiGrow (AppLocker) $S.SidCon; if ($l.Count) { $l } } 150 5
+  $luat = @(Cho { $l = @(LuatAiiGrow (AppLocker) $Chung.SidCon); if ($l.Count) { $l } } 150 5)
   $tenLuat = (@($luat) | ForEach-Object { "$($_.Action):$($_.Name)" }) -join ' | '
   Dat '4.8' 'AppLocker -Local có luật AiiGrow cho SID Con (sau khi gắn tài khoản Con)' ($luat.Count -gt 0) ("{0} luật cho SID: {1}" -f @($luat).Count, $tenLuat)
-  $eff = LuatAiiGrow (AppLocker -Effective) $S.SidCon
+  $eff = @(LuatAiiGrow (AppLocker -Effective) $Chung.SidCon)
   Dat '4.9' 'AppLocker -Effective có luật AiiGrow' ($eff.Count -gt 0) "$($eff.Count) luật"
   $exe = (AppLocker).SelectSingleNode("//RuleCollection[@Type='Exe']")
-  Dat '4.10' 'Bộ Exe ở EnforcementMode Enabled; luật quản trị còn' ($exe.EnforcementMode -eq 'Enabled' -and (LuatQuanTri (AppLocker)).Count -eq 1) "EnforcementMode $($exe.EnforcementMode); luật quản trị $((LuatQuanTri (AppLocker)).Count)"
+  Dat '4.10' 'Bộ Exe ở EnforcementMode Enabled; luật quản trị còn' ($exe.EnforcementMode -eq 'Enabled' -and @(LuatQuanTri (AppLocker)).Count -eq 1) "EnforcementMode $($exe.EnforcementMode); luật quản trị $(@(LuatQuanTri (AppLocker)).Count)"
   $appid = Get-Service AppIDSvc -ErrorAction SilentlyContinue
   Dat '4.11' 'AppIDSvc chạy' ($appid.Status -eq 'Running') "AppIDSvc $($appid.Status)"
-  $S.CoSid = $true
+  $Chung.CoSid = $true
 }
 
 # ------------------------------------------------------------------ KB5 — Khoá ngay / mở lại
 KichBan 'KB5' 'Khoá ngay rồi mở lại' {
-  if (-not $S.MayId) { Bo 'KB5' 'Khoá ngay' 'chưa có máy'; return }
-  [void](Api POST "/api/m/con/$($S.ConId)/khoa" @{ khoa = $true } $S.TokenBaMe)
+  if (-not $Chung.MayId) { Bo 'KB5' 'Khoá ngay' 'chưa có máy'; return }
+  [void](Api POST "/api/m/con/$($Chung.ConId)/khoa" @{ khoa = $true } $Chung.TokenBaMe)
   DongBoNgay
   $st = Cho { $x = TrangThai; if ($x.locked -and $x.mode -eq 'khoa') { $x } } 60 3
   $hien = TrangThai
   Dat '5.1' 'Agent báo chế độ khoá' ([bool]$st) "locked $($hien.locked) mode $($hien.mode) lockReason $($hien.lockReason)"
-  [void](Api POST "/api/m/con/$($S.ConId)/khoa" @{ khoa = $false } $S.TokenBaMe)
+  [void](Api POST "/api/m/con/$($Chung.ConId)/khoa" @{ khoa = $false } $Chung.TokenBaMe)
   DongBoNgay
   $st2 = Cho { $x = TrangThai; if (-not $x.locked -and $x.mode -ne 'khoa') { $x } } 60 3
   $hien = TrangThai
@@ -379,15 +379,15 @@ KichBan 'KB5' 'Khoá ngay rồi mở lại' {
 
 # ------------------------------------------------------------------ KB6 — về Giám sát
 KichBan 'KB6' 'Về Giám sát: gỡ luật AiiGrow, giữ luật quản trị' {
-  if (-not $S.MayId) { Bo 'KB6' 'Về Giám sát' 'chưa có máy'; return }
-  $cd = Api POST "/api/m/may/$($S.MayId)/che-do" @{ cheDo = 'giam-sat' } $S.TokenBaMe
+  if (-not $Chung.MayId) { Bo 'KB6' 'Về Giám sát' 'chưa có máy'; return }
+  $cd = Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe
   DongBoNgay
   [void](Cho { (TrangThai).cheDo -eq 'giam-sat' } 60 3)
-  $het = Cho { (LuatAiiGrow (AppLocker)).Count -eq 0 } 120 5
-  Dat '6.1' 'AppLocker không còn luật AiiGrow' $het "còn $((LuatAiiGrow (AppLocker)).Count) luật (cheDo agent $((TrangThai).cheDo))"
-  Dat '6.2' 'Luật quản trị giả vẫn còn' ((LuatQuanTri (AppLocker)).Count -eq 1) "$((LuatQuanTri (AppLocker)).Count) luật"
-  $webHet = Cho { $all = $true; foreach ($k in $KhoaWeb.Values) { if ((MucAiiGrow $k 'URLBlocklist').Count) { $all = $false } }; $all } 90 5
-  Dat '6.3' 'Chính sách web của AiiGrow được gỡ' $webHet ((MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist' | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';')
+  $het = Cho { @(LuatAiiGrow (AppLocker)).Count -eq 0 } 120 5
+  Dat '6.1' 'AppLocker không còn luật AiiGrow' $het "còn $(@(LuatAiiGrow (AppLocker)).Count) luật (cheDo agent $((TrangThai).cheDo))"
+  Dat '6.2' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
+  $webHet = Cho { $all = $true; foreach ($k in $KhoaWeb.Values) { if (@(MucAiiGrow $k 'URLBlocklist').Count) { $all = $false } }; $all } 90 5
+  Dat '6.3' 'Chính sách web của AiiGrow được gỡ' $webHet (@(MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist' | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';')
   Dat '6.4' 'Mục web «IT» vẫn còn' ((@(GiaTriDs $KhoaWeb.Chrome 'URLBlocklist') | Where-Object { $_.Ten -eq '1' }).Count -eq 1) ''
 }
 
@@ -399,7 +399,7 @@ KichBan 'KB7a' "Cập nhật đè --capnhat --im-lang lên $BanMoi1" {
   $ok = Cho { DangChay } 60 3
   Dat '7.2' "Dịch vụ chạy bản $BanMoi1" ($ok -and (BanDichVu) -eq $BanMoi1) "Running $ok · ProductVersion $(BanDichVu)"
   $cfg = DocConfig
-  Dat '7.3' 'Config/token/deviceId giữ nguyên (không ghép lại)' ((Bam $cfg.token) -eq $S.TokenHash -and $cfg.deviceId -eq $S.DeviceId -and (-not $S.CoSid -or $cfg.childSid -eq $S.SidCon)) "deviceId $($cfg.deviceId) childSid $($cfg.childSid)"
+  Dat '7.3' 'Config/token/deviceId giữ nguyên (không ghép lại)' ((Bam $cfg.token) -eq $Chung.TokenHash -and $cfg.deviceId -eq $Chung.DeviceId -and (-not $Chung.CoSid -or $cfg.childSid -eq $Chung.SidCon)) "deviceId $($cfg.deviceId) childSid $($cfg.childSid)"
   $rc = Recovery
   Dat '7.4' 'Recovery bật lại sau cập nhật' $rc.Ok ($rc.Text -replace "`n", ' ' -replace '\s+', ' ')
   DongBoNgay
@@ -436,7 +436,7 @@ KichBan 'KB8' 'Cập nhật lỗi giữa chừng (tệp đích bị khoá) ⇒ m
 KichBan 'KB7b' "Tự cập nhật qua ban-moi lên $BanMoi2" {
   if (-not (DichVu)) { Bo 'KB7b' 'Tự cập nhật' 'chưa cài'; return }
   if ((BanDichVu) -eq $BanMoi2) { Bo '7b' 'Tự cập nhật' "máy đã là $BanMoi2 (KB8 không lỗi như dự kiến)"; return }
-  $m = @{ version = $BanMoi2; url = "https://127.0.0.1:$CONG_TEP/$($S.TenTepMoi2)"; sha256 = $S.ShaMoi2 }
+  $m = @{ version = $BanMoi2; url = "https://127.0.0.1:$CONG_TEP/$($Chung.TenTepMoi2)"; sha256 = $Chung.ShaMoi2 }
   [void](Invoke-WebRequest -UseBasicParsing "$MayChu/__e2e/manifest" -Method Post -ContentType 'application/json' -Body (ConvertTo-Json $m -Compress))
   Restart-Service $Svc -Force   # UpdateWorker hỏi ban-moi 2 phút sau khi dịch vụ chạy
   $t = Get-Date
@@ -444,7 +444,7 @@ KichBan 'KB7b' "Tự cập nhật qua ban-moi lên $BanMoi2" {
   $mf = (Invoke-WebRequest -UseBasicParsing "$MayChu/__e2e/manifest").Content | ConvertFrom-Json
   Dat '7.8' "Dịch vụ tự lên $BanMoi2 (tải https, kiểm sha256, tác vụ SYSTEM)" $ok ("sau {0:N0} giây · bản {1} · agent hỏi ban-moi {2} lần · {3}" -f ((Get-Date) - $t).TotalSeconds, (BanDichVu), $mf.soLanHoiManifest, (DuoiLog 2))
   $cfg = DocConfig
-  Dat '7.9' 'Tự cập nhật giữ token/deviceId' ((Bam $cfg.token) -eq $S.TokenHash -and $cfg.deviceId -eq $S.DeviceId) "deviceId $($cfg.deviceId)"
+  Dat '7.9' 'Tự cập nhật giữ token/deviceId' ((Bam $cfg.token) -eq $Chung.TokenHash -and $cfg.deviceId -eq $Chung.DeviceId) "deviceId $($cfg.deviceId)"
   $rc = Recovery
   Dat '7.10' 'Recovery bật sau tự cập nhật' $rc.Ok ($rc.Text -replace "`n", ' ' -replace '\s+', ' ')
   $tv = Get-ScheduledTask -TaskName 'AiiGrowCapNhat' -ErrorAction SilentlyContinue
@@ -456,13 +456,13 @@ KichBan 'KB7b' "Tự cập nhật qua ban-moi lên $BanMoi2" {
 KichBan 'KB9' 'Gỡ --uninstall' {
   if (-not (DichVu)) { Bo 'KB9' 'Gỡ' 'chưa cài'; return }
   # bật lại Chặn thật để có luật AiiGrow + chính sách web cho bộ gỡ dọn
-  if ($S.MayId) {
-    [void](Api POST "/api/m/may/$($S.MayId)/che-do" @{ cheDo = 'chan' } $S.TokenBaMe)
+  if ($Chung.MayId) {
+    [void](Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'chan' } $Chung.TokenBaMe)
     DongBoNgay
     [void](Cho { (TrangThai).cheDo -eq 'chan' } 60 3)
-    [void](Cho { (LuatAiiGrow (AppLocker)).Count -gt 0 -and (MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist').Count -gt 0 } 150 5)
+    [void](Cho { @(LuatAiiGrow (AppLocker)).Count -gt 0 -and @(MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist').Count -gt 0 } 150 5)
   }
-  $truoc = "{0} luật AiiGrow, {1} mục web AiiGrow" -f (LuatAiiGrow (AppLocker)).Count, (MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist').Count
+  $truoc = "{0} luật AiiGrow, {1} mục web AiiGrow" -f @(LuatAiiGrow (AppLocker)).Count, @(MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist').Count
   Log "trước khi gỡ: $truoc"
   ChepLog 'truoc-go'
   $setup = Join-Path $InstallDir 'AiiGrow.Setup.exe'   # đúng bản Cài đặt › Ứng dụng › Gỡ gọi
@@ -471,8 +471,8 @@ KichBan 'KB9' 'Gỡ --uninstall' {
   Dat '9.1' 'Mã thoát gỡ = 0' ($ma -eq 0) "mã $ma (5 = chưa gỡ AppLocker, 6 = chưa trả quyền admin) · trước gỡ: $truoc · $(DuoiLog 4)"
   $mat = Cho { -not (DichVu) } 60 3
   Dat '9.2' 'Dịch vụ AiiGrowService đã mất' $mat "$(if (DichVu) { (DichVu).Status } else { 'không còn' })"
-  Dat '9.3' 'AppLocker không còn luật AiiGrow' ((LuatAiiGrow (AppLocker)).Count -eq 0) "còn $((LuatAiiGrow (AppLocker)).Count)"
-  Dat '9.4' 'Luật quản trị giả vẫn còn' ((LuatQuanTri (AppLocker)).Count -eq 1) "$((LuatQuanTri (AppLocker)).Count)"
+  Dat '9.3' 'AppLocker không còn luật AiiGrow' (@(LuatAiiGrow (AppLocker)).Count -eq 0) "còn $(@(LuatAiiGrow (AppLocker)).Count)"
+  Dat '9.4' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count)"
   $conWeb = @(); foreach ($k in $KhoaWeb.Values) { $conWeb += MucAiiGrow $k 'URLBlocklist'; $conWeb += MucAiiGrow $k 'URLAllowlist' }
   $co = Get-ItemProperty $KhoaWeb.Chrome -ErrorAction SilentlyContinue
   Dat '9.5' 'Chính sách web của AiiGrow đã dọn (danh sách + cờ)' ($conWeb.Count -eq 0 -and $null -eq $co.IncognitoModeAvailability -and $null -eq $co.BrowserGuestModeEnabled) ("còn {0} mục; Incognito={1} Khach={2}" -f $conWeb.Count, $co.IncognitoModeAvailability, $co.BrowserGuestModeEnabled)
@@ -480,7 +480,7 @@ KichBan 'KB9' 'Gỡ --uninstall' {
   $run = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).AiiGrowTray
   $uk = Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow'
   Dat '9.7' 'Khay (Run) + mục Ứng dụng đã gỡ' (-not $run -and -not $uk) "Run=$run · Uninstall\AiiGrow=$uk"
-  if ($S.TokenBaMe) {
+  if ($Chung.TokenBaMe) {
     $con = @(MayCuaToi)
     Dat '9.8' 'Máy rời gia đình trên app Ba Mẹ (da-go)' ($con.Count -eq 0) "$($con.Count) máy Windows còn lại"
   }
