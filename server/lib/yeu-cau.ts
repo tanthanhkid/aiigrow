@@ -94,7 +94,15 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
         const diem = Math.ceil((phut * ts.gia_khac) / 1000);
         await ghiDiem(t, r.child_id, -diem, "phien", `Thêm ${phut} phút chơi`, { ref: r.id, nguoi });   // không đủ ⇒ khong_du_diem
       } else ngoaiLe = true;
-      await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay) values ($1,$2,$3,$4,$5,$6)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay]);
+      // Lời xin từ máy WINDOWS: «thêm N phút» = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows
+      // (mode tu_do + grantEndsAt) ở lần đồng bộ kế. Lý do: agent Windows không có «thưởng» để tự mở phiên khi con 0 điểm / chặn web nên grant cũ không bao giờ tới máy.
+      let cuaSoDen: Date | null = null;
+      const nen = r.device_id ? (await t<{ platform: string }>(`select platform from devices where id = $1`, [r.device_id]))[0]?.platform : null;
+      if (nen === "windows") {
+        const cu = (await t<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [r.child_id, now]))[0]?.d;
+        cuaSoDen = new Date(Math.max(now.getTime(), cu ? new Date(cu).getTime() : 0) + phut * 60000);
+      }
+      await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
       if (ngoaiLe) await ghiNgoaiLe(fam, r.child_id, nguoi, r.loai === "ngoai_gio" ? "ngoai_gio" : "them_gio_khong_tru", r.id, t, now);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {

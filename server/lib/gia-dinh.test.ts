@@ -41,6 +41,18 @@ test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn;
   assert.equal(g.mucBaoVe(m), "chua");
   assert.equal(g.mucBaoVe({ ...m, status: { quyen: { dich_vu: true, appLocker: false } } }), "mot_phan");
   assert.equal(g.mucBaoVe({ ...m, status: { quyen: { dich_vu: true, appLocker: true } } }), "day_du");
+  // máy cũ chưa gửi `quyen` mà chỉ gửi trạng thái thô ⇒ suy ra, không còn «Chưa bảo vệ» oan; thiếu gì nói rõ
+  const thô = { agent: "windows", cheDo: "giam-sat", mode: "hoc", appLockerApplied: false, trayAlive: true, childSessionActive: true };
+  const gs = g.chiTietBaoVe({ ...m, status: thô });
+  assert.equal(gs.muc, "mot_phan");
+  assert.deepEqual(gs.thieu.map((x) => x.ma), ["chanThat"]);
+  assert.match(gs.thieu[0].cach, /Chặn thật/);
+  assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true } }).muc, "day_du");
+  const khongLocker = g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan" } });
+  assert.deepEqual(khongLocker.thieu.map((x) => x.ma), ["appLocker"]);
+  assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true, trayAlive: false, childSessionActive: true } }).thieu[0].ma, "khay");
+  assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: false, mode: "tu_do", childSessionActive: false } }).muc, "day_du", "đang mở / Con chưa đăng nhập: không tính thiếu");
+  assert.equal(g.chiTietBaoVe({ ...m, last_seen: null }).muc, "chua");
   const het = await g.taoMaGhep(fam, con, "windows");
   await q(`update pair_codes set expires_at = now() - interval '1 minute' where code = $1`, [het]);
   await loi(g.ghepMay(het, "windows", "X"), "ma_het_han");

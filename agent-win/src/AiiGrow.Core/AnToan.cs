@@ -180,6 +180,9 @@ public static partial class SystemCleanup
             kq.QuyenAdminTra = Buoc(log, "Trả quyền quản trị cho tài khoản Con", ops.TraQuyenQuanTri);
         }
 
+        // Chính sách web của trình duyệt (URLBlocklist…): gỡ TRƯỚC cổng AppLocker — luật chặn web hỏng không được để Con kẹt.
+        if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
+
         // CỔNG: gỡ luật AppLocker. Hỏng ⇒ dừng lại, chưa đụng config/dịch vụ; lần sau thử lại (gỡ tại máy: hẹn tác vụ tách rời cũng gỡ luật).
         kq.AppLockerGo = Buoc(log, "Gỡ luật AppLocker của AiiGrow", ops.GoAppLocker);
         if (!kq.AppLockerGo)
@@ -218,6 +221,7 @@ public static partial class SystemCleanup
     public static string DonPhanConLai(ICleanupOps ops)
     {
         var log = new StringBuilder();
+        if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
         Buoc(log, "Tắt tự khởi động lại của dịch vụ", ops.TatKhoiPhucDichVu);
         Buoc(log, "Hẹn dọn nốt sau khi dịch vụ dừng", ops.HenDonTachRoi);
         Buoc(log, "Gỡ khay tự chạy", ops.GoKhay);
@@ -256,6 +260,8 @@ public static partial class SystemCleanup
             "Stop-Service -Name $n -Force",
             "Get-Process -Name 'AiiGrow.Service','AiiGrow.Tray' | Stop-Process -Force",
             "& sc.exe delete $n | Out-Null",
+            // Lưới đỡ: gỡ chính sách chặn web của trình duyệt (chỉ giá trị của AiiGrow).
+            WebGuard.KichBanGoChinhSach(),
             // Lưới đỡ: gỡ luật AppLocker của AiiGrow. $goLuat trả $true nếu SAU KHI gỡ không còn luật nào của mình.
             // Lỗi (kể cả lỗi không dừng) ⇒ $false: -ErrorAction Stop + coi chính sách $null là CHƯA sạch (không tự huỷ tác vụ nhầm).
             "function Remove-AiiAppLocker {",

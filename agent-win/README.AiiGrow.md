@@ -54,6 +54,20 @@ Dịch vụ bị dừng/đổ ⇒ **Windows SCM tự khởi động lại** bằ
   khẩu quản trị (Con là Standard nên không tự gỡ). `--uninstall` gọi `POST /api/device/da-go` trước khi xoá token (máy rời gia đình trên app ngay),
   rồi `SystemCleanup.Run(ops, tuDichVu: false)`. Mỗi bước bọc riêng, chạy lại bao nhiêu lần cũng được.
 
+## Lọc web theo tên miền + ghi lịch sử web (22/10)
+- **Chặn** (`Core/WebGuard.cs`, `Service/WebGuardWorker.cs`): đọc `windows.web` trong Policy cuối đã lưu, ghi chính sách quản lý của trình duyệt
+  `HKLM\SOFTWARE\Policies\Google\Chrome` · `Microsoft\Edge` · `BraveSoftware\Brave` → `URLBlocklist` / `URLAllowlist` (tên miền gồm tên miền con;
+  chế độ «Chỉ cho phép» = chặn `*` + cho phép danh sách + trang `chrome://`, `edge://` và máy chủ AiiGrow). Kèm cờ DWORD tắt ẩn danh / InPrivate, xoá lịch sử, chế độ khách.
+  Chỉ ghi giá trị **của AiiGrow** (tên số > 90000), mục người khác đặt giữ nguyên. Chỉ áp ở chế độ **Chặn thật**; Giám sát, máy mồ côi, đang gỡ,
+  Con đang mở tạm bằng mã offline, máy chưa ghép ⇒ **gỡ hết**. Kiểm lại mỗi 30 giây, không ghi lại khi chưa đổi. Gỡ AiiGrow (từ xa / tại máy / tác vụ dọn tách rời) xoá luôn chính sách này.
+- **Ghi lịch sử** (`Core/WebHistory.cs`, `Service/ChromiumHistorySource.cs`, `WebHistoryWorker.cs`): đọc bản sao tệp `History` của Chrome / Edge / Brave trong hồ sơ của Con
+  (theo SID / tên tài khoản; máy dùng chung không gán cho ai), gộp theo (ngày, tên miền gốc), gửi `POST /api/device/web/lich-su` mỗi 5 phút. Chỉ tên miền + đếm rời máy.
+- **Giới hạn**: Firefox / Opera / Vivaldi không đọc và không lọc (nên chặn cài/đổi mặc định ở phần AppLocker); thời gian tính theo lúc trang mở nên chỉ gần đúng (mỗi lượt tối đa 3 giờ);
+  trang bị chặn là trang «do tổ chức của bạn chặn» mặc định của trình duyệt; chế độ ẩn danh bị tắt ở chế độ chặn nhưng không ghi lại nếu đang ở Giám sát; lọc ở tầng DNS là phần riêng.
+- **Thử thật trên máy Windows** (chưa kiểm được ở máy phát triển — không có Windows/.NET): trên app chặn `gamek.vn` cho Con ⇒ đặt máy ở «Chặn thật» ⇒ đợi ≤ 1 phút ⇒
+  mở `chrome://policy` thấy `URLBlocklist` có `gamek.vn` (Status OK) và mở gamek.vn ra trang bị chặn; bỏ chặn trên app ⇒ ≤ 1 phút sau mở được lại. Chú ý: Chrome nhận chính sách HKLM
+  trên máy KHÔNG vào domain Windows cần kiểm thực tế (có bản chỉ áp khi máy «được quản lý»; nếu `chrome://policy` báo «không được quản lý» thì cần phương án khác).
+
 ## Build & test (máy không chạy dịch vụ/trình cài thật)
 ```powershell
 cd agent-win
@@ -68,3 +82,13 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
 - Dừng dịch vụ (tài khoản admin) ⇒ xác nhận SCM tự bật lại; thử với tài khoản Standard ⇒ không dừng được.
 - Gỡ từ xa: Ba Mẹ bấm gỡ ⇒ máy nhận `lenh go` ⇒ gỡ sạch, app báo «đã gỡ».
 - Gỡ offline bằng quyền quản trị Windows.
+
+## Khay và app to của Con
+
+- **Biểu tượng khay** = mascot Rob (`AiiGrow.Tray/Assets/*.ico`, nhúng vào exe). Màu khi đã kết nối; **xám + chấm đỏ** khi không (tooltip nói rõ lý do):
+  «Dịch vụ AiiGrow không chạy» (khay không gọi được named pipe 2 lần liền) · «KHÔNG kết nối máy chủ từ HH:MM — kiểm tra Wi-Fi» (dịch vụ không tới máy chủ)
+  · «Máy chưa ghép — mở AiiGrow-Setup để ghép lại» (chưa ghép / mồ côi / 401 token_sai) · «Đã kết nối · đồng bộ lúc HH:MM». Chọn trạng thái ở lớp thuần `Core/KetNoiView.cs` (có test).
+  Dịch vụ thăm dò nhẹ máy chủ mỗi 15 giây (`ApiClient.PingAsync`) nên khay đổi trong ≤30 giây dù nhịp đồng bộ thưa. Menu chuột phải: dòng trạng thái · «Thử kết nối lại» (lệnh pipe `sync-now`) · «Mở AiiGrow».
+- **App to**: nhấn vào biểu tượng khay (hoặc «Mở AiiGrow», hoặc bấm bóng báo) mở `AppForm` — cửa sổ ~1000×680 trên taskbar, chỉnh cỡ được, một bản duy nhất.
+  Thanh bên: mascot (đổi theo mục / trạng thái, `MascotView`), tên Con, trạng thái kết nối, 4 mục **Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn**. Bóng báo mở đúng mục (`HocVienView.MucChoTin`).
+  Màu theo token `mobile/src/lib/mau.ts`. Màn khoá / màn chặn toàn màn hình không đổi.

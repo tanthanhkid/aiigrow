@@ -19,6 +19,11 @@ public static class PipeCmd
     public const string Play = "play";
     /// <summary>Con gõ mã mở offline Ba Mẹ đọc (<see cref="PipeRequest.Code"/>); dịch vụ tự kiểm, không cần máy chủ.</summary>
     public const string MaOffline = "ma-offline";
+    /// <summary>Khay học viên (nhiệm vụ / phần quà / thông báo): dịch vụ chuyển <see cref="PipeRequest.Method"/> + <see cref="PipeRequest.Path"/>
+    /// tới <c>api/device/hoc-vien/…</c> (chỉ đường trong <see cref="HocVienPaths"/>) bằng token máy, trả JSON nguyên văn ở <see cref="PipeResponse.Data"/>.</summary>
+    public const string HocVien = "hoc-vien";
+    /// <summary>«Thử kết nối lại»: bảo dịch vụ đồng bộ với máy chủ ngay (không chờ nhịp sau). Trả trạng thái hiện tại.</summary>
+    public const string SyncNow = "sync-now";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -43,6 +48,12 @@ public sealed class TrayState
     public string CheDo { get; set; } = CheDoAgent.GiamSat;
     /// <summary>Máy đã bị bỏ khỏi gia đình (token bị từ chối lâu) ⇒ AiiGrow thôi chặn; khay hiện câu hướng dẫn gỡ.</summary>
     public bool MoCoi { get; set; }
+    /// <summary>Lần đồng bộ thành công gần nhất với máy chủ (null = chưa lần nào từ lúc dịch vụ chạy).</summary>
+    public DateTimeOffset? LastSyncAt { get; set; }
+    /// <summary>Từ lúc nào dịch vụ không tới được máy chủ (null = đang tới được).</summary>
+    public DateTimeOffset? OfflineSince { get; set; }
+    /// <summary>Máy chủ từ chối token (401 token_sai): máy đã bị gỡ khỏi gia đình hoặc cần ghép lại.</summary>
+    public bool TokenRejected { get; set; }
 }
 
 public sealed class PipeRequest
@@ -56,6 +67,12 @@ public sealed class PipeRequest
     public string? Id { get; set; }
     /// <summary>Mã mở offline 6 số (lệnh <see cref="PipeCmd.MaOffline"/>).</summary>
     public string? Code { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: GET | POST.</summary>
+    public string? Method { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: đường bắt đầu bằng <c>hoc-vien/</c> (kèm query nếu có).</summary>
+    public string? Path { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: thân JSON (chuỗi) cho POST.</summary>
+    public string? Body { get; set; }
 }
 
 public sealed class PipeResponse
@@ -68,6 +85,8 @@ public sealed class PipeResponse
     public DateTimeOffset? GrantEndsAt { get; set; }
     /// <summary>Câu nhắc do máy chủ trả (ví dụ kết quả «Dùng điểm để chơi»). Không chứa số điểm.</summary>
     public string? Message { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: thân JSON máy chủ trả (nguyên văn).</summary>
+    public string? Data { get; set; }
 }
 
 /// <summary>Client named pipe cho tray: mỗi lệnh một kết nối, một dòng JSON hỏi, một dòng JSON đáp.</summary>

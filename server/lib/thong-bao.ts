@@ -28,7 +28,7 @@ export const YEN_LANG_MD = { bat: false, tu: "22:00", den: "06:30" };
 
 const LOAI_SU_KIEN = ["nop_nhiem_vu", "gui_yeu_cau", "doi_qua", "dung_voucher", "nap_quy", "huy_hieu", "tu_duyet_nhiem_vu",
   "duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "dong_y_yeu_cau", "tu_choi_yeu_cau", "xac_nhan_qua", "huy_qua",
-  "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi"];
+  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi"];
 
 const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -94,6 +94,8 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
   const g = (nhom: NhomTb, tieu: string, phu: string, den: string, muc: MucTb = "thong_tin") => ({ nhom, muc, tieu, phu, den, con: e.child_id });
   switch (e.loai) {
     case "nop_nhiem_vu": return g("nhiem_vu", `${con} vừa nộp «${c.ten ?? "nhiệm vụ"}»`, c.nghi_trung ? "Ảnh giống ảnh cũ — Ba Mẹ xem kỹ nhé" : "Chờ Ba Mẹ duyệt", "/cho-duyet", c.nghi_trung ? "chu_y" : "thong_tin");
+    case "bat_dau_nhiem_vu": return g("nhiem_vu", `${con} đã nhận «${c.ten ?? "nhiệm vụ"}»`, "Đang làm, nộp xong sẽ báo Ba Mẹ", veCon);
+    case "phan_hoi_con": return g("nhiem_vu", `${con} nhắn lại Ba Mẹ`, `«${String(c.noi_dung ?? "").slice(0, 80)}»`, veCon);
     case "gui_yeu_cau": return g("yeu_cau", `${con} ${(YC[c.loai] ?? YC.khac)(c)}`, "Đồng ý hoặc từ chối trong Chờ duyệt", "/cho-duyet");
     case "doi_qua": return g("qua", `${con} đổi «${c.ten ?? "phần thưởng"}»`, `${c.diem ?? 0} điểm${c.cho_xac_nhan ? " · chờ Ba Mẹ trao quà" : ""}`, "/diem-qua");
     case "dung_voucher": return g("qua", `Phiếu quà ${tien(Number(c.menh_gia ?? 0))} đã dùng ở AiiCafe`, c.ma ? `Mã ${c.ma}` : "Quầy đã quét", "/quy");

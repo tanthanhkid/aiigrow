@@ -62,7 +62,9 @@ export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; cap
 export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon };
 export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[] };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
-  lanCuoi: string | null; truc: boolean; lechGiay: number | null };
+  lanCuoi: string | null; truc: boolean; lechGiay: number | null;
+  /** Quyền bảo vệ còn thiếu + cách khắc phục (server/lib/gia-dinh.ts › chiTietBaoVe); baoVeCau = một câu giải thích. */
+  baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
 export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "nhiemVuXong" | "homNayConDa"> & {
@@ -128,3 +130,19 @@ type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
 
 /** Mã mở offline của một máy (GET may/:id/ma-offline) — Ba Mẹ đọc cho Con gõ khi máy mất mạng. */
 export type MaOffline = { ma: string; conGiay: number; hieuLucPhut: number; phutMo: number };
+
+// ---- Web của Con (GET /api/m/con/:id/web) — server/lib/web.ts
+export type TrangThaiWeb = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
+export type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiWeb; nguon: string };
+export type ThongKeWeb = {
+  soNgay: number;
+  homNay: { giay: number; soLan: number; soTrang: number };
+  theoNgay: { ngay: string; giay: number; soLan: number; soTrang: number }[];
+  tongGiay: number;
+  top: TrangWeb[];
+  tatCa: number;
+  luat: { tenMien: string; trangThai: TrangThaiWeb; nguon: "con" | "gia_dinh" }[];
+  cheDoWeb: "mo" | "chi_cho_phep";
+  heThong: string[];
+  mayLoc: { id: string; ten: string; cheDo: string; lanCuoi: string | null }[];
+};

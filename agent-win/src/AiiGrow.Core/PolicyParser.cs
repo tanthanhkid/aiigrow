@@ -81,7 +81,10 @@ public static class PolicyEvaluator
             reason = LockReasons.HetGio;
         }
 
+        // «Mở» có hạn (mode tu_do + grantEndsAt — Ba Mẹ mở khẩn cấp / thêm giờ): hết hạn mà chưa đồng bộ lại được (mất mạng)
+        // ⇒ tự trở lại «Chỉ app học» theo allowedApps đã lưu, không để máy mở tự do tới khi có mạng.
+        bool hetMo = p.Mode == Modes.TuDo && p.GrantEndsAt.HasValue && !grantActive;
         return new EffectivePolicy(locked, reason, minutes,
-            grantActive ? p.GrantEndsAt : null, p.Mode == Modes.Hoc);
+            grantActive ? p.GrantEndsAt : null, p.Mode == Modes.Hoc || hetMo);
     }
 }

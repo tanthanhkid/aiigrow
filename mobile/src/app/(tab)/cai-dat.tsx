@@ -25,6 +25,7 @@ export default function CaiDat() {
         <Dong dau tieu="Thành viên" phu={khac.length ? khac.map((x) => `${x.ten} (${VAI[x.vai].toLowerCase()})`).join(" · ") : "Chỉ mình Ba/Mẹ — mời Ba, Ông Bà cùng duyệt"} trai={<BieuTron ic="nguoi" />}
           bam={() => router.push("/thanh-vien")} />
         {d.g.con.map((c) => <Dong key={c.id} tieu={`Giờ chơi của ${c.ten}`} phu={`Trần ${c.tranNgay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${c.id}`)} />)}
+        {d.g.con.map((c) => <Dong key={`web-${c.id}`} tieu={`Web của ${c.ten}`} phu="Thống kê, cho phép hoặc chặn từng trang" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${c.id}`)} />)}
         <Dong tieu="App & web" phu={d.luat ? `${d.luat} mục chưa xếp` : "Đã xếp hết"} trai={<BieuTron ic="luoi" />} phai={d.luat ? <Nhan loai="loi" chu={String(d.luat)} /> : undefined}
           bam={() => router.push("/app-web")} />
         <Dong tieu="An toàn thiết bị" phu="Tuân thủ từng máy, mở khẩn cấp, gỡ từ xa" trai={<BieuTron ic="khien" />} bam={() => router.push("/may")} />

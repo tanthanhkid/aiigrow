@@ -12,6 +12,7 @@ import {
 } from "@/lib/ui";
 
 const BAO_VE = { day_du: ["Đầy đủ", "ok"], mot_phan: ["Một phần", "canh"], chua: ["Chưa bảo vệ", "loi"] } as const;
+// Chữ giải thích dưới nhãn: nói RÕ thiếu gì và làm gì (không để Ba Mẹ đoán vì sao «Một phần» / «Chưa bảo vệ»).
 const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" } as const;
 
 export default function HoSoCon() {
@@ -29,7 +30,7 @@ export default function HoSoCon() {
   return (
     <Man lui={{ chu: "Hôm nay" }} tieu={d.ten} noi={noi}>
       <Canh lv="chi" thap tieu={may.length ? `${d.ten} có ${may.length} máy` : `${d.ten} chưa có máy nào`}
-        loi={!may.length ? "Ghép bằng QR, chưa tới 2 phút." : thieu ? `${thieu} máy còn thiếu quyền bảo vệ.` : "Mọi máy đều được bảo vệ đầy đủ."} />
+        loi={!may.length ? "Ghép bằng QR, chưa tới 2 phút." : thieu ? `${thieu} máy bảo vệ chưa đầy đủ — xem lý do và cách làm bên dưới.` : "Mọi máy đều được bảo vệ đầy đủ."} />
       {may.length ? (
         <Nhom>
           {may.map((m, i) => (
@@ -39,11 +40,19 @@ export default function HoSoCon() {
           ))}
         </Nhom>
       ) : null}
+      {may.filter((m) => m.baoVe !== "day_du").map((m) => (
+        <Nhom key={`bv-${m.id}`}>
+          <Dong dau tieu={`${m.ten}: ${m.baoVe === "chua" ? "chưa có thông tin bảo vệ" : "bảo vệ chưa đầy đủ"}`} phu={m.baoVeCau ?? "Chưa nhận được báo cáo từ máy."}
+            trai={<BieuTron ic="canh_bao" mau="cam" />} />
+          {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={`Thiếu: ${t.ten}`} phu={`Cách làm: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
+        </Nhom>
+      ))}
       <Nut chu="Ghép thêm máy" ic="qr" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
       <Nhom>
         <Dong dau tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
+        <Dong tieu={`Web của ${d.ten}`} phu="Trang đã vào, thời gian, cho phép hoặc chặn từng trang" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${d.id}`)} />
         <Dong tieu="Ví điểm" phu={`${d.soDu} điểm · cấp ${d.capDo.cap}`} trai={<BieuTron ic="xu" mau="vang" />} bam={() => router.push(`/vi/${d.id}`)} />
       </Nhom>
       {lk.d ? (

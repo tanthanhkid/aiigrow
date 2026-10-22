@@ -23,6 +23,7 @@ public sealed class AgentWorker : BackgroundService
         var lastDisconnect = DateTimeOffset.MinValue;
         string? lastCheDo = null;
         bool lastMoCoi = false;
+        var nextProbe = DateTimeOffset.MinValue;
 
         while (!ct.IsCancellationRequested)
         {
@@ -47,7 +48,14 @@ public sealed class AgentWorker : BackgroundService
 
                     _rt.TinhCheDo(now);   // để status gửi lên trong lần đồng bộ này là chế độ THẬT đang áp
                     bool force = _rt.TakeForceSync();
-                    if (force || now >= nextSync) nextSync = await SyncAsync(cfg, active, now, ct);
+                    if (force || now >= nextSync) { nextSync = await SyncAsync(cfg, active, now, ct); nextProbe = DateTimeOffset.Now.AddSeconds(15); }
+                    else if (now >= nextProbe)
+                    {
+                        // Thăm dò nhẹ máy chủ để khay báo «mất kết nối» trong ≤30 giây (nhịp đồng bộ có thể thưa tới vài phút).
+                        nextProbe = now.AddSeconds(15);
+                        try { using var api = new ApiClient(cfg.Server, cfg.Token); _rt.GhiThamDo(await api.PingAsync(ct)); }
+                        catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug(e, "Thăm dò máy chủ lỗi"); }
+                    }
 
                     // Fail-open: token bị từ chối quá MoCoi.Nguong ⇒ bỏ Policy cuối, về giám sát (kể cả khi chỉ HeartbeatWorker thấy 401).
                     bool moCoi = _rt.KiemMoCoi(DateTimeOffset.Now);

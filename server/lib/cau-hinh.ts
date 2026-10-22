@@ -46,6 +46,8 @@ export const THAM_SO = {
   // M4b mạng (chỉ thêm): thiết bị mạng không còn đi qua resolver quá X phút ⇒ báo; số truy vấn ngoài giờ trong ngày để báo «vượt giờ».
   dns_mat_truy_van_phut: s(180, 30, 1440),
   dns_vuot_gio_nguong: s(20, 1, 1000),
+  // Web trên máy Windows (lib/web.ts): 0 = mở (mọi trang mở được, trừ trang Ba Mẹ chặn) · 1 = chỉ cho phép (chỉ trang Ba Mẹ cho phép + danh sách hệ thống).
+  web_chi_cho_phep: s(0, 0, 1),
 } satisfies Record<string, So>;
 
 export type TenThamSo = keyof typeof THAM_SO;

@@ -15,6 +15,7 @@ import type { TrangThaiTuanThu, TuanThu, VanDeTuanThu } from "./chinh-sach.ts";
 import { laDiDong } from "./chuyen-doi.ts";
 
 import { cheDoBaMeChon, cheDoCua, cheDoMayBao, trangThaiGo } from "./lenh-may.ts";
+import { banMayBao } from "./ban-agent.ts";
 
 let coBang = false;
 /** Tạo lười bảng M4b (schema.ts › SCHEMA_M4B). Gọi NGOÀI tx (PGlite một kết nối). */
@@ -219,7 +220,7 @@ export async function dsTuanThu(fam: string, now = new Date()) {
     const r = await dongTT(m.id);
     const tt = await tuanThuMay(m, now);
     return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung,
-      lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? null,
+      lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? banMayBao(m),
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
@@ -252,6 +253,16 @@ export async function moKhanCap(fam: string, mayId: string, b: { phut?: unknown;
   await canhBao(fam, "mo_khan_cap", "thong_tin", `Đã mở khẩn cấp ${m.name} trong ${phut} phút${lyDo ? ` — ${lyDo}` : ""}`,
     { con: m.child_id, may: m.id, khoa: `mo_khan_cap:${m.id}:${now.getTime()}` });
   return { den: den.toISOString(), phut };
+}
+
+/** Hạn «đang mở» của máy cho agent Windows = muộn nhất của (mở khẩn cấp của máy, cửa sổ «thêm giờ» của Con). null = không có cửa sổ mở.
+ * Chỉ ĐỌC (không dọn hạn); hết hạn tự rơi ra ngoài vì so với `now`. */
+export async function hanMoCuaMay(may: Pick<May, "id">, con: string | null, now = new Date()): Promise<Date | null> {
+  await bangM4b();
+  const kc = (await dongTT(may.id))?.mo_khan_cap_den;
+  const gr = con ? (await one<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [con, now]))?.d ?? null : null;
+  const ds = [kc, gr].filter((x): x is Date => !!x).map((x) => new Date(x)).filter((x) => x.getTime() > now.getTime());
+  return ds.length ? new Date(Math.max(...ds.map((x) => x.getTime()))) : null;
 }
 
 export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string) {

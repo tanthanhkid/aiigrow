@@ -5,7 +5,14 @@
     <RootNamespace>AiiGrow.Tray</RootNamespace>
     <AssemblyName>AiiGrow.Tray</AssemblyName>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <ApplicationIcon>Assets\aiigrow-khay.ico</ApplicationIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Biểu tượng khay (đã kết nối / mất kết nối) + ảnh mascot Rob cho app to: nhúng vào exe, không cần tệp ngoài. -->
+    <EmbeddedResource Include="Assets\aiigrow-khay.ico" LogicalName="aiigrow-khay.ico" />
+    <EmbeddedResource Include="Assets\aiigrow-khay-mat-ket-noi.ico" LogicalName="aiigrow-khay-mat-ket-noi.ico" />
+    <EmbeddedResource Include="Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />
   </ItemGroup>

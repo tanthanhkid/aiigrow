@@ -112,12 +112,42 @@ export async function goMay(fam: string, mayId: string, nguoi?: string) {
   await ghiSuKien(fam, "go_may", { ten: d.name }, { con: d.child_id, nguoi });
 }
 
-/** Mức bảo vệ (FR-01.03): agent báo `status.quyen` = { [quyền]: true/false }; đủ hết ⇒ Đầy đủ, thiếu một phần ⇒ Một phần, chưa báo ⇒ Chưa bảo vệ. */
-export function mucBaoVe(may: Pick<May, "status" | "last_seen">): "day_du" | "mot_phan" | "chua" {
-  const qy = may.status?.quyen as Record<string, boolean> | undefined;
-  if (!may.last_seen || !qy || !Object.keys(qy).length) return "chua";
-  return Object.values(qy).every(Boolean) ? "day_du" : "mot_phan";
+// ---------------------------------------------------------------- mức bảo vệ (FR-01.03)
+export type MucBaoVe = "day_du" | "mot_phan" | "chua";
+export type ThieuQuyen = { ma: string; ten: string; cach: string };
+
+/** Quyền agent báo trong `status.quyen` → tên dễ hiểu + cách khắc phục (hiện ở app Ba Mẹ). Khoá lạ vẫn được tính, hiện nguyên tên khoá. */
+const MO_TA_QUYEN: Record<string, { ten: string; cach: string }> = {
+  dichVu: { ten: "Dịch vụ AiiGrow chạy nền", cach: "Cài lại AiiGrow trên máy Con: bấm phải vào trình cài › «Run as administrator» (cần quyền quản trị một lần)." },
+  khay: { ten: "Khay AiiGrow trên màn hình Con", cach: "Đăng nhập đúng tài khoản Windows của Con; nếu vẫn không thấy biểu tượng AiiGrow ở góc phải dưới, khởi động lại máy." },
+  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang ở chế độ Giám sát (chỉ ghi lại, chưa chặn). Mở app Ba Mẹ › Cài đặt › An toàn thiết bị › chọn máy › «Chặn thật»." },
+  appLocker: { ten: "Khoá app «Chỉ app học» (AppLocker)", cach: "Windows chưa áp được luật chặn app: cần Windows Pro/Enterprise/Education và dịch vụ AiiGrow chạy bằng quyền quản trị — cài lại bằng «Run as administrator»." },
+  dich_vu: { ten: "Dịch vụ AiiGrow", cach: "Cài lại AiiGrow bằng quyền quản trị." },
+};
+
+/** `status.quyen` agent báo; máy cũ (agent-win trước khi có `quyen`) chỉ gửi trạng thái thô ⇒ suy ra từ đó thay vì coi như «chưa báo». */
+export function quyenCuaMay(may: Pick<May, "status">): Record<string, boolean> | null {
+  const st = may.status ?? {};
+  const qy = st.quyen as Record<string, boolean> | undefined;
+  if (qy && typeof qy === "object" && Object.keys(qy).length) return qy;
+  if (st.agent !== "windows") return null;
+  const chan = st.cheDo === "chan" && st.moCoi !== true;
+  const r: Record<string, boolean> = { dichVu: true, khay: st.trayAlive === true || st.childSessionActive !== true, chanThat: chan };
+  if (chan && st.mode === "hoc") r.appLocker = st.appLockerApplied === true;
+  return r;
 }
+
+/** Mức bảo vệ + danh sách quyền còn thiếu (kèm cách khắc phục). Chưa từng kết nối ⇒ «chua»; kết nối được mà thiếu quyền ⇒ «mot_phan» (nói rõ thiếu gì). */
+export function chiTietBaoVe(may: Pick<May, "status" | "last_seen">): { muc: MucBaoVe; thieu: ThieuQuyen[]; cau: string } {
+  if (!may.last_seen) return { muc: "chua", thieu: [], cau: "Máy chưa kết nối lần nào — kiểm tra AiiGrow đã cài xong trên máy Con và máy có mạng." };
+  const qy = quyenCuaMay(may);
+  if (!qy) return { muc: "chua", thieu: [], cau: "Máy chưa báo quyền bảo vệ — cập nhật AiiGrow trên máy Con lên bản mới nhất." };
+  const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma, cach: MO_TA_QUYEN[ma]?.cach ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
+  return thieu.length ? { muc: "mot_phan", thieu, cau: `Còn thiếu: ${thieu.map((x) => x.ten).join(", ")}.` } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." };
+}
+
+/** Mức bảo vệ (FR-01.03): đủ quyền ⇒ Đầy đủ, thiếu một phần ⇒ Một phần, chưa kết nối / chưa báo ⇒ Chưa bảo vệ. */
+export const mucBaoVe = (may: Pick<May, "status" | "last_seen">): MucBaoVe => chiTietBaoVe(may).muc;
 
 // ---------------------------------------------------------------- PIN của Con trên máy dùng chung / web Con
 

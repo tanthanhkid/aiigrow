@@ -14,6 +14,8 @@ public sealed class AgentRuntime
     private DateTimeOffset _policyAt = DateTimeOffset.UtcNow;
     private double _usedSeconds;
     private bool _offline;
+    private DateTimeOffset? _offlineSince;
+    private DateTimeOffset? _lastSyncAt;
     private string? _fgId;
     private string? _fgName;
     private DateTimeOffset _fgAt = DateTimeOffset.MinValue;
@@ -146,6 +148,8 @@ public sealed class AgentRuntime
             _policyAt = DateTimeOffset.UtcNow;
             _usedSeconds = 0;
             _offline = false;
+            _offlineSince = null;
+            _lastSyncAt = DateTimeOffset.Now;
             TokenInvalid = false;
             _chayChoGhi = 0;   // liên lạc được ⇒ bộ đếm mất liên lạc về 0 (GhiThanhCong)
             if (Config != null)
@@ -173,7 +177,25 @@ public sealed class AgentRuntime
 
     public Policy? CurrentPolicy { get { lock (_gate) return _policy; } }
 
-    public void SetOffline(bool v) { lock (_gate) _offline = v; }
+    public void SetOffline(bool v)
+    {
+        lock (_gate)
+        {
+            if (v && !_offline) _offlineSince = DateTimeOffset.Now;
+            if (!v) _offlineSince = null;
+            _offline = v;
+        }
+    }
+
+    /// <summary>Kết quả thăm dò nhẹ máy chủ (mỗi ~15 giây, <see cref="ApiClient.PingAsync"/>): không tới được ⇒ báo offline ngay (khay đổi biểu tượng
+    /// trong ≤30 giây thay vì chờ nhịp đồng bộ sau, có thể 5–10 phút); tới lại được mà đang offline ⇒ đồng bộ ngay để hết cờ.</summary>
+    public void GhiThamDo(bool toiDuoc)
+    {
+        if (!toiDuoc) { SetOffline(true); return; }
+        bool canDongBo;
+        lock (_gate) canDongBo = _offline && !TokenInvalid;   // token bị từ chối thì đồng bộ lại cũng vô ích: để nhịp thường quyết
+        if (canDongBo) RequestSyncSoon();
+    }
     public bool IsOffline { get { lock (_gate) return _offline; } }
 
     public EffectivePolicy? Evaluate(DateTimeOffset now)
@@ -293,7 +315,11 @@ public sealed class AgentRuntime
     {
         lock (_gate)
         {
-            var s = new TrayState { Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now) };
+            var s = new TrayState
+            {
+                Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
+                OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid,
+            };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);
             var eff = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(_policy, now, _usedSeconds), moTam);
@@ -337,15 +363,19 @@ public sealed class AgentRuntime
         var now = DateTimeOffset.UtcNow;
         lock (_gate)
         {
+            var mode = _policy?.Mode ?? Modes.TuDo;
+            var tray = (now - _fgAt).TotalSeconds < 20;
+            var moCoi = MoCoi.La(Config, now);
             return new AgentStatus
             {
-                Mode = _policy?.Mode ?? Modes.TuDo,
+                Mode = mode,
                 AppLockerApplied = AppLockerApplied,
-                TrayAlive = (now - _fgAt).TotalSeconds < 20,
+                TrayAlive = tray,
                 ChildSessionActive = childActive,
                 Offline = _offline,
                 CheDo = _cheDo,
-                MoCoi = MoCoi.La(Config, now),
+                MoCoi = moCoi,
+                Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive),
             };
         }
     }

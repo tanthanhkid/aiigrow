@@ -146,6 +146,32 @@ public sealed class PipeServer : BackgroundService
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 
+            case PipeCmd.SyncNow:
+                // «Thử kết nối lại»: đồng bộ ngay ở vòng kế (≤5 giây); khay hỏi lại trạng thái sau đó.
+                _rt.RequestSyncSoon();
+                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+
+            case PipeCmd.HocVien:
+            {
+                // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Chỉ phiên của Con; chỉ các đường trong HocVienPaths.
+                if (!fromChild) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con dùng được phần này" };
+                var cfg = _rt.Config;
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
+                if (!HocVienPaths.Allowed(req.Method, req.Path)) return new PipeResponse { Ok = false, Error = "Đường không hỗ trợ" };
+                try
+                {
+                    using var api = new ApiClient(cfg.Server, cfg.Token);
+                    var method = string.Equals(req.Method, "POST", StringComparison.OrdinalIgnoreCase) ? HttpMethod.Post : HttpMethod.Get;
+                    var data = await api.RawAsync(method, "api/device/" + req.Path, req.Body, ct);
+                    return new PipeResponse { Ok = true, Data = data };
+                }
+                catch (ApiException e)
+                {
+                    var cau = e.IsNetwork ? "Chưa có mạng, con thử lại sau nhé." : e.Message;
+                    return new PipeResponse { Ok = false, Error = cau };
+                }
+            }
+
             case PipeCmd.MaOffline:
             {
                 // Mã mở offline: máy tự kiểm (TOTP), có giới hạn lượt sai, mỗi mã một lượt, có hạn giờ, ghi sự kiện. Không cần mạng.

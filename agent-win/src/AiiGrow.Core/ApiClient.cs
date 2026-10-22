@@ -37,6 +37,7 @@ public sealed class ApiClient : IDisposable
         _http = handler == null ? new HttpClient() : new HttpClient(handler);
         _http.BaseAddress = new Uri(NormalizeServer(server) + "/");
         _http.Timeout = TimeSpan.FromSeconds(20);
+        _http.DefaultRequestHeaders.TryAddWithoutValidation("X-AiiGrow-Ban", TuCapNhat.BanHienTai().ToString(3));   // máy chủ ghi bản đang chạy
         if (!string.IsNullOrEmpty(token))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
@@ -123,6 +124,38 @@ public sealed class ApiClient : IDisposable
     {
         var raw = await SendAsync(HttpMethod.Get, "api/device/yeu-cau/" + Uri.EscapeDataString(id), null, ct);
         return Deserialize<RequestStatus>(raw);
+    }
+
+    /// <summary>Khay học viên: gọi một đường <c>api/device/…</c> đã qua <see cref="HocVienPaths.Allowed"/>; trả thân JSON nguyên văn.</summary>
+    public Task<string> RawAsync(HttpMethod method, string path, string? bodyJson, CancellationToken ct = default)
+        => SendRawAsync(method, path, bodyJson, ct);
+
+    private Task<string> SendRawAsync(HttpMethod method, string path, string? bodyJson, CancellationToken ct)
+    {
+        object? body = null;
+        if (!string.IsNullOrWhiteSpace(bodyJson))
+        {
+            try { body = JsonSerializer.Deserialize<JsonElement>(bodyJson); }
+            catch (JsonException e) { throw new ApiException("Dữ liệu gửi đi không đúng định dạng", null, e); }
+        }
+        else if (method == HttpMethod.Post) body = new { };
+        return SendAsync(method, path, body, ct);
+    }
+
+    /// <summary>Thăm dò nhẹ: có tới được máy chủ không (TCP/TLS + một yêu cầu GET gốc, hạn 8 giây; client mang sẵn token như mọi lời gọi khác). Mọi phản hồi HTTP (kể cả 404/401) tính là «tới được»;
+    /// lỗi mạng / hết hạn / máy chủ 5xx tính là không. Không gửi dữ liệu.</summary>
+    public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, "");
+            using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            return (int)resp.StatusCode < 500;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
+        catch (HttpRequestException) { return false; }
     }
 
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)

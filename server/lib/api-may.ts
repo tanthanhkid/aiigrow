@@ -8,16 +8,19 @@ import { LoiNghiepVu } from "./loi.ts";
 import { one } from "./db.ts";
 import { conTuPhien, dangNhapPin, ghepMay, mayTuToken } from "./gia-dinh.ts";
 import { dongBo } from "./may-con.ts";
-import { biMatOfflineMay } from "./tuan-thu.ts";
+import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } from "./may-con.ts";
-import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
+import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
 import { guiYeuCau } from "./yeu-cau.ts";
+import * as hocVien from "./hoc-vien.ts";
+import * as nv from "./nhiem-vu.ts";
 import { dsCon } from "./gia-dinh.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
 import { nhipMay } from "./nhip-may.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
 import { cheDoGuiMay, daGoTaiMay, doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
 import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
+import { nhanLichSuWeb } from "./web.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -54,7 +57,11 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
       // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
       const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"));
-      return json({ ...pol, lenh, windows: chinhSachWindows(pol, biMatOffline ?? undefined, cheDo) });
+      // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
+      const moDen = may.platform === "windows" ? await hanMoCuaMay(may, con) : null;
+      const conThuong = may.platform === "windows" && con ? await thuongConLai(con) : 0;
+      const windows = chinhSachWindows(pol, biMatOffline ?? undefined, cheDo, { moDen, conThuong });
+      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows });
     }
     if (d === "nhip") return json(await nhipMay(may, con, b));
     // Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng / Setup --uninstall): bộ gỡ báo về trước khi xoá token ⇒ máy rời gia đình như gỡ từ xa
@@ -67,8 +74,22 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // M4: sự kiện agent (gửi bù được, `ma` một lần) · gỡ agent bằng mật khẩu Ba Mẹ
     if (d === "su-kien") return json({ nhan: await nhanSuKien(may, con, b.ds) });
     if (d === "log" && req.method === "POST") return json(await nhanLog(may, b.ds));
+    // Giám sát web: agent gửi TỔNG theo (ngày, tên miền) đọc từ lịch sử trình duyệt của Con — chỉ tên miền + đếm (lib/web.ts)
+    if (d === "web/lich-su" && req.method === "POST") return json(await nhanLichSuWeb(may, con, b.ds));
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn hồ sơ và nhập mã PIN trước", 409);
+    // Khay của học viên (agent-win Tray): nhận việc, làm + nộp, xem điểm/quà, thông báo — cổng mỏng trên các hàm của màn Con (lib/hoc-vien.ts).
+    if (p[0] === "hoc-vien") {
+      const get = req.method === "GET", post = req.method === "POST", r = p.slice(1).join("/");
+      if (r === "tong-quan" && get) return json(await hocVien.tongQuan(con));
+      if (r === "tin" && get) { const s = new URL(req.url).searchParams.get("sau"); return json(await hocVien.tinCho(con, s ? new Date(s) : null)); }
+      if (p[1] === "nhiem-vu" && p[3] === "bat-dau" && post) return json({ luot: await nv.batDau(con, p[2]) });
+      if (p[1] === "luot" && p[3] === "nop" && post) return json(await hocVien.nopKhay(con, p[2], { anh: b.anh, ghiChu: b.ghiChu }));
+      if (r === "cua-hang" && get) return json(await hocVien.cuaHangKhay(con));
+      if (p[1] === "doi" && p[2] && post) return json(await hocVien.doiQuaKhay(con, p[2]));
+      if (p[1] === "loi-khen" && p[3] === "phan-hoi" && post) return json(await hocVien.phanHoiLoiKhen(con, p[2], b.phanHoi));
+      return loi("khong_co_duong", "Không có đường này", 404);
+    }
     // M4b: máy KHÔNG tuân thủ (fail-closed) ⇒ không xét / mở phiên giải trí; phiên đang chạy dừng ở nhịp kế tiếp. Mở khẩn cấp chỉ do Ba Mẹ.
     if (d === "phien/xet" || d === "phien/mo" || d === "phien/nhip") {
       const kt = await khoaTuanThu(may);

@@ -123,6 +123,15 @@ public class PolicyTests
     }
 
     [Fact]
+    public void Evaluate_MoCoHan_HetHanKhiMatMang_TroLaiChiAppHoc()
+    {
+        var p = PolicyParser.Parse("""{"mode":"tu_do","grantEndsAt":"2026-10-20T10:30:00Z","allowedApps":["explorer.exe"]}""");
+        Assert.False(PolicyEvaluator.Evaluate(p, Now, 0).AppLockerWanted);
+        Assert.True(PolicyEvaluator.Evaluate(p, Now.AddMinutes(31), 0).AppLockerWanted);
+        Assert.False(PolicyEvaluator.Evaluate(PolicyParser.Parse("""{"mode":"tu_do"}"""), Now, 0).AppLockerWanted);
+    }
+
+    [Fact]
     public void Evaluate_ServerKhoaThiGiuLyDo()
     {
         var p = PolicyParser.Parse("""{"mode":"tu_do","locked":true,"lockReason":"ngu","minutesLeft":50}""");

@@ -103,10 +103,24 @@ Bảng tính năng × OS: `docs/QUAN-LY-DA-NEN-TANG.md`.
 |---|---|
 | `POST ghep-goi {token, nen, tenMay}` | đổi token gói cài (một lần, có hạn) ⇒ `{deviceId, token, dungChung, childName?}`. Không cần Bearer. Bí danh: `POST ghep {token, nen, tenMay}` (cách cũ `{ma}` giữ nguyên). Lỗi: `ma_sai` 404 · `ma_da_dung` 409 · `ma_het_han` 410 · `sai_nen_tang` 409 |
 | `POST nhip {phienBan?, clientTime?, trangThaiKhoa?, taiKhoan?: {ten, laAdmin}, taiKhoanAdmin?: string[], appQuanLyBat?, thanhPhan?: {[tên]: bool}, matKetNoiPhut?, nguon?: bat\|sap_tat\|sap_ngu}` | nhịp + tuân thủ ⇒ `{serverTime, tuanThu: {trangThai: tuan_thu\|lech_chuan\|ngoai_vong\|tat_may\|chua_co_nhip, diem, vanDe[{loai, tru, cauBaMe, cauCon, chiTiet}], khoaGiaiTri, moKhanCapDen}, chinhSach (chính sách chung), nenTang (cấu hình đã chuyển cho nền tảng của máy: muc[], khongLamDuoc[], viecCho[], nhipGiay), lenh: [{id, loai: "go"}]}`. `vanDe.loai`: `gio_sai` (−40) · `app_tat` (−50) · `admin_la` (−40) · `khong_toi_may_chu` (−30) · `ngoai_vong` (−100). Điểm < `tuan_thu_nguong` (80) ⇒ `khoaGiaiTri` |
-| `POST dong-bo {status: {…, cheDo?}}` | như cũ, thêm `lenh: [{id, loai}]` (lệnh đang chờ, vd gỡ từ xa) và `windows` (Policy dịch cho agent-win; `cheDo` chỉ có khi Ba Mẹ đã chọn hoặc đang gỡ). agent-win gửi `status.cheDo` = chế độ THẬT đang áp |
+| `POST dong-bo {status: {…, cheDo?}}` | như cũ, thêm `lenh: [{id, loai}]` (lệnh đang chờ, vd gỡ từ xa) và `windows` (Policy dịch cho agent-win; `cheDo` chỉ có khi Ba Mẹ đã chọn hoặc đang gỡ). agent-win gửi `status.cheDo` = chế độ THẬT đang áp; gửi thêm `status.quyen` = `{dichVu, khay, chanThat, appLocker?}` (true = có) ⇒ máy chủ tính «mức bảo vệ» + liệt kê quyền còn thiếu và cách khắc phục (`con/:id` → `may[].baoVeThieu`, `baoVeCau`). Máy cũ chưa gửi `quyen` thì máy chủ suy ra từ `status` thô. `windows.mode = "tu_do"` + `windows.grantEndsAt` = Ba Mẹ đang «mở» có hạn (mở khẩn cấp, hoặc «thêm giờ» duyệt cho lời xin từ máy Windows): agent gỡ AppLocker tới hạn đó. `nextCheckSec`: 120 giây nhàn rỗi, 30 giây khi có phiên / đang mở / còn thưởng (agent kẹp 10–600) |
 | `POST da-go` | Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng › AiiGrow / `AiiGrow.Setup.exe --uninstall`): bộ gỡ gọi TRƯỚC khi xoá token ⇒ `{ok: true}`, máy rời gia đình như ack lệnh gỡ (lệnh `go` đang chờ ⇒ `xong`, sự kiện `go_may {cach: "tai_may"}` + cảnh báo). Gọi lại ⇒ 401 `token_sai` |
 | `POST lenh/:id/xong` | agent báo đã làm xong lệnh (Bearer = token máy). Lệnh `go` ⇒ máy «đã gỡ» (xoá khỏi gia đình, token hết hiệu lực, hết cảnh báo mất nhịp). Gọi lại ⇒ `{ok: true, lapLai: true}`, không ghi đôi |
 | `POST phien/xet` · `phien/mo` · `phien/nhip` | máy KHÔNG tuân thủ (đã từng gửi nhịp) ⇒ `phien/xet` → `{duoc: false, lyDo: "khong_tuan_thu", cau}` · `phien/mo` → 409 `khong_mo_duoc` · `phien/nhip` → kết thúc phiên, `{trangThai: "ket_thuc", lyDoKet: "khong_tuan_thu"}` |
+
+### Khay học viên (máy Con) — `/api/device/hoc-vien/*` (Bearer = token máy riêng của Con)
+
+Cổng mỏng cho ứng dụng khay của agent-win (`AppForm` — cửa sổ app to của Con), dùng lại luật của màn Con (`/api/kid/*`): tần suất, thời gian tối thiểu, ảnh trùng, trừ điểm, tồn kho đều do máy chủ quyết. Máy dùng chung chưa có PIN trong khay ⇒ `409 chua_chon_con`. Khay chỉ được gọi các đường dưới đây (agent-win `HocVienPaths.Allowed`).
+
+| Đường | Ý |
+|---|---|
+| `GET tong-quan` | `{con, soDu, tongKiem, capDo{cap, diemCapSau, conThieu}, diemChoDuyet, nhiemVu[{id, ten, moTa, diem, bangChung, kieu, han, phutToiThieu, trangThai: san_sang\|dang_lam\|can_bo_sung\|du_hom_nay\|du_tuan, luot, dangCho, giaoRieng, lyDo}], gan[] (lượt 14 ngày), loiKhen[], phieuCho[]}` |
+| `GET tin?sau=ISO` | thông báo cho Con: `{ds[{id, loai, tieu, noi, luc}], bay}`. Loại: `giao_nhiem_vu` · `nhiem_vu_moi` (việc mở cho cả nhà) · `duyet_nhiem_vu` · `tu_duyet_nhiem_vu` · `tu_choi_nhiem_vu` · `can_bo_sung` · `loi_khen` · `xac_nhan_qua` · `huy_qua` · `huy_hieu`. Không có `sau` ⇒ 7 ngày gần nhất. Máy chủ **lùi `sau` 5 phút** (sự kiện mang giờ mở giao dịch) ⇒ khay lọc trùng theo `id` (`TinTracker`) và truyền `bay` làm `sau` lần kế |
+| `POST nhiem-vu/:id/bat-dau` | Con nhận việc ⇒ `{luot}` (bấm lại trả cùng lượt). Ghi sự kiện `bat_dau_nhiem_vu` ⇒ Ba Mẹ thấy «Ken đã nhận …». Lỗi: `du_hom_nay` · `du_tuan` · `da_xong` · `qua_han` 409 |
+| `POST luot/:id/nop {ghiChu?, anh?: [{mime, base64}]}` | nộp bài ⇒ `{trangThai: cho_duyet\|duoc_duyet, nghiTrung}`. Ảnh ≤ 400 KB (khay nén JPEG ≤ 300 KB, cạnh dài ≤ 1280). Lỗi: `thieu_anh` · `thieu_chu` · `chua_du_gio` · `da_nop` · `anh_qua_lon` |
+| `GET cua-hang` | `{soDu, qua[{id, ten, loai, diem, menhGia, chiCuoiTuan, du, conThieu}]}` |
+| `POST doi/:quaId` | đổi quà ⇒ `{phieu, trangThai: cho_trao\|cho_xac_nhan\|da_phat_hanh, voucher?{ma, hetHan}}`. Lỗi: `khong_du_diem` · `het_hang` · `chi_cuoi_tuan` · `du_thang` · `quy_thieu` 409 |
+| `POST loi-khen/:id/phan-hoi {phanHoi}` | Con nhắn lại Ba Mẹ (≤ 60 ký tự) ⇒ `{ok}`; sự kiện `phan_hoi_con` ⇒ thông báo «Ken nhắn lại Ba Mẹ» ở app Ba Mẹ |
 
 ### App Ba Mẹ — `/api/m/*`
 
@@ -218,3 +232,16 @@ Xử lý: `server/lib/dong-bang.ts`, `xuat-csv.ts`. Test: `dong-bang.test.ts`.
 | `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — `ngay` = ngày sẽ được giữ nếu bấm (hôm qua bỏ lỡ mà trước đó còn chuỗi, không thì hôm nay), null = không cần |
 | `POST con/:id/dong-bang-chuoi` | Ba Mẹ (Phê duyệt / Chủ) giữ chuỗi ngày cho ngày đó → `{ngay}`; tối đa 1 lần mỗi tuần (T2–CN giờ gia đình). Ngày đóng băng không đứt chuỗi, không cộng thêm ngày, không ra điểm. Lỗi `da_dong_bang_tuan` 409 · `khong_can_dong_bang` 409 |
 | `GET con/:id/bao-cao/csv` | `{tenTep, noiDung}` — CSV (BOM UTF-8, CRLF) của báo cáo tuần: theo ngày (giải trí / học), tổng so tuần trước, dùng nhiều nhất, điểm theo nhóm nhiệm vụ, duyệt / từ chối, ngoại lệ. Không có nội dung, ảnh, tin nhắn |
+
+## Giám sát và lọc web theo tên miền (22/10) — chỉ thêm
+
+Xử lý: `server/lib/web.ts`, bảng `web_nhat_ky` (thiết bị, ngày, tên miền → số lượt, giây, lần cuối). Test: `web.test.ts`. Agent: `agent-win` (`WebGuard`, `WebHistory`).
+Chỉ lưu **tên miền gốc + đếm**, không URL đầy đủ, không tiêu đề trang. Luật dùng lại bảng `app_rules` (`hoc` = Cho phép, `chan` = Chặn, `giai_tri` = chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó); allowlist hệ thống (classroom.google.com, zoom.us…) luôn mở.
+
+| Đường | Ý |
+|---|---|
+| `POST /api/device/web/lich-su {ds:[{ngay, tenMien, soLan, giay, lanCuoi}]}` | agent gửi TỔNG theo (ngày, tên miền) mỗi ~5 phút (hôm qua + hôm nay, mỗi lần). Máy chủ lấy giá trị **lớn hơn** (`greatest`) nên gửi lại không cộng đôi; tối đa 400 dòng/lần; giữ 90 ngày. Tên miền sai bị bỏ |
+| `GET /api/m/con/:id/web?ngay=7` | `{soNgay, homNay{giay,soLan,soTrang}, theoNgay[], tongGiay, top[{tenMien, giay, soLan, lanCuoi, trangThai: cho_phep\|chan\|giai_tri\|he_thong\|chua_xep, nguon}], tatCa, luat[], cheDoWeb: mo\|chi_cho_phep, heThong[], mayLoc[{id, ten, cheDo, lanCuoi}]}` — `mayLoc` là máy Windows có thể lọc web, `cheDo` giam-sat ⇒ chưa chặn thật |
+| `POST /api/m/con/:id/web/trang {muc, trangThai: cho_phep\|chan\|mac_dinh, caNha?}` | đặt/bỏ luật cho một tên miền (một Con, hoặc `caNha: true` cho cả gia đình). 409 `he_thong` nếu là trang hệ thống; ghi sự kiện `doi_luat_web` |
+| `POST /api/m/con/:id/cau-hinh {web_chi_cho_phep: 0\|1}` | tham số mới (mặc định 0): 1 = chỉ vào trang Cho phép (chặn `*`, cho phép danh sách) |
+| `dong-bo.windows.web` | `{cheDo: mo\|chi_cho_phep, chan[], cho[]}` cho agent Windows. Agent chỉ ghi vào Chrome/Edge/Brave khi chế độ là **Chặn thật** |
