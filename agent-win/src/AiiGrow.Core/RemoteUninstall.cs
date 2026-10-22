@@ -40,7 +40,7 @@ public static class AppsEntry
 }
 
 /// <summary>Thao tác gỡ thật trên Windows. Mọi bước chịu được việc đã gỡ rồi.</summary>
-public sealed class WindowsCleanupOps : ICleanupOps
+public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup
 {
     private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string PolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
@@ -137,6 +137,9 @@ public sealed class WindowsCleanupOps : ICleanupOps
     }
 
     public void GoMucUngDung() => AppsEntry.Remove();
+
+    /// <summary>Gỡ chính sách chặn web (URLBlocklist/URLAllowlist + cờ ẩn danh…) của AiiGrow khỏi Chrome/Edge/Brave.</summary>
+    public void GoChinhSachWeb() => WebGuard.GoChinhSach();
 
     public void XoaCauHinh()
     {
