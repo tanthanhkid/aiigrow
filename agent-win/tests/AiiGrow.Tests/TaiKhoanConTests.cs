@@ -22,6 +22,15 @@ public class TaiKhoanConTests
         Assert.Equal(new[] { "S-1-5-21-1-2-3-1002", "S-1-5-21-1-2-3-1003" }, TaiKhoanCon.ChonSids("", May));
 
     [Fact]
+    public void BoTaiKhoanHeThong()
+    {
+        var ds = new List<LocalAccount> { new("Guest", "S-1-5-21-1-2-3-501", false), new("WDAGUtilityAccount", "S-1-5-21-1-2-3-504", false),
+            new("defaultuser0", "S-1-5-21-1-2-3-1000", false), new("be", "S-1-5-21-1-2-3-1500", false) };
+        Assert.Equal(new[] { "S-1-5-21-1-2-3-1500" }, TaiKhoanCon.ChonSids("", ds));
+        Assert.Equal("", TaiKhoanCon.ChonUser("", "Guest", ds));
+    }
+
+    [Fact]
     public void ChiCoQuanTri_KhongSid() => Assert.Empty(TaiKhoanCon.ChonSids("", May.Take(1)));
 
     [Theory]

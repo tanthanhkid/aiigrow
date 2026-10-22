@@ -8,8 +8,8 @@ public sealed class AppLockerController
     private readonly ILogger<AppLockerController> _log;
     private string? _lastKey;
     private DateTimeOffset _nextTry = DateTimeOffset.MinValue;
-    private int _docLoi;
-    private bool _daBaoKhongSid;   // cảnh báo «không có tài khoản Con» một lần, không mỗi nhịp      // số lần đọc chính sách lỗi liên tiếp khi gỡ
+    private int _docLoi;      // số lần đọc chính sách lỗi liên tiếp khi gỡ
+    private bool _daBaoKhongSid;   // cảnh báo «không có tài khoản Con» một lần, không mỗi nhịp
 
     public AppLockerController(ILogger<AppLockerController> log) { _log = log; }
 
@@ -21,6 +21,7 @@ public sealed class AppLockerController
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
         var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
         var want = wantApply && ds.Count > 0;
+        if (ds.Count > 0) _daBaoKhongSid = false;
         if (wantApply && ds.Count == 0 && !_daBaoKhongSid)
         {
             _daBaoKhongSid = true;

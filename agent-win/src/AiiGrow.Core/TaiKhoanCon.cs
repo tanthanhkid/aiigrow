@@ -14,22 +14,34 @@ public static class TaiKhoanCon
     public static IReadOnlyList<string> ChonSids(string? cfgSid, IEnumerable<LocalAccount> ds)
     {
         if (AppLockerXml.IsValidSid(cfgSid)) return new[] { cfgSid! };
-        return ds.Where(a => !a.IsAdmin && AppLockerXml.IsValidSid(a.Sid)).Select(a => a.Sid)
+        return ds.Where(a => !a.IsAdmin && AppLockerXml.IsValidSid(a.Sid) && !LaTaiKhoanHeThong(a)).Select(a => a.Sid)
                  .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(s => s, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Administrator/Guest/DefaultAccount/WDAGUtilityAccount (RID 500–504) và defaultuser0 (OOBE) — không phải người dùng thật.</summary>
+    public static bool LaTaiKhoanHeThong(LocalAccount a)
+    {
+        if (string.Equals(a.Name, "defaultuser0", StringComparison.OrdinalIgnoreCase)) return true;
+        var cuoi = a.Sid.LastIndexOf('-');
+        return cuoi > 0 && int.TryParse(a.Sid[(cuoi + 1)..], out var rid) && rid is >= 500 and <= 504;
     }
 
     public static string ChonUser(string? cfgUser, string? consoleUser, IEnumerable<LocalAccount> ds)
     {
         if (!string.IsNullOrWhiteSpace(cfgUser)) return cfgUser!;
         if (string.IsNullOrWhiteSpace(consoleUser)) return "";
-        return ds.Any(a => !a.IsAdmin && string.Equals(a.Name, consoleUser, StringComparison.OrdinalIgnoreCase)) ? consoleUser! : "";
+        return ds.Any(a => !a.IsAdmin && !LaTaiKhoanHeThong(a) && string.Equals(a.Name, consoleUser, StringComparison.OrdinalIgnoreCase)) ? consoleUser! : "";
     }
 
-    /// <summary>Tài khoản cục bộ đang bật + có phải quản trị (Administrators) không. Chỉ chạy trên Windows.</summary>
+    /// <summary>Tài khoản cục bộ đang bật + có phải quản trị (Administrators) không. Chỉ chạy trên Windows; lỗi ⇒ ném (KHÔNG coi là danh sách rỗng).</summary>
+    /// <remarks>Thành viên nhóm quản trị đọc bằng ADSI, không dùng Get-LocalGroupMember: lệnh đó lỗi 1789 khi nhóm có SID mồ côi / AzureAD
+    /// (review #54) ⇒ máy đó không bao giờ được chặn. Tên nhóm lấy theo SID S-1-5-32-544 (Windows tiếng khác không tên «Administrators»).</remarks>
     public static List<LocalAccount> DocMay()
     {
         var r = Shell.PowerShell(
-            "$admins = @(Get-LocalGroupMember -SID S-1-5-32-544 | ForEach-Object { $_.SID.Value }); " +
+            "$ten = (New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544').Translate([Security.Principal.NTAccount]).Value.Split('\\')[-1]; " +
+            "$g = [ADSI](\"WinNT://./$ten,group\"); " +
+            "$admins = @($g.Invoke('Members') | ForEach-Object { [Security.Principal.SecurityIdentifier]::new([byte[]]$_.GetType().InvokeMember('objectSid', 'GetProperty', $null, $_, $null), 0).Value }); " +
             "$l = @(Get-LocalUser | Where-Object { $_.Enabled } | ForEach-Object { [pscustomobject]@{ Name=$_.Name; Sid=$_.SID.Value; IsAdmin=($admins -contains $_.SID.Value) } }); " +
             "ConvertTo-Json -InputObject $l -Compress");
         if (!r.Ok) throw new InvalidOperationException("Không đọc được danh sách tài khoản: " + r.Error);

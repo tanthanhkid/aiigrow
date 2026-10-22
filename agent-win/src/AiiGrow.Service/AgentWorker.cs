@@ -9,8 +9,8 @@ public sealed class AgentWorker : BackgroundService
     private readonly AppLockerController _locker;
     private readonly IProcessControl _procs;
     // Cài một chạm (cấu hình không có tài khoản Con): danh sách tài khoản máy, đọc lại mỗi 10 phút
-    private List<LocalAccount> _taiKhoan = new();
-    private long _docTaiKhoanLuc = long.MinValue;
+    private List<LocalAccount>? _taiKhoan;          // null = chưa đọc được lần nào ⇒ KHÔNG đổi AppLocker (đọc lỗi ≠ máy không có Con)
+    private long _docTaiKhoanLuc = long.MinValue, _docLaiSauMs;
 
     public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker, IProcessControl? procs = null)
     {
@@ -44,8 +44,9 @@ public sealed class AgentWorker : BackgroundService
                 if (cfg is { Paired: true })
                 {
                     var taiKhoan = TaiKhoanMay(cfg);
-                    var childUser = TaiKhoanCon.ChonUser(cfg.ChildUser, string.IsNullOrEmpty(cfg.ChildUser) ? SessionHelper.ConsoleUser() : "", taiKhoan);
-                    var childSids = TaiKhoanCon.ChonSids(cfg.ChildSid, taiKhoan);
+                    var childUser = TaiKhoanCon.ChonUser(cfg.ChildUser, string.IsNullOrEmpty(cfg.ChildUser) ? SessionHelper.ConsoleUser() : "", taiKhoan ?? new());
+                    // cài một chạm mà chưa đọc được tài khoản máy ⇒ null: giữ nguyên AppLocker đang có, không gỡ nhầm
+                    var childSids = taiKhoan == null && !AppLockerXml.IsValidSid(cfg.ChildSid) ? null : TaiKhoanCon.ChonSids(cfg.ChildSid, taiKhoan ?? new());
                     var sess = string.IsNullOrEmpty(childUser) ? null : SessionHelper.Find(childUser);
                     _rt.ChildSessionId = sess?.SessionId ?? -1;
                     bool active = sess is { Active: true };
@@ -80,14 +81,14 @@ public sealed class AgentWorker : BackgroundService
 
                     var p = _rt.CurrentPolicy;
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
-                    if (!apThat || p == null || eff == null)
+                    if (childSids != null && (!apThat || p == null || eff == null))
                     {
                         // Không chặn thật ⇒ luật AppLocker của AiiGrow phải KHÔNG còn (đổi sang giám sát là gỡ ngay, không chờ khởi động lại).
                         _rt.AppLockerApplied = _locker.Reconcile(false, childSids, Array.Empty<string>());
                     }
                     if (p != null && eff != null)
                     {
-                        if (apThat)
+                        if (apThat && childSids != null)
                         {
                             var applied = _locker.Reconcile(eff.AppLockerWanted, childSids, p.AllowedApps);
                             _rt.AppLockerApplied = applied;
@@ -180,15 +181,16 @@ public sealed class AgentWorker : BackgroundService
         }
     }
 
-    /// <summary>Chỉ đọc khi cấu hình chưa gắn tài khoản Con (cài một chạm); lỗi ⇒ giữ danh sách cũ.</summary>
-    private List<LocalAccount> TaiKhoanMay(AgentConfig cfg)
+    /// <summary>Chỉ đọc khi cấu hình chưa gắn tài khoản Con (cài một chạm). Đọc lại mỗi 2 phút (tài khoản vừa nâng quản trị thôi bị chặn sớm);
+    /// lỗi ⇒ giữ danh sách cũ (null nếu chưa đọc được lần nào), thử lại sau 30 giây.</summary>
+    private List<LocalAccount>? TaiKhoanMay(AgentConfig cfg)
     {
-        if (AppLockerXml.IsValidSid(cfg.ChildSid) && !string.IsNullOrEmpty(cfg.ChildUser)) return _taiKhoan;
+        if (AppLockerXml.IsValidSid(cfg.ChildSid) && !string.IsNullOrEmpty(cfg.ChildUser)) return _taiKhoan ?? new();
         var bay = Environment.TickCount64;
-        if (_docTaiKhoanLuc != long.MinValue && bay - _docTaiKhoanLuc < 10 * 60 * 1000) return _taiKhoan;
+        if (_docTaiKhoanLuc != long.MinValue && bay - _docTaiKhoanLuc < _docLaiSauMs) return _taiKhoan;
         _docTaiKhoanLuc = bay;
-        try { _taiKhoan = TaiKhoanCon.DocMay(); }
-        catch (Exception e) { _log.LogWarning("Đọc tài khoản Windows lỗi: {Loi}", e.Message); }
+        try { _taiKhoan = TaiKhoanCon.DocMay(); _docLaiSauMs = 2 * 60 * 1000; }
+        catch (Exception e) { _docLaiSauMs = 30 * 1000; _log.LogWarning("Đọc tài khoản Windows lỗi (giữ nguyên AppLocker, thử lại sau 30 giây): {Loi}", e.Message); }
         return _taiKhoan;
     }
 }
