@@ -216,7 +216,7 @@ const guiAiiRob = async (than: unknown, o: { khoa?: string; ts?: number; chuKy?:
 test("webhook AiiRob: thiếu khoá ⇒ 503; chữ ký sai / quá cũ ⇒ 401, không cộng điểm", async () => {
   const { fam } = await taoNha("Rob");
   const con = await g.taoCon(fam, { ten: "Su" });
-  const bai = { suKien: "bai_dat", con, maBai: "EN-1", tenBai: "Chào hỏi", diemSo: 95 };
+  const bai = { suKien: "bai_dat", giaDinh: fam, con, maBai: "EN-1", tenBai: "Chào hỏi", diemSo: 95 };
   delete process.env.AIIROB_WEBHOOK_SECRET;
   assert.equal((await guiAiiRob(bai)).status, 503);
   process.env.AIIROB_WEBHOOK_SECRET = KHOA_GIA;
@@ -235,7 +235,7 @@ test("webhook AiiRob: bài đạt ⇒ +20 điểm tự duyệt; gửi trùng (k�
   process.env.AIIROB_WEBHOOK_SECRET = KHOA_GIA;
   const { fam } = await taoNha("Rin");
   const con = await g.taoCon(fam, { ten: "Bin" });
-  const bai = { suKien: "bai_dat", con, maBai: "EN-2", tenBai: "Màu sắc", diemSo: 90 };
+  const bai = { suKien: "bai_dat", giaDinh: fam, con, maBai: "EN-2", tenBai: "Màu sắc", diemSo: 90 };
   const [a, b, c] = await Promise.all([guiAiiRob(bai), guiAiiRob(bai), guiAiiRob(bai)]);
   assert.deepEqual([a, b, c].map((x) => x.status), [200, 200, 200]);
   assert.deepEqual([a, b, c].map((x) => x.body.congDiem).sort(), [0, 0, 20]);
@@ -247,36 +247,43 @@ test("webhook AiiRob: bài đạt ⇒ +20 điểm tự duyệt; gửi trùng (k�
   assert.equal(luot!.n, 1);
   assert.equal((await guiAiiRob({ ...bai, con: "khongco" })).status, 404);
   assert.equal((await guiAiiRob({ suKien: "khac" })).body.boQua, true);
-  assert.equal((await guiAiiRob({ suKien: "bai_dat", con })).status, 400);
+  assert.equal((await guiAiiRob({ suKien: "bai_dat", giaDinh: fam, con })).status, 400);
 });
 
 // ---------------------------------------------------------------- M6 liên kết AiiRob: mã «<family_id>.<child_id>»
-test("webhook AiiRob + giaDinh: đúng gia đình ⇒ cộng; sai gia đình ⇒ 404 như không thấy; thiếu giaDinh ⇒ cách cũ", async () => {
+test("webhook AiiRob + giaDinh: bắt buộc (thiếu / null / số / object / rỗng ⇒ 400); sai gia đình ⇒ 404 như không thấy; đúng ⇒ cộng", async () => {
   process.env.AIIROB_WEBHOOK_SECRET = KHOA_GIA;
   const { fam } = await taoNha("Lien");
   const { fam: famKhac } = await taoNha("Khac");
   const con = await g.taoCon(fam, { ten: "Na" });
   const bai = { suKien: "bai_dat", con, maBai: "LK-1", tenBai: "Đếm số", diemSo: 95 };
+  // giaDinh bắt buộc: không có nhánh tương thích "thiếu giaDinh vẫn nhận"
+  for (const giaDinh of [undefined, null, "", "   ", 123, { id: fam }, [fam]]) {
+    const r = await guiAiiRob({ ...bai, giaDinh });
+    assert.equal(r.status, 400, `giaDinh=${JSON.stringify(giaDinh)}`);
+    assert.equal(r.body.error, "thieu_truong");
+  }
+  assert.equal(await v.soDu(con), 0);
   // sai gia đình: 404 giống hệt Con không tồn tại, không cộng
   const sai = await guiAiiRob({ ...bai, giaDinh: famKhac });
   const khongCo = await guiAiiRob({ ...bai, con: "khongco", giaDinh: fam });
   assert.equal(sai.status, 404);
   assert.deepEqual(sai.body, khongCo.body);
-  assert.equal((await guiAiiRob({ ...bai, giaDinh: "" })).status, 404, "giaDinh rỗng cũng phải khớp");
   assert.equal(await v.soDu(con), 0);
+  // đúng gia đình nhưng dưới ngưỡng: 200, không cộng, có lyDo
+  const thap = await guiAiiRob({ ...bai, maBai: "LK-0", diemSo: 40, giaDinh: fam });
+  assert.equal(thap.status, 200);
+  assert.equal(thap.body.congDiem, 0);
+  assert.equal(thap.body.lyDo, "chua_dat_hoac_da_tinh");
   // đúng gia đình: cộng 20
   const dung = await guiAiiRob({ ...bai, giaDinh: fam });
   assert.equal(dung.status, 200);
   assert.equal(dung.body.congDiem, 20);
+  assert.equal(dung.body.lyDo, null);
   assert.equal(await v.soDu(con), 20);
-  // thiếu giaDinh: vẫn nhận như cũ (bài khác ⇒ cộng tiếp)
-  const cu = await guiAiiRob({ ...bai, maBai: "LK-2" });
-  assert.equal(cu.status, 200);
-  assert.equal(cu.body.congDiem, 20);
-  assert.equal(await v.soDu(con), 40);
 });
 
-test("GET /api/m/con/:id/lien-ket-aiirob ⇒ {ma: <family_id>.<child_id>}; Con nhà khác ⇒ 404", async () => {
+test("GET /api/m/con/:id/lien-ket-aiirob ⇒ {ma: <family_id>.<child_id>}; Con nhà khác ⇒ 404; chưa đăng nhập / token sai ⇒ 401", async () => {
   const { fam, bm } = await taoNha("Ma");
   const { fam: famKhac } = await taoNha("Xa");
   const con = await g.taoCon(fam, { ten: "Bo" });
@@ -286,4 +293,6 @@ test("GET /api/m/con/:id/lien-ket-aiirob ⇒ {ma: <family_id>.<child_id>}; Con n
   assert.equal(r.status, 200);
   assert.equal(r.body.ma, `${fam}.${con}`);
   assert.equal((await m(`con/${conKhac}/lien-ket-aiirob`, { tok })).status, 404);
+  assert.equal((await m(`con/${con}/lien-ket-aiirob`)).status, 401);
+  assert.equal((await m(`con/${con}/lien-ket-aiirob`, { tok: "token-khong-ton-tai" })).status, 401);
 });

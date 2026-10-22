@@ -72,11 +72,16 @@ phiếu quà — KHÔNG có ảnh bằng chứng) · `POST gia-dinh/:id/nap-quy 
 ## Webhook AiiRob — `POST /api/aiirob` (M6)
 
 Header `X-AiiRob-Timestamp: <giây Unix>`, `X-AiiRob-Signature: sha256=<hex HMAC-SHA256(AIIROB_WEBHOOK_SECRET, "<timestamp>.<thân>")>`; lệch > 5 phút
-hoặc chữ ký sai ⇒ 401; thiếu biến môi trường ⇒ 503. Thân `{suKien: "bai_dat", con, maBai, tenBai, diemSo}` → `{ok, congDiem, lyDo}`.
+hoặc chữ ký sai ⇒ 401; thiếu biến môi trường ⇒ 503. Thân `{suKien: "bai_dat", giaDinh, con, maBai, tenBai, diemSo}` → `{ok, congDiem, lyDo}`.
 Đạt ngưỡng `aiirob_nguong` ⇒ +`aiirob_diem` tự duyệt, một lần mỗi bài (gửi trùng / cùng lúc không cộng đôi).
 Liên kết (M6): Ba Mẹ lấy mã `GET /api/m/con/:id/lien-ket-aiirob` → `{ma: "<family_id>.<child_id>"}` (màn hồ sơ Con, mục «Liên kết AiiRob») và dán vào AiiRob.
-AiiRob gửi lại `giaDinh` (= phần trước dấu chấm) + `con` (= phần sau). Có `giaDinh` mà không khớp gia đình của Con ⇒ 404 như không thấy;
-không có `giaDinh` ⇒ nhận như cũ (tương thích bản AiiRob chưa nâng cấp).
+AiiRob gửi lại `giaDinh` (= phần trước dấu chấm) + `con` (= phần sau). `giaDinh` **bắt buộc**: thiếu, `null`, rỗng hoặc không phải
+chuỗi ⇒ 400 `thieu_truong`; không khớp gia đình của Con ⇒ 404 `khong_thay`, giống hệt Con không tồn tại. Không có nhánh tương thích
+"thiếu `giaDinh` vẫn nhận" (bên gửi dulich-mvp #224 ra đời cùng lúc và luôn gửi `giaDinh`).
+**Mã liên kết là định danh, không phải bí mật.** Mã tất định, không hết hạn, không thu hồi được và không cần giấu: nó chỉ nói webhook
+nhắm vào Con nào của gia đình nào. Bảo vệ thật là chữ ký HMAC bằng `AIIROB_WEBHOOK_SECRET`, khoá chung chỉ máy chủ AiiRob và AiiGrow
+giữ: người có mã mà không có khoá không gửi được điểm. `giaDinh` chỉ chặn nhầm Con (dán sai mã, id Con trùng ngẫu nhiên), không phải
+chứng minh quyền. Nếu sau này cần mã ghép nối là bí mật (cho bên thứ ba khác AiiRob) thì phải đổi sang mã ngẫu nhiên có hạn + bảng lưu.
 
 ### Màn Con — bổ sung M3 (`server/lib/choi-tre.ts`, test `choi-tre.test.ts`)
 
