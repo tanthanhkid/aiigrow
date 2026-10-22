@@ -12,8 +12,10 @@ internal static class SentryLoc
     // mốc theo đồng hồ đơn điệu (Environment.TickCount64) — Con chỉnh giờ máy không làm Sentry im nhiều ngày
     private static readonly ConcurrentDictionary<string, long> _lanGui = new();
     private const long CachMs = 60 * 60 * 1000;
-    // tên tài khoản có thể có dấu cách («Bao Anh») ⇒ ăn tới dấu \ / nháy / xuống dòng kế
+    // tên tài khoản có thể có dấu cách («Bao Anh») ⇒ ăn tới dấu \, nháy hoặc xuống dòng kế (thà ẩn thừa)
     private static readonly Regex UsersRe = new(@"(?i)([a-z]:\\users\\)[^\\""'\r\n]+", RegexOptions.Compiled);
+    // SID tài khoản (lỗi Set-AppLockerPolicy có thể chèn SID của Con)
+    private static readonly Regex SidRe = new(@"S-1-5-21(-\d+)+", RegexOptions.Compiled);
 
     public static SentryEvent? Loc(SentryEvent e, long nowMs)
     {
@@ -23,9 +25,8 @@ internal static class SentryLoc
         if (!duoc) return null;
         e.User = new SentryUser();
         e.ServerName = null;
-        // Sentry.Extensions.Logging biến tham số mẫu log thành TAG (vd {e} = nguyên văn lỗi PowerShell có SID/đường dẫn) ⇒ bỏ hết tag, extra
+        // Sentry.Extensions.Logging biến tham số mẫu log thành TAG (vd {e} = nguyên văn lỗi PowerShell có SID/đường dẫn) ⇒ bỏ hết tag (agent không gắn extra)
         foreach (var k in e.Tags.Keys.ToList()) e.UnsetTag(k);
-        foreach (var k in e.Extra.Keys.ToList()) e.SetExtra(k, null);
         if (e.Message is { } m)
         {
             if (m.Message != null) m.Message = AnUsers(m.Message);
@@ -40,5 +41,5 @@ internal static class SentryLoc
     internal static string Khoa(SentryEvent e) =>
         (e.Message?.Message ?? e.Message?.Formatted ?? "") + "|" + string.Join(",", (e.SentryExceptions ?? Enumerable.Empty<Sentry.Protocol.SentryException>()).Select(x => x.Type));
 
-    internal static string AnUsers(string s) => UsersRe.Replace(s, "$1<an>");
+    internal static string AnUsers(string s) => SidRe.Replace(UsersRe.Replace(s, "$1<an>"), "S-1-5-21-<an>");
 }
