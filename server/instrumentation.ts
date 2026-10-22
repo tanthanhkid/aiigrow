@@ -9,6 +9,15 @@ export async function register() {
     release: process.env.VERCEL_GIT_COMMIT_SHA,
     tracesSampleRate: 0,
     sendDefaultPii: false,
+    // KHÔNG chép nội dung request: body có mật khẩu Ba Mẹ (gỡ từ xa), PIN, lịch sử web/DNS, tên app Con mở (review #52 P1)
+    integrations: [Sentry.httpIntegration({ maxIncomingRequestBodySize: "none" })],
+    beforeBreadcrumb: () => null,
+    beforeSend(e) {
+      if (e.request) e.request = { method: e.request.method, url: e.request.url?.split("?")[0] };
+      delete e.user;
+      e.breadcrumbs = [];
+      return e;
+    },
   });
 }
 
