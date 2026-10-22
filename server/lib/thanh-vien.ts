@@ -116,6 +116,9 @@ export async function dangKyTheoLoiMoi(b: { ma?: unknown; dinhDanh?: unknown; ot
     if (!(await kiemOtp(t, d, b.otp, "dang_ky"))) return null;          // lần sai vẫn được ghi (không rollback)
     if ((await t(`select 1 from parents where dinh_danh = $1`, [d])).length)
       throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — đăng nhập rồi nhập mã mời", 409);
+    // Kiểm trần NGAY LÚC NHẬN (trong tx): nhiều mã chờ có thể cùng được nhận, đừng để vượt THANH_VIEN_TOI_DA.
+    if ((await t(`select 1 from parents where family_id = $1 and vai <> 'roi'`, [m.family_id])).length >= THANH_VIEN_TOI_DA)
+      throw new LoiNghiepVu("du_thanh_vien", `Gia đình đã đủ ${THANH_VIEN_TOI_DA} người lớn`, 409);
     const id = newId();
     await t(`insert into parents(id, family_id, dinh_danh, ten, vai, pass_hash) values ($1,$2,$3,$4,$5,$6)`, [id, m.family_id, d, ten, m.vai, bam]);
     await t(`update loi_moi set dung_luc = now(), dung_boi = $2 where id = $1`, [m.id, id]);
@@ -141,6 +144,9 @@ export async function nhanLoiMoi(bm: BaMe, maVao: unknown) {
     const nguoi = await t(`select 1 from parents where family_id = $1 and id <> $2 and vai <> 'roi' limit 1`, [bm.family_id, bm.id]);
     if (con.length || may.length || nguoi.length)
       throw new LoiNghiepVu("gia_dinh_co_du_lieu", "Tài khoản này đã có Con, máy hoặc thành viên — dùng số/email khác để nhận lời mời", 409);
+    // Kiểm trần ở gia đình ĐÍCH ngay lúc nhận (trong tx) — chặn vượt THANH_VIEN_TOI_DA khi nhiều mã cùng được nhận.
+    if ((await t(`select 1 from parents where family_id = $1 and vai <> 'roi'`, [m.family_id])).length >= THANH_VIEN_TOI_DA)
+      throw new LoiNghiepVu("du_thanh_vien", `Gia đình đã đủ ${THANH_VIEN_TOI_DA} người lớn`, 409);
     const cu = bm.family_id;
     await t(`update parents set family_id = $2, vai = $3 where id = $1`, [bm.id, m.family_id, m.vai]);
     await t(`update loi_moi set dung_luc = now(), dung_boi = $2 where id = $1`, [m.id, bm.id]);

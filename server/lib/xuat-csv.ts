@@ -5,7 +5,10 @@ import { baoCaoTuan } from "./bao-cao.ts";
 type BaoCao = Awaited<ReturnType<typeof baoCaoTuan>>;
 
 const o = (v: unknown) => {
-  const s = String(v ?? "");
+  let s = String(v ?? "");
+  // Chống CSV injection: ô CHỮ bắt đầu bằng = + - @ (hoặc tab/CR) ⇒ chèn ' để Excel/Sheets không chạy như công thức.
+  // Số (typeof number) giữ nguyên để không biến số âm/thập phân thành chữ.
+  if (typeof v !== "number" && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
   return /[",;\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 const dong = (...cot: unknown[]) => cot.map(o).join(",");
