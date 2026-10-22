@@ -1,5 +1,5 @@
 // bm-vi: ví điểm của Con (FR-03.05) — số dư (Con và Ba Mẹ thấy cùng một số), chờ duyệt, cấp độ, chuỗi ngày, kiếm/tiêu tuần, lịch sử;
-// «± Điều chỉnh» tay phải kèm lý do (tính vào ngoại lệ).
+// «± Điều chỉnh» tay phải kèm lý do (tính vào ngoại lệ). «Giữ chuỗi ngày» = đóng băng streak 1 lần/tuần (FR-03.06).
 import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -10,7 +10,8 @@ import {
 } from "@/lib/ui";
 
 type Vi = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number }; lichSu: Diem[] };
-type TT = { chuoiNgay: number };
+type TT = { chuoiNgay: number; dongBang?: { ngay: string | null; duocDung: boolean; daDung: string[] } };
+const ngayNgan = (n: string) => n.split("-").reverse().slice(0, 2).join("/");
 const IC: Record<string, [TenIcon, MauBt]> = { nhiem_vu: ["sao", "xanh"], phien: ["game", "vang"], doi_qua: ["qua", "cam"], voucher: ["coc", "cam"],
   hoan: ["tro_lai", "lam"], tay: ["but", "tim"], chao_mung: ["cuoi", "vang"], ngoai_le: ["qua", "cam"] };
 
@@ -20,6 +21,7 @@ export default function ViCon() {
     bay: Date.now(), vi: await bm.goi<Vi>(`con/${con}/vi`), tt: await bm.goi<TT>(`con/${con}/thanh-tich`), c: await bm.goi<{ ten: string }>(`con/${con}`),
   }));
   const [mo, setMo] = useState(false);
+  const [giu, setGiu] = useState(false);
   const [dau, setDau] = useState<1 | -1>(1);
   const [so, setSo] = useState("10");
   const [lyDo, setLyDo] = useState("");
@@ -45,6 +47,14 @@ export default function ViCon() {
         <OSo nho="Tuần này kiếm" so={`+${kiem}`} />
         <OSo nho="Tuần này tiêu" so={`${tieu ? "−" : ""}${Math.abs(tieu)}`} />
       </Luoi2>
+      {d.tt.dongBang?.ngay ? (
+        <Nhom>
+          <Dong dau tieu="Giữ chuỗi ngày" trai={<BieuTron ic="lua" mau="vang" />}
+            phu={d.tt.dongBang.duocDung ? `Con nghỉ ${ngayNgan(d.tt.dongBang.ngay)} vẫn không đứt chuỗi · 1 lần mỗi tuần` : "Tuần này đã giữ chuỗi một lần rồi"}
+            phai={d.tt.dongBang.duocDung ? <Nhan chu="Giữ" /> : <Nhan chu="Đã dùng" loai="xam" />}
+            bam={d.tt.dongBang.duocDung ? () => setGiu(true) : undefined} />
+        </Nhom>
+      ) : null}
       <NhomTieu chu="Lịch sử" />
       {d.vi.lichSu.length ? (
         <Nhom>
@@ -55,6 +65,13 @@ export default function ViCon() {
           })}
         </Nhom>
       ) : <CanhGiua lv="canh-trong" tieu={`Ví của ${d.c.ten} còn trống`} loi="Điểm đầu tiên đến khi Con làm nhiệm vụ đầu tiên." />}
+      <BangTruot mo={giu} dong={() => setGiu(false)} tieu={`Giữ chuỗi ngày của ${d.c.ten}?`}>
+        <Chu mau={M.chu2}>{`Ngày ${ngayNgan(d.tt.dongBang?.ngay ?? "")} không có nhiệm vụ nào cũng không làm đứt chuỗi ${d.tt.chuoiNgay} ngày. Mỗi tuần giữ được một lần; không cộng điểm.`}</Chu>
+        <BaoLoi loi={loiLam} />
+        <Nut chu="Giữ chuỗi ngày" ic="lua" rong dangChay={dangChay} bam={() => lam(async () => {
+          await bm.goi(`con/${con}/dong-bang-chuoi`, {}); setGiu(false); bao(`Đã giữ chuỗi ngày của ${d.c.ten}`); await tai();
+        })} />
+      </BangTruot>
       <BangTruot mo={mo} dong={() => setMo(false)} tieu={`Điều chỉnh điểm của ${d.c.ten}`}>
         <ChonMot ds={[{ gia: 1 as const, chu: "Cộng điểm" }, { gia: -1 as const, chu: "Trừ điểm" }]} gia={dau} doi={setDau} />
         <View style={{ flexDirection: "row", gap: 10 }}>

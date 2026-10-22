@@ -470,3 +470,39 @@ export const SCHEMA_M4B_MANG = [
     primary key (thiet_bi_id, ngay, ten_mien)
   )`,
 ];
+
+// ================================================================ Thành viên gia đình + thông báo trong app (chỉ thêm). Tạo lười trong
+// lib/thanh-vien.ts (bangTvTb) — không đổi chuỗi SCHEMA chung.
+// loi_moi: lời mời Ba / Mẹ / Ông Bà vào gia đình (FR-01.04) — mã một lần, hạn 72 giờ, CHỈ lưu băm; vai: duyet | xem.
+// ba_me_tb: thiết lập thông báo của TỪNG Ba Mẹ (FR-08.01): đọc đến lúc nào, giờ yên lặng {bat, tu, den}, nhóm tắt [].
+// parents.vai = 'roi': thành viên đã bị chủ gia đình mời ra — giữ dòng để lịch sử «ai duyệt» còn tên, mọi phiên bị xoá.
+export const SCHEMA_TV_TB = [
+  `create table if not exists loi_moi (
+    id text primary key,
+    family_id text not null references families(id) on delete cascade,
+    ma_hash text not null unique,
+    vai text not null,
+    ten_goi text not null default '',
+    nguoi text,
+    het timestamptz not null,
+    dung_luc timestamptz,
+    dung_boi text,
+    huy_luc timestamptz,
+    created_at timestamptz not null default now()
+  )`,
+  `create table if not exists ba_me_tb (
+    parent_id text primary key references parents(id) on delete cascade,
+    doc_den timestamptz,
+    yen_lang jsonb not null default '{}',
+    tat jsonb not null default '[]',
+    updated_at timestamptz not null default now()
+  )`,
+  // dong_bang_chuoi: ngày Ba Mẹ «đóng băng» chuỗi ngày của Con (FR-03.06, tối đa 1 lần/tuần) — ngày đó không làm đứt chuỗi.
+  `create table if not exists dong_bang_chuoi (
+    child_id text not null references children(id) on delete cascade,
+    ngay text not null,
+    nguoi text,
+    created_at timestamptz not null default now(),
+    primary key (child_id, ngay)
+  )`,
+];

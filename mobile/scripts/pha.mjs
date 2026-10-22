@@ -109,6 +109,31 @@ const coBan = {
   "POST ma-ghep": { ma: "482917" }, "POST con": { id: "c1" }, "POST nhiem-vu/mau": { taoMoi: 8 }, "POST qua/mau": { taoMoi: 6 },
   "POST con/c1/lich": { lich: LICH }, "POST con/c1/cau-hinh": { ok: true }, "POST con/c1/khoa": { ok: true }, "POST dang-xuat": { ok: true },
 };
+// Thành viên gia đình (FR-01.04) + thông báo trong app (FR-08.01)
+const tbDong = (id, nhom, tieu, phu, phut, o = {}) => ({ id, nhom, muc: "thong_tin", tieu, phu, luc: luc(phut), con: "c1", den: "/cho-duyet", so: 1, moi: false, day: true, imLang: false, ...o });
+Object.assign(coBan, {
+  "GET thanh-vien": { ds: [{ id: "p1", ten: "Mẹ Lan", vai: "chu", dinh_danh: "0912345678", laToi: true }, { id: "p2", ten: "Ba Huy", vai: "duyet", dinh_danh: "0987654321", laToi: false },
+    { id: "p3", ten: "Bà nội Nguyễn Thị Ngọc Hạnh", vai: "xem", dinh_danh: "0901234567", laToi: false }],
+    loiMoi: [{ id: "lm1", vai: "xem", tenGoi: "Ông ngoại", het: luc(-4000) }], toi: { id: "p1", vai: "chu" }, hanGio: 72 },
+  "POST thanh-vien/moi": { id: "lm2", ma: "ABCD-2345", lienKet: `${GOC}/moi?ma=ABCD2345`, vai: "xem", tenGoi: "Bà ngoại", het: luc(-4320) },
+  "POST thanh-vien/p2/vai": { vai: "xem" }, "POST thanh-vien/p3/moi-ra": { ok: true }, "POST thanh-vien/moi/lm1/huy": { ok: true },
+  "GET moi/ABCD2345": { tenGiaDinh: "Nhà Mẹ Lan", nguoiMoi: "Mẹ Lan", vai: "duyet", tenVai: "Phê duyệt", tenGoi: "Ba Huy", het: luc(-4000) },
+  "POST moi/dang-ky": { token: "tok-ba" }, "POST moi/nhan": { vai: "duyet" },
+  "GET thong-bao": { chuaDoc: 3, caiDat: { yenLang: { bat: true, tu: "22:00", den: "06:30" }, tat: [] }, ds: [
+    tbDong("e1", "nhiem_vu", `${KEN} vừa nộp 3 nhiệm vụ`, "Rửa chén · Đọc sách “Dế Mèn phiêu lưu ký” 50 trang · Tập thể dục 30 phút", 4, { so: 3, moi: true }),
+    tbDong("e2", "yeu_cau", "Bill xin thêm 15 phút", "Đồng ý hoặc từ chối trong Chờ duyệt", 9, { con: "c2", moi: true }),
+    tbDong("a1", "canh_bao", "Có dấu hiệu đổi giờ hệ thống trên Laptop-BILL của Bill", "Cảnh báo · Bill", 20, { muc: "nghiem_trong", den: "/canh-bao/a1", moi: true }),
+    tbDong("e3", "ba_me_khac", `Ba Huy đã duyệt «Rửa chén sau bữa tối» của ${KEN}`, "+10 điểm", 95, { den: "/vi/c1" }),
+    tbDong("e4", "qua", "Bill đổi «Phiếu quà AiiCafe 50.000đ»", "500 điểm · chờ Ba Mẹ trao quà", 1500, { con: "c2", den: "/diem-qua", imLang: true, day: false }),
+    tbDong("e5", "gia_dinh", "Bà nội Nguyễn Thị Ngọc Hạnh đã vào gia đình", "Quyền Chỉ xem", 3000, { con: null, den: "/thanh-vien" })] },
+  "POST thong-bao/doc": { ok: true },
+  "GET thong-bao/cai-dat": { yenLang: { bat: false, tu: "22:00", den: "06:30" }, tat: ["thanh_tich"] },
+  "POST thong-bao/cai-dat": { yenLang: { bat: true, tu: "22:00", den: "06:30" }, tat: ["thanh_tich"] },
+  // FR-03.06 giữ (đóng băng) chuỗi ngày · FR-06.02 xuất CSV
+  "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-21", duocDung: true, daDung: [] } },
+  "POST con/c1/dong-bang-chuoi": { ngay: "2026-10-21" },
+  "GET con/c1/bao-cao/csv": { tenTep: "aiigrow-bao-cao-Ken-2026-10-19.csv", noiDung: "\uFEFFBáo cáo tuần AiiGrow,Ken\r\n" },
+});
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -221,6 +246,22 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
+    M("bm-vi (giữ chuỗi)", "/vi/c1", "Mỗi tuần giữ được một lần", { truoc: async () => { await di("/vi/c1"); await doi("Giữ chuỗi ngày"); await bam("Giữ chuỗi ngày"); } }),
+    M("bm-vi (đã giữ tuần này)", "/vi/c1", "Tuần này đã giữ chuỗi", { kb: { "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-22", duocDung: false, daDung: ["2026-10-21"] } } } }),
+    M("thanh-vien", "/thanh-vien", "Ông ngoại"),
+    M("thanh-vien (chỉ xem)", "/thanh-vien", "Quyền của Ba/Mẹ: Chỉ xem", { kb: { "GET thanh-vien": { ...coBan["GET thanh-vien"], toi: { id: "p3", vai: "xem" } } } }),
+    M("thanh-vien (bảng mời)", "/thanh-vien", "Tạo lời mời", { truoc: async () => { await di("/thanh-vien"); await doi("Mời thành viên"); await bam("Mời thành viên"); } }),
+    M("thanh-vien (mã vừa tạo)", "/thanh-vien", "ABCD-2345", { truoc: async () => { await di("/thanh-vien"); await doi("Mời thành viên"); await bam("Mời thành viên"); await doi("Tạo lời mời"); await bam("Tạo lời mời"); } }),
+    M("thanh-vien (đổi quyền)", "/thanh-vien", "ra khỏi gia đình", { truoc: async () => { await di("/thanh-vien"); await doi("Ba Huy"); await bam("Ba Huy"); } }),
+    M("moi (nhập mã)", "/moi", "Có mã mời?", { token: null }),
+    M("moi (tạo tài khoản)", "/moi?ma=ABCD2345", "Vào Nhà Mẹ Lan", { token: null }),
+    M("moi (đã đăng nhập)", "/moi?ma=ABCD2345", "Nhận lời mời bằng tài khoản này"),
+    M("moi (mã hết hạn)", "/moi?ma=ABCD2345", "quá 72 giờ", { token: null, kb: { "GET moi/ABCD2345": { status: 410, body: { error: "ma_moi_het_han", message: "Mã mời đã quá 72 giờ — xin người mời mã mới" } } } }),
+    M("thong-bao", "/thong-bao", "vừa nộp 3 nhiệm vụ"),
+    M("thong-bao (trống)", "/thong-bao", "Chưa có gì mới", { kb: { "GET thong-bao": { ds: [], chuaDoc: 0, caiDat: { yenLang: { bat: false, tu: "22:00", den: "06:30" }, tat: [] } } } }),
+    M("thong-bao (mất mạng)", "/thong-bao", "Đang chờ mạng", { matMang: true }),
+    M("thong-bao/cai-dat", "/thong-bao/cai-dat", "Việc Ba Mẹ khác làm"),
+    M("thong-bao/cai-dat (bảng giờ)", "/thong-bao/cai-dat", "Lưu giờ yên lặng", { truoc: async () => { await di("/thong-bao/cai-dat"); await doi("Đổi giờ"); await bam("Đổi giờ"); } }),
   ];
   // PHA_MAN=<biểu thức chính quy>: chỉ chạy các màn khớp tên (soát nhanh khi sửa)
   if (process.env.PHA_MAN) dsMan.splice(0, dsMan.length, ...dsMan.filter((m) => new RegExp(process.env.PHA_MAN).test(m.ten)));
@@ -302,6 +343,95 @@ await kichBan("Hết phiên (401) ⇒ về màn Chào", async () => {
   kb["GET gia-dinh"] = { status: 401, body: { error: "chua_dang_nhap", message: "Phiên đăng nhập đã hết" } };
   await di("/hom-nay");
   xet(await doi("Bắt đầu bằng số điện thoại"), "về màn Chào");
+});
+
+/** Bấm phần tử theo bộ chọn CSS (công tắc không có chữ). */
+const bamChon = async (chon) => {
+  const r = await js(`(() => { const e = document.querySelector(${JSON.stringify(chon)}); if (!e) return null; e.scrollIntoView({ block: "center" });
+    const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`);
+  if (!r) return false;
+  await sleep(250);
+  for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) { await goi("Input.dispatchMouseEvent", { type, x: r.x, y: r.y, button: "left", clickCount: 1 }); await sleep(80); }
+  await sleep(400);
+  return true;
+};
+const coChon = async (chon, ms = 6000) => { for (let t = 0; t < ms; t += 250) { if (await js(`!!document.querySelector(${JSON.stringify(chon)})`)) return true; await sleep(250); } return false; };
+
+await kichBan("Chủ gia đình mời Bà ngoại quyền Chỉ xem ⇒ hiện mã + QR + nút gửi", async () => {
+  await di("/thanh-vien");
+  xet(await doi("Ông ngoại"), "thấy thành viên + lời mời đang chờ");
+  await bam("Mời thành viên");
+  xet(await doi("Tạo lời mời"), "mở bảng mời");
+  await go("Gọi là gì trong nhà?", "Bà ngoại");
+  await bam("Chỉ xem");
+  await bam("Tạo lời mời");
+  xet(await doi("ABCD-2345"), "hiện mã mời");
+  xet(nhatKy.some((x) => x.d === "thanh-vien/moi" && x.body?.vai === "xem" && x.body?.tenGoi === "Bà ngoại"), "gửi đúng vai + tên gọi");
+  xet(await coChon('[aria-label^="Mã QR http"]'), "có QR chứa link mời");
+  xet(await doi("Gửi lời mời"), "có nút gửi lời mời");
+});
+
+await kichBan("Chủ đổi quyền Ba Huy sang Chỉ xem", async () => {
+  await di("/thanh-vien");
+  await doi("Ba Huy"); await bam("Ba Huy");
+  xet(await doi("ra khỏi gia đình"), "mở bảng thành viên");
+  await bam("Chỉ xem");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "thanh-vien/p2/vai" && x.body?.vai === "xem"), "gửi đổi vai");
+});
+
+await kichBan("Người được mời mở link ⇒ thấy nhà mời ⇒ số điện thoại ⇒ mã 6 số ⇒ vào Hôm nay", async () => {
+  await di("/moi?ma=ABCD2345", null);
+  xet(await doi("Vào Nhà Mẹ Lan"), "xem trước lời mời từ link");
+  xet(await doi("Mẹ Lan mời Ba/Mẹ vào"), "nói rõ ai mời");
+  await go("Số điện thoại hoặc email", "0987654321"); await go("Mật khẩu (ít nhất 8 ký tự)", "matkhau123");
+  await sleep(200);
+  await bam("Gửi mã");
+  xet(await doi("Nhập mã 6 số"), "sang bước mã 6 số");
+  xet(await doi("Bản thử: mã là 482017"), "chế độ thử hiện mã");
+  await go("Mã xác thực 6 số", "482017");
+  await bam("Vào gia đình");
+  xet(await doi("việc chờ Ba Mẹ"), "vào trang Hôm nay");
+  xet(nhatKy.some((x) => x.d === "moi/dang-ky" && x.body?.ma === "ABCD2345" && x.body?.otp === "482017" && x.body?.ten === "Ba Huy"), "gửi mã mời + OTP + tên điền sẵn");
+});
+
+await kichBan("Thông báo: chuông có số ⇒ danh sách gộp ⇒ đánh dấu đã đọc ⇒ bấm tới Chờ duyệt", async () => {
+  await di("/hom-nay");
+  xet(await coChon('[aria-label="Thông báo, 3 mới"]'), "chuông báo 3 mới");
+  await bamChon('[aria-label="Thông báo, 3 mới"]');
+  xet(await doi(`${KEN} vừa nộp 3 nhiệm vụ`), "gộp 3 nhiệm vụ nộp liền nhau");
+  xet(await doi("trong giờ yên lặng"), "đánh dấu dòng tới trong giờ yên lặng");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "thong-bao/doc"), "đánh dấu đã đọc");
+  await bam(`${KEN} vừa nộp 3 nhiệm vụ`);
+  xet(await doi("4 việc đang chờ"), "bấm dòng ⇒ tới Chờ duyệt");
+});
+
+await kichBan("Giữ chuỗi ngày: một chạm từ ví ⇒ xác nhận ⇒ gọi máy chủ", async () => {
+  await di("/vi/c1");
+  xet(await doi("Giữ chuỗi ngày"), "ví có dòng giữ chuỗi");
+  await bam("Giữ chuỗi ngày");
+  xet(await doi("Mỗi tuần giữ được một lần"), "bảng xác nhận nói rõ luật 1 lần/tuần");
+  await bam("Giữ chuỗi ngày");
+  await sleep(600);
+  xet(nhatKy.some((x) => x.d === "con/c1/dong-bang-chuoi" && x.m === "POST"), "gửi đóng băng chuỗi");
+});
+
+await kichBan("Báo cáo tuần ⇒ Xuất CSV", async () => {
+  await di("/bao-cao");
+  xet(await doi("Xuất CSV (Excel)"), "có nút Xuất CSV");
+  await bam("Xuất CSV (Excel)");
+  await sleep(600);
+  xet(nhatKy.some((x) => x.d === "con/c1/bao-cao/csv"), "tải CSV từ máy chủ");
+});
+
+await kichBan("Giờ yên lặng: bật ⇒ lưu ⇒ báo đã bật", async () => {
+  await di("/thong-bao/cai-dat");
+  await doi("Việc Ba Mẹ khác làm");
+  await bamChon('[role="switch"][aria-label="Giờ yên lặng"]');
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "thong-bao/cai-dat" && x.body?.yenLang?.bat === true && x.body?.tat?.includes("thanh_tich")), "bật giờ yên lặng, giữ nhóm đã tắt");
+  xet(await doi("Đã bật giờ yên lặng"), "báo đã bật");
 });
 
 ws.close();

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type CanhBao, type ConChiTiet, type GiaDinh } from "@/lib/api";
+import { ChuongTb } from "@/lib/chuong-tb";
 import {
   Avt, BieuTron, Canh, CanhGiua, ChoTai, Chu, Dong, Icon, Luoi2, M, MAU_CON, Man, Nhan, Nhom, Nut, OSo, Tien, truoc, useTai,
 } from "@/lib/ui";
@@ -47,6 +48,7 @@ export default function HomNay() {
           style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1.5, borderColor: M.vien2, backgroundColor: "#fff", justifyContent: "center" }}>
           <Chu kieu="dam" co={14.5} mau={M.chu2}>+ Con</Chu>
         </Pressable>
+        <View style={{ marginLeft: "auto" }}><ChuongTb /></View>
       </View>
       <Canh lv="sao" tieu={`Hôm nay ${c.ten} đã…`} loi={tichCuc}>
         <Pressable onPress={() => router.push(`/loi-khen/${c.id}`)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>

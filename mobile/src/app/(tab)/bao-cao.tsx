@@ -1,9 +1,10 @@
 // bm-bao-cao: báo cáo tuần theo Con (FR-06.02/06.03) — biểu đồ học / giải trí theo ngày, top mục giải trí, câu chú giải đời thường.
-// Chỉ tên app/tên miền + thời lượng, không ghi nội dung.
+// Chỉ tên app/tên miền + thời lượng, không ghi nội dung. «Xuất CSV» mở được bằng Excel / Google Sheets.
 import { useState } from "react";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, Dong, Luoi2, M, Man, Nhom, NhomTieu, OSo, The, useTai } from "@/lib/ui";
+import { BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, Dong, Luoi2, M, Man, Nhom, NhomTieu, Nut, OSo, The, useLam, useTai } from "@/lib/ui";
+import { luuTepChu } from "@/lib/luu-tep";
 
 type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number }[]; tongGiaiTri: number; phutHoc: number; diemKiemTheoNhom: { nhom: string; diem: number; n: number }[];
   duyet: { duoc: number; tu_choi: number }; ngoaiLe: number; top: { muc: string; phut: number }[];
@@ -28,6 +29,7 @@ export default function BaoCaoTuan() {
 
 function BaoCaoCon({ id }: { id: string }) {
   const { d, loi, matMang, tai } = useTai(() => bm.goi<BaoCao>(`con/${id}/bao-cao`));
+  const xuat = useLam();
   const nay = d?.tuanNay;
   const hocNgay = (ngay: string) => nay?.hocTheoNgay?.find((x) => x.ngay === ngay)?.phut ?? 0;
   const max = Math.max(60, ...(nay?.giaiTriTheoNgay.map((x) => Math.max(x.phut, hocNgay(x.ngay))) ?? [0]));
@@ -83,6 +85,11 @@ function BaoCaoCon({ id }: { id: string }) {
             </>
           ) : null}
           {!nay.tongGiaiTri && !nay.duyet.duoc ? <CanhGiua lv="canh-trong" tieu="Chưa đủ dữ liệu tuần" loi="Báo cáo đầy đủ có sau vài ngày Con dùng máy." /> : null}
+          <BaoLoi loi={xuat.loi} />
+          <Nut chu="Xuất CSV (Excel)" ic="tai" loai="vien" rong dangChay={xuat.dangChay} bam={() => xuat.lam(async () => {
+            const r = await bm.goi<{ tenTep: string; noiDung: string }>(`con/${id}/bao-cao/csv`);
+            await luuTepChu(r.tenTep, r.noiDung);
+          })} />
         </>
       )}
     </>

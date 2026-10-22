@@ -11,6 +11,9 @@ export default function Chao() {
         <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
           <Chu co={13} mau={M.chu3}>Đã có tài khoản? <Chu kieu="rat" co={13} mau={M.chinhInk}>Đăng nhập</Chu></Chu>
         </Pressable>
+        <Pressable onPress={() => router.push("/moi")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+          <Chu co={13} mau={M.chu3}>Được Ba/Mẹ trong nhà mời? <Chu kieu="rat" co={13} mau={M.chinhInk}>Nhập mã mời</Chu></Chu>
+        </Pressable>
       </>
     }>
       <Canh lv="rob-goc" tieu="Con lớn lên bằng yêu thương" loi="Và nhận quyền lợi bằng nỗ lực của chính mình." />
