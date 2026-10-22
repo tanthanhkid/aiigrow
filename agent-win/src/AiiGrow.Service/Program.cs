@@ -28,10 +28,11 @@ if (!string.IsNullOrWhiteSpace(sentryDsn))
         o.Release = "aiigrow-agent@" + TuCapNhat.BanHienTai().ToString(3);
         o.Environment = "production";
         o.MinimumEventLevel = LogLevel.Error;
-        o.MinimumBreadcrumbLevel = LogLevel.Information;
+        // KHÔNG đính log thường ngày (tên app Con mở, SID tài khoản Con, mã offline) vào sự kiện
+        o.MinimumBreadcrumbLevel = LogLevel.None;
         o.SendDefaultPii = false;
         o.ServerName = "";
-        o.SetBeforeSend(e => { e.User = new SentryUser(); e.ServerName = null; return e; });
+        o.SetBeforeSend(e => SentryLoc.Loc(e, DateTimeOffset.UtcNow));
     });
 
 // Thực thi Policy (dùng chung một AgentRuntime).
