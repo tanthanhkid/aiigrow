@@ -17,6 +17,9 @@ public sealed class ApiException : Exception
     public bool IsUnauthorized => StatusCode is 401 or 403;
     /// <summary>Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline, giữ hàng đợi.</summary>
     public bool IsNetwork => StatusCode is null or >= 500;
+    /// <summary>Máy chủ KHẲNG ĐỊNH máy đã bị gỡ khỏi gia đình (401 token_sai). CHỈ loại này mới tính vào mốc mồ côi 6 giờ —
+    /// 403 lạ (tường lửa / CDN) không tính, để không thôi chặn nhầm khi Con tự dựng được một phản hồi 403.</summary>
+    public bool LaTokenSai => StatusCode == 401 && Code is "token_sai" or "device_unknown";
 }
 
 public sealed class QrExpiredException : Exception
@@ -158,23 +161,28 @@ public sealed class ApiClient : IDisposable
         {
             var text = await resp.Content.ReadAsStringAsync(ct);
             if (!resp.IsSuccessStatusCode)
-                throw new ApiException(ExtractError(text) ?? ("Máy chủ báo lỗi " + (int)resp.StatusCode), (int)resp.StatusCode);
+            {
+                var (code, msg) = ExtractError(text);
+                throw new ApiException(msg ?? code ?? ("Máy chủ báo lỗi " + (int)resp.StatusCode), (int)resp.StatusCode, code: code);
+            }
             return text;
         }
     }
 
-    private static string? ExtractError(string text)
+    /// <summary>Tách (mã lỗi `error`, câu `message`) từ thân lỗi của máy chủ.</summary>
+    private static (string? Code, string? Message) ExtractError(string text)
     {
         try
         {
             using var doc = JsonDocument.Parse(text);
             if (doc.RootElement.ValueKind == JsonValueKind.Object)
-                foreach (var name in new[] { "error", "message" })
-                    if (doc.RootElement.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String)
-                        return v.GetString();
+            {
+                string? S(string name) => doc.RootElement.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+                return (S("error"), S("message"));
+            }
         }
         catch { }
-        return null;
+        return (null, null);
     }
 
     public void Dispose() => _http.Dispose();

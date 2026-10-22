@@ -127,8 +127,8 @@ public sealed class AgentRuntime
                 {
                     c.LastPolicyJson = raw;
                     c.LastPolicyAt = at;
-                    // Đồng bộ được ⇒ hết mồ côi. Ba Mẹ đã chọn chế độ trên app ⇒ giá trị máy chủ thắng, lưu lại cho lúc mất mạng.
-                    MoCoi.GhiThanhCong(c);
+                    // Đồng bộ được ⇒ hết mồ côi + ghi mốc liên lạc (fail-open 14 ngày tính từ đây). Ba Mẹ đã chọn chế độ ⇒ giá trị máy chủ thắng, lưu lại cho lúc mất mạng.
+                    MoCoi.GhiThanhCong(c, at);
                     if (p.CheDo != null) c.CheDo = p.CheDo;
                     // Giữ lại bí mật mã offline (máy chủ chỉ gửi khi có) để còn kiểm mã lúc mất mạng.
                     if (!string.IsNullOrEmpty(p.MaOfflineBiMat)) c.MaOfflineBiMat = p.MaOfflineBiMat;

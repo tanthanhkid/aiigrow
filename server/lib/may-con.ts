@@ -223,6 +223,9 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   sai_ma_offline: { muc: "chu_y", cau: (t) => `Có người gõ sai mã mở offline nhiều lần trên ${t}` },
   // Có mạng lại ⇒ agent kết thúc lượt mở offline (mã chỉ dành cho lúc mất mạng); chỉ ghi nhật ký, không báo.
   het_ma_offline: { muc: null, cau: (t) => `${t} có mạng lại — kết thúc lượt mở bằng mã offline` },
+  // GỠ TỪ XA gặp trục trặc (agent báo trước khi máy rời gia đình) — Ba Mẹ cần thấy để biết chưa gỡ xong sạch:
+  go_loi_applocker: { muc: "chu_y", cau: (t) => `Chưa gỡ được luật chặn (AppLocker) khi gỡ AiiGrow trên ${t} — AiiGrow đang thử lại` },
+  quyen_admin_loi: { muc: "chu_y", cau: (t) => `Chưa trả lại được quyền quản trị cho tài khoản của Con khi gỡ AiiGrow trên ${t}` },
 };
 
 export type SuKienVao = { ma?: unknown; loai?: unknown; luc?: unknown; chiTiet?: unknown };

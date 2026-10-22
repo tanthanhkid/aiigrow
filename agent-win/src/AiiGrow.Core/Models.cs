@@ -184,9 +184,22 @@ public sealed class AgentConfig
     public string? MaOfflineBiMat { get; set; }
     /// <summary>AiiGrow (thêm): trạng thái «mở tạm bằng mã offline» (hạn mở, mã đã dùng, lượt sai) — lưu để dịch vụ khởi động lại vẫn giữ.</summary>
     public MoTamOffline MoTamOffline { get; set; } = new();
-    /// <summary>AiiGrow (thêm): lần ĐẦU máy chủ từ chối token (401/403) trong chuỗi liên tục; null = đang ổn. Quá <see cref="MoCoi.Nguong"/> ⇒ fail-open.</summary>
+    /// <summary>AiiGrow (thêm): lần ĐẦU máy chủ từ chối token (401 token_sai) trong chuỗi liên tục; null = đang ổn. Quá <see cref="MoCoi.Nguong"/> ⇒ fail-open.</summary>
     public DateTimeOffset? TuChoiTu { get; set; }
+    /// <summary>AiiGrow (thêm): lần CUỐI đồng bộ thành công với máy chủ (ghi mốc ~1 giờ/lần). Không liên lạc được quá
+    /// <see cref="MoCoi.NguongLienLac"/> (14 ngày, mọi loại lỗi) ⇒ fail-open dài hạn: về giám sát, gỡ luật. Đặt lúc cài, cập nhật mỗi lần sync được.</summary>
+    public DateTimeOffset? LienLacCuoi { get; set; }
+    /// <summary>AiiGrow (thêm): các tài khoản Windows đã bị HẠ quyền lúc cài (để TRẢ LẠI khi gỡ — không để «dính» mất quyền admin).</summary>
+    public List<QuyenDaHa> DaHaQuyen { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);
+}
+
+/// <summary>Một tài khoản đã bị hạ quyền lúc cài: SID tài khoản + SID nhóm đã bị gỡ khỏi (để thêm lại khi gỡ AiiGrow).</summary>
+public sealed class QuyenDaHa
+{
+    public string Sid { get; set; } = "";
+    /// <summary>SID nhóm đã bị gỡ khỏi. Mặc định Administrators (S-1-5-32-544).</summary>
+    public string Nhom { get; set; } = "S-1-5-32-544";
 }

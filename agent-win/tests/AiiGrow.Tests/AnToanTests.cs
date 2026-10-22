@@ -44,6 +44,29 @@ public class CheDoHieuLucTests
         var json = System.Text.Json.JsonSerializer.Serialize(new AgentStatus { CheDo = CheDoAgent.Chan }, Json.Options);
         Assert.Contains("\"cheDo\":\"chan\"", json);
     }
+
+    // 🟡 CHỈ 401 token_sai (máy đã bị gỡ) mới tính vào mốc mồ côi 6 giờ — 403 lạ / 401 mã khác KHÔNG tính.
+    [Theory]
+    [InlineData(401, "token_sai", true)]
+    [InlineData(401, "device_unknown", true)]
+    [InlineData(403, "token_sai", false)]      // 403 (tường lửa/CDN) không tính dù mang mã
+    [InlineData(401, "sai_mat_khau", false)]   // 401 vì lý do khác không tính
+    [InlineData(401, null, false)]
+    [InlineData(500, null, false)]
+    public void ApiException_LaTokenSai(int ma, string? code, bool mong)
+        => Assert.Equal(mong, new ApiException("x", ma, code: code).LaTokenSai);
+
+    [Fact]
+    public void Config_RoundTrip_DaHaQuyen_LienLacCuoi()
+    {
+        var c = new AgentConfig { LienLacCuoi = new DateTimeOffset(2026, 10, 22, 8, 0, 0, TimeSpan.Zero),
+            DaHaQuyen = { new QuyenDaHa { Sid = "S-1-5-21-1-2-3-1001", Nhom = "S-1-5-32-544" } } };
+        var lai = System.Text.Json.JsonSerializer.Deserialize<AgentConfig>(
+            System.Text.Json.JsonSerializer.Serialize(c, Json.Options), Json.Options)!;
+        Assert.Equal(c.LienLacCuoi, lai.LienLacCuoi);
+        Assert.Equal("S-1-5-21-1-2-3-1001", lai.DaHaQuyen[0].Sid);
+        Assert.Equal("S-1-5-32-544", lai.DaHaQuyen[0].Nhom);
+    }
 }
 
 public class MoCoiTests
@@ -74,9 +97,9 @@ public class MoCoiTests
     {
         var c = new AgentConfig { TuChoiTu = T0 };
         Assert.True(MoCoi.La(c, T0.AddHours(8)));
-        Assert.True(MoCoi.GhiThanhCong(c));
+        Assert.True(MoCoi.GhiThanhCong(c, T0.AddHours(8)));
         Assert.False(MoCoi.La(c, T0.AddHours(8)));
-        Assert.False(MoCoi.GhiThanhCong(c));
+        Assert.False(MoCoi.GhiThanhCong(c, T0.AddHours(8)));
     }
 
     [Fact]
@@ -86,6 +109,31 @@ public class MoCoiTests
         Assert.False(MoCoi.La(c, T0));
         Assert.True(MoCoi.GhiTuChoi(c, T0));
         Assert.Equal(T0, c.TuChoiTu);
+    }
+
+    // 🟡 fail-open DÀI HẠN: KHÔNG đồng bộ được lần nào quá 14 ngày (mọi loại lỗi — không chỉ token_sai) ⇒ về giám sát, bỏ Policy cuối.
+    [Fact]
+    public void MatLienLac14Ngay_MoiLoai_VeGiamSat_BoPolicy()
+    {
+        var c = new AgentConfig { CheDo = CheDoAgent.Chan, LastPolicyJson = """{"mode":"khoa"}""", LastPolicyAt = T0, LienLacCuoi = T0 };
+        Assert.False(MoCoi.La(c, T0.AddDays(MoCoi.NgayMatLienLac).AddHours(-1)));   // chưa đủ 14 ngày
+        Assert.True(MoCoi.MatLienLacLau(c, T0.AddDays(MoCoi.NgayMatLienLac)));
+        Assert.True(MoCoi.La(c, T0.AddDays(MoCoi.NgayMatLienLac)));
+        Assert.True(MoCoi.ApDung(c, T0.AddDays(MoCoi.NgayMatLienLac)));
+        Assert.Equal(CheDoAgent.GiamSat, c.CheDo);
+        Assert.Null(c.LastPolicyJson);
+        // liên lạc lại ⇒ ghi mốc mới, hết mồ côi (chạy bình thường trở lại)
+        Assert.True(MoCoi.GhiThanhCong(c, T0.AddDays(MoCoi.NgayMatLienLac + 1)));
+        Assert.False(MoCoi.La(c, T0.AddDays(MoCoi.NgayMatLienLac + 1)));
+    }
+
+    [Fact]
+    public void GhiThanhCong_GhiMocLienLac_TietKiemGhiDia()
+    {
+        var c = new AgentConfig { LienLacCuoi = T0 };
+        Assert.False(MoCoi.GhiThanhCong(c, T0.AddMinutes(30)), "cùng giờ ⇒ không ghi lại (đỡ mòn đĩa)");
+        Assert.True(MoCoi.GhiThanhCong(c, T0.AddHours(2)));
+        Assert.Equal(T0.AddHours(2), c.LienLacCuoi);
     }
 
     [Fact]
@@ -121,109 +169,53 @@ internal sealed class FakeOps : ICleanupOps
     private readonly SoGhi _g;
     public bool XoaHet = true;
     public string? NemLoiO;
+    /// <summary>B: nếu đặt, TraQuyenQuanTri đọc DaHaQuyen từ đây (và XoaCauHinh xoá nó) ⇒ kiểm «trả quyền TRƯỚC khi xoá cấu hình».</summary>
+    public ConfigStore? Store;
+    public readonly List<string> QuyenTra = new();
     public FakeOps(SoGhi g) { _g = g; }
     private void B(string s) { _g.Ghi(s); if (s == NemLoiO) throw new InvalidOperationException("hỏng " + s); }
     public void TatKhoiPhucDichVu() => B("tat_khoi_phuc");
     public void DungVaXoaDichVu() => B("dung_xoa_dich_vu");
     public void HenDonTachRoi() => B("hen_don");
     public void GoAppLocker() => B("applocker");
+    public void TraQuyenQuanTri()
+    {
+        // Đọc cấu hình (DaHaQuyen) giống WindowsCleanupOps thật — phải đọc ĐƯỢC ⇒ chạy trước XoaCauHinh.
+        if (Store != null) foreach (var q in Store.Load()?.DaHaQuyen ?? new()) QuyenTra.Add(q.Sid);
+        B("tra_quyen");
+    }
     public void GoKhay() => B("khay");
     public void GoThongBaoDangNhap() => B("thong_bao");
     public void GoMucUngDung() => B("muc_ung_dung");
-    public void XoaCauHinh() => B("xoa_cau_hinh");
+    public void XoaCauHinh() { Store?.Delete(); B("xoa_cau_hinh"); }
     public bool XoaThuMuc() { B("xoa_thu_muc"); return XoaHet; }
 }
 
 public class GoCaiDatTests
 {
-    private sealed class Uninstaller : ISystemUninstaller
-    {
-        private readonly SoGhi _g; public Uninstaller(SoGhi g) { _g = g; }
-        public string Run() { _g.Ghi("go"); return ""; }
-    }
-
-    private sealed class Api : IHeartbeatApi
-    {
-        private readonly SoGhi _g;
-        public Exception? Loi;
-        public bool Treo;
-        public bool TokenBiHuy;
-        public Api(SoGhi g) { _g = g; }
-        public Task<SyncResult> SyncAsync(object s, string t, CancellationToken ct = default) => Task.FromResult(new SyncResult());
-        public async Task AckLenhAsync(string id, CancellationToken ct = default)
-        {
-            TokenBiHuy = ct.IsCancellationRequested;
-            if (Treo) await Task.Delay(Timeout.Infinite, ct);
-            if (Loi != null) throw Loi;
-            _g.Ghi("ack:" + id);
-        }
-        public Task SuKienAsync(IReadOnlyList<SuKien> ds, CancellationToken ct = default) => Task.CompletedTask;
-    }
-
-    private static SyncResult Go => SyncResult.Parse("""{"lenh":[{"id":"9","loai":"go"}]}""");
-
+    // Gỡ TỪ XA (dịch vụ tự dọn phần còn lại sau khi đã gỡ AppLocker + trả quyền + ack — CommandProcessor điều phối, test ở SyncAndUninstallTests).
     [Fact]
-    public async Task LenhGo_BaoXongTruoc_RoiMoiGo_KeCaKhiDichVuDangDung()
+    public void DonPhanConLai_KhongTuDungChinhMinh_TatKhoiPhuc_HenDon_KhongDungApplockerHayTraQuyen()
     {
         var g = new SoGhi();
-        var api = new Api(g);
-        using var dangDung = new CancellationTokenSource();
-        dangDung.Cancel();   // dịch vụ đang dừng: ct đã huỷ — lời báo vẫn phải đi
-        Assert.True(await new CommandProcessor(new Uninstaller(g)).ProcessAsync(Go, api, dangDung.Token));
-        Assert.Equal(new[] { "ack:9", "go" }, g.Ds);
-        Assert.False(api.TokenBiHuy);
+        SystemCleanup.DonPhanConLai(new FakeOps(g));
+        Assert.True(g.Vi("tat_khoi_phuc") < g.Vi("hen_don"));
+        Assert.DoesNotContain("dung_xoa_dich_vu", g.Ds);   // không tự Stop/delete chính mình (tác vụ tách rời làm)
+        Assert.DoesNotContain("xoa_thu_muc", g.Ds);
+        Assert.DoesNotContain("applocker", g.Ds);          // đã gỡ ở cổng riêng
+        Assert.DoesNotContain("tra_quyen", g.Ds);          // đã trả ở bước riêng
+        foreach (var b in new[] { "khay", "thong_bao", "muc_ung_dung", "xoa_cau_hinh" }) Assert.Contains(b, g.Ds);
     }
 
     [Fact]
-    public async Task MatMang_ChuaGo_DeLanSauNhanLaiLenh()
+    public void TuSetup_DungDichVu_GoAppLockerCong_TraQuyenTruocXoaCauHinh_XoaHetThiKhongHen()
     {
         var g = new SoGhi();
-        var api = new Api(g) { Loi = new ApiException("mất mạng") };
-        Assert.False(await new CommandProcessor(new Uninstaller(g)).ProcessAsync(Go, api));
-        Assert.Empty(g.Ds);
-        api.Loi = new ApiException("máy chủ lỗi", 503);
-        Assert.False(await new CommandProcessor(new Uninstaller(g)).ProcessAsync(Go, api));
-        Assert.Empty(g.Ds);
-    }
-
-    [Fact]
-    public async Task BaoXongTreo_HetGio_ChuaGo()
-    {
-        var g = new SoGhi();
-        var api = new Api(g) { Treo = true };
-        Assert.False(await new CommandProcessor(new Uninstaller(g), TimeSpan.FromMilliseconds(100)).ProcessAsync(Go, api));
-        Assert.Empty(g.Ds);
-    }
-
-    [Theory]
-    [InlineData(401)]
-    [InlineData(404)]
-    public async Task MayChuDaBoMay_VanGo(int ma)
-    {
-        var g = new SoGhi();
-        Assert.True(await new CommandProcessor(new Uninstaller(g)).ProcessAsync(Go, new Api(g) { Loi = new ApiException("x", ma) }));
-        Assert.Equal(new[] { "go" }, g.Ds);
-    }
-
-    [Fact]
-    public void TuDichVu_KhongTuDungChinhMinh_TatKhoiPhucTruoc_HenDonTachRoi()
-    {
-        var g = new SoGhi();
-        SystemCleanup.Run(new FakeOps(g), tuDichVu: true);
+        var kq = SystemCleanup.Run(new FakeOps(g), tuDichVu: false);
+        Assert.True(kq.AppLockerGo && kq.QuyenAdminTra && kq.Xong);
         Assert.Equal(0, g.Vi("tat_khoi_phuc"));
-        Assert.Equal(1, g.Vi("hen_don"));
-        Assert.DoesNotContain("dung_xoa_dich_vu", g.Ds);
-        Assert.DoesNotContain("xoa_thu_muc", g.Ds);   // exe đang chạy — tác vụ tách rời xoá sau khi dịch vụ thoát
-        foreach (var b in new[] { "applocker", "khay", "thong_bao", "muc_ung_dung", "xoa_cau_hinh" }) Assert.Contains(b, g.Ds);
-    }
-
-    [Fact]
-    public void TuSetup_DungDichVuTruocKhiGoAppLocker_XoaHetThiKhongHen()
-    {
-        var g = new SoGhi();
-        SystemCleanup.Run(new FakeOps(g), tuDichVu: false);
-        Assert.Equal(0, g.Vi("tat_khoi_phuc"));
-        Assert.True(g.Vi("dung_xoa_dich_vu") < g.Vi("applocker"), "dịch vụ còn chạy thì có thể áp lại luật");
+        Assert.True(g.Vi("dung_xoa_dich_vu") < g.Vi("applocker"), "dừng dịch vụ trước ⇒ không áp lại luật ngay sau khi gỡ");
+        Assert.True(g.Vi("tra_quyen") < g.Vi("xoa_cau_hinh"), "trả quyền admin phải TRƯỚC khi xoá cấu hình (cần đọc DaHaQuyen)");
         Assert.True(g.Vi("xoa_cau_hinh") < g.Vi("xoa_thu_muc"));
         Assert.DoesNotContain("hen_don", g.Ds);
 
@@ -232,17 +224,23 @@ public class GoCaiDatTests
         Assert.Equal("hen_don", g2.Ds[^1]);   // còn tệp (Setup đang chạy từ thư mục cài) ⇒ hẹn xoá nốt
     }
 
+    // A (gỡ tại máy): gỡ luật AppLocker HỎNG ⇒ CỔNG chặn: KHÔNG trả quyền / xoá cấu hình / xoá tệp; hẹn tác vụ tách rời (gỡ luật) làm lưới đỡ; báo lỗi rõ.
     [Fact]
-    public void MotBuocLoi_CacBuocSauVanChay_ChayLaiDuoc()
+    public void TuSetup_GoAppLockerLoi_ChanLaiKhongXoaCauHinh_HenTacVuDoPhong()
     {
         var g = new SoGhi();
-        var log = SystemCleanup.Run(new FakeOps(g) { NemLoiO = "applocker" }, tuDichVu: false);
-        Assert.Contains("✗ Gỡ luật AppLocker", log);
-        Assert.Contains("xoa_cau_hinh", g.Ds);
-        Assert.Contains("muc_ung_dung", g.Ds);
+        var kq = SystemCleanup.Run(new FakeOps(g) { NemLoiO = "applocker" }, tuDichVu: false);
+        Assert.False(kq.AppLockerGo);
+        Assert.Contains("✗ Gỡ luật AppLocker", kq.Log);
+        Assert.Contains(SystemCleanup.CanhBaoAppLocker.Split('\n')[0], kq.Log);
+        Assert.DoesNotContain("tra_quyen", g.Ds);
+        Assert.DoesNotContain("xoa_cau_hinh", g.Ds);
+        Assert.DoesNotContain("xoa_thu_muc", g.Ds);
+        Assert.Contains("hen_don", g.Ds);   // lưới đỡ: tác vụ tách rời cũng gỡ luật + dọn
+        // chạy lại khi AppLocker gỡ được ⇒ đi tới cùng
         var lan2 = new SoGhi();
-        SystemCleanup.Run(new FakeOps(lan2), tuDichVu: false);   // chạy lại: cùng các bước, không ném
-        Assert.Equal(g.Ds, lan2.Ds);
+        Assert.True(SystemCleanup.Run(new FakeOps(lan2), tuDichVu: false).AppLockerGo);
+        Assert.Contains("xoa_cau_hinh", lan2.Ds);
     }
 
     private static ConfigStore Store(string dir, AgentConfig? cfg)
@@ -261,11 +259,39 @@ public class GoCaiDatTests
             var g = new SoGhi();
             var store = Store(dir, new AgentConfig { Server = "https://x", Token = "tok" });
             string? tokenDaGui = null;
-            var log = await LocalUninstall.RunAsync(store, (c, ct) => { tokenDaGui = c.Token; g.Ghi("da_go"); return Task.CompletedTask; }, new FakeOps(g));
+            var kq = await LocalUninstall.RunAsync(store, (c, ct) => { tokenDaGui = c.Token; g.Ghi("da_go"); return Task.CompletedTask; }, new FakeOps(g));
             Assert.Equal("tok", tokenDaGui);
+            Assert.True(kq.AppLockerGo && kq.Xong);
             Assert.Equal(0, g.Vi("da_go"));
             Assert.True(g.Vi("da_go") < g.Vi("xoa_cau_hinh"));
-            Assert.Contains("Đã báo máy chủ", log);
+            Assert.Contains("Đã báo máy chủ", kq.Log);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    // B: cài hạ quyền ⇒ lưu DaHaQuyen; gỡ ⇒ TRẢ LẠI quyền (đọc DaHaQuyen) TRƯỚC khi xoá cấu hình. Trả lỗi ⇒ báo rõ (QuyenAdminTra=false).
+    [Fact]
+    public async Task GoTaiMay_TraQuyenAdminTheoCauHinh_TruocKhiXoaCauHinh()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "aii-go-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            const string sid = "S-1-5-21-1-2-3-1001";
+            var store = Store(dir, new AgentConfig { Server = "https://x", Token = "tok",
+                DaHaQuyen = { new QuyenDaHa { Sid = sid, Nhom = "S-1-5-32-544" } } });
+            var ops = new FakeOps(new SoGhi()) { Store = store };
+            var kq = await LocalUninstall.RunAsync(store, (c, ct) => Task.CompletedTask, ops);
+            Assert.True(kq.QuyenAdminTra);
+            Assert.Equal(new[] { sid }, ops.QuyenTra);          // đã trả đúng SID đã hạ (đọc được DaHaQuyen ⇒ trước XoaCauHinh)
+            Assert.Null(store.Load());                          // cấu hình đã xoá sau cùng
+
+            // trả quyền hỏng ⇒ vẫn gỡ nhưng BÁO RÕ (QuyenAdminTra=false) để người gỡ biết
+            var store2 = Store(dir + "-2", new AgentConfig { Server = "https://x", Token = "tok",
+                DaHaQuyen = { new QuyenDaHa { Sid = sid } } });
+            var ops2 = new FakeOps(new SoGhi()) { Store = store2, NemLoiO = "tra_quyen" };
+            var kq2 = await LocalUninstall.RunAsync(store2, (c, ct) => Task.CompletedTask, ops2);
+            Assert.False(kq2.QuyenAdminTra);
+            Assert.True(kq2.AppLockerGo && kq2.Xong);
         }
         finally { try { Directory.Delete(dir, true); } catch { } }
     }
@@ -278,13 +304,13 @@ public class GoCaiDatTests
         {
             var g = new SoGhi();
             var store = Store(dir, new AgentConfig { Server = "https://x", Token = "tok" });
-            var log = await LocalUninstall.RunAsync(store, (c, ct) => throw new ApiException("mất mạng"), new FakeOps(g));
-            Assert.Contains("Chưa báo được máy chủ", log);
+            var kq = await LocalUninstall.RunAsync(store, (c, ct) => throw new ApiException("mất mạng"), new FakeOps(g));
+            Assert.Contains("Chưa báo được máy chủ", kq.Log);
             Assert.Contains("xoa_cau_hinh", g.Ds);
             // token đã bị thu hồi (máy đã rời gia đình) ⇒ coi như đã báo
             var g2 = new SoGhi();
-            var log2 = await LocalUninstall.RunAsync(store, (c, ct) => throw new ApiException("token_sai", 401), new FakeOps(g2));
-            Assert.Contains("không còn trong gia đình", log2);
+            var kq2 = await LocalUninstall.RunAsync(store, (c, ct) => throw new ApiException("token_sai", 401), new FakeOps(g2));
+            Assert.Contains("không còn trong gia đình", kq2.Log);
             // chưa ghép / đã gỡ rồi ⇒ không gọi máy chủ, vẫn dọn
             var g3 = new SoGhi();
             await LocalUninstall.RunAsync(Store(dir + "-trong", null), (c, ct) => { g3.Ghi("da_go"); return Task.CompletedTask; }, new FakeOps(g3));
@@ -294,8 +320,9 @@ public class GoCaiDatTests
         finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
+    // A: tác vụ dọn tách rời (SYSTEM) cũng GỠ LUẬT APPLOCKER của mình, và CHỈ tự huỷ khi hết luật + hết tệp.
     [Fact]
-    public void KichBanDon_ChoDichVuDung_XoaDichVu_TuXoaTacVu()
+    public void KichBanDon_GoAppLocker_ChoDichVuDung_ChiTuXoaKhiSachLuatVaTep()
     {
         var k = SystemCleanup.KichBanDonTachRoi("AiiGrowService", @"C:\Program Files\AiiGrow", @"C:\ProgramData\Ai'iGrow", AppsEntry.Key);
         Assert.Contains("Status -eq 'Stopped'", k);
@@ -304,6 +331,10 @@ public class GoCaiDatTests
         Assert.Contains(@"'C:\ProgramData\Ai''iGrow'", k);   // nháy đơn được thoát
         Assert.Contains(@"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow", k);
         Assert.True(k.IndexOf("Stop-Service") < k.IndexOf("sc.exe delete"));
-        Assert.Contains("Unregister-ScheduledTask -TaskName 'AiiGrow-Dontay'", k);
+        // gỡ luật AppLocker của AiiGrow (theo tiền tố) + chỉ tự huỷ khi sạch luật VÀ sạch tệp
+        Assert.Contains("Get-AppLockerPolicy -Local -Xml", k);
+        Assert.Contains("Set-AppLockerPolicy", k);
+        Assert.Contains("'AiiGrow: '", k);
+        Assert.Contains("if($luatSach -and $tepSach){ Unregister-ScheduledTask -TaskName 'AiiGrow-Dontay'", k);
     }
 }

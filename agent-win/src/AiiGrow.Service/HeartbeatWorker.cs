@@ -78,15 +78,20 @@ public sealed class HeartbeatWorker : BackgroundService
             }
             catch (ApiException e) when (e.IsUnauthorized)
             {
-                // Token thiết bị không còn hợp lệ. KHÔNG tự gỡ (tránh gỡ nhầm do lỗi thoáng qua), nhưng FAIL-OPEN: bị từ chối liên tục
-                // quá MoCoi.Nguong (6 giờ) ⇒ về giám sát, gỡ luật AppLocker, thôi áp Policy cuối (AgentWorker làm). Vẫn thử đồng bộ tiếp.
-                var now = DateTimeOffset.UtcNow;
-                if (_rt != null) _rt.GhiTuChoi(now); else Save(c => MoCoi.GhiTuChoi(c, now));
-                _log.LogWarning("Token thiết bị bị từ chối — chờ lệnh gỡ hoặc ghép lại; quá {h} giờ liên tục thì thôi chặn", MoCoi.GioNguong);
+                // CHỈ 401 token_sai (máy đã bị gỡ khỏi gia đình) mới tính vào mốc mồ côi 6 giờ — 403 lạ (tường lửa/CDN) coi như lỗi thoáng qua.
+                // FAIL-OPEN: bị từ chối liên tục quá MoCoi.Nguong ⇒ về giám sát, gỡ luật AppLocker, thôi áp Policy cuối (AgentWorker làm). Vẫn thử đồng bộ tiếp.
+                if (e.LaTokenSai)
+                {
+                    var now = DateTimeOffset.UtcNow;
+                    if (_rt != null) _rt.GhiTuChoi(now); else Save(c => MoCoi.GhiTuChoi(c, now));
+                    _log.LogWarning("Token thiết bị bị từ chối (token_sai) — chờ lệnh gỡ hoặc ghép lại; quá {h} giờ liên tục thì thôi chặn", MoCoi.GioNguong);
+                }
+                else _log.LogWarning("Máy chủ trả {code} — chạy offline, KHÔNG tính mồ côi", e.StatusCode);
                 return 120;
             }
             _online = true;
-            if (cfg.TuChoiTu != null) { try { _store.UpdateIf(MoCoi.GhiThanhCong); } catch { } }
+            // Đồng bộ được ⇒ ghi mốc liên lạc (fail-open 14 ngày tính từ đây) và xoá mốc từ chối nếu có.
+            try { _store.UpdateIf(c => MoCoi.GhiThanhCong(c, DateTimeOffset.UtcNow)); } catch { }
 
             // Gỡ từ xa: máy chủ trả lenh "go". Báo xong TRƯỚC rồi mới gỡ (CommandProcessor); trong lúc đó vòng thực thi đứng yên.
             if (sync.LenhGo != null && _rt != null) _rt.DangGo = true;

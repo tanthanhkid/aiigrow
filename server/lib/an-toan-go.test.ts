@@ -173,9 +173,28 @@ test("gỡ tại máy: POST device/da-go (Bearer) ⇒ máy rời gia đình như
   assert.deepEqual((await dv(`lenh/${l.id}/xong`, { tok: may.token, body: {} })).body, { ok: true, lapLai: true });
   const ev = await q<{ chi_tiet: any }>(`select chi_tiet from events where family_id = $1 and loai = 'go_may'`, [fam]);
   assert.deepEqual(ev.map((e) => e.chi_tiet.cach), ["tai_may"]);
-  assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'go_may'`, [fam])).length, 1);
+  // gỡ tại máy = mức chu_y (ai có admin gỡ tại máy mà Ba Mẹ không biết thì nên thấy rõ), không phải thong_tin lặng lẽ
+  assert.deepEqual((await q<{ muc: string }>(`select muc from alerts where family_id = $1 and loai = 'go_may'`, [fam])).map((a) => a.muc), ["chu_y"]);
   // máy chưa có lệnh gỡ cũng gỡ tại máy được
   const may2 = await ghep(fam, con, "PC 2");
   assert.deepEqual((await dv("da-go", { tok: may2.token, body: {} })).body, { ok: true });
   assert.equal((await q(`select 1 from devices where id = $1`, [may2.deviceId])).length, 0);
+});
+
+test("gỡ từ xa gặp lỗi: agent báo sự kiện go_loi_applocker / quyen_admin_loi ⇒ Ba Mẹ thấy cảnh báo mức chu_y, máy CHƯA bị xoá", async () => {
+  const { fam, con } = await nha();
+  const may = await ghep(fam, con);
+  await dv("dong-bo", { tok: may.token, body: {} });
+  const ds = [
+    { ma: "e-applocker", loai: "go_loi_applocker", luc: new Date().toISOString(), chiTiet: {} },
+    { ma: "e-quyen", loai: "quyen_admin_loi", luc: new Date().toISOString(), chiTiet: {} },
+  ];
+  assert.deepEqual((await dv("su-kien", { tok: may.token, body: { ds } })).body, { nhan: 2 });
+  const al = await q<{ loai: string; muc: string }>(
+    `select loai, muc from alerts where family_id = $1 and loai in ('may_go_loi_applocker','may_quyen_admin_loi') order by loai`, [fam]);
+  assert.deepEqual(al, [{ loai: "may_go_loi_applocker", muc: "chu_y" }, { loai: "may_quyen_admin_loi", muc: "chu_y" }]);
+  // báo lỗi gỡ KHÔNG xoá máy — máy còn trong gia đình để lần sau thử lại
+  assert.equal((await q(`select 1 from devices where id = $1`, [may.deviceId])).length, 1);
+  // gửi lại cùng ma ⇒ không ghi trùng
+  assert.deepEqual((await dv("su-kien", { tok: may.token, body: { ds } })).body, { nhan: 0 });
 });

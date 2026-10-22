@@ -45,7 +45,8 @@ internal static class Installer
     public static async Task RunAsync(InstallOptions o, Action<int, string?> step)
     {
         var pair = o.Paired ?? await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
-        new ConfigStore().Save(new AgentConfig
+        var store = new ConfigStore();
+        store.Save(new AgentConfig
         {
             Server = pair.Server ?? o.Server,
             DeviceId = pair.DeviceId,
@@ -54,10 +55,16 @@ internal static class Installer
             DungChung = pair.DungChung,
             ChildUser = o.Child.Name,
             ChildSid = o.Child.Sid,
+            LienLacCuoi = DateTimeOffset.UtcNow,   // mốc fail-open 14 ngày tính từ lúc cài (chưa sync được lần nào vẫn có mốc)
         });
         step(0, null);
 
-        if (o.Child.IsAdmin && !string.IsNullOrEmpty(o.Child.Sid)) Accounts.Demote(o.Child.Sid);
+        if (o.Child.IsAdmin && !string.IsNullOrEmpty(o.Child.Sid))
+        {
+            Accounts.Demote(o.Child.Sid);
+            // GHI LẠI tài khoản đã bị hạ + nhóm (Administrators) để TRẢ LẠI khi gỡ — không để Con mất quyền admin vĩnh viễn sau khi gỡ AiiGrow.
+            store.Update(c => c.DaHaQuyen.Add(new QuyenDaHa { Sid = o.Child.Sid, Nhom = "S-1-5-32-544" }));
+        }
         step(1, null);
 
         InstallFilesAndService();
@@ -123,7 +130,7 @@ internal static class Installer
 
     /// <summary>Gỡ hoàn toàn tại máy: báo máy chủ «đã gỡ tại máy» (POST /api/device/da-go) TRƯỚC khi xoá token, rồi gỡ sạch
     /// (cùng lõi <see cref="SystemCleanup"/> với gỡ từ xa). Chạy lại được nhiều lần.</summary>
-    public static Task<string> UninstallAsync() => LocalUninstall.RunAsync(new ConfigStore(), async (cfg, ct) =>
+    public static Task<KetQuaGo> UninstallAsync() => LocalUninstall.RunAsync(new ConfigStore(), async (cfg, ct) =>
     {
         using var api = new HeartbeatClient(cfg.Server, cfg.Token);
         await api.DaGoAsync(ct);

@@ -176,7 +176,8 @@ export async function daGoTaiMay(may: Pick<May, "id" | "family_id" | "child_id" 
   await q(`update lenh_may set trang_thai = 'huy' where device_id = $1 and trang_thai = 'cho'`, [may.id]);
   await q(`delete from devices where id = $1`, [may.id]);
   await ghiSuKien(may.family_id, "go_may", { ten: may.name, cach: "tai_may", coLenhCho: cho.length > 0 }, { con: may.child_id, may: may.id });
-  await canhBao(may.family_id, "go_may", "thong_tin", `Đã gỡ AiiGrow khỏi ${may.name} (gỡ tại máy)`, { con: may.child_id, may: may.id, khoa: `go_tai_may:${may.id}` });
+  // chu_y: ai đó có quyền quản trị đã gỡ AiiGrow ngay tại máy — Ba Mẹ nên biết (không chỉ là thông tin lặng lẽ).
+  await canhBao(may.family_id, "go_may", "chu_y", `Đã gỡ AiiGrow khỏi ${may.name} (gỡ tại máy)`, { con: may.child_id, may: may.id, khoa: `go_tai_may:${may.id}` });
   return { ok: true };
 }
 

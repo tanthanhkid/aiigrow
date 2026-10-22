@@ -58,6 +58,10 @@ public sealed class AgentWorker : BackgroundService
                     // Chế độ GIÁM SÁT (mặc định, Ba Mẹ chọn trên app, hoặc máy mồ côi): chỉ ghi log việc SẼ chặn/khoá, không áp thật.
                     bool apThat = CheDoHieuLuc.LaChan(cheDo);
 
+                    // Đua AgentWorker ↔ gỡ từ xa: lệnh «go» có thể tới (HeartbeatWorker đặt DangGo) SAU chỗ kiểm đầu vòng, ngay trước khi áp luật.
+                    // Kiểm lại DangGo NGAY TRƯỚC khi áp AppLocker / enforcement để không áp lại luật vào đúng lúc đang gỡ (tránh luật «dính» lại sau khi gỡ).
+                    if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }
+
                     var p = _rt.CurrentPolicy;
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
                     if (!apThat || p == null || eff == null)
@@ -129,10 +133,10 @@ public sealed class AgentWorker : BackgroundService
         {
             _rt.Usage.Restore(usage);
             _rt.SetOffline(true);
-            if (e is ApiException { IsUnauthorized: true })
+            if (e is ApiException { LaTokenSai: true })
             {
                 _rt.GhiTuChoi(DateTimeOffset.Now);
-                _log.LogError("Token máy bị từ chối (máy bị gỡ khỏi gia đình?) — quá {h} giờ liên tục thì AiiGrow tự thôi chặn", MoCoi.GioNguong);
+                _log.LogError("Token máy bị từ chối (token_sai — máy bị gỡ khỏi gia đình?) — quá {h} giờ liên tục thì AiiGrow tự thôi chặn", MoCoi.GioNguong);
             }
             else _log.LogWarning("Sync lỗi, chạy theo policy cuối: {m}", e.Message);
             return DateTimeOffset.Now.AddSeconds(30);

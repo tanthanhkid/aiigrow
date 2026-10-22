@@ -62,9 +62,21 @@ internal static class Program
     {
         if (!silent && MessageBox.Show("Gỡ AiiGrow khỏi máy này?", "AiiGrow", MessageBoxButtons.YesNo) != DialogResult.Yes)
             return 0;
-        var log = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();
-        WriteLog(log);
-        if (!silent) MessageBox.Show(log, "AiiGrow");
+        var kq = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();
+        WriteLog(kq.Log);
+        // Chưa gỡ được luật chặn (AppLocker) ⇒ BÁO LỖI RÕ RÀNG, KHÔNG coi là thành công: máy Con vẫn còn luật chặn nếu bỏ qua.
+        if (!kq.AppLockerGo)
+        {
+            if (!silent) MessageBox.Show(kq.Log, "AiiGrow — CHƯA gỡ xong", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return 5;
+        }
+        if (!kq.QuyenAdminTra)
+        {
+            if (!silent) MessageBox.Show(kq.Log + "\n\nLƯU Ý: chưa trả lại được quyền quản trị cho tài khoản của Con — hãy thêm tay vào nhóm Administrators.",
+                "AiiGrow — đã gỡ, còn một việc", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return 6;
+        }
+        if (!silent) MessageBox.Show(kq.Log, "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return 0;
     }
 

@@ -118,6 +118,7 @@ public static class OneTouch
         Token = res.Token,
         ChildName = res.ChildName,
         DungChung = res.DungChung,
+        LienLacCuoi = DateTimeOffset.UtcNow,   // mốc fail-open 14 ngày tính từ lúc cài
     };
 }
 

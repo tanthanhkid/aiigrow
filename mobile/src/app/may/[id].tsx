@@ -116,7 +116,8 @@ export default function AnToanMay() {
       {win ? (
         <View style={{ gap: 8 }}>
           <Chu kieu="rat" co={14}>Chế độ trên máy</Chu>
-          {d.xem ? <Chu mau={M.chu2}>{m.cheDo ? TEN_CHE_DO[m.cheDo] : "Chưa biết"} (bạn đang ở quyền Chỉ xem)</Chu>
+          {dangGo ? <Chu mau={M.chu2}>{m.cheDoMay ? TEN_CHE_DO[m.cheDoMay] : "Giám sát"} — tạm khoá vì máy đang được gỡ</Chu>
+            : d.xem ? <Chu mau={M.chu2}>{m.cheDo ? TEN_CHE_DO[m.cheDo] : "Chưa biết"} (bạn đang ở quyền Chỉ xem)</Chu>
             : <ChonMot<CheDoMay | ""> ds={CHE_DO} gia={m.cheDo ?? ""} doi={(v) => { if (v) doiCheDo(v); }} />}
           {m.cheDo ? <Chu co={13.5} mau={M.chu2}>{GIAI_CHE_DO[m.cheDo]}</Chu> : null}
           <Chu co={13} mau={M.chu3}>{dongCheDo(m)}</Chu>
