@@ -8,9 +8,9 @@ import { LoiNghiepVu } from "./loi.ts";
 import { one } from "./db.ts";
 import { conTuPhien, dangNhapPin, ghepMay, mayTuToken } from "./gia-dinh.ts";
 import { dongBo } from "./may-con.ts";
-import { biMatOfflineMay } from "./tuan-thu.ts";
+import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } from "./may-con.ts";
-import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
+import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
 import { guiYeuCau } from "./yeu-cau.ts";
 import { dsCon } from "./gia-dinh.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
@@ -54,7 +54,11 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
       // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
       const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"));
-      return json({ ...pol, lenh, windows: chinhSachWindows(pol, biMatOffline ?? undefined, cheDo) });
+      // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
+      const moDen = may.platform === "windows" ? await hanMoCuaMay(may, con) : null;
+      const conThuong = may.platform === "windows" && con ? await thuongConLai(con) : 0;
+      const windows = chinhSachWindows(pol, biMatOffline ?? undefined, cheDo, { moDen, conThuong });
+      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows });
     }
     if (d === "nhip") return json(await nhipMay(may, con, b));
     // Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng / Setup --uninstall): bộ gỡ báo về trước khi xoá token ⇒ máy rời gia đình như gỡ từ xa

@@ -45,7 +45,7 @@ export async function nhaTre(c: ConTre, now = new Date()) {
   const tu = dauNgayUtc(g.ngay, f.tz);
   const r = (await one<{ choi: number; thuong: number }>(
     `select coalesce((select sum(phut_dung) from play_sessions where child_id = $1 and bat_dau >= $2), 0)::int as choi,
-            coalesce((select sum(phut) from grants where child_id = $1 and ngay = $3), 0)::int as thuong`, [c.id, tu, g.ngay]))!;
+            coalesce((select sum(phut) from grants where child_id = $1 and ngay = $3 and cua_so_den is null), 0)::int as thuong`, [c.id, tu, g.ngay]))!;
   const nghi = await one<{ nghi_den: Date }>(`select nghi_den from play_sessions where child_id = $1 and nghi_den > $2 order by nghi_den desc limit 1`, [c.id, now]);
   const vi = await tomTatVi(c.id);
   const nv = await nvCuaCon(c.id, now);

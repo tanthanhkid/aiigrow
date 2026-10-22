@@ -87,6 +87,28 @@ public sealed class AgentStatus
     public string CheDo { get; set; } = CheDoAgent.GiamSat;
     /// <summary>AiiGrow: token bị từ chối lâu ⇒ đã thôi chặn (fail-open). Máy chủ thường không nhận được trường này (token sai) — để ghi log.</summary>
     public bool MoCoi { get; set; }
+    /// <summary>AiiGrow: các «quyền bảo vệ» agent đang có (true) / còn thiếu (false) — máy chủ tính «Mức bảo vệ» trên app Ba Mẹ từ đây (server/lib/gia-dinh.ts › chiTietBaoVe).
+    /// Khoá: dichVu (dịch vụ chạy — luôn true khi đang gửi), khay (khay chạy khi Con đang đăng nhập), chanThat (Ba Mẹ/ cấu hình đã bật «chan»),
+    /// appLocker (luật AppLocker đã áp — chỉ báo khi cần: chế độ chặn + mode «hoc»). Thiếu khoá = không áp dụng.</summary>
+    public Dictionary<string, bool> Quyen { get; set; } = new();
+}
+
+/// <summary>Tính <see cref="AgentStatus.Quyen"/> từ trạng thái thật (thuần, test được).</summary>
+public static class QuyenBaoVe
+{
+    public static Dictionary<string, bool> Tinh(string cheDo, bool moCoi, string mode, bool appLockerApplied, bool trayAlive, bool childSessionActive)
+    {
+        bool chan = CheDoHieuLuc.LaChan(cheDo) && !moCoi;
+        var q = new Dictionary<string, bool>
+        {
+            ["dichVu"] = true,
+            // Khay chỉ chạy khi Con đang đăng nhập — Con chưa đăng nhập thì không tính là thiếu.
+            ["khay"] = trayAlive || !childSessionActive,
+            ["chanThat"] = chan,
+        };
+        if (chan && mode == Modes.Hoc) q["appLocker"] = appLockerApplied;
+        return q;
+    }
 }
 
 /// <summary>Mã QR ghép máy (POST /api/device/ghep-qr). Máy con hiện <see cref="Qr"/>, giữ <see cref="Bi"/> để hỏi kết quả — Bi không nằm trong QR.</summary>
