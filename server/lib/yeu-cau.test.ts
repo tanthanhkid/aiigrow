@@ -21,7 +21,7 @@ test("BRD 6.4: xin mở scratch.mit.edu «Để làm bài tập» ⇒ Ba Mẹ đ
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   const r = await yc.guiYeuCau(con, "may1", { loai: "mo_web", giaTri: "https://scratch.mit.edu/projects/1", lyDo: "Để làm bài tập" }, T);
-  assert.equal((await yc.dsChoYc(fam))[0].gia_tri, "scratch.mit.edu");
+  assert.equal((await yc.dsChoYc(fam, T))[0].gia_tri, "scratch.mit.edu");
   await yc.dongY(fam, r.id, bm, { phanLoai: "hoc", phamVi: "vinh_vien" }, T);
   assert.equal((await la.phanLoai(fam, con, "scratch.mit.edu")).loai, "hoc");
   await loi(yc.dongY(fam, r.id, bm, {}, T), "da_xu_ly");
@@ -40,9 +40,9 @@ test("giới hạn 3 đang chờ / 10 mỗi ngày; huỷ được; hết hạn s
   await loi(yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, T), "thieu_ly_do");
   const nha2 = await taoNha("Hoa");
   await loi(yc.dongY(nha2.fam, ids[1], bm, { truDiem: false }, T), "khong_thay");
-  await yc.tuChoiYc(fam, ids[1], bm, "Hôm nay chơi đủ rồi");
+  await yc.tuChoiYc(fam, ids[1], bm, "Hôm nay chơi đủ rồi", T);
   await loi(yc.dongY(fam, ids[1], ba, {}, T), "da_xu_ly");
-  await q(`update requests set het_han = now() - interval '1 minute' where id = $1`, [ids[2]]);
+  await q(`update requests set het_han = $2 where id = $1`, [ids[2], new Date(T.getTime() - 60000)]);
   await loi(yc.dongY(fam, ids[2], bm, {}, T), "het_han");
   for (let i = 0; i < 7; i++) { const x = await yc.guiYeuCau(con, null, { loai: "khac", giaTri: "x", lyDo: "y" }, T); await yc.huyYeuCau(con, x.id); }
   await loi(yc.guiYeuCau(con, null, { loai: "khac", giaTri: "x", lyDo: "y" }, T), "qua_nhieu_ngay");
@@ -140,4 +140,25 @@ test("thêm giờ cho lời xin từ máy WINDOWS ⇒ cửa sổ mở tới hạ
   await yc.dongY(fam, yd.id, bm, { truDiem: false, phut: 20 }, T);
   assert.equal(await ph.thuongConLai(c2, T), 20);
   assert.equal(await tt.hanMoCuaMay((await g.mayTuToken(dt.token))!, c2, T), null);
+});
+
+test("Windows: «Khoá lại ngay» đóng cả cửa sổ thêm giờ đã duyệt; mở khẩn cấp rồi tắt máy lâu KHÔNG thành «ngoài vòng»", async () => {
+  const tt = await import("./tuan-thu.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Phi" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "PC của Phi");
+  const may = (await g.mayTuToken(r.token))!;
+  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 60, lyDo: "Làm bài" }, T);
+  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 60 }, T);
+  assert.ok(await tt.hanMoCuaMay(may, con, T));
+  assert.equal((await tt.dsTuanThu(fam, T)).find((x) => x.id === may.id)?.moDen, new Date(T.getTime() + 60 * 60000).toISOString());
+  await tt.huyMoKhanCap(fam, may.id, bm, T);
+  assert.equal(await tt.hanMoCuaMay(may, con, T), null, "Khoá lại ngay ⇒ hết mở");
+  // mở khẩn cấp (tạo dòng tuan_thu_may) rồi im 60' ⇒ không cảnh báo, không khoá giải trí
+  await tt.moKhanCap(fam, may.id, { phut: 30 }, bm, T);
+  const sau = new Date(T.getTime() + 60 * 60000);
+  assert.deepEqual(await tt.quetMatNhip(fam, sau), []);
+  const t1 = (await tt.dsTuanThu(fam, sau)).find((x) => x.id === may.id)!;
+  assert.equal(t1.trangThai, "chua_co_nhip");
+  assert.equal(t1.khoaGiaiTri, false);
 });

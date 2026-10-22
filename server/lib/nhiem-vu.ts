@@ -105,9 +105,9 @@ async function tz(fam: string, t: Q = q) {
 /** Số lượt đã nộp (đang chờ / được duyệt / cần bổ sung) hôm nay và tuần này của Con cho một nhiệm vụ — theo giờ gia đình. */
 async function demLuot(t: Q, con: string, task: string, tzg: string, now = new Date()) {
   const ngay = gioDiaPhuong(now, tzg).ngay;
-  const r = (await t<{ ngay: number; tuan: number; tong: number }>(
+  const r = (await t<{ ngay: number; tuan: number; tong: number; moi_luc: number }>(
     `select count(*) filter (where nop_luc >= $3)::int as ngay, count(*) filter (where nop_luc >= $4)::int as tuan,
-            count(*) filter (where trang_thai = 'duoc_duyet')::int as tong
+            count(*) filter (where trang_thai = 'duoc_duyet')::int as tong, count(*)::int as moi_luc
      from submissions where child_id = $1 and task_id = $2 and trang_thai in ('cho_duyet', 'duoc_duyet', 'can_bo_sung')`,
     [con, task, dauNgayUtc(ngay, tzg), dauNgayUtc(dauTuan(ngay), tzg)]))[0];
   return r;
@@ -134,6 +134,8 @@ export async function nvCuaCon(con: string, now = new Date()): Promise<NvCuaCon[
     let tt: NvCuaCon["trang_thai_con"] = "san_sang";
     if (nv.kieu === "mot_lan" && d.tong > 0) tt = "da_xong";
     else if (dang) tt = dang.trang_thai as NvCuaCon["trang_thai_con"];
+    // «một lần» đã nộp, đang chờ Ba Mẹ duyệt ⇒ không còn «Nhận việc» (dùng giá trị khay 0.2.0/0.2.1 đã biết)
+    else if (nv.kieu === "mot_lan" && d.moi_luc > 0) tt = "du_hom_nay";
     else if (nv.toi_da_ngay && d.ngay >= nv.toi_da_ngay) tt = "du_hom_nay";
     else if (nv.toi_da_tuan && d.tuan >= nv.toi_da_tuan) tt = "du_tuan";
     if (tt !== "da_xong") ra.push({ ...nv, trang_thai_con: tt, luot_dang: dang?.id ?? null, hom_nay: d.ngay, dang_cho: cho });
@@ -152,7 +154,7 @@ export async function batDau(con: string, taskId: string) {
     const dang = (await t<{ id: string }>(`select id from submissions where child_id = $1 and task_id = $2 and trang_thai in ('dang_lam', 'can_bo_sung')`, [con, taskId]))[0];
     if (dang) return dang.id;
     const d = await demLuot(t, con, taskId, await tz(fam, t));
-    if (nv.kieu === "mot_lan" && (d.tong > 0 || d.ngay + d.tuan > 0)) throw new LoiNghiepVu("da_xong", "Con đã làm nhiệm vụ này rồi", 409);
+    if (nv.kieu === "mot_lan" && d.moi_luc > 0) throw new LoiNghiepVu("da_xong", "Con đã làm nhiệm vụ này rồi", 409);
     if (nv.toi_da_ngay && d.ngay >= nv.toi_da_ngay) throw new LoiNghiepVu("du_hom_nay", "Hôm nay đã đủ, mai làm tiếp nhé", 409);
     if (nv.toi_da_tuan && d.tuan >= nv.toi_da_tuan) throw new LoiNghiepVu("du_tuan", "Tuần này đã đủ, tuần sau làm tiếp nhé", 409);
     const id = newId();

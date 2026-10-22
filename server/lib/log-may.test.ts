@@ -21,10 +21,10 @@ async function goi(duong: string, o: { tok?: string; body?: unknown } = {}) {
 }
 
 async function mayMoi() {
-  const { fam } = await taoNha();
+  const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   const ghep = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop của Ken");
-  return { fam, con, tok: ghep.token, mayId: ghep.deviceId };
+  return { fam, bm, con, tok: ghep.token, mayId: ghep.deviceId };
 }
 
 test("máy gửi log, Ba Mẹ đọc mới nhất trước, lọc theo mức; gia đình khác bị từ chối; không token ⇒ 401", async () => {
@@ -62,6 +62,29 @@ test("lời xin gửi từ màn chặn: hỏi lại trạng thái được, máy
   const st = await goi(`yeu-cau/${yc.body.id}`, { tok });
   assert.equal(st.status, 200);
   assert.equal(st.body.status, "cho");
+  assert.equal(yc.body.status, "cho", "POST trả status cho RequestResult của khay");
   const khac = await mayMoi();
   assert.equal((await goi(`yeu-cau/${yc.body.id}`, { tok: khac.tok })).status, 404);
+});
+
+test("lời xin từ máy được Ba Mẹ đồng ý ⇒ khay nhận «duoc» (từ khay 0.2.0/0.2.1 hiểu); gán Con cho máy dùng chung", async () => {
+  const yc = await import("./yeu-cau.ts");
+  const { fam, bm, tok } = await mayMoi();
+  const r = await goi("yeu-cau", { tok, body: { loai: "them_gio", phut: 30, lyDo: "Làm bài" } });
+  await yc.dongY(fam, r.body.id, bm, { truDiem: false, phut: 30 });
+  const st = await goi(`yeu-cau/${r.body.id}`, { tok });
+  assert.equal(st.body.status, "duoc");
+  assert.equal(st.body.trangThai, "dong_y");
+  // máy dùng chung (mã không gắn Con) ⇒ ghép trả childName null; Ba Mẹ gán Con ⇒ máy thành của Con
+  const n = await taoNha();
+  const con = await g.taoCon(n.fam, { ten: "Phi" });
+  const ghep = await g.ghepMay(await g.taoMaGhep(n.fam, null, "windows"), "windows", "PC chung");
+  assert.equal(ghep.dungChung, true);
+  assert.equal(ghep.childName, null);
+  await assert.rejects(g.ganConMay(n.fam, ghep.deviceId, "khong-co"), (e: { ma?: string }) => !!e.ma);
+  await g.ganConMay(n.fam, ghep.deviceId, con);
+  const may = (await g.mayTuToken(ghep.token))!;
+  assert.equal(may.child_id, con);
+  assert.equal(may.dung_chung, false);
+  assert.equal((await goi("hoc-vien/tong-quan", { tok: ghep.token })).status, 200);
 });

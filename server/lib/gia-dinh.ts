@@ -99,8 +99,21 @@ export async function ghepMay(code: string, platform: string, tenMay: string) {
       [id, m.child_id, m.family_id, platform, String(tenMay ?? "").trim().slice(0, 80) || TEN_NEN_TANG[platform], sha(token), !m.child_id]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
     await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenMay }, { con: m.child_id, may: id }, t);
-    return { deviceId: id, token, dungChung: !m.child_id };
+    // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu)
+    const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten ?? null : null;
+    return { deviceId: id, token, dungChung: !m.child_id, childName: ten };
   });
+}
+
+/** Ba Mẹ gán Con cho máy (máy «dùng chung» ⇒ máy riêng của Con, hoặc đổi Con dùng máy). Máy nhận luật của Con ở lần đồng bộ kế. */
+export async function ganConMay(fam: string, mayId: string, con: unknown, nguoi?: string) {
+  const c = String(con ?? "").trim();
+  if (!c) throw new LoiNghiepVu("thieu_con", "Chọn Con dùng máy này");
+  await conCua(fam, c);
+  const r = await q<{ id: string }>(`update devices set child_id = $2, dung_chung = false where id = $1 and family_id = $3 returning id`, [mayId, c, fam]);
+  if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+  await ghiSuKien(fam, "gan_con_may", {}, { con: c, may: mayId, nguoi });
+  return { ok: true };
 }
 
 export const mayTuToken = (token: string) => one<May>(`select * from devices where token_hash = $1`, [sha(token)]);
@@ -123,6 +136,7 @@ const MO_TA_QUYEN: Record<string, { ten: string; cach: string }> = {
   chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang ở chế độ Giám sát (chỉ ghi lại, chưa chặn). Mở app Ba Mẹ › Cài đặt › An toàn thiết bị › chọn máy › «Chặn thật»." },
   appLocker: { ten: "Khoá app «Chỉ app học» (AppLocker)", cach: "Windows chưa áp được luật chặn app: cần Windows Pro/Enterprise/Education và dịch vụ AiiGrow chạy bằng quyền quản trị — cài lại bằng «Run as administrator»." },
   dich_vu: { ten: "Dịch vụ AiiGrow", cach: "Cài lại AiiGrow bằng quyền quản trị." },
+  phienCon: { ten: "Máy đang dùng tài khoản Windows khác (không phải của Con)", cach: "Lúc đó AiiGrow không chặn, không đếm giờ. Đăng xuất tài khoản đang dùng, để Con đăng nhập tài khoản Windows của mình." },
 };
 
 /** `status.quyen` agent báo; máy cũ (agent-win trước khi có `quyen`) chỉ gửi trạng thái thô ⇒ suy ra từ đó thay vì coi như «chưa báo». */

@@ -18,8 +18,8 @@ const PHUT_THEM = [15, 30, 60];
 type Yc = { id: string; child_id: string; device_id: string | null; loai: LoaiYc; phut: number | null; gia_tri: string | null; ly_do: string;
   trang_thai: string; het_han: Date; created_at: Date };
 
-async function hetHanCu(t: Q, con: string) {
-  await t(`update requests set trang_thai = 'het_han', xu_ly_luc = now() where child_id = $1 and trang_thai = 'cho' and het_han <= now()`, [con]);
+async function hetHanCu(t: Q, con: string, now: Date) {
+  await t(`update requests set trang_thai = 'het_han', xu_ly_luc = $2 where child_id = $1 and trang_thai = 'cho' and het_han <= $2`, [con, now]);
 }
 
 export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: unknown; phut?: unknown; giaTri?: unknown; lyDo?: unknown }, now = new Date()) {
@@ -33,7 +33,7 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
-    await hetHanCu(t, con);
+    await hetHanCu(t, con, now);
     const f = (await t<{ tz: string; cau_hinh: Record<string, unknown> }>(`select tz, cau_hinh from families where id = $1`, [fam]))[0];
     const c = (await t<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))[0];
     const ts = thamSo(f.cau_hinh, c.cau_hinh);
@@ -56,12 +56,12 @@ export async function huyYeuCau(con: string, id: string) {
   if (!r.length) throw new LoiNghiepVu("da_xu_ly", "Yêu cầu này đã được xử lý", 409);
 }
 
-async function layYc(t: Q, fam: string, id: string) {
+async function layYc(t: Q, fam: string, id: string, now: Date) {
   const r = (await t<Yc & { ten_con: string }>(
     `select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2 for update of r`, [id, fam]))[0];
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy yêu cầu", 404);
-  if (r.trang_thai === "cho" && new Date(r.het_han) <= new Date()) {
-    await t(`update requests set trang_thai = 'het_han', xu_ly_luc = now() where id = $1`, [id]);
+  if (r.trang_thai === "cho" && new Date(r.het_han) <= now) {
+    await t(`update requests set trang_thai = 'het_han', xu_ly_luc = $2 where id = $1`, [id, now]);
     throw new LoiNghiepVu("het_han", "Yêu cầu đã hết hạn", 409);
   }
   if (r.trang_thai !== "cho") throw new LoiNghiepVu("da_xu_ly", "Yêu cầu này đã được xử lý (có thể người khác trong nhà đã trả lời)", 409);
@@ -80,7 +80,7 @@ export type DongY = { truDiem?: boolean; phut?: number; phanLoai?: "hoc" | "giai
 /** Ba Mẹ đồng ý. Thêm giờ: «Trừ điểm» (Con phải đủ điểm) hoặc «Ngoại lệ — không trừ»; web/app: phân loại + phạm vi. Người đầu tiên xử lý quyết. */
 export async function dongY(fam: string, id: string, nguoi: string | null, o: DongY = {}, now = new Date()) {
   return tx(async (t) => {
-    const r = await layYc(t, fam, id);
+    const r = await layYc(t, fam, id, now);
     await khoaCon(t, r.child_id);
     const f = (await t<{ tz: string; cau_hinh: Record<string, unknown> }>(`select tz, cau_hinh from families where id = $1`, [fam]))[0];
     const ngay = gioDiaPhuong(now, f.tz).ngay;
@@ -120,11 +120,11 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
   });
 }
 
-export async function tuChoiYc(fam: string, id: string, nguoi: string, lyDo: string) {
+export async function tuChoiYc(fam: string, id: string, nguoi: string, lyDo: string, now = new Date()) {
   const ly = String(lyDo ?? "").trim().slice(0, 120);
   if (!ly) throw new LoiNghiepVu("thieu_ly_do", "Chọn hoặc ghi lý do để Con hiểu");
   return tx(async (t) => {
-    const r = await layYc(t, fam, id);
+    const r = await layYc(t, fam, id, now);
     await t(`update requests set trang_thai = 'tu_choi', nguoi_duyet = $2, xu_ly_luc = now(), ly_do_tu_choi = $3 where id = $1`, [r.id, nguoi, ly]);
     await ghiSuKien(fam, "tu_choi_yeu_cau", { loai: r.loai, ly_do: ly }, { con: r.child_id, nguoi }, t);
   });
@@ -147,9 +147,9 @@ export async function apQuyTacTuDong(fam: string, id: string, now = new Date()) 
 }
 
 /** Hộp thư «Chờ duyệt» (yêu cầu), gom theo Con. */
-export async function dsChoYc(fam: string) {
-  await q(`update requests set trang_thai = 'het_han', xu_ly_luc = now() where trang_thai = 'cho' and het_han <= now()
-           and child_id in (select id from children where family_id = $1)`, [fam]);
+export async function dsChoYc(fam: string, now = new Date()) {
+  await q(`update requests set trang_thai = 'het_han', xu_ly_luc = $2 where trang_thai = 'cho' and het_han <= $2
+           and child_id in (select id from children where family_id = $1)`, [fam, now]);
   return q<Yc & { ten_con: string }>(`select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id
                                      where c.family_id = $1 and r.trang_thai = 'cho' order by r.created_at`, [fam]);
 }
