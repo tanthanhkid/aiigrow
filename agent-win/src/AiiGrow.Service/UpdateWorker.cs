@@ -23,7 +23,7 @@ public sealed class UpdateWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        BatLaiTuKhoiDong();
+        _ = Task.Run(BatLaiTuKhoiDong);   // không chặn dịch vụ khởi động (sc.exe tối đa 30 giây/lệnh)
         try { await Task.Delay(TimeSpan.FromMinutes(2), ct); } catch (OperationCanceledException) { return; }
         while (!ct.IsCancellationRequested)
         {
