@@ -75,9 +75,12 @@ public class BanPr3Tests
     [Theory]
     [InlineData("GET", 3, 2, 5, true)]
     [InlineData("POST", 2, 2, 5, true)]
-    [InlineData("POST", 5, 2, 5, true)]
+    [InlineData("POST", 5, 2, 5, false)]   // Con ở phiên 2 bị «Chuyển người dùng», anh chị ngồi phiên 5 ⇒ không tiêu điểm Con
     [InlineData("POST", 3, 2, 5, false)]
     [InlineData("post", 3, 2, -1, false)]
+    [InlineData("POST", 5, -1, 5, true)]    // Con chưa đăng nhập / ChildUser cũ ⇒ phiên trước màn hình được
+    [InlineData("POST", 3, -1, 5, false)]   // RDP / phiên nền khi Con chưa đăng nhập
+    [InlineData("POST", 3, -1, -1, true)]
     public void HocVien_LenhGhiTheoPhien(string m, int goi, int con, int man, bool ra) => Assert.Equal(ra, QuyenPhien.DuocHocVien(m, goi, con, man));
 
     // G18: hết hạn mở lúc mất mạng ⇒ trang Giải trí chỉ mở nhờ cửa sổ bị chặn lại.

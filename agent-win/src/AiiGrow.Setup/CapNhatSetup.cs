@@ -126,8 +126,14 @@ internal static class CapNhatSetup
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
                 if (!File.Exists(dich)) throw;
-                File.Move(dich, dich + ".cu-" + Guid.NewGuid().ToString("N")[..8]);
-                chep();
+                var cu = dich + ".cu-" + Guid.NewGuid().ToString("N")[..8];
+                File.Move(dich, cu);
+                try { chep(); }
+                catch
+                {
+                    try { if (!File.Exists(dich)) File.Move(cu, dich); } catch { }   // đầy đĩa… ⇒ giữ exe cũ
+                    throw;
+                }
             }
         }
 

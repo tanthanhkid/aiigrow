@@ -46,12 +46,18 @@ public sealed class AppLockerController
         try
         {
             Directory.CreateDirectory(Paths.DataDir);
-            var xml = AppLockerXml.Merge(ReadExisting(), new AppLockerOptions { ChildSid = sid, AllowedApps = apps });
+            // Đọc lỗi ⇒ chưa ghi (Merge(null) đè mất luật AppLocker sẵn có của quản trị), Reconcile thử lại sau 60 giây;
+            // lỗi DocLoiToiDa lần liền ⇒ coi như máy chưa có chính sách, ghi như trước
+            var cu = ReadExisting(out var loiDoc);
+            _docLoi = loiDoc ? _docLoi + 1 : 0;
+            if (loiDoc && _docLoi < AppLockerXml.DocLoiToiDa) return false;
+            var xml = AppLockerXml.Merge(cu, new AppLockerOptions { ChildSid = sid, AllowedApps = apps });
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
             File.WriteAllText(file, xml, new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Set-AppLockerPolicy lỗi: {e}", set.Error); return false; }
             EnsureAppIdSvc();
+            _docLoi = 0;
             _log.LogInformation("Đã áp AppLocker cho SID {sid} với {n} app", sid, apps.Count);
             return true;
         }
@@ -74,6 +80,7 @@ public sealed class AppLockerController
                 case AppLockerXml.BuocGo.ThuLai: return false;     // Reconcile hẹn thử lại sau 60 giây
                 case AppLockerXml.BuocGo.Xong:
                     if (loi) _log.LogWarning("Đọc AppLocker lỗi {n} lần liền — coi như máy không có AppLocker, thôi gỡ", _docLoi);
+                    _docLoi = 0;   // lần gỡ sau đếm lại từ đầu, không bỏ cuộc ngay ở lần đọc lỗi đầu tiên
                     return true;
             }
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");

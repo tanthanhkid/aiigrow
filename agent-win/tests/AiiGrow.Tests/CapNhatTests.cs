@@ -143,6 +143,18 @@ public class CapNhatMayTests : IDisposable
         Assert.Single(Directory.GetFiles(Cai, "AiiGrow.Service.exe.cu-*"));  // bản bị khoá được đổi tên, dọn ở lần cập nhật sau
     }
 
+    [Fact]
+    public void ChepDe_ChepLaiVanLoi_TraTenCu()
+    {
+        var thu = Path.Combine(_goc, "chep-de"); Directory.CreateDirectory(thu);
+        var tu = Path.Combine(thu, "moi.exe"); var dich = Path.Combine(thu, "AiiGrow.Service.exe");
+        File.WriteAllText(tu, "moi"); File.WriteAllText(dich, "cu");
+        // lần 1: tệp đang dùng; lần 2 (sau khi đổi tên): đĩa đầy ⇒ exe cũ phải còn nguyên tên
+        Assert.Throws<IOException>(() => CapNhatMay.ChepDe(tu, dich, (_, _) => throw new IOException("đĩa đầy")));
+        Assert.Equal("cu", File.ReadAllText(dich));
+        Assert.Empty(Directory.GetFiles(thu, "*.cu-*"));
+    }
+
     [Theory]
     [InlineData(true, true, false)]    // bộ cài một tệp + exe cũ của gói zip nằm cạnh trong Downloads ⇒ vẫn dùng nhúng
     [InlineData(true, false, false)]

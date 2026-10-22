@@ -183,11 +183,11 @@ export async function nhanNhip(may: May, b: NhipVao, now = new Date()): Promise<
 }
 
 // ---------------------------------------------------------------- quét mất nhịp (gọi khi có nhịp / Ba Mẹ mở màn tuân thủ / cron)
-/** Máy đã từng gửi nhịp mà im lặng quá ngưỡng (không báo tắt sạch) ⇒ «ngoài vòng» + cảnh báo MỘT lần cho mỗi lần mất nhịp. → id máy mới báo. */
+/** Máy im lặng quá ngưỡng (Windows: chỉ máy đã từng gửi nhịp — agent Windows không gửi nhịp riêng; nền khác giữ như cũ) quá ngưỡng (không báo tắt sạch) ⇒ «ngoài vòng» + cảnh báo MỘT lần cho mỗi lần mất nhịp. → id máy mới báo. */
 export async function quetMatNhip(fam: string | null, now = new Date()) {
   await bangM4b();
   const ds = await q<May & { tt: DongTT }>(
-    `select d.*, to_jsonb(t) as tt from devices d join tuan_thu_may t on t.device_id = d.id where t.nhip_cuoi is not null and ($1::text is null or d.family_id = $1)`, [fam]);
+    `select d.*, to_jsonb(t) as tt from devices d join tuan_thu_may t on t.device_id = d.id where (t.nhip_cuoi is not null or d.platform <> 'windows') and ($1::text is null or d.family_id = $1)`, [fam]);
   const moi: string[] = [];
   for (const d of ds) {
     const ts = await thamSoMay(d);

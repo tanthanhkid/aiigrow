@@ -12,9 +12,14 @@ public static class QuyenPhien
     public static bool LaPhienCon(int phienGoi, int phienCon) => phienCon < 0 || phienGoi == phienCon;
 
     /// <summary>Lệnh khay học viên: đọc (GET) mọi phiên; lệnh GHI (POST: nhận việc, nộp bài, đổi quà, trả lời lời khen) chỉ từ phiên Con hoặc phiên
-    /// đang ngồi trước màn hình — anh chị/khách ở tài khoản khác (vd qua Chuyển người dùng) không tiêu điểm của Con (Thanh 22/10).</summary>
-    public static bool DuocHocVien(string? method, int phienGoi, int phienCon, int phienManHinh) =>
-        !string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase) || DuocXinHoacChoi(phienGoi, phienCon, phienManHinh);
+    /// đang ngồi trước màn hình (Thanh 22/10). Tài khoản Con ĐANG có phiên (kể cả bị ngắt do «Chuyển người dùng») ⇒ chỉ đúng phiên đó: anh chị/khách
+    /// đăng nhập tài khoản khác trước màn hình không tiêu điểm của Con. Con chưa đăng nhập (hoặc ChildUser cũ) ⇒ phiên trước màn hình; RDP/phiên nền thì không.</summary>
+    public static bool DuocHocVien(string? method, int phienGoi, int phienCon, int phienManHinh)
+    {
+        if (!string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase)) return true;
+        if (phienCon >= 0) return phienGoi == phienCon;
+        return phienManHinh < 0 || phienGoi == phienManHinh;
+    }
 
     /// <summary>Có người đăng nhập trước màn hình mà KHÔNG phải tài khoản Con (Con không đang dùng). Chưa biết tài khoản Con / màn đăng nhập trống ⇒ false.</summary>
     public static bool LaTaiKhoanKhac(string? taiKhoanManHinh, string? taiKhoanCon, bool conDangDung) =>
