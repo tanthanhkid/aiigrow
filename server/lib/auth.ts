@@ -49,6 +49,9 @@ export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk") 
   if (mucDich === "dang_ky" && co) throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — chọn Đăng nhập", 409);
   if (mucDich === "quen_mk" && !co) return { guiDen: d };          // không lộ số/email nào có tài khoản
   if (!cheDoThu()) throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
+  // Mã thử trả thẳng trong phản hồi: với quên mật khẩu, ai biết số/email cũng chiếm được tài khoản ⇒ prod chặn tới khi có kênh SMS/mail thật.
+  if (mucDich === "quen_mk" && process.env.NODE_ENV === "production")
+    throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
   const ma = String(randomInt(0, 1_000_000)).padStart(6, "0");
   await q(`insert into otp(dinh_danh, ma_hash, muc_dich, het) values ($1, $2, $3, now() + make_interval(mins => $4))
            on conflict (dinh_danh) do update set ma_hash = excluded.ma_hash, muc_dich = excluded.muc_dich, het = excluded.het, so_lan = 0`,
