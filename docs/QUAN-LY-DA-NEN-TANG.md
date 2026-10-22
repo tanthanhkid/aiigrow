@@ -181,7 +181,7 @@ NextDNS API — https://nextdns.github.io/api/
 
 | Phần | Trạng thái |
 |---|---|
-| Web Ba Mẹ / Con / quầy / admin | https://aiigrow.aiilab.vn (`/app`, `/app/tre`, `/quay`, `/admin`). API 0,4–1,2 giây (function iad1 cạnh DB). Luồng chính đầu-cuối đạt trên production |
+| Web Ba Mẹ / Con / quầy / admin | https://aiigrow.aiilab.vn (`/` màn chào · đăng nhập, `/tre`, `/tai`, `/quay`, `/admin`; link cũ `/app/*` chuyển 308). API 0,4–1,2 giây (function iad1 cạnh DB). Luồng chính đầu-cuối đạt trên production |
 | Agent Windows (bản thử) | Gói cài: https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Windows-thu.zip (chưa ký số ⇒ «More info → Run anyway»). Ghép bằng mã 6 số lấy trong app (Hồ sơ & máy của Con → «Ghép thêm máy»). **Mặc định GIÁM SÁT** (chỉ ghi log việc sẽ chặn). Chặn thật: `AiiGrow.Setup.exe --che-do=chan`; quay lại `--che-do=giam-sat`; gỡ `--uninstall` hoặc gỡ từ xa |
 | Log agent | `C:\ProgramData\AiiGrow\logs\agent-yyyyMMdd.log` + `POST /api/device/log`; đọc: `GET /api/m/may/:id/log` (Ba Mẹ), `GET /api/admin/may/:id/log` (Admin) |
 | Máy chủ: chính sách chung, bộ chuyển đổi 9 nền tảng, tuân thủ, DNS gia đình | Có test, không cần thiết bị |
