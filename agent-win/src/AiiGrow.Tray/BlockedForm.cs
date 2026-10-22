@@ -16,7 +16,7 @@ internal sealed class BlockedForm : Form
     private readonly Button _ask;
     private bool _busy;
 
-    public BlockedForm(string? appId, string? appName, string? reason, bool canExchange)
+    public BlockedForm(string? appId, string? appName, string? reason, bool canExchange, bool offline = false)
     {
         _appId = appId; _canExchange = canExchange;
         var view = BlockScreenView.For(appId, appName, reason, canExchange);
@@ -26,7 +26,8 @@ internal sealed class BlockedForm : Form
         StartPosition = FormStartPosition.Manual;
         TopMost = true; ShowInTaskbar = false;
         BackColor = UI.Paper;
-        ClientSize = new Size(380, view.ShowUsePoints ? 272 : 220);
+        bool showCode = BlockScreenView.ShowOfflineCode(offline);
+        ClientSize = new Size(380, (view.ShowUsePoints ? 272 : 220) + (showCode ? 120 : 0));
         var wa = Screen.PrimaryScreen!.WorkingArea;
         Location = new Point(wa.Right - Width - 12, wa.Bottom - Height - 12);
 
@@ -51,6 +52,14 @@ internal sealed class BlockedForm : Form
             Close();
         };
         flow.Controls.Add(_ask);
+
+        // Mất mạng: «Xin phép Ba Mẹ» không tới được máy chủ ⇒ Ba Mẹ đọc mã mở offline cho Con gõ (luồng xin phép giữ nguyên).
+        if (showCode)
+        {
+            var code = new OfflineCodePanel(340);
+            code.Unlocked += Close;
+            flow.Controls.Add(code);
+        }
 
         var close = UI.Btn("Đóng", false, 340);
         close.Click += (_, _) => Close();

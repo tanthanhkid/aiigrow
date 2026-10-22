@@ -68,7 +68,7 @@ public sealed class HeartbeatWorker : BackgroundService
             }
             catch (ApiException e) when (e.IsNetwork)
             {
-                if (_online) { _online = false; Enqueue(cfg, new SuKien { Loai = "offline" }); Save(cfg); }
+                if (_online) { _online = false; Save(c => Enqueue(c, new SuKien { Loai = "offline" })); }
                 _log.LogWarning("Đồng bộ lỗi (chạy offline): {m}", e.Message);
                 return 30;
             }
@@ -92,8 +92,15 @@ public sealed class HeartbeatWorker : BackgroundService
             // Gửi hàng đợi offline khi có mạng lại.
             if (cfg.Queue.Items.Count > 0)
             {
+                var truoc = cfg.Queue.Items.Select(x => x.Ma).ToList();
                 var n = await cfg.Queue.FlushAsync(api, ct);
-                if (n > 0) { Save(cfg); _log.LogInformation("Đã gửi {n} sự kiện tồn", n); }
+                if (n > 0)
+                {
+                    // Chỉ bỏ đúng các mục đã gửi khỏi bản trên đĩa — sự kiện mới (vd «mo_ma_offline») thêm trong lúc gửi vẫn giữ.
+                    var daGui = truoc.Except(cfg.Queue.Items.Select(x => x.Ma)).ToHashSet();
+                    Save(c => c.Queue.Items.RemoveAll(x => daGui.Contains(x.Ma)));
+                    _log.LogInformation("Đã gửi {n} sự kiện tồn", n);
+                }
             }
             return sync.NextCheckSec;
         }
@@ -109,7 +116,12 @@ public sealed class HeartbeatWorker : BackgroundService
         cfg.Queue.Add(e);
     }
 
-    private void Save(AgentConfig cfg) { try { _store.Save(cfg); } catch (Exception e) { _log.LogWarning("Lưu cấu hình lỗi: {m}", e.Message); } }
+    /// <summary>Sửa cấu hình qua <see cref="ConfigStore.Update"/> (đọc bản trên đĩa trong khoá chung) ⇒ không ghi đè phần
+    /// dịch vụ thực thi vừa lưu (lượt «mở tạm bằng mã offline», sự kiện mới trong hàng đợi).</summary>
+    private void Save(Action<AgentConfig> change)
+    {
+        try { _store.Update(change); } catch (Exception e) { _log.LogWarning("Lưu cấu hình lỗi: {m}", e.Message); }
+    }
 
     private static string Version() => typeof(HeartbeatWorker).Assembly.GetName().Version?.ToString() ?? "0";
 }

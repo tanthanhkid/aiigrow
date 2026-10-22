@@ -12,7 +12,7 @@ internal sealed class TrayContext : ApplicationContext
     private DateTimeOffset _at = DateTimeOffset.Now;
     private int _seenBlocked = -1;
     private bool _polling;
-    private bool _warned5, _warned1;
+    private bool _warned5, _warned1, _warnedMo5;
 
     public TrayContext()
     {
@@ -102,12 +102,23 @@ internal sealed class TrayContext : ApplicationContext
         _seenBlocked = _state.BlockedSeq;
         // App bị đóng vì chưa nằm trong danh sách Ba Mẹ cho phép ⇒ mặc định "chưa phân loại"; nếu dịch vụ có lý do rõ thì dùng lý do đó.
         var reason = string.IsNullOrEmpty(_state.LockReason) ? LockReasons.ChuaPhanLoai : _state.LockReason;
-        new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints).Show();
+        new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints, _state.Offline).Show();
     }
 
     private void HandleWarnings()
     {
         if (_state.Locked) return;
+        // Lượt mở bằng mã offline sắp hết ⇒ báo trước 5 phút để Con lưu bài (hết lượt thì khoá cũ quay lại).
+        if (_state.MoOfflineDen is { } den)
+        {
+            var con = (den - DateTimeOffset.Now).TotalSeconds;
+            if (con > 330) _warnedMo5 = false;
+            if (con <= 300 && con > 0 && !_warnedMo5)
+            {
+                _warnedMo5 = true;
+                _ni.ShowBalloonTip(6000, "Còn 5 phút mở bằng mã", "Lưu bài đang làm nhé. Hết giờ máy sẽ khoá lại.", ToolTipIcon.Warning);
+            }
+        }
         var d = TrayView.Describe(_state, _at, DateTimeOffset.Now);
         if (!d.RemainingSec.HasValue) return;
         var r = d.RemainingSec.Value;

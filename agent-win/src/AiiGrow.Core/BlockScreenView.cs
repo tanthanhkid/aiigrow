@@ -35,6 +35,13 @@ public static class BlockScreenView
     public static bool CanUsePoints(string? reason, bool canExchangePoints)
         => canExchangePoints && reason is LockReasons.HetDiem or LockReasons.ChuaPhanLoai;
 
+    public const string OfflineCodeLabel = "Mất mạng? Nhập mã của Ba Mẹ";
+
+    /// <summary>Ô nhập mã mở offline: chỉ hiện khi máy đang mất mạng. Màn khoá hiện khi lý do khoá mã gỡ được
+    /// (<see cref="MoTamOffline.MoDuocKhoa"/>: hết giờ, giờ ngủ, «Khoá ngay») — mất mạng thì mã là đường duy nhất mở máy.</summary>
+    public static bool ShowOfflineCode(bool offline, bool lockScreen = false, string? lockReason = null)
+        => offline && (!lockScreen || MoTamOffline.MoDuocKhoa(lockReason));
+
     public static BlockScreen For(string? appId, string? appName, string? reason, bool canExchangePoints)
     {
         var name = TrayView.FriendlyAppName(appId, appName);

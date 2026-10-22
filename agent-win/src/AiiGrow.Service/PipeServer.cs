@@ -146,6 +146,14 @@ public sealed class PipeServer : BackgroundService
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 
+            case PipeCmd.MaOffline:
+            {
+                // Mã mở offline: máy tự kiểm (TOTP), có giới hạn lượt sai, mỗi mã một lượt, có hạn giờ, ghi sự kiện. Không cần mạng.
+                var (ok, cau) = _rt.TryMaOffline(req.Code ?? req.Note, now);
+                _log.LogInformation("Mã mở offline: {kq}", ok ? "mở" : cau);
+                return new PipeResponse { Ok = ok, Message = cau, Error = ok ? null : cau, State = _rt.BuildState(now) };
+            }
+
             default:
                 return new PipeResponse { Ok = false, Error = "Lệnh không hỗ trợ" };
         }

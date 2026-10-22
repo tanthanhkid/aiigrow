@@ -17,6 +17,8 @@ public static class PipeCmd
     public const string Status = "status";
     /// <summary>«Dùng điểm để chơi»: dịch vụ gọi phien/xet → phien/mo rồi trả kết quả cho màn chặn.</summary>
     public const string Play = "play";
+    /// <summary>Con gõ mã mở offline Ba Mẹ đọc (<see cref="PipeRequest.Code"/>); dịch vụ tự kiểm, không cần máy chủ.</summary>
+    public const string MaOffline = "ma-offline";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -35,6 +37,8 @@ public sealed class TrayState
     public string? BlockedAppId { get; set; }
     public string? BlockedAppName { get; set; }
     public int? LockGraceLeftSec { get; set; }
+    /// <summary>Đang mở tạm bằng mã offline của Ba Mẹ tới lúc này (null = không).</summary>
+    public DateTimeOffset? MoOfflineDen { get; set; }
 }
 
 public sealed class PipeRequest
@@ -46,6 +50,8 @@ public sealed class PipeRequest
     public int Minutes { get; set; }
     public string? Note { get; set; }
     public string? Id { get; set; }
+    /// <summary>Mã mở offline 6 số (lệnh <see cref="PipeCmd.MaOffline"/>).</summary>
+    public string? Code { get; set; }
 }
 
 public sealed class PipeResponse
