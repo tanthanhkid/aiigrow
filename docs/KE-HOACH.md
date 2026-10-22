@@ -66,14 +66,14 @@ hoặc nhà cung cấp SMS / email — làm khi có, không chặn bản thử.
 |---|---|---|
 | M0 Khung | **xong** (#1) | — |
 | M1 Lõi máy chủ | **xong** (#5, #14) | các FR «chưa làm» ở bảng dưới |
-| M2 App Ba Mẹ | **xong** — 31 màn thiết kế (#8, #10) + thành viên gia đình, thông báo trong app, giữ chuỗi ngày, xuất CSV (PR rà soát 22/10) | push thật + duyệt từ màn khoá: **chờ thiết bị**; màn điều khiển máy con (gỡ từ xa, mở khẩn cấp, tuân thủ): master đang làm |
+| M2 App Ba Mẹ | **xong** — 31 màn thiết kế (#8, #10) + thành viên gia đình, thông báo trong app, giữ chuỗi ngày, xuất CSV (PR rà soát 22/10) | push thật + duyệt từ màn khoá: **chờ thiết bị**. Màn An toàn thiết bị (tuân thủ, mở khẩn cấp, gỡ từ xa): xong (#22) |
 | M3 Màn Con | **xong** bản web (#12) | bản native Android + camera thật trên máy Con: **chờ thiết bị** |
 | M4 Agent Windows | **xong** mã + bản thử chế độ giám sát (#7, #11, #18, #19, #20) | nghiệm thu chặn thật trên máy Con tài khoản Standard, video: **chờ thiết bị**; ký số trình cài: **chờ chứng chỉ**; nút khay đổi chế độ: master đang làm |
 | M4b Độ bền máy con | **xong** phần máy chủ (#13) | agent từng OS (mac / iOS / Android / TV) + `docs/DO-BEN.md` chạy thật: **chờ thiết bị** (Mac / Xcode / tài khoản Apple) |
 | M4c Cài một chạm + gỡ từ xa | **xong** phần máy chủ + Windows (#11, #18) | cài im lặng trên máy sạch, gỡ từ xa chạy thật, .pkg / MDM / Android Device Owner / iOS: **chờ thiết bị** |
 | M4b mạng | **xong** phần máy chủ (#15) | resolver tự host chạy thật, đặt DNS router / TV thật, NextDNS thật: **chờ thiết bị** |
 | M5 Quầy + Admin | **xong** (#9) | — |
-| M6 Tích hợp + bản thử | **xong** webhook (#9) + bản thử https://aiigrow.aiilab.vn | bí mật chung `AIIROB_WEBHOOK_SECRET`: chờ master; trang `/tai`, nâng cấp webhook: agent khác đang làm |
+| M6 Tích hợp + bản thử | **xong** webhook (#9) + bản thử https://aiigrow.aiilab.vn | trang `/tai` tải trình cài Windows: xong (#25); bí mật chung `AIIROB_WEBHOOK_SECRET`: chờ master; nâng cấp webhook: agent khác đang làm |
 
 FR theo BRD mục 4 còn chưa trọn (mọi FR khác đã có ở máy chủ + màn):
 
