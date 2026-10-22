@@ -127,6 +127,12 @@ function GiaTriDs($khoa, $ds) {
   $it = Get-Item $k
   @($it.GetValueNames() | ForEach-Object { [pscustomobject]@{ Ten = $_; GiaTri = [string]$it.GetValue($_) } })
 }
+function MucIT {
+  # Mục «1» do IT/Ba Mẹ đặt sẵn ở cả Chrome và Edge — AiiGrow không được đụng.
+  $ds = @(foreach ($e in $KhoaWeb.GetEnumerator()) { $v = (Get-ItemProperty "$($e.Value)\URLBlocklist" -Name '1' -ErrorAction SilentlyContinue).'1'; [pscustomobject]@{ Ten = $e.Key; GiaTri = [string]$v } })
+  [pscustomobject]@{ Ok = (@($ds | Where-Object { $_.GiaTri -eq $WebQuanTri }).Count -eq $ds.Count); ChiTiet = (($ds | ForEach-Object { "$($_.Ten): 1=$($_.GiaTri)" }) -join ' · ') }
+}
+
 function MucAiiGrow($khoa, $ds) { @(GiaTriDs $khoa $ds | Where-Object { ($_.Ten -as [int]) -gt 90000 }) }
 
 function BanTep($f) {
@@ -239,6 +245,11 @@ KichBan 'KB1' 'Đăng ký Ba Mẹ, tạo Con, gói cài một chạm' {
   $con = Api POST '/api/m/con' @{ ten = 'Con E2E'; namSinh = ((Get-Date).Year - 10); pin = '1234' } $Chung.TokenBaMe
   $Chung.ConId = $con.id
   Dat '1.3' 'Tạo Con' ([bool]$con.id) "con $($con.id)"
+  # Giờ ngủ mặc định 21:00–06:30 (giờ gia đình) ⇒ chạy CI buổi tối giờ VN thì máy bị khoá «ngu», mode khoa, AppLocker không áp.
+  # Dời giờ ngủ ra xa giờ hiện tại (+11h..+12h theo UTC+7) để kết quả không phụ thuộc lúc chạy.
+  $vn = (Get-Date).ToUniversalTime().AddHours(7)
+  $lich = Api POST "/api/m/con/$($con.id)/lich" @{ ngu = @{ tu = $vn.AddHours(11).ToString('HH:00'); den = $vn.AddHours(12).ToString('HH:00') } } $Chung.TokenBaMe
+  Log ("giờ ngủ thử: {0}–{1}" -f $lich.lich.ngu.tu, $lich.lich.ngu.den)
   # Bộ cài một chạm KHÔNG hỏi tài khoản Windows (Installer.RunOneTouchAsync); tạo sẵn tài khoản thường của Con để dùng ở KB4.
   $mkCon = ConvertTo-SecureString ('Aa1!' + [guid]::NewGuid().ToString('N')) -AsPlainText -Force
   if (-not (Get-LocalUser -Name $TenCon -ErrorAction SilentlyContinue)) { New-LocalUser -Name $TenCon -Password $mkCon -FullName 'Con E2E' -Description 'Tài khoản thử của e2e AiiGrow' | Out-Null }
@@ -322,6 +333,7 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   DongBoNgay
   $st = Cho { $x = TrangThai; if ($x.cheDo -eq 'chan') { $x } } 60 3
   Dat '4.2' 'Agent nhận chế độ chan sau đồng bộ' ([bool]$st) "cheDo $((TrangThai).cheDo) mode $((TrangThai).mode)"
+  DongBoNgay   # trạng thái gửi ở lần đồng bộ trước còn là chế độ cũ (agent tính cheDo trước khi đồng bộ) ⇒ đồng bộ thêm một lần
   $may = Cho { $m = @(MayCuaToi | Where-Object { $_.id -eq $Chung.MayId -and $_.cheDoMay -eq 'chan' }); if ($m.Count) { $m[0] } } 90 5
   Dat '4.3' 'Máy chủ thấy cheDoMay = chan' ([bool]$may) "cheDoMay $((@(MayCuaToi))[0].cheDoMay)"
 
@@ -331,7 +343,7 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   Dat '4.4' "URLBlocklist Chrome + Edge có $TenMienChan" $webOk $chiTiet
   $co = Get-ItemProperty $KhoaWeb.Chrome -ErrorAction SilentlyContinue
   Dat '4.5' 'Cờ trình duyệt (tắt ẩn danh / xoá lịch sử / khách)' ($co.IncognitoModeAvailability -eq 1 -and $co.AllowDeletingBrowserHistory -eq 0 -and $co.BrowserGuestModeEnabled -eq 0) "Incognito=$($co.IncognitoModeAvailability) XoaLS=$($co.AllowDeletingBrowserHistory) Khach=$($co.BrowserGuestModeEnabled)"
-  Dat '4.6' 'Mục web của «IT» (tên 1) giữ nguyên' ((@(GiaTriDs $KhoaWeb.Chrome 'URLBlocklist') | Where-Object { $_.Ten -eq '1' -and $_.GiaTri -eq $WebQuanTri }).Count -eq 1) ''
+  $it = MucIT; Dat '4.6' 'Mục web của «IT» (tên 1) giữ nguyên' $it.Ok $it.ChiTiet
 
   # 4.7 — cài MỘT CHẠM không gắn tài khoản Con ⇒ AppLocker có áp không?
   Start-Sleep -Seconds 30
@@ -388,7 +400,7 @@ KichBan 'KB6' 'Về Giám sát: gỡ luật AiiGrow, giữ luật quản trị' 
   Dat '6.2' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
   $webHet = Cho { $all = $true; foreach ($k in $KhoaWeb.Values) { if (@(MucAiiGrow $k 'URLBlocklist').Count) { $all = $false } }; $all } 90 5
   Dat '6.3' 'Chính sách web của AiiGrow được gỡ' $webHet (@(MucAiiGrow $KhoaWeb.Chrome 'URLBlocklist' | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';')
-  Dat '6.4' 'Mục web «IT» vẫn còn' ((@(GiaTriDs $KhoaWeb.Chrome 'URLBlocklist') | Where-Object { $_.Ten -eq '1' }).Count -eq 1) ''
+  $it = MucIT; Dat '6.4' 'Mục web «IT» vẫn còn' $it.Ok $it.ChiTiet
 }
 
 # ------------------------------------------------------------------ KB7a — cập nhật đè bằng tay
@@ -476,7 +488,7 @@ KichBan 'KB9' 'Gỡ --uninstall' {
   $conWeb = @(); foreach ($k in $KhoaWeb.Values) { $conWeb += MucAiiGrow $k 'URLBlocklist'; $conWeb += MucAiiGrow $k 'URLAllowlist' }
   $co = Get-ItemProperty $KhoaWeb.Chrome -ErrorAction SilentlyContinue
   Dat '9.5' 'Chính sách web của AiiGrow đã dọn (danh sách + cờ)' ($conWeb.Count -eq 0 -and $null -eq $co.IncognitoModeAvailability -and $null -eq $co.BrowserGuestModeEnabled) ("còn {0} mục; Incognito={1} Khach={2}" -f $conWeb.Count, $co.IncognitoModeAvailability, $co.BrowserGuestModeEnabled)
-  Dat '9.6' 'Mục web «IT» vẫn còn' ((@(GiaTriDs $KhoaWeb.Chrome 'URLBlocklist') | Where-Object { $_.Ten -eq '1' -and $_.GiaTri -eq $WebQuanTri }).Count -eq 1) ''
+  $it = MucIT; Dat '9.6' 'Mục web «IT» vẫn còn' $it.Ok $it.ChiTiet
   $run = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).AiiGrowTray
   $uk = Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow'
   Dat '9.7' 'Khay (Run) + mục Ứng dụng đã gỡ' (-not $run -and -not $uk) "Run=$run · Uninstall\AiiGrow=$uk"
