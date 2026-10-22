@@ -10,3 +10,4 @@ public/tai/*.zip
 public/tai/*.pkg
 public/tai/*.apk
 public/app
+server/package-lock.json

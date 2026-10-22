@@ -227,7 +227,7 @@ export async function chiTietTuanThu(fam: string, mayId: string, now = new Date(
   await mayCua(fam, mayId);
   const may = (await dsTuanThu(fam, now)).find((x) => x.id === mayId)!;
   const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may')
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline')
       order by created_at desc, seq desc limit 50`, [fam, mayId]);
   return { ...may, suKien };
 }
@@ -273,4 +273,34 @@ export async function tinCayAdmin(fam: string, mayId: string, b: { ten?: unknown
     [m.id, fam, JSON.stringify(moi), JSON.stringify(vanDe)]);
   await ghiSuKien(fam, "tin_cay_admin", { ten, tinCay: b.tinCay !== false }, { con: m.child_id, may: m.id, nguoi });
   return { adminTinCay: moi };
+}
+
+// ---------------------------------------------------------------- Mã mở offline (lib/ma-offline.ts): bí mật chung máy ↔ máy chủ
+import { BUOC_GIAY, DUNG_SAI, maOffline, taoBiMatOffline } from "./ma-offline.ts";
+
+/** Lấy (hoặc tạo lần đầu) bí mật mã offline của một máy — dùng cả cho agent (theo deviceId) lẫn Ba Mẹ. */
+export async function biMatOfflineMay(deviceId: string): Promise<string | null> {
+  const r = await one<{ offline_secret: string | null }>(`select offline_secret from devices where id = $1`, [deviceId]);
+  if (!r) return null;
+  if (r.offline_secret) return r.offline_secret;
+  const moi = taoBiMatOffline();
+  // chỉ ghi nếu còn trống (tránh đè khi hai lần song song)
+  const kq = await q<{ offline_secret: string }>(`update devices set offline_secret = $2 where id = $1 and offline_secret is null returning offline_secret`, [deviceId, moi]);
+  if (kq[0]) return kq[0].offline_secret;
+  // thua cuộc đua: lần thắng vừa ghi bí mật khác ⇒ đọc lại, KHÔNG trả bí mật của mình (kẻo máy chủ và agent lệch nhau).
+  // Máy bị xoá chen giữa ⇒ null (không trả bí mật chưa lưu để rồi hiện mã agent không bao giờ nhận).
+  const lai = await one<{ offline_secret: string | null }>(`select offline_secret from devices where id = $1`, [deviceId]);
+  return lai ? lai.offline_secret ?? moi : null;
+}
+
+/** Ba Mẹ xem mã mở offline của một máy (có kiểm chủ quyền + ghi nhật ký). */
+export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string, now = new Date(), phutMo = 60) {
+  const m = await mayCua(fam, mayId);
+  if (m.platform !== "windows") throw new LoiNghiepVu("sai_nen_tang", "Mã mở offline hiện chỉ dùng cho máy Windows", 400);
+  const bm = await biMatOfflineMay(m.id);
+  if (!bm) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+  const ma = maOffline(bm, now);
+  const conGiay = BUOC_GIAY * (DUNG_SAI + 1) - Math.floor((now.getTime() / 1000) % BUOC_GIAY);
+  await ghiSuKien(fam, "xem_ma_offline", {}, { con: m.child_id, may: m.id, nguoi });
+  return { ma, conGiay, hieuLucPhut: Math.round((BUOC_GIAY * (2 * DUNG_SAI + 1)) / 60), phutMo };
 }

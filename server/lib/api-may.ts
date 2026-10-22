@@ -8,6 +8,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { one } from "./db.ts";
 import { conTuPhien, dangNhapPin, ghepMay, mayTuToken } from "./gia-dinh.ts";
 import { dongBo } from "./may-con.ts";
+import { biMatOfflineMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } from "./may-con.ts";
 import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
 import { guiYeuCau } from "./yeu-cau.ts";
@@ -46,8 +47,10 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
       const pol = await dongBo(may, { ...b, conDangDung: con });
-      // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi
-      return json({ ...pol, lenh: await lenhCho(may), windows: chinhSachWindows(pol) });
+      // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi.
+      // Kèm bí mật mã mở offline cho máy Windows (agent cache khi còn mạng để tự kiểm mã lúc mất mạng).
+      const biMatOffline = may.platform === "windows" ? await biMatOfflineMay(may.id) : null;
+      return json({ ...pol, lenh: await lenhCho(may), windows: chinhSachWindows(pol, biMatOffline ?? undefined) });
     }
     if (d === "nhip") return json(await nhipMay(may, con, b));
     // M4b mạng: trình cài một chạm lấy hồ sơ DNS gia đình của chính máy (mobileconfig / Private DNS / DoH Windows) để tự cài
