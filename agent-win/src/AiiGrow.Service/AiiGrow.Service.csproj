@@ -8,6 +8,11 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.0" />
     <!-- Đọc lịch sử trình duyệt (SQLite) cho giám sát web: ChromiumHistorySource -->
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Sentry.Extensions.Logging" Version="6.12.1" />
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />
+  </ItemGroup>
+  <!-- Sentry (project aiigrow-agent): DSN nhúng lúc build — build-mot-file.sh đọc biến AIIGROW_SENTRY_DSN; không có ⇒ không gửi gì. Repo public: DSN không nằm trong mã. -->
+  <ItemGroup Condition="'$(SentryDsn)' != ''">
+    <AssemblyMetadata Include="SentryDsn" Value="$(SentryDsn)" />
   </ItemGroup>
 </Project>
