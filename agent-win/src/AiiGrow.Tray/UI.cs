@@ -1,15 +1,23 @@
 using System.Diagnostics;
-using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 
 namespace AiiGrow.Tray;
 
 internal static class UI
 {
-    public static readonly Color Green = Color.FromArgb(0x15, 0x80, 0x3d);
-    public static readonly Color GreenDark = Color.FromArgb(0x0f, 0x2a, 0x1f);
-    public static readonly Color Paper = Color.FromArgb(0xfb, 0xfb, 0xfa);
-    public static readonly Color Muted = Color.FromArgb(0x5f, 0x66, 0x60);
+    // Token màu lấy NGUYÊN từ mobile/src/lib/mau.ts (app Ba Mẹ/Con); tương phản đã đo ở đó (chữ phụ trên nền 5,2:1; chữ trắng trên Green 5,3:1).
+    public static readonly Color Green = Color.FromArgb(0x0b, 0x7a, 0x6e);       // chinh
+    public static readonly Color GreenDark = Color.FromArgb(0x07, 0x5e, 0x55);   // chinhDam
+    public static readonly Color GreenSoft = Color.FromArgb(0xdd, 0xf3, 0xee);   // chinhSoft
+    public static readonly Color Paper = Color.FromArgb(0xff, 0xfb, 0xf4);       // nen
+    public static readonly Color Muted = Color.FromArgb(0x5f, 0x6b, 0x68);       // chu3
+    public static readonly Color Ink = Color.FromArgb(0x10, 0x23, 0x1f);         // chu
+    public static readonly Color Border = Color.FromArgb(0xe2, 0xd9, 0xca);      // vien2
+    public static readonly Color PointInk = Color.FromArgb(0x7a, 0x4a, 0x00);    // diemInk (điểm: chữ trên PointSoft 7,4:1)
+    public static readonly Color PointSoft = Color.FromArgb(0xff, 0xf1, 0xc9);   // diemSoft
+    public static readonly Color Warn = Color.FromArgb(0x92, 0x40, 0x0e);        // canh
+    public static readonly Color Error = Color.FromArgb(0xb4, 0x23, 0x18);       // loi (chữ trên ErrorSoft 5,9:1)
+    public static readonly Color ErrorSoft = Color.FromArgb(0xfe, 0xf0, 0xee);   // loiSoft
 
     public static Font F(float pt, FontStyle st = FontStyle.Regular) => new("Segoe UI", pt, st);
 
@@ -39,29 +47,64 @@ internal static class UI
             AutoSize = true,
             MaximumSize = new Size(maxWidth, 0),
             Font = F(pt, bold ? FontStyle.Bold : FontStyle.Regular),
-            ForeColor = color ?? Color.FromArgb(0x1f, 0x29, 0x24),
+            ForeColor = color ?? Ink,
             Margin = new Padding(0, 0, 0, 8),
         };
 
-    /// <summary>Biểu tượng khay: hình tròn xanh lá có chữ A (vẽ lúc chạy, không cần file ảnh).</summary>
-    public static Icon MakeIcon()
+    // ---- Biểu tượng + ảnh mascot nhúng trong exe (Assets/…, LogicalName ở .csproj) ----
+    private static readonly Dictionary<string, Icon> IconCache = new();
+    private static readonly Dictionary<string, Image?> ImgCache = new();
+
+    private static Stream? Res(string name) => typeof(UI).Assembly.GetManifestResourceStream(name);
+
+    /// <summary>Biểu tượng khay: mascot Rob màu khi đã kết nối; xám + chấm đỏ khi mất kết nối / dịch vụ không chạy / chưa ghép.</summary>
+    public static Icon TrayIcon(bool ketNoi)
+        => LoadIcon(ketNoi ? "aiigrow-khay.ico" : "aiigrow-khay-mat-ket-noi.ico", SystemInformation.SmallIconSize);
+
+    /// <summary>Biểu tượng cửa sổ app to (thanh tiêu đề + taskbar).</summary>
+    public static Icon AppIcon() => LoadIcon("aiigrow-khay.ico", SystemInformation.IconSize);
+
+    private static Icon LoadIcon(string name, Size size)
     {
-        using var bmp = new Bitmap(32, 32);
-        using (var g = Graphics.FromImage(bmp))
+        var key = name + size.Width;
+        if (IconCache.TryGetValue(key, out var c)) return c;
+        try
         {
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-            using var br = new SolidBrush(Green);
-            g.FillEllipse(br, 1, 1, 30, 30);
-            using var f = new Font("Segoe UI", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
-            var sz = g.MeasureString("A", f);
-            g.DrawString("A", f, Brushes.White, (32 - sz.Width) / 2, (32 - sz.Height) / 2 + 1);
+            using var st = Res(name);
+            if (st != null) return IconCache[key] = new Icon(st, size);
         }
-        var h = bmp.GetHicon();
-        var icon = (Icon)Icon.FromHandle(h).Clone();
-        DestroyIcon(h);
-        return icon;
+        catch (Exception e) { Debug.WriteLine(e); }
+        return IconCache[key] = SystemIcons.Application;
     }
+
+    /// <summary>Ảnh mascot theo tên (rob-goc, so-tay, xong, qua, chi, trong-loi, sao); null nếu thiếu tài nguyên.</summary>
+    public static Image? Mascot(string name)
+    {
+        if (ImgCache.TryGetValue(name, out var c)) return c;
+        Image? img = null;
+        try
+        {
+            using var st = Res("mascot." + name + ".png");
+            if (st != null) { using var raw = Image.FromStream(st); img = new Bitmap(raw); }
+        }
+        catch (Exception e) { Debug.WriteLine(e); }
+        return ImgCache[name] = img;
+    }
+
+    private static float? _scale;
+    /// <summary>Hệ số DPI của hệ thống (96 dpi = 1,0). Dùng cho kích thước tính bằng pixel trong code (app to).</summary>
+    public static float Scale
+    {
+        get
+        {
+            if (_scale is { } v) return v;
+            try { using var g = Graphics.FromHwnd(IntPtr.Zero); _scale = g.DpiX / 96f; }
+            catch { _scale = 1f; }
+            return _scale.Value;
+        }
+    }
+
+    public static int Px(int v) => (int)Math.Round(v * Scale);
 
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr h);
     [DllImport("user32.dll")] public static extern bool LockWorkStation();

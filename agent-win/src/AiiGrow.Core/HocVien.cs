@@ -231,6 +231,20 @@ public static class HocVienView
         return ($"Có {moi.Count} tin mới", Cat(string.Join(" · ", dau), 180));
     }
 
+    /// <summary>Bấm vào toast ⇒ mở app to đúng mục: tin về nhiệm vụ → Nhiệm vụ, quà / huy hiệu → Phần quà, lời khen → Tin nhắn;
+    /// nhiều loại lẫn nhau ⇒ Tin nhắn (hộp thư liệt kê hết).</summary>
+    public static MucApp MucChoTin(IReadOnlyList<HvTin> moi)
+    {
+        static MucApp? Muc(string loai) => loai switch
+        {
+            "giao_nhiem_vu" or "nhiem_vu_moi" or "duyet_nhiem_vu" or "tu_duyet_nhiem_vu" or "tu_choi_nhiem_vu" or "can_bo_sung" => MucApp.NhiemVu,
+            "xac_nhan_qua" or "huy_qua" or "huy_hieu" => MucApp.PhanQua,
+            _ => MucApp.TinNhan,
+        };
+        var ds = moi.Select(t => Muc(t.Loai)!.Value).Distinct().ToList();
+        return ds.Count == 1 ? ds[0] : MucApp.TinNhan;
+    }
+
     private static string Cat(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 }
 

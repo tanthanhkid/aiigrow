@@ -110,7 +110,7 @@ Bảng tính năng × OS: `docs/QUAN-LY-DA-NEN-TANG.md`.
 
 ### Khay học viên (máy Con) — `/api/device/hoc-vien/*` (Bearer = token máy riêng của Con)
 
-Cổng mỏng cho ứng dụng khay của agent-win (`HocVienForm`), dùng lại luật của màn Con (`/api/kid/*`): tần suất, thời gian tối thiểu, ảnh trùng, trừ điểm, tồn kho đều do máy chủ quyết. Máy dùng chung chưa có PIN trong khay ⇒ `409 chua_chon_con`. Khay chỉ được gọi các đường dưới đây (agent-win `HocVienPaths.Allowed`).
+Cổng mỏng cho ứng dụng khay của agent-win (`AppForm` — cửa sổ app to của Con), dùng lại luật của màn Con (`/api/kid/*`): tần suất, thời gian tối thiểu, ảnh trùng, trừ điểm, tồn kho đều do máy chủ quyết. Máy dùng chung chưa có PIN trong khay ⇒ `409 chua_chon_con`. Khay chỉ được gọi các đường dưới đây (agent-win `HocVienPaths.Allowed`).
 
 | Đường | Ý |
 |---|---|

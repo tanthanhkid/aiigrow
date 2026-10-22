@@ -141,6 +141,22 @@ public sealed class ApiClient : IDisposable
         return SendAsync(method, path, body, ct);
     }
 
+    /// <summary>Thăm dò nhẹ: có tới được máy chủ không (TCP/TLS + một yêu cầu GET gốc, hạn 8 giây; client mang sẵn token như mọi lời gọi khác). Mọi phản hồi HTTP (kể cả 404/401) tính là «tới được»;
+    /// lỗi mạng / hết hạn / máy chủ 5xx tính là không. Không gửi dữ liệu.</summary>
+    public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(8));
+        try
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, "");
+            using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+            return (int)resp.StatusCode < 500;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)
         => Deserialize<T>(await SendAsync(HttpMethod.Post, path, body, ct));
 

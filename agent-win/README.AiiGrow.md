@@ -68,3 +68,13 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
 - Dừng dịch vụ (tài khoản admin) ⇒ xác nhận SCM tự bật lại; thử với tài khoản Standard ⇒ không dừng được.
 - Gỡ từ xa: Ba Mẹ bấm gỡ ⇒ máy nhận `lenh go` ⇒ gỡ sạch, app báo «đã gỡ».
 - Gỡ offline bằng quyền quản trị Windows.
+
+## Khay và app to của Con
+
+- **Biểu tượng khay** = mascot Rob (`AiiGrow.Tray/Assets/*.ico`, nhúng vào exe). Màu khi đã kết nối; **xám + chấm đỏ** khi không (tooltip nói rõ lý do):
+  «Dịch vụ AiiGrow không chạy» (khay không gọi được named pipe 2 lần liền) · «KHÔNG kết nối máy chủ từ HH:MM — kiểm tra Wi-Fi» (dịch vụ không tới máy chủ)
+  · «Máy chưa ghép — mở AiiGrow-Setup để ghép lại» (chưa ghép / mồ côi / 401 token_sai) · «Đã kết nối · đồng bộ lúc HH:MM». Chọn trạng thái ở lớp thuần `Core/KetNoiView.cs` (có test).
+  Dịch vụ thăm dò nhẹ máy chủ mỗi 15 giây (`ApiClient.PingAsync`) nên khay đổi trong ≤30 giây dù nhịp đồng bộ thưa. Menu chuột phải: dòng trạng thái · «Thử kết nối lại» (lệnh pipe `sync-now`) · «Mở AiiGrow».
+- **App to**: nhấn vào biểu tượng khay (hoặc «Mở AiiGrow», hoặc bấm bóng báo) mở `AppForm` — cửa sổ ~1000×680 trên taskbar, chỉnh cỡ được, một bản duy nhất.
+  Thanh bên: mascot (đổi theo mục / trạng thái, `MascotView`), tên Con, trạng thái kết nối, 4 mục **Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn**. Bóng báo mở đúng mục (`HocVienView.MucChoTin`).
+  Màu theo token `mobile/src/lib/mau.ts`. Màn khoá / màn chặn toàn màn hình không đổi.

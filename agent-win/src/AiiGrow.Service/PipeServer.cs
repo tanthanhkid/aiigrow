@@ -146,6 +146,11 @@ public sealed class PipeServer : BackgroundService
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 
+            case PipeCmd.SyncNow:
+                // «Thử kết nối lại»: đồng bộ ngay ở vòng kế (≤5 giây); khay hỏi lại trạng thái sau đó.
+                _rt.RequestSyncSoon();
+                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+
             case PipeCmd.HocVien:
             {
                 // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Chỉ phiên của Con; chỉ các đường trong HocVienPaths.
