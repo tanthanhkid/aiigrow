@@ -2,11 +2,13 @@
 // agent đọc (Policy của AiiGrow.Core: mode / locked / allowedApps / learningApps…) — mọi quyết định nằm ở máy chủ, agent chỉ thực thi.
 //   • Bình thường: mode «hoc» = chỉ app trong danh sách được phép chạy (Allowlist hệ thống + app Học tập Ba Mẹ đã xếp).
 //   • App Giải trí chỉ vào danh sách khi đang có phiên chơi bằng điểm cho đúng app đó (máy chủ mở/đóng phiên theo điểm, khung giờ).
+//   • Web: `web` = {cheDo, chan[], cho[]} dịch từ luật tên miền (lib/web.ts) — agent áp bằng chính sách Chrome/Edge (HKLM\SOFTWARE\Policies).
 //   • «Khoá ngay» của Ba Mẹ, hoặc đang trong giờ ngủ ⇒ mode «khoa».
 //   • minutesLeft để trống: hết phiên chơi thì máy chủ đóng phiên, lần đồng bộ sau app giải trí rời danh sách (không khoá cả máy).
 // Agent mặc định chạy chế độ GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do).
 import { gioDiaPhuong, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
+import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 
 export type PolicyWindows = {
   serverTime: string; childName: string; mode: "hoc" | "khoa"; locked: boolean; lockReason: string | null;
@@ -16,6 +18,8 @@ export type PolicyWindows = {
   /** Chế độ do Ba Mẹ chọn từ xa: giam-sat (chỉ ghi lại, không chặn) | chan (chặn thật). Agent-win: giá trị này thắng CheDo cục bộ.
    *  Máy đang có lệnh gỡ chờ ⇒ luôn giam-sat (gỡ lỗi giữa chừng cũng không còn chặn). Ba Mẹ chưa chọn ⇒ bỏ trống (agent giữ chế độ đang chạy). */
   cheDo?: "giam-sat" | "chan";
+  /** Lọc web theo tên miền (lib/web.ts): agent ghi chính sách Chrome/Edge URLBlocklist/URLAllowlist — CHỈ khi chế độ hiệu lực là «chan»; giám sát ⇒ gỡ chính sách. */
+  web: ChinhSachWeb;
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
@@ -33,6 +37,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     allowedApps: [...new Set([...p.allowlistHeThong.filter(exe).map((x) => x.toLowerCase()), ...hoc, ...choi])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null, nextCheckSec: p.nextCheckSec, canExchangePoints: p.soDu > 0,
+    web: chinhSachWebCho(p),
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
   };

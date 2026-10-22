@@ -18,6 +18,7 @@ import { nhipMay } from "./nhip-may.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
 import { cheDoGuiMay, daGoTaiMay, doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
 import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
+import { nhanLichSuWeb } from "./web.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -67,6 +68,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // M4: sự kiện agent (gửi bù được, `ma` một lần) · gỡ agent bằng mật khẩu Ba Mẹ
     if (d === "su-kien") return json({ nhan: await nhanSuKien(may, con, b.ds) });
     if (d === "log" && req.method === "POST") return json(await nhanLog(may, b.ds));
+    // Giám sát web: agent gửi TỔNG theo (ngày, tên miền) đọc từ lịch sử trình duyệt của Con — chỉ tên miền + đếm (lib/web.ts)
+    if (d === "web/lich-su" && req.method === "POST") return json(await nhanLichSuWeb(may, con, b.ds));
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn hồ sơ và nhập mã PIN trước", 409);
     // M4b: máy KHÔNG tuân thủ (fail-closed) ⇒ không xét / mở phiên giải trí; phiên đang chạy dừng ở nhịp kế tiếp. Mở khẩn cấp chỉ do Ba Mẹ.
