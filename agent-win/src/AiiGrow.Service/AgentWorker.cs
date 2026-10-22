@@ -81,10 +81,11 @@ public sealed class AgentWorker : BackgroundService
 
                     var p = _rt.CurrentPolicy;
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
-                    if (childSids != null && (!apThat || p == null || eff == null))
+                    // GỠ luật không cần biết tài khoản (gỡ theo tiền tố «AiiGrow: ») ⇒ chưa đọc được tài khoản vẫn gỡ được khi về Giám sát
+                    if (!apThat || p == null || eff == null)
                     {
                         // Không chặn thật ⇒ luật AppLocker của AiiGrow phải KHÔNG còn (đổi sang giám sát là gỡ ngay, không chờ khởi động lại).
-                        _rt.AppLockerApplied = _locker.Reconcile(false, childSids, Array.Empty<string>());
+                        _rt.AppLockerApplied = _locker.Reconcile(false, Array.Empty<string>(), Array.Empty<string>());
                     }
                     if (p != null && eff != null)
                     {

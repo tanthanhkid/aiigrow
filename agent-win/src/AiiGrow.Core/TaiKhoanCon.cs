@@ -41,7 +41,7 @@ public static class TaiKhoanCon
         var r = Shell.PowerShell(
             "$ten = (New-Object Security.Principal.SecurityIdentifier 'S-1-5-32-544').Translate([Security.Principal.NTAccount]).Value.Split('\\')[-1]; " +
             "$g = [ADSI](\"WinNT://./$ten,group\"); " +
-            "$admins = @($g.Invoke('Members') | ForEach-Object { [Security.Principal.SecurityIdentifier]::new([byte[]]$_.GetType().InvokeMember('objectSid', 'GetProperty', $null, $_, $null), 0).Value }); " +
+            "$admins = @($g.Invoke('Members') | ForEach-Object { try { [Security.Principal.SecurityIdentifier]::new([byte[]]$_.GetType().InvokeMember('objectSid', 'GetProperty', $null, $_, $null), 0).Value } catch { } }); " +
             "$l = @(Get-LocalUser | Where-Object { $_.Enabled } | ForEach-Object { [pscustomobject]@{ Name=$_.Name; Sid=$_.SID.Value; IsAdmin=($admins -contains $_.SID.Value) } }); " +
             "ConvertTo-Json -InputObject $l -Compress");
         if (!r.Ok) throw new InvalidOperationException("Không đọc được danh sách tài khoản: " + r.Error);
