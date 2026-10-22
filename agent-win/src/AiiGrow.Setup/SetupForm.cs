@@ -11,13 +11,13 @@ namespace AiiGrow.Setup;
 internal sealed class SetupForm : Form
 {
     // Token màu của app AiiGrow (mobile/src/lib/mau.ts): chữ trắng trên Chinh 5,2:1; ChinhInk trên trắng ≥ 4,5:1.
-    private static readonly Color Chinh = Color.FromArgb(0x0b, 0x7a, 0x6e);
-    private static readonly Color ChinhSoft = Color.FromArgb(0xe3, 0xf5, 0xf0);
-    private static readonly Color Chu = Color.FromArgb(0x1f, 0x2a, 0x2a);
-    private static readonly Color Chu2 = Color.FromArgb(0x4a, 0x55, 0x55);
-    private static readonly Color Vien = Color.FromArgb(0xd9, 0xe2, 0xdf);
-    private static readonly Color Loi = Color.FromArgb(0xb4, 0x23, 0x18);
-    private static readonly Color Nen = Color.FromArgb(0xfb, 0xf8, 0xf2);
+    internal static readonly Color Chinh = Color.FromArgb(0x0b, 0x7a, 0x6e);
+    internal static readonly Color ChinhSoft = Color.FromArgb(0xe3, 0xf5, 0xf0);
+    internal static readonly Color Chu = Color.FromArgb(0x1f, 0x2a, 0x2a);
+    internal static readonly Color Chu2 = Color.FromArgb(0x4a, 0x55, 0x55);
+    internal static readonly Color Vien = Color.FromArgb(0xd9, 0xe2, 0xdf);
+    internal static readonly Color Loi = Color.FromArgb(0xb4, 0x23, 0x18);
+    internal static readonly Color Nen = Color.FromArgb(0xfb, 0xf8, 0xf2);
     private const string MayChuMacDinh = "https://aiigrow.aiilab.vn";
     private const int TongBuoc = 5;
     private const int Rong = 640;

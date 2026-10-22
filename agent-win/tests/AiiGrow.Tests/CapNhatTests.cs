@@ -1,0 +1,164 @@
+using System.Security.Cryptography;
+using AiiGrow.Core;
+
+namespace AiiGrow.Tests;
+
+// Cập nhật đè (phát hiện máy đã cài, sao lưu/khôi phục, giữ config), tự cập nhật (manifest, sha256).
+
+public class PhatHienCaiTests
+{
+    private static AgentConfig DaGhep() => new() { Server = "https://aiigrow.aiilab.vn", Token = "t", DeviceId = "d" };
+
+    [Theory]
+    [InlineData("0.2.0", "0.2.0")]
+    [InlineData("v0.2", "0.2.0")]
+    [InlineData("0.2.0.0", "0.2.0")]
+    [InlineData("0.2.0+abc123", "0.2.0")]
+    [InlineData("1", "1.0.0")]
+    public void DocBan(string vao, string ra) => Assert.Equal(Version.Parse(ra), CapNhat.DocBan(vao));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("abc")]
+    public void DocBan_Hong(string? vao) => Assert.Null(CapNhat.DocBan(vao));
+
+    [Fact]
+    public void ChuaCoDichVu_CaiMoi() => Assert.Equal(CheDoBoCai.CaiMoi, CapNhat.PhatHien(false, DaGhep(), "0.1.0", "0.2.0").CheDo);
+
+    [Fact]
+    public void ChuaGhep_CaiMoi()
+    {
+        Assert.Equal(CheDoBoCai.CaiMoi, CapNhat.PhatHien(true, null, "0.1.0", "0.2.0").CheDo);
+        Assert.Equal(CheDoBoCai.CaiMoi, CapNhat.PhatHien(true, new AgentConfig { Server = "https://x" }, "0.1.0", "0.2.0").CheDo);
+    }
+
+    [Theory]
+    [InlineData("0.1.0", CheDoBoCai.CapNhat)]
+    [InlineData(null, CheDoBoCai.CapNhat)]       // bản rất cũ không có số bản ⇒ vẫn cập nhật, không bắt ghép lại
+    [InlineData("0.2.0", CheDoBoCai.DaMoiNhat)]
+    [InlineData("0.3.0", CheDoBoCai.DaMoiNhat)]  // bản đang cài mới hơn bộ cài ⇒ không hạ bản
+    public void DaCai(string? dangCai, CheDoBoCai ra) => Assert.Equal(ra, CapNhat.PhatHien(true, DaGhep(), dangCai, "0.2.0").CheDo);
+}
+
+public class CapNhatMayTests : IDisposable
+{
+    private readonly string _goc = Path.Combine(Path.GetTempPath(), "aiigrow-cn-" + Guid.NewGuid().ToString("N"));
+    private string Cai => Path.Combine(_goc, "Program Files", "AiiGrow");
+    private string DuLieu => Path.Combine(_goc, "ProgramData", "AiiGrow");
+
+    public CapNhatMayTests()
+    {
+        Directory.CreateDirectory(Cai);
+        Directory.CreateDirectory(DuLieu);
+        File.WriteAllText(Path.Combine(Cai, "AiiGrow.Service.exe"), "cu-service");
+        File.WriteAllText(Path.Combine(Cai, "AiiGrow.Tray.exe"), "cu-tray");
+        File.WriteAllText(Path.Combine(DuLieu, "config.json"), """{"token":"bi-mat","childUser":"be"}""");
+    }
+
+    public void Dispose() { try { Directory.Delete(_goc, true); } catch { } }
+
+    private sealed class Gia : ICapNhatOps
+    {
+        public bool LoiChep, DichVuChay = true;
+        public string? BanGhi;
+        public List<string> Buoc = new();
+        public void DungDichVuVaKhay() => Buoc.Add("dung");
+        public void ChepTepMoi(string dir)
+        {
+            File.WriteAllText(Path.Combine(dir, "AiiGrow.Service.exe"), "moi-service");
+            if (LoiChep) throw new IOException("đĩa đầy");
+            File.WriteAllText(Path.Combine(dir, "AiiGrow.Tray.exe"), "moi-tray");
+        }
+        public void ChayDichVuVaKhay() => Buoc.Add("chay");
+        public bool DichVuDangChay() => DichVuChay;
+        public void GhiPhienBan(string dir, string ban) => BanGhi = ban;
+    }
+
+    [Fact]
+    public void ThanhCong_ChepMoi_GiuConfig()
+    {
+        var cfg = File.ReadAllBytes(Path.Combine(DuLieu, "config.json"));
+        var ops = new Gia();
+        var kq = CapNhatMay.Chay(Cai, "0.2.0", ops);
+        Assert.True(kq.Ok);
+        Assert.Equal("moi-tray", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Tray.exe")));
+        Assert.Equal("0.2.0", ops.BanGhi);
+        Assert.Equal(cfg, File.ReadAllBytes(Path.Combine(DuLieu, "config.json")));
+        Assert.False(Directory.Exists(CapNhatMay.ThuMucSaoLuu(Cai)));
+        Assert.Equal(new[] { "dung", "chay" }, ops.Buoc);
+    }
+
+    [Fact]
+    public void LoiGiuaChung_KhoiPhucBanCu()
+    {
+        var ops = new Gia { LoiChep = true };
+        var kq = CapNhatMay.Chay(Cai, "0.2.0", ops);
+        Assert.False(kq.Ok);
+        Assert.True(kq.DaKhoiPhuc);
+        Assert.Equal("cu-service", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Service.exe")));
+        Assert.Null(ops.BanGhi);
+        Assert.Equal("chay", ops.Buoc[^1]);   // dịch vụ cũ chạy lại ⇒ máy vẫn được bảo vệ
+    }
+
+    [Fact]
+    public void DichVuMoiKhongChay_KhoiPhuc()
+    {
+        var kq = CapNhatMay.Chay(Cai, "0.2.0", new Gia { DichVuChay = false });
+        Assert.True(kq.DaKhoiPhuc);
+        Assert.Equal("cu-tray", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Tray.exe")));
+    }
+}
+
+public class TuCapNhatTests
+{
+    private const string May = "https://aiigrow.aiilab.vn";
+    private static readonly string Sha = new('a', 64);
+    private static readonly Version Dang = new(0, 2, 0);
+    private static BanMoi M(string ver, string url, string? sha = null) => new() { Version = ver, Url = url, Sha256 = sha ?? Sha };
+
+    [Fact]
+    public void HopLe()
+    {
+        Assert.Null(TuCapNhat.KiemManifest(M("0.3.0", May + "/tai/AiiGrow-Setup.exe"), May, Dang));
+        Assert.Null(TuCapNhat.KiemManifest(M("0.3.0", "https://abc123.public.blob.vercel-storage.com/tai/AiiGrow-Setup.exe"), May, Dang));
+    }
+
+    [Theory]
+    [InlineData("0.2.0", "https://aiigrow.aiilab.vn/a.exe")]                 // cùng bản
+    [InlineData("0.1.9", "https://aiigrow.aiilab.vn/a.exe")]                 // bản cũ hơn
+    [InlineData("xyz", "https://aiigrow.aiilab.vn/a.exe")]
+    [InlineData("0.3.0", "http://aiigrow.aiilab.vn/a.exe")]                  // không https
+    [InlineData("0.3.0", "https://ke-xau.example.com/a.exe")]                // host lạ
+    [InlineData("0.3.0", "https://aiigrow.aiilab.vn.ke-xau.com/a.exe")]      // giả đuôi tên miền
+    [InlineData("0.3.0", "https://public.blob.vercel-storage.com.ke-xau.com/a.exe")]
+    [InlineData("0.3.0", "file:///C:/a.exe")]
+    public void TuChoi(string ver, string url) => Assert.NotNull(TuCapNhat.KiemManifest(M(ver, url), May, Dang));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
+    public void TuChoi_ShaHong(string sha) => Assert.NotNull(TuCapNhat.KiemManifest(M("0.3.0", May + "/a.exe", sha), May, Dang));
+
+    [Fact]
+    public void TuChoi_KhongCoManifest() => Assert.NotNull(TuCapNhat.KiemManifest(null, May, Dang));
+
+    [Fact]
+    public void KhopSha256_DungSai()
+    {
+        var f = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(f, "bo-cai-that");
+            var dung = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(f)));
+            Assert.True(TuCapNhat.KhopSha256(f, dung.ToLowerInvariant()));
+            Assert.True(TuCapNhat.KhopSha256(f, dung));
+            File.WriteAllText(f, "bo-cai-bi-sua");   // tệp bị tráo ⇒ từ chối
+            Assert.False(TuCapNhat.KhopSha256(f, dung));
+            Assert.False(TuCapNhat.KhopSha256(f, "abc"));
+            Assert.False(TuCapNhat.KhopSha256(f + ".khong-co", dung));
+        }
+        finally { File.Delete(f); }
+    }
+}

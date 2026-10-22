@@ -34,6 +34,7 @@ internal sealed class TrayContext : ApplicationContext
         _status.ExchangeClicked += OpenRequest;
 
         _ni.ShowBalloonTip(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Bấm vào biểu tượng để xem còn bao lâu.", ToolTipIcon.Info);
+        BaoCapNhat.NeuVuaCapNhat(_ni);
 
         _timer.Tick += async (_, _) => await TickAsync();
         _timer.Start();

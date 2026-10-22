@@ -57,6 +57,20 @@ foreach ($p in 'Service','Tray','Setup') {
 Trên Mac chỉ build/test được logic: thêm `-p:EnableWindowsTargeting=true` (test DPAPI tự bỏ qua ngoài Windows).
 CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish, artifact `AiiGrow-win-x64`).
 
+## Cập nhật đè và tự cập nhật (từ 0.2.0)
+
+- **Chạy lại `AiiGrow-Setup.exe` trên máy đã cài** (dịch vụ có + config đã ghép) ⇒ màn «Cập nhật AiiGrow lên bản X»: dừng dịch vụ + khay,
+  sao lưu `Program Files\AiiGrow` sang `AiiGrow.sao-luu`, chép bản mới, chạy lại, ghi số bản ở mục Ứng dụng. Config/token, tài khoản Con,
+  luật AppLocker (ProgramData / chính sách Windows) không đụng ⇒ không ghép lại. Lỗi giữa chừng ⇒ chép bản sao lưu trở lại.
+  Cùng bản hoặc bản cũ hơn ⇒ «Đã là bản mới nhất» (Mở lại · Sửa cài đặt). `--sua` ép chạy wizard cài như cũ.
+- **Tự cập nhật**: dịch vụ (`UpdateWorker`) hỏi `GET /api/agent/ban-moi` sau 2 phút rồi mỗi 6 giờ → `{version, url, sha256}`. Chỉ nhận bản
+  mới hơn, URL https cùng host máy chủ hoặc `*.public.blob.vercel-storage.com`; tải về `ProgramData\AiiGrow\cap-nhat`, sha256 sai ⇒ xoá.
+  Đúng ⇒ chạy `AiiGrow-Setup.exe --capnhat --im-lang` bằng tác vụ SYSTEM `AiiGrowCapNhat` (mã thoát 0 ok · 7 lỗi đã khôi phục · 8 lỗi chưa khôi phục).
+  Khay báo «AiiGrow đã cập nhật lên bản X» một lần. Mỗi request gửi header `X-AiiGrow-Ban`.
+- **Phát bản mới**: tăng `<Version>` ở `Directory.Build.props` → `./build-mot-file.sh` → tải `ra/AiiGrow-Setup.exe` lên Blob
+  `tai/AiiGrow-Setup-<ver>.exe` (không thêm đuôi ngẫu nhiên) → sửa `server/lib/ban-agent.ts` (version, url, sha256) → merge.
+- TODO: khay gợi ý «có bản mới» cho máy không tự cập nhật được (mạng chặn Blob…).
+
 ## Cài thử (máy Windows thật hoặc máy ảo)
 
 1. Có sẵn một tài khoản quản trị của bố mẹ và một tài khoản của con (Administrator hay Standard đều được).

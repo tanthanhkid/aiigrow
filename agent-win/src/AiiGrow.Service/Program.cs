@@ -28,4 +28,7 @@ builder.Services.AddHostedService<PipeServer>();
 // Heartbeat + gỡ từ xa.
 builder.Services.AddHostedService<HeartbeatWorker>();
 
+// Tự cập nhật: kiểm /api/agent/ban-moi lúc khởi động + mỗi 6 giờ (UpdateWorker.cs).
+builder.Services.AddHostedService<UpdateWorker>();
+
 builder.Build().Run();

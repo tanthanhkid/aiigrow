@@ -37,6 +37,7 @@ public sealed class ApiClient : IDisposable
         _http = handler == null ? new HttpClient() : new HttpClient(handler);
         _http.BaseAddress = new Uri(NormalizeServer(server) + "/");
         _http.Timeout = TimeSpan.FromSeconds(20);
+        _http.DefaultRequestHeaders.TryAddWithoutValidation("X-AiiGrow-Ban", TuCapNhat.BanHienTai().ToString(3));   // máy chủ ghi bản đang chạy
         if (!string.IsNullOrEmpty(token))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }

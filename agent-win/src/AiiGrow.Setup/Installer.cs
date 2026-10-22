@@ -75,7 +75,7 @@ internal static class Installer
         step(3, null);
     }
 
-    private static void SetTrayAndNotice()
+    internal static void SetTrayAndNotice()
     {
         using (var run = Registry.LocalMachine.CreateSubKey(RunKey))
             run.SetValue(Paths.TrayRunValue, "\"" + Path.Combine(Paths.InstallDir, Paths.TrayExeName) + "\"");
