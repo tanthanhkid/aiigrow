@@ -36,6 +36,16 @@ public static class SessionHelper
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetNamedPipeClientSessionId(IntPtr pipe, out uint clientSessionId);
 
+    [DllImport("kernel32.dll")]
+    private static extern uint WTSGetActiveConsoleSessionId();
+
+    /// <summary>Phiên đang gắn với màn hình/bàn phím thật (người đang ngồi trước máy); -1 nếu không có.</summary>
+    public static int ActiveConsoleSession()
+    {
+        try { var id = WTSGetActiveConsoleSessionId(); return id == 0xFFFFFFFF ? -1 : (int)id; }
+        catch { return -1; }
+    }
+
     /// <summary>Phiên của tài khoản <paramref name="userName"/> (ưu tiên phiên đang Active), null nếu chưa đăng nhập.</summary>
     public static ChildSession? Find(string userName)
     {

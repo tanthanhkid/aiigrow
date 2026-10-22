@@ -5,7 +5,7 @@ namespace AiiGrow.Setup;
 
 /// <summary>
 /// Trình cài từng bước kiểu cài game (Thanh 22/10: «một file install duy nhất … mở lên rồi hướng dẫn người ta làm từ từ»):
-/// Chào → Điều khoản ngắn → Tài khoản của Con → Ghép máy (mã 6 số, QR dự phòng) → Cài (thanh tiến độ) → Xong.
+/// Chào → Điều khoản ngắn → Tài khoản của Con → Ghép máy (một ô mã 6 số — cách ghép duy nhất, Thanh 22/10 bỏ QR) → Cài (thanh tiến độ) → Xong.
 /// Nút Quay lại / Tiếp ở chân, thanh tiến độ các bước ở đầu. Lời viết cho Ba Mẹ không rành máy (không «Quản trị viên», «Standard»).
 /// </summary>
 internal sealed class SetupForm : Form
@@ -35,7 +35,6 @@ internal sealed class SetupForm : Form
     private LocalAccount? _child;
     private bool _dongY;
     private string _server = (Environment.GetEnvironmentVariable("AIIGROW_SERVER") is { Length: > 0 } e ? e : ReadServerFile()) is { Length: > 0 } s ? s : MayChuMacDinh;
-    private CancellationTokenSource? _qrCts;
     private bool _dangCai;
 
     public SetupForm()
@@ -102,7 +101,7 @@ internal sealed class SetupForm : Form
         {
             var b = B("Quay lại", false, 130);
             b.Location = new Point(32, 15);
-            b.Click += (_, _) => { _qrCts?.Cancel(); lui(); };
+            b.Click += (_, _) => lui();
             _chan.Controls.Add(b);
         }
     }
@@ -318,10 +317,9 @@ internal sealed class SetupForm : Form
 
     // ---------------------------------------------------------------- 4. Ghép máy
 
-    /// <summary>Mã 6 số Ba Mẹ lấy trong app (bước «Ghép máy» khi đăng ký, hoặc Hồ sơ Con › Ghép thêm máy). QR là đường phụ.</summary>
+    /// <summary>Mã 6 số Ba Mẹ lấy trong app (bước «Ghép máy» khi đăng ký, hoặc Hồ sơ Con › Ghép thêm máy) — cách ghép duy nhất.</summary>
     private void BuocGhep()
     {
-        _qrCts?.Cancel();
         var child = _child!;
         Man(4, "Ghép máy", $"Nhập mã ghép máy cho {child.Name}", BuocTaiKhoan);   // quay lại: đọc lại danh sách (tài khoản vừa tạo hiện trong đó)
         _body.Controls.Add(T("Trên điện thoại của Ba Mẹ, mở app AiiGrow → bước «Ghép máy» (hoặc Hồ sơ Con › Ghép thêm máy). App hiện mã 6 số — gõ vào ô dưới. Mã hết hạn sau 15 phút."));
@@ -333,82 +331,13 @@ internal sealed class SetupForm : Form
         _body.Controls.Add(ma);
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
-        var qr = new LinkLabel { Text = "Hoặc để Ba Mẹ quét mã QR bằng điện thoại", AutoSize = true, Margin = new Padding(0, 4, 0, 12), LinkColor = Chinh, Font = new Font("Segoe UI", 11f, FontStyle.Bold) };
-        qr.LinkClicked += (_, _) => BuocQr();
-        _body.Controls.Add(qr);
-        TextBox? mayChu = null;
-        if (string.IsNullOrWhiteSpace(_server))
-        {
-            _body.Controls.Add(T("Địa chỉ máy chủ AiiGrow", 10.5f));
-            mayChu = new TextBox { Width = 420, Text = MayChuMacDinh, Margin = new Padding(0, 0, 0, 14) };
-            _body.Controls.Add(mayChu);
-        }
         Tiep("Ghép và cài đặt", () =>
         {
             var m = ma.Text.Trim();
             if (m.Length != 6 || !m.All(char.IsDigit)) { loi.Text = "Mã ghép gồm đúng 6 chữ số."; return; }
-            if (mayChu != null) _server = mayChu.Text.Trim();
             BuocCai(new InstallOptions { Server = _server, Code = m, Child = child });
         });
         ma.Focus();
-    }
-
-    /// <summary>Vẽ ma trận QR ("0"/"1" mỗi hàng) thành ảnh: ô đen trên nền trắng, viền 4 ô.</summary>
-    private static Bitmap QrBitmap(IReadOnlyList<string> rows, int size)
-    {
-        int n = rows.Count, q = 4, w = n + q * 2;
-        var bmp = new Bitmap(size, size);
-        using var g = Graphics.FromImage(bmp);
-        g.Clear(Color.White);
-        float cell = size / (float)w;
-        using var ink = new SolidBrush(Color.FromArgb(0x1c, 0x1d, 0x21));
-        for (int y = 0; y < n; y++)
-            for (int x = 0; x < n; x++)
-                if (rows[y][x] == '1') g.FillRectangle(ink, (x + q) * cell, (y + q) * cell, cell + 0.5f, cell + 0.5f);
-        return bmp;
-    }
-
-    /// <summary>Đường phụ: máy hiện QR, Ba Mẹ quét bằng app là ghép xong rồi cài luôn.</summary>
-    private void BuocQr()
-    {
-        var child = _child!;
-        _qrCts?.Cancel();
-        _qrCts = new CancellationTokenSource();
-        var ct = _qrCts.Token;
-        Man(4, "Ghép máy", "Ba Mẹ quét mã để ghép máy", BuocGhep);
-        _body.Controls.Add(T("Mở app AiiGrow trên điện thoại của Ba Mẹ → Ghép thêm máy → quét mã này."));
-        var pic = new PictureBox { Width = 240, Height = 240, SizeMode = PictureBoxSizeMode.Zoom, Margin = new Padding(0, 0, 0, 8), BackColor = Color.White };
-        _body.Controls.Add(pic);
-        var status = T("Đang tạo mã…", 11f, true, Chinh);
-        _body.Controls.Add(status);
-
-        async Task Loop()
-        {
-            for (int lan = 0; lan < 6 && !ct.IsCancellationRequested; lan++)
-            {
-                QrPair m;
-                try { m = await ApiClient.CreateQrAsync(_server, Environment.MachineName, ct); }
-                catch (Exception e) when (!ct.IsCancellationRequested)
-                {
-                    status.ForeColor = Loi; status.Text = "Chưa tạo được mã: " + e.Message + " — bấm Quay lại để nhập mã 6 số."; return;
-                }
-                pic.Image?.Dispose();
-                pic.Image = QrBitmap(m.Qr, 480);
-                status.ForeColor = Chinh; status.Text = "Đang chờ Ba Mẹ quét… (mã đổi sau 5 phút)";
-                while (!ct.IsCancellationRequested)
-                {
-                    try { await Task.Delay(2000, ct); } catch (OperationCanceledException) { return; }
-                    PairResult? r;
-                    try { r = await ApiClient.PollQrAsync(_server, m, ct); }
-                    catch (QrExpiredException) { break; }
-                    catch (ApiException e) when (e.StatusCode != null) { status.ForeColor = Loi; status.Text = "Chưa ghép được: " + e.Message; return; }
-                    catch (Exception) when (!ct.IsCancellationRequested) { continue; } // rớt mạng thoáng qua
-                    if (r != null) { BuocCai(new InstallOptions { Server = _server, Paired = r, Child = child }); return; }
-                }
-            }
-            if (!ct.IsCancellationRequested) { status.ForeColor = Loi; status.Text = "Mã đã hết hạn — bấm Quay lại rồi thử lại."; }
-        }
-        _ = Loop();
     }
 
     // ---------------------------------------------------------------- 5. Cài + Xong
@@ -417,7 +346,6 @@ internal sealed class SetupForm : Form
 
     private async void BuocCai(InstallOptions o)
     {
-        _qrCts?.Cancel();
         var child = o.Child;
         Man(5, "Cài đặt", "Đang cài AiiGrow…");
         var thanh = new ProgressBar { Width = Rong, Height = 14, Maximum = StepLabels.Length, Style = ProgressBarStyle.Continuous, Margin = new Padding(0, 4, 0, 16) };
@@ -472,11 +400,5 @@ internal sealed class SetupForm : Form
             return;
         }
         base.OnFormClosing(e);
-    }
-
-    protected override void OnFormClosed(FormClosedEventArgs e)
-    {
-        _qrCts?.Cancel();
-        base.OnFormClosed(e);
     }
 }

@@ -47,7 +47,7 @@ export default function HoSoCon() {
           {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={`Thiếu: ${t.ten}`} phu={`Cách làm: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
         </Nhom>
       ))}
-      <Nut chu="Ghép thêm máy" ic="qr" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
+      <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
       <Nhom>
         <Dong dau tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />

@@ -22,11 +22,6 @@ public sealed class ApiException : Exception
     public bool LaTokenSai => StatusCode == 401 && Code is "token_sai" or "device_unknown";
 }
 
-public sealed class QrExpiredException : Exception
-{
-    public QrExpiredException() : base("Mã QR đã hết hạn") { }
-}
-
 /// <summary>Client API máy con (PLAN.md mục 3). Token Bearer của máy.</summary>
 public sealed class ApiClient : IDisposable
 {
@@ -60,30 +55,6 @@ public sealed class ApiClient : IDisposable
         if (string.IsNullOrEmpty(res.Token)) throw new ApiException("Máy chủ không trả token");
         res.Server = string.IsNullOrWhiteSpace(res.Server) ? NormalizeServer(server) : NormalizeServer(res.Server!);
         return res;
-    }
-
-    /// <summary>Ghép bằng QR: xin mã để hiện cho bố mẹ quét bằng app (server/lib/ghep-qr.ts).</summary>
-    public static async Task<QrPair> CreateQrAsync(string server, string deviceName,
-        CancellationToken ct = default, HttpMessageHandler? handler = null)
-    {
-        using var api = new ApiClient(server, null, handler);
-        return await api.PostAsync<QrPair>("api/device/ghep-qr", new { nen = "windows", tenMay = deviceName }, ct);
-    }
-
-    /// <summary>Hỏi kết quả quét. Trả <c>null</c> khi chưa quét; <see cref="PairResult"/> khi bố mẹ đã ghép; ném lỗi "het" khi mã hết hạn.</summary>
-    public static async Task<PairResult?> PollQrAsync(string server, QrPair m,
-        CancellationToken ct = default, HttpMessageHandler? handler = null)
-    {
-        using var api = new ApiClient(server, null, handler);
-        var raw = await api.SendAsync(HttpMethod.Post, "api/device/ghep-qr/hoi", new { ma = m.Ma, bi = m.Bi }, ct);
-        var st = Deserialize<QrState>(raw);
-        if (st.TrangThai == "het") throw new QrExpiredException();
-        if (st.TrangThai != "xong" || string.IsNullOrEmpty(st.Token)) return null;
-        return new PairResult
-        {
-            DeviceId = st.DeviceId ?? "", Token = st.Token!, ChildName = st.ChildName ?? "",
-            Server = string.IsNullOrWhiteSpace(st.Server) ? NormalizeServer(server) : NormalizeServer(st.Server!),
-        };
     }
 
     public async Task<(Policy Policy, string Raw)> SyncAsync(AgentStatus status, IReadOnlyList<UsageEntry> usage,

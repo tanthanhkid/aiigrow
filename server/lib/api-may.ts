@@ -9,7 +9,7 @@ import { one } from "./db.ts";
 import { conTuPhien, dangNhapPin, ghepMay, mayTuToken } from "./gia-dinh.ts";
 import { dongBo } from "./may-con.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
-import { buPhien, goCoMatKhau, hoiQrGhep, nhanSuKien, taoPhienWeb, taoQrGhep } from "./may-con.ts";
+import { buPhien, goCoMatKhau, nhanSuKien, taoPhienWeb } from "./may-con.ts";
 import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
 import { guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
@@ -32,12 +32,6 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const b = await docJson(req);
       return json(await ghepMay(String(b.ma ?? ""), String(b.nen ?? ""), String(b.tenMay ?? "")));
     }
-    // M4: ghép bằng QR (máy hiện QR, Ba Mẹ quét) — không cần Bearer
-    if (d === "ghep-qr" && req.method === "POST") {
-      const b = await docJson(req);
-      return json(await taoQrGhep(process.env.AIIGROW_APP_URL || new URL(req.url).origin, String(b.nen ?? "windows"), String(b.tenMay ?? "")));
-    }
-    if (d === "ghep-qr/hoi" && req.method === "POST") { const b = await docJson(req); return json(await hoiQrGhep(String(b.ma ?? ""), String(b.bi ?? ""))); }
     // M4b: agent báo xong lệnh — trước bước kiểm token máy vì máy đã gỡ (đã xoá) vẫn báo lại được, không ghi đôi
     if (p[0] === "lenh" && p[1] && p[2] === "xong" && req.method === "POST") return json(await xongLenh(bearer(req), p[1]));
     const may = await (async () => { const t = bearer(req); return t ? mayTuToken(t) : undefined; })();

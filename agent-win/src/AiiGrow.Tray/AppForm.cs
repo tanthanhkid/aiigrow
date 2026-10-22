@@ -43,6 +43,8 @@ internal sealed class AppForm : Form
     private HvCuaHang? _ch;
     private HvTinDs? _tin;
     private bool _busy;
+    /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
+    private string? _loiTai;
     private int _cw, _tw, _lastW;
     private string _sig = "";
     private Label? _bigLbl, _capLbl;
@@ -271,8 +273,15 @@ internal sealed class AppForm : Form
         {
             Say("Đang tải…", false);
             var (tq, loi) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan");
-            if (tq == null) { Say(loi ?? "Chưa tải được. Con thử lại nhé.", true); return; }
+            if (tq == null)
+            {
+                _loiTai = string.IsNullOrWhiteSpace(loi) ? "Chưa tải được. Con thử lại nhé." : loi;
+                Say(_loiTai, true);
+                Render();
+                return;
+            }
             _tq = tq;
+            _loiTai = null;
             Render();
             ApplyKetNoiUi();
             Say("", false);
@@ -396,7 +405,12 @@ internal sealed class AppForm : Form
         {
             var c = Card();
             c.Controls.Add(T("Việc của con", 14f, true));
-            if (_tq == null) c.Controls.Add(T("Đang tải…", 12f, false, UI.Muted));
+            if (_tq == null && _loiTai != null)
+            {
+                c.Controls.Add(T(_loiTai, 12f, false, UI.Error));
+                c.Controls.Add(NutThuLai());
+            }
+            else if (_tq == null) c.Controls.Add(T("Đang tải…", 12f, false, UI.Muted));
             else
             {
                 var n = HocVienView.SoViecMo(_tq);
@@ -424,11 +438,7 @@ internal sealed class AppForm : Form
 
     private void RenderViec()
     {
-        if (_tq == null)
-        {
-            _content.Controls.Add(T(_s.Paired ? "Đang tải nhiệm vụ…" : "Máy chưa ghép với Ba Mẹ nên chưa có nhiệm vụ.", 12.5f, false, UI.Muted, true));
-            return;
-        }
+        if (VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có nhiệm vụ.", "Đang tải nhiệm vụ…")) return;
         var ds = HocVienView.SapXep(_tq.NhiemVu);
         if (ds.Count == 0) _content.Controls.Add(T("Chưa có nhiệm vụ nào. Khi Ba Mẹ giao việc, con sẽ thấy ở đây và nhận thông báo.", 12.5f, false, UI.Muted, true));
         foreach (var v in ds) _content.Controls.Add(ViecCard(v));
@@ -507,11 +517,7 @@ internal sealed class AppForm : Form
 
     private void RenderQua()
     {
-        if (_tq == null)
-        {
-            _content.Controls.Add(T(_s.Paired ? "Đang tải…" : "Máy chưa ghép với Ba Mẹ nên chưa có phần quà.", 12.5f, false, UI.Muted, true));
-            return;
-        }
+        if (VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có phần quà.", "Đang tải…")) return;
         // Điểm: màu vàng CHỈ dành cho điểm (mau.ts) — chữ diemInk trên nền diemSoft 7,4:1.
         var pts = Card(UI.PointSoft);
         pts.Controls.Add(T("Điểm của con", 12.5f, false, UI.PointInk));
@@ -565,6 +571,31 @@ internal sealed class AppForm : Form
 
     // ---------------------------------------------------------------- Tin nhắn
 
+    /// <summary>Mục chưa có dữ liệu học viên: chưa ghép / đang tải / LỖI (lý do + «Thử lại»). true = đã vẽ, mục dừng ở đây.</summary>
+    private bool VeChuaCoDuLieu(string chuaGhep, string dangTai)
+    {
+        switch (HocVienView.TrangThaiTai(_s.Paired, _tq != null, _loiTai))
+        {
+            case TaiHocVien.Xong: return false;
+            case TaiHocVien.ChuaGhep: _content.Controls.Add(T(chuaGhep, 12.5f, false, UI.Muted, true)); return true;
+            case TaiHocVien.DangTai: _content.Controls.Add(T(dangTai, 12.5f, false, UI.Muted, true)); return true;
+            default:
+                var c = Card(UI.ErrorSoft);
+                c.Controls.Add(T("Chưa tải được", 14f, true, UI.Error));
+                c.Controls.Add(T(_loiTai!, 12f, false, UI.Error));
+                c.Controls.Add(NutThuLai());
+                _content.Controls.Add(c);
+                return true;
+        }
+    }
+
+    private Button NutThuLai()
+    {
+        var b = Btn("Thử lại", true, 180);
+        b.Click += async (_, _) => { b.Enabled = false; await RefreshAsync(); };
+        return b;
+    }
+
     private void RenderTinNhan()
     {
         var tq = _tq;
@@ -585,8 +616,8 @@ internal sealed class AppForm : Form
                 _content.Controls.Add(c);
             }
         }
-        if (_content.Controls.Count == 0)
-            _content.Controls.Add(T(tq == null && _s.Paired ? "Đang tải…" : "Chưa có tin nhắn nào.", 12.5f, false, UI.Muted, true));
+        if (_content.Controls.Count == 0 && !VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có tin nhắn.", "Đang tải…"))
+            _content.Controls.Add(T("Chưa có tin nhắn nào.", 12.5f, false, UI.Muted, true));
     }
 
     private Control LoiKhenCard(HvLoiKhen l)

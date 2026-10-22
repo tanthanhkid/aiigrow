@@ -8,8 +8,6 @@ internal sealed class InstallOptions
 {
     public string Server { get; set; } = "";
     public string Code { get; set; } = "";
-    /// <summary>Đã ghép bằng QR (Ba Mẹ quét) thì bỏ bước gọi /api/device/ghep bằng mã 6 số.</summary>
-    public PairResult? Paired { get; set; }
     public LocalAccount Child { get; set; } = new("", "", false);
 }
 
@@ -41,10 +39,10 @@ internal static class Installer
         log("Xong. AiiGrow đang chạy trên máy này.");
     }
 
-    /// <summary>Luồng cài có chọn tài khoản (giao diện 3 bước) — ghép bằng QR hoặc mã 6 số.</summary>
+    /// <summary>Luồng cài có chọn tài khoản (giao diện 3 bước) — ghép bằng mã 6 số.</summary>
     public static async Task RunAsync(InstallOptions o, Action<int, string?> step)
     {
-        var pair = o.Paired ?? await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
+        var pair = await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
         var store = new ConfigStore();
         // Cài lại đè lên máy đã hạ quyền: GỘP DaHaQuyen cũ (Con lúc này đã là tài khoản thường ⇒ không ghi lại được).
         CaiLai.GhiGiuQuyen(store, new AgentConfig
