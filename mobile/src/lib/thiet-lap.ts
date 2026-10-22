@@ -9,3 +9,5 @@ export const datTl = (x: TL) => {
   try { kho()?.setItem(KHOA, JSON.stringify(tl)); } catch { /* chế độ riêng tư: chỉ giữ trong bộ nhớ */ }
 };
 export const layTl = () => tl;
+/** Đổi phiên Ba Mẹ (đăng nhập/đăng xuất/hết phiên) ⇒ bỏ trạng thái cũ: không nhắm vào Con của gia đình khác. */
+export const xoaTl = () => { tl = {}; try { kho()?.removeItem(KHOA); } catch { /* bỏ qua */ } };

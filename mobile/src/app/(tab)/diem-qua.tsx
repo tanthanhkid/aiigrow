@@ -17,8 +17,10 @@ export default function DiemQua() {
   const { d, loi, matMang, tai } = useTai(async () => ({
     nv: (await bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")).ds, qua: (await bm.goi<{ ds: Qua[] }>("qua")).ds, quy: await bm.goi<{ soDu: number }>("quy"),
     phieu: (await bm.goi<{ ds: Phieu[] }>("phieu")).ds,
+    xem: (await bm.goi<{ baMe: { vai: string } }>("toi")).baMe.vai === "xem",
   }));
   const [sua, setSua] = useState<NhiemVu | null>(null);
+  const [huy, setHuy] = useState<Phieu | null>(null);
   const [diem, setDiem] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
@@ -37,9 +39,9 @@ export default function DiemQua() {
           <Nhom>
             {d.phieu.map((x, i) => (
               <Dong key={x.id} dau={i === 0} tieu={`${x.ten_con} · ${x.ten}`} phu={`${x.diem} điểm`} trai={<BieuTron ic={IC_QUA[x.loai]?.[0] ?? "qua"} mau={IC_QUA[x.loai]?.[1] ?? "lam"} />}
-                phai={<View style={{ flexDirection: "row", gap: 6 }}>
+                phai={d.xem ? <Nhan loai="xam" chu="Chờ trao" /> : <View style={{ flexDirection: "row", gap: 6 }}>
                   <Nut chu="Đã trao" nho dangChay={dangChay} bam={() => xuLy(x, "xac-nhan")} />
-                  <Nut chu="Huỷ" loai="vien" nho dangChay={dangChay} bam={() => xuLy(x, "huy")} />
+                  <Nut chu="Huỷ" loai="vien" nho dangChay={dangChay} bam={() => setHuy(x)} />
                 </View>} />
             ))}
           </Nhom>
@@ -84,7 +86,15 @@ export default function DiemQua() {
           )}
         </>
       )}
-      <BaoLoi loi={!sua ? loiLam : null} />
+      <BaoLoi loi={!sua && !huy ? loiLam : null} />
+      {huy ? (
+        <BangTruot mo dong={() => setHuy(null)} tieu={`Huỷ «${huy.ten}»?`}>
+          <Chu>{`${huy.ten_con} được hoàn ${huy.diem} điểm. Không hoàn tác được.`}</Chu>
+          <BaoLoi loi={loiLam} />
+          <Nut chu="Huỷ phiếu, hoàn điểm" loai="huy" rong dangChay={dangChay} bam={async () => { if (await xuLy(huy, "huy")) setHuy(null); }} />
+          <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="ma" rong bam={() => setHuy(null)} /></View>
+        </BangTruot>
+      ) : null}
       {sua ? (
         <BangTruot mo dong={() => setSua(null)} tieu={sua.ten}>
           <ONhap nhan="Điểm thưởng" value={diem} onChangeText={(t) => setDiem(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" />

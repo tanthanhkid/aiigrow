@@ -1,6 +1,7 @@
 // Gọi API máy chủ AiiGrow (docs/API.md): app Ba Mẹ /api/m/*, màn Con /api/kid/*. Token phiên giữ trong SecureStore (web: localStorage).
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import { xoaTl } from "./thiet-lap";
 
 export const GOC = (process.env.EXPO_PUBLIC_API ?? "http://localhost:3310").replace(/\/$/, "");
 /** Trang tải bộ cài cho máy của Con (server/app/tai) — link công khai cố định, Ba Mẹ gõ tay được trên laptop của Con. */
@@ -22,7 +23,7 @@ function khach(tienTo: "m" | "kid", khoa: string) {
   let hetPhien: (() => void) | null = null;
   return {
     nap: async () => (token = await k.doc()),
-    dat: async (t: string | null) => { token = t; await (t ? k.ghi(t) : k.xoa()); },
+    dat: async (t: string | null) => { token = t; xoaTl(); await (t ? k.ghi(t) : k.xoa()); },
     co: () => !!token,
     onHetPhien: (fn: () => void) => { hetPhien = fn; },
     async goi<T = any>(duong: string, body?: unknown): Promise<T> {
@@ -40,6 +41,7 @@ function khach(tienTo: "m" | "kid", khoa: string) {
       // 401 = hết phiên ⇒ đăng xuất. TRỪ xác thực lại mật khẩu ngay trong app (gỡ từ xa) — đó là mật khẩu sai, không phải hết phiên.
       if (r.status === 401 && token && j.error !== "sai_mat_khau" && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong)) {
         token = null;
+        xoaTl();
         await k.xoa();
         hetPhien?.();
       }

@@ -106,8 +106,8 @@ export default function AnToanMay() {
       ) : null}
 
       {moDen ? (
-        <Bao loai="lam" ic="mo_khoa" tieu={khanCap ? "Đang mở khẩn cấp" : "Đang mở thêm giờ"} loi={`Giải trí được mở tới ${gio(moDen)}.`}>
-          <Nut chu="Khoá lại ngay" loai="vien" nho bam={() => lam(async () => { await bm.goi(`may/${id}/mo-khan-cap/huy`, {}); bao(`Đã khoá lại ${m.ten}`); await tai(); })} />
+        <Bao loai="lam" ic="mo_khoa" tieu={khanCap && moDen === m.moKhanCapDen ? "Đang mở khẩn cấp" : "Đang mở thêm giờ"} loi={`Giải trí được mở tới ${gio(moDen)} — trừ khi đang Khoá ngay hoặc giờ ngủ (lúc đó máy vẫn khoá).`}>
+          {d.xem ? null : <Nut chu="Khoá lại ngay" loai="vien" nho bam={() => lam(async () => { await bm.goi(`may/${id}/mo-khan-cap/huy`, {}); bao(m.con ? `Đã khoá lại ${m.ten} — thêm giờ của Con trên mọi máy cũng đóng` : `Đã khoá lại ${m.ten}`); await tai(); })} />}
         </Bao>
       ) : null}
 

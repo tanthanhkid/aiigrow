@@ -23,6 +23,7 @@ public sealed class UpdateWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        _ = Task.Run(BatLaiTuKhoiDong);   // không chặn dịch vụ khởi động (sc.exe tối đa 30 giây/lệnh)
         try { await Task.Delay(TimeSpan.FromMinutes(2), ct); } catch (OperationCanceledException) { return; }
         while (!ct.IsCancellationRequested)
         {
@@ -95,6 +96,19 @@ public sealed class UpdateWorker : BackgroundService
                 if (!string.Equals(f, giu, StringComparison.OrdinalIgnoreCase)) try { File.Delete(f); } catch { }
         }
         catch { }
+    }
+
+    /// <summary>Bộ cài cập nhật tắt «tự chạy lại khi lỗi» trong lúc chép; bị giết giữa chừng (mất điện, quá 30 phút) thì không bật lại được ⇒
+    /// mỗi lần dịch vụ khởi động tự bật lại (SYSTEM có quyền sc.exe trên chính dịch vụ).</summary>
+    private void BatLaiTuKhoiDong()
+    {
+        try
+        {
+            var a = Shell.Run("sc.exe", new[] { "failure", Paths.ServiceName }.Concat(CapNhatMay.DoiSoBatTuKhoiDong), 30000);
+            var b = Shell.Run("sc.exe", new[] { "failureflag", Paths.ServiceName, "1" }, 30000);
+            if (!a.Ok || !b.Ok) _log.LogWarning("Bật tự chạy lại dịch vụ lỗi: {Loi}", a.Ok ? b.Error : a.Error);
+        }
+        catch (Exception e) { _log.LogWarning("Bật tự chạy lại dịch vụ lỗi: {Loi}", e.Message); }
     }
 
     private static string TepDaThu => Path.Combine(ThuMuc, "da-thu.txt");

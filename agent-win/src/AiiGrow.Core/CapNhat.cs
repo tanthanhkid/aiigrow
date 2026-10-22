@@ -144,10 +144,21 @@ public static class CapNhatMay
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             if (!File.Exists(dich)) throw;
-            File.Move(dich, dich + ".cu-" + Guid.NewGuid().ToString("N")[..8]);
-            chep(tu, dich);
+            var cu = dich + ".cu-" + Guid.NewGuid().ToString("N")[..8];
+            File.Move(dich, cu);
+            try { chep(tu, dich); }
+            catch
+            {
+                // chép lại vẫn lỗi (đầy đĩa…) ⇒ trả tên cũ, không để thư mục cài mất exe
+                try { if (!File.Exists(dich)) File.Move(cu, dich); } catch { }
+                throw;
+            }
         }
     }
+
+    /// <summary>Đối số sc.exe bật «tự chạy lại khi lỗi» cho dịch vụ — bộ cài bật lại sau cập nhật; dịch vụ tự bật lúc khởi động
+    /// (bộ cài bị giết giữa chừng thì «finally» không chạy, cấu hình tắt còn nằm lại).</summary>
+    public static readonly string[] DoiSoBatTuKhoiDong = { "reset=", "86400", "actions=", "restart/5000/restart/5000/restart/30000" };
 }
 
 /// <summary>GET /api/agent/ban-moi — bản bộ cài mới nhất máy chủ đang phát.</summary>
