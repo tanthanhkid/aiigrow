@@ -8,6 +8,9 @@ public sealed class AgentWorker : BackgroundService
     private readonly AgentRuntime _rt;
     private readonly AppLockerController _locker;
     private readonly IProcessControl _procs;
+    // Cài một chạm (cấu hình không có tài khoản Con): danh sách tài khoản máy, đọc lại mỗi 10 phút
+    private List<LocalAccount> _taiKhoan = new();
+    private long _docTaiKhoanLuc = long.MinValue;
 
     public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker, IProcessControl? procs = null)
     {
@@ -40,7 +43,10 @@ public sealed class AgentWorker : BackgroundService
                 if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }
                 if (cfg is { Paired: true })
                 {
-                    var sess = string.IsNullOrEmpty(cfg.ChildUser) ? null : SessionHelper.Find(cfg.ChildUser);
+                    var taiKhoan = TaiKhoanMay(cfg);
+                    var childUser = TaiKhoanCon.ChonUser(cfg.ChildUser, string.IsNullOrEmpty(cfg.ChildUser) ? SessionHelper.ConsoleUser() : "", taiKhoan);
+                    var childSids = TaiKhoanCon.ChonSids(cfg.ChildSid, taiKhoan);
+                    var sess = string.IsNullOrEmpty(childUser) ? null : SessionHelper.Find(childUser);
                     _rt.ChildSessionId = sess?.SessionId ?? -1;
                     bool active = sess is { Active: true };
 
@@ -77,13 +83,13 @@ public sealed class AgentWorker : BackgroundService
                     if (!apThat || p == null || eff == null)
                     {
                         // Không chặn thật ⇒ luật AppLocker của AiiGrow phải KHÔNG còn (đổi sang giám sát là gỡ ngay, không chờ khởi động lại).
-                        _rt.AppLockerApplied = _locker.Reconcile(false, cfg.ChildSid, Array.Empty<string>());
+                        _rt.AppLockerApplied = _locker.Reconcile(false, childSids, Array.Empty<string>());
                     }
                     if (p != null && eff != null)
                     {
                         if (apThat)
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, cfg.ChildSid, p.AllowedApps);
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids, p.AllowedApps);
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -172,5 +178,17 @@ public sealed class AgentWorker : BackgroundService
             var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
             if (apThat) _rt.RecordBlocked(exe, bare);   // giám sát: app không bị đóng ⇒ không hiện màn «app bị chặn»
         }
+    }
+
+    /// <summary>Chỉ đọc khi cấu hình chưa gắn tài khoản Con (cài một chạm); lỗi ⇒ giữ danh sách cũ.</summary>
+    private List<LocalAccount> TaiKhoanMay(AgentConfig cfg)
+    {
+        if (AppLockerXml.IsValidSid(cfg.ChildSid) && !string.IsNullOrEmpty(cfg.ChildUser)) return _taiKhoan;
+        var bay = Environment.TickCount64;
+        if (_docTaiKhoanLuc != long.MinValue && bay - _docTaiKhoanLuc < 10 * 60 * 1000) return _taiKhoan;
+        _docTaiKhoanLuc = bay;
+        try { _taiKhoan = TaiKhoanCon.DocMay(); }
+        catch (Exception e) { _log.LogWarning("Đọc tài khoản Windows lỗi: {Loi}", e.Message); }
+        return _taiKhoan;
     }
 }

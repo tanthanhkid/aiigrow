@@ -9,6 +9,9 @@ public sealed class AppLockerOptions
 {
     /// <summary>SID tài khoản Windows của con (luật chỉ áp cho SID này).</summary>
     public string ChildSid { get; set; } = "";
+    /// <summary>Nhiều tài khoản (cài một chạm: mọi tài khoản không phải quản trị). Có ⇒ dùng thay <see cref="ChildSid"/>.</summary>
+    public IReadOnlyList<string>? ChildSids { get; set; }
+    public IReadOnlyList<string> Sids => ChildSids is { Count: > 0 } ? ChildSids : new[] { ChildSid };
     /// <summary>Tên file .exe được phép (mode "hoc").</summary>
     public IEnumerable<string> AllowedApps { get; set; } = Array.Empty<string>();
     /// <summary>Cho phép cả %PROGRAMFILES%. Mặc định tắt: nếu bật thì mọi app cài ở Program Files đều chạy được.</summary>
@@ -127,7 +130,8 @@ public static class AppLockerXml
 
     public static string Merge(string? existingXml, AppLockerOptions o)
     {
-        if (!IsValidSid(o.ChildSid)) throw new ArgumentException("SID không hợp lệ: " + o.ChildSid);
+        foreach (var sid in o.Sids)
+            if (!IsValidSid(sid)) throw new ArgumentException("SID không hợp lệ: " + sid);
         var doc = Parse(existingXml);
         StripOurs(doc);
         var exe = Collection(doc, "Exe");
@@ -178,7 +182,8 @@ public static class AppLockerXml
             var n = NormalizeExe(a);
             if (n != null && seen.Add(n)) exceptions.Add(@"*\" + n);
         }
-        yield return Rule("Chỉ app học cho tài khoản của con", o.ChildSid, "Deny", "*", exceptions);
+        foreach (var sid in o.Sids)
+            yield return Rule("Chỉ app học cho tài khoản của con", sid, "Deny", "*", exceptions);
     }
 
     private static XElement Rule(string name, string sid, string action, string path, IEnumerable<string>? exceptions)

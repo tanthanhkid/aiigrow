@@ -1,38 +1,14 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using AiiGrow.Core;
 
 namespace AiiGrow.Setup;
-
-internal sealed record LocalAccount(string Name, string Sid, bool IsAdmin);
 
 internal static class Accounts
 {
     private static readonly Regex NameRegex = new(@"^[A-Za-z0-9._-]{1,20}$", RegexOptions.Compiled);
     public static bool IsValidName(string? n) => !string.IsNullOrEmpty(n) && NameRegex.IsMatch(n);
 
-    public static List<LocalAccount> List()
-    {
-        var r = Shell.PowerShell(
-            "$admins = @(Get-LocalGroupMember -SID S-1-5-32-544 | ForEach-Object { $_.SID.Value }); " +
-            "$l = @(Get-LocalUser | Where-Object { $_.Enabled } | ForEach-Object { [pscustomobject]@{ Name=$_.Name; Sid=$_.SID.Value; IsAdmin=($admins -contains $_.SID.Value) } }); " +
-            "ConvertTo-Json -InputObject $l -Compress");
-        if (!r.Ok) throw new InvalidOperationException("Không đọc được danh sách tài khoản: " + r.Error);
-        var res = new List<LocalAccount>();
-        using var doc = JsonDocument.Parse(r.Output.Trim());
-        var items = doc.RootElement.ValueKind == JsonValueKind.Array
-            ? doc.RootElement.EnumerateArray().ToList()
-            : new List<JsonElement> { doc.RootElement };
-        foreach (var e in items)
-        {
-            if (e.ValueKind != JsonValueKind.Object) continue;
-            res.Add(new LocalAccount(
-                e.GetProperty("Name").GetString() ?? "",
-                e.GetProperty("Sid").GetString() ?? "",
-                e.GetProperty("IsAdmin").GetBoolean()));
-        }
-        return res;
-    }
+    public static List<LocalAccount> List() => TaiKhoanCon.DocMay();
 
     /// <summary>Tạo tài khoản Standard mới (mật khẩu truyền qua biến môi trường, không lên dòng lệnh). Trả SID.</summary>
     public static string CreateStandard(string name, string password)

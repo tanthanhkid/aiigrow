@@ -8,22 +8,29 @@ public sealed class AppLockerController
     private readonly ILogger<AppLockerController> _log;
     private string? _lastKey;
     private DateTimeOffset _nextTry = DateTimeOffset.MinValue;
-    private int _docLoi;      // số lần đọc chính sách lỗi liên tiếp khi gỡ
+    private int _docLoi;
+    private bool _daBaoKhongSid;   // cảnh báo «không có tài khoản Con» một lần, không mỗi nhịp      // số lần đọc chính sách lỗi liên tiếp khi gỡ
 
     public AppLockerController(ILogger<AppLockerController> log) { _log = log; }
 
     public bool Applied { get; private set; }
 
     /// <summary>Đưa AppLocker về đúng trạng thái mong muốn. Trả true nếu luật AiiGrow đang có hiệu lực.</summary>
-    public bool Reconcile(bool wantApply, string childSid, IEnumerable<string> apps)
+    public bool Reconcile(bool wantApply, IReadOnlyList<string> sids, IEnumerable<string> apps)
     {
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
-        var want = wantApply && AppLockerXml.IsValidSid(childSid);
-        var key = want ? childSid + "|" + string.Join(",", list) : "off";
+        var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
+        var want = wantApply && ds.Count > 0;
+        if (wantApply && ds.Count == 0 && !_daBaoKhongSid)
+        {
+            _daBaoKhongSid = true;
+            _log.LogWarning("Chặn thật: máy không có tài khoản Con nào (không có tài khoản không phải quản trị) — chưa áp được AppLocker");
+        }
+        var key = want ? string.Join(";", ds) + "|" + string.Join(",", list) : "off";
         if (key == _lastKey) return Applied;
         if (DateTimeOffset.UtcNow < _nextTry) return Applied;
 
-        bool ok = want ? Apply(childSid, list) : Remove();
+        bool ok = want ? Apply(ds, list) : Remove();
         if (ok) { _lastKey = key; Applied = want; }
         else _nextTry = DateTimeOffset.UtcNow.AddSeconds(60);
         return Applied;
@@ -41,7 +48,7 @@ public sealed class AppLockerController
         try { return File.ReadAllText(tmp); } catch { loi = true; return null; }
     }
 
-    private bool Apply(string sid, List<string> apps)
+    private bool Apply(List<string> sids, List<string> apps)
     {
         try
         {
@@ -51,14 +58,14 @@ public sealed class AppLockerController
             var cu = ReadExisting(out var loiDoc);
             _docLoi = loiDoc ? _docLoi + 1 : 0;
             if (loiDoc && _docLoi < AppLockerXml.DocLoiToiDa) return false;
-            var xml = AppLockerXml.Merge(cu, new AppLockerOptions { ChildSid = sid, AllowedApps = apps });
+            var xml = AppLockerXml.Merge(cu, new AppLockerOptions { ChildSids = sids, AllowedApps = apps });
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
             File.WriteAllText(file, xml, new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Set-AppLockerPolicy lỗi: {e}", set.Error); return false; }
             EnsureAppIdSvc();
             _docLoi = 0;
-            _log.LogInformation("Đã áp AppLocker cho SID {sid} với {n} app", sid, apps.Count);
+            _log.LogInformation("Đã áp AppLocker cho {soTk} tài khoản với {n} app", sids.Count, apps.Count);
             return true;
         }
         catch (Exception e)
