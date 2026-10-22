@@ -337,15 +337,19 @@ public sealed class AgentRuntime
         var now = DateTimeOffset.UtcNow;
         lock (_gate)
         {
+            var mode = _policy?.Mode ?? Modes.TuDo;
+            var tray = (now - _fgAt).TotalSeconds < 20;
+            var moCoi = MoCoi.La(Config, now);
             return new AgentStatus
             {
-                Mode = _policy?.Mode ?? Modes.TuDo,
+                Mode = mode,
                 AppLockerApplied = AppLockerApplied,
-                TrayAlive = (now - _fgAt).TotalSeconds < 20,
+                TrayAlive = tray,
                 ChildSessionActive = childActive,
                 Offline = _offline,
                 CheDo = _cheDo,
-                MoCoi = MoCoi.La(Config, now),
+                MoCoi = moCoi,
+                Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive),
             };
         }
     }

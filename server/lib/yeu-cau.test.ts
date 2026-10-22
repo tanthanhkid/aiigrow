@@ -111,3 +111,33 @@ test("quy tắc tự động: tự đồng ý thêm 15 phút nếu đủ điểm
   const b = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15, lyDo: "x" }, T);
   assert.equal(await yc.apQuyTacTuDong(fam, b.id, T), false, "lần thứ hai trong ngày để Ba Mẹ quyết");
 });
+
+test("thêm giờ cho lời xin từ máy WINDOWS ⇒ cửa sổ mở tới hạn (cộng dồn), agent nhận qua hanMoCuaMay; phút đó không còn là «thưởng» phiên", async () => {
+  const tt = await import("./tuan-thu.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Phi" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "PC của Phi");
+  const may = (await g.mayTuToken(r.token))!;
+  assert.equal(await tt.hanMoCuaMay(may, con, T), null);
+  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "Để làm bài tập" }, T);
+  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, T);
+  const den1 = (await tt.hanMoCuaMay(may, con, T))!;
+  assert.equal(den1.getTime(), T.getTime() + 30 * 60000);
+  assert.equal(await ph.thuongConLai(con, T), 0, "cửa sổ không phải thưởng phiên (tránh dùng hai lần)");
+  // duyệt thêm 15 phút khi đang mở ⇒ cộng dồn
+  const b = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "Bạn rủ chơi" }, T);
+  await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 15 }, T);
+  assert.equal((await tt.hanMoCuaMay(may, con, T))!.getTime(), T.getTime() + 45 * 60000);
+  // hết hạn ⇒ null
+  assert.equal(await tt.hanMoCuaMay(may, con, new Date(T.getTime() + 46 * 60000)), null);
+  // mở khẩn cấp của máy cũng là «mở»
+  await tt.moKhanCap(fam, may.id, { phut: 60 }, bm, T);
+  assert.equal((await tt.hanMoCuaMay(may, con, T))!.getTime(), T.getTime() + 60 * 60000);
+  // lời xin từ thiết bị KHÔNG phải Windows ⇒ giữ nguyên cách «thưởng»
+  const c2 = await g.taoCon(fam, { ten: "Mai" });
+  const dt = await g.ghepMay(await g.taoMaGhep(fam, c2, "android"), "android", "Điện thoại Mai");
+  const yd = await yc.guiYeuCau(c2, (await g.mayTuToken(dt.token))!.id, { loai: "them_gio", phut: 20, lyDo: "Bạn rủ chơi" }, T);
+  await yc.dongY(fam, yd.id, bm, { truDiem: false, phut: 20 }, T);
+  assert.equal(await ph.thuongConLai(c2, T), 20);
+  assert.equal(await tt.hanMoCuaMay((await g.mayTuToken(dt.token))!, c2, T), null);
+});

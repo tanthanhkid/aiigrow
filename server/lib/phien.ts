@@ -30,7 +30,7 @@ const daDungTu = async (t: Q, con: string, tu: Date) =>
   (await t<{ p: number }>(`select coalesce(sum(phut_dung), 0)::int as p from play_sessions where child_id = $1 and bat_dau >= $2`, [con, tu]))[0].p;
 
 const thuongHomNay = async (t: Q, con: string, ngay: string) =>
-  (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2`, [con, ngay]))[0].p;
+  (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null`, [con, ngay]))[0].p;
 
 /** Phút còn lại tới hết khung giờ chơi hiện tại (null = đang ngoài khung). */
 function conTrongKhung(lich: BoiCanh["lich"], thu: number, phut: number) {
@@ -79,6 +79,12 @@ async function conThuongHomNay(t: Q, con: string, ngay: string, tz: string) {
   const da = (await t<{ p: number }>(`select coalesce(sum(phut_thuong), 0)::real as p from play_sessions where child_id = $1 and bat_dau >= $2`,
     [con, dauNgayUtc(ngay, tz)]))[0].p;
   return Math.max(0, (await thuongHomNay(t, con, ngay)) - da);
+}
+
+/** Phút «thưởng» (thêm giờ) còn lại hôm nay của Con — dùng để khay Windows vẫn hiện «Dùng điểm để chơi» khi Con 0 điểm nhưng Ba Mẹ đã cho thêm giờ. */
+export async function thuongConLai(con: string, now = new Date()) {
+  const b = await boiCanh(q, con);
+  return conThuongHomNay(q, con, gioDiaPhuong(now, b.tz).ngay, b.tz);
 }
 
 export async function moPhien(con: string, mayId: string | null, muc: string, o: { gioMaySai?: boolean } = {}, now = new Date()) {

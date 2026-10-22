@@ -62,7 +62,9 @@ export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; cap
 export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon };
 export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[] };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
-  lanCuoi: string | null; truc: boolean; lechGiay: number | null };
+  lanCuoi: string | null; truc: boolean; lechGiay: number | null;
+  /** Quyền bảo vệ còn thiếu + cách khắc phục (server/lib/gia-dinh.ts › chiTietBaoVe); baoVeCau = một câu giải thích. */
+  baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
 export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "nhiemVuXong" | "homNayConDa"> & {

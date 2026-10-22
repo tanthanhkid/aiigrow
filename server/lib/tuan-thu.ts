@@ -254,6 +254,16 @@ export async function moKhanCap(fam: string, mayId: string, b: { phut?: unknown;
   return { den: den.toISOString(), phut };
 }
 
+/** Hạn «đang mở» của máy cho agent Windows = muộn nhất của (mở khẩn cấp của máy, cửa sổ «thêm giờ» của Con). null = không có cửa sổ mở.
+ * Chỉ ĐỌC (không dọn hạn); hết hạn tự rơi ra ngoài vì so với `now`. */
+export async function hanMoCuaMay(may: Pick<May, "id">, con: string | null, now = new Date()): Promise<Date | null> {
+  await bangM4b();
+  const kc = (await dongTT(may.id))?.mo_khan_cap_den;
+  const gr = con ? (await one<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [con, now]))?.d ?? null : null;
+  const ds = [kc, gr].filter((x): x is Date => !!x).map((x) => new Date(x)).filter((x) => x.getTime() > now.getTime());
+  return ds.length ? new Date(Math.max(...ds.map((x) => x.getTime()))) : null;
+}
+
 export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string) {
   await bangM4b();
   const m = await mayCua(fam, mayId);

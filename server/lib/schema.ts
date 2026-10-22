@@ -441,6 +441,9 @@ export const SCHEMA_M4B = [
   // che_do_ba_me: Ba Mẹ đã chọn chế độ chưa. Chưa ⇒ máy chủ không gửi cheDo (agent giữ chế độ đang chạy) và app hiện chế độ agent báo
   // (status.cheDo) — máy cũ cài sẵn «chặn» không bị hiện nhầm «giám sát» hay lặng lẽ tụt về giám sát.
   `alter table devices add column if not exists che_do_ba_me boolean not null default false`,
+  // grants.cua_so_den: «thêm giờ» duyệt cho lời xin từ MÁY WINDOWS = cửa sổ mở tự do tới giờ này (lib/yeu-cau.ts › dongY), đẩy xuống agent qua
+  // dong-bo.windows (mode tu_do + grantEndsAt). Phút của cửa sổ KHÔNG còn tính vào «thưởng» của phiên điểm (tránh dùng hai lần). Null = thưởng như cũ.
+  `alter table grants add column if not exists cua_so_den timestamptz`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.
