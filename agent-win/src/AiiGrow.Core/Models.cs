@@ -92,12 +92,15 @@ public sealed class AgentStatus
     /// Khoá: dichVu (dịch vụ chạy — luôn true khi đang gửi), khay (khay chạy khi Con đang đăng nhập), chanThat (Ba Mẹ/ cấu hình đã bật «chan»),
     /// appLocker (luật AppLocker đã áp — chỉ báo khi cần: chế độ chặn + mode «hoc»). Thiếu khoá = không áp dụng.</summary>
     public Dictionary<string, bool> Quyen { get; set; } = new();
+    /// <summary>AiiGrow: người trước màn hình đang dùng tài khoản Windows KHÁC tài khoản Con (lúc đó không chặn, không đếm giờ).</summary>
+    public bool PhienKhac { get; set; }
 }
 
 /// <summary>Tính <see cref="AgentStatus.Quyen"/> từ trạng thái thật (thuần, test được).</summary>
 public static class QuyenBaoVe
 {
-    public static Dictionary<string, bool> Tinh(string cheDo, bool moCoi, string mode, bool appLockerApplied, bool trayAlive, bool childSessionActive)
+    /// <param name="phienKhac">Màn hình đang ở tài khoản Windows khác tài khoản Con ⇒ thêm khoá phienCon=false (máy chủ: «Máy đang dùng tài khoản khác»).</param>
+    public static Dictionary<string, bool> Tinh(string cheDo, bool moCoi, string mode, bool appLockerApplied, bool trayAlive, bool childSessionActive, bool phienKhac = false)
     {
         bool chan = CheDoHieuLuc.LaChan(cheDo) && !moCoi;
         var q = new Dictionary<string, bool>
@@ -108,6 +111,7 @@ public static class QuyenBaoVe
             ["chanThat"] = chan,
         };
         if (chan && mode == Modes.Hoc) q["appLocker"] = appLockerApplied;
+        if (phienKhac) q["phienCon"] = false;
         return q;
     }
 }
@@ -128,6 +132,9 @@ public sealed class RequestResult
     [JsonConverter(typeof(FlexStringConverter))]
     public string Id { get; set; } = "";
     public string Status { get; set; } = "";
+    /// <summary>Máy chủ cũ chỉ trả «trang_thai» (không «status») cho POST yeu-cau.</summary>
+    [JsonPropertyName("trang_thai")] public string TrangThai { get; set; } = "";
+    [JsonIgnore] public string KetQua => Status.Length > 0 ? Status : TrangThai;
 }
 
 public sealed class RequestStatus

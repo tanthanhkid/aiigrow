@@ -81,9 +81,10 @@ public sealed class PipeServer : BackgroundService
     private async Task<PipeResponse> DispatchAsync(PipeRequest req, int clientSession, CancellationToken ct)
     {
         var childSession = _rt.ChildSessionId;
-        // Báo app tiền cảnh: chỉ phiên của Con. Xin giờ / mở phiên chơi: thêm phiên đang ngồi trước màn hình. Học viên: không chặn (QuyenPhien).
+        // Báo app tiền cảnh: chỉ phiên của Con. Xin giờ / mở phiên chơi / lệnh ghi học viên: thêm phiên đang ngồi trước màn hình. Học viên đọc: mọi phiên.
         bool fromChild = QuyenPhien.LaPhienCon(clientSession, childSession);
-        bool duocXin = QuyenPhien.DuocXinHoacChoi(clientSession, childSession, SessionHelper.ActiveConsoleSession());
+        var manHinh = SessionHelper.ActiveConsoleSession();
+        bool duocXin = QuyenPhien.DuocXinHoacChoi(clientSession, childSession, manHinh);
         var now = DateTimeOffset.Now;
 
         switch (req.Cmd)
@@ -106,8 +107,8 @@ public sealed class PipeServer : BackgroundService
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var res = await api.CreateRequestAsync(kind, minutes, req.AppId, req.AppName, req.Note, ct);
-                    if (res.Status != "cho") _rt.RequestSyncSoon();
-                    return new PipeResponse { Ok = true, Id = res.Id, Status = res.Status };
+                    if (res.KetQua != "cho") _rt.RequestSyncSoon();
+                    return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
                 }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
@@ -141,7 +142,8 @@ public sealed class PipeServer : BackgroundService
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var st = await api.GetRequestAsync(req.Id!, ct);
-                    if (st.Status != "cho") _rt.RequestSyncSoon();
+                    // chỉ ép đồng bộ khi vừa được duyệt (để thả chặn ngay) — không ép mỗi lần khay hỏi lại
+                    if (TrayView.XinGio(st.Status) == TrayView.KetQuaXin.Duoc) _rt.RequestSyncSoon();
                     return new PipeResponse { Ok = true, Id = req.Id, Status = st.Status, GrantEndsAt = st.GrantEndsAt };
                 }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
@@ -154,10 +156,12 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.HocVien:
             {
-                // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Không chặn theo phiên (QuyenPhien); chỉ các đường trong HocVienPaths.
+                // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Xem: mọi phiên; ghi: phiên Con/console (QuyenPhien); chỉ các đường trong HocVienPaths.
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 if (!HocVienPaths.Allowed(req.Method, req.Path)) return new PipeResponse { Ok = false, Error = "Đường không hỗ trợ" };
+                if (!QuyenPhien.DuocHocVien(req.Method, clientSession, childSession, manHinh))
+                    return new PipeResponse { Ok = false, Error = "Nhận việc, nộp bài, đổi quà chỉ làm được ở tài khoản Windows của con." };
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
