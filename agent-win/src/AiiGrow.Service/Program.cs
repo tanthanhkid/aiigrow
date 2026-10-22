@@ -32,7 +32,8 @@ if (!string.IsNullOrWhiteSpace(sentryDsn))
         o.MinimumBreadcrumbLevel = LogLevel.None;
         o.SendDefaultPii = false;
         o.ServerName = "";
-        o.SetBeforeSend(e => SentryLoc.Loc(e, DateTimeOffset.UtcNow));
+        o.SetBeforeSend(e => SentryLoc.Loc(e, Environment.TickCount64));
+        o.SetBeforeBreadcrumb(_ => null);   // Hub tự thêm breadcrumb «Exception» chưa ẩn — bỏ hết
     });
 
 // Thực thi Policy (dùng chung một AgentRuntime).

@@ -9,17 +9,23 @@ namespace AiiGrow.Service;
 /// </summary>
 internal static class SentryLoc
 {
-    private static readonly ConcurrentDictionary<string, DateTimeOffset> _lanGui = new();
-    private static readonly TimeSpan Cach = TimeSpan.FromHours(1);
-    private static readonly Regex UsersRe = new(@"(?i)([a-z]:\\users\\)[^\\""'\s]+", RegexOptions.Compiled);
+    // mốc theo đồng hồ đơn điệu (Environment.TickCount64) — Con chỉnh giờ máy không làm Sentry im nhiều ngày
+    private static readonly ConcurrentDictionary<string, long> _lanGui = new();
+    private const long CachMs = 60 * 60 * 1000;
+    // tên tài khoản có thể có dấu cách («Bao Anh») ⇒ ăn tới dấu \ / nháy / xuống dòng kế
+    private static readonly Regex UsersRe = new(@"(?i)([a-z]:\\users\\)[^\\""'\r\n]+", RegexOptions.Compiled);
 
-    public static SentryEvent? Loc(SentryEvent e, DateTimeOffset now)
+    public static SentryEvent? Loc(SentryEvent e, long nowMs)
     {
         var khoa = Khoa(e);
-        if (_lanGui.TryGetValue(khoa, out var truoc) && now - truoc < Cach) return null;
-        _lanGui[khoa] = now;
+        var duoc = true;
+        _lanGui.AddOrUpdate(khoa, nowMs, (_, truoc) => { if (nowMs - truoc < CachMs) { duoc = false; return truoc; } return nowMs; });
+        if (!duoc) return null;
         e.User = new SentryUser();
         e.ServerName = null;
+        // Sentry.Extensions.Logging biến tham số mẫu log thành TAG (vd {e} = nguyên văn lỗi PowerShell có SID/đường dẫn) ⇒ bỏ hết tag, extra
+        foreach (var k in e.Tags.Keys.ToList()) e.UnsetTag(k);
+        foreach (var k in e.Extra.Keys.ToList()) e.SetExtra(k, null);
         if (e.Message is { } m)
         {
             if (m.Message != null) m.Message = AnUsers(m.Message);
