@@ -146,3 +146,7 @@ export async function baMeGoi(req: Request) {
   const t = bearer(req);
   return t ? baMeTuToken(t) : null;
 }
+
+// ---- chỉ thêm: thành viên gia đình (lib/thanh-vien.ts) đăng ký bằng lời mời cần đúng bước kiểm OTP của đăng ký thường.
+/** Kiểm OTP trong giao dịch `t` (sai ⇒ false và tăng số lần sai; đúng ⇒ xoá mã). */
+export const kiemOtp = (t: Q, dinhDanh: string, ma: unknown, mucDich: "dang_ky" | "quen_mk") => dungOtp(t, dinhDanh, ma, mucDich);

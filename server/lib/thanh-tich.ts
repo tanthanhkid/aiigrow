@@ -1,7 +1,8 @@
 // Huy hiệu, chuỗi ngày, cấp độ, điểm chào mừng (FR-03.06, BRD 6.1 bước 7). Huy hiệu/cấp độ KHÔNG quy ra điểm (không phá cân bằng).
 // Chuỗi ngày = số ngày liên tiếp (theo giờ gia đình, tính tới hôm nay hoặc hôm qua) có ≥ 1 nhiệm vụ được duyệt.
 import { one, q, tx } from "./db.ts";
-import { congNgay, gioDiaPhuong } from "./gio.ts";
+import { gioDiaPhuong } from "./gio.ts";
+import { demChuoi, ngayDongBang, trangThaiDongBang } from "./dong-bang.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { ghiDiem, khoaCon, tomTatVi } from "./vi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -26,11 +27,8 @@ export async function chuoiNgay(con: string, now = new Date()) {
   const ngay = new Set((await q<{ duyet_luc: Date }>(
     `select duyet_luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc > now() - interval '400 days'`, [con]))
     .map((r) => gioDiaPhuong(new Date(r.duyet_luc), tz).ngay));
-  let d = gioDiaPhuong(now, tz).ngay;
-  if (!ngay.has(d)) d = congNgay(d, -1);                    // hôm nay chưa làm thì chuỗi vẫn tính tới hôm qua
-  let n = 0;
-  while (ngay.has(d)) { n++; d = congNgay(d, -1); }
-  return n;
+  // ngày Ba Mẹ «đóng băng» (lib/dong-bang.ts, tối đa 1 lần/tuần) không làm đứt chuỗi
+  return demChuoi(ngay, await ngayDongBang(con), gioDiaPhuong(now, tz).ngay);
 }
 
 /** Sau mỗi lần duyệt: trao huy hiệu mới đạt. → mã huy hiệu mới. */
@@ -59,6 +57,7 @@ export async function thanhTich(con: string) {
   const co = new Map((await q<{ ma: string; dat_luc: Date }>(`select ma, dat_luc from badges where child_id = $1`, [con])).map((b) => [b.ma, b.dat_luc]));
   return {
     chuoiNgay: await chuoiNgay(con),
+    dongBang: await trangThaiDongBang(con, await tzCon(con)),
     ...(await tomTatVi(con)),
     huyHieu: Object.entries(HUY_HIEU).map(([ma, h]) => ({ ma, ...h, dat: co.has(ma), datLuc: co.get(ma) ?? null })),
   };

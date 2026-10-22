@@ -5,6 +5,9 @@ export default function TrangGoc() {
       <img src="/logo.svg" alt="AiiGrow" width={160} />
       <h1 style={{ fontSize: 24 }}>Lớn lên bằng yêu thương, nhận bằng nỗ lực</h1>
       <p>Máy chủ AiiGrow đang chạy. Ba Mẹ dùng app AiiGrow trên điện thoại hoặc trình duyệt.</p>
+      <p style={{ marginTop: 24 }}>
+        <a href="/tai" style={{ color: "#1f8a70" }}>Tải cho máy của Con →</a>
+      </p>
     </main>
   );
 }

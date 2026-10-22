@@ -147,3 +147,33 @@ Chi tiết + giới hạn của DNS: `docs/QUAN-LY-DA-NEN-TANG.md` mục 5.
 `POST quet` → quét thiết bị mất truy vấn.
 
 Tham số mới: `dns_mat_truy_van_phut` 180 (30–1440) · `dns_vuot_gio_nguong` 20 (1–1000).
+
+## Thành viên gia đình + thông báo trong app (FR-01.04, FR-08.01 — chỉ thêm)
+
+Xử lý: `server/lib/thanh-vien.ts`, `thong-bao.ts`, router `api-gia-dinh.ts` (api-m chuyển tiếp). Test: `thanh-vien.test.ts`.
+
+| Đường | Ý |
+|---|---|
+| `GET moi/:ma` (không cần đăng nhập) | xem trước lời mời → `{tenGiaDinh, nguoiMoi, vai: duyet\|xem, tenVai, tenGoi, het}`. Lỗi: `ma_moi_sai` 404 · `ma_moi_da_dung` 409 · `ma_moi_het_han` 410 |
+| `POST moi/dang-ky {ma, dinhDanh, otp, ten, matKhau}` (không cần đăng nhập) | tạo tài khoản bằng lời mời (OTP lấy như đăng ký: `POST otp {dinhDanh, mucDich: "dang_ky"}`) → `{token}`; vào đúng gia đình, đúng vai. `ma` nhận cả link `…/moi?ma=…`, chữ thường, có gạch |
+| `POST moi/nhan {ma}` | tài khoản đã đăng nhập nhưng còn TRỐNG (chưa có Con, máy, thành viên) nhận lời mời ⇒ chuyển sang gia đình mời → `{vai}`. Lỗi `gia_dinh_co_du_lieu` 409, `da_trong_gia_dinh` 409 |
+| `GET thanh-vien` | `{ds[{id, ten, vai, dinh_danh, laToi}], loiMoi[{id, vai, tenGoi, het}], toi{id, vai}, hanGio: 72}` (người đã mời ra không hiện) |
+| `POST thanh-vien/moi {vai: duyet\|xem, tenGoi?}` | chỉ **Chủ gia đình** → `{id, ma: "ABCD-2345", lienKet, vai, tenGoi, het}` — mã chỉ trả MỘT lần (lưu băm), hạn 72 giờ, dùng một lần; tối đa 5 lời mời chờ, 8 người lớn |
+| `POST thanh-vien/moi/:id/huy` | Chủ huỷ lời mời |
+| `POST thanh-vien/:id/vai {vai}` | Chủ đổi quyền thành viên (không đổi Chủ, không tự đổi) → `{vai}` |
+| `POST thanh-vien/:id/moi-ra` | Chủ mời ra: vai `roi` (giữ tên cho lịch sử «ai duyệt»), xoá mọi phiên, không đăng nhập lại được |
+| `GET thong-bao` | dòng thời gian 14 ngày của RIÊNG Ba Mẹ đang gọi → `{ds[{id, nhom, muc, tieu, phu, luc, con, den, so, moi, day, imLang}], chuaDoc, caiDat, nhom[]}`. Dựng từ nhật ký + cảnh báo; nộp nhiệm vụ cùng Con cách nhau ≤ 60 phút gộp một dòng («Ken vừa nộp 3 nhiệm vụ»); việc chính mình làm không báo, việc Ba Mẹ khác làm thì báo. `den` = đường app để mở. `day` = có đẩy push không (giờ yên lặng / nhóm tắt ⇒ false, trừ `nghiem_trong`) |
+| `POST thong-bao/doc {den?}` | đánh dấu đã đọc tới `den` (mặc định bây giờ) |
+| `GET/POST thong-bao/cai-dat {yenLang?: {bat, tu: "HH:MM", den: "HH:MM"}, tat?: nhom[]}` | thiết lập riêng từng Ba Mẹ; `nhom`: `nhiem_vu · yeu_cau · qua · thanh_tich · ba_me_khac · canh_bao · gia_dinh` |
+
+`thong-bao*` đi trước chặn «Chỉ xem» (vai xem vẫn đánh dấu đọc / đặt giờ yên lặng được). Push thật (Expo / APNs / FCM): chờ thiết bị.
+
+### Đóng băng chuỗi ngày (FR-03.06) + xuất CSV báo cáo tuần (FR-06.02) — chỉ thêm
+
+Xử lý: `server/lib/dong-bang.ts`, `xuat-csv.ts`. Test: `dong-bang.test.ts`.
+
+| Đường | Ý |
+|---|---|
+| `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — `ngay` = ngày sẽ được giữ nếu bấm (hôm qua bỏ lỡ mà trước đó còn chuỗi, không thì hôm nay), null = không cần |
+| `POST con/:id/dong-bang-chuoi` | Ba Mẹ (Phê duyệt / Chủ) giữ chuỗi ngày cho ngày đó → `{ngay}`; tối đa 1 lần mỗi tuần (T2–CN giờ gia đình). Ngày đóng băng không đứt chuỗi, không cộng thêm ngày, không ra điểm. Lỗi `da_dong_bang_tuan` 409 · `khong_can_dong_bang` 409 |
+| `GET con/:id/bao-cao/csv` | `{tenTep, noiDung}` — CSV (BOM UTF-8, CRLF) của báo cáo tuần: theo ngày (giải trí / học), tổng so tuần trước, dùng nhiều nhất, điểm theo nhóm nhiệm vụ, duyệt / từ chối, ngoại lệ. Không có nội dung, ảnh, tin nhắn |
