@@ -221,6 +221,8 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   // Mã mở offline (agent-win MoTamOffline): Con gõ mã Ba Mẹ đọc lúc máy mất mạng — gửi bù khi có mạng lại.
   mo_ma_offline: { muc: "thong_tin", cau: (t) => `${t} đã được mở bằng mã offline của Ba Mẹ` },
   sai_ma_offline: { muc: "chu_y", cau: (t) => `Có người gõ sai mã mở offline nhiều lần trên ${t}` },
+  // Có mạng lại ⇒ agent kết thúc lượt mở offline (mã chỉ dành cho lúc mất mạng); chỉ ghi nhật ký, không báo.
+  het_ma_offline: { muc: null, cau: (t) => `${t} có mạng lại — kết thúc lượt mở bằng mã offline` },
 };
 
 export type SuKienVao = { ma?: unknown; loai?: unknown; luc?: unknown; chiTiet?: unknown };

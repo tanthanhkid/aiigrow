@@ -97,6 +97,17 @@ test("sự kiện agent: gửi bù không ghi trùng (cùng mã), loại lạ b�
   assert.equal((await q(`select 1 from events where family_id = $1 and loai like 'may_%'`, [fam])).length, 2);
 });
 
+test("sự kiện mã offline: mở ⇒ báo thông tin; có mạng lại kết thúc (het_ma_offline) ⇒ chỉ ghi nhật ký, không báo", async () => {
+  const { fam, token } = await nha(0);
+  const luc = new Date().toISOString();
+  const ds = [{ ma: "m1", loai: "mo_ma_offline", luc, chiTiet: { phut: "60" } }, { ma: "m2", loai: "het_ma_offline", luc, chiTiet: { ket_thuc: "co_mang", conPhut: "50" } }];
+  assert.equal((await dv("su-kien", { tok: token, body: { ds } })).body.nhan, 2);
+  const cb = await q<{ loai: string; muc: string }>(`select loai, muc from alerts where family_id = $1`, [fam]);
+  assert.deepEqual(cb.map((x) => [x.loai, x.muc]), [["may_mo_ma_offline", "thong_tin"]]);
+  const ev = await one<{ chi_tiet: Record<string, unknown> }>(`select chi_tiet from events where family_id = $1 and loai = 'may_het_ma_offline'`, [fam]);
+  assert.equal(ev?.chi_tiet.ket_thuc, "co_mang");
+});
+
 test("bù phút offline: trừ đúng phút đã chơi, không vượt thời gian thật đã trôi, gửi lại không trừ đôi", async () => {
   const { con, may } = await nha(50);
   const t0 = VN("2026-10-21T17:00:00");

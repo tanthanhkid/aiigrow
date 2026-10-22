@@ -61,11 +61,20 @@ public sealed class AgentRuntime
             TokenInvalid = false;
             if (Config != null)
             {
-                Config.LastPolicyJson = raw;
-                Config.LastPolicyAt = _policyAt;
-                // Giữ lại bí mật mã offline (máy chủ chỉ gửi khi có) để còn kiểm mã lúc mất mạng.
-                if (!string.IsNullOrEmpty(p.MaOfflineBiMat)) Config.MaOfflineBiMat = p.MaOfflineBiMat;
-                try { Store.Save(Config); _cfgStamp = Store.LastWriteUtc; } catch { }
+                var at = _policyAt;
+                void Ap(AgentConfig c)
+                {
+                    c.LastPolicyJson = raw;
+                    c.LastPolicyAt = at;
+                    // Giữ lại bí mật mã offline (máy chủ chỉ gửi khi có) để còn kiểm mã lúc mất mạng.
+                    if (!string.IsNullOrEmpty(p.MaOfflineBiMat)) c.MaOfflineBiMat = p.MaOfflineBiMat;
+                    // Có mạng lại: mã offline chỉ dành cho lúc mất mạng ⇒ kết thúc lượt mở, Policy online của Ba Mẹ quyết.
+                    MoTamOffline.KetThucKhiCoMang(c, at);
+                }
+                AgentConfig? moi = null;
+                try { moi = Store.Update(Ap); } catch { }
+                if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+                else Ap(Config); // không lưu được: vẫn kết thúc lượt mở trong bộ nhớ (lần đồng bộ sau lưu lại)
             }
         }
     }
@@ -95,27 +104,54 @@ public sealed class AgentRuntime
         lock (_gate)
         {
             if (Config is not { Paired: true }) return (false, "Máy chưa ghép với Ba Mẹ");
-            Config.MoTamOffline ??= new MoTamOffline();
-            var st = Config.MoTamOffline;
-            var kq = st.TryUnlock(Config.MaOfflineBiMat, code, now);
-            var cau = st.Cau(kq, now);
-            var may = Environment.MachineName;
-            if (kq == KetQuaMoOffline.DaMo)
-                Config.Queue.Add(new SuKien
-                {
-                    Loai = "mo_ma_offline", Luc = now.ToUniversalTime(),
-                    ChiTiet = new() { ["may"] = may, ["phut"] = ((int)Math.Round((st.UnlockUntil!.Value - now).TotalMinutes)).ToString(), ["den"] = st.UnlockUntil!.Value.ToUniversalTime().ToString("o") },
-                });
-            else if (kq == KetQuaMoOffline.Sai && st.WaitSeconds(now) > 0)
-                Config.Queue.Add(new SuKien
-                {
-                    Loai = "sai_ma_offline", Luc = now.ToUniversalTime(),
-                    ChiTiet = new() { ["may"] = may, ["soLan"] = MoTamOffline.SaiToiDa.ToString(), ["phut"] = MoTamOffline.CuaSoSaiPhut.ToString() },
-                });
-            if (kq is KetQuaMoOffline.DaMo or KetQuaMoOffline.Sai)
+            const string chuaLuu = "Chưa lưu được, thử lại";
+            var nho = Config.MoTamOffline?.WrongAt.ToList() ?? new();
+            var kq = KetQuaMoOffline.Sai;
+            var cau = "";
+            bool daKiem = false;
+            AgentConfig? moi = null;
+            try
             {
-                try { Store.Save(Config); _cfgStamp = Store.LastWriteUtc; } catch { }
+                // Đọc – kiểm – ghi trên bản ở đĩa, trong khoá của ConfigStore ⇒ HeartbeatWorker không ghi đè được lượt mở / lượt sai.
+                moi = Store.UpdateIf(c =>
+                {
+                    c.MoTamOffline ??= new MoTamOffline();
+                    var st = c.MoTamOffline;
+                    // lượt sai chỉ còn trong bộ nhớ (lần lưu trước lỗi) vẫn tính
+                    foreach (var t in nho) if (!st.WrongAt.Contains(t)) st.WrongAt.Add(t);
+                    st.WrongAt.Sort();
+                    kq = st.TryUnlock(c.MaOfflineBiMat, code, now);
+                    cau = st.Cau(kq, now);
+                    daKiem = true;
+                    var may = Environment.MachineName;
+                    if (kq == KetQuaMoOffline.DaMo)
+                        c.Queue.Add(new SuKien
+                        {
+                            Loai = "mo_ma_offline", Luc = now.ToUniversalTime(),
+                            ChiTiet = new() { ["may"] = may, ["phut"] = ((int)Math.Round((st.UnlockUntil!.Value - now).TotalMinutes)).ToString(), ["den"] = st.UnlockUntil!.Value.ToUniversalTime().ToString("o") },
+                        });
+                    else if (kq == KetQuaMoOffline.Sai && st.WaitSeconds(now) > 0)
+                        c.Queue.Add(new SuKien
+                        {
+                            Loai = "sai_ma_offline", Luc = now.ToUniversalTime(),
+                            ChiTiet = new() { ["may"] = may, ["soLan"] = MoTamOffline.SaiToiDa.ToString(), ["phut"] = MoTamOffline.CuaSoSaiPhut.ToString() },
+                        });
+                    return kq is KetQuaMoOffline.DaMo or KetQuaMoOffline.Sai;
+                });
             }
+            catch { moi = null; }
+
+            // Không đọc được cấu hình trên đĩa ⇒ chưa kiểm mã (không ai dò được khi giới hạn lượt sai không lưu được).
+            if (!daKiem) return (false, chuaLuu);
+            if (moi == null)
+            {
+                // Kiểm rồi nhưng lưu lỗi: mã đúng thì KHÔNG mở (để Con gõ lại, mã vẫn dùng được); mã sai thì vẫn nhớ lượt sai trong bộ nhớ.
+                if (kq == KetQuaMoOffline.DaMo) return (false, chuaLuu);
+                if (kq == KetQuaMoOffline.Sai) (Config.MoTamOffline ??= new MoTamOffline()).WrongAt.Add(now);
+                return (false, cau);
+            }
+            Config = moi;
+            _cfgStamp = Store.LastWriteUtc;
             return (kq is KetQuaMoOffline.DaMo or KetQuaMoOffline.DangMo, cau);
         }
     }

@@ -139,4 +139,68 @@ public class MoTamOfflineTests
         Assert.True(lai.MoTamOffline.IsUnlocked(Moc.AddMinutes(30)));
         Assert.Equal(cfg.MoTamOffline.LastCode, lai.MoTamOffline.LastCode);
     }
+
+    [Fact]
+    public void CoMangLai_KetThucLuotMo_GhiSuKien_MaCuKhongMoLai()
+    {
+        var cfg = new AgentConfig { Server = "s", Token = "t" };
+        var ma = MaOffline.Ma(BiMat, Moc);
+        Assert.Equal(KetQuaMoOffline.DaMo, cfg.MoTamOffline.TryUnlock(BiMat, ma, Moc));
+        var luc = Moc.AddMinutes(10);
+        Assert.True(MoTamOffline.KetThucKhiCoMang(cfg, luc));
+        Assert.False(cfg.MoTamOffline.IsUnlocked(luc));
+        var ev = Assert.Single(cfg.Queue.Items);
+        var sk = System.Text.Json.JsonSerializer.Deserialize<SuKien>(ev.Json, Json.Options)!;
+        Assert.Equal(MoTamOffline.LoaiHetMo, sk.Loai);
+        Assert.Equal("co_mang", sk.ChiTiet!["ket_thuc"]);
+        Assert.Equal("50", sk.ChiTiet!["conPhut"]);
+        // gõ lại đúng mã đó ⇒ không mở lại
+        Assert.Equal(KetQuaMoOffline.DaDung, cfg.MoTamOffline.TryUnlock(BiMat, ma, luc.AddSeconds(5)));
+        // không có lượt mở ⇒ không làm gì, không ghi thêm sự kiện
+        Assert.False(MoTamOffline.KetThucKhiCoMang(cfg, luc.AddMinutes(1)));
+        Assert.Single(cfg.Queue.Items);
+        // lượt mở hết rồi thì Policy online áp nguyên vẹn
+        var eff = new EffectivePolicy(true, LockReasons.Khoa, null, null, true);
+        Assert.Equal(eff, MoTamOffline.ApDung(eff, cfg.MoTamOffline.IsUnlocked(luc)));
+    }
+
+    private static ConfigStore TempStore(out string dir)
+    {
+        dir = Path.Combine(Path.GetTempPath(), "aiigrow-cfg-" + Guid.NewGuid().ToString("N"));
+        return new ConfigStore(Path.Combine(dir, "config.json"), b => b, b => b);
+    }
+
+    [Fact]
+    public async Task ConfigStore_UpdateSongSong_KhongMatLanGhi()
+    {
+        var store = TempStore(out var dir);
+        try
+        {
+            store.Save(new AgentConfig { Server = "s", Token = "t" });
+            // hai «worker» (vd heartbeat + pipe) cùng đọc – sửa – ghi, mỗi bên 100 lần
+            var a = Task.Run(() => { for (int i = 0; i < 100; i++) store.Update(c => c.Queue.Add(new SuKien { Loai = "a" + i })); });
+            var b = Task.Run(() => { for (int i = 0; i < 100; i++) new ConfigStore(store.FilePath, x => x, x => x).Update(c => c.Queue.Add(new SuKien { Loai = "b" + i })); });
+            await Task.WhenAll(a, b);
+            Assert.Equal(200, store.Load()!.Queue.Items.Count);
+            Assert.Single(Directory.GetFiles(dir)); // không sót tệp tạm
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    [Fact]
+    public void ConfigStore_UpdateIf_False_KhongGhi_ChuaCoTep_TraNull()
+    {
+        var store = TempStore(out var dir);
+        try
+        {
+            Assert.Null(store.Update(c => c.CheDo = "chan"));
+            store.Save(new AgentConfig { Server = "s", Token = "t" });
+            var truoc = store.LastWriteUtc;
+            var kq = store.UpdateIf(c => { c.CheDo = "chan"; return false; });
+            Assert.Equal("chan", kq!.CheDo);
+            Assert.Equal(truoc, store.LastWriteUtc);
+            Assert.Equal(CheDoAgent.GiamSat, store.Load()!.CheDo);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
 }

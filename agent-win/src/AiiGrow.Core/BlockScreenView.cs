@@ -37,8 +37,8 @@ public static class BlockScreenView
 
     public const string OfflineCodeLabel = "Mất mạng? Nhập mã của Ba Mẹ";
 
-    /// <summary>Ô nhập mã mở offline: màn chặn app hiện khi máy đang mất mạng; màn khoá chỉ hiện khi lý do khoá mã gỡ được
-    /// (hết giờ) — «Khoá ngay» / giờ ngủ của Ba Mẹ thì mã offline không mở (giống «mở khẩn cấp»).</summary>
+    /// <summary>Ô nhập mã mở offline: chỉ hiện khi máy đang mất mạng. Màn khoá hiện khi lý do khoá mã gỡ được
+    /// (<see cref="MoTamOffline.MoDuocKhoa"/>: hết giờ, giờ ngủ, «Khoá ngay») — mất mạng thì mã là đường duy nhất mở máy.</summary>
     public static bool ShowOfflineCode(bool offline, bool lockScreen = false, string? lockReason = null)
         => offline && (!lockScreen || MoTamOffline.MoDuocKhoa(lockReason));
 

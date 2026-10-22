@@ -21,7 +21,8 @@ public enum KetQuaMoOffline
 /// Trạng thái «mở tạm bằng mã offline» (lớp THUẦN, lưu trong <see cref="AgentConfig.MoTamOffline"/> để dịch vụ khởi động lại vẫn giữ).
 /// An toàn: mã TOTP 6 số do Ba Mẹ đọc (<see cref="MaOffline.Kiem"/>); sai tối đa <see cref="SaiToiDa"/> lần trong
 /// <see cref="CuaSoSaiPhut"/> phút rồi phải chờ (Con không dò được 10⁶ mã); một mã chỉ mở được một lượt; có hạn giờ; mọi lần mở/khoá dò đều ghi sự kiện.
-/// Chỉ nới phần khoá giải trí / hết giờ — «Khoá ngay» và giờ ngủ của Ba Mẹ vẫn giữ (giống «mở khẩn cấp», docs/API.md).
+/// Khi đang mở: gỡ MỌI khoá (hết giờ, giờ ngủ, «Khoá ngay») — xem <see cref="ApDung"/>. Mã chỉ dành cho lúc MẤT MẠNG:
+/// lần đồng bộ thành công đầu tiên sau đó kết thúc lượt mở (<see cref="KetThucKhiCoMang"/>) để Ba Mẹ lại quyết bằng Policy online.
 /// </summary>
 public sealed class MoTamOffline
 {
@@ -105,6 +106,29 @@ public sealed class MoTamOffline
         if (!moTam) return eff;
         bool conKhoa = eff.Locked && !MoDuocKhoa(eff.LockReason);
         return eff with { Locked = conKhoa, LockReason = conKhoa ? eff.LockReason : null, AppLockerWanted = false };
+    }
+
+    public const string LoaiHetMo = "het_ma_offline";
+
+    /// <summary>Có mạng lại (đồng bộ Policy thành công) ⇒ kết thúc lượt mở offline đang chạy: hạn mở = now, ghi sự kiện
+    /// <see cref="LoaiHetMo"/> vào hàng đợi. Không có lượt mở nào đang chạy ⇒ không làm gì (trả false). Mã vừa dùng vẫn nhớ ⇒ không mở lại được.</summary>
+    public static bool KetThucKhiCoMang(AgentConfig c, DateTimeOffset now)
+    {
+        var st = c.MoTamOffline;
+        if (st == null || !st.IsUnlocked(now)) return false;
+        var den = st.UnlockUntil!.Value;
+        st.UnlockUntil = now;
+        c.Queue.Add(new SuKien
+        {
+            Loai = LoaiHetMo, Luc = now.ToUniversalTime(),
+            ChiTiet = new()
+            {
+                ["may"] = Environment.MachineName, ["ket_thuc"] = "co_mang",
+                ["conPhut"] = Math.Max(0, (int)Math.Round((den - now).TotalMinutes)).ToString(),
+                ["den"] = den.ToUniversalTime().ToString("o"),
+            },
+        });
+        return true;
     }
 
     /// <summary>Lý do khoá nào mã offline gỡ được (để màn khoá biết có nên hiện ô nhập mã).</summary>
