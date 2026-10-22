@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, GOC, LoiApi, type CheDoMay, type ChiTietTuanThu, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
+import { bm, GOC, LoiApi, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Canh, cauLoi, Chips, ChoTai, ChonMot, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -19,7 +19,7 @@ const SU_KIEN: Record<string, string> = {
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
-  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
+  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web áp cho mọi tài khoản Windows trên máy — Ba Mẹ dùng máy này thì chọn Giám sát trước. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
 const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 const NGAY_XOA_HAN = 7;
@@ -32,7 +32,9 @@ export default function AnToanMay() {
     const toi = await bm.goi<{ baMe: { vai: string } }>("toi");
     // Máy đã gỡ xong (agent báo đã gỡ / đã xoá hẳn) ⇒ không còn trong gia đình
     const m = await bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`).catch((e) => { if (e instanceof LoiApi && e.ma === "khong_thay") return null; throw e; });
-    return { m, chu: toi.baMe.vai === "chu", xem: toi.baMe.vai === "xem" };
+    // máy Windows «dùng chung» ⇒ cần danh sách Con để gán (POST may/:id/gan-con)
+    const con = m?.dungChung && m.nen === "windows" ? (await bm.goi<GiaDinh>("gia-dinh")).con : [];
+    return { m, con, chu: toi.baMe.vai === "chu", xem: toi.baMe.vai === "xem" };
   });
   const [mo, setMo] = useState<"khan" | "go" | "xoa" | "offline" | "tai_may" | null>(null);
   const [phut, setPhut] = useState(30);
@@ -83,6 +85,9 @@ export default function AnToanMay() {
   const m = d.m;
   const win = m.nen === "windows";
   const khanCap = m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
+  // Windows: «đang mở» gồm cả thêm giờ đã duyệt (moDen) — «Khoá lại ngay» đóng cả hai
+  const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
+  const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
   return (
     <Man lui={{ chu: "An toàn thiết bị" }} tieu={m.ten} noi={noi} tai={tai}>
       <Canh lv="chi" thap tieu={TT_TRANG[m.trangThai].chu}
@@ -93,8 +98,15 @@ export default function AnToanMay() {
         <OSo nho="Giải trí" so={m.khoaGiaiTri ? "Đang khoá" : "Mở"} />
       </View>
 
-      {khanCap ? (
-        <Bao loai="lam" ic="mo_khoa" tieu="Đang mở khẩn cấp" loi={`Giải trí được mở tới ${gio(m.moKhanCapDen!)}.`}>
+      {win && m.dungChung ? (
+        <Bao loai="canh" ic="canh_bao" tieu="Máy này của ai?"
+          loi="Máy đang ghép «dùng chung» nên chưa nhận nhiệm vụ, giờ chơi, luật web của Con nào. Chọn Con dùng máy này — máy đổi ở lần đồng bộ tới.">
+          {d.xem ? null : d.con.map((c) => <Nut key={c.id} chu={`Máy của ${c.ten}`} loai="vien" nho dangChay={dangChay} bam={() => ganCon(c.id, c.ten)} />)}
+        </Bao>
+      ) : null}
+
+      {moDen ? (
+        <Bao loai="lam" ic="mo_khoa" tieu={khanCap ? "Đang mở khẩn cấp" : "Đang mở thêm giờ"} loi={`Giải trí được mở tới ${gio(moDen)}.`}>
           <Nut chu="Khoá lại ngay" loai="vien" nho bam={() => lam(async () => { await bm.goi(`may/${id}/mo-khan-cap/huy`, {}); bao(`Đã khoá lại ${m.ten}`); await tai(); })} />
         </Bao>
       ) : null}
@@ -250,7 +262,7 @@ function dongCheDo(m: ChiTietTuanThu) {
   if (m.dangGo) return "Máy đang được gỡ nên tạm chạy Giám sát (không chặn gì).";
   if (!m.daDongBo) return "Máy chưa đồng bộ lần nào — chế độ áp khi máy có mạng.";
   if (!m.cheDoMay) return "Máy chưa báo chế độ đang chạy: bản AiiGrow trên máy có thể cũ, chưa đổi chế độ từ xa được. Cập nhật AiiGrow trên máy (tải ở trang /tai) hoặc gỡ tại máy.";
-  if (m.cheDoBaMeChon && m.cheDoBaMeChon !== m.cheDoMay) return `Máy đang chạy ${TEN_CHE_DO[m.cheDoMay]} — sẽ đổi sang ${TEN_CHE_DO[m.cheDoBaMeChon]} ở lần đồng bộ tới (≤ 1 phút khi có mạng).`;
+  if (m.cheDoBaMeChon && m.cheDoBaMeChon !== m.cheDoMay) return `Máy đang chạy ${TEN_CHE_DO[m.cheDoMay]} — sẽ đổi sang ${TEN_CHE_DO[m.cheDoBaMeChon]} ở lần đồng bộ tới (trong vòng 3 phút khi có mạng).`;
   return `Máy đang chạy ${TEN_CHE_DO[m.cheDoMay]}${m.lanCuoi ? ` (báo ${truoc(m.lanCuoi)})` : ""}.`;
 }
 

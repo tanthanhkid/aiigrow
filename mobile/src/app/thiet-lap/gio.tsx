@@ -18,10 +18,10 @@ export default function ObGio() {
   const { lam, loi, dangChay } = useLam();
   const k = (x: Sua): Khung => (x === "ngu" ? lich.ngu : lich[x][0]);
   const luu = () => lam(async () => {
-    if (tl.conId) {
-      await bm.goi(`con/${tl.conId}/lich`, lich);
-      await bm.goi(`con/${tl.conId}/cau-hinh`, { tran_ngay: tran });
-    }
+    // mất Con (vd mở thẳng link bước này) ⇒ báo, KHÔNG «Xong rồi!» khi lịch chưa lưu
+    if (!tl.conId) throw new Error("Chưa biết đặt giờ cho Con nào — mở hồ sơ Con rồi đặt giờ ở mục Giờ chơi.");
+    await bm.goi(`con/${tl.conId}/lich`, lich);
+    await bm.goi(`con/${tl.conId}/cau-hinh`, { tran_ngay: tran });
     router.push("/thiet-lap/xong");
   }, { hangDoi: true });
   const ten = tl.tenCon ?? "Con";

@@ -9,12 +9,14 @@ import {
 
 const tanSuat = (x: NhiemVu) => [x.bang_chung === "tu_dong" ? "Tự động · không cần duyệt" : x.bang_chung === "anh" ? "Ảnh" : "Viết vài câu",
   x.toi_da_ngay ? `tối đa ${x.toi_da_ngay} lần/ngày` : x.toi_da_tuan ? `${x.toi_da_tuan} lần/tuần` : "", x.kieu === "thu_thach" ? "thử thách" : ""].filter(Boolean).join(" · ");
+type Phieu = { id: string; ten: string; loai: keyof typeof IC_QUA; diem: number; ten_con: string; created_at: string };
 const IC_QUA = { voucher: ["coc", "cam"], qua: ["qua", "lam"], dac_quyen: ["ban", "tim"], tiet_kiem: ["xu", "vang"] } as const;
 
 export default function DiemQua() {
   const [the, setThe] = useState<"nv" | "qua">("nv");
   const { d, loi, matMang, tai } = useTai(async () => ({
     nv: (await bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")).ds, qua: (await bm.goi<{ ds: Qua[] }>("qua")).ds, quy: await bm.goi<{ soDu: number }>("quy"),
+    phieu: (await bm.goi<{ ds: Phieu[] }>("phieu")).ds,
   }));
   const [sua, setSua] = useState<NhiemVu | null>(null);
   const [diem, setDiem] = useState("");
@@ -23,9 +25,26 @@ export default function DiemQua() {
   useBaoKhiVe(bao);
   if (!d) return <Man tieuLon="Điểm & quà" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const nv = d.nv.filter((x) => x.bang_chung !== "tu_dong" || x.bat);
+  const xuLy = (x: Phieu, viec: "xac-nhan" | "huy") => lam(async () => {
+    await bm.goi(`phieu/${x.id}/${viec}`, {}); bao(viec === "huy" ? `Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${x.ten_con}` : `Đã trao «${x.ten}» cho ${x.ten_con}`); await tai();
+  });
   const luu = (x: NhiemVu, them: Partial<NhiemVu>) => lam(async () => { await bm.goi(`nhiem-vu/${x.id}`, them); await tai(); });
   return (
     <Man tieuLon="Điểm & quà" chat noi={noi} day={the === "nv" ? <Nut chu="Giao nhiệm vụ mới" ic="cong" rong bam={() => router.push("/giao-nv")} /> : undefined}>
+      {d.phieu.length ? (
+        <>
+          <Canh lv="so-tay" thap tieu={`Phiếu chờ trao (${d.phieu.length})`} loi="Con đã đổi điểm, chờ Ba Mẹ trao quà. Huỷ thì hoàn điểm cho Con." />
+          <Nhom>
+            {d.phieu.map((x, i) => (
+              <Dong key={x.id} dau={i === 0} tieu={`${x.ten_con} · ${x.ten}`} phu={`${x.diem} điểm`} trai={<BieuTron ic={IC_QUA[x.loai]?.[0] ?? "qua"} mau={IC_QUA[x.loai]?.[1] ?? "lam"} />}
+                phai={<View style={{ flexDirection: "row", gap: 6 }}>
+                  <Nut chu="Đã trao" nho dangChay={dangChay} bam={() => xuLy(x, "xac-nhan")} />
+                  <Nut chu="Huỷ" loai="vien" nho dangChay={dangChay} bam={() => xuLy(x, "huy")} />
+                </View>} />
+            ))}
+          </Nhom>
+        </>
+      ) : null}
       <ChonMot ds={[{ gia: "nv" as const, chu: `Nhiệm vụ (${nv.length})` }, { gia: "qua" as const, chu: `Phần thưởng (${d.qua.length})` }]} gia={the} doi={setThe} />
       {the === "nv" ? (nv.length ? (
         <>

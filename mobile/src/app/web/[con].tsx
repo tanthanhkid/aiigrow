@@ -67,7 +67,7 @@ export default function WebCon() {
           loi={`Máy chỉ ghi lại trang ${ten} vào, chưa chặn thật. Muốn chặn: Cài đặt › An toàn thiết bị › chọn «Chặn thật».`} />
       ) : (
         <Bao loai="ok" tieu={`Đang chặn thật trên ${chanThat.length} máy`} ic="khien"
-          loi="Trang bị chặn hiện thông báo «bị chặn» trong Chrome, Edge, Brave. Trình duyệt khác (Firefox…) chưa được lọc." />
+          loi="Trang bị chặn hiện thông báo «bị chặn» trong Chrome, Edge, Brave. Trình duyệt khác (Firefox…) chưa được lọc. Luật áp cho mọi tài khoản Windows trên máy — Ba Mẹ dùng máy đó thì chuyển về Giám sát." />
       )}
 
       <Luoi2>
@@ -124,7 +124,7 @@ export default function WebCon() {
         </>
       ) : null}
 
-      <Chu co={13} mau={M.chu3}>Chỉ ghi tên miền và thời gian, không ghi địa chỉ đầy đủ hay nội dung. Thời gian tính theo lúc trang mở nên chỉ gần đúng. Luật có hiệu lực trên máy sau khoảng 30 giây khi máy online.</Chu>
+      <Chu co={13} mau={M.chu3}>Chỉ ghi tên miền và thời gian, không ghi địa chỉ đầy đủ hay nội dung. Thời gian tính theo lúc trang mở nên chỉ gần đúng. Luật có hiệu lực trên máy trong vòng 3 phút khi máy online; tab đang mở cần tải lại.</Chu>
 
       <BangTruot mo={!!sua} dong={() => setSua(null)} tieu={sua ?? ""}>
         <View style={{ gap: 8 }}>

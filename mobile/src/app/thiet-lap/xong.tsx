@@ -22,7 +22,7 @@ export default function ObXong() {
           {d ? <TickDong chu={`Giờ chơi ${d.lich.ngayThuong[0]?.tu ?? "—"}–${d.lich.ngayThuong[0]?.den ?? "—"} · trần ${d.thamSo.tran_ngay} phút/ngày`} /> : null}
         </The>
       )}
-      {thieu.map((m) => <Bao key={m.id} tieu={`${m.ten} còn thiếu quyền cần cấp`} loi="Mở AiiGrow Kid trên máy đó để cấp nốt quyền bảo vệ." />)}
+      {thieu.map((m) => <Bao key={m.id} tieu={`${m.ten} còn thiếu quyền cần cấp`} loi="Mở khay AiiGrow trên máy đó (đăng nhập tài khoản Windows của Con) để cấp nốt quyền bảo vệ." />)}
     </Man>
   );
 }

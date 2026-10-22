@@ -31,7 +31,7 @@ export default function GioChoi() {
   return (
     <Man lui={{ chu: "Quay lại" }} tieu={`Giờ chơi của ${d.ten}`} noi={noi}>
       <Canh lv={d.khoaNgay ? "nghi" : "cho"} thap tieu={d.khoaNgay ? `Giờ chơi của ${d.ten} đang khoá` : `${d.ten} chơi theo lịch`}
-        loi={d.khoaNgay ? "Mọi trò chơi đóng ngay ở lần đồng bộ kế. Ứng dụng học vẫn dùng được." : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
+        loi={d.khoaNgay ? "Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows của Con khoá hẳn (cả ứng dụng học) tới khi Ba Mẹ mở lại." : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
       <BaoLoi loi={loiLam} />
       <HaiNut>
         {d.khoaNgay ? <Nut chu="Mở lại giờ chơi" ic="mo_khoa" dangChay={dangChay} bam={() => khoa(false)} />
@@ -40,7 +40,7 @@ export default function GioChoi() {
       <Nhom>
         <Dong dau tieu="Ngày thường" phu={`${k("ngayThuong").tu} – ${k("ngayThuong").den}`} trai={<BieuTron ic="dongho" />} bam={() => setSua("ngayThuong")} />
         <Dong tieu="Cuối tuần" phu={`${k("cuoiTuan").tu} – ${k("cuoiTuan").den}`} trai={<BieuTron ic="lich" />} bam={() => setSua("cuoiTuan")} />
-        <Dong tieu="Giờ ngủ" phu={`${d.lich.ngu.tu} – ${d.lich.ngu.den} · khoá mọi trò chơi`} trai={<BieuTron ic="trang_ngu" mau="tim" />} bam={() => setSua("ngu")} />
+        <Dong tieu="Giờ ngủ" phu={`${d.lich.ngu.tu} – ${d.lich.ngu.den} · máy Windows khoá hẳn`} trai={<BieuTron ic="trang_ngu" mau="tim" />} bam={() => setSua("ngu")} />
       </Nhom>
       <View style={{ gap: 6 }}>
         <Chu kieu="rat" co={14}>{`Mỗi phiên tối đa · sau phiên nghỉ ${d.thamSo.nghi_giua} phút`}</Chu>
