@@ -6,7 +6,11 @@
 //   X-AiiRob-Timestamp: <giây Unix>
 //   X-AiiRob-Signature: sha256=<hex HMAC-SHA256(AIIROB_WEBHOOK_SECRET, "<timestamp>.<thân JSON nguyên văn>")>
 // Lệch giờ quá 5 phút ⇒ từ chối (chống phát lại). Thiếu AIIROB_WEBHOOK_SECRET ⇒ 503, không nhận gì.
-// Thân: { suKien: "bai_dat", con: "<id hồ sơ Con trong AiiGrow>", maBai, tenBai, diemSo (0–100) }.
+// Thân: { suKien: "bai_dat", giaDinh: "<family_id>", con: "<id hồ sơ Con trong AiiGrow>", maBai, tenBai, diemSo (0–100) }.
+// Mã liên kết Ba Mẹ dán vào AiiRob là "<family_id>.<child_id>" (GET /api/m/con/:id/lien-ket-aiirob). giaDinh BẮT BUỘC (chuỗi
+// không rỗng; thiếu / sai kiểu ⇒ 400) và phải khớp gia đình của Con, sai thì 404 như không thấy (không lộ Con có tồn tại).
+// Không có nhánh "thiếu giaDinh vẫn nhận": bên gửi (dulich-mvp) chưa từng chạy bản cũ, nên không cần tương thích ngược.
+// Mã liên kết là ĐỊNH DANH, không phải bí mật: bảo vệ thật là chữ ký HMAC bằng khoá chung chỉ máy chủ AiiRob giữ.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { json, loi, batLoi } from "./api.ts";
 import { one } from "./db.ts";
@@ -35,8 +39,11 @@ export async function xuLyAiiRob(req: Request, now = Date.now()): Promise<Respon
     try { b = JSON.parse(than); } catch { return loi("json_sai", "Thân webhook không phải JSON", 400); }
     if (b.suKien !== "bai_dat") return json({ ok: true, boQua: true });            // sự kiện khác: nhận, không làm gì
     const con = String(b.con ?? "").slice(0, 40), maBai = String(b.maBai ?? "").trim().slice(0, 80), diemSo = Number(b.diemSo);
-    if (!con || !maBai || !Number.isFinite(diemSo) || diemSo < 0 || diemSo > 100) return loi("thieu_truong", "Cần con, maBai, diemSo (0–100)", 400);
-    if (!(await one(`select 1 from children where id = $1`, [con]))) return loi("khong_thay", "Không thấy hồ sơ Con", 404);
+    const giaDinh = typeof b.giaDinh === "string" ? b.giaDinh.trim().slice(0, 40) : "";
+    if (!giaDinh || !con || !maBai || !Number.isFinite(diemSo) || diemSo < 0 || diemSo > 100)
+      return loi("thieu_truong", "Cần giaDinh, con, maBai, diemSo (0–100)", 400);
+    const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
+    if (!c || giaDinh !== c.family_id) return loi("khong_thay", "Không thấy hồ sơ Con", 404);
     const r = await ketQuaAiiRob(con, { maBai, tenBai: String(b.tenBai ?? maBai), diemSo });
     return json({ ok: true, congDiem: r ? r.diem : 0, lyDo: r ? null : "chua_dat_hoac_da_tinh" });
   } catch (e) {

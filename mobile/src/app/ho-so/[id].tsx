@@ -2,7 +2,7 @@
 // nhóm trải nghiệm, đặt lại PIN, ghép thêm máy, gỡ máy (có xác nhận).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { Platform, Share, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { datTl } from "@/lib/thiet-lap";
 import {
@@ -19,6 +19,8 @@ export default function HoSoCon() {
   const [pin, setPin] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
+  // M6: mã liên kết AiiRob «<family_id>.<child_id>» — tải riêng, lỗi thì chỉ ẩn mục này
+  const lk = useTai(() => bm.goi<{ ma: string }>(`con/${id}/lien-ket-aiirob`));
   if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Hồ sơ Con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const may = d.may;
   const thieu = may.filter((m) => m.baoVe !== "day_du").length;
@@ -42,6 +44,15 @@ export default function HoSoCon() {
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
         <Dong tieu="Ví điểm" phu={`${d.soDu} điểm · cấp ${d.capDo.cap}`} trai={<BieuTron ic="xu" mau="vang" />} bam={() => router.push(`/vi/${d.id}`)} />
       </Nhom>
+      {lk.d ? (
+        <Nhom>
+          <Dong dau tieu="Liên kết AiiRob" phu={`Dán mã này vào AiiRob để bài học đạt tự cộng điểm cho ${d.ten}`} trai={<BieuTron ic="sach" />} />
+          <View style={{ paddingHorizontal: 14, paddingBottom: 14, gap: 10 }}>
+            <Chu kieu="rat" co={14} so mau={M.chu2}>{lk.d.ma}</Chu>
+            <Nut chu="Sao chép mã" nho loai="vien" rong bam={() => saoChep(lk.d!.ma).then((ok) => ok && bao("Đã sao chép mã — dán vào AiiRob"))} />
+          </View>
+        </Nhom>
+      ) : null}
       <BangTruot mo={mo === "pin"} dong={() => setMo(null)} tieu={`Mã PIN mới của ${d.ten}`}>
         <ONhap nhan="4–6 chữ số" value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry />
         <BaoLoi loi={loiLam} />
@@ -65,4 +76,13 @@ export default function HoSoCon() {
       ) : null}
     </Man>
   );
+}
+
+/** Sao chép mã liên kết: web ⇒ bộ nhớ tạm; máy thật ⇒ bảng Chia sẻ của hệ điều hành (có «Sao chép»), không cần thêm mô-đun gốc. */
+async function saoChep(ma: string) {
+  try {
+    if (Platform.OS === "web") { await navigator.clipboard.writeText(ma); return true; }
+    await Share.share({ message: ma });
+    return false;
+  } catch { return false; }
 }
