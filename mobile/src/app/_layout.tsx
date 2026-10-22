@@ -13,8 +13,10 @@ export default function Goc() {
     globalThis.navigator?.serviceWorker?.getRegistrations?.().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     globalThis.caches?.keys?.().then((ks) => ks.forEach((k) => globalThis.caches.delete(k))).catch(() => {});
   }, []);
-  const [xong] = useFonts({ Nunito_500Medium, Nunito_700Bold, Nunito_800ExtraBold });
-  if (!xong) return null;
+  const [xong, loi] = useFonts({ Nunito_500Medium, Nunito_700Bold, Nunito_800ExtraBold });
+  // Web KHÔNG chờ font: trên Safari/iOS (WebKit) useFonts không bao giờ báo xong dù font đã tải ⇒ layout trả null ⇒ màn trắng.
+  // Trên web trình duyệt tự đổi sang Nunito khi tải xong (@font-face), nên vẽ ngay.
+  if (!xong && !loi && Platform.OS !== "web") return null;
   return (
     <SafeAreaProvider>
       <PhienProvider>
