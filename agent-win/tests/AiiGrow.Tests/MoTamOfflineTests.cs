@@ -100,31 +100,33 @@ public class MoTamOfflineTests
     }
 
     [Fact]
-    public void ApDung_GoChanApp_HetGio_NhungGiuKhoaNgayVaGioNgu()
+    public void ApDung_GoChanApp_VaMoiKhoa_HetGio_Ngu_KhoaNgay()
     {
         var hoc = new EffectivePolicy(false, null, null, null, true);
         Assert.False(MoTamOffline.ApDung(hoc, true).AppLockerWanted);
         Assert.True(MoTamOffline.ApDung(hoc, false).AppLockerWanted);
 
-        var hetGio = new EffectivePolicy(true, LockReasons.HetGio, 0, null, true);
-        Assert.False(MoTamOffline.ApDung(hetGio, true).Locked);
-
-        foreach (var r in new[] { LockReasons.Khoa, LockReasons.Ngu })
+        // Mã do Ba Mẹ đọc ⇒ gỡ được mọi khoá, kể cả giờ ngủ / «Khoá ngay» (mất mạng qua đêm không được kẹt máy).
+        foreach (var r in new[] { LockReasons.HetGio, LockReasons.Khoa, LockReasons.Ngu })
         {
             var e = MoTamOffline.ApDung(new EffectivePolicy(true, r, null, null, false), true);
-            Assert.True(e.Locked);
-            Assert.Equal(r, e.LockReason);
+            Assert.False(e.Locked);
+            Assert.Null(e.LockReason);
+            // không mở tạm thì khoá giữ nguyên
+            Assert.True(MoTamOffline.ApDung(new EffectivePolicy(true, r, null, null, false), false).Locked);
         }
     }
 
     [Fact]
-    public void OHienMa_ChiKhiMatMang_VaManKhoaChiKhiHetGio()
+    public void OHienMa_ChiKhiMatMang_MoiLyDoKhoa()
     {
         Assert.True(BlockScreenView.ShowOfflineCode(true));
         Assert.False(BlockScreenView.ShowOfflineCode(false));
-        Assert.True(BlockScreenView.ShowOfflineCode(true, lockScreen: true, LockReasons.HetGio));
-        Assert.False(BlockScreenView.ShowOfflineCode(true, lockScreen: true, LockReasons.Khoa));
-        Assert.False(BlockScreenView.ShowOfflineCode(true, lockScreen: true, LockReasons.Ngu));
+        foreach (var r in new[] { LockReasons.HetGio, LockReasons.Khoa, LockReasons.Ngu })
+        {
+            Assert.True(BlockScreenView.ShowOfflineCode(true, lockScreen: true, r));
+            Assert.False(BlockScreenView.ShowOfflineCode(false, lockScreen: true, r));
+        }
     }
 
     [Fact]

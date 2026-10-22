@@ -98,7 +98,8 @@ public sealed class MoTamOffline
         _ => "Chưa mở được.",
     };
 
-    /// <summary>Áp «mở tạm» lên kết quả policy: bỏ danh sách chặn app + khoá hết giờ; «Khoá ngay» / giờ ngủ vẫn giữ.</summary>
+    /// <summary>Áp «mở tạm» lên kết quả policy: bỏ danh sách chặn app và MỌI khoá (hết giờ, giờ ngủ, «Khoá ngay»).
+    /// Mã do chính Ba Mẹ đọc cho Con, và khi mất mạng đây là đường DUY NHẤT để mở máy — không được để máy kẹt khoá (Thanh 22/10).</summary>
     public static EffectivePolicy ApDung(EffectivePolicy eff, bool moTam)
     {
         if (!moTam) return eff;
@@ -107,5 +108,5 @@ public sealed class MoTamOffline
     }
 
     /// <summary>Lý do khoá nào mã offline gỡ được (để màn khoá biết có nên hiện ô nhập mã).</summary>
-    public static bool MoDuocKhoa(string? reason) => reason == LockReasons.HetGio;
+    public static bool MoDuocKhoa(string? reason) => reason is LockReasons.HetGio or LockReasons.Ngu or LockReasons.Khoa;
 }
