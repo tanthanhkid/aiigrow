@@ -61,10 +61,10 @@ jobs:
         shell: bash
         # Git Bash trên runner Windows không có «shasum» (build-mot-file.sh dòng cuối) ⇒ cấp một shim gọi sha256sum, không sửa script build.
         run: |
-          mkdir -p "$RUNNER_TEMP/shim"
-          printf '#!/usr/bin/env bash\nshift 2\nexec sha256sum "$@"\n' > "$RUNNER_TEMP/shim/shasum"
-          chmod +x "$RUNNER_TEMP/shim/shasum"
-          PATH="$RUNNER_TEMP/shim:$PATH" agent-win/build-mot-file.sh
+          mkdir -p "$HOME/shim"
+          printf '#!/usr/bin/env bash\nshift 2\nexec sha256sum "$@"\n' > "$HOME/shim/shasum"
+          chmod +x "$HOME/shim/shasum"
+          PATH="$HOME/shim:$PATH" agent-win/build-mot-file.sh
       - uses: actions/upload-artifact@v4
         with:
           name: setup-${{ matrix.ban }}
