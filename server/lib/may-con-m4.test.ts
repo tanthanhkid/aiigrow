@@ -53,31 +53,6 @@ test("Policy cho agent: thêm tz, lechGioPhut, phienToiDa; Fun list kèm giá ph
   for (const k of ["serverTime", "nextCheckSec", "gioMaySai", "con", "canChonCon", "allowlistHeThong", "lich", "khoaNgay", "soDu", "phien"]) assert.ok(k in p, k);
 });
 
-test("ghép QR: máy hiện QR (không lộ bí mật), Ba Mẹ quét chọn Con, máy nhận token đúng một lần; Con nhà khác bị từ chối", async () => {
-  const { fam } = await nha(0);
-  const khac = await taoNha("Mai");
-  const conKhac = await g.taoCon(khac.fam, { ten: "Mai" });
-  const m = (await dv("ghep-qr", { body: { nen: "windows", tenMay: "PC phòng khách" } })).body;
-  assert.ok(m.link.startsWith("http://may.test/q/") && !m.link.includes(m.bi));
-  assert.ok(m.qr.length >= 21 && m.qr.every((h: string) => h.length === m.qr.length && /^[01]+$/.test(h)));
-  assert.equal((await dv("ghep-qr/hoi", { body: { ma: m.ma, bi: m.bi } })).body.trangThai, "cho");
-  assert.equal((await dv("ghep-qr/hoi", { body: { ma: m.ma, bi: "doan-bua" } })).status, 404);
-  assert.equal((await mc.xemQrGhep(m.ma)).tenMay, "PC phòng khách");
-  await assert.rejects(mc.nhanQrGhep(fam, m.ma, conKhac), (e: { ma?: string }) => e.ma === "khong_thay");
-  const con = await g.taoCon(fam, { ten: "Bin" });
-  await mc.nhanQrGhep(fam, m.ma, con);
-  const xong = (await dv("ghep-qr/hoi", { body: { ma: m.ma, bi: m.bi } })).body;
-  assert.equal(xong.trangThai, "xong");
-  assert.equal(xong.dungChung, false);
-  assert.equal((await dv("ghep-qr/hoi", { body: { ma: m.ma, bi: m.bi } })).body.error, "ma_da_dung", "token chỉ trả một lần");
-  assert.equal((await dv("dong-bo", { tok: xong.token, body: {} })).body.con.ten, "Bin");
-  await assert.rejects(mc.nhanQrGhep(fam, m.ma, con), (e: { ma?: string }) => e.ma === "ma_da_dung");
-  // hết hạn
-  const cu = await mc.taoQrGhep("https://app.test", "windows", "PC cũ", new Date(Date.now() - 10 * 60000));
-  assert.equal((await mc.hoiQrGhep(cu.ma, cu.bi)).trangThai, "het");
-  await assert.rejects(mc.nhanQrGhep(fam, cu.ma, null), (e: { ma?: string }) => e.ma === "ma_het_han");
-});
-
 test("phiên web cho khung Kid: agent xin phiên Con dùng được /api/kid, không gọi được /api/device", async () => {
   const { token } = await nha(5);
   const pw = (await dv("phien-web", { tok: token, body: {} })).body;

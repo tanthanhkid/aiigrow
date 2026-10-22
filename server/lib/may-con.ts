@@ -11,14 +11,12 @@ import { giaPhut, phienDang } from "./phien.ts";
 import { soDu } from "./vi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import type { May } from "./gia-dinh.ts";
-// M4 agent Windows (ghép QR, phiên web cho khung Kid, sự kiện, bù phút offline, gỡ có mật khẩu Ba Mẹ)
-import QRCode from "qrcode";
+// M4 agent Windows (phiên web cho khung Kid, sự kiện, bù phút offline, gỡ có mật khẩu Ba Mẹ)
 import { newId, tx, type Q } from "./db.ts";
 import { chuanDinhDanh, dungMatKhau, sha, taoToken } from "./auth.ts";
 import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
-import { NEN_TANG, TEN_NEN_TANG, type NenTang } from "./gia-dinh.ts";
 
 export type DongBoVao = {
   status?: Record<string, unknown>;
@@ -111,93 +109,6 @@ export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: s
 }
 
 // ================================================================ M4 — agent Windows (chỉ thêm; hợp đồng cũ giữ nguyên)
-
-// ---------------------------------------------------------------- ghép bằng QR (máy Con hiện QR, Ba Mẹ quét bằng app)
-// Cách AiiControl (ghep-qr.ts): QR chứa link `<gốc>/q/<ma>`, `ma` dùng MỘT lần, hạn 5 phút. Máy Con giữ thêm bí mật `bi` (không nằm trong
-// QR) để hỏi kết quả ⇒ ai chụp được QR cũng không lấy được token máy. Token trả cho máy Con đúng một lần rồi xoá khỏi bảng.
-// Mã 6 số (Ba Mẹ tạo `POST /api/m/ma-ghep`, máy nhập `POST /api/device/ghep`) vẫn là cách chính / dự phòng.
-// Bảng tạo lười ở đây (không sửa schema.ts dùng chung).
-export const PHUT_QR = 5;
-let coBangQr = false;
-async function bangQr() {
-  if (coBangQr) return;
-  await q(`create table if not exists pair_qr (
-    ma_hash text primary key, bi_hash text not null, platform text not null, ten_may text not null, expires_at timestamptz not null,
-    family_id text, child_id text, device_id text, device_token text, claimed_at timestamptz, created_at timestamptz not null default now())`);
-  coBangQr = true;
-}
-
-/** Ma trận QR dạng chuỗi "0"/"1" mỗi hàng — agent tự vẽ ô, khỏi cần thư viện QR phía Windows. */
-export function maTranQr(chu: string) {
-  const m = QRCode.create(chu, { errorCorrectionLevel: "M" }).modules;
-  const hang: string[] = [];
-  for (let y = 0; y < m.size; y++) {
-    let s = "";
-    for (let x = 0; x < m.size; x++) s += m.get(y, x) ? "1" : "0";
-    hang.push(s);
-  }
-  return hang;
-}
-
-/** Máy Con xin mã QR mới. `goc` = địa chỉ gốc app Ba Mẹ (link trong QR). */
-export async function taoQrGhep(goc: string, nen: string, tenMay: string, now = new Date()) {
-  if (!(NEN_TANG as readonly string[]).includes(nen)) throw new LoiNghiepVu("nen_tang_sai", "Chọn loại thiết bị");
-  await bangQr();
-  await q(`delete from pair_qr where expires_at < $1::timestamptz - interval '1 day'`, [now]);
-  const ma = taoToken().slice(0, 22), bi = taoToken();
-  const het = new Date(now.getTime() + PHUT_QR * 60000);
-  await q(`insert into pair_qr(ma_hash, bi_hash, platform, ten_may, expires_at) values ($1,$2,$3,$4,$5)`,
-    [sha(ma), sha(bi), nen, String(tenMay ?? "").trim().slice(0, 80) || TEN_NEN_TANG[nen as NenTang], het]);
-  const link = `${goc.replace(/\/+$/, "")}/q/${ma}`;
-  return { ma, bi, link, het: het.toISOString(), qr: maTranQr(link) };
-}
-
-type DongQr = { ma_hash: string; bi_hash: string; platform: NenTang; ten_may: string; expires_at: Date; family_id: string | null;
-  child_id: string | null; device_id: string | null; device_token: string | null; claimed_at: Date | null };
-
-/** Ba Mẹ vừa quét: máy nào đang chờ ghép (để chọn Con). Dùng cho app Ba Mẹ (nối vào /api/m khi cần). */
-export async function xemQrGhep(ma: string) {
-  await bangQr();
-  const d = await one<DongQr>(`select * from pair_qr where ma_hash = $1`, [sha(String(ma ?? ""))]);
-  if (!d) throw new LoiNghiepVu("ma_sai", "Mã QR không đúng — trên máy Con bấm «Tạo mã mới»", 404);
-  return { nen: d.platform, tenMay: d.ten_may, het: new Date(d.expires_at).toISOString(), hetHan: new Date(d.expires_at) < new Date(), daDung: !!d.claimed_at };
-}
-
-/** Ba Mẹ chọn hồ sơ Con (null = máy dùng chung) ⇒ ghép ngay. Dùng cho app Ba Mẹ (nối vào /api/m khi cần). */
-export async function nhanQrGhep(fam: string, ma: string, con: string | null, nguoi?: string | null) {
-  await bangQr();
-  return tx(async (t) => {
-    const d = (await t<DongQr>(`select * from pair_qr where ma_hash = $1 for update`, [sha(String(ma ?? ""))]))[0];
-    if (!d) throw new LoiNghiepVu("ma_sai", "Mã QR không đúng — trên máy Con bấm «Tạo mã mới»", 404);
-    if (d.claimed_at) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi", 409);
-    if (new Date(d.expires_at) < new Date()) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — trên máy Con bấm «Tạo mã mới»", 410);
-    if (con && !(await t(`select 1 from children where id = $1 and family_id = $2`, [con, fam])).length)
-      throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-    const id = newId(), token = taoToken();
-    await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen) values ($1,$2,$3,$4,$5,$6,$7, now())`,
-      [id, con, fam, d.platform, d.ten_may, sha(token), !con]);
-    await t(`update pair_qr set claimed_at = now(), family_id = $2, child_id = $3, device_id = $4, device_token = $5 where ma_hash = $1`,
-      [d.ma_hash, fam, con, id, token]);
-    await ghiSuKien(fam, "ghep_may", { platform: d.platform, ten: d.ten_may, cach: "qr" }, { con, may: id, nguoi }, t);
-    return { deviceId: id, tenMay: d.ten_may, nen: d.platform };
-  });
-}
-
-/** Máy Con hỏi kết quả (~2 giây/lần). Ghép xong ⇒ trả token đúng một lần (như `POST ghep`). */
-export async function hoiQrGhep(ma: string, bi: string) {
-  await bangQr();
-  return tx(async (t) => {
-    const d = (await t<DongQr>(`select * from pair_qr where ma_hash = $1 for update`, [sha(String(ma ?? ""))]))[0];
-    if (!d || d.bi_hash !== sha(String(bi ?? ""))) throw new LoiNghiepVu("ma_sai", "Mã không đúng", 404);
-    if (d.claimed_at && d.device_token) {
-      await t(`update pair_qr set device_token = null where ma_hash = $1`, [d.ma_hash]);
-      return { trangThai: "xong" as const, deviceId: d.device_id!, token: d.device_token, dungChung: !d.child_id };
-    }
-    if (d.claimed_at) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi", 409);
-    if (new Date(d.expires_at) < new Date()) return { trangThai: "het" as const };
-    return { trangThai: "cho" as const, het: new Date(d.expires_at).toISOString() };
-  });
-}
 
 // ---------------------------------------------------------------- phiên web cho khung Kid (WebView2 trên máy Con)
 /** Agent xin phiên Con (12 giờ) để mở màn Con web trong khung Kid — khay KHÔNG cầm token máy. */

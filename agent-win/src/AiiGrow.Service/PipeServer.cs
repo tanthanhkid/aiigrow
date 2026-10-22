@@ -81,8 +81,9 @@ public sealed class PipeServer : BackgroundService
     private async Task<PipeResponse> DispatchAsync(PipeRequest req, int clientSession, CancellationToken ct)
     {
         var childSession = _rt.ChildSessionId;
-        // Chỉ phiên của con mới được báo app tiền cảnh / gửi lời xin.
-        bool fromChild = childSession < 0 || clientSession == childSession;
+        // Báo app tiền cảnh: chỉ phiên của Con. Xin giờ / mở phiên chơi: thêm phiên đang ngồi trước màn hình. Học viên: không chặn (QuyenPhien).
+        bool fromChild = QuyenPhien.LaPhienCon(clientSession, childSession);
+        bool duocXin = QuyenPhien.DuocXinHoacChoi(clientSession, childSession, SessionHelper.ActiveConsoleSession());
         var now = DateTimeOffset.Now;
 
         switch (req.Cmd)
@@ -96,7 +97,7 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.Request:
             {
-                if (!fromChild) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được gửi lời xin" };
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được gửi lời xin" };
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 var kind = req.Kind == "doi_diem" ? "doi_diem" : "them_gio";
@@ -114,7 +115,7 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.Play:
             {
                 // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
-                if (!fromChild) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 var muc = string.IsNullOrWhiteSpace(req.AppId) ? "" : req.AppId!;
@@ -153,8 +154,7 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.HocVien:
             {
-                // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Chỉ phiên của Con; chỉ các đường trong HocVienPaths.
-                if (!fromChild) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con dùng được phần này" };
+                // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Không chặn theo phiên (QuyenPhien); chỉ các đường trong HocVienPaths.
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 if (!HocVienPaths.Allowed(req.Method, req.Path)) return new PipeResponse { Ok = false, Error = "Đường không hỗ trợ" };

@@ -2,7 +2,7 @@
 export const metadata = { title: "Tải AiiGrow cho Windows — AiiGrow" };
 
 const LINK_TAI =
-  "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Setup-0.2.0.exe";
+  "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Setup-0.2.1.exe";
 
 export default function TrangTai() {
   return (
@@ -32,7 +32,7 @@ export default function TrangTai() {
         ⬇ Tải AiiGrow cho Windows
       </a>
       <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>
-        Một tệp AiiGrow-Setup.exe (bản 0.2.0, ~182 MB) · Windows 10/11
+        Một tệp AiiGrow-Setup.exe (bản 0.2.1, ~182 MB) · Windows 10/11
       </p>
 
       <ol style={{ lineHeight: 1.75, marginTop: 24, paddingLeft: 20 }}>

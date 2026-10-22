@@ -112,27 +112,6 @@ public static class QuyenBaoVe
     }
 }
 
-/// <summary>Mã QR ghép máy (POST /api/device/ghep-qr). Máy con hiện <see cref="Qr"/>, giữ <see cref="Bi"/> để hỏi kết quả — Bi không nằm trong QR.</summary>
-public sealed class QrPair
-{
-    public string Ma { get; set; } = "";
-    public string Bi { get; set; } = "";
-    public string Link { get; set; } = "";
-    public string Het { get; set; } = "";
-    public List<string> Qr { get; set; } = new();
-}
-
-/// <summary>POST /api/device/ghep-qr/hoi {ma, bi} — "cho" | "het" | "xong" (kèm token, chỉ trả một lần).</summary>
-public sealed class QrState
-{
-    public string TrangThai { get; set; } = "";
-    [JsonConverter(typeof(FlexStringConverter))]
-    public string? DeviceId { get; set; }
-    public string? Token { get; set; }
-    public string? ChildName { get; set; }
-    public string? Server { get; set; }
-}
-
 public sealed class PairResult
 {
     [JsonConverter(typeof(FlexStringConverter))]

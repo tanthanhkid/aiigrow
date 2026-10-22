@@ -150,8 +150,14 @@ public sealed class HvBatDauKq
 }
 
 /// <summary>Chữ hiển thị + quy tắc nhỏ của màn «Nhiệm vụ & quà».</summary>
+/// <summary>App to: một mục chưa có dữ liệu thì đang ở ca nào — chưa ghép / đang tải / lỗi (hiện lý do + «Thử lại», không treo «Đang tải…»).</summary>
+public enum TaiHocVien { ChuaGhep, DangTai, Loi, Xong }
+
 public static class HocVienView
 {
+    public static TaiHocVien TrangThaiTai(bool paired, bool coDuLieu, string? loi) =>
+        !paired ? TaiHocVien.ChuaGhep : coDuLieu ? TaiHocVien.Xong : string.IsNullOrWhiteSpace(loi) ? TaiHocVien.DangTai : TaiHocVien.Loi;
+
     public static T? Parse<T>(string? raw) where T : class
     {
         if (string.IsNullOrWhiteSpace(raw)) return null;

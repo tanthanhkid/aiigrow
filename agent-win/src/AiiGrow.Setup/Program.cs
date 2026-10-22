@@ -41,7 +41,7 @@ internal static class Program
             return 2;
         }
 
-        // Không có token nhúng ⇒ luồng cài có giao diện (chọn tài khoản, QR / mã số).
+        // Không có token nhúng ⇒ luồng cài có giao diện (chọn tài khoản, mã 6 số).
         Application.Run(new SetupForm());
         return 0;
     }
