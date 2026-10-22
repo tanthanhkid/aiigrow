@@ -86,7 +86,7 @@ function MayVaCanhBao({ con, canhBao }: { con: string; canhBao: CanhBao[] }) {
             trai={<BieuTron ic={IC_NEN[m.nen]} mau={m.baoVe === "day_du" ? "xanh" : "cam"} />}
             phai={<Nhan chu={BAO_VE[m.baoVe][0]} loai={BAO_VE[m.baoVe][1]} cham />} bam={() => router.push(`/ho-so/${c.id}`)} />
         ))}
-        {ct.d && !ct.d.may.length ? <Dong dau tieu="Chưa ghép máy nào" phu="Ghép bằng QR, chưa tới 2 phút" trai={<BieuTron ic="qr" />} bam={() => router.push(`/ho-so/${c.id}`)} /> : null}
+        {ct.d && !ct.d.may.length ? <Dong dau tieu="Chưa ghép máy nào" phu="Ghép bằng mã 6 số, chưa tới 2 phút" trai={<BieuTron ic="qr" />} bam={() => router.push(`/ho-so/${c.id}`)} /> : null}
         {cbCon.length ? (
           <Dong tieu={`${cbCon.length} cảnh báo cần xem`} phu={cbCon[0].noi_dung} trai={<BieuTron ic="canh_bao" mau="cam" />} bam={() => router.push("/canh-bao")} />
         ) : null}

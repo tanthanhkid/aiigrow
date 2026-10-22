@@ -30,7 +30,7 @@ export default function HoSoCon() {
   return (
     <Man lui={{ chu: "Hôm nay" }} tieu={d.ten} noi={noi}>
       <Canh lv="chi" thap tieu={may.length ? `${d.ten} có ${may.length} máy` : `${d.ten} chưa có máy nào`}
-        loi={!may.length ? "Ghép bằng QR, chưa tới 2 phút." : thieu ? `${thieu} máy bảo vệ chưa đầy đủ — xem lý do và cách làm bên dưới.` : "Mọi máy đều được bảo vệ đầy đủ."} />
+        loi={!may.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : thieu ? `${thieu} máy bảo vệ chưa đầy đủ — xem lý do và cách làm bên dưới.` : "Mọi máy đều được bảo vệ đầy đủ."} />
       {may.length ? (
         <Nhom>
           {may.map((m, i) => (

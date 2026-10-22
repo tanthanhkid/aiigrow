@@ -101,6 +101,8 @@ export type TuanThuMay = {
   id: string; ten: string; nen: MayCon["nen"]; con: string | null; dungChung: boolean; lanCuoi: string | null;
   phienBan: string | null; adminTinCay: string[];
   trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
+  /** Windows: hạn «đang mở» thật (mở khẩn cấp hoặc thêm giờ đã duyệt) — null = không mở. Máy chủ cũ không gửi. */
+  moDen?: string | null;
   lenhCho: { id: string; loai: string }[];
   /** Chế độ hiển thị: Ba Mẹ đã chọn (POST may/:id/che-do), không thì chế độ máy báo; null = chưa biết (agent cũ / chưa đồng bộ).
    *  giam-sat = chỉ ghi lại, không chặn · chan = chặn thật. */
