@@ -73,8 +73,12 @@ public static class MoCoi
     /// <summary>Không đồng bộ được lần nào quá 14 ngày (mọi loại lỗi). Cần CẢ HAI đồng hồ: đồng hồ thật (<see cref="AgentConfig.LienLacCuoi"/>)
     /// VÀ thời gian chạy cộng dồn theo đồng hồ đơn điệu (<see cref="AgentConfig.MatLienLacChayGiay"/>) đều ≥ 14 ngày —
     /// chỉnh giờ máy (BIOS/UEFI) tới trước không đủ để mở chặn.</summary>
+    /// <summary>Thời gian máy BẬT mà không liên lạc được (đồng hồ đơn điệu) cần đạt — 72 giờ: đủ chặn trò chỉnh lịch BIOS,
+    /// nhưng máy chỉ bật vài giờ/ngày vẫn tự thả trong ~2–3 tuần khi máy chủ chết thật (Thanh 22/10: không được để máy kẹt).</summary>
+    public static readonly TimeSpan NguongChayLienLac = TimeSpan.FromHours(72);
+
     public static bool MatLienLacLau(AgentConfig? c, DateTimeOffset now) =>
-        c?.LienLacCuoi is { } t && now >= t && now - t >= NguongLienLac && c.MatLienLacChayGiay >= NguongLienLac.TotalSeconds;
+        c?.LienLacCuoi is { } t && now >= t && now - t >= NguongLienLac && c.MatLienLacChayGiay >= NguongChayLienLac.TotalSeconds;
 
     /// <summary>Trần mỗi lần cộng (giây): vòng thực thi ~5 giây/lần (+ thời gian đồng bộ). Một bước nhảy lớn giữa hai vòng
     /// (ngủ/ngủ đông, treo) bị cắt ở trần này ⇒ không thổi phồng được thời gian mất liên lạc.</summary>

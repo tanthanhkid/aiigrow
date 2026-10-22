@@ -111,6 +111,19 @@ public class MoCoiTests
         Assert.Equal(T0, c.TuChoiTu);
     }
 
+    // Ngưỡng chạy 72 giờ: đủ 14 ngày lịch + 72 giờ máy bật ⇒ thả; 71 giờ ⇒ chưa (chỉnh lịch BIOS không đủ).
+    [Fact]
+    public void MatLienLac_Can72GioMayBat_VaDu14NgayLich()
+    {
+        var du = T0.AddDays(MoCoi.NgayMatLienLac);
+        var it = new AgentConfig { LienLacCuoi = T0, MatLienLacChayGiay = TimeSpan.FromHours(71).TotalSeconds };
+        Assert.False(MoCoi.MatLienLacLau(it, du));
+        var vua = new AgentConfig { LienLacCuoi = T0, MatLienLacChayGiay = MoCoi.NguongChayLienLac.TotalSeconds };
+        Assert.True(MoCoi.MatLienLacLau(vua, du));
+        Assert.False(MoCoi.MatLienLacLau(vua, du.AddHours(-1)));   // giờ chạy đủ mà lịch chưa đủ 14 ngày ⇒ chưa
+        Assert.Equal(TimeSpan.FromHours(72), MoCoi.NguongChayLienLac);
+    }
+
     // 🟡 fail-open DÀI HẠN: KHÔNG đồng bộ được lần nào quá 14 ngày (mọi loại lỗi — không chỉ token_sai) ⇒ về giám sát, bỏ Policy cuối.
     [Fact]
     public void MatLienLac14Ngay_MoiLoai_VeGiamSat_BoPolicy()
