@@ -175,6 +175,8 @@ public sealed class AgentConfig
     public OfflineQueue Queue { get; set; } = new();
     /// <summary>AiiGrow (thêm): bí mật mã mở offline, lưu lại từ Policy để còn dùng khi mất mạng (xem <see cref="Policy.MaOfflineBiMat"/>).</summary>
     public string? MaOfflineBiMat { get; set; }
+    /// <summary>AiiGrow (thêm): trạng thái «mở tạm bằng mã offline» (hạn mở, mã đã dùng, lượt sai) — lưu để dịch vụ khởi động lại vẫn giữ.</summary>
+    public MoTamOffline MoTamOffline { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

@@ -13,6 +13,7 @@ internal sealed class LockForm : Form
     private readonly bool _canExchange;
     private bool _allowClose;
     private bool _locking;
+    private readonly OfflineCodePanel _code;
 
     public LockForm(bool canExchange)
     {
@@ -46,6 +47,9 @@ internal sealed class LockForm : Form
         logoff.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown.exe", "/l") { CreateNoWindow = true, UseShellExecute = false });
         flow.Controls.Add(ask);
         flow.Controls.Add(logoff);
+        // Mất mạng + khoá do hết giờ: Ba Mẹ đọc mã mở offline (chỉ hiện khi mã gỡ được lý do khoá này).
+        _code = new OfflineCodePanel(420, Color.White, Color.FromArgb(0xd8, 0xe8, 0xdd)) { Visible = false };
+        flow.Controls.Add(_code);
 
         var host = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
         host.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -69,6 +73,7 @@ internal sealed class LockForm : Form
     {
         _title.Text = TrayView.LockTitle(s.LockReason);
         _hint.Text = TrayView.LockHint(s.LockReason);
+        _code.Visible = BlockScreenView.ShowOfflineCode(s.Offline, lockScreen: true, s.LockReason);
         bool counting = s.LockGraceLeftSec.HasValue && s.LockGraceLeftSec.Value > 0;
         _count.Visible = _countCap.Visible = s.LockGraceLeftSec.HasValue;
         if (s.LockGraceLeftSec.HasValue) _count.Text = TrayView.FormatClock(s.LockGraceLeftSec.Value);

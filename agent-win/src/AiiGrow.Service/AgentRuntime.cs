@@ -80,7 +80,43 @@ public sealed class AgentRuntime
         lock (_gate)
         {
             if (_policy == null) return null;
-            return PolicyEvaluator.Evaluate(_policy, now, _usedSeconds);
+            return MoTamOffline.ApDung(PolicyEvaluator.Evaluate(_policy, now, _usedSeconds), MoTamDangMo(now));
+        }
+    }
+
+    private bool MoTamDangMo(DateTimeOffset now) => Config?.MoTamOffline?.IsUnlocked(now) == true;
+
+    /// <summary>
+    /// Con gõ mã mở offline Ba Mẹ đọc. Kiểm ngay trên máy bằng bí mật đã lưu (Config.MaOfflineBiMat), không cần máy chủ.
+    /// Mở được ⇒ lưu hạn mở + ghi sự kiện «mo_ma_offline» vào hàng đợi offline; sai đủ ngưỡng ⇒ sự kiện «sai_ma_offline».
+    /// </summary>
+    public (bool Ok, string Message) TryMaOffline(string? code, DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            if (Config is not { Paired: true }) return (false, "Máy chưa ghép với Ba Mẹ");
+            Config.MoTamOffline ??= new MoTamOffline();
+            var st = Config.MoTamOffline;
+            var kq = st.TryUnlock(Config.MaOfflineBiMat, code, now);
+            var cau = st.Cau(kq, now);
+            var may = Environment.MachineName;
+            if (kq == KetQuaMoOffline.DaMo)
+                Config.Queue.Add(new SuKien
+                {
+                    Loai = "mo_ma_offline", Luc = now.ToUniversalTime(),
+                    ChiTiet = new() { ["may"] = may, ["phut"] = ((int)Math.Round((st.UnlockUntil!.Value - now).TotalMinutes)).ToString(), ["den"] = st.UnlockUntil!.Value.ToUniversalTime().ToString("o") },
+                });
+            else if (kq == KetQuaMoOffline.Sai && st.WaitSeconds(now) > 0)
+                Config.Queue.Add(new SuKien
+                {
+                    Loai = "sai_ma_offline", Luc = now.ToUniversalTime(),
+                    ChiTiet = new() { ["may"] = may, ["soLan"] = MoTamOffline.SaiToiDa.ToString(), ["phut"] = MoTamOffline.CuaSoSaiPhut.ToString() },
+                });
+            if (kq is KetQuaMoOffline.DaMo or KetQuaMoOffline.Sai)
+            {
+                try { Store.Save(Config); _cfgStamp = Store.LastWriteUtc; } catch { }
+            }
+            return (kq is KetQuaMoOffline.DaMo or KetQuaMoOffline.DangMo, cau);
         }
     }
 
@@ -131,7 +167,9 @@ public sealed class AgentRuntime
         {
             var s = new TrayState { Paired = Config?.Paired == true, Offline = _offline };
             if (_policy == null) return s;
-            var eff = PolicyEvaluator.Evaluate(_policy, now, _usedSeconds);
+            bool moTam = MoTamDangMo(now);
+            var eff = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(_policy, now, _usedSeconds), moTam);
+            if (moTam) s.MoOfflineDen = Config!.MoTamOffline.UnlockUntil;
             s.ChildName = string.IsNullOrEmpty(_policy.ChildName) ? (Config?.ChildName ?? "") : _policy.ChildName;
             s.Mode = _policy.Mode;
             s.Locked = eff.Locked;

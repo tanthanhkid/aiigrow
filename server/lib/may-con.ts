@@ -218,6 +218,9 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   chan_app: { muc: null, cau: (t) => `Một ứng dụng bị chặn trên ${t}` },
   chan_cai_dat: { muc: null, cau: (t) => `Đã chặn một tệp cài đặt lạ trên ${t}` },
   offline: { muc: null, cau: (t) => `${t} chạy không có mạng` },
+  // Mã mở offline (agent-win MoTamOffline): Con gõ mã Ba Mẹ đọc lúc máy mất mạng — gửi bù khi có mạng lại.
+  mo_ma_offline: { muc: "thong_tin", cau: (t) => `${t} đã được mở bằng mã offline của Ba Mẹ` },
+  sai_ma_offline: { muc: "chu_y", cau: (t) => `Có người gõ sai mã mở offline nhiều lần trên ${t}` },
 };
 
 export type SuKienVao = { ma?: unknown; loai?: unknown; luc?: unknown; chiTiet?: unknown };

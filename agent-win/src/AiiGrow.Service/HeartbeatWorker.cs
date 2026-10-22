@@ -34,6 +34,7 @@ public sealed class HeartbeatWorker : BackgroundService
             try
             {
                 var cfg = _store.Load();
+                _daNap = cfg?.Queue.Items.Select(x => x.Ma).ToHashSet() ?? new();
                 if (cfg is not { Paired: true })
                 {
                     _log.LogDebug("Chưa ghép máy — chờ bộ cài ghép xong");
@@ -109,7 +110,21 @@ public sealed class HeartbeatWorker : BackgroundService
         cfg.Queue.Add(e);
     }
 
-    private void Save(AgentConfig cfg) { try { _store.Save(cfg); } catch (Exception e) { _log.LogWarning("Lưu cấu hình lỗi: {m}", e.Message); } }
+    private HashSet<string> _daNap = new();
+
+    /// <summary>Lưu cấu hình nhưng KHÔNG đè phần dịch vụ thực thi vừa ghi trong lúc nhịp này đang chạy:
+    /// trạng thái «mở tạm bằng mã offline» và sự kiện mới vào hàng đợi (ví dụ «mo_ma_offline») lấy từ bản trên đĩa.</summary>
+    private void Merge(AgentConfig cfg)
+    {
+        var tren = _store.Load();
+        if (tren == null) return;
+        cfg.MoTamOffline = tren.MoTamOffline;
+        if (!string.IsNullOrEmpty(tren.MaOfflineBiMat)) cfg.MaOfflineBiMat = tren.MaOfflineBiMat;
+        foreach (var it in tren.Queue.Items)
+            if (!_daNap.Contains(it.Ma) && cfg.Queue.Items.All(x => x.Ma != it.Ma)) cfg.Queue.Items.Add(it);
+    }
+
+    private void Save(AgentConfig cfg) { try { Merge(cfg); _store.Save(cfg); } catch (Exception e) { _log.LogWarning("Lưu cấu hình lỗi: {m}", e.Message); } }
 
     private static string Version() => typeof(HeartbeatWorker).Assembly.GetName().Version?.ToString() ?? "0";
 }
