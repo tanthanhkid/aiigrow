@@ -49,6 +49,10 @@ public interface ICapNhatOps
     void ChayDichVuVaKhay();
     bool DichVuDangChay();
     void GhiPhienBan(string thuMucCai, string ban);
+    /// <summary>Tắt «SCM tự khởi động lại dịch vụ khi lỗi» trong lúc chép/khôi phục (kẻo SCM bật exe giữa chừng, khoá tệp).</summary>
+    void TatTuKhoiDong() { }
+    /// <summary>Bật lại tự khởi động lại (restart/5000/restart/5000/restart/30000) — gọi ở MỌI đường ra.</summary>
+    void BatTuKhoiDong() { }
 }
 
 public sealed record KetQuaCapNhat(bool Ok, bool DaKhoiPhuc, string Log);
@@ -60,9 +64,21 @@ public sealed record KetQuaCapNhat(bool Ok, bool DaKhoiPhuc, string Log);
 /// </summary>
 public static class CapNhatMay
 {
+    /// <summary>Bộ cài một tệp có exe nhúng ⇒ luôn dùng nhúng; tệp nằm cạnh bộ cài chỉ khi không nhúng (gói zip cũ).</summary>
+    public static bool DungTepCanh(bool coNhung, bool coCanh) => !coNhung && coCanh;
+
     public static string ThuMucSaoLuu(string thuMucCai) => thuMucCai.TrimEnd('\\', '/') + ".sao-luu";
 
-    public static KetQuaCapNhat Chay(string thuMucCai, string ban, ICapNhatOps ops)
+    /// <param name="chep">Chép một tệp (thử nghiệm thay được để giả tệp bị khoá); mặc định File.Copy đè.</param>
+    public static KetQuaCapNhat Chay(string thuMucCai, string ban, ICapNhatOps ops, Action<string, string>? chep = null)
+    {
+        chep ??= (a, b) => File.Copy(a, b, true);
+        try { ops.TatTuKhoiDong(); } catch { }
+        try { return ChayTrong(thuMucCai, ban, ops, chep); }
+        finally { try { ops.BatTuKhoiDong(); } catch { } }
+    }
+
+    private static KetQuaCapNhat ChayTrong(string thuMucCai, string ban, ICapNhatOps ops, Action<string, string> chep)
     {
         var log = new List<string>();
         var saoLuu = ThuMucSaoLuu(thuMucCai);
@@ -70,7 +86,7 @@ public static class CapNhatMay
         {
             if (Directory.Exists(saoLuu)) Directory.Delete(saoLuu, true);
             ops.DungDichVuVaKhay();
-            ChepThuMuc(thuMucCai, saoLuu);
+            ChepThuMuc(thuMucCai, saoLuu, chep);
             log.Add("Đã sao lưu bản đang cài.");
         }
         catch (Exception e)
@@ -96,7 +112,7 @@ public static class CapNhatMay
             try
             {
                 try { ops.DungDichVuVaKhay(); } catch { }
-                ChepThuMuc(saoLuu, thuMucCai);
+                ChepThuMuc(saoLuu, thuMucCai, chep);
                 ops.ChayDichVuVaKhay();
                 log.Add("Đã khôi phục bản cũ — máy vẫn được bảo vệ.");
                 return new(false, true, string.Join(" ", log));
@@ -109,14 +125,27 @@ public static class CapNhatMay
         }
     }
 
-    private static void ChepThuMuc(string tu, string toi)
+    private static void ChepThuMuc(string tu, string toi, Action<string, string> chep)
     {
         Directory.CreateDirectory(toi);
         foreach (var f in Directory.GetFiles(tu, "*", SearchOption.AllDirectories))
         {
+            if (f.Contains(".cu-")) continue;               // tệp khay cũ đã đổi tên lần trước — không sao lưu/khôi phục
             var dich = Path.Combine(toi, Path.GetRelativePath(tu, f));
             Directory.CreateDirectory(Path.GetDirectoryName(dich)!);
-            File.Copy(f, dich, true);
+            ChepDe(f, dich, chep);
+        }
+    }
+
+    /// <summary>Đích đang bị khoá (khay đang chạy, exe SCM vừa bật) ⇒ Windows vẫn cho ĐỔI TÊN tệp đang chạy: đổi sang «.cu-…» rồi chép lại.</summary>
+    public static void ChepDe(string tu, string dich, Action<string, string> chep)
+    {
+        try { chep(tu, dich); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            if (!File.Exists(dich)) throw;
+            File.Move(dich, dich + ".cu-" + Guid.NewGuid().ToString("N")[..8]);
+            chep(tu, dich);
         }
     }
 }

@@ -38,28 +38,41 @@ internal static class CapNhatSetup
         catch { return null; }
     }
 
-    /// <param name="imLang">Chạy từ dịch vụ (SYSTEM, không có màn hình): không đóng/mở khay của người đang dùng — tệp khay đang chạy được đổi tên rồi chép bản mới,
-    /// lần đăng nhập sau khay bản mới tự chạy.</param>
-    public static KetQuaCapNhat Chay(bool imLang) => CapNhatMay.Chay(Paths.InstallDir, BanBoCai, new WindowsCapNhatOps(imLang));
+    /// <summary>Không đóng/mở khay của ai (cả khi có giao diện): tệp khay đang chạy được đổi tên rồi chép bản mới, lần đăng nhập sau khay bản mới tự chạy.</summary>
+    /// <param name="imLang">Chạy từ dịch vụ (SYSTEM, không có màn hình) — chỉ để ghi log; hai đường chạy như nhau.</param>
+    public static KetQuaCapNhat Chay(bool imLang) => CapNhatMay.Chay(Paths.InstallDir, BanBoCai, new WindowsCapNhatOps());
 
     private sealed class WindowsCapNhatOps : ICapNhatOps
     {
-        private readonly bool _imLang;
-        public WindowsCapNhatOps(bool imLang) { _imLang = imLang; }
 
+        // KHÔNG giết khay: khay chạy ở mọi tài khoản đang đăng nhập (cả phiên Con khi Ba Mẹ cập nhật từ tài khoản quản trị).
+        // Tệp khay đang chạy được đổi tên rồi chép bản mới (ChepDe); khay bản mới chạy ở lần đăng nhập sau, pipe không đổi nên khay cũ vẫn dùng được.
         public void DungDichVuVaKhay()
         {
             Shell.PowerShell($"try {{ Stop-Service -Name {Paths.ServiceName} -Force -ErrorAction Stop }} catch {{}}", 60000);
             Giet(Paths.ServiceExeName, 10000);
-            if (!_imLang) Giet(Paths.TrayExeName, 5000);
             DonTepCu();
         }
+
+        public void TatTuKhoiDong()
+        {
+            Shell.Run("sc.exe", new[] { "failure", Paths.ServiceName, "reset=", "0", "actions=", "" }, 30000);
+            Shell.Run("sc.exe", new[] { "failureflag", Paths.ServiceName, "0" }, 30000);
+        }
+
+        public void BatTuKhoiDong() =>
+            Shell.PowerShell($"& sc.exe failure {Paths.ServiceName} reset= 86400 actions= restart/5000/restart/5000/restart/30000 | Out-Null; " +
+                             $"& sc.exe failureflag {Paths.ServiceName} 1 | Out-Null", 30000);
 
         public void ChepTepMoi(string thuMucCai)
         {
             if (!Goi.Co(Paths.ServiceExeName)) throw new FileNotFoundException("bộ cài thiếu " + Paths.ServiceExeName);
             Chep(Paths.ServiceExeName, thuMucCai);
             Chep(Paths.TrayExeName, thuMucCai);
+            // Exe vừa chép phải đúng bản của bộ cài này (không phải exe cũ nằm cạnh bộ cài) — lệch ⇒ ném để khôi phục bản cũ
+            var banSvc = CapNhat.DocBan(FileVersionInfo.GetVersionInfo(Path.Combine(thuMucCai, Paths.ServiceExeName)).ProductVersion);
+            if (banSvc == null || banSvc.ToString(3) != BanBoCai)
+                throw new InvalidOperationException($"dịch vụ vừa chép là bản {banSvc?.ToString(3) ?? "?"}, không phải {BanBoCai}");
             var self = Environment.ProcessPath;
             var setupDest = Path.Combine(thuMucCai, Paths.SetupExeName);
             if (!string.IsNullOrEmpty(self) && File.Exists(self) && !string.Equals(Path.GetFullPath(self), Path.GetFullPath(setupDest), StringComparison.OrdinalIgnoreCase))
@@ -71,10 +84,6 @@ internal static class CapNhatSetup
             var r = Shell.PowerShell($"Start-Service -Name {Paths.ServiceName}", 60000);
             if (!r.Ok) throw new InvalidOperationException("không chạy được dịch vụ: " + r.Error);
             Installer.SetTrayAndNotice();
-            var tray = Path.Combine(Paths.InstallDir, Paths.TrayExeName);
-            // explorer.exe mở khay bằng quyền thường của người đang đăng nhập (bộ cài đang chạy quyền quản trị).
-            if (!_imLang && File.Exists(tray))
-                try { Process.Start(new ProcessStartInfo("explorer.exe", "\"" + tray + "\"") { UseShellExecute = false })?.Dispose(); } catch { }
         }
 
         public bool DichVuDangChay()
@@ -198,7 +207,7 @@ internal sealed class CapNhatForm : Form
         _nut.Enabled = true;
         _tieuDe.Text = kq.Ok ? "Đã cập nhật lên bản " + CapNhat.Hien(_ph.BanMoi) : "Chưa cập nhật được";
         _tieuDe.ForeColor = kq.Ok ? SetupForm.Chinh : SetupForm.Loi;
-        _loi.Text = kq.Ok ? "AiiGrow đang chạy bản mới. Ghép máy và luật của Ba Mẹ giữ nguyên." : kq.Log;
+        _loi.Text = kq.Ok ? "AiiGrow đang chạy bản mới. Ghép máy và luật của Ba Mẹ giữ nguyên. Biểu tượng khay bản mới hiện ở lần đăng nhập sau." : kq.Log;
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Đóng", true, Close));
     }

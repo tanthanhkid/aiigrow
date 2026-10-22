@@ -9,6 +9,8 @@ internal sealed class InstallOptions
     public string Server { get; set; } = "";
     public string Code { get; set; } = "";
     public LocalAccount Child { get; set; } = new("", "", false);
+    /// <summary>Kết quả ghép lần trước: «Thử lại» sau lỗi cài dịch vụ dùng lại, không ghép lần hai (mã đã dùng ⇒ 409, thêm máy ma).</summary>
+    public PairResult? Pair { get; set; }
 }
 
 internal static class Installer
@@ -42,7 +44,7 @@ internal static class Installer
     /// <summary>Luồng cài có chọn tài khoản (giao diện 3 bước) — ghép bằng mã 6 số.</summary>
     public static async Task RunAsync(InstallOptions o, Action<int, string?> step)
     {
-        var pair = await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
+        var pair = o.Pair ??= await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
         var store = new ConfigStore();
         // Cài lại đè lên máy đã hạ quyền: GỘP DaHaQuyen cũ (Con lúc này đã là tài khoản thường ⇒ không ghi lại được).
         CaiLai.GhiGiuQuyen(store, new AgentConfig
@@ -92,16 +94,12 @@ internal static class Installer
         var dest = Paths.InstallDir;
         Directory.CreateDirectory(dest);
         Shell.PowerShell($"try {{ Stop-Service -Name {Paths.ServiceName} -Force -ErrorAction Stop }} catch {{}}", 60000);
-        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)))
-        {
-            try { p.Kill(); p.WaitForExit(5000); } catch { }
-            p.Dispose();
-        }
+        // Không giết khay (chạy ở mọi tài khoản đang đăng nhập): tệp khay đang chạy được đổi tên rồi chép bản mới (ChepGoi).
         // Lần gỡ trước còn hẹn tác vụ dọn (chạy lúc khởi động) ⇒ huỷ, kẻo nó xoá bản vừa cài.
         Shell.PowerShell($"try {{ Unregister-ScheduledTask -TaskName {Shell.PsQuote(SystemCleanup.TenTacVuDon)} -Confirm:$false -ErrorAction Stop }} catch {{}}", 60000);
         // Dịch vụ + khay: tệp cạnh bộ cài (gói zip cũ) hoặc giải từ chính AiiGrow-Setup.exe (bộ cài một file).
-        Goi.ChepRa(Paths.ServiceExeName, Path.Combine(dest, Paths.ServiceExeName));
-        Goi.ChepRa(Paths.TrayExeName, Path.Combine(dest, Paths.TrayExeName));
+        ChepGoi(Paths.ServiceExeName, Path.Combine(dest, Paths.ServiceExeName));
+        ChepGoi(Paths.TrayExeName, Path.Combine(dest, Paths.TrayExeName));
         // Chép chính bộ cài vào thư mục cài (tên cố định) ⇒ Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt gọi được «--uninstall».
         var self = Environment.ProcessPath;
         var setupDest = Path.Combine(dest, Paths.SetupExeName);
@@ -130,6 +128,9 @@ internal static class Installer
         // Mục «AiiGrow» trong Cài đặt › Ứng dụng: Ba Mẹ gỡ tại máy, Windows hỏi mật khẩu quản trị (Setup.exe xin quyền admin qua manifest).
         if (File.Exists(setupDest)) AppsEntry.Register(dest, typeof(Installer).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
     }
+
+    private static void ChepGoi(string tep, string dich) =>
+        CapNhatMay.ChepDe(tep, dich, (t, d) => Goi.ChepRa(t, d));
 
     /// <summary>Gỡ hoàn toàn tại máy: báo máy chủ «đã gỡ tại máy» (POST /api/device/da-go) TRƯỚC khi xoá token, rồi gỡ sạch
     /// (cùng lõi <see cref="SystemCleanup"/> với gỡ từ xa). Chạy lại được nhiều lần.</summary>

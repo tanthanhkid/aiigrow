@@ -51,10 +51,10 @@ public sealed class UpdateWorker : BackgroundService
         var lyDo = TuCapNhat.KiemManifest(m, server, hienTai);
         if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return; }
         if (DaThuGanDay(m!.Version)) return;
-        GhiDaThu(m.Version);
 
         Directory.CreateDirectory(ThuMuc);
         var tep = Path.Combine(ThuMuc, "AiiGrow-Setup-" + CapNhat.DocBan(m.Version)!.ToString(3) + ".exe");
+        DonBoCaiCu(tep);
         var tam = tep + ".tai";
         _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
         await using (var vao = await http.GetStreamAsync(m.Url, ct))
@@ -68,6 +68,8 @@ public sealed class UpdateWorker : BackgroundService
             return;
         }
         File.Move(tam, tep, true);
+        // ghi «đã thử» SAU khi tải đúng: tải hỏng/đứt giữa chừng thì lượt 6 giờ sau tải lại, không phải chờ 24 giờ
+        GhiDaThu(m.Version);
         ChayBoCai(tep);
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
     }
@@ -82,6 +84,17 @@ public sealed class UpdateWorker : BackgroundService
             $"Register-ScheduledTask -TaskName {tn} -Action $a -Settings $s -User 'SYSTEM' -RunLevel Highest -Force | Out-Null; " +
             $"Start-ScheduledTask -TaskName {tn}", 60000);
         if (!r.Ok) throw new InvalidOperationException("không giao được bộ cài: " + r.Error);
+    }
+
+    /// <summary>Xoá bộ cài các bản khác (~182 MB mỗi tệp) và tệp tải dở — chỉ giữ bản sắp chạy.</summary>
+    private static void DonBoCaiCu(string giu)
+    {
+        try
+        {
+            foreach (var f in Directory.GetFiles(ThuMuc, "AiiGrow-Setup-*"))
+                if (!string.Equals(f, giu, StringComparison.OrdinalIgnoreCase)) try { File.Delete(f); } catch { }
+        }
+        catch { }
     }
 
     private static string TepDaThu => Path.Combine(ThuMuc, "da-thu.txt");
