@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <Company>AiiLab</Company>
     <Product>AiiGrow</Product>
     <InvariantGlobalization>true</InvariantGlobalization>
