@@ -46,6 +46,14 @@ public static class SessionHelper
         catch { return -1; }
     }
 
+    /// <summary>Tài khoản đang đăng nhập ở phiên trước màn hình ("" = màn đăng nhập/khoá chưa ai, hoặc không đọc được).</summary>
+    public static string ConsoleUser()
+    {
+        var s = ActiveConsoleSession();
+        if (s <= 0) return "";
+        try { return QueryString(s, WTSUserName); } catch { return ""; }
+    }
+
     /// <summary>Phiên của tài khoản <paramref name="userName"/> (ưu tiên phiên đang Active), null nếu chưa đăng nhập.</summary>
     public static ChildSession? Find(string userName)
     {

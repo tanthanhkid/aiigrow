@@ -50,12 +50,13 @@ internal sealed class RequestForm : Form
         flow.Controls.Add(_note);
         flow.Controls.Add(new Label { Height = 6, Width = 10 });
         flow.Controls.Add(_send);
-        if (canExchange) flow.Controls.Add(_exchange);
+        // «Đổi điểm» = mở phiên chơi bằng điểm cho đúng app đang bị chặn (phien/xet + phien/mo) — không có app thì không hiện.
+        if (canExchange && !string.IsNullOrEmpty(appId)) flow.Controls.Add(_exchange);
         flow.Controls.Add(_msg);
         Controls.Add(flow);
 
         _send.Click += async (_, _) => await SendAsync("them_gio");
-        _exchange.Click += async (_, _) => await SendAsync("doi_diem");
+        _exchange.Click += async (_, _) => await ExchangeAsync();
         _poll.Tick += async (_, _) => await PollAsync();
         FormClosed += (_, _) => _poll.Dispose();
         foreach (var r in _radios) r.CheckedChanged += (_, _) => Recolor();
@@ -92,14 +93,10 @@ internal sealed class RequestForm : Form
             _send.Enabled = true; _exchange.Enabled = true;
             return;
         }
-        if (kind == "doi_diem")
+        if (TrayView.XinGio(res.Status) == TrayView.KetQuaXin.Duoc)
         {
-            // Chỉ "được / không", không có số dư.
-            _msg.Text = res.Status == "tu_duyet"
-                ? "Được rồi! Máy đã được thêm thời gian."
-                : "Chưa đổi được. Con xin bố mẹ nhé.";
-            _send.Enabled = true; _exchange.Enabled = res.Status != "tu_duyet";
-            if (res.Status == "tu_duyet") CloseLater();
+            _msg.Text = "Được rồi! Máy đã được thêm thời gian.";
+            CloseLater();
             return;
         }
         _pendingId = res.Id;
@@ -114,21 +111,41 @@ internal sealed class RequestForm : Form
         var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = _pendingId });
         _busy = false;
         if (!res.Ok) return;
-        switch (res.Status)
+        switch (TrayView.XinGio(res.Status))
         {
-            case "duoc":
-            case "tu_duyet":
+            case TrayView.KetQuaXin.Duoc:
                 _poll.Stop();
                 _msg.Text = "Bố mẹ đã cho thêm giờ. Học tốt nhé!";
                 CloseLater();
                 break;
-            case "tu_choi":
+            case TrayView.KetQuaXin.TuChoi:
+            case TrayView.KetQuaXin.HetHan:
                 _poll.Stop();
-                _msg.Text = "Bố mẹ chưa đồng ý lần này.";
+                _msg.Text = TrayView.XinGio(res.Status) == TrayView.KetQuaXin.TuChoi
+                    ? "Bố mẹ chưa đồng ý lần này."
+                    : "Lời xin đã hết hạn hoặc bị huỷ. Con gửi lại nhé.";
                 _pendingId = null;
                 _send.Enabled = true; _exchange.Enabled = true;
                 break;
         }
+    }
+
+    private async Task ExchangeAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _send.Enabled = false; _exchange.Enabled = false;
+        _msg.Text = "Đang đổi điểm…";
+        var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Play, AppId = _appId, AppName = _appName });
+        _busy = false;
+        if (res.Ok && res.Status != "tu_choi")
+        {
+            _msg.Text = "Được rồi! Con dùng điểm để chơi nhé.";
+            CloseLater();
+            return;
+        }
+        _msg.Text = (res.Ok ? res.Message : res.Error) ?? "Chưa đổi được. Con xin bố mẹ nhé.";
+        _send.Enabled = true; _exchange.Enabled = true;
     }
 
     private void CloseLater()

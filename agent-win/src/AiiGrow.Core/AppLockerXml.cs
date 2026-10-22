@@ -145,6 +145,16 @@ public static class AppLockerXml
         return doc.ToString();
     }
 
+    public enum BuocGo { ThuLai, Xong, CanGhi }
+
+    /// <summary>Số lần đọc chính sách lỗi liên tiếp thì thôi coi «đã gỡ» (Windows Home không có AppLocker: đọc lỗi mãi, cũng không có luật nào).</summary>
+    public const int DocLoiToiDa = 5;
+
+    /// <summary>Gỡ luật AiiGrow: đọc chính sách LỖI ⇒ thử lại (không coi là đã gỡ — luật cũ có thể còn); đọc được mà không có luật AiiGrow ⇒ xong; có ⇒ ghi bản đã bỏ.</summary>
+    public static BuocGo XetGo(bool docLoi, string? xml, int soLanDocLoi) =>
+        docLoi ? (soLanDocLoi >= DocLoiToiDa ? BuocGo.Xong : BuocGo.ThuLai)
+               : ContainsOurs(xml) ? BuocGo.CanGhi : BuocGo.Xong;
+
     public static bool ContainsOurs(string? xml)
     {
         if (string.IsNullOrWhiteSpace(xml)) return false;

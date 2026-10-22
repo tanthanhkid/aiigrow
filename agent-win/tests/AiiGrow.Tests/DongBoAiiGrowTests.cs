@@ -59,7 +59,7 @@ public class CheDoSwitchTests
         var tep = Path.Combine(Path.GetTempPath(), "aiig-chedo-" + Guid.NewGuid().ToString("N") + ".json");
         try
         {
-            var store = new ConfigStore(tep);
+            var store = new ConfigStore(tep, b => b, b => b);
             Assert.False(CheDoSwitch.Doi(store, CheDoAgent.Chan).Ok);            // chưa cài
             store.Save(new AgentConfig { Server = "https://aiigrow.aiilab.vn", DeviceId = "d1", Token = "t" });
             Assert.Equal(CheDoAgent.GiamSat, store.Load()!.CheDo);               // mặc định giám sát

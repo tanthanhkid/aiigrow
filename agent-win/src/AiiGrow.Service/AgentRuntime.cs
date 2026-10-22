@@ -38,7 +38,8 @@ public sealed class AgentRuntime
             Config = Store.Load();
             _cfgStamp = Store.LastWriteUtc;
             // Máy mồ côi (token bị từ chối quá MoCoi.Nguong) ⇒ KHÔNG nạp lại Policy cuối (không áp luật cũ sau khởi động lại).
-            if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(Config?.LastPolicyJson, out var p) && p != null)
+            // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
+            if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(ApiClient.LayWindows(Config?.LastPolicyJson ?? ""), out var p) && p != null)
             {
                 _policy = p;
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
@@ -366,6 +367,7 @@ public sealed class AgentRuntime
             var mode = _policy?.Mode ?? Modes.TuDo;
             var tray = (now - _fgAt).TotalSeconds < 20;
             var moCoi = MoCoi.La(Config, now);
+            var phienKhac = QuyenPhien.LaTaiKhoanKhac(SessionHelper.ConsoleUser(), Config?.ChildUser, childActive);
             return new AgentStatus
             {
                 Mode = mode,
@@ -375,7 +377,8 @@ public sealed class AgentRuntime
                 Offline = _offline,
                 CheDo = _cheDo,
                 MoCoi = moCoi,
-                Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive),
+                PhienKhac = phienKhac,
+                Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac),
             };
         }
     }

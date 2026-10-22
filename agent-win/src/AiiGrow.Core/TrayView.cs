@@ -3,6 +3,17 @@ namespace AiiGrow.Core;
 /// <summary>Chữ hiển thị trên tray (tách khỏi WinForms để test được).</summary>
 public static class TrayView
 {
+    public enum KetQuaXin { Cho, Duoc, TuChoi, HetHan }
+
+    /// <summary>Trạng thái lời xin thêm giờ máy chủ trả (từ mới «duoc» và từ gốc «dong_y» đều là được).</summary>
+    public static KetQuaXin XinGio(string? status) => status switch
+    {
+        "duoc" or "dong_y" or "da_thuc_thi" or "tu_duyet" => KetQuaXin.Duoc,
+        "tu_choi" => KetQuaXin.TuChoi,
+        "het_han" or "huy" => KetQuaXin.HetHan,
+        _ => KetQuaXin.Cho,
+    };
+
     public static string ModeLabel(string? mode) => mode switch
     {
         Modes.Hoc => "Chỉ app học",

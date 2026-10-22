@@ -8,6 +8,7 @@ public sealed class AppLockerController
     private readonly ILogger<AppLockerController> _log;
     private string? _lastKey;
     private DateTimeOffset _nextTry = DateTimeOffset.MinValue;
+    private int _docLoi;      // số lần đọc chính sách lỗi liên tiếp khi gỡ
 
     public AppLockerController(ILogger<AppLockerController> log) { _log = log; }
 
@@ -28,12 +29,16 @@ public sealed class AppLockerController
         return Applied;
     }
 
-    private string? ReadExisting()
+    private string? ReadExisting() => ReadExisting(out _);
+
+    /// <param name="loi">true = KHÔNG đọc được (PowerShell lỗi/hết giờ, không đọc được tệp) — khác với «đọc được, chưa có chính sách».</param>
+    private string? ReadExisting(out bool loi)
     {
+        loi = false;
         var tmp = Path.Combine(Paths.DataDir, "applocker-current.xml");
         var r = Shell.PowerShell("Get-AppLockerPolicy -Local -Xml | Out-File -Encoding utf8 -FilePath " + Shell.PsQuote(tmp));
-        if (!r.Ok) { _log.LogWarning("Đọc AppLocker hiện tại lỗi: {e}", r.Error); return null; }
-        try { return File.ReadAllText(tmp); } catch { return null; }
+        if (!r.Ok) { _log.LogWarning("Đọc AppLocker hiện tại lỗi: {e}", r.Error); loi = true; return null; }
+        try { return File.ReadAllText(tmp); } catch { loi = true; return null; }
     }
 
     private bool Apply(string sid, List<string> apps)
@@ -61,12 +66,18 @@ public sealed class AppLockerController
     {
         try
         {
-            var existing = ReadExisting();
-            if (existing == null) return true; // chưa có chính sách thì không có gì để gỡ
-            if (!AppLockerXml.ContainsOurs(existing)) return true;
             Directory.CreateDirectory(Paths.DataDir);
+            var existing = ReadExisting(out var loi);
+            _docLoi = loi ? _docLoi + 1 : 0;
+            switch (AppLockerXml.XetGo(loi, existing, _docLoi))
+            {
+                case AppLockerXml.BuocGo.ThuLai: return false;     // Reconcile hẹn thử lại sau 60 giây
+                case AppLockerXml.BuocGo.Xong:
+                    if (loi) _log.LogWarning("Đọc AppLocker lỗi {n} lần liền — coi như máy không có AppLocker, thôi gỡ", _docLoi);
+                    return true;
+            }
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
-            File.WriteAllText(file, AppLockerXml.RemoveOurs(existing), new System.Text.UTF8Encoding(false));
+            File.WriteAllText(file, AppLockerXml.RemoveOurs(existing!), new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Gỡ AppLocker lỗi: {e}", set.Error); return false; }
             _log.LogInformation("Đã gỡ luật AppLocker của AiiGrow");

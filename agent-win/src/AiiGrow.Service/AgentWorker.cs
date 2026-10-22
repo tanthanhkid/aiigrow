@@ -155,14 +155,20 @@ public sealed class AgentWorker : BackgroundService
 
     /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.
     /// Quyết định "đóng cái nào" nằm ở lớp thuần <see cref="ProcessEnforcer"/>; worker chỉ cung cấp cổng hệ thống.</summary>
+    private string _giamSatDaBao = "";
+
     private void EnforceAllowList(int sessionId, Policy p, bool apThat)
     {
         // Giám sát (apThat=false): dryRun — liệt kê app SẼ bị đóng nhưng KHÔNG đóng thật.
         var closed = ProcessEnforcer.Enforce(_procs, sessionId, p.AllowedApps, dryRun: !apThat);
+        // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
+        var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
+        var ghiGiamSat = tap != _giamSatDaBao;
+        if (!apThat) _giamSatDaBao = tap;
         foreach (var exe in closed)
         {
             if (apThat) _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
-            else _log.LogInformation("GIÁM SÁT: sẽ đóng app ngoài danh sách: {exe} — chưa đóng thật (CheDo=giam-sat)", exe);
+            else if (ghiGiamSat) _log.LogInformation("GIÁM SÁT: sẽ đóng app ngoài danh sách: {exe} — chưa đóng thật (CheDo=giam-sat)", exe);
             var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
             if (apThat) _rt.RecordBlocked(exe, bare);   // giám sát: app không bị đóng ⇒ không hiện màn «app bị chặn»
         }

@@ -22,6 +22,22 @@ public sealed class WebPolicy
     public string CheDo { get; set; } = Mo;
     public List<string> Chan { get; set; } = new();
     public List<string> Cho { get; set; } = new();
+    /// <summary>Mục trong <see cref="Cho"/> chỉ mở nhờ cửa sổ «mở» có hạn (máy chủ: windows.web.choKhiMo) và hạn đó (windows.grantEndsAt).</summary>
+    public List<string> ChoKhiMo { get; set; } = new();
+    public DateTimeOffset? MoDen { get; set; }
+
+    /// <summary>Hết hạn «mở» mà chưa đồng bộ lại được (mất mạng) ⇒ trang Giải trí chỉ mở nhờ cửa sổ đó bị chặn lại, như AppLocker tự thu theo GrantEndsAt.</summary>
+    public WebPolicy HetMo(DateTimeOffset now)
+    {
+        if (MoDen is { } den && now >= den && ChoKhiMo.Count > 0)
+        {
+            var bo = new HashSet<string>(ChoKhiMo, StringComparer.Ordinal);
+            Cho = Cho.Where(x => !bo.Contains(x)).ToList();
+            Chan = new SortedSet<string>(Chan.Concat(ChoKhiMo), StringComparer.Ordinal).ToList();
+            ChoKhiMo = new();
+        }
+        return this;
+    }
 
     private static readonly Regex TenMien = new(@"^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$", RegexOptions.Compiled);
 
@@ -51,15 +67,17 @@ public sealed class WebPolicy
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.ValueKind != JsonValueKind.Object) return null;
-            JsonElement web = default;
+            JsonElement web = default, khoi = root;
             bool thay = false;
-            if (root.TryGetProperty("windows", out var win) && win.ValueKind == JsonValueKind.Object && win.TryGetProperty("web", out var w1)) { web = w1; thay = true; }
+            if (root.TryGetProperty("windows", out var win) && win.ValueKind == JsonValueKind.Object && win.TryGetProperty("web", out var w1)) { web = w1; khoi = win; thay = true; }
             else if (root.TryGetProperty("web", out var w2)) { web = w2; thay = true; }
             if (!thay || web.ValueKind != JsonValueKind.Object) return null;
             var p = new WebPolicy();
             if (web.TryGetProperty("cheDo", out var c) && c.ValueKind == JsonValueKind.String && c.GetString() == ChiChoPhep) p.CheDo = ChiChoPhep;
             if (web.TryGetProperty("chan", out var ch)) p.Chan = SachDs(ch);
             if (web.TryGetProperty("cho", out var cho)) p.Cho = SachDs(cho);
+            if (web.TryGetProperty("choKhiMo", out var km)) p.ChoKhiMo = SachDs(km);
+            if (khoi.TryGetProperty("grantEndsAt", out var g) && g.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(g.GetString(), out var den)) p.MoDen = den;
             return p;
         }
         catch (JsonException) { return null; }
@@ -228,7 +246,7 @@ public static class WebGuard
         var moCoi = MoCoi.La(cfg, now);
         if (moCoi || !CheDoHieuLuc.LaChan(CheDoHieuLuc.Chon(null, cfg.CheDo, moCoi))) return null;
         if (cfg.MoTamOffline?.IsUnlocked(now) == true) return null;
-        return WebPolicy.Parse(cfg.LastPolicyJson);
+        return WebPolicy.Parse(cfg.LastPolicyJson)?.HetMo(now);
     }
 
     /// <summary>Gỡ chính sách web của AiiGrow khỏi registry (chạy lại bao nhiêu lần cũng được).</summary>
