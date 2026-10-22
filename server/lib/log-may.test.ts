@@ -80,7 +80,7 @@ test("lời xin từ máy được Ba Mẹ đồng ý ⇒ khay nhận «duoc» (
   const con = await g.taoCon(n.fam, { ten: "Phi" });
   const ghep = await g.ghepMay(await g.taoMaGhep(n.fam, null, "windows"), "windows", "PC chung");
   assert.equal(ghep.dungChung, true);
-  assert.equal(ghep.childName, null);
+  assert.equal("childName" in ghep, false, "không Con ⇒ không gửi childName null cho bộ cài cũ");
   await assert.rejects(g.ganConMay(n.fam, ghep.deviceId, "khong-co"), (e: { ma?: string }) => !!e.ma);
   await g.ganConMay(n.fam, ghep.deviceId, con);
   const may = (await g.mayTuToken(ghep.token))!;

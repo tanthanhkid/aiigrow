@@ -99,9 +99,10 @@ export async function ghepMay(code: string, platform: string, tenMay: string) {
       [id, m.child_id, m.family_id, platform, String(tenMay ?? "").trim().slice(0, 80) || TEN_NEN_TANG[platform], sha(token), !m.child_id]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
     await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenMay }, { con: m.child_id, may: id }, t);
-    // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu)
-    const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten ?? null : null;
-    return { deviceId: id, token, dungChung: !m.child_id, childName: ten };
+    // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
+    // (bộ cài 0.2.0/0.2.1 đọc vào string không-null — gửi null là rủi ro).
+    const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten : undefined;
+    return { deviceId: id, token, dungChung: !m.child_id, ...(ten ? { childName: ten } : {}) };
   });
 }
 
