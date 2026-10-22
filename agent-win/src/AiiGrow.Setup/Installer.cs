@@ -34,7 +34,7 @@ internal static class Installer
     {
         log("Đang ghép máy với máy chủ AiiGrow…");
         var res = await enroller.EnrollAsync(pkg, Environment.MachineName, ct);
-        new ConfigStore().Save(OneTouch.BuildConfig(pkg, res));
+        CaiLai.GhiGiuQuyen(new ConfigStore(), OneTouch.BuildConfig(pkg, res));   // cài lại: giữ DaHaQuyen cũ
         log("Đã ghép máy. Đang cài dịch vụ…");
         InstallFilesAndService();
         SetTrayAndNotice();
@@ -46,7 +46,8 @@ internal static class Installer
     {
         var pair = o.Paired ?? await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
         var store = new ConfigStore();
-        store.Save(new AgentConfig
+        // Cài lại đè lên máy đã hạ quyền: GỘP DaHaQuyen cũ (Con lúc này đã là tài khoản thường ⇒ không ghi lại được).
+        CaiLai.GhiGiuQuyen(store, new AgentConfig
         {
             Server = pair.Server ?? o.Server,
             DeviceId = pair.DeviceId,
@@ -63,7 +64,7 @@ internal static class Installer
         {
             Accounts.Demote(o.Child.Sid);
             // GHI LẠI tài khoản đã bị hạ + nhóm (Administrators) để TRẢ LẠI khi gỡ — không để Con mất quyền admin vĩnh viễn sau khi gỡ AiiGrow.
-            store.Update(c => c.DaHaQuyen.Add(new QuyenDaHa { Sid = o.Child.Sid, Nhom = "S-1-5-32-544" }));
+            store.UpdateIf(c => CaiLai.ThemDaHa(c, o.Child.Sid));
         }
         step(1, null);
 

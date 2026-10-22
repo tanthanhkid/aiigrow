@@ -115,7 +115,8 @@ public class MoCoiTests
     [Fact]
     public void MatLienLac14Ngay_MoiLoai_VeGiamSat_BoPolicy()
     {
-        var c = new AgentConfig { CheDo = CheDoAgent.Chan, LastPolicyJson = """{"mode":"khoa"}""", LastPolicyAt = T0, LienLacCuoi = T0 };
+        var c = new AgentConfig { CheDo = CheDoAgent.Chan, LastPolicyJson = """{"mode":"khoa"}""", LastPolicyAt = T0, LienLacCuoi = T0,
+            MatLienLacChayGiay = MoCoi.NguongLienLac.TotalSeconds };   // đồng hồ đơn điệu cũng đã đủ 14 ngày chạy
         Assert.False(MoCoi.La(c, T0.AddDays(MoCoi.NgayMatLienLac).AddHours(-1)));   // chưa đủ 14 ngày
         Assert.True(MoCoi.MatLienLacLau(c, T0.AddDays(MoCoi.NgayMatLienLac)));
         Assert.True(MoCoi.La(c, T0.AddDays(MoCoi.NgayMatLienLac)));
@@ -125,6 +126,58 @@ public class MoCoiTests
         // liên lạc lại ⇒ ghi mốc mới, hết mồ côi (chạy bình thường trở lại)
         Assert.True(MoCoi.GhiThanhCong(c, T0.AddDays(MoCoi.NgayMatLienLac + 1)));
         Assert.False(MoCoi.La(c, T0.AddDays(MoCoi.NgayMatLienLac + 1)));
+        Assert.Equal(0, c.MatLienLacChayGiay);   // cả hai đồng hồ về 0
+    }
+
+    // 🟠1 vòng 3: Con chỉnh giờ máy (BIOS/UEFI) tới +15 ngày rồi bật chế độ máy bay ⇒ KHÔNG được fail-open (đồng hồ đơn điệu chưa đủ).
+    [Fact]
+    public void ChiChinhDongHoToi_KhongFailOpen_CaHaiDongHoDu_ThiFailOpen()
+    {
+        var c = new AgentConfig { CheDo = CheDoAgent.Chan, LastPolicyJson = """{"mode":"khoa"}""", LastPolicyAt = T0, LienLacCuoi = T0 };
+        var gia = T0.AddDays(15);   // đồng hồ thật bị đẩy tới
+        // máy chạy thật 1 giờ (vòng 5 giây) ⇒ đồng hồ đơn điệu ~1 giờ
+        for (int i = 0; i < 720; i++) MoCoi.CongChay(c, 5);
+        Assert.False(MoCoi.MatLienLacLau(c, gia));
+        Assert.False(MoCoi.La(c, gia));
+        Assert.False(MoCoi.ApDung(c, gia));
+        Assert.Equal(CheDoAgent.Chan, c.CheDo);
+        Assert.NotNull(c.LastPolicyJson);
+        // một bước nhảy lớn giữa hai vòng (ngủ đông / treo) bị cắt ở trần
+        Assert.True(MoCoi.CongChay(c, 15 * 86400));
+        Assert.Equal(3600 + MoCoi.TranMoiVongGiay, c.MatLienLacChayGiay);
+        Assert.False(MoCoi.CongChay(c, -100));   // TickCount lùi / 0 ⇒ bỏ qua
+        Assert.False(MoCoi.CongChay(c, 0));
+        Assert.False(MoCoi.La(c, gia));
+
+        // chỉ đồng hồ đơn điệu đủ mà đồng hồ thật chưa ⇒ cũng chưa
+        var d = new AgentConfig { LienLacCuoi = T0, MatLienLacChayGiay = MoCoi.NguongLienLac.TotalSeconds };
+        Assert.False(MoCoi.La(d, T0.AddDays(13)));
+        // CẢ HAI ≥ 14 ngày ⇒ fail-open
+        Assert.True(MoCoi.La(d, T0.AddDays(14)));
+        // cộng dồn đủ 14 ngày chạy thật bằng các vòng có trần ⇒ fail-open
+        var e = new AgentConfig { CheDo = CheDoAgent.Chan, LastPolicyJson = "{}", LienLacCuoi = T0 };
+        var vong = (int)(MoCoi.NguongLienLac.TotalSeconds / MoCoi.TranMoiVongGiay);
+        for (int i = 0; i < vong; i++) MoCoi.CongChay(e, 3600);   // mỗi vòng chỉ được cộng tối đa trần
+        Assert.True(MoCoi.ApDung(e, T0.AddDays(14)));
+        Assert.Equal(CheDoAgent.GiamSat, e.CheDo);
+        // liên lạc lại ⇒ cả hai về 0
+        Assert.True(MoCoi.GhiThanhCong(e, T0.AddDays(14)));
+        Assert.Equal(0, e.MatLienLacChayGiay);
+        Assert.False(MoCoi.La(e, T0.AddDays(14)));
+    }
+
+    [Fact]
+    public void BoDemChay_LuuQuaKhoiDongLai()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "aii-chay-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var store = new ConfigStore(Path.Combine(dir, "config.json"), b => b, b => b);
+            store.Save(new AgentConfig { Server = "s", Token = "t", LienLacCuoi = T0 });
+            store.Update(c => c.MatLienLacChayGiay += 300);
+            Assert.Equal(300, new ConfigStore(store.FilePath, b => b, b => b).Load()!.MatLienLacChayGiay);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
     [Fact]
@@ -233,7 +286,9 @@ public class GoCaiDatTests
         Assert.False(kq.AppLockerGo);
         Assert.Contains("✗ Gỡ luật AppLocker", kq.Log);
         Assert.Contains(SystemCleanup.CanhBaoAppLocker.Split('\n')[0], kq.Log);
-        Assert.DoesNotContain("tra_quyen", g.Ds);
+        // 🟠2 vòng 3: trả quyền admin TRƯỚC cổng AppLocker ⇒ gỡ luật hỏng vẫn không để Con bị hạ quyền
+        Assert.True(kq.QuyenAdminTra);
+        Assert.True(g.Vi("dung_xoa_dich_vu") < g.Vi("tra_quyen") && g.Vi("tra_quyen") < g.Vi("applocker"));
         Assert.DoesNotContain("xoa_cau_hinh", g.Ds);
         Assert.DoesNotContain("xoa_thu_muc", g.Ds);
         Assert.Contains("hen_don", g.Ds);   // lưới đỡ: tác vụ tách rời cũng gỡ luật + dọn
@@ -296,6 +351,71 @@ public class GoCaiDatTests
         finally { try { Directory.Delete(dir, true); } catch { } }
     }
 
+    // 🟠2 vòng 3: gỡ tại máy, AppLocker HỎNG ⇒ vẫn đã trả quyền admin (đọc DaHaQuyen), cấu hình còn nguyên (để thử lại / tác vụ dọn).
+    [Fact]
+    public async Task GoTaiMay_AppLockerLoi_VanTraQuyenAdmin()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "aii-go-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            const string sid = "S-1-5-21-1-2-3-1001";
+            var store = Store(dir, new AgentConfig { Server = "https://x", Token = "tok",
+                DaHaQuyen = { new QuyenDaHa { Sid = sid, Nhom = "S-1-5-32-544" } } });
+            var g = new SoGhi();
+            var ops = new FakeOps(g) { Store = store, NemLoiO = "applocker" };
+            var kq = await LocalUninstall.RunAsync(store, (c, ct) => Task.CompletedTask, ops);
+            Assert.False(kq.AppLockerGo);
+            Assert.False(kq.Xong);
+            Assert.True(kq.QuyenAdminTra);
+            Assert.Equal(new[] { sid }, ops.QuyenTra);
+            Assert.True(g.Vi("tra_quyen") < g.Vi("applocker"));
+            Assert.NotNull(store.Load());                  // chưa xoá cấu hình
+            Assert.Contains("hen_don", g.Ds);
+            Assert.DoesNotContain("Setup.exe", kq.Log);     // không trỏ tới tệp mà tác vụ dọn sẽ xoá
+            Assert.Contains(SystemCleanup.LenhGoTayAppLocker, kq.Log);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    [Fact]
+    public void CanhBaoAppLocker_LenhPowerShellChiGoLuatAiiGrow()
+    {
+        Assert.DoesNotContain("Setup.exe", SystemCleanup.CanhBaoAppLocker);
+        Assert.Contains("quyền quản trị", SystemCleanup.CanhBaoAppLocker);
+        var l = SystemCleanup.LenhGoTayAppLocker;
+        Assert.Contains("Get-AppLockerPolicy -Local -Xml -ErrorAction Stop", l);
+        Assert.Contains("'AiiGrow: *'", l);
+        Assert.Contains("Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop", l);
+        Assert.DoesNotContain("-Merge", l);
+    }
+
+    // 🟡 vòng 3: cài lại đè lên máy đã hạ quyền ⇒ GỘP DaHaQuyen, không ghi đè mất.
+    [Fact]
+    public void CaiLai_GopDaHaQuyen_KhongGhiDe()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "aii-cailai-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            const string sid = "S-1-5-21-1-2-3-1001";
+            var store = Store(dir, new AgentConfig { Server = "https://x", Token = "cu", DaHaQuyen = { new QuyenDaHa { Sid = sid } } });
+            CaiLai.GhiGiuQuyen(store, new AgentConfig { Server = "https://x", Token = "moi" });   // Con lúc này IsAdmin=false ⇒ bộ cài không thêm gì
+            var c = store.Load()!;
+            Assert.Equal("moi", c.Token);
+            Assert.Single(c.DaHaQuyen);
+            Assert.Equal(sid, c.DaHaQuyen[0].Sid);
+            // cài lại lần nữa + hạ thêm đúng tài khoản đó ⇒ không trùng; tài khoản khác ⇒ thêm
+            CaiLai.GhiGiuQuyen(store, new AgentConfig { Server = "https://x", Token = "moi2", DaHaQuyen = { new QuyenDaHa { Sid = sid } } });
+            Assert.False(CaiLai.ThemDaHa(store.Load()!, sid));
+            store.UpdateIf(x => CaiLai.ThemDaHa(x, "S-1-5-21-1-2-3-1002"));
+            Assert.Equal(new[] { sid, "S-1-5-21-1-2-3-1002" }, store.Load()!.DaHaQuyen.Select(q => q.Sid));
+            // máy mới (chưa có cấu hình) ⇒ chỉ có danh sách mới
+            var moi = Store(dir + "-moi", null);
+            CaiLai.GhiGiuQuyen(moi, new AgentConfig { Server = "https://x", Token = "t" });
+            Assert.Empty(moi.Load()!.DaHaQuyen);
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } try { Directory.Delete(dir + "-moi", true); } catch { } }
+    }
+
     [Fact]
     public async Task GoTaiMay_KhongBaoDuoc_VanGoSach()
     {
@@ -336,5 +456,32 @@ public class GoCaiDatTests
         Assert.Contains("Set-AppLockerPolicy", k);
         Assert.Contains("'AiiGrow: '", k);
         Assert.Contains("if($luatSach -and $tepSach){ Unregister-ScheduledTask -TaskName 'AiiGrow-Dontay'", k);
+        // 🟡 vòng 3: lỗi Get-AppLockerPolicy (kể cả lỗi không dừng) / chính sách $null ⇒ CHƯA sạch (không tự huỷ nhầm)
+        Assert.Contains("Get-AppLockerPolicy -Local -Xml -ErrorAction Stop", k);
+        Assert.Contains("Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop", k);
+        Assert.Contains("if ($null -eq $p -or", k);
+        Assert.Contains("if ($null -eq $c -or", k);
+        Assert.Contains("# không có tài khoản nào bị hạ quyền", k);
+    }
+
+    // 🟠2 vòng 3: tác vụ dọn mang SID để TRẢ QUYỀN làm lưới đỡ (trước khi xoá thư mục dữ liệu chứa DaHaQuyen); SID lạ không nhúng.
+    [Fact]
+    public void KichBanDon_NhungSidTraQuyenAdmin()
+    {
+        var k = SystemCleanup.KichBanDonTachRoi("AiiGrowService", @"C:\P", @"C:\D", AppsEntry.Key, new[]
+        {
+            new QuyenDaHa { Sid = "S-1-5-21-1-2-3-1001", Nhom = "S-1-5-32-544" },
+            new QuyenDaHa { Sid = "S-1-5-21-1-2-3-1001", Nhom = "S-1-5-32-544" },   // trùng ⇒ một lần
+            new QuyenDaHa { Sid = "x'; Remove-Item C:\\ -Recurse; '", Nhom = "S-1-5-32-544" },   // không phải SID ⇒ bỏ
+        });
+        const string dong = "try { Add-LocalGroupMember -SID 'S-1-5-32-544' -Member 'S-1-5-21-1-2-3-1001' -ErrorAction Stop } catch {}";
+        Assert.Contains(dong, k);
+        Assert.Equal(k.IndexOf(dong), k.LastIndexOf(dong));   // trùng ⇒ một lần
+        var k2 = SystemCleanup.KichBanDonTachRoi("s", @"C:\P", @"C:\D", AppsEntry.Key, new[]
+            { new QuyenDaHa { Sid = "S-1-5-21-1-2-3-1001" }, new QuyenDaHa { Sid = "S-1-5-21-1-2-3-1002" } });
+        Assert.Contains("-Member 'S-1-5-21-1-2-3-1002'", k2);
+        Assert.Contains("-Member 'S-1-5-21-1-2-3-1001'", k2);
+        Assert.DoesNotContain("Remove-Item C:", k);
+        Assert.True(k.IndexOf("Add-LocalGroupMember") < k.IndexOf("Remove-Item -LiteralPath 'C:\\D'"), "trả quyền trước khi xoá dữ liệu");
     }
 }

@@ -32,6 +32,8 @@ public sealed class AgentWorker : BackgroundService
                 var elapsed = Math.Min((now - last).TotalSeconds, 15);
                 last = now;
                 _rt.ReloadIfChanged();
+                // Đồng hồ ĐƠN ĐIỆU cho fail-open 14 ngày (không đổi khi Con chỉnh giờ máy).
+                _rt.GhiNhipChay(Environment.TickCount64);
                 var cfg = _rt.Config;
                 // Đang gỡ từ xa (HeartbeatWorker): đứng yên, không áp lại luật nào trong lúc dọn.
                 if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }

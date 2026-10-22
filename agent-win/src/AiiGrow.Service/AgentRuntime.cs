@@ -85,6 +85,33 @@ public sealed class AgentRuntime
         }
     }
 
+    private long? _tickTruoc;
+    private double _chayChoGhi;
+
+    /// <summary>Gọi MỖI vòng thực thi với <see cref="Environment.TickCount64"/>: cộng thời gian chạy (đồng hồ đơn điệu, trần
+    /// <see cref="MoCoi.TranMoiVongGiay"/>/vòng) vào bộ đếm mất liên lạc — fail-open 14 ngày cần cả bộ đếm này, không chỉ đồng hồ thật.
+    /// Giữ trong bộ nhớ, ghi đĩa ~5 phút/lần (mất tối đa vài phút khi tắt máy đột ngột ⇒ chỉ làm fail-open muộn hơn, không sớm hơn).</summary>
+    public void GhiNhipChay(long tickMs)
+    {
+        lock (_gate)
+        {
+            var truoc = _tickTruoc;
+            _tickTruoc = tickMs;
+            if (truoc == null || Config == null) return;
+            double giay = (tickMs - truoc.Value) / 1000.0;
+            if (!(giay > 0)) return;
+            giay = Math.Min(giay, MoCoi.TranMoiVongGiay);
+            MoCoi.CongChay(Config, giay);
+            _chayChoGhi += giay;
+            if (_chayChoGhi < 300) return;
+            var cho = _chayChoGhi;
+            _chayChoGhi = 0;
+            AgentConfig? moi = null;
+            try { moi = Store.Update(c => c.MatLienLacChayGiay += cho); } catch { }
+            if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+        }
+    }
+
     /// <summary>Kiểm mồ côi (kể cả khi chỉ HeartbeatWorker ghi mốc). → true nếu đang mồ côi.</summary>
     public bool KiemMoCoi(DateTimeOffset now)
     {
@@ -120,6 +147,7 @@ public sealed class AgentRuntime
             _usedSeconds = 0;
             _offline = false;
             TokenInvalid = false;
+            _chayChoGhi = 0;   // liên lạc được ⇒ bộ đếm mất liên lạc về 0 (GhiThanhCong)
             if (Config != null)
             {
                 var at = _policyAt;

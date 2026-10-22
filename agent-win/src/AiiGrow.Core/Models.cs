@@ -189,6 +189,9 @@ public sealed class AgentConfig
     /// <summary>AiiGrow (thêm): lần CUỐI đồng bộ thành công với máy chủ (ghi mốc ~1 giờ/lần). Không liên lạc được quá
     /// <see cref="MoCoi.NguongLienLac"/> (14 ngày, mọi loại lỗi) ⇒ fail-open dài hạn: về giám sát, gỡ luật. Đặt lúc cài, cập nhật mỗi lần sync được.</summary>
     public DateTimeOffset? LienLacCuoi { get; set; }
+    /// <summary>AiiGrow (thêm): thời gian dịch vụ CHẠY kể từ lần liên lạc cuối, cộng dồn theo đồng hồ đơn điệu (Environment.TickCount64, có trần mỗi vòng).
+    /// Fail-open 14 ngày cần cả mốc này lẫn <see cref="LienLacCuoi"/> — chỉnh giờ máy tới trước không mở được chặn. Về 0 mỗi lần đồng bộ được.</summary>
+    public double MatLienLacChayGiay { get; set; }
     /// <summary>AiiGrow (thêm): các tài khoản Windows đã bị HẠ quyền lúc cài (để TRẢ LẠI khi gỡ — không để «dính» mất quyền admin).</summary>
     public List<QuyenDaHa> DaHaQuyen { get; set; } = new();
 

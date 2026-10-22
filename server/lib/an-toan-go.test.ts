@@ -12,6 +12,22 @@ const { xuLyMay } = await import("./api-may.ts");
 const { xuLyM } = await import("./api-m.ts");
 const { q } = await import("./db.ts");
 const { taoNha, taoBaMe } = await import("./test-fixtures/nha.ts");
+const { LENH_GO_TAY_APPLOCKER } = await import("./may-con.ts");
+const { readFileSync } = await import("node:fs");
+
+/** Đọc hằng LenhGoTayAppLocker trong agent-win (AnToan.cs): nối các dòng chuỗi "…" + … ; bỏ thoát \" và \\. */
+function lenhGoTayTrongAgent(): string {
+  const cs = readFileSync(new URL("../../agent-win/src/AiiGrow.Core/AnToan.cs", import.meta.url), "utf8").split("\n");
+  const i = cs.findIndex((d) => d.includes("const string LenhGoTayAppLocker"));
+  let kq = "";
+  for (let j = i + 1; j < cs.length; j++) {
+    const m = /^\s*"(.*)"\s*([+;])\s*$/.exec(cs[j]);
+    if (!m) break;
+    kq += m[1].replace(/\\(["\\])/g, "$1");
+    if (m[2] === ";") break;
+  }
+  return kq;
+}
 
 type Kq = { status: number; body: any };
 async function goi(f: typeof xuLyMay, goc: string, duong: string, o: { tok?: string; body?: unknown } = {}): Promise<Kq> {
@@ -193,6 +209,11 @@ test("gỡ từ xa gặp lỗi: agent báo sự kiện go_loi_applocker / quyen_
   const al = await q<{ loai: string; muc: string }>(
     `select loai, muc from alerts where family_id = $1 and loai in ('may_go_loi_applocker','may_quyen_admin_loi') order by loai`, [fam]);
   assert.deepEqual(al, [{ loai: "may_go_loi_applocker", muc: "chu_y" }, { loai: "may_quyen_admin_loi", muc: "chu_y" }]);
+  // cảnh báo AppLocker kèm cách gỡ TAY (PowerShell quyền quản trị) — đúng lệnh agent in ra (SystemCleanup.LenhGoTayAppLocker)
+  const [nd] = await q<{ noi_dung: string }>(`select noi_dung from alerts where family_id = $1 and loai = 'may_go_loi_applocker'`, [fam]);
+  assert.match(nd.noi_dung, /PowerShell bằng quyền quản trị/);
+  assert.ok(nd.noi_dung.includes(LENH_GO_TAY_APPLOCKER));
+  assert.equal(LENH_GO_TAY_APPLOCKER, lenhGoTayTrongAgent(), "lệnh gỡ tay ở máy chủ phải giống hệt agent-win");
   // báo lỗi gỡ KHÔNG xoá máy — máy còn trong gia đình để lần sau thử lại
   assert.equal((await q(`select 1 from devices where id = $1`, [may.deviceId])).length, 1);
   // gửi lại cùng ma ⇒ không ghi trùng

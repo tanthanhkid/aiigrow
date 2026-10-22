@@ -207,6 +207,13 @@ export async function taoPhienWeb(may: May, con: string) {
 
 // ---------------------------------------------------------------- sự kiện từ agent (gửi ngay hoặc gửi bù khi có mạng lại)
 // Mỗi sự kiện có `ma` do agent sinh ⇒ gửi lại (hàng đợi offline) không ghi trùng. Không sự kiện nào đổi điểm / quyền.
+/** Lệnh PowerShell gỡ TAY chỉ các luật AppLocker của AiiGrow (Name «AiiGrow: …») — GIỐNG HỆT
+ *  agent-win SystemCleanup.LenhGoTayAppLocker (AnToan.cs). Không cần tệp nào của AiiGrow còn trên máy. */
+export const LENH_GO_TAY_APPLOCKER =
+  "$p=[xml](Get-AppLockerPolicy -Local -Xml -ErrorAction Stop); " +
+  "@($p.AppLockerPolicy.RuleCollection.ChildNodes | ?{ $_.Name -like 'AiiGrow: *' }) | %{ [void]$_.ParentNode.RemoveChild($_) }; " +
+  "$f=\"$env:TEMP\\aiigrow-applocker.xml\"; $p.Save($f); Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop";
+
 export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" | null; cau: (ten: string) => string }> = {
   lech_gio: { muc: "chu_y", cau: (t) => `Có dấu hiệu đổi giờ hệ thống trên ${t}` },
   thu_go: { muc: "nghiem_trong", cau: (t) => `Có người thử gỡ AiiGrow trên ${t}` },
@@ -224,7 +231,12 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   // Có mạng lại ⇒ agent kết thúc lượt mở offline (mã chỉ dành cho lúc mất mạng); chỉ ghi nhật ký, không báo.
   het_ma_offline: { muc: null, cau: (t) => `${t} có mạng lại — kết thúc lượt mở bằng mã offline` },
   // GỠ TỪ XA gặp trục trặc (agent báo trước khi máy rời gia đình) — Ba Mẹ cần thấy để biết chưa gỡ xong sạch:
-  go_loi_applocker: { muc: "chu_y", cau: (t) => `Chưa gỡ được luật chặn (AppLocker) khi gỡ AiiGrow trên ${t} — AiiGrow đang thử lại` },
+  go_loi_applocker: {
+    muc: "chu_y",
+    cau: (t) =>
+      `Chưa gỡ được luật chặn (AppLocker) khi gỡ AiiGrow trên ${t} — AiiGrow đang thử lại. ` +
+      `Gỡ tay: trên máy Con mở PowerShell bằng quyền quản trị (Run as administrator) và chạy: ${LENH_GO_TAY_APPLOCKER}`,
+  },
   quyen_admin_loi: { muc: "chu_y", cau: (t) => `Chưa trả lại được quyền quản trị cho tài khoản của Con khi gỡ AiiGrow trên ${t}` },
 };
 

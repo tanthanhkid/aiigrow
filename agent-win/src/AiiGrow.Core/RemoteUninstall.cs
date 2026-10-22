@@ -45,6 +45,11 @@ public sealed class WindowsCleanupOps : ICleanupOps
     private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string PolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
 
+    // Danh sách tài khoản đã hạ quyền, đọc MỘT lần từ cấu hình rồi giữ lại: XoaCauHinh có thể chạy trước HenDonTachRoi,
+    // mà tác vụ dọn cần SID để trả quyền làm lưới đỡ.
+    private List<QuyenDaHa>? _daHa;
+    private List<QuyenDaHa> DaHa() => _daHa ??= new ConfigStore().Load()?.DaHaQuyen?.ToList() ?? new();
+
     public void TatKhoiPhucDichVu()
     {
         Shell.Run("sc.exe", new[] { "failure", Paths.ServiceName, "reset=", "0", "actions=", "" }, 30000);
@@ -65,7 +70,7 @@ public sealed class WindowsCleanupOps : ICleanupOps
 
     public void HenDonTachRoi()
     {
-        var script = SystemCleanup.KichBanDonTachRoi(Paths.ServiceName, Paths.InstallDir, Paths.DataDir, AppsEntry.Key);
+        var script = SystemCleanup.KichBanDonTachRoi(Paths.ServiceName, Paths.InstallDir, Paths.DataDir, AppsEntry.Key, DaHa());
         var b64 = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
         var arg = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand " + b64;
         var tn = Shell.PsQuote(SystemCleanup.TenTacVuDon);
@@ -97,9 +102,8 @@ public sealed class WindowsCleanupOps : ICleanupOps
 
     public void TraQuyenQuanTri()
     {
-        var cfg = new ConfigStore().Load();
-        var ds = cfg?.DaHaQuyen;
-        if (ds == null || ds.Count == 0) return;   // không hạ ai (máy dùng chung) ⇒ không có gì để trả
+        var ds = DaHa();
+        if (ds.Count == 0) return;   // không hạ ai (máy dùng chung) ⇒ không có gì để trả
         var loi = new List<string>();
         foreach (var q in ds)
         {

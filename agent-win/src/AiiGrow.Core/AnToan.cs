@@ -61,16 +61,33 @@ public static class MoCoi
     /// <summary>Đồng bộ thành công ⇒ hết mồ côi (xoá mốc từ chối) và ghi mốc liên lạc (tối đa ~1 giờ/lần để đỡ ghi đĩa). → true nếu cấu hình đổi.</summary>
     public static bool GhiThanhCong(AgentConfig c, DateTimeOffset now)
     {
-        bool doi = c.TuChoiTu != null;
+        bool doi = c.TuChoiTu != null || c.MatLienLacChayGiay != 0;
         c.TuChoiTu = null;
+        c.MatLienLacChayGiay = 0;   // liên lạc được ⇒ đồng hồ đơn điệu đếm lại từ 0
         if (c.LienLacCuoi == null || c.LienLacCuoi > now || now - c.LienLacCuoi >= TimeSpan.FromHours(1)) { c.LienLacCuoi = now; doi = true; }
         return doi;
     }
 
     /// <summary>Token bị từ chối liên tục quá 6 giờ.</summary>
     public static bool TuChoiLau(AgentConfig? c, DateTimeOffset now) => c?.TuChoiTu is { } t && now >= t && now - t >= Nguong;
-    /// <summary>Không đồng bộ được lần nào quá 14 ngày (mọi loại lỗi).</summary>
-    public static bool MatLienLacLau(AgentConfig? c, DateTimeOffset now) => c?.LienLacCuoi is { } t && now >= t && now - t >= NguongLienLac;
+    /// <summary>Không đồng bộ được lần nào quá 14 ngày (mọi loại lỗi). Cần CẢ HAI đồng hồ: đồng hồ thật (<see cref="AgentConfig.LienLacCuoi"/>)
+    /// VÀ thời gian chạy cộng dồn theo đồng hồ đơn điệu (<see cref="AgentConfig.MatLienLacChayGiay"/>) đều ≥ 14 ngày —
+    /// chỉnh giờ máy (BIOS/UEFI) tới trước không đủ để mở chặn.</summary>
+    public static bool MatLienLacLau(AgentConfig? c, DateTimeOffset now) =>
+        c?.LienLacCuoi is { } t && now >= t && now - t >= NguongLienLac && c.MatLienLacChayGiay >= NguongLienLac.TotalSeconds;
+
+    /// <summary>Trần mỗi lần cộng (giây): vòng thực thi ~5 giây/lần (+ thời gian đồng bộ). Một bước nhảy lớn giữa hai vòng
+    /// (ngủ/ngủ đông, treo) bị cắt ở trần này ⇒ không thổi phồng được thời gian mất liên lạc.</summary>
+    public const double TranMoiVongGiay = 30;
+
+    /// <summary>Cộng thời gian chạy (đo bằng hiệu <see cref="Environment.TickCount64"/> giữa hai vòng, KHÔNG dùng đồng hồ thật) vào bộ đếm mất liên lạc.
+    /// Âm / 0 ⇒ bỏ qua; quá <see cref="TranMoiVongGiay"/> ⇒ cắt. → true nếu cấu hình đổi.</summary>
+    public static bool CongChay(AgentConfig c, double giay)
+    {
+        if (!(giay > 0)) return false;
+        c.MatLienLacChayGiay += Math.Min(giay, TranMoiVongGiay);
+        return true;
+    }
 
     public static bool La(AgentConfig? c, DateTimeOffset now) => TuChoiLau(c, now) || MatLienLacLau(c, now);
 
@@ -121,10 +138,16 @@ public sealed class KetQuaGo
 
 public static partial class SystemCleanup
 {
+    /// <summary>Lệnh PowerShell (chạy bằng quyền quản trị) gỡ TAY chỉ các luật AppLocker của AiiGrow (Name bắt đầu bằng «AiiGrow: »),
+    /// giữ nguyên luật khác. Không cần tệp nào của AiiGrow (tác vụ dọn có thể đã xoá Setup.exe). Máy chủ (server/lib/may-con.ts) có bản giống hệt.</summary>
+    public const string LenhGoTayAppLocker =
+        "$p=[xml](Get-AppLockerPolicy -Local -Xml -ErrorAction Stop); " +
+        "@($p.AppLockerPolicy.RuleCollection.ChildNodes | ?{ $_.Name -like 'AiiGrow: *' }) | %{ [void]$_.ParentNode.RemoveChild($_) }; " +
+        "$f=\"$env:TEMP\\aiigrow-applocker.xml\"; $p.Save($f); Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop";
+
     public const string CanhBaoAppLocker =
-        "CHƯA gỡ được luật chặn (AppLocker) của AiiGrow — KHÔNG gỡ tiếp để máy Con không bị kẹt luật chặn.\n" +
-        "Hãy chạy lại bước gỡ (còn mạng thì thử lại tự động), hoặc trên máy Con mở PowerShell quyền quản trị và chạy:\n" +
-        "  \"C:\\Program Files\\AiiGrow\\AiiGrow.Setup.exe\" --uninstall";
+        "CHƯA gỡ được luật chặn (AppLocker) của AiiGrow — AiiGrow sẽ tự thử lại mỗi lần khởi động máy.\n" +
+        "Gỡ tay ngay: trên máy Con mở PowerShell bằng quyền quản trị (Run as administrator) và chạy:\n  " + LenhGoTayAppLocker;
 
     private static bool Buoc(StringBuilder log, string ten, Action a)
     {
@@ -148,6 +171,9 @@ public static partial class SystemCleanup
             // Gỡ tại máy: dịch vụ còn chạy ⇒ tắt khôi phục + dừng/xoá dịch vụ TRƯỚC khi gỡ luật (kẻo nó áp lại luật ngay sau khi gỡ).
             Buoc(log, "Tắt tự khởi động lại của dịch vụ", ops.TatKhoiPhucDichVu);
             Buoc(log, "Dừng và xoá dịch vụ", ops.DungVaXoaDichVu);
+            // Trả quyền quản trị cho Con TRƯỚC cổng AppLocker: dịch vụ đã xoá, bước này độc lập + chạy lại được ⇒ gỡ luật hỏng
+            // cũng KHÔNG để Con bị hạ quyền (tác vụ dọn tách rời còn mang SID để trả lại lần nữa làm lưới đỡ).
+            kq.QuyenAdminTra = Buoc(log, "Trả quyền quản trị cho tài khoản Con", ops.TraQuyenQuanTri);
         }
 
         // CỔNG: gỡ luật AppLocker. Hỏng ⇒ dừng lại, chưa đụng config/dịch vụ; lần sau thử lại (gỡ tại máy: hẹn tác vụ tách rời cũng gỡ luật).
@@ -160,8 +186,8 @@ public static partial class SystemCleanup
             return kq;
         }
 
-        // Trả quyền quản trị cho Con TRƯỚC khi xoá cấu hình (cần đọc DaHaQuyen trong cấu hình).
-        kq.QuyenAdminTra = Buoc(log, "Trả quyền quản trị cho tài khoản Con", ops.TraQuyenQuanTri);
+        // Dịch vụ tự gỡ: trả quyền SAU cổng (dịch vụ còn sống — chưa gỡ được luật thì máy vẫn được quản lý), TRƯỚC khi xoá cấu hình.
+        if (tuDichVu) kq.QuyenAdminTra = Buoc(log, "Trả quyền quản trị cho tài khoản Con", ops.TraQuyenQuanTri);
 
         if (tuDichVu)
         {
@@ -202,14 +228,22 @@ public static partial class SystemCleanup
     /// <summary>Kịch bản PowerShell cho tác vụ dọn tách rời (SYSTEM). Chạy lại an toàn: thiếu thứ gì thì bỏ qua.
     /// GỠ LUẬT APPLOCKER của AiiGrow (Name bắt đầu bằng «AiiGrow: ») như một LƯỚI ĐỠ, và CHỈ tự xoá tác vụ khi không còn luật nào của mình
     /// VÀ đã xoá hết tệp — không để Con kẹt luật chặn kể cả khi dịch vụ gỡ luật thất bại.</summary>
-    public static string KichBanDonTachRoi(string serviceName, string installDir, string dataDir, string uninstallKey)
+    /// <param name="traQuyen">tài khoản đã bị hạ lúc cài (<see cref="AgentConfig.DaHaQuyen"/>) — tác vụ thêm lại vào nhóm mỗi lần chạy (lưới đỡ khi
+    /// bộ gỡ chưa trả được quyền; đã là thành viên thì bỏ qua). Chỉ nhúng SID hợp lệ.</param>
+    public static string KichBanDonTachRoi(string serviceName, string installDir, string dataDir, string uninstallKey, IEnumerable<QuyenDaHa>? traQuyen = null)
     {
         string Q(string s) => "'" + s.Replace("'", "''") + "'";
         var inst = Q(installDir); var data = Q(dataDir);
         var tien = Q(AppLockerXml.Prefix);
+        var ds = (traQuyen ?? Enumerable.Empty<QuyenDaHa>())
+            .Where(q => AppLockerXml.IsValidSid(q.Sid) && AppLockerXml.IsValidSid(q.Nhom))
+            .Select(q => $"try {{ Add-LocalGroupMember -SID {Q(q.Nhom)} -Member {Q(q.Sid)} -ErrorAction Stop }} catch {{}}").Distinct().ToList();
+        var traQuyenDong = ds.Count == 0 ? "# không có tài khoản nào bị hạ quyền" : string.Join("\n", ds);
         return string.Join("\n", new[]
         {
             "$ErrorActionPreference='SilentlyContinue'",
+            // Lưới đỡ: trả quyền quản trị cho Con (chạy lại được — đã là thành viên thì lỗi MemberExists bị bỏ qua).
+            traQuyenDong,
             $"$n={Q(serviceName)}",
             // chờ dịch vụ tự thoát (đang dọn AppLocker…) tối đa 3 phút rồi mới ép dừng
             "for($i=0;$i -lt 90;$i++){ $s=Get-Service -Name $n; if(-not $s -or $s.Status -eq 'Stopped'){break}; Start-Sleep -Seconds 2 }",
@@ -219,13 +253,17 @@ public static partial class SystemCleanup
             "Get-Process -Name 'AiiGrow.Service','AiiGrow.Tray' | Stop-Process -Force",
             "& sc.exe delete $n | Out-Null",
             // Lưới đỡ: gỡ luật AppLocker của AiiGrow. $goLuat trả $true nếu SAU KHI gỡ không còn luật nào của mình.
+            // Lỗi (kể cả lỗi không dừng) ⇒ $false: -ErrorAction Stop + coi chính sách $null là CHƯA sạch (không tự huỷ tác vụ nhầm).
             "function Remove-AiiAppLocker {",
+            "  $ErrorActionPreference='Stop'",
             "  try {",
-            "    [xml]$p = Get-AppLockerPolicy -Local -Xml",
-            $"    $ds = @($p.AppLockerPolicy.RuleCollection.ChildNodes | Where-Object {{ $_.Name -and $_.Name.StartsWith({tien}) }})",
-            "    if ($ds.Count -gt 0) { $ds | ForEach-Object { [void]$_.ParentNode.RemoveChild($_) }; $f = [IO.Path]::GetTempFileName(); $p.Save($f); Set-AppLockerPolicy -XmlPolicy $f; Remove-Item -LiteralPath $f -Force }",
-            "    [xml]$c = Get-AppLockerPolicy -Local -Xml",
-            $"    return @($c.AppLockerPolicy.RuleCollection.ChildNodes | Where-Object {{ $_.Name -and $_.Name.StartsWith({tien}) }}).Count -eq 0",
+            "    [xml]$p = Get-AppLockerPolicy -Local -Xml -ErrorAction Stop",
+            "    if ($null -eq $p -or $null -eq $p.DocumentElement -or $p.DocumentElement.LocalName -ne 'AppLockerPolicy') { return $false }",
+            $"    $ds = @($p.DocumentElement.ChildNodes | ForEach-Object {{ $_.ChildNodes }} | Where-Object {{ $_ -is [Xml.XmlElement] -and $_.GetAttribute('Name').StartsWith({tien}) }})",
+            "    if ($ds.Count -gt 0) { $ds | ForEach-Object { [void]$_.ParentNode.RemoveChild($_) }; $f = [IO.Path]::GetTempFileName(); $p.Save($f); Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop; Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }",
+            "    [xml]$c = Get-AppLockerPolicy -Local -Xml -ErrorAction Stop",
+            "    if ($null -eq $c -or $null -eq $c.DocumentElement -or $c.DocumentElement.LocalName -ne 'AppLockerPolicy') { return $false }",
+            $"    return @($c.DocumentElement.ChildNodes | ForEach-Object {{ $_.ChildNodes }} | Where-Object {{ $_ -is [Xml.XmlElement] -and $_.GetAttribute('Name').StartsWith({tien}) }}).Count -eq 0",
             "  } catch { return $false }",
             "}",
             // thử tới 15 lần (AppIDSvc có thể chưa sẵn ngay sau khởi động), rồi đi tiếp
@@ -270,5 +308,37 @@ public static class LocalUninstall
         var kq = SystemCleanup.Run(ops, tuDichVu: false);
         kq.Log = log.ToString() + kq.Log;
         return kq;
+    }
+}
+
+/// <summary>Cài lại đè lên máy đã cài: GIỮ bản ghi tài khoản đã bị hạ quyền (<see cref="AgentConfig.DaHaQuyen"/>) của lần cài trước.
+/// Lúc cài lại, Con đã là tài khoản thường (IsAdmin=false) nên bộ cài không ghi lại được — ghi đè cấu hình mà bỏ danh sách cũ
+/// thì gỡ sau này không còn gì để trả quyền.</summary>
+public static class CaiLai
+{
+    /// <summary>Gộp (không trùng theo Sid + Nhóm) danh sách đã hạ quyền: cũ trước, mới sau. → <paramref name="moi"/>.</summary>
+    public static AgentConfig GopDaHaQuyen(AgentConfig? cu, AgentConfig moi)
+    {
+        var ds = new List<QuyenDaHa>();
+        foreach (var q in (cu?.DaHaQuyen ?? new()).Concat(moi.DaHaQuyen ?? new()))
+            if (q != null && !string.IsNullOrEmpty(q.Sid) && !ds.Any(x => x.Sid == q.Sid && x.Nhom == q.Nhom)) ds.Add(q);
+        moi.DaHaQuyen = ds;
+        return moi;
+    }
+
+    /// <summary>Ghi cấu hình mới khi cài, giữ <see cref="AgentConfig.DaHaQuyen"/> cũ (cấu hình cũ hỏng / không đọc được ⇒ coi như không có).</summary>
+    public static void GhiGiuQuyen(ConfigStore store, AgentConfig moi)
+    {
+        AgentConfig? cu = null;
+        try { cu = store.Load(); } catch { }
+        store.Save(GopDaHaQuyen(cu, moi));
+    }
+
+    /// <summary>Thêm một tài khoản vừa bị hạ quyền (không thêm trùng). → true nếu đổi.</summary>
+    public static bool ThemDaHa(AgentConfig c, string sid, string nhom = "S-1-5-32-544")
+    {
+        if (c.DaHaQuyen.Any(x => x.Sid == sid && x.Nhom == nhom)) return false;
+        c.DaHaQuyen.Add(new QuyenDaHa { Sid = sid, Nhom = nhom });
+        return true;
     }
 }
