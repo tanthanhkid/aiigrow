@@ -128,3 +128,19 @@ type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
 
 /** Mã mở offline của một máy (GET may/:id/ma-offline) — Ba Mẹ đọc cho Con gõ khi máy mất mạng. */
 export type MaOffline = { ma: string; conGiay: number; hieuLucPhut: number; phutMo: number };
+
+// ---- Web của Con (GET /api/m/con/:id/web) — server/lib/web.ts
+export type TrangThaiWeb = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
+export type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiWeb; nguon: string };
+export type ThongKeWeb = {
+  soNgay: number;
+  homNay: { giay: number; soLan: number; soTrang: number };
+  theoNgay: { ngay: string; giay: number; soLan: number; soTrang: number }[];
+  tongGiay: number;
+  top: TrangWeb[];
+  tatCa: number;
+  luat: { tenMien: string; trangThai: TrangThaiWeb; nguon: "con" | "gia_dinh" }[];
+  cheDoWeb: "mo" | "chi_cho_phep";
+  heThong: string[];
+  mayLoc: { id: string; ten: string; cheDo: string; lanCuoi: string | null }[];
+};

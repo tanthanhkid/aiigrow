@@ -44,6 +44,7 @@ export default function HoSoCon() {
         <Dong dau tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
+        <Dong tieu={`Web của ${d.ten}`} phu="Trang đã vào, thời gian, cho phép hoặc chặn từng trang" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${d.id}`)} />
         <Dong tieu="Ví điểm" phu={`${d.soDu} điểm · cấp ${d.capDo.cap}`} trai={<BieuTron ic="xu" mau="vang" />} bam={() => router.push(`/vi/${d.id}`)} />
       </Nhom>
       {lk.d ? (
