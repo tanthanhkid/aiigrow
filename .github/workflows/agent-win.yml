@@ -1,0 +1,58 @@
+name: agent-win
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'agent-win/**'
+      - '.github/workflows/agent-win.yml'
+  pull_request:
+    paths:
+      - 'agent-win/**'
+      - '.github/workflows/agent-win.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Máy Windows thật của GitHub — KHÔNG dùng máy công ty (Thanh 22/10). Chạy đủ bộ test net8.0-windows + đóng gói cài.
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: agent-win
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore AiiGrow.sln
+
+      - name: Build
+        run: dotnet build AiiGrow.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test AiiGrow.sln -c Release --no-build --logger "trx;LogFileName=test.trx"
+
+      - name: Publish (self-contained win-x64, một file mỗi chương trình)
+        shell: pwsh
+        run: |
+          foreach ($p in 'Service','Tray','Setup') {
+            dotnet publish "src/AiiGrow.$p/AiiGrow.$p.csproj" -c Release -r win-x64 --self-contained true `
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o publish
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Copy-Item README.AiiGrow.md publish/README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AiiGrow-win-x64
+          path: agent-win/publish/
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: agent-win/**/TestResults/*.trx
