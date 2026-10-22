@@ -2,7 +2,7 @@
 export const metadata = { title: "Tải AiiGrow cho Windows — AiiGrow" };
 
 const LINK_TAI =
-  "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Windows-thu.zip";
+  "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Setup-0.2.0.exe";
 
 export default function TrangTai() {
   return (
@@ -32,13 +32,12 @@ export default function TrangTai() {
         ⬇ Tải AiiGrow cho Windows
       </a>
       <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>
-        Tệp .zip · Windows 10/11
+        Một tệp AiiGrow-Setup.exe (bản 0.2.0, ~182 MB) · Windows 10/11
       </p>
 
       <ol style={{ lineHeight: 1.75, marginTop: 24, paddingLeft: 20 }}>
-        <li>Giải nén tệp vừa tải.</li>
         <li>
-          Chạy <code>AiiGrow.Setup.exe</code>, bấm <b>Yes</b> khi Windows hỏi
+          Chạy <code>AiiGrow-Setup.exe</code> vừa tải, bấm <b>Yes</b> khi Windows hỏi
           quyền quản trị.
           <br />
           <span style={{ color: "#7a8585", fontSize: 14 }}>
@@ -47,8 +46,12 @@ export default function TrangTai() {
           </span>
         </li>
         <li>
-          Nhập <b>mã 6 số</b> lấy trong app AiiGrow: Cài đặt → “Hồ sơ &amp; máy
-          của Con” → <b>Ghép thêm máy</b>.
+          <b>Máy đã cài AiiGrow:</b> bộ cài tự cập nhật đè lên bản cũ, giữ nguyên ghép
+          máy — không cần nhập lại mã. Từ bản này máy tự tải bản mới.
+        </li>
+        <li>
+          <b>Máy mới:</b> làm theo từng bước, nhập <b>mã 6 số</b> lấy trong app AiiGrow:
+          Cài đặt → “Hồ sơ &amp; máy của Con” → <b>Ghép thêm máy</b>.
         </li>
       </ol>
 
