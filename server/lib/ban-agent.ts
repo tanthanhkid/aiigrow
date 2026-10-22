@@ -4,9 +4,9 @@
 import type { May } from "./gia-dinh.ts";
 
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.1",
-  url: "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Setup-0.2.1.exe",
-  sha256: "1fbfb919883f8a239fbac5603cf0b0951a280a6d0fa37d82500ee9d9302ef27e",
+  version: "0.2.2",
+  url: "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Setup-0.2.2.exe",
+  sha256: "6731c170cdcaf60cf99c88ccd50dc7b62b249a8f32bcd16d9a026cf7a05280ef",
 } as const;
 
 /** Bản agent máy Windows tự báo trong status khi đồng bộ (`status.version`) — máy Windows không gửi nhịp nên tuan_thu_may.phien_ban trống. */
