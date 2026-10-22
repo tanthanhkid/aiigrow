@@ -92,7 +92,9 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   assert.ok(co.web.cho.includes("youtube.com"));
   assert.equal(co.web.choKhiMo, undefined, "mở nhờ phiên điểm ⇒ không phải choKhiMo");
   // đang «mở» có hạn ⇒ youtube.com mở nhờ cửa sổ ⇒ có trong choKhiMo (agent chặn lại khi hết hạn lúc mất mạng)
-  const mo = chinhSachWindows(db, undefined, undefined, { moDen: new Date(new Date(db.serverTime).getTime() + 30 * 60000) });
+  // giờ cố định 10:00 (VN): ngoài giờ ngủ thì «mở» mới có hiệu lực — không phụ thuộc lúc chạy test
+  const trua = "2026-10-22T03:00:00.000Z";
+  const mo = chinhSachWindows({ ...db, serverTime: trua }, undefined, undefined, { moDen: new Date(new Date(trua).getTime() + 30 * 60000) });
   assert.ok(mo.web.cho.includes("youtube.com"));
   assert.deepEqual(mo.web.choKhiMo, ["youtube.com"]);
   await goiBm(`con/${con}/cau-hinh`, tokBm, { web_chi_cho_phep: 1 });
