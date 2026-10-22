@@ -75,7 +75,7 @@ internal static class Installer
         step(3, null);
     }
 
-    private static void SetTrayAndNotice()
+    internal static void SetTrayAndNotice()
     {
         using (var run = Registry.LocalMachine.CreateSubKey(RunKey))
             run.SetValue(Paths.TrayRunValue, "\"" + Path.Combine(Paths.InstallDir, Paths.TrayExeName) + "\"");
@@ -88,11 +88,8 @@ internal static class Installer
 
     private static void InstallFilesAndService()
     {
-        var src = AppContext.BaseDirectory;
-        var want = new List<string> { Paths.ServiceExeName };
-        if (File.Exists(Path.Combine(src, Paths.TrayExeName))) want.Add(Paths.TrayExeName);
-        if (!File.Exists(Path.Combine(src, Paths.ServiceExeName)))
-            throw new FileNotFoundException("Thiếu " + Paths.ServiceExeName + " cạnh bộ cài (" + src + ")");
+        if (!Goi.Co(Paths.ServiceExeName))
+            throw new FileNotFoundException("Bộ cài thiếu " + Paths.ServiceExeName + " — tải lại AiiGrow-Setup.exe ở trang /tai");
 
         var dest = Paths.InstallDir;
         Directory.CreateDirectory(dest);
@@ -104,8 +101,9 @@ internal static class Installer
         }
         // Lần gỡ trước còn hẹn tác vụ dọn (chạy lúc khởi động) ⇒ huỷ, kẻo nó xoá bản vừa cài.
         Shell.PowerShell($"try {{ Unregister-ScheduledTask -TaskName {Shell.PsQuote(SystemCleanup.TenTacVuDon)} -Confirm:$false -ErrorAction Stop }} catch {{}}", 60000);
-        foreach (var f in want)
-            File.Copy(Path.Combine(src, f), Path.Combine(dest, f), true);
+        // Dịch vụ + khay: tệp cạnh bộ cài (gói zip cũ) hoặc giải từ chính AiiGrow-Setup.exe (bộ cài một file).
+        Goi.ChepRa(Paths.ServiceExeName, Path.Combine(dest, Paths.ServiceExeName));
+        Goi.ChepRa(Paths.TrayExeName, Path.Combine(dest, Paths.TrayExeName));
         // Chép chính bộ cài vào thư mục cài (tên cố định) ⇒ Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt gọi được «--uninstall».
         var self = Environment.ProcessPath;
         var setupDest = Path.Combine(dest, Paths.SetupExeName);
@@ -124,6 +122,12 @@ internal static class Installer
             $"& sc.exe failureflag {Paths.ServiceName} 1 | Out-Null; " +
             $"Start-Service -Name {Paths.ServiceName}");
         if (!r.Ok) throw new InvalidOperationException("Không cài được dịch vụ: " + r.Error);
+
+        // Lối tắt «AiiGrow» trong menu Start (mọi tài khoản) ⇒ mở lại biểu tượng khay. Lỗi lối tắt không chặn việc cài.
+        var tray = Path.Combine(dest, Paths.TrayExeName);
+        if (File.Exists(tray))
+            Shell.PowerShell("$s = (New-Object -ComObject WScript.Shell).CreateShortcut(" + Shell.PsQuote(Paths.StartMenuShortcut) + "); " +
+                "$s.TargetPath = " + Shell.PsQuote(tray) + "; $s.Description = 'AiiGrow — giờ dùng máy do Ba Mẹ đặt'; $s.Save()", 30000);
 
         // Mục «AiiGrow» trong Cài đặt › Ứng dụng: Ba Mẹ gỡ tại máy, Windows hỏi mật khẩu quản trị (Setup.exe xin quyền admin qua manifest).
         if (File.Exists(setupDest)) AppsEntry.Register(dest, typeof(Installer).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");

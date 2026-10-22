@@ -28,6 +28,8 @@ internal static class DeviceHttp
         var http = handler == null ? new HttpClient() : new HttpClient(handler);
         http.BaseAddress = new Uri(ApiClient.NormalizeServer(server) + "/");
         http.Timeout = TimeSpan.FromSeconds(20);
+        // Bản AiiGrow đang chạy ⇒ máy chủ ghi lại khi đồng bộ, app Ba Mẹ thấy máy chạy bản nào.
+        http.DefaultRequestHeaders.TryAddWithoutValidation("X-AiiGrow-Ban", TuCapNhat.BanHienTai().ToString(3));
         if (!string.IsNullOrEmpty(token))
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return http;

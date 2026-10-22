@@ -7,6 +7,12 @@
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <!-- Bộ cài MỘT FILE: build-mot-file.sh publish Service + Tray (một tệp, tự chứa) vào $(GoiDir) rồi publish Setup với -p:GoiDir=…
+       ⇒ hai exe nằm trong AiiGrow-Setup.exe dưới dạng tài nguyên «goi/<tên>» (Goi.cs giải ra lúc cài). Không có GoiDir ⇒ bộ cài cũ (exe cạnh bên). -->
+  <ItemGroup Condition="'$(GoiDir)' != ''">
+    <EmbeddedResource Include="$(GoiDir)/AiiGrow.Service.exe" LogicalName="goi/AiiGrow.Service.exe" />
+    <EmbeddedResource Include="$(GoiDir)/AiiGrow.Tray.exe" LogicalName="goi/AiiGrow.Tray.exe" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />
   </ItemGroup>

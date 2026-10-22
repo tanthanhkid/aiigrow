@@ -77,7 +77,8 @@ public sealed record UsageEntry(string Day, string AppId, string AppName, int Mi
 public sealed class AgentStatus
 {
     public string Agent { get; set; } = "windows";
-    public string Version { get; set; } = "0.1.0";
+    /// <summary>Bản agent đang chạy (AssemblyVersion, Directory.Build.props) — máy chủ hiện ở app Ba Mẹ (server/lib/ban-agent.ts › banMayBao).</summary>
+    public string Version { get; set; } = TuCapNhat.BanHienTai().ToString(3);
     public string Mode { get; set; } = Modes.TuDo;
     public bool AppLockerApplied { get; set; }
     public bool TrayAlive { get; set; }

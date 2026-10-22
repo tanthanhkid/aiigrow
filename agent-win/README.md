@@ -50,15 +50,33 @@ foreach ($p in 'Service','Tray','Setup') {
 }
 ```
 
+**Bộ cài MỘT file** (bản phát hành cho phụ huynh): `./build-mot-file.sh` (Mac/Linux, cần .NET 8 SDK) → `ra/AiiGrow-Setup.exe`
+(~180 MB, tự chứa .NET; Service + Tray nhúng bên trong, bộ cài tự giải ra `Program Files\AiiGrow`). Tệp exe đặt cạnh bộ cài vẫn được ưu tiên
+(bản zip cũ chạy như trước). Bộ cài là wizard 5 bước: Chào → Điều khoản → Tài khoản của Con → Ghép máy (mã 6 số) → Cài.
+
 Trên Mac chỉ build/test được logic: thêm `-p:EnableWindowsTargeting=true` (test DPAPI tự bỏ qua ngoài Windows).
 CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish, artifact `AiiGrow-win-x64`).
+
+## Cập nhật đè và tự cập nhật (từ 0.2.0)
+
+- **Chạy lại `AiiGrow-Setup.exe` trên máy đã cài** (dịch vụ có + config đã ghép) ⇒ màn «Cập nhật AiiGrow lên bản X»: dừng dịch vụ + khay,
+  sao lưu `Program Files\AiiGrow` sang `AiiGrow.sao-luu`, chép bản mới, chạy lại, ghi số bản ở mục Ứng dụng. Config/token, tài khoản Con,
+  luật AppLocker (ProgramData / chính sách Windows) không đụng ⇒ không ghép lại. Lỗi giữa chừng ⇒ chép bản sao lưu trở lại.
+  Cùng bản hoặc bản cũ hơn ⇒ «Đã là bản mới nhất» (Mở lại · Sửa cài đặt). `--sua` ép chạy wizard cài như cũ.
+- **Tự cập nhật**: dịch vụ (`UpdateWorker`) hỏi `GET /api/agent/ban-moi` sau 2 phút rồi mỗi 6 giờ → `{version, url, sha256}`. Chỉ nhận bản
+  mới hơn, URL https cùng host máy chủ hoặc `*.public.blob.vercel-storage.com`; tải về `ProgramData\AiiGrow\cap-nhat`, sha256 sai ⇒ xoá.
+  Đúng ⇒ chạy `AiiGrow-Setup.exe --capnhat --im-lang` bằng tác vụ SYSTEM `AiiGrowCapNhat` (mã thoát 0 ok · 7 lỗi đã khôi phục · 8 lỗi chưa khôi phục).
+  Khay báo «AiiGrow đã cập nhật lên bản X» một lần. Mỗi request gửi header `X-AiiGrow-Ban`.
+- **Phát bản mới**: tăng `<Version>` ở `Directory.Build.props` → `./build-mot-file.sh` → tải `ra/AiiGrow-Setup.exe` lên Blob
+  `tai/AiiGrow-Setup-<ver>.exe` (không thêm đuôi ngẫu nhiên) → sửa `server/lib/ban-agent.ts` (version, url, sha256) → merge.
+- TODO: khay gợi ý «có bản mới» cho máy không tự cập nhật được (mạng chặn Blob…).
 
 ## Cài thử (máy Windows thật hoặc máy ảo)
 
 1. Có sẵn một tài khoản quản trị của bố mẹ và một tài khoản của con (Administrator hay Standard đều được).
 2. Chép thư mục `publish` sang máy; (tuỳ chọn) tạo `server.txt` cạnh `AiiGrow.Setup.exe` chứa địa chỉ máy chủ,
    hoặc đặt biến môi trường `AIIGROW_SERVER`.
-3. Chạy `AiiGrow.Setup.exe` bằng quản trị viên, làm theo 3 bước, nhập mã 6 số lấy ở app bố mẹ.
+3. Chạy `AiiGrow-Setup.exe` (hoặc `AiiGrow.Setup.exe` bản zip) bằng quản trị viên, làm theo từng bước, nhập mã 6 số lấy ở app Ba Mẹ.
 4. Đăng xuất, con đăng nhập: thấy thông báo "Máy được bố mẹ quản lý" và biểu tượng AiiGrow ở khay.
 5. Đổi chế độ ở app bố mẹ rồi quan sát: `Get-AppLockerPolicy -Local -Xml` (luật `AiiGrow:`), nhật ký dịch vụ trong Event Viewer.
 

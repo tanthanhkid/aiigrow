@@ -50,6 +50,7 @@ internal sealed class TrayContext : ApplicationContext
         _ni.BalloonTipClicked += (_, _) => { if ((DateTimeOffset.Now - _hvToastAt).TotalSeconds < 20) OpenHocVien(); };
 
         _ni.ShowBalloonTip(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Bấm vào biểu tượng để xem còn bao lâu, nhận nhiệm vụ và xem phần quà.", ToolTipIcon.Info);
+        BaoCapNhat.NeuVuaCapNhat(_ni);
 
         _timer.Tick += async (_, _) => await TickAsync();
         _timer.Start();
