@@ -1,11 +1,12 @@
 using System.Reflection;
+using AiiGrow.Core;
 
 namespace AiiGrow.Setup;
 
 /// <summary>
 /// Bộ cài MỘT FILE: AiiGrow.Service.exe + AiiGrow.Tray.exe nằm trong chính AiiGrow-Setup.exe dưới dạng tài nguyên nhúng
-/// (LogicalName «goi/&lt;tên&gt;», xem AiiGrow.Setup.csproj — build bằng agent-win/build-mot-file.sh). Bộ cài cũ dạng zip (exe nằm cạnh
-/// bộ cài) vẫn chạy: tệp cạnh bộ cài được ưu tiên.
+/// (LogicalName «goi/&lt;tên&gt;», xem AiiGrow.Setup.csproj — build bằng agent-win/build-mot-file.sh). Có tài nguyên nhúng thì LUÔN dùng nhúng
+/// (exe cũ từ gói zip nằm cạnh bộ cài trong Downloads không được đè bản mới); tệp cạnh bộ cài chỉ dùng cho bộ cài dạng zip (không nhúng).
 /// </summary>
 internal static class Goi
 {
@@ -15,11 +16,12 @@ internal static class Goi
         File.Exists(Path.Combine(AppContext.BaseDirectory, tep)) ||
         Assembly.GetExecutingAssembly().GetManifestResourceInfo(Ten(tep)) != null;
 
-    /// <summary>Chép <paramref name="tep"/> tới <paramref name="dich"/> (cạnh bộ cài trước, không có thì giải từ tài nguyên nhúng). → false nếu không có ở đâu cả.</summary>
+    /// <summary>Chép <paramref name="tep"/> tới <paramref name="dich"/> (nhúng trước, không nhúng thì tệp cạnh bộ cài). → false nếu không có ở đâu cả.</summary>
     public static bool ChepRa(string tep, string dich)
     {
         var canh = Path.Combine(AppContext.BaseDirectory, tep);
-        if (File.Exists(canh))
+        var coNhung = Assembly.GetExecutingAssembly().GetManifestResourceInfo(Ten(tep)) != null;
+        if (CapNhatMay.DungTepCanh(coNhung, File.Exists(canh)))
         {
             File.Copy(canh, dich, true);
             return true;

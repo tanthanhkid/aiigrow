@@ -138,5 +138,5 @@ public sealed class HeartbeatWorker : BackgroundService
         try { _store.Update(change); } catch (Exception e) { _log.LogWarning("Lưu cấu hình lỗi: {m}", e.Message); }
     }
 
-    private static string Version() => typeof(HeartbeatWorker).Assembly.GetName().Version?.ToString() ?? "0";
+    private static string Version() => TuCapNhat.BanHienTai().ToString(3);     // «0.2.2» như status.version của AgentWorker
 }

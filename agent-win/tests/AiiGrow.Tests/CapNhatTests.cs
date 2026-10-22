@@ -63,6 +63,10 @@ public class CapNhatMayTests : IDisposable
         public bool LoiChep, DichVuChay = true;
         public string? BanGhi;
         public List<string> Buoc = new();
+        /// <summary>Thứ tự bật/tắt tự khởi động lại xen giữa các bước (tách khỏi Buoc để test cũ giữ nguyên).</summary>
+        public List<string> Khoi = new();
+        public void TatTuKhoiDong() => Khoi.Add("tat");
+        public void BatTuKhoiDong() => Khoi.Add("bat:" + Buoc.Count);
         public void DungDichVuVaKhay() => Buoc.Add("dung");
         public void ChepTepMoi(string dir)
         {
@@ -108,6 +112,43 @@ public class CapNhatMayTests : IDisposable
         Assert.True(kq.DaKhoiPhuc);
         Assert.Equal("cu-tray", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Tray.exe")));
     }
+
+    [Fact]
+    public void TatTuKhoiDongTruoc_BatLaiSauCung_CaKhiLoi()
+    {
+        foreach (var ops in new[] { new Gia(), new Gia { LoiChep = true } })
+        {
+            CapNhatMay.Chay(Cai, "0.2.0", ops);
+            Assert.Equal("tat", ops.Khoi[0]);                              // trước «dung» (Buoc còn rỗng lúc tắt)
+            Assert.Equal("bat:" + ops.Buoc.Count, ops.Khoi[^1]);           // sau bước cuối cùng
+            Assert.Equal(2, ops.Khoi.Count);
+        }
+    }
+
+    [Fact]
+    public void KhoiPhuc_TepBiKhoaLanDau_DoiTenRoiChepLai()
+    {
+        var khoaMotLan = true;
+        void Chep(string tu, string dich)
+        {
+            // lúc khôi phục, exe dịch vụ trong thư mục cài đang bị khoá (SCM vừa bật lại bản mới) ⇒ lần chép đầu lỗi
+            if (khoaMotLan && dich.StartsWith(Cai + Path.DirectorySeparatorChar) && dich.EndsWith("AiiGrow.Service.exe"))
+            { khoaMotLan = false; throw new IOException("tệp đang được dùng"); }
+            File.Copy(tu, dich, true);
+        }
+        var kq = CapNhatMay.Chay(Cai, "0.2.0", new Gia { LoiChep = true }, Chep);
+        Assert.True(kq.DaKhoiPhuc, kq.Log);
+        Assert.False(khoaMotLan);
+        Assert.Equal("cu-service", File.ReadAllText(Path.Combine(Cai, "AiiGrow.Service.exe")));
+        Assert.Single(Directory.GetFiles(Cai, "AiiGrow.Service.exe.cu-*"));  // bản bị khoá được đổi tên, dọn ở lần cập nhật sau
+    }
+
+    [Theory]
+    [InlineData(true, true, false)]    // bộ cài một tệp + exe cũ của gói zip nằm cạnh trong Downloads ⇒ vẫn dùng nhúng
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]    // bộ cài dạng zip (không nhúng) ⇒ tệp cạnh
+    [InlineData(false, false, false)]
+    public void ChonNguonGoi(bool coNhung, bool coCanh, bool dungCanh) => Assert.Equal(dungCanh, CapNhatMay.DungTepCanh(coNhung, coCanh));
 }
 
 public class TuCapNhatTests
