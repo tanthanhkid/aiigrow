@@ -22,6 +22,8 @@ public static class PipeCmd
     /// <summary>Khay học viên (nhiệm vụ / phần quà / thông báo): dịch vụ chuyển <see cref="PipeRequest.Method"/> + <see cref="PipeRequest.Path"/>
     /// tới <c>api/device/hoc-vien/…</c> (chỉ đường trong <see cref="HocVienPaths"/>) bằng token máy, trả JSON nguyên văn ở <see cref="PipeResponse.Data"/>.</summary>
     public const string HocVien = "hoc-vien";
+    /// <summary>«Thử kết nối lại»: bảo dịch vụ đồng bộ với máy chủ ngay (không chờ nhịp sau). Trả trạng thái hiện tại.</summary>
+    public const string SyncNow = "sync-now";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -46,6 +48,12 @@ public sealed class TrayState
     public string CheDo { get; set; } = CheDoAgent.GiamSat;
     /// <summary>Máy đã bị bỏ khỏi gia đình (token bị từ chối lâu) ⇒ AiiGrow thôi chặn; khay hiện câu hướng dẫn gỡ.</summary>
     public bool MoCoi { get; set; }
+    /// <summary>Lần đồng bộ thành công gần nhất với máy chủ (null = chưa lần nào từ lúc dịch vụ chạy).</summary>
+    public DateTimeOffset? LastSyncAt { get; set; }
+    /// <summary>Từ lúc nào dịch vụ không tới được máy chủ (null = đang tới được).</summary>
+    public DateTimeOffset? OfflineSince { get; set; }
+    /// <summary>Máy chủ từ chối token (401 token_sai): máy đã bị gỡ khỏi gia đình hoặc cần ghép lại.</summary>
+    public bool TokenRejected { get; set; }
 }
 
 public sealed class PipeRequest
