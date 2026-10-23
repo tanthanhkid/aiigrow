@@ -27,6 +27,35 @@ test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, PIN 4–6 số, nh
   await loi(g.conCua(nha2.fam, ken), "khong_thay");
 });
 
+test("ghép máy: sai mã 10 lần trong khung 15 phút từ một IP ⇒ khoá tới hết khung; song song không lọt; IP khác không ảnh hưởng", async () => {
+  const { fam } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bo" });
+  const T = Date.UTC(2026, 9, 23, 3, 0);                                  // đầu một khung 15 phút
+  const ma = await g.taoMaGhep(fam, con, "windows");
+  const sai = ma === "000000" ? "000001" : "000000";
+  for (let i = 0; i < 10; i++) await loi(g.ghepMay(sai, "windows", "X", "1.2.3.4", T + i * 1000), "ma_sai");
+  await loi(g.ghepMay(ma, "windows", "X", "1.2.3.4", T + 60_000), "ghep_tam_khoa");     // khoá cả mã đúng
+  await loi(g.ghepMay(ma, "windows", "X", "1.2.3.4", T + 14 * 60_000), "ghep_tam_khoa");
+  const r = await g.ghepMay(ma, "windows", "PC của Bo", "1.2.3.4", T + 15 * 60_000);    // khung mới ⇒ ghép được
+  assert.ok(r.token);
+  await loi(g.ghepMay(sai, "windows", "X", "5.6.7.8", T + 60_000), "ma_sai");            // IP khác đếm riêng
+  // ghép đúng / mã đã dùng không tính là lượt sai
+  for (let i = 0; i < 12; i++) await loi(g.ghepMay(ma, "windows", "X", "7.7.7.7", T), "ma_da_dung");
+  // dò song song: 30 lượt cùng lúc ⇒ chỉ 10 lượt được thử, còn lại bị khoá
+  const kq = await Promise.allSettled(Array.from({ length: 30 }, (_, i) => g.ghepMay(String(i).padStart(6, "9"), "windows", "X", "8.8.8.8", T)));
+  assert.equal(kq.filter((x) => x.status === "rejected" && (x.reason as { ma?: string }).ma === "ghep_tam_khoa").length, 20);
+});
+
+test("nguồn gọi ghép máy: ưu tiên x-real-ip, IPv6 gộp /64", () => {
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "1.1.1.1", "x-forwarded-for": "6.6.6.6, 1.1.1.1" })), "1.1.1.1");
+  assert.equal(g.nguonGoi(new Headers({ "x-forwarded-for": "2.2.2.2, 10.0.0.1" })), "2.2.2.2");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "2001:db8:1:2:aaaa::1" })), "2001:db8:1:2");
+  assert.equal(g.nguonGoi(new Headers()), "?");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "2001:db8::5:6:7:8" })), "2001:db8:0:0");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "2001:db8:0:0:1::9" })), "2001:db8:0:0");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "::1" })), "0:0:0:0");
+});
+
 test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn; token chỉ lưu băm; gỡ máy là token chết", async () => {
   const { fam } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Na" });

@@ -444,6 +444,8 @@ export const SCHEMA_M4B = [
   // grants.cua_so_den: «thêm giờ» duyệt cho lời xin từ MÁY WINDOWS = cửa sổ mở tự do tới giờ này (lib/yeu-cau.ts › dongY), đẩy xuống agent qua
   // dong-bo.windows (mode tu_do + grantEndsAt). Phút của cửa sổ KHÔNG còn tính vào «thưởng» của phiên điểm (tránh dùng hai lần). Null = thưởng như cũ.
   `alter table grants add column if not exists cua_so_den timestamptz`,
+  // tam_tu: lúc phiên bắt đầu tạm dừng — nhịp tạm dừng vẫn đổi nhip_cuoi nên phải đo `tu_dong_dong` từ mốc riêng (chốt BRD #56 câu 7)
+  `alter table play_sessions add column if not exists tam_tu timestamptz`,
   // Giám sát WEB (agent đọc lịch sử trình duyệt của Con, lib/web.ts): CHỈ tên miền (gốc, bỏ www) + số lần mở + số giây ở trang theo ngày —
   // không lưu URL đầy đủ, tiêu đề trang hay nội dung. Agent gửi TỔNG của ngày (greatest ⇒ gửi lại không cộng đôi). Giữ 90 ngày.
   // child_id có thể rỗng: máy dùng chung khi chưa biết Con nào đang dùng.

@@ -8,7 +8,7 @@ import { newId, one, q } from "./db.ts";
 import { dungMatKhau, sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
-import { NEN_TANG, conCua, ghepMay, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
+import { NEN_TANG, conCua, ghepMayGd, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { huongDanCai, CACH_GO_TU_XA } from "./chuyen-doi.ts";
@@ -43,7 +43,7 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   // nhận gói nguyên tử (một câu update có điều kiện) ⇒ hai lần đổi song song chỉ một lần thắng
   const nhan = await q(`update goi_cai set used_at = $2 where token_hash = $1 and used_at is null and expires_at > $2 returning token_hash`, [h, now]);
   if (!nhan.length) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
-  const kq = await ghepMay(await taoMaGhep(g.family_id, g.child_id, nen), nen, tenMay);
+  const kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen), nen, tenMay);
   await q(`update goi_cai set device_id = $2 where token_hash = $1`, [h, kq.deviceId]);
   const c = g.child_id ? await one<{ ten: string }>(`select ten from children where id = $1`, [g.child_id]) : undefined;
   return { ...kq, ...(c ? { childName: c.ten } : {}) };
