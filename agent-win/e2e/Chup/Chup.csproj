@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Công cụ chụp màn hình CHỈ cho CI (chup-man-win.yml): chạy đúng các cửa sổ của AiiGrow.Tray bằng phản chiếu, nói chuyện với dịch vụ thật.
+       Không phải mã sản phẩm, không nằm trong AiiGrow.sln. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <AssemblyName>AiiGrow.Chup</AssemblyName>
+    <RootNamespace>AiiGrow.Chup</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AiiGrow.Tray\AiiGrow.Tray.csproj" />
+    <ProjectReference Include="..\..\src\AiiGrow.Core\AiiGrow.Core.csproj" />
+  </ItemGroup>
+</Project>
