@@ -99,7 +99,45 @@ internal static class Program
             var app = (Form)Field(ctx, "_app");
             Chup(ten, app.Bounds);
         }
-        ((Form)Field(ctx, "_app")).Hide();
+        // 3b) App to ở các trạng thái khác (TrayState do harness đặt: runner không có phiên Con để dịch vụ tự tạo ra), dừng hai đồng hồ của khay để không bị ghi đè
+        ((System.Windows.Forms.Timer)Field(ctx, "_timer")).Stop();
+        ((System.Windows.Forms.Timer)Field(ctx, "_hvTimer")).Stop();
+        {
+            var app = (Form)Field(ctx, "_app");
+            var apply = app.GetType().GetMethod("Apply")!;
+            var now = DateTimeOffset.Now;
+            var cac = new (string Ten, TrayState St, bool DichVu)[]
+            {
+                ("app-con-25-phut-che-do-hoc", new TrayState { Paired = true, ChildName = "Bin", Mode = Modes.Hoc, MinutesLeft = 25, LastSyncAt = now, CanExchangePoints = true }, true),
+                ("app-ba-me-them-gio-30-phut", new TrayState { Paired = true, ChildName = "Bin", Mode = Modes.TuDo, GrantEndsAt = now.AddMinutes(30), LastSyncAt = now, CanExchangePoints = true }, true),
+                ("app-mat-ket-noi-may-chu", new TrayState { Paired = true, ChildName = "Bin", Mode = Modes.TuDo, Offline = true, OfflineSince = now.AddMinutes(-12), LastSyncAt = now.AddMinutes(-12) }, true),
+                ("app-may-chua-ghep", new TrayState { Paired = false, ChildName = "Bin" }, true),
+                ("app-dich-vu-khong-chay", new TrayState(), false),
+            };
+            foreach (var (ten, st, dv) in cac)
+            {
+                app.GetType().GetMethod("ShowFront")!.Invoke(app, new object?[] { MucApp.HomNay });
+                await Cho(2500);
+                apply.Invoke(app, new object?[] { st, DateTimeOffset.Now, KetNoiView.Chon(dv, dv ? st : null) });
+                await Cho(1500);
+                Chup(ten, app.Bounds);
+            }
+            app.Hide();
+        }
+        // 3c) Bóng báo của khay (Toast thật)
+        var toast = ctx.GetType().GetMethod("Toast", All)!;
+        foreach (var (tieu, noi, ten) in new[]
+                 {
+                     ("Còn 5 phút", "Lưu bài đang làm nhé. Cần thêm giờ thì bấm Xin thêm thời gian.", "bong-bao-con-5-phut"),
+                     ("Còn 1 phút", "Máy sắp khoá. Lưu bài ngay nhé.", "bong-bao-con-1-phut"),
+                     ("Nhiệm vụ mới", "Ba Mẹ vừa giao thêm một việc cho Con. Nhấn vào đây để xem.", "bong-bao-nhiem-vu-moi"),
+                 })
+        {
+            toast.Invoke(ctx, new object[] { 8000, tieu, noi, ToolTipIcon.Info, MucApp.HomNay });
+            await Cho(3000);
+            Chup(ten);
+            await Cho(1500);
+        }
 
         // 4) Màn chặn «Dùng điểm để chơi» (BlockedForm) — vài lý do
         foreach (var (appId, app, lyDo, doi, ten) in new[]

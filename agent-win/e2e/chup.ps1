@@ -62,6 +62,14 @@ function DatDoPhanGiai($w, $h) {
 }
 DatDoPhanGiai 1920 1080
 Start-Sleep -Seconds 2
+try { (New-Object -ComObject Shell.Application).MinimizeAll() } catch { }
+try {
+  New-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Force | Out-Null
+  New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name ToastEnabled -Value 1 -PropertyType DWord -Force | Out-Null
+  New-Item -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Force | Out-Null
+  New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Name NOC_GLOBAL_SETTING_TOASTS_ENABLED -Value 1 -PropertyType DWord -Force | Out-Null
+} catch { }
+Start-Sleep -Seconds 1
 $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen
 Log ("VirtualScreen {0}x{1}" -f $vs.Width, $vs.Height)
 
@@ -261,8 +269,8 @@ Buoc 'Khay thật (AiiGrow.Tray.exe đã cài)' {
     if (-not $ic) {
       $chev = TimTheoChu $bar 'Notification Chevron'; if (-not $chev) { $chev = TimTheoChu $bar 'Show Hidden' }
       if ($chev) { Bam $chev; Start-Sleep -Seconds 1; Anh 'khay-that-vung-tran'
-        $ov = $A::RootElement.FindFirst($TSc, (New-Object System.Windows.Automation.PropertyCondition($A::ClassNameProperty, 'NotifyIconOverflowWindow')))
-        if ($ov) { $ic = TimTheoChu $ov 'AiiGrow' } }
+        $dump = @(); foreach ($e in $A::RootElement.FindAll($TSd, (New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)))) { try { $dump += ($e.Current.ClassName + ' | ' + $e.Current.Name); if (-not $ic -and $e.Current.Name -like '*AiiGrow*') { $ic = $e } } catch { } }
+        $dump | Out-File -Encoding utf8 (Join-Path $LogDir 'buttons-uia.txt') }
     }
     if ($ic) {
       Chuot $ic -Phai; Start-Sleep -Seconds 1
@@ -312,7 +320,7 @@ Buoc 'Công tắc chế độ Chặn thật' {
   [void]$p.WaitForExit(20000)
 }
 Buoc 'Gỡ cài đặt' {
-  $p = Start-Process -FilePath (Join-Path $env:ProgramFiles 'AiiGrow\AiiGrow-Setup.exe') -ArgumentList '--uninstall' -PassThru
+  $p = Start-Process -FilePath (Join-Path $env:ProgramFiles 'AiiGrow\AiiGrow.Setup.exe') -ArgumentList '--uninstall' -PassThru
   HopThoai 'AiiGrow' 'Yes' 'setup-go-hoi-xac-nhan'
   Start-Sleep -Seconds 5
   $d = Cho { $x = CuaSo 'AiiGrow'; if ($x) { $x } } 120 2
