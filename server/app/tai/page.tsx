@@ -1,8 +1,9 @@
 // Trang tải công khai: hướng dẫn tải và cài trình cài AiiGrow cho máy Windows của Con.
 export const metadata = { title: "Tải AiiGrow cho Windows — AiiGrow" };
 
-const LINK_TAI =
-  "https://frsxuiwqryvwsq70.public.blob.vercel-storage.com/tai/AiiGrow-Setup-0.2.3.exe";
+import { BAN_AGENT_WINDOWS } from "@/lib/ban-agent.ts";
+
+const LINK_TAI = BAN_AGENT_WINDOWS.url;
 
 export default function TrangTai() {
   return (
@@ -32,7 +33,7 @@ export default function TrangTai() {
         ⬇ Tải AiiGrow cho Windows
       </a>
       <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>
-        Một tệp AiiGrow-Setup.exe (bản 0.2.3, ~182 MB) · Windows 10/11
+        Một tệp AiiGrow-Setup.exe (bản {BAN_AGENT_WINDOWS.version}, ~182 MB) · Windows 10/11
       </p>
 
       <ol style={{ lineHeight: 1.75, marginTop: 24, paddingLeft: 20 }}>

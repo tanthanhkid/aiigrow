@@ -11,6 +11,12 @@ const config: NextConfig = {
   // Service worker cũ (nếu máy còn) ⇒ public/sw.js tự huỷ. HTML không cache ⇒ deploy mới là F5 thấy ngay; /_expo, /assets có hash ⇒ cache dài.
   async redirects() {
     return [
+      // Bộ cài agent Windows nằm ở GitHub Release repo public tanthanhkid/aiigrow-tai (lib/ban-agent.ts); link giữ trên tên miền máy chủ.
+      {
+        source: "/tai/AiiGrow-Setup-:ban(\\d+\\.\\d+\\.\\d+).exe",
+        destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/v:ban/AiiGrow-Setup-:ban.exe",
+        permanent: false,
+      },
       { source: "/app", destination: "/", permanent: true },
       { source: "/app/:duong((?!sw\\.js$|service-worker\\.js$).*)", destination: "/:duong", permanent: true },
     ];
