@@ -39,6 +39,70 @@ public static class SessionHelper
     [DllImport("kernel32.dll")]
     private static extern uint WTSGetActiveConsoleSessionId();
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetNamedPipeClientProcessId(IntPtr pipe, out uint clientProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
+
+    [DllImport("kernel32.dll", EntryPoint = "QueryFullProcessImageNameW", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool QueryFullProcessImageName(IntPtr process, uint flags, System.Text.StringBuilder name, ref uint size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(IntPtr h);
+
+    private const int WTSSessionInfoEx = 25;
+    private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    /// <summary>Phiên <paramref name="sessionId"/> đang KHOÁ màn hình không (WTSINFOEX_LEVEL1.SessionFlags: WTS_SESSIONSTATE_LOCK = 0,
+    /// UNLOCK = 1). CHỈ ĐÚNG TRÊN WINDOWS 10+ — Windows 7 / Server 2008 R2 đảo ngược hai giá trị (agent .NET 8 chỉ chạy Windows 10+).
+    /// Không đọc được / giá trị lạ ⇒ null (người gọi coi là «không rõ» ⇒ vẫn tính).</summary>
+    public static bool? IsLocked(int sessionId)
+    {
+        if (sessionId < 0) return null;
+        try
+        {
+            if (!WTSQuerySessionInformation(IntPtr.Zero, sessionId, WTSSessionInfoEx, out var buf, out var n)) return null;
+            try
+            {
+                // WTSINFOEXW { DWORD Level; WTSINFOEX_LEVEL_W Data } — Data căn 8 byte (có LARGE_INTEGER) ⇒ offset 8; SessionFlags là trường thứ ba ⇒ 8 + 8.
+                if (n < 20 || Marshal.ReadInt32(buf, 0) != 1) return null;
+                return Marshal.ReadInt32(buf, 16) switch { 0 => true, 1 => false, _ => null };
+            }
+            finally { WTSFreeMemory(buf); }
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Đường dẫn đầy đủ exe của tiến trình khách named pipe (null nếu không đọc được).</summary>
+    public static string? PipeClientImage(IntPtr pipeHandle)
+    {
+        try
+        {
+            return GetNamedPipeClientProcessId(pipeHandle, out var pid) ? ImagePath((int)pid) : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Đường dẫn exe của tiến trình qua QueryFullProcessImageName + PROCESS_QUERY_LIMITED_INFORMATION — rẻ hơn Process.MainModule
+    /// (không đọc danh sách module) và đọc được cả tiến trình 32-bit / được bảo vệ. Không đọc được ⇒ null.</summary>
+    public static string? ImagePath(int pid)
+    {
+        try
+        {
+            var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)pid);
+            if (h == IntPtr.Zero) return null;
+            try
+            {
+                var sb = new System.Text.StringBuilder(1024);
+                uint size = (uint)sb.Capacity;
+                return QueryFullProcessImageName(h, 0, sb, ref size) ? sb.ToString(0, (int)size) : null;
+            }
+            finally { CloseHandle(h); }
+        }
+        catch { return null; }
+    }
+
     /// <summary>Phiên đang gắn với màn hình/bàn phím thật (người đang ngồi trước máy); -1 nếu không có.</summary>
     public static int ActiveConsoleSession()
     {

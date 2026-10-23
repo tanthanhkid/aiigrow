@@ -69,6 +69,16 @@ public sealed class Policy
     /// <summary>AiiGrow: chế độ Ba Mẹ chọn trên app (dong-bo.windows.cheDo) — «giam-sat» | «chan»; null = Ba Mẹ chưa chọn (giữ chế độ cục bộ).
     /// Có giá trị thì THẮNG <see cref="AgentConfig.CheDo"/> (xem <see cref="CheDoHieuLuc"/>). Đang có lệnh gỡ ⇒ máy chủ luôn gửi giam-sat.</summary>
     public string? CheDo { get; set; }
+    /// <summary>AiiGrow 0.2.4: phiên chơi bằng điểm đang chạy (dong-bo.windows.playSessionId) — chỉ có khi agent đang cho chạy app chơi.
+    /// Dùng khi MẤT MẠNG (BRD 6.7, <see cref="PhienOffline"/>): đếm phút chơi, vượt <see cref="PlayOfflineMinutes"/> ⇒ tự bỏ app chơi.</summary>
+    [JsonConverter(typeof(FlexStringConverter))]
+    public string? PlaySessionId { get; set; }
+    /// <summary>Mục của phiên, chữ thường: tên .exe, hoặc tên miền khi <see cref="PlayWeb"/>.</summary>
+    public string? PlayApp { get; set; }
+    /// <summary>Phiên web ⇒ app chơi là trình duyệt (<see cref="PhienOffline.TrinhDuyet"/>).</summary>
+    public bool PlayWeb { get; set; }
+    /// <summary>Số phút tối đa được chơi tiếp khi mất mạng (máy chủ tính từ phút còn lại của phiên, số dư, phút thưởng, giá phiên).</summary>
+    public double? PlayOfflineMinutes { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -94,6 +104,13 @@ public sealed class AgentStatus
     public Dictionary<string, bool> Quyen { get; set; } = new();
     /// <summary>AiiGrow: người trước màn hình đang dùng tài khoản Windows KHÁC tài khoản Con (lúc đó không chặn, không đếm giờ).</summary>
     public bool PhienKhac { get; set; }
+    /// <summary>AiiGrow 0.2.4: số giây Con chơi THẬT phiên <see cref="PlaySessionId"/> (app chơi — trình duyệt nếu phiên web — ở nền trước,
+    /// màn hình mở; <see cref="TienCanhChoi"/>) kể từ lần đồng bộ thành công trước, đếm bằng đồng hồ đơn điệu. Máy chủ tính đúng chừng đó
+    /// (server/lib/phien-windows.ts); 0 ⇒ tạm dừng. LUÔN gửi (kể cả 0) — vắng trường nghĩa là agent cũ (0.2.0–0.2.3).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public double PlaySeconds { get; set; }
+    /// <summary>Phiên mà <see cref="PlaySeconds"/> thuộc về (Policy.PlaySessionId đang giữ); null = Policy không có phiên.</summary>
+    public string? PlaySessionId { get; set; }
 }
 
 /// <summary>Tính <see cref="AgentStatus.Quyen"/> từ trạng thái thật (thuần, test được).</summary>
@@ -203,6 +220,12 @@ public sealed class AgentConfig
     public double MatLienLacChayGiay { get; set; }
     /// <summary>AiiGrow (thêm): các tài khoản Windows đã bị HẠ quyền lúc cài (để TRẢ LẠI khi gỡ — không để «dính» mất quyền admin).</summary>
     public List<QuyenDaHa> DaHaQuyen { get; set; } = new();
+    /// <summary>AiiGrow 0.2.4: phút chơi khi mất mạng chưa gửi bù (<see cref="PhienOffline"/>) — lưu để dịch vụ khởi động lại vẫn giữ (vẫn chặn app
+    /// chơi đã vượt ngưỡng, vẫn gửi bù khi có mạng lại). null = không có gì.</summary>
+    public PhienOffline? PhienOffline { get; set; }
+    /// <summary>AiiGrow 0.2.4 (review PR #59, P2-5): số giây đã chơi phiên <see cref="Policy.PlaySessionId"/> tại máy kể từ khi nhận Policy đang
+    /// giữ — về 0 khi có Policy mới. Ngưỡng đoạn offline mới = PlayOfflineMinutes − chừng này.</summary>
+    public DaChoiTheoPolicy? DaChoi { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);
@@ -214,4 +237,11 @@ public sealed class QuyenDaHa
     public string Sid { get; set; } = "";
     /// <summary>SID nhóm đã bị gỡ khỏi. Mặc định Administrators (S-1-5-32-544).</summary>
     public string Nhom { get; set; } = "S-1-5-32-544";
+}
+
+/// <summary>Số giây đã chơi một phiên tại máy kể từ Policy đang giữ (<see cref="AgentConfig.DaChoi"/>).</summary>
+public sealed class DaChoiTheoPolicy
+{
+    public string PhienId { get; set; } = "";
+    public double Giay { get; set; }
 }

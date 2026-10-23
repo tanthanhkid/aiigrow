@@ -13,7 +13,17 @@ public sealed class PipeServer : BackgroundService
     private readonly ILogger<PipeServer> _log;
     private readonly AgentRuntime _rt;
 
-    public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) { _log = log; _rt = rt; }
+    /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
+    private readonly Func<IntPtr, bool> _laKhayThat;
+
+    public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
+    public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
+
+    /// <summary>Mặc định: exe của tiến trình khách (GetNamedPipeClientProcessId) = AiiGrow.Tray.exe (hoặc bản cũ «.cu-…» lúc cập nhật) cùng
+    /// thư mục với dịch vụ. Dịch vụ chạy ngoài thư mục cài (bản dev) ⇒ không kiểm (<see cref="KhayThat.LaBanDev"/>).</summary>
+    public static bool KhayDaCai(IntPtr pipeHandle)
+        => KhayThat.LaBanDev(AppContext.BaseDirectory, Paths.InstallDir)
+           || KhayThat.La(SessionHelper.PipeClientImage(pipeHandle), Path.Combine(AppContext.BaseDirectory, Paths.TrayExeName));
 
     private static NamedPipeServerStream Create()
     {
@@ -60,8 +70,10 @@ public sealed class PipeServer : BackgroundService
                 try
                 {
                     var req = string.IsNullOrEmpty(line) ? null : JsonSerializer.Deserialize<PipeRequest>(line, Json.Options);
-                    var clientSession = SessionHelper.PipeClientSession(pipe.SafePipeHandle.DangerousGetHandle());
-                    resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, cts.Token);
+                    var h = pipe.SafePipeHandle.DangerousGetHandle();
+                    var clientSession = SessionHelper.PipeClientSession(h);
+                    bool khay = req?.Cmd is PipeCmd.Foreground or PipeCmd.Play && _laKhayThat(h);
+                    resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
                 {
@@ -78,7 +90,8 @@ public sealed class PipeServer : BackgroundService
         }
     }
 
-    private async Task<PipeResponse> DispatchAsync(PipeRequest req, int clientSession, CancellationToken ct)
+    /// <param name="khayThat">Khách là đúng exe khay đã cài — chỉ tính cho Foreground / Play (lệnh khác: false, không dùng).</param>
+    private async Task<PipeResponse> DispatchAsync(PipeRequest req, int clientSession, bool khayThat, CancellationToken ct)
     {
         var childSession = _rt.ChildSessionId;
         // Báo app tiền cảnh: chỉ phiên của Con. Xin giờ / mở phiên chơi / lệnh ghi học viên: thêm phiên đang ngồi trước màn hình. Học viên đọc: mọi phiên.
@@ -93,7 +106,8 @@ public sealed class PipeServer : BackgroundService
                 return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
 
             case PipeCmd.Foreground:
-                if (fromChild) _rt.SetForeground(req.AppId, req.AppName);
+                // Chỉ khay thật: app khác trong phiên Con giả lời báo («không có cửa sổ») sẽ ngừng được đồng hồ phiên chơi.
+                if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName);
                 return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
 
             case PipeCmd.Request:
@@ -117,6 +131,7 @@ public sealed class PipeServer : BackgroundService
             {
                 // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được mở phiên chơi" };
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 var muc = string.IsNullOrWhiteSpace(req.AppId) ? "" : req.AppId!;

@@ -9,7 +9,7 @@
 //   • nextCheckSec ngắn lại khi đang có phiên / đang mở (và đúng lúc hết hạn mở) để thay đổi của Ba Mẹ tới máy Con trong ≤ 30 giây.
 //   • minutesLeft để trống: hết phiên chơi thì máy chủ đóng phiên, lần đồng bộ sau app giải trí rời danh sách (không khoá cả máy).
 // Agent mặc định chạy chế độ GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do).
-import { gioDiaPhuong, trongKhung } from "./gio.ts";
+import { gioDiaPhuong, laCuoiTuan, phutCua, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 
@@ -25,6 +25,18 @@ export type PolicyWindows = {
   cheDo?: "giam-sat" | "chan";
   /** Lọc web theo tên miền (lib/web.ts): agent ghi chính sách Chrome/Edge URLBlocklist/URLAllowlist — CHỈ khi chế độ hiệu lực là «chan»; giám sát ⇒ gỡ chính sách. */
   web: ChinhSachWeb;
+  // 0.2.4 — chỉ có khi đang có phiên chơi bằng điểm mà agent cho chạy (app .exe của phiên, hoặc trình duyệt cho phiên web).
+  // Agent dùng khi MẤT MẠNG (BRD 6.7): chỉ đếm lúc app chơi ở nền trước + màn hình mở; vượt `playOfflineMinutes` ⇒ tự bỏ app chơi
+  // (và trình duyệt nếu `playWeb`) khỏi allowedApps, coi phiên đã hết; có mạng lại gửi `phien/bu` {id = playSessionId} trước dong-bo.
+  /** Mã phiên chơi đang chạy (play_sessions.id). */
+  playSessionId?: string;
+  /** Mục của phiên, chữ thường (tên .exe, hoặc tên miền khi `playWeb`). */
+  playApp?: string;
+  /** Phiên web ⇒ app chơi là trình duyệt (TRINH_DUYET). */
+  playWeb?: boolean;
+  /** Số phút tối đa được chơi tiếp khi mất mạng = min(phút còn lại của phiên, phút mua được bằng số dư + phút thưởng còn lại theo giá phiên,
+   *  phút tới hết khung giờ / tới giờ ngủ — phutToiHetLich). */
+  playOfflineMinutes?: number;
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
@@ -44,7 +56,27 @@ export function nhipDongBo(o: { coPhien: boolean; moDen?: Date | null; now: Date
   return Math.max(10, s);
 }
 
-export type MoRong = { moDen?: Date | null; conThuong?: number };
+/** `phienTien`: giá của phiên (phần nghìn điểm/phút, chốt lúc mở) và phần lẻ đang nợ (phan_nghin_tru − diem_tru·1000) — lib/phien-windows.ts › tienPhien. */
+/** `lichPhien`: lịch của Con đang chơi (máy dùng chung — Policy chung mang lịch mặc định) — chỉ dùng cho playOfflineMinutes. */
+export type MoRong = { moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"] };
+
+/** Phút được chơi tiếp khi mất mạng (BRD 6.7) — tính như máy chủ tính ở nhịp: phút thưởng (thêm giờ) dùng trước, không trừ điểm;
+ *  rồi tới số phút mua được bằng số dư sau khi trả phần lẻ đang nợ; không vượt phút còn lại của phiên. Giá 0 ⇒ chỉ giới hạn bởi phiên. */
+export function phutChoiOffline(conPhut: number, soDu: number, conThuong: number, giaPhanNghin: number, noPhanNghin = 0): number {
+  const muaDuoc = giaPhanNghin > 0 ? Math.max(0, Math.floor((soDu * 1000 - Math.max(0, noPhanNghin)) / giaPhanNghin)) : Infinity;
+  return Math.max(0, Math.min(Math.max(0, conPhut), muaDuoc + Math.max(0, Math.floor(conThuong))));
+}
+
+/** Phút còn lại tới khi PHẢI dừng theo lịch lúc `p.serverTime`: hết khung giờ chơi đang ở trong (ngoài khung ⇒ 0), và không quá giờ ngủ
+ *  (đang trong giờ ngủ ⇒ 0). Agent mất mạng không tự xét lịch cho phiên đã mở nên ngưỡng offline phải chứa sẵn mốc này. */
+export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): number {
+  const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
+  const k = (laCuoiTuan(g.thu) ? p.lich.cuoiTuan : p.lich.ngayThuong).find((x) => trongKhung(g.phut, x));   // như phien.ts › conTrongKhung
+  const khung = k ? ((phutCua(k.den) - g.phut + 1440) % 1440) || 1440 : 0;
+  if (!p.lich?.ngu) return khung;
+  if (trongKhung(g.phut, p.lich.ngu)) return 0;
+  return Math.min(khung, ((phutCua(p.lich.ngu.tu) - g.phut + 1440) % 1440) || 1440);
+}
 
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
@@ -69,5 +101,11 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     web: chinhSachWebCho(p, { moGiaiTri: dangMo }),
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
+    // play* CHỈ cho máy sở hữu phiên (mo.phienTien do api-may đặt khi play_sessions.device_id = máy này) — Con có 2 PC thì PC kia không đếm.
+    ...(p.phien && mo.phienTien && (choi.length || phienWeb) ? {
+      playSessionId: p.phien.id, playApp: p.phien.muc.toLowerCase(), playWeb: !!phienWeb,
+      playOfflineMinutes: Math.min(phutToiHetLich(mo.lichPhien ? { ...p, lich: mo.lichPhien } : p),
+        phutChoiOffline(p.phien.conPhut, p.soDu, mo.conThuong ?? 0, mo.phienTien.giaPhanNghin, mo.phienTien.noPhanNghin)),
+    } : {}),
   };
 }

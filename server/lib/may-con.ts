@@ -174,7 +174,8 @@ export async function nhanSuKien(may: May, con: string | null, ds: SuKienVao[]) 
 }
 
 // ---------------------------------------------------------------- bù phút chơi khi mất mạng (BRD 6.7)
-// Offline, agent chỉ cho chơi tới số điểm đã đồng bộ (Policy.soDu) rồi tự đóng; có mạng lại thì gửi `phien/bu`. Máy chủ vẫn là sổ sách:
+// Offline, agent chỉ cho chơi tới `windows.playOfflineMinutes` (số điểm/phút đã đồng bộ — agent-windows.ts) rồi tự đóng; có mạng lại thì gửi
+// `phien/bu` TRƯỚC dong-bo (nhip_cuoi còn là nhịp online cuối ⇒ đo được thời gian thật đã trôi). Máy dùng chung: Con lấy từ phiên (api-may). Máy chủ vẫn là sổ sách:
 // phút bù không vượt thời gian thật đã trôi (đồng hồ máy chủ từ nhịp cuối), không vượt phút tối đa của phiên; trừ điểm không âm; `ma` một lần.
 export type BuVao = { ma?: unknown; id?: unknown; muc?: unknown; phut?: unknown; batDau?: unknown; ketThuc?: unknown };
 
@@ -234,7 +235,10 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
     const tru = Math.max(0, Math.min(can, await soDu(con, t)));
     if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc} (khi mất mạng)`, { ref: p.id });
     await t(`update play_sessions set phut_dung = phut_dung + $2, phan_nghin_tru = $3, diem_tru = diem_tru + $4, phut_thuong = phut_thuong + $5,
-             nhip_cuoi = $6::timestamptz, tam_tu = null, trang_thai = case when $7::boolean then 'ket_thuc' else trang_thai end,
+             nhip_cuoi = $6::timestamptz,
+             -- có phút chơi bù ⇒ phiên đang chơi (hết tạm dừng); không có ⇒ giữ mốc tạm dừng cũ (không kéo dài «tạm» thêm 3 phút)
+             tam_tu = case when $2::real > 0 then null else tam_tu end,
+             trang_thai = case when $7::boolean then 'ket_thuc' when $2::real > 0 then 'chay' else trang_thai end,
              ly_do_ket = case when $7::boolean then coalesce(ly_do_ket, 'offline') else ly_do_ket end,
              ket_thuc = case when $7::boolean then coalesce(ket_thuc, $6::timestamptz) else ket_thuc end where id = $1`,
       [p.id, them, phanNghin, tru, dungThuong, now, ket]);

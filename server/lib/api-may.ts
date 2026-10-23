@@ -10,7 +10,8 @@ import { conTuPhien, dangNhapPin, ghepMay, mayTuToken, nguonGoi } from "./gia-di
 import { dongBo } from "./may-con.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, nhanSuKien, taoPhienWeb } from "./may-con.ts";
-import { dungPhien, moPhien, nhip, nhipTuDongBo, phienDang, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
+import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
+import { conChoBu, ghepPhienMayChung, laAgentMoi, moRongPhienMay, nhipPhienWindows, type TrangThaiNhip } from "./phien-windows.ts";
 import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
 import * as nv from "./nhiem-vu.ts";
@@ -45,13 +46,9 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "dong-bo") {
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
       // Lỗi ở nhịp phiên không được làm hỏng cả lượt đồng bộ (agent giữ Policy cũ, thay đổi của Ba Mẹ không tới máy) ⇒ nuốt + ghi log.
-      if (may.platform === "windows" && con) try {
-        const ph = await phienDang(con);
-        if (ph?.device_id === may.id) {
-          const st = (b.status ?? {}) as { childSessionActive?: boolean };
-          if ((await khoaTuanThu(may)).khoa) await dungPhien(con, ph.id, "ba_me_khoa");
-          else await nhipTuDongBo(may.id, con, st.childSessionActive !== false);
-        }
+      // 0.2.4: tính đúng `status.playSeconds` agent đếm (app chơi ở nền trước, màn hình mở); máy dùng chung lấy Con từ phiên mở trên máy (lib/phien-windows.ts).
+      if (may.platform === "windows") try {
+        await nhipPhienWindows(may, con, b.status as TrangThaiNhip | undefined);
       } catch (e) { console.error("dong-bo: nhịp phiên Windows lỗi", e); }
       const pol = await dongBo(may, { ...b, conDangDung: con });
       // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi.
@@ -64,7 +61,12 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
       const moDen = may.platform === "windows" ? await hanMoCuaMay(may, con) : null;
       const conThuong = may.platform === "windows" && con ? await thuongConLai(con) : 0;
-      const windows = chinhSachWindows(pol, biMatOffline ?? undefined, cheDo, { moDen, conThuong });
+      // play* chỉ cho máy sở hữu phiên. Máy dùng chung + agent 0.2.4: phiên mở trên máy ⇒ ghép phần phiên vào Policy chung (chỉ cho «windows»).
+      const ghep = may.platform === "windows" && !con && laAgentMoi(b.status as TrangThaiNhip | undefined) ? await ghepPhienMayChung(may, pol) : null;
+      const moPhienMay = may.platform === "windows" && con ? await moRongPhienMay(may, con) : null;
+      const windows = chinhSachWindows(ghep?.pol ?? pol, biMatOffline ?? undefined, cheDo,
+        { moDen, conThuong, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
+      if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay
       return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows });
     }
     if (d === "nhip") return json(await nhipMay(may, con, b));
@@ -80,6 +82,12 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // Giám sát web: agent gửi TỔNG theo (ngày, tên miền) đọc từ lịch sử trình duyệt của Con — chỉ tên miền + đếm (lib/web.ts)
     if (d === "web/lich-su" && req.method === "POST") return json(await nhanLichSuWeb(may, con, b.ds));
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
+    // Bù phút chơi khi mất mạng (agent 0.2.4 gửi TRƯỚC dong-bo khi có mạng lại). Máy dùng chung: Con lấy từ phiên `id` mở trên máy này.
+    if (d === "phien/bu") {
+      const cb = await conChoBu(may, con, b.id);
+      if (!cb) throw new LoiNghiepVu(b.id && !con ? "khong_thay" : "chua_chon_con", b.id && !con ? "Không thấy phiên trên máy này" : "Chọn hồ sơ và nhập mã PIN trước", b.id && !con ? 404 : 409);
+      return json(await buPhien(may, cb, b));
+    }
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn hồ sơ và nhập mã PIN trước", 409);
     // Khay của học viên (agent-win Tray): nhận việc, làm + nộp, xem điểm/quà, thông báo — cổng mỏng trên các hàm của màn Con (lib/hoc-vien.ts).
     if (p[0] === "hoc-vien") {
@@ -123,7 +131,6 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     }
     // M4: phiên Con cho khung Kid (WebView2) · bù phút chơi khi mất mạng
     if (d === "phien-web") return json(await taoPhienWeb(may, con));
-    if (d === "phien/bu") return json(await buPhien(may, con, b));
     return loi("khong_co_duong", "Không có đường này", 404);
   } catch (e) {
     return batLoi(e);
