@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "vn.aiilab.aiigrow",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "config": { "usesNonExemptEncryption": false }
     },
     "android": {
@@ -30,6 +30,7 @@
         }
       ]
     ],
+    "web": { "favicon": "./assets/favicon.png" },
     "scheme": "aiigrow",
     "experiments": { "typedRoutes": true }
   }

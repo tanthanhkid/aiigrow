@@ -8,7 +8,7 @@ const LINK_TAI = BAN_AGENT_WINDOWS.url;
 export default function TrangTai() {
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "48px 16px" }}>
-      <img src="/logo.svg" alt="AiiGrow" width={140} />
+      <img src="/logo.png" alt="AiiGrow" width={96} height={96} style={{ borderRadius: 22 }} />
       <h1 style={{ fontSize: 28, marginBottom: 8 }}>Tải AiiGrow cho máy của Con</h1>
       <p style={{ color: "#4a5555", marginTop: 0 }}>
         Cài trên máy tính Windows để đồng hành cùng Con. Mặc định chỉ{" "}

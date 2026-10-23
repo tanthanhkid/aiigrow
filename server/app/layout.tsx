@@ -6,7 +6,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi">
       <head>
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#fbf8f2", color: "#1f2a2a" }}>{children}</body>
     </html>
