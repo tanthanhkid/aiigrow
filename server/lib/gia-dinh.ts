@@ -88,32 +88,35 @@ export async function taoMaGhep(fam: string, con: string | null, platform: strin
 
 const GHEP_SAI_TOI_DA = 10;
 
-/** Ghép máy bằng mã 6 số. `nguon` (IP gọi) sai mã 10 lần ⇒ khoá 15 phút — chặn dò mã (chốt BRD #56 câu 3).
- *  Giữ chỗ lượt thử TRƯỚC khi thử (một upsert nguyên tử) ⇒ gửi song song cũng chỉ ≤ 10 lượt lọt; ghép đúng thì trả lại lượt. */
-export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?") {
-  const khoa = `ghep:${nguon}`;
-  const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set
-      so_lan = case when pin_sai.khoa_den <= now() then 1 else pin_sai.so_lan + 1 end,
-      khoa_den = case when pin_sai.khoa_den <= now() then null
-                      when pin_sai.khoa_den is null and pin_sai.so_lan + 1 >= $2 then now() + interval '15 minutes'
-                      else pin_sai.khoa_den end
-    returning so_lan`, [khoa, GHEP_SAI_TOI_DA]))[0];
+const GHEP_KHUNG_MS = 15 * 60_000;
+const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
+
+/** Ghép máy bằng mã 6 số. Mỗi `nguon` (IP gọi) được tối đa 10 lần sai trong một khung 15 phút, quá ⇒ khoá tới hết khung — chặn dò mã
+ *  (chốt BRD #56 câu 3). Khung cố định theo giờ ⇒ gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Giữ chỗ lượt thử TRƯỚC khi thử (một upsert
+ *  nguyên tử) ⇒ gửi song song cũng chỉ ≤ 10 lượt lọt; ghép đúng hoặc lỗi không phải sai mã thì trả lại lượt. */
+export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?", now = Date.now()) {
+  const khoa = `ghep:${nguon}:${Math.floor(now / GHEP_KHUNG_MS)}`;
+  const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
+    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > GHEP_SAI_TOI_DA) throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
   try {
     const kq = await ghepMayGd(code, platform, tenMay);
-    await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0),
-               khoa_den = case when so_lan - 1 < $2 then null else khoa_den end where khoa = $1`, [khoa, GHEP_SAI_TOI_DA]);
+    await traLuot(khoa);
     return kq;
   } catch (e) {
-    // lỗi không phải sai mã (hết hạn, đã dùng, sai nền tảng…) không tính là dò ⇒ trả lại lượt
-    if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai"))
-      await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0),
-                 khoa_den = case when so_lan - 1 < $2 then null else khoa_den end where khoa = $1`, [khoa, GHEP_SAI_TOI_DA]);
+    if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai")) await traLuot(khoa);
     throw e;
   }
 }
 
-function ghepMayGd(code: string, platform: string, tenMay: string) {
+/** IP gọi để đếm lượt ghép: `x-real-ip` (Vercel đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
+export function nguonGoi(h: Headers) {
+  const ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "?").split(",")[0].trim().toLowerCase();
+  return ip.includes(":") ? ip.split(":").slice(0, 4).join(":") : ip;
+}
+
+/** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
+export function ghepMayGd(code: string, platform: string, tenMay: string) {
   return tx(async (t) => {
     const m = (await t<{ family_id: string; child_id: string | null; platform: NenTang; expires_at: Date; used_at: Date | null }>(
       `select family_id, child_id, platform, expires_at, used_at from pair_codes where code = $1 for update`, [String(code ?? "").trim()]))[0];

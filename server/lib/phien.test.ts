@@ -81,6 +81,19 @@ test("hết 30 phút tối đa ⇒ kết thúc, nghỉ 60 phút, cảnh báo 5 p
   assert.equal(dong.trangThai, "ket_thuc");
   assert.equal(dong.lyDoKet, "khong_hoat_dong");
   assert.equal(await v.soDu(con), 65, "chỉ trừ 5 phút dùng thật; phút khoá máy và lúc tạm dừng không tính");
+  // nhịp tạm dừng MỖI PHÚT (app web Con gửi 60 giây/lần) vẫn đóng sau 3 phút tính từ lúc bắt đầu tạm dừng; dùng lại thì đếm lại
+  const t2 = sau(t1, 80);
+  const p3 = await ph.moPhien(con, "may1", "roblox.exe", {}, t2);
+  await choi(con, p3.id, t2, 2);
+  assert.equal((await ph.nhip(con, p3.id, false, sau(t2, 3))).trangThai, "tam");
+  assert.equal((await ph.nhip(con, p3.id, false, sau(t2, 4))).trangThai, "tam");
+  assert.equal((await ph.nhip(con, p3.id, true, sau(t2, 5))).trangThai, "chay");      // dùng lại trước 3 phút
+  assert.equal((await ph.nhip(con, p3.id, false, sau(t2, 6))).trangThai, "tam");
+  assert.equal((await ph.nhip(con, p3.id, false, sau(t2, 7))).trangThai, "tam");
+  assert.equal((await ph.nhip(con, p3.id, false, sau(t2, 8))).trangThai, "tam");
+  const dong3 = await ph.nhip(con, p3.id, false, sau(t2, 9));
+  assert.equal(dong3.trangThai, "ket_thuc");
+  assert.equal(dong3.lyDoKet, "khong_hoat_dong");
 });
 
 test("video ngắn 2 điểm/phút; hết điểm thì dừng; phần lẻ làm tròn lên", async () => {

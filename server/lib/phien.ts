@@ -112,7 +112,8 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
     const p = (await t<{ id: string; trang_thai: string; gia_phan_nghin: number; toi_da_phut: number; nhip_cuoi: Date; phut_dung: number;
-      phan_nghin_tru: number; diem_tru: number; phut_thuong: number; muc: string; ly_do_ket: string | null; nghi_den: Date | null }>(
+      phan_nghin_tru: number; diem_tru: number; phut_thuong: number; muc: string; ly_do_ket: string | null; nghi_den: Date | null;
+      tam_tu: Date | null }>(
       `select * from play_sessions where id = $1 and child_id = $2 for update`, [phienId, con]))[0];
     if (!p) throw new LoiNghiepVu("khong_thay", "Không thấy phiên", 404);
     const b = await boiCanh(t, con);
@@ -121,7 +122,9 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
         lyDoKet: p.ly_do_ket ?? undefined, nghiDen: p.nghi_den ? new Date(p.nghi_den).toISOString() : undefined };
     const troi = Math.max(0, (now.getTime() - new Date(p.nhip_cuoi).getTime()) / 60000);
     let phutDung = p.phut_dung, phanNghin = p.phan_nghin_tru, diemTru = p.diem_tru, phutThuong = p.phut_thuong, ket: string | null = null;
-    if (p.trang_thai === "tam" && troi >= b.ts.tu_dong_dong && !dangDung) ket = "khong_hoat_dong";
+    // tạm dừng tính từ nhịp «không dùng» đầu tiên (tam_tu), không từ nhịp cuối — nhịp tạm dừng mỗi phút không kéo dài mãi
+    const tamTu = !dangDung ? (p.trang_thai === "tam" ? new Date(p.tam_tu ?? p.nhip_cuoi) : now) : null;
+    if (tamTu && (now.getTime() - tamTu.getTime()) / 60000 >= b.ts.tu_dong_dong) ket = "khong_hoat_dong";
     if (!ket && dangDung && p.trang_thai === "chay") {
       const them = Math.min(NHIP_TOI_DA_PHUT, Math.round(troi * 10) / 10);
       const g = gioDiaPhuong(now, b.tz);
@@ -155,8 +158,9 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       if (["het_thoi_gian", "con_dung", "het_diem"].includes(ket)) nghiDen = new Date(now.getTime() + b.ts.nghi_giua * 60000);
     }
     await t(`update play_sessions set trang_thai = $2, phut_dung = $3, phan_nghin_tru = $4, diem_tru = $5, nhip_cuoi = $6::timestamptz,
-             ly_do_ket = $7, ket_thuc = case when $7::text is null then null else $6::timestamptz end, nghi_den = $8, phut_thuong = $9 where id = $1`,
-      [p.id, trangThai, phutDung, phanNghin, diemTru, now, ket, nghiDen, phutThuong]);
+             ly_do_ket = $7, ket_thuc = case when $7::text is null then null else $6::timestamptz end, nghi_den = $8, phut_thuong = $9,
+             tam_tu = $10 where id = $1`,
+      [p.id, trangThai, phutDung, phanNghin, diemTru, now, ket, nghiDen, phutThuong, trangThai === "tam" ? tamTu : null]);
     if (ket) await ghiSuKien(fam, "ket_phien", { muc: p.muc, phut: phutDung, diem: diemTru, ly_do: ket }, { con }, t);
     const conPhut = ket ? 0 : Math.max(0, Math.ceil(p.toi_da_phut - phutDung));
     return { trangThai, phutDung, conPhut, diemTru, soDu: await soDu(con, t), canhBao: conPhut > 0 && conPhut <= 1 ? 1 : conPhut > 0 && conPhut <= 5 ? 5 : null,
