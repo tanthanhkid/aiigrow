@@ -8,8 +8,10 @@ import { tomTatVi } from "./vi.ts";
 import { chuoiNgay } from "./thanh-tich.ts";
 import { nvCuaCon } from "./nhiem-vu.ts";
 import { cuaHang } from "./phan-thuong.ts";
-import { dungPhien, lyDoChu, moPhien, nhip, phienDang, xetMoPhien } from "./phien.ts";
+import { dungPhien, lyDoChu, moPhien, nhip, phienDang, xetMoPhien, type XetPhien } from "./phien.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { khoaTuanThu } from "./tuan-thu.ts";
+import type { May } from "./gia-dinh.ts";
 
 type ConTre = { id: string; family_id: string; device_id: string | null };
 
@@ -68,18 +70,36 @@ export async function nhaTre(c: ConTre, now = new Date()) {
 }
 
 /** Xét trước «Dùng điểm để chơi?» (FR-04.02) — kèm câu giải thích và giờ mở lại khi chưa được. */
+/** Máy Windows của trang khay: không tuân thủ ⇒ câu khoá (như phien/xet của agent); máy khác / web ⇒ null. */
+async function khoaMayWin(c: ConTre, now: Date) {
+  if (!c.device_id) return null;
+  const may = await one<May>(`select * from devices where id = $1`, [c.device_id]);
+  if (may?.platform !== "windows") return null;
+  const kt = await khoaTuanThu(may, now);
+  return kt.khoa ? kt.cau : null;
+}
+
 export async function xetTre(c: ConTre, muc: string, now = new Date()) {
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Chọn trò chơi trước nhé");
+  const khoa = await khoaMayWin(c, now);
+  if (khoa) { const kq: XetPhien = { duoc: false, lyDo: "khong_tuan_thu" }; return { ...kq, cau: khoa as string | null }; }
   const x = await xetMoPhien(c.id, muc, { mayId: c.device_id }, now);
   return { ...x, cau: x.duoc ? null : lyDoChu(x) };
 }
 
 export async function moTre(c: ConTre, muc: string, now = new Date()) {
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Chọn trò chơi trước nhé");
+  const khoa = await khoaMayWin(c, now);
+  if (khoa) throw new LoiNghiepVu("khong_mo_duoc", khoa, 409);
   return moPhien(c.id, c.device_id, muc, {}, now);
 }
 
 export async function nhipTre(c: ConTre, id: string, dangDung: boolean, now = new Date()) {
+  // Phiên mở từ máy Windows: nhịp đồng bộ của agent là nguồn «đang dùng» duy nhất (api-may dong-bo). Trang khay chỉ theo trạng thái
+  // hiện có — trang thu nhỏ để chơi Roblox mà gửi «không dùng» thì hai nguồn giành nhau, phiên chập chờn tam/chay không tính phút.
+  const p0 = await one<{ trang_thai: string; platform: string | null }>(
+    `select s.trang_thai, d.platform from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
+  if (p0?.platform === "windows") dangDung = p0.trang_thai !== "tam";
   const k = await nhip(c.id, id, dangDung, now);
   const p = await one<{ muc: string; toi_da_phut: number; gia_phan_nghin: number }>(`select muc, toi_da_phut, gia_phan_nghin from play_sessions where id = $1`, [id]);
   return { ...k, muc: p?.muc ?? "", toiDaPhut: p?.toi_da_phut ?? 0, giaPhanNghin: p?.gia_phan_nghin ?? 0 };
