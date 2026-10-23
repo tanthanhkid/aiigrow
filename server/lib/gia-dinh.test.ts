@@ -34,6 +34,12 @@ test("ghép máy: sai mã 10 lần từ một IP ⇒ khoá 15 phút, IP khác v�
   const sai = ma === "000000" ? "000001" : "000000";
   for (let i = 0; i < 10; i++) await loi(g.ghepMay(sai, "windows", "X", "1.2.3.4"), "ma_sai");
   await loi(g.ghepMay(ma, "windows", "X", "1.2.3.4"), "ghep_tam_khoa");     // khoá cả mã đúng
+  // dò song song: tất cả cùng lúc vẫn chỉ ≤ 10 lượt được thử
+  const ma2 = await g.taoMaGhep(fam, con, "windows");
+  const kq = await Promise.allSettled(Array.from({ length: 30 }, () => g.ghepMay(ma2, "windows", "X", "9.9.9.9")));
+  assert.equal(kq.filter((x) => x.status === "fulfilled").length, 1);
+  const kq2 = await Promise.allSettled(Array.from({ length: 30 }, (_, i) => g.ghepMay(String(i).padStart(6, "9"), "windows", "X", "8.8.8.8")));
+  assert.ok(kq2.filter((x) => x.status === "rejected" && (x.reason as { ma?: string }).ma === "ghep_tam_khoa").length >= 20);
   const r = await g.ghepMay(ma, "windows", "PC của Bo", "5.6.7.8");
   assert.ok(r.token);
   await q(`update pin_sai set khoa_den = now() - interval '1 minute' where khoa = 'ghep:1.2.3.4'`);
