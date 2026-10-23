@@ -17,12 +17,28 @@ public sealed class WindowsProcessControl : IProcessControl
             int id = 0;
             try
             {
-                if (p.SessionId == sessionId) { path = p.MainModule?.FileName; id = p.Id; }
+                // KHÔNG dùng Process.MainModule (đọc cả danh sách module — tốn CPU, lỗi với tiến trình 32-bit / được bảo vệ):
+                // QueryFullProcessImageName(PROCESS_QUERY_LIMITED_INFORMATION). Không đọc được ⇒ BỎ QUA (như trước): ProcessEnforcer cần đường
+                // dẫn đầy đủ để giữ app trong thư mục hệ thống — tên trần sẽ bị coi là ngoài thư mục an toàn.
+                if (p.SessionId == sessionId) { id = p.Id; path = SessionHelper.ImagePath(id); }
             }
             catch { }
             finally { p.Dispose(); }
             if (!string.IsNullOrEmpty(path)) yield return new RunningProc(id, path!);
         }
+    }
+
+    /// <summary>Tên exe (chữ thường) đang chạy trong phiên — cho «đang chơi thật» (TienCanhChoi). Chỉ đọc ProcessName (rẻ, không mở tiến trình).</summary>
+    public static HashSet<string> TenTrongPhien(int sessionId)
+    {
+        var s = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in Process.GetProcesses())
+        {
+            try { if (p.SessionId == sessionId) s.Add(p.ProcessName.ToLowerInvariant() + ".exe"); }
+            catch { }
+            finally { p.Dispose(); }
+        }
+        return s;
     }
 
     public bool Close(int processId)

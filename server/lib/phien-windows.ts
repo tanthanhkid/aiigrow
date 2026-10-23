@@ -13,6 +13,7 @@ import type { MoRong } from "./agent-windows.ts";
 import type { Policy } from "./may-con.ts";
 import { dungPhien, nhip, phienDang, thuongConLai, type KetNhip } from "./phien.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
+import { lichCua } from "./cau-hinh.ts";
 import { soDu } from "./vi.ts";
 
 /** Trạng thái agent gửi trong dong-bo (chỉ các trường dùng cho nhịp phiên) — đọc từ THÂN yêu cầu, không từ devices.status đã gộp. */
@@ -20,6 +21,14 @@ export type TrangThaiNhip = { childSessionActive?: unknown; playSeconds?: unknow
 
 /** Lượt dong-bo này có phải nhịp của vòng thực thi agent không (có `childSessionActive` boolean — mọi bản agent-win đều gửi; heartbeat thì không). */
 export const laNhipThucThi = (st: TrangThaiNhip | undefined) => typeof st?.childSessionActive === "boolean";
+
+/** Bản agent ≥ 0.2.4 theo `status.version` máy tự báo (ban-agent.ts › banMayBao) — dùng khi KHÔNG có thân yêu cầu dong-bo (trang khay). */
+export function banTu024(v: string | null | undefined): boolean {
+  const m = /^(\d+)\.(\d+)\.(\d+)/.exec(String(v ?? "").trim());
+  if (!m) return false;
+  const [a, b, c] = [+m[1], +m[2], +m[3]];
+  return a > 0 || b > 2 || (b === 2 && c >= 4);
+}
 
 /** Agent 0.2.4+ (gửi `playSeconds`). */
 export const laAgentMoi = (st: TrangThaiNhip | undefined) => typeof st?.playSeconds === "number" && Number.isFinite(st.playSeconds);
@@ -100,9 +109,9 @@ export async function moRongPhienMay(may: May, con: string | null, now = new Dat
 }
 
 /** Máy dùng chung có phiên mở trên máy (agent 0.2.4+): GHÉP chỉ phần phiên vào Policy chung — luật giải trí cho đúng mục của phiên (để
- *  agent-windows.ts thả app / trình duyệt + luật web cho tên miền), `phien`, số dư của Con đó (cho playOfflineMinutes). Lịch, khoá,
- *  app học, luật web khác giữ của máy. Không có phiên ⇒ null. */
-export async function ghepPhienMayChung(may: May, pol: Policy, now = new Date()): Promise<{ pol: Policy; mo: Pick<MoRong, "phienTien" | "conThuong"> } | null> {
+ *  agent-windows.ts thả app / trình duyệt + luật web cho tên miền), `phien`, số dư + lịch của Con đó (chỉ cho playOfflineMinutes). Lịch thực thi,
+ *  khoá, app học, luật web khác giữ của máy. Không có phiên ⇒ null. */
+export async function ghepPhienMayChung(may: May, pol: Policy, now = new Date()): Promise<{ pol: Policy; mo: Pick<MoRong, "phienTien" | "conThuong" | "lichPhien"> } | null> {
   const ph = await phienCuaMay(may, null);
   if (!ph || !(await conDangNhapPin(ph.child_id, may.id, now))) return null;
   const s = (await one<{ nhom: string; gia_phan_nghin: number; toi_da_phut: number; phut_dung: number }>(
@@ -114,6 +123,8 @@ export async function ghepPhienMayChung(may: May, pol: Policy, now = new Date())
       phien: { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(s.toi_da_phut - s.phut_dung)) },
       luat: [...pol.luat.filter((l) => l.muc.toLowerCase() !== muc), { muc, loai: "giai_tri", nhom: s.nhom, giaPhanNghin: s.gia_phan_nghin }],
     },
-    mo: { phienTien: await tienPhien(ph.id), conThuong: await thuongConLai(ph.child_id, now) },
+    // ngưỡng offline theo lịch / giờ ngủ CỦA CON đang chơi (Policy chung mang lịch mặc định của máy)
+    mo: { phienTien: await tienPhien(ph.id), conThuong: await thuongConLai(ph.child_id, now),
+      lichPhien: lichCua((await one<{ lich: Record<string, unknown> | null }>(`select lich from children where id = $1`, [ph.child_id]))?.lich as never) },
   };
 }

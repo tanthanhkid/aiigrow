@@ -61,7 +61,7 @@ public sealed class AgentWorker : BackgroundService
                     bool? manHinhKhoa = sess != null ? SessionHelper.IsLocked(sess.SessionId) : null;
                     IReadOnlyCollection<string>? tienTrinh = null;
                     if (sess != null && _rt.CurrentPolicy?.PlaySessionId != null)
-                        try { tienTrinh = TienCanhChoi.TenExe(_procs.ListChildProcesses(sess.SessionId)); } catch { tienTrinh = null; }
+                        try { tienTrinh = WindowsProcessControl.TenTrongPhien(sess.SessionId); } catch { tienTrinh = null; }   // ProcessName, không MainModule
                     _rt.DemChoi(now, giayDonDieu, active, manHinhKhoa, tienTrinh);
                     if (_rt.PhienOfflineHetHan)
                     {

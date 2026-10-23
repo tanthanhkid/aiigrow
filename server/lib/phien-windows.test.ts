@@ -190,6 +190,11 @@ test("Policy máy dùng chung có phiên: ghép app chơi / trình duyệt + pla
   assert.ok(w.allowedApps.includes("roblox.exe"));
   assert.ok(!w.learningApps.includes("scratch.exe"), "app học vẫn theo máy dùng chung");
   assert.deepEqual([w.playSessionId, w.playApp, w.playWeb, w.playOfflineMinutes], [p.id, "roblox.exe", false, 30]);
+  // ngưỡng offline theo lịch của Con: Con có giờ chơi tới 17:20 ⇒ 20 phút (lịch máy mặc định 17:00–20:00 thì 30)
+  await q(`update children set lich = $2::jsonb where id = $1`, [con, JSON.stringify({ ngayThuong: [{ tu: "17:00", den: "17:20" }] })]);
+  const gh2 = (await pw.ghepPhienMayChung(may, pol, t0))!;
+  assert.equal(aw.chinhSachWindows(gh2.pol, undefined, undefined, gh2.mo).playOfflineMinutes, 20);
+  assert.deepEqual(gh2.pol.lich, pol.lich, "lịch thực thi vẫn của máy");
   const chung = aw.chinhSachWindows(pol);
   assert.ok(!chung.allowedApps.includes("roblox.exe"));
   assert.ok(!("playSessionId" in chung));
@@ -259,8 +264,9 @@ test("phiên web ⇒ playWeb, playApp là tên miền", async () => {
   assert.ok(x.playOfflineMinutes! > 0);
 });
 
-test("trang khay nhịp phiên Windows (nhipTre) chỉ đọc: không đẩy nhip_cuoi ⇒ phien/bu sau khi mất mạng vẫn tính đủ", async () => {
+test("trang khay nhịp phiên Windows agent 0.2.4 (nhipTre) chỉ đọc: không đẩy nhip_cuoi ⇒ phien/bu sau khi mất mạng vẫn tính đủ", async () => {
   const { fam, con, may } = await nha(50);
+  await q(`update devices set status = '{"agent":"windows","version":"0.2.4"}'::jsonb where id = $1`, [may.id]);
   const t0 = VN("2026-10-21T17:00:00");
   const p = await ph.moPhien(con, may.id, "roblox.exe", {}, t0);
   await pw.nhipPhienWindows(may, con, ps(60, p.id), sau(t0, 1));
@@ -274,6 +280,22 @@ test("trang khay nhịp phiên Windows (nhipTre) chỉ đọc: không đẩy nhi
   const b = await mc.buPhien(may, con, { ma: "bu-tre", id: p.id, phut: 4 }, sau(t0, 5));
   assert.equal(b.phut, 4);
   assert.equal(await v.soDu(con), 45);
+});
+
+test("agent cũ (< 0.2.4): trang khay vẫn nhịp như #58 — máy dùng chung + agent cũ có trừ điểm qua trang; banTu024", async () => {
+  assert.deepEqual(["0.2.4", "0.2.10", "0.3.0", "1.0.0", "0.2.3", "0.1.9", "", null, "abc"].map(pw.banTu024),
+    [true, true, true, true, false, false, false, false, false]);
+  const { fam, con, may } = await nha(50, { dungChung: true });
+  await q(`update devices set status = '{"agent":"windows","version":"0.2.3"}'::jsonb where id = $1`, [may.id]);
+  const t0 = VN("2026-10-21T17:00:00");
+  const p = await ph.moPhien(con, may.id, "roblox.exe", {}, t0);
+  await dangNhap(con, may.id, VN("2026-10-22T05:00:00"));
+  const ct = { id: con, family_id: fam, device_id: may.id };
+  for (const i of [1, 2, 3]) assert.equal(await pw.nhipPhienWindows(may, null, CU, sau(t0, i)), null, "dong-bo không nhịp (P1)");
+  let k = null as Awaited<ReturnType<typeof tre.nhipTre>> | null;
+  for (const i of [1, 2, 3]) k = await tre.nhipTre(ct, p.id, false, sau(t0, i));    // trang thu nhỏ gửi «không dùng» — như #58 vẫn tính
+  assert.deepEqual([k!.trangThai, k!.phutDung], ["chay", 3]);
+  assert.equal(await v.soDu(con), 47);
 });
 
 test("phien/bu từ máy dùng chung: Con lấy từ phiên mở trên máy; phiên máy khác ⇒ 404; không id ⇒ 409; gửi lại cùng mã không trừ đôi", async () => {

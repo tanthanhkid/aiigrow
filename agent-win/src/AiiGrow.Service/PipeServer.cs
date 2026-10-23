@@ -19,9 +19,11 @@ public sealed class PipeServer : BackgroundService
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
 
-    /// <summary>Mặc định: exe của tiến trình khách (GetNamedPipeClientProcessId) = AiiGrow.Tray.exe cùng thư mục với dịch vụ.</summary>
+    /// <summary>Mặc định: exe của tiến trình khách (GetNamedPipeClientProcessId) = AiiGrow.Tray.exe (hoặc bản cũ «.cu-…» lúc cập nhật) cùng
+    /// thư mục với dịch vụ. Dịch vụ chạy ngoài thư mục cài (bản dev) ⇒ không kiểm (<see cref="KhayThat.LaBanDev"/>).</summary>
     public static bool KhayDaCai(IntPtr pipeHandle)
-        => KhayThat.La(SessionHelper.PipeClientImage(pipeHandle), Path.Combine(AppContext.BaseDirectory, Paths.TrayExeName));
+        => KhayThat.LaBanDev(AppContext.BaseDirectory, Paths.InstallDir)
+           || KhayThat.La(SessionHelper.PipeClientImage(pipeHandle), Path.Combine(AppContext.BaseDirectory, Paths.TrayExeName));
 
     private static NamedPipeServerStream Create()
     {

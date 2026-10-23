@@ -69,6 +69,7 @@ public class PhienOfflineTests
         // app khay báo không chạy thật trong phiên Con ⇒ không rõ ⇒ tính nếu app chơi đang chạy
         Assert.True(TienCanhChoi.DangChoi(p, "notepad.exe", true, false, ChayRoblox));
         Assert.False(TienCanhChoi.DangChoi(p, "notepad.exe", true, false, new[] { "explorer.exe" }), "app chơi cũng không chạy");
+        Assert.True(TienCanhChoi.DangChoi(p, "roblox.exe", true, false, new[] { "explorer.exe" }), "khay báo app chơi mà danh sách không thấy ⇒ không rõ ⇒ tính");
         Assert.False(TienCanhChoi.DangChoi(p, "", true, false, new[] { "explorer.exe" }), "không chạy Roblox ⇒ không chơi");
         // khay chết: tính nếu app chơi đang chạy (không biết danh sách ⇒ tính)
         Assert.True(TienCanhChoi.DangChoi(p, null, false, false, ChayRoblox));
@@ -92,6 +93,15 @@ public class PhienOfflineTests
         Assert.False(KhayThat.La(Path.Combine(Path.GetTempPath(), "AiiGrow", "powershell.exe"), khay));
         Assert.False(KhayThat.La(null, khay));
         Assert.False(KhayThat.La("", khay));
+        // khay cũ bị bộ cập nhật đổi tên trong lúc cập nhật
+        Assert.True(KhayThat.La(khay + ".cu-1a2b3c4d", khay));
+        Assert.False(KhayThat.La(khay + "x.exe", khay));
+        Assert.False(KhayThat.La(Path.Combine(Path.GetTempPath(), "Gia", Paths.TrayExeName + ".cu-1a2b3c4d"), khay));
+        // lối dev: dịch vụ chạy ngoài thư mục cài
+        var cai = Path.Combine(Path.GetTempPath(), "AiiGrow");
+        Assert.False(KhayThat.LaBanDev(cai, cai));
+        Assert.False(KhayThat.LaBanDev(cai + Path.DirectorySeparatorChar, cai.ToUpperInvariant().Replace(Path.GetTempPath().ToUpperInvariant(), Path.GetTempPath())));
+        Assert.True(KhayThat.LaBanDev(Path.Combine(Path.GetTempPath(), "build", "bin"), cai));
     }
 
     [Fact]

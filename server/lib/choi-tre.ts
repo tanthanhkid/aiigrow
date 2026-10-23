@@ -10,6 +10,8 @@ import { nvCuaCon } from "./nhiem-vu.ts";
 import { cuaHang } from "./phan-thuong.ts";
 import { dungPhien, lyDoChu, moPhien, nhip, phienDang, trangThaiPhien, xetMoPhien, type XetPhien } from "./phien.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { banMayBao } from "./ban-agent.ts";
+import { banTu024 } from "./phien-windows.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
 import type { May } from "./gia-dinh.ts";
 
@@ -95,12 +97,16 @@ export async function moTre(c: ConTre, muc: string, now = new Date()) {
 }
 
 export async function nhipTre(c: ConTre, id: string, dangDung: boolean, now = new Date()) {
-  // Phiên mở từ máy Windows: nhịp đồng bộ của agent (dong-bo + phien/bu) là nguồn sổ sách DUY NHẤT (lib/phien-windows.ts). Trang khay
-  // CHỈ ĐỌC trạng thái: nếu trang cũng nhịp thì (1) hai nguồn giành nhau tam/chay, (2) có mạng lại trang nhịp trước `phien/bu` sẽ đẩy
-  // nhip_cuoi tới hiện tại ⇒ phút chơi lúc mất mạng bị kẹp gần 0 (không bị trừ).
-  const p0 = await one<{ platform: string | null }>(
-    `select d.platform from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
-  const k = p0?.platform === "windows" ? await trangThaiPhien(c.id, id) : await nhip(c.id, id, dangDung, now);
+  // Phiên mở từ máy Windows chạy agent ≥ 0.2.4: nhịp đồng bộ của agent (dong-bo + phien/bu) là nguồn sổ sách DUY NHẤT (lib/phien-windows.ts).
+  // Trang khay CHỈ ĐỌC: nếu trang cũng nhịp thì (1) hai nguồn giành nhau tam/chay, (2) có mạng lại trang nhịp trước `phien/bu` sẽ đẩy
+  // nhip_cuoi tới hiện tại ⇒ phút chơi lúc mất mạng bị kẹp gần 0. Agent cũ (0.2.0–0.2.3): giữ như #58 — trang nhịp theo trạng thái hiện có
+  // (máy dùng chung + agent cũ: dong-bo không nhịp, trang là nguồn duy nhất).
+  const p0 = await one<{ trang_thai: string; platform: string | null; status: { version?: unknown } | null }>(
+    `select s.trang_thai, d.platform, d.status from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
+  const win = p0?.platform === "windows";
+  const k = win && banTu024(banMayBao({ status: p0!.status as never }))
+    ? await trangThaiPhien(c.id, id)
+    : await nhip(c.id, id, win ? p0!.trang_thai !== "tam" : dangDung, now);
   const p = await one<{ muc: string; toi_da_phut: number; gia_phan_nghin: number }>(`select muc, toi_da_phut, gia_phan_nghin from play_sessions where id = $1`, [id]);
   return { ...k, muc: p?.muc ?? "", toiDaPhut: p?.toi_da_phut ?? 0, giaPhanNghin: p?.gia_phan_nghin ?? 0 };
 }

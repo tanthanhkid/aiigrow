@@ -55,7 +55,8 @@ public static class SessionHelper
     private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
     /// <summary>Phiên <paramref name="sessionId"/> đang KHOÁ màn hình không (WTSINFOEX_LEVEL1.SessionFlags: WTS_SESSIONSTATE_LOCK = 0,
-    /// UNLOCK = 1 trên Windows 10+). Không đọc được / giá trị lạ ⇒ null (người gọi coi là «không rõ»).</summary>
+    /// UNLOCK = 1). CHỈ ĐÚNG TRÊN WINDOWS 10+ — Windows 7 / Server 2008 R2 đảo ngược hai giá trị (agent .NET 8 chỉ chạy Windows 10+).
+    /// Không đọc được / giá trị lạ ⇒ null (người gọi coi là «không rõ» ⇒ vẫn tính).</summary>
     public static bool? IsLocked(int sessionId)
     {
         if (sessionId < 0) return null;
@@ -78,8 +79,18 @@ public static class SessionHelper
     {
         try
         {
-            if (!GetNamedPipeClientProcessId(pipeHandle, out var pid)) return null;
-            var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+            return GetNamedPipeClientProcessId(pipeHandle, out var pid) ? ImagePath((int)pid) : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Đường dẫn exe của tiến trình qua QueryFullProcessImageName + PROCESS_QUERY_LIMITED_INFORMATION — rẻ hơn Process.MainModule
+    /// (không đọc danh sách module) và đọc được cả tiến trình 32-bit / được bảo vệ. Không đọc được ⇒ null.</summary>
+    public static string? ImagePath(int pid)
+    {
+        try
+        {
+            var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, (uint)pid);
             if (h == IntPtr.Zero) return null;
             try
             {
