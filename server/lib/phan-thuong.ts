@@ -147,6 +147,12 @@ export async function xacNhanPhieu(fam: string, phieu: string, nguoi: string) {
   });
 }
 
+/** Phiếu quà đang chờ Ba Mẹ trao / xác nhận (gồm voucher lớn «Chờ xác nhận») — cho màn «Chờ duyệt», «Điểm & quà» và số đếm. */
+export const dsPhieuCho = (fam: string) =>
+  q<{ id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; created_at: Date }>(
+    `select r.id, r.child_id, r.ten, r.loai, r.diem, r.created_at, c.ten as ten_con from redemptions r join children c on c.id = r.child_id
+     where c.family_id = $1 and r.trang_thai = 'giu' order by r.created_at`, [fam]);
+
 /** Ba Mẹ huỷ phiếu đang giữ ⇒ hoàn điểm, trả tồn kho. */
 export async function huyPhieu(fam: string, phieu: string, nguoi: string) {
   return tx(async (t) => {

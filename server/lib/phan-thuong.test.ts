@@ -85,3 +85,34 @@ test("quà vật lý: giữ điểm + tồn kho, Ba Mẹ trao hoặc huỷ hoàn
   assert.equal(ch.qua.find((x) => x.id === phim)!.conThieu, 50 - ch.soDu > 0 ? 50 - ch.soDu : 0);
   await loi(pt.doiQua(con, lego, THU4), "het_hang");                             // hết hàng
 });
+
+test("phiếu quà Con đổi hiện trong «Chờ duyệt» của Ba Mẹ (cả quà vật lý lẫn voucher lớn chờ xác nhận), hết chờ khi trao/huỷ", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bo" });
+  await v.dieuChinhTay(fam, con, 2000, "Điểm thử", bm);
+  const qua = await pt.taoQua(fam, { ten: "Hộp bút", loai: "qua", diem: 100 });
+  const vcLon = await pt.taoQua(fam, { ten: "Phiếu 100k", loai: "voucher", diem: 1000, menh_gia: 100_000 });
+  assert.equal((await pt.dsPhieuCho(fam)).length, 0);
+  const r1 = await pt.doiQua(con, qua, THU4);
+  const r2 = await pt.doiQua(con, vcLon, THU4);
+  assert.equal(r2.trang_thai, "cho_xac_nhan");
+  const ds = await pt.dsPhieuCho(fam);
+  assert.deepEqual(ds.map((x) => x.id).sort(), [r1.phieu, r2.phieu].sort());
+  assert.equal(ds[0].ten_con, "Bo");
+  await pt.xacNhanPhieu(fam, r1.phieu, bm);
+  await pt.huyPhieu(fam, r2.phieu, bm);
+  assert.equal((await pt.dsPhieuCho(fam)).length, 0);
+  const khac = await taoNha();
+  assert.equal((await pt.dsPhieuCho(khac.fam)).length, 0, "cách ly gia đình");
+});
+
+test("phiếu chờ tính vào homNay.phieuCho của từng Con", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Mi" });
+  await v.dieuChinhTay(fam, con, 500, "Điểm thử", bm);
+  const qua = await pt.taoQua(fam, { ten: "Kẹo", loai: "qua", diem: 100 });
+  const { homNay } = await import("./bao-cao.ts");
+  assert.equal((await homNay(fam, con)).phieuCho, 0);
+  await pt.doiQua(con, qua, THU4);
+  assert.equal((await homNay(fam, con)).phieuCho, 1);
+});

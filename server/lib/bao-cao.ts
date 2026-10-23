@@ -14,16 +14,17 @@ export async function homNay(fam: string, con: string, now = new Date()) {
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const tu = dauNgayUtc(ngay, f.tz);
   const ts = thamSo(f.cau_hinh, c.cau_hinh);
-  const [r0, tc, vi] = await Promise.all([one<{ choi: number; nv_cho: number; yc_cho: number; xong: number }>(
+  const [r0, tc, vi] = await Promise.all([one<{ choi: number; nv_cho: number; yc_cho: number; phieu_cho: number; xong: number }>(
     `select coalesce((select sum(phut_dung) from play_sessions where child_id = $1 and bat_dau >= $2), 0)::int as choi,
             (select count(*)::int from submissions where child_id = $1 and trang_thai = 'cho_duyet') as nv_cho,
             (select count(*)::int from requests where child_id = $1 and trang_thai = 'cho' and het_han > now()) as yc_cho,
+            (select count(*)::int from redemptions where child_id = $1 and trang_thai = 'giu') as phieu_cho,
             (select count(*)::int from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc >= $2) as xong`, [con, tu]),
     q<{ ten: string }>(
     `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
      order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
-  return { ...vi, phutChoi: r.choi, tranNgay: ts.tran_ngay, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, nhiemVuXong: r.xong,
+  return { ...vi, phutChoi: r.choi, tranNgay: ts.tran_ngay, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
     homNayConDa: tichCuc };
 }
 

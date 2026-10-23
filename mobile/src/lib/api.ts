@@ -60,7 +60,7 @@ export const goi = bm.goi;
 // ------------------------------------------------------------------ kiểu dữ liệu (khớp server/lib/api-*.ts)
 export type NhomCon = "nhi" | "teen";
 export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number };
-  phutChoi: number; tranNgay: number; nhiemVuCho: number; yeuCauCho: number; nhiemVuXong: number; homNayConDa: string[] };
+  phutChoi: number; tranNgay: number; nhiemVuCho: number; yeuCauCho: number; phieuCho?: number; nhiemVuXong: number; homNayConDa: string[] };
 export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon };
 export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[] };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
@@ -69,7 +69,7 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
   baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
-export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "nhiemVuXong" | "homNayConDa"> & {
+export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa"> & {
   id: string; ten: string; namSinh: number | null; avatar: string; nhom: NhomCon; khoaNgay: boolean; lich: Lich; thamSo: Record<string, number>; may: MayCon[];
 };
 export type NhiemVu = { id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string; toi_da_ngay: number | null;

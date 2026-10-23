@@ -7,7 +7,7 @@ import { BieuTron, Canh, Dong, gioPhut, Man, Nhan, Nhom, NhomTieu, Nut, useHoanT
 export default function DuyetXong() {
   const p = useLocalSearchParams<{ luot: string; con: string; ten: string; diem: string; nv: string; khen?: string }>();
   const { d } = useTai(async () => ({
-    vi: await bm.goi<{ soDu: number }>(`con/${p.con}/vi`), cho: await bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[] }>("cho-duyet"),
+    vi: await bm.goi<{ soDu: number }>(`con/${p.con}/vi`), cho: await bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: unknown[] }>("cho-duyet"),
   }));
   const { bao, noi } = useHoanTac();
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function DuyetXong() {
           phai={soDu !== undefined ? <Nhan loai="diem" chu={String(soDu)} /> : undefined} bam={() => router.push(`/vi/${p.con}`)} />
         <Dong tieu="Nhật ký" phu={`${p.nv} – +${p.diem} điểm – duyệt ${gioPhut(new Date())}`} trai={<BieuTron ic="lich" />} />
       </Nhom>
-      {d && d.cho.nhiemVu.length + d.cho.yeuCau.length ? (
+      {d && d.cho.nhiemVu.length + d.cho.yeuCau.length + (d.cho.phieu?.length ?? 0) ? (
         <>
           <NhomTieu chu="Còn chờ" />
           <Nhom>

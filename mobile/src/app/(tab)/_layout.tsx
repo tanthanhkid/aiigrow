@@ -16,7 +16,7 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
   const ins = useSafeAreaInsets();
   const [so, setSo] = useState(0);
   useEffect(() => {
-    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[] }>("cho-duyet").then((r) => setSo(r.nhiemVu.length + r.yeuCau.length)).catch(() => {});
+    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => setSo(r.nhiemVu.length + r.yeuCau.length + (r.phieu?.length ?? 0))).catch(() => {});
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt
   return (
     <View style={{ flexDirection: "row", backgroundColor: "rgba(255,255,255,.97)", borderTopWidth: 1, borderTopColor: M.vien, paddingTop: 8, paddingBottom: Math.max(ins.bottom, 12) }}

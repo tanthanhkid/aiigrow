@@ -7,6 +7,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import * as ad from "./admin.ts";
 import { doiSoat, napQuy } from "./phan-thuong.ts";
 import { soDu } from "./vi.ts";
+import { chiTietHoTro, dsHoTro, traLoiHoTro } from "./ho-tro-admin.ts";
 import { congNgay, dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 
 const TZ = "Asia/Ho_Chi_Minh";
@@ -116,22 +117,11 @@ export async function xuLyAdmin(req: Request, p: string[]): Promise<Response> {
       return json({ tu: k.tu, den: k.den, ds, tong });
     }
 
-    if (d === "ho-tro" && get)
-      return json({ ds: await q(
-        `select f.id as family_id, f.ten, h.tu, h.noi_dung, h.created_at from families f
-         join lateral (select tu, noi_dung, created_at from ho_tro x where x.family_id = f.id order by x.created_at desc, x.seq desc limit 1) h on true
-         order by (h.tu = 'ba_me') desc, h.created_at desc limit 200`) });
-    if (p[0] === "ho-tro" && p[1] && get) {
-      const f = await one<{ ten: string }>(`select ten from families where id = $1`, [p[1]]);
-      if (!f) throw new LoiNghiepVu("khong_thay", "Không thấy gia đình", 404);
-      return json({ ten: f.ten, tin: await q(`select id, tu, noi_dung, created_at from ho_tro where family_id = $1 order by created_at, seq limit 300`, [p[1]]) });
-    }
+    if (d === "ho-tro" && get) return json({ ds: await dsHoTro() });
+    if (p[0] === "ho-tro" && p[1] && get) return json(await chiTietHoTro(p[1]));
     if (p[0] === "ho-tro" && p[1] && post) {
-      const nd = s(b.noiDung, 1000);
-      if (!nd) throw new LoiNghiepVu("thieu_noi_dung", "Viết câu trả lời trước khi gửi");
-      if (!(await one(`select 1 from families where id = $1`, [p[1]]))) throw new LoiNghiepVu("khong_thay", "Không thấy gia đình", 404);
-      await q(`insert into ho_tro(id, family_id, tu, nguoi, noi_dung) values ($1,$2,'aiilab',$3,$4)`, [newId(), p[1], `admin:${nv.id}`, nd]);
-      await ad.ghiKiemToan(nv, "tra_loi_ho_tro", { doDai: nd.length }, p[1]);
+      const doDai = await traLoiHoTro(p[1], `admin:${nv.id}`, s(b.noiDung, 1000));
+      await ad.ghiKiemToan(nv, "tra_loi_ho_tro", { doDai }, p[1]);
       return json({ ok: true });
     }
 
