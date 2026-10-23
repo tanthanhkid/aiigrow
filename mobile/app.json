@@ -4,10 +4,12 @@
     "slug": "aiigrow",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "vn.aiilab.aiigrow",
+      "buildNumber": "2",
       "config": { "usesNonExemptEncryption": false }
     },
     "android": {
@@ -28,6 +30,7 @@
         }
       ]
     ],
+    "web": { "favicon": "./assets/favicon.png" },
     "scheme": "aiigrow",
     "experiments": { "typedRoutes": true }
   }

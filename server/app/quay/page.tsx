@@ -62,7 +62,7 @@ function DangNhap({ vao }: { vao: (t: string) => void }) {
   return (
     <main className="dn">
       <form className="the" onSubmit={gui} noValidate>
-        <div className="dau-dn"><img src="/logo.svg" alt="" /><div><h1>Quầy AiiCafe</h1><p className="mo">Đăng nhập nhân viên để quét phiếu quà</p></div></div>
+        <div className="dau-dn"><img src="/logo.png" alt="" /><div><h1>Quầy AiiCafe</h1><p className="mo">Đăng nhập nhân viên để quét phiếu quà</p></div></div>
         <label><span className="nhan-o">Tên đăng nhập</span>
           <span className="o-nhap"><input aria-label="Tên đăng nhập" autoComplete="username" value={ten} onChange={(e) => setTen(e.target.value)} /></span></label>
         <label><span className="nhan-o">Mật khẩu</span>
@@ -238,7 +238,7 @@ export default function Quay() {
   return (
     <div className="ag quay">
       <header className="tren">
-        <img src="/logo.svg" alt="" />
+        <img src="/logo.png" alt="" />
         <b className="ten-quay">AiiCafe · {tenQuay}</b>
         <div className="phai">
           {nv?.ten ? <span className="nhan ok">Nhân viên: {nv.ten}</span> : null}

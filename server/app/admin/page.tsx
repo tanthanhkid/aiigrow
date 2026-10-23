@@ -22,7 +22,7 @@ function DangNhap({ vao }: { vao: () => void }) {
   return (
     <main className="dn">
       <form className="the" onSubmit={gui} noValidate>
-        <div className="dau-dn"><img src="/logo.svg" alt="" /><div><h1>Quản trị AiiLab</h1><p className="mo">Cổng nội bộ AiiGrow — chỉ tài khoản Admin</p></div></div>
+        <div className="dau-dn"><img src="/logo.png" alt="" /><div><h1>Quản trị AiiLab</h1><p className="mo">Cổng nội bộ AiiGrow — chỉ tài khoản Admin</p></div></div>
         <label><span className="nhan-o">Tên đăng nhập</span>
           <span className="o-nhap"><input aria-label="Tên đăng nhập" autoComplete="username" value={ten} onChange={(e) => setTen(e.target.value)} /></span></label>
         <label><span className="nhan-o">Mật khẩu</span>
@@ -74,7 +74,7 @@ export default function Admin() {
   return (
     <div className="ag ad">
       <header className="dau-ad">
-        <img src="/logo.svg" alt="" />
+        <img src="/logo.png" alt="" />
         <b className="ten">AiiGrow · Quản trị AiiLab</b>
         <div className="phai">
           {ten ? <span className="nhan ok">{ten}</span> : null}
