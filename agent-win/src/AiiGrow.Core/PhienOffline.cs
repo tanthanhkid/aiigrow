@@ -7,8 +7,8 @@ namespace AiiGrow.Core;
 /// Phút chơi khi MẤT MẠNG (BRD 6.7, agent 0.2.4) — lớp THUẦN, lưu trong <see cref="AgentConfig.PhienOffline"/> (dịch vụ khởi động lại vẫn giữ).
 /// Máy chủ vẫn là sổ sách và quyết định; agent chỉ:
 ///   1. Đếm giây (đồng hồ ĐƠN ĐIỆU do người gọi truyền vào — Con chỉnh giờ máy không ăn gian) khi đang mất mạng, Policy cuối có phiên chơi
-///      (<see cref="Policy.PlaySessionId"/>), Con đang đăng nhập và app chơi ở nền trước (trình duyệt nếu <see cref="Policy.PlayWeb"/>).
-///      Màn hình khoá (khay báo tiền cảnh rỗng) / app khác ⇒ không đếm. Khay chết (không báo tiền cảnh) ⇒ VẪN đếm (Con tắt khay không ngừng được đồng hồ).
+///      (<see cref="Policy.PlaySessionId"/>) và Con đang chơi thật (<see cref="TienCanhChoi.DangChoi"/>: app chơi ở nền trước — trình duyệt nếu
+///      <see cref="Policy.PlayWeb"/> — màn hình mở theo WTS; không xác minh được thì vẫn đếm nếu app chơi đang chạy).
 ///   2. Vượt <see cref="Policy.PlayOfflineMinutes"/> ⇒ <see cref="HetHan"/>: bỏ app chơi (và trình duyệt nếu phiên web) khỏi allowedApps hiệu lực
 ///      (<see cref="ApDung"/> — AppLocker + ProcessEnforcer như luồng thường), coi như phiên đã hết.
 ///   3. Có mạng lại ⇒ gửi <c>POST api/device/phien/bu</c> TRƯỚC dong-bo (<see cref="GuiBu"/>), <see cref="Ma"/> một lần (gửi lại không trừ đôi).
@@ -46,23 +46,25 @@ public sealed class PhienOffline
 
     /// <summary>
     /// Một vòng thực thi. <paramref name="doan"/> là đoạn đang có (null = chưa có); trả về đoạn sau vòng này (có thể mới tạo).
-    /// <paramref name="giayDonDieu"/> = giây trôi theo đồng hồ đơn điệu từ vòng trước. → <c>Luu</c> = nên ghi đĩa ngay (đoạn mới / vừa hết hạn / mỗi 30 giây).
+    /// <paramref name="dangChoi"/> = Con đang đăng nhập và đang chơi thật (<see cref="TienCanhChoi.DangChoi"/>).
+    /// <paramref name="giayDonDieu"/> = giây trôi theo đồng hồ đơn điệu từ vòng trước.
+    /// <paramref name="daChoiGiay"/> = số giây đã chơi phiên này TẠI MÁY kể từ khi nhận Policy đang giữ (cả lúc có mạng lẫn các đoạn offline
+    /// đã gửi bù) — ngưỡng của đoạn MỚI = PlayOfflineMinutes − chừng đó (review PR #59, P2-5: gửi bù được mà dong-bo lỗi thì Policy cũ
+    /// vẫn ghi ngưỡng cũ). → <c>Luu</c> = nên ghi đĩa ngay (đoạn mới / vừa hết hạn / mỗi 30 giây).
     /// </summary>
-    public static (PhienOffline? Doan, bool Luu) Dem(PhienOffline? doan, Policy? p, bool offline, bool conDangNhap,
-        string? fgId, bool fgTuoi, double giayDonDieu, DateTimeOffset now)
+    public static (PhienOffline? Doan, bool Luu) Dem(PhienOffline? doan, Policy? p, bool offline, bool dangChoi,
+        double giayDonDieu, double daChoiGiay, DateTimeOffset now)
     {
         if (!offline || p?.PlaySessionId == null || p.PlayApp == null) return (doan, false);
         bool luu = false;
         if (doan == null || doan.PhienId != p.PlaySessionId)
         {
             // đoạn cũ của phiên khác chưa gửi được thì giữ phiên mới (Policy cuối là sự thật mới nhất); phút của đoạn cũ bỏ (máy chủ đã chốt phiên đó)
-            var gioi = Math.Max(0, p.PlayOfflineMinutes ?? 0);
+            var gioi = Math.Max(0, (p.PlayOfflineMinutes ?? 0) - Math.Max(0, daChoiGiay) / 60.0);
             doan = new PhienOffline { PhienId = p.PlaySessionId, Muc = p.PlayApp, Web = p.PlayWeb, GioiHanPhut = gioi, HetHan = gioi <= 0 };
             luu = true;
         }
-        if (doan.HetHan || !conDangNhap || !(giayDonDieu > 0)) return (doan, luu);
-        // khay tươi: chỉ đếm khi tiền cảnh là app chơi ("" = màn hình khoá; app khác = tạm dừng). Khay chết ⇒ vẫn đếm.
-        if (fgTuoi && !LaAppChoi(p, fgId)) return (doan, luu);
+        if (doan.HetHan || !dangChoi || !(giayDonDieu > 0)) return (doan, luu);
         var truoc = doan.GiayChoi;
         doan.GiayChoi += Math.Min(giayDonDieu, 60);
         doan.BatDau ??= now.ToUniversalTime();

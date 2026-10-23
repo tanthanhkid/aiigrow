@@ -26,12 +26,13 @@ export const laAgentMoi = (st: TrangThaiNhip | undefined) => typeof st?.playSeco
 
 /** «Đang dùng thật» của phiên `phienId` từ status:
  *  - Con không còn đăng nhập (childSessionActive false) ⇒ không dùng.
- *  - Agent mới, số giây thuộc ĐÚNG phiên này ⇒ phut = playSeconds/60 (0 ⇒ tạm dừng).
- *  - Còn lại (agent cũ, hoặc Policy agent đang giữ chưa có phiên này — vừa mở) ⇒ đang dùng, tính theo thời gian trôi như #58. */
+ *  - Agent mới: số giây thuộc ĐÚNG phiên này ⇒ phut = playSeconds/60; của phiên khác / chưa có phiên ⇒ 0. 0 ⇒ tạm dừng (3 phút ⇒ đóng).
+ *  - Agent cũ ⇒ đang dùng, tính theo thời gian trôi như #58. */
 export function dungTuStatus(st: TrangThaiNhip | undefined, phienId: string): { dangDung: boolean; phut?: number } {
   if (st?.childSessionActive === false) return { dangDung: false };
-  if (laAgentMoi(st) && String(st!.playSessionId ?? "") === phienId) {
-    const phut = Math.max(0, st!.playSeconds as number) / 60;
+  if (laAgentMoi(st)) {
+    // số giây của phiên khác / Policy chưa có phiên này (vừa mở, agent chưa nhận) ⇒ app chơi của phiên này chưa được thả ⇒ 0
+    const phut = String(st!.playSessionId ?? "") === phienId ? Math.max(0, st!.playSeconds as number) / 60 : 0;
     return { dangDung: phut > 0, phut };
   }
   return { dangDung: true };

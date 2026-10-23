@@ -113,14 +113,14 @@ export async function dungTre(c: ConTre, id: string, now = new Date()) {
 }
 
 /** Đăng xuất phiên PIN (máy dùng chung: «Đổi người»). Token máy riêng không xoá được ở đây. */
-export async function raTre(token: string) {
+export async function raTre(token: string, now = new Date()) {
   const { sha } = await import("./auth.ts");
   // «Đổi người» trên máy dùng chung: phiên chơi Con này đang mở trên máy đó kết thúc luôn (không để bạn khác chơi bằng điểm của Con)
   const k = await one<{ child_id: string; device_id: string | null }>(`select child_id, device_id from kid_sessions where id = $1`, [sha(token)]);
   const chung = k?.device_id ? await one(`select 1 from devices where id = $1 and child_id is null`, [k.device_id]) : undefined;
   if (k?.device_id && chung) {
     const ph = await one<{ id: string }>(`select id from play_sessions where child_id = $1 and device_id = $2 and trang_thai in ('chay', 'tam')`, [k.child_id, k.device_id]);
-    if (ph) await dungPhien(k.child_id, ph.id, "con_dung");
+    if (ph) await dungPhien(k.child_id, ph.id, "con_dung", now);
   }
   await q(`delete from kid_sessions where id = $1`, [sha(token)]);
 }

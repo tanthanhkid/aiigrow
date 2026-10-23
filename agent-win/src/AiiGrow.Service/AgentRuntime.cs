@@ -26,6 +26,11 @@ public sealed class AgentRuntime
     private int _lockGraceSec = 60;
     /// <summary>0.2.4: phút chơi khi mất mạng chưa gửi bù (bản trong bộ nhớ; ghi đĩa ở Config.PhienOffline).</summary>
     private PhienOffline? _phienOffline;
+    /// <summary>0.2.4: giây chơi thật (lúc có mạng) chưa báo máy chủ — status.playSeconds; trừ đi phần đã gửi khi đồng bộ thành công.</summary>
+    private double _playSec;
+    private string? _playSecId;
+    /// <summary>0.2.4 (P2-5): giây đã chơi phiên của Policy đang giữ (có mạng + offline) — về 0 khi có Policy mới.</summary>
+    private DaChoiTheoPolicy _daChoi = new();
 
     public ConfigStore Store { get; } = new();
     public AgentConfig? Config { get; private set; }
@@ -49,6 +54,9 @@ public sealed class AgentRuntime
             _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, DateTimeOffset.UtcNow));
             // nạp lại khi worker khác ghi cấu hình: bản trong bộ nhớ có thể mới hơn bản trên đĩa (đĩa ghi 30 giây/lần)
             _phienOffline = PhienOffline.Chon(_phienOffline, Config?.PhienOffline);
+            if (Config?.DaChoi is { } dc && (dc.PhienId != _daChoi.PhienId || dc.Giay > _daChoi.Giay)
+                && (_daChoi.PhienId.Length == 0 || dc.PhienId == _daChoi.PhienId))
+                _daChoi = new DaChoiTheoPolicy { PhienId = dc.PhienId, Giay = dc.Giay };
         }
     }
 
@@ -158,6 +166,7 @@ public sealed class AgentRuntime
             TokenInvalid = false;
             _chayChoGhi = 0;   // liên lạc được ⇒ bộ đếm mất liên lạc về 0 (GhiThanhCong)
             BoDoanRong();
+            _daChoi = new DaChoiTheoPolicy { PhienId = p.PlaySessionId ?? "" };   // Policy mới ⇒ ngưỡng offline mới đã tính phần đã chơi
             if (Config != null)
             {
                 var at = _policyAt;
@@ -165,6 +174,7 @@ public sealed class AgentRuntime
                 {
                     c.LastPolicyJson = raw;
                     c.LastPolicyAt = at;
+                    c.DaChoi = null;
                     // Đồng bộ được ⇒ hết mồ côi + ghi mốc liên lạc (fail-open 14 ngày tính từ đây). Ba Mẹ đã chọn chế độ ⇒ giá trị máy chủ thắng, lưu lại cho lúc mất mạng.
                     MoCoi.GhiThanhCong(c, at);
                     if (p.CheDo != null) c.CheDo = p.CheDo;
@@ -184,18 +194,41 @@ public sealed class AgentRuntime
     /// <summary>Policy để THỰC THI (AppLocker + đóng app): Policy cuối, trừ app chơi khi đoạn chơi offline đã vượt ngưỡng (<see cref="PhienOffline.ApDung"/>).</summary>
     public Policy? CurrentPolicy { get { lock (_gate) return _policy == null ? null : PhienOffline.ApDung(_policy, _phienOffline); } }
 
-    /// <summary>0.2.4 (BRD 6.7): mỗi vòng thực thi — đếm giây chơi khi mất mạng (đồng hồ đơn điệu), lưu khi cần.</summary>
-    public void DemPhienOffline(DateTimeOffset now, double giayDonDieu, bool conDangNhap)
+    /// <summary>0.2.4 (BRD 4.4 / 6.7): mỗi vòng thực thi — «đang chơi thật» (<see cref="TienCanhChoi"/>), cộng giây vào status.playSeconds
+    /// (lúc có mạng) + số giây đã chơi theo Policy, đếm phút chơi khi mất mạng (đồng hồ đơn điệu), lưu khi cần.</summary>
+    /// <param name="manHinhKhoa">WTS: phiên Con đang khoá (null = không đọc được).</param>
+    /// <param name="tienTrinhCon">Tên exe đang chạy trong phiên Con (null = không đọc được).</param>
+    public void DemChoi(DateTimeOffset now, double giayDonDieu, bool conDangNhap, bool? manHinhKhoa, IReadOnlyCollection<string>? tienTrinhCon)
     {
         lock (_gate)
         {
+            var p = _policy;
             var tuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
+            bool dangChoi = conDangNhap && TienCanhChoi.DangChoi(p, _fgId, tuoi, manHinhKhoa, tienTrinhCon);
+            var id = p?.PlaySessionId;
+            if (_playSecId != id) { _playSecId = id; _playSec = 0; }
+            if (_daChoi.PhienId != (id ?? "")) _daChoi = new DaChoiTheoPolicy { PhienId = id ?? "" };
+            var daTruoc = _daChoi.Giay;
             var truocHet = _phienOffline?.HetHan == true;
-            var (doan, luu) = PhienOffline.Dem(_phienOffline, _policy, _offline, conDangNhap, _fgId, tuoi, giayDonDieu, now);
+            var (doan, luu) = PhienOffline.Dem(_phienOffline, p, _offline, dangChoi, giayDonDieu, daTruoc, now);
             _phienOffline = doan;
+            var g = dangChoi && id != null && giayDonDieu > 0 ? Math.Min(giayDonDieu, 60) : 0;
+            if (g > 0)
+            {
+                if (!_offline) _playSec += g;
+                _daChoi.Giay += g;
+            }
+            luu |= (int)(daTruoc / PhienOffline.GhiMoiGiay) != (int)(_daChoi.Giay / PhienOffline.GhiMoiGiay);
             if (doan != null && doan.HetHan && !truocHet) PhienOfflineHetHan = true;
             if (luu) LuuPhienOffline();
         }
+    }
+
+    /// <summary>Đồng bộ thành công với status đã gửi ⇒ trừ số giây đã báo (giây đếm trong lúc gửi để lần sau). Lỗi ⇒ không gọi (giữ nguyên, như Usage).</summary>
+    public void DaGuiGiayChoi(AgentStatus daGui)
+    {
+        lock (_gate)
+            if (daGui.PlaySessionId == _playSecId) _playSec = Math.Max(0, _playSec - daGui.PlaySeconds);
     }
 
     /// <summary>Vừa vượt ngưỡng chơi offline (worker đọc để ghi log một lần).</summary>
@@ -226,9 +259,10 @@ public sealed class AgentRuntime
     {
         var sao = _phienOffline?.Sao();
         AgentConfig? moi = null;
-        try { moi = Store.Update(c => c.PhienOffline = sao); } catch { }
+        var dc = _daChoi.Giay > 0 ? new DaChoiTheoPolicy { PhienId = _daChoi.PhienId, Giay = _daChoi.Giay } : null;
+        try { moi = Store.Update(c => { c.PhienOffline = sao; c.DaChoi = dc; }); } catch { }
         if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
-        else if (Config != null) Config.PhienOffline = sao;
+        else if (Config != null) { Config.PhienOffline = sao; Config.DaChoi = dc; }
     }
 
     public void SetOffline(bool v)
@@ -431,8 +465,9 @@ public sealed class AgentRuntime
                 CheDo = _cheDo,
                 MoCoi = moCoi,
                 PhienKhac = phienKhac,
-                // 0.2.4: app tiền cảnh cho «đang dùng thật» của phiên chơi (máy chủ: lib/phien-windows.ts). Khay không tươi ⇒ null.
-                ForegroundApp = childActive && tray ? (_fgId ?? "").Trim().ToLowerInvariant() : null,
+                // 0.2.4: giây chơi thật của phiên từ lần đồng bộ thành công trước (máy chủ: lib/phien-windows.ts).
+                PlaySeconds = Math.Round(_playSec, 1),
+                PlaySessionId = _playSecId,
                 Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac),
             };
         }

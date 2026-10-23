@@ -5,7 +5,7 @@ using AiiGrow.Core;
 
 namespace AiiGrow.Tests;
 
-/// <summary>0.2.4 — phút chơi khi mất mạng (BRD 6.7) + app tiền cảnh gửi lên cho «đang dùng thật» (BRD 4.4).</summary>
+/// <summary>0.2.4 — phút chơi khi mất mạng (BRD 6.7) + giây chơi thật (playSeconds) cho «đang dùng thật» (BRD 4.4) + chống giả lời báo của khay.</summary>
 public class PhienOfflineTests
 {
     private static readonly DateTimeOffset T0 = new(2026, 10, 23, 17, 0, 0, TimeSpan.FromHours(7));
@@ -42,38 +42,90 @@ public class PhienOfflineTests
     }
 
     [Fact]
-    public void AgentStatus_LuonGuiForegroundApp_KeCaNull()
+    public void AgentStatus_LuonGuiPlaySeconds_KeCa0()
     {
-        var json = JsonSerializer.Serialize(new AgentStatus { ChildSessionActive = true, ForegroundApp = null }, Json.Options);
-        Assert.Contains("\"foregroundApp\":null", json);
-        Assert.Contains("\"foregroundApp\":\"\"", JsonSerializer.Serialize(new AgentStatus { ForegroundApp = "" }, Json.Options));
+        var json = JsonSerializer.Serialize(new AgentStatus { ChildSessionActive = true }, Json.Options);
+        Assert.Contains("\"playSeconds\":0", json);
+        Assert.DoesNotContain("playSessionId", json);
+        json = JsonSerializer.Serialize(new AgentStatus { PlaySeconds = 42.5, PlaySessionId = "ph1" }, Json.Options);
+        Assert.Contains("\"playSeconds\":42.5", json);
+        Assert.Contains("\"playSessionId\":\"ph1\"", json);
+        Assert.DoesNotContain("foregroundApp", json);
+    }
+
+    private static readonly string[] ChayRoblox = { "explorer.exe", "roblox.exe", "scratch.exe" };
+
+    [Fact]
+    public void TienCanhChoi_TinTienCanhDaXacMinh_KhongRoThiVanTinh()
+    {
+        var p = P();
+        Assert.True(TienCanhChoi.DangChoi(p, "RobLox.exe", true, false, ChayRoblox));
+        Assert.False(TienCanhChoi.DangChoi(p, "scratch.exe", true, false, ChayRoblox), "app học ở nền trước (đang chạy thật)");
+        Assert.False(TienCanhChoi.DangChoi(p, "roblox.exe", true, true, ChayRoblox), "WTS xác nhận khoá màn hình");
+        // tiền cảnh rỗng: chỉ tin khi WTS báo khoá
+        Assert.False(TienCanhChoi.DangChoi(p, "", true, true, ChayRoblox));
+        Assert.True(TienCanhChoi.DangChoi(p, "", true, false, ChayRoblox), "giả «không có cửa sổ» lúc màn hình mở ⇒ vẫn tính");
+        Assert.True(TienCanhChoi.DangChoi(p, "", true, null, ChayRoblox), "không đọc được WTS ⇒ không rõ ⇒ vẫn tính");
+        // app khay báo không chạy thật trong phiên Con ⇒ không rõ ⇒ tính nếu app chơi đang chạy
+        Assert.True(TienCanhChoi.DangChoi(p, "notepad.exe", true, false, ChayRoblox));
+        Assert.False(TienCanhChoi.DangChoi(p, "notepad.exe", true, false, new[] { "explorer.exe" }), "app chơi cũng không chạy");
+        Assert.False(TienCanhChoi.DangChoi(p, "", true, false, new[] { "explorer.exe" }), "không chạy Roblox ⇒ không chơi");
+        // khay chết: tính nếu app chơi đang chạy (không biết danh sách ⇒ tính)
+        Assert.True(TienCanhChoi.DangChoi(p, null, false, false, ChayRoblox));
+        Assert.True(TienCanhChoi.DangChoi(p, "scratch.exe", false, false, null));
+        Assert.False(TienCanhChoi.DangChoi(p, "scratch.exe", true, false, null), "không đọc được tiến trình ⇒ tin khay");
+        Assert.False(TienCanhChoi.DangChoi(P("""{"mode":"hoc"}"""), "roblox.exe", true, false, ChayRoblox), "Policy không có phiên");
+        // phiên web: trình duyệt
+        var w = P(WinPhienWeb);
+        Assert.True(TienCanhChoi.DangChoi(w, "msedge.exe", true, false, new[] { "msedge.exe" }));
+        Assert.False(TienCanhChoi.DangChoi(w, "roblox.exe", true, false, new[] { "msedge.exe", "roblox.exe" }));
+        Assert.Equal(new HashSet<string> { "roblox.exe", "a.exe" },
+            TienCanhChoi.TenExe(new[] { new RunningProc(1, @"C:\Games\Roblox.EXE"), new RunningProc(2, "/x/a.exe") }));
     }
 
     [Fact]
-    public void Dem_ChiKhiMatMang_VaTienCanhLaAppChoi()
+    public void KhayThat_DungExeDaCai_KhongPhanBietHoaThuong()
+    {
+        var khay = Path.Combine(Path.GetTempPath(), "AiiGrow", Paths.TrayExeName);
+        Assert.True(KhayThat.La(khay.ToUpperInvariant().Replace(Path.GetTempPath().ToUpperInvariant(), Path.GetTempPath()), khay));
+        Assert.False(KhayThat.La(Path.Combine(Path.GetTempPath(), "Gia", Paths.TrayExeName), khay), "cùng tên khác thư mục");
+        Assert.False(KhayThat.La(Path.Combine(Path.GetTempPath(), "AiiGrow", "powershell.exe"), khay));
+        Assert.False(KhayThat.La(null, khay));
+        Assert.False(KhayThat.La("", khay));
+    }
+
+    [Fact]
+    public void Dem_ChiKhiMatMang_VaDangChoi()
     {
         var p = P();
         // có mạng ⇒ không đếm, không tạo đoạn
-        var (d, luu) = PhienOffline.Dem(null, p, offline: false, true, "roblox.exe", true, 5, T0);
+        var (d, luu) = PhienOffline.Dem(null, p, offline: false, true, 5, 0, T0);
         Assert.Null(d); Assert.False(luu);
-        (d, luu) = PhienOffline.Dem(null, p, true, true, "roblox.exe", true, 5, T0);
+        (d, luu) = PhienOffline.Dem(null, p, true, true, 5, 0, T0);
         Assert.NotNull(d); Assert.True(luu, "đoạn mới ⇒ lưu ngay");
         Assert.Equal(5, d!.GiayChoi);
-        (d, _) = PhienOffline.Dem(d, p, true, true, "", true, 5, T0);              // màn hình khoá
-        (d, _) = PhienOffline.Dem(d, p, true, true, "scratch.exe", true, 5, T0);   // app học
-        (d, _) = PhienOffline.Dem(d, p, true, false, "roblox.exe", true, 5, T0);   // Con không đăng nhập
+        (d, _) = PhienOffline.Dem(d, p, true, false, 5, 0, T0);                  // không chơi (khoá / app khác / đăng xuất)
         Assert.Equal(5, d!.GiayChoi);
-        (d, _) = PhienOffline.Dem(d, p, true, true, "RobLox.exe", true, 5, T0);
+        (d, _) = PhienOffline.Dem(d, p, true, true, 5, 0, T0);
         Assert.Equal(10, d!.GiayChoi);
-        (d, _) = PhienOffline.Dem(d, p, true, true, null, false, 5, T0);           // khay chết ⇒ vẫn đếm
-        Assert.Equal(15, d!.GiayChoi);
+        (d, _) = PhienOffline.Dem(d, p, true, true, 500, 0, T0);                 // một vòng tối đa 60 giây
+        Assert.Equal(70, d!.GiayChoi);
         Assert.Equal("ph1", d.PhienId);
         Assert.False(d.HetHan);
-        // phiên web: trình duyệt ở nền trước mới đếm
-        var w = P(WinPhienWeb);
-        var (dw, _) = PhienOffline.Dem(null, w, true, true, "msedge.exe", true, 5, T0);
-        (dw, _) = PhienOffline.Dem(dw, w, true, true, "roblox.exe", true, 5, T0);
-        Assert.Equal(5, dw!.GiayChoi);
+    }
+
+    [Fact]
+    public void NguongDoanMoi_TruSoGiayDaChoiTheoPolicy()
+    {
+        // P2-5: Policy cho 3 phút; đã chơi 2 phút (có mạng + đoạn offline đã gửi bù, dong-bo lỗi) ⇒ đoạn mới chỉ còn 1 phút
+        var p = P();
+        var (d, _) = PhienOffline.Dem(null, p, true, true, 5, 120, T0);
+        Assert.Equal(1, d!.GioiHanPhut, 3);
+        for (int i = 0; i < 11; i++) (d, _) = PhienOffline.Dem(d, p, true, true, 5, 120, T0);
+        Assert.True(d!.HetHan);
+        Assert.Equal(60, d.GiayChoi);
+        var (d0, _) = PhienOffline.Dem(null, p, true, false, 5, 200, T0);
+        Assert.True(d0!.HetHan, "đã chơi quá ngưỡng ⇒ chặn ngay");
     }
 
     [Fact]
@@ -81,23 +133,20 @@ public class PhienOfflineTests
     {
         var p = P();
         PhienOffline? d = null;
-        for (int i = 0; i < 35; i++) (d, _) = PhienOffline.Dem(d, p, true, true, "roblox.exe", true, 5, T0.AddSeconds(5 * i));
+        for (int i = 0; i < 35; i++) (d, _) = PhienOffline.Dem(d, p, true, true, 5, 0, T0.AddSeconds(5 * i));
         Assert.False(d!.HetHan);
         Assert.Contains("roblox.exe", PhienOffline.ApDung(p, d).AllowedApps);
-        var (d2, luu) = PhienOffline.Dem(d, p, true, true, "roblox.exe", true, 5, T0);     // 180 giây = 3 phút
+        var (d2, luu) = PhienOffline.Dem(d, p, true, true, 5, 0, T0);     // 180 giây = 3 phút
         Assert.True(d2!.HetHan); Assert.True(luu);
         var hl = PhienOffline.ApDung(p, d2);
         Assert.DoesNotContain("roblox.exe", hl.AllowedApps);
         Assert.Contains("scratch.exe", hl.AllowedApps);
         Assert.Contains("roblox.exe", p.AllowedApps);          // Policy cuối giữ nguyên (có mạng lại máy chủ quyết)
-        // hết hạn rồi thì không đếm thêm
-        (d2, _) = PhienOffline.Dem(d2, p, true, true, "roblox.exe", true, 5, T0);
+        (d2, _) = PhienOffline.Dem(d2, p, true, true, 5, 0, T0);
         Assert.Equal(180, d2!.GiayChoi);
-        // Policy mới cho phiên khác ⇒ không chặn theo đoạn cũ
         var khac = P(WinCoPhien.Replace("\"ph1\"", "\"ph9\""));
         Assert.Contains("roblox.exe", PhienOffline.ApDung(khac, d2).AllowedApps);
-        // ngưỡng 0 ⇒ chặn ngay khi mất mạng
-        var (d0, _) = PhienOffline.Dem(null, P(WinCoPhien.Replace("\"playOfflineMinutes\":3", "\"playOfflineMinutes\":0")), true, true, "explorer.exe", true, 5, T0);
+        var (d0, _) = PhienOffline.Dem(null, P(WinCoPhien.Replace("\"playOfflineMinutes\":3", "\"playOfflineMinutes\":0")), true, false, 5, 0, T0);
         Assert.True(d0!.HetHan);
     }
 
@@ -106,7 +155,7 @@ public class PhienOfflineTests
     {
         var w = P(WinPhienWeb);
         PhienOffline? d = null;
-        for (int i = 0; i < 121; i++) (d, _) = PhienOffline.Dem(d, w, true, true, "msedge.exe", true, 5, T0);
+        for (int i = 0; i < 121; i++) (d, _) = PhienOffline.Dem(d, w, true, true, 5, 0, T0);
         Assert.True(d!.HetHan);
         var hl = PhienOffline.ApDung(w, d);
         Assert.Equal(new[] { "explorer.exe", "chrome.exe" }, hl.AllowedApps);

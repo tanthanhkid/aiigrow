@@ -55,7 +55,8 @@ test("dungTuStatus: playSeconds của đúng phiên ⇒ tính đúng chừng đ�
   assert.deepEqual(pw.dungTuStatus(ps(0, "p1"), "p1"), { dangDung: false, phut: 0 }, "khoá màn hình / app khác cả lượt");
   assert.deepEqual(pw.dungTuStatus(ps(30, "p1"), "p1"), { dangDung: true, phut: 0.5 });
   assert.deepEqual(pw.dungTuStatus(ps(-5, "p1"), "p1"), { dangDung: false, phut: 0 }, "số âm ⇒ 0");
-  assert.deepEqual(pw.dungTuStatus(ps(30, "p0"), "p1"), { dangDung: true }, "agent chưa nhận Policy có phiên mới ⇒ theo thời gian trôi");
+  assert.deepEqual(pw.dungTuStatus(ps(30, "p0"), "p1"), { dangDung: false, phut: 0 }, "giây của phiên khác / agent chưa nhận Policy có phiên ⇒ 0");
+  assert.deepEqual(pw.dungTuStatus({ childSessionActive: true, playSeconds: 0 }, "p1"), { dangDung: false, phut: 0 });
   assert.deepEqual(pw.dungTuStatus(CU, "p1"), { dangDung: true }, "agent 0.2.0–0.2.3");
   assert.deepEqual(pw.dungTuStatus({ ...ps(60, "p1"), childSessionActive: false }, "p1"), { dangDung: false }, "Con đã đăng xuất");
   assert.equal(pw.laAgentMoi(ps(0, "p1")), true);
@@ -65,7 +66,7 @@ test("dungTuStatus: playSeconds của đúng phiên ⇒ tính đúng chừng đ�
   assert.equal(pw.laNhipThucThi({ agent: "windows", online: true } as never), false, "đồng bộ của HeartbeatWorker không là nhịp");
 });
 
-test("playSeconds xen kẽ (chơi / khoá / chơi dở lượt): tính đúng số giây agent đếm, kẹp theo thời gian thật; phiên khác ⇒ theo thời gian trôi", async () => {
+test("playSeconds xen kẽ (chơi / khoá / chơi dở lượt): tính đúng số giây agent đếm, kẹp theo thời gian thật; giây của phiên khác ⇒ 0", async () => {
   const { con, may } = await nha(100);
   const t0 = VN("2026-10-21T17:00:00");
   const p = await ph.moPhien(con, may.id, "roblox.exe", {}, t0);
@@ -77,7 +78,9 @@ test("playSeconds xen kẽ (chơi / khoá / chơi dở lượt): tính đúng s�
   k = await nh(45, 4);
   assert.deepEqual([k!.trangThai, k!.phutDung], ["chay", 2.25], "chơi lại 45 giây — không mất phút vì lượt trước đang «tạm»");
   assert.equal((await nh(600, 5))!.phutDung, 3.25, "agent báo quá thời gian thật ⇒ kẹp 1 phút");
-  assert.equal((await nh(10, 6, "phien-cu"))!.phutDung, 4.25, "số giây của phiên khác ⇒ theo thời gian trôi");
+  k = await nh(10, 6, "phien-cu");
+  assert.deepEqual([k!.trangThai, k!.phutDung], ["tam", 3.25], "số giây của phiên khác ⇒ không tính");
+  assert.equal((await nh(60, 7))!.phutDung, 4.25);
   assert.equal(await v.soDu(con), 96, "4,25 phút × 1 điểm ⇒ trừ 4, nợ phần lẻ");
 });
 
@@ -154,7 +157,7 @@ test("máy dùng chung: phiên PIN hết hạn ⇒ đóng phiên (het_dang_nhap)
   p = await ph.moPhien(con, may.id, "roblox.exe", {}, t1);
   const tok = await dangNhap(con, may.id, VN("2026-10-22T05:00:00"));
   await pw.nhipPhienWindows(may, null, ps(60, p.id), sau(t1, 1));
-  await tre.raTre(tok);
+  await tre.raTre(tok, sau(t1, 2));
   s = await phienDb(p.id);
   assert.deepEqual([s!.trang_thai, s!.ly_do_ket], ["ket_thuc", "con_dung"]);
   assert.equal(await one(`select 1 from kid_sessions where id = $1`, [sha(tok)]), undefined);

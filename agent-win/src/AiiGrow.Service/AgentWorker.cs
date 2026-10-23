@@ -57,7 +57,12 @@ public sealed class AgentWorker : BackgroundService
                     bool active = sess is { Active: true };
 
                     CountUsage(now, elapsed, active);
-                    _rt.DemPhienOffline(now, giayDonDieu, active);
+                    // 0.2.4: «đang chơi thật» — WTS báo phiên Con khoá? + tiến trình thật trong phiên Con (chỉ đọc khi Policy có phiên chơi).
+                    bool? manHinhKhoa = sess != null ? SessionHelper.IsLocked(sess.SessionId) : null;
+                    IReadOnlyCollection<string>? tienTrinh = null;
+                    if (sess != null && _rt.CurrentPolicy?.PlaySessionId != null)
+                        try { tienTrinh = TienCanhChoi.TenExe(_procs.ListChildProcesses(sess.SessionId)); } catch { tienTrinh = null; }
+                    _rt.DemChoi(now, giayDonDieu, active, manHinhKhoa, tienTrinh);
                     if (_rt.PhienOfflineHetHan)
                     {
                         _rt.PhienOfflineHetHan = false;
@@ -157,14 +162,16 @@ public sealed class AgentWorker : BackgroundService
             using var api = new ApiClient(cfg.Server, cfg.Token);
             // 0.2.4: có phút chơi khi mất mạng chưa gửi ⇒ gửi phien/bu TRƯỚC dong-bo (máy chủ đo thời gian thật từ nhịp cuối).
             var doan = _rt.DoanCanBu();
+            var status = _rt.BuildStatus(active);
             var (policy, raw) = await GuiBu.DongBoAsync(api, doan, (kq, loi) =>
             {
                 if (kq == KetQuaBu.DaGui) _log.LogInformation("Đã gửi bù {phut} phút chơi khi mất mạng (phiên {id})", doan!.PhutChoi, doan.PhienId);
                 else if (kq == KetQuaBu.Bo) _log.LogWarning("Bỏ gửi bù phút chơi offline (phiên {id}): máy chủ từ chối {code} {m}", doan!.PhienId, loi?.StatusCode, loi?.Message);
                 else if (kq == KetQuaBu.GiuLai) _log.LogDebug("Gửi bù phút chơi offline lỗi, giữ lại: {m}", loi?.Message);
                 _rt.GhiKetQuaBu(doan, kq);
-            }, _rt.BuildStatus(active), usage, ct);
+            }, status, usage, ct);
             _rt.SetPolicy(policy, raw);
+            _rt.DaGuiGiayChoi(status);
             return DateTimeOffset.Now.AddSeconds(policy.NextCheckSec);
         }
         catch (Exception e) when (e is not OperationCanceledException)
