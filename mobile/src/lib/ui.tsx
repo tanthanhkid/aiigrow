@@ -4,7 +4,7 @@
 // Chuẩn: TIEU-CHUAN-GIAO-DIEN.md (WCAG 2.2 + Material 3) — nhãn nút một dòng, chạm ≥ 44, chữ không đè mascot.
 import React, { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle,
+  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
@@ -67,7 +67,7 @@ export function Canh({ lv, tieu, loi, mau = "xanh", thap, children }: { lv: Linh
         {children ? <View style={{ marginTop: 8, alignItems: "flex-start" }}>{children}</View> : null}
         <View style={s.duoiBong} />
       </View>
-      <View pointerEvents="none" style={[s.canhRob, { width: thap ? "42%" : "50%" }]}>
+      <View pointerEvents="none" style={[s.canhRob, { width: thap ? "42%" : "50%", maxWidth: thap ? 160 : 200 }]}>
         <Image source={LV[lv]} style={{ width: "100%", height: "100%" }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       </View>
     </View>
@@ -352,10 +352,11 @@ export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string
 const NEN = { bm: [M.dauBaMe, M.nen], nhi: [M.dauNhi, M.nen], teen: [M.dauTeen, "#fbfbfd"] } as const;
 
 /** Khung một màn (kit.man): nền gradient đầu màn, đầu (lùi / tiêu đề / bên phải) hoặc tiêu đề lớn, thân cuộn, nút dính đáy, nút chat nổi. */
-export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, tai, dangTai, chat, noi, khongCuon }: {
+export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, tai, dangTai, chat, noi, khongCuon, cuonCuoi }: {
   children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string }; tieu?: string; tieuLon?: string; phai?: ReactNode;
-  dau?: ReactNode; day?: ReactNode; tai?: () => void; dangTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean;
+  dau?: ReactNode; day?: ReactNode; tai?: () => void; dangTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
 }) {
+  const cuon = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const ve = () => (lui?.ve ? router.replace(lui.ve as never) : router.canGoBack() ? router.back() : router.replace("/"));
   const dauMan = lui || tieu || phai ? (
     <View style={s.dau}>
@@ -378,18 +379,36 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: M.nen }} edges={["top", "left", "right"]}>
       <LinearGradient colors={NEN[nen] as unknown as [string, string]} locations={[0, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: 300 }} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       {dauMan}
       {dau}
       {khongCuon ? <View style={[s.than, { flex: 1 }]}>{than}</View> : (
-        <ScrollView contentContainerStyle={[s.than, chat && { paddingBottom: 96 }]} keyboardShouldPersistTaps="handled"
+        <ScrollView ref={cuon} contentContainerStyle={[s.than, chat && { paddingBottom: 96 }]} keyboardShouldPersistTaps="handled"
+          onContentSizeChange={cuonCuoi ? () => cuon.current?.scrollToEnd({ animated: true }) : undefined}
           refreshControl={tai ? <RefreshControl refreshing={!!dangTai} onRefresh={tai} tintColor={M.chinh} /> : undefined}>
           {than}
         </ScrollView>
       )}
       {day ? <View style={s.day}>{day}</View> : null}
+      </KeyboardAvoidingView>
       {chat ? <NutChat coDay={!!day} /> : null}
       {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: day ? 120 : 100, zIndex: Z.toast }}>{noi}</View> : null}
     </SafeAreaView>
+  );
+}
+
+/** Ô soạn tin dính đáy cho màn chat (đặt trong `day` của Man để tránh bàn phím). */
+export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t: string) => void; gui: () => void; dangChay?: boolean; nhan: string }) {
+  const co = !!gia.trim();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, borderRadius: 16, paddingLeft: 14, minHeight: 52 }}>
+      <TextInput value={gia} onChangeText={doi} placeholder="Nhập tin nhắn…" placeholderTextColor={M.chu3} multiline maxLength={1000} accessibilityLabel={nhan}
+        style={{ flex: 1, fontFamily: F.thuong, fontSize: 16, color: M.chu, paddingVertical: 12, maxHeight: 120 }} />
+      <Pressable onPress={gui} disabled={!co || dangChay} accessibilityRole="button" accessibilityLabel="Gửi"
+        style={{ width: 44, height: 44, borderRadius: 15, margin: 4, backgroundColor: co ? M.chinh : M.chinhSoft, alignItems: "center", justifyContent: "center" }}>
+        <Icon ten="gui" mau={co ? "#fff" : M.chinhInk} />
+      </Pressable>
+    </View>
   );
 }
 

@@ -296,3 +296,28 @@ test("GET /api/m/con/:id/lien-ket-aiirob ⇒ {ma: <family_id>.<child_id>}; Con n
   assert.equal((await m(`con/${con}/lien-ket-aiirob`)).status, 401);
   assert.equal((await m(`con/${con}/lien-ket-aiirob`, { tok: "token-khong-ton-tai" })).status, 401);
 });
+
+test("vai admin trong app: Ba Mẹ có cờ admin (env AIIGROW_ADMIN_DINH_DANH) xem hộp thư + trả lời; Ba Mẹ thường bị 403", async () => {
+  const a = await taoNha("Ánh"), b = await taoNha("Bình");
+  const ta = await taoPhien(a.bm), tb = await taoPhien(b.bm);
+  const cu = process.env.AIIGROW_ADMIN_DINH_DANH;
+  try {
+    delete process.env.AIIGROW_ADMIN_DINH_DANH;
+    assert.equal((await m("toi", { tok: tb })).body.laAdmin, false);
+    assert.equal((await m("admin/ho-tro", { tok: tb })).status, 403, "không có env ⇒ không ai là admin");
+    process.env.AIIGROW_ADMIN_DINH_DANH = ` ${a.bm.toUpperCase()}@VIDU.VN , khac@x.vn`;
+    await m("ho-tro", { tok: tb, body: { noiDung: "Cần giúp" } });
+    assert.equal((await m("toi", { tok: ta })).body.laAdmin, true);
+    assert.equal((await m("toi", { tok: tb })).body.laAdmin, false);
+    for (const [d, body] of [["admin/ho-tro", undefined], [`admin/ho-tro/${b.fam}`, undefined], [`admin/ho-tro/${b.fam}`, { noiDung: "x" }]] as const)
+      assert.equal((await m(d, { tok: tb, body })).status, 403, d);
+    const ds = (await m("admin/ho-tro", { tok: ta })).body.ds;
+    assert.equal(ds[0].family_id, b.fam);
+    assert.equal(ds[0].chua_tra_loi, true);
+    assert.equal((await m(`admin/ho-tro/${b.fam}`, { tok: ta, body: { noiDung: "Đã xử lý ạ" } })).status, 200);
+    assert.equal((await m(`admin/ho-tro/${b.fam}`, { tok: ta, body: { noiDung: " " } })).status, 400);
+    assert.deepEqual((await m(`admin/ho-tro/${b.fam}`, { tok: ta })).body.tin.map((x: { tu: string }) => x.tu), ["ba_me", "aiilab"]);
+    assert.equal((await m("admin/ho-tro", { tok: ta })).body.ds.find((x: { family_id: string }) => x.family_id === b.fam).chua_tra_loi, false);
+    assert.equal((await m("ho-tro", { tok: tb })).body.tin[1].tu, "aiilab");
+  } finally { if (cu === undefined) delete process.env.AIIGROW_ADMIN_DINH_DANH; else process.env.AIIGROW_ADMIN_DINH_DANH = cu; }
+});

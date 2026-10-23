@@ -27,6 +27,7 @@ import * as dns from "./dns-gia-dinh.ts";
 import { datTrangWeb, thongKeWeb } from "./web.ts";
 // Thành viên gia đình + thông báo trong app (chỉ thêm)
 import * as gt from "./api-gia-dinh.ts";
+import * as hta from "./ho-tro-admin.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -60,14 +61,14 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (post && bm.vai === "xem" && d !== "dang-xuat") throw new LoiNghiepVu("chi_xem", "Tài khoản của Ba/Mẹ đang ở quyền Chỉ xem", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
-    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: bm.vai } });
+    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: bm.vai }, laAdmin: hta.laQuanTri(bm.dinh_danh) });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 
     if (d === "gia-dinh" && get) {
       // song song: mỗi câu SQL là một vòng mạng tới DB
-      const [con, f, cho, ycCho, cb] = await Promise.all([gd.dsCon(fam),
-        one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true)]);
-      return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length,
+      const [con, f, cho, ycCho, cb, phieuCho] = await Promise.all([gd.dsCon(fam),
+        one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true), pt.dsPhieuCho(fam)]);
+      return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length + phieuCho.length,
         canhBao: cb.length,
         con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id)) }))) });
     }
@@ -166,7 +167,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "nhiem-vu/mau" && post) return json({ taoMoi: await nv.apDungMau(fam, b.nhom === "teen" ? "teen" : "nhi") });
     if (p[0] === "nhiem-vu" && p[1] && p.length === 2 && post) { await nv.suaNv(fam, p[1], b); return json({ ok: true }); }
 
-    if (d === "cho-duyet" && get) return json({ nhiemVu: await nv.choDuyet(fam), yeuCau: await yc.dsChoYc(fam), tuDong: await nv.tuDongHomNay(fam) });
+    if (d === "cho-duyet" && get) return json({ nhiemVu: await nv.choDuyet(fam), yeuCau: await yc.dsChoYc(fam), phieu: await pt.dsPhieuCho(fam), tuDong: await nv.tuDongHomNay(fam) });
     if (p[0] === "luot" && p[1]) {
       if (p.length === 2 && get) return json(await nv.chiTietLuot(fam, p[1]));
       if (p[2] === "hoan-tac" && post) { await nv.hoanTacDuyet(fam, p[1], bm.id); return json({ ok: true }); }
@@ -205,6 +206,12 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     }
     if (d === "luat" && post) return json({ muc: await la.datLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom }) });
 
+    if (p[0] === "admin" && p[1] === "ho-tro") {       // hộp thư hỗ trợ của AiiLab: chỉ Ba Mẹ có cờ admin
+      if (!hta.laQuanTri(bm.dinh_danh)) return loi("khong_du_quyen", "Tính năng này chỉ dành cho quản trị AiiLab", 403);
+      if (p.length === 2 && get) return json({ ds: await hta.dsHoTro() });
+      if (p.length === 3 && get) return json(await hta.chiTietHoTro(p[2]));
+      if (p.length === 3 && post) { await hta.traLoiHoTro(p[2], `admin-app:${bm.id}`, s(b.noiDung, 1000)); return json({ ok: true }); }
+    }
     if (d === "ho-tro" && get)
       return json({ tin: await q(`select id, tu, noi_dung, created_at from ho_tro where family_id = $1 order by created_at, seq limit 200`, [fam]) });
     if (d === "ho-tro" && post) {

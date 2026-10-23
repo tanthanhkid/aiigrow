@@ -4,7 +4,7 @@ import { bm, type GiaDinh } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { Avt, BieuTron, ChoTai, Dong, Man, Nhan, Nhom, NhomTieu, Nut, Rob, useTai } from "@/lib/ui";
 
-type Toi = { baMe: { id: string; ten: string; dinhDanh: string; vai: "chu" | "duyet" | "xem" } };
+type Toi = { baMe: { id: string; ten: string; dinhDanh: string; vai: "chu" | "duyet" | "xem" }; laAdmin?: boolean };
 const VAI = { chu: "Chủ gia đình", duyet: "Thành viên phê duyệt", xem: "Chỉ xem" } as const;
 
 export default function CaiDat() {
@@ -40,6 +40,7 @@ export default function CaiDat() {
       <NhomTieu chu="Trợ giúp" />
       <Nhom>
         <Dong dau tieu="Chat với AiiLab" phu="Người thật trả lời, thường trong 5 phút" trai={<Rob ten="rob-goc" co={44} />} bam={() => router.push("/ho-tro")} />
+        {d.toi.laAdmin ? <Dong tieu="Hộp thư hỗ trợ" phu="Tin của các gia đình gửi AiiLab — dành cho quản trị" trai={<BieuTron ic="tin" mau="tim" />} bam={() => router.push("/admin-ho-tro")} /> : null}
       </Nhom>
     </Man>
   );
