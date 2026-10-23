@@ -206,9 +206,9 @@ export function lyDoChu(x: XetPhien): string {
 }
 
 /** agent-win KHÔNG gửi `phien/nhip` ⇒ nhịp dong-bo (30 giây khi có phiên) của CHÍNH máy Windows mở phiên là nhịp phiên — trừ điểm,
- *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. `dangDung` = Con đang đăng nhập Windows (`childSessionActive`): đăng xuất / đổi người dùng
- *  ⇒ tạm dừng, 3 phút ⇒ đóng. Khoá màn hình (Win+L) phiên Windows vẫn «đang kết nối» ⇒ VẪN tính phút (chưa phân biệt được khi agent chưa
- *  gửi app tiền cảnh — việc của agent). Trang chơi trên khay chỉ theo trạng thái này (choi-tre › nhipTre), không là nguồn thứ hai. */
+ *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. `dangDung` do lib/phien-windows.ts tính từ status: agent 0.2.4+ gửi `foregroundApp`
+ *  (khoá màn hình / app khác ⇒ tạm dừng, 3 phút ⇒ đóng); agent cũ chỉ có `childSessionActive` (đăng xuất / đổi người dùng ⇒ tạm dừng).
+ *  Trang chơi trên khay chỉ theo trạng thái này (choi-tre › nhipTre), không là nguồn thứ hai. */
 export async function nhipTuDongBo(mayId: string, con: string, dangDung: boolean, now = new Date()) {
   const ph = await phienDang(con);
   if (!ph || ph.device_id !== mayId) return null;

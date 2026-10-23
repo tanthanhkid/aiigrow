@@ -25,6 +25,17 @@ export type PolicyWindows = {
   cheDo?: "giam-sat" | "chan";
   /** Lọc web theo tên miền (lib/web.ts): agent ghi chính sách Chrome/Edge URLBlocklist/URLAllowlist — CHỈ khi chế độ hiệu lực là «chan»; giám sát ⇒ gỡ chính sách. */
   web: ChinhSachWeb;
+  // 0.2.4 — chỉ có khi đang có phiên chơi bằng điểm mà agent cho chạy (app .exe của phiên, hoặc trình duyệt cho phiên web).
+  // Agent dùng khi MẤT MẠNG (BRD 6.7): chỉ đếm lúc app chơi ở nền trước + màn hình mở; vượt `playOfflineMinutes` ⇒ tự bỏ app chơi
+  // (và trình duyệt nếu `playWeb`) khỏi allowedApps, coi phiên đã hết; có mạng lại gửi `phien/bu` {id = playSessionId} trước dong-bo.
+  /** Mã phiên chơi đang chạy (play_sessions.id). */
+  playSessionId?: string;
+  /** Mục của phiên, chữ thường (tên .exe, hoặc tên miền khi `playWeb`). */
+  playApp?: string;
+  /** Phiên web ⇒ app chơi là trình duyệt (TRINH_DUYET). */
+  playWeb?: boolean;
+  /** Số phút tối đa được chơi tiếp khi mất mạng = min(phút còn lại của phiên, phút mua được bằng số dư + phút thưởng còn lại) theo giá phiên. */
+  playOfflineMinutes?: number;
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
@@ -44,7 +55,15 @@ export function nhipDongBo(o: { coPhien: boolean; moDen?: Date | null; now: Date
   return Math.max(10, s);
 }
 
-export type MoRong = { moDen?: Date | null; conThuong?: number };
+/** `phienTien`: giá của phiên (phần nghìn điểm/phút, chốt lúc mở) và phần lẻ đang nợ (phan_nghin_tru − diem_tru·1000) — lib/phien-windows.ts › tienPhien. */
+export type MoRong = { moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number } };
+
+/** Phút được chơi tiếp khi mất mạng (BRD 6.7) — tính như máy chủ tính ở nhịp: phút thưởng (thêm giờ) dùng trước, không trừ điểm;
+ *  rồi tới số phút mua được bằng số dư sau khi trả phần lẻ đang nợ; không vượt phút còn lại của phiên. Giá 0 ⇒ chỉ giới hạn bởi phiên. */
+export function phutChoiOffline(conPhut: number, soDu: number, conThuong: number, giaPhanNghin: number, noPhanNghin = 0): number {
+  const muaDuoc = giaPhanNghin > 0 ? Math.max(0, Math.floor((soDu * 1000 - Math.max(0, noPhanNghin)) / giaPhanNghin)) : Infinity;
+  return Math.max(0, Math.min(Math.max(0, conPhut), muaDuoc + Math.max(0, Math.floor(conThuong))));
+}
 
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
@@ -69,5 +88,11 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     web: chinhSachWebCho(p, { moGiaiTri: dangMo }),
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
+    ...(p.phien && (choi.length || phienWeb) ? {
+      playSessionId: p.phien.id, playApp: p.phien.muc.toLowerCase(), playWeb: !!phienWeb,
+      playOfflineMinutes: phutChoiOffline(p.phien.conPhut, p.soDu, mo.conThuong ?? 0,
+        mo.phienTien?.giaPhanNghin ?? p.luat.find((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase())?.giaPhanNghin ?? 1000,
+        mo.phienTien?.noPhanNghin ?? 0),
+    } : {}),
   };
 }
