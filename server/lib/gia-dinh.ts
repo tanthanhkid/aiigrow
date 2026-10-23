@@ -112,7 +112,11 @@ export async function ghepMay(code: string, platform: string, tenMay: string, ng
 /** IP gọi để đếm lượt ghép: `x-real-ip` (Vercel đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
 export function nguonGoi(h: Headers) {
   const ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "?").split(",")[0].trim().toLowerCase();
-  return ip.includes(":") ? ip.split(":").slice(0, 4).join(":") : ip;
+  if (!ip.includes(":")) return ip;
+  const [dau, cuoi = ""] = ip.split("::");                            // mở «::» thành đủ 8 nhóm rồi mới lấy /64
+  const a = dau ? dau.split(":") : [], b = ip.includes("::") && cuoi ? cuoi.split(":") : [];
+  const du = ip.includes("::") ? [...a, ...Array(Math.max(0, 8 - a.length - b.length)).fill("0"), ...b] : a;
+  return du.slice(0, 4).map((x) => x.replace(/^0+(?=.)/, "")).join(":");
 }
 
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */

@@ -51,6 +51,9 @@ test("nguồn gọi ghép máy: ưu tiên x-real-ip, IPv6 gộp /64", () => {
   assert.equal(g.nguonGoi(new Headers({ "x-forwarded-for": "2.2.2.2, 10.0.0.1" })), "2.2.2.2");
   assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "2001:db8:1:2:aaaa::1" })), "2001:db8:1:2");
   assert.equal(g.nguonGoi(new Headers()), "?");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "2001:db8::5:6:7:8" })), "2001:db8:0:0");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "2001:db8:0:0:1::9" })), "2001:db8:0:0");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "::1" })), "0:0:0:0");
 });
 
 test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn; token chỉ lưu băm; gỡ máy là token chết", async () => {
