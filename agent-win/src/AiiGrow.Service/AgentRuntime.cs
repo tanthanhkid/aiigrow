@@ -24,6 +24,8 @@ public sealed class AgentRuntime
     private string? _blockedName;
     private DateTimeOffset? _lockStartedAt;
     private int _lockGraceSec = 60;
+    /// <summary>0.2.4: phút chơi khi mất mạng chưa gửi bù (bản trong bộ nhớ; ghi đĩa ở Config.PhienOffline).</summary>
+    private PhienOffline? _phienOffline;
 
     public ConfigStore Store { get; } = new();
     public AgentConfig? Config { get; private set; }
@@ -45,6 +47,8 @@ public sealed class AgentRuntime
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
             }
             _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, DateTimeOffset.UtcNow));
+            // nạp lại khi worker khác ghi cấu hình: bản trong bộ nhớ có thể mới hơn bản trên đĩa (đĩa ghi 30 giây/lần)
+            _phienOffline = PhienOffline.Chon(_phienOffline, Config?.PhienOffline);
         }
     }
 
@@ -153,6 +157,7 @@ public sealed class AgentRuntime
             _lastSyncAt = DateTimeOffset.Now;
             TokenInvalid = false;
             _chayChoGhi = 0;   // liên lạc được ⇒ bộ đếm mất liên lạc về 0 (GhiThanhCong)
+            BoDoanRong();
             if (Config != null)
             {
                 var at = _policyAt;
@@ -176,7 +181,55 @@ public sealed class AgentRuntime
         }
     }
 
-    public Policy? CurrentPolicy { get { lock (_gate) return _policy; } }
+    /// <summary>Policy để THỰC THI (AppLocker + đóng app): Policy cuối, trừ app chơi khi đoạn chơi offline đã vượt ngưỡng (<see cref="PhienOffline.ApDung"/>).</summary>
+    public Policy? CurrentPolicy { get { lock (_gate) return _policy == null ? null : PhienOffline.ApDung(_policy, _phienOffline); } }
+
+    /// <summary>0.2.4 (BRD 6.7): mỗi vòng thực thi — đếm giây chơi khi mất mạng (đồng hồ đơn điệu), lưu khi cần.</summary>
+    public void DemPhienOffline(DateTimeOffset now, double giayDonDieu, bool conDangNhap)
+    {
+        lock (_gate)
+        {
+            var tuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
+            var truocHet = _phienOffline?.HetHan == true;
+            var (doan, luu) = PhienOffline.Dem(_phienOffline, _policy, _offline, conDangNhap, _fgId, tuoi, giayDonDieu, now);
+            _phienOffline = doan;
+            if (doan != null && doan.HetHan && !truocHet) PhienOfflineHetHan = true;
+            if (luu) LuuPhienOffline();
+        }
+    }
+
+    /// <summary>Vừa vượt ngưỡng chơi offline (worker đọc để ghi log một lần).</summary>
+    public bool PhienOfflineHetHan { get; set; }
+
+    /// <summary>Bản sao đoạn chơi offline cần gửi bù (null = không có gì).</summary>
+    public PhienOffline? DoanCanBu() { lock (_gate) return _phienOffline is { CanGui: true } d ? d.Sao() : null; }
+
+    /// <summary>Kết quả gửi bù: đã gửi / bỏ (4xx vĩnh viễn) ⇒ xoá đoạn đúng mã (đoạn mới hơn giữ nguyên); giữ lại ⇒ không đổi.</summary>
+    public void GhiKetQuaBu(PhienOffline? daGui, KetQuaBu kq)
+    {
+        if (daGui == null || kq is not (KetQuaBu.DaGui or KetQuaBu.Bo)) return;
+        lock (_gate)
+        {
+            if (_phienOffline?.Ma != daGui.Ma) return;
+            _phienOffline = null;
+            LuuPhienOffline();
+        }
+    }
+
+    /// <summary>Có mạng (đồng bộ được) mà đoạn không có gì để gửi ⇒ bỏ đoạn rỗng.</summary>
+    private void BoDoanRong()
+    {
+        if (_phienOffline is { CanGui: false }) { _phienOffline = null; LuuPhienOffline(); }
+    }
+
+    private void LuuPhienOffline()
+    {
+        var sao = _phienOffline?.Sao();
+        AgentConfig? moi = null;
+        try { moi = Store.Update(c => c.PhienOffline = sao); } catch { }
+        if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+        else if (Config != null) Config.PhienOffline = sao;
+    }
 
     public void SetOffline(bool v)
     {
@@ -378,6 +431,8 @@ public sealed class AgentRuntime
                 CheDo = _cheDo,
                 MoCoi = moCoi,
                 PhienKhac = phienKhac,
+                // 0.2.4: app tiền cảnh cho «đang dùng thật» của phiên chơi (máy chủ: lib/phien-windows.ts). Khay không tươi ⇒ null.
+                ForegroundApp = childActive && tray ? (_fgId ?? "").Trim().ToLowerInvariant() : null,
                 Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac),
             };
         }

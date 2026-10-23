@@ -87,6 +87,10 @@ public sealed class ApiClient : IDisposable
     public Task<PlayOpen> OpenPlayAsync(string muc, CancellationToken ct = default)
         => PostAsync<PlayOpen>("api/device/phien/mo", new { muc }, ct);
 
+    /// <summary>Gửi bù phút chơi khi mất mạng (POST phien/bu, agent 0.2.4) — thân do <see cref="PhienOffline.TaoBu"/> dựng; `ma` một lần.</summary>
+    public Task<string> BuPhienAsync(object body, CancellationToken ct = default)
+        => SendAsync(HttpMethod.Post, "api/device/phien/bu", body, ct);
+
     /// <summary>Gửi lời xin Ba Mẹ từ màn chặn (POST yeu-cau). Chỉ gửi; quyết định do máy chủ trả về.</summary>
     public Task<RequestResult> AskParentAsync(string loai, int phut, string? appId, string? lyDo, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/yeu-cau", new { loai, phut, muc = appId, lyDo }, ct);

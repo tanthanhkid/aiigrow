@@ -27,6 +27,7 @@ public sealed class AgentWorker : BackgroundService
         string? lastCheDo = null;
         bool lastMoCoi = false;
         var nextProbe = DateTimeOffset.MinValue;
+        var tickTruoc = Environment.TickCount64;
 
         while (!ct.IsCancellationRequested)
         {
@@ -35,6 +36,10 @@ public sealed class AgentWorker : BackgroundService
                 var now = DateTimeOffset.Now;
                 var elapsed = Math.Min((now - last).TotalSeconds, 15);
                 last = now;
+                // Đồng hồ ĐƠN ĐIỆU cho phút chơi khi mất mạng (Con chỉnh giờ máy không ăn gian), trần 15 giây/vòng như `elapsed`.
+                var tick = Environment.TickCount64;
+                var giayDonDieu = Math.Clamp((tick - tickTruoc) / 1000.0, 0, 15);
+                tickTruoc = tick;
                 _rt.ReloadIfChanged();
                 // Đồng hồ ĐƠN ĐIỆU cho fail-open 14 ngày (không đổi khi Con chỉnh giờ máy).
                 _rt.GhiNhipChay(Environment.TickCount64);
@@ -52,6 +57,12 @@ public sealed class AgentWorker : BackgroundService
                     bool active = sess is { Active: true };
 
                     CountUsage(now, elapsed, active);
+                    _rt.DemPhienOffline(now, giayDonDieu, active);
+                    if (_rt.PhienOfflineHetHan)
+                    {
+                        _rt.PhienOfflineHetHan = false;
+                        _log.LogInformation("Mất mạng: đã chơi hết số phút được phép (playOfflineMinutes) — bỏ app chơi khỏi danh sách tới khi có mạng lại");
+                    }
 
                     _rt.TinhCheDo(now);   // để status gửi lên trong lần đồng bộ này là chế độ THẬT đang áp
                     bool force = _rt.TakeForceSync();
@@ -144,7 +155,15 @@ public sealed class AgentWorker : BackgroundService
         try
         {
             using var api = new ApiClient(cfg.Server, cfg.Token);
-            var (policy, raw) = await api.SyncAsync(_rt.BuildStatus(active), usage, ct);
+            // 0.2.4: có phút chơi khi mất mạng chưa gửi ⇒ gửi phien/bu TRƯỚC dong-bo (máy chủ đo thời gian thật từ nhịp cuối).
+            var doan = _rt.DoanCanBu();
+            var (policy, raw) = await GuiBu.DongBoAsync(api, doan, (kq, loi) =>
+            {
+                if (kq == KetQuaBu.DaGui) _log.LogInformation("Đã gửi bù {phut} phút chơi khi mất mạng (phiên {id})", doan!.PhutChoi, doan.PhienId);
+                else if (kq == KetQuaBu.Bo) _log.LogWarning("Bỏ gửi bù phút chơi offline (phiên {id}): máy chủ từ chối {code} {m}", doan!.PhienId, loi?.StatusCode, loi?.Message);
+                else if (kq == KetQuaBu.GiuLai) _log.LogDebug("Gửi bù phút chơi offline lỗi, giữ lại: {m}", loi?.Message);
+                _rt.GhiKetQuaBu(doan, kq);
+            }, _rt.BuildStatus(active), usage, ct);
             _rt.SetPolicy(policy, raw);
             return DateTimeOffset.Now.AddSeconds(policy.NextCheckSec);
         }

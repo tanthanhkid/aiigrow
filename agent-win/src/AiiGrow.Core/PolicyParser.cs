@@ -41,6 +41,11 @@ public static class PolicyParser
         if (p.NextCheckSec <= 0) p.NextCheckSec = 30;
         p.NextCheckSec = Math.Clamp(p.NextCheckSec, 10, 600);
         if (p.MinutesLeft is < 0) p.MinutesLeft = 0;
+        // 0.2.4: phiên chơi (chỉ có khi máy chủ gửi playSessionId — máy chủ cũ không gửi ⇒ không đếm/không chặn gì thêm)
+        p.PlaySessionId = string.IsNullOrWhiteSpace(p.PlaySessionId) ? null : p.PlaySessionId.Trim();
+        p.PlayApp = string.IsNullOrWhiteSpace(p.PlayApp) ? null : p.PlayApp.Trim().ToLowerInvariant();
+        if (p.PlaySessionId == null || p.PlayApp == null) { p.PlaySessionId = null; p.PlayApp = null; p.PlayWeb = false; p.PlayOfflineMinutes = null; }
+        else p.PlayOfflineMinutes = p.PlayOfflineMinutes is double m && double.IsFinite(m) ? Math.Clamp(m, 0, 24 * 60) : 0;
         return p;
     }
 
