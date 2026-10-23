@@ -205,6 +205,14 @@ export function lyDoChu(x: XetPhien): string {
   }
 }
 
+/** agent-win KHÔNG gửi `phien/nhip` ⇒ nhịp dong-bo (30 giây khi có phiên) của CHÍNH máy Windows mở phiên là nhịp phiên — trừ điểm,
+ *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. `dangDung` = phiên Windows của Con đang mở (khoá máy / đăng xuất ⇒ tạm dừng, 3 phút ⇒ đóng). */
+export async function nhipTuDongBo(mayId: string, con: string, dangDung: boolean, now = new Date()) {
+  const ph = await phienDang(con);
+  if (!ph || ph.device_id !== mayId) return null;
+  return nhip(con, ph.id, dangDung, now);
+}
+
 export const phienDang = (con: string) =>
   one<{ id: string; muc: string; device_id: string | null; toi_da_phut: number; phut_dung: number; trang_thai: string }>(
     `select id, muc, device_id, toi_da_phut, phut_dung, trang_thai from play_sessions where child_id = $1 and trang_thai in ('chay', 'tam')`, [con]);

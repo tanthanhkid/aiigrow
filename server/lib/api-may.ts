@@ -10,7 +10,7 @@ import { conTuPhien, dangNhapPin, ghepMay, mayTuToken, nguonGoi } from "./gia-di
 import { dongBo } from "./may-con.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, nhanSuKien, taoPhienWeb } from "./may-con.ts";
-import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
+import { dungPhien, moPhien, nhip, nhipTuDongBo, phienDang, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
 import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
 import * as nv from "./nhiem-vu.ts";
@@ -43,6 +43,14 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     const con = may.child_id ?? (k && k.family_id === may.family_id ? k.id : null);
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
+      // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
+      if (may.platform === "windows" && con) {
+        const st = (b.status ?? {}) as { childSessionActive?: boolean };
+        if ((await khoaTuanThu(may)).khoa) {
+          const ph = await phienDang(con);
+          if (ph?.device_id === may.id) try { await dungPhien(con, ph.id, "ba_me_khoa"); } catch { /* phiên không còn chạy */ }
+        } else await nhipTuDongBo(may.id, con, st.childSessionActive !== false);
+      }
       const pol = await dongBo(may, { ...b, conDangDung: con });
       // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi.
       // Kèm bí mật mã mở offline cho máy Windows (agent cache khi còn mạng để tự kiểm mã lúc mất mạng).

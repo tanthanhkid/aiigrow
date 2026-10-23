@@ -144,3 +144,21 @@ test("đến giờ ngủ giữa phiên ⇒ tự kết thúc, điểm chưa dùng
   assert.ok((await v.soDu(con)) >= 89);
   assert.equal((await one<{ n: number }>(`select count(*)::int as n from play_sessions where child_id = $1 and trang_thai <> 'ket_thuc'`, [con]))!.n, 0);
 });
+
+test("máy Windows (không gửi phien/nhip): nhịp dong-bo của chính máy mở phiên trừ điểm, hết giờ đóng; Con đăng xuất 3 phút ⇒ đóng; máy khác không đụng", async () => {
+  const { con } = await nha(100);
+  const t0 = VN("2026-10-21T17:00:00");
+  const p = await ph.moPhien(con, "pc1", "roblox.exe", {}, t0);
+  assert.equal(await ph.nhipTuDongBo("pc2", con, true, sau(t0, 1)), null, "máy khác của Con không tính nhịp cho phiên này");
+  let k = null as Awaited<ReturnType<typeof ph.nhipTuDongBo>>;
+  for (let i = 1; i <= 10; i++) k = await ph.nhipTuDongBo("pc1", con, true, sau(t0, i));
+  assert.equal(k!.trangThai, "chay");
+  assert.equal(k!.phutDung, 10);
+  assert.equal(await v.soDu(con), 90, "10 phút game (1 điểm/phút) trừ đúng như nhịp phiên");
+  for (let i = 11; i <= 13; i++) k = await ph.nhipTuDongBo("pc1", con, false, sau(t0, i));
+  assert.equal(k!.trangThai, "tam");
+  k = await ph.nhipTuDongBo("pc1", con, false, sau(t0, 14));
+  assert.equal(k!.trangThai, "ket_thuc");
+  assert.equal(k!.lyDoKet, "khong_hoat_dong");
+  assert.equal(await ph.nhipTuDongBo("pc1", con, true, sau(t0, 15)), null, "hết phiên ⇒ không còn gì để nhịp");
+});
