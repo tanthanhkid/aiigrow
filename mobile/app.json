@@ -4,10 +4,12 @@
     "slug": "aiigrow",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "vn.aiilab.aiigrow",
+      "buildNumber": "1",
       "config": { "usesNonExemptEncryption": false }
     },
     "android": {
