@@ -28,6 +28,7 @@ import { datTrangWeb, thongKeWeb } from "./web.ts";
 // Thành viên gia đình + thông báo trong app (chỉ thêm)
 import * as gt from "./api-gia-dinh.ts";
 import * as hta from "./ho-tro-admin.ts";
+import { ghiKiemToan } from "./admin.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -61,7 +62,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (post && bm.vai === "xem" && d !== "dang-xuat") throw new LoiNghiepVu("chi_xem", "Tài khoản của Ba/Mẹ đang ở quyền Chỉ xem", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
-    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: bm.vai }, laAdmin: hta.laQuanTri(bm.dinh_danh) });
+    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: bm.vai }, laAdmin: hta.laQuanTri(bm.id) });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 
     if (d === "gia-dinh" && get) {
@@ -207,10 +208,14 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "luat" && post) return json({ muc: await la.datLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom }) });
 
     if (p[0] === "admin" && p[1] === "ho-tro") {       // hộp thư hỗ trợ của AiiLab: chỉ Ba Mẹ có cờ admin
-      if (!hta.laQuanTri(bm.dinh_danh)) return loi("khong_du_quyen", "Tính năng này chỉ dành cho quản trị AiiLab", 403);
+      if (!hta.laQuanTri(bm.id)) return loi("khong_du_quyen", "Tính năng này chỉ dành cho quản trị AiiLab", 403);
       if (p.length === 2 && get) return json({ ds: await hta.dsHoTro() });
       if (p.length === 3 && get) return json(await hta.chiTietHoTro(p[2]));
-      if (p.length === 3 && post) { await hta.traLoiHoTro(p[2], `admin-app:${bm.id}`, s(b.noiDung, 1000)); return json({ ok: true }); }
+      if (p.length === 3 && post) {
+        const doDai = await hta.traLoiHoTro(p[2], `admin-app:${bm.id}`, s(b.noiDung, 1000));
+        await ghiKiemToan({ id: bm.id, vai: "admin-app" }, "tra_loi_ho_tro", { doDai, qua: "app" }, p[2]);
+        return json({ ok: true });
+      }
     }
     if (d === "ho-tro" && get)
       return json({ tin: await q(`select id, tu, noi_dung, created_at from ho_tro where family_id = $1 order by created_at, seq limit 200`, [fam]) });

@@ -105,3 +105,14 @@ test("phiếu quà Con đổi hiện trong «Chờ duyệt» của Ba Mẹ (cả
   const khac = await taoNha();
   assert.equal((await pt.dsPhieuCho(khac.fam)).length, 0, "cách ly gia đình");
 });
+
+test("phiếu chờ tính vào homNay.phieuCho của từng Con", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Mi" });
+  await v.dieuChinhTay(fam, con, 500, "Điểm thử", bm);
+  const qua = await pt.taoQua(fam, { ten: "Kẹo", loai: "qua", diem: 100 });
+  const { homNay } = await import("./bao-cao.ts");
+  assert.equal((await homNay(fam, con)).phieuCho, 0);
+  await pt.doiQua(con, qua, THU4);
+  assert.equal((await homNay(fam, con)).phieuCho, 1);
+});

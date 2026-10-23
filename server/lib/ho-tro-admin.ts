@@ -1,11 +1,12 @@
 // Hộp thư hỗ trợ cho quản trị AiiLab: dùng chung giữa cổng web (/api/admin, phiên staff) và app (/api/m/admin/ho-tro, Ba Mẹ có cờ admin).
-// Cờ admin của Ba Mẹ = định danh (email/SĐT) nằm trong env AIIGROW_ADMIN_DINH_DANH (danh sách cách nhau bởi dấu phẩy). Không có env ⇒ không ai là admin.
+// Cờ admin của Ba Mẹ = `parents.id` nằm trong env AIIGROW_ADMIN_ID (danh sách cách nhau bởi dấu phẩy). KHÔNG so email/SĐT: OTP thử cho phép
+// đăng ký định danh của người khác. Không có env ⇒ không ai là admin. Lấy id: đăng nhập tài khoản đó, `GET /api/m/toi` → `baMe.id`.
 import { newId, one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 
-export function laQuanTri(dinhDanh: string, env: string | undefined = process.env.AIIGROW_ADMIN_DINH_DANH) {
-  const d = String(dinhDanh ?? "").trim().toLowerCase();
-  return !!d && String(env ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean).includes(d);
+export function laQuanTri(parentId: string, env: string | undefined = process.env.AIIGROW_ADMIN_ID) {
+  const d = String(parentId ?? "").trim();
+  return !!d && String(env ?? "").split(",").map((x) => x.trim()).filter(Boolean).includes(d);
 }
 
 export const dsHoTro = () => q<{ family_id: string; ten: string; tu: string; noi_dung: string; created_at: Date; chua_tra_loi: boolean }>(

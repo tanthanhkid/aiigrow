@@ -30,7 +30,7 @@ export default function HomNay() {
     );
   }
   const c = d.g.con[Math.min(chon, d.g.con.length - 1)];
-  const cho = c.nhiemVuCho + c.yeuCauCho;
+  const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
   const tichCuc = c.homNayConDa.length ? c.homNayConDa.join(" · ") : "Chưa có nhiệm vụ nào được duyệt hôm nay.";
   const cbCon = d.cb.filter((x) => !x.child_id || x.child_id === c.id);
   return (
@@ -60,7 +60,7 @@ export default function HomNay() {
         <BieuTron ic="chuong" mau={cho ? "do" : "xanh"} />
         <View style={{ flex: 1 }}>
           <Chu kieu="rat" co={18}>{cho ? `${cho} việc chờ Ba Mẹ` : "Không có việc nào chờ"}</Chu>
-          <Chu co={13.5} mau={M.chu3}>{cho ? `${c.nhiemVuCho} nhiệm vụ · ${c.yeuCauCho} yêu cầu` : "Khi Con nộp hay xin phép, Rob báo Ba Mẹ ngay"}</Chu>
+          <Chu co={13.5} mau={M.chu3}>{cho ? `${c.nhiemVuCho} nhiệm vụ · ${c.yeuCauCho} yêu cầu${c.phieuCho ? ` · ${c.phieuCho} quà` : ""}` : "Khi Con nộp hay xin phép, Rob báo Ba Mẹ ngay"}</Chu>
         </View>
         <Icon ten="phai" mau={M.chu3} />
       </Pressable>

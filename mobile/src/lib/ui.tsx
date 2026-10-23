@@ -4,7 +4,7 @@
 // Chuẩn: TIEU-CHUAN-GIAO-DIEN.md (WCAG 2.2 + Material 3) — nhãn nút một dòng, chạm ≥ 44, chữ không đè mascot.
 import React, { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle,
+  ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
@@ -353,11 +353,16 @@ const NEN = { bm: [M.dauBaMe, M.nen], nhi: [M.dauNhi, M.nen], teen: [M.dauTeen, 
 
 /** Khung một màn (kit.man): nền gradient đầu màn, đầu (lùi / tiêu đề / bên phải) hoặc tiêu đề lớn, thân cuộn, nút dính đáy, nút chat nổi. */
 export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, tai, dangTai, chat, noi, khongCuon, cuonCuoi }: {
-  children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string }; tieu?: string; tieuLon?: string; phai?: ReactNode;
+  children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string; bam?: () => void }; tieu?: string; tieuLon?: string; phai?: ReactNode;
   dau?: ReactNode; day?: ReactNode; tai?: () => void; dangTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
 }) {
   const cuon = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const ve = () => (lui?.ve ? router.replace(lui.ve as never) : router.canGoBack() ? router.back() : router.replace("/"));
+  useEffect(() => {      // bàn phím mở ⇒ khung co lại: cuộn lại tới tin mới nhất
+    if (!cuonCuoi) return;
+    const sk = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setTimeout(() => cuon.current?.scrollToEnd({ animated: true }), 60));
+    return () => sk.remove();
+  }, [cuonCuoi]);
+  const ve = () => (lui?.bam ? lui.bam() : lui?.ve ? router.replace(lui.ve as never) : router.canGoBack() ? router.back() : router.replace("/"));
   const dauMan = lui || tieu || phai ? (
     <View style={s.dau}>
       {lui ? (
@@ -379,7 +384,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: M.nen }} edges={["top", "left", "right"]}>
       <LinearGradient colors={NEN[nen] as unknown as [string, string]} locations={[0, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: 300 }} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>   {/* Android: app.json để softwareKeyboardLayoutMode mặc định (resize) — hệ điều hành đã co cửa sổ, KAV thêm sẽ co hai lần */}
       {dauMan}
       {dau}
       {khongCuon ? <View style={[s.than, { flex: 1 }]}>{than}</View> : (
@@ -427,12 +432,14 @@ function NutChat({ coDay }: { coDay: boolean }) {
 export function BangTruot({ mo, dong, tieu, children }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode }) {
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Pressable style={{ flex: 1, backgroundColor: "rgba(16,35,31,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
       <View style={s.bangTruot}>
         <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "#d9d3c7", alignSelf: "center" }} />
         <Chu kieu="rat" co={21} style={{ marginTop: 4, letterSpacing: -0.3 }}>{tieu}</Chu>
         {children}
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

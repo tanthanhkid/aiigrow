@@ -1,8 +1,8 @@
 // bm-admin-ho-tro: hộp thư hỗ trợ cho quản trị AiiLab (Ba Mẹ có cờ admin, server kiểm lại ở /api/m/admin/ho-tro). Danh sách gia đình → chat → trả lời.
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { BackHandler, View } from "react-native";
 import { bm } from "@/lib/api";
-import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Dong, gioPhut, M, Man, Nhan, Nhom, Nut, OChat, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Dong, gioPhut, M, Man, Nhan, Nhom, OChat, useLam, useTai } from "@/lib/ui";
 
 type Dong1 = { family_id: string; ten: string; tu: string; noi_dung: string; created_at: string; chua_tra_loi: boolean };
 type Tin = { id: string; tu: "ba_me" | "aiilab"; noi_dung: string; created_at: string };
@@ -40,9 +40,10 @@ function Chat({ fam, ve }: { fam: Dong1; ve: () => void }) {
   const [nd, setNd] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   useEffect(() => { const t = setInterval(tai, 10_000); return () => clearInterval(t); }, [tai]);
+  useEffect(() => { const h = BackHandler.addEventListener("hardwareBackPress", () => { ve(); return true; }); return () => h.remove(); }, [ve]);   // Back Android ⇒ về danh sách
   const gui = () => lam(async () => { await bm.goi(`admin/ho-tro/${fam.family_id}`, { noiDung: nd }); setNd(""); await tai(); });
   return (
-    <Man tieu={fam.ten} cuonCuoi phai={<Nut chu="Hộp thư" loai="ma" nho bam={ve} />} day={
+    <Man lui={{ chu: "Hộp thư", bam: ve }} tieu={fam.ten} cuonCuoi day={
       <>
         <BaoLoi loi={loiLam} />
         <OChat gia={nd} doi={setNd} gui={gui} dangChay={dangChay} nhan={`Trả lời ${fam.ten}`} />

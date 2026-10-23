@@ -21,7 +21,8 @@ export default function ChoDuyet() {
   const phieu = d?.phieu ?? [];
   const xuLyPhieu = (x: Phieu, viec: "xac-nhan" | "huy") => hl.lam(async () => {
     await bm.goi(`phieu/${x.id}/${viec}`, {});
-    bao(viec === "huy" ? `Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${x.ten_con}` : `Đã trao «${x.ten}» cho ${x.ten_con}`);
+    bao(viec === "huy" ? `Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${x.ten_con}`
+      : x.loai === "voucher" ? `Đã xác nhận «${x.ten}» cho ${x.ten_con}` : `Đã trao «${x.ten}» cho ${x.ten_con}`);
     await tai();
   });
   if (!d) return <Man tieuLon="Chờ duyệt" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -40,7 +41,7 @@ export default function ChoDuyet() {
   const phut = Math.max(1, Math.round((Date.now() - new Date(cuNhat).getTime()) / 60000));
   return (
     <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
-      <Canh lv="cho" thap tieu={`${tong} việc đang chờ`} loi={`Cũ nhất ${phut < 60 ? `${phut} phút` : `${Math.round(phut / 60)} giờ`}. Duyệt xong là điểm vào ví Con ngay.`} />
+      <Canh lv="cho" thap tieu={`${tong} việc đang chờ`} loi={`Cũ nhất ${phut < 60 ? `${phut} phút` : `${Math.round(phut / 60)} giờ`}. ${d.nhiemVu.length || d.yeuCau.length ? "Duyệt xong là điểm vào ví Con ngay." : "Con đã đổi điểm, chờ Ba Mẹ trao quà."}`} />
       <BaoLoi loi={hl.loi} />
       {con.map(([id, ten], ci) => {
         const nv = d.nhiemVu.filter((x) => x.child_id === id), yc = d.yeuCau.filter((x) => x.child_id === id), qa = phieu.filter((x) => x.child_id === id);
@@ -75,7 +76,7 @@ export default function ChoDuyet() {
             ) : null}
             {qa.length ? (
               <>
-                <NhomTieu chu={`${ten} · ${qa.length} quà chờ trao`} />
+                <NhomTieu chu={`${ten} · ${qa.length} ${qa.every((x) => x.loai === "voucher") ? "phiếu quà chờ xác nhận" : qa.some((x) => x.loai === "voucher") ? "quà chờ trao hoặc xác nhận" : "quà chờ trao"}`} />
                 <Nhom>
                   {qa.map((x, i) => (
                     <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={`Đổi ${x.diem} điểm · ${gioPhut(x.created_at)}`} trai={<BieuTron ic={(IC_QUA[x.loai] ?? IC_QUA.qua)[0]} mau={(IC_QUA[x.loai] ?? IC_QUA.qua)[1]} />}
@@ -93,6 +94,7 @@ export default function ChoDuyet() {
       {huy ? (
         <BangTruot mo dong={() => setHuy(null)} tieu={`Huỷ «${huy.ten}»?`}>
           <Chu>{`${huy.ten_con} được hoàn ${huy.diem} điểm. Không hoàn tác được.`}</Chu>
+          <BaoLoi loi={hl.loi} />
           <Nut chu="Huỷ phiếu, hoàn điểm" loai="huy" rong dangChay={hl.dangChay} bam={async () => { if (await xuLyPhieu(huy, "huy")) setHuy(null); }} />
           <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="ma" rong bam={() => setHuy(null)} /></View>
         </BangTruot>
