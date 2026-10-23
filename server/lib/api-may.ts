@@ -44,13 +44,15 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
-      if (may.platform === "windows" && con) {
-        const st = (b.status ?? {}) as { childSessionActive?: boolean };
-        if ((await khoaTuanThu(may)).khoa) {
-          const ph = await phienDang(con);
-          if (ph?.device_id === may.id) try { await dungPhien(con, ph.id, "ba_me_khoa"); } catch { /* phiên không còn chạy */ }
-        } else await nhipTuDongBo(may.id, con, st.childSessionActive !== false);
-      }
+      // Lỗi ở nhịp phiên không được làm hỏng cả lượt đồng bộ (agent giữ Policy cũ, thay đổi của Ba Mẹ không tới máy) ⇒ nuốt + ghi log.
+      if (may.platform === "windows" && con) try {
+        const ph = await phienDang(con);
+        if (ph?.device_id === may.id) {
+          const st = (b.status ?? {}) as { childSessionActive?: boolean };
+          if ((await khoaTuanThu(may)).khoa) await dungPhien(con, ph.id, "ba_me_khoa");
+          else await nhipTuDongBo(may.id, con, st.childSessionActive !== false);
+        }
+      } catch (e) { console.error("dong-bo: nhịp phiên Windows lỗi", e); }
       const pol = await dongBo(may, { ...b, conDangDung: con });
       // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi.
       // Kèm bí mật mã mở offline cho máy Windows (agent cache khi còn mạng để tự kiểm mã lúc mất mạng).

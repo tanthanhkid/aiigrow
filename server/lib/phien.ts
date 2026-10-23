@@ -12,7 +12,7 @@ import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 
 export type LyDoTuChoi = "khong_phai_giai_tri" | "bi_chan" | "chua_phan_loai" | "gio_ngu" | "ngoai_khung" | "dang_nghi" | "dat_tran_ngay"
-  | "dat_tran_tuan" | "het_diem" | "phien_khac" | "ba_me_khoa" | "gio_may_sai";
+  | "dat_tran_tuan" | "het_diem" | "phien_khac" | "ba_me_khoa" | "gio_may_sai" | "khong_tuan_thu";
 
 type BoiCanh = { fam: string; tz: string; ts: ThamSo; lich: ReturnType<typeof lichCua>; khoa: boolean };
 
@@ -206,7 +206,9 @@ export function lyDoChu(x: XetPhien): string {
 }
 
 /** agent-win KHÔNG gửi `phien/nhip` ⇒ nhịp dong-bo (30 giây khi có phiên) của CHÍNH máy Windows mở phiên là nhịp phiên — trừ điểm,
- *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. `dangDung` = phiên Windows của Con đang mở (khoá máy / đăng xuất ⇒ tạm dừng, 3 phút ⇒ đóng). */
+ *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. `dangDung` = Con đang đăng nhập Windows (`childSessionActive`): đăng xuất / đổi người dùng
+ *  ⇒ tạm dừng, 3 phút ⇒ đóng. Khoá màn hình (Win+L) phiên Windows vẫn «đang kết nối» ⇒ VẪN tính phút (chưa phân biệt được khi agent chưa
+ *  gửi app tiền cảnh — việc của agent). Trang chơi trên khay chỉ theo trạng thái này (choi-tre › nhipTre), không là nguồn thứ hai. */
 export async function nhipTuDongBo(mayId: string, con: string, dangDung: boolean, now = new Date()) {
   const ph = await phienDang(con);
   if (!ph || ph.device_id !== mayId) return null;

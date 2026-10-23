@@ -8,6 +8,8 @@ const ph = await import("./phien.ts");
 const la = await import("./luat-app.ts");
 const g = await import("./gia-dinh.ts");
 const v = await import("./vi.ts");
+const tre = await import("./choi-tre.ts");
+const tt = await import("./tuan-thu.ts");
 const { q, one } = await import("./db.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 
@@ -161,4 +163,27 @@ test("máy Windows (không gửi phien/nhip): nhịp dong-bo của chính máy m
   assert.equal(k!.trangThai, "ket_thuc");
   assert.equal(k!.lyDoKet, "khong_hoat_dong");
   assert.equal(await ph.nhipTuDongBo("pc1", con, true, sau(t0, 15)), null, "hết phiên ⇒ không còn gì để nhịp");
+});
+
+test("phiên Windows: trang khay gửi «không dùng» xen nhịp đồng bộ ⇒ không giành nhau, vẫn tính đủ phút; máy không tuân thủ ⇒ khay không mở được", async () => {
+  const { fam, con } = await nha(100);
+  const t0 = VN("2026-10-21T17:00:00");
+  const pc = (await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "PC của Ken")).deviceId;
+  const c = { id: con, family_id: fam, device_id: pc };
+  const p = await ph.moPhien(con, pc, "roblox.exe", {}, t0);
+  for (let i = 1; i <= 10; i++) {
+    await ph.nhipTuDongBo(pc, con, true, sau(t0, i));
+    await tre.nhipTre(c, p.id, false, new Date(sau(t0, i).getTime() + 30_000));     // trang thu nhỏ để chơi Roblox
+  }
+  const k = await ph.nhipTuDongBo(pc, con, true, sau(t0, 11));
+  assert.equal(k!.trangThai, "chay");
+  assert.equal(k!.phutDung, 11, "đủ 11 phút, không mất nửa vì trang báo «không dùng»");
+  // agent báo giờ máy lệch 30 phút ⇒ không tuân thủ
+  await tt.nhanNhip(await one<any>(`select * from devices where id = $1`, [pc]),
+    { phienBan: "0.2.3", appQuanLyBat: true, taiKhoan: { ten: "ken", laAdmin: false }, taiKhoanAdmin: [], clientTime: sau(t0, 42).toISOString() }, sau(t0, 12));
+  const may = await one<any>(`select * from devices where id = $1`, [pc]);
+  assert.equal((await tt.khoaTuanThu(may, sau(t0, 12))).khoa, true);
+  const x = await tre.xetTre(c, "roblox.exe", sau(t0, 12));
+  assert.deepEqual([x.duoc, x.lyDo], [false, "khong_tuan_thu"]);
+  await assert.rejects(tre.moTre(c, "roblox.exe", sau(t0, 12)), (e: { ma?: string }) => e.ma === "khong_mo_duoc");
 });
