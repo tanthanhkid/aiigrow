@@ -27,6 +27,20 @@ test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, PIN 4–6 số, nh
   await loi(g.conCua(nha2.fam, ken), "khong_thay");
 });
 
+test("ghép máy: sai mã 10 lần từ một IP ⇒ khoá 15 phút, IP khác vẫn ghép được (chặn dò mã 6 số)", async () => {
+  const { fam } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bo" });
+  const ma = await g.taoMaGhep(fam, con, "windows");
+  const sai = ma === "000000" ? "000001" : "000000";
+  for (let i = 0; i < 10; i++) await loi(g.ghepMay(sai, "windows", "X", "1.2.3.4"), "ma_sai");
+  await loi(g.ghepMay(ma, "windows", "X", "1.2.3.4"), "ghep_tam_khoa");     // khoá cả mã đúng
+  const r = await g.ghepMay(ma, "windows", "PC của Bo", "5.6.7.8");
+  assert.ok(r.token);
+  await q(`update pin_sai set khoa_den = now() - interval '1 minute' where khoa = 'ghep:1.2.3.4'`);
+  await loi(g.ghepMay(sai, "windows", "X", "1.2.3.4"), "ma_sai");           // hết khoá ⇒ đếm lại từ 1
+  assert.equal((await q<{ so_lan: number }>(`select so_lan from pin_sai where khoa = 'ghep:1.2.3.4'`))[0].so_lan, 1);
+});
+
 test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn; token chỉ lưu băm; gỡ máy là token chết", async () => {
   const { fam } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Na" });

@@ -101,7 +101,7 @@ export async function dangNhap(dinhDanh: unknown, mk: unknown) {
   const p = d ? await one<{ id: string; pass_hash: string | null; khoa_den: Date | null }>(
     `select id, pass_hash, khoa_den from parents where dinh_danh = $1`, [d]) : undefined;
   if (p?.khoa_den && new Date(p.khoa_den) > new Date())
-    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút. Quên mật khẩu: nhắn AiiLab để được đặt lại`, 429);
+    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút. hoặc bấm «Quên mật khẩu» để đặt lại bằng mã OTP`, 429);
   const dung = p?.pass_hash ? await dungMatKhau(String(mk ?? ""), p.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
   if (!p || !dung) {
     if (p) await q(`update parents set sai_lien = sai_lien + 1,

@@ -86,7 +86,24 @@ export async function taoMaGhep(fam: string, con: string | null, platform: strin
   throw new Error("Không tạo được mã ghép");
 }
 
-export async function ghepMay(code: string, platform: string, tenMay: string) {
+const GHEP_SAI_TOI_DA = 10;
+
+/** Ghép máy bằng mã 6 số. `nguon` (IP gọi) sai mã 10 lần ⇒ khoá 15 phút — chặn dò mã (chốt BRD #56 câu 3). */
+export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?") {
+  const khoa = `ghep:${nguon}`;
+  const s = await one<{ khoa_den: Date | null }>(`select khoa_den from pin_sai where khoa = $1`, [khoa]);
+  if (s?.khoa_den && new Date(s.khoa_den) > new Date()) throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
+  try { return await ghepMayGd(code, platform, tenMay); } catch (e) {
+    if (e instanceof LoiNghiepVu && e.ma === "ma_sai")
+      await q(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set
+               so_lan = case when pin_sai.khoa_den is not null then 1 else pin_sai.so_lan + 1 end,
+               khoa_den = case when pin_sai.khoa_den is null and pin_sai.so_lan + 1 >= $2 then now() + interval '15 minutes' else null end`,
+        [khoa, GHEP_SAI_TOI_DA]);
+    throw e;
+  }
+}
+
+function ghepMayGd(code: string, platform: string, tenMay: string) {
   return tx(async (t) => {
     const m = (await t<{ family_id: string; child_id: string | null; platform: NenTang; expires_at: Date; used_at: Date | null }>(
       `select family_id, child_id, platform, expires_at, used_at from pair_codes where code = $1 for update`, [String(code ?? "").trim()]))[0];

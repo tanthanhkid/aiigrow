@@ -30,7 +30,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "ghep" && req.method === "POST") { const bb = await docJson(req.clone()); if (bb.token) return json(await doiGoiCai(String(bb.token), String(bb.nen ?? ""), String(bb.tenMay ?? ""))); }
     if (d === "ghep" && req.method === "POST") {
       const b = await docJson(req);
-      return json(await ghepMay(String(b.ma ?? ""), String(b.nen ?? ""), String(b.tenMay ?? "")));
+      const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "?").split(",")[0].trim();
+      return json(await ghepMay(String(b.ma ?? ""), String(b.nen ?? ""), String(b.tenMay ?? ""), ip));
     }
     // M4b: agent báo xong lệnh — trước bước kiểm token máy vì máy đã gỡ (đã xoá) vẫn báo lại được, không ghi đôi
     if (p[0] === "lenh" && p[1] && p[2] === "xong" && req.method === "POST") return json(await xongLenh(bearer(req), p[1]));
