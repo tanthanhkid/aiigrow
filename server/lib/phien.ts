@@ -12,7 +12,8 @@ import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 
 export type LyDoTuChoi = "khong_phai_giai_tri" | "bi_chan" | "chua_phan_loai" | "gio_ngu" | "ngoai_khung" | "dang_nghi" | "dat_tran_ngay"
-  | "dat_tran_tuan" | "het_diem" | "phien_khac" | "ba_me_khoa" | "gio_may_sai" | "khong_tuan_thu";
+  | "dat_tran_tuan" | "het_diem" | "phien_khac" | "ba_me_khoa" | "gio_may_sai" | "khong_tuan_thu"
+  | "may_dang_choi";
 
 type BoiCanh = { fam: string; tz: string; ts: ThamSo; lich: ReturnType<typeof lichCua>; khoa: boolean };
 
@@ -59,6 +60,9 @@ export async function xetMoPhien(con: string, mucTho: string, o: { gioMaySai?: b
   if (nghi) return { duoc: false, lyDo: "dang_nghi", nghiDen: new Date(nghi.nghi_den).toISOString() };
   const khac = (await t<{ device_id: string | null }>(`select device_id from play_sessions where child_id = $1 and trang_thai in ('chay', 'tam')`, [con]))[0];
   if (khac && khac.device_id !== (o.mayId ?? null)) return { duoc: false, lyDo: "phien_khac" };
+  // máy dùng chung: một máy chỉ một phiên — bạn khác đang chơi trên máy này thì phải dừng / «Đổi người» trước
+  if (o.mayId && (await t(`select 1 from play_sessions where device_id = $1 and child_id <> $2 and trang_thai in ('chay', 'tam') limit 1`, [o.mayId, con])).length)
+    return { duoc: false, lyDo: "may_dang_choi" };
   const thuong = await thuongHomNay(t, con, g.ngay);
   const homNay = await daDungTu(t, con, dauNgayUtc(g.ngay, b.tz));
   const conNgay = b.ts.tran_ngay + thuong - homNay;
@@ -107,8 +111,10 @@ export type KetNhip = { trangThai: "chay" | "tam" | "ket_thuc"; phutDung: number
 
 const NHIP_TOI_DA_PHUT = 2;      // một nhịp không tính quá 2 phút (mất mạng lâu rồi gửi nhịp: không «bù» hàng giờ, phần thiếu do agent khoá cục bộ)
 
-/** Nhịp từ agent. `dangDung` false = khoá màn hình / chuyển sang app học ⇒ tạm dừng đếm; tạm dừng quá `tu_dong_dong` phút ⇒ đóng phiên. */
-export async function nhip(con: string, phienId: string, dangDung: boolean, now = new Date()): Promise<KetNhip> {
+/** Nhịp từ agent. `dangDung` false = khoá màn hình / chuyển sang app học ⇒ tạm dừng đếm; tạm dừng quá `tu_dong_dong` phút ⇒ đóng phiên.
+ *  `o.phut` (agent Windows 0.2.4 — `status.playSeconds`): số phút chơi THẬT agent đếm được từ lần đồng bộ trước ⇒ tính đúng chừng đó
+ *  (kẹp theo thời gian thật đã trôi và NHIP_TOI_DA_PHUT), kể cả khi nhịp trước đang «tạm» — không mất phút khi tiền cảnh đổi qua lại. */
+export async function nhip(con: string, phienId: string, dangDung: boolean, now = new Date(), o: { phut?: number } = {}): Promise<KetNhip> {
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
     const p = (await t<{ id: string; trang_thai: string; gia_phan_nghin: number; toi_da_phut: number; nhip_cuoi: Date; phut_dung: number;
@@ -125,13 +131,14 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
     // tạm dừng tính từ nhịp «không dùng» đầu tiên (tam_tu), không từ nhịp cuối — nhịp tạm dừng mỗi phút không kéo dài mãi
     const tamTu = !dangDung ? (p.trang_thai === "tam" ? new Date(p.tam_tu ?? p.nhip_cuoi) : now) : null;
     if (tamTu && (now.getTime() - tamTu.getTime()) / 60000 >= b.ts.tu_dong_dong) ket = "khong_hoat_dong";
-    if (!ket && dangDung && p.trang_thai === "chay") {
-      const them = Math.min(NHIP_TOI_DA_PHUT, Math.round(troi * 10) / 10);
+    if (!ket && dangDung && (p.trang_thai === "chay" || o.phut !== undefined)) {
+      const them = o.phut !== undefined ? Math.min(NHIP_TOI_DA_PHUT, Math.round(Math.min(Math.max(0, o.phut), troi) * 100) / 100)
+        : Math.min(NHIP_TOI_DA_PHUT, Math.round(troi * 10) / 10);
       const g = gioDiaPhuong(now, b.tz);
       const dungThuong = Math.min(them, await conThuongHomNay(t, con, g.ngay, b.tz));      // phút Ba Mẹ cho thêm dùng trước, không trừ điểm
       const tinhTien = them - dungThuong;
       phutThuong += dungThuong;
-      phutDung = Math.round((phutDung + them) * 10) / 10;
+      phutDung = Math.round((phutDung + them) * 100) / 100;
       phanNghin += Math.round(tinhTien * p.gia_phan_nghin);
       const nguyen = Math.floor(phanNghin / 1000) - diemTru;
       if (nguyen > 0) {
@@ -169,7 +176,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
 }
 
 /** Con bấm «Dừng sớm» (giữ điểm còn lại) hoặc Ba Mẹ khoá ngay. */
-export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" | "ba_me_khoa" = "con_dung", now = new Date()) {
+export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" | "ba_me_khoa" | "het_dang_nhap" = "con_dung", now = new Date()) {
   await nhip(con, phienId, true, now);                                 // tính nốt phút tới lúc dừng
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
@@ -201,18 +208,30 @@ export function lyDoChu(x: XetPhien): string {
     case "dat_tran_tuan": return "Tuần này con đã chơi đủ giờ rồi";
     case "het_diem": return "Con chưa đủ điểm — làm nhiệm vụ để có thêm điểm nhé";
     case "phien_khac": return "Con đang chơi trên một thiết bị khác";
+    case "may_dang_choi": return "Máy này đang có bạn khác chơi — bạn ấy cần bấm «Dừng» hoặc «Đổi người» trước";
     default: return "Chưa mở được giờ chơi";
   }
 }
 
 /** agent-win KHÔNG gửi `phien/nhip` ⇒ nhịp dong-bo (30 giây khi có phiên) của CHÍNH máy Windows mở phiên là nhịp phiên — trừ điểm,
- *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. `dangDung` do lib/phien-windows.ts tính từ status: agent 0.2.4+ gửi `foregroundApp`
- *  (khoá màn hình / app khác ⇒ tạm dừng, 3 phút ⇒ đóng); agent cũ chỉ có `childSessionActive` (đăng xuất / đổi người dùng ⇒ tạm dừng).
- *  Trang chơi trên khay chỉ theo trạng thái này (choi-tre › nhipTre), không là nguồn thứ hai. */
+ *  hết giờ, hết điểm, giờ ngủ… như mọi nhịp. Đường chính là lib/phien-windows.ts › nhipPhienWindows: agent 0.2.4+ gửi `playSeconds`
+ *  (máy chủ tính đúng chừng đó; 0 ⇒ tạm dừng, 3 phút ⇒ đóng); agent cũ chỉ có `childSessionActive` (đăng xuất / đổi người dùng ⇒ tạm dừng).
+ *  Trang chơi trên khay CHỈ ĐỌC trạng thái này (choi-tre › nhipTre → trangThaiPhien), không là nguồn thứ hai. */
 export async function nhipTuDongBo(mayId: string, con: string, dangDung: boolean, now = new Date()) {
   const ph = await phienDang(con);
   if (!ph || ph.device_id !== mayId) return null;
   return nhip(con, ph.id, dangDung, now);
+}
+
+/** Trạng thái phiên CHỈ ĐỌC (không nhịp, không ghi) — trang khay cho phiên của máy Windows (choi-tre › nhipTre). */
+export async function trangThaiPhien(con: string, phienId: string): Promise<KetNhip> {
+  const p = await one<{ trang_thai: "chay" | "tam" | "ket_thuc"; phut_dung: number; toi_da_phut: number; diem_tru: number; ly_do_ket: string | null; nghi_den: Date | null }>(
+    `select trang_thai, phut_dung, toi_da_phut, diem_tru, ly_do_ket, nghi_den from play_sessions where id = $1 and child_id = $2`, [phienId, con]);
+  if (!p) throw new LoiNghiepVu("khong_thay", "Không thấy phiên", 404);
+  const conPhut = p.trang_thai === "ket_thuc" ? 0 : Math.max(0, Math.ceil(p.toi_da_phut - p.phut_dung));
+  return { trangThai: p.trang_thai, phutDung: p.phut_dung, conPhut, diemTru: p.diem_tru, soDu: await soDu(con),
+    canhBao: conPhut > 0 && conPhut <= 1 ? 1 : conPhut > 0 && conPhut <= 5 ? 5 : null,
+    lyDoKet: p.ly_do_ket ?? undefined, nghiDen: p.nghi_den ? new Date(p.nghi_den).toISOString() : undefined };
 }
 
 export const phienDang = (con: string) =>

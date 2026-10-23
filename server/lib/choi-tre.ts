@@ -8,7 +8,7 @@ import { tomTatVi } from "./vi.ts";
 import { chuoiNgay } from "./thanh-tich.ts";
 import { nvCuaCon } from "./nhiem-vu.ts";
 import { cuaHang } from "./phan-thuong.ts";
-import { dungPhien, lyDoChu, moPhien, nhip, phienDang, xetMoPhien, type XetPhien } from "./phien.ts";
+import { dungPhien, lyDoChu, moPhien, nhip, phienDang, trangThaiPhien, xetMoPhien, type XetPhien } from "./phien.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
 import type { May } from "./gia-dinh.ts";
@@ -95,12 +95,12 @@ export async function moTre(c: ConTre, muc: string, now = new Date()) {
 }
 
 export async function nhipTre(c: ConTre, id: string, dangDung: boolean, now = new Date()) {
-  // Phiên mở từ máy Windows: nhịp đồng bộ của agent là nguồn «đang dùng» duy nhất (api-may dong-bo). Trang khay chỉ theo trạng thái
-  // hiện có — trang thu nhỏ để chơi Roblox mà gửi «không dùng» thì hai nguồn giành nhau, phiên chập chờn tam/chay không tính phút.
-  const p0 = await one<{ trang_thai: string; platform: string | null }>(
-    `select s.trang_thai, d.platform from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
-  if (p0?.platform === "windows") dangDung = p0.trang_thai !== "tam";
-  const k = await nhip(c.id, id, dangDung, now);
+  // Phiên mở từ máy Windows: nhịp đồng bộ của agent (dong-bo + phien/bu) là nguồn sổ sách DUY NHẤT (lib/phien-windows.ts). Trang khay
+  // CHỈ ĐỌC trạng thái: nếu trang cũng nhịp thì (1) hai nguồn giành nhau tam/chay, (2) có mạng lại trang nhịp trước `phien/bu` sẽ đẩy
+  // nhip_cuoi tới hiện tại ⇒ phút chơi lúc mất mạng bị kẹp gần 0 (không bị trừ).
+  const p0 = await one<{ platform: string | null }>(
+    `select d.platform from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
+  const k = p0?.platform === "windows" ? await trangThaiPhien(c.id, id) : await nhip(c.id, id, dangDung, now);
   const p = await one<{ muc: string; toi_da_phut: number; gia_phan_nghin: number }>(`select muc, toi_da_phut, gia_phan_nghin from play_sessions where id = $1`, [id]);
   return { ...k, muc: p?.muc ?? "", toiDaPhut: p?.toi_da_phut ?? 0, giaPhanNghin: p?.gia_phan_nghin ?? 0 };
 }
@@ -115,5 +115,12 @@ export async function dungTre(c: ConTre, id: string, now = new Date()) {
 /** Đăng xuất phiên PIN (máy dùng chung: «Đổi người»). Token máy riêng không xoá được ở đây. */
 export async function raTre(token: string) {
   const { sha } = await import("./auth.ts");
+  // «Đổi người» trên máy dùng chung: phiên chơi Con này đang mở trên máy đó kết thúc luôn (không để bạn khác chơi bằng điểm của Con)
+  const k = await one<{ child_id: string; device_id: string | null }>(`select child_id, device_id from kid_sessions where id = $1`, [sha(token)]);
+  const chung = k?.device_id ? await one(`select 1 from devices where id = $1 and child_id is null`, [k.device_id]) : undefined;
+  if (k?.device_id && chung) {
+    const ph = await one<{ id: string }>(`select id from play_sessions where child_id = $1 and device_id = $2 and trang_thai in ('chay', 'tam')`, [k.child_id, k.device_id]);
+    if (ph) await dungPhien(k.child_id, ph.id, "con_dung");
+  }
   await q(`delete from kid_sessions where id = $1`, [sha(token)]);
 }
