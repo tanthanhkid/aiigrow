@@ -119,6 +119,15 @@ public class HocVienTests
         Assert.Equal("Ba Mẹ đã duyệt · Nhiệm vụ mới từ Ba Mẹ", nhieu.Noi);
     }
 
+    [Fact]
+    public void CoNhiemVuMoi_ChiKhiCoNhiemVuGiaoHoacChoCaNha()
+    {
+        Assert.True(HocVienView.CoNhiemVuMoi(new[] { new HvTin { Id = "1", Loai = "giao_nhiem_vu" } }));
+        Assert.True(HocVienView.CoNhiemVuMoi(new[] { new HvTin { Id = "1", Loai = "loi_khen" }, new HvTin { Id = "nv:2", Loai = "nhiem_vu_moi" } }));
+        Assert.False(HocVienView.CoNhiemVuMoi(new[] { new HvTin { Id = "1", Loai = "duyet_nhiem_vu" }, new HvTin { Id = "2", Loai = "xac_nhan_qua" } }));
+        Assert.False(HocVienView.CoNhiemVuMoi(Array.Empty<HvTin>()));
+    }
+
     [Theory]
     [InlineData("GET", "hoc-vien/tong-quan", true)]
     [InlineData("GET", "hoc-vien/tin?sau=2026-10-22T02%3A00%3A00.0000000%2B00%3A00", true)]

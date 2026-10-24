@@ -251,6 +251,10 @@ public static class HocVienView
         return ds.Count == 1 ? ds[0] : MucApp.TinNhan;
     }
 
+    /// <summary>Có nhiệm vụ mới (Ba Mẹ giao riêng cho Con hoặc nhiệm vụ cho cả nhà) ⇒ khay tự bật app to ở mục Nhiệm vụ, không chỉ bóng báo
+    /// (bóng báo trên Windows 11 dễ bị chìm vào trung tâm thông báo, Con không thấy).</summary>
+    public static bool CoNhiemVuMoi(IReadOnlyList<HvTin> moi) => moi.Any(t => t.Loai is "giao_nhiem_vu" or "nhiem_vu_moi");
+
     private static string Cat(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 }
 
