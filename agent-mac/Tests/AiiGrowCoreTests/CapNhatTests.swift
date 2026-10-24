@@ -313,13 +313,40 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNotNil(fake.tep[DuongDan.daGo])
   }
 
-  func testDauDaGoSotKhiKhongCoTrinhGoThiTuBo() async {
-    datMayChu()
+  func testDauDaGoSotKhiKhongCoTrinhGoThiTuBo() async throws {
+    let (b, _, thu) = try dungBoMay(banMoi: BanMoi(version: "0.1.1", url: "", sha256: ""))
+    defer { try? FileManager.default.removeItem(atPath: thu) }
     fake.tep[DuongDan.daGo] = Data("x".utf8)                    // go-cai.sh bị SIGKILL trước khi gỡ thật, máy vẫn ghép
+    fake.goDangChay = true
+    await b.kiemCapNhatDinhKy()
+    XCTAssertNotNil(fake.tep[DuongDan.daGo], "go-cai.sh đang chạy ⇒ dấu thật, giữ")
+    fake.goDangChay = false
+    await b.kiemCapNhatDinhKy()
+    XCTAssertNil(fake.tep[DuongDan.daGo], "dấu sót được bỏ (trong actor BoMay)")
+  }
+
+  /// BoCapNhat KHÔNG tự xoá dấu gỡ: choPhep đã trả true rồi tuGo mới ghi dấu (chưa kịp chạy go-cai.sh) ⇒ dấu phải còn, không tải/cài.
+  func testBoCapNhatKhongXoaDauGoGhiSauChoPhep() async {
+    datMayChu()
+    fake.tep[DuongDan.daGo] = Data("x".utf8)
+    fake.goDangChay = false
     let kq = await chay(boCapNhat())
-    XCTAssertEqual(kq, .dangTai("0.1.2"))
-    XCTAssertNil(fake.tep[DuongDan.daGo], "dấu sót được bỏ")
-    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    guard case .loi = kq else { return XCTFail("\(kq)") }
+    XCTAssertNotNil(fake.tep[DuongDan.daGo])
+    XCTAssertTrue(fake.daCaiGoi.isEmpty)
+  }
+
+  func testLoiTaiChiBaoCauNganChoBaMe() async {
+    let m = may
+    HttpMock.dat { path, _ in
+      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.2", "url": "\(m)/tai/a.pkg", "sha256": String(repeating: "a", count: 64)]) }
+      return .init(ma: 500, than: Data())
+    }
+    let b = boCapNhat()
+    _ = await chay(b)
+    let chu = b.so.chu ?? ""
+    XCTAssertTrue(chu.hasPrefix("Chưa cập nhật được bản 0.1.2: máy chủ phát hành trả lỗi"), chu)
+    XCTAssertFalse(chu.contains("chuyển hướng") || chu.contains("NSURLErrorDomain"), "chi tiết kỹ thuật chỉ vào nhật ký")
   }
 
   func testBiGoGiuaChungTruocKhiCaiKhongCai() async {
@@ -433,7 +460,7 @@ final class CapNhatTests: XCTestCase {
   }
 
   /// Chạy lệnh job cài thật bằng sh, thay launchctl / installer / pkgutil bằng script giả ghi nhật ký.
-  private func chayJobCai(installerMa: Int, daGo: Bool, dauCu: Bool) throws -> (log: String, ma: Int32) {
+  private func chayJobCai(installerMa: Int, daGo: Bool, dauCu: Bool, coGoi: Bool = true) throws -> (log: String, ma: Int32) {
     let fm = FileManager.default
     let g = NSTemporaryDirectory() + "job-\(UUID().uuidString)"
     try fm.createDirectory(atPath: g, withIntermediateDirectories: true)
@@ -450,6 +477,7 @@ final class CapNhatTests: XCTestCase {
       .replacingOccurrences(of: "/usr/sbin/pkgutil", with: try gia("pkgutil", 0))
     let goi = g + "/a.pkg", dau = g + "/pid", daGoTep = g + "/da-go", daemon = g + "/daemon.plist", tray = g + "/tray.plist"
     for f in [goi, daemon, tray] { try "x".write(toFile: f, atomically: true, encoding: .utf8) }
+    if !coGoi { try fm.removeItem(atPath: goi) }
     if daGo { try "da-go".write(toFile: daGoTep, atomically: true, encoding: .utf8) }
     if dauCu { try "123".write(toFile: dau, atomically: true, encoding: .utf8) }
     let pg = g + "/phien-gui.sh"
@@ -480,6 +508,12 @@ final class CapNhatTests: XCTestCase {
     XCTAssertFalse(d.log.contains("installer"), "job bị launchd chạy lại: không cài lại")
     XCTAssertTrue(d.log.contains("launchctl bootstrap system"), d.log)
     XCTAssertEqual(d.ma, 0)
+    // lượt trước đã xong (gói + dấu PID đã xoá) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không cài, không nạp lại, chỉ gỡ nhãn
+    let e = try chayJobCai(installerMa: 1, daGo: false, dauCu: false, coGoi: false)
+    XCTAssertFalse(e.log.contains("installer"), e.log)
+    XCTAssertFalse(e.log.contains("bootstrap"), e.log)
+    XCTAssertTrue(e.log.contains("launchctl remove \(LuatCapNhat.nhanCai)"))
+    XCTAssertEqual(e.ma, 0)
   }
 
   func testManifestBanSaiDangBaoLoi() async {

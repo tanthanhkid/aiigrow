@@ -363,10 +363,13 @@ public actor BoMay {
     // có dòng cập nhật để trả (bộ đệm 5 phút); lệnh thật (ghép, cập nhật) tra tươi.
     let ht = heThong
     let adminGoi: Bool
-    if case .trangThai = yc {
+    switch yc {
+    case .trangThai:
       adminGoi = capNhat.so.chu != nil && uidGoi != 0 && uidGoi != cauHinh.uidCon ? await laAdminDem(uidGoi) : false
-    } else {
+    case .ghep, .capNhat:
       adminGoi = uidGoi != 0 ? await ngoai { ht.laAdmin(uid: uidGoi) } : false
+    default:
+      adminGoi = false                                 // ping/appTienCanh/xin… không cần quyền admin — không chạy dscl
     }
     let laAdmin: (UInt32) -> Bool = { $0 == uidGoi && adminGoi }
     let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: laAdmin)
@@ -407,7 +410,7 @@ public actor BoMay {
   /// Nút «Kiểm tra cập nhật»: trả lời NGAY (tray chỉ chờ 3 giây), kiểm + tải + cài chạy nền; kết quả nằm ở `TrangThai.capNhat`.
   public func capNhatNgay() async -> TraLoi {
     guard tuyChon.tuCapNhat else { return .thongBao(chu: "[thử] daemon chạy chế độ thử — không tự cập nhật.") }
-    guard coTheCapNhat() else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
+    guard daGhepKhongGo() else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
     guard capNhat.giuChoNgay() else { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
     capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())      // ghi ngay để lần hỏi trạng thái kế thấy, không chờ Task kịp chạy
     Task { _ = await self.capNhat.batDau(thuCong: true, daGiuCho: true, choPhep: { await self.coTheCapNhat() }) }
@@ -422,12 +425,25 @@ public actor BoMay {
   }
 
   /// Chỉ cập nhật khi đã ghép và không đang gỡ.
-  private func coTheCapNhat() -> Bool { cauHinh.daGhep && !dangGo }
+  private func daGhepKhongGo() -> Bool { cauHinh.daGhep && !dangGo }
 
-  /// Chạy lệnh hệ thống chậm (dscl, ps, launchctl) ngoài actor — không chặn vòng áp và IPC của tray.
-  private func ngoai<T: Sendable>(_ f: @escaping @Sendable () -> T) async -> T {
-    await withCheckedContinuation { c in DispatchQueue.global(qos: .utility).async { c.resume(returning: f()) } }
+  /// `choPhep` của bộ cập nhật. Dấu gỡ sót (go-cai.sh chết giữa chừng — SIGKILL/mất điện — trước khi gỡ thật) trên máy vẫn ghép mà không có
+  /// trình gỡ nào chạy: tự bỏ. Dọn ở ĐÂY (không ở BoCapNhat) vì tuGo bật `dangGo` + ghi dấu trên cùng actor này: sau await kiểm lại `dangGo`,
+  /// giữa lần kiểm đó và lệnh xoá không có await ⇒ không xoá nhầm dấu của một lượt gỡ từ xa vừa bắt đầu.
+  private func coTheCapNhat() async -> Bool {
+    guard daGhepKhongGo() else { return false }
+    if heThong.docTep(DuongDan.daGo) != nil {
+      let ht = heThong
+      let goChay = await ngoai { ht.trinhGoDangChay() }
+      if !goChay, daGhepKhongGo(), heThong.docTep(DuongDan.daGo) != nil {
+        heThong.ghiLog("Cập nhật: dấu gỡ \(DuongDan.daGo) sót từ lượt gỡ dở (không có go-cai.sh nào chạy, máy vẫn ghép) — bỏ dấu.")
+        heThong.xoaTep(DuongDan.daGo)
+      }
+    }
+    return daGhepKhongGo()
   }
+
+  private func ngoai<T: Sendable>(_ f: @escaping @Sendable () -> T) async -> T { await chayNgoaiActor(f) }
 
   /// laAdmin có bộ nhớ đệm 5 phút theo uid (HeThongMac.laAdmin chạy dscl).
   private var adminDem: [UInt32: (laAdmin: Bool, luc: Double)] = [:]

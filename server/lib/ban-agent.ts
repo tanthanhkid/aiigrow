@@ -35,3 +35,12 @@ export const banMayBao = (m: Pick<May, "status">): string | null => {
   const v = m.status?.version;
   return typeof v === "string" && v.trim() ? v.trim().slice(0, 40) : null;
 };
+
+// Origin công khai: sau reverse proxy (nginx → Next standalone) `req.url` là http://localhost:3000 ⇒ lấy x-forwarded-proto/host
+// (giá trị đầu nếu có nhiều chặng). Header bị giả chỉ đổi manifest của chính người gọi; agent vẫn đòi gói https cùng host máy chủ nó ghép.
+export const gocCongKhai = (req: Request, u: URL) => {
+  const dau = (t: string | null) => t?.split(",")[0]?.trim() || undefined;
+  const proto = dau(req.headers.get("x-forwarded-proto")) ?? u.protocol.replace(/:$/, "");
+  const host = dau(req.headers.get("x-forwarded-host")) ?? u.host;
+  return `${proto}://${host}`;
+};

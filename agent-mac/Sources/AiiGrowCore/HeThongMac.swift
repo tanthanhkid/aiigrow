@@ -148,7 +148,7 @@ public final class HeThongMac: HeThong {
   /// PID trong `DuongDan.goCaiDangChay` còn sống và đúng là go-cai.sh (job launchd lẫn chạy tay bằng sudo), hoặc job gỡ từ xa đã submit
   /// mà go-cai.sh chưa kịp ghi PID (nhãn có "PID").
   public func trinhGoDangChay() -> Bool {
-    if HeThongMac.chay("/bin/launchctl", ["list", HeThongMac.nhanTrinhGo], timeout: 10).1.contains("\"PID\"") { return true }
+    if HeThongMac.jobDangChay(HeThongMac.nhanTrinhGo) { return true }
     guard let s = try? String(contentsOfFile: DuongDan.goCaiDangChay, encoding: .utf8),
           let pid = Int32(s.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0, kill(pid, 0) == 0 else { return false }
     return HeThongMac.chay("/bin/ps", ["-p", String(pid), "-o", "command="], timeout: 10).1.contains("go-cai")
@@ -175,8 +175,12 @@ public final class HeThongMac: HeThong {
   }
 
   /// `launchctl list <nhãn>` có «"PID" =» ⇒ job đang chạy.
-  public func caiDangChay() -> Bool {
-    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["list", LuatCapNhat.nhanCai], timeout: 10)
+  public func caiDangChay() -> Bool { HeThongMac.jobDangChay(LuatCapNhat.nhanCai) }
+
+  /// Job launchd `nhan` đang có tiến trình sống (`launchctl list <nhãn>` có khoá "PID"; nhãn đã xong/không có thì không).
+  /// Bản shell cùng quy tắc: `launchctl list <nhãn> | grep -q '"PID"'` trong go-cai.sh, preinstall, postinstall.
+  static func jobDangChay(_ nhan: String) -> Bool {
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["list", nhan], timeout: 10)
     return ma == 0 && ra.contains("\"PID\"")
   }
 
@@ -185,12 +189,14 @@ public final class HeThongMac: HeThong {
   /// - napLai: installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại bản cũ (trừ khi máy vừa bị gỡ).
   /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
+  /// - Lượt trước đã xong (xoá gói + dấu PID) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không còn gói ⇒ tự gỡ nhãn, không cài/nạp lại.
   /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
   static let lenhJobCai = """
     DA_GO="$4" ; DAEMON="$5" ; TRAY="$6" ; PG="$7"
     napLai() { if [ ! -f "$DA_GO" ] && [ -f "$DAEMON" ]; then /bin/launchctl bootstrap system "$DAEMON" ; echo "nạp lại daemon, mã $?" ; \
       for u in $([ -f "$PG" ] && /bin/bash "$PG") ; do /bin/launchctl bootstrap gui/$u "$TRAY" ; done ; fi ; }
     if [ -f "$3" ] ; then echo "lượt cài trước dừng giữa chừng — không cài lại" ; napLai ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
+    if [ ! -f "$1" ] ; then echo "gói đã bị xoá (job bị chạy lại sau khi xong) — bỏ" ; /bin/launchctl remove "$2" ; exit 0 ; fi
     echo $$ > "$3" ; /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
     if [ $ma -ne 0 ] ; then napLai ; fi
     if [ -f "$DA_GO" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi

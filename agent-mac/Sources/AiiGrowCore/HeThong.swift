@@ -90,3 +90,9 @@ public final class HeThongThu: HeThong {
   public func dongPhien(uid: UInt32) throws { se("đóng phiên của uid \(uid) (launchctl bootout gui/\(uid))") }
   public func ghiLog(_ s: String) { that.ghiLog(s) }
 }
+
+/// Chạy việc đồng bộ chậm (dscl, ps, launchctl, băm tệp, spctl) trên hàng đợi GCD — không giữ luồng của actor / pool hợp tác.
+/// Dùng chung cho BoMay và BoCapNhat.
+func chayNgoaiActor<T: Sendable>(_ f: @escaping @Sendable () -> T) async -> T {
+  await withCheckedContinuation { c in DispatchQueue.global(qos: .utility).async { c.resume(returning: f()) } }
+}
