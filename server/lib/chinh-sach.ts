@@ -44,7 +44,7 @@ export type ChinhSachChung = {
   hieuLuc: { giaiTriDuocMo: boolean; lyDo: ("khoa_ngay" | "gio_may_sai" | "khong_tuan_thu")[] };
 };
 
-const BUNDLE = /^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i;   // /i: bundle id Mac giữ chữ hoa (com.roblox.RobloxPlayer)
+const BUNDLE = /^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/;
 
 /** Mục là app (tệp chạy Windows/macOS, gói Android / bundle Apple dạng com.x.y) hay web (tên miền). */
 export function kieuMuc(muc: string): KieuMuc {

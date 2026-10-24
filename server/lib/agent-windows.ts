@@ -87,7 +87,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
   // Máy Mac: app là bundle id / tên .app (không có .exe) và giữ nguyên chữ hoa-thường; Windows: tệp .exe, chữ thường.
   const mac = mo.nen === "mac";
-  const laApp = mac ? (s: string) => kieuMuc(s) === "app" && !exe(s) : exe;
+  const laApp = mac ? (s: string) => kieuMuc(s.toLowerCase()) === "app" && !exe(s) : exe;   // bundle id Mac giữ chữ hoa (com.roblox.RobloxPlayer); kieuMuc so chữ thường
   const chuan = (s: string) => (mac ? s : s.toLowerCase());
   const trinhDuyet = mac ? TRINH_DUYET_MAC : TRINH_DUYET;
   const hoc = p.luat.filter((l) => l.loai === "hoc" && laApp(l.muc)).map((l) => chuan(l.muc));
@@ -97,7 +97,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const now = new Date(p.serverTime);
   const dangMo = !khoa && !!mo.moDen && mo.moDen.getTime() > now.getTime();
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
-  const phienWeb = p.phien && kieuMuc(p.phien.muc) === "web" && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
+  const phienWeb = p.phien && kieuMuc(p.phien.muc.toLowerCase()) === "web" && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
   return {
     serverTime: p.serverTime, childName: p.con?.ten ?? "",
     mode: khoa ? "khoa" : dangMo ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
