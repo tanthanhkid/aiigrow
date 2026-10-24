@@ -1,3 +1,4 @@
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
@@ -13,16 +14,16 @@ internal sealed class AppForm : Form
     private static int Px(int v) => UI.Px(v);
 
     // ---- thanh bên
-    private readonly PictureBox _mascot = new() { SizeMode = PictureBoxSizeMode.Zoom, BackColor = UI.GreenDark };
-    private readonly Label _name = new() { AutoSize = true, ForeColor = Color.White, BackColor = UI.GreenDark };
+    private readonly PictureBox _mascot = new() { SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent };
+    private readonly Label _name = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent };
     private readonly Label _pill = new() { AutoSize = true };
-    private readonly Dictionary<MucApp, Button> _nav = new();
+    private readonly Dictionary<MucApp, ClayButton> _nav = new();
 
     // ---- vùng chính
     private readonly Panel _banner = new() { Dock = DockStyle.Top, Visible = false, BackColor = UI.ErrorSoft };
     private readonly Label _bannerHead = new() { AutoSize = false, ForeColor = UI.Error };
     private readonly Label _bannerHint = new() { AutoSize = false, ForeColor = UI.Error };
-    private readonly Button _bannerBtn = new();
+    private readonly Button _bannerBtn = new ClayButton();
     private readonly Label _title = new() { Dock = DockStyle.Top, ForeColor = UI.Ink, TextAlign = ContentAlignment.BottomLeft };
     private readonly Label _msg = new() { Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleLeft };
     private readonly FlowLayoutPanel _content = new()
@@ -67,6 +68,7 @@ internal sealed class AppForm : Form
         FormBorderStyle = FormBorderStyle.Sizable;
         MinimizeBox = true; MaximizeBox = true; ShowInTaskbar = true;
         BackColor = UI.Paper;
+        Padding = new Padding(Px(10), Px(10), 0, Px(4));   // thanh bên là phiến Clay nổi, chừa chỗ cho bóng
         ClientSize = new Size(Px(1000), Px(680));
         MinimumSize = new Size(Px(880), Px(600));
         // Không vượt quá màn hình nhỏ (laptop 1366×768).
@@ -115,19 +117,24 @@ internal sealed class AppForm : Form
 
     private Control BuildSide()
     {
-        var side = new Panel { Dock = DockStyle.Left, Width = Px(272), BackColor = UI.GreenDark };
+        // Thanh bên = phiến đất sét sáng nổi (Clay gương); mục đang chọn là lòng chảo ấn lõm ngọc nhạt như thanh tab của app.
+        var side = new ClayCard
+        {
+            Dock = DockStyle.Left, Width = Px(272) + VeThe.LeBong.Horizontal, BoGoc = Px(32), BackColor = UI.Card,
+            Padding = VeThe.Pad(Px(4), Px(4), Px(4), Px(4)),
+        };
         var inner = Px(272) - Px(32);
 
         var foot = new Label
         {
-            Dock = DockStyle.Bottom, Height = Px(64), ForeColor = Color.FromArgb(0xcf, 0xe9, 0xe4), BackColor = UI.GreenDark,
-            Font = UI.F(10f), Text = "Máy này do Ba Mẹ quản lý bằng AiiGrow", Padding = new Padding(Px(16), Px(8), Px(16), 0),
+            Dock = DockStyle.Bottom, Height = Px(64), ForeColor = UI.Muted, BackColor = Color.Transparent,
+            Font = UI.F(10f), Text = "Máy này do Ba Mẹ quản lý bằng AiiGrow", Padding = new Padding(Px(12), Px(8), Px(12), 0),
         };
 
         var flow = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = UI.GreenDark,
-            Padding = new Padding(Px(16), Px(16), Px(16), 0), AutoScroll = false,
+            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Color.Transparent,
+            Padding = new Padding(Px(12), Px(12), Px(12), 0), AutoScroll = false,
         };
         _mascot.Size = new Size(inner, Px(210));
         _mascot.Margin = new Padding(0, 0, 0, Px(6));
@@ -142,15 +149,14 @@ internal sealed class AppForm : Form
         flow.Controls.Add(_name);
         flow.Controls.Add(_pill);
 
-        foreach (var (muc, text) in new[] { (MucApp.HomNay, "Hôm nay"), (MucApp.NhiemVu, "Nhiệm vụ"), (MucApp.PhanQua, "Phần quà & điểm"), (MucApp.TinNhan, "Tin nhắn") })
+        foreach (var (muc, text, icon) in new[] { (MucApp.HomNay, "Hôm nay", "alarm_clock"), (MucApp.NhiemVu, "Nhiệm vụ", "memo"), (MucApp.PhanQua, "Phần quà & điểm", "wrapped_gift"), (MucApp.TinNhan, "Tin nhắn", "speech_balloon") })
         {
-            var b = new Button
+            var b = new ClayButton
             {
-                Text = text, Width = inner, Height = Px(56), FlatStyle = FlatStyle.Flat, TextAlign = ContentAlignment.MiddleLeft,
-                Font = UI.F(13f, FontStyle.Bold), Cursor = Cursors.Hand, UseMnemonic = false, UseVisualStyleBackColor = false,
-                Padding = new Padding(Px(14), 0, 0, 0), Margin = new Padding(0, 0, 0, Px(6)), Tag = text,
+                Text = text, Width = inner, Height = Px(56), TextAlign = ContentAlignment.MiddleLeft, Image = UI.Fluent(icon),
+                Font = UI.F(13f, FontStyle.Bold), UseMnemonic = false,
+                Padding = new Padding(Px(4), 0, 0, 0), Margin = new Padding(0, 0, 0, Px(4)), Tag = text, BoGoc = Px(22),
             };
-            b.FlatAppearance.BorderSize = 0;
             var m = muc;
             b.Click += (_, _) => Select(m);
             _nav[muc] = b;
@@ -192,7 +198,7 @@ internal sealed class AppForm : Form
     private void ComputeWidths()
     {
         _cw = _lastW = CalcWidth();
-        _tw = _cw - Px(16) * 2 - Px(6);
+        _tw = _cw - Px(16) * 2 - Px(6) - VeThe.LeBong.Horizontal;
     }
 
     // =========================================================== nạp trạng thái từ khay
@@ -239,10 +245,9 @@ internal sealed class AppForm : Form
             var sel = muc == _muc;
             var n = muc switch { MucApp.NhiemVu when _tq != null => HocVienView.SoViecMo(_tq), MucApp.TinNhan => TinMoi, _ => 0 };
             b.Text = (string)b.Tag! + (n > 0 ? $"   ({n})" : "");
-            b.BackColor = sel ? UI.GreenSoft : UI.GreenDark;
-            b.ForeColor = sel ? UI.GreenDark : Color.White;
-            b.FlatAppearance.MouseOverBackColor = sel ? UI.GreenSoft : UI.Green;
-            b.FlatAppearance.MouseDownBackColor = sel ? UI.GreenSoft : UI.Green;
+            b.Kieu = sel ? KieuClay.Lom : KieuClay.Phang;
+            b.BackColor = sel ? UI.GreenSoft : UI.Card;
+            b.ForeColor = sel ? UI.GreenDark : UI.Ink;
         }
     }
 
@@ -363,22 +368,23 @@ internal sealed class AppForm : Form
         return l;
     }
 
-    private Button Btn(string text, bool primary, int width = 260)
+    private Button Btn(string text, bool primary, int width = 260, string? icon = null)
     {
-        var b = UI.Btn(text, primary, Px(width));
-        b.Height = Px(52);
+        var b = UI.Btn(text, primary, Px(width), icon);
+        b.Height = Px(56);   // thân 50 + lề bóng
         b.Font = UI.F(12f, FontStyle.Bold);
         b.UseMnemonic = false;
         b.Margin = new Padding(0, 0, Px(10), Px(8));
         return b;
     }
 
-    private FlowLayoutPanel Card(Color? bg = null) => new()
+    /// <summary>Thẻ Clay: bo 28, bóng kép, dải men sáng mép trên (lề bóng nằm trong Padding).</summary>
+    private FlowLayoutPanel Card(Color? bg = null) => new ClayFlow
     {
         AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
         Width = _cw, MinimumSize = new Size(_cw, 0), MaximumSize = new Size(_cw, 0),
-        BackColor = bg ?? Color.White, BorderStyle = BorderStyle.FixedSingle,
-        Padding = new Padding(Px(16), Px(12), Px(16), Px(6)), Margin = new Padding(0, 0, 0, Px(12)),
+        BackColor = bg ?? UI.Card, BoGoc = Px(28),
+        Padding = VeThe.Pad(Px(16), Px(12), Px(16), Px(6)), Margin = new Padding(0, 0, 0, Px(4)),
     };
 
     private FlowLayoutPanel Row(int width) => new()
@@ -423,12 +429,12 @@ internal sealed class AppForm : Form
             _content.Controls.Add(c);
 
             var row = Row(_cw);
-            var ask = Btn("Xin thêm thời gian", true, 270);
+            var ask = Btn("Xin thêm thời gian", true, 270, "hourglass_not_done");
             ask.Click += (_, _) => OpenRequest();
             row.Controls.Add(ask);
             if (_s.CanExchangePoints)   // chỉ cờ; không hiện số điểm ở nút này
             {
-                var ex = Btn("Đổi điểm lấy thời gian", false, 270);
+                var ex = Btn("Đổi điểm lấy thời gian", false, 270, "star");
                 ex.Click += (_, _) => OpenRequest();
                 row.Controls.Add(ex);
             }
@@ -438,7 +444,7 @@ internal sealed class AppForm : Form
             if (_s.Paired && !_s.MoCoi && BlockScreenView.CanUsePoints(_s.Locked ? _s.LockReason : null, _s.CanExchangePoints, offline: _s.Offline))
             {
                 var pr = Row(_cw);
-                var choi = Btn("Chơi bằng điểm", false, 270);
+                var choi = Btn("Chơi bằng điểm", false, 270, "video_game");
                 choi.Click += (_, _) => MoChoiBangDiem();
                 pr.Controls.Add(choi);
                 _content.Controls.Add(pr);
@@ -450,7 +456,7 @@ internal sealed class AppForm : Form
             // #70 §1: Ba Mẹ cần máy ⇒ chuyển người dùng (khoá phiên), không đăng xuất, không trừ điểm.
             var bm = Card();
             bm.Controls.Add(T("Ba Mẹ cần máy? Bấm nút này hoặc Win+L", 12f, false, UI.Muted));
-            var nutBm = Btn("Ba Mẹ dùng máy", false, 270);
+            var nutBm = Btn("Ba Mẹ dùng máy", false, 270, "key");
             nutBm.Click += (_, _) => UI.NhuongMayChoBaMe();
             bm.Controls.Add(nutBm);
             _content.Controls.Add(bm);
@@ -473,14 +479,14 @@ internal sealed class AppForm : Form
                 c.Controls.Add(T($"{_tq.SoDu} điểm  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
             }
             var row = Row(_tw);
-            var go = Btn("Xem nhiệm vụ", false, 210);
-            go.Height = Px(46);
+            var go = Btn("Xem nhiệm vụ", false, 210, "memo");
+            go.Height = Px(50);
             go.Click += (_, _) => Select(MucApp.NhiemVu);
             row.Controls.Add(go);
             if (TinMoi > 0)
             {
-                var tin = Btn($"Đọc tin nhắn ({TinMoi})", false, 210);
-                tin.Height = Px(46);
+                var tin = Btn($"Đọc tin nhắn ({TinMoi})", false, 210, "speech_balloon");
+                tin.Height = Px(50);
                 tin.Click += (_, _) => Select(MucApp.TinNhan);
                 row.Controls.Add(tin);
             }
@@ -525,7 +531,7 @@ internal sealed class AppForm : Form
         if (nut != null)
         {
             var b = Btn(nut, v.TrangThai == "san_sang", 220);
-            b.Height = Px(46);
+            b.Height = Px(50);
             b.Click += async (_, _) => await ViecAsync(v, b);
             card.Controls.Add(b);
         }
@@ -575,6 +581,7 @@ internal sealed class AppForm : Form
         if (VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có phần quà.", "Đang tải…")) return;
         // Điểm: màu vàng CHỈ dành cho điểm (mau.ts) — chữ diemInk trên nền diemSoft 7,4:1.
         var pts = Card(UI.PointSoft);
+        pts.Controls.Add(new ClayIcon { Size = new Size(Px(60), Px(60)), MauVien = UI.Card, Hinh = UI.Fluent("star"), Margin = new Padding(0, 0, 0, Px(2)) });
         pts.Controls.Add(T("Điểm của con", 12.5f, false, UI.PointInk));
         pts.Controls.Add(T($"{_tq.SoDu} điểm", 36f, true, UI.PointInk));
         pts.Controls.Add(T(HocVienView.CapText(_tq.CapDo) + (_tq.DiemChoDuyet > 0 ? $" · {_tq.DiemChoDuyet} điểm đang chờ Ba Mẹ duyệt" : ""), 12f, false, UI.PointInk));
@@ -602,8 +609,8 @@ internal sealed class AppForm : Form
         card.Controls.Add(T($"{q.Ten}   ·   {q.Diem} điểm", 14f, true));
         var s = HocVienView.QuaTrangThai(q) + (q.ChiCuoiTuan ? " · chỉ đổi vào cuối tuần" : "");
         card.Controls.Add(T(s, 11.5f, true, q.Du ? UI.GreenDark : UI.Muted));
-        var b = Btn("Đổi quà", q.Du, 220);
-        b.Height = Px(46);
+        var b = Btn("Đổi quà", q.Du, 220, "wrapped_gift");
+        b.Height = Px(50);
         b.Enabled = q.Du;
         b.Click += async (_, _) => await DoiAsync(q, b);
         card.Controls.Add(b);
@@ -688,7 +695,7 @@ internal sealed class AppForm : Form
         foreach (var s in new[] { "Con cảm ơn ạ", "Con sẽ cố gắng", "Con yêu Ba Mẹ" })
         {
             var b = Btn(s, false, 180);
-            b.Height = Px(44);
+            b.Height = Px(50);
             b.Font = UI.F(11f, FontStyle.Bold);
             var ch = s;
             b.Click += async (_, _) => await TraLoiAsync(l, ch);

@@ -37,14 +37,15 @@ internal sealed class TrayContext : ApplicationContext
 
     public TrayContext()
     {
-        var menu = new ContextMenuStrip();
+        // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
+        var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
         _statusItem = new ToolStripMenuItem(_kn.Dong) { Enabled = false };
-        _retryItem = new ToolStripMenuItem("Thử kết nối lại", null, async (_, _) => await RetryAsync());
+        _retryItem = new ToolStripMenuItem("Thử kết nối lại", UI.Fluent("link"), async (_, _) => await RetryAsync());
         menu.Items.Add(_statusItem);
         menu.Items.Add(_retryItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", null, (_, _) => OpenApp(MucApp.HomNay)));
-        menu.Items.Add("Xin thêm thời gian", null, (_, _) => OpenRequest());
+        menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", UI.Fluent("seedling"), (_, _) => OpenApp(MucApp.HomNay)));
+        menu.Items.Add("Xin thêm thời gian", UI.Fluent("hourglass_not_done"), (_, _) => OpenRequest());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Máy này do bố mẹ quản lý bằng AiiGrow") { Enabled = false });
 

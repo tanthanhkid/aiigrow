@@ -1,3 +1,4 @@
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
@@ -7,9 +8,9 @@ internal sealed class RequestForm : Form
 {
     private readonly int[] _opts = { 30, 60, 120 };
     private readonly RadioButton[] _radios = new RadioButton[3];
-    private readonly TextBox _note = new() { Multiline = true, Height = 64, Width = 380, Font = UI.F(11f), MaxLength = 200 };
-    private readonly Button _send = UI.Btn("Xin bố mẹ", true, 380);
-    private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, 380);
+    private readonly TextBox _note = new() { Multiline = true, Height = 64, Width = 380, Font = UI.F(11f), MaxLength = 200, BorderStyle = BorderStyle.FixedSingle };
+    private readonly Button _send = UI.Btn("Xin bố mẹ", true, 380, "speech_balloon");
+    private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, 380, "star");
     private readonly Label _msg = UI.Text("", 11f, true, UI.Green, 380);
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private readonly string? _appId, _appName;
@@ -25,7 +26,7 @@ internal sealed class RequestForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(430, 470);
+        ClientSize = new Size(430, 500);
 
         var flow = new FlowLayoutPanel
         {
@@ -33,14 +34,14 @@ internal sealed class RequestForm : Form
             Padding = new Padding(20, 16, 20, 10),
         };
         flow.Controls.Add(UI.Text("Con muốn thêm bao lâu?", 16f, true));
-        var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 10) };
+        var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 10), BackColor = Color.Transparent };
         string[] labels = { "30 phút", "1 giờ", "2 giờ" };
         for (int i = 0; i < 3; i++)
         {
-            _radios[i] = new RadioButton
+            _radios[i] = new ClayRadio
             {
-                Text = labels[i], Appearance = Appearance.Button, TextAlign = ContentAlignment.MiddleCenter,
-                Width = 120, Height = 46, Font = UI.F(11.5f, FontStyle.Bold), FlatStyle = FlatStyle.Flat,
+                Text = labels[i], TextAlign = ContentAlignment.MiddleCenter,
+                Width = 120, Height = 50, Font = UI.F(11.5f, FontStyle.Bold),
                 Checked = i == 1, Margin = new Padding(0, 0, 8, 0),
             };
             row.Controls.Add(_radios[i]);
@@ -67,8 +68,8 @@ internal sealed class RequestForm : Form
     {
         foreach (var r in _radios)
         {
-            r.BackColor = r.Checked ? UI.Green : Color.White;
-            r.ForeColor = r.Checked ? Color.White : UI.Green;
+            r.BackColor = r.Checked ? UI.Green : UI.Card;
+            r.ForeColor = r.Checked ? Color.White : UI.Ink;
         }
     }
 

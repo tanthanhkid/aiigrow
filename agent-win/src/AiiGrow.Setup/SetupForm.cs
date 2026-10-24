@@ -1,4 +1,5 @@
 using System.Drawing.Drawing2D;
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Setup;
@@ -10,14 +11,14 @@ namespace AiiGrow.Setup;
 /// </summary>
 internal sealed class SetupForm : Form
 {
-    // Token màu của app AiiGrow (mobile/src/lib/mau.ts): chữ trắng trên Chinh 5,2:1; ChinhInk trên trắng ≥ 4,5:1.
-    internal static readonly Color Chinh = Color.FromArgb(0x0b, 0x7a, 0x6e);
-    internal static readonly Color ChinhSoft = Color.FromArgb(0xe3, 0xf5, 0xf0);
-    internal static readonly Color Chu = Color.FromArgb(0x1f, 0x2a, 0x2a);
-    internal static readonly Color Chu2 = Color.FromArgb(0x4a, 0x55, 0x55);
+    // Token màu «Clay gương» (docs/THIET-KE-CLAY.md, Clay.cs dùng chung với khay): chữ trắng trên Chinh 6,4:1; Chu2 trên Nen ≥ 8:1.
+    internal static readonly Color Chinh = Clay.Ngoc;
+    internal static readonly Color ChinhSoft = Clay.NgocSoft;
+    internal static readonly Color Chu = Clay.Chu;
+    internal static readonly Color Chu2 = Clay.Chu2;
     internal static readonly Color Vien = Color.FromArgb(0xd9, 0xe2, 0xdf);
     internal static readonly Color Loi = Color.FromArgb(0xb4, 0x23, 0x18);
-    internal static readonly Color Nen = Color.FromArgb(0xfb, 0xf8, 0xf2);
+    internal static readonly Color Nen = Clay.Nen;
     private const string MayChuMacDinh = "https://aiigrow.aiilab.vn";
     private const int TongBuoc = 5;
     private const int Rong = 640;
@@ -32,7 +33,7 @@ internal sealed class SetupForm : Form
         Padding = new Padding(32, 8, 24, 10), AutoScroll = true, BackColor = Nen,
     };
     private readonly Panel _dau = new() { Dock = DockStyle.Top, Height = 60, BackColor = Nen };
-    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = 76, BackColor = Color.White };
+    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = 76, BackColor = Clay.The };
     private List<LocalAccount> _accounts = new();
     private LocalAccount? _child;
     private bool _dongY;
@@ -79,15 +80,13 @@ internal sealed class SetupForm : Form
 
     private static Button B(string text, bool chinh = true, int w = 200)
     {
-        var b = new Button
+        // Nút Clay (kẹo bọc đường / đất sét sứ), cao 50 = thân 44 + lề bóng.
+        var b = new ClayButton
         {
-            Text = text, Width = w, Height = 46, FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 11.5f, FontStyle.Bold), Cursor = Cursors.Hand,
-            BackColor = chinh ? Chinh : Color.White, ForeColor = chinh ? Color.White : Chinh,
-            UseVisualStyleBackColor = false,
+            Text = text, Width = w, Height = 50,
+            Font = new Font("Segoe UI", 11.5f, FontStyle.Bold),
+            BackColor = chinh ? Chinh : Clay.The, ForeColor = chinh ? Color.White : Chu,
         };
-        b.FlatAppearance.BorderColor = Chinh;
-        b.FlatAppearance.BorderSize = chinh ? 0 : 1;
         return b;
     }
 
@@ -126,18 +125,24 @@ internal sealed class SetupForm : Form
     {
         public bool Chon { get => _chon; set { _chon = value; Invalidate(); } }
         private bool _chon;
-        public The() { DoubleBuffered = true; BackColor = Color.White; Cursor = Cursors.Hand; Padding = new Padding(18, 14, 18, 14); }
-        protected override void OnPaint(PaintEventArgs e)
+        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 14, 18, 14); }
+        /// <summary>Thẻ Clay: thân đất sét có bóng kép; được chọn ⇒ nền ngọc nhạt + viền ngọc 2,5 (không chỉ dựa vào màu: viền dày hơn hẳn).</summary>
+        protected override void OnPaintBackground(PaintEventArgs e)
         {
-            base.OnPaint(e);
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using var path = new GraphicsPath();
-            var r = new Rectangle(1, 1, Width - 3, Height - 3);
-            const int k = 14;
-            path.AddArc(r.X, r.Y, k, k, 180, 90); path.AddArc(r.Right - k, r.Y, k, k, 270, 90);
-            path.AddArc(r.Right - k, r.Bottom - k, k, k, 0, 90); path.AddArc(r.X, r.Bottom - k, k, k, 90, 90); path.CloseFigure();
-            using var pen = new Pen(_chon ? Chinh : Vien, _chon ? 2.5f : 1.5f);
-            e.Graphics.DrawPath(pen, path);
+            var g = e.Graphics;
+            g.Clear(Parent?.BackColor ?? Nen);
+            Clay.ChatLuong(g);
+            var r = new RectangleF(3, 1, Width - 6, Height - 9);
+            if (r.Width < 4 || r.Height < 4) return;
+            const float k = 20;
+            Clay.BongNut(g, r, k);
+            Clay.KhoiSang(g, r, k, _chon ? ChinhSoft : Clay.The);
+            if (_chon)
+            {
+                using var path = Clay.Bo(RectangleF.Inflate(r, -1.5f, -1.5f), k - 1.5f);
+                using var pen = new Pen(Chinh, 2.5f);
+                g.DrawPath(pen, path);
+            }
         }
     }
 
@@ -147,7 +152,7 @@ internal sealed class SetupForm : Form
         var t1 = T(tieu, 12.5f, true, Chu, Rong - 40); t1.Location = new Point(18, 14); t1.Margin = Padding.Empty;
         var t2 = T(khi, 10.5f, false, Chu2, Rong - 40); t2.Location = new Point(18, 14 + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
         the.Controls.Add(t1); the.Controls.Add(t2);
-        the.Height = t2.Top + t2.PreferredHeight + 14;
+        the.Height = t2.Top + t2.PreferredHeight + 14 + 8;   // + lề bóng Clay
         foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
         return the;
     }

@@ -1,3 +1,4 @@
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
@@ -28,7 +29,7 @@ internal sealed class BlockedForm : Form
         TopMost = true; ShowInTaskbar = false;
         BackColor = UI.Paper;
         bool showCode = BlockScreenView.ShowOfflineCode(offline);
-        ClientSize = new Size(380, (view.ShowUsePoints ? 272 : 220) + (showCode ? 120 : 0));
+        ClientSize = new Size(380, (view.ShowUsePoints ? 330 : 270) + (showCode ? 124 : 0));   // Clay: nút cao 50 (thân 44 + bóng) + dòng icon
         var wa = Screen.PrimaryScreen!.WorkingArea;
         Location = new Point(wa.Right - Width - 12, wa.Bottom - Height - 12);
 
@@ -37,15 +38,21 @@ internal sealed class BlockedForm : Form
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
             Padding = new Padding(18, 14, 18, 10),
         };
-        flow.Controls.Add(UI.Text(view.AppName + " chưa được mở", 13f, true, null, 340));
+        // Dòng đầu: viên clay biển dừng (Fluent 3D) + tên app — chữ giữ nguyên.
+        var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 4) };
+        dau.Controls.Add(new ClayIcon { Size = new Size(52, 52), MauVien = Clay.CanhSoft, Hinh = UI.Fluent("stop_sign"), Margin = new Padding(0, 0, 8, 0) });
+        var ten = UI.Text(view.AppName + " chưa được mở", 13f, true, null, 280);
+        ten.Margin = new Padding(0, 14, 0, 0);
+        dau.Controls.Add(ten);
+        flow.Controls.Add(dau);
         flow.Controls.Add(UI.Text(view.Reason, 11f, false, UI.Muted, 340));
 
-        _play = UI.Btn(view.UsePointsLabel, true, 340);
+        _play = UI.Btn(view.UsePointsLabel, true, 340, "star");
         _play.Click += async (_, _) => await PlayAsync();
         FormClosed += (_, _) => _dong = true;   // đăng ký MỘT lần (không trong PlayAsync: mỗi lần thử lại thêm một handler)
         if (view.ShowUsePoints) flow.Controls.Add(_play);
 
-        _ask = UI.Btn(view.AskParentLabel, !view.ShowUsePoints, 340);
+        _ask = UI.Btn(view.AskParentLabel, !view.ShowUsePoints, 340, "speech_balloon");
         _ask.Click += (_, _) =>
         {
             Hide();

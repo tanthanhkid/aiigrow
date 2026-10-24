@@ -8,10 +8,10 @@ namespace AiiGrow.Tray;
 internal sealed class NopBaiForm : Form
 {
     private readonly HvNhiemVu _nv;
-    private readonly TextBox _note = new() { Multiline = true, Height = 90, Width = 400, Font = UI.F(11f), MaxLength = 500 };
-    private readonly Button _pick = UI.Btn("Chọn ảnh…", false, 400);
+    private readonly TextBox _note = new() { Multiline = true, Height = 90, Width = 400, Font = UI.F(11f), MaxLength = 500, BorderStyle = BorderStyle.FixedSingle };
+    private readonly Button _pick = UI.Btn("Chọn ảnh…", false, 400, "desktop_computer");
     private readonly Label _file = UI.Text("", 10f, false, UI.Muted, 400);
-    private readonly Button _send = UI.Btn("Nộp cho Ba Mẹ", true, 400);
+    private readonly Button _send = UI.Btn("Nộp cho Ba Mẹ", true, 400, "memo");
     private readonly Label _msg = UI.Text("", 10.5f, true, UI.Green, 400);
     private string? _anhBase64;
     private bool _busy;
@@ -28,7 +28,7 @@ internal sealed class NopBaiForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(440, 470);
+        ClientSize = new Size(440, 490);
 
         var flow = new FlowLayoutPanel
         {
@@ -38,7 +38,7 @@ internal sealed class NopBaiForm : Form
         flow.Controls.Add(UI.Text(nv.Ten, 14f, true, null, 400));
         if (!string.IsNullOrWhiteSpace(nv.MoTa)) flow.Controls.Add(UI.Text(nv.MoTa, 10.5f, false, UI.Muted, 400));
         if (nv.TrangThai == "can_bo_sung" && !string.IsNullOrWhiteSpace(nv.LyDo))
-            flow.Controls.Add(UI.Text("Ba Mẹ nhắn: " + nv.LyDo, 10.5f, true, Color.FromArgb(0xb4, 0x53, 0x09), 400));
+            flow.Controls.Add(UI.Text("Ba Mẹ nhắn: " + nv.LyDo, 10.5f, true, UI.Warn, 400));
         flow.Controls.Add(UI.Text(HocVienView.CanChu(nv) ? "Con viết vài câu kể lại nhé" : "Ghi chú cho Ba Mẹ (không bắt buộc)", 10.5f, false, UI.Muted, 400));
         flow.Controls.Add(_note);
         if (HocVienView.CanAnh(nv) || nv.TrangThai == "can_bo_sung")
@@ -72,7 +72,7 @@ internal sealed class NopBaiForm : Form
         {
             _anhBase64 = null;
             _file.Text = "";
-            _msg.ForeColor = Color.FromArgb(0xb9, 0x1c, 0x1c);
+            _msg.ForeColor = UI.Error;
             _msg.Text = "Ảnh này chưa đọc được. Con chọn ảnh khác nhé.";
         }
     }
@@ -129,7 +129,7 @@ internal sealed class NopBaiForm : Form
 
     private void Fail(string s)
     {
-        _msg.ForeColor = Color.FromArgb(0xb9, 0x1c, 0x1c);
+        _msg.ForeColor = UI.Error;
         _msg.Text = s;
     }
 }

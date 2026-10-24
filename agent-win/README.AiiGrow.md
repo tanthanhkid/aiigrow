@@ -95,3 +95,9 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
 - **App to**: nhấn vào biểu tượng khay (hoặc «Mở AiiGrow», hoặc bấm bóng báo) mở `AppForm` — cửa sổ ~1000×680 trên taskbar, chỉnh cỡ được, một bản duy nhất.
   Thanh bên: mascot (đổi theo mục / trạng thái, `MascotView`), tên Con, trạng thái kết nối, 4 mục **Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn**. Bóng báo mở đúng mục (`HocVienView.MucChoTin`).
   Màu theo token `mobile/src/lib/mau.ts`. Màn khoá / màn chặn toàn màn hình không đổi.
+
+## Giao diện «Clay gương» (24/10/2026)
+Khay, app to, màn chặn, màn khoá và bộ cài vẽ theo `docs/THIET-KE-CLAY.md` bằng GDI+ (`src/AiiGrow.Tray/Clay.cs`, bộ cài link cùng tệp):
+nút/thẻ bo lớn, bóng kép, men bóng; nhấn = bẹp rồi nảy lò xo + vệt men lướt; Windows tắt «Hiệu ứng hoạt hình» ⇒ không scale, không vệt.
+Icon minh hoạ = Fluent Emoji 3D của Microsoft (`microsoft/fluentui-emoji`, commit `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`, giấy phép MIT —
+`src/AiiGrow.Tray/Assets/fluent/LICENSE-fluentui-emoji.txt`), PNG 128 px nhúng vào exe, không tải mạng lúc chạy.
