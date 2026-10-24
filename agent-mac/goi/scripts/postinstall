@@ -17,7 +17,7 @@ DANG_CAP_NHAT="$GOC/var/run/aiigrow-capnhat"   # job tự cập nhật ghi PID c
 GO_CAI="$GOC/var/run/aiigrow-go-cai"          # go-cai.sh ghi PID của mình suốt lúc chạy (DuongDan.goCaiDangChay)
 # PID trong tệp $1 còn sống VÀ dòng lệnh khớp $2 — PID sót đã bị tiến trình khác dùng lại thì không tính.
 pidSong() {
-  p=$(/bin/cat "$1" 2>/dev/null || true)
+  p=$(/usr/bin/head -n 1 "$1" 2>/dev/null | /usr/bin/xargs)
   case "$p" in ''|*[!0-9]*) return 1 ;; esac
   /bin/kill -0 "$p" 2>/dev/null && /bin/ps -p "$p" -o command= 2>/dev/null | /usr/bin/grep -q "$2"
 }
@@ -43,7 +43,11 @@ donVaThoat() {
 # $1 = gói đang cài. Gói nằm trong thư mục cap-nhat (root 0700) ⇒ chắc chắn là bộ tự cập nhật, kể cả khi job sh đã bị go-cai.sh giết
 # mà installd vẫn cài tiếp. Tự cập nhật chỉ chạy trên máy đã ghép (có config.json): còn dấu gỡ hoặc mất config.json ⇒ máy đã bị gỡ.
 case "${1:-}" in
-  "$THU_MUC/cap-nhat/"*) if [ -f "$DA_GO" ] || [ ! -f "$THU_MUC/config.json" ]; then donVaThoat; fi ;;
+  "$THU_MUC/cap-nhat/"*) if [ -f "$DA_GO" ] || [ ! -f "$THU_MUC/config.json" ]; then
+      # dấu «dung-cap-nhat» go-cai.sh 0.1.1 để lại (bản mới không ghi nữa): dùng xong ở đây, không để nó quyết định lần cài/ghép sau
+      if [ "$(/bin/cat "$DA_GO" 2>/dev/null)" = "dung-cap-nhat" ] && ! goCaiSong; then /bin/rm -f "$DA_GO"; fi
+      donVaThoat
+    fi ;;
 esac
 if [ -f "$DA_GO" ]; then
   # Cài tự động (sh job cập nhật còn sống), hoặc go-cai.sh còn chạy ⇒ máy đang gỡ.

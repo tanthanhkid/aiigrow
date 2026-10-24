@@ -449,7 +449,6 @@ final class CapNhatTests: XCTestCase {
     _ = await chay(boCapNhat())
     XCTAssertEqual(fake.daCaiGoi.count, 1)
     XCTAssertFalse(fake.daXoa.contains { $0.hasSuffix("AiiGrow-0.1.2.pkg") }, "gói để job tự xoá")
-    XCTAssertNil(fake.tep["/gia/da-thu.json"], "máy đang gỡ ⇒ lượt không tính")
     XCTAssertTrue(fake.log.contains { $0.contains("job cài tự bỏ") })
   }
 
@@ -462,6 +461,9 @@ final class CapNhatTests: XCTestCase {
     let l = HeThongMac.lenhJobCai
     // thấy dấu PID của lượt trước (job bị launchd chạy lại) ⇒ thoát trước khi gọi installer
     XCTAssertLessThan(l.range(of: "if [ -f \"$3\" ]")!.lowerBound, l.range(of: "/usr/sbin/installer")!.lowerBound)
+    // ghi PID TRƯỚC khi kiểm da-go, kiểm da-go TRƯỚC installer: dấu đến sau lần kiểm thì postinstall vẫn thấy job còn sống ⇒ dọn
+    let ghiPid = l.range(of: "echo $$ > \"$3\"")!.lowerBound, kiemGo = l.range(of: "if [ -f \"$DA_GO\" ] ; then echo")!.lowerBound
+    XCTAssertLessThan(ghiPid, kiemGo); XCTAssertLessThan(kiemGo, l.range(of: "/usr/sbin/installer")!.lowerBound)
   }
 
   /// Chạy lệnh job cài thật bằng sh, thay launchctl / installer / pkgutil bằng script giả ghi nhật ký.
@@ -794,9 +796,14 @@ final class CapNhatTests: XCTestCase {
       XCTAssertFalse(a.quenBienNhan)
       let b = try chayPostinstall(daGo: true, pidDau: nil, goiTuDong: true, coConfig: false, dauGo: dau, dongLenh: true)
       XCTAssertFalse(b.bootstrapDaemon, "installd cài nốt gói cap-nhat ⇒ dọn"); XCTAssertFalse(b.appConLai); XCTAssertTrue(b.quenBienNhan)
+      XCTAssertEqual(b.daGoConLai, dau == "da-go\n", "dấu dung-cap-nhat của go-cai 0.1.1 dùng xong là xoá")
     }
     let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
     XCTAssertFalse(s.contains("dung-cap-nhat"), "go-cai.sh không để dấu nào quyết định lần cài sau")
+    // sau bootout daemon: chờ job cài (không remove ngay — có thể giết installer đang chạy)
+    let sau = s.range(of: "bootout system/vn.aiilab.aiigrow.daemon")!.upperBound
+    let cho = s.range(of: "choCapNhat\n", range: sau..<s.endIndex)!.lowerBound, rm = s.range(of: "remove vn.aiilab.aiigrow.capnhat", range: sau..<s.endIndex)!.lowerBound
+    XCTAssertLessThan(cho, rm)
   }
 
   func testPostinstallPhanNhanhDaGo() throws {

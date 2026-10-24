@@ -22,9 +22,9 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   @Khoa var tep: [String: Data] = [:]
   @Khoa var uidTheoTen: [String: UInt32] = [:]
   @Khoa var admin: Set<String> = []
-  var phien: PhienConsole?
+  @Khoa var phien: PhienConsole?
   var ten = "Mac-Test"
-  var tienCanhThat: String?                 // app tiền cảnh THẬT của phiên Con (daemon tự kiểm)
+  @Khoa var tienCanhThat: String?                 // app tiền cảnh THẬT của phiên Con (daemon tự kiểm)
 
   // ghi lại tác động
   @Khoa var tinHieuDaGui: [(Int32, Int32)] = []
@@ -45,7 +45,7 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func appTienCanh(cuaUid uid: UInt32) -> String? { soLanKiemTienCanh += 1; return tienCanhThat }
   @Khoa var soLanKiemTienCanh = 0
   @Khoa var soLanChayTrinhGo = 0
-  var loiHaQuyen: Error?
+  @Khoa var loiHaQuyen: Error?
   func chayTrinhGo() { soLanChayTrinhGo += 1 }
   @Khoa var goDangChay = false
   func trinhGoDangChay() -> Bool { goDangChay }
@@ -78,14 +78,14 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { pkgutilRa }
   func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { spctlRa }
   func caiGoi(_ duongDan: String) throws { if let e = loiCaiGoi { throw e }; daCaiGoi.append(duongDan); sauCaiGoi?() }
-  var sauCaiGoi: (() -> Void)?
+  @Khoa var sauCaiGoi: (() -> Void)?
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
   @Khoa var daXoa: [String] = []
   func xoaTep(_ duongDan: String) { tep[duongDan] = nil; daXoa.append(duongDan) }
   func xoaBoNhoDNS() { daXoaDNS += 1 }
-  var truocHaQuyen: (() -> Void)?
+  @Khoa var truocHaQuyen: (() -> Void)?
   func haQuyenAdmin(taiKhoan: String) throws { truocHaQuyen?(); if let e = loiHaQuyen { throw e }; daHaQuyen.append(taiKhoan); admin.remove(taiKhoan) }
   func dongPhien(uid: UInt32) throws { daDongPhien.append(uid) }
   func ghiLog(_ s: String) { log.append(s) }
@@ -108,9 +108,9 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
     return banMoiTraVe
   }
 
-  var lanGhep: [(ma: String, tenMay: String)] = []
-  var lanDongBo: [(TrangThaiAgent, [MucDung])] = []
-  var lanYeuCau: [(loai: String, phut: Int?, giaTri: String?, lyDo: String)] = []
+  @Khoa var lanGhep: [(ma: String, tenMay: String)] = []
+  @Khoa var lanDongBo: [(TrangThaiAgent, [MucDung])] = []
+  @Khoa var lanYeuCau: [(loai: String, phut: Int?, giaTri: String?, lyDo: String)] = []
 
   func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep {
     lanGhep.append((ma, tenMay))
