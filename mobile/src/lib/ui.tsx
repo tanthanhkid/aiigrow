@@ -53,7 +53,7 @@ export const Rob = ({ ten, co = 72 }: { ten: LinhVat; co?: number }) => (
   <Image source={LV[ten]} style={{ width: co, height: co }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
 );
 
-const MAU_CANH = { xanh: M.chinhSoft, vang: "#ffeab0", hong: "#fde3dc", tim: M.timSoft, xam: "#efebe3" } as const;
+const MAU_CANH = { xanh: M.chinhSoft, vang: "#ffeab0", hong: "#fde3dc", tim: M.timSoft, xam: "#ecece8" } as const;
 export type MauCanh = keyof typeof MAU_CANH;
 
 /** CẢNH đầu màn (kit.canh): bong bóng thoại trắng (tiêu đề + 1 câu) bên trái ≤ 56%, Rob to tràn mép dưới bên phải. `children` nằm
@@ -93,7 +93,7 @@ export function CanhGiua({ lv, tieu, loi, children }: { lv: LinhVat; tieu: strin
 
 type LoaiNut = "chinh" | "vien" | "ma" | "huy" | "vang";
 const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; vien?: string; bong?: string }> = {
-  chinh: { nen: M.chinh, chu: "#ffffff", bong: M.chinhDam }, vien: { nen: M.the, chu: M.chu, vien: M.vien2 }, ma: { nen: "transparent", chu: M.chinhInk },
+  chinh: { nen: M.nut, chu: "#ffffff", bong: M.nutDam }, vien: { nen: M.the, chu: M.chu, vien: M.vien2 }, ma: { nen: "transparent", chu: M.chinhInk },
   huy: { nen: M.the, chu: M.huy, vien: "#f1c4bd" }, vang: { nen: M.diem, chu: "#3d2600", bong: "#c48f00" },
 };
 
@@ -111,7 +111,7 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, dangChay, tat, nh
     <Animated.View style={[st, rong ? { alignSelf: "stretch" } : { flexGrow: 1 }]}>
       <Pressable onPress={bam} onPressIn={() => nhan(2)} onPressOut={() => nhan(0)} disabled={mo} accessibilityRole="button"
         accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
-        style={[s.nut, nho && s.nutNho, { backgroundColor: tat ? "#d9d3c7" : m.nen }, m.vien && !tat ? { borderWidth: 1.5, borderColor: m.vien } : null,
+        style={[s.nut, nho && s.nutNho, { backgroundColor: tat ? "#d4d5d1" : m.nen }, m.vien && !tat ? { borderWidth: 1.5, borderColor: m.vien } : null,
           m.bong && !tat ? { borderBottomWidth: 4, borderBottomColor: m.bong } : null]}>
         {dangChay ? <ActivityIndicator color={m.chu} /> : (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, maxWidth: "100%" }}>
@@ -196,7 +196,7 @@ export function Dong({ tieu, phu, trai, phai, bam, dau }: { tieu: string; phu?: 
         <Chu kieu="rat" co={15.5}>{tieu}</Chu>
         {phu ? <Chu co={13.5} mau={M.chu3}>{phu}</Chu> : null}
       </View>
-      {phai ?? (bam ? <Icon ten="phai" mau="#b9b2a5" co={18} /> : null)}
+      {phai ?? (bam ? <Icon ten="phai" mau="#b3b5b1" co={18} /> : null)}
     </View>
   );
   return bam ? <Pressable onPress={bam} accessibilityRole="button" style={({ pressed }) => pressed && { backgroundColor: M.xamSoft }}>{noi}</Pressable> : noi;
@@ -205,7 +205,7 @@ export function Dong({ tieu, phu, trai, phai, bam, dau }: { tieu: string; phu?: 
 export function OChon({ chon, bam, trai, tieu, phu }: { chon: boolean; bam: () => void; trai?: ReactNode; tieu: string; phu?: string }) {
   return (
     <Pressable onPress={bam} accessibilityRole="radio" accessibilityState={{ checked: chon }}
-      style={[s.oChon, chon && { borderColor: M.chinh, backgroundColor: "#f1faf7" }]}>
+      style={[s.oChon, chon && { borderColor: M.chinh, backgroundColor: "#eef5f2" }]}>
       {trai}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15.5}>{tieu}</Chu>
@@ -237,7 +237,7 @@ export function Chips<T extends string | number>({ ds, chon, doi }: { ds: { gia:
         const c = chon.includes(x.gia);
         return (
           <Pressable key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="checkbox" accessibilityState={{ checked: c }}
-            style={[s.chip, c && { borderColor: M.chinh, backgroundColor: "#f1faf7" }]}>
+            style={[s.chip, c && { borderColor: M.chinh, backgroundColor: "#eef5f2" }]}>
             <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
           </Pressable>
         );
@@ -274,8 +274,8 @@ export function Bao({ loai = "canh", tieu, loi, ic = "canh_bao", children }: { l
 
 export function TickDong({ chu, trang = "xong", phu }: { chu: string; trang?: "xong" | "cho" | "sau" | "x"; phu?: string }) {
   const dau = trang === "xong" ? <View style={[s.dauTd, { backgroundColor: M.chinh }]}><Icon ten="tick" mau="#fff" co={15} net={3} /></View>
-    : trang === "cho" ? <View style={[s.dauTd, { borderWidth: 3, borderColor: "#e2d9ca", borderTopColor: M.chinh }]} />
-      : trang === "sau" ? <View style={[s.dauTd, { borderWidth: 2, borderColor: "#cfc6b6", borderStyle: "dashed" }]} />
+    : trang === "cho" ? <View style={[s.dauTd, { borderWidth: 3, borderColor: "#d9d9d4", borderTopColor: M.chinh }]} />
+      : trang === "sau" ? <View style={[s.dauTd, { borderWidth: 2, borderColor: "#c9cac6", borderStyle: "dashed" }]} />
         : <View style={[s.dauTd, { backgroundColor: M.canhSoft }]}><Chu kieu="rat" mau={M.canh}>!</Chu></View>;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 9, paddingHorizontal: 2 }}>
@@ -289,7 +289,7 @@ export function Buoc({ n, tong, nhan }: { n: number; tong: number; nhan?: string
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 4 }}>
       <View style={{ flex: 1, flexDirection: "row", gap: 5 }}>
-        {Array.from({ length: tong }, (_, k) => <View key={k} style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: k < n ? M.chinh : "#e9e2d5" }} />)}
+        {Array.from({ length: tong }, (_, k) => <View key={k} style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: k < n ? M.chinh : "#e4e4e0" }} />)}
       </View>
       <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 13, color: M.chu3 }}>{nhan ?? `Bước ${n}/${tong}`}</Text>
     </View>
@@ -435,7 +435,7 @@ export function BangTruot({ mo, dong, tieu, children }: { mo: boolean; dong: () 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Pressable style={{ flex: 1, backgroundColor: "rgba(16,35,31,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
       <View style={s.bangTruot}>
-        <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "#d9d3c7", alignSelf: "center" }} />
+        <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "#d4d5d1", alignSelf: "center" }} />
         <Chu kieu="rat" co={21} style={{ marginTop: 4, letterSpacing: -0.3 }}>{tieu}</Chu>
         {children}
       </View>
@@ -631,7 +631,7 @@ const s = StyleSheet.create({
   nhom: { backgroundColor: M.the, borderRadius: BO.the, overflow: "hidden", borderWidth: 1, borderColor: M.vien,
     shadowColor: M.chu, shadowOpacity: 0.06, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 1 },
   dong: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 60 },
-  dongVien: { borderTopWidth: 1, borderTopColor: "#f4eee4" },
+  dongVien: { borderTopWidth: 1, borderTopColor: "#efefec" },
   oChon: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 20, borderWidth: 1.5, borderColor: M.vien, backgroundColor: M.the },
   tron: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: M.oNhap, alignItems: "center", justifyContent: "center" },
   tronTam: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#fff" },
@@ -644,7 +644,7 @@ const s = StyleSheet.create({
     shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
   bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18 },
   dauTd: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  tien: { height: 10, borderRadius: 5, backgroundColor: "#efe7da", overflow: "hidden" },
+  tien: { height: 10, borderRadius: 5, backgroundColor: "#e7e7e3", overflow: "hidden" },
   oSo: { padding: 14, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: M.vien, gap: 4, flexGrow: 1, minWidth: 140,
     shadowColor: M.chu, shadowOpacity: 0.06, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 1 },
   o: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, borderRadius: 16, paddingHorizontal: 14, minHeight: 52, fontSize: 16, fontFamily: F.thuong, color: M.chu },
@@ -657,6 +657,6 @@ const s = StyleSheet.create({
   bangTruot: { backgroundColor: M.nen, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 10, paddingHorizontal: 18, paddingBottom: 34, gap: 12 },
   toast: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: M.chu, borderRadius: 18, paddingVertical: 8, paddingLeft: 14, paddingRight: 8, minHeight: 52,
     shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 30, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
-  xuong: { borderRadius: 20, backgroundColor: "#f1ebe1" },
+  xuong: { borderRadius: 20, backgroundColor: "#ecece8" },
   bangMang: { flexDirection: "row", gap: 10, alignItems: "center", backgroundColor: M.chu, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 12 },
 });

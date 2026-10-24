@@ -42,7 +42,7 @@ function BaoCaoCon({ id }: { id: string }) {
           <The dem>
             <View style={{ flexDirection: "row", gap: 14 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: M.chinh }} /><Chu kieu="dam" co={13} mau={M.chu2}>Học</Chu></View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: "#f5c94a" }} /><Chu kieu="dam" co={13} mau={M.chu2}>Giải trí</Chu></View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: M.tim }} /><Chu kieu="dam" co={13} mau={M.chu2}>Giải trí</Chu></View>
             </View>
             <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, height: 120, marginTop: 10, paddingHorizontal: 4 }}
               accessibilityLabel={`Theo ngày: ${nay.giaiTriTheoNgay.map((x) => `${THU[new Date(`${x.ngay}T12:00:00`).getDay()]} học ${hocNgay(x.ngay)}, giải trí ${x.phut} phút`).join("; ")}`}>
@@ -50,7 +50,7 @@ function BaoCaoCon({ id }: { id: string }) {
                 <View key={x.ngay} style={{ flex: 1, alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
                   <View style={{ width: "100%", flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 3 }}>
                     <View style={{ flex: 1, height: `${Math.max(2, (hocNgay(x.ngay) / max) * 100)}%`, backgroundColor: M.chinh, borderRadius: 6 }} />
-                    <View style={{ flex: 1, height: `${Math.max(2, (x.phut / max) * 100)}%`, backgroundColor: "#f5c94a", borderRadius: 6 }} />
+                    <View style={{ flex: 1, height: `${Math.max(2, (x.phut / max) * 100)}%`, backgroundColor: M.tim, borderRadius: 6 }} />
                   </View>
                   <Chu kieu="rat" co={12} mau={M.chu3}>{THU[new Date(`${x.ngay}T12:00:00`).getDay()]}</Chu>
                 </View>

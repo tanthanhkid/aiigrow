@@ -9,7 +9,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#fbf8f2", color: "#1f2a2a" }}>{children}</body>
+      <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#f4f4f2", color: "#0f1312" }}>{children}</body>
     </html>
   );
 }

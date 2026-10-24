@@ -28,11 +28,11 @@
 .ad .chip-x button{width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:var(--loi);font-weight:800;cursor:pointer;flex:none}
 .ad .bang{overflow-x:auto;border-radius:var(--bo-the);border:1px solid var(--vien);background:#fff;box-shadow:var(--bong)}
 .ad table{border-collapse:collapse;width:100%;font-size:14.5px}
-.ad th{text-align:left;font-size:13px;color:var(--chu3);font-weight:800;padding:10px 12px;white-space:nowrap;background:#fbf8f2}
+.ad th{text-align:left;font-size:13px;color:var(--chu3);font-weight:800;padding:10px 12px;white-space:nowrap;background:#f7f7f5}
 .ad td{padding:10px 12px;border-top:1px solid #f4eee4;vertical-align:top}
 .ad td.so,.ad th.so{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ad td.nw{white-space:nowrap}
-.ad tr.tong td{font-weight:800;background:#fbf8f2}
+.ad tr.tong td{font-weight:800;background:#f7f7f5}
 .ad td input{width:100px;min-height:40px;border:1.5px solid var(--o-nhap);border-radius:10px;padding:0 8px;background:#fff;font-size:15px}
 .ad .tin-ds{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;padding:4px}
 .ad .tin{max-width:80%;padding:10px 14px;border-radius:18px;background:#fff;border:1px solid var(--vien);align-self:flex-start;overflow-wrap:anywhere}

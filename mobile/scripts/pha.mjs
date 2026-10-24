@@ -132,6 +132,7 @@ Object.assign(coBan, {
   // FR-03.06 giữ (đóng băng) chuỗi ngày · FR-06.02 xuất CSV
   "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-21", duocDung: true, daDung: [] } },
   "POST con/c1/dong-bang-chuoi": { ngay: "2026-10-21" },
+  "GET phieu": { ds: [{ id: "ph1", ten: "Voucher AiiCafe 50.000đ", loai: "voucher", diem: 500, ten_con: KEN, created_at: luc(90) }] },
   "GET con/c1/man-hinh": (() => {
     const N = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
     const ds = [
