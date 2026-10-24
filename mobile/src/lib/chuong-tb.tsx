@@ -1,9 +1,9 @@
 // Nút chuông Thông báo (FR-08.01) — tròn 44, số đỏ = thông báo chưa đọc của Ba/Mẹ này. Tải lại mỗi lần màn chứa nó được mở lại.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Text } from "react-native";
 import Animated from "react-native-reanimated";
 import { BONG, KHOI, MEN } from "./clay";
-import { useBat, useRung } from "./chuyen-dong";
+import { useBat, useKhiTang, useRung } from "./chuyen-dong";
 import { router, useFocusEffect } from "expo-router";
 import { bm } from "./api";
 import { F, Icon3D, M, NhanMen } from "./ui";
@@ -12,8 +12,7 @@ export function ChuongTb() {
   const [so, setSo] = useState(0);
   const { st, rung } = useRung();
   const { st: stSo, bat } = useBat();
-  const cu = useRef(0);
-  useEffect(() => { if (so > cu.current) { rung(); bat(); } cu.current = so; }, [so, rung, bat]);   // có việc mới ⇒ chuông rung
+  useKhiTang(so, useCallback(() => { rung(); bat(); }, [rung, bat]));   // có việc mới ⇒ chuông rung (lần tải đầu không rung)
   useFocusEffect(useCallback(() => {
     bm.goi<{ chuaDoc: number }>("thong-bao").then((r) => setSo(r.chuaDoc)).catch(() => {});
   }, []));

@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View, type GestureResponderEvent } from "react-native";
-import Animated, { LayoutAnimationConfig, useReducedMotion } from "react-native-reanimated";
+import Animated, { FadeIn, LayoutAnimationConfig, useReducedMotion } from "react-native-reanimated";
 import { BONG } from "./clay";
 import { donLen, quayLai, roiDi } from "./chuyen-dong";
 import { bm, tieuYc, type LuotCho, type YeuCau } from "./api";
@@ -49,7 +49,8 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
   const [lyDo, setLyDo] = useState(0);
   const [lyDoYc, setLyDoYc] = useState(LY_DO_YC[0]);
   const [huyQua, setHuyQua] = useState<Phieu | null>(null);
-  const [xong, setXong] = useState<string[]>([]);                 // đã xử lý xong, chờ tải lại ⇒ ẩn để khỏi bấm lần hai
+  const [xong, setXong] = useState<string[]>([]);
+  const [vuaHoan, setVuaHoan] = useState<string | null>(null);     // việc vừa Hoàn tác ⇒ bật lại; việc thứ 4 lọt vào khung thì chỉ hiện dần                 // đã xử lý xong, chờ tải lại ⇒ ẩn để khỏi bấm lần hai
   const daXong = (id: string) => setXong((a) => [...a, id]);
   // yêu cầu (có hạn) lên trước, rồi nhiệm vụ, quà; trong nhóm theo thời gian gửi
   const thu = { yc: 0, nv: 1, qua: 2 } as const;
@@ -58,7 +59,9 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
   const chay = (v: ViecCho, fn: () => Promise<unknown>, hangDoi?: boolean) => { setDang(v.x.id); return hl.lam(fn, { hangDoi }); };
 
   const duyet = (v: ViecCho, e?: GestureResponderEvent) => {
-    const tu = e?.nativeEvent ? { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY } : null;
+    // bàn phím / trình đọc màn hình không có toạ độ chạm (undefined hoặc 0,0) ⇒ không bắn confetti
+    const px = e?.nativeEvent?.pageX, py = e?.nativeEvent?.pageY;
+    const tu = Number.isFinite(px) && Number.isFinite(py) && (px! > 0 || py! > 0) ? { x: px!, y: py! } : null;
     if (v.k === "nv") {
       const x = v.x;
       if (x.nghi_trung) return moChiTiet(v);
@@ -68,6 +71,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
         daXong(x.id);
         bao(`Đã duyệt «${x.ten}» · +${x.diem} điểm cho ${ten}`, () => {
           setXong((a) => a.filter((i) => i !== x.id));
+          setVuaHoan(x.id);
           bm.goi(`luot/${x.id}/hoan-tac`, {}).then(tai, (e) => { bao(`Chưa hoàn tác được: ${cauLoi(e)}`); tai(); });
         });
         tai();
@@ -133,7 +137,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
       <LayoutAnimationConfig skipEntering>
       {con.length ? hienRa.map((v) => (
         // mỗi việc một «lòng chảo» ấn lõm trong khối (docs/clay); duyệt xong trượt đi + thu chiều cao, Hoàn tác thì bật lại đúng chỗ
-        <Animated.View key={v.x.id} entering={quayLai(giam)} exiting={roiDi(giam)} layout={giam ? undefined : donLen}
+        <Animated.View key={v.x.id} entering={v.x.id === vuaHoan ? quayLai(giam) : FadeIn.duration(220)} exiting={roiDi(giam)} layout={giam ? undefined : donLen}
           style={{ marginHorizontal: 10, marginBottom: 7, borderRadius: 24, backgroundColor: "#efeeea", boxShadow: BONG.lom, overflow: "hidden" }}>
         <Dong dau tieu={tieu(v)} phu={phu(v)} bam={() => moChiTiet(v)}
           phai={xem ? undefined : (

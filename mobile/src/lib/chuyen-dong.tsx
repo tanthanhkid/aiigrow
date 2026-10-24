@@ -3,7 +3,7 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
-  Easing, FadeIn, FadeInDown, FadeOut, Keyframe, LinearTransition, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue,
+  Easing, FadeIn, type SharedValue, FadeInDown, FadeOut, Keyframe, LinearTransition, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue,
   withDelay, withSequence, withSpring, withTiming,
 } from "react-native-reanimated";
 import { VET } from "./clay";
@@ -43,8 +43,8 @@ export const LopMen = ({ men, bo = 0 }: { men?: string; bo?: number }) =>
 export function NhanMen({ style, children, muc = "nut", sang, men, onPressIn, onPressOut, onLayout, disabled, ...p }: NhanMenProps) {
   const bo = (StyleSheet.flatten(style)?.borderRadius as number | undefined) ?? 0;
   const giam = useReducedMotion();
-  const sx = useSharedValue(1), sy = useSharedValue(1), q = useSharedValue(-2), w = useSharedValue(0);
-  const st = useAnimatedStyle(() => ({ transform: [{ scaleX: sx.value }, { scaleY: sy.value }] }));
+  const sx = useSharedValue(1), sy = useSharedValue(1), q = useSharedValue(-2), w = useSharedValue(0), mo = useSharedValue(1);
+  const st = useAnimatedStyle(() => ({ opacity: mo.value, transform: [{ scaleX: sx.value }, { scaleY: sy.value }] }));
   const vet = useAnimatedStyle(() => ({ opacity: q.value > -1.15 && q.value < 1.15 ? 1 : 0, transform: [{ translateX: q.value * w.value }, { skewX: "-8deg" }] }));
   const [a, b] = EP[muc];
   const vao = (e: GestureResponderEvent) => {
@@ -52,11 +52,11 @@ export function NhanMen({ style, children, muc = "nut", sang, men, onPressIn, on
       sx.set(withTiming(a, { duration: 110, easing: EASE.ep }));
       sy.set(withTiming(b, { duration: 110, easing: EASE.ep }));
       q.set(withSequence(withTiming(-1.15, { duration: 0 }), withTiming(1.15, { duration: muc === "khoi" ? 450 : 420, easing: EASE.quet })));
-    }
+    } else if (giam && !disabled) mo.set(withTiming(0.7, { duration: 80 }));   // Reduce Motion: phản hồi nhấn chỉ bằng độ mờ
     onPressIn?.(e);
   };
   const ra = (e: GestureResponderEvent) => {
-    if (!giam) { sx.set(withSpring(1, SP.tha)); sy.set(withSpring(1, SP.tha)); }
+    if (!giam) { sx.set(withSpring(1, SP.tha)); sy.set(withSpring(1, SP.tha)); } else mo.set(withTiming(1, { duration: 150 }));
     onPressOut?.(e);
   };
   return (
@@ -127,6 +127,12 @@ export function useRung() {
   return { st, rung };
 }
 
+/** Gọi `fn` khi `so` TĂNG so với lần trước — lần tải đầu chỉ ghi mốc (mở app với 3 việc cũ thì không rung / nảy). */
+export function useKhiTang(so: number, fn: () => void) {
+  const truoc = useRef<number | null>(null);
+  useEffect(() => { if (truoc.current !== null && so > truoc.current) fn(); truoc.current = so; }, [so, fn]);
+}
+
 /** Bật (pop) một khối: scale 1 → 1.12 → lò xo BẬT về 1 — ví nhận điểm, huy hiệu số đổi. */
 export function useBat() {
   const s = useSharedValue(1);
@@ -167,22 +173,25 @@ export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | nul
 });
 
 function Phao({ p, toi }: { p: Phat; toi?: () => void }) {
+  const t = useSharedValue(0);       // MỘT tiến trình cho cả 20 hạt (mỗi hạt tự giãn thời gian theo hệ số riêng)
+  useEffect(() => { t.set(withTiming(1, { duration: 455, easing: Easing.linear })); }, [t]);
   return (
     <>
-      {Array.from({ length: 20 }, (_, i) => <Hat key={i} i={i} tu={p.tu} />)}
+      {Array.from({ length: 20 }, (_, i) => <Hat key={i} i={i} tu={p.tu} t={t} />)}
       <BayDiem tu={p.tu} den={p.den} n={p.n} toi={toi} />
     </>
   );
 }
 
-function Hat({ i, tu }: { i: number; tu: Diem }) {
-  const t = useSharedValue(0);
-  const goc = (i / 20) * Math.PI * 2 + (i % 3) * 0.3, xa = 34 + ((i * 37) % 30), co = 5 + (i % 3) * 2;
-  useEffect(() => { t.set(withTiming(1, { duration: 380 + (i % 4) * 25, easing: Easing.out(Easing.quad) })); }, [i, t]);
-  const st = useAnimatedStyle(() => ({
-    opacity: 1 - t.value * t.value,
-    transform: [{ translateX: Math.cos(goc) * xa * t.value }, { translateY: Math.sin(goc) * xa * t.value + 30 * t.value * t.value }, { rotate: `${t.value * 220 * (i % 2 ? 1 : -1)}deg` }],
-  }));
+function Hat({ i, tu, t }: { i: number; tu: Diem; t: SharedValue<number> }) {
+  const goc = (i / 20) * Math.PI * 2 + (i % 3) * 0.3, xa = 34 + ((i * 37) % 30), co = 5 + (i % 3) * 2, k = 455 / (380 + (i % 4) * 25);
+  const st = useAnimatedStyle(() => {
+    const x = Math.min(1, t.value * k), p = 1 - (1 - x) * (1 - x);       // Easing.out(quad), 380–455ms theo hạt
+    return {
+      opacity: 1 - p * p,
+      transform: [{ translateX: Math.cos(goc) * xa * p }, { translateY: Math.sin(goc) * xa * p + 30 * p * p }, { rotate: `${p * 220 * (i % 2 ? 1 : -1)}deg` }],
+    };
+  });
   return <Animated.View style={[{ position: "absolute", left: tu.x - co / 2, top: tu.y - co / 2, width: co, height: i % 2 ? co : co * 1.6, borderRadius: i % 3 ? co : 1.5, backgroundColor: MAU_HAT[i % MAU_HAT.length] }, st]} />;
 }
 

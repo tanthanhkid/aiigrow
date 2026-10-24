@@ -1,6 +1,6 @@
 // Thanh điều hướng Ba Mẹ (kit.tab_bm): bốn mục — Trang chủ (bảng điều khiển) · Chờ duyệt · Nhiệm vụ & quà · Gia đình. «Báo cáo» không còn là tab
 // (route thường /bao-cao, mở từ Thời gian màn hình); số đỏ ở Chờ duyệt = nhiệm vụ + yêu cầu đang chờ của mọi Con.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,7 +8,7 @@ import type { BottomTabBarProps } from "expo-router/tabs";
 import { bm } from "@/lib/api";
 import { F, Icon, LopMen, M, NhanMen, type TenIcon } from "@/lib/ui";
 import { BONG, MEN } from "@/lib/clay";
-import { useBat } from "@/lib/chuyen-dong";
+import { useBat, useKhiTang } from "@/lib/chuyen-dong";
 import Animated from "react-native-reanimated";
 
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
@@ -20,8 +20,7 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
   const ins = useSafeAreaInsets();
   const [so, setSo] = useState(0);
   const { st: stSo, bat } = useBat();
-  const truoc = useRef(0);
-  useEffect(() => { if (so > truoc.current) bat(); truoc.current = so; }, [so, bat]);
+  useKhiTang(so, bat);
   useEffect(() => {
     bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => setSo(r.nhiemVu.length + r.yeuCau.length + (r.phieu?.length ?? 0))).catch(() => {});
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt
