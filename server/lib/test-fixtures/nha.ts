@@ -16,3 +16,13 @@ export async function taoBaMe(fam: string, ten = "Ba", vai = "duyet") {
 
 /** Ảnh PNG giả (base64) khác nhau theo `hat` — đủ để băm khác nhau. */
 export const anhGia = (hat: string) => ({ mime: "image/png", base64: Buffer.from(`\x89PNG-gia-${hat}`).toString("base64") });
+
+/** Lịch «chơi được mọi lúc, không giờ ngủ» cho Con — dành cho test đi qua đường API dùng đồng hồ thật (new Date() bên trong route),
+ *  để kết quả không đổi theo giờ chạy test (vd 21:00 giờ VN rơi vào giờ ngủ mặc định 21:00–06:30, 10:00 ngày thường ngoài khung 17:00–20:00).
+ *  Hai khung 00:00–12:00 và 12:00–00:00 phủ trọn ngày; giờ ngủ tu = den là khung rỗng (trongKhung luôn false). */
+export const LICH_LUON_CHOI = {
+  ngayThuong: [{ tu: "00:00", den: "12:00" }, { tu: "12:00", den: "00:00" }],
+  cuoiTuan: [{ tu: "00:00", den: "12:00" }, { tu: "12:00", den: "00:00" }],
+  ngu: { tu: "00:00", den: "00:00" },
+};
+export const luonChoiDuoc = (con: string) => q(`update children set lich = $2::jsonb where id = $1`, [con, JSON.stringify(LICH_LUON_CHOI)]);
