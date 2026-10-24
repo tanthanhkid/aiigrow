@@ -1,22 +1,36 @@
 // bm-cai-dat «Gia đình» (thay tab Cài đặt): chỉ còn việc ít đụng — Ba Mẹ (vai), các Con (hồ sơ, PIN, nhóm), thành viên, quy tắc tự động,
-// thông báo + giờ yên lặng, trợ giúp, đăng xuất. Việc hằng ngày (web, app, giờ, máy) đã lên Trang chủ.
+// thông báo + giờ yên lặng, trợ giúp, đăng xuất, XOÁ TÀI KHOẢN (Apple 5.1.1(v), server/lib/xoa-tai-khoan.ts). Việc hằng ngày (web, app, giờ, máy)
+// đã lên Trang chủ.
+import { useState } from "react";
+import { View } from "react-native";
 import { router } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { Avt, BieuTron, ChoTai, Dong, MAU_CON, Man, Nhom, NhomTieu, Nut, Rob, useTai } from "@/lib/ui";
+import { Avt, BangTruot, BaoLoi, baoKhiVe, BieuTron, ChoTai, Chu, Dong, M, MAU_CON, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, useLam, useTai } from "@/lib/ui";
 
 type Toi = { baMe: { id: string; ten: string; dinhDanh: string; vai: "chu" | "duyet" | "xem" }; laAdmin?: boolean };
 const VAI = { chu: "Chủ gia đình", duyet: "Thành viên phê duyệt", xem: "Chỉ xem" } as const;
 
 export default function CaiDat() {
   const { ra } = usePhien();
+  const [moXoa, setMoXoa] = useState(false);
+  const [mk, setMk] = useState("");
+  const { dangChay, loi: loiXoa, lam, setLoi } = useLam();
   const { d, loi, matMang, tai } = useTai(async () => ({
     toi: await bm.goi<Toi>("toi"), g: await bm.goi<GiaDinh>("gia-dinh"), tv: (await bm.goi<{ ds: { id: string; ten: string; vai: keyof typeof VAI }[] }>("thanh-vien")).ds,
   }));
   if (!d) return <Man tieuLon="Gia đình"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const khac = d.tv.filter((x) => x.id !== d.toi.baMe.id);
+  const laChu = d.toi.baMe.vai === "chu", chuConNguoi = laChu && khac.length > 0;
+  const dongXoa = () => { setMoXoa(false); setMk(""); setLoi(null); };
+  const xoa = () => lam(async () => {
+    const r = await bm.goi<{ xoa: "tai_khoan" | "gia_dinh" }>("xoa-tai-khoan", { matKhau: mk });
+    baoKhiVe(r.xoa === "gia_dinh" ? "Đã xoá tài khoản và toàn bộ dữ liệu gia đình" : "Đã xoá tài khoản của bạn");
+    setMoXoa(false);
+    await ra({ daXoa: true });
+  });
   return (
-    <Man tieuLon="Gia đình" day={<Nut chu="Đăng xuất" ic="thoat" loai="vien" rong bam={ra} />}>
+    <Man tieuLon="Gia đình" day={<Nut chu="Đăng xuất" ic="thoat" loai="vien" rong bam={() => ra()} />}>
       <Nhom>
         <Dong dau tieu={d.toi.baMe.ten} phu={`${VAI[d.toi.baMe.vai]} · ${d.toi.baMe.dinhDanh}`} trai={<Avt ten={d.toi.baMe.ten} mau="#0f6b5c" />} />
       </Nhom>
@@ -42,6 +56,43 @@ export default function CaiDat() {
         <Dong dau tieu="Chat với AiiLab" phu="Người thật trả lời, thường trong 5 phút" trai={<Rob ten="rob-goc" co={44} />} bam={() => router.push("/ho-tro")} />
         {d.toi.laAdmin ? <Dong tieu="Hộp thư hỗ trợ" phu="Tin của các gia đình gửi AiiLab — dành cho quản trị" trai={<BieuTron ic="tin" mau="tim" />} bam={() => router.push("/admin-ho-tro")} /> : null}
       </Nhom>
+      <NhomTieu chu="Tài khoản" />
+      <Nhom>
+        <Dong dau nguyHiem tieu="Xoá tài khoản" trai={<BieuTron ic="canh_bao" mau="do" />} bam={() => setMoXoa(true)}
+          phu={chuConNguoi ? "Mời các thành viên khác ra trước, rồi mới xoá được" : laChu ? "Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình" : "Chỉ xoá tài khoản của bạn — gia đình vẫn giữ nguyên"} />
+      </Nhom>
+
+      <BangTruot mo={moXoa} dong={dongXoa} tieu={chuConNguoi ? "Chưa xoá được tài khoản Chủ gia đình" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
+        {chuConNguoi ? (
+          <>
+            <Chu mau={M.chu2}>{`Gia đình còn ${khac.map((x) => x.ten).join(", ")}. Hãy mời họ ra khỏi gia đình trước (Thành viên › chọn người › Mời ra), rồi quay lại đây để xoá. Cần giữ gia đình cho người khác thì chat với AiiLab.`}</Chu>
+            <Nut chu="Mở Thành viên" loai="vien" rong bam={() => { dongXoa(); router.push("/thanh-vien"); }} />
+            <View style={{ marginTop: 8 }}><Nut chu="Đóng" loai="ma" rong bam={dongXoa} /></View>
+          </>
+        ) : (
+          <>
+            <Chu mau={M.chu2}>Việc xoá có hiệu lực ngay và không khôi phục được:</Chu>
+            <View>
+              {laChu ? (
+                <>
+                  <TickDong trang="x" chu={`Hồ sơ ${d.g.con.length ? `${d.g.con.length} Con` : "các Con"}, nhiệm vụ, ảnh bằng chứng, điểm, quà và luật`} />
+                  <TickDong trang="x" chu="Máy đã ghép rời gia đình" phu="AiiGrow trên máy của Con thôi nhận luật và tự thôi chặn sau vài giờ; muốn gỡ hẳn thì gỡ tại máy" />
+                  <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
+                </>
+              ) : (
+                <>
+                  <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
+                  <TickDong trang="x" chu="Gia đình, các Con và dữ liệu vẫn giữ nguyên" phu="Chủ gia đình tiếp tục quản lý" />
+                </>
+              )}
+            </View>
+            <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
+            <BaoLoi loi={loiXoa} />
+            <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+            <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="ma" rong bam={dongXoa} /></View>
+          </>
+        )}
+      </BangTruot>
     </Man>
   );
 }

@@ -173,6 +173,9 @@ coBan["GET con/c1/lien-ket-aiirob"] = { ma: MA_AIIROB };
 coBan["POST con/c1/sua"] = { ok: true };
 coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
 coBan["GET may/m1/tuan-thu"] = { ...coBan["GET tuan-thu"].ds[0], daDongBo: true, dangGo: null, coTheXoaHan: false, cheDoBaMeChon: "chan", moDen: null, suKien: [] };
+// Xoá tài khoản (Apple 5.1.1(v)): chủ là người lớn cuối ⇒ xoá cả gia đình
+coBan["POST xoa-tai-khoan"] = { xoa: "gia_dinh" };
+const TV_MOT_MINH = { ...coBan["GET thanh-vien"], ds: [coBan["GET thanh-vien"].ds[0]], loiMoi: [] };
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -292,6 +295,9 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
+    M("bm-cai-dat (xoá tài khoản)", "/cai-dat", "Xoá vĩnh viễn", { kb: { "GET thanh-vien": TV_MOT_MINH },
+      truoc: async () => { kb = { ...coBan, "GET thanh-vien": TV_MOT_MINH }; await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
+    M("bm-cai-dat (xoá: còn thành viên)", "/cai-dat", "Mở Thành viên", { truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
     M("bm-vi (giữ chuỗi)", "/vi/c1", "Mỗi tuần giữ được một lần", { truoc: async () => { await di("/vi/c1"); await doi("Giữ chuỗi ngày"); await bam("Giữ chuỗi ngày"); } }),
     M("bm-vi (đã giữ tuần này)", "/vi/c1", "Tuần này đã giữ chuỗi", { kb: { "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-22", duocDung: false, daDung: ["2026-10-21"] } } } }),
@@ -391,6 +397,38 @@ await kichBan("Hết phiên (401) ⇒ về màn Chào", async () => {
   kb["GET gia-dinh"] = { status: 401, body: { error: "chua_dang_nhap", message: "Phiên đăng nhập đã hết" } };
   await di("/hom-nay");
   xet(await doi("Bắt đầu bằng số điện thoại"), "về màn Chào");
+});
+
+await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên thì chặn; chủ cuối ⇒ nói rõ hậu quả + mật khẩu ⇒ xoá ⇒ về màn Chào", async () => {
+  await di("/cai-dat");
+  xet(await doi("Chat với AiiLab"), "mở màn Gia đình");
+  xet(await doi("Mời các thành viên khác ra trước"), "dòng Xoá tài khoản nói trước điều kiện khi còn thành viên");
+  await bam("Xoá tài khoản");
+  xet(await doi("Chưa xoá được tài khoản Chủ gia đình"), "chủ còn Ba/Mẹ khác ⇒ bảng hướng dẫn mời ra trước");
+  xet(await doi("Ba Huy"), "nêu tên người còn trong gia đình");
+  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan"), "không gọi xoá");
+
+  kb["GET thanh-vien"] = TV_MOT_MINH;
+  await di("/cai-dat");
+  await doi("Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình");
+  await bam("Xoá tài khoản");
+  xet(await doi("Xoá tài khoản và cả gia đình?"), "bảng xác nhận cho chủ là người cuối");
+  xet(await doi("không khôi phục được"), "nói rõ không khôi phục được");
+  xet(await doi("Máy đã ghép rời gia đình"), "nói rõ hậu quả với máy của Con");
+  kb["POST xoa-tai-khoan"] = { status: 401, body: { error: "sai_mat_khau", message: "Mật khẩu chưa đúng" } };
+  await go("Nhập lại mật khẩu để xác nhận", "sai-roi");
+  await bam("Xoá vĩnh viễn");
+  xet(await doi("Mật khẩu chưa đúng"), "sai mật khẩu ⇒ báo ngay trong bảng");
+  xet((await js(`localStorage.getItem("aiig_bm")`)) === "tok-thu", "sai mật khẩu ⇒ vẫn đăng nhập");
+  kb["POST xoa-tai-khoan"] = coBan["POST xoa-tai-khoan"];
+  nhatKy.length = 0;
+  await go("Nhập lại mật khẩu để xác nhận", "matkhau123");
+  await bam("Xoá vĩnh viễn");
+  xet(await doi("Bắt đầu bằng số điện thoại"), "xoá xong ⇒ về màn Chào");
+  xet(await doi("Đã xoá tài khoản và toàn bộ dữ liệu gia đình"), "báo đã xoá");
+  xet(nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.m === "POST" && x.body?.matKhau === "matkhau123"), "gửi đúng mật khẩu");
+  xet(!nhatKy.some((x) => x.d === "dang-xuat"), "không gọi đăng xuất (phiên đã mất trên máy chủ)");
+  xet((await js(`localStorage.getItem("aiig_bm")`)) === null, "xoá token trên máy");
 });
 
 /** Bấm phần tử theo bộ chọn CSS (công tắc không có chữ). */

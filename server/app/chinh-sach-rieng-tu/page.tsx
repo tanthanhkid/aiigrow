@@ -2,7 +2,7 @@
 // Nội dung đối chiếu mã nguồn 24/10/2026: schema (families/parents/children/devices/usage/web_nhat_ky/evidence/may_log), lib/log-may.ts (giữ 7 ngày), lib/web.ts (giữ 90 ngày).
 export const metadata = { title: "Chính sách quyền riêng tư — AiiGrow", description: "Chính sách quyền riêng tư của AiiGrow / Privacy Policy of AiiGrow" };
 
-const EMAIL = "hotro@aiilab.vn";
+const EMAIL = "info@aiilab.vn";
 const NGAY_VI = "24/10/2026", NGAY_EN = "October 24, 2026"; // sửa nội dung thì đổi cả hai ngày
 const h2 = { fontSize: 20, marginTop: 28, marginBottom: 6 } as const;
 const ul = { lineHeight: 1.7, paddingLeft: 20, marginTop: 4 } as const;
@@ -44,7 +44,7 @@ export default function ChinhSachRiengTu() {
       <ul style={ul}>
         <li>Ba Mẹ xem và sửa hồ sơ Con, luật, nhiệm vụ ngay trong app.</li>
         <li><b>Gỡ máy:</b> trong app, vào Máy tính &amp; điện thoại → chọn máy → “An toàn &amp; gỡ cài đặt”. Với máy hỗ trợ, phần mềm AiiGrow được gỡ khỏi máy và máy rời danh sách.</li>
-        <li><b>Xoá tài khoản và toàn bộ dữ liệu gia đình:</b> gửi yêu cầu từ số điện thoại/email đã đăng ký tới <a href={`mailto:${EMAIL}`} style={{ color: "#1f8a70" }}>{EMAIL}</a>; chúng tôi xử lý trong vòng 30 ngày.</li>
+        <li><b>Xoá tài khoản ngay trong app:</b> <b>Gia đình → Xoá tài khoản</b>, nhập lại mật khẩu. Chủ gia đình là người lớn cuối cùng ⇒ xoá luôn toàn bộ dữ liệu gia đình (hồ sơ Con, nhiệm vụ, ảnh bằng chứng, điểm, luật, máy đã ghép); Ba/Mẹ khác ⇒ chỉ xoá tài khoản của mình. Việc xoá có hiệu lực ngay và không khôi phục được. Không vào được app? Gửi yêu cầu từ số điện thoại/email đã đăng ký tới <a href={`mailto:${EMAIL}`} style={{ color: "#1f8a70" }}>{EMAIL}</a>; chúng tôi xử lý trong vòng 30 ngày.</li>
       </ul>
 
       <h2 style={h2}>6. Trẻ em</h2>
@@ -77,7 +77,7 @@ export default function ChinhSachRiengTu() {
         <h2 style={h2}>Storage and retention</h2>
         <p>Data is stored on servers managed by AiiLab and transmitted over HTTPS. Technical device logs are kept up to 7 days and visited-domain history up to 90 days (cleaned up whenever the device connects); other data is kept while the family uses AiiGrow. Parents can ask us to delete a child's or a device's data as described below. We use infrastructure and error-monitoring providers only to run the service and do not share data with third parties for other purposes.</p>
         <h2 style={h2}>Your rights</h2>
-        <p>Parents can view and edit child profiles, rules and tasks in the app, and remove a device in the app (where supported, the AiiGrow software is uninstalled and the device leaves the list). To delete your account and all family data, email <a href={`mailto:${EMAIL}`} style={{ color: "#1f8a70" }}>{EMAIL}</a> from the registered phone/email; we process requests within 30 days.</p>
+        <p>Parents can view and edit child profiles, rules and tasks in the app, and remove a device in the app (where supported, the AiiGrow software is uninstalled and the device leaves the list). To delete your account in the app, go to <b>Gia đình (Family) → Xoá tài khoản (Delete account)</b> and re-enter your password: if you are the family owner and the last adult, all family data (child profiles, tasks, photo evidence, points, rules, paired devices) is deleted; other parents delete only their own account. Deletion is immediate and cannot be undone. If you cannot sign in, email <a href={`mailto:${EMAIL}`} style={{ color: "#1f8a70" }}>{EMAIL}</a> from the registered phone/email; we process requests within 30 days.</p>
         <h2 style={h2}>Children</h2>
         <p>Children do not create accounts. A parent creates the account, consents to the collection of the child&apos;s data, and pairs the child&apos;s device. Parents may review, edit or request deletion of their child&apos;s data at any time via the contact above.</p>
         <h2 style={h2}>Changes</h2>

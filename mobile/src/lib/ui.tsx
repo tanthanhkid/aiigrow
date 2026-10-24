@@ -188,12 +188,13 @@ export function NhomTieu({ chu, phai }: { chu: string; phai?: { chu: string; bam
   );
 }
 
-export function Dong({ tieu, phu, trai, phai, bam, dau }: { tieu: string; phu?: string; trai?: ReactNode; phai?: ReactNode; bam?: () => void; dau?: boolean }) {
+/** `nguyHiem`: việc không đảo được (Xoá tài khoản) — tiêu đề màu M.loi. */
+export function Dong({ tieu, phu, trai, phai, bam, dau, nguyHiem }: { tieu: string; phu?: string; trai?: ReactNode; phai?: ReactNode; bam?: () => void; dau?: boolean; nguyHiem?: boolean }) {
   const noi = (
     <View style={[s.dong, !dau && s.dongVien]}>
       {trai}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15.5}>{tieu}</Chu>
+        <Chu kieu="rat" co={15.5} mau={nguyHiem ? M.loi : undefined}>{tieu}</Chu>
         {phu ? <Chu co={13.5} mau={M.chu3}>{phu}</Chu> : null}
       </View>
       {phai ?? (bam ? <Icon ten="phai" mau="#b3b5b1" co={18} /> : null)}
