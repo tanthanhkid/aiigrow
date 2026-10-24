@@ -4,7 +4,8 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type ThongKeWeb } from "@/lib/api";
+import { bm, laChiXem, type AppChuaXep, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type PhienDang, type ThongKeWeb, type TuanThuMay } from "@/lib/api";
+import { AppMoi, NutThemMay, TheDangChoi, TheMay } from "@/lib/viec-nhanh";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { BangKhoa, cauKhoa, cauMoTam, conHan, moLaiMay } from "@/lib/khoa-may";
 import {
@@ -12,14 +13,18 @@ import {
   type MauBt, type TenIcon,
 } from "@/lib/ui";
 
-type Luat = { chuaXep: unknown[]; ds: { child_id: string; loai: string }[] };
+type Luat = { chuaXep: AppChuaXep[]; ds: { child_id: string; loai: string }[] };
 
 export default function TrangChu() {
   const { d, loi, matMang, tai, dangTai } = useTai(async () => {
-    const [g, cb, luat] = await Promise.all([
+    const [g, cb, luat, choi, tt, toi] = await Promise.all([
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: CanhBao[] }>("canh-bao"), bm.goi<Luat>("luat").catch(() => null),
+      bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),            // máy chủ cũ chưa có ⇒ không hiện thẻ «Đang chơi»
+      // thẻ máy: chế độ + bảo vệ từ MỘT nguồn (tuan-thu), tải MỘT lần cho cả nhà (đổi Con không gọi lại); lỗi ⇒ ẩn thẻ, không chặn cả trang
+      bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),  // nhẹ: không quét mất nhịp (màn Máy làm)
+      laChiXem(),                                                            // quyền Chỉ xem ⇒ ẩn nút việc nhanh (máy chủ trả 403 chi_xem)
     ]);
-    return { g, cb: cb.ds.filter((x) => !x.da_doc), luat };
+    return { g, cb: cb.ds.filter((x) => !x.da_doc), luat, choi: choi?.ds ?? [], tt: tt?.ds ?? [], xem: toi };
   });
   const [chon, setChon] = useState(0);
   const { bao, noi } = useHoanTac();
@@ -52,13 +57,14 @@ export default function TrangChu() {
         </Pressable>
         <View style={{ marginLeft: "auto" }}><ChuongTb /></View>
       </View>
-      <BangCon key={c.id} c={c} canhBao={d.cb.filter((x) => !x.child_id || x.child_id === c.id)} luat={d.luat} taiLai={tai} bao={bao} />
+      <BangCon key={c.id} c={c} canhBao={d.cb.filter((x) => !x.child_id || x.child_id === c.id)} luat={d.luat} choi={d.choi.filter((p) => p.con === c.id)}
+        mayTt={d.tt.filter((m) => m.con === c.id || m.dungChung)} xem={d.xem} taiLai={tai} bao={bao} />
     </Man>
   );
 }
 
-function BangCon({ c, canhBao, luat, taiLai, bao }: {
-  c: ConNgan; canhBao: CanhBao[]; luat: Luat | null; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void;
+function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
+  c: ConNgan; canhBao: CanhBao[]; luat: Luat | null; choi: PhienDang[]; mayTt: TuanThuMay[]; xem: boolean; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void;
 }) {
   const ct = useTai(() => bm.goi<ConChiTiet>(`con/${c.id}`));
   const web = useTai(() => bm.goi<ThongKeWeb>(`con/${c.id}/web?ngay=1`).catch(() => null));
@@ -92,7 +98,7 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
     { tieu: "Máy tính & điện thoại", ic: "may_tinh", mau: "xam", di: may.length === 1 ? `/may/${may[0].id}` : `/may?con=${c.id}`,
       phu: !ct.d ? "Chặn thật, mở khẩn cấp" : !may.length ? "Chưa ghép máy nào" : `${may.length} máy · ${may.filter((m) => m.truc).length} đang mở` },
     { tieu: "Nhiệm vụ", ic: "sao", mau: "vang", di: "/diem-qua",
-      phu: `Ví ${c.soDu} điểm${c.nhiemVuCho ? ` · ${c.nhiemVuCho} chờ duyệt` : ""}` },
+      phu: `Ví ${c.soDu} điểm${c.phutDoiDuoc !== undefined ? ` (đổi ≈ ${c.phutDoiDuoc} phút chơi)` : ""}${c.nhiemVuCho ? ` · ${c.nhiemVuCho} chờ duyệt` : ""}` },
   ];
 
   return (
@@ -137,9 +143,17 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
         <Icon ten="phai" mau={M.chu3} />
       </Pressable>
 
+      {xem ? null : <Nut chu="Giao nhiệm vụ" ic="cong" rong bam={() => router.push(`/giao-nv?con=${c.id}`)} nhanDoc={`Giao nhiệm vụ cho ${c.ten}`} />}
+
+      {choi.map((p) => <TheDangChoi key={p.id} p={p} tai={tai} bao={bao} xem={xem} />)}
+      <AppMoi ds={luat?.chuaXep ?? []} tai={tai} bao={bao} xem={xem} />
+
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {o.map((x) => <OTinhNang key={x.tieu} {...x} />)}
       </View>
+
+      {mayTt.map((m) => <TheMay key={m.id} m={m} tai={tai} bao={bao} xem={xem} />)}
+      {xem ? null : <NutThemMay id={c.id} ten={c.ten} nhom={c.nhom} />}
 
       {canhBao.length ? (
         <Nhom>

@@ -256,7 +256,8 @@ export function chiTietBaoVe(may: Pick<May, "status" | "last_seen">): { muc: Muc
   const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma, cach: MO_TA_QUYEN[ma]?.cach ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
   // agent-win 0.2.6 gửi ghiChuBaoVe («Win Home: chặn bằng cách đóng app», «Chrome: IT đặt danh sách web cho cả máy…») — nối vào câu ở MỌI mức, Ba Mẹ thấy cả khi còn thiếu quyền
   const ghiChu = typeof may.status?.ghiChuBaoVe === "string" && may.status.ghiChuBaoVe.trim() ? ` (${may.status.ghiChuBaoVe.trim().slice(0, 240)})` : "";
-  return thieu.length ? { muc: "mot_phan", thieu, cau: `Còn thiếu: ${thieu.map((x) => x.ten).join(", ")}.` + ghiChu } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." + ghiChu };
+  // tên từng mục thiếu đã hiện ngay dưới (DsThieuBaoVe) ⇒ câu chỉ nói số mục, không lặp tên
+  return thieu.length ? { muc: "mot_phan", thieu, cau: `${thieu.length} việc cần sửa (xem bên dưới).` + ghiChu } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." + ghiChu };
 }
 
 /** Mức bảo vệ (FR-01.03): đủ quyền ⇒ Đầy đủ, thiếu một phần ⇒ Một phần, chưa kết nối / chưa báo ⇒ Chưa bảo vệ. */

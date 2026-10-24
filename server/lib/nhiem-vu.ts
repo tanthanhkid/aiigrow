@@ -47,9 +47,13 @@ export const MAU: Record<"nhi" | "teen", MauNv[]> = {
 export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string;
   toi_da_ngay: number | null; toi_da_tuan: number | null; phut_toi_thieu: number; tu_duyet: boolean; giao_cho: string | null; han: Date | null; bat: boolean };
 
-function kiemNv(b: Record<string, unknown>) {
+/** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ chép hằng số này ở mobile/src/lib/api.ts › TEN_NV_TOI_THIEU (đổi thì đổi cả hai). */
+export const TEN_NV_TOI_THIEU = 3;
+
+function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
   const ten = String(b.ten ?? "").trim().slice(0, 60);
   if (!ten) throw new LoiNghiepVu("thieu_ten", "Đặt tên nhiệm vụ");
+  if (kiemDoDai && [...ten].length < TEN_NV_TOI_THIEU) throw new LoiNghiepVu("ten_ngan", `Tên nhiệm vụ cần ít nhất ${TEN_NV_TOI_THIEU} ký tự để Con hiểu việc cần làm`);
   const diem = Math.round(Number(b.diem));
   if (!Number.isInteger(diem) || diem < 1 || diem > 1000) throw new LoiNghiepVu("diem_sai", "Điểm thưởng là số nguyên từ 1");
   const nhom = (NHOM_NV as readonly string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
@@ -64,8 +68,9 @@ function kiemNv(b: Record<string, unknown>) {
   };
 }
 
-export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: string, t: Q = q) {
-  const v = kiemNv(b);
+/** `tuMau`: tạo từ mẫu (AiiLab soạn, kể cả mẫu riêng admin) — không chặn tên ngắn, để áp mẫu không gãy giữa chừng. */
+export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: string, t: Q = q, tuMau = false) {
+  const v = kiemNv(b, !tuMau);
   const giao = b.giao_cho ? String(b.giao_cho) : null;
   if (giao && !(await t(`select 1 from children where id = $1 and family_id = $2`, [giao, fam])).length)
     throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
@@ -85,14 +90,16 @@ export async function apDungMau(fam: string, nhom: "nhi" | "teen") {
   let n = 0;
   const { mauRiengDangBat } = await import("./admin.ts");   // động: admin.ts import nhiem-vu.ts
   const rieng = (await mauRiengDangBat())[nhom] as unknown as MauNv[];
-  for (const m of [...MAU[nhom], ...rieng]) if (!co.has(m.ten)) { await taoNv(fam, { ...m }); co.add(m.ten); n++; }
+  for (const m of [...MAU[nhom], ...rieng]) if (!co.has(m.ten)) { await taoNv(fam, { ...m }, undefined, q, true); co.add(m.ten); n++; }
   return n;
 }
 
 export async function suaNv(fam: string, id: string, b: Record<string, unknown>) {
   const cu = await one<Nv>(`select * from tasks where id = $1 and family_id = $2`, [id, fam]);
   if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ", 404);
-  const v = kiemNv({ ...cu, ...b });
+  // nhiệm vụ cũ tên ngắn (trước luật 3 ký tự) vẫn sửa điểm / tắt được: chỉ kiểm độ dài khi Ba Mẹ đổi tên
+  const doiTen = b.ten !== undefined && String(b.ten ?? "").trim().slice(0, 60) !== cu.ten;
+  const v = kiemNv({ ...cu, ...b }, doiTen);
   await q(`update tasks set ten=$2, mo_ta=$3, nhom=$4, diem=$5, bang_chung=$6, kieu=$7, toi_da_ngay=$8, toi_da_tuan=$9, phut_toi_thieu=$10,
            tu_duyet=$11, bat=$12 where id = $1`,
     [id, v.ten, v.mo_ta, v.nhom, v.diem, v.bang_chung, v.kieu, v.toi_da_ngay, v.toi_da_tuan, v.phut_toi_thieu, v.tu_duyet, b.bat === undefined ? cu.bat : b.bat === true]);

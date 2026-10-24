@@ -25,7 +25,9 @@ export async function homNay(fam: string, con: string, now = new Date()) {
      order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
   return { ...vi, phutChoi: r.choi, tranNgay: ts.tran_ngay, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
-    homNayConDa: tichCuc };
+    homNayConDa: tichCuc,
+    /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút) */
+    phutDoiDuoc: Math.max(0, Math.floor((vi.soDu * 1000) / Math.max(1, ts.gia_game))) };
 }
 
 async function tuan(con: string, tz: string, dau: string) {

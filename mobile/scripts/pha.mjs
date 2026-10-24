@@ -56,7 +56,7 @@ const THAM = { tran_ngay: 90, tran_tuan: 420, phien_toi_da: 30, nghi_giua: 60, g
 const LICH = { ngayThuong: [{ tu: "17:00", den: "20:00" }], cuoiTuan: [{ tu: "09:00", den: "21:00" }], ngu: { tu: "21:30", den: "06:30" } };
 const capDo = { cap: 4, diemCapSau: 1000, conThieu: 155 };
 const conNgan = (id, ten, o = {}) => ({ id, ten, avatar: "rob", nhom: "nhi", soDu: 145, diemChoDuyet: 30, tongKiem: 845, capDo, phutChoi: 45, tranNgay: 90,
-  nhiemVuCho: 3, yeuCauCho: 1, nhiemVuXong: 3, homNayConDa: ["Đọc xong 1 cuốn sách", "Rửa chén 2 lần", "Học AiiRob đạt 92%"], ...o });
+  nhiemVuCho: 3, yeuCauCho: 1, nhiemVuXong: 3, phutDoiDuoc: 145, homNayConDa: ["Đọc xong 1 cuốn sách", "Rửa chén 2 lần", "Học AiiRob đạt 92%"], ...o });
 const mayCon = (id, ten, o = {}) => ({ id, ten, nen: "windows", dungChung: false, baoVe: "day_du", lanCuoi: luc(1), truc: true, lechGiay: null, ...o });
 const conCt = (id, ten) => ({ id, ten, namSinh: 2017, avatar: "rob", nhom: "nhi", khoaNgay: false, lich: LICH, thamSo: THAM, soDu: 145, diemChoDuyet: 30, tongKiem: 845, capDo,
   may: [mayCon("m1", `Laptop của ${ten} · Windows 11`), mayCon("m2", `iPad của ${ten}`, { nen: "ios", baoVe: "mot_phan", truc: false, lanCuoi: luc(1560) })] });
@@ -73,9 +73,9 @@ const coBan = {
     mayLoc: [{ id: "m1", ten: "Laptop của Bảo Anh", cheDo: "chan", lanCuoi: luc(1) }] },
   "POST con/c1/web/trang": { ok: true }, "POST con/c1/web/trang/x": { ok: true },
   "GET tuan-thu": { ds: [
-    { id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", con: "c1", dungChung: false, lanCuoi: luc(1), phienBan: "0.2.5", adminTinCay: [], trangThai: "tuan_thu", diem: 96, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: "chan", cheDoMay: "chan" },
-    { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", con: "c1", dungChung: false, lanCuoi: luc(1560), phienBan: null, adminTinCay: [], trangThai: "lech_chuan", diem: 70, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: null, cheDoMay: null },
-    { id: "m3", ten: "Laptop của Bill", nen: "windows", con: "c2", dungChung: false, lanCuoi: luc(3), phienBan: "0.2.5", adminTinCay: [], trangThai: "tuan_thu", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: "giam-sat", cheDoMay: "giam-sat" }] },
+    { id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", con: "c1", dungChung: false, lanCuoi: luc(1), phienBan: "0.2.5", adminTinCay: [], baoVe: "day_du", baoVeCau: "Bảo vệ đầy đủ.", baoVeThieu: [], trangThai: "tuan_thu", diem: 96, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: "chan", cheDoMay: "chan", cheDoBaMeChon: "chan", daDongBo: true, dangGo: null, coTheXoaHan: false },
+    { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", con: "c1", dungChung: false, lanCuoi: luc(1560), phienBan: null, adminTinCay: [], baoVe: "mot_phan", baoVeCau: "1 việc cần sửa (xem bên dưới).", baoVeThieu: [{ ma: "haQuyenAdmin", ten: "Tài khoản của Con vẫn là quản trị", cach: "Tắt quyền quản trị cho tài khoản của Con." }], trangThai: "lech_chuan", diem: 70, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: null, cheDoMay: null, cheDoBaMeChon: null, daDongBo: true, dangGo: null, coTheXoaHan: false },
+    { id: "m3", ten: "Laptop của Bill", nen: "windows", con: "c2", dungChung: false, lanCuoi: luc(3), phienBan: "0.2.5", adminTinCay: [], baoVe: "mot_phan", baoVeCau: "1 việc cần sửa (xem bên dưới).", baoVeThieu: [{ ma: "chanThat", ten: "Chế độ Chặn thật", cach: "Máy đang ở chế độ Giám sát (chỉ ghi lại, chưa chặn)." }], trangThai: "tuan_thu", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: "giam-sat", cheDoMay: "giam-sat", cheDoBaMeChon: "giam-sat", daDongBo: true, dangGo: null, coTheXoaHan: false }] },
   "GET gia-dinh": { ten: "Nhà Mẹ Lan", quyVoucher: 150000, choDuyet: 4, canhBao: 1, con: [conNgan("c1", KEN), conNgan("c2", BILL, { nhom: "teen", nhiemVuCho: 0 })] },
   "GET canh-bao": { ds: [{ id: "a1", child_id: "c2", loai: "lech_gio", muc: "chu_y", noi_dung: "Có dấu hiệu đổi giờ hệ thống trên Laptop-BILL của Bill", chi_tiet: { lechGiay: -3660 }, da_doc: false, created_at: luc(20) },
     { id: "a2", child_id: "c2", loai: "ngoai_le_manh", muc: "chu_y", noi_dung: "Tuần này Bill đã được 6 ngoại lệ. Gợi ý: tăng điểm nhiệm vụ hoặc giảm giá phần thưởng.", chi_tiet: {}, da_doc: false, created_at: luc(60) }] },
@@ -111,7 +111,10 @@ const coBan = {
     { id: "q3", ten: "Chọn thực đơn bữa tối", loai: "dac_quyen", diem: 50, menh_gia: null, ton_kho: null, toi_da_thang: 2, chi_cuoi_tuan: false, bat: true }] },
   "GET quy": { soDu: 30000, giaoDich: [{ so_tien: 200000, loai: "nap", ghi_chu: "Tiền mặt", created_at: luc(4000) }, { so_tien: -50000, loai: "phat_hanh", ghi_chu: "Phiếu quà 50k", created_at: luc(300) }] },
   "GET luat": { ds: [{ child_id: "", muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" }, { child_id: "", muc: "khanacademy.org", ten: "Khan", loai: "hoc", nhom: "khac" }],
-    heThong: ["winword.exe"], chuaXep: [{ muc: "tiktok.com", phut: 12 }, { muc: "capcut.exe", phut: 4 }, { muc: "minecraft.launcher.exe", phut: 30 }] },
+    heThong: ["winword.exe"], chuaXep: [{ muc: "tiktok.com", ten: "tiktok.com", phut: 12 }, { muc: "capcut.exe", ten: "Capcut", phut: 4 }, { muc: "minecraft.launcher.exe", ten: "Minecraft launcher", phut: 30 }],
+    daThay: [{ muc: "msedge.exe", ten: "Microsoft Edge", phut: 95, loai: "chua_xep" }, { muc: "roblox.exe", ten: "Roblox", phut: 210, loai: "giai_tri" }, { muc: "capcut.exe", ten: "Capcut", phut: 4, loai: "chua_xep" }] },
+  "POST luat": { muc: "x" }, "POST may/m1/che-do": { ok: true }, "POST nhiem-vu": { id: "t-moi" }, "POST phien/p1/dung": { ok: true },
+  "GET phien-dang": { ds: [{ id: "p1", con: "c1", tenCon: "Nguyễn Ngọc Bảo Anh", may: "Laptop của Bảo Anh · Windows 11", muc: "roblox.exe", tenApp: "Roblox", tam: false, conPhut: 18 }] },
   "GET thanh-vien": { ds: [{ id: "p1", ten: "Mẹ Lan", vai: "chu" }, { id: "p2", ten: "Ba Huy", vai: "duyet" }, { id: "p3", ten: "Bà nội", vai: "xem" }] },
   "GET ho-tro": { tin: [{ id: "h1", tu: "aiilab", noi_dung: "Chào chị Lan, AiiLab đây. Chị cần giúp gì về AiiGrow ạ?", created_at: luc(10) },
     { id: "h2", tu: "ba_me", noi_dung: "Quỹ phiếu quà của em chuyển khoản rồi mà chưa thấy cộng.", created_at: luc(8) },
@@ -169,6 +172,8 @@ Object.assign(coBan, {
 // M6 liên kết AiiRob: mã «<family_id>.<child_id>» (id thật dài 20 ký tự ⇒ đo tràn dòng ở 320px)
 const MA_AIIROB = "3f9a1c0e7b2d4a6f8e1c.c1d2e3f4a5b6c7d8e9f0";
 coBan["GET con/c1/lien-ket-aiirob"] = { ma: MA_AIIROB };
+for (const x of coBan["GET tuan-thu"].ds) coBan[`GET may/${x.id}/tuan-thu`] = { ...x, suKien: [] };
+coBan["GET may/m1/ma-offline"] = { ma: "482917", conGiay: 0, hieuLucPhut: 5, phutMo: 30 };
 // đổi tên Con + đổi tên máy (màn máy cần chi tiết tuân thủ đủ trường)
 coBan["POST con/c1/sua"] = { ok: true };
 coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
@@ -267,8 +272,11 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trang (đang khoá)", "/hom-nay", "Mở lại máy", { kb: { "GET con/c1": { ...conCt("c1", KEN), khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
     M("bm-web", "/web/c1", "ĐANG CHẶN · 3"),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
+    M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "CÁCH SỬA"),
+    M("bm-app-web (đã thấy)", "/app-web", "Microsoft Edge", { truoc: async () => { await di("/app-web"); await doi("Đã thấy (3)"); await bam("Đã thấy (3)"); } }),
+    M("bm-giao-nv (tên ngắn)", "/giao-nv?con=c2", "ít nhất 3 ký tự", { truoc: async () => { await di("/giao-nv?con=c2"); await doi("Việc cần làm"); await go("Việc cần làm", "1"); } }),
     M("bm-cho-duyet", "/cho-duyet", "4 việc đang chờ"),
-    M("bm-cho-duyet (trống)", "/cho-duyet", "Không có việc nào chờ", { kb: { "GET cho-duyet": { nhiemVu: [], yeuCau: [] } } }),
+    M("bm-cho-duyet (trống)", "/cho-duyet", "Không có việc nào chờ", { kb: { "GET cho-duyet": { nhiemVu: [], yeuCau: [] }, "GET luat": { ...coBan["GET luat"], chuaXep: [] } } }),
     M("bm-duyet-nv", "/duyet/l1", "Không trùng ảnh cũ"),
     // bảng lý do phủ lên màn duyệt: đo riêng bảng (ảnh nền phía sau bảng đã đo ở bm-duyet-nv; luật DE-ANH không biết ảnh bị bảng che)
     M("bm-tu-choi", "/duyet/l1", "cần làm gì thêm?", { kb: { "GET luot/l1/anh": { anh: [] } }, truoc: async () => { await di("/duyet/l1"); await doi("Cần chụp lại"); await bam("Cần chụp lại"); } }),
@@ -540,6 +548,72 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
   xet(await doi("Ghép thêm máy"), "lỗi tải mã: màn hồ sơ vẫn hiện");
   await sleep(800);
   xet(!(await chu())?.includes("Liên kết AiiRob"), "lỗi tải mã: ẩn mục liên kết");
+});
+
+await kichBan("Trang chủ: thẻ máy (Đang chặn + đổi), Đang chơi + Dừng, app mới 3 nút, Giao nhiệm vụ, ≈ phút chơi", async () => {
+  await di("/hom-nay");
+  xet(await doi("Đang chặn"), "thẻ máy ghi «Đang chặn»");
+  xet((await chu()).includes("≈ 145 phút chơi"), "điểm kèm «≈ X phút chơi»");
+  xet((await chu()).includes("Bảo vệ chưa đủ"), "máy bảo vệ chưa đủ có cảnh báo + nút Sửa");
+  xet((await chu()).includes("Tài khoản của Con vẫn là quản trị"), "cảnh báo ghi 1 dòng lý do");
+  xet((await chu()).includes("Thêm máy"), "có nút Thêm máy");
+  xet(!(await chu()).includes("Chưa có nhịp"), "không còn chữ «Chưa có nhịp»");
+  xet((await chu()).includes("Nguyễn Ngọc Bảo Anh đang chơi Roblox"), "thẻ Đang chơi nói Con + app");
+  xet((await chu()).includes("còn 18 phút"), "thẻ Đang chơi ghi phút còn lại");
+  await bam("Dừng");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "phien/p1/dung" && x.m === "POST"), "Dừng gửi lên máy chủ");
+  xet((await chu()).includes("3 app mới chờ xếp loại"), "app mới chưa xếp hiện ở Trang chủ");
+  await bam("Chặn");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "luat" && x.m === "POST" && x.body?.loai === "chan" && x.body?.ten), "nút Chặn xếp app kèm tên dễ hiểu");
+  await bam("Chỉ theo dõi");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "may/m1/che-do" && x.body?.cheDo === "giam-sat"), "nút đổi chế độ gửi giam-sat");
+  xet(await doi("≤ 3 phút"), "báo máy nhận trong ≤ 3 phút");
+  xet(await doi("Hoàn tác"), "có Hoàn tác");
+  await bam("Mở khẩn cấp");
+  xet(await doi("Giải trí được mở trong khoảng thời gian"), "Mở khẩn cấp mở thẳng bảng chọn thời lượng");
+});
+
+await kichBan("Trang chủ ⇒ Giao nhiệm vụ mặc định đúng Con đang xem; tên ngắn bị chặn", async () => {
+  await di("/hom-nay");
+  await doi("Giao nhiệm vụ");
+  await bam("Bill");
+  await sleep(600);
+  await bam("Giao nhiệm vụ");
+  xet(await doi("Giao việc cho Bill"), "form mặc định giao cho Con đang xem (Bill)");
+  await go("Việc cần làm", "1");
+  xet(await doi("ít nhất 3 ký tự"), "tên 1 ký tự: báo lỗi rõ");
+  await go("Việc cần làm", "Dọn bàn");
+  await sleep(300);
+  await bam("Giao cho Bill · 20 điểm");
+  await sleep(600);
+  xet(nhatKy.some((x) => x.d === "nhiem-vu" && x.m === "POST" && x.body?.giao_cho === "c2" && x.body?.ten === "Dọn bàn"), "gửi nhiệm vụ cho đúng Con");
+});
+
+await kichBan("Ứng dụng: chọn từ app đã thấy (tên dễ hiểu) thay vì gõ tên tệp", async () => {
+  await di("/app-web");
+  await doi("Đã thấy (3)");
+  await bam("Đã thấy (3)");
+  xet(await doi("Microsoft Edge"), "danh sách đã thấy có tên dễ hiểu");
+  await go("Tìm app hoặc trang web (vd Edge, YouTube)", "edge");
+  await sleep(300);
+  xet(!(await chu()).includes("Roblox"), "gõ «edge» lọc theo tên hiển thị");
+  await bam("Microsoft Edge");
+  await doi("Lưu phân loại");
+  await bam("Lưu phân loại");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "luat" && x.m === "POST" && x.body?.muc === "msedge.exe" && x.body?.ten === "Microsoft Edge"), "lưu msedge.exe kèm tên Microsoft Edge");
+});
+
+await kichBan("An toàn thiết bị và Hồ sơ Con báo CÙNG một mức bảo vệ", async () => {
+  await di("/may?con=c1");
+  xet(await doi("bảo vệ chưa đủ"), "danh sách máy báo bảo vệ chưa đủ");
+  xet(!(await chu()).includes("Mọi máy đều được bảo vệ đầy đủ"), "không khen «mọi máy đều ổn» khi còn máy chưa đủ");
+  await di("/ho-so/c1");
+  xet(await doi("bảo vệ chưa đầy đủ"), "Hồ sơ Con cũng báo chưa đủ");
+  xet(!(await chu()).includes("Thiếu:"), "không lặp «Còn thiếu / Thiếu»");
 });
 
 await kichBan("Đổi tên Con: bảng điền sẵn tên cũ, gửi tên đã chuẩn hoá, báo kết quả; trùng tên ⇒ báo lỗi, bảng giữ nguyên", async () => {

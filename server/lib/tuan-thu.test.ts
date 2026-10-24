@@ -206,3 +206,14 @@ test("TV / tầng mạng: Ba Mẹ lấy luật router + DNS theo MAC cho Con (kh
   assert.ok(r.mang.dns.chan.includes("tiktok.com"));
   assert.ok(r.mang.router.length >= 2);
 });
+
+test("tuan-thu ?nhe=1 (Trang chủ): đọc đúng trạng thái nhưng KHÔNG quét mất nhịp / ghi cảnh báo — màn Máy mới quét", async () => {
+  const { fam, may } = await nha();
+  const t0 = VN("2026-10-21T15:00:00");
+  await tt.nhanNhip(await may(), { ...TOT, clientTime: t0.toISOString() }, t0);
+  const nhe = await tt.dsTuanThu(fam, sau(t0, 40), { nhe: true });
+  assert.equal(nhe[0].trangThai, "ngoai_vong");
+  assert.equal((await alerts(fam, "may_ngoai_vong")).length, 0);
+  await tt.dsTuanThu(fam, sau(t0, 40));
+  assert.equal((await alerts(fam, "may_ngoai_vong")).length, 1);
+});
