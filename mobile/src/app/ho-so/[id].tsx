@@ -7,13 +7,13 @@ import { View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { saoChep } from "@/lib/luu-tep";
 import { datTl } from "@/lib/thiet-lap";
+import { IC_NEN } from "@/lib/viec-nhanh";
 import {
   BangTruot, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, M, Man, Nhan, Nhom, Nut, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 const BAO_VE = { day_du: ["Đầy đủ", "ok"], mot_phan: ["Bảo vệ chưa đủ", "canh"], chua: ["Chưa bảo vệ", "loi"] } as const;
 // Chữ giải thích dưới nhãn: nói RÕ thiếu gì và làm gì (không để Ba Mẹ đoán vì sao «Chưa đủ» / «Chưa bảo vệ»).
-const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" } as const;
 
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();

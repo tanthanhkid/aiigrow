@@ -152,12 +152,8 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
         {o.map((x) => <OTinhNang key={x.tieu} {...x} />)}
       </View>
 
-      {mayTt.length ? (
-        <>
-          {mayTt.map((m) => <TheMay key={m.id} m={m} tai={tai} bao={bao} xem={xem} />)}
-          {xem ? null : <NutThemMay id={c.id} ten={c.ten} nhom={c.nhom} />}
-        </>
-      ) : null}
+      {mayTt.map((m) => <TheMay key={m.id} m={m} tai={tai} bao={bao} xem={xem} />)}
+      {xem ? null : <NutThemMay id={c.id} ten={c.ten} nhom={c.nhom} />}
 
       {canhBao.length ? (
         <Nhom>

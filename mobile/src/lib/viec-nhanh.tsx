@@ -7,7 +7,8 @@ import { bm, TEN_CHE_DO, type AppChuaXep, type CheDoMay, type PhienDang, type Tu
 import { datTl } from "./thiet-lap";
 import { BaoLoi, BieuTron, Chu, HaiNut, M, Nhan, Nut, The, truoc, useLam, type TenIcon } from "./ui";
 
-const IC_NEN: Record<TuanThuMay["nen"], TenIcon> = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" };
+/** Icon theo nền tảng máy — dùng chung Trang chủ, Hồ sơ Con, danh sách máy. */
+export const IC_NEN: Record<TuanThuMay["nen"], TenIcon> = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" };
 type Bao = (chu: string, hoan?: () => void) => void;
 
 /** Thẻ một máy của Con ở Trang chủ. Chế độ chỉ có trên máy tính (Windows): máy khác không hiện nút đổi. */
@@ -109,12 +110,12 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
         <BieuTron ic="luoi" mau="tim" />
         <View style={{ flex: 1 }}>
           <Chu kieu="rat" co={15.5}>{`${ds.length} app mới chờ xếp loại`}</Chu>
-          <Chu co={13} mau={M.chu3}>Chưa xếp thì Con không mở được khi Chặn thật.</Chu>
+          <Chu co={13} mau={M.chu3}>Trên máy các Con · chưa xếp thì không mở được khi Chặn thật.</Chu>
         </View>
       </View>
       {ds.slice(0, toiDa).map((x) => (
         <View key={x.muc} style={{ marginTop: 12, gap: 8 }}>
-          <Chu kieu="dam" co={14.5}>{x.ten ?? x.muc}<Chu co={13} mau={M.chu3}>{`  ·  ${x.phut} phút trên máy Con`}</Chu></Chu>
+          <Chu kieu="dam" co={14.5}>{x.ten ?? x.muc}<Chu co={13} mau={M.chu3}>{`  ·  ${x.phut} phút đã dùng`}</Chu></Chu>
           {xem ? null : <HaiNut>{LOAI_XEP.map((l) => <Nut key={l[0]} chu={l[1]} nho loai={l[0] === "chan" ? "huy" : "vien"} dangChay={dangChay} bam={() => xep(x, l)} />)}</HaiNut>}
         </View>
       ))}

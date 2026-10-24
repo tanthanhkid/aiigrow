@@ -134,7 +134,7 @@ export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
 
 export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }> = {
   tuan_thu: { chu: "Tuân thủ", loai: "ok" }, lech_chuan: { chu: "Lệch chuẩn", loai: "canh" },
-  ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có phiên chơi", loai: "xam" },
+  ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có báo cáo từ máy", loai: "xam" },
 };
 type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
 

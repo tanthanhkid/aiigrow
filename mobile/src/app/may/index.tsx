@@ -5,8 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { bm, TEN_CHE_DO, TT_TRANG, type ConChiTiet, type TuanThuMay } from "@/lib/api";
 import { datTl } from "@/lib/thiet-lap";
 import { BieuTron, Canh, ChoTai, Chu, Dong, M, Man, Nhan, Nhom, Nut, truoc, useTai } from "@/lib/ui";
-
-const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" } as const;
+import { IC_NEN } from "@/lib/viec-nhanh";
 
 export default function MayTinhDienThoai() {
   const { con } = useLocalSearchParams<{ con?: string }>();
@@ -45,4 +44,5 @@ function phuMay(m: TuanThuMay) {
   const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : m.baoVe && m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
   return m.dungChung ? `${p} · máy dùng chung` : p;
 }
-const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" => (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" ? "cam" : "xanh");
+const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" =>
+  (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || (m.baoVe && m.baoVe !== "day_du") ? "cam" : "xanh");

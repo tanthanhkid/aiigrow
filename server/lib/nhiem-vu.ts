@@ -68,8 +68,9 @@ function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
   };
 }
 
-export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: string, t: Q = q) {
-  const v = kiemNv(b);
+/** `tuMau`: tạo từ mẫu (AiiLab soạn, kể cả mẫu riêng admin) — không chặn tên ngắn, để áp mẫu không gãy giữa chừng. */
+export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: string, t: Q = q, tuMau = false) {
+  const v = kiemNv(b, !tuMau);
   const giao = b.giao_cho ? String(b.giao_cho) : null;
   if (giao && !(await t(`select 1 from children where id = $1 and family_id = $2`, [giao, fam])).length)
     throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
@@ -89,7 +90,7 @@ export async function apDungMau(fam: string, nhom: "nhi" | "teen") {
   let n = 0;
   const { mauRiengDangBat } = await import("./admin.ts");   // động: admin.ts import nhiem-vu.ts
   const rieng = (await mauRiengDangBat())[nhom] as unknown as MauNv[];
-  for (const m of [...MAU[nhom], ...rieng]) if (!co.has(m.ten)) { await taoNv(fam, { ...m }); co.add(m.ten); n++; }
+  for (const m of [...MAU[nhom], ...rieng]) if (!co.has(m.ten)) { await taoNv(fam, { ...m }, undefined, q, true); co.add(m.ten); n++; }
   return n;
 }
 

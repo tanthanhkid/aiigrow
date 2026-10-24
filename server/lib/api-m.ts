@@ -207,15 +207,15 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       // «Chưa xếp»: mục máy Con đã gặp (phút dùng ghi loại chưa phân loại) mà gia đình chưa có luật
       const chuaXep = await q<{ muc: string; phut: number }>(
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
-           and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc) group by u.muc order by phut desc limit 50`, [fam]);
+           and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc and (r.het is null or r.het > now())) group by u.muc order by phut desc limit 50`, [fam]);
       // «Đã thấy trên máy Con» (30 ngày) để Ba Mẹ CHỌN thay vì gõ tên tệp (DX-028): tên dễ hiểu + loại hiện tại; mục hệ thống không liệt kê
       // Chỉ màn Ứng dụng cần (`?thay=1`): Trang chủ / Chờ duyệt chỉ đọc chuaXep + ds, khỏi gộp 30 ngày usage mỗi lần tải.
       const he = la.allowlistHieuLuc();
       const ds = await la.dsLuat(fam);
       const canThay = new URL(req.url).searchParams.get("thay") === "1";
       const thay = !canThay ? [] : await q<{ muc: string; phut: number }>(
-        `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1
-           and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc order by phut desc limit 100`, [fam]);
+        `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai <> 'he_thong'
+           and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc order by phut desc limit 100`, [fam]);   // bỏ mục hệ thống TRƯỚC limit
       // «loại hiện tại» = luật CẢ NHÀ lâu dài, khớp cụ thể nhất (như phanLoai: mục dài hơn thắng). Luật riêng một Con / có hạn (Lần này, Hôm nay) không tính.
       const caNha = ds.filter((r) => !r.child_id && !r.het);
       const loaiCaNha = (muc: string) => caNha.filter((r) => la.khoaSo(muc).includes(r.muc)).sort((a, b) => b.muc.length - a.muc.length)[0]?.loai ?? "chua_xep";

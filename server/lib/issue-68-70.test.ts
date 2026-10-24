@@ -148,3 +148,23 @@ test("DX-028: «loại hiện tại» theo luật cả nhà cụ thể nhất �
   const loai = (muc: string) => r.find((x: any) => x.muc === muc).loai;
   assert.deepEqual([loai("m.youtube.com"), loai("zing.vn"), loai("tiktok.com")], ["chan", "chua_xep", "chua_xep"]);
 });
+
+test("Review lượt 2: Hoàn tác không hồi sinh luật đã hết hạn; app có luật hết hạn quay lại «chưa xếp»; mẫu riêng tên ngắn không làm gãy áp mẫu", async () => {
+  const { fam, con, tok } = await nha();
+  const may = await ghep(fam, con);
+  const ngay = new Date().toISOString().slice(0, 10);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'capcut.exe','chua_phan_loai',9)`, [may.deviceId, con, ngay]);
+  await datLuat(fam, { muc: "capcut.exe", loai: "giai_tri", het: new Date(Date.now() - 60_000) });   // «Hôm nay» đã qua
+  assert.ok((await m("luat", { tok })).body.chuaXep.some((x: any) => x.muc === "capcut.exe"), "luật hết hạn ⇒ app hiện lại ở chờ xếp");
+  const r = await m("luat", { tok, body: { muc: "capcut.exe", loai: "chan" } });
+  assert.equal(r.body.truoc, null, "luật hết hạn không phải luật cũ để khôi phục");
+  // «Đã thấy»: mục hệ thống lọc trong SQL trước limit 100
+  for (let k = 0; k < 100; k++)
+    await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,'he_thong',500)`, [may.deviceId, con, ngay, `sys${k}.exe`]);
+  assert.ok((await m("luat?thay=1", { tok })).body.daThay.some((x: any) => x.muc === "capcut.exe"));
+  // mẫu riêng admin tên ngắn
+  await q(`insert into mau_he_thong(id, loai, nhom, du_lieu) values ($1,'nhiem_vu','nhi',$2::text::jsonb)`, [newId(), JSON.stringify({ ten: "Ăn", diem: 5 })]);
+  const fam2 = (await nha()).fam;
+  await nv.apDungMau(fam2, "nhi");
+  assert.ok((await q(`select 1 from tasks where family_id = $1 and ten = 'Ăn'`, [fam2])).length);
+});
