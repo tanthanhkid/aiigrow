@@ -15,11 +15,12 @@ internal sealed class BlockedForm : Form
     private readonly Button _play;
     private readonly Button _ask;
     private bool _busy;
+    private bool _dong;
 
     public BlockedForm(string? appId, string? appName, string? reason, bool canExchange, bool offline = false)
     {
         _appId = appId; _canExchange = canExchange;
-        var view = BlockScreenView.For(appId, appName, reason, canExchange);
+        var view = BlockScreenView.For(appId, appName, reason, canExchange, offline);
 
         Text = "AiiGrow";
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
@@ -41,6 +42,7 @@ internal sealed class BlockedForm : Form
 
         _play = UI.Btn(view.UsePointsLabel, true, 340);
         _play.Click += async (_, _) => await PlayAsync();
+        FormClosed += (_, _) => _dong = true;   // đăng ký MỘT lần (không trong PlayAsync: mỗi lần thử lại thêm một handler)
         if (view.ShowUsePoints) flow.Controls.Add(_play);
 
         _ask = UI.Btn(view.AskParentLabel, !view.ShowUsePoints, 340);
@@ -62,10 +64,17 @@ internal sealed class BlockedForm : Form
         }
 
         var close = UI.Btn("Đóng", false, 340);
-        close.Click += (_, _) => Close();
+        close.Click += (_, _) => DongHan();   // luôn đóng được, kể cả khi đang chờ máy chủ (BUG-007)
         flow.Controls.Add(close);
+        CancelButton = close;                  // Esc cũng đóng
         flow.Controls.Add(_msg);
         Controls.Add(flow);
+    }
+
+    private void DongHan()
+    {
+        try { Close(); } catch { /* rơi xuống Dispose */ }
+        if (!IsDisposed) { try { Dispose(); } catch { } }
     }
 
     private async Task PlayAsync()
@@ -76,6 +85,7 @@ internal sealed class BlockedForm : Form
         _msg.Text = "Đang hỏi máy chủ…";
         var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Play, AppId = _appId });
         _busy = false;
+        if (_dong || IsDisposed) return;   // Con đã bấm Đóng trong lúc chờ
         if (!res.Ok)
         {
             _msg.Text = res.Error ?? "Chưa mở được. Con thử lại nhé.";

@@ -55,8 +55,11 @@ Dịch vụ bị dừng/đổ ⇒ **Windows SCM tự khởi động lại** bằ
   rồi `SystemCleanup.Run(ops, tuDichVu: false)`. Mỗi bước bọc riêng, chạy lại bao nhiêu lần cũng được.
 
 ## Lọc web theo tên miền + ghi lịch sử web (22/10)
+- **0.2.6 (issue #68)**: luật web ghi vào hive của TÀI KHOẢN CON (`Core/WebHives.cs`; hive chưa nạp thì nạp tạm `NTUSER.DAT` bằng SeRestore) thay vì HKLM — bản cũ ghi HKLM nên
+  Chrome của Ba Mẹ cũng bị chặn. Khởi động dịch vụ gỡ luật cũ trong HKLM một lần. Đổi/gỡ luật ⇒ dịch vụ tăng `WebRev`, khay của Con gọi `RefreshPolicyEx` và nhắc mở lại trình duyệt.
+  «*» (chặn tất cả) chỉ có ở chế độ «Chỉ cho phép». Win Home không có AppLocker ⇒ chặn bằng đóng app (`Core/AppLockerKhaDung.cs`). Khay chỉ chạy ở phiên Con.
 - **Chặn** (`Core/WebGuard.cs`, `Service/WebGuardWorker.cs`): đọc `windows.web` trong Policy cuối đã lưu, ghi chính sách quản lý của trình duyệt
-  `HKLM\SOFTWARE\Policies\Google\Chrome` · `Microsoft\Edge` · `BraveSoftware\Brave` → `URLBlocklist` / `URLAllowlist` (tên miền gồm tên miền con;
+  **0.2.6: theo tài khoản Con** — `HKU\<SID Con>\SOFTWARE\Policies\Google\Chrome` · `Microsoft\Edge` · `BraveSoftware\Brave` · `CocCoc` → `URLBlocklist` / `URLAllowlist` (tên miền gồm tên miền con;
   chế độ «Chỉ cho phép» = chặn `*` + cho phép danh sách + trang `chrome://`, `edge://` và máy chủ AiiGrow). Kèm cờ DWORD tắt ẩn danh / InPrivate, xoá lịch sử, chế độ khách.
   Chỉ ghi giá trị **của AiiGrow** (tên số > 90000), mục người khác đặt giữ nguyên. Chỉ áp ở chế độ **Chặn thật**; Giám sát, máy mồ côi, đang gỡ,
   Con đang mở tạm bằng mã offline, máy chưa ghép ⇒ **gỡ hết**. Kiểm lại mỗi 30 giây, không ghi lại khi chưa đổi. Gỡ AiiGrow (từ xa / tại máy / tác vụ dọn tách rời) xoá luôn chính sách này.

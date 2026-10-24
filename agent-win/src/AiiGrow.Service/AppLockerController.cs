@@ -15,9 +15,39 @@ public sealed class AppLockerController
 
     public bool Applied { get; private set; }
 
+    private bool? _khaDung;
+    private bool? _khaDungTam;
+    private long _khaDungTamDen;
+    /// <summary>AppLocker dùng được trên máy này không (BUG-005: Windows Home không có). Đọc một lần, nhớ cả đời dịch vụ.</summary>
+    public bool KhaDung
+    {
+        get
+        {
+            if (_khaDung is { } v) return v;
+            // lần kiểm trước chưa chắc (PowerShell lỗi/chậm) ⇒ dùng tạm kết quả đó 10 phút, không chạy PowerShell (≤30 giây) hai lần mỗi nhịp (review #75)
+            if (_khaDungTam is { } t && Environment.TickCount64 < _khaDungTamDen) return t;
+            var ed = AppLockerKhaDung.DocEditionId();
+            bool? cmdlet = null;
+            if (!AppLockerKhaDung.LaBanHome(ed))
+            {
+                var r = Shell.PowerShell("if (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) { 'co' } else { 'khong' }", 30000);
+                if (r.Ok) cmdlet = !r.Output.Contains("khong");
+            }
+            var (kq, chac) = AppLockerKhaDung.Chot(ed, cmdlet);
+            // chắc chắn (Home / có cmdlet) ⇒ nhớ suốt đời dịch vụ; chưa chắc ⇒ dùng tạm 10 phút, không chạy PowerShell (≤30 giây) hai lần mỗi nhịp;
+            // «không thấy cmdlet» trên bản không phải Home ⇒ vẫn coi là dùng được để còn gỡ luật đã áp (review #75)
+            if (chac) _khaDung = kq;
+            else { _khaDungTam = kq; _khaDungTamDen = Environment.TickCount64 + 10 * 60 * 1000; }
+            if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}») — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", AppLockerKhaDung.CauGhiChu);
+            else if (!chac) _log.LogWarning("Chưa thấy cmdlet AppLocker (EditionID «{ed}», cmdlet {c}) — vẫn thử áp/gỡ, kiểm lại sau 10 phút", ed ?? "?", cmdlet);
+            return kq;
+        }
+    }
+
     /// <summary>Đưa AppLocker về đúng trạng thái mong muốn. Trả true nếu luật AiiGrow đang có hiệu lực.</summary>
     public bool Reconcile(bool wantApply, IReadOnlyList<string> sids, IEnumerable<string> apps)
     {
+        if (!KhaDung) { Applied = false; return false; }   // Win Home: không áp, không gỡ, không log mỗi nhịp
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
         var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
         var want = wantApply && ds.Count > 0;

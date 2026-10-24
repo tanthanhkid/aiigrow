@@ -28,4 +28,18 @@ public static class QuyenPhien
 
     public static bool DuocXinHoacChoi(int phienGoi, int phienCon, int phienManHinh) =>
         LaPhienCon(phienGoi, phienCon) || (phienManHinh >= 0 && phienGoi == phienManHinh);
+
+    /// <summary>BUG-007 (issue #68): khay (Run key của MỌI người dùng) chỉ nên chạy ở phiên tài khoản CON — phiên Ba Mẹ không có biểu tượng, màn chặn, thông báo.
+    /// Quyết định theo tên tài khoản của phiên gọi: cấu hình có tài khoản Con ⇒ đúng tài khoản đó; cài một chạm (không chọn) ⇒ mọi tài khoản không phải quản trị.
+    /// Không biết (chưa đọc được danh sách tài khoản, tên lạ) ⇒ true — thà hiện khay còn hơn mất khay của Con.</summary>
+    public static bool KhayChayOPhien(string? taiKhoanPhien, string? childUserCauHinh, IEnumerable<LocalAccount>? taiKhoanMay)
+    {
+        if (string.IsNullOrWhiteSpace(taiKhoanPhien)) return true;
+        var ten = taiKhoanPhien.Trim();
+        if (!string.IsNullOrWhiteSpace(childUserCauHinh))
+            return string.Equals(ten, childUserCauHinh.Trim(), StringComparison.OrdinalIgnoreCase);
+        var a = taiKhoanMay?.FirstOrDefault(x => string.Equals(x.Name, ten, StringComparison.OrdinalIgnoreCase));
+        if (a == null) return true;
+        return !a.IsAdmin && !TaiKhoanCon.LaTaiKhoanHeThong(a);
+    }
 }

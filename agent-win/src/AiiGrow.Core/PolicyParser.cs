@@ -37,6 +37,7 @@ public static class PolicyParser
         p.CheDo = CheDoHieuLuc.Chuan(p.CheDo);
         p.LockReason = string.IsNullOrWhiteSpace(p.LockReason) ? null : p.LockReason.Trim().ToLowerInvariant();
         p.AllowedApps = CleanList(p.AllowedApps);
+        p.PlayChoices = CleanList(p.PlayChoices);
         p.LearningApps = CleanList(p.LearningApps);
         if (p.NextCheckSec <= 0) p.NextCheckSec = 30;
         p.NextCheckSec = Math.Clamp(p.NextCheckSec, 10, 600);

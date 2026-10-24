@@ -233,6 +233,21 @@ public static partial class SystemCleanup
 
     public const string TenTacVuDon = "AiiGrow-Dontay";
 
+    /// <summary>Nén gzip + base64 rồi bọc bằng vài dòng PowerShell giải nén chạy lại. Lý do: kịch bản đi qua HAI lớp -EncodedCommand (tham số tác vụ rồi lệnh đăng ký tác vụ),
+    /// mỗi lớp nở ≈ 2,7 lần, mà dòng lệnh Windows tối đa ~32K ký tự — thêm phần gỡ luật web theo hive Con (0.2.6) làm e2e lỗi «The filename or extension is too long».</summary>
+    public static string BocNen(string script)
+    {
+        using var ms = new MemoryStream();
+        using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.SmallestSize, true))
+        {
+            var b = Encoding.UTF8.GetBytes(script);
+            gz.Write(b, 0, b.Length);
+        }
+        return "$m=New-Object IO.MemoryStream(,[Convert]::FromBase64String('" + Convert.ToBase64String(ms.ToArray()) + "'));" +
+               "$z=New-Object IO.Compression.GzipStream($m,[IO.Compression.CompressionMode]::Decompress);" +
+               "$r=New-Object IO.StreamReader($z,[Text.Encoding]::UTF8);Invoke-Expression $r.ReadToEnd()";
+    }
+
     /// <summary>Kịch bản PowerShell cho tác vụ dọn tách rời (SYSTEM). Chạy lại an toàn: thiếu thứ gì thì bỏ qua.
     /// GỠ LUẬT APPLOCKER của AiiGrow (Name bắt đầu bằng «AiiGrow: ») như một LƯỚI ĐỠ, và CHỈ tự xoá tác vụ khi không còn luật nào của mình
     /// VÀ đã xoá hết tệp — không để Con kẹt luật chặn kể cả khi dịch vụ gỡ luật thất bại.</summary>
@@ -267,6 +282,8 @@ public static partial class SystemCleanup
             "function Remove-AiiAppLocker {",
             "  $ErrorActionPreference='Stop'",
             "  try {",
+            // Win Home: không có AppLocker ⇒ không thể còn luật của mình (không thì tác vụ không bao giờ tự huỷ, nạp hive mọi hồ sơ mỗi lần khởi động — review #75)
+            "    if (-not (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) -and (Get-ItemProperty -LiteralPath 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion').EditionID -like 'Core*') { return $true }",
             "    [xml]$p = Get-AppLockerPolicy -Local -Xml -ErrorAction Stop",
             "    if ($null -eq $p -or $null -eq $p.DocumentElement -or $p.DocumentElement.LocalName -ne 'AppLockerPolicy') { return $false }",
             $"    $ds = @($p.DocumentElement.ChildNodes | ForEach-Object {{ $_.ChildNodes }} | Where-Object {{ $_ -is [Xml.XmlElement] -and $_.GetAttribute('Name').StartsWith({tien}) }})",
@@ -282,7 +299,7 @@ public static partial class SystemCleanup
             $"$tepSach=$false; for($i=0;$i -lt 150;$i++){{ Remove-Item -LiteralPath {inst} -Recurse -Force; Remove-Item -LiteralPath {data} -Recurse -Force; " +
             $"$tepSach = -not (Test-Path -LiteralPath {inst}) -and -not (Test-Path -LiteralPath {data}); if($tepSach){{break}}; Start-Sleep -Seconds 2 }}",
             // CHỈ tự huỷ tác vụ khi đã gỡ hết luật của mình VÀ xoá hết tệp; còn luật thì giữ tác vụ để lần khởi động sau thử lại.
-            $"if($luatSach -and $tepSach){{ Unregister-ScheduledTask -TaskName {Q(TenTacVuDon)} -Confirm:$false }}",
+            $"if($luatSach -and $tepSach -and $webSach){{ Remove-Item -LiteralPath {Q(WebGuard.MocDonWeb)} -Force; Unregister-ScheduledTask -TaskName {Q(TenTacVuDon)} -Confirm:$false }}",
         });
     }
 }

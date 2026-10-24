@@ -15,6 +15,8 @@ public sealed class PipeServer : BackgroundService
 
     /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
     private readonly Func<IntPtr, bool> _laKhayThat;
+    private readonly Dictionary<string, (DateTimeOffset Luc, PipeResponse Tra)> _playInfoNho = new(StringComparer.OrdinalIgnoreCase);
+    private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi phần ảnh hưởng đổi điểm (bật/tắt, chế độ, phiên chơi, mục) ⇒ bỏ hết. Policy KHÔNG mang số điểm / giá ⇒ điểm đổi trên máy chủ chỉ hiện sau hạn nhớ (60 / 15 giây)
 
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
@@ -72,7 +74,7 @@ public sealed class PipeServer : BackgroundService
                     var req = string.IsNullOrEmpty(line) ? null : JsonSerializer.Deserialize<PipeRequest>(line, Json.Options);
                     var h = pipe.SafePipeHandle.DangerousGetHandle();
                     var clientSession = SessionHelper.PipeClientSession(h);
-                    bool khay = req?.Cmd is PipeCmd.Foreground or PipeCmd.Play && _laKhayThat(h);
+                    bool khay = req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
@@ -90,6 +92,14 @@ public sealed class PipeServer : BackgroundService
         }
     }
 
+    /// <summary>Trạng thái cho khay của phiên <paramref name="phienGoi"/> + cờ «phiên này có phải của Con không» (khay phiên Ba Mẹ tự thoát — BUG-007).</summary>
+    private TrayState TrangThaiChoPhien(DateTimeOffset now, int phienGoi)
+    {
+        var st = _rt.BuildState(now);
+        st.PhienCon = QuyenPhien.KhayChayOPhien(SessionHelper.SessionUser(phienGoi), _rt.Config?.ChildUser, _rt.TaiKhoanMay);
+        return st;
+    }
+
     /// <param name="khayThat">Khách là đúng exe khay đã cài — chỉ tính cho Foreground / Play (lệnh khác: false, không dùng).</param>
     private async Task<PipeResponse> DispatchAsync(PipeRequest req, int clientSession, bool khayThat, CancellationToken ct)
     {
@@ -103,12 +113,41 @@ public sealed class PipeServer : BackgroundService
         switch (req.Cmd)
         {
             case PipeCmd.State:
-                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
 
             case PipeCmd.Foreground:
                 // Chỉ khay thật: app khác trong phiên Con giả lời báo («không có cửa sổ») sẽ ngừng được đồng hồ phiên chơi.
                 if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName);
-                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
+
+            case PipeCmd.PlayInfo:
+            {
+                // Rob hiện «≈ X phút chơi»: phien/xet cho mục Giải trí đầu tiên (hoặc AppId nếu có). Chỉ trả số phút, không trả điểm.
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con xem được" };
+                // như Play: chỉ khay đã cài, chỉ mục trong PlayChoices (không cho tiến trình lạ dùng token máy hỏi phien/xet tuỳ ý — review #75)
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được hỏi" };
+                var cfg = _rt.Config;
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
+                var choices = _rt.PlayChoices;
+                var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId!.Trim() : choices.FirstOrDefault() ?? "";
+                if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
+                if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };
+                // nhớ: «được» 60 giây, «từ chối» 15 giây (hết điểm thì mỗi lần mở hộp / làm mới không bắn thêm phien/xet; Ba Mẹ thêm điểm thì hiện sau ≤15 giây)
+                lock (_playInfoNho)
+                {
+                    if (_playInfoRev != _rt.PolicyRev) { _playInfoNho.Clear(); _playInfoRev = _rt.PolicyRev; }
+                    if (_playInfoNho.TryGetValue(muc, out var nho) && now - nho.Luc < (nho.Tra.Status == "duoc" ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(15))) return nho.Tra;
+                }
+                try
+                {
+                    using var api = new ApiClient(cfg.Server, cfg.Token);
+                    var xet = await api.CheckPlayAsync(muc, ct);
+                    var tra = new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutHienThi : 0 };
+                    lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
+                    return tra;
+                }
+                catch (Exception e) when (e is not OperationCanceledException) { return new PipeResponse { Ok = false, Error = e.Message }; }   // cả lỗi đọc JSON (phutToiDa lẻ…)
+            }
 
             case PipeCmd.Request:
             {
@@ -132,6 +171,7 @@ public sealed class PipeServer : BackgroundService
                 // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
                 if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được mở phiên chơi" };
+                lock (_playInfoNho) _playInfoNho.Clear();   // điểm sắp đổi ⇒ số phút nhớ không còn đúng (xoá SAU khi kiểm quyền)
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 var muc = string.IsNullOrWhiteSpace(req.AppId) ? "" : req.AppId!;
@@ -167,7 +207,7 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.SyncNow:
                 // «Thử kết nối lại»: đồng bộ ngay ở vòng kế (≤5 giây); khay hỏi lại trạng thái sau đó.
                 _rt.RequestSyncSoon();
-                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
 
             case PipeCmd.HocVien:
             {

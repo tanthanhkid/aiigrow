@@ -71,7 +71,7 @@ public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup
     public void HenDonTachRoi()
     {
         var script = SystemCleanup.KichBanDonTachRoi(Paths.ServiceName, Paths.InstallDir, Paths.DataDir, AppsEntry.Key, DaHa());
-        var b64 = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+        var b64 = Convert.ToBase64String(Encoding.Unicode.GetBytes(SystemCleanup.BocNen(script)));
         var arg = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand " + b64;
         var tn = Shell.PsQuote(SystemCleanup.TenTacVuDon);
         // Tác vụ của Task Scheduler (SYSTEM) — không phải tiến trình con của dịch vụ ⇒ dịch vụ thoát không kéo nó theo.

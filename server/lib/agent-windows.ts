@@ -27,6 +27,8 @@ export type PolicyWindows = {
   cheDo?: "giam-sat" | "chan";
   /** Lọc web theo tên miền (lib/web.ts): agent ghi chính sách Chrome/Edge URLBlocklist/URLAllowlist — CHỈ khi chế độ hiệu lực là «chan»; giám sát ⇒ gỡ chính sách. */
   web: ChinhSachWeb;
+  /** Agent 0.2.6: app (.exe) / trang web Ba Mẹ đã xếp Giải trí — khay Rob cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ vẫn quyết ở phien/xet). */
+  playChoices: string[];
   // 0.2.4 — chỉ có khi đang có phiên chơi bằng điểm mà agent cho chạy (app .exe của phiên, hoặc trình duyệt cho phiên web).
   // Agent dùng khi MẤT MẠNG (BRD 6.7): chỉ đếm lúc app chơi ở nền trước + màn hình mở; vượt `playOfflineMinutes` ⇒ tự bỏ app chơi
   // (và trình duyệt nếu `playWeb`) khỏi allowedApps, coi phiên đã hết; có mạng lại gửi `phien/bu` {id = playSessionId} trước dong-bo.
@@ -109,6 +111,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(dangMo ? { grantEndsAt: mo.moDen!.toISOString() } : {}),
     // Đang «mở» có hạn ⇒ trang Giải trí cũng mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
     web: chinhSachWebCho(p, { moGiaiTri: dangMo }),
+    playChoices: [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && (laApp(l.muc) || kieuMuc(l.muc.toLowerCase()) === "web")).map((l) => (laApp(l.muc) ? chuan(l.muc) : l.muc.toLowerCase())))].sort().slice(0, 40),   // 40: đủ mọi mục Giải trí thường gặp (khay cuộn); agent chỉ nhận mục trong danh sách này
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
     // play* CHỈ cho máy sở hữu phiên (mo.phienTien do api-may đặt khi play_sessions.device_id = máy này) — Con có 2 PC thì PC kia không đếm.

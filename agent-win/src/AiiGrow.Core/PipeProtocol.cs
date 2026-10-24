@@ -24,6 +24,9 @@ public static class PipeCmd
     public const string HocVien = "hoc-vien";
     /// <summary>«Thử kết nối lại»: bảo dịch vụ đồng bộ với máy chủ ngay (không chờ nhịp sau). Trả trạng thái hiện tại.</summary>
     public const string SyncNow = "sync-now";
+    /// <summary>0.2.6: Rob hỏi «đổi được bao nhiêu phút» — dịch vụ gọi phien/xet cho <see cref="PipeRequest.AppId"/> (hoặc mục Giải trí đầu tiên) và trả số phút ở
+    /// <see cref="PipeResponse.PlayMinutes"/> (không trả số điểm).</summary>
+    public const string PlayInfo = "play-info";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -54,6 +57,14 @@ public sealed class TrayState
     public DateTimeOffset? OfflineSince { get; set; }
     /// <summary>Máy chủ từ chối token (401 token_sai): máy đã bị gỡ khỏi gia đình hoặc cần ghép lại.</summary>
     public bool TokenRejected { get; set; }
+    /// <summary>0.2.6: tăng mỗi lần dịch vụ đổi / gỡ luật web trong hive của Con. Khay (chạy trong phiên Con) thấy đổi ⇒ gọi RefreshPolicyEx(user) để trình duyệt
+    /// đọc lại ngay và nhắc «mở lại trình duyệt nếu luật mới chưa áp» (dịch vụ SYSTEM không làm mới được chính sách của người dùng khác).</summary>
+    public int WebRev { get; set; }
+    /// <summary>0.2.6: các app / trang Giải trí Ba Mẹ đã xếp (chữ thường) — Rob liệt kê cho nút «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
+    public List<string> PlayChoices { get; set; } = new();
+    /// <summary>0.2.6 (BUG-007): khay đang chạy trong phiên của tài khoản Con? false ⇒ khay (phiên Ba Mẹ / tài khoản quản trị) tự thoát, không hiện biểu tượng / màn chặn.
+    /// Mặc định true (dịch vụ cũ không gửi ⇒ như trước).</summary>
+    public bool PhienCon { get; set; } = true;
 }
 
 public sealed class PipeRequest
@@ -87,6 +98,8 @@ public sealed class PipeResponse
     public string? Message { get; set; }
     /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: thân JSON máy chủ trả (nguyên văn).</summary>
     public string? Data { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.PlayInfo"/>: số phút chơi tối đa đổi được bằng điểm hiện có (null = chưa biết).</summary>
+    public int? PlayMinutes { get; set; }
 }
 
 /// <summary>Client named pipe cho tray: mỗi lệnh một kết nối, một dòng JSON hỏi, một dòng JSON đáp.</summary>

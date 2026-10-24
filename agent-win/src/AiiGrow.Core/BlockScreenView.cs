@@ -29,11 +29,14 @@ public static class BlockScreenView
     };
 
     /// <summary>
-    /// Nút «Dùng điểm để chơi» chỉ hiện khi đây là màn chặn giải trí mà điểm mở được (hết điểm / chưa phân loại)
-    /// và máy chủ cho phép đổi điểm. Ngoài giờ / khoá: chỉ còn nút «Xin phép Ba Mẹ».
+    /// Nút «Dùng điểm để chơi» luôn hiện khi máy chủ cho phép đổi điểm (BUG-006) — trừ khi Ba Mẹ khoá máy.
+    /// Ngoài giờ / giờ ngủ: máy chủ (phien/xet) quyết định và trả lời bằng lời; màn chặn chỉ hiển thị câu đó.
     /// </summary>
-    public static bool CanUsePoints(string? reason, bool canExchangePoints)
-        => canExchangePoints && reason is LockReasons.HetDiem or LockReasons.ChuaPhanLoai;
+    /// <param name="appId">App vừa bị chặn: công cụ của Windows (cmd, taskmgr…) không bao giờ là app Giải trí ⇒ không mời «dùng điểm» (phien/xet luôn từ chối).</param>
+    /// <param name="offline">Mất mạng ⇒ phien/xet không gọi được ⇒ không mời.</param>
+    public static bool CanUsePoints(string? reason, bool canExchangePoints, string? appId = null, bool offline = false)
+        => canExchangePoints && reason != LockReasons.Khoa && !offline
+           && !(appId != null && ProcessGuard.UngDungTrongWindows.Contains(appId.Trim().EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? appId.Trim() : appId.Trim() + ".exe"));
 
     public const string OfflineCodeLabel = "Mất mạng? Nhập mã của Ba Mẹ";
 
@@ -42,10 +45,10 @@ public static class BlockScreenView
     public static bool ShowOfflineCode(bool offline, bool lockScreen = false, string? lockReason = null)
         => offline && (!lockScreen || MoTamOffline.MoDuocKhoa(lockReason));
 
-    public static BlockScreen For(string? appId, string? appName, string? reason, bool canExchangePoints)
+    public static BlockScreen For(string? appId, string? appName, string? reason, bool canExchangePoints, bool offline = false)
     {
         var name = TrayView.FriendlyAppName(appId, appName);
-        var usePoints = CanUsePoints(reason, canExchangePoints);
+        var usePoints = CanUsePoints(reason, canExchangePoints, appId, offline);
         return new BlockScreen(name, ReasonText(reason), usePoints, true, UsePointsLabel, AskParentLabel);
     }
 }
