@@ -16,9 +16,9 @@ export const BAN_AGENT_WINDOWS = {
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
 export const BAN_AGENT_MAC = {
-  version: "0.1.0",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.0.pkg",
-  sha256: "45773d1dbeab71063ffdaab5c95acf9b7a82690e827966d04a1907366a7b0c2e",
+  version: "0.1.1",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.1.pkg",
+  sha256: "b4ea6a3c170344996246c210008caaf80eba4eb9cc9f3be09a3519dd56046ff7",
 } as const;
 
 /** Manifest bản mới theo nền tảng máy hỏi (`?platform=mac|windows`; không có ⇒ Windows để agent Windows cũ nhận y như trước).
