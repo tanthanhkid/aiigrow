@@ -101,6 +101,7 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   // thẻ cũ: phiên đã kết thúc ⇒ 409, không báo «Đã dừng» giả
   const lai = await m(`phien/${ph.id}/dung`, { tok, body: {} });
   assert.deepEqual([lai.status, lai.body.error], [409, "da_ket_thuc"]);
+  assert.equal(await (await import("./phien.ts")).dungPhien(con, ph.id, "ba_me_khoa"), false, "phiên đã đóng (vd nhip tự đóng) ⇒ dungPhien báo không dừng được");
   assert.equal(sau.ly_do_ket, "ba_me_khoa");
 });
 
@@ -120,6 +121,7 @@ test("Hoàn tác xếp app ở Trang chủ: POST luat trả luật cũ; khôi ph
   assert.equal(r1.status, 200);
   assert.equal(r1.body.truoc, null);
   assert.equal((await phanLoai(fam, con, "roblox.exe")).loai, "giai_tri");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'dat_luat_app'`, [fam])).length, 1, "xếp app có dấu vết nhật ký");
   assert.equal((await m("luat/xoa", { tok, body: { muc: r1.body.muc } })).status, 200);
   assert.equal((await phanLoai(fam, con, "roblox.exe")).loai, "chua_phan_loai");
   // đã có luật có hạn ⇒ truoc mang đủ loại/nhóm/hạn; gửi lại truoc khôi phục y nguyên

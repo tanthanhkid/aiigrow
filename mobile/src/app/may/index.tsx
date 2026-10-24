@@ -3,9 +3,8 @@
 // Gọi GET /api/m/tuan-thu (docs/API.md).
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, TEN_CHE_DO, TT_TRANG, type ConChiTiet, type TuanThuMay } from "@/lib/api";
-import { datTl } from "@/lib/thiet-lap";
 import { BieuTron, Canh, ChoTai, Chu, Dong, M, Man, Nhan, Nhom, Nut, truoc, useTai } from "@/lib/ui";
-import { IC_NEN, mauMay } from "@/lib/viec-nhanh";
+import { IC_NEN, mauMay, themMay } from "@/lib/viec-nhanh";
 
 export default function MayTinhDienThoai() {
   const { con } = useLocalSearchParams<{ con?: string }>();
@@ -21,7 +20,7 @@ export default function MayTinhDienThoai() {
   const c = d.c;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu={tieu} tai={tai}
-      day={c ? <Nut chu="Ghép thêm máy" ic="cong" loai="vien" rong bam={() => { datTl({ conId: c.id, tenCon: c.ten, nhom: c.nhom }); router.push("/thiet-lap/may"); }} /> : undefined}>
+      day={c ? <Nut chu="Ghép thêm máy" ic="cong" loai="vien" rong bam={() => themMay(c)} /> : undefined}>
       <Canh lv="chi" thap tieu={d.ds.length ? `${d.ds.length} máy` : "Chưa có máy nào"}
         loi={!d.ds.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : can ? `${can} máy đang cần Ba Mẹ để mắt.` : d.ds.every((m) => m.baoVe === "day_du") ? "Mọi máy đều được bảo vệ đầy đủ." : "Không có máy nào cần để mắt."} />
       {d.ds.length ? (
@@ -30,12 +29,12 @@ export default function MayTinhDienThoai() {
             <Dong key={m.id} dau={i === 0} tieu={m.ten}
               phu={`${m.cheDo ? `${TEN_CHE_DO[m.cheDo]} · ` : ""}${phuMay(m)} · đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}`}
               trai={<BieuTron ic={IC_NEN[m.nen]} mau={mauMay(m)} />}
-              phai={!!m.baoVe && m.baoVe !== "day_du" && m.trangThai === "tuan_thu" ? <Nhan chu={m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ"} loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
+              phai={m.baoVe === "mot_phan" && m.trangThai === "tuan_thu" ? <Nhan chu="Bảo vệ chưa đủ" loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
               bam={() => router.push(`/may/${m.id}`)} />
           ))}
         </Nhom>
       ) : null}
-      <Chu co={13} mau={M.chu3}>Chạm một máy để đổi Chặn thật / Giám sát, mở khẩn cấp, lấy mã mở khi mất mạng hoặc gỡ AiiGrow. Máy mất kết nối quá lâu thì tự khoá giải trí.</Chu>
+      <Chu co={13} mau={M.chu3}>Chạm một máy để đổi Chặn thật / Giám sát, mở khẩn cấp, lấy mã mở khi mất mạng hoặc gỡ AiiGrow. Máy mất kết nối quá lâu hoặc lệch chuẩn (giờ máy sai, quản trị lạ…) thì tự khoá giải trí.</Chu>
     </Man>
   );
 }

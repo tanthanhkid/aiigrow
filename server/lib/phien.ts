@@ -185,7 +185,7 @@ export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" |
     const fam = await khoaCon(t, con);
     const p = (await t<{ trang_thai: string; phan_nghin_tru: number; diem_tru: number; muc: string; phut_dung: number }>(
       `select trang_thai, phan_nghin_tru, diem_tru, muc, phut_dung from play_sessions where id = $1 and child_id = $2 for update`, [phienId, con]))[0];
-    if (!p || p.trang_thai === "ket_thuc") return;
+    if (!p || p.trang_thai === "ket_thuc") return false;             // nhip() vừa tự đóng phiên (hết khung / giờ ngủ / hết giờ) ⇒ người gọi biết không dừng được
     const b = await boiCanh(t, con, now);
     const le = Math.ceil(p.phan_nghin_tru / 1000) - p.diem_tru;
     const tru = le > 0 ? Math.min(le, await soDu(con, t)) : 0;
@@ -194,6 +194,7 @@ export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" |
     await t(`update play_sessions set trang_thai = 'ket_thuc', ly_do_ket = $2, ket_thuc = $3, nghi_den = $4, diem_tru = diem_tru + $5 where id = $1`,
       [phienId, lyDo, now, nghi, tru]);
     await ghiSuKien(fam, "ket_phien", { muc: p.muc, phut: p.phut_dung, ly_do: lyDo }, { con, ...(o.nguoi ? { nguoi: o.nguoi } : {}) }, t);
+    return true;
   });
 }
 

@@ -248,7 +248,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (!ph) return loi("khong_thay", "Không thấy phiên chơi", 404);
       // thẻ cũ (phiên đã kết thúc vì Con dừng / hết giờ…) ⇒ nói thật, không báo «Đã dừng» mà không có giờ nghỉ nào
       if (ph.trang_thai === "ket_thuc") return loi("da_ket_thuc", "Phiên chơi này đã kết thúc rồi", 409);
-      await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true, nguoi: bm.id });   // Con nghỉ nghi_giua phút; tính nốt phút như mọi đường dừng khác (≤ 2 phút/nhịp)
+      if (!(await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true, nguoi: bm.id })))   // phiên vừa tự kết thúc trong lúc dừng
+        return loi("da_ket_thuc", "Phiên chơi này đã kết thúc rồi", 409);   // Con nghỉ nghi_giua phút; tính nốt phút như mọi đường dừng khác (≤ 2 phút/nhịp)
       return json({ ok: true });
     }
     if (d === "luat" && post) {
@@ -265,6 +266,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       });
       if (!kq) return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);
       const { muc, truoc } = kq;
+      await ghiSuKien(fam, "dat_luat_app", { muc, loai: b.loai, con: con || null, hoan_tac: b.neuLoai !== undefined }, { nguoi: bm.id });
       return json({ muc, truoc: truoc && { con, muc: truoc.muc, ten: truoc.ten, loai: truoc.loai, nhom: truoc.nhom, het: truoc.het } });
     }
     if (d === "luat/xoa" && post) {

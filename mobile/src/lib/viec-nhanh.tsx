@@ -71,8 +71,10 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
 }
 
 /** «+ Thêm máy» cho Con đang xem. */
-export const NutThemMay = ({ id, ten, nhom }: { id: string; ten: string; nhom: "nhi" | "teen" }) => (
-  <Nut chu="Thêm máy" ic="cong" nho loai="vien" rong bam={() => { datTl({ conId: id, tenCon: ten, nhom }); router.push("/thiet-lap/may"); }} />
+/** MỘT đường «thêm máy cho Con»: ghi sẵn Con vào luồng thiết lập rồi mở bước ghép máy (Trang chủ, Hồ sơ Con, màn máy dùng chung). */
+export const themMay = (c: { id: string; ten: string; nhom: "nhi" | "teen" }) => { datTl({ conId: c.id, tenCon: c.ten, nhom: c.nhom }); router.push("/thiet-lap/may"); };
+export const NutThemMay = (c: { id: string; ten: string; nhom: "nhi" | "teen" }) => (
+  <Nut chu="Thêm máy" ic="cong" nho loai="vien" rong bam={() => themMay(c)} />
 );
 
 /** Thẻ «Đang chơi» của một phiên: Con, máy, app, phút còn lại, Dừng. */
@@ -108,7 +110,8 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
   const xep = (x: AppChuaXep, loai: (typeof LOAI_XEP)[number]) => loai[0] === "giai_tri"
     ? router.push({ pathname: "/app-web", params: { xep: x.muc, ten: x.ten ?? x.muc } })
     : lam(async () => {
-      const kq = await bm.goi<{ muc: string; truoc?: LuatCu | null }>("luat", { muc: x.muc, ten: x.ten ?? x.muc, loai: loai[0], nhom: "khac" });
+      const kq = await bm.goi<{ muc: string; truoc?: LuatCu | null }>("luat", { muc: x.muc, ten: x.ten,   // chưa có tên dễ hiểu ⇒ máy chủ tự đặt, như màn Ứng dụng
+        loai: loai[0], nhom: "khac" });
       // Hoàn tác: có luật cũ ⇒ đặt lại đúng như cũ; chưa có ⇒ bỏ luật, app quay về «chờ xếp loại». Máy chủ cũ không gửi `truoc` ⇒ không hiện Hoàn tác.
       const hoan = kq && "truoc" in kq
         ? () => { (kq.truoc ? bm.goi("luat", { ...kq.truoc, neuLoai: loai[0] }) : bm.goi("luat/xoa", { muc: kq.muc, neuLoai: loai[0] })).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); }

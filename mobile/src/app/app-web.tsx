@@ -43,7 +43,7 @@ export default function AppWeb() {
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu="Ứng dụng" noi={noi}>
       <ONhap nhan="Tìm app hoặc trang web (vd Edge, YouTube)" value={tim} onChangeText={setTim} placeholder="Edge, Roblox, youtube.com…" autoCapitalize="none" />
-      {q && !d.ds.some((x) => x.muc === q) && !daThay.some((x) => x.muc === q) ? <Nut chu={`Gõ tay: xếp «${q}»`} nho loai="vien" ic="cong" bam={() => setXep(q)} /> : null}
+      {q && ![...d.ds, ...d.chuaXep, ...daThay].some((x) => x.muc === q || (x.ten ?? "").toLowerCase().includes(q)) ?   /* «edge» đã khớp Microsoft Edge ở danh sách ⇒ không mời gõ tay một tên tệp không có */ <Nut chu={`Gõ tay: xếp «${q}»`} nho loai="vien" ic="cong" bam={() => setXep(q)} /> : null}
       <ChonMot ds={[{ gia: "chua" as const, chu: `Chưa xếp (${d.chuaXep.length})` }, ...(daThay.length ? [{ gia: "thay" as const, chu: `Đã thấy (${daThay.length})` }] : []), { gia: "hoc" as const, chu: "Học tập" }, { gia: "giai_tri" as const, chu: "Giải trí" }, { gia: "chan" as const, chu: "Chặn" }]}
         gia={the} doi={setThe} />
       {dsThe.length ? (

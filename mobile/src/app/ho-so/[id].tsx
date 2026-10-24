@@ -6,8 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, chuanHoaTen, type ConChiTiet, vaiToi } from "@/lib/api";
 import { saoChep } from "@/lib/luu-tep";
-import { datTl } from "@/lib/thiet-lap";
-import { DsThieuBaoVe, IC_NEN } from "@/lib/viec-nhanh";
+import { DsThieuBaoVe, IC_NEN, themMay } from "@/lib/viec-nhanh";
 import {
   BangTruot, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, M, Man, Nhan, Nhom, Nut, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -53,7 +52,7 @@ export default function HoSoCon() {
           <DsThieuBaoVe thieu={m.baoVeThieu} bam={() => router.push(`/may/${m.id}`)} />
         </Nhom>
       ))}
-      <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
+      <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => themMay(d)} />
       <Nhom>
         {goc.xem ? null : <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setLoi(null); setMo("ten"); }} />}
         <Dong dau={goc.xem} tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
