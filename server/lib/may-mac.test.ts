@@ -83,6 +83,21 @@ test("ban-moi theo nền tảng (banAgentCho — route chỉ đọc ?platform): 
   assert.deepEqual(ba.banAgentCho(null), ba.BAN_AGENT_WINDOWS);
   assert.deepEqual(ba.banAgentCho("windows"), ba.BAN_AGENT_WINDOWS);
   assert.deepEqual(ba.banAgentCho("mac"), ba.BAN_AGENT_MAC);
+  // gói Mac nằm trên chính máy chủ được hỏi (staging…): agent Mac chỉ nhận URL cùng host với máy chủ nó ghép
+  const st = ba.banAgentCho("mac", "https://staging.aiigrow.example");
+  assert.equal(st.url, `https://staging.aiigrow.example/tai/AiiGrow-${ba.BAN_AGENT_MAC.version}.pkg`);
+  assert.equal(st.sha256, ba.BAN_AGENT_MAC.sha256);
+  assert.deepEqual(ba.banAgentCho("mac", "http://localhost:3000"), ba.BAN_AGENT_MAC, "không https ⇒ giữ URL gốc");
+  assert.deepEqual(ba.banAgentCho(null, "https://staging.aiigrow.example"), ba.BAN_AGENT_WINDOWS);
+  // sau nginx: req.url là http://localhost:3000, origin công khai lấy từ x-forwarded-* (chặng đầu)
+  const yc = new Request("http://localhost:3000/api/agent/ban-moi?platform=mac", { headers: { "x-forwarded-proto": "https, http", "x-forwarded-host": "staging.aiigrow.example" } });
+  assert.equal(ba.gocCongKhai(yc, new URL(yc.url)), "https://staging.aiigrow.example");
+  const tt = new Request("https://aiigrow.aiilab.vn/api/agent/ban-moi");
+  assert.equal(ba.gocCongKhai(tt, new URL(tt.url)), "https://aiigrow.aiilab.vn", "không qua proxy ⇒ origin của req.url");
+  // proxy chỉ gửi x-forwarded-proto: KHÔNG ghép https với host nội bộ ⇒ origin http nội bộ ⇒ banAgentCho giữ URL gốc
+  const ch = new Request("http://localhost:3000/api/agent/ban-moi", { headers: { "x-forwarded-proto": "https" } });
+  assert.equal(ba.gocCongKhai(ch, new URL(ch.url)), "http://localhost:3000");
+  assert.deepEqual(ba.banAgentCho("mac", ba.gocCongKhai(ch, new URL(ch.url))), ba.BAN_AGENT_MAC);
   assert.match(ba.BAN_AGENT_MAC.url, /^https:\/\/aiigrow\.aiilab\.vn\/tai\/AiiGrow-\d+\.\d+\.\d+\.pkg$/);
 });
 

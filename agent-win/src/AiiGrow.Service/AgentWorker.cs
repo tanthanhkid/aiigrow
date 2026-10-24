@@ -49,9 +49,11 @@ public sealed class AgentWorker : BackgroundService
                 if (cfg is { Paired: true })
                 {
                     var taiKhoan = TaiKhoanMay(cfg);
+                    _rt.TaiKhoanMay = taiKhoan;
                     var childUser = TaiKhoanCon.ChonUser(cfg.ChildUser, string.IsNullOrEmpty(cfg.ChildUser) ? SessionHelper.ConsoleUser() : "", taiKhoan ?? new());
                     // cài một chạm mà chưa đọc được tài khoản máy ⇒ null: giữ nguyên AppLocker đang có, không gỡ nhầm
                     var childSids = taiKhoan == null && !AppLockerXml.IsValidSid(cfg.ChildSid) ? null : TaiKhoanCon.ChonSids(cfg.ChildSid, taiKhoan ?? new());
+                    _rt.ChildSids = childSids;
                     var sess = string.IsNullOrEmpty(childUser) ? null : SessionHelper.Find(childUser);
                     _rt.ChildSessionId = sess?.SessionId ?? -1;
                     bool active = sess is { Active: true };
@@ -97,6 +99,7 @@ public sealed class AgentWorker : BackgroundService
 
                     var p = _rt.CurrentPolicy;
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
+                    _rt.AppLockerKhaDung = _locker.KhaDung;   // Win Home: không AppLocker ⇒ BuildStatus không báo «thiếu»
                     // GỠ luật không cần biết tài khoản (gỡ theo tiền tố «AiiGrow: ») ⇒ chưa đọc được tài khoản vẫn gỡ được khi về Giám sát
                     if (!apThat || p == null || eff == null)
                     {

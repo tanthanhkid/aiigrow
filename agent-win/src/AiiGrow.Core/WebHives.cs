@@ -1,0 +1,428 @@
+using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using Microsoft.Win32;
+
+namespace AiiGrow.Core;
+
+// Luật web theo TÀI KHOẢN CON (issue #68, S1): trước 0.2.6 agent ghi chính sách trình duyệt vào HKLM ⇒ HKLM áp cho CẢ MÁY ⇒ Chrome của tài khoản
+// Ba Mẹ cũng bị chặn («This page is blocked» mọi trang). Nay ghi vào hive của từng tài khoản Con (HKU\<SID>\SOFTWARE\Policies\…): Chrome / Edge /
+// Brave / Cốc Cốc đều đọc chính sách theo người dùng (HKCU) như chính sách máy. Dịch vụ chạy SYSTEM nên ghi được cả hive CHƯA nạp (Con chưa đăng
+// nhập): nạp tạm NTUSER.DAT (RegLoadKey, có SeRestore/SeBackupPrivilege), ghi, gỡ nạp. Chưa có hồ sơ (Con chưa từng đăng nhập) ⇒ thử lại mỗi vòng,
+// áp ngay khi hồ sơ xuất hiện. Bản cũ để lại luật trong HKLM ⇒ gỡ sạch một lần khi dịch vụ khởi động (cả các giá trị có tên số ≥ 90001 + ba cờ).
+// Phần THUẦN (quyết định ghi/gỡ hive nào, khi nào) test bằng IWebHiveHost giả; registry thật nằm ở WindowsWebHiveHost.
+
+/// <summary>Cổng tới registry theo từng hive người dùng (tách để test bằng bản giả).</summary>
+public interface IWebHiveHost
+{
+    /// <summary>Registry HKLM — CHỈ để gỡ luật bản cũ.</summary>
+    IWebPolicyRegistry May { get; }
+    /// <summary>Chạy <paramref name="fn"/> trên hive của <paramref name="sid"/> (đang nạp, hoặc nạp tạm rồi gỡ nạp). false = chưa có hive (Con chưa đăng nhập lần nào / không nạp được).</summary>
+    bool VoiHive(string sid, Action<IWebPolicyRegistry> fn);
+    /// <summary>Hive của <paramref name="sid"/> đang nạp (Con đang đăng nhập) — chỉ khi đó Con mới sửa được luật ⇒ mới cần ghi lại định kỳ.</summary>
+    bool DangNap(string sid);
+    /// <summary>Máy còn hồ sơ của <paramref name="sid"/> (ProfileList có NTUSER.DAT) — không còn ⇒ thôi theo dõi hive đó.</summary>
+    bool ConHoSo(string sid);
+    /// <summary>Các hive đã ghi luật (SID → vân tay) lưu qua lần khởi động lại dịch vụ — không thì Con rời danh sách lúc dịch vụ tắt là luật kẹt lại.</summary>
+    IReadOnlyDictionary<string, string> DocDaGhi();
+    void LuuDaGhi(IReadOnlyDictionary<string, string> ds);
+    /// <summary>Gỡ nạp hive tạm còn kẹt (lần trước gỡ nạp hỏng) — gọi đầu mỗi vòng: không chờ tới lần cần ghi hive đó mới gỡ.</summary>
+    void DonHiveKet() { }
+}
+
+/// <summary>Kết quả một vòng <see cref="WebPolicyHives.Ap"/>.</summary>
+public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<string> ChuaCoHive, string? LoiGoHklm, IReadOnlyList<string>? LoiHive = null)
+{
+    /// <summary>Đổi ở hive của tài khoản Con hiện tại (khay cần làm mới + nhắc). DaDoi = đổi ở bất kỳ hive nào (báo trình duyệt cả máy đọc lại).</summary>
+    public bool DoiChoConHienTai { get; init; }
+    /// <summary>Trình duyệt có danh sách web cả máy (HKLM) của IT / Ba Mẹ ⇒ luật AiiGrow theo tài khoản Con KHÔNG có hiệu lực ở đó.</summary>
+    public IReadOnlyList<string> HklmDe { get; init; } = Array.Empty<string>();
+}
+
+public sealed class WebPolicyHives
+{
+    /// <summary>Luật đang áp được ghi lại định kỳ (Con có thể tự xoá trong HKCU của mình) — không ghi lại mỗi vòng 30 giây.</summary>
+    public static readonly TimeSpan GhiLaiSau = TimeSpan.FromMinutes(5);
+
+    private readonly IWebHiveHost _host;
+    private bool _hklmDaGo;
+    private readonly Dictionary<string, (string VanTay, DateTimeOffset Luc)> _daAp = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _daGhiCho = new(StringComparer.OrdinalIgnoreCase);   // hive ta đã ghi luật (còn luật) — Con rời danh sách thì phải gỡ
+
+    private bool _daDoc;
+    private DateTimeOffset? _batDau;
+    private string? _daLuu;
+
+    public WebPolicyHives(IWebHiveHost host) { _host = host; }
+
+    private void DocLanDau()
+    {
+        if (_daDoc) return;
+        _daDoc = true;
+        try
+        {
+            foreach (var (sid, vt) in _host.DocDaGhi())
+            {
+                if (sid == MocHklm) { _hklmDaGo = true; continue; }   // đã gỡ HKLM bản cũ ở lần chạy trước ⇒ không đụng HKLM nữa (cờ IT đặt được giữ nguyên)
+                if (!AppLockerXml.IsValidSid(sid)) continue;
+                // «go:» = hive đã kiểm và SẠCH (Giám sát) ⇒ khởi động lại không nạp tạm NTUSER.DAT của Con chỉ để gỡ thứ không có (review #75)
+                if (vt.StartsWith(TienToSach, StringComparison.Ordinal)) { _daAp[sid] = (vt.Substring(TienToSach.Length), DateTimeOffset.MinValue); continue; }
+                _daAp[sid] = (vt, DateTimeOffset.MinValue);   // quá hạn ⇒ hive đang nạp được ghi lại một lần, KHÔNG báo «đổi» nếu luật không đổi
+                _daGhiCho.Add(sid);
+            }
+        }
+        catch { }
+        _daLuu = ChuoiLuu();
+    }
+
+    /// <summary>Dòng đánh dấu «đã gỡ luật HKLM bản cũ» trong tệp lưu — gỡ MỘT lần cho cả đời máy, không mỗi lần dịch vụ khởi động (review #75).</summary>
+    public const string MocHklm = "HKLM";
+
+    public const string TienToSach = "go:";
+
+    private Dictionary<string, string> DsLuu()
+    {
+        var ds = _daAp.ToDictionary(x => x.Key, x => (_daGhiCho.Contains(x.Key) ? "" : TienToSach) + x.Value.VanTay, StringComparer.OrdinalIgnoreCase);
+        if (_hklmDaGo) ds[MocHklm] = "da-go";
+        return ds;
+    }
+
+    private string ChuoiLuu() => string.Join("\n", DsLuu().OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase).Select(x => x.Key + " " + x.Value));
+
+    /// <param name="p">null ⇒ gỡ hết (giám sát / mồ côi / đang gỡ…).</param>
+    /// <param name="childSids">SID tài khoản Con (null = chưa đọc được ⇒ chỉ gỡ ở các hive đã ghi).</param>
+    public KetQuaWebHive Ap(WebPolicy? p, string? maychuHost, IEnumerable<string>? childSids, DateTimeOffset now)
+    {
+        bool doi = false, doiCon = false, goHklm = false;
+        string? loi = null;
+        DocLanDau();
+        try { _host.DonHiveKet(); } catch { }
+        _batDau ??= now;
+        // Gỡ HKLM bản cũ SAU khi đã ghi hive Con (nâng cấp lúc Chặn thật: gỡ trước thì Con lướt tự do tới vòng sau). DaGoHklm chỉ khi THẬT SỰ có luật
+        // cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
+        void GoHklm()
+        {
+            if (_hklmDaGo) return;
+            try { var may = _host.May; new WebPolicyApplier(may).GoHklmCu(); _hklmDaGo = true; goHklm = may.SoMucDaXoa > 0; }
+            catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
+        }
+
+        // danh sách web CẢ MÁY do IT / Ba Mẹ đặt thắng danh sách trong hive Con (Chrome / Edge không gộp) ⇒ báo, không im lặng (review #75)
+        IReadOnlyList<string> hklmDe = Array.Empty<string>();
+        if (p != null) { try { hklmDe = new WebPolicyApplier(_host.May).TrinhDuyetBiHklmDe(); } catch { } }
+
+        // chưa đọc được tài khoản Con (null) mà đang cần CHẶN ⇒ giữ nguyên luật đang có (như AppLocker), không gỡ nhầm; cần GỠ thì vẫn gỡ ở các hive đã ghi
+        // (chưa biết tài khoản Con quá 2 phút ⇒ vẫn gỡ HKLM: không để luật cũ chặn cả tài khoản Ba Mẹ mãi)
+        if (childSids == null && p != null)
+        {
+            if (now - _batDau.Value >= TimeSpan.FromMinutes(2)) GoHklm();
+            return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi) { HklmDe = hklmDe };
+        }
+        var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var dich = sids.Concat(_daGhiCho.Where(x => !sids.Contains(x, StringComparer.OrdinalIgnoreCase))).ToList();
+        var chua = new List<string>();
+        var loiHive = new List<string>();
+        foreach (var sid in dich)
+        {
+            var muon = sids.Contains(sid, StringComparer.OrdinalIgnoreCase) ? p : null;
+            var vt = WebPolicyApplier.VanTay(muon, maychuHost);
+            var truoc = _daAp.TryGetValue(sid, out var t) ? t : default;
+            var coTruoc = _daAp.ContainsKey(sid);
+            // chỉ ghi lại khi đổi, hoặc (có luật) quá hạn ghi lại VÀ hive đang nạp; «gỡ» đã gỡ rồi thì thôi. Hive chưa nạp (Con chưa đăng nhập) thì Con
+            // không sửa được ⇒ không nạp tạm NTUSER.DAT mỗi 5 phút (nạp đúng lúc Con đăng nhập ⇒ Windows cấp hồ sơ tạm — review #75)
+            if (coTruoc && truoc.VanTay == vt && (muon == null || now - truoc.Luc < GhiLaiSau || !DangNapAnToan(sid))) continue;
+            bool xong;
+            try { xong = _host.VoiHive(sid, reg => new WebPolicyApplier(reg).Ap(muon, maychuHost)); }
+            catch (Exception e) { loiHive.Add(sid + ": " + e.Message); continue; }   // ghi registry lỗi ≠ «chưa có hồ sơ» — báo riêng để log đúng
+            if (!xong)
+            {
+                // cần GỠ mà hồ sơ đã bị xoá khỏi máy ⇒ không còn gì để gỡ: quên SID đó (không thử lại / báo «chưa áp được» mãi)
+                if (muon == null && !CoHoSoAnToan(sid)) { _daGhiCho.Remove(sid); _daAp.Remove(sid); continue; }
+                chua.Add(sid); continue;
+            }
+            var doiLanNay = coTruoc ? truoc.VanTay != vt : _daGhiCho.Contains(sid) || muon != null;
+            _daAp[sid] = (vt, now);
+            if (muon != null) _daGhiCho.Add(sid); else _daGhiCho.Remove(sid);
+            if (doiLanNay) doi = true;
+            // khay của Con chỉ cần biết khi đổi cho tài khoản Con HIỆN TẠI — gỡ ở hive tài khoản cũ không bắn «Luật web vừa đổi» (review #75)
+            if (doiLanNay && sids.Contains(sid, StringComparer.OrdinalIgnoreCase)) doiCon = true;
+        }
+        // chỉ gỡ HKLM khi MỌI tài khoản Con đã có luật trong hive (ghi lỗi / chưa có hồ sơ ⇒ luật HKLM cũ còn là lớp chặn duy nhất — review #75).
+        // Lưới đỡ: kẹt quá 10 phút thì vẫn gỡ, không để luật cũ chặn cả tài khoản Ba Mẹ mãi
+        var conChuaXong = p != null && sids.Any(cs => chua.Contains(cs, StringComparer.OrdinalIgnoreCase)
+            || loiHive.Any(l => l.StartsWith(cs + ":", StringComparison.OrdinalIgnoreCase)));
+        if (!conChuaXong || now - _batDau.Value >= TimeSpan.FromMinutes(10)) GoHklm();
+        // hive SẠCH của tài khoản không còn là Con ⇒ thôi nhớ (tệp lưu không phình theo tài khoản cũ)
+        if (childSids != null)
+            foreach (var cu in _daAp.Keys.Where(x => !_daGhiCho.Contains(x) && !sids.Contains(x, StringComparer.OrdinalIgnoreCase)).ToList()) _daAp.Remove(cu);
+        var luu = ChuoiLuu();
+        if (luu != _daLuu)
+        {
+            try { _host.LuuDaGhi(DsLuu()); _daLuu = luu; }
+            catch { }   // vòng sau thử lưu lại
+        }
+        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = hklmDe };
+    }
+
+    private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }
+    private bool CoHoSoAnToan(string sid) { try { return _host.ConHoSo(sid); } catch { return true; } }
+}
+
+/// <summary>Registry thật theo hive người dùng. Chạy bằng SYSTEM / Administrator.</summary>
+public sealed class WindowsWebHiveHost : IWebHiveHost
+{
+    private static readonly IntPtr HkeyUsers = new(unchecked((int)0x80000003));
+
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode)] private static extern int RegLoadKey(IntPtr hKey, string subKey, string file);
+    [DllImport("advapi32.dll", CharSet = CharSet.Unicode)] private static extern int RegUnLoadKey(IntPtr hKey, string subKey);
+    [DllImport("advapi32.dll", SetLastError = true)] private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)] private static extern bool LookupPrivilegeValue(string? system, string name, out long luid);
+    [DllImport("advapi32.dll", SetLastError = true)] private static extern bool AdjustTokenPrivileges(IntPtr token, bool disableAll, ref TokenPrivileges np, int len, IntPtr prev, IntPtr retLen);
+    [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr h);
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct TokenPrivileges { public int Count; public long Luid; public int Attr; }
+
+    public IWebPolicyRegistry May => new WindowsWebPolicyRegistry();
+
+    private static bool _daBatQuyen;
+    internal static void BatQuyen()
+    {
+        if (_daBatQuyen) return;
+        try
+        {
+            if (!OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, 0x20 | 0x8, out var tok)) return;
+            var du = true;
+            try
+            {
+                foreach (var ten in new[] { "SeBackupPrivilege", "SeRestorePrivilege", "SeTakeOwnershipPrivilege" })
+                {
+                    if (!LookupPrivilegeValue(null, ten, out var luid)) { du = false; continue; }
+                    var tp = new TokenPrivileges { Count = 1, Luid = luid, Attr = 2 /* SE_PRIVILEGE_ENABLED */ };
+                    // AdjustTokenPrivileges trả true cả khi KHÔNG gán được (ERROR_NOT_ALL_ASSIGNED = 1300) ⇒ phải xem mã lỗi
+                    if (!AdjustTokenPrivileges(tok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero) || Marshal.GetLastWin32Error() != 0) du = false;
+                }
+            }
+            finally { CloseHandle(tok); }
+            _daBatQuyen = du;   // thiếu quyền nào thì lần sau thử bật lại (review #75)
+        }
+        catch { }
+    }
+
+    /// <summary>Đường NTUSER.DAT của hồ sơ (null = hồ sơ chưa có).</summary>
+    public static string? DuongNtUser(string sid)
+    {
+        try
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\" + sid);
+            var d = k?.GetValue("ProfileImagePath") as string;
+            if (string.IsNullOrWhiteSpace(d)) return null;
+            var f = Path.Combine(Environment.ExpandEnvironmentVariables(d), "NTUSER.DAT");
+            return File.Exists(f) ? f : null;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>SID tài khoản người: cục bộ / miền (S-1-5-21-…) hoặc Microsoft Entra ID (S-1-12-1-…) — bộ ghi áp cho mọi SID hợp lệ thì bộ gỡ phải duyệt đủ.</summary>
+    public static bool LaSidNguoiDung(string n) =>
+        (n.StartsWith("S-1-5-21-", StringComparison.Ordinal) || n.StartsWith("S-1-12-1-", StringComparison.Ordinal)) && AppLockerXml.IsValidSid(n);
+
+    /// <summary>SID các hồ sơ người dùng trên máy (tài khoản cục bộ / miền, S-1-5-21-…) — cho bộ gỡ dọn mọi hive.</summary>
+    public static List<string> TatCaHoSo()
+    {
+        var ds = new List<string>();
+        try
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList");
+            if (k != null) ds.AddRange(k.GetSubKeyNames().Where(n => LaSidNguoiDung(n)));
+        }
+        catch { }
+        return ds;
+    }
+
+    private static string TepDaGhi => Path.Combine(Paths.DataDir, "web-hives.txt");
+
+    public IReadOnlyDictionary<string, string> DocDaGhi()
+    {
+        var ds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!File.Exists(TepDaGhi)) return ds;
+        foreach (var dong in File.ReadAllLines(TepDaGhi))
+        {
+            var ph = dong.Split(' ', 2, StringSplitOptions.TrimEntries);
+            if (ph.Length == 2 && (AppLockerXml.IsValidSid(ph[0]) || ph[0] == WebPolicyHives.MocHklm)) ds[ph[0]] = ph[1];
+        }
+        return ds;
+    }
+
+    public void LuuDaGhi(IReadOnlyDictionary<string, string> ds)
+    {
+        Directory.CreateDirectory(Paths.DataDir);
+        var tam = TepDaGhi + ".tmp";
+        File.WriteAllLines(tam, ds.Select(kv => kv.Key + " " + kv.Value));
+        File.Move(tam, TepDaGhi, true);
+    }
+
+    /// <summary>THUẦN: tên hive tạm của AiiGrow — AiiGrowTmp_ (dịch vụ) và AiiGrowGo_ (kịch bản dọn PowerShell).</summary>
+    public static bool LaHiveTam(string ten) =>
+        ten.StartsWith("AiiGrowTmp_", StringComparison.OrdinalIgnoreCase) || ten.StartsWith("AiiGrowGo_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Gỡ nạp mọi hive còn kẹt ở tên tạm (gọi cuối luồng gỡ: sau đó không còn dịch vụ nào gỡ hộ — kẹt thì tài khoản đó vào hồ sơ tạm).</summary>
+    public static void GoNapKet()
+    {
+        lock (KhoaNap)
+        try
+        {
+            using var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64);
+            foreach (var ten in users.GetSubKeyNames().Where(LaHiveTam))
+            {
+                BatQuyen();
+                for (int i = 0; i < 10; i++)
+                {
+                    GC.Collect(); GC.WaitForPendingFinalizers();
+                    if (RegUnLoadKey(HkeyUsers, ten) == 0) break;
+                    Thread.Sleep(300);
+                }
+            }
+        }
+        catch { }
+    }
+
+    public void DonHiveKet() => GoNapKet();
+
+    public bool ConHoSo(string sid) => DangNap(sid) || DuongNtUser(sid) != null;
+
+    public bool DangNap(string sid)
+    {
+        if (!AppLockerXml.IsValidSid(sid)) return false;
+        using var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64);
+        using var k = users.OpenSubKey(sid, false);
+        return k != null;
+    }
+
+    /// <summary>Một khoá cho mọi lần nạp / gỡ nạp hive tạm trong tiến trình (WebGuardWorker và luồng gỡ từ xa dùng chung tên AiiGrowTmp_&lt;SID&gt;):
+    /// không để luồng này gỡ nạp hive luồng kia đang ghi dở (review #75).</summary>
+    private static readonly object KhoaNap = new();
+
+    public bool VoiHive(string sid, Action<IWebPolicyRegistry> fn)
+    {
+        lock (KhoaNap) return VoiHiveKhongKhoa(sid, fn);
+    }
+
+    private static bool VoiHiveKhongKhoa(string sid, Action<IWebPolicyRegistry> fn)
+    {
+        if (!AppLockerXml.IsValidSid(sid)) return false;
+        using (var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))
+        using (var k = users.OpenSubKey(sid, false))
+            if (k != null) { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, sid, sid)); return true; }   // Con đang đăng nhập: hive đã nạp
+
+        var tep = DuongNtUser(sid);
+        if (tep == null) return false;
+        BatQuyen();
+        var ten = "AiiGrowTmp_" + sid;
+        // lần trước gỡ nạp hỏng (còn handle) ⇒ hive kẹt ở tên tạm, Con đăng nhập sẽ bị hồ sơ tạm: gỡ nạp trước khi nạp lại
+        using (var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))
+        using (var cu = users.OpenSubKey(ten, false))
+            if (cu != null) { cu.Close(); GC.Collect(); GC.WaitForPendingFinalizers(); RegUnLoadKey(HkeyUsers, ten); }
+        if (RegLoadKey(HkeyUsers, ten, tep) != 0) return false;   // đang bị khoá (Con vừa đăng nhập) ⇒ vòng sau thấy hive đã nạp
+        try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten, sid)); }
+        finally
+        {
+            GC.Collect(); GC.WaitForPendingFinalizers();
+            for (int i = 0; i < 10; i++) { if (RegUnLoadKey(HkeyUsers, ten) == 0) break; Thread.Sleep(200); }
+        }
+        // ĐÃ GHI xong ⇒ trả true kể cả khi gỡ nạp hỏng (để Ap ghi nhận hive có luật — không thì mất dấu, luật kẹt mãi); hive kẹt ở tên tạm được
+        // DonHiveKet gỡ ở đầu vòng sau (30 giây) — review #75
+        return true;
+    }
+}
+
+/// <summary>ACL khoá chính sách trong hive người dùng (HKU\<SID>\SOFTWARE\Policies\…). Windows mặc định để SOFTWARE\Policies của HKCU chỉ
+/// SYSTEM / Administrators ghi, người dùng chỉ đọc — khoá con thừa kế. Nhưng hive có thể thiếu SOFTWARE\Policies (tạo mới thì thừa kế SOFTWARE:
+/// Con TOÀN QUYỀN ⇒ tự xoá luật chặn web) hoặc ai đó đã nới ACL. Nên sau khi ghi, dò từng khoá trên đường SOFTWARE\Policies → khoá luật:
+/// chưa an toàn thì đặt ACL bảo vệ (SYSTEM + Administrators toàn quyền, Con + ALL APPLICATION PACKAGES chỉ đọc, chủ = Administrators).</summary>
+public static class AclChinhSach
+{
+    public const string HeThong = "S-1-5-18", QuanTri = "S-1-5-32-544";
+    private const RegistryRights QuyenGhi = RegistryRights.SetValue | RegistryRights.CreateSubKey | RegistryRights.CreateLink | RegistryRights.Delete
+        | RegistryRights.ChangePermissions | RegistryRights.TakeOwnership | (RegistryRights)0x50000000 /* GENERIC_WRITE | GENERIC_ALL */;
+
+    /// <summary>THUẦN: ACL an toàn ⇔ chủ là SYSTEM/Administrators và không quy tắc CHO PHÉP nào trao quyền ghi cho ai khác
+    /// (CREATOR OWNER bỏ qua: chỉ áp cho người tạo khoá con — mà khoá con do SYSTEM tạo).</summary>
+    public static bool AnToan(string? chu, IEnumerable<(string Sid, RegistryRights Quyen, bool ChoPhep)> quyTac)
+    {
+        if (chu != HeThong && chu != QuanTri) return false;
+        return !quyTac.Any(q => q.ChoPhep && q.Sid is not (HeThong or QuanTri or "S-1-3-0") && (q.Quyen & QuyenGhi) != 0);
+    }
+
+    /// <summary>THUẦN: các khoá cần khoá chặt — từ SOFTWARE\Policies tới <paramref name="khoa"/> (khoá ngoài SOFTWARE\Policies ⇒ không có).</summary>
+    public static List<string> DuongCanKhoa(string khoa)
+    {
+        const string goc = @"SOFTWARE\Policies";
+        var ds = new List<string>();
+        if (!khoa.Equals(goc, StringComparison.OrdinalIgnoreCase) && !khoa.StartsWith(goc + "\\", StringComparison.OrdinalIgnoreCase)) return ds;
+        var cur = goc;
+        ds.Add(cur);
+        foreach (var phan in khoa.Substring(goc.Length).Split('\\', StringSplitOptions.RemoveEmptyEntries)) { cur += "\\" + phan; ds.Add(cur); }
+        return ds;
+    }
+
+    /// <summary>Dò và khoá chặt đường tới <paramref name="khoa"/> trong hive gốc <paramref name="goc"/>. Cố gắng hết sức: lỗi không chặn việc ghi luật.</summary>
+    public static void KhoaChat(RegistryKey goc, string khoa, string sidCon, ISet<string>? daKhoa = null)
+    {
+        WindowsWebHiveHost.BatQuyen();   // SeTakeOwnership: mở được cả khoá Con tự tạo với ACL chỉ mình Con (review #75)
+        foreach (var duong in DuongCanKhoa(khoa))
+        {
+            if (daKhoa != null && daKhoa.Contains(duong)) continue;
+            if (daKhoa != null)
+            {
+                // khoá chưa có thì lần gọi sau (sau CreateSubKey) còn dò; mở không nổi (ACL lạ) nghĩa là có ⇒ dò + chiếm quyền ngay dưới đây
+                bool co;
+                try { using var x = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.Default, RegistryRights.QueryValues); co = x != null; }
+                catch { co = true; }
+                if (co) daKhoa.Add(duong);
+            }
+            try
+            {
+                using (var d = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadSubTree, RegistryRights.ReadPermissions))
+                {
+                    if (d != null)
+                    {
+                        var acl = d.GetAccessControl(AccessControlSections.Access | AccessControlSections.Owner);
+                        var chu = (acl.GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier)?.Value;
+                        var qt = acl.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<RegistryAccessRule>()
+                            .Select(r => (((SecurityIdentifier)r.IdentityReference).Value, r.RegistryRights, r.AccessControlType == AccessControlType.Allow));
+                        if (AnToan(chu, qt)) continue;
+                    }
+                }
+            }
+            catch (System.Security.SecurityException) { }   // không đọc nổi ACL ⇒ chắc chắn không an toàn: chiếm quyền bên dưới
+            catch (UnauthorizedAccessException) { }
+            try
+            {
+                // bước 1: chiếm quyền sở hữu (đặc quyền SeTakeOwnership) — chủ khoá mới đổi được ACL dù ACL không cho ai khác
+                using (var o = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership))
+                {
+                    if (o == null) continue;
+                    var so = new RegistrySecurity();
+                    so.SetOwner(new SecurityIdentifier(QuanTri));
+                    o.SetAccessControl(so);
+                }
+                // bước 2: đặt ACL bảo vệ
+                using var k = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ReadPermissions | RegistryRights.ChangePermissions);
+                if (k == null) continue;
+                var moi = new RegistrySecurity();
+                moi.SetAccessRuleProtection(true, false);
+                const InheritanceFlags ke = InheritanceFlags.ContainerInherit;
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(HeThong), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(QuanTri), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(sidCon), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
+                // giữ quyền ĐỌC như ACL mặc định của Policies: RESTRICTED, ALL APPLICATION PACKAGES, ALL RESTRICTED APPLICATION PACKAGES (tiến trình sandbox
+                // của Edge / WebView2 / UWP đọc chính sách người dùng) — review #75
+                foreach (var doc in new[] { "S-1-5-12", "S-1-15-2-1", "S-1-15-2-2" })
+                    moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(doc), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
+                k.SetAccessControl(moi);
+            }
+            catch { }
+        }
+    }
+}

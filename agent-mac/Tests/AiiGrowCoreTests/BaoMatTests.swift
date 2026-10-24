@@ -415,6 +415,23 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(con?["HomepageLocation"] as? String, "https://x.vn", "khoá người khác giữ nguyên")
   }
 
+  func testGoTuXaGhiDauDaGoTruocKhiChoMayChu() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    final class Co: @unchecked Sendable { var dau: Bool? }
+    let coDau = Co()
+    HttpMock.dat { path, _ in
+      if path.hasSuffix("/xong") { coDau.dau = fake.tep[DuongDan.daGo] != nil; return HttpMock.json(200, [:]) }
+      return HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [["id": 1, "loai": "go"]],
+        "windows": ["mode": "tu_do", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc)]])
+    }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    XCTAssertEqual(coDau.dau, true, "dấu da-go phải có trước khi chờ máy chủ (postinstall chạy giữa chừng không nạp lại)")
+    XCTAssertNotNil(fake.tep[DuongDan.daGo])
+  }
+
   func testChayXaOutputLienTucCoTran() {
     let t0 = Date()
     let (ma, ra) = HeThongMac.chay("/usr/bin/yes", ["aiigrow"], timeout: 10, trenOutput: 100_000)
@@ -895,9 +912,15 @@ final class BaoMatTests: XCTestCase {
     XCTAssertTrue(s.contains("remove vn.aiilab.aiigrow.go"))
     XCTAssertTrue(s.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("|| true"), "lệnh remove là việc cuối cùng")
     for f in ["preinstall", "postinstall"] {
-      XCTAssertTrue(try String(contentsOfFile: Self.goiDir + "/scripts/" + f, encoding: .utf8).contains("launchctl remove vn.aiilab.aiigrow.go"), f)
+      let t = try String(contentsOfFile: Self.goiDir + "/scripts/" + f, encoding: .utf8)
+      XCTAssertTrue(t.contains("remove vn.aiilab.aiigrow.go"), f)
+      XCTAssertTrue(t.contains("grep -q '\"PID\"'"), "\(f): chỉ gỡ nhãn go khi job đã xong")
     }
     XCTAssertEqual(HeThongMac.nhanTrinhGo, "vn.aiilab.aiigrow.go")
+    // ngắt trước khi gỡ thật ⇒ trả dấu da-go; tới đoạn gỡ thật thì bỏ trap; chờ cập nhật có báo + cảnh báo khi quá 5 phút
+    let tr = s.range(of: "trap 'if [ -d /Applications/AiiGrow.app ]; then /bin/rm -f \"$DA_GO\"")!, bo = s.range(of: "trap - INT TERM HUP")!, out = s.range(of: "\"$LC\" bootout system/vn.aiilab.aiigrow.daemon")!
+    XCTAssertTrue(tr.lowerBound < bo.lowerBound && bo.lowerBound < out.lowerBound)
+    XCTAssertTrue(s.contains("đang tự cập nhật — chờ") && s.contains("quá 5 phút"))
   }
 
   static var goiDir: String { URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path + "/goi" }

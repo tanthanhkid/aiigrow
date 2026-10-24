@@ -45,7 +45,14 @@ internal sealed class LockForm : Form
         var logoff = UI.Btn("Lưu bài và đăng xuất", false, 300);
         logoff.BackColor = UI.GreenDark; logoff.ForeColor = Color.White; logoff.FlatAppearance.BorderColor = Color.White;
         logoff.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown.exe", "/l") { CreateNoWindow = true, UseShellExecute = false });
+        // #70 §1: Ba Mẹ cần máy ⇒ khoá phiên (chuyển người dùng), KHÔNG đăng xuất; phiên Con giữ nguyên, không trừ điểm.
+        var bame = UI.Btn("Ba Mẹ dùng máy", false, 300);
+        bame.BackColor = UI.GreenDark; bame.ForeColor = Color.White; bame.FlatAppearance.BorderColor = Color.White;
+        bame.Click += (_, _) => UI.NhuongMayChoBaMe();
+        var bameHint = new Label { AutoSize = true, ForeColor = Color.FromArgb(0xd8, 0xe8, 0xdd), Font = UI.F(11f), Text = "Ba Mẹ cần máy? Bấm nút này hoặc Win+L", Margin = new Padding(0, 0, 0, 12) };
         flow.Controls.Add(ask);
+        flow.Controls.Add(bame);
+        flow.Controls.Add(bameHint);
         flow.Controls.Add(logoff);
         // Mất mạng: Ba Mẹ đọc mã mở offline — gỡ được hết giờ, giờ ngủ, «Khoá ngay» (có mạng lại thì lượt mở kết thúc).
         _code = new OfflineCodePanel(420, Color.White, Color.FromArgb(0xd8, 0xe8, 0xdd)) { Visible = false };

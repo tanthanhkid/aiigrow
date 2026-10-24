@@ -22,6 +22,8 @@ internal sealed class SetupForm : Form
     private const int TongBuoc = 5;
     private const int Rong = 640;
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool LockWorkStation();
+
     private readonly Label _buocChu = new() { AutoSize = true, Font = new Font("Segoe UI", 10f, FontStyle.Bold), ForeColor = Chinh, Location = new Point(32, 18) };
     private readonly ProgressBar _buocThanh = new() { Location = new Point(32, 44), Size = new Size(Rong, 6), Minimum = 0, Maximum = TongBuoc, Style = ProgressBarStyle.Continuous };
     private readonly FlowLayoutPanel _body = new()
@@ -382,13 +384,13 @@ internal sealed class SetupForm : Form
         _body.Controls.Add(Tick("Máy đã ghép với điện thoại của Ba Mẹ — xem ngay trong app AiiGrow"));
         _body.Controls.Add(Tick($"Tài khoản {child.Name} của Con là loại giới hạn"));
         _body.Controls.Add(Tick("Biểu tượng AiiGrow nằm ở góc phải thanh tác vụ và trong menu Start"));
-        _body.Controls.Add(T($"Bước cuối: đăng xuất để {child.Name} vào máy bằng tài khoản của mình. Muốn gỡ: Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt.", 11f, false, Chu2));
+        _body.Controls.Add(T($"Bước cuối: chuyển sang tài khoản của {child.Name} (máy chỉ khoá màn hình, không đăng xuất — việc đang mở của bạn vẫn giữ nguyên). Muốn gỡ: Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt.", 11f, false, Chu2));
         var sau = B("Để sau", false, 130);
         sau.Location = new Point(32, 15);
         sau.Click += (_, _) => Close();
         _chan.Controls.Add(sau);
-        Tiep("Đăng xuất để Con vào máy", () =>
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown.exe", "/l") { CreateNoWindow = true, UseShellExecute = false }), 260);
+        // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở (DX-029). Ở màn khoá chọn tài khoản của Con.
+        Tiep("Chuyển sang tài khoản Con", () => LockWorkStation(), 260);
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)

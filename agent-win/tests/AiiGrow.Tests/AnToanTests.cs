@@ -468,7 +468,7 @@ public class GoCaiDatTests
         Assert.Contains("Get-AppLockerPolicy -Local -Xml", k);
         Assert.Contains("Set-AppLockerPolicy", k);
         Assert.Contains("'AiiGrow: '", k);
-        Assert.Contains("if($luatSach -and $tepSach){ Unregister-ScheduledTask -TaskName 'AiiGrow-Dontay'", k);
+        Assert.Contains("if($luatSach -and $tepSach -and $webSach){ Remove-Item -LiteralPath 'HKLM:\\SOFTWARE\\AiiGrowDonWeb' -Force; Unregister-ScheduledTask -TaskName 'AiiGrow-Dontay'", k);
         // 🟡 vòng 3: lỗi Get-AppLockerPolicy (kể cả lỗi không dừng) / chính sách $null ⇒ CHƯA sạch (không tự huỷ nhầm)
         Assert.Contains("Get-AppLockerPolicy -Local -Xml -ErrorAction Stop", k);
         Assert.Contains("Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop", k);

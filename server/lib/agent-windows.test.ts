@@ -21,6 +21,7 @@ test("bình thường: chỉ Allowlist hệ thống (.exe) + app Học tập; gi
   assert.deepEqual(w.learningApps, ["scratch.exe"]);
   assert.equal(w.minutesLeft, null);
   assert.equal(w.childName, "Ken");
+  assert.deepEqual(w.playChoices, ["roblox.exe"]);   // 0.2.6: Rob liệt kê app Giải trí cho nút «Chơi bằng điểm»
 });
 
 test("đang có phiên chơi bằng điểm cho Roblox ⇒ Roblox được chạy; phiên cho app không phải giải trí thì không", () => {

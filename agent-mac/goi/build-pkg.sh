@@ -1,13 +1,19 @@
 #!/bin/bash
 # Dựng agent-mac/ra/AiiGrow-<BAN>.pkg. Chỉ build, không cài.
-# Dùng: BAN=0.1.0 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
+# Phát hành: BAN=0.1.1 KY_APP="Developer ID Application: …" KY_PKG="Developer ID Installer: …" NOTARY=1 ./build-pkg.sh
+# Thử không ký: THU=1 BAN=0.1.1 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
 set -euo pipefail
 cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
-BAN="${BAN:-0.1.0}"
+BAN="${BAN:-0.1.1}"
 # Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
 grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
-# Phát hành (NOTARY=1) phải ký thật cả app lẫn gói.
+# Phát hành (NOTARY=1) phải ký thật cả app lẫn gói. Từ 0.1.1 máy tự cập nhật CHỈ nhận gói ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)»
+# ⇒ gói không ký chỉ để thử trên máy dev: phải nói rõ THU=1, kẻo lỡ phát hành gói mọi máy tải về rồi từ chối.
+# Máy còn kiểm `spctl -a -t install` ⇒ gói phát hành phải notarize nữa (NOTARY=1).
+if [ "${NOTARY:-}" != 1 ] && [ "${THU:-}" != 1 ]; then
+  echo "Gói phát hành phải ký Developer ID + notarize: KY_APP=… KY_PKG=… NOTARY=1 $0. Chỉ build thử: THU=1 $0" >&2; exit 1
+fi
 if [ "${NOTARY:-}" = 1 ] || [ -n "${KY_PKG:-}" ]; then
   [ -n "${KY_APP:-}" ] && [ -n "${KY_PKG:-}" ] || { echo "NOTARY/KY_PKG cần đủ KY_APP + KY_PKG" >&2; exit 1; }
 fi
@@ -25,7 +31,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/AiiGrowTray" "$APP/Contents/MacOS/AiiGrowTray"
 cp "$BIN/aiigrow-daemon" "$APP/Contents/MacOS/aiigrow-daemon"
 sed "s/@BAN@/$BAN/g" Info.plist.in > "$APP/Contents/Info.plist"
-cp vn.aiilab.aiigrow.daemon.plist vn.aiilab.aiigrow.tray.plist go-cai.sh "$APP/Contents/Resources/"
+cp vn.aiilab.aiigrow.daemon.plist vn.aiilab.aiigrow.tray.plist go-cai.sh scripts/phien-gui.sh "$APP/Contents/Resources/"
 chmod 755 "$APP/Contents/Resources/go-cai.sh"   # daemon tự chạy khi nhận lệnh gỡ từ xa
 plutil -lint "$APP/Contents/Info.plist" vn.aiilab.aiigrow.*.plist >/dev/null
 
@@ -41,7 +47,7 @@ else
 fi
 
 mkdir -p "$TMP/scripts"
-cp scripts/preinstall scripts/postinstall "$TMP/scripts/"
+cp scripts/preinstall scripts/postinstall scripts/phien-gui.sh "$TMP/scripts/"
 chmod 755 "$TMP/scripts/"*
 
 # App KHÔNG được «relocatable»: có bản AiiGrow.app ở chỗ khác (cùng bundle id) thì Installer sẽ cài đè vào đó, còn plist/postinstall trỏ /Applications.
