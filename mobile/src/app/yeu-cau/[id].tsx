@@ -5,6 +5,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, tieuYc, type YeuCau } from "@/lib/api";
+import { LY_DO_YC } from "@/lib/viec-cho";
 import {
   Bao, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, gioPhut, HaiNut, M, Man, Nut, OChon, ONhap, BangTruot, baoKhiVe, useLam, useTai,
 } from "@/lib/ui";
@@ -20,7 +21,7 @@ export default function XuLyYeuCau() {
   const [truDiem, setTruDiem] = useState<boolean | null>(null);
   const [phut, setPhut] = useState<number | null>(null);
   const [tuChoi, setTuChoi] = useState(false);
-  const [lyDo, setLyDo] = useState("Hôm nay chơi đủ rồi");
+  const [lyDo, setLyDo] = useState(LY_DO_YC[0]);
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man lui={{ chu: "Chờ duyệt" }} tieu="Yêu cầu"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const web = d.loai === "mo_web" || d.loai === "cai_app";
@@ -91,7 +92,7 @@ export default function XuLyYeuCau() {
       )}
       <BangTruot mo={tuChoi} dong={() => setTuChoi(false)} tieu={`Vì sao chưa cho ${d.ten_con}?`}>
         <View style={{ gap: 8 }}>
-          {["Hôm nay chơi đủ rồi", "Làm nhiệm vụ để có thêm điểm nhé", "Trang này chưa phù hợp với con"].map((x) =>
+          {LY_DO_YC.map((x) =>
             <OChon key={x} chon={lyDo === x} bam={() => setLyDo(x)} tieu={x} />)}
         </View>
         <ONhap nhan="Hoặc tự viết" value={lyDo} onChangeText={setLyDo} maxLength={120} />

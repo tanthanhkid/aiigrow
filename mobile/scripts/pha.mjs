@@ -278,8 +278,8 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trang", "/hom-nay", "việc chờ Ba Mẹ"),
     M("bm-trang (trống)", "/hom-nay", "Chưa có Con nào", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] } } }),
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
-    M("bm-trang (bảng khoá máy)", "/hom-nay", "Cho tới khi tôi mở", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy ngay"); await bam("Khoá máy ngay"); } }),
-    M("bm-trang (đang khoá)", "/hom-nay", "Mở lại máy", { kb: { "GET con/c1": { ...conCt("c1", KEN), khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
+    M("bm-trang (bảng khoá máy)", "/hom-nay", "Cho tới khi tôi mở", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy"); } }),
+    M("bm-trang (đang khoá)", "/hom-nay", "máy đang khoá", { kb: { "GET con/c1": { ...conCt("c1", KEN), khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
     M("bm-web", "/web/c1", "ĐANG CHẶN · 3"),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "CÁCH SỬA"),
@@ -559,9 +559,9 @@ await kichBan("Trang web ⇒ «Bỏ chặn» YouTube gỡ cả luật của Con 
   xet(chan.some((x) => x.body.caNha === false) && chan.some((x) => x.body.caNha === true), "Hoàn tác đặt lại cả hai luật");
 });
 
-await kichBan("Trang chủ ⇒ Khoá máy ngay 15 phút ⇒ gửi hạn giờ", async () => {
+await kichBan("Trang chủ ⇒ Khoá máy 15 phút ⇒ gửi hạn giờ", async () => {
   await di("/hom-nay");
-  await doi("Khoá máy ngay"); await bam("Khoá máy ngay");
+  await doi("Khoá máy"); await bam("Khoá máy");
   await doi("15 phút"); await bam("15 phút");
   const t0 = Date.now();
   await bam("Khoá ngay");
@@ -570,6 +570,37 @@ await kichBan("Trang chủ ⇒ Khoá máy ngay 15 phút ⇒ gửi hạn giờ", 
   const den = g?.body?.den ? Date.parse(g.body.den) - t0 : NaN;
   xet(g?.body?.khoa === true && den > 13 * 60_000 && den < 16 * 60_000, `gửi khoá có hạn ~15 phút (${Math.round(den / 60_000)} phút)`);
   xet(await doi("Đã khoá máy của"), "báo đã khoá, có Hoàn tác");
+});
+
+await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / Từ chối tại chỗ, Hoàn tác, Xem tất cả", async () => {
+  await di("/hom-nay");
+  xet(await doi("việc chờ Ba Mẹ"), "thẻ việc chờ ở Trang chủ");
+  const nhan = (l) => `[aria-label="${l}"]`;
+  await bamChon(nhan("Duyệt: Rửa chén sau bữa tối"));
+  await sleep(500);
+  xet(nhatKy.some((x) => x.m === "POST" && x.d === "luot/l1/duyet"), "Duyệt nhiệm vụ gọi luot/l1/duyet");
+  xet(await doi("Đã duyệt «Rửa chén sau bữa tối»"), "báo đã duyệt");
+  await bam("Hoàn tác");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.m === "POST" && x.d === "luot/l1/hoan-tac"), "Hoàn tác gọi luot/l1/hoan-tac");
+  await bamChon(nhan("Từ chối: Tập thể dục 30 phút"));
+  xet(await doi("cần làm gì thêm?"), "Từ chối mở bảng lý do");
+  await bam("Ảnh chưa rõ — chụp lại nhé");
+  await bam(`Gửi cho ${KEN}`);
+  xet(await doi("Đã gửi «Ảnh chưa rõ — chụp lại nhé»"), "báo đã gửi lý do, có Hoàn tác");
+  await bam("Hoàn tác");
+  await sleep(9000);
+  xet(!nhatKy.some((x) => x.d === "luot/l3/tu-choi"), "Hoàn tác trong 8 giây ⇒ không gửi từ chối");
+  await bamChon(nhan("Từ chối: Tập thể dục 30 phút"));
+  await doi("cần làm gì thêm?");
+  await bam(`Gửi cho ${KEN}`);
+  await sleep(9000);
+  xet(nhatKy.some((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Chưa xong — làm tiếp nhé" && x.body?.boSung === true), "không Hoàn tác ⇒ gửi từ chối kèm lý do sau 8 giây");
+  await bam(BILL);
+  await bamChon(nhan("Duyệt: Xin thêm 15 phút"));
+  xet(await doi(`Đã cho ${BILL} thêm 15 phút (ngoại lệ)`), "yêu cầu thêm giờ: báo + Hoàn tác");
+  await sleep(9000);
+  xet(nhatKy.some((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.truDiem === false && x.body?.phut === 15), "duyệt tại chỗ = ngoại lệ đúng số phút Con xin");
 });
 
 await kichBan("Báo cáo tuần ⇒ Xuất CSV", async () => {
