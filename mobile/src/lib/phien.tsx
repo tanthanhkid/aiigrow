@@ -3,7 +3,8 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { router } from "expo-router";
 import { bm } from "./api";
 
-type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean) => Promise<void>; ra: () => Promise<void> };
+/** ra({ daXoa: true }): tài khoản vừa bị xoá trên máy chủ (phiên đã mất) ⇒ không gọi dang-xuat, chỉ xoá token trên máy. */
+type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean) => Promise<void>; ra: (o?: { daXoa?: boolean }) => Promise<void> };
 const Ctx = createContext<Phien>({ san: false, co: false, vao: async () => {}, ra: async () => {} });
 
 export function PhienProvider({ children }: { children: ReactNode }) {
@@ -18,8 +19,8 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     setCo(true);
     router.replace(moi ? "/thiet-lap/ten-con" : "/");
   }, []);
-  const ra = useCallback(async () => {
-    try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
+  const ra = useCallback(async (o?: { daXoa?: boolean }) => {
+    if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
     await bm.dat(null);
     setCo(false);
     router.replace("/chao");

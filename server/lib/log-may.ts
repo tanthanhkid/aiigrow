@@ -9,7 +9,7 @@ export const LOG_GIU_NGAY = 7, LOG_MOI_LAN = 200, LOG_DAI = 1000;
 const MUC = new Set(["tin", "canh", "loi"]);
 
 let coBang = false;
-async function bangLog() {
+export async function bangLog() {
   if (coBang) return;
   await q(`create table if not exists may_log (
     id bigserial primary key, device_id text not null, family_id text not null, luc timestamptz not null, muc text not null,

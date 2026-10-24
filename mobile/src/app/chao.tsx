@@ -3,11 +3,13 @@
 import { router } from "expo-router";
 import { Linking, Platform, Pressable, View } from "react-native";
 import { LINK_TAI } from "@/lib/api";
-import { Canh, Chu, M, Man, Nut, The, TickDong } from "@/lib/ui";
+import { Canh, Chu, M, Man, Nut, The, TickDong, useBaoKhiVe, useHoanTac } from "@/lib/ui";
 
 export default function Chao() {
+  const { bao, noi } = useHoanTac();
+  useBaoKhiVe(bao);                     // «Đã xoá tài khoản…» sau khi xoá ở màn Gia đình
   return (
-    <Man day={
+    <Man noi={noi} day={
       <>
         <Nut chu="Bắt đầu bằng số điện thoại" ic="dt" rong bam={() => router.push("/dang-ky")} />
         <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>

@@ -178,6 +178,15 @@ coBan["GET may/m1/ma-offline"] = { ma: "482917", conGiay: 0, hieuLucPhut: 5, phu
 coBan["POST con/c1/sua"] = { ok: true };
 coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
 coBan["GET may/m1/tuan-thu"] = { ...coBan["GET tuan-thu"].ds[0], daDongBo: true, dangGo: null, coTheXoaHan: false, cheDoBaMeChon: "chan", moDen: null, suKien: [] };
+// Xoá tài khoản (Apple 5.1.1(v)): chủ là người lớn cuối ⇒ xoá cả gia đình
+// (giả như máy chủ: hỏi trước {kiemTra} hoặc xoá thật đều bị chặn 409 khi còn Ba/Mẹ khác / còn máy)
+coBan["POST xoa-tai-khoan"] = (b) => {
+  const tv = kb["GET thanh-vien"].ds, may = kb["GET tuan-thu"].ds;
+  if (tv.length > 1) return { status: 409, body: { error: "con_thanh_vien", message: `Gia đình còn ${tv.slice(1).map((x) => x.ten).join(", ")}. Hãy mời họ ra khỏi gia đình (Gia đình › Thành viên) rồi mới xoá tài khoản Chủ gia đình.` } };
+  if (may.length) return { status: 409, body: { error: "con_may", message: `Gia đình còn ${may.length} máy đã ghép: ${may.map((m) => m.ten).join(", ")}. Gỡ từng máy trước (mở máy › Gỡ máy này) để AiiGrow rời máy của Con — xoá tài khoản rồi thì không gửi lệnh gỡ được nữa.` } };
+  return b?.kiemTra ? { duoc: true } : { xoa: "gia_dinh" };
+};
+const TV_MOT_MINH = { ...coBan["GET thanh-vien"], ds: [coBan["GET thanh-vien"].ds[0]], loiMoi: [] };
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -204,7 +213,7 @@ ws.onmessage = async (e) => {
   let body = null; try { body = request.postData ? JSON.parse(request.postData) : null; } catch { /* không JSON */ }
   nhatKy.push({ m: request.method, d, body });
   if (request.method === "OPTIONS") return goi("Fetch.fulfillRequest", { requestId, responseCode: 204, responseHeaders: [] });
-  const tl = matMang ? "mat_mang" : kb[khoa];
+  const tl0 = matMang ? "mat_mang" : kb[khoa], tl = typeof tl0 === "function" ? tl0(body) : tl0;      // hàm: trả theo body
   if (tl === "mat_mang") return goi("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
   const { status, data } = tl === undefined ? { status: 404, data: { error: "khong_co_duong", message: `pha.mjs chưa giả ${khoa}` } }
     : tl && typeof tl === "object" && "status" in tl ? { status: tl.status, data: tl.body } : { status: 200, data: tl };
@@ -254,6 +263,7 @@ const dangKyToiOtp = async () => {
 if (process.argv.includes("--giao-dien")) {
   const { chayCong } = await import("./giao-dien.mjs");
   const M = (ten, duong, cho, tc = {}) => ({ ten, duong, cho, ...tc });
+  const moXoaTk = async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); };
   const dsMan = [
     M("bm-chao", "/chao", "Bắt đầu bằng số điện thoại", { token: null }),
     M("bm-dang-ky", "/dang-ky", "Số điện thoại của Ba Mẹ", { token: null }),
@@ -300,6 +310,11 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
+    M("bm-cai-dat (xoá tài khoản)", "/cai-dat", "Xoá vĩnh viễn", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } },
+      truoc: moXoaTk }),
+    M("bm-cai-dat (xoá: còn máy)", "/cai-dat", "Xem các máy", { kb: { "GET thanh-vien": TV_MOT_MINH },
+      truoc: moXoaTk }),
+    M("bm-cai-dat (xoá: còn thành viên)", "/cai-dat", "Mở Thành viên", { truoc: moXoaTk }),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
     M("bm-vi (giữ chuỗi)", "/vi/c1", "Mỗi tuần giữ được một lần", { truoc: async () => { await di("/vi/c1"); await doi("Giữ chuỗi ngày"); await bam("Giữ chuỗi ngày"); } }),
     M("bm-vi (đã giữ tuần này)", "/vi/c1", "Tuần này đã giữ chuỗi", { kb: { "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-22", duocDung: false, daDung: ["2026-10-21"] } } } }),
@@ -399,6 +414,46 @@ await kichBan("Hết phiên (401) ⇒ về màn Chào", async () => {
   kb["GET gia-dinh"] = { status: 401, body: { error: "chua_dang_nhap", message: "Phiên đăng nhập đã hết" } };
   await di("/hom-nay");
   xet(await doi("Bắt đầu bằng số điện thoại"), "về màn Chào");
+});
+
+await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên / còn máy thì chặn; chủ cuối ⇒ nói rõ hậu quả + mật khẩu ⇒ xoá ⇒ về màn Chào", async () => {
+  await di("/cai-dat");
+  xet(await doi("Chat với AiiLab"), "mở màn Gia đình");
+  xet(await doi("Mời các thành viên khác ra trước"), "dòng Xoá tài khoản nói trước điều kiện khi còn thành viên");
+  await bam("Xoá tài khoản");
+  xet(await doi("Chưa xoá được tài khoản Chủ gia đình"), "chủ còn Ba/Mẹ khác ⇒ bảng hướng dẫn mời ra trước");
+  xet(await doi("Ba Huy"), "nêu tên người còn trong gia đình");
+  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.body?.matKhau), "không gọi xoá");
+
+  kb["GET thanh-vien"] = TV_MOT_MINH;
+  await di("/cai-dat");
+  await doi("Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình");
+  await bam("Xoá tài khoản");
+  xet(await doi("Gia đình còn 3 máy đã ghép"), "chủ cuối còn máy ⇒ bảo gỡ máy trước, nêu số máy");
+  xet(await doi("Xem các máy"), "có nút sang danh sách máy");
+  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.body?.matKhau), "không gọi xoá khi còn máy");
+
+  kb["GET tuan-thu"] = { ds: [] };
+  await di("/cai-dat");
+  await doi("Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình");
+  await bam("Xoá tài khoản");
+  xet(await doi("Xoá tài khoản và cả gia đình?"), "bảng xác nhận cho chủ là người cuối");
+  xet(await doi("không khôi phục được"), "nói rõ không khôi phục được");
+  xet(await doi("ảnh bằng chứng, điểm, quà và luật"), "nói rõ dữ liệu bị xoá");
+  kb["POST xoa-tai-khoan"] = { status: 401, body: { error: "sai_mat_khau", message: "Mật khẩu chưa đúng" } };
+  await go("Nhập lại mật khẩu để xác nhận", "sai-roi");
+  await bam("Xoá vĩnh viễn");
+  xet(await doi("Mật khẩu chưa đúng"), "sai mật khẩu ⇒ báo ngay trong bảng");
+  xet((await js(`localStorage.getItem("aiig_bm")`)) === "tok-thu", "sai mật khẩu ⇒ vẫn đăng nhập");
+  kb["POST xoa-tai-khoan"] = coBan["POST xoa-tai-khoan"];
+  nhatKy.length = 0;
+  await go("Nhập lại mật khẩu để xác nhận", "matkhau123");
+  await bam("Xoá vĩnh viễn");
+  xet(await doi("Bắt đầu bằng số điện thoại"), "xoá xong ⇒ về màn Chào");
+  xet(await doi("Đã xoá tài khoản và toàn bộ dữ liệu gia đình"), "báo đã xoá");
+  xet(nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.m === "POST" && x.body?.matKhau === "matkhau123"), "gửi đúng mật khẩu");
+  xet(!nhatKy.some((x) => x.d === "dang-xuat"), "không gọi đăng xuất (phiên đã mất trên máy chủ)");
+  xet((await js(`localStorage.getItem("aiig_bm")`)) === null, "xoá token trên máy");
 });
 
 /** Bấm phần tử theo bộ chọn CSS (công tắc không có chữ). */
