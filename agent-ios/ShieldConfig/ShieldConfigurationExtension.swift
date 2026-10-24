@@ -56,7 +56,8 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
 enum VienClay {
   static func anh(_ ten: String, nen: UIColor, co: CGFloat = 96) -> UIImage? {
     let le: CGFloat = 14
-    let tong = CGSize(width: co + le * 2, height: co + le * 2)
+    // đáy chừa đủ cho bóng (lệch 8 + mờ 14) để bóng không bị cắt thành mép thẳng
+    let tong = CGSize(width: co + le * 2, height: co + le * 2 + 12)
     let khung = CGRect(x: le, y: le - 4, width: co, height: co)
     let icon = UIImage(named: ten, in: Bundle(for: ShieldConfigurationExtension.self), with: nil)
     return UIGraphicsImageRenderer(size: tong).image { r in

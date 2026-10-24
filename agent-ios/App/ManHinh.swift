@@ -30,7 +30,6 @@ struct ManGoc: View {
     .frame(maxWidth: 560)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .background(Clay.nenMan)
-    .foregroundColor(Clay.chu)
   }
 }
 
@@ -114,6 +113,8 @@ struct ManChinh: View {
     case .khong: return ("Đang trong giờ chơi", "fl_mat_troi", Clay.chinhInk)
     case .ngu: return (k.lyDo.cauChoCon, "fl_trang", Color(hex: 0x3b2fa8))
     case .hetGio: return (k.lyDo.cauChoCon, "fl_dong_ho_cat", Clay.canh)
+    case .khoaNgay: return (k.lyDo.cauChoCon, "fl_khoa", Clay.canh)   // cùng icon với màn chặn và Android
+    case .khongTuanThu: return (k.lyDo.cauChoCon, "fl_canh_bao", Clay.canh)
     default: return (k.lyDo.cauChoCon, "fl_dong_ho", Clay.canh)
     }
   }

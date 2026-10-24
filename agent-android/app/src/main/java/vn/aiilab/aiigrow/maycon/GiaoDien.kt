@@ -8,7 +8,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -89,7 +88,8 @@ object GiaoDien {
 
     fun chonTrongNhom(c: Context, b: Button, chon: Boolean) {
         b.setTextColor(if (chon) TRANG else Clay.CHINH_INK)
-        b.background = nenNut(c, if (chon) Clay.Kieu.NGOC else Clay.Kieu.VIEN)
+        // đổi kiểu ngay trên nền đang có để vệt men vừa bắt đầu lúc nhấn vẫn chạy
+        (b.background as? ClayDrawable)?.kieu = if (chon) Clay.Kieu.NGOC else Clay.Kieu.VIEN
         if (chon && b.isLaidOut) Clay.batNhe(b)
     }
 
@@ -125,14 +125,8 @@ object GiaoDien {
     class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?) {
         val goc = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; background = nenMan(); setPadding(dp(c, 22), dp(c, 48), dp(c, 22), dp(c, 48)) }
         private val khoi = the(c).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        private val anh = ImageView(c).apply { scaleType = ImageView.ScaleType.FIT_CENTER; importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }
-        private val vien = FrameLayout(c).apply {
-            background = ClayDrawable(c, Clay.Kieu.VIEN_TRON, Clay.CHINH_SOFT)
-            addView(anh, FrameLayout.LayoutParams(dp(c, 56), dp(c, 56), Gravity.CENTER))
-            val b = Rect().also { background.getPadding(it) }
-            layoutParams = LinearLayout.LayoutParams(dp(c, 92) + b.left + b.right, dp(c, 92) + b.top + b.bottom).apply { bottomMargin = dp(c, 10) }
-            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
+        private val vien = Clay.vien(c, R.drawable.fl_khoa, Clay.CHINH_SOFT, 92).apply { (layoutParams as ViewGroup.MarginLayoutParams).bottomMargin = dp(c, 10) }
+        private val anh = vien.getChildAt(0) as ImageView
         val tieuDe = chu(c, "", 28f, CHU, true).apply { gravity = Gravity.CENTER }
         val dem = chu(c, "", 44f, CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 12), 0, dp(c, 12)); fontFeatureSettings = "tnum" }
         val cau = chu(c, "", 18f, Clay.CHU2).apply { gravity = Gravity.CENTER }
@@ -162,7 +156,7 @@ object GiaoDien {
             val h = hinhKhoa(ht.trangThai, chanApp)
             if (h != hinhDangHien) {
                 hinhDangHien = h; anh.setImageResource(h)
-                if (hinhDangHien != 0) goc.post { Clay.dongSap(anh, khoi) }
+                goc.post { Clay.dongSap(anh, khoi) }
             }
         }
     }

@@ -38,6 +38,7 @@ class ManChinh : Activity() {
     private var nutPhut: List<Button> = emptyList()
     private var daVe: String? = null
     private var tChao: TextView? = null
+    private var daVaoLan = false   // hiệu ứng vào lần lượt chỉ một lần mỗi lần mở màn, không lặp mỗi lần dựng lại
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,7 +75,7 @@ class ManChinh : Activity() {
             if (k.daGhep) dungManDaGhep() else dungManGhep()
             theQuyen()
             minhBach()
-            Clay.vaoLanLuot(goc)
+            if (!daVaoLan) { daVaoLan = true; Clay.vaoLanLuot(goc) }
         }
         if (k.daGhep) capNhatSo(k)
     }

@@ -16,15 +16,14 @@
 		22178AEB14B78839900CED21 /* KhoBiMat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B6AFD95F95538BDC1D56AC /* KhoBiMat.swift */; };
 		2346F2F852024B6279A6CF07 /* AiiGrowConShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7900E3A57BAB26B230A60E43 /* AiiGrowConShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		352E2F4BA47955B0E860D7E3 /* MoHinh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186FA46CA2DBC124F41E70B7 /* MoHinh.swift */; };
-		3574FE7F5EB0C464409E8BD3 /* FLUENT-EMOJI-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */; };
 		3BE0FA3E6E078E15673A1E80 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		3D3827E43C52FCC7F938F37C /* ManHinh.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFDA2084344ACE7832D30647 /* ManHinh.swift */; };
 		3E228456488DEFC7D8638772 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		433DB63728ECDC25F05BCBD1 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		4C2AA5B5FA3E431A90E7676B /* LienKet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E65912DFAF91EA72A33274A /* LienKet.swift */; };
 		4EBCD7E1D9FE7B4A96A544E4 /* ManHinhThoiGian.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CDA7A363166F1E9A3FE8A6 /* ManHinhThoiGian.swift */; };
-		5FC5466FEFC2C3D9F865B050 /* Fluent.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 215DFF84E68F40D4D195F82C /* Fluent.xcassets */; };
 		6301FC39E493FE0CBC964BD5 /* LuaChon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFD40AF087F473E45244388 /* LuaChon.swift */; };
+		6762EA84EDFFA951214099D7 /* ManChan.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C69CFB8D8236538848F53826 /* ManChan.xcassets */; };
 		6FB26C633F922B41C602F5B6 /* KeHoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BD5472CA0F11099C79606C /* KeHoach.swift */; };
 		8F08909C53CFFE9C36791B21 /* AiiGrowConShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0F5B157A8303D4BFAF56737F /* AiiGrowConShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9704E1739ABF09F84077DBB5 /* DongBo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50779F36DEB2CEE60A100CA /* DongBo.swift */; };
@@ -168,6 +167,7 @@
 		BF4E25D5AFE0EC15DC0F36DA /* TinhKhien.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinhKhien.swift; sourceTree = "<group>"; };
 		C1BD5472CA0F11099C79606C /* KeHoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeHoach.swift; sourceTree = "<group>"; };
 		C50779F36DEB2CEE60A100CA /* DongBo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongBo.swift; sourceTree = "<group>"; };
+		C69CFB8D8236538848F53826 /* ManChan.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = ManChan.xcassets; sourceTree = "<group>"; };
 		CAF89B0B57449BB5298F33DB /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
 		CCA88494FC68D6427FFE6491 /* ConCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ConCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1971798E0318EECB517180E /* ConCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ConCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -295,6 +295,7 @@
 			isa = PBXGroup;
 			children = (
 				64F1255D5C7F99A88F33BEC5 /* Info.plist */,
+				C69CFB8D8236538848F53826 /* ManChan.xcassets */,
 				645A7CEABAD59808D54E9A15 /* ShieldConfig.entitlements */,
 				E65F7FA55C48519DB255B735 /* ShieldConfigurationExtension.swift */,
 			);
@@ -521,8 +522,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3574FE7F5EB0C464409E8BD3 /* FLUENT-EMOJI-LICENSE.txt in Resources */,
-				5FC5466FEFC2C3D9F865B050 /* Fluent.xcassets in Resources */,
+				6762EA84EDFFA951214099D7 /* ManChan.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

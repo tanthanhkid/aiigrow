@@ -93,7 +93,7 @@ targets:
   AiiGrowConShieldConfig:
     type: app-extension
     platform: iOS
-    sources: [ShieldConfig, TaiNguyen]
+    sources: [ShieldConfig]
     dependencies: [{ target: ConCore }]
     info:
       path: ShieldConfig/Info.plist

@@ -153,12 +153,15 @@ object Clay {
  * Khối đất sét gương vẽ tay. Chừa lề trong bounds cho bóng ngoài (getPadding cộng lề này + đệm nội dung), nên View đặt nền này tự có đệm.
  * Bóng ngoài dùng setShadowLayer — vẽ bằng phần cứng từ Android 9; Android 8 không có bóng ngoài, phần men vẫn đủ.
  */
-class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.THE, boDp: Float = -1f, private val dem: Int = -1) : Drawable() {
+class ClayDrawable(c: Context, kieu: Clay.Kieu, private val mau: Int = Clay.THE, boDp: Float = -1f, private val dem: Int = -1) : Drawable() {
+    /** Đổi kiểu tại chỗ (vd VIEN ⇄ NGOC khi chọn) — chỉ giữa các kiểu nút cùng lề bóng. */
+    var kieu: Clay.Kieu = kieu
+        set(v) { if (field != v) { field = v; boNho.clear(); invalidateSelf() } }
     private val d = c.resources.displayMetrics.density
     private fun s(v: Float) = v * d
-    private val tron = kieu == Clay.Kieu.VIEN_TRON
+    private val tron get() = kieu == Clay.Kieu.VIEN_TRON
     private val bo = s(if (boDp >= 0) boDp else when (kieu) { Clay.Kieu.THE -> 32f; Clay.Kieu.LOM -> 24f; Clay.Kieu.THAN, Clay.Kieu.NGOC, Clay.Kieu.VIEN -> 22f; Clay.Kieu.VIEN_TRON -> 999f })
-    private val lon = kieu == Clay.Kieu.THE
+    private val lon get() = kieu == Clay.Kieu.THE
     // lề cho bóng: thẻ lớn bóng dài hơn nút
     private val le = when (kieu) {
         Clay.Kieu.LOM -> Rect(0, 0, 0, 0)
@@ -168,6 +171,12 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
     private val demNoi = if (dem >= 0) s(dem.toFloat()).toInt() else when (kieu) { Clay.Kieu.THE -> s(18f).toInt(); Clay.Kieu.LOM -> s(14f).toInt(); Clay.Kieu.VIEN_TRON -> 0; else -> s(16f).toInt() }
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var doTrong = 255
+    /** Shader / path tĩnh theo kích thước — dựng lại khi bounds đổi, không cấp phát mỗi khung hình lúc vệt men chạy. */
+    private val boNho = HashMap<String, Any>()
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Any> nho(khoa: String, tao: () -> T): T = boNho.getOrPut(khoa, tao) as T
+    override fun onBoundsChange(b: Rect) { boNho.clear(); super.onBoundsChange(b) }
     private val r = RectF()
     private val duong = Path()
     private val tam = Path()
@@ -202,6 +211,7 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
         if (r.width() <= 0 || r.height() <= 0) return
         val k = boThat()
         duong.reset(); duong.addRoundRect(r, k, k, Path.Direction.CW)
+        val lopTrong = if (doTrong < 255) cv.saveLayerAlpha(b.left.toFloat(), b.top.toFloat(), b.right.toFloat(), b.bottom.toFloat(), doTrong) else -1
 
         // 1. bóng ngoài kép (khối thu vào để bóng không loang ngang — như spread âm của CSS)
         if (kieu != Clay.Kieu.LOM) {
@@ -224,8 +234,8 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
         cv.clipPath(duong)
         // 2. nền
         p.shader = when (kieu) {
-            Clay.Kieu.THAN -> LinearGradient(0f, r.top, 0f, r.bottom, 0xFF2E3533.toInt(), 0xFF121615.toInt(), Shader.TileMode.CLAMP)
-            Clay.Kieu.NGOC -> LinearGradient(0f, r.top, 0f, r.bottom, 0xFF0F6B5C.toInt(), 0xFF08463D.toInt(), Shader.TileMode.CLAMP)
+            Clay.Kieu.THAN -> nho("nen") { LinearGradient(0f, r.top, 0f, r.bottom, 0xFF2E3533.toInt(), 0xFF121615.toInt(), Shader.TileMode.CLAMP) }
+            Clay.Kieu.NGOC -> nho("nen") { LinearGradient(0f, r.top, 0f, r.bottom, 0xFF0F6B5C.toInt(), 0xFF08463D.toInt(), Shader.TileMode.CLAMP) }
             else -> null
         }
         p.color = mauNen()
@@ -254,7 +264,7 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
             }
             Clay.Kieu.LOM -> {
                 // lòng chảo ấn lõm: tối mép trên, sáng mép dưới
-                to(cv, LinearGradient(0f, r.top, 0f, r.top + s(9f), 0x24282C2A, 0x00282C2A, Shader.TileMode.CLAMP))
+                to(cv, nho("lom") { LinearGradient(0f, r.top, 0f, r.top + s(9f), 0x24282C2A, 0x00282C2A, Shader.TileMode.CLAMP) })
             }
         }
 
@@ -266,7 +276,7 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
             else -> {
                 vienTren(cv, k, dayVien, 0xFFFFFFFF.toInt())
                 if (lon) vienDuoi(cv, k, s(2f), 0xB3FFFFFF.toInt())
-                to(cv, LinearGradient(0f, r.bottom - s(if (lon) 12f else 8f), 0f, r.bottom, 0x00282C2A, if (lon) 0x24282C2A else 0x29282C2A, Shader.TileMode.CLAMP))
+                to(cv, nho("day") { LinearGradient(0f, r.bottom - s(if (lon) 12f else 8f), 0f, r.bottom, 0x00282C2A, if (lon) 0x24282C2A else 0x29282C2A, Shader.TileMode.CLAMP) })
             }
         }
 
@@ -274,14 +284,18 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
         if (quet >= 0f) {
             val w = r.width()
             val x0 = r.left - .2f * w + (-1.1f + 2.2f * quet) * w * 1.4f
-            val nhat = kieu == Clay.Kieu.THAN || kieu == Clay.Kieu.NGOC
-            val dinh = if (nhat) 0x8CFFFFFF.toInt() else 0xFFFFFFFF.toInt()
-            val g = LinearGradient(x0, r.top, x0 + 1.4f * w * .966f, r.top + 1.4f * w * .259f,
-                intArrayOf(0x00FFFFFF, 0x1AFFFFFF, dinh, 0x29FFFFFF, 0x00FFFFFF), floatArrayOf(.34f, .42f, .49f, .54f, .62f), Shader.TileMode.CLAMP)
+            val g = nho("quet") {
+                val nhat = kieu == Clay.Kieu.THAN || kieu == Clay.Kieu.NGOC
+                val dinh = if (nhat) 0x8CFFFFFF.toInt() else 0xFFFFFFFF.toInt()
+                LinearGradient(0f, r.top, 1.4f * w * .966f, r.top + 1.4f * w * .259f,
+                    intArrayOf(0x00FFFFFF, 0x1AFFFFFF, dinh, 0x29FFFFFF, 0x00FFFFFF), floatArrayOf(.34f, .42f, .49f, .54f, .62f), Shader.TileMode.CLAMP)
+            }
+            mtQuet.setTranslate(x0, 0f); g.setLocalMatrix(mtQuet)
             to(cv, g)
         }
         p.shader = null
         cv.restoreToCount(luu)
+        if (lopTrong >= 0) cv.restoreToCount(lopTrong)
     }
 
     private fun mauNen() = when (kieu) {
@@ -292,33 +306,39 @@ class ClayDrawable(c: Context, val kieu: Clay.Kieu, private val mau: Int = Clay.
     }
 
     private fun doc(cv: Canvas, vt: FloatArray, m: IntArray) {
-        to(cv, LinearGradient(0f, r.top, 0f, r.bottom, m, vt, Shader.TileMode.CLAMP))
+        to(cv, nho("doc" + vt.contentToString() + m.contentToString()) { LinearGradient(0f, r.top, 0f, r.bottom, m, vt, Shader.TileMode.CLAMP) })
     }
 
     /** Tô một lớp shader lên khối (màu paint về đen đặc để alpha của lớp trước không lẫn vào). */
     private fun to(cv: Canvas, sh: Shader) { p.color = 0xFF000000.toInt(); p.shader = sh; cv.drawRect(r, p) }
 
     private val mt = Matrix()
+    private val mtQuet = Matrix()
     private fun elip(cv: Canvas, cx: Float, cy: Float, rx: Float, ry: Float, m: IntArray, vt: FloatArray) {
         if (rx <= 0 || ry <= 0) return
-        val g = RadialGradient(cx, cy, rx, m, vt, Shader.TileMode.CLAMP)
-        mt.reset(); mt.setScale(1f, ry / rx, cx, cy); g.setLocalMatrix(mt)
-        to(cv, g)
+        to(cv, nho("elip$cx/$cy/$rx/$ry" + m.contentToString()) {
+            RadialGradient(cx, cy, rx, m, vt, Shader.TileMode.CLAMP).apply { mt.reset(); mt.setScale(1f, ry / rx, cx, cy); setLocalMatrix(mt) }
+        })
     }
 
     private fun vienTren(cv: Canvas, k: Float, day: Float, mau: Int) {
-        tam.reset(); tam.addRoundRect(r.left, r.top + day, r.right, r.bottom + day, k, k, Path.Direction.CW)
-        val v = Path(duong).apply { op(tam, Path.Op.DIFFERENCE) }
+        val v = nho("tren$day") {
+            tam.reset(); tam.addRoundRect(r.left, r.top + day, r.right, r.bottom + day, k, k, Path.Direction.CW)
+            Path(duong).apply { op(tam, Path.Op.DIFFERENCE) }
+        }
         p.shader = null; p.color = mau; cv.drawPath(v, p)
     }
 
     private fun vienDuoi(cv: Canvas, k: Float, day: Float, mau: Int) {
-        tam.reset(); tam.addRoundRect(r.left, r.top - day, r.right, r.bottom - day, k, k, Path.Direction.CW)
-        val v = Path(duong).apply { op(tam, Path.Op.DIFFERENCE) }
+        val v = nho("duoi$day") {
+            tam.reset(); tam.addRoundRect(r.left, r.top - day, r.right, r.bottom - day, k, k, Path.Direction.CW)
+            Path(duong).apply { op(tam, Path.Op.DIFFERENCE) }
+        }
         p.shader = null; p.color = mau; cv.drawPath(v, p)
     }
 
-    override fun setAlpha(alpha: Int) { p.alpha = alpha }
+    override fun setAlpha(alpha: Int) { if (doTrong != alpha) { doTrong = alpha; invalidateSelf() } }
+    override fun getAlpha() = doTrong
     override fun setColorFilter(colorFilter: ColorFilter?) { p.colorFilter = colorFilter }
     @Deprecated("Deprecated in Java")
     override fun getOpacity() = PixelFormat.TRANSLUCENT
