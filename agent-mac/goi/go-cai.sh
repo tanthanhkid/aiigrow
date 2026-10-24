@@ -3,23 +3,24 @@
 set -u
 if [ "$(id -u)" -ne 0 ]; then echo "Cần quyền quản trị: sudo bash $0" >&2; exit 1; fi
 # Chạy từ BẢN SAO: lúc chờ bộ tự cập nhật (tới 5 phút) installer có thể ghi đè tệp này trong app — bash đọc theo vị trí byte, tệp đổi là chạy lệnh rác.
-if [ -z "${AIIGROW_GO_BAN_SAO:-}" ]; then
-  BAN_SAO=$(/usr/bin/mktemp /var/tmp/aiigrow-go-cai.XXXXXX) && /bin/cp "$0" "$BAN_SAO" && \
-    AIIGROW_GO_BAN_SAO="$BAN_SAO" exec /bin/bash "$BAN_SAO" "$@"
-  [ -n "${BAN_SAO:-}" ] && /bin/rm -f "$BAN_SAO"     # chép không được ($0 không phải tệp, vd chạy qua ống): chạy tiếp bản gốc, không để tệp rỗng sót
-fi
-[ -n "${AIIGROW_GO_BAN_SAO:-}" ] && [ "$AIIGROW_GO_BAN_SAO" != 1 ] && /bin/rm -f "$AIIGROW_GO_BAN_SAO"   # bash đã mở tệp, xoá vẫn chạy tiếp
+case "$0" in
+  /var/tmp/aiigrow-go-cai.*) /bin/rm -f "$0" ;;      # đang chạy bản sao: bash đã mở tệp, xoá vẫn chạy tiếp
+  *)
+    BAN_SAO=$(/usr/bin/mktemp /var/tmp/aiigrow-go-cai.XXXXXX) && /bin/cp "$0" "$BAN_SAO" && exec /bin/bash "$BAN_SAO" "$@"
+    [ -n "${BAN_SAO:-}" ] && /bin/rm -f "$BAN_SAO"   # chép không được ($0 không phải tệp, vd chạy qua ống): chạy tiếp bản gốc, không để tệp rỗng sót
+    ;;
+esac
 
 DAEMON_PLIST="/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"
 TRAY_PLIST="/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
 
 # Dấu «máy đã gỡ» ghi NGAY ĐẦU (trước vòng chờ và mọi bootout): bộ cập nhật + postinstall cài tự động thấy là dừng.
-GOC="${AIIGROW_GOC:-}"
-LC="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
-DA_GO="$GOC/var/db/aiigrow-da-go"
-/bin/mkdir -p "$(/usr/bin/dirname "$DA_GO")" "$GOC/var/run" 2>/dev/null
+# Chạy bằng root: không nhận biến môi trường nào để đổi đường dẫn/lệnh (sudo -E không biến được trình gỡ thành chạy tệp lạ).
+LC=/bin/launchctl
+DA_GO=/var/db/aiigrow-da-go
+/bin/mkdir -p /var/db /var/run 2>/dev/null
 # PID của trình gỡ (cả khi chạy tay bằng sudo): daemon không cho ghép và postinstall không nạp lại máy trong lúc gỡ.
-GO_PID="$GOC/var/run/aiigrow-go-cai"
+GO_PID=/var/run/aiigrow-go-cai
 echo $$ > "$GO_PID" 2>/dev/null
 # chỉ xoá khi tệp còn là PID của lượt này (lượt go-cai chạy chồng ghi đè thì để lượt đó tự dọn)
 trap '[ "$(/bin/cat "$GO_PID" 2>/dev/null)" = "$$" ] && /bin/rm -f "$GO_PID"' EXIT
@@ -27,7 +28,7 @@ trap '[ "$(/bin/cat "$GO_PID" 2>/dev/null)" = "$$" ] && /bin/rm -f "$GO_PID"' EX
 # Dấu có sẵn từ trước (daemon gỡ từ xa ghi) thì giữ nguyên.
 if [ ! -f "$DA_GO" ]; then
   # Trong lúc chờ bộ tự cập nhật: postinstall thấy dấu có thể đã dọn app ⇒ chỉ trả dấu khi app còn nguyên (máy vẫn chạy bình thường).
-  trap 'if [ -d "$GOC/Applications/AiiGrow.app" ]; then /bin/rm -f "$DA_GO"; echo "Đã dừng — chưa gỡ gì."; else echo "Đã dừng giữa lúc cập nhật — chạy lại go-cai.sh để gỡ nốt."; fi; exit 130' INT TERM HUP
+  trap 'if [ -d /Applications/AiiGrow.app ]; then /bin/rm -f "$DA_GO"; echo "Đã dừng — chưa gỡ gì."; else echo "Đã dừng giữa lúc cập nhật — chạy lại go-cai.sh để gỡ nốt."; fi; exit 130' INT TERM HUP
 fi
 echo "da-go" > "$DA_GO" 2>/dev/null && /bin/chmod 0600 "$DA_GO"
 
@@ -46,20 +47,21 @@ fi
 trap - INT TERM HUP
 # Xong hay hết 5 phút: gỡ hẳn nhãn capnhat + dấu đang-cập-nhật (installer treo thì giết luôn, không để nó nạp lại daemon sau khi gỡ).
 "$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
-/bin/rm -f "$GOC/var/run/aiigrow-capnhat"
+/bin/rm -f /var/run/aiigrow-capnhat
 
-/bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+"$LC" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 # Daemon đã dừng ⇒ không ai submit job cài được nữa; gỡ lần nữa phòng job vừa được submit đúng lúc ta kiểm ở trên.
 "$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
-for uid in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/AiiGrowTray/ {print $1}' | /usr/bin/sort -u); do
-  /bin/launchctl bootout "gui/$uid/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
+PG=/Applications/AiiGrow.app/Contents/Resources/phien-gui.sh      # cùng quy tắc phiên GUI với preinstall/postinstall; thiếu thì pkill bên dưới vẫn đóng tray
+for uid in $([ -f "$PG" ] && /bin/bash "$PG"); do
+  "$LC" bootout "gui/$uid/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
 done
 /usr/bin/pkill -x AiiGrowTray >/dev/null 2>&1 || true
 
-# Đọc cấu hình trước khi xoá (token, máy chủ, tài khoản đã bị hạ quyền admin lúc ghép). Biến AIIGROW_* chỉ để thử trên thư mục tạm.
-CFG="${AIIGROW_CONFIG:-/Library/Application Support/AiiGrow/config.json}"
-CURL="${AIIGROW_CURL:-/usr/bin/curl}"
-DSEDIT="${AIIGROW_DSEDIT:-/usr/sbin/dseditgroup}"
+# Đọc cấu hình trước khi xoá (token, máy chủ, tài khoản đã bị hạ quyền admin lúc ghép).
+CFG="/Library/Application Support/AiiGrow/config.json"
+CURL=/usr/bin/curl
+DSEDIT=/usr/sbin/dseditgroup
 PLUTIL=/usr/bin/plutil
 if [ -f "$CFG" ]; then
   TOKEN=$($PLUTIL -extract token raw -o - "$CFG" 2>/dev/null || true)
@@ -112,7 +114,7 @@ khoi_phuc() {
     *) return 1 ;;
   esac
 }
-MP="${AIIGROW_MANAGED_PREFS:-/Library/Managed Preferences}"      # đổi được để thử trên thư mục tạm
+MP="/Library/Managed Preferences"
 for thumuc in "$MP"/*/; do
   [ -d "$thumuc" ] || continue
   for bundle in com.google.Chrome com.microsoft.Edge com.brave.Browser com.coccoc.Coccoc; do
@@ -138,4 +140,4 @@ done
 echo "Đã gỡ AiiGrow."
 # Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại
 # và lần gỡ từ xa sau không bị trùng nhãn. Việc CUỐI CÙNG của tập lệnh (remove có thể gửi SIGTERM cho chính tiến trình này).
-"${AIIGROW_LAUNCHCTL:-/bin/launchctl}" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true
+"$LC" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true

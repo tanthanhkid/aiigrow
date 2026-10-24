@@ -138,6 +138,7 @@ public enum QuyenIPC {
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
       return .duoc
     case .capNhat:
+      guard daGhep else { return .tuChoi(ma: "chua_ghep", chu: "Máy chưa ghép với Con nên không tự cập nhật.") }
       guard laBaMe(uidGoi: uidGoi, uidCon: uidCon, laAdmin: laAdmin) else { return .tuChoi(ma: "can_admin", chu: "Chỉ tài khoản quản trị (Ba Mẹ) mới kiểm tra cập nhật được.") }
       return .duoc
     case .ghep:

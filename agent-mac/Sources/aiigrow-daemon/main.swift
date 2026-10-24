@@ -59,20 +59,19 @@ if motVong {
     }
   }
   // Tự cập nhật: Task riêng (không chặn vòng áp/đồng bộ); lịch ở LichCapNhat (+90 giây, rồi mỗi 6 giờ); cờ chống chạy chồng nằm trong BoCapNhat.
-  if laThu { heThong.ghiLog("[thử] bỏ qua vòng tự cập nhật.") } else {
-    Task {
-      // Ngủ theo đồng hồ treo tường, từng bước 60 giây: Task.sleep đếm thời gian MÁY THỨC, MacBook ngủ nhiều thì «6 giờ» thành vài ngày.
-      // Đồng hồ treo tường bị chỉnh LÙI thì vẫn thoát theo thời gian máy thức (không ngủ thêm bằng đúng khoảng lùi).
-      await LichCapNhat.chay(ngu: { giay in
-        let den = Date().addingTimeInterval(giay)
-        let denThuc = DispatchTime.now().uptimeNanoseconds &+ UInt64(giay * 1_000_000_000)
-        while Date() < den && DispatchTime.now().uptimeNanoseconds < denThuc {
-          try? await Task.sleep(nanoseconds: UInt64(min(60, max(1, den.timeIntervalSinceNow)) * 1_000_000_000))
-          if Task.isCancelled { return false }
-        }
-        return true
-      }, viec: { await boMay.kiemCapNhatDinhKy() })
-    }
+  // Chế độ --thu: tuyChon.tuCapNhat = false ⇒ kiemCapNhatDinhKy tự bỏ qua (một quy tắc duy nhất).
+  Task {
+    // Ngủ theo đồng hồ treo tường, từng bước 60 giây: Task.sleep đếm thời gian MÁY THỨC, MacBook ngủ nhiều thì «6 giờ» thành vài ngày.
+    // Đồng hồ treo tường bị chỉnh LÙI thì vẫn thoát theo thời gian máy thức (không ngủ thêm bằng đúng khoảng lùi).
+    await LichCapNhat.chay(ngu: { giay in
+      let den = Date().addingTimeInterval(giay)
+      let denThuc = DispatchTime.now().uptimeNanoseconds &+ UInt64(giay * 1_000_000_000)
+      while Date() < den && DispatchTime.now().uptimeNanoseconds < denThuc {
+        try? await Task.sleep(nanoseconds: UInt64(min(60, max(1, den.timeIntervalSinceNow)) * 1_000_000_000))
+        if Task.isCancelled { return false }
+      }
+      return true
+    }, viec: { await boMay.kiemCapNhatDinhKy() })
   }
   RunLoop.main.run()
 }

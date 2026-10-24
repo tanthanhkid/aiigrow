@@ -181,15 +181,15 @@ public final class HeThongMac: HeThong {
   }
 
   /// Lệnh sh của job cài (`caiGoi`).
-  /// $1 gói · $2 nhãn · $3 dấu PID · $4 dấu đã gỡ · $5 plist daemon · $6 plist tray. Đọc kỹ ba nhánh:
+  /// $1 gói · $2 nhãn · $3 dấu PID · $4 dấu đã gỡ · $5 plist daemon · $6 plist tray · $7 phien-gui.sh (uid phiên GUI, chung với pre/postinstall). Đọc kỹ ba nhánh:
   /// - napLai: installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại bản cũ (trừ khi máy vừa bị gỡ).
   /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
   /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
   static let lenhJobCai = """
-    DA_GO="$4" ; DAEMON="$5" ; TRAY="$6"
+    DA_GO="$4" ; DAEMON="$5" ; TRAY="$6" ; PG="$7"
     napLai() { if [ ! -f "$DA_GO" ] && [ -f "$DAEMON" ]; then /bin/launchctl bootstrap system "$DAEMON" ; echo "nạp lại daemon, mã $?" ; \
-      for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u "$TRAY" ; done ; fi ; }
+      for u in $([ -f "$PG" ] && /bin/bash "$PG") ; do /bin/launchctl bootstrap gui/$u "$TRAY" ; done ; fi ; }
     if [ -f "$3" ] ; then echo "lượt cài trước dừng giữa chừng — không cài lại" ; napLai ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
     echo $$ > "$3" ; /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
     if [ $ma -ne 0 ] ; then napLai ; fi
@@ -211,7 +211,7 @@ public final class HeThongMac: HeThong {
 
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
                                                       "--", "/bin/sh", "-c", HeThongMac.lenhJobCai, "capnhat", duongDan, nhan, dau, DuongDan.daGo,
-                                                      DuongDan.daemonPlist, DuongDan.trayPlist], timeout: 10)
+                                                      DuongDan.daemonPlist, DuongDan.trayPlist, DuongDan.app + "/Contents/Resources/phien-gui.sh"], timeout: 10)
     guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
   }
 

@@ -38,6 +38,8 @@ public enum LuatCapNhat {
   public static let nhanCai = "vn.aiilab.aiigrow.capnhat"
   public static let toiDaChuyenHuong = 5
   public static let toiDaByte = 300 * 1024 * 1024
+  /// Tên tệp tải tạm trong NSTemporaryDirectory (dọn tệp sót theo tiền tố này).
+  public static let tienToTepTam = "aiigrow-tai-"
 
   /// «0.1.10» → [0,1,10]; không đúng dạng x.y.z (chỉ số) ⇒ nil.
   public static func tachBan(_ s: String) -> [Int]? {
@@ -136,9 +138,10 @@ public final class SoTinhCapNhat: @unchecked Sendable {
   public init() {}
   /// Đang có lượt kiểm/tải/cài — đọc không cần vào actor (actor có thể đang băm/spctl hàng chục giây, IPC tray chỉ chờ 3 giây).
   public var dang: Bool { khoa.lock(); defer { khoa.unlock() }; return _dang }
-  func datDang(_ d: Bool) { khoa.lock(); _dang = d; khoa.unlock() }
   /// Giữ chỗ nguyên tử (false ⇒ đang có lượt khác) — nút Ba Mẹ giữ chỗ TRƯỚC khi trả lời IPC để bấm liền hai lần không chạy chồng.
   func giuCho() -> Bool { khoa.lock(); defer { khoa.unlock() }; if _dang { return false }; _dang = true; return true }
+  /// Trả chỗ — đúng hai nơi: `ketThuc` (batDau dừng) và cuối `taiVaCai`.
+  func thaCho() { khoa.lock(); _dang = false; khoa.unlock() }
   public var chu: String? { khoa.lock(); defer { khoa.unlock() }; return _chu }
   public var luc: Date? { khoa.lock(); defer { khoa.unlock() }; return _luc }
   public func dat(_ c: String, luc: Date = Date()) { khoa.lock(); _chu = c; _luc = luc; khoa.unlock() }
@@ -208,13 +211,19 @@ public actor BoCapNhat {
   private let api: MayChuApi
   private let heThong: HeThong
   private let mayChu: () -> String
-  private let session: URLSession
+  private let sessionTiem: URLSession?
+  /// Tạo khi tải lần đầu (chế độ --thu / không có bản mới thì không tạo).
+  private lazy var session: URLSession = sessionTiem ?? {
+    let c = URLSessionConfiguration.ephemeral
+    c.timeoutIntervalForRequest = 30
+    c.timeoutIntervalForResource = 900
+    return URLSession(configuration: c)
+  }()
   private let thuMuc: String
   private let tepDaThu: String
   private let banHienTai: String
   private let dongHo: () -> Date
   private let toiDaByte: Int
-  private var dang: Bool { get { so.dang } set { so.datDang(newValue) } }
   private var tacVu: Task<Void, Never>?
   /// Câu trạng thái cho tray (đọc không cần await).
   public nonisolated let so: SoTinhCapNhat
@@ -238,17 +247,12 @@ public actor BoCapNhat {
         so.dat("Đã cập nhật lên bản \(banHienTai).", luc: dongHo())
       }
     }
-    if let session { self.session = session } else {
-      let c = URLSessionConfiguration.ephemeral
-      c.timeoutIntervalForRequest = 30
-      c.timeoutIntervalForResource = 900
-      self.session = URLSession(configuration: c)
-    }
+    self.sessionTiem = session
   }
 
   public nonisolated func giuChoNgay() -> Bool { so.giuCho() }
 
-  private func ketThuc(_ kq: KetQuaCapNhat) -> KetQuaCapNhat { dang = false; so.dat(kq.chu, luc: dongHo()); return kq }
+  private func ketThuc(_ kq: KetQuaCapNhat) -> KetQuaCapNhat { so.thaCho(); so.dat(kq.chu, luc: dongHo()); return kq }
 
   private func docDau() -> DauDaThu? { BoCapNhat.docDau(heThong, tepDaThu) }
   private static func docDau(_ ht: HeThong, _ tep: String) -> DauDaThu? {
@@ -343,7 +347,7 @@ public actor BoCapNhat {
   public func choXong() async { await tacVu?.value }
 
   private func taiVaCai(_ m: BanMoi, lan: Int, choPhep: @Sendable () async -> Bool) async {
-    defer { dang = false }
+    defer { so.thaCho() }
     let tep = thuMuc + "/AiiGrow-\(m.version).pkg"
     func bo(_ lyDo: String) {
       heThong.ghiLog("Cập nhật: \(lyDo) — KHÔNG cài."); heThong.xoaTep(tep)
@@ -372,7 +376,12 @@ public actor BoCapNhat {
     do {
       // Tải vào tệp tạm theo từng khúc (data delegate), đếm byte khi đang tải: vượt `toiDaByte` là dừng ngay
       // (không để thân vài GB ghi đầy đĩa hệ thống trước khi kiểm kích thước).
-      let tam = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("aiigrow-tai-\(UUID().uuidString).pkg")
+      // Tệp tạm sót của lượt bị giết giữa chừng (bootout/crash — defer không chạy): dọn trước (mỗi lúc chỉ một lượt tải, giữ chỗ bằng `so`).
+      let thuMucTam = NSTemporaryDirectory()
+      for c in (try? FileManager.default.contentsOfDirectory(atPath: thuMucTam)) ?? [] where c.hasPrefix(LuatCapNhat.tienToTepTam) {
+        try? FileManager.default.removeItem(atPath: (thuMucTam as NSString).appendingPathComponent(c))
+      }
+      let tam = URL(fileURLWithPath: thuMucTam).appendingPathComponent(LuatCapNhat.tienToTepTam + "\(UUID().uuidString).pkg")
       defer { try? FileManager.default.removeItem(at: tam) }
       guard FileManager.default.createFile(atPath: tam.path, contents: nil, attributes: [.posixPermissions: 0o600]),
             let ghi = try? FileHandle(forWritingTo: tam) else { bo("không tạo được tệp tạm"); return }

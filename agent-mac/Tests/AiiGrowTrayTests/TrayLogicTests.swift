@@ -18,6 +18,15 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(con: false), laAdmin: false))
   }
 
+  func testDongBanLayBanDaemon() {
+    var t = tt(con: false)
+    XCTAssertEqual(TrayLogic.dongBanDangChay(t, banTray: "0.1.1"), "AiiGrow bản 0.1.1", "daemon cũ chưa gửi bản ⇒ bản của tray")
+    t.banDaemon = "0.1.1"
+    XCTAssertEqual(TrayLogic.dongBanDangChay(t, banTray: "0.1.1"), "AiiGrow bản 0.1.1")
+    t.banDaemon = "0.1.2"
+    XCTAssertTrue(TrayLogic.dongBanDangChay(t, banTray: "0.1.1").hasPrefix("AiiGrow bản 0.1.2 (menu này bản 0.1.1"), "tray chưa nạp lại ⇒ vẫn báo bản daemon thật")
+  }
+
   // MARK: chonMan
   func testChonMan() {
     XCTAssertEqual(TrayLogic.chonMan(nil), .khong)

@@ -236,7 +236,9 @@ final class CapNhatTests: XCTestCase {
     let con: UInt32 = 501, admin: UInt32 = 502
     let laAdmin: (UInt32) -> Bool = { $0 == admin || $0 == 0 }
     XCTAssertEqual(QuyenIPC.kiem(.capNhat, uidGoi: admin, uidCon: con, daGhep: true, laAdmin: laAdmin), .duoc)
-    XCTAssertEqual(QuyenIPC.kiem(.capNhat, uidGoi: admin, uidCon: nil, daGhep: false, laAdmin: laAdmin), .duoc, "chưa ghép vẫn kiểm được (manifest công khai)")
+    guard case .tuChoi(ma: "chua_ghep", _) = QuyenIPC.kiem(.capNhat, uidGoi: admin, uidCon: nil, daGhep: false, laAdmin: laAdmin) else {
+      return XCTFail("chưa ghép: daemon không tự cập nhật ⇒ từ chối ngay ở lớp quyền")
+    }
     if case .duoc = QuyenIPC.kiem(.capNhat, uidGoi: con, uidCon: con, daGhep: true, laAdmin: laAdmin) { XCTFail("Con gọi phải bị từ chối") }
     if case .duoc = QuyenIPC.kiem(.capNhat, uidGoi: con, uidCon: con, daGhep: true, laAdmin: { _ in true }) { XCTFail("Con dù là admin cũng bị từ chối") }
     if case .duoc = QuyenIPC.kiem(.capNhat, uidGoi: 503, uidCon: con, daGhep: true, laAdmin: laAdmin) { XCTFail("không phải admin") }
@@ -450,9 +452,11 @@ final class CapNhatTests: XCTestCase {
     for f in [goi, daemon, tray] { try "x".write(toFile: f, atomically: true, encoding: .utf8) }
     if daGo { try "da-go".write(toFile: daGoTep, atomically: true, encoding: .utf8) }
     if dauCu { try "123".write(toFile: dau, atomically: true, encoding: .utf8) }
+    let pg = g + "/phien-gui.sh"
+    try "#!/bin/sh\necho 501\n".write(toFile: pg, atomically: true, encoding: .utf8)
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/sh")
-    p.arguments = ["-c", lenh, "capnhat", goi, LuatCapNhat.nhanCai, dau, daGoTep, daemon, tray]
+    p.arguments = ["-c", lenh, "capnhat", goi, LuatCapNhat.nhanCai, dau, daGoTep, daemon, tray, pg]
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
     try p.run(); p.waitUntilExit()
     XCTAssertFalse(fm.fileExists(atPath: goi), "gói luôn bị xoá"); XCTAssertFalse(fm.fileExists(atPath: dau), "dấu PID luôn bị xoá")
@@ -463,6 +467,7 @@ final class CapNhatTests: XCTestCase {
     let a = try chayJobCai(installerMa: 1, daGo: false, dauCu: false)
     XCTAssertTrue(a.log.contains("launchctl bootstrap system"), a.log)
     XCTAssertTrue(a.log.contains("daemon.plist"), a.log)
+    XCTAssertTrue(a.log.contains("launchctl bootstrap gui/501 \(NSTemporaryDirectory())"), "tray nạp lại vào các phiên phien-gui.sh trả: \(a.log)")
     XCTAssertTrue(a.log.contains("launchctl remove \(LuatCapNhat.nhanCai)"))
     XCTAssertEqual(a.ma, 1)
     let b = try chayJobCai(installerMa: 0, daGo: false, dauCu: false)
@@ -497,6 +502,19 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 6, "nút Ba Mẹ vẫn thử được dù đã quá 3 lần")
   }
 
+  /// phien-gui.sh: chỉ in uid số >= 500, mỗi uid một dòng, không trùng (root/_windowserver không được nhận tray).
+  func testPhienGuiChiInUidNguoiDung() throws {
+    let p = Process(); let o = Pipe()
+    p.executableURL = URL(fileURLWithPath: "/bin/bash")
+    p.arguments = [BaoMatTests.goiDir + "/scripts/phien-gui.sh"]
+    p.standardOutput = o
+    try p.run(); p.waitUntilExit()
+    XCTAssertEqual(p.terminationStatus, 0)
+    let dong = String(decoding: o.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self).split(separator: "\n").map(String.init)
+    for d in dong { XCTAssertGreaterThanOrEqual(Int(d) ?? -1, 500, "dòng lạ: \(d)") }
+    XCTAssertEqual(Set(dong).count, dong.count)
+  }
+
   func testDuongDanDauDangCapNhatDungChung() {
     XCTAssertEqual(DuongDan.dangCapNhat, "/var/run/aiigrow-capnhat")
     XCTAssertEqual(DuongDan.daGo, "/var/db/aiigrow-da-go")
@@ -506,8 +524,10 @@ final class CapNhatTests: XCTestCase {
     let go = (try? String(contentsOf: goc.appendingPathComponent("go-cai.sh"))) ?? ""
     XCTAssertTrue(post.contains("$GOC" + String(DuongDan.dangCapNhat)), "postinstall")
     XCTAssertTrue(post.contains("$GOC" + String(DuongDan.daGo)))
-    XCTAssertTrue(go.contains("$GOC" + String(DuongDan.daGo)))
-    XCTAssertTrue(go.contains("$GOC" + String(DuongDan.dangCapNhat)))
+    XCTAssertTrue(go.contains("DA_GO=" + DuongDan.daGo))
+    XCTAssertTrue(go.contains(DuongDan.dangCapNhat))
+    XCTAssertTrue(go.contains("GO_PID=" + DuongDan.goCaiDangChay))
+    XCTAssertTrue(post.contains("$GOC" + DuongDan.goCaiDangChay))
   }
 
   func testGhepLaiXoaDauDaGo() async throws {
@@ -590,6 +610,14 @@ final class CapNhatTests: XCTestCase {
     HttpMock.dat { path, _ in path.hasPrefix("api/agent/ban-moi") ? .init(ma: 200, than: Data("null".utf8)) : nil }
     let k2 = await chay(boCapNhat())
     XCTAssertEqual(k2, .laMoiNhat("0.1.1"), "null = chưa phát hành")
+  }
+
+  func testDonTepTaiTamSot() async {
+    let sot = NSTemporaryDirectory() + LuatCapNhat.tienToTepTam + "sot-\(UUID().uuidString).pkg"
+    FileManager.default.createFile(atPath: sot, contents: Data("x".utf8))
+    datMayChu()
+    _ = await chay(boCapNhat())
+    XCTAssertFalse(FileManager.default.fileExists(atPath: sot), "tệp tải tạm của lượt bị giết giữa chừng được dọn")
   }
 
   func testLoiMangBaoChuDeHieu() async {

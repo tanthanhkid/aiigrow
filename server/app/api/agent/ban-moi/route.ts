@@ -3,4 +3,7 @@
 import { json } from "@/lib/api.ts";
 import { banAgentCho } from "@/lib/ban-agent.ts";
 
-export const GET = (req: Request) => json(banAgentCho(new URL(req.url).searchParams.get("platform")));
+export const GET = (req: Request) => {
+  const u = new URL(req.url);
+  return json(banAgentCho(u.searchParams.get("platform"), u.origin));
+};

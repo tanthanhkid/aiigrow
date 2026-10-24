@@ -108,7 +108,11 @@ public enum TrayLogic {
   }
 
   /// Dòng bản đang chạy ở menu.
-  public static func dongBanDangChay(_ ban: String = PhienBan.hienTai) -> String { "AiiGrow bản \(ban)" }
+  /// Bản daemon đang chạy (nguồn sự thật); tray là bản khác (chưa được nạp lại sau cập nhật) thì nói rõ.
+  public static func dongBanDangChay(_ t: TrangThai?, banTray: String = PhienBan.hienTai) -> String {
+    guard let d = t?.banDaemon, d != banTray else { return "AiiGrow bản \(t?.banDaemon ?? banTray)" }
+    return "AiiGrow bản \(d) (menu này bản \(banTray) — đăng xuất/đăng nhập lại để làm mới)"
+  }
 
   /// Cảnh báo khi Con còn quyền admin (nil = ổn).
   public static func dongCanhBaoAdmin(_ t: TrangThai?) -> String? {

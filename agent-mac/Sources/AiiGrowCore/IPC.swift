@@ -54,6 +54,7 @@ public struct TrangThai: Codable, Equatable {
   public var trangChan: [String]           // tên miền đang chặn (để tray giải thích khi Con hỏi)
   public var capNhat: String?              // trạng thái tự cập nhật («Đang là bản mới nhất (0.1.1)»…) — KHÔNG trả cho phiên Con
   public var capNhatLuc: Date?
+  public var banDaemon: String?            // bản daemon ĐANG chạy (tray cũ chưa nạp lại vẫn hiện đúng bản thật); nil = daemon cũ chưa gửi
   public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo + cách xử lý cho Ba Mẹ (KHÔNG trả cho phiên Con; máy chủ vẫn nhận conLaAdmin)
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
               demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil, capNhat: String? = nil, capNhatLuc: Date? = nil) {

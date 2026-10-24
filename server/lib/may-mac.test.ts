@@ -83,6 +83,12 @@ test("ban-moi theo nền tảng (banAgentCho — route chỉ đọc ?platform): 
   assert.deepEqual(ba.banAgentCho(null), ba.BAN_AGENT_WINDOWS);
   assert.deepEqual(ba.banAgentCho("windows"), ba.BAN_AGENT_WINDOWS);
   assert.deepEqual(ba.banAgentCho("mac"), ba.BAN_AGENT_MAC);
+  // gói Mac nằm trên chính máy chủ được hỏi (staging…): agent Mac chỉ nhận URL cùng host với máy chủ nó ghép
+  const st = ba.banAgentCho("mac", "https://staging.aiigrow.example");
+  assert.equal(st.url, `https://staging.aiigrow.example/tai/AiiGrow-${ba.BAN_AGENT_MAC.version}.pkg`);
+  assert.equal(st.sha256, ba.BAN_AGENT_MAC.sha256);
+  assert.deepEqual(ba.banAgentCho("mac", "http://localhost:3000"), ba.BAN_AGENT_MAC, "không https ⇒ giữ URL gốc");
+  assert.deepEqual(ba.banAgentCho(null, "https://staging.aiigrow.example"), ba.BAN_AGENT_WINDOWS);
   assert.match(ba.BAN_AGENT_MAC.url, /^https:\/\/aiigrow\.aiilab\.vn\/tai\/AiiGrow-\d+\.\d+\.\d+\.pkg$/);
 });
 

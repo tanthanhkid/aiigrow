@@ -2,6 +2,8 @@
 # Chạy với quyền root bởi installer. Tạo thư mục, chép plist, nạp daemon và tray.
 set -u
 # AIIGROW_GOC (mặc định rỗng = gốc /) và AIIGROW_LAUNCHCTL chỉ để thử logic phân nhánh trên thư mục tạm, không cần root.
+# Chạy bằng root (installer thật) thì bỏ qua hai biến thử — không để môi trường đổi lệnh/đường dẫn của script root.
+if [ "$(/usr/bin/id -u)" -eq 0 ]; then unset AIIGROW_GOC AIIGROW_LAUNCHCTL; fi
 GOC="${AIIGROW_GOC:-}"
 LAUNCHCTL="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
 THU_MUC="$GOC/Library/Application Support/AiiGrow"
@@ -56,14 +58,8 @@ done
 "$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" || true
 "$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 
-# Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid): console user + chủ các tiến trình loginwindow (uid >= 500).
-CON_USER=$(/usr/bin/stat -f %Su /dev/console 2>/dev/null || true)
-UIDS=""
-if [ -n "$CON_USER" ] && [ "$CON_USER" != "root" ] && [ "$CON_USER" != "loginwindow" ]; then
-  UIDS="$(/usr/bin/id -u "$CON_USER" 2>/dev/null)"
-fi
-UIDS="$UIDS $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\/loginwindow$/ && $1 >= 500 {print $1}')"
-for CON_UID in $(printf '%s\n' $UIDS | /usr/bin/sort -un); do
+# Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid) — cùng quy tắc phien-gui.sh với preinstall/job cập nhật/go-cai.sh.
+for CON_UID in $(/bin/bash "$(/usr/bin/dirname "$0")/phien-gui.sh"); do
   [ -n "$CON_UID" ] || continue
   "$LAUNCHCTL" bootout "gui/$CON_UID/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
   "$LAUNCHCTL" bootstrap "gui/$CON_UID" "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist" || \
