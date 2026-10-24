@@ -38,7 +38,7 @@ export function chuanMuc(s: unknown): string {
 }
 
 /** Các khoá để so: chính mục + các tên miền cha (a.b.youtube.com ⇒ b.youtube.com ⇒ youtube.com). */
-function khoaSo(muc: string) {
+export function khoaSo(muc: string) {
   const ds = [muc];
   if (muc.includes(".") && !muc.endsWith(".exe")) {
     const p = muc.split(".");

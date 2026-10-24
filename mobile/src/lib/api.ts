@@ -150,3 +150,12 @@ export type ThongKeWeb = {
   heThong: string[];
   mayLoc: { id: string; ten: string; cheDo: string; lanCuoi: string | null }[];
 };
+// ---- Thời gian màn hình theo tuần (GET /api/m/con/:id/man-hinh?lui=0) — server/lib/man-hinh.ts
+export type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
+export type ManHinhTuan = {
+  ten: string; lui: number; dau: string; cuoi: string; homNay: string;
+  tongPhut: number; tbNgay: number; tuanTruocPhut: number;
+  theoNgay: { ngay: string; phut: number; theoMuc: Partial<Record<MucMH, number>> }[];
+  theoMuc: { muc: MucMH; phut: number; soMuc: number }[];
+  ds: { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; phut: number; soLan: number; theoNgay: number[] }[];
+};

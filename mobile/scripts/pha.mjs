@@ -132,6 +132,25 @@ Object.assign(coBan, {
   // FR-03.06 giữ (đóng băng) chuỗi ngày · FR-06.02 xuất CSV
   "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-21", duocDung: true, daDung: [] } },
   "POST con/c1/dong-bang-chuoi": { ngay: "2026-10-21" },
+  "GET con/c1/man-hinh": (() => {
+    const N = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
+    const ds = [
+      { id: "robloxplayerbeta.exe", ten: "Roblox", kieu: "app", muc: "game", soLan: 0, theoNgay: [40, 35, 50, 20, 45, 0, 0] },
+      { id: "youtube.com", ten: "youtube.com", kieu: "web", muc: "video", soLan: 42, theoNgay: [25, 30, 15, 20, 35, 0, 0] },
+      { id: "aiirob.aiilab.vn", ten: "aiirob.aiilab.vn", kieu: "web", muc: "hoc", soLan: 18, theoNgay: [30, 25, 40, 30, 20, 0, 0] },
+      { id: "khanacademy.org", ten: "khanacademy.org", kieu: "web", muc: "hoc", soLan: 9, theoNgay: [10, 0, 15, 20, 0, 0, 0] },
+      { id: "tiktok.com", ten: "tiktok.com", kieu: "web", muc: "video_ngan", soLan: 23, theoNgay: [10, 15, 5, 10, 20, 0, 0] },
+      { id: "com.zing.zalo", ten: "Zalo", kieu: "app", muc: "mxh", soLan: 0, theoNgay: [5, 10, 5, 10, 5, 0, 0] },
+      { id: "chrome.exe", ten: "Chrome", kieu: "app", muc: "tien_ich", soLan: 0, theoNgay: [5, 5, 10, 5, 5, 0, 0] },
+      { id: "paint3d.exe", ten: "Paint3d", kieu: "app", muc: "chua_xep", soLan: 0, theoNgay: [0, 10, 0, 5, 0, 0, 0] },
+    ].map((x) => ({ ...x, phut: x.theoNgay.reduce((a, b) => a + b, 0) }));
+    const theoNgay = N.map((ngay, i) => { const tm = {}; for (const x of ds) if (x.theoNgay[i]) tm[x.muc] = (tm[x.muc] ?? 0) + x.theoNgay[i];
+      return { ngay, phut: Object.values(tm).reduce((a, b) => a + b, 0), theoMuc: tm }; });
+    const tong = theoNgay.reduce((a, d) => a + d.phut, 0);
+    const theoMuc = [...new Set(ds.map((x) => x.muc))].map((muc) => ({ muc, phut: ds.filter((x) => x.muc === muc).reduce((a, x) => a + x.phut, 0), soMuc: ds.filter((x) => x.muc === muc).length }))
+      .sort((a, b) => b.phut - a.phut);
+    return { ten: KEN, lui: 0, dau: N[0], cuoi: N[6], homNay: N[4], tongPhut: tong, tbNgay: Math.round(tong / 5), tuanTruocPhut: 820, theoNgay, theoMuc, ds };
+  })(),
   "GET con/c1/bao-cao/csv": { tenTep: "aiigrow-bao-cao-Ken-2026-10-19.csv", noiDung: "\uFEFFBáo cáo tuần AiiGrow,Ken\r\n" },
 });
 
@@ -244,6 +263,9 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-canh-bao", "/canh-bao", "ROB GỢI Ý"),          // NhomTieu in hoa bằng CSS ⇒ innerText in hoa
     M("bm-canh-bao-may", "/canh-bao/a1", "AiiGrow không đọc nội dung"),
     M("bm-bao-cao", "/bao-cao", "DÙNG NHIỀU NHẤT"),
+    M("bm-man-hinh", "/man-hinh/c1", "THEO MỤC"),
+    M("bm-man-hinh (lọc ngày + mục)", "/man-hinh/c1", "Bỏ lọc", { truoc: async () => { await di("/man-hinh/c1"); await doi("Trò chơi"); await bam("Trò chơi"); await doi("Bỏ lọc"); } }),
+    M("bm-man-hinh (trống)", "/man-hinh/c1", "Chưa có dữ liệu tuần này", { kb: { "GET con/c1/man-hinh": { ten: KEN, lui: 0, dau: "2026-10-19", cuoi: "2026-10-25", homNay: "2026-10-23", tongPhut: 0, tbNgay: 0, tuanTruocPhut: 0, theoNgay: [], theoMuc: [], ds: [] } } }),
     M("bm-gio", "/gio/c1", "Trần mỗi ngày"),
     M("bm-app-web", "/app-web", "LUÔN ĐƯỢC DÙNG"),
     M("bm-ho-so-con", "/ho-so/c1", "Ghép thêm máy"),

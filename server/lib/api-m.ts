@@ -14,6 +14,7 @@ import * as la from "./luat-app.ts";
 import { dieuChinhTay, lichSu, tomTatVi } from "./vi.ts";
 import { thanhTich } from "./thanh-tich.ts";
 import { baoCaoTuan, homNay } from "./bao-cao.ts";
+import { thoiGianManHinh } from "./man-hinh.ts";
 import { khoaNgay } from "./may-con.ts";
 import { dsCanhBao, dsSuKien, ghiSuKien } from "./nhat-ky.ts";
 import { newId } from "./db.ts";
@@ -101,6 +102,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
       if (sau === "bao-cao" && get) return json(await baoCaoTuan(fam, id));
+      if (sau === "man-hinh" && get) return json(await thoiGianManHinh(fam, id, Number(new URL(req.url).searchParams.get("lui")) || 0));
       if (sau === "thanh-tich" && get) return json(await thanhTich(id));
       // M6: mã liên kết AiiRob «<family_id>.<child_id>» Ba Mẹ dán vào AiiRob (webhook gửi lại giaDinh + con, xem lib/aiirob.ts)
       if (sau === "lien-ket-aiirob" && get) return json({ ma: `${fam}.${id}` });

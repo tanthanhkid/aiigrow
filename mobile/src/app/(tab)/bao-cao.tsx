@@ -2,6 +2,7 @@
 // Chỉ tên app/tên miền + thời lượng, không ghi nội dung. «Xuất CSV» mở được bằng Excel / Google Sheets.
 import { useState } from "react";
 import { View } from "react-native";
+import { router } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, Dong, Luoi2, M, Man, Nhom, NhomTieu, Nut, OSo, The, useLam, useTai } from "@/lib/ui";
 import { luuTepChu } from "@/lib/luu-tep";
@@ -56,6 +57,9 @@ function BaoCaoCon({ id }: { id: string }) {
               ))}
             </View>
           </The>
+          <Nhom>
+            <Dong dau tieu="Thời gian màn hình" phu="Từng app, trang web trong tuần, theo mục" trai={<BieuTron ic="cot" mau="tim" />} bam={() => router.push(`/man-hinh/${id}`)} />
+          </Nhom>
           <Luoi2>
             <OSo nho="Nhiệm vụ được duyệt" so={nay.duyet.duoc} phu={`Tuần trước ${d.tuanTruoc.duyet.duoc}`} />
             <OSo nho="Ngoại lệ" so={nay.ngoaiLe} phu={`Tuần trước ${d.tuanTruoc.ngoaiLe}`} />
