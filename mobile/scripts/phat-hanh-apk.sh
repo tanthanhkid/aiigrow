@@ -22,7 +22,21 @@ VER="$(node -p "require('./package.json').version")"
 VNAME="$VER+$SHA"
 TAG="android-$VER-$SHA-$CODE"
 echo "== $VNAME (versionCode $CODE), tag $TAG"
-[ -z "$(git status --porcelain -- . ':!android')" ] || echo "!! cảnh báo: mobile/ có thay đổi chưa commit — bản build không khớp commit $SHA"
+# Cổng an toàn: cây git phải sạch (file đã theo dõi) và HEAD phải là origin/main — trừ --thu.
+DIRTY="$(git status --porcelain --untracked-files=no)"
+git fetch -q origin main || echo "!! không fetch được origin/main"
+if [ "$THU" = 1 ]; then
+  [ -z "$DIRTY" ] || echo "!! cảnh báo (--thu): cây git có thay đổi chưa commit — bản build không khớp commit $SHA"
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || echo "!! cảnh báo (--thu): HEAD khác origin/main"
+else
+  [ -z "$DIRTY" ] || { echo "TỪ CHỐI: cây git bẩn, hãy commit/stash trước:"; echo "$DIRTY"; exit 1; }
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "TỪ CHỐI: HEAD khác origin/main — chỉ đăng bản từ main (dùng --thu để thử)"; exit 1; }
+fi
+
+# expo prebuild sửa package.json và vài file đã theo dõi — luôn khôi phục khi thoát (chỉ khi cây sạch lúc bắt đầu).
+if [ -z "$DIRTY" ]; then
+  trap 'git -C "$M" checkout -q -- :/ 2>/dev/null || true' EXIT
+fi
 
 echo "load: $(uptime | sed 's/.*load averages*: //')"
 
