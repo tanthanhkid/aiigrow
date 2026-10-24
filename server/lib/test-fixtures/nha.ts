@@ -32,8 +32,9 @@ export async function luonChoiDuoc(con: string, tranh: Date[] = []) {
   const xa = (h: number) => moc.every((m) => Math.min(Math.abs(h - m), 1440 - Math.abs(h - m)) >= 120);
   let ho = moc[0] + 720;
   for (let i = 0; i < 24 && !xa(((ho % 1440) + 1440) % 1440); i++) ho += 60;
+  if (!xa(((ho % 1440) + 1440) % 1440)) throw new Error("luonChoiDuoc: không còn giờ nào cách mọi mốc ≥ 2 giờ — bớt mốc `tranh`");
   const khung = [{ tu: hhmm(ho + 1), den: hhmm(ho) }];
-  const lich = { ngayThuong: khung, cuoiTuan: khung, ngu: { tu: hhmm(ho), den: hhmm(ho + 1) } };
-  await q(`update children set lich = $2::jsonb where id = $1`, [con, JSON.stringify(lichCua(lich))]);
+  const lich = lichCua({ ngayThuong: khung, cuoiTuan: khung, ngu: { tu: hhmm(ho), den: hhmm(ho + 1) } });
+  await q(`update children set lich = $2::jsonb where id = $1`, [con, JSON.stringify(lich)]);
   return lich;
 }

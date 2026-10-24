@@ -38,7 +38,7 @@ test("ghép máy platform «mac» lưu đúng; mã ghép của nền khác bị 
 test("thêm giờ cho lời xin từ máy Mac ⇒ cua_so_den, hanMoCuaMay, dong-bo nhận mode tu_do + grantEndsAt; Khoá lại ngay đóng cửa sổ", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Phi" });
-  await luonChoiDuoc(con);   // dong-bo dùng đồng hồ thật: giờ ngủ mặc định 21:00–06:30 khoá máy (mode «khoa») dù đang có thêm giờ
+  await luonChoiDuoc(con, [T]);   // dong-bo dùng đồng hồ thật: giờ ngủ mặc định 21:00–06:30 khoá máy (mode «khoa») dù đang có thêm giờ
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "mac", "Mac của Phi");
   const may = (await g.mayTuToken(r.token))!;
   const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "Để làm bài tập" }, T);
