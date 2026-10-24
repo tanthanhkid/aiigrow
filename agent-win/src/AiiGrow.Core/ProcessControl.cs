@@ -24,27 +24,30 @@ public static class ProcessEnforcer
     /// <summary>Đóng các tiến trình ngoài danh sách cho phép. Trả về tên các exe đã đóng (chữ thường).
     /// <paramref name="dryRun"/> = chế độ giám sát: CHỈ liệt kê tên exe SẼ bị đóng, KHÔNG thật sự đóng (để thử an toàn).</summary>
     public static IReadOnlyList<string> Enforce(IProcessControl control, int sessionId, IEnumerable<string> allowedApps,
-        IEnumerable<string>? safeDirs = null, bool dryRun = false)
+        IEnumerable<string>? safeDirs = null, bool dryRun = false, string? winDir = null)
     {
         var procs = control.ListChildProcesses(sessionId)
             .Where(p => !string.IsNullOrWhiteSpace(p.Path))
             .ToList();
         var allowed = new HashSet<string>(allowedApps.Select(a => a.ToLowerInvariant()), StringComparer.OrdinalIgnoreCase);
         var safe = (safeDirs ?? ProcessGuard.DefaultSafeDirs()).ToList();
+        winDir ??= Environment.GetFolderPath(Environment.SpecialFolder.Windows);
 
         // Thư mục của các app được phép đang chạy: helper cùng thư mục thì không đóng.
         var allowedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var p in procs)
         {
-            if (!allowed.Contains(FileName(p.Path))) continue;
+            if (!allowed.Contains(FileName(p.Path)) && !(ProcessGuard.TenGoiStore(p.Path) is { } g && allowed.Contains(g))) continue;
             var d = DirName(p.Path);
-            if (d != null) allowedDirs.Add(d);
+            // app được phép nằm trong thư mục Windows (vd notepad ở System32) KHÔNG kéo cả System32 thành «helper cùng thư mục» (cmd, powershell…)
+            if (d != null && !(!string.IsNullOrWhiteSpace(winDir) && (d + "\\").StartsWith(winDir!.TrimEnd('\\', '/') + "\\", StringComparison.OrdinalIgnoreCase)))
+                allowedDirs.Add(d);
         }
 
         var closed = new List<string>();
         foreach (var p in procs)
         {
-            if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe)) continue;
+            if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe, winDir)) continue;
             if (dryRun) { closed.Add(FileName(p.Path).ToLowerInvariant()); continue; }
             if (control.Close(p.Id)) closed.Add(FileName(p.Path).ToLowerInvariant());
         }

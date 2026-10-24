@@ -51,17 +51,49 @@ public class UsageTrackerTests
 public class ProcessGuardTests
 {
     private static readonly HashSet<string> Allowed = new(StringComparer.OrdinalIgnoreCase) { "winword.exe" };
-    private static readonly string[] Safe = { @"C:\Windows", @"C:\Program Files\AiiGrow" };
+    private static readonly string[] Safe = { @"C:\Program Files\AiiGrow" };
+    private const string Win = @"C:\Windows";
     private static readonly HashSet<string> NoDirs = new(StringComparer.OrdinalIgnoreCase);
 
     [Theory]
     [InlineData(@"C:\Users\An\AppData\Local\Roblox\RobloxPlayer.exe", true)]
     [InlineData(@"C:\Program Files\Microsoft Office\WINWORD.EXE", false)]
-    [InlineData(@"C:\Windows\System32\notepad.exe", false)]
+    [InlineData(@"C:\Windows\System32\notepad.exe", true)]            // BUG-008: notepad / cmd / powershell / calc qua phân loại
+    [InlineData(@"C:\Windows\System32\cmd.exe", true)]
+    [InlineData(@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", true)]
+    [InlineData(@"C:\Windows\System32\calc.exe", true)]
+    [InlineData(@"C:\Windows\explorer.exe", false)]                      // tiến trình hệ thống cần cho phiên
+    [InlineData(@"C:\Windows\System32\sihost.exe", false)]
+    [InlineData(@"C:\Windows\System32\RuntimeBroker.exe", false)]
+    [InlineData(@"C:\Windows\SystemApps\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\TextInputHost.exe", false)]
+    [InlineData(@"C:\Windows\SystemApps\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\StartMenuExperienceHost.exe", false)]
+    [InlineData(@"C:\Users\An\Downloads\explorer.exe", true)]          // đổi tên game thành explorer.exe ngoài thư mục Windows ⇒ vẫn đóng
     [InlineData(@"C:\Program Files\AiiGrow\AiiGrow.Tray.exe", false)]
+    [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WindowsCalculator_11.2.0.0_x64__8wekyb3d8bbwe\CalculatorApp.exe", true)]   // BUG-009
+    [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WindowsTerminal_1.0.0.0_x64__8wekyb3d8bbwe\WindowsTerminal.exe", true)]
+    [InlineData(@"C:\Program Files (x86)\Microsoft\EdgeWebView\Application\120.0\msedgewebview2.exe", false)]   // BUG-007
+    [InlineData(@"C:\Users\An\Downloads\msedgewebview2.exe", true)]
     [InlineData(@"C:\WindowsEvil\x.exe", true)]
     public void ShouldClose(string path, bool expected)
-        => Assert.Equal(expected, ProcessGuard.ShouldClose(path, Allowed, NoDirs, Safe));
+        => Assert.Equal(expected, ProcessGuard.ShouldClose(path, Allowed, NoDirs, Safe, Win));
+
+    [Fact]
+    public void ShouldClose_AppStoreDuocPhepTheoTenGoiHoacTenExe()
+    {
+        const string calc = @"C:\Program Files\WindowsApps\Microsoft.WindowsCalculator_11.2.0.0_x64__8wekyb3d8bbwe\CalculatorApp.exe";
+        Assert.False(ProcessGuard.ShouldClose(calc, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "microsoft.windowscalculator" }, NoDirs, Safe, Win));
+        Assert.False(ProcessGuard.ShouldClose(calc, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "calculatorapp.exe" }, NoDirs, Safe, Win));
+        Assert.Equal("microsoft.windowscalculator", ProcessGuard.TenGoiStore(calc));
+        Assert.Null(ProcessGuard.TenGoiStore(@"C:\Windows\System32\notepad.exe"));
+    }
+
+    [Fact]
+    public void DefaultSafeDirs_KhongMienThuMucWindowsVaWindowsApps()
+    {
+        var ds = ProcessGuard.DefaultSafeDirs();
+        Assert.DoesNotContain(ds, d => d.EndsWith("WindowsApps", StringComparison.OrdinalIgnoreCase) || d.Contains("WindowsApps", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(ds, d => string.Equals(d, Environment.GetFolderPath(Environment.SpecialFolder.Windows), StringComparison.OrdinalIgnoreCase));
+    }
 
     [Fact]
     public void ShouldClose_HelperCungThuMucVoiAppDuocPhepThiGiu()

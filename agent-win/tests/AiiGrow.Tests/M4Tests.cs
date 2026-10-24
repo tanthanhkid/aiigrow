@@ -15,7 +15,8 @@ internal sealed class FakeProcessControl : IProcessControl
 
 public class ProcessEnforcerTests
 {
-    private static readonly string[] Safe = { @"C:\Windows", @"C:\Program Files\AiiGrow" };
+    private static readonly string[] Safe = { @"C:\Program Files\AiiGrow" };
+    private const string Win = @"C:\Windows";
 
     [Fact]
     public void Enforce_DongGameNgoaiDanhSach_GiuAppHocVaHeThong()
@@ -23,12 +24,26 @@ public class ProcessEnforcerTests
         var fake = new FakeProcessControl(
             new RunningProc(10, @"C:\Users\An\AppData\Local\game-thu\game-thu.exe"),
             new RunningProc(11, @"C:\Program Files\Microsoft Office\WINWORD.EXE"),
-            new RunningProc(12, @"C:\Windows\System32\notepad.exe"));
+            new RunningProc(12, @"C:\Windows\explorer.exe"),
+            new RunningProc(13, @"C:\Windows\System32\notepad.exe"));
 
-        var closed = ProcessEnforcer.Enforce(fake, sessionId: 2, allowedApps: new[] { "winword.exe" }, safeDirs: Safe);
+        var closed = ProcessEnforcer.Enforce(fake, sessionId: 2, allowedApps: new[] { "winword.exe" }, safeDirs: Safe, winDir: Win);
 
-        Assert.Equal(new[] { 10 }, fake.Closed);
-        Assert.Equal(new[] { "game-thu.exe" }, closed);
+        // BUG-008: explorer (hệ thống cần cho phiên) giữ; notepad qua phân loại ⇒ đóng như game
+        Assert.Equal(new[] { 10, 13 }, fake.Closed);
+        Assert.Equal(new[] { "game-thu.exe", "notepad.exe" }, closed);
+    }
+
+    [Fact]
+    public void Enforce_AppDuocPhepONamTrongWindows_KhongKeoCaThuMucThanhHelper()
+    {
+        var fake = new FakeProcessControl(
+            new RunningProc(40, @"C:\Windows\System32\notepad.exe"),
+            new RunningProc(41, @"C:\Windows\System32\cmd.exe"));
+
+        ProcessEnforcer.Enforce(fake, 2, new[] { "notepad.exe" }, Safe, winDir: Win);
+
+        Assert.Equal(new[] { 41 }, fake.Closed);   // notepad được phép, cmd cùng System32 vẫn đóng
     }
 
     [Fact]
@@ -38,7 +53,7 @@ public class ProcessEnforcerTests
             new RunningProc(20, @"C:\Program Files\Microsoft Office\WINWORD.EXE"),
             new RunningProc(21, @"C:\Program Files\Microsoft Office\OfficeClickToRun.exe"));
 
-        ProcessEnforcer.Enforce(fake, 2, new[] { "winword.exe" }, Safe);
+        ProcessEnforcer.Enforce(fake, 2, new[] { "winword.exe" }, Safe, winDir: Win);
 
         Assert.Empty(fake.Closed);
     }
@@ -47,7 +62,7 @@ public class ProcessEnforcerTests
     public void Enforce_BoQuaTienTrinhKhongCoDuongDan()
     {
         var fake = new FakeProcessControl(new RunningProc(30, ""));
-        Assert.Empty(ProcessEnforcer.Enforce(fake, 2, Array.Empty<string>(), Safe));
+        Assert.Empty(ProcessEnforcer.Enforce(fake, 2, Array.Empty<string>(), Safe, winDir: Win));
     }
 
     [Fact]
@@ -58,7 +73,7 @@ public class ProcessEnforcerTests
             new RunningProc(10, @"C:\Users\An\AppData\Local\game-thu\game-thu.exe"),
             new RunningProc(11, @"C:\Program Files\Microsoft Office\WINWORD.EXE"));
 
-        var seCho = ProcessEnforcer.Enforce(fake, sessionId: 2, allowedApps: new[] { "winword.exe" }, safeDirs: Safe, dryRun: true);
+        var seCho = ProcessEnforcer.Enforce(fake, sessionId: 2, allowedApps: new[] { "winword.exe" }, safeDirs: Safe, dryRun: true, winDir: Win);
 
         Assert.Equal(new[] { "game-thu.exe" }, seCho);  // vẫn nhận diện đúng game sẽ bị chặn
         Assert.Empty(fake.Closed);                       // nhưng không đóng tiến trình nào
@@ -161,12 +176,15 @@ public class BlockScreenViewTests
         => Assert.Equal(expected, BlockScreenView.ReasonText(reason));
 
     [Fact]
-    public void DungDiem_ChiHienKhiChanGiaiTriVaDoiDiemDuoc()
+    public void DungDiem_HienKhiDoiDiemDuocTruKhoa()
     {
         Assert.True(BlockScreenView.CanUsePoints(LockReasons.HetDiem, canExchangePoints: true));
         Assert.True(BlockScreenView.CanUsePoints(LockReasons.ChuaPhanLoai, true));
-        // Ngoài giờ: điểm không mua được giờ ⇒ chỉ còn xin Ba Mẹ.
-        Assert.False(BlockScreenView.CanUsePoints(LockReasons.HetGio, true));
+        // Ngoài giờ / giờ ngủ: nút vẫn hiện (BUG-006) — máy chủ trả lời bằng lời nếu không cho.
+        Assert.True(BlockScreenView.CanUsePoints(LockReasons.HetGio, true));
+        Assert.True(BlockScreenView.CanUsePoints(LockReasons.Ngu, true));
+        // Ba Mẹ khoá máy ⇒ ẩn.
+        Assert.False(BlockScreenView.CanUsePoints(LockReasons.Khoa, true));
         // Không được đổi điểm ⇒ ẩn.
         Assert.False(BlockScreenView.CanUsePoints(LockReasons.HetDiem, false));
     }

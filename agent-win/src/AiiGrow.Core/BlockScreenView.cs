@@ -29,11 +29,11 @@ public static class BlockScreenView
     };
 
     /// <summary>
-    /// Nút «Dùng điểm để chơi» chỉ hiện khi đây là màn chặn giải trí mà điểm mở được (hết điểm / chưa phân loại)
-    /// và máy chủ cho phép đổi điểm. Ngoài giờ / khoá: chỉ còn nút «Xin phép Ba Mẹ».
+    /// Nút «Dùng điểm để chơi» luôn hiện khi máy chủ cho phép đổi điểm (BUG-006) — trừ khi Ba Mẹ khoá máy.
+    /// Ngoài giờ / giờ ngủ: máy chủ (phien/xet) quyết định và trả lời bằng lời; màn chặn chỉ hiển thị câu đó.
     /// </summary>
     public static bool CanUsePoints(string? reason, bool canExchangePoints)
-        => canExchangePoints && reason is LockReasons.HetDiem or LockReasons.ChuaPhanLoai;
+        => canExchangePoints && reason != LockReasons.Khoa;
 
     public const string OfflineCodeLabel = "Mất mạng? Nhập mã của Ba Mẹ";
 
