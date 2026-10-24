@@ -29,11 +29,14 @@ public protocol MayChuApi: AnyObject {
   func datPhien(mayChu: String, token: String)
   /// POST api/device/lenh/:id/xong — báo đã thực thi lệnh (vd «go») TRƯỚC khi xoá token.
   func baoXongLenh(id: String) async throws
+  /// GET api/agent/ban-moi?platform=mac — nil nếu máy chủ không có manifest.
+  func banMoi() async throws -> BanMoi?
 }
 
 public extension MayChuApi {
   func datPhien(mayChu: String, token: String) {}
   func baoXongLenh(id: String) async throws {}
+  func banMoi() async throws -> BanMoi? { nil }
 }
 
 public final class ApiClient: MayChuApi {
@@ -118,11 +121,11 @@ public final class ApiClient: MayChuApi {
   }
 
   /// Kiểm bản mới (GET api/agent/ban-moi?platform=mac) → {version, url, sha256} hoặc nil nếu không có. Công khai, không cần token.
-  public func banMoi() async throws -> (version: String, url: String, sha256: String)? {
+  public func banMoi() async throws -> BanMoi? {
     let d = try await gui("GET", "api/agent/ban-moi?platform=mac", nil)
     guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
           let v = o["version"] as? String, let u = o["url"] as? String, let s = o["sha256"] as? String else { return nil }
-    return (v, u, s)
+    return BanMoi(version: v, url: u, sha256: s)
   }
 
   public func baoXongLenh(id: String) async throws {

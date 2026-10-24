@@ -29,6 +29,7 @@ public actor BoMay {
   private let donDieu: () -> Double
 
   private var cauHinh: CauHinhMay
+  private let capNhat: BoCapNhat
   private var policy: Policy?
   /// Thời điểm (đơn điệu) phải đồng bộ lại.
   private var syncLuc: Double = 0
@@ -48,7 +49,9 @@ public actor BoMay {
   private var daApHosts: String?
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
-              dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 }) {
+              dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
+              capNhat: BoCapNhat? = nil) {
+    self.capNhat = capNhat ?? BoCapNhat(api: api, heThong: heThong, mayChu: { [kho] in (api as? ApiClient)?.mayChu ?? kho.doc()?.mayChu ?? ApiClient.mayChuMacDinh })
     self.api = api; self.heThong = heThong; self.kho = kho; self.tuyChon = tuyChon
     self.dongHo = dongHo; self.donDieu = donDieu
     self.cauHinh = kho.doc() ?? CauHinhMay()
@@ -363,6 +366,8 @@ public actor BoMay {
       return await taoYeuCau(loai: "them_gio", phut: phut, giaTri: nil, lyDo: loiNhan ?? "Con xin thêm giờ")
     case let .xinMo(muc, loai, loiNhan):
       return await taoYeuCau(loai: loai == "web" ? "mo_web" : "cai_app", phut: nil, giaTri: muc, lyDo: loiNhan ?? "Con xin mở \(muc)")
+    case .capNhat:
+      return await capNhatNgay()
     case let .ghep(ma, taiKhoanCon):
       do {
         try await ghep(ma: ma, taiKhoanCon: taiKhoanCon)
@@ -373,6 +378,23 @@ public actor BoMay {
       catch { return .loi(ma: "ghep_loi", chu: "\(error)") }
     }
   }
+
+  // MARK: tự cập nhật
+
+  /// Kiểm bản mới ngay (nút «Kiểm tra cập nhật»); có bản mới thì tải + cài nền.
+  public func capNhatNgay() async -> TraLoi {
+    let kq = await capNhat.batDau(dangGo: { await self.dangGoHienTai() })
+    if case .loi(let c) = kq { return .loi(ma: "cap_nhat_loi", chu: c) }
+    return .thongBao(chu: kq.chu)
+  }
+
+  /// Daemon gọi lúc khởi động (+90 giây) và mỗi 6 giờ, từ Task riêng; chờ lượt tải/cài nền xong rồi mới trả.
+  public func kiemCapNhatDinhKy() async {
+    _ = await capNhat.batDau(dangGo: { await self.dangGoHienTai() })
+    await capNhat.choXong()
+  }
+
+  private func dangGoHienTai() -> Bool { dangGo }
 
   private func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async -> TraLoi {
     do {

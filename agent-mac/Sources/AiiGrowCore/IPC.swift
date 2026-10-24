@@ -27,6 +27,8 @@ public enum YeuCauTray: Codable, Equatable {
   case xinMo(muc: String, loai: String, loiNhan: String?)
   /// Ba Mẹ (admin) ghép máy lần đầu: mã 6 số trong app + tên tài khoản macOS của Con (short name)
   case ghep(ma: String, taiKhoanCon: String)
+  /// Ba Mẹ (admin) bấm «Kiểm tra cập nhật»: daemon hỏi manifest ngay; có bản mới thì tải + cài nền. Trả `.thongBao`.
+  case capNhat
 }
 
 /// Chế độ máy đang áp — cùng nghĩa với `mode` của server (tu_do / hoc / khoa).
@@ -69,6 +71,7 @@ public enum TraLoi: Codable, Equatable {
   case trangThai(TrangThai)
   case ok(id: String?)
   case canhBao(id: String?, chu: String)   // thành công nhưng có điều Ba Mẹ cần biết (vd chưa hạ được quyền admin của Con)
+  case thongBao(chu: String)               // câu kết quả (vd «Đang là bản mới nhất (0.1.1)»)
   case loi(ma: String, chu: String)        // chu: câu tiếng Việt hiện thẳng cho người dùng
 }
 

@@ -1,10 +1,10 @@
 #!/bin/bash
 # Dựng agent-mac/ra/AiiGrow-<BAN>.pkg. Chỉ build, không cài.
-# Dùng: BAN=0.1.0 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
+# Dùng: BAN=0.1.1 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
 set -euo pipefail
 cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
-BAN="${BAN:-0.1.0}"
+BAN="${BAN:-0.1.1}"
 # Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
 grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
 # Phát hành (NOTARY=1) phải ký thật cả app lẫn gói.

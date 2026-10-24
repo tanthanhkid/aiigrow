@@ -3,7 +3,7 @@ import Foundation
 
 public enum PhienBan {
   /// Bản tác tử Mac — gửi lên máy chủ ở header X-AiiGrow-Ban và status.version (server/lib/ban-agent.ts).
-  public static let hienTai = "0.1.0"
+  public static let hienTai = "0.1.1"
 }
 
 /// Chế độ chạy tác tử do Ba Mẹ chọn (dong-bo.<nền>.cheDo). Mặc định GIÁM SÁT: chỉ ghi việc SẼ làm, không đóng app, không khoá — như agent-win.

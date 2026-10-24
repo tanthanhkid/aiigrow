@@ -97,6 +97,12 @@ public enum TrayLogic {
     public mutating func daDong() { giuCanhBao = false; dangGui = false }
   }
 
+  /// Nút «Kiểm tra cập nhật»: chỉ phiên Ba Mẹ (admin, không phải phiên Con). Daemon vẫn kiểm lại theo uid.
+  public static func canKiemCapNhat(_ t: TrangThai?, laAdmin: Bool) -> Bool { t?.laPhienCon != true && laAdmin }
+
+  /// Dòng bản đang chạy ở menu.
+  public static func dongBanDangChay(_ ban: String = PhienBan.hienTai) -> String { "AiiGrow bản \(ban)" }
+
   /// Cảnh báo khi Con còn quyền admin (nil = ổn).
   public static func dongCanhBaoAdmin(_ t: TrangThai?) -> String? {
     guard let c = t?.canhBaoAdmin, !c.isEmpty else { return nil }

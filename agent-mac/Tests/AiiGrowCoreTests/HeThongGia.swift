@@ -38,6 +38,28 @@ final class HeThongGia: HeThong, @unchecked Sendable {
     return Set(tep.keys.filter { $0.hasPrefix(tien) }.compactMap { $0.dropFirst(tien.count).split(separator: "/").first.map(String.init) }).sorted()
   }
 
+  // tự cập nhật
+  static let chuKyDungMau = """
+  Package "AiiGrow-0.1.2.pkg":
+     Status: signed by a developer certificate issued by Apple for distribution
+     Notarization: trusted by the Apple notary service
+     Signed with a trusted timestamp on: 2026-10-24 08:00:00 +0000
+     Certificate Chain:
+      1. Developer ID Installer: TAN THANH TRAN (ADUL7HT969)
+         Expires: 2031-02-01 00:00:00 +0000
+      2. Developer ID Certification Authority
+      3. Apple Root CA
+  """
+  var pkgutilRa: (Int32, String) = (0, HeThongGia.chuKyDungMau)
+  var spctlRa: (Int32, String) = (0, "accepted")
+  var loiCaiGoi: Error?
+  var daCaiGoi: [String] = []
+  var daTaoThuMuc: [String] = []
+  func taoThuMuc(_ duongDan: String, quyen: Int) throws { daTaoThuMuc.append(duongDan) }
+  func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { pkgutilRa }
+  func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { spctlRa }
+  func caiGoi(_ duongDan: String) throws { if let e = loiCaiGoi { throw e }; daCaiGoi.append(duongDan) }
+
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
   func xoaTep(_ duongDan: String) { tep[duongDan] = nil }

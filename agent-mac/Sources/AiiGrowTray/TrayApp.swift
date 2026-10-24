@@ -89,6 +89,10 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       muc("Ghép máy với Con…", #selector(moGhep))
       m.addItem(.separator())
     }
+    if TrayLogic.canKiemCapNhat(t, laAdmin: laAdmin()) {
+      muc("Kiểm tra cập nhật", #selector(kiemCapNhat))
+    }
+    dong(TrayLogic.dongBanDangChay())
     dong(TrayLogic.dongDangBat)
     return m
   }
@@ -102,6 +106,20 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let a = NSAlert(); a.messageText = "Đổi điểm lấy thời gian"
     a.informativeText = "Con mở app AiiGrow của Con để đổi điểm nhé."
     a.addButton(withTitle: "Đã hiểu"); a.runModal()
+  }
+  @objc func kiemCapNhat() {
+    Task {
+      var chu: String
+      do {
+        switch try await IPCClient.guiAsync(.capNhat) {
+        case .thongBao(let c): chu = c
+        case .loi(_, let c): chu = c
+        default: chu = "Đã gửi yêu cầu."
+        }
+      } catch { chu = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé." }
+      let a = NSAlert(); a.messageText = "Kiểm tra cập nhật"; a.informativeText = chu
+      a.addButton(withTitle: "Đã hiểu"); NSApp.activate(ignoringOtherApps: true); a.runModal()
+    }
   }
   @objc func moGhep() { capNhatGhep(ep: true) }
 

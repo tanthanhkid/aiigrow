@@ -144,6 +144,30 @@ public final class HeThongMac: HeThong {
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
   }
 
+  public func taoThuMuc(_ duongDan: String, quyen: Int) throws {
+    try FileManager.default.createDirectory(atPath: duongDan, withIntermediateDirectories: true, attributes: [.posixPermissions: quyen])
+    chmod(duongDan, mode_t(quyen))            // umask không được nới quyền
+  }
+
+  public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) {
+    HeThongMac.chay("/usr/sbin/pkgutil", ["--check-signature", duongDan], timeout: 60)
+  }
+
+  public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) {
+    HeThongMac.chay("/usr/sbin/spctl", ["-a", "-t", "install", duongDan], timeout: 60)
+  }
+
+  /// Job launchd riêng: preinstall của gói `bootout` daemon, launchd giết cả nhóm tiến trình của daemon — chỉ `launchctl submit` thoát được.
+  /// Bọc trong sh: cài xong tự xoá gói + tự `launchctl remove` nhãn (không để postinstall tự gỡ nhãn đang chạy installer).
+  public func caiGoi(_ duongDan: String) throws {
+    let nhan = LuatCapNhat.nhanCai
+    _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót từ lần trước
+    let kich = "/usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; /bin/rm -f \"$1\" ; /bin/launchctl remove \"$2\" ; exit $ma"
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
+                                                      "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan], timeout: 10)
+    guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
+  }
+
   public func xoaBoNhoDNS() {
     _ = HeThongMac.chay("/usr/bin/dscacheutil", ["-flushcache"])
     _ = HeThongMac.chay("/usr/bin/killall", ["-HUP", "mDNSResponder"])

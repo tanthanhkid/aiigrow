@@ -30,6 +30,18 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
 - Khoá: tray hiện màn khoá toàn màn hình + đếm ngược, hết đếm ngược daemon khoá/đăng xuất phiên Con.
 - Mất mạng: chạy theo Policy nhớ, giờ còn lại tự trừ.
 
+## 7. Tự cập nhật (từ bản 0.1.1)
+`CapNhat.swift` (`BoCapNhat`, `LuatCapNhat`), gọi từ `BoMay.kiemCapNhatDinhKy` (Task riêng trong `main.swift`: +90 giây, rồi mỗi 6 giờ) và `BoMay.capNhatNgay` (IPC `capNhat`).
+- **Quyết định**: manifest công khai (kiểm được cả khi chưa ghép); chỉ khi `version` > `PhienBan.hienTai` theo số x.y.z; cờ chống chạy chồng; đang `dangGo` thì bỏ (hỏi lại ngay trước khi cài).
+- **An toàn**: URL gói https + host = host máy chủ đang dùng; chuyển hướng chỉ tới https `github.com` / `*.githubusercontent.com` / host máy chủ (tối đa 5 lần, chặn bằng URLSessionTaskDelegate);
+  tải vào `…/AiiGrow/cap-nhat` (0700, tệp 0600); sha256 khớp manifest; `pkgutil --check-signature` ra «signed by a developer certificate issued by Apple» + chứng chỉ đầu chuỗi
+  «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)»; `spctl -a -t install` mã 0. Sai bước nào ⇒ xoá tệp, ghi log, không cài.
+- **Cài**: `HeThong.caiGoi` = `launchctl submit -l vn.aiilab.aiigrow.capnhat -- sh -c 'installer -pkg … -target /; rm gói; launchctl remove nhãn'` — phải là job launchd riêng vì
+  preinstall `bootout` chính daemon. Nhãn tự gỡ ở cuối job nên `postinstall` không phải gỡ (gỡ trong postinstall sẽ giết installer giữa chừng).
+- **Nút**: tray (chỉ phiên admin, không phải Con) «Kiểm tra cập nhật» ⇒ `YeuCauTray.capNhat` ⇒ `TraLoi.thongBao` («Đang là bản mới nhất (x)» / «Đang tải bản y…») hoặc `.loi`.
+  `QuyenIPC`: Con (kể cả khi là admin) bị từ chối. Menu có dòng «AiiGrow bản x».
+- Phát hành bản mới: `BAN=… build-pkg.sh` → release `mac-<bản>` → điền `BAN_AGENT_MAC` (server/lib/ban-agent.ts) gồm sha256 của đúng tệp. Bản 0.1.0 không tự cập nhật, cài tay một lần.
+
 ## 6. Luật khi phát triển trên máy Thanh
 KHÔNG sudo, KHÔNG nạp daemon/LaunchAgent, KHÔNG kill tiến trình thật, KHÔNG sửa `/etc/hosts` hay Managed Preferences. Mọi tác động hệ thống
 đi qua protocol để test bằng bản giả; daemon có cờ `--thu` (chỉ in việc sẽ làm). Build riêng: `swift build --scratch-path .build-<tên> -j 2`.

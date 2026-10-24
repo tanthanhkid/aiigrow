@@ -31,6 +31,14 @@ public protocol HeThong: AnyObject {
   func xoaBoNhoDNS()
   /// Chạy trình gỡ (go-cai.sh) như một job launchd riêng, để nó sống sau khi gỡ chính daemon.
   func chayTrinhGo()
+  /// Tạo thư mục (cả cha) với quyền `quyen`, chủ root.
+  func taoThuMuc(_ duongDan: String, quyen: Int) throws
+  /// `pkgutil --check-signature <gói>` ⇒ (mã thoát, đầu ra).
+  func kiemChuKyGoi(_ duongDan: String) -> (Int32, String)
+  /// `spctl -a -t install <gói>` ⇒ (mã thoát, đầu ra).
+  func kiemSpctlGoi(_ duongDan: String) -> (Int32, String)
+  /// Cài gói bằng `/usr/sbin/installer -pkg … -target /` chạy như job launchd riêng (preinstall bootout chính daemon).
+  func caiGoi(_ duongDan: String) throws
   func haQuyenAdmin(taiKhoan: String) throws
   /// Đóng phiên đồ hoạ của uid (Con bị đăng xuất về màn đăng nhập).
   func dongPhien(uid: UInt32) throws
@@ -61,6 +69,10 @@ public final class HeThongThu: HeThong {
   public func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { se("ghi \(duongDan) (\(d.count) byte, quyền \(String(quyen, radix: 8)))") }
   public func xoaTep(_ duongDan: String) { se("xoá \(duongDan)") }
   public func chayTrinhGo() { se("chạy trình gỡ go-cai.sh (launchctl submit)") }
+  public func taoThuMuc(_ duongDan: String, quyen: Int) throws { se("tạo thư mục \(duongDan) (quyền \(String(quyen, radix: 8)))") }
+  public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { that.kiemChuKyGoi(duongDan) }
+  public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { that.kiemSpctlGoi(duongDan) }
+  public func caiGoi(_ duongDan: String) throws { se("cài gói \(duongDan) (installer qua launchctl submit)") }
   public func xoaBoNhoDNS() { se("xoá bộ nhớ DNS (dscacheutil -flushcache; killall -HUP mDNSResponder)") }
   public func haQuyenAdmin(taiKhoan: String) throws { se("hạ \(taiKhoan) khỏi nhóm admin (dseditgroup)") }
   public func dongPhien(uid: UInt32) throws { se("đóng phiên của uid \(uid) (launchctl bootout gui/\(uid))") }

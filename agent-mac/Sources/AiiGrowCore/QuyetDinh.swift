@@ -132,6 +132,9 @@ public enum QuyenIPC {
     case .ping, .appTienCanh, .xinThem, .xinMo:
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
       return .duoc
+    case .capNhat:
+      guard uidGoi != uidCon, uidGoi == 0 || laAdmin(uidGoi) else { return .tuChoi(ma: "can_admin", chu: "Chỉ tài khoản quản trị (Ba Mẹ) mới kiểm tra cập nhật được.") }
+      return .duoc
     case .ghep:
       guard !daGhep else { return .tuChoi(ma: "da_ghep", chu: "Máy này đã được ghép rồi.") }
       guard uidGoi != 0, laAdmin(uidGoi) else { return .tuChoi(ma: "can_admin", chu: "Chỉ tài khoản quản trị (Ba Mẹ) mới ghép được máy.") }

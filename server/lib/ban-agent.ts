@@ -13,7 +13,8 @@ export const BAN_AGENT_WINDOWS = {
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
- *  agent Mac 0.1.0 CHƯA tự cập nhật (chưa gọi banMoi) — bản mới phải cài lại tay. Khi làm bộ cập nhật: URL máy chủ 302 sang github.com, đừng chặn host cuối. */
+ *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com / *.githubusercontent.com,
+ *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
 export const BAN_AGENT_MAC = {
   version: "0.1.0",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.0.pkg",
