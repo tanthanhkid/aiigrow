@@ -167,9 +167,22 @@ final class CapNhatTests: XCTestCase {
     _ = await chay(boCapNhat())
     XCTAssertTrue(fake.daCaiGoi.isEmpty)
     fake.pkgutilRa = (0, HeThongGia.chuKyDungMau); fake.spctlRa = (3, "rejected")
+    gio = gio.addingTimeInterval(6 * 3600)                     // gói hỏng cũng tính lượt thử ⇒ phải chờ 6 giờ
     _ = await chay(boCapNhat())
     XCTAssertTrue(fake.daCaiGoi.isEmpty)
     XCTAssertTrue(fake.log.contains { $0.contains("spctl từ chối") })
+  }
+
+  func testGoiHongTinhLuotThuKhongTaiLaiMai() async {
+    datMayChu(sha: String(repeating: "a", count: 64))          // manifest sai sha ⇒ mọi lượt tải đều lệch
+    _ = await chay(boCapNhat())
+    let soTai = { HttpMock.daGoi.filter { $0.path.hasPrefix("tai/") }.count }
+    XCTAssertEqual(soTai(), 1)
+    gio = gio.addingTimeInterval(3600)
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(soTai(), 1, "chưa tới 6 giờ ⇒ không tải lại")
+    for _ in 0..<5 { gio = gio.addingTimeInterval(6 * 3600); _ = await chay(boCapNhat()) }
+    XCTAssertEqual(soTai(), 3, "tối đa 3 lượt với cùng sha")
   }
 
   func testDangGoKhongTaiKhongCai() async {

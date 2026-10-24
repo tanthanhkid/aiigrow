@@ -147,7 +147,7 @@ public enum LichCapNhat {
 }
 
 /// Chặn chuyển hướng ra ngoài danh sách cho phép (ở đó nhận 3xx trần ⇒ tải coi như hỏng).
-final class ChuyenHuongAnToan: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+class ChuyenHuongAnToan: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
   private let mayChu: String
   private let khoa = NSLock()
   private var dem = 0
@@ -157,6 +157,42 @@ final class ChuyenHuongAnToan: NSObject, URLSessionTaskDelegate, @unchecked Send
                   newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
     khoa.lock(); dem += 1; let n = dem; khoa.unlock()
     completionHandler(n <= LuatCapNhat.toiDaChuyenHuong && LuatCapNhat.choPhepChuyenHuong(request.url, mayChu: mayChu) ? request : nil)
+  }
+}
+
+/// Tải một URL vào tệp đã mở theo từng khúc dữ liệu; vượt `toiDa` byte (Content-Length hay số đã nhận) thì huỷ ngay.
+final class TaiCoTran: ChuyenHuongAnToan, URLSessionDataDelegate, @unchecked Sendable {
+  private let ghi: FileHandle
+  private let toiDa: Int64
+  private let khoaT = NSLock()
+  private var tong: Int64 = 0
+  private var _quaCo = false
+  private var loiGhi: Error?
+  private var cho: CheckedContinuation<(URLResponse?, Error?), Never>?
+  init(mayChu: String, ghi: FileHandle, toiDa: Int) { self.ghi = ghi; self.toiDa = Int64(toiDa); super.init(mayChu: mayChu) }
+  var quaCo: Bool { khoaT.lock(); defer { khoaT.unlock() }; return _quaCo }
+
+  func chay(_ s: URLSession, _ yc: URLRequest) async -> (URLResponse?, Error?) {
+    await withCheckedContinuation { c in
+      khoaT.lock(); cho = c; khoaT.unlock()
+      let t = s.dataTask(with: yc)
+      t.delegate = self
+      t.resume()
+    }
+  }
+  func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
+                  completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    if response.expectedContentLength > toiDa { khoaT.lock(); _quaCo = true; khoaT.unlock(); completionHandler(.cancel) }
+    else { completionHandler(.allow) }
+  }
+  func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+    khoaT.lock(); tong += Int64(data.count); let qua = tong > toiDa; if qua { _quaCo = true }; khoaT.unlock()
+    if qua { dataTask.cancel(); return }
+    do { try ghi.write(contentsOf: data) } catch { khoaT.lock(); loiGhi = error; khoaT.unlock(); dataTask.cancel() }
+  }
+  func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    khoaT.lock(); let c = cho; cho = nil; let loi = loiGhi ?? error; khoaT.unlock()
+    c?.resume(returning: (task.response, loi))
   }
 }
 
@@ -190,7 +226,6 @@ public actor BoCapNhat {
     }
   }
 
-  public nonisolated var dangBan: Bool { so.dang }
   public nonisolated func giuChoNgay() -> Bool { so.giuCho() }
 
   private func ketThuc(_ kq: KetQuaCapNhat) -> KetQuaCapNhat { dang = false; so.dat(kq.chu, luc: dongHo()); return kq }
@@ -238,8 +273,8 @@ public actor BoCapNhat {
                            : (d.lan < LuatCapNhat.toiDaLanThu && (troi < 0 || troi >= LuatCapNhat.giayGiuaCacLan))
       if !choLai {
         if d.lan >= LuatCapNhat.toiDaLanThu && LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
-          heThong.ghiLog("Cập nhật: cài xong mà bản không đổi — đã cài gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Dừng tới khi manifest đổi sha256.")
-          return ketThuc(.loi("Đã cài gói \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); chờ bản phát hành mới."))
+          heThong.ghiLog("Cập nhật: gói hỏng hoặc cài xong mà bản không đổi — đã thử gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Dừng tới khi manifest đổi sha256.")
+          return ketThuc(.loi("Đã thử gói \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); chờ bản phát hành mới."))
         }
         heThong.ghiLog("Cập nhật: gói \(m.version) (sha256 \(sha.prefix(12))…) đã thử \(d.lan) lần — chưa tới lượt thử lại.")
         return ketThuc(.loi("Gói \(m.version) đã thử cài rồi; sẽ thử lại sau."))
@@ -253,6 +288,11 @@ public actor BoCapNhat {
     return kq
   }
 
+  /// Chạy việc đồng bộ nặng (băm tệp, pkgutil, spctl) trên hàng đợi GCD, không giữ luồng của actor / pool hợp tác.
+  private func ngoaiActor<T: Sendable>(_ f: @escaping @Sendable () -> T) async -> T {
+    await withCheckedContinuation { c in DispatchQueue.global(qos: .utility).async { c.resume(returning: f()) } }
+  }
+
   /// Chờ lượt tải/cài nền xong (test + daemon định kỳ).
   public func choXong() async { await tacVu?.value }
 
@@ -262,6 +302,15 @@ public actor BoCapNhat {
     func bo(_ lyDo: String) {
       heThong.ghiLog("Cập nhật: \(lyDo) — KHÔNG cài."); heThong.xoaTep(tep)
       so.dat("Cập nhật bản \(m.version) lỗi: \(lyDo)", luc: dongHo())
+    }
+    /// Gói tải về hỏng (sha256 lệch / chữ ký / spctl): cũng tính một lượt thử ⇒ trần 3 lần cách 6 giờ áp luôn, không tải lại cả gói mỗi 6 giờ mãi.
+    func boVaDem(_ lyDo: String) {
+      ghiDau()
+      bo(lyDo)
+    }
+    @discardableResult func ghiDau() -> Bool {
+      guard let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970, lan: lan)) else { return false }
+      do { try heThong.ghiTep(tepDaThu, d, quyen: 0o600); return true } catch { return false }
     }
     // installer lượt trước còn đọc gói trong thư mục này ⇒ không dọn/tải đè (bo() cũng xoá tệp nên không dùng ở đây)
     if heThong.caiDangChay() {
@@ -273,53 +322,42 @@ public actor BoCapNhat {
 
     guard let u = URL(string: m.url) else { bo("URL sai"); return }
     do {
-      // Tải theo luồng vào tệp tạm, đếm byte khi đang tải: vượt `toiDaByte` là dừng ngay (không để thân vài GB ghi đầy đĩa hệ thống).
-      let (luong, resp) = try await session.bytes(for: URLRequest(url: u), delegate: ChuyenHuongAnToan(mayChu: mayChu()))
-      guard let h = resp as? HTTPURLResponse, h.statusCode == 200 else {
-        luong.task.cancel()
-        bo("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)"); return
-      }
-      guard h.expectedContentLength <= Int64(toiDaByte) else { luong.task.cancel(); bo("gói vượt \(toiDaByte) byte — không tải"); return }
+      // Tải vào tệp tạm theo từng khúc (data delegate), đếm byte khi đang tải: vượt `toiDaByte` là dừng ngay
+      // (không để thân vài GB ghi đầy đĩa hệ thống trước khi kiểm kích thước).
       let tam = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("aiigrow-tai-\(UUID().uuidString).pkg")
       defer { try? FileManager.default.removeItem(at: tam) }
       guard FileManager.default.createFile(atPath: tam.path, contents: nil, attributes: [.posixPermissions: 0o600]),
-            let ghi = try? FileHandle(forWritingTo: tam) else { luong.task.cancel(); bo("không tạo được tệp tạm"); return }
-      var tong = 0, khuc = [UInt8](); khuc.reserveCapacity(1 << 16)
-      do {
-        defer { try? ghi.close() }
-        for try await b in luong {
-          khuc.append(b)
-          if khuc.count == 1 << 16 {
-            tong += khuc.count
-            if tong > toiDaByte { luong.task.cancel(); bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
-            try ghi.write(contentsOf: khuc); khuc.removeAll(keepingCapacity: true)
-          }
-        }
-        tong += khuc.count
-        if tong > toiDaByte { bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
-        try ghi.write(contentsOf: khuc)
+            let ghi = try? FileHandle(forWritingTo: tam) else { bo("không tạo được tệp tạm"); return }
+      let tai = TaiCoTran(mayChu: mayChu(), ghi: ghi, toiDa: toiDaByte)
+      let (resp, loi) = await tai.chay(session, URLRequest(url: u))
+      try? ghi.close()
+      if tai.quaCo { bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
+      if let loi { bo("tải lỗi: \(loi)"); return }
+      guard let h = resp as? HTTPURLResponse, h.statusCode == 200 else {
+        bo("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)"); return
       }
       let kich = (try? FileManager.default.attributesOfItem(atPath: tam.path)[.size] as? Int) ?? 0
       guard kich > 0, kich <= toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }
-      guard let sha = LuatCapNhat.sha256Tep(tam.path) else { bo("không đọc được tệp tải"); return }
-      guard sha == m.sha256 else { bo("sha256 lệch (nhận \(sha.prefix(12))…, manifest \(m.sha256.prefix(12))…)"); return }
+      let duong = tam.path
+      guard let sha = await ngoaiActor({ LuatCapNhat.sha256Tep(duong) }) else { bo("không đọc được tệp tải"); return }
+      guard sha == m.sha256 else { boVaDem("sha256 lệch (nhận \(sha.prefix(12))…, manifest \(m.sha256.prefix(12))…)"); return }
       do { try heThong.chuyenTep(tam.path, vao: tep, quyen: 0o600) } catch { bo("không chuyển được gói vào \(thuMuc): \(error)"); return }
-    } catch { bo("tải lỗi: \(error)"); return }
+    }
 
-    let (mk, rk) = heThong.kiemChuKyGoi(tep)
-    guard mk == 0, LuatCapNhat.chuKyDung(rk) else { bo("chữ ký gói sai (pkgutil mã \(mk))"); return }
-    let (ms, rs) = heThong.kiemSpctlGoi(tep)
-    guard ms == 0 else { bo("spctl từ chối gói (mã \(ms): \(rs.prefix(200)))"); return }
+    // pkgutil/spctl (tới 60 giây mỗi lệnh, spctl hỏi Apple trực tuyến) chạy ngoài luồng hợp tác của Swift concurrency
+    let ht = heThong
+    let (mk, rk) = await ngoaiActor({ ht.kiemChuKyGoi(tep) })
+    guard mk == 0, LuatCapNhat.chuKyDung(rk) else { boVaDem("chữ ký gói sai (pkgutil mã \(mk))"); return }
+    let (ms, rs) = await ngoaiActor({ ht.kiemSpctlGoi(tep) })
+    guard ms == 0 else { boVaDem("spctl từ chối gói (mã \(ms): \(rs.prefix(200)))"); return }
     heThong.ghiLog("Cập nhật: sha256 + chữ ký khớp (\(LuatCapNhat.nguoiKy)).")
 
     // Kiểm lại NGAY trước khi giao installer: máy bị gỡ / bỏ ghép trong lúc tải thì thôi.
     guard await choPhep(), heThong.docTep(DuongDan.daGo) == nil else { bo("máy đã bị gỡ hoặc bỏ ghép trong lúc tải"); return }
-    guard !heThong.caiDangChay() else { bo("đang có một lượt installer khác chạy (\(LuatCapNhat.nhanCai))"); return }
-    // Dấu ghi TRƯỚC khi giao installer (preinstall bootout daemon ngay, không kịp ghi sau); giao lỗi thì trả dấu cũ ⇒ lượt này không bị tính.
+    // Dấu ghi TRƯỚC khi giao installer (preinstall bootout daemon ngay, không kịp ghi sau); giao lỗi (kể cả installer khác đang chạy —
+    // caiGoi tự kiểm) thì trả dấu cũ ⇒ lượt này không bị tính.
     let dauCu = heThong.docTep(tepDaThu)
-    if let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970, lan: lan)) {
-      do { try heThong.ghiTep(tepDaThu, d, quyen: 0o600) } catch { bo("không ghi được dấu đã thử (\(error)) nên không cài"); return }
-    }
+    guard ghiDau() else { bo("không ghi được dấu đã thử nên không cài"); return }
     do {
       try heThong.caiGoi(tep)
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())

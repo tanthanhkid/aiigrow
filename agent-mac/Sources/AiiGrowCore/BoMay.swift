@@ -12,10 +12,12 @@ public struct TuyChonBoMay: Sendable {
   public var demNguocKhoaGiay: Int
   /// Chỉ test: kiểm app tiền cảnh ngay trong vòng thay vì ở hàng đợi nền.
   public var tienCanhDongBo: Bool
+  /// false = chế độ thử (--thu): không tự cập nhật, kể cả khi Ba Mẹ bấm nút.
+  public var tuCapNhat: Bool
   public init(duongDanHosts: String = "/etc/hosts", thuMucChinhSach: String = ChinhSachTrinhDuyet.thuMuc,
-              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienCanhDongBo: Bool = false) {
+              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienCanhDongBo: Bool = false, tuCapNhat: Bool = true) {
     self.duongDanHosts = duongDanHosts; self.thuMucChinhSach = thuMucChinhSach
-    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienCanhDongBo = tienCanhDongBo
+    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienCanhDongBo = tienCanhDongBo; self.tuCapNhat = tuCapNhat
   }
 }
 
@@ -362,7 +364,7 @@ public actor BoMay {
       // Trạng thái cập nhật: chỉ Ba Mẹ (cùng quy tắc quyền IPC capNhat); admin tra qua bộ nhớ đệm (tray hỏi mỗi 5 giây, dscl không chạy mỗi lần)
       if let chu = capNhat.so.chu, QuyenIPC.laBaMe(uidGoi: uidGoi, uidCon: cauHinh.uidCon, laAdmin: { self.laAdminDem($0) }) {
         tt.capNhat = chu; tt.capNhatLuc = capNhat.so.luc
-      }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      }
       return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
@@ -388,6 +390,7 @@ public actor BoMay {
 
   /// Nút «Kiểm tra cập nhật»: trả lời NGAY (tray chỉ chờ 3 giây), kiểm + tải + cài chạy nền; kết quả nằm ở `TrangThai.capNhat`.
   public func capNhatNgay() async -> TraLoi {
+    guard tuyChon.tuCapNhat else { return .thongBao(chu: "[thử] daemon chạy chế độ thử — không tự cập nhật.") }
     guard coTheCapNhat() else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
     guard capNhat.giuChoNgay() else { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
     capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())      // ghi ngay để lần hỏi trạng thái kế thấy, không chờ Task kịp chạy

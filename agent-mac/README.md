@@ -42,6 +42,6 @@ BAN=<bản> KY_APP="Developer ID Application: TAN THANH TRAN (ADUL7HT969)" \
 
 `build-pkg.sh` ký app (hardened runtime + timestamp), ký gói, gửi notarytool (khoá ASC), staple và kiểm `spctl`.
 Máy 0.1.1 trở lên chỉ tự cập nhật bằng gói ký đúng «Developer ID Installer» trên — gói không ký sẽ bị mọi máy tải về rồi từ chối,
-nên `build-pkg.sh` từ chối build không ký trừ khi đặt `THU=1` (chỉ để thử trên máy dev).
+nên `build-pkg.sh` từ chối build thiếu `NOTARY=1` (ký + notarize) trừ khi đặt `THU=1` (chỉ để thử trên máy dev).
 
 Không cài thử trên máy phát triển (luật `THIET-KE.md` mục 6): chỉ kiểm cú pháp (`bash -n`) và build gói.

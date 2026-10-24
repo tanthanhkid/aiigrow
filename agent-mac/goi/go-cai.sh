@@ -21,7 +21,8 @@ echo "da-go" > "$DA_GO" 2>/dev/null && /bin/chmod 0600 "$DA_GO"
 # Đang tự cập nhật (installer chạy trong job vn.aiilab.aiigrow.capnhat): chờ xong (tối đa ~5 phút) rồi mới gỡ, kẻo installer nạp lại daemon sau khi ta gỡ.
 i=0
 while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
-  [ "$i" -eq 0 ] && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút)…"
+  # installer đang chạy đã thấy dấu da-go (postinstall có thể đã dọn app): từ giờ không trả dấu nữa — ngắt giữa chừng cũng là đã gỡ.
+  [ "$i" -eq 0 ] && trap - INT TERM HUP && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút, đừng ngắt)…"
   [ "$i" -gt 0 ] && [ $((i % 15)) -eq 0 ] && echo "  vẫn đang chờ… ($((i * 2)) giây)"
   /bin/sleep 2; i=$((i + 1))
 done

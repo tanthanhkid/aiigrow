@@ -10,8 +10,9 @@ BAN="${BAN:-0.1.1}"
 grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
 # Phát hành (NOTARY=1) phải ký thật cả app lẫn gói. Từ 0.1.1 máy tự cập nhật CHỈ nhận gói ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)»
 # ⇒ gói không ký chỉ để thử trên máy dev: phải nói rõ THU=1, kẻo lỡ phát hành gói mọi máy tải về rồi từ chối.
-if [ -z "${KY_PKG:-}" ] && [ "${THU:-}" != 1 ]; then
-  echo "Thiếu KY_APP + KY_PKG (+ NOTARY=1) — gói phát hành phải ký Developer ID. Chỉ build thử không ký: THU=1 $0" >&2; exit 1
+# Máy còn kiểm `spctl -a -t install` ⇒ gói phát hành phải notarize nữa (NOTARY=1).
+if [ "${NOTARY:-}" != 1 ] && [ "${THU:-}" != 1 ]; then
+  echo "Gói phát hành phải ký Developer ID + notarize: KY_APP=… KY_PKG=… NOTARY=1 $0. Chỉ build thử: THU=1 $0" >&2; exit 1
 fi
 if [ "${NOTARY:-}" = 1 ] || [ -n "${KY_PKG:-}" ]; then
   [ -n "${KY_APP:-}" ] && [ -n "${KY_PKG:-}" ] || { echo "NOTARY/KY_PKG cần đủ KY_APP + KY_PKG" >&2; exit 1; }
