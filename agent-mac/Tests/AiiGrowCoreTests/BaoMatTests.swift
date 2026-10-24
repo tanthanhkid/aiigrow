@@ -901,7 +901,7 @@ final class BaoMatTests: XCTestCase {
     }
     XCTAssertEqual(HeThongMac.nhanTrinhGo, "vn.aiilab.aiigrow.go")
     // ngắt trước khi gỡ thật ⇒ trả dấu da-go; tới đoạn gỡ thật thì bỏ trap; chờ cập nhật có báo + cảnh báo khi quá 5 phút
-    let tr = s.range(of: "trap '/bin/rm -f \"$DA_GO\"")!, bo = s.range(of: "trap - INT TERM HUP")!, out = s.range(of: "bootout system/vn.aiilab.aiigrow.daemon")!
+    let tr = s.range(of: "trap 'if [ -d \"$GOC/Applications/AiiGrow.app\" ]; then /bin/rm -f \"$DA_GO\"")!, bo = s.range(of: "trap - INT TERM HUP")!, out = s.range(of: "bootout system/vn.aiilab.aiigrow.daemon")!
     XCTAssertTrue(tr.lowerBound < bo.lowerBound && bo.lowerBound < out.lowerBound)
     XCTAssertTrue(s.contains("đang tự cập nhật — chờ") && s.contains("quá 5 phút"))
   }

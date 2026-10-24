@@ -14,15 +14,15 @@ DA_GO="$GOC/var/db/aiigrow-da-go"
 # Bị ngắt (Ctrl-C…) TRƯỚC khi gỡ thật ⇒ trả lại dấu như cũ (máy vẫn ghép, daemon vẫn chạy — đừng để dấu «đã gỡ» chặn tự cập nhật mãi).
 # Dấu có sẵn từ trước (daemon gỡ từ xa ghi) thì giữ nguyên.
 if [ ! -f "$DA_GO" ]; then
-  trap '/bin/rm -f "$DA_GO"; echo "Đã dừng — chưa gỡ gì."; exit 130' INT TERM HUP
+  # Trong lúc chờ bộ tự cập nhật: postinstall thấy dấu có thể đã dọn app ⇒ chỉ trả dấu khi app còn nguyên (máy vẫn chạy bình thường).
+  trap 'if [ -d "$GOC/Applications/AiiGrow.app" ]; then /bin/rm -f "$DA_GO"; echo "Đã dừng — chưa gỡ gì."; else echo "Đã dừng giữa lúc cập nhật — chạy lại go-cai.sh để gỡ nốt."; fi; exit 130' INT TERM HUP
 fi
 echo "da-go" > "$DA_GO" 2>/dev/null && /bin/chmod 0600 "$DA_GO"
 
 # Đang tự cập nhật (installer chạy trong job vn.aiilab.aiigrow.capnhat): chờ xong (tối đa ~5 phút) rồi mới gỡ, kẻo installer nạp lại daemon sau khi ta gỡ.
 i=0
 while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
-  # installer đang chạy đã thấy dấu da-go (postinstall có thể đã dọn app): từ giờ không trả dấu nữa — ngắt giữa chừng cũng là đã gỡ.
-  [ "$i" -eq 0 ] && trap - INT TERM HUP && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút, đừng ngắt)…"
+  [ "$i" -eq 0 ] && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút, đừng ngắt)…"
   [ "$i" -gt 0 ] && [ $((i % 15)) -eq 0 ] && echo "  vẫn đang chờ… ($((i * 2)) giây)"
   /bin/sleep 2; i=$((i + 1))
 done
@@ -120,6 +120,7 @@ done
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"
 /bin/rm -f /var/run/aiigrow.sock
 /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg >/dev/null 2>&1 || true
+/bin/rm -f "$DA_GO"                 # gỡ xong (job cập nhật đã bị dừng ở trên): không để dấu ngoài thư mục AiiGrow quyết định lần cài sau
 echo "Đã gỡ AiiGrow."
 # Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại
 # và lần gỡ từ xa sau không bị trùng nhãn. Việc CUỐI CÙNG của tập lệnh (remove có thể gửi SIGTERM cho chính tiến trình này).

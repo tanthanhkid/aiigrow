@@ -194,8 +194,7 @@ public final class HeThongMac: HeThong {
       "/bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
                                                       "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan, dau, DuongDan.daGo,
-                                                      "/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist",
-                                                      "/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"], timeout: 10)
+                                                      DuongDan.daemonPlist, DuongDan.trayPlist], timeout: 10)
     guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
   }
 

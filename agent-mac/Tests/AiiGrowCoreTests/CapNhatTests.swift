@@ -374,6 +374,15 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 2, "dấu ở «tương lai» không chặn lượt thử kế")
   }
 
+  func testKhoiDongLaiSauLuotCaiHongBaoChoBaMe() async throws {
+    let d = DauDaThu(version: "0.1.2", sha256: String(repeating: "b", count: 64), luc: gio.timeIntervalSince1970 - 600, lan: 2)
+    fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(d)
+    let b = boCapNhat()
+    XCTAssertTrue(b.so.chu?.contains("Chưa cài được bản 0.1.2 (đã thử 2 lần)") ?? false, "\(b.so.chu ?? "nil")")
+    fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(DauDaThu(version: "0.1.1", sha256: d.sha256, luc: d.luc))
+    XCTAssertNil(boCapNhat().so.chu, "đang chạy đúng bản đã cài ⇒ không báo")
+  }
+
   func testNutBaMeThuLaiSau1Gio() async {
     datMayChu()
     _ = await chay(boCapNhat())

@@ -218,6 +218,11 @@ public actor BoCapNhat {
     self.toiDaByte = toiDaByte
     self.api = api; self.heThong = heThong; self.mayChu = mayChu; self.thuMuc = thuMuc; self.tepDaThu = tepDaThu
     self.banHienTai = banHienTai; self.dongHo = dongHo; self.so = so
+    // Lượt cài trước giao installer mà máy vẫn chạy bản cũ (installer lỗi rồi daemon cũ được nạp lại): báo cho Ba Mẹ thấy ngay khi khởi động.
+    if let d = heThong.docTep(tepDaThu).flatMap({ try? JSONDecoder().decode(DauDaThu.self, from: $0) }), LuatCapNhat.laBanMoiHon(d.version, banHienTai),
+       dongHo().timeIntervalSince1970 - d.luc < 86_400 {
+      so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — xem /Library/Logs/AiiGrow/capnhat.log; sẽ thử lại.", luc: dongHo())
+    }
     if let session { self.session = session } else {
       let c = URLSessionConfiguration.ephemeral
       c.timeoutIntervalForRequest = 30
@@ -239,9 +244,14 @@ public actor BoCapNhat {
   /// `daGiuCho`: người gọi đã `giuChoNgay()` thành công.
   public func batDau(thuCong: Bool = false, daGiuCho: Bool = false, choPhep: @escaping @Sendable () async -> Bool) async -> KetQuaCapNhat {
     if !daGiuCho { guard so.giuCho() else { return .dangBan } }
-    guard await choPhep(), heThong.docTep(DuongDan.daGo) == nil else {
-      heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ / đã gỡ — không tự cập nhật.")
+    guard await choPhep() else {
+      heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ — không tự cập nhật.")
       return ketThuc(.loi("Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật."))
+    }
+    guard heThong.docTep(DuongDan.daGo) == nil else {
+      // máy vẫn ghép mà còn dấu gỡ (lượt gỡ tay bị dừng giữa chừng…): nói thật nguyên nhân + cách gỡ vướng
+      heThong.ghiLog("Cập nhật: còn dấu gỡ \(DuongDan.daGo) — không tự cập nhật.")
+      return ketThuc(.loi("Máy còn dấu «đã gỡ» từ một lượt gỡ dở (\(DuongDan.daGo)); cài lại AiiGrow hoặc ghép lại máy để tự cập nhật tiếp."))
     }
     so.dat("Đang kiểm tra bản mới…", luc: dongHo())
     let ban: BanMoi?
@@ -313,7 +323,8 @@ public actor BoCapNhat {
       do { try heThong.ghiTep(tepDaThu, d, quyen: 0o600); return true } catch { return false }
     }
     // installer lượt trước còn đọc gói trong thư mục này ⇒ không dọn/tải đè (bo() cũng xoá tệp nên không dùng ở đây)
-    if heThong.caiDangChay() {
+    let ht = heThong
+    if await ngoaiActor({ ht.caiDangChay() }) {
       heThong.ghiLog("Cập nhật: lượt installer trước (\(LuatCapNhat.nhanCai)) còn chạy — để lượt sau.")
       so.dat("Đang cài bản trước, sẽ kiểm lại sau.", luc: dongHo()); return
     }
@@ -345,7 +356,6 @@ public actor BoCapNhat {
     }
 
     // pkgutil/spctl (tới 60 giây mỗi lệnh, spctl hỏi Apple trực tuyến) chạy ngoài luồng hợp tác của Swift concurrency
-    let ht = heThong
     let (mk, rk) = await ngoaiActor({ ht.kiemChuKyGoi(tep) })
     guard mk == 0, LuatCapNhat.chuKyDung(rk) else { boVaDem("chữ ký gói sai (pkgutil mã \(mk))"); return }
     let (ms, rs) = await ngoaiActor({ ht.kiemSpctlGoi(tep) })
@@ -359,7 +369,7 @@ public actor BoCapNhat {
     let dauCu = heThong.docTep(tepDaThu)
     guard ghiDau() else { bo("không ghi được dấu đã thử nên không cài"); return }
     do {
-      try heThong.caiGoi(tep)
+      try await ngoaiActor({ Result { try ht.caiGoi(tep) } }).get()
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")
     } catch {
