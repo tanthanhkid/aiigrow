@@ -11,6 +11,7 @@
 // Agent mặc định chạy chế độ GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do).
 import { gioDiaPhuong, laCuoiTuan, phutCua, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
+import { nhipToiKhoaLai } from "./cau-hinh.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 
 export type PolicyWindows = {
@@ -94,7 +95,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     allowedApps: [...new Set([...p.allowlistHeThong.filter(exe).map((x) => x.toLowerCase()), ...hoc, ...choi, ...(phienWeb ? TRINH_DUYET : [])])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null,
-    nextCheckSec: nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }),
+    nextCheckSec: nhipToiKhoaLai(nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }), [p.khoaLaiLuc, p.khoaHetLuc], now),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
     ...(dangMo ? { grantEndsAt: mo.moDen!.toISOString() } : {}),
     // Đang «mở» có hạn ⇒ trang Giải trí cũng mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.

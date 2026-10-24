@@ -70,7 +70,8 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
 export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa"> & {
-  id: string; ten: string; namSinh: number | null; avatar: string; nhom: NhomCon; khoaNgay: boolean; lich: Lich; thamSo: Record<string, number>; may: MayCon[];
+  id: string; ten: string; namSinh: number | null; avatar: string; nhom: NhomCon; khoaNgay: boolean; /** hạn khoá (ISO); null = khoá tới khi Ba Mẹ mở */ khoaDen?: string | null;
+  /** Ba Mẹ duyệt thêm giờ lúc đang khoá ⇒ máy mở tạm tới giờ này (ISO) rồi khoá lại; null = không mở tạm */ moTamDen?: string | null; lich: Lich; thamSo: Record<string, number>; may: MayCon[];
 };
 export type NhiemVu = { id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string; toi_da_ngay: number | null;
   toi_da_tuan: number | null; phut_toi_thieu: number; tu_duyet: boolean; giao_cho: string | null; han: string | null; bat: boolean };
@@ -121,6 +122,7 @@ export type TuanThuMay = {
   coTheXoaHan: boolean;
 };
 export type CheDoMay = "giam-sat" | "chan";
+export const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 /** POST may/:id/go {matKhau, xoaHan?} */
 export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };

@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, GOC, LoiApi, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
+import { bm, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Canh, cauLoi, Chips, ChoTai, ChonMot, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -21,7 +21,6 @@ const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
   chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web áp cho mọi tài khoản Windows trên máy — Ba Mẹ dùng máy này thì chọn Giám sát trước. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
-const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
 const GIO_MO_COI = 6;
@@ -75,9 +74,9 @@ export default function AnToanMay() {
       throw e;
     }
   });
-  if (!d) return <Man lui={{ chu: "An toàn thiết bị" }} tieu="Máy"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Máy"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.m) return (
-    <Man lui={{ chu: "An toàn thiết bị" }} tieu="Máy">
+    <Man lui={{ chu: "Quay lại" }} tieu="Máy">
       <Bao loai="ok" ic="tick" tieu="Máy này không còn trong gia đình" loi="AiiGrow đã được gỡ (hoặc máy đã được xoá khỏi danh sách). Máy không còn bị hạn chế gì từ AiiGrow." />
       <Nut chu="Quay lại" loai="vien" rong bam={() => router.back()} />
     </Man>
@@ -89,9 +88,20 @@ export default function AnToanMay() {
   const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
   const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
   return (
-    <Man lui={{ chu: "An toàn thiết bị" }} tieu={m.ten} noi={noi} tai={tai}>
+    <Man lui={{ chu: "Quay lại" }} tieu={m.ten} noi={noi} tai={tai}>
       <Canh lv="chi" thap tieu={TT_TRANG[m.trangThai].chu}
         loi={`Đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}${m.phienBan ? ` · bản ${m.phienBan}` : ""}${m.dungChung ? " · máy dùng chung" : ""}`} />
+
+      {win ? (
+        <View style={{ gap: 8 }}>
+          <Chu kieu="rat" co={14}>Chế độ trên máy</Chu>
+          {dangGo ? <Chu mau={M.chu2}>{m.cheDoMay ? TEN_CHE_DO[m.cheDoMay] : "Giám sát"} — tạm khoá vì máy đang được gỡ</Chu>
+            : d.xem ? <Chu mau={M.chu2}>{m.cheDo ? TEN_CHE_DO[m.cheDo] : "Chưa biết"} (bạn đang ở quyền Chỉ xem)</Chu>
+            : <ChonMot<CheDoMay | ""> ds={CHE_DO} gia={m.cheDo ?? ""} doi={(v) => { if (v) doiCheDo(v); }} />}
+          {m.cheDo ? <Chu co={13.5} mau={M.chu2}>{GIAI_CHE_DO[m.cheDo]}</Chu> : null}
+          <Chu co={13} mau={M.chu3}>{dongCheDo(m)}</Chu>
+        </View>
+      ) : null}
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <OSo nho="Điểm tuân thủ" so={m.diem} don="/100" />
@@ -124,17 +134,7 @@ export default function AnToanMay() {
         <Bao loai="ok" ic="tick" tieu="Không có vấn đề tuân thủ nào" />
       )}
 
-      <NhomTieu chu="An toàn & gỡ cài đặt" />
-      {win ? (
-        <View style={{ gap: 8 }}>
-          <Chu kieu="rat" co={14}>Chế độ trên máy</Chu>
-          {dangGo ? <Chu mau={M.chu2}>{m.cheDoMay ? TEN_CHE_DO[m.cheDoMay] : "Giám sát"} — tạm khoá vì máy đang được gỡ</Chu>
-            : d.xem ? <Chu mau={M.chu2}>{m.cheDo ? TEN_CHE_DO[m.cheDo] : "Chưa biết"} (bạn đang ở quyền Chỉ xem)</Chu>
-            : <ChonMot<CheDoMay | ""> ds={CHE_DO} gia={m.cheDo ?? ""} doi={(v) => { if (v) doiCheDo(v); }} />}
-          {m.cheDo ? <Chu co={13.5} mau={M.chu2}>{GIAI_CHE_DO[m.cheDo]}</Chu> : null}
-          <Chu co={13} mau={M.chu3}>{dongCheDo(m)}</Chu>
-        </View>
-      ) : null}
+      <NhomTieu chu="Khi cần" />
 
       <Nhom>
         {!khanCap ? (
@@ -152,6 +152,7 @@ export default function AnToanMay() {
         </Bao>
       ) : null}
 
+      <NhomTieu chu="Gỡ cài đặt" />
       <Nhom>
         {d.chu && !m.dangGo && m.daDongBo ? (
           <Dong dau tieu="Gỡ AiiGrow khỏi máy này (từ xa)" phu="Máy tự gỡ sạch ở lần đồng bộ tới — cần nhập lại mật khẩu của bạn" trai={<BieuTron ic="thoat" mau="do" />} bam={() => setMo("go")} />

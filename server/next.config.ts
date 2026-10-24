@@ -17,6 +17,8 @@ const config: NextConfig = {
         destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/v:ban/AiiGrow-Setup-:ban.exe",
         permanent: false,
       },
+      // App Ba Mẹ cho Android (bản thử, GitHub Release android-0.1.0) — không có redirect thì /tai/aiigrow.apk rơi vào index.html của SPA.
+      { source: "/tai/aiigrow.apk", destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/android-0.1.0/AiiGrow-android-0.1.0.apk", permanent: false },
       { source: "/app", destination: "/", permanent: true },
       { source: "/app/:duong((?!sw\\.js$|service-worker\\.js$).*)", destination: "/:duong", permanent: true },
     ];

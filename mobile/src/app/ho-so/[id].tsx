@@ -24,11 +24,11 @@ export default function HoSoCon() {
   const { bao, noi } = useHoanTac();
   // M6: mã liên kết AiiRob «<family_id>.<child_id>» — tải riêng, lỗi thì chỉ ẩn mục này
   const lk = useTai(() => bm.goi<{ ma: string }>(`con/${id}/lien-ket-aiirob`));
-  if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Hồ sơ Con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Hồ sơ Con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const may = d.may;
   const thieu = may.filter((m) => m.baoVe !== "day_du").length;
   return (
-    <Man lui={{ chu: "Hôm nay" }} tieu={d.ten} noi={noi}>
+    <Man lui={{ chu: "Quay lại" }} tieu={d.ten} noi={noi}>
       <Canh lv="chi" thap tieu={may.length ? `${d.ten} có ${may.length} máy` : `${d.ten} chưa có máy nào`}
         loi={!may.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : thieu ? `${thieu} máy bảo vệ chưa đầy đủ — xem lý do và cách làm bên dưới.` : "Mọi máy đều được bảo vệ đầy đủ."} />
       {may.length ? (

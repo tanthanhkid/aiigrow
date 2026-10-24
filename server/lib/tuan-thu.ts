@@ -7,7 +7,7 @@
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
 import { one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { thamSo, type ThamSo } from "./cau-hinh.ts";
+import { dangKhoa, thamSo, type ThamSo } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import type { May } from "./gia-dinh.ts";
@@ -218,6 +218,7 @@ async function mayCua(fam: string, mayId: string) {
 export async function dsTuanThu(fam: string, now = new Date()) {
   await quetMatNhip(fam, now);
   const ds = await q<May>(`select * from devices where family_id = $1 order by created_at`, [fam]);
+  const cfgCon = new Map((await q<{ id: string; c: Record<string, unknown> }>(`select id, cau_hinh as c from children where family_id = $1`, [fam])).map((x) => [x.id, x.c]));
   return Promise.all(ds.map(async (m) => {
     const r = await dongTT(m.id);
     const tt = await tuanThuMay(m, now);
@@ -225,7 +226,8 @@ export async function dsTuanThu(fam: string, now = new Date()) {
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? banMayBao(m),
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
       // hạn «đang mở» thật của máy Windows (mở khẩn cấp hoặc thêm giờ đã duyệt) — app hiện «Đang mở tới …» + «Khoá lại ngay»
-      moDen: m.platform === "windows" ? (await hanMoCuaMay(m, m.child_id, now))?.toISOString() ?? null : null,
+      // Con đang bị khoá thì cửa sổ không có tác dụng (khoá thắng — agent-windows) ⇒ không báo «Đang mở tới …»
+      moDen: m.platform === "windows" && !(m.child_id && dangKhoa(cfgCon.get(m.child_id), now)) ? (await hanMoCuaMay(m, m.child_id, now))?.toISOString() ?? null : null,
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
       // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn
@@ -276,7 +278,10 @@ export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string, no
   // «Khoá lại ngay» trên máy Windows đóng luôn cửa sổ thêm giờ đã duyệt của Con (hanMoCuaMay lấy cả hai)
   const dong = m.platform === "windows" && m.child_id
     ? (await q(`update grants set cua_so_den = $2 where child_id = $1 and cua_so_den > $2 returning id`, [m.child_id, now])).length : 0;
-  await ghiSuKien(fam, "huy_mo_khan_cap", dong ? { dongCuaSo: dong } : {}, { con: m.child_id, may: m.id, nguoi });
+  // …và huỷ «mở tạm» (yeu-cau.ts › dongY) để «Khoá ngay» của Ba Mẹ có hiệu lực lại ngay — không thì PC chỉ về luật thường tới hết mốc
+  const huyMoTam = m.platform === "windows" && m.child_id
+    ? (await q(`update children set cau_hinh = cau_hinh - 'khoa_mo_tam_den' where id = $1 and cau_hinh->>'khoa_mo_tam_den' is not null returning id`, [m.child_id])).length > 0 : false;
+  await ghiSuKien(fam, "huy_mo_khan_cap", { ...(dong ? { dongCuaSo: dong } : {}), ...(huyMoTam ? { huyMoTam: true } : {}) }, { con: m.child_id, may: m.id, nguoi });
 }
 
 /** Ba Mẹ xác nhận / bỏ xác nhận một tài khoản quản trị trên máy là của Ba Mẹ. */

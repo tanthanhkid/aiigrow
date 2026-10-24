@@ -28,7 +28,7 @@ export default function ThanhVien() {
   const [tenGoi, setTenGoi] = useState("");
   const [vuaTao, setVuaTao] = useState<MoiMoi | null>(null);
   const dong = () => { setMo(null); setLoi(null); };
-  if (!d) return <Man lui={{ chu: "Cài đặt" }} tieu="Thành viên"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Gia đình" }} tieu="Thành viên"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const laChu = d.toi.vai === "chu";
   const taoMoi = () => lam(async () => {
     const r = await bm.goi<MoiMoi>("thanh-vien/moi", { vai, tenGoi: tenGoi.trim() });
@@ -37,7 +37,7 @@ export default function ThanhVien() {
   const chiaSe = (r: MoiMoi) => Share.share({ message: `Mời ${r.tenGoi || "Ba/Mẹ"} vào gia đình trên AiiGrow (quyền ${VAI[r.vai]}). Mở link: ${r.lienKet} — hoặc nhập mã ${r.ma}. Mã hết hạn sau ${d.hanGio} giờ.` })
     .catch(() => {});
   return (
-    <Man lui={{ chu: "Cài đặt" }} tieu="Thành viên" noi={noi}
+    <Man lui={{ chu: "Gia đình" }} tieu="Thành viên" noi={noi}
       day={laChu ? <Nut chu="Mời thành viên" ic="cong" rong bam={() => { setVuaTao(null); setMo("moi"); }} /> : undefined}>
       <Canh lv="canh-cac-con" thap tieu="Cả nhà cùng đồng hành" loi={laChu ? "Mời Ba, Ông Bà duyệt cùng hoặc chỉ xem tình hình. Mọi lần duyệt đều ghi rõ ai duyệt." : "Chủ gia đình mời và đổi quyền thành viên."} />
       {vuaTao ? (

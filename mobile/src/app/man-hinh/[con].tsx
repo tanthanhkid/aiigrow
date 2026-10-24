@@ -1,6 +1,6 @@
 // bm-man-hinh: thời gian màn hình của Con theo tuần (kiểu Screen Time) — app + trang web gộp theo mục (Học tập, Trò chơi, Video…),
 // biểu đồ chồng theo ngày, chạm một ngày / một mục để lọc danh sách app & trang. Số liệu từ server/lib/man-hinh.ts; chỉ tên app/tên miền
-// + thời lượng, không ghi nội dung. Mục chỉ để thống kê — muốn chặn / cho phép thì sang màn Web hoặc Cài đặt.
+// + thời lượng, không ghi nội dung. Mục chỉ để thống kê — muốn chặn / cho phép thì sang màn Trang web hoặc Ứng dụng; «Báo cáo tuần» (học / giải trí, xuất CSV) ở cuối.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -29,7 +29,7 @@ export default function ManHinhCon() {
   const { con } = useLocalSearchParams<{ con: string }>();
   const [lui, setLui] = useState(0);
   return (
-    <Man lui={{ chu: "Báo cáo" }} tieu="Thời gian màn hình">
+    <Man lui={{ chu: "Trang chủ" }} tieu="Thời gian màn hình">
       <ChonMot ds={TUAN} gia={lui} doi={setLui} />
       <Tuan key={lui} con={con} lui={lui} />
     </Man>
@@ -134,7 +134,9 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
       {!het && ds.length > hien.length ? <Nut chu={`Xem thêm ${ds.length - hien.length} mục`} loai="vien" nho bam={() => setHet(true)} /> : null}
 
       <Nhom>
-        <Dong dau tieu="Cho phép / chặn trang web" phu="Chọn từng trang, hoặc chỉ cho vào trang bạn duyệt" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
+        <Dong dau tieu="Chặn hoặc cho phép trang web" phu="Chọn từng trang, hoặc chỉ cho vào trang bạn duyệt" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
+        <Dong tieu="Chặn hoặc xếp loại ứng dụng" phu="Học tập, giải trí, chặn" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push("/app-web")} />
+        <Dong tieu="Báo cáo tuần" phu="Học và giải trí theo ngày, xuất CSV cho Excel" trai={<BieuTron ic="cot" />} bam={() => router.push({ pathname: "/bao-cao", params: { con } })} />
       </Nhom>
       <Chu co={13} mau={M.chu3}>
         Chỉ ghi tên app, tên miền và thời gian, không ghi nội dung. Thời gian trong trình duyệt được tách theo từng trang web nên không tính hai lần; thời gian trên web chỉ gần đúng. Mục «Chưa phân loại» là app AiiGrow chưa biết — chạm vào để xếp loại.

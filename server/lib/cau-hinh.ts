@@ -101,3 +101,26 @@ export function lichCua(l: Partial<Lich> | null | undefined): Lich {
 export const NHOM_GIA: Record<string, TenThamSo> = {
   game: "gia_game", video_ngan: "gia_video_ngan", mxh: "gia_mxh", phim_gd: "gia_phim_gd", khac: "gia_khac",
 };
+
+/** Ba Mẹ đang «Khoá ngay» và khoá chưa hết hạn — KHÔNG tính phần mở tạm. Có hạn (`khoa_den`) thì tự hết khi qua giờ đó, không cần tiến trình nền gỡ cờ. */
+export function khoaGoc(cfg: Record<string, unknown> | null | undefined, now = new Date()): boolean {
+  if (cfg?.khoa_ngay !== true) return false;
+  const den = typeof cfg.khoa_den === "string" ? Date.parse(cfg.khoa_den) : NaN;
+  return Number.isNaN(den) || den > now.getTime();
+}
+/** Mở tạm còn hiệu lực (ISO) hoặc null — Ba Mẹ duyệt thêm giờ lúc đang khoá ⇒ mở tới hết phần giờ đã cho rồi khoá lại (yeu-cau.ts › dongY). */
+export function moTamDen(cfg: Record<string, unknown> | null | undefined, now = new Date()): string | null {
+  if (!khoaGoc(cfg, now) || typeof cfg?.khoa_mo_tam_den !== "string") return null;
+  return Date.parse(cfg.khoa_mo_tam_den) > now.getTime() ? cfg.khoa_mo_tam_den : null;
+}
+/** Máy Con phải khoá lúc này? = khoá gốc trừ lúc đang mở tạm. */
+export const dangKhoa = (cfg: Record<string, unknown> | null | undefined, now = new Date()) => khoaGoc(cfg, now) && !moTamDen(cfg, now);
+/** Hạn khoá còn hiệu lực (ISO) hoặc null = khoá tới khi Ba Mẹ mở / không khoá. */
+export const khoaDen = (cfg: Record<string, unknown> | null | undefined, now = new Date()) =>
+  khoaGoc(cfg, now) && typeof cfg?.khoa_den === "string" ? cfg.khoa_den : null;
+
+/** Nhịp đồng bộ kế — không quá mốc đổi trạng thái khoá gần nhất (+2 giây): hết mở tạm (khoá lại) / hết hạn khoá (mở ra), để máy đổi đúng giờ. */
+export function nhipToiKhoaLai(nhip: number, mocs: (string | null | undefined)[], now: Date) {
+  const con = Math.min(...mocs.map((m) => (m ? Math.ceil((Date.parse(m) - now.getTime()) / 1000) + 2 : Infinity)).filter((x) => x > 2));
+  return Math.max(10, Math.min(nhip, con));
+}

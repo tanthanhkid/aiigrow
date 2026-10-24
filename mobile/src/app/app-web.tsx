@@ -20,7 +20,7 @@ export default function AppWeb() {
   const [nhom, setNhom] = useState("game");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  if (!d) return <Man lui={{ chu: "Cài đặt" }} tieu="App & web"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Ứng dụng"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const q = tim.trim().toLowerCase();
   const loc = <T extends { muc: string }>(ds: T[]) => (q ? ds.filter((x) => x.muc.includes(q)) : ds);
   const luu = () => lam(async () => {
@@ -32,7 +32,7 @@ export default function AppWeb() {
   const dsThe = the === "chua" ? loc(d.chuaXep).map((x) => ({ muc: x.muc, phu: `${x.phut} phút trên máy Con · chưa xếp` })) :
     loc(d.ds.filter((x) => x.loai === the)).map((x) => ({ muc: x.muc, phu: x.loai === "giai_tri" ? NHOM.find((n) => n.gia === x.nhom)?.chu ?? "Giải trí" : LOAI[x.loai][0] }));
   return (
-    <Man lui={{ chu: "Cài đặt" }} tieu="App & web" noi={noi}>
+    <Man lui={{ chu: "Trang chủ" }} tieu="Ứng dụng" noi={noi}>
       <ONhap nhan="Tìm hoặc thêm app / trang web" value={tim} onChangeText={setTim} placeholder="youtube.com, roblox.exe…" autoCapitalize="none" />
       {q && !d.ds.some((x) => x.muc === q) ? <Nut chu={`Xếp «${q}»`} nho loai="vien" ic="cong" bam={() => setXep(q)} /> : null}
       <ChonMot ds={[{ gia: "chua" as const, chu: `Chưa xếp (${d.chuaXep.length})` }, { gia: "hoc" as const, chu: "Học tập" }, { gia: "giai_tri" as const, chu: "Giải trí" }, { gia: "chan" as const, chu: "Chặn" }]}

@@ -27,7 +27,7 @@ export default function ViCon() {
   const [lyDo, setLyDo] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Ví điểm"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Ví điểm"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const tuan = d.vi.lichSu.filter((x) => d.bay - new Date(x.created_at).getTime() < 7 * 86_400_000);
   const kiem = tuan.filter((x) => x.delta > 0).reduce((a, x) => a + x.delta, 0), tieu = tuan.filter((x) => x.delta < 0).reduce((a, x) => a + x.delta, 0);
   const luu = () => lam(async () => {
@@ -38,7 +38,7 @@ export default function ViCon() {
     await tai();
   });
   return (
-    <Man lui={{ chu: "Hôm nay" }} tieu={`Ví của ${d.c.ten}`} noi={noi}
+    <Man lui={{ chu: "Trang chủ" }} tieu={`Ví của ${d.c.ten}`} noi={noi}
       phai={<Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable>}>
       <Canh lv="canh-diem" mau="vang" tieu={`${d.c.ten} có ${d.vi.soDu} điểm`} loi={`${d.vi.diemChoDuyet} điểm đang chờ duyệt · cấp ${d.vi.capDo.cap}.`}>
         {d.tt.chuoiNgay ? <Nhan loai="diem" ic="lua" chu={`Chuỗi ${d.tt.chuoiNgay} ngày`} /> : null}

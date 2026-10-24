@@ -148,8 +148,8 @@ export function OLon({ ic, mau, tieu, phu, bam, tat }: { ic: TenIcon; mau?: MauB
     </Pressable>
   );
 }
-const MAU_BT_NEN: Record<MauBt, string> = { xanh: M.chinhSoft, vang: M.diemSoft, do: M.loiSoft, cam: M.canhSoft, lam: M.lamSoft, tim: M.timSoft };
-const MAU_BT_CHU: Record<MauBt, string> = { xanh: M.chinhInk, vang: M.diemInk, do: M.loi, cam: M.canh, lam: M.lam, tim: "#4b3cc4" };
+const MAU_BT_NEN: Record<MauBt, string> = { xanh: M.chinhSoft, vang: M.diemSoft, do: M.loiSoft, cam: M.canhSoft, lam: M.lamSoft, tim: M.timSoft, xam: M.xamSoft };
+const MAU_BT_CHU: Record<MauBt, string> = { xanh: M.chinhInk, vang: M.diemInk, do: M.loi, cam: M.canh, lam: M.lam, tim: "#4b3cc4", xam: M.chu2 };
 
 /** Thẻ nhiệm vụ (.nv): biểu tượng 52, tên + dòng phụ, «+10» vàng; `het` = hôm nay đã đủ (mờ, không bấm). */
 export function TheNv({ ic, mau, tieu, phu, diem, het, bam, nhan }: { ic: TenIcon; mau?: MauBt; tieu: string; phu: string; diem: number; het?: boolean; bam?: () => void; nhan?: ReactNode }) {

@@ -3,7 +3,7 @@
 // Ứng điểm (nợ điểm) KHÔNG cho (KE-HOACH 5.5): «ngoại lệ không đủ điểm» nếu đồng ý thì là thêm giờ không trừ điểm, ghi là ngoại lệ.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { thamSo } from "./cau-hinh.ts";
+import { khoaDen, khoaGoc, moTamDen, thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { chuanMuc, datLuat } from "./luat-app.ts";
@@ -104,6 +104,17 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       }
       await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
+      // Ba Mẹ cho thêm giờ lúc Con đang «Khoá ngay» ⇒ gỡ cờ khoá TẠM đúng số phút đó rồi khoá lại (Khang 24/10: «xin thêm thời gian aiigrow không
+      // bật lại» — cờ khoa_ngay cũ đè cửa sổ mở). Grant ở trên giữ nguyên nghĩa (Windows: cửa sổ; máy khác: phút thưởng) — mở tạm chỉ là lúc
+      // khoá nhường chỗ cho luật thường. Duyệt lần nữa cộng tiếp từ mốc cũ, không vượt hạn khoá. Chỉ Ba Mẹ duyệt tay; quy tắc tự động không vượt khoá.
+      const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
+      if (nguoi && khoaGoc(cfg, now)) {
+        const tu = Math.max(now.getTime(), Date.parse(moTamDen(cfg, now) ?? "") || 0);
+        const het = khoaDen(cfg, now);
+        const moDen = new Date(Math.min(tu + phut * 60000, het ? Date.parse(het) : Infinity)).toISOString();
+        await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('khoa_mo_tam_den', $2::text) where id = $1`, [r.child_id, moDen]);
+        await ghiSuKien(fam, "mo_tam", { vi: "duyet_them_gio", yeu_cau: r.id, den: moDen }, { con: r.child_id, nguoi }, t);
+      }
       if (ngoaiLe) await ghiNgoaiLe(fam, r.child_id, nguoi, r.loai === "ngoai_gio" ? "ngoai_gio" : "them_gio_khong_tru", r.id, t, now);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
       const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";
@@ -140,6 +151,7 @@ export async function apQuyTacTuDong(fam: string, id: string, now = new Date()) 
   const r = await one<Yc & { cau_hinh: Record<string, unknown>; tz: string }>(
     `select r.*, c.cau_hinh, f.tz from requests r join children c on c.id = r.child_id join families f on f.id = c.family_id where r.id = $1 and c.family_id = $2`, [id, fam]);
   if (!r || r.trang_thai !== "cho" || r.loai !== "them_gio" || r.phut !== 15 || r.cau_hinh?.tu_dong_15 !== true) return false;
+  if (khoaGoc(r.cau_hinh, now)) return false;   // Ba Mẹ đang «Khoá ngay» (kể cả lúc đang mở tạm) ⇒ để Ba Mẹ tự quyết, không tự mở
   const daCo = await one(`select 1 from requests where child_id = $1 and tu_dong and created_at >= $2 and id <> $3`,
     [r.child_id, dauNgayUtc(gioDiaPhuong(now, r.tz).ngay, r.tz), r.id]);
   if (daCo) return false;

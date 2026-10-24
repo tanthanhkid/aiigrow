@@ -162,3 +162,89 @@ test("Windows: «Khoá lại ngay» đóng cả cửa sổ thêm giờ đã duy�
   assert.equal(t1.trangThai, "chua_co_nhip");
   assert.equal(t1.khoaGiaiTri, false);
 });
+
+test("đang «Khoá ngay» mà Ba Mẹ duyệt thêm giờ ⇒ mở TẠM đúng phần giờ đã cho rồi khoá lại; quy tắc tự động không vượt khoá (Khang 24/10)", async () => {
+  const { khoaNgay } = await import("./may-con.ts");
+  const { dangKhoa } = await import("./cau-hinh.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Ken" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "LAPTOP-KAG");
+  const may = (await g.mayTuToken(r.token))!;
+  const now = new Date();
+  await khoaNgay(fam, con, true, bm, new Date(now.getTime() + 3 * 3600_000));
+  const cfg = async () => (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
+  assert.equal(dangKhoa(await cfg(), now), true);
+  // tự đồng ý 15 phút bật sẵn — Con đang bị khoá thì không được tự mở
+  await q(`update children set cau_hinh = cau_hinh || '{"tu_dong_15": true}' where id = $1`, [con]);
+  const tu = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, now);
+  assert.equal(await yc.apQuyTacTuDong(fam, tu.id, now), false);
+  assert.equal(dangKhoa(await cfg(), now), true);
+  // Ba Mẹ duyệt tay 30 phút ⇒ mở trong 30 phút, sau đó khoá lại; hạn khoá cũ còn nguyên
+  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, now);
+  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, now);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 10 * 60_000)), false);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 31 * 60_000)), true);
+  assert.ok((await cfg()).khoa_den);
+  assert.ok(await one(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_tam'`, [fam, con]));
+  // đang mở tạm, tự đồng ý vẫn không chạy (khoá gốc còn)
+  const tu2 = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, new Date(now.getTime() + 5 * 60_000));
+  assert.equal(await yc.apQuyTacTuDong(fam, tu2.id, new Date(now.getTime() + 5 * 60_000)), false);
+  await yc.tuChoiYc(fam, tu2.id, bm, "không", new Date(now.getTime() + 5 * 60_000));
+  // duyệt lần 2 lúc đang mở tạm (phút 10, thêm 20') ⇒ cộng từ hạn mở tạm cũ: 30 + 20 = 50 — không lấy cửa sổ grant Windows (đã 30+20 từ lần trước ⇒ dễ dài hơn)
+  const t10 = new Date(now.getTime() + 10 * 60_000);
+  const b = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 20, lyDo: "xin" }, t10);
+  await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 20 }, t10);
+  assert.equal((await cfg()).khoa_mo_tam_den, new Date(now.getTime() + 50 * 60_000).toISOString());
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 49 * 60_000)), false);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 51 * 60_000)), true);
+  // khoá lại ⇒ phần mở tạm bị xoá
+  await khoaNgay(fam, con, true, bm);
+  assert.equal((await cfg()).khoa_mo_tam_den, undefined);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 10 * 60_000)), true);
+});
+
+test("mở tạm: grant giữ nghĩa cũ (điện thoại = thưởng, Windows = cửa sổ), cộng dồn, không vượt hạn khoá; Hoàn tác «Mở lại» giữ mốc", async () => {
+  const { khoaNgay } = await import("./may-con.ts");
+  const { dangKhoa, moTamDen } = await import("./cau-hinh.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Lam" });
+  const pc = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "PC")).token))!;
+  const dt = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "ĐT")).token))!;
+  const now = new Date(), phut = (n: number) => new Date(now.getTime() + n * 60_000);
+  const cfg = async () => (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
+  await khoaNgay(fam, con, true, bm, phut(180), now);
+  // duyệt từ ĐIỆN THOẠI lúc khoá ⇒ gỡ khoá 30' và 30' là thưởng (không mất, không tính hai lần)
+  const a = await yc.guiYeuCau(con, dt.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, now);
+  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, now);
+  assert.equal(dangKhoa(await cfg(), phut(5)), false);
+  assert.equal(await ph.thuongConLai(con, now), 30);
+  // duyệt tiếp từ PC lúc phút 10 ⇒ mốc cộng từ mốc cũ: 50
+  const b = await yc.guiYeuCau(con, pc.id, { loai: "them_gio", phut: 20, lyDo: "xin" }, phut(10));
+  await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 20 }, phut(10));
+  assert.equal(moTamDen(await cfg(), phut(10)), phut(50).toISOString());
+  // Mở lại rồi Hoàn tác ⇒ giữ mốc đang lưu
+  await khoaNgay(fam, con, false, bm, null, phut(12));
+  await khoaNgay(fam, con, true, bm, null, phut(12), true);
+  assert.equal((await cfg()).khoa_den, phut(180).toISOString(), "Hoàn tác giữ hạn khoá đang lưu trên máy chủ");
+  assert.equal(dangKhoa(await cfg(), phut(20)), false);
+  assert.equal(dangKhoa(await cfg(), phut(51)), true);
+  // khoá mới (không phải Hoàn tác) ⇒ mở tạm bị huỷ
+  await khoaNgay(fam, con, true, bm, phut(75), phut(15));
+  assert.equal(dangKhoa(await cfg(), phut(16)), true);
+  // Windows (lỗi gốc Khang): lời xin từ PC lúc khoá ⇒ PC có cửa sổ mở + không còn khoá trong mốc; «Khoá lại ngay» trên PC ⇒ khoá lại ngay
+  const tt = await import("./tuan-thu.ts");
+  await khoaNgay(fam, con, true, bm, null, phut(20));
+  const w = await yc.guiYeuCau(con, pc.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, phut(20));
+  await yc.dongY(fam, w.id, bm, { truDiem: false, phut: 15 }, phut(20));
+  assert.ok(await tt.hanMoCuaMay(pc, con, phut(25)));
+  assert.equal(dangKhoa(await cfg(), phut(25)), false);
+  assert.equal(dangKhoa(await cfg(), phut(36)), true);
+  await tt.huyMoKhanCap(fam, pc.id, bm, phut(26));
+  assert.equal(dangKhoa(await cfg(), phut(27)), true, "Khoá lại ngay ⇒ huỷ mở tạm");
+  await khoaNgay(fam, con, true, bm, phut(75), phut(30));
+  // khoá còn 15 phút mà duyệt 60 ⇒ mở tạm dừng ở hạn khoá (rồi hết khoá hẳn); phút vẫn là thưởng, không mất
+  const c = await yc.guiYeuCau(con, dt.id, { loai: "them_gio", phut: 60, lyDo: "xin" }, phut(60));
+  await yc.dongY(fam, c.id, bm, { truDiem: false, phut: 60 }, phut(60));
+  assert.equal((await cfg()).khoa_mo_tam_den, phut(75).toISOString());
+  assert.equal(dangKhoa(await cfg(), phut(80)), false);
+});

@@ -14,14 +14,14 @@ export default function DsCanhBao() {
   const { bao, noi } = useHoanTac();
   const [boQua, setBoQua] = useState<string[]>([]);      // «Bỏ qua» gợi ý (thiết kế bm-canh-bao) — chỉ ẩn trên màn này, không đổi cấu hình
   const an = (k: string) => { setBoQua((x) => [...x, k]); bao("Đã bỏ qua gợi ý", () => setBoQua((x) => x.filter((y) => y !== k))); };
-  if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Cảnh báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Cảnh báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = (id: string | null) => d.g.con.find((c) => c.id === id)?.ten ?? "";
   const ngoaiLe = d.ds.filter((x) => x.loai.startsWith("ngoai_le") || x.loai === "lech_nguoi_duyet");
   const anToan = d.ds.filter((x) => AN_TOAN.includes(x.loai));
   const khac = d.ds.filter((x) => !ngoaiLe.includes(x) && !anToan.includes(x));
   if (!d.ds.length) {
     return (
-      <Man lui={{ chu: "Hôm nay" }} tieu="Cảnh báo">
+      <Man lui={{ chu: "Trang chủ" }} tieu="Cảnh báo">
         <CanhGiua lv="ngu" tieu="Tuần này yên ả" loi="Không có ngoại lệ vượt ngưỡng, máy nào cũng ổn.">
           <Nut chu="Xem báo cáo tuần" bam={() => router.push("/bao-cao")} />
         </CanhGiua>
@@ -31,7 +31,7 @@ export default function DsCanhBao() {
   const manh = ngoaiLe.find((x) => x.loai === "ngoai_le_manh");
   const tuDong = (con: string) => lam(async () => { await bm.goi(`con/${con}/cau-hinh`, { tu_dong_15: true }); bao(`Đã bật tự đồng ý 15 phút cho ${ten(con)}`); });
   return (
-    <Man lui={{ chu: "Hôm nay" }} tieu="Cảnh báo" noi={noi}>
+    <Man lui={{ chu: "Trang chủ" }} tieu="Cảnh báo" noi={noi}>
       {ngoaiLe.length ? <Canh lv="trong-loi" mau="hong" tieu={manh ? manh.noi_dung.split(".")[0] : "Ngoại lệ đang tăng"} loi="Cảnh báo không chặn quyết định của Ba Mẹ — chỉ để cả nhà cùng nhìn số." /> : null}
       {ngoaiLe.length && boQua.length < (ngoaiLe[0].child_id ? 2 : 1) ? (
         <>
