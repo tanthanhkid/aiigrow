@@ -100,11 +100,12 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       let cuaSoDen: Date | null = null;
       const may = r.device_id ? (await t<{ platform: string; status: Record<string, unknown> | null }>(`select platform, status from devices where id = $1`, [r.device_id]))[0] : null;
       if (lamCuaSo(may)) {
-        const cu = (await t<{ d: Date | null }>(`select max(g.cua_so_den) as d from grants g left join requests q on q.id = g.request_id left join devices d on d.id = q.device_id
+        const cu = (await t<{ d: Date | null }>(`select max(g.cua_so_den) as d from grants g
             where g.child_id = $1 and g.cua_so_den > $2 and ${SQL_NHOM_CUA_SO} = $3`, [r.child_id, now, nhomCuaSo(may!.platform)]))[0]?.d;
         cuaSoDen = new Date(Math.max(now.getTime(), cu ? new Date(cu).getTime() : 0) + phut * 60000);
       }
-      await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);
+      await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den, nhom_cua_so) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen, cuaSoDen ? nhomCuaSo(may!.platform) : null]);
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
       // Ba Mẹ cho thêm giờ lúc Con đang «Khoá ngay» ⇒ gỡ cờ khoá TẠM đúng số phút đó rồi khoá lại (Khang 24/10: «xin thêm thời gian aiigrow không
       // bật lại» — cờ khoa_ngay cũ đè cửa sổ mở). Grant ở trên giữ nguyên nghĩa (Windows: cửa sổ; máy khác: phút thưởng) — mở tạm chỉ là lúc

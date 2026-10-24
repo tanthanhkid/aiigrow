@@ -104,11 +104,10 @@ export async function nhipTre(c: ConTre, id: string, dangDung: boolean, now = ne
   // (máy dùng chung + agent cũ: dong-bo không nhịp, trang là nguồn duy nhất).
   const p0 = await one<{ trang_thai: string; platform: string | null; status: { version?: unknown } | null }>(
     `select s.trang_thai, d.platform, d.status from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
-  // Mac: tác tử chỉ là nguồn sổ sách khi ĐO giây phiên thật (status.playSeconds là số — phien-windows.ts › laAgentMoi); số bản 0.1.x của Mac không
-  // so được với mốc 0.2.4 của Windows. Mac chưa đo ⇒ trang khay là nguồn duy nhất, nhịp theo `dangDung` (không theo tam/chay của Windows cũ).
+  // Mac: tác tử chưa đo giây phiên (không gửi playSeconds; dong-bo không nhịp — api-may.ts) ⇒ trang khay là nguồn duy nhất, nhịp theo `dangDung`.
+  // Không suy từ devices.status (gộp, giữ playSeconds cũ). Khi tác tử Mac đo giây thật thì đổi cả hai chỗ cùng lúc.
   const nen = p0?.platform;
-  const tacTuMoi = nen === "windows" ? banTu024(banMayBao({ status: p0!.status as never }))
-    : nen === "mac" && typeof (p0!.status as { playSeconds?: unknown } | null)?.playSeconds === "number";
+  const tacTuMoi = nen === "windows" && banTu024(banMayBao({ status: p0!.status as never }));
   const k = tacTuMoi
     ? await trangThaiPhien(c.id, id)
     : await nhip(c.id, id, nen === "windows" ? p0!.trang_thai !== "tam" : dangDung, now);

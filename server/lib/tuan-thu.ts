@@ -267,7 +267,7 @@ export async function hanMoCuaMay(may: Pick<May, "id" | "platform">, con: string
   await bangM4b();
   const kc = (await dongTT(may.id))?.mo_khan_cap_den;
   // Chỉ cửa sổ duyệt cho lời xin từ máy CÙNG nhóm (chuyen-doi.ts › nhomCuaSo): xin trên iPhone không mở tự do PC Windows
-  const gr = con ? (await one<{ d: Date | null }>(`select max(g.cua_so_den) as d from grants g left join requests q on q.id = g.request_id left join devices d on d.id = q.device_id
+  const gr = con ? (await one<{ d: Date | null }>(`select max(g.cua_so_den) as d from grants g
       where g.child_id = $1 and g.cua_so_den > $2 and ${SQL_NHOM_CUA_SO} = $3`, [con, now, nhomCuaSo(may.platform)]))?.d ?? null : null;
   const ds = [kc, gr].filter((x): x is Date => !!x).map((x) => new Date(x)).filter((x) => x.getTime() > now.getTime());
   return ds.length ? new Date(Math.max(...ds.map((x) => x.getTime()))) : null;
@@ -279,8 +279,8 @@ export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string, no
   await q(`update tuan_thu_may set mo_khan_cap_den = null, mo_khan_cap_nguoi = null, mo_khan_cap_ly_do = null where device_id = $1`, [m.id]);
   // «Khoá lại ngay» trên máy Windows/Mac/iOS đóng luôn cửa sổ thêm giờ đã duyệt của Con cho nhóm máy này (hanMoCuaMay lấy cả hai)
   const dong = coCuaSoThemGio(m.platform) && m.child_id
-    ? (await q(`update grants g set cua_so_den = $2 from grants g2 left join requests q on q.id = g2.request_id left join devices d on d.id = q.device_id
-        where g.id = g2.id and g.child_id = $1 and g.cua_so_den > $2 and ${SQL_NHOM_CUA_SO} = $3 returning g.id`, [m.child_id, now, nhomCuaSo(m.platform)])).length : 0;
+    ? (await q(`update grants g set cua_so_den = $2
+        where g.child_id = $1 and g.cua_so_den > $2 and ${SQL_NHOM_CUA_SO} = $3 returning g.id`, [m.child_id, now, nhomCuaSo(m.platform)])).length : 0;
   // …và huỷ «mở tạm» (yeu-cau.ts › dongY) để «Khoá ngay» của Ba Mẹ có hiệu lực lại ngay — không thì máy chỉ về luật thường tới hết mốc
   const huyMoTam = coCuaSoThemGio(m.platform) && m.child_id
     ? (await q(`update children set cau_hinh = cau_hinh - 'khoa_mo_tam_den' where id = $1 and cau_hinh->>'khoa_mo_tam_den' is not null returning id`, [m.child_id])).length > 0 : false;

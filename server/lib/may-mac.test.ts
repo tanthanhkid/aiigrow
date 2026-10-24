@@ -75,6 +75,8 @@ test("Mac: phiên chơi app của nền khác (.exe) KHÔNG thả trình duyệt
     luat: [{ muc, loai: "giai_tri" }] }) as never;
   assert.ok(!chinhSachWindows(goc("roblox.exe"), undefined, undefined, { nen: "mac" }).allowedApps.includes("com.google.Chrome"));
   assert.ok(chinhSachWindows(goc("roblox.com"), undefined, undefined, { nen: "mac" }).allowedApps.includes("com.google.Chrome"));
+  const roblox = chinhSachWindows(goc("com.roblox.RobloxPlayer"), undefined, undefined, { nen: "mac" }).allowedApps;
+  assert.ok(roblox.includes("com.roblox.RobloxPlayer") && !roblox.includes("com.google.Chrome"), "bundle id có chữ hoa là app, không phải web");
 });
 
 test("ban-moi theo nền tảng (banAgentCho — route chỉ đọc ?platform): không tham số = Windows như trước; mac = bản Mac", () => {

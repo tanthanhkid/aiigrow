@@ -145,6 +145,8 @@ test("thêm giờ cho lời xin từ máy WINDOWS ⇒ cửa sổ mở tới hạ
   assert.equal(await ph.thuongConLai(c2, T), 0);
   assert.equal((await tt.hanMoCuaMay((await g.mayTuToken(dt.token))!, c2, T))!.getTime(), T.getTime() + 20 * 60000);
   assert.equal(await tt.hanMoCuaMay(pc2, c2, T), null, "xin trên điện thoại không mở tự do PC Windows");
+  await q(`delete from devices where id = $1`, [(await g.mayTuToken(dt.token))!.id]);
+  assert.equal(await tt.hanMoCuaMay(pc2, c2, T), null, "gỡ điện thoại rồi cửa sổ vẫn thuộc nhóm Android (lưu trên grant)");
   // app Con cũ trên iPhone (chưa có tác tử) ⇒ vẫn là phút thưởng như trước, không cửa sổ
   const c3 = await g.taoCon(fam, { ten: "Bin" });
   const ip = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, c3, "ios"), "ios", "iPhone Bin")).token))!;
