@@ -102,6 +102,8 @@ public static class ProcessGuard
         if (string.IsNullOrWhiteSpace(exePath) || string.IsNullOrWhiteSpace(winDir)) return false;
         var w = winDir.TrimEnd('\\', '/') + "\\";
         if (!exePath.StartsWith(w, StringComparison.OrdinalIgnoreCase)) return false;
+        // «C:\Windows\Tracing:game.exe» (luồng dữ liệu phụ của thư mục tài khoản chuẩn ghi được) ⇒ DirName ra C:\Windows: không miễn (review #75)
+        if (exePath.IndexOf(':', 2) >= 0) return false;
         foreach (var con in ThuMucConHeThong)
             if (exePath.StartsWith(w + con + "\\", StringComparison.OrdinalIgnoreCase)) return true;
         var dir = DirName(exePath);
