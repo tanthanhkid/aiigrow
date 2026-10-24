@@ -104,6 +104,10 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       }
       await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
+      // Ba Mẹ đã cho thêm giờ thì «Khoá ngay» cũ không được nuốt mất phần giờ đó (Khang 24/10: «xin thêm thời gian aiigrow không bật lại» —
+      // Con còn cờ khoa_ngay từ trước nên cửa sổ mở bị khoá đè). Duyệt = mở lại luôn, ghi sự kiện như bấm «Mở lại».
+      const daKhoa = await t(`update children set cau_hinh = cau_hinh - 'khoa_ngay' - 'khoa_den' where id = $1 and cau_hinh ? 'khoa_ngay' returning id`, [r.child_id]);
+      if (daKhoa.length) await ghiSuKien(fam, "mo_lai", { vi: "duyet_them_gio", yeu_cau: r.id }, { con: r.child_id, nguoi }, t);
       if (ngoaiLe) await ghiNgoaiLe(fam, r.child_id, nguoi, r.loai === "ngoai_gio" ? "ngoai_gio" : "them_gio_khong_tru", r.id, t, now);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
       const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";

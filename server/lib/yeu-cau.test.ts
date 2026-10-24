@@ -162,3 +162,24 @@ test("Windows: «Khoá lại ngay» đóng cả cửa sổ thêm giờ đã duy�
   assert.equal(t1.trangThai, "chua_co_nhip");
   assert.equal(t1.khoaGiaiTri, false);
 });
+
+test("đang «Khoá ngay» mà Ba Mẹ duyệt thêm giờ ⇒ gỡ khoá (cả hạn khoá), ghi sự kiện mở lại — giờ đã cho không bị khoá đè (Khang 24/10)", async () => {
+  const { khoaNgay } = await import("./may-con.ts");
+  const { dangKhoa } = await import("./cau-hinh.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Ken" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "LAPTOP-KAG");
+  const may = (await g.mayTuToken(r.token))!;
+  await khoaNgay(fam, con, true, bm, new Date(Date.now() + 3600_000));
+  const cfg = async () => (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
+  assert.equal(dangKhoa(await cfg()), true);
+  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, T);
+  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, T);
+  assert.equal(dangKhoa(await cfg()), false);
+  assert.equal((await cfg()).khoa_den, undefined);
+  assert.ok(await one(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_lai'`, [fam, con]));
+  // không khoá thì duyệt không ghi «mở lại» thừa
+  const b = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, T);
+  await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 15 }, T);
+  assert.equal((await q(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_lai'`, [fam, con])).length, 1);
+});
