@@ -12,11 +12,12 @@ export const BAN_AGENT_WINDOWS = {
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
- *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release. */
+ *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
+ *  agent Mac 0.1.0 CHƯA tự cập nhật (chưa gọi banMoi) — bản mới phải cài lại tay. Khi làm bộ cập nhật: URL máy chủ 302 sang github.com, đừng chặn host cuối. */
 export const BAN_AGENT_MAC = {
   version: "0.1.0",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.0.pkg",
-  sha256: "684c0c2be9f0e1c7ba16d1b3f6eb6749adafd37e1ae6932ae3e0137e539daa7a",
+  sha256: "45773d1dbeab71063ffdaab5c95acf9b7a82690e827966d04a1907366a7b0c2e",
 } as const;
 
 /** Manifest bản mới theo nền tảng máy hỏi (`?platform=mac|windows`; không có ⇒ Windows để agent Windows cũ nhận y như trước). */

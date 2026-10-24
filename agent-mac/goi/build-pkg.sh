@@ -5,6 +5,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
 BAN="${BAN:-0.1.0}"
+# Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
+grep -q "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
+# Phát hành (NOTARY=1) phải ký thật cả app lẫn gói.
+if [ "${NOTARY:-}" = 1 ] || [ -n "${KY_PKG:-}" ]; then
+  [ -n "${KY_APP:-}" ] && [ -n "${KY_PKG:-}" ] || { echo "NOTARY/KY_PKG cần đủ KY_APP + KY_PKG" >&2; exit 1; }
+fi
 TMP="${GOI}/.dung"; RA="$MAC/ra"
 rm -rf "$TMP"; mkdir -p "$TMP" "$RA"
 
@@ -38,7 +44,10 @@ mkdir -p "$TMP/scripts"
 cp scripts/preinstall scripts/postinstall "$TMP/scripts/"
 chmod 755 "$TMP/scripts/"*
 
-pkgbuild --root "$TMP/root" --identifier vn.aiilab.aiigrow.pkg --version "$BAN" \
+# App KHÔNG được «relocatable»: có bản AiiGrow.app ở chỗ khác (cùng bundle id) thì Installer sẽ cài đè vào đó, còn plist/postinstall trỏ /Applications.
+pkgbuild --analyze --root "$TMP/root" "$TMP/thanh-phan.plist" >/dev/null
+/usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" "$TMP/thanh-phan.plist"
+pkgbuild --root "$TMP/root" --component-plist "$TMP/thanh-phan.plist" --identifier vn.aiilab.aiigrow.pkg --version "$BAN" \
   --install-location / --scripts "$TMP/scripts" --ownership recommended \
   "$TMP/aiigrow-thanh-phan.pkg"
 

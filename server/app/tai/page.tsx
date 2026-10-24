@@ -26,12 +26,16 @@ export default async function TrangTai() {
           <a href={BAN_AGENT_MAC.url} style={{ display: "inline-block", marginTop: 16, marginBottom: 6, padding: "16px 28px", fontSize: 18, fontWeight: 600, background: "#1f8a70", color: "#fff", borderRadius: 14, textDecoration: "none" }}>
             ⬇ Tải AiiGrow cho máy Mac
           </a>
-          <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>Tệp AiiGrow-{BAN_AGENT_MAC.version}.pkg · macOS 13 trở lên</p>
+          <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>Tệp AiiGrow-{BAN_AGENT_MAC.version}.pkg · macOS 13 trở lên · chỉ cài trên máy Mac (iPad không dùng tệp này)</p>
           <ol style={{ lineHeight: 1.75, marginTop: 12, paddingLeft: 20 }}>
-            <li>Trên máy Mac của Con, đăng nhập tài khoản quản trị của Ba Mẹ, mở tệp .pkg vừa tải, bấm <b>Tiếp tục</b> rồi nhập mật khẩu quản trị.</li>
-            <li>Khi macOS hỏi về <b>Mục nền</b> (Background Items), bấm cho phép AiiGrow.</li>
-            <li>Bấm biểu tượng AiiGrow trên thanh menu → <b>Ghép máy</b>: chọn tài khoản của Con và nhập mã ghép 6 số tạo trong app Ba Mẹ.</li>
+            <li>Máy Mac cần <b>tài khoản riêng cho Con</b> và một <b>tài khoản quản trị của Ba Mẹ</b> (Cài đặt hệ thống → Người dùng &amp; Nhóm).</li>
+            <li>Đăng nhập tài khoản của Ba Mẹ, mở tệp .pkg vừa tải, bấm <b>Tiếp tục</b> rồi nhập mật khẩu quản trị.</li>
+            <li>Cửa sổ <b>Ghép máy</b> tự mở (hoặc bấm biểu tượng AiiGrow trên thanh menu → <b>Ghép máy với Con…</b>): chọn tài khoản của Con, nhập <b>mã 6 số</b> lấy trong app AiiGrow: Trang chủ → “Máy tính &amp; điện thoại” → <b>Ghép thêm máy</b>.</li>
+            <li>macOS báo “Đã thêm mục nền” là bình thường — đừng tắt AiiGrow trong Mục đăng nhập.</li>
           </ol>
+          <p style={{ fontSize: 14, color: "#4a5555" }}>
+            Máy Windows của Con: <a href={LINK_TAI} style={{ color: "#1f8a70" }}>tải AiiGrow-Setup.exe</a>.
+          </p>
         </>
       ) : null}
       {os === "ios" ? (
@@ -49,6 +53,7 @@ export default async function TrangTai() {
           <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>Tệp aiigrow.apk (bản thử) · app để Ba Mẹ quản lý. AiiGrow cho điện thoại Android của Con đang làm; máy Windows của Con tải bên dưới.</p>
         </>
       ) : null}
+      {os === "mac" ? null : (<>
       <p style={{ color: "#4a5555", marginTop: 0 }}>
         Cài trên máy tính Windows để đồng hành cùng Con. Mặc định chỉ{" "}
         <b>giám sát</b>, không khoá máy.
@@ -109,6 +114,11 @@ export default async function TrangTai() {
         Sau khi ghép, máy chạy ở chế độ <b>giám sát</b> (ghi nhận, không khoá).
         Ba Mẹ bật “chặn thật” khi cần, ngay trong app.
       </div>
+
+      <p style={{ marginTop: 20, fontSize: 14, color: "#4a5555" }}>
+        Máy Mac của Con: <a href={BAN_AGENT_MAC.url} style={{ color: "#1f8a70" }}>tải AiiGrow-{BAN_AGENT_MAC.version}.pkg</a> (mở trang này trên máy Mac để xem cách cài).
+      </p>
+      </>)}
 
       {os === "android" ? null : (
         <p style={{ marginTop: 20, fontSize: 14, color: "#4a5555" }}>
