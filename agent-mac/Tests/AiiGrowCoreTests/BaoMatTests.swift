@@ -341,4 +341,84 @@ final class BaoMatTests: XCTestCase {
     let st = HttpMock.lanGoiCuoi("api/device/dong-bo")?["status"] as? [String: Any]
     XCTAssertEqual(st?["trayAlive"] as? Bool, true, "trangThai từ uid Con cập nhật nhịp tray, không cần ping")
   }
+
+  // MARK: lượt review 5
+
+  func testApiClientDatPhienDoiTokenVaMayChu() async throws {
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "windows": ["mode": "tu_do", "nextCheckSec": 30]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    let api = ApiClient(mayChu: "https://a.example", token: nil, session: HttpMock.session())
+    let st = TrangThaiAgent(mode: "tu_do", trayAlive: true, childSessionActive: false, offline: false, cheDo: "chan", phienKhac: false)
+    _ = try await api.dongBo(trangThai: st, dung: [], luc: Date())
+    XCTAssertEqual(HttpMock.authCuoi("api/device/dong-bo"), .some(nil), "chưa ghép ⇒ không có Authorization")
+    api.datPhien(mayChu: "b.example/", token: "tok-moi")
+    _ = try await api.dongBo(trangThai: st, dung: [], luc: Date())
+    XCTAssertEqual(HttpMock.authCuoi("api/device/dong-bo"), "Bearer tok-moi")
+    XCTAssertEqual(api.mayChu, "https://b.example")
+  }
+
+  func testSafariVaChessBiDongTrongCheDoHoc() {
+    let safari = TienTrinh(pid: 20, uid: 501, duongDan: "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari", bundleId: "com.apple.Safari")
+    let chess = TienTrinh(pid: 21, uid: 501, duongDan: "/System/Applications/Chess.app/Contents/MacOS/Chess", bundleId: "com.apple.Chess")
+    let msgs = TienTrinh(pid: 22, uid: 501, duongDan: "/System/Applications/Messages.app/Contents/MacOS/Messages", bundleId: "com.apple.MobileSMS")
+    let dock = TienTrinh(pid: 23, uid: 501, duongDan: "/System/Library/CoreServices/Dock.app/Contents/MacOS/Dock", bundleId: "com.apple.dock")
+    let finder = TienTrinh(pid: 24, uid: 501, duongDan: "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder", bundleId: "com.apple.finder")
+    let caiDat = TienTrinh(pid: 25, uid: 501, duongDan: "/System/Applications/System Settings.app/Contents/MacOS/System Settings", bundleId: "com.apple.systempreferences")
+    let ds = [safari, chess, msgs, dock, finder, caiDat]
+    let dong = QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: [] + Array(QuyetDinhApp.heThong))
+    XCTAssertEqual(dong.map(\.pid).sorted(), [20, 21, 22], "Safari/Chess/Messages bị đóng; Dock/Finder/Cài đặt hệ thống được giữ")
+    let con = QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: ["com.apple.safari"] + Array(QuyetDinhApp.heThong))
+    XCTAssertEqual(con.map(\.pid).sorted(), [21, 22], "Safari có trong allowlist thì được giữ")
+  }
+
+  func testGhiLaiChinhSachTrinhDuyetKhiTepMatHoacBiSua() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30,
+      "serverTime": NgayGio.viet(dongHo.thuc), "web": ["cheDo": "mo", "chan": ["youtube.com"], "cho": []]]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    let chrome = ChinhSachTrinhDuyet.tatCa.first { $0.ten == "Chrome" }!
+    let duong = ChinhSachTrinhDuyet.duongDan(chrome, taiKhoan: "be", thuMucGoc: thuMuc + "/Managed")
+    let goc = fake.tep[duong]
+    XCTAssertNotNil(goc, "lần đầu ghi chính sách Chrome")
+    fake.tep[duong] = nil                                  // tệp bị xoá
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(fake.tep[duong] != nil, true, "tệp mất ⇒ ghi lại")
+    var cu = ChinhSachTrinhDuyet.giaiMa(fake.tep[duong])!
+    cu["URLBlocklist"] = ["*"]                              // bị sửa
+    fake.tep[duong] = try ChinhSachTrinhDuyet.maHoa(cu)
+    dongHo.tien(5); _ = await b.apChinhSach()
+    let moi = ChinhSachTrinhDuyet.giaiMa(fake.tep[duong])!
+    XCTAssertEqual(moi["URLBlocklist"] as? [String], ["youtube.com"], "nội dung khác ⇒ ghi lại đúng")
+  }
+
+  func testLenhGoDonMoiThuMucTaiKhoan() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    let chrome = ChinhSachTrinhDuyet.tatCa.first { $0.ten == "Chrome" }!
+    // plist do ta ghi cho một tài khoản KHÁC Con (vd Con cũ / đổi tên) + một khoá của người khác
+    let web = ChinhSachWeb(cheDo: ChinhSachWeb.mo, chan: ["youtube.com"], cho: [])
+    var plist = ChinhSachTrinhDuyet.gop(cu: ["HomepageLocation": "https://x.vn"], trinhDuyet: chrome, p: web, mayChuHost: nil)!
+    plist["HomepageLocation"] = "https://x.vn"
+    let duong = ChinhSachTrinhDuyet.duongDan(chrome, taiKhoan: "con_cu", thuMucGoc: thuMuc + "/Managed")
+    fake.tep[duong] = try ChinhSachTrinhDuyet.maHoa(plist)
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [["id": 1, "loai": "go"]],
+      "windows": ["mode": "tu_do", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc)]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    let con = ChinhSachTrinhDuyet.giaiMa(fake.tep[duong])
+    XCTAssertNil(con?["URLBlocklist"], "khoá của AiiGrow đã gỡ ở thư mục tài khoản khác")
+    XCTAssertEqual(con?["HomepageLocation"] as? String, "https://x.vn", "khoá người khác giữ nguyên")
+  }
+
+  func testChayXaOutputLienTucCoTran() {
+    let t0 = Date()
+    let (ma, ra) = HeThongMac.chay("/usr/bin/yes", ["aiigrow"], timeout: 10, trenOutput: 100_000)
+    XCTAssertTrue(ra.count >= 100_000 && ra.count < 400_000, "cắt ở trần ~100KB, nhận \(ra.count)")
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 6)
+    _ = ma
+  }
 }

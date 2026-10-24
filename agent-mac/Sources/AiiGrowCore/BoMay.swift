@@ -40,7 +40,6 @@ public actor BoMay {
   /// Đang đếm ngược khoá: còn mấy giây.
   private var demNguocConLai: Int?
   private var daApHosts: String?
-  private var daApChinhSach: [String: String] = [:]   // bundleId → vân tay nội dung đã ghi
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
               dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 }) {
@@ -81,6 +80,7 @@ public actor BoMay {
       $0.daHaQuyen = haQuyen
     }
     cauHinh = kho.doc() ?? cauHinh
+    api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
   }
 
@@ -218,18 +218,22 @@ public actor BoMay {
 
   private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) {
     guard let tk = cauHinh.uidCon.flatMap({ heThong.taiKhoan(cuaUid: $0) }) ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon) else { return }
+    apChinhSachTrinhDuyet(taiKhoan: tk, web: web)
+  }
+
+  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) {
     let host = URL(string: cauHinh.mayChu)?.host
     for td in ChinhSachTrinhDuyet.tatCa {
       let duong = ChinhSachTrinhDuyet.duongDan(td, taiKhoan: tk, thuMucGoc: tuyChon.thuMucChinhSach)
       let cu = ChinhSachTrinhDuyet.giaiMa(heThong.docTep(duong))
       guard let moi = ChinhSachTrinhDuyet.gop(cu: cu, trinhDuyet: td, p: web, mayChuHost: host) else {
-        if cu != nil { heThong.xoaTep(duong); daApChinhSach[td.bundleId] = nil }
+        if cu != nil { heThong.xoaTep(duong) }
         continue
       }
+      // Bỏ qua ghi CHỈ khi tệp thật trên đĩa đang đúng nội dung mong muốn (tệp mất hoặc bị sửa ⇒ ghi lại).
+      if let cu, NSDictionary(dictionary: cu).isEqual(to: moi) { continue }
       guard let data = try? ChinhSachTrinhDuyet.maHoa(moi) else { continue }
-      let vt = "\(data.count):\(data.hashValue)"
-      guard daApChinhSach[td.bundleId] != vt else { continue }
-      do { try heThong.ghiTep(duong, data, quyen: 0o644); daApChinhSach[td.bundleId] = vt }
+      do { try heThong.ghiTep(duong, data, quyen: 0o644) }
       catch { heThong.ghiLog("Ghi chính sách \(td.ten) lỗi: \(error)") }
     }
   }
@@ -301,6 +305,8 @@ public actor BoMay {
   private func tuGo() async {
     // Lệnh gỡ từ xa: trả quyền admin đã hạ, xoá chính sách web + hosts, xoá cấu hình. KHÔNG tự bootout launchd (gói cài lo).
     apChinhSachTrinhDuyet(web: nil)
+    // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.
+    for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
     apHosts(web: nil)
     for tk in cauHinh.daHaQuyen { heThong.ghiLog("[gỡ] trả lại quyền admin cho \(tk) do go-cai.sh thực hiện.") }
     heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, chờ bộ gỡ.")

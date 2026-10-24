@@ -25,18 +25,34 @@ public protocol MayChuApi: AnyObject {
   func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async throws -> KetQuaYeuCau
   /// → «duoc» | «cho» | «tu_choi»
   func trangThaiYeuCau(id: String) async throws -> String
+  /// Sau khi ghép máy: dùng token + máy chủ mới ngay (không cần khởi động lại daemon).
+  func datPhien(mayChu: String, token: String)
+}
+
+public extension MayChuApi {
+  func datPhien(mayChu: String, token: String) {}
 }
 
 public final class ApiClient: MayChuApi {
   public static let mayChuMacDinh = "https://aiigrow.aiilab.vn"
 
-  public let mayChu: String
-  private let token: String?
+  /// mayChu + token đổi được (ghép máy qua IPC xong là dùng ngay): đọc/ghi dưới khoá.
+  private let khoaPhien = NSLock()
+  private var _mayChu: String
+  private var _token: String?
   private let session: URLSession
+  public var mayChu: String { khoaPhien.lock(); defer { khoaPhien.unlock() }; return _mayChu }
+  private var token: String? { khoaPhien.lock(); defer { khoaPhien.unlock() }; return _token }
+
+  public func datPhien(mayChu: String, token: String) {
+    khoaPhien.lock(); defer { khoaPhien.unlock() }
+    _mayChu = ApiClient.chuanMayChu(mayChu)
+    _token = token.isEmpty ? nil : token
+  }
 
   public init(mayChu: String = ApiClient.mayChuMacDinh, token: String? = nil, session: URLSession? = nil) {
-    self.mayChu = ApiClient.chuanMayChu(mayChu)
-    self.token = (token?.isEmpty ?? true) ? nil : token
+    self._mayChu = ApiClient.chuanMayChu(mayChu)
+    self._token = (token?.isEmpty ?? true) ? nil : token
     if let session { self.session = session } else {
       let c = URLSessionConfiguration.ephemeral
       c.timeoutIntervalForRequest = 20
@@ -116,6 +132,7 @@ public final class ApiClient: MayChuApi {
   // MARK: gửi
 
   private func gui(_ method: String, _ path: String, _ body: [String: Any]?) async throws -> Data {
+    let mayChu = self.mayChu, token = self.token
     guard let url = URL(string: mayChu + "/" + path) else { throw LoiApi(chu: "Địa chỉ máy chủ sai") }
     var req = URLRequest(url: url)
     req.httpMethod = method

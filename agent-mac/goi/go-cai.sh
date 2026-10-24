@@ -31,6 +31,23 @@ for f in /Library/Managed\ Preferences/*.plist; do
   if /usr/bin/grep -aq 'AiiGrow' "$f"; then /bin/rm -f "$f"; echo "Đã xoá $f"; fi
 done
 
+# Chính sách trình duyệt daemon ghi: /Library/Managed Preferences/<tài khoản>/<bundleId>.plist (Chrome, Edge, Brave, Cốc Cốc).
+# Tệp có khoá dấu «AiiGrowManaged» là của AiiGrow: gỡ các khoá AiiGrow sở hữu; còn rỗng thì xoá tệp (khoá của người khác giữ nguyên).
+KHOA_TA="AiiGrowManaged URLBlocklist URLAllowlist IncognitoModeAvailability InPrivateModeAvailability AllowDeletingBrowserHistory BrowserGuestModeEnabled"
+MP="${AIIGROW_MANAGED_PREFS:-/Library/Managed Preferences}"      # đổi được để thử trên thư mục tạm
+for thumuc in "$MP"/*/; do
+  [ -d "$thumuc" ] || continue
+  for bundle in com.google.Chrome com.microsoft.Edge com.brave.Browser com.coccoc.Coccoc; do
+    f="${thumuc%/}/${bundle}.plist"
+    [ -f "$f" ] || continue
+    /usr/bin/plutil -extract AiiGrowManaged raw "$f" >/dev/null 2>&1 || continue
+    for k in $KHOA_TA; do /usr/bin/plutil -remove "$k" "$f" >/dev/null 2>&1 || true; done
+    if [ "$(/usr/bin/plutil -convert json -o - "$f" 2>/dev/null)" = "{}" ]; then /bin/rm -f "$f"; fi
+    echo "Đã dọn chính sách AiiGrow trong $f"
+  done
+done
+/usr/bin/killall cfprefsd >/dev/null 2>&1 || true
+
 /bin/rm -f "$DAEMON_PLIST" "$TRAY_PLIST"
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"
 /bin/rm -f /var/run/aiigrow.sock

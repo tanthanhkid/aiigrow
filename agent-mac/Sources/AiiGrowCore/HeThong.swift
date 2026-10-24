@@ -20,6 +20,8 @@ public protocol HeThong: AnyObject {
   func dsAdmin() -> [String]
   func phienConsole() -> PhienConsole?
   func tenMay() -> String
+  /// Tên các mục con (thư mục/tệp) của một thư mục; không có ⇒ [].
+  func lietKeThuMuc(_ duongDan: String) -> [String]
   /// Bundle id app tiền cảnh của phiên đồ hoạ của uid — daemon TỰ kiểm, không tin tray báo. nil = không xác định được.
   func appTienCanh(cuaUid uid: UInt32) -> String?
   // — tác động —
@@ -50,6 +52,7 @@ public final class HeThongThu: HeThong {
   public func dsAdmin() -> [String] { that.dsAdmin() }
   public func phienConsole() -> PhienConsole? { that.phienConsole() }
   public func tenMay() -> String { that.tenMay() }
+  public func lietKeThuMuc(_ duongDan: String) -> [String] { that.lietKeThuMuc(duongDan) }
   public func appTienCanh(cuaUid uid: UInt32) -> String? { that.appTienCanh(cuaUid: uid) }
 
   public func guiTinHieu(pid: Int32, tinHieu: Int32) { se("gửi tín hiệu \(tinHieu) tới pid \(pid)") }

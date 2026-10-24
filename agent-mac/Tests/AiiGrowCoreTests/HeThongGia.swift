@@ -30,6 +30,10 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func tenMay() -> String { ten }
   func appTienCanh(cuaUid uid: UInt32) -> String? { soLanKiemTienCanh += 1; return tienCanhThat }
   var soLanKiemTienCanh = 0
+  func lietKeThuMuc(_ duongDan: String) -> [String] {
+    let tien = duongDan.hasSuffix("/") ? duongDan : duongDan + "/"
+    return Set(tep.keys.filter { $0.hasPrefix(tien) }.compactMap { $0.dropFirst(tien.count).split(separator: "/").first.map(String.init) }).sorted()
+  }
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }

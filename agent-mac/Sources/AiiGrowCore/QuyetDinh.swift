@@ -23,9 +23,14 @@ public enum QuyetDinhApp {
     "com.apple.textinputmenuagent", "com.apple.universalcontrol", "com.apple.accessibility.axvisualsupportagent",
     "com.apple.securityagent", "com.apple.coreservices.uiagent", "com.apple.screensaver.engine", "com.apple.screensaver",
     "vn.aiilab.aiigrow", "vn.aiilab.aiigrow.tray",
+    // Cài đặt hệ thống + công cụ học tập cơ bản (khớp macOS trong ALLOWLIST_HE_THONG của server/lib/luat-app.ts)
+    "com.apple.systempreferences", "com.apple.calculator", "com.apple.notes", "com.apple.preview", "com.apple.photos",
+    "com.microsoft.word", "com.microsoft.excel", "com.microsoft.powerpoint",
+    "com.apple.iwork.pages", "com.apple.iwork.numbers", "com.apple.iwork.keynote",
   ]
   /// Thư mục hệ thống (SIP bảo vệ, Con không tự đặt app vào được) — không bao giờ đóng.
-  public static let thuMucHeThong = ["/System/", "/usr/", "/bin/", "/sbin/", "/Library/Apple/", "/private/var/db/", "/Library/Application Support/AiiGrow/"]
+  /// KHÔNG gồm /System/Applications và Cryptexes (Safari, Chess, Messages, FaceTime, App Store, News… là app Con tự mở) — những app đó xét theo allowlist bundle id như app thường.
+  public static let thuMucHeThong = ["/System/Library/", "/usr/", "/bin/", "/sbin/", "/Library/Apple/", "/private/var/db/", "/Library/Application Support/AiiGrow/"]
 
   /// «/Applications/Google Chrome.app/Contents/Frameworks/…/Helper.app/Contents/MacOS/x» ⇒ «/Applications/Google Chrome.app».
   public static func appNgoaiCung(_ duongDan: String) -> String? {

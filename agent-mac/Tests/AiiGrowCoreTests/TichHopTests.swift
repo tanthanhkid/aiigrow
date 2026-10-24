@@ -83,6 +83,7 @@ final class TichHopTests: XCTestCase {
     HttpMock.dat { _, _ in self.dapDongBo(mode: "tu_do", minutesLeft: 60) }
     dongHo.donDieu += 100                                  // qua hạn syncLuc để sync lại
     let t3 = await boMay.motVong()
+    XCTAssertEqual(HttpMock.authCuoi("api/device/dong-bo"), "Bearer tok9", "3. dong-bo ngay sau ghép mang token MỚI (không cần khởi động lại daemon)")
     XCTAssertEqual(t3.cheDo, .tuDo, "3. sync tu_do")
     XCTAssertFalse(t3.matMang)
 

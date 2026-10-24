@@ -9,7 +9,13 @@ final class HttpMock: URLProtocol {
   nonisolated(unsafe) static var xuLy: ((_ path: String, _ body: [String: Any]) -> TraLoi?)?
   /// Ghi lại mọi lời gọi tới.
   nonisolated(unsafe) static var daGoi: [(path: String, body: [String: Any])] = []
+  /// Header Authorization của từng lời gọi (cùng thứ tự với daGoi).
+  nonisolated(unsafe) static var daGoiAuth: [(path: String, auth: String?)] = []
   nonisolated(unsafe) static let khoa = NSLock()
+  static func authCuoi(_ path: String) -> String?? {
+    khoa.lock(); defer { khoa.unlock() }
+    return daGoiAuth.last(where: { $0.path == path })?.auth
+  }
 
   static func session() -> URLSession {
     let c = URLSessionConfiguration.ephemeral
@@ -17,7 +23,7 @@ final class HttpMock: URLProtocol {
     return URLSession(configuration: c)
   }
   static func dat(_ f: @escaping (_ path: String, _ body: [String: Any]) -> TraLoi?) {
-    khoa.lock(); daGoi = []; xuLy = f; khoa.unlock()
+    khoa.lock(); daGoi = []; daGoiAuth = []; xuLy = f; khoa.unlock()
   }
   static func json(_ ma: Int, _ o: [String: Any]) -> TraLoi { TraLoi(ma: ma, than: try! JSONSerialization.data(withJSONObject: o)) }
   /// Lời gọi cuối tới `path` (khoá trong hàm đồng bộ — gọi được từ async).
@@ -36,6 +42,7 @@ final class HttpMock: URLProtocol {
     if let d = request.bodyData, let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] { body = o }
     HttpMock.khoa.lock()
     HttpMock.daGoi.append((path, body))
+    HttpMock.daGoiAuth.append((path, request.value(forHTTPHeaderField: "Authorization")))
     let kq = HttpMock.xuLy?(path, body)
     HttpMock.khoa.unlock()
     guard let kq else {

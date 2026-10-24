@@ -101,6 +101,8 @@ public final class HeThongMac: HeThong {
     return TienCanh.tachBundleId(r2)
   }
 
+  public func lietKeThuMuc(_ duongDan: String) -> [String] { (try? FileManager.default.contentsOfDirectory(atPath: duongDan)) ?? [] }
+
   public func tenMay() -> String {
     (SCDynamicStoreCopyComputerName(nil, nil) as String?) ?? Host.current().localizedName ?? "Mac"
   }
@@ -142,7 +144,7 @@ public final class HeThongMac: HeThong {
   /// Chạy lệnh, chờ xong tối đa `timeout` giây (quá hạn ⇒ kill tiến trình con, trả (-1, «quá hạn»)) ⇒ (mã thoát, stdout+stderr).
   /// Đọc bằng DispatchSource trên hàng đợi nối tiếp riêng; fd CHỈ được đóng trong cancelHandler (sau khi mọi lần đọc đã xong) — không race, không rò luồng/fd.
   @discardableResult
-  public static func chay(_ lenh: String, _ thamSo: [String], timeout: Double = 20) -> (Int32, String) {
+  public static func chay(_ lenh: String, _ thamSo: [String], timeout: Double = 20, trenOutput: Int = 1_000_000) -> (Int32, String) {
     final class Hop: @unchecked Sendable { var d = Data() }      // chỉ đụng trên `hang` (nối tiếp) hoặc sau khi nguồn đã huỷ
     var fds: [Int32] = [0, 0]
     guard pipe(&fds) == 0 else { return (-1, "pipe lỗi") }
@@ -160,13 +162,16 @@ public final class HeThongMac: HeThong {
     let hang = DispatchQueue(label: "vn.aiilab.aiigrow.chay")
     let nguon = DispatchSource.makeReadSource(fileDescriptor: doc, queue: hang)
     nguon.setEventHandler {
+      // Mỗi sự kiện đọc MỘT lần (nguồn mức-kích-hoạt sẽ gọi lại nếu còn dữ liệu) ⇒ handler luôn trả về, không kẹt khi con xả output liên tục.
       var buf = [UInt8](repeating: 0, count: 65536)
-      while true {
-        let n = read(doc, &buf, buf.count)
-        if n > 0 { hop.d.append(buf, count: n); continue }
-        if n < 0 && (errno == EAGAIN || errno == EINTR) { return }
-        nguon.cancel(); eof.signal(); return                 // EOF hoặc lỗi
+      let n = read(doc, &buf, buf.count)
+      if n > 0 {
+        hop.d.append(buf, count: n)
+        if hop.d.count >= trenOutput { nguon.cancel(); eof.signal() }       // trần kích thước output
+        return
       }
+      if n < 0 && (errno == EAGAIN || errno == EINTR) { return }
+      nguon.cancel(); eof.signal()                                          // EOF hoặc lỗi
     }
     nguon.setCancelHandler { close(doc); daHuy.signal() }
     nguon.resume()
@@ -182,6 +187,7 @@ public final class HeThongMac: HeThong {
     // Con đã thoát: chờ đọc tới EOF, nhưng cháu giữ ống thì chỉ chờ ngắn rồi lấy phần đã có.
     _ = eof.wait(timeout: .now() + 0.3)
     huy()
-    return (p.terminationStatus, String(decoding: hop.d, as: UTF8.self))
+    let ra = hang.sync { hop.d }                             // sau khi nguồn đã huỷ; sync trên hàng đợi nối tiếp ⇒ không race với handler
+    return (p.terminationStatus, String(decoding: ra, as: UTF8.self))
   }
 }
