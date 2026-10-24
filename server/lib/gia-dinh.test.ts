@@ -140,3 +140,27 @@ test("cấp độ theo điểm kiếm được trọn đời, không theo số d
   assert.equal(await th.chaoMung(con), 0);
   assert.equal(await v.soDu(con), 10);
 });
+
+test("đổi tên Con và máy: chuẩn hoá, chặn rỗng/quá dài/trùng tên trong nhà, ghi nhật ký, cách ly gia đình", async () => {
+  const { fam } = await taoNha();
+  const ken = await g.taoCon(fam, { ten: "Ken" });
+  const bill = await g.taoCon(fam, { ten: "Bill" });
+  await g.suaCon(fam, ken, { ten: "  Kenny   Vũ " });
+  assert.equal((await g.conCua(fam, ken)).ten, "Kenny Vũ");
+  await loi(g.suaCon(fam, ken, { ten: "   " }), "thieu_ten");
+  await loi(g.suaCon(fam, ken, { ten: "x".repeat(31) }), "ten_qua_dai");
+  await loi(g.suaCon(fam, bill, { ten: "kenny vũ" }), "ten_trung");
+  await g.suaCon(fam, ken, { ten: "KENNY VŨ" });                      // tự đổi hoa thường tên mình thì được
+  assert.equal((await g.conCua(fam, ken)).ten, "KENNY VŨ");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_con'`, [fam])).length, 2);
+  const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "Laptop");
+  const dt = await g.doiTenMay(fam, r.deviceId, "  Máy   học bài ");
+  assert.equal(dt.ten, "Máy học bài");
+  assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
+  await loi(g.doiTenMay(fam, r.deviceId, ""), "thieu_ten");
+  await loi(g.doiTenMay(fam, r.deviceId, "m".repeat(41)), "ten_qua_dai");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may' and device_id = $2 and child_id = $3`, [fam, r.deviceId, ken])).length, 1);
+  const nha2 = await taoNha("Hoa");
+  await loi(g.doiTenMay(nha2.fam, r.deviceId, "Của người khác"), "khong_thay");
+  assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
+});

@@ -1,5 +1,5 @@
 // bm-ho-so-con: hồ sơ Con & thiết bị — mức bảo vệ (Đầy đủ / Một phần / Chưa), Online/Offline + lần đồng bộ cuối (FR-01.03),
-// nhóm trải nghiệm, đặt lại PIN, ghép thêm máy. Gỡ máy: chuyển sang màn máy › «An toàn & gỡ cài đặt» (gỡ an toàn — chủ gia đình +
+// đổi tên Con, nhóm trải nghiệm, đặt lại PIN, ghép thêm máy. Gỡ máy: chuyển sang màn máy › «An toàn & gỡ cài đặt» (gỡ an toàn — chủ gia đình +
 // mật khẩu, máy chỉ rời danh sách khi agent báo đã gỡ; không gỡ thẳng ở đây để khỏi bỏ AiiGrow «mồ côi» trên máy Con).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
@@ -18,8 +18,9 @@ const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${id}`));
-  const [mo, setMo] = useState<"pin" | "nhom" | { go: string; ten: string } | null>(null);
+  const [mo, setMo] = useState<"ten" | "pin" | "nhom" | { go: string; ten: string } | null>(null);
   const [pin, setPin] = useState("");
+  const [ten, setTen] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
   // M6: mã liên kết AiiRob «<family_id>.<child_id>» — tải riêng, lỗi thì chỉ ẩn mục này
@@ -49,7 +50,8 @@ export default function HoSoCon() {
       ))}
       <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
       <Nhom>
-        <Dong dau tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
+        <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setMo("ten"); }} />
+        <Dong tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
         <Dong tieu="Thời gian màn hình" phu="App và trang web trong tuần, theo mục" trai={<BieuTron ic="cot" mau="tim" />} bam={() => router.push(`/man-hinh/${d.id}`)} />
@@ -65,6 +67,14 @@ export default function HoSoCon() {
           </View>
         </Nhom>
       ) : null}
+      <BangTruot mo={mo === "ten"} dong={() => setMo(null)} tieu={`Đổi tên ${d.ten}`}>
+        <ONhap nhan="Tên của Con" value={ten} onChangeText={(t) => setTen(t.slice(0, 30))} autoCapitalize="words" maxLength={30} />
+        <BaoLoi loi={loiLam} />
+        <Nut chu="Lưu tên" rong dangChay={dangChay} tat={!ten.trim() || ten.trim() === d.ten} bam={() => lam(async () => {
+          const moi = ten.trim().replace(/\s+/g, " ");
+          await bm.goi(`con/${d.id}/sua`, { ten: moi }); setMo(null); bao(`Đã đổi tên ${d.ten} thành ${moi}`); await tai();
+        })} />
+      </BangTruot>
       <BangTruot mo={mo === "pin"} dong={() => setMo(null)} tieu={`Mã PIN mới của ${d.ten}`}>
         <ONhap nhan="4–6 chữ số" value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry />
         <BaoLoi loi={loiLam} />

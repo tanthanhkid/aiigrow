@@ -14,7 +14,7 @@ const PHUT = [15, 30, 60, 120];
 const SU_KIEN: Record<string, string> = {
   tuan_thu_lech: "Lệch chuẩn tuân thủ", tuan_thu_on: "Tuân thủ trở lại", may_ngoai_vong: "Máy ngoài vòng kiểm soát", may_tro_lai: "Máy đồng bộ trở lại",
   mo_khan_cap: "Ba Mẹ mở khẩn cấp", huy_mo_khan_cap: "Huỷ mở khẩn cấp", het_mo_khan_cap: "Hết giờ mở khẩn cấp", tin_cay_admin: "Xác nhận tài khoản quản trị",
-  lenh_go: "Ra lệnh gỡ từ xa", go_may: "Máy đã gỡ AiiGrow", xem_ma_offline: "Xem mã mở offline", may_mo_ma_offline: "Máy mở bằng mã offline", may_sai_ma_offline: "Gõ sai mã offline nhiều lần", may_het_ma_offline: "Có mạng lại, hết mở bằng mã", doi_che_do: "Đổi chế độ",
+  lenh_go: "Ra lệnh gỡ từ xa", go_may: "Máy đã gỡ AiiGrow", xem_ma_offline: "Xem mã mở offline", may_mo_ma_offline: "Máy mở bằng mã offline", may_sai_ma_offline: "Gõ sai mã offline nhiều lần", may_het_ma_offline: "Có mạng lại, hết mở bằng mã", doi_che_do: "Đổi chế độ", doi_ten_may: "Đổi tên máy",
 };
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
@@ -35,10 +35,11 @@ export default function AnToanMay() {
     const con = m?.dungChung && m.nen === "windows" ? (await bm.goi<GiaDinh>("gia-dinh")).con : [];
     return { m, con, chu: toi.baMe.vai === "chu", xem: toi.baMe.vai === "xem" };
   });
-  const [mo, setMo] = useState<"khan" | "go" | "xoa" | "offline" | "tai_may" | null>(null);
+  const [mo, setMo] = useState<"khan" | "go" | "xoa" | "offline" | "tai_may" | "ten" | null>(null);
   const [phut, setPhut] = useState(30);
   const [lyDo, setLyDo] = useState("");
   const [mk, setMk] = useState("");
+  const [tenMoi, setTenMoi] = useState("");
   const [maOff, setMaOff] = useState<MaOffline | null>(null);
   const [taiMa, setTaiMa] = useState(false);
   const [loiMa, setLoiMa] = useState<string | null>(null);
@@ -137,11 +138,12 @@ export default function AnToanMay() {
       <NhomTieu chu="Khi cần" />
 
       <Nhom>
+        {d.xem ? null : <Dong dau tieu="Đổi tên máy" phu={`Hiện là «${m.ten}» — tên này hiện ở danh sách máy của Con`} trai={<BieuTron ic="may_tinh" mau="lam" />} bam={() => { setTenMoi(m.ten); setMo("ten"); }} />}
         {!khanCap ? (
-          <Dong dau tieu="Mở khẩn cấp" phu="Tạm mở giải trí có hạn giờ khi Con đang cần (vẫn giữ giờ ngủ, khoá ngày)" trai={<BieuTron ic="mo_khoa" mau="vang" />} bam={() => setMo("khan")} />
+          <Dong dau={!!d.xem} tieu="Mở khẩn cấp" phu="Tạm mở giải trí có hạn giờ khi Con đang cần (vẫn giữ giờ ngủ, khoá ngày)" trai={<BieuTron ic="mo_khoa" mau="vang" />} bam={() => setMo("khan")} />
         ) : null}
         {win ? (
-          <Dong dau={!!khanCap} tieu="Mã mở khi mất mạng" phu="Máy mất mạng mà cần mở gấp — đọc mã này cho Con gõ vào máy" trai={<BieuTron ic="khoa" mau="lam" />} bam={xemMaOffline} />
+          <Dong dau={!!khanCap && !!d.xem} tieu="Mã mở khi mất mạng" phu="Máy mất mạng mà cần mở gấp — đọc mã này cho Con gõ vào máy" trai={<BieuTron ic="khoa" mau="lam" />} bam={xemMaOffline} />
         ) : null}
       </Nhom>
 
@@ -172,6 +174,15 @@ export default function AnToanMay() {
           </Nhom>
         </>
       ) : null}
+
+      <BangTruot mo={mo === "ten"} dong={dong} tieu="Đổi tên máy">
+        <ONhap nhan="Tên máy" value={tenMoi} onChangeText={(t) => setTenMoi(t.slice(0, 40))} maxLength={40} autoCapitalize="sentences" placeholder="VD: Laptop của Ken" />
+        <BaoLoi loi={loiLam} />
+        <Nut chu="Lưu tên máy" rong dangChay={dangChay} tat={!tenMoi.trim() || tenMoi.trim() === m.ten} bam={() => lam(async () => {
+          const moi = tenMoi.trim().replace(/\s+/g, " ");
+          await bm.goi(`may/${id}/doi-ten`, { ten: moi }); dong(); bao(`Đã đổi tên máy thành ${moi}`); await tai();
+        })} />
+      </BangTruot>
 
       <BangTruot mo={mo === "khan"} dong={dong} tieu={`Mở khẩn cấp ${m.ten}`}>
         <Chu mau={M.chu2}>Giải trí được mở trong khoảng thời gian bạn chọn. Giờ ngủ và khoá ngày vẫn giữ nguyên. Việc này được ghi nhật ký và báo cho Ba Mẹ khác.</Chu>

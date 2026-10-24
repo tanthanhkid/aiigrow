@@ -28,6 +28,7 @@ export function nhomTheoTuoi(namSinh: number | null, nam = new Date().getFullYea
 }
 
 const PIN = /^\d{4,6}$/;
+const TEN_CON_TOI_DA = 30, TEN_MAY_TOI_DA = 40;
 
 export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown; pin?: unknown; avatar?: unknown; nhom?: unknown }, nguoi?: string) {
   const ten = String(b.ten ?? "").trim().slice(0, 30);
@@ -54,11 +55,18 @@ export async function conCua(fam: string, id: string) {
 }
 
 export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar?: unknown; nhom?: unknown; pin?: unknown }, nguoi?: string) {
-  await conCua(fam, id);
+  const cu = await conCua(fam, id);
   if (b.ten !== undefined) {
-    const ten = String(b.ten).trim().slice(0, 30);
+    const ten = String(b.ten).trim().replace(/\s+/g, " ");
     if (!ten) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của Con");
-    await q(`update children set ten = $2 where id = $1`, [id, ten]);
+    if ([...ten].length > TEN_CON_TOI_DA) throw new LoiNghiepVu("ten_qua_dai", `Tên của Con tối đa ${TEN_CON_TOI_DA} ký tự`);
+    // trùng tên Con khác trong nhà (không phân biệt hoa thường) ⇒ Ba Mẹ và Con dễ nhầm hồ sơ
+    const trung = await one<{ id: string }>(`select id from children where family_id = $1 and id <> $2 and lower(ten) = lower($3)`, [fam, id, ten]);
+    if (trung) throw new LoiNghiepVu("ten_trung", `Nhà đã có Con tên «${ten}» — chọn tên khác nhé`);
+    if (ten !== cu.ten) {
+      await q(`update children set ten = $2 where id = $1`, [id, ten]);
+      await ghiSuKien(fam, "doi_ten_con", { tu: cu.ten, den: ten }, { con: id, nguoi });
+    }
   }
   if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
   if (b.nhom === "nhi" || b.nhom === "teen") await q(`update children set nhom = $2 where id = $1`, [id, b.nhom]);
@@ -149,6 +157,20 @@ export async function ganConMay(fam: string, mayId: string, con: unknown, nguoi?
   if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   await ghiSuKien(fam, "gan_con_may", {}, { con: c, may: mayId, nguoi });
   return { ok: true };
+}
+
+/** Ba Mẹ đổi tên hiển thị của máy (devices.name — đặt lúc ghép). Máy của gia đình khác ⇒ «không thấy». */
+export async function doiTenMay(fam: string, mayId: string, ten: unknown, nguoi?: string) {
+  const t = String(ten ?? "").trim().replace(/\s+/g, " ");
+  if (!t) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của máy");
+  if ([...t].length > TEN_MAY_TOI_DA) throw new LoiNghiepVu("ten_qua_dai", `Tên máy tối đa ${TEN_MAY_TOI_DA} ký tự`);
+  const cu = await one<{ name: string; child_id: string | null }>(`select name, child_id from devices where id = $1 and family_id = $2`, [mayId, fam]);
+  if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+  if (cu.name !== t) {
+    await q(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
+    await ghiSuKien(fam, "doi_ten_may", { tu: cu.name, den: t }, { con: cu.child_id, may: mayId, nguoi });
+  }
+  return { ok: true, ten: t };
 }
 
 export const mayTuToken = (token: string) => one<May>(`select * from devices where token_hash = $1`, [sha(token)]);
