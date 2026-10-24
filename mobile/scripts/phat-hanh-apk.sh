@@ -12,7 +12,9 @@ REPO_TAI="tanthanhkid/aiigrow-tai"
 API="https://aiigrow.aiilab.vn"
 export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home}"
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
-BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+BT="$(ls -d "$ANDROID_HOME"/build-tools/* 2>/dev/null | sort -V | tail -1 || true)"
+[ -n "$BT" ] || { echo "THIẾU Android SDK build-tools ở $ANDROID_HOME (đặt ANDROID_HOME)"; exit 1; }
+[ -d "$JAVA_HOME" ] || { echo "THIẾU JDK ở $JAVA_HOME (đặt JAVA_HOME)"; exit 1; }
 
 M="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$M"
@@ -39,7 +41,8 @@ if [ -z "$DIRTY" ]; then
   trap 'git -C "$M" checkout -q -- :/ 2>/dev/null || true' EXIT
 fi
 
-echo "load: $(uptime | sed 's/.*load averages*: //')"
+LOAD="$(uptime | sed 's/.*load averages*: //')"; echo "load: $LOAD"
+[ "$(echo "${LOAD%% *}" | tr -d , | cut -d. -f1)" -le 8 ] || { echo "TỪ CHỐI: máy đang quá tải (load > 8), chạy lại sau"; exit 1; }
 
 # 1. prebuild sạch + chỉnh phiên bản
 EXPO_PUBLIC_API="$API" npx expo prebuild --platform android --clean --no-install
@@ -71,8 +74,12 @@ if [ "$THU" = 1 ]; then echo "--thu: bản ở $OUT/AiiGrow-android.apk (không 
 # 4. đăng
 NGAY="$(date '+%d/%m/%Y %H:%M')"
 NOTE="App Ba Mẹ cho Android, bản $VNAME (versionCode $CODE), commit $SHA, build $NGAY. sha256 $SUM. Cài đè bản cũ được, không cần gỡ."
-gh release create "$TAG" "$OUT/AiiGrow-android.apk#AiiGrow-android-$VER-$SHA.apk" -R "$REPO_TAI" \
-  --prerelease --latest=false --title "AiiGrow Android $VNAME" --notes "$NOTE"
+if gh release view "$TAG" -R "$REPO_TAI" >/dev/null 2>&1; then
+  echo "release $TAG đã có (chạy lại) — bỏ qua bước tạo, chỉ cập nhật bản cuộn"
+else
+  gh release create "$TAG" "$OUT/AiiGrow-android.apk#AiiGrow-android-$VER-$SHA.apk" -R "$REPO_TAI" \
+    --prerelease --latest=false --title "AiiGrow Android $VNAME" --notes "$NOTE"
+fi
 T_MOI="AiiGrow Android (mới nhất): $VNAME"
 if gh release view android-moi-nhat -R "$REPO_TAI" >/dev/null 2>&1; then
   # thay asset trước, đổi ghi chú sau — upload hỏng thì ghi chú không nói dối
