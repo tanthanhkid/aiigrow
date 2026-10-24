@@ -24,7 +24,7 @@ export async function homNay(fam: string, con: string, now = new Date()) {
     `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
      order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
-  const conPhut = Math.max(0, Math.min(tran.conNgay, tran.conTuan));
+  const conPhut = tran.conPhut;
   return { ...vi, phutChoi: tran.daChoi, tranNgay: ts.tran_ngay,
     /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ) — như conNgay/conTuan của xetMoPhien */ conPhut, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
     homNayConDa: tichCuc,

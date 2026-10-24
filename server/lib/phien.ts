@@ -41,7 +41,9 @@ export async function conTheoTran(t: Q, con: string, ts: ThamSo, tz: string, now
   const thuong = await thuongHomNay(t, con, ngay), homNay = await daDungTu(t, con, dauNgayUtc(ngay, tz));
   const tuanNay = await daDungTu(t, con, dauNgayUtc(dauTuan(ngay), tz)), conThuong = await conThuongHomNay(t, con, ngay, tz);
   /** conThuong: phút «thêm giờ» chưa dùng hôm nay — phiên tiêu nó trước, phần còn lại của trần mới tốn điểm */
-  return { thuong, conThuong, daChoi: homNay, conNgay: ts.tran_ngay + thuong - homNay, conTuan: ts.tran_tuan + thuong - tuanNay };
+  const conNgay = ts.tran_ngay + thuong - homNay, conTuan = ts.tran_tuan + thuong - tuanNay;
+  /** conPhut: phút còn chơi được hôm nay (≥ 0) theo cả hai trần — một chỗ tính cho app Ba Mẹ lẫn trang «Nhà» của Con */
+  return { thuong, conThuong, daChoi: homNay, conNgay, conTuan, conPhut: Math.max(0, Math.min(conNgay, conTuan)) };
 }
 
 /** Phút còn lại tới hết khung giờ chơi hiện tại (null = đang ngoài khung). */

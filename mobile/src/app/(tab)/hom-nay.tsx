@@ -123,7 +123,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
                 <Chu kieu="rat" co={20}>{conGiay ? `Còn ${conGiay} phút giải trí` : "Hết giờ giải trí hôm nay"}</Chu>
               </View>
             </View>
-            <View style={{ marginTop: 10 }}><Tien ti={c.tranNgay ? Math.min(1, c.phutChoi / c.tranNgay) : 0} mau={M.chinh} /></View>
+            <View style={{ marginTop: 10 }}><Tien ti={c.phutChoi + conGiay ? Math.min(1, c.phutChoi / (c.phutChoi + conGiay)) : 0} mau={M.chinh} /></View>
           </>
         )}
         <View style={{ marginTop: 14 }}>
