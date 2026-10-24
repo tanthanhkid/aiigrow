@@ -139,7 +139,7 @@ public sealed class PipeServer : BackgroundService
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var xet = await api.CheckPlayAsync(muc, ct);
                     var tra = new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutHienThi : 0 };
-                    lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
+                    if (xet.Duoc) lock (_playInfoNho) _playInfoNho[muc] = (now, tra);   // KHÔNG nhớ lời từ chối: Ba Mẹ thêm giờ / điểm thì hiện ngay
                     return tra;
                 }
                 catch (Exception e) when (e is not OperationCanceledException) { return new PipeResponse { Ok = false, Error = e.Message }; }   // cả lỗi đọc JSON (phutToiDa lẻ…)
@@ -165,9 +165,9 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.Play:
             {
                 // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
-                lock (_playInfoNho) _playInfoNho.Clear();   // điểm sắp đổi ⇒ số phút nhớ không còn đúng
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
                 if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được mở phiên chơi" };
+                lock (_playInfoNho) _playInfoNho.Clear();   // điểm sắp đổi ⇒ số phút nhớ không còn đúng (xoá SAU khi kiểm quyền)
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 var muc = string.IsNullOrWhiteSpace(req.AppId) ? "" : req.AppId!;

@@ -77,6 +77,9 @@ test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn;
   assert.deepEqual(gs.thieu.map((x) => x.ma), ["chanThat"]);
   assert.match(gs.thieu[0].cach, /Chặn thật/);
   assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true } }).muc, "day_du");
+  const gc = "Win Home: chặn bằng cách đóng app";
+  assert.match(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true, ghiChuBaoVe: gc } }).cau, /Win Home/);
+  assert.match(g.chiTietBaoVe({ ...m, status: { ...thô, ghiChuBaoVe: gc } }).cau, /Còn thiếu.*Win Home/);   // ghi chú hiện cả khi còn thiếu quyền
   const khongLocker = g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan" } });
   assert.deepEqual(khongLocker.thieu.map((x) => x.ma), ["appLocker"]);
   assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true, trayAlive: false, childSessionActive: true } }).thieu[0].ma, "khay");

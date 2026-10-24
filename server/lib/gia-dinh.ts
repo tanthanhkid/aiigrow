@@ -194,7 +194,9 @@ export function chiTietBaoVe(may: Pick<May, "status" | "last_seen">): { muc: Muc
   const qy = quyenCuaMay(may);
   if (!qy) return { muc: "chua", thieu: [], cau: "Máy chưa báo quyền bảo vệ — cập nhật AiiGrow trên máy Con lên bản mới nhất." };
   const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma, cach: MO_TA_QUYEN[ma]?.cach ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
-  return thieu.length ? { muc: "mot_phan", thieu, cau: `Còn thiếu: ${thieu.map((x) => x.ten).join(", ")}.` } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." + (typeof may.status?.ghiChuBaoVe === "string" && may.status.ghiChuBaoVe.trim() ? ` (${may.status.ghiChuBaoVe.trim().slice(0, 120)})` : "") };   // agent-win 0.2.6: «Win Home: chặn bằng cách đóng app»
+  // agent-win 0.2.6 gửi ghiChuBaoVe («Win Home: chặn bằng cách đóng app») — nối vào câu ở MỌI mức, Ba Mẹ thấy cả khi còn thiếu quyền
+  const ghiChu = typeof may.status?.ghiChuBaoVe === "string" && may.status.ghiChuBaoVe.trim() ? ` (${may.status.ghiChuBaoVe.trim().slice(0, 120)})` : "";
+  return thieu.length ? { muc: "mot_phan", thieu, cau: `Còn thiếu: ${thieu.map((x) => x.ten).join(", ")}.` + ghiChu } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." + ghiChu };
 }
 
 /** Mức bảo vệ (FR-01.03): đủ quyền ⇒ Đầy đủ, thiếu một phần ⇒ Một phần, chưa kết nối / chưa báo ⇒ Chưa bảo vệ. */

@@ -26,7 +26,8 @@ public static class AppLockerKhaDung
     {
         if (LaBanHome(editionId)) return (false, true);
         if (coCmdlet == true) return (true, true);
-        if (coCmdlet == false && soLanKhongLien >= SoLanKhongChac) return (false, true);
+        // nhiều lần liền «không» ⇒ coi như không có, nhưng KHÔNG chốt suốt đời (vẫn kiểm lại mỗi 10 phút): module về lại thì Reconcile còn gỡ được luật đã áp
+        if (coCmdlet == false && soLanKhongLien >= SoLanKhongChac) return (false, false);
         return (true, false);
     }
 

@@ -58,6 +58,7 @@ public sealed class WebPolicyHives
         {
             foreach (var (sid, vt) in _host.DocDaGhi())
             {
+                if (sid == MocHklm) { _hklmDaGo = true; continue; }   // đã gỡ HKLM bản cũ ở lần chạy trước ⇒ không đụng HKLM nữa (cờ IT đặt được giữ nguyên)
                 if (!AppLockerXml.IsValidSid(sid)) continue;
                 _daAp[sid] = (vt, DateTimeOffset.MinValue);   // quá hạn ⇒ hive đang nạp được ghi lại một lần, KHÔNG báo «đổi» nếu luật không đổi
                 _daGhiCho.Add(sid);
@@ -67,7 +68,17 @@ public sealed class WebPolicyHives
         _daLuu = ChuoiLuu();
     }
 
-    private string ChuoiLuu() => string.Join("\n", _daGhiCho.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).Select(x => x + " " + _daAp[x].VanTay));
+    /// <summary>Dòng đánh dấu «đã gỡ luật HKLM bản cũ» trong tệp lưu — gỡ MỘT lần cho cả đời máy, không mỗi lần dịch vụ khởi động (review #75).</summary>
+    public const string MocHklm = "HKLM";
+
+    private Dictionary<string, string> DsLuu()
+    {
+        var ds = _daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase);
+        if (_hklmDaGo) ds[MocHklm] = "da-go";
+        return ds;
+    }
+
+    private string ChuoiLuu() => string.Join("\n", DsLuu().OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase).Select(x => x.Key + " " + x.Value));
 
     /// <param name="p">null ⇒ gỡ hết (giám sát / mồ côi / đang gỡ…).</param>
     /// <param name="childSids">SID tài khoản Con (null = chưa đọc được ⇒ chỉ gỡ ở các hive đã ghi).</param>
@@ -75,6 +86,7 @@ public sealed class WebPolicyHives
     {
         bool doi = false, doiCon = false, goHklm = false;
         string? loi = null;
+        DocLanDau();
         if (!_hklmDaGo)
         {
             // DaGoHklm chỉ khi THẬT SỰ có luật cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
@@ -82,7 +94,6 @@ public sealed class WebPolicyHives
             catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
         }
 
-        DocLanDau();
         // chưa đọc được tài khoản Con (null) mà đang cần CHẶN ⇒ giữ nguyên luật đang có (như AppLocker), không gỡ nhầm; cần GỠ thì vẫn gỡ ở các hive đã ghi
         if (childSids == null && p != null) return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi);
         var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -117,7 +128,7 @@ public sealed class WebPolicyHives
         var luu = ChuoiLuu();
         if (luu != _daLuu)
         {
-            try { _host.LuuDaGhi(_daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase)); _daLuu = luu; }
+            try { _host.LuuDaGhi(DsLuu()); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
         return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon };
@@ -208,7 +219,7 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         foreach (var dong in File.ReadAllLines(TepDaGhi))
         {
             var ph = dong.Split(' ', 2, StringSplitOptions.TrimEntries);
-            if (ph.Length == 2 && AppLockerXml.IsValidSid(ph[0])) ds[ph[0]] = ph[1];
+            if (ph.Length == 2 && (AppLockerXml.IsValidSid(ph[0]) || ph[0] == WebPolicyHives.MocHklm)) ds[ph[0]] = ph[1];
         }
         return ds;
     }
@@ -219,6 +230,26 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         var tam = TepDaGhi + ".tmp";
         File.WriteAllLines(tam, ds.Select(kv => kv.Key + " " + kv.Value));
         File.Move(tam, TepDaGhi, true);
+    }
+
+    /// <summary>Gỡ nạp mọi hive còn kẹt ở tên tạm AiiGrowTmp_* (gọi cuối luồng gỡ: sau đó không còn dịch vụ nào gỡ hộ — kẹt thì tài khoản đó vào hồ sơ tạm).</summary>
+    public static void GoNapKet()
+    {
+        try
+        {
+            using var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64);
+            foreach (var ten in users.GetSubKeyNames().Where(n => n.StartsWith("AiiGrowTmp_", StringComparison.OrdinalIgnoreCase)))
+            {
+                BatQuyen();
+                for (int i = 0; i < 10; i++)
+                {
+                    GC.Collect(); GC.WaitForPendingFinalizers();
+                    if (RegUnLoadKey(HkeyUsers, ten) == 0) break;
+                    Thread.Sleep(300);
+                }
+            }
+        }
+        catch { }
     }
 
     public bool ConHoSo(string sid) => DangNap(sid) || DuongNtUser(sid) != null;

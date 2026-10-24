@@ -174,6 +174,20 @@ public class WebHiveTests
     }
 
     [Fact]
+    public void GoHklm_MotLanChoCaDoiMay_KhongDungLaiSauKhoiDong()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.True(h.DaLuu.ContainsKey(WebPolicyHives.MocHklm));
+        // IT / Ba Mẹ đặt cờ ẩn danh trong HKLM sau đó ⇒ dịch vụ khởi động lại KHÔNG xoá
+        h.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;
+        var n = h.Hklm.SoLanGhi;
+        new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0.AddMinutes(1));
+        Assert.Equal(n, h.Hklm.SoLanGhi);
+        Assert.Equal(1, h.Hklm.Dword[Chrome + "|IncognitoModeAvailability"]);
+    }
+
+    [Fact]
     public void HklmSach_KhongBaoDaGo()
     {
         var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
@@ -242,7 +256,7 @@ public class WebHiveTests
         Assert.Equal((true, true), AppLockerKhaDung.Chot("Professional", true, 0));
         Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", null, 0));
         Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", false, 1));   // một lần «không» có thể do module nạp lỗi
-        Assert.Equal((false, true), AppLockerKhaDung.Chot("Professional", false, AppLockerKhaDung.SoLanKhongChac));
+        Assert.Equal((false, false), AppLockerKhaDung.Chot("Professional", false, AppLockerKhaDung.SoLanKhongChac));   // không chốt suốt đời trên Pro
     }
 
     [Fact]

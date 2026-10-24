@@ -262,8 +262,16 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
             return;
         }
         using var k = TaoKhoa(hklm, khoaDs);
-        XoaMucCuaTa(k, dem: false);   // thay bằng danh sách mới, không phải «gỡ»
-        for (int i = 0; i < muc.Count; i++) k.SetValue((WebPolicyKeys.ChiSoDau + 1 + i).ToString(), muc[i], RegistryValueKind.String);
+        // GHI ĐÈ tại chỗ rồi mới xoá phần thừa — không xoá sạch rồi ghi lại (trình duyệt đọc giữa chừng thấy danh sách rỗng ⇒ hở chặn), giá trị y hệt thì không ghi (review #75)
+        var ten = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < muc.Count; i++)
+        {
+            var n = (WebPolicyKeys.ChiSoDau + 1 + i).ToString();
+            ten.Add(n);
+            if (!string.Equals(k.GetValue(n) as string, muc[i], StringComparison.Ordinal) || k.GetValueKind(n) != RegistryValueKind.String)
+                k.SetValue(n, muc[i], RegistryValueKind.String);
+        }
+        foreach (var n in k.GetValueNames()) if (WebPolicyKeys.LaCuaTa(n) && !ten.Contains(n)) k.DeleteValue(n, false);
     }
 
     public void DatDword(string khoa, string ten, int giaTri)
@@ -323,6 +331,7 @@ public static class WebGuard
             try { if (host.VoiHive(sid, reg => new WebPolicyApplier(reg).GoTatCa())) co = true; }
             catch { }
         }
+        WindowsWebHiveHost.GoNapKet();
         // gỡ xong cũng báo trình duyệt — không thì Chrome đang mở vẫn chặn tới khi tắt hẳn (review #65)
         if (co) WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai();
     }
