@@ -118,3 +118,9 @@ export const dangKhoa = (cfg: Record<string, unknown> | null | undefined, now = 
 /** Hạn khoá còn hiệu lực (ISO) hoặc null = khoá tới khi Ba Mẹ mở / không khoá. */
 export const khoaDen = (cfg: Record<string, unknown> | null | undefined, now = new Date()) =>
   khoaGoc(cfg, now) && typeof cfg?.khoa_den === "string" ? cfg.khoa_den : null;
+
+/** Nhịp đồng bộ kế — đang mở tạm thì không quá lúc khoá trở lại (+2 giây), để máy khoá lại đúng giờ. */
+export function nhipToiKhoaLai(nhip: number, khoaLai: string | null, now: Date) {
+  const con = khoaLai ? Math.ceil((Date.parse(khoaLai) - now.getTime()) / 1000) + 2 : Infinity;
+  return Math.max(10, Math.min(nhip, con));
+}

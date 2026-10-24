@@ -16,27 +16,24 @@ export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới $
 /** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
 export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();
 
-/** Đang mở tạm (Ba Mẹ duyệt thêm giờ lúc khoá): «Mở tạm tới 10:41, rồi khoá lại»; mở tới đúng hạn khoá ⇒ không khoá lại. null = không mở tạm. */
+/** Đang mở tạm (Ba Mẹ duyệt thêm giờ lúc khoá), chữ thường để ghép sau tên: «mở tạm tới 10:41, rồi khoá lại»; mở tới đúng hạn khoá ⇒ không khoá lại.
+ *  null = không mở tạm. */
 export function cauMoTam(moTamDen: string | null | undefined, khoaDen?: string | null, now = new Date()) {
   if (!moTamDen || !(Date.parse(moTamDen) > now.getTime())) return null;
-  return khoaDen && Date.parse(khoaDen) <= Date.parse(moTamDen) ? `Đã mở — khoá hết lúc ${gioPhut(khoaDen)}` : `Mở tạm tới ${gioPhut(moTamDen)}, rồi khoá lại`;
+  return khoaDen && Date.parse(khoaDen) <= Date.parse(moTamDen) ? `đã mở — khoá hết lúc ${gioPhut(khoaDen)}` : `mở tạm tới ${gioPhut(moTamDen)}, rồi khoá lại`;
 }
 
-/** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con). */
-/** `giuMoTam`: Hoàn tác «Mở lại máy» lúc đang mở tạm — máy chủ giữ mốc mở tạm đang lưu (không gửi giờ cũ của màn: Ba Mẹ khác có thể vừa cho thêm). */
-export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, giuMoTam = false) {
-  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && giuMoTam ? { giuMoTam } : {}) });
+/** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con).
+ *  `hoanTac`: Hoàn tác «Mở lại máy» — máy chủ bật lại đúng khoá đang lưu (hạn + mốc mở tạm), không dựa dữ liệu màn (Ba Mẹ khác có thể vừa đổi). */
+export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, hoanTac = false) {
+  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && hoanTac ? { hoanTac } : {}) });
 }
 
-/** «Mở lại máy» (trang chủ + Giờ dùng máy). Hoàn tác khoá lại đúng hạn cũ và LUÔN giữ mốc mở tạm máy chủ đang lưu (Mở lại không xoá nó; Ba Mẹ
- *  khác có thể vừa cho thêm sau lúc màn tải). Hạn sắp hết (< 30 giây, lệch đồng hồ) thì coi như đã hết, chỉ tải lại; khoá lại lỗi thì báo. */
-export async function moLaiMay(con: string, ten: string, d: { khoaDen?: string | null } | null | undefined,
-  bao: (chu: string, hoan?: () => void) => void, tai: () => unknown) {
-  const den = d?.khoaDen ?? null;
+/** «Mở lại máy» (trang chủ + Giờ dùng máy). Hoàn tác = máy chủ bật lại khoá đang lưu (hạn đã qua thì tự hết); lỗi thì báo. */
+export async function moLaiMay(con: string, ten: string, bao: (chu: string, hoan?: () => void) => void, tai: () => unknown) {
   await datKhoa(con, false, null);
   bao(`Đã mở lại máy của ${ten}`, () => {
-    if (!conHan(den, new Date(Date.now() + 30_000))) return void tai();
-    datKhoa(con, true, den ? new Date(den) : null, true).then(() => tai(), () => { bao(`Chưa khoá lại được máy của ${ten} — bấm «Khoá máy ngay»`); tai(); });
+    datKhoa(con, true, null, true).then(() => tai(), () => { bao(`Chưa khoá lại được máy của ${ten} — bấm «Khoá máy ngay»`); tai(); });
   });
 }
 

@@ -224,7 +224,8 @@ test("mở tạm: grant giữ nghĩa cũ (điện thoại = thưởng, Windows =
   assert.equal(moTamDen(await cfg(), phut(10)), phut(50).toISOString());
   // Mở lại rồi Hoàn tác ⇒ giữ mốc đang lưu
   await khoaNgay(fam, con, false, bm, null, phut(12));
-  await khoaNgay(fam, con, true, bm, phut(180), phut(12), true);
+  await khoaNgay(fam, con, true, bm, null, phut(12), true);
+  assert.equal((await cfg()).khoa_den, phut(180).toISOString(), "Hoàn tác giữ hạn khoá đang lưu trên máy chủ");
   assert.equal(dangKhoa(await cfg(), phut(20)), false);
   assert.equal(dangKhoa(await cfg(), phut(51)), true);
   // khoá mới (không phải Hoàn tác) ⇒ mở tạm bị huỷ

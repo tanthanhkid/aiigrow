@@ -72,7 +72,7 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
   const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
   const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
   const tai = () => { ct.tai(); taiLai(); };
-  const moLai = () => lam(async () => { await moLaiMay(c.id, c.ten, ct.d, bao, tai); tai(); });
+  const moLai = () => lam(async () => { await moLaiMay(c.id, c.ten, bao, tai); tai(); });
 
   // dòng trạng thái của từng ô — chỉ hiện số khi đã tải được, không đoán
   const chanWeb = web.d ? web.d.luat.filter((l) => l.trangThai === "chan") : null;
@@ -102,7 +102,7 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <BieuTron ic={moTam ? "dongho" : "khoa"} mau={moTam ? "cam" : "do"} />
             <View style={{ flex: 1 }}>
-              <Chu kieu="dam" co={13} mau={moTam ? M.chu2 : M.loi}>{moTam ? `${c.ten} · ${moTam.charAt(0).toLowerCase()}${moTam.slice(1)}` : `${c.ten} · máy đang khoá`}</Chu>
+              <Chu kieu="dam" co={13} mau={moTam ? M.chu2 : M.loi}>{moTam ? `${c.ten} · ${moTam}` : `${c.ten} · máy đang khoá`}</Chu>
               <Chu kieu="rat" co={20}>{cauKhoa(ct.d?.khoaDen)}</Chu>
             </View>
           </View>

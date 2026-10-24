@@ -2,7 +2,7 @@
 // Chỉ tên app/tên miền + thời lượng, không ghi nội dung. «Xuất CSV» mở được bằng Excel / Google Sheets.
 import { useState } from "react";
 import { View } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, Dong, Luoi2, M, Man, Nhom, NhomTieu, Nut, OSo, The, useLam, useTai } from "@/lib/ui";
 import { luuTepChu } from "@/lib/luu-tep";
@@ -16,8 +16,10 @@ const gio = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` $
 
 export default function BaoCaoTuan() {
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"));
+  // mở từ «Thời gian màn hình» của một Con ⇒ báo cáo đúng Con đó (`?con=`); Con không còn trong gia đình thì về Con đầu
+  const { con: conVao } = useLocalSearchParams<{ con?: string }>();
   const [chon, setChon] = useState<string | null>(null);
-  const con = chon ?? g.d?.con[0]?.id ?? null;
+  const con = chon ?? (conVao && g.d?.con.some((c) => c.id === conVao) ? conVao : g.d?.con[0]?.id) ?? null;
   if (!g.d) return <Man lui={{ chu: "Quay lại" }} tieuLon="Báo cáo tuần" chat><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
   if (!g.d.con.length) return <Man lui={{ chu: "Quay lại" }} tieuLon="Báo cáo tuần" chat><CanhGiua lv="canh-trong" tieu="Chưa có Con nào" loi="Thêm hồ sơ Con để có báo cáo tuần." /></Man>;
   return (

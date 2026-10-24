@@ -25,12 +25,12 @@ export default function GioChoi() {
     await tai();
   }, { hangDoi: true });
   const cauHinh = (them: Record<string, number>) => lam(async () => { await bm.goi(`con/${con}/cau-hinh`, them); await tai(); }, { hangDoi: true });
-  const moLai = () => lam(async () => { await moLaiMay(con, d.ten, d, bao, tai); await tai(); }, { hangDoi: true });
+  const moLai = () => lam(async () => { await moLaiMay(con, d.ten, bao, tai); await tai(); }, { hangDoi: true });
   const dangKhoa = d.khoaNgay && conHan(d.khoaDen);
   const moTam = dangKhoa ? cauMoTam(d.moTamDen, d.khoaDen) : null;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu="Giờ dùng máy" noi={noi}>
-      <Canh lv={dangKhoa && !moTam ? "nghi" : "cho"} thap tieu={moTam ? `Máy của ${d.ten}: ${moTam.charAt(0).toLowerCase()}${moTam.slice(1)}` : dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
+      <Canh lv={dangKhoa && !moTam ? "nghi" : "cho"} thap tieu={moTam ? `Máy của ${d.ten}: ${moTam}` : dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
         loi={moTam ? `Ba Mẹ đã cho thêm giờ lúc máy đang khoá. ${d.khoaDen ? `Khoá tự hết lúc ${gioPhut(d.khoaDen)}.` : "Khoá giữ tới khi Ba Mẹ mở lại."}` : dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
       <BaoLoi loi={loiLam} />
       <HaiNut>

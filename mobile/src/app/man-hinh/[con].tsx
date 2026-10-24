@@ -136,7 +136,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
       <Nhom>
         <Dong dau tieu="Chặn hoặc cho phép trang web" phu="Chọn từng trang, hoặc chỉ cho vào trang bạn duyệt" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
         <Dong tieu="Chặn hoặc xếp loại ứng dụng" phu="Học tập, giải trí, chặn" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push("/app-web")} />
-        <Dong tieu="Báo cáo tuần" phu="Học và giải trí theo ngày, xuất CSV cho Excel" trai={<BieuTron ic="cot" />} bam={() => router.push("/bao-cao")} />
+        <Dong tieu="Báo cáo tuần" phu="Học và giải trí theo ngày, xuất CSV cho Excel" trai={<BieuTron ic="cot" />} bam={() => router.push({ pathname: "/bao-cao", params: { con } })} />
       </Nhom>
       <Chu co={13} mau={M.chu3}>
         Chỉ ghi tên app, tên miền và thời gian, không ghi nội dung. Thời gian trong trình duyệt được tách theo từng trang web nên không tính hai lần; thời gian trên web chỉ gần đúng. Mục «Chưa phân loại» là app AiiGrow chưa biết — chạm vào để xếp loại.

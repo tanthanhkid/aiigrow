@@ -17,11 +17,11 @@ export type LyDoTuChoi = "khong_phai_giai_tri" | "bi_chan" | "chua_phan_loai" | 
 
 type BoiCanh = { fam: string; tz: string; ts: ThamSo; lich: ReturnType<typeof lichCua>; khoa: boolean };
 
-async function boiCanh(t: Q, con: string): Promise<BoiCanh> {
+async function boiCanh(t: Q, con: string, now = new Date()): Promise<BoiCanh> {
   const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown> }>(
     `select c.family_id, f.tz, f.cau_hinh as fcfg, c.cau_hinh as ccfg, c.lich from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0];
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), khoa: dangKhoa(r.ccfg) };
+  return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), khoa: dangKhoa(r.ccfg, now) };
 }
 
 export const giaPhut = (ts: ThamSo, nhom: NhomGiaiTri | null) => ts[NHOM_GIA[nhom ?? "khac"] ?? "gia_khac"];
@@ -45,7 +45,7 @@ export type XetPhien = { duoc: boolean; lyDo?: LyDoTuChoi; nhom?: NhomGiaiTri; g
 
 /** Xét mở phiên cho `muc` lúc `now` (chưa ghi gì). Thứ tự lý do theo BRD: khoá / ngủ / ngoài khung / nghỉ / trần / điểm / phiên khác. */
 export async function xetMoPhien(con: string, mucTho: string, o: { gioMaySai?: boolean; mayId?: string | null } = {}, now = new Date(), t: Q = q): Promise<XetPhien> {
-  const b = await boiCanh(t, con);
+  const b = await boiCanh(t, con, now);
   const pl = await phanLoai(b.fam, con, mucTho, t);
   if (pl.loai === "chan") return { duoc: false, lyDo: "bi_chan" };
   if (pl.loai === "chua_phan_loai") return { duoc: false, lyDo: "chua_phan_loai" };
@@ -87,7 +87,7 @@ async function conThuongHomNay(t: Q, con: string, ngay: string, tz: string) {
 
 /** Phút «thưởng» (thêm giờ) còn lại hôm nay của Con — dùng để khay Windows vẫn hiện «Dùng điểm để chơi» khi Con 0 điểm nhưng Ba Mẹ đã cho thêm giờ. */
 export async function thuongConLai(con: string, now = new Date()) {
-  const b = await boiCanh(q, con);
+  const b = await boiCanh(q, con, now);
   return conThuongHomNay(q, con, gioDiaPhuong(now, b.tz).ngay, b.tz);
 }
 
@@ -122,7 +122,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       tam_tu: Date | null }>(
       `select * from play_sessions where id = $1 and child_id = $2 for update`, [phienId, con]))[0];
     if (!p) throw new LoiNghiepVu("khong_thay", "Không thấy phiên", 404);
-    const b = await boiCanh(t, con);
+    const b = await boiCanh(t, con, now);
     if (p.trang_thai === "ket_thuc")
       return { trangThai: "ket_thuc", phutDung: p.phut_dung, conPhut: 0, diemTru: p.diem_tru, soDu: await soDu(con, t), canhBao: null,
         lyDoKet: p.ly_do_ket ?? undefined, nghiDen: p.nghi_den ? new Date(p.nghi_den).toISOString() : undefined };
@@ -183,7 +183,7 @@ export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" |
     const p = (await t<{ trang_thai: string; phan_nghin_tru: number; diem_tru: number; muc: string; phut_dung: number }>(
       `select trang_thai, phan_nghin_tru, diem_tru, muc, phut_dung from play_sessions where id = $1 and child_id = $2 for update`, [phienId, con]))[0];
     if (!p || p.trang_thai === "ket_thuc") return;
-    const b = await boiCanh(t, con);
+    const b = await boiCanh(t, con, now);
     const le = Math.ceil(p.phan_nghin_tru / 1000) - p.diem_tru;
     const tru = le > 0 ? Math.min(le, await soDu(con, t)) : 0;
     if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc}`, { ref: phienId });

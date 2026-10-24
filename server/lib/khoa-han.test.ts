@@ -48,3 +48,19 @@ test("«Tới sáng mai» = 7:00 kế tiếp theo múi giờ gia đình; hạn s
   await assert.rejects(mc.khoaNgay(fam, con, true, bm, new Date("abc")), /không hợp lệ/);
   await mc.khoaNgay(fam, con, false, bm, new Date("abc"));   // mở lại bỏ qua hạn, không lỗi
 });
+
+test("«tới sáng mai» đúng 7:00 cả ngày đổi giờ mùa hè (Europe/Berlin 25/10/2026: 3:00 → 2:00)", async () => {
+  const { sangMaiCua } = await import("./may-con.ts");
+  const { gioDiaPhuong } = await import("./gio.ts");
+  const d = sangMaiCua("Europe/Berlin", new Date("2026-10-24T20:00:00Z"));
+  assert.equal(gioDiaPhuong(d, "Europe/Berlin").phut, 7 * 60);
+  assert.equal(d.toISOString(), "2026-10-25T06:00:00.000Z");
+});
+
+test("nhịp đồng bộ không quá lúc mở tạm hết (máy khoá lại đúng giờ)", async () => {
+  const { nhipToiKhoaLai } = await import("./cau-hinh.ts");
+  const now = new Date("2026-10-24T10:00:00Z");
+  assert.equal(nhipToiKhoaLai(120, null, now), 120);
+  assert.equal(nhipToiKhoaLai(120, "2026-10-24T10:00:30Z", now), 32);
+  assert.equal(nhipToiKhoaLai(120, "2026-10-24T10:00:01Z", now), 10);
+});
