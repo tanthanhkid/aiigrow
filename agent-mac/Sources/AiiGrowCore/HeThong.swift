@@ -29,6 +29,8 @@ public protocol HeThong: AnyObject {
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws
   func xoaTep(_ duongDan: String)
   func xoaBoNhoDNS()
+  /// Chạy trình gỡ (go-cai.sh) như một job launchd riêng, để nó sống sau khi gỡ chính daemon.
+  func chayTrinhGo()
   func haQuyenAdmin(taiKhoan: String) throws
   /// Đóng phiên đồ hoạ của uid (Con bị đăng xuất về màn đăng nhập).
   func dongPhien(uid: UInt32) throws
@@ -58,6 +60,7 @@ public final class HeThongThu: HeThong {
   public func guiTinHieu(pid: Int32, tinHieu: Int32) { se("gửi tín hiệu \(tinHieu) tới pid \(pid)") }
   public func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { se("ghi \(duongDan) (\(d.count) byte, quyền \(String(quyen, radix: 8)))") }
   public func xoaTep(_ duongDan: String) { se("xoá \(duongDan)") }
+  public func chayTrinhGo() { se("chạy trình gỡ go-cai.sh (launchctl submit)") }
   public func xoaBoNhoDNS() { se("xoá bộ nhớ DNS (dscacheutil -flushcache; killall -HUP mDNSResponder)") }
   public func haQuyenAdmin(taiKhoan: String) throws { se("hạ \(taiKhoan) khỏi nhóm admin (dseditgroup)") }
   public func dongPhien(uid: UInt32) throws { se("đóng phiên của uid \(uid) (launchctl bootout gui/\(uid))") }

@@ -9,9 +9,13 @@ public struct TienTrinh: Equatable {
   /// Gói .app NGOÀI CÙNG chứa tệp chạy (helper của Chrome nằm trong Chrome.app ⇒ tính là Chrome). nil = không thuộc .app nào.
   public var duongDanApp: String?
   public var bundleId: String?
-  public init(pid: Int32, uid: UInt32, duongDan: String, duongDanApp: String? = nil, bundleId: String? = nil) {
+  /// .app GẦN NHẤT chứa tệp thực thi (iPad: …/Wrapper/Game.app; launcher: …/LeagueClient.app) và bundle id của nó.
+  public var duongDanAppGan: String?
+  public var bundleIdGan: String?
+  public init(pid: Int32, uid: UInt32, duongDan: String, duongDanApp: String? = nil, bundleId: String? = nil, bundleIdGan: String? = nil) {
     self.pid = pid; self.uid = uid; self.duongDan = duongDan
     self.duongDanApp = duongDanApp ?? QuyetDinhApp.appNgoaiCung(duongDan); self.bundleId = bundleId
+    self.duongDanAppGan = QuyetDinhApp.appGanNhat(duongDan); self.bundleIdGan = bundleIdGan
   }
 }
 
@@ -40,24 +44,34 @@ public enum QuyetDinhApp {
       .withLeadingSlash
   }
 
-  /// Tệp thực thi nằm ngay ở `<X>.app/Contents/MacOS/` của .app ngoài cùng = tiến trình chính của app.
-  /// Widget/extension (`…/PlugIns/X.appex/Contents/MacOS/…`), XPCServices, Helpers (Chrome Helper), LoginItems nằm sâu hơn ⇒ không phải tiến trình chính.
-  public static func laTienTrinhChinh(_ t: TienTrinh) -> Bool {
-    guard let app = t.duongDanApp else { return false }
-    return t.duongDan.lowercased().hasPrefix(app.lowercased() + "/contents/macos/")
+  /// .app GẦN NHẤT chứa tệp thực thi: «…/Game.app/Wrapper/Game.app/Game» ⇒ «…/Wrapper/Game.app».
+  public static func appGanNhat(_ duongDan: String) -> String? {
+    guard let r = duongDan.range(of: ".app/", options: [.caseInsensitive, .backwards]) else { return nil }
+    return String(duongDan[..<r.upperBound]).trimmingCharacters(in: CharacterSet(charactersIn: "/")).withLeadingSlash
+  }
+
+  /// Tiến trình PHỤ chạy nền của một app (widget/extension, XPC, helper, login item) — không đóng riêng chúng; app chính bị đóng thì chúng tự chết.
+  /// Mọi tiến trình khác thuộc .app (kể cả iPad Wrapper, launcher lồng nhau, Wine/CrossOver SharedSupport) xét theo bundle id.
+  public static func laTienTrinhPhu(_ duongDan: String) -> Bool {
+    let d = duongDan.lowercased()
+    return [".appex/", "/plugins/", "/xpcservices/", "/library/loginitems/", "/helpers/", "helper.app/"].contains { d.contains($0) }
   }
 
   /// App có thuộc danh sách cho phép không — so cả bundle id lẫn tên .app (máy chủ gửi được cả hai), không phân biệt hoa/thường.
   public static func duocPhep(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
     guard let app = t.duongDanApp else { return true }                               // không phải app có giao diện ⇒ không đụng
-    guard laTienTrinhChinh(t) else { return true }                                    // .appex/PlugIns/XPCServices/Helpers/LoginItems chạy nền: không đóng (app chính bị đóng thì chúng tự chết)
+    if laTienTrinhPhu(t.duongDan) { return true }                           // phụ (.appex/PlugIns/XPCServices/Helpers/LoginItems): không đóng riêng
     let choPhep = Set(choPhep.map { $0.lowercased() })                                // máy chủ luôn lưu chữ thường (chuanMuc); bundle id thật có chữ hoa
     if thuMucHeThong.contains(where: { app.hasPrefix($0) || t.duongDan.hasPrefix($0) }) { return true }
     if app.lowercased() == DuongDan.app.lowercased() { return true }
-    let ten = (app as NSString).lastPathComponent.lowercased()                         // «pages.app»
-    let tenKhongDuoi = (ten as NSString).deletingPathExtension                          // «pages»
-    if let b = t.bundleId?.lowercased(), heThong.contains(b) || choPhep.contains(b) { return true }
-    return choPhep.contains(ten) || choPhep.contains(tenKhongDuoi)
+    // Được phép nếu .app ngoài cùng HOẶC .app gần nhất (Wrapper/launcher lồng) nằm trong allowlist — theo bundle id hoặc tên .app.
+    func khop(_ app: String?, _ bundle: String?) -> Bool {
+      if let b = bundle?.lowercased(), heThong.contains(b) || choPhep.contains(b) { return true }
+      guard let app else { return false }
+      let ten = (app as NSString).lastPathComponent.lowercased()                       // «pages.app»
+      return choPhep.contains(ten) || choPhep.contains((ten as NSString).deletingPathExtension)
+    }
+    return khop(app, t.bundleId) || khop(t.duongDanAppGan, t.bundleIdGan)
   }
 
   /// Tiến trình cần đóng: chỉ khi «chỉ app học» và đang CHẶN THẬT; chỉ tiến trình của uid Con.

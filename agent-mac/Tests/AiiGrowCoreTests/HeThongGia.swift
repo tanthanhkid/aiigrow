@@ -30,6 +30,9 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func tenMay() -> String { ten }
   func appTienCanh(cuaUid uid: UInt32) -> String? { soLanKiemTienCanh += 1; return tienCanhThat }
   var soLanKiemTienCanh = 0
+  var soLanChayTrinhGo = 0
+  var loiHaQuyen: Error?
+  func chayTrinhGo() { soLanChayTrinhGo += 1 }
   func lietKeThuMuc(_ duongDan: String) -> [String] {
     let tien = duongDan.hasSuffix("/") ? duongDan : duongDan + "/"
     return Set(tep.keys.filter { $0.hasPrefix(tien) }.compactMap { $0.dropFirst(tien.count).split(separator: "/").first.map(String.init) }).sorted()
@@ -39,7 +42,7 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
   func xoaTep(_ duongDan: String) { tep[duongDan] = nil }
   func xoaBoNhoDNS() { daXoaDNS += 1 }
-  func haQuyenAdmin(taiKhoan: String) throws { daHaQuyen.append(taiKhoan); admin.remove(taiKhoan) }
+  func haQuyenAdmin(taiKhoan: String) throws { if let e = loiHaQuyen { throw e }; daHaQuyen.append(taiKhoan); admin.remove(taiKhoan) }
   func dongPhien(uid: UInt32) throws { daDongPhien.append(uid) }
   func ghiLog(_ s: String) { log.append(s) }
 }

@@ -34,7 +34,8 @@ public final class HeThongMac: HeThong {
       guard len > 0 else { continue }
       let duong = String(cString: buf)
       let app = QuyetDinhApp.appNgoaiCung(duong)
-      kq.append(TienTrinh(pid: pid, uid: k.kp_eproc.e_ucred.cr_uid, duongDan: duong, duongDanApp: app, bundleId: app.flatMap(bundleId)))
+      kq.append(TienTrinh(pid: pid, uid: k.kp_eproc.e_ucred.cr_uid, duongDan: duong, duongDanApp: app, bundleId: app.flatMap(bundleId),
+                          bundleIdGan: QuyetDinhApp.appGanNhat(duong).flatMap(bundleId)))
     }
     return kq
   }
@@ -118,6 +119,13 @@ public final class HeThongMac: HeThong {
   }
 
   public func xoaTep(_ duongDan: String) { unlink(duongDan) }
+
+  public func chayTrinhGo() {
+    let script = DuongDan.app + "/Contents/Resources/go-cai.sh"
+    guard FileManager.default.fileExists(atPath: script) else { ghiLog("Không thấy trình gỡ \(script) — gỡ tay bằng go-cai.sh."); return }
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", "vn.aiilab.aiigrow.go", "--", "/bin/bash", script], timeout: 10)
+    if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
+  }
 
   public func xoaBoNhoDNS() {
     _ = HeThongMac.chay("/usr/bin/dscacheutil", ["-flushcache"])

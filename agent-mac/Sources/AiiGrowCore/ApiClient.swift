@@ -27,10 +27,13 @@ public protocol MayChuApi: AnyObject {
   func trangThaiYeuCau(id: String) async throws -> String
   /// Sau khi ghép máy: dùng token + máy chủ mới ngay (không cần khởi động lại daemon).
   func datPhien(mayChu: String, token: String)
+  /// POST api/device/lenh/:id/xong — báo đã thực thi lệnh (vd «go») TRƯỚC khi xoá token.
+  func baoXongLenh(id: String) async throws
 }
 
 public extension MayChuApi {
   func datPhien(mayChu: String, token: String) {}
+  func baoXongLenh(id: String) async throws {}
 }
 
 public final class ApiClient: MayChuApi {
@@ -120,6 +123,11 @@ public final class ApiClient: MayChuApi {
     guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
           let v = o["version"] as? String, let u = o["url"] as? String, let s = o["sha256"] as? String else { return nil }
     return (v, u, s)
+  }
+
+  public func baoXongLenh(id: String) async throws {
+    let ma = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? id
+    _ = try await gui("POST", "api/device/lenh/" + ma + "/xong", [:])
   }
 
   public func trangThaiYeuCau(id: String) async throws -> String {

@@ -433,7 +433,7 @@ final class BaoMatTests: XCTestCase {
     let mailChinh = TienTrinh(pid: 35, uid: 501, duongDan: "/System/Applications/Mail.app/Contents/MacOS/Mail", bundleId: "com.apple.mail")
     let dong = QuyetDinhApp.canDong([lich, mail, helper, xpc, chrome, mailChinh], uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong))
     XCTAssertEqual(dong.map(\.pid).sorted(), [34, 35], "chỉ tiến trình chính bị đóng; widget/extension/XPC/Helper thì không")
-    XCTAssertTrue(QuyetDinhApp.laTienTrinhChinh(chrome)); XCTAssertFalse(QuyetDinhApp.laTienTrinhChinh(helper))
+    XCTAssertTrue(QuyetDinhApp.laTienTrinhPhu(helper.duongDan)); XCTAssertFalse(QuyetDinhApp.laTienTrinhPhu(chrome.duongDan))
   }
 
   private func chrome() -> ChinhSachTrinhDuyet.TrinhDuyet { ChinhSachTrinhDuyet.tatCa.first { $0.ten == "Chrome" }! }
@@ -446,12 +446,12 @@ final class BaoMatTests: XCTestCase {
     XCTAssertTrue(NSDictionary(dictionary: r ?? [:]).isEqual(to: mdm))
     // gộp vào: giữ khoá + danh sách của MDM
     let g = ChinhSachTrinhDuyet.gop(cu: mdm, trinhDuyet: chrome(), p: webYT, mayChuHost: nil)!
-    XCTAssertEqual(g["URLBlocklist"] as? [String], ["mdm.com", "youtube.com"])
+    XCTAssertEqual(g["URLBlocklist"] as? [String], ["youtube.com", "mdm.com"])
     XCTAssertEqual(g["HomepageLocation"] as? String, "https://x.vn")
     XCTAssertNotNil(g[ChinhSachTrinhDuyet.khoaDanhDau])
     // cập nhật lần hai không nhân đôi, rồi gỡ ⇒ về đúng nguyên trạng của MDM
     let g2 = ChinhSachTrinhDuyet.gop(cu: g, trinhDuyet: chrome(), p: webYT, mayChuHost: nil)!
-    XCTAssertEqual(g2["URLBlocklist"] as? [String], ["mdm.com", "youtube.com"])
+    XCTAssertEqual(g2["URLBlocklist"] as? [String], ["youtube.com", "mdm.com"])
     let go = ChinhSachTrinhDuyet.gop(cu: g2, trinhDuyet: chrome(), p: nil, mayChuHost: nil)!
     XCTAssertTrue(NSDictionary(dictionary: go).isEqual(to: mdm), "gỡ trả lại đúng giá trị gốc: \(go)")
     // plist chỉ của ta ⇒ gỡ xong rỗng ⇒ nil (xoá tệp)
@@ -519,5 +519,107 @@ final class BaoMatTests: XCTestCase {
     XCTAssertFalse(daGhep)
     XCTAssertNil(kho.doc()?.policyCuoi)
     XCTAssertTrue(fake.tinHieuDaGui.isEmpty, "không đóng app")
+  }
+
+  // MARK: lượt review 7
+
+  func testIpadWrapperLauncherLongNhauVaWineBiDong() {
+    let ipad = TienTrinh(pid: 40, uid: 501, duongDan: "/Applications/Game.app/Wrapper/Game.app/Game", bundleId: "com.ngoai.game", bundleIdGan: "com.game.ipad")
+    let lol = TienTrinh(pid: 41, uid: 501, duongDan: "/Applications/League of Legends.app/Contents/LoL/RADS/projects/league_client/releases/1/deploy/LeagueClient.app/Contents/MacOS/LeagueClient", bundleId: "com.riotgames.leagueoflegends", bundleIdGan: "com.riotgames.leagueclient")
+    let wine = TienTrinh(pid: 42, uid: 501, duongDan: "/Applications/CrossOver.app/Contents/SharedSupport/CrossOver/bin/wine64-preloader", bundleId: "com.codeweavers.crossover")
+    XCTAssertEqual(ipad.duongDanAppGan, "/Applications/Game.app/Wrapper/Game.app")
+    let tat = QuyetDinhApp.canDong([ipad, lol, wine], uidCon: 501, chiAppHoc: true, choPhep: [])
+    XCTAssertEqual(tat.map(\.pid).sorted(), [40, 41, 42], "game iPad Wrapper, launcher lồng, Wine/CrossOver đều bị đóng")
+    // bundle id của .app GẦN NHẤT được phép ⇒ giữ; .app ngoài cùng được phép cũng giữ
+    XCTAssertEqual(QuyetDinhApp.canDong([ipad, lol, wine], uidCon: 501, chiAppHoc: true, choPhep: ["com.game.ipad", "com.riotgames.leagueclient"]).map(\.pid), [42])
+    XCTAssertEqual(QuyetDinhApp.canDong([ipad, lol, wine], uidCon: 501, chiAppHoc: true, choPhep: ["com.riotgames.leagueoflegends", "com.codeweavers.crossover"]).map(\.pid).sorted(), [40])
+    // tiến trình phụ của lượt trước vẫn được miễn
+    let appex = TienTrinh(pid: 43, uid: 501, duongDan: "/System/Applications/Calendar.app/Contents/PlugIns/CalendarWidgetExtension.appex/Contents/MacOS/CalendarWidgetExtension", bundleId: "com.apple.ical")
+    XCTAssertTrue(QuyetDinhApp.canDong([appex], uidCon: 501, chiAppHoc: true, choPhep: []).isEmpty)
+  }
+
+  func testTuGoBaoXongTruocKhiXoaTokenVaChayTrinhGo() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, kho) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    try kho.sua { $0.daHaQuyen = ["be"] }
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [["id": 7, "loai": "go"]],
+      "windows": ["mode": "tu_do", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc)]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    XCTAssertEqual(HttpMock.authCuoi("api/device/lenh/7/xong"), "Bearer t", "báo xong lệnh gỡ khi token còn hiệu lực")
+    XCTAssertEqual(kho.doc()?.token, "", "rồi mới xoá token")
+    XCTAssertEqual(kho.doc()?.daHaQuyen, ["be"], "giữ danh sách để trình gỡ trả quyền admin")
+    XCTAssertEqual(fake.soLanChayTrinhGo, 1, "tự chạy trình gỡ")
+  }
+
+  private func boMayChuaGhep(_ fake: HeThongGia, _ thuMuc: String, api: MayChuApi? = nil, daHa: [String] = []) throws -> (BoMay, ConfigStore) {
+    let kho = ConfigStore(duongDan: thuMuc + "/config.json")
+    if !daHa.isEmpty { try kho.sua { $0.daHaQuyen = daHa } }
+    let dh = DongHoGia()
+    let a = api ?? ApiClient(mayChu: "https://aiigrow.aiilab.vn", token: nil, session: HttpMock.session())
+    let b = BoMay(api: a, heThong: fake, kho: kho, tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed"),
+                  dongHo: { dh.thuc }, donDieu: { dh.donDieu })
+    fake.uidTheoTen = ["be": 501, "ba": 502]; fake.admin = ["ba"]
+    return (b, kho)
+  }
+
+  func testGhepLaiKhongMatDanhSachDaHaQuyen() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia()
+    let (b, kho) = try boMayChuaGhep(fake, thuMuc, daHa: ["con_cu"])
+    HttpMock.dat { _, _ in HttpMock.json(200, ["deviceId": "d", "token": "t2", "childName": "Bé"]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    try await b.ghep(ma: "123456", taiKhoanCon: "be")           // be không phải admin ⇒ không hạ thêm
+    XCTAssertEqual(kho.doc()?.daHaQuyen, ["con_cu"], "hợp với danh sách cũ, không ghi đè bằng []")
+  }
+
+  func testHaQuyenLoiVanGiuTokenDaGhep() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia()
+    let (b, kho) = try boMayChuaGhep(fake, thuMuc)
+    fake.admin = ["ba", "be"]; fake.loiHaQuyen = LoiApi(chu: "dseditgroup lỗi")
+    HttpMock.dat { _, _ in HttpMock.json(200, ["deviceId": "d", "token": "tok-ok", "childName": "Bé"]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    try await b.ghep(ma: "123456", taiKhoanCon: "be")           // không ném lỗi
+    XCTAssertEqual(kho.doc()?.token, "tok-ok", "token đã lưu dù hạ quyền lỗi")
+    XCTAssertEqual(kho.doc()?.daHaQuyen, [], "chưa hạ được ⇒ không ghi vào danh sách cần trả")
+    XCTAssertTrue(fake.log.contains { $0.contains("CẢNH BÁO") })
+  }
+
+  func testGopGiuMucCuaTaKhiVuotTran() {
+    let mdm: [String: Any] = ["URLBlocklist": (0..<2000).map { "mdm\($0).com" }]
+    let web = ChinhSachWeb(cheDo: ChinhSachWeb.chiChoPhep, chan: ["youtube.com"], cho: ["hoc.vn"])
+    let g = ChinhSachTrinhDuyet.gop(cu: mdm, trinhDuyet: chrome(), p: web, mayChuHost: nil)!
+    let ds = g["URLBlocklist"] as! [String]
+    XCTAssertEqual(ds.first, "*", "«*» của AiiGrow đứng đầu")
+    XCTAssertTrue(ds.contains("youtube.com"))
+    XCTAssertLessThanOrEqual(ds.count, ChinhSachTrinhDuyet.tranMuc)
+  }
+
+  final class ApiGhepCham: MayChuApi, @unchecked Sendable {
+    let k = NSLock(); var soLan = 0
+    func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep {
+      k.lock(); soLan += 1; k.unlock()
+      try await Task.sleep(nanoseconds: 150_000_000)
+      return KetQuaGhep(deviceId: "d", token: "t", childName: "B", server: nil)
+    }
+    func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date) async throws -> KetQuaDongBo { throw LoiApi(chu: "x") }
+    func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async throws -> KetQuaYeuCau { KetQuaYeuCau(id: "1", trangThai: "cho") }
+    func trangThaiYeuCau(id: String) async throws -> String { "cho" }
+  }
+
+  func testBamDoiGhepChiGoiMayChuMotLan() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), api = ApiGhepCham()
+    let (b, _) = try boMayChuaGhep(fake, thuMuc, api: api)
+    async let a: Void = b.ghep(ma: "111111", taiKhoanCon: "be")
+    async let c: Void = b.ghep(ma: "111111", taiKhoanCon: "be")
+    var loi: [String?] = []
+    do { try await a } catch let e as LoiApi { loi.append(e.ma) }
+    do { try await c } catch let e as LoiApi { loi.append(e.ma) }
+    XCTAssertEqual(api.soLan, 1, "chỉ MỘT lần gọi server")
+    XCTAssertEqual(loi.count, 1)
+    XCTAssertTrue(["dang_ghep", "da_ghep"].contains(loi.first ?? nil ?? ""), "lần hai bị từ chối: \(loi)")
   }
 }

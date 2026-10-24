@@ -12,6 +12,30 @@ for uid in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/AiiGrowTray/ {print $1}' |
 done
 /usr/bin/pkill -x AiiGrowTray >/dev/null 2>&1 || true
 
+# Đọc cấu hình trước khi xoá (token, máy chủ, tài khoản đã bị hạ quyền admin lúc ghép). Biến AIIGROW_* chỉ để thử trên thư mục tạm.
+CFG="${AIIGROW_CONFIG:-/Library/Application Support/AiiGrow/config.json}"
+CURL="${AIIGROW_CURL:-/usr/bin/curl}"
+DSEDIT="${AIIGROW_DSEDIT:-/usr/sbin/dseditgroup}"
+PLUTIL=/usr/bin/plutil
+if [ -f "$CFG" ]; then
+  TOKEN=$($PLUTIL -extract token raw -o - "$CFG" 2>/dev/null || true)
+  SERVER=$($PLUTIL -extract mayChu raw -o - "$CFG" 2>/dev/null || true)
+  # Báo máy chủ «đã gỡ tại máy» (máy rời gia đình ngay, Ba Mẹ không phải chờ) TRƯỚC khi xoá token; lỗi mạng thì bỏ qua.
+  if [ -n "${TOKEN:-}" ] && [ -n "${SERVER:-}" ]; then
+    "$CURL" -s -m 8 -o /dev/null -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d "{\"may\":\"$(/bin/hostname -s)\"}" "${SERVER%/}/api/device/da-go" >/dev/null 2>&1 || echo "Không báo được máy chủ (bỏ qua)."
+  fi
+  # Trả quyền quản trị cho tài khoản đã bị hạ lúc ghép máy.
+  n=$($PLUTIL -extract daHaQuyen raw -o - "$CFG" 2>/dev/null || echo 0)
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    tk=$($PLUTIL -extract "daHaQuyen.$i" raw -o - "$CFG" 2>/dev/null || true)
+    if [ -n "$tk" ]; then "$DSEDIT" -o edit -a "$tk" -t user admin >/dev/null 2>&1 && echo "Đã trả quyền admin cho $tk" || echo "Không trả được quyền admin cho $tk"; fi
+    i=$((i + 1))
+  done
+fi
+
 # Khối /etc/hosts có mốc «# AiiGrow»: dòng mốc mở (không có END/kết thúc/hết) bắt đầu khối, dòng mốc đóng kết thúc khối.
 if /usr/bin/grep -q '# AiiGrow' /etc/hosts 2>/dev/null; then
   tmp=$(/usr/bin/mktemp)

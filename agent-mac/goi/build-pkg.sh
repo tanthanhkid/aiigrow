@@ -19,7 +19,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/AiiGrowTray" "$APP/Contents/MacOS/AiiGrowTray"
 cp "$BIN/aiigrow-daemon" "$APP/Contents/MacOS/aiigrow-daemon"
 sed "s/@BAN@/$BAN/g" Info.plist.in > "$APP/Contents/Info.plist"
-cp vn.aiilab.aiigrow.daemon.plist vn.aiilab.aiigrow.tray.plist "$APP/Contents/Resources/"
+cp vn.aiilab.aiigrow.daemon.plist vn.aiilab.aiigrow.tray.plist go-cai.sh "$APP/Contents/Resources/"
+chmod 755 "$APP/Contents/Resources/go-cai.sh"   # daemon tự chạy khi nhận lệnh gỡ từ xa
 plutil -lint "$APP/Contents/Info.plist" vn.aiilab.aiigrow.*.plist >/dev/null
 
 # Ký ad-hoc (chưa có Developer ID). Xem README: ký + notarize thật.

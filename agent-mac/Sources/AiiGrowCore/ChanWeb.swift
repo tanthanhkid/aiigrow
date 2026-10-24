@@ -116,7 +116,7 @@ public enum ChinhSachTrinhDuyet {
       let (chan, cho) = lap(p, mayChuHost: mayChuHost)
       func hop(_ k: String, _ ta: [String]) -> [String] {
         var s = Set<String>(); let g = goc[k] as? [String] ?? []
-        return Array((g + ta).filter { s.insert($0).inserted }.prefix(tranMuc))
+        return Array((ta + g).filter { s.insert($0).inserted }.prefix(tranMuc))      // mục của AiiGrow (kể cả «*») đứng trước, luôn được giữ khi cắt trần
       }
       d[khoaDanhDau] = true
       d["URLBlocklist"] = hop("URLBlocklist", chan)

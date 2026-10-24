@@ -33,6 +33,7 @@ public actor BoMay {
   /// Thời điểm (đơn điệu) phải đồng bộ lại.
   private var syncLuc: Double = 0
   private var matMang = false
+  private var dangGhep = false
   private var trayNhipCuoi: Double = -1_000_000
   /// Mốc đơn điệu lần áp gần nhất (để cộng giờ đã dùng + đếm giây mục app).
   private var apTruoc: Double
@@ -47,6 +48,7 @@ public actor BoMay {
     self.dongHo = dongHo; self.donDieu = donDieu
     self.cauHinh = kho.doc() ?? CauHinhMay()
     self.policy = cauHinh.policyCuoi
+    if cauHinh.daGhep { api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token) }     // token/máy chủ từ cấu hình đĩa (bản giả/daemon khởi tạo thiếu cũng đúng)
     self.apTruoc = donDieu()
     self.demTienCanh = DemTienCanh(dongBo: tuyChon.tienCanhDongBo) { [heThong] uid in heThong.appTienCanh(cuaUid: uid) }
     if let u = cauHinh.uidCon { _ = demTienCanh.doc(uid: u, gio: apTruoc) }      // kích kiểm nền ngay khi daemon chạy ⇒ tick đầu có dữ liệu sớm
@@ -59,18 +61,20 @@ public actor BoMay {
   /// Ghép máy lần đầu (lệnh IPC `ghep`, uid admin). Gọi máy chủ pair, lưu token + uid Con, hạ Con về Standard nếu đang admin (phải còn admin khác).
   public func ghep(ma: String, taiKhoanCon: String) async throws {
     guard !cauHinh.daGhep else { throw LoiApi(ma: "da_ghep", chu: "Máy này đã được ghép rồi.") }
+    guard !dangGhep else { throw LoiApi(ma: "dang_ghep", chu: "Đang ghép máy, vui lòng chờ.") }
+    dangGhep = true                                   // đặt TRƯỚC await đầu tiên: actor reentrancy không cho gọi server hai lần
+    defer { dangGhep = false }
     let tk = taiKhoanCon.trimmingCharacters(in: .whitespaces)
     guard let uidCon = heThong.uid(cuaTaiKhoan: tk) else { throw LoiApi(ma: "khong_thay_con", chu: "Không thấy tài khoản «\(tk)» trên máy.") }
     // Kiểm cục bộ TRƯỚC khi gọi máy chủ (lỗi cục bộ không để lại máy «ma» + mất mã ghép). Phải còn một admin KHÁC (không tự khoá Ba Mẹ ra ngoài).
-    var haQuyen: [String] = []
-    if heThong.laAdmin(uid: uidCon) {
+    let canHa = heThong.laAdmin(uid: uidCon)
+    if canHa {
       let conLai = heThong.dsAdmin().filter { $0.lowercased() != tk.lowercased() && $0.lowercased() != "root" }
       guard !conLai.isEmpty else { throw LoiApi(ma: "con_mot_admin", chu: "Cần còn một tài khoản quản trị khác trước khi hạ quyền tài khoản của Con.") }
-      haQuyen = [tk]
     }
     let kq = try await api.ghep(ma: ma, tenMay: heThong.tenMay())
-    // Hạ Con khỏi nhóm admin (đã kiểm còn admin khác ở trên).
-    if !haQuyen.isEmpty { try heThong.haQuyenAdmin(taiKhoan: tk) }
+    // Lưu token NGAY (mã ghép đã bị dùng): hạ quyền lỗi sau đó vẫn là máy đã ghép, chỉ cảnh báo.
+    let cu = cauHinh.daHaQuyen
     try kho.sua {
       $0.mayChu = kq.server ?? api_mayChu
       $0.deviceId = kq.deviceId
@@ -78,11 +82,20 @@ public actor BoMay {
       $0.tenCon = kq.childName.isEmpty ? tk : kq.childName
       $0.taiKhoanCon = tk
       $0.uidCon = uidCon
-      $0.daHaQuyen = haQuyen
+      $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
     }
     cauHinh = kho.doc() ?? cauHinh
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
+    if canHa {
+      do {
+        try heThong.haQuyenAdmin(taiKhoan: tk)
+        _ = try? kho.sua { if !$0.daHaQuyen.contains(tk) { $0.daHaQuyen.append(tk) } }
+        cauHinh = kho.doc() ?? cauHinh
+      } catch {
+        heThong.ghiLog("CẢNH BÁO: đã ghép nhưng chưa hạ được quyền admin của «\(tk)»: \(error) — Ba Mẹ hạ tay trong Cài đặt hệ thống.")
+      }
+    }
   }
 
   private var api_mayChu: String { (api as? ApiClient)?.mayChu ?? cauHinh.mayChu }
@@ -126,7 +139,7 @@ public actor BoMay {
       cauHinh.policyCuoi = kq.policy
       cauHinh.policyLuc = dongHo()
       cauHinh.daDungGiayTuSync = 0
-      for l in kq.lenh where l.loai == "go" { await tuGo() }
+      for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
     } catch let e as LoiApi {
       matMang = e.laMang
       syncLuc = donDieu() + Double(policy?.nextCheckSec ?? 60)
@@ -304,20 +317,23 @@ public actor BoMay {
 
   // MARK: phụ
 
-  private func tuGo() async {
+  private func tuGo(lenhId: String) async {
     // Lệnh gỡ từ xa: trả quyền admin đã hạ, xoá chính sách web + hosts, xoá cấu hình. KHÔNG tự bootout launchd (gói cài lo).
     apChinhSachTrinhDuyet(web: nil)
     // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.
     for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
     apHosts(web: nil)
     for tk in cauHinh.daHaQuyen { heThong.ghiLog("[gỡ] trả lại quyền admin cho \(tk) do go-cai.sh thực hiện.") }
+    // Báo máy chủ «đã gỡ xong» TRƯỚC khi xoá token (sau đó token không còn dùng được). Lỗi mạng thì bỏ qua — máy chủ chờ tối đa 7 ngày rồi cho xoá hẳn.
+    do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
     // Thả hoàn toàn: xoá token + Policy (cả trong bộ nhớ lẫn đĩa) ⇒ các vòng sau coi như chưa ghép, không áp lại plist/hosts/đóng app.
     _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0 }
     cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
     api.datPhien(mayChu: cauHinh.mayChu, token: "")
     policy = nil
     demNguocConLai = nil
-    heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn, chờ bộ gỡ.")
+    heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn; chạy trình gỡ.")
+    heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)
   }
 
   private func conDangDung() -> UInt32? {
