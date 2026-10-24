@@ -36,10 +36,13 @@ export const GOI_Y: ReadonlyMap<string, MucMH> = new Map([
 
 /** App trình duyệt: thời gian của nó đã được tách theo trang web. */
 export const TRINH_DUYET = new Set(["chrome.exe", "msedge.exe", "brave.exe", "firefox.exe", "opera.exe", "vivaldi.exe", "coccoc.exe", "browser.exe",
-  "com.android.chrome", "com.microsoft.emmx", "org.mozilla.firefox", "com.coccoc.trinhduyet", "com.brave.browser"]);
+  "com.android.chrome", "com.microsoft.emmx", "org.mozilla.firefox", "com.coccoc.trinhduyet", "com.brave.browser",
+  // macOS (usage của Mac lưu chữ thường — may-con.ts)
+  "com.google.chrome", "com.apple.safari", "com.microsoft.edgemac", "com.coccoc.coccoc", "com.operasoftware.opera"]);   // Brave/Firefox Mac trùng id Android ở trên
 
 const TEN: Record<string, string> = {
   "robloxplayerbeta.exe": "Roblox", "roblox.exe": "Roblox", "minecraft.exe": "Minecraft", "minecraftlauncher.exe": "Minecraft", "minecraft.windows.exe": "Minecraft",
+  "com.google.chrome": "Chrome", "com.apple.safari": "Safari", "com.microsoft.edgemac": "Edge", "com.coccoc.coccoc": "Cốc Cốc", "com.roblox.robloxplayer": "Roblox",
   "chrome.exe": "Chrome", "msedge.exe": "Edge", "brave.exe": "Brave", "firefox.exe": "Firefox", "coccoc.exe": "Cốc Cốc", "browser.exe": "Cốc Cốc",
   "winword.exe": "Word", "excel.exe": "Excel", "powerpnt.exe": "PowerPoint", "explorer.exe": "File Explorer", "steam.exe": "Steam",
   "epicgameslauncher.exe": "Epic Games", "leagueclient.exe": "Liên Minh Huyền Thoại", "com.garena.game.kgvn": "Liên Quân Mobile",

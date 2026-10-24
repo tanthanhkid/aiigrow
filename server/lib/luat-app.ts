@@ -19,6 +19,8 @@ export const ALLOWLIST_HE_THONG: string[] = [
   // macOS
   "com.apple.finder", "com.apple.systempreferences", "com.apple.calculator", "com.apple.notes", "com.apple.preview", "com.apple.photos",
   "com.microsoft.word", "com.microsoft.excel", "com.microsoft.powerpoint", "com.apple.iwork.pages", "com.apple.iwork.numbers", "com.apple.iwork.keynote",
+  // hỗ trợ từ xa của AiiLab trên Mac (như tailscale-ipn.exe / tvnserver.exe bên Windows); bộ gõ tiếng Việt Mac miễn theo đường dẫn Input Methods trong tác tử
+  "io.tailscale.ipn.macsys", "io.tailscale.ipn.macos", "com.teamviewer.teamviewer", "com.teamviewer.teamviewer.agent",
   // Android
   "com.android.settings", "com.google.android.calculator", "com.google.android.deskclock", "com.google.android.apps.docs",
   "com.google.android.apps.docs.editors.docs", "com.google.android.apps.docs.editors.sheets", "com.google.android.apps.docs.editors.slides",

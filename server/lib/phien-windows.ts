@@ -7,6 +7,7 @@
 //   • Máy dùng chung (devices.child_id null, Con chọn bằng PIN trên trang khay): Con lấy từ phiên đang chạy/tạm MỞ TRÊN CHÍNH MÁY NÀY (cùng
 //     gia đình) — CHỈ với agent 0.2.4+ (agent cũ: Policy chung không thả app chơi, nhịp sẽ trừ điểm cho app đang bị chặn). Policy chung được
 //     GHÉP phần phiên (app chơi / trình duyệt + play*) — lịch, app học, luật web, khoá vẫn là của máy (ghepPhienMayChung).
+import { coTacTu } from "./chuyen-doi.ts";
 import { one } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import type { MoRong } from "./agent-windows.ts";
@@ -67,7 +68,7 @@ const conDangNhapPin = async (con: string, mayId: string, now: Date) =>
 
 /** Một lượt dong-bo của máy Windows ⇒ nhịp phiên (nếu có). Máy không tuân thủ ⇒ đóng phiên (ba_me_khoa). → kết quả nhịp hoặc null. */
 export async function nhipPhienWindows(may: May, con: string | null, st: TrangThaiNhip | undefined, now = new Date()): Promise<KetNhip | null> {
-  if (may.platform !== "windows" || !laNhipThucThi(st)) return null;
+  if (!coTacTu(may.platform) || !laNhipThucThi(st)) return null;
   if (!con && !laAgentMoi(st)) return null;                  // máy dùng chung + agent cũ: như #58 (không nhịp)
   const ph = await phienCuaMay(may, con);
   if (!ph) return null;

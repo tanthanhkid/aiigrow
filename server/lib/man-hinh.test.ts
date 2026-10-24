@@ -28,6 +28,8 @@ test("xếp mục: gợi ý theo bản chất, tên miền con, luật Giải tr
   assert.equal(mh.xepMuc("m.youtube.com", []).muc, "video");
   assert.equal(mh.xepMuc("vi.wikipedia.org", []).muc, "hoc");
   assert.equal(mh.xepMuc("lammoi.exe", []).muc, "chua_xep");
+  assert.equal(mh.xepMuc("com.google.Chrome", []).muc, "tien_ich", "trình duyệt Mac");
+  assert.equal(mh.xepMuc("com.apple.safari", []).muc, "tien_ich");
   assert.equal(mh.xepMuc("lammoi.exe", [{ child_id: "", muc: "lammoi.exe", ten: "Làm mới", loai: "hoc", nhom: "khac" }]).muc, "hoc");
   assert.equal(mh.xepMuc("youtube.com", [{ child_id: "c", muc: "youtube.com", ten: "YouTube", loai: "giai_tri", nhom: "video_ngan" }]).muc, "video_ngan");
   // Ba Mẹ «Cho phép» YouTube (loai hoc) — vẫn là Video theo bản chất
