@@ -24,19 +24,18 @@ internal static class UI
 
     public static Font F(float pt, FontStyle st = FontStyle.Regular) => new("Segoe UI", pt, st);
 
-    /// <summary>Nút Clay (kẹo bọc đường khi <paramref name="primary"/>, đất sét sứ khi không). Cao 50 = thân 44 + lề bóng.</summary>
+    /// <summary>Nút Clay (kẹo bọc đường khi <paramref name="primary"/>, đất sét sứ khi không). Cao = thân 44 (theo DPI) + lề bóng.</summary>
     public static Button Btn(string text, bool primary = true, int width = 260, string? icon = null)
     {
         var b = new ClayButton
         {
             Text = text,
             Width = width,
-            Height = 50,
+            Height = Clay.Si(44) + VeNut.LeBong.Vertical,   // thân 44 (theo DPI) + lề bóng — không cắt chữ ở 150–200%
             Font = F(11.5f, FontStyle.Bold),
             BackColor = primary ? Green : Card,
             ForeColor = primary ? Color.White : Ink,
         };
-        b.FlatAppearance.BorderColor = Green;
         if (icon != null) b.Image = Fluent(icon);
         return b;
     }
@@ -108,20 +107,10 @@ internal static class UI
         return ImgCache[key] = img;
     }
 
-    private static float? _scale;
-    /// <summary>Hệ số DPI của hệ thống (96 dpi = 1,0). Dùng cho kích thước tính bằng pixel trong code (app to).</summary>
-    public static float Scale
-    {
-        get
-        {
-            if (_scale is { } v) return v;
-            try { using var g = Graphics.FromHwnd(IntPtr.Zero); _scale = g.DpiX / 96f; }
-            catch { _scale = 1f; }
-            return _scale.Value;
-        }
-    }
+    /// <summary>Hệ số DPI của hệ thống (96 dpi = 1,0) — một nguồn duy nhất: <see cref="Clay.Scale"/>.</summary>
+    public static float Scale => Clay.Scale;
 
-    public static int Px(int v) => (int)Math.Round(v * Scale);
+    public static int Px(int v) => Clay.Si(v);
 
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr h);
     [DllImport("user32.dll")] public static extern bool LockWorkStation();

@@ -33,7 +33,7 @@ internal sealed class SetupForm : Form
         Padding = new Padding(32, 8, 24, 10), AutoScroll = true, BackColor = Nen,
     };
     private readonly Panel _dau = new() { Dock = DockStyle.Top, Height = 60, BackColor = Nen };
-    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = 76, BackColor = Clay.The };
+    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = Clay.Si(44) + VeNut.LeBong.Vertical + 26, BackColor = Clay.The };
     private List<LocalAccount> _accounts = new();
     private LocalAccount? _child;
     private bool _dongY;
@@ -80,10 +80,10 @@ internal sealed class SetupForm : Form
 
     private static Button B(string text, bool chinh = true, int w = 200)
     {
-        // Nút Clay (kẹo bọc đường / đất sét sứ), cao 50 = thân 44 + lề bóng.
+        // Nút Clay (kẹo bọc đường / đất sét sứ), cao = thân 44 (theo DPI) + lề bóng.
         var b = new ClayButton
         {
-            Text = text, Width = w, Height = 50,
+            Text = text, Width = w, Height = Clay.Si(44) + VeNut.LeBong.Vertical,
             Font = new Font("Segoe UI", 11.5f, FontStyle.Bold),
             BackColor = chinh ? Chinh : Clay.The, ForeColor = chinh ? Color.White : Chu,
         };
@@ -123,24 +123,25 @@ internal sealed class SetupForm : Form
     /// <summary>Thẻ lựa chọn lớn: tiêu đề đậm + câu «Chọn cái này nếu…»; viền xanh khi được chọn.</summary>
     private sealed class The : Panel
     {
-        public bool Chon { get => _chon; set { _chon = value; Invalidate(); } }
+        public bool Chon { get => _chon; set { _chon = value; BackColor = value ? ChinhSoft : Clay.The; Invalidate(true); } }
         private bool _chon;
         public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 14, 18, 14); }
+        /// <summary>Lề bóng Clay theo DPI (VeThe.LeBong) — nội dung đặt lệch vào trong lề này.</summary>
+        public static Padding Le => VeThe.LeBong;
         /// <summary>Thẻ Clay: thân đất sét có bóng kép; được chọn ⇒ nền ngọc nhạt + viền ngọc 2,5 (không chỉ dựa vào màu: viền dày hơn hẳn).</summary>
         protected override void OnPaintBackground(PaintEventArgs e)
         {
             var g = e.Graphics;
             g.Clear(Parent?.BackColor ?? Nen);
-            Clay.ChatLuong(g);
-            var r = new RectangleF(3, 1, Width - 6, Height - 9);
+            var le = Le;
+            var r = new RectangleF(le.Left, le.Top, Width - le.Horizontal, Height - le.Vertical);
             if (r.Width < 4 || r.Height < 4) return;
-            const float k = 20;
-            Clay.BongNut(g, r, k);
-            Clay.KhoiSang(g, r, k, _chon ? ChinhSoft : Clay.The);
+            var k = Clay.S(20);
+            VeThe.Ve(this, g, k, false);   // bóng kép + thân, lề bóng theo DPI (BackColor = ngọc nhạt khi chọn)
             if (_chon)
             {
-                using var path = Clay.Bo(RectangleF.Inflate(r, -1.5f, -1.5f), k - 1.5f);
-                using var pen = new Pen(Chinh, 2.5f);
+                using var path = Clay.Bo(RectangleF.Inflate(r, -Clay.S(1.5f), -Clay.S(1.5f)), k - Clay.S(1.5f));
+                using var pen = new Pen(Chinh, Clay.S(2.5f));
                 g.DrawPath(pen, path);
             }
         }
@@ -149,10 +150,11 @@ internal sealed class SetupForm : Form
     private The TheChon(string tieu, string khi, Action bam)
     {
         var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, 10) };
-        var t1 = T(tieu, 12.5f, true, Chu, Rong - 40); t1.Location = new Point(18, 14); t1.Margin = Padding.Empty;
-        var t2 = T(khi, 10.5f, false, Chu2, Rong - 40); t2.Location = new Point(18, 14 + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
+        var le = The.Le;
+        var t1 = T(tieu, 12.5f, true, Chu, Rong - 40 - le.Horizontal); t1.Location = new Point(18 + le.Left, 14 + le.Top); t1.Margin = Padding.Empty;
+        var t2 = T(khi, 10.5f, false, Chu2, Rong - 40 - le.Horizontal); t2.Location = new Point(18 + le.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
         the.Controls.Add(t1); the.Controls.Add(t2);
-        the.Height = t2.Top + t2.PreferredHeight + 14 + 8;   // + lề bóng Clay
+        the.Height = t2.Top + t2.PreferredHeight + 14 + le.Bottom;   // + lề bóng Clay (theo DPI)
         foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
         return the;
     }

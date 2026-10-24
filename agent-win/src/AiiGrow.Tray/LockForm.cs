@@ -62,12 +62,14 @@ internal sealed class LockForm : Form
         _code = new OfflineCodePanel(420, UI.Ink, UI.Muted) { Visible = false };
         flow.Controls.Add(_code);
 
-        var the = new ClayCard
+        // Thẻ là FlowLayoutPanel (ClayFlow): Padding của thẻ tự đặt chỗ cho flow, AutoSize co giãn theo khi _code/_count bật tắt.
+        flow.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        flow.Margin = Padding.Empty;
+        var the = new ClayFlow
         {
-            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = UI.Px(36),
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = UI.Px(36), WrapContents = false,
             Padding = VeThe.Pad(UI.Px(40), UI.Px(32), UI.Px(40), UI.Px(24)),
         };
-        flow.Location = new Point(the.Padding.Left, the.Padding.Top);   // Panel không tự đặt con theo Padding (chỉ Dock mới theo)
         the.Controls.Add(flow);
         var host = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Color.Transparent };
         host.RowStyles.Add(new RowStyle(SizeType.Percent, 100));

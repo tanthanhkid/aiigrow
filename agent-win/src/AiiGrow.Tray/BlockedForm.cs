@@ -29,7 +29,7 @@ internal sealed class BlockedForm : Form
         TopMost = true; ShowInTaskbar = false;
         BackColor = UI.Paper;
         bool showCode = BlockScreenView.ShowOfflineCode(offline);
-        ClientSize = new Size(380, (view.ShowUsePoints ? 330 : 270) + (showCode ? 124 : 0));   // Clay: nút cao 50 (thân 44 + bóng) + dòng icon
+        ClientSize = new Size(UI.Px(380), UI.Px((view.ShowUsePoints ? 330 : 270) + (showCode ? 124 : 0)));   // Clay: nút cao 50 (thân 44 + bóng) + dòng icon
         var wa = Screen.PrimaryScreen!.WorkingArea;
         Location = new Point(wa.Right - Width - 12, wa.Bottom - Height - 12);
 
@@ -40,7 +40,7 @@ internal sealed class BlockedForm : Form
         };
         // Dòng đầu: viên clay biển dừng (Fluent 3D) + tên app — chữ giữ nguyên.
         var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 4) };
-        dau.Controls.Add(new ClayIcon { Size = new Size(52, 52), MauVien = Clay.CanhSoft, Hinh = UI.Fluent("stop_sign"), Margin = new Padding(0, 0, 8, 0) });
+        dau.Controls.Add(new ClayIcon { Size = new Size(UI.Px(52), UI.Px(52)), MauVien = Clay.CanhSoft, Hinh = UI.Fluent("stop_sign"), Margin = new Padding(0, 0, 8, 0) });
         var ten = UI.Text(view.AppName + " chưa được mở", 13f, true, null, 280);
         ten.Margin = new Padding(0, 14, 0, 0);
         dau.Controls.Add(ten);

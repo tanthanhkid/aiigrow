@@ -28,7 +28,7 @@ internal sealed class NopBaiForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(440, 490);
+        ClientSize = new Size(UI.Px(440), UI.Px(490));
 
         var flow = new FlowLayoutPanel
         {

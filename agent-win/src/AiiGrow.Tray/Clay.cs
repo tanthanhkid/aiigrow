@@ -63,12 +63,24 @@ internal static class Clay
     private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out bool pvParam, uint fWinIni);
     private const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
 
-    /// <summary>Windows «Hiệu ứng hoạt hình» tắt (Cài đặt › Trợ năng › Hiệu ứng hình ảnh) ⇒ giảm chuyển động: chỉ đổi sáng/tối, không scale, không vệt.</summary>
+    private static bool? _giam;
+    private static bool _ngheDoi;
+
+    /// <summary>Windows «Hiệu ứng hoạt hình» tắt (Cài đặt › Trợ năng › Hiệu ứng hình ảnh) ⇒ giảm chuyển động: chỉ đổi sáng/tối, không scale, không vệt.
+    /// Đọc SPI một lần rồi nhớ; đọc lại khi Windows báo đổi tuỳ chọn (UserPreferenceChanged) — không gọi SPI mỗi khung hình.</summary>
     public static bool GiamChuyenDong()
     {
-        try { if (SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, out var bat, 0)) return !bat; }
+        if (_giam is { } v) return v;
+        if (!_ngheDoi)
+        {
+            _ngheDoi = true;
+            try { Microsoft.Win32.SystemEvents.UserPreferenceChanged += (_, _) => _giam = null; } catch { }
+        }
+        bool giam = false;
+        try { if (SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, out var bat, 0)) giam = !bat; }
         catch { }
-        return false;
+        _giam = giam;
+        return giam;
     }
 
     /// <summary>Lò xo dưới tắt (giống withSpring / loXo trong docs/clay/M-vui.js): vị trí chuẩn hoá 0→1 tại t giây, vận tốc đầu 0.</summary>
@@ -326,6 +338,68 @@ internal static class Clay
     }
 }
 
+/// <summary>
+/// Ảnh nền của cha (và nền riêng của control, vd thân thẻ) vẽ MỘT lần vào bitmap rồi chỉ chép ra mỗi lần vẽ — khung hình chuyển động, chữ trong suốt,
+/// di chuột không phải vẽ lại cả chuỗi tổ tiên với hàng chục lớp bóng. Bỏ ảnh khi control đổi cỡ/chỗ/cha/màu, hoặc khi cha bị vẽ lại đúng vùng đó.
+/// </summary>
+internal sealed class NenCache : IDisposable
+{
+    private readonly Control _c;
+    private readonly Action<Control, PaintEventArgs> _bg, _fg;
+    private readonly Action<Graphics>? _rieng;
+    private Control? _cha;
+    private Bitmap? _bmp;
+
+    public NenCache(Control c, Action<Control, PaintEventArgs> paintBg, Action<Control, PaintEventArgs> paint, Action<Graphics>? rieng = null)
+    {
+        _c = c; _bg = paintBg; _fg = paint; _rieng = rieng;
+        c.Resize += Bo;
+        c.Move += Bo;
+        c.BackColorChanged += Bo;
+        c.ParentChanged += (_, _) => { NoiCha(); Bo(null, EventArgs.Empty); };
+        NoiCha();
+    }
+
+    private void NoiCha()
+    {
+        if (_cha != null) _cha.Invalidated -= ChaVeLai;
+        _cha = _c.Parent;
+        if (_cha != null) _cha.Invalidated += ChaVeLai;
+    }
+
+    private void ChaVeLai(object? s, InvalidateEventArgs e)
+    {
+        if (e.InvalidRect.IntersectsWith(_c.Bounds)) Bo(null, EventArgs.Empty);
+    }
+
+    /// <summary>Bỏ ảnh đã nhớ (vd control đổi trạng thái làm đổi nền riêng).</summary>
+    public void Bo(object? s, EventArgs e) { _bmp?.Dispose(); _bmp = null; }
+
+    public void Ve(PaintEventArgs e)
+    {
+        int w = _c.Width, h = _c.Height;
+        if (w <= 0 || h <= 0) return;
+        if (_bmp == null || _bmp.Width != w || _bmp.Height != h)
+        {
+            _bmp?.Dispose();
+            _bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            using var g = Graphics.FromImage(_bmp);
+            var pe = new PaintEventArgs(g, new Rectangle(0, 0, w, h));
+            Clay.VeNenCha(_c, pe, _bg, _fg);
+            _rieng?.Invoke(g);
+        }
+        e.Graphics.DrawImage(_bmp, new Rectangle(0, 0, w, h));
+    }
+
+    public void Dispose()
+    {
+        if (_cha != null) _cha.Invalidated -= ChaVeLai;
+        _cha = null;
+        _bmp?.Dispose();
+        _bmp = null;
+    }
+}
+
 /// <summary>Bộ đếm chuyển động nhấn: bẹp → nảy lò xo + vệt men. Timer ~60 fps chỉ chạy khi đang có chuyển động.</summary>
 internal sealed class NhanNay : IDisposable
 {
@@ -531,6 +605,7 @@ internal static class VeNut
 internal class ClayButton : Button
 {
     private readonly NhanNay _nn;
+    private readonly NenCache _nen;
     private bool _hover;
     private KieuClay _kieu = KieuClay.TuDong;
 
@@ -550,6 +625,7 @@ internal class ClayButton : Button
         UseVisualStyleBackColor = false;
         Cursor = Cursors.Hand;
         _nn = new NhanNay(this);
+        _nen = new NenCache(this, InvokePaintBackground, InvokePaint);
     }
 
     protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
@@ -561,8 +637,7 @@ internal class ClayButton : Button
     protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
     protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
-        => Clay.VeNenCha(this, e, InvokePaintBackground, InvokePaint);
+    protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -571,7 +646,7 @@ internal class ClayButton : Button
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _nn.Dispose();
+        if (disposing) { _nn.Dispose(); _nen.Dispose(); }
         base.Dispose(disposing);
     }
 }
@@ -580,6 +655,7 @@ internal class ClayButton : Button
 internal class ClayRadio : RadioButton
 {
     private readonly NhanNay _nn;
+    private readonly NenCache _nen;
     private bool _hover;
 
     public ClayRadio()
@@ -592,6 +668,7 @@ internal class ClayRadio : RadioButton
         UseVisualStyleBackColor = false;
         Cursor = Cursors.Hand;
         _nn = new NhanNay(this);
+        _nen = new NenCache(this, InvokePaintBackground, InvokePaint);
     }
 
     protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
@@ -602,8 +679,7 @@ internal class ClayRadio : RadioButton
     protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
     protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
-        => Clay.VeNenCha(this, e, InvokePaintBackground, InvokePaint);
+    protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -612,7 +688,7 @@ internal class ClayRadio : RadioButton
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) _nn.Dispose();
+        if (disposing) { _nn.Dispose(); _nen.Dispose(); }
         base.Dispose(disposing);
     }
 }
@@ -652,16 +728,25 @@ internal class ClayCard : Panel
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool Lom { get; set; }
 
+    private readonly NenCache _nen;
+
     public ClayCard()
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         BackColor = Clay.The;
+        _nen = new NenCache(this, InvokePaintBackground, InvokePaint, g => VeThe.Ve(this, g, BoGoc, Lom));
     }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
+    /// <summary>Nền (cha + thân thẻ) nhớ trong bitmap: chữ trong suốt bên trong không vẽ lại bóng mỗi lần.</summary>
+    protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
+
+    /// <summary>Đổi thứ ảnh hưởng tới thân thẻ (bo, lõm, trạng thái chọn…) ⇒ gọi để vẽ lại nền.</summary>
+    public void VeLaiNen() { _nen.Bo(null, EventArgs.Empty); Invalidate(true); }
+
+    protected override void Dispose(bool disposing)
     {
-        Clay.VeNenCha(this, e, InvokePaintBackground, InvokePaint);
-        VeThe.Ve(this, e.Graphics, BoGoc, Lom);
+        if (disposing) _nen.Dispose();
+        base.Dispose(disposing);
     }
 }
 
@@ -671,22 +756,28 @@ internal class ClayFlow : FlowLayoutPanel
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float BoGoc { get; set; }
 
+    private readonly NenCache _nen;
+
     public ClayFlow()
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         BackColor = Clay.The;
+        _nen = new NenCache(this, InvokePaintBackground, InvokePaint, g => VeThe.Ve(this, g, BoGoc, false));
     }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
+    protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
+
+    protected override void Dispose(bool disposing)
     {
-        Clay.VeNenCha(this, e, InvokePaintBackground, InvokePaint);
-        VeThe.Ve(this, e.Graphics, BoGoc, false);
+        if (disposing) _nen.Dispose();
+        base.Dispose(disposing);
     }
 }
 
 /// <summary>Viên clay tròn chứa icon Fluent 3D. <see cref="DongSap"/> = ổ khoá «đóng sập» (M-vui: KHOÁ MÁY 380ms).</summary>
 internal sealed class ClayIcon : Control
 {
+    private readonly NenCache _nen;
     private Image? _hinh, _hinhSau;
     private System.Windows.Forms.Timer? _t;
     private readonly Stopwatch _sw = new();
@@ -705,6 +796,7 @@ internal sealed class ClayIcon : Control
                  | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
         BackColor = Color.Transparent;
         TabStop = false;
+        _nen = new NenCache(this, InvokePaintBackground, InvokePaint);
     }
 
     /// <summary>Nhấc lên (hình <paramref name="truoc"/>), đập xuống đổi sang hình hiện tại, nảy nhẹ rồi yên. Giảm chuyển động ⇒ hiện luôn hình cuối.</summary>
@@ -755,8 +847,7 @@ internal sealed class ClayIcon : Control
         Invalidate();
     }
 
-    protected override void OnPaintBackground(PaintEventArgs e)
-        => Clay.VeNenCha(this, e, InvokePaintBackground, InvokePaint);
+    protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
 
     protected override void OnPaint(PaintEventArgs e)
     {
@@ -779,7 +870,7 @@ internal sealed class ClayIcon : Control
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { _t?.Stop(); _t?.Dispose(); _t = null; }
+        if (disposing) { _t?.Stop(); _t?.Dispose(); _t = null; _nen.Dispose(); }
         base.Dispose(disposing);
     }
 }
