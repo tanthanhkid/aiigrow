@@ -17,31 +17,32 @@ export default function MayTinhDienThoai() {
   });
   const tieu = d?.c ? `Máy của ${d.c.ten}` : "Máy tính & điện thoại";
   if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Máy tính & điện thoại"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const can = d.ds.filter((m) => m.trangThai === "ngoai_vong" || m.trangThai === "lech_chuan").length;
+  // MỘT nguồn: mức bảo vệ do máy chủ tính (baoVe) — cùng giá trị với Hồ sơ Con; «tuân thủ» (điểm) chỉ là phần giờ máy / mất kết nối
+  const can = d.ds.filter((m) => m.trangThai === "ngoai_vong" || m.trangThai === "lech_chuan" || m.baoVe !== "day_du").length;
   const c = d.c;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu={tieu} tai={tai}
       day={c ? <Nut chu="Ghép thêm máy" ic="cong" loai="vien" rong bam={() => { datTl({ conId: c.id, tenCon: c.ten, nhom: c.nhom }); router.push("/thiet-lap/may"); }} /> : undefined}>
       <Canh lv="chi" thap tieu={d.ds.length ? `${d.ds.length} máy` : "Chưa có máy nào"}
-        loi={!d.ds.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : can ? `${can} máy đang cần Ba Mẹ để mắt.` : "Mọi máy đều đang tuân thủ."} />
+        loi={!d.ds.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : can ? `${can} máy đang cần Ba Mẹ để mắt.` : "Mọi máy đều được bảo vệ đầy đủ."} />
       {d.ds.length ? (
         <Nhom>
           {d.ds.map((m, i) => (
             <Dong key={m.id} dau={i === 0} tieu={m.ten}
               phu={`${m.cheDo ? `${TEN_CHE_DO[m.cheDo]} · ` : ""}${phuMay(m)} · đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}`}
               trai={<BieuTron ic={IC_NEN[m.nen]} mau={mauMay(m)} />}
-              phai={<Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
+              phai={m.baoVe !== "day_du" && m.trangThai === "tuan_thu" ? <Nhan chu="Bảo vệ chưa đủ" loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
               bam={() => router.push(`/may/${m.id}`)} />
           ))}
         </Nhom>
       ) : null}
-      <Chu co={13} mau={M.chu3}>Chạm một máy để đổi Chặn thật / Giám sát, mở khẩn cấp, lấy mã mở khi mất mạng hoặc gỡ AiiGrow. Điểm tuân thủ dưới ngưỡng thì AiiGrow tự khoá giải trí trên máy đó.</Chu>
+      <Chu co={13} mau={M.chu3}>Chạm một máy để đổi Chặn thật / Giám sát, mở khẩn cấp, lấy mã mở khi mất mạng hoặc gỡ AiiGrow. Máy mất kết nối quá lâu thì tự khoá giải trí.</Chu>
     </Man>
   );
 }
 
 function phuMay(m: TuanThuMay) {
-  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : `điểm tuân thủ ${m.diem}`;
+  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
   return m.dungChung ? `${p} · máy dùng chung` : p;
 }
 const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" => (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" ? "cam" : "xanh");

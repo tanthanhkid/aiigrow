@@ -11,6 +11,8 @@ import * as nv from "./nhiem-vu.ts";
 import * as yc from "./yeu-cau.ts";
 import * as pt from "./phan-thuong.ts";
 import * as la from "./luat-app.ts";
+import { tenApp } from "./ten-app.ts";
+import { dungPhien } from "./phien.ts";
 import { dieuChinhTay, lichSu, tomTatVi } from "./vi.ts";
 import { thanhTich } from "./thanh-tich.ts";
 import { baoCaoTuan, homNay } from "./bao-cao.ts";
@@ -206,7 +208,30 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       const chuaXep = await q<{ muc: string; phut: number }>(
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
            and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc) group by u.muc order by phut desc limit 50`, [fam]);
-      return json({ ds: await la.dsLuat(fam), heThong: la.allowlistHieuLuc(), chuaXep });
+      // «Đã thấy trên máy Con» (30 ngày) để Ba Mẹ CHỌN thay vì gõ tên tệp (DX-028): tên dễ hiểu + loại hiện tại; mục hệ thống không liệt kê
+      const he = la.allowlistHieuLuc();
+      const thay = await q<{ muc: string; phut: number }>(
+        `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1
+           and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc order by phut desc limit 100`, [fam]);
+      const ds = await la.dsLuat(fam);
+      const daThay = thay.filter((x) => !la.khoaSo(x.muc).some((k) => he.includes(k)))
+        .map((x) => ({ muc: x.muc, ten: tenApp(x.muc), phut: x.phut, loai: ds.find((r) => la.khoaSo(x.muc).includes(r.muc))?.loai ?? "chua_xep" }));
+      return json({ ds, heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: tenApp(x.muc) })), daThay });
+    }
+    // Thẻ «Đang chơi» ở Trang chủ: phiên giải trí đang chạy / tạm của cả nhà (Con, máy, app, phút còn lại). «Dừng» = như Khoá ngay một phiên.
+    if (d === "phien-dang" && get) {
+      const r = await q<{ id: string; child_id: string; ten_con: string; muc: string; may: string | null; toi_da_phut: number; phut_dung: number; trang_thai: string }>(
+        `select p.id, p.child_id, c.ten as ten_con, p.muc, d.name as may, p.toi_da_phut, p.phut_dung, p.trang_thai
+           from play_sessions p join children c on c.id = p.child_id left join devices d on d.id = p.device_id
+          where c.family_id = $1 and p.trang_thai in ('chay', 'tam') order by p.bat_dau`, [fam]);
+      return json({ ds: r.map((x) => ({ id: x.id, con: x.child_id, tenCon: x.ten_con, may: x.may, muc: x.muc, tenApp: tenApp(x.muc), tam: x.trang_thai === "tam",
+        conPhut: Math.max(0, Math.round(x.toi_da_phut - x.phut_dung)) })) });
+    }
+    if (p[0] === "phien" && p[1] && p[2] === "dung" && post) {
+      const ph = await one<{ child_id: string }>(`select p.child_id from play_sessions p join children c on c.id = p.child_id where p.id = $1 and c.family_id = $2`, [p[1], fam]);
+      if (!ph) return loi("khong_thay", "Không thấy phiên chơi", 404);
+      await dungPhien(ph.child_id, p[1], "ba_me_khoa");
+      return json({ ok: true });
     }
     if (d === "luat" && post) return json({ muc: await la.datLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom }) });
 

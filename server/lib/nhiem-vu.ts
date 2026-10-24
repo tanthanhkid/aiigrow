@@ -47,9 +47,13 @@ export const MAU: Record<"nhi" | "teen", MauNv[]> = {
 export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string;
   toi_da_ngay: number | null; toi_da_tuan: number | null; phut_toi_thieu: number; tu_duyet: boolean; giao_cho: string | null; han: Date | null; bat: boolean };
 
+/** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ dùng cùng hằng số này (mobile/src/lib/ui.tsx không lặp: kiểm ở giao-nv.tsx). */
+export const TEN_NV_TOI_THIEU = 3;
+
 function kiemNv(b: Record<string, unknown>) {
   const ten = String(b.ten ?? "").trim().slice(0, 60);
   if (!ten) throw new LoiNghiepVu("thieu_ten", "Đặt tên nhiệm vụ");
+  if ([...ten].length < TEN_NV_TOI_THIEU) throw new LoiNghiepVu("ten_ngan", `Tên nhiệm vụ cần ít nhất ${TEN_NV_TOI_THIEU} ký tự để Con hiểu việc cần làm`);
   const diem = Math.round(Number(b.diem));
   if (!Number.isInteger(diem) || diem < 1 || diem > 1000) throw new LoiNghiepVu("diem_sai", "Điểm thưởng là số nguyên từ 1");
   const nhom = (NHOM_NV as readonly string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";

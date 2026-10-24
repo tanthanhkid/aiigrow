@@ -16,7 +16,7 @@ export default function ObXong() {
       {tl.conId && !d ? <XuongTai /> : (
         <The dem>
           <TickDong chu={`Hồ sơ ${ten} · Nhóm ${(d?.nhom ?? tl.nhom) === "teen" ? "Teen" : "Nhí"}`} />
-          {may.map((m) => <TickDong key={m.id} chu={`${m.ten} · ${m.baoVe === "day_du" ? "Bảo vệ đầy đủ" : "Bảo vệ một phần"}`} trang={m.baoVe === "day_du" ? "xong" : "x"} />)}
+          {may.map((m) => <TickDong key={m.id} chu={`${m.ten} · ${m.baoVe === "day_du" ? "Bảo vệ đầy đủ" : "Bảo vệ chưa đủ"}`} trang={m.baoVe === "day_du" ? "xong" : "x"} />)}
           {!may.length ? <TickDong chu="Chưa ghép máy nào — ghép sau ở hồ sơ Con" trang="sau" /> : null}
           <TickDong chu="Nhiệm vụ & phần thưởng theo mẫu" />
           {d ? <TickDong chu={`Giờ chơi ${d.lich.ngayThuong[0]?.tu ?? "—"}–${d.lich.ngayThuong[0]?.den ?? "—"} · trần ${d.thamSo.tran_ngay} phút/ngày`} /> : null}

@@ -10,7 +10,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, thamSo, type ThamSo } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
-import type { May } from "./gia-dinh.ts";
+import { chiTietBaoVe, type May } from "./gia-dinh.ts";
 import type { TrangThaiTuanThu, TuanThu, VanDeTuanThu } from "./chinh-sach.ts";
 import { coCuaSoThemGio, coTacTu, laDiDong, nhomCuaSo, SQL_NHOM_CUA_SO } from "./chuyen-doi.ts";
 
@@ -222,7 +222,9 @@ export async function dsTuanThu(fam: string, now = new Date()) {
   return Promise.all(ds.map(async (m) => {
     const r = await dongTT(m.id);
     const tt = await tuanThuMay(m, now);
-    return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung,
+    // MỘT nguồn tính mức bảo vệ (gia-dinh.ts › chiTietBaoVe) cho cả Hồ sơ Con lẫn An toàn thiết bị — hai trang không còn báo ngược nhau (BUG-010)
+    const bv = chiTietBaoVe(m);
+    return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung, baoVe: bv.muc, baoVeCau: bv.cau, baoVeThieu: bv.thieu,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? banMayBao(m),
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
       // hạn «đang mở» thật của máy Windows (mở khẩn cấp hoặc thêm giờ đã duyệt) — app hiện «Đang mở tới …» + «Khoá lại ngay»

@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, LOAI_YC, NHOM_NV, tieuYc, type LuotCho, type YeuCau } from "@/lib/api";
+import { bm, LOAI_YC, NHOM_NV, tieuYc, type AppChuaXep, type LuotCho, type YeuCau } from "@/lib/api";
+import { AppMoi } from "@/lib/viec-nhanh";
 import {
   Avt, BangTruot, BieuTron, Canh, Chu, CanhGiua, ChoTai, Dong, gioPhut, MAU_CON, Man, Nhan, Nhom, NhomTieu, Nut, useHoanTac, useLam, useTai, BaoLoi, useBaoKhiVe,
 } from "@/lib/ui";
@@ -13,7 +14,13 @@ const IC_QUA: Record<string, readonly ["coc" | "qua" | "ban" | "xu", "cam" | "la
 type TuDong = { id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null };
 
 export default function ChoDuyet() {
-  const { d, loi, matMang, tai, dangTai } = useTai(() => bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[]; tuDong?: TuDong[] }>("cho-duyet"));
+  const { d, loi, matMang, tai, dangTai } = useTai(async () => {
+    const [cd, luat] = await Promise.all([
+      bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[]; tuDong?: TuDong[] }>("cho-duyet"),
+      bm.goi<{ chuaXep: AppChuaXep[] }>("luat").catch(() => null),         // app mới chưa xếp loại cũng là việc chờ Ba Mẹ (issue #70 §2.3)
+    ]);
+    return { ...cd, appMoi: luat?.chuaXep ?? [] };
+  });
   const [huy, setHuy] = useState<Phieu | null>(null);
   const hl = useLam();
   const { bao, noi } = useHoanTac();
@@ -27,6 +34,14 @@ export default function ChoDuyet() {
   });
   if (!d) return <Man tieuLon="Chờ duyệt" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const tong = d.nhiemVu.length + d.yeuCau.length + phieu.length;
+  if (!tong && d.appMoi.length) {
+    return (
+      <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
+        <Canh lv="cho" thap tieu="Chỉ còn app mới chờ xếp loại" loi="Không có nhiệm vụ hay lời xin nào đang chờ." />
+        <AppMoi ds={d.appMoi} tai={tai} bao={bao} toiDa={10} />
+      </Man>
+    );
+  }
   if (!tong) {
     return (
       <Man tieuLon="Chờ duyệt" chat noi={noi}>
@@ -43,6 +58,7 @@ export default function ChoDuyet() {
     <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
       <Canh lv="cho" thap tieu={`${tong} việc đang chờ`} loi={`Cũ nhất ${phut < 60 ? `${phut} phút` : `${Math.round(phut / 60)} giờ`}. ${d.nhiemVu.length || d.yeuCau.length ? "Duyệt xong là điểm vào ví Con ngay." : "Con đã đổi điểm, chờ Ba Mẹ trao quà."}`} />
       <BaoLoi loi={hl.loi} />
+      <AppMoi ds={d.appMoi} tai={tai} bao={bao} />
       {con.map(([id, ten], ci) => {
         const nv = d.nhiemVu.filter((x) => x.child_id === id), yc = d.yeuCau.filter((x) => x.child_id === id), qa = phieu.filter((x) => x.child_id === id);
         return (

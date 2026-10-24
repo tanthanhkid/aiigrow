@@ -194,7 +194,7 @@ export function chiTietBaoVe(may: Pick<May, "status" | "last_seen">): { muc: Muc
   const qy = quyenCuaMay(may);
   if (!qy) return { muc: "chua", thieu: [], cau: "Máy chưa báo quyền bảo vệ — cập nhật AiiGrow trên máy Con lên bản mới nhất." };
   const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma, cach: MO_TA_QUYEN[ma]?.cach ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
-  return thieu.length ? { muc: "mot_phan", thieu, cau: `Còn thiếu: ${thieu.map((x) => x.ten).join(", ")}.` } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." };
+  return thieu.length ? { muc: "mot_phan", thieu, cau: `Bảo vệ chưa đủ — ${thieu.length} việc cần sửa (xem bên dưới).` } : { muc: "day_du", thieu: [], cau: "Bảo vệ đầy đủ." };
 }
 
 /** Mức bảo vệ (FR-01.03): đủ quyền ⇒ Đầy đủ, thiếu một phần ⇒ Một phần, chưa kết nối / chưa báo ⇒ Chưa bảo vệ. */

@@ -2,7 +2,7 @@
 // (đổi từ xa), MỞ KHẨN CẤP (có hạn giờ), mã mở khi mất mạng, GỠ AN TOÀN (chỉ chủ gia đình, nhập lại mật khẩu; máy chỉ rời danh sách
 // khi agent báo đã gỡ — không để AiiGrow «dính» lại trên máy Con) + cách gỡ tại máy khi không có mạng.
 // Gọi GET may/:id/tuan-thu, POST may/:id/che-do, POST may/:id/mo-khan-cap(+/huy), GET may/:id/ma-offline, POST may/:id/go (docs/API.md).
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
@@ -19,14 +19,14 @@ const SU_KIEN: Record<string, string> = {
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
-  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web áp cho mọi tài khoản Windows trên máy — Ba Mẹ dùng máy này thì chọn Giám sát trước. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
+  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web chỉ áp cho tài khoản Windows của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
 const GIO_MO_COI = 6;
 
 export default function AnToanMay() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, mo: moSan } = useLocalSearchParams<{ id: string; mo?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
     const toi = await bm.goi<{ baMe: { vai: string } }>("toi");
     // Máy đã gỡ xong (agent báo đã gỡ / đã xoá hẳn) ⇒ không còn trong gia đình
@@ -49,6 +49,15 @@ export default function AnToanMay() {
     setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true);
     try { setMaOff(await bm.goi<MaOffline>(`may/${id}/ma-offline`)); } catch (e) { setLoiMa(cauLoi(e)); } finally { setTaiMa(false); }
   };
+  // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
+  const daMoSan = useRef(false);
+  useEffect(() => {
+    if (!d?.m || daMoSan.current || !moSan) return;
+    daMoSan.current = true;
+    if (moSan === "khan" && !d.xem) setMo("khan");
+    else if (moSan === "offline" && d.m.nen === "windows") void xemMaOffline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d, moSan]);
   const dangGo = !!d?.m?.dangGo;
   // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong — chỉ khi màn đang hiện
   // (expo-router giữ màn trong stack khi mở màn khác ⇒ useFocusEffect dừng hẹn giờ khi rời màn).
@@ -121,6 +130,16 @@ export default function AnToanMay() {
         </Bao>
       ) : null}
 
+      {m.baoVe !== "day_du" ? (
+        <>
+          <NhomTieu chu="Bảo vệ chưa đủ — cách sửa" />
+          <Nhom>
+            <Dong dau tieu={m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ"} phu={m.baoVeCau} trai={<BieuTron ic="canh_bao" mau="cam" />} />
+            {m.baoVeThieu.map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
+          </Nhom>
+        </>
+      ) : null}
+
       {m.vanDe.length ? (
         <>
           <NhomTieu chu="Đang cần xử lý" />
@@ -131,7 +150,7 @@ export default function AnToanMay() {
           </Nhom>
         </>
       ) : (
-        <Bao loai="ok" ic="tick" tieu="Không có vấn đề tuân thủ nào" />
+        m.baoVe === "day_du" ? <Bao loai="ok" ic="tick" tieu="Máy được bảo vệ đầy đủ, không có vấn đề nào" /> : null
       )}
 
       <NhomTieu chu="Khi cần" />

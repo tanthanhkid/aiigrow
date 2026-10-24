@@ -1,4 +1,4 @@
-// bm-ho-so-con: hồ sơ Con & thiết bị — mức bảo vệ (Đầy đủ / Một phần / Chưa), Online/Offline + lần đồng bộ cuối (FR-01.03),
+// bm-ho-so-con: hồ sơ Con & thiết bị — mức bảo vệ (Đầy đủ / Chưa đủ / Chưa bảo vệ), Online/Offline + lần đồng bộ cuối (FR-01.03),
 // nhóm trải nghiệm, đặt lại PIN, ghép thêm máy. Gỡ máy: chuyển sang màn máy › «An toàn & gỡ cài đặt» (gỡ an toàn — chủ gia đình +
 // mật khẩu, máy chỉ rời danh sách khi agent báo đã gỡ; không gỡ thẳng ở đây để khỏi bỏ AiiGrow «mồ côi» trên máy Con).
 import { useState } from "react";
@@ -11,8 +11,8 @@ import {
   BangTruot, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, M, Man, Nhan, Nhom, Nut, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
-const BAO_VE = { day_du: ["Đầy đủ", "ok"], mot_phan: ["Một phần", "canh"], chua: ["Chưa bảo vệ", "loi"] } as const;
-// Chữ giải thích dưới nhãn: nói RÕ thiếu gì và làm gì (không để Ba Mẹ đoán vì sao «Một phần» / «Chưa bảo vệ»).
+const BAO_VE = { day_du: ["Đầy đủ", "ok"], mot_phan: ["Bảo vệ chưa đủ", "canh"], chua: ["Chưa bảo vệ", "loi"] } as const;
+// Chữ giải thích dưới nhãn: nói RÕ thiếu gì và làm gì (không để Ba Mẹ đoán vì sao «Chưa đủ» / «Chưa bảo vệ»).
 const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" } as const;
 
 export default function HoSoCon() {
@@ -43,8 +43,8 @@ export default function HoSoCon() {
       {may.filter((m) => m.baoVe !== "day_du").map((m) => (
         <Nhom key={`bv-${m.id}`}>
           <Dong dau tieu={`${m.ten}: ${m.baoVe === "chua" ? "chưa có thông tin bảo vệ" : "bảo vệ chưa đầy đủ"}`} phu={m.baoVeCau ?? "Chưa nhận được báo cáo từ máy."}
-            trai={<BieuTron ic="canh_bao" mau="cam" />} />
-          {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={`Thiếu: ${t.ten}`} phu={`Cách làm: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
+            trai={<BieuTron ic="canh_bao" mau="cam" />} bam={() => router.push(`/may/${m.id}`)} />
+          {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} bam={() => router.push(`/may/${m.id}`)} />)}
         </Nhom>
       ))}
       <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />

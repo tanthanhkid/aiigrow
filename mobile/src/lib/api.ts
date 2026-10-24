@@ -60,7 +60,8 @@ export const goi = bm.goi;
 // ------------------------------------------------------------------ kiểu dữ liệu (khớp server/lib/api-*.ts)
 export type NhomCon = "nhi" | "teen";
 export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number };
-  phutChoi: number; tranNgay: number; nhiemVuCho: number; yeuCauCho: number; phieuCho?: number; nhiemVuXong: number; homNayConDa: string[] };
+  phutChoi: number; tranNgay: number; nhiemVuCho: number; yeuCauCho: number; phieuCho?: number; nhiemVuXong: number; homNayConDa: string[];
+  /** «≈ X phút chơi»: số dư đổi được bao nhiêu phút trò chơi (máy chủ tính theo giá của nhà); máy chủ cũ không gửi */ phutDoiDuoc?: number };
 export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon };
 export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[] };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
@@ -69,7 +70,7 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
   baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
-export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa"> & {
+export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa" | "phutDoiDuoc"> & {
   id: string; ten: string; namSinh: number | null; avatar: string; nhom: NhomCon; khoaNgay: boolean; /** hạn khoá (ISO); null = khoá tới khi Ba Mẹ mở */ khoaDen?: string | null;
   /** Ba Mẹ duyệt thêm giờ lúc đang khoá ⇒ máy mở tạm tới giờ này (ISO) rồi khoá lại; null = không mở tạm */ moTamDen?: string | null; lich: Lich; thamSo: Record<string, number>; may: MayCon[];
 };
@@ -103,6 +104,8 @@ export type VanDeTuanThu = { loai: "gio_sai" | "app_tat" | "admin_la" | "khong_t
 export type TuanThuMay = {
   id: string; ten: string; nen: MayCon["nen"]; con: string | null; dungChung: boolean; lanCuoi: string | null;
   phienBan: string | null; adminTinCay: string[];
+  /** MỘT nguồn mức bảo vệ với Hồ sơ Con (server/lib/gia-dinh.ts › chiTietBaoVe): trang nào cũng đọc từ đây, không tự tính lại. */
+  baoVe: MayCon["baoVe"]; baoVeCau: string; baoVeThieu: { ma: string; ten: string; cach: string }[];
   trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
   /** Windows: hạn «đang mở» thật (mở khẩn cấp hoặc thêm giờ đã duyệt) — null = không mở. Máy chủ cũ không gửi. */
   moDen?: string | null;
@@ -130,7 +133,7 @@ export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
 
 export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }> = {
   tuan_thu: { chu: "Tuân thủ", loai: "ok" }, lech_chuan: { chu: "Lệch chuẩn", loai: "canh" },
-  ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có nhịp", loai: "xam" },
+  ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có phiên chơi", loai: "xam" },
 };
 type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
 
@@ -162,3 +165,8 @@ export type ManHinhTuan = {
   theoMuc: { muc: MucMH; giay: number; soMuc: number }[];
   ds: { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; giay: number; soLan: number; theoNgay: number[] }[];
 };
+
+// ---- Việc nhanh ở Trang chủ (QA 24/10, issue #70): app đã thấy trên máy Con + phiên đang chơi — server/lib/api-m.ts
+export type AppThay = { muc: string; ten: string; phut: number; loai: "hoc" | "giai_tri" | "chan" | "chua_xep" };
+export type AppChuaXep = { muc: string; ten?: string; phut: number };
+export type PhienDang = { id: string; con: string; tenCon: string; may: string | null; muc: string; tenApp: string; tam: boolean; conPhut: number };
