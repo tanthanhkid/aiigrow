@@ -177,8 +177,8 @@ public final class HeThongMac: HeThong {
     let nhan = LuatCapNhat.nhanCai
     guard !caiDangChay() else { throw LoiApi(chu: "Đang có một lượt cài chạy (\(nhan)) — bỏ qua lần này.") }
     _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót đã xong từ lần trước
-    let dau = "/var/run/aiigrow-capnhat"                                            // postinstall biết đây là cài tự động
-    let kich = "/usr/bin/touch \"$3\" ; /usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; /bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
+    let dau = DuongDan.dangCapNhat                                                  // ghi PID của sh job: postinstall biết đây là cài tự động (và còn sống)
+    let kich = "echo $$ > \"$3\" ; /usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; /bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
                                                       "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan, dau], timeout: 10)
     guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }

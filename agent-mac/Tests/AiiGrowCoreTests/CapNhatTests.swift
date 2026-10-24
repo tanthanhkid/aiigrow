@@ -286,28 +286,70 @@ final class CapNhatTests: XCTestCase {
 
   // MARK: chống vòng cài lại vô hạn
 
-  func testDauDaThuChanCaiLai() async {
+  func testDauDaThuToiDa3LanMoiLanCach6Gio() async {
     datMayChu()
-    let k1 = await chay(boCapNhat())
-    XCTAssertEqual(k1, .dangTai("0.1.2"))
+    _ = await chay(boCapNhat())
     XCTAssertEqual(fake.daCaiGoi.count, 1)
-    XCTAssertNotNil(fake.tep["/gia/da-thu.json"])
-    // «khởi động lại» (đối tượng mới, vẫn bản 0.1.1 vì gói thực chất cũ), cùng sha ⇒ không cài lại
+    // chưa tới 6 giờ ⇒ định kỳ không thử lại
+    gio = gio.addingTimeInterval(3600)
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    // lần 2 và 3: mỗi lần sau ≥ 6 giờ
+    for n in 2...3 {
+      gio = gio.addingTimeInterval(6 * 3600)
+      let k = await chay(boCapNhat())
+      XCTAssertEqual(k, .dangTai("0.1.2"))
+      XCTAssertEqual(fake.daCaiGoi.count, n)
+      let d = try? JSONDecoder().decode(DauDaThu.self, from: fake.tep["/gia/da-thu.json"] ?? Data())
+      XCTAssertEqual(d?.lan, n)
+    }
+    // quá 3 lần ⇒ dừng, log «cài xong mà bản không đổi»
     gio = gio.addingTimeInterval(6 * 3600)
-    let k2 = await chay(boCapNhat())
-    guard case .loi = k2 else { return XCTFail("\(k2)") }
-    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    let k4 = await chay(boCapNhat())
+    guard case .loi = k4 else { return XCTFail("\(k4)") }
+    XCTAssertEqual(fake.daCaiGoi.count, 3)
     XCTAssertTrue(fake.log.contains { $0.contains("cài xong mà bản không đổi") })
-    // Ba Mẹ bấm nút nhưng chưa quá 1 giờ ⇒ vẫn không
-    gio = gio.addingTimeInterval(-6 * 3600 + 600)
+    gio = gio.addingTimeInterval(30 * 24 * 3600)
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 3, "định kỳ không bao giờ vượt 3 lần với cùng sha")
+  }
+
+  func testNutBaMeThuLaiSau1Gio() async {
+    datMayChu()
+    _ = await chay(boCapNhat())
+    gio = gio.addingTimeInterval(600)
     _ = await chay(boCapNhat(), thuCong: true)
-    XCTAssertEqual(fake.daCaiGoi.count, 1)
-    // quá 1 giờ + bấm nút ⇒ được thử lại; định kỳ thì không
+    XCTAssertEqual(fake.daCaiGoi.count, 1, "chưa quá 1 giờ")
     gio = gio.addingTimeInterval(7200)
-    _ = await chay(boCapNhat(), thuCong: false)
-    XCTAssertEqual(fake.daCaiGoi.count, 1, "định kỳ không bao giờ cài lại cùng sha")
     _ = await chay(boCapNhat(), thuCong: true)
     XCTAssertEqual(fake.daCaiGoi.count, 2)
+    for _ in 0..<4 { gio = gio.addingTimeInterval(7200); _ = await chay(boCapNhat(), thuCong: true) }
+    XCTAssertEqual(fake.daCaiGoi.count, 6, "nút Ba Mẹ vẫn thử được dù đã quá 3 lần")
+  }
+
+  func testDuongDanDauDangCapNhatDungChung() {
+    XCTAssertEqual(DuongDan.dangCapNhat, "/var/run/aiigrow-capnhat")
+    XCTAssertEqual(DuongDan.daGo, "/var/db/aiigrow-da-go")
+    // postinstall + go-cai.sh dùng đúng các đường dẫn này (mặc định, AIIGROW_GOC rỗng)
+    let goc = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("goi")
+    let post = (try? String(contentsOf: goc.appendingPathComponent("scripts/postinstall"))) ?? ""
+    let go = (try? String(contentsOf: goc.appendingPathComponent("go-cai.sh"))) ?? ""
+    XCTAssertTrue(post.contains("$GOC" + String(DuongDan.dangCapNhat)), "postinstall")
+    XCTAssertTrue(post.contains("$GOC" + String(DuongDan.daGo)))
+    XCTAssertTrue(go.contains("$GOC" + String(DuongDan.daGo)))
+    XCTAssertTrue(go.contains("$GOC" + String(DuongDan.dangCapNhat)))
+  }
+
+  func testGhepLaiXoaDauDaGo() async throws {
+    let (b, _, thu) = try dungBoMay(daGhep: false, banMoi: nil)
+    defer { try? FileManager.default.removeItem(atPath: thu) }
+    fake.tep[DuongDan.daGo] = Data("x".utf8)
+    fake.uidTheoTen["be"] = 501
+    HttpMock.dat { _, _ in nil }
+    // ghép cần ApiClient/MayChuGia: MayChuGia.ghep trả sẵn KetQuaGhep
+    let r = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case .ok = r else { return XCTFail("\(r)") }
+    XCTAssertNil(fake.tep[DuongDan.daGo], "ghép lại xong thì bỏ dấu da-go")
   }
 
   func testManifestDoiShaThiCaiTiep() async {
@@ -362,4 +404,43 @@ final class CapNhatTests: XCTestCase {
   }
 
   func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.1") }
+
+  // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
+
+  private func chayPostinstall(daGo: Bool, pidDau: String?) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool) {
+    let fm = FileManager.default
+    let goc = NSTemporaryDirectory() + "pi-\(UUID().uuidString)"
+    defer { try? fm.removeItem(atPath: goc) }
+    let res = goc + "/Applications/AiiGrow.app/Contents/Resources"
+    for d in [res, goc + "/Library/LaunchDaemons", goc + "/Library/LaunchAgents", goc + "/var/db", goc + "/var/run"] { try fm.createDirectory(atPath: d, withIntermediateDirectories: true) }
+    for n in ["vn.aiilab.aiigrow.daemon", "vn.aiilab.aiigrow.tray"] { try "x".write(toFile: "\(res)/\(n).plist", atomically: true, encoding: .utf8) }
+    if daGo { try "da-go".write(toFile: goc + "/var/db/aiigrow-da-go", atomically: true, encoding: .utf8) }
+    if let p = pidDau { try p.write(toFile: goc + "/var/run/aiigrow-capnhat", atomically: true, encoding: .utf8) }
+    let gia = goc + "/launchctl-gia.sh", nhatKy = goc + "/lenh.log"
+    try "#!/bin/bash\necho \"$@\" >> '\(nhatKy)'\nexit 1\n".write(toFile: gia, atomically: true, encoding: .utf8)
+    chmod(gia, 0o755)
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/bin/bash")
+    p.arguments = [BaoMatTests.goiDir + "/scripts/postinstall"]
+    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "PATH": "/usr/bin:/bin"]
+    p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
+    try p.run(); p.waitUntilExit()
+    let log = (try? String(contentsOfFile: nhatKy, encoding: .utf8)) ?? ""
+    return (log.contains("bootstrap system"), fm.fileExists(atPath: goc + "/var/db/aiigrow-da-go"), fm.fileExists(atPath: goc + "/Applications/AiiGrow.app"))
+  }
+
+  func testPostinstallPhanNhanhDaGo() throws {
+    // đã gỡ + cài tự động (PID dấu còn sống) ⇒ không nạp lại, giữ da-go, dọn app
+    let a = try chayPostinstall(daGo: true, pidDau: String(getpid()))
+    XCTAssertFalse(a.bootstrapDaemon); XCTAssertTrue(a.daGoConLai); XCTAssertFalse(a.appConLai)
+    // đã gỡ + dấu cũ (PID chết) ⇒ coi như cài tay: xoá da-go, nạp bình thường
+    let b = try chayPostinstall(daGo: true, pidDau: "99999999")
+    XCTAssertTrue(b.bootstrapDaemon); XCTAssertFalse(b.daGoConLai); XCTAssertTrue(b.appConLai)
+    // đã gỡ + không có dấu ⇒ cài tay
+    let c = try chayPostinstall(daGo: true, pidDau: nil)
+    XCTAssertTrue(c.bootstrapDaemon); XCTAssertFalse(c.daGoConLai)
+    // chưa từng gỡ ⇒ bình thường dù có dấu
+    let d = try chayPostinstall(daGo: false, pidDau: String(getpid()))
+    XCTAssertTrue(d.bootstrapDaemon)
+  }
 }

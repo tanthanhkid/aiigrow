@@ -86,6 +86,9 @@ public enum LuatCapNhat {
 
   /// Sau khi cài mà vẫn chạy bản cũ: cùng gói (sha256) chỉ cho thử lại bằng nút Ba Mẹ và sau ít nhất ngần này giây.
   public static let giayChoThuLai: Double = 3600
+  /// Vòng định kỳ: cùng sha256 thử lại tối đa `toiDaLanThu` lần, mỗi lần cách nhau ≥ `giayGiuaCacLan`; quá thì dừng tới khi sha đổi (nút Ba Mẹ vẫn thử được sau 1 giờ).
+  public static let toiDaLanThu = 3
+  public static let giayGiuaCacLan: Double = 6 * 3600
 
   /// Đầu ra `pkgutil --check-signature`: trạng thái ký bởi chứng chỉ nhà phát triển do Apple cấp + chứng chỉ ĐẦU chuỗi đúng `nguoiKy`.
   public static func chuKyDung(_ ra: String) -> Bool {
@@ -100,6 +103,8 @@ public struct DauDaThu: Codable, Equatable {
   public var version: String
   public var sha256: String
   public var luc: Double          // giây từ 1970
+  /// Số lần đã giao installer cho đúng sha256 này.
+  public var lan: Int = 1
 }
 
 /// Câu trạng thái cập nhật để tray hiện — daemon ghi, BoMay đọc đồng bộ (không cần await vào actor).
@@ -201,30 +206,33 @@ public actor BoCapNhat {
       heThong.ghiLog("Cập nhật: TỪ CHỐI — sha256 trong manifest sai dạng.")
       return ketThuc(.loi("Máy chủ chưa có mã kiểm của bản \(m.version), không cài."))
     }
-    // Chống vòng cài lại vô hạn: gói này (cùng sha256) đã giao cho installer rồi.
+    // Chống vòng cài lại vô hạn: đếm số lần đã giao installer cho cùng sha256.
+    var lanDaThu = 0
     if let d = docDau(), d.sha256 == sha {
+      lanDaThu = d.lan
       let troi = dongHo().timeIntervalSince1970 - d.luc
-      if !(thuCong && troi > LuatCapNhat.giayChoThuLai) {
-        if LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
-          heThong.ghiLog("Cập nhật: cài xong mà bản không đổi — đã cài gói \(d.version) nhưng đang chạy \(banHienTai). Dừng tới khi manifest đổi sha256.")
-          return ketThuc(.loi("Đã cài gói \(d.version) mà máy vẫn chạy \(banHienTai); chờ bản phát hành mới."))
+      let choLai = thuCong ? troi > LuatCapNhat.giayChoThuLai : (d.lan < LuatCapNhat.toiDaLanThu && troi >= LuatCapNhat.giayGiuaCacLan)
+      if !choLai {
+        if d.lan >= LuatCapNhat.toiDaLanThu && LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
+          heThong.ghiLog("Cập nhật: cài xong mà bản không đổi — đã cài gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Dừng tới khi manifest đổi sha256.")
+          return ketThuc(.loi("Đã cài gói \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); chờ bản phát hành mới."))
         }
-        heThong.ghiLog("Cập nhật: gói \(m.version) (sha256 \(sha.prefix(12))…) đã thử rồi — không cài lại.")
-        return ketThuc(.loi("Gói \(m.version) đã thử cài rồi; chờ bản phát hành mới."))
+        heThong.ghiLog("Cập nhật: gói \(m.version) (sha256 \(sha.prefix(12))…) đã thử \(d.lan) lần — chưa tới lượt thử lại.")
+        return ketThuc(.loi("Gói \(m.version) đã thử cài rồi; sẽ thử lại sau."))
       }
     }
     heThong.ghiLog("Cập nhật: có bản \(m.version) (đang chạy \(banHienTai)) — tải \(m.url)")
     var chuan = m; chuan.sha256 = sha
     let kq = KetQuaCapNhat.dangTai(m.version)
     so.dat(kq.chu, luc: dongHo())
-    tacVu = Task { await self.taiVaCai(chuan, choPhep: choPhep) }
+    tacVu = Task { await self.taiVaCai(chuan, lan: lanDaThu + 1, choPhep: choPhep) }
     return kq
   }
 
   /// Chờ lượt tải/cài nền xong (test + daemon định kỳ).
   public func choXong() async { await tacVu?.value }
 
-  private func taiVaCai(_ m: BanMoi, choPhep: @Sendable () async -> Bool) async {
+  private func taiVaCai(_ m: BanMoi, lan: Int, choPhep: @Sendable () async -> Bool) async {
     defer { dang = false }
     let tep = thuMuc + "/AiiGrow-\(m.version).pkg"
     func bo(_ lyDo: String) {
@@ -257,7 +265,7 @@ public actor BoCapNhat {
     // Kiểm lại NGAY trước khi giao installer: máy bị gỡ / bỏ ghép trong lúc tải thì thôi.
     guard await choPhep(), heThong.docTep(DuongDan.daGo) == nil else { bo("máy đã bị gỡ hoặc bỏ ghép trong lúc tải"); return }
     guard !heThong.caiDangChay() else { bo("đang có một lượt installer khác chạy (\(LuatCapNhat.nhanCai))"); return }
-    if let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970)) {
+    if let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970, lan: lan)) {
       do { try heThong.ghiTep(tepDaThu, d, quyen: 0o600) } catch { bo("không ghi được dấu đã thử (\(error)) nên không cài"); return }
     }
     do {

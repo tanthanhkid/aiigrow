@@ -1,18 +1,23 @@
 #!/bin/bash
 # Chạy với quyền root bởi installer. Tạo thư mục, chép plist, nạp daemon và tray.
 set -u
-THU_MUC="/Library/Application Support/AiiGrow"
-LOG="/Library/Logs/AiiGrow"
-APP="/Applications/AiiGrow.app"
+# AIIGROW_GOC (mặc định rỗng = gốc /) và AIIGROW_LAUNCHCTL chỉ để thử logic phân nhánh trên thư mục tạm, không cần root.
+GOC="${AIIGROW_GOC:-}"
+LAUNCHCTL="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
+THU_MUC="$GOC/Library/Application Support/AiiGrow"
+LOG="$GOC/Library/Logs/AiiGrow"
+APP="$GOC/Applications/AiiGrow.app"
 RES="$APP/Contents/Resources"
 
-DA_GO="/var/db/aiigrow-da-go"                  # go-cai.sh / daemon (gỡ từ xa) ghi: máy đã bị gỡ
-DANG_CAP_NHAT="/var/run/aiigrow-capnhat"       # job tự cập nhật ghi: lần cài này do daemon tự chạy
+DA_GO="$GOC/var/db/aiigrow-da-go"                  # go-cai.sh / daemon (gỡ từ xa) ghi: máy đã bị gỡ
+DANG_CAP_NHAT="$GOC/var/run/aiigrow-capnhat"   # job tự cập nhật ghi PID của sh job (DuongDan.dangCapNhat)
 if [ -f "$DA_GO" ]; then
-  if [ -f "$DANG_CAP_NHAT" ]; then
+  PID_CN=$(/bin/cat "$DANG_CAP_NHAT" 2>/dev/null || true)
+  case "$PID_CN" in ''|*[!0-9]*) PID_CN="" ;; esac
+  if [ -n "$PID_CN" ] && /bin/kill -0 "$PID_CN" 2>/dev/null; then       # dấu cũ/sót (PID không còn sống) ⇒ coi như cài tay
     # Tự cập nhật chạy đè lên máy vừa bị gỡ từ xa: không nạp lại daemon/tray, dọn phần gói vừa chép.
     /bin/rm -rf "$APP" "$THU_MUC/cap-nhat"
-    /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+    "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
     exit 0
   fi
   /bin/rm -f "$DA_GO"                          # Ba Mẹ chủ động cài lại sau khi gỡ: bình thường
@@ -24,17 +29,18 @@ fi
 /bin/chmod 0755 "$LOG"
 [ -f "$THU_MUC/config.json" ] && /bin/chmod 0600 "$THU_MUC/config.json"
 
-for p in vn.aiilab.aiigrow.daemon:/Library/LaunchDaemons vn.aiilab.aiigrow.tray:/Library/LaunchAgents; do
+for p in vn.aiilab.aiigrow.daemon:$GOC/Library/LaunchDaemons vn.aiilab.aiigrow.tray:$GOC/Library/LaunchAgents; do
   ten="${p%%:*}"; dich="${p#*:}"
   /bin/cp "$RES/$ten.plist" "$dich/$ten.plist"
   /usr/sbin/chown root:wheel "$dich/$ten.plist"
   /bin/chmod 0644 "$dich/$ten.plist"
 done
 
-/bin/launchctl remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true      # nhãn trình gỡ từ xa còn sót
-/bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
-/bin/launchctl bootstrap system /Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist || true
-/bin/launchctl enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+# nhãn trình gỡ từ xa còn sót: chỉ gỡ khi job đã xong (không có PID)
+"$LAUNCHCTL" list vn.aiilab.aiigrow.go 2>/dev/null | /usr/bin/grep -q '"PID"' || "$LAUNCHCTL" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true
+"$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+"$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" || true
+"$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 
 # Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid): console user + chủ các tiến trình loginwindow (uid >= 500).
 CON_USER=$(/usr/bin/stat -f %Su /dev/console 2>/dev/null || true)
@@ -45,8 +51,8 @@ fi
 UIDS="$UIDS $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\/loginwindow$/ && $1 >= 500 {print $1}')"
 for CON_UID in $(printf '%s\n' $UIDS | /usr/bin/sort -un); do
   [ -n "$CON_UID" ] || continue
-  /bin/launchctl bootout "gui/$CON_UID/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
-  /bin/launchctl bootstrap "gui/$CON_UID" /Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist || \
-    /bin/launchctl asuser "$CON_UID" /bin/launchctl load /Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist || true
+  "$LAUNCHCTL" bootout "gui/$CON_UID/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
+  "$LAUNCHCTL" bootstrap "gui/$CON_UID" "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist" || \
+    "$LAUNCHCTL" asuser "$CON_UID" "$LAUNCHCTL" load "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist" || true
 done
 exit 0

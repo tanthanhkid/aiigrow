@@ -6,11 +6,21 @@ if [ "$(id -u)" -ne 0 ]; then echo "Cần quyền quản trị: sudo bash $0" >&
 DAEMON_PLIST="/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"
 TRAY_PLIST="/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
 
+# Dấu «máy đã gỡ» ghi NGAY ĐẦU (trước vòng chờ và mọi bootout): bộ cập nhật + postinstall cài tự động thấy là dừng.
+GOC="${AIIGROW_GOC:-}"
+LC="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
+DA_GO="$GOC/var/db/aiigrow-da-go"
+/bin/mkdir -p "$(/usr/bin/dirname "$DA_GO")" 2>/dev/null
+echo "da-go" > "$DA_GO" 2>/dev/null && /bin/chmod 0600 "$DA_GO"
+
 # Đang tự cập nhật (installer chạy trong job vn.aiilab.aiigrow.capnhat): chờ xong (tối đa ~5 phút) rồi mới gỡ, kẻo installer nạp lại daemon sau khi ta gỡ.
 i=0
-while "${AIIGROW_LAUNCHCTL:-/bin/launchctl}" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
+while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
   /bin/sleep 2; i=$((i + 1))
 done
+# Xong hay hết 5 phút: gỡ hẳn nhãn capnhat + dấu đang-cập-nhật (installer treo thì giết luôn, không để nó nạp lại daemon sau khi gỡ).
+"$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
+/bin/rm -f "$GOC/var/run/aiigrow-capnhat"
 
 /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 for uid in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/AiiGrowTray/ {print $1}' | /usr/bin/sort -u); do
@@ -95,7 +105,6 @@ done
 /bin/rm -f "$DAEMON_PLIST" "$TRAY_PLIST"
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"
 /bin/rm -f /var/run/aiigrow.sock
-echo "da-go" > /var/db/aiigrow-da-go 2>/dev/null && /bin/chmod 0600 /var/db/aiigrow-da-go     # dấu «máy đã gỡ»: tự cập nhật + postinstall cài tự động tôn trọng
 /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg >/dev/null 2>&1 || true
 echo "Đã gỡ AiiGrow."
 # Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại

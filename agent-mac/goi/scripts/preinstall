@@ -1,6 +1,9 @@
 #!/bin/bash
 # Cập nhật đè: dừng bản cũ đang chạy; giữ nguyên config.json.
-/bin/launchctl remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true      # nhãn trình gỡ từ xa còn sót
+# Nhãn trình gỡ từ xa còn sót: chỉ gỡ khi job ĐÃ xong (không có PID) — job go đang chạy mà remove là giết trình gỡ giữa chừng.
+if ! "${AIIGROW_LAUNCHCTL:-/bin/launchctl}" list vn.aiilab.aiigrow.go 2>/dev/null | /usr/bin/grep -q '"PID"'; then
+  "${AIIGROW_LAUNCHCTL:-/bin/launchctl}" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true
+fi
 /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 for uid in $(/usr/bin/pgrep -x AiiGrowTray >/dev/null 2>&1 && /bin/ps -axo uid=,comm= | /usr/bin/awk '/AiiGrowTray/ {print $1}' | /usr/bin/sort -u); do
   /bin/launchctl bootout "gui/$uid/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true

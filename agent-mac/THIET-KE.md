@@ -40,10 +40,10 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
   preinstall `bootout` chính daemon. Nhãn tự gỡ ở cuối job nên `postinstall` không phải gỡ (gỡ trong postinstall sẽ giết installer giữa chừng).
 - **Nút**: tray (chỉ phiên admin, không phải Con) «Kiểm tra cập nhật» ⇒ `YeuCauTray.capNhat` ⇒ `TraLoi.thongBao` («Đang là bản mới nhất (x)» / «Đang tải bản y…») hoặc `.loi`.
   `QuyenIPC`: Con (kể cả khi là admin) bị từ chối. Menu có dòng «AiiGrow bản x».
-- **Chỉ khi đã ghép**: chưa ghép / `dangGo` / có dấu `/var/db/aiigrow-da-go` (tuGo + go-cai.sh ghi) ⇒ không kiểm, không cài; hỏi lại NGAY trước khi giao installer.
-  go-cai.sh chờ job `…capnhat` xong (≤ ~5 phút) rồi mới gỡ; postinstall thấy `da-go` + `/var/run/aiigrow-capnhat` (cài tự động) thì không nạp lại daemon/tray (cài tay thì xoá `da-go`, chạy bình thường).
-- **Chống vòng cài lại**: trước installer ghi `cap-nhat-da-thu.json` (version, sha256, giờ; root 0600). Cùng sha256 ⇒ không cài lại, kể cả sau khi daemon khởi động lại mà `hienTai` vẫn nhỏ hơn
-  (log «cài xong mà bản không đổi»); chỉ nút Ba Mẹ và đã quá 1 giờ mới thử lại; manifest đổi sha256 thì cài tiếp. Nhãn `…capnhat` đang chạy thì không `launchctl remove` (không giết installer).
+- **Chỉ khi đã ghép**: chưa ghép / `dangGo` / có dấu `/var/db/aiigrow-da-go` (tuGo + go-cai.sh ghi NGAY ĐẦU; ghép lại thành công thì xoá) ⇒ không kiểm, không cài; hỏi lại NGAY trước khi giao installer.
+  go-cai.sh chờ job `…capnhat` xong (≤ ~5 phút) rồi mới gỡ; sau vòng chờ go-cai.sh luôn `launchctl remove` nhãn capnhat + xoá dấu; `DuongDan.dangCapNhat` chứa PID của sh job — postinstall thấy `da-go` + PID đó còn sống (cài tự động) thì không nạp lại daemon/tray (cài tay thì xoá `da-go`, chạy bình thường).
+- **Chống vòng cài lại**: trước installer ghi `cap-nhat-da-thu.json` (version, sha256, giờ; root 0600). Cùng sha256 ⇒ thử lại tối đa 3 lần (có đếm `lan`), mỗi lần cách ≥ 6 giờ ở vòng định kỳ; quá 3 lần thì dừng
+  (log «cài xong mà bản không đổi»); nút Ba Mẹ vẫn thử được sau > 1 giờ; manifest đổi sha256 thì cài tiếp. Nhãn `…capnhat` đang chạy thì không `launchctl remove` (không giết installer).
 - **Nút không chờ**: IPC `capNhat` trả «Đang kiểm tra…» ngay, kiểm/tải/cài chạy nền; kết quả ở `TrangThai.capNhat` (+`capNhatLuc`, không trả cho phiên Con) — menu tray hiện dòng đó.
 - Gói tải về băm sha256 theo luồng (khúc 1 MiB) rồi mới chuyển vào thư mục 0700 — không đọc cả gói vào bộ nhớ.
 - Phát hành bản mới: `BAN=… build-pkg.sh` → release `mac-<bản>` → điền `BAN_AGENT_MAC` (server/lib/ban-agent.ts) gồm sha256 của đúng tệp. Bản 0.1.0 không tự cập nhật, cài tay một lần.

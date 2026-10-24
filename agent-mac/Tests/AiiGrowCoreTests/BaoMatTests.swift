@@ -895,7 +895,9 @@ final class BaoMatTests: XCTestCase {
     XCTAssertTrue(s.contains("remove vn.aiilab.aiigrow.go"))
     XCTAssertTrue(s.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("|| true"), "lệnh remove là việc cuối cùng")
     for f in ["preinstall", "postinstall"] {
-      XCTAssertTrue(try String(contentsOfFile: Self.goiDir + "/scripts/" + f, encoding: .utf8).contains("launchctl remove vn.aiilab.aiigrow.go"), f)
+      let t = try String(contentsOfFile: Self.goiDir + "/scripts/" + f, encoding: .utf8)
+      XCTAssertTrue(t.contains("remove vn.aiilab.aiigrow.go"), f)
+      XCTAssertTrue(t.contains("grep -q '\"PID\"'"), "\(f): chỉ gỡ nhãn go khi job đã xong")
     }
     XCTAssertEqual(HeThongMac.nhanTrinhGo, "vn.aiilab.aiigrow.go")
   }
