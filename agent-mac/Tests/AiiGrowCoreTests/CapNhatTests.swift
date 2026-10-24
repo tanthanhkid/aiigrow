@@ -314,6 +314,29 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 3, "định kỳ không bao giờ vượt 3 lần với cùng sha")
   }
 
+  func testDauDaThuCuThieuLanVanDoc() async throws {
+    // dấu do bản 0.1.1 sớm ghi (không có «lan») vẫn phải chặn cài lại ngay
+    let cu = #"{"version":"0.1.2","sha256":"\#(LuatCapNhat.sha256Hex(noiDung))","luc":\#(gio.timeIntervalSince1970)}"#
+    let d = try JSONDecoder().decode(DauDaThu.self, from: Data(cu.utf8))
+    XCTAssertEqual(d.lan, 1)
+    datMayChu()
+    fake.tep["/gia/da-thu.json"] = Data(cu.utf8)
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 0, "dấu cũ không có lan vẫn được tôn trọng")
+  }
+
+  func testGiaoInstallerLoiKhongTinhLanThu() async {
+    datMayChu()
+    fake.loiCaiGoi = LoiApi(chu: "launchctl submit lỗi")
+    _ = await chay(boCapNhat())
+    XCTAssertNil(fake.tep["/gia/da-thu.json"], "submit lỗi ⇒ không để lại dấu đã thử")
+    fake.loiCaiGoi = nil
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 1, "lượt sau thử ngay, không phải chờ 6 giờ")
+    let d = try? JSONDecoder().decode(DauDaThu.self, from: fake.tep["/gia/da-thu.json"] ?? Data())
+    XCTAssertEqual(d?.lan, 1)
+  }
+
   func testNutBaMeThuLaiSau1Gio() async {
     datMayChu()
     _ = await chay(boCapNhat())
@@ -430,9 +453,17 @@ final class CapNhatTests: XCTestCase {
   }
 
   func testPostinstallPhanNhanhDaGo() throws {
-    // đã gỡ + cài tự động (PID dấu còn sống) ⇒ không nạp lại, giữ da-go, dọn app
-    let a = try chayPostinstall(daGo: true, pidDau: String(getpid()))
+    // đã gỡ + cài tự động (PID dấu là sh job còn sống, dòng lệnh mang nhãn job) ⇒ không nạp lại, giữ da-go, dọn app
+    let job = Process()
+    job.executableURL = URL(fileURLWithPath: "/bin/sh")
+    job.arguments = ["-c", "sleep 30; :", "capnhat", "/tmp/x.pkg", LuatCapNhat.nhanCai]
+    try job.run()
+    defer { job.terminate() }
+    let a = try chayPostinstall(daGo: true, pidDau: String(job.processIdentifier))
     XCTAssertFalse(a.bootstrapDaemon); XCTAssertTrue(a.daGoConLai); XCTAssertFalse(a.appConLai)
+    // PID sót đã bị tiến trình KHÁC dùng lại (còn sống nhưng không phải job cập nhật) ⇒ coi như cài tay
+    let e = try chayPostinstall(daGo: true, pidDau: String(getpid()))
+    XCTAssertTrue(e.bootstrapDaemon); XCTAssertFalse(e.daGoConLai); XCTAssertTrue(e.appConLai)
     // đã gỡ + dấu cũ (PID chết) ⇒ coi như cài tay: xoá da-go, nạp bình thường
     let b = try chayPostinstall(daGo: true, pidDau: "99999999")
     XCTAssertTrue(b.bootstrapDaemon); XCTAssertFalse(b.daGoConLai); XCTAssertTrue(b.appConLai)

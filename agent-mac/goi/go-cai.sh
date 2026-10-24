@@ -11,13 +11,26 @@ GOC="${AIIGROW_GOC:-}"
 LC="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
 DA_GO="$GOC/var/db/aiigrow-da-go"
 /bin/mkdir -p "$(/usr/bin/dirname "$DA_GO")" 2>/dev/null
+# Bị ngắt (Ctrl-C…) TRƯỚC khi gỡ thật ⇒ trả lại dấu như cũ (máy vẫn ghép, daemon vẫn chạy — đừng để dấu «đã gỡ» chặn tự cập nhật mãi).
+# Dấu có sẵn từ trước (daemon gỡ từ xa ghi) thì giữ nguyên.
+if [ ! -f "$DA_GO" ]; then
+  trap '/bin/rm -f "$DA_GO"; echo "Đã dừng — chưa gỡ gì."; exit 130' INT TERM HUP
+fi
 echo "da-go" > "$DA_GO" 2>/dev/null && /bin/chmod 0600 "$DA_GO"
 
 # Đang tự cập nhật (installer chạy trong job vn.aiilab.aiigrow.capnhat): chờ xong (tối đa ~5 phút) rồi mới gỡ, kẻo installer nạp lại daemon sau khi ta gỡ.
 i=0
 while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
+  [ "$i" -eq 0 ] && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút)…"
+  [ "$i" -gt 0 ] && [ $((i % 15)) -eq 0 ] && echo "  vẫn đang chờ… ($((i * 2)) giây)"
   /bin/sleep 2; i=$((i + 1))
 done
+if [ "$i" -ge 150 ]; then
+  echo "Cảnh báo: bộ tự cập nhật chạy quá 5 phút — dừng nó để gỡ tiếp."
+  /usr/bin/logger -t AiiGrow "go-cai: job vn.aiilab.aiigrow.capnhat chạy quá 5 phút, bị dừng để gỡ" 2>/dev/null || true
+fi
+# Từ đây là gỡ thật: không trả dấu nữa dù bị ngắt.
+trap - INT TERM HUP
 # Xong hay hết 5 phút: gỡ hẳn nhãn capnhat + dấu đang-cập-nhật (installer treo thì giết luôn, không để nó nạp lại daemon sau khi gỡ).
 "$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
 /bin/rm -f "$GOC/var/run/aiigrow-capnhat"

@@ -105,6 +105,18 @@ public struct DauDaThu: Codable, Equatable {
   public var luc: Double          // giây từ 1970
   /// Số lần đã giao installer cho đúng sha256 này.
   public var lan: Int = 1
+
+  public init(version: String, sha256: String, luc: Double, lan: Int = 1) {
+    self.version = version; self.sha256 = sha256; self.luc = luc; self.lan = lan
+  }
+  /// Dấu do bản 0.1.1 sớm ghi (chưa có `lan`) vẫn đọc được — coi như đã thử 1 lần.
+  public init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    version = try c.decode(String.self, forKey: .version)
+    sha256 = try c.decode(String.self, forKey: .sha256)
+    luc = try c.decode(Double.self, forKey: .luc)
+    lan = try c.decodeIfPresent(Int.self, forKey: .lan) ?? 1
+  }
 }
 
 /// Câu trạng thái cập nhật để tray hiện — daemon ghi, BoMay đọc đồng bộ (không cần await vào actor).
@@ -265,6 +277,8 @@ public actor BoCapNhat {
     // Kiểm lại NGAY trước khi giao installer: máy bị gỡ / bỏ ghép trong lúc tải thì thôi.
     guard await choPhep(), heThong.docTep(DuongDan.daGo) == nil else { bo("máy đã bị gỡ hoặc bỏ ghép trong lúc tải"); return }
     guard !heThong.caiDangChay() else { bo("đang có một lượt installer khác chạy (\(LuatCapNhat.nhanCai))"); return }
+    // Dấu ghi TRƯỚC khi giao installer (preinstall bootout daemon ngay, không kịp ghi sau); giao lỗi thì trả dấu cũ ⇒ lượt này không bị tính.
+    let dauCu = heThong.docTep(tepDaThu)
     if let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970, lan: lan)) {
       do { try heThong.ghiTep(tepDaThu, d, quyen: 0o600) } catch { bo("không ghi được dấu đã thử (\(error)) nên không cài"); return }
     }
@@ -272,6 +286,9 @@ public actor BoCapNhat {
       try heThong.caiGoi(tep)
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")
-    } catch { bo("không chạy được installer: \(error)") }
+    } catch {
+      if let c = dauCu { try? heThong.ghiTep(tepDaThu, c, quyen: 0o600) } else { heThong.xoaTep(tepDaThu) }
+      bo("không chạy được installer: \(error)")
+    }
   }
 }
