@@ -196,7 +196,7 @@ function dongNen(nen: NenChuyenDoi, cs: ChinhSachChung): Dong[] {
       ["tran_thoi_gian", "du", "Daemon đo app tiền cảnh (NSWorkspace); máy chủ là sổ sách", { cauHinh: tran }],
       ["phien_diem", "du", "Như Windows: phien/mo + nhịp phút", { cauHinh: { soDu: cs.phienDiem.soDu } }],
       ["cho_phep_app", "mot_phan", "Screen Time «Luôn cho phép» + daemon cho phép app hệ thống / học",
-        { cauHinh: { choPhep: [...cs.ungDung.heThong.filter((x) => x.startsWith("com.")), ...app(hoc)] }, khongLamDuoc: "chặn app TRƯỚC khi mở (không có AppLocker trên macOS thường)", thayBang: "daemon đóng app ngoài danh sách ngay khi mở + ghi sự kiện" }],
+        { cauHinh: { choPhep: [...cs.ungDung.heThong.filter((x) => x.startsWith("com.") || x.endsWith(".app")), ...app(hoc)] }, khongLamDuoc: "chặn app TRƯỚC khi mở (không có AppLocker trên macOS thường)", thayBang: "daemon đóng app ngoài danh sách ngay khi mở + ghi sự kiện" }],
       ["chan_app", "mot_phan", "Daemon đóng app bị chặn ngay khi mở", { cauHinh: { chan: app(chan), giaiTriCanPhien: app(gt) }, khongLamDuoc: "chặn tuyệt đối trước khi mở", thayBang: "đóng ngay + ghi sự kiện chan_app" }],
       ["chan_web", "du", "Hồ sơ com.apple.webcontent-filter (FilterType BuiltIn, DenyListURLs / PermittedURLs)", { cauHinh: { DenyListURLs: web(chan), giaiTriCanPhien: web(gt) } }],
       ["chua_xep", "mot_phan", "Daemon đóng app chưa xếp", { khongLamDuoc: "chặn trước khi mở", thayBang: "đóng ngay + gợi ý «Xin phép Ba Mẹ»" }],
@@ -296,6 +296,13 @@ function dongNen(nen: NenChuyenDoi, cs: ChinhSachChung): Dong[] {
 const NHIP_GIAY: Record<NenChuyenDoi, number> = { windows: 60, mac: 60, android: 900, ios: 3600, tvos: 0, android_tv: 0, tizen: 0, webos: 0, mang: 0 };
 export const laDiDong = (nen: string) => nen === "android" || nen === "ios";
 
+/** Máy tính có TÁC TỬ riêng của AiiGrow (Windows: agent-win; macOS: agent-mac) — cùng giao thức dong-bo/`windows`, cùng cách đối xử:
+ *  cửa sổ thêm giờ, hạn mở, thưởng, ghép phiên máy chung, mã mở offline, không gửi nhịp tuân thủ. Máy khác (điện thoại, TV, mạng) thì không. */
+export const coTacTu = (nen: string | null | undefined): boolean => nen === "windows" || nen === "mac";
+/** Máy có «cửa sổ thêm giờ» (grants.cua_so_den + hạn mở trả về máy): máy tính có tác tử + iPhone/iPad + máy Con Android (app đặt lịch DeviceActivity «themgio» theo hạn).
+ * CHỈ phần cửa sổ này — iOS / Android KHÔNG phải «có tác tử»: không mã mở offline, không phiên máy chung (những chỗ đó vẫn dùng coTacTu). */
+export const coCuaSoThemGio = (nen: string | null | undefined): boolean => coTacTu(nen) || nen === "ios" || nen === "android";
+
 const VIEC_CHO: Record<NenChuyenDoi, string[]> = {
   windows: ["Gọi API thật (AppLocker, chính sách trình duyệt, net user /times, dịch vụ) trong agent-win — việc chờ máy Windows thử tài khoản Standard"],
   mac: ["Agent macOS (LaunchDaemon + hồ sơ cấu hình) — việc chờ Mac/Xcode", "MDM: cần máy chủ MDM + chứng chỉ APNs (Apple Push) — việc chờ"],
@@ -338,13 +345,15 @@ export function huongDanCai(nen: NenChuyenDoi, token: string, goc: string): Huon
       buoc: ["Cài AiiGrow từ App Store trên máy Con", "Mở app, quét QR trong app Ba Mẹ", "Ba Mẹ xác nhận quyền Screen Time (một lần)"],
       chiTiet: { qr: `${g}/cai/${token}`, lienKet: "universal link — mở thẳng app, không nhập mã" } };
     case "android": return { nen, cach: "qr_device_owner", quyenAdmin: "không cần — Device Owner cấp khi cài bằng QR",
-      buoc: ["Khôi phục gốc máy Con (máy mới)", "Ở màn chào chạm 6 lần, quét QR trong app Ba Mẹ", "Máy tự tải AiiGrow, tự ghép với gia đình"],
+      buoc: ["Khôi phục gốc máy Con (máy mới)", "Ở màn chào chạm 6 lần, quét QR trong app Ba Mẹ", "Máy tự tải AiiGrow Con, tự ghép với gia đình"],
       chiTiet: { qrCaiDat: {
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow/.QuanTri",
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${g}/tai/aiigrow.apk`,
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/.QuanTri",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${g}/tai/aiigrow-con.apk`,
+        "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,   // giữ Chrome, Camera… của máy
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "<băm chữ ký APK — việc chờ bản build ký>",
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": { aiigrow_token: token, aiigrow_may_chu: g },
-      }, duPhong: `máy đang dùng: cài APK / Play rồi quét QR ${g}/cai/${token} (không có Device Owner ⇒ mức bảo vệ Một phần)` } };
+      }, duPhong: `máy đang dùng: cài app «AiiGrow Con» rồi ghép bằng mã 6 số (không có Device Owner ⇒ mức bảo vệ Một phần)`,
+        ghiChu: "Bản phát hành APK AiiGrow Con (android-con-0.1.0) CHƯA có trên GitHub Release aiigrow-tai — link /tai/aiigrow-con.apk chỉ chạy được sau khi tải bản ký lên; chữ ký APK cũng chờ keystore phát hành." } };
     default: return { nen, cach: "tang_mang", quyenAdmin: "quyền quản trị router của Ba Mẹ",
       buoc: ["Trong app Ba Mẹ chọn TV trong danh sách thiết bị của router (theo MAC) — một bước"],
       chiTiet: { ghiChu: "TV không có MDM cho gia đình: áp luật tầng mạng (router / DNS)" } };

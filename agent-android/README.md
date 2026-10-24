@@ -1,0 +1,72 @@
+# AiiGrow Con — tác tử máy Con cho Android (Kotlin)
+
+Gói `vn.aiilab.aiigrow.con` (khác app Ba Mẹ `vn.aiilab.aiigrow` ở `mobile/`). Máy chủ coi máy là `platform = "android"`.
+Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức của Android, không ẩn mình — thông báo thường trực
+**«AiiGrow đang bật — Ba Mẹ quản lý máy này»** luôn hiện, Cài đặt ghi rõ «Thiết bị do tổ chức quản lý» / Trợ năng AiiGrow đang bật.
+
+## Cấu trúc
+| Tệp | Việc |
+|---|---|
+| `logic/ChinhSach.kt` | đọc phản hồi `POST /api/device/nhip` (ChinhSachChung + lenh + grantEndsAt) — thuần JVM |
+| `logic/QuyetDinh.kt` | quyết trạng thái (bình thường / thêm giờ / hết giờ / ngoài khung / không tuân thủ / giờ ngủ / khoá ngay), gói phải chặn, phút còn, đếm ngược 60 giây |
+| `logic/DemPhut.kt` | đếm phút tiền cảnh theo app từ sự kiện UsageStats; thân ghép / nhịp / xin thêm giờ |
+| `DichVuNhip` | dịch vụ tiền cảnh: vòng 5 giây, gọi máy chủ mỗi 60 giây, đo → quyết → thực thi, thông báo thường trực, mở màn khoá |
+| `NenTang.kt` | `UngDung` (hẹn WorkManager 15 phút), `ViecNhip`, `KhoiDong` (BOOT_COMPLETED), `ManCaiDat` (cài QR Android 10+) |
+| `QuanTri` | DeviceAdminReceiver `vn.aiilab.aiigrow.con/.QuanTri` |
+| `ThucThi` | Device Owner: `setPackagesSuspended`, `setLockTaskPackages`, hạn chế người dùng, Chrome `URLBlocklist`, DNS riêng tư, `lockNow`; gỡ từ xa |
+| `TroNang` | AccessibilityService (đường không reset): app bị chặn lên tiền cảnh ⇒ về Home + phủ màn chặn; khoá cả máy ⇒ phủ màn khoá |
+| `ManChinh` / `ManKhoa` | màn Con (còn phút, xin 30/60/120 + lời nhắn, đã dùng gì, ghép mã 6 số, cấp quyền) / màn khoá + đếm ngược |
+| `thu/` | chính sách giả cho chế độ thử cục bộ · `chup/` ảnh chụp emulator |
+
+## Hai đường cài (chọn lúc ghép)
+**1. Device Owner bằng QR — mạnh nhất (máy mới hoặc khôi phục gốc).**
+Ba Mẹ mở app Ba Mẹ › Thêm máy › Android › hiện QR (`huongDanCai("android")` — xem CAN-SERVER.md mục 1, phải đổi component).
+Trên máy Con vừa khôi phục gốc: màn chào chạm 6 lần ⇒ quét QR ⇒ máy tự tải AiiGrow Con, thành Device Owner, tự ghép bằng token trong QR.
+Có: app bị chặn hiện xám «Đã tạm dừng» (không mở được, không ẩn), màn khoá dạng lock task, chặn thêm người dùng / Safe Mode / đổi ngày giờ /
+cài APK lạ, Chrome `URLBlocklist`, DNS riêng tư gia đình (`setGlobalPrivateDnsModeSpecifiedHost`), app mới cài ⇒ tạm dừng tới khi Ba Mẹ xếp.
+Sau khi cài: bật «Truy cập dữ liệu sử dụng» cho AiiGrow Con (Android không cho Device Owner tự cấp quyền này).
+
+**2. Không cần khôi phục gốc (máy đang dùng).**
+Cài APK ⇒ mở AiiGrow Con ⇒ nhập mã 6 số Ba Mẹ đưa ⇒ bật 3 quyền ngay trên màn chính: Quản trị thiết bị (khoá màn hình),
+Truy cập dữ liệu sử dụng (đếm phút), Trợ năng «AiiGrow — màn chặn» (phủ màn chặn khi app bị chặn mở lên). Yếu hơn: app bị chặn vẫn mở được
+một khoảnh khắc trước khi bị phủ; Con có thể tắt Trợ năng (nhịp báo `troNang=false` cho Ba Mẹ); không lọc web, không chặn đổi giờ / Safe Mode.
+
+## Android không làm được
+- Chặn khôi phục cài đặt gốc (máy biến mất ⇒ «ngoài vòng kiểm soát» + báo Ba Mẹ).
+- Nhịp mỗi phút khi máy ngủ sâu (Doze): dịch vụ tiền cảnh + WorkManager 15 phút là tối đa không cần đẩy FCM.
+- Device Owner không tự cấp «Truy cập dữ liệu sử dụng» và không tự bật Trợ năng.
+- Lọc web chỉ trong Chrome (cấu hình quản lý); trình duyệt khác = app chưa xếp ⇒ tạm dừng. Chưa kiểm Chrome có áp `URLBlocklist` (đặt bằng `setApplicationRestrictions`, mảng chuỗi) — cần mở trang bị chặn trên máy thật.
+- Không tạm dừng được app bắt buộc của hệ thống (Cài đặt, Điện thoại, trình khởi chạy) — `setPackagesSuspended` trả về gói lỗi.
+- Phiên chơi bằng điểm (`phien/xet|mo|nhip`) chưa làm ở bản 0.1: giải trí mở trong khung giờ tới trần phút/ngày (+ phút Ba Mẹ thêm).
+
+## Build
+```
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+./gradlew testDebugUnitTest assembleDebug --max-workers=2 && ./gradlew --stop
+# APK: app/build/outputs/apk/debug/app-debug.apk (ký debug — chưa có keystore phát hành)
+```
+Gradle 8.10.2 · AGP 8.7.3 · Kotlin 2.0.21 · minSdk 26 · targetSdk 35. Phụ thuộc: core-ktx, work-runtime-ktx.
+
+## Thử trên emulator (không gọi máy chủ)
+```
+emulator -avd aiigrow-con -no-window -no-audio -no-boot-anim -memory 2048 &
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell dpm set-device-owner vn.aiilab.aiigrow.con/.QuanTri
+adb shell appops set vn.aiilab.aiigrow.con GET_USAGE_STATS allow
+# chế độ thử: bản debug đọc chính sách giả từ files/thu-chinh-sach.json (run-as), không ghép / không nhịp máy chủ
+adb shell "run-as vn.aiilab.aiigrow.con sh -c 'cat > files/thu-chinh-sach.json'" < thu/chinh-sach-binh-thuong.json
+adb shell am start -n vn.aiilab.aiigrow.con/.ManChinh
+adb shell pm list packages --suspended        # gói trong "chan" phải có ở đây
+adb shell "run-as vn.aiilab.aiigrow.con sh -c 'cat > files/thu-chinh-sach.json'" < thu/chinh-sach-khoa-ngay.json   # màn khoá + đếm ngược
+adb emu kill
+```
+Lời xin thêm giờ ở chế độ thử ghi vào `files/thu-yeu-cau.jsonl`. Thêm `"grantEndsAt"` / `"privateDns"` ở gốc tệp thử để thử thêm giờ / DNS.
+
+## Kết quả thử 24/10 (emulator API 35, Device Owner)
+- 16 unit test JVM đạt; `assembleDebug` đạt.
+- Dịch vụ tiền cảnh chạy (`systemExempted`), thông báo «AiiGrow đang bật — Ba Mẹ quản lý máy này».
+- Chặn `com.android.chrome` ⇒ `suspended=true`; dùng YouTube 1 phút ⇒ màn chính còn 89/90 phút.
+- Khoá ngay ⇒ màn khoá «Khoá sau 0:59» (`chup/man-khoa-dem-nguoc.png`) ⇒ hết đếm ngược: YouTube tạm dừng, `lockNow`, lock task LOCKED (`chup/man-khoa.png`).
+- `grantEndsAt` +30 phút ⇒ thoát lock task, YouTube mở, Chrome vẫn chặn, «Còn 30 phút».
+- DNS riêng tư `dns.google` ⇒ `private_dns_mode=hostname`.
+- CHƯA thử: đường không reset (Trợ năng + màn phủ), ghép thật với máy chủ, cài bằng QR, lệnh gỡ.

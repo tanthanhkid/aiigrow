@@ -1,5 +1,6 @@
 // API riêng cho màn Con (M3): trang «Nhà», danh sách trò chơi được phép, phiên giải trí mở từ app Con (web / máy riêng / máy dùng chung
 // sau PIN). Phiên dùng ĐÚNG phien.ts như agent thiết bị (máy chủ là sổ sách, một Con một phiên) — app Con chỉ gửi nhịp «đang dùng thật».
+import { coTacTu } from "./chuyen-doi.ts";
 import { one, q } from "./db.ts";
 import { lichCua, thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
@@ -72,11 +73,11 @@ export async function nhaTre(c: ConTre, now = new Date()) {
 }
 
 /** Xét trước «Dùng điểm để chơi?» (FR-04.02) — kèm câu giải thích và giờ mở lại khi chưa được. */
-/** Máy Windows của trang khay: không tuân thủ ⇒ câu khoá (như phien/xet của agent); máy khác / web ⇒ null. */
+/** Máy có tác tử (Windows/Mac) của trang khay: không tuân thủ ⇒ câu khoá (như phien/xet của agent); máy khác / web ⇒ null. */
 async function khoaMayWin(c: ConTre, now: Date) {
   if (!c.device_id) return null;
   const may = await one<May>(`select * from devices where id = $1`, [c.device_id]);
-  if (may?.platform !== "windows") return null;
+  if (!may || !coTacTu(may.platform)) return null;
   const kt = await khoaTuanThu(may, now);
   return kt.khoa ? kt.cau : null;
 }
@@ -103,7 +104,7 @@ export async function nhipTre(c: ConTre, id: string, dangDung: boolean, now = ne
   // (máy dùng chung + agent cũ: dong-bo không nhịp, trang là nguồn duy nhất).
   const p0 = await one<{ trang_thai: string; platform: string | null; status: { version?: unknown } | null }>(
     `select s.trang_thai, d.platform, d.status from play_sessions s left join devices d on d.id = s.device_id where s.id = $1 and s.child_id = $2`, [id, c.id]);
-  const win = p0?.platform === "windows";
+  const win = coTacTu(p0?.platform);
   const k = win && banTu024(banMayBao({ status: p0!.status as never }))
     ? await trangThaiPhien(c.id, id)
     : await nhip(c.id, id, win ? p0!.trang_thai !== "tam" : dangDung, now);

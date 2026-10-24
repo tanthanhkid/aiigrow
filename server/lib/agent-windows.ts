@@ -9,6 +9,7 @@
 //   • nextCheckSec ngắn lại khi đang có phiên / đang mở (và đúng lúc hết hạn mở) để thay đổi của Ba Mẹ tới máy Con trong ≤ 30 giây.
 //   • minutesLeft để trống: hết phiên chơi thì máy chủ đóng phiên, lần đồng bộ sau app giải trí rời danh sách (không khoá cả máy).
 // Agent mặc định chạy chế độ GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do).
+import { kieuMuc } from "./chinh-sach.ts";
 import { gioDiaPhuong, laCuoiTuan, phutCua, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
 import { nhipToiKhoaLai } from "./cau-hinh.ts";
@@ -45,6 +46,8 @@ const exe = (s: string) => s.toLowerCase().endsWith(".exe");
 /** Trình duyệt cho chạy khi có phiên chơi cho một WEBSITE (tên miền không phải .exe). CHỈ trình duyệt agent lọc được theo tên miền
  *  (chính sách Chrome/Edge/Brave — lib/web.ts, agent-win WebGuard): mở Firefox/Opera sẽ lọt mọi trang bị chặn trong lúc chơi. */
 export const TRINH_DUYET = ["chrome.exe", "msedge.exe", "brave.exe"];
+/** Như TRINH_DUYET nhưng cho macOS (bundle id — đúng chữ hoa/thường của hệ điều hành): agent-mac lọc web bằng chính sách Chrome/Edge/Brave/Cốc Cốc + khối hosts cho Safari. */
+export const TRINH_DUYET_MAC = ["com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari", "com.coccoc.Coccoc"];
 
 /** Chu kỳ đồng bộ (giây): nhàn rỗi 120; có phiên / đang mở / còn «thưởng» chưa dùng 30; đang mở thì không quá hạn mở (để trả chặn đúng giờ). Agent kẹp 10–600. */
 export const NHIP_NHAN_ROI = 120;
@@ -59,7 +62,7 @@ export function nhipDongBo(o: { coPhien: boolean; moDen?: Date | null; now: Date
 
 /** `phienTien`: giá của phiên (phần nghìn điểm/phút, chốt lúc mở) và phần lẻ đang nợ (phan_nghin_tru − diem_tru·1000) — lib/phien-windows.ts › tienPhien. */
 /** `lichPhien`: lịch của Con đang chơi (máy dùng chung — Policy chung mang lịch mặc định) — chỉ dùng cho playOfflineMinutes. */
-export type MoRong = { moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"] };
+export type MoRong = { nen?: "windows" | "mac"; moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"] };
 
 /** Phút được chơi tiếp khi mất mạng (BRD 6.7) — tính như máy chủ tính ở nhịp: phút thưởng (thêm giờ) dùng trước, không trừ điểm;
  *  rồi tới số phút mua được bằng số dư sau khi trả phần lẻ đang nợ; không vượt phút còn lại của phiên. Giá 0 ⇒ chỉ giới hạn bởi phiên. */
@@ -82,17 +85,22 @@ export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): n
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
-  const hoc = p.luat.filter((l) => l.loai === "hoc" && exe(l.muc)).map((l) => l.muc.toLowerCase());
-  const choi = p.phien && exe(p.phien.muc) && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri")
-    ? [p.phien.muc.toLowerCase()] : [];
+  // Máy Mac: app là bundle id / tên .app (không có .exe) và giữ nguyên chữ hoa-thường; Windows: tệp .exe, chữ thường.
+  const mac = mo.nen === "mac";
+  const laApp = mac ? (s: string) => kieuMuc(s) === "app" && !exe(s) : exe;
+  const chuan = (s: string) => (mac ? s : s.toLowerCase());
+  const trinhDuyet = mac ? TRINH_DUYET_MAC : TRINH_DUYET;
+  const hoc = p.luat.filter((l) => l.loai === "hoc" && laApp(l.muc)).map((l) => chuan(l.muc));
+  const choi = p.phien && laApp(p.phien.muc) && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri")
+    ? [chuan(p.phien.muc)] : [];
   const khoa = p.khoaNgay || ngu;
   const now = new Date(p.serverTime);
   const dangMo = !khoa && !!mo.moDen && mo.moDen.getTime() > now.getTime();
-  const phienWeb = p.phien && !exe(p.phien.muc) && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
+  const phienWeb = p.phien && !laApp(p.phien.muc) && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
   return {
     serverTime: p.serverTime, childName: p.con?.ten ?? "",
     mode: khoa ? "khoa" : dangMo ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
-    allowedApps: [...new Set([...p.allowlistHeThong.filter(exe).map((x) => x.toLowerCase()), ...hoc, ...choi, ...(phienWeb ? TRINH_DUYET : [])])],
+    allowedApps: [...new Set([...p.allowlistHeThong.filter(laApp).map(chuan), ...hoc, ...choi, ...(phienWeb ? trinhDuyet : [])])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null,
     nextCheckSec: nhipToiKhoaLai(nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }), [p.khoaLaiLuc, p.khoaHetLuc], now),
@@ -104,7 +112,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
     // play* CHỈ cho máy sở hữu phiên (mo.phienTien do api-may đặt khi play_sessions.device_id = máy này) — Con có 2 PC thì PC kia không đếm.
     ...(p.phien && mo.phienTien && (choi.length || phienWeb) ? {
-      playSessionId: p.phien.id, playApp: p.phien.muc.toLowerCase(), playWeb: !!phienWeb,
+      playSessionId: p.phien.id, playApp: chuan(p.phien.muc), playWeb: !!phienWeb,
       playOfflineMinutes: Math.min(phutToiHetLich(mo.lichPhien ? { ...p, lich: mo.lichPhien } : p),
         phutChoiOffline(p.phien.conPhut, p.soDu, mo.conThuong ?? 0, mo.phienTien.giaPhanNghin, mo.phienTien.noPhanNghin)),
     } : {}),

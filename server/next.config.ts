@@ -17,6 +17,12 @@ const config: NextConfig = {
         destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/v:ban/AiiGrow-Setup-:ban.exe",
         permanent: false,
       },
+      // Tác tử máy Con Android (vn.aiilab.aiigrow.con) — QR Device Owner trỏ /tai/aiigrow-con.apk. Bản phát hành CHƯA có: tải lên GitHub Release trước.
+      {
+        source: "/tai/aiigrow-con.apk",
+        destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/android-con-0.1.0/aiigrow-con-0.1.0.apk",
+        permanent: false,
+      },
       // App Ba Mẹ cho Android (bản thử, GitHub Release android-0.1.0) — không có redirect thì /tai/aiigrow.apk rơi vào index.html của SPA.
       { source: "/tai/aiigrow.apk", destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/android-0.1.0/AiiGrow-android-0.1.0.apk", permanent: false },
       { source: "/app", destination: "/", permanent: true },

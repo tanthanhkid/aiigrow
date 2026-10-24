@@ -133,13 +133,13 @@ test("thêm giờ cho lời xin từ máy WINDOWS ⇒ cửa sổ mở tới hạ
   // mở khẩn cấp của máy cũng là «mở»
   await tt.moKhanCap(fam, may.id, { phut: 60 }, bm, T);
   assert.equal((await tt.hanMoCuaMay(may, con, T))!.getTime(), T.getTime() + 60 * 60000);
-  // lời xin từ thiết bị KHÔNG phải Windows ⇒ giữ nguyên cách «thưởng»
+  // lời xin từ máy Android (24/10: cũng có cửa sổ thêm giờ như iOS) ⇒ cửa sổ mở, không còn là «thưởng»
   const c2 = await g.taoCon(fam, { ten: "Mai" });
   const dt = await g.ghepMay(await g.taoMaGhep(fam, c2, "android"), "android", "Điện thoại Mai");
   const yd = await yc.guiYeuCau(c2, (await g.mayTuToken(dt.token))!.id, { loai: "them_gio", phut: 20, lyDo: "Bạn rủ chơi" }, T);
   await yc.dongY(fam, yd.id, bm, { truDiem: false, phut: 20 }, T);
-  assert.equal(await ph.thuongConLai(c2, T), 20);
-  assert.equal(await tt.hanMoCuaMay((await g.mayTuToken(dt.token))!, c2, T), null);
+  assert.equal(await ph.thuongConLai(c2, T), 0);
+  assert.equal((await tt.hanMoCuaMay((await g.mayTuToken(dt.token))!, c2, T))!.getTime(), T.getTime() + 20 * 60000);
 });
 
 test("Windows: «Khoá lại ngay» đóng cả cửa sổ thêm giờ đã duyệt; mở khẩn cấp rồi tắt máy lâu KHÔNG thành «ngoài vòng»", async () => {
@@ -203,7 +203,7 @@ test("đang «Khoá ngay» mà Ba Mẹ duyệt thêm giờ ⇒ mở TẠM đúng
   assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 10 * 60_000)), true);
 });
 
-test("mở tạm: grant giữ nghĩa cũ (điện thoại = thưởng, Windows = cửa sổ), cộng dồn, không vượt hạn khoá; Hoàn tác «Mở lại» giữ mốc", async () => {
+test("mở tạm: grant giữ nghĩa theo nền (máy có tác tử = cửa sổ, còn lại = thưởng), cộng dồn, không vượt hạn khoá; Hoàn tác «Mở lại» giữ mốc", async () => {
   const { khoaNgay } = await import("./may-con.ts");
   const { dangKhoa, moTamDen } = await import("./cau-hinh.ts");
   const { fam, bm } = await taoNha();
@@ -213,11 +213,12 @@ test("mở tạm: grant giữ nghĩa cũ (điện thoại = thưởng, Windows =
   const now = new Date(), phut = (n: number) => new Date(now.getTime() + n * 60_000);
   const cfg = async () => (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
   await khoaNgay(fam, con, true, bm, phut(180), now);
-  // duyệt từ ĐIỆN THOẠI lúc khoá ⇒ gỡ khoá 30' và 30' là thưởng (không mất, không tính hai lần)
+  // duyệt từ ĐIỆN THOẠI Android lúc khoá ⇒ gỡ khoá 30'; Android có tác tử ⇒ 30' là cửa sổ mở (chuyen-doi › coCuaSoThemGio), không thành thưởng lần hai
   const a = await yc.guiYeuCau(con, dt.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, now);
   await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, now);
   assert.equal(dangKhoa(await cfg(), phut(5)), false);
-  assert.equal(await ph.thuongConLai(con, now), 30);
+  assert.equal(await ph.thuongConLai(con, now), 0);
+  assert.equal((await (await import("./tuan-thu.ts")).hanMoCuaMay(dt, con, now))!.getTime(), phut(30).getTime());
   // duyệt tiếp từ PC lúc phút 10 ⇒ mốc cộng từ mốc cũ: 50
   const b = await yc.guiYeuCau(con, pc.id, { loai: "them_gio", phut: 20, lyDo: "xin" }, phut(10));
   await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 20 }, phut(10));

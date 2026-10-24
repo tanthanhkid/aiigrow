@@ -1,0 +1,34 @@
+#!/bin/bash
+# Chạy với quyền root bởi installer. Tạo thư mục, chép plist, nạp daemon và tray.
+set -u
+THU_MUC="/Library/Application Support/AiiGrow"
+LOG="/Library/Logs/AiiGrow"
+APP="/Applications/AiiGrow.app"
+RES="$APP/Contents/Resources"
+
+/bin/mkdir -p "$THU_MUC" "$LOG"
+/usr/sbin/chown root:wheel "$THU_MUC" "$LOG"
+/bin/chmod 0700 "$THU_MUC"
+/bin/chmod 0755 "$LOG"
+[ -f "$THU_MUC/config.json" ] && /bin/chmod 0600 "$THU_MUC/config.json"
+
+for p in vn.aiilab.aiigrow.daemon:/Library/LaunchDaemons vn.aiilab.aiigrow.tray:/Library/LaunchAgents; do
+  ten="${p%%:*}"; dich="${p#*:}"
+  /bin/cp "$RES/$ten.plist" "$dich/$ten.plist"
+  /usr/sbin/chown root:wheel "$dich/$ten.plist"
+  /bin/chmod 0644 "$dich/$ten.plist"
+done
+
+/bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+/bin/launchctl bootstrap system /Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist || true
+/bin/launchctl enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+
+# Tray vào phiên GUI đang đăng nhập (console user), nếu có.
+CON_USER=$(/usr/bin/stat -f %Su /dev/console 2>/dev/null || true)
+if [ -n "$CON_USER" ] && [ "$CON_USER" != "root" ] && [ "$CON_USER" != "loginwindow" ]; then
+  CON_UID=$(/usr/bin/id -u "$CON_USER")
+  /bin/launchctl bootout "gui/$CON_UID/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
+  /bin/launchctl bootstrap "gui/$CON_UID" /Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist || \
+    /bin/launchctl asuser "$CON_UID" /bin/launchctl load /Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist || true
+fi
+exit 0

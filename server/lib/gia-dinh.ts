@@ -1,5 +1,6 @@
 // Gia đình, hồ sơ Con, thiết bị (FR-01.02, FR-01.03). Ghép máy chép cách làm của AiiControl (mã 6 số 15 phút, dùng một lần, khoá dòng
 // mã trong giao dịch, token máy chỉ lưu băm). Thêm: máy dùng chung chọn Con bằng PIN, phiên Con (kid_sessions), mức bảo vệ.
+import { coTacTu } from "./chuyen-doi.ts";
 import { newId, one, q, tx } from "./db.ts";
 import { bamMatKhau, dungMatKhau, sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -179,10 +180,10 @@ export function quyenCuaMay(may: Pick<May, "status">): Record<string, boolean> |
   const st = may.status ?? {};
   const qy = st.quyen as Record<string, boolean> | undefined;
   if (qy && typeof qy === "object" && Object.keys(qy).length) return qy;
-  if (st.agent !== "windows") return null;
+  if (!coTacTu(st.agent)) return null;
   const chan = st.cheDo === "chan" && st.moCoi !== true;
   const r: Record<string, boolean> = { dichVu: true, khay: st.trayAlive === true || st.childSessionActive !== true, chanThat: chan };
-  if (chan && st.mode === "hoc") r.appLocker = st.appLockerApplied === true;
+  if (chan && st.mode === "hoc" && st.agent === "windows") r.appLocker = st.appLockerApplied === true;
   return r;
 }
 

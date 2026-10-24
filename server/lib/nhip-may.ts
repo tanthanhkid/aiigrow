@@ -7,12 +7,22 @@ import { one } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { conCua } from "./gia-dinh.ts";
 import { lenhCho } from "./lenh-may.ts";
+import { coCuaSoThemGio } from "./chuyen-doi.ts";
+import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu } from "./ios-may.ts";
+import { hanMoCuaMay } from "./tuan-thu.ts";
 
 export async function nhipMay(may: May, con: string | null, b: NhipVao, now = new Date()) {
-  const kq = await nhanNhip(may, b, now);
+  const kq = await nhanNhip(may, may.platform === "android" ? { ...b, thanhPhan: thanhPhanChoTuanThu(b.thanhPhan) } : b, now);
   const cs = await chinhSachChung(may, con, kq.tuanThu, now);
   const nen = ((NEN_CHUYEN_DOI as readonly string[]).includes(may.platform) ? may.platform : "windows") as NenChuyenDoi;
-  return { serverTime: now.toISOString(), tuanThu: kq.tuanThu, chinhSach: cs, nenTang: chuyenDoi(cs, nen), lenh: await lenhCho(may) };
+  const kqNhip = { serverTime: now.toISOString(), tuanThu: kq.tuanThu, chinhSach: cs, nenTang: chuyenDoi(cs, nen), lenh: await lenhCho(may) };
+  if (may.platform !== "ios" && may.platform !== "android") return kqNhip;
+  // iPhone/iPad: lưu phần `ios` + trả hạn «thêm giờ đã duyệt / mở khẩn cấp» (app lập lịch DeviceActivity «themgio» kết thúc đúng hạn).
+  // Máy Con Android: lưu `android` (phút dùng theo app + quyền) + cùng hạn ở gốc phản hồi (tác tử đọc `grantEndsAt`).
+  if (may.platform === "ios") await luuIosNhip(may, (b as { ios?: unknown }).ios, now);
+  else await luuAndroidNhip(may, b, now);
+  const den = coCuaSoThemGio(may.platform) ? await hanMoCuaMay(may, con, now) : null;
+  return { ...kqNhip, grantEndsAt: den ? den.toISOString() : null, moDen: den ? den.toISOString() : null };
 }
 
 // ---------------------------------------------------------------- phía Ba Mẹ: xem trước cấu hình nền tảng · luật tầng mạng cho TV

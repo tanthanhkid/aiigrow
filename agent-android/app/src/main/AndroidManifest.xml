@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+
+    <application
+        android:name=".UngDung"
+        android:allowBackup="false"
+        android:icon="@drawable/ic_aiigrow"
+        android:label="@string/ten_app"
+        android:supportsRtl="false"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <activity android:name=".ManChinh" android:exported="true" android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".ManKhoa" android:exported="false" android:launchMode="singleTask"
+            android:excludeFromRecents="true" android:taskAffinity="vn.aiilab.aiigrow.con.khoa"
+            android:lockTaskMode="if_whitelisted"
+            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
+
+        <!-- Cài Device Owner bằng QR (Android 10+) -->
+        <activity android:name=".ManCaiDat" android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.app.action.GET_PROVISIONING_MODE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <receiver android:name=".QuanTri" android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN"
+            android:description="@string/mo_ta_quan_tri" android:label="@string/ten_app">
+            <meta-data android:name="android.app.device_admin" android:resource="@xml/quan_tri" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+                <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".KhoiDong" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <service android:name=".DichVuNhip" android:exported="false"
+            android:foregroundServiceType="specialUse|systemExempted">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Quản lý thời gian dùng máy của trẻ do cha mẹ đặt (parental control)" />
+        </service>
+
+        <service android:name=".TroNang" android:exported="false"
+            android:label="@string/ten_tro_nang"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/tro_nang" />
+        </service>
+    </application>
+</manifest>

@@ -1,6 +1,7 @@
 // Yêu cầu Con gửi Ba Mẹ (FR-05.01–05.03, BRD 6.4, Phụ lục A.2): xin thêm giờ, mở website, cài/mở ứng dụng, ngoại lệ không đủ điểm,
 // xin ngoài khung giờ, khác. Giới hạn chống spam: ≤ 3 đang chờ, ≤ 10 mỗi ngày. Hết hạn: 24 giờ (thêm giờ…) / 7 ngày (web, app).
 // Ứng điểm (nợ điểm) KHÔNG cho (KE-HOACH 5.5): «ngoại lệ không đủ điểm» nếu đồng ý thì là thêm giờ không trừ điểm, ghi là ngoại lệ.
+import { coCuaSoThemGio } from "./chuyen-doi.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { khoaDen, khoaGoc, moTamDen, thamSo } from "./cau-hinh.ts";
@@ -28,7 +29,7 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
   const lyDo = String(b.lyDo ?? "").trim().slice(0, 100);
   if (!lyDo) throw new LoiNghiepVu("thieu_ly_do", "Chọn hoặc ghi lý do ngắn để Ba Mẹ hiểu nhé");
   const phut = ["them_gio", "ngoai_le", "ngoai_gio"].includes(loai) ? Math.round(Number(b.phut)) : null;
-  if (phut !== null && !(phut >= 5 && phut <= 240)) throw new LoiNghiepVu("phut_sai", "Chọn 15, 30 hoặc 60 phút");
+  if (phut !== null && !(phut >= 5 && phut <= 240)) throw new LoiNghiepVu("phut_sai", "Số phút xin thêm phải từ 5 đến 240 (thường 30, 60 hoặc 120 phút)");
   const giaTri = loai === "mo_web" || loai === "cai_app" ? chuanMuc(b.giaTri) : String(b.giaTri ?? "").trim().slice(0, 200) || null;
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
   return tx(async (t) => {
@@ -94,11 +95,11 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
         const diem = Math.ceil((phut * ts.gia_khac) / 1000);
         await ghiDiem(t, r.child_id, -diem, "phien", `Thêm ${phut} phút chơi`, { ref: r.id, nguoi });   // không đủ ⇒ khong_du_diem
       } else ngoaiLe = true;
-      // Lời xin từ máy WINDOWS: «thêm N phút» = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows
+      // Lời xin từ máy có tác tử (WINDOWS/MAC): «thêm N phút» (cả iPhone/iPad: app lập lịch «themgio» tới hạn) = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows (macOS dùng chung khoá này)
       // (mode tu_do + grantEndsAt) ở lần đồng bộ kế. Lý do: agent Windows không có «thưởng» để tự mở phiên khi con 0 điểm / chặn web nên grant cũ không bao giờ tới máy.
       let cuaSoDen: Date | null = null;
       const nen = r.device_id ? (await t<{ platform: string }>(`select platform from devices where id = $1`, [r.device_id]))[0]?.platform : null;
-      if (nen === "windows") {
+      if (coCuaSoThemGio(nen)) {
         const cu = (await t<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [r.child_id, now]))[0]?.d;
         cuaSoDen = new Date(Math.max(now.getTime(), cu ? new Date(cu).getTime() : 0) + phut * 60000);
       }
