@@ -46,7 +46,7 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
   (log «cài xong mà bản không đổi»); nút Ba Mẹ vẫn thử được sau > 1 giờ; manifest đổi sha256 thì cài tiếp. Nhãn `…capnhat` đang chạy thì không `launchctl remove` (không giết installer).
 - **Nút không chờ**: IPC `capNhat` trả «Đang kiểm tra…» ngay, kiểm/tải/cài chạy nền; kết quả ở `TrangThai.capNhat` (+`capNhatLuc`, không trả cho phiên Con) — menu tray hiện dòng đó.
 - Gói tải về băm sha256 theo luồng (khúc 1 MiB) rồi mới chuyển vào thư mục 0700 — không đọc cả gói vào bộ nhớ.
-- Phát hành bản mới: `BAN=… build-pkg.sh` → release `mac-<bản>` → điền `BAN_AGENT_MAC` (server/lib/ban-agent.ts) gồm sha256 của đúng tệp. Bản 0.1.0 không tự cập nhật, cài tay một lần.
+- Phát hành bản mới: `BAN=… KY_APP=… KY_PKG=… NOTARY=1 build-pkg.sh` (không ký thì script từ chối, trừ `THU=1`) → release `mac-<bản>` → điền `BAN_AGENT_MAC` (server/lib/ban-agent.ts) gồm sha256 của đúng tệp. Bản 0.1.0 không tự cập nhật, cài tay một lần.
 
 ## 6. Luật khi phát triển trên máy Thanh
 KHÔNG sudo, KHÔNG nạp daemon/LaunchAgent, KHÔNG kill tiến trình thật, KHÔNG sửa `/etc/hosts` hay Managed Preferences. Mọi tác động hệ thống

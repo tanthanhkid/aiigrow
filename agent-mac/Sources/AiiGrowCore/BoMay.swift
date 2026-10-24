@@ -358,8 +358,11 @@ public actor BoMay {
     case .trangThai:
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
       var tt = trangThaiTuoi()                                    // tính tươi, không tác dụng phụ: gọi dồn dập không làm đếm ngược/kill nhanh hơn
-      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil; tt.capNhat = nil; tt.capNhatLuc = nil }
-      else if uidGoi == 0 || heThong.laAdmin(uid: uidGoi) { tt.capNhat = capNhat.so.chu; tt.capNhatLuc = capNhat.so.luc }   // cùng quy tắc với quyền IPC capNhat       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }        // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      // Trạng thái cập nhật: chỉ Ba Mẹ (cùng quy tắc quyền IPC capNhat); admin tra qua bộ nhớ đệm (tray hỏi mỗi 5 giây, dscl không chạy mỗi lần)
+      if let chu = capNhat.so.chu, QuyenIPC.laBaMe(uidGoi: uidGoi, uidCon: cauHinh.uidCon, laAdmin: { self.laAdminDem($0) }) {
+        tt.capNhat = chu; tt.capNhatLuc = capNhat.so.luc
+      }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
       return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
@@ -385,9 +388,9 @@ public actor BoMay {
 
   /// Nút «Kiểm tra cập nhật»: trả lời NGAY (tray chỉ chờ 3 giây), kiểm + tải + cài chạy nền; kết quả nằm ở `TrangThai.capNhat`.
   public func capNhatNgay() async -> TraLoi {
-    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
+    guard coTheCapNhat() else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
     guard capNhat.giuChoNgay() else { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
-    capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())
+    capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())      // ghi ngay để lần hỏi trạng thái kế thấy, không chờ Task kịp chạy
     Task { _ = await self.capNhat.batDau(thuCong: true, daGiuCho: true, choPhep: { await self.coTheCapNhat() }) }
     return .thongBao(chu: "Đang kiểm tra bản mới… Kết quả hiện ở menu AiiGrow.")
   }
@@ -400,6 +403,16 @@ public actor BoMay {
 
   /// Chỉ cập nhật khi đã ghép và không đang gỡ.
   private func coTheCapNhat() -> Bool { cauHinh.daGhep && !dangGo }
+
+  /// laAdmin có bộ nhớ đệm 5 phút theo uid (HeThongMac.laAdmin chạy dscl).
+  private var adminDem: [UInt32: (laAdmin: Bool, luc: Double)] = [:]
+  private func laAdminDem(_ uid: UInt32) -> Bool {
+    let bayGio = donDieu()
+    if let d = adminDem[uid], bayGio - d.luc < 300 { return d.laAdmin }
+    let a = heThong.laAdmin(uid: uid)
+    adminDem[uid] = (a, bayGio)
+    return a
+  }
 
   private func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async -> TraLoi {
     do {

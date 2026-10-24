@@ -140,7 +140,14 @@ public final class HeThongMac: HeThong {
     // `launchctl submit` là cách DUY NHẤT sống sót sau khi go-cai.sh `bootout` chính daemon (launchd giết cả nhóm tiến trình của daemon, nohup/setsid không thoát được).
     // Việc submit là một lần: go-cai.sh tự `launchctl remove` ở cuối; ở đây còn gỡ nhãn sót từ lần trước để submit không bị trùng nhãn.
     _ = HeThongMac.chay("/bin/launchctl", ["remove", HeThongMac.nhanTrinhGo], timeout: 10)
-    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", HeThongMac.nhanTrinhGo, "--", "/bin/bash", script], timeout: 10)
+    // Chạy BẢN SAO (root-only): go-cai.sh có thể chờ tới 5 phút trong khi bộ tự cập nhật ghi đè tệp gốc trong app — bash đọc tệp theo vị trí byte,
+    // tệp bị thay giữa chừng là chạy lệnh rác. Bản sao nằm trong thư mục cấu hình nên go-cai.sh tự xoá cùng lúc dọn.
+    let banSao = DuongDan.thuMuc + "/go-cai-dang-chay.sh"
+    try? FileManager.default.removeItem(atPath: banSao)
+    do { try FileManager.default.copyItem(atPath: script, toPath: banSao); chmod(banSao, 0o700) }
+    catch { ghiLog("Không chép được trình gỡ (\(error)) — chạy thẳng bản trong app."); }
+    let chayTep = FileManager.default.fileExists(atPath: banSao) ? banSao : script
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", HeThongMac.nhanTrinhGo, "--", "/bin/bash", chayTep], timeout: 10)
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
   }
 
@@ -183,6 +190,7 @@ public final class HeThongMac: HeThong {
     let kich = "echo $$ > \"$3\" ; /usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; " +
       "if [ $ma -ne 0 ] && [ ! -f \"$4\" ] && [ -f \"$5\" ]; then /bin/launchctl bootstrap system \"$5\" ; echo \"nạp lại daemon, mã $?\" ; " +
       "for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u \"$6\" ; done ; fi ; " +
+      "if [ -f \"$4\" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi ; " +     // máy bị gỡ giữa lúc cài: postinstall đã dọn app, xoá luôn biên nhận installer vừa ghi
       "/bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
                                                       "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan, dau, DuongDan.daGo,

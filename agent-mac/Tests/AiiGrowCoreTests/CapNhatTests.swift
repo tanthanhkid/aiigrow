@@ -24,10 +24,10 @@ final class CapNhatTests: XCTestCase {
   }
 
   var gio = Date(timeIntervalSince1970: 1_760_000_000)
-  private func boCapNhat(hienTai: String = "0.1.1") -> BoCapNhat {
+  private func boCapNhat(hienTai: String = "0.1.1", toiDaByte: Int = LuatCapNhat.toiDaByte) -> BoCapNhat {
     let api = ApiClient(mayChu: may, token: nil, session: HttpMock.session())
     return BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc,
-                     tepDaThu: "/gia/da-thu.json", banHienTai: hienTai, dongHo: { [unowned self] in self.gio })
+                     tepDaThu: "/gia/da-thu.json", banHienTai: hienTai, dongHo: { [unowned self] in self.gio }, toiDaByte: toiDaByte)
   }
 
   private func chay(_ b: BoCapNhat, dangGo: Bool = false, thuCong: Bool = false) async -> KetQuaCapNhat {
@@ -126,6 +126,14 @@ final class CapNhatTests: XCTestCase {
       guard case .loi = kq else { return XCTFail("phải lỗi: \(kq)") }
       XCTAssertFalse(daTai()); XCTAssertTrue(fake.daCaiGoi.isEmpty)
     }
+  }
+
+  func testGoiQuaCoDungNgayKhiDangTai() async {
+    let to = Data(repeating: 7, count: 256 * 1024)
+    datMayChu(sha: LuatCapNhat.sha256Hex(to), goi: to)
+    _ = await chay(boCapNhat(toiDaByte: 64 * 1024))
+    XCTAssertTrue(fake.daCaiGoi.isEmpty)
+    XCTAssertTrue(fake.log.contains { $0.contains("đã dừng tải") }, "\(fake.log)")
   }
 
   func testShaSaiKhongCaiVaXoaTep() async {
@@ -243,8 +251,14 @@ final class CapNhatTests: XCTestCase {
     // gọi lần nữa khi còn bận
     let bac = await b.xuLyIPC(.capNhat, uidGoi: 502)
     XCTAssertEqual(bac, .thongBao(chu: KetQuaCapNhat.dangBan.chu))
-    try await Task.sleep(nanoseconds: 2_000_000_000)
-    guard case .trangThai(let t2) = await b.xuLyIPC(.trangThai, uidGoi: 502) else { return XCTFail() }
+    // chờ lượt nền xong theo hạn chót (máy CI tải nặng), không ngủ cố định
+    var t2: TrangThai?
+    let han = Date().addingTimeInterval(20)
+    while Date() < han {
+      if case .trangThai(let t) = await b.xuLyIPC(.trangThai, uidGoi: 502), t.capNhat?.hasPrefix("Đang kiểm tra") == false { t2 = t; break }
+      try await Task.sleep(nanoseconds: 100_000_000)
+    }
+    guard let t2 else { return XCTFail("quá 20 giây vẫn chưa kiểm xong") }
     XCTAssertEqual(t2.capNhat, "Đang là bản mới nhất (0.1.1)")
     XCTAssertNotNil(t2.capNhatLuc)
     guard case .trangThai(let tc) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }

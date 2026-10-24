@@ -1,13 +1,18 @@
 #!/bin/bash
 # Dựng agent-mac/ra/AiiGrow-<BAN>.pkg. Chỉ build, không cài.
-# Dùng: BAN=0.1.1 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
+# Phát hành: BAN=0.1.1 KY_APP="Developer ID Application: …" KY_PKG="Developer ID Installer: …" NOTARY=1 ./build-pkg.sh
+# Thử không ký: THU=1 BAN=0.1.1 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
 set -euo pipefail
 cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
 BAN="${BAN:-0.1.1}"
 # Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
 grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
-# Phát hành (NOTARY=1) phải ký thật cả app lẫn gói.
+# Phát hành (NOTARY=1) phải ký thật cả app lẫn gói. Từ 0.1.1 máy tự cập nhật CHỈ nhận gói ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)»
+# ⇒ gói không ký chỉ để thử trên máy dev: phải nói rõ THU=1, kẻo lỡ phát hành gói mọi máy tải về rồi từ chối.
+if [ -z "${KY_PKG:-}" ] && [ "${THU:-}" != 1 ]; then
+  echo "Thiếu KY_APP + KY_PKG (+ NOTARY=1) — gói phát hành phải ký Developer ID. Chỉ build thử không ký: THU=1 $0" >&2; exit 1
+fi
 if [ "${NOTARY:-}" = 1 ] || [ -n "${KY_PKG:-}" ]; then
   [ -n "${KY_APP:-}" ] && [ -n "${KY_PKG:-}" ] || { echo "NOTARY/KY_PKG cần đủ KY_APP + KY_PKG" >&2; exit 1; }
 fi

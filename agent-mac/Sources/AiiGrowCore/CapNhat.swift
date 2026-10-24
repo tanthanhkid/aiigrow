@@ -169,6 +169,7 @@ public actor BoCapNhat {
   private let tepDaThu: String
   private let banHienTai: String
   private let dongHo: () -> Date
+  private let toiDaByte: Int
   private var dang: Bool { get { so.dang } set { so.datDang(newValue) } }
   private var tacVu: Task<Void, Never>?
   /// Câu trạng thái cho tray (đọc không cần await).
@@ -176,7 +177,9 @@ public actor BoCapNhat {
 
   public init(api: MayChuApi, heThong: HeThong, mayChu: @escaping () -> String, session: URLSession? = nil,
               thuMuc: String = LuatCapNhat.thuMuc, tepDaThu: String = DuongDan.thuMuc + "/cap-nhat-da-thu.json",
-              banHienTai: String = PhienBan.hienTai, dongHo: @escaping () -> Date = Date.init, so: SoTinhCapNhat = SoTinhCapNhat()) {
+              banHienTai: String = PhienBan.hienTai, dongHo: @escaping () -> Date = Date.init, so: SoTinhCapNhat = SoTinhCapNhat(),
+              toiDaByte: Int = LuatCapNhat.toiDaByte) {
+    self.toiDaByte = toiDaByte
     self.api = api; self.heThong = heThong; self.mayChu = mayChu; self.thuMuc = thuMuc; self.tepDaThu = tepDaThu
     self.banHienTai = banHienTai; self.dongHo = dongHo; self.so = so
     if let session { self.session = session } else {
@@ -270,13 +273,34 @@ public actor BoCapNhat {
 
     guard let u = URL(string: m.url) else { bo("URL sai"); return }
     do {
-      let (tam, resp) = try await session.download(for: URLRequest(url: u), delegate: ChuyenHuongAnToan(mayChu: mayChu()))
-      defer { try? FileManager.default.removeItem(at: tam) }
+      // Tải theo luồng vào tệp tạm, đếm byte khi đang tải: vượt `toiDaByte` là dừng ngay (không để thân vài GB ghi đầy đĩa hệ thống).
+      let (luong, resp) = try await session.bytes(for: URLRequest(url: u), delegate: ChuyenHuongAnToan(mayChu: mayChu()))
       guard let h = resp as? HTTPURLResponse, h.statusCode == 200 else {
+        luong.task.cancel()
         bo("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)"); return
       }
+      guard h.expectedContentLength <= Int64(toiDaByte) else { luong.task.cancel(); bo("gói vượt \(toiDaByte) byte — không tải"); return }
+      let tam = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("aiigrow-tai-\(UUID().uuidString).pkg")
+      defer { try? FileManager.default.removeItem(at: tam) }
+      guard FileManager.default.createFile(atPath: tam.path, contents: nil, attributes: [.posixPermissions: 0o600]),
+            let ghi = try? FileHandle(forWritingTo: tam) else { luong.task.cancel(); bo("không tạo được tệp tạm"); return }
+      var tong = 0, khuc = [UInt8](); khuc.reserveCapacity(1 << 16)
+      do {
+        defer { try? ghi.close() }
+        for try await b in luong {
+          khuc.append(b)
+          if khuc.count == 1 << 16 {
+            tong += khuc.count
+            if tong > toiDaByte { luong.task.cancel(); bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
+            try ghi.write(contentsOf: khuc); khuc.removeAll(keepingCapacity: true)
+          }
+        }
+        tong += khuc.count
+        if tong > toiDaByte { bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
+        try ghi.write(contentsOf: khuc)
+      }
       let kich = (try? FileManager.default.attributesOfItem(atPath: tam.path)[.size] as? Int) ?? 0
-      guard kich > 0, kich <= LuatCapNhat.toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }
+      guard kich > 0, kich <= toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }
       guard let sha = LuatCapNhat.sha256Tep(tam.path) else { bo("không đọc được tệp tải"); return }
       guard sha == m.sha256 else { bo("sha256 lệch (nhận \(sha.prefix(12))…, manifest \(m.sha256.prefix(12))…)"); return }
       do { try heThong.chuyenTep(tam.path, vao: tep, quyen: 0o600) } catch { bo("không chuyển được gói vào \(thuMuc): \(error)"); return }

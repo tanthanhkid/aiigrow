@@ -125,6 +125,11 @@ private extension String {
 public enum QuyenIPC {
   public enum KetQua: Equatable { case duoc, tuChoi(ma: String, chu: String) }
 
+  /// Ba Mẹ = root hoặc admin, không phải tài khoản Con — quyền bấm «Kiểm tra cập nhật» và quyền xem trạng thái cập nhật dùng chung.
+  public static func laBaMe(uidGoi: UInt32, uidCon: UInt32?, laAdmin: (UInt32) -> Bool) -> Bool {
+    uidGoi != uidCon && (uidGoi == 0 || laAdmin(uidGoi))
+  }
+
   public static func kiem(_ y: YeuCauTray, uidGoi: UInt32, uidCon: UInt32?, daGhep: Bool, laAdmin: (UInt32) -> Bool) -> KetQua {
     switch y {
     case .trangThai:
@@ -133,7 +138,7 @@ public enum QuyenIPC {
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
       return .duoc
     case .capNhat:
-      guard uidGoi != uidCon, uidGoi == 0 || laAdmin(uidGoi) else { return .tuChoi(ma: "can_admin", chu: "Chỉ tài khoản quản trị (Ba Mẹ) mới kiểm tra cập nhật được.") }
+      guard laBaMe(uidGoi: uidGoi, uidCon: uidCon, laAdmin: laAdmin) else { return .tuChoi(ma: "can_admin", chu: "Chỉ tài khoản quản trị (Ba Mẹ) mới kiểm tra cập nhật được.") }
       return .duoc
     case .ghep:
       guard !daGhep else { return .tuChoi(ma: "da_ghep", chu: "Máy này đã được ghép rồi.") }
