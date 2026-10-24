@@ -61,7 +61,7 @@ export function NhanMen({ style, children, muc = "nut", sang, men, onPressIn, on
   };
   return (
     <APressable {...p} disabled={disabled} onPressIn={vao} onPressOut={ra}
-      onLayout={(e: LayoutChangeEvent) => { w.set(e.nativeEvent.layout.width); onLayout?.(e); }} style={[style, st]}>
+      onLayout={(e: LayoutChangeEvent) => { w.set(e.nativeEvent.layout.width); onLayout?.(e); }} style={[st, style]}>
       <LopMen men={men} bo={bo} />
       {children}
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden", borderRadius: bo }]}>
@@ -155,6 +155,8 @@ export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | nul
   const goc = useRef<React.ComponentRef<typeof View>>(null);
   const [ds, setDs] = useState<Phat[]>([]);
   const so = useRef(0);
+  const hen = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => hen.current.forEach(clearTimeout), []);
   useImperativeHandle(ref, () => ({
     ban: async (tu, n) => {
       if (giam) return;
@@ -162,7 +164,7 @@ export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | nul
       const d = dich ? await dich() : null;
       const id = ++so.current;
       setDs((a) => [...a, { id, n, tu: { x: tu.x - lech.x, y: tu.y - lech.y }, den: d ? { x: d.x - lech.x, y: d.y - lech.y } : null }]);
-      setTimeout(() => setDs((a) => a.filter((p) => p.id !== id)), 1100);
+      hen.current.push(setTimeout(() => setDs((a) => a.filter((p) => p.id !== id)), 1100));
     },
   }), [giam, dich]);
   return (

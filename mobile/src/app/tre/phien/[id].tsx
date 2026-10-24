@@ -67,7 +67,7 @@ export default function DangChoi() {
             </Svg>
             <Text style={{ fontFamily: F.rat, fontSize: 16, color: M.chu, fontVariant: ["tabular-nums"] }}>{giay === null ? "--:--" : `${hai(con / 60)}:${hai(con % 60)}`}</Text>
             <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: M.diem, alignItems: "center", justifyContent: "center" }}>
-              <Icon ten="sao" mau={M.diemInk} co={12} net={2.6} />
+              <Icon ten="sao" mau={M.diemInk} co={12} />
             </View>
             <Text style={{ fontFamily: F.rat, fontSize: 16, color: M.chu, fontVariant: ["tabular-nums"] }}>{n?.soDu ?? "–"}</Text>
           </View>

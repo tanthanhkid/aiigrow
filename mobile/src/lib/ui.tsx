@@ -38,8 +38,8 @@ export function Chu({ children, kieu = "thuong", co = 15, mau = M.chu, style, so
   );
 }
 
-/** Icon ĐẶC đơn giản (Phosphor Fill / Bold 2.1.1, MIT — icon.json) cho thanh tab, mũi tên, dấu cộng, chữ đi kèm. `net` giữ để tương thích, không dùng. */
-export function Icon({ ten, mau = M.chu2, co = 20 }: { ten: TenIcon; mau?: string; co?: number; net?: number }) {
+/** Icon ĐẶC đơn giản (Phosphor Fill / Bold 2.1.1, MIT — icon.json) cho thanh tab, mũi tên, dấu cộng, chữ đi kèm. */
+export function Icon({ ten, mau = M.chu2, co = 20 }: { ten: TenIcon; mau?: string; co?: number }) {
   const xml = `<svg viewBox="0 0 256 256" fill="${mau}">${ICON[ten]}</svg>`;
   return <SvgXml xml={xml} width={co} height={co} />;
 }

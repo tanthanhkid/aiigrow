@@ -49,8 +49,8 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
   const [lyDo, setLyDo] = useState(0);
   const [lyDoYc, setLyDoYc] = useState(LY_DO_YC[0]);
   const [huyQua, setHuyQua] = useState<Phieu | null>(null);
-  const [xong, setXong] = useState<string[]>([]);
-  const [vuaHoan, setVuaHoan] = useState<string | null>(null);     // việc vừa Hoàn tác ⇒ bật lại; việc thứ 4 lọt vào khung thì chỉ hiện dần                 // đã xử lý xong, chờ tải lại ⇒ ẩn để khỏi bấm lần hai
+  const [xong, setXong] = useState<string[]>([]);                 // đã xử lý xong, chờ tải lại ⇒ ẩn để khỏi bấm lần hai
+  const [vuaHoan, setVuaHoan] = useState<string | null>(null);     // việc vừa Hoàn tác ⇒ bật lại; việc khác lọt vào khung thì chỉ hiện dần
   const daXong = (id: string) => setXong((a) => [...a, id]);
   // yêu cầu (có hạn) lên trước, rồi nhiệm vụ, quà; trong nhóm theo thời gian gửi
   const thu = { yc: 0, nv: 1, qua: 2 } as const;
@@ -59,6 +59,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
   const chay = (v: ViecCho, fn: () => Promise<unknown>, hangDoi?: boolean) => { setDang(v.x.id); return hl.lam(fn, { hangDoi }); };
 
   const duyet = (v: ViecCho, e?: GestureResponderEvent) => {
+    setVuaHoan(null);
     // bàn phím / trình đọc màn hình không có toạ độ chạm (undefined hoặc 0,0) ⇒ không bắn confetti
     const px = e?.nativeEvent?.pageX, py = e?.nativeEvent?.pageY;
     const tu = Number.isFinite(px) && Number.isFinite(py) && (px! > 0 || py! > 0) ? { x: px!, y: py! } : null;

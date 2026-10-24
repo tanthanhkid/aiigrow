@@ -4,7 +4,7 @@
 // để Ba Mẹ biết mà không phải mở; 3 điều để khen, cảnh báo cần xem. Việc hằng ngày đều ở đây, «Gia đình» chỉ còn việc ít đụng.
 import { useCallback, useRef, useState, type RefObject } from "react";
 import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Dimensions, Pressable, View } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 import { LopAnMung, Vao, khoaSap, useBat, useGiat, type AnMungRef } from "@/lib/chuyen-dong";
@@ -41,7 +41,8 @@ export default function TrangChu() {
   const { st: stVi, bat: batVi } = useBat();
   const dich = useCallback(() => new Promise<{ x: number; y: number } | null>((ok) => {
     if (!vi.current) return ok(null);
-    vi.current.measureInWindow((x, y, w, h) => ok(w ? { x: x + 34, y: y + h / 2 - 8 } : null));
+    // ô Nhiệm vụ (ví) phải đang thấy trên màn; khuất thì «+N» chỉ bay lên tại chỗ
+    vi.current.measureInWindow((x, y, w, h) => ok(w && y >= 0 && y + h <= Dimensions.get("window").height ? { x: x + 34, y: y + h / 2 - 8 } : null));
   }), []);
   const anMung: AnMung = useCallback((n, tu) => lop.current?.ban(tu, n), []);
   if (!d) return <Man tieuLon="Trang chủ" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
