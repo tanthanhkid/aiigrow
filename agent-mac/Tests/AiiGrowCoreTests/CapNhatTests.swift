@@ -450,6 +450,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 1)
     XCTAssertFalse(fake.daXoa.contains { $0.hasSuffix("AiiGrow-0.1.2.pkg") }, "gói để job tự xoá")
     XCTAssertTrue(fake.log.contains { $0.contains("job cài tự bỏ") })
+    XCTAssertNil(fake.tep["/gia/da-thu.json"], "thường installer chưa chạy ⇒ lượt không tính")
   }
 
   func testLenhJobCaiDungCuPhapVaChongChayLai() throws {
@@ -800,10 +801,12 @@ final class CapNhatTests: XCTestCase {
     }
     let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
     XCTAssertFalse(s.contains("dung-cap-nhat"), "go-cai.sh không để dấu nào quyết định lần cài sau")
-    // sau bootout daemon: chờ job cài (không remove ngay — có thể giết installer đang chạy)
-    let sau = s.range(of: "bootout system/vn.aiilab.aiigrow.daemon")!.upperBound
-    let cho = s.range(of: "choCapNhat\n", range: sau..<s.endIndex)!.lowerBound, rm = s.range(of: "remove vn.aiilab.aiigrow.capnhat", range: sau..<s.endIndex)!.lowerBound
-    XCTAssertLessThan(cho, rm)
+    // mỗi lần remove nhãn capnhat đều đứng sau một vòng chờ: trần 5 phút trước bootout, chờ ngắn sau bootout
+    let rms = s.ranges(of: "\"$LC\" remove vn.aiilab.aiigrow.capnhat")
+    XCTAssertEqual(rms.count, 2)
+    let cho5 = s.range(of: "\nchoCapNhat 150\n")!, boot = s.range(of: "\"$LC\" bootout system/vn.aiilab.aiigrow.daemon")!, cho10 = s.range(of: "\nchoCapNhat 5\n")!
+    XCTAssertTrue(cho5.upperBound <= rms[0].lowerBound && rms[0].upperBound <= boot.lowerBound)
+    XCTAssertTrue(boot.upperBound <= cho10.lowerBound && cho10.upperBound <= rms[1].lowerBound)
   }
 
   func testPostinstallPhanNhanhDaGo() throws {

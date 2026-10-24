@@ -404,9 +404,10 @@ public actor BoCapNhat {
       // cài nửa chừng). Thứ tự an toàn nằm trong job (lenhJobCai): ghi PID rồi mới kiểm dấu gỡ, ngay trước installer — thấy dấu thì không cài;
       // dấu đến sau lần kiểm đó thì installer chạy trọn và postinstall (dấu gỡ + PID job còn sống) dọn, không nạp lại. Gói để job tự xoá.
       if heThong.docTep(DuongDan.daGo) != nil {
-        // Không biết job đã qua lần kiểm của nó chưa (installer có thể đã chạy) ⇒ giữ dấu (lượt vẫn tính), log nói cả hai khả năng.
+        // Thường job thấy dấu và tự bỏ (installer chưa chạy) ⇒ không tính lượt; lỡ installer đã chạy thì máy đang gỡ, postinstall dọn.
+        traDau()
         heThong.ghiLog("Cập nhật: máy bị gỡ ngay lúc giao installer — job cài tự bỏ nếu installer chưa chạy; đã chạy thì cài trọn và postinstall dọn.")
-        so.dat("Chưa cập nhật bản \(m.version): máy đang được gỡ.", luc: dongHo()); return
+        so.dat("Chưa cập nhật bản \(m.version): máy đang được gỡ; sẽ thử lại sau.", luc: dongHo()); return
       }
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")

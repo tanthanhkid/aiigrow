@@ -201,7 +201,7 @@ public final class HeThongMac: HeThong {
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
   /// - Lượt trước đã xong (xoá gói + dấu PID) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không còn gói ⇒ tự gỡ nhãn, không cài/nạp lại.
   /// - Máy bị gỡ trước khi installer chạy (dấu gỡ có SAU khi ghi PID ⇒ postinstall nhận ra job còn sống): không cài, dọn, tự gỡ nhãn.
-  ///   Không ai `launchctl remove` job này từ bên ngoài khi installer đang chạy (go-cai.sh chỉ sau khi chờ tới trần 5 phút).
+  ///   Daemon không `launchctl remove` job này; go-cai.sh chỉ dừng installer chạy quá trần 5 phút (job nộp sau khi có da-go thì tự bỏ ngay).
   /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
   static let lenhJobCai = """
     DA_GO="$4" ; DAEMON="$5" ; TRAY="$6" ; PG="$7"

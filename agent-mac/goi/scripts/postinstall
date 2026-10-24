@@ -26,7 +26,7 @@ pidSong() {
 goCaiSong() {
   bd=$(/usr/bin/sed -n 2p "$GO_CAI" 2>/dev/null | /usr/bin/xargs)          # xargs: bỏ khoảng trắng thừa ps để cuối dòng (hai phía cùng chuẩn hoá)
   [ -n "$bd" ] || { pidSong "$GO_CAI" 'go-cai'; return; }
-  p=$(/usr/bin/head -n 1 "$GO_CAI" 2>/dev/null || true)
+  p=$(/usr/bin/head -n 1 "$GO_CAI" 2>/dev/null | /usr/bin/xargs)
   case "$p" in ''|*[!0-9]*) return 1 ;; esac
   /bin/kill -0 "$p" 2>/dev/null && [ "$(LC_ALL=C /bin/ps -p "$p" -o lstart= 2>/dev/null | /usr/bin/xargs)" = "$bd" ]
 }
