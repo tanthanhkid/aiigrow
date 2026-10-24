@@ -157,9 +157,17 @@ test("đổi tên Con và máy: chuẩn hoá, chặn rỗng/quá dài/trùng tê
   const dt = await g.doiTenMay(fam, r.deviceId, "  Máy   học bài ");
   assert.equal(dt.ten, "Máy học bài");
   assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
+  const dns = await import("./dns-gia-dinh.ts");
+  const may = (await g.mayTuToken(r.token))!;
+  assert.equal((await dns.thietBiChoMay(may)).ten, "Máy học bài");          // dòng DNS đã tạo, mang tên máy
+  await g.doiTenMay(fam, r.deviceId, "Máy mới");
+  assert.equal((await q<{ ten: string }>(`select ten from dns_thiet_bi where device_id = $1`, [r.deviceId]))[0].ten, "Máy mới");
+  const tuEv = (await q<{ d: { tu: string; den: string } | string }>(`select chi_tiet as d from events where family_id = $1 and loai = 'doi_ten_may' and device_id = $2 order by created_at desc, id desc limit 1`, [fam, r.deviceId]))[0].d;
+  assert.equal((typeof tuEv === "string" ? JSON.parse(tuEv) : tuEv).tu, "Máy học bài");
+  await g.doiTenMay(fam, r.deviceId, "Máy học bài");
   await loi(g.doiTenMay(fam, r.deviceId, ""), "thieu_ten");
   await loi(g.doiTenMay(fam, r.deviceId, "m".repeat(81)), "ten_qua_dai");
-  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may' and device_id = $2 and child_id = $3`, [fam, r.deviceId, ken])).length, 1);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may' and device_id = $2 and child_id = $3`, [fam, r.deviceId, ken])).length, 3);   // 1 lần đổi đầu + 2 lần đổi trong khối DNS ở trên
   const nha2 = await taoNha("Hoa");
   await loi(g.doiTenMay(nha2.fam, r.deviceId, "Của người khác"), "khong_thay");
   assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");

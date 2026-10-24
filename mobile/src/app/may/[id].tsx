@@ -284,7 +284,7 @@ function dongCheDo(m: ChiTietTuanThu) {
 const gio = (iso: string) => new Date(iso).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
 function chiTiet(s: SuKienTuanThu) {
   const c = s.chi_tiet || {};
-  if ((s.loai === "doi_ten_may" || s.loai === "doi_ten_con") && c.tu && c.den) return ` · từ «${c.tu}» thành «${c.den}»`;
+  if (s.loai === "doi_ten_may" && c.tu && c.den) return ` · từ «${c.tu}» thành «${c.den}»`;
   if (s.loai === "mo_khan_cap" && c.phut) return ` · ${c.phut} phút${c.lyDo ? ` — ${c.lyDo}` : ""}`;
   return "";
 }

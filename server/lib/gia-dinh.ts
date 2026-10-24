@@ -91,7 +91,7 @@ export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar
       }
       await trungTenCon(t, fam, ten, id);
       await t(`update children set ten = $2 where id = $1`, [id, ten]);
-      await ghiSuKien(fam, "doi_ten_con", { tu: cu.ten, den: ten }, { con: id, nguoi }, t);
+      await ghiSuKien(fam, "doi_ten_con", { tu: tenCu, den: ten }, { con: id, nguoi }, t);
     });
   }
   if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
@@ -164,7 +164,7 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     if (m.platform !== platform) throw new LoiNghiepVu("sai_nen_tang", `Mã này dành cho ${TEN_NEN_TANG[m.platform]}`, 409);
     const id = newId(), token = taoToken();
     await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen) values ($1,$2,$3,$4,$5,$6,$7, now())`,
-      [id, m.child_id, m.family_id, platform, String(tenMay ?? "").trim().slice(0, 80) || TEN_NEN_TANG[platform], sha(token), !m.child_id]);
+      [id, m.child_id, m.family_id, platform, [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform], sha(token), !m.child_id]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
     await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenMay }, { con: m.child_id, may: id }, t);
     // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
@@ -190,16 +190,21 @@ export async function doiTenMay(fam: string, mayId: string, ten: unknown, nguoi?
   const t = chuanHoaTen(ten);
   if (!t) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của máy");
   if ([...t].length > TEN_MAY_TOI_DA) throw new LoiNghiepVu("ten_qua_dai", `Tên máy tối đa ${TEN_MAY_TOI_DA} ký tự`);
+  await (await import("./dns-gia-dinh.ts")).bangMang();     // bảng DNS tạo lười — nhập động vì dns-gia-dinh nhập lại tệp này
   const doi = await tx(async (tq) => {
     await tq(`select pg_advisory_xact_lock(hashtext($1))`, ["ten-may:" + mayId]);
     const cu = (await tq<{ name: string; child_id: string | null }>(`select name, child_id from devices where id = $1 and family_id = $2`, [mayId, fam]))[0];
     if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
     if (chuanHoaTen(cu.name) === t) {            // không đổi sau chuẩn hoá: không nhật ký; lưu thô khác ⇒ ghi lại dạng chuẩn
-      if (cu.name !== t) await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
+      if (cu.name !== t) {
+        await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
+        await tq(`update dns_thiet_bi set ten = $2 where device_id = $1`, [mayId, t]);
+      }
       return false;
     }
     await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
-    await ghiSuKien(fam, "doi_ten_may", { tu: cu.name, den: t }, { con: cu.child_id, may: mayId, nguoi }, tq);
+    await tq(`update dns_thiet_bi set ten = $2 where device_id = $1`, [mayId, t]);   // màn DNS + sự kiện DNS hiện tên mới
+    await ghiSuKien(fam, "doi_ten_may", { tu: chuanHoaTen(cu.name), den: t }, { con: cu.child_id, may: mayId, nguoi }, tq);
     return true;
   });
   return { ok: true, ten: t, doi };

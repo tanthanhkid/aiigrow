@@ -18,7 +18,7 @@ const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d: con, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${id}`));
-  // Vai Ba Mẹ — tải riêng: lỗi `toi` chỉ ẩn hàng «Tên», không làm hỏng cả màn (như mục liên kết AiiRob)
+  // Vai Ba Mẹ — tải riêng: lỗi `toi` không làm hỏng cả màn; hàng «Tên» chỉ ẩn khi biết chắc là Chỉ xem (máy chủ chặn 403) (như mục liên kết AiiRob)
   const vai = useTai(() => bm.goi<{ baMe: { vai: string } }>("toi"));
   const goc = con ? { con, xem: vai.d?.baMe.vai === "xem" } : null;
   const [mo, setMo] = useState<"ten" | "pin" | "nhom" | { go: string; ten: string } | null>(null);
@@ -55,7 +55,7 @@ export default function HoSoCon() {
       ))}
       <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
       <Nhom>
-        {!vai.d || goc.xem ? null : <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setLoi(null); setMo("ten"); }} />}
+        {goc.xem ? null : <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setLoi(null); setMo("ten"); }} />}
         <Dong dau={!vai.d || goc.xem} tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
