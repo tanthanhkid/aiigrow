@@ -544,6 +544,29 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(k, .dangTai("0.1.2"), "gói hỏng chưa giao installer ⇒ nút Ba Mẹ thử lại sau vài phút")
   }
 
+  func testGoCaiChayTrongLucGhepThiGiuDauDaGo() async throws {
+    let (b, api, thu) = try dungBoMay(daGhep: false, banMoi: nil)
+    defer { try? FileManager.default.removeItem(atPath: thu) }
+    let f = fake!
+    api.khiGhep = { f.goDangChay = true; f.tep[DuongDan.daGo] = Data("da-go".utf8) }   // sudo go-cai.sh bắt đầu lúc đang chờ máy chủ
+    let r = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case .ok = r else { return XCTFail("\(r)") }
+    XCTAssertNotNil(fake.tep[DuongDan.daGo], "go-cai.sh đang chạy ⇒ không xoá dấu da-go")
+  }
+
+  func testCapNhatDinhKyTatKhiTuCapNhatFalse() async throws {
+    let thu = NSTemporaryDirectory() + "aiigrow-cn-\(UUID().uuidString)"
+    try FileManager.default.createDirectory(atPath: thu, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(atPath: thu) }
+    let kho = ConfigStore(duongDan: thu + "/config.json")
+    try kho.sua { $0.token = "tok"; $0.deviceId = "d"; $0.uidCon = 501; $0.taiKhoanCon = "be" }
+    datMayChu()
+    let cn = boCapNhat()
+    let b = BoMay(api: MayChuGia(), heThong: fake, kho: kho, tuyChon: TuyChonBoMay(tuCapNhat: false), capNhat: cn)
+    await b.kiemCapNhatDinhKy()
+    XCTAssertTrue(fake.daCaiGoi.isEmpty, "tuCapNhat=false ⇒ không tải/cài")
+  }
+
   func testLoiMangBaoChuDeHieu() async {
     HttpMock.dat { _, _ in nil }
     let k = await chay(boCapNhat())

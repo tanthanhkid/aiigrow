@@ -82,6 +82,7 @@ final class HeThongGia: HeThong, @unchecked Sendable {
 final class MayChuGia: MayChuApi, @unchecked Sendable {
   var ghepTraVe: KetQuaGhep?
   var ghepLoi: LoiApi?
+  var khiGhep: (() -> Void)?
   var dongBoTraVe: KetQuaDongBo?
   var dongBoLoi: LoiApi?
   var yeuCauTraVe = KetQuaYeuCau(id: "yc1", trangThai: "cho")
@@ -100,6 +101,7 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
 
   func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep {
     lanGhep.append((ma, tenMay))
+    khiGhep?()
     if let e = ghepLoi { throw e }
     return ghepTraVe ?? KetQuaGhep(deviceId: "dev1", token: "tok1", childName: "Bé Bo", server: nil)
   }

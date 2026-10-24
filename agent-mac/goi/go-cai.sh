@@ -20,7 +20,8 @@ DA_GO="$GOC/var/db/aiigrow-da-go"
 # PID của trình gỡ (cả khi chạy tay bằng sudo): daemon không cho ghép và postinstall không nạp lại máy trong lúc gỡ.
 GO_PID="$GOC/var/run/aiigrow-go-cai"
 echo $$ > "$GO_PID" 2>/dev/null
-trap '/bin/rm -f "$GO_PID"' EXIT
+# chỉ xoá khi tệp còn là PID của lượt này (lượt go-cai chạy chồng ghi đè thì để lượt đó tự dọn)
+trap '[ "$(/bin/cat "$GO_PID" 2>/dev/null)" = "$$" ] && /bin/rm -f "$GO_PID"' EXIT
 # Bị ngắt (Ctrl-C…) TRƯỚC khi gỡ thật ⇒ trả lại dấu như cũ (máy vẫn ghép, daemon vẫn chạy — đừng để dấu «đã gỡ» chặn tự cập nhật mãi).
 # Dấu có sẵn từ trước (daemon gỡ từ xa ghi) thì giữ nguyên.
 if [ ! -f "$DA_GO" ]; then

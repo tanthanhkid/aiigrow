@@ -100,7 +100,8 @@ public actor BoMay {
       $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
     }
     cauHinh = kho.doc() ?? cauHinh
-    heThong.xoaTep(DuongDan.daGo)                      // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon)
+    // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
+    if !heThong.trinhGoDangChay() { heThong.xoaTep(DuongDan.daGo) }
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
     conLaAdmin = canHa                                  // chỉ thành false khi hạ quyền xong
@@ -403,6 +404,7 @@ public actor BoMay {
 
   /// Daemon gọi (Task riêng, theo `LichCapNhat`); chờ lượt tải/cài nền xong rồi mới trả.
   public func kiemCapNhatDinhKy() async {
+    guard tuyChon.tuCapNhat else { return }
     _ = await capNhat.batDau(choPhep: { await self.coTheCapNhat() })
     await capNhat.choXong()
   }
