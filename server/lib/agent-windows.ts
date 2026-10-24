@@ -85,9 +85,9 @@ export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): n
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
-  // Máy Mac: app là bundle id / tên .app (không có .exe) và giữ nguyên chữ hoa-thường; Windows: tệp .exe, chữ thường.
+  // Máy Mac: app là bundle id / tên .app (không có .exe); không hạ chữ (danh sách hệ thống Mac có chữ hoa, tác tử so không phân biệt). Windows: tệp .exe, chữ thường.
   const mac = mo.nen === "mac";
-  const laApp = mac ? (s: string) => kieuMuc(s.toLowerCase()) === "app" && !exe(s) : exe;   // bundle id Mac giữ chữ hoa (com.roblox.RobloxPlayer); kieuMuc so chữ thường
+  const laApp = mac ? (s: string) => kieuMuc(s.toLowerCase()) === "app" && !exe(s) : exe;   // luật luôn chữ thường (chuanMuc); danh sách hệ thống/trình duyệt Mac có chữ hoa — tác tử Mac so không phân biệt hoa-thường
   const chuan = (s: string) => (mac ? s : s.toLowerCase());
   const trinhDuyet = mac ? TRINH_DUYET_MAC : TRINH_DUYET;
   const hoc = p.luat.filter((l) => l.loai === "hoc" && laApp(l.muc)).map((l) => chuan(l.muc));

@@ -85,3 +85,14 @@ test("ban-moi theo nền tảng (banAgentCho — route chỉ đọc ?platform): 
   assert.deepEqual(ba.banAgentCho("mac"), ba.BAN_AGENT_MAC);
   assert.match(ba.BAN_AGENT_MAC.url, /^https:\/\/aiigrow\.aiilab\.vn\/tai\/AiiGrow-\d+\.\d+\.\d+\.pkg$/);
 });
+
+test("Mac báo usage bundle id chữ hoa ⇒ lưu chữ thường, khớp luật (chuanMuc) nên rời «Chưa xếp»", async () => {
+  const { fam } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Ken" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "mac", "Mac của Ken");
+  const may = (await g.mayTuToken(r.token))!;
+  const res = await xuLyMay(new Request("http://x/api/may/dong-bo", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${r.token}` },
+    body: JSON.stringify({ clientTime: new Date().toISOString(), status: { agent: "mac" }, usage: [{ muc: "com.roblox.RobloxPlayer", phut: 12 }] }) }), ["dong-bo"]);
+  assert.equal(res.status, 200);
+  assert.deepEqual((await q<{ muc: string }>(`select muc from usage where device_id = $1`, [may.id])).map((x) => x.muc), ["com.roblox.robloxplayer"]);
+});
