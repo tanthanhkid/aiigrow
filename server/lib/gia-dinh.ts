@@ -163,10 +163,11 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     if (new Date(m.expires_at) < new Date()) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
     if (m.platform !== platform) throw new LoiNghiepVu("sai_nen_tang", `Mã này dành cho ${TEN_NEN_TANG[m.platform]}`, 409);
     const id = newId(), token = taoToken();
+    const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform];
     await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen) values ($1,$2,$3,$4,$5,$6,$7, now())`,
-      [id, m.child_id, m.family_id, platform, [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform], sha(token), !m.child_id]);
+      [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
-    await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenMay }, { con: m.child_id, may: id }, t);
+    await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu }, { con: m.child_id, may: id }, t);
     // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
     // (bộ cài 0.2.0/0.2.1 đọc vào string không-null — gửi null là rủi ro).
     const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten : undefined;
