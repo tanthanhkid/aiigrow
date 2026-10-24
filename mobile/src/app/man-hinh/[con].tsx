@@ -20,7 +20,9 @@ const MUC: Record<MucMH, { chu: string; mau: string; ic: TenIcon }> = {
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const thuCua = (ngay: string) => THU[new Date(`${ngay}T12:00:00`).getDay()] ?? "";
 const ngayNgan = (ngay: string) => `${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
-const gio = (p: number) => (p <= 0 ? "0 phút" : p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${p % 60} phút` : ""}` : `${p} phút`);
+/** Giây → «2 giờ 5 phút»; dưới 1 phút → «< 1 phút». */
+const gio = (giay: number) => { const p = Math.round(giay / 60);
+  return giay <= 0 ? "0 phút" : p < 1 ? "< 1 phút" : p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${p % 60} phút` : ""}` : `${p} phút`; };
 const TUAN = [{ gia: 0, chu: "Tuần này" }, { gia: 1, chu: "Tuần trước" }, { gia: 2, chu: "2 tuần trước" }];
 
 export default function ManHinhCon() {
@@ -46,18 +48,18 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
   const [muc, setMuc] = useState<MucMH | null>(null);
   const [het, setHet] = useState(false);
   if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
-  if (!d.tongPhut && !d.ds.length) {
+  if (!d.tongGiay && !d.ds.length) {
     return <CanhGiua lv="canh-trong" tieu="Chưa có dữ liệu tuần này"
       loi={`Khi ${d.ten || "Con"} dùng máy có AiiGrow, thời gian từng app và trang web hiện ở đây sau khoảng 5 phút.`} />;
   }
 
-  const lonNhat = Math.max(60, ...d.theoNgay.map((x) => x.phut));
-  const lech = d.tuanTruocPhut ? Math.round(((d.tongPhut - d.tuanTruocPhut) / d.tuanTruocPhut) * 100) : null;
+  const lonNhat = Math.max(3600, ...d.theoNgay.map((x) => x.giay));
+  const lech = d.tuanTruocGiay ? Math.round(((d.tongGiay - d.tuanTruocGiay) / d.tuanTruocGiay) * 100) : null;
   // số theo bộ lọc ngày: tổng mục và danh sách
   const theoMuc = ngay === null ? d.theoMuc
-    : (Object.entries(d.theoNgay[ngay].theoMuc) as [MucMH, number][]).map(([m, p]) => ({ muc: m, phut: p, soMuc: 0 })).sort((a, b) => b.phut - a.phut);
-  const tong = theoMuc.reduce((a, x) => a + x.phut, 0);
-  const ds = d.ds.map((x) => ({ ...x, p: ngay === null ? x.phut : x.theoNgay[ngay] }))
+    : (Object.entries(d.theoNgay[ngay].theoMuc) as [MucMH, number][]).map(([m, g]) => ({ muc: m, giay: g, soMuc: 0 })).sort((a, b) => b.giay - a.giay);
+  const tong = theoMuc.reduce((a, x) => a + x.giay, 0);
+  const ds = d.ds.map((x) => ({ ...x, p: ngay === null ? x.giay : x.theoNgay[ngay] }))
     .filter((x) => (muc === null || x.muc === muc) && (x.p > 0 || (ngay === null && x.soLan > 0)))
     .sort((a, b) => b.p - a.p);
   const hien = het ? ds : ds.slice(0, 15);
@@ -67,22 +69,22 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
     <>
       <The dem>
         <Chu kieu="dam" co={13} mau={M.chu3}>{`${d.ten} · ${ngayNgan(d.dau)} – ${ngayNgan(d.cuoi)}`}</Chu>
-        <Chu kieu="rat" co={30} so>{gio(d.tongPhut)}</Chu>
+        <Chu kieu="rat" co={30} so>{gio(d.tongGiay)}</Chu>
         <Chu co={14} mau={M.chu2}>
-          {`Trung bình ${gio(d.tbNgay)}/ngày${lech !== null && lech !== 0 ? ` · ${lech > 0 ? "nhiều" : "ít"} hơn tuần trước ${Math.abs(lech)}%` : ""}`}
+          {`Trung bình ${gio(d.tbNgayGiay)}/ngày${lech !== null && lech !== 0 ? ` · ${lech > 0 ? "nhiều" : "ít"} hơn tuần trước ${Math.abs(lech)}%` : ""}`}
         </Chu>
-        <View accessibilityLabel={`Theo ngày: ${d.theoNgay.map((x) => `${thuCua(x.ngay)} ${gio(x.phut)}`).join("; ")}`}
+        <View accessibilityLabel={`Theo ngày: ${d.theoNgay.map((x) => `${thuCua(x.ngay)} ${gio(x.giay)}`).join("; ")}`}
           style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, height: 150, marginTop: 12 }}>
           {d.theoNgay.map((x, i) => {
             const sau = x.ngay > d.homNay, chon = ngay === i, mo = ngay !== null && !chon;
             return (
               <Pressable key={x.ngay} disabled={sau} onPress={() => { setNgay(chon ? null : i); setHet(false); }}
-                accessibilityRole="button" accessibilityState={{ selected: chon }} accessibilityLabel={`${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.phut)}`}
+                accessibilityRole="button" accessibilityState={{ selected: chon }} accessibilityLabel={`${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`}
                 style={{ flex: 1, alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end", minWidth: 32, opacity: mo ? 0.4 : 1 }}>
-                <View style={{ width: "100%", maxWidth: 30, height: Math.max(3, (x.phut / lonNhat) * 112), borderRadius: 6, overflow: "hidden",
-                  backgroundColor: x.phut ? undefined : M.vien, justifyContent: "flex-end" }}>
+                <View style={{ width: "100%", maxWidth: 30, height: Math.max(3, (x.giay / lonNhat) * 112), borderRadius: 6, overflow: "hidden",
+                  backgroundColor: x.giay ? undefined : M.vien, justifyContent: "flex-end" }}>
                   {theoMucXep(x.theoMuc).map(([m, p]) => (
-                    <View key={m} style={{ height: `${(p / Math.max(1, x.phut)) * 100}%`, backgroundColor: MUC[m].mau, opacity: muc && muc !== m ? 0.25 : 1 }} />
+                    <View key={m} style={{ height: `${(p / Math.max(1, x.giay)) * 100}%`, backgroundColor: MUC[m].mau, opacity: muc && muc !== m ? 0.25 : 1 }} />
                   ))}
                 </View>
                 <Chu kieu={chon ? "rat" : "thuong"} co={12} mau={chon ? M.chu : M.chu3}>{thuCua(x.ngay)}</Chu>
@@ -97,20 +99,20 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
         <Nhom>
           {theoMuc.map((x, i) => (
             <Pressable key={x.muc} onPress={() => { setMuc(muc === x.muc ? null : x.muc); setHet(false); }} accessibilityRole="button"
-              accessibilityState={{ selected: muc === x.muc }} accessibilityLabel={`${MUC[x.muc].chu}: ${gio(x.phut)}`}
+              accessibilityState={{ selected: muc === x.muc }} accessibilityLabel={`${MUC[x.muc].chu}: ${gio(x.giay)}`}
               style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 56,
                 borderTopWidth: i ? 1 : 0, borderTopColor: M.vien, backgroundColor: muc === x.muc ? M.chinhSoft : undefined }}>
               <ODau muc={x.muc} />
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
                   <Chu kieu="dam" co={15} style={{ flex: 1 }}>{MUC[x.muc].chu}</Chu>
-                  <Chu kieu="rat" co={14} so>{gio(x.phut)}</Chu>
+                  <Chu kieu="rat" co={14} so>{gio(x.giay)}</Chu>
                 </View>
                 <View style={{ height: 6, borderRadius: 3, backgroundColor: M.xamSoft, overflow: "hidden" }}>
-                  <View style={{ width: `${tong ? (x.phut / tong) * 100 : 0}%`, height: "100%", backgroundColor: MUC[x.muc].mau }} />
+                  <View style={{ width: `${tong ? (x.giay / tong) * 100 : 0}%`, height: "100%", backgroundColor: MUC[x.muc].mau }} />
                 </View>
               </View>
-              <Chu co={13} mau={M.chu3} so style={{ minWidth: 36, textAlign: "right" }}>{`${tong ? Math.round((x.phut / tong) * 100) : 0}%`}</Chu>
+              <Chu co={13} mau={M.chu3} so style={{ minWidth: 36, textAlign: "right" }}>{`${tong ? Math.round((x.giay / tong) * 100) : 0}%`}</Chu>
             </Pressable>
           ))}
         </Nhom>
@@ -124,7 +126,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
             <Dong key={`${x.kieu}:${x.id}`} dau={i === 0} tieu={x.ten}
               phu={`${MUC[x.muc].chu} · ${x.kieu === "web" ? `Trang web${ngay === null && x.soLan ? ` · ${x.soLan} lượt mở` : ""}` : "Ứng dụng"}`}
               trai={<ODau muc={x.muc} />}
-              phai={<Chu kieu="rat" co={14} so>{x.p > 0 ? gio(x.p) : "< 1 phút"}</Chu>}
+              phai={<Chu kieu="rat" co={14} so>{gio(x.p)}</Chu>}
               bam={x.kieu === "web" ? () => router.push(`/web/${con}`) : x.muc === "chua_xep" ? () => router.push("/app-web") : undefined} />
           ))}
         </Nhom>

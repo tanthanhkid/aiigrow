@@ -154,8 +154,9 @@ export type ThongKeWeb = {
 export type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
 export type ManHinhTuan = {
   ten: string; lui: number; dau: string; cuoi: string; homNay: string;
-  tongPhut: number; tbNgay: number; tuanTruocPhut: number;
-  theoNgay: { ngay: string; phut: number; theoMuc: Partial<Record<MucMH, number>> }[];
-  theoMuc: { muc: MucMH; phut: number; soMuc: number }[];
-  ds: { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; phut: number; soLan: number; theoNgay: number[] }[];
+  /** mọi thời lượng bằng GIÂY — đổi sang phút khi hiển thị */
+  tongGiay: number; tbNgayGiay: number; tuanTruocGiay: number; tatCa: number;
+  theoNgay: { ngay: string; giay: number; theoMuc: Partial<Record<MucMH, number>> }[];
+  theoMuc: { muc: MucMH; giay: number; soMuc: number }[];
+  ds: { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; giay: number; soLan: number; theoNgay: number[] }[];
 };

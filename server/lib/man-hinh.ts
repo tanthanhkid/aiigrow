@@ -5,6 +5,7 @@
 import { q } from "./db.ts";
 import { congNgay, dauTuan, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, chuanMuc, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
+import { kieuMuc } from "./chinh-sach.ts";
 
 export type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
 export const MUC_MH: MucMH[] = ["hoc", "game", "video", "video_ngan", "mxh", "tien_ich", "khac", "chua_xep"];
@@ -63,8 +64,10 @@ export function xepMuc(mucTho: string, luat: Luat[], allow: string[] = allowlist
   const khoa = khoaSo(m);
   const r = luat.filter((l) => khoa.includes(l.muc))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
-  // Ba Mẹ đã xếp nhóm Giải trí cụ thể ⇒ dùng đúng nhóm đó
+  // Ba Mẹ đã xếp nhóm Giải trí cụ thể ⇒ dùng đúng nhóm đó; xếp APP vào «Học tập» ⇒ Học tập.
+  // Trang web «Cho phép» cũng lưu loai hoc nhưng chỉ nghĩa là được mở (YouTube cho phép vẫn là Video) ⇒ theo bản chất.
   if (r?.loai === "giai_tri" && r.nhom !== "khac") return { muc: NHOM_SANG_MUC[r.nhom] ?? "khac", tenLuat: r.ten };
+  if (r?.loai === "hoc" && kieuMuc(r.muc) !== "web") return { muc: "hoc", tenLuat: r.ten };
   if (TRINH_DUYET.has(m)) return { muc: "tien_ich", tenLuat: r?.ten };
   const gy = khoa.map((k) => GOI_Y.get(k)).find(Boolean);
   if (gy) return { muc: gy, tenLuat: r?.ten };
@@ -73,64 +76,71 @@ export function xepMuc(mucTho: string, luat: Luat[], allow: string[] = allowlist
   return { muc: "chua_xep" };
 }
 
-export type MucDung = { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; phut: number; soLan: number; theoNgay: number[] };
+/** Mọi thời lượng trả về bằng GIÂY (làm tròn một lần khi hiển thị) ⇒ tổng, mục, danh sách và bộ lọc ngày luôn khớp nhau. */
+export type MucDung = { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; giay: number; soLan: number; theoNgay: number[] };
+
+const NGAY_GIAY = 86_400;
 
 async function tuan(fam: string, con: string, dau: string, luat: Luat[]) {
   const het = congNgay(dau, 7);
   const ngayDs = Array.from({ length: 7 }, (_, i) => congNgay(dau, i));
   const [app, web] = await Promise.all([
-    q<{ ngay: string; muc: string; phut: number }>(
-      `select ngay, muc, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 group by ngay, muc`, [con, dau, het]),
-    q<{ ngay: string; ten_mien: string; so_lan: number; giay: number }>(
-      `select w.ngay, w.ten_mien, sum(w.so_lan)::int as so_lan, sum(w.giay)::int as giay
+    q<{ device_id: string; ngay: string; muc: string; phut: number }>(
+      `select device_id, ngay, muc, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 group by device_id, ngay, muc`, [con, dau, het]),
+    q<{ device_id: string; ngay: string; ten_mien: string; so_lan: number; giay: number }>(
+      `select w.device_id, w.ngay, w.ten_mien, sum(w.so_lan)::int as so_lan, sum(w.giay)::int as giay
          from web_nhat_ky w left join devices d on d.id = w.device_id
         where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and d.family_id = $2 and w.ngay >= $3 and w.ngay < $4
-        group by w.ngay, w.ten_mien`, [con, fam, dau, het]),
+        group by w.device_id, w.ngay, w.ten_mien`, [con, fam, dau, het]),
   ]);
   const allow = allowlistHieuLuc();
-  const ds = new Map<string, MucDung & { giay: number[] }>();
+  const ds = new Map<string, Omit<MucDung, "giay" | "theoNgay"> & { g: number[] }>();
   const cong = (kieu: "app" | "web", mucTho: string, ngay: string, giay: number, soLan = 0) => {
     const i = ngayDs.indexOf(ngay);
-    if (i < 0 || giay <= 0) return;
+    if (i < 0 || (giay <= 0 && soLan <= 0)) return;
     const id = chuanMuc(mucTho);
     const k = `${kieu}:${id}`;
     let x = ds.get(k);
     if (!x) {
       const { muc, tenLuat } = xepMuc(id, luat, allow);
-      x = { id, ten: tenDoc(id, kieu, tenLuat), kieu, muc, phut: 0, soLan: 0, theoNgay: [], giay: Array(7).fill(0) };
+      x = { id, ten: tenDoc(id, kieu, tenLuat), kieu, muc, soLan: 0, g: Array(7).fill(0) };
       ds.set(k, x);
     }
-    x.giay[i] += giay; x.soLan += soLan;
+    x.g[i] += Math.max(0, giay); x.soLan += soLan;
   };
-  // Trình duyệt: phần thời gian đã có trong lịch sử web thì tính cho trang web; app trình duyệt chỉ giữ phần dư của ngày đó.
-  const webNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
-  for (const w of web) webNgay[w.ngay] = (webNgay[w.ngay] ?? 0) + w.giay;
-  const tdNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
-  for (const a of app) if (TRINH_DUYET.has(chuanMuc(a.muc))) tdNgay[a.ngay] = (tdNgay[a.ngay] ?? 0) + a.phut * 60;
+  // Trình duyệt: phần thời gian đã có trong lịch sử web CỦA CÙNG MÁY thì tính cho trang web; app trình duyệt chỉ giữ phần dư của (máy, ngày).
+  // Máy không gửi lịch sử web (vd điện thoại) ⇒ giữ nguyên giờ trình duyệt.
+  const webMay = new Map<string, number>(), tdMay = new Map<string, number>();
+  for (const w of web) webMay.set(`${w.device_id}|${w.ngay}`, (webMay.get(`${w.device_id}|${w.ngay}`) ?? 0) + w.giay);
+  for (const a of app) if (TRINH_DUYET.has(chuanMuc(a.muc))) tdMay.set(`${a.device_id}|${a.ngay}`, (tdMay.get(`${a.device_id}|${a.ngay}`) ?? 0) + a.phut * 60);
   for (const a of app) {
     const id = chuanMuc(a.muc);
     if (!TRINH_DUYET.has(id)) { cong("app", id, a.ngay, a.phut * 60); continue; }
-    const td = tdNgay[a.ngay] ?? 0, du = Math.max(0, td - (webNgay[a.ngay] ?? 0));
+    const k = `${a.device_id}|${a.ngay}`, td = tdMay.get(k) ?? 0, du = Math.max(0, td - (webMay.get(k) ?? 0));
     cong("app", id, a.ngay, td ? (a.phut * 60 * du) / td : 0);
   }
   for (const w of web) cong("web", w.ten_mien, w.ngay, w.giay, w.so_lan);
+  // Lịch sử trình duyệt tính cả tab mở nền ⇒ một ngày có thể vượt 24 giờ: thu nhỏ đều mọi mục của ngày đó về đúng 24 giờ.
+  for (let i = 0; i < 7; i++) {
+    const t = [...ds.values()].reduce((a, x) => a + x.g[i], 0);
+    if (t > NGAY_GIAY) for (const x of ds.values()) x.g[i] = (x.g[i] * NGAY_GIAY) / t;
+  }
 
-  const phut = (g: number) => Math.round(g / 60);
-  const muc = [...ds.values()].map(({ giay, ...x }) => ({ ...x, phut: phut(giay.reduce((a, b) => a + b, 0)), theoNgay: giay.map(phut) }))
-    .filter((x) => x.phut > 0 || x.soLan > 0)
-    .sort((a, b) => b.phut - a.phut || b.soLan - a.soLan || a.ten.localeCompare(b.ten));
+  const muc: MucDung[] = [...ds.values()].map(({ g, ...x }) => {
+    const theoNgay = g.map((v) => Math.round(v));
+    return { ...x, theoNgay, giay: theoNgay.reduce((a, b) => a + b, 0) };
+  }).sort((a, b) => b.giay - a.giay || b.soLan - a.soLan || a.ten.localeCompare(b.ten));
   const theoNgay = ngayDs.map((ngay, i) => {
-    const tm: Partial<Record<MucMH, number>> = {};
-    for (const x of ds.values()) if (x.giay[i]) tm[x.muc] = (tm[x.muc] ?? 0) + x.giay[i];
-    const theoMuc = Object.fromEntries(Object.entries(tm).map(([k, g]) => [k, phut(g!)]).filter(([, p]) => (p as number) > 0)) as Partial<Record<MucMH, number>>;
-    return { ngay, phut: Object.values(theoMuc).reduce((a, b) => a + (b ?? 0), 0), theoMuc };
+    const theoMuc: Partial<Record<MucMH, number>> = {};
+    for (const x of muc) if (x.theoNgay[i]) theoMuc[x.muc] = (theoMuc[x.muc] ?? 0) + x.theoNgay[i];
+    return { ngay, giay: Object.values(theoMuc).reduce((a, b) => a + (b ?? 0), 0), theoMuc };
   });
-  const theoMuc = MUC_MH.map((m) => ({ muc: m, phut: theoNgay.reduce((a, d) => a + (d.theoMuc[m] ?? 0), 0), soMuc: muc.filter((x) => x.muc === m).length }))
-    .filter((x) => x.phut > 0).sort((a, b) => b.phut - a.phut);
-  return { theoNgay, theoMuc, ds: muc.slice(0, 200), tongPhut: theoNgay.reduce((a, d) => a + d.phut, 0) };
+  const theoMuc = MUC_MH.map((m) => ({ muc: m, giay: theoNgay.reduce((a, d) => a + (d.theoMuc[m] ?? 0), 0), soMuc: muc.filter((x) => x.muc === m).length }))
+    .filter((x) => x.giay > 0).sort((a, b) => b.giay - a.giay);
+  return { theoNgay, theoMuc, ds: muc.slice(0, 200), tatCa: muc.length, tongGiay: theoNgay.reduce((a, d) => a + d.giay, 0) };
 }
 
-/** Thời gian màn hình một tuần của Con. `lui` = 0 tuần này, 1 tuần trước… (tối đa 12). */
+/** Thời gian màn hình một tuần của Con (giây). `lui` = 0 tuần này, 1 tuần trước… (tối đa 12). */
 export async function thoiGianManHinh(fam: string, con: string, lui = 0, now = new Date()) {
   const [f, c] = await Promise.all([
     q<{ tz: string }>(`select tz from families where id = $1`, [fam]),
@@ -147,6 +157,6 @@ export async function thoiGianManHinh(fam: string, con: string, lui = 0, now = n
   const soNgayQua = n === 0 ? nay.theoNgay.filter((d) => d.ngay <= hom).length : 7;
   return {
     ten: c[0]?.ten ?? "", lui: n, dau, cuoi: congNgay(dau, 6), homNay: hom,
-    ...nay, tbNgay: Math.round(nay.tongPhut / Math.max(1, soNgayQua)), tuanTruocPhut: truoc.tongPhut,
+    ...nay, tbNgayGiay: Math.round(nay.tongGiay / Math.max(1, soNgayQua)), tuanTruocGiay: truoc.tongGiay,
   };
 }

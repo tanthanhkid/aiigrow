@@ -38,7 +38,7 @@ test("xếp mục: gợi ý theo bản chất, tên miền con, luật Giải tr
   assert.equal(mh.tenDoc("paint3d.exe", "app"), "Paint3d");
 });
 
-test("tuần: app + web theo mục và theo ngày, trình duyệt chỉ giữ phần dư, tuần trước, trung bình ngày đã qua", async () => {
+test("tuần: app + web theo mục và theo ngày (giây), trình duyệt chỉ giữ phần dư, tuần trước, trung bình ngày đã qua", async () => {
   const { fam, con, may } = await nha();
   // tuần này bắt đầu T2 19/10; hôm nay T4 21/10
   await app(may, con, "2026-10-19", "robloxplayerbeta.exe", 60, "giai_tri");
@@ -56,22 +56,21 @@ test("tuần: app + web theo mục và theo ngày, trình duyệt chỉ giữ ph
   assert.equal(r.ten, "Ken");
   const tim = (id: string) => r.ds.find((x) => x.id === id);
   assert.equal(tim("robloxplayerbeta.exe")!.ten, "Roblox");
-  assert.equal(tim("chrome.exe")!.phut, 10, "50 phút Chrome − 40 phút đã tính cho trang web");
+  assert.equal(tim("chrome.exe")!.giay, 10 * 60, "50 phút Chrome − 40 phút đã tính cho trang web");
   assert.equal(tim("youtube.com")!.soLan, 4);
   assert.equal(tim("lammoi.exe")!.ten, "Làm Mới");
   assert.equal(tim("lammoi.exe")!.muc, "hoc");
-  assert.deepEqual(r.theoNgay.map((d) => d.phut), [60 + 10 + 30 + 10, 15 + 20, 0, 0, 0, 0, 0]);
-  assert.deepEqual(r.theoNgay[0].theoMuc, { game: 60, tien_ich: 10, video: 30, hoc: 10 });
-  assert.equal(r.tongPhut, 145);
+  assert.deepEqual(r.theoNgay.map((d) => d.giay / 60), [60 + 10 + 30 + 10, 15 + 20, 0, 0, 0, 0, 0]);
+  assert.deepEqual(r.theoNgay[0].theoMuc, { game: 3600, tien_ich: 600, video: 1800, hoc: 600 });
+  assert.equal(r.tongGiay, 145 * 60);
   assert.equal(r.theoMuc[0].muc, "game");
-  assert.equal(r.theoMuc.find((x) => x.muc === "hoc")!.phut, 25);
-  assert.equal(r.tbNgay, Math.round(145 / 3), "chia cho 3 ngày đã qua (T2–T4)");
-  assert.equal(r.tuanTruocPhut, 40);
+  assert.equal(r.theoMuc.find((x) => x.muc === "hoc")!.giay, 25 * 60);
+  assert.equal(r.tbNgayGiay, Math.round((145 * 60) / 3), "chia cho 3 ngày đã qua (T2–T4)");
+  assert.equal(r.tuanTruocGiay, 40 * 60);
 
   const truoc = await mh.thoiGianManHinh(fam, con, 1, VN("2026-10-21T09:00:00"));
   assert.equal(truoc.dau, "2026-10-12");
-  assert.equal(truoc.tongPhut, 40);
-  assert.equal(truoc.tbNgay, 6);
+  assert.equal(truoc.tongGiay, 40 * 60);
 });
 
 test("trình duyệt: lịch sử web nhiều hơn giờ mở trình duyệt ⇒ app trình duyệt về 0, không âm; Con nhà khác không lẫn", async () => {
@@ -80,7 +79,30 @@ test("trình duyệt: lịch sử web nhiều hơn giờ mở trình duyệt ⇒
   await web(a.may, a.con, "2026-10-19", "tiktok.com", 12 * 60);
   await web(b.may, b.con, "2026-10-19", "roblox.com", 99 * 60);
   const r = await mh.thoiGianManHinh(a.fam, a.con, 0, VN("2026-10-21T09:00:00"));
-  assert.equal(r.ds.find((x) => x.id === "msedge.exe"), undefined);
-  assert.deepEqual(r.theoMuc.map((x) => [x.muc, x.phut]), [["video_ngan", 12]]);
+  assert.equal(r.ds.find((x) => x.id === "msedge.exe")?.giay ?? 0, 0);
+  assert.deepEqual(r.theoMuc.map((x) => [x.muc, x.giay]), [["video_ngan", 12 * 60]]);
   assert.equal(r.ds.some((x) => x.id === "roblox.com"), false);
+});
+
+test("trình duyệt trừ theo TỪNG máy: điện thoại không gửi lịch sử web thì giữ nguyên giờ trình duyệt", async () => {
+  const { fam, con, may } = await nha();
+  const dt = (await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Điện thoại Ken")).deviceId;
+  await app(may, con, "2026-10-19", "chrome.exe", 30);
+  await web(may, con, "2026-10-19", "youtube.com", 60 * 60);
+  await app(dt, con, "2026-10-19", "com.android.chrome", 30);
+  const r = await mh.thoiGianManHinh(fam, con, 0, VN("2026-10-21T09:00:00"));
+  assert.equal(r.ds.find((x) => x.id === "com.android.chrome")!.giay, 30 * 60);
+  assert.equal(r.tongGiay, 90 * 60);
+});
+
+test("giây lẻ không rơi mất: tổng = mục = danh sách theo ngày; một ngày không vượt 24 giờ", async () => {
+  const { fam, con, may } = await nha();
+  for (let i = 0; i < 7; i++) await web(may, con, "2026-10-19", `trang${i}.vn`, 20);
+  await web(may, con, "2026-10-20", "youtube.com", 20 * 3600);
+  await web(may, con, "2026-10-20", "tiktok.com", 12 * 3600);
+  const r = await mh.thoiGianManHinh(fam, con, 0, VN("2026-10-21T09:00:00"));
+  assert.equal(r.theoNgay[0].giay, 140);
+  assert.equal(r.ds.filter((x) => x.theoNgay[0] > 0).reduce((a, x) => a + x.theoNgay[0], 0), 140);
+  assert.ok(Math.abs(r.theoNgay[1].giay - 86_400) <= 2, `ngày 20/10 = ${r.theoNgay[1].giay}`);
+  assert.equal(r.tongGiay, r.theoMuc.reduce((a, x) => a + x.giay, 0));
 });
