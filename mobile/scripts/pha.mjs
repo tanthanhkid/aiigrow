@@ -244,12 +244,13 @@ const viTriYen = async (timEl, ms = 8000) => {
     const x = b.x + b.width / 2, y = b.y + b.height / 2, t = document.elementFromPoint(x, y);
     return { x, y, w: b.width, h: b.height, trung: !!t && (e === t || e.contains(t)) }; })()`;
   let truoc = null;
-  for (let t = 0; t < ms; t += 120) {
+  for (const het = Date.now() + ms; Date.now() < het;) {   // hạn theo đồng hồ thật: máy tải nặng thì mỗi lượt đo cũng chậm
     const r = await js(do1);
     if (r && r.trung && truoc && Math.abs(r.x - truoc.x) < 0.5 && Math.abs(r.y - truoc.y) < 0.5 && r.w === truoc.w && r.h === truoc.h) return r;
     truoc = r;
     await sleep(120);
   }
+  if (truoc && !truoc.trung) console.log(`   (bấm khi điểm giữa bị che sau ${ms / 1000}s) ${timEl.slice(0, 120)}`);
   return truoc;   // hết giờ mà chưa «yên + trúng» (vd chữ bị cắt một phần mép) ⇒ bấm như cũ tại lần đo cuối, kịch bản tự báo SAI nếu trượt
 };
 const nhanChuot = async (r) => {
@@ -474,7 +475,8 @@ await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên / còn 
 
 /** Bấm phần tử theo bộ chọn CSS (công tắc không có chữ). */
 const bamChon = async (chon) => {
-  const r = await viTriYen(`() => document.querySelector(${JSON.stringify(chon)})`);
+  // phần tử THẤY ĐƯỢC cuối cùng (màn cũ còn trong ngăn xếp điều hướng có thể giữ bản ẩn 0×0)
+  const r = await viTriYen(`() => [...document.querySelectorAll(${JSON.stringify(chon)})].filter((e) => e.getBoundingClientRect().width > 0).pop()`);
   if (!r) return false;
   await nhanChuot(r);
   return true;
