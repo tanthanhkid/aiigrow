@@ -4,7 +4,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api, docToken, ghiToken } from "./_lib";
 import * as M from "./_muc";
-import { I3d, Ph, type Ten3d } from "../_clay/Icon";
+import { F3, I3d, Ph, type Ten3d } from "../_clay/Icon";
 
 const MUC: [string, string, Ten3d][] = [
   ["tong-quan", "Tổng quan", "bar-chart"], ["gia-dinh", "Gia đình & nạp quỹ", "house-with-garden"], ["phieu", "Kho phiếu quà", "ticket"],
@@ -88,10 +88,10 @@ export default function Admin() {
         <nav className="muc" aria-label="Mục quản trị">
           {MUC.map(([k, c, ic]) => (
             <a key={k} href={`#${k}`} aria-current={dang === k ? "page" : undefined}>
-              <img className={`f3 ${k === "ho-tro" && cho ? "rung" : ""}`} src={`/icon3d/${ic}.png`} alt="" width={26} height={26} />
+              <F3 ten={ic} className={k === "ho-tro" && cho ? "rung" : ""} />
               <span className="chu-muc">{c}</span>{k === "ho-tro" && cho ? <span className="so" aria-label={`${cho} chờ trả lời`}>{cho}</span> : null}</a>))}
         </nav>
-        <main className="noi-dung vao" key={hash}>{than}</main>
+        <main className="noi-dung vao" key={`${dang}/${con ?? ""}`}>{than}</main>
       </div>
     </div>
   );

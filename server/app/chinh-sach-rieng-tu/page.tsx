@@ -1,13 +1,11 @@
 // Chính sách quyền riêng tư công khai (Apple TestFlight External / App Store đòi URL). Trang tĩnh, không phụ thuộc SPA. Giao diện Clay gương (docs/THIET-KE-CLAY.md).
 // Nội dung đối chiếu mã nguồn 24/10/2026: schema (families/parents/children/devices/usage/web_nhat_ky/evidence/may_log), lib/log-may.ts (giữ 7 ngày), lib/web.ts (giữ 90 ngày), lib/xoa-tai-khoan.ts (audit gia đình đã xoá giữ 90 ngày, cron /api/cron/don-kiem-toan).
-import { I3d, type Ten3d } from "../_clay/Icon";
+import { I3d } from "../_clay/Icon";
 
 export const metadata = { title: "Chính sách quyền riêng tư — AiiGrow", description: "Chính sách quyền riêng tư của AiiGrow / Privacy Policy of AiiGrow" };
 
 const EMAIL = "info@aiilab.vn";
 const NGAY_VI = "24/10/2026", NGAY_EN = "October 24, 2026"; // sửa nội dung thì đổi cả hai ngày
-const ICON: Ten3d[] = ["office-building", "card-index-dividers", "bullseye", "file-cabinet", "key", "child", "memo", "envelope"];
-const MAU = ["lam", "tim", "cam", "xam", "vang", "xanh", "lam", "xanh"] as const;
 
 export default function ChinhSachRiengTu() {
   return (
@@ -20,13 +18,13 @@ export default function ChinhSachRiengTu() {
       </header>
 
       <section className="the">
-        <h2><I3d ten={ICON[0]} mau={MAU[0]} />1. Ai vận hành AiiGrow</h2>
+        <h2><I3d ten="office-building" mau="lam" />1. Ai vận hành AiiGrow</h2>
       <p>AiiGrow do Công ty AiiLab vận hành (76 Cách Mạng, phường Phú Thọ Hoà, TP. Hồ Chí Minh). Liên hệ về quyền riêng tư: <a href={`mailto:${EMAIL}`}>{EMAIL}</a>.</p>
       <p>AiiGrow là ứng dụng để Ba Mẹ giúp Con quản lý thời gian dùng máy theo luật do chính Ba Mẹ đặt.</p>
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[1]} mau={MAU[1]} />2. Dữ liệu chúng tôi thu thập</h2>
+        <h2><I3d ten="card-index-dividers" mau="tim" />2. Dữ liệu chúng tôi thu thập</h2>
       <ul>
         <li><b>Tài khoản Ba Mẹ:</b> số điện thoại hoặc email, tên hiển thị, vai trong gia đình, mật khẩu (chỉ lưu dạng băm, không lưu mật khẩu gốc).</li>
         <li><b>Hồ sơ Con:</b> tên, năm sinh, hình đại diện chọn trong app, mã PIN của Con (chỉ lưu dạng băm).</li>
@@ -39,13 +37,13 @@ export default function ChinhSachRiengTu() {
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[2]} mau={MAU[2]} />3. Mục đích sử dụng</h2>
+        <h2><I3d ten="bullseye" mau="cam" />3. Mục đích sử dụng</h2>
       <p>Chỉ để vận hành AiiGrow: hiển thị cho Ba Mẹ thời gian Con dùng máy, áp dụng luật Ba Mẹ đặt (giới hạn giờ, chặn ứng dụng/trang web), quản lý nhiệm vụ, điểm thưởng, gửi thông báo và hỗ trợ kỹ thuật.</p>
       <p><b>Chúng tôi không bán dữ liệu, không hiển thị quảng cáo, không chia sẻ dữ liệu cho mục đích quảng cáo, và không dùng dữ liệu của bạn để huấn luyện mô hình AI.</b></p>
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[3]} mau={MAU[3]} />4. Lưu trữ và thời hạn</h2>
+        <h2><I3d ten="file-cabinet" mau="xam" />4. Lưu trữ và thời hạn</h2>
       <ul>
         <li>Dữ liệu lưu trên máy chủ do AiiLab quản lý, truyền qua kết nối mã hoá HTTPS. Chúng tôi chỉ dùng nhà cung cấp hạ tầng và theo dõi lỗi để vận hành dịch vụ, không chia sẻ cho bên thứ ba vì mục đích khác.</li>
         <li>Nhật ký kỹ thuật của máy Con: giữ tối đa 7 ngày. Lịch sử tên miền đã vào: giữ tối đa 90 ngày (được dọn mỗi khi máy kết nối).</li>
@@ -55,7 +53,7 @@ export default function ChinhSachRiengTu() {
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[4]} mau={MAU[4]} />5. Quyền của bạn: xem, sửa, xoá</h2>
+        <h2><I3d ten="key" mau="vang" />5. Quyền của bạn: xem, sửa, xoá</h2>
       <ul>
         <li>Ba Mẹ xem và sửa hồ sơ Con, luật, nhiệm vụ ngay trong app.</li>
         <li><b>Gỡ máy:</b> trong app, vào Máy tính &amp; điện thoại → chọn máy → “An toàn &amp; gỡ cài đặt”. Với máy hỗ trợ, phần mềm AiiGrow được gỡ khỏi máy và máy rời danh sách.</li>
@@ -64,17 +62,17 @@ export default function ChinhSachRiengTu() {
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[5]} mau={MAU[5]} />6. Trẻ em</h2>
+        <h2><I3d ten="child" mau="xanh" />6. Trẻ em</h2>
       <p>AiiGrow dành cho gia đình. <b>Con không tự tạo tài khoản</b>: Ba Mẹ là người tạo tài khoản, đồng ý cho thu thập dữ liệu của Con và ghép máy của Con. Ba Mẹ có thể xem, sửa hoặc yêu cầu xoá dữ liệu của Con bất cứ lúc nào qua mục 5. Nếu bạn cho rằng một trẻ đã được thêm mà không có sự đồng ý của phụ huynh, hãy liên hệ chúng tôi để xoá.</p>
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[6]} mau={MAU[6]} />7. Thay đổi chính sách</h2>
+        <h2><I3d ten="memo" mau="lam" />7. Thay đổi chính sách</h2>
       <p>Khi chính sách thay đổi, chúng tôi cập nhật trang này và ngày hiệu lực ở đầu trang.</p>
       </section>
 
       <section className="the">
-        <h2><I3d ten={ICON[7]} mau={MAU[7]} />8. Liên hệ</h2>
+        <h2><I3d ten="envelope" mau="xanh" />8. Liên hệ</h2>
       <p>Công ty AiiLab · 76 Cách Mạng, phường Phú Thọ Hoà, TP. Hồ Chí Minh · <a href={`mailto:${EMAIL}`}>{EMAIL}</a></p>
       </section>
 

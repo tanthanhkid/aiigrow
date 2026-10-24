@@ -18,6 +18,11 @@ export function I3d({ ten, mau, co = 44, className }: { ten: Ten3d; mau?: "xanh"
   );
 }
 
+/** Ảnh Fluent 3D trần (không viên clay), vd icon trong thanh mục. */
+export function F3({ ten, co = 26, className }: { ten: Ten3d; co?: number; className?: string }) {
+  return <img className={`f3 ${className ?? ""}`} src={`/icon3d/${ten}.png`} alt="" width={co} height={co} decoding="async" />;
+}
+
 const PH = {
   "arrow-left": "M224,128a8,8,0,0,1-8,8H120v64a8,8,0,0,1-13.66,5.66l-72-72a8,8,0,0,1,0-11.32l72-72A8,8,0,0,1,120,56v64h96A8,8,0,0,1,224,128Z",
   "download-simple": "M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40A8,8,0,0,0,168,96H136V32a8,8,0,0,0-16,0V96H88a8,8,0,0,0-5.66,13.66Z",

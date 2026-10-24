@@ -60,7 +60,7 @@
 .ad .the h2{margin-bottom:10px}
 .ad .the.dem{display:flex;flex-direction:column;gap:12px}
 .ad .the.dem>h2{margin-bottom:0}
-.ad .the .nhom{box-shadow:none;background:var(--lom);background-image:none;box-shadow:var(--lomIn)}
+.ad .the .nhom{background:var(--lom);background-image:none;box-shadow:var(--lomIn)}
 @media (max-width:1023px){
   .ad .dau-ad{margin:10px 12px 0;padding:8px 8px 8px 10px}
   .ad .khung-ad{grid-template-columns:minmax(0,1fr);padding:16px 12px 32px;gap:16px}

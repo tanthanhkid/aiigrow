@@ -19,7 +19,11 @@ function quet(el: HTMLElement) {
 export function DongClay() {
   useEffect(() => {
     let dang: HTMLElement | null = null;
-    const tha = () => { if (!dang) return; const el = dang; dang = null; el.classList.remove("an"); quet(el); };
+    // vệt men chỉ khi thả NGAY trên phần tử (bấm thật); kéo ra ngoài / cuộn (pointercancel) thì chỉ nhả bẹp
+    const tha = (e?: Event) => {
+      if (!dang) return; const el = dang; dang = null; el.classList.remove("an");
+      if (e?.type === "pointerup" && el.contains(e.target as Node)) quet(el);
+    };
     const xuong = (e: PointerEvent) => {
       if (e.button > 0) return;
       const el = (e.target as Element | null)?.closest?.(BAM) as HTMLElement | null;
@@ -38,11 +42,12 @@ export function DongClay() {
     document.addEventListener("pointerdown", xuong, { passive: true });
     document.addEventListener("pointerup", tha, { passive: true });
     document.addEventListener("pointercancel", tha, { passive: true });
-    window.addEventListener("blur", tha);
+    const mat = () => tha();
+    window.addEventListener("blur", mat);
     document.addEventListener("keydown", phim);
     return () => {
       document.removeEventListener("pointerdown", xuong); document.removeEventListener("pointerup", tha);
-      document.removeEventListener("pointercancel", tha); window.removeEventListener("blur", tha); document.removeEventListener("keydown", phim);
+      document.removeEventListener("pointercancel", tha); window.removeEventListener("blur", mat); document.removeEventListener("keydown", phim);
     };
   }, []);
   return null;
@@ -67,7 +72,7 @@ export function phaoGiay(goc: HTMLElement | null) {
       { transform: `translate(${cx}px,${cy}px) rotate(0) scale(.6)`, opacity: 1 },
       { transform: `translate(${cx + dx}px,${cy + dy}px) rotate(${180 + i * 23}deg) scale(1)`, opacity: 1, offset: 0.7 },
       { transform: `translate(${cx + dx * 1.05}px,${cy + dy + 30}px) rotate(${260 + i * 23}deg) scale(.9)`, opacity: 0 },
-    ], { duration: 380 + Math.random() * 70 + 260, easing: "cubic-bezier(.25,.46,.45,.94)", fill: "forwards" });
+    ], { duration: 380 + Math.random() * 70, easing: "cubic-bezier(.25,.46,.45,.94)", fill: "forwards" });
   }
-  window.setTimeout(() => lop.remove(), 900);
+  window.setTimeout(() => lop.remove(), 600);
 }

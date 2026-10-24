@@ -190,7 +190,8 @@ if (GIAO_DIEN) {
     if (m.sau) { await doi("Sẵn sàng quét"); await m.sau(); }
     const ok = await doi(m.cho);
     chanQuet = null;
-    await js("document.querySelectorAll('nextjs-portal').forEach((e) => e.remove()); scrollTo(0, 0)"); // bấm nút có scrollIntoView ⇒ về đầu trang, đo pixel (doTay) chụp ở đầu trang // nút «N» của next dev đè chữ góc dưới — không thuộc giao diện
+    await js("document.querySelectorAll('nextjs-portal').forEach((e) => e.remove()); scrollTo(0, 0)"); // bấm nút có scrollIntoView ⇒ về đầu trang, đo pixel (doTay) chụp ở đầu trang
+    await js("Promise.race([Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))), new Promise((r) => setTimeout(r, 3000))])"); // chờ nảy vào / rung xong mới đo // nút «N» của next dev đè chữ góc dưới — không thuộc giao diện
     if (ok) return true;
     console.log(`    KHÔNG TẢI: chưa thấy «${m.cho}» ở ${m.duong}: ${(await chu())?.replace(/\s+/g, " ").slice(0, 200)}`);
     return false;

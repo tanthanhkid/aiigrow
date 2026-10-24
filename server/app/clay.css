@@ -30,7 +30,7 @@
   --sp-bat:linear(0,0.036,0.134,0.275,0.441,0.616,0.787,0.942,1.073,1.175,1.246,1.287,1.3,1.29,1.261,1.219,1.17,1.117,1.066,1.019,0.98,0.949,0.927,0.914,0.91,0.913,0.921,0.934,0.949,0.964,0.98,0.994,1)}
 
 html,body{margin:0;background:var(--nen)}
-body{color:var(--chu)}
+body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 .ag{min-height:100vh;color:var(--chu);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;
   background:radial-gradient(120% 640px at 20% 0,#e3ebe7 0,var(--nen) 70%) no-repeat,var(--nen)}
 .ag *{box-sizing:border-box}
@@ -185,7 +185,7 @@ body{color:var(--chu)}
 .ag .nut::after,.ag .chip::after,.ag .o-so::after,.ag nav.muc a::after{content:"";position:absolute;top:0;bottom:0;left:-20%;width:140%;pointer-events:none;z-index:2;opacity:0;
   background:linear-gradient(105deg,rgba(255,255,255,0) 34%,rgba(255,255,255,.10) 42%,rgba(255,255,255,.55) 49%,rgba(255,255,255,.16) 54%,rgba(255,255,255,0) 62%);transform:translateX(-110%)}
 .ag .nut.vien::after,.ag .o-so::after,.ag nav.muc a::after{background:linear-gradient(105deg,rgba(255,255,255,0) 34%,rgba(40,44,42,.035) 41%,#fff 49%,rgba(255,255,255,.5) 54%,rgba(255,255,255,0) 62%)}
-.ag .quet::after{animation:clay-quet .42s cubic-bezier(.3,.6,.2,1) both}
+.ag .nut.quet::after,.ag .chip.quet::after,.ag .o-so.quet::after,.ag nav.muc a.quet::after{animation:clay-quet .42s cubic-bezier(.3,.6,.2,1) both}
 @keyframes clay-quet{0%{opacity:1;transform:translateX(-110%)}100%{opacity:1;transform:translateX(110%)}}
 .ag .nut>*,.ag .chip>*{position:relative;z-index:3}
 
