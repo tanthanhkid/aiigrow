@@ -6,6 +6,12 @@ if [ "$(id -u)" -ne 0 ]; then echo "Cần quyền quản trị: sudo bash $0" >&
 DAEMON_PLIST="/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"
 TRAY_PLIST="/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
 
+# Đang tự cập nhật (installer chạy trong job vn.aiilab.aiigrow.capnhat): chờ xong (tối đa ~5 phút) rồi mới gỡ, kẻo installer nạp lại daemon sau khi ta gỡ.
+i=0
+while "${AIIGROW_LAUNCHCTL:-/bin/launchctl}" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
+  /bin/sleep 2; i=$((i + 1))
+done
+
 /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 for uid in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/AiiGrowTray/ {print $1}' | /usr/bin/sort -u); do
   /bin/launchctl bootout "gui/$uid/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
@@ -89,6 +95,7 @@ done
 /bin/rm -f "$DAEMON_PLIST" "$TRAY_PLIST"
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"
 /bin/rm -f /var/run/aiigrow.sock
+echo "da-go" > /var/db/aiigrow-da-go 2>/dev/null && /bin/chmod 0600 /var/db/aiigrow-da-go     # dấu «máy đã gỡ»: tự cập nhật + postinstall cài tự động tôn trọng
 /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg >/dev/null 2>&1 || true
 echo "Đã gỡ AiiGrow."
 # Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại

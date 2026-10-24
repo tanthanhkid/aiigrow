@@ -100,6 +100,13 @@ public enum TrayLogic {
   /// Nút «Kiểm tra cập nhật»: chỉ phiên Ba Mẹ (admin, không phải phiên Con). Daemon vẫn kiểm lại theo uid.
   public static func canKiemCapNhat(_ t: TrangThai?, laAdmin: Bool) -> Bool { t?.laPhienCon != true && laAdmin }
 
+  /// Dòng trạng thái tự cập nhật (daemon trả trong `trangThai`); quá 1 ngày thì ẩn.
+  public static func dongCapNhat(_ t: TrangThai?, bayGio: Date) -> String? {
+    guard let c = t?.capNhat, !c.isEmpty else { return nil }
+    if let l = t?.capNhatLuc, bayGio.timeIntervalSince(l) > 86_400 { return nil }
+    return c
+  }
+
   /// Dòng bản đang chạy ở menu.
   public static func dongBanDangChay(_ ban: String = PhienBan.hienTai) -> String { "AiiGrow bản \(ban)" }
 

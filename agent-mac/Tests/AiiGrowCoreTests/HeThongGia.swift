@@ -55,6 +55,9 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   var loiCaiGoi: Error?
   var daCaiGoi: [String] = []
   var daTaoThuMuc: [String] = []
+  var caiDangChayGia = false
+  func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws { tep[dich] = try Data(contentsOf: URL(fileURLWithPath: nguon)) }
+  func caiDangChay() -> Bool { caiDangChayGia }
   func taoThuMuc(_ duongDan: String, quyen: Int) throws { daTaoThuMuc.append(duongDan) }
   func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { pkgutilRa }
   func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { spctlRa }
@@ -79,6 +82,12 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
   var yeuCauTraVe = KetQuaYeuCau(id: "yc1", trangThai: "cho")
   /// Độ trễ (ns) của dongBo — giả mạng chậm mà các request khác vẫn chạy song song.
   var treDongBo: UInt64 = 0
+  var banMoiTraVe: BanMoi?
+  var treBanMoi: UInt64 = 0
+  func banMoi() async throws -> BanMoi? {
+    if treBanMoi > 0 { try await Task.sleep(nanoseconds: treBanMoi) }
+    return banMoiTraVe
+  }
 
   var lanGhep: [(ma: String, tenMay: String)] = []
   var lanDongBo: [(TrangThaiAgent, [MucDung])] = []

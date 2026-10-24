@@ -41,16 +41,6 @@ if motVong {
     heThong.ghiLog("Chạy một vòng xong.")
     exit(0)
   }
-  // Tự cập nhật: Task riêng (không chặn vòng áp/đồng bộ), trễ 90 giây sau khi khởi động rồi mỗi 6 giờ; cờ chống chạy chồng nằm trong BoCapNhat.
-  if laThu { heThong.ghiLog("[thử] bỏ qua vòng tự cập nhật.") } else {
-    Task {
-      try? await Task.sleep(nanoseconds: 90 * 1_000_000_000)
-      while true {
-        await boMay.kiemCapNhatDinhKy()
-        try? await Task.sleep(nanoseconds: 6 * 3600 * 1_000_000_000)
-      }
-    }
-  }
   RunLoop.main.run()
 } else {
   do { try socket.mo() } catch { heThong.ghiLog("Mở socket lỗi: \(error) — tiếp tục không có IPC.") }
@@ -66,6 +56,15 @@ if motVong {
     while true {
       _ = await boMay.vongAp()
       try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+    }
+  }
+  // Tự cập nhật: Task riêng (không chặn vòng áp/đồng bộ); lịch ở LichCapNhat (+90 giây, rồi mỗi 6 giờ); cờ chống chạy chồng nằm trong BoCapNhat.
+  if laThu { heThong.ghiLog("[thử] bỏ qua vòng tự cập nhật.") } else {
+    Task {
+      await LichCapNhat.chay(ngu: { giay in
+        try? await Task.sleep(nanoseconds: UInt64(giay * 1_000_000_000))
+        return !Task.isCancelled
+      }, viec: { await boMay.kiemCapNhatDinhKy() })
     }
   }
   RunLoop.main.run()

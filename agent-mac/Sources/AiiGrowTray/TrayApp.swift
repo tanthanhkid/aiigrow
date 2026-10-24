@@ -90,6 +90,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       m.addItem(.separator())
     }
     if TrayLogic.canKiemCapNhat(t, laAdmin: laAdmin()) {
+      if let c = TrayLogic.dongCapNhat(t, bayGio: bay) { dong(c) }
       muc("Kiểm tra cập nhật", #selector(kiemCapNhat))
     }
     dong(TrayLogic.dongBanDangChay())

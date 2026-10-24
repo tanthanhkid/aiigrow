@@ -157,14 +157,30 @@ public final class HeThongMac: HeThong {
     HeThongMac.chay("/usr/sbin/spctl", ["-a", "-t", "install", duongDan], timeout: 60)
   }
 
+  public func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws {
+    let fm = FileManager.default
+    try? fm.removeItem(atPath: dich)
+    try fm.moveItem(atPath: nguon, toPath: dich)
+    chmod(dich, mode_t(quyen))
+  }
+
+  /// `launchctl list <nhãn>` có «"PID" =» ⇒ job đang chạy.
+  public func caiDangChay() -> Bool {
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["list", LuatCapNhat.nhanCai], timeout: 10)
+    return ma == 0 && ra.contains("\"PID\"")
+  }
+
   /// Job launchd riêng: preinstall của gói `bootout` daemon, launchd giết cả nhóm tiến trình của daemon — chỉ `launchctl submit` thoát được.
   /// Bọc trong sh: cài xong tự xoá gói + tự `launchctl remove` nhãn (không để postinstall tự gỡ nhãn đang chạy installer).
+  /// KHÔNG `launchctl remove` nhãn đang chạy (giết installer giữa chừng); chỉ gỡ nhãn sót đã xong.
   public func caiGoi(_ duongDan: String) throws {
     let nhan = LuatCapNhat.nhanCai
-    _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót từ lần trước
-    let kich = "/usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; /bin/rm -f \"$1\" ; /bin/launchctl remove \"$2\" ; exit $ma"
+    guard !caiDangChay() else { throw LoiApi(chu: "Đang có một lượt cài chạy (\(nhan)) — bỏ qua lần này.") }
+    _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót đã xong từ lần trước
+    let dau = "/var/run/aiigrow-capnhat"                                            // postinstall biết đây là cài tự động
+    let kich = "/usr/bin/touch \"$3\" ; /usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; /bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
-                                                      "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan], timeout: 10)
+                                                      "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan, dau], timeout: 10)
     guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
   }
 

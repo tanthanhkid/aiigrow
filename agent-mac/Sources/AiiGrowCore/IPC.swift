@@ -10,6 +10,7 @@ public enum DuongDan {
   public static let log = "/Library/Logs/AiiGrow"
   public static let daemonPlist = "/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"
   public static let trayPlist = "/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
+  public static let daGo = "/var/db/aiigrow-da-go"                // dấu «máy đã bị gỡ» — tuGo/go-cai.sh ghi; bộ cập nhật + postinstall (cài tự động) tôn trọng
   public static let app = "/Applications/AiiGrow.app"            // tray (LSUIElement), daemon nằm ở Contents/MacOS/aiigrow-daemon
 }
 
@@ -49,12 +50,15 @@ public struct TrangThai: Codable, Equatable {
   public var duocDoiDiem: Bool             // KHÔNG bao giờ có số điểm
   public var matMang: Bool                 // đang chạy theo Policy nhớ
   public var trangChan: [String]           // tên miền đang chặn (để tray giải thích khi Con hỏi)
+  public var capNhat: String?              // trạng thái tự cập nhật («Đang là bản mới nhất (0.1.1)»…) — KHÔNG trả cho phiên Con
+  public var capNhatLuc: Date?
   public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo + cách xử lý cho Ba Mẹ (KHÔNG trả cho phiên Con; máy chủ vẫn nhận conLaAdmin)
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
-              demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil) {
+              demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil, capNhat: String? = nil, capNhatLuc: Date? = nil) {
     self.daGhep = daGhep; self.laPhienCon = laPhienCon; self.tenCon = tenCon; self.cheDo = cheDo; self.lyDoKhoa = lyDoKhoa; self.conPhut = conPhut
     self.moDen = moDen; self.khoaDen = khoaDen; self.demNguocGiay = demNguocGiay; self.yeuCauCho = yeuCauCho; self.duocDoiDiem = duocDoiDiem
     self.matMang = matMang; self.trangChan = trangChan; self.canhBaoAdmin = canhBaoAdmin
+    self.capNhat = capNhat; self.capNhatLuc = capNhatLuc
   }
 }
 

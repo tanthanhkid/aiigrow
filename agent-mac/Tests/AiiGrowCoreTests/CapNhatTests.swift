@@ -23,13 +23,15 @@ final class CapNhatTests: XCTestCase {
     }
   }
 
+  var gio = Date(timeIntervalSince1970: 1_760_000_000)
   private func boCapNhat(hienTai: String = "0.1.1") -> BoCapNhat {
     let api = ApiClient(mayChu: may, token: nil, session: HttpMock.session())
-    return BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc, banHienTai: hienTai)
+    return BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc,
+                     tepDaThu: "/gia/da-thu.json", banHienTai: hienTai, dongHo: { [unowned self] in self.gio })
   }
 
-  private func chay(_ b: BoCapNhat, dangGo: Bool = false) async -> KetQuaCapNhat {
-    let kq = await b.batDau(dangGo: { dangGo })
+  private func chay(_ b: BoCapNhat, dangGo: Bool = false, thuCong: Bool = false) async -> KetQuaCapNhat {
+    let kq = await b.batDau(thuCong: thuCong, choPhep: { !dangGo })
     await b.choXong()
     return kq
   }
@@ -175,7 +177,7 @@ final class CapNhatTests: XCTestCase {
     let co = Co()
     let b = boCapNhat()
     // lần hỏi thứ nhất (đầu batDau) chưa gỡ, lần cuối (trước khi cài) đã gỡ
-    let kq = await b.batDau(dangGo: { co.goi += 1; return co.goi >= 2 })
+    let kq = await b.batDau(choPhep: { co.goi += 1; return co.goi < 2 })
     await b.choXong()
     XCTAssertEqual(kq, .dangTai("0.1.2"))
     XCTAssertTrue(fake.daCaiGoi.isEmpty)
@@ -184,8 +186,8 @@ final class CapNhatTests: XCTestCase {
   func testKhongChayChong() async {
     datMayChu()
     let b = boCapNhat()
-    let a = await b.batDau(dangGo: { false })
-    let c = await b.batDau(dangGo: { false })
+    let a = await b.batDau(choPhep: { true })
+    let c = await b.batDau(choPhep: { true })
     XCTAssertEqual(a, .dangTai("0.1.2"))
     XCTAssertEqual(c, .dangBan)
     await b.choXong()
@@ -196,7 +198,7 @@ final class CapNhatTests: XCTestCase {
     HttpMock.dat { _, _ in nil }
     let kq = await chay(boCapNhat())
     guard case .loi = kq else { return XCTFail() }
-    let lai = await boCapNhat().batDau(dangGo: { false })           // cờ chống chồng được nhả sau lỗi
+    let lai = await boCapNhat().batDau(choPhep: { true })           // cờ chống chồng được nhả sau lỗi
     XCTAssertNotEqual(lai, .dangBan)
   }
 
@@ -212,22 +214,144 @@ final class CapNhatTests: XCTestCase {
     if case .duoc = QuyenIPC.kiem(.capNhat, uidGoi: 503, uidCon: con, daGhep: true, laAdmin: laAdmin) { XCTFail("không phải admin") }
   }
 
-  func testBoMayXuLyIPCCapNhatQuaUid() async throws {
+  private func dungBoMay(daGhep: Bool = true, tre: UInt64 = 0, banMoi: BanMoi? = nil) throws -> (BoMay, MayChuGia, String) {
     let thu = NSTemporaryDirectory() + "aiigrow-cn-\(UUID().uuidString)"
     try FileManager.default.createDirectory(atPath: thu, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(atPath: thu) }
     let kho = ConfigStore(duongDan: thu + "/config.json")
-    try kho.sua { $0.token = "tok"; $0.deviceId = "d"; $0.uidCon = 501; $0.taiKhoanCon = "be" }
+    try kho.sua { if daGhep { $0.token = "tok"; $0.deviceId = "d" }; $0.uidCon = 501; $0.taiKhoanCon = "be" }
     fake.uidTheoTen = ["be": 501, "ba": 502]; fake.admin = ["ba"]
-    datMayChu(version: "0.1.1")
-    let api = ApiClient(mayChu: may, token: "tok", session: HttpMock.session())
-    let b = BoMay(api: api, heThong: fake, kho: kho, capNhat: BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc, banHienTai: "0.1.1"))
+    let api = MayChuGia()
+    api.banMoiTraVe = banMoi; api.treBanMoi = tre
+    let cn = BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc, tepDaThu: "/gia/da-thu.json", banHienTai: "0.1.1")
+    return (BoMay(api: api, heThong: fake, kho: kho, capNhat: cn), api, thu)
+  }
+
+  func testIPCCapNhatConBiTuChoiAdminTraLoiNgayKetQuaOTrangThai() async throws {
+    let (b, _, thu) = try dungBoMay(tre: 1_500_000_000, banMoi: BanMoi(version: "0.1.1", url: "", sha256: ""))
+    defer { try? FileManager.default.removeItem(atPath: thu) }
     let tCon = await b.xuLyIPC(.capNhat, uidGoi: 501)
     guard case .loi(let ma, _) = tCon else { return XCTFail("\(tCon)") }
     XCTAssertEqual(ma, "can_admin")
-    XCTAssertFalse(HttpMock.daGoi.contains { $0.path == "api/agent/ban-moi" }, "Con gọi không được làm daemon hỏi máy chủ")
+    let t0 = Date()
     let tAdmin = await b.xuLyIPC(.capNhat, uidGoi: 502)
-    XCTAssertEqual(tAdmin, .thongBao(chu: "Đang là bản mới nhất (0.1.1)"))
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 0.5, "IPC trả lời ngay, không chờ máy chủ (tray chỉ chờ 3 giây)")
+    guard case .thongBao(let chu) = tAdmin else { return XCTFail("\(tAdmin)") }
+    XCTAssertTrue(chu.hasPrefix("Đang kiểm tra"))
+    // đang kiểm: trangThai cho admin thấy «Đang kiểm tra…»
+    guard case .trangThai(let t1) = await b.xuLyIPC(.trangThai, uidGoi: 502) else { return XCTFail() }
+    XCTAssertTrue(t1.capNhat?.hasPrefix("Đang kiểm tra") ?? false)
+    // gọi lần nữa khi còn bận
+    let bac = await b.xuLyIPC(.capNhat, uidGoi: 502)
+    XCTAssertEqual(bac, .thongBao(chu: KetQuaCapNhat.dangBan.chu))
+    try await Task.sleep(nanoseconds: 2_000_000_000)
+    guard case .trangThai(let t2) = await b.xuLyIPC(.trangThai, uidGoi: 502) else { return XCTFail() }
+    XCTAssertEqual(t2.capNhat, "Đang là bản mới nhất (0.1.1)")
+    XCTAssertNotNil(t2.capNhatLuc)
+    guard case .trangThai(let tc) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
+    XCTAssertNil(tc.capNhat, "phiên Con không nhận trạng thái cập nhật")
+  }
+
+  func testChuaGhepKhongTuCapNhat() async throws {
+    let (b, api, thu) = try dungBoMay(daGhep: false, banMoi: BanMoi(version: "0.1.2", url: "\(may)/tai/a.pkg", sha256: String(repeating: "a", count: 64)))
+    defer { try? FileManager.default.removeItem(atPath: thu) }
+    let t = await b.xuLyIPC(.capNhat, uidGoi: 502)
+    guard case .loi = t else { return XCTFail("\(t)") }
+    await b.kiemCapNhatDinhKy()
+    XCTAssertTrue(fake.daCaiGoi.isEmpty)
+    XCTAssertNil(api.banMoiTraVe == nil ? nil : fake.tep["/gia/da-thu.json"])
+    XCTAssertFalse(HttpMock.daGoi.contains { $0.path.hasPrefix("tai/") })
+  }
+
+  func testBoCapNhatTuChoiKhiChuaGhepHoacCoDauDaGo() async {
+    datMayChu()
+    let kq = await boCapNhat().batDau(choPhep: { false })
+    guard case .loi = kq else { return XCTFail() }
+    XCTAssertFalse(HttpMock.daGoi.contains { $0.path == "api/agent/ban-moi" }, "chưa ghép ⇒ không hỏi máy chủ")
+    fake.tep[DuongDan.daGo] = Data("x".utf8)
+    let kq2 = await chay(boCapNhat())
+    guard case .loi = kq2 else { return XCTFail() }
+    XCTAssertTrue(fake.daCaiGoi.isEmpty)
+  }
+
+  func testBiGoGiuaChungTruocKhiCaiKhongCai() async {
+    datMayChu()
+    final class Co: @unchecked Sendable { var n = 0 }
+    let co = Co()
+    let b = boCapNhat()
+    _ = await b.batDau(choPhep: { co.n += 1; return co.n == 1 })       // lần 1 (đầu) ok, lần 2 (trước installer) đã gỡ
+    await b.choXong()
+    XCTAssertTrue(fake.daCaiGoi.isEmpty)
+    XCTAssertNil(fake.tep["/gia/da-thu.json"], "chưa giao installer ⇒ chưa ghi dấu đã thử")
+  }
+
+  // MARK: chống vòng cài lại vô hạn
+
+  func testDauDaThuChanCaiLai() async {
+    datMayChu()
+    let k1 = await chay(boCapNhat())
+    XCTAssertEqual(k1, .dangTai("0.1.2"))
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    XCTAssertNotNil(fake.tep["/gia/da-thu.json"])
+    // «khởi động lại» (đối tượng mới, vẫn bản 0.1.1 vì gói thực chất cũ), cùng sha ⇒ không cài lại
+    gio = gio.addingTimeInterval(6 * 3600)
+    let k2 = await chay(boCapNhat())
+    guard case .loi = k2 else { return XCTFail("\(k2)") }
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    XCTAssertTrue(fake.log.contains { $0.contains("cài xong mà bản không đổi") })
+    // Ba Mẹ bấm nút nhưng chưa quá 1 giờ ⇒ vẫn không
+    gio = gio.addingTimeInterval(-6 * 3600 + 600)
+    _ = await chay(boCapNhat(), thuCong: true)
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    // quá 1 giờ + bấm nút ⇒ được thử lại; định kỳ thì không
+    gio = gio.addingTimeInterval(7200)
+    _ = await chay(boCapNhat(), thuCong: false)
+    XCTAssertEqual(fake.daCaiGoi.count, 1, "định kỳ không bao giờ cài lại cùng sha")
+    _ = await chay(boCapNhat(), thuCong: true)
+    XCTAssertEqual(fake.daCaiGoi.count, 2)
+  }
+
+  func testManifestDoiShaThiCaiTiep() async {
+    datMayChu()
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    let moi = Data("goi khac".utf8)
+    HttpMock.dat { path, _ in
+      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.3", "url": "\(self.may)/tai/AiiGrow-0.1.3.pkg", "sha256": LuatCapNhat.sha256Hex(moi)]) }
+      return .init(ma: 200, than: moi)
+    }
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 2)
+  }
+
+  func testDangCoInstallerChayKhongCaiKhongGhiDau() async {
+    datMayChu()
+    fake.caiDangChayGia = true
+    _ = await chay(boCapNhat())
+    XCTAssertTrue(fake.daCaiGoi.isEmpty)
+    XCTAssertNil(fake.tep["/gia/da-thu.json"])
+    XCTAssertTrue(fake.log.contains { $0.contains("installer khác chạy") })
+  }
+
+  // MARK: băm theo luồng, lịch
+
+  func testSha256TepTheoLuong() throws {
+    let p = NSTemporaryDirectory() + "sha-\(UUID().uuidString)"
+    defer { try? FileManager.default.removeItem(atPath: p) }
+    var lon = Data(); for i in 0..<(3 * (1 << 20) + 17) { lon.append(UInt8(i % 251)) }       // > 3 khúc 1 MiB
+    try lon.write(to: URL(fileURLWithPath: p))
+    XCTAssertEqual(LuatCapNhat.sha256Tep(p), LuatCapNhat.sha256Hex(lon))
+    XCTAssertNil(LuatCapNhat.sha256Tep(p + "-khong-co"))
+  }
+
+  func testLichCapNhatTruoc90GiayRoiMoi6Gio() async {
+    final class Ghi: @unchecked Sendable { var ngu: [Double] = []; var viec = 0 }
+    let g = Ghi()
+    await LichCapNhat.chay(ngu: { g.ngu.append($0); return g.ngu.count < 3 }, viec: { g.viec += 1 })
+    XCTAssertEqual(g.ngu, [90, 21600, 21600])
+    XCTAssertEqual(g.viec, 2)
+    let h = Ghi()
+    await LichCapNhat.chay(ngu: { h.ngu.append($0); return false }, viec: { h.viec += 1 })      // bị huỷ khi đang chờ 90 giây ⇒ không kiểm
+    XCTAssertEqual(h.viec, 0)
   }
 
   func testIPCKhuHoiCapNhat() throws {

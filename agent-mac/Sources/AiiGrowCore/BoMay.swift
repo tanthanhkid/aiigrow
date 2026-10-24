@@ -357,7 +357,8 @@ public actor BoMay {
     case .trangThai:
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
       var tt = trangThaiTuoi()                                    // tính tươi, không tác dụng phụ: gọi dồn dập không làm đếm ngược/kill nhanh hơn
-      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil; tt.capNhat = nil; tt.capNhatLuc = nil }
+      else { tt.capNhat = capNhat.so.chu; tt.capNhatLuc = capNhat.so.luc }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
       return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
@@ -381,20 +382,23 @@ public actor BoMay {
 
   // MARK: tự cập nhật
 
-  /// Kiểm bản mới ngay (nút «Kiểm tra cập nhật»); có bản mới thì tải + cài nền.
+  /// Nút «Kiểm tra cập nhật»: trả lời NGAY (tray chỉ chờ 3 giây), kiểm + tải + cài chạy nền; kết quả nằm ở `TrangThai.capNhat`.
   public func capNhatNgay() async -> TraLoi {
-    let kq = await capNhat.batDau(dangGo: { await self.dangGoHienTai() })
-    if case .loi(let c) = kq { return .loi(ma: "cap_nhat_loi", chu: c) }
-    return .thongBao(chu: kq.chu)
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
+    if await capNhat.dangBan { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
+    capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())
+    Task { _ = await self.capNhat.batDau(thuCong: true, choPhep: { await self.coTheCapNhat() }) }
+    return .thongBao(chu: "Đang kiểm tra bản mới… Kết quả hiện ở menu AiiGrow.")
   }
 
-  /// Daemon gọi lúc khởi động (+90 giây) và mỗi 6 giờ, từ Task riêng; chờ lượt tải/cài nền xong rồi mới trả.
+  /// Daemon gọi (Task riêng, theo `LichCapNhat`); chờ lượt tải/cài nền xong rồi mới trả.
   public func kiemCapNhatDinhKy() async {
-    _ = await capNhat.batDau(dangGo: { await self.dangGoHienTai() })
+    _ = await capNhat.batDau(choPhep: { await self.coTheCapNhat() })
     await capNhat.choXong()
   }
 
-  private func dangGoHienTai() -> Bool { dangGo }
+  /// Chỉ cập nhật khi đã ghép và không đang gỡ.
+  private func coTheCapNhat() -> Bool { cauHinh.daGhep && !dangGo }
 
   private func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async -> TraLoi {
     do {
@@ -425,6 +429,7 @@ public actor BoMay {
     api.datPhien(mayChu: cauHinh.mayChu, token: "")
     policy = nil
     khoaLuc = nil
+    try? heThong.ghiTep(DuongDan.daGo, Data("da-go\n".utf8), quyen: 0o600)       // bộ cập nhật + postinstall (cài tự động) thấy dấu này thì không nạp lại
     heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn; chạy trình gỡ.")
     dangGo = false                                  // daGhep đã false ⇒ vòng áp tự thả; để ghép lại (không khởi động lại daemon) vẫn chạy được
     heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)

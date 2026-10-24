@@ -37,6 +37,10 @@ public protocol HeThong: AnyObject {
   func kiemChuKyGoi(_ duongDan: String) -> (Int32, String)
   /// `spctl -a -t install <gói>` ⇒ (mã thoát, đầu ra).
   func kiemSpctlGoi(_ duongDan: String) -> (Int32, String)
+  /// Chuyển tệp (vd tệp URLSession vừa tải) vào `dich`, quyền `quyen`, chủ root.
+  func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws
+  /// Job `vn.aiilab.aiigrow.capnhat` đang chạy (installer chưa xong) ⇒ true.
+  func caiDangChay() -> Bool
   /// Cài gói bằng `/usr/sbin/installer -pkg … -target /` chạy như job launchd riêng (preinstall bootout chính daemon).
   func caiGoi(_ duongDan: String) throws
   func haQuyenAdmin(taiKhoan: String) throws
@@ -72,6 +76,8 @@ public final class HeThongThu: HeThong {
   public func taoThuMuc(_ duongDan: String, quyen: Int) throws { se("tạo thư mục \(duongDan) (quyền \(String(quyen, radix: 8)))") }
   public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { that.kiemChuKyGoi(duongDan) }
   public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { that.kiemSpctlGoi(duongDan) }
+  public func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws { se("chuyển \(nguon) vào \(dich) (quyền \(String(quyen, radix: 8)))") }
+  public func caiDangChay() -> Bool { that.caiDangChay() }
   public func caiGoi(_ duongDan: String) throws { se("cài gói \(duongDan) (installer qua launchctl submit)") }
   public func xoaBoNhoDNS() { se("xoá bộ nhớ DNS (dscacheutil -flushcache; killall -HUP mDNSResponder)") }
   public func haQuyenAdmin(taiKhoan: String) throws { se("hạ \(taiKhoan) khỏi nhóm admin (dseditgroup)") }

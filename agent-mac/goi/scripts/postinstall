@@ -6,6 +6,18 @@ LOG="/Library/Logs/AiiGrow"
 APP="/Applications/AiiGrow.app"
 RES="$APP/Contents/Resources"
 
+DA_GO="/var/db/aiigrow-da-go"                  # go-cai.sh / daemon (gỡ từ xa) ghi: máy đã bị gỡ
+DANG_CAP_NHAT="/var/run/aiigrow-capnhat"       # job tự cập nhật ghi: lần cài này do daemon tự chạy
+if [ -f "$DA_GO" ]; then
+  if [ -f "$DANG_CAP_NHAT" ]; then
+    # Tự cập nhật chạy đè lên máy vừa bị gỡ từ xa: không nạp lại daemon/tray, dọn phần gói vừa chép.
+    /bin/rm -rf "$APP" "$THU_MUC/cap-nhat"
+    /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+    exit 0
+  fi
+  /bin/rm -f "$DA_GO"                          # Ba Mẹ chủ động cài lại sau khi gỡ: bình thường
+fi
+
 /bin/mkdir -p "$THU_MUC" "$LOG"
 /usr/sbin/chown root:wheel "$THU_MUC" "$LOG"
 /bin/chmod 0700 "$THU_MUC"
@@ -24,12 +36,17 @@ done
 /bin/launchctl bootstrap system /Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist || true
 /bin/launchctl enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 
-# Tray vào phiên GUI đang đăng nhập (console user), nếu có.
+# Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid): console user + chủ các tiến trình loginwindow (uid >= 500).
 CON_USER=$(/usr/bin/stat -f %Su /dev/console 2>/dev/null || true)
+UIDS=""
 if [ -n "$CON_USER" ] && [ "$CON_USER" != "root" ] && [ "$CON_USER" != "loginwindow" ]; then
-  CON_UID=$(/usr/bin/id -u "$CON_USER")
+  UIDS="$(/usr/bin/id -u "$CON_USER" 2>/dev/null)"
+fi
+UIDS="$UIDS $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\/loginwindow$/ && $1 >= 500 {print $1}')"
+for CON_UID in $(printf '%s\n' $UIDS | /usr/bin/sort -un); do
+  [ -n "$CON_UID" ] || continue
   /bin/launchctl bootout "gui/$CON_UID/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
   /bin/launchctl bootstrap "gui/$CON_UID" /Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist || \
     /bin/launchctl asuser "$CON_UID" /bin/launchctl load /Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist || true
-fi
+done
 exit 0
