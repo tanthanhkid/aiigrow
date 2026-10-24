@@ -24,6 +24,7 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
 
 ## 5. Áp chính sách (daemon)
 - Đếm phút: chỉ khi Con là console user và màn không khoá; app theo báo của tray, tray tắt thì tính «Không rõ».
+- Bundle id: máy chủ lưu luật app bằng chữ thường (`chuanMuc`) ⇒ tác tử so bundle id KHÔNG phân biệt hoa/thường ở mọi chỗ (chặn/cho phép app, đếm phút) và gửi usage bằng chữ thường. Riêng tên tệp plist chính sách trình duyệt giữ đúng chữ hoa của domain (`com.google.Chrome.plist`).
 - App: `hoc` ⇒ chỉ app trong `allowedApps` + app hệ thống; app bị chặn ⇒ đóng (SIGTERM, 3 giây sau SIGKILL) tiến trình của uid Con.
 - Web: chính sách trình duyệt (Chrome/Edge/Brave/Cốc Cốc `URLBlocklist`/`URLAllowlist`) + Safari: khối `/etc/hosts` có mốc `# AiiGrow`.
 - Khoá: tray hiện màn khoá toàn màn hình + đếm ngược, hết đếm ngược daemon khoá/đăng xuất phiên Con.

@@ -50,6 +50,7 @@ public actor BoMay {
     self.policy = cauHinh.policyCuoi
     self.apTruoc = donDieu()
     self.demTienCanh = DemTienCanh(dongBo: tuyChon.tienCanhDongBo) { [heThong] uid in heThong.appTienCanh(cuaUid: uid) }
+    if let u = cauHinh.uidCon { _ = demTienCanh.doc(uid: u, gio: apTruoc) }      // kích kiểm nền ngay khi daemon chạy ⇒ tick đầu có dữ liệu sớm
   }
 
   public var daGhep: Bool { cauHinh.daGhep }

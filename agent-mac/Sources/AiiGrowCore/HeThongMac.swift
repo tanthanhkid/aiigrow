@@ -139,41 +139,49 @@ public final class HeThongMac: HeThong {
     fflush(stdout)
   }
 
-  /// Chạy lệnh, chờ xong tối đa `timeout` giây (quá hạn ⇒ kill tiến trình con, đóng ống, trả (-1, «quá hạn»)) ⇒ (mã thoát, stdout+stderr).
-  /// Đọc bằng readabilityHandler (dispatch source, không giữ luồng chặn): hết giờ không rò luồng hay fd.
+  /// Chạy lệnh, chờ xong tối đa `timeout` giây (quá hạn ⇒ kill tiến trình con, trả (-1, «quá hạn»)) ⇒ (mã thoát, stdout+stderr).
+  /// Đọc bằng DispatchSource trên hàng đợi nối tiếp riêng; fd CHỈ được đóng trong cancelHandler (sau khi mọi lần đọc đã xong) — không race, không rò luồng/fd.
   @discardableResult
   public static func chay(_ lenh: String, _ thamSo: [String], timeout: Double = 20) -> (Int32, String) {
-    final class Hop: @unchecked Sendable { let k = NSLock(); var d = Data() }
+    final class Hop: @unchecked Sendable { var d = Data() }      // chỉ đụng trên `hang` (nối tiếp) hoặc sau khi nguồn đã huỷ
+    var fds: [Int32] = [0, 0]
+    guard pipe(&fds) == 0 else { return (-1, "pipe lỗi") }
+    let doc = fds[0], ghi = fds[1]
+    _ = fcntl(doc, F_SETFL, fcntl(doc, F_GETFL) | O_NONBLOCK)
     let p = Process()
     p.executableURL = URL(fileURLWithPath: lenh)
     p.arguments = thamSo
-    let ong = Pipe()
-    p.standardOutput = ong
-    p.standardError = ong
-    let thoat = DispatchSemaphore(value: 0), heoEOF = DispatchSemaphore(value: 0)
+    let dauGhi = FileHandle(fileDescriptor: ghi, closeOnDealloc: false)
+    p.standardOutput = dauGhi
+    p.standardError = dauGhi
+    let thoat = DispatchSemaphore(value: 0), eof = DispatchSemaphore(value: 0), daHuy = DispatchSemaphore(value: 0)
     p.terminationHandler = { _ in thoat.signal() }
     let hop = Hop()
-    ong.fileHandleForReading.readabilityHandler = { h in
-      let d = h.availableData
-      if d.isEmpty { h.readabilityHandler = nil; heoEOF.signal(); return }     // EOF
-      hop.k.lock(); hop.d.append(d); hop.k.unlock()
+    let hang = DispatchQueue(label: "vn.aiilab.aiigrow.chay")
+    let nguon = DispatchSource.makeReadSource(fileDescriptor: doc, queue: hang)
+    nguon.setEventHandler {
+      var buf = [UInt8](repeating: 0, count: 65536)
+      while true {
+        let n = read(doc, &buf, buf.count)
+        if n > 0 { hop.d.append(buf, count: n); continue }
+        if n < 0 && (errno == EAGAIN || errno == EINTR) { return }
+        nguon.cancel(); eof.signal(); return                 // EOF hoặc lỗi
+      }
     }
-    func dong() {
-      ong.fileHandleForReading.readabilityHandler = nil
-      try? ong.fileHandleForReading.close()
-    }
-    do { try p.run() } catch { dong(); try? ong.fileHandleForWriting.close(); return (-1, "\(error)") }
-    try? ong.fileHandleForWriting.close()                   // đầu ghi của ta: để EOF tới khi con thoát
+    nguon.setCancelHandler { close(doc); daHuy.signal() }
+    nguon.resume()
+    func huy() { nguon.cancel(); _ = daHuy.wait(timeout: .now() + 2) }
+    do { try p.run() } catch { close(ghi); huy(); return (-1, "\(error)") }
+    close(ghi)                                               // đầu ghi của ta: để EOF tới khi con (và cháu) thoát
     if thoat.wait(timeout: .now() + timeout) == .timedOut {
       p.terminate()
       if thoat.wait(timeout: .now() + 1) == .timedOut { kill(p.processIdentifier, SIGKILL); _ = thoat.wait(timeout: .now() + 1) }
-      dong()
+      huy()
       return (-1, "quá hạn \(Int(timeout)) giây: \(lenh)")
     }
-    // Con đã thoát: chờ đọc tới EOF (tiến trình cháu giữ ống thì chờ tối đa 2 giây rồi lấy phần đã có).
-    _ = heoEOF.wait(timeout: .now() + 2)
-    dong()
-    hop.k.lock(); defer { hop.k.unlock() }
+    // Con đã thoát: chờ đọc tới EOF, nhưng cháu giữ ống thì chỉ chờ ngắn rồi lấy phần đã có.
+    _ = eof.wait(timeout: .now() + 0.3)
+    huy()
     return (p.terminationStatus, String(decoding: hop.d, as: UTF8.self))
   }
 }

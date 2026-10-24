@@ -38,6 +38,7 @@ public enum QuyetDinhApp {
   /// App có thuộc danh sách cho phép không — so cả bundle id lẫn tên .app (máy chủ gửi được cả hai), không phân biệt hoa/thường.
   public static func duocPhep(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
     guard let app = t.duongDanApp else { return true }                               // không phải app có giao diện ⇒ không đụng
+    let choPhep = Set(choPhep.map { $0.lowercased() })                                // máy chủ luôn lưu chữ thường (chuanMuc); bundle id thật có chữ hoa
     if thuMucHeThong.contains(where: { app.hasPrefix($0) || t.duongDan.hasPrefix($0) }) { return true }
     if app.lowercased() == DuongDan.app.lowercased() { return true }
     let ten = (app as NSString).lastPathComponent.lowercased()                         // «pages.app»
@@ -119,65 +120,56 @@ public enum TienCanh {
     return nil
   }
 
-  /// `"CFBundleIdentifier"="com.apple.finder"` ⇒ com.apple.finder (nil nếu «[ NULL ]» hay rỗng).
+  /// `"CFBundleIdentifier"="com.Apple.Finder"` ⇒ com.apple.finder — LUÔN chữ thường (khớp luật app của máy chủ, usage gửi lên chữ thường); nil nếu «[ NULL ]» hay rỗng.
   public static func tachBundleId(_ ra: String) -> String? {
     guard let i = ra.range(of: "=") else { return nil }
     let v = ra[i.upperBound...].trimmingCharacters(in: CharacterSet(charactersIn: "\" \n\r\t"))
-    return (v.isEmpty || v.contains(" ") || v.uppercased() == "NULL") ? nil : v
+    return (v.isEmpty || v.contains(" ") || v.uppercased() == "NULL") ? nil : v.lowercased()
   }
 
   /// Tên app để đếm phút: có kết quả daemon tự kiểm thì LUÔN dùng (kill tray không đổi được gì); không kiểm được ⇒ «Không rõ» (vẫn trừ giờ).
   public static func chon(thatSu: String?) -> String {
     guard let that = thatSu, !that.isEmpty else { return DemPhut.khongRo }
-    return that
+    return that.lowercased()
   }
 }
 
 /// Bộ nhớ đệm app tiền cảnh THEO UID: việc kiểm (hai lần `launchctl asuser lsappinfo`) chạy NGOÀI actor trên hàng đợi riêng, có timeout.
-/// Không spawn theo từng `trangThai` IPC: chỉ làm mới khi đệm đã ≥ `lamMoiSau` giây; đệm quá `hanDem` giây hoặc của uid khác thì coi như chưa có.
-/// Lần đầu (chưa có đệm cho uid này) chờ kết quả tối đa `choLanDau` giây, quá thì trả nil (tính «Không rõ») — không chặn actor lâu.
+/// `doc` KHÔNG BAO GIỜ chờ: chưa có đệm (hoặc của uid khác, hoặc quá `hanDem` giây) ⇒ trả nil (tính «Không rõ») và kích một lần kiểm nền.
+/// Không spawn theo từng `trangThai` IPC: chỉ làm mới khi đệm đã ≥ `lamMoiSau` giây tính từ lúc kiểm XONG.
 public final class DemTienCanh: @unchecked Sendable {
   private let khoa = NSLock()
   private var giaTri: String?
   private var uidDem: UInt32?
-  private var luc: Double = -1_000_000
+  private var luc: Double = -1_000_000           // lúc kiểm xong (đồng hồ của người gọi)
   private var dangChay = false
   private let kiem: (UInt32) -> String?
   private let lamMoiSau: Double
   private let hanDem: Double
-  private let choLanDau: Double
   private let hangDoi = DispatchQueue(label: "vn.aiilab.aiigrow.tiencanh")
   /// Chỉ test: chạy kiểm ngay tại chỗ để kết quả có sẵn trong cùng lượt.
   private let dongBo: Bool
 
-  public init(lamMoiSau: Double = 4, hanDem: Double = 12, choLanDau: Double = 0.3, dongBo: Bool = false, kiem: @escaping (UInt32) -> String?) {
-    self.kiem = kiem; self.lamMoiSau = lamMoiSau; self.hanDem = hanDem; self.choLanDau = choLanDau; self.dongBo = dongBo
-  }
-
-  private func doc_(_ uid: UInt32, _ gio: Double) -> String? {
-    khoa.lock(); defer { khoa.unlock() }
-    return (uidDem == uid && gio - luc <= hanDem) ? giaTri : nil
+  public init(lamMoiSau: Double = 4, hanDem: Double = 12, dongBo: Bool = false, kiem: @escaping (UInt32) -> String?) {
+    self.kiem = kiem; self.lamMoiSau = lamMoiSau; self.hanDem = hanDem; self.dongBo = dongBo
   }
 
   /// `gio`: đồng hồ đơn điệu (giây). Gọi mỗi vòng áp chính sách.
   public func doc(uid: UInt32, gio: Double) -> String? {
     khoa.lock()
-    let coDem = uidDem == uid && gio - luc <= hanDem
     let canLam = !dangChay && (uidDem != uid || gio - luc >= lamMoiSau)
     if canLam { dangChay = true }
     khoa.unlock()
     if canLam {
-      let xong = DispatchSemaphore(value: 0)
       let viec = { [self] in
+        let batDau = ProcessInfo.processInfo.systemUptime
         let kq = kiem(uid)
-        khoa.lock(); giaTri = kq; uidDem = uid; luc = gio; dangChay = false; khoa.unlock()
-        xong.signal()
+        let mat = ProcessInfo.processInfo.systemUptime - batDau      // thời gian kiểm tốn ⇒ `luc` ghi lúc XONG, không phải lúc bắt đầu
+        khoa.lock(); giaTri = kq; uidDem = uid; luc = gio + mat; dangChay = false; khoa.unlock()
       }
-      if dongBo { viec() } else {
-        hangDoi.async(execute: viec)
-        if !coDem { _ = xong.wait(timeout: .now() + choLanDau) }
-      }
+      if dongBo { viec() } else { hangDoi.async(execute: viec) }
     }
-    return doc_(uid, gio)
+    khoa.lock(); defer { khoa.unlock() }
+    return (uidDem == uid && gio - luc <= hanDem) ? giaTri : nil
   }
 }

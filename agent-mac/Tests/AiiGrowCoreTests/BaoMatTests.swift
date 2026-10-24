@@ -212,9 +212,68 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(d.doc(uid: 502, gio: 101), "com.khac", "uid khác ⇒ không trả kết quả của uid cũ")
   }
 
-  func testDemTienCanhLanDauChoNgan() {
-    let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, choLanDau: 1, dongBo: false) { _ in "com.a" }
-    XCTAssertEqual(d.doc(uid: 501, gio: 100), "com.a", "lần đầu chờ kết quả (nhanh) thay vì trả nil")
+  func testDemTienCanhLanDauTraNilRoiCoDuLieu() {
+    let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, dongBo: false) { _ in "com.a" }
+    var kq = d.doc(uid: 501, gio: 100)               // chưa có đệm: không chờ, có thể nil
+    for _ in 0..<200 where kq == nil { usleep(10_000); kq = d.doc(uid: 501, gio: 100.1) }
+    XCTAssertEqual(kq, "com.a", "kích kiểm nền, lần sau có dữ liệu")
+  }
+
+  func testDemTienCanhGhiLucKiemXong() {
+    var dem = 0
+    let d = DemTienCanh(lamMoiSau: 0.3, hanDem: 12, dongBo: true) { _ in dem += 1; usleep(500_000); return "com.a" }
+    _ = d.doc(uid: 501, gio: 100)                    // kiểm tốn 0,5 giây ⇒ xong lúc ≈100,5
+    _ = d.doc(uid: 501, gio: 100.6)                  // cách lúc XONG 0,1 < 0,3 ⇒ chưa làm mới (nếu ghi lúc bắt đầu thì 0,6 ≥ 0,3 sẽ kiểm lại)
+    XCTAssertEqual(dem, 1)
+  }
+
+  // MARK: chữ hoa/thường (máy chủ lưu luật app bằng chữ thường)
+
+  func testPolicyChuThuongKhopAppThatCoChuHoa() throws {
+    let roblox = TienTrinh(pid: 10, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.Roblox.RobloxPlayer")
+    let pages = TienTrinh(pid: 11, uid: 501, duongDan: "/Applications/Pages.app/Contents/MacOS/Pages", bundleId: "com.apple.iWork.Pages")
+    let chrome = TienTrinh(pid: 12, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    // Policy qua parser: máy chủ lưu chữ thường, kể cả khi có ai gửi chữ hoa
+    let p = try PolicyParser.parse(#"{"mode":"hoc","allowedApps":["com.apple.iwork.pages","COM.GOOGLE.CHROME"],"learningApps":["com.apple.iwork.pages"]}"#)
+    XCTAssertEqual(p.allowedApps, ["com.apple.iwork.pages", "com.google.chrome"])
+    let dong = QuyetDinhApp.canDong([roblox, pages, chrome], uidCon: 501, chiAppHoc: true, choPhep: p.allowedApps)
+    XCTAssertEqual(dong.map(\.pid), [10], "Pages/Chrome (bundle id có chữ hoa) khớp luật chữ thường; Roblox không có trong luật ⇒ đóng")
+    // luật chữ thường cho app chặn: Roblox được phép thì không đóng
+    XCTAssertTrue(QuyetDinhApp.canDong([roblox], uidCon: 501, chiAppHoc: true, choPhep: ["com.roblox.robloxplayer"]).isEmpty)
+    // duocPhep tự hạ chữ thường cả khi người gọi truyền chữ hoa
+    XCTAssertTrue(QuyetDinhApp.duocPhep(roblox, choPhep: ["COM.ROBLOX.ROBLOXPLAYER"]))
+  }
+
+  func testUsageGuiLenLaChuThuong() {
+    XCTAssertEqual(TienCanh.tachBundleId("\"CFBundleIdentifier\"=\"com.Roblox.RobloxPlayer\""), "com.roblox.robloxplayer")
+    XCTAssertEqual(TienCanh.chon(thatSu: "com.Apple.iWork.Pages"), "com.apple.iwork.pages")
+    var d: [String: Double] = [:]
+    DemPhut.cong(&d, ngay: "2026-10-24", app: "com.Roblox.RobloxPlayer", giay: 120)
+    XCTAssertEqual(DemPhut.tong(d), [MucDung(muc: "com.roblox.robloxplayer", phut: 2, day: "2026-10-24")])
+  }
+
+  func testChayChauGiuOngChiChoNgan() {
+    let t0 = Date()
+    let (ma, ra) = HeThongMac.chay("/bin/sh", ["-c", "sleep 5 & echo xin-chao"], timeout: 5)
+    XCTAssertEqual(ma, 0)
+    XCTAssertTrue(ra.contains("xin-chao"))
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 1.5, "cháu giữ ống: chỉ chờ ~0,3 giây")
+  }
+
+  func testChayLapNhieuLanKhongSapVaKhongRoFd() {
+    _ = HeThongMac.chay("/bin/echo", ["x"], timeout: 5)
+    let truoc = soFd()
+    let nhom = DispatchGroup()
+    for i in 0..<40 {
+      nhom.enter()
+      DispatchQueue.global().async {
+        _ = i % 2 == 0 ? HeThongMac.chay("/bin/echo", ["ok"], timeout: 5) : HeThongMac.chay("/bin/sleep", ["30"], timeout: 0.1)
+        nhom.leave()
+      }
+    }
+    XCTAssertEqual(nhom.wait(timeout: .now() + 20), .success)
+    usleep(300_000)
+    XCTAssertLessThanOrEqual(soFd(), truoc + 2)
   }
 
   private func soFd() -> Int { (try? FileManager.default.contentsOfDirectory(atPath: "/dev/fd").count) ?? -1 }
@@ -251,6 +310,24 @@ final class BaoMatTests: XCTestCase {
     try s2.mo(); s2.dong()
     Task { await s2.phucVu() }          // đã đóng ⇒ trả về ngay, không treo
     usleep(100_000)
+  }
+
+  func testDongRoiMoLaiTrong200msVanPhucVu() throws {
+    let duong = NSTemporaryDirectory() + "aiigrow-re-\(UUID().uuidString).sock"
+    let s = SocketIPC(duongDan: duong) { _, _ in .ok(id: "moi") }
+    try s.mo()
+    let x1 = expectation(description: "phục vụ 1")
+    Task { await s.phucVu(); x1.fulfill() }
+    usleep(100_000)
+    s.dong()
+    try s.mo()                                       // ngay sau dong(): luồng accept cũ chưa kịp thoát
+    let x2 = expectation(description: "phục vụ 2")
+    Task { await s.phucVu(); x2.fulfill() }
+    wait(for: [x1], timeout: 2)                      // luồng cũ phải thoát (không đè trạng thái socket mới)
+    let r = try SocketTest.gui(.trangThai, duongDan: duong)
+    XCTAssertEqual(r, .ok(id: "moi"), "socket mới vẫn được phục vụ")
+    s.dong()
+    wait(for: [x2], timeout: 2)
   }
 
   func testTrangThaiTuConLaNhipSongCuaTray() async throws {

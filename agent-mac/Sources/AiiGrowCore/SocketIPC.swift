@@ -4,10 +4,10 @@ import Foundation
 
 public final class SocketIPC: @unchecked Sendable {
   private let duongDan: String
-  /// `fdNghe`, `chay`, `dangPhucVu` chỉ đọc/ghi khi giữ `khoaTrangThai` (accept ở thread riêng, dong() ở thread khác).
+  /// `fdNghe`, `chay`, `fdDangPhucVu` chỉ đọc/ghi khi giữ `khoaTrangThai` (accept ở thread riêng, dong() ở thread khác).
   private let khoaTrangThai = NSLock()
   private var fdNghe: Int32 = -1
-  private var dangPhucVu = false
+  private var fdDangPhucVu: Int32 = -1       // fd mà một luồng accept đang phục vụ (-1 = không)
   private let xuLy: (YeuCauTray, UInt32) async -> TraLoi
   /// Số kết nối đồng thời tối đa cả socket, và tối đa cho MỖI uid (uid Con không chiếm hết phần của root/tray khác uid) — vượt thì đóng ngay.
   public static let toiDaDongThoi = 16
@@ -46,7 +46,11 @@ public final class SocketIPC: @unchecked Sendable {
     guard kq == 0 else { close(fd); throw LoiApi(chu: "Không bind được socket \(duongDan): \(String(cString: strerror(errno)))") }
     chmod(duongDan, 0o666)
     guard listen(fd, 16) == 0 else { close(fd); throw LoiApi(chu: "Không listen được socket") }
-    khoaTrangThai.lock(); fdNghe = fd; chay = true; khoaTrangThai.unlock()
+    khoaTrangThai.lock()
+    let cu = fdNghe
+    if cu >= 0, fdDangPhucVu != cu { close(cu) }      // mo() lần nữa khi chưa dong(): không rò fd cũ chưa có luồng phục vụ
+    fdNghe = fd; chay = true
+    khoaTrangThai.unlock()
   }
 
   /// Vòng accept — chạy ở luồng riêng, `poll` 200ms/lần để `dong()` thoát sạch; trả về khi socket đóng (fd đóng ở chính luồng này).
@@ -55,7 +59,7 @@ public final class SocketIPC: @unchecked Sendable {
     guard let fdN = batDauPhucVu() else { return }
     await withCheckedContinuation { (xong: CheckedContinuation<Void, Never>) in
       let t = Thread { [self] in
-        while dangChay() {
+        while dangChay(fdN) {
           var pf = pollfd(fd: fdN, events: Int16(POLLIN), revents: 0)
           let r = poll(&pf, 1, 200)
           if r < 0 { if errno == EINTR { continue }; break }
@@ -64,10 +68,11 @@ public final class SocketIPC: @unchecked Sendable {
           if fd < 0 { if errno == EINTR || errno == EAGAIN || errno == ECONNABORTED { continue }; break }
           nhan(fd)
         }
+        // Chỉ dọn trạng thái nếu socket hiện tại vẫn là của luồng này — dong() rồi mo() lại nhanh thì không đè lên socket mới.
         khoaTrangThai.lock()
         close(fdN)
-        if fdNghe == fdN { fdNghe = -1 }
-        chay = false; dangPhucVu = false
+        if fdNghe == fdN { fdNghe = -1; chay = false }
+        if fdDangPhucVu == fdN { fdDangPhucVu = -1 }
         khoaTrangThai.unlock()
         xong.resume()
       }
@@ -78,12 +83,13 @@ public final class SocketIPC: @unchecked Sendable {
 
   private func batDauPhucVu() -> Int32? {
     khoaTrangThai.lock(); defer { khoaTrangThai.unlock() }
-    guard chay, fdNghe >= 0, !dangPhucVu else { return nil }
-    dangPhucVu = true
+    guard chay, fdNghe >= 0, fdDangPhucVu != fdNghe else { return nil }
+    fdDangPhucVu = fdNghe
     return fdNghe
   }
 
-  private func dangChay() -> Bool { khoaTrangThai.lock(); defer { khoaTrangThai.unlock() }; return chay }
+  /// Luồng của `fdN` còn phải chạy: chưa dong() và socket hiện tại vẫn là `fdN` (mo() lại ⇒ luồng cũ thoát).
+  private func dangChay(_ fdN: Int32) -> Bool { khoaTrangThai.lock(); defer { khoaTrangThai.unlock() }; return chay && fdNghe == fdN }
 
   private func nhan(_ fd: Int32) {
     var mot: Int32 = 1
@@ -158,7 +164,7 @@ public final class SocketIPC: @unchecked Sendable {
   public func dong() {
     khoaTrangThai.lock()
     chay = false
-    if !dangPhucVu, fdNghe >= 0 { close(fdNghe); fdNghe = -1 }
+    if fdNghe >= 0, fdDangPhucVu != fdNghe { close(fdNghe); fdNghe = -1 }
     khoaTrangThai.unlock()
     unlink(duongDan)
   }
