@@ -108,6 +108,17 @@ internal static class UI
 
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr h);
     [DllImport("user32.dll")] public static extern bool LockWorkStation();
+    [DllImport("userenv.dll", SetLastError = true)] private static extern bool RefreshPolicyEx(bool bMachine, uint dwOptions);
+
+    /// <summary>Báo trình duyệt đang mở (Chrome / Edge / Brave / Cốc Cốc) đọc lại chính sách của NGƯỜI DÙNG này ngay. Luật web nay nằm trong hive của Con (HKCU) —
+    /// dịch vụ SYSTEM không làm mới được chính sách của người dùng khác, nên khay (chạy trong phiên Con) tự gọi RefreshPolicyEx(user, force).
+    /// Chạy nền (có thể mất vài giây); lỗi thì thôi — khay vẫn nhắc Con «mở lại trình duyệt».</summary>
+    public static void LamMoiChinhSachNguoiDung()
+        => Task.Run(() => { try { RefreshPolicyEx(false, 1 /* RP_FORCE */); } catch (Exception e) { Debug.WriteLine(e); } });
+
+    /// <summary>«Ba Mẹ dùng máy» (#70 §1): chuyển người dùng — khoá phiên (Win+L), KHÔNG đăng xuất, phiên của Con giữ nguyên. Phiên chơi đang chạy tạm dừng,
+    /// không trừ điểm: dịch vụ chỉ đếm khi phiên Con mở khoá và app chơi ở nền trước (TienCanhChoi).</summary>
+    public static void NhuongMayChoBaMe() => LockWorkStation();
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
 

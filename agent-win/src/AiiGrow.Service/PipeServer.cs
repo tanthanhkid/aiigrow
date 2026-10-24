@@ -90,6 +90,14 @@ public sealed class PipeServer : BackgroundService
         }
     }
 
+    /// <summary>Trạng thái cho khay của phiên <paramref name="phienGoi"/> + cờ «phiên này có phải của Con không» (khay phiên Ba Mẹ tự thoát — BUG-007).</summary>
+    private TrayState TrangThaiChoPhien(DateTimeOffset now, int phienGoi)
+    {
+        var st = _rt.BuildState(now);
+        st.PhienCon = QuyenPhien.KhayChayOPhien(SessionHelper.SessionUser(phienGoi), _rt.Config?.ChildUser, _rt.TaiKhoanMay);
+        return st;
+    }
+
     /// <param name="khayThat">Khách là đúng exe khay đã cài — chỉ tính cho Foreground / Play (lệnh khác: false, không dùng).</param>
     private async Task<PipeResponse> DispatchAsync(PipeRequest req, int clientSession, bool khayThat, CancellationToken ct)
     {
@@ -103,12 +111,29 @@ public sealed class PipeServer : BackgroundService
         switch (req.Cmd)
         {
             case PipeCmd.State:
-                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
 
             case PipeCmd.Foreground:
                 // Chỉ khay thật: app khác trong phiên Con giả lời báo («không có cửa sổ») sẽ ngừng được đồng hồ phiên chơi.
                 if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName);
-                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
+
+            case PipeCmd.PlayInfo:
+            {
+                // Rob hiện «≈ X phút chơi»: phien/xet cho mục Giải trí đầu tiên (hoặc AppId nếu có). Chỉ trả số phút, không trả điểm.
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con xem được" };
+                var cfg = _rt.Config;
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
+                var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId! : _rt.BuildState(now).PlayChoices.FirstOrDefault() ?? "";
+                if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
+                try
+                {
+                    using var api = new ApiClient(cfg.Server, cfg.Token);
+                    var xet = await api.CheckPlayAsync(muc, ct);
+                    return new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutToiDa : 0 };
+                }
+                catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+            }
 
             case PipeCmd.Request:
             {
@@ -167,7 +192,7 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.SyncNow:
                 // «Thử kết nối lại»: đồng bộ ngay ở vòng kế (≤5 giây); khay hỏi lại trạng thái sau đó.
                 _rt.RequestSyncSoon();
-                return new PipeResponse { Ok = true, State = _rt.BuildState(now) };
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
 
             case PipeCmd.HocVien:
             {

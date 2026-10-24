@@ -40,6 +40,7 @@ internal sealed class AppForm : Form
     private DateTimeOffset _at = DateTimeOffset.Now;
     private KetNoiInfo _kn = KetNoiView.Chon(false, null);
     private HvTongQuan? _tq;
+    private int? _phutChoi;   // «≈ X phút chơi» đổi được từ điểm (dịch vụ → phien/xet); null = chưa biết
     private HvCuaHang? _ch;
     private HvTinDs? _tin;
     private bool _busy;
@@ -201,7 +202,7 @@ internal sealed class AppForm : Form
         if (s != null) { _s = s; _at = receivedAt; }
         _kn = kn;
         ApplyKetNoiUi();
-        var sig = $"{kn.Loai}|{kn.Dong}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}";
+        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}";
         if (sig != _sig) { _sig = sig; Render(); }
     }
 
@@ -287,6 +288,7 @@ internal sealed class AppForm : Form
             Render();
             ApplyKetNoiUi();
             Say("", false);
+            await LamMoiPhutChoiAsync();
 
             var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
             _ch = ch;
@@ -295,6 +297,25 @@ internal sealed class AppForm : Form
             Render();
         }
         finally { _busy = false; }
+    }
+
+    private async Task LamMoiPhutChoiAsync()
+    {
+        if (_s.PlayChoices.Count == 0) { _phutChoi = null; return; }
+        try
+        {
+            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = _s.PlayChoices[0] });
+            var moi = r.Ok ? r.PlayMinutes : null;
+            if (moi != _phutChoi) { _phutChoi = moi; Render(); }
+        }
+        catch { /* không có số phút thì chỉ hiện điểm */ }
+    }
+
+    private void MoChoiBangDiem()
+    {
+        using var f = new ChoiBangDiemForm(_s.PlayChoices, _phutChoi);
+        f.ShowDialog(this);
+        _ = LamMoiPhutChoiAsync();
     }
 
     private void TickClock()
@@ -401,6 +422,26 @@ internal sealed class AppForm : Form
                 row.Controls.Add(ex);
             }
             _content.Controls.Add(row);
+
+            // BUG-006: luôn có nút «Chơi bằng điểm» khi đã ghép gia đình, kèm số phút đổi được.
+            if (_s.Paired && !_s.MoCoi)
+            {
+                var pr = Row(_cw);
+                var choi = Btn("Chơi bằng điểm", false, 270);
+                choi.Click += (_, _) => MoChoiBangDiem();
+                pr.Controls.Add(choi);
+                _content.Controls.Add(pr);
+                if (_phutChoi is > 0)
+                    _content.Controls.Add(T($"Điểm đổi được khoảng {_phutChoi} phút chơi.", 12f, false, UI.Muted, true));
+            }
+
+            // #70 §1: Ba Mẹ cần máy ⇒ chuyển người dùng (khoá phiên), không đăng xuất, không trừ điểm.
+            var bm = Card();
+            bm.Controls.Add(T("Ba Mẹ cần máy? Bấm nút này hoặc Win+L", 12f, false, UI.Muted));
+            var nutBm = Btn("Ba Mẹ dùng máy", false, 270);
+            nutBm.Click += (_, _) => UI.NhuongMayChoBaMe();
+            bm.Controls.Add(nutBm);
+            _content.Controls.Add(bm);
         }
 
         if (_s.Paired && !_s.MoCoi)
@@ -417,7 +458,7 @@ internal sealed class AppForm : Form
             {
                 var n = HocVienView.SoViecMo(_tq);
                 c.Controls.Add(T(n > 0 ? $"Con có {n} việc đang chờ. Làm xong để tích điểm nhé!" : "Hôm nay con đã làm hết việc rồi. Giỏi lắm!", 12.5f, false));
-                c.Controls.Add(T($"{_tq.SoDu} điểm  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
+                c.Controls.Add(T($"{_tq.SoDu} điểm" + (_phutChoi is > 0 ? $"  ·  ≈ {_phutChoi} phút chơi" : "") + $"  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
             }
             var row = Row(_tw);
             var go = Btn("Xem nhiệm vụ", false, 210);

@@ -15,9 +15,32 @@ public sealed class AppLockerController
 
     public bool Applied { get; private set; }
 
+    private bool? _khaDung;
+    /// <summary>AppLocker dùng được trên máy này không (BUG-005: Windows Home không có). Đọc một lần, nhớ cả đời dịch vụ.</summary>
+    public bool KhaDung
+    {
+        get
+        {
+            if (_khaDung is { } v) return v;
+            var ed = AppLockerKhaDung.DocEditionId();
+            bool? cmdlet = null;
+            if (!AppLockerKhaDung.LaBanHome(ed))
+            {
+                var r = Shell.PowerShell("if (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) { 'co' } else { 'khong' }", 30000);
+                if (r.Ok) cmdlet = !r.Output.Contains("khong");
+            }
+            var kq = AppLockerKhaDung.Tinh(ed, cmdlet);
+            // đọc cmdlet lỗi (cmdlet = null) ⇒ chưa chắc: không nhớ, thử lại lần sau; Home / không có cmdlet là chắc chắn
+            if (cmdlet != null || AppLockerKhaDung.LaBanHome(ed)) _khaDung = kq;
+            if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}», cmdlet {c}) — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", cmdlet, AppLockerKhaDung.CauGhiChu);
+            return kq;
+        }
+    }
+
     /// <summary>Đưa AppLocker về đúng trạng thái mong muốn. Trả true nếu luật AiiGrow đang có hiệu lực.</summary>
     public bool Reconcile(bool wantApply, IReadOnlyList<string> sids, IEnumerable<string> apps)
     {
+        if (!KhaDung) { Applied = false; return false; }   // Win Home: không áp, không gỡ, không log mỗi nhịp
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
         var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
         var want = wantApply && ds.Count > 0;

@@ -9,11 +9,14 @@ internal sealed class TrayContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 3000 };
     private AppForm? _app;
     private LockForm? _lock;
+    private BlockedForm? _blocked;
     private TrayState _state = new();
     private DateTimeOffset _at = DateTimeOffset.Now;
     private int _seenBlocked = -1;
     private bool _polling;
     private bool _warned5, _warned1, _warnedMo5, _warnedMoCoi;
+    private bool _daChao;          // biểu tượng + lời chào chỉ hiện sau khi dịch vụ xác nhận đây là phiên của Con (BUG-007)
+    private int _webRev = -1;      // -1 = chưa thấy lần nào (lần đầu chỉ ghi nhớ, không báo)
 
     // Trạng thái kết nối: biểu tượng khay + tooltip + dòng trạng thái ở menu và thanh bên app. Dịch vụ không trả lời 2 lần liền (≥6 giây) mới báo «không chạy».
     private KetNoiInfo _kn = KetNoiView.Chon(true, new TrayState { Paired = true });
@@ -49,7 +52,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             Icon = UI.TrayIcon(true),
             Text = "AiiGrow",
-            Visible = true,
+            Visible = false,   // hiện khi dịch vụ xác nhận phiên của Con (xem Chao) — phiên Ba Mẹ không thấy biểu tượng nháy lên rồi tắt
             ContextMenuStrip = menu,
         };
         _iconKetNoi = true;
@@ -58,8 +61,6 @@ internal sealed class TrayContext : ApplicationContext
         // Bấm vào bóng báo «nhiệm vụ mới / Ba Mẹ phản hồi / Còn 5 phút…» ⇒ mở app to đúng mục.
         _ni.BalloonTipClicked += (_, _) => { if ((DateTimeOffset.Now - _toastAt).TotalSeconds < 20) OpenApp(_toastMuc, true); };
 
-        Toast(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Nhấn đúp vào biểu tượng AiiGrow để xem giờ, nhận nhiệm vụ và xem phần quà.", ToolTipIcon.Info, MucApp.HomNay);
-        BaoCapNhat.NeuVuaCapNhat(_ni);   // #33: «đã cập nhật lên bản X» (một lần mỗi tài khoản)
 
         _timer.Tick += async (_, _) => await TickAsync();
         _timer.Start();
@@ -68,6 +69,25 @@ internal sealed class TrayContext : ApplicationContext
         _hvTimer.Tick += async (_, _) => await HocVienTickAsync();
         _hvTimer.Start();
         _ = HocVienTickAsync();
+    }
+
+    /// <summary>Lần đầu biết đây là phiên của Con (hoặc dịch vụ không chạy ⇒ Con cần thấy lỗi): hiện biểu tượng + lời chào.</summary>
+    private void Chao(bool coLoiChao)
+    {
+        if (_daChao) return;
+        _daChao = true;
+        _ni.Visible = true;
+        if (!coLoiChao) return;
+        Toast(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Nhấn đúp vào biểu tượng AiiGrow để xem giờ, nhận nhiệm vụ và xem phần quà.", ToolTipIcon.Info, MucApp.HomNay);
+        BaoCapNhat.NeuVuaCapNhat(_ni);   // #33: «đã cập nhật lên bản X» (một lần mỗi tài khoản)
+    }
+
+    /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay không có việc ở đây ⇒ thoát hẳn (BUG-007).</summary>
+    private void ThoatVoiPhienKhac()
+    {
+        _timer.Stop(); _hvTimer.Stop();
+        _ni.Visible = false;
+        ExitThread();
     }
 
     /// <summary>Bóng báo trên khay; nhớ mục để bấm vào thì mở đúng chỗ.</summary>
@@ -185,10 +205,12 @@ internal sealed class TrayContext : ApplicationContext
             if (!res.Ok || res.State == null)
             {
                 // Dịch vụ không trả lời: chờ 2 lần liền (~6 giây) cho chắc rồi mới đổi biểu tượng + báo «Dịch vụ AiiGrow không chạy».
-                if (++_pipeFail >= 2) SetKetNoi(KetNoiView.Chon(false, null), false);
+                if (++_pipeFail >= 2) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); }
                 return;
             }
             _pipeFail = 0;
+            if (!res.State.PhienCon) { ThoatVoiPhienKhac(); return; }
+            Chao(true);
             _state = res.State;
             _at = DateTimeOffset.Now;
             SetKetNoi(KetNoiView.Chon(true, _state), true);
@@ -197,6 +219,7 @@ internal sealed class TrayContext : ApplicationContext
                 _warnedMoCoi = true;
                 Toast(10000, "AiiGrow không chặn nữa", MoCoi.CauKhay, ToolTipIcon.Info, MucApp.HomNay);
             }
+            HandleWeb();
             HandleLock();
             HandleBlocked();
             HandleWarnings();
@@ -206,6 +229,17 @@ internal sealed class TrayContext : ApplicationContext
             System.Diagnostics.Debug.WriteLine(e);
         }
         finally { _polling = false; }
+    }
+
+    /// <summary>Luật web trong hive của Con vừa đổi/gỡ (dịch vụ tăng WebRev): làm mới chính sách trình duyệt trong phiên này + nhắc mở lại trình duyệt nếu luật mới chưa áp.</summary>
+    private void HandleWeb()
+    {
+        if (_webRev < 0) { _webRev = _state.WebRev; return; }
+        if (_state.WebRev == _webRev) return;
+        _webRev = _state.WebRev;
+        UI.LamMoiChinhSachNguoiDung();
+        if (!_state.MoCoi)
+            Toast(8000, "Luật web vừa đổi", "Nếu trang web chưa theo luật mới, con đóng rồi mở lại trình duyệt nhé.", ToolTipIcon.Info, MucApp.HomNay);
     }
 
     private void HandleLock()
@@ -236,7 +270,10 @@ internal sealed class TrayContext : ApplicationContext
         _seenBlocked = _state.BlockedSeq;
         // App bị đóng vì chưa nằm trong danh sách Ba Mẹ cho phép ⇒ mặc định "chưa phân loại"; nếu dịch vụ có lý do rõ thì dùng lý do đó.
         var reason = string.IsNullOrEmpty(_state.LockReason) ? LockReasons.ChuaPhanLoai : _state.LockReason;
-        new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints, _state.Offline).Show();
+        // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
+        if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
+        _blocked = new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints, _state.Offline);
+        _blocked.Show();
     }
 
     private void HandleWarnings()

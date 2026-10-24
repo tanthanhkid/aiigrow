@@ -69,10 +69,21 @@ public static class TrayView
         return text.Length > 120 ? text[..120] : text;
     }
 
+    private static readonly Dictionary<string, string> TenDepApp = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["msedge"] = "Microsoft Edge", ["chrome"] = "Google Chrome", ["firefox"] = "Firefox", ["brave"] = "Brave",
+        ["browser"] = "Cốc Cốc", ["coccoc"] = "Cốc Cốc", ["opera"] = "Opera", ["roblox"] = "Roblox",
+        ["robloxplayerbeta"] = "Roblox", ["minecraft"] = "Minecraft", ["javaw"] = "Minecraft", ["steam"] = "Steam",
+        ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["calculatorapp"] = "Máy tính",
+    };
+
     public static string FriendlyAppName(string? appId, string? appName)
     {
         if (!string.IsNullOrWhiteSpace(appName)) return appName!;
         var n = (appId ?? "").Trim();
+        if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
+        if (TenDepApp.TryGetValue(n, out var dep)) return dep;
+        n = (appId ?? "").Trim();
         if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
         if (n.Length == 0) return "App này";
         return char.ToUpperInvariant(n[0]) + n[1..];

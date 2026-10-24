@@ -36,6 +36,16 @@ public sealed class AgentRuntime
     public AgentConfig? Config { get; private set; }
     public UsageTracker Usage { get; } = new();
     public bool AppLockerApplied { get; set; }
+    /// <summary>BUG-005: AppLocker dùng được trên máy này (false = Windows Home ⇒ chỉ chặn bằng cách đóng app). Worker đặt mỗi vòng.</summary>
+    public volatile bool AppLockerKhaDung = true;
+    /// <summary>0.2.6: SID tài khoản Con (AgentWorker tính mỗi vòng; null = chưa đọc được) — WebGuardWorker ghi luật web vào hive những SID này.</summary>
+    public volatile IReadOnlyList<string>? ChildSids;
+    /// <summary>0.2.6: danh sách tài khoản Windows của máy (AgentWorker đọc mỗi ~2 phút; null = chưa đọc được) — khay hỏi «phiên này có phải của Con không».</summary>
+    public volatile IReadOnlyList<LocalAccount>? TaiKhoanMay;
+    private int _webRev;
+    /// <summary>0.2.6: tăng khi luật web trong hive của Con đổi/gỡ — khay thấy đổi thì làm mới chính sách trình duyệt trong phiên Con.</summary>
+    public int WebRev => Volatile.Read(ref _webRev);
+    public void WebDaDoi() => Interlocked.Increment(ref _webRev);
     public int ChildSessionId { get; set; } = -1;
 
     public void LoadConfig()
@@ -406,7 +416,7 @@ public sealed class AgentRuntime
             var s = new TrayState
             {
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
-                OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid,
+                OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
             };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);
@@ -419,6 +429,7 @@ public sealed class AgentRuntime
             s.MinutesLeft = eff.MinutesLeft;
             s.GrantEndsAt = eff.GrantEndsAt;
             s.CanExchangePoints = _policy.CanExchangePoints;
+            s.PlayChoices = _policy.PlayChoices.ToList();
             s.BlockedSeq = _blockedSeq;
             s.BlockedAppId = _blockedId;
             s.BlockedAppName = _blockedName;
@@ -468,7 +479,8 @@ public sealed class AgentRuntime
                 // 0.2.4: giây chơi thật của phiên từ lần đồng bộ thành công trước (máy chủ: lib/phien-windows.ts).
                 PlaySeconds = Math.Round(_playSec, 1),
                 PlaySessionId = _playSecId,
-                Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac),
+                Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac, AppLockerKhaDung),
+                GhiChuBaoVe = AppLockerKhaDung ? null : AiiGrow.Core.AppLockerKhaDung.CauGhiChu,
             };
         }
     }

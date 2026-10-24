@@ -118,6 +118,13 @@ public static class SessionHelper
         try { return QueryString(s, WTSUserName); } catch { return ""; }
     }
 
+    /// <summary>Tên tài khoản đăng nhập của phiên <paramref name="sessionId"/> ("" nếu không đọc được).</summary>
+    public static string SessionUser(int sessionId)
+    {
+        if (sessionId <= 0) return "";
+        try { return QueryString(sessionId, WTSUserName); } catch { return ""; }
+    }
+
     /// <summary>Phiên của tài khoản <paramref name="userName"/> (ưu tiên phiên đang Active), null nếu chưa đăng nhập.</summary>
     public static ChildSession? Find(string userName)
     {

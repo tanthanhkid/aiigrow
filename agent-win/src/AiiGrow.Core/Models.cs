@@ -79,6 +79,8 @@ public sealed class Policy
     public bool PlayWeb { get; set; }
     /// <summary>Số phút tối đa được chơi tiếp khi mất mạng (máy chủ tính từ phút còn lại của phiên, số dư, phút thưởng, giá phiên).</summary>
     public double? PlayOfflineMinutes { get; set; }
+    /// <summary>0.2.6: app / trang Giải trí Ba Mẹ đã xếp (chữ thường: .exe hoặc tên miền) — Rob cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
+    public List<string> PlayChoices { get; set; } = new();
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -111,13 +113,15 @@ public sealed class AgentStatus
     public double PlaySeconds { get; set; }
     /// <summary>Phiên mà <see cref="PlaySeconds"/> thuộc về (Policy.PlaySessionId đang giữ); null = Policy không có phiên.</summary>
     public string? PlaySessionId { get; set; }
+    /// <summary>0.2.6 (BUG-005): ghi chú bảo vệ cho Ba Mẹ — vd «Win Home: chặn bằng cách đóng app». null = không có gì đặc biệt.</summary>
+    public string? GhiChuBaoVe { get; set; }
 }
 
 /// <summary>Tính <see cref="AgentStatus.Quyen"/> từ trạng thái thật (thuần, test được).</summary>
 public static class QuyenBaoVe
 {
     /// <param name="phienKhac">Màn hình đang ở tài khoản Windows khác tài khoản Con ⇒ thêm khoá phienCon=false (máy chủ: «Máy đang dùng tài khoản khác»).</param>
-    public static Dictionary<string, bool> Tinh(string cheDo, bool moCoi, string mode, bool appLockerApplied, bool trayAlive, bool childSessionActive, bool phienKhac = false)
+    public static Dictionary<string, bool> Tinh(string cheDo, bool moCoi, string mode, bool appLockerApplied, bool trayAlive, bool childSessionActive, bool phienKhac = false, bool appLockerKhaDung = true)
     {
         bool chan = CheDoHieuLuc.LaChan(cheDo) && !moCoi;
         var q = new Dictionary<string, bool>
@@ -127,7 +131,8 @@ public static class QuyenBaoVe
             ["khay"] = trayAlive || !childSessionActive,
             ["chanThat"] = chan,
         };
-        if (chan && mode == Modes.Hoc) q["appLocker"] = appLockerApplied;
+        // Win Home không có AppLocker: chặn bằng cách đóng app là cách bình thường của máy đó, không tính là «thiếu quyền» (BUG-005)
+        if (chan && mode == Modes.Hoc && appLockerKhaDung) q["appLocker"] = appLockerApplied;
         if (phienKhac) q["phienCon"] = false;
         return q;
     }
@@ -167,6 +172,8 @@ public sealed class PlayCheck
     public string? LyDo { get; set; }
     /// <summary>Câu hiển thị cho con (do máy chủ soạn).</summary>
     public string? Cau { get; set; }
+    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Rob hiện «≈ X phút chơi». Số điểm KHÔNG sang khay.</summary>
+    public int? PhutToiDa { get; set; }
 }
 
 /// <summary>Kết quả mở phiên chơi (POST phien/mo).</summary>

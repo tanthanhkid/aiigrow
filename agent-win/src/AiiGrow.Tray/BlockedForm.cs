@@ -15,6 +15,7 @@ internal sealed class BlockedForm : Form
     private readonly Button _play;
     private readonly Button _ask;
     private bool _busy;
+    private bool _dong;
 
     public BlockedForm(string? appId, string? appName, string? reason, bool canExchange, bool offline = false)
     {
@@ -62,10 +63,17 @@ internal sealed class BlockedForm : Form
         }
 
         var close = UI.Btn("Đóng", false, 340);
-        close.Click += (_, _) => Close();
+        close.Click += (_, _) => DongHan();   // luôn đóng được, kể cả khi đang chờ máy chủ (BUG-007)
         flow.Controls.Add(close);
+        CancelButton = close;                  // Esc cũng đóng
         flow.Controls.Add(_msg);
         Controls.Add(flow);
+    }
+
+    private void DongHan()
+    {
+        try { Close(); } catch { /* rơi xuống Dispose */ }
+        if (!IsDisposed) { try { Dispose(); } catch { } }
     }
 
     private async Task PlayAsync()
@@ -74,8 +82,10 @@ internal sealed class BlockedForm : Form
         _busy = true;
         _play.Enabled = _ask.Enabled = false;
         _msg.Text = "Đang hỏi máy chủ…";
+        FormClosed += (_, _) => _dong = true;
         var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Play, AppId = _appId });
         _busy = false;
+        if (_dong || IsDisposed) return;   // Con đã bấm Đóng trong lúc chờ
         if (!res.Ok)
         {
             _msg.Text = res.Error ?? "Chưa mở được. Con thử lại nhé.";
