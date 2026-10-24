@@ -57,6 +57,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertTrue(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.2.pkg", mayChu: may))
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("http://aiigrow.aiilab.vn/tai/a.pkg", mayChu: may), "http")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://evil.example.com/a.pkg", mayChu: may), "host lạ")
+    XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://staging.host/a.pkg", mayChu: "http://staging.host"), "máy chủ http (cổng 80) ≠ gói https (443)")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn.evil.com/a.pkg", mayChu: may), "host giả đuôi")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn@evil.com/a.pkg", mayChu: may), "userinfo")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("file:///tmp/a.pkg", mayChu: may))
@@ -720,7 +721,7 @@ final class CapNhatTests: XCTestCase {
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
   private func chayPostinstall(daGo: Bool, pidDau: String?, pidGo: String? = nil, goiTuDong: Bool = false, coConfig: Bool = true,
-                               dauGo: String = "da-go") throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool, quenBienNhan: Bool) {
+                               dauGo: String = "da-go", dongLenh: Bool = false) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool, quenBienNhan: Bool) {
     let fm = FileManager.default
     let goc = NSTemporaryDirectory() + "pi-\(UUID().uuidString)"
     defer { try? fm.removeItem(atPath: goc) }
@@ -739,7 +740,7 @@ final class CapNhatTests: XCTestCase {
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/bash")
     p.arguments = [BaoMatTests.goiDir + "/scripts/postinstall", goiTuDong ? cfg + "/cap-nhat/AiiGrow-0.1.2.pkg" : "/Users/ba/Downloads/AiiGrow.pkg"]
-    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "AIIGROW_PKGUTIL": gia, "PATH": "/usr/bin:/bin"]
+    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "AIIGROW_PKGUTIL": gia, "PATH": "/usr/bin:/bin"].merging(dongLenh ? ["COMMAND_LINE_INSTALL": "1"] : [:]) { a, _ in a }
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
     try p.run(); p.waitUntilExit()
     let log = (try? String(contentsOfFile: nhatKy, encoding: .utf8)) ?? ""
@@ -775,11 +776,15 @@ final class CapNhatTests: XCTestCase {
 
   /// go-cai.sh đã phải dừng job cập nhật giữa chừng ⇒ giữ dấu «dung-cap-nhat»: installd cài nốt gói (đường $1 lạ) không nạp lại máy vừa gỡ.
   func testPostinstallSauKhiGoCaiDungCapNhat() throws {
-    let a = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: "dung-cap-nhat\n")
+    let s0 = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
+    let a = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: "dung-cap-nhat\n", dongLenh: true)
     XCTAssertFalse(a.bootstrapDaemon); XCTAssertFalse(a.appConLai); XCTAssertTrue(a.quenBienNhan)
     XCTAssertFalse(a.daGoConLai, "dấu dùng một lần")
-    let b = try chayPostinstall(daGo: true, pidDau: nil, coConfig: true, dauGo: "dung-cap-nhat\n")
+    let b = try chayPostinstall(daGo: true, pidDau: nil, coConfig: true, dauGo: "dung-cap-nhat\n", dongLenh: true)
     XCTAssertTrue(b.bootstrapDaemon, "còn cấu hình ⇒ không phải máy vừa gỡ")
+    let c = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: "dung-cap-nhat\n")
+    XCTAssertTrue(c.bootstrapDaemon, "Ba Mẹ cài tay bằng Installer.app (không COMMAND_LINE_INSTALL) ngay sau khi gỡ ⇒ cài bình thường")
+    XCTAssertTrue(s0.contains("if \"$LC\" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '\"PID\"'; then DUNG_CAP_NHAT=1; fi"), "job nộp sau vòng chờ cũng tính")
     let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
     XCTAssertTrue(s.contains("echo \"dung-cap-nhat\" > \"$DA_GO\""))
   }

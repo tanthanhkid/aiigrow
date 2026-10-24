@@ -50,7 +50,8 @@ if [ -f "$DA_GO" ]; then
   if pidSong "$DANG_CAP_NHAT" 'vn\.aiilab\.aiigrow\.capnhat' || goCaiSong; then donVaThoat; fi
   # go-cai.sh vừa phải dừng job cập nhật giữa chừng (dấu loại «dung-cap-nhat», dưới 10 phút) và máy không còn cấu hình: đây là installd
   # cài nốt gói tự cập nhật đã bị dừng ⇒ dọn, không nạp lại. Dấu dùng một lần: xoá để lần cài tay kế tiếp chạy bình thường.
-  if [ "$(/bin/cat "$DA_GO" 2>/dev/null)" = "dung-cap-nhat" ] && [ ! -f "$THU_MUC/config.json" ] && [ -n "$(/usr/bin/find "$DA_GO" -mmin -10 2>/dev/null)" ]; then
+  # Chỉ khi cài bằng lệnh `installer` (COMMAND_LINE_INSTALL — job tự cập nhật); Ba Mẹ cài tay bằng Installer.app thì không bị dọn.
+  if [ "$(/bin/cat "$DA_GO" 2>/dev/null)" = "dung-cap-nhat" ] && [ -n "${COMMAND_LINE_INSTALL:-}" ] && [ ! -f "$THU_MUC/config.json" ] && [ -n "$(/usr/bin/find "$DA_GO" -mmin -10 2>/dev/null)" ]; then
     /bin/rm -f "$DA_GO"; donVaThoat
   fi
   /bin/rm -f "$DA_GO"                          # Ba Mẹ chủ động cài lại sau khi gỡ: bình thường

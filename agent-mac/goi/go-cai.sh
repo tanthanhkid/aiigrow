@@ -55,6 +55,8 @@ trap - INT TERM HUP
 
 "$LC" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 # Daemon đã dừng ⇒ không ai submit job cài được nữa; gỡ lần nữa phòng job vừa được submit đúng lúc ta kiểm ở trên.
+# Job đó đang chạy thì cũng là «đã phải dừng cập nhật giữa chừng» (installd có thể cài nốt) ⇒ giữ dấu dung-cap-nhat ở cuối.
+if "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"'; then DUNG_CAP_NHAT=1; fi
 "$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
 PG=/Applications/AiiGrow.app/Contents/Resources/phien-gui.sh      # cùng quy tắc phiên GUI với preinstall/postinstall; thiếu thì pkill bên dưới vẫn đóng tray
 for uid in $([ -f "$PG" ] && /bin/bash "$PG"); do

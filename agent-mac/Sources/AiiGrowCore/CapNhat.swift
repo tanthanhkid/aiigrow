@@ -61,7 +61,7 @@ public enum LuatCapNhat {
   /// URL gói phải https và cùng host với máy chủ đang dùng.
   public static func urlGoiHopLe(_ url: String, mayChu: String) -> Bool {
     guard let u = URL(string: url), u.scheme?.lowercased() == "https", let h = u.host?.lowercased(), !h.isEmpty,
-          let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, (u.port ?? 443) == (mc.port ?? 443) else { return false }
+          let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, (u.port ?? 443) == (mc.port ?? (mc.scheme?.lowercased() == "http" ? 80 : 443)) else { return false }
     return u.user == nil && u.password == nil
   }
 
