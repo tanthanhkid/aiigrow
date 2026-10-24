@@ -94,17 +94,11 @@ public final class HeThongMac: HeThong {
 
   /// `launchctl asuser <uid> lsappinfo front` ⇒ ASN, rồi `lsappinfo info -only bundleid <ASN>` — chạy trong phiên đồ hoạ của Con (daemon root không có phiên riêng).
   public func appTienCanh(cuaUid uid: UInt32) -> String? {
-    let (m1, r1) = HeThongMac.chay("/bin/launchctl", ["asuser", "\(uid)", "/usr/bin/lsappinfo", "front"])
+    let (m1, r1) = HeThongMac.chay("/bin/launchctl", ["asuser", "\(uid)", "/usr/bin/lsappinfo", "front"], timeout: 3)
     guard m1 == 0, let asn = TienCanh.tachASN(r1) else { return nil }
-    let (m2, r2) = HeThongMac.chay("/bin/launchctl", ["asuser", "\(uid)", "/usr/bin/lsappinfo", "info", "-only", "bundleid", asn])
+    let (m2, r2) = HeThongMac.chay("/bin/launchctl", ["asuser", "\(uid)", "/usr/bin/lsappinfo", "info", "-only", "bundleid", asn], timeout: 3)
     guard m2 == 0 else { return nil }
     return TienCanh.tachBundleId(r2)
-  }
-
-  public func duongDan(cuaPid pid: Int32) -> String? {
-    var buf = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
-    guard proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 else { return nil }
-    return String(cString: buf)
   }
 
   public func tenMay() -> String {
@@ -145,18 +139,33 @@ public final class HeThongMac: HeThong {
     fflush(stdout)
   }
 
-  /// Chạy lệnh, chờ xong (tối đa 20 giây) ⇒ (mã thoát, stdout+stderr).
+  /// Chạy lệnh, chờ xong tối đa `timeout` giây (quá hạn ⇒ kill tiến trình con, trả (-1, «quá hạn»)) ⇒ (mã thoát, stdout+stderr).
   @discardableResult
-  public static func chay(_ lenh: String, _ thamSo: [String]) -> (Int32, String) {
+  public static func chay(_ lenh: String, _ thamSo: [String], timeout: Double = 20) -> (Int32, String) {
+    final class Hop: @unchecked Sendable { let k = NSLock(); var d = Data() }
     let p = Process()
     p.executableURL = URL(fileURLWithPath: lenh)
     p.arguments = thamSo
     let ong = Pipe()
     p.standardOutput = ong
     p.standardError = ong
+    let xong = DispatchSemaphore(value: 0)
+    p.terminationHandler = { _ in xong.signal() }
     do { try p.run() } catch { return (-1, "\(error)") }
-    let d = ong.fileHandleForReading.readDataToEndOfFile()
-    p.waitUntilExit()
-    return (p.terminationStatus, String(decoding: d, as: UTF8.self))
+    // Đọc ở luồng riêng: tiến trình cháu (lsappinfo) có thể còn giữ đầu ghi ống sau khi launchctl bị kill.
+    let hop = Hop(), docXong = DispatchSemaphore(value: 0)
+    DispatchQueue.global().async {
+      let d = ong.fileHandleForReading.readDataToEndOfFile()
+      hop.k.lock(); hop.d = d; hop.k.unlock()
+      docXong.signal()
+    }
+    if xong.wait(timeout: .now() + timeout) == .timedOut {
+      p.terminate()
+      if xong.wait(timeout: .now() + 1) == .timedOut { kill(p.processIdentifier, SIGKILL) }
+      return (-1, "quá hạn \(Int(timeout)) giây: \(lenh)")
+    }
+    _ = docXong.wait(timeout: .now() + 1)
+    hop.k.lock(); defer { hop.k.unlock() }
+    return (p.terminationStatus, String(decoding: hop.d, as: UTF8.self))
   }
 }

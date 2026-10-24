@@ -30,8 +30,8 @@ let boMay = BoMay(api: api, heThong: heThong, kho: kho)
 
 heThong.ghiLog("aiigrow-daemon \(PhienBan.hienTai) khởi động\(laThu ? " [THỬ]" : "") — cấu hình \(duongCauHinh), socket \(duongSocket)")
 
-let socket = SocketIPC(duongDan: duongSocket, ghiLog: heThong.ghiLog) { yc, uid, pid in
-  await boMay.xuLyIPC(yc, uidGoi: uid, pidGoi: pid)
+let socket = SocketIPC(duongDan: duongSocket, ghiLog: heThong.ghiLog) { yc, uid in
+  await boMay.xuLyIPC(yc, uidGoi: uid)
 }
 
 if motVong {

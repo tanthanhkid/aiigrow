@@ -11,8 +11,6 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   var phien: PhienConsole?
   var ten = "Mac-Test"
   var tienCanhThat: String?                 // app tiền cảnh THẬT của phiên Con (daemon tự kiểm)
-  var duongDanTheoPid: [Int32: String] = [:]
-  var duongDanMacDinh: String? = NguoiGoiTray.tienTo + "AiiGrowTray"   // mặc định coi người gọi là tray thật
 
   // ghi lại tác động
   var tinHieuDaGui: [(Int32, Int32)] = []
@@ -30,8 +28,8 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func dsAdmin() -> [String] { Array(admin) }
   func phienConsole() -> PhienConsole? { phien }
   func tenMay() -> String { ten }
-  func appTienCanh(cuaUid uid: UInt32) -> String? { tienCanhThat }
-  func duongDan(cuaPid pid: Int32) -> String? { duongDanTheoPid[pid] ?? duongDanMacDinh }
+  func appTienCanh(cuaUid uid: UInt32) -> String? { soLanKiemTienCanh += 1; return tienCanhThat }
+  var soLanKiemTienCanh = 0
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }

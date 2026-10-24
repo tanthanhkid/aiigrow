@@ -25,27 +25,20 @@ final class BaoMatTests: XCTestCase {
     XCTAssertNil(TienCanh.tachBundleId(""))
   }
 
-  func testChonTienCanhBoQuaTrayBaoLech() {
-    XCTAssertEqual(TienCanh.chon(thatSu: "com.game", trayBao: "com.apple.calculator", trayConSong: true), "com.game")
-    XCTAssertEqual(TienCanh.chon(thatSu: nil, trayBao: "com.apple.calculator", trayConSong: true), DemPhut.khongRo, "không kiểm được ⇒ không tin tray")
-    XCTAssertEqual(TienCanh.chon(thatSu: "com.game", trayBao: nil, trayConSong: false), DemPhut.khongRo, "tray tắt ⇒ Không rõ")
+  func testChonLuonDungKetQuaTuKiem() {
+    XCTAssertEqual(TienCanh.chon(thatSu: "com.game"), "com.game", "có kết quả tự kiểm thì luôn dùng, tray sống hay chết")
+    XCTAssertEqual(TienCanh.chon(thatSu: nil), DemPhut.khongRo)
+    XCTAssertEqual(TienCanh.chon(thatSu: ""), DemPhut.khongRo)
   }
 
-  func testNhanDienDuongTray() {
-    XCTAssertTrue(NguoiGoiTray.hopLe(duongDan: "/Applications/AiiGrow.app/Contents/MacOS/AiiGrowTray"))
-    XCTAssertFalse(NguoiGoiTray.hopLe(duongDan: "/Users/con/Downloads/AiiGrow.app/Contents/MacOS/AiiGrowTray"))
-    XCTAssertFalse(NguoiGoiTray.hopLe(duongDan: "/Applications/AiiGrow.app/Contents/MacOS/../../../../tmp/x"))
-    XCTAssertFalse(NguoiGoiTray.hopLe(duongDan: nil))
-  }
-
-  private func dungBoMay(_ fake: HeThongGia, dongHo: DongHoGia, thuMuc: String, tienTo: String? = NguoiGoiTray.tienTo) throws -> (BoMay, ConfigStore) {
+  private func dungBoMay(_ fake: HeThongGia, dongHo: DongHoGia, thuMuc: String) throws -> (BoMay, ConfigStore) {
     let kho = ConfigStore(duongDan: thuMuc + "/config.json")
     try kho.sua { $0.token = "t"; $0.deviceId = "d"; $0.uidCon = 501; $0.taiKhoanCon = "be" }
     fake.uidTheoTen = ["be": 501]
     fake.phien = PhienConsole(uid: 501, manKhoa: false)
     let api = ApiClient(mayChu: "https://aiigrow.aiilab.vn", token: nil, session: HttpMock.session())
     let b = BoMay(api: api, heThong: fake, kho: kho,
-                  tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed", tienToDuongTray: tienTo),
+                  tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed", tienCanhDongBo: true),
                   dongHo: { dongHo.thuc }, donDieu: { dongHo.donDieu })
     return (b, kho)
   }
@@ -62,7 +55,7 @@ final class BaoMatTests: XCTestCase {
     let (b, kho) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
     fake.tienCanhThat = "com.game.nguy-hiem"
     for _ in 0..<6 {
-      _ = await b.xuLyIPC(.appTienCanh(bundleId: "com.apple.calculator", ten: "Calculator"), uidGoi: 501, pidGoi: 42)
+      _ = await b.xuLyIPC(.appTienCanh(bundleId: "com.apple.calculator", ten: "Calculator"), uidGoi: 501)
       dongHo.tien(5)
       _ = await b.apChinhSach()
     }
@@ -76,30 +69,65 @@ final class BaoMatTests: XCTestCase {
     let fake = HeThongGia(), dongHo = DongHoGia()
     let (b, kho) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
     fake.tienCanhThat = nil
-    _ = await b.xuLyIPC(.appTienCanh(bundleId: "com.apple.calculator", ten: "C"), uidGoi: 501, pidGoi: 42)
+    _ = await b.xuLyIPC(.appTienCanh(bundleId: "com.apple.calculator", ten: "C"), uidGoi: 501)
     dongHo.tien(5); _ = await b.apChinhSach()
     let dem = kho.doc()?.demPhut ?? [:]
     XCTAssertTrue(dem.keys.contains { $0.hasSuffix("|" + DemPhut.khongRo) }, "\(dem)")
     XCTAssertFalse(dem.keys.contains { $0.contains("calculator") })
   }
 
-  func testTuChoiAppTienCanhTuTienTrinhKhongPhaiTray() async throws {
+  func testKillTrayKhongDayGioSangKhongRo() async throws {
     let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
     let fake = HeThongGia(), dongHo = DongHoGia()
     let (b, kho) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
     fake.tienCanhThat = "com.apple.Pages"
-    fake.duongDanTheoPid[77] = "/Users/be/script/gia-mao"
-    let r = await b.xuLyIPC(.appTienCanh(bundleId: "x", ten: "X"), uidGoi: 501, pidGoi: 77)
-    guard case let .loi(ma, _) = r else { return XCTFail("phải từ chối, nhận \(r)") }
-    XCTAssertEqual(ma, "khong_phai_tray")
-    let r2 = await b.xuLyIPC(.appTienCanh(bundleId: "x", ten: "X"), uidGoi: 501, pidGoi: nil)
-    guard case .loi = r2 else { return XCTFail("không có pid ⇒ từ chối") }
-    fake.duongDanTheoPid[78] = NguoiGoiTray.tienTo + "AiiGrowTray"
-    let r3 = await b.xuLyIPC(.appTienCanh(bundleId: "x", ten: "X"), uidGoi: 501, pidGoi: 78)
-    guard case .ok = r3 else { return XCTFail("tray thật phải được nhận, nhận \(r3)") }
-    // trayNhipCuoi chỉ cập nhật cho tray thật
-    dongHo.tien(5); _ = await b.apChinhSach()
-    XCTAssertTrue((kho.doc()?.demPhut ?? [:]).keys.contains { $0.hasSuffix("|com.apple.pages") })
+    // tray chưa từng ping (như bị kill) — vẫn đếm theo app thật
+    for _ in 0..<4 { dongHo.tien(5); _ = await b.apChinhSach() }
+    let dem = kho.doc()?.demPhut ?? [:]
+    XCTAssertTrue(dem.keys.contains { $0.hasSuffix("|com.apple.pages") }, "\(dem)")
+    XCTAssertFalse(dem.keys.contains { $0.hasSuffix("|" + DemPhut.khongRo) }, "\(dem)")
+  }
+
+  func testPingVaAppTienCanhCuDeuLaPing() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    guard case .ok = await b.xuLyIPC(.ping, uidGoi: 501) else { return XCTFail("ping ok") }
+    guard case .ok = await b.xuLyIPC(.appTienCanh(bundleId: "x", ten: "X"), uidGoi: 501) else { return XCTFail("tray cũ ok") }
+    guard case .loi = await b.xuLyIPC(.ping, uidGoi: 502) else { return XCTFail("uid khác Con bị từ chối") }
+  }
+
+  func testDemTienCanhKhongSpawnTheoMoiLanGoi() {
+    var dem = 0
+    let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, dongBo: true) { _ in dem += 1; return "com.a" }
+    var gio = 100.0
+    XCTAssertEqual(d.doc(uid: 501, gio: gio), "com.a")
+    for _ in 0..<20 { gio += 0.1; _ = d.doc(uid: 501, gio: gio) }     // 20 lần gọi trong 2 giây (như trangThai IPC)
+    XCTAssertEqual(dem, 1, "chỉ kiểm một lần trong 4 giây")
+    gio += 5; _ = d.doc(uid: 501, gio: gio)
+    XCTAssertEqual(dem, 2)
+  }
+
+  func testDemTienCanhQuaCuThiBo() {
+    let chan = DispatchSemaphore(value: 0)
+    let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, dongBo: false) { _ in chan.wait(); return "com.a" }   // lsappinfo treo
+    let t0 = Date()
+    XCTAssertNil(d.doc(uid: 501, gio: 100), "đệm rỗng + việc kiểm đang treo ⇒ không chặn, trả nil")
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 0.5, "doc không chặn")
+    chan.signal()
+    for _ in 0..<100 { if d.doc(uid: 501, gio: 101) != nil { break }; usleep(10_000) }
+    XCTAssertEqual(d.doc(uid: 501, gio: 101), "com.a")
+    XCTAssertNil(d.doc(uid: 501, gio: 101 + 13 + 0), "quá hạn đệm ⇒ nil (và đang làm mới)")
+  }
+
+  func testChayCoTimeoutThatKillTienTrinhCon() {
+    let t0 = Date()
+    let (ma, ra) = HeThongMac.chay("/bin/sleep", ["30"], timeout: 0.5)
+    XCTAssertEqual(ma, -1)
+    XCTAssertTrue(ra.contains("quá hạn"))
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 3)
+    let (m2, r2) = HeThongMac.chay("/bin/echo", ["ok"], timeout: 5)
+    XCTAssertEqual(m2, 0); XCTAssertEqual(r2.trimmingCharacters(in: .whitespacesAndNewlines), "ok")
   }
 
   // MARK: 3. IPC xử lý đồng thời
@@ -118,7 +146,7 @@ final class BaoMatTests: XCTestCase {
 
   func testKetNoiTreoKhongChanHangDoi() throws {
     let duong = NSTemporaryDirectory() + "aiigrow-cc-\(UUID().uuidString).sock"
-    let s = SocketIPC(duongDan: duong) { _, _, _ in .ok(id: "x") }
+    let s = SocketIPC(duongDan: duong) { _, _ in .ok(id: "x") }
     try s.mo()
     let xong = expectation(description: "phục vụ")
     Task { await s.phucVu(); xong.fulfill() }
@@ -133,23 +161,49 @@ final class BaoMatTests: XCTestCase {
     wait(for: [xong], timeout: 2)
   }
 
-  func testVuotGioiHanDongThoiThiDongNgay() throws {
-    let duong = NSTemporaryDirectory() + "aiigrow-gh-\(UUID().uuidString).sock"
-    let s = SocketIPC(duongDan: duong) { _, _, _ in .ok(id: nil) }
+  func testNhoGiotKhongKeoDaiQuaHanChotTong() throws {
+    let duong = NSTemporaryDirectory() + "aiigrow-ng-\(UUID().uuidString).sock"
+    let s = SocketIPC(duongDan: duong) { _, _ in .ok(id: nil) }
+    try s.mo()
+    let xong = expectation(description: "phục vụ")
+    Task { await s.phucVu(); xong.fulfill() }
+    let fd = noi(duong)
+    let t0 = Date()
+    // gửi mỗi 0,8 giây một byte (không bao giờ có «\n») — nếu timeout reset theo byte thì giữ mãi
+    var bi = false
+    for _ in 0..<8 {
+      var c: UInt8 = 0x20
+      if write(fd, &c, 1) <= 0 { bi = true; break }
+      usleep(800_000)
+      if Date().timeIntervalSince(t0) > 5 { break }
+    }
+    XCTAssertTrue(bi || Date().timeIntervalSince(t0) < 5.5)
+    var b = [UInt8](repeating: 0, count: 64)
+    var tv = timeval(tv_sec: 1, tv_usec: 0)
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+    let n = read(fd, &b, 64)        // server đã đóng ở ~3 giây (có thể kèm lời báo lỗi trước)
+    XCTAssertTrue(n >= 0, "kết nối phải đã bị đóng, không còn treo (n=\(n))")
+    XCTAssertTrue(bi || n >= 0)
+    close(fd)
+    s.dong()
+    wait(for: [xong], timeout: 2)
+  }
+
+  func testGioiHanMoiUid() throws {
+    let duong = NSTemporaryDirectory() + "aiigrow-uid-\(UUID().uuidString).sock"
+    let s = SocketIPC(duongDan: duong) { _, _ in .ok(id: "x") }
     try s.mo()
     let xong = expectation(description: "phục vụ")
     Task { await s.phucVu(); xong.fulfill() }
     var giu: [Int32] = []
-    for _ in 0..<SocketIPC.toiDaDongThoi { giu.append(noi(duong)) }
-    usleep(300_000)                                          // để vòng accept nhận đủ
+    for _ in 0..<SocketIPC.toiDaMoiUid { giu.append(noi(duong)) }   // cùng uid (test) chiếm đủ phần của uid đó
+    usleep(300_000)
     let thua = noi(duong)
     var tv = timeval(tv_sec: 1, tv_usec: 0)
     setsockopt(thua, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
     var b = [UInt8](repeating: 0, count: 8)
-    let t0 = Date()
-    let n = read(thua, &b, 8)                                // bị đóng ngay ⇒ EOF (0), không phải timeout (-1)
-    XCTAssertEqual(n, 0)
-    XCTAssertLessThan(Date().timeIntervalSince(t0), 0.9)
+    XCTAssertEqual(read(thua, &b, 8), 0, "vượt \(SocketIPC.toiDaMoiUid) kết nối của một uid ⇒ đóng ngay")
+    XCTAssertLessThan(SocketIPC.toiDaMoiUid, SocketIPC.toiDaDongThoi, "còn chỗ cho uid khác")
     for f in giu + [thua] { close(f) }
     s.dong()
     wait(for: [xong], timeout: 2)

@@ -66,7 +66,7 @@ public enum QuyenIPC {
     switch y {
     case .trangThai:
       return .duoc                                                                       // ai cũng hỏi được; phần riêng của Con chỉ trả cho uid Con
-    case .appTienCanh, .xinThem, .xinMo:
+    case .ping, .appTienCanh, .xinThem, .xinMo:
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
       return .duoc
     case .ghep:
@@ -108,7 +108,7 @@ public enum DemPhut {
   }
 }
 
-/// Kiểm app tiền cảnh: daemon không tin bundleId tray báo một mình — Con nào cũng gửi được lệnh qua socket 0666 (khai «calculator» để né trần giờ).
+/// Kiểm app tiền cảnh: daemon tự kiểm, không tin bundleId tray báo — Con nào cũng gửi được lệnh qua socket 0666 (khai «calculator» để né trần giờ).
 public enum TienCanh {
   /// «ASN:0x0-0xeabcaae:» ⇒ «ASN:0x0-0xeabcaae:» (nil nếu không đúng dạng).
   public static func tachASN(_ ra: String) -> String? {
@@ -126,18 +126,46 @@ public enum TienCanh {
     return (v.isEmpty || v.contains(" ") || v.uppercased() == "NULL") ? nil : v
   }
 
-  /// Tên app để đếm phút: kết quả daemon tự kiểm là nguồn duy nhất. Không kiểm được ⇒ «Không rõ» (vẫn tính giờ); tray báo lệch bị bỏ qua.
-  public static func chon(thatSu: String?, trayBao: String?, trayConSong: Bool) -> String {
-    guard trayConSong, let that = thatSu, !that.isEmpty else { return DemPhut.khongRo }
+  /// Tên app để đếm phút: có kết quả daemon tự kiểm thì LUÔN dùng (kill tray không đổi được gì); không kiểm được ⇒ «Không rõ» (vẫn trừ giờ).
+  public static func chon(thatSu: String?) -> String {
+    guard let that = thatSu, !that.isEmpty else { return DemPhut.khongRo }
     return that
   }
 }
 
-/// Nhận diện tiến trình tray thật ở đầu bên kia socket: chạy từ gói đã cài (root sở hữu, Con không ghi được) — LOCAL_PEERPID ⇒ proc_pidpath.
-public enum NguoiGoiTray {
-  public static let tienTo = DuongDan.app + "/Contents/MacOS/"
-  public static func hopLe(duongDan: String?, tienTo: String = NguoiGoiTray.tienTo) -> Bool {
-    guard let d = duongDan, !d.contains("/../") else { return false }
-    return d.hasPrefix(tienTo)
+/// Bộ nhớ đệm app tiền cảnh: việc kiểm (hai lần `launchctl asuser lsappinfo`) chạy NGOÀI actor trên hàng đợi riêng, có timeout;
+/// `doc` không bao giờ chặn — trả kết quả đệm (≤ `hanDem` giây), quá cũ thì nil. Không spawn theo từng `trangThai` IPC: chỉ làm mới khi đệm đã ≥ `lamMoiSau` giây.
+public final class DemTienCanh: @unchecked Sendable {
+  private let khoa = NSLock()
+  private var giaTri: String?
+  private var luc: Double = -1_000_000
+  private var dangChay = false
+  private let kiem: (UInt32) -> String?
+  private let lamMoiSau: Double
+  private let hanDem: Double
+  private let hangDoi = DispatchQueue(label: "vn.aiilab.aiigrow.tiencanh")
+  /// Chỉ test: chạy kiểm ngay tại chỗ để kết quả có sẵn trong cùng lượt.
+  private let dongBo: Bool
+
+  public init(lamMoiSau: Double = 4, hanDem: Double = 12, dongBo: Bool = false, kiem: @escaping (UInt32) -> String?) {
+    self.kiem = kiem; self.lamMoiSau = lamMoiSau; self.hanDem = hanDem; self.dongBo = dongBo
+  }
+
+  /// `gio`: đồng hồ đơn điệu (giây). Gọi mỗi vòng áp chính sách.
+  public func doc(uid: UInt32, gio: Double) -> String? {
+    khoa.lock()
+    let canLam = !dangChay && gio - luc >= lamMoiSau
+    if canLam { dangChay = true }
+    let hienCo = gio - luc <= hanDem ? giaTri : nil
+    khoa.unlock()
+    if canLam {
+      let viec = { [self] in
+        let kq = kiem(uid)
+        khoa.lock(); giaTri = kq; luc = gio; dangChay = false; khoa.unlock()
+      }
+      if dongBo { viec(); return doc(uid: uid, gio: gio) }
+      hangDoi.async(execute: viec)
+    }
+    return hienCo
   }
 }

@@ -5,16 +5,22 @@ import Foundation
 public final class SocketIPC: @unchecked Sendable {
   private let duongDan: String
   private var fdNghe: Int32 = -1
-  private let xuLy: (YeuCauTray, UInt32, Int32) async -> TraLoi
-  /// Số kết nối xử lý đồng thời tối đa — vượt thì đóng ngay (một client treo không giữ cả hàng đợi).
+  private let xuLy: (YeuCauTray, UInt32) async -> TraLoi
+  /// Số kết nối đồng thời tối đa cả socket, và tối đa cho MỖI uid (uid Con không chiếm hết phần của root/tray khác uid) — vượt thì đóng ngay.
   public static let toiDaDongThoi = 16
+  public static let toiDaMoiUid = 4
+  /// Hạn chót TỔNG để client gửi xong một dòng, tính từ lúc accept (không reset theo từng byte — chặn kiểu nhỏ giọt).
+  public static let hanDocGiay = 3.0
   private let dem = NSLock()
   private var dangXuLy = 0
+  private var theoUid: [uid_t: Int] = [:]
+  /// I/O chặn (poll/read/write) chạy ở hàng đợi riêng, KHÔNG chiếm luồng cooperative của Swift concurrency (actor BoMay không bị đói).
+  private let hangDoiIO = DispatchQueue(label: "vn.aiilab.aiigrow.ipc", attributes: .concurrent)
   private let ghiLog: (String) -> Void
   private var chay = false
 
   public init(duongDan: String = DuongDan.socket, ghiLog: @escaping (String) -> Void = { _ in },
-              xuLy: @escaping (YeuCauTray, UInt32, Int32) async -> TraLoi) {
+              xuLy: @escaping (YeuCauTray, UInt32) async -> TraLoi) {
     self.duongDan = duongDan; self.xuLy = xuLy; self.ghiLog = ghiLog
   }
 
@@ -41,60 +47,85 @@ public final class SocketIPC: @unchecked Sendable {
     chay = true
   }
 
-  /// Vòng accept — gọi trong Task nền. Mỗi kết nối một Task riêng (tối đa `toiDaDongThoi`, vượt thì đóng ngay); timeout đọc 3 giây.
+  /// Vòng accept — chạy ở luồng riêng (accept chặn), trả về khi socket đóng. Mỗi kết nối: đọc trên hàng đợi IO với hạn chót tổng,
+  /// xử lý lệnh trong Task, ghi trả lời lại trên hàng đợi IO.
   public func phucVu() async {
-    while chay {
-      let fd = accept(fdNghe, nil, nil)
-      if fd < 0 { if errno == EINTR { continue }; break }
-      guard giuCho() else { ghiLog("Quá \(SocketIPC.toiDaDongThoi) kết nối đồng thời — đóng bớt."); close(fd); continue }
-      Task.detached { [self] in
-        await tiepNhan(fd)
-        traCho()
+    await withCheckedContinuation { (xong: CheckedContinuation<Void, Never>) in
+      let t = Thread { [self] in
+        while chay {
+          let fd = accept(fdNghe, nil, nil)
+          if fd < 0 { if errno == EINTR { continue }; break }
+          nhan(fd)
+        }
+        xong.resume()
+      }
+      t.name = "aiigrow-ipc-accept"
+      t.start()
+    }
+  }
+
+  private func nhan(_ fd: Int32) {
+    var mot: Int32 = 1
+    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &mot, socklen_t(MemoryLayout<Int32>.size))
+    var u: uid_t = 0, gid: gid_t = 0
+    guard getpeereid(fd, &u, &gid) == 0 else { ghiLog("getpeereid lỗi — bỏ kết nối."); close(fd); return }
+    let uid = u
+    guard giuCho(uid) else { ghiLog("Quá giới hạn kết nối (uid \(uid)) — đóng bớt."); close(fd); return }
+    let han = DispatchTime.now() + SocketIPC.hanDocGiay
+    hangDoiIO.async { [self] in
+      guard let dong = docDong(fd, han: han) else { close(fd); traCho(uid); return }
+      Task { [self] in
+        let traLoi: TraLoi
+        if let yc = try? IPCMa.decoder.decode(YeuCauTray.self, from: dong) {
+          traLoi = await xuLy(yc, uid)
+        } else {
+          traLoi = .loi(ma: "yeu_cau_sai", chu: "Yêu cầu không đọc được.")
+        }
+        hangDoiIO.async { [self] in
+          ghi(fd, traLoi)
+          close(fd)
+          traCho(uid)
+        }
       }
     }
   }
 
-  private func giuCho() -> Bool {
+  private func giuCho(_ uid: uid_t) -> Bool {
     dem.lock(); defer { dem.unlock() }
-    guard dangXuLy < SocketIPC.toiDaDongThoi else { return false }
-    dangXuLy += 1
+    guard dangXuLy < SocketIPC.toiDaDongThoi, theoUid[uid, default: 0] < SocketIPC.toiDaMoiUid else { return false }
+    dangXuLy += 1; theoUid[uid, default: 0] += 1
     return true
   }
-  private func traCho() { dem.lock(); dangXuLy -= 1; dem.unlock() }
-
-  /// pid tiến trình bên kia (LOCAL_PEERPID) — 0 nếu không lấy được.
-  static func pidDauKia(_ fd: Int32) -> Int32 {
-    var pid: Int32 = 0
-    var len = socklen_t(MemoryLayout<Int32>.size)
-    return getsockopt(fd, 0 /* SOL_LOCAL */, 0x002 /* LOCAL_PEERPID */, &pid, &len) == 0 ? pid : 0
+  private func traCho(_ uid: uid_t) {
+    dem.lock(); defer { dem.unlock() }
+    dangXuLy -= 1
+    let n = theoUid[uid, default: 1] - 1
+    theoUid[uid] = n > 0 ? n : nil
   }
 
-  private func tiepNhan(_ fd: Int32) async {
-    defer { close(fd) }
-    var mot: Int32 = 1
-    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &mot, socklen_t(MemoryLayout<Int32>.size))
-    var tv = timeval(tv_sec: 3, tv_usec: 0)
-    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-
-    var uid: uid_t = 0, gid: gid_t = 0
-    guard getpeereid(fd, &uid, &gid) == 0 else { ghiLog("getpeereid lỗi — bỏ kết nối."); return }
-
-    // Đọc tới dòng mới.
+  /// Đọc tới dòng mới trước hạn chót `han` (poll theo thời gian còn lại). nil = quá hạn / lỗi / đóng sớm không có dữ liệu.
+  private func docDong(_ fd: Int32, han: DispatchTime) -> Data? {
     var nhan = Data()
     var buf = [UInt8](repeating: 0, count: 8192)
     while nhan.count < 1_000_000 {
+      let conLai = Int((han.uptimeNanoseconds &- min(DispatchTime.now().uptimeNanoseconds, han.uptimeNanoseconds)) / 1_000_000)
+      if conLai <= 0 { return nil }
+      var pf = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+      let r = poll(&pf, 1, Int32(min(conLai, 3000)))
+      if r < 0 { if errno == EINTR { continue }; return nil }
+      if r == 0 { return nil }
       let n = read(fd, &buf, buf.count)
       if n <= 0 { break }
       nhan.append(buf, count: n)
       if nhan.contains(0x0A) { break }
     }
     if let i = nhan.firstIndex(of: 0x0A) { nhan = nhan.prefix(upTo: i) }
-    let traLoi: TraLoi
-    if let yc = try? IPCMa.decoder.decode(YeuCauTray.self, from: nhan) {
-      traLoi = await xuLy(yc, uid, SocketIPC.pidDauKia(fd))
-    } else {
-      traLoi = .loi(ma: "yeu_cau_sai", chu: "Yêu cầu không đọc được.")
-    }
+    return nhan
+  }
+
+  private func ghi(_ fd: Int32, _ traLoi: TraLoi) {
+    var tv = timeval(tv_sec: 2, tv_usec: 0)
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
     guard var du = try? IPCMa.encoder.encode(traLoi) else { return }
     du.append(0x0A)
     du.withUnsafeBytes { b in

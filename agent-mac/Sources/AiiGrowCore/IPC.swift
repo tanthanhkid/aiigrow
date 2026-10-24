@@ -17,7 +17,9 @@ public enum DuongDan {
 public enum YeuCauTray: Codable, Equatable {
   /// tray hỏi mỗi 5 giây
   case trangThai
-  /// app tiền cảnh của phiên đang dùng (NSWorkspace) — daemon đếm phút theo app
+  /// tray báo «còn sống» (thay appTienCanh) — daemon KHÔNG tin app tiền cảnh tray báo, tự kiểm
+  case ping
+  /// tray đời cũ gửi — daemon coi như `ping`, bỏ nội dung
   case appTienCanh(bundleId: String, ten: String)
   /// Con xin thêm giờ (30/60/120 phút)
   case xinThem(phut: Int, loiNhan: String?)

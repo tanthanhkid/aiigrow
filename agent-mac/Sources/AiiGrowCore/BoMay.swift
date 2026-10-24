@@ -10,12 +10,12 @@ public struct TuyChonBoMay: Sendable {
   public var vongGiay: Double
   /// Đếm ngược (giây) trước khi đóng phiên Con khi mode «khoa» — tray hiện màn đếm ngược trong lúc này.
   public var demNguocKhoaGiay: Int
-  /// Tiền tố đường thực thi của tray thật (nil = không kiểm — chỉ dùng khi test).
-  public var tienToDuongTray: String?
+  /// Chỉ test: kiểm app tiền cảnh ngay trong vòng thay vì ở hàng đợi nền.
+  public var tienCanhDongBo: Bool
   public init(duongDanHosts: String = "/etc/hosts", thuMucChinhSach: String = ChinhSachTrinhDuyet.thuMuc,
-              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienToDuongTray: String? = NguoiGoiTray.tienTo) {
+              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienCanhDongBo: Bool = false) {
     self.duongDanHosts = duongDanHosts; self.thuMucChinhSach = thuMucChinhSach
-    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienToDuongTray = tienToDuongTray
+    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienCanhDongBo = tienCanhDongBo
   }
 }
 
@@ -36,6 +36,7 @@ public actor BoMay {
   private var trayNhipCuoi: Double = -1_000_000
   /// Mốc đơn điệu lần áp gần nhất (để cộng giờ đã dùng + đếm giây mục app).
   private var apTruoc: Double
+  private let demTienCanh: DemTienCanh
   /// Đang đếm ngược khoá: còn mấy giây.
   private var demNguocConLai: Int?
   private var daApHosts: String?
@@ -48,6 +49,7 @@ public actor BoMay {
     self.cauHinh = kho.doc() ?? CauHinhMay()
     self.policy = cauHinh.policyCuoi
     self.apTruoc = donDieu()
+    self.demTienCanh = DemTienCanh(dongBo: tuyChon.tienCanhDongBo) { [heThong] uid in heThong.appTienCanh(cuaUid: uid) }
   }
 
   public var daGhep: Bool { cauHinh.daGhep }
@@ -183,16 +185,12 @@ public actor BoMay {
   private func demGiayApp(troi: Double, now: Date) {
     let ngay = DemPhut.ngay(now)
     // App tiền cảnh do tray báo gần đây (≤10 giây); tray tắt ⇒ tính dưới «Không rõ».
-    // App tiền cảnh do DAEMON tự kiểm (lsappinfo trong phiên Con); tray báo chỉ để biết tray còn sống, không dùng làm số liệu.
-    let that = cauHinh.uidCon.flatMap { heThong.appTienCanh(cuaUid: $0) }
-    let app = TienCanh.chon(thatSu: that, trayBao: appTienCanh, trayConSong: donDieu() - trayNhipCuoi <= 10)
-    if let t = appTienCanh, let that, t.lowercased() != that.lowercased() {
-      heThong.ghiLog("Tray báo app tiền cảnh «\(t)» lệch với kiểm thật «\(that)» — dùng kết quả kiểm thật.")
-    }
+    // App tiền cảnh do DAEMON tự kiểm (lsappinfo trong phiên Con, đệm, chạy ngoài actor); tray chỉ báo «còn sống».
+    let that = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
+    let app = TienCanh.chon(thatSu: that)
     DemPhut.cong(&cauHinh.demPhut, ngay: ngay, app: app, giay: troi)
   }
 
-  private var appTienCanh: String?
 
   // MARK: web
 
@@ -267,22 +265,13 @@ public actor BoMay {
   // MARK: lệnh IPC từ tray
 
   /// Xử lý một yêu cầu tray — gọi từ socket sau khi đã lấy uid người gọi bằng getpeereid.
-  public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32, pidGoi: Int32? = nil) async -> TraLoi {
+  public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32) async -> TraLoi {
     let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: heThong.laAdmin)
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:
       return .trangThai(apChinhSach())
-    case let .appTienCanh(bundleId, _):
-      // Chỉ nhận từ tiến trình tray thật (chạy từ gói cài đặt) — tiến trình khác của Con không báo giả được.
-      if let tienTo = tuyChon.tienToDuongTray {
-        let d = pidGoi.flatMap { heThong.duongDan(cuaPid: $0) }
-        guard NguoiGoiTray.hopLe(duongDan: d, tienTo: tienTo) else {
-          heThong.ghiLog("Từ chối appTienCanh: người gọi (pid \(pidGoi.map(String.init) ?? "?")) không phải tray thật.")
-          return .loi(ma: "khong_phai_tray", chu: "Lệnh này chỉ nhận từ ứng dụng AiiGrow.")
-        }
-      }
-      appTienCanh = bundleId.isEmpty ? nil : bundleId
+    case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
       return .ok(id: nil)
     case let .xinThem(phut, loiNhan):

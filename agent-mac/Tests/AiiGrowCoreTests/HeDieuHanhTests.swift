@@ -27,7 +27,7 @@ final class HeDieuHanhTests: XCTestCase {
     let duong = NSTemporaryDirectory() + "aiigrow-peer-\(UUID().uuidString).sock"
     final class Hop: @unchecked Sendable { var uid: UInt32? }
     let hop = Hop()
-    let s = SocketIPC(duongDan: duong) { _, uid, _ in hop.uid = uid; return .ok(id: nil) }
+    let s = SocketIPC(duongDan: duong) { _, uid in hop.uid = uid; return .ok(id: nil) }
     try s.mo()
     let xong = expectation(description: "phục vụ")
     Task { await s.phucVu(); xong.fulfill() }

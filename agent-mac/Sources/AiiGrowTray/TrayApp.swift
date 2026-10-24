@@ -53,9 +53,9 @@ final class TrayApp: NSObject, NSApplicationDelegate {
   }
 
   func baoAppTienCanh(_ app: NSRunningApplication?) {
-    guard model.tt?.laPhienCon == true, let app, let id = app.bundleIdentifier else { return }
-    let ten = app.localizedName ?? id
-    Task.detached { _ = try? IPCClient.gui(.appTienCanh(bundleId: id, ten: ten)) }
+    // Daemon tự kiểm app tiền cảnh; tray chỉ báo «còn sống» (ping) mỗi khi đổi app / mỗi nhịp hỏi trạng thái.
+    guard model.tt?.laPhienCon == true else { return }
+    Task.detached { _ = try? IPCClient.gui(.ping) }
   }
 
   /// Mỗi giây: cập nhật chữ «Còn X phút» và nhắc giờ.

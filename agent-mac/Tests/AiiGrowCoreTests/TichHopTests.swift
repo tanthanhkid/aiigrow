@@ -32,9 +32,9 @@ final class TichHopTests: XCTestCase {
 
     let api = ApiClient(mayChu: "https://aiigrow.aiilab.vn", token: nil, session: HttpMock.session())
     boMay = BoMay(api: api, heThong: fake, kho: kho,
-                  tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed", vongGiay: 5, demNguocKhoaGiay: 30),
+                  tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed", vongGiay: 5, demNguocKhoaGiay: 30, tienCanhDongBo: true),
                   dongHo: { [dongHo] in dongHo!.thuc }, donDieu: { [dongHo] in dongHo!.donDieu })
-    socket = SocketIPC(duongDan: duongSocket) { [boMay] yc, uid, pid in await boMay!.xuLyIPC(yc, uidGoi: uid, pidGoi: pid) }
+    socket = SocketIPC(duongDan: duongSocket) { [boMay] yc, uid in await boMay!.xuLyIPC(yc, uidGoi: uid) }
     try socket.mo()
     Task { await self.socket.phucVu() }
   }
