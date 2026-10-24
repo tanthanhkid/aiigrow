@@ -44,8 +44,9 @@ donVaThoat() {
 # mà installd vẫn cài tiếp. Tự cập nhật chỉ chạy trên máy đã ghép (có config.json): còn dấu gỡ hoặc mất config.json ⇒ máy đã bị gỡ.
 case "${1:-}" in
   "$THU_MUC/cap-nhat/"*) if [ -f "$DA_GO" ] || [ ! -f "$THU_MUC/config.json" ]; then
-      # dấu «dung-cap-nhat» go-cai.sh 0.1.1 để lại (bản mới không ghi nữa): dùng xong ở đây, không để nó quyết định lần cài/ghép sau
-      if [ "$(/bin/cat "$DA_GO" 2>/dev/null)" = "dung-cap-nhat" ] && ! goCaiSong; then /bin/rm -f "$DA_GO"; fi
+      # Dọn xong mà không còn go-cai.sh nào chạy: dấu gỡ (cả «dung-cap-nhat» go-cai.sh 0.1.1 để lại) đã hết việc — xoá, không để nó
+      # nằm ngoài thư mục AiiGrow quyết định lần cài/ghép sau. go-cai.sh còn chạy thì để nó tự dọn ở cuối.
+      if ! goCaiSong; then /bin/rm -f "$DA_GO"; fi
       donVaThoat
     fi ;;
 esac

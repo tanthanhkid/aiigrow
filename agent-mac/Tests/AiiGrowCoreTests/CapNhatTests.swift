@@ -797,7 +797,7 @@ final class CapNhatTests: XCTestCase {
       XCTAssertFalse(a.quenBienNhan)
       let b = try chayPostinstall(daGo: true, pidDau: nil, goiTuDong: true, coConfig: false, dauGo: dau, dongLenh: true)
       XCTAssertFalse(b.bootstrapDaemon, "installd cài nốt gói cap-nhat ⇒ dọn"); XCTAssertFalse(b.appConLai); XCTAssertTrue(b.quenBienNhan)
-      XCTAssertEqual(b.daGoConLai, dau == "da-go\n", "dấu dung-cap-nhat của go-cai 0.1.1 dùng xong là xoá")
+      XCTAssertFalse(b.daGoConLai, "dọn xong, không go-cai nào chạy ⇒ dấu hết việc, xoá")
     }
     let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
     XCTAssertFalse(s.contains("dung-cap-nhat"), "go-cai.sh không để dấu nào quyết định lần cài sau")
@@ -840,7 +840,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertFalse(f.bootstrapDaemon); XCTAssertTrue(f.daGoConLai); XCTAssertFalse(f.appConLai)
     // installd cài tiếp gói tự cập nhật sau khi go-cai đã giết job (không còn PID nào sống)
     let h = try chayPostinstall(daGo: true, pidDau: nil, goiTuDong: true)
-    XCTAssertFalse(h.bootstrapDaemon); XCTAssertTrue(h.daGoConLai); XCTAssertFalse(h.appConLai)
+    XCTAssertFalse(h.bootstrapDaemon); XCTAssertFalse(h.daGoConLai, "không go-cai nào chạy ⇒ dấu hết việc"); XCTAssertFalse(h.appConLai)
     // … và cả khi go-cai đã xong (xoá da-go + config.json)
     let k = try chayPostinstall(daGo: false, pidDau: nil, goiTuDong: true, coConfig: false)
     XCTAssertFalse(k.bootstrapDaemon); XCTAssertFalse(k.appConLai)
