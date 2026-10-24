@@ -34,11 +34,13 @@ public enum QuyetDinhApp {
     // Bộ gõ tiếng Việt + công cụ hỗ trợ từ xa của Ba Mẹ (Windows: unikey.exe, tvnserver.exe, tailscale-ipn.exe)
     "io.tailscale.ipn.macsys", "io.tailscale.ipn.macos", "com.teamviewer.teamviewer", "com.teamviewer.teamviewer.agent",
   ]
-  /// Thư mục BỘ GÕ + công cụ hỗ trợ từ xa (so không phân biệt hoa/thường, khớp ở BẤT KỲ đâu trong đường dẫn: «/Library/…» và «~/Library/…»):
-  /// OpenKey, EVKey, GoTiengViet cài vào «Input Methods» — đóng chúng là Con mất bộ gõ cả hệ thống.
+  /// Thư mục GỐC do root sở hữu (Con không ghi được) của bộ gõ + công cụ hỗ trợ từ xa — chỉ miễn khi đường dẫn BẮT ĐẦU bằng chúng (so chữ thường: APFS không phân biệt hoa/thường).
+  /// KHÔNG miễn «~/Library/Input Methods» (Con ghi được: chép app vào đó là thoát). Bộ gõ cài trong /Applications xét theo allowlist bundle id.
   public static let thuMucMienTru = ["/library/input methods/", "/library/application support/tailscale/", "/library/application support/teamviewer/"]
-  /// Thư mục con trực tiếp của «~» mà tệp thực thi KHÔNG nằm trong .app vẫn bị coi là app (Minecraft Java, game tải về…).
-  static let thuMucNhaCuaCon: Set<String> = ["library", "downloads", "desktop", "documents", "movies", "music", "public", "applications"]
+  /// Thư mục game đã biết, tính từ «~/» của Con: tệp thực thi KHÔNG thuộc .app mà nằm trong đó mới bị xét như app (Minecraft Java chạy `java` từ runtime của launcher).
+  /// Luật HẸP có chủ đích: java/toolchain khác (VS Code, IntelliJ, Arduino15…) vẫn chạy như trước.
+  static let thuMucGameNgoaiApp = ["library/application support/minecraft/", "library/application support/steam/steamapps/",
+                                   "library/application support/curseforge/", "library/application support/prismlauncher/", "library/application support/multimc/"]
   /// Thư mục hệ thống (SIP bảo vệ, Con không tự đặt app vào được) — không bao giờ đóng.
   /// KHÔNG gồm /System/Applications và Cryptexes (Safari, Chess, Messages, FaceTime, App Store, News… là app Con tự mở) — những app đó xét theo allowlist bundle id như app thường.
   public static let thuMucHeThong = ["/System/Library/", "/usr/", "/bin/", "/sbin/", "/Library/Apple/", "/private/var/db/", "/Library/Application Support/AiiGrow/"]
@@ -67,7 +69,7 @@ public enum QuyetDinhApp {
   /// App có thuộc danh sách cho phép không — so cả bundle id lẫn tên .app (máy chủ gửi được cả hai), không phân biệt hoa/thường.
   public static func duocPhep(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
     let duongThap = t.duongDan.lowercased()
-    if thuMucMienTru.contains(where: { duongThap.contains($0) }) { return true }      // bộ gõ + công cụ hỗ trợ từ xa
+    if thuMucMienTru.contains(where: { duongThap.hasPrefix($0) }) { return true }      // bộ gõ + công cụ hỗ trợ từ xa (thư mục gốc của root)
     guard let app = t.duongDanApp else { return khopNgoaiApp(t, choPhep: Set(choPhep.map { $0.lowercased() })) }
     if laTienTrinhPhu(t.duongDan) { return true }                           // phụ (.appex/PlugIns/XPCServices/Helpers/LoginItems): không đóng riêng
     let choPhep = Set(choPhep.map { $0.lowercased() })                                // máy chủ luôn lưu chữ thường (chuanMuc); bundle id thật có chữ hoa
@@ -83,13 +85,12 @@ public enum QuyetDinhApp {
     return khop(app, t.bundleId) || khop(t.duongDanAppGan, t.bundleIdGan)
   }
 
-  /// Tệp thực thi KHÔNG thuộc .app: chỉ tiến trình nằm trong thư mục người dùng (Library, Downloads, Desktop…) hoặc là java/javaw ở trong «/Users/…»
-  /// mới bị xét như app (tên mục = tên tệp thực thi, vd «java»); công cụ hệ thống (/usr, /bin, Homebrew…) vẫn không đụng.
+  /// Tệp thực thi KHÔNG thuộc .app: chỉ khi nằm trong thư mục game đã biết dưới «/Users/<tên>/» mới bị xét như app (tên mục = tên tệp, vd «java»); còn lại không đụng.
   static func khopNgoaiApp(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
-    let phan = t.duongDan.lowercased().split(separator: "/").map(String.init)
-    guard phan.count > 3, phan[0] == "users", let ten = phan.last else { return true }
-    let laJava = ten == "java" || ten == "javaw"
-    guard thuMucNhaCuaCon.contains(phan[2]) || laJava else { return true }
+    let d = t.duongDan.lowercased()
+    guard d.hasPrefix("/users/") else { return true }
+    let sauNha = d.dropFirst("/users/".count).drop { $0 != "/" }.dropFirst()          // bỏ «<tên>/»
+    guard thuMucGameNgoaiApp.contains(where: { sauNha.hasPrefix($0) }), let ten = d.split(separator: "/").last.map(String.init) else { return true }
     return choPhep.contains(ten) || choPhep.contains((ten as NSString).deletingPathExtension)
   }
 

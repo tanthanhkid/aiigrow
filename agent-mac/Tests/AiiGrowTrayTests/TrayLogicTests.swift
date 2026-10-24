@@ -179,4 +179,10 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertEqual(TrayLogic.dongCanhBaoAdmin(t), "⚠ Chưa hạ được quyền admin của «be»")
     XCTAssertNil(TrayLogic.dongCanhBaoAdmin(nil))
   }
+
+  func testCuaSoGhepGiuKhiDangCanhBao() {
+    XCTAssertTrue(TrayLogic.dongCuaSoGhep(can: false, ep: false, giuCanhBao: false))
+    XCTAssertFalse(TrayLogic.dongCuaSoGhep(can: false, ep: false, giuCanhBao: true), "daGhep đã true nhưng cảnh báo còn hiện ⇒ không đóng")
+    XCTAssertFalse(TrayLogic.dongCuaSoGhep(can: true, ep: false, giuCanhBao: false))
+  }
 }

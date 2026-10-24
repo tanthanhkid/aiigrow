@@ -70,6 +70,7 @@ struct XinMoView: View {
 /// Cửa sổ «Ghép máy» của Ba Mẹ (phiên admin, máy chưa ghép).
 struct GhepMayView: View {
   let taiKhoan: [String]
+  var khiCanhBao: () -> Void = {}
   var dongLai: () -> Void
   @State private var chon = ""
   @State private var ma = ""
@@ -115,7 +116,7 @@ struct GhepMayView: View {
       do {
         switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon)) {
         case .loi(_, let chu): loi = chu
-        case .canhBao(_, let chu): canhBao = chu                    // đã ghép nhưng cần Ba Mẹ làm thêm: giữ cửa sổ mở để đọc, không tự đóng
+        case .canhBao(_, let chu): canhBao = chu; khiCanhBao()     // đã ghép nhưng cần Ba Mẹ làm thêm: giữ cửa sổ mở để đọc, không tự đóng
         default: xong = true; DispatchQueue.main.asyncAfter(deadline: .now() + 2) { dongLai() }
         }
       } catch { loi = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé." }

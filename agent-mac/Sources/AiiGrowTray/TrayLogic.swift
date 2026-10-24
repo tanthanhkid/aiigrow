@@ -81,7 +81,10 @@ public enum TrayLogic {
     return "Không giới hạn giờ hôm nay"
   }
 
-  /// Cảnh báo cho Ba Mẹ khi Con còn quyền admin (nil = ổn).
+  /// Có đóng cửa sổ ghép ở lần làm mới không: không còn cần ghép ⇒ đóng, TRỪ khi đang hiện cảnh báo «Đã ghép máy, NHƯNG…» (giữ tới khi Ba Mẹ bấm «Đã hiểu»).
+  public static func dongCuaSoGhep(can: Bool, ep: Bool, giuCanhBao: Bool) -> Bool { !can && !ep && !giuCanhBao }
+
+  /// Cảnh báo khi Con còn quyền admin (nil = ổn).
   public static func dongCanhBaoAdmin(_ t: TrangThai?) -> String? {
     guard let c = t?.canhBaoAdmin, !c.isEmpty else { return nil }
     return "⚠ " + c

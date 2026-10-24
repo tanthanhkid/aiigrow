@@ -113,7 +113,7 @@ public actor BoMay {
   public var canhBaoAdmin: String? {
     guard conLaAdmin else { return nil }
     let tk = cauHinh.taiKhoanCon
-    return "Chưa hạ được quyền admin của «\(tk)» — Con vẫn có thể tắt bảo vệ. Ba Mẹ vào Cài đặt hệ thống > Người dùng & Nhóm, tắt «Cho phép người dùng này quản trị máy tính»."
+    return "Tài khoản «\(tk)» của Con đang là quản trị (admin) — Con có thể tự gỡ AiiGrow."
   }
 
   private var api_mayChu: String { (api as? ApiClient)?.mayChu ?? cauHinh.mayChu }
@@ -383,6 +383,6 @@ public actor BoMay {
       conPhut: phutDung.map { Int($0.rounded(.down)) },
       moDen: hl?.moDen, khoaDen: nil, demNguocGiay: demNguoc,
       yeuCauCho: [], duocDoiDiem: p?.canExchangePoints ?? false,
-      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: laCon ? nil : canhBaoAdmin)
+      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: canhBaoAdmin)
   }
 }

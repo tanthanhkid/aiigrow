@@ -47,7 +47,7 @@ public struct TrangThai: Codable, Equatable {
   public var duocDoiDiem: Bool             // KHÔNG bao giờ có số điểm
   public var matMang: Bool                 // đang chạy theo Policy nhớ
   public var trangChan: [String]           // tên miền đang chặn (để tray giải thích khi Con hỏi)
-  public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo cho Ba Mẹ (chỉ trả cho phiên KHÔNG phải Con)
+  public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo (trả cho mọi phiên, kể cả Con)
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
               demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil) {
     self.daGhep = daGhep; self.laPhienCon = laPhienCon; self.tenCon = tenCon; self.cheDo = cheDo; self.lyDoKhoa = lyDoKhoa; self.conPhut = conPhut

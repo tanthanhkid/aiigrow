@@ -634,10 +634,12 @@ final class BaoMatTests: XCTestCase {
     defer { HttpMock.dat { _, _ in nil } }
     let tl = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
     guard case let .canhBao(_, chu) = tl else { return XCTFail("phải là canhBao, nhận \(tl)") }
-    XCTAssertTrue(chu.contains("Chưa hạ được quyền admin"), chu)
+    XCTAssertTrue(chu.contains("đang là quản trị (admin)"), chu)
     let tt = await b.xuLyIPC(.trangThai, uidGoi: 502)
     guard case let .trangThai(t) = tt else { return XCTFail() }
     XCTAssertNotNil(t.canhBaoAdmin, "tray (phiên Ba Mẹ) thấy cảnh báo")
+    guard case let .trangThai(tc) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
+    XCTAssertEqual(tc.canhBaoAdmin, "Tài khoản «be» của Con đang là quản trị (admin) — Con có thể tự gỡ AiiGrow.", "phiên Con cũng thấy, câu trung tính")
     // dong-bo mang cờ conLaAdmin + quyen thiếu
     HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [], "windows": ["mode": "tu_do", "cheDo": "chan", "locked": false, "nextCheckSec": 30,
         "serverTime": NgayGio.viet(Date()), "allowedApps": [], "learningApps": [], "web": ["cheDo": "mo", "chan": [], "cho": []]]]) }
@@ -663,30 +665,30 @@ final class BaoMatTests: XCTestCase {
     XCTAssertNil(cb)
   }
 
-  func testMinecraftJavaNgoaiAppBiDongNhungCongCuHeThongKhong() {
-    let java = TienTrinh(pid: 60, uid: 501, duongDan: "/Users/be/Library/Application Support/minecraft/runtime/java-runtime-gamma/mac-os-arm64/bin/java")
-    let javaw = TienTrinh(pid: 61, uid: 501, duongDan: "/Users/be/.sdkman/candidates/java/17/bin/java")
-    let tai = TienTrinh(pid: 62, uid: 501, duongDan: "/Users/be/Downloads/game-crack")
-    let git = TienTrinh(pid: 63, uid: 501, duongDan: "/usr/bin/git")
-    let brew = TienTrinh(pid: 64, uid: 501, duongDan: "/opt/homebrew/bin/node")
-    let nhaGoc = TienTrinh(pid: 65, uid: 501, duongDan: "/Users/be/.local/bin/uv")
-    let ds = [java, javaw, tai, git, brew, nhaGoc]
-    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid).sorted(), [60, 61, 62])
-    XCTAssertTrue(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: ["java", "game-crack"]).isEmpty, "Ba Mẹ cho phép theo tên tệp thực thi")
-    XCTAssertTrue(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: false, choPhep: []).isEmpty, "không «chỉ app học» ⇒ không đóng")
+  func testChiThuMucGameNgoaiAppBiDong() {
+    let mc = TienTrinh(pid: 60, uid: 501, duongDan: "/Users/be/Library/Application Support/minecraft/runtime/java-runtime-gamma/mac-os-arm64/bin/java")
+    let vscode = TienTrinh(pid: 61, uid: 501, duongDan: "/Users/be/.vscode/extensions/redhat.java-1.30/jre/17/bin/java")
+    let idea = TienTrinh(pid: 62, uid: 501, duongDan: "/Users/be/Library/Java/JavaVirtualMachines/temurin-17/Contents/Home/bin/java")
+    let ardu = TienTrinh(pid: 63, uid: 501, duongDan: "/Users/be/Library/Arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/bin/xtensa-esp32-elf-g++")
+    let git = TienTrinh(pid: 64, uid: 501, duongDan: "/usr/bin/git")
+    let tai = TienTrinh(pid: 65, uid: 501, duongDan: "/Users/be/Downloads/tool")
+    let steam = TienTrinh(pid: 66, uid: 501, duongDan: "/Users/be/Library/Application Support/Steam/steamapps/common/Game/game")
+    let ds = [mc, vscode, idea, ardu, git, tai, steam]
+    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid).sorted(), [60, 66], "chỉ Minecraft/Steam; VS Code, IntelliJ, Arduino15 không bị đóng")
+    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: ["java"]).map(\.pid), [66], "Ba Mẹ cho phép theo tên tệp")
+    XCTAssertTrue(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: false, choPhep: []).isEmpty)
   }
 
-  func testBoGoVaCongCuTuXaDuocMienTru() {
+  func testChiBoGoGocRootDuocMienTru() {
     let ds = [
       TienTrinh(pid: 70, uid: 501, duongDan: "/Library/Input Methods/OpenKey.app/Contents/MacOS/OpenKey", bundleId: "com.tranvietkhoa.openkey"),
-      TienTrinh(pid: 71, uid: 501, duongDan: "/Users/be/Library/Input Methods/GoTiengViet.app/Contents/MacOS/GoTiengViet", bundleId: "com.x.gotiengviet"),
-      TienTrinh(pid: 72, uid: 501, duongDan: "/Users/be/Library/Input Methods/EVKey"),
       TienTrinh(pid: 73, uid: 501, duongDan: "/Library/Application Support/Tailscale/tailscaled"),
       TienTrinh(pid: 74, uid: 501, duongDan: "/Applications/Tailscale.app/Contents/MacOS/Tailscale", bundleId: "io.tailscale.ipn.macsys"),
       TienTrinh(pid: 75, uid: 501, duongDan: "/Applications/TeamViewer.app/Contents/MacOS/TeamViewer", bundleId: "com.teamviewer.TeamViewer"),
-      TienTrinh(pid: 76, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer"),
+      TienTrinh(pid: 76, uid: 501, duongDan: "/Users/be/Library/Input Methods/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer"),
+      TienTrinh(pid: 77, uid: 501, duongDan: "/Users/be/Library/Application Support/Tailscale/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer"),
     ]
-    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid), [76])
+    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid), [76, 77], "Roblox giấu trong ~/Library/Input Methods bị đóng; bộ gõ ở /Library giữ")
   }
 
   func testGoCaiXoaNhanLaunchctlCuoiTapLenh() throws {

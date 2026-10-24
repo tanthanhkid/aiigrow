@@ -17,6 +17,7 @@ final class TrayApp: NSObject, NSApplicationDelegate {
   var timerHoi: Timer?
   var timerGiao: Timer?
   var manKhoa: [CuaSoKhongDong] = []
+  var giuCanhBaoGhep = false
   var cuaSoXin: NSWindow?, cuaSoMo: NSWindow?, cuaSoGhep: NSWindow?
   var nhac = NhacGio()
   var cuaSoNhac: NSPanel?
@@ -137,12 +138,13 @@ final class TrayApp: NSObject, NSApplicationDelegate {
 
   func capNhatGhep(ep: Bool = false) {
     let can = TrayLogic.canGhep(model.tt, laAdmin: laAdmin())
-    if !can && !ep { cuaSoGhep?.close(); cuaSoGhep = nil; return }
+    if TrayLogic.dongCuaSoGhep(can: can, ep: ep, giuCanhBao: giuCanhBaoGhep) { cuaSoGhep?.close(); cuaSoGhep = nil; return }
+    if giuCanhBaoGhep { return }                      // cửa sổ đang hiện cảnh báo: giữ nguyên
     guard can else { return }
     if let w = cuaSoGhep { if ep { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }; return }
     let ds = TrayLogic.taiKhoanThuong(dsclRa: chay("/usr/bin/dscl", [".", "-list", "/Users", "UniqueID"]), hienTai: NSUserName())
-    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, dongLai: { [weak self] in
-      self?.cuaSoGhep?.close(); self?.cuaSoGhep = nil; self?.hoi() })))
+    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, khiCanhBao: { [weak self] in self?.giuCanhBaoGhep = true }, dongLai: { [weak self] in
+      self?.giuCanhBaoGhep = false; self?.cuaSoGhep?.close(); self?.cuaSoGhep = nil; self?.hoi() })))
     w.title = "AiiGrow · Ghép máy"; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     cuaSoGhep = w
