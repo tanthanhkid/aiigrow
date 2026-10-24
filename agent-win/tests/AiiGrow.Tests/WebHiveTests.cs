@@ -212,6 +212,39 @@ public class WebHiveTests
     }
 
     [Fact]
+    public void GoHklmCu_GiamSatKhongCoDauAiiGrow_GiuCoCuaIT()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;   // IT tắt ẩn danh cho cả máy
+        new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0);
+        Assert.Equal(1, h.Hklm.Dword[Chrome + "|IncognitoModeAvailability"]);
+    }
+
+    [Fact]
+    public void GoHklmCu_CoDauAiiGrow_GoCaCo()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };
+        h.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;
+        new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0);
+        Assert.Empty(h.Hklm.Dword);
+        // đang Chặn thật lúc nâng cấp ⇒ bản cũ đã đặt cờ ⇒ gỡ (kể cả khi danh sách rỗng)
+        var h2 = new FakeHiveHost(); h2.CoHoSo.Add(Con);
+        h2.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;
+        new WebPolicyHives(h2).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.Empty(h2.Hklm.Dword);
+    }
+
+    [Fact]
+    public void DanhSachCaMayCuaIT_BaoTrinhDuyetBiDe()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.MucKhac.Add(Chrome + @"\URLBlocklist");
+        Assert.Equal(new[] { "Chrome" }, new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0).HklmDe);
+        Assert.Empty(new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0).HklmDe);   // Giám sát: không có gì để báo
+    }
+
+    [Fact]
     public void HklmSach_KhongBaoDaGo()
     {
         var h = new FakeHiveHost(); h.CoHoSo.Add(Con);

@@ -33,6 +33,8 @@ public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<stri
 {
     /// <summary>Đổi ở hive của tài khoản Con hiện tại (khay cần làm mới + nhắc). DaDoi = đổi ở bất kỳ hive nào (báo trình duyệt cả máy đọc lại).</summary>
     public bool DoiChoConHienTai { get; init; }
+    /// <summary>Trình duyệt có danh sách web cả máy (HKLM) của IT / Ba Mẹ ⇒ luật AiiGrow theo tài khoản Con KHÔNG có hiệu lực ở đó.</summary>
+    public IReadOnlyList<string> HklmDe { get; init; } = Array.Empty<string>();
 }
 
 public sealed class WebPolicyHives
@@ -94,12 +96,16 @@ public sealed class WebPolicyHives
         if (!_hklmDaGo)
         {
             // DaGoHklm chỉ khi THẬT SỰ có luật cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
-            try { var may = _host.May; new WebPolicyApplier(may).GoTatCa(); _hklmDaGo = true; goHklm = may.SoMucDaXoa > 0; }
+            try { var may = _host.May; new WebPolicyApplier(may).GoHklmCu(dangChan: p != null); _hklmDaGo = true; goHklm = may.SoMucDaXoa > 0; }
             catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
         }
 
+        // danh sách web CẢ MÁY do IT / Ba Mẹ đặt thắng danh sách trong hive Con (Chrome / Edge không gộp) ⇒ báo, không im lặng (review #75)
+        IReadOnlyList<string> hklmDe = Array.Empty<string>();
+        if (p != null) { try { hklmDe = new WebPolicyApplier(_host.May).TrinhDuyetBiHklmDe(); } catch { } }
+
         // chưa đọc được tài khoản Con (null) mà đang cần CHẶN ⇒ giữ nguyên luật đang có (như AppLocker), không gỡ nhầm; cần GỠ thì vẫn gỡ ở các hive đã ghi
-        if (childSids == null && p != null) return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi);
+        if (childSids == null && p != null) return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi) { HklmDe = hklmDe };
         var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var dich = sids.Concat(_daGhiCho.Where(x => !sids.Contains(x, StringComparer.OrdinalIgnoreCase))).ToList();
         var chua = new List<string>();
@@ -138,7 +144,7 @@ public sealed class WebPolicyHives
             try { _host.LuuDaGhi(DsLuu()); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
-        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon };
+        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = hklmDe };
     }
 
     private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }

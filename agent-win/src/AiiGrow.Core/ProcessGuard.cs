@@ -46,13 +46,24 @@ public static class ProcessGuard
         "mstsc.exe", "ftp.exe", "telnet.exe", "bash.exe", "wsl.exe", "wslhost.exe",
         // chạy mã/ứng dụng tuỳ ý hoặc đóng khay: XBAP, forfiles /c, mmc snap-in, Task Manager / taskkill (rundll32 vẫn miễn: in ấn, hộp thoại, applet Control Panel cần)
         "presentationhost.exe", "forfiles.exe", "mmc.exe", "taskmgr.exe", "taskkill.exe", "certutil.exe", "bitsadmin.exe",
+        // Win Home (không AppLocker): công cụ đóng được khay / chạy mã / cài đặt — resmon/perfmon (End Process), tskill, wmic (wbem), regsvr32, msiexec,
+        // schtasks, sc, reg, runas, Control Panel (review #75). Lệnh chạy xong trước nhịp quét thì không chặn kịp — giới hạn của chặn bằng cách đóng app.
+        "resmon.exe", "perfmon.exe", "tskill.exe", "wmic.exe", "regsvr32.exe", "msiexec.exe", "schtasks.exe", "sc.exe", "reg.exe", "runas.exe", "control.exe",
     };
 
     /// <summary>Gói Store chạy nền của chính Windows (Phone Link, Widgets, Cross Device) — miễn như tiến trình hệ thống.</summary>
     public static readonly HashSet<string> GoiStoreHeThong = new(StringComparer.OrdinalIgnoreCase)
     {
         "microsoft.yourphone", "microsoftwindows.client.webexperience", "microsoftwindows.crossdevice", "microsoft.windows.shellexperiencehost",
+        // Win11 23H2/24H2: runtime Widgets, công cụ cắt màn hình (Win+Shift+S) — đóng thì Widgets / chụp màn hình hỏng và bắn màn «app bị chặn» lặp (review #75)
+        "microsoft.widgetsplatformruntime", "microsoft.screensketch",
     };
+
+    /// <summary>Gói Store hệ thống theo TIỀN TỐ (Windows App SDK: Microsoft.WindowsAppRuntime.1.5, …Singleton — PushNotificationsLongRunningTask).</summary>
+    public static readonly string[] TienToGoiStoreHeThong = { "microsoft.windowsappruntime" };
+
+    public static bool LaGoiStoreHeThong(string goi) =>
+        GoiStoreHeThong.Contains(goi) || TienToGoiStoreHeThong.Any(t => goi.StartsWith(t, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Thư mục gói giao diện shell của Windows (Start, Search, Lock screen, ô nhập…) — luôn cho chạy.</summary>
     public const string ThuMucSystemApps = "SystemApps";
@@ -145,7 +156,7 @@ public static class ProcessGuard
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         if (DuocPhepTheoLuat(exePath, allowed, winDir)) return false;
-        if (TenGoiStore(exePath) is { } goi && GoiStoreHeThong.Contains(goi)) return false;
+        if (TenGoiStore(exePath) is { } goi && LaGoiStoreHeThong(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;
 
         foreach (var d in safeDirs)

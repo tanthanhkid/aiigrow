@@ -41,6 +41,7 @@ internal sealed class AppForm : Form
     private KetNoiInfo _kn = KetNoiView.Chon(false, null);
     private HvTongQuan? _tq;
     private int? _phutChoi;   // «≈ X phút chơi» đổi được từ điểm (dịch vụ → phien/xet); null = chưa biết
+    private string? _phutChoiCua;   // mục (PlayChoices[0]) mà _phutChoi thuộc về — mục đầu đổi thì số cũ bỏ đi, hỏi lại (giá theo nhóm khác nhau)
     private HvCuaHang? _ch;
     private HvTinDs? _tin;
     private bool _busy;
@@ -201,6 +202,12 @@ internal sealed class AppForm : Form
     {
         if (s != null) { _s = s; _at = receivedAt; }
         _kn = kn;
+        var dau = _s.PlayChoices.FirstOrDefault();
+        if (_phutChoiCua != null && !string.Equals(_phutChoiCua, dau, StringComparison.OrdinalIgnoreCase))
+        {
+            _phutChoi = null; _phutChoiCua = null;
+            if (dau != null && Visible) _ = LamMoiPhutChoiAsync();
+        }
         ApplyKetNoiUi();
         var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}";
         if (sig != _sig) { _sig = sig; Render(); }
@@ -302,11 +309,14 @@ internal sealed class AppForm : Form
 
     private async Task LamMoiPhutChoiAsync()
     {
-        if (_s.PlayChoices.Count == 0) { _phutChoi = null; return; }
+        if (_s.PlayChoices.Count == 0) { _phutChoi = null; _phutChoiCua = null; return; }
+        var muc = _s.PlayChoices[0];
         try
         {
-            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = _s.PlayChoices[0] });
+            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = muc });
             var moi = r.Ok ? r.PlayMinutes : null;
+            if (IsDisposed || !string.Equals(_s.PlayChoices.FirstOrDefault(), muc, StringComparison.OrdinalIgnoreCase)) return;   // mục đầu đã đổi giữa chừng
+            _phutChoiCua = muc;
             if (moi != _phutChoi) { _phutChoi = moi; Render(); }
         }
         catch { /* không có số phút thì chỉ hiện điểm */ }

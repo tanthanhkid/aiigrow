@@ -142,6 +142,10 @@ public interface IWebPolicyRegistry
     void GoKhoaNeuTrong(string khoa);
     /// <summary>Số giá trị CỦA AIIGROW đã thật sự xoá qua cổng này (để biết lần gỡ HKLM có gỡ gì không).</summary>
     int SoMucDaXoa => 0;
+    /// <summary>Danh sách <paramref name="khoaDs"/> có mục của AiiGrow (tên &gt; 90000).</summary>
+    bool CoMucCuaTa(string khoaDs) => false;
+    /// <summary>Danh sách <paramref name="khoaDs"/> có mục do người khác đặt (IT / Ba Mẹ).</summary>
+    bool CoMucNguoiKhac(string khoaDs) => false;
 }
 
 public sealed class WebPolicyApplier
@@ -185,6 +189,28 @@ public sealed class WebPolicyApplier
 
     /// <summary>Gỡ hết (giám sát, mồ côi, gỡ AiiGrow).</summary>
     public bool GoTatCa() => Ap(null, null);
+
+    /// <summary>Gỡ luật bản cũ (≤0.2.5) trong HKLM. Danh sách: chỉ mục của AiiGrow. Ba cờ DWORD không phân biệt được ai đặt ⇒ CHỈ gỡ khi có dấu
+    /// AiiGrow từng áp ở HKLM: còn mục danh sách của AiiGrow, hoặc <paramref name="dangChan"/> (đang Chặn thật ⇒ bản cũ đã đặt cờ). Đang Giám sát mà
+    /// không có mục nào của AiiGrow ⇒ bản cũ đã gỡ cờ rồi, cờ còn lại là của IT / Ba Mẹ — giữ nguyên (review #75).</summary>
+    public void GoHklmCu(bool dangChan)
+    {
+        var coDau = dangChan || WebPolicyKeys.TatCa.Any(t => _reg.CoMucCuaTa(t.Khoa + "\\" + WebPolicyKeys.DsChan) || _reg.CoMucCuaTa(t.Khoa + "\\" + WebPolicyKeys.DsCho));
+        foreach (var t in WebPolicyKeys.TatCa)
+        {
+            _reg.DatDanhSach(t.Khoa + "\\" + WebPolicyKeys.DsChan, Array.Empty<string>());
+            _reg.DatDanhSach(t.Khoa + "\\" + WebPolicyKeys.DsCho, Array.Empty<string>());
+            if (coDau) foreach (var (ten, _) in WebPolicyKeys.Co(t)) _reg.GoDword(t.Khoa, ten);
+            _reg.GoKhoaNeuTrong(t.Khoa);
+        }
+        _daAp = null;
+    }
+
+    /// <summary>Trình duyệt có danh sách web CẢ MÁY (HKLM) do IT / Ba Mẹ đặt: Chrome / Edge không gộp danh sách máy với danh sách người dùng — danh sách
+    /// máy thắng, luật AiiGrow trong hive Con bị bỏ qua ⇒ phải báo Ba Mẹ (review #75).</summary>
+    public List<string> TrinhDuyetBiHklmDe() =>
+        WebPolicyKeys.TatCa.Where(t => _reg.CoMucNguoiKhac(t.Khoa + "\\" + WebPolicyKeys.DsChan) || _reg.CoMucNguoiKhac(t.Khoa + "\\" + WebPolicyKeys.DsCho))
+            .Select(t => t.Ten).ToList();
 }
 
 /// <summary>Ghi registry thật (64-bit) vào HKLM (chỉ để GỠ luật bản cũ) hoặc một hive người dùng đã nạp (HKU\<SID> hoặc hive nạp tạm).
@@ -214,6 +240,10 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     private static extern bool RefreshPolicyEx(bool bMachine, uint dwOptions);
     private const uint RP_FORCE = 1;
 
+    /// <summary>RefreshPolicyEx(force) — <paramref name="may"/> = chính sách máy (dịch vụ SYSTEM), false = chính sách của NGƯỜI DÙNG đang chạy tiến trình (khay ở phiên Con).
+    /// Một chỗ khai báo P/Invoke cho cả dịch vụ và khay.</summary>
+    public static bool LamMoiChinhSach(bool may) => RefreshPolicyEx(may, RP_FORCE);
+
     /// <summary>Báo trình duyệt đọc lại chính sách NGAY. Chrome / Edge / Cốc Cốc chỉ đọc lại registry khi nhận tín hiệu Group Policy
     /// (RegisterGPNotification) hoặc theo chu kỳ dài — ghi registry xong mà không báo thì tải lại trang vẫn vào được, phải tắt hẳn trình duyệt
     /// (Thanh thử YouTube 24/10). RefreshPolicyEx chạy xử lý chính sách cục bộ (cả máy không vào domain) rồi phát tín hiệu đó; không được thì gpupdate.
@@ -221,7 +251,7 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     public static string BaoTrinhDuyetDocLai()
     {
         // chỉ tín hiệu MÁY: dịch vụ chạy SYSTEM, RefreshPolicyEx(false) chỉ làm mới cho chính SYSTEM (review #65)
-        try { if (RefreshPolicyEx(true, RP_FORCE)) return "RefreshPolicyEx"; }
+        try { if (LamMoiChinhSach(true)) return "RefreshPolicyEx"; }
         catch { }
         try
         {
@@ -273,6 +303,18 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
                 k.SetValue(n, muc[i], RegistryValueKind.String);
         }
         foreach (var n in k.GetValueNames()) if (WebPolicyKeys.LaCuaTa(n) && !ten.Contains(n)) k.DeleteValue(n, false);
+    }
+
+    public bool CoMucCuaTa(string khoaDs) => DemMuc(khoaDs, true);
+    public bool CoMucNguoiKhac(string khoaDs) => DemMuc(khoaDs, false);
+
+    private bool DemMuc(string khoaDs, bool cuaTa)
+    {
+        using var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
+        using var g = _goc == null ? null : b.OpenSubKey(_goc, false);   // đóng cả khoá gốc hive tạm — còn handle thì gỡ nạp hỏng
+        if (_goc != null && g == null) return false;
+        using var k = (g ?? b).OpenSubKey(khoaDs, false);
+        return k != null && k.GetValueNames().Any(n => n.Length > 0 && WebPolicyKeys.LaCuaTa(n) == cuaTa);
     }
 
     public void DatDword(string khoa, string ten, int giaTri)
@@ -339,6 +381,9 @@ public static class WebGuard
 
     /// <summary>Đoạn PowerShell tương đương, nhúng vào tác vụ dọn tách rời (SYSTEM) làm lưới đỡ khi dịch vụ không gỡ được.
     /// Chỉ xoá giá trị của AiiGrow (tên số &gt; 90000 + ba cờ DWORD), giữ nguyên mục người khác đặt.</summary>
+    /// <summary>Mốc «đã dọn luật web ở hive mọi hồ sơ» của tác vụ dọn tách rời (xoá khi tác vụ tự huỷ).</summary>
+    public const string MocDonWeb = @"HKLM:\SOFTWARE\AiiGrowDonWeb";
+
     public static string KichBanGoChinhSach()
     {
         // Gọn: một hàm Go-Web chạy cho HKLM (bản cũ) rồi từng hive hồ sơ — kịch bản đi qua -EncodedCommand trong tham số tác vụ (giới hạn ~32K ký tự), không lặp danh sách.
@@ -366,6 +411,9 @@ public static class WebGuard
             "foreach($t in @(Get-ChildItem -LiteralPath 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'AiiGrowTmp_*' -or $_ -like 'AiiGrowGo_*' })){ [gc]::Collect(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null }",
             // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp, hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
             "$pl='HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList'",
+            // CHỈ MỘT LẦN: tác vụ chạy lại mỗi lần khởi động tới khi tự huỷ — nạp NTUSER.DAT mọi hồ sơ mỗi lần khởi động thì ai đăng nhập đúng lúc
+            // sẽ vào hồ sơ tạm (review #75). Xong lượt đầu ⇒ đặt mốc; tác vụ tự huỷ thì xoá mốc.
+            "if(-not (Test-Path -LiteralPath '" + MocDonWeb + "')){",
             "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' -or $_ -like 'S-1-12-1-*' })){",
             "  $goc=\"Registry::HKEY_USERS\\$s\"; $nap=$false",
             "  if(-not (Test-Path -LiteralPath $goc)){",
@@ -377,6 +425,8 @@ public static class WebGuard
             "  }",
             "  Go-Web $goc",
             "  if($nap){ for($i=0;$i -lt 10;$i++){ [gc]::Collect(); [gc]::WaitForPendingFinalizers(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null; if($LASTEXITCODE -eq 0){ break }; Start-Sleep -Milliseconds 300 } }",
+            "}",
+            "New-Item -Path '" + MocDonWeb + "' -Force | Out-Null",
             "}",
             // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
             "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",

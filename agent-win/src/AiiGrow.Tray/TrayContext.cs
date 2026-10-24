@@ -85,13 +85,13 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private bool _anPhienKhac;
+    private bool _daBietPhien;   // dịch vụ đã trả lời ít nhất một lần (biết phiên này có phải của Con)
 
     /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay ẩn, đóng màn khoá / màn chặn, ngừng hỏi máy chủ, chỉ hỏi dịch vụ thưa (6 giây) — KHÔNG thoát hẳn:
     /// quyết định dựa trên danh sách tài khoản dịch vụ đọc 2 phút/lần, có thể cũ (cài một chạm: Con vừa bị gỡ quyền quản trị) ⇒ đúng lại thì hiện lại (BUG-007, review #75).</summary>
     private void AnVoiPhienKhac()
     {
-        _ni.Visible = false;
-        if (_anPhienKhac) return;
+        if (_anPhienKhac) { _ni.Visible = false; return; }
         _anPhienKhac = true;
         _hvTimer.Stop();
         // hỏi dịch vụ (pipe cục bộ, rẻ) mỗi 6 giây: phân loại nhầm (danh sách tài khoản cũ) thì Con có lại màn khoá / màn chặn sớm
@@ -229,10 +229,13 @@ internal sealed class TrayContext : ApplicationContext
             {
                 // Dịch vụ không trả lời: chờ 2 lần liền (~6 giây) cho chắc rồi mới đổi biểu tượng + báo «Dịch vụ AiiGrow không chạy».
                 // phiên đã biết KHÔNG phải của Con ⇒ giữ ẩn (dịch vụ khởi động lại không làm biểu tượng hiện ở phiên Ba Mẹ — review #75)
-                if (++_pipeFail >= 2 && !_anPhienKhac) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); }
+                // CHƯA biết phiên này của ai (dịch vụ chưa trả lời lần nào — máy vừa khởi động, Ba Mẹ đăng nhập trước khi dịch vụ lên) ⇒ chờ ~2 phút
+                // mới hiện biểu tượng lỗi, không nháy biểu tượng đỏ ở phiên Ba Mẹ (BUG-007, review #75)
+                if (++_pipeFail >= (_daBietPhien ? 2 : 40) && !_anPhienKhac) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); }
                 return;
             }
             _pipeFail = 0;
+            _daBietPhien = true;
             if (!res.State.PhienCon) { AnVoiPhienKhac(); return; }
             HienLaiNeuDaAn();
             Chao(true);

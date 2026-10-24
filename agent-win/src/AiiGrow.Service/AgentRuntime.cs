@@ -38,6 +38,8 @@ public sealed class AgentRuntime
     public bool AppLockerApplied { get; set; }
     /// <summary>BUG-005: AppLocker dùng được trên máy này (false = Windows Home ⇒ chỉ chặn bằng cách đóng app). Worker đặt mỗi vòng.</summary>
     public volatile bool AppLockerKhaDung = true;
+    /// <summary>Trình duyệt có danh sách web cả máy của IT (WebGuardWorker) ⇒ luật web AiiGrow không có hiệu lực ở đó — báo Ba Mẹ.</summary>
+    public volatile string? GhiChuWeb;
     /// <summary>0.2.6: SID tài khoản Con (AgentWorker tính mỗi vòng; null = chưa đọc được) — WebGuardWorker ghi luật web vào hive những SID này.</summary>
     public volatile IReadOnlyList<string>? ChildSids;
     /// <summary>0.2.6: danh sách tài khoản Windows của máy (AgentWorker đọc mỗi ~2 phút; null = chưa đọc được) — khay hỏi «phiên này có phải của Con không».</summary>
@@ -163,10 +165,15 @@ public sealed class AgentRuntime
         _lockStartedAt = null;
     }
 
+    /// <summary>Đổi mỗi khi nội dung dong-bo đổi (điểm, giá nhóm, bật/tắt đổi điểm…) — PipeServer bỏ số phút PlayInfo đã nhớ (review #75).</summary>
+    public int PolicyRev { get; private set; }
+    private string? _rawCu;
+
     public void SetPolicy(Policy p, string raw)
     {
         lock (_gate)
         {
+            if (!string.Equals(raw, _rawCu, StringComparison.Ordinal)) { _rawCu = raw; PolicyRev++; }
             _policy = p;
             _policyAt = DateTimeOffset.UtcNow;
             _usedSeconds = 0;
@@ -480,7 +487,7 @@ public sealed class AgentRuntime
                 PlaySeconds = Math.Round(_playSec, 1),
                 PlaySessionId = _playSecId,
                 Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac, AppLockerKhaDung),
-                GhiChuBaoVe = AppLockerKhaDung ? null : AiiGrow.Core.AppLockerKhaDung.CauGhiChu,
+                GhiChuBaoVe = string.Join("; ", new[] { AppLockerKhaDung ? null : AiiGrow.Core.AppLockerKhaDung.CauGhiChu, GhiChuWeb }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } g ? g : null,
             };
         }
     }

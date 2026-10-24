@@ -16,6 +16,7 @@ public sealed class PipeServer : BackgroundService
     /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
     private readonly Func<IntPtr, bool> _laKhayThat;
     private readonly Dictionary<string, (DateTimeOffset Luc, PipeResponse Tra)> _playInfoNho = new(StringComparer.OrdinalIgnoreCase);
+    private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi (điểm / giá / tắt đổi điểm) ⇒ bỏ hết
 
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
@@ -133,7 +134,10 @@ public sealed class PipeServer : BackgroundService
                 if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };
                 // nhớ: «được» 60 giây, «từ chối» 15 giây (hết điểm thì mỗi lần mở hộp / làm mới không bắn thêm phien/xet; Ba Mẹ thêm điểm thì hiện sau ≤15 giây)
                 lock (_playInfoNho)
+                {
+                    if (_playInfoRev != _rt.PolicyRev) { _playInfoNho.Clear(); _playInfoRev = _rt.PolicyRev; }
                     if (_playInfoNho.TryGetValue(muc, out var nho) && now - nho.Luc < (nho.Tra.Status == "duoc" ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(15))) return nho.Tra;
+                }
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);

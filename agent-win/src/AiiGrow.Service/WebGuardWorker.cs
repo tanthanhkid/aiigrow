@@ -16,6 +16,8 @@ public sealed class WebGuardWorker : BackgroundService
     private readonly bool _baoDocLai;
     private string? _daBaoHive;
     private string? _daBaoLoi;
+    private string? _daBaoLoiHklm;
+    private string? _daBaoDe;
 
     public WebGuardWorker(ILogger<WebGuardWorker> log, AgentRuntime? rt = null, WebPolicyHives? hives = null)
     {
@@ -48,7 +50,19 @@ public sealed class WebGuardWorker : BackgroundService
             _log.LogInformation("Đã gỡ luật web cũ trong HKLM (bản trước 0.2.6 ghi cả máy) — tài khoản Ba Mẹ không còn bị chặn");
             if (_baoDocLai) _log.LogInformation("Báo trình duyệt (cả máy) đọc lại chính sách: {c}", WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai());
         }
-        if (kq.LoiGoHklm != null) _log.LogWarning("Gỡ luật web cũ trong HKLM lỗi (thử lại sau): {m}", kq.LoiGoHklm);
+        // lỗi lặp lại (IT khoá ACL HKLM) chỉ log khi đổi — không 120 dòng/giờ
+        if (kq.LoiGoHklm != _daBaoLoiHklm)
+        {
+            _daBaoLoiHklm = kq.LoiGoHklm;
+            if (kq.LoiGoHklm != null) _log.LogWarning("Gỡ luật web cũ trong HKLM lỗi (thử lại mỗi 30 giây): {m}", kq.LoiGoHklm);
+        }
+        var de = string.Join(", ", kq.HklmDe);
+        if (de != _daBaoDe)
+        {
+            _daBaoDe = de;
+            if (_rt != null) _rt.GhiChuWeb = de.Length > 0 ? $"{de}: IT đặt danh sách web cho cả máy — luật web AiiGrow không có hiệu lực" : null;
+            if (de.Length > 0) _log.LogWarning("{b} có URLBlocklist/URLAllowlist cả máy (HKLM) do người khác đặt — Chrome/Edge không gộp với danh sách theo tài khoản, luật web AiiGrow bị bỏ qua", de);
+        }
         if (kq.DaDoi)
         {
             _log.LogInformation(p == null ? "Đã gỡ chính sách web của AiiGrow khỏi tài khoản Con" : "Đã áp chính sách web cho tài khoản Con: chế độ {c}, chặn {a}, cho phép {b}", p?.CheDo, p?.Chan.Count, p?.Cho.Count);

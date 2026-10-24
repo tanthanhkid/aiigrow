@@ -299,7 +299,7 @@ public static partial class SystemCleanup
             $"$tepSach=$false; for($i=0;$i -lt 150;$i++){{ Remove-Item -LiteralPath {inst} -Recurse -Force; Remove-Item -LiteralPath {data} -Recurse -Force; " +
             $"$tepSach = -not (Test-Path -LiteralPath {inst}) -and -not (Test-Path -LiteralPath {data}); if($tepSach){{break}}; Start-Sleep -Seconds 2 }}",
             // CHỈ tự huỷ tác vụ khi đã gỡ hết luật của mình VÀ xoá hết tệp; còn luật thì giữ tác vụ để lần khởi động sau thử lại.
-            $"if($luatSach -and $tepSach){{ Unregister-ScheduledTask -TaskName {Q(TenTacVuDon)} -Confirm:$false }}",
+            $"if($luatSach -and $tepSach){{ Remove-Item -LiteralPath {Q(WebGuard.MocDonWeb)} -Force; Unregister-ScheduledTask -TaskName {Q(TenTacVuDon)} -Confirm:$false }}",
         });
     }
 }
