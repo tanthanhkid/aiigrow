@@ -14,8 +14,9 @@
 //    `on delete cascade` tới families / children / devices / parents (Con, nhiệm vụ, bài nộp + ảnh bằng chứng, điểm, quà, voucher, quỹ,
 //    luật app/web, phiên chơi, yêu cầu, cảnh báo, sự kiện, lời mời, lệnh máy, tuân thủ, DNS…). Bảng KHÔNG có khoá ngoại xoá tay:
 //    may_log (family_id), pin_sai (khoá «xoa_tk:<người>», «<máy>:<con>», «go:<máy>» — cả máy đã gỡ trước đó, tìm qua events/lệnh/gói cài),
-//    otp (định danh). audit (nhật ký thao tác nhân viên AiiLab) giữ, ghi thêm
-//    MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch.
+//    otp (định danh). audit (nhật ký thao tác nhân viên AiiLab: nạp quỹ, quét phiếu quà…) giữ TỐI ĐA 90 ngày để xử lý khiếu nại
+//    (Thanh chốt 24/10), ghi thêm MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch; dòng đó là mốc tính 90 ngày,
+//    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
@@ -92,4 +93,27 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     await ghiKiemToan(null, "xoa_gia_dinh", { soCon: con.length }, bm.family_id, t);
     return { xoa: "gia_dinh", soCon: con.length };
   });
+}
+
+// ---------------------------------------------------------------- dọn audit của gia đình đã xoá quá 90 ngày (chính sách quyền riêng tư mục 4)
+export const GIU_KIEM_TOAN_NGAY = 90;
+
+/** Xoá hẳn MỌI dòng audit của gia đình đã xoá (mốc = dòng «xoa_gia_dinh») quá GIU_KIEM_TOAN_NGAY ngày. Chỉ đụng gia đình không còn
+ *  trong families (phòng trường hợp lạ). Gọi lặp vô hại. → số dòng đã xoá. */
+export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number> {
+  await damBaoBang();
+  const moc = new Date(now.getTime() - GIU_KIEM_TOAN_NGAY * 86_400_000);
+  const r = await q<{ id: string }>(`delete from audit where family_id in (
+      select x.family_id from audit x where x.hanh_dong = 'xoa_gia_dinh' and x.family_id is not null and x.created_at < $1
+        and not exists (select 1 from families f where f.id = x.family_id)) returning id`, [moc]);
+  return r.length;
+}
+
+/** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn. → null = vừa chạy rồi. */
+export async function chayDonKiemToan(now = new Date()): Promise<number | null> {
+  await damBaoBang();
+  const duoc = await q(`insert into he_thong(khoa, gia_tri, updated_at) values ('don_kiem_toan', '{}', $1)
+    on conflict (khoa) do update set updated_at = $1 where he_thong.updated_at < $1::timestamptz - interval '1 hour' returning khoa`, [now]);
+  if (!duoc.length) return null;
+  return donKiemToanGiaDinhDaXoa(now);
 }

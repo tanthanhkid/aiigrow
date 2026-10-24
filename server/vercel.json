@@ -8,5 +8,11 @@
   "buildCommand": "pnpm build:app && next build",
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/don-kiem-toan",
+      "schedule": "0 19 * * *"
+    }
+  ]
 }

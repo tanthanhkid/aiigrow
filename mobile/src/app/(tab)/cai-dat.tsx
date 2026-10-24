@@ -107,6 +107,7 @@ export default function CaiDat() {
                   <TickDong trang="x" chu={`Hồ sơ ${d.g.con.length ? `${d.g.con.length} Con` : "các Con"}, nhiệm vụ, ảnh bằng chứng, điểm, quà và luật`} />
                   {d.g.quyVoucher > 0 ? <TickDong trang="x" chu={`Quỹ phiếu quà AiiCafe còn ${tien(d.g.quyVoucher)} và các phiếu chưa dùng`} phu="Muốn hoàn tiền thì chat với AiiLab TRƯỚC khi xoá" /> : null}
                   <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
+                  <Chu mau={M.chu2}>Nhật ký giao dịch quỹ và phiếu quà được AiiLab giữ tối đa 90 ngày để xử lý khiếu nại, sau đó xoá hẳn.</Chu>
                 </>
               ) : (
                 <>
