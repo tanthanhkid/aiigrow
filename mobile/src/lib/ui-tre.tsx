@@ -7,7 +7,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import Svg, { Circle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BieuTron, Chu, DiemPill, F, Icon, M, Man, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
+import { BieuTron, Chu, DiemPill, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
+import { BONG, KHOI, MEN } from "./clay";
 import { kid, may, type NhomTre, type NvTre, type ToiTre } from "./api-tre";
 
 // ---------------------------------------------------------------- phiên Con (hồ sơ đang dùng)
@@ -83,18 +84,21 @@ const MUC_TAB: { ma: TabTre; ic: TenIcon; chu: string }[] = [
 export function ThanhTre({ dang }: { dang: TabTre }) {
   const ins = useSafeAreaInsets();
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: "row", backgroundColor: "rgba(255,255,255,.97)", borderTopWidth: 1, borderTopColor: M.vien,
-      paddingTop: 8, paddingBottom: Math.max(ins.bottom, 12) }}>
+    <View style={{ paddingHorizontal: 10, paddingTop: 6, paddingBottom: Math.max(ins.bottom - 6, 10) }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: "row", backgroundColor: M.the, borderRadius: 34, padding: 6, boxShadow: BONG.noi }}>
+      <LopMen men={MEN.the} bo={34} />
       {MUC_TAB.map((m) => {
         const d = m.ma === dang;
         return (
-          <Pressable key={m.ma} onPress={() => (d ? null : router.replace(`/tre/${m.ma}` as never))} accessibilityRole="tab" accessibilityState={{ selected: d }}
-            accessibilityLabel={m.chu} style={{ flex: 1, alignItems: "center", gap: 3, minHeight: 52, minWidth: 0 }}>
-            <Icon ten={m.ic} co={28} mau={d ? M.chinhInk : M.chu3} net={d ? 2.4 : 2} />
+          <NhanMen key={m.ma} onPress={() => (d ? null : router.replace(`/tre/${m.ma}` as never))} accessibilityRole="tab" accessibilityState={{ selected: d }} muc="chip" sang men={d ? MEN.day : undefined}
+            accessibilityLabel={m.chu} style={[{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 62, minWidth: 0, borderRadius: 26 },
+              d && { backgroundColor: M.chinhSoft, boxShadow: BONG.lom }]}>
+            <Icon ten={m.ic} co={28} mau={d ? M.chinhInk : M.chu3} />
             <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 13, color: d ? M.chinhInk : M.chu3 }}>{m.chu}</Text>
-          </Pressable>
+          </NhanMen>
         );
       })}
+    </View>
     </View>
   );
 }
@@ -121,8 +125,9 @@ export function DiemTren({ n, chuoi }: { n: number; chuoi?: number }) {
       {chuoi ? (
         <Pressable onPress={() => router.push("/tre/huy-hieu")} accessibilityRole="button" accessibilityLabel={`Chuỗi ${chuoi} ngày — xem huy hiệu`}
           style={{ minHeight: 44, justifyContent: "center" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.diemSoft, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3 }}>
-            <Icon ten="lua" mau={M.diemInk} co={14} />
+          <View style={[{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: M.diemSoft, borderRadius: 99, paddingLeft: 6, paddingRight: 11, paddingVertical: 3 }, KHOI.vien]}>
+            <LopMen men={MEN.vien} bo={99} />
+            <Icon3D ten="lua" co={20} />
             <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 12.5, color: M.diemInk, lineHeight: 18 }}>{chuoi} ngày</Text>
           </View>
         </Pressable>
@@ -134,51 +139,44 @@ export function DiemTren({ n, chuoi }: { n: number; chuoi?: number }) {
 /** Ô lớn của Nhà (.o-lon): biểu tượng 60, tiêu đề 19 đậm, dòng phụ. */
 export function OLon({ ic, mau, tieu, phu, bam, tat }: { ic: TenIcon; mau?: MauBt; tieu: string; phu?: string; bam: () => void; tat?: boolean }) {
   return (
-    <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={phu ? `${tieu}. ${phu}` : tieu}
-      style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 26, minHeight: 96, backgroundColor: "#fff",
-        borderWidth: 1, borderColor: M.vien, shadowColor: M.chu, shadowOpacity: 0.06, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 1 },
-        pressed && { backgroundColor: M.xamSoft }, tat && { opacity: 0.75 }]}>
-      <View style={{ width: 60, height: 60, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: MAU_BT_NEN[mau ?? "xanh"] }}>
-        <Icon ten={ic} co={30} mau={MAU_BT_CHU[mau ?? "xanh"]} />
-      </View>
+    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={phu ? `${tieu}. ${phu}` : tieu} muc="khoi" sang men={MEN.the}
+      style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 30, minHeight: 96, backgroundColor: "#fff", ...KHOI.the }, tat && { opacity: 0.75 }]}>
+      <BieuTron ic={ic} mau={mau ?? "xanh"} co={60} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={19}>{tieu}</Chu>
         {phu ? <Chu kieu="dam" co={14} mau={M.chu3}>{phu}</Chu> : null}
       </View>
-    </Pressable>
+    </NhanMen>
   );
 }
-const MAU_BT_NEN: Record<MauBt, string> = { xanh: M.chinhSoft, vang: M.diemSoft, do: M.loiSoft, cam: M.canhSoft, lam: M.lamSoft, tim: M.timSoft, xam: M.xamSoft };
-const MAU_BT_CHU: Record<MauBt, string> = { xanh: M.chinhInk, vang: M.diemInk, do: M.loi, cam: M.canh, lam: M.lam, tim: "#4b3cc4", xam: M.chu2 };
 
 /** Thẻ nhiệm vụ (.nv): biểu tượng 52, tên + dòng phụ, «+10» vàng; `het` = hôm nay đã đủ (mờ, không bấm). */
 export function TheNv({ ic, mau, tieu, phu, diem, het, bam, nhan }: { ic: TenIcon; mau?: MauBt; tieu: string; phu: string; diem: number; het?: boolean; bam?: () => void; nhan?: ReactNode }) {
   const nd = (
-    <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: "#fff", borderWidth: 1, borderColor: M.vien,
-      minHeight: 76, shadowColor: M.chu, shadowOpacity: 0.06, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 1 }]}>
-      <View style={{ width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: het ? M.xamSoft : MAU_BT_NEN[mau ?? "xanh"] }}>
-        <Icon ten={ic} co={24} mau={het ? M.chu3 : MAU_BT_CHU[mau ?? "xanh"]} />
-      </View>
+    <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 28, backgroundColor: "#fff", minHeight: 76, ...KHOI.the }]}>
+      <LopMen men={MEN.the} bo={28} />
+      <View style={het ? { opacity: 0.55 } : undefined}><BieuTron ic={ic} mau={het ? "xam" : mau ?? "xanh"} co={52} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={16.5} mau={het ? M.chu2 : M.chu}>{tieu}</Chu>
         <Chu co={13.5} mau={M.chu3}>{phu}</Chu>
         {nhan ? <View style={{ marginTop: 4 }}>{nhan}</View> : null}
       </View>
-      <View style={{ borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: het ? M.xamSoft : M.diemSoft }}>
+      <View style={[{ borderRadius: 16, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: het ? M.xamSoft : M.diemSoft }, KHOI.vien]}>
+        <LopMen men={MEN.vien} bo={16} />
         <Text style={{ fontFamily: F.rat, fontSize: 16, color: het ? M.chu3 : M.diemInk, fontVariant: ["tabular-nums"] }}>+{diem}</Text>
       </View>
     </View>
   );
   if (!bam) return <View accessibilityLabel={`${tieu}. ${phu}`}>{nd}</View>;
-  return <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, cộng ${diem} điểm. ${phu}`}>{nd}</Pressable>;
+  return <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, cộng ${diem} điểm. ${phu}`} muc="khoi" sang style={{ borderRadius: 28 }}>{nd}</NhanMen>;
 }
 
 /** Ô quà / huy hiệu (.qua-o): hình Rob trên nền màu, tên, nhãn giá, dòng thiếu. */
 export function QuaO({ lv, nen, tieu, nhan, phu, bam, mo, nhanDoc }: { lv: LinhVat; nen: string; tieu: string; nhan?: ReactNode; phu?: string; bam?: () => void; mo?: boolean; nhanDoc?: string }) {
   const nd = (
-    <View style={{ gap: 6, padding: 12, borderRadius: 22, backgroundColor: "#fff", borderWidth: 1, borderColor: M.vien, flex: 1,
-      shadowColor: M.chu, shadowOpacity: 0.06, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 1 }}>
-      <View style={{ height: 86, borderRadius: 16, backgroundColor: nen, alignItems: "center", justifyContent: "flex-end", overflow: "hidden", opacity: mo ? 0.55 : 1 }}>
+    <View style={{ gap: 6, padding: 12, borderRadius: 28, backgroundColor: "#fff", flex: 1, ...KHOI.the }}>
+      <LopMen men={MEN.the} bo={28} />
+      <View style={{ height: 86, borderRadius: 20, backgroundColor: nen, alignItems: "center", justifyContent: "flex-end", overflow: "hidden", opacity: mo ? 0.55 : 1, boxShadow: BONG.lom }}>
         <Rob ten={lv} co={92} />
       </View>
       <Chu kieu="rat" co={15} mau={mo ? M.chu2 : M.chu}>{tieu}</Chu>
@@ -187,7 +185,7 @@ export function QuaO({ lv, nen, tieu, nhan, phu, bam, mo, nhanDoc }: { lv: LinhV
     </View>
   );
   const st: ViewStyle = { flexBasis: "46%", flexGrow: 1, minWidth: 136 };
-  return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={nhanDoc ?? tieu} style={st}>{nd}</Pressable>
+  return bam ? <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={nhanDoc ?? tieu} muc="khoi" sang style={[st, { borderRadius: 28 }]}>{nd}</NhanMen>
     : <View style={st} accessibilityLabel={nhanDoc ?? tieu}>{nd}</View>;
 }
 
@@ -217,7 +215,7 @@ export function OPin({ gia, doi, nhan = "PIN của Con", tuMo = true }: { gia: s
   return (
     <Pressable onPress={() => ref.current?.focus()} accessibilityLabel={nhan} style={{ flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 54 }}>
       {Array.from({ length: so }, (_, k) => (
-        <View key={k} style={{ width: 46, height: 54, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1.5, alignItems: "center", justifyContent: "center",
+        <View key={k} style={{ width: 46, height: 54, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1.5, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom,
           borderColor: k === Math.min(gia.length, so - 1) ? M.chinh : M.vien2 }}>
           <Chu kieu="rat" co={24}>{gia[k] ? "•" : ""}</Chu>
         </View>
@@ -302,7 +300,8 @@ export function AppIc({ muc, ten, co = 48 }: { muc: string; ten?: string; co?: n
   const k = Object.keys(APP).find((x) => muc.toLowerCase().includes(x));
   const [c, m] = k ? APP[k] : [(ten ?? muc).trim().charAt(0).toUpperCase() || "?", M.chinh];
   return (
-    <View style={{ width: co, height: co, borderRadius: co * 0.29, backgroundColor: m, alignItems: "center", justifyContent: "center" }}>
+    <View style={{ width: co, height: co, borderRadius: co * 0.32, backgroundColor: m, alignItems: "center", justifyContent: "center",
+      boxShadow: "0px 6px 10px -5px rgba(0,0,0,0.35), inset 0px 1px 0px rgba(255,255,255,0.45), inset 0px -2px 3px rgba(0,0,0,0.25)" }}>
       <Text style={{ fontFamily: F.rat, fontSize: co * 0.42, color: "#fff" }}>{c}</Text>
     </View>
   );
@@ -355,11 +354,11 @@ export function ChipMot<T extends string>({ ds, gia, doi, nhan }: { ds: { gia: T
       {ds.map((x) => {
         const c = x.gia === gia;
         return (
-          <Pressable key={x.gia} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: c }}
-            style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1.5, alignItems: "center", justifyContent: "center",
-              borderColor: c ? M.chinh : M.vien2, backgroundColor: c ? "#eef5f2" : "#fff" }}>
+          <NhanMen key={x.gia} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: c }} muc="chip" sang men={c ? undefined : MEN.sang}
+            style={[{ minHeight: 44, paddingHorizontal: 15, borderRadius: 99, borderWidth: 1.5, alignItems: "center", justifyContent: "center",
+              borderColor: c ? M.chinh : "transparent", backgroundColor: c ? "#eef5f2" : "#fff" }, KHOI.nho]}>
             <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
-          </Pressable>
+          </NhanMen>
         );
       })}
     </View>

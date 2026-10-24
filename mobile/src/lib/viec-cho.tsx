@@ -7,7 +7,10 @@
 //  • phiếu quà: Xác nhận / Đã trao như Chờ duyệt; Huỷ hoàn điểm hỏi lại (không hoàn tác được).
 import { useState } from "react";
 import { router } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, View, type GestureResponderEvent } from "react-native";
+import Animated, { LayoutAnimationConfig, useReducedMotion } from "react-native-reanimated";
+import { BONG } from "./clay";
+import { donLen, quayLai, roiDi } from "./chuyen-dong";
 import { bm, tieuYc, type LuotCho, type YeuCau } from "./api";
 import { BangTruot, BaoLoi, cauLoi, Chu, Dong, gioPhut, Icon, M, Nut, OChon, ONhap, The, useLam } from "./ui";
 
@@ -26,6 +29,8 @@ export const ycMotCham = (y: Pick<YeuCau, "loai">) => y.loai === "them_gio" || y
 
 export type ViecCho = { k: "nv"; x: LuotCho } | { k: "yc"; x: YeuCau } | { k: "qua"; x: Phieu };
 type Bao = (chu: string, hoan?: () => void) => void;
+/** Duyệt nhiệm vụ xong: số điểm + chỗ ngón tay (toạ độ cửa sổ) — Trang chủ bắn confetti và cho «+N» bay vào ví. */
+export type AnMung = (diem: number, tu: { x: number; y: number }) => void;
 
 const tieu = (v: ViecCho) => (v.k === "yc" ? tieuYc(v.x) : v.x.ten);
 const phu = (v: ViecCho) => v.k === "nv" ? `Nhiệm vụ · +${v.x.diem} điểm${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
@@ -33,9 +38,10 @@ const phu = (v: ViecCho) => v.k === "nv" ? `Nhiệm vụ · +${v.x.diem} điểm
 const moChiTiet = (v: ViecCho) => router.push(v.k === "nv" ? `/duyet/${v.x.id}` : v.k === "yc" ? `/yeu-cau/${v.x.id}` : "/cho-duyet");
 
 /** Thẻ «N việc chờ Ba Mẹ» với nút Duyệt / Từ chối từng việc. `ds` đã lọc theo Con đang xem; `xem` (Chỉ xem) ⇒ ẩn nút, chạm dòng để xem. */
-export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
-  ds: ViecCho[]; ten: string; xem: boolean; tai: () => void; bao: Bao; toiDa?: number;
+export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
+  ds: ViecCho[]; ten: string; xem: boolean; tai: () => void; bao: Bao; toiDa?: number; anMung?: AnMung;
 }) {
+  const giam = useReducedMotion();
   const hl = useLam();
   const hlHuy = useLam();                                          // bảng Huỷ phiếu: lỗi nằm trong bảng, không treo lên thẻ
   const [dang, setDang] = useState<string | null>(null);          // việc đang gửi — chỉ nút của việc đó quay
@@ -51,12 +57,14 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
   const con = ds.filter((v) => !xong.includes(v.x.id)).sort((a, b) => thu[a.k] - thu[b.k] || luc(a).localeCompare(luc(b)));
   const chay = (v: ViecCho, fn: () => Promise<unknown>, hangDoi?: boolean) => { setDang(v.x.id); return hl.lam(fn, { hangDoi }); };
 
-  const duyet = (v: ViecCho) => {
+  const duyet = (v: ViecCho, e?: GestureResponderEvent) => {
+    const tu = e?.nativeEvent ? { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY } : null;
     if (v.k === "nv") {
       const x = v.x;
       if (x.nghi_trung) return moChiTiet(v);
       return chay(v, async () => {
         await bm.goi(`luot/${x.id}/duyet`, {});
+        if (tu) anMung?.(x.diem, tu);
         daXong(x.id);
         bao(`Đã duyệt «${x.ten}» · +${x.diem} điểm cho ${ten}`, () => {
           setXong((a) => a.filter((i) => i !== x.id));
@@ -110,7 +118,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
     <The style={{ overflow: "hidden" }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 10 }}>
         {con.length ? (
-          <View style={{ minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, backgroundColor: M.loi, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, backgroundColor: M.loi, alignItems: "center", justifyContent: "center", boxShadow: BONG.do }}>
             <Chu kieu="rat" co={14} mau="#fff" so>{String(con.length)}</Chu>
           </View>
         ) : <Icon ten="tick" mau={M.chinh} />}
@@ -122,18 +130,25 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
           </Pressable>
         ) : null}
       </View>
+      <LayoutAnimationConfig skipEntering>
       {con.length ? hienRa.map((v) => (
-        <Dong key={v.x.id} tieu={tieu(v)} phu={phu(v)} bam={() => moChiTiet(v)}
+        // mỗi việc một «lòng chảo» ấn lõm trong khối (docs/clay); duyệt xong trượt đi + thu chiều cao, Hoàn tác thì bật lại đúng chỗ
+        <Animated.View key={v.x.id} entering={quayLai(giam)} exiting={roiDi(giam)} layout={giam ? undefined : donLen}
+          style={{ marginHorizontal: 10, marginBottom: 7, borderRadius: 24, backgroundColor: "#efeeea", boxShadow: BONG.lom, overflow: "hidden" }}>
+        <Dong dau tieu={tieu(v)} phu={phu(v)} bam={() => moChiTiet(v)}
           phai={xem ? undefined : (
             <View style={{ flexDirection: "row", gap: 6 }}>
-              <Nut chu={chuDuyet(v)} nho
-                dangChay={hl.dangChay && dang === v.x.id} tat={hl.dangChay && dang !== v.x.id} bam={() => { duyet(v); }} nhanDoc={`${chuDuyet(v)}: ${tieu(v)}`} />
+              <Nut chu={chuDuyet(v)} nho loai="ngoc"
+                dangChay={hl.dangChay && dang === v.x.id} tat={hl.dangChay && dang !== v.x.id} bam={(e) => { duyet(v, e); }} nhanDoc={`${chuDuyet(v)}: ${tieu(v)}`} />
               <Nut chu={v.k === "qua" ? "Huỷ" : "Từ chối"} nho loai="vien" tat={hl.dangChay} bam={() => tuChoiNgay(v)} nhanDoc={`${v.k === "qua" ? "Huỷ" : "Từ chối"}: ${tieu(v)}`} />
             </View>
           )} />
+        </Animated.View>
       )) : (
         <Dong tieu="Khi Con nộp hay xin phép, Rob báo Ba Mẹ ngay" phu="Xem hộp Chờ duyệt" bam={() => router.push("/cho-duyet")} />
       )}
+      </LayoutAnimationConfig>
+      {con.length ? <View style={{ height: 5 }} /> : null}
       {hl.loi ? <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}><BaoLoi loi={hl.loi} /></View> : null}
 
       <BangTruot mo={!!tuChoi} dong={() => setTuChoi(null)} tieu={tuChoi?.k === "nv" ? `${ten} cần làm gì thêm?` : `Vì sao chưa cho ${ten}?`}>
