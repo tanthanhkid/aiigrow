@@ -55,7 +55,9 @@ export default function AnToanMay() {
   useEffect(() => {
     if (!d?.m || daMoSan.current || !moSan) return;
     daMoSan.current = true;
-    if (moSan === "khan" && !d.xem) setMo("khan");
+    // đang mở khẩn cấp / đang gỡ ⇒ không mở bảng (màn này cũng ẩn nút đó): khỏi tạo/kéo dài mở khẩn cấp thứ hai
+    const dangKhan = !!d.m.moKhanCapDen && new Date(d.m.moKhanCapDen) > new Date();
+    if (moSan === "khan" && !d.xem && !dangKhan && !d.m.dangGo) setMo("khan");
     else if (moSan === "offline" && d.m.nen === "windows") void xemMaOffline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d, moSan]);

@@ -23,7 +23,7 @@ export default function MayTinhDienThoai() {
     <Man lui={{ chu: "Trang chủ" }} tieu={tieu} tai={tai}
       day={c ? <Nut chu="Ghép thêm máy" ic="cong" loai="vien" rong bam={() => { datTl({ conId: c.id, tenCon: c.ten, nhom: c.nhom }); router.push("/thiet-lap/may"); }} /> : undefined}>
       <Canh lv="chi" thap tieu={d.ds.length ? `${d.ds.length} máy` : "Chưa có máy nào"}
-        loi={!d.ds.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : can ? `${can} máy đang cần Ba Mẹ để mắt.` : "Mọi máy đều được bảo vệ đầy đủ."} />
+        loi={!d.ds.length ? "Ghép bằng mã 6 số, chưa tới 2 phút." : can ? `${can} máy đang cần Ba Mẹ để mắt.` : d.ds.every((m) => m.baoVe === "day_du") ? "Mọi máy đều được bảo vệ đầy đủ." : "Không có máy nào cần để mắt."} />
       {d.ds.length ? (
         <Nhom>
           {d.ds.map((m, i) => (
@@ -41,7 +41,7 @@ export default function MayTinhDienThoai() {
 }
 
 function phuMay(m: TuanThuMay) {
-  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : m.baoVe && m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
+  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : !m.baoVe ? "chưa rõ mức bảo vệ" : m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
   return m.dungChung ? `${p} · máy dùng chung` : p;
 }
 

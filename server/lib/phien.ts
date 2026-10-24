@@ -177,11 +177,10 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
 
 /** Con bấm «Dừng sớm» (giữ điểm còn lại) hoặc Ba Mẹ khoá ngay. */
 /** `nghi`: đặt giờ nghỉ (nghi_giua) sau phiên — mặc định chỉ khi Con tự dừng; Ba Mẹ bấm «Dừng» ở Trang chủ cũng cần (không thì Con mở phiên mới ngay).
- *  `tinhNot` (mặc định có): tính nốt thời gian trôi từ nhịp cuối như đang chơi. Ba Mẹ «Dừng» từ xa thì KHÔNG — máy chủ không biết Con có chơi
- *  trong quãng đó (agent Windows báo playSeconds qua dong-bo), nên không trừ điểm phút chưa xác nhận. */
+ */
 export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" | "ba_me_khoa" | "het_dang_nhap" = "con_dung", now = new Date(),
-  o: { nghi?: boolean; tinhNot?: boolean } = {}) {
-  if (o.tinhNot !== false) await nhip(con, phienId, true, now);        // tính nốt phút tới lúc dừng
+  o: { nghi?: boolean } = {}) {
+  await nhip(con, phienId, true, now);                                 // tính nốt phút tới lúc dừng
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
     const p = (await t<{ trang_thai: string; phan_nghin_tru: number; diem_tru: number; muc: string; phut_dung: number }>(

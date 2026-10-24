@@ -208,7 +208,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       // «Chưa xếp»: mục máy Con gặp trong 30 ngày (phút dùng ghi loại chưa phân loại) mà VẪN chưa có luật hiệu lực cho chính Con đó —
       // so như phanLoai: luật cả nhà hoặc riêng Con đó, khớp cả tên miền cha (m.youtube.com ⇐ youtube.com), luật hết hạn không tính.
       const ds = await la.dsLuat(fam);
-      const coLuat = (muc: string, con: string) => la.khoaSo(muc).some((k) => ds.some((r) => r.muc === k && (!r.child_id || r.child_id === con)));
+      const daCo = new Set(ds.map((r) => `${r.child_id}|${r.muc}`));        // '' = cả nhà
+      const coLuat = (muc: string, con: string) => la.khoaSo(muc).some((k) => daCo.has(`|${k}`) || daCo.has(`${con}|${k}`));
       const chuaTheoCon = await q<{ muc: string; child_id: string; phut: number }>(
         `select u.muc, u.child_id, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
            and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc, u.child_id`, [fam]);
@@ -241,7 +242,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (p[0] === "phien" && p[1] && p[2] === "dung" && post) {
       const ph = await one<{ child_id: string }>(`select p.child_id from play_sessions p join children c on c.id = p.child_id where p.id = $1 and c.family_id = $2`, [p[1], fam]);
       if (!ph) return loi("khong_thay", "Không thấy phiên chơi", 404);
-      await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true, tinhNot: false });   // Con nghỉ nghi_giua phút; không trừ phút chưa xác nhận
+      await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true });   // Con nghỉ nghi_giua phút; tính nốt phút như mọi đường dừng khác (≤ 2 phút/nhịp)
       return json({ ok: true });
     }
     if (d === "luat" && post) {

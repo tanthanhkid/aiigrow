@@ -5,11 +5,13 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, TEN_CHE_DO, type AppChuaXep, type CheDoMay, type PhienDang, type TuanThuMay } from "./api";
 import { datTl } from "./thiet-lap";
-import { BaoLoi, BieuTron, Chu, HaiNut, M, Nhan, Nut, The, truoc, useLam, type TenIcon } from "./ui";
+import { BaoLoi, BieuTron, cauLoi, Chu, HaiNut, M, Nhan, Nut, The, truoc, useLam, type TenIcon } from "./ui";
 
 /** Icon theo nền tảng máy — dùng chung Trang chủ, Hồ sơ Con, danh sách máy. */
 export const IC_NEN: Record<TuanThuMay["nen"], TenIcon> = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" };
 type Bao = (chu: string, hoan?: () => void) => void;
+/** Hoàn tác hỏng (mất mạng, 403…) phải nói ra — không để Ba Mẹ tưởng đã hoàn tác. */
+const baoLoiHoan = (bao: Bao, e: unknown) => bao(`Chưa hoàn tác được: ${cauLoi(e)}`);
 /** Màu icon máy — MỘT quy tắc cho Trang chủ và danh sách máy: ngoài vòng ⇒ đỏ; lệch chuẩn hoặc bảo vệ chưa đủ ⇒ cam; còn lại xanh. */
 export const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" =>
   (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || (m.baoVe && m.baoVe !== "day_du") ? "cam" : "xanh");
@@ -23,13 +25,18 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
   const doiSang: CheDoMay = m.cheDo === "chan" ? "giam-sat" : "chan";
   const chuaDu = !!m.baoVe && m.baoVe !== "day_du";            // máy chủ cũ không gửi baoVe ⇒ không báo
   const doi = () => lam(async () => {
-    const cu = m.cheDo;
+    // Hoàn tác chỉ khi Ba Mẹ đã từng chọn: chưa chọn (máy tự báo) thì gửi lại sẽ «ghim» một lựa chọn chưa từng có
+    const cu = m.cheDoBaMeChon;
     await bm.goi(`may/${m.id}/che-do`, { cheDo: doiSang });
     bao(`${m.ten}: ${doiSang === "chan" ? "Chặn thật" : "Chỉ theo dõi"} — máy nhận trong ≤ 3 phút`,
-      cu ? () => { bm.goi(`may/${m.id}/che-do`, { cheDo: cu }).then(tai, tai); } : undefined);
+      cu ? () => { bm.goi(`may/${m.id}/che-do`, { cheDo: cu }).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); } : undefined);
     tai();
   });
-  const lyDo = m.baoVeThieu?.[0]?.ten ?? m.baoVeCau;
+  const thieu = m.baoVeThieu ?? [];
+  // cùng chữ với Hồ sơ Con / màn máy: «chua» là chưa có thông tin, không phải «chưa đủ»; nhiều mục thiếu thì nói số mục
+  const tieuBv = m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ";
+  const lyDo = thieu.length > 1 ? `${thieu[0].ten} và ${thieu.length - 1} mục khác` : thieu[0]?.ten ?? m.baoVeCau;
+  const dangKhan = !!m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
   return (
     <The>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -44,7 +51,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
         : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{`Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`}</Chu> : null}
       {chuaDu ? (
         <View style={{ marginTop: 10, gap: 6 }}>
-          <Chu kieu="dam" co={13.5} mau={M.canh}>Bảo vệ chưa đủ</Chu>
+          <Chu kieu="dam" co={13.5} mau={M.canh}>{tieuBv}</Chu>
           <Chu co={13.5} mau={M.chu2}>{lyDo}</Chu>
           <HaiNut><Nut chu="Sửa" ic="khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}`)} /></HaiNut>
         </View>
@@ -52,7 +59,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
       {xem ? null : <View style={{ marginTop: 12 }}>
         <HaiNut>
           {win && m.cheDo && !dangGo ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
-          <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />
+          {dangKhan || dangGo ? null : <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />}
           {win ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
         </HaiNut>
       </View>}
@@ -102,7 +109,7 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
       const kq = await bm.goi<{ muc: string; truoc?: LuatCu | null }>("luat", { muc: x.muc, ten: x.ten ?? x.muc, loai: loai[0], nhom: "khac" });
       // Hoàn tác: có luật cũ ⇒ đặt lại đúng như cũ; chưa có ⇒ bỏ luật, app quay về «chờ xếp loại». Máy chủ cũ không gửi `truoc` ⇒ không hiện Hoàn tác.
       const hoan = kq && "truoc" in kq
-        ? () => { (kq.truoc ? bm.goi("luat", kq.truoc) : bm.goi("luat/xoa", { muc: kq.muc })).then(tai, tai); }
+        ? () => { (kq.truoc ? bm.goi("luat", kq.truoc) : bm.goi("luat/xoa", { muc: kq.muc })).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); }
         : undefined;
       bao(`Đã xếp ${x.ten ?? x.muc} vào ${loai[1]}`, hoan);
       tai();

@@ -98,7 +98,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
     { tieu: "Máy tính & điện thoại", ic: "may_tinh", mau: "xam", di: may.length === 1 ? `/may/${may[0].id}` : `/may?con=${c.id}`,
       phu: !ct.d ? "Chặn thật, mở khẩn cấp" : !may.length ? "Chưa ghép máy nào" : `${may.length} máy · ${may.filter((m) => m.truc).length} đang mở` },
     { tieu: "Nhiệm vụ", ic: "sao", mau: "vang", di: "/diem-qua",
-      phu: `Ví ${c.soDu} điểm${c.phutDoiDuoc !== undefined ? ` ≈ ${c.phutDoiDuoc} phút chơi` : ""}${c.nhiemVuCho ? ` · ${c.nhiemVuCho} chờ duyệt` : ""}` },
+      phu: `Ví ${c.soDu} điểm${c.phutDoiDuoc !== undefined ? ` (đổi ≈ ${c.phutDoiDuoc} phút chơi)` : ""}${c.nhiemVuCho ? ` · ${c.nhiemVuCho} chờ duyệt` : ""}` },
   ];
 
   return (

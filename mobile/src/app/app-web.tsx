@@ -28,7 +28,8 @@ export default function AppWeb() {
   const q = tim.trim().toLowerCase();
   const loc = <T extends { muc: string; ten?: string }>(ds: T[]) => (q ? ds.filter((x) => x.muc.includes(q) || (x.ten ?? "").toLowerCase().includes(q)) : ds);
   const luu = () => lam(async () => {
-    await bm.goi("luat", { muc: xep!.muc, ten: xep!.ten, loai, nhom });
+    // đã có luật ⇒ giữ tên nhà mình đặt (vd «Khan»), không ghi đè bằng tên tự sinh của «Đã thấy»
+    await bm.goi("luat", { muc: xep!.muc, ten: d!.ds.find((x) => x.muc === xep!.muc && !x.child_id)?.ten ?? xep!.ten, loai, nhom });
     bao(`Đã xếp ${xep!.ten} vào ${LOAI[loai][0]}`);
     setXep(null);
     await tai();

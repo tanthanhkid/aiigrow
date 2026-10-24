@@ -92,10 +92,11 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   assert.equal((await m(`phien/${ph.id}/dung`, { tok: khac.tok, body: {} })).status, 404);
   assert.equal((await m(`phien/${ph.id}/dung`, { tok, body: {} })).status, 200);
   assert.equal((await m("phien-dang", { tok })).body.ds.length, 0);
-  // Dừng của Ba Mẹ có tác dụng: đặt giờ nghỉ (Con không mở phiên mới ngay); không trừ phút trôi từ nhịp cuối mà máy chưa xác nhận
+  // Dừng của Ba Mẹ có tác dụng: đặt giờ nghỉ (Con không mở phiên mới ngay); tính nốt tối đa một nhịp (2 phút), không «bù» cả quãng trôi
   const sau = (await q<{ nghi_den: Date | null; phut_dung: number; ly_do_ket: string }>(`select nghi_den, phut_dung, ly_do_ket from play_sessions where id = $1`, [ph.id]))[0];
   assert.ok(sau.nghi_den && new Date(sau.nghi_den).getTime() > Date.now(), "có giờ nghỉ sau Dừng");
-  assert.deepEqual([sau.phut_dung, sau.ly_do_ket], [0, "ba_me_khoa"]);
+  assert.ok(sau.phut_dung <= 2, String(sau.phut_dung));
+  assert.equal(sau.ly_do_ket, "ba_me_khoa");
 });
 
 test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của nhà", async () => {
