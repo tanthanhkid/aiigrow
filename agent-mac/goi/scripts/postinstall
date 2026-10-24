@@ -18,16 +18,22 @@ pidSong() {
   case "$p" in ''|*[!0-9]*) return 1 ;; esac
   /bin/kill -0 "$p" 2>/dev/null && /bin/ps -p "$p" -o command= 2>/dev/null | /usr/bin/grep -q "$2"
 }
+# Tự cập nhật chạy đè lên máy vừa bị gỡ: không nạp lại daemon/tray, dọn phần gói vừa chép.
+donVaThoat() {
+  /bin/rm -rf "$APP" "$THU_MUC/cap-nhat"
+  "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+  # plist trỏ vào app vừa xoá: gỡ luôn (go-cai.sh có bị ngắt thì launchd cũng không chạy hụt mỗi lần khởi động)
+  /bin/rm -f "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
+  exit 0
+}
+# $1 = gói đang cài. Gói nằm trong thư mục cap-nhat (root 0700) ⇒ chắc chắn là bộ tự cập nhật, kể cả khi job sh đã bị go-cai.sh giết
+# mà installd vẫn cài tiếp. Tự cập nhật chỉ chạy trên máy đã ghép (có config.json): còn dấu gỡ hoặc mất config.json ⇒ máy đã bị gỡ.
+case "${1:-}" in
+  "$THU_MUC/cap-nhat/"*) if [ -f "$DA_GO" ] || [ ! -f "$THU_MUC/config.json" ]; then donVaThoat; fi ;;
+esac
 if [ -f "$DA_GO" ]; then
-  # Cài tự động (sh job cập nhật còn sống), hoặc go-cai.sh còn chạy (nó giết job sau 5 phút nhưng installd có thể cài tiếp) ⇒ máy đang/đã gỡ.
-  if pidSong "$DANG_CAP_NHAT" 'vn\.aiilab\.aiigrow\.capnhat' || pidSong "$GO_CAI" 'go-cai'; then
-    # Tự cập nhật chạy đè lên máy vừa bị gỡ: không nạp lại daemon/tray, dọn phần gói vừa chép.
-    /bin/rm -rf "$APP" "$THU_MUC/cap-nhat"
-    "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
-    # plist trỏ vào app vừa xoá: gỡ luôn (go-cai.sh có bị ngắt thì launchd cũng không chạy hụt mỗi lần khởi động)
-    /bin/rm -f "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
-    exit 0
-  fi
+  # Cài tự động (sh job cập nhật còn sống), hoặc go-cai.sh còn chạy ⇒ máy đang gỡ.
+  if pidSong "$DANG_CAP_NHAT" 'vn\.aiilab\.aiigrow\.capnhat' || pidSong "$GO_CAI" 'go-cai'; then donVaThoat; fi
   /bin/rm -f "$DA_GO"                          # Ba Mẹ chủ động cài lại sau khi gỡ: bình thường
 fi
 

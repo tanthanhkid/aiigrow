@@ -44,7 +44,8 @@ public enum LuatCapNhat {
     let p = s.trimmingCharacters(in: .whitespaces).split(separator: ".", omittingEmptySubsequences: false)
     guard p.count == 3 else { return nil }
     guard p.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } }) else { return nil }
-    return p.compactMap { Int($0) }
+    let so = p.compactMap { Int($0) }
+    return so.count == 3 ? so : nil                        // tràn Int ⇒ nil, không rơi mất một phần
   }
 
   /// `moi` > `hienTai` theo số; sai dạng ở bất kỳ bên nào ⇒ false (không cập nhật).
@@ -104,9 +105,11 @@ public struct DauDaThu: Codable, Equatable {
   public var luc: Double          // giây từ 1970
   /// Số lần đã giao installer cho đúng sha256 này.
   public var lan: Int = 1
+  /// false = gói hỏng (sha256/chữ ký/spctl) nên chưa giao installer: vẫn tính lượt định kỳ, nhưng nút Ba Mẹ thử lại được ngay.
+  public var daGiao: Bool = true
 
-  public init(version: String, sha256: String, luc: Double, lan: Int = 1) {
-    self.version = version; self.sha256 = sha256; self.luc = luc; self.lan = lan
+  public init(version: String, sha256: String, luc: Double, lan: Int = 1, daGiao: Bool = true) {
+    self.version = version; self.sha256 = sha256; self.luc = luc; self.lan = lan; self.daGiao = daGiao
   }
   /// Dấu do bản 0.1.1 sớm ghi (chưa có `lan`) vẫn đọc được — coi như đã thử 1 lần.
   public init(from decoder: Decoder) throws {
@@ -115,6 +118,7 @@ public struct DauDaThu: Codable, Equatable {
     sha256 = try c.decode(String.self, forKey: .sha256)
     luc = try c.decode(Double.self, forKey: .luc)
     lan = try c.decodeIfPresent(Int.self, forKey: .lan) ?? 1
+    daGiao = try c.decodeIfPresent(Bool.self, forKey: .daGiao) ?? true
   }
 }
 
@@ -287,7 +291,7 @@ public actor BoCapNhat {
       lanDaThu = d.lan
       let troi = dongHo().timeIntervalSince1970 - d.luc
       // troi < 0: đồng hồ bị lùi sau khi ghi dấu ⇒ không chờ tới «tương lai» đó (vẫn giữ trần 3 lần cho lượt định kỳ)
-      let choLai = thuCong ? (troi < 0 || troi > LuatCapNhat.giayChoThuLai)
+      let choLai = thuCong ? (troi < 0 || troi > LuatCapNhat.giayChoThuLai || !d.daGiao)
                            : (troi < 0 || troi >= LuatCapNhat.giayNghiSauHetLuot
                               || (d.lan < LuatCapNhat.toiDaLanThu && troi >= LuatCapNhat.giayGiuaCacLan))
       if !choLai {
@@ -324,11 +328,12 @@ public actor BoCapNhat {
     }
     /// Gói tải về hỏng (sha256 lệch / chữ ký / spctl): cũng tính một lượt thử ⇒ trần 3 lần cách 6 giờ áp luôn, không tải lại cả gói mỗi 6 giờ mãi.
     func boVaDem(_ lyDo: String) {
-      ghiDau()
+      ghiDau(daGiao: false)
       bo(lyDo)
     }
-    @discardableResult func ghiDau() -> Bool {
-      guard let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970, lan: lan)) else { return false }
+    @discardableResult func ghiDau(daGiao: Bool = true) -> Bool {
+      guard let d = try? JSONEncoder().encode(DauDaThu(version: m.version, sha256: m.sha256, luc: dongHo().timeIntervalSince1970, lan: lan, daGiao: daGiao))
+      else { return false }
       do { try heThong.ghiTep(tepDaThu, d, quyen: 0o600); return true } catch { return false }
     }
     // installer lượt trước còn đọc gói trong thư mục này ⇒ không dọn/tải đè (bo() cũng xoá tệp nên không dùng ở đây)

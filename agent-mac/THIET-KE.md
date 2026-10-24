@@ -42,8 +42,9 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
   `QuyenIPC`: Con (kể cả khi là admin) bị từ chối. Menu có dòng «AiiGrow bản x».
 - **Chỉ khi đã ghép**: chưa ghép / `dangGo` / có dấu `/var/db/aiigrow-da-go` (tuGo + go-cai.sh ghi NGAY ĐẦU; ghép lại thành công thì xoá) ⇒ không kiểm, không cài; hỏi lại NGAY trước khi giao installer.
   go-cai.sh chờ job `…capnhat` xong (≤ ~5 phút) rồi mới gỡ; sau vòng chờ go-cai.sh luôn `launchctl remove` nhãn capnhat + xoá dấu; `DuongDan.dangCapNhat` chứa PID của sh job — postinstall thấy `da-go` + PID đó còn sống (cài tự động) thì không nạp lại daemon/tray (cài tay thì xoá `da-go`, chạy bình thường).
-- **Chống vòng cài lại**: trước installer ghi `cap-nhat-da-thu.json` (version, sha256, giờ; root 0600). Cùng sha256 ⇒ thử lại tối đa 3 lần (có đếm `lan`), mỗi lần cách ≥ 6 giờ ở vòng định kỳ; quá 3 lần thì dừng
-  (log «cài xong mà bản không đổi»); nút Ba Mẹ vẫn thử được sau > 1 giờ; manifest đổi sha256 thì cài tiếp. Nhãn `…capnhat` đang chạy thì không `launchctl remove` (không giết installer).
+  Gói cài nằm trong thư mục `cap-nhat` (`$1` của postinstall) mà còn `da-go` hoặc mất `config.json` ⇒ cũng không nạp lại (installd cài tiếp sau khi go-cai đã giết job).
+- **Chống vòng cài lại**: trước installer ghi `cap-nhat-da-thu.json` (version, sha256, giờ; root 0600). Cùng sha256 ⇒ thử lại tối đa 3 lần (có đếm `lan`), mỗi lần cách ≥ 6 giờ ở vòng định kỳ; quá 3 lần thì 24 giờ mới thử
+  một lần (log «cài xong mà bản không đổi»); gói hỏng (sha256/chữ ký/spctl) cũng tính lượt nhưng ghi `daGiao: false`; nút Ba Mẹ thử được sau > 1 giờ (gói hỏng: ngay); manifest đổi sha256 thì cài tiếp. Nhãn `…capnhat` đang chạy thì không `launchctl remove` (không giết installer).
 - **Nút không chờ**: IPC `capNhat` trả «Đang kiểm tra…» ngay, kiểm/tải/cài chạy nền; kết quả ở `TrangThai.capNhat` (+`capNhatLuc`, không trả cho phiên Con) — menu tray hiện dòng đó.
 - Gói tải về băm sha256 theo luồng (khúc 1 MiB) rồi mới chuyển vào thư mục 0700 — không đọc cả gói vào bộ nhớ.
 - Phát hành bản mới: `BAN=… KY_APP=… KY_PKG=… NOTARY=1 build-pkg.sh` (không ký thì script từ chối, trừ `THU=1`) → release `mac-<bản>` → điền `BAN_AGENT_MAC` (server/lib/ban-agent.ts) gồm sha256 của đúng tệp. Bản 0.1.0 không tự cập nhật, cài tay một lần.

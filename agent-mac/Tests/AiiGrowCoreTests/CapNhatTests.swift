@@ -62,6 +62,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("file:///tmp/a.pkg", mayChu: may))
     XCTAssertTrue(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn/a.pkg", mayChu: may + ":443"), "cổng 443 ghi rõ = mặc định")
     XCTAssertTrue(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn:443/a.pkg", mayChu: may))
+    XCTAssertNil(LuatCapNhat.tachBan("1.0.99999999999999999999"), "tràn Int ⇒ sai dạng")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn:8443/a.pkg", mayChu: may), "cổng khác")
   }
 
@@ -529,6 +530,17 @@ final class CapNhatTests: XCTestCase {
     guard case .loi = r else { return XCTFail("tài khoản vừa bị hạ quyền vẫn ghép được: \(r)") }
   }
 
+  func testGoiHongNutBaMeThuLaiNgay() async {
+    datMayChu(goi: Data("<html>proxy</html>".utf8))           // proxy trả trang lạ ⇒ lệch sha256, gói hỏng
+    _ = await chay(boCapNhat())
+    let d = try? JSONDecoder().decode(DauDaThu.self, from: fake.tep["/gia/da-thu.json"] ?? Data())
+    XCTAssertEqual(d?.daGiao, false)
+    datMayChu()                                                 // mạng đã ổn
+    gio = gio.addingTimeInterval(600)
+    let k = await chay(boCapNhat(), thuCong: true)
+    XCTAssertEqual(k, .dangTai("0.1.2"), "gói hỏng chưa giao installer ⇒ nút Ba Mẹ thử lại ngay")
+  }
+
   func testLoiMangBaoChuDeHieu() async {
     HttpMock.dat { _, _ in nil }
     let k = await chay(boCapNhat())
@@ -594,7 +606,7 @@ final class CapNhatTests: XCTestCase {
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
-  private func chayPostinstall(daGo: Bool, pidDau: String?, pidGo: String? = nil) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool) {
+  private func chayPostinstall(daGo: Bool, pidDau: String?, pidGo: String? = nil, goiTuDong: Bool = false, coConfig: Bool = true) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool) {
     let fm = FileManager.default
     let goc = NSTemporaryDirectory() + "pi-\(UUID().uuidString)"
     defer { try? fm.removeItem(atPath: goc) }
@@ -604,12 +616,15 @@ final class CapNhatTests: XCTestCase {
     if daGo { try "da-go".write(toFile: goc + "/var/db/aiigrow-da-go", atomically: true, encoding: .utf8) }
     if let p = pidDau { try p.write(toFile: goc + "/var/run/aiigrow-capnhat", atomically: true, encoding: .utf8) }
     if let p = pidGo { try p.write(toFile: goc + "/var/run/aiigrow-go-cai", atomically: true, encoding: .utf8) }
+    let cfg = goc + "/Library/Application Support/AiiGrow"
+    try fm.createDirectory(atPath: cfg, withIntermediateDirectories: true)
+    if coConfig { try "{}".write(toFile: cfg + "/config.json", atomically: true, encoding: .utf8) }
     let gia = goc + "/launchctl-gia.sh", nhatKy = goc + "/lenh.log"
     try "#!/bin/bash\necho \"$@\" >> '\(nhatKy)'\nexit 1\n".write(toFile: gia, atomically: true, encoding: .utf8)
     chmod(gia, 0o755)
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/bash")
-    p.arguments = [BaoMatTests.goiDir + "/scripts/postinstall"]
+    p.arguments = [BaoMatTests.goiDir + "/scripts/postinstall", goiTuDong ? cfg + "/cap-nhat/AiiGrow-0.1.2.pkg" : "/Users/ba/Downloads/AiiGrow.pkg"]
     p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "PATH": "/usr/bin:/bin"]
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
     try p.run(); p.waitUntilExit()
@@ -646,6 +661,15 @@ final class CapNhatTests: XCTestCase {
     defer { go.terminate() }
     let f = try chayPostinstall(daGo: true, pidDau: nil, pidGo: String(go.processIdentifier))
     XCTAssertFalse(f.bootstrapDaemon); XCTAssertTrue(f.daGoConLai); XCTAssertFalse(f.appConLai)
+    // installd cài tiếp gói tự cập nhật sau khi go-cai đã giết job (không còn PID nào sống)
+    let h = try chayPostinstall(daGo: true, pidDau: nil, goiTuDong: true)
+    XCTAssertFalse(h.bootstrapDaemon); XCTAssertTrue(h.daGoConLai); XCTAssertFalse(h.appConLai)
+    // … và cả khi go-cai đã xong (xoá da-go + config.json)
+    let k = try chayPostinstall(daGo: false, pidDau: nil, goiTuDong: true, coConfig: false)
+    XCTAssertFalse(k.bootstrapDaemon); XCTAssertFalse(k.appConLai)
+    // tự cập nhật bình thường trên máy đã ghép ⇒ nạp lại
+    let l = try chayPostinstall(daGo: false, pidDau: nil, goiTuDong: true)
+    XCTAssertTrue(l.bootstrapDaemon); XCTAssertTrue(l.appConLai)
     // PID go-cai sót bị tiến trình khác dùng lại ⇒ cài tay
     let g = try chayPostinstall(daGo: true, pidDau: nil, pidGo: String(getpid()))
     XCTAssertTrue(g.bootstrapDaemon); XCTAssertFalse(g.daGoConLai)
