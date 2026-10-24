@@ -177,6 +177,24 @@ public final class HeThongMac: HeThong {
     return ma == 0 && ra.contains("\"PID\"")
   }
 
+  /// Lệnh sh của job cài (`caiGoi`).
+  /// $1 gói · $2 nhãn · $3 dấu PID · $4 dấu đã gỡ · $5 plist daemon · $6 plist tray. Đọc kỹ ba nhánh:
+  /// - napLai: installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại bản cũ (trừ khi máy vừa bị gỡ).
+  /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
+  ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
+  /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
+  static let lenhJobCai = """
+    napLai() { if [ ! -f "$4" ] && [ -f "$5" ]; then /bin/launchctl bootstrap system "$5" ; echo "nạp lại daemon, mã $?" ; \
+      for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u "$6" ; done ; fi ; }
+    if [ -f "$3" ] ; then echo "lượt cài trước dừng giữa chừng — không cài lại" ; napLai ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
+    echo $$ > "$3" ; /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
+    if [ $ma -ne 0 ] ; then napLai ; fi
+    if [ -f "$4" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi
+    /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit $ma
+    """
+
+  public func dungCai() { _ = HeThongMac.chay("/bin/launchctl", ["remove", LuatCapNhat.nhanCai], timeout: 10) }
+
   /// Job launchd riêng: preinstall của gói `bootout` daemon, launchd giết cả nhóm tiến trình của daemon — chỉ `launchctl submit` thoát được.
   /// Bọc trong sh: cài xong tự xoá gói + tự `launchctl remove` nhãn (không để postinstall tự gỡ nhãn đang chạy installer).
   /// KHÔNG `launchctl remove` nhãn đang chạy (giết installer giữa chừng); chỉ gỡ nhãn sót đã xong.
@@ -185,15 +203,10 @@ public final class HeThongMac: HeThong {
     guard !caiDangChay() else { throw LoiApi(chu: "Đang có một lượt cài chạy (\(nhan)) — bỏ qua lần này.") }
     _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót đã xong từ lần trước
     let dau = DuongDan.dangCapNhat                                                  // ghi PID của sh job: postinstall biết đây là cài tự động (và còn sống)
-    // installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại daemon + tray bản cũ (trừ khi máy vừa bị gỡ),
-    // để máy không trơ trọi tới lần khởi động lại và còn thử lại theo lịch.
-    let kich = "echo $$ > \"$3\" ; /usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; " +
-      "if [ $ma -ne 0 ] && [ ! -f \"$4\" ] && [ -f \"$5\" ]; then /bin/launchctl bootstrap system \"$5\" ; echo \"nạp lại daemon, mã $?\" ; " +
-      "for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u \"$6\" ; done ; fi ; " +
-      "if [ -f \"$4\" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi ; " +     // máy bị gỡ giữa lúc cài: postinstall đã dọn app, xoá luôn biên nhận installer vừa ghi
-      "/bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
+    try? FileManager.default.removeItem(atPath: dau)                               // job không còn chạy (đã kiểm ở trên) ⇒ dấu nào còn là dấu sót
+
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
-                                                      "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan, dau, DuongDan.daGo,
+                                                      "--", "/bin/sh", "-c", HeThongMac.lenhJobCai, "capnhat", duongDan, nhan, dau, DuongDan.daGo,
                                                       DuongDan.daemonPlist, DuongDan.trayPlist], timeout: 10)
     guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
   }

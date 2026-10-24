@@ -61,7 +61,10 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func taoThuMuc(_ duongDan: String, quyen: Int) throws { daTaoThuMuc.append(duongDan) }
   func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { pkgutilRa }
   func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { spctlRa }
-  func caiGoi(_ duongDan: String) throws { if let e = loiCaiGoi { throw e }; daCaiGoi.append(duongDan) }
+  func caiGoi(_ duongDan: String) throws { if let e = loiCaiGoi { throw e }; daCaiGoi.append(duongDan); sauCaiGoi?() }
+  var sauCaiGoi: (() -> Void)?
+  var daDungCai = 0
+  func dungCai() { daDungCai += 1 }
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }

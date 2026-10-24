@@ -383,6 +383,32 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNil(boCapNhat().so.chu, "đang chạy đúng bản đã cài ⇒ không báo")
   }
 
+  func testBiGoDungLucGiaoInstallerThiDungJobCai() async {
+    datMayChu()
+    let f = fake!; f.sauCaiGoi = { f.tep[DuongDan.daGo] = Data("da-go".utf8) }     // go-cai.sh ghi dấu ngay sau lần kiểm cuối
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daDungCai, 1, "job cài vừa submit phải bị dừng")
+    XCTAssertTrue(fake.log.contains { $0.contains("đã dừng lượt cài") })
+  }
+
+  func testLenhJobCaiDungCuPhapVaChongChayLai() throws {
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/bin/sh")
+    p.arguments = ["-n", "-c", HeThongMac.lenhJobCai]
+    try p.run(); p.waitUntilExit()
+    XCTAssertEqual(p.terminationStatus, 0, "sh -n")
+    let l = HeThongMac.lenhJobCai
+    // thấy dấu PID của lượt trước (job bị launchd chạy lại) ⇒ thoát trước khi gọi installer
+    XCTAssertLessThan(l.range(of: "if [ -f \"$3\" ]")!.lowerBound, l.range(of: "/usr/sbin/installer")!.lowerBound)
+  }
+
+  func testManifestBanSaiDangBaoLoi() async {
+    datMayChu(version: "0.1.2-rc1")
+    let k = await chay(boCapNhat())
+    guard case .loi(let c) = k else { return XCTFail("\(k)") }
+    XCTAssertTrue(c.contains("sai dạng"))
+  }
+
   func testNutBaMeThuLaiSau1Gio() async {
     datMayChu()
     _ = await chay(boCapNhat())

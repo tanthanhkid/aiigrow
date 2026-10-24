@@ -37,6 +37,8 @@ trap - INT TERM HUP
 /bin/rm -f "$GOC/var/run/aiigrow-capnhat"
 
 /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+# Daemon đã dừng ⇒ không ai submit job cài được nữa; gỡ lần nữa phòng job vừa được submit đúng lúc ta kiểm ở trên.
+"$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
 for uid in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/AiiGrowTray/ {print $1}' | /usr/bin/sort -u); do
   /bin/launchctl bootout "gui/$uid/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
 done

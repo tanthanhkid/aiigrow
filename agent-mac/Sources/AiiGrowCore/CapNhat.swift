@@ -221,7 +221,7 @@ public actor BoCapNhat {
     // Lượt cài trước giao installer mà máy vẫn chạy bản cũ (installer lỗi rồi daemon cũ được nạp lại): báo cho Ba Mẹ thấy ngay khi khởi động.
     if let d = heThong.docTep(tepDaThu).flatMap({ try? JSONDecoder().decode(DauDaThu.self, from: $0) }), LuatCapNhat.laBanMoiHon(d.version, banHienTai),
        dongHo().timeIntervalSince1970 - d.luc < 86_400 {
-      so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — xem /Library/Logs/AiiGrow/capnhat.log; sẽ thử lại.", luc: dongHo())
+      so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; sẽ thử lại.", luc: dongHo())
     }
     if let session { self.session = session } else {
       let c = URLSessionConfiguration.ephemeral
@@ -251,13 +251,17 @@ public actor BoCapNhat {
     guard heThong.docTep(DuongDan.daGo) == nil else {
       // máy vẫn ghép mà còn dấu gỡ (lượt gỡ tay bị dừng giữa chừng…): nói thật nguyên nhân + cách gỡ vướng
       heThong.ghiLog("Cập nhật: còn dấu gỡ \(DuongDan.daGo) — không tự cập nhật.")
-      return ketThuc(.loi("Máy còn dấu «đã gỡ» từ một lượt gỡ dở (\(DuongDan.daGo)); cài lại AiiGrow hoặc ghép lại máy để tự cập nhật tiếp."))
+      return ketThuc(.loi("Máy còn dấu «đã gỡ» từ một lượt gỡ dở (\(DuongDan.daGo)); tải và cài lại AiiGrow (gói .pkg ở trang /tai) để tự cập nhật tiếp."))
     }
     so.dat("Đang kiểm tra bản mới…", luc: dongHo())
     let ban: BanMoi?
     do { ban = try await api.banMoi() } catch {
       heThong.ghiLog("Cập nhật: không hỏi được bản mới (\(error)).")
       return ketThuc(.loi("Không kiểm tra được bản mới: \(error)"))
+    }
+    if let m = ban, LuatCapNhat.tachBan(m.version) == nil {
+      heThong.ghiLog("Cập nhật: TỪ CHỐI — bản «\(m.version)» trong manifest không đúng dạng x.y.z.")
+      return ketThuc(.loi("Máy chủ báo bản «\(m.version)» sai dạng, không cập nhật."))
     }
     guard let m = ban, LuatCapNhat.laBanMoiHon(m.version, banHienTai) else {
       heThong.ghiLog("Cập nhật: đang là bản mới nhất (\(banHienTai)\(ban.map { ", máy chủ \($0.version)" } ?? "")).")
@@ -370,6 +374,11 @@ public actor BoCapNhat {
     guard ghiDau() else { bo("không ghi được dấu đã thử nên không cài"); return }
     do {
       try await ngoaiActor({ Result { try ht.caiGoi(tep) } }).get()
+      // Gỡ (go-cai.sh / gỡ từ xa) xen vào đúng giữa lần kiểm cuối và submit: dừng job ngay, postinstall không được nạp lại máy vừa gỡ.
+      if heThong.docTep(DuongDan.daGo) != nil {
+        await ngoaiActor({ ht.dungCai() })
+        bo("máy bị gỡ ngay lúc giao installer — đã dừng lượt cài"); return
+      }
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")
     } catch {
