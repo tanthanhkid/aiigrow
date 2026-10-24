@@ -26,17 +26,17 @@ export default function GioChoi() {
   }, { hangDoi: true });
   const cauHinh = (them: Record<string, number>) => lam(async () => { await bm.goi(`con/${con}/cau-hinh`, them); await tai(); }, { hangDoi: true });
   const moLai = () => lam(async () => {
-    const den = d.khoaDen ?? null;
+    const den = d.khoaDen ?? null, moTamCu = d.moTamDen ?? null;
     await datKhoa(con, false, null);
-    bao(`Đã mở lại máy của ${d.ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null).then(tai, tai); });
+    bao(`Đã mở lại máy của ${d.ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null, moTamCu).then(tai, tai); });
     await tai();
   }, { hangDoi: true });
   const dangKhoa = d.khoaNgay && conHan(d.khoaDen);
-  const moTam = dangKhoa ? cauMoTam(d.moTamDen) : null;
+  const moTam = dangKhoa ? cauMoTam(d.moTamDen, d.khoaDen) : null;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu="Giờ dùng máy" noi={noi}>
-      <Canh lv={dangKhoa ? "nghi" : "cho"} thap tieu={dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
-        loi={moTam ? `${moTam} — Ba Mẹ đã cho thêm giờ. ${d.khoaDen ? `Khoá tự hết lúc ${gioPhut(d.khoaDen)}.` : "Khoá giữ tới khi Ba Mẹ mở lại."}` : dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
+      <Canh lv={dangKhoa && !moTam ? "nghi" : "cho"} thap tieu={moTam ? `Máy của ${d.ten}: ${moTam.charAt(0).toLowerCase()}${moTam.slice(1)}` : dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
+        loi={moTam ? `Ba Mẹ đã cho thêm giờ lúc máy đang khoá. ${d.khoaDen ? `Khoá tự hết lúc ${gioPhut(d.khoaDen)}.` : "Khoá giữ tới khi Ba Mẹ mở lại."}` : dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
       <BaoLoi loi={loiLam} />
       <HaiNut>
         {dangKhoa ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={moLai} />

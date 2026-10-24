@@ -1,5 +1,6 @@
 // Bảng «Khoá máy ngay» (trang chủ + Giờ dùng máy): chọn khoá bao lâu — 15 phút / 1 giờ / tới sáng mai / tới khi Ba Mẹ mở.
-// Server lưu hạn (`khoa_den`) và tự hết khi qua giờ đó (server/lib/cau-hinh.ts › dangKhoa); máy Con nhận ở lần đồng bộ kế.
+// Server lưu hạn (`khoa_den`) và tự hết khi qua giờ đó (server/lib/cau-hinh.ts › khoaGoc); máy Con nhận ở lần đồng bộ kế.
+// `khoaNgay` của API = khoá gốc (vẫn true lúc đang mở tạm) — máy có đang mở hay không thì xem thêm `moTamDen`.
 import { useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
@@ -15,13 +16,15 @@ export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới $
 /** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
 export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();
 
-/** Đang mở tạm (Ba Mẹ duyệt thêm giờ lúc khoá): «Mở tạm tới 10:41, rồi khoá lại»; null = không mở tạm. */
-export const cauMoTam = (moTamDen: string | null | undefined, now = new Date()) =>
-  moTamDen && Date.parse(moTamDen) > now.getTime() ? `Mở tạm tới ${gioPhut(moTamDen)}, rồi khoá lại` : null;
+/** Đang mở tạm (Ba Mẹ duyệt thêm giờ lúc khoá): «Mở tạm tới 10:41, rồi khoá lại»; mở tới đúng hạn khoá ⇒ không khoá lại. null = không mở tạm. */
+export function cauMoTam(moTamDen: string | null | undefined, khoaDen?: string | null, now = new Date()) {
+  if (!moTamDen || !(Date.parse(moTamDen) > now.getTime())) return null;
+  return khoaDen && Date.parse(khoaDen) <= Date.parse(moTamDen) ? `Đã mở — khoá hết lúc ${gioPhut(khoaDen)}` : `Mở tạm tới ${gioPhut(moTamDen)}, rồi khoá lại`;
+}
 
 /** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con). */
-export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null) {
-  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}) });
+export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, moTam?: string | null) {
+  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && moTam ? { moTam } : {}) });
 }
 
 export function BangKhoa({ mo, dong, con, ten, xong }: {

@@ -66,16 +66,16 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
   const { lam, dangChay } = useLam();
   const may = ct.d?.may ?? [];
   const dangDung = may.find((m) => m.truc);
-  // màn không tự tải lại: hạn khoá đã qua thì coi như đã mở, khớp server (cau-hinh.ts › dangKhoa)
+  // màn không tự tải lại: hạn khoá đã qua thì coi như đã mở, khớp server (cau-hinh.ts › khoaGoc). Đang mở tạm vẫn là «khoá» ⇒ moTam
   const khoaNgay = !!ct.d?.khoaNgay && conHan(ct.d.khoaDen);
-  const moTam = khoaNgay ? cauMoTam(ct.d?.moTamDen) : null;
+  const moTam = khoaNgay ? cauMoTam(ct.d?.moTamDen, ct.d?.khoaDen) : null;
   const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
   const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
   const tai = () => { ct.tai(); taiLai(); };
   const moLai = () => lam(async () => {
-    const den = ct.d?.khoaDen ?? null;
+    const den = ct.d?.khoaDen ?? null, moTamCu = ct.d?.moTamDen ?? null;
     await datKhoa(c.id, false, null);
-    bao(`Đã mở máy của ${c.ten}`, () => { if (!conHan(den)) return tai(); datKhoa(c.id, true, den ? new Date(den) : null).then(tai, tai); });
+    bao(`Đã mở máy của ${c.ten}`, () => { if (!conHan(den)) return tai(); datKhoa(c.id, true, den ? new Date(den) : null, moTamCu).then(tai, tai); });
     tai();
   });
 

@@ -101,7 +101,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
 }
 
 /** Ba Mẹ «Khoá ngay» / «Mở lại» (FR-02.04) — có hiệu lực ở lần đồng bộ / nhịp kế tiếp của mọi thiết bị của Con. */
-export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string, hanVao: Date | "sang" | null = null, now = new Date()) {
+/** `moTamVao`: Hoàn tác «Mở lại máy» lúc đang mở tạm ⇒ khoá lại nhưng giữ phần mở tạm còn hạn (không mất giờ Ba Mẹ vừa cho). */
+export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string, hanVao: Date | "sang" | null = null, now = new Date(), moTamVao: Date | null = null) {
   let den: Date | null = null;
   if (khoa && hanVao === "sang") den = sangMaiCua((await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh", now);
   else if (khoa && hanVao instanceof Date) {
@@ -109,10 +110,12 @@ export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: s
     if (!(hanVao.getTime() > now.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
     den = hanVao;
   }
-  // khoá mới / mở lại đều xoá phần «mở tạm» của lần duyệt thêm giờ trước (yeu-cau.ts › dongY)
-  const r = await q(`update children set cau_hinh = case when $3 then (cau_hinh - 'khoa_den' - 'khoa_mo_tam_den') || jsonb_strip_nulls(jsonb_build_object('khoa_ngay', true, 'khoa_den', $4::text))
+  const moTam = khoa && moTamVao && moTamVao.getTime() > now.getTime() ? moTamVao.toISOString() : null;
+  // khoá mới / mở lại đều xoá phần «mở tạm» của lần duyệt thêm giờ trước (yeu-cau.ts › dongY) — trừ khi Hoàn tác gửi lại nó
+  const r = await q(`update children set cau_hinh = case when $3 then (cau_hinh - 'khoa_den' - 'khoa_mo_tam_den')
+                       || jsonb_strip_nulls(jsonb_build_object('khoa_ngay', true, 'khoa_den', $4::text, 'khoa_mo_tam_den', $5::text))
                      else cau_hinh - 'khoa_ngay' - 'khoa_den' - 'khoa_mo_tam_den' end
-                     where id = $1 and family_id = $2 returning id`, [con, fam, khoa, den?.toISOString() ?? null]);
+                     where id = $1 and family_id = $2 returning id`, [con, fam, khoa, den?.toISOString() ?? null, moTam]);
   if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   await ghiSuKien(fam, khoa ? "khoa_ngay" : "mo_lai", den ? { den: den.toISOString() } : {}, { con, nguoi });
 }

@@ -109,8 +109,13 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
       // Duyệt lần nữa lúc đang mở tạm ⇒ cộng tiếp từ hạn mở tạm cũ. Không dùng cuaSoDen (đã gồm cả cửa sổ grant cũ ⇒ mở dài hơn số phút duyệt).
       if (nguoi && khoaGoc(cfg, now)) {
+        // Không vượt hạn khoá (`khoa_den`): qua đó là hết khoá hẳn. Cửa sổ Windows đang mở kéo theo tới cùng giờ — lệch nhau thì máy Windows
+        // rơi về chế độ «hoc» (chặn game) giữa hai mốc trong khi Ba Mẹ thấy «đang mở tạm».
         const tu = Math.max(now.getTime(), Date.parse(moTamDen(cfg, now) ?? "") || 0);
-        const moDen = new Date(tu + phut * 60000).toISOString();
+        const het = typeof cfg?.khoa_den === "string" ? Date.parse(cfg.khoa_den) : Infinity;
+        const moDen = new Date(Math.min(tu + phut * 60000, het)).toISOString();
+        await t(`update grants set cua_so_den = $3 where id = (select id from grants where child_id = $1 and cua_so_den > $2 order by cua_so_den desc limit 1)
+                 and cua_so_den < $3`, [r.child_id, now, moDen]);
         await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('khoa_mo_tam_den', $2::text) where id = $1`, [r.child_id, moDen]);
         await ghiSuKien(fam, "mo_tam", { vi: "duyet_them_gio", yeu_cau: r.id, den: moDen }, { con: r.child_id, nguoi }, t);
       }
