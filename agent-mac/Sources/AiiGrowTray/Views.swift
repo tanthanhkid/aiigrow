@@ -70,6 +70,7 @@ struct XinMoView: View {
 /// Cửa sổ «Ghép máy» của Ba Mẹ (phiên admin, máy chưa ghép).
 struct GhepMayView: View {
   let taiKhoan: [String]
+  var khiGui: (Bool) -> Void = { _ in }        // true = bắt đầu gửi lệnh ghép (đặt cờ TRƯỚC IPC), false = đã có phản hồi
   var khiCanhBao: () -> Void = {}
   var dongLai: () -> Void
   @State private var chon = ""
@@ -109,10 +110,10 @@ struct GhepMayView: View {
   }
 
   private func gui() {
-    dangGui = true; loi = ""
+    dangGui = true; loi = ""; khiGui(true)
     let ma = self.ma, chon = self.chon
     Task {
-      defer { dangGui = false }
+      defer { dangGui = false; khiGui(false) }
       do {
         switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon)) {
         case .loi(_, let chu): loi = chu

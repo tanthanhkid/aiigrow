@@ -145,7 +145,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     guard can else { return }
     let ds = TrayLogic.taiKhoanThuong(dsclRa: chay("/usr/bin/dscl", [".", "-list", "/Users", "UniqueID"]), hienTai: NSUserName())
-    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, khiCanhBao: { [weak self] in self?.ghepTT.hienCanhBao() }, dongLai: { [weak self] in
+    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, khiGui: { [weak self] bat in if bat { self?.ghepTT.batDauGui() } else { self?.ghepTT.guiXong() } }, khiCanhBao: { [weak self] in self?.ghepTT.hienCanhBao() }, dongLai: { [weak self] in
       self?.cuaSoGhep?.close(); self?.hoi() })))
     w.title = "AiiGrow · Ghép máy"; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false; w.delegate = self
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)

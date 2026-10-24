@@ -187,6 +187,8 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertFalse(c.canDong(can: false, ep: false), "daGhep đã true nhưng cảnh báo còn hiện ⇒ không đóng")
     XCTAssertTrue(c.canDuaLenTruoc(ep: true, coCuaSo: true), "menu Ghép máy đưa cửa sổ cảnh báo lên trước")
     XCTAssertFalse(c.canDuaLenTruoc(ep: false, coCuaSo: true), "làm mới định kỳ không giành focus")
+    c.batDauGui(); XCTAssertFalse(c.canDong(can: false, ep: false), "đang gửi yêu cầu ghép ⇒ không tự đóng")
+    c.guiXong(); c.hienCanhBao()
     c.daDong()                                           // nút X đỏ
     XCTAssertEqual(c, TrayLogic.CuaSoGhep(), "không kẹt cờ sau khi đóng")
     XCTAssertTrue(c.canDong(can: false, ep: false))

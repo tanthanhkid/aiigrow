@@ -172,8 +172,25 @@ public actor BoMay {
   }
 
   /// Áp Policy hiện có lên giờ hiện tại; cộng giờ đã dùng theo đồng hồ đơn điệu. → trạng thái cho tray.
+  /// CHỈ vòng daemon (motVong) được gọi — phần theo thời gian (trừ giờ, đếm ngược khoá, đóng app, leo thang kill) không được kích bởi IPC. Lưu trạng thái cho `docTrangThai`.
   @discardableResult
   public func apChinhSach() -> TrangThai {
+    let t = apChinhSachTho()
+    trangThaiCuoi = t
+    return t
+  }
+
+  private var trangThaiCuoi: TrangThai?
+
+  /// Chỉ ĐỌC (IPC `trangThai`): trả trạng thái của vòng gần nhất, không áp gì, không trừ giờ.
+  private func docTrangThai() -> TrangThai {
+    guard cauHinh.daGhep else { return trangThaiChuaGhep() }
+    var t = trangThaiCuoi ?? trangThai(p: nil, hl: nil, laCon: false, phutDung: nil)
+    t.canhBaoAdmin = canhBaoAdmin
+    return t
+  }
+
+  private func apChinhSachTho() -> TrangThai {
     guard cauHinh.daGhep else { return trangThaiChuaGhep() }       // chưa ghép / đã bị gỡ từ xa: thả hoàn toàn
     let now = dongHo()
     let phien = heThong.phienConsole()
@@ -288,16 +305,18 @@ public actor BoMay {
     return 0
   }
 
-  /// SIGTERM, lần áp sau nếu còn sống thì SIGKILL (ghi dấu để không chờ 3 giây trong một vòng).
-  private var daGuiTerm: Set<Int32> = []
+  /// SIGTERM; vòng sau nếu còn sống VÀ đã qua ≥ `vongGiay` giây (đồng hồ đơn điệu) kể từ SIGTERM của pid đó thì SIGKILL.
+  private var daGuiTerm: [Int32: Double] = [:]
   private func dongApp(_ t: TienTrinh) {
-    if daGuiTerm.contains(t.pid), heThong.conSong(pid: t.pid) {
+    let gio = donDieu()
+    if let luc = daGuiTerm[t.pid], heThong.conSong(pid: t.pid) {
+      guard gio - luc >= tuyChon.vongGiay else { return }          // chưa đủ thời gian cho SIGTERM có tác dụng
       heThong.guiTinHieu(pid: t.pid, tinHieu: SIGKILL)
-      daGuiTerm.remove(t.pid)
+      daGuiTerm[t.pid] = nil
       heThong.ghiLog("Đóng (SIGKILL) \(t.bundleId ?? t.duongDan) pid \(t.pid)")
     } else {
       heThong.guiTinHieu(pid: t.pid, tinHieu: SIGTERM)
-      daGuiTerm.insert(t.pid)
+      daGuiTerm[t.pid] = gio
       heThong.ghiLog("Đóng (SIGTERM) \(t.bundleId ?? t.duongDan) pid \(t.pid)")
     }
   }
@@ -311,8 +330,8 @@ public actor BoMay {
     switch yc {
     case .trangThai:
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
-      var tt = apChinhSach()
-      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }       // không nói với Con là Con tự gỡ được; máy chủ vẫn nhận conLaAdmin
+      var tt = docTrangThai()                                     // chỉ đọc: gọi dồn dập không làm đếm ngược/kill nhanh hơn
+      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
       return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
@@ -385,6 +404,6 @@ public actor BoMay {
       conPhut: phutDung.map { Int($0.rounded(.down)) },
       moDen: hl?.moDen, khoaDen: nil, demNguocGiay: demNguoc,
       yeuCauCho: [], duocDoiDiem: p?.canExchangePoints ?? false,
-      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: laCon ? nil : canhBaoAdmin)
+      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: canhBaoAdmin)
   }
 }

@@ -705,6 +705,26 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(QuyetDinhApp.canDong([bo, gia, giaCoCo], uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid), [81, 82])
   }
 
+  func testIPCTrangThaiKhongLamSigkillSom() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    HttpMock.dat { _, _ in
+      HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "lenh": [],
+        "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc),
+                    "web": ["cheDo": "mo", "chan": [], "cho": []]]])
+    }
+    defer { HttpMock.dat { _, _ in nil } }
+    fake.tienTrinhTheoUid[501] = [TienTrinh(pid: 90, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer")]
+    fake.conSongPid = [90]
+    _ = await b.motVong()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM])
+    for _ in 0..<10 { _ = await b.xuLyIPC(.trangThai, uidGoi: 502) }       // IPC dồn dập: không áp ⇒ không SIGKILL
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM], "IPC không leo thang kill")
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM, SIGKILL], "vòng daemon sau ≥ 5 giây mới SIGKILL")
+  }
+
   func testGoCaiXoaNhanLaunchctlCuoiTapLenh() throws {
     let s = try String(contentsOfFile: Self.goiDir + "/go-cai.sh", encoding: .utf8)
     XCTAssertTrue(s.contains("remove vn.aiilab.aiigrow.go"))

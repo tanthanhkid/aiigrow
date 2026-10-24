@@ -12,6 +12,7 @@ import SystemConfiguration
 
 public final class HeThongMac: HeThong {
   private var boNhoBundle: [String: String] = [:]
+  private var boNhoBoGo: [String: Bool] = [:]
   private let khoa = NSLock()
   public init() {}
 
@@ -36,12 +37,19 @@ public final class HeThongMac: HeThong {
       let app = QuyetDinhApp.appNgoaiCung(duong)
       var tt = (TienTrinh(pid: pid, uid: k.kp_eproc.e_ucred.cr_uid, duongDan: duong, duongDanApp: app, bundleId: app.flatMap(bundleId),
                           bundleIdGan: QuyetDinhApp.appGanNhat(duong).flatMap(bundleId)))
-      if duong.lowercased().contains("/library/input methods/"), let g = QuyetDinhApp.appGanNhat(duong) {
-        tt.laBoGo = QuyetDinhApp.plistLaBoGo(NSDictionary(contentsOfFile: g + "/Contents/Info.plist") as? [String: Any])
-      }
+      if duong.lowercased().contains("/library/input methods/"), let g = tt.duongDanAppGan { tt.laBoGo = laBoGo(g) }
       kq.append(tt)
     }
     return kq
+  }
+
+  /// Info.plist của .app có khoá bộ gõ không — nhớ theo đường dẫn .app như bundleId.
+  private func laBoGo(_ app: String) -> Bool {
+    khoa.lock(); defer { khoa.unlock() }
+    if let b = boNhoBoGo[app] { return b }
+    let b = QuyetDinhApp.plistLaBoGo(NSDictionary(contentsOfFile: app + "/Contents/Info.plist") as? [String: Any])
+    boNhoBoGo[app] = b
+    return b
   }
 
   private func bundleId(_ app: String) -> String? {

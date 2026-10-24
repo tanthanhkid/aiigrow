@@ -114,6 +114,14 @@ final class TichHopTests: XCTestCase {
     XCTAssertEqual(t5.lyDoKhoa, "ba_me_khoa")
     XCTAssertNotNil(t5.demNguocGiay, "5. có đếm ngược trước khi đóng phiên")
     XCTAssertTrue(t5.demNguocGiay! > 0)
+    // IPC trangThai dồn dập CHỈ đọc: đếm ngược không chạy nhanh hơn
+    for _ in 0..<10 {
+      guard case let .trangThai(x) = try SocketTest.gui(.trangThai, duongDan: duongSocket) else { return XCTFail("trangThai") }
+      XCTAssertEqual(x.demNguocGiay, t5.demNguocGiay, "5. IPC không trừ đếm ngược")
+    }
+    HttpMock.dat { _, _ in self.dapDongBo(mode: "khoa") }
+    let t5b = await boMay.apChinhSach()
+    XCTAssertEqual(t5b.demNguocGiay, t5.demNguocGiay! - 5, "5. chỉ vòng daemon trừ đúng một vongGiay")
 
     // ───── 6. xinThem → máy chủ duyệt → grantEndsAt → tu_do ─────
     HttpMock.dat { path, _ in
