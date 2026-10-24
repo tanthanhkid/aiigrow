@@ -1,7 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "installCommand": "pnpm install --frozen-lockfile && cd ../mobile && npm ci",
-  "buildCommand": "pnpm build:app && next build"
+  "buildCommand": "pnpm build:app && next build",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "*": false
+    }
+  }
 }
