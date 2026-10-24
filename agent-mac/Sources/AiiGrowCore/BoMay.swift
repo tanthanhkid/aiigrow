@@ -12,10 +12,12 @@ public struct TuyChonBoMay: Sendable {
   public var demNguocKhoaGiay: Int
   /// Chỉ test: kiểm app tiền cảnh ngay trong vòng thay vì ở hàng đợi nền.
   public var tienCanhDongBo: Bool
+  /// false = chế độ thử (--thu): không tự cập nhật, kể cả khi Ba Mẹ bấm nút.
+  public var tuCapNhat: Bool
   public init(duongDanHosts: String = "/etc/hosts", thuMucChinhSach: String = ChinhSachTrinhDuyet.thuMuc,
-              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienCanhDongBo: Bool = false) {
+              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienCanhDongBo: Bool = false, tuCapNhat: Bool = true) {
     self.duongDanHosts = duongDanHosts; self.thuMucChinhSach = thuMucChinhSach
-    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienCanhDongBo = tienCanhDongBo
+    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienCanhDongBo = tienCanhDongBo; self.tuCapNhat = tuCapNhat
   }
 }
 
@@ -29,6 +31,7 @@ public actor BoMay {
   private let donDieu: () -> Double
 
   private var cauHinh: CauHinhMay
+  private let capNhat: BoCapNhat
   private var policy: Policy?
   /// Thời điểm (đơn điệu) phải đồng bộ lại.
   private var syncLuc: Double = 0
@@ -48,7 +51,10 @@ public actor BoMay {
   private var daApHosts: String?
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
-              dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 }) {
+              dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
+              capNhat: BoCapNhat? = nil) {
+    self.capNhat = capNhat ?? BoCapNhat(api: api, heThong: heThong, mayChu: { [kho] in (api as? ApiClient)?.mayChu ?? kho.doc()?.mayChu ?? ApiClient.mayChuMacDinh },
+                                               dongHo: dongHo)
     self.api = api; self.heThong = heThong; self.kho = kho; self.tuyChon = tuyChon
     self.dongHo = dongHo; self.donDieu = donDieu
     self.cauHinh = kho.doc() ?? CauHinhMay()
@@ -71,12 +77,15 @@ public actor BoMay {
     guard !dangGhep else { throw LoiApi(ma: "dang_ghep", chu: "Đang ghép máy, vui lòng chờ.") }
     dangGhep = true                                   // đặt TRƯỚC await đầu tiên: actor reentrancy không cho gọi server hai lần
     defer { dangGhep = false }
+    // go-cai.sh còn chạy (đang chờ job cập nhật, tới 5 phút): ghép lúc này sẽ xoá dấu da-go mà postinstall dựa vào, rồi go-cai vẫn gỡ app.
+    let ht = heThong
+    guard await !chayNgoaiActor({ ht.trinhGoDangChay() }) else { throw LoiApi(ma: "dang_go", chu: "Máy đang được gỡ AiiGrow; chờ gỡ xong rồi cài lại và ghép.") }
     let tk = taiKhoanCon.trimmingCharacters(in: .whitespaces)
     guard let uidCon = heThong.uid(cuaTaiKhoan: tk) else { throw LoiApi(ma: "khong_thay_con", chu: "Không thấy tài khoản «\(tk)» trên máy.") }
     // Kiểm cục bộ TRƯỚC khi gọi máy chủ (lỗi cục bộ không để lại máy «ma» + mất mã ghép). Phải còn một admin KHÁC (không tự khoá Ba Mẹ ra ngoài).
-    let canHa = heThong.laAdmin(uid: uidCon)
+    let canHa = await chayNgoaiActor { ht.laAdmin(uid: uidCon) }
     if canHa {
-      let conLai = heThong.dsAdmin().filter { $0.lowercased() != tk.lowercased() && $0.lowercased() != "root" }
+      let conLai = await chayNgoaiActor { ht.dsAdmin() }.filter { $0.lowercased() != tk.lowercased() && $0.lowercased() != "root" }
       guard !conLai.isEmpty else { throw LoiApi(ma: "con_mot_admin", chu: "Cần còn một tài khoản quản trị khác trước khi hạ quyền tài khoản của Con.") }
     }
     let kq = try await api.ghep(ma: ma, tenMay: heThong.tenMay())
@@ -92,6 +101,8 @@ public actor BoMay {
       $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
     }
     cauHinh = kho.doc() ?? cauHinh
+    // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
+    if await !chayNgoaiActor({ ht.trinhGoDangChay() }) { heThong.xoaTep(DuongDan.daGo) }
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
     conLaAdmin = canHa                                  // chỉ thành false khi hạ quyền xong
@@ -348,13 +359,31 @@ public actor BoMay {
 
   /// Xử lý một yêu cầu tray — gọi từ socket sau khi đã lấy uid người gọi bằng getpeereid.
   public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32) async -> TraLoi {
-    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: heThong.laAdmin)
+    // Quyền admin của người gọi tra NGOÀI actor (dscl có thể chậm; tray hỏi trạng thái mỗi 5 giây với hạn 3 giây). Hỏi trạng thái chỉ cần khi
+    // có dòng cập nhật để trả (bộ đệm 5 phút); lệnh thật (ghép, cập nhật) tra tươi.
+    let ht = heThong
+    let adminGoi: Bool
+    switch yc {
+    case .trangThai:
+      adminGoi = capNhat.so.chu != nil && uidGoi != 0 && uidGoi != cauHinh.uidCon ? await laAdminDem(uidGoi) : false
+    case .ghep, .capNhat:
+      adminGoi = uidGoi != 0 ? await chayNgoaiActor { ht.laAdmin(uid: uidGoi) } : false
+    default:
+      adminGoi = false                                 // ping/appTienCanh/xin… không cần quyền admin — không chạy dscl
+    }
+    let laAdmin: (UInt32) -> Bool = { $0 == uidGoi && adminGoi }
+    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: laAdmin)
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
       var tt = trangThaiTuoi()                                    // tính tươi, không tác dụng phụ: gọi dồn dập không làm đếm ngược/kill nhanh hơn
-      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      tt.banDaemon = PhienBan.hienTai
+      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }        // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      // Trạng thái cập nhật: chỉ Ba Mẹ (cùng quy tắc quyền IPC capNhat); admin tra qua bộ nhớ đệm (tray hỏi mỗi 5 giây, dscl không chạy mỗi lần)
+      if let chu = capNhat.so.chu, QuyenIPC.laBaMe(uidGoi: uidGoi, uidCon: cauHinh.uidCon, laAdmin: laAdmin) {
+        tt.capNhat = chu; tt.capNhatLuc = capNhat.so.luc
+      }
       return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
@@ -363,6 +392,8 @@ public actor BoMay {
       return await taoYeuCau(loai: "them_gio", phut: phut, giaTri: nil, lyDo: loiNhan ?? "Con xin thêm giờ")
     case let .xinMo(muc, loai, loiNhan):
       return await taoYeuCau(loai: loai == "web" ? "mo_web" : "cai_app", phut: nil, giaTri: muc, lyDo: loiNhan ?? "Con xin mở \(muc)")
+    case .capNhat:
+      return await capNhatNgay()
     case let .ghep(ma, taiKhoanCon):
       do {
         try await ghep(ma: ma, taiKhoanCon: taiKhoanCon)
@@ -372,6 +403,56 @@ public actor BoMay {
       catch let e as LoiApi { return .loi(ma: e.ma ?? "ghep_loi", chu: e.chu) }
       catch { return .loi(ma: "ghep_loi", chu: "\(error)") }
     }
+  }
+
+  // MARK: tự cập nhật
+
+  /// Nút «Kiểm tra cập nhật»: trả lời NGAY (tray chỉ chờ 3 giây), kiểm + tải + cài chạy nền; kết quả nằm ở `TrangThai.capNhat`.
+  public func capNhatNgay() async -> TraLoi {
+    guard tuyChon.tuCapNhat else { return .thongBao(chu: "[thử] daemon chạy chế độ thử — không tự cập nhật.") }
+    guard daGhepKhongGo() else { return .loi(ma: "chua_ghep", chu: LuatCapNhat.chuChuaGhep) }
+    guard capNhat.giuChoNgay() else { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
+    capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())      // ghi ngay để lần hỏi trạng thái kế thấy, không chờ Task kịp chạy
+    Task { _ = await self.capNhat.batDau(thuCong: true, daGiuCho: true, choPhep: { await self.coTheCapNhat() }) }
+    return .thongBao(chu: "Đang kiểm tra bản mới… Kết quả hiện ở menu AiiGrow.")
+  }
+
+  /// Daemon gọi (Task riêng, theo `LichCapNhat`); chờ lượt tải/cài nền xong rồi mới trả.
+  public func kiemCapNhatDinhKy() async {
+    guard tuyChon.tuCapNhat else { heThong.ghiLog("[thử] bỏ qua vòng tự cập nhật."); return }
+    _ = await capNhat.batDau(choPhep: { await self.coTheCapNhat() })
+    await capNhat.choXong()
+  }
+
+  /// Chỉ cập nhật khi đã ghép và không đang gỡ.
+  private func daGhepKhongGo() -> Bool { cauHinh.daGhep && !dangGo }
+
+  /// `choPhep` của bộ cập nhật. Dấu gỡ sót (go-cai.sh chết giữa chừng — SIGKILL/mất điện — trước khi gỡ thật) trên máy vẫn ghép mà không có
+  /// trình gỡ nào chạy: tự bỏ. Dọn ở ĐÂY (không ở BoCapNhat) vì tuGo bật `dangGo` + ghi dấu trên cùng actor này: sau await kiểm lại `dangGo`,
+  /// giữa lần kiểm đó và lệnh xoá không có await ⇒ không xoá nhầm dấu của một lượt gỡ từ xa vừa bắt đầu.
+  private func coTheCapNhat() async -> Bool {
+    guard daGhepKhongGo() else { return false }
+    if heThong.docTep(DuongDan.daGo) != nil {
+      let ht = heThong
+      let goChay = await chayNgoaiActor { ht.trinhGoDangChay() }
+      if !goChay, daGhepKhongGo(), heThong.docTep(DuongDan.daGo) != nil {
+        heThong.ghiLog("Cập nhật: dấu gỡ \(DuongDan.daGo) sót từ lượt gỡ dở (không có go-cai.sh nào chạy, máy vẫn ghép) — bỏ dấu.")
+        heThong.xoaTep(DuongDan.daGo)
+      }
+    }
+    return daGhepKhongGo()
+  }
+
+
+  /// laAdmin có bộ nhớ đệm 5 phút theo uid (HeThongMac.laAdmin chạy dscl).
+  private var adminDem: [UInt32: (laAdmin: Bool, luc: Double)] = [:]
+  private func laAdminDem(_ uid: UInt32) async -> Bool {
+    if let d = adminDem[uid], donDieu() - d.luc < 300 { return d.laAdmin }
+    let ht = heThong
+    let a = await chayNgoaiActor { ht.laAdmin(uid: uid) }
+    let bayGio = donDieu()
+    adminDem[uid] = (a, bayGio)
+    return a
   }
 
   private func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async -> TraLoi {
@@ -389,6 +470,8 @@ public actor BoMay {
   private func tuGo(lenhId: String) async {
     // Lệnh gỡ từ xa: trả quyền admin đã hạ, xoá chính sách web + hosts, xoá cấu hình. KHÔNG tự bootout launchd (gói cài lo).
     dangGo = true                                   // vòng áp chạy song song trong lúc await bên dưới — chặn nó áp lại plist/hosts/đóng app
+    // Dấu «máy đã gỡ» TRƯỚC await đầu tiên: installer tự cập nhật vừa giao xong mà postinstall chạy trong lúc chờ máy chủ thì không nạp lại daemon.
+    try? heThong.ghiTep(DuongDan.daGo, Data("da-go\n".utf8), quyen: 0o600)
     policy = nil; khoaLuc = nil
     apChinhSachTrinhDuyet(web: nil)
     // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.

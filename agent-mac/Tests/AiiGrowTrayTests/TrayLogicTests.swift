@@ -11,6 +11,28 @@ final class TrayLogicTests: XCTestCase {
               demNguocGiay: dem, yeuCauCho: [], duocDoiDiem: false, matMang: false, trangChan: [])
   }
 
+  func testNutKiemCapNhatChiMayDaGhep() {
+    XCTAssertTrue(TrayLogic.canKiemCapNhat(tt(con: false), laAdmin: true))
+    XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(daGhep: false, con: false), laAdmin: true), "chưa ghép: daemon không tự cập nhật ⇒ ẩn nút")
+    XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(con: true), laAdmin: true))
+    XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(con: false), laAdmin: false))
+  }
+
+  func testChuKiemCapNhatDaemonCu() {
+    XCTAssertTrue(TrayLogic.chuKiemCapNhat(.loi(ma: "yeu_cau_sai", chu: "Yêu cầu không đọc được.")).contains("bản cũ"), "daemon 0.1.0 chưa biết lệnh capNhat")
+    XCTAssertEqual(TrayLogic.chuKiemCapNhat(.loi(ma: "can_admin", chu: "x")), "x")
+    XCTAssertEqual(TrayLogic.chuKiemCapNhat(.thongBao(chu: "y")), "y")
+  }
+
+  func testDongBanLayBanDaemon() {
+    var t = tt(con: false)
+    XCTAssertEqual(TrayLogic.dongBanDangChay(t, banTray: "0.1.1"), "AiiGrow bản 0.1.1", "daemon cũ chưa gửi bản ⇒ bản của tray")
+    t.banDaemon = "0.1.1"
+    XCTAssertEqual(TrayLogic.dongBanDangChay(t, banTray: "0.1.1"), "AiiGrow bản 0.1.1")
+    t.banDaemon = "0.1.2"
+    XCTAssertTrue(TrayLogic.dongBanDangChay(t, banTray: "0.1.1").hasPrefix("AiiGrow bản 0.1.2 (menu này bản 0.1.1"), "tray chưa nạp lại ⇒ vẫn báo bản daemon thật")
+  }
+
   // MARK: chonMan
   func testChonMan() {
     XCTAssertEqual(TrayLogic.chonMan(nil), .khong)

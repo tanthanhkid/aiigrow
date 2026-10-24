@@ -41,6 +41,7 @@ final class XinModel: ObservableObject {
         switch try await IPCClient.guiAsync(yc) {
         case .ok, .canhBao: daGui = true; thongBao = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…"
         case .loi(_, let chu): daGui = false; thongBao = chu
+        case .thongBao(let chu): daGui = true; thongBao = chu
         case .trangThai: daGui = true; thongBao = "Đã gửi cho Ba Mẹ."
         }
       } catch {

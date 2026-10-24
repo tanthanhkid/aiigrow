@@ -140,8 +140,95 @@ public final class HeThongMac: HeThong {
     // `launchctl submit` là cách DUY NHẤT sống sót sau khi go-cai.sh `bootout` chính daemon (launchd giết cả nhóm tiến trình của daemon, nohup/setsid không thoát được).
     // Việc submit là một lần: go-cai.sh tự `launchctl remove` ở cuối; ở đây còn gỡ nhãn sót từ lần trước để submit không bị trùng nhãn.
     _ = HeThongMac.chay("/bin/launchctl", ["remove", HeThongMac.nhanTrinhGo], timeout: 10)
+    // go-cai.sh tự chép mình ra /var/tmp rồi chạy bản sao (installer có thể ghi đè tệp gốc trong lúc nó chờ).
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", HeThongMac.nhanTrinhGo, "--", "/bin/bash", script], timeout: 10)
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
+  }
+
+  /// PID trong `DuongDan.goCaiDangChay` còn sống và đúng là go-cai.sh (job launchd lẫn chạy tay bằng sudo), hoặc job gỡ từ xa đã submit
+  /// mà go-cai.sh chưa kịp ghi PID (nhãn có "PID").
+  public func trinhGoDangChay() -> Bool {
+    if HeThongMac.jobDangChay(HeThongMac.nhanTrinhGo) { return true }
+    guard let s = try? String(contentsOfFile: DuongDan.goCaiDangChay, encoding: .utf8) else { return false }
+    return HeThongMac.goCaiConSong(s)
+  }
+
+  /// Nội dung tệp PID go-cai.sh (dòng 1 PID, dòng 2 ps lstart) ⇒ tiến trình đó còn sống và đúng là trình gỡ.
+  static func goCaiConSong(_ s: String) -> Bool {
+    let dong = s.split(separator: "\n", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+    guard let pid = Int32(dong.first ?? ""), pid > 0, kill(pid, 0) == 0 else { return false }
+    // Dòng 2 = giờ bắt đầu (ps lstart) go-cai.sh ghi: khớp ⇒ đúng trình gỡ (kể cả chạy qua ống, dòng lệnh chỉ «bash»); tệp kiểu cũ ⇒ so dòng lệnh.
+    if dong.count > 1, !dong[1].isEmpty {
+      return HeThongMac.chay("/usr/bin/env", ["LC_ALL=C", "/bin/ps", "-p", String(pid), "-o", "lstart="], timeout: 10).1.trimmingCharacters(in: .whitespacesAndNewlines) == dong[1]
+    }
+    return HeThongMac.chay("/bin/ps", ["-p", String(pid), "-o", "command="], timeout: 10).1.contains("go-cai")
+  }
+
+  public func taoThuMuc(_ duongDan: String, quyen: Int) throws {
+    try FileManager.default.createDirectory(atPath: duongDan, withIntermediateDirectories: true, attributes: [.posixPermissions: quyen])
+    chmod(duongDan, mode_t(quyen))            // umask không được nới quyền
+  }
+
+  public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) {
+    HeThongMac.chay("/usr/sbin/pkgutil", ["--check-signature", duongDan], timeout: 60)
+  }
+
+  public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) {
+    HeThongMac.chay("/usr/sbin/spctl", ["-a", "-t", "install", duongDan], timeout: 60)
+  }
+
+  public func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws {
+    let fm = FileManager.default
+    try? fm.removeItem(atPath: dich)
+    try fm.moveItem(atPath: nguon, toPath: dich)
+    chmod(dich, mode_t(quyen))
+  }
+
+  /// `launchctl list <nhãn>` có «"PID" =» ⇒ job đang chạy.
+  public func caiDangChay() -> Bool { HeThongMac.jobDangChay(LuatCapNhat.nhanCai) }
+
+  /// Job launchd `nhan` đang có tiến trình sống (`launchctl list <nhãn>` có khoá "PID"; nhãn đã xong/không có thì không).
+  /// Bản shell cùng quy tắc: `launchctl list <nhãn> | grep -q '"PID"'` trong go-cai.sh, preinstall, postinstall.
+  static func jobDangChay(_ nhan: String) -> Bool {
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["list", nhan], timeout: 10)
+    return ma == 0 && ra.contains("\"PID\"")
+  }
+
+  /// Lệnh sh của job cài (`caiGoi`).
+  /// $1 gói · $2 nhãn · $3 dấu PID · $4 dấu đã gỡ · $5 plist daemon · $6 plist tray · $7 phien-gui.sh (uid phiên GUI, chung với pre/postinstall). Đọc kỹ ba nhánh:
+  /// - napLai: installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại bản cũ (trừ khi máy vừa bị gỡ).
+  /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
+  ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
+  /// - Lượt trước đã xong (xoá gói + dấu PID) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không còn gói ⇒ tự gỡ nhãn, không cài/nạp lại.
+  /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
+  static let lenhJobCai = """
+    DA_GO="$4" ; DAEMON="$5" ; TRAY="$6" ; PG="$7"
+    napLai() { if [ ! -f "$DA_GO" ] && [ -f "$DAEMON" ]; then /bin/launchctl bootstrap system "$DAEMON" ; echo "nạp lại daemon, mã $?" ; \
+      for u in $([ -f "$PG" ] && /bin/bash "$PG") ; do /bin/launchctl bootstrap gui/$u "$TRAY" ; done ; fi ; }
+    if [ -f "$3" ] ; then echo "lượt cài trước dừng giữa chừng — không cài lại" ; napLai ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
+    if [ ! -f "$1" ] ; then echo "gói đã bị xoá (job bị chạy lại sau khi xong) — bỏ" ; /bin/launchctl remove "$2" ; exit 0 ; fi
+    echo $$ > "$3" ; /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
+    if [ $ma -ne 0 ] ; then napLai ; fi
+    if [ -f "$DA_GO" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi
+    /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit $ma
+    """
+
+  public func dungCai() { _ = HeThongMac.chay("/bin/launchctl", ["remove", LuatCapNhat.nhanCai], timeout: 10) }
+
+  /// Job launchd riêng: preinstall của gói `bootout` daemon, launchd giết cả nhóm tiến trình của daemon — chỉ `launchctl submit` thoát được.
+  /// Bọc trong sh: cài xong tự xoá gói + tự `launchctl remove` nhãn (không để postinstall tự gỡ nhãn đang chạy installer).
+  /// KHÔNG `launchctl remove` nhãn đang chạy (giết installer giữa chừng); chỉ gỡ nhãn sót đã xong.
+  public func caiGoi(_ duongDan: String) throws {
+    let nhan = LuatCapNhat.nhanCai
+    guard !caiDangChay() else { throw LoiApi(chu: "Đang có một lượt cài chạy (\(nhan)) — bỏ qua lần này.") }
+    _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót đã xong từ lần trước
+    let dau = DuongDan.dangCapNhat                                                  // ghi PID của sh job: postinstall biết đây là cài tự động (và còn sống)
+    try? FileManager.default.removeItem(atPath: dau)                               // job không còn chạy (đã kiểm ở trên) ⇒ dấu nào còn là dấu sót
+
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
+                                                      "--", "/bin/sh", "-c", HeThongMac.lenhJobCai, "capnhat", duongDan, nhan, dau, DuongDan.daGo,
+                                                      DuongDan.daemonPlist, DuongDan.trayPlist, DuongDan.app + "/Contents/Resources/phien-gui.sh"], timeout: 10)
+    guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
   }
 
   public func xoaBoNhoDNS() {

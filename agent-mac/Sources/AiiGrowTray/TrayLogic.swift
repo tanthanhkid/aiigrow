@@ -97,6 +97,33 @@ public enum TrayLogic {
     public mutating func daDong() { giuCanhBao = false; dangGui = false }
   }
 
+  /// Nút «Kiểm tra cập nhật»: chỉ phiên Ba Mẹ (admin, không phải phiên Con) trên máy đã ghép (chưa ghép thì daemon không tự cập nhật). Daemon vẫn kiểm lại.
+  public static func canKiemCapNhat(_ t: TrangThai?, laAdmin: Bool) -> Bool { t?.daGhep == true && t?.laPhienCon != true && laAdmin }
+
+  /// Dòng trạng thái tự cập nhật (daemon trả trong `trangThai`); quá 1 ngày thì ẩn.
+  public static func dongCapNhat(_ t: TrangThai?, bayGio: Date) -> String? {
+    guard let c = t?.capNhat, !c.isEmpty else { return nil }
+    if let l = t?.capNhatLuc, bayGio.timeIntervalSince(l) > 86_400 { return nil }
+    return c
+  }
+
+  /// Câu trả lời nút «Kiểm tra cập nhật». Daemon cũ (0.1.0) chưa biết lệnh `capNhat` trả `yeu_cau_sai` ⇒ nói rõ cần cài lại gói mới.
+  public static func chuKiemCapNhat(_ t: TraLoi) -> String {
+    switch t {
+    case .thongBao(let c): return c
+    case .loi(ma: "yeu_cau_sai", chu: _): return "Dịch vụ AiiGrow trên máy là bản cũ, chưa có nút này — tải và cài gói mới ở trang /tai."
+    case .loi(ma: _, chu: let c): return c
+    default: return "Đã gửi yêu cầu."
+    }
+  }
+
+  /// Dòng bản đang chạy ở menu.
+  /// Bản daemon đang chạy (nguồn sự thật); tray là bản khác (chưa được nạp lại sau cập nhật) thì nói rõ.
+  public static func dongBanDangChay(_ t: TrangThai?, banTray: String = PhienBan.hienTai) -> String {
+    guard let d = t?.banDaemon, d != banTray else { return "AiiGrow bản \(t?.banDaemon ?? banTray)" }
+    return "AiiGrow bản \(d) (menu này bản \(banTray) — đăng xuất/đăng nhập lại để làm mới)"
+  }
+
   /// Cảnh báo khi Con còn quyền admin (nil = ổn).
   public static func dongCanhBaoAdmin(_ t: TrangThai?) -> String? {
     guard let c = t?.canhBaoAdmin, !c.isEmpty else { return nil }
