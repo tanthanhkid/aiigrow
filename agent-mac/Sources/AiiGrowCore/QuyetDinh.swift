@@ -107,3 +107,37 @@ public enum DemPhut {
     return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
   }
 }
+
+/// Kiểm app tiền cảnh: daemon không tin bundleId tray báo một mình — Con nào cũng gửi được lệnh qua socket 0666 (khai «calculator» để né trần giờ).
+public enum TienCanh {
+  /// «ASN:0x0-0xeabcaae:» ⇒ «ASN:0x0-0xeabcaae:» (nil nếu không đúng dạng).
+  public static func tachASN(_ ra: String) -> String? {
+    for d in ra.split(whereSeparator: \.isNewline) {
+      let t = d.trimmingCharacters(in: .whitespaces)
+      if t.hasPrefix("ASN:") { return t }
+    }
+    return nil
+  }
+
+  /// `"CFBundleIdentifier"="com.apple.finder"` ⇒ com.apple.finder (nil nếu «[ NULL ]» hay rỗng).
+  public static func tachBundleId(_ ra: String) -> String? {
+    guard let i = ra.range(of: "=") else { return nil }
+    let v = ra[i.upperBound...].trimmingCharacters(in: CharacterSet(charactersIn: "\" \n\r\t"))
+    return (v.isEmpty || v.contains(" ") || v.uppercased() == "NULL") ? nil : v
+  }
+
+  /// Tên app để đếm phút: kết quả daemon tự kiểm là nguồn duy nhất. Không kiểm được ⇒ «Không rõ» (vẫn tính giờ); tray báo lệch bị bỏ qua.
+  public static func chon(thatSu: String?, trayBao: String?, trayConSong: Bool) -> String {
+    guard trayConSong, let that = thatSu, !that.isEmpty else { return DemPhut.khongRo }
+    return that
+  }
+}
+
+/// Nhận diện tiến trình tray thật ở đầu bên kia socket: chạy từ gói đã cài (root sở hữu, Con không ghi được) — LOCAL_PEERPID ⇒ proc_pidpath.
+public enum NguoiGoiTray {
+  public static let tienTo = DuongDan.app + "/Contents/MacOS/"
+  public static func hopLe(duongDan: String?, tienTo: String = NguoiGoiTray.tienTo) -> Bool {
+    guard let d = duongDan, !d.contains("/../") else { return false }
+    return d.hasPrefix(tienTo)
+  }
+}

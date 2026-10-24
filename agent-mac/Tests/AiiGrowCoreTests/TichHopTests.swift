@@ -34,7 +34,7 @@ final class TichHopTests: XCTestCase {
     boMay = BoMay(api: api, heThong: fake, kho: kho,
                   tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed", vongGiay: 5, demNguocKhoaGiay: 30),
                   dongHo: { [dongHo] in dongHo!.thuc }, donDieu: { [dongHo] in dongHo!.donDieu })
-    socket = SocketIPC(duongDan: duongSocket) { [boMay] yc, uid in await boMay!.xuLyIPC(yc, uidGoi: uid) }
+    socket = SocketIPC(duongDan: duongSocket) { [boMay] yc, uid, pid in await boMay!.xuLyIPC(yc, uidGoi: uid, pidGoi: pid) }
     try socket.mo()
     Task { await self.socket.phucVu() }
   }
@@ -88,6 +88,7 @@ final class TichHopTests: XCTestCase {
 
     // ───── 4. Con báo appTienCanh → phút tăng ─────
     // Tray báo app tiền cảnh đều đặn mỗi ~8 giây (trong cửa sổ tươi 10 giây), daemon áp chính sách giữa các lần báo.
+    fake.tienCanhThat = "com.apple.Pages"                  // daemon tự kiểm thấy Pages ở tiền cảnh
     for _ in 0..<18 {
       let s4 = try SocketTest.gui(.appTienCanh(bundleId: "com.apple.Pages", ten: "Pages"), duongDan: duongSocket)
       guard case .ok = s4 else { return XCTFail("appTienCanh ok") }
@@ -102,6 +103,7 @@ final class TichHopTests: XCTestCase {
     let usage = db?["usage"] as? [[String: Any]] ?? []
     XCTAssertTrue(usage.contains { ($0["muc"] as? String) == "com.apple.pages" && ($0["phut"] as? Int ?? 0) >= 2 }, "4. phút Pages tăng, status.agent=mac")
     XCTAssertEqual((db?["status"] as? [String: Any])?["agent"] as? String, "mac")
+    XCTAssertNil((db?["status"] as? [String: Any])?["playSeconds"], "4. KHÔNG gửi playSeconds (Mac chưa đo giây theo phiên)")
 
     // ───── 5. mode khoa → đếm ngược ─────
     HttpMock.dat { _, _ in self.dapDongBo(mode: "khoa") }

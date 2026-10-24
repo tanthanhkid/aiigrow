@@ -10,10 +10,12 @@ public struct TuyChonBoMay: Sendable {
   public var vongGiay: Double
   /// Đếm ngược (giây) trước khi đóng phiên Con khi mode «khoa» — tray hiện màn đếm ngược trong lúc này.
   public var demNguocKhoaGiay: Int
+  /// Tiền tố đường thực thi của tray thật (nil = không kiểm — chỉ dùng khi test).
+  public var tienToDuongTray: String?
   public init(duongDanHosts: String = "/etc/hosts", thuMucChinhSach: String = ChinhSachTrinhDuyet.thuMuc,
-              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30) {
+              vongGiay: Double = 5, demNguocKhoaGiay: Int = 30, tienToDuongTray: String? = NguoiGoiTray.tienTo) {
     self.duongDanHosts = duongDanHosts; self.thuMucChinhSach = thuMucChinhSach
-    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay
+    self.vongGiay = vongGiay; self.demNguocKhoaGiay = demNguocKhoaGiay; self.tienToDuongTray = tienToDuongTray
   }
 }
 
@@ -181,7 +183,12 @@ public actor BoMay {
   private func demGiayApp(troi: Double, now: Date) {
     let ngay = DemPhut.ngay(now)
     // App tiền cảnh do tray báo gần đây (≤10 giây); tray tắt ⇒ tính dưới «Không rõ».
-    let app = (donDieu() - trayNhipCuoi <= 10) ? (appTienCanh ?? DemPhut.khongRo) : DemPhut.khongRo
+    // App tiền cảnh do DAEMON tự kiểm (lsappinfo trong phiên Con); tray báo chỉ để biết tray còn sống, không dùng làm số liệu.
+    let that = cauHinh.uidCon.flatMap { heThong.appTienCanh(cuaUid: $0) }
+    let app = TienCanh.chon(thatSu: that, trayBao: appTienCanh, trayConSong: donDieu() - trayNhipCuoi <= 10)
+    if let t = appTienCanh, let that, t.lowercased() != that.lowercased() {
+      heThong.ghiLog("Tray báo app tiền cảnh «\(t)» lệch với kiểm thật «\(that)» — dùng kết quả kiểm thật.")
+    }
     DemPhut.cong(&cauHinh.demPhut, ngay: ngay, app: app, giay: troi)
   }
 
@@ -260,13 +267,21 @@ public actor BoMay {
   // MARK: lệnh IPC từ tray
 
   /// Xử lý một yêu cầu tray — gọi từ socket sau khi đã lấy uid người gọi bằng getpeereid.
-  public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32) async -> TraLoi {
+  public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32, pidGoi: Int32? = nil) async -> TraLoi {
     let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: heThong.laAdmin)
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:
       return .trangThai(apChinhSach())
     case let .appTienCanh(bundleId, _):
+      // Chỉ nhận từ tiến trình tray thật (chạy từ gói cài đặt) — tiến trình khác của Con không báo giả được.
+      if let tienTo = tuyChon.tienToDuongTray {
+        let d = pidGoi.flatMap { heThong.duongDan(cuaPid: $0) }
+        guard NguoiGoiTray.hopLe(duongDan: d, tienTo: tienTo) else {
+          heThong.ghiLog("Từ chối appTienCanh: người gọi (pid \(pidGoi.map(String.init) ?? "?")) không phải tray thật.")
+          return .loi(ma: "khong_phai_tray", chu: "Lệnh này chỉ nhận từ ứng dụng AiiGrow.")
+        }
+      }
       appTienCanh = bundleId.isEmpty ? nil : bundleId
       trayNhipCuoi = donDieu()
       return .ok(id: nil)

@@ -92,6 +92,21 @@ public final class HeThongMac: HeThong {
     return nil
   }
 
+  /// `launchctl asuser <uid> lsappinfo front` ⇒ ASN, rồi `lsappinfo info -only bundleid <ASN>` — chạy trong phiên đồ hoạ của Con (daemon root không có phiên riêng).
+  public func appTienCanh(cuaUid uid: UInt32) -> String? {
+    let (m1, r1) = HeThongMac.chay("/bin/launchctl", ["asuser", "\(uid)", "/usr/bin/lsappinfo", "front"])
+    guard m1 == 0, let asn = TienCanh.tachASN(r1) else { return nil }
+    let (m2, r2) = HeThongMac.chay("/bin/launchctl", ["asuser", "\(uid)", "/usr/bin/lsappinfo", "info", "-only", "bundleid", asn])
+    guard m2 == 0 else { return nil }
+    return TienCanh.tachBundleId(r2)
+  }
+
+  public func duongDan(cuaPid pid: Int32) -> String? {
+    var buf = [CChar](repeating: 0, count: 4 * Int(MAXPATHLEN))
+    guard proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 else { return nil }
+    return String(cString: buf)
+  }
+
   public func tenMay() -> String {
     (SCDynamicStoreCopyComputerName(nil, nil) as String?) ?? Host.current().localizedName ?? "Mac"
   }

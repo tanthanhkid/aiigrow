@@ -20,6 +20,10 @@ public protocol HeThong: AnyObject {
   func dsAdmin() -> [String]
   func phienConsole() -> PhienConsole?
   func tenMay() -> String
+  /// Bundle id app tiền cảnh của phiên đồ hoạ của uid — daemon TỰ kiểm, không tin tray báo. nil = không xác định được.
+  func appTienCanh(cuaUid uid: UInt32) -> String?
+  /// Đường thực thi của một pid (proc_pidpath) — để nhận diện tiến trình tray thật ở đầu bên kia socket.
+  func duongDan(cuaPid pid: Int32) -> String?
   // — tác động —
   func guiTinHieu(pid: Int32, tinHieu: Int32)
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws
@@ -48,6 +52,8 @@ public final class HeThongThu: HeThong {
   public func dsAdmin() -> [String] { that.dsAdmin() }
   public func phienConsole() -> PhienConsole? { that.phienConsole() }
   public func tenMay() -> String { that.tenMay() }
+  public func appTienCanh(cuaUid uid: UInt32) -> String? { that.appTienCanh(cuaUid: uid) }
+  public func duongDan(cuaPid pid: Int32) -> String? { that.duongDan(cuaPid: pid) }
 
   public func guiTinHieu(pid: Int32, tinHieu: Int32) { se("gửi tín hiệu \(tinHieu) tới pid \(pid)") }
   public func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { se("ghi \(duongDan) (\(d.count) byte, quyền \(String(quyen, radix: 8)))") }

@@ -223,7 +223,7 @@ public struct TrangThaiAgent: Codable, Equatable {
   public var moCoi = false
   public var quyen: [String: Bool]
   public var phienKhac: Bool
-  public var playSeconds: Double = 0              // Mac chưa đếm phiên chơi bằng điểm (agent-win 0.2.4) — luôn gửi 0
+  public var playSeconds: Double?                // Mac chưa đo giây theo phiên chơi bằng điểm ⇒ để nil (Codable bỏ hẳn khỏi JSON) — máy chủ coi như agent đời cũ, trang khay là nguồn nhịp. Gửi 0 sẽ làm phiên bị tạm rồi đóng sau 3 phút
 
   public init(mode: String, trayAlive: Bool, childSessionActive: Bool, offline: Bool, cheDo: String, phienKhac: Bool) {
     self.mode = mode; self.trayAlive = trayAlive; self.childSessionActive = childSessionActive; self.offline = offline
