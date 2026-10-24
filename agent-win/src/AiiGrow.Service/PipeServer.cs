@@ -15,6 +15,7 @@ public sealed class PipeServer : BackgroundService
 
     /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
     private readonly Func<IntPtr, bool> _laKhayThat;
+    private readonly Dictionary<string, (DateTimeOffset Luc, PipeResponse Tra)> _playInfoNho = new(StringComparer.OrdinalIgnoreCase);
 
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
@@ -72,7 +73,7 @@ public sealed class PipeServer : BackgroundService
                     var req = string.IsNullOrEmpty(line) ? null : JsonSerializer.Deserialize<PipeRequest>(line, Json.Options);
                     var h = pipe.SafePipeHandle.DangerousGetHandle();
                     var clientSession = SessionHelper.PipeClientSession(h);
-                    bool khay = req?.Cmd is PipeCmd.Foreground or PipeCmd.Play && _laKhayThat(h);
+                    bool khay = req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
@@ -122,15 +123,24 @@ public sealed class PipeServer : BackgroundService
             {
                 // Rob hiện «≈ X phút chơi»: phien/xet cho mục Giải trí đầu tiên (hoặc AppId nếu có). Chỉ trả số phút, không trả điểm.
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con xem được" };
+                // như Play: chỉ khay đã cài, chỉ mục trong PlayChoices (không cho tiến trình lạ dùng token máy hỏi phien/xet tuỳ ý — review #75)
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được hỏi" };
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
-                var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId! : _rt.BuildState(now).PlayChoices.FirstOrDefault() ?? "";
+                var choices = _rt.BuildState(now).PlayChoices;
+                var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId!.Trim() : choices.FirstOrDefault() ?? "";
                 if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
+                if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };
+                // nhớ 60 giây: app mở thì khay hỏi mỗi phút — không dồn phien/xet lên máy chủ
+                lock (_playInfoNho)
+                    if (_playInfoNho.TryGetValue(muc, out var nho) && now - nho.Luc < TimeSpan.FromSeconds(60)) return nho.Tra;
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var xet = await api.CheckPlayAsync(muc, ct);
-                    return new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutToiDa : 0 };
+                    var tra = new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutToiDa : 0 };
+                    lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
+                    return tra;
                 }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
@@ -155,6 +165,7 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.Play:
             {
                 // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
+                lock (_playInfoNho) _playInfoNho.Clear();   // điểm sắp đổi ⇒ số phút nhớ không còn đúng
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
                 if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được mở phiên chơi" };
                 var cfg = _rt.Config;

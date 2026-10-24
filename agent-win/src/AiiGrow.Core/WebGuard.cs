@@ -198,6 +198,8 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     /// <summary>Tạo/mở khoá để ghi; trong hive người dùng thì khoá chặt ACL đường SOFTWARE\Policies\… (tài khoản chuẩn chỉ đọc).</summary>
     private RegistryKey TaoKhoa(RegistryKey goc, string khoa)
     {
+        // khoá chặt TRƯỚC khi ghi (khoá Con tự tạo với ACL chỉ mình Con thì CreateSubKey của SYSTEM bị từ chối) và SAU (khoá vừa tạo)
+        if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon);
         var k = goc.CreateSubKey(khoa, true);
         if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon);
         return k;

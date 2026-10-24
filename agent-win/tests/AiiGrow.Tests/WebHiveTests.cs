@@ -12,11 +12,13 @@ internal sealed class FakeHiveHost : IWebHiveHost
     public IWebPolicyRegistry May => Hklm;
     public bool VoiHive(string sid, Action<IWebPolicyRegistry> fn)
     {
+        if (NemLoi.Contains(sid)) throw new UnauthorizedAccessException("Access to the registry key is denied.");
         if (!CoHoSo.Contains(sid)) return false;
         if (!Hive.TryGetValue(sid, out var r)) Hive[sid] = r = new FakeWebRegistry();
         fn(r);
         return true;
     }
+    public readonly HashSet<string> NemLoi = new(StringComparer.OrdinalIgnoreCase);
     public readonly HashSet<string> ChuaNap = new(StringComparer.OrdinalIgnoreCase);   // hồ sơ có nhưng Con chưa đăng nhập (hive chưa nạp)
     public bool DangNap(string sid) => CoHoSo.Contains(sid) && !ChuaNap.Contains(sid);
     public Dictionary<string, string> DaLuu = new(StringComparer.OrdinalIgnoreCase);
@@ -157,6 +159,16 @@ public class WebHiveTests
     [InlineData("S-1-5-18", false)]
     [InlineData("S-1-5-21-1-2-3-1001_Classes", false)]
     public void LaSidNguoiDung_GomCaEntraId(string sid, bool kq) => Assert.Equal(kq, WindowsWebHiveHost.LaSidNguoiDung(sid));
+
+    [Fact]
+    public void GhiHiveLoi_BaoLoiRieng_KhongNhamLaChuaCoHoSo()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con); h.NemLoi.Add(Con);
+        var r = new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.Empty(r.ChuaCoHive);
+        Assert.Single(r.LoiHive!);
+        Assert.StartsWith(Con + ":", r.LoiHive![0]);
+    }
 
     [Fact]
     public void SidSai_BiBo()

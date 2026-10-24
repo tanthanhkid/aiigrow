@@ -35,7 +35,9 @@ public sealed class AppLockerController
             }
             var kq = AppLockerKhaDung.Tinh(ed, cmdlet);
             // đọc cmdlet lỗi (cmdlet = null) ⇒ chưa chắc: không nhớ, thử lại lần sau; Home / không có cmdlet là chắc chắn
-            if (cmdlet != null || AppLockerKhaDung.LaBanHome(ed)) _khaDung = kq;
+            // CHỈ bản Home là chắc chắn suốt đời dịch vụ; «không thấy cmdlet» trên Pro có thể do module nạp lỗi nhất thời (PSModulePath của SYSTEM…)
+            // ⇒ nhớ tạm 10 phút rồi kiểm lại, không thì luật AppLocker đã áp kẹt lại mãi (Reconcile bỏ qua cả việc gỡ) — review #75
+            if (AppLockerKhaDung.LaBanHome(ed)) _khaDung = kq;
             else { _khaDungTam = kq; _khaDungTamDen = Environment.TickCount64 + 10 * 60 * 1000; }
             if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}», cmdlet {c}) — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", cmdlet, AppLockerKhaDung.CauGhiChu);
             return kq;

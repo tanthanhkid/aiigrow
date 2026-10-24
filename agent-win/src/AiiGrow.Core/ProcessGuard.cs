@@ -44,6 +44,8 @@ public static class ProcessGuard
         "notepad.exe", "cmd.exe", "powershell.exe", "powershell_ise.exe", "pwsh.exe", "calc.exe", "mspaint.exe", "write.exe", "wordpad.exe",
         "charmap.exe", "regedit.exe", "regedt32.exe", "wscript.exe", "cscript.exe", "mshta.exe", "snippingtool.exe", "winver.exe", "hh.exe",
         "mstsc.exe", "ftp.exe", "telnet.exe", "bash.exe", "wsl.exe", "wslhost.exe",
+        // chạy mã/ứng dụng tuỳ ý hoặc đóng khay: XBAP, forfiles /c, mmc snap-in, Task Manager / taskkill (rundll32 vẫn miễn: in ấn, hộp thoại, applet Control Panel cần)
+        "presentationhost.exe", "forfiles.exe", "mmc.exe", "taskmgr.exe", "taskkill.exe", "certutil.exe", "bitsadmin.exe",
     };
 
     /// <summary>Gói Store chạy nền của chính Windows (Phone Link, Widgets, Cross Device) — miễn như tiến trình hệ thống.</summary>
@@ -121,9 +123,9 @@ public static class ProcessGuard
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var name = FileName(exePath);
         if (allowed.Contains(name)) return false;
-        if (TenGoiStore(exePath) is { } goi && allowed.Contains(goi)) return false;
+        var goi = TenGoiStore(exePath);
+        if (goi != null && (allowed.Contains(goi) || GoiStoreHeThong.Contains(goi))) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;
-        if (TenGoiStore(exePath) is { } goiHt && GoiStoreHeThong.Contains(goiHt)) return false;
 
         foreach (var d in safeDirs)
         {

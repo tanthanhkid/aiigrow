@@ -88,6 +88,7 @@ internal sealed class TrayContext : ApplicationContext
     /// quyết định dựa trên danh sách tài khoản dịch vụ đọc 2 phút/lần, có thể cũ (cài một chạm: Con vừa bị gỡ quyền quản trị) ⇒ đúng lại thì hiện lại (BUG-007, review #75).</summary>
     private void AnVoiPhienKhac()
     {
+        _ni.Visible = false;
         if (_anPhienKhac) return;
         _anPhienKhac = true;
         _hvTimer.Stop();
@@ -220,7 +221,8 @@ internal sealed class TrayContext : ApplicationContext
             if (!res.Ok || res.State == null)
             {
                 // Dịch vụ không trả lời: chờ 2 lần liền (~6 giây) cho chắc rồi mới đổi biểu tượng + báo «Dịch vụ AiiGrow không chạy».
-                if (++_pipeFail >= 2) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); }
+                // phiên đã biết KHÔNG phải của Con ⇒ giữ ẩn (dịch vụ khởi động lại không làm biểu tượng hiện ở phiên Ba Mẹ — review #75)
+                if (++_pipeFail >= 2 && !_anPhienKhac) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); }
                 return;
             }
             _pipeFail = 0;

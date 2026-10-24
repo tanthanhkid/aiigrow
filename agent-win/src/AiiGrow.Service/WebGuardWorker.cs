@@ -15,6 +15,7 @@ public sealed class WebGuardWorker : BackgroundService
     private readonly WebPolicyHives _hives;
     private readonly bool _baoDocLai;
     private string? _daBaoHive;
+    private string? _daBaoLoi;
 
     public WebGuardWorker(ILogger<WebGuardWorker> log, AgentRuntime? rt = null, WebPolicyHives? hives = null)
     {
@@ -52,6 +53,12 @@ public sealed class WebGuardWorker : BackgroundService
         {
             _log.LogInformation(p == null ? "Đã gỡ chính sách web của AiiGrow khỏi tài khoản Con" : "Đã áp chính sách web cho tài khoản Con: chế độ {c}, chặn {a}, cho phép {b}", p?.CheDo, p?.Chan.Count, p?.Cho.Count);
             _rt?.WebDaDoi();   // khay (phiên Con) làm mới chính sách trình duyệt + nhắc mở lại trình duyệt
+        }
+        var loiHive = string.Join("; ", kq.LoiHive ?? Array.Empty<string>());
+        if (loiHive != _daBaoLoi)
+        {
+            _daBaoLoi = loiHive;
+            if (loiHive.Length > 0) _log.LogWarning("Ghi luật web vào hive tài khoản Con lỗi (thử lại mỗi 30 giây): {loi}", loiHive);
         }
         // chưa có hồ sơ của Con (chưa đăng nhập lần nào) ⇒ chưa áp được; ghi log một lần cho mỗi tập SID
         var chua = string.Join(",", kq.ChuaCoHive);

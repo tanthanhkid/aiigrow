@@ -27,7 +27,7 @@ public interface IWebHiveHost
 }
 
 /// <summary>Kết quả một vòng <see cref="WebPolicyHives.Ap"/>.</summary>
-public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<string> ChuaCoHive, string? LoiGoHklm);
+public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<string> ChuaCoHive, string? LoiGoHklm, IReadOnlyList<string>? LoiHive = null);
 
 public sealed class WebPolicyHives
 {
@@ -81,6 +81,7 @@ public sealed class WebPolicyHives
         var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var dich = sids.Concat(_daGhiCho.Where(x => !sids.Contains(x, StringComparer.OrdinalIgnoreCase))).ToList();
         var chua = new List<string>();
+        var loiHive = new List<string>();
         foreach (var sid in dich)
         {
             var muon = sids.Contains(sid, StringComparer.OrdinalIgnoreCase) ? p : null;
@@ -92,7 +93,7 @@ public sealed class WebPolicyHives
             if (coTruoc && truoc.VanTay == vt && (muon == null || now - truoc.Luc < GhiLaiSau || !DangNapAnToan(sid))) continue;
             bool xong;
             try { xong = _host.VoiHive(sid, reg => new WebPolicyApplier(reg).Ap(muon, maychuHost)); }
-            catch { xong = false; }
+            catch (Exception e) { xong = false; loiHive.Add(sid + ": " + e.Message); }   // ghi registry lỗi ≠ «chưa có hồ sơ» — báo riêng để log đúng
             if (!xong) { chua.Add(sid); continue; }
             var doiLanNay = coTruoc ? truoc.VanTay != vt : _daGhiCho.Contains(sid) || muon != null;
             _daAp[sid] = (vt, now);
@@ -105,7 +106,7 @@ public sealed class WebPolicyHives
             try { _host.LuuDaGhi(_daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase)); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
-        return new KetQuaWebHive(doi, goHklm, chua, loi);
+        return new KetQuaWebHive(doi, goHklm, chua.Where(x => !loiHive.Any(l => l.StartsWith(x + ":", StringComparison.OrdinalIgnoreCase))).ToList(), loi, loiHive);
     }
 
     private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }
@@ -135,17 +136,19 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         try
         {
             if (!OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, 0x20 | 0x8, out var tok)) return;
+            var du = true;
             try
             {
                 foreach (var ten in new[] { "SeBackupPrivilege", "SeRestorePrivilege", "SeTakeOwnershipPrivilege" })
                 {
-                    if (!LookupPrivilegeValue(null, ten, out var luid)) continue;
+                    if (!LookupPrivilegeValue(null, ten, out var luid)) { du = false; continue; }
                     var tp = new TokenPrivileges { Count = 1, Luid = luid, Attr = 2 /* SE_PRIVILEGE_ENABLED */ };
-                    AdjustTokenPrivileges(tok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+                    // AdjustTokenPrivileges trả true cả khi KHÔNG gán được (ERROR_NOT_ALL_ASSIGNED = 1300) ⇒ phải xem mã lỗi
+                    if (!AdjustTokenPrivileges(tok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero) || Marshal.GetLastWin32Error() != 0) du = false;
                 }
             }
             finally { CloseHandle(tok); }
-            _daBatQuyen = true;
+            _daBatQuyen = du;   // thiếu quyền nào thì lần sau thử bật lại (review #75)
         }
         catch { }
     }
@@ -272,22 +275,40 @@ public static class AclChinhSach
     /// <summary>Dò và khoá chặt đường tới <paramref name="khoa"/> trong hive gốc <paramref name="goc"/>. Cố gắng hết sức: lỗi không chặn việc ghi luật.</summary>
     public static void KhoaChat(RegistryKey goc, string khoa, string sidCon)
     {
+        WindowsWebHiveHost.BatQuyen();   // SeTakeOwnership: mở được cả khoá Con tự tạo với ACL chỉ mình Con (review #75)
         foreach (var duong in DuongCanKhoa(khoa))
         {
             try
             {
-                using var k = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadWriteSubTree,
-                    RegistryRights.ReadPermissions | RegistryRights.ChangePermissions | RegistryRights.TakeOwnership);
+                using (var d = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadSubTree, RegistryRights.ReadPermissions))
+                {
+                    if (d != null)
+                    {
+                        var acl = d.GetAccessControl(AccessControlSections.Access | AccessControlSections.Owner);
+                        var chu = (acl.GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier)?.Value;
+                        var qt = acl.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<RegistryAccessRule>()
+                            .Select(r => (((SecurityIdentifier)r.IdentityReference).Value, r.RegistryRights, r.AccessControlType == AccessControlType.Allow));
+                        if (AnToan(chu, qt)) continue;
+                    }
+                }
+            }
+            catch (System.Security.SecurityException) { }   // không đọc nổi ACL ⇒ chắc chắn không an toàn: chiếm quyền bên dưới
+            catch (UnauthorizedAccessException) { }
+            try
+            {
+                // bước 1: chiếm quyền sở hữu (đặc quyền SeTakeOwnership) — chủ khoá mới đổi được ACL dù ACL không cho ai khác
+                using (var o = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership))
+                {
+                    if (o == null) continue;
+                    var so = new RegistrySecurity();
+                    so.SetOwner(new SecurityIdentifier(QuanTri));
+                    o.SetAccessControl(so);
+                }
+                // bước 2: đặt ACL bảo vệ
+                using var k = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ReadPermissions | RegistryRights.ChangePermissions);
                 if (k == null) continue;
-                var acl = k.GetAccessControl(AccessControlSections.Access | AccessControlSections.Owner);
-                var chu = (acl.GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier)?.Value;
-                var qt = acl.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<RegistryAccessRule>()
-                    .Select(r => (((SecurityIdentifier)r.IdentityReference).Value, r.RegistryRights, r.AccessControlType == AccessControlType.Allow));
-                if (AnToan(chu, qt)) continue;
-                WindowsWebHiveHost.BatQuyen();
                 var moi = new RegistrySecurity();
                 moi.SetAccessRuleProtection(true, false);
-                moi.SetOwner(new SecurityIdentifier(QuanTri));
                 const InheritanceFlags ke = InheritanceFlags.ContainerInherit;
                 moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(HeThong), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
                 moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(QuanTri), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
