@@ -19,6 +19,9 @@ export function denCua(han: Han, now = new Date()): Date | null {
 /** «Khoá tới 10:41» / «Khoá tới khi Ba Mẹ mở». */
 export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới ${gioPhut(den)}` : "Khoá tới khi Ba Mẹ mở");
 
+/** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
+export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();
+
 /** Gọi API khoá (có hạn hoặc không) / mở lại. */
 export async function datKhoa(con: string, khoa: boolean, den: Date | null) {
   await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den.toISOString() } : {}) });

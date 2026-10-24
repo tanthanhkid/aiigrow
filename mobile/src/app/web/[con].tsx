@@ -32,7 +32,7 @@ const tenMien = (t: string) => t.trim().toLowerCase().replace(/^https?:\/\//, ""
 function NutDong({ chu, loai, bam, tat }: { chu: string; loai: "do" | "vien"; bam: () => void; tat?: boolean }) {
   return (
     <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} hitSlop={6}
-      style={{ minHeight: 36, paddingHorizontal: 12, borderRadius: 10, justifyContent: "center", borderWidth: 1, opacity: tat ? 0.5 : 1,
+      style={{ minHeight: 44, paddingHorizontal: 12, borderRadius: 10, justifyContent: "center", borderWidth: 1, opacity: tat ? 0.5 : 1,
         borderColor: loai === "do" ? "#f3c9c4" : M.vien2, backgroundColor: loai === "do" ? M.loiSoft : "#fff" }}>
       <Chu kieu="dam" co={13.5} mau={loai === "do" ? M.loi : M.chu}>{chu}</Chu>
     </Pressable>
@@ -74,10 +74,13 @@ export default function WebCon() {
     bao(chu, () => { bm.goi(`con/${con}/web/trang`, { muc, ...hoan }).then(() => tai(), () => tai()); });
     await tai();
   });
-  const chanNgay = (muc: string) => {
+  /** luật riêng của Con trước khi đổi — Hoàn tác trả về đúng nó */
+  const truocCua = (muc: string): Chon => {
     const cu = d.luat.find((l) => l.tenMien === muc && l.nguon === "con");
-    const truoc: Chon = cu?.trangThai === "cho_phep" ? "cho_phep" : cu?.trangThai === "chan" ? "chan" : "mac_dinh";
-    datNhanh(muc, "chan", false, { trangThai: truoc, caNha: false }, `Đã chặn ${muc} — áp lên máy trong vài phút`);
+    return cu?.trangThai === "cho_phep" ? "cho_phep" : cu?.trangThai === "chan" ? "chan" : "mac_dinh";
+  };
+  const chanNgay = (muc: string) => {
+    datNhanh(muc, "chan", false, { trangThai: truocCua(muc), caNha: false }, `Đã chặn ${muc} — áp lên máy trong vài phút`);
   };
   const boChan = (muc: string, nguon: string) =>
     datNhanh(muc, "mac_dinh", nguon === "gia_dinh", { trangThai: "chan", caNha: nguon === "gia_dinh" }, `Đã bỏ chặn ${muc}${nguon === "gia_dinh" ? " cho cả nhà" : ""}`);
@@ -109,11 +112,12 @@ export default function WebCon() {
       {tenMien(them) ? (
         <HaiNut>
           {d.cheDoWeb === "chi_cho_phep"
-            ? <Nut chu={`Cho phép ${tenMien(them)}`} ic="tick" nho dangChay={dangChay} bam={() => { const m = tenMien(them); setThem(""); datNhanh(m, "cho_phep", false, { trangThai: "mac_dinh", caNha: false }, `Đã cho phép ${m}`); }} />
+            ? <Nut chu={`Cho phép ${tenMien(them)}`} ic="tick" nho dangChay={dangChay} bam={() => { const m = tenMien(them); setThem(""); datNhanh(m, "cho_phep", false, { trangThai: truocCua(m), caNha: false }, `Đã cho phép ${m}`); }} />
             : <Nut chu={`Chặn ${tenMien(them)}`} ic="khoa" loai="huy" nho dangChay={dangChay} bam={() => { const m = tenMien(them); setThem(""); chanNgay(m); }} />}
           <Nut chu="Lựa chọn khác" nho loai="vien" bam={themTrang} />
         </HaiNut>
       ) : null}
+      {sua ? null : <BaoLoi loi={loiLam} />}
       {d.cheDoWeb === "mo" ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {NHANH.map((x) => {

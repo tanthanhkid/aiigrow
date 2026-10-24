@@ -102,7 +102,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
 
 /** Ba Mẹ «Khoá ngay» / «Mở lại» (FR-02.04) — có hiệu lực ở lần đồng bộ / nhịp kế tiếp của mọi thiết bị của Con. */
 export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string, den: Date | null = null) {
-  if (den && !(den.getTime() > Date.now())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
+  if (khoa && den && !(den.getTime() > Date.now())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
   const r = await q(`update children set cau_hinh = case when $3 then (cau_hinh - 'khoa_den') || jsonb_strip_nulls(jsonb_build_object('khoa_ngay', true, 'khoa_den', $4::text))
                      else cau_hinh - 'khoa_ngay' - 'khoa_den' end
                      where id = $1 and family_id = $2 returning id`, [con, fam, khoa, den?.toISOString() ?? null]);

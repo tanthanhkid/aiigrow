@@ -5,7 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet, type Khung } from "@/lib/api";
 import { SuaKhung } from "@/lib/sua-gio";
-import { BangKhoa, cauKhoa, datKhoa } from "@/lib/khoa-may";
+import { BangKhoa, cauKhoa, conHan, datKhoa } from "@/lib/khoa-may";
 import { BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, HaiNut, Man, Nhom, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 type Sua = "ngayThuong" | "cuoiTuan" | "ngu";
@@ -28,7 +28,7 @@ export default function GioChoi() {
   const moLai = () => lam(async () => {
     const den = d.khoaDen ?? null;
     await datKhoa(con, false, null);
-    bao(`Đã mở lại máy của ${d.ten}`, () => { datKhoa(con, true, den && new Date(den) > new Date() ? new Date(den) : null).then(tai, tai); });
+    bao(`Đã mở lại máy của ${d.ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null).then(tai, tai); });
     await tai();
   }, { hangDoi: true });
   return (

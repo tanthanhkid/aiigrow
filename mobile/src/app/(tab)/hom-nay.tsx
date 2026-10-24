@@ -6,9 +6,9 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type ThongKeWeb } from "@/lib/api";
 import { ChuongTb } from "@/lib/chuong-tb";
-import { BangKhoa, cauKhoa, datKhoa } from "@/lib/khoa-may";
+import { BangKhoa, cauKhoa, conHan, datKhoa } from "@/lib/khoa-may";
 import {
-  Avt, BieuTron, Canh, CanhGiua, ChoTai, Chu, Dong, Icon, M, MAU_CON, Man, Nhan, Nhom, Nut, The, Tien, truoc, useHoanTac, useLam, useTai,
+  Avt, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, Chu, Dong, Icon, M, MAU_CON, Man, Nhan, Nhom, Nut, The, Tien, truoc, useHoanTac, useLam, useTai,
   type MauBt, type TenIcon,
 } from "@/lib/ui";
 
@@ -66,14 +66,15 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
   const { lam, dangChay } = useLam();
   const may = ct.d?.may ?? [];
   const dangDung = may.find((m) => m.truc);
-  const khoaNgay = !!ct.d?.khoaNgay;
+  // màn không tự tải lại: hạn khoá đã qua thì coi như đã mở, khớp server (cau-hinh.ts › dangKhoa)
+  const khoaNgay = !!ct.d?.khoaNgay && conHan(ct.d.khoaDen);
   const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
   const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
   const tai = () => { ct.tai(); taiLai(); };
   const moLai = () => lam(async () => {
     const den = ct.d?.khoaDen ?? null;
     await datKhoa(c.id, false, null);
-    bao(`Đã mở máy của ${c.ten}`, () => { datKhoa(c.id, true, den && new Date(den) > new Date() ? new Date(den) : null).then(tai, tai); });
+    bao(`Đã mở máy của ${c.ten}`, () => { if (!conHan(den)) return tai(); datKhoa(c.id, true, den ? new Date(den) : null).then(tai, tai); });
     tai();
   });
 
@@ -125,7 +126,8 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
         )}
         <View style={{ marginTop: 14 }}>
           {khoaNgay ? <Nut chu="Mở lại máy" ic="mo_khoa" rong dangChay={dangChay} bam={moLai} />
-            : <Nut chu="Khoá máy ngay" ic="khoa" rong bam={() => setKhoa(true)} />}
+            : <Nut chu="Khoá máy ngay" ic="khoa" rong tat={!ct.d} bam={() => setKhoa(true)} />}
+          {ct.loi ? <View style={{ marginTop: 10, gap: 8 }}><BaoLoi loi={ct.loi} /><Nut chu="Thử lại" loai="vien" nho bam={ct.tai} /></View> : null}
         </View>
       </The>
 

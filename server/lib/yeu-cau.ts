@@ -3,7 +3,7 @@
 // Ứng điểm (nợ điểm) KHÔNG cho (KE-HOACH 5.5): «ngoại lệ không đủ điểm» nếu đồng ý thì là thêm giờ không trừ điểm, ghi là ngoại lệ.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { thamSo } from "./cau-hinh.ts";
+import { dangKhoa, thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { chuanMuc, datLuat } from "./luat-app.ts";
@@ -106,8 +106,9 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
       // Ba Mẹ đã cho thêm giờ thì «Khoá ngay» cũ không được nuốt mất phần giờ đó (Khang 24/10: «xin thêm thời gian aiigrow không bật lại» —
       // Con còn cờ khoa_ngay từ trước nên cửa sổ mở bị khoá đè). Duyệt = mở lại luôn, ghi sự kiện như bấm «Mở lại».
-      const daKhoa = await t(`update children set cau_hinh = cau_hinh - 'khoa_ngay' - 'khoa_den' where id = $1 and cau_hinh ? 'khoa_ngay' returning id`, [r.child_id]);
-      if (daKhoa.length) await ghiSuKien(fam, "mo_lai", { vi: "duyet_them_gio", yeu_cau: r.id }, { con: r.child_id, nguoi }, t);
+      const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
+      if (cfg && "khoa_ngay" in cfg) await t(`update children set cau_hinh = cau_hinh - 'khoa_ngay' - 'khoa_den' where id = $1`, [r.child_id]);
+      if (dangKhoa(cfg, now)) await ghiSuKien(fam, "mo_lai", { vi: "duyet_them_gio", yeu_cau: r.id }, { con: r.child_id, nguoi }, t);
       if (ngoaiLe) await ghiNgoaiLe(fam, r.child_id, nguoi, r.loai === "ngoai_gio" ? "ngoai_gio" : "them_gio_khong_tru", r.id, t, now);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
       const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";
