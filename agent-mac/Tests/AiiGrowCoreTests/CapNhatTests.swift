@@ -1,6 +1,7 @@
 // Tự cập nhật: so bản, luật URL/chuyển hướng, sha256, chữ ký, không cài khi đang gỡ, IPC capNhat từ uid Con bị từ chối.
 import XCTest
 @testable import AiiGrowCore
+import CryptoKit
 
 final class CapNhatTests: XCTestCase {
   let may = "https://aiigrow.aiilab.vn"
@@ -14,7 +15,7 @@ final class CapNhatTests: XCTestCase {
   /// Máy chủ giả: manifest (version/url/sha) + tệp gói; `soLanTai` đếm lượt tải.
   private func datMayChu(version: String = "0.1.2", url: String? = nil, sha: String? = nil, goi: Data? = nil) {
     let u = url ?? "\(may)/tai/AiiGrow-\(version).pkg"
-    let s = sha ?? LuatCapNhat.sha256Hex(noiDung)
+    let s = sha ?? sha256Hex(noiDung)
     let g = goi ?? noiDung
     HttpMock.dat { path, _ in
       if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": version, "url": u, "sha256": s]) }
@@ -130,7 +131,7 @@ final class CapNhatTests: XCTestCase {
 
   func testGoiQuaCoDungNgayKhiDangTai() async {
     let to = Data(repeating: 7, count: 256 * 1024)
-    datMayChu(sha: LuatCapNhat.sha256Hex(to), goi: to)
+    datMayChu(sha: sha256Hex(to), goi: to)
     _ = await chay(boCapNhat(toiDaByte: 64 * 1024))
     XCTAssertTrue(fake.daCaiGoi.isEmpty)
     XCTAssertTrue(fake.log.contains { $0.contains("đã dừng tải") }, "\(fake.log)")
@@ -338,14 +339,19 @@ final class CapNhatTests: XCTestCase {
     guard case .loi = k4 else { return XCTFail("\(k4)") }
     XCTAssertEqual(fake.daCaiGoi.count, 3)
     XCTAssertTrue(fake.log.contains { $0.contains("cài xong mà bản không đổi") })
-    gio = gio.addingTimeInterval(30 * 24 * 3600)
+    // hết lượt ⇒ mỗi 24 giờ (tính từ lần thử cuối) mới thử một lần — lỗi tạm không khoá máy ở bản cũ mãi
+    gio = gio.addingTimeInterval(18 * 3600)
+    let k5 = await chay(boCapNhat())
+    XCTAssertEqual(k5, .dangTai("0.1.2"))
+    XCTAssertEqual(fake.daCaiGoi.count, 4)
+    gio = gio.addingTimeInterval(6 * 3600)
     _ = await chay(boCapNhat())
-    XCTAssertEqual(fake.daCaiGoi.count, 3, "định kỳ không bao giờ vượt 3 lần với cùng sha")
+    XCTAssertEqual(fake.daCaiGoi.count, 4, "sau khi hết lượt, định kỳ không thử lại trước 24 giờ")
   }
 
   func testDauDaThuCuThieuLanVanDoc() async throws {
     // dấu do bản 0.1.1 sớm ghi (không có «lan») vẫn phải chặn cài lại ngay
-    let cu = #"{"version":"0.1.2","sha256":"\#(LuatCapNhat.sha256Hex(noiDung))","luc":\#(gio.timeIntervalSince1970)}"#
+    let cu = #"{"version":"0.1.2","sha256":"\#(sha256Hex(noiDung))","luc":\#(gio.timeIntervalSince1970)}"#
     let d = try JSONDecoder().decode(DauDaThu.self, from: Data(cu.utf8))
     XCTAssertEqual(d.lan, 1)
     datMayChu()
@@ -380,7 +386,9 @@ final class CapNhatTests: XCTestCase {
     let b = boCapNhat()
     XCTAssertTrue(b.so.chu?.contains("Chưa cài được bản 0.1.2 (đã thử 2 lần)") ?? false, "\(b.so.chu ?? "nil")")
     fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(DauDaThu(version: "0.1.1", sha256: d.sha256, luc: d.luc))
-    XCTAssertNil(boCapNhat().so.chu, "đang chạy đúng bản đã cài ⇒ không báo")
+    XCTAssertEqual(boCapNhat().so.chu, "Đã cập nhật lên bản 0.1.1.", "daemon mới sau khi cài xong ⇒ báo đã cập nhật")
+    fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(DauDaThu(version: "0.1.0", sha256: d.sha256, luc: d.luc))
+    XCTAssertNil(boCapNhat().so.chu, "dấu của bản cũ hơn ⇒ không báo")
   }
 
   func testBiGoDungLucGiaoInstallerThiDungJobCai() async {
@@ -494,13 +502,33 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNil(fake.tep[DuongDan.daGo], "ghép lại xong thì bỏ dấu da-go")
   }
 
+  func testKhongGhepKhiTrinhGoConChay() async throws {
+    let (b, _, thu) = try dungBoMay(daGhep: false, banMoi: nil)
+    defer { try? FileManager.default.removeItem(atPath: thu) }
+    fake.tep[DuongDan.daGo] = Data("x".utf8)
+    fake.uidTheoTen["be"] = 501
+    fake.goDangChay = true
+    HttpMock.dat { _, _ in nil }
+    let r = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case let .loi(ma, _) = r else { return XCTFail("\(r)") }
+    XCTAssertEqual(ma, "dang_go")
+    XCTAssertNotNil(fake.tep[DuongDan.daGo], "go-cai.sh còn chạy ⇒ giữ dấu da-go cho postinstall")
+  }
+
+  func testLoiMangBaoChuDeHieu() async {
+    HttpMock.dat { _, _ in nil }
+    let k = await chay(boCapNhat())
+    guard case let .loi(chu) = k else { return XCTFail("\(k)") }
+    XCTAssertTrue(chu.hasPrefix("Không kiểm tra được bản mới (mất mạng"), chu)      // không lộ mô tả lỗi Swift thô
+  }
+
   func testManifestDoiShaThiCaiTiep() async {
     datMayChu()
     _ = await chay(boCapNhat())
     XCTAssertEqual(fake.daCaiGoi.count, 1)
     let moi = Data("goi khac".utf8)
     HttpMock.dat { path, _ in
-      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.3", "url": "\(self.may)/tai/AiiGrow-0.1.3.pkg", "sha256": LuatCapNhat.sha256Hex(moi)]) }
+      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.3", "url": "\(self.may)/tai/AiiGrow-0.1.3.pkg", "sha256": sha256Hex(moi)]) }
       return .init(ma: 200, than: moi)
     }
     _ = await chay(boCapNhat())
@@ -526,7 +554,7 @@ final class CapNhatTests: XCTestCase {
     defer { try? FileManager.default.removeItem(atPath: p) }
     var lon = Data(); for i in 0..<(3 * (1 << 20) + 17) { lon.append(UInt8(i % 251)) }       // > 3 khúc 1 MiB
     try lon.write(to: URL(fileURLWithPath: p))
-    XCTAssertEqual(LuatCapNhat.sha256Tep(p), LuatCapNhat.sha256Hex(lon))
+    XCTAssertEqual(LuatCapNhat.sha256Tep(p), sha256Hex(lon))
     XCTAssertNil(LuatCapNhat.sha256Tep(p + "-khong-co"))
   }
 
@@ -597,3 +625,5 @@ final class CapNhatTests: XCTestCase {
     XCTAssertTrue(d.bootstrapDaemon)
   }
 }
+
+private func sha256Hex(_ d: Data) -> String { SHA256.hash(data: d).map { String(format: "%02x", $0) }.joined() }

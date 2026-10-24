@@ -31,6 +31,8 @@ public protocol HeThong: AnyObject {
   func xoaBoNhoDNS()
   /// Chạy trình gỡ (go-cai.sh) như một job launchd riêng, để nó sống sau khi gỡ chính daemon.
   func chayTrinhGo()
+  /// go-cai.sh (job launchctl `vn.aiilab.aiigrow.go`) còn đang chạy.
+  func trinhGoDangChay() -> Bool
   /// Tạo thư mục (cả cha) với quyền `quyen`, chủ root.
   func taoThuMuc(_ duongDan: String, quyen: Int) throws
   /// `pkgutil --check-signature <gói>` ⇒ (mã thoát, đầu ra).
@@ -75,6 +77,7 @@ public final class HeThongThu: HeThong {
   public func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { se("ghi \(duongDan) (\(d.count) byte, quyền \(String(quyen, radix: 8)))") }
   public func xoaTep(_ duongDan: String) { se("xoá \(duongDan)") }
   public func chayTrinhGo() { se("chạy trình gỡ go-cai.sh (launchctl submit)") }
+  public func trinhGoDangChay() -> Bool { false }
   public func taoThuMuc(_ duongDan: String, quyen: Int) throws { se("tạo thư mục \(duongDan) (quyền \(String(quyen, radix: 8)))") }
   public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { se("kiểm chữ ký \(duongDan) (pkgutil)"); return (1, "[thử]") }
   public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { se("kiểm spctl \(duongDan)"); return (1, "[thử]") }

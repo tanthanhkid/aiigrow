@@ -43,9 +43,8 @@ public enum LuatCapNhat {
   public static func tachBan(_ s: String) -> [Int]? {
     let p = s.trimmingCharacters(in: .whitespaces).split(separator: ".", omittingEmptySubsequences: false)
     guard p.count == 3 else { return nil }
-    let so = p.compactMap { Int($0) }
-    guard so.count == 3, so.allSatisfy({ $0 >= 0 }), p.allSatisfy({ $0.allSatisfy(\.isNumber) }) else { return nil }
-    return so
+    guard p.allSatisfy({ !$0.isEmpty && $0.allSatisfy { $0.isASCII && $0.isNumber } }) else { return nil }
+    return p.compactMap { Int($0) }
   }
 
   /// `moi` > `hienTai` theo số; sai dạng ở bất kỳ bên nào ⇒ false (không cập nhật).
@@ -68,8 +67,6 @@ public enum LuatCapNhat {
     return h == "github.com" || h.hasSuffix(".githubusercontent.com")
   }
 
-  public static func sha256Hex(_ d: Data) -> String { SHA256.hash(data: d).map { String(format: "%02x", $0) }.joined() }
-
   /// Băm sha256 theo luồng (khúc 1 MiB) — không đọc cả gói vào bộ nhớ. nil = không mở được tệp.
   public static func sha256Tep(_ duongDan: String) -> String? {
     guard let f = FileHandle(forReadingAtPath: duongDan) else { return nil }
@@ -86,9 +83,11 @@ public enum LuatCapNhat {
 
   /// Sau khi cài mà vẫn chạy bản cũ: cùng gói (sha256) chỉ cho thử lại bằng nút Ba Mẹ và sau ít nhất ngần này giây.
   public static let giayChoThuLai: Double = 3600
-  /// Vòng định kỳ: cùng sha256 thử lại tối đa `toiDaLanThu` lần, mỗi lần cách nhau ≥ `giayGiuaCacLan`; quá thì dừng tới khi sha đổi (nút Ba Mẹ vẫn thử được sau 1 giờ).
+  /// Vòng định kỳ: cùng sha256 thử lại tối đa `toiDaLanThu` lần, mỗi lần cách nhau ≥ `giayGiuaCacLan`; quá thì mỗi `giayNghiSauHetLuot` mới thử một lần
+  /// (lỗi tạm — proxy trả trang lạ, spctl không tới được Apple — không khoá máy ở bản cũ mãi). Nút Ba Mẹ vẫn thử được sau 1 giờ.
   public static let toiDaLanThu = 3
   public static let giayGiuaCacLan: Double = 6 * 3600
+  public static let giayNghiSauHetLuot: Double = 86_400
 
   /// Đầu ra `pkgutil --check-signature`: trạng thái ký bởi chứng chỉ nhà phát triển do Apple cấp + chứng chỉ ĐẦU chuỗi đúng `nguoiKy`.
   public static func chuKyDung(_ ra: String) -> Bool {
@@ -219,9 +218,14 @@ public actor BoCapNhat {
     self.api = api; self.heThong = heThong; self.mayChu = mayChu; self.thuMuc = thuMuc; self.tepDaThu = tepDaThu
     self.banHienTai = banHienTai; self.dongHo = dongHo; self.so = so
     // Lượt cài trước giao installer mà máy vẫn chạy bản cũ (installer lỗi rồi daemon cũ được nạp lại): báo cho Ba Mẹ thấy ngay khi khởi động.
-    if let d = heThong.docTep(tepDaThu).flatMap({ try? JSONDecoder().decode(DauDaThu.self, from: $0) }), LuatCapNhat.laBanMoiHon(d.version, banHienTai),
+    // Cài xong (đang chạy đúng bản trong dấu): báo «đã cập nhật» — daemon mới khởi động với trạng thái trống.
+    if let d = heThong.docTep(tepDaThu).flatMap({ try? JSONDecoder().decode(DauDaThu.self, from: $0) }),
        dongHo().timeIntervalSince1970 - d.luc < 86_400 {
-      so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; sẽ thử lại.", luc: dongHo())
+      if LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
+        so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; sẽ thử lại.", luc: dongHo())
+      } else if d.version == banHienTai {
+        so.dat("Đã cập nhật lên bản \(banHienTai).", luc: dongHo())
+      }
     }
     if let session { self.session = session } else {
       let c = URLSessionConfiguration.ephemeral
@@ -257,7 +261,7 @@ public actor BoCapNhat {
     let ban: BanMoi?
     do { ban = try await api.banMoi() } catch {
       heThong.ghiLog("Cập nhật: không hỏi được bản mới (\(error)).")
-      return ketThuc(.loi("Không kiểm tra được bản mới: \(error)"))
+      return ketThuc(.loi("Không kiểm tra được bản mới (mất mạng hoặc máy chủ chưa trả lời); sẽ thử lại sau."))
     }
     if let m = ban, LuatCapNhat.tachBan(m.version) == nil {
       heThong.ghiLog("Cập nhật: TỪ CHỐI — bản «\(m.version)» trong manifest không đúng dạng x.y.z.")
@@ -284,11 +288,12 @@ public actor BoCapNhat {
       let troi = dongHo().timeIntervalSince1970 - d.luc
       // troi < 0: đồng hồ bị lùi sau khi ghi dấu ⇒ không chờ tới «tương lai» đó (vẫn giữ trần 3 lần cho lượt định kỳ)
       let choLai = thuCong ? (troi < 0 || troi > LuatCapNhat.giayChoThuLai)
-                           : (d.lan < LuatCapNhat.toiDaLanThu && (troi < 0 || troi >= LuatCapNhat.giayGiuaCacLan))
+                           : (troi < 0 || troi >= LuatCapNhat.giayNghiSauHetLuot
+                              || (d.lan < LuatCapNhat.toiDaLanThu && troi >= LuatCapNhat.giayGiuaCacLan))
       if !choLai {
         if d.lan >= LuatCapNhat.toiDaLanThu && LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
-          heThong.ghiLog("Cập nhật: gói hỏng hoặc cài xong mà bản không đổi — đã thử gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Dừng tới khi manifest đổi sha256.")
-          return ketThuc(.loi("Đã thử gói \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); chờ bản phát hành mới."))
+          heThong.ghiLog("Cập nhật: gói hỏng hoặc cài xong mà bản không đổi — đã thử gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Thử lại sau 24 giờ hoặc khi manifest đổi sha256.")
+          return ketThuc(.loi("Đã thử gói \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); sẽ thử lại sau 24 giờ."))
         }
         heThong.ghiLog("Cập nhật: gói \(m.version) (sha256 \(sha.prefix(12))…) đã thử \(d.lan) lần — chưa tới lượt thử lại.")
         return ketThuc(.loi("Gói \(m.version) đã thử cài rồi; sẽ thử lại sau."))

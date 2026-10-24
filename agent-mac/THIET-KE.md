@@ -30,7 +30,7 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
 - Khoá: tray hiện màn khoá toàn màn hình + đếm ngược, hết đếm ngược daemon khoá/đăng xuất phiên Con.
 - Mất mạng: chạy theo Policy nhớ, giờ còn lại tự trừ.
 
-## 7. Tự cập nhật (từ bản 0.1.1)
+## 6. Tự cập nhật (từ bản 0.1.1)
 `CapNhat.swift` (`BoCapNhat`, `LuatCapNhat`), gọi từ `BoMay.kiemCapNhatDinhKy` (Task riêng trong `main.swift`: +90 giây, rồi mỗi 6 giờ) và `BoMay.capNhatNgay` (IPC `capNhat`).
 - **Quyết định**: manifest công khai, nhưng chỉ máy ĐÃ ghép mới tự cập nhật (chưa ghép thì nút «Kiểm tra cập nhật» ẩn); chỉ khi `version` > `PhienBan.hienTai` theo số x.y.z; cờ chống chạy chồng; đang `dangGo` thì bỏ (hỏi lại ngay trước khi cài).
 - **An toàn**: URL gói https + host = host máy chủ đang dùng; chuyển hướng chỉ tới https `github.com` / `*.githubusercontent.com` / host máy chủ (tối đa 5 lần, chặn bằng URLSessionTaskDelegate);
@@ -48,6 +48,6 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
 - Gói tải về băm sha256 theo luồng (khúc 1 MiB) rồi mới chuyển vào thư mục 0700 — không đọc cả gói vào bộ nhớ.
 - Phát hành bản mới: `BAN=… KY_APP=… KY_PKG=… NOTARY=1 build-pkg.sh` (không ký thì script từ chối, trừ `THU=1`) → release `mac-<bản>` → điền `BAN_AGENT_MAC` (server/lib/ban-agent.ts) gồm sha256 của đúng tệp. Bản 0.1.0 không tự cập nhật, cài tay một lần.
 
-## 6. Luật khi phát triển trên máy Thanh
+## 7. Luật khi phát triển trên máy Thanh
 KHÔNG sudo, KHÔNG nạp daemon/LaunchAgent, KHÔNG kill tiến trình thật, KHÔNG sửa `/etc/hosts` hay Managed Preferences. Mọi tác động hệ thống
 đi qua protocol để test bằng bản giả; daemon có cờ `--thu` (chỉ in việc sẽ làm). Build riêng: `swift build --scratch-path .build-<tên> -j 2`.

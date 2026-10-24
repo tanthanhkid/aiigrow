@@ -77,6 +77,8 @@ public actor BoMay {
     guard !dangGhep else { throw LoiApi(ma: "dang_ghep", chu: "Đang ghép máy, vui lòng chờ.") }
     dangGhep = true                                   // đặt TRƯỚC await đầu tiên: actor reentrancy không cho gọi server hai lần
     defer { dangGhep = false }
+    // go-cai.sh còn chạy (đang chờ job cập nhật, tới 5 phút): ghép lúc này sẽ xoá dấu da-go mà postinstall dựa vào, rồi go-cai vẫn gỡ app.
+    guard !heThong.trinhGoDangChay() else { throw LoiApi(ma: "dang_go", chu: "Máy đang được gỡ AiiGrow; chờ gỡ xong rồi cài lại và ghép.") }
     let tk = taiKhoanCon.trimmingCharacters(in: .whitespaces)
     guard let uidCon = heThong.uid(cuaTaiKhoan: tk) else { throw LoiApi(ma: "khong_thay_con", chu: "Không thấy tài khoản «\(tk)» trên máy.") }
     // Kiểm cục bộ TRƯỚC khi gọi máy chủ (lỗi cục bộ không để lại máy «ma» + mất mã ghép). Phải còn một admin KHÁC (không tự khoá Ba Mẹ ra ngoài).
@@ -355,7 +357,7 @@ public actor BoMay {
 
   /// Xử lý một yêu cầu tray — gọi từ socket sau khi đã lấy uid người gọi bằng getpeereid.
   public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32) async -> TraLoi {
-    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: heThong.laAdmin)
+    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: { self.laAdminDem($0) })
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:

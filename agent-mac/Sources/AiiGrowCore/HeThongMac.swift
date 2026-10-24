@@ -140,16 +140,13 @@ public final class HeThongMac: HeThong {
     // `launchctl submit` là cách DUY NHẤT sống sót sau khi go-cai.sh `bootout` chính daemon (launchd giết cả nhóm tiến trình của daemon, nohup/setsid không thoát được).
     // Việc submit là một lần: go-cai.sh tự `launchctl remove` ở cuối; ở đây còn gỡ nhãn sót từ lần trước để submit không bị trùng nhãn.
     _ = HeThongMac.chay("/bin/launchctl", ["remove", HeThongMac.nhanTrinhGo], timeout: 10)
-    // Chạy BẢN SAO (root-only): go-cai.sh có thể chờ tới 5 phút trong khi bộ tự cập nhật ghi đè tệp gốc trong app — bash đọc tệp theo vị trí byte,
-    // tệp bị thay giữa chừng là chạy lệnh rác. Bản sao nằm trong thư mục cấu hình nên go-cai.sh tự xoá cùng lúc dọn.
-    let banSao = DuongDan.thuMuc + "/go-cai-dang-chay.sh"
-    try? FileManager.default.removeItem(atPath: banSao)
-    do { try FileManager.default.copyItem(atPath: script, toPath: banSao); chmod(banSao, 0o700) }
-    catch { ghiLog("Không chép được trình gỡ (\(error)) — chạy thẳng bản trong app."); }
-    let chayTep = FileManager.default.fileExists(atPath: banSao) ? banSao : script
-    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", HeThongMac.nhanTrinhGo, "--", "/bin/bash", chayTep], timeout: 10)
+    // go-cai.sh tự chép mình ra /var/tmp rồi chạy bản sao (installer có thể ghi đè tệp gốc trong lúc nó chờ).
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", HeThongMac.nhanTrinhGo, "--", "/bin/bash", script], timeout: 10)
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
   }
+
+  /// Job submit sống tới khi go-cai.sh tự `launchctl remove` ở cuối ⇒ còn trong `launchctl list` là còn chạy.
+  public func trinhGoDangChay() -> Bool { HeThongMac.chay("/bin/launchctl", ["list", HeThongMac.nhanTrinhGo], timeout: 10).0 == 0 }
 
   public func taoThuMuc(_ duongDan: String, quyen: Int) throws {
     try FileManager.default.createDirectory(atPath: duongDan, withIntermediateDirectories: true, attributes: [.posixPermissions: quyen])

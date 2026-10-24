@@ -33,6 +33,8 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   var soLanChayTrinhGo = 0
   var loiHaQuyen: Error?
   func chayTrinhGo() { soLanChayTrinhGo += 1 }
+  var goDangChay = false
+  func trinhGoDangChay() -> Bool { goDangChay }
   func lietKeThuMuc(_ duongDan: String) -> [String] {
     let tien = duongDan.hasSuffix("/") ? duongDan : duongDan + "/"
     return Set(tep.keys.filter { $0.hasPrefix(tien) }.compactMap { $0.dropFirst(tien.count).split(separator: "/").first.map(String.init) }).sorted()

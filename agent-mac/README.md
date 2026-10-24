@@ -29,7 +29,7 @@ Daemon hỏi `GET /api/agent/ban-moi?platform=mac` lúc khởi động (+90 giâ
 (so theo số x.y.z) thì: tải `.pkg` vào `/Library/Application Support/AiiGrow/cap-nhat` (root 0700), kiểm sha256 theo manifest, `pkgutil --check-signature`
 (phải là «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)») + `spctl -a -t install`, rồi cài đè bằng `installer` chạy như job launchd `vn.aiilab.aiigrow.capnhat`
 (log `/Library/Logs/AiiGrow/capnhat.log`). Sai bước nào là xoá gói, ghi log, không cài. Không cài khi đang gỡ từ xa. Ghép máy được giữ (`config.json` không đụng).
-Nút: menu tray của phiên Ba Mẹ có «Kiểm tra cập nhật» (Con không thấy, daemon cũng từ chối uid Con). Chi tiết: `THIET-KE.md` mục 7.
+Nút: menu tray của phiên Ba Mẹ có «Kiểm tra cập nhật» (Con không thấy, daemon cũng từ chối uid Con). Chi tiết: `THIET-KE.md` mục 6.
 
 ## Ký và notarize (bắt buộc khi phát hành, từ 0.1.0)
 
@@ -44,4 +44,4 @@ BAN=<bản> KY_APP="Developer ID Application: TAN THANH TRAN (ADUL7HT969)" \
 Máy 0.1.1 trở lên chỉ tự cập nhật bằng gói ký đúng «Developer ID Installer» trên — gói không ký sẽ bị mọi máy tải về rồi từ chối,
 nên `build-pkg.sh` từ chối build thiếu `NOTARY=1` (ký + notarize) trừ khi đặt `THU=1` (chỉ để thử trên máy dev).
 
-Không cài thử trên máy phát triển (luật `THIET-KE.md` mục 6): chỉ kiểm cú pháp (`bash -n`) và build gói.
+Không cài thử trên máy phát triển (luật `THIET-KE.md` mục 7): chỉ kiểm cú pháp (`bash -n`) và build gói.
