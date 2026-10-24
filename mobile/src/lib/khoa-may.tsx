@@ -6,15 +6,8 @@ import { bm } from "@/lib/api";
 import { BangTruot, BaoLoi, BieuTron, Chu, M, Nut, OChon, gioPhut, useLam } from "@/lib/ui";
 
 type Han = "15" | "60" | "sang" | "mo";
-/** 7:00 sáng hôm sau theo giờ máy Ba Mẹ (đã qua nửa đêm mà chưa tới 7:00 thì là 7:00 hôm nay). */
-function sangMai(now = new Date()) {
-  const t = new Date(now);
-  t.setHours(7, 0, 0, 0);
-  if (t.getTime() <= now.getTime()) t.setDate(t.getDate() + 1);
-  return t;
-}
 export function denCua(han: Han, now = new Date()): Date | null {
-  return han === "15" ? new Date(now.getTime() + 15 * 60_000) : han === "60" ? new Date(now.getTime() + 3600_000) : han === "sang" ? sangMai(now) : null;
+  return han === "15" ? new Date(now.getTime() + 15 * 60_000) : han === "60" ? new Date(now.getTime() + 3600_000) : null;   // «sang» do máy chủ tính theo múi giờ gia đình
 }
 /** «Khoá tới 10:41» / «Khoá tới khi Ba Mẹ mở». */
 export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới ${gioPhut(den)}` : "Khoá tới khi Ba Mẹ mở");
@@ -22,9 +15,9 @@ export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới $
 /** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
 export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();
 
-/** Gọi API khoá (có hạn hoặc không) / mở lại. */
-export async function datKhoa(con: string, khoa: boolean, den: Date | null) {
-  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den.toISOString() } : {}) });
+/** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con). */
+export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null) {
+  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}) });
 }
 
 export function BangKhoa({ mo, dong, con, ten, xong }: {
@@ -51,10 +44,10 @@ export function BangKhoa({ mo, dong, con, ten, xong }: {
       </View>
       <BaoLoi loi={loi} />
       <Nut chu="Khoá ngay" ic="khoa" loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
-        const den = denCua(han);
+        const den = han === "sang" ? "sang" : denCua(han);
         await datKhoa(con, true, den);
         dong();
-        xong(`Đã khoá máy của ${ten}${den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
+        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 7:00 sáng mai" : den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
       })} />
     </BangTruot>
   );

@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { bm, type ConChiTiet, type Khung } from "@/lib/api";
 import { SuaKhung } from "@/lib/sua-gio";
 import { BangKhoa, cauKhoa, conHan, datKhoa } from "@/lib/khoa-may";
-import { BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, HaiNut, Man, Nhom, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, gioPhut, HaiNut, Man, Nhom, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 type Sua = "ngayThuong" | "cuoiTuan" | "ngu";
 
@@ -31,13 +31,14 @@ export default function GioChoi() {
     bao(`Đã mở lại máy của ${d.ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null).then(tai, tai); });
     await tai();
   }, { hangDoi: true });
+  const dangKhoa = d.khoaNgay && conHan(d.khoaDen);
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu="Giờ dùng máy" noi={noi}>
-      <Canh lv={d.khoaNgay ? "nghi" : "cho"} thap tieu={d.khoaNgay ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
-        loi={d.khoaNgay ? "Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) tới khi Ba Mẹ mở lại." : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
+      <Canh lv={dangKhoa ? "nghi" : "cho"} thap tieu={dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
+        loi={dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
       <BaoLoi loi={loiLam} />
       <HaiNut>
-        {d.khoaNgay ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={moLai} />
+        {dangKhoa ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={moLai} />
           : <Nut chu="Khoá máy ngay" ic="khoa" loai="huy" bam={() => setMoKhoa(true)} />}
       </HaiNut>
       <Nhom>

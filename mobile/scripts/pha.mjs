@@ -69,7 +69,7 @@ const coBan = {
     theoNgay: ["2026-10-17", "2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"].map((ngay, i) => ({ ngay, giay: [3600, 5400, 2400, 6000, 4200, 6700, 2700][i], soLan: 10, soTrang: 5 })),
     top: [{ tenMien: "facebook.com", giay: 7800, soLan: 34, lanCuoi: luc(40), trangThai: "giai_tri", nguon: "" }, { tenMien: "khanacademy.org", giay: 3900, soLan: 12, lanCuoi: luc(200), trangThai: "cho_phep", nguon: "gia_dinh" },
       { tenMien: "youtube.com", giay: 3000, soLan: 20, lanCuoi: luc(90), trangThai: "chan", nguon: "con" }, { tenMien: "gamevui.vn", giay: 1200, soLan: 5, lanCuoi: luc(600), trangThai: "chua_xep", nguon: "" }],
-    luat: [{ tenMien: "youtube.com", trangThai: "chan", nguon: "con" }, { tenMien: "tiktok.com", trangThai: "chan", nguon: "gia_dinh" }, { tenMien: "khanacademy.org", trangThai: "cho_phep", nguon: "gia_dinh" }],
+    luat: [{ tenMien: "youtube.com", trangThai: "chan", nguon: "con" }, { tenMien: "youtube.com", trangThai: "chan", nguon: "gia_dinh" }, { tenMien: "tiktok.com", trangThai: "chan", nguon: "gia_dinh" }, { tenMien: "khanacademy.org", trangThai: "cho_phep", nguon: "gia_dinh" }],
     mayLoc: [{ id: "m1", ten: "Laptop của Bảo Anh", cheDo: "chan", lanCuoi: luc(1) }] },
   "POST con/c1/web/trang": { ok: true }, "POST con/c1/web/trang/x": { ok: true },
   "GET tuan-thu": { ds: [
@@ -261,7 +261,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
     M("bm-trang (bảng khoá máy)", "/hom-nay", "Cho tới khi tôi mở", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy ngay"); await bam("Khoá máy ngay"); } }),
     M("bm-trang (đang khoá)", "/hom-nay", "Mở lại máy", { kb: { "GET con/c1": { ...conCt("c1", KEN), khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
-    M("bm-web", "/web/c1", "ĐANG CHẶN · 2"),
+    M("bm-web", "/web/c1", "ĐANG CHẶN · 3"),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-cho-duyet", "/cho-duyet", "4 việc đang chờ"),
     M("bm-cho-duyet (trống)", "/cho-duyet", "Không có việc nào chờ", { kb: { "GET cho-duyet": { nhiemVu: [], yeuCau: [] } } }),
@@ -462,9 +462,9 @@ await kichBan("Giữ chuỗi ngày: một chạm từ ví ⇒ xác nhận ⇒ g�
 
 await kichBan("Trang chủ ⇒ ô Trang web ⇒ chặn một chạm ⇒ Hoàn tác đưa về mặc định", async () => {
   await di("/hom-nay");
-  xet(await doi("Đang chặn 2 trang"), "ô Trang web ghi số trang đang chặn");
+  xet(await doi("Đang chặn 3 trang"), "ô Trang web ghi số trang đang chặn");
   await bam("Trang web");
-  xet(await doi("ĐANG CHẶN · 2"), "vào màn Trang web");
+  xet(await doi("ĐANG CHẶN · 3"), "vào màn Trang web");
   await bam("Facebook");
   await sleep(500);
   xet(nhatKy.some((x) => x.d === "con/c1/web/trang" && x.body?.muc === "facebook.com" && x.body?.trangThai === "chan" && x.body?.caNha === false), "gửi chặn facebook.com cho Con");
@@ -474,6 +474,21 @@ await kichBan("Trang chủ ⇒ ô Trang web ⇒ chặn một chạm ⇒ Hoàn t�
   xet(nhatKy.some((x) => x.d === "con/c1/web/trang" && x.body?.muc === "facebook.com" && x.body?.trangThai === "mac_dinh"), "Hoàn tác ⇒ bỏ luật vừa đặt");
   await bam("tiktok.com");
   xet(await doi("Áp cho cả gia đình"), "chạm dòng ⇒ bảng đủ lựa chọn");
+});
+
+await kichBan("Trang web ⇒ «Bỏ chặn» YouTube gỡ cả luật của Con lẫn cả nhà, Hoàn tác đặt lại cả hai", async () => {
+  await di("/web/c1");
+  await doi("ĐANG CHẶN · 3");
+  nhatKy.length = 0;
+  await bam("YouTube");
+  await sleep(700);
+  const mac = nhatKy.filter((x) => x.d === "con/c1/web/trang" && x.body?.muc === "youtube.com" && x.body?.trangThai === "mac_dinh");
+  xet(mac.some((x) => x.body.caNha === false) && mac.some((x) => x.body.caNha === true), "gỡ cả luật của Con lẫn cả nhà");
+  xet(await doi("Đã bỏ chặn youtube.com"), "một thông báo");
+  await bam("Hoàn tác");
+  await sleep(700);
+  const chan = nhatKy.filter((x) => x.d === "con/c1/web/trang" && x.body?.muc === "youtube.com" && x.body?.trangThai === "chan");
+  xet(chan.some((x) => x.body.caNha === false) && chan.some((x) => x.body.caNha === true), "Hoàn tác đặt lại cả hai luật");
 });
 
 await kichBan("Trang chủ ⇒ Khoá máy ngay 15 phút ⇒ gửi hạn giờ", async () => {

@@ -2,18 +2,17 @@
 // tuân thủ (điểm, vấn đề, khoá giải trí, mở khẩn cấp), ghép thêm máy. Bấm một máy → chi tiết: đổi chế độ, mở khẩn cấp, mã mất mạng, gỡ an toàn.
 // Gọi GET /api/m/tuan-thu (docs/API.md).
 import { router, useLocalSearchParams } from "expo-router";
-import { bm, TT_TRANG, type ConChiTiet, type TuanThuMay } from "@/lib/api";
+import { bm, TEN_CHE_DO, TT_TRANG, type ConChiTiet, type TuanThuMay } from "@/lib/api";
 import { datTl } from "@/lib/thiet-lap";
 import { BieuTron, Canh, ChoTai, Chu, Dong, M, Man, Nhan, Nhom, Nut, truoc, useTai } from "@/lib/ui";
 
 const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" } as const;
-const TEN_CHE_DO = { "giam-sat": "Giám sát", chan: "Chặn thật" } as const;
 
 export default function MayTinhDienThoai() {
   const { con } = useLocalSearchParams<{ con?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const ds = (await bm.goi<{ ds: TuanThuMay[] }>("tuan-thu")).ds;
-    const c = con ? await bm.goi<ConChiTiet>(`con/${con}`) : null;
+    const [tt, c] = await Promise.all([bm.goi<{ ds: TuanThuMay[] }>("tuan-thu"), con ? bm.goi<ConChiTiet>(`con/${con}`) : Promise.resolve(null)]);
+    const ds = tt.ds;
     return { ds: c ? ds.filter((m) => m.con === c.id || m.dungChung) : ds, c };
   });
   const tieu = d?.c ? `Máy của ${d.c.ten}` : "Máy tính & điện thoại";

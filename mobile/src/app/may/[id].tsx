@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, GOC, LoiApi, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
+import { bm, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Canh, cauLoi, Chips, ChoTai, ChonMot, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -21,7 +21,6 @@ const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
   chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web áp cho mọi tài khoản Windows trên máy — Ba Mẹ dùng máy này thì chọn Giám sát trước. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
-const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
 const GIO_MO_COI = 6;

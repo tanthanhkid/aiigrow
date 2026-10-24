@@ -104,11 +104,14 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       }
       await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
-      // Ba Mẹ đã cho thêm giờ thì «Khoá ngay» cũ không được nuốt mất phần giờ đó (Khang 24/10: «xin thêm thời gian aiigrow không bật lại» —
-      // Con còn cờ khoa_ngay từ trước nên cửa sổ mở bị khoá đè). Duyệt = mở lại luôn, ghi sự kiện như bấm «Mở lại».
+      // Ba Mẹ cho thêm giờ lúc Con đang «Khoá ngay» ⇒ mở TẠM đúng phần giờ đó rồi khoá lại (Khang 24/10: «xin thêm thời gian aiigrow không
+      // bật lại» — cờ khoa_ngay cũ đè cửa sổ mở). Chỉ Ba Mẹ duyệt tay mới mở được; quy tắc tự động không vượt khoá (apQuyTacTuDong).
       const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
-      if (cfg && "khoa_ngay" in cfg) await t(`update children set cau_hinh = cau_hinh - 'khoa_ngay' - 'khoa_den' where id = $1`, [r.child_id]);
-      if (dangKhoa(cfg, now)) await ghiSuKien(fam, "mo_lai", { vi: "duyet_them_gio", yeu_cau: r.id }, { con: r.child_id, nguoi }, t);
+      if (nguoi && dangKhoa(cfg, now)) {
+        const moDen = (cuaSoDen ?? new Date(now.getTime() + phut * 60000)).toISOString();
+        await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('khoa_mo_tam_den', $2::text) where id = $1`, [r.child_id, moDen]);
+        await ghiSuKien(fam, "mo_tam", { vi: "duyet_them_gio", yeu_cau: r.id, den: moDen }, { con: r.child_id, nguoi }, t);
+      }
       if (ngoaiLe) await ghiNgoaiLe(fam, r.child_id, nguoi, r.loai === "ngoai_gio" ? "ngoai_gio" : "them_gio_khong_tru", r.id, t, now);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
       const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";
@@ -145,6 +148,7 @@ export async function apQuyTacTuDong(fam: string, id: string, now = new Date()) 
   const r = await one<Yc & { cau_hinh: Record<string, unknown>; tz: string }>(
     `select r.*, c.cau_hinh, f.tz from requests r join children c on c.id = r.child_id join families f on f.id = c.family_id where r.id = $1 and c.family_id = $2`, [id, fam]);
   if (!r || r.trang_thai !== "cho" || r.loai !== "them_gio" || r.phut !== 15 || r.cau_hinh?.tu_dong_15 !== true) return false;
+  if (dangKhoa(r.cau_hinh, now)) return false;   // Ba Mẹ đang «Khoá ngay» ⇒ để Ba Mẹ tự quyết, không tự mở
   const daCo = await one(`select 1 from requests where child_id = $1 and tu_dong and created_at >= $2 and id <> $3`,
     [r.child_id, dauNgayUtc(gioDiaPhuong(now, r.tz).ngay, r.tz), r.id]);
   if (daCo) return false;

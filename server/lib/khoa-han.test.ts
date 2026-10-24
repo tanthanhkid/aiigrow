@@ -36,3 +36,15 @@ test("khoaNgay: đặt hạn, khoá lại không hạn thì xoá hạn cũ, mở
   assert.deepEqual([(await cfg()).khoa_ngay, (await cfg()).khoa_den], [undefined, undefined]);
   await assert.rejects(mc.khoaNgay(fam, con, true, bm, new Date(Date.now() - 1000)), /sau bây giờ/);
 });
+
+test("«Tới sáng mai» = 7:00 kế tiếp theo múi giờ gia đình; hạn sai định dạng bị từ chối", async () => {
+  assert.equal(mc.sangMaiCua("Asia/Ho_Chi_Minh", new Date("2026-10-24T14:00:00Z")).toISOString(), "2026-10-25T00:00:00.000Z");   // 21:00 VN ⇒ 7:00 hôm sau
+  assert.equal(mc.sangMaiCua("Asia/Ho_Chi_Minh", new Date("2026-10-24T20:00:00Z")).toISOString(), "2026-10-25T00:00:00.000Z");   // 3:00 VN ⇒ 7:00 cùng ngày
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Ken" });
+  await mc.khoaNgay(fam, con, true, bm, "sang");
+  const cfg = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
+  assert.ok(Date.parse(String(cfg.khoa_den)) > Date.now());
+  await assert.rejects(mc.khoaNgay(fam, con, true, bm, new Date("abc")), /không hợp lệ/);
+  await mc.khoaNgay(fam, con, false, bm, new Date("abc"));   // mở lại bỏ qua hạn, không lỗi
+});

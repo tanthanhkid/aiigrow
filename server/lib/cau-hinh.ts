@@ -102,9 +102,12 @@ export const NHOM_GIA: Record<string, TenThamSo> = {
   game: "gia_game", video_ngan: "gia_video_ngan", mxh: "gia_mxh", phim_gd: "gia_phim_gd", khac: "gia_khac",
 };
 
-/** Con đang bị Ba Mẹ khoá? «Khoá ngay» có hạn (`khoa_den`) tự hết khi qua giờ đó — không cần tiến trình nền gỡ cờ. */
+/** Con đang bị Ba Mẹ khoá? «Khoá ngay» có hạn (`khoa_den`) tự hết khi qua giờ đó — không cần tiến trình nền gỡ cờ.
+ *  Ba Mẹ duyệt thêm giờ lúc đang khoá ⇒ `khoa_mo_tam_den`: mở tạm tới hết phần giờ đã cho rồi khoá lại (yeu-cau.ts › dongY). */
 export function dangKhoa(cfg: Record<string, unknown> | null | undefined, now = new Date()): boolean {
   if (cfg?.khoa_ngay !== true) return false;
+  const moTam = typeof cfg.khoa_mo_tam_den === "string" ? Date.parse(cfg.khoa_mo_tam_den) : NaN;
+  if (moTam > now.getTime()) return false;
   const den = typeof cfg.khoa_den === "string" ? Date.parse(cfg.khoa_den) : NaN;
   return Number.isNaN(den) || den > now.getTime();
 }

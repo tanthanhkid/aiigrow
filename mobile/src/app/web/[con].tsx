@@ -68,7 +68,7 @@ export default function WebCon() {
     const m = tenMien(them);
     if (m) { setThem(""); mo(m); }
   };
-  // Một chạm: chặn / bỏ chặn ngay, có Hoàn tác đưa về đúng luật cũ của Con
+  // Một chạm: chặn / bỏ chặn ngay, có Hoàn tác đưa về đúng luật cũ
   const datNhanh = (muc: string, trangThai: Chon, caNhaLuat: boolean, hoan: { trangThai: Chon; caNha: boolean }, chu: string) => lam(async () => {
     await bm.goi(`con/${con}/web/trang`, { muc, trangThai, caNha: caNhaLuat });
     bao(chu, () => { bm.goi(`con/${con}/web/trang`, { muc, ...hoan }).then(() => tai(), () => tai()); });
@@ -82,8 +82,19 @@ export default function WebCon() {
   const chanNgay = (muc: string) => {
     datNhanh(muc, "chan", false, { trangThai: truocCua(muc), caNha: false }, `Đã chặn ${muc} — áp lên máy trong vài phút`);
   };
-  const boChan = (muc: string, nguon: string) =>
-    datNhanh(muc, "mac_dinh", nguon === "gia_dinh", { trangThai: "chan", caNha: nguon === "gia_dinh" }, `Đã bỏ chặn ${muc}${nguon === "gia_dinh" ? " cho cả nhà" : ""}`);
+  // Bỏ chặn = gỡ MỌI luật chặn của tên miền (của Con lẫn cả nhà); Hoàn tác đặt lại đúng từng luật
+  const boChan = (muc: string) => {
+    const ds = d.luat.filter((l) => l.tenMien === muc && l.trangThai === "chan");
+    if (!ds.length) return;
+    const caNhaCo = ds.some((l) => l.nguon === "gia_dinh");
+    return lam(async () => {
+      for (const l of ds) await bm.goi(`con/${con}/web/trang`, { muc, trangThai: "mac_dinh", caNha: l.nguon === "gia_dinh" });
+      bao(`Đã bỏ chặn ${muc}${caNhaCo ? " cho cả nhà" : ""}`, () => {
+        (async () => { for (const l of ds) await bm.goi(`con/${con}/web/trang`, { muc, trangThai: "chan", caNha: l.nguon === "gia_dinh" }); })().then(() => tai(), () => tai());
+      });
+      await tai();
+    });
+  };
   const dangChan = d.luat.filter((l) => l.trangThai === "chan");
   const biChan = (muc: string) => dangChan.some((l) => l.tenMien === muc);
 
@@ -125,7 +136,7 @@ export default function WebCon() {
             return (
               <Pressable key={x.muc} disabled={dangChay} accessibilityRole="button" accessibilityState={{ selected: chan }}
                 accessibilityLabel={chan ? `${x.ten} đang chặn — chạm để bỏ chặn` : `Chặn ${x.ten}`}
-                onPress={() => (chan ? boChan(x.muc, d.luat.find((l) => l.tenMien === x.muc && l.trangThai === "chan")?.nguon ?? "con") : chanNgay(x.muc))}
+                onPress={() => (chan ? boChan(x.muc) : chanNgay(x.muc))}
                 style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1,
                   borderColor: chan ? "#f3c9c4" : M.vien2, backgroundColor: chan ? M.loiSoft : "#fff" }}>
                 <Icon ten={chan ? "khoa" : "cong"} co={16} mau={chan ? M.loi : M.chu2} />
@@ -142,7 +153,7 @@ export default function WebCon() {
           <Nhom>
             {dangChan.map((l, i) => (
               <Dong key={`${l.nguon}-${l.tenMien}`} dau={i === 0} tieu={l.tenMien} phu={l.nguon === "gia_dinh" ? "Cả gia đình" : `Chỉ ${ten}`}
-                trai={<BieuTron ic="khoa" mau="do" />} phai={<NutDong chu="Bỏ chặn" loai="vien" tat={dangChay} bam={() => boChan(l.tenMien, l.nguon)} />}
+                trai={<BieuTron ic="khoa" mau="do" />} phai={<NutDong chu="Bỏ chặn" loai="vien" tat={dangChay} bam={() => boChan(l.tenMien)} />}
                 bam={() => mo(l.tenMien)} />
             ))}
           </Nhom>

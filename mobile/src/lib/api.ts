@@ -121,6 +121,7 @@ export type TuanThuMay = {
   coTheXoaHan: boolean;
 };
 export type CheDoMay = "giam-sat" | "chan";
+export const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 /** POST may/:id/go {matKhau, xoaHan?} */
 export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };

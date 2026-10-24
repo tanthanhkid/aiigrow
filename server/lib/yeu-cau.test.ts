@@ -163,23 +163,31 @@ test("Windows: «Khoá lại ngay» đóng cả cửa sổ thêm giờ đã duy�
   assert.equal(t1.khoaGiaiTri, false);
 });
 
-test("đang «Khoá ngay» mà Ba Mẹ duyệt thêm giờ ⇒ gỡ khoá (cả hạn khoá), ghi sự kiện mở lại — giờ đã cho không bị khoá đè (Khang 24/10)", async () => {
+test("đang «Khoá ngay» mà Ba Mẹ duyệt thêm giờ ⇒ mở TẠM đúng phần giờ đã cho rồi khoá lại; quy tắc tự động không vượt khoá (Khang 24/10)", async () => {
   const { khoaNgay } = await import("./may-con.ts");
   const { dangKhoa } = await import("./cau-hinh.ts");
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "LAPTOP-KAG");
   const may = (await g.mayTuToken(r.token))!;
-  await khoaNgay(fam, con, true, bm, new Date(Date.now() + 3600_000));
+  const now = new Date();
+  await khoaNgay(fam, con, true, bm, new Date(now.getTime() + 3 * 3600_000));
   const cfg = async () => (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
-  assert.equal(dangKhoa(await cfg()), true);
-  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, T);
-  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, T);
-  assert.equal(dangKhoa(await cfg()), false);
-  assert.equal((await cfg()).khoa_den, undefined);
-  assert.ok(await one(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_lai'`, [fam, con]));
-  // không khoá thì duyệt không ghi «mở lại» thừa
-  const b = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, T);
-  await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 15 }, T);
-  assert.equal((await q(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_lai'`, [fam, con])).length, 1);
+  assert.equal(dangKhoa(await cfg(), now), true);
+  // tự đồng ý 15 phút bật sẵn — Con đang bị khoá thì không được tự mở
+  await q(`update children set cau_hinh = cau_hinh || '{"tu_dong_15": true}' where id = $1`, [con]);
+  const tu = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, now);
+  assert.equal(await yc.apQuyTacTuDong(fam, tu.id, now), false);
+  assert.equal(dangKhoa(await cfg(), now), true);
+  // Ba Mẹ duyệt tay 30 phút ⇒ mở trong 30 phút, sau đó khoá lại; hạn khoá cũ còn nguyên
+  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, now);
+  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, now);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 10 * 60_000)), false);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 31 * 60_000)), true);
+  assert.ok((await cfg()).khoa_den);
+  assert.ok(await one(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_tam'`, [fam, con]));
+  // khoá lại ⇒ phần mở tạm bị xoá
+  await khoaNgay(fam, con, true, bm);
+  assert.equal((await cfg()).khoa_mo_tam_den, undefined);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 10 * 60_000)), true);
 });
