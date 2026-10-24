@@ -154,17 +154,3 @@ export async function baMeGoi(req: Request) {
 // ---- chỉ thêm: thành viên gia đình (lib/thanh-vien.ts) đăng ký bằng lời mời cần đúng bước kiểm OTP của đăng ký thường.
 /** Kiểm OTP trong giao dịch `t` (sai ⇒ false và tăng số lần sai; đúng ⇒ xoá mã). */
 export const kiemOtp = (t: Q, dinhDanh: string, ma: unknown, mucDich: "dang_ky" | "quen_mk") => dungOtp(t, dinhDanh, ma, mucDich);
-
-// ---- chỉ thêm: xác thực lại bằng mật khẩu cho việc nhạy cảm (xoá tài khoản — lib/xoa-tai-khoan.ts). Cùng bộ đếm sai/khoá như đăng nhập
-// ⇒ người cầm phiên mượn được không dò mật khẩu vô hạn qua đường này.
-export async function xacThucLai(parentId: string, mk: unknown) {
-  const p = await one<{ pass_hash: string | null; khoa_den: Date | null }>(`select pass_hash, khoa_den from parents where id = $1`, [parentId]);
-  if (p?.khoa_den && new Date(p.khoa_den) > new Date())
-    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút`, 429);
-  if (!p?.pass_hash || !(await dungMatKhau(String(mk ?? ""), p.pass_hash))) {
-    await q(`update parents set sai_lien = sai_lien + 1,
-               khoa_den = case when sai_lien + 1 >= $2 then now() + make_interval(mins => $3) else null end where id = $1`, [parentId, SAI_KHOA, KHOA_PHUT]);
-    throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);
-  }
-  await q(`update parents set sai_lien = 0, khoa_den = null where id = $1`, [parentId]);
-}

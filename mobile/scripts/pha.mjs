@@ -295,8 +295,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
-    M("bm-cai-dat (xoá tài khoản)", "/cai-dat", "Xoá vĩnh viễn", { kb: { "GET thanh-vien": TV_MOT_MINH },
-      truoc: async () => { kb = { ...coBan, "GET thanh-vien": TV_MOT_MINH }; await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
+    M("bm-cai-dat (xoá tài khoản)", "/cai-dat", "Xoá vĩnh viễn", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } },
+      truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
+    M("bm-cai-dat (xoá: còn máy)", "/cai-dat", "Xem các máy", { kb: { "GET thanh-vien": TV_MOT_MINH },
+      truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
     M("bm-cai-dat (xoá: còn thành viên)", "/cai-dat", "Mở Thành viên", { truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
     M("bm-vi (giữ chuỗi)", "/vi/c1", "Mỗi tuần giữ được một lần", { truoc: async () => { await di("/vi/c1"); await doi("Giữ chuỗi ngày"); await bam("Giữ chuỗi ngày"); } }),
@@ -399,7 +401,7 @@ await kichBan("Hết phiên (401) ⇒ về màn Chào", async () => {
   xet(await doi("Bắt đầu bằng số điện thoại"), "về màn Chào");
 });
 
-await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên thì chặn; chủ cuối ⇒ nói rõ hậu quả + mật khẩu ⇒ xoá ⇒ về màn Chào", async () => {
+await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên / còn máy thì chặn; chủ cuối ⇒ nói rõ hậu quả + mật khẩu ⇒ xoá ⇒ về màn Chào", async () => {
   await di("/cai-dat");
   xet(await doi("Chat với AiiLab"), "mở màn Gia đình");
   xet(await doi("Mời các thành viên khác ra trước"), "dòng Xoá tài khoản nói trước điều kiện khi còn thành viên");
@@ -412,9 +414,17 @@ await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên thì ch
   await di("/cai-dat");
   await doi("Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình");
   await bam("Xoá tài khoản");
+  xet(await doi("Gia đình còn 3 máy đã ghép"), "chủ cuối còn máy ⇒ bảo gỡ máy trước, nêu số máy");
+  xet(await doi("Xem các máy"), "có nút sang danh sách máy");
+  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan"), "không gọi xoá khi còn máy");
+
+  kb["GET tuan-thu"] = { ds: [] };
+  await di("/cai-dat");
+  await doi("Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình");
+  await bam("Xoá tài khoản");
   xet(await doi("Xoá tài khoản và cả gia đình?"), "bảng xác nhận cho chủ là người cuối");
   xet(await doi("không khôi phục được"), "nói rõ không khôi phục được");
-  xet(await doi("Máy đã ghép rời gia đình"), "nói rõ hậu quả với máy của Con");
+  xet(await doi("ảnh bằng chứng, điểm, quà và luật"), "nói rõ dữ liệu bị xoá");
   kb["POST xoa-tai-khoan"] = { status: 401, body: { error: "sai_mat_khau", message: "Mật khẩu chưa đúng" } };
   await go("Nhập lại mật khẩu để xác nhận", "sai-roi");
   await bam("Xoá vĩnh viễn");
