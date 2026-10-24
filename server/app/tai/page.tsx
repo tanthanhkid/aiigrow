@@ -54,6 +54,7 @@ export default async function TrangTai() {
             ⬇ Tải app Ba Mẹ cho Android
           </a>
           <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>Tệp aiigrow.apk (bản thử) · app để Ba Mẹ quản lý. AiiGrow cho điện thoại Android của Con đang làm; máy Windows của Con tải bên dưới.</p>
+          <p style={{ fontSize: 13, color: "#7a8585", marginTop: 0 }}>Luôn là bản mới nhất — có bản mới thì tải lại link này và cài đè, không cần gỡ.</p>
         </>
       ) : null}
       {os === "mac" ? null : (<>

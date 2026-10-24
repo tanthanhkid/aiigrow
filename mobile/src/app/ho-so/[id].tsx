@@ -1,10 +1,10 @@
 // bm-ho-so-con: hồ sơ Con & thiết bị — mức bảo vệ (Đầy đủ / Chưa đủ / Chưa bảo vệ), Online/Offline + lần đồng bộ cuối (FR-01.03),
-// nhóm trải nghiệm, đặt lại PIN, ghép thêm máy. Gỡ máy: chuyển sang màn máy › «An toàn & gỡ cài đặt» (gỡ an toàn — chủ gia đình +
+// đổi tên Con, nhóm trải nghiệm, đặt lại PIN, ghép thêm máy. Gỡ máy: chuyển sang màn máy › «An toàn & gỡ cài đặt» (gỡ an toàn — chủ gia đình +
 // mật khẩu, máy chỉ rời danh sách khi agent báo đã gỡ; không gỡ thẳng ở đây để khỏi bỏ AiiGrow «mồ côi» trên máy Con).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, type ConChiTiet } from "@/lib/api";
+import { bm, chuanHoaTen, type ConChiTiet } from "@/lib/api";
 import { saoChep } from "@/lib/luu-tep";
 import { datTl } from "@/lib/thiet-lap";
 import { IC_NEN } from "@/lib/viec-nhanh";
@@ -17,14 +17,20 @@ const BAO_VE = { day_du: ["Đầy đủ", "ok"], mot_phan: ["Bảo vệ chưa đ
 
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${id}`));
-  const [mo, setMo] = useState<"pin" | "nhom" | { go: string; ten: string } | null>(null);
+  const { d: con, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${id}`));
+  // Vai Ba Mẹ — tải riêng: lỗi `toi` không làm hỏng cả màn; hàng «Tên» chỉ ẩn khi biết chắc là Chỉ xem (máy chủ chặn 403) (như mục liên kết AiiRob)
+  const vai = useTai(() => bm.goi<{ baMe: { vai: string } }>("toi"));
+  const goc = con ? { con, xem: vai.d?.baMe.vai === "xem" } : null;
+  const [mo, setMo] = useState<"ten" | "pin" | "nhom" | { go: string; ten: string } | null>(null);
   const [pin, setPin] = useState("");
-  const { lam, loi: loiLam, dangChay } = useLam();
+  const [ten, setTen] = useState("");
+  const { lam, loi: loiLam, dangChay, setLoi } = useLam();
+  const dong = () => { setMo(null); setLoi(null); };      // đóng bảng nào cũng xoá lỗi, không dính sang bảng khác
   const { bao, noi } = useHoanTac();
   // M6: mã liên kết AiiRob «<family_id>.<child_id>» — tải riêng, lỗi thì chỉ ẩn mục này
   const lk = useTai(() => bm.goi<{ ma: string }>(`con/${id}/lien-ket-aiirob`));
-  if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Hồ sơ Con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!goc) return <Man lui={{ chu: "Quay lại" }} tieu="Hồ sơ Con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const d = goc.con;
   const may = d.may;
   const thieu = may.filter((m) => m.baoVe !== "day_du").length;
   return (
@@ -49,7 +55,8 @@ export default function HoSoCon() {
       ))}
       <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
       <Nhom>
-        <Dong dau tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
+        {goc.xem ? null : <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setLoi(null); setMo("ten"); }} />}
+        <Dong dau={goc.xem} tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
         <Dong tieu="Thời gian màn hình" phu="App và trang web trong tuần, theo mục" trai={<BieuTron ic="cot" mau="tim" />} bam={() => router.push(`/man-hinh/${d.id}`)} />
@@ -65,24 +72,33 @@ export default function HoSoCon() {
           </View>
         </Nhom>
       ) : null}
-      <BangTruot mo={mo === "pin"} dong={() => setMo(null)} tieu={`Mã PIN mới của ${d.ten}`}>
+      <BangTruot mo={mo === "ten"} dong={dong} tieu={`Đổi tên ${d.ten}`}>
+        <ONhap nhan="Tên của Con" value={ten} onChangeText={setTen} autoCapitalize="words" />
+        <BaoLoi loi={loiLam} />
+        <Nut chu="Lưu tên" rong dangChay={dangChay} tat={!chuanHoaTen(ten) || chuanHoaTen(ten) === chuanHoaTen(d.ten)} bam={() => lam(async () => {
+          const moi = chuanHoaTen(ten);
+          if (moi === chuanHoaTen(d.ten)) { dong(); return; }
+          await bm.goi(`con/${d.id}/sua`, { ten: moi }); dong(); bao(`Đã đổi tên ${d.ten} thành ${moi}`); await tai();
+        })} />
+      </BangTruot>
+      <BangTruot mo={mo === "pin"} dong={dong} tieu={`Mã PIN mới của ${d.ten}`}>
         <ONhap nhan="4–6 chữ số" value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry />
         <BaoLoi loi={loiLam} />
         <Nut chu="Lưu mã PIN" rong dangChay={dangChay} tat={!/^\d{4,6}$/.test(pin)} bam={() => lam(async () => {
-          await bm.goi(`con/${d.id}/sua`, { pin }); setMo(null); setPin(""); bao(`Đã đặt PIN mới cho ${d.ten}`);
+          await bm.goi(`con/${d.id}/sua`, { pin }); dong(); setPin(""); bao(`Đã đặt PIN mới cho ${d.ten}`);
         })} />
       </BangTruot>
-      <BangTruot mo={mo === "nhom"} dong={() => setMo(null)} tieu="Nhóm trải nghiệm">
+      <BangTruot mo={mo === "nhom"} dong={dong} tieu="Nhóm trải nghiệm">
         <ChonMot ds={[{ gia: "nhi" as const, chu: "Nhí (6–10)" }, { gia: "teen" as const, chu: "Teen (11–16)" }]} gia={d.nhom} doi={(v) => lam(async () => {
-          await bm.goi(`con/${d.id}/sua`, { nhom: v }); setMo(null); await tai();
+          await bm.goi(`con/${d.id}/sua`, { nhom: v }); dong(); await tai();
         })} />
         <Chu co={13} mau={M.chu3}>Nhí: icon to, ≤ 3 lựa chọn, Rob đọc to. Teen: gọn, đủ số liệu.</Chu>
       </BangTruot>
       {mo && typeof mo === "object" ? (
-        <BangTruot mo dong={() => setMo(null)} tieu={`Gỡ ${mo.ten}`}>
+        <BangTruot mo dong={dong} tieu={`Gỡ ${mo.ten}`}>
           <Chu mau={M.chu2}>Gỡ an toàn: máy tự gỡ sạch AiiGrow ở lần đồng bộ tới rồi mới rời danh sách, để không có gì «dính» lại trên máy của Con. Cần nhập lại mật khẩu của chủ gia đình. Ở đó cũng có chế độ Giám sát / Chặn thật và cách gỡ tại máy khi không có mạng.</Chu>
-          <Nut chu="Mở An toàn & gỡ cài đặt" rong bam={() => { const id = mo.go; setMo(null); router.push(`/may/${id}`); }} />
-          <View><Nut chu="Giữ lại" loai="ma" rong bam={() => setMo(null)} /></View>
+          <Nut chu="Mở An toàn & gỡ cài đặt" rong bam={() => { const id = mo.go; dong(); router.push(`/may/${id}`); }} />
+          <View><Nut chu="Giữ lại" loai="ma" rong bam={() => dong()} /></View>
         </BangTruot>
       ) : null}
     </Man>

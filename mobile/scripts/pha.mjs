@@ -174,6 +174,10 @@ const MA_AIIROB = "3f9a1c0e7b2d4a6f8e1c.c1d2e3f4a5b6c7d8e9f0";
 coBan["GET con/c1/lien-ket-aiirob"] = { ma: MA_AIIROB };
 for (const x of coBan["GET tuan-thu"].ds) coBan[`GET may/${x.id}/tuan-thu`] = { ...x, suKien: [] };
 coBan["GET may/m1/ma-offline"] = { ma: "482917", conGiay: 0, hieuLucPhut: 5, phutMo: 30 };
+// đổi tên Con + đổi tên máy (màn máy cần chi tiết tuân thủ đủ trường)
+coBan["POST con/c1/sua"] = { ok: true };
+coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
+coBan["GET may/m1/tuan-thu"] = { ...coBan["GET tuan-thu"].ds[0], daDongBo: true, dangGo: null, coTheXoaHan: false, cheDoBaMeChon: "chan", moDen: null, suKien: [] };
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -293,6 +297,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-gio", "/gio/c1", "Trần mỗi ngày"),
     M("bm-app-web", "/app-web", "LUÔN ĐƯỢC DÙNG"),
     M("bm-ho-so-con", "/ho-so/c1", "Ghép thêm máy"),
+    M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
@@ -609,6 +614,36 @@ await kichBan("An toàn thiết bị và Hồ sơ Con báo CÙNG một mức b�
   await di("/ho-so/c1");
   xet(await doi("bảo vệ chưa đầy đủ"), "Hồ sơ Con cũng báo chưa đủ");
   xet(!(await chu()).includes("Thiếu:"), "không lặp «Còn thiếu / Thiếu»");
+});
+
+await kichBan("Đổi tên Con: bảng điền sẵn tên cũ, gửi tên đã chuẩn hoá, báo kết quả; trùng tên ⇒ báo lỗi, bảng giữ nguyên", async () => {
+  await di("/ho-so/c1");
+  xet(await doi("đổi tên gọi của Con"), "hàng «Tên» có trên hồ sơ");
+  await bam("Tên");
+  xet(await doi("Lưu tên"), "mở bảng Đổi tên");
+  xet(await js(`[...document.querySelectorAll("input")].some((e) => e.getAttribute("aria-label") === "Tên của Con" && e.value === ${JSON.stringify(KEN)})`), "ô tên điền sẵn tên hiện tại");
+  await go("Tên của Con", "  Kenny   Vũ ");
+  await bam("Lưu tên");
+  xet(await doi("Đã đổi tên"), "báo đã đổi tên");
+  xet(nhatKy.some((x) => x.d === "con/c1/sua" && x.m === "POST" && x.body?.ten === "Kenny Vũ"), "gửi tên đã trim + gộp khoảng trắng");
+  kb["POST con/c1/sua"] = { status: 400, body: { error: "ten_trung", message: "Nhà đã có Con tên «Bill» — chọn tên khác nhé" } };
+  await bam("Tên");
+  await doi("Lưu tên");
+  await go("Tên của Con", "Bill");
+  await bam("Lưu tên");
+  xet(await doi("Nhà đã có Con tên"), "tên trùng ⇒ hiện lỗi từ máy chủ");
+  xet(await js(`document.body.innerText.includes("Lưu tên")`), "lỗi ⇒ bảng vẫn mở để sửa");
+});
+
+await kichBan("Đổi tên máy: mở từ màn máy, gửi POST may/m1/doi-ten, báo kết quả; nút tắt khi chưa đổi", async () => {
+  await di("/may/m1");
+  xet(await doi("Đổi tên máy"), "màn máy có «Đổi tên máy»");
+  await bam("Đổi tên máy");
+  xet(await doi("Lưu tên máy"), "mở bảng Đổi tên máy");
+  await go("Tên máy", "  Máy   học bài ");
+  await bam("Lưu tên máy");
+  xet(await doi("Đã đổi tên máy thành Máy học bài"), "báo đã đổi tên máy");
+  xet(nhatKy.some((x) => x.d === "may/m1/doi-ten" && x.m === "POST" && x.body?.ten === "Máy học bài"), "gửi tên máy đã chuẩn hoá");
 });
 
 ws.close();

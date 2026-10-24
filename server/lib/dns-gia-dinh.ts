@@ -67,7 +67,9 @@ export async function themThietBiMang(fam: string, b: { con?: unknown; ten?: unk
 /** Máy có agent: một dòng dns_thiet_bi (loai agent) gắn device_id, tạo lười. */
 export async function thietBiChoMay(may: Pick<May, "id" | "family_id" | "child_id" | "name">) {
   await bangMang();
-  await q(`insert into dns_thiet_bi(id, family_id, child_id, device_id, ten, loai, nhan) values ($1,$2,$3,$4,$5,'agent',$6)
+  // Tên đọc lại từ devices lúc chèn (không dùng may.name đã đọc trước): đổi tên chen giữa không để dòng DNS mang tên cũ.
+  await q(`insert into dns_thiet_bi(id, family_id, child_id, device_id, ten, loai, nhan)
+           values ($1,$2,$3,$4,coalesce((select name from devices where id = $4),$5),'agent',$6)
            on conflict (device_id) do nothing`, [newId(), may.family_id, may.child_id, may.id, may.name, taoNhan()]);
   return (await one<ThietBiDns>(`select * from dns_thiet_bi where device_id = $1`, [may.id]))!;
 }

@@ -1,7 +1,7 @@
 // Gia đình, hồ sơ Con, thiết bị (FR-01.02, FR-01.03). Ghép máy chép cách làm của AiiControl (mã 6 số 15 phút, dùng một lần, khoá dòng
 // mã trong giao dịch, token máy chỉ lưu băm). Thêm: máy dùng chung chọn Con bằng PIN, phiên Con (kid_sessions), mức bảo vệ.
 import { coTacTu } from "./chuyen-doi.ts";
-import { newId, one, q, tx } from "./db.ts";
+import { newId, one, q, tx, type Q } from "./db.ts";
 import { bamMatKhau, dungMatKhau, sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -29,16 +29,38 @@ export function nhomTheoTuoi(namSinh: number | null, nam = new Date().getFullYea
 }
 
 const PIN = /^\d{4,6}$/;
+const TEN_CON_TOI_DA = 30, TEN_MAY_TOI_DA = 80;   // 80 = đúng giới hạn tên máy lúc ghép (ghepMayGd)
+
+/** Chuẩn hoá tên người nhập: NFC, bỏ khoảng trắng đầu/cuối, gộp khoảng trắng liên tiếp. Độ dài tính SAU bước này. */
+export const chuanHoaTen = (v: unknown) => String(v ?? "").normalize("NFC").trim().replace(/\s+/g, " ");
+
+/** Tên Con mới: chuẩn hoá + chặn rỗng/quá dài. */
+function tenConHopLe(v: unknown) {
+  const ten = chuanHoaTen(v);
+  if (!ten) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của Con");
+  if ([...ten].length > TEN_CON_TOI_DA) throw new LoiNghiepVu("ten_qua_dai", `Tên của Con tối đa ${TEN_CON_TOI_DA} ký tự`);
+  return ten;
+}
+
+/** Con khác trùng tên trong nhà (không phân biệt hoa thường). So trong mã trên bản đã chuẩn hoá của cả tên cũ lẫn mới: nhà chỉ có vài Con, và
+ *  lower() của Postgres không hạ chữ hoa có dấu khi cơ sở dữ liệu chạy locale C — so ở SQL sẽ lọt «BÉ NA» / «bé na». Gọi trong giao dịch đã khoá. */
+async function trungTenCon(t: Q, fam: string, ten: string, boQua: string | null) {
+  const khoa = ten.toLowerCase();
+  const ds = await t<{ id: string; ten: string }>(`select id, ten from children where family_id = $1`, [fam]);
+  if (ds.some((c) => c.id !== boQua && chuanHoaTen(c.ten).toLowerCase() === khoa))
+    throw new LoiNghiepVu("ten_trung", `Nhà đã có Con tên «${ten}» — chọn tên khác nhé`);
+}
+const khoaTen = (t: Q, fam: string) => t(`select pg_advisory_xact_lock(hashtext($1))`, ["ten-con:" + fam]);
 
 export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown; pin?: unknown; avatar?: unknown; nhom?: unknown }, nguoi?: string) {
-  const ten = String(b.ten ?? "").trim().slice(0, 30);
-  if (!ten) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của Con");
+  const ten = tenConHopLe(b.ten);
   const nam = Number(b.namSinh) || null;
   if (nam && (nam < new Date().getFullYear() - 18 || nam > new Date().getFullYear() - 3)) throw new LoiNghiepVu("nam_sinh_sai", "Năm sinh chưa đúng");
   const pin = b.pin === undefined || b.pin === null || b.pin === "" ? null : String(b.pin);
   if (pin !== null && !PIN.test(pin)) throw new LoiNghiepVu("pin_sai_dang", "Mã PIN của Con gồm 4–6 chữ số");
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
   const id = newId();
+  // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
   await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, pin_hash) values ($1,$2,$3,$4,$5,$6,$7)`,
     [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin ? await bamMatKhau(pin) : null]);
   await ghiSuKien(fam, "tao_con", { ten, nhom }, { con: id, nguoi });
@@ -57,9 +79,21 @@ export async function conCua(fam: string, id: string) {
 export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar?: unknown; nhom?: unknown; pin?: unknown }, nguoi?: string) {
   await conCua(fam, id);
   if (b.ten !== undefined) {
-    const ten = String(b.ten).trim().slice(0, 30);
-    if (!ten) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của Con");
-    await q(`update children set ten = $2 where id = $1`, [id, ten]);
+    const ten = tenConHopLe(b.ten);
+    await tx(async (t) => {
+      await khoaTen(t, fam);
+      // Đọc tên cũ SAU khi giữ khoá: hai lần đổi song song không ghi nhật ký `tu` theo giá trị đã cũ.
+      const cu = (await t<{ ten: string }>(`select ten from children where id = $1 and family_id = $2`, [id, fam]))[0];
+      if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+      const tenCu = chuanHoaTen(cu.ten);
+      if (ten === tenCu) {                       // tên không đổi (sau chuẩn hoá) ⇒ không kiểm trùng, không nhật ký; giá trị thô khác ⇒ ghi lại dạng chuẩn
+        if (cu.ten !== ten) await t(`update children set ten = $2 where id = $1`, [id, ten]);
+        return;
+      }
+      await trungTenCon(t, fam, ten, id);
+      await t(`update children set ten = $2 where id = $1`, [id, ten]);
+      await ghiSuKien(fam, "doi_ten_con", { tu: tenCu, den: ten }, { con: id, nguoi }, t);
+    });
   }
   if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
   if (b.nhom === "nhi" || b.nhom === "teen") await q(`update children set nhom = $2 where id = $1`, [id, b.nhom]);
@@ -130,10 +164,11 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     if (new Date(m.expires_at) < new Date()) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
     if (m.platform !== platform) throw new LoiNghiepVu("sai_nen_tang", `Mã này dành cho ${TEN_NEN_TANG[m.platform]}`, 409);
     const id = newId(), token = taoToken();
+    const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform];
     await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen) values ($1,$2,$3,$4,$5,$6,$7, now())`,
-      [id, m.child_id, m.family_id, platform, String(tenMay ?? "").trim().slice(0, 80) || TEN_NEN_TANG[platform], sha(token), !m.child_id]);
+      [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
-    await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenMay }, { con: m.child_id, may: id }, t);
+    await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu }, { con: m.child_id, may: id }, t);
     // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
     // (bộ cài 0.2.0/0.2.1 đọc vào string không-null — gửi null là rủi ro).
     const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten : undefined;
@@ -150,6 +185,31 @@ export async function ganConMay(fam: string, mayId: string, con: unknown, nguoi?
   if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   await ghiSuKien(fam, "gan_con_may", {}, { con: c, may: mayId, nguoi });
   return { ok: true };
+}
+
+/** Ba Mẹ đổi tên hiển thị của máy (devices.name — đặt lúc ghép). Máy của gia đình khác ⇒ «không thấy». */
+export async function doiTenMay(fam: string, mayId: string, ten: unknown, nguoi?: string) {
+  const t = chuanHoaTen(ten);
+  if (!t) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi của máy");
+  if ([...t].length > TEN_MAY_TOI_DA) throw new LoiNghiepVu("ten_qua_dai", `Tên máy tối đa ${TEN_MAY_TOI_DA} ký tự`);
+  await (await import("./dns-gia-dinh.ts")).bangMang();     // bảng DNS tạo lười — nhập động vì dns-gia-dinh nhập lại tệp này
+  const doi = await tx(async (tq) => {
+    await tq(`select pg_advisory_xact_lock(hashtext($1))`, ["ten-may:" + mayId]);
+    const cu = (await tq<{ name: string; child_id: string | null }>(`select name, child_id from devices where id = $1 and family_id = $2`, [mayId, fam]))[0];
+    if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+    if (chuanHoaTen(cu.name) === t) {            // không đổi sau chuẩn hoá: không nhật ký; lưu thô khác ⇒ ghi lại dạng chuẩn
+      if (cu.name !== t) {
+        await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
+        await tq(`update dns_thiet_bi set ten = $2 where device_id = $1`, [mayId, t]);
+      }
+      return false;
+    }
+    await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
+    await tq(`update dns_thiet_bi set ten = $2 where device_id = $1`, [mayId, t]);   // màn DNS + sự kiện DNS hiện tên mới
+    await ghiSuKien(fam, "doi_ten_may", { tu: chuanHoaTen(cu.name), den: t }, { con: cu.child_id, may: mayId, nguoi }, tq);
+    return true;
+  });
+  return { ok: true, ten: t, doi };
 }
 
 export const mayTuToken = (token: string) => one<May>(`select * from devices where token_hash = $1`, [sha(token)]);
