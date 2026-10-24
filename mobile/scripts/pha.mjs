@@ -65,6 +65,17 @@ const luot = (id, ten, o = {}) => ({ id, child_id: "c1", ten_con: KEN, ten, nhom
 const yc = (id, loai, o = {}) => ({ id, child_id: "c2", ten_con: BILL, loai, phut: 15, gia_tri: null, ly_do: "Con đang xây dở nhà", created_at: luc(3), het_han: luc(-1400), trang_thai: "cho", ...o });
 const coBan = {
   "GET toi": { baMe: { id: "p1", ten: "Mẹ Lan", dinhDanh: "0912345678", vai: "chu" } },
+  "GET con/c1/web": { soNgay: 7, homNay: { giay: 2700, soLan: 14, soTrang: 6 }, tongGiay: 31_000, tatCa: 18, cheDoWeb: "mo", heThong: [],
+    theoNgay: ["2026-10-17", "2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23"].map((ngay, i) => ({ ngay, giay: [3600, 5400, 2400, 6000, 4200, 6700, 2700][i], soLan: 10, soTrang: 5 })),
+    top: [{ tenMien: "facebook.com", giay: 7800, soLan: 34, lanCuoi: luc(40), trangThai: "giai_tri", nguon: "" }, { tenMien: "khanacademy.org", giay: 3900, soLan: 12, lanCuoi: luc(200), trangThai: "cho_phep", nguon: "gia_dinh" },
+      { tenMien: "youtube.com", giay: 3000, soLan: 20, lanCuoi: luc(90), trangThai: "chan", nguon: "con" }, { tenMien: "gamevui.vn", giay: 1200, soLan: 5, lanCuoi: luc(600), trangThai: "chua_xep", nguon: "" }],
+    luat: [{ tenMien: "youtube.com", trangThai: "chan", nguon: "con" }, { tenMien: "tiktok.com", trangThai: "chan", nguon: "gia_dinh" }, { tenMien: "khanacademy.org", trangThai: "cho_phep", nguon: "gia_dinh" }],
+    mayLoc: [{ id: "m1", ten: "Laptop của Bảo Anh", cheDo: "chan", lanCuoi: luc(1) }] },
+  "POST con/c1/web/trang": { ok: true }, "POST con/c1/web/trang/x": { ok: true },
+  "GET tuan-thu": { ds: [
+    { id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", con: "c1", dungChung: false, lanCuoi: luc(1), phienBan: "0.2.5", adminTinCay: [], trangThai: "tuan_thu", diem: 96, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: "chan", cheDoMay: "chan" },
+    { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", con: "c1", dungChung: false, lanCuoi: luc(1560), phienBan: null, adminTinCay: [], trangThai: "lech_chuan", diem: 70, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: null, cheDoMay: null },
+    { id: "m3", ten: "Laptop của Bill", nen: "windows", con: "c2", dungChung: false, lanCuoi: luc(3), phienBan: "0.2.5", adminTinCay: [], trangThai: "tuan_thu", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null, lenhCho: [], cheDo: "giam-sat", cheDoMay: "giam-sat" }] },
   "GET gia-dinh": { ten: "Nhà Mẹ Lan", quyVoucher: 150000, choDuyet: 4, canhBao: 1, con: [conNgan("c1", KEN), conNgan("c2", BILL, { nhom: "teen", nhiemVuCho: 0 })] },
   "GET canh-bao": { ds: [{ id: "a1", child_id: "c2", loai: "lech_gio", muc: "chu_y", noi_dung: "Có dấu hiệu đổi giờ hệ thống trên Laptop-BILL của Bill", chi_tiet: { lechGiay: -3660 }, da_doc: false, created_at: luc(20) },
     { id: "a2", child_id: "c2", loai: "ngoai_le_manh", muc: "chu_y", noi_dung: "Tuần này Bill đã được 6 ngoại lệ. Gợi ý: tăng điểm nhiệm vụ hoặc giảm giá phần thưởng.", chi_tiet: {}, da_doc: false, created_at: luc(60) }] },
@@ -248,6 +259,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trang", "/hom-nay", "việc chờ Ba Mẹ"),
     M("bm-trang (trống)", "/hom-nay", "Chưa có Con nào", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] } } }),
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
+    M("bm-trang (bảng khoá máy)", "/hom-nay", "Cho tới khi tôi mở", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy ngay"); await bam("Khoá máy ngay"); } }),
+    M("bm-trang (đang khoá)", "/hom-nay", "Mở lại máy", { kb: { "GET con/c1": { ...conCt("c1", KEN), khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
+    M("bm-web", "/web/c1", "ĐANG CHẶN · 2"),
+    M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-cho-duyet", "/cho-duyet", "4 việc đang chờ"),
     M("bm-cho-duyet (trống)", "/cho-duyet", "Không có việc nào chờ", { kb: { "GET cho-duyet": { nhiemVu: [], yeuCau: [] } } }),
     M("bm-duyet-nv", "/duyet/l1", "Không trùng ảnh cũ"),
@@ -443,6 +458,35 @@ await kichBan("Giữ chuỗi ngày: một chạm từ ví ⇒ xác nhận ⇒ g�
   await bam("Giữ chuỗi ngày");
   await sleep(600);
   xet(nhatKy.some((x) => x.d === "con/c1/dong-bang-chuoi" && x.m === "POST"), "gửi đóng băng chuỗi");
+});
+
+await kichBan("Trang chủ ⇒ ô Trang web ⇒ chặn một chạm ⇒ Hoàn tác đưa về mặc định", async () => {
+  await di("/hom-nay");
+  xet(await doi("Đang chặn 2 trang"), "ô Trang web ghi số trang đang chặn");
+  await bam("Trang web");
+  xet(await doi("ĐANG CHẶN · 2"), "vào màn Trang web");
+  await bam("Facebook");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "con/c1/web/trang" && x.body?.muc === "facebook.com" && x.body?.trangThai === "chan" && x.body?.caNha === false), "gửi chặn facebook.com cho Con");
+  xet(await doi("Đã chặn facebook.com"), "báo đã chặn");
+  await bam("Hoàn tác");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "con/c1/web/trang" && x.body?.muc === "facebook.com" && x.body?.trangThai === "mac_dinh"), "Hoàn tác ⇒ bỏ luật vừa đặt");
+  await bam("tiktok.com");
+  xet(await doi("Áp cho cả gia đình"), "chạm dòng ⇒ bảng đủ lựa chọn");
+});
+
+await kichBan("Trang chủ ⇒ Khoá máy ngay 15 phút ⇒ gửi hạn giờ", async () => {
+  await di("/hom-nay");
+  await doi("Khoá máy ngay"); await bam("Khoá máy ngay");
+  await doi("15 phút"); await bam("15 phút");
+  const t0 = Date.now();
+  await bam("Khoá ngay");
+  await sleep(500);
+  const g = nhatKy.find((x) => x.d === "con/c1/khoa" && x.m === "POST");
+  const den = g?.body?.den ? Date.parse(g.body.den) - t0 : NaN;
+  xet(g?.body?.khoa === true && den > 13 * 60_000 && den < 16 * 60_000, `gửi khoá có hạn ~15 phút (${Math.round(den / 60_000)} phút)`);
+  xet(await doi("Đã khoá máy của"), "báo đã khoá, có Hoàn tác");
 });
 
 await kichBan("Báo cáo tuần ⇒ Xuất CSV", async () => {

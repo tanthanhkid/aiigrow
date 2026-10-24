@@ -31,10 +31,10 @@ export default function DsThongBaoMan() {
   const chuaDoc = d?.chuaDoc ?? 0;
   useEffect(() => { if (chuaDoc) bm.goi("thong-bao/doc", {}).catch(() => {}); }, [chuaDoc]);
   const phai = <Nut chu="Cài đặt" nho loai="ma" bam={() => router.push("/thong-bao/cai-dat")} />;
-  if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Thông báo" phai={phai}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Thông báo" phai={phai}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.ds.length) {
     return (
-      <Man lui={{ chu: "Hôm nay" }} tieu="Thông báo" phai={phai}>
+      <Man lui={{ chu: "Trang chủ" }} tieu="Thông báo" phai={phai}>
         <CanhGiua lv="ngu" tieu="Chưa có gì mới" loi="Khi Con nộp nhiệm vụ, xin phép hay đổi quà, Rob báo Ba Mẹ ở đây." />
       </Man>
     );
@@ -47,7 +47,7 @@ export default function DsThongBaoMan() {
   }
   const yl = d.caiDat.yenLang;
   return (
-    <Man lui={{ chu: "Hôm nay" }} tieu="Thông báo" phai={phai} tai={tai} dangTai={dangTai}>
+    <Man lui={{ chu: "Trang chủ" }} tieu="Thông báo" phai={phai} tai={tai} dangTai={dangTai}>
       <Chu co={13.5} mau={M.chu3}>{d.chuaDoc ? `${d.chuaDoc} thông báo mới` : "Đã xem hết thông báo"}{yl.bat ? ` · giờ yên lặng ${yl.tu}–${yl.den}` : ""}</Chu>
       {nhom.map((g) => (
         <View key={g.ngay} style={{ gap: 12 }}>

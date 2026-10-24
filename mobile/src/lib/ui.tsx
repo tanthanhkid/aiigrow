@@ -150,7 +150,7 @@ export const DiemPill = ({ n }: { n: number }) => (
   </View>
 );
 
-const MAU_BT = { xanh: [M.chinhSoft, M.chinhInk], vang: [M.diemSoft, M.diemInk], do: [M.loiSoft, M.loi], cam: [M.canhSoft, M.canh], lam: [M.lamSoft, M.lam], tim: [M.timSoft, "#4b3cc4"] } as const;
+const MAU_BT = { xanh: [M.chinhSoft, M.chinhInk], vang: [M.diemSoft, M.diemInk], do: [M.loiSoft, M.loi], cam: [M.canhSoft, M.canh], lam: [M.lamSoft, M.lam], tim: [M.timSoft, "#4b3cc4"], xam: [M.xamSoft, M.chu2] } as const;
 export type MauBt = keyof typeof MAU_BT;
 export const BieuTron = ({ ic, mau = "xanh", lon }: { ic: TenIcon; mau?: MauBt; lon?: boolean }) => (
   <View style={[s.bieuTron, { backgroundColor: MAU_BT[mau][0] }, lon && { width: 56, height: 56, borderRadius: 18 }]}>

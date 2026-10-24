@@ -101,3 +101,13 @@ export function lichCua(l: Partial<Lich> | null | undefined): Lich {
 export const NHOM_GIA: Record<string, TenThamSo> = {
   game: "gia_game", video_ngan: "gia_video_ngan", mxh: "gia_mxh", phim_gd: "gia_phim_gd", khac: "gia_khac",
 };
+
+/** Con đang bị Ba Mẹ khoá? «Khoá ngay» có hạn (`khoa_den`) tự hết khi qua giờ đó — không cần tiến trình nền gỡ cờ. */
+export function dangKhoa(cfg: Record<string, unknown> | null | undefined, now = new Date()): boolean {
+  if (cfg?.khoa_ngay !== true) return false;
+  const den = typeof cfg.khoa_den === "string" ? Date.parse(cfg.khoa_den) : NaN;
+  return Number.isNaN(den) || den > now.getTime();
+}
+/** Hạn khoá còn hiệu lực (ISO) hoặc null = khoá tới khi Ba Mẹ mở / không khoá. */
+export const khoaDen = (cfg: Record<string, unknown> | null | undefined, now = new Date()) =>
+  dangKhoa(cfg, now) && typeof cfg?.khoa_den === "string" ? cfg.khoa_den : null;

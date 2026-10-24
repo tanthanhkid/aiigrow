@@ -4,7 +4,7 @@
 // máy» quy về hôm nay thật; ngày tương lai ⇒ hôm nay; cũ hơn 35 ngày bỏ).
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { lichCua, thamSo } from "./cau-hinh.ts";
+import { dangKhoa, lichCua, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, dsLuat, phanLoai } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
@@ -94,19 +94,22 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     allowlistHeThong: allowlistHieuLuc(),
     luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai, nhom: l.loai === "giai_tri" ? l.nhom : null,
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
-    lich: lichCua(c?.lich as never), khoaNgay: c?.cau_hinh?.khoa_ngay === true, soDu: c ? await soDu(c.id) : 0,
+    lich: lichCua(c?.lich as never), khoaNgay: dangKhoa(c?.cau_hinh, now), soDu: c ? await soDu(c.id) : 0,
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)) } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da, webChiChoPhep: ts.web_chi_cho_phep === 1,
   };
 }
 
 /** Ba Mẹ «Khoá ngay» / «Mở lại» (FR-02.04) — có hiệu lực ở lần đồng bộ / nhịp kế tiếp của mọi thiết bị của Con. */
-export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string) {
-  const r = await q(`update children set cau_hinh = case when $3 then cau_hinh || '{"khoa_ngay": true}'::jsonb else cau_hinh - 'khoa_ngay' end
-                     where id = $1 and family_id = $2 returning id`, [con, fam, khoa]);
+export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string, den: Date | null = null) {
+  if (den && !(den.getTime() > Date.now())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
+  const r = await q(`update children set cau_hinh = case when $3 then (cau_hinh - 'khoa_den') || jsonb_strip_nulls(jsonb_build_object('khoa_ngay', true, 'khoa_den', $4::text))
+                     else cau_hinh - 'khoa_ngay' - 'khoa_den' end
+                     where id = $1 and family_id = $2 returning id`, [con, fam, khoa, den?.toISOString() ?? null]);
   if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  await ghiSuKien(fam, khoa ? "khoa_ngay" : "mo_lai", {}, { con, nguoi });
+  await ghiSuKien(fam, khoa ? "khoa_ngay" : "mo_lai", den ? { den: den.toISOString() } : {}, { con, nguoi });
 }
+
 
 // ================================================================ M4 — agent Windows (chỉ thêm; hợp đồng cũ giữ nguyên)
 

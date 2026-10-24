@@ -5,7 +5,7 @@
 // Phút «thêm giờ» Ba Mẹ đã cho hôm nay (grants) được dùng TRƯỚC và không trừ điểm.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { NHOM_GIA, lichCua, thamSo, type ThamSo } from "./cau-hinh.ts";
+import { NHOM_GIA, dangKhoa, lichCua, thamSo, type ThamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, dauTuan, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
 import { ghiDiem, khoaCon, soDu } from "./vi.ts";
 import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
@@ -21,7 +21,7 @@ async function boiCanh(t: Q, con: string): Promise<BoiCanh> {
   const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown> }>(
     `select c.family_id, f.tz, f.cau_hinh as fcfg, c.cau_hinh as ccfg, c.lich from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0];
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), khoa: r.ccfg?.khoa_ngay === true };
+  return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), khoa: dangKhoa(r.ccfg) };
 }
 
 export const giaPhut = (ts: ThamSo, nhom: NhomGiaiTri | null) => ts[NHOM_GIA[nhom ?? "khac"] ?? "gia_khac"];

@@ -18,10 +18,10 @@ export default function BaoCaoTuan() {
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"));
   const [chon, setChon] = useState<string | null>(null);
   const con = chon ?? g.d?.con[0]?.id ?? null;
-  if (!g.d) return <Man tieuLon="Báo cáo" chat><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
-  if (!g.d.con.length) return <Man tieuLon="Báo cáo" chat><CanhGiua lv="canh-trong" tieu="Chưa có Con nào" loi="Thêm hồ sơ Con để có báo cáo tuần." /></Man>;
+  if (!g.d) return <Man lui={{ chu: "Quay lại" }} tieuLon="Báo cáo tuần" chat><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
+  if (!g.d.con.length) return <Man lui={{ chu: "Quay lại" }} tieuLon="Báo cáo tuần" chat><CanhGiua lv="canh-trong" tieu="Chưa có Con nào" loi="Thêm hồ sơ Con để có báo cáo tuần." /></Man>;
   return (
-    <Man tieuLon="Báo cáo" chat>
+    <Man lui={{ chu: "Quay lại" }} tieuLon="Báo cáo tuần" chat>
       {g.d.con.length > 1 ? <ChonMot ds={g.d.con.map((c) => ({ gia: c.id, chu: c.ten }))} gia={con!} doi={setChon} /> : null}
       {con ? <BaoCaoCon key={con} id={con} /> : null}
     </Man>

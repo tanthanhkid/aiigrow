@@ -25,14 +25,14 @@ export default function DiemQua() {
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
   useBaoKhiVe(bao);
-  if (!d) return <Man tieuLon="Điểm & quà" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man tieuLon="Nhiệm vụ & quà" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const nv = d.nv.filter((x) => x.bang_chung !== "tu_dong" || x.bat);
   const xuLy = (x: Phieu, viec: "xac-nhan" | "huy") => lam(async () => {
     await bm.goi(`phieu/${x.id}/${viec}`, {}); bao(viec === "huy" ? `Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${x.ten_con}` : `Đã trao «${x.ten}» cho ${x.ten_con}`); await tai();
   });
   const luu = (x: NhiemVu, them: Partial<NhiemVu>) => lam(async () => { await bm.goi(`nhiem-vu/${x.id}`, them); await tai(); });
   return (
-    <Man tieuLon="Điểm & quà" chat noi={noi} day={the === "nv" ? <Nut chu="Giao nhiệm vụ mới" ic="cong" rong bam={() => router.push("/giao-nv")} /> : undefined}>
+    <Man tieuLon="Nhiệm vụ & quà" chat noi={noi} day={the === "nv" ? <Nut chu="Giao nhiệm vụ mới" ic="cong" rong bam={() => router.push("/giao-nv")} /> : undefined}>
       {d.phieu.length ? (
         <>
           <Canh lv="so-tay" thap tieu={`Phiếu chờ trao (${d.phieu.length})`} loi="Con đã đổi điểm, chờ Ba Mẹ trao quà. Huỷ thì hoàn điểm cho Con." />

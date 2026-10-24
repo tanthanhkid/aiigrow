@@ -1,4 +1,5 @@
-// Thanh điều hướng Ba Mẹ (kit.tab_bm): năm mục cố định; số đỏ ở Chờ duyệt = nhiệm vụ + yêu cầu đang chờ của mọi Con.
+// Thanh điều hướng Ba Mẹ (kit.tab_bm): bốn mục — Trang chủ (bảng điều khiển) · Chờ duyệt · Nhiệm vụ & quà · Gia đình. «Báo cáo» không còn là tab
+// (vào từ Thời gian màn hình) nhưng vẫn là route trong nhóm để giữ đường dẫn /bao-cao; số đỏ ở Chờ duyệt = nhiệm vụ + yêu cầu đang chờ của mọi Con.
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Tabs } from "expo-router";
@@ -8,8 +9,8 @@ import { bm } from "@/lib/api";
 import { F, Icon, M, type TenIcon } from "@/lib/ui";
 
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
-  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "cho-duyet": { ic: "chuong", chu: "Chờ duyệt" }, "diem-qua": { ic: "sao", chu: "Điểm & quà" },
-  "bao-cao": { ic: "cot", chu: "Báo cáo" }, "cai-dat": { ic: "banhrang", chu: "Cài đặt" },
+  "hom-nay": { ic: "nha", chu: "Trang chủ" }, "cho-duyet": { ic: "chuong", chu: "Chờ duyệt" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ & quà" },
+  "cai-dat": { ic: "nguoi", chu: "Gia đình" },
 };
 
 function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
@@ -49,8 +50,8 @@ export default function TabLayout() {
       <Tabs.Screen name="hom-nay" />
       <Tabs.Screen name="cho-duyet" />
       <Tabs.Screen name="diem-qua" />
-      <Tabs.Screen name="bao-cao" />
       <Tabs.Screen name="cai-dat" />
+      <Tabs.Screen name="bao-cao" />
     </Tabs>
   );
 }

@@ -11,7 +11,7 @@ export default function ObXong() {
   const may = d?.may.filter((m) => !m.dungChung) ?? [];
   const thieu = may.filter((m) => m.baoVe !== "day_du");
   return (
-    <Man day={<><Nut chu="Vào trang Hôm nay" rong bam={() => router.replace("/hom-nay")} /><Nut chu="Chat với AiiLab nếu cần giúp" loai="ma" rong bam={() => router.push("/ho-tro")} /></>}>
+    <Man day={<><Nut chu="Vào Trang chủ" rong bam={() => router.replace("/hom-nay")} /><Nut chu="Chat với AiiLab nếu cần giúp" loai="ma" rong bam={() => router.push("/ho-tro")} /></>}>
       <Canh lv="xong" tieu="Xong rồi!" loi={may.length ? `Máy của ${ten} đã được ghép.` : `Hồ sơ ${ten} đã sẵn sàng.`} />
       {tl.conId && !d ? <XuongTai /> : (
         <The dem>
