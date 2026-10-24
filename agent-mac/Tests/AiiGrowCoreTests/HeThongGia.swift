@@ -70,7 +70,8 @@ final class HeThongGia: HeThong, @unchecked Sendable {
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
-  func xoaTep(_ duongDan: String) { tep[duongDan] = nil }
+  var daXoa: [String] = []
+  func xoaTep(_ duongDan: String) { tep[duongDan] = nil; daXoa.append(duongDan) }
   func xoaBoNhoDNS() { daXoaDNS += 1 }
   var truocHaQuyen: (() -> Void)?
   func haQuyenAdmin(taiKhoan: String) throws { truocHaQuyen?(); if let e = loiHaQuyen { throw e }; daHaQuyen.append(taiKhoan); admin.remove(taiKhoan) }

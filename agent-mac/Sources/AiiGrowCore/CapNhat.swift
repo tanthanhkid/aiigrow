@@ -226,7 +226,7 @@ public actor BoCapNhat {
     self.banHienTai = banHienTai; self.dongHo = dongHo; self.so = so
     // Lượt cài trước giao installer mà máy vẫn chạy bản cũ (installer lỗi rồi daemon cũ được nạp lại): báo cho Ba Mẹ thấy ngay khi khởi động.
     // Cài xong (đang chạy đúng bản trong dấu): báo «đã cập nhật» — daemon mới khởi động với trạng thái trống.
-    if let d = heThong.docTep(tepDaThu).flatMap({ try? JSONDecoder().decode(DauDaThu.self, from: $0) }),
+    if let d = BoCapNhat.docDau(heThong, tepDaThu),
        dongHo().timeIntervalSince1970 - d.luc < 86_400 {
       if LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
         so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; sẽ thử lại.", luc: dongHo())
@@ -246,8 +246,9 @@ public actor BoCapNhat {
 
   private func ketThuc(_ kq: KetQuaCapNhat) -> KetQuaCapNhat { dang = false; so.dat(kq.chu, luc: dongHo()); return kq }
 
-  private func docDau() -> DauDaThu? {
-    heThong.docTep(tepDaThu).flatMap { try? JSONDecoder().decode(DauDaThu.self, from: $0) }
+  private func docDau() -> DauDaThu? { BoCapNhat.docDau(heThong, tepDaThu) }
+  private static func docDau(_ ht: HeThong, _ tep: String) -> DauDaThu? {
+    ht.docTep(tep).flatMap { try? JSONDecoder().decode(DauDaThu.self, from: $0) }
   }
 
   /// Kiểm manifest NGAY (daemon gọi từ Task riêng; nút Ba Mẹ gọi từ Task nền). Có bản mới ⇒ tải + cài chạy nền, trả `.dangTai`.
@@ -299,9 +300,16 @@ public actor BoCapNhat {
                            : (troi < 0 || troi >= LuatCapNhat.giayNghiSauHetLuot
                               || (d.lan < LuatCapNhat.toiDaLanThu && troi >= LuatCapNhat.giayGiuaCacLan))
       if !choLai {
+        if thuCong {
+          let phut = Int(((d.daGiao ? LuatCapNhat.giayChoThuLai : LuatCapNhat.giayChoGoiHong) - troi) / 60) + 1
+          heThong.ghiLog("Cập nhật: gói \(m.version) vừa thử (\(d.daGiao ? "đã giao installer" : "tải về hỏng")) — nút Ba Mẹ chờ thêm \(phut) phút.")
+          return ketThuc(.loi("Vừa thử bản \(m.version); bấm lại sau khoảng \(phut) phút."))
+        }
         if d.lan >= LuatCapNhat.toiDaLanThu && LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
-          heThong.ghiLog("Cập nhật: gói hỏng hoặc cài xong mà bản không đổi — đã thử gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Thử lại sau 24 giờ hoặc khi manifest đổi sha256.")
-          return ketThuc(.loi("Đã thử gói \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); sẽ thử lại sau 24 giờ."))
+          let lyDo = d.daGiao ? "cài xong mà bản không đổi" : "gói tải về hỏng (sha256/chữ ký/spctl — thường do mạng/proxy)"
+          heThong.ghiLog("Cập nhật: \(lyDo) — đã thử gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Thử lại sau 24 giờ hoặc khi manifest đổi sha256.")
+          return ketThuc(.loi(d.daGiao ? "Đã thử cài bản \(d.version) \(d.lan) lần mà máy vẫn chạy \(banHienTai); sẽ thử lại sau 24 giờ."
+                                       : "Tải bản \(d.version) bị hỏng \(d.lan) lần (kiểm tra mạng/proxy); sẽ thử lại sau 24 giờ hoặc bấm «Kiểm tra cập nhật»."))
         }
         heThong.ghiLog("Cập nhật: gói \(m.version) (sha256 \(sha.prefix(12))…) đã thử \(d.lan) lần — chưa tới lượt thử lại.")
         return ketThuc(.loi("Gói \(m.version) đã thử cài rồi; sẽ thử lại sau."))
@@ -399,7 +407,9 @@ public actor BoCapNhat {
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")
     } catch {
       traDau()
-      bo("không chạy được installer: \(error)")
+      // KHÔNG xoá gói: lỗi có thể là «đang có lượt cài» (job khác vừa submit cùng tên tệp và đang đọc nó); tệp sót được dọn ở lượt sau
+      heThong.ghiLog("Cập nhật: không chạy được installer: \(error) — KHÔNG cài.")
+      so.dat("Cập nhật bản \(m.version) lỗi: không chạy được installer; sẽ thử lại sau.", luc: dongHo())
     }
   }
 }

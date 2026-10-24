@@ -369,6 +369,7 @@ final class CapNhatTests: XCTestCase {
     fake.loiCaiGoi = LoiApi(chu: "launchctl submit lỗi")
     _ = await chay(boCapNhat())
     XCTAssertNil(fake.tep["/gia/da-thu.json"], "submit lỗi ⇒ không để lại dấu đã thử")
+    XCTAssertFalse(fake.daXoa.contains { $0.hasSuffix("AiiGrow-0.1.2.pkg") }, "submit lỗi (có thể job khác đang đọc cùng tệp) ⇒ không xoá gói")
     fake.loiCaiGoi = nil
     _ = await chay(boCapNhat())
     XCTAssertEqual(fake.daCaiGoi.count, 1, "lượt sau thử ngay, không phải chờ 6 giờ")

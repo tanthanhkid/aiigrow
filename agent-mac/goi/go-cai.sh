@@ -6,6 +6,7 @@ if [ "$(id -u)" -ne 0 ]; then echo "Cần quyền quản trị: sudo bash $0" >&
 if [ -z "${AIIGROW_GO_BAN_SAO:-}" ]; then
   BAN_SAO=$(/usr/bin/mktemp /var/tmp/aiigrow-go-cai.XXXXXX) && /bin/cp "$0" "$BAN_SAO" && \
     AIIGROW_GO_BAN_SAO="$BAN_SAO" exec /bin/bash "$BAN_SAO" "$@"
+  [ -n "${BAN_SAO:-}" ] && /bin/rm -f "$BAN_SAO"     # chép không được ($0 không phải tệp, vd chạy qua ống): chạy tiếp bản gốc, không để tệp rỗng sót
 fi
 [ -n "${AIIGROW_GO_BAN_SAO:-}" ] && [ "$AIIGROW_GO_BAN_SAO" != 1 ] && /bin/rm -f "$AIIGROW_GO_BAN_SAO"   # bash đã mở tệp, xoá vẫn chạy tiếp
 
