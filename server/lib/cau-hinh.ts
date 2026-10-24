@@ -119,8 +119,8 @@ export const dangKhoa = (cfg: Record<string, unknown> | null | undefined, now = 
 export const khoaDen = (cfg: Record<string, unknown> | null | undefined, now = new Date()) =>
   khoaGoc(cfg, now) && typeof cfg?.khoa_den === "string" ? cfg.khoa_den : null;
 
-/** Nhịp đồng bộ kế — đang mở tạm thì không quá lúc khoá trở lại (+2 giây), để máy khoá lại đúng giờ. */
-export function nhipToiKhoaLai(nhip: number, khoaLai: string | null, now: Date) {
-  const con = khoaLai ? Math.ceil((Date.parse(khoaLai) - now.getTime()) / 1000) + 2 : Infinity;
+/** Nhịp đồng bộ kế — không quá mốc đổi trạng thái khoá gần nhất (+2 giây): hết mở tạm (khoá lại) / hết hạn khoá (mở ra), để máy đổi đúng giờ. */
+export function nhipToiKhoaLai(nhip: number, mocs: (string | null | undefined)[], now: Date) {
+  const con = Math.min(...mocs.map((m) => (m ? Math.ceil((Date.parse(m) - now.getTime()) / 1000) + 2 : Infinity)).filter((x) => x > 2));
   return Math.max(10, Math.min(nhip, con));
 }

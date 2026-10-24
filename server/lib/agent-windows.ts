@@ -95,7 +95,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     allowedApps: [...new Set([...p.allowlistHeThong.filter(exe).map((x) => x.toLowerCase()), ...hoc, ...choi, ...(phienWeb ? TRINH_DUYET : [])])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null,
-    nextCheckSec: nhipToiKhoaLai(nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }), p.khoaLaiLuc ?? null, now),
+    nextCheckSec: nhipToiKhoaLai(nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }), [p.khoaLaiLuc, p.khoaHetLuc], now),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
     ...(dangMo ? { grantEndsAt: mo.moDen!.toISOString() } : {}),
     // Đang «mở» có hạn ⇒ trang Giải trí cũng mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.

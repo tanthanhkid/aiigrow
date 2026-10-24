@@ -60,7 +60,9 @@ test("«tới sáng mai» đúng 7:00 cả ngày đổi giờ mùa hè (Europe/B
 test("nhịp đồng bộ không quá lúc mở tạm hết (máy khoá lại đúng giờ)", async () => {
   const { nhipToiKhoaLai } = await import("./cau-hinh.ts");
   const now = new Date("2026-10-24T10:00:00Z");
-  assert.equal(nhipToiKhoaLai(120, null, now), 120);
-  assert.equal(nhipToiKhoaLai(120, "2026-10-24T10:00:30Z", now), 32);
-  assert.equal(nhipToiKhoaLai(120, "2026-10-24T10:00:01Z", now), 10);
+  assert.equal(nhipToiKhoaLai(120, [null, null], now), 120);
+  assert.equal(nhipToiKhoaLai(120, ["2026-10-24T10:00:30Z", "2026-10-24T11:00:00Z"], now), 32);
+  assert.equal(nhipToiKhoaLai(120, [null, "2026-10-24T10:01:00Z"], now), 62, "hết hạn khoá ⇒ mở đúng giờ");
+  assert.equal(nhipToiKhoaLai(120, ["2026-10-24T10:00:01Z"], now), 10);
+  assert.equal(nhipToiKhoaLai(120, ["2026-10-24T09:59:00Z"], now), 120, "mốc đã qua ⇒ bỏ, giữ nhịp thường");
 });
