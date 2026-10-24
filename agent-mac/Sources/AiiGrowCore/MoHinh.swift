@@ -223,6 +223,7 @@ public struct TrangThaiAgent: Codable, Equatable {
   public var moCoi = false
   public var quyen: [String: Bool]
   public var phienKhac: Bool
+  public var conLaAdmin: Bool?                   // true khi tài khoản Con còn quyền admin (nil = ổn, bỏ khỏi JSON)
   public var playSeconds: Double?                // Mac chưa đo giây theo phiên chơi bằng điểm ⇒ để nil (Codable bỏ hẳn khỏi JSON) — máy chủ coi như agent đời cũ, trang khay là nguồn nhịp. Gửi 0 sẽ làm phiên bị tạm rồi đóng sau 3 phút
 
   public init(mode: String, trayAlive: Bool, childSessionActive: Bool, offline: Bool, cheDo: String, phienKhac: Bool) {

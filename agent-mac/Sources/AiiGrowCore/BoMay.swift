@@ -55,6 +55,8 @@ public actor BoMay {
   }
 
   public var daGhep: Bool { cauHinh.daGhep }
+  /// Tài khoản Con còn quyền admin (ghép chưa hạ được / ai đó nâng lại) — gửi lên máy chủ + hiện ở tray.
+  public private(set) var conLaAdmin = false
 
   // MARK: ghép máy
 
@@ -87,15 +89,31 @@ public actor BoMay {
     cauHinh = kho.doc() ?? cauHinh
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
+    conLaAdmin = canHa                                  // chỉ thành false khi hạ quyền xong
     if canHa {
+      // Ghi daHaQuyen TRƯỚC khi hạ: ghi lỗi thì KHÔNG hạ (hạ rồi mà không nhớ ⇒ gỡ máy không trả lại được quyền admin cho Ba Mẹ).
+      let daCo = cu.contains(tk)
+      do { try kho.sua { if !$0.daHaQuyen.contains(tk) { $0.daHaQuyen.append(tk) } } }
+      catch {
+        heThong.ghiLog("CẢNH BÁO: không ghi được cấu hình (\(error)) nên KHÔNG hạ quyền admin của «\(tk)» — Ba Mẹ hạ tay trong Cài đặt hệ thống.")
+        return
+      }
+      cauHinh = kho.doc() ?? cauHinh
       do {
         try heThong.haQuyenAdmin(taiKhoan: tk)
-        _ = try? kho.sua { if !$0.daHaQuyen.contains(tk) { $0.daHaQuyen.append(tk) } }
-        cauHinh = kho.doc() ?? cauHinh
+        conLaAdmin = false
       } catch {
         heThong.ghiLog("CẢNH BÁO: đã ghép nhưng chưa hạ được quyền admin của «\(tk)»: \(error) — Ba Mẹ hạ tay trong Cài đặt hệ thống.")
+        if !daCo { _ = try? kho.sua { $0.daHaQuyen.removeAll { $0 == tk } }; cauHinh = kho.doc() ?? cauHinh }   // vẫn là admin ⇒ không cần trả
       }
     }
+  }
+
+  /// Câu cảnh báo cho Ba Mẹ khi tài khoản của Con vẫn còn quyền admin (nil = ổn).
+  public var canhBaoAdmin: String? {
+    guard conLaAdmin else { return nil }
+    let tk = cauHinh.taiKhoanCon
+    return "Chưa hạ được quyền admin của «\(tk)» — Con vẫn có thể tắt bảo vệ. Ba Mẹ vào Cài đặt hệ thống > Người dùng & Nhóm, tắt «Cho phép người dùng này quản trị máy tính»."
   }
 
   private var api_mayChu: String { (api as? ApiClient)?.mayChu ?? cauHinh.mayChu }
@@ -120,9 +138,11 @@ public actor BoMay {
 
   private func dongBo() async {
     let con = conDangDung()
-    let st = TrangThaiAgent(mode: policy?.mode ?? CheDo.tuDo.rawValue,
+    if let u = cauHinh.uidCon { conLaAdmin = heThong.laAdmin(uid: u) }       // đọc lại mỗi lần đồng bộ: ai nâng Con lên admin cũng bị báo
+    var st = TrangThaiAgent(mode: policy?.mode ?? CheDo.tuDo.rawValue,
                             trayAlive: trayDangSong(), childSessionActive: con != nil,
                             offline: matMang, cheDo: cheDoHieuLuc(), phienKhac: laPhienKhac())
+    if conLaAdmin { st.conLaAdmin = true; st.quyen["haQuyenAdmin"] = false }   // quyen[…]=false ⇒ chiTietBaoVe của máy chủ liệt vào «còn thiếu» (mức Một phần)
     DemPhut.don(&cauHinh.demPhut)
     let dung = DemPhut.tong(cauHinh.demPhut)
     do {
@@ -300,7 +320,11 @@ public actor BoMay {
     case let .xinMo(muc, loai, loiNhan):
       return await taoYeuCau(loai: loai == "web" ? "mo_web" : "cai_app", phut: nil, giaTri: muc, lyDo: loiNhan ?? "Con xin mở \(muc)")
     case let .ghep(ma, taiKhoanCon):
-      do { try await ghep(ma: ma, taiKhoanCon: taiKhoanCon); return .ok(id: cauHinh.deviceId) }
+      do {
+        try await ghep(ma: ma, taiKhoanCon: taiKhoanCon)
+        if let cb = canhBaoAdmin { return .canhBao(id: cauHinh.deviceId, chu: cb) }
+        return .ok(id: cauHinh.deviceId)
+      }
       catch let e as LoiApi { return .loi(ma: e.ma ?? "ghep_loi", chu: e.chu) }
       catch { return .loi(ma: "ghep_loi", chu: "\(error)") }
     }
@@ -359,6 +383,6 @@ public actor BoMay {
       conPhut: phutDung.map { Int($0.rounded(.down)) },
       moDen: hl?.moDen, khoaDen: nil, demNguocGiay: demNguoc,
       yeuCauCho: [], duocDoiDiem: p?.canExchangePoints ?? false,
-      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [])
+      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: laCon ? nil : canhBaoAdmin)
   }
 }

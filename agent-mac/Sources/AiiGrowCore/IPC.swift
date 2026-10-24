@@ -47,11 +47,12 @@ public struct TrangThai: Codable, Equatable {
   public var duocDoiDiem: Bool             // KHÔNG bao giờ có số điểm
   public var matMang: Bool                 // đang chạy theo Policy nhớ
   public var trangChan: [String]           // tên miền đang chặn (để tray giải thích khi Con hỏi)
+  public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo cho Ba Mẹ (chỉ trả cho phiên KHÔNG phải Con)
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
-              demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String]) {
+              demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil) {
     self.daGhep = daGhep; self.laPhienCon = laPhienCon; self.tenCon = tenCon; self.cheDo = cheDo; self.lyDoKhoa = lyDoKhoa; self.conPhut = conPhut
     self.moDen = moDen; self.khoaDen = khoaDen; self.demNguocGiay = demNguocGiay; self.yeuCauCho = yeuCauCho; self.duocDoiDiem = duocDoiDiem
-    self.matMang = matMang; self.trangChan = trangChan
+    self.matMang = matMang; self.trangChan = trangChan; self.canhBaoAdmin = canhBaoAdmin
   }
 }
 
@@ -67,6 +68,7 @@ public struct YeuCauDangCho: Codable, Equatable {
 public enum TraLoi: Codable, Equatable {
   case trangThai(TrangThai)
   case ok(id: String?)
+  case canhBao(id: String?, chu: String)   // thành công nhưng có điều Ba Mẹ cần biết (vd chưa hạ được quyền admin của Con)
   case loi(ma: String, chu: String)        // chu: câu tiếng Việt hiện thẳng cho người dùng
 }
 

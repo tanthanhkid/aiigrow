@@ -39,7 +39,7 @@ final class XinModel: ObservableObject {
       defer { dangGui = false }
       do {
         switch try await IPCClient.guiAsync(yc) {
-        case .ok: daGui = true; thongBao = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…"
+        case .ok, .canhBao: daGui = true; thongBao = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…"
         case .loi(_, let chu): daGui = false; thongBao = chu
         case .trangThai: daGui = true; thongBao = "Đã gửi cho Ba Mẹ."
         }

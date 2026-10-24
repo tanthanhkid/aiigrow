@@ -42,7 +42,8 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
   func xoaTep(_ duongDan: String) { tep[duongDan] = nil }
   func xoaBoNhoDNS() { daXoaDNS += 1 }
-  func haQuyenAdmin(taiKhoan: String) throws { if let e = loiHaQuyen { throw e }; daHaQuyen.append(taiKhoan); admin.remove(taiKhoan) }
+  var truocHaQuyen: (() -> Void)?
+  func haQuyenAdmin(taiKhoan: String) throws { truocHaQuyen?(); if let e = loiHaQuyen { throw e }; daHaQuyen.append(taiKhoan); admin.remove(taiKhoan) }
   func dongPhien(uid: UInt32) throws { daDongPhien.append(uid) }
   func ghiLog(_ s: String) { log.append(s) }
 }

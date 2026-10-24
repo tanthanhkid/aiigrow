@@ -31,7 +31,14 @@ public enum QuyetDinhApp {
     "com.apple.systempreferences", "com.apple.calculator", "com.apple.notes", "com.apple.preview", "com.apple.photos",
     "com.microsoft.word", "com.microsoft.excel", "com.microsoft.powerpoint",
     "com.apple.iwork.pages", "com.apple.iwork.numbers", "com.apple.iwork.keynote",
+    // Bộ gõ tiếng Việt + công cụ hỗ trợ từ xa của Ba Mẹ (Windows: unikey.exe, tvnserver.exe, tailscale-ipn.exe)
+    "io.tailscale.ipn.macsys", "io.tailscale.ipn.macos", "com.teamviewer.teamviewer", "com.teamviewer.teamviewer.agent",
   ]
+  /// Thư mục BỘ GÕ + công cụ hỗ trợ từ xa (so không phân biệt hoa/thường, khớp ở BẤT KỲ đâu trong đường dẫn: «/Library/…» và «~/Library/…»):
+  /// OpenKey, EVKey, GoTiengViet cài vào «Input Methods» — đóng chúng là Con mất bộ gõ cả hệ thống.
+  public static let thuMucMienTru = ["/library/input methods/", "/library/application support/tailscale/", "/library/application support/teamviewer/"]
+  /// Thư mục con trực tiếp của «~» mà tệp thực thi KHÔNG nằm trong .app vẫn bị coi là app (Minecraft Java, game tải về…).
+  static let thuMucNhaCuaCon: Set<String> = ["library", "downloads", "desktop", "documents", "movies", "music", "public", "applications"]
   /// Thư mục hệ thống (SIP bảo vệ, Con không tự đặt app vào được) — không bao giờ đóng.
   /// KHÔNG gồm /System/Applications và Cryptexes (Safari, Chess, Messages, FaceTime, App Store, News… là app Con tự mở) — những app đó xét theo allowlist bundle id như app thường.
   public static let thuMucHeThong = ["/System/Library/", "/usr/", "/bin/", "/sbin/", "/Library/Apple/", "/private/var/db/", "/Library/Application Support/AiiGrow/"]
@@ -59,7 +66,9 @@ public enum QuyetDinhApp {
 
   /// App có thuộc danh sách cho phép không — so cả bundle id lẫn tên .app (máy chủ gửi được cả hai), không phân biệt hoa/thường.
   public static func duocPhep(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
-    guard let app = t.duongDanApp else { return true }                               // không phải app có giao diện ⇒ không đụng
+    let duongThap = t.duongDan.lowercased()
+    if thuMucMienTru.contains(where: { duongThap.contains($0) }) { return true }      // bộ gõ + công cụ hỗ trợ từ xa
+    guard let app = t.duongDanApp else { return khopNgoaiApp(t, choPhep: Set(choPhep.map { $0.lowercased() })) }
     if laTienTrinhPhu(t.duongDan) { return true }                           // phụ (.appex/PlugIns/XPCServices/Helpers/LoginItems): không đóng riêng
     let choPhep = Set(choPhep.map { $0.lowercased() })                                // máy chủ luôn lưu chữ thường (chuanMuc); bundle id thật có chữ hoa
     if thuMucHeThong.contains(where: { app.hasPrefix($0) || t.duongDan.hasPrefix($0) }) { return true }
@@ -72,6 +81,16 @@ public enum QuyetDinhApp {
       return choPhep.contains(ten) || choPhep.contains((ten as NSString).deletingPathExtension)
     }
     return khop(app, t.bundleId) || khop(t.duongDanAppGan, t.bundleIdGan)
+  }
+
+  /// Tệp thực thi KHÔNG thuộc .app: chỉ tiến trình nằm trong thư mục người dùng (Library, Downloads, Desktop…) hoặc là java/javaw ở trong «/Users/…»
+  /// mới bị xét như app (tên mục = tên tệp thực thi, vd «java»); công cụ hệ thống (/usr, /bin, Homebrew…) vẫn không đụng.
+  static func khopNgoaiApp(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
+    let phan = t.duongDan.lowercased().split(separator: "/").map(String.init)
+    guard phan.count > 3, phan[0] == "users", let ten = phan.last else { return true }
+    let laJava = ten == "java" || ten == "javaw"
+    guard thuMucNhaCuaCon.contains(phan[2]) || laJava else { return true }
+    return choPhep.contains(ten) || choPhep.contains((ten as NSString).deletingPathExtension)
   }
 
   /// Tiến trình cần đóng: chỉ khi «chỉ app học» và đang CHẶN THẬT; chỉ tiến trình của uid Con.

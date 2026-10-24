@@ -19,6 +19,7 @@ for p in vn.aiilab.aiigrow.daemon:/Library/LaunchDaemons vn.aiilab.aiigrow.tray:
   /bin/chmod 0644 "$dich/$ten.plist"
 done
 
+/bin/launchctl remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true      # nhãn trình gỡ từ xa còn sót
 /bin/launchctl bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 /bin/launchctl bootstrap system /Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist || true
 /bin/launchctl enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true

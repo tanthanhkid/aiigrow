@@ -91,3 +91,6 @@ done
 /bin/rm -f /var/run/aiigrow.sock
 /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg >/dev/null 2>&1 || true
 echo "Đã gỡ AiiGrow."
+# Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại
+# và lần gỡ từ xa sau không bị trùng nhãn. Việc CUỐI CÙNG của tập lệnh (remove có thể gửi SIGTERM cho chính tiến trình này).
+"${AIIGROW_LAUNCHCTL:-/bin/launchctl}" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true

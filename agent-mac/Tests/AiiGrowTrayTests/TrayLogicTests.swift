@@ -172,4 +172,11 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertEqual(m.xet(giayConLai: 30), 1)
     XCTAssertNil(m.xet(giayConLai: 20))
   }
+
+  func testCanhBaoAdminHienChoBaMe() {
+    var t = tt(); XCTAssertNil(TrayLogic.dongCanhBaoAdmin(t))
+    t.canhBaoAdmin = "Chưa hạ được quyền admin của «be»"
+    XCTAssertEqual(TrayLogic.dongCanhBaoAdmin(t), "⚠ Chưa hạ được quyền admin của «be»")
+    XCTAssertNil(TrayLogic.dongCanhBaoAdmin(nil))
+  }
 }

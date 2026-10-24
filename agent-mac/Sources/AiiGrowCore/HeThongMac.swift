@@ -120,10 +120,15 @@ public final class HeThongMac: HeThong {
 
   public func xoaTep(_ duongDan: String) { unlink(duongDan) }
 
+  public static let nhanTrinhGo = "vn.aiilab.aiigrow.go"
+
   public func chayTrinhGo() {
     let script = DuongDan.app + "/Contents/Resources/go-cai.sh"
     guard FileManager.default.fileExists(atPath: script) else { ghiLog("Không thấy trình gỡ \(script) — gỡ tay bằng go-cai.sh."); return }
-    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", "vn.aiilab.aiigrow.go", "--", "/bin/bash", script], timeout: 10)
+    // `launchctl submit` là cách DUY NHẤT sống sót sau khi go-cai.sh `bootout` chính daemon (launchd giết cả nhóm tiến trình của daemon, nohup/setsid không thoát được).
+    // Việc submit là một lần: go-cai.sh tự `launchctl remove` ở cuối; ở đây còn gỡ nhãn sót từ lần trước để submit không bị trùng nhãn.
+    _ = HeThongMac.chay("/bin/launchctl", ["remove", HeThongMac.nhanTrinhGo], timeout: 10)
+    let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", HeThongMac.nhanTrinhGo, "--", "/bin/bash", script], timeout: 10)
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
   }
 

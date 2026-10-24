@@ -60,7 +60,7 @@ final class TrayApp: NSObject, NSApplicationDelegate {
     let t = model.tt
     let tieuDe = TrayLogic.tieuDeThanh(t, matKetNoi: model.matKetNoi, nhanLuc: model.nhanLuc, bayGio: bay)
     item.button?.title = tieuDe.isEmpty ? "" : " " + tieuDe
-    item.button?.toolTip = TrayLogic.dongTrangThai(t, matKetNoi: model.matKetNoi, nhanLuc: model.nhanLuc, bayGio: bay)
+    item.button?.toolTip = [TrayLogic.dongCanhBaoAdmin(t), TrayLogic.dongTrangThai(t, matKetNoi: model.matKetNoi, nhanLuc: model.nhanLuc, bayGio: bay)].compactMap { $0 }.joined(separator: "\n")
     item.menu = dungMenu(bay: bay)
     capNhatManKhoa()
     capNhatGhep()
@@ -72,6 +72,7 @@ final class TrayApp: NSObject, NSApplicationDelegate {
     func muc(_ ten: String, _ sel: Selector) { let i = NSMenuItem(title: ten, action: sel, keyEquivalent: ""); i.target = self; m.addItem(i) }
     func dong(_ s: String) { let i = NSMenuItem(title: s, action: nil, keyEquivalent: ""); i.isEnabled = false; m.addItem(i) }
     dong(TrayLogic.dongTrangThai(t, matKetNoi: model.matKetNoi, nhanLuc: model.nhanLuc, bayGio: bay))
+    if let c = TrayLogic.dongCanhBaoAdmin(t) { dong(c) }
     if let y = TrayLogic.dongYeuCau(t?.yeuCauCho ?? []) { dong(y) }
     if let t, t.matMang, !model.matKetNoi { dong("Đang chạy theo giờ đã lưu (mất mạng)") }
     m.addItem(.separator())

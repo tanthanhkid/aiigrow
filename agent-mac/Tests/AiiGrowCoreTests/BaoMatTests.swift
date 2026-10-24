@@ -622,4 +622,82 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(loi.count, 1)
     XCTAssertTrue(["dang_ghep", "da_ghep"].contains(loi.first ?? nil ?? ""), "lần hai bị từ chối: \(loi)")
   }
+
+  // MARK: lượt review 8
+
+  func testHaQuyenLoiBaoCanhBaoVaGuiConLaAdmin() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia()
+    let (b, _) = try boMayChuaGhep(fake, thuMuc)
+    fake.admin = ["ba", "be"]; fake.loiHaQuyen = LoiApi(chu: "dseditgroup lỗi")
+    HttpMock.dat { _, _ in HttpMock.json(200, ["deviceId": "d", "token": "tok-ok", "childName": "Bé"]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    let tl = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case let .canhBao(_, chu) = tl else { return XCTFail("phải là canhBao, nhận \(tl)") }
+    XCTAssertTrue(chu.contains("Chưa hạ được quyền admin"), chu)
+    let tt = await b.xuLyIPC(.trangThai, uidGoi: 502)
+    guard case let .trangThai(t) = tt else { return XCTFail() }
+    XCTAssertNotNil(t.canhBaoAdmin, "tray (phiên Ba Mẹ) thấy cảnh báo")
+    // dong-bo mang cờ conLaAdmin + quyen thiếu
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [], "windows": ["mode": "tu_do", "cheDo": "chan", "locked": false, "nextCheckSec": 30,
+        "serverTime": NgayGio.viet(Date()), "allowedApps": [], "learningApps": [], "web": ["cheDo": "mo", "chan": [], "cho": []]]]) }
+    await b.motVong()
+    let st = HttpMock.lanGoiCuoi("api/device/dong-bo")?["status"] as? [String: Any]
+    XCTAssertEqual(st?["conLaAdmin"] as? Bool, true)
+    XCTAssertEqual((st?["quyen"] as? [String: Bool])?["haQuyenAdmin"], false, "máy chủ liệt vào «còn thiếu»")
+  }
+
+  func testGhiDaHaQuyenTruocKhiHaQuyen() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia()
+    let (b, kho) = try boMayChuaGhep(fake, thuMuc)
+    fake.admin = ["ba", "be"]
+    var luc: [String]?
+    fake.truocHaQuyen = { luc = kho.doc()?.daHaQuyen }
+    HttpMock.dat { _, _ in HttpMock.json(200, ["deviceId": "d", "token": "t", "childName": "Bé"]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    try await b.ghep(ma: "123456", taiKhoanCon: "be")
+    XCTAssertEqual(luc, ["be"], "daHaQuyen đã nằm trên đĩa TRƯỚC khi hạ quyền")
+    let la = await b.conLaAdmin, cb = await b.canhBaoAdmin
+    XCTAssertFalse(la)
+    XCTAssertNil(cb)
+  }
+
+  func testMinecraftJavaNgoaiAppBiDongNhungCongCuHeThongKhong() {
+    let java = TienTrinh(pid: 60, uid: 501, duongDan: "/Users/be/Library/Application Support/minecraft/runtime/java-runtime-gamma/mac-os-arm64/bin/java")
+    let javaw = TienTrinh(pid: 61, uid: 501, duongDan: "/Users/be/.sdkman/candidates/java/17/bin/java")
+    let tai = TienTrinh(pid: 62, uid: 501, duongDan: "/Users/be/Downloads/game-crack")
+    let git = TienTrinh(pid: 63, uid: 501, duongDan: "/usr/bin/git")
+    let brew = TienTrinh(pid: 64, uid: 501, duongDan: "/opt/homebrew/bin/node")
+    let nhaGoc = TienTrinh(pid: 65, uid: 501, duongDan: "/Users/be/.local/bin/uv")
+    let ds = [java, javaw, tai, git, brew, nhaGoc]
+    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid).sorted(), [60, 61, 62])
+    XCTAssertTrue(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: ["java", "game-crack"]).isEmpty, "Ba Mẹ cho phép theo tên tệp thực thi")
+    XCTAssertTrue(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: false, choPhep: []).isEmpty, "không «chỉ app học» ⇒ không đóng")
+  }
+
+  func testBoGoVaCongCuTuXaDuocMienTru() {
+    let ds = [
+      TienTrinh(pid: 70, uid: 501, duongDan: "/Library/Input Methods/OpenKey.app/Contents/MacOS/OpenKey", bundleId: "com.tranvietkhoa.openkey"),
+      TienTrinh(pid: 71, uid: 501, duongDan: "/Users/be/Library/Input Methods/GoTiengViet.app/Contents/MacOS/GoTiengViet", bundleId: "com.x.gotiengviet"),
+      TienTrinh(pid: 72, uid: 501, duongDan: "/Users/be/Library/Input Methods/EVKey"),
+      TienTrinh(pid: 73, uid: 501, duongDan: "/Library/Application Support/Tailscale/tailscaled"),
+      TienTrinh(pid: 74, uid: 501, duongDan: "/Applications/Tailscale.app/Contents/MacOS/Tailscale", bundleId: "io.tailscale.ipn.macsys"),
+      TienTrinh(pid: 75, uid: 501, duongDan: "/Applications/TeamViewer.app/Contents/MacOS/TeamViewer", bundleId: "com.teamviewer.TeamViewer"),
+      TienTrinh(pid: 76, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer"),
+    ]
+    XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid), [76])
+  }
+
+  func testGoCaiXoaNhanLaunchctlCuoiTapLenh() throws {
+    let s = try String(contentsOfFile: Self.goiDir + "/go-cai.sh", encoding: .utf8)
+    XCTAssertTrue(s.contains("remove vn.aiilab.aiigrow.go"))
+    XCTAssertTrue(s.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("|| true"), "lệnh remove là việc cuối cùng")
+    for f in ["preinstall", "postinstall"] {
+      XCTAssertTrue(try String(contentsOfFile: Self.goiDir + "/scripts/" + f, encoding: .utf8).contains("launchctl remove vn.aiilab.aiigrow.go"), f)
+    }
+    XCTAssertEqual(HeThongMac.nhanTrinhGo, "vn.aiilab.aiigrow.go")
+  }
+
+  static var goiDir: String { URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().path + "/goi" }
 }

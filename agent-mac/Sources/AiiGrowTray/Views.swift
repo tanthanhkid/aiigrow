@@ -76,6 +76,7 @@ struct GhepMayView: View {
   @State private var loi = ""
   @State private var dangGui = false
   @State private var xong = false
+  @State private var canhBao = ""
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -93,8 +94,12 @@ struct GhepMayView: View {
         .textFieldStyle(.roundedBorder).font(.system(size: 22, weight: .medium, design: .monospaced)).frame(minHeight: 40)
       if !loi.isEmpty { Text(loi).font(.system(size: 13)).foregroundColor(.red).fixedSize(horizontal: false, vertical: true) }
       if xong { Text("Đã ghép máy. Cảm ơn Ba Mẹ!").foregroundColor(.xanhAiiGrow) }
+      if !canhBao.isEmpty {
+        Text("Đã ghép máy, NHƯNG: " + canhBao).font(.system(size: 13, weight: .semibold)).foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
+        Button("Đã hiểu") { dongLai() }
+      }
       Button(dangGui ? "Đang ghép…" : "Ghép máy") { gui() }
-        .buttonStyle(NutXanh()).disabled(dangGui || xong || !TrayLogic.maHopLe(ma) || chon.isEmpty)
+        .buttonStyle(NutXanh()).disabled(dangGui || xong || !TrayLogic.maHopLe(ma) || chon.isEmpty || !canhBao.isEmpty)
       Text("Tài khoản Con sẽ về quyền người dùng thường (cần còn một tài khoản quản trị khác).")
         .font(.system(size: 11)).foregroundColor(.secondary)
     }
@@ -110,6 +115,7 @@ struct GhepMayView: View {
       do {
         switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon)) {
         case .loi(_, let chu): loi = chu
+        case .canhBao(_, let chu): canhBao = chu                    // đã ghép nhưng cần Ba Mẹ làm thêm: giữ cửa sổ mở để đọc, không tự đóng
         default: xong = true; DispatchQueue.main.asyncAfter(deadline: .now() + 2) { dongLai() }
         }
       } catch { loi = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé." }

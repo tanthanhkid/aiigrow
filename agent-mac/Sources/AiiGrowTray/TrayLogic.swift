@@ -81,6 +81,12 @@ public enum TrayLogic {
     return "Không giới hạn giờ hôm nay"
   }
 
+  /// Cảnh báo cho Ba Mẹ khi Con còn quyền admin (nil = ổn).
+  public static func dongCanhBaoAdmin(_ t: TrangThai?) -> String? {
+    guard let c = t?.canhBaoAdmin, !c.isEmpty else { return nil }
+    return "⚠ " + c
+  }
+
   /// Dòng nhắc về lời xin gần nhất đang chờ / vừa được trả lời (nil = không có gì).
   public static func dongYeuCau(_ ds: [YeuCauDangCho]) -> String? {
     guard let y = ds.last else { return nil }
