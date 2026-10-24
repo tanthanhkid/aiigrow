@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
-import { bm, LoiApi, type GiaDinh, type TuanThuMay } from "@/lib/api";
+import { bm, LoiApi, type GiaDinh } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { Avt, BangTruot, BaoLoi, baoKhiVe, BieuTron, ChoTai, Chu, Dong, M, MAU_CON, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, useLam, useTai } from "@/lib/ui";
 
@@ -15,7 +15,8 @@ export default function CaiDat() {
   const { ra } = usePhien();
   const [moXoa, setMoXoa] = useState(false);
   const [mk, setMk] = useState("");
-  const [mayCon, setMayCon] = useState<string[]>([]);            // máy còn ghép (chủ cuối phải gỡ trước khi xoá — server/lib/xoa-tai-khoan.ts)
+  // Máy chủ chặn xoá (chủ còn Ba/Mẹ khác / còn máy đã ghép — server/lib/xoa-tai-khoan.ts): mã + câu hướng dẫn của máy chủ
+  const [chan, setChan] = useState<{ ma: string; cau: string } | null>(null);
   const { dangChay, loi: loiXoa, lam, setLoi } = useLam();
   const { d, loi, matMang, tai } = useTai(async () => ({
     toi: await bm.goi<Toi>("toi"), g: await bm.goi<GiaDinh>("gia-dinh"), tv: (await bm.goi<{ ds: { id: string; ten: string; vai: keyof typeof VAI }[] }>("thanh-vien")).ds,
@@ -23,10 +24,12 @@ export default function CaiDat() {
   if (!d) return <Man tieuLon="Gia đình"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const khac = d.tv.filter((x) => x.id !== d.toi.baMe.id);
   const laChu = d.toi.baMe.vai === "chu", chuConNguoi = laChu && khac.length > 0;
-  const chuConMay = laChu && !chuConNguoi && mayCon.length > 0;
   const dongXoa = () => { setMoXoa(false); setMk(""); setLoi(null); };
+  const laChan = (e: unknown): e is LoiApi => e instanceof LoiApi && (e.ma === "con_may" || e.ma === "con_thanh_vien");
+  // hỏi máy chủ trước (không cần mật khẩu) ⇒ bị chặn thì hiện hướng dẫn ngay, không bắt nhập mật khẩu vô ích
   const moBangXoa = async () => {
-    if (laChu && !chuConNguoi) try { setMayCon((await bm.goi<{ ds: TuanThuMay[] }>("tuan-thu")).ds.map((m) => m.ten)); } catch { /* máy chủ vẫn chặn nếu còn máy */ }
+    setChan(null);
+    try { await bm.goi("xoa-tai-khoan", { kiemTra: true }); } catch (e) { if (laChan(e)) setChan({ ma: e.ma, cau: e.message }); }
     setMoXoa(true);
   };
   const xoa = () => lam(async () => {
@@ -36,7 +39,7 @@ export default function CaiDat() {
     } catch (e) {
       // Không đảo được: mất mạng lúc chờ phản hồi thì KHÔNG nói «chưa có gì thay đổi» — máy chủ có thể đã xoá xong.
       if (e instanceof LoiApi && e.ma === "mat_mang") throw new LoiApi("mat_mang_xoa", "Mất kết nối giữa chừng — chưa rõ tài khoản đã xoá xong chưa. Có mạng lại thì bấm «Xoá vĩnh viễn» lần nữa: nếu app đưa về màn chào là đã xoá.", 0);
-      if (e instanceof LoiApi && (e.ma === "con_may" || e.ma === "con_thanh_vien")) await tai();
+      if (laChan(e)) { setChan({ ma: e.ma, cau: e.message }); setMk(""); return; }
       throw e;
     }
     baoKhiVe(r.xoa === "gia_dinh" ? "Đã xoá tài khoản và toàn bộ dữ liệu gia đình" : "Đã xoá tài khoản của bạn");
@@ -76,17 +79,13 @@ export default function CaiDat() {
           phu={chuConNguoi ? "Mời các thành viên khác ra trước, rồi mới xoá được" : laChu ? "Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình" : "Chỉ xoá tài khoản của bạn — gia đình vẫn giữ nguyên"} />
       </Nhom>
 
-      <BangTruot mo={moXoa} dong={dongXoa} tieu={chuConNguoi || chuConMay ? "Chưa xoá được tài khoản Chủ gia đình" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
-        {chuConNguoi ? (
+      <BangTruot mo={moXoa} dong={dongXoa} tieu={chan ? "Chưa xoá được tài khoản Chủ gia đình" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
+        {chan ? (
           <>
-            <Chu mau={M.chu2}>{`Gia đình còn ${khac.map((x) => x.ten).join(", ")}. Hãy mời họ ra khỏi gia đình trước (Thành viên › chọn người › Mời ra), rồi quay lại đây để xoá. Cần giữ gia đình cho người khác thì chat với AiiLab.`}</Chu>
-            <Nut chu="Mở Thành viên" loai="vien" rong bam={() => { dongXoa(); router.push("/thanh-vien"); }} />
-            <View style={{ marginTop: 8 }}><Nut chu="Đóng" loai="ma" rong bam={dongXoa} /></View>
-          </>
-        ) : chuConMay ? (
-          <>
-            <Chu mau={M.chu2}>{`Gia đình còn ${mayCon.length} máy đã ghép: ${mayCon.join(", ")}. Gỡ từng máy trước (mở máy › Gỡ máy này) để AiiGrow rời máy của Con — xoá tài khoản rồi thì không gửi lệnh gỡ được nữa.`}</Chu>
-            <Nut chu="Xem các máy" loai="vien" rong bam={() => { dongXoa(); router.push("/may"); }} />
+            <Chu mau={M.chu2}>{chan.cau}</Chu>
+            {chan.ma === "con_may"
+              ? <Nut chu="Xem các máy" loai="vien" rong bam={() => { dongXoa(); router.push("/may"); }} />
+              : <Nut chu="Mở Thành viên" loai="vien" rong bam={() => { dongXoa(); router.push("/thanh-vien"); }} />}
             <View style={{ marginTop: 8 }}><Nut chu="Đóng" loai="ma" rong bam={dongXoa} /></View>
           </>
         ) : (

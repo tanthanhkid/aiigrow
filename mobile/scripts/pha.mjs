@@ -174,7 +174,13 @@ coBan["POST con/c1/sua"] = { ok: true };
 coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
 coBan["GET may/m1/tuan-thu"] = { ...coBan["GET tuan-thu"].ds[0], daDongBo: true, dangGo: null, coTheXoaHan: false, cheDoBaMeChon: "chan", moDen: null, suKien: [] };
 // Xoá tài khoản (Apple 5.1.1(v)): chủ là người lớn cuối ⇒ xoá cả gia đình
-coBan["POST xoa-tai-khoan"] = { xoa: "gia_dinh" };
+// (giả như máy chủ: hỏi trước {kiemTra} hoặc xoá thật đều bị chặn 409 khi còn Ba/Mẹ khác / còn máy)
+coBan["POST xoa-tai-khoan"] = (b) => {
+  const tv = kb["GET thanh-vien"].ds, may = kb["GET tuan-thu"].ds;
+  if (tv.length > 1) return { status: 409, body: { error: "con_thanh_vien", message: `Gia đình còn ${tv.slice(1).map((x) => x.ten).join(", ")}. Hãy mời họ ra khỏi gia đình (Gia đình › Thành viên) rồi mới xoá tài khoản Chủ gia đình.` } };
+  if (may.length) return { status: 409, body: { error: "con_may", message: `Gia đình còn ${may.length} máy đã ghép: ${may.map((m) => m.ten).join(", ")}. Gỡ từng máy trước (mở máy › Gỡ máy này) để AiiGrow rời máy của Con — xoá tài khoản rồi thì không gửi lệnh gỡ được nữa.` } };
+  return b?.kiemTra ? { duoc: true } : { xoa: "gia_dinh" };
+};
 const TV_MOT_MINH = { ...coBan["GET thanh-vien"], ds: [coBan["GET thanh-vien"].ds[0]], loiMoi: [] };
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
@@ -202,7 +208,7 @@ ws.onmessage = async (e) => {
   let body = null; try { body = request.postData ? JSON.parse(request.postData) : null; } catch { /* không JSON */ }
   nhatKy.push({ m: request.method, d, body });
   if (request.method === "OPTIONS") return goi("Fetch.fulfillRequest", { requestId, responseCode: 204, responseHeaders: [] });
-  const tl = matMang ? "mat_mang" : kb[khoa];
+  const tl0 = matMang ? "mat_mang" : kb[khoa], tl = typeof tl0 === "function" ? tl0(body) : tl0;      // hàm: trả theo body
   if (tl === "mat_mang") return goi("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
   const { status, data } = tl === undefined ? { status: 404, data: { error: "khong_co_duong", message: `pha.mjs chưa giả ${khoa}` } }
     : tl && typeof tl === "object" && "status" in tl ? { status: tl.status, data: tl.body } : { status: 200, data: tl };
@@ -408,7 +414,7 @@ await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên / còn 
   await bam("Xoá tài khoản");
   xet(await doi("Chưa xoá được tài khoản Chủ gia đình"), "chủ còn Ba/Mẹ khác ⇒ bảng hướng dẫn mời ra trước");
   xet(await doi("Ba Huy"), "nêu tên người còn trong gia đình");
-  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan"), "không gọi xoá");
+  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.body?.matKhau), "không gọi xoá");
 
   kb["GET thanh-vien"] = TV_MOT_MINH;
   await di("/cai-dat");
@@ -416,7 +422,7 @@ await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên / còn 
   await bam("Xoá tài khoản");
   xet(await doi("Gia đình còn 3 máy đã ghép"), "chủ cuối còn máy ⇒ bảo gỡ máy trước, nêu số máy");
   xet(await doi("Xem các máy"), "có nút sang danh sách máy");
-  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan"), "không gọi xoá khi còn máy");
+  xet(!nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.body?.matKhau), "không gọi xoá khi còn máy");
 
   kb["GET tuan-thu"] = { ds: [] };
   await di("/cai-dat");

@@ -64,6 +64,15 @@ test("sai mật khẩu ⇒ 401 sai_mat_khau, không xoá gì; sai 5 lần liền
   const khoa = await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
   assert.deepEqual([khoa.status, khoa.body.error], [429, "tam_khoa"]);
   assert.equal((await m("xoa-tai-khoan", { tok, body: {} })).body.error, "tam_khoa");
+  // hết khoá ⇒ đếm lại từ đầu (một lần gõ nhầm sau khi hết khoá không khoá lại ngay)
+  await q(`update pin_sai set khoa_den = now() - interval '1 minute' where khoa = $1`, [`xoa_tk:${bm}`]);
+  assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "go-nham" } })).body.error, "sai_mat_khau");
+  assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "go-nham" } })).body.error, "sai_mat_khau");
+  // gửi song song: giữ chỗ lượt trước khi kiểm ⇒ không quá 5 lượt được kiểm mật khẩu
+  await q(`delete from pin_sai where khoa = $1`, [`xoa_tk:${bm}`]);
+  const ss = await Promise.all(Array.from({ length: 9 }, (_, i) => m("xoa-tai-khoan", { tok, body: { matKhau: `doan-${i}` } })));
+  assert.equal(ss.filter((x) => x.body.error === "sai_mat_khau").length, 5);
+  assert.equal(ss.filter((x) => x.body.error === "tam_khoa").length, 4);
   // bộ đếm riêng: người cầm phiên mượn không khoá được chính chủ khỏi đăng nhập
   const dn = (await q<{ dinh_danh: string }>(`select dinh_danh from parents where id = $1`, [bm]))[0].dinh_danh;
   assert.equal((await m("dang-nhap", { body: { dinhDanh: dn, matKhau: "matkhau123" } })).status, 200);
@@ -73,6 +82,8 @@ test("chủ gia đình còn Ba/Mẹ khác ⇒ 409 con_thanh_vien, không xoá g�
   const { fam, bm, tok } = await nha();
   const ba = await taoBaMe(fam, "Ba", "duyet");
   const con = await g.taoCon(fam, { ten: "Ken" });
+  const hoi = await m("xoa-tai-khoan", { tok, body: { kiemTra: true } });
+  assert.deepEqual([hoi.status, hoi.body.error], [409, "con_thanh_vien"], "app hỏi trước, không cần mật khẩu");
   const r = await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
   assert.deepEqual([r.status, r.body.error], [409, "con_thanh_vien"]);
   assert.match(r.body.message, /mời/);
@@ -80,6 +91,7 @@ test("chủ gia đình còn Ba/Mẹ khác ⇒ 409 con_thanh_vien, không xoá g�
   assert.equal((await q(`select 1 from parents where id = $1`, [bm])).length, 1);
   // người đã bị mời ra (vai roi) không tính là «còn người khác»
   assert.equal((await m(`thanh-vien/${ba}/moi-ra`, { tok, body: {} })).status, 200);
+  assert.deepEqual((await m("xoa-tai-khoan", { tok, body: { kiemTra: true } })).body, { duoc: true });
   const ok = await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
   assert.deepEqual([ok.status, ok.body.xoa], [200, "gia_dinh"]);
   assert.deepEqual(await demConLai({ fam, con: [con], may: [], baMe: [bm, ba] }), {});
@@ -116,6 +128,8 @@ test("chủ là người lớn cuối: còn máy ⇒ 409 con_may; gỡ máy xong
   assert.equal((await q(`select 1 from devices where family_id = $1`, [fam])).length, 0);
   assert.ok((await q(`select 1 from evidence where child_id = $1`, [con])).length);
   assert.ok((await q(`select 1 from points where child_id = $1`, [con])).length);
+  // khoá đếm sai gắn với máy / Con (PIN «<máy>:<con>», gỡ tại máy «go:<máy>»)
+  await q(`insert into pin_sai(khoa, so_lan) values ($1, 2), ($2, 1), ($3, 1)`, [`${may.deviceId}:${con}`, `go:${may.deviceId}`, `may-cu:${con2}`]);
   const tok2 = await taoPhien(bm);                              // phiên trên máy thứ hai
 
   const r = await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
@@ -132,7 +146,8 @@ test("chủ là người lớn cuối: còn máy ⇒ 409 con_may; gỡ máy xong
   assert.equal((await m("toi", { tok: khac.tok })).status, 200);
   assert.equal((await q(`select 1 from children where id = $1`, [conKhac])).length, 1);
   assert.equal((await q(`select 1 from parents where family_id = $1`, [fam])).length, 0);
-  assert.equal((await q(`select 1 from pin_sai where khoa like $1`, [`xoa_tk:${bm}%`])).length, 0);
+  for (const id of [bm, con, con2, may.deviceId])
+    assert.equal((await q(`select 1 from pin_sai where khoa like $1`, [`%${id}%`])).length, 0, `pin_sai còn khoá chứa ${id}`);
 });
 
 test("Ba Mẹ không phải chủ (Phê duyệt / Chỉ xem) ⇒ chỉ xoá tài khoản mình; gia đình, Con, chủ còn nguyên", async () => {
@@ -142,6 +157,8 @@ test("Ba Mẹ không phải chủ (Phê duyệt / Chỉ xem) ⇒ chỉ xoá tài
     const id = await taoBaMe(fam, vai === "xem" ? "Bà" : "Ba", vai);
     await datMk(id);
     const t = await taoPhien(id);
+    assert.equal((await m(`con/${con}/loi-khen`, { tok: vai === "duyet" ? t : tok, body: { noiDung: `khen ${vai}` } })).status, 200);
+    await q(`insert into ho_tro(id, family_id, tu, nguoi, noi_dung) values ($1, $2, 'ba_me', $3, 'tin riêng')`, [`ht-${id}`, fam, id]);
     const sai = await m("xoa-tai-khoan", { tok: t, body: { matKhau: "x" } });
     assert.deepEqual([sai.status, sai.body.error], [401, "sai_mat_khau"]);
     const r = await m("xoa-tai-khoan", { tok: t, body: { matKhau: "matkhau123" } });
@@ -151,12 +168,15 @@ test("Ba Mẹ không phải chủ (Phê duyệt / Chỉ xem) ⇒ chỉ xoá tài
     assert.deepEqual([p[0].vai, p[0].dinh_danh, p[0].pass_hash], ["roi", `xoa:${id}`, null]);
     assert.equal((await q(`select 1 from sessions where parent_id = $1`, [id])).length, 0);
     assert.equal((await q(`select 1 from pin_sai where khoa = $1`, [`xoa_tk:${id}`])).length, 0);
+    assert.equal((await q(`select 1 from ho_tro where nguoi = $1`, [id])).length, 0, "xoá tin hỗ trợ mình viết");
+    assert.equal((await q(`select 1 from messages where parent_id = $1`, [id])).length, 0, "xoá lời khen mình gửi");
     assert.ok(!(await m("thanh-vien", { tok })).body.ds.some((x: any) => x.id === id), "không còn trong danh sách thành viên");
     assert.equal((await m("toi", { tok: t })).status, 401);
   }
   assert.equal((await q(`select 1 from families where id = $1`, [fam])).length, 1);
   assert.equal((await q(`select 1 from children where id = $1`, [con])).length, 1);
   assert.equal((await m("toi", { tok })).status, 200);
+  assert.equal((await q(`select 1 from messages where parent_id = $1`, [bm])).length, 1, "tin của chủ còn nguyên");
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'thanh_vien_xoa_tai_khoan'`, [fam])).length, 2);
   // chủ giờ là người cuối ⇒ xoá được cả gia đình
   assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } })).body.xoa, "gia_dinh");
