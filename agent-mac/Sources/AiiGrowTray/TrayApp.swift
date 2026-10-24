@@ -113,7 +113,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       var chu: String
       do {
         chu = TrayLogic.chuKiemCapNhat(try await IPCClient.guiAsync(.capNhat))
-      } catch { chu = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé." }
+      } catch { chu = "Không liên lạc được dịch vụ AiiGrow (đang khởi động lại hoặc không chạy). Thử lại sau vài giây; vẫn lỗi thì cài lại gói ở trang /tai." }
       let a = NSAlert(); a.messageText = "Kiểm tra cập nhật"; a.informativeText = chu
       a.addButton(withTitle: "Đã hiểu"); NSApp.activate(ignoringOtherApps: true); a.runModal()
     }

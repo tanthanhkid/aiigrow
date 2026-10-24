@@ -272,7 +272,7 @@ public actor BoCapNhat {
     guard heThong.docTep(DuongDan.daGo) == nil else {
       // máy vẫn ghép mà còn dấu gỡ (lượt gỡ tay bị dừng giữa chừng…): nói thật nguyên nhân + cách gỡ vướng
       heThong.ghiLog("Cập nhật: còn dấu gỡ \(DuongDan.daGo) — không tự cập nhật.")
-      return ketThuc(.loi("Máy còn dấu «đã gỡ» từ một lượt gỡ dở (\(DuongDan.daGo)); tải và cài lại AiiGrow (gói .pkg ở trang /tai) để tự cập nhật tiếp."))
+      return ketThuc(.loi("Máy đang được gỡ AiiGrow (go-cai.sh đang chạy) nên không tự cập nhật."))
     }
     so.dat("Đang kiểm tra bản mới…", luc: dongHo())
     let ban: BanMoi?

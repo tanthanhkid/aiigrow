@@ -59,7 +59,8 @@ trap - INT TERM HUP
 if "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"'; then DUNG_CAP_NHAT=1; fi
 "$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
 PG=/Applications/AiiGrow.app/Contents/Resources/phien-gui.sh      # cùng quy tắc phiên GUI với preinstall/postinstall; thiếu thì pkill bên dưới vẫn đóng tray
-for uid in $([ -f "$PG" ] && /bin/bash "$PG"); do
+# app đã bị xoá (chạy lại sau lượt dừng giữa chừng): lấy uid từ console + chủ tiến trình AiiGrowTray như phien-gui.sh
+for uid in $(if [ -f "$PG" ]; then /bin/bash "$PG"; else { /usr/bin/stat -f %u /dev/console; /bin/ps -axo uid=,comm= | /usr/bin/awk '/\/AiiGrowTray$/ {print $1}'; } 2>/dev/null | /usr/bin/awk '$1 >= 500' | /usr/bin/sort -un; fi); do
   "$LC" bootout "gui/$uid/vn.aiilab.aiigrow.tray" >/dev/null 2>&1 || true
 done
 /usr/bin/pkill -x AiiGrowTray >/dev/null 2>&1 || true
