@@ -1,12 +1,15 @@
 "use client";
 // Cổng quản trị AiiLab (M5): đăng nhập Admin → các mục theo #mục trên địa chỉ (giữ được khi tải lại, mở thẳng một gia đình / cuộc chat).
+// Giao diện Clay gương (docs/THIET-KE-CLAY.md): mỗi mục một icon Fluent 3D; đổi mục thì các khối nảy vào lại (main đổi key).
 import { useEffect, useState, type FormEvent } from "react";
 import { api, docToken, ghiToken } from "./_lib";
 import * as M from "./_muc";
+import { F3, I3d, Ph, type Ten3d } from "../_clay/Icon";
 
-const MUC: [string, string][] = [
-  ["tong-quan", "Tổng quan"], ["gia-dinh", "Gia đình & nạp quỹ"], ["phieu", "Kho phiếu quà"], ["doi-soat", "Đối soát"], ["ho-tro", "Hỗ trợ Ba Mẹ"],
-  ["mau", "Thư viện mẫu"], ["allowlist", "Allowlist hệ thống"], ["tham-so", "Tham số"], ["nhat-ky", "Nhật ký kiểm toán"],
+const MUC: [string, string, Ten3d][] = [
+  ["tong-quan", "Tổng quan", "bar-chart"], ["gia-dinh", "Gia đình & nạp quỹ", "house-with-garden"], ["phieu", "Kho phiếu quà", "ticket"],
+  ["doi-soat", "Đối soát", "balance-scale"], ["ho-tro", "Hỗ trợ Ba Mẹ", "speech-balloon"], ["mau", "Thư viện mẫu", "books"],
+  ["allowlist", "Allowlist hệ thống", "shield"], ["tham-so", "Tham số", "gear"], ["nhat-ky", "Nhật ký kiểm toán", "scroll"],
 ];
 
 function DangNhap({ vao }: { vao: () => void }) {
@@ -22,7 +25,7 @@ function DangNhap({ vao }: { vao: () => void }) {
   return (
     <main className="dn">
       <form className="the" onSubmit={gui} noValidate>
-        <div className="dau-dn"><img src="/logo.png" alt="" /><div><h1>Quản trị AiiLab</h1><p className="mo">Cổng nội bộ AiiGrow — chỉ tài khoản Admin</p></div></div>
+        <div className="dau-dn"><I3d ten="key" mau="vang" /><div><h1>Quản trị AiiLab</h1><p className="mo">Cổng nội bộ AiiGrow — chỉ tài khoản Admin</p></div></div>
         <label><span className="nhan-o">Tên đăng nhập</span>
           <span className="o-nhap"><input aria-label="Tên đăng nhập" autoComplete="username" value={ten} onChange={(e) => setTen(e.target.value)} /></span></label>
         <label><span className="nhan-o">Mật khẩu</span>
@@ -78,15 +81,17 @@ export default function Admin() {
         <b className="ten">AiiGrow · Quản trị AiiLab</b>
         <div className="phai">
           {ten ? <span className="nhan ok">{ten}</span> : null}
-          <button className="nut ma nho" onClick={dangXuat}>Đăng xuất</button>
+          <button className="nut ma nho" onClick={dangXuat}><Ph ten="sign-out" co={18} />Đăng xuất</button>
         </div>
       </header>
       <div className="khung-ad">
         <nav className="muc" aria-label="Mục quản trị">
-          {MUC.map(([k, c]) => (
-            <a key={k} href={`#${k}`} aria-current={dang === k ? "page" : undefined}>{c}{k === "ho-tro" && cho ? <span className="so" aria-label={`${cho} chờ trả lời`}>{cho}</span> : null}</a>))}
+          {MUC.map(([k, c, ic]) => (
+            <a key={k} href={`#${k}`} aria-current={dang === k ? "page" : undefined}>
+              <F3 ten={ic} className={k === "ho-tro" && cho ? "rung" : ""} />
+              <span className="chu-muc">{c}</span>{k === "ho-tro" && cho ? <span className="so" aria-label={`${cho} chờ trả lời`}>{cho}</span> : null}</a>))}
         </nav>
-        <main className="noi-dung">{than}</main>
+        <main className="noi-dung vao" key={`${dang}/${con ?? ""}`}>{than}</main>
       </div>
     </div>
   );

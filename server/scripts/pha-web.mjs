@@ -1,4 +1,5 @@
-// Kịch bản + cổng chuẩn giao diện cho các màn web của máy chủ: /quay (quầy AiiCafe) và /admin (quản trị AiiLab).
+// Kịch bản + cổng chuẩn giao diện cho các màn web của máy chủ: /quay (quầy AiiCafe), /admin (quản trị AiiLab) và trang công khai
+// /tai (theo từng hệ điều hành), /cai/<token>, /chinh-sach-rieng-tu.
 // Chép cách làm của mobile/scripts/pha.mjs + giao-dien.mjs (dùng chung bộ đo 5 luật DO / GIAN / doTay), nhưng chạy trên MÁY CHỦ THẬT:
 // tự mở `next dev` với PGlite ở thư mục tạm (dữ liệu dựng qua chính API), tự tạo tài khoản quầy/admin bằng scripts/tao-tai-khoan.ts với
 // mật khẩu ngẫu nhiên chỉ sống trong lần chạy, rồi điều khiển một Chrome headless RIÊNG (hồ sơ tạm) qua CDP. Chỉ hai trường hợp không tạo
@@ -6,7 +7,7 @@
 //
 //   PHA_CONG=3311 PHA_CDP=9502 node scripts/pha-web.mjs               # kịch bản luồng chính
 //   PHA_CONG=3311 PHA_CDP=9502 node scripts/pha-web.mjs --giao-dien   # cổng giao diện: 320 / 390 / 390 giãn chữ / 1440
-//   GD_CHUP=<thư mục> [GD_CHUP_TAT_CA=1]  chụp màn có lỗi / mọi màn.  PHA_CHUP=<thư mục>  chụp bước SAI của kịch bản.
+//   GD_CHUP=<thư mục> [GD_CHUP_TAT_CA=1] [GD_CHUP_DAI=1]  chụp màn có lỗi / mọi màn (DAI: cả trang ở mọi khổ).  PHA_CHUP=<thư mục>  chụp bước SAI của kịch bản.
 // Mã thoát 1 nếu có bước SAI / còn lỗi giao diện.
 import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -119,7 +120,7 @@ const tokQuay = async () => (await api("quay/dang-nhap", { body: { tenDangNhap: 
 const di = async (duong, khoa, token) => {
   await goi("Page.navigate", { url: `${GOC}${duong.split("#")[0]}` });
   await doi("", 3000); await sleep(400);
-  await js(token ? `localStorage.setItem(${JSON.stringify(khoa)}, ${JSON.stringify(token)})` : `localStorage.removeItem(${JSON.stringify(khoa)})`);
+  if (khoa) await js(token ? `localStorage.setItem(${JSON.stringify(khoa)}, ${JSON.stringify(token)})` : `localStorage.removeItem(${JSON.stringify(khoa)})`);
   await goi("Page.navigate", { url: "about:blank" });                // đường chỉ khác #mục thì trình duyệt không tải lại — qua trang trắng trước
   await goi("Page.navigate", { url: `${GOC}${duong}` });
   await sleep(500);
@@ -144,7 +145,21 @@ if (GIAO_DIEN) {
   const quetMa = async (ma) => { await go("Mã phiếu quà", ma); await bam("Kiểm tra mã"); };
   const Q = (ten, cho, o = {}) => ({ ten, duong: "/quay", khoa: "aiig_quay", cho, ...o });
   const A = (ten, hash, cho, o = {}) => ({ ten, duong: `/admin${hash}`, khoa: "aiig_admin", cho, ...o });
+  // trang công khai: /tai chọn nút chính theo máy đang mở (UA + Client Hint) ⇒ giả từng hệ điều hành
+  const UA = {
+    windows: ["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36", "Windows", false],
+    mac: ["Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36", "macOS", false],
+    iphone: ["Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1", "iOS", true],
+    android: ["Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36", "Android", true],
+  };
+  const P = (ten, duong, cho, ua = "windows") => ({ ten, duong, khoa: null, token: null, cho, ua });
   const dsMan = [
+    P("tai-windows", "/tai", "Tải AiiGrow cho Windows"),
+    P("tai-mac", "/tai", "Tải AiiGrow cho máy Mac", "mac"),
+    P("tai-iphone", "/tai", "Bạn đang mở trang bằng iPhone", "iphone"),
+    P("tai-android", "/tai", "Tải app Ba Mẹ cho Android", "android"),
+    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Đã cài rồi — mở app AiiGrow Con"),
+    P("chinh-sach-rieng-tu", "/chinh-sach-rieng-tu", "AiiGrow Privacy Policy"),
     Q("quay-dang-nhap", "Vào quầy", { token: null }),
     Q("quay-san-sang", "Sẵn sàng quét"),
     Q("cafe-quet (hợp lệ)", "Đã đánh dấu", { sau: () => quetMa(kho.shift()) }),
@@ -168,11 +183,20 @@ if (GIAO_DIEN) {
   ];
   const vao = async (m) => {
     chanQuet = m.chan ?? null;
+    const [ua, nen, dd] = UA[m.ua ?? "windows"];
+    await goi("Emulation.setUserAgentOverride", { userAgent: ua, platform: nen, userAgentMetadata: { brands: [{ brand: "Chromium", version: "141" }],
+      fullVersion: "141.0.0.0", platform: nen, platformVersion: "10.0.0", architecture: "x86", model: "", mobile: dd } });
     await di(m.duong, m.khoa, m.token === null ? null : m.khoa === "aiig_quay" ? await tokQuay() : tokAd);
     if (m.sau) { await doi("Sẵn sàng quét"); await m.sau(); }
     const ok = await doi(m.cho);
     chanQuet = null;
-    if (ok) return true;
+    if (ok) {
+      // bỏ nút «N» của next dev (đè chữ góc dưới, không thuộc giao diện); bấm nút có scrollIntoView ⇒ về đầu trang vì doTay chụp ở đầu trang
+      await js("document.querySelectorAll('nextjs-portal').forEach((e) => e.remove()); scrollTo(0, 0)");
+      // chờ nảy vào / rung xong mới đo — khối dữ liệu tải sau cũng nảy vào muộn ⇒ đợi tới khi 2 lần liền không còn animation chạy (tối đa 3s)
+      for (let t = 0, yen = 0; t < 3000 && yen < 2; t += 150) { yen = (await js("document.getAnimations().some((a) => a.playState === 'running')")) ? 0 : yen + 1; await sleep(150); }
+      return true;
+    }
     console.log(`    KHÔNG TẢI: chưa thấy «${m.cho}» ở ${m.duong}: ${(await chu())?.replace(/\s+/g, " ").slice(0, 200)}`);
     return false;
   };
@@ -199,7 +223,12 @@ if (GIAO_DIEN) {
       for (const t of tay.filter((t) => !t.dat)) ds.push({ luat: "TUONG-PHAN", chu: t.chu, el: t.el, ti: t.ti, can: t.can, nen: `${t.nen} — đo pixel, nền xấu nhất ${t.nenXau}` });
       loi += ds.length;
       if (process.env.GD_CHUP && (ds.length || process.env.GD_CHUP_TAT_CA)) {
-        const a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 });
+        await sleep(500);
+        // cả trang: nới khung cho bằng chiều cao nội dung rồi chụp, xong trả khung về (clip + captureBeyondViewport treo ở chế độ mobile)
+        const caoNd = process.env.GD_CHUP_DAI ? Math.ceil((await goi("Page.getLayoutMetrics")).cssContentSize.height) : 0;
+        if (caoNd) { await khung(rong, Math.max(caoNd, rong >= 1000 ? 900 : 844)); await sleep(400); }
+        const a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
+        if (caoNd) await khung(rong);
         writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
       }
       console.log(`${man.ten.padEnd(30)} ${ds.length ? ds.length + " lỗi" : "đạt"}${tay.length ? ` (đo pixel ${tay.length} dòng trên nền gradient/ảnh)` : ""}`);

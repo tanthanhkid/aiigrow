@@ -1,8 +1,11 @@
 "use client";
 // Màn quầy AiiCafe (M5, BRD 8.2, thiết kế cafe-quet / cafe-da-dung): một nút quét QR bằng camera trình duyệt (getUserMedia + jsQR),
 // hoặc gõ mã; kết quả to rõ Hợp lệ / Đã dùng / Hết hạn kèm âm báo. Máy chủ quyết «dùng một lần» (quetVoucher nguyên tử).
+// Giao diện Clay gương (docs/THIET-KE-CLAY.md): kết quả bật vào (lò xo), hợp lệ thì pháo giấy ngọc/vàng; reduced motion ⇒ chỉ fade.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import jsQR from "jsqr";
+import { phaoGiay } from "../_clay/Dong";
+import { I3d, Ph } from "../_clay/Icon";
 
 type Nv = { ten: string; vai: string; quay: string };
 type Kq = { ketQua: "hop_le" | "da_dung" | "het_han" | "chua_phat_hanh" | "thu_hoi" | "khong_thay"; ma: string; menhGia?: number; tenCon?: string;
@@ -62,7 +65,7 @@ function DangNhap({ vao }: { vao: (t: string) => void }) {
   return (
     <main className="dn">
       <form className="the" onSubmit={gui} noValidate>
-        <div className="dau-dn"><img src="/logo.png" alt="" /><div><h1>Quầy AiiCafe</h1><p className="mo">Đăng nhập nhân viên để quét phiếu quà</p></div></div>
+        <div className="dau-dn"><I3d ten="hot-beverage" mau="vang" /><div><h1>Quầy AiiCafe</h1><p className="mo">Đăng nhập nhân viên để quét phiếu quà</p></div></div>
         <label><span className="nhan-o">Tên đăng nhập</span>
           <span className="o-nhap"><input aria-label="Tên đăng nhập" autoComplete="username" value={ten} onChange={(e) => setTen(e.target.value)} /></span></label>
         <label><span className="nhan-o">Mật khẩu</span>
@@ -84,6 +87,7 @@ export default function Quay() {
   const video = useRef<HTMLVideoElement>(null);
   const luong = useRef<MediaStream | null>(null);
   const dangQuet = useRef(false);
+  const oKq = useRef<HTMLElement>(null);
 
   useEffect(() => { setToken(docToken()); }, []);
   useEffect(() => {
@@ -101,6 +105,9 @@ export default function Quay() {
     setCam((c) => (c === "mo" ? "tat" : c));
   }, []);
   useEffect(() => tatCam, [tatCam]);
+  const hopLe = hien.loai === "kq" && hien.kq.ketQua === "hop_le" ? hien.kq : null;
+  const daPhao = useRef("");
+  useEffect(() => { if (hopLe && daPhao.current !== hopLe.luc) { daPhao.current = hopLe.luc; phaoGiay(oKq.current); } }, [hopLe]);
 
   const kiem = useCallback(async (maVao: string) => {
     const m = maVao.trim();
@@ -169,7 +176,7 @@ export default function Quay() {
   let kq;
   if (hien.loai === "cho") {
     kq = (
-      <section className="kq cho" aria-live="polite">
+      <section className="kq cho bat" key="cho" aria-live="polite">
         <img src="/linh-vat/so-tay.webp" alt="" />
         <b className="lon">Sẵn sàng quét</b>
         <span className="vua">Đưa mã QR trong ví quà của Con vào khung, hoặc gõ mã bên dưới.</span>
@@ -178,7 +185,7 @@ export default function Quay() {
     );
   } else if (hien.loai === "dang") {
     kq = (
-      <section className="kq cho" aria-live="polite" aria-busy="true">
+      <section className="kq cho bat" key="dang" aria-live="polite" aria-busy="true">
         <img src="/linh-vat/cho.webp" alt="" />
         <b className="lon">Đang kiểm tra…</b>
         <span className="vua ma-phieu">{hienMa(hien.ma.toUpperCase())}</span>
@@ -187,7 +194,7 @@ export default function Quay() {
   } else if (hien.loai === "mang" || hien.loai === "loi") {
     const h = hien;
     kq = (
-      <section className="kq canh" role="alert">
+      <section className="kq canh bat" key={h.loai} role="alert">
         <img src="/linh-vat/trong-loi.webp" alt="" />
         <b className="lon">{h.loai === "mang" ? "Chưa kiểm tra được" : "Mã chưa đúng"}</b>
         <span className="vua">{h.loai === "mang" ? "Quầy đang mất kết nối." : h.cau}</span>
@@ -203,7 +210,7 @@ export default function Quay() {
     const maHien = hienMa(k.ma);
     if (k.ketQua === "hop_le") {
       kq = (
-        <section className="kq ok" role="status">
+        <section className="kq ok bat" key={`ok-${k.luc}`} ref={oKq} role="status">
           <img src="/linh-vat/xong.webp" alt="" />
           <b className="lon">Hợp lệ<br />{tien(k.menhGia)}</b>
           <span className="vua"><span className="ma-phieu">{maHien}</span> · {k.tenCon}{k.tenGiaDinh ? ` (${k.tenGiaDinh.replace(/^Nhà /, "gia đình ")})` : ""}</span>
@@ -223,7 +230,7 @@ export default function Quay() {
       const [tieu, phu, buoc] = T[k.ketQua] ?? T.khong_thay;
       const vuaQuayNay = k.ketQua === "da_dung" && k.quayDung === nv?.quay && k.dungLuc && Date.parse(k.luc) - Date.parse(k.dungLuc) < 2 * 60_000;
       kq = (
-        <section className="kq loi" role="alert">
+        <section className="kq loi bat" key={`loi-${k.ketQua}-${k.luc}`} role="alert">
           <img src="/linh-vat/trong-loi.webp" alt="" />
           <b className="lon">{tieu}</b>
           <span className="vua"><span className="ma-phieu">{maHien}</span> · {phu}</span>
@@ -238,20 +245,20 @@ export default function Quay() {
   return (
     <div className="ag quay">
       <header className="tren">
-        <img src="/logo.png" alt="" />
+        <I3d ten="hot-beverage" mau="vang" co={44} />
         <b className="ten-quay">AiiCafe · {tenQuay}</b>
         <div className="phai">
           {nv?.ten ? <span className="nhan ok">Nhân viên: {nv.ten}</span> : null}
-          <button className="nut ma nho" onClick={dangXuat}>Đăng xuất</button>
+          <button className="nut ma nho" onClick={dangXuat}><Ph ten="sign-out" co={18} />Đăng xuất</button>
         </div>
       </header>
-      <main className={`giua ${hien.loai === "cho" ? "" : "co-kq"}`}>
+      <main className={`giua vao ${hien.loai === "cho" ? "" : "co-kq"}`}>
         <section className="may-quet" aria-label="Máy quét mã QR">
           <div className="khung"><video ref={video} muted playsInline hidden={cam !== "mo"} aria-label="Hình camera" /></div>
           {cam === "mo" ? <span className="ghi">Đưa mã QR vào giữa khung — quét được là tự kiểm tra.</span>
             : camLoi ? <span className="ghi" role="alert">{camLoi}</span> : null}
           <button className="nut vang" onClick={() => (cam === "mo" ? tatCam() : moCam())}>
-            <svg className="svg-i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 21v-3" /></svg>
+            <Ph ten="qr-code" co={24} />
             {cam === "mo" ? "Dừng quét" : "Quét phiếu quà"}
           </button>
         </section>
