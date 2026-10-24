@@ -5,7 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet, type Khung } from "@/lib/api";
 import { SuaKhung } from "@/lib/sua-gio";
-import { BangKhoa, cauKhoa, cauMoTam, conHan, datKhoa } from "@/lib/khoa-may";
+import { BangKhoa, cauKhoa, cauMoTam, conHan, moLaiMay } from "@/lib/khoa-may";
 import { BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, gioPhut, HaiNut, Man, Nhom, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 type Sua = "ngayThuong" | "cuoiTuan" | "ngu";
@@ -25,12 +25,7 @@ export default function GioChoi() {
     await tai();
   }, { hangDoi: true });
   const cauHinh = (them: Record<string, number>) => lam(async () => { await bm.goi(`con/${con}/cau-hinh`, them); await tai(); }, { hangDoi: true });
-  const moLai = () => lam(async () => {
-    const den = d.khoaDen ?? null, moTamCu = !!d.moTamDen;
-    await datKhoa(con, false, null);
-    bao(`Đã mở lại máy của ${d.ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null, moTamCu).then(tai, tai); });
-    await tai();
-  }, { hangDoi: true });
+  const moLai = () => lam(async () => { await moLaiMay(con, d.ten, d, bao, tai); await tai(); }, { hangDoi: true });
   const dangKhoa = d.khoaNgay && conHan(d.khoaDen);
   const moTam = dangKhoa ? cauMoTam(d.moTamDen, d.khoaDen) : null;
   return (

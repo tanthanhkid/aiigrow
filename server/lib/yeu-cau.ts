@@ -96,31 +96,27 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       } else ngoaiLe = true;
       // Lời xin từ máy WINDOWS: «thêm N phút» = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows
       // (mode tu_do + grantEndsAt) ở lần đồng bộ kế. Lý do: agent Windows không có «thưởng» để tự mở phiên khi con 0 điểm / chặn web nên grant cũ không bao giờ tới máy.
-      // Ba Mẹ cho thêm giờ lúc Con đang «Khoá ngay» ⇒ mở TẠM đúng phần giờ đó rồi khoá lại (Khang 24/10: «xin thêm thời gian aiigrow không
-      // bật lại» — cờ khoa_ngay cũ đè cửa sổ mở). Chỉ Ba Mẹ duyệt tay mới mở được; quy tắc tự động không vượt khoá (apQuyTacTuDong).
-      // Mở tạm là MỘT mốc `khoa_mo_tam_den` cho mọi máy (Windows đọc qua tuan-thu.ts › hanMoCuaMay); duyệt lần nữa cộng tiếp từ mốc cũ,
-      // không vượt hạn khoá. Grant ghi cua_so_den = now (đã dùng qua mở tạm) ⇒ không thành «thưởng» dùng lần hai.
-      const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
-      const moTam = nguoi !== null && khoaGoc(cfg, now);
+      // Lời xin từ máy WINDOWS: «thêm N phút» = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows
+      // (mode tu_do + grantEndsAt) ở lần đồng bộ kế. Lý do: agent Windows không có «thưởng» để tự mở phiên khi con 0 điểm / chặn web nên grant cũ không bao giờ tới máy.
       let cuaSoDen: Date | null = null;
-      if (moTam) {
-        const tu = Math.max(now.getTime(), Date.parse(moTamDen(cfg, now) ?? "") || 0);
-        const het = khoaDen(cfg, now);
-        const moDen = new Date(Math.min(tu + phut * 60000, het ? Date.parse(het) : Infinity)).toISOString();
-        cuaSoDen = now;
-        await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('khoa_mo_tam_den', $2::text) where id = $1`, [r.child_id, moDen]);
-        await ghiSuKien(fam, "mo_tam", { vi: "duyet_them_gio", yeu_cau: r.id, den: moDen }, { con: r.child_id, nguoi }, t);
-      } else {
-        // Lời xin từ máy WINDOWS: «thêm N phút» = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows
-        // (mode tu_do + grantEndsAt) ở lần đồng bộ kế. Lý do: agent Windows không có «thưởng» để tự mở phiên khi con 0 điểm / chặn web nên grant cũ không bao giờ tới máy.
-        const nen = r.device_id ? (await t<{ platform: string }>(`select platform from devices where id = $1`, [r.device_id]))[0]?.platform : null;
-        if (nen === "windows") {
-          const cu = (await t<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [r.child_id, now]))[0]?.d;
-          cuaSoDen = new Date(Math.max(now.getTime(), cu ? new Date(cu).getTime() : 0) + phut * 60000);
-        }
+      const nen = r.device_id ? (await t<{ platform: string }>(`select platform from devices where id = $1`, [r.device_id]))[0]?.platform : null;
+      if (nen === "windows") {
+        const cu = (await t<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [r.child_id, now]))[0]?.d;
+        cuaSoDen = new Date(Math.max(now.getTime(), cu ? new Date(cu).getTime() : 0) + phut * 60000);
       }
       await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);
       await t(`update requests set phut = $2 where id = $1`, [r.id, phut]);
+      // Ba Mẹ cho thêm giờ lúc Con đang «Khoá ngay» ⇒ gỡ cờ khoá TẠM đúng số phút đó rồi khoá lại (Khang 24/10: «xin thêm thời gian aiigrow không
+      // bật lại» — cờ khoa_ngay cũ đè cửa sổ mở). Grant ở trên giữ nguyên nghĩa (Windows: cửa sổ; máy khác: phút thưởng) — mở tạm chỉ là lúc
+      // khoá nhường chỗ cho luật thường. Duyệt lần nữa cộng tiếp từ mốc cũ, không vượt hạn khoá. Chỉ Ba Mẹ duyệt tay; quy tắc tự động không vượt khoá.
+      const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
+      if (nguoi && khoaGoc(cfg, now)) {
+        const tu = Math.max(now.getTime(), Date.parse(moTamDen(cfg, now) ?? "") || 0);
+        const het = khoaDen(cfg, now);
+        const moDen = new Date(Math.min(tu + phut * 60000, het ? Date.parse(het) : Infinity)).toISOString();
+        await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('khoa_mo_tam_den', $2::text) where id = $1`, [r.child_id, moDen]);
+        await ghiSuKien(fam, "mo_tam", { vi: "duyet_them_gio", yeu_cau: r.id, den: moDen }, { con: r.child_id, nguoi }, t);
+      }
       if (ngoaiLe) await ghiNgoaiLe(fam, r.child_id, nguoi, r.loai === "ngoai_gio" ? "ngoai_gio" : "them_gio_khong_tru", r.id, t, now);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
       const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";

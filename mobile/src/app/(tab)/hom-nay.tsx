@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type ThongKeWeb } from "@/lib/api";
 import { ChuongTb } from "@/lib/chuong-tb";
-import { BangKhoa, cauKhoa, cauMoTam, conHan, datKhoa } from "@/lib/khoa-may";
+import { BangKhoa, cauKhoa, cauMoTam, conHan, moLaiMay } from "@/lib/khoa-may";
 import {
   Avt, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, Chu, Dong, Icon, M, MAU_CON, Man, Nhan, Nhom, Nut, The, Tien, truoc, useHoanTac, useLam, useTai,
   type MauBt, type TenIcon,
@@ -72,12 +72,7 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
   const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
   const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
   const tai = () => { ct.tai(); taiLai(); };
-  const moLai = () => lam(async () => {
-    const den = ct.d?.khoaDen ?? null, moTamCu = !!ct.d?.moTamDen;
-    await datKhoa(c.id, false, null);
-    bao(`Đã mở máy của ${c.ten}`, () => { if (!conHan(den)) return tai(); datKhoa(c.id, true, den ? new Date(den) : null, moTamCu).then(tai, tai); });
-    tai();
-  });
+  const moLai = () => lam(async () => { await moLaiMay(c.id, c.ten, ct.d, bao, tai); tai(); });
 
   // dòng trạng thái của từng ô — chỉ hiện số khi đã tải được, không đoán
   const chanWeb = web.d ? web.d.luat.filter((l) => l.trangThai === "chan") : null;

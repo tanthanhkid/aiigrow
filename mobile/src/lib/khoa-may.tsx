@@ -28,6 +28,14 @@ export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | n
   await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && giuMoTam ? { giuMoTam } : {}) });
 }
 
+/** «Mở lại máy» (trang chủ + Giờ dùng máy) — Hoàn tác khoá lại đúng hạn cũ và giữ mốc mở tạm đang lưu; hạn đã qua thì chỉ tải lại. */
+export async function moLaiMay(con: string, ten: string, d: { khoaDen?: string | null; moTamDen?: string | null } | null | undefined,
+  bao: (chu: string, hoan: () => void) => void, tai: () => unknown) {
+  const den = d?.khoaDen ?? null, giu = !!d?.moTamDen;
+  await datKhoa(con, false, null);
+  bao(`Đã mở lại máy của ${ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null, giu).then(() => tai(), () => tai()); });
+}
+
 export function BangKhoa({ mo, dong, con, ten, xong }: {
   mo: boolean; dong: () => void; con: string; ten: string;
   /** sau khi khoá xong: chữ báo + hàm hoàn tác (mở lại) */
