@@ -73,7 +73,7 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
   const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
   const tai = () => { ct.tai(); taiLai(); };
   const moLai = () => lam(async () => {
-    const den = ct.d?.khoaDen ?? null, moTamCu = ct.d?.moTamDen ?? null;
+    const den = ct.d?.khoaDen ?? null, moTamCu = !!ct.d?.moTamDen;
     await datKhoa(c.id, false, null);
     bao(`Đã mở máy của ${c.ten}`, () => { if (!conHan(den)) return tai(); datKhoa(c.id, true, den ? new Date(den) : null, moTamCu).then(tai, tai); });
     tai();

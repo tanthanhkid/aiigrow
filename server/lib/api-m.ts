@@ -99,7 +99,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
         return json(r);
       }
       if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id, b.den === "sang" ? "sang" : typeof b.den === "string" ? new Date(b.den) : null, new Date(),
-        typeof b.moTam === "string" ? new Date(b.moTam) : null); return json({ ok: true }); }
+        b.giuMoTam === true); return json({ ok: true }); }
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
       if (sau === "bao-cao" && get) return json(await baoCaoTuan(fam, id));

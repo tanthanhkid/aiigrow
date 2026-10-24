@@ -26,7 +26,7 @@ export default function GioChoi() {
   }, { hangDoi: true });
   const cauHinh = (them: Record<string, number>) => lam(async () => { await bm.goi(`con/${con}/cau-hinh`, them); await tai(); }, { hangDoi: true });
   const moLai = () => lam(async () => {
-    const den = d.khoaDen ?? null, moTamCu = d.moTamDen ?? null;
+    const den = d.khoaDen ?? null, moTamCu = !!d.moTamDen;
     await datKhoa(con, false, null);
     bao(`Đã mở lại máy của ${d.ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null, moTamCu).then(tai, tai); });
     await tai();

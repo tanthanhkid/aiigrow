@@ -7,7 +7,7 @@
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
 import { one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { thamSo, type ThamSo } from "./cau-hinh.ts";
+import { moTamDen, thamSo, type ThamSo } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import type { May } from "./gia-dinh.ts";
@@ -259,13 +259,15 @@ export async function moKhanCap(fam: string, mayId: string, b: { phut?: unknown;
   return { den: den.toISOString(), phut };
 }
 
-/** Hạn «đang mở» của máy cho agent Windows = muộn nhất của (mở khẩn cấp của máy, cửa sổ «thêm giờ» của Con). null = không có cửa sổ mở.
+/** Hạn «đang mở» của máy cho agent Windows = muộn nhất của (mở khẩn cấp của máy, cửa sổ «thêm giờ» của Con, mở tạm lúc «Khoá ngay»). null = không có cửa sổ mở.
  * Chỉ ĐỌC (không dọn hạn); hết hạn tự rơi ra ngoài vì so với `now`. */
 export async function hanMoCuaMay(may: Pick<May, "id">, con: string | null, now = new Date()): Promise<Date | null> {
   await bangM4b();
   const kc = (await dongTT(may.id))?.mo_khan_cap_den;
   const gr = con ? (await one<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [con, now]))?.d ?? null : null;
-  const ds = [kc, gr].filter((x): x is Date => !!x).map((x) => new Date(x)).filter((x) => x.getTime() > now.getTime());
+  const cfg = con ? (await one<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [con]))?.c : null;
+  const mt = moTamDen(cfg, now);
+  const ds = [kc, gr, mt ? new Date(mt) : null].filter((x): x is Date => !!x).map((x) => new Date(x)).filter((x) => x.getTime() > now.getTime());
   return ds.length ? new Date(Math.max(...ds.map((x) => x.getTime()))) : null;
 }
 
@@ -276,6 +278,7 @@ export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string, no
   // «Khoá lại ngay» trên máy Windows đóng luôn cửa sổ thêm giờ đã duyệt của Con (hanMoCuaMay lấy cả hai)
   const dong = m.platform === "windows" && m.child_id
     ? (await q(`update grants set cua_so_den = $2 where child_id = $1 and cua_so_den > $2 returning id`, [m.child_id, now])).length : 0;
+  if (m.platform === "windows" && m.child_id) await q(`update children set cau_hinh = cau_hinh - 'khoa_mo_tam_den' where id = $1`, [m.child_id]);
   await ghiSuKien(fam, "huy_mo_khan_cap", dong ? { dongCuaSo: dong } : {}, { con: m.child_id, may: m.id, nguoi });
 }
 

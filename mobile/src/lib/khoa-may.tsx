@@ -23,8 +23,9 @@ export function cauMoTam(moTamDen: string | null | undefined, khoaDen?: string |
 }
 
 /** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con). */
-export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, moTam?: string | null) {
-  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && moTam ? { moTam } : {}) });
+/** `giuMoTam`: Hoàn tác «Mở lại máy» lúc đang mở tạm — máy chủ giữ mốc mở tạm đang lưu (không gửi giờ cũ của màn: Ba Mẹ khác có thể vừa cho thêm). */
+export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, giuMoTam = false) {
+  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && giuMoTam ? { giuMoTam } : {}) });
 }
 
 export function BangKhoa({ mo, dong, con, ten, xong }: {
