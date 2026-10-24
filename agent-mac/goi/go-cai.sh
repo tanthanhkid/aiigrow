@@ -20,10 +20,12 @@ LC=/bin/launchctl
 DA_GO=/var/db/aiigrow-da-go
 /bin/mkdir -p /var/db /var/run 2>/dev/null
 # PID của trình gỡ (cả khi chạy tay bằng sudo): daemon không cho ghép và postinstall không nạp lại máy trong lúc gỡ.
+# Dòng 2 = giờ bắt đầu của tiến trình (ps lstart): nhận ra đúng trình gỡ kể cả khi chạy qua ống (`curl … | sudo bash`, dòng lệnh chỉ là «bash»)
+# và không nhầm PID sót đã bị tiến trình khác dùng lại. LC_ALL=C: daemon/postinstall đọc lại bằng cùng định dạng, không theo ngôn ngữ của sudo.
 GO_PID=/var/run/aiigrow-go-cai
-echo $$ > "$GO_PID" 2>/dev/null
+{ echo $$; LC_ALL=C /bin/ps -p $$ -o lstart=; } > "$GO_PID" 2>/dev/null
 # chỉ xoá khi tệp còn là PID của lượt này (lượt go-cai chạy chồng ghi đè thì để lượt đó tự dọn)
-trap '[ "$(/bin/cat "$GO_PID" 2>/dev/null)" = "$$" ] && /bin/rm -f "$GO_PID"' EXIT
+trap '[ "$(/usr/bin/head -n 1 "$GO_PID" 2>/dev/null)" = "$$" ] && /bin/rm -f "$GO_PID"' EXIT
 # Bị ngắt (Ctrl-C…) TRƯỚC khi gỡ thật ⇒ trả lại dấu như cũ (máy vẫn ghép, daemon vẫn chạy — đừng để dấu «đã gỡ» chặn tự cập nhật mãi).
 # Dấu có sẵn từ trước (daemon gỡ từ xa ghi) thì giữ nguyên.
 if [ ! -f "$DA_GO" ]; then
@@ -39,7 +41,9 @@ while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"
   [ "$i" -gt 0 ] && [ $((i % 15)) -eq 0 ] && echo "  vẫn đang chờ… ($((i * 2)) giây)"
   /bin/sleep 2; i=$((i + 1))
 done
+DUNG_CAP_NHAT=0
 if [ "$i" -ge 150 ]; then
+  DUNG_CAP_NHAT=1
   echo "Cảnh báo: bộ tự cập nhật chạy quá 5 phút — dừng nó để gỡ tiếp."
   /usr/bin/logger -t AiiGrow "go-cai: job vn.aiilab.aiigrow.capnhat chạy quá 5 phút, bị dừng để gỡ" 2>/dev/null || true
 fi
@@ -136,7 +140,13 @@ done
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"
 /bin/rm -f /var/run/aiigrow.sock
 /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg >/dev/null 2>&1 || true
-/bin/rm -f "$DA_GO"                 # gỡ xong (job cập nhật đã bị dừng ở trên): không để dấu ngoài thư mục AiiGrow quyết định lần cài sau
+if [ "$DUNG_CAP_NHAT" -eq 1 ]; then
+  # Đã phải dừng job cập nhật giữa chừng: installd có thể vẫn cài nốt rồi chạy postinstall SAU khi ta xong. Giữ dấu (đánh dấu loại) để
+  # postinstall đó dọn thay vì nạp lại máy vừa gỡ; postinstall chỉ tin dấu loại này trong 10 phút rồi tự xoá (cài tay sau đó bình thường).
+  echo "dung-cap-nhat" > "$DA_GO" 2>/dev/null
+else
+  /bin/rm -f "$DA_GO"               # gỡ xong: không để dấu ngoài thư mục AiiGrow quyết định lần cài sau
+fi
 echo "Đã gỡ AiiGrow."
 # Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại
 # và lần gỡ từ xa sau không bị trùng nhãn. Việc CUỐI CÙNG của tập lệnh (remove có thể gửi SIGTERM cho chính tiến trình này).

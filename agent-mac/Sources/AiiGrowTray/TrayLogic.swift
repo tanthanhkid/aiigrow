@@ -107,6 +107,16 @@ public enum TrayLogic {
     return c
   }
 
+  /// Câu trả lời nút «Kiểm tra cập nhật». Daemon cũ (0.1.0) chưa biết lệnh `capNhat` trả `yeu_cau_sai` ⇒ nói rõ cần cài lại gói mới.
+  public static func chuKiemCapNhat(_ t: TraLoi) -> String {
+    switch t {
+    case .thongBao(let c): return c
+    case .loi(ma: "yeu_cau_sai", chu: _): return "Dịch vụ AiiGrow trên máy là bản cũ, chưa có nút này — tải và cài gói mới ở trang /tai."
+    case .loi(ma: _, chu: let c): return c
+    default: return "Đã gửi yêu cầu."
+    }
+  }
+
   /// Dòng bản đang chạy ở menu.
   /// Bản daemon đang chạy (nguồn sự thật); tray là bản khác (chưa được nạp lại sau cập nhật) thì nói rõ.
   public static func dongBanDangChay(_ t: TrangThai?, banTray: String = PhienBan.hienTai) -> String {

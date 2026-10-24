@@ -149,8 +149,18 @@ public final class HeThongMac: HeThong {
   /// mà go-cai.sh chưa kịp ghi PID (nhãn có "PID").
   public func trinhGoDangChay() -> Bool {
     if HeThongMac.jobDangChay(HeThongMac.nhanTrinhGo) { return true }
-    guard let s = try? String(contentsOfFile: DuongDan.goCaiDangChay, encoding: .utf8),
-          let pid = Int32(s.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0, kill(pid, 0) == 0 else { return false }
+    guard let s = try? String(contentsOfFile: DuongDan.goCaiDangChay, encoding: .utf8) else { return false }
+    return HeThongMac.goCaiConSong(s)
+  }
+
+  /// Nội dung tệp PID go-cai.sh (dòng 1 PID, dòng 2 ps lstart) ⇒ tiến trình đó còn sống và đúng là trình gỡ.
+  static func goCaiConSong(_ s: String) -> Bool {
+    let dong = s.split(separator: "\n", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
+    guard let pid = Int32(dong.first ?? ""), pid > 0, kill(pid, 0) == 0 else { return false }
+    // Dòng 2 = giờ bắt đầu (ps lstart) go-cai.sh ghi: khớp ⇒ đúng trình gỡ (kể cả chạy qua ống, dòng lệnh chỉ «bash»); tệp kiểu cũ ⇒ so dòng lệnh.
+    if dong.count > 1, !dong[1].isEmpty {
+      return HeThongMac.chay("/usr/bin/env", ["LC_ALL=C", "/bin/ps", "-p", String(pid), "-o", "lstart="], timeout: 10).1.trimmingCharacters(in: .whitespacesAndNewlines) == dong[1]
+    }
     return HeThongMac.chay("/bin/ps", ["-p", String(pid), "-o", "command="], timeout: 10).1.contains("go-cai")
   }
 

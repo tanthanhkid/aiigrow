@@ -719,14 +719,15 @@ final class CapNhatTests: XCTestCase {
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
-  private func chayPostinstall(daGo: Bool, pidDau: String?, pidGo: String? = nil, goiTuDong: Bool = false, coConfig: Bool = true) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool) {
+  private func chayPostinstall(daGo: Bool, pidDau: String?, pidGo: String? = nil, goiTuDong: Bool = false, coConfig: Bool = true,
+                               dauGo: String = "da-go") throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool, quenBienNhan: Bool) {
     let fm = FileManager.default
     let goc = NSTemporaryDirectory() + "pi-\(UUID().uuidString)"
     defer { try? fm.removeItem(atPath: goc) }
     let res = goc + "/Applications/AiiGrow.app/Contents/Resources"
     for d in [res, goc + "/Library/LaunchDaemons", goc + "/Library/LaunchAgents", goc + "/var/db", goc + "/var/run"] { try fm.createDirectory(atPath: d, withIntermediateDirectories: true) }
     for n in ["vn.aiilab.aiigrow.daemon", "vn.aiilab.aiigrow.tray"] { try "x".write(toFile: "\(res)/\(n).plist", atomically: true, encoding: .utf8) }
-    if daGo { try "da-go".write(toFile: goc + "/var/db/aiigrow-da-go", atomically: true, encoding: .utf8) }
+    if daGo { try dauGo.write(toFile: goc + "/var/db/aiigrow-da-go", atomically: true, encoding: .utf8) }
     if let p = pidDau { try p.write(toFile: goc + "/var/run/aiigrow-capnhat", atomically: true, encoding: .utf8) }
     if let p = pidGo { try p.write(toFile: goc + "/var/run/aiigrow-go-cai", atomically: true, encoding: .utf8) }
     let cfg = goc + "/Library/Application Support/AiiGrow"
@@ -738,11 +739,49 @@ final class CapNhatTests: XCTestCase {
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/bash")
     p.arguments = [BaoMatTests.goiDir + "/scripts/postinstall", goiTuDong ? cfg + "/cap-nhat/AiiGrow-0.1.2.pkg" : "/Users/ba/Downloads/AiiGrow.pkg"]
-    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "PATH": "/usr/bin:/bin"]
+    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "AIIGROW_PKGUTIL": gia, "PATH": "/usr/bin:/bin"]
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
     try p.run(); p.waitUntilExit()
     let log = (try? String(contentsOfFile: nhatKy, encoding: .utf8)) ?? ""
-    return (log.contains("bootstrap system"), fm.fileExists(atPath: goc + "/var/db/aiigrow-da-go"), fm.fileExists(atPath: goc + "/Applications/AiiGrow.app"))
+    return (log.contains("bootstrap system"), fm.fileExists(atPath: goc + "/var/db/aiigrow-da-go"), fm.fileExists(atPath: goc + "/Applications/AiiGrow.app"),
+            log.contains("--forget vn.aiilab.aiigrow.pkg"))
+  }
+
+  private func lstart(_ pid: Int32) -> String {
+    let p = Process(), o = Pipe()
+    p.executableURL = URL(fileURLWithPath: "/bin/ps"); p.arguments = ["-p", String(pid), "-o", "lstart="]; p.standardOutput = o
+    p.environment = ["LC_ALL": "C"]                                             // như go-cai.sh ghi
+    try? p.run(); p.waitUntilExit()
+    return String(decoding: o.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  /// go-cai.sh chạy qua ống (`curl … | sudo bash`): dòng lệnh chỉ «bash» — nhận ra bằng PID + giờ bắt đầu, không bằng chữ «go-cai».
+  func testGoCaiQuaOngVanNhanRa() throws {
+    let tep = "\(getpid())\n\(lstart(getpid()))\n"
+    XCTAssertTrue(HeThongMac.goCaiConSong(tep), "PID + lstart khớp ⇒ trình gỡ đang chạy")
+    XCTAssertFalse(HeThongMac.goCaiConSong("\(getpid())\nMon Jan  1 00:00:00 2001\n"), "PID bị tiến trình khác dùng lại (giờ bắt đầu khác)")
+    XCTAssertFalse(HeThongMac.goCaiConSong("\(getpid())\n"), "tệp kiểu cũ: dòng lệnh không có go-cai")
+    let a = try chayPostinstall(daGo: true, pidDau: nil, pidGo: tep)
+    XCTAssertFalse(a.bootstrapDaemon, "postinstall cùng quy tắc: go-cai qua ống còn chạy ⇒ không nạp lại"); XCTAssertFalse(a.appConLai)
+    XCTAssertTrue(a.quenBienNhan, "dọn ⇒ quên luôn biên nhận installer vừa ghi")
+    let c = try chayPostinstall(daGo: true, pidDau: nil, pidGo: "\(getpid())\n\(lstart(getpid()))    \n")     // ps để khoảng trắng cuối dòng như go-cai.sh ghi thật
+    XCTAssertFalse(c.bootstrapDaemon)
+    XCTAssertTrue(HeThongMac.goCaiConSong("\(getpid())\n\(lstart(getpid()))    \n"))
+    let b = try chayPostinstall(daGo: true, pidDau: nil, pidGo: "\(getpid())\nMon Jan  1 00:00:00 2001\n")
+    XCTAssertTrue(b.bootstrapDaemon)
+    let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
+    XCTAssertTrue(s.contains("{ echo $$; LC_ALL=C /bin/ps -p $$ -o lstart=; } > \"$GO_PID\""))
+  }
+
+  /// go-cai.sh đã phải dừng job cập nhật giữa chừng ⇒ giữ dấu «dung-cap-nhat»: installd cài nốt gói (đường $1 lạ) không nạp lại máy vừa gỡ.
+  func testPostinstallSauKhiGoCaiDungCapNhat() throws {
+    let a = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: "dung-cap-nhat\n")
+    XCTAssertFalse(a.bootstrapDaemon); XCTAssertFalse(a.appConLai); XCTAssertTrue(a.quenBienNhan)
+    XCTAssertFalse(a.daGoConLai, "dấu dùng một lần")
+    let b = try chayPostinstall(daGo: true, pidDau: nil, coConfig: true, dauGo: "dung-cap-nhat\n")
+    XCTAssertTrue(b.bootstrapDaemon, "còn cấu hình ⇒ không phải máy vừa gỡ")
+    let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
+    XCTAssertTrue(s.contains("echo \"dung-cap-nhat\" > \"$DA_GO\""))
   }
 
   func testPostinstallPhanNhanhDaGo() throws {

@@ -112,11 +112,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     Task {
       var chu: String
       do {
-        switch try await IPCClient.guiAsync(.capNhat) {
-        case .thongBao(let c): chu = c
-        case .loi(_, let c): chu = c
-        default: chu = "Đã gửi yêu cầu."
-        }
+        chu = TrayLogic.chuKiemCapNhat(try await IPCClient.guiAsync(.capNhat))
       } catch { chu = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé." }
       let a = NSAlert(); a.messageText = "Kiểm tra cập nhật"; a.informativeText = chu
       a.addButton(withTitle: "Đã hiểu"); NSApp.activate(ignoringOtherApps: true); a.runModal()

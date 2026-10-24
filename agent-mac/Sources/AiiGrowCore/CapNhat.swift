@@ -40,6 +40,8 @@ public enum LuatCapNhat {
   public static let toiDaByte = 300 * 1024 * 1024
   /// Tên tệp tải tạm trong NSTemporaryDirectory (dọn tệp sót theo tiền tố này).
   public static let tienToTepTam = "aiigrow-tai-"
+  /// Một câu cho mọi lớp kiểm «đã ghép và không đang gỡ» (quyền IPC, nút Ba Mẹ, choPhep của bộ cập nhật).
+  public static let chuChuaGhep = "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật."
 
   /// «0.1.10» → [0,1,10]; không đúng dạng x.y.z (chỉ số) ⇒ nil.
   public static func tachBan(_ s: String) -> [Int]? {
@@ -264,7 +266,7 @@ public actor BoCapNhat {
     if !daGiuCho { guard so.giuCho() else { return .dangBan } }
     guard await choPhep() else {
       heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ — không tự cập nhật.")
-      return ketThuc(.loi("Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật."))
+      return ketThuc(.loi(LuatCapNhat.chuChuaGhep))
     }
     // Dấu gỡ sót được `choPhep` (BoMay.coTheCapNhat) dọn trong actor BoMay — ở đây chỉ đọc, KHÔNG xoá (đua với tuGo).
     guard heThong.docTep(DuongDan.daGo) == nil else {
@@ -330,8 +332,7 @@ public actor BoCapNhat {
     return kq
   }
 
-  /// Chạy việc đồng bộ nặng (băm tệp, pkgutil, spctl) trên hàng đợi GCD, không giữ luồng của actor / pool hợp tác.
-  private func ngoaiActor<T: Sendable>(_ f: @escaping @Sendable () -> T) async -> T { await chayNgoaiActor(f) }
+
 
   /// Chờ lượt tải/cài nền xong (test + daemon định kỳ).
   public func choXong() async { await tacVu?.value }
@@ -356,7 +357,7 @@ public actor BoCapNhat {
     }
     // installer lượt trước còn đọc gói trong thư mục này ⇒ không dọn/tải đè (bo() cũng xoá tệp nên không dùng ở đây)
     let ht = heThong
-    if await ngoaiActor({ ht.caiDangChay() }) {
+    if await chayNgoaiActor({ ht.caiDangChay() }) {
       heThong.ghiLog("Cập nhật: lượt installer trước (\(LuatCapNhat.nhanCai)) còn chạy — để lượt sau.")
       so.dat("Đang cài bản trước, sẽ kiểm lại sau.", luc: dongHo()); return
     }
@@ -387,15 +388,15 @@ public actor BoCapNhat {
       let kich = (try? FileManager.default.attributesOfItem(atPath: tam.path)[.size] as? Int) ?? 0
       guard kich > 0, kich <= toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }
       let duong = tam.path
-      guard let sha = await ngoaiActor({ LuatCapNhat.sha256Tep(duong) }) else { bo("không đọc được tệp tải", chu: "lỗi ghi đĩa"); return }
+      guard let sha = await chayNgoaiActor({ LuatCapNhat.sha256Tep(duong) }) else { bo("không đọc được tệp tải", chu: "lỗi ghi đĩa"); return }
       guard sha == m.sha256 else { boVaDem("sha256 lệch (nhận \(sha.prefix(12))…, manifest \(m.sha256.prefix(12))…)"); return }
       do { try heThong.chuyenTep(tam.path, vao: tep, quyen: 0o600) } catch { bo("không chuyển được gói vào \(thuMuc): \(error)", chu: "lỗi ghi đĩa"); return }
     }
 
     // pkgutil/spctl (tới 60 giây mỗi lệnh, spctl hỏi Apple trực tuyến) chạy ngoài luồng hợp tác của Swift concurrency
-    let (mk, rk) = await ngoaiActor({ ht.kiemChuKyGoi(tep) })
+    let (mk, rk) = await chayNgoaiActor({ ht.kiemChuKyGoi(tep) })
     guard mk == 0, LuatCapNhat.chuKyDung(rk) else { boVaDem("chữ ký gói sai (pkgutil mã \(mk))"); return }
-    let (ms, rs) = await ngoaiActor({ ht.kiemSpctlGoi(tep) })
+    let (ms, rs) = await chayNgoaiActor({ ht.kiemSpctlGoi(tep) })
     guard ms == 0 else { boVaDem("spctl từ chối gói (mã \(ms): \(rs.prefix(200)))"); return }
     heThong.ghiLog("Cập nhật: sha256 + chữ ký khớp (\(LuatCapNhat.nguoiKy)).")
 
@@ -407,10 +408,10 @@ public actor BoCapNhat {
     func traDau() { if let c = dauCu { try? heThong.ghiTep(tepDaThu, c, quyen: 0o600) } else { heThong.xoaTep(tepDaThu) } }
     guard ghiDau() else { bo("không ghi được dấu đã thử nên không cài", chu: "lỗi ghi đĩa"); return }
     do {
-      try await ngoaiActor({ Result { try ht.caiGoi(tep) } }).get()
+      try await chayNgoaiActor({ Result { try ht.caiGoi(tep) } }).get()
       // Gỡ (go-cai.sh / gỡ từ xa) xen vào đúng giữa lần kiểm cuối và submit: dừng job ngay, postinstall không được nạp lại máy vừa gỡ.
       if heThong.docTep(DuongDan.daGo) != nil {
-        await ngoaiActor({ ht.dungCai() })
+        await chayNgoaiActor({ ht.dungCai() })
         traDau()                                    // installer không chạy ⇒ không tính lượt
         bo("máy bị gỡ ngay lúc giao installer — đã dừng lượt cài", chu: "máy đang được gỡ"); return
       }

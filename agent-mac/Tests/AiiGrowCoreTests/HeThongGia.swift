@@ -2,12 +2,23 @@
 import Foundation
 @testable import AiiGrowCore
 
+/// Biến dùng chung giữa luồng test, actor và hàng đợi GCD (chayNgoaiActor): mỗi lần đọc/ghi qua khoá — không đọc/ghi đồng thời một Dictionary/Array.
+@propertyWrapper final class Khoa<T> {
+  private var v: T
+  private let k = NSLock()
+  init(wrappedValue: T) { v = wrappedValue }
+  var wrappedValue: T {
+    get { k.lock(); defer { k.unlock() }; return v }
+    set { k.lock(); v = newValue; k.unlock() }
+  }
+}
+
 final class HeThongGia: HeThong, @unchecked Sendable {
   var tienTrinhTheoUid: [UInt32: [TienTrinh]] = [:]
   var conSongPid: Set<Int32> = []
-  var tep: [String: Data] = [:]
-  var uidTheoTen: [String: UInt32] = [:]
-  var admin: Set<String> = []
+  @Khoa var tep: [String: Data] = [:]
+  @Khoa var uidTheoTen: [String: UInt32] = [:]
+  @Khoa var admin: Set<String> = []
   var phien: PhienConsole?
   var ten = "Mac-Test"
   var tienCanhThat: String?                 // app tiền cảnh THẬT của phiên Con (daemon tự kiểm)
@@ -17,7 +28,7 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   var daXoaDNS = 0
   var daHaQuyen: [String] = []
   var daDongPhien: [UInt32] = []
-  var log: [String] = []
+  @Khoa var log: [String] = []
 
   func tienTrinh(cuaUid uid: UInt32) -> [TienTrinh] { tienTrinhTheoUid[uid] ?? [] }
   func conSong(pid: Int32) -> Bool { conSongPid.contains(pid) }
@@ -33,7 +44,7 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   var soLanChayTrinhGo = 0
   var loiHaQuyen: Error?
   func chayTrinhGo() { soLanChayTrinhGo += 1 }
-  var goDangChay = false
+  @Khoa var goDangChay = false
   func trinhGoDangChay() -> Bool { goDangChay }
   func lietKeThuMuc(_ duongDan: String) -> [String] {
     let tien = duongDan.hasSuffix("/") ? duongDan : duongDan + "/"
@@ -52,12 +63,12 @@ final class HeThongGia: HeThong, @unchecked Sendable {
       2. Developer ID Certification Authority
       3. Apple Root CA
   """
-  var pkgutilRa: (Int32, String) = (0, HeThongGia.chuKyDungMau)
-  var spctlRa: (Int32, String) = (0, "accepted")
-  var loiCaiGoi: Error?
-  var daCaiGoi: [String] = []
-  var daTaoThuMuc: [String] = []
-  var caiDangChayGia = false
+  @Khoa var pkgutilRa: (Int32, String) = (0, HeThongGia.chuKyDungMau)
+  @Khoa var spctlRa: (Int32, String) = (0, "accepted")
+  @Khoa var loiCaiGoi: Error?
+  @Khoa var daCaiGoi: [String] = []
+  @Khoa var daTaoThuMuc: [String] = []
+  @Khoa var caiDangChayGia = false
   func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws { tep[dich] = try Data(contentsOf: URL(fileURLWithPath: nguon)) }
   func caiDangChay() -> Bool { caiDangChayGia }
   func taoThuMuc(_ duongDan: String, quyen: Int) throws { daTaoThuMuc.append(duongDan) }
@@ -65,12 +76,12 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { spctlRa }
   func caiGoi(_ duongDan: String) throws { if let e = loiCaiGoi { throw e }; daCaiGoi.append(duongDan); sauCaiGoi?() }
   var sauCaiGoi: (() -> Void)?
-  var daDungCai = 0
+  @Khoa var daDungCai = 0
   func dungCai() { daDungCai += 1 }
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
-  var daXoa: [String] = []
+  @Khoa var daXoa: [String] = []
   func xoaTep(_ duongDan: String) { tep[duongDan] = nil; daXoa.append(duongDan) }
   func xoaBoNhoDNS() { daXoaDNS += 1 }
   var truocHaQuyen: (() -> Void)?

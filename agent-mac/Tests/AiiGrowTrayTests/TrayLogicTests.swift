@@ -18,6 +18,12 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(con: false), laAdmin: false))
   }
 
+  func testChuKiemCapNhatDaemonCu() {
+    XCTAssertTrue(TrayLogic.chuKiemCapNhat(.loi(ma: "yeu_cau_sai", chu: "Yêu cầu không đọc được.")).contains("bản cũ"), "daemon 0.1.0 chưa biết lệnh capNhat")
+    XCTAssertEqual(TrayLogic.chuKiemCapNhat(.loi(ma: "can_admin", chu: "x")), "x")
+    XCTAssertEqual(TrayLogic.chuKiemCapNhat(.thongBao(chu: "y")), "y")
+  }
+
   func testDongBanLayBanDaemon() {
     var t = tt(con: false)
     XCTAssertEqual(TrayLogic.dongBanDangChay(t, banTray: "0.1.1"), "AiiGrow bản 0.1.1", "daemon cũ chưa gửi bản ⇒ bản của tray")

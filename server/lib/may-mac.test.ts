@@ -94,6 +94,10 @@ test("ban-moi theo nền tảng (banAgentCho — route chỉ đọc ?platform): 
   assert.equal(ba.gocCongKhai(yc, new URL(yc.url)), "https://staging.aiigrow.example");
   const tt = new Request("https://aiigrow.aiilab.vn/api/agent/ban-moi");
   assert.equal(ba.gocCongKhai(tt, new URL(tt.url)), "https://aiigrow.aiilab.vn", "không qua proxy ⇒ origin của req.url");
+  // proxy chỉ gửi x-forwarded-proto: KHÔNG ghép https với host nội bộ ⇒ origin http nội bộ ⇒ banAgentCho giữ URL gốc
+  const ch = new Request("http://localhost:3000/api/agent/ban-moi", { headers: { "x-forwarded-proto": "https" } });
+  assert.equal(ba.gocCongKhai(ch, new URL(ch.url)), "http://localhost:3000");
+  assert.deepEqual(ba.banAgentCho("mac", ba.gocCongKhai(ch, new URL(ch.url))), ba.BAN_AGENT_MAC);
   assert.match(ba.BAN_AGENT_MAC.url, /^https:\/\/aiigrow\.aiilab\.vn\/tai\/AiiGrow-\d+\.\d+\.\d+\.pkg$/);
 });
 
