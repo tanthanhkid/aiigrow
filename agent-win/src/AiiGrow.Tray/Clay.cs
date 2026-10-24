@@ -374,7 +374,7 @@ internal sealed class NenCache : IDisposable
         _c = c; _bg = paintBg; _fg = paint; _rieng = rieng;
         DangKy.AddOrUpdate(c, this);
         c.Resize += Bo;
-        c.Move += (_, _) => { if (_rieng != null || NenTheoViTri()) Bo(null, EventArgs.Empty); };
+        c.Move += (_, _) => { if (NenTheoViTri()) Bo(null, EventArgs.Empty); };   // thân thẻ (_rieng) không phụ thuộc vị trí ⇒ cuộn trên nền đặc không dựng lại
         c.BackColorChanged += Bo;
         c.ParentChanged += (_, _) => { NoiCha(); Bo(null, EventArgs.Empty); };
         NoiCha();

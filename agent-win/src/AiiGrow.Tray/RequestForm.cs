@@ -41,7 +41,7 @@ internal sealed class RequestForm : Form
             _radios[i] = new ClayRadio
             {
                 Text = labels[i], TextAlign = ContentAlignment.MiddleCenter,
-                Width = 120, Height = Clay.Si(44) + VeNut.LeBong.Vertical, Font = UI.F(11.5f, FontStyle.Bold),
+                Width = Clay.Si(120), Height = Clay.Si(44) + VeNut.LeBong.Vertical, Font = UI.F(11.5f, FontStyle.Bold),
                 Checked = i == 1, Margin = new Padding(0, 0, 8, 0),
             };
             row.Controls.Add(_radios[i]);

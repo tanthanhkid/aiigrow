@@ -54,6 +54,7 @@ enum ClayMotion {
 
 private final class MocBundle {}
 
+@MainActor
 enum FluentIcon {
   private static var cache: [String: NSImage?] = [:]     // nhớ cả lần không thấy (màn khoá vẽ lại mỗi giây)
 
