@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
 BAN="${BAN:-0.1.0}"
 # Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
-grep -q "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
+grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
 # Phát hành (NOTARY=1) phải ký thật cả app lẫn gói.
 if [ "${NOTARY:-}" = 1 ] || [ -n "${KY_PKG:-}" ]; then
   [ -n "${KY_APP:-}" ] && [ -n "${KY_PKG:-}" ] || { echo "NOTARY/KY_PKG cần đủ KY_APP + KY_PKG" >&2; exit 1; }

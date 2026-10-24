@@ -10,7 +10,7 @@ const LINK_TAI = BAN_AGENT_WINDOWS.url;
 const LINK_APK = "/tai/aiigrow.apk";
 
 const BAO_MAC = {
-  ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con hiện cài được trên Windows.",
+  ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con cài được trên Windows và máy Mac.",
 } as const;
 
 export default async function TrangTai() {
@@ -33,6 +33,9 @@ export default async function TrangTai() {
             <li>Cửa sổ <b>Ghép máy</b> tự mở (hoặc bấm biểu tượng AiiGrow trên thanh menu → <b>Ghép máy với Con…</b>): chọn tài khoản của Con, nhập <b>mã 6 số</b> lấy trong app AiiGrow: Trang chủ → “Máy tính &amp; điện thoại” → <b>Ghép thêm máy</b>.</li>
             <li>macOS báo “Đã thêm mục nền” là bình thường — đừng tắt AiiGrow trong Mục đăng nhập.</li>
           </ol>
+          <div style={{ marginTop: 16, padding: "14px 16px", background: "#eef6f3", borderRadius: 12, fontSize: 14, color: "#2a3b3b" }}>
+            Sau khi ghép, máy chạy ở chế độ <b>giám sát</b> (ghi nhận, không khoá). Ba Mẹ bật “chặn thật” khi cần, ngay trong app.
+          </div>
           <p style={{ fontSize: 14, color: "#4a5555" }}>
             Máy Windows của Con: <a href={LINK_TAI} style={{ color: "#1f8a70" }}>tải AiiGrow-Setup.exe</a>.
           </p>
@@ -42,7 +45,7 @@ export default async function TrangTai() {
         <div style={{ margin: "16px 0", padding: "14px 16px", background: "#fff6e5", border: "1px solid #f1d9a8", borderRadius: 12, fontSize: 15, color: "#3d3020" }}>
           {BAO_MAC[os]}
           <br />
-          Mở trang này trên máy Windows của Con để tải, hoặc tải sẵn bên dưới.
+          Mở trang này trên máy tính (Windows hoặc Mac) của Con để tải, hoặc tải sẵn bên dưới.
         </div>
       ) : null}
       {os === "android" ? (
