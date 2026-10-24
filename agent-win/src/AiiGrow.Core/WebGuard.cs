@@ -313,41 +313,38 @@ public static class WebGuard
     /// Chỉ xoá giá trị của AiiGrow (tên số &gt; 90000 + ba cờ DWORD), giữ nguyên mục người khác đặt.</summary>
     public static string KichBanGoChinhSach()
     {
+        // Gọn: một hàm Go-Web chạy cho HKLM (bản cũ) rồi từng hive hồ sơ — kịch bản đi qua -EncodedCommand trong tham số tác vụ (giới hạn ~32K ký tự), không lặp danh sách.
+        var wb = string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'"));
         var dw = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "'")).Distinct());
         return string.Join("\n", new[]
         {
-            "foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){",
-            "  foreach($l in '" + WebPolicyKeys.DsChan + "','" + WebPolicyKeys.DsCho + "'){",
-            "    $k=\"HKLM:\\$b\\$l\"",
-            "    if(Test-Path -LiteralPath $k){",
-            "      (Get-Item -LiteralPath $k).GetValueNames() | Where-Object { $_ -match '^\\d+$' -and [int64]$_ -gt " + WebPolicyKeys.ChiSoDau + " } | ForEach-Object { Remove-ItemProperty -LiteralPath $k -Name $_ }",
-            "      if(@((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0){ Remove-Item -LiteralPath $k -Force }",
+            "$wb=@(" + wb + ")",
+            "$wd=@(" + dw + ")",
+            "function Go-Web($g){",
+            "  foreach($b in $wb){",
+            "    foreach($l in '" + WebPolicyKeys.DsChan + "','" + WebPolicyKeys.DsCho + "'){",
+            "      $k=\"$g\\$b\\$l\"",
+            "      if(Test-Path -LiteralPath $k){",
+            "        (Get-Item -LiteralPath $k).GetValueNames() | Where-Object { $_ -match '^\\d+$' -and [int64]$_ -gt " + WebPolicyKeys.ChiSoDau + " } | ForEach-Object { Remove-ItemProperty -LiteralPath $k -Name $_ }",
+            "        if(@((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0){ Remove-Item -LiteralPath $k -Force }",
+            "      }",
             "    }",
             "  }",
+            "  foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } }",
+            "  foreach($b in $wb){ $k=\"$g\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
             "}",
-            "foreach($d in " + dw + "){ $p=$d.Split('|'); $k=\"HKLM:\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } }",
-            "foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){ $k=\"HKLM:\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
-            // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
+            "Go-Web 'HKLM:'",
+            // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp, hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
             "$pl='HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList'",
             "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' })){",
             "  $goc=\"Registry::HKEY_USERS\\$s\"; $nap=$false",
             "  if(-not (Test-Path -LiteralPath $goc)){",
             "    $d=(Get-ItemProperty -LiteralPath \"$pl\\$s\" -ErrorAction SilentlyContinue).ProfileImagePath; if(-not $d){ continue }",
             "    $f=[Environment]::ExpandEnvironmentVariables($d)+'\\NTUSER.DAT'; if(-not (Test-Path -LiteralPath $f)){ continue }",
-            "    reg.exe load \"HKU\\AiiGrowGo\" $f | Out-Null; if($LASTEXITCODE -ne 0){ continue }",
+            "    reg.exe load 'HKU\\AiiGrowGo' $f | Out-Null; if($LASTEXITCODE -ne 0){ continue }",
             "    $goc='Registry::HKEY_USERS\\AiiGrowGo'; $nap=$true",
             "  }",
-            "  foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){",
-            "    foreach($l in '" + WebPolicyKeys.DsChan + "','" + WebPolicyKeys.DsCho + "'){",
-            "      $k=\"$goc\\$b\\$l\"",
-            "      if(Test-Path -LiteralPath $k){",
-            "        (Get-Item -LiteralPath $k).GetValueNames() | Where-Object { $_ -match '^\\d+$' -and [int64]$_ -gt " + WebPolicyKeys.ChiSoDau + " } | ForEach-Object { Remove-ItemProperty -LiteralPath $k -Name $_ }",
-            "        if(@((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0){ Remove-Item -LiteralPath $k -Force }",
-            "      }",
-            "    }",
-            "    foreach($d in " + string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "'")).Distinct()) + "){ $q=$d.Split('|'); if($q[0] -eq $b){ $kk=\"$goc\\$b\"; if(Test-Path -LiteralPath $kk){ Remove-ItemProperty -LiteralPath $kk -Name $q[1] -ErrorAction SilentlyContinue } } }",
-            "    $kb=\"$goc\\$b\"; if((Test-Path -LiteralPath $kb) -and @((Get-Item -LiteralPath $kb).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $kb).Count -eq 0){ Remove-Item -LiteralPath $kb -Force }",
-            "  }",
+            "  Go-Web $goc",
             "  if($nap){ [gc]::Collect(); Start-Sleep -Milliseconds 300; reg.exe unload 'HKU\\AiiGrowGo' | Out-Null }",
             "}",
             // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)

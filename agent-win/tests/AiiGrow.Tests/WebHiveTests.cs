@@ -178,4 +178,13 @@ public class WebHiveTests
         var p = PolicyParser.Parse("""{"playChoices":["Roblox.exe","roblox.exe"]}""");
         Assert.Equal(new[] { "roblox.exe" }, p.PlayChoices);
     }
+
+    [Fact]
+    public void KichBanDonTachRoi_VuaThamSoTacVu()
+    {
+        // Tham số tác vụ (-EncodedCommand = UTF-16 → base64 ≈ 2,7 lần) giới hạn ~32K ký tự; e2e 24/10 từng lỗi «The filename or extension is too long».
+        var kb = SystemCleanup.KichBanDonTachRoi("AiiGrowService", @"C:\Program Files\AiiGrow", @"C:\ProgramData\AiiGrow", @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow");
+        var b64 = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(kb));
+        Assert.True(b64.Length < 24000, "base64 dài " + b64.Length);
+    }
 }

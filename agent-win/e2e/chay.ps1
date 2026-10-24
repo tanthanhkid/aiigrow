@@ -270,7 +270,7 @@ KichBan 'KB1' 'Đăng ký Ba Mẹ, tạo Con, gói cài một chạm' {
   $nap = $false
   if ($ntuser -and (Test-Path -LiteralPath $ntuser)) { & reg.exe load "HKU\$($Chung.SidCon)" $ntuser | Out-Null; $nap = ($LASTEXITCODE -eq 0) }
   DatKhoaWebCon $Chung.SidCon
-  Dat '1.5' 'Hồ sơ + hive của Con nạp được (để kiểm luật web theo tài khoản Con)' $nap ("CreateProfile 0x{0:x} · NTUSER {1}" -f $hrHs, $ntuser)
+  Dat '1.4b' 'Hồ sơ + hive của Con nạp được (để kiểm luật web theo tài khoản Con)' $nap ("CreateProfile 0x{0:x} · NTUSER {1}" -f $hrHs, $ntuser)
   $laAdmin = [bool](Get-LocalGroupMember -SID 'S-1-5-32-544' | Where-Object { $_.SID.Value -eq $Chung.SidCon })
   Dat '1.4' 'Tài khoản Windows thường của Con' ($Chung.SidCon -and -not $laAdmin) "$TenCon $($Chung.SidCon)"
   $goi = Api POST '/api/m/goi-cai' @{ con = $Chung.ConId; nen = 'windows' } $Chung.TokenBaMe
