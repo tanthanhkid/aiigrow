@@ -1,9 +1,10 @@
-// Việc chờ Ba Mẹ duyệt ngay tại chỗ (Trang chủ, bố cục 02 «Việc chờ lên đầu» — Thanh 24/10). Cùng API với tab Chờ duyệt và màn chi tiết:
-//  • nhiệm vụ: Duyệt = `luot/:id/duyet` điểm mặc định (như «Duyệt cả» ở Chờ duyệt), Hoàn tác = `luot/:id/hoan-tac` (máy chủ cho 30 giây);
-//    Từ chối = chọn lý do (như màn duyệt) rồi gửi `luot/:id/tu-choi` sau 8 giây — trong 8 giây đó bấm Hoàn tác là không gửi.
-//  • yêu cầu thêm giờ / ngoại lệ / ngoài giờ: Duyệt = `yeu-cau/:id/dong-y` «Ngoại lệ — không trừ» đúng số phút Con xin (mặc định của màn
-//    yêu cầu), gửi sau 8 giây. Mở web / cài app / khác cần chọn Học tập–Giải trí, phạm vi ⇒ «Xếp loại» mở màn yêu cầu, không đoán.
-//  • phiếu quà: Xác nhận / Đã trao gửi sau 8 giây; Huỷ hoàn điểm hỏi lại như Chờ duyệt (không hoàn tác được).
+// Việc chờ Ba Mẹ duyệt ngay tại chỗ (Trang chủ, bố cục 02 «Việc chờ lên đầu» — Thanh 24/10). Cùng API với tab Chờ duyệt và màn chi tiết, gửi
+// NGAY (useLam, như màn chi tiết — không gửi trễ để khỏi mất khi tắt app):
+//  • nhiệm vụ: Duyệt = `luot/:id/duyet` điểm mặc định (như «Duyệt cả» ở Chờ duyệt), Hoàn tác = `luot/:id/hoan-tac` (useHoanTac; máy chủ cho 30 giây);
+//    ảnh nghi trùng ⇒ «Xem ảnh» mở màn duyệt, không duyệt mù. Từ chối = chọn lý do (như màn duyệt) rồi gửi `luot/:id/tu-choi`.
+//  • yêu cầu thêm giờ / ngoại lệ / ngoài giờ: Duyệt = `yeu-cau/:id/dong-y` «Ngoại lệ — không trừ» đúng số phút Con xin (mặc định màn yêu cầu),
+//    nhưng nếu máy chủ báo cảnh báo ngoại lệ (xemTruoc) thì mở màn yêu cầu để Ba Mẹ thấy cảnh báo TRƯỚC. Web / app / khác ⇒ «Xếp loại» mở màn yêu cầu.
+//  • phiếu quà: Xác nhận / Đã trao như Chờ duyệt; Huỷ hoàn điểm hỏi lại (không hoàn tác được).
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -25,7 +26,6 @@ export const ycMotCham = (y: Pick<YeuCau, "loai">) => y.loai === "them_gio" || y
 
 export type ViecCho = { k: "nv"; x: LuotCho } | { k: "yc"; x: YeuCau } | { k: "qua"; x: Phieu };
 type Bao = (chu: string, hoan?: () => void) => void;
-type GuiCham = (chu: string, lam: () => void, huy?: () => void) => void;
 
 const tieu = (v: ViecCho) => (v.k === "yc" ? tieuYc(v.x) : v.x.ten);
 const phu = (v: ViecCho) => v.k === "nv" ? `Nhiệm vụ · +${v.x.diem} điểm${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
@@ -33,50 +33,55 @@ const phu = (v: ViecCho) => v.k === "nv" ? `Nhiệm vụ · +${v.x.diem} điểm
 const moChiTiet = (v: ViecCho) => router.push(v.k === "nv" ? `/duyet/${v.x.id}` : v.k === "yc" ? `/yeu-cau/${v.x.id}` : "/cho-duyet");
 
 /** Thẻ «N việc chờ Ba Mẹ» với nút Duyệt / Từ chối từng việc. `ds` đã lọc theo Con đang xem; `xem` (Chỉ xem) ⇒ ẩn nút, chạm dòng để xem. */
-export function TheViecCho({ ds, ten, xem, tai, bao, guiCham, toiDa = 3 }: {
-  ds: ViecCho[]; ten: string; xem: boolean; tai: () => void; bao: Bao; guiCham: GuiCham; toiDa?: number;
+export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
+  ds: ViecCho[]; ten: string; xem: boolean; tai: () => void; bao: Bao; toiDa?: number;
 }) {
   const hl = useLam();
+  const hlHuy = useLam();                                          // bảng Huỷ phiếu: lỗi nằm trong bảng, không treo lên thẻ
   const [dang, setDang] = useState<string | null>(null);          // việc đang gửi — chỉ nút của việc đó quay
-  const [an, setAn] = useState<string[]>([]);                     // đã bấm, đang chờ gửi / chờ tải lại ⇒ ẩn khỏi thẻ
   const [tuChoi, setTuChoi] = useState<ViecCho | null>(null);
   const [lyDo, setLyDo] = useState(0);
   const [lyDoYc, setLyDoYc] = useState(LY_DO_YC[0]);
   const [huyQua, setHuyQua] = useState<Phieu | null>(null);
-  const con = ds.filter((v) => !an.includes(v.x.id));
-  const anDi = (id: string) => setAn((a) => [...a, id]);
-  const hien = (id: string) => setAn((a) => a.filter((x) => x !== id));
-  /** Gửi sau 8 giây (useHoanTac.guiCham): Hoàn tác trong lúc chờ ⇒ không gửi gì; gửi hỏng ⇒ nói ra và hiện lại việc. */
-  const cham = (v: ViecCho, chu: string, goi: () => Promise<unknown>) => {
-    hl.setLoi(null);
-    anDi(v.x.id);
-    guiCham(chu, () => { goi().then(tai, (e) => { hien(v.x.id); bao(`Chưa gửi được «${tieu(v)}»: ${cauLoi(e)}`); tai(); }); }, () => hien(v.x.id));
-  };
-  const chay = (v: ViecCho, fn: () => Promise<unknown>) => { setDang(v.x.id); return hl.lam(fn); };
+  // yêu cầu (có hạn) lên trước, rồi nhiệm vụ, quà; trong nhóm theo thời gian gửi
+  const thu = { yc: 0, nv: 1, qua: 2 } as const;
+  const luc = (v: ViecCho) => (v.k === "nv" ? v.x.nop_luc : v.x.created_at);
+  const con = [...ds].sort((a, b) => thu[a.k] - thu[b.k] || luc(a).localeCompare(luc(b)));
+  const chay = (v: ViecCho, fn: () => Promise<unknown>, hangDoi?: boolean) => { setDang(v.x.id); return hl.lam(fn, { hangDoi }); };
 
   const duyet = (v: ViecCho) => {
     if (v.k === "nv") {
       const x = v.x;
+      if (x.nghi_trung) return moChiTiet(v);
       return chay(v, async () => {
         await bm.goi(`luot/${x.id}/duyet`, {});
-        anDi(x.id);
         bao(`Đã duyệt «${x.ten}» · +${x.diem} điểm cho ${ten}`, () => {
-          hien(x.id);
           bm.goi(`luot/${x.id}/hoan-tac`, {}).then(tai, (e) => { bao(`Chưa hoàn tác được: ${cauLoi(e)}`); tai(); });
         });
         tai();
-      });
+      }, true);
     }
     if (v.k === "yc") {
-      if (!ycMotCham(v.x)) return moChiTiet(v);
-      const p = v.x.phut ?? 15;
-      return cham(v, `Đã cho ${ten} thêm ${p} phút (ngoại lệ)`, () => bm.goi(`yeu-cau/${v.x.id}/dong-y`, { truDiem: false, phut: p }));
+      const y = v.x;
+      if (!ycMotCham(y)) return moChiTiet(v);
+      const p = y.phut ?? 15;
+      return chay(v, async () => {
+        const ct = await bm.goi<{ xemTruoc?: { mucCanhBao: string } }>(`yeu-cau/${y.id}`);
+        if (ct.xemTruoc && ct.xemTruoc.mucCanhBao !== "khong") { moChiTiet(v); return; }   // có cảnh báo ngoại lệ ⇒ Ba Mẹ xem trên màn yêu cầu
+        await bm.goi(`yeu-cau/${y.id}/dong-y`, { truDiem: false, phut: p });
+        bao(`Đã cho ${ten} thêm ${p} phút (ngoại lệ)`);
+        tai();
+      }, true);
     }
     const x = v.x;
-    return cham(v, x.loai === "voucher" ? `Đã xác nhận «${x.ten}» cho ${ten}` : `Đã trao «${x.ten}» cho ${ten}`, () => bm.goi(`phieu/${x.id}/xac-nhan`, {}));
+    return chay(v, async () => {
+      await bm.goi(`phieu/${x.id}/xac-nhan`, {});
+      bao(x.loai === "voucher" ? `Đã xác nhận «${x.ten}» cho ${ten}` : `Đã trao «${x.ten}» cho ${ten}`);
+      tai();
+    });
   };
   const tuChoiNgay = (v: ViecCho) => {
-    if (v.k === "qua") return setHuyQua(v.x);
+    if (v.k === "qua") { hlHuy.setLoi(null); return setHuyQua(v.x); }
     setLyDo(v.k === "nv" ? 1 : 0);
     setLyDoYc(LY_DO_YC[0]);
     setTuChoi(v);
@@ -87,12 +92,14 @@ export function TheViecCho({ ds, ten, xem, tai, bao, guiCham, toiDa = 3 }: {
     setTuChoi(null);
     if (v.k === "nv") {
       const l = LY_DO_NV[lyDo];
-      cham(v, `Đã gửi «${l.chu}» cho ${ten}`, () => bm.goi(`luot/${v.x.id}/tu-choi`, { lyDo: l.chu, boSung: l.boSung }));
+      chay(v, async () => { await bm.goi(`luot/${v.x.id}/tu-choi`, { lyDo: l.chu, boSung: l.boSung }); bao(`Đã gửi «${l.chu}» cho ${ten}`); tai(); });
     } else if (v.k === "yc") {
       const l = lyDoYc.trim();
-      cham(v, `Đã trả lời ${ten}: ${l}`, () => bm.goi(`yeu-cau/${v.x.id}/tu-choi`, { lyDo: l }));
+      chay(v, async () => { await bm.goi(`yeu-cau/${v.x.id}/tu-choi`, { lyDo: l }); bao(`Đã trả lời ${ten}: ${l}`); tai(); });
     }
   };
+  const chuDuyet = (v: ViecCho) => v.k === "yc" ? (ycMotCham(v.x) ? "Duyệt" : "Xếp loại") : v.k === "qua" ? (v.x.loai === "voucher" ? "Xác nhận" : "Đã trao")
+    : v.x.nghi_trung ? "Xem ảnh" : "Duyệt";
 
   const hienRa = con.slice(0, toiDa);
   return (
@@ -115,8 +122,8 @@ export function TheViecCho({ ds, ten, xem, tai, bao, guiCham, toiDa = 3 }: {
         <Dong key={v.x.id} tieu={tieu(v)} phu={phu(v)} bam={() => moChiTiet(v)}
           phai={xem ? undefined : (
             <View style={{ flexDirection: "row", gap: 6 }}>
-              <Nut chu={v.k === "yc" && !ycMotCham(v.x) ? "Xếp loại" : v.k === "qua" ? (v.x.loai === "voucher" ? "Xác nhận" : "Đã trao") : "Duyệt"} nho
-                dangChay={hl.dangChay && dang === v.x.id} tat={hl.dangChay && dang !== v.x.id} bam={() => { duyet(v); }} nhanDoc={`Duyệt: ${tieu(v)}`} />
+              <Nut chu={chuDuyet(v)} nho
+                dangChay={hl.dangChay && dang === v.x.id} tat={hl.dangChay && dang !== v.x.id} bam={() => { duyet(v); }} nhanDoc={`${chuDuyet(v)}: ${tieu(v)}`} />
               <Nut chu={v.k === "qua" ? "Huỷ" : "Từ chối"} nho loai="vien" tat={hl.dangChay} bam={() => tuChoiNgay(v)} nhanDoc={`${v.k === "qua" ? "Huỷ" : "Từ chối"}: ${tieu(v)}`} />
             </View>
           )} />
@@ -147,11 +154,10 @@ export function TheViecCho({ ds, ten, xem, tai, bao, guiCham, toiDa = 3 }: {
       {huyQua ? (
         <BangTruot mo dong={() => setHuyQua(null)} tieu={`Huỷ «${huyQua.ten}»?`}>
           <Chu>{`${ten} được hoàn ${huyQua.diem} điểm. Không hoàn tác được.`}</Chu>
-          <BaoLoi loi={hl.loi} />
-          <Nut chu="Huỷ phiếu, hoàn điểm" loai="huy" rong dangChay={hl.dangChay} bam={async () => {
+          <BaoLoi loi={hlHuy.loi} />
+          <Nut chu="Huỷ phiếu, hoàn điểm" loai="huy" rong dangChay={hlHuy.dangChay} bam={async () => {
             const x = huyQua;
-            setDang(x.id);
-            if (await hl.lam(async () => { await bm.goi(`phieu/${x.id}/huy`, {}); bao(`Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${ten}`); tai(); })) setHuyQua(null);
+            if (await hlHuy.lam(async () => { await bm.goi(`phieu/${x.id}/huy`, {}); bao(`Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${ten}`); tai(); })) setHuyQua(null);
           }} />
           <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="ma" rong bam={() => setHuyQua(null)} /></View>
         </BangTruot>

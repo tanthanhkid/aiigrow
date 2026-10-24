@@ -31,7 +31,7 @@ export default function TrangChu() {
     return { g, cb: cb.ds.filter((x) => !x.da_doc), luat, choi: choi?.ds ?? [], tt: tt?.ds ?? [], xem: toi, cd };
   });
   const [chon, setChon] = useState(0);
-  const { bao, guiCham, noi } = useHoanTac();
+  const { bao, noi } = useHoanTac();
   if (!d) return <Man tieuLon="Trang chủ" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.g.con.length) {
     return (
@@ -62,7 +62,7 @@ export default function TrangChu() {
         <View style={{ marginLeft: "auto" }}><ChuongTb /></View>
       </View>
       <BangCon key={c.id} c={c} canhBao={d.cb.filter((x) => !x.child_id || x.child_id === c.id)} luat={d.luat} choi={d.choi.filter((p) => p.con === c.id)}
-        mayTt={d.tt.filter((m) => m.con === c.id || m.dungChung)} xem={d.xem} taiLai={tai} bao={bao} guiCham={guiCham}
+        mayTt={d.tt.filter((m) => m.con === c.id || m.dungChung)} xem={d.xem} taiLai={tai} bao={bao}
         viec={d.cd ? [...d.cd.nhiemVu.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "nv", x })),
           ...d.cd.yeuCau.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "yc", x })),
           ...(d.cd.phieu ?? []).filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "qua", x }))] : null} />
@@ -70,9 +70,9 @@ export default function TrangChu() {
   );
 }
 
-function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, guiCham, viec }: {
+function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec }: {
   c: ConNgan; canhBao: CanhBao[]; luat: Luat | null; choi: PhienDang[]; mayTt: TuanThuMay[]; xem: boolean; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void;
-  guiCham: (chu: string, lam: () => void, huy?: () => void) => void; viec: ViecCho[] | null;
+  viec: ViecCho[] | null;
 }) {
   const ct = useTai(() => bm.goi<ConChiTiet>(`con/${c.id}`));
   const web = useTai(() => bm.goi<ThongKeWeb>(`con/${c.id}/web?ngay=1`).catch(() => null));
@@ -111,7 +111,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, guiCham, vie
 
   return (
     <>
-      {viec ? <TheViecCho ds={viec} ten={c.ten} xem={xem} tai={tai} bao={bao} guiCham={guiCham} /> : (
+      {viec ? <TheViecCho ds={viec} ten={c.ten} xem={xem} tai={tai} bao={bao} /> : (
         <Pressable onPress={() => router.push("/cho-duyet")} accessibilityRole="button"
           style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, minHeight: 44, borderRadius: 20, borderWidth: 1, borderColor: cho ? "#f3c8bf" : M.vien, backgroundColor: cho ? "#fff8f6" : "#fff" }}>
           <BieuTron ic="chuong" mau={cho ? "do" : "xanh"} />
@@ -123,7 +123,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, guiCham, vie
         </Pressable>
       )}
 
-      <The>
+      <The dem>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           {khoaNgay ? <BieuTron ic={moTam ? "dongho" : "khoa"} mau={moTam ? "cam" : "do"} /> : null}
           <View style={{ flex: 1, minWidth: 0 }}>

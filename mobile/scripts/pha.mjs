@@ -572,7 +572,7 @@ await kichBan("Trang chủ ⇒ Khoá máy 15 phút ⇒ gửi hạn giờ", async
   xet(await doi("Đã khoá máy của"), "báo đã khoá, có Hoàn tác");
 });
 
-await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / Từ chối tại chỗ, Hoàn tác, Xem tất cả", async () => {
+await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / Từ chối tại chỗ, Hoàn tác, cảnh báo ngoại lệ", async () => {
   await di("/hom-nay");
   xet(await doi("việc chờ Ba Mẹ"), "thẻ việc chờ ở Trang chủ");
   const nhan = (l) => `[aria-label="${l}"]`;
@@ -583,23 +583,25 @@ await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / 
   await bam("Hoàn tác");
   await sleep(500);
   xet(nhatKy.some((x) => x.m === "POST" && x.d === "luot/l1/hoan-tac"), "Hoàn tác gọi luot/l1/hoan-tac");
+  kb["POST luot/l3/tu-choi"] = { ok: true };
+  xet(await doi("Xem ảnh"), "ảnh nghi trùng ⇒ «Xem ảnh» thay cho duyệt mù");
   await bamChon(nhan("Từ chối: Tập thể dục 30 phút"));
   xet(await doi("cần làm gì thêm?"), "Từ chối mở bảng lý do");
   await bam("Ảnh chưa rõ — chụp lại nhé");
   await bam(`Gửi cho ${KEN}`);
-  xet(await doi("Đã gửi «Ảnh chưa rõ — chụp lại nhé»"), "báo đã gửi lý do, có Hoàn tác");
-  await bam("Hoàn tác");
-  await sleep(9000);
-  xet(!nhatKy.some((x) => x.d === "luot/l3/tu-choi"), "Hoàn tác trong 8 giây ⇒ không gửi từ chối");
-  await bamChon(nhan("Từ chối: Tập thể dục 30 phút"));
-  await doi("cần làm gì thêm?");
-  await bam(`Gửi cho ${KEN}`);
-  await sleep(9000);
-  xet(nhatKy.some((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Chưa xong — làm tiếp nhé" && x.body?.boSung === true), "không Hoàn tác ⇒ gửi từ chối kèm lý do sau 8 giây");
+  await sleep(600);
+  xet(nhatKy.some((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Ảnh chưa rõ — chụp lại nhé" && x.body?.boSung === true), "gửi từ chối kèm lý do đã chọn");
+  xet(await doi("Đã gửi «Ảnh chưa rõ — chụp lại nhé»"), "báo đã gửi lý do");
   await bam(BILL);
   await bamChon(nhan("Duyệt: Xin thêm 15 phút"));
-  xet(await doi(`Đã cho ${BILL} thêm 15 phút (ngoại lệ)`), "yêu cầu thêm giờ: báo + Hoàn tác");
-  await sleep(9000);
+  xet(await doi("Ngoại lệ thứ 4 tuần này của Bill"), "có cảnh báo ngoại lệ ⇒ mở màn yêu cầu, không duyệt mù");
+  xet(!nhatKy.some((x) => x.d === "yeu-cau/y2/dong-y"), "chưa gửi đồng ý khi còn cảnh báo");
+  kb["GET yeu-cau/y2"] = { ...kb["GET yeu-cau/y2"], xemTruoc: { mucCanhBao: "khong", soTuan: 1, cau: null } };
+  await di("/hom-nay");
+  await doi("việc chờ Ba Mẹ");
+  await bam(BILL);
+  await bamChon(nhan("Duyệt: Xin thêm 15 phút"));
+  xet(await doi(`Đã cho ${BILL} thêm 15 phút (ngoại lệ)`), "không cảnh báo ⇒ duyệt tại chỗ, báo kết quả");
   xet(nhatKy.some((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.truDiem === false && x.body?.phut === 15), "duyệt tại chỗ = ngoại lệ đúng số phút Con xin");
 });
 
