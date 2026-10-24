@@ -14,8 +14,9 @@
 //    `on delete cascade` tới families / children / devices / parents (Con, nhiệm vụ, bài nộp + ảnh bằng chứng, điểm, quà, voucher, quỹ,
 //    luật app/web, phiên chơi, yêu cầu, cảnh báo, sự kiện, lời mời, lệnh máy, tuân thủ, DNS…). Bảng KHÔNG có khoá ngoại xoá tay:
 //    may_log (family_id), pin_sai (khoá «xoa_tk:<người>», «<máy>:<con>», «go:<máy>» — cả máy đã gỡ trước đó, tìm qua events/lệnh/gói cài),
-//    otp (định danh). audit (nhật ký thao tác nhân viên AiiLab) giữ, ghi thêm
-//    MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch.
+//    otp (định danh). audit (nhật ký thao tác nhân viên AiiLab: nạp quỹ, quét phiếu quà…) giữ TỐI ĐA 90 ngày để xử lý khiếu nại
+//    (Thanh chốt 24/10), ghi thêm MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch; dòng đó là mốc tính 90 ngày,
+//    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
@@ -92,4 +93,40 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     await ghiKiemToan(null, "xoa_gia_dinh", { soCon: con.length }, bm.family_id, t);
     return { xoa: "gia_dinh", soCon: con.length };
   });
+}
+
+// ---------------------------------------------------------------- dọn audit của gia đình đã xoá quá 90 ngày (chính sách quyền riêng tư mục 4)
+export const GIU_KIEM_TOAN_NGAY = 90;
+
+/** Xoá hẳn audit của gia đình KHÔNG còn trong families khi dòng MỚI NHẤT của gia đình đó đã quá GIU_KIEM_TOAN_NGAY ngày — không phụ thuộc
+ *  đường xoá nào; có mốc «xoa_gia_dinh» thì tính từ mốc (dòng ghi sau khi xoá — vd trả lời chat cũ — không kéo dài hạn). Đường xoá trong mã (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi) ghi mốc «xoa_gia_dinh»
+ *  nên dòng mới nhất = lúc xoá ⇒ đủ 90 ngày để xử lý khiếu nại; xoá tay theo yêu cầu email thì ghi mốc như vậy bằng tay.
+ *  Kèm: dòng «quet_voucher» không gắn gia đình (mã không còn — có thể là phiếu của gia đình đã xoá — hoặc không có thật) quá 90 ngày.
+ *  Gọi lặp vô hại. → số dòng đã xoá. */
+export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number> {
+  await damBaoBang();
+  const moc = new Date(now.getTime() - GIU_KIEM_TOAN_NGAY * 86_400_000);
+  const giaDinh = await q<{ id: string }>(`delete from audit where family_id in (
+      select x.family_id from audit x where x.family_id is not null and not exists (select 1 from families f where f.id = x.family_id)
+        group by x.family_id having coalesce(min(x.created_at) filter (where x.hanh_dong = 'xoa_gia_dinh'), max(x.created_at)) < $1) returning id`, [moc]);
+  const quet = await q<{ id: string }>(`delete from audit where created_at < $1 and family_id is null and hanh_dong = 'quet_voucher' returning id`, [moc]);
+  return giaDinh.length + quet.length;
+}
+
+/** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn; dọn lỗi thì trả lượt
+ *  (lần gọi sau chạy lại được ngay). → null = vừa chạy rồi. */
+export async function chayDonKiemToan(now = new Date()): Promise<number | null> {
+  await damBaoBang();
+  const duoc = await q<{ cu: Date | null }>(`with cu as (select updated_at from he_thong where khoa = 'don_kiem_toan')
+    insert into he_thong(khoa, gia_tri, updated_at) values ('don_kiem_toan', '{}', $1)
+    on conflict (khoa) do update set updated_at = $1 where he_thong.updated_at < $1::timestamptz - interval '1 hour'
+    returning (select updated_at from cu) as cu`, [now]);
+  if (!duoc.length) return null;
+  try {
+    return await donKiemToanGiaDinhDaXoa(now);
+  } catch (e) {
+    await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
+      [now, duoc[0].cu]).catch(() => {});
+    throw e;
+  }
 }

@@ -40,7 +40,7 @@ async function demConLai(ids: { fam: string; con: string[]; may: string[]; baMe:
   const theoCot: Record<string, string[]> = { family_id: [ids.fam], child_id: ids.con, giao_cho: ids.con, device_id: ids.may, parent_id: ids.baMe };
   const kq: Record<string, number> = {};
   for (const c of cot) {
-    if (c.table_name === "audit") continue;                     // nhật ký nhân viên AiiLab — giữ id gia đình (có chủ đích)
+    if (c.table_name === "audit") continue;                     // nhật ký nhân viên AiiLab — giữ id gia đình tối đa 90 ngày (test cuối file)
     const gt = theoCot[c.column_name];
     if (!gt.length) continue;
     const n = (await q<{ n: number }>(`select count(*)::int as n from ${c.table_name} where ${c.column_name} = any($1::text[])`, [gt]))[0].n;
@@ -192,4 +192,65 @@ test("Ba Mẹ không phải chủ (Phê duyệt / Chỉ xem) ⇒ chỉ xoá tài
   // chủ giờ là người cuối ⇒ xoá được cả gia đình
   assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } })).body.xoa, "gia_dinh");
   assert.equal((await q(`select 1 from parents where id = $1`, [bm])).length, 0);
+});
+
+test("audit của gia đình đã xoá: giữ 90 ngày rồi xoá hẳn; gia đình chưa xoá không bị đụng; cron giãn 1 giờ", async () => {
+  const { ghiKiemToan } = await import("./admin.ts");
+  const { donKiemToanGiaDinhDaXoa, chayDonKiemToan } = await import("./xoa-tai-khoan.ts");
+  const now = new Date();
+  const lui = (ngay: number) => new Date(now.getTime() - ngay * 86_400_000);
+  /** gia đình xoá qua API, có 2 dòng audit cũ (nạp quỹ, quét phiếu) + dòng mốc «xoa_gia_dinh»; lùi mốc về «ngay» ngày trước */
+  async function daXoa(ten: string, ngay: number) {
+    const { fam, tok } = await nha(ten);
+    await ghiKiemToan({ id: "nv1", vai: "quay" }, "nap_quy", { soTien: 100_000, ghiChu: "nạp tại quầy" }, fam);
+    await ghiKiemToan({ id: "nv1", vai: "quay" }, "quet_voucher", { ma: "AB12CD" }, fam);
+    assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } })).body.xoa, "gia_dinh");
+    await q(`update audit set created_at = $2 where family_id = $1`, [fam, lui(ngay)]);
+    return fam;
+  }
+  const dem = async (fam: string) => (await q<{ n: number }>(`select count(*)::int as n from audit where family_id = $1`, [fam]))[0].n;
+  const f89 = await daXoa("Mai", 89), f91 = await daXoa("Cuc", 91);
+  // gia đình còn dùng: dòng audit cũ 200 ngày vẫn giữ (chỉ dọn gia đình đã xoá)
+  const { fam: fCon } = await nha("Dao");
+  await ghiKiemToan({ id: "nv1", vai: "quay" }, "nap_quy", { soTien: 50_000 }, fCon);
+  await q(`update audit set created_at = $2 where family_id = $1`, [fCon, lui(200)]);
+  // dòng mốc «xoa_gia_dinh» lạ của gia đình vẫn còn trong families ⇒ không đụng
+  await ghiKiemToan(null, "xoa_gia_dinh", { soCon: 0 }, fCon);
+  await q(`update audit set created_at = $2 where family_id = $1`, [fCon, lui(200)]);
+  // gia đình bỏ đi không qua «xoá tài khoản» (không có mốc), dòng cuối 120 ngày ⇒ vẫn dọn; quét mã không gắn gia đình 91 ngày ⇒ dọn, 10 ngày ⇒ còn
+  await ghiKiemToan({ id: "nv1", vai: "admin" }, "tra_loi_ho_tro", { doDai: 5 }, "gd_khong_con");
+  await q(`update audit set created_at = $1 where family_id = 'gd_khong_con'`, [lui(120)]);
+  await ghiKiemToan({ id: "nv1", vai: "quay" }, "quet_voucher", { ma: "CU91" }, null);
+  await ghiKiemToan({ id: "nv1", vai: "quay" }, "quet_voucher", { ma: "MOI10" }, null);
+  await q(`update audit set created_at = $1 where chi_tiet->>'ma' = 'CU91'`, [lui(91)]);
+  await q(`update audit set created_at = $1 where chi_tiet->>'ma' = 'MOI10'`, [lui(10)]);
+  // dòng ghi SAU khi xoá (trả lời chat cũ) không kéo dài hạn — tính từ mốc «xoa_gia_dinh»
+  await ghiKiemToan({ id: "nv1", vai: "admin" }, "tra_loi_ho_tro", { doDai: 2 }, f91);
+  const quet = async () => (await q<{ ma: string }>(`select chi_tiet->>'ma' as ma from audit where family_id is null and chi_tiet->>'ma' in ('CU91', 'MOI10')`)).map((x) => x.ma);
+  assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 4, 2]);
+
+  await donKiemToanGiaDinhDaXoa(now);
+  assert.equal(await dem("gd_khong_con"), 0);
+  assert.deepEqual(await quet(), ["MOI10"]);
+  assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 0, 2], "89 ngày còn, 91 ngày xoá hẳn kể cả dòng mốc");
+  await donKiemToanGiaDinhDaXoa(now);
+  assert.deepEqual([await dem(f89), await dem(fCon), (await quet()).length], [3, 2, 1], "gọi lặp vô hại");
+  // 2 ngày sau gia đình 89 ngày quá hạn
+  await q(`delete from he_thong where khoa = 'don_kiem_toan'`);
+  const sau = new Date(now.getTime() + 2 * 86_400_000);
+  assert.ok(((await chayDonKiemToan(sau)) ?? 0) >= 3);
+  assert.equal(await chayDonKiemToan(new Date(sau.getTime() + 30 * 60_000)), null, "chưa đủ 1 giờ ⇒ bỏ qua");
+  assert.deepEqual([await dem(f89), await dem(fCon)], [0, 2]);
+});
+
+test("nhận lời mời bỏ gia đình rỗng cũ ⇒ ghi mốc «xoa_gia_dinh» để audit của gia đình cũ được dọn sau 90 ngày", async () => {
+  const { ghiKiemToan } = await import("./admin.ts");
+  const a = await nha("Hong"), b = await nha("Le");
+  await ghiKiemToan({ id: "nv1", vai: "admin" }, "tra_loi_ho_tro", { doDai: 3 }, b.fam);
+  const loiMoi = await m("thanh-vien/moi", { tok: a.tok, body: { vai: "duyet" } });
+  assert.equal(loiMoi.status, 200, JSON.stringify(loiMoi.body));
+  const nhan = await m("moi/nhan", { tok: b.tok, body: { ma: loiMoi.body.ma } });
+  assert.equal(nhan.status, 200, JSON.stringify(nhan.body));
+  assert.equal((await q(`select 1 from families where id = $1`, [b.fam])).length, 0);
+  assert.equal((await q(`select 1 from audit where family_id = $1 and hanh_dong = 'xoa_gia_dinh'`, [b.fam])).length, 1);
 });
