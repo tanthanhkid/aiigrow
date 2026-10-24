@@ -421,4 +421,103 @@ final class BaoMatTests: XCTestCase {
     XCTAssertLessThan(Date().timeIntervalSince(t0), 6)
     _ = ma
   }
+
+  // MARK: lượt review 6
+
+  func testChiDongTienTrinhChinhKhongDongWidgetExtensionHelper() {
+    let lich = TienTrinh(pid: 30, uid: 501, duongDan: "/System/Applications/Calendar.app/Contents/PlugIns/CalendarWidgetExtension.appex/Contents/MacOS/CalendarWidgetExtension", bundleId: "com.apple.iCal.CalendarWidgetExtension")
+    let mail = TienTrinh(pid: 31, uid: 501, duongDan: "/System/Applications/Mail.app/Contents/PlugIns/com.apple.mail.SpotlightIndexExtension.appex/Contents/MacOS/com.apple.mail.SpotlightIndexExtension", bundleId: "com.apple.mail.spotlightindexextension")
+    let helper = TienTrinh(pid: 32, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/1/Helpers/Google Chrome Helper.app/Contents/MacOS/Google Chrome Helper", bundleId: "com.google.Chrome.helper")
+    let xpc = TienTrinh(pid: 33, uid: 501, duongDan: "/Applications/Foo.app/Contents/XPCServices/Bar.xpc/Contents/MacOS/Bar", bundleId: "com.foo.bar")
+    let chrome = TienTrinh(pid: 34, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    let mailChinh = TienTrinh(pid: 35, uid: 501, duongDan: "/System/Applications/Mail.app/Contents/MacOS/Mail", bundleId: "com.apple.mail")
+    let dong = QuyetDinhApp.canDong([lich, mail, helper, xpc, chrome, mailChinh], uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong))
+    XCTAssertEqual(dong.map(\.pid).sorted(), [34, 35], "chỉ tiến trình chính bị đóng; widget/extension/XPC/Helper thì không")
+    XCTAssertTrue(QuyetDinhApp.laTienTrinhChinh(chrome)); XCTAssertFalse(QuyetDinhApp.laTienTrinhChinh(helper))
+  }
+
+  private func chrome() -> ChinhSachTrinhDuyet.TrinhDuyet { ChinhSachTrinhDuyet.tatCa.first { $0.ten == "Chrome" }! }
+  private let webYT = ChinhSachWeb(cheDo: ChinhSachWeb.mo, chan: ["youtube.com"], cho: [])
+
+  func testGopKhongDongVaoPlistCuaNguoiKhac() {
+    let mdm: [String: Any] = ["URLBlocklist": ["mdm.com"], "IncognitoModeAvailability": 0, "HomepageLocation": "https://x.vn"]
+    // giám sát/gỡ (p nil) trên plist không có dấu của ta: nguyên vẹn, kể cả khoá trùng tên
+    let r = ChinhSachTrinhDuyet.gop(cu: mdm, trinhDuyet: chrome(), p: nil, mayChuHost: nil)
+    XCTAssertTrue(NSDictionary(dictionary: r ?? [:]).isEqual(to: mdm))
+    // gộp vào: giữ khoá + danh sách của MDM
+    let g = ChinhSachTrinhDuyet.gop(cu: mdm, trinhDuyet: chrome(), p: webYT, mayChuHost: nil)!
+    XCTAssertEqual(g["URLBlocklist"] as? [String], ["mdm.com", "youtube.com"])
+    XCTAssertEqual(g["HomepageLocation"] as? String, "https://x.vn")
+    XCTAssertNotNil(g[ChinhSachTrinhDuyet.khoaDanhDau])
+    // cập nhật lần hai không nhân đôi, rồi gỡ ⇒ về đúng nguyên trạng của MDM
+    let g2 = ChinhSachTrinhDuyet.gop(cu: g, trinhDuyet: chrome(), p: webYT, mayChuHost: nil)!
+    XCTAssertEqual(g2["URLBlocklist"] as? [String], ["mdm.com", "youtube.com"])
+    let go = ChinhSachTrinhDuyet.gop(cu: g2, trinhDuyet: chrome(), p: nil, mayChuHost: nil)!
+    XCTAssertTrue(NSDictionary(dictionary: go).isEqual(to: mdm), "gỡ trả lại đúng giá trị gốc: \(go)")
+    // plist chỉ của ta ⇒ gỡ xong rỗng ⇒ nil (xoá tệp)
+    let rieng = ChinhSachTrinhDuyet.gop(cu: nil, trinhDuyet: chrome(), p: webYT, mayChuHost: nil)!
+    XCTAssertNil(ChinhSachTrinhDuyet.gop(cu: rieng, trinhDuyet: chrome(), p: nil, mayChuHost: nil))
+  }
+
+  func testGiamSatVaTuGoKhongDungPlistMDM() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    let mdm: [String: Any] = ["URLBlocklist": ["mdm.com"], "IncognitoModeAvailability": 0]
+    let duong = ChinhSachTrinhDuyet.duongDan(chrome(), taiKhoan: "nguoi_khac", thuMucGoc: thuMuc + "/Managed")
+    fake.tep[duong] = try ChinhSachTrinhDuyet.maHoa(mdm)
+    let duongCon = ChinhSachTrinhDuyet.duongDan(chrome(), taiKhoan: "be", thuMucGoc: thuMuc + "/Managed")
+    fake.tep[duongCon] = try ChinhSachTrinhDuyet.maHoa(mdm)
+    // chế độ giám sát (cheDo = giam_sat) chạy mỗi vòng ⇒ web nil
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "hoc", "cheDo": "giam_sat", "nextCheckSec": 30, "lenh": [["id": 1, "loai": "go"]],
+      "windows": ["mode": "hoc", "cheDo": "giam_sat", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc)]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()                                   // gồm lệnh gỡ
+    for p in [duong, duongCon] {
+      XCTAssertTrue(NSDictionary(dictionary: ChinhSachTrinhDuyet.giaiMa(fake.tep[p]) ?? [:]).isEqual(to: mdm), "plist MDM nguyên vẹn: \(p)")
+    }
+  }
+
+  func testGhepKiemAdminTruocKhiGoiMayChu() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let kho = ConfigStore(duongDan: thuMuc + "/config.json")
+    let api = ApiClient(mayChu: "https://aiigrow.aiilab.vn", token: nil, session: HttpMock.session())
+    let b = BoMay(api: api, heThong: fake, kho: kho, tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed"),
+                  dongHo: { dongHo.thuc }, donDieu: { dongHo.donDieu })
+    fake.uidTheoTen = ["be": 501]; fake.admin = ["be"]          // Con là admin duy nhất
+    HttpMock.dat { _, _ in HttpMock.json(200, ["deviceId": "d", "token": "t", "childName": "Bé"]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    do { try await b.ghep(ma: "123456", taiKhoanCon: "be"); XCTFail("phải lỗi con_mot_admin") }
+    catch let e as LoiApi { XCTAssertEqual(e.ma, "con_mot_admin") }
+    XCTAssertNil(HttpMock.lanGoiCuoi("api/device/ghep"), "KHÔNG gọi máy chủ khi lỗi cục bộ (mã ghép không bị đốt, không có máy «ma»)")
+    XCTAssertTrue(fake.daHaQuyen.isEmpty)
+  }
+
+  func testSauTuGoKhongApLaiChanVaHosts() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, kho) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    let hosts = thuMuc + "/hosts"
+    var go = false
+    HttpMock.dat { _, _ in
+      HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "lenh": go ? [["id": 1, "loai": "go"]] : [],
+        "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc),
+                    "web": ["cheDo": "mo", "chan": ["youtube.com"], "cho": []]]])
+    }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    let duong = ChinhSachTrinhDuyet.duongDan(chrome(), taiKhoan: "be", thuMucGoc: thuMuc + "/Managed")
+    XCTAssertNotNil(fake.tep[duong], "đang chặn: có plist")
+    go = true
+    dongHo.tien(40); _ = await b.motVong()                  // nhận lệnh gỡ
+    XCTAssertNil(fake.tep[duong], "gỡ xong: plist biến mất")
+    for _ in 0..<3 { dongHo.tien(5); _ = await b.apChinhSach(); _ = await b.motVong() }
+    XCTAssertNil(fake.tep[duong], "vòng sau KHÔNG ghi lại plist")
+    XCTAssertFalse((String(decoding: fake.tep[hosts] ?? Data(), as: UTF8.self)).contains("youtube.com"), "hosts không bị ghi lại")
+    let daGhep = await b.daGhep
+    XCTAssertFalse(daGhep)
+    XCTAssertNil(kho.doc()?.policyCuoi)
+    XCTAssertTrue(fake.tinHieuDaGui.isEmpty, "không đóng app")
+  }
 }

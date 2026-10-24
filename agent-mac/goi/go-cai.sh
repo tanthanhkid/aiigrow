@@ -34,6 +34,16 @@ done
 # Chính sách trình duyệt daemon ghi: /Library/Managed Preferences/<tài khoản>/<bundleId>.plist (Chrome, Edge, Brave, Cốc Cốc).
 # Tệp có khoá dấu «AiiGrowManaged» là của AiiGrow: gỡ các khoá AiiGrow sở hữu; còn rỗng thì xoá tệp (khoá của người khác giữ nguyên).
 KHOA_TA="AiiGrowManaged URLBlocklist URLAllowlist IncognitoModeAvailability InPrivateModeAvailability AllowDeletingBrowserHistory BrowserGuestModeEnabled"
+# Trả giá trị gốc của khoá $1 (cất ở AiiGrowGoc trong tệp $2) theo đúng kiểu; không có bản gốc ⇒ trả 1 (để xoá khoá).
+khoi_phuc() {
+  local k="$1" f="$2" t v
+  t=$(/usr/bin/plutil -type "AiiGrowGoc.$k" "$f" 2>/dev/null) || return 1
+  case "$t" in
+    array|dictionary) v=$(/usr/bin/plutil -extract "AiiGrowGoc.$k" json -o - "$f") && /usr/bin/plutil -replace "$k" -json "$v" "$f" ;;
+    integer|float|bool|string) v=$(/usr/bin/plutil -extract "AiiGrowGoc.$k" raw -o - "$f") && /usr/bin/plutil -replace "$k" "-$t" "$v" "$f" ;;
+    *) return 1 ;;
+  esac
+}
 MP="${AIIGROW_MANAGED_PREFS:-/Library/Managed Preferences}"      # đổi được để thử trên thư mục tạm
 for thumuc in "$MP"/*/; do
   [ -d "$thumuc" ] || continue
@@ -41,7 +51,11 @@ for thumuc in "$MP"/*/; do
     f="${thumuc%/}/${bundle}.plist"
     [ -f "$f" ] || continue
     /usr/bin/plutil -extract AiiGrowManaged raw "$f" >/dev/null 2>&1 || continue
-    for k in $KHOA_TA; do /usr/bin/plutil -remove "$k" "$f" >/dev/null 2>&1 || true; done
+    # Khoá AiiGrow ghi đè: trả lại giá trị gốc (cất ở AiiGrowGoc) nếu có, không thì xoá.
+    for k in $KHOA_TA; do
+      khoi_phuc "$k" "$f" || /usr/bin/plutil -remove "$k" "$f" >/dev/null 2>&1 || true
+    done
+    /usr/bin/plutil -remove AiiGrowGoc "$f" >/dev/null 2>&1 || true
     if [ "$(/usr/bin/plutil -convert json -o - "$f" 2>/dev/null)" = "{}" ]; then /bin/rm -f "$f"; fi
     echo "Đã dọn chính sách AiiGrow trong $f"
   done

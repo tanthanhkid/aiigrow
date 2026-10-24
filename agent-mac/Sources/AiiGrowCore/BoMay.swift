@@ -61,15 +61,16 @@ public actor BoMay {
     guard !cauHinh.daGhep else { throw LoiApi(ma: "da_ghep", chu: "Máy này đã được ghép rồi.") }
     let tk = taiKhoanCon.trimmingCharacters(in: .whitespaces)
     guard let uidCon = heThong.uid(cuaTaiKhoan: tk) else { throw LoiApi(ma: "khong_thay_con", chu: "Không thấy tài khoản «\(tk)» trên máy.") }
-    let kq = try await api.ghep(ma: ma, tenMay: heThong.tenMay())
-    // Hạ Con khỏi nhóm admin — nhưng phải còn một admin KHÁC (không tự khoá Ba Mẹ ra ngoài).
+    // Kiểm cục bộ TRƯỚC khi gọi máy chủ (lỗi cục bộ không để lại máy «ma» + mất mã ghép). Phải còn một admin KHÁC (không tự khoá Ba Mẹ ra ngoài).
     var haQuyen: [String] = []
     if heThong.laAdmin(uid: uidCon) {
       let conLai = heThong.dsAdmin().filter { $0.lowercased() != tk.lowercased() && $0.lowercased() != "root" }
       guard !conLai.isEmpty else { throw LoiApi(ma: "con_mot_admin", chu: "Cần còn một tài khoản quản trị khác trước khi hạ quyền tài khoản của Con.") }
-      try heThong.haQuyenAdmin(taiKhoan: tk)
       haQuyen = [tk]
     }
+    let kq = try await api.ghep(ma: ma, tenMay: heThong.tenMay())
+    // Hạ Con khỏi nhóm admin (đã kiểm còn admin khác ở trên).
+    if !haQuyen.isEmpty { try heThong.haQuyenAdmin(taiKhoan: tk) }
     try kho.sua {
       $0.mayChu = kq.server ?? api_mayChu
       $0.deviceId = kq.deviceId
@@ -94,7 +95,7 @@ public actor BoMay {
     guard cauHinh.daGhep else { return trangThaiChuaGhep() }
     let gio = donDieu()
     if gio >= syncLuc { await dongBo() }
-    return apChinhSach()
+    return apChinhSach()                 // đã gỡ từ xa trong dongBo ⇒ apChinhSach tự trả «chưa ghép», không áp gì
   }
 
   private func trangThaiChuaGhep() -> TrangThai {
@@ -140,6 +141,7 @@ public actor BoMay {
   /// Áp Policy hiện có lên giờ hiện tại; cộng giờ đã dùng theo đồng hồ đơn điệu. → trạng thái cho tray.
   @discardableResult
   public func apChinhSach() -> TrangThai {
+    guard cauHinh.daGhep else { return trangThaiChuaGhep() }       // chưa ghép / đã bị gỡ từ xa: thả hoàn toàn
     let now = dongHo()
     let phien = heThong.phienConsole()
     let laCon = phien?.uid == cauHinh.uidCon
@@ -309,7 +311,13 @@ public actor BoMay {
     for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
     apHosts(web: nil)
     for tk in cauHinh.daHaQuyen { heThong.ghiLog("[gỡ] trả lại quyền admin cho \(tk) do go-cai.sh thực hiện.") }
-    heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, chờ bộ gỡ.")
+    // Thả hoàn toàn: xoá token + Policy (cả trong bộ nhớ lẫn đĩa) ⇒ các vòng sau coi như chưa ghép, không áp lại plist/hosts/đóng app.
+    _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0 }
+    cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
+    api.datPhien(mayChu: cauHinh.mayChu, token: "")
+    policy = nil
+    demNguocConLai = nil
+    heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn, chờ bộ gỡ.")
   }
 
   private func conDangDung() -> UInt32? {

@@ -40,9 +40,17 @@ public enum QuyetDinhApp {
       .withLeadingSlash
   }
 
+  /// Tệp thực thi nằm ngay ở `<X>.app/Contents/MacOS/` của .app ngoài cùng = tiến trình chính của app.
+  /// Widget/extension (`…/PlugIns/X.appex/Contents/MacOS/…`), XPCServices, Helpers (Chrome Helper), LoginItems nằm sâu hơn ⇒ không phải tiến trình chính.
+  public static func laTienTrinhChinh(_ t: TienTrinh) -> Bool {
+    guard let app = t.duongDanApp else { return false }
+    return t.duongDan.lowercased().hasPrefix(app.lowercased() + "/contents/macos/")
+  }
+
   /// App có thuộc danh sách cho phép không — so cả bundle id lẫn tên .app (máy chủ gửi được cả hai), không phân biệt hoa/thường.
   public static func duocPhep(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
     guard let app = t.duongDanApp else { return true }                               // không phải app có giao diện ⇒ không đụng
+    guard laTienTrinhChinh(t) else { return true }                                    // .appex/PlugIns/XPCServices/Helpers/LoginItems chạy nền: không đóng (app chính bị đóng thì chúng tự chết)
     let choPhep = Set(choPhep.map { $0.lowercased() })                                // máy chủ luôn lưu chữ thường (chuanMuc); bundle id thật có chữ hoa
     if thuMucHeThong.contains(where: { app.hasPrefix($0) || t.duongDan.hasPrefix($0) }) { return true }
     if app.lowercased() == DuongDan.app.lowercased() { return true }

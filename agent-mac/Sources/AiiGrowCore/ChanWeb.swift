@@ -74,7 +74,7 @@ public enum ChinhSachTrinhDuyet {
   ]
   /// Khoá AiiGrow sở hữu trong plist — gỡ thì chỉ xoá các khoá này, khoá của người khác giữ nguyên.
   public static func khoaCuaTa(_ t: TrinhDuyet) -> [String] {
-    [khoaDanhDau, "URLBlocklist", "URLAllowlist", t.coAnDanh, "AllowDeletingBrowserHistory", "BrowserGuestModeEnabled"]
+    [khoaDanhDau, khoaGoc, "URLBlocklist", "URLAllowlist", t.coAnDanh, "AllowDeletingBrowserHistory", "BrowserGuestModeEnabled"]
   }
   public static let tranMuc = 900   // Chrome giới hạn 1000 mục mỗi danh sách
 
@@ -96,18 +96,36 @@ public enum ChinhSachTrinhDuyet {
     return (duyNhat(chan), duyNhat(cho))
   }
 
-  /// Nội dung plist mong muốn: gộp lên `cu` (plist sẵn có, nil nếu chưa có). `p` nil ⇒ gỡ khoá của ta; còn rỗng ⇒ trả nil (xoá tệp).
+  /// Khoá lưu giá trị GỐC (của MDM/người khác) mà ta ghi đè — gỡ thì trả lại đúng giá trị đó.
+  public static let khoaGoc = "AiiGrowGoc"
+
+  /// Nội dung plist mong muốn: gộp lên `cu` (plist sẵn có, nil nếu chưa có).
+  /// • Plist KHÔNG có dấu `AiiGrowManaged` là của người khác: `p` nil ⇒ không động vào; `p` có ⇒ gộp vào, danh sách URL hợp nhất,
+  ///   giá trị gốc của các khoá ta ghi đè được cất ở `AiiGrowGoc` để trả lại khi gỡ.
+  /// • `p` nil trên plist của ta ⇒ gỡ khoá của ta (trả lại giá trị gốc); rỗng ⇒ nil (xoá tệp).
   public static func gop(cu: [String: Any]?, trinhDuyet t: TrinhDuyet, p: ChinhSachWeb?, mayChuHost: String?) -> [String: Any]? {
+    let coDau = cu?[khoaDanhDau] != nil
+    guard coDau || p != nil else { return cu }                       // giám sát/gỡ mà tệp không phải của ta: để nguyên
+    let nho = khoaCuaTa(t).filter { $0 != khoaDanhDau }
     var d = cu ?? [:]
-    for k in khoaCuaTa(t) { d.removeValue(forKey: k) }
+    // Giá trị gốc: của lần gộp trước (nếu tệp đã là của ta) hoặc đang có trong tệp của người khác.
+    var goc: [String: Any] = coDau ? (d[khoaGoc] as? [String: Any] ?? [:]) : Dictionary(uniqueKeysWithValues: nho.compactMap { k in d[k].map { (k, $0) } })
+    for k in nho + [khoaDanhDau, khoaGoc] { d.removeValue(forKey: k) }
+    for (k, v) in goc { d[k] = v }                                    // trả giá trị gốc trước
     if let p {
       let (chan, cho) = lap(p, mayChuHost: mayChuHost)
+      func hop(_ k: String, _ ta: [String]) -> [String] {
+        var s = Set<String>(); let g = goc[k] as? [String] ?? []
+        return Array((g + ta).filter { s.insert($0).inserted }.prefix(tranMuc))
+      }
       d[khoaDanhDau] = true
-      d["URLBlocklist"] = chan
-      d["URLAllowlist"] = cho
+      d["URLBlocklist"] = hop("URLBlocklist", chan)
+      d["URLAllowlist"] = hop("URLAllowlist", cho)
       d[t.coAnDanh] = 1                    // không ẩn danh ⇒ lịch sử web luôn đủ
       d["AllowDeletingBrowserHistory"] = false
       d["BrowserGuestModeEnabled"] = false
+      goc = goc.filter { nho.contains($0.key) }
+      if !goc.isEmpty { d[khoaGoc] = goc }
     }
     return d.isEmpty ? nil : d
   }
