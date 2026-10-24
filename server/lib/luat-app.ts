@@ -74,13 +74,14 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   const nhom = (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
   const con = b.con ?? "";
   if (con && !(await t(`select 1 from children where id = $1 and family_id = $2`, [con, fam])).length) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+  await khoaLuat(t, fam, con, muc);   // mọi đường ghi (duyệt yêu cầu, web…) cũng xếp hàng sau lượt xếp / hoàn tác đang chạy; khoá lồng nhau không sao
   await t(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom, het) values ($1,$2,$3,$4,$5,$6,$7)
            on conflict (family_id, child_id, muc) do update set ten = excluded.ten, loai = excluded.loai, nhom = excluded.nhom, het = excluded.het`,
     [fam, con, muc, String(b.ten ?? muc).slice(0, 80), loai, nhom, b.het ?? null]);
   return muc;
 }
 
-/** Khoá giao dịch theo (nhà, Con, mục): `for update` không khoá được dòng CHƯA tồn tại — hai lượt xếp / hoàn tác một app chưa có luật
+/** Khoá giao dịch theo (nhà, Con, mục) — `mục` đã chuanMuc: `for update` không khoá được dòng CHƯA tồn tại — hai lượt xếp / hoàn tác một app chưa có luật
  *  sẽ cùng đọc «chưa có» rồi đè nhau. Khoá tư vấn giữ tới hết giao dịch, xếp lẫn hoàn tác cùng đi qua đây (như khoá tên Con ở gia-dinh.ts). */
 export const khoaLuat = (t: Q, fam: string, con: string, muc: string) =>
   t(`select pg_advisory_xact_lock(hashtext($1))`, [`luat-app:${fam}:${con}:${muc}`]);
@@ -100,6 +101,7 @@ export async function luatHienCo(fam: string, con: string, mucTho: unknown, t: Q
 export async function xoaLuat(fam: string, b: { con?: string; muc: unknown }, t: Q = q) {
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên ứng dụng hoặc website");
+  await khoaLuat(t, fam, b.con ?? "", muc);
   await t(`delete from app_rules where family_id = $1 and child_id = $2 and muc = $3`, [fam, b.con ?? "", muc]);
   return muc;
 }
