@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, NHOM_NV, type NhiemVu, type Qua } from "@/lib/api";
+import { bm, NHOM_NV, type NhiemVu, type Qua, laChiXem } from "@/lib/api";
 import {
   BangTruot, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, Man, Nhan, Nhom, Nut, ONhap, tien, useBaoKhiVe, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -17,7 +17,7 @@ export default function DiemQua() {
   const { d, loi, matMang, tai } = useTai(async () => ({
     nv: (await bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")).ds, qua: (await bm.goi<{ ds: Qua[] }>("qua")).ds, quy: await bm.goi<{ soDu: number }>("quy"),
     phieu: (await bm.goi<{ ds: Phieu[] }>("phieu")).ds,
-    xem: (await bm.goi<{ baMe: { vai: string } }>("toi")).baMe.vai === "xem",
+    xem: await laChiXem(),
   }));
   const [sua, setSua] = useState<NhiemVu | null>(null);
   const [huy, setHuy] = useState<Phieu | null>(null);

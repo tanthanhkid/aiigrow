@@ -2,11 +2,10 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, type GiaDinh } from "@/lib/api";
+import { bm, type GiaDinh, TEN_NV_TOI_THIEU as TEN_TOI_THIEU } from "@/lib/api";
 import { BaoLoi, baoKhiVe, Canh, Chips, ChonMot, Chu, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 
 /** Tên nhiệm vụ tối thiểu (sau trim) — khớp server/lib/nhiem-vu.ts › TEN_NV_TOI_THIEU. */
-const TEN_TOI_THIEU = 3;
 
 export default function GiaoNv() {
   const { con: conXem } = useLocalSearchParams<{ con?: string }>();       // Con đang xem ở Trang chủ ⇒ mặc định giao cho đúng Con đó

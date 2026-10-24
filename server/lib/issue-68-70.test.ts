@@ -191,3 +191,17 @@ test("Review lượt 3: «chưa xếp» theo luật hiệu lực của chính Co
   assert.deepEqual([r.status, r.body.error], [400, "het_sai"]);
   assert.equal(tenApp("javaw.exe"), "Java (thường là Minecraft)");
 });
+
+test("Review lượt 6: Hoàn tác không đè luật người khác vừa đổi; mục hệ thống không nằm ở «chờ xếp»", async () => {
+  const { fam, con, tok } = await nha();
+  const may = await ghep(fam, con);
+  const ngay = new Date().toISOString().slice(0, 10);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'notepad.exe','chua_phan_loai',4)`, [may.deviceId, con, ngay]);
+  assert.ok(!(await m("luat", { tok })).body.chuaXep.some((x: any) => x.muc === "notepad.exe"));
+  const r = await m("luat", { tok, body: { muc: "capcut.exe", loai: "hoc" } });
+  await datLuat(fam, { muc: "capcut.exe", loai: "chan" });                          // người khác đổi trong lúc chờ Hoàn tác
+  const h = await m("luat/xoa", { tok, body: { muc: r.body.muc, neuLoai: "hoc" } });
+  assert.deepEqual([h.status, h.body.error], [409, "da_doi"]);
+  assert.equal((await q<{ loai: string }>(`select loai from app_rules where family_id = $1 and muc = 'capcut.exe'`, [fam]))[0].loai, "chan");
+  assert.equal((await m("luat/xoa", { tok, body: { muc: r.body.muc, neuLoai: "chan" } })).status, 200);
+});

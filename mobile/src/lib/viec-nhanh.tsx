@@ -60,7 +60,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
       ) : null}
       {xem ? null : <View style={{ marginTop: 12 }}>
         <HaiNut>
-          {win && m.cheDo && !dangGo ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
+          {win && m.cheDo && !dangGo && !cho ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
           {dangKhan || dangGo ? null : <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />}
           {win ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
         </HaiNut>
@@ -111,7 +111,7 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
       const kq = await bm.goi<{ muc: string; truoc?: LuatCu | null }>("luat", { muc: x.muc, ten: x.ten ?? x.muc, loai: loai[0], nhom: "khac" });
       // Hoàn tác: có luật cũ ⇒ đặt lại đúng như cũ; chưa có ⇒ bỏ luật, app quay về «chờ xếp loại». Máy chủ cũ không gửi `truoc` ⇒ không hiện Hoàn tác.
       const hoan = kq && "truoc" in kq
-        ? () => { (kq.truoc ? bm.goi("luat", kq.truoc) : bm.goi("luat/xoa", { muc: kq.muc })).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); }
+        ? () => { (kq.truoc ? bm.goi("luat", { ...kq.truoc, neuLoai: loai[0] }) : bm.goi("luat/xoa", { muc: kq.muc, neuLoai: loai[0] })).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); }
         : undefined;
       bao(`Đã xếp ${x.ten ?? x.muc} vào ${loai[1]}`, hoan);
       tai();

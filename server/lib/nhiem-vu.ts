@@ -47,7 +47,7 @@ export const MAU: Record<"nhi" | "teen", MauNv[]> = {
 export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string;
   toi_da_ngay: number | null; toi_da_tuan: number | null; phut_toi_thieu: number; tu_duyet: boolean; giao_cho: string | null; han: Date | null; bat: boolean };
 
-/** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ dùng cùng hằng số này (mobile/src/lib/ui.tsx không lặp: kiểm ở giao-nv.tsx). */
+/** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ chép hằng số này ở mobile/src/lib/api.ts › TEN_NV_TOI_THIEU (đổi thì đổi cả hai). */
 export const TEN_NV_TOI_THIEU = 3;
 
 function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
