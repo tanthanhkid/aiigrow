@@ -5,7 +5,7 @@ using AiiGrow.Core;
 namespace AiiGrow.Tray;
 
 /// <summary>Màn hết giờ / khoá toàn màn hình, ghi rõ tên AiiGrow, đếm ngược trước khi dịch vụ ngắt phiên.</summary>
-internal sealed class LockForm : Form
+internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
 {
     // Clay: nền tối ngọc sâu (gradient) + MỘT thẻ đất sét sáng ở giữa chứa ổ khoá, tiêu đề, đồng hồ và các nút.
     private readonly Label _title = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent, MaximumSize = new Size(700, 0), Font = UI.F(26f, FontStyle.Bold) };

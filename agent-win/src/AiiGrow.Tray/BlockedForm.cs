@@ -12,7 +12,7 @@ internal sealed class BlockedForm : Form
 {
     private readonly string? _appId;
     private readonly bool _canExchange;
-    private readonly Label _msg = UI.Text("", 10.5f, false, UI.Green, 340);
+    private readonly Label _msg = UI.Text("", 10.5f, false, UI.Green, UI.Px(340));
     private readonly Button _play;
     private readonly Button _ask;
     private bool _busy;
@@ -29,30 +29,36 @@ internal sealed class BlockedForm : Form
         TopMost = true; ShowInTaskbar = false;
         BackColor = UI.Paper;
         bool showCode = BlockScreenView.ShowOfflineCode(offline);
-        ClientSize = new Size(UI.Px(380), UI.Px((view.ShowUsePoints ? 330 : 270) + (showCode ? 124 : 0)));   // Clay: nút cao 50 (thân 44 + bóng) + dòng icon
-        var wa = Screen.PrimaryScreen!.WorkingArea;
-        Location = new Point(wa.Right - Width - 12, wa.Bottom - Height - 12);
+        // Cỡ cửa sổ theo nội dung (chữ, nút Clay đều theo DPI) ⇒ không tràn đáy; đặt góc phải dưới khi đã biết cỡ.
+        AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        void GocPhaiDuoi()
+        {
+            var wa = Screen.PrimaryScreen!.WorkingArea;
+            Location = new Point(wa.Right - Width - 12, wa.Bottom - Height - 12);
+        }
+        Load += (_, _) => GocPhaiDuoi();
+        SizeChanged += (_, _) => { if (IsHandleCreated) GocPhaiDuoi(); };   // dòng thông báo dài ra ⇒ vẫn sát góc, không tràn đáy
 
         var flow = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(18, 14, 18, 10),
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Padding = new Padding(UI.Px(18), UI.Px(14), UI.Px(18), UI.Px(10)), Margin = Padding.Empty,
         };
         // Dòng đầu: viên clay biển dừng (Fluent 3D) + tên app — chữ giữ nguyên.
         var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 4) };
         dau.Controls.Add(new ClayIcon { Size = new Size(UI.Px(52), UI.Px(52)), MauVien = Clay.CanhSoft, Hinh = UI.Fluent("stop_sign"), Margin = new Padding(0, 0, 8, 0) });
-        var ten = UI.Text(view.AppName + " chưa được mở", 13f, true, null, 280);
-        ten.Margin = new Padding(0, 14, 0, 0);
+        var ten = UI.Text(view.AppName + " chưa được mở", 13f, true, null, UI.Px(280));
+        ten.Margin = new Padding(0, UI.Px(14), 0, 0);
         dau.Controls.Add(ten);
         flow.Controls.Add(dau);
-        flow.Controls.Add(UI.Text(view.Reason, 11f, false, UI.Muted, 340));
+        flow.Controls.Add(UI.Text(view.Reason, 11f, false, UI.Muted, UI.Px(340)));
 
-        _play = UI.Btn(view.UsePointsLabel, true, 340, "star");
+        _play = UI.Btn(view.UsePointsLabel, true, UI.Px(340), "star");
         _play.Click += async (_, _) => await PlayAsync();
         FormClosed += (_, _) => _dong = true;   // đăng ký MỘT lần (không trong PlayAsync: mỗi lần thử lại thêm một handler)
         if (view.ShowUsePoints) flow.Controls.Add(_play);
 
-        _ask = UI.Btn(view.AskParentLabel, !view.ShowUsePoints, 340, "speech_balloon");
+        _ask = UI.Btn(view.AskParentLabel, !view.ShowUsePoints, UI.Px(340), "speech_balloon");
         _ask.Click += (_, _) =>
         {
             Hide();
@@ -65,12 +71,12 @@ internal sealed class BlockedForm : Form
         // Mất mạng: «Xin phép Ba Mẹ» không tới được máy chủ ⇒ Ba Mẹ đọc mã mở offline cho Con gõ (luồng xin phép giữ nguyên).
         if (showCode)
         {
-            var code = new OfflineCodePanel(340);
+            var code = new OfflineCodePanel(UI.Px(340));
             code.Unlocked += Close;
             flow.Controls.Add(code);
         }
 
-        var close = UI.Btn("Đóng", false, 340);
+        var close = UI.Btn("Đóng", false, UI.Px(340));
         close.Click += (_, _) => DongHan();   // luôn đóng được, kể cả khi đang chờ máy chủ (BUG-007)
         flow.Controls.Add(close);
         CancelButton = close;                  // Esc cũng đóng

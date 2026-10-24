@@ -52,7 +52,7 @@ struct XinThemCuaSo: View {
       }
       .padding(.horizontal, 6).vaoLanLuot(1)
     }
-    .padding(22).frame(width: 440).nenClay()
+    .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
   }
 }
 
@@ -83,7 +83,7 @@ struct XinMoView: View {
       if !dong.isEmpty { Text(dong).font(.system(size: 14, weight: .medium)).fixedSize(horizontal: false, vertical: true) }
     }
     .padding(18).clayThe().vaoLanLuot(0)
-    .padding(22).frame(width: 440).nenClay()
+    .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
   }
 }
 
@@ -131,7 +131,7 @@ struct GhepMayView: View {
         .font(.system(size: 11)).foregroundColor(ClayMau.chu3)
     }
     .padding(20).clayThe().vaoLanLuot(0)
-    .padding(22).frame(width: 460).nenClay()
+    .padding(22).padding(.bottom, 12).frame(width: 460).nenClay()
     .animation(ClayMotion.bat, value: xong)
     .onAppear { if chon.isEmpty { chon = taiKhoan.first ?? "" } }
   }
@@ -219,7 +219,7 @@ struct NhacView: View {
     }
     .padding(16).frame(maxWidth: .infinity, alignment: .leading)
     .clayThe(bo: 26).vaoLanLuot(0)
-    .padding(14).frame(width: 320).nenClay()
+    .padding(14).padding(.bottom, 18).frame(width: 320).nenClay()
   }
 }
 

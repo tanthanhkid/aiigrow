@@ -349,12 +349,32 @@ internal sealed class NenCache : IDisposable
     private readonly Action<Graphics>? _rieng;
     private Control? _cha;
     private Bitmap? _bmp;
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Control, NenCache> DangKy = new();
+
+    /// <summary>Bỏ ảnh nền đã nhớ của <paramref name="goc"/> và MỌI con cháu (thẻ đổi cỡ ⇒ thân thẻ vẽ lại ⇒ nền dưới nút/chữ đổi theo).</summary>
+    public static void BoCaCay(Control goc)
+    {
+        if (DangKy.TryGetValue(goc, out var n)) n.Bo(null, EventArgs.Empty);
+        foreach (Control con in goc.Controls) BoCaCay(con);
+    }
+
+    /// <summary>Nền cha phụ thuộc vị trí (tổ tiên đặc gần nhất tự vẽ: thẻ Clay, gradient)? Không ⇒ dời chỗ (cuộn) không phải vẽ lại.</summary>
+    private bool NenTheoViTri()
+    {
+        for (var p = _c.Parent; p != null; p = p.Parent)
+        {
+            if (p is IVeNenRieng) return true;
+            if (p.BackColor.A == 255 && p.BackgroundImage == null) return false;
+        }
+        return true;
+    }
 
     public NenCache(Control c, Action<Control, PaintEventArgs> paintBg, Action<Control, PaintEventArgs> paint, Action<Graphics>? rieng = null)
     {
         _c = c; _bg = paintBg; _fg = paint; _rieng = rieng;
+        DangKy.AddOrUpdate(c, this);
         c.Resize += Bo;
-        c.Move += Bo;
+        c.Move += (_, _) => { if (_rieng != null || NenTheoViTri()) Bo(null, EventArgs.Empty); };
         c.BackColorChanged += Bo;
         c.ParentChanged += (_, _) => { NoiCha(); Bo(null, EventArgs.Empty); };
         NoiCha();
@@ -393,6 +413,7 @@ internal sealed class NenCache : IDisposable
 
     public void Dispose()
     {
+        DangKy.Remove(_c);
         if (_cha != null) _cha.Invalidated -= ChaVeLai;
         _cha = null;
         _bmp?.Dispose();
@@ -720,8 +741,11 @@ internal static class VeThe
     }
 }
 
+/// <summary>Control tự vẽ nền phụ thuộc vị trí (thẻ Clay, nền gradient) — con dời chỗ trong nó thì phải vẽ lại nền đã nhớ.</summary>
+internal interface IVeNenRieng { }
+
 /// <summary>Thẻ Clay (Panel). Con bên trong nên để BackColor trong suốt để thấy men.</summary>
-internal class ClayCard : Panel
+internal class ClayCard : Panel, IVeNenRieng
 {
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float BoGoc { get; set; }
@@ -740,6 +764,10 @@ internal class ClayCard : Panel
     /// <summary>Nền (cha + thân thẻ) nhớ trong bitmap: chữ trong suốt bên trong không vẽ lại bóng mỗi lần.</summary>
     protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
 
+    /// <summary>Thẻ đổi cỡ/màu ⇒ thân thẻ đổi ⇒ bỏ nền đã nhớ của mọi con cháu (nút, icon trong thẻ).</summary>
+    protected override void OnSizeChanged(EventArgs e) { NenCache.BoCaCay(this); base.OnSizeChanged(e); }
+    protected override void OnBackColorChanged(EventArgs e) { NenCache.BoCaCay(this); base.OnBackColorChanged(e); }
+
     /// <summary>Đổi thứ ảnh hưởng tới thân thẻ (bo, lõm, trạng thái chọn…) ⇒ gọi để vẽ lại nền.</summary>
     public void VeLaiNen() { _nen.Bo(null, EventArgs.Empty); Invalidate(true); }
 
@@ -751,7 +779,7 @@ internal class ClayCard : Panel
 }
 
 /// <summary>Thẻ Clay xếp dọc/ngang (FlowLayoutPanel).</summary>
-internal class ClayFlow : FlowLayoutPanel
+internal class ClayFlow : FlowLayoutPanel, IVeNenRieng
 {
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float BoGoc { get; set; }
@@ -767,6 +795,10 @@ internal class ClayFlow : FlowLayoutPanel
 
     protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
 
+    /// <summary>Thẻ đổi cỡ/màu ⇒ thân thẻ đổi ⇒ bỏ nền đã nhớ của mọi con cháu (nút, icon trong thẻ).</summary>
+    protected override void OnSizeChanged(EventArgs e) { NenCache.BoCaCay(this); base.OnSizeChanged(e); }
+    protected override void OnBackColorChanged(EventArgs e) { NenCache.BoCaCay(this); base.OnBackColorChanged(e); }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing) _nen.Dispose();
@@ -778,13 +810,13 @@ internal class ClayFlow : FlowLayoutPanel
 internal sealed class ClayIcon : Control
 {
     private readonly NenCache _nen;
-    private Image? _hinh, _hinhSau;
+    private Image? _hinh, _dich;   // _dich = ảnh đích của lượt đóng sập đang chạy (null = không chạy)
     private System.Windows.Forms.Timer? _t;
     private readonly Stopwatch _sw = new();
     private float _dy, _sx = 1, _sy = 1;
 
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public Image? Hinh { get => _hinh; set { _hinh = value; Invalidate(); } }
+    public Image? Hinh { get => _dich ?? _hinh; set { if (_dich != null) _dich = value; else _hinh = value; Invalidate(); } }
 
     /// <summary>Màu viên (soft); trong suốt ⇒ chỉ vẽ hình, không có viên.</summary>
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -803,7 +835,8 @@ internal sealed class ClayIcon : Control
     public void DongSap(Image? truoc)
     {
         if (Clay.GiamChuyenDong() || IsDisposed) return;
-        _hinhSau = _hinh;
+        _t?.Stop();
+        _dich ??= _hinh;            // gọi lại giữa chừng: giữ ảnh đích cũ, không lấy nhầm ảnh tạm
         if (truoc != null) _hinh = truoc;
         _sw.Restart();
         if (_t == null)
@@ -829,7 +862,7 @@ internal sealed class ClayIcon : Control
         }
         else if (t < 290)
         {
-            if (_hinhSau != null) { _hinh = _hinhSau; _hinhSau = null; }
+            if (_dich != null) _hinh = _dich;
             var p = Clay.EaseOut((t - 200) / 90f);
             _dy = L(2 * h, 0, p); _sx = L(0.85f, 1.08f, p); _sy = L(1.1f, 0.94f, p);
         }
@@ -841,7 +874,7 @@ internal sealed class ClayIcon : Control
         else
         {
             _dy = 0; _sx = _sy = 1;
-            if (_hinhSau != null) { _hinh = _hinhSau; _hinhSau = null; }
+            if (_dich != null) { _hinh = _dich; _dich = null; }
             _t?.Stop();
         }
         Invalidate();

@@ -121,7 +121,7 @@ internal sealed class SetupForm : Form
     private Label Tick(string chu, bool xong = true) => T((xong ? "✔   " : "○   ") + chu, 11f, false, xong ? Chu : Chu2);
 
     /// <summary>Thẻ lựa chọn lớn: tiêu đề đậm + câu «Chọn cái này nếu…»; viền xanh khi được chọn.</summary>
-    private sealed class The : Panel
+    private sealed class The : Panel, IVeNenRieng
     {
         public bool Chon { get => _chon; set { _chon = value; BackColor = value ? ChinhSoft : Clay.The; Invalidate(true); } }
         private bool _chon;
