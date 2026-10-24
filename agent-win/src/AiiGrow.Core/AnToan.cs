@@ -238,6 +238,21 @@ public static partial class SystemCleanup
     /// VÀ đã xoá hết tệp — không để Con kẹt luật chặn kể cả khi dịch vụ gỡ luật thất bại.</summary>
     /// <param name="traQuyen">tài khoản đã bị hạ lúc cài (<see cref="AgentConfig.DaHaQuyen"/>) — tác vụ thêm lại vào nhóm mỗi lần chạy (lưới đỡ khi
     /// bộ gỡ chưa trả được quyền; đã là thành viên thì bỏ qua). Chỉ nhúng SID hợp lệ.</param>
+    /// <summary>Nén gzip + base64 rồi bọc bằng vài dòng PowerShell giải nén chạy lại. Lý do: kịch bản đi qua HAI lớp -EncodedCommand (tham số tác vụ rồi lệnh đăng ký tác vụ),
+    /// mỗi lớp nở ≈ 2,7 lần, mà dòng lệnh Windows tối đa ~32K ký tự — thêm phần gỡ luật web theo hive Con (0.2.6) làm e2e lỗi «The filename or extension is too long».</summary>
+    public static string BocNen(string script)
+    {
+        using var ms = new MemoryStream();
+        using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.SmallestSize, true))
+        {
+            var b = Encoding.UTF8.GetBytes(script);
+            gz.Write(b, 0, b.Length);
+        }
+        return "$m=New-Object IO.MemoryStream(,[Convert]::FromBase64String('" + Convert.ToBase64String(ms.ToArray()) + "'));" +
+               "$z=New-Object IO.Compression.GzipStream($m,[IO.Compression.CompressionMode]::Decompress);" +
+               "$r=New-Object IO.StreamReader($z,[Text.Encoding]::UTF8);Invoke-Expression $r.ReadToEnd()";
+    }
+
     public static string KichBanDonTachRoi(string serviceName, string installDir, string dataDir, string uninstallKey, IEnumerable<QuyenDaHa>? traQuyen = null)
     {
         string Q(string s) => "'" + s.Replace("'", "''") + "'";

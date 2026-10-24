@@ -184,7 +184,20 @@ public class WebHiveTests
     {
         // Tham số tác vụ (-EncodedCommand = UTF-16 → base64 ≈ 2,7 lần) giới hạn ~32K ký tự; e2e 24/10 từng lỗi «The filename or extension is too long».
         var kb = SystemCleanup.KichBanDonTachRoi("AiiGrowService", @"C:\Program Files\AiiGrow", @"C:\ProgramData\AiiGrow", @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow");
-        var b64 = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(kb));
-        Assert.True(b64.Length < 24000, "base64 dài " + b64.Length);
+        var inner = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(SystemCleanup.BocNen(kb)));
+        var outer = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes("$a = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -EncodedCommand " + inner + "'"));
+        Assert.True(outer.Length < 28000, "lệnh đăng ký tác vụ dài " + outer.Length);   // Windows: dòng lệnh ≤ 32767
+    }
+
+    [Fact]
+    public void BocNen_GiaiNenRaDungKichBan()
+    {
+        var kb = WebGuard.KichBanGoChinhSach();
+        var bo = SystemCleanup.BocNen(kb);
+        var m = System.Text.RegularExpressions.Regex.Match(bo, "FromBase64String\\('([^']+)'\\)");
+        Assert.True(m.Success);
+        using var z = new System.IO.Compression.GZipStream(new MemoryStream(Convert.FromBase64String(m.Groups[1].Value)), System.IO.Compression.CompressionMode.Decompress);
+        using var r = new StreamReader(z, System.Text.Encoding.UTF8);
+        Assert.Equal(kb, r.ReadToEnd());
     }
 }
