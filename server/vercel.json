@@ -7,9 +7,6 @@
   "installCommand": "pnpm install --frozen-lockfile && cd ../mobile && npm ci",
   "buildCommand": "pnpm build:app && next build",
   "git": {
-    "deploymentEnabled": {
-      "main": true,
-      "*": false
-    }
+    "deploymentEnabled": false
   }
 }

@@ -23,3 +23,10 @@ bash mobile/scripts/phat-hanh-apk.sh --thu  # chỉ build + kiểm, không đăn
 
 versionCode = số commit (luôn tăng), versionName = `<version package.json>+<sha>`. Ký bằng `debug.keystore` của template Expo như bản 0.1.0
 (script dừng nếu chứng chỉ khác bản 0.1.0, vì khác khoá thì không cài đè được). Mỗi lần đăng thêm một release prerelease riêng `android-<versionName>-<versionCode>`.
+
+## Đưa lên prod theo lô (24/10)
+
+Merge vào `main` **không** tự deploy (`server/vercel.json` → `git.deploymentEnabled: false`). Làm xong một lô tính năng thì chạy
+`scripts/deploy-prod.sh` trên bản sạch của `origin/main`: test máy chủ + tsc + bản web chạy trên localhost (`pha.mjs` luồng + cổng giao diện),
+đạt mới `vercel deploy --prod`. Chỉ kiểm, không deploy: `scripts/deploy-prod.sh --chi-kiem`. Bản phát hành agent (manifest `server/lib/ban-agent.ts`)
+chỉ tới máy Con sau lần deploy này.
