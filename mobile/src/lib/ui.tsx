@@ -558,13 +558,17 @@ export function useHoanTac() {
   const cho = useRef<(() => void) | null>(null);
   useEffect(() => () => { if (hen.current) clearTimeout(hen.current); cho.current?.(); }, []);
   const tat = () => { if (hen.current) clearTimeout(hen.current); hen.current = null; setTb(null); };
+  /** Toast mới đè toast đang chờ gửi ⇒ gửi ngay việc đang chờ (không để mất lặng lẽ). */
+  const guiNgay = () => { const f = cho.current; cho.current = null; f?.(); };
   const bao = useCallback((chu: string, hoan?: () => void) => {
     if (hen.current) clearTimeout(hen.current);
+    guiNgay();
     setTb({ chu, hoan });
     hen.current = setTimeout(() => { hen.current = null; setTb(null); }, HOAN_TAC_MS);
   }, []);
   const guiCham = useCallback((chu: string, lam: () => void, huy?: () => void) => {
     if (hen.current) clearTimeout(hen.current);
+    guiNgay();
     cho.current = lam;
     setTb({ chu, hoan: () => { cho.current = null; huy?.(); } });
     hen.current = setTimeout(() => { hen.current = null; setTb(null); const f = cho.current; cho.current = null; f?.(); }, HOAN_TAC_MS);
