@@ -32,7 +32,7 @@ const config: NextConfig = {
       // App Ba Mẹ cho Android: release cuộn android-moi-nhat (asset tên cố định, mobile/scripts/phat-hanh-apk.sh ghi đè mỗi lần phát hành) — không có redirect thì /tai/aiigrow.apk rơi vào index.html của SPA.
       { source: "/tai/aiigrow.apk", destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/android-moi-nhat/AiiGrow-android.apk", permanent: false },
       // Chính sách quyền riêng tư: URL ngắn tiếng Anh cho cửa hàng ứng dụng.
-      { source: "/privacy", destination: "/chinh-sach-rieng-tu", permanent: true },
+      { source: "/privacy", destination: "/chinh-sach-rieng-tu", permanent: false },
       { source: "/app", destination: "/", permanent: true },
       { source: "/app/:duong((?!sw\\.js$|service-worker\\.js$).*)", destination: "/:duong", permanent: true },
     ];
