@@ -5,7 +5,8 @@ import BackgroundTasks
 import UserNotifications
 import ConCore
 
-let mauChinh = Color(red: 0x1f / 255, green: 0x8a / 255, blue: 0x70 / 255)
+/// Ngọc lục bảo — điểm nhấn của bảng màu Clay (docs/THIET-KE-CLAY.md).
+let mauChinh = Clay.chinh
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
   static let tacVuNhip = "vn.aiilab.aiigrow.con.nhip"
@@ -52,6 +53,7 @@ struct AiiGrowConApp: App {
       ManGoc()
         .environmentObject(m)
         .tint(mauChinh)
+        .preferredColorScheme(.light)   // Clay gương chỉ có bảng sáng
         .onOpenURL { m.moLienKet($0) }
         .onChange(of: pha) { p in
           if p == .active { Task { await m.dongBoNgay() } }

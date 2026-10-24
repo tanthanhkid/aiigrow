@@ -31,7 +31,7 @@ targets:
   AiiGrowCon:
     type: application
     platform: iOS
-    sources: [App, HeThong]
+    sources: [App, HeThong, TaiNguyen]
     dependencies:
       - target: ConCore
       - target: AiiGrowConMonitor
@@ -93,7 +93,7 @@ targets:
   AiiGrowConShieldConfig:
     type: app-extension
     platform: iOS
-    sources: [ShieldConfig]
+    sources: [ShieldConfig, TaiNguyen]
     dependencies: [{ target: ConCore }]
     info:
       path: ShieldConfig/Info.plist

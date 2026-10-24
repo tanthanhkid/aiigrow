@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01BBAFCF41708D5B39E359D9 /* TinhKhien.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF4E25D5AFE0EC15DC0F36DA /* TinhKhien.swift */; };
+		0C0A9010EF742F74ED7F183C /* FLUENT-EMOJI-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */; };
 		0D941015F9AE53EC2EF771A8 /* AiiGrowConMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8F5D3BD62AD835AAC1EB82DA /* AiiGrowConMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		0F7A8A4D6016DF4CCC15CCFA /* LuaChon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFD40AF087F473E45244388 /* LuaChon.swift */; };
 		1CE74F8680D01ED0C50DA616 /* ConCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C0BB868A7690A1A6199015 /* ConCoreTests.swift */; };
@@ -15,12 +16,14 @@
 		22178AEB14B78839900CED21 /* KhoBiMat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B6AFD95F95538BDC1D56AC /* KhoBiMat.swift */; };
 		2346F2F852024B6279A6CF07 /* AiiGrowConShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7900E3A57BAB26B230A60E43 /* AiiGrowConShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		352E2F4BA47955B0E860D7E3 /* MoHinh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186FA46CA2DBC124F41E70B7 /* MoHinh.swift */; };
+		3574FE7F5EB0C464409E8BD3 /* FLUENT-EMOJI-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */; };
 		3BE0FA3E6E078E15673A1E80 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		3D3827E43C52FCC7F938F37C /* ManHinh.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFDA2084344ACE7832D30647 /* ManHinh.swift */; };
 		3E228456488DEFC7D8638772 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		433DB63728ECDC25F05BCBD1 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		4C2AA5B5FA3E431A90E7676B /* LienKet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E65912DFAF91EA72A33274A /* LienKet.swift */; };
 		4EBCD7E1D9FE7B4A96A544E4 /* ManHinhThoiGian.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CDA7A363166F1E9A3FE8A6 /* ManHinhThoiGian.swift */; };
+		5FC5466FEFC2C3D9F865B050 /* Fluent.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 215DFF84E68F40D4D195F82C /* Fluent.xcassets */; };
 		6301FC39E493FE0CBC964BD5 /* LuaChon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFD40AF087F473E45244388 /* LuaChon.swift */; };
 		6FB26C633F922B41C602F5B6 /* KeHoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BD5472CA0F11099C79606C /* KeHoach.swift */; };
 		8F08909C53CFFE9C36791B21 /* AiiGrowConShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0F5B157A8303D4BFAF56737F /* AiiGrowConShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -29,6 +32,8 @@
 		9CA570F73B57D23F393AE7E6 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		9DCDB2A1D3C6D28CE53E9AED /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = E65F7FA55C48519DB255B735 /* ShieldConfigurationExtension.swift */; };
 		A1C3B955DD2441829440E129 /* AiiGrowConApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FCF14C6B32CB1815B0A7A1 /* AiiGrowConApp.swift */; };
+		B2913E338812A2D33BBF6EE0 /* Clay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D2008392A03ECC87824D2C8 /* Clay.swift */; };
+		C30177CE7D5304AFAC2B5DEA /* Fluent.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 215DFF84E68F40D4D195F82C /* Fluent.xcassets */; };
 		C6A0D9BC6A2F5B7AD7FBDD35 /* ConCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		D8815C1C93DDC8C569D38770 /* KhoChung.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E3BECEEB34774A71E77E1CD /* KhoChung.swift */; };
 		DAA11FB36097A94B62945BAE /* KhoBiMat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B6AFD95F95538BDC1D56AC /* KhoBiMat.swift */; };
@@ -141,7 +146,9 @@
 		01CDA7A363166F1E9A3FE8A6 /* ManHinhThoiGian.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManHinhThoiGian.swift; sourceTree = "<group>"; };
 		0F5B157A8303D4BFAF56737F /* AiiGrowConShieldAction.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AiiGrowConShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		186FA46CA2DBC124F41E70B7 /* MoHinh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoHinh.swift; sourceTree = "<group>"; };
+		215DFF84E68F40D4D195F82C /* Fluent.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Fluent.xcassets; sourceTree = "<group>"; };
 		21BB7B368505942043957F3A /* AiiGrowCon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AiiGrowCon.entitlements; sourceTree = "<group>"; };
+		23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FLUENT-EMOJI-LICENSE.txt"; sourceTree = "<group>"; };
 		2FFD40AF087F473E45244388 /* LuaChon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LuaChon.swift; sourceTree = "<group>"; };
 		61FCF14C6B32CB1815B0A7A1 /* AiiGrowConApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiiGrowConApp.swift; sourceTree = "<group>"; };
 		63D7C26305175FD647C95DFE /* ShieldAction.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShieldAction.entitlements; sourceTree = "<group>"; };
@@ -155,6 +162,7 @@
 		8E65912DFAF91EA72A33274A /* LienKet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienKet.swift; sourceTree = "<group>"; };
 		8F5D3BD62AD835AAC1EB82DA /* AiiGrowConMonitor.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AiiGrowConMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		90B6AFD95F95538BDC1D56AC /* KhoBiMat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KhoBiMat.swift; sourceTree = "<group>"; };
+		9D2008392A03ECC87824D2C8 /* Clay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clay.swift; sourceTree = "<group>"; };
 		A6FF5989EB66F1D733E4B180 /* MoHinhApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoHinhApp.swift; sourceTree = "<group>"; };
 		B33E75DFC364549394209585 /* MonitorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorExtension.swift; sourceTree = "<group>"; };
 		BF4E25D5AFE0EC15DC0F36DA /* TinhKhien.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinhKhien.swift; sourceTree = "<group>"; };
@@ -238,6 +246,15 @@
 			path = ConCore;
 			sourceTree = "<group>";
 		};
+		45039037C4869BAD7CD1E343 /* TaiNguyen */ = {
+			isa = PBXGroup;
+			children = (
+				23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */,
+				215DFF84E68F40D4D195F82C /* Fluent.xcassets */,
+			);
+			path = TaiNguyen;
+			sourceTree = "<group>";
+		};
 		6694307EA357078CEC6FCC26 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -260,6 +277,7 @@
 				EACCE2E092C6E3C3DA0CC419 /* Monitor */,
 				F86BACE98F5A497E97CFF47E /* ShieldAction */,
 				B11F81333065C64BE8716CF5 /* ShieldConfig */,
+				45039037C4869BAD7CD1E343 /* TaiNguyen */,
 				B0EEB025E96F23581BBA0F96 /* Tests */,
 				6694307EA357078CEC6FCC26 /* Products */,
 			);
@@ -288,6 +306,7 @@
 			children = (
 				21BB7B368505942043957F3A /* AiiGrowCon.entitlements */,
 				61FCF14C6B32CB1815B0A7A1 /* AiiGrowConApp.swift */,
+				9D2008392A03ECC87824D2C8 /* Clay.swift */,
 				FF9B76B70C98269C095CD359 /* Info.plist */,
 				EFDA2084344ACE7832D30647 /* ManHinh.swift */,
 				A6FF5989EB66F1D733E4B180 /* MoHinhApp.swift */,
@@ -323,6 +342,7 @@
 			buildConfigurationList = 1E3096074CE302C2F9459143 /* Build configuration list for PBXNativeTarget "AiiGrowCon" */;
 			buildPhases = (
 				8D5310BA838B7268D86812C0 /* Sources */,
+				A8B2B246979BB2CC5730DB62 /* Resources */,
 				634FCAB96F32589C526B2F3B /* Frameworks */,
 				A4B528122465A12695CD43D4 /* Embed Foundation Extensions */,
 				A4C60FEA0E1259CB3B146274 /* Embed Frameworks */,
@@ -403,6 +423,7 @@
 			buildConfigurationList = 68EC6CF26BD69F9845DCC869 /* Build configuration list for PBXNativeTarget "AiiGrowConShieldConfig" */;
 			buildPhases = (
 				B4FE051A832A615D568004CF /* Sources */,
+				16F8732C443F85FC0F37E3BB /* Resources */,
 				820AA2D783BBBDD3C07CA492 /* Frameworks */,
 			);
 			buildRules = (
@@ -495,6 +516,27 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		16F8732C443F85FC0F37E3BB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3574FE7F5EB0C464409E8BD3 /* FLUENT-EMOJI-LICENSE.txt in Resources */,
+				5FC5466FEFC2C3D9F865B050 /* Fluent.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A8B2B246979BB2CC5730DB62 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0C0A9010EF742F74ED7F183C /* FLUENT-EMOJI-LICENSE.txt in Resources */,
+				C30177CE7D5304AFAC2B5DEA /* Fluent.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		1A10B664DB0166C92C091F44 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -531,6 +573,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1C3B955DD2441829440E129 /* AiiGrowConApp.swift in Sources */,
+				B2913E338812A2D33BBF6EE0 /* Clay.swift in Sources */,
 				22178AEB14B78839900CED21 /* KhoBiMat.swift in Sources */,
 				0F7A8A4D6016DF4CCC15CCFA /* LuaChon.swift in Sources */,
 				3D3827E43C52FCC7F938F37C /* ManHinh.swift in Sources */,
