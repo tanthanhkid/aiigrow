@@ -302,6 +302,15 @@ export const coTacTu = (nen: string | null | undefined): boolean => nen === "win
 /** Máy có «cửa sổ thêm giờ» (grants.cua_so_den + hạn mở trả về máy): máy tính có tác tử + iPhone/iPad + máy Con Android (app đặt lịch DeviceActivity «themgio» theo hạn).
  * CHỈ phần cửa sổ này — iOS / Android KHÔNG phải «có tác tử»: không mã mở offline, không phiên máy chung (những chỗ đó vẫn dùng coTacTu). */
 export const coCuaSoThemGio = (nen: string | null | undefined): boolean => coTacTu(nen) || nen === "ios" || nen === "android";
+/** Nhóm dùng chung cửa sổ thêm giờ: duyệt lời xin từ máy nào thì chỉ mở các máy CÙNG nhóm (máy tính có tác tử / iPhone-iPad / Android).
+ *  Không thì xin từ iPhone lại mở tự do cả PC Windows (gỡ hết chặn web/app). Grant không rõ máy (null) = nhóm máy tính như trước. */
+export const nhomCuaSo = (nen: string | null | undefined): string => (nen === "ios" || nen === "android" ? nen : "may_tinh");
+/** SQL: nhóm cửa sổ của grant theo nền máy gửi lời xin (`d` = devices join qua requests). */
+export const SQL_NHOM_CUA_SO = `(case when d.platform in ('ios','android') then d.platform else 'may_tinh' end)`;
+/** Lời xin «thêm giờ» thành CỬA SỔ (thay vì phút thưởng) khi: máy tính có tác tử, hoặc iPhone/Android đã chạy tác tử mới (đã gửi nhịp `ios`/`android`
+ *  vào status). App Con cũ trên điện thoại vẫn nhận phút thưởng như trước — tác tử điện thoại chưa phát hành thì không mất thưởng. */
+export const lamCuaSo = (may: { platform: string | null | undefined; status?: Record<string, unknown> | null } | null | undefined): boolean =>
+  !!may && (coTacTu(may.platform) || ((may.platform === "ios" || may.platform === "android") && may.status?.[may.platform] != null));
 
 const VIEC_CHO: Record<NenChuyenDoi, string[]> = {
   windows: ["Gọi API thật (AppLocker, chính sách trình duyệt, net user /times, dịch vụ) trong agent-win — việc chờ máy Windows thử tài khoản Standard"],

@@ -96,7 +96,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const khoa = p.khoaNgay || ngu;
   const now = new Date(p.serverTime);
   const dangMo = !khoa && !!mo.moDen && mo.moDen.getTime() > now.getTime();
-  const phienWeb = p.phien && !laApp(p.phien.muc) && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
+  // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
+  const phienWeb = p.phien && kieuMuc(p.phien.muc) === "web" && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
   return {
     serverTime: p.serverTime, childName: p.con?.ten ?? "",
     mode: khoa ? "khoa" : dangMo ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,

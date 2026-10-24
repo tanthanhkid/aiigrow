@@ -119,6 +119,7 @@ test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsA
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Android của An");
   const may = (await g.mayTuToken(r.token))!;
   assert.equal((await nhipAnd(r.token, {})).body.grantEndsAt, null);
+  await q(`update devices set status = coalesce(status, '{}'::jsonb) || '{"android": {}}'::jsonb where id = $1`, [may.id]);   // tác tử mới đã gửi nhịp
   const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 120, lyDo: "Để làm bài tập" }, T);
   await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 120 }, T);
   assert.ok((await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]))?.cua_so_den);

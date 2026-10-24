@@ -16,6 +16,8 @@ const { taoNha, taoBaMe } = await import("./test-fixtures/nha.ts");
 const VN = (s: string) => new Date(`${s}+07:00`);
 const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 const T = VN("2026-10-21T18:00:00");
+/** Giả máy điện thoại đã chạy tác tử mới (đã gửi nhịp `ios`/`android`) ⇒ lời xin thêm giờ thành cửa sổ (chuyen-doi.ts › lamCuaSo). */
+const tacTuMoi = (id: string, nen: "ios" | "android") => q(`update devices set status = coalesce(status, '{}'::jsonb) || jsonb_build_object($2::text, '{}'::jsonb) where id = $1`, [id, nen]);
 
 test("BRD 6.4: xin mở scratch.mit.edu «Để làm bài tập» ⇒ Ba Mẹ đồng ý Học tập – Vĩnh viễn ⇒ mở được, không tính điểm", async () => {
   const { fam, bm } = await taoNha();
@@ -133,13 +135,23 @@ test("thêm giờ cho lời xin từ máy WINDOWS ⇒ cửa sổ mở tới hạ
   // mở khẩn cấp của máy cũng là «mở»
   await tt.moKhanCap(fam, may.id, { phut: 60 }, bm, T);
   assert.equal((await tt.hanMoCuaMay(may, con, T))!.getTime(), T.getTime() + 60 * 60000);
-  // lời xin từ máy Android (24/10: cũng có cửa sổ thêm giờ như iOS) ⇒ cửa sổ mở, không còn là «thưởng»
+  // lời xin từ máy Android CÓ tác tử mới (24/10) ⇒ cửa sổ mở chỉ cho nhóm Android, không còn là «thưởng»; PC Windows cùng Con KHÔNG mở theo
   const c2 = await g.taoCon(fam, { ten: "Mai" });
   const dt = await g.ghepMay(await g.taoMaGhep(fam, c2, "android"), "android", "Điện thoại Mai");
+  const pc2 = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, c2, "windows"), "windows", "PC Mai")).token))!;
+  await tacTuMoi((await g.mayTuToken(dt.token))!.id, "android");
   const yd = await yc.guiYeuCau(c2, (await g.mayTuToken(dt.token))!.id, { loai: "them_gio", phut: 20, lyDo: "Bạn rủ chơi" }, T);
   await yc.dongY(fam, yd.id, bm, { truDiem: false, phut: 20 }, T);
   assert.equal(await ph.thuongConLai(c2, T), 0);
   assert.equal((await tt.hanMoCuaMay((await g.mayTuToken(dt.token))!, c2, T))!.getTime(), T.getTime() + 20 * 60000);
+  assert.equal(await tt.hanMoCuaMay(pc2, c2, T), null, "xin trên điện thoại không mở tự do PC Windows");
+  // app Con cũ trên iPhone (chưa có tác tử) ⇒ vẫn là phút thưởng như trước, không cửa sổ
+  const c3 = await g.taoCon(fam, { ten: "Bin" });
+  const ip = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, c3, "ios"), "ios", "iPhone Bin")).token))!;
+  const yi = await yc.guiYeuCau(c3, ip.id, { loai: "them_gio", phut: 25, lyDo: "x" }, T);
+  await yc.dongY(fam, yi.id, bm, { truDiem: false, phut: 25 }, T);
+  assert.equal(await ph.thuongConLai(c3, T), 25);
+  assert.equal(await tt.hanMoCuaMay(ip, c3, T), null);
 });
 
 test("Windows: «Khoá lại ngay» đóng cả cửa sổ thêm giờ đã duyệt; mở khẩn cấp rồi tắt máy lâu KHÔNG thành «ngoài vòng»", async () => {
@@ -212,8 +224,9 @@ test("mở tạm: grant giữ nghĩa theo nền (máy có tác tử = cửa sổ
   const dt = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "ĐT")).token))!;
   const now = new Date(), phut = (n: number) => new Date(now.getTime() + n * 60_000);
   const cfg = async () => (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))!.cau_hinh;
+  await tacTuMoi(dt.id, "android");
   await khoaNgay(fam, con, true, bm, phut(180), now);
-  // duyệt từ ĐIỆN THOẠI Android lúc khoá ⇒ gỡ khoá 30'; Android có tác tử ⇒ 30' là cửa sổ mở (chuyen-doi › coCuaSoThemGio), không thành thưởng lần hai
+  // duyệt từ ĐIỆN THOẠI Android lúc khoá ⇒ gỡ khoá 30'; Android có tác tử ⇒ 30' là cửa sổ mở (chuyen-doi › lamCuaSo), không thành thưởng lần hai
   const a = await yc.guiYeuCau(con, dt.id, { loai: "them_gio", phut: 30, lyDo: "xin" }, now);
   await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, now);
   assert.equal(dangKhoa(await cfg(), phut(5)), false);

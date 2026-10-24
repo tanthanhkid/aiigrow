@@ -1,6 +1,6 @@
 // Phần `ios` app iPhone/iPad gửi kèm nhịp (agent-ios/CAN-SERVER.md mục 3): {soAppHoc, soAppGiaiTri, soAppChan, soDanhMucGiaiTri, phutDaDung, uyQuyen}.
 // Lưu vào devices.status.ios để app Ba Mẹ hiện «đã chọn N app giải trí, hôm nay dùng M phút». Con tự bỏ chọn app trong FamilyActivityPicker
-// ⇒ số app giải trí / chặn GIẢM so với lần trước ⇒ cảnh báo Ba Mẹ (cơ chế canhBao có khoá chống trùng).
+// ⇒ số app giải trí / chặn GIẢM so với lần trước ⇒ cảnh báo Ba Mẹ (cơ chế canhBao có khoá chống trùng — mỗi lần giảm cùng mức chỉ báo một lần/ngày, số dao động không thành bão cảnh báo).
 import type { May } from "./gia-dinh.ts";
 import { q } from "./db.ts";
 import { canhBao } from "./nhat-ky.ts";
@@ -36,7 +36,7 @@ export async function luuIosNhip(may: Pick<May, "id" | "family_id" | "child_id" 
   for (const g of giam)
     await canhBao(may.family_id, "ios_giam_app", "chu_y",
       `Số ${g.muc} được chọn trên ${may.name} giảm từ ${g.truoc} xuống ${g.sau} — Con có thể đã tự bỏ chọn trong Screen Time.`,
-      { con: may.child_id, may: may.id, khoa: `ios_giam_app:${may.id}:${g.muc}:${g.truoc}-${g.sau}:${now.getTime()}`, chiTiet: { muc: g.muc, truoc: g.truoc, sau: g.sau } });
+      { con: may.child_id, may: may.id, khoa: `ios_giam_app:${may.id}:${g.muc}:${g.truoc}-${g.sau}:${now.toISOString().slice(0, 10)}`, chiTiet: { muc: g.muc, truoc: g.truoc, sau: g.sau } });
   return giam;
 }
 

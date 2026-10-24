@@ -1,7 +1,7 @@
 // Yêu cầu Con gửi Ba Mẹ (FR-05.01–05.03, BRD 6.4, Phụ lục A.2): xin thêm giờ, mở website, cài/mở ứng dụng, ngoại lệ không đủ điểm,
 // xin ngoài khung giờ, khác. Giới hạn chống spam: ≤ 3 đang chờ, ≤ 10 mỗi ngày. Hết hạn: 24 giờ (thêm giờ…) / 7 ngày (web, app).
 // Ứng điểm (nợ điểm) KHÔNG cho (KE-HOACH 5.5): «ngoại lệ không đủ điểm» nếu đồng ý thì là thêm giờ không trừ điểm, ghi là ngoại lệ.
-import { coCuaSoThemGio } from "./chuyen-doi.ts";
+import { lamCuaSo, nhomCuaSo, SQL_NHOM_CUA_SO } from "./chuyen-doi.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { khoaDen, khoaGoc, moTamDen, thamSo } from "./cau-hinh.ts";
@@ -95,12 +95,13 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
         const diem = Math.ceil((phut * ts.gia_khac) / 1000);
         await ghiDiem(t, r.child_id, -diem, "phien", `Thêm ${phut} phút chơi`, { ref: r.id, nguoi });   // không đủ ⇒ khong_du_diem
       } else ngoaiLe = true;
-      // Lời xin từ máy có tác tử (WINDOWS/MAC): «thêm N phút» (cả iPhone/iPad: app lập lịch «themgio» tới hạn) = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows (macOS dùng chung khoá này)
+      // Lời xin từ máy có tác tử (WINDOWS/MAC; iPhone/Android đã chạy tác tử mới — chuyen-doi.ts › lamCuaSo): «thêm N phút» = cửa sổ mở tự do N phút kể từ lúc duyệt (cộng dồn nếu đang mở) — agent nhận qua dong-bo.windows (macOS dùng chung khoá này)
       // (mode tu_do + grantEndsAt) ở lần đồng bộ kế. Lý do: agent Windows không có «thưởng» để tự mở phiên khi con 0 điểm / chặn web nên grant cũ không bao giờ tới máy.
       let cuaSoDen: Date | null = null;
-      const nen = r.device_id ? (await t<{ platform: string }>(`select platform from devices where id = $1`, [r.device_id]))[0]?.platform : null;
-      if (coCuaSoThemGio(nen)) {
-        const cu = (await t<{ d: Date | null }>(`select max(cua_so_den) as d from grants where child_id = $1 and cua_so_den > $2`, [r.child_id, now]))[0]?.d;
+      const may = r.device_id ? (await t<{ platform: string; status: Record<string, unknown> | null }>(`select platform, status from devices where id = $1`, [r.device_id]))[0] : null;
+      if (lamCuaSo(may)) {
+        const cu = (await t<{ d: Date | null }>(`select max(g.cua_so_den) as d from grants g left join requests q on q.id = g.request_id left join devices d on d.id = q.device_id
+            where g.child_id = $1 and g.cua_so_den > $2 and ${SQL_NHOM_CUA_SO} = $3`, [r.child_id, now, nhomCuaSo(may!.platform)]))[0]?.d;
         cuaSoDen = new Date(Math.max(now.getTime(), cu ? new Date(cu).getTime() : 0) + phut * 60000);
       }
       await t(`insert into grants(id, child_id, request_id, phut, ngoai_le, ngay, cua_so_den) values ($1,$2,$3,$4,$5,$6,$7)`, [newId(), r.child_id, r.id, phut, ngoaiLe, ngay, cuaSoDen]);

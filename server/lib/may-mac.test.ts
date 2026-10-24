@@ -69,6 +69,14 @@ test("quyền bảo vệ suy từ status máy Mac; app của Mac là bundle id (
   assert.deepEqual(chinhSachWindows(pol).allowedApps.sort(), ["explorer.exe", "scratch.exe"], "Windows giữ như cũ");
 });
 
+test("Mac: phiên chơi app của nền khác (.exe) KHÔNG thả trình duyệt; phiên trang web thì thả", () => {
+  const goc = (muc: string) => ({ serverTime: T.toISOString(), tz: "Asia/Ho_Chi_Minh", con: { ten: "Ken" }, khoaNgay: false, soDu: 0, webChiChoPhep: false,
+    phien: { id: "p1", muc, conPhut: 20 }, lich: { ngayThuong: [], cuoiTuan: [], ngu: null }, allowlistHeThong: [],
+    luat: [{ muc, loai: "giai_tri" }] }) as never;
+  assert.ok(!chinhSachWindows(goc("roblox.exe"), undefined, undefined, { nen: "mac" }).allowedApps.includes("com.google.Chrome"));
+  assert.ok(chinhSachWindows(goc("roblox.com"), undefined, undefined, { nen: "mac" }).allowedApps.includes("com.google.Chrome"));
+});
+
 test("ban-moi theo nền tảng (banAgentCho — route chỉ đọc ?platform): không tham số = Windows như trước; mac = bản Mac", () => {
   assert.deepEqual(ba.banAgentCho(null), ba.BAN_AGENT_WINDOWS);
   assert.deepEqual(ba.banAgentCho("windows"), ba.BAN_AGENT_WINDOWS);
