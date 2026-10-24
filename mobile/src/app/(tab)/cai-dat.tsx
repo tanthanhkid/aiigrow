@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { router } from "expo-router";
 import { bm, LoiApi, type GiaDinh } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { Avt, BangTruot, BaoLoi, baoKhiVe, BieuTron, ChoTai, Chu, Dong, M, MAU_CON, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, useLam, useTai } from "@/lib/ui";
+import { Avt, BangTruot, BaoLoi, baoKhiVe, BieuTron, ChoTai, Chu, Dong, M, MAU_CON, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, cauLoi, tien, useLam, useTai } from "@/lib/ui";
 
 type Toi = { baMe: { id: string; ten: string; dinhDanh: string; vai: "chu" | "duyet" | "xem" }; laAdmin?: boolean };
 const VAI = { chu: "Chủ gia đình", duyet: "Thành viên phê duyệt", xem: "Chỉ xem" } as const;
@@ -17,6 +17,7 @@ export default function CaiDat() {
   const [mk, setMk] = useState("");
   // Máy chủ chặn xoá (chủ còn Ba/Mẹ khác / còn máy đã ghép — server/lib/xoa-tai-khoan.ts): mã + câu hướng dẫn của máy chủ
   const [chan, setChan] = useState<{ ma: string; cau: string } | null>(null);
+  const [dangKiem, setDangKiem] = useState(false);
   const { dangChay, loi: loiXoa, lam, setLoi } = useLam();
   const { d, loi, matMang, tai } = useTai(async () => ({
     toi: await bm.goi<Toi>("toi"), g: await bm.goi<GiaDinh>("gia-dinh"), tv: (await bm.goi<{ ds: { id: string; ten: string; vai: keyof typeof VAI }[] }>("thanh-vien")).ds,
@@ -28,8 +29,17 @@ export default function CaiDat() {
   const laChan = (e: unknown): e is LoiApi => e instanceof LoiApi && (e.ma === "con_may" || e.ma === "con_thanh_vien");
   // hỏi máy chủ trước (không cần mật khẩu) ⇒ bị chặn thì hiện hướng dẫn ngay, không bắt nhập mật khẩu vô ích
   const moBangXoa = async () => {
+    if (dangKiem) return;
+    setDangKiem(true);
     setChan(null);
-    try { await bm.goi("xoa-tai-khoan", { kiemTra: true }); } catch (e) { if (laChan(e)) setChan({ ma: e.ma, cau: e.message }); }
+    try {
+      await bm.goi("xoa-tai-khoan", { kiemTra: true });
+    } catch (e) {
+      if (e instanceof LoiApi && e.status === 401) return;        // hết phiên: api đã đưa về màn Chào
+      setChan(laChan(e) ? { ma: e.ma, cau: e.message } : { ma: "loi", cau: cauLoi(e) });
+    } finally {
+      setDangKiem(false);
+    }
     setMoXoa(true);
   };
   const xoa = () => lam(async () => {
@@ -79,13 +89,13 @@ export default function CaiDat() {
           phu={chuConNguoi ? "Mời các thành viên khác ra trước, rồi mới xoá được" : laChu ? "Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình" : "Chỉ xoá tài khoản của bạn — gia đình vẫn giữ nguyên"} />
       </Nhom>
 
-      <BangTruot mo={moXoa} dong={dongXoa} tieu={chan ? "Chưa xoá được tài khoản Chủ gia đình" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
+      <BangTruot mo={moXoa} dong={dongXoa} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản Chủ gia đình" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
         {chan ? (
           <>
             <Chu mau={M.chu2}>{chan.cau}</Chu>
-            {chan.ma === "con_may"
-              ? <Nut chu="Xem các máy" loai="vien" rong bam={() => { dongXoa(); router.push("/may"); }} />
-              : <Nut chu="Mở Thành viên" loai="vien" rong bam={() => { dongXoa(); router.push("/thanh-vien"); }} />}
+            {chan.ma === "con_may" ? <Nut chu="Xem các máy" loai="vien" rong bam={() => { dongXoa(); router.push("/may"); }} />
+              : chan.ma === "con_thanh_vien" ? <Nut chu="Mở Thành viên" loai="vien" rong bam={() => { dongXoa(); router.push("/thanh-vien"); }} />
+                : <Nut chu="Thử lại" loai="vien" rong dangChay={dangKiem} bam={moBangXoa} />}
             <View style={{ marginTop: 8 }}><Nut chu="Đóng" loai="ma" rong bam={dongXoa} /></View>
           </>
         ) : (
@@ -95,6 +105,7 @@ export default function CaiDat() {
               {laChu ? (
                 <>
                   <TickDong trang="x" chu={`Hồ sơ ${d.g.con.length ? `${d.g.con.length} Con` : "các Con"}, nhiệm vụ, ảnh bằng chứng, điểm, quà và luật`} />
+                  {d.g.quyVoucher > 0 ? <TickDong trang="x" chu={`Quỹ phiếu quà AiiCafe còn ${tien(d.g.quyVoucher)} và các phiếu chưa dùng`} phu="Muốn hoàn tiền thì chat với AiiLab TRƯỚC khi xoá" /> : null}
                   <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
                 </>
               ) : (

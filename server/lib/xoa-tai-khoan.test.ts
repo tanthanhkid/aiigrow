@@ -64,12 +64,11 @@ test("sai mật khẩu ⇒ 401 sai_mat_khau, không xoá gì; sai 5 lần liền
   const khoa = await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
   assert.deepEqual([khoa.status, khoa.body.error], [429, "tam_khoa"]);
   assert.equal((await m("xoa-tai-khoan", { tok, body: {} })).body.error, "tam_khoa");
-  // hết khoá ⇒ đếm lại từ đầu (một lần gõ nhầm sau khi hết khoá không khoá lại ngay)
-  await q(`update pin_sai set khoa_den = now() - interval '1 minute' where khoa = $1`, [`xoa_tk:${bm}`]);
+  // khung 15 phút sau ⇒ đếm lại từ đầu (gõ nhầm lẻ tẻ không cộng dồn)
+  await q(`update pin_sai set khoa = khoa || '-cu' where khoa like $1`, [`xoa_tk:${bm}:%`]);
   assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "go-nham" } })).body.error, "sai_mat_khau");
-  assert.equal((await m("xoa-tai-khoan", { tok, body: { matKhau: "go-nham" } })).body.error, "sai_mat_khau");
+  await q(`delete from pin_sai where khoa like $1`, [`xoa_tk:${bm}:%`]);
   // gửi song song: giữ chỗ lượt trước khi kiểm ⇒ không quá 5 lượt được kiểm mật khẩu
-  await q(`delete from pin_sai where khoa = $1`, [`xoa_tk:${bm}`]);
   const ss = await Promise.all(Array.from({ length: 9 }, (_, i) => m("xoa-tai-khoan", { tok, body: { matKhau: `doan-${i}` } })));
   assert.equal(ss.filter((x) => x.body.error === "sai_mat_khau").length, 5);
   assert.equal(ss.filter((x) => x.body.error === "tam_khoa").length, 4);
@@ -130,6 +129,17 @@ test("chủ là người lớn cuối: còn máy ⇒ 409 con_may; gỡ máy xong
   assert.ok((await q(`select 1 from points where child_id = $1`, [con])).length);
   // khoá đếm sai gắn với máy / Con (PIN «<máy>:<con>», gỡ tại máy «go:<máy>»)
   await q(`insert into pin_sai(khoa, so_lan) values ($1, 2), ($2, 1), ($3, 1)`, [`${may.deviceId}:${con}`, `go:${may.deviceId}`, `may-cu:${con2}`]);
+  // thiết bị lọc mạng (TV) cũng là máy phải gỡ trước
+  await q(`insert into dns_thiet_bi(id, family_id, ten, loai, nhan) values ($1, $2, 'TV phòng khách', 'tv', $3)`, [`tv-${fam}`, fam, `tv${fam}`]);
+  const conTv = await m("xoa-tai-khoan", { tok, body: { kiemTra: true } });
+  assert.deepEqual([conTv.status, conTv.body.error], [409, "con_may"]);
+  assert.match(conTv.body.message, /TV phòng khách/);
+  await q(`delete from dns_thiet_bi where id = $1`, [`tv-${fam}`]);
+  // otp của người đã «mời ra» (định danh gốc)
+  const cu = await taoBaMe(fam, "Cô", "duyet");
+  const dnCu = (await q<{ dinh_danh: string }>(`select dinh_danh from parents where id = $1`, [cu]))[0].dinh_danh;
+  assert.equal((await m(`thanh-vien/${cu}/moi-ra`, { tok, body: {} })).status, 200);
+  await q(`insert into otp(dinh_danh, ma_hash, muc_dich, het) values ($1, 'x', 'quen_mk', now() + interval '5 minutes')`, [dnCu]);
   const tok2 = await taoPhien(bm);                              // phiên trên máy thứ hai
 
   const r = await m("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
@@ -146,6 +156,7 @@ test("chủ là người lớn cuối: còn máy ⇒ 409 con_may; gỡ máy xong
   assert.equal((await m("toi", { tok: khac.tok })).status, 200);
   assert.equal((await q(`select 1 from children where id = $1`, [conKhac])).length, 1);
   assert.equal((await q(`select 1 from parents where family_id = $1`, [fam])).length, 0);
+  assert.equal((await q(`select 1 from otp where dinh_danh = $1`, [dnCu])).length, 0, "otp của người đã mời ra");
   for (const id of [bm, con, con2, may.deviceId])
     assert.equal((await q(`select 1 from pin_sai where khoa like $1`, [`%${id}%`])).length, 0, `pin_sai còn khoá chứa ${id}`);
 });
@@ -167,7 +178,7 @@ test("Ba Mẹ không phải chủ (Phê duyệt / Chỉ xem) ⇒ chỉ xoá tài
     const p = await q<{ vai: string; dinh_danh: string; pass_hash: string | null; ten: string }>(`select vai, dinh_danh, pass_hash, ten from parents where id = $1`, [id]);
     assert.deepEqual([p[0].vai, p[0].dinh_danh, p[0].pass_hash], ["roi", `xoa:${id}`, null]);
     assert.equal((await q(`select 1 from sessions where parent_id = $1`, [id])).length, 0);
-    assert.equal((await q(`select 1 from pin_sai where khoa = $1`, [`xoa_tk:${id}`])).length, 0);
+    assert.equal((await q(`select 1 from pin_sai where khoa like $1`, [`xoa_tk:${id}%`])).length, 0);
     assert.equal((await q(`select 1 from ho_tro where nguoi = $1`, [id])).length, 0, "xoá tin hỗ trợ mình viết");
     assert.equal((await q(`select 1 from messages where parent_id = $1`, [id])).length, 0, "xoá lời khen mình gửi");
     assert.ok(!(await m("thanh-vien", { tok })).body.ds.some((x: any) => x.id === id), "không còn trong danh sách thành viên");

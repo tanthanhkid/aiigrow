@@ -258,6 +258,7 @@ const dangKyToiOtp = async () => {
 if (process.argv.includes("--giao-dien")) {
   const { chayCong } = await import("./giao-dien.mjs");
   const M = (ten, duong, cho, tc = {}) => ({ ten, duong, cho, ...tc });
+  const moXoaTk = async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); };
   const dsMan = [
     M("bm-chao", "/chao", "Bắt đầu bằng số điện thoại", { token: null }),
     M("bm-dang-ky", "/dang-ky", "Số điện thoại của Ba Mẹ", { token: null }),
@@ -302,10 +303,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
     M("bm-cai-dat (xoá tài khoản)", "/cai-dat", "Xoá vĩnh viễn", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } },
-      truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
+      truoc: moXoaTk }),
     M("bm-cai-dat (xoá: còn máy)", "/cai-dat", "Xem các máy", { kb: { "GET thanh-vien": TV_MOT_MINH },
-      truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
-    M("bm-cai-dat (xoá: còn thành viên)", "/cai-dat", "Mở Thành viên", { truoc: async () => { await di("/cai-dat"); await doi("Chat với AiiLab"); await bam("Xoá tài khoản"); } }),
+      truoc: moXoaTk }),
+    M("bm-cai-dat (xoá: còn thành viên)", "/cai-dat", "Mở Thành viên", { truoc: moXoaTk }),
     M("bm-ho-tro", "/ho-tro", "đã cộng vào quỹ"),
     M("bm-vi (giữ chuỗi)", "/vi/c1", "Mỗi tuần giữ được một lần", { truoc: async () => { await di("/vi/c1"); await doi("Giữ chuỗi ngày"); await bam("Giữ chuỗi ngày"); } }),
     M("bm-vi (đã giữ tuần này)", "/vi/c1", "Tuần này đã giữ chuỗi", { kb: { "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-22", duocDung: false, daDung: ["2026-10-21"] } } } }),
