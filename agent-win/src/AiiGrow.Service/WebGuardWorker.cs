@@ -23,6 +23,7 @@ public sealed class WebGuardWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        await Task.Yield();   // vòng đầu không chạy đồng bộ trong lúc host khởi động
         while (!ct.IsCancellationRequested)
         {
             try { MotVong(DateTimeOffset.UtcNow); }

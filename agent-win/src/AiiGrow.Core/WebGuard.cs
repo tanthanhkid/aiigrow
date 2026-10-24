@@ -188,18 +188,15 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     /// → mô tả cách đã báo (để ghi log).</summary>
     public static string BaoTrinhDuyetDocLai()
     {
-        try
-        {
-            var may = RefreshPolicyEx(true, RP_FORCE);
-            var nguoi = RefreshPolicyEx(false, RP_FORCE);
-            if (may || nguoi) return "RefreshPolicyEx";
-        }
+        // chỉ tín hiệu MÁY: dịch vụ chạy SYSTEM, RefreshPolicyEx(false) chỉ làm mới cho chính SYSTEM (review #65)
+        try { if (RefreshPolicyEx(true, RP_FORCE)) return "RefreshPolicyEx"; }
         catch { }
         try
         {
+            // không chờ: gpupdate có thể chạy lâu, chặn vòng áp luật / khởi động dịch vụ (giới hạn 30 giây của Windows)
             using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("gpupdate.exe", "/target:computer /force")
             { CreateNoWindow = true, UseShellExecute = false, WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden });
-            return p != null && p.WaitForExit(60_000) ? "gpupdate" : "gpupdate (chưa xong)";
+            return p != null ? "gpupdate (chạy nền)" : "không báo được: gpupdate không chạy";
         }
         catch (Exception e) { return "không báo được: " + e.Message; }
     }
@@ -278,7 +275,11 @@ public static class WebGuard
     }
 
     /// <summary>Gỡ chính sách web của AiiGrow khỏi registry (chạy lại bao nhiêu lần cũng được).</summary>
-    public static void GoChinhSach() => new WebPolicyApplier(new WindowsWebPolicyRegistry()).GoTatCa();
+    public static void GoChinhSach()
+    {
+        // gỡ xong cũng báo trình duyệt — không thì Chrome đang mở vẫn chặn tới khi tắt hẳn (review #65)
+        if (new WebPolicyApplier(new WindowsWebPolicyRegistry()).GoTatCa()) WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai();
+    }
 
     /// <summary>Đoạn PowerShell tương đương, nhúng vào tác vụ dọn tách rời (SYSTEM) làm lưới đỡ khi dịch vụ không gỡ được.
     /// Chỉ xoá giá trị của AiiGrow (tên số &gt; 90000 + ba cờ DWORD), giữ nguyên mục người khác đặt.</summary>
@@ -298,6 +299,8 @@ public static class WebGuard
             "}",
             "foreach($d in " + dw + "){ $p=$d.Split('|'); $k=\"HKLM:\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } }",
             "foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){ $k=\"HKLM:\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
+            // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
+            "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",
         });
     }
 }
