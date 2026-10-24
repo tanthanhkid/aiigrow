@@ -96,6 +96,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
 }) {
   const giam = useReducedMotion();
   const { st: stGiat, giat } = useGiat();
+  const [vuaKhoa, setVuaKhoa] = useState(false);   // ổ khoá chỉ «đóng sập» khi vừa khoá trên màn này, không phải mỗi lần mở màn
   const ct = useTai(() => bm.goi<ConChiTiet>(`con/${c.id}`));
   const web = useTai(() => bm.goi<ThongKeWeb>(`con/${c.id}/web?ngay=1`).catch(() => null));
   const [khoa, setKhoa] = useState(false);
@@ -136,7 +137,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
       <Vao thu={1}>
       {viec ? <TheViecCho ds={viec} ten={c.ten} xem={xem} tai={tai} bao={bao} anMung={anMung} /> : (
         <NhanMen onPress={() => router.push("/cho-duyet")} accessibilityRole="button" muc="khoi" sang men={MEN.the}
-          style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, minHeight: 44, borderRadius: 28, backgroundColor: cho ? "#fff8f6" : M.the }, KHOI.the]}>
+          style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, minHeight: 44, borderRadius: 28, backgroundColor: cho ? "#fff8f6" : M.the, borderWidth: cho ? 1.5 : 0, borderColor: "#f3c8bf" }, KHOI.the]}>
           <BieuTron ic="chuong" mau={cho ? "do" : "xanh"} />
           <View style={{ flex: 1 }}>
             <Chu kieu="rat" co={16}>{cho ? `${cho} việc chờ Ba Mẹ` : "Không có việc nào chờ"}</Chu>
@@ -149,7 +150,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
 
       <Vao thu={2}><Animated.View style={stGiat}><The dem>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          {khoaNgay ? <Animated.View key={moTam ? "mo" : "khoa"} entering={khoaSap(giam)}><BieuTron ic={moTam ? "dongho" : "khoa"} mau={moTam ? "cam" : "do"} /></Animated.View> : null}
+          {khoaNgay ? <Animated.View key={moTam ? "mo" : "khoa"} entering={vuaKhoa ? khoaSap(giam) : undefined}><BieuTron ic={moTam ? "dongho" : "khoa"} mau={moTam ? "cam" : "do"} /></Animated.View> : null}
           <View style={{ flex: 1, minWidth: 0 }}>
             {khoaNgay ? (
               <>
@@ -211,7 +212,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
       </Canh>
 
       <BangKhoa mo={khoa} dong={() => setKhoa(false)} con={c.id} ten={c.ten}
-        xong={(chu, hoan) => { giat(); bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
+        xong={(chu, hoan) => { giat(); setVuaKhoa(true); bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
     </>
   );
 }

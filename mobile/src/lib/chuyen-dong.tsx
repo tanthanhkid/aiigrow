@@ -127,10 +127,10 @@ export function useRung() {
   return { st, rung };
 }
 
-/** Gọi `fn` khi `so` TĂNG so với lần trước — lần tải đầu chỉ ghi mốc (mở app với 3 việc cũ thì không rung / nảy). */
-export function useKhiTang(so: number, fn: () => void) {
+/** Gọi `fn` khi `so` TĂNG so với lần trước. `so` = null khi chưa tải; lần tải đầu chỉ ghi mốc (mở app với 3 việc cũ thì không rung / nảy). */
+export function useKhiTang(so: number | null, fn: () => void) {
   const truoc = useRef<number | null>(null);
-  useEffect(() => { if (truoc.current !== null && so > truoc.current) fn(); truoc.current = so; }, [so, fn]);
+  useEffect(() => { if (so === null) return; if (truoc.current !== null && so > truoc.current) fn(); truoc.current = so; }, [so, fn]);
 }
 
 /** Bật (pop) một khối: scale 1 → 1.12 → lò xo BẬT về 1 — ví nhận điểm, huy hiệu số đổi. */
@@ -155,8 +155,8 @@ export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | nul
   const goc = useRef<React.ComponentRef<typeof View>>(null);
   const [ds, setDs] = useState<Phat[]>([]);
   const so = useRef(0);
-  const hen = useRef<ReturnType<typeof setTimeout>[]>([]);
-  useEffect(() => () => hen.current.forEach(clearTimeout), []);
+  const hen = useRef(new Set<ReturnType<typeof setTimeout>>());
+  useEffect(() => { const h = hen.current; return () => h.forEach(clearTimeout); }, []);
   useImperativeHandle(ref, () => ({
     ban: async (tu, n) => {
       if (giam) return;
@@ -164,7 +164,8 @@ export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | nul
       const d = dich ? await dich() : null;
       const id = ++so.current;
       setDs((a) => [...a, { id, n, tu: { x: tu.x - lech.x, y: tu.y - lech.y }, den: d ? { x: d.x - lech.x, y: d.y - lech.y } : null }]);
-      hen.current.push(setTimeout(() => setDs((a) => a.filter((p) => p.id !== id)), 1100));
+      const t = setTimeout(() => { hen.current.delete(t); setDs((a) => a.filter((p) => p.id !== id)); }, 1100);
+      hen.current.add(t);
     },
   }), [giam, dich]);
   return (

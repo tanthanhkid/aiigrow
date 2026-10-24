@@ -18,9 +18,10 @@ const MUC: Record<string, { ic: TenIcon; chu: string }> = {
 
 function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
   const ins = useSafeAreaInsets();
-  const [so, setSo] = useState(0);
+  const [nap, setSo] = useState<number | null>(null);
+  const so = nap ?? 0;
   const { st: stSo, bat } = useBat();
-  useKhiTang(so, bat);
+  useKhiTang(nap, bat);
   useEffect(() => {
     bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => setSo(r.nhiemVu.length + r.yeuCau.length + (r.phieu?.length ?? 0))).catch(() => {});
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt

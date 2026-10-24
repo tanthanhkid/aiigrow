@@ -327,7 +327,7 @@ export const Tien = ({ ti, mau = M.chinh }: { ti: number; mau?: string }) => (
 
 export function OSo({ nho, so, don, phu, noi, bam, children }: { nho: string; so: string | number; don?: string; phu?: string; noi?: boolean; bam?: () => void; children?: ReactNode }) {
   const nd = (
-    <View style={[s.oSo, noi && { backgroundColor: "#fff8f6" }]}>
+    <View style={[s.oSo, noi && { backgroundColor: "#fff8f6", borderWidth: 1.5, borderColor: "#f3c8bf" }]}>
       <LopMen men={MEN.the} bo={BO_CLAY.o} />
       <Chu kieu="dam" co={13} mau={M.chu3}>{nho}</Chu>
       <Text style={{ fontFamily: F.rat, fontSize: 24, color: M.chu, letterSpacing: -0.5, fontVariant: ["tabular-nums"], lineHeight: 30 }}>

@@ -9,10 +9,11 @@ import { bm } from "./api";
 import { F, Icon3D, M, NhanMen } from "./ui";
 
 export function ChuongTb() {
-  const [so, setSo] = useState(0);
+  const [nap, setSo] = useState<number | null>(null);
+  const so = nap ?? 0;
   const { st, rung } = useRung();
   const { st: stSo, bat } = useBat();
-  useKhiTang(so, useCallback(() => { rung(); bat(); }, [rung, bat]));   // có việc mới ⇒ chuông rung (lần tải đầu không rung)
+  useKhiTang(nap, useCallback(() => { rung(); bat(); }, [rung, bat]));   // có việc mới ⇒ chuông rung (lần tải đầu không rung)
   useFocusEffect(useCallback(() => {
     bm.goi<{ chuaDoc: number }>("thong-bao").then((r) => setSo(r.chuaDoc)).catch(() => {});
   }, []));
