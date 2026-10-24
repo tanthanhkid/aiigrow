@@ -4,13 +4,16 @@ import Foundation
 
 public final class SocketIPC: @unchecked Sendable {
   private let duongDan: String
+  /// `fdNghe`, `chay`, `dangPhucVu` chỉ đọc/ghi khi giữ `khoaTrangThai` (accept ở thread riêng, dong() ở thread khác).
+  private let khoaTrangThai = NSLock()
   private var fdNghe: Int32 = -1
+  private var dangPhucVu = false
   private let xuLy: (YeuCauTray, UInt32) async -> TraLoi
   /// Số kết nối đồng thời tối đa cả socket, và tối đa cho MỖI uid (uid Con không chiếm hết phần của root/tray khác uid) — vượt thì đóng ngay.
   public static let toiDaDongThoi = 16
   public static let toiDaMoiUid = 4
   /// Hạn chót TỔNG để client gửi xong một dòng, tính từ lúc accept (không reset theo từng byte — chặn kiểu nhỏ giọt).
-  public static let hanDocGiay = 3.0
+  public static let hanDocGiay = 1.0
   private let dem = NSLock()
   private var dangXuLy = 0
   private var theoUid: [uid_t: Int] = [:]
@@ -43,26 +46,44 @@ public final class SocketIPC: @unchecked Sendable {
     guard kq == 0 else { close(fd); throw LoiApi(chu: "Không bind được socket \(duongDan): \(String(cString: strerror(errno)))") }
     chmod(duongDan, 0o666)
     guard listen(fd, 16) == 0 else { close(fd); throw LoiApi(chu: "Không listen được socket") }
-    fdNghe = fd
-    chay = true
+    khoaTrangThai.lock(); fdNghe = fd; chay = true; khoaTrangThai.unlock()
   }
 
-  /// Vòng accept — chạy ở luồng riêng (accept chặn), trả về khi socket đóng. Mỗi kết nối: đọc trên hàng đợi IO với hạn chót tổng,
-  /// xử lý lệnh trong Task, ghi trả lời lại trên hàng đợi IO.
+  /// Vòng accept — chạy ở luồng riêng, `poll` 200ms/lần để `dong()` thoát sạch; trả về khi socket đóng (fd đóng ở chính luồng này).
+  /// Mỗi kết nối: đọc trên hàng đợi IO với hạn chót tổng, xử lý lệnh trong Task, ghi trả lời lại trên hàng đợi IO.
   public func phucVu() async {
+    guard let fdN = batDauPhucVu() else { return }
     await withCheckedContinuation { (xong: CheckedContinuation<Void, Never>) in
       let t = Thread { [self] in
-        while chay {
-          let fd = accept(fdNghe, nil, nil)
-          if fd < 0 { if errno == EINTR { continue }; break }
+        while dangChay() {
+          var pf = pollfd(fd: fdN, events: Int16(POLLIN), revents: 0)
+          let r = poll(&pf, 1, 200)
+          if r < 0 { if errno == EINTR { continue }; break }
+          if r == 0 { continue }
+          let fd = accept(fdN, nil, nil)
+          if fd < 0 { if errno == EINTR || errno == EAGAIN || errno == ECONNABORTED { continue }; break }
           nhan(fd)
         }
+        khoaTrangThai.lock()
+        close(fdN)
+        if fdNghe == fdN { fdNghe = -1 }
+        chay = false; dangPhucVu = false
+        khoaTrangThai.unlock()
         xong.resume()
       }
       t.name = "aiigrow-ipc-accept"
       t.start()
     }
   }
+
+  private func batDauPhucVu() -> Int32? {
+    khoaTrangThai.lock(); defer { khoaTrangThai.unlock() }
+    guard chay, fdNghe >= 0, !dangPhucVu else { return nil }
+    dangPhucVu = true
+    return fdNghe
+  }
+
+  private func dangChay() -> Bool { khoaTrangThai.lock(); defer { khoaTrangThai.unlock() }; return chay }
 
   private func nhan(_ fd: Int32) {
     var mot: Int32 = 1
@@ -77,12 +98,13 @@ public final class SocketIPC: @unchecked Sendable {
       Task { [self] in
         let traLoi: TraLoi
         if let yc = try? IPCMa.decoder.decode(YeuCauTray.self, from: dong) {
-          traLoi = await xuLy(yc, uid)
+          traLoi = await self.xuLy(yc, uid)
         } else {
           traLoi = .loi(ma: "yeu_cau_sai", chu: "Yêu cầu không đọc được.")
         }
-        hangDoiIO.async { [self] in
-          ghi(fd, traLoi)
+        let du: Data? = (try? IPCMa.encoder.encode(traLoi)).map { $0 + Data([0x0A]) }
+        self.hangDoiIO.async { [self] in
+          if let du { ghi(fd, du) }
           close(fd)
           traCho(uid)
         }
@@ -123,20 +145,21 @@ public final class SocketIPC: @unchecked Sendable {
     return nhan
   }
 
-  private func ghi(_ fd: Int32, _ traLoi: TraLoi) {
+  private func ghi(_ fd: Int32, _ du: Data) {
     var tv = timeval(tv_sec: 2, tv_usec: 0)
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-    guard var du = try? IPCMa.encoder.encode(traLoi) else { return }
-    du.append(0x0A)
     du.withUnsafeBytes { b in
       var da = 0
       while da < du.count { let n = write(fd, b.baseAddress! + da, du.count - da); if n <= 0 { break }; da += n }
     }
   }
 
+  /// Dừng phục vụ: đặt cờ, luồng accept thoát trong ≤200ms và tự đóng fd. Chưa phucVu thì đóng fd ngay.
   public func dong() {
+    khoaTrangThai.lock()
     chay = false
-    if fdNghe >= 0 { close(fdNghe); fdNghe = -1 }
+    if !dangPhucVu, fdNghe >= 0 { close(fdNghe); fdNghe = -1 }
+    khoaTrangThai.unlock()
     unlink(duongDan)
   }
 }

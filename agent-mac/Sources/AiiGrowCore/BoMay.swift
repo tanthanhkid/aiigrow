@@ -184,8 +184,8 @@ public actor BoMay {
 
   private func demGiayApp(troi: Double, now: Date) {
     let ngay = DemPhut.ngay(now)
-    // App tiền cảnh do tray báo gần đây (≤10 giây); tray tắt ⇒ tính dưới «Không rõ».
-    // App tiền cảnh do DAEMON tự kiểm (lsappinfo trong phiên Con, đệm, chạy ngoài actor); tray chỉ báo «còn sống».
+    // App tiền cảnh do DAEMON tự kiểm (lsappinfo trong phiên Con, đệm theo uid, chạy ngoài actor) — không phụ thuộc tray sống hay chết.
+    // Không kiểm được (lsappinfo lỗi/quá hạn/đệm quá cũ) ⇒ tính dưới «Không rõ»; giờ vẫn trừ.
     let that = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
     let app = TienCanh.chon(thatSu: that)
     DemPhut.cong(&cauHinh.demPhut, ngay: ngay, app: app, giay: troi)
@@ -270,6 +270,7 @@ public actor BoMay {
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:
+      if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
       return .trangThai(apChinhSach())
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()

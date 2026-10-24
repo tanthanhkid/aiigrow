@@ -26,8 +26,6 @@ final class TrayApp: NSObject, NSApplicationDelegate {
     item = NSStatusItem.systemStatusItem
     item.button?.image = NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: "AiiGrow")
     item.button?.imagePosition = .imageLeading
-    NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(appDoi(_:)),
-      name: NSWorkspace.didActivateApplicationNotification, object: nil)
     NotificationCenter.default.addObserver(self, selector: #selector(manHinhDoi),
       name: NSApplication.didChangeScreenParametersNotification, object: nil)
     veLai()
@@ -44,18 +42,7 @@ final class TrayApp: NSObject, NSApplicationDelegate {
         if case .trangThai(let t) = try await IPCClient.guiAsync(.trangThai) { model.capNhat(t) } else { model.matNoi() }
       } catch { model.matNoi() }
       veLai()
-      baoAppTienCanh(NSWorkspace.shared.frontmostApplication)
     }
-  }
-
-  @objc func appDoi(_ n: Notification) {
-    baoAppTienCanh(n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
-  }
-
-  func baoAppTienCanh(_ app: NSRunningApplication?) {
-    // Daemon tự kiểm app tiền cảnh; tray chỉ báo «còn sống» (ping) mỗi khi đổi app / mỗi nhịp hỏi trạng thái.
-    guard model.tt?.laPhienCon == true else { return }
-    Task.detached { _ = try? IPCClient.gui(.ping) }
   }
 
   /// Mỗi giây: cập nhật chữ «Còn X phút» và nhắc giờ.

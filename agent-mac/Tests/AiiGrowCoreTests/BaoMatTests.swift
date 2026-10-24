@@ -113,7 +113,7 @@ final class BaoMatTests: XCTestCase {
     let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, dongBo: false) { _ in chan.wait(); return "com.a" }   // lsappinfo treo
     let t0 = Date()
     XCTAssertNil(d.doc(uid: 501, gio: 100), "đệm rỗng + việc kiểm đang treo ⇒ không chặn, trả nil")
-    XCTAssertLessThan(Date().timeIntervalSince(t0), 0.5, "doc không chặn")
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 1.0, "doc chỉ chờ lần đầu ≤0,3 giây rồi trả nil, không chặn tới khi lsappinfo xong")
     chan.signal()
     for _ in 0..<100 { if d.doc(uid: 501, gio: 101) != nil { break }; usleep(10_000) }
     XCTAssertEqual(d.doc(uid: 501, gio: 101), "com.a")
@@ -169,21 +169,16 @@ final class BaoMatTests: XCTestCase {
     Task { await s.phucVu(); xong.fulfill() }
     let fd = noi(duong)
     let t0 = Date()
-    // gửi mỗi 0,8 giây một byte (không bao giờ có «\n») — nếu timeout reset theo byte thì giữ mãi
-    var bi = false
-    for _ in 0..<8 {
-      var c: UInt8 = 0x20
-      if write(fd, &c, 1) <= 0 { bi = true; break }
-      usleep(800_000)
-      if Date().timeIntervalSince(t0) > 5 { break }
-    }
-    XCTAssertTrue(bi || Date().timeIntervalSince(t0) < 5.5)
+    var c: UInt8 = 0x20
+    _ = write(fd, &c, 1)
+    usleep(600_000)
+    _ = write(fd, &c, 1)                       // byte thứ hai vẫn không có «\n» — hạn chót KHÔNG reset
     var b = [UInt8](repeating: 0, count: 64)
-    var tv = timeval(tv_sec: 1, tv_usec: 0)
+    var tv = timeval(tv_sec: 4, tv_usec: 0)
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-    let n = read(fd, &b, 64)        // server đã đóng ở ~3 giây (có thể kèm lời báo lỗi trước)
-    XCTAssertTrue(n >= 0, "kết nối phải đã bị đóng, không còn treo (n=\(n))")
-    XCTAssertTrue(bi || n >= 0)
+    let n = read(fd, &b, 64)
+    XCTAssertEqual(n, 0, "server đóng kết nối, không chờ thêm")
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 1.8, "đóng ở ~1 giây từ lúc accept dù có byte nhỏ giọt")
     close(fd)
     s.dong()
     wait(for: [xong], timeout: 2)
@@ -207,5 +202,66 @@ final class BaoMatTests: XCTestCase {
     for f in giu + [thua] { close(f) }
     s.dong()
     wait(for: [xong], timeout: 2)
+  }
+
+  // MARK: lượt review 3
+
+  func testDemTienCanhTheoUid() {
+    let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, dongBo: true) { uid in uid == 501 ? "com.con" : "com.khac" }
+    XCTAssertEqual(d.doc(uid: 501, gio: 100), "com.con")
+    XCTAssertEqual(d.doc(uid: 502, gio: 101), "com.khac", "uid khác ⇒ không trả kết quả của uid cũ")
+  }
+
+  func testDemTienCanhLanDauChoNgan() {
+    let d = DemTienCanh(lamMoiSau: 4, hanDem: 12, choLanDau: 1, dongBo: false) { _ in "com.a" }
+    XCTAssertEqual(d.doc(uid: 501, gio: 100), "com.a", "lần đầu chờ kết quả (nhanh) thay vì trả nil")
+  }
+
+  private func soFd() -> Int { (try? FileManager.default.contentsOfDirectory(atPath: "/dev/fd").count) ?? -1 }
+
+  func testChayHetGioKhongRoFdVaLuong() {
+    _ = HeThongMac.chay("/bin/echo", ["khoi-dong"], timeout: 5)
+    let truoc = soFd()
+    for _ in 0..<25 { _ = HeThongMac.chay("/bin/sleep", ["30"], timeout: 0.2) }
+    usleep(300_000)
+    XCTAssertLessThanOrEqual(soFd(), truoc + 2, "25 lần quá hạn không rò fd (trước \(truoc), sau \(soFd()))")
+  }
+
+  func testChayNhanhThanhCongKhongCatOutput() {
+    let (ma, ra) = HeThongMac.chay("/bin/sh", ["-c", "sleep 0.3; yes x | head -c 200000"], timeout: 5)
+    XCTAssertEqual(ma, 0)
+    XCTAssertEqual(ra.count, 200000, "đọc đủ tới EOF")
+  }
+
+  func testDongThoatSachVaMoLai() throws {
+    let duong = NSTemporaryDirectory() + "aiigrow-dg-\(UUID().uuidString).sock"
+    let s = SocketIPC(duongDan: duong) { _, _ in .ok(id: "x") }
+    try s.mo()
+    let xong = expectation(description: "phục vụ")
+    Task { await s.phucVu(); xong.fulfill() }
+    usleep(100_000)
+    let t0 = Date()
+    s.dong()
+    wait(for: [xong], timeout: 2)
+    XCTAssertLessThan(Date().timeIntervalSince(t0), 1.0, "accept thoát ≤ ~200ms sau dong()")
+    XCTAssertFalse(FileManager.default.fileExists(atPath: duong))
+    // dong() trước khi phucVu cũng sạch, và mở lại được
+    let s2 = SocketIPC(duongDan: duong) { _, _ in .ok(id: "y") }
+    try s2.mo(); s2.dong()
+    try s2.mo(); s2.dong()
+    Task { await s2.phucVu() }          // đã đóng ⇒ trả về ngay, không treo
+    usleep(100_000)
+  }
+
+  func testTrangThaiTuConLaNhipSongCuaTray() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "windows": ["mode": "tu_do", "cheDo": "chan", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc)]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.xuLyIPC(.trangThai, uidGoi: 501)
+    _ = await b.motVong()
+    let st = HttpMock.lanGoiCuoi("api/device/dong-bo")?["status"] as? [String: Any]
+    XCTAssertEqual(st?["trayAlive"] as? Bool, true, "trangThai từ uid Con cập nhật nhịp tray, không cần ping")
   }
 }

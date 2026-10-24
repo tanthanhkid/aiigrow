@@ -133,39 +133,51 @@ public enum TienCanh {
   }
 }
 
-/// Bộ nhớ đệm app tiền cảnh: việc kiểm (hai lần `launchctl asuser lsappinfo`) chạy NGOÀI actor trên hàng đợi riêng, có timeout;
-/// `doc` không bao giờ chặn — trả kết quả đệm (≤ `hanDem` giây), quá cũ thì nil. Không spawn theo từng `trangThai` IPC: chỉ làm mới khi đệm đã ≥ `lamMoiSau` giây.
+/// Bộ nhớ đệm app tiền cảnh THEO UID: việc kiểm (hai lần `launchctl asuser lsappinfo`) chạy NGOÀI actor trên hàng đợi riêng, có timeout.
+/// Không spawn theo từng `trangThai` IPC: chỉ làm mới khi đệm đã ≥ `lamMoiSau` giây; đệm quá `hanDem` giây hoặc của uid khác thì coi như chưa có.
+/// Lần đầu (chưa có đệm cho uid này) chờ kết quả tối đa `choLanDau` giây, quá thì trả nil (tính «Không rõ») — không chặn actor lâu.
 public final class DemTienCanh: @unchecked Sendable {
   private let khoa = NSLock()
   private var giaTri: String?
+  private var uidDem: UInt32?
   private var luc: Double = -1_000_000
   private var dangChay = false
   private let kiem: (UInt32) -> String?
   private let lamMoiSau: Double
   private let hanDem: Double
+  private let choLanDau: Double
   private let hangDoi = DispatchQueue(label: "vn.aiilab.aiigrow.tiencanh")
   /// Chỉ test: chạy kiểm ngay tại chỗ để kết quả có sẵn trong cùng lượt.
   private let dongBo: Bool
 
-  public init(lamMoiSau: Double = 4, hanDem: Double = 12, dongBo: Bool = false, kiem: @escaping (UInt32) -> String?) {
-    self.kiem = kiem; self.lamMoiSau = lamMoiSau; self.hanDem = hanDem; self.dongBo = dongBo
+  public init(lamMoiSau: Double = 4, hanDem: Double = 12, choLanDau: Double = 0.3, dongBo: Bool = false, kiem: @escaping (UInt32) -> String?) {
+    self.kiem = kiem; self.lamMoiSau = lamMoiSau; self.hanDem = hanDem; self.choLanDau = choLanDau; self.dongBo = dongBo
+  }
+
+  private func doc_(_ uid: UInt32, _ gio: Double) -> String? {
+    khoa.lock(); defer { khoa.unlock() }
+    return (uidDem == uid && gio - luc <= hanDem) ? giaTri : nil
   }
 
   /// `gio`: đồng hồ đơn điệu (giây). Gọi mỗi vòng áp chính sách.
   public func doc(uid: UInt32, gio: Double) -> String? {
     khoa.lock()
-    let canLam = !dangChay && gio - luc >= lamMoiSau
+    let coDem = uidDem == uid && gio - luc <= hanDem
+    let canLam = !dangChay && (uidDem != uid || gio - luc >= lamMoiSau)
     if canLam { dangChay = true }
-    let hienCo = gio - luc <= hanDem ? giaTri : nil
     khoa.unlock()
     if canLam {
+      let xong = DispatchSemaphore(value: 0)
       let viec = { [self] in
         let kq = kiem(uid)
-        khoa.lock(); giaTri = kq; luc = gio; dangChay = false; khoa.unlock()
+        khoa.lock(); giaTri = kq; uidDem = uid; luc = gio; dangChay = false; khoa.unlock()
+        xong.signal()
       }
-      if dongBo { viec(); return doc(uid: uid, gio: gio) }
-      hangDoi.async(execute: viec)
+      if dongBo { viec() } else {
+        hangDoi.async(execute: viec)
+        if !coDem { _ = xong.wait(timeout: .now() + choLanDau) }
+      }
     }
-    return hienCo
+    return doc_(uid, gio)
   }
 }

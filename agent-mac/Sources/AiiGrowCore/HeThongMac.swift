@@ -139,7 +139,8 @@ public final class HeThongMac: HeThong {
     fflush(stdout)
   }
 
-  /// Chạy lệnh, chờ xong tối đa `timeout` giây (quá hạn ⇒ kill tiến trình con, trả (-1, «quá hạn»)) ⇒ (mã thoát, stdout+stderr).
+  /// Chạy lệnh, chờ xong tối đa `timeout` giây (quá hạn ⇒ kill tiến trình con, đóng ống, trả (-1, «quá hạn»)) ⇒ (mã thoát, stdout+stderr).
+  /// Đọc bằng readabilityHandler (dispatch source, không giữ luồng chặn): hết giờ không rò luồng hay fd.
   @discardableResult
   public static func chay(_ lenh: String, _ thamSo: [String], timeout: Double = 20) -> (Int32, String) {
     final class Hop: @unchecked Sendable { let k = NSLock(); var d = Data() }
@@ -149,22 +150,29 @@ public final class HeThongMac: HeThong {
     let ong = Pipe()
     p.standardOutput = ong
     p.standardError = ong
-    let xong = DispatchSemaphore(value: 0)
-    p.terminationHandler = { _ in xong.signal() }
-    do { try p.run() } catch { return (-1, "\(error)") }
-    // Đọc ở luồng riêng: tiến trình cháu (lsappinfo) có thể còn giữ đầu ghi ống sau khi launchctl bị kill.
-    let hop = Hop(), docXong = DispatchSemaphore(value: 0)
-    DispatchQueue.global().async {
-      let d = ong.fileHandleForReading.readDataToEndOfFile()
-      hop.k.lock(); hop.d = d; hop.k.unlock()
-      docXong.signal()
+    let thoat = DispatchSemaphore(value: 0), heoEOF = DispatchSemaphore(value: 0)
+    p.terminationHandler = { _ in thoat.signal() }
+    let hop = Hop()
+    ong.fileHandleForReading.readabilityHandler = { h in
+      let d = h.availableData
+      if d.isEmpty { h.readabilityHandler = nil; heoEOF.signal(); return }     // EOF
+      hop.k.lock(); hop.d.append(d); hop.k.unlock()
     }
-    if xong.wait(timeout: .now() + timeout) == .timedOut {
+    func dong() {
+      ong.fileHandleForReading.readabilityHandler = nil
+      try? ong.fileHandleForReading.close()
+    }
+    do { try p.run() } catch { dong(); try? ong.fileHandleForWriting.close(); return (-1, "\(error)") }
+    try? ong.fileHandleForWriting.close()                   // đầu ghi của ta: để EOF tới khi con thoát
+    if thoat.wait(timeout: .now() + timeout) == .timedOut {
       p.terminate()
-      if xong.wait(timeout: .now() + 1) == .timedOut { kill(p.processIdentifier, SIGKILL) }
+      if thoat.wait(timeout: .now() + 1) == .timedOut { kill(p.processIdentifier, SIGKILL); _ = thoat.wait(timeout: .now() + 1) }
+      dong()
       return (-1, "quá hạn \(Int(timeout)) giây: \(lenh)")
     }
-    _ = docXong.wait(timeout: .now() + 1)
+    // Con đã thoát: chờ đọc tới EOF (tiến trình cháu giữ ống thì chờ tối đa 2 giây rồi lấy phần đã có).
+    _ = heoEOF.wait(timeout: .now() + 2)
+    dong()
     hop.k.lock(); defer { hop.k.unlock() }
     return (p.terminationStatus, String(decoding: hop.d, as: UTF8.self))
   }
