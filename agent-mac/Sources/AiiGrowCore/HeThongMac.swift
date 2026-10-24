@@ -200,6 +200,8 @@ public final class HeThongMac: HeThong {
   /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
   /// - Lượt trước đã xong (xoá gói + dấu PID) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không còn gói ⇒ tự gỡ nhãn, không cài/nạp lại.
+  /// - Máy bị gỡ trước khi installer chạy (dấu gỡ có SAU khi ghi PID ⇒ postinstall nhận ra job còn sống): không cài, dọn, tự gỡ nhãn.
+  ///   Daemon không `launchctl remove` job này; go-cai.sh chỉ dừng installer chạy quá trần 5 phút (job nộp sau khi có da-go thì tự bỏ ngay).
   /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
   static let lenhJobCai = """
     DA_GO="$4" ; DAEMON="$5" ; TRAY="$6" ; PG="$7"
@@ -207,13 +209,13 @@ public final class HeThongMac: HeThong {
       for u in $([ -f "$PG" ] && /bin/bash "$PG") ; do /bin/launchctl bootstrap gui/$u "$TRAY" ; done ; fi ; }
     if [ -f "$3" ] ; then echo "lượt cài trước dừng giữa chừng — không cài lại" ; napLai ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
     if [ ! -f "$1" ] ; then echo "gói đã bị xoá (job bị chạy lại sau khi xong) — bỏ" ; /bin/launchctl remove "$2" ; exit 0 ; fi
-    echo $$ > "$3" ; /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
+    echo $$ > "$3"
+    if [ -f "$DA_GO" ] ; then echo "máy đang được gỡ — không cài" ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
+    /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
     if [ $ma -ne 0 ] ; then napLai ; fi
     if [ -f "$DA_GO" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi
     /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit $ma
     """
-
-  public func dungCai() { _ = HeThongMac.chay("/bin/launchctl", ["remove", LuatCapNhat.nhanCai], timeout: 10) }
 
   /// Job launchd riêng: preinstall của gói `bootout` daemon, launchd giết cả nhóm tiến trình của daemon — chỉ `launchctl submit` thoát được.
   /// Bọc trong sh: cài xong tự xoá gói + tự `launchctl remove` nhãn (không để postinstall tự gỡ nhãn đang chạy installer).

@@ -17,18 +17,18 @@ DANG_CAP_NHAT="$GOC/var/run/aiigrow-capnhat"   # job tự cập nhật ghi PID c
 GO_CAI="$GOC/var/run/aiigrow-go-cai"          # go-cai.sh ghi PID của mình suốt lúc chạy (DuongDan.goCaiDangChay)
 # PID trong tệp $1 còn sống VÀ dòng lệnh khớp $2 — PID sót đã bị tiến trình khác dùng lại thì không tính.
 pidSong() {
-  p=$(/bin/cat "$1" 2>/dev/null || true)
+  p=$(/usr/bin/head -n 1 "$1" 2>/dev/null | /usr/bin/xargs)
   case "$p" in ''|*[!0-9]*) return 1 ;; esac
   /bin/kill -0 "$p" 2>/dev/null && /bin/ps -p "$p" -o command= 2>/dev/null | /usr/bin/grep -q "$2"
 }
 # go-cai.sh còn sống: dòng 1 PID, dòng 2 giờ bắt đầu (ps lstart) phải khớp — chạy qua ống (dòng lệnh chỉ «bash») vẫn nhận ra.
 # Tệp kiểu cũ (chỉ PID) thì so dòng lệnh như pidSong.
 goCaiSong() {
-  p=$(/usr/bin/head -n 1 "$GO_CAI" 2>/dev/null || true)
   bd=$(/usr/bin/sed -n 2p "$GO_CAI" 2>/dev/null | /usr/bin/xargs)          # xargs: bỏ khoảng trắng thừa ps để cuối dòng (hai phía cùng chuẩn hoá)
+  [ -n "$bd" ] || { pidSong "$GO_CAI" 'go-cai'; return; }
+  p=$(/usr/bin/head -n 1 "$GO_CAI" 2>/dev/null | /usr/bin/xargs)
   case "$p" in ''|*[!0-9]*) return 1 ;; esac
-  /bin/kill -0 "$p" 2>/dev/null || return 1
-  if [ -n "$bd" ]; then [ "$(LC_ALL=C /bin/ps -p "$p" -o lstart= 2>/dev/null | /usr/bin/xargs)" = "$bd" ]; else /bin/ps -p "$p" -o command= 2>/dev/null | /usr/bin/grep -q 'go-cai'; fi
+  /bin/kill -0 "$p" 2>/dev/null && [ "$(LC_ALL=C /bin/ps -p "$p" -o lstart= 2>/dev/null | /usr/bin/xargs)" = "$bd" ]
 }
 # Tự cập nhật chạy đè lên máy vừa bị gỡ: không nạp lại daemon/tray, dọn phần gói vừa chép.
 donVaThoat() {
@@ -43,18 +43,19 @@ donVaThoat() {
 # $1 = gói đang cài. Gói nằm trong thư mục cap-nhat (root 0700) ⇒ chắc chắn là bộ tự cập nhật, kể cả khi job sh đã bị go-cai.sh giết
 # mà installd vẫn cài tiếp. Tự cập nhật chỉ chạy trên máy đã ghép (có config.json): còn dấu gỡ hoặc mất config.json ⇒ máy đã bị gỡ.
 case "${1:-}" in
-  "$THU_MUC/cap-nhat/"*) if [ -f "$DA_GO" ] || [ ! -f "$THU_MUC/config.json" ]; then donVaThoat; fi ;;
+  "$THU_MUC/cap-nhat/"*) if [ -f "$DA_GO" ] || [ ! -f "$THU_MUC/config.json" ]; then
+      # Dọn xong mà không còn go-cai.sh nào chạy: dấu gỡ (cả «dung-cap-nhat» go-cai.sh 0.1.1 để lại) đã hết việc — xoá, không để nó
+      # nằm ngoài thư mục AiiGrow quyết định lần cài/ghép sau. go-cai.sh còn chạy thì để nó tự dọn ở cuối.
+      if ! goCaiSong; then /bin/rm -f "$DA_GO"; fi
+      donVaThoat
+    fi ;;
 esac
 if [ -f "$DA_GO" ]; then
   # Cài tự động (sh job cập nhật còn sống), hoặc go-cai.sh còn chạy ⇒ máy đang gỡ.
   if pidSong "$DANG_CAP_NHAT" 'vn\.aiilab\.aiigrow\.capnhat' || goCaiSong; then donVaThoat; fi
-  # go-cai.sh vừa phải dừng job cập nhật giữa chừng (dấu loại «dung-cap-nhat», dưới 10 phút) và máy không còn cấu hình: đây là installd
-  # cài nốt gói tự cập nhật đã bị dừng ⇒ dọn, không nạp lại. Dấu dùng một lần: xoá để lần cài tay kế tiếp chạy bình thường.
-  # Chỉ khi cài bằng lệnh `installer` (COMMAND_LINE_INSTALL — job tự cập nhật); Ba Mẹ cài tay bằng Installer.app thì không bị dọn.
-  if [ "$(/bin/cat "$DA_GO" 2>/dev/null)" = "dung-cap-nhat" ] && [ -n "${COMMAND_LINE_INSTALL:-}" ] && [ ! -f "$THU_MUC/config.json" ] && [ -n "$(/usr/bin/find "$DA_GO" -mmin -10 2>/dev/null)" ]; then
-    /bin/rm -f "$DA_GO"; donVaThoat
-  fi
-  /bin/rm -f "$DA_GO"                          # Ba Mẹ chủ động cài lại sau khi gỡ: bình thường
+  # Ba Mẹ chủ động cài lại sau khi gỡ (Installer.app hay `installer` dòng lệnh, bất kể lúc nào): bình thường. Gói tự cập nhật luôn nằm
+  # trong cap-nhat (root 0700) nên đã được nhánh `case` ở trên nhận ra — kể cả khi installd cài nốt sau khi go-cai.sh dừng job.
+  /bin/rm -f "$DA_GO"
 fi
 
 /bin/mkdir -p "$THU_MUC" "$LOG"

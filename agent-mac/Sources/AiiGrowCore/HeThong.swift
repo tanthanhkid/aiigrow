@@ -45,8 +45,6 @@ public protocol HeThong: AnyObject {
   func caiDangChay() -> Bool
   /// Cài gói bằng `/usr/sbin/installer -pkg … -target /` chạy như job launchd riêng (preinstall bootout chính daemon).
   func caiGoi(_ duongDan: String) throws
-  /// Dừng + gỡ job cài (`launchctl remove`) — dùng khi máy bị gỡ ngay sau lúc vừa giao installer.
-  func dungCai()
   func haQuyenAdmin(taiKhoan: String) throws
   /// Đóng phiên đồ hoạ của uid (Con bị đăng xuất về màn đăng nhập).
   func dongPhien(uid: UInt32) throws
@@ -84,7 +82,6 @@ public final class HeThongThu: HeThong {
   public func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws { se("chuyển \(nguon) vào \(dich) (quyền \(String(quyen, radix: 8)))") }
   public func caiDangChay() -> Bool { that.caiDangChay() }               // chỉ đọc
   public func caiGoi(_ duongDan: String) throws { se("cài gói \(duongDan) (installer qua launchctl submit)") }
-  public func dungCai() { se("dừng job cài (launchctl remove \(LuatCapNhat.nhanCai))") }
   public func xoaBoNhoDNS() { se("xoá bộ nhớ DNS (dscacheutil -flushcache; killall -HUP mDNSResponder)") }
   public func haQuyenAdmin(taiKhoan: String) throws { se("hạ \(taiKhoan) khỏi nhóm admin (dseditgroup)") }
   public func dongPhien(uid: UInt32) throws { se("đóng phiên của uid \(uid) (launchctl bootout gui/\(uid))") }

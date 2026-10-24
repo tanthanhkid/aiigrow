@@ -6,8 +6,8 @@ Thiết kế: `THIET-KE.md`. Gói cài: `goi/`.
 
 ```bash
 cd agent-mac/goi
-THU=1 BAN=0.1.1 ./build-pkg.sh        # thử không ký: ra agent-mac/ra/AiiGrow-0.1.1.pkg (universal arm64 + x86_64); phát hành xem mục Ký và notarize
-THU=1 ARCH=native BAN=0.1.1 ./build-pkg.sh   # chỉ kiến trúc máy này (nhanh hơn)
+THU=1 BAN=0.1.2 ./build-pkg.sh        # thử không ký: ra agent-mac/ra/AiiGrow-0.1.2.pkg (universal arm64 + x86_64); phát hành xem mục Ký và notarize
+THU=1 ARCH=native BAN=0.1.2 ./build-pkg.sh   # chỉ kiến trúc máy này (nhanh hơn)
 ```
 
 Gói chứa `/Applications/AiiGrow.app` (tray `AiiGrowTray` là CFBundleExecutable, `aiigrow-daemon` nằm cùng `Contents/MacOS`) và hai plist

@@ -35,18 +35,21 @@ fi
 echo "da-go" > "$DA_GO" 2>/dev/null && /bin/chmod 0600 "$DA_GO"
 
 # Đang tự cập nhật (installer chạy trong job vn.aiilab.aiigrow.capnhat): chờ xong (tối đa ~5 phút) rồi mới gỡ, kẻo installer nạp lại daemon sau khi ta gỡ.
-i=0
-while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt 150 ]; do
-  [ "$i" -eq 0 ] && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút, đừng ngắt)…"
-  [ "$i" -gt 0 ] && [ $((i % 15)) -eq 0 ] && echo "  vẫn đang chờ… ($((i * 2)) giây)"
-  /bin/sleep 2; i=$((i + 1))
-done
-DUNG_CAP_NHAT=0
-if [ "$i" -ge 150 ]; then
-  DUNG_CAP_NHAT=1
-  echo "Cảnh báo: bộ tự cập nhật chạy quá 5 phút — dừng nó để gỡ tiếp."
-  /usr/bin/logger -t AiiGrow "go-cai: job vn.aiilab.aiigrow.capnhat chạy quá 5 phút, bị dừng để gỡ" 2>/dev/null || true
-fi
+# $1 = số lượt chờ 2 giây (150 = trần 5 phút).
+choCapNhat() {
+  i=0
+  while "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"' && [ "$i" -lt "$1" ]; do
+    [ "$i" -eq 0 ] && [ "$1" -ge 150 ] && echo "AiiGrow đang tự cập nhật — chờ cài xong rồi gỡ (tối đa 5 phút, đừng ngắt)…"
+    [ "$i" -gt 0 ] && [ $((i % 15)) -eq 0 ] && echo "  vẫn đang chờ… ($((i * 2)) giây)"
+    /bin/sleep 2; i=$((i + 1))
+  done
+  if [ "$i" -ge "$1" ]; then
+    if [ "$1" -ge 150 ]; then tran="quá 5 phút"; else tran="quá $(($1 * 2)) giây"; fi
+    echo "Cảnh báo: bộ tự cập nhật chạy $tran — dừng nó để gỡ tiếp."
+    /usr/bin/logger -t AiiGrow "go-cai: job vn.aiilab.aiigrow.capnhat chạy $tran, bị dừng để gỡ" 2>/dev/null || true
+  fi
+}
+choCapNhat 150
 # Từ đây là gỡ thật: không trả dấu nữa dù bị ngắt.
 trap - INT TERM HUP
 # Xong hay hết 5 phút: gỡ hẳn nhãn capnhat + dấu đang-cập-nhật (installer treo thì giết luôn, không để nó nạp lại daemon sau khi gỡ).
@@ -54,9 +57,9 @@ trap - INT TERM HUP
 /bin/rm -f /var/run/aiigrow-capnhat
 
 "$LC" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
-# Daemon đã dừng ⇒ không ai submit job cài được nữa; gỡ lần nữa phòng job vừa được submit đúng lúc ta kiểm ở trên.
-# Job đó đang chạy thì cũng là «đã phải dừng cập nhật giữa chừng» (installd có thể cài nốt) ⇒ giữ dấu dung-cap-nhat ở cuối.
-if "$LC" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '"PID"'; then DUNG_CAP_NHAT=1; fi
+# Daemon đã dừng ⇒ không ai submit job cài được nữa. Job vừa được submit sau vòng chờ trên đã thấy da-go (ghi trước vòng chờ) nên tự bỏ trong
+# tích tắc: chờ ngắn (tối đa 10 giây) cho nó thoát rồi mới gỡ nhãn — chỉ installer treo quá trần mới bị dừng.
+choCapNhat 5
 "$LC" remove vn.aiilab.aiigrow.capnhat >/dev/null 2>&1 || true
 PG=/Applications/AiiGrow.app/Contents/Resources/phien-gui.sh      # cùng quy tắc phiên GUI với preinstall/postinstall; thiếu thì pkill bên dưới vẫn đóng tray
 # app đã bị xoá (chạy lại sau lượt dừng giữa chừng): lấy uid từ console + chủ tiến trình AiiGrowTray như phien-gui.sh
@@ -143,13 +146,9 @@ done
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"
 /bin/rm -f /var/run/aiigrow.sock
 /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg >/dev/null 2>&1 || true
-if [ "$DUNG_CAP_NHAT" -eq 1 ]; then
-  # Đã phải dừng job cập nhật giữa chừng: installd có thể vẫn cài nốt rồi chạy postinstall SAU khi ta xong. Giữ dấu (đánh dấu loại) để
-  # postinstall đó dọn thay vì nạp lại máy vừa gỡ; postinstall chỉ tin dấu loại này trong 10 phút rồi tự xoá (cài tay sau đó bình thường).
-  echo "dung-cap-nhat" > "$DA_GO" 2>/dev/null
-else
-  /bin/rm -f "$DA_GO"               # gỡ xong: không để dấu ngoài thư mục AiiGrow quyết định lần cài sau
-fi
+# Gỡ xong: không để dấu ngoài thư mục AiiGrow quyết định lần cài sau. Đã phải dừng job cập nhật giữa chừng mà installd vẫn cài nốt rồi chạy
+# postinstall SAU khi ta xong: gói nằm trong cap-nhat + máy không còn config.json ⇒ postinstall tự dọn, không cần dấu (cài tay không bị dọn).
+/bin/rm -f "$DA_GO"
 echo "Đã gỡ AiiGrow."
 # Công việc launchd chạy một lần do daemon đăng ký khi gỡ từ xa (launchctl submit): xoá nhãn để không tồn tại tới lúc khởi động lại
 # và lần gỡ từ xa sau không bị trùng nhãn. Việc CUỐI CÙNG của tập lệnh (remove có thể gửi SIGTERM cho chính tiến trình này).
