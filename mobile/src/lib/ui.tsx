@@ -168,7 +168,7 @@ export const chuTren = (nen: string) => {
   const l = doSang(nen);
   return 1.05 / (l + 0.05) >= (l + 0.05) / (doSang(M.chu) + 0.05) ? "#ffffff" : M.chu;
 };
-export const MAU_CON = ["#c2410c", "#4b6bdc", "#0b7a6e", "#6c5ce7", "#b45309", "#be185d"];
+export const MAU_CON = ["#c2410c", "#4b6bdc", "#0f6b5c", "#6c5ce7", "#b45309", "#be185d"];
 export const Avt = ({ ten, mau = MAU_CON[0], co = 44 }: { ten: string; mau?: string; co?: number }) => (
   <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center" }}>
     <Chu kieu="rat" mau={chuTren(mau)} co={co * 0.41}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
@@ -257,7 +257,7 @@ export function CongTac({ bat, doi, nhan }: { bat: boolean; doi: (v: boolean) =>
 
 // ---------------------------------------------------------------- báo, tiến độ, số
 
-const MAU_BAO = { canh: [M.canhSoft, "#6b3209"], loi: [M.loiSoft, "#7a1a12"], ok: [M.chinhSoft, "#064e47"], lam: [M.lamSoft, "#1e3a8a"] } as const;
+const MAU_BAO = { canh: [M.canhSoft, "#6b3209"], loi: [M.loiSoft, "#7a1a12"], ok: [M.chinhSoft, "#0a5246"], lam: [M.lamSoft, "#1e3a8a"] } as const;
 export function Bao({ loai = "canh", tieu, loi, ic = "canh_bao", children }: { loai?: keyof typeof MAU_BAO; tieu: string; loi?: string; ic?: TenIcon; children?: ReactNode }) {
   const [nen, chu] = MAU_BAO[loai];
   return (
@@ -639,7 +639,7 @@ const s = StyleSheet.create({
   chonO: { flexGrow: 1, minHeight: 40, paddingVertical: 9, paddingHorizontal: 8, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   chonOChon: { backgroundColor: "#fff", shadowColor: M.chu, shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   chip: { minHeight: 44, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1.5, borderColor: M.vien2, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" },
-  congTac: { width: 50, height: 30, borderRadius: 99, backgroundColor: "#8c9693" },
+  congTac: { width: 50, height: 30, borderRadius: 99, backgroundColor: "#8a8f8c" },
   congTacNut: { position: "absolute", top: 3, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff",
     shadowColor: "#000", shadowOpacity: 0.2, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
   bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18 },

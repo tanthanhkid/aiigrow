@@ -18,7 +18,7 @@ export default function CaiDat() {
   return (
     <Man tieuLon="Cài đặt" day={<Nut chu="Đăng xuất" ic="thoat" loai="vien" rong bam={ra} />}>
       <Nhom>
-        <Dong dau tieu={d.toi.baMe.ten} phu={`${VAI[d.toi.baMe.vai]} · ${d.toi.baMe.dinhDanh}`} trai={<Avt ten={d.toi.baMe.ten} mau="#0b7a6e" />} />
+        <Dong dau tieu={d.toi.baMe.ten} phu={`${VAI[d.toi.baMe.vai]} · ${d.toi.baMe.dinhDanh}`} trai={<Avt ten={d.toi.baMe.ten} mau="#0f6b5c" />} />
       </Nhom>
       <NhomTieu chu="Gia đình" />
       <Nhom>

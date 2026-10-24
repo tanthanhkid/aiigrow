@@ -1,6 +1,6 @@
-// Token màu + chữ của AiiGrow — lấy NGUYÊN từ bản thiết kế đã duyệt (aiigrow-thiet-ke/tinh/app.css, khối `.man`), tương phản đo WCAG ở đó:
-// nút #0B7A6E chữ trắng 5,33:1 · chữ #075E55 trên #DDF3EE 6,9:1 · chữ phụ #5F6B68 trên #FFFBF4 5,2:1 · điểm #7A4A00 trên #FFF1C9 7,4:1 ·
-// lỗi #B42318 trên #FEF0EE 5,9:1 · viền ô nhập #8C9693 3,1:1. Một màu nhấn: xanh ngọc (mầm cây «Grow»); vàng CHỈ dùng cho điểm.
+// Token màu + chữ của AiiGrow. Bảng hiện hành: hướng A «than chì & ngọc lục bảo» (24/10, ghi chú bên dưới). Một màu nhấn xanh ngọc;
+// vàng CHỈ dùng cho điểm. Tương phản WCAG đo lại 24/10 (review PR #66): chu/nen 17:1 · chu3/nen 5,66 · chinh/trắng 6,41 · trắng/nut 18,7 ·
+// chinhInk/chinhSoft 7,72 · tim/trắng 5,94 · viền ô nhập #8a8f8c trên trắng 3,29.
 export const M = {
   // 24/10 Thanh chọn hướng A «than chì & ngọc lục bảo» (kiểu Apple/Linear): nền xám ấm trung tính, chữ gần đen, nút chính màu mực,
   // xanh ngọc đậm chỉ làm điểm nhấn; vàng vẫn CHỈ dùng cho điểm. Tương phản: chu3 #5c625f trên #f4f4f2 5,7:1 · chinh #0f6b5c trên trắng 6,4:1.

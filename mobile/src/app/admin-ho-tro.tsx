@@ -26,7 +26,7 @@ function DanhSach({ chon }: { chon: (f: Dong1) => void }) {
           <Nhom>
             {d.ds.map((x, i) => (
               <Dong key={x.family_id} dau={i === 0} tieu={x.ten} phu={`${x.tu === "aiilab" ? "AiiLab: " : ""}${x.noi_dung} · ${gioPhut(x.created_at)}`}
-                trai={<Avt ten={x.ten} mau="#0b7a6e" />} phai={x.chua_tra_loi ? <Nhan loai="canh" chu="Chờ trả lời" /> : <Nhan loai="xam" chu="Đã trả lời" />} bam={() => chon(x)} />
+                trai={<Avt ten={x.ten} mau="#0f6b5c" />} phai={x.chua_tra_loi ? <Nhan loai="canh" chu="Chờ trả lời" /> : <Nhan loai="xam" chu="Đã trả lời" />} bam={() => chon(x)} />
             ))}
           </Nhom>
         </>

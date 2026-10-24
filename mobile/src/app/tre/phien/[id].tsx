@@ -61,7 +61,7 @@ export default function DangChoi() {
             style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,.96)", borderRadius: 99, paddingVertical: 5,
               paddingLeft: 5, paddingRight: 12, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
             <Svg width={34} height={34}>
-              <Circle cx={17} cy={17} r={14} stroke="#efe7da" strokeWidth={6} fill="#fff" />
+              <Circle cx={17} cy={17} r={14} stroke="#e7e7e3" strokeWidth={6} fill="#fff" />
               <Circle cx={17} cy={17} r={14} stroke={M.diem} strokeWidth={6} fill="none" strokeDasharray={`${2 * Math.PI * 14 * Math.min(1, ti)} 999`}
                 transform="rotate(-90 17 17)" />
             </Svg>

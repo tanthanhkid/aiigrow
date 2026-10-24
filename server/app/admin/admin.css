@@ -7,7 +7,7 @@
 .ad .khung-ad{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;max-width:1360px;margin:0 auto;padding:20px}
 .ad nav.muc{display:flex;flex-direction:column;gap:4px;position:sticky;top:76px;align-self:start}
 .ad nav.muc a{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 12px;border-radius:14px;color:var(--chu2);font-weight:700;text-decoration:none;white-space:nowrap}
-.ad nav.muc a:hover{background:#f6f1e8}
+.ad nav.muc a:hover{background:#f2f2ef}
 .ad nav.muc a[aria-current=page]{background:var(--chinh-soft);color:var(--chinh-ink);font-weight:800}
 .ad nav.muc .so{margin-left:auto;background:var(--huy);color:#fff;font-size:12px;font-weight:800;min-width:22px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 6px}
 .ad .noi-dung{display:flex;flex-direction:column;gap:16px;min-width:0}
@@ -29,16 +29,16 @@
 .ad .bang{overflow-x:auto;border-radius:var(--bo-the);border:1px solid var(--vien);background:#fff;box-shadow:var(--bong)}
 .ad table{border-collapse:collapse;width:100%;font-size:14.5px}
 .ad th{text-align:left;font-size:13px;color:var(--chu3);font-weight:800;padding:10px 12px;white-space:nowrap;background:#f7f7f5}
-.ad td{padding:10px 12px;border-top:1px solid #f4eee4;vertical-align:top}
+.ad td{padding:10px 12px;border-top:1px solid #efefec;vertical-align:top}
 .ad td.so,.ad th.so{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ad td.nw{white-space:nowrap}
 .ad tr.tong td{font-weight:800;background:#f7f7f5}
 .ad td input{width:100px;min-height:40px;border:1.5px solid var(--o-nhap);border-radius:10px;padding:0 8px;background:#fff;font-size:15px}
 .ad .tin-ds{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;padding:4px}
 .ad .tin{max-width:80%;padding:10px 14px;border-radius:18px;background:#fff;border:1px solid var(--vien);align-self:flex-start;overflow-wrap:anywhere}
-.ad .tin.aiilab{align-self:flex-end;background:var(--chinh-soft);border-color:transparent;color:#064e47}
+.ad .tin.aiilab{align-self:flex-end;background:var(--chinh-soft);border-color:transparent;color:#0a5246}
 .ad .tin small{display:block;font-size:12.5px;color:var(--chu3);margin-top:2px}
-.ad .tin.aiilab small{color:#075e55}
+.ad .tin.aiilab small{color:#000000}
 .ad .trong{padding:28px 16px;text-align:center;color:var(--chu3);font-weight:700}
 .ad .lui{display:inline-flex;align-items:center;gap:4px;color:var(--chinh-ink);font-weight:800;text-decoration:none;min-height:44px}
 .ad .the h2{margin-bottom:10px}

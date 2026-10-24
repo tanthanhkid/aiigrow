@@ -36,8 +36,9 @@ export const DO = String.raw`(() => {
   // Phần ảnh THẤY ĐƯỢC: cắt theo mọi khung tổ tiên có overflow ≠ visible (ScrollView). Ảnh cuộn xuống dưới thanh tab / nút đáy cố định
   // nằm ngoài khung cuộn ⇒ bị cắt, không đè chữ của thanh. Trả null nếu khuất hết.
   const thayDuoc = (a) => { let r = a.getBoundingClientRect(), L0 = r.left, T0 = r.top, R0 = r.right, B0 = r.bottom;
-    for (let k = a.parentElement; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k);
-      if (ks.overflowX !== 'visible' || ks.overflowY !== 'visible') { const c = k.getBoundingClientRect();
+    for (let k = a; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k);
+      if (ks.position === 'fixed') break;   // phần tử fixed thoát mọi khung cuộn
+      if (k !== a && (ks.overflowX !== 'visible' || ks.overflowY !== 'visible')) { const c = k.getBoundingClientRect();
         L0 = Math.max(L0, c.left); T0 = Math.max(T0, c.top); R0 = Math.min(R0, c.right); B0 = Math.min(B0, c.bottom); } }
     return R0 - L0 > 0 && B0 - T0 > 0 ? { left: L0, top: T0, right: R0, bottom: B0 } : null; };
   const cuaNo = (a, el) => { const nut = el.closest('[role=button],[role=link]'); if (nut && nut.contains(a)) return true;

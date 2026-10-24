@@ -13,9 +13,9 @@ const MUC: Record<MucMH, { chu: string; mau: string; ic: TenIcon }> = {
   video: { chu: "Video & phim", mau: "#c2410c", ic: "camera" },
   video_ngan: { chu: "Video ngắn", mau: "#be185d", ic: "tia" },
   mxh: { chu: "Mạng xã hội & chat", mau: M.lam, ic: "tin" },
-  tien_ich: { chu: "Công cụ & trình duyệt", mau: "#5f6b68", ic: "banhrang" },
+  tien_ich: { chu: "Công cụ & trình duyệt", mau: "#5c625f", ic: "banhrang" },
   khac: { chu: "Giải trí khác", mau: "#4d7c0f", ic: "luoi" },
-  chua_xep: { chu: "Chưa phân loại", mau: "#8c9693", ic: "dau_hoi" },
+  chua_xep: { chu: "Chưa phân loại", mau: "#8a8f8c", ic: "dau_hoi" },
 };
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const thuCua = (ngay: string) => THU[new Date(`${ngay}T12:00:00`).getDay()] ?? "";
