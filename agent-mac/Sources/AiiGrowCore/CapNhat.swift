@@ -57,14 +57,14 @@ public enum LuatCapNhat {
   /// URL gói phải https và cùng host với máy chủ đang dùng.
   public static func urlGoiHopLe(_ url: String, mayChu: String) -> Bool {
     guard let u = URL(string: url), u.scheme?.lowercased() == "https", let h = u.host?.lowercased(), !h.isEmpty,
-          let host = URL(string: mayChu)?.host?.lowercased(), h == host else { return false }
+          let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, u.port == mc.port else { return false }
     return u.user == nil && u.password == nil
   }
 
   /// Chuyển hướng chỉ tới https: máy chủ đang dùng, github.com, *.githubusercontent.com.
   public static func choPhepChuyenHuong(_ url: URL?, mayChu: String) -> Bool {
     guard let url, url.scheme?.lowercased() == "https", let h = url.host?.lowercased(), url.user == nil else { return false }
-    if let host = URL(string: mayChu)?.host?.lowercased(), h == host { return true }
+    if let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, url.port == mc.port { return true }
     return h == "github.com" || h.hasSuffix(".githubusercontent.com")
   }
 
@@ -377,6 +377,7 @@ public actor BoCapNhat {
       // Gỡ (go-cai.sh / gỡ từ xa) xen vào đúng giữa lần kiểm cuối và submit: dừng job ngay, postinstall không được nạp lại máy vừa gỡ.
       if heThong.docTep(DuongDan.daGo) != nil {
         await ngoaiActor({ ht.dungCai() })
+        if let c = dauCu { try? heThong.ghiTep(tepDaThu, c, quyen: 0o600) } else { heThong.xoaTep(tepDaThu) }   // installer không chạy ⇒ không tính lượt
         bo("máy bị gỡ ngay lúc giao installer — đã dừng lượt cài"); return
       }
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())

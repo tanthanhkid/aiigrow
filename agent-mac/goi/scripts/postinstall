@@ -20,6 +20,8 @@ if [ -f "$DA_GO" ]; then
     # Tự cập nhật chạy đè lên máy vừa bị gỡ từ xa: không nạp lại daemon/tray, dọn phần gói vừa chép.
     /bin/rm -rf "$APP" "$THU_MUC/cap-nhat"
     "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+    # plist trỏ vào app vừa xoá: gỡ luôn (go-cai.sh có bị ngắt thì launchd cũng không chạy hụt mỗi lần khởi động)
+    /bin/rm -f "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
     exit 0
   fi
   /bin/rm -f "$DA_GO"                          # Ba Mẹ chủ động cài lại sau khi gỡ: bình thường

@@ -2,6 +2,12 @@
 # Gỡ AiiGrow khỏi máy Mac. Chạy: sudo bash go-cai.sh
 set -u
 if [ "$(id -u)" -ne 0 ]; then echo "Cần quyền quản trị: sudo bash $0" >&2; exit 1; fi
+# Chạy từ BẢN SAO: lúc chờ bộ tự cập nhật (tới 5 phút) installer có thể ghi đè tệp này trong app — bash đọc theo vị trí byte, tệp đổi là chạy lệnh rác.
+if [ -z "${AIIGROW_GO_BAN_SAO:-}" ]; then
+  BAN_SAO=$(/usr/bin/mktemp /var/tmp/aiigrow-go-cai.XXXXXX) && /bin/cp "$0" "$BAN_SAO" && \
+    AIIGROW_GO_BAN_SAO="$BAN_SAO" exec /bin/bash "$BAN_SAO" "$@"
+fi
+[ -n "${AIIGROW_GO_BAN_SAO:-}" ] && [ "$AIIGROW_GO_BAN_SAO" != 1 ] && /bin/rm -f "$AIIGROW_GO_BAN_SAO"   # bash đã mở tệp, xoá vẫn chạy tiếp
 
 DAEMON_PLIST="/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"
 TRAY_PLIST="/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"

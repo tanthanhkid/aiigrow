@@ -53,7 +53,8 @@ public actor BoMay {
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
               dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
               capNhat: BoCapNhat? = nil) {
-    self.capNhat = capNhat ?? BoCapNhat(api: api, heThong: heThong, mayChu: { [kho] in (api as? ApiClient)?.mayChu ?? kho.doc()?.mayChu ?? ApiClient.mayChuMacDinh })
+    self.capNhat = capNhat ?? BoCapNhat(api: api, heThong: heThong, mayChu: { [kho] in (api as? ApiClient)?.mayChu ?? kho.doc()?.mayChu ?? ApiClient.mayChuMacDinh },
+                                               dongHo: dongHo)
     self.api = api; self.heThong = heThong; self.kho = kho; self.tuyChon = tuyChon
     self.dongHo = dongHo; self.donDieu = donDieu
     self.cauHinh = kho.doc() ?? CauHinhMay()

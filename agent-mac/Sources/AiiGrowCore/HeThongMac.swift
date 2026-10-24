@@ -184,12 +184,13 @@ public final class HeThongMac: HeThong {
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
   /// - Máy bị gỡ giữa lúc cài: postinstall đã dọn app ⇒ xoá luôn biên nhận installer vừa ghi.
   static let lenhJobCai = """
-    napLai() { if [ ! -f "$4" ] && [ -f "$5" ]; then /bin/launchctl bootstrap system "$5" ; echo "nạp lại daemon, mã $?" ; \
-      for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u "$6" ; done ; fi ; }
+    DA_GO="$4" ; DAEMON="$5" ; TRAY="$6"
+    napLai() { if [ ! -f "$DA_GO" ] && [ -f "$DAEMON" ]; then /bin/launchctl bootstrap system "$DAEMON" ; echo "nạp lại daemon, mã $?" ; \
+      for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u "$TRAY" ; done ; fi ; }
     if [ -f "$3" ] ; then echo "lượt cài trước dừng giữa chừng — không cài lại" ; napLai ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
     echo $$ > "$3" ; /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
     if [ $ma -ne 0 ] ; then napLai ; fi
-    if [ -f "$4" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi
+    if [ -f "$DA_GO" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi
     /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit $ma
     """
 

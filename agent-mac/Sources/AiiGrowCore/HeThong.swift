@@ -76,10 +76,10 @@ public final class HeThongThu: HeThong {
   public func xoaTep(_ duongDan: String) { se("xoá \(duongDan)") }
   public func chayTrinhGo() { se("chạy trình gỡ go-cai.sh (launchctl submit)") }
   public func taoThuMuc(_ duongDan: String, quyen: Int) throws { se("tạo thư mục \(duongDan) (quyền \(String(quyen, radix: 8)))") }
-  public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { that.kiemChuKyGoi(duongDan) }
-  public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { that.kiemSpctlGoi(duongDan) }
+  public func kiemChuKyGoi(_ duongDan: String) -> (Int32, String) { se("kiểm chữ ký \(duongDan) (pkgutil)"); return (1, "[thử]") }
+  public func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { se("kiểm spctl \(duongDan)"); return (1, "[thử]") }
   public func chuyenTep(_ nguon: String, vao dich: String, quyen: Int) throws { se("chuyển \(nguon) vào \(dich) (quyền \(String(quyen, radix: 8)))") }
-  public func caiDangChay() -> Bool { that.caiDangChay() }
+  public func caiDangChay() -> Bool { false }
   public func caiGoi(_ duongDan: String) throws { se("cài gói \(duongDan) (installer qua launchctl submit)") }
   public func dungCai() { se("dừng job cài (launchctl remove \(LuatCapNhat.nhanCai))") }
   public func xoaBoNhoDNS() { se("xoá bộ nhớ DNS (dscacheutil -flushcache; killall -HUP mDNSResponder)") }

@@ -402,6 +402,53 @@ final class CapNhatTests: XCTestCase {
     XCTAssertLessThan(l.range(of: "if [ -f \"$3\" ]")!.lowerBound, l.range(of: "/usr/sbin/installer")!.lowerBound)
   }
 
+  /// Chạy lệnh job cài thật bằng sh, thay launchctl / installer / pkgutil bằng script giả ghi nhật ký.
+  private func chayJobCai(installerMa: Int, daGo: Bool, dauCu: Bool) throws -> (log: String, ma: Int32) {
+    let fm = FileManager.default
+    let g = NSTemporaryDirectory() + "job-\(UUID().uuidString)"
+    try fm.createDirectory(atPath: g, withIntermediateDirectories: true)
+    defer { try? fm.removeItem(atPath: g) }
+    let nk = g + "/nk.log"
+    func gia(_ ten: String, _ ma: Int) throws -> String {
+      let f = g + "/" + ten
+      try "#!/bin/sh\necho \"\(ten) $*\" >> '\(nk)'\nexit \(ma)\n".write(toFile: f, atomically: true, encoding: .utf8)
+      chmod(f, 0o755); return f
+    }
+    let lenh = HeThongMac.lenhJobCai
+      .replacingOccurrences(of: "/bin/launchctl", with: try gia("launchctl", 0))
+      .replacingOccurrences(of: "/usr/sbin/installer", with: try gia("installer", installerMa))
+      .replacingOccurrences(of: "/usr/sbin/pkgutil", with: try gia("pkgutil", 0))
+    let goi = g + "/a.pkg", dau = g + "/pid", daGoTep = g + "/da-go", daemon = g + "/daemon.plist", tray = g + "/tray.plist"
+    for f in [goi, daemon, tray] { try "x".write(toFile: f, atomically: true, encoding: .utf8) }
+    if daGo { try "da-go".write(toFile: daGoTep, atomically: true, encoding: .utf8) }
+    if dauCu { try "123".write(toFile: dau, atomically: true, encoding: .utf8) }
+    let p = Process()
+    p.executableURL = URL(fileURLWithPath: "/bin/sh")
+    p.arguments = ["-c", lenh, "capnhat", goi, LuatCapNhat.nhanCai, dau, daGoTep, daemon, tray]
+    p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
+    try p.run(); p.waitUntilExit()
+    XCTAssertFalse(fm.fileExists(atPath: goi), "gói luôn bị xoá"); XCTAssertFalse(fm.fileExists(atPath: dau), "dấu PID luôn bị xoá")
+    return ((try? String(contentsOfFile: nk, encoding: .utf8)) ?? "", p.terminationStatus)
+  }
+
+  func testJobCaiNapLaiDaemonKhiInstallerLoi() throws {
+    let a = try chayJobCai(installerMa: 1, daGo: false, dauCu: false)
+    XCTAssertTrue(a.log.contains("launchctl bootstrap system"), a.log)
+    XCTAssertTrue(a.log.contains("daemon.plist"), a.log)
+    XCTAssertTrue(a.log.contains("launchctl remove \(LuatCapNhat.nhanCai)"))
+    XCTAssertEqual(a.ma, 1)
+    let b = try chayJobCai(installerMa: 0, daGo: false, dauCu: false)
+    XCTAssertFalse(b.log.contains("bootstrap"), "cài xong: postinstall lo, job không nạp lại")
+    XCTAssertFalse(b.log.contains("pkgutil"))
+    let c = try chayJobCai(installerMa: 1, daGo: true, dauCu: false)
+    XCTAssertFalse(c.log.contains("bootstrap"), "máy vừa bị gỡ: không nạp lại")
+    XCTAssertTrue(c.log.contains("pkgutil --forget vn.aiilab.aiigrow.pkg"))
+    let d = try chayJobCai(installerMa: 0, daGo: false, dauCu: true)
+    XCTAssertFalse(d.log.contains("installer"), "job bị launchd chạy lại: không cài lại")
+    XCTAssertTrue(d.log.contains("launchctl bootstrap system"), d.log)
+    XCTAssertEqual(d.ma, 0)
+  }
+
   func testManifestBanSaiDangBaoLoi() async {
     datMayChu(version: "0.1.2-rc1")
     let k = await chay(boCapNhat())
