@@ -371,6 +371,7 @@ create table if not exists audit (
   created_at timestamptz not null default now()
 );
 create index if not exists audit_luc on audit(created_at);
+create index if not exists audit_gia_dinh on audit(family_id) where family_id is not null;
 create table if not exists he_thong (
   khoa text primary key,
   gia_tri jsonb not null default '{}',

@@ -217,9 +217,19 @@ test("audit của gia đình đã xoá: giữ 90 ngày rồi xoá hẳn; gia đ�
   // dòng mốc «xoa_gia_dinh» lạ của gia đình vẫn còn trong families ⇒ không đụng
   await ghiKiemToan(null, "xoa_gia_dinh", { soCon: 0 }, fCon);
   await q(`update audit set created_at = $2 where family_id = $1`, [fCon, lui(200)]);
+  // gia đình bỏ đi không qua «xoá tài khoản» (không có mốc), dòng cuối 120 ngày ⇒ vẫn dọn; quét mã không gắn gia đình 91 ngày ⇒ dọn, 10 ngày ⇒ còn
+  await ghiKiemToan({ id: "nv1", vai: "admin" }, "tra_loi_ho_tro", { doDai: 5 }, "gd_khong_con");
+  await q(`update audit set created_at = $1 where family_id = 'gd_khong_con'`, [lui(120)]);
+  await ghiKiemToan({ id: "nv1", vai: "quay" }, "quet_voucher", { ma: "CU91" }, null);
+  await ghiKiemToan({ id: "nv1", vai: "quay" }, "quet_voucher", { ma: "MOI10" }, null);
+  await q(`update audit set created_at = $1 where chi_tiet->>'ma' = 'CU91'`, [lui(91)]);
+  await q(`update audit set created_at = $1 where chi_tiet->>'ma' = 'MOI10'`, [lui(10)]);
+  const quet = async () => (await q<{ ma: string }>(`select chi_tiet->>'ma' as ma from audit where family_id is null and chi_tiet->>'ma' in ('CU91', 'MOI10')`)).map((x) => x.ma);
   assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 3, 2]);
 
-  assert.equal(await donKiemToanGiaDinhDaXoa(now), 3);
+  assert.equal(await donKiemToanGiaDinhDaXoa(now), 5);
+  assert.equal(await dem("gd_khong_con"), 0);
+  assert.deepEqual(await quet(), ["MOI10"]);
   assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 0, 2], "89 ngày còn, 91 ngày xoá hẳn kể cả dòng mốc");
   assert.equal(await donKiemToanGiaDinhDaXoa(now), 0, "gọi lặp vô hại");
   // 2 ngày sau gia đình 89 ngày quá hạn

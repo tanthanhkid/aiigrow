@@ -98,22 +98,34 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
 // ---------------------------------------------------------------- dọn audit của gia đình đã xoá quá 90 ngày (chính sách quyền riêng tư mục 4)
 export const GIU_KIEM_TOAN_NGAY = 90;
 
-/** Xoá hẳn MỌI dòng audit của gia đình đã xoá (mốc = dòng «xoa_gia_dinh») quá GIU_KIEM_TOAN_NGAY ngày. Chỉ đụng gia đình không còn
- *  trong families (phòng trường hợp lạ). Gọi lặp vô hại. → số dòng đã xoá. */
+/** Xoá hẳn audit của gia đình KHÔNG còn trong families (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi;
+ *  xoá tay theo yêu cầu email) khi dòng MỚI NHẤT của gia đình đó (thường là mốc «xoa_gia_dinh») đã quá GIU_KIEM_TOAN_NGAY ngày — không phụ
+ *  thuộc đường xoá nào. Kèm: dòng «quet_voucher» không gắn gia đình (quét mã không còn / không có thật — có thể là mã phiếu của gia đình đã
+ *  xoá) quá 90 ngày. Gọi lặp vô hại. → số dòng đã xoá. */
 export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number> {
   await damBaoBang();
   const moc = new Date(now.getTime() - GIU_KIEM_TOAN_NGAY * 86_400_000);
   const r = await q<{ id: string }>(`delete from audit where family_id in (
-      select x.family_id from audit x where x.hanh_dong = 'xoa_gia_dinh' and x.family_id is not null and x.created_at < $1
-        and not exists (select 1 from families f where f.id = x.family_id)) returning id`, [moc]);
+      select x.family_id from audit x where x.family_id is not null and not exists (select 1 from families f where f.id = x.family_id)
+        group by x.family_id having max(x.created_at) < $1)
+    or (family_id is null and hanh_dong = 'quet_voucher' and created_at < $1) returning id`, [moc]);
   return r.length;
 }
 
-/** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn. → null = vừa chạy rồi. */
+/** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn; dọn lỗi thì trả lượt
+ *  (lần gọi sau chạy lại được ngay). → null = vừa chạy rồi. */
 export async function chayDonKiemToan(now = new Date()): Promise<number | null> {
   await damBaoBang();
-  const duoc = await q(`insert into he_thong(khoa, gia_tri, updated_at) values ('don_kiem_toan', '{}', $1)
-    on conflict (khoa) do update set updated_at = $1 where he_thong.updated_at < $1::timestamptz - interval '1 hour' returning khoa`, [now]);
+  const duoc = await q<{ cu: Date | null }>(`with cu as (select updated_at from he_thong where khoa = 'don_kiem_toan')
+    insert into he_thong(khoa, gia_tri, updated_at) values ('don_kiem_toan', '{}', $1)
+    on conflict (khoa) do update set updated_at = $1 where he_thong.updated_at < $1::timestamptz - interval '1 hour'
+    returning (select updated_at from cu) as cu`, [now]);
   if (!duoc.length) return null;
-  return donKiemToanGiaDinhDaXoa(now);
+  try {
+    return await donKiemToanGiaDinhDaXoa(now);
+  } catch (e) {
+    await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
+      [now, duoc[0].cu]).catch(() => {});
+    throw e;
+  }
 }
