@@ -4,8 +4,8 @@ import SwiftUI
 import AiiGrowCore
 
 extension Color {
-  /// Xanh AiiGrow #1f8a70.
-  static let xanhAiiGrow = Color(red: 0x1f / 255, green: 0x8a / 255, blue: 0x70 / 255)
+  /// Ngọc lục bảo AiiGrow #0f6b5c (token `chinh` của Clay gương — docs/THIET-KE-CLAY.md).
+  static let xanhAiiGrow = ClayMau.ngoc
 }
 
 @MainActor
@@ -51,16 +51,10 @@ final class XinModel: ObservableObject {
   }
 }
 
-/// Nút lớn xanh, cao ≥ 44pt.
+/// Nút lớn, cao ≥ 44pt — chất liệu Clay gương (Clay.swift): `dac` = kẹo ngọc lục bảo, không `dac` = khối sứ sáng.
 struct NutXanh: ButtonStyle {
   var dac = true
   func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: 15, weight: .semibold))
-      .frame(maxWidth: .infinity, minHeight: 44)
-      .padding(.horizontal, 12)
-      .foregroundColor(dac ? .white : .xanhAiiGrow)
-      .background(RoundedRectangle(cornerRadius: 10).fill(dac ? Color.xanhAiiGrow : Color.xanhAiiGrow.opacity(0.12)))
-      .opacity(configuration.isPressed ? 0.8 : 1)
+    NutClayStyle(kieu: dac ? .ngoc : .sang).makeBody(configuration: configuration)
   }
 }

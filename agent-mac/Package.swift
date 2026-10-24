@@ -12,7 +12,8 @@ let package = Package(
   targets: [
     .target(name: "AiiGrowCore"),
     .executableTarget(name: "aiigrow-daemon", dependencies: ["AiiGrowCore"]),
-    .executableTarget(name: "AiiGrowTray", dependencies: ["AiiGrowCore"]),
+    // Fluent/: icon Fluent Emoji 3D (MIT, microsoft/fluentui-emoji) — gói phát hành chép vào AiiGrow.app/Contents/Resources/Fluent (goi/build-pkg.sh).
+    .executableTarget(name: "AiiGrowTray", dependencies: ["AiiGrowCore"], resources: [.copy("Fluent")]),
     .testTarget(name: "AiiGrowCoreTests", dependencies: ["AiiGrowCore"]),
     .testTarget(name: "AiiGrowTrayTests", dependencies: ["AiiGrowTray", "AiiGrowCore"]),
   ]
