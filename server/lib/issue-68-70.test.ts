@@ -82,9 +82,10 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   await datLuat(fam, { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" });
   await dieuChinhTay(fam, con, 50, "Điểm thử", await bmId(fam));
   // route «phien/…/dung» chạy nhịp bằng đồng hồ thật: lịch mặc định thì ngoài khung / giờ ngủ (vd 21:00 VN) nhịp tự đóng phiên ⇒ 409 thay vì 200
-  await luonChoiDuoc(con);
-  // phiên THẬT qua moPhien, giờ cố định trong khung chơi (thứ Tư 18:00 giờ VN) — không chèn tay
-  const ph = await moPhien(con, may.deviceId, "roblox.exe", {}, new Date("2026-10-21T18:00:00+07:00"));
+  const luc = new Date("2026-10-21T18:00:00+07:00");
+  await luonChoiDuoc(con, [luc]);
+  // phiên THẬT qua moPhien, giờ cố định (thứ Tư 18:00 giờ VN) — không chèn tay
+  const ph = await moPhien(con, may.deviceId, "roblox.exe", {}, luc);
   assert.equal((await m("phien-dang", { tok })).body.ds.length, 0, "phiên mất nhịp lâu (máy ngủ) không hiện «đang chơi»");
   await q(`update play_sessions set nhip_cuoi = now() where id = $1`, [ph.id]);                // nhịp vừa tới
   const ds = (await m("phien-dang", { tok })).body.ds;
