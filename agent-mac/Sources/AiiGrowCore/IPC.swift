@@ -11,6 +11,7 @@ public enum DuongDan {
   public static let daemonPlist = "/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"
   public static let trayPlist = "/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"
   public static let daGo = "/var/db/aiigrow-da-go"                // dấu «máy đã bị gỡ» — tuGo/go-cai.sh ghi; bộ cập nhật + postinstall (cài tự động) tôn trọng
+  public static let goCaiDangChay = "/var/run/aiigrow-go-cai"      // go-cai.sh ghi PID của mình suốt lúc chạy (cả chạy tay); xoá khi thoát
   public static let dangCapNhat = "/var/run/aiigrow-capnhat"      // job tự cập nhật ghi PID của sh job; postinstall chỉ coi là «cài tự động» khi PID còn sống; go-cai.sh xoá
   public static let app = "/Applications/AiiGrow.app"            // tray (LSUIElement), daemon nằm ở Contents/MacOS/aiigrow-daemon
 }

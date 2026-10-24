@@ -60,6 +60,9 @@ final class CapNhatTests: XCTestCase {
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn.evil.com/a.pkg", mayChu: may), "host giả đuôi")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn@evil.com/a.pkg", mayChu: may), "userinfo")
     XCTAssertFalse(LuatCapNhat.urlGoiHopLe("file:///tmp/a.pkg", mayChu: may))
+    XCTAssertTrue(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn/a.pkg", mayChu: may + ":443"), "cổng 443 ghi rõ = mặc định")
+    XCTAssertTrue(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn:443/a.pkg", mayChu: may))
+    XCTAssertFalse(LuatCapNhat.urlGoiHopLe("https://aiigrow.aiilab.vn:8443/a.pkg", mayChu: may), "cổng khác")
   }
 
   func testChuyenHuongChiToiGithub() {
@@ -236,7 +239,7 @@ final class CapNhatTests: XCTestCase {
     if case .duoc = QuyenIPC.kiem(.capNhat, uidGoi: 503, uidCon: con, daGhep: true, laAdmin: laAdmin) { XCTFail("không phải admin") }
   }
 
-  private func dungBoMay(daGhep: Bool = true, tre: UInt64 = 0, banMoi: BanMoi? = nil) throws -> (BoMay, MayChuGia, String) {
+  private func dungBoMay(daGhep: Bool = true, tre: UInt64 = 0, banMoi: BanMoi? = nil, so: SoTinhCapNhat = SoTinhCapNhat()) throws -> (BoMay, MayChuGia, String) {
     let thu = NSTemporaryDirectory() + "aiigrow-cn-\(UUID().uuidString)"
     try FileManager.default.createDirectory(atPath: thu, withIntermediateDirectories: true)
     let kho = ConfigStore(duongDan: thu + "/config.json")
@@ -244,7 +247,7 @@ final class CapNhatTests: XCTestCase {
     fake.uidTheoTen = ["be": 501, "ba": 502]; fake.admin = ["ba"]
     let api = MayChuGia()
     api.banMoiTraVe = banMoi; api.treBanMoi = tre
-    let cn = BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc, tepDaThu: "/gia/da-thu.json", banHienTai: "0.1.1")
+    let cn = BoCapNhat(api: api, heThong: fake, mayChu: { [may] in may }, session: HttpMock.session(), thuMuc: thuMuc, tepDaThu: "/gia/da-thu.json", banHienTai: "0.1.1", so: so)
     return (BoMay(api: api, heThong: fake, kho: kho, capNhat: cn), api, thu)
   }
 
@@ -515,6 +518,17 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNotNil(fake.tep[DuongDan.daGo], "go-cai.sh còn chạy ⇒ giữ dấu da-go cho postinstall")
   }
 
+  func testLenhThatTraQuyenAdminTuoi() async throws {
+    let so = SoTinhCapNhat(); so.dat("Đang kiểm tra bản mới…")    // có trạng thái cập nhật ⇒ hỏi trạng thái tra admin qua bộ đệm
+    let (b, _, thu) = try dungBoMay(daGhep: false, banMoi: nil, so: so)
+    defer { try? FileManager.default.removeItem(atPath: thu) }
+    _ = await b.xuLyIPC(.trangThai, uidGoi: 502)              // bộ đệm ghi «502 là admin»
+    fake.admin = []                                            // vừa bị hạ quyền
+    HttpMock.dat { _, _ in nil }
+    let r = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case .loi = r else { return XCTFail("tài khoản vừa bị hạ quyền vẫn ghép được: \(r)") }
+  }
+
   func testLoiMangBaoChuDeHieu() async {
     HttpMock.dat { _, _ in nil }
     let k = await chay(boCapNhat())
@@ -580,7 +594,7 @@ final class CapNhatTests: XCTestCase {
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
-  private func chayPostinstall(daGo: Bool, pidDau: String?) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool) {
+  private func chayPostinstall(daGo: Bool, pidDau: String?, pidGo: String? = nil) throws -> (bootstrapDaemon: Bool, daGoConLai: Bool, appConLai: Bool) {
     let fm = FileManager.default
     let goc = NSTemporaryDirectory() + "pi-\(UUID().uuidString)"
     defer { try? fm.removeItem(atPath: goc) }
@@ -589,6 +603,7 @@ final class CapNhatTests: XCTestCase {
     for n in ["vn.aiilab.aiigrow.daemon", "vn.aiilab.aiigrow.tray"] { try "x".write(toFile: "\(res)/\(n).plist", atomically: true, encoding: .utf8) }
     if daGo { try "da-go".write(toFile: goc + "/var/db/aiigrow-da-go", atomically: true, encoding: .utf8) }
     if let p = pidDau { try p.write(toFile: goc + "/var/run/aiigrow-capnhat", atomically: true, encoding: .utf8) }
+    if let p = pidGo { try p.write(toFile: goc + "/var/run/aiigrow-go-cai", atomically: true, encoding: .utf8) }
     let gia = goc + "/launchctl-gia.sh", nhatKy = goc + "/lenh.log"
     try "#!/bin/bash\necho \"$@\" >> '\(nhatKy)'\nexit 1\n".write(toFile: gia, atomically: true, encoding: .utf8)
     chmod(gia, 0o755)
@@ -623,6 +638,17 @@ final class CapNhatTests: XCTestCase {
     // chưa từng gỡ ⇒ bình thường dù có dấu
     let d = try chayPostinstall(daGo: false, pidDau: String(getpid()))
     XCTAssertTrue(d.bootstrapDaemon)
+    // go-cai.sh còn chạy (đã giết job cập nhật sau 5 phút, installd vẫn cài tiếp) ⇒ không nạp lại, giữ da-go
+    let go = Process()
+    go.executableURL = URL(fileURLWithPath: "/bin/sh")
+    go.arguments = ["-c", "sleep 30; :", "/var/tmp/aiigrow-go-cai.abc"]
+    try go.run()
+    defer { go.terminate() }
+    let f = try chayPostinstall(daGo: true, pidDau: nil, pidGo: String(go.processIdentifier))
+    XCTAssertFalse(f.bootstrapDaemon); XCTAssertTrue(f.daGoConLai); XCTAssertFalse(f.appConLai)
+    // PID go-cai sót bị tiến trình khác dùng lại ⇒ cài tay
+    let g = try chayPostinstall(daGo: true, pidDau: nil, pidGo: String(getpid()))
+    XCTAssertTrue(g.bootstrapDaemon); XCTAssertFalse(g.daGoConLai)
   }
 }
 

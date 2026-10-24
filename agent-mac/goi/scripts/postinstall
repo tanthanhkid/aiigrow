@@ -11,13 +11,17 @@ RES="$APP/Contents/Resources"
 
 DA_GO="$GOC/var/db/aiigrow-da-go"                  # go-cai.sh / daemon (gỡ từ xa) ghi: máy đã bị gỡ
 DANG_CAP_NHAT="$GOC/var/run/aiigrow-capnhat"   # job tự cập nhật ghi PID của sh job (DuongDan.dangCapNhat)
+GO_CAI="$GOC/var/run/aiigrow-go-cai"          # go-cai.sh ghi PID của mình suốt lúc chạy (DuongDan.goCaiDangChay)
+# PID trong tệp $1 còn sống VÀ dòng lệnh khớp $2 — PID sót đã bị tiến trình khác dùng lại thì không tính.
+pidSong() {
+  p=$(/bin/cat "$1" 2>/dev/null || true)
+  case "$p" in ''|*[!0-9]*) return 1 ;; esac
+  /bin/kill -0 "$p" 2>/dev/null && /bin/ps -p "$p" -o command= 2>/dev/null | /usr/bin/grep -q "$2"
+}
 if [ -f "$DA_GO" ]; then
-  PID_CN=$(/bin/cat "$DANG_CAP_NHAT" 2>/dev/null || true)
-  case "$PID_CN" in ''|*[!0-9]*) PID_CN="" ;; esac
-  # Chỉ tin dấu khi PID còn sống VÀ đúng là sh job tự cập nhật (dòng lệnh mang nhãn job) — PID sót đã bị tiến trình khác dùng lại ⇒ coi như cài tay.
-  if [ -n "$PID_CN" ] && /bin/kill -0 "$PID_CN" 2>/dev/null && \
-     /bin/ps -p "$PID_CN" -o command= 2>/dev/null | /usr/bin/grep -q 'vn\.aiilab\.aiigrow\.capnhat'; then
-    # Tự cập nhật chạy đè lên máy vừa bị gỡ từ xa: không nạp lại daemon/tray, dọn phần gói vừa chép.
+  # Cài tự động (sh job cập nhật còn sống), hoặc go-cai.sh còn chạy (nó giết job sau 5 phút nhưng installd có thể cài tiếp) ⇒ máy đang/đã gỡ.
+  if pidSong "$DANG_CAP_NHAT" 'vn\.aiilab\.aiigrow\.capnhat' || pidSong "$GO_CAI" 'go-cai'; then
+    # Tự cập nhật chạy đè lên máy vừa bị gỡ: không nạp lại daemon/tray, dọn phần gói vừa chép.
     /bin/rm -rf "$APP" "$THU_MUC/cap-nhat"
     "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
     # plist trỏ vào app vừa xoá: gỡ luôn (go-cai.sh có bị ngắt thì launchd cũng không chạy hụt mỗi lần khởi động)

@@ -145,8 +145,12 @@ public final class HeThongMac: HeThong {
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
   }
 
-  /// Job submit sống tới khi go-cai.sh tự `launchctl remove` ở cuối ⇒ còn trong `launchctl list` là còn chạy.
-  public func trinhGoDangChay() -> Bool { HeThongMac.chay("/bin/launchctl", ["list", HeThongMac.nhanTrinhGo], timeout: 10).0 == 0 }
+  /// PID trong `DuongDan.goCaiDangChay` còn sống và đúng là go-cai.sh (job launchd lẫn chạy tay bằng sudo).
+  public func trinhGoDangChay() -> Bool {
+    guard let s = try? String(contentsOfFile: DuongDan.goCaiDangChay, encoding: .utf8),
+          let pid = Int32(s.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0, kill(pid, 0) == 0 else { return false }
+    return HeThongMac.chay("/bin/ps", ["-p", String(pid), "-o", "command="], timeout: 10).1.contains("go-cai")
+  }
 
   public func taoThuMuc(_ duongDan: String, quyen: Int) throws {
     try FileManager.default.createDirectory(atPath: duongDan, withIntermediateDirectories: true, attributes: [.posixPermissions: quyen])

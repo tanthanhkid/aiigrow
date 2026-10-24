@@ -31,7 +31,7 @@ public protocol HeThong: AnyObject {
   func xoaBoNhoDNS()
   /// Chạy trình gỡ (go-cai.sh) như một job launchd riêng, để nó sống sau khi gỡ chính daemon.
   func chayTrinhGo()
-  /// go-cai.sh (job launchctl `vn.aiilab.aiigrow.go`) còn đang chạy.
+  /// go-cai.sh còn đang chạy (PID trong `DuongDan.goCaiDangChay`).
   func trinhGoDangChay() -> Bool
   /// Tạo thư mục (cả cha) với quyền `quyen`, chủ root.
   func taoThuMuc(_ duongDan: String, quyen: Int) throws

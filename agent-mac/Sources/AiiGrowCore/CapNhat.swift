@@ -56,14 +56,14 @@ public enum LuatCapNhat {
   /// URL gói phải https và cùng host với máy chủ đang dùng.
   public static func urlGoiHopLe(_ url: String, mayChu: String) -> Bool {
     guard let u = URL(string: url), u.scheme?.lowercased() == "https", let h = u.host?.lowercased(), !h.isEmpty,
-          let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, u.port == mc.port else { return false }
+          let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, (u.port ?? 443) == (mc.port ?? 443) else { return false }
     return u.user == nil && u.password == nil
   }
 
   /// Chuyển hướng chỉ tới https: máy chủ đang dùng, github.com, *.githubusercontent.com.
   public static func choPhepChuyenHuong(_ url: URL?, mayChu: String) -> Bool {
     guard let url, url.scheme?.lowercased() == "https", let h = url.host?.lowercased(), url.user == nil else { return false }
-    if let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, url.port == mc.port { return true }
+    if let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, (url.port ?? 443) == (mc.port ?? 443) { return true }
     return h == "github.com" || h.hasSuffix(".githubusercontent.com")
   }
 
@@ -376,19 +376,20 @@ public actor BoCapNhat {
     // Dấu ghi TRƯỚC khi giao installer (preinstall bootout daemon ngay, không kịp ghi sau); giao lỗi (kể cả installer khác đang chạy —
     // caiGoi tự kiểm) thì trả dấu cũ ⇒ lượt này không bị tính.
     let dauCu = heThong.docTep(tepDaThu)
+    func traDau() { if let c = dauCu { try? heThong.ghiTep(tepDaThu, c, quyen: 0o600) } else { heThong.xoaTep(tepDaThu) } }
     guard ghiDau() else { bo("không ghi được dấu đã thử nên không cài"); return }
     do {
       try await ngoaiActor({ Result { try ht.caiGoi(tep) } }).get()
       // Gỡ (go-cai.sh / gỡ từ xa) xen vào đúng giữa lần kiểm cuối và submit: dừng job ngay, postinstall không được nạp lại máy vừa gỡ.
       if heThong.docTep(DuongDan.daGo) != nil {
         await ngoaiActor({ ht.dungCai() })
-        if let c = dauCu { try? heThong.ghiTep(tepDaThu, c, quyen: 0o600) } else { heThong.xoaTep(tepDaThu) }   // installer không chạy ⇒ không tính lượt
+        traDau()                                    // installer không chạy ⇒ không tính lượt
         bo("máy bị gỡ ngay lúc giao installer — đã dừng lượt cài"); return
       }
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")
     } catch {
-      if let c = dauCu { try? heThong.ghiTep(tepDaThu, c, quyen: 0o600) } else { heThong.xoaTep(tepDaThu) }
+      traDau()
       bo("không chạy được installer: \(error)")
     }
   }

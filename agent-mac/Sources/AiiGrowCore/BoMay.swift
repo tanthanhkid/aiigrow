@@ -357,7 +357,7 @@ public actor BoMay {
 
   /// Xử lý một yêu cầu tray — gọi từ socket sau khi đã lấy uid người gọi bằng getpeereid.
   public func xuLyIPC(_ yc: YeuCauTray, uidGoi: UInt32) async -> TraLoi {
-    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: { self.laAdminDem($0) })
+    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: laAdminCho(yc))
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:
@@ -409,6 +409,12 @@ public actor BoMay {
 
   /// Chỉ cập nhật khi đã ghép và không đang gỡ.
   private func coTheCapNhat() -> Bool { cauHinh.daGhep && !dangGo }
+
+  /// Hỏi trạng thái (tray, 5 giây một lần) dùng bộ đệm; lệnh thật (ghép, cập nhật…) tra quyền admin tươi.
+  private func laAdminCho(_ yc: YeuCauTray) -> (UInt32) -> Bool {
+    if case .trangThai = yc { return { self.laAdminDem($0) } }
+    return { self.heThong.laAdmin(uid: $0) }
+  }
 
   /// laAdmin có bộ nhớ đệm 5 phút theo uid (HeThongMac.laAdmin chạy dscl).
   private var adminDem: [UInt32: (laAdmin: Bool, luc: Double)] = [:]
