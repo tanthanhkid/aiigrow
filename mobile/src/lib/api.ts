@@ -7,8 +7,6 @@ export const GOC = (process.env.EXPO_PUBLIC_API ?? "http://localhost:3310").repl
 /** Trang tải bộ cài cho máy của Con (server/app/tai) — link công khai cố định, Ba Mẹ gõ tay được trên laptop của Con. */
 /** Chuẩn hoá tên giống máy chủ (NFC, bỏ khoảng trắng đầu/cuối, gộp khoảng trắng) — so «có đổi không» trước khi gửi. */
 export const chuanHoaTen = (v: string) => v.normalize("NFC").trim().replace(/\s+/g, " ");
-/** Cắt theo ký tự (sau NFC), không theo đơn vị UTF-16 — không chẻ đôi cặp thay thế/emoji, khớp cách máy chủ đếm. */
-export const catTen = (v: string, toiDa: number) => [...v.normalize("NFC")].slice(0, toiDa).join("");
 export const LINK_TAI = "https://aiigrow.aiilab.vn/tai";
 
 const kho = (khoa: string) => ({

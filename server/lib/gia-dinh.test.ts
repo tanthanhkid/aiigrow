@@ -165,26 +165,24 @@ test("đổi tên Con và máy: chuẩn hoá, chặn rỗng/quá dài/trùng tê
   assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
 });
 
-test("tên Con/máy: taoCon chặn trùng + gộp khoảng trắng + NFC; đổi tên máy tới 80 ký tự; không đổi gì thì doi=false; không lọt trùng khi gọi song song", async () => {
+test("tên Con/máy: taoCon gộp khoảng trắng + NFC và CHO PHÉP trùng tên (chỉ đổi tên mới chặn); đổi tên máy tới 80 ký tự; không đổi gì thì doi=false", async () => {
   const { fam } = await taoNha();
   const ken = await g.taoCon(fam, { ten: "  Kenny   Vũ " });
   assert.equal((await g.conCua(fam, ken)).ten, "Kenny Vũ");
-  await loi(g.taoCon(fam, { ten: "kenny   vũ" }), "ten_trung");
+  const trung = await g.taoCon(fam, { ten: "kenny   vũ" });                       // tạo mới: trùng tên vẫn được (bước thiết lập thử lại không kẹt)
+  assert.equal((await g.conCua(fam, trung)).ten, "kenny vũ");
   await loi(g.taoCon(fam, { ten: "x".repeat(31) }), "ten_qua_dai");
   // NFC: «ũ» dạng tổ hợp (u + dấu ngã) = «ũ» dựng sẵn; độ dài tính sau NFC
-  await loi(g.taoCon(fam, { ten: "kenny vu\u0303" }), "ten_trung");
   const nfd = await g.taoCon(fam, { ten: "Vi\u0323\u0302t".repeat(5) });             // 15 ký tự tổ hợp, 5×(V,i,ệ,t)
   assert.equal((await g.conCua(fam, nfd)).ten, "Vi\u0323\u0302t".repeat(5).normalize("NFC"));
   assert.equal((await g.conCua(fam, nfd)).ten.normalize("NFC"), (await g.conCua(fam, nfd)).ten);
   assert.equal(g.chuanHoaTen("  A \t B\n"), "A B");
   // dữ liệu cũ chưa chuẩn hoá (nhiều khoảng trắng) vẫn bị bắt trùng
   await q(`insert into children(id, family_id, ten) values ('cu1', $1, ' Bé   Na ')`, [fam]);
-  await loi(g.taoCon(fam, { ten: "bé na" }), "ten_trung");
   await loi(g.suaCon(fam, ken, { ten: "BÉ  NA" }), "ten_trung");
-  // song song: chỉ một lần thắng
+  // song song cùng tên: cả hai được tạo
   const kq = await Promise.allSettled([g.taoCon(fam, { ten: "Song Song" }), g.taoCon(fam, { ten: "song song" })]);
-  assert.equal(kq.filter((x) => x.status === "fulfilled").length, 1);
-  assert.equal((await q(`select 1 from children where family_id = $1 and lower(ten) = 'song song'`, [fam])).length, 1);
+  assert.equal(kq.filter((x) => x.status === "fulfilled").length, 2);
   // máy: 80 ký tự được (ghepMayGd lưu tới 80), 81 thì không
   const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "m".repeat(80));
   const t80 = "n".repeat(80);
@@ -217,4 +215,19 @@ test("suaCon: tên không đổi (sau chuẩn hoá) không kiểm trùng; đọc
   const sau = ds.find((x) => x.tu !== "Bo")!;
   assert.equal(sau.tu, dau.den);
   assert.equal(sau.den, cuoi);
+});
+
+test("tên không đổi sau chuẩn hoá nhưng lưu thô khác: ghi lại dạng chuẩn, không nhật ký, doi=false; bằng hẳn thì không ghi", async () => {
+  const { fam } = await taoNha();
+  await q(`insert into children(id, family_id, ten) values ('thoc1', $1, ' Bé   Na ')`, [fam]);
+  await g.suaCon(fam, "thoc1", { ten: "Bé Na" });
+  assert.equal((await g.conCua(fam, "thoc1")).ten, "Bé Na");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_con'`, [fam])).length, 0);
+  const ken = await g.taoCon(fam, { ten: "Ken" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "Laptop");
+  await q(`update devices set name = '  Máy   Ken ' where id = $1`, [r.deviceId]);
+  assert.equal((await g.doiTenMay(fam, r.deviceId, "Máy Ken")).doi, false);
+  assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy Ken");
+  assert.equal((await g.doiTenMay(fam, r.deviceId, "Máy Ken")).doi, false);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may'`, [fam])).length, 0);
 });

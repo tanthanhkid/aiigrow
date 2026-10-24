@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, catTen, chuanHoaTen, type ConChiTiet } from "@/lib/api";
+import { bm, chuanHoaTen, type ConChiTiet } from "@/lib/api";
 import { saoChep } from "@/lib/luu-tep";
 import { datTl } from "@/lib/thiet-lap";
 import {
@@ -73,11 +73,11 @@ export default function HoSoCon() {
         </Nhom>
       ) : null}
       <BangTruot mo={mo === "ten"} dong={dong} tieu={`Đổi tên ${d.ten}`}>
-        <ONhap nhan="Tên của Con" value={ten} onChangeText={(t) => setTen(catTen(t, 30))} autoCapitalize="words" />
+        <ONhap nhan="Tên của Con" value={ten} onChangeText={setTen} autoCapitalize="words" />
         <BaoLoi loi={loiLam} />
-        <Nut chu="Lưu tên" rong dangChay={dangChay} tat={!chuanHoaTen(ten) || chuanHoaTen(ten) === d.ten} bam={() => lam(async () => {
+        <Nut chu="Lưu tên" rong dangChay={dangChay} tat={!chuanHoaTen(ten) || chuanHoaTen(ten) === chuanHoaTen(d.ten)} bam={() => lam(async () => {
           const moi = chuanHoaTen(ten);
-          if (moi === d.ten) { dong(); return; }
+          if (moi === chuanHoaTen(d.ten)) { dong(); return; }
           await bm.goi(`con/${d.id}/sua`, { ten: moi }); dong(); bao(`Đã đổi tên ${d.ten} thành ${moi}`); await tai();
         })} />
       </BangTruot>

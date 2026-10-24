@@ -5,7 +5,7 @@
 import { useCallback, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, catTen, chuanHoaTen, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
+import { bm, chuanHoaTen, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Canh, cauLoi, Chips, ChoTai, ChonMot, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -176,11 +176,11 @@ export default function AnToanMay() {
       ) : null}
 
       <BangTruot mo={mo === "ten"} dong={dong} tieu="Đổi tên máy">
-        <ONhap nhan="Tên máy" value={tenMoi} onChangeText={(t) => setTenMoi(catTen(t, 80))} autoCapitalize="sentences" placeholder="VD: Laptop của Ken" />
+        <ONhap nhan="Tên máy" value={tenMoi} onChangeText={setTenMoi} autoCapitalize="sentences" placeholder="VD: Laptop của Ken" />
         <BaoLoi loi={loiLam} />
-        <Nut chu="Lưu tên máy" rong dangChay={dangChay} tat={!chuanHoaTen(tenMoi) || chuanHoaTen(tenMoi) === m.ten} bam={() => lam(async () => {
+        <Nut chu="Lưu tên máy" rong dangChay={dangChay} tat={!chuanHoaTen(tenMoi) || chuanHoaTen(tenMoi) === chuanHoaTen(m.ten)} bam={() => lam(async () => {
           const moi = chuanHoaTen(tenMoi);
-          if (moi === m.ten) { dong(); return; }
+          if (moi === chuanHoaTen(m.ten)) { dong(); return; }
           const kq = await bm.goi<{ doi?: boolean }>(`may/${id}/doi-ten`, { ten: moi }); dong();
           if (kq.doi !== false) bao(`Đã đổi tên máy thành ${moi}`);
           await tai();

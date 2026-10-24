@@ -59,13 +59,9 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   if (pin !== null && !PIN.test(pin)) throw new LoiNghiepVu("pin_sai_dang", "Mã PIN của Con gồm 4–6 chữ số");
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
   const id = newId();
-  const pinHash = pin ? await bamMatKhau(pin) : null;
-  await tx(async (t) => {
-    await khoaTen(t, fam);                       // kiểm trùng + ghi cùng một khoá theo gia đình: hai lần tạo song song không lọt trùng
-    await trungTenCon(t, fam, ten, null);
-    await t(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, pin_hash) values ($1,$2,$3,$4,$5,$6,$7)`,
-      [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pinHash]);
-  });
+  // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
+  await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, pin_hash) values ($1,$2,$3,$4,$5,$6,$7)`,
+    [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin ? await bamMatKhau(pin) : null]);
   await ghiSuKien(fam, "tao_con", { ten, nhom }, { con: id, nguoi });
   return id;
 }
@@ -89,7 +85,10 @@ export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar
       const cu = (await t<{ ten: string }>(`select ten from children where id = $1 and family_id = $2`, [id, fam]))[0];
       if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
       const tenCu = chuanHoaTen(cu.ten);
-      if (ten === tenCu) return;                 // tên không đổi (sau chuẩn hoá) ⇒ không kiểm trùng, không ghi — sửa avatar/nhóm/PIN kèm tên cũ vẫn qua
+      if (ten === tenCu) {                       // tên không đổi (sau chuẩn hoá) ⇒ không kiểm trùng, không nhật ký; giá trị thô khác ⇒ ghi lại dạng chuẩn
+        if (cu.ten !== ten) await t(`update children set ten = $2 where id = $1`, [id, ten]);
+        return;
+      }
       await trungTenCon(t, fam, ten, id);
       await t(`update children set ten = $2 where id = $1`, [id, ten]);
       await ghiSuKien(fam, "doi_ten_con", { tu: cu.ten, den: ten }, { con: id, nguoi }, t);
@@ -195,7 +194,10 @@ export async function doiTenMay(fam: string, mayId: string, ten: unknown, nguoi?
     await tq(`select pg_advisory_xact_lock(hashtext($1))`, ["ten-may:" + mayId]);
     const cu = (await tq<{ name: string; child_id: string | null }>(`select name, child_id from devices where id = $1 and family_id = $2`, [mayId, fam]))[0];
     if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
-    if (cu.name === t) return false;
+    if (chuanHoaTen(cu.name) === t) {            // không đổi sau chuẩn hoá: không nhật ký; lưu thô khác ⇒ ghi lại dạng chuẩn
+      if (cu.name !== t) await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
+      return false;
+    }
     await tq(`update devices set name = $2 where id = $1 and family_id = $3`, [mayId, t, fam]);
     await ghiSuKien(fam, "doi_ten_may", { tu: cu.name, den: t }, { con: cu.child_id, may: mayId, nguoi }, tq);
     return true;
