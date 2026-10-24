@@ -33,6 +33,15 @@ const daDungTu = async (t: Q, con: string, tu: Date) =>
 const thuongHomNay = async (t: Q, con: string, ngay: string) =>
   (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null`, [con, ngay]))[0].p;
 
+/** Phút giải trí còn được chơi theo trần (ngày lẫn tuần, đã cộng phút thưởng hôm nay) — đúng như xetMoPhien tính `conNgay` / `conTuan`.
+ *  Dùng chung cho «≈ X phút chơi» ở app Ba Mẹ để con số không lệch với lúc Con thật sự mở phiên. */
+export async function conTheoTran(t: Q, con: string, ts: ThamSo, tz: string, now = new Date()) {
+  const ngay = gioDiaPhuong(now, tz).ngay;
+  const [thuong, homNay, tuanNay] = await Promise.all([thuongHomNay(t, con, ngay), daDungTu(t, con, dauNgayUtc(ngay, tz)),
+    daDungTu(t, con, dauNgayUtc(dauTuan(ngay), tz))]);
+  return { thuong, daChoi: homNay, conNgay: ts.tran_ngay + thuong - homNay, conTuan: ts.tran_tuan + thuong - tuanNay };
+}
+
 /** Phút còn lại tới hết khung giờ chơi hiện tại (null = đang ngoài khung). */
 function conTrongKhung(lich: BoiCanh["lich"], thu: number, phut: number) {
   const ds: Khung[] = laCuoiTuan(thu) ? lich.cuoiTuan : lich.ngayThuong;

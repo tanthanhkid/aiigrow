@@ -125,6 +125,9 @@ test("«≈ X phút chơi» không vượt phút còn lại theo trần ngày (+
   const lay = async () => (await m("gia-dinh", { tok })).body.con[0];
   let c = await lay();
   assert.deepEqual([c.soDu, c.phutDoiDuoc], [30, 18], "30 điểm đổi 30 phút nhưng hôm nay chỉ còn 50 + 3 − 35 = 18 phút");
+  assert.deepEqual([c.phutChoi, c.tranNgay], [35, 53], "trần hiện ra cộng phút thưởng như trang «Nhà» của Con");
+  await q(`update families set cau_hinh = cau_hinh || '{"tran_tuan": 45}'::jsonb where id = $1`, [fam]);
+  assert.equal((await lay()).phutDoiDuoc, 13, "trần tuần (45 + 3 − 35) cũng chặn, như xetMoPhien");
   await q(`update play_sessions set phut_dung = 70 where id = $1`, [ph]);
   c = await lay();
   assert.equal(c.phutDoiDuoc, 0, "đã chơi quá trần ⇒ 0, không âm");
