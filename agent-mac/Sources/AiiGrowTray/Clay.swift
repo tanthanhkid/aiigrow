@@ -55,12 +55,12 @@ enum ClayMotion {
 private final class MocBundle {}
 
 enum FluentIcon {
-  private static var cache: [String: NSImage] = [:]
+  private static var cache: [String: NSImage?] = [:]     // nhớ cả lần không thấy (màn khoá vẽ lại mỗi giây)
 
   /// Tìm `<ten>.png`: gói phát hành chép vào `AiiGrow.app/Contents/Resources/Fluent/` (goi/build-pkg.sh);
   /// lúc dev/test lấy từ bundle tài nguyên SwiftPM cạnh tệp chạy. KHÔNG dùng `Bundle.module` (thiếu bundle là fatalError).
   static func anh(_ ten: String) -> NSImage? {
-    if let c = cache[ten] { return c }
+    if let c = cache[ten] { return c }    // c: NSImage? — nil đã nhớ thì không dò đĩa lại
     var thuMuc: [URL] = []
     if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent("Fluent")) }
     let canh = [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
@@ -72,8 +72,9 @@ enum FluentIcon {
     }
     for d in thuMuc {
       let u = d.appendingPathComponent(ten + ".png")
-      if let img = NSImage(contentsOf: u) { cache[ten] = img; return img }
+      if let img = NSImage(contentsOf: u) { cache[ten] = .some(img); return img }
     }
+    cache[ten] = .some(nil)
     return nil
   }
 }
@@ -203,7 +204,7 @@ struct VaoLanLuot: ViewModifier {
 
 // MARK: - Nút kẹo bọc đường
 
-enum KieuNut { case ngoc, thanChi, sang, kinh }
+enum KieuNut { case ngoc, thanChi, sang }
 
 /// Nút clay: bẹp khi nhấn (scale .95×.90, 110ms) rồi thả nảy (spring 420/14) + vệt men lướt chéo 105°.
 /// Reduce Motion ⇒ không bẹp/nảy/lướt, chỉ tối nhẹ. Cao ≥ 44pt.
@@ -226,13 +227,13 @@ private struct NutClayThan<Nhan: View>: View {
   @Environment(\.accessibilityReduceMotion) private var giamDong
   @State private var vet: CGFloat = -1.1      // vị trí vệt men (-1.1 → 1.1 bề ngang)
   @State private var hienVet = false
+  @State private var luot = 0                 // thế hệ vệt men: lần thả sau huỷ lượt dọn của lần trước
 
   private var toi: Bool { kieu == .ngoc || kieu == .thanChi }
   private var mauChu: Color {
     switch kieu {
     case .ngoc, .thanChi: return .white
     case .sang: return ClayMau.chu
-    case .kinh: return .white
     }
   }
 
@@ -253,9 +254,10 @@ private struct NutClayThan<Nhan: View>: View {
       .opacity(bat ? 1 : 0.5)
       .onChange(of: nhan) { dang in
         guard !dang, !giamDong else { return }
+        luot += 1; let lan = luot
         vet = -1.1; hienVet = true
         withAnimation(ClayMotion.quet) { vet = 1.1 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { hienVet = false; vet = -1.1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { if luot == lan { hienVet = false; vet = -1.1 } }
       }
   }
 
@@ -292,16 +294,6 @@ private struct NutClayThan<Nhan: View>: View {
       .compositingGroup()
       .shadow(color: ClayMau.bong.opacity(0.40), radius: 7, x: 0, y: 6)
       .shadow(color: ClayMau.bong.opacity(0.24), radius: 2, x: 0, y: 2)
-    case .kinh:   // trên nền tối (màn khoá): viên kính mờ
-      ZStack {
-        hinh.fill(Color.white.opacity(0.12))
-        hinh.fill(LinearGradient(stops: [
-          .init(color: .white.opacity(0.22), location: 0), .init(color: .white.opacity(0.04), location: 0.46),
-          .init(color: .white.opacity(0), location: 0.5),
-        ], startPoint: .top, endPoint: .bottom))
-        hinh.strokeBorder(LinearGradient(colors: [.white.opacity(0.5), .white.opacity(0.1)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-      }
-      .shadow(color: .black.opacity(0.35), radius: 8, x: 0, y: 6)
     }
   }
 

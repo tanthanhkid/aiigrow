@@ -7,7 +7,6 @@ import AiiGrowCore
 struct XinThemView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
-  var sang = false          // đặt thẳng trên nền tối (chữ trắng); màn khoá nay đặt khối này trong thẻ clay sáng nên để false
   @State private var phut = 30
   @State private var loiNhan = ""
 
@@ -20,11 +19,11 @@ struct XinThemView: View {
       HStack(spacing: 10) {
         ForEach(TrayLogic.luaChonPhut, id: \.self) { p in
           Button(TrayLogic.nhanLuaChonPhut(p)) { withAnimation(ClayMotion.bat) { phut = p } }
-            .buttonStyle(NutClayStyle(kieu: phut == p ? .ngoc : (sang ? .kinh : .sang)))
+            .buttonStyle(NutClayStyle(kieu: phut == p ? .ngoc : .sang))
         }
       }
       .padding(.vertical, 2)
-      Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(sang ? .white.opacity(0.8) : ClayMau.chu3)
+      Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
         .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40)
         .foregroundColor(ClayMau.chu).clayLom()
@@ -36,7 +35,7 @@ struct XinThemView: View {
           .transition(.opacity)
       }
     }
-    .foregroundColor(sang ? .white : ClayMau.chu)
+    .foregroundColor(ClayMau.chu)
   }
 }
 

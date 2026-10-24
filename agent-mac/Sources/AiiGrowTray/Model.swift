@@ -3,11 +3,6 @@ import Foundation
 import SwiftUI
 import AiiGrowCore
 
-extension Color {
-  /// Ngọc lục bảo AiiGrow #0f6b5c (token `chinh` của Clay gương — docs/THIET-KE-CLAY.md).
-  static let xanhAiiGrow = ClayMau.ngoc
-}
-
 @MainActor
 final class TrayModel: ObservableObject {
   @Published var tt: TrangThai?
@@ -48,13 +43,5 @@ final class XinModel: ObservableObject {
         daGui = false; thongBao = "Chưa gửi được. AiiGrow đang khởi động lại, con thử lại sau nhé."
       }
     }
-  }
-}
-
-/// Nút lớn, cao ≥ 44pt — chất liệu Clay gương (Clay.swift): `dac` = kẹo ngọc lục bảo, không `dac` = khối sứ sáng.
-struct NutXanh: ButtonStyle {
-  var dac = true
-  func makeBody(configuration: Configuration) -> some View {
-    NutClayStyle(kieu: dac ? .ngoc : .sang).makeBody(configuration: configuration)
   }
 }
