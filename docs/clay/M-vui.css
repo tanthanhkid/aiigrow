@@ -1,0 +1,43 @@
+/* M-vui — lớp motion «vui» đặt chồng lên clay-a-goc-guong.css + I-fluent-3d. KHÔNG đổi giao diện tĩnh; chỉ thêm phần tử phát sinh khi tương tác
+   (toast, hạt confetti, viên «+20») và trạng thái khoá máy. Thông số chuyển động: xem comment đầu M-vui.js. */
+
+/* tải trang: giấu khối trước khi JS cho chúng nảy vào (nếu JS hỏng thì .vao không được gắn ⇒ trang vẫn hiện bình thường) */
+html.vao .cuon>*, html.vao .luoi .o, html.vao .tab{opacity:0}
+html.vao .luoi{opacity:1}
+
+button,.chip,.tab a,.toast b{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:manipulation}
+.nut,.chip,.bt,.o{will-change:transform}
+.viec{overflow:hidden;will-change:transform,opacity}
+.viecs{position:relative}
+
+/* toast «Đã duyệt · Hoàn tác» — phiến kẹo tối cùng chất .nut */
+.toast{position:absolute;left:24px;right:24px;bottom:100px;z-index:30;display:flex;align-items:center;gap:10px;min-height:54px;padding:0 8px 0 18px;border-radius:24px;color:#fff;font:600 15px Inter;
+ background:linear-gradient(180deg,rgba(255,255,255,.22) 0,rgba(255,255,255,.06) 24%,rgba(255,255,255,0) 26%),linear-gradient(180deg,#2e3533,#121615);
+ box-shadow:0 18px 26px -10px rgba(15,19,18,.55),0 4px 8px -3px rgba(15,19,18,.35),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -2px 3px rgba(0,0,0,.4);
+ opacity:0;pointer-events:none;transform:translateY(24px)}
+.toast.hien{pointer-events:auto}
+.toast .vt{width:26px;height:26px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:15px;
+ background:linear-gradient(180deg,#14826f,#09524a);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 3px rgba(0,0,0,.3)}
+.toast .vt.tu{background:linear-gradient(180deg,#5a605d,#353a38)}
+.toast span{flex:1}
+.toast b{font:700 15px Inter;color:#8fe3cf;padding:0 14px;min-height:42px;border-radius:16px;display:flex;align-items:center;background:rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+
+/* hạt confetti + viên điểm bay — lớp phủ không bắt chạm */
+.phu-lop{position:absolute;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.hat{position:absolute;left:0;top:0;width:9px;height:9px;border-radius:2px;will-change:transform,opacity}
+.hat.tron{border-radius:50%}
+.bay{position:absolute;left:0;top:0;height:30px;padding:0 11px;border-radius:15px;display:flex;align-items:center;gap:4px;font:800 15px Inter;color:#5a3700;white-space:nowrap;will-change:transform,opacity;
+ background:linear-gradient(180deg,rgba(255,255,255,.7) 0,rgba(255,255,255,.2) 46%,rgba(255,255,255,0) 52%),linear-gradient(180deg,#ffd447,#f5b70a);
+ box-shadow:0 8px 14px -6px rgba(110,67,0,.55),inset 0 1px 0 #fff,inset 0 -2px 3px rgba(110,67,0,.25)}
+.bay.phut{color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.4) 0,rgba(255,255,255,.1) 46%,rgba(255,255,255,0) 52%),linear-gradient(180deg,#16806e,#0b5a4e);box-shadow:0 8px 14px -6px rgba(10,82,70,.6),inset 0 1px 0 rgba(255,255,255,.5)}
+
+/* khoá máy: chấm đỏ, thanh tiến độ xám */
+.tt .cham{transition:background-color .25s,box-shadow .25s}
+.tt.khoa .cham{background:var(--loi);box-shadow:0 0 0 3px #f6d6d2}
+.tt .tien i{transition:width .35s cubic-bezier(.2,.8,.2,1),filter .3s}
+.tt.khoa .tien i{filter:grayscale(1) brightness(1.35)}
+
+@media (prefers-reduced-motion:reduce){
+ .nut,.chip,.bt,.o,.viec{will-change:auto}
+ .toast{transform:none}
+}

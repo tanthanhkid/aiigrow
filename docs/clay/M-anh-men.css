@@ -1,0 +1,85 @@
+/* M · «ánh men» — motion cho Clay A gốc gương (I-fluent-3d). Chỉ THÊM lớp chuyển động, không đổi giao diện tĩnh.
+   Thông số (chuyển sang react-native-reanimated):
+   - MEN (ease-out men)  : cubic-bezier(.2,.7,.2,1)  → Easing.bezier(0.2,0.7,0.2,1)
+   - VAO (chuẩn)         : cubic-bezier(.4,0,.2,1)   → Easing.bezier(0.4,0,0.2,1)
+   - Nhấn xuống          : scale .965 trong 140ms MEN  ≈ withSpring({damping:26, stiffness:420, mass:1}) — cản tới hạn, KHÔNG nảy
+   - Thả                 : về 1 trong 260ms MEN        ≈ withSpring({damping:24, stiffness:300, mass:1})
+   - Vệt men lướt (gloss sweep): dải sáng 105°, translateX -110% → 110% trong 420ms cubic-bezier(.3,.6,.2,1)
+   - Highlight theo ngón : radial-gradient đặt tại (--mx,--my); bật 140ms, tắt 320ms MEN; ô lưới nghiêng tối đa 4° (rotateX/Y, perspective 520)
+   - Cross-fade chữ      : mờ ra 140ms ease-out → đổi → hiện 220ms MEN; đổi màu nền bằng lớp phủ .lop opacity 320ms MEN
+   - Duyệt xong          : opacity 1→0 + scale .98 trong 220ms; trễ 150ms rồi thu chiều cao 280ms VAO (Layout: LinearTransition 280ms)
+   - Điểm bay vào ví     : 450ms cubic-bezier(.45,0,.25,1), đường cong nhẹ; số ví đếm 380ms ease-out-cubic
+   - Toast               : vào 300ms MEN (translateY 10→0 + opacity), ra 220ms; tự ẩn sau 4s
+   - Tải trang           : từng khối opacity 0→1 + translateY 10→0, 420ms MEN, so le 45ms; thẻ lớn có một vệt men lướt khi tới nơi
+   - prefers-reduced-motion: bỏ scale/nghiêng/vệt lướt/thu chiều cao/bay — chỉ còn fade 200ms */
+
+.men{position:relative;overflow:hidden;isolation:isolate;-webkit-tap-highlight-color:transparent;cursor:pointer;user-select:none;-webkit-user-select:none}
+.the.men{cursor:default}
+/* highlight men dịch theo ngón: điểm sáng nơi chạm + vùng hơi tối phía đối diện (như nghiêng chén sứ dưới đèn) */
+.men::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;
+ background:radial-gradient(60% 85% at var(--mx,50%) var(--my,25%),rgba(255,255,255,.40),rgba(255,255,255,0) 64%);
+ transition:opacity .32s cubic-bezier(.2,.7,.2,1)}
+.men.sang::before{background:
+ radial-gradient(55% 80% at var(--mx,50%) var(--my,25%),rgba(255,255,255,.95),rgba(255,255,255,0) 62%),
+ radial-gradient(70% 90% at var(--nx,50%) var(--ny,75%),rgba(40,44,42,.07),rgba(40,44,42,0) 66%)}
+.men.an::before{opacity:1;transition-duration:.14s}
+/* vệt men lướt chéo */
+.men::after{content:'';position:absolute;top:0;bottom:0;left:-20%;width:140%;pointer-events:none;z-index:2;opacity:0;
+ background:linear-gradient(105deg,rgba(255,255,255,0) 34%,rgba(255,255,255,.10) 42%,rgba(255,255,255,.55) 49%,rgba(255,255,255,.16) 54%,rgba(255,255,255,0) 62%);
+ transform:translateX(-110%)}
+.men.sang::after{background:linear-gradient(105deg,rgba(255,255,255,0) 34%,rgba(40,44,42,.035) 41%,rgba(255,255,255,1) 49%,rgba(255,255,255,.5) 54%,rgba(255,255,255,0) 62%)}
+.men.quet::after{animation:quet .42s cubic-bezier(.3,.6,.2,1) both}
+.the.men.quet::after,.o.men.quet::after{animation-duration:.45s}
+@keyframes quet{0%{opacity:1;transform:translateX(-110%)}100%{opacity:1;transform:translateX(110%)}}
+
+/* nhấn: lún nhẹ, không nảy */
+.nut.men,.chip.men,.bt.men{transition:transform .26s cubic-bezier(.2,.7,.2,1),box-shadow .32s cubic-bezier(.2,.7,.2,1),color .32s cubic-bezier(.2,.7,.2,1)}
+.nut.men.an,.chip.men.an,.bt.men.an{transform:scale(.965);transition-duration:.14s,.32s,.32s}
+.o.men{transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.o.men.an{transform:perspective(520px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(.975);transition-duration:.16s}
+
+/* lớp màu cross-fade (chip đang chọn, nút khoá ↔ mở) */
+.lop{position:absolute;inset:0;border-radius:inherit;z-index:-1;opacity:0;pointer-events:none;transition:opacity .32s cubic-bezier(.2,.7,.2,1)}
+.chip.dang{background:var(--the);background-image:linear-gradient(180deg,#fff 0,rgba(255,255,255,.85) 44%,rgba(232,231,226,0) 50%,rgba(40,44,42,.05) 100%)}
+.chip .lop{background:linear-gradient(180deg,rgba(255,255,255,.30) 0,rgba(255,255,255,.08) 24%,rgba(255,255,255,0) 26%),radial-gradient(60% 40% at 50% 105%,rgba(120,140,135,.35),rgba(0,0,0,0) 100%),linear-gradient(180deg,#2e3533,#121615)}
+.chip.dang .lop{opacity:1}
+.nut.khoa .lop{background:linear-gradient(180deg,rgba(255,255,255,.34) 0,rgba(255,255,255,.08) 24%,rgba(255,255,255,0) 26%),radial-gradient(60% 40% at 50% 105%,rgba(80,220,190,.4),rgba(0,0,0,0) 100%),linear-gradient(180deg,#0f6b5c,#08463d)}
+.nut.khoa.mo .lop{opacity:1}
+.nut.khoa.mo{box-shadow:0 12px 16px -6px rgba(10,82,70,.65),0 3px 5px -2px rgba(10,82,70,.35),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 3px rgba(0,30,25,.4)}
+.nut.khoa .nd{display:flex;align-items:center;gap:7px;white-space:nowrap}
+
+/* việc chờ: nhuộm men khi xử lý */
+.viec{transition:background-color .2s ease-out}
+.viec.ok{background-color:#d3e9e2}
+.viec.tu{background-color:#f3e3df}
+.viec.trong{justify-content:center;color:var(--chu3);font:600 14px Inter;min-height:52px}
+
+/* thẻ trạng thái */
+.cham{transition:background-color .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s cubic-bezier(.2,.7,.2,1)}
+.tt.dakhoa .cham{background:var(--loi);box-shadow:0 0 0 3px #f6d9d5}
+.tien i{transition:width .45s cubic-bezier(.2,.7,.2,1),opacity .35s cubic-bezier(.2,.7,.2,1)}
+.tt.dakhoa .tien i{opacity:.35}
+
+/* toast men tối */
+.toast{position:absolute;left:16px;right:16px;bottom:100px;height:56px;border-radius:22px;z-index:20;display:flex;align-items:center;gap:10px;padding:0 8px 0 18px;
+ color:#fff;font:600 14.5px Inter;opacity:0;pointer-events:none;
+ background:linear-gradient(180deg,rgba(255,255,255,.22) 0,rgba(255,255,255,.06) 24%,rgba(255,255,255,0) 26%),linear-gradient(180deg,#2e3533,#121615);
+ box-shadow:0 16px 24px -10px rgba(15,19,18,.55),0 3px 6px -2px rgba(15,19,18,.3),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -2px 3px rgba(0,0,0,.4)}
+.toast.hien{pointer-events:auto}
+.toast .tchu{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast .hoan{height:44px;padding:0 14px;border:0;border-radius:16px;background:rgba(255,255,255,.08);color:#8fe6cf;font:700 14.5px Inter;cursor:pointer;position:relative;z-index:3}
+
+/* điểm bay vào ví */
+.bay{position:absolute;z-index:30;height:28px;padding:0 11px;border-radius:14px;display:flex;align-items:center;white-space:nowrap;pointer-events:none;
+ font:800 13px Inter;color:#3d2600;will-change:transform,opacity;
+ background:linear-gradient(180deg,rgba(255,255,255,.6) 0,rgba(255,255,255,.18) 46%,rgba(255,255,255,0) 50%),linear-gradient(180deg,#f8c531,#e6a400);
+ box-shadow:0 8px 14px -6px rgba(122,74,0,.55),inset 0 1px 0 #fff,inset 0 -2px 3px rgba(122,74,0,.25)}
+#vi .bt{transition:box-shadow .4s cubic-bezier(.2,.7,.2,1)}
+#vi.nhan-diem .bt{box-shadow:0 0 0 5px rgba(245,183,10,.28),0 12px 16px -8px rgba(28,32,30,.40),inset 0 1.5px 0 #fff}
+
+@media (prefers-reduced-motion:reduce){
+ .men::after{display:none}
+ .men.an,.o.men.an{transform:none!important}
+ .men.sang::before,.men::before{background:radial-gradient(70% 90% at 50% 25%,rgba(255,255,255,.4),rgba(255,255,255,0) 64%)}
+ .tien i{transition:opacity .2s}
+}
