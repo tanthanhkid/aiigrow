@@ -77,6 +77,8 @@ final class CapNhatTests: XCTestCase {
     XCTAssertFalse(ok("https://githubusercontent.com.evil.com/x"))
     XCTAssertFalse(ok("https://notgithub.com/x"))
     XCTAssertFalse(ok("https://github.com@evil.com/x"))
+    XCTAssertFalse(ok("https://raw.githubusercontent.com/evil/x/main/a.pkg"), "raw. không phải máy chủ Release")
+    XCTAssertFalse(ok("https://github.com/evil/repo/releases/download/x/a.pkg"), "repo khác")
   }
 
   func testDelegateChanChuyenHuongLa() {
@@ -88,7 +90,7 @@ final class CapNhatTests: XCTestCase {
       d.urlSession(.shared, task: tac, willPerformHTTPRedirection: resp, newRequest: URLRequest(url: URL(string: s)!)) { chap = $0 != nil }
       return chap
     }
-    XCTAssertTrue(thu("https://github.com/a/b"))
+    XCTAssertTrue(thu("https://github.com/tanthanhkid/aiigrow-tai/releases/download/mac-0.1.2/a.pkg"))
     XCTAssertFalse(thu("https://evil.com/a"))
     XCTAssertFalse(thu("http://github.com/a"))
   }
@@ -302,9 +304,20 @@ final class CapNhatTests: XCTestCase {
     guard case .loi = kq else { return XCTFail() }
     XCTAssertFalse(HttpMock.daGoi.contains { $0.path == "api/agent/ban-moi" }, "chưa ghép ⇒ không hỏi máy chủ")
     fake.tep[DuongDan.daGo] = Data("x".utf8)
+    fake.goDangChay = true                                      // go-cai.sh đang chạy ⇒ dấu thật
     let kq2 = await chay(boCapNhat())
     guard case .loi = kq2 else { return XCTFail() }
     XCTAssertTrue(fake.daCaiGoi.isEmpty)
+    XCTAssertNotNil(fake.tep[DuongDan.daGo])
+  }
+
+  func testDauDaGoSotKhiKhongCoTrinhGoThiTuBo() async {
+    datMayChu()
+    fake.tep[DuongDan.daGo] = Data("x".utf8)                    // go-cai.sh bị SIGKILL trước khi gỡ thật, máy vẫn ghép
+    let kq = await chay(boCapNhat())
+    XCTAssertEqual(kq, .dangTai("0.1.2"))
+    XCTAssertNil(fake.tep[DuongDan.daGo], "dấu sót được bỏ")
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
   }
 
   func testBiGoGiuaChungTruocKhiCaiKhongCai() async {

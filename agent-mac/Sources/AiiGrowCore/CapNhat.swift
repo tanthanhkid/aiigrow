@@ -66,7 +66,9 @@ public enum LuatCapNhat {
     guard let url else { return false }
     if urlGoiHopLe(url.absoluteString, mayChu: mayChu) { return true }
     guard url.scheme?.lowercased() == "https", let h = url.host?.lowercased(), url.user == nil, url.password == nil else { return false }
-    return h == "github.com" || h.hasSuffix(".githubusercontent.com")
+    // chỉ trang Release của repo tải về + máy chủ tệp của Release (không raw./gist. hay repo khác)
+    if h == "github.com" { return url.path.hasPrefix("/tanthanhkid/aiigrow-tai/releases/download/") }
+    return h == "release-assets.githubusercontent.com" || h == "objects.githubusercontent.com"
   }
 
   /// Băm sha256 theo luồng (khúc 1 MiB) — không đọc cả gói vào bộ nhớ. nil = không mở được tệp.
@@ -229,7 +231,9 @@ public actor BoCapNhat {
     if let d = BoCapNhat.docDau(heThong, tepDaThu),
        dongHo().timeIntervalSince1970 - d.luc < 86_400 {
       if LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
-        so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; sẽ thử lại.", luc: dongHo())
+        let khi = d.lan >= LuatCapNhat.toiDaLanThu ? "sẽ thử lại sau 24 giờ" : "sẽ thử lại"
+        so.dat(d.daGiao ? "Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; \(khi)."
+                        : "Tải bản \(d.version) bị hỏng (\(d.lan) lần, kiểm tra mạng/proxy); \(khi).", luc: dongHo())
       } else if d.version == banHienTai, d.daGiao, dongHo().timeIntervalSince1970 - d.luc < 3600 {   // chỉ ngay sau lượt cài, không lặp mỗi lần khởi động lại
         so.dat("Đã cập nhật lên bản \(banHienTai).", luc: dongHo())
       }
@@ -259,6 +263,13 @@ public actor BoCapNhat {
     guard await choPhep() else {
       heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ — không tự cập nhật.")
       return ketThuc(.loi("Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật."))
+    }
+    // Dấu gỡ sót (go-cai.sh chết giữa chừng — SIGKILL/mất điện — trước khi gỡ thật) trên máy vẫn ghép mà không có trình gỡ nào chạy:
+    // tự bỏ. (Gỡ từ xa đang dở thì `choPhep` đã false vì dangGo.)
+    let ht0 = heThong
+    if heThong.docTep(DuongDan.daGo) != nil, await !ngoaiActor({ ht0.trinhGoDangChay() }) {
+      heThong.ghiLog("Cập nhật: dấu gỡ \(DuongDan.daGo) sót từ lượt gỡ dở (không có go-cai.sh nào chạy, máy vẫn ghép) — bỏ dấu.")
+      heThong.xoaTep(DuongDan.daGo)
     }
     guard heThong.docTep(DuongDan.daGo) == nil else {
       // máy vẫn ghép mà còn dấu gỡ (lượt gỡ tay bị dừng giữa chừng…): nói thật nguyên nhân + cách gỡ vướng
