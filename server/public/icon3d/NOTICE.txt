@@ -1,0 +1,7 @@
+Icon 3D trong thư mục này: Microsoft Fluent Emoji (bản 3D)
+Nguồn: https://github.com/microsoft/fluentui-emoji — commit 1ffb34c752ecf5d402f04cfb4b392c77f57c54bc, thư mục assets/<Tên>/3D/<tên>_3d.png
+Đã thu nhỏ từ 256x256 xuống 128x128 (sips -Z 128), đổi tên sang gạch nối. Giấy phép MIT — toàn văn: LICENSE-fluentui-emoji.txt.
+Đóng gói cùng web máy chủ, không tải CDN lúc chạy (docs/THIET-KE-CLAY.md mục 2).
+
+Icon điều hướng nhỏ trong server/app/_clay/Icon.tsx (Ph): Phosphor Icons, kiểu Fill, @phosphor-icons/core 2.1.1
+Nguồn: https://github.com/phosphor-icons/core — MIT License, Copyright (c) 2023 Phosphor Icons. Toàn văn: LICENSE-phosphor.txt.

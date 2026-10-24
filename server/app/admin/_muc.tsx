@@ -2,6 +2,7 @@
 // Các mục của cổng admin. Không mục nào hiện ảnh bằng chứng của Con (Admin không xem ảnh — KE-HOACH 5.5).
 import { useState, type FormEvent } from "react";
 import { api, hienMa, luc, ngay, NhanPhieu, so, Tai, tien, Tieu, TT_PHIEU, useTai } from "./_lib";
+import { I3d } from "../_clay/Icon";
 
 const LOAI_GD: Record<string, string> = { nap: "Nạp quỹ", phat_hanh: "Phát hành phiếu", hoan: "Hoàn quỹ" };
 const VAI_BM: Record<string, string> = { chu: "Chủ gia đình", duyet: "Được duyệt", xem: "Chỉ xem" };
@@ -15,12 +16,12 @@ export function TongQuan() {
     <Tieu ten="Tổng quan" mo="Số liệu toàn hệ thống AiiGrow, cập nhật mỗi lần mở." />
     <Tai t={t}>{(d) => (<>
       <div className="luoi-so">
-        <div className="o-so"><small>Gia đình</small><b>{so(d.soGiaDinh)}</b><em>{so(d.soCon)} Con · {so(d.soMay)} máy</em></div>
-        <div className="o-so"><small>Quỹ phiếu quà đang giữ</small><b>{tien(d.quyDangGiu)}</b><em>tổng quỹ trả trước của các gia đình</em></div>
-        <div className="o-so"><small>Nạp quỹ tháng này</small><b>{tien(d.napThang)}</b></div>
-        <div className="o-so"><small>Phiếu quà đã dùng tháng này</small><b>{tien(d.dungThang)}</b></div>
+        <div className="o-so"><I3d ten="house-with-garden" mau="xanh" /><small>Gia đình</small><b>{so(d.soGiaDinh)}</b><em>{so(d.soCon)} Con · {so(d.soMay)} máy</em></div>
+        <div className="o-so"><I3d ten="money-bag" mau="vang" /><small>Quỹ phiếu quà đang giữ</small><b>{tien(d.quyDangGiu)}</b><em>tổng quỹ trả trước của các gia đình</em></div>
+        <div className="o-so"><I3d ten="inbox-tray" mau="lam" /><small>Nạp quỹ tháng này</small><b>{tien(d.napThang)}</b></div>
+        <div className="o-so"><I3d ten="hot-beverage" mau="cam" /><small>Phiếu quà đã dùng tháng này</small><b>{tien(d.dungThang)}</b></div>
         <a className={`o-so ${d.hoTroChoTraLoi ? "noi" : ""}`} href="#ho-tro" style={{ textDecoration: "none", color: "inherit" }}>
-          <small>Tin hỗ trợ chờ trả lời</small><b>{so(d.hoTroChoTraLoi)}</b><em>mở mục Hỗ trợ</em></a>
+          <I3d ten="speech-balloon" mau="tim" className={d.hoTroChoTraLoi ? "rung" : ""} /><small>Tin hỗ trợ chờ trả lời</small><b>{so(d.hoTroChoTraLoi)}</b><em>mở mục Hỗ trợ</em></a>
       </div>
       <h2>Phiếu quà AiiCafe</h2>
       <div className="luoi-so">

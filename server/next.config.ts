@@ -40,7 +40,7 @@ const config: NextConfig = {
   async headers() {
     const khongCache = [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
     return [
-      { source: "/((?!api/|_expo/|assets/|_next/static/|linh-vat/|phong/).*)", headers: khongCache },
+      { source: "/((?!api/|_expo/|assets/|_next/static/|linh-vat/|phong/|icon3d/).*)", headers: khongCache },
       { source: "/:tep(sw\\.js|service-worker\\.js)", headers: [...khongCache, { key: "Service-Worker-Allowed", value: "/" }] },
       { source: "/app/:tep(sw\\.js|service-worker\\.js)", headers: khongCache },
     ];

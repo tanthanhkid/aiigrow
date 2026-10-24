@@ -1,43 +1,46 @@
-/* Quầy AiiCafe — theo thiết kế cafe-quet / cafe-da-dung (man_con.py + tinh/app.css khối «quầy AiiCafe»): máy tính bảng ngang,
-   trái là máy quét (nền tối, khung nét đứt, một nút vàng «Quét phiếu quà»), phải là kết quả to rõ. Màn hẹp thì xếp chồng. */
-.ag.quay{display:flex;flex-direction:column;background:#f4f4f2}
-.quay .tren{display:flex;align-items:center;gap:12px;padding:12px 28px;border-bottom:1px solid var(--vien);background:#fff;flex-wrap:wrap}
-.quay .tren img{width:32px;height:32px;border-radius:8px;flex:none}
+/* Quầy AiiCafe — theo thiết kế cafe-quet / cafe-da-dung (máy tính bảng ngang): trái là máy quét (phiến kẹo than chì, khung nét đứt,
+   một nút vàng «Quét phiếu quà»), phải là kết quả to rõ trên khối đất sét. Màn hẹp thì xếp chồng. Chất liệu Clay gương: app/clay.css. */
+.ag.quay{display:flex;flex-direction:column}
+.quay .tren{display:flex;align-items:center;gap:12px;margin:12px 16px 0;padding:10px 12px 10px 14px;border-radius:28px;flex-wrap:wrap;
+  background:var(--the);background-image:var(--men-the);box-shadow:var(--clay)}
 .quay .tren .ten-quay{font-size:20px;font-weight:800;line-height:1.25}
 .quay .tren .phai{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.quay .giua{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:28px}
-.quay .may-quet{border-radius:32px;background:#0f1312;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
-  position:relative;overflow:hidden;min-height:460px;padding:28px 20px}
-.quay .may-quet .khung{width:260px;max-width:100%;aspect-ratio:1;border-radius:28px;border:4px dashed rgba(255,255,255,.7);position:relative;overflow:hidden;flex:none}
+.quay .giua{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:24px 28px 28px}
+.quay .may-quet{border-radius:36px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:24px;
+  position:relative;overflow:hidden;min-height:460px;padding:28px 20px;
+  background:linear-gradient(180deg,rgba(255,255,255,.16) 0,rgba(255,255,255,.04) 9%,rgba(255,255,255,0) 10%),radial-gradient(60% 30% at 50% 104%,rgba(120,140,135,.35),rgba(0,0,0,0) 100%),linear-gradient(180deg,#2e3533,#121615);
+  box-shadow:0 26px 36px -16px rgba(15,19,18,.6),0 6px 12px -6px rgba(15,19,18,.4),inset 0 1.5px 0 rgba(255,255,255,.35),inset 0 -3px 6px rgba(0,0,0,.45)}
+.quay .may-quet .khung{width:260px;max-width:100%;aspect-ratio:1;border-radius:30px;border:4px dashed rgba(255,255,255,.7);position:relative;overflow:hidden;flex:none;margin:auto 0;
+  box-shadow:inset 0 6px 14px rgba(0,0,0,.45)}
 .quay .may-quet video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.quay .may-quet .nut{min-width:300px;max-width:100%;font-size:20px;min-height:64px}
+.quay .may-quet .nut{min-width:300px;max-width:100%;font-size:20px;min-height:64px;border-radius:26px}
 .quay .may-quet .ghi{font-size:15px;font-weight:700;text-align:center;max-width:340px;color:#e8f3f0}
-.quay .kq{border-radius:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:28px 20px;min-height:460px;min-width:0}
-.quay .kq.cho{background:#fff;border:1px solid var(--vien);color:var(--chu)}
-.quay .kq.ok{background:#dff5e6;color:#0f5a2a}.quay .kq.loi{background:#fde4e0;color:#8a1c12}.quay .kq.canh{background:#fff0d6;color:#6b3209}
-.quay .kq img{width:200px;max-width:60%;aspect-ratio:1;object-fit:contain;flex:none}
-.quay .kq.ok img{width:220px}
+.quay .kq{position:relative;border-radius:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:28px 20px;min-height:460px;min-width:0;
+  background-image:var(--men-the);box-shadow:var(--clay)}
+.quay .kq.cho{background-color:var(--the);color:var(--chu)}
+.quay .kq.ok{background-color:#d9f1e2;color:#0b4d23}.quay .kq.loi{background-color:#fbe0db;color:#7a170f}.quay .kq.canh{background-color:#fcebcf;color:#5f2b07}
+.quay .kq>img{width:200px;max-width:60%;aspect-ratio:1;object-fit:contain;flex:none;filter:drop-shadow(0 10px 12px rgba(28,32,30,.18))}
+.quay .kq.ok>img{width:220px}
 .quay .kq b.lon{font-size:46px;font-weight:800;letter-spacing:-1px;line-height:1.05;overflow-wrap:anywhere}
 .quay .kq.cho b.lon{font-size:32px}
 .quay .kq .vua{font-size:20px;font-weight:700;overflow-wrap:anywhere}
 .quay .kq .nho{font-size:16px;font-weight:700;opacity:.85;overflow-wrap:anywhere}
-.quay .kq.ok .nho,.quay .kq.loi .nho{opacity:1}
+.quay .kq.ok .nho,.quay .kq.loi .nho,.quay .kq.canh .nho{opacity:1}
 .quay .kq .nut{margin-top:8px}
 .quay .go-ma{display:flex;gap:8px;flex-wrap:wrap;width:100%;max-width:440px;margin-top:6px}
 .quay .go-ma .o-nhap{flex:1 1 220px}
 .quay .go-ma .o-nhap input{text-transform:uppercase;letter-spacing:1px;font-weight:800}
+.quay .go-ma .o-nhap input::placeholder{text-transform:none;letter-spacing:0;font-weight:700;color:#4f5451}
 .quay .go-ma .nut{flex:1 1 auto;margin-top:0}
 .quay .ma-phieu{font-variant-numeric:tabular-nums;letter-spacing:.5px}
 @media (max-width:899px){
+  .quay .tren{margin:10px 12px 0}
   .quay .giua{grid-template-columns:1fr;gap:16px;padding:16px}
-  .quay .tren{padding:12px 16px}
-  .quay .may-quet,.quay .kq{min-height:0;border-radius:24px}
+  .quay .may-quet,.quay .kq{min-height:0;border-radius:30px}
+  .quay .may-quet{gap:16px}
   .quay .may-quet .khung{width:200px}
   .quay .may-quet .nut{min-width:0;width:100%}
   .quay .kq b.lon{font-size:36px}
-  .quay .kq img{width:150px}.quay .kq.ok img{width:160px}
+  .quay .kq>img{width:150px}.quay .kq.ok>img{width:160px}
+  .quay .giua.co-kq .kq{order:-1}
 }
-.quay .go-ma .o-nhap input::placeholder{text-transform:none;letter-spacing:0;font-weight:700;color:#5c625f}
-.quay .may-quet{justify-content:flex-end}
-.quay .may-quet .khung{margin:auto 0}
-@media (max-width:899px){.quay .giua.co-kq .kq{order:-1}.quay .may-quet{gap:16px}}
