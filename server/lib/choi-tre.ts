@@ -9,7 +9,7 @@ import { tomTatVi } from "./vi.ts";
 import { chuoiNgay } from "./thanh-tich.ts";
 import { nvCuaCon } from "./nhiem-vu.ts";
 import { cuaHang } from "./phan-thuong.ts";
-import { dungPhien, lyDoChu, moPhien, nhip, phienDang, trangThaiPhien, xetMoPhien, type XetPhien } from "./phien.ts";
+import { conTheoTran, dungPhien, lyDoChu, moPhien, nhip, phienDang, trangThaiPhien, xetMoPhien, type XetPhien } from "./phien.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { banMayBao } from "./ban-agent.ts";
 import { banTu024 } from "./phien-windows.ts";
@@ -52,6 +52,7 @@ export async function nhaTre(c: ConTre, now = new Date()) {
     `select coalesce((select sum(phut_dung) from play_sessions where child_id = $1 and bat_dau >= $2), 0)::int as choi,
             coalesce((select sum(phut) from grants where child_id = $1 and ngay = $3 and cua_so_den is null), 0)::int as thuong`, [c.id, tu, g.ngay]))!;
   const nghi = await one<{ nghi_den: Date }>(`select nghi_den from play_sessions where child_id = $1 and nghi_den > $2 order by nghi_den desc limit 1`, [c.id, now]);
+  const tran = await conTheoTran(q, c.id, ts, f.tz, now);
   const vi = await tomTatVi(c.id);
   const nv = await nvCuaCon(c.id, now);
   const ch = await cuaHang(c.id);
@@ -64,7 +65,7 @@ export async function nhaTre(c: ConTre, now = new Date()) {
     mucTieu: mt ? { id: mt.id, ten: mt.ten, diem: mt.diem, conThieu: mt.conThieu } : null,
     nhiemVuMo: nv.filter((x) => x.trang_thai_con === "san_sang" || x.trang_thai_con === "dang_lam" || x.trang_thai_con === "can_bo_sung").length,
     canBoSung: nv.filter((x) => x.trang_thai_con === "can_bo_sung").map((x) => ({ id: x.id, ten: x.ten, luot: x.luot_dang })),
-    phutChoi: r.choi, tranNgay: ts.tran_ngay + r.thuong, conPhut: Math.max(0, ts.tran_ngay + r.thuong - r.choi),
+    phutChoi: r.choi, tranNgay: ts.tran_ngay + r.thuong, conPhut: Math.max(0, Math.min(tran.conNgay, tran.conTuan)),   // trần tuần cũng chặn như xetMoPhien
     khung: khungHomNay(lichCua(cc.lich as never), g.thu, g.phut), gioNgu: trongKhung(g.phut, lichCua(cc.lich as never).ngu),
     nghiDen: nghi ? new Date(nghi.nghi_den).toISOString() : null,
     phien: dang ? { id: dang.id, muc: dang.muc, conPhut: Math.max(0, Math.ceil(dang.toi_da_phut - dang.phut_dung)) } : null,

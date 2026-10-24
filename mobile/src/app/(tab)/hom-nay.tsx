@@ -76,7 +76,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
   const khoaNgay = !!ct.d?.khoaNgay && conHan(ct.d.khoaDen);
   const moTam = khoaNgay ? cauMoTam(ct.d?.moTamDen, ct.d?.khoaDen) : null;
   const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
-  const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
+  const conGiay = c.conPhut ?? Math.max(0, c.tranNgay - c.phutChoi);   // máy chủ tính theo trần ngày lẫn tuần + thêm giờ; máy chủ cũ không gửi
   const tai = () => { ct.tai(); taiLai(); };
   const moLai = () => lam(async () => { await moLaiMay(c.id, c.ten, bao, tai); tai(); });
 

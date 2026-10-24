@@ -24,13 +24,13 @@ export async function homNay(fam: string, con: string, now = new Date()) {
     `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
      order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
-  // gia_game = 0 ⇒ chơi không tốn điểm (như xetMoPhien: 24 giờ) — trần ngày / tuần mới là giới hạn
-  const phutBangDiem = ts.gia_game > 0 ? Math.floor((vi.soDu * 1000) / ts.gia_game) : 24 * 60;
-  return { ...vi, phutChoi: tran.daChoi, tranNgay: ts.tran_ngay + tran.thuong, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
+  const conPhut = Math.max(0, Math.min(tran.conNgay, tran.conTuan));
+  return { ...vi, phutChoi: tran.daChoi, tranNgay: ts.tran_ngay,
+    /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ) — như conNgay/conTuan của xetMoPhien */ conPhut, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
     homNayConDa: tichCuc,
-    /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút), không quá phút còn lại
-     *  theo trần ngày lẫn trần tuần (đã cộng phút thưởng hôm nay) — cùng conNgay / conTuan mà xetMoPhien dùng khi Con mở phiên */
-    phutDoiDuoc: Math.max(0, Math.min(phutBangDiem, tran.conNgay, tran.conTuan)) };
+    /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút), không quá phần trần còn lại
+     *  SAU phút thêm giờ chưa dùng (phiên tiêu thêm giờ trước, như xetMoPhien) */
+    phutDoiDuoc: Math.max(0, Math.min(Math.floor((vi.soDu * 1000) / ts.gia_game), conPhut - tran.conThuong)) };
 }
 
 async function tuan(con: string, tz: string, dau: string) {
