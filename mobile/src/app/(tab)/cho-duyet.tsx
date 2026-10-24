@@ -4,13 +4,12 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, LOAI_YC, NHOM_NV, tieuYc, type AppChuaXep, type LuotCho, type YeuCau, laChiXem } from "@/lib/api";
 import { AppMoi } from "@/lib/viec-nhanh";
+import { IC_QUA, type Phieu } from "@/lib/viec-cho";
 import {
   Avt, BangTruot, BieuTron, Canh, Chu, CanhGiua, ChoTai, Dong, gioPhut, MAU_CON, Man, Nhan, Nhom, NhomTieu, Nut, useHoanTac, useLam, useTai, BaoLoi, useBaoKhiVe,
 } from "@/lib/ui";
 
 
-type Phieu = { id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; created_at: string };
-const IC_QUA: Record<string, readonly ["coc" | "qua" | "ban" | "xu", "cam" | "lam" | "tim" | "vang"]> = { voucher: ["coc", "cam"], qua: ["qua", "lam"], dac_quyen: ["ban", "tim"], tiet_kiem: ["xu", "vang"] };
 type TuDong = { id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null };
 
 export default function ChoDuyet() {

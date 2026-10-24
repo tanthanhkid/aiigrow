@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { Image } from "expo-image";
 import { bm } from "@/lib/api";
+import { LY_DO_NV } from "@/lib/viec-cho";
 import {
   Avt, BangTruot, BaoLoi, ChoTai, Chips, Chu, gioPhut, HaiNut, Icon, M, Man, Nhan, Nut, OChon, ONhap, The, useLam, useTai,
 } from "@/lib/ui";
@@ -13,11 +14,6 @@ type Luot = { id: string; child_id: string; ten_con: string; ten: string; diem_m
 type Anh = { id: string; mime: string; base64: string; chupLuc: string };
 
 const KHEN = ["Giỏi lắm!", "Cảm ơn con", "Con làm tốt quá", "Mai cố tiếp nhé"];
-const LY_DO = [
-  { chu: "Ảnh chưa rõ — chụp lại nhé", phu: "Con thấy nút «Chụp lại», nhiệm vụ vẫn mở", boSung: true },
-  { chu: "Chưa xong — làm tiếp nhé", phu: "Nộp lại sau khi làm xong", boSung: true },
-  { chu: "Không đúng nhiệm vụ", phu: "Đóng nhiệm vụ này, không cộng điểm", boSung: false },
-];
 
 export default function DuyetNv() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,7 +34,7 @@ export default function DuyetNv() {
     router.replace({ pathname: "/duyet-xong", params: { luot: id, con: l.child_id, ten: l.ten_con, diem: String(dm), nv: l.ten, khen: loiKhen } });
   }, { hangDoi: true });
   const guiTuChoi = () => lam(async () => {
-    await bm.goi(`luot/${id}/tu-choi`, { lyDo: LY_DO[lyDo].chu, boSung: LY_DO[lyDo].boSung });
+    await bm.goi(`luot/${id}/tu-choi`, { lyDo: LY_DO_NV[lyDo].chu, boSung: LY_DO_NV[lyDo].boSung });
     setTuChoi(false);
     router.back();
   });
@@ -91,7 +87,7 @@ export default function DuyetNv() {
       ) : null}
       <BangTruot mo={tuChoi} dong={() => setTuChoi(false)} tieu={`${l.ten_con} cần làm gì thêm?`}>
         <View style={{ gap: 8 }}>
-          {LY_DO.map((x, i) => <OChon key={x.chu} chon={lyDo === i} bam={() => setLyDo(i)} tieu={x.chu} phu={x.phu} />)}
+          {LY_DO_NV.map((x, i) => <OChon key={x.chu} chon={lyDo === i} bam={() => setLyDo(i)} tieu={x.chu} phu={x.phu} />)}
         </View>
         <Chu co={13} mau={M.chu3}>{`${l.ten_con} không bị trừ điểm. Rob nói với ${l.ten_con} bằng giọng vui.`}</Chu>
         <BaoLoi loi={loiLam} />
