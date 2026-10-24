@@ -470,7 +470,7 @@ internal sealed class AppForm : Form
             {
                 var n = HocVienView.SoViecMo(_tq);
                 c.Controls.Add(T(n > 0 ? $"Con có {n} việc đang chờ. Làm xong để tích điểm nhé!" : "Hôm nay con đã làm hết việc rồi. Giỏi lắm!", 12.5f, false));
-                c.Controls.Add(T($"{_tq.SoDu} điểm" + $"  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
+                c.Controls.Add(T($"{_tq.SoDu} điểm  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
             }
             var row = Row(_tw);
             var go = Btn("Xem nhiệm vụ", false, 210);

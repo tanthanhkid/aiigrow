@@ -162,6 +162,9 @@ public class WebPolicyTests
         Assert.Contains("AllowDeletingBrowserHistory", s);
         Assert.Contains(@"SOFTWARE\Policies\CocCoc\Browser", s);
         Assert.Contains("gpupdate.exe /target:computer /force", s);
+        Assert.Contains("Go-Web 'HKLM:' $true", s);     // HKLM: cờ DWORD chỉ gỡ khi còn dấu AiiGrow (cờ của IT giữ nguyên)
+        Assert.Contains("if($ok){", s);                  // mốc «đã dọn hive» chỉ đặt khi mọi hồ sơ dọn được
+        Assert.NotEqual(s, WebGuard.KichBanGoChinhSach()); // mỗi lần gỡ một mã mốc riêng
     }
 }
 

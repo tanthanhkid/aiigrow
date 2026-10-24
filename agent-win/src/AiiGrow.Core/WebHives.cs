@@ -26,6 +26,8 @@ public interface IWebHiveHost
     /// <summary>Các hive đã ghi luật (SID → vân tay) lưu qua lần khởi động lại dịch vụ — không thì Con rời danh sách lúc dịch vụ tắt là luật kẹt lại.</summary>
     IReadOnlyDictionary<string, string> DocDaGhi();
     void LuuDaGhi(IReadOnlyDictionary<string, string> ds);
+    /// <summary>Gỡ nạp hive tạm còn kẹt (lần trước gỡ nạp hỏng) — gọi đầu mỗi vòng: không chờ tới lần cần ghi hive đó mới gỡ.</summary>
+    void DonHiveKet() { }
 }
 
 /// <summary>Kết quả một vòng <see cref="WebPolicyHives.Ap"/>.</summary>
@@ -93,6 +95,7 @@ public sealed class WebPolicyHives
         bool doi = false, doiCon = false, goHklm = false;
         string? loi = null;
         DocLanDau();
+        try { _host.DonHiveKet(); } catch { }
         if (!_hklmDaGo)
         {
             // DaGoHklm chỉ khi THẬT SỰ có luật cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
@@ -270,6 +273,8 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         catch { }
     }
 
+    public void DonHiveKet() => GoNapKet();
+
     public bool ConHoSo(string sid) => DangNap(sid) || DuongNtUser(sid) != null;
 
     public bool DangNap(string sid)
@@ -305,15 +310,15 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         using (var cu = users.OpenSubKey(ten, false))
             if (cu != null) { cu.Close(); GC.Collect(); GC.WaitForPendingFinalizers(); RegUnLoadKey(HkeyUsers, ten); }
         if (RegLoadKey(HkeyUsers, ten, tep) != 0) return false;   // đang bị khoá (Con vừa đăng nhập) ⇒ vòng sau thấy hive đã nạp
-        var goXong = false;
         try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten, sid)); }
         finally
         {
             GC.Collect(); GC.WaitForPendingFinalizers();
-            for (int i = 0; i < 10; i++) { if (RegUnLoadKey(HkeyUsers, ten) == 0) { goXong = true; break; } Thread.Sleep(200); }
+            for (int i = 0; i < 10; i++) { if (RegUnLoadKey(HkeyUsers, ten) == 0) break; Thread.Sleep(200); }
         }
-        // gỡ nạp hỏng ⇒ báo «chưa xong»: vòng sau gọi lại VoiHive, gỡ hive kẹt ở tên tạm (khối đầu hàm) trước khi Con đăng nhập — review #75
-        return goXong;
+        // ĐÃ GHI xong ⇒ trả true kể cả khi gỡ nạp hỏng (để Ap ghi nhận hive có luật — không thì mất dấu, luật kẹt mãi); hive kẹt ở tên tạm được
+        // DonHiveKet gỡ ở đầu vòng sau (30 giây) — review #75
+        return true;
     }
 }
 

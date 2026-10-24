@@ -159,7 +159,13 @@ public sealed class WebPolicyApplier
     public static string VanTay(WebPolicy? p, string? maychuHost)
     {
         var (chan, cho) = p == null ? (new List<string>(), new List<string>()) : WebPolicyKeys.Lap(p, maychuHost);
-        var dau = p == null ? "gỡ" : string.Join("\n", new[] { p.CheDo }.Concat(chan).Append("|").Concat(cho));
+        return VanTay(p?.CheDo, chan, cho);
+    }
+
+    /// <summary>Vân tay từ danh sách đã lập (<paramref name="cheDo"/> null = gỡ).</summary>
+    public static string VanTay(string? cheDo, IReadOnlyList<string> chan, IReadOnlyList<string> cho)
+    {
+        var dau = cheDo == null ? "gỡ" : string.Join("\n", new[] { cheDo }.Concat(chan).Append("|").Concat(cho));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(dau)));
     }
 
@@ -167,7 +173,7 @@ public sealed class WebPolicyApplier
     public bool Ap(WebPolicy? p, string? maychuHost)
     {
         var (chan, cho) = p == null ? (new List<string>(), new List<string>()) : WebPolicyKeys.Lap(p, maychuHost);
-        var vt = VanTay(p, maychuHost);
+        var vt = VanTay(p?.CheDo, chan, cho);   // lập danh sách MỘT lần, vân tay tính từ chính danh sách sẽ ghi
         if (vt == _daAp) return false;
         try
         {
@@ -368,7 +374,8 @@ public static class WebGuard
     {
         var host = new WindowsWebHiveHost();
         bool co = false;
-        try { co = new WebPolicyApplier(host.May).GoTatCa(); } catch { }   // HKLM lỗi (IT khoá ACL…) không được chặn việc gỡ ở hive từng tài khoản
+        // HKLM: chỉ gỡ phần bản cũ để lại (cờ DWORD chỉ khi còn dấu AiiGrow — cờ của IT giữ nguyên); lỗi (IT khoá ACL…) không chặn việc gỡ ở hive từng tài khoản
+        try { var may = host.May; new WebPolicyApplier(may).GoHklmCu(dangChan: false); co = may.SoMucDaXoa > 0; } catch { }
         foreach (var sid in WindowsWebHiveHost.TatCaHoSo())
         {
             try { if (host.VoiHive(sid, reg => new WebPolicyApplier(reg).GoTatCa())) co = true; }
@@ -393,40 +400,46 @@ public static class WebGuard
         {
             "$wb=@(" + wb + ")",
             "$wd=@(" + dw + ")",
-            "function Go-Web($g){",
+            // $chiKhiCoDau: HKLM — ba cờ DWORD chỉ gỡ khi còn mục 9000x của AiiGrow (dấu bản cũ đã ghi HKLM); không thì cờ là của IT, giữ (review #75)
+            "function Go-Web($g, [bool]$chiKhiCoDau){",
+            "  $dau=$false",
             "  foreach($b in $wb){",
             "    foreach($l in '" + WebPolicyKeys.DsChan + "','" + WebPolicyKeys.DsCho + "'){",
             "      $k=\"$g\\$b\\$l\"",
             "      if(Test-Path -LiteralPath $k){",
-            "        (Get-Item -LiteralPath $k).GetValueNames() | Where-Object { $_ -match '^\\d+$' -and [int64]$_ -gt " + WebPolicyKeys.ChiSoDau + " } | ForEach-Object { Remove-ItemProperty -LiteralPath $k -Name $_ }",
+            "        foreach($n in @((Get-Item -LiteralPath $k).GetValueNames() | Where-Object { $_ -match '^\\d+$' -and [int64]$_ -gt " + WebPolicyKeys.ChiSoDau + " })){ $dau=$true; Remove-ItemProperty -LiteralPath $k -Name $n }",
             "        if(@((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0){ Remove-Item -LiteralPath $k -Force }",
             "      }",
             "    }",
             "  }",
-            "  foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } }",
+            "  if(-not $chiKhiCoDau -or $dau){ foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } } }",
             "  foreach($b in $wb){ $k=\"$g\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
             "}",
-            "Go-Web 'HKLM:'",
+            "Go-Web 'HKLM:' $true",
             // hive tạm còn kẹt (dịch vụ AiiGrowTmp_ / lần chạy trước AiiGrowGo_) ⇒ gỡ nạp trước: kẹt thì tài khoản đó đăng nhập vào hồ sơ tạm
             "foreach($t in @(Get-ChildItem -LiteralPath 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'AiiGrowTmp_*' -or $_ -like 'AiiGrowGo_*' })){ [gc]::Collect(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null }",
             // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp, hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
             "$pl='HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList'",
             // CHỈ MỘT LẦN: tác vụ chạy lại mỗi lần khởi động tới khi tự huỷ — nạp NTUSER.DAT mọi hồ sơ mỗi lần khởi động thì ai đăng nhập đúng lúc
             // sẽ vào hồ sơ tạm (review #75). Xong lượt đầu ⇒ đặt mốc; tác vụ tự huỷ thì xoá mốc.
-            "if(-not (Test-Path -LiteralPath '" + MocDonWeb + "')){",
+            // mốc mang mã của LẦN GỠ NÀY: mốc sót từ lần gỡ trước (cài lại rồi gỡ lại) không tắt lượt dọn hive
+            "$moc='" + MocDonWeb + "'; $id='" + Guid.NewGuid().ToString("N") + "'",
+            "if((Get-ItemProperty -LiteralPath $moc -ErrorAction SilentlyContinue).Id -ne $id){",
+            "$ok=$true",
             "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' -or $_ -like 'S-1-12-1-*' })){",
             "  $goc=\"Registry::HKEY_USERS\\$s\"; $nap=$false",
             "  if(-not (Test-Path -LiteralPath $goc)){",
             "    $d=(Get-ItemProperty -LiteralPath \"$pl\\$s\" -ErrorAction SilentlyContinue).ProfileImagePath; if(-not $d){ continue }",
             "    $f=[Environment]::ExpandEnvironmentVariables($d)+'\\NTUSER.DAT'; if(-not (Test-Path -LiteralPath $f)){ continue }",
             // tên tạm riêng mỗi SID: một hive gỡ nạp hỏng không chặn các hồ sơ sau; gỡ nạp thử lại tới 10 lần (handle của Get-Item còn mở)
-            "    $t=\"AiiGrowGo_$s\"; reg.exe load \"HKU\\$t\" $f | Out-Null; if($LASTEXITCODE -ne 0){ continue }",
+            "    $t=\"AiiGrowGo_$s\"; reg.exe load \"HKU\\$t\" $f | Out-Null; if($LASTEXITCODE -ne 0){ $ok=$false; continue }",
             "    $goc=\"Registry::HKEY_USERS\\$t\"; $nap=$true",
             "  }",
-            "  Go-Web $goc",
-            "  if($nap){ for($i=0;$i -lt 10;$i++){ [gc]::Collect(); [gc]::WaitForPendingFinalizers(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null; if($LASTEXITCODE -eq 0){ break }; Start-Sleep -Milliseconds 300 } }",
+            "  Go-Web $goc $false",
+            "  if($nap){ $go=$false; for($i=0;$i -lt 10;$i++){ [gc]::Collect(); [gc]::WaitForPendingFinalizers(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null; if($LASTEXITCODE -eq 0){ $go=$true; break }; Start-Sleep -Milliseconds 300 }; if(-not $go){ $ok=$false } }",
             "}",
-            "New-Item -Path '" + MocDonWeb + "' -Force | Out-Null",
+            // CHỈ đặt mốc khi mọi hồ sơ đã dọn được (nạp / gỡ nạp hỏng ⇒ lần khởi động sau thử lại)
+            "if($ok){ New-Item -Path $moc -Force | Out-Null; Set-ItemProperty -LiteralPath $moc -Name Id -Value $id }",
             "}",
             // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
             "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",

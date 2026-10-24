@@ -41,7 +41,7 @@ public static class ProcessEnforcer
             if (!ProcessGuard.DuocPhepTheoLuat(p.Path, allowed, winDir)) continue;
             var d = DirName(p.Path);
             // app được phép nằm trong thư mục Windows (vd notepad ở System32) KHÔNG kéo cả System32 thành «helper cùng thư mục» (cmd, powershell…)
-            if (d != null && !(!string.IsNullOrWhiteSpace(winDir) && (d + "\\").StartsWith(winDir!.TrimEnd('\\', '/') + "\\", StringComparison.OrdinalIgnoreCase)))
+            if (d != null && !ProcessGuard.TrongWindows(d, winDir))
                 allowedDirs.Add(d);
         }
 

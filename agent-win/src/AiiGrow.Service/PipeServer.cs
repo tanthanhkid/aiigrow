@@ -128,7 +128,7 @@ public sealed class PipeServer : BackgroundService
                 if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được hỏi" };
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
-                var choices = _rt.BuildState(now).PlayChoices;
+                var choices = _rt.PlayChoices;
                 var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId!.Trim() : choices.FirstOrDefault() ?? "";
                 if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
                 if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };

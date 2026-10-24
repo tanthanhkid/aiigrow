@@ -21,7 +21,7 @@ internal sealed class ChoiBangDiemForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(380, 150 + Math.Max(1, choices.Count) * 54);
+        ClientSize = new Size(380, 150 + Math.Clamp(choices.Count, 1, 8) * 54);   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
 
         var flow = new FlowLayoutPanel
         {
@@ -56,7 +56,8 @@ internal sealed class ChoiBangDiemForm : Form
     private async Task HoiPhutAsync(IReadOnlyList<string> choices)
     {
         // hỏi song song (pipe nhiều phiên bản; dịch vụ nhớ 60 giây) — 12 mục không phải chờ nối tiếp
-        var hoi = choices.Take(_nut.Count).Select(async (id, i) =>
+        // tối đa 12 mục đầu (không bắn hàng chục phien/xet một lúc) — mục sau vẫn bấm được, chỉ không ghi trước số phút
+        var hoi = choices.Take(Math.Min(_nut.Count, 12)).Select(async (id, i) =>
         {
             int? phut = null;
             try

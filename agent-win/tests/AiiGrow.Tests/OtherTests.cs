@@ -110,6 +110,10 @@ public class ProcessGuardTests
     [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WindowsAppRuntime.Singleton_1.5.0.0_x64__8wekyb3d8bbwe\PushNotificationsLongRunningTask.exe", false)]
     [InlineData(@"C:\Program Files\WindowsApps\Microsoft.ScreenSketch_11.2.0.0_x64__8wekyb3d8bbwe\SnippingTool\SnippingTool.exe", false)]
     [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WidgetsPlatformRuntime_1.0.0.0_x64__8wekyb3d8bbwe\WidgetService.exe", false)]
+    [InlineData(@"C:\Windows\BrowserCore\browsercore.exe", false)]
+    [InlineData(@"C:\Windows\System32\SecurityHealth\10.0.1\SecurityHealthHost.exe", false)]
+    [InlineData(@"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\dfsvc.exe", false)]
+    [InlineData(@"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe", true)]
     public void ShouldClose(string path, bool expected)
         => Assert.Equal(expected, ProcessGuard.ShouldClose(path, Allowed, NoDirs, Safe, Win));
 
@@ -122,6 +126,8 @@ public class ProcessGuardTests
         Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.0.0.0_x64__8wekyb3d8bbwe\Notepad\Notepad.exe", al, NoDirs, Safe, Win));
         Assert.True(ProcessGuard.ShouldClose(@"C:\Users\An\Downloads\notepad.exe", al, NoDirs, Safe, Win));
         Assert.True(ProcessGuard.ShouldClose(@"C:\Windows\Temp\taskmgr.exe", al, NoDirs, Safe, Win));
+        // Program Files có thư mục con Users ghi được (Steam) ⇒ game đổi tên notepad.exe ở đó không được tin theo tên
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Program Files (x86)\Steam\steamapps\common\x\notepad.exe", al, NoDirs, Safe, Win));
         // Ba Mẹ cho phép thì bản thật ở thư mục con / Program Files vẫn chạy được
         var al2 = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "powershell.exe", "wordpad.exe", "pwsh.exe" };
         Assert.False(ProcessGuard.ShouldClose(@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", al2, NoDirs, Safe, Win));

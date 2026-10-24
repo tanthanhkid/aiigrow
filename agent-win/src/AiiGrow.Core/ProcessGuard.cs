@@ -49,6 +49,8 @@ public static class ProcessGuard
         // Win Home (không AppLocker): công cụ đóng được khay / chạy mã / cài đặt — resmon/perfmon (End Process), tskill, wmic (wbem), regsvr32, msiexec,
         // schtasks, sc, reg, runas, Control Panel (review #75). Lệnh chạy xong trước nhịp quét thì không chặn kịp — giới hạn của chặn bằng cách đóng app.
         "resmon.exe", "perfmon.exe", "tskill.exe", "wmic.exe", "regsvr32.exe", "msiexec.exe", "schtasks.exe", "sc.exe", "reg.exe", "runas.exe", "control.exe",
+        // trình biên dịch / chạy mã của .NET Framework (Windows\Microsoft.NET được miễn theo thư mục cho dfsvc)
+        "csc.exe", "vbc.exe", "jsc.exe", "msbuild.exe", "installutil.exe", "regasm.exe", "regsvcs.exe", "ilasm.exe", "aspnet_compiler.exe",
     };
 
     /// <summary>Gói Store chạy nền của chính Windows (Phone Link, Widgets, Cross Device) — miễn như tiến trình hệ thống.</summary>
@@ -79,6 +81,8 @@ public static class ProcessGuard
         ThuMucSystemApps, @"System32\DriverStore", @"System32\oobe", @"System32\Microsoft-Edge-WebView", "ImmersiveControlPanel", "PrintDialog",
         @"System32\spool\drivers\x64", @"System32\spool\drivers\W32X86", @"System32\spool\drivers\arm64", @"System32\WindowsPowerShell", @"SysWOW64\WindowsPowerShell", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
         @"System32\Speech_OneCore", @"SysWOW64\Speech_OneCore", @"System32\Speech", @"SysWOW64\Speech", @"System32\wbem", @"SysWOW64\wbem",
+        // SSO tài khoản Windows của Chrome/Edge, Windows Security, Task Flow UI, ClickOnce (dfsvc) — đóng thì hỏng tính năng + popup lặp (review #75)
+        "BrowserCore", @"System32\SecurityHealth", "ShellComponents", "ShellExperiences", "Microsoft.NET",
     };
 
     /// <summary>WebView2 runtime cài cho cả máy: «&lt;ổ&gt;:\Program Files[ (x86)]\Microsoft\EdgeWebView\» (chỉ quản trị ghi được).</summary>
@@ -87,6 +91,11 @@ public static class ProcessGuard
 
     /// <summary>Exe nằm ở chỗ CHỈ quản trị ghi được trong thư mục Windows: trực tiếp trong Windows / System32 / SysWOW64, hoặc một thư mục con hệ thống
     /// (<see cref="ThuMucConHeThong"/>). Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được) ⇒ false.</summary>
+    /// <summary>Thư mục <paramref name="dir"/> nằm trong (hoặc là) thư mục Windows.</summary>
+    public static bool TrongWindows(string? dir, string? winDir) =>
+        !string.IsNullOrWhiteSpace(dir) && !string.IsNullOrWhiteSpace(winDir)
+        && (dir.TrimEnd('\\', '/') + "\\").StartsWith(winDir.TrimEnd('\\', '/') + "\\", StringComparison.OrdinalIgnoreCase);
+
     public static bool TrongWindowsChiQuanTri(string exePath, string? winDir)
     {
         if (string.IsNullOrWhiteSpace(exePath) || string.IsNullOrWhiteSpace(winDir)) return false;
@@ -144,7 +153,9 @@ public static class ProcessGuard
             || ProgramFiles.IsMatch(exePath.Replace('/', '\\')));   // wordpad (Windows NT\Accessories), pwsh (PowerShell\7) — Program Files chỉ quản trị ghi
     }
 
-    private static readonly System.Text.RegularExpressions.Regex ProgramFiles = new(@"^[A-Za-z]:\\Program Files( \(x86\))?\\",
+    // CHỈ thư mục Windows tự cài trong Program Files (wordpad, pwsh, IE, Media Player…) — Program Files có thư mục con Users ghi được (Steam…) ⇒
+    // không tin cả Program Files cho exe mang tên của Windows (review #75)
+    private static readonly System.Text.RegularExpressions.Regex ProgramFiles = new(@"^[A-Za-z]:\\Program Files( \(x86\))?\\(Windows NT|PowerShell|Internet Explorer|Windows Media Player|Windows Photo Viewer|Windows Mail|Windows Defender|Windows Sidebar)\\",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <param name="exePath">Đường dẫn đầy đủ của file chạy.</param>
