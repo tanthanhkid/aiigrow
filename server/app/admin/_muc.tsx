@@ -20,7 +20,7 @@ export function TongQuan() {
         <div className="o-so"><I3d ten="money-bag" mau="vang" /><small>Quỹ phiếu quà đang giữ</small><b>{tien(d.quyDangGiu)}</b><em>tổng quỹ trả trước của các gia đình</em></div>
         <div className="o-so"><I3d ten="inbox-tray" mau="lam" /><small>Nạp quỹ tháng này</small><b>{tien(d.napThang)}</b></div>
         <div className="o-so"><I3d ten="hot-beverage" mau="cam" /><small>Phiếu quà đã dùng tháng này</small><b>{tien(d.dungThang)}</b></div>
-        <a className={`o-so ${d.hoTroChoTraLoi ? "noi" : ""}`} href="#ho-tro" style={{ textDecoration: "none", color: "inherit" }}>
+        <a className={`o-so ${d.hoTroChoTraLoi ? "noi" : ""}`} href="#ho-tro">
           <I3d ten="speech-balloon" mau="tim" className={d.hoTroChoTraLoi ? "rung" : ""} /><small>Tin hỗ trợ chờ trả lời</small><b>{so(d.hoTroChoTraLoi)}</b><em>mở mục Hỗ trợ</em></a>
       </div>
       <h2>Phiếu quà AiiCafe</h2>

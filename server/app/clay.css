@@ -176,21 +176,23 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .cong-tac.an::after{transform:scale(1.12,.9)}
 .ag .cong-tac[aria-checked=true].an::after{transform:translateX(22px) scale(1.12,.9)}
 /* highlight men theo ngón + vệt men lướt chéo */
-.ag .nut::before,.ag .chip::before,.ag .o-so::before,.ag a.dong::after,.ag nav.muc a::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;
+.ag .nut::before,.ag .chip::before,.ag .o-so::before,.ag a.dong::after,.ag nav.muc a::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;opacity:0;
   background:radial-gradient(60% 85% at var(--mx,50%) var(--my,25%),rgba(255,255,255,.42),rgba(255,255,255,0) 64%);transition:opacity .32s var(--men)}
 .ag .nut.vien::before,.ag .chip:not([aria-pressed=true])::before,.ag .o-so::before,.ag nav.muc a::before{background:radial-gradient(55% 80% at var(--mx,50%) var(--my,25%),rgba(255,255,255,.95),rgba(255,255,255,0) 62%)}
 .ag .an::before,.ag a.dong.an::after{opacity:1;transition-duration:.14s}
-.ag .nut::after,.ag .chip::after,.ag .o-so::after,.ag nav.muc a::after{content:"";position:absolute;top:0;bottom:0;left:-20%;width:140%;pointer-events:none;z-index:2;opacity:0;
+.ag .nut::after,.ag .chip::after,.ag .o-so::after,.ag nav.muc a::after{content:"";position:absolute;top:0;bottom:0;left:-20%;width:140%;pointer-events:none;z-index:-1;opacity:0;
   background:linear-gradient(105deg,rgba(255,255,255,0) 34%,rgba(255,255,255,.10) 42%,rgba(255,255,255,.55) 49%,rgba(255,255,255,.16) 54%,rgba(255,255,255,0) 62%);transform:translateX(-110%)}
 .ag .nut.vien::after,.ag .o-so::after,.ag nav.muc a::after{background:linear-gradient(105deg,rgba(255,255,255,0) 34%,rgba(40,44,42,.035) 41%,#fff 49%,rgba(255,255,255,.5) 54%,rgba(255,255,255,0) 62%)}
 .ag .nut.quet::after,.ag .chip.quet::after,.ag .o-so.quet::after,.ag nav.muc a.quet::after{animation:clay-quet .42s cubic-bezier(.3,.6,.2,1) both}
 @keyframes clay-quet{0%{opacity:1;transform:translateX(-110%)}100%{opacity:1;transform:translateX(110%)}}
-.ag .nut>*,.ag .chip>*{position:relative;z-index:3}
+/* lớp men z-index:-1 trong ngữ cảnh isolate của khối: nằm trên nền khối, dưới chữ/icon */
+.ag a.dong::after{z-index:-1}
 
 /* tải trang: các khối trong .vao nảy vào lần lượt (translateY 26→0, scale .92→1, lò xo; so le 55ms) — thuần CSS nên khối sinh sau (dữ liệu tải về) cũng nảy vào */
-.ag .vao>*{animation:clay-vao .45s var(--sp-vao) backwards;animation-delay:calc(var(--i,8) * 55ms)}
+.ag .vao>*{animation:clay-vao .45s var(--sp-vao) backwards;animation-delay:calc(var(--i,0) * 55ms)}
 .ag .vao>:nth-child(1){--i:0}.ag .vao>:nth-child(2){--i:1}.ag .vao>:nth-child(3){--i:2}.ag .vao>:nth-child(4){--i:3}.ag .vao>:nth-child(5){--i:4}
-.ag .vao>:nth-child(6){--i:5}.ag .vao>:nth-child(7){--i:6}.ag .vao>:nth-child(8){--i:7}
+.ag .vao>:nth-child(6){--i:5}.ag .vao>:nth-child(7){--i:6}.ag .vao>:nth-child(8){--i:7}.ag .vao>:nth-child(9){--i:8}.ag .vao>:nth-child(10){--i:9}
+.ag .vao>:nth-child(11){--i:10}.ag .vao>:nth-child(n+12){--i:11}
 @keyframes clay-vao{0%{opacity:0;transform:translateY(26px) scale(.92)}35%{opacity:1}100%{opacity:1;transform:none}}
 /* bật (pop): kết quả quầy, huy hiệu */
 .ag .bat{animation:clay-bat .4s var(--sp-bat) backwards}

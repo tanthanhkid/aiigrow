@@ -190,10 +190,13 @@ if (GIAO_DIEN) {
     if (m.sau) { await doi("Sẵn sàng quét"); await m.sau(); }
     const ok = await doi(m.cho);
     chanQuet = null;
-    await js("document.querySelectorAll('nextjs-portal').forEach((e) => e.remove()); scrollTo(0, 0)"); // bấm nút có scrollIntoView ⇒ về đầu trang, đo pixel (doTay) chụp ở đầu trang
-    // chờ nảy vào / rung xong mới đo — khối dữ liệu tải sau cũng nảy vào muộn ⇒ đợi tới khi 2 lần liền không còn animation chạy (tối đa 3s)
-    for (let t = 0, yen = 0; t < 3000 && yen < 2; t += 150) { yen = (await js("document.getAnimations().some((a) => a.playState === 'running')")) ? 0 : yen + 1; await sleep(150); } // nút «N» của next dev đè chữ góc dưới — không thuộc giao diện
-    if (ok) return true;
+    if (ok) {
+      // bỏ nút «N» của next dev (đè chữ góc dưới, không thuộc giao diện); bấm nút có scrollIntoView ⇒ về đầu trang vì doTay chụp ở đầu trang
+      await js("document.querySelectorAll('nextjs-portal').forEach((e) => e.remove()); scrollTo(0, 0)");
+      // chờ nảy vào / rung xong mới đo — khối dữ liệu tải sau cũng nảy vào muộn ⇒ đợi tới khi 2 lần liền không còn animation chạy (tối đa 3s)
+      for (let t = 0, yen = 0; t < 3000 && yen < 2; t += 150) { yen = (await js("document.getAnimations().some((a) => a.playState === 'running')")) ? 0 : yen + 1; await sleep(150); }
+      return true;
+    }
     console.log(`    KHÔNG TẢI: chưa thấy «${m.cho}» ở ${m.duong}: ${(await chu())?.replace(/\s+/g, " ").slice(0, 200)}`);
     return false;
   };

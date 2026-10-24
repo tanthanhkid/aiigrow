@@ -19,10 +19,12 @@ function quet(el: HTMLElement) {
 
 export function DongClay() {
   useEffect(() => {
-    let dang: HTMLElement | null = null;
+    let dang: HTMLElement | null = null, ngon = -1; // phần tử đang nhấn + pointerId của ngón đang nhấn
     // vệt men chỉ khi thả NGAY trên phần tử (bấm thật); kéo ra ngoài / cuộn (pointercancel) thì chỉ nhả bẹp
     const tha = (e?: Event) => {
-      if (!dang) return; const el = dang; dang = null; el.classList.remove("an");
+      const pe0 = e as PointerEvent | undefined;
+      if (!dang || (pe0?.pointerId !== undefined && pe0.pointerId !== ngon)) return; // ngón khác nhấc lên thì bỏ qua
+      const el = dang; dang = null; el.classList.remove("an");
       // chạm có pointer capture ⇒ e.target luôn là phần tử cũ; xem ngón thả ở đâu thật
       const pe = e as PointerEvent | undefined;
       if (pe?.type === "pointerup" && el.contains(document.elementFromPoint(pe.clientX, pe.clientY))) quet(el);
@@ -36,12 +38,12 @@ export function DongClay() {
       el.style.setProperty("--mx", `${x.toFixed(1)}%`); el.style.setProperty("--my", `${y.toFixed(1)}%`);
       if (giamDong()) return;
       dang?.classList.remove("an"); // ngón thứ hai: nhả phần tử ngón trước
-      dang = el; el.classList.add("an");
+      dang = el; ngon = e.pointerId; el.classList.add("an");
     };
     const phim = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
+      if (e.repeat || (e.key !== "Enter" && e.key !== " ")) return;
       const el = (e.target as Element | null)?.closest?.(BAM) as HTMLElement | null;
-      if (el) quet(el);
+      if (el && (e.key === "Enter" || el.tagName === "BUTTON")) quet(el); // Space không kích hoạt liên kết
     };
     document.addEventListener("pointerdown", xuong, { passive: true });
     document.addEventListener("pointerup", tha, { passive: true });
