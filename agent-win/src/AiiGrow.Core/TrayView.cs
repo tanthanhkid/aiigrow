@@ -72,8 +72,8 @@ public static class TrayView
     private static readonly Dictionary<string, string> TenDepApp = new(StringComparer.OrdinalIgnoreCase)
     {
         ["msedge"] = "Microsoft Edge", ["chrome"] = "Google Chrome", ["firefox"] = "Firefox", ["brave"] = "Brave",
-        ["browser"] = "Cốc Cốc", ["coccoc"] = "Cốc Cốc", ["opera"] = "Opera", ["roblox"] = "Roblox",
-        ["robloxplayerbeta"] = "Roblox", ["minecraft"] = "Minecraft", ["javaw"] = "Minecraft", ["steam"] = "Steam",
+        ["coccoc"] = "Cốc Cốc", ["opera"] = "Opera", ["roblox"] = "Roblox",
+        ["robloxplayerbeta"] = "Roblox", ["minecraft"] = "Minecraft", ["steam"] = "Steam",
         ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["calculatorapp"] = "Máy tính",
     };
 

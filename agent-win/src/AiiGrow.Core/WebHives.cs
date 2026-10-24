@@ -50,6 +50,7 @@ public sealed class WebPolicyHives
     private readonly HashSet<string> _daGhiCho = new(StringComparer.OrdinalIgnoreCase);   // hive ta đã ghi luật (còn luật) — Con rời danh sách thì phải gỡ
 
     private bool _daDoc;
+    private DateTimeOffset? _batDau;
     private string? _daLuu;
 
     public WebPolicyHives(IWebHiveHost host) { _host = host; }
@@ -77,7 +78,7 @@ public sealed class WebPolicyHives
     /// <summary>Dòng đánh dấu «đã gỡ luật HKLM bản cũ» trong tệp lưu — gỡ MỘT lần cho cả đời máy, không mỗi lần dịch vụ khởi động (review #75).</summary>
     public const string MocHklm = "HKLM";
 
-    private const string TienToSach = "go:";
+    public const string TienToSach = "go:";
 
     private Dictionary<string, string> DsLuu()
     {
@@ -96,10 +97,13 @@ public sealed class WebPolicyHives
         string? loi = null;
         DocLanDau();
         try { _host.DonHiveKet(); } catch { }
-        if (!_hklmDaGo)
+        _batDau ??= now;
+        // Gỡ HKLM bản cũ SAU khi đã ghi hive Con (nâng cấp lúc Chặn thật: gỡ trước thì Con lướt tự do tới vòng sau). DaGoHklm chỉ khi THẬT SỰ có luật
+        // cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
+        void GoHklm()
         {
-            // DaGoHklm chỉ khi THẬT SỰ có luật cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
-            try { var may = _host.May; new WebPolicyApplier(may).GoHklmCu(dangChan: p != null); _hklmDaGo = true; goHklm = may.SoMucDaXoa > 0; }
+            if (_hklmDaGo) return;
+            try { var may = _host.May; new WebPolicyApplier(may).GoHklmCu(); _hklmDaGo = true; goHklm = may.SoMucDaXoa > 0; }
             catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
         }
 
@@ -108,7 +112,12 @@ public sealed class WebPolicyHives
         if (p != null) { try { hklmDe = new WebPolicyApplier(_host.May).TrinhDuyetBiHklmDe(); } catch { } }
 
         // chưa đọc được tài khoản Con (null) mà đang cần CHẶN ⇒ giữ nguyên luật đang có (như AppLocker), không gỡ nhầm; cần GỠ thì vẫn gỡ ở các hive đã ghi
-        if (childSids == null && p != null) return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi) { HklmDe = hklmDe };
+        // (chưa biết tài khoản Con quá 2 phút ⇒ vẫn gỡ HKLM: không để luật cũ chặn cả tài khoản Ba Mẹ mãi)
+        if (childSids == null && p != null)
+        {
+            if (now - _batDau.Value >= TimeSpan.FromMinutes(2)) GoHklm();
+            return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi) { HklmDe = hklmDe };
+        }
         var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var dich = sids.Concat(_daGhiCho.Where(x => !sids.Contains(x, StringComparer.OrdinalIgnoreCase))).ToList();
         var chua = new List<string>();
@@ -138,6 +147,7 @@ public sealed class WebPolicyHives
             // khay của Con chỉ cần biết khi đổi cho tài khoản Con HIỆN TẠI — gỡ ở hive tài khoản cũ không bắn «Luật web vừa đổi» (review #75)
             if (doiLanNay && sids.Contains(sid, StringComparer.OrdinalIgnoreCase)) doiCon = true;
         }
+        GoHklm();
         // hive SẠCH của tài khoản không còn là Con ⇒ thôi nhớ (tệp lưu không phình theo tài khoản cũ)
         if (childSids != null)
             foreach (var cu in _daAp.Keys.Where(x => !_daGhiCho.Contains(x) && !sids.Contains(x, StringComparer.OrdinalIgnoreCase)).ToList()) _daAp.Remove(cu);

@@ -46,9 +46,10 @@ public static class ProcessGuard
         "mstsc.exe", "ftp.exe", "telnet.exe", "bash.exe", "wsl.exe", "wslhost.exe",
         // chạy mã/ứng dụng tuỳ ý hoặc đóng khay: XBAP, forfiles /c, mmc snap-in, Task Manager / taskkill (rundll32 vẫn miễn: in ấn, hộp thoại, applet Control Panel cần)
         "presentationhost.exe", "forfiles.exe", "mmc.exe", "taskmgr.exe", "taskkill.exe", "certutil.exe", "bitsadmin.exe",
-        // Win Home (không AppLocker): công cụ đóng được khay / chạy mã / cài đặt — resmon/perfmon (End Process), tskill, wmic (wbem), regsvr32, msiexec,
-        // schtasks, sc, reg, runas, Control Panel (review #75). Lệnh chạy xong trước nhịp quét thì không chặn kịp — giới hạn của chặn bằng cách đóng app.
-        "resmon.exe", "perfmon.exe", "tskill.exe", "wmic.exe", "regsvr32.exe", "msiexec.exe", "schtasks.exe", "sc.exe", "reg.exe", "runas.exe", "control.exe",
+        // Win Home (không AppLocker): công cụ ĐÓNG ĐƯỢC KHAY — resmon/perfmon (End Process), tskill, wmic (wbem) (review #75). KHÔNG gồm msiexec / control /
+        // reg / sc / schtasks / regsvr32: Windows và bộ cập nhật của app hợp lệ gọi chúng trong phiên Con (đóng ⇒ hỏng cập nhật + popup lặp); tài khoản chuẩn
+        // dùng chúng không gỡ được AiiGrow. Lệnh chạy xong trước nhịp quét thì không chặn kịp — giới hạn của chặn bằng cách đóng app.
+        "resmon.exe", "perfmon.exe", "tskill.exe", "wmic.exe",
         // trình biên dịch / chạy mã của .NET Framework (Windows\Microsoft.NET được miễn theo thư mục cho dfsvc)
         "csc.exe", "vbc.exe", "jsc.exe", "msbuild.exe", "installutil.exe", "regasm.exe", "regsvcs.exe", "ilasm.exe", "aspnet_compiler.exe",
     };
@@ -89,13 +90,13 @@ public static class ProcessGuard
     private static readonly System.Text.RegularExpressions.Regex WebView2May = new(@"^[A-Za-z]:\\Program Files( \(x86\))?\\Microsoft\\EdgeWebView\\",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
-    /// <summary>Exe nằm ở chỗ CHỈ quản trị ghi được trong thư mục Windows: trực tiếp trong Windows / System32 / SysWOW64, hoặc một thư mục con hệ thống
-    /// (<see cref="ThuMucConHeThong"/>). Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được) ⇒ false.</summary>
     /// <summary>Thư mục <paramref name="dir"/> nằm trong (hoặc là) thư mục Windows.</summary>
     public static bool TrongWindows(string? dir, string? winDir) =>
         !string.IsNullOrWhiteSpace(dir) && !string.IsNullOrWhiteSpace(winDir)
         && (dir.TrimEnd('\\', '/') + "\\").StartsWith(winDir.TrimEnd('\\', '/') + "\\", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Exe nằm ở chỗ CHỈ quản trị ghi được trong thư mục Windows: trực tiếp trong Windows / System32 / SysWOW64, hoặc một thư mục con hệ thống
+    /// (<see cref="ThuMucConHeThong"/>). Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được) ⇒ false.</summary>
     public static bool TrongWindowsChiQuanTri(string exePath, string? winDir)
     {
         if (string.IsNullOrWhiteSpace(exePath) || string.IsNullOrWhiteSpace(winDir)) return false;

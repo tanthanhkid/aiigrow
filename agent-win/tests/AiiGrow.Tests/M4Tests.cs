@@ -197,6 +197,10 @@ public class BlockScreenViewTests
         Assert.False(BlockScreenView.CanUsePoints(LockReasons.Khoa, true));
         // Không được đổi điểm ⇒ ẩn.
         Assert.False(BlockScreenView.CanUsePoints(LockReasons.HetDiem, false));
+        Assert.False(BlockScreenView.CanUsePoints(LockReasons.ChuaPhanLoai, true, "cmd.exe"));     // công cụ Windows: không phải app Giải trí
+        Assert.False(BlockScreenView.CanUsePoints(LockReasons.ChuaPhanLoai, true, "taskmgr"));
+        Assert.True(BlockScreenView.CanUsePoints(LockReasons.ChuaPhanLoai, true, "roblox.exe"));
+        Assert.False(BlockScreenView.CanUsePoints(LockReasons.HetDiem, true, "roblox.exe", offline: true));
     }
 
     [Fact]

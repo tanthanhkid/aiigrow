@@ -20,7 +20,7 @@ internal sealed class BlockedForm : Form
     public BlockedForm(string? appId, string? appName, string? reason, bool canExchange, bool offline = false)
     {
         _appId = appId; _canExchange = canExchange;
-        var view = BlockScreenView.For(appId, appName, reason, canExchange);
+        var view = BlockScreenView.For(appId, appName, reason, canExchange, offline);
 
         Text = "AiiGrow";
         FormBorderStyle = FormBorderStyle.FixedToolWindow;

@@ -146,6 +146,8 @@ public interface IWebPolicyRegistry
     bool CoMucCuaTa(string khoaDs) => false;
     /// <summary>Danh sách <paramref name="khoaDs"/> có mục do người khác đặt (IT / Ba Mẹ).</summary>
     bool CoMucNguoiKhac(string khoaDs) => false;
+    /// <summary>Đọc DWORD (null = không có).</summary>
+    int? DocDword(string khoa, string ten) => null;
 }
 
 public sealed class WebPolicyApplier
@@ -197,11 +199,12 @@ public sealed class WebPolicyApplier
     public bool GoTatCa() => Ap(null, null);
 
     /// <summary>Gỡ luật bản cũ (≤0.2.5) trong HKLM. Danh sách: chỉ mục của AiiGrow. Ba cờ DWORD không phân biệt được ai đặt ⇒ CHỈ gỡ khi có dấu
-    /// AiiGrow từng áp ở HKLM: còn mục danh sách của AiiGrow, hoặc <paramref name="dangChan"/> (đang Chặn thật ⇒ bản cũ đã đặt cờ). Đang Giám sát mà
-    /// không có mục nào của AiiGrow ⇒ bản cũ đã gỡ cờ rồi, cờ còn lại là của IT / Ba Mẹ — giữ nguyên (review #75).</summary>
-    public void GoHklmCu(bool dangChan)
+    /// AiiGrow từng áp ở HKLM: còn mục danh sách của AiiGrow, hoặc ĐỦ ba cờ đúng giá trị AiiGrow ở CẢ BỐN trình duyệt (dấu riêng của bản cũ — IT không
+    /// đặt cho Brave + Cốc Cốc cùng lúc như thế). Không có dấu (cài mới, hoặc bản cũ đã gỡ) ⇒ cờ là của IT / Ba Mẹ — giữ nguyên (review #75).</summary>
+    public void GoHklmCu()
     {
-        var coDau = dangChan || WebPolicyKeys.TatCa.Any(t => _reg.CoMucCuaTa(t.Khoa + "\\" + WebPolicyKeys.DsChan) || _reg.CoMucCuaTa(t.Khoa + "\\" + WebPolicyKeys.DsCho));
+        var coDau = WebPolicyKeys.TatCa.Any(t => _reg.CoMucCuaTa(t.Khoa + "\\" + WebPolicyKeys.DsChan) || _reg.CoMucCuaTa(t.Khoa + "\\" + WebPolicyKeys.DsCho))
+            || WebPolicyKeys.TatCa.All(t => WebPolicyKeys.Co(t).All(c => _reg.DocDword(t.Khoa, c.Ten) == c.GiaTri));
         foreach (var t in WebPolicyKeys.TatCa)
         {
             _reg.DatDanhSach(t.Khoa + "\\" + WebPolicyKeys.DsChan, Array.Empty<string>());
@@ -225,8 +228,8 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
 {
     private readonly RegistryHive _hive;
     private readonly string? _goc;   // null = chính hive (HKLM); khác null = khoá con của HKU (SID hoặc tên hive nạp tạm)
-    private readonly string? _sidCon;
-    private readonly HashSet<string> _daKhoa = new(StringComparer.OrdinalIgnoreCase);   // khoá đã dò/khoá chặt trong lượt này   // hive người dùng: SID chủ hive ⇒ khoá chính sách ta tạo chỉ cho người đó ĐỌC (AclChinhSach)
+    private readonly string? _sidCon;   // hive người dùng: SID chủ hive ⇒ khoá chính sách ta tạo chỉ cho người đó ĐỌC (AclChinhSach)
+    private readonly HashSet<string> _daKhoa = new(StringComparer.OrdinalIgnoreCase);   // khoá đã dò/khoá chặt trong lượt ghi này
 
     public WindowsWebPolicyRegistry() : this(RegistryHive.LocalMachine, null) { }
     public WindowsWebPolicyRegistry(RegistryHive hive, string? goc, string? sidCon = null) { _hive = hive; _goc = goc; _sidCon = sidCon; }
@@ -323,6 +326,15 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
         return k != null && k.GetValueNames().Any(n => n.Length > 0 && WebPolicyKeys.LaCuaTa(n) == cuaTa);
     }
 
+    public int? DocDword(string khoa, string ten)
+    {
+        using var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
+        using var g = _goc == null ? null : b.OpenSubKey(_goc, false);
+        if (_goc != null && g == null) return null;
+        using var k = (g ?? b).OpenSubKey(khoa, false);
+        return k?.GetValue(ten) is int v ? v : null;
+    }
+
     public void DatDword(string khoa, string ten, int giaTri)
     {
         using var hklm = Hklm();
@@ -375,10 +387,19 @@ public static class WebGuard
         var host = new WindowsWebHiveHost();
         bool co = false;
         // HKLM: chỉ gỡ phần bản cũ để lại (cờ DWORD chỉ khi còn dấu AiiGrow — cờ của IT giữ nguyên); lỗi (IT khoá ACL…) không chặn việc gỡ ở hive từng tài khoản
-        try { var may = host.May; new WebPolicyApplier(may).GoHklmCu(dangChan: false); co = may.SoMucDaXoa > 0; } catch { }
+        try { var may = host.May; new WebPolicyApplier(may).GoHklmCu(); co = may.SoMucDaXoa > 0; } catch { }
+        // CHỈ hive đã ghi luật (web-hives.txt) hoặc đang nạp (đăng nhập — gỡ không cần nạp tạm): không nạp tạm NTUSER.DAT của mọi hồ sơ (kể cả Ba Mẹ)
+        // khi gỡ — ai đăng nhập đúng lúc đó sẽ vào hồ sơ tạm; tác vụ dọn tách rời vẫn quét mọi hồ sơ một lần làm lưới đỡ (review #75)
+        var daGhi = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        try { foreach (var (sid, vt) in host.DocDaGhi()) if (!vt.StartsWith(WebPolicyHives.TienToSach, StringComparison.Ordinal)) daGhi.Add(sid); } catch { }
         foreach (var sid in WindowsWebHiveHost.TatCaHoSo())
         {
-            try { if (host.VoiHive(sid, reg => new WebPolicyApplier(reg).GoTatCa())) co = true; }
+            try
+            {
+                if (!daGhi.Contains(sid) && !host.DangNap(sid)) continue;
+                // «có gỡ gì» theo số mục thật sự xoá — không phải «mở được hive» (không báo trình duyệt vô ích)
+                host.VoiHive(sid, reg => { new WebPolicyApplier(reg).GoTatCa(); if (reg.SoMucDaXoa > 0) co = true; });
+            }
             catch { }
         }
         WindowsWebHiveHost.GoNapKet();
@@ -386,11 +407,11 @@ public static class WebGuard
         if (co) WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai();
     }
 
-    /// <summary>Đoạn PowerShell tương đương, nhúng vào tác vụ dọn tách rời (SYSTEM) làm lưới đỡ khi dịch vụ không gỡ được.
-    /// Chỉ xoá giá trị của AiiGrow (tên số &gt; 90000 + ba cờ DWORD), giữ nguyên mục người khác đặt.</summary>
     /// <summary>Mốc «đã dọn luật web ở hive mọi hồ sơ» của tác vụ dọn tách rời (xoá khi tác vụ tự huỷ).</summary>
     public const string MocDonWeb = @"HKLM:\SOFTWARE\AiiGrowDonWeb";
 
+    /// <summary>Đoạn PowerShell tương đương, nhúng vào tác vụ dọn tách rời (SYSTEM) làm lưới đỡ khi dịch vụ không gỡ được.
+    /// Chỉ xoá giá trị của AiiGrow (tên số &gt; 90000 + ba cờ DWORD), giữ nguyên mục người khác đặt.</summary>
     public static string KichBanGoChinhSach()
     {
         // Gọn: một hàm Go-Web chạy cho HKLM (bản cũ) rồi từng hive hồ sơ — kịch bản đi qua -EncodedCommand trong tham số tác vụ (giới hạn ~32K ký tự), không lặp danh sách.
@@ -426,7 +447,7 @@ public static class WebGuard
             "$moc='" + MocDonWeb + "'; $id='" + Guid.NewGuid().ToString("N") + "'",
             "if((Get-ItemProperty -LiteralPath $moc -ErrorAction SilentlyContinue).Id -ne $id){",
             "$ok=$true",
-            "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' -or $_ -like 'S-1-12-1-*' })){",
+            "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -match '^S-1-(5-21|12-1)-[0-9-]+$' } )){",   // không nhận «….bak» (hồ sơ tạm cũ) — như LaSidNguoiDung bên C#
             "  $goc=\"Registry::HKEY_USERS\\$s\"; $nap=$false",
             "  if(-not (Test-Path -LiteralPath $goc)){",
             "    $d=(Get-ItemProperty -LiteralPath \"$pl\\$s\" -ErrorAction SilentlyContinue).ProfileImagePath; if(-not $d){ continue }",
@@ -439,8 +460,13 @@ public static class WebGuard
             "  if($nap){ $go=$false; for($i=0;$i -lt 10;$i++){ [gc]::Collect(); [gc]::WaitForPendingFinalizers(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null; if($LASTEXITCODE -eq 0){ $go=$true; break }; Start-Sleep -Milliseconds 300 }; if(-not $go){ $ok=$false } }",
             "}",
             // CHỈ đặt mốc khi mọi hồ sơ đã dọn được (nạp / gỡ nạp hỏng ⇒ lần khởi động sau thử lại)
-            "if($ok){ New-Item -Path $moc -Force | Out-Null; Set-ItemProperty -LiteralPath $moc -Name Id -Value $id }",
+            // hỏng ⇒ đếm lần; 5 lần khởi động vẫn hỏng (hồ sơ hư) ⇒ thôi, không nạp hive mọi hồ sơ mỗi lần khởi động mãi
+            "if(-not (Test-Path -LiteralPath $moc)){ New-Item -Path $moc | Out-Null }",
+            "if(-not $ok){ $n=1+[int](Get-ItemProperty -LiteralPath $moc).\"Lan$id\"; Set-ItemProperty -LiteralPath $moc -Name \"Lan$id\" -Value $n; if($n -ge 5){ $ok=$true } }",
+            "if($ok){ Set-ItemProperty -LiteralPath $moc -Name Id -Value $id }",
             "}",
+            // tác vụ dọn CHỈ tự huỷ khi lượt dọn hive đã xong ($webSach) — không thì luật web + cờ còn kẹt trong hồ sơ Con mãi (review #75)
+            "$webSach = ((Get-ItemProperty -LiteralPath $moc -ErrorAction SilentlyContinue).Id -eq $id)",
             // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
             "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",
         });

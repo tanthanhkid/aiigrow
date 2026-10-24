@@ -165,15 +165,20 @@ public sealed class AgentRuntime
         _lockStartedAt = null;
     }
 
-    /// <summary>Đổi mỗi khi nội dung dong-bo đổi (điểm, giá nhóm, bật/tắt đổi điểm…) — PipeServer bỏ số phút PlayInfo đã nhớ (review #75).</summary>
+    /// <summary>Đổi khi phần dong-bo ẢNH HƯỞNG số phút đổi điểm đổi (bật/tắt đổi điểm, mục Giải trí, chế độ, cửa sổ mở, phiên chơi) — PipeServer bỏ số
+    /// phút PlayInfo đã nhớ. KHÔNG so cả JSON thô: serverTime đổi mỗi lần đồng bộ ⇒ bộ nhớ đệm vô dụng (review #75).</summary>
     public int PolicyRev { get; private set; }
-    private string? _rawCu;
+    private string? _vtDoiDiem;
+
+    private static string VanTayDoiDiem(Policy p) =>
+        string.Join("|", p.CanExchangePoints, p.Mode, p.GrantEndsAt?.ToUnixTimeSeconds(), p.PlaySessionId, string.Join(",", p.PlayChoices));
 
     public void SetPolicy(Policy p, string raw)
     {
         lock (_gate)
         {
-            if (!string.Equals(raw, _rawCu, StringComparison.Ordinal)) { _rawCu = raw; PolicyRev++; }
+            var vtDoiDiem = VanTayDoiDiem(p);
+            if (!string.Equals(vtDoiDiem, _vtDoiDiem, StringComparison.Ordinal)) { _vtDoiDiem = vtDoiDiem; PolicyRev++; }
             _policy = p;
             _policyAt = DateTimeOffset.UtcNow;
             _usedSeconds = 0;
@@ -208,9 +213,10 @@ public sealed class AgentRuntime
         }
     }
 
-    /// <summary>Policy để THỰC THI (AppLocker + đóng app): Policy cuối, trừ app chơi khi đoạn chơi offline đã vượt ngưỡng (<see cref="PhienOffline.ApDung"/>).</summary>
     /// <summary>Mục «Chơi bằng điểm» hiện tại — đọc thẳng Policy (không dựng cả TrayState dưới khoá cho mỗi PlayInfo).</summary>
     public IReadOnlyList<string> PlayChoices { get { lock (_gate) return _policy?.PlayChoices.ToList() ?? new List<string>(); } }
+
+    /// <summary>Policy để THỰC THI (AppLocker + đóng app): Policy cuối, trừ app chơi khi đoạn chơi offline đã vượt ngưỡng (<see cref="PhienOffline.ApDung"/>).</summary>
     public Policy? CurrentPolicy { get { lock (_gate) return _policy == null ? null : PhienOffline.ApDung(_policy, _phienOffline); } }
 
     /// <summary>0.2.4 (BRD 4.4 / 6.7): mỗi vòng thực thi — «đang chơi thật» (<see cref="TienCanhChoi"/>), cộng giây vào status.playSeconds

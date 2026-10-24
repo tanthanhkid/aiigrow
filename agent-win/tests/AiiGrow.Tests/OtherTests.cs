@@ -106,7 +106,7 @@ public class ProcessGuardTests
     [InlineData(@"C:\Windows\System32\resmon.exe", true)]
     [InlineData(@"C:\Windows\System32\tskill.exe", true)]
     [InlineData(@"C:\Windows\System32\wbem\WMIC.exe", true)]
-    [InlineData(@"C:\Windows\System32\msiexec.exe", true)]
+    [InlineData(@"C:\Windows\System32\msiexec.exe", false)]           // Windows / bộ cập nhật gọi — không đóng
     [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WindowsAppRuntime.Singleton_1.5.0.0_x64__8wekyb3d8bbwe\PushNotificationsLongRunningTask.exe", false)]
     [InlineData(@"C:\Program Files\WindowsApps\Microsoft.ScreenSketch_11.2.0.0_x64__8wekyb3d8bbwe\SnippingTool\SnippingTool.exe", false)]
     [InlineData(@"C:\Program Files\WindowsApps\Microsoft.WidgetsPlatformRuntime_1.0.0.0_x64__8wekyb3d8bbwe\WidgetService.exe", false)]

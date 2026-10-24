@@ -435,7 +435,7 @@ internal sealed class AppForm : Form
             _content.Controls.Add(row);
 
             // BUG-006: luôn có nút «Chơi bằng điểm» khi đã ghép gia đình, kèm số phút đổi được — trừ khi Ba Mẹ tắt đổi điểm hoặc khoá máy (cùng luật màn chặn)
-            if (_s.Paired && !_s.MoCoi && BlockScreenView.CanUsePoints(_s.Locked ? _s.LockReason : null, _s.CanExchangePoints))
+            if (_s.Paired && !_s.MoCoi && BlockScreenView.CanUsePoints(_s.Locked ? _s.LockReason : null, _s.CanExchangePoints, offline: _s.Offline))
             {
                 var pr = Row(_cw);
                 var choi = Btn("Chơi bằng điểm", false, 270);

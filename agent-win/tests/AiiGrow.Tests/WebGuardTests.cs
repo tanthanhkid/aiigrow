@@ -21,6 +21,7 @@ internal sealed class FakeWebRegistry : IWebPolicyRegistry
     public readonly HashSet<string> MucKhac = new();   // danh sách có mục người khác đặt (IT «1»…)
     public bool CoMucCuaTa(string khoaDs) => Ds.ContainsKey(khoaDs);
     public bool CoMucNguoiKhac(string khoaDs) => MucKhac.Contains(khoaDs);
+    public int? DocDword(string khoa, string ten) => Dword.TryGetValue(khoa + "|" + ten, out var v) ? v : null;
 }
 
 public class WebPolicyTests
@@ -164,6 +165,8 @@ public class WebPolicyTests
         Assert.Contains("gpupdate.exe /target:computer /force", s);
         Assert.Contains("Go-Web 'HKLM:' $true", s);     // HKLM: cờ DWORD chỉ gỡ khi còn dấu AiiGrow (cờ của IT giữ nguyên)
         Assert.Contains("if($ok){", s);                  // mốc «đã dọn hive» chỉ đặt khi mọi hồ sơ dọn được
+        Assert.Contains("$webSach", s);                  // tác vụ chỉ tự huỷ khi đã dọn hive xong
+        Assert.DoesNotContain("-like 'S-1-5-21-*'", s);  // không nhận khoá «.bak»
         Assert.NotEqual(s, WebGuard.KichBanGoChinhSach()); // mỗi lần gỡ một mã mốc riêng
     }
 }

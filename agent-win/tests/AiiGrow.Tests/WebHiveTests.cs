@@ -228,11 +228,33 @@ public class WebHiveTests
         h.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;
         new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0);
         Assert.Empty(h.Hklm.Dword);
-        // đang Chặn thật lúc nâng cấp ⇒ bản cũ đã đặt cờ ⇒ gỡ (kể cả khi danh sách rỗng)
+        // bản cũ Chặn thật với danh sách rỗng: chỉ còn ĐỦ ba cờ ở cả bốn trình duyệt (dấu riêng của AiiGrow) ⇒ gỡ
         var h2 = new FakeHiveHost(); h2.CoHoSo.Add(Con);
-        h2.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;
+        foreach (var t in WebPolicyKeys.TatCa) foreach (var (ten, gt) in WebPolicyKeys.Co(t)) h2.Hklm.Dword[t.Khoa + "|" + ten] = gt;
         new WebPolicyHives(h2).Ap(Luat("a.com"), null, new[] { Con }, T0);
         Assert.Empty(h2.Hklm.Dword);
+        // CÀI MỚI ở Chặn thật trên máy IT đã tắt ẩn danh (chỉ Chrome) ⇒ không có dấu AiiGrow ⇒ giữ cờ của IT
+        var h3 = new FakeHiveHost(); h3.CoHoSo.Add(Con);
+        h3.Hklm.Dword[Chrome + "|IncognitoModeAvailability"] = 1;
+        new WebPolicyHives(h3).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.Equal(1, h3.Hklm.Dword[Chrome + "|IncognitoModeAvailability"]);
+    }
+
+    [Fact]
+    public void ChuaBietTaiKhoanCon_KhongGoHklmNgay_Qua2PhutThiGo()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };   // luật bản cũ đang chặn
+        var w = new WebPolicyHives(h);
+        Assert.False(w.Ap(Luat("a.com"), null, null, T0).DaGoHklm);    // chưa ghi được hive Con ⇒ chưa gỡ HKLM (Con không lướt tự do)
+        Assert.True(h.Hklm.Ds.ContainsKey(Chrome + @"\URLBlocklist"));
+        Assert.True(w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30)).DaGoHklm);   // hive Con có luật rồi mới gỡ HKLM
+        Assert.Equal(new[] { "a.com" }, h.Hive[Con].Ds[Chrome + @"\URLBlocklist"]);
+        var h2 = new FakeHiveHost();
+        h2.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };
+        var w2 = new WebPolicyHives(h2);
+        w2.Ap(Luat("a.com"), null, null, T0);
+        Assert.True(w2.Ap(Luat("a.com"), null, null, T0.AddMinutes(2)).DaGoHklm);   // không đọc được tài khoản Con mãi ⇒ vẫn gỡ (Ba Mẹ không bị chặn mãi)
     }
 
     [Fact]
