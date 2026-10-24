@@ -416,7 +416,7 @@ public static class WebGuard
     {
         // Gọn: một hàm Go-Web chạy cho HKLM (bản cũ) rồi từng hive hồ sơ — kịch bản đi qua -EncodedCommand trong tham số tác vụ (giới hạn ~32K ký tự), không lặp danh sách.
         var wb = string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'"));
-        var dw = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "'")).Distinct());
+        var dw = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "|" + c.GiaTri + "'")).Distinct());
         return string.Join("\n", new[]
         {
             "$wb=@(" + wb + ")",
@@ -433,6 +433,8 @@ public static class WebGuard
             "      }",
             "    }",
             "  }",
+            // dấu thứ hai như GoHklmCu bên C#: đủ cả ba cờ ĐÚNG giá trị AiiGrow ở mọi trình duyệt (bản cũ chặn trống danh sách vẫn ghi cờ)
+            "  if($chiKhiCoDau -and -not $dau){ $du=$true; foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; $v=(Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).($p[1]); if($null -eq $v -or [int64]$v -ne [int64]$p[2]){ $du=$false; break } }; $dau=$du }",
             "  if(-not $chiKhiCoDau -or $dau){ foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } } }",
             "  foreach($b in $wb){ $k=\"$g\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
             "}",

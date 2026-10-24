@@ -258,6 +258,23 @@ public class WebHiveTests
     }
 
     [Fact]
+    public void GhiHiveConLoi_KhongGoHklm_Qua10PhutThiGo()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con); h.NemLoi.Add(Con);
+        h.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };   // luật bản cũ đang là lớp chặn duy nhất
+        var w = new WebPolicyHives(h);
+        Assert.False(w.Ap(Luat("a.com"), null, new[] { Con }, T0).DaGoHklm);
+        Assert.True(h.Hklm.Ds.ContainsKey(Chrome + @"\URLBlocklist"));
+        h.NemLoi.Clear();
+        Assert.True(w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30)).DaGoHklm);   // ghi được rồi mới gỡ
+        var h2 = new FakeHiveHost(); h2.CoHoSo.Add(Con); h2.NemLoi.Add(Con);
+        h2.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };
+        var w2 = new WebPolicyHives(h2);
+        w2.Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.True(w2.Ap(Luat("a.com"), null, new[] { Con }, T0.AddMinutes(10)).DaGoHklm);   // kẹt mãi ⇒ lưới đỡ
+    }
+
+    [Fact]
     public void DanhSachCaMayCuaIT_BaoTrinhDuyetBiDe()
     {
         var h = new FakeHiveHost(); h.CoHoSo.Add(Con);

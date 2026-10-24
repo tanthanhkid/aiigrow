@@ -164,6 +164,7 @@ public class WebPolicyTests
         Assert.Contains(@"SOFTWARE\Policies\CocCoc\Browser", s);
         Assert.Contains("gpupdate.exe /target:computer /force", s);
         Assert.Contains("Go-Web 'HKLM:' $true", s);     // HKLM: cờ DWORD chỉ gỡ khi còn dấu AiiGrow (cờ của IT giữ nguyên)
+        Assert.Contains("$du=$true", s);                 // dấu thứ hai: đủ ba cờ đúng giá trị ở mọi trình duyệt (như GoHklmCu)
         Assert.Contains("if($ok){", s);                  // mốc «đã dọn hive» chỉ đặt khi mọi hồ sơ dọn được
         Assert.Contains("$webSach", s);                  // tác vụ chỉ tự huỷ khi đã dọn hive xong
         Assert.DoesNotContain("-like 'S-1-5-21-*'", s);  // không nhận khoá «.bak»

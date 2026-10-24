@@ -21,9 +21,9 @@ public static class ProcessGuard
         };
     }
 
-    /// <summary>Tiến trình của chính Windows mà phiên đăng nhập cần để còn dùng được (màn hình nền, Start, tìm kiếm, bàn phím, thông báo…).
-    /// Chỉ miễn khi file nằm TRONG thư mục Windows (Con không ghi được vào đó ⇒ không đổi tên game thành explorer.exe để lọt).
-    /// notepad / cmd / powershell / calc / mspaint… KHÔNG nằm đây ⇒ phải qua phân loại như app thường.</summary>
+    /// <summary>TÊN tiến trình của chính Windows mà phiên đăng nhập cần (màn hình nền, Start, tìm kiếm, bàn phím, thông báo…). KHÔNG dùng để miễn
+    /// (miễn theo CHỖ nằm — <see cref="LaTienTrinhHeThongPhien"/>); chỉ dùng ở <see cref="TenCuaWindows"/>: luật cho phép theo tên này chỉ nhận bản thật
+    /// trong Windows, không nhận game đổi tên thành explorer.exe ở Downloads (review #75).</summary>
     public static readonly HashSet<string> TienTrinhHeThongPhien = new(StringComparer.OrdinalIgnoreCase)
     {
         "explorer.exe", "dwm.exe", "ctfmon.exe", "sihost.exe", "shellexperiencehost.exe", "startmenuexperiencehost.exe",
@@ -80,7 +80,7 @@ public static class ProcessGuard
     public static readonly string[] ThuMucConHeThong =
     {
         ThuMucSystemApps, @"System32\DriverStore", @"System32\oobe", @"System32\Microsoft-Edge-WebView", "ImmersiveControlPanel", "PrintDialog",
-        @"System32\spool\drivers\x64", @"System32\spool\drivers\W32X86", @"System32\spool\drivers\arm64", @"System32\WindowsPowerShell", @"SysWOW64\WindowsPowerShell", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
+        @"System32\spool\drivers\x64", @"System32\spool\drivers\W32X86", @"System32\spool\drivers\arm64", @"System32\WindowsPowerShell", @"SysWOW64\WindowsPowerShell", "IME", @"System32\IME", @"SysWOW64\IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
         @"System32\Speech_OneCore", @"SysWOW64\Speech_OneCore", @"System32\Speech", @"SysWOW64\Speech", @"System32\wbem", @"SysWOW64\wbem",
         // SSO tài khoản Windows của Chrome/Edge, Windows Security, Task Flow UI, ClickOnce (dfsvc) — đóng thì hỏng tính năng + popup lặp (review #75)
         "BrowserCore", @"System32\SecurityHealth", "ShellComponents", "ShellExperiences", "Microsoft.NET",

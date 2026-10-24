@@ -147,7 +147,11 @@ public sealed class WebPolicyHives
             // khay của Con chỉ cần biết khi đổi cho tài khoản Con HIỆN TẠI — gỡ ở hive tài khoản cũ không bắn «Luật web vừa đổi» (review #75)
             if (doiLanNay && sids.Contains(sid, StringComparer.OrdinalIgnoreCase)) doiCon = true;
         }
-        GoHklm();
+        // chỉ gỡ HKLM khi MỌI tài khoản Con đã có luật trong hive (ghi lỗi / chưa có hồ sơ ⇒ luật HKLM cũ còn là lớp chặn duy nhất — review #75).
+        // Lưới đỡ: kẹt quá 10 phút thì vẫn gỡ, không để luật cũ chặn cả tài khoản Ba Mẹ mãi
+        var conChuaXong = p != null && sids.Any(cs => chua.Contains(cs, StringComparer.OrdinalIgnoreCase)
+            || loiHive.Any(l => l.StartsWith(cs + ":", StringComparison.OrdinalIgnoreCase)));
+        if (!conChuaXong || now - _batDau.Value >= TimeSpan.FromMinutes(10)) GoHklm();
         // hive SẠCH của tài khoản không còn là Con ⇒ thôi nhớ (tệp lưu không phình theo tài khoản cũ)
         if (childSids != null)
             foreach (var cu in _daAp.Keys.Where(x => !_daGhiCho.Contains(x) && !sids.Contains(x, StringComparer.OrdinalIgnoreCase)).ToList()) _daAp.Remove(cu);

@@ -16,7 +16,7 @@ public sealed class PipeServer : BackgroundService
     /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
     private readonly Func<IntPtr, bool> _laKhayThat;
     private readonly Dictionary<string, (DateTimeOffset Luc, PipeResponse Tra)> _playInfoNho = new(StringComparer.OrdinalIgnoreCase);
-    private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi (điểm / giá / tắt đổi điểm) ⇒ bỏ hết
+    private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi phần ảnh hưởng đổi điểm (bật/tắt, chế độ, phiên chơi, mục) ⇒ bỏ hết. Policy KHÔNG mang số điểm / giá ⇒ điểm đổi trên máy chủ chỉ hiện sau hạn nhớ (60 / 15 giây)
 
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
