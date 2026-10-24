@@ -260,6 +260,41 @@ public static class HocVienView
 
 /// <summary>Theo dõi tin đã báo để khay chỉ hiện toast cho tin MỚI. Lần hỏi đầu chỉ ghi nhớ (không bật toast cho tin cũ).
 /// Máy chủ lùi mốc 5 phút nên cùng một tin có thể về nhiều lần ⇒ lọc theo <see cref="HvTin.Id"/>.</summary>
+/// <summary>Khi nào khay tự bật app to vì nhiệm vụ mới (review PR #65). Lớp THUẦN, test được. Không bật khi: app đang hiện (chỉ tải lại,
+/// không giật mục dưới tay Con), Con đang toàn màn hình / trình chiếu / họp (bật lên che mà phím vẫn vào cửa sổ dưới), vừa bật trong 5 phút.
+/// Nhiệm vụ tới lúc máy khoá ⇒ giữ lại, bật khi máy mở khoá.</summary>
+public sealed class BatNhiemVu
+{
+    public static readonly TimeSpan Gian = TimeSpan.FromMinutes(5);
+    private DateTimeOffset _lan = DateTimeOffset.MinValue;
+
+    /// <summary>Có nhiệm vụ mới tới lúc máy khoá, chưa bật.</summary>
+    public bool ChoMoKhoa { get; private set; }
+
+    /// <summary>Vừa nhận tin: <paramref name="coNvMoi"/> = có nhiệm vụ mới (<see cref="HocVienView.CoNhiemVuMoi"/>) ⇒ bật app không.</summary>
+    public bool Nhan(bool coNvMoi, bool khoa, bool appDangHien, bool banRon, DateTimeOffset now)
+    {
+        if (!coNvMoi) return false;
+        if (khoa) { ChoMoKhoa = true; return false; }
+        return Thu(appDangHien, banRon, now);
+    }
+
+    /// <summary>Máy vừa mở khoá: có nhiệm vụ tới trong lúc khoá ⇒ bật app (một lần).</summary>
+    public bool MoKhoa(bool appDangHien, bool banRon, DateTimeOffset now)
+    {
+        if (!ChoMoKhoa) return false;
+        ChoMoKhoa = false;
+        return Thu(appDangHien, banRon, now);
+    }
+
+    private bool Thu(bool appDangHien, bool banRon, DateTimeOffset now)
+    {
+        if (appDangHien || banRon || now - _lan < Gian) return false;
+        _lan = now;
+        return true;
+    }
+}
+
 public sealed class TinTracker
 {
     private readonly HashSet<string> _seen = new();

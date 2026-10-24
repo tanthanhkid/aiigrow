@@ -109,6 +109,15 @@ internal static class UI
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr h);
     [DllImport("user32.dll")] public static extern bool LockWorkStation();
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
+
+    /// <summary>Con đang toàn màn hình / game D3D / trình chiếu / app đặt chế độ không làm phiền (Zoom, Teams…) ⇒ đừng bật cửa sổ đè lên.
+    /// QUNS: 1 không có người, 2 bận (toàn màn hình), 3 D3D, 4 trình chiếu, 5 nhận thông báo, 6 giờ yên lặng sau cài, 7 app Store toàn màn hình.</summary>
+    public static bool DangBanToanManHinh()
+    {
+        try { return SHQueryUserNotificationState(out var st) == 0 && st is 1 or 2 or 3 or 4 or 7; }
+        catch { return false; }
+    }
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
 
     /// <summary>App đang ở tiền cảnh của phiên này: (tên exe, tên hiển thị). Rỗng nếu không có cửa sổ (vd màn hình khoá).</summary>

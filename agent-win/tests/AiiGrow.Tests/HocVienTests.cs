@@ -128,6 +128,25 @@ public class HocVienTests
         Assert.False(HocVienView.CoNhiemVuMoi(Array.Empty<HvTin>()));
     }
 
+    [Fact]
+    public void BatNhiemVu_KhongGiatKhiAppMo_KhongDeToanManHinh_Gian5Phut_GiuKhiKhoa()
+    {
+        var b = new BatNhiemVu();
+        Assert.False(b.Nhan(false, false, false, false, Now), "không có nhiệm vụ mới");
+        Assert.False(b.Nhan(true, false, true, false, Now), "app đang hiện ⇒ chỉ tải lại");
+        Assert.False(b.Nhan(true, false, false, true, Now), "Con đang toàn màn hình");
+        Assert.True(b.Nhan(true, false, false, false, Now));
+        Assert.False(b.Nhan(true, false, false, false, Now.AddMinutes(4)), "vừa bật chưa đủ 5 phút");
+        Assert.True(b.Nhan(true, false, false, false, Now.AddMinutes(5)));
+
+        var k = new BatNhiemVu();
+        Assert.False(k.Nhan(true, true, false, false, Now), "máy khoá ⇒ không bật ngay");
+        Assert.True(k.ChoMoKhoa);
+        Assert.True(k.MoKhoa(false, false, Now.AddMinutes(30)), "mở khoá ⇒ bật nhiệm vụ đã giao lúc khoá");
+        Assert.False(k.MoKhoa(false, false, Now.AddMinutes(40)), "chỉ một lần");
+        Assert.False(new BatNhiemVu().MoKhoa(false, false, Now), "mở khoá mà không có nhiệm vụ chờ");
+    }
+
     [Theory]
     [InlineData("GET", "hoc-vien/tong-quan", true)]
     [InlineData("GET", "hoc-vien/tin?sau=2026-10-22T02%3A00%3A00.0000000%2B00%3A00", true)]

@@ -29,6 +29,8 @@ internal sealed class TrayContext : ApplicationContext
     // Bóng báo vừa hiện dẫn tới mục nào của app to (bấm vào bóng báo trong 20 giây ⇒ mở đúng mục).
     private MucApp _toastMuc = MucApp.HomNay;
     private DateTimeOffset _toastAt = DateTimeOffset.MinValue;
+    private readonly BatNhiemVu _bat = new();
+    private bool AppDangHien => _app is { IsDisposed: false, Visible: true } a && a.WindowState != FormWindowState.Minimized;
 
     public TrayContext()
     {
@@ -156,8 +158,9 @@ internal sealed class TrayContext : ApplicationContext
                 var (tieu, noi) = HocVienView.ToastText(moi);
                 if (_app is { Visible: true }) _ = _app.RefreshAsync();       // app đang mở ⇒ cập nhật luôn, bóng báo vẫn hiện nhẹ
                 Toast(8000, tieu, noi, ToolTipIcon.Info, HocVienView.MucChoTin(moi));
-                // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (máy đang khoá thì chỉ bóng báo, mở lại Con tự xem)
-                if (HocVienView.CoNhiemVuMoi(moi) && !_state.Locked) OpenApp(MucApp.NhiemVu, tuBat: true);
+                // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (đang khoá ⇒ chờ mở khoá; app đang hiện / Con đang toàn màn hình / vừa bật ⇒ chỉ bóng báo)
+                if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
+                    OpenApp(MucApp.NhiemVu, tuBat: true);
             }
             PushApp();
         }
@@ -222,6 +225,7 @@ internal sealed class TrayContext : ApplicationContext
             _lock.Dispose();
             _lock = null;
             _warned5 = _warned1 = false;
+            if (_bat.MoKhoa(AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now)) OpenApp(MucApp.NhiemVu, tuBat: true);
         }
     }
 

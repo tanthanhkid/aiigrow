@@ -240,8 +240,7 @@ internal sealed class AppForm : Form
 
     // =========================================================== mở / chuyển mục
 
-    /// <summary>Mở app to (nếu đang ẩn/thu nhỏ) và đưa lên trước; <paramref name="muc"/> khác null thì chuyển tới mục đó.</summary>
-    /// <summary>Hiện app to ở mục <paramref name="muc"/>. <paramref name="noiLen"/> = khay tự bật: Windows chặn tiến trình nền giành tiêu điểm
+    /// <summary>Mở app to (nếu đang ẩn/thu nhỏ) và đưa lên trước; <paramref name="muc"/> khác null thì chuyển tới mục đó. <paramref name="noiLen"/> = khay tự bật: Windows chặn tiến trình nền giành tiêu điểm
     /// (Activate chỉ nháy nút taskbar) ⇒ bật TopMost rồi tắt ngay để cửa sổ nằm trên cùng mà không ghim mãi.</summary>
     public void ShowFront(MucApp? muc = null, bool noiLen = false)
     {
