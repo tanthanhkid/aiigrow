@@ -28,12 +28,16 @@ export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | n
   await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && giuMoTam ? { giuMoTam } : {}) });
 }
 
-/** «Mở lại máy» (trang chủ + Giờ dùng máy) — Hoàn tác khoá lại đúng hạn cũ và giữ mốc mở tạm đang lưu; hạn đã qua thì chỉ tải lại. */
-export async function moLaiMay(con: string, ten: string, d: { khoaDen?: string | null; moTamDen?: string | null } | null | undefined,
-  bao: (chu: string, hoan: () => void) => void, tai: () => unknown) {
-  const den = d?.khoaDen ?? null, giu = !!d?.moTamDen;
+/** «Mở lại máy» (trang chủ + Giờ dùng máy). Hoàn tác khoá lại đúng hạn cũ và LUÔN giữ mốc mở tạm máy chủ đang lưu (Mở lại không xoá nó; Ba Mẹ
+ *  khác có thể vừa cho thêm sau lúc màn tải). Hạn sắp hết (< 30 giây, lệch đồng hồ) thì coi như đã hết, chỉ tải lại; khoá lại lỗi thì báo. */
+export async function moLaiMay(con: string, ten: string, d: { khoaDen?: string | null } | null | undefined,
+  bao: (chu: string, hoan?: () => void) => void, tai: () => unknown) {
+  const den = d?.khoaDen ?? null;
   await datKhoa(con, false, null);
-  bao(`Đã mở lại máy của ${ten}`, () => { if (!conHan(den)) return void tai(); datKhoa(con, true, den ? new Date(den) : null, giu).then(() => tai(), () => tai()); });
+  bao(`Đã mở lại máy của ${ten}`, () => {
+    if (!conHan(den, new Date(Date.now() + 30_000))) return void tai();
+    datKhoa(con, true, den ? new Date(den) : null, true).then(() => tai(), () => { bao(`Chưa khoá lại được máy của ${ten} — bấm «Khoá máy ngay»`); tai(); });
+  });
 }
 
 export function BangKhoa({ mo, dong, con, ten, xong }: {

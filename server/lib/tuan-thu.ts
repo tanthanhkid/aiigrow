@@ -276,6 +276,8 @@ export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string, no
   // «Khoá lại ngay» trên máy Windows đóng luôn cửa sổ thêm giờ đã duyệt của Con (hanMoCuaMay lấy cả hai)
   const dong = m.platform === "windows" && m.child_id
     ? (await q(`update grants set cua_so_den = $2 where child_id = $1 and cua_so_den > $2 returning id`, [m.child_id, now])).length : 0;
+  // …và huỷ «mở tạm» (yeu-cau.ts › dongY) để «Khoá ngay» của Ba Mẹ có hiệu lực lại ngay — không thì PC chỉ về luật thường tới hết mốc
+  if (m.platform === "windows" && m.child_id) await q(`update children set cau_hinh = cau_hinh - 'khoa_mo_tam_den' where id = $1`, [m.child_id]);
   await ghiSuKien(fam, "huy_mo_khan_cap", dong ? { dongCuaSo: dong } : {}, { con: m.child_id, may: m.id, nguoi });
 }
 

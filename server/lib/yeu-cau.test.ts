@@ -230,6 +230,17 @@ test("mở tạm: grant giữ nghĩa cũ (điện thoại = thưởng, Windows =
   // khoá mới (không phải Hoàn tác) ⇒ mở tạm bị huỷ
   await khoaNgay(fam, con, true, bm, phut(75), phut(15));
   assert.equal(dangKhoa(await cfg(), phut(16)), true);
+  // Windows (lỗi gốc Khang): lời xin từ PC lúc khoá ⇒ PC có cửa sổ mở + không còn khoá trong mốc; «Khoá lại ngay» trên PC ⇒ khoá lại ngay
+  const tt = await import("./tuan-thu.ts");
+  await khoaNgay(fam, con, true, bm, null, phut(20));
+  const w = await yc.guiYeuCau(con, pc.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, phut(20));
+  await yc.dongY(fam, w.id, bm, { truDiem: false, phut: 15 }, phut(20));
+  assert.ok(await tt.hanMoCuaMay(pc, con, phut(25)));
+  assert.equal(dangKhoa(await cfg(), phut(25)), false);
+  assert.equal(dangKhoa(await cfg(), phut(36)), true);
+  await tt.huyMoKhanCap(fam, pc.id, bm, phut(26));
+  assert.equal(dangKhoa(await cfg(), phut(27)), true, "Khoá lại ngay ⇒ huỷ mở tạm");
+  await khoaNgay(fam, con, true, bm, phut(75), phut(30));
   // khoá còn 15 phút mà duyệt 60 ⇒ mở tạm dừng ở hạn khoá (rồi hết khoá hẳn); phút vẫn là thưởng, không mất
   const c = await yc.guiYeuCau(con, dt.id, { loai: "them_gio", phut: 60, lyDo: "xin" }, phut(60));
   await yc.dongY(fam, c.id, bm, { truDiem: false, phut: 60 }, phut(60));
