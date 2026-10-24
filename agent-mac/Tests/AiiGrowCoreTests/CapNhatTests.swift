@@ -249,6 +249,8 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNotNil(t2.capNhatLuc)
     guard case .trangThai(let tc) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
     XCTAssertNil(tc.capNhat, "phiên Con không nhận trạng thái cập nhật")
+    guard case .trangThai(let tk) = await b.xuLyIPC(.trangThai, uidGoi: 503) else { return XCTFail() }
+    XCTAssertNil(tk.capNhat, "tài khoản thường (không admin) không nhận trạng thái cập nhật")
   }
 
   func testChuaGhepKhongTuCapNhat() async throws {
@@ -337,6 +339,14 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(d?.lan, 1)
   }
 
+  func testDongHoLuiKhongKhoaThuLai() async {
+    datMayChu()
+    _ = await chay(boCapNhat())
+    gio = gio.addingTimeInterval(-3 * 24 * 3600)              // NTP sửa đồng hồ lùi 3 ngày
+    _ = await chay(boCapNhat())
+    XCTAssertEqual(fake.daCaiGoi.count, 2, "dấu ở «tương lai» không chặn lượt thử kế")
+  }
+
   func testNutBaMeThuLaiSau1Gio() async {
     datMayChu()
     _ = await chay(boCapNhat())
@@ -391,10 +401,13 @@ final class CapNhatTests: XCTestCase {
   func testDangCoInstallerChayKhongCaiKhongGhiDau() async {
     datMayChu()
     fake.caiDangChayGia = true
+    let dangDoc = thuMuc + "/AiiGrow-0.1.2.pkg"                  // gói installer lượt trước đang đọc
+    fake.tep[dangDoc] = Data("goi cu".utf8)
     _ = await chay(boCapNhat())
     XCTAssertTrue(fake.daCaiGoi.isEmpty)
     XCTAssertNil(fake.tep["/gia/da-thu.json"])
-    XCTAssertTrue(fake.log.contains { $0.contains("installer khác chạy") })
+    XCTAssertNotNil(fake.tep[dangDoc], "không dọn gói khi installer lượt trước còn chạy")
+    XCTAssertTrue(fake.log.contains { $0.contains("còn chạy") })
   }
 
   // MARK: băm theo luồng, lịch

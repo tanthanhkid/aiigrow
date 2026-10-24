@@ -11,6 +11,13 @@ final class TrayLogicTests: XCTestCase {
               demNguocGiay: dem, yeuCauCho: [], duocDoiDiem: false, matMang: false, trangChan: [])
   }
 
+  func testNutKiemCapNhatChiMayDaGhep() {
+    XCTAssertTrue(TrayLogic.canKiemCapNhat(tt(con: false), laAdmin: true))
+    XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(daGhep: false, con: false), laAdmin: true), "chưa ghép: daemon không tự cập nhật ⇒ ẩn nút")
+    XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(con: true), laAdmin: true))
+    XCTAssertFalse(TrayLogic.canKiemCapNhat(tt(con: false), laAdmin: false))
+  }
+
   // MARK: chonMan
   func testChonMan() {
     XCTAssertEqual(TrayLogic.chonMan(nil), .khong)

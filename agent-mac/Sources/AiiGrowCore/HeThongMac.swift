@@ -178,14 +178,16 @@ public final class HeThongMac: HeThong {
     guard !caiDangChay() else { throw LoiApi(chu: "Đang có một lượt cài chạy (\(nhan)) — bỏ qua lần này.") }
     _ = HeThongMac.chay("/bin/launchctl", ["remove", nhan], timeout: 10)           // nhãn sót đã xong từ lần trước
     let dau = DuongDan.dangCapNhat                                                  // ghi PID của sh job: postinstall biết đây là cài tự động (và còn sống)
-    // installer hỏng SAU preinstall (đã bootout daemon) thì postinstall không chạy ⇒ tự nạp lại daemon bản cũ (trừ khi máy vừa bị gỡ),
+    // installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại daemon + tray bản cũ (trừ khi máy vừa bị gỡ),
     // để máy không trơ trọi tới lần khởi động lại và còn thử lại theo lịch.
     let kich = "echo $$ > \"$3\" ; /usr/sbin/installer -pkg \"$1\" -target / ; ma=$? ; echo \"installer xong, mã $ma\" ; " +
-      "if [ $ma -ne 0 ] && [ ! -f \"$4\" ] && [ -f \"$5\" ]; then /bin/launchctl bootstrap system \"$5\" ; echo \"nạp lại daemon, mã $?\" ; fi ; " +
+      "if [ $ma -ne 0 ] && [ ! -f \"$4\" ] && [ -f \"$5\" ]; then /bin/launchctl bootstrap system \"$5\" ; echo \"nạp lại daemon, mã $?\" ; " +
+      "for u in $(/bin/ps -axo uid=,comm= | /usr/bin/awk '/\\/loginwindow$/ && $1 >= 500 {print $1}' | /usr/bin/sort -u) ; do /bin/launchctl bootstrap gui/$u \"$6\" ; done ; fi ; " +
       "/bin/rm -f \"$1\" \"$3\" ; /bin/launchctl remove \"$2\" ; exit $ma"
     let (ma, ra) = HeThongMac.chay("/bin/launchctl", ["submit", "-l", nhan, "-o", DuongDan.log + "/capnhat.log", "-e", DuongDan.log + "/capnhat.log",
                                                       "--", "/bin/sh", "-c", kich, "capnhat", duongDan, nhan, dau, DuongDan.daGo,
-                                                      "/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"], timeout: 10)
+                                                      "/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist",
+                                                      "/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist"], timeout: 10)
     guard ma == 0 else { throw LoiApi(chu: "launchctl submit lỗi (\(ma)): \(ra)") }
   }
 

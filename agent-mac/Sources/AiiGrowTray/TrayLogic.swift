@@ -97,8 +97,8 @@ public enum TrayLogic {
     public mutating func daDong() { giuCanhBao = false; dangGui = false }
   }
 
-  /// Nút «Kiểm tra cập nhật»: chỉ phiên Ba Mẹ (admin, không phải phiên Con). Daemon vẫn kiểm lại theo uid.
-  public static func canKiemCapNhat(_ t: TrangThai?, laAdmin: Bool) -> Bool { t?.laPhienCon != true && laAdmin }
+  /// Nút «Kiểm tra cập nhật»: chỉ phiên Ba Mẹ (admin, không phải phiên Con) trên máy đã ghép (chưa ghép thì daemon không tự cập nhật). Daemon vẫn kiểm lại.
+  public static func canKiemCapNhat(_ t: TrangThai?, laAdmin: Bool) -> Bool { t?.daGhep == true && t?.laPhienCon != true && laAdmin }
 
   /// Dòng trạng thái tự cập nhật (daemon trả trong `trangThai`); quá 1 ngày thì ẩn.
   public static func dongCapNhat(_ t: TrangThai?, bayGio: Date) -> String? {

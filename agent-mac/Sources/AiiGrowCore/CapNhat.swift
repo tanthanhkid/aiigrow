@@ -124,7 +124,13 @@ public final class SoTinhCapNhat: @unchecked Sendable {
   private let khoa = NSLock()
   private var _chu: String?
   private var _luc: Date?
+  private var _dang = false
   public init() {}
+  /// Đang có lượt kiểm/tải/cài — đọc không cần vào actor (actor có thể đang băm/spctl hàng chục giây, IPC tray chỉ chờ 3 giây).
+  public var dang: Bool { khoa.lock(); defer { khoa.unlock() }; return _dang }
+  func datDang(_ d: Bool) { khoa.lock(); _dang = d; khoa.unlock() }
+  /// Giữ chỗ nguyên tử (false ⇒ đang có lượt khác) — nút Ba Mẹ giữ chỗ TRƯỚC khi trả lời IPC để bấm liền hai lần không chạy chồng.
+  func giuCho() -> Bool { khoa.lock(); defer { khoa.unlock() }; if _dang { return false }; _dang = true; return true }
   public var chu: String? { khoa.lock(); defer { khoa.unlock() }; return _chu }
   public var luc: Date? { khoa.lock(); defer { khoa.unlock() }; return _luc }
   public func dat(_ c: String, luc: Date = Date()) { khoa.lock(); _chu = c; _luc = luc; khoa.unlock() }
@@ -163,7 +169,7 @@ public actor BoCapNhat {
   private let tepDaThu: String
   private let banHienTai: String
   private let dongHo: () -> Date
-  private var dang = false
+  private var dang: Bool { get { so.dang } set { so.datDang(newValue) } }
   private var tacVu: Task<Void, Never>?
   /// Câu trạng thái cho tray (đọc không cần await).
   public nonisolated let so: SoTinhCapNhat
@@ -181,7 +187,8 @@ public actor BoCapNhat {
     }
   }
 
-  public var dangBan: Bool { dang }
+  public nonisolated var dangBan: Bool { so.dang }
+  public nonisolated func giuChoNgay() -> Bool { so.giuCho() }
 
   private func ketThuc(_ kq: KetQuaCapNhat) -> KetQuaCapNhat { dang = false; so.dat(kq.chu, luc: dongHo()); return kq }
 
@@ -191,9 +198,9 @@ public actor BoCapNhat {
 
   /// Kiểm manifest NGAY (daemon gọi từ Task riêng; nút Ba Mẹ gọi từ Task nền). Có bản mới ⇒ tải + cài chạy nền, trả `.dangTai`.
   /// `choPhep` = máy đã ghép và không đang gỡ; hỏi ở đầu và NGAY trước khi giao installer. `thuCong` = Ba Mẹ bấm nút.
-  public func batDau(thuCong: Bool = false, choPhep: @escaping @Sendable () async -> Bool) async -> KetQuaCapNhat {
-    guard !dang else { return .dangBan }
-    dang = true
+  /// `daGiuCho`: người gọi đã `giuChoNgay()` thành công.
+  public func batDau(thuCong: Bool = false, daGiuCho: Bool = false, choPhep: @escaping @Sendable () async -> Bool) async -> KetQuaCapNhat {
+    if !daGiuCho { guard so.giuCho() else { return .dangBan } }
     guard await choPhep(), heThong.docTep(DuongDan.daGo) == nil else {
       heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ / đã gỡ — không tự cập nhật.")
       return ketThuc(.loi("Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật."))
@@ -223,7 +230,9 @@ public actor BoCapNhat {
     if let d = docDau(), d.sha256 == sha {
       lanDaThu = d.lan
       let troi = dongHo().timeIntervalSince1970 - d.luc
-      let choLai = thuCong ? troi > LuatCapNhat.giayChoThuLai : (d.lan < LuatCapNhat.toiDaLanThu && troi >= LuatCapNhat.giayGiuaCacLan)
+      // troi < 0: đồng hồ bị lùi sau khi ghi dấu ⇒ không chờ tới «tương lai» đó (vẫn giữ trần 3 lần cho lượt định kỳ)
+      let choLai = thuCong ? (troi < 0 || troi > LuatCapNhat.giayChoThuLai)
+                           : (d.lan < LuatCapNhat.toiDaLanThu && (troi < 0 || troi >= LuatCapNhat.giayGiuaCacLan))
       if !choLai {
         if d.lan >= LuatCapNhat.toiDaLanThu && LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
           heThong.ghiLog("Cập nhật: cài xong mà bản không đổi — đã cài gói \(d.version) \(d.lan) lần nhưng đang chạy \(banHienTai). Dừng tới khi manifest đổi sha256.")
@@ -250,6 +259,11 @@ public actor BoCapNhat {
     func bo(_ lyDo: String) {
       heThong.ghiLog("Cập nhật: \(lyDo) — KHÔNG cài."); heThong.xoaTep(tep)
       so.dat("Cập nhật bản \(m.version) lỗi: \(lyDo)", luc: dongHo())
+    }
+    // installer lượt trước còn đọc gói trong thư mục này ⇒ không dọn/tải đè (bo() cũng xoá tệp nên không dùng ở đây)
+    if heThong.caiDangChay() {
+      heThong.ghiLog("Cập nhật: lượt installer trước (\(LuatCapNhat.nhanCai)) còn chạy — để lượt sau.")
+      so.dat("Đang cài bản trước, sẽ kiểm lại sau.", luc: dongHo()); return
     }
     do { try heThong.taoThuMuc(thuMuc, quyen: 0o700) } catch { bo("không tạo được \(thuMuc): \(error)"); return }
     for c in heThong.lietKeThuMuc(thuMuc) { heThong.xoaTep(thuMuc + "/" + c) }          // bản cũ còn sót

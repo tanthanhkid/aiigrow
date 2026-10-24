@@ -359,7 +359,7 @@ public actor BoMay {
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
       var tt = trangThaiTuoi()                                    // tính tươi, không tác dụng phụ: gọi dồn dập không làm đếm ngược/kill nhanh hơn
       if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil; tt.capNhat = nil; tt.capNhatLuc = nil }
-      else { tt.capNhat = capNhat.so.chu; tt.capNhatLuc = capNhat.so.luc }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
+      else if uidGoi == 0 || heThong.laAdmin(uid: uidGoi) { tt.capNhat = capNhat.so.chu; tt.capNhatLuc = capNhat.so.luc }   // cùng quy tắc với quyền IPC capNhat       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
       return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
@@ -386,9 +386,9 @@ public actor BoMay {
   /// Nút «Kiểm tra cập nhật»: trả lời NGAY (tray chỉ chờ 3 giây), kiểm + tải + cài chạy nền; kết quả nằm ở `TrangThai.capNhat`.
   public func capNhatNgay() async -> TraLoi {
     guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Con (hoặc đang được gỡ) nên chưa tự cập nhật.") }
-    if await capNhat.dangBan { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
+    guard capNhat.giuChoNgay() else { return .thongBao(chu: KetQuaCapNhat.dangBan.chu) }
     capNhat.so.dat("Đang kiểm tra bản mới…", luc: dongHo())
-    Task { _ = await self.capNhat.batDau(thuCong: true, choPhep: { await self.coTheCapNhat() }) }
+    Task { _ = await self.capNhat.batDau(thuCong: true, daGiuCho: true, choPhep: { await self.coTheCapNhat() }) }
     return .thongBao(chu: "Đang kiểm tra bản mới… Kết quả hiện ở menu AiiGrow.")
   }
 
