@@ -2,7 +2,7 @@
 // Nội dung đối chiếu mã nguồn 24/10/2026: schema (families/parents/children/devices/usage/web_nhat_ky/evidence/may_log), lib/log-may.ts (giữ 7 ngày), lib/web.ts (giữ 90 ngày).
 export const metadata = { title: "Chính sách quyền riêng tư — AiiGrow", description: "Chính sách quyền riêng tư của AiiGrow / Privacy Policy of AiiGrow" };
 
-const EMAIL = "hotro@aiilab.vn";
+const EMAIL = "info@aiilab.vn";
 const NGAY_VI = "24/10/2026", NGAY_EN = "October 24, 2026"; // sửa nội dung thì đổi cả hai ngày
 const h2 = { fontSize: 20, marginTop: 28, marginBottom: 6 } as const;
 const ul = { lineHeight: 1.7, paddingLeft: 20, marginTop: 4 } as const;
