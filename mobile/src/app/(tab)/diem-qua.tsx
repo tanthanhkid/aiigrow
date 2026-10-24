@@ -65,9 +65,9 @@ export default function DiemQua() {
       )) : (
         <>
           <View style={{ borderRadius: 26, backgroundColor: "#4e2e15", padding: 18, gap: 4 }}>
-            <Chu kieu="dam" co={13} mau="#f3e7da">Quỹ phiếu quà AiiCafe</Chu>
+            <Chu kieu="dam" co={13} mau="#ebebe7">Quỹ phiếu quà AiiCafe</Chu>
             <Chu kieu="rat" co={26} mau="#fff" so>{tien(d.quy.soDu)}</Chu>
-            <Chu co={14} mau="#f3e7da">{d.quy.soDu >= 50_000 ? `Đủ cho ${Math.floor(d.quy.soDu / 50_000)} phiếu quà 50k` : "Chưa đủ cho một phiếu quà 50k — nạp thêm để Con đổi được"}</Chu>
+            <Chu co={14} mau="#ebebe7">{d.quy.soDu >= 50_000 ? `Đủ cho ${Math.floor(d.quy.soDu / 50_000)} phiếu quà 50k` : "Chưa đủ cho một phiếu quà 50k — nạp thêm để Con đổi được"}</Chu>
             <View style={{ marginTop: 10, alignSelf: "flex-start" }}><Nut chu="Nạp thêm" loai="vang" nho bam={() => router.push("/quy")} /></View>
           </View>
           {d.qua.length ? (

@@ -1,12 +1,12 @@
 /* Quầy AiiCafe — theo thiết kế cafe-quet / cafe-da-dung (man_con.py + tinh/app.css khối «quầy AiiCafe»): máy tính bảng ngang,
    trái là máy quét (nền tối, khung nét đứt, một nút vàng «Quét phiếu quà»), phải là kết quả to rõ. Màn hẹp thì xếp chồng. */
-.ag.quay{display:flex;flex-direction:column;background:#fbf6ee}
+.ag.quay{display:flex;flex-direction:column;background:#f4f4f2}
 .quay .tren{display:flex;align-items:center;gap:12px;padding:12px 28px;border-bottom:1px solid var(--vien);background:#fff;flex-wrap:wrap}
 .quay .tren img{width:32px;height:32px;border-radius:8px;flex:none}
 .quay .tren .ten-quay{font-size:20px;font-weight:800;line-height:1.25}
 .quay .tren .phai{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .quay .giua{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:28px;padding:28px}
-.quay .may-quet{border-radius:32px;background:#10231f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+.quay .may-quet{border-radius:32px;background:#0f1312;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
   position:relative;overflow:hidden;min-height:460px;padding:28px 20px}
 .quay .may-quet .khung{width:260px;max-width:100%;aspect-ratio:1;border-radius:28px;border:4px dashed rgba(255,255,255,.7);position:relative;overflow:hidden;flex:none}
 .quay .may-quet video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -37,7 +37,7 @@
   .quay .kq b.lon{font-size:36px}
   .quay .kq img{width:150px}.quay .kq.ok img{width:160px}
 }
-.quay .go-ma .o-nhap input::placeholder{text-transform:none;letter-spacing:0;font-weight:700;color:#5f6b68}
+.quay .go-ma .o-nhap input::placeholder{text-transform:none;letter-spacing:0;font-weight:700;color:#5c625f}
 .quay .may-quet{justify-content:flex-end}
 .quay .may-quet .khung{margin:auto 0}
 @media (max-width:899px){.quay .giua.co-kq .kq{order:-1}.quay .may-quet{gap:16px}}

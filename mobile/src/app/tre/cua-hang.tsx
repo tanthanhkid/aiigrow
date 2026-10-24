@@ -7,7 +7,7 @@ import { kid, type NhaTre, type QuaTre, type TroChoi } from "@/lib/api-tre";
 import type { LinhVat } from "@/lib/ui";
 
 const HINH_QUA: Record<QuaTre["loai"], [LinhVat, string]> = {
-  voucher: ["qua", "#ffeab0"], dac_quyen: ["sao", "#eeeafe"], qua: ["xong", "#fde3dc"], tiet_kiem: ["canh-diem", "#ddf3ee"],
+  voucher: ["qua", "#ffeab0"], dac_quyen: ["sao", "#eeeafe"], qua: ["xong", "#fde3dc"], tiet_kiem: ["canh-diem", "#e3efeb"],
 };
 
 export default function CuaHang() {
@@ -36,7 +36,7 @@ export default function CuaHang() {
       <Canh lv="qua" mau="vang" tieu={`${ten} đổi gì nào?`} loi="Đủ điểm thì nút sáng lên!" thap />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {d.tc.length ? (
-          <QuaO lv="cho" nen="#ddf3ee" tieu={`${phut} phút chơi`} nhan={<Nhan chu={`${Math.ceil(phut * gia)} điểm`} loai="diem" />}
+          <QuaO lv="cho" nen="#e3efeb" tieu={`${phut} phút chơi`} nhan={<Nhan chu={`${Math.ceil(phut * gia)} điểm`} loai="diem" />}
             phu={`${String(gia).replace(".", ",")} điểm/phút · chỉ trừ khi chơi`} bam={() => router.push("/tre/choi")} nhanDoc={`${phut} phút chơi — dùng điểm để chơi`} />
         ) : null}
         {d.ch.qua.map((q) => {

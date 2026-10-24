@@ -34,7 +34,7 @@ export default function DuocDuyet() {
             {BIEU_CAM.map((e) => (
               <Pressable key={e} onPress={() => setChon(e === chon ? null : e)} accessibilityRole="radio" accessibilityState={{ checked: e === chon }}
                 style={{ minHeight: 44, minWidth: 56, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1.5, alignItems: "center", justifyContent: "center",
-                  borderColor: e === chon ? M.chinh : M.vien2, backgroundColor: e === chon ? "#f1faf7" : "#fff" }}>
+                  borderColor: e === chon ? M.chinh : M.vien2, backgroundColor: e === chon ? "#eef5f2" : "#fff" }}>
                 <Text style={{ fontSize: 22 }}>{e}</Text>
               </Pressable>
             ))}

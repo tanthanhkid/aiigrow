@@ -40,7 +40,7 @@ export default function ViQuaTre() {
           </LinearGradient>
         </View>
       ))}
-      {dung.length ? <Chu co={13} mau="#5f6b68" style={{ textAlign: "center" }}>Đưa mã này cho nhân viên AiiCafe quét. Mỗi phiếu chỉ dùng một lần.</Chu> : null}
+      {dung.length ? <Chu co={13} mau="#5c625f" style={{ textAlign: "center" }}>Đưa mã này cho nhân viên AiiCafe quét. Mỗi phiếu chỉ dùng một lần.</Chu> : null}
       {d.vi.phieu.length || khac.length ? (
         <Nhom>
           {d.vi.phieu.map((p, i) => (

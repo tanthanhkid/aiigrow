@@ -7,8 +7,8 @@ import { kid, type ThanhTich } from "@/lib/api-tre";
 const TEN_CAP = ["Hạt giống", "Nảy mầm", "Lá non", "Mầm xanh", "Cây non", "Cây lớn", "Ra hoa", "Kết trái", "Cổ thụ", "Rừng xanh"];
 const tenCap = (n: number) => TEN_CAP[Math.min(TEN_CAP.length, Math.max(1, n)) - 1];
 const HINH: Record<string, [LinhVat, string]> = {
-  khoi_dau: ["xong", "#ffeab0"], mot_sach: ["hoc", "#ddf3ee"], tay_dam_dang: ["chi", "#fde3dc"], khoe_manh: ["sao", "#eeeafe"],
-  ham_hoc: ["canh-hoc", "#e8f0ff"], chuoi_7: ["xong", "#ffeab0"], chuoi_30: ["canh-tien-do", "#ddf3ee"], cap_5: ["sao", "#fff1c9"],
+  khoi_dau: ["xong", "#ffeab0"], mot_sach: ["hoc", "#e3efeb"], tay_dam_dang: ["chi", "#fde3dc"], khoe_manh: ["sao", "#eeeafe"],
+  ham_hoc: ["canh-hoc", "#e8f0ff"], chuoi_7: ["xong", "#ffeab0"], chuoi_30: ["canh-tien-do", "#e3efeb"], cap_5: ["sao", "#fff1c9"],
 };
 
 export default function HuyHieu() {
@@ -26,7 +26,7 @@ export default function HuyHieu() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {[...d.huyHieu].sort((a, b) => Number(b.dat) - Number(a.dat)).map((h) => {
           const [lv, nen] = HINH[h.ma] ?? ["sao", M.diemSoft];
-          return <QuaO key={h.ma} lv={lv} nen={h.dat ? nen : "#efebe3"} tieu={h.ten} mo={!h.dat} phu={h.dat && h.datLuc ? `Đạt ${ngayCua(h.datLuc).slice(0, 5)}` : h.mo_ta}
+          return <QuaO key={h.ma} lv={lv} nen={h.dat ? nen : "#ecece8"} tieu={h.ten} mo={!h.dat} phu={h.dat && h.datLuc ? `Đạt ${ngayCua(h.datLuc).slice(0, 5)}` : h.mo_ta}
             nhanDoc={`${h.ten}: ${h.dat ? "đã đạt" : "chưa đạt"}. ${h.mo_ta}`} />;
         })}
       </View>

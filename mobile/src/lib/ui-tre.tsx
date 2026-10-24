@@ -200,7 +200,7 @@ export function Vong({ ti, chu, phu, co = 200 }: { ti: number; chu: string; phu?
     <View style={{ width: co, height: co, alignItems: "center", justifyContent: "center" }} accessibilityRole="progressbar"
       accessibilityLabel={phu ? `${chu} ${phu}` : chu} accessibilityValue={{ min: 0, max: 100, now: Math.round(p * 100) }}>
       <Svg width={co} height={co} style={{ position: "absolute" }}>
-        <Circle cx={co / 2} cy={co / 2} r={r} stroke="#efe7da" strokeWidth={16} fill="#fff" />
+        <Circle cx={co / 2} cy={co / 2} r={r} stroke="#e7e7e3" strokeWidth={16} fill="#fff" />
         <Circle cx={co / 2} cy={co / 2} r={r} stroke={M.chinhSang} strokeWidth={16} fill="none" strokeDasharray={`${cv * p} ${cv}`}
           strokeLinecap="round" transform={`rotate(-90 ${co / 2} ${co / 2})`} />
       </Svg>
@@ -357,7 +357,7 @@ export function ChipMot<T extends string>({ ds, gia, doi, nhan }: { ds: { gia: T
         return (
           <Pressable key={x.gia} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: c }}
             style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1.5, alignItems: "center", justifyContent: "center",
-              borderColor: c ? M.chinh : M.vien2, backgroundColor: c ? "#f1faf7" : "#fff" }}>
+              borderColor: c ? M.chinh : M.vien2, backgroundColor: c ? "#eef5f2" : "#fff" }}>
             <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
           </Pressable>
         );

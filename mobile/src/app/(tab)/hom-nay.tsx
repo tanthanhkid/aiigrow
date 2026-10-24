@@ -39,7 +39,7 @@ export default function HomNay() {
         {d.g.con.map((x, i) => (
           <Pressable key={x.id} onPress={() => setChon(i)} accessibilityRole="tab" accessibilityState={{ selected: i === chon }}
             style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 10, borderRadius: 99, borderWidth: 1.5,
-              borderColor: i === chon ? M.chinh : M.vien2, backgroundColor: i === chon ? "#f1faf7" : "#fff" }}>
+              borderColor: i === chon ? M.chinh : M.vien2, backgroundColor: i === chon ? "#eef5f2" : "#fff" }}>
             <Avt ten={x.ten} mau={MAU_CON[i % MAU_CON.length]} co={32} />
             <Chu kieu="dam" co={14.5} mau={i === chon ? M.chinhInk : M.chu2}>{x.ten}</Chu>
           </Pressable>
