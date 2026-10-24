@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm, type AppChuaXep, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type PhienDang, type ThongKeWeb, type TuanThuMay } from "@/lib/api";
+import { bm, laChiXem, type AppChuaXep, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type PhienDang, type ThongKeWeb, type TuanThuMay } from "@/lib/api";
 import { AppMoi, NutThemMay, TheDangChoi, TheMay } from "@/lib/viec-nhanh";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { BangKhoa, cauKhoa, cauMoTam, conHan, moLaiMay } from "@/lib/khoa-may";
@@ -22,9 +22,9 @@ export default function TrangChu() {
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),            // máy chủ cũ chưa có ⇒ không hiện thẻ «Đang chơi»
       // thẻ máy: chế độ + bảo vệ từ MỘT nguồn (tuan-thu), tải MỘT lần cho cả nhà (đổi Con không gọi lại); lỗi ⇒ ẩn thẻ, không chặn cả trang
       bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null),
-      bm.goi<{ baMe: { vai: string } }>("toi").catch(() => null),            // quyền Chỉ xem ⇒ ẩn nút việc nhanh (máy chủ trả 403 chi_xem)
+      laChiXem(),                                                            // quyền Chỉ xem ⇒ ẩn nút việc nhanh (máy chủ trả 403 chi_xem)
     ]);
-    return { g, cb: cb.ds.filter((x) => !x.da_doc), luat, choi: choi?.ds ?? [], tt: tt?.ds ?? [], xem: toi?.baMe.vai === "xem" };
+    return { g, cb: cb.ds.filter((x) => !x.da_doc), luat, choi: choi?.ds ?? [], tt: tt?.ds ?? [], xem: toi };
   });
   const [chon, setChon] = useState(0);
   const { bao, noi } = useHoanTac();
@@ -143,7 +143,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
         <Icon ten="phai" mau={M.chu3} />
       </Pressable>
 
-      <Nut chu="Giao nhiệm vụ" ic="cong" rong bam={() => router.push(`/giao-nv?con=${c.id}`)} nhanDoc={`Giao nhiệm vụ cho ${c.ten}`} />
+      {xem ? null : <Nut chu="Giao nhiệm vụ" ic="cong" rong bam={() => router.push(`/giao-nv?con=${c.id}`)} nhanDoc={`Giao nhiệm vụ cho ${c.ten}`} />}
 
       {choi.map((p) => <TheDangChoi key={p.id} p={p} tai={tai} bao={bao} xem={xem} />)}
       <AppMoi ds={luat?.chuaXep ?? []} tai={() => { tai(); }} bao={bao} xem={xem} />

@@ -11,7 +11,8 @@ const { xuLyM } = await import("./api-m.ts");
 const { q, newId } = await import("./db.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 const { tenApp } = await import("./ten-app.ts");
-const { moPhien, xetMoPhien } = await import("./phien.ts");
+const { moPhien } = await import("./phien.ts");
+const { dieuChinhTay } = await import("./vi.ts");
 const { datLuat } = await import("./luat-app.ts");
 
 type Kq = { status: number; body: any };
@@ -24,6 +25,7 @@ async function m(duong: string, o: { tok: string; body?: unknown }): Promise<Kq>
   const r = await xuLyM(req, duong.split("?")[0].split("/"));
   return { status: r.status, body: await r.json() };
 }
+const bmId = async (fam: string) => (await q<{ id: string }>(`select id from parents where family_id = $1 limit 1`, [fam]))[0]!.id;
 async function nha() {
   const { fam, bm } = await taoNha("Lan");
   const con = await g.taoCon(fam, { ten: "Ken" });
@@ -78,14 +80,9 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   const { fam, con, tok } = await nha();
   const may = await ghep(fam, con);
   await datLuat(fam, { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" });
-  await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,50,'thuong','thử')`, [newId(), con]).catch(() => {});
-  let ph: { id: string } | null = null;
-  try { ph = await moPhien(con, may.deviceId, "roblox.exe"); } catch { /* chưa đủ điều kiện mở ⇒ chèn tay bên dưới */ }
-  if (!ph) {
-    const id = newId();
-    await q(`insert into play_sessions(id, child_id, device_id, muc, nhom, gia_phan_nghin, toi_da_phut) values ($1,$2,$3,'roblox.exe','game',1000,30)`, [id, con, may.deviceId]);
-    ph = { id };
-  }
+  await dieuChinhTay(fam, con, 50, "Điểm thử", await bmId(fam));
+  // phiên THẬT qua moPhien, giờ cố định trong khung chơi (thứ Tư 18:00 giờ VN) — không chèn tay
+  const ph = await moPhien(con, may.deviceId, "roblox.exe", {}, new Date("2026-10-21T18:00:00+07:00"));
   const ds = (await m("phien-dang", { tok })).body.ds;
   assert.equal(ds.length, 1);
   assert.deepEqual([ds[0].tenCon, ds[0].may, ds[0].tenApp], ["Ken", "PC của Ken", "Roblox"]);
@@ -95,9 +92,10 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   assert.equal((await m(`phien/${ph.id}/dung`, { tok: khac.tok, body: {} })).status, 404);
   assert.equal((await m(`phien/${ph.id}/dung`, { tok, body: {} })).status, 200);
   assert.equal((await m("phien-dang", { tok })).body.ds.length, 0);
-  // Dừng của Ba Mẹ có tác dụng: Con không mở phiên mới ngay mà phải nghỉ giữa giờ
-  const xet = await xetMoPhien(con, "roblox.exe", { mayId: may.deviceId });
-  assert.deepEqual([xet.duoc, xet.lyDo], [false, "dang_nghi"]);
+  // Dừng của Ba Mẹ có tác dụng: đặt giờ nghỉ (Con không mở phiên mới ngay); không trừ phút trôi từ nhịp cuối mà máy chưa xác nhận
+  const sau = (await q<{ nghi_den: Date | null; phut_dung: number; ly_do_ket: string }>(`select nghi_den, phut_dung, ly_do_ket from play_sessions where id = $1`, [ph.id]))[0];
+  assert.ok(sau.nghi_den && new Date(sau.nghi_den).getTime() > Date.now(), "có giờ nghỉ sau Dừng");
+  assert.deepEqual([sau.phut_dung, sau.ly_do_ket], [0, "ba_me_khoa"]);
 });
 
 test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của nhà", async () => {
@@ -167,4 +165,26 @@ test("Review lượt 2: Hoàn tác không hồi sinh luật đã hết hạn; ap
   const fam2 = (await nha()).fam;
   await nv.apDungMau(fam2, "nhi");
   assert.ok((await q(`select 1 from tasks where family_id = $1 and ten = 'Ăn'`, [fam2])).length);
+});
+
+test("Review lượt 3: «chưa xếp» theo luật hiệu lực của chính Con (tên miền cha, luật riêng Con khác không che), 30 ngày; het sai ⇒ 400", async () => {
+  const { fam, con, tok } = await nha();
+  const con2 = await g.taoCon(fam, { ten: "Bill" });
+  const may = await ghep(fam, con);
+  const may2 = await ghep(fam, con2);
+  const ngay = new Date().toISOString().slice(0, 10), cu = new Date(Date.now() - 40 * 86400_000).toISOString().slice(0, 10);
+  const dung = (m2: string, c: string, muc: string, d = ngay) =>
+    q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,'chua_phan_loai',5)`, [m2, c, d, muc]);
+  await dung(may.deviceId, con, "m.youtube.com");
+  await dung(may2.deviceId, con2, "zing.vn");
+  await dung(may.deviceId, con, "cu.exe", cu);
+  await datLuat(fam, { muc: "youtube.com", loai: "giai_tri" });          // tên miền cha ⇒ m.youtube.com đã xếp
+  await datLuat(fam, { con, muc: "zing.vn", loai: "chan" });             // luật riêng Ken không che việc Bill dùng zing.vn
+  const ds = (await m("luat", { tok })).body.chuaXep.map((x: any) => x.muc);
+  assert.ok(!ds.includes("m.youtube.com"), "khớp tên miền cha");
+  assert.ok(ds.includes("zing.vn"), "Bill vẫn cần Ba Mẹ xếp zing.vn");
+  assert.ok(!ds.includes("cu.exe"), "quá 30 ngày không còn là app mới");
+  const r = await m("luat", { tok, body: { muc: "a.exe", loai: "giai_tri", het: "không-phải-ngày" } });
+  assert.deepEqual([r.status, r.body.error], [400, "het_sai"]);
+  assert.equal(tenApp("javaw.exe"), "Java (thường là Minecraft)");
 });

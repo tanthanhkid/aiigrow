@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, LOAI_YC, NHOM_NV, tieuYc, type AppChuaXep, type LuotCho, type YeuCau } from "@/lib/api";
+import { bm, LOAI_YC, NHOM_NV, tieuYc, type AppChuaXep, type LuotCho, type YeuCau, laChiXem } from "@/lib/api";
 import { AppMoi } from "@/lib/viec-nhanh";
 import {
   Avt, BangTruot, BieuTron, Canh, Chu, CanhGiua, ChoTai, Dong, gioPhut, MAU_CON, Man, Nhan, Nhom, NhomTieu, Nut, useHoanTac, useLam, useTai, BaoLoi, useBaoKhiVe,
@@ -18,9 +18,9 @@ export default function ChoDuyet() {
     const [cd, luat, toi] = await Promise.all([
       bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[]; tuDong?: TuDong[] }>("cho-duyet"),
       bm.goi<{ chuaXep: AppChuaXep[] }>("luat").catch(() => null),         // app mới chưa xếp loại cũng là việc chờ Ba Mẹ (issue #70 §2.3)
-      bm.goi<{ baMe: { vai: string } }>("toi").catch(() => null),
+      laChiXem(),
     ]);
-    return { ...cd, appMoi: luat?.chuaXep ?? [], xem: toi?.baMe.vai === "xem" };
+    return { ...cd, appMoi: luat?.chuaXep ?? [], xem: toi };
   });
   const [huy, setHuy] = useState<Phieu | null>(null);
   const hl = useLam();

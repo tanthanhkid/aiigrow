@@ -10,6 +10,9 @@ import { BaoLoi, BieuTron, Chu, HaiNut, M, Nhan, Nut, The, truoc, useLam, type T
 /** Icon theo nền tảng máy — dùng chung Trang chủ, Hồ sơ Con, danh sách máy. */
 export const IC_NEN: Record<TuanThuMay["nen"], TenIcon> = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" };
 type Bao = (chu: string, hoan?: () => void) => void;
+/** Màu icon máy — MỘT quy tắc cho Trang chủ và danh sách máy: ngoài vòng ⇒ đỏ; lệch chuẩn hoặc bảo vệ chưa đủ ⇒ cam; còn lại xanh. */
+export const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" =>
+  (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || (m.baoVe && m.baoVe !== "day_du") ? "cam" : "xanh");
 
 /** Thẻ một máy của Con ở Trang chủ. Chế độ chỉ có trên máy tính (Windows): máy khác không hiện nút đổi. */
 export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; bao: Bao; xem?: boolean }) {
@@ -30,7 +33,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
   return (
     <The>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <BieuTron ic={IC_NEN[m.nen]} mau={chuaDu ? "cam" : "xanh"} />
+        <BieuTron ic={IC_NEN[m.nen]} mau={mauMay(m)} />
         <View style={{ flex: 1 }}>
           <Chu kieu="rat" co={15.5} dong={1}>{m.ten}</Chu>
           <Chu co={13} mau={M.chu3}>{`Đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}${m.dungChung ? " · máy dùng chung" : ""}`}</Chu>

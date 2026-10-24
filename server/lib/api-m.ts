@@ -205,14 +205,19 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
         giaoDich: await q(`select so_tien, loai, ghi_chu, created_at from quy_gd where family_id = $1 order by created_at desc limit 50`, [fam]) });
 
     if (d === "luat" && get) {
-      // «Chưa xếp»: mục máy Con đã gặp (phút dùng ghi loại chưa phân loại) mà gia đình chưa có luật
-      const chuaXep = await q<{ muc: string; phut: number }>(
-        `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
-           and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc and (r.het is null or r.het > now())) group by u.muc order by phut desc limit 50`, [fam]);
+      // «Chưa xếp»: mục máy Con gặp trong 30 ngày (phút dùng ghi loại chưa phân loại) mà VẪN chưa có luật hiệu lực cho chính Con đó —
+      // so như phanLoai: luật cả nhà hoặc riêng Con đó, khớp cả tên miền cha (m.youtube.com ⇐ youtube.com), luật hết hạn không tính.
+      const ds = await la.dsLuat(fam);
+      const coLuat = (muc: string, con: string) => la.khoaSo(muc).some((k) => ds.some((r) => r.muc === k && (!r.child_id || r.child_id === con)));
+      const chuaTheoCon = await q<{ muc: string; child_id: string; phut: number }>(
+        `select u.muc, u.child_id, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
+           and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc, u.child_id`, [fam]);
+      const gop = new Map<string, number>();
+      for (const x of chuaTheoCon) if (!coLuat(x.muc, x.child_id)) gop.set(x.muc, (gop.get(x.muc) ?? 0) + x.phut);
+      const chuaXep = [...gop].map(([muc, phut]) => ({ muc, phut })).sort((a, b) => b.phut - a.phut).slice(0, 50);
       // «Đã thấy trên máy Con» (30 ngày) để Ba Mẹ CHỌN thay vì gõ tên tệp (DX-028): tên dễ hiểu + loại hiện tại; mục hệ thống không liệt kê
       // Chỉ màn Ứng dụng cần (`?thay=1`): Trang chủ / Chờ duyệt chỉ đọc chuaXep + ds, khỏi gộp 30 ngày usage mỗi lần tải.
       const he = la.allowlistHieuLuc();
-      const ds = await la.dsLuat(fam);
       const canThay = new URL(req.url).searchParams.get("thay") === "1";
       const thay = !canThay ? [] : await q<{ muc: string; phut: number }>(
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai <> 'he_thong'
@@ -236,7 +241,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (p[0] === "phien" && p[1] && p[2] === "dung" && post) {
       const ph = await one<{ child_id: string }>(`select p.child_id from play_sessions p join children c on c.id = p.child_id where p.id = $1 and c.family_id = $2`, [p[1], fam]);
       if (!ph) return loi("khong_thay", "Không thấy phiên chơi", 404);
-      await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true });   // Con nghỉ nghi_giua phút, không mở lại ngay
+      await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true, tinhNot: false });   // Con nghỉ nghi_giua phút; không trừ phút chưa xác nhận
       return json({ ok: true });
     }
     if (d === "luat" && post) {
@@ -244,7 +249,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       const con = b.con ? s(b.con, 40) : "";
       const truoc = await la.luatHienCo(fam, con, b.muc);
       const het = b.het ? new Date(String(b.het)) : null;               // chỉ khi Hoàn tác khôi phục một luật có hạn
-      const muc = await la.datLuat(fam, { con, muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom, het: het && !isNaN(+het) ? het : null });
+      if (het && isNaN(+het)) return loi("het_sai", "Hạn của luật không hợp lệ", 400);   // không lặng lẽ biến luật có hạn thành vĩnh viễn
+      const muc = await la.datLuat(fam, { con, muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom, het });
       return json({ muc, truoc: truoc && { con, muc: truoc.muc, ten: truoc.ten, loai: truoc.loai, nhom: truoc.nhom, het: truoc.het } });
     }
     if (d === "luat/xoa" && post) return json({ muc: await la.xoaLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc }) });

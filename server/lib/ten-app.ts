@@ -2,7 +2,7 @@
 // Tên tệp chạy Windows / mã gói macOS·Android → tên hiển thị. Không biết thì làm đẹp tên tệp (bỏ .exe, tách chữ), tên miền giữ nguyên.
 const BIET: Record<string, string> = {
   "msedge.exe": "Microsoft Edge", "chrome.exe": "Google Chrome", "firefox.exe": "Firefox", "brave.exe": "Brave", "coccoc.exe": "Cốc Cốc", "opera.exe": "Opera",
-  "roblox.exe": "Roblox", "robloxplayerbeta.exe": "Roblox", "minecraft.exe": "Minecraft", "javaw.exe": "Minecraft (Java)", "fortniteclient-win64-shipping.exe": "Fortnite",
+  "roblox.exe": "Roblox", "robloxplayerbeta.exe": "Roblox", "minecraft.exe": "Minecraft", "javaw.exe": "Java (thường là Minecraft)", "fortniteclient-win64-shipping.exe": "Fortnite",
   "steam.exe": "Steam", "epicgameslauncher.exe": "Epic Games", "discord.exe": "Discord", "spotify.exe": "Spotify", "vlc.exe": "VLC",
   "zalo.exe": "Zalo", "telegram.exe": "Telegram", "whatsapp.exe": "WhatsApp", "skype.exe": "Skype", "tiktok.exe": "TikTok", "netflix.exe": "Netflix",
   "notepad.exe": "Notepad", "mspaint.exe": "Paint", "calc.exe": "Máy tính", "calculatorapp.exe": "Máy tính", "cmd.exe": "Command Prompt", "powershell.exe": "PowerShell",

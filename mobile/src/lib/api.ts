@@ -173,3 +173,6 @@ export type ManHinhTuan = {
 export type AppThay = { muc: string; ten: string; phut: number; loai: "hoc" | "giai_tri" | "chan" | "chua_xep" };
 export type AppChuaXep = { muc: string; ten?: string; phut: number };
 export type PhienDang = { id: string; con: string; tenCon: string; may: string | null; muc: string; tenApp: string; tam: boolean; conPhut: number };
+
+/** Tài khoản Ba/Mẹ đang ở quyền «Chỉ xem»? (máy chủ trả 403 chi_xem cho mọi POST) — lỗi mạng ⇒ coi như không, máy chủ vẫn chặn. */
+export const laChiXem = () => bm.goi<{ baMe: { vai: string } }>("toi").then((t) => t.baMe.vai === "xem", () => false);
