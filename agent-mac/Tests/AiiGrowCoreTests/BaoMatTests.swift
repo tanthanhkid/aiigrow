@@ -776,6 +776,59 @@ final class BaoMatTests: XCTestCase {
     await sync2.value
   }
 
+  func testDongBoChamKhongXoaGiayDungTrongLucCho() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, kho) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc, policyJson: Self.polHoc)
+    HttpMock.dat { _, _ in Thread.sleep(forTimeInterval: 1.5)
+      return HttpMock.json(200, ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30, "allowedApps": [], "learningApps": []]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    await b.vongAp()
+    let sync = Task { await b.vongDongBo() }
+    try await Task.sleep(nanoseconds: 300_000_000)                          // request đang bay
+    dongHo.tien(10); await b.vongAp()                                       // Con dùng thêm 10 giây lúc chờ
+    await sync.value
+    XCTAssertEqual(kho.doc()?.daDungGiayTuSync ?? 0, 10, accuracy: 0.01, "giây dùng lúc request đang bay không bị xoá")
+  }
+
+  func testDangGoTuXaVongApKhongApLai() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc, policyJson: Self.polHoc)
+    HttpMock.dat { path, _ in
+      if path.contains("xong") { Thread.sleep(forTimeInterval: 1.5); return HttpMock.json(200, [:]) }
+      return HttpMock.json(200, ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30, "lenh": [["id": 7, "loai": "go"]]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    let sync = Task { await b.vongDongBo() }
+    try await Task.sleep(nanoseconds: 500_000_000)                          // tuGo đang chờ «báo xong»
+    fake.tienTrinhTheoUid[501] = [roblox]; fake.conSongPid = [90]
+    await b.vongAp()
+    XCTAssertEqual(fake.tinHieuDaGui.count, 0, "đang gỡ ⇒ vòng áp không đóng app")
+    XCTAssertFalse(((try? String(contentsOfFile: thuMuc + "/hosts", encoding: .utf8)) ?? "").contains("AiiGrow"), "không ghi lại hosts")
+    await sync.value
+    XCTAssertEqual(fake.soLanChayTrinhGo, 1)
+  }
+
+  func testYeuCauLucDangDongBoVanDongBoSom() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let kho = ConfigStore(duongDan: thuMuc + "/config.json")
+    try kho.sua { $0.token = "t"; $0.deviceId = "d"; $0.uidCon = 501; $0.taiKhoanCon = "be" }
+    fake.uidTheoTen = ["be": 501]; fake.phien = PhienConsole(uid: 501, manKhoa: false)
+    let api = MayChuGia()                                                   // yeu-cau trả ngay, dong-bo chậm 1 giây — song song như máy chủ thật
+    api.dongBoTraVe = .tu(policyMau(mode: "hoc", now: dongHo.thuc), next: 300); api.treDongBo = 1_000_000_000
+    let b = BoMay(api: api, heThong: fake, kho: kho, tuyChon: TuyChonBoMay(duongDanHosts: thuMuc + "/hosts", thuMucChinhSach: thuMuc + "/Managed"),
+                  dongHo: { dongHo.thuc }, donDieu: { dongHo.donDieu })
+    let sync = Task { await b.vongDongBo() }
+    try await Task.sleep(nanoseconds: 300_000_000)
+    _ = await b.xuLyIPC(.xinThem(phut: 15, loiNhan: "bài tập"), uidGoi: 501)
+    XCTAssertEqual(api.lanYeuCau.count, 1)
+    await sync.value
+    api.treDongBo = 0
+    dongHo.tien(6); await b.vongDongBo()
+    XCTAssertEqual(api.lanDongBo.count, 2, "xin lúc đang đồng bộ ⇒ vẫn đồng bộ lại sau ~5 giây, không chờ 300 giây")
+  }
+
   func testDemNguocIPCTheoThoiGianThatGiuaCacVong() async throws {
     let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
     let fake = HeThongGia(), dongHo = DongHoGia()

@@ -55,6 +55,8 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
   var dongBoTraVe: KetQuaDongBo?
   var dongBoLoi: LoiApi?
   var yeuCauTraVe = KetQuaYeuCau(id: "yc1", trangThai: "cho")
+  /// Độ trễ (ns) của dongBo — giả mạng chậm mà các request khác vẫn chạy song song.
+  var treDongBo: UInt64 = 0
 
   var lanGhep: [(ma: String, tenMay: String)] = []
   var lanDongBo: [(TrangThaiAgent, [MucDung])] = []
@@ -67,6 +69,7 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
   }
   func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date) async throws -> KetQuaDongBo {
     lanDongBo.append((trangThai, dung))
+    if treDongBo > 0 { try await Task.sleep(nanoseconds: treDongBo) }
     if let e = dongBoLoi { throw e }
     if let r = dongBoTraVe { return r }
     throw LoiApi(chu: "chưa đặt dongBoTraVe")

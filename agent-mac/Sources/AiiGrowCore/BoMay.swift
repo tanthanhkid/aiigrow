@@ -35,6 +35,10 @@ public actor BoMay {
   private var matMang = false
   private var dangGhep = false
   private var dangDongBo = false
+  /// Mốc đồng bộ sớm xin lúc đang đồng bộ dở (taoYeuCau) — dongBo xong sẽ ghi đè syncLuc nên áp lại sau.
+  private var syncSom: Double?
+  /// Đang gỡ từ xa (tuGo đang await báo xong): vòng áp không được áp lại plist/hosts/đóng app.
+  private var dangGo = false
   private var trayNhipCuoi: Double = -1_000_000
   /// Mốc đơn điệu lần áp gần nhất (để cộng giờ đã dùng + đếm giây mục app).
   private var apTruoc: Double
@@ -127,6 +131,7 @@ public actor BoMay {
     guard cauHinh.daGhep, !dangDongBo, donDieu() >= syncLuc else { return }
     dangDongBo = true; defer { dangDongBo = false }
     await dongBo()
+    if let s = syncSom { syncLuc = min(syncLuc, s); syncSom = nil }
   }
 
   /// Vòng ÁP (Task riêng, 5 giây một lần): chỉ dùng Policy đã cache, KHÔNG BAO GIỜ await mạng — đóng app, hosts/plist, trừ giờ, đếm ngược khoá.
@@ -156,20 +161,21 @@ public actor BoMay {
     if conLaAdmin { st.conLaAdmin = true; st.quyen["haQuyenAdmin"] = false }   // quyen[…]=false ⇒ chiTietBaoVe của máy chủ liệt vào «còn thiếu» (mức Một phần)
     DemPhut.don(&cauHinh.demPhut)
     let dung = DemPhut.tong(cauHinh.demPhut)
+    let daGuiGiay = cauHinh.daDungGiayTuSync     // vòng áp vẫn cộng trong lúc await — chỉ trừ phần đã tính tới lúc gửi
     do {
       let kq = try await api.dongBo(trangThai: st, dung: dung, luc: dongHo())
       policy = kq.policy
       matMang = false
       syncLuc = donDieu() + Double(kq.nextCheckSec)
+      cauHinh.policyCuoi = kq.policy
+      cauHinh.policyLuc = dongHo()
+      cauHinh.daDungGiayTuSync = max(0, cauHinh.daDungGiayTuSync - daGuiGiay)
       _ = try? kho.sua {
         $0.policyCuoi = kq.policy
         $0.policyLuc = self.dongHo()
-        $0.daDungGiayTuSync = 0
+        $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync
         $0.lienLacCuoi = self.dongHo()
       }
-      cauHinh.policyCuoi = kq.policy
-      cauHinh.policyLuc = dongHo()
-      cauHinh.daDungGiayTuSync = 0
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
     } catch let e as LoiApi {
       matMang = e.laMang
@@ -189,7 +195,7 @@ public actor BoMay {
   /// IPC `trangThai`: TÍNH TƯƠI, không tác dụng phụ — console hiện tại, Policy cache, đếm ngược từ hạn chót, daGhep hiện tại, sổ giờ hiện tại.
   /// Không đóng app, không trừ giờ, không ghi gì.
   private func trangThaiTuoi() -> TrangThai {
-    guard cauHinh.daGhep else { return trangThaiChuaGhep() }
+    guard cauHinh.daGhep, !dangGo else { return trangThaiChuaGhep() }
     let phien = heThong.phienConsole()
     let laCon = phien?.uid == cauHinh.uidCon
     let manKhoa = phien?.manKhoa ?? true
@@ -203,7 +209,7 @@ public actor BoMay {
   }
 
   private func apChinhSachTho() -> TrangThai {
-    guard cauHinh.daGhep else { return trangThaiChuaGhep() }       // chưa ghép / đã bị gỡ từ xa: thả hoàn toàn
+    guard cauHinh.daGhep, !dangGo else { return trangThaiChuaGhep() }       // chưa ghép / đang gỡ / đã bị gỡ từ xa: thả hoàn toàn
     let now = dongHo()
     let phien = heThong.phienConsole()
     let laCon = phien?.uid == cauHinh.uidCon
@@ -372,6 +378,7 @@ public actor BoMay {
     do {
       let r = try await api.taoYeuCau(loai: loai, phut: phut, giaTri: giaTri, lyDo: lyDo)
       syncLuc = min(syncLuc, donDieu() + 5)     // đồng bộ sớm để quyết định của Ba Mẹ tới nhanh
+      if dangDongBo { syncSom = min(syncSom ?? .infinity, donDieu() + 5) }   // dongBo dở sẽ ghi đè syncLuc — vongDongBo áp lại mốc này
       return .ok(id: r.id)
     } catch let e as LoiApi { return .loi(ma: e.ma ?? "yeu_cau_loi", chu: e.chu) }
     catch { return .loi(ma: "yeu_cau_loi", chu: "\(error)") }
@@ -381,6 +388,8 @@ public actor BoMay {
 
   private func tuGo(lenhId: String) async {
     // Lệnh gỡ từ xa: trả quyền admin đã hạ, xoá chính sách web + hosts, xoá cấu hình. KHÔNG tự bootout launchd (gói cài lo).
+    dangGo = true                                   // vòng áp chạy song song trong lúc await bên dưới — chặn nó áp lại plist/hosts/đóng app
+    policy = nil; khoaLuc = nil
     apChinhSachTrinhDuyet(web: nil)
     // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.
     for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
@@ -395,6 +404,7 @@ public actor BoMay {
     policy = nil
     khoaLuc = nil
     heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn; chạy trình gỡ.")
+    dangGo = false                                  // daGhep đã false ⇒ vòng áp tự thả; để ghép lại (không khởi động lại daemon) vẫn chạy được
     heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)
   }
 
