@@ -80,10 +80,17 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   return muc;
 }
 
-/** Luật CÒN HIỆU LỰC của đúng (Con, mục) — để «Hoàn tác» khôi phục như trước. Luật đã hết hạn coi như chưa có (Hoàn tác ⇒ luat/xoa). */
+/** Khoá giao dịch theo (nhà, Con, mục): `for update` không khoá được dòng CHƯA tồn tại — hai lượt xếp / hoàn tác một app chưa có luật
+ *  sẽ cùng đọc «chưa có» rồi đè nhau. Khoá tư vấn giữ tới hết giao dịch, xếp lẫn hoàn tác cùng đi qua đây (như khoá tên Con ở gia-dinh.ts). */
+export const khoaLuat = (t: Q, fam: string, con: string, muc: string) =>
+  t(`select pg_advisory_xact_lock(hashtext($1))`, [`luat-app:${fam}:${con}:${muc}`]);
+
+/** Luật CÒN HIỆU LỰC của đúng (Con, mục) — để «Hoàn tác» khôi phục như trước. Luật đã hết hạn coi như chưa có (Hoàn tác ⇒ luat/xoa).
+ *  `khoa` (chỉ trong giao dịch): giữ khoá (nhà, Con, mục) tới hết giao dịch rồi mới đọc. */
 export async function luatHienCo(fam: string, con: string, mucTho: unknown, t: Q = q, khoa = false) {
   const muc = chuanMuc(mucTho);
   if (!muc) return null;
+  if (khoa) await khoaLuat(t, fam, con, muc);
   const r = await t<{ muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
     `select muc, ten, loai, nhom, het from app_rules where family_id = $1 and child_id = $2 and muc = $3 and (het is null or het > now())${khoa ? " for update" : ""}`, [fam, con, muc]);
   return r[0] ?? null;

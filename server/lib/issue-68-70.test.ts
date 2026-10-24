@@ -113,6 +113,37 @@ test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của 
   void fam;
 });
 
+test("«≈ X phút chơi» không vượt phút còn lại theo trần ngày (+ thưởng hôm nay − đã chơi)", async () => {
+  const { fam, con, tok } = await nha();
+  const { gioDiaPhuong } = await import("./gio.ts");
+  await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,30,'thuong','thử')`, [newId(), con]);
+  await q(`update families set cau_hinh = cau_hinh || '{"tran_ngay": 50}'::jsonb where id = $1`, [fam]);
+  const tz = (await q<{ tz: string }>(`select tz from families where id = $1`, [fam]))[0]!.tz;
+  await q(`insert into grants(id, child_id, phut, ngay) values ($1, $2, 3, $3)`, [newId(), con, gioDiaPhuong(new Date(), tz).ngay]);
+  const ph = newId();
+  await q(`insert into play_sessions(id, child_id, muc, nhom, gia_phan_nghin, toi_da_phut, phut_dung, trang_thai) values ($1,$2,'roblox.exe','game',1000,60,35,'ket_thuc')`, [ph, con]);
+  const lay = async () => (await m("gia-dinh", { tok })).body.con[0];
+  let c = await lay();
+  assert.deepEqual([c.soDu, c.phutDoiDuoc], [30, 18], "30 điểm đổi 30 phút nhưng hôm nay chỉ còn 50 + 3 − 35 = 18 phút");
+  await q(`update play_sessions set phut_dung = 70 where id = $1`, [ph]);
+  c = await lay();
+  assert.equal(c.phutDoiDuoc, 0, "đã chơi quá trần ⇒ 0, không âm");
+});
+
+test("Xếp / hoàn tác app: giữ khoá tư vấn theo (nhà, Con, mục) TRƯỚC khi đọc luật cũ — `for update` không khoá dòng chưa tồn tại", async () => {
+  const { fam, con } = await nha();
+  const la = await import("./luat-app.ts");
+  const { tx } = await import("./db.ts");
+  const ghi: string[] = [];
+  const doc = (k: string) => tx(async (t) => la.luatHienCo(fam, k, " Roblox.EXE ", async (sql, p) => { ghi.push(sql + " " + JSON.stringify(p ?? [])); return t(sql, p); }, true));
+  assert.equal(await doc(con), null);
+  assert.ok(/pg_advisory_xact_lock/.test(ghi[0] ?? ""), "câu đầu tiên phải là khoá: " + ghi[0]);
+  const k1 = ghi[0];
+  ghi.length = 0; await doc("");
+  assert.notEqual(ghi[0], k1, "luật cả nhà và luật riêng của Con khoá khác nhau");
+  assert.ok(k1.includes(fam) && k1.includes(con) && k1.includes("roblox.exe"), k1);
+});
+
 test("Hoàn tác xếp app ở Trang chủ: POST luat trả luật cũ; khôi phục đúng như cũ (kể cả hạn), chưa có thì luat/xoa đưa về chưa xếp", async () => {
   const { fam, con, tok } = await nha();
   const { phanLoai } = await import("./luat-app.ts");
