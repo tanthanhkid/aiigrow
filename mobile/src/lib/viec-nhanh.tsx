@@ -11,13 +11,13 @@ const IC_NEN: Record<TuanThuMay["nen"], TenIcon> = { windows: "may_tinh", mac: "
 type Bao = (chu: string, hoan?: () => void) => void;
 
 /** Thẻ một máy của Con ở Trang chủ. Chế độ chỉ có trên máy tính (Windows): máy khác không hiện nút đổi. */
-export function TheMay({ m, tai, bao }: { m: TuanThuMay; tai: () => void; bao: Bao }) {
+export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; bao: Bao; xem?: boolean }) {
   const { lam, loi, dangChay } = useLam();
   const win = m.nen === "windows";
   const dangGo = !!m.dangGo;
   const cho = !!(m.cheDoBaMeChon && m.cheDoMay && m.cheDoBaMeChon !== m.cheDoMay);
   const doiSang: CheDoMay = m.cheDo === "chan" ? "giam-sat" : "chan";
-  const chuaDu = m.baoVe !== "day_du";
+  const chuaDu = !!m.baoVe && m.baoVe !== "day_du";            // máy chủ cũ không gửi baoVe ⇒ không báo
   const doi = () => lam(async () => {
     const cu = m.cheDo;
     await bm.goi(`may/${m.id}/che-do`, { cheDo: doiSang });
@@ -25,7 +25,7 @@ export function TheMay({ m, tai, bao }: { m: TuanThuMay; tai: () => void; bao: B
       cu ? () => { bm.goi(`may/${m.id}/che-do`, { cheDo: cu }).then(tai, tai); } : undefined);
     tai();
   });
-  const lyDo = m.baoVeThieu[0]?.ten ?? m.baoVeCau;
+  const lyDo = m.baoVeThieu?.[0]?.ten ?? m.baoVeCau;
   return (
     <The>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -45,13 +45,13 @@ export function TheMay({ m, tai, bao }: { m: TuanThuMay; tai: () => void; bao: B
           <HaiNut><Nut chu="Sửa" ic="khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}`)} /></HaiNut>
         </View>
       ) : null}
-      <View style={{ marginTop: 12 }}>
+      {xem ? null : <View style={{ marginTop: 12 }}>
         <HaiNut>
           {win && m.cheDo && !dangGo ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
           <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />
           {win ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
         </HaiNut>
-      </View>
+      </View>}
       <BaoLoi loi={loi} />
     </The>
   );
@@ -63,7 +63,7 @@ export const NutThemMay = ({ id, ten, nhom }: { id: string; ten: string; nhom: "
 );
 
 /** Thẻ «Đang chơi» của một phiên: Con, máy, app, phút còn lại, Dừng. */
-export function TheDangChoi({ p, tai, bao }: { p: PhienDang; tai: () => void; bao: Bao }) {
+export function TheDangChoi({ p, tai, bao, xem }: { p: PhienDang; tai: () => void; bao: Bao; xem?: boolean }) {
   const { lam, loi, dangChay } = useLam();
   return (
     <The>
@@ -73,28 +73,36 @@ export function TheDangChoi({ p, tai, bao }: { p: PhienDang; tai: () => void; ba
           <Chu kieu="rat" co={15.5}>{`${p.tenCon} ${p.tam ? "tạm nghỉ" : "đang chơi"} ${p.tenApp}`}</Chu>
           <Chu co={13} mau={M.chu3}>{`${p.may ? `${p.may} · ` : ""}còn ${p.conPhut} phút`}</Chu>
         </View>
-        <Nut chu="Dừng" nho loai="huy" dangChay={dangChay} bam={() => lam(async () => {
+        {xem ? null : <Nut chu="Dừng" nho loai="huy" dangChay={dangChay} bam={() => lam(async () => {
           await bm.goi(`phien/${p.id}/dung`, {});
-          bao(`Đã dừng phiên chơi ${p.tenApp} của ${p.tenCon}`);
+          bao(`Đã dừng phiên chơi ${p.tenApp} của ${p.tenCon} — Con nghỉ giữa giờ rồi mới mở lại được`);
           tai();
-        })} />
+        })} />}
       </View>
       <BaoLoi loi={loi} />
     </The>
   );
 }
 
+type LuatCu = { con: string; muc: string; ten: string; loai: string; nhom: string; het: string | null };
 const LOAI_XEP = [["hoc", "Học tập"], ["giai_tri", "Giải trí"], ["chan", "Chặn"]] as const;
 
 /** App mới Con vừa dùng mà chưa xếp loại: 3 nút xếp ngay (luật cả nhà, như màn Ứng dụng). */
-export function AppMoi({ ds, tai, bao, toiDa = 3 }: { ds: AppChuaXep[]; tai: () => void; bao: Bao; toiDa?: number }) {
+export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai: () => void; bao: Bao; toiDa?: number; xem?: boolean }) {
   const { lam, loi, dangChay } = useLam();
   if (!ds.length) return null;
-  const xep = (x: AppChuaXep, loai: (typeof LOAI_XEP)[number]) => lam(async () => {
-    await bm.goi("luat", { muc: x.muc, ten: x.ten ?? x.muc, loai: loai[0], nhom: "khac" });
-    bao(`Đã xếp ${x.ten ?? x.muc} vào ${loai[1]} — đổi lại ở màn Ứng dụng`);
-    tai();
-  });
+  // Giải trí cần chọn nhóm (Trò chơi / Video ngắn / MXH…: giá và trần khác nhau) ⇒ mở màn Ứng dụng với app đã chọn sẵn, không đoán «khác»
+  const xep = (x: AppChuaXep, loai: (typeof LOAI_XEP)[number]) => loai[0] === "giai_tri"
+    ? router.push({ pathname: "/app-web", params: { xep: x.muc, ten: x.ten ?? x.muc } })
+    : lam(async () => {
+      const kq = await bm.goi<{ muc: string; truoc?: LuatCu | null }>("luat", { muc: x.muc, ten: x.ten ?? x.muc, loai: loai[0], nhom: "khac" });
+      // Hoàn tác: có luật cũ ⇒ đặt lại đúng như cũ; chưa có ⇒ bỏ luật, app quay về «chờ xếp loại». Máy chủ cũ không gửi `truoc` ⇒ không hiện Hoàn tác.
+      const hoan = kq && "truoc" in kq
+        ? () => { (kq.truoc ? bm.goi("luat", kq.truoc) : bm.goi("luat/xoa", { muc: kq.muc })).then(tai, tai); }
+        : undefined;
+      bao(`Đã xếp ${x.ten ?? x.muc} vào ${loai[1]}`, hoan);
+      tai();
+    });
   return (
     <The>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -107,7 +115,7 @@ export function AppMoi({ ds, tai, bao, toiDa = 3 }: { ds: AppChuaXep[]; tai: () 
       {ds.slice(0, toiDa).map((x) => (
         <View key={x.muc} style={{ marginTop: 12, gap: 8 }}>
           <Chu kieu="dam" co={14.5}>{x.ten ?? x.muc}<Chu co={13} mau={M.chu3}>{`  ·  ${x.phut} phút trên máy Con`}</Chu></Chu>
-          <HaiNut>{LOAI_XEP.map((l) => <Nut key={l[0]} chu={l[1]} nho loai={l[0] === "chan" ? "huy" : "vien"} dangChay={dangChay} bam={() => xep(x, l)} />)}</HaiNut>
+          {xem ? null : <HaiNut>{LOAI_XEP.map((l) => <Nut key={l[0]} chu={l[1]} nho loai={l[0] === "chan" ? "huy" : "vien"} dangChay={dangChay} bam={() => xep(x, l)} />)}</HaiNut>}
         </View>
       ))}
       {ds.length > toiDa ? <View style={{ marginTop: 10 }}><Nut chu={`Xem tất cả (${ds.length})`} nho loai="ma" bam={() => router.push("/app-web")} /></View> : null}

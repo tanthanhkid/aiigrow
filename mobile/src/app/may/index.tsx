@@ -18,7 +18,7 @@ export default function MayTinhDienThoai() {
   const tieu = d?.c ? `Máy của ${d.c.ten}` : "Máy tính & điện thoại";
   if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Máy tính & điện thoại"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   // MỘT nguồn: mức bảo vệ do máy chủ tính (baoVe) — cùng giá trị với Hồ sơ Con; «tuân thủ» (điểm) chỉ là phần giờ máy / mất kết nối
-  const can = d.ds.filter((m) => m.trangThai === "ngoai_vong" || m.trangThai === "lech_chuan" || m.baoVe !== "day_du").length;
+  const can = d.ds.filter((m) => m.trangThai === "ngoai_vong" || m.trangThai === "lech_chuan" || (!!m.baoVe && m.baoVe !== "day_du")).length;
   const c = d.c;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu={tieu} tai={tai}
@@ -31,7 +31,7 @@ export default function MayTinhDienThoai() {
             <Dong key={m.id} dau={i === 0} tieu={m.ten}
               phu={`${m.cheDo ? `${TEN_CHE_DO[m.cheDo]} · ` : ""}${phuMay(m)} · đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}`}
               trai={<BieuTron ic={IC_NEN[m.nen]} mau={mauMay(m)} />}
-              phai={m.baoVe !== "day_du" && m.trangThai === "tuan_thu" ? <Nhan chu="Bảo vệ chưa đủ" loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
+              phai={!!m.baoVe && m.baoVe !== "day_du" && m.trangThai === "tuan_thu" ? <Nhan chu="Bảo vệ chưa đủ" loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
               bam={() => router.push(`/may/${m.id}`)} />
           ))}
         </Nhom>
@@ -42,7 +42,7 @@ export default function MayTinhDienThoai() {
 }
 
 function phuMay(m: TuanThuMay) {
-  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
+  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : m.baoVe && m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
   return m.dungChung ? `${p} · máy dùng chung` : p;
 }
 const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" => (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" ? "cam" : "xanh");

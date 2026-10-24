@@ -80,6 +80,23 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   return muc;
 }
 
+/** Luật hiện có đúng (Con, mục) — để «Hoàn tác» một lần xếp loại khôi phục lại đúng như trước. */
+export async function luatHienCo(fam: string, con: string, mucTho: unknown, t: Q = q) {
+  const muc = chuanMuc(mucTho);
+  if (!muc) return null;
+  const r = await t<{ muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
+    `select muc, ten, loai, nhom, het from app_rules where family_id = $1 and child_id = $2 and muc = $3`, [fam, con, muc]);
+  return r[0] ?? null;
+}
+
+/** Bỏ luật của (Con, mục) — mục quay về «chưa xếp loại». Dùng cho «Hoàn tác» khi trước đó chưa có luật. */
+export async function xoaLuat(fam: string, b: { con?: string; muc: unknown }, t: Q = q) {
+  const muc = chuanMuc(b.muc);
+  if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên ứng dụng hoặc website");
+  await t(`delete from app_rules where family_id = $1 and child_id = $2 and muc = $3`, [fam, b.con ?? "", muc]);
+  return muc;
+}
+
 export const dsLuat = (fam: string) =>
   q<{ child_id: string; muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
     `select child_id, muc, ten, loai, nhom, het from app_rules where family_id = $1 and (het is null or het > now()) order by ten`, [fam]);

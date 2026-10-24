@@ -130,12 +130,12 @@ export default function AnToanMay() {
         </Bao>
       ) : null}
 
-      {m.baoVe !== "day_du" ? (
+      {m.baoVe && m.baoVe !== "day_du" ? (
         <>
           <NhomTieu chu="Bảo vệ chưa đủ — cách sửa" />
           <Nhom>
             <Dong dau tieu={m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ"} phu={m.baoVeCau} trai={<BieuTron ic="canh_bao" mau="cam" />} />
-            {m.baoVeThieu.map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
+            {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
           </Nhom>
         </>
       ) : null}

@@ -50,10 +50,10 @@ export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nh
 /** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ dùng cùng hằng số này (mobile/src/lib/ui.tsx không lặp: kiểm ở giao-nv.tsx). */
 export const TEN_NV_TOI_THIEU = 3;
 
-function kiemNv(b: Record<string, unknown>) {
+function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
   const ten = String(b.ten ?? "").trim().slice(0, 60);
   if (!ten) throw new LoiNghiepVu("thieu_ten", "Đặt tên nhiệm vụ");
-  if ([...ten].length < TEN_NV_TOI_THIEU) throw new LoiNghiepVu("ten_ngan", `Tên nhiệm vụ cần ít nhất ${TEN_NV_TOI_THIEU} ký tự để Con hiểu việc cần làm`);
+  if (kiemDoDai && [...ten].length < TEN_NV_TOI_THIEU) throw new LoiNghiepVu("ten_ngan", `Tên nhiệm vụ cần ít nhất ${TEN_NV_TOI_THIEU} ký tự để Con hiểu việc cần làm`);
   const diem = Math.round(Number(b.diem));
   if (!Number.isInteger(diem) || diem < 1 || diem > 1000) throw new LoiNghiepVu("diem_sai", "Điểm thưởng là số nguyên từ 1");
   const nhom = (NHOM_NV as readonly string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
@@ -96,7 +96,9 @@ export async function apDungMau(fam: string, nhom: "nhi" | "teen") {
 export async function suaNv(fam: string, id: string, b: Record<string, unknown>) {
   const cu = await one<Nv>(`select * from tasks where id = $1 and family_id = $2`, [id, fam]);
   if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ", 404);
-  const v = kiemNv({ ...cu, ...b });
+  // nhiệm vụ cũ tên ngắn (trước luật 3 ký tự) vẫn sửa điểm / tắt được: chỉ kiểm độ dài khi Ba Mẹ đổi tên
+  const doiTen = b.ten !== undefined && String(b.ten ?? "").trim().slice(0, 60) !== cu.ten;
+  const v = kiemNv({ ...cu, ...b }, doiTen);
   await q(`update tasks set ten=$2, mo_ta=$3, nhom=$4, diem=$5, bang_chung=$6, kieu=$7, toi_da_ngay=$8, toi_da_tuan=$9, phut_toi_thieu=$10,
            tu_duyet=$11, bat=$12 where id = $1`,
     [id, v.ten, v.mo_ta, v.nhom, v.diem, v.bang_chung, v.kieu, v.toi_da_ngay, v.toi_da_tuan, v.phut_toi_thieu, v.tu_duyet, b.bat === undefined ? cu.bat : b.bat === true]);

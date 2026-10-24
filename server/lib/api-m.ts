@@ -209,14 +209,19 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
            and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc) group by u.muc order by phut desc limit 50`, [fam]);
       // «Đã thấy trên máy Con» (30 ngày) để Ba Mẹ CHỌN thay vì gõ tên tệp (DX-028): tên dễ hiểu + loại hiện tại; mục hệ thống không liệt kê
+      // Chỉ màn Ứng dụng cần (`?thay=1`): Trang chủ / Chờ duyệt chỉ đọc chuaXep + ds, khỏi gộp 30 ngày usage mỗi lần tải.
       const he = la.allowlistHieuLuc();
-      const thay = await q<{ muc: string; phut: number }>(
+      const ds = await la.dsLuat(fam);
+      const canThay = new URL(req.url).searchParams.get("thay") === "1";
+      const thay = !canThay ? [] : await q<{ muc: string; phut: number }>(
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1
            and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc order by phut desc limit 100`, [fam]);
-      const ds = await la.dsLuat(fam);
+      // «loại hiện tại» = luật CẢ NHÀ lâu dài, khớp cụ thể nhất (như phanLoai: mục dài hơn thắng). Luật riêng một Con / có hạn (Lần này, Hôm nay) không tính.
+      const caNha = ds.filter((r) => !r.child_id && !r.het);
+      const loaiCaNha = (muc: string) => caNha.filter((r) => la.khoaSo(muc).includes(r.muc)).sort((a, b) => b.muc.length - a.muc.length)[0]?.loai ?? "chua_xep";
       const daThay = thay.filter((x) => !la.khoaSo(x.muc).some((k) => he.includes(k)))
-        .map((x) => ({ muc: x.muc, ten: tenApp(x.muc), phut: x.phut, loai: ds.find((r) => la.khoaSo(x.muc).includes(r.muc))?.loai ?? "chua_xep" }));
-      return json({ ds, heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: tenApp(x.muc) })), daThay });
+        .map((x) => ({ muc: x.muc, ten: tenApp(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
+      return json({ ds, heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: tenApp(x.muc) })), ...(canThay ? { daThay } : {}) });
     }
     // Thẻ «Đang chơi» ở Trang chủ: phiên giải trí đang chạy / tạm của cả nhà (Con, máy, app, phút còn lại). «Dừng» = như Khoá ngay một phiên.
     if (d === "phien-dang" && get) {
@@ -225,15 +230,23 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
            from play_sessions p join children c on c.id = p.child_id left join devices d on d.id = p.device_id
           where c.family_id = $1 and p.trang_thai in ('chay', 'tam') order by p.bat_dau`, [fam]);
       return json({ ds: r.map((x) => ({ id: x.id, con: x.child_id, tenCon: x.ten_con, may: x.may, muc: x.muc, tenApp: tenApp(x.muc), tam: x.trang_thai === "tam",
-        conPhut: Math.max(0, Math.round(x.toi_da_phut - x.phut_dung)) })) });
+        conPhut: Math.max(0, Math.ceil(x.toi_da_phut - x.phut_dung)) })) });
     }
     if (p[0] === "phien" && p[1] && p[2] === "dung" && post) {
       const ph = await one<{ child_id: string }>(`select p.child_id from play_sessions p join children c on c.id = p.child_id where p.id = $1 and c.family_id = $2`, [p[1], fam]);
       if (!ph) return loi("khong_thay", "Không thấy phiên chơi", 404);
-      await dungPhien(ph.child_id, p[1], "ba_me_khoa");
+      await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true });   // Con nghỉ nghi_giua phút, không mở lại ngay
       return json({ ok: true });
     }
-    if (d === "luat" && post) return json({ muc: await la.datLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom }) });
+    if (d === "luat" && post) {
+      // `truoc` = luật cũ của đúng (Con, mục) — app gửi lại nó (hoặc gọi luat/xoa nếu null) để «Hoàn tác»
+      const con = b.con ? s(b.con, 40) : "";
+      const truoc = await la.luatHienCo(fam, con, b.muc);
+      const het = b.het ? new Date(String(b.het)) : null;               // chỉ khi Hoàn tác khôi phục một luật có hạn
+      const muc = await la.datLuat(fam, { con, muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom, het: het && !isNaN(+het) ? het : null });
+      return json({ muc, truoc: truoc && { con, muc: truoc.muc, ten: truoc.ten, loai: truoc.loai, nhom: truoc.nhom, het: truoc.het } });
+    }
+    if (d === "luat/xoa" && post) return json({ muc: await la.xoaLuat(fam, { con: b.con ? s(b.con, 40) : "", muc: b.muc }) });
 
     if (p[0] === "admin" && p[1] === "ho-tro") {       // hộp thư hỗ trợ của AiiLab: chỉ Ba Mẹ có cờ admin
       if (!hta.laQuanTri(bm.id)) return loi("khong_du_quyen", "Tính năng này chỉ dành cho quản trị AiiLab", 403);

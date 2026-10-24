@@ -1,5 +1,6 @@
 // bm-app-web: phân loại ứng dụng / website ≤ 3 thao tác (FR-02.02): tìm → chọn loại → xong. Mục hệ thống (Office, AiiRob…) luôn dùng được.
 import { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type AppThay } from "@/lib/api";
 import {
@@ -12,10 +13,12 @@ const LOAI = { hoc: ["Học tập", "ok"], giai_tri: ["Giải trí", "diem"], ch
 const NHOM = [{ gia: "game", chu: "Trò chơi" }, { gia: "video_ngan", chu: "Video ngắn" }, { gia: "mxh", chu: "Mạng xã hội" }, { gia: "phim_gd", chu: "Phim giáo dục" }];
 
 export default function AppWeb() {
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<Ds>("luat"));
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<Ds>("luat?thay=1"));
+  // Trang chủ / Chờ duyệt bấm «Giải trí» ⇒ mở sẵn bảng xếp cho app đó để Ba Mẹ chọn nhóm (Trò chơi, Video ngắn…)
+  const ts = useLocalSearchParams<{ xep?: string; ten?: string }>();
   const [the, setThe] = useState<"chua" | "thay" | "hoc" | "giai_tri" | "chan">("chua");
   const [tim, setTim] = useState("");
-  const [xep, setXepMuc] = useState<{ muc: string; ten: string } | null>(null);
+  const [xep, setXepMuc] = useState<{ muc: string; ten: string } | null>(ts.xep ? { muc: ts.xep, ten: ts.ten || ts.xep } : null);
   const setXep = (muc: string | null, ten?: string) => setXepMuc(muc ? { muc, ten: ten || muc } : null);
   const [loai, setLoai] = useState<"hoc" | "giai_tri" | "chan">("giai_tri");
   const [nhom, setNhom] = useState("game");

@@ -15,11 +15,12 @@ type TuDong = { id: string; ten_con: string; ten: string; diem: number; nguon: s
 
 export default function ChoDuyet() {
   const { d, loi, matMang, tai, dangTai } = useTai(async () => {
-    const [cd, luat] = await Promise.all([
+    const [cd, luat, toi] = await Promise.all([
       bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[]; tuDong?: TuDong[] }>("cho-duyet"),
       bm.goi<{ chuaXep: AppChuaXep[] }>("luat").catch(() => null),         // app mới chưa xếp loại cũng là việc chờ Ba Mẹ (issue #70 §2.3)
+      bm.goi<{ baMe: { vai: string } }>("toi").catch(() => null),
     ]);
-    return { ...cd, appMoi: luat?.chuaXep ?? [] };
+    return { ...cd, appMoi: luat?.chuaXep ?? [], xem: toi?.baMe.vai === "xem" };
   });
   const [huy, setHuy] = useState<Phieu | null>(null);
   const hl = useLam();
@@ -38,7 +39,7 @@ export default function ChoDuyet() {
     return (
       <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
         <Canh lv="cho" thap tieu="Chỉ còn app mới chờ xếp loại" loi="Không có nhiệm vụ hay lời xin nào đang chờ." />
-        <AppMoi ds={d.appMoi} tai={tai} bao={bao} toiDa={10} />
+        <AppMoi ds={d.appMoi} tai={tai} bao={bao} toiDa={10} xem={d.xem} />
       </Man>
     );
   }
@@ -58,7 +59,7 @@ export default function ChoDuyet() {
     <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
       <Canh lv="cho" thap tieu={`${tong} việc đang chờ`} loi={`Cũ nhất ${phut < 60 ? `${phut} phút` : `${Math.round(phut / 60)} giờ`}. ${d.nhiemVu.length || d.yeuCau.length ? "Duyệt xong là điểm vào ví Con ngay." : "Con đã đổi điểm, chờ Ba Mẹ trao quà."}`} />
       <BaoLoi loi={hl.loi} />
-      <AppMoi ds={d.appMoi} tai={tai} bao={bao} />
+      <AppMoi ds={d.appMoi} tai={tai} bao={bao} xem={d.xem} />
       {con.map(([id, ten], ci) => {
         const nv = d.nhiemVu.filter((x) => x.child_id === id), yc = d.yeuCau.filter((x) => x.child_id === id), qa = phieu.filter((x) => x.child_id === id);
         return (

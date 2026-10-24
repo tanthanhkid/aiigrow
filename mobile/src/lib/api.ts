@@ -104,8 +104,9 @@ export type VanDeTuanThu = { loai: "gio_sai" | "app_tat" | "admin_la" | "khong_t
 export type TuanThuMay = {
   id: string; ten: string; nen: MayCon["nen"]; con: string | null; dungChung: boolean; lanCuoi: string | null;
   phienBan: string | null; adminTinCay: string[];
-  /** MỘT nguồn mức bảo vệ với Hồ sơ Con (server/lib/gia-dinh.ts › chiTietBaoVe): trang nào cũng đọc từ đây, không tự tính lại. */
-  baoVe: MayCon["baoVe"]; baoVeCau: string; baoVeThieu: { ma: string; ten: string; cach: string }[];
+  /** MỘT nguồn mức bảo vệ với Hồ sơ Con (server/lib/gia-dinh.ts › chiTietBaoVe): trang nào cũng đọc từ đây, không tự tính lại.
+   *  Máy chủ cũ không gửi ⇒ undefined: coi là «chưa biết», không báo «chưa đủ» và không đọc baoVeThieu. */
+  baoVe?: MayCon["baoVe"]; baoVeCau?: string; baoVeThieu?: { ma: string; ten: string; cach: string }[];
   trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
   /** Windows: hạn «đang mở» thật (mở khẩn cấp hoặc thêm giờ đã duyệt) — null = không mở. Máy chủ cũ không gửi. */
   moDen?: string | null;

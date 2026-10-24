@@ -22,7 +22,7 @@ export default function GiaoNv() {
   const con = d?.con ?? [];
   const giaoCho = cho ?? (conXem && con.some((c) => c.id === conXem) ? conXem : con[0]?.id) ?? "ca_nha";
   const tenGiao = giaoCho === "ca_nha" ? "cả nhà" : con.find((c) => c.id === giaoCho)?.ten ?? "Con";
-  const tenNgan = ten.trim().length > 0 && ten.trim().length < TEN_TOI_THIEU;
+  const tenNgan = [...ten.trim()].length > 0 && [...ten.trim()].length < TEN_TOI_THIEU;
   const hanDate = /^\d{1,2}\/\d{1,2}$/.test(han) ? (() => { const [dd, mm] = han.split("/").map(Number); const t = new Date(); t.setMonth(mm - 1, dd); t.setHours(21, 0, 0, 0); return t; })() : null;
   const giao = () => lam(async () => {
     await bm.goi("nhiem-vu", { ten, mo_ta: loiNhan.trim(), diem: Number(diem), kieu, bang_chung: bc, giao_cho: giaoCho === "ca_nha" ? null : giaoCho,
@@ -32,7 +32,7 @@ export default function GiaoNv() {
   });
   return (
     <Man lui={{ chu: "Quay lại" }} tieu="Giao nhiệm vụ"
-      day={<><BaoLoi loi={loi} /><Nut chu={`Giao cho ${tenGiao} · ${diem || 0} điểm`} rong dangChay={dangChay} tat={ten.trim().length < TEN_TOI_THIEU || !(Number(diem) >= 1)} bam={giao} /></>}>
+      day={<><BaoLoi loi={loi} /><Nut chu={`Giao cho ${tenGiao} · ${diem || 0} điểm`} rong dangChay={dangChay} tat={[...ten.trim()].length < TEN_TOI_THIEU || !(Number(diem) >= 1)} bam={giao} /></>}>
       <Canh lv="so-tay" thap tieu={`Giao việc cho ${tenGiao}`} loi="Con nhận thông báo và thấy việc ở khay của máy tính, kèm hạn và số điểm. Con nộp xong, Ba Mẹ duyệt ở Chờ duyệt." />
       <ONhap nhan="Việc cần làm" loi={tenNgan ? `Tên cần ít nhất ${TEN_TOI_THIEU} ký tự để Con hiểu việc cần làm` : null} value={ten} onChangeText={setTen} placeholder="Dọn tủ sách" maxLength={60} />
       <ONhap nhan="Lời nhắn cho Con (không bắt buộc)" value={loiNhan} onChangeText={setLoiNhan} placeholder="Xếp sách theo cỡ, chụp trước và sau" maxLength={300} />

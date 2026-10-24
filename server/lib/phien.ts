@@ -176,7 +176,9 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
 }
 
 /** Con bấm «Dừng sớm» (giữ điểm còn lại) hoặc Ba Mẹ khoá ngay. */
-export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" | "ba_me_khoa" | "het_dang_nhap" = "con_dung", now = new Date()) {
+/** `nghi`: đặt giờ nghỉ (nghi_giua) sau phiên — mặc định chỉ khi Con tự dừng; Ba Mẹ bấm «Dừng» ở Trang chủ cũng cần (không thì Con mở phiên mới ngay). */
+export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" | "ba_me_khoa" | "het_dang_nhap" = "con_dung", now = new Date(),
+  o: { nghi?: boolean } = {}) {
   await nhip(con, phienId, true, now);                                 // tính nốt phút tới lúc dừng
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
@@ -187,7 +189,7 @@ export async function dungPhien(con: string, phienId: string, lyDo: "con_dung" |
     const le = Math.ceil(p.phan_nghin_tru / 1000) - p.diem_tru;
     const tru = le > 0 ? Math.min(le, await soDu(con, t)) : 0;
     if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc}`, { ref: phienId });
-    const nghi = lyDo === "con_dung" ? new Date(now.getTime() + b.ts.nghi_giua * 60000) : null;
+    const nghi = (o.nghi ?? lyDo === "con_dung") ? new Date(now.getTime() + b.ts.nghi_giua * 60000) : null;
     await t(`update play_sessions set trang_thai = 'ket_thuc', ly_do_ket = $2, ket_thuc = $3, nghi_den = $4, diem_tru = diem_tru + $5 where id = $1`,
       [phienId, lyDo, now, nghi, tru]);
     await ghiSuKien(fam, "ket_phien", { muc: p.muc, phut: p.phut_dung, ly_do: lyDo }, { con }, t);
