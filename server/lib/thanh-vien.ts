@@ -7,6 +7,7 @@ import { newId, one, q, tx } from "./db.ts";
 import { bamMatKhau, chuanDinhDanh, kiemOtp, sha, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
+import { damBaoBang, ghiKiemToan } from "./admin.ts";
 import { SCHEMA_TV_TB } from "./schema.ts";
 
 export const LOI_MOI_GIO = 72;
@@ -132,7 +133,7 @@ export async function dangKyTheoLoiMoi(b: { ma?: unknown; dinhDanh?: unknown; ot
 /** Ba Mẹ đã đăng nhập nhận lời mời: chỉ khi gia đình hiện tại còn TRỐNG (chưa có Con, máy, người lớn khác) — chuyển sang gia đình mời,
  * gia đình trống bị xoá. Tài khoản đã có dữ liệu thì không chuyển (mỗi tài khoản một gia đình ở giai đoạn này). */
 export async function nhanLoiMoi(bm: BaMe, maVao: unknown) {
-  await bangTvTb();
+  await bangTvTb(); await damBaoBang();     // bảng audit có trước giao dịch (PGlite: không DDL trong tx)
   const maHash = sha(chuanMa(maVao));
   return tx(async (t) => {
     const m = (await t<LoiMoi>(`select * from loi_moi where ma_hash = $1 for update`, [maHash]))[0];
@@ -150,7 +151,9 @@ export async function nhanLoiMoi(bm: BaMe, maVao: unknown) {
     const cu = bm.family_id;
     await t(`update parents set family_id = $2, vai = $3 where id = $1`, [bm.id, m.family_id, m.vai]);
     await t(`update loi_moi set dung_luc = now(), dung_boi = $2 where id = $1`, [m.id, bm.id]);
-    await t(`delete from families where id = $1 and not exists (select 1 from parents where family_id = $1)`, [cu]);
+    const bo = await t(`delete from families where id = $1 and not exists (select 1 from parents where family_id = $1) returning id`, [cu]);
+    // mốc tính 90 ngày dọn audit của gia đình cũ (lib/xoa-tai-khoan.ts › donKiemToanGiaDinhDaXoa)
+    if (bo.length) await ghiKiemToan(null, "xoa_gia_dinh", { soCon: 0, qua: "nhan_loi_moi" }, cu, t);
     await ghiSuKien(m.family_id, "thanh_vien_vao", { ten: bm.ten, vai: m.vai }, { nguoi: bm.id }, t);
     return { vai: m.vai };
   });

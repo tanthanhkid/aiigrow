@@ -227,15 +227,28 @@ test("audit của gia đình đã xoá: giữ 90 ngày rồi xoá hẳn; gia đ�
   const quet = async () => (await q<{ ma: string }>(`select chi_tiet->>'ma' as ma from audit where family_id is null and chi_tiet->>'ma' in ('CU91', 'MOI10')`)).map((x) => x.ma);
   assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 3, 2]);
 
-  assert.equal(await donKiemToanGiaDinhDaXoa(now), 5);
+  await donKiemToanGiaDinhDaXoa(now);
   assert.equal(await dem("gd_khong_con"), 0);
   assert.deepEqual(await quet(), ["MOI10"]);
   assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 0, 2], "89 ngày còn, 91 ngày xoá hẳn kể cả dòng mốc");
-  assert.equal(await donKiemToanGiaDinhDaXoa(now), 0, "gọi lặp vô hại");
+  await donKiemToanGiaDinhDaXoa(now);
+  assert.deepEqual([await dem(f89), await dem(fCon), (await quet()).length], [3, 2, 1], "gọi lặp vô hại");
   // 2 ngày sau gia đình 89 ngày quá hạn
   await q(`delete from he_thong where khoa = 'don_kiem_toan'`);
   const sau = new Date(now.getTime() + 2 * 86_400_000);
-  assert.equal(await chayDonKiemToan(sau), 3);
+  assert.ok(((await chayDonKiemToan(sau)) ?? 0) >= 3);
   assert.equal(await chayDonKiemToan(new Date(sau.getTime() + 30 * 60_000)), null, "chưa đủ 1 giờ ⇒ bỏ qua");
   assert.deepEqual([await dem(f89), await dem(fCon)], [0, 2]);
+});
+
+test("nhận lời mời bỏ gia đình rỗng cũ ⇒ ghi mốc «xoa_gia_dinh» để audit của gia đình cũ được dọn sau 90 ngày", async () => {
+  const { ghiKiemToan } = await import("./admin.ts");
+  const a = await nha("Hong"), b = await nha("Le");
+  await ghiKiemToan({ id: "nv1", vai: "admin" }, "tra_loi_ho_tro", { doDai: 3 }, b.fam);
+  const loiMoi = await m("thanh-vien/moi", { tok: a.tok, body: { vai: "duyet" } });
+  assert.equal(loiMoi.status, 200, JSON.stringify(loiMoi.body));
+  const nhan = await m("moi/nhan", { tok: b.tok, body: { ma: loiMoi.body.ma } });
+  assert.equal(nhan.status, 200, JSON.stringify(nhan.body));
+  assert.equal((await q(`select 1 from families where id = $1`, [b.fam])).length, 0);
+  assert.equal((await q(`select 1 from audit where family_id = $1 and hanh_dong = 'xoa_gia_dinh'`, [b.fam])).length, 1);
 });

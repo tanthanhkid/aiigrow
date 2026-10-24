@@ -98,18 +98,19 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
 // ---------------------------------------------------------------- dọn audit của gia đình đã xoá quá 90 ngày (chính sách quyền riêng tư mục 4)
 export const GIU_KIEM_TOAN_NGAY = 90;
 
-/** Xoá hẳn audit của gia đình KHÔNG còn trong families (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi;
- *  xoá tay theo yêu cầu email) khi dòng MỚI NHẤT của gia đình đó (thường là mốc «xoa_gia_dinh») đã quá GIU_KIEM_TOAN_NGAY ngày — không phụ
- *  thuộc đường xoá nào. Kèm: dòng «quet_voucher» không gắn gia đình (quét mã không còn / không có thật — có thể là mã phiếu của gia đình đã
- *  xoá) quá 90 ngày. Gọi lặp vô hại. → số dòng đã xoá. */
+/** Xoá hẳn audit của gia đình KHÔNG còn trong families khi dòng MỚI NHẤT của gia đình đó đã quá GIU_KIEM_TOAN_NGAY ngày — không phụ thuộc
+ *  đường xoá nào. Đường xoá trong mã (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi) ghi mốc «xoa_gia_dinh»
+ *  nên dòng mới nhất = lúc xoá ⇒ đủ 90 ngày để xử lý khiếu nại; xoá tay theo yêu cầu email thì ghi mốc như vậy bằng tay.
+ *  Kèm: dòng «quet_voucher» không gắn gia đình (mã không còn — có thể là phiếu của gia đình đã xoá — hoặc không có thật) quá 90 ngày.
+ *  Gọi lặp vô hại. → số dòng đã xoá. */
 export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number> {
   await damBaoBang();
   const moc = new Date(now.getTime() - GIU_KIEM_TOAN_NGAY * 86_400_000);
-  const r = await q<{ id: string }>(`delete from audit where family_id in (
+  const giaDinh = await q<{ id: string }>(`delete from audit where family_id in (
       select x.family_id from audit x where x.family_id is not null and not exists (select 1 from families f where f.id = x.family_id)
-        group by x.family_id having max(x.created_at) < $1)
-    or (family_id is null and hanh_dong = 'quet_voucher' and created_at < $1) returning id`, [moc]);
-  return r.length;
+        group by x.family_id having max(x.created_at) < $1) returning id`, [moc]);
+  const quet = await q<{ id: string }>(`delete from audit where created_at < $1 and family_id is null and hanh_dong = 'quet_voucher' returning id`, [moc]);
+  return giaDinh.length + quet.length;
 }
 
 /** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn; dọn lỗi thì trả lượt
