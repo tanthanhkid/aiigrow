@@ -33,6 +33,13 @@ export const DO = String.raw`(() => {
   const cuoi = !!window.__gdCuoi;
   // Ảnh là đồ hoạ CỦA chữ: cùng một thành phần bấm được (thẻ «Cần giúp?»), hoặc ảnh là nền của khung nhỏ chứa chữ (vòng tiến độ).
   const dienTich = e => { const r = e.getBoundingClientRect(); return r.width * r.height; };
+  // Phần ảnh THẤY ĐƯỢC: cắt theo mọi khung tổ tiên có overflow ≠ visible (ScrollView). Ảnh cuộn xuống dưới thanh tab / nút đáy cố định
+  // nằm ngoài khung cuộn ⇒ bị cắt, không đè chữ của thanh. Trả null nếu khuất hết.
+  const thayDuoc = (a) => { let r = a.getBoundingClientRect(), L0 = r.left, T0 = r.top, R0 = r.right, B0 = r.bottom;
+    for (let k = a.parentElement; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k);
+      if (ks.overflowX !== 'visible' || ks.overflowY !== 'visible') { const c = k.getBoundingClientRect();
+        L0 = Math.max(L0, c.left); T0 = Math.max(T0, c.top); R0 = Math.min(R0, c.right); B0 = Math.min(B0, c.bottom); } }
+    return R0 - L0 > 0 && B0 - T0 > 0 ? { left: L0, top: T0, right: R0, bottom: B0 } : null; };
   const cuaNo = (a, el) => { const nut = el.closest('[role=button],[role=link]'); if (nut && nut.contains(a)) return true;
     const k = a.parentElement; return !!k && k.contains(el) && dienTich(k) <= 2 * dienTich(a); };
   const daBao = new Set();
@@ -51,7 +58,7 @@ export const DO = String.raw`(() => {
     const motNhan = nut && !anhs.some((a) => nut.contains(a)) && (() => { let k = 0; const w2 = document.createTreeWalker(nut, NodeFilter.SHOW_TEXT); while (w2.nextNode()) if (w2.currentNode.textContent.trim()) k++; return k === 1; })();
     if (!cuoi && motNhan && chu.split(/\s+/).length <= 8) { const tops = new Set(dongCua(n).map(r => Math.round(r.top))); if (tops.size > 1) L.push({luat:'NUT-2-DONG', chu, el:ten(nut), dong: tops.size, rong: Math.round(nut.getBoundingClientRect().width)}); }
     // 3. đè ảnh
-    for (const r of dongCua(n)) for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = a.getBoundingClientRect();
+    for (const r of dongCua(n)) for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
       const x = Math.min(r.right,q.right)-Math.max(r.left,q.left), y = Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
       if (x > 4 && y > 4 && x*y > 0.15*r.width*r.height) { const k='da'+chu+ten(a); if (!daBao.has(k)) { daBao.add(k); L.push({luat:'DE-ANH', chu, el:ten(el), anh: ten(a) + (a.src? ' '+a.src.split('/').pop().split('.')[0]:'' )}); } } }
     // 4. tràn khung có nền/viền
