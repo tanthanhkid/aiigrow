@@ -1,4 +1,5 @@
 // Giao diện SwiftUI: xin thêm giờ, xin mở trang/app, ghép máy, màn khoá toàn màn hình.
+// Chất liệu Clay gương + icon Fluent 3D + motion «vui»/«ánh men» (Clay.swift, docs/THIET-KE-CLAY.md).
 import SwiftUI
 import AiiGrowCore
 
@@ -6,28 +7,35 @@ import AiiGrowCore
 struct XinThemView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
-  var sang = false          // nền tối (màn khoá)
   @State private var phut = 30
   @State private var loiNhan = ""
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("Con muốn thêm bao lâu?").font(.system(size: 17, weight: .semibold))
-      HStack(spacing: 8) {
+      HStack(spacing: 12) {
+        VienClay(ten: "hourglass_not_done", duPhong: "hourglass", nen: ClayMau.diemSoft, co: 44)
+        Text("Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
+      }
+      HStack(spacing: 10) {
         ForEach(TrayLogic.luaChonPhut, id: \.self) { p in
-          Button(TrayLogic.nhanLuaChonPhut(p)) { phut = p }
-            .buttonStyle(NutXanh(dac: phut == p))
+          Button(TrayLogic.nhanLuaChonPhut(p)) { withAnimation(ClayMotion.bat) { phut = p } }
+            .buttonStyle(NutClayStyle(kieu: phut == p ? .ngoc : .sang))
         }
       }
-      Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12)).opacity(0.7)
+      .padding(.vertical, 2)
+      Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
-        .textFieldStyle(.roundedBorder).frame(minHeight: 32)
+        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40)
+        .foregroundColor(ClayMau.chu).clayLom()
       Button("Xin Ba Mẹ") { xin.xinThem(phut: phut, loiNhan: loiNhan) }
-        .buttonStyle(NutXanh()).disabled(xin.dangGui)
+        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(xin.dangGui)
       let dong = TrayLogic.dongYeuCau(tray.tt?.yeuCauCho ?? []) ?? xin.thongBao
-      if !dong.isEmpty { Text(dong).font(.system(size: 14)).fixedSize(horizontal: false, vertical: true) }
+      if !dong.isEmpty {
+        Text(dong).font(.system(size: 14, weight: .medium)).fixedSize(horizontal: false, vertical: true)
+          .transition(.opacity)
+      }
     }
-    .foregroundColor(sang ? .white : .primary)
+    .foregroundColor(ClayMau.chu)
   }
 }
 
@@ -35,11 +43,16 @@ struct XinThemCuaSo: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
   var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
+    VStack(alignment: .leading, spacing: 16) {
       XinThemView(tray: tray, xin: xin)
-      Text(TrayLogic.dongDangBat).font(.system(size: 12)).foregroundColor(.secondary)
+        .padding(18).clayThe().vaoLanLuot(0)
+      HStack(spacing: 6) {
+        HinhFluent(ten: "seedling", duPhong: "leaf.fill", co: 16)
+        Text(TrayLogic.dongDangBat).font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+      }
+      .padding(.horizontal, 6).vaoLanLuot(1)
     }
-    .padding(22).frame(width: 400)
+    .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
   }
 }
 
@@ -51,19 +64,26 @@ struct XinMoView: View {
   @State private var loiNhan = ""
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("Con muốn mở gì?").font(.system(size: 17, weight: .semibold))
-      Picker("", selection: $loai) { Text("Trang web").tag("web"); Text("App").tag("app") }
+      HStack(spacing: 12) {
+        VienClay(ten: loai == "web" ? "globe_with_meridians" : "puzzle_piece", duPhong: loai == "web" ? "globe" : "app.fill",
+                 nen: loai == "web" ? ClayMau.lamSoft : ClayMau.timSoft, co: 44)
+          .id(loai).transition(.scale(scale: 0.85).combined(with: .opacity))
+        Text("Con muốn mở gì?").font(.system(size: 17, weight: .bold))
+      }
+      Picker("", selection: $loai.animation(ClayMotion.bat)) { Text("Trang web").tag("web"); Text("App").tag("app") }
         .pickerStyle(.segmented).labelsHidden().frame(minHeight: 32)
       TextField(loai == "web" ? "Địa chỉ trang, ví dụ youtube.com" : "Tên app", text: $muc)
-        .textFieldStyle(.roundedBorder).frame(minHeight: 32)
-      Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12)).foregroundColor(.secondary)
-      TextField("Con cần mở để làm gì?", text: $loiNhan).textFieldStyle(.roundedBorder).frame(minHeight: 32)
+        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40).clayLom()
+      Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
+      TextField("Con cần mở để làm gì?", text: $loiNhan)
+        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40).clayLom()
       Button("Xin Ba Mẹ") { xin.xinMo(muc: muc.trimmingCharacters(in: .whitespaces), loai: loai, loiNhan: loiNhan) }
-        .buttonStyle(NutXanh()).disabled(xin.dangGui || muc.trimmingCharacters(in: .whitespaces).isEmpty)
+        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(xin.dangGui || muc.trimmingCharacters(in: .whitespaces).isEmpty)
       let dong = TrayLogic.dongYeuCau(tray.tt?.yeuCauCho ?? []) ?? xin.thongBao
-      if !dong.isEmpty { Text(dong).font(.system(size: 14)) }
+      if !dong.isEmpty { Text(dong).font(.system(size: 14, weight: .medium)).fixedSize(horizontal: false, vertical: true) }
     }
-    .padding(22).frame(width: 400)
+    .padding(18).clayThe().vaoLanLuot(0)
+    .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
   }
 }
 
@@ -82,30 +102,37 @@ struct GhepMayView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
-      Text("Ghép máy này với Con").font(.system(size: 20, weight: .semibold))
+      HStack(spacing: 12) {
+        VienClay(ten: xong ? "party_popper" : "link", duPhong: xong ? "checkmark.seal.fill" : "link", nen: ClayMau.ngocSoft, co: 48)
+          .id(xong).transition(.scale(scale: 0.85).combined(with: .opacity))
+        Text("Ghép máy này với Con").font(.system(size: 20, weight: .bold))
+      }
       Text("Chọn tài khoản macOS của Con và nhập mã 6 số lấy ở app AiiGrow Ba Mẹ.")
-        .font(.system(size: 13)).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+        .font(.system(size: 13)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
       if taiKhoan.isEmpty {
         Text("Chưa thấy tài khoản nào khác trên máy. Hãy tạo tài khoản cho Con ở Cài đặt hệ thống → Người dùng & Nhóm.")
-          .font(.system(size: 13)).foregroundColor(.red)
+          .font(.system(size: 13)).foregroundColor(ClayMau.loi)
       } else {
         Picker("Tài khoản của Con", selection: $chon) { ForEach(taiKhoan, id: \.self) { Text($0).tag($0) } }
           .frame(minHeight: 32)
       }
       TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
-        .textFieldStyle(.roundedBorder).font(.system(size: 22, weight: .medium, design: .monospaced)).frame(minHeight: 40)
-      if !loi.isEmpty { Text(loi).font(.system(size: 13)).foregroundColor(.red).fixedSize(horizontal: false, vertical: true) }
-      if xong { Text("Đã ghép máy. Cảm ơn Ba Mẹ!").foregroundColor(.xanhAiiGrow) }
+        .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
+        .frame(height: 32).padding(.horizontal, 14).frame(minHeight: 48).clayLom(bo: 18)
+      if !loi.isEmpty { Text(loi).font(.system(size: 13, weight: .medium)).foregroundColor(ClayMau.loi).fixedSize(horizontal: false, vertical: true) }
+      if xong { Text("Đã ghép máy. Cảm ơn Ba Mẹ!").font(.system(size: 14, weight: .semibold)).foregroundColor(ClayMau.ngocInk) }
       if !canhBao.isEmpty {
-        Text("Đã ghép máy, NHƯNG: " + canhBao).font(.system(size: 13, weight: .semibold)).foregroundColor(.orange).fixedSize(horizontal: false, vertical: true)
-        Button("Đã hiểu") { dongLai() }
+        Text("Đã ghép máy, NHƯNG: " + canhBao).font(.system(size: 13, weight: .semibold)).foregroundColor(ClayMau.canh).fixedSize(horizontal: false, vertical: true)
+        Button("Đã hiểu") { dongLai() }.buttonStyle(NutClayStyle(kieu: .sang))
       }
       Button(dangGui ? "Đang ghép…" : "Ghép máy") { gui() }
-        .buttonStyle(NutXanh()).disabled(dangGui || xong || !TrayLogic.maHopLe(ma) || chon.isEmpty || !canhBao.isEmpty)
+        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(dangGui || xong || !TrayLogic.maHopLe(ma) || chon.isEmpty || !canhBao.isEmpty)
       Text("Tài khoản Con sẽ về quyền người dùng thường (cần còn một tài khoản quản trị khác).")
-        .font(.system(size: 11)).foregroundColor(.secondary)
+        .font(.system(size: 11)).foregroundColor(ClayMau.chu3)
     }
-    .padding(24).frame(width: 420)
+    .padding(20).clayThe().vaoLanLuot(0)
+    .padding(22).padding(.bottom, 12).frame(width: 460).nenClay()
+    .animation(ClayMotion.bat, value: xong)
     .onAppear { if chon.isEmpty { chon = taiKhoan.first ?? "" } }
   }
 
@@ -129,15 +156,16 @@ struct GhepMayView: View {
 struct ManKhoaView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
-  private let xanhDam = Color(red: 0x14 / 255, green: 0x5c / 255, blue: 0x4a / 255)
-
   var body: some View {
     ZStack {
-      LinearGradient(colors: [xanhDam, Color.xanhAiiGrow], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+      // than chì sâu + quầng ngọc lục bảo (Clay gương, nền tối)
+      LinearGradient(colors: [ClayMau.thanChi, ClayMau.thanChiDam], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+      RadialGradient(colors: [ClayMau.ngoc.opacity(0.55), .clear], center: UnitPoint(x: 0.5, y: 0.0), startRadius: 0, endRadius: 700)
+        .ignoresSafeArea()
       TimelineView(.periodic(from: .now, by: 1)) { ctx in
         noiDung(bayGio: ctx.date)
       }
-      .frame(maxWidth: 520)
+      .frame(maxWidth: 540)
       .padding(32)
     }
   }
@@ -148,20 +176,31 @@ struct ManKhoaView: View {
       switch man {
       case .demNguoc(let giay, let lyDo):
         let con = max(0, Double(giay) - bayGio.timeIntervalSince(tray.nhanLuc))
+        VienClay(ten: "alarm_clock", duPhong: "alarm.fill", nen: ClayMau.canhSoft, co: 88).rungChuong()
         Text("Máy sắp khoá").font(.system(size: 34, weight: .bold))
-        Text(TrayLogic.dongHo(con)).font(.system(size: 88, weight: .bold, design: .rounded)).monospacedDigit()
-        Text("máy sẽ khoá sau").font(.system(size: 17)).opacity(0.85)
+        VStack(spacing: 2) {
+          Text(TrayLogic.dongHo(con)).font(.system(size: 88, weight: .bold, design: .rounded)).monospacedDigit()
+          Text("máy sẽ khoá sau").font(.system(size: 17)).opacity(0.85)
+        }
+        .padding(.horizontal, 36).padding(.vertical, 14)
+        .background(KinhMo(bo: 32))
         Text(TrayLogic.goiYKhoa(lyDo)).font(.system(size: 16)).multilineTextAlignment(.center)
       case .khoa(let lyDo):
+        VienClay(ten: "locked", duPhong: "lock.fill", nen: ClayMau.the, co: 96).khoaDongSap()
         Text(TrayLogic.tieuDeKhoa(lyDo)).font(.system(size: 34, weight: .bold)).multilineTextAlignment(.center)
         Text(TrayLogic.goiYKhoa(lyDo)).font(.system(size: 17)).multilineTextAlignment(.center).opacity(0.9)
       case .khong:
         EmptyView()
       }
-      XinThemView(tray: tray, xin: xin, sang: true)
-        .padding(18)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.22)))
-      Text("AiiGrow · máy này do Ba Mẹ quản lý").font(.system(size: 12)).opacity(0.7)
+      XinThemView(tray: tray, xin: xin)
+        .padding(20)
+        .clayThe(bo: 32)
+        .environment(\.colorScheme, .light)
+        .vaoLanLuot(1)
+      HStack(spacing: 6) {
+        HinhFluent(ten: "seedling", duPhong: "leaf.fill", co: 16)
+        Text("AiiGrow · máy này do Ba Mẹ quản lý").font(.system(size: 12)).opacity(0.75)
+      }
     }
     .foregroundColor(.white)
   }
@@ -171,13 +210,31 @@ struct ManKhoaView: View {
 struct NhacView: View {
   let phut: Int
   var body: some View {
-    HStack(spacing: 12) {
-      Image(systemName: "clock.fill").font(.system(size: 26)).foregroundColor(.xanhAiiGrow)
+    HStack(spacing: 14) {
+      VienClay(ten: "alarm_clock", duPhong: "clock.fill", nen: ClayMau.canhSoft, co: 48).rungChuong()
       VStack(alignment: .leading, spacing: 2) {
-        Text("Còn \(phut) phút").font(.system(size: 16, weight: .semibold))
-        Text("Con lưu bài đang làm nhé.").font(.system(size: 13)).foregroundColor(.secondary)
+        Text("Còn \(phut) phút").font(.system(size: 16, weight: .bold))
+        Text("Con lưu bài đang làm nhé.").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
       }
     }
-    .padding(16).frame(width: 300, alignment: .leading)
+    .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+    .clayThe(bo: 26).vaoLanLuot(0)
+    .padding(14).padding(.bottom, 18).frame(width: 320).nenClay()
+  }
+}
+
+/// Kính mờ trên nền tối (khung đồng hồ đếm ngược): nền trắng trong + men nửa trên + viền sáng.
+struct KinhMo: View {
+  var bo: CGFloat = 28
+  var body: some View {
+    let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
+    ZStack {
+      hinh.fill(Color.white.opacity(0.09))
+      hinh.fill(LinearGradient(stops: [
+        .init(color: .white.opacity(0.18), location: 0), .init(color: .white.opacity(0.03), location: 0.45), .init(color: .clear, location: 0.5),
+      ], startPoint: .top, endPoint: .bottom))
+      hinh.strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
+    }
+    .shadow(color: .black.opacity(0.35), radius: 16, x: 0, y: 14)
   }
 }

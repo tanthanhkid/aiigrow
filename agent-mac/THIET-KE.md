@@ -53,3 +53,10 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
 ## 7. Luật khi phát triển trên máy Thanh
 KHÔNG sudo, KHÔNG nạp daemon/LaunchAgent, KHÔNG kill tiến trình thật, KHÔNG sửa `/etc/hosts` hay Managed Preferences. Mọi tác động hệ thống
 đi qua protocol để test bằng bản giả; daemon có cờ `--thu` (chỉ in việc sẽ làm). Build riêng: `swift build --scratch-path .build-<tên> -j 2`.
+
+## 8. Giao diện — Clay gương (từ 24/10/2026)
+Theo `docs/THIET-KE-CLAY.md`. `Sources/AiiGrowTray/Clay.swift`: token màu, thẻ clay (bo 26–32, bóng kép, dải men mép trên), ô lõm, nút kẹo
+`NutClayStyle` (ngọc / than chì / sứ sáng / kính trên nền tối; bẹp .95×.90 rồi spring 420/14 + vệt men lướt), vào lần lượt (stagger 55ms),
+ổ khoá đóng sập, đồng hồ rung. Reduce Motion ⇒ chỉ fade. Icon minh hoạ = Fluent Emoji 3D (MIT, `microsoft/fluentui-emoji` commit
+`1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`, 128px) ở `Sources/AiiGrowTray/Fluent/` kèm `LICENSE-fluentui-emoji.txt`; gói cài chép vào
+`AiiGrow.app/Contents/Resources/Fluent` (thiếu tệp ⇒ SF Symbol). Chụp duyệt: `CHUP_CLAY=<thư mục> swift test --filter ChupClay`.

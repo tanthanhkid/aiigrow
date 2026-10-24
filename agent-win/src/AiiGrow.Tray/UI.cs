@@ -1,42 +1,42 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using AiiGrow.ClayUi;
 
 namespace AiiGrow.Tray;
 
 internal static class UI
 {
-    // Token màu lấy NGUYÊN từ mobile/src/lib/mau.ts (app Ba Mẹ/Con); tương phản đã đo ở đó (chữ phụ trên nền 5,2:1; chữ trắng trên Green 5,3:1).
-    public static readonly Color Green = Color.FromArgb(0x0b, 0x7a, 0x6e);       // chinh
-    public static readonly Color GreenDark = Color.FromArgb(0x07, 0x5e, 0x55);   // chinhDam
-    public static readonly Color GreenSoft = Color.FromArgb(0xdd, 0xf3, 0xee);   // chinhSoft
-    public static readonly Color Paper = Color.FromArgb(0xff, 0xfb, 0xf4);       // nen
-    public static readonly Color Muted = Color.FromArgb(0x5f, 0x6b, 0x68);       // chu3
-    public static readonly Color Ink = Color.FromArgb(0x10, 0x23, 0x1f);         // chu
+    // Token màu «Clay gương» (docs/THIET-KE-CLAY.md §1, gốc mobile/src/lib/mau.ts) — lấy từ ClayUi.Clay; giữ tên cũ để chỗ gọi không đổi.
+    // Tương phản: chữ trắng trên Green 6,4:1; Muted trên Paper 5,7:1; PointInk trên PointSoft 7,6:1; Error trên ErrorSoft 5,9:1.
+    public static readonly Color Green = Clay.Ngoc;          // chinh
+    public static readonly Color GreenDark = Clay.NgocInk;   // chinhInk
+    public static readonly Color GreenSoft = Clay.NgocSoft;  // chinhSoft
+    public static readonly Color Paper = Clay.Nen;           // nền trang
+    public static readonly Color Card = Clay.The;            // thẻ / khối
+    public static readonly Color Muted = Clay.Chu3;          // chu3
+    public static readonly Color Ink = Clay.Chu;             // chu
     public static readonly Color Border = Color.FromArgb(0xe2, 0xd9, 0xca);      // vien2
-    public static readonly Color PointInk = Color.FromArgb(0x7a, 0x4a, 0x00);    // diemInk (điểm: chữ trên PointSoft 7,4:1)
-    public static readonly Color PointSoft = Color.FromArgb(0xff, 0xf1, 0xc9);   // diemSoft
-    public static readonly Color Warn = Color.FromArgb(0x92, 0x40, 0x0e);        // canh
-    public static readonly Color Error = Color.FromArgb(0xb4, 0x23, 0x18);       // loi (chữ trên ErrorSoft 5,9:1)
-    public static readonly Color ErrorSoft = Color.FromArgb(0xfe, 0xf0, 0xee);   // loiSoft
+    public static readonly Color PointInk = Clay.DiemInk;    // điểm: CHỈ dành cho điểm
+    public static readonly Color PointSoft = Clay.DiemSoft;
+    public static readonly Color Warn = Clay.Canh;           // canh
+    public static readonly Color Error = Clay.Loi;           // loi
+    public static readonly Color ErrorSoft = Clay.LoiSoft;
 
     public static Font F(float pt, FontStyle st = FontStyle.Regular) => new("Segoe UI", pt, st);
 
-    public static Button Btn(string text, bool primary = true, int width = 260)
+    /// <summary>Nút Clay (kẹo bọc đường khi <paramref name="primary"/>, đất sét sứ khi không). Cao = thân 44 (theo DPI) + lề bóng.</summary>
+    public static Button Btn(string text, bool primary = true, int width = 260, string? icon = null)
     {
-        var b = new Button
+        var b = new ClayButton
         {
             Text = text,
             Width = width,
-            Height = 46,
-            FlatStyle = FlatStyle.Flat,
+            Height = Clay.Si(44) + VeNut.LeBong.Vertical,   // thân 44 (theo DPI) + lề bóng — không cắt chữ ở 150–200%
             Font = F(11.5f, FontStyle.Bold),
-            Cursor = Cursors.Hand,
-            BackColor = primary ? Green : Color.White,
-            ForeColor = primary ? Color.White : Green,
-            UseVisualStyleBackColor = false,
+            BackColor = primary ? Green : Card,
+            ForeColor = primary ? Color.White : Ink,
         };
-        b.FlatAppearance.BorderColor = Green;
-        b.FlatAppearance.BorderSize = 1;
+        if (icon != null) b.Image = Fluent(icon);
         return b;
     }
 
@@ -48,6 +48,7 @@ internal static class UI
             MaximumSize = new Size(maxWidth, 0),
             Font = F(pt, bold ? FontStyle.Bold : FontStyle.Regular),
             ForeColor = color ?? Ink,
+            BackColor = Color.Transparent,   // thấy men của thẻ Clay phía sau
             Margin = new Padding(0, 0, 0, 8),
         };
 
@@ -91,20 +92,25 @@ internal static class UI
         return ImgCache[name] = img;
     }
 
-    private static float? _scale;
-    /// <summary>Hệ số DPI của hệ thống (96 dpi = 1,0). Dùng cho kích thước tính bằng pixel trong code (app to).</summary>
-    public static float Scale
+    /// <summary>Icon Fluent Emoji 3D (MIT, Assets/fluent/) theo tên tệp không đuôi (locked, alarm_clock…); null nếu thiếu.</summary>
+    public static Image? Fluent(string name)
     {
-        get
+        var key = "fluent:" + name;
+        if (ImgCache.TryGetValue(key, out var c)) return c;
+        Image? img = null;
+        try
         {
-            if (_scale is { } v) return v;
-            try { using var g = Graphics.FromHwnd(IntPtr.Zero); _scale = g.DpiX / 96f; }
-            catch { _scale = 1f; }
-            return _scale.Value;
+            using var st = Res("fluent." + name + ".png");
+            if (st != null) { using var raw = Image.FromStream(st); img = new Bitmap(raw); }
         }
+        catch (Exception e) { Debug.WriteLine(e); }
+        return ImgCache[key] = img;
     }
 
-    public static int Px(int v) => (int)Math.Round(v * Scale);
+    /// <summary>Hệ số DPI của hệ thống (96 dpi = 1,0) — một nguồn duy nhất: <see cref="Clay.Scale"/>.</summary>
+    public static float Scale => Clay.Scale;
+
+    public static int Px(int v) => Clay.Si(v);
 
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr h);
     [DllImport("user32.dll")] public static extern bool LockWorkStation();

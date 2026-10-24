@@ -12,6 +12,8 @@
     <EmbeddedResource Include="Assets\aiigrow-khay.ico" LogicalName="aiigrow-khay.ico" />
     <EmbeddedResource Include="Assets\aiigrow-khay-mat-ket-noi.ico" LogicalName="aiigrow-khay-mat-ket-noi.ico" />
     <EmbeddedResource Include="Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
+    <!-- Icon Fluent Emoji 3D (microsoft/fluentui-emoji, MIT — Assets/fluent/LICENSE-fluentui-emoji.txt), 128 px, nhúng vào exe: không tải CDN lúc chạy. -->
+    <EmbeddedResource Include="Assets\fluent\*.png" LogicalName="fluent.%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />

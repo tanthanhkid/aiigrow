@@ -33,6 +33,8 @@ cp "$BIN/aiigrow-daemon" "$APP/Contents/MacOS/aiigrow-daemon"
 sed "s/@BAN@/$BAN/g" Info.plist.in > "$APP/Contents/Info.plist"
 cp vn.aiilab.aiigrow.daemon.plist vn.aiilab.aiigrow.tray.plist go-cai.sh scripts/phien-gui.sh "$APP/Contents/Resources/"
 chmod 755 "$APP/Contents/Resources/go-cai.sh"   # daemon tự chạy khi nhận lệnh gỡ từ xa
+# Icon Fluent Emoji 3D (MIT) của tray — FluentIcon tìm ở Contents/Resources/Fluent; thiếu thì rơi về SF Symbol.
+cp -R "$MAC/Sources/AiiGrowTray/Fluent" "$APP/Contents/Resources/Fluent"
 plutil -lint "$APP/Contents/Info.plist" vn.aiilab.aiigrow.*.plist >/dev/null
 
 # Ký: KY_APP="Developer ID Application: …" (+ KY_PKG="Developer ID Installer: …") ⇒ ký thật, hardened runtime + timestamp (đủ để notarize);

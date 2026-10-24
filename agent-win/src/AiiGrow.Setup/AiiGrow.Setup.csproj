@@ -14,6 +14,8 @@
     <EmbeddedResource Include="$(GoiDir)/AiiGrow.Tray.exe" LogicalName="goi/AiiGrow.Tray.exe" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Chất liệu «Clay gương» dùng chung với khay (namespace AiiGrow.ClayUi, không phụ thuộc lớp nào của Tray). -->
+    <Compile Include="..\AiiGrow.Tray\Clay.cs" Link="Clay.cs" />
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />
   </ItemGroup>
 </Project>

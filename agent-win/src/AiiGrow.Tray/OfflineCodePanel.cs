@@ -19,14 +19,15 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     public OfflineCodePanel(int width, Color? textColor = null, Color? mutedColor = null)
     {
         FlowDirection = FlowDirection.TopDown; WrapContents = false; AutoSize = true;
+        BackColor = Color.Transparent;   // nằm trên thẻ Clay của màn khoá / màn chặn
         Margin = new Padding(0, 8, 0, 0);
         Controls.Add(UI.Text(BlockScreenView.OfflineCodeLabel, 11f, true, textColor, width));
 
-        var row = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 0, 0) };
-        _box = new TextBox { MaxLength = 6, Width = 150, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "6 số" };
+        var row = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 0, 0), BackColor = Color.Transparent };
+        _box = new TextBox { MaxLength = 6, Width = 150, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "6 số", BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, ForeColor = UI.Ink, Margin = new Padding(0, 6, 0, 0) };
         _box.KeyPress += (_, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
         _box.KeyDown += async (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await SendAsync(); } };
-        _go = UI.Btn("Mở", true, 90);
+        _go = UI.Btn("Mở", true, 96, "key");
         _go.Margin = new Padding(8, 0, 0, 0);
         _go.Click += async (_, _) => await SendAsync();
         row.Controls.Add(_box);

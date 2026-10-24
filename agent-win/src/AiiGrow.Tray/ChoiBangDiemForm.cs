@@ -21,7 +21,7 @@ internal sealed class ChoiBangDiemForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(380, 150 + Math.Clamp(choices.Count, 1, 8) * 54);   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
+        ClientSize = new Size(UI.Px(380), UI.Px(160 + Math.Clamp(choices.Count, 1, 8) * 58));   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
 
         var flow = new FlowLayoutPanel
         {
@@ -38,7 +38,7 @@ internal sealed class ChoiBangDiemForm : Form
         foreach (var c in choices)
         {
             var id = c;
-            var b = UI.Btn("Chơi " + TrayView.FriendlyAppName(id, null), true, 340);
+            var b = UI.Btn("Chơi " + TrayView.FriendlyAppName(id, null), true, 340, "video_game");
             b.Click += async (_, _) => await ChoiAsync(id);
             _nut.Add(b);
             flow.Controls.Add(b);
