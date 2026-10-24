@@ -93,7 +93,7 @@ public sealed class WebPolicyHives
             if (coTruoc && truoc.VanTay == vt && (muon == null || now - truoc.Luc < GhiLaiSau || !DangNapAnToan(sid))) continue;
             bool xong;
             try { xong = _host.VoiHive(sid, reg => new WebPolicyApplier(reg).Ap(muon, maychuHost)); }
-            catch (Exception e) { xong = false; loiHive.Add(sid + ": " + e.Message); }   // ghi registry lỗi ≠ «chưa có hồ sơ» — báo riêng để log đúng
+            catch (Exception e) { loiHive.Add(sid + ": " + e.Message); continue; }   // ghi registry lỗi ≠ «chưa có hồ sơ» — báo riêng để log đúng
             if (!xong) { chua.Add(sid); continue; }
             var doiLanNay = coTruoc ? truoc.VanTay != vt : _daGhiCho.Contains(sid) || muon != null;
             _daAp[sid] = (vt, now);
@@ -106,7 +106,7 @@ public sealed class WebPolicyHives
             try { _host.LuuDaGhi(_daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase)); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
-        return new KetQuaWebHive(doi, goHklm, chua.Where(x => !loiHive.Any(l => l.StartsWith(x + ":", StringComparison.OrdinalIgnoreCase))).ToList(), loi, loiHive);
+        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive);
     }
 
     private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }
@@ -273,11 +273,20 @@ public static class AclChinhSach
     }
 
     /// <summary>Dò và khoá chặt đường tới <paramref name="khoa"/> trong hive gốc <paramref name="goc"/>. Cố gắng hết sức: lỗi không chặn việc ghi luật.</summary>
-    public static void KhoaChat(RegistryKey goc, string khoa, string sidCon)
+    public static void KhoaChat(RegistryKey goc, string khoa, string sidCon, ISet<string>? daKhoa = null)
     {
         WindowsWebHiveHost.BatQuyen();   // SeTakeOwnership: mở được cả khoá Con tự tạo với ACL chỉ mình Con (review #75)
         foreach (var duong in DuongCanKhoa(khoa))
         {
+            if (daKhoa != null && daKhoa.Contains(duong)) continue;
+            if (daKhoa != null)
+            {
+                // khoá chưa có thì lần gọi sau (sau CreateSubKey) còn dò; mở không nổi (ACL lạ) nghĩa là có ⇒ dò + chiếm quyền ngay dưới đây
+                bool co;
+                try { using var x = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.Default, RegistryRights.QueryValues); co = x != null; }
+                catch { co = true; }
+                if (co) daKhoa.Add(duong);
+            }
             try
             {
                 using (var d = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadSubTree, RegistryRights.ReadPermissions))

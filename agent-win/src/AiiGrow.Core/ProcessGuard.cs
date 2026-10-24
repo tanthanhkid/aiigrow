@@ -65,7 +65,7 @@ public static class ProcessGuard
     /// KHÔNG gồm Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được ⇒ Con đặt game vào đó là lọt — review #75).</summary>
     public static readonly string[] ThuMucConHeThong =
     {
-        ThuMucSystemApps, @"System32\DriverStore", "ImmersiveControlPanel", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
+        ThuMucSystemApps, @"System32\DriverStore", @"System32\oobe", @"System32\Microsoft-Edge-WebView", "ImmersiveControlPanel", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
         @"System32\Speech_OneCore", @"SysWOW64\Speech_OneCore", @"System32\Speech", @"SysWOW64\Speech", @"System32\wbem", @"SysWOW64\wbem",
     };
 
@@ -73,25 +73,33 @@ public static class ProcessGuard
     private static readonly System.Text.RegularExpressions.Regex WebView2May = new(@"^[A-Za-z]:\\Program Files( \(x86\))?\\Microsoft\\EdgeWebView\\",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
+    /// <summary>Exe nằm ở chỗ CHỈ quản trị ghi được trong thư mục Windows: trực tiếp trong Windows / System32 / SysWOW64, hoặc một thư mục con hệ thống
+    /// (<see cref="ThuMucConHeThong"/>). Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được) ⇒ false.</summary>
+    public static bool TrongWindowsChiQuanTri(string exePath, string? winDir)
+    {
+        if (string.IsNullOrWhiteSpace(exePath) || string.IsNullOrWhiteSpace(winDir)) return false;
+        var w = winDir.TrimEnd('\\', '/') + "\\";
+        if (!exePath.StartsWith(w, StringComparison.OrdinalIgnoreCase)) return false;
+        foreach (var con in ThuMucConHeThong)
+            if (exePath.StartsWith(w + con + "\\", StringComparison.OrdinalIgnoreCase)) return true;
+        var dir = DirName(exePath);
+        return dir != null && (dir.Equals(w.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
+            || dir.Equals(w + "System32", StringComparison.OrdinalIgnoreCase) || dir.Equals(w + "SysWOW64", StringComparison.OrdinalIgnoreCase));
+    }
+
     public static bool LaTienTrinhHeThongPhien(string exePath, string? winDir)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var name = FileName(exePath);
         // CHỈ runtime trong Program Files — «%LOCALAPPDATA%\Microsoft\EdgeWebView\…\msedgewebview2.exe» Con tự tạo được (review #75)
         if (name.Equals(WebView2Exe, StringComparison.OrdinalIgnoreCase) && WebView2May.IsMatch(exePath.Replace('/', '\\'))) return true;
-        if (string.IsNullOrWhiteSpace(winDir)) return false;
-        var w = winDir.TrimEnd('\\', '/') + "\\";
-        if (!exePath.StartsWith(w, StringComparison.OrdinalIgnoreCase)) return false;
-        foreach (var con in ThuMucConHeThong)
-            if (exePath.StartsWith(w + con + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-        // còn lại: chỉ exe nằm TRỰC TIẾP trong Windows / System32 / SysWOW64 (Con không tạo tệp ở đó được) — kể cả khi xét theo tên
-        // (svchost.exe trong Windows\Tasks do Con chép vào KHÔNG được miễn)
-        var dir = DirName(exePath);
-        var trucTiep = dir != null && (dir.Equals(w.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
-            || dir.Equals(w + "System32", StringComparison.OrdinalIgnoreCase) || dir.Equals(w + "SysWOW64", StringComparison.OrdinalIgnoreCase));
-        if (!trucTiep) return false;
-        return TienTrinhHeThongPhien.Contains(name) || !UngDungTrongWindows.Contains(name);
+        // chỉ ở chỗ chỉ-quản-trị (svchost.exe chép vào Windows\Tasks KHÔNG được miễn); ở đó mọi thứ được miễn trừ app người dùng mở được
+        return TrongWindowsChiQuanTri(exePath, winDir) && !UngDungTrongWindows.Contains(name);
     }
+
+    /// <summary>Tên exe trùng thành phần / app của Windows (explorer, notepad, taskmgr…) — luật cho phép THEO TÊN chỉ nhận bản thật
+    /// (trong Windows chỉ-quản-trị hoặc gói Store), không nhận game đổi tên thành notepad.exe trong Downloads (review #75).</summary>
+    public static bool TenCuaWindows(string name) => TienTrinhHeThongPhien.Contains(name) || UngDungTrongWindows.Contains(name);
 
     /// <summary>Tên gói của app Store từ đường dẫn «…\WindowsApps\&lt;Gói&gt;_&lt;bản&gt;__&lt;nhàXB&gt;\app.exe» (chữ thường); không phải app Store ⇒ null.
     /// BUG-009: dùng để luật cho phép khớp theo tên gói, không chỉ theo tên exe.</summary>
@@ -113,6 +121,16 @@ public static class ProcessGuard
         return ten.Length == 0 ? null : ten;
     }
 
+    /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>) hoặc theo tên gói Store.</summary>
+    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir)
+    {
+        if (string.IsNullOrWhiteSpace(exePath)) return false;
+        var name = FileName(exePath);
+        var goi = TenGoiStore(exePath);
+        if (goi != null && allowed.Contains(goi)) return true;
+        return allowed.Contains(name) && (!TenCuaWindows(name) || goi != null || winDir == null || TrongWindowsChiQuanTri(exePath, winDir));
+    }
+
     /// <param name="exePath">Đường dẫn đầy đủ của file chạy.</param>
     /// <param name="allowed">Tên exe (hoặc tên gói Store) được phép (so không phân biệt hoa thường).</param>
     /// <param name="allowedDirs">Thư mục của các app được phép đang chạy (helper cùng thư mục thì không đóng).</param>
@@ -121,10 +139,8 @@ public static class ProcessGuard
     public static bool ShouldClose(string exePath, ISet<string> allowed, ISet<string> allowedDirs, IEnumerable<string> safeDirs, string? winDir = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
-        var name = FileName(exePath);
-        if (allowed.Contains(name)) return false;
-        var goi = TenGoiStore(exePath);
-        if (goi != null && (allowed.Contains(goi) || GoiStoreHeThong.Contains(goi))) return false;
+        if (DuocPhepTheoLuat(exePath, allowed, winDir)) return false;
+        if (TenGoiStore(exePath) is { } goi && GoiStoreHeThong.Contains(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;
 
         foreach (var d in safeDirs)

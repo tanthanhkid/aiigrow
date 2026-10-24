@@ -91,6 +91,9 @@ public class ProcessGuardTests
     [InlineData(@"C:\Windows\System32\Tasks\game.exe", true)]
     [InlineData(@"C:\Windows\System32\spool\drivers\color\game.exe", true)]
     [InlineData(@"C:\Users\An\AppData\Local\Microsoft\WindowsApps\Microsoft.YourPhone_1\game.exe", true)]
+    [InlineData(@"C:\Windows\System32\oobe\UserOOBEBroker.exe", false)]
+    [InlineData(@"C:\Windows\System32\Microsoft-Edge-WebView\msedgewebview2.exe", false)]
+    [InlineData(@"C:\Windows\System32\taskmgr.exe", true)]               // đóng được khay ⇒ phải qua phân loại
     [InlineData(@"C:\Windows\Tasks\svchost.exe", true)]                  // tên hệ thống nhưng ở thư mục Con ghi được ⇒ không miễn
     [InlineData(@"C:\Windows\Temp\explorer.exe", true)]
     [InlineData(@"C:\Users\An\AppData\Local\Microsoft\EdgeWebView\x\msedgewebview2.exe", true)]
@@ -100,6 +103,17 @@ public class ProcessGuardTests
     [InlineData(@"C:\Windows\System32\Speech_OneCore\Common\SpeechRuntime.exe", false)]
     public void ShouldClose(string path, bool expected)
         => Assert.Equal(expected, ProcessGuard.ShouldClose(path, Allowed, NoDirs, Safe, Win));
+
+    [Fact]
+    public void ShouldClose_TenCuaWindowsDuocPhep_ChiNhanBanThat()
+    {
+        // máy chủ mặc định cho notepad / taskmgr / explorer (ALLOWLIST_HE_THONG) — game đổi tên thành notepad.exe ngoài Windows vẫn bị đóng
+        var al = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "notepad.exe", "taskmgr.exe", "explorer.exe" };
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Windows\System32\notepad.exe", al, NoDirs, Safe, Win));
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.0.0.0_x64__8wekyb3d8bbwe\Notepad\Notepad.exe", al, NoDirs, Safe, Win));
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Users\An\Downloads\notepad.exe", al, NoDirs, Safe, Win));
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Windows\Temp\taskmgr.exe", al, NoDirs, Safe, Win));
+    }
 
     [Fact]
     public void ShouldClose_AppStoreDuocPhepTheoTenGoiHoacTenExe()

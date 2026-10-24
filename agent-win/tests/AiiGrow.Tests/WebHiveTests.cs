@@ -208,6 +208,16 @@ public class WebHiveTests
     public void WinHome_NhanTheoEditionId(string? ed, bool home) => Assert.Equal(home, AppLockerKhaDung.LaBanHome(ed));
 
     [Fact]
+    public void AppLockerKhaDung_Chot_KhongThayCmdletTrenProChuaKetLuanNgay()
+    {
+        Assert.Equal((false, true), AppLockerKhaDung.Chot("Core", null, 0));
+        Assert.Equal((true, true), AppLockerKhaDung.Chot("Professional", true, 0));
+        Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", null, 0));
+        Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", false, 1));   // một lần «không» có thể do module nạp lỗi
+        Assert.Equal((false, true), AppLockerKhaDung.Chot("Professional", false, AppLockerKhaDung.SoLanKhongChac));
+    }
+
+    [Fact]
     public void AppLockerKhaDung_TinhTheoEditionVaCmdlet()
     {
         Assert.True(AppLockerKhaDung.Tinh("Professional", true));

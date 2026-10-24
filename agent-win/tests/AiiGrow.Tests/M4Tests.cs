@@ -47,6 +47,16 @@ public class ProcessEnforcerTests
     }
 
     [Fact]
+    public void Enforce_NotepadGiaKhongKeoThuMucThanhHelper()
+    {
+        var fake = new FakeProcessControl(
+            new RunningProc(50, @"C:\Users\An\Downloads\notepad.exe"),
+            new RunningProc(51, @"C:\Users\An\Downloads\game.exe"));
+        ProcessEnforcer.Enforce(fake, 2, new[] { "notepad.exe" }, Safe, winDir: Win);
+        Assert.Equal(new[] { 50, 51 }, fake.Closed);
+    }
+
+    [Fact]
     public void Enforce_HelperCungThuMucAppDuocPhepThiGiu()
     {
         var fake = new FakeProcessControl(

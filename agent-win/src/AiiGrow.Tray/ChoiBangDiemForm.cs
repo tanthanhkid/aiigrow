@@ -9,11 +9,11 @@ namespace AiiGrow.Tray;
 internal sealed class ChoiBangDiemForm : Form
 {
     private readonly Label _msg = UI.Text("", 11f, true, UI.Green, 340);
-    private readonly Label _phut = UI.Text("Đang hỏi số phút chơi…", 11f, false, UI.Muted, 340);
+    private readonly Label _phut = UI.Text("Mỗi app đổi điểm lấy số phút khác nhau — con xem số phút ở từng nút.", 11f, false, UI.Muted, 340);
     private readonly List<Button> _nut = new();
     private bool _busy;
 
-    public ChoiBangDiemForm(IReadOnlyList<string> choices, int? phut)
+    public ChoiBangDiemForm(IReadOnlyList<string> choices)
     {
         Text = "AiiGrow · Chơi bằng điểm";
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -30,11 +30,11 @@ internal sealed class ChoiBangDiemForm : Form
         };
         flow.Controls.Add(UI.Text("Chơi bằng điểm", 14f, true, null, 340));
         flow.Controls.Add(_phut);
-        if (phut.HasValue) CapNhatPhut(phut);
-        else if (choices.Count > 0) Shown += async (_, _) => await HoiPhutAsync(choices[0]);   // khay chưa có số phút ⇒ tự hỏi, không treo «Đang hỏi…»
-        else _phut.Text = "";
         if (choices.Count == 0)
+        {
+            _phut.Text = "";
             flow.Controls.Add(UI.Text("Ba Mẹ chưa chọn app giải trí nào cho con đổi điểm. Con xin Ba Mẹ nhé.", 11f, false, UI.Muted, 340));
+        }
         foreach (var c in choices)
         {
             var id = c;
@@ -43,6 +43,8 @@ internal sealed class ChoiBangDiemForm : Form
             _nut.Add(b);
             flow.Controls.Add(b);
         }
+        // máy chủ định giá theo nhóm (game / video…) ⇒ hỏi số phút cho TỪNG mục, ghi lên nút (dịch vụ nhớ 60 giây)
+        if (choices.Count > 0) Shown += async (_, _) => await HoiPhutAsync(choices);
         var dong = UI.Btn("Đóng", false, 340);
         dong.Click += (_, _) => Close();
         CancelButton = dong;
@@ -51,22 +53,22 @@ internal sealed class ChoiBangDiemForm : Form
         Controls.Add(flow);
     }
 
-    private async Task HoiPhutAsync(string appId)
+    private async Task HoiPhutAsync(IReadOnlyList<string> choices)
     {
-        int? phut = null;
-        try
+        for (int i = 0; i < choices.Count && i < _nut.Count; i++)
         {
-            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = appId });
-            if (r.Ok) phut = r.PlayMinutes;
+            int? phut = null;
+            try
+            {
+                var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = choices[i] });
+                if (r.Ok) phut = r.PlayMinutes;
+            }
+            catch { }
+            if (IsDisposed) return;
+            var ten = "Chơi " + TrayView.FriendlyAppName(choices[i], null);
+            _nut[i].Text = phut is > 0 ? $"{ten} · ≈ {phut} phút" : ten;
         }
-        catch { }
-        if (IsDisposed) return;
-        if (phut.HasValue) CapNhatPhut(phut);
-        else _phut.Text = "Chưa hỏi được số phút chơi — con vẫn bấm chọn app để thử nhé.";
     }
-
-    public void CapNhatPhut(int? phut)
-        => _phut.Text = phut is > 0 ? $"Điểm của con đổi được khoảng {phut} phút chơi." : "Hiện con chưa đổi được phút chơi nào.";
 
     private async Task ChoiAsync(string id)
     {

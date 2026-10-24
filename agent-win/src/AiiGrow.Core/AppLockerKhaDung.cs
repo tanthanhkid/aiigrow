@@ -16,6 +16,20 @@ public static class AppLockerKhaDung
     /// <summary>Kết luận: không phải Home và cmdlet Get-AppLockerPolicy có ⇒ dùng được. <paramref name="coCmdlet"/> null = chưa kiểm được ⇒ không loại trừ.</summary>
     public static bool Tinh(string? editionId, bool? coCmdlet) => !LaBanHome(editionId) && coCmdlet != false;
 
+    /// <summary>Số lần liền «không thấy cmdlet» (bản không phải Home) mới kết luận máy không có AppLocker.</summary>
+    public const int SoLanKhongChac = 3;
+
+    /// <summary>THUẦN — chốt một lần kiểm: (dùng được?, chắc chắn?). Home ⇒ (false, chắc). Có cmdlet ⇒ (true, chắc). Bản khác mà không thấy cmdlet:
+    /// có thể do module nạp lỗi nhất thời ⇒ VẪN coi là dùng được (để Reconcile còn gỡ luật đã áp khi chuyển Giám sát) cho tới khi
+    /// <see cref="SoLanKhongChac"/> lần liền đều «không» (review #75). Kiểm lỗi (null) ⇒ (true, chưa chắc).</summary>
+    public static (bool DungDuoc, bool ChacChan) Chot(string? editionId, bool? coCmdlet, int soLanKhongLien)
+    {
+        if (LaBanHome(editionId)) return (false, true);
+        if (coCmdlet == true) return (true, true);
+        if (coCmdlet == false && soLanKhongLien >= SoLanKhongChac) return (false, true);
+        return (true, false);
+    }
+
     public static string? DocEditionId()
     {
         try

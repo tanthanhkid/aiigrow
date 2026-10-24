@@ -190,7 +190,8 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
 {
     private readonly RegistryHive _hive;
     private readonly string? _goc;   // null = chính hive (HKLM); khác null = khoá con của HKU (SID hoặc tên hive nạp tạm)
-    private readonly string? _sidCon;   // hive người dùng: SID chủ hive ⇒ khoá chính sách ta tạo chỉ cho người đó ĐỌC (AclChinhSach)
+    private readonly string? _sidCon;
+    private readonly HashSet<string> _daKhoa = new(StringComparer.OrdinalIgnoreCase);   // khoá đã dò/khoá chặt trong lượt này   // hive người dùng: SID chủ hive ⇒ khoá chính sách ta tạo chỉ cho người đó ĐỌC (AclChinhSach)
 
     public WindowsWebPolicyRegistry() : this(RegistryHive.LocalMachine, null) { }
     public WindowsWebPolicyRegistry(RegistryHive hive, string? goc, string? sidCon = null) { _hive = hive; _goc = goc; _sidCon = sidCon; }
@@ -198,10 +199,11 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     /// <summary>Tạo/mở khoá để ghi; trong hive người dùng thì khoá chặt ACL đường SOFTWARE\Policies\… (tài khoản chuẩn chỉ đọc).</summary>
     private RegistryKey TaoKhoa(RegistryKey goc, string khoa)
     {
-        // khoá chặt TRƯỚC khi ghi (khoá Con tự tạo với ACL chỉ mình Con thì CreateSubKey của SYSTEM bị từ chối) và SAU (khoá vừa tạo)
-        if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon);
+        // khoá chặt TRƯỚC khi ghi (khoá Con tự tạo với ACL chỉ mình Con thì CreateSubKey của SYSTEM bị từ chối) và SAU (khoá vừa tạo);
+        // mỗi khoá chỉ dò một lần cho mỗi lượt ghi hive (_daKhoa) — không đọc lại ACL cả đường cho từng giá trị
+        if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon, _daKhoa);
         var k = goc.CreateSubKey(khoa, true);
-        if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon);
+        if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon, _daKhoa);
         return k;
     }
 

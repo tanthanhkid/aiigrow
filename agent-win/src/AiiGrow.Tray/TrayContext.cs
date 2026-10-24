@@ -84,7 +84,7 @@ internal sealed class TrayContext : ApplicationContext
 
     private bool _anPhienKhac;
 
-    /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay ẩn, ngừng hỏi máy chủ, chỉ hỏi dịch vụ thưa (30 giây) — KHÔNG thoát hẳn:
+    /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay ẩn, đóng màn khoá / màn chặn, ngừng hỏi máy chủ, chỉ hỏi dịch vụ thưa (6 giây) — KHÔNG thoát hẳn:
     /// quyết định dựa trên danh sách tài khoản dịch vụ đọc 2 phút/lần, có thể cũ (cài một chạm: Con vừa bị gỡ quyền quản trị) ⇒ đúng lại thì hiện lại (BUG-007, review #75).</summary>
     private void AnVoiPhienKhac()
     {
@@ -92,9 +92,14 @@ internal sealed class TrayContext : ApplicationContext
         if (_anPhienKhac) return;
         _anPhienKhac = true;
         _hvTimer.Stop();
-        _timer.Interval = 30_000;
+        // hỏi dịch vụ (pipe cục bộ, rẻ) mỗi 6 giây: phân loại nhầm (danh sách tài khoản cũ) thì Con có lại màn khoá / màn chặn sớm
+        _timer.Interval = 6000;
         _ni.Visible = false;
         if (_app is { IsDisposed: false }) _app.Hide();
+        if (_lock is { IsDisposed: false }) { try { _lock.CloseForReal(); _lock.Dispose(); } catch { } }
+        _lock = null;
+        if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
+        _blocked = null;
     }
 
     private void HienLaiNeuDaAn()

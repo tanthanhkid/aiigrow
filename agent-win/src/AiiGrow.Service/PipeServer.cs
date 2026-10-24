@@ -142,7 +142,7 @@ public sealed class PipeServer : BackgroundService
                     lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
                     return tra;
                 }
-                catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+                catch (Exception e) when (e is not OperationCanceledException) { return new PipeResponse { Ok = false, Error = e.Message }; }   // cả lỗi đọc JSON (phutToiDa lẻ…)
             }
 
             case PipeCmd.Request:

@@ -18,6 +18,7 @@ public sealed class AppLockerController
     private bool? _khaDung;
     private bool? _khaDungTam;
     private long _khaDungTamDen;
+    private int _soLanKhong;
     /// <summary>AppLocker dùng được trên máy này không (BUG-005: Windows Home không có). Đọc một lần, nhớ cả đời dịch vụ.</summary>
     public bool KhaDung
     {
@@ -33,11 +34,11 @@ public sealed class AppLockerController
                 var r = Shell.PowerShell("if (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) { 'co' } else { 'khong' }", 30000);
                 if (r.Ok) cmdlet = !r.Output.Contains("khong");
             }
-            var kq = AppLockerKhaDung.Tinh(ed, cmdlet);
-            // đọc cmdlet lỗi (cmdlet = null) ⇒ chưa chắc: không nhớ, thử lại lần sau; Home / không có cmdlet là chắc chắn
-            // CHỈ bản Home là chắc chắn suốt đời dịch vụ; «không thấy cmdlet» trên Pro có thể do module nạp lỗi nhất thời (PSModulePath của SYSTEM…)
-            // ⇒ nhớ tạm 10 phút rồi kiểm lại, không thì luật AppLocker đã áp kẹt lại mãi (Reconcile bỏ qua cả việc gỡ) — review #75
-            if (AppLockerKhaDung.LaBanHome(ed)) _khaDung = kq;
+            _soLanKhong = cmdlet == false ? _soLanKhong + 1 : 0;
+            var (kq, chac) = AppLockerKhaDung.Chot(ed, cmdlet, _soLanKhong);
+            // chắc chắn (Home / có cmdlet / «không» nhiều lần liền) ⇒ nhớ suốt đời dịch vụ; chưa chắc ⇒ dùng tạm 10 phút, không chạy PowerShell
+            // (≤30 giây) hai lần mỗi nhịp; «không thấy cmdlet» trên Pro chưa chắc ⇒ vẫn coi là dùng được để còn gỡ luật đã áp (review #75)
+            if (chac) _khaDung = kq;
             else { _khaDungTam = kq; _khaDungTamDen = Environment.TickCount64 + 10 * 60 * 1000; }
             if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}», cmdlet {c}) — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", cmdlet, AppLockerKhaDung.CauGhiChu);
             return kq;

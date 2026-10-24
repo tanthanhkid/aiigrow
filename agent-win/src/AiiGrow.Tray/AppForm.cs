@@ -314,7 +314,7 @@ internal sealed class AppForm : Form
 
     private void MoChoiBangDiem()
     {
-        using var f = new ChoiBangDiemForm(_s.PlayChoices, _phutChoi);
+        using var f = new ChoiBangDiemForm(_s.PlayChoices);
         f.ShowDialog(this);
         _ = LamMoiPhutChoiAsync();
     }
@@ -433,7 +433,8 @@ internal sealed class AppForm : Form
                 pr.Controls.Add(choi);
                 _content.Controls.Add(pr);
                 if (_phutChoi is > 0)
-                    _content.Controls.Add(T($"Điểm đổi được khoảng {_phutChoi} phút chơi.", 12f, false, UI.Muted, true));
+                    // số phút tính theo MỤC (máy chủ định giá theo nhóm) ⇒ nói rõ là của mục nào
+                    _content.Controls.Add(T($"Điểm hiện có đổi được khoảng {_phutChoi} phút chơi {TrayView.FriendlyAppName(_s.PlayChoices.FirstOrDefault(), null)}.", 12f, false, UI.Muted, true));
             }
 
             // #70 §1: Ba Mẹ cần máy ⇒ chuyển người dùng (khoá phiên), không đăng xuất, không trừ điểm.

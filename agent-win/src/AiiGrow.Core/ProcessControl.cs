@@ -37,7 +37,8 @@ public static class ProcessEnforcer
         var allowedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var p in procs)
         {
-            if (!allowed.Contains(FileName(p.Path)) && !(ProcessGuard.TenGoiStore(p.Path) is { } g && allowed.Contains(g))) continue;
+            // cùng luật với ShouldClose: «notepad.exe» giả trong Downloads không kéo cả Downloads thành «helper cùng thư mục»
+            if (!ProcessGuard.DuocPhepTheoLuat(p.Path, allowed, winDir)) continue;
             var d = DirName(p.Path);
             // app được phép nằm trong thư mục Windows (vd notepad ở System32) KHÔNG kéo cả System32 thành «helper cùng thư mục» (cmd, powershell…)
             if (d != null && !(!string.IsNullOrWhiteSpace(winDir) && (d + "\\").StartsWith(winDir!.TrimEnd('\\', '/') + "\\", StringComparison.OrdinalIgnoreCase)))
