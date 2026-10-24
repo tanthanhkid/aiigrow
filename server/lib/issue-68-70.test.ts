@@ -83,6 +83,8 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   await dieuChinhTay(fam, con, 50, "Điểm thử", await bmId(fam));
   // phiên THẬT qua moPhien, giờ cố định trong khung chơi (thứ Tư 18:00 giờ VN) — không chèn tay
   const ph = await moPhien(con, may.deviceId, "roblox.exe", {}, new Date("2026-10-21T18:00:00+07:00"));
+  assert.equal((await m("phien-dang", { tok })).body.ds.length, 0, "phiên mất nhịp lâu (máy ngủ) không hiện «đang chơi»");
+  await q(`update play_sessions set nhip_cuoi = now() where id = $1`, [ph.id]);                // nhịp vừa tới
   const ds = (await m("phien-dang", { tok })).body.ds;
   assert.equal(ds.length, 1);
   assert.deepEqual([ds[0].tenCon, ds[0].may, ds[0].tenApp], ["Ken", "PC của Ken", "Roblox"]);

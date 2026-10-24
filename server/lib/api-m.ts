@@ -235,7 +235,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       const r = await q<{ id: string; child_id: string; ten_con: string; muc: string; may: string | null; toi_da_phut: number; phut_dung: number; trang_thai: string }>(
         `select p.id, p.child_id, c.ten as ten_con, p.muc, d.name as may, p.toi_da_phut, p.phut_dung, p.trang_thai
            from play_sessions p join children c on c.id = p.child_id left join devices d on d.id = p.device_id
-          where c.family_id = $1 and p.trang_thai in ('chay', 'tam') order by p.bat_dau`, [fam]);
+          where c.family_id = $1 and p.trang_thai in ('chay', 'tam') and p.nhip_cuoi > now() - interval '15 minutes' order by p.bat_dau`, [fam]);
+      // phiên mất nhịp > 15 phút (máy ngủ / mất mạng) không phải «đang chơi»: không hiện thẻ đứng hình hàng giờ
       return json({ ds: r.map((x) => ({ id: x.id, con: x.child_id, tenCon: x.ten_con, may: x.may, muc: x.muc, tenApp: tenApp(x.muc), tam: x.trang_thai === "tam",
         conPhut: Math.max(0, Math.ceil(x.toi_da_phut - x.phut_dung)) })) });
     }

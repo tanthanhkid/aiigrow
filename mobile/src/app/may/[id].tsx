@@ -153,7 +153,8 @@ export default function AnToanMay() {
           </Nhom>
         </>
       ) : (
-        m.baoVe === "day_du" ? <Bao loai="ok" ic="tick" tieu="Máy được bảo vệ đầy đủ, không có vấn đề nào" /> : null
+        m.baoVe === "day_du" ? <Bao loai="ok" ic="tick" tieu="Máy được bảo vệ đầy đủ, không có vấn đề nào" />
+          : !m.baoVe ? <Bao loai="ok" ic="tick" tieu="Không có vấn đề tuân thủ nào" /> : null   // máy chủ cũ chưa gửi baoVe
       )}
 
       <NhomTieu chu="Khi cần" />

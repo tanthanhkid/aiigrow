@@ -29,7 +29,8 @@ export default function AppWeb() {
   const loc = <T extends { muc: string; ten?: string }>(ds: T[]) => (q ? ds.filter((x) => x.muc.includes(q) || (x.ten ?? "").toLowerCase().includes(q)) : ds);
   const luu = () => lam(async () => {
     // đã có luật ⇒ giữ tên nhà mình đặt (vd «Khan»), không ghi đè bằng tên tự sinh của «Đã thấy»
-    await bm.goi("luat", { muc: xep!.muc, ten: d!.ds.find((x) => x.muc === xep!.muc && !x.child_id)?.ten ?? xep!.ten, loai, nhom });
+    // chưa có tên dễ hiểu (gõ tay, tên miền) ⇒ không gửi ten: máy chủ lấy mục đã chuẩn hoá, không lưu nguyên chữ gõ (vd URL đầy đủ)
+    await bm.goi("luat", { muc: xep!.muc, ten: d!.ds.find((x) => x.muc === xep!.muc && !x.child_id)?.ten ?? (xep!.ten !== xep!.muc ? xep!.ten : undefined), loai, nhom });
     bao(`Đã xếp ${xep!.ten} vào ${LOAI[loai][0]}`);
     setXep(null);
     await tai();
@@ -37,7 +38,7 @@ export default function AppWeb() {
   const daThay = d.daThay ?? [];
   const tenCuaMuc = (muc: string) => d.ds.find((x) => x.muc === muc)?.ten ?? d.chuaXep.find((x) => x.muc === muc)?.ten ?? daThay.find((x) => x.muc === muc)?.ten ?? muc;
   const dsThe = the === "chua" ? loc(d.chuaXep).map((x) => ({ muc: x.muc, ten: x.ten ?? x.muc, phu: `${x.phut} phút trên máy Con · chưa xếp` })) :
-    the === "thay" ? loc(daThay).map((x) => ({ muc: x.muc, ten: x.ten, phu: `${x.phut} phút trong 30 ngày · ${x.loai === "chua_xep" ? "chưa xếp" : LOAI[x.loai][0]}` })) :
+    the === "thay" ? loc(daThay).map((x) => ({ muc: x.muc, ten: x.ten, xep: x.loai === "chua_xep", phu: `${x.phut} phút trong 30 ngày · ${x.loai === "chua_xep" ? "chưa xếp" : LOAI[x.loai][0]}` })) :
     loc(d.ds.filter((x) => x.loai === the)).map((x) => ({ muc: x.muc, ten: tenCuaMuc(x.muc), phu: x.loai === "giai_tri" ? NHOM.find((n) => n.gia === x.nhom)?.chu ?? "Giải trí" : LOAI[x.loai][0] }));
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu="Ứng dụng" noi={noi}>
@@ -48,7 +49,7 @@ export default function AppWeb() {
       {dsThe.length ? (
         <Nhom>
           {dsThe.map((x, i) => <Dong key={x.muc} dau={i === 0} tieu={x.ten} phu={x.ten !== x.muc ? `${x.phu} · ${x.muc}` : x.phu} trai={<BieuTron ic={x.muc.includes(".") && !x.muc.endsWith(".exe") ? "web" : "luoi"} />}
-            phai={<Nhan loai={the === "chua" || the === "thay" ? "canh" : LOAI[the][1]} chu={the === "chua" ? "Xếp" : "Đổi"} />} bam={() => setXep(x.muc, x.ten)} />)}
+            phai={<Nhan loai={the === "chua" || the === "thay" ? "canh" : LOAI[the][1]} chu={the === "chua" || ("xep" in x && x.xep) ? "Xếp" : "Đổi"} />} bam={() => setXep(x.muc, x.ten)} />)}
         </Nhom>
       ) : the === "chua" ? <CanhGiua lv="xong" tieu="Không còn app nào chưa xếp" loi="App mới xuất hiện trên máy Con sẽ hiện ở đây." />
         : the === "thay" ? <Chu co={14} mau={M.chu3}>{q ? "Không có app nào khớp — gõ tên tệp (vd msedge.exe) để thêm tay." : "Máy Con chưa báo app nào."}</Chu> : <Chu co={14} mau={M.chu3}>Chưa có mục nào.</Chu>}

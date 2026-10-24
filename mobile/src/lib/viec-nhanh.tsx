@@ -22,6 +22,8 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
   const win = m.nen === "windows";
   const dangGo = !!m.dangGo;
   const cho = !!(m.cheDoBaMeChon && m.cheDoMay && m.cheDoBaMeChon !== m.cheDoMay);
+  // nhãn theo chế độ MÁY đang chạy (cheDoMay); lựa chọn của Ba Mẹ chưa tới máy thì hiện dòng «Đang chờ máy nhận…» bên dưới
+  const cheDoThat = m.cheDoMay ?? m.cheDo;
   const doiSang: CheDoMay = m.cheDo === "chan" ? "giam-sat" : "chan";
   const chuaDu = !!m.baoVe && m.baoVe !== "day_du";            // máy chủ cũ không gửi baoVe ⇒ không báo
   const doi = () => lam(async () => {
@@ -45,7 +47,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
           <Chu kieu="rat" co={15.5} dong={1}>{m.ten}</Chu>
           <Chu co={13} mau={M.chu3}>{`Đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}${m.dungChung ? " · máy dùng chung" : ""}`}</Chu>
         </View>
-        {win && m.cheDo ? <Nhan chu={m.cheDo === "chan" ? "Đang chặn" : "Chỉ theo dõi"} loai={m.cheDo === "chan" ? "ok" : "xam"} cham /> : null}
+        {win && cheDoThat ? <Nhan chu={cheDoThat === "chan" ? "Đang chặn" : "Chỉ theo dõi"} loai={cheDoThat === "chan" ? "ok" : "xam"} cham /> : null}
       </View>
       {dangGo ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>Máy đang được gỡ AiiGrow — tạm không chặn gì.</Chu>
         : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{`Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`}</Chu> : null}

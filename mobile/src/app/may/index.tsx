@@ -30,7 +30,7 @@ export default function MayTinhDienThoai() {
             <Dong key={m.id} dau={i === 0} tieu={m.ten}
               phu={`${m.cheDo ? `${TEN_CHE_DO[m.cheDo]} · ` : ""}${phuMay(m)} · đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}`}
               trai={<BieuTron ic={IC_NEN[m.nen]} mau={mauMay(m)} />}
-              phai={!!m.baoVe && m.baoVe !== "day_du" && m.trangThai === "tuan_thu" ? <Nhan chu="Bảo vệ chưa đủ" loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
+              phai={!!m.baoVe && m.baoVe !== "day_du" && m.trangThai === "tuan_thu" ? <Nhan chu={m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ"} loai="canh" cham /> : <Nhan chu={TT_TRANG[m.trangThai].chu} loai={TT_TRANG[m.trangThai].loai} cham />}
               bam={() => router.push(`/may/${m.id}`)} />
           ))}
         </Nhom>
@@ -41,7 +41,7 @@ export default function MayTinhDienThoai() {
 }
 
 function phuMay(m: TuanThuMay) {
-  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : !m.baoVe ? "chưa rõ mức bảo vệ" : m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
+  const p = m.moKhanCapDen ? "đang mở khẩn cấp" : m.khoaGiaiTri ? "giải trí đang khoá" : !m.baoVe ? "chưa rõ mức bảo vệ" : m.baoVe === "chua" ? "chưa có thông tin bảo vệ" : m.baoVe !== "day_du" ? "bảo vệ chưa đủ — xem cách sửa" : "bảo vệ đầy đủ";
   return m.dungChung ? `${p} · máy dùng chung` : p;
 }
 
