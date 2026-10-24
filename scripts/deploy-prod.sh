@@ -16,7 +16,9 @@ D="$(mktemp -d)/web"
 trap 'rm -rf "${D:?}"' EXIT
 
 echo "== Máy chủ: test + tsc"
-(cd server && pnpm install --frozen-lockfile >/dev/null && node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts > "$D.test.txt" 2>&1 || true
+# pnpm 10 trả mã lỗi ERR_PNPM_IGNORED_BUILDS (@sentry/cli) dù đã cài xong ⇒ không coi là lỗi, kiểm node_modules thay
+(cd server && { pnpm install --frozen-lockfile >/dev/null 2>&1 || true; } && [ -d node_modules/next ] || { echo "pnpm install máy chủ lỗi"; exit 1; }
+ node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts > "$D.test.txt" 2>&1 || true
  grep -E "^ℹ (pass|fail)" "$D.test.txt"; grep -q "^ℹ fail 0" "$D.test.txt" || { echo "Test máy chủ lỗi — xem $D.test.txt"; exit 1; }
  npx tsc --noEmit -p .)
 rm -f server/pnpm-workspace.yaml
