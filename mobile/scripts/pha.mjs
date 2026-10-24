@@ -235,16 +235,32 @@ const di = async (duong, token = "tok-thu") => {
   await goi("Page.navigate", { url: `${GOC}${duong}` });
 };
 const doi = async (txt, ms = 8000) => { for (let t = 0; t < ms; t += 250) { if ((await chu())?.includes(txt)) return true; await sleep(250); } return false; };
-/** Bấm vào chữ `txt` bằng chuột thật (CDP Input) — Pressable của react-native-web nghe pointer, không nghe .click(). */
-const bam = async (txt) => {
-  await sleep(150);
-  const r = await js(`(() => { const t = ${JSON.stringify(txt)};
-    const el = [...document.querySelectorAll("div,span")].filter((e) => e.innerText?.trim() === t).pop();
-    if (!el) return null; el.scrollIntoView({ block: "center" }); const b = el.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`);
-  if (!r) return false;
-  await sleep(250);                       // chờ cuộn + bố cục ổn định (phông tải xong) rồi mới bấm
+/** Tìm phần tử (biểu thức JS trả về element) rồi CHỜ nó đứng yên: cuộn vào giữa, đo hai lần cách 120ms trùng nhau và điểm giữa
+ * đúng là nó (elementFromPoint) — hết hiệu ứng vào (FadeInDown/LinearTransition) và không bị lớp khác che. Máy tải nặng thì hiệu ứng
+ * chạy chậm: đo một lần rồi bấm sẽ trúng chỗ khác (lỗi 24/10: bấm «Duyệt» lại trúng thân dòng ⇒ mở màn Chờ duyệt). */
+const viTriYen = async (timEl, ms = 8000) => {
+  // cuộn vào GIỮA mỗi lượt đo (đứng yên thì không cuộn nữa): mép dưới có thể bị nút cố định «day» che dù vẫn trong khung nhìn
+  const do1 = `(() => { const e = (${timEl})(); if (!e) return null; e.scrollIntoView({ block: "center" }); const b = e.getBoundingClientRect();
+    const x = b.x + b.width / 2, y = b.y + b.height / 2, t = document.elementFromPoint(x, y);
+    return { x, y, w: b.width, h: b.height, trung: !!t && (e === t || e.contains(t)) }; })()`;
+  let truoc = null;
+  for (let t = 0; t < ms; t += 120) {
+    const r = await js(do1);
+    if (r && r.trung && truoc && Math.abs(r.x - truoc.x) < 0.5 && Math.abs(r.y - truoc.y) < 0.5 && r.w === truoc.w && r.h === truoc.h) return r;
+    truoc = r;
+    await sleep(120);
+  }
+  return truoc;   // hết giờ mà chưa «yên + trúng» (vd chữ bị cắt một phần mép) ⇒ bấm như cũ tại lần đo cuối, kịch bản tự báo SAI nếu trượt
+};
+const nhanChuot = async (r) => {
   for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) { await goi("Input.dispatchMouseEvent", { type, x: r.x, y: r.y, button: "left", clickCount: 1 }); await sleep(80); }
   await sleep(400);
+};
+/** Bấm vào chữ `txt` bằng chuột thật (CDP Input) — Pressable của react-native-web nghe pointer, không nghe .click(). */
+const bam = async (txt) => {
+  const r = await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => e.innerText?.trim() === ${JSON.stringify(txt)}).pop()`);
+  if (!r) return false;
+  await nhanChuot(r);
   return true;
 };
 /** Gõ vào ô có aria-label `nhan` (setter gốc + sự kiện input — React nhận như người gõ). */
@@ -458,14 +474,13 @@ await kichBan("Gia đình ⇒ Xoá tài khoản: chủ còn thành viên / còn 
 
 /** Bấm phần tử theo bộ chọn CSS (công tắc không có chữ). */
 const bamChon = async (chon) => {
-  const r = await js(`(() => { const e = document.querySelector(${JSON.stringify(chon)}); if (!e) return null; e.scrollIntoView({ block: "center" });
-    const b = e.getBoundingClientRect(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; })()`);
+  const r = await viTriYen(`() => document.querySelector(${JSON.stringify(chon)})`);
   if (!r) return false;
-  await sleep(250);
-  for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) { await goi("Input.dispatchMouseEvent", { type, x: r.x, y: r.y, button: "left", clickCount: 1 }); await sleep(80); }
-  await sleep(400);
+  await nhanChuot(r);
   return true;
 };
+/** Chờ một lời gọi API khớp `dk` xuất hiện trong nhật ký (thay cho sleep cố định — máy tải nặng thì lời gọi đến muộn). */
+const choGoi = async (dk, ms = 6000) => { for (let t = 0; t < ms; t += 100) { if (nhatKy.some(dk)) return true; await sleep(100); } return false; };
 const coChon = async (chon, ms = 6000) => { for (let t = 0; t < ms; t += 250) { if (await js(`!!document.querySelector(${JSON.stringify(chon)})`)) return true; await sleep(250); } return false; };
 
 await kichBan("Chủ gia đình mời Bà ngoại quyền Chỉ xem ⇒ hiện mã + QR + nút gửi", async () => {
@@ -577,20 +592,17 @@ await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / 
   xet(await doi("việc chờ Ba Mẹ"), "thẻ việc chờ ở Trang chủ");
   const nhan = (l) => `[aria-label="${l}"]`;
   await bamChon(nhan("Duyệt: Rửa chén sau bữa tối"));
-  await sleep(500);
-  xet(nhatKy.some((x) => x.m === "POST" && x.d === "luot/l1/duyet"), "Duyệt nhiệm vụ gọi luot/l1/duyet");
+  xet(await choGoi((x) => x.m === "POST" && x.d === "luot/l1/duyet"), "Duyệt nhiệm vụ gọi luot/l1/duyet");
   xet(await doi("Đã duyệt «Rửa chén sau bữa tối»"), "báo đã duyệt");
   await bam("Hoàn tác");
-  await sleep(500);
-  xet(nhatKy.some((x) => x.m === "POST" && x.d === "luot/l1/hoan-tac"), "Hoàn tác gọi luot/l1/hoan-tac");
+  xet(await choGoi((x) => x.m === "POST" && x.d === "luot/l1/hoan-tac"), "Hoàn tác gọi luot/l1/hoan-tac");
   kb["POST luot/l3/tu-choi"] = { ok: true };
   xet(await doi("Xem ảnh"), "ảnh nghi trùng ⇒ «Xem ảnh» thay cho duyệt mù");
   await bamChon(nhan("Từ chối: Tập thể dục 30 phút"));
   xet(await doi("cần làm gì thêm?"), "Từ chối mở bảng lý do");
   await bam("Chưa xong — làm tiếp nhé");
   await bam(`Gửi cho ${KEN}`);
-  await sleep(600);
-  xet(nhatKy.some((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Chưa xong — làm tiếp nhé" && x.body?.boSung === true), "gửi từ chối kèm lý do đã chọn");
+  xet(await choGoi((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Chưa xong — làm tiếp nhé" && x.body?.boSung === true), "gửi từ chối kèm lý do đã chọn");
   xet(await doi("Đã gửi «Chưa xong — làm tiếp nhé»"), "báo đã gửi lý do");
   await bam(BILL);
   await bamChon(nhan("Duyệt: Xin thêm 15 phút"));
