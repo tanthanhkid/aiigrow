@@ -2,6 +2,7 @@
 // - I3d: icon minh hoạ = PNG Fluent Emoji 3D (microsoft/fluentui-emoji, MIT, commit 1ffb34c) đóng gói ở public/icon3d/ — không gọi CDN lúc chạy.
 // - Ph: icon điều hướng nhỏ = Phosphor Fill (@phosphor-icons/core 2.1.1, MIT © 2023 Phosphor Icons), chép nguyên path vào đây.
 // Giấy phép: public/icon3d/NOTICE.txt.
+import type { CSSProperties } from "react";
 
 export type Ten3d =
   | "desktop-computer" | "laptop" | "mobile-phone" | "inbox-tray" | "eyes" | "shield" | "key" | "office-building" | "card-index-dividers"
@@ -12,8 +13,8 @@ export type Ten3d =
 export function I3d({ ten, mau, co = 44, className }: { ten: Ten3d; mau?: "xanh" | "vang" | "cam" | "lam" | "tim" | "xam"; co?: number; className?: string }) {
   const c = Math.round(co * 0.62);
   return (
-    <span className={`bt ${mau ?? "xam"} ${className ?? ""}`} style={{ width: co, height: co }} aria-hidden="true">
-      <img className="f3" src={`/icon3d/${ten}.png`} alt="" width={c} height={c} decoding="async" />
+    <span className={`bt ${mau ?? "xam"} ${className ?? ""}`} style={{ "--co": `${co}px` } as CSSProperties} aria-hidden="true">
+      <F3 ten={ten} co={c} />
     </span>
   );
 }

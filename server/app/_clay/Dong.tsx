@@ -8,7 +8,8 @@
 import { useEffect } from "react";
 
 const BAM = ".nut, .chip, a.o-so, a.dong, button.dong, nav.muc a, .lui, .cong-tac, .chip-x button";
-const giamDong = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+let mqGiam: MediaQueryList | null = null;
+const giamDong = () => { if (!mqGiam && typeof matchMedia === "function") mqGiam = matchMedia("(prefers-reduced-motion: reduce)"); return !!mqGiam?.matches; };
 
 function quet(el: HTMLElement) {
   if (giamDong()) return;
@@ -22,7 +23,9 @@ export function DongClay() {
     // vệt men chỉ khi thả NGAY trên phần tử (bấm thật); kéo ra ngoài / cuộn (pointercancel) thì chỉ nhả bẹp
     const tha = (e?: Event) => {
       if (!dang) return; const el = dang; dang = null; el.classList.remove("an");
-      if (e?.type === "pointerup" && el.contains(e.target as Node)) quet(el);
+      // chạm có pointer capture ⇒ e.target luôn là phần tử cũ; xem ngón thả ở đâu thật
+      const pe = e as PointerEvent | undefined;
+      if (pe?.type === "pointerup" && el.contains(document.elementFromPoint(pe.clientX, pe.clientY))) quet(el);
     };
     const xuong = (e: PointerEvent) => {
       if (e.button > 0) return;
@@ -32,6 +35,7 @@ export function DongClay() {
       const x = ((e.clientX - r.left) / r.width) * 100, y = ((e.clientY - r.top) / r.height) * 100;
       el.style.setProperty("--mx", `${x.toFixed(1)}%`); el.style.setProperty("--my", `${y.toFixed(1)}%`);
       if (giamDong()) return;
+      dang?.classList.remove("an"); // ngón thứ hai: nhả phần tử ngón trước
       dang = el; el.classList.add("an");
     };
     const phim = (e: KeyboardEvent) => {
@@ -59,7 +63,7 @@ export function phaoGiay(goc: HTMLElement | null) {
   const lop = document.createElement("div");
   lop.className = "phao-giay"; lop.setAttribute("aria-hidden", "true");
   goc.appendChild(lop);
-  const r = goc.getBoundingClientRect(), cx = r.width / 2, cy = Math.min(r.height * 0.32, 180);
+  const cx = goc.offsetWidth / 2, cy = Math.min(goc.offsetHeight * 0.32, 180); // offset* bỏ qua transform của hiệu ứng bật vào
   const MAU = ["#0f6b5c", "#14826f", "#f5b70a", "#ffd447", "#8fe3cf"];
   for (let i = 0; i < 20; i++) {
     const h = document.createElement("i");

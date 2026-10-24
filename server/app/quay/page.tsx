@@ -106,7 +106,8 @@ export default function Quay() {
   }, []);
   useEffect(() => tatCam, [tatCam]);
   const hopLe = hien.loai === "kq" && hien.kq.ketQua === "hop_le" ? hien.kq : null;
-  useEffect(() => { if (hopLe) phaoGiay(oKq.current); }, [hopLe]);
+  const daPhao = useRef("");
+  useEffect(() => { if (hopLe && daPhao.current !== hopLe.luc) { daPhao.current = hopLe.luc; phaoGiay(oKq.current); } }, [hopLe]);
 
   const kiem = useCallback(async (maVao: string) => {
     const m = maVao.trim();
