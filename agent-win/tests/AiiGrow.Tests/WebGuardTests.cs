@@ -156,6 +156,8 @@ public class WebPolicyTests
         Assert.Contains("URLAllowlist", s);
         Assert.Contains("90000", s);
         Assert.Contains("AllowDeletingBrowserHistory", s);
+        Assert.Contains(@"SOFTWARE\Policies\CocCoc\Browser", s);
+        Assert.Contains("gpupdate.exe /target:computer /force", s);
     }
 }
 

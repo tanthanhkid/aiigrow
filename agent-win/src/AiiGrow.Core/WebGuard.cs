@@ -6,7 +6,7 @@ using Microsoft.Win32;
 
 namespace AiiGrow.Core;
 
-// LỌC WEB theo tên miền bằng chính sách quản lý của trình duyệt (Chrome / Edge / Brave): ghi HKLM\SOFTWARE\Policies\<hãng>\<trình duyệt>\
+// LỌC WEB theo tên miền bằng chính sách quản lý của trình duyệt (Chrome / Edge / Brave / Cốc Cốc): ghi HKLM\SOFTWARE\Policies\<hãng>\<trình duyệt>\
 // URLBlocklist + URLAllowlist (+ tắt chế độ ẩn danh / xoá lịch sử / khách để Con không lách). Máy chủ quyết định mọi thứ: danh sách nằm ở
 // `dong-bo.windows.web` = {cheDo: mo|chi_cho_phep, chan[], cho[]} (server/lib/web.ts); agent chỉ áp.
 //   • CHỈ áp khi chế độ hiệu lực là «chan» (Ba Mẹ chọn «Chặn thật»). Giám sát / máy mồ côi / đang gỡ / Con mở tạm bằng mã offline ⇒ GỠ hết.
@@ -99,6 +99,8 @@ public static class WebPolicyKeys
         new("Chrome", @"SOFTWARE\Policies\Google\Chrome", "IncognitoModeAvailability"),
         new("Edge", @"SOFTWARE\Policies\Microsoft\Edge", "InPrivateModeAvailability"),
         new("Brave", @"SOFTWARE\Policies\BraveSoftware\Brave", "IncognitoModeAvailability"),
+        // Cốc Cốc (Chromium, phổ biến ở VN) đọc cùng bộ chính sách Chromium ở khoá riêng — thiếu thì Con mở YouTube bằng Cốc Cốc là lọt (24/10).
+        new("CocCoc", @"SOFTWARE\Policies\CocCoc\Browser", "IncognitoModeAvailability"),
     };
 
     /// <summary>Cờ DWORD (tên → giá trị) AiiGrow đặt trong chế độ chặn: không ẩn danh, không xoá lịch sử, không chế độ khách ⇒ lịch sử web luôn đủ.</summary>
@@ -117,7 +119,7 @@ public static class WebPolicyKeys
         if (p.CheDo == WebPolicy.ChiChoPhep)
         {
             chan.Add("*");
-            cho.AddRange(new[] { "chrome://*", "edge://*", "brave://*" });
+            cho.AddRange(new[] { "chrome://*", "edge://*", "brave://*", "coccoc://*" });
             if (WebPolicy.Sach(maychuHost) is { } h) cho.Add(h);
         }
         chan.AddRange(p.Chan);
@@ -176,6 +178,29 @@ public sealed class WebPolicyApplier
 /// <summary>Ghi registry thật (HKLM 64-bit). Chạy bằng SYSTEM (dịch vụ) hoặc Administrator (bộ gỡ).</summary>
 public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
 {
+    [System.Runtime.InteropServices.DllImport("userenv.dll", SetLastError = true)]
+    private static extern bool RefreshPolicyEx(bool bMachine, uint dwOptions);
+    private const uint RP_FORCE = 1;
+
+    /// <summary>Báo trình duyệt đọc lại chính sách NGAY. Chrome / Edge / Cốc Cốc chỉ đọc lại registry khi nhận tín hiệu Group Policy
+    /// (RegisterGPNotification) hoặc theo chu kỳ dài — ghi registry xong mà không báo thì tải lại trang vẫn vào được, phải tắt hẳn trình duyệt
+    /// (Thanh thử YouTube 24/10). RefreshPolicyEx chạy xử lý chính sách cục bộ (cả máy không vào domain) rồi phát tín hiệu đó; không được thì gpupdate.
+    /// → mô tả cách đã báo (để ghi log).</summary>
+    public static string BaoTrinhDuyetDocLai()
+    {
+        // chỉ tín hiệu MÁY: dịch vụ chạy SYSTEM, RefreshPolicyEx(false) chỉ làm mới cho chính SYSTEM (review #65)
+        try { if (RefreshPolicyEx(true, RP_FORCE)) return "RefreshPolicyEx"; }
+        catch { }
+        try
+        {
+            // không chờ: gpupdate có thể chạy lâu, chặn vòng áp luật / khởi động dịch vụ (giới hạn 30 giây của Windows)
+            using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("gpupdate.exe", "/target:computer /force")
+            { CreateNoWindow = true, UseShellExecute = false, WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden });
+            return p != null ? "gpupdate (chạy nền)" : "không báo được: gpupdate không chạy";
+        }
+        catch (Exception e) { return "không báo được: " + e.Message; }
+    }
+
     private static RegistryKey Hklm() => RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
 
     private static bool XoaMucCuaTa(RegistryKey k)
@@ -250,7 +275,11 @@ public static class WebGuard
     }
 
     /// <summary>Gỡ chính sách web của AiiGrow khỏi registry (chạy lại bao nhiêu lần cũng được).</summary>
-    public static void GoChinhSach() => new WebPolicyApplier(new WindowsWebPolicyRegistry()).GoTatCa();
+    public static void GoChinhSach()
+    {
+        // gỡ xong cũng báo trình duyệt — không thì Chrome đang mở vẫn chặn tới khi tắt hẳn (review #65)
+        if (new WebPolicyApplier(new WindowsWebPolicyRegistry()).GoTatCa()) WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai();
+    }
 
     /// <summary>Đoạn PowerShell tương đương, nhúng vào tác vụ dọn tách rời (SYSTEM) làm lưới đỡ khi dịch vụ không gỡ được.
     /// Chỉ xoá giá trị của AiiGrow (tên số &gt; 90000 + ba cờ DWORD), giữ nguyên mục người khác đặt.</summary>
@@ -270,6 +299,8 @@ public static class WebGuard
             "}",
             "foreach($d in " + dw + "){ $p=$d.Split('|'); $k=\"HKLM:\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } }",
             "foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){ $k=\"HKLM:\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
+            // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
+            "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",
         });
     }
 }

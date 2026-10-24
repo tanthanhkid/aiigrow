@@ -29,6 +29,8 @@ internal sealed class TrayContext : ApplicationContext
     // Bóng báo vừa hiện dẫn tới mục nào của app to (bấm vào bóng báo trong 20 giây ⇒ mở đúng mục).
     private MucApp _toastMuc = MucApp.HomNay;
     private DateTimeOffset _toastAt = DateTimeOffset.MinValue;
+    private readonly BatNhiemVu _bat = new();
+    private bool AppDangHien => _app is { IsDisposed: false, Visible: true } a && a.WindowState != FormWindowState.Minimized;
 
     public TrayContext()
     {
@@ -76,8 +78,9 @@ internal sealed class TrayContext : ApplicationContext
         _ni.ShowBalloonTip(ms, title, text, icon);
     }
 
-    /// <summary>Mở app to (một bản duy nhất; đã mở thì đưa lên trước). <paramref name="tuToast"/> = bấm từ bóng báo ⇒ coi như đã xem tin mới.</summary>
-    private void OpenApp(MucApp muc, bool tuToast = false)
+    /// <summary>Mở app to (một bản duy nhất; đã mở thì đưa lên trước). <paramref name="tuToast"/> = bấm từ bóng báo ⇒ coi như đã xem tin mới.
+    /// <paramref name="tuBat"/> = khay tự bật (nhiệm vụ mới), không do Con bấm ⇒ ép cửa sổ nổi lên trên cùng.</summary>
+    private void OpenApp(MucApp muc, bool tuToast = false, bool tuBat = false)
     {
         if (_state.Locked) { Toast(4000, "Máy đang khoá", "Khi máy mở lại, con xem nhiệm vụ và phần quà nhé.", ToolTipIcon.Info, MucApp.HomNay); return; }
         if (_app == null || _app.IsDisposed)
@@ -88,7 +91,7 @@ internal sealed class TrayContext : ApplicationContext
         }
         if (tuToast) _tinMoi = 0;
         PushApp();
-        _app.ShowFront(muc);
+        _app.ShowFront(muc, tuBat);
     }
 
     private void PushApp()
@@ -155,6 +158,9 @@ internal sealed class TrayContext : ApplicationContext
                 var (tieu, noi) = HocVienView.ToastText(moi);
                 if (_app is { Visible: true }) _ = _app.RefreshAsync();       // app đang mở ⇒ cập nhật luôn, bóng báo vẫn hiện nhẹ
                 Toast(8000, tieu, noi, ToolTipIcon.Info, HocVienView.MucChoTin(moi));
+                // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (đang khoá ⇒ chờ mở khoá; app đang hiện / Con đang toàn màn hình / vừa bật ⇒ chỉ bóng báo)
+                if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
+                    OpenApp(MucApp.NhiemVu, tuBat: true);
             }
             PushApp();
         }
@@ -219,6 +225,7 @@ internal sealed class TrayContext : ApplicationContext
             _lock.Dispose();
             _lock = null;
             _warned5 = _warned1 = false;
+            if (_bat.MoKhoa(AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now)) OpenApp(MucApp.NhiemVu, tuBat: true);
         }
     }
 
