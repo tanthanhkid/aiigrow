@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.Manifest
 import android.app.Activity
@@ -19,11 +19,11 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import vn.aiilab.aiigrow.con.logic.PHUT_XIN
-import vn.aiilab.aiigrow.con.logic.TrangThai
-import vn.aiilab.aiigrow.con.logic.chuanMaGhep
-import vn.aiilab.aiigrow.con.logic.thanXinThemGio
-import vn.aiilab.aiigrow.con.GiaoDien as G
+import vn.aiilab.aiigrow.maycon.logic.PHUT_XIN
+import vn.aiilab.aiigrow.maycon.logic.TrangThai
+import vn.aiilab.aiigrow.maycon.logic.chuanMaGhep
+import vn.aiilab.aiigrow.maycon.logic.thanXinThemGio
+import vn.aiilab.aiigrow.maycon.GiaoDien as G
 
 /** Màn chính của Con: còn bao nhiêu phút, xin thêm giờ, hôm nay đã dùng gì; chưa ghép thì ghép bằng mã 6 số + cấp quyền. */
 class ManChinh : Activity() {

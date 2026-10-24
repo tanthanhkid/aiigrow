@@ -6,7 +6,7 @@ Tác tử máy Con dùng gói **`vn.aiilab.aiigrow.con`** (app Ba Mẹ Expo đã
 `server/lib/chuyen-doi.ts › huongDanCai("android")` đang trỏ `vn.aiilab.aiigrow/.QuanTri` (gói của app Ba Mẹ ⇒ QR cài sai app).
 Đổi thành:
 ```
-"android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/.QuanTri",
+"android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri",
 "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${g}/tai/aiigrow-con.apk`,
 ```
 - `PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM`: băm SHA-256 (base64url) chữ ký APK — chỉ có khi có bản ký phát hành (chưa tạo keystore).

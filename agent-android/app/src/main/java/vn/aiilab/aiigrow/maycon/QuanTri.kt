@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.app.admin.DeviceAdminReceiver
 import android.app.admin.DevicePolicyManager
@@ -9,7 +9,7 @@ import android.os.Build
 import android.os.PersistableBundle
 
 /**
- * DeviceAdminReceiver — `vn.aiilab.aiigrow.con/.QuanTri`.
+ * DeviceAdminReceiver — `vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri`.
  *  • Đường mạnh: Device Owner (cài bằng QR trên máy vừa khôi phục gốc, hoặc `dpm set-device-owner` trên máy thử).
  *  • Đường không reset: Device Admin thường (chỉ lockNow + chống gỡ dễ) + UsageStats + Trợ năng.
  */

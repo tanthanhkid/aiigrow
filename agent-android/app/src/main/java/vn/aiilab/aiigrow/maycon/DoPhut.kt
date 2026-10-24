@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.app.AppOpsManager
 import android.app.usage.UsageEvents
@@ -9,10 +9,10 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
-import vn.aiilab.aiigrow.con.logic.GoiCai
-import vn.aiilab.aiigrow.con.logic.LoaiSuKien
-import vn.aiilab.aiigrow.con.logic.SuKienDung
-import vn.aiilab.aiigrow.con.logic.demTienCanh
+import vn.aiilab.aiigrow.maycon.logic.GoiCai
+import vn.aiilab.aiigrow.maycon.logic.LoaiSuKien
+import vn.aiilab.aiigrow.maycon.logic.SuKienDung
+import vn.aiilab.aiigrow.maycon.logic.demTienCanh
 import java.time.Instant
 import java.time.ZoneId
 

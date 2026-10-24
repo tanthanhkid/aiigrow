@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.app.Activity
 import android.content.Intent
@@ -6,7 +6,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
-import vn.aiilab.aiigrow.con.logic.TrangThai
+import vn.aiilab.aiigrow.maycon.logic.TrangThai
 
 /**
  * Màn khoá / hết giờ + đếm ngược. Device Owner: khoá cả máy (khoá ngay, giờ ngủ) ⇒ chế độ khoá tác vụ (lock task — chỉ AiiGrow, vẫn có

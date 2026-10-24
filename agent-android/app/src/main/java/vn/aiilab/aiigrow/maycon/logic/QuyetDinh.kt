@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con.logic
+package vn.aiilab.aiigrow.maycon.logic
 
 import java.time.DayOfWeek
 import java.time.Duration

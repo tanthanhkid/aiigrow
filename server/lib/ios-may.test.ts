@@ -102,7 +102,7 @@ const nhipAnd = async (tok: string, o: Record<string, unknown>) => {
 test("QR Device Owner Android: component + APK của tác tử máy Con, giữ Chrome/Camera; redirect /tai/aiigrow-con.apk; APK app Ba Mẹ giữ nguyên", async () => {
   const a = cd.huongDanCai("android", "TOK1", "https://app.test/");
   const qr = a.chiTiet.qrCaiDat as Record<string, unknown>;
-  assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME"], "vn.aiilab.aiigrow.con/.QuanTri");
+  assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME"], "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri");
   assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION"], "https://app.test/tai/aiigrow-con.apk");
   assert.equal(qr["android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED"], true);
   assert.match(String(a.chiTiet.ghiChu), /CHƯA có/);

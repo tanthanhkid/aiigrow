@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con.logic
+package vn.aiilab.aiigrow.maycon.logic
 
 import org.json.JSONArray
 import org.json.JSONObject

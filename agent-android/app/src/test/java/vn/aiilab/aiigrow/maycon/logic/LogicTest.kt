@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con.logic
+package vn.aiilab.aiigrow.maycon.logic
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

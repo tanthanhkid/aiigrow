@@ -1,10 +1,10 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
-import vn.aiilab.aiigrow.con.logic.QuyetDinh
+import vn.aiilab.aiigrow.maycon.logic.QuyetDinh
 import java.io.File
 
 /** Trạng thái bền của tác tử (SharedPreferences riêng của app; token không rời máy ngoài header Bearer). */
@@ -72,7 +72,7 @@ data class HienThi(
 
         fun tu(qd: QuyetDinh, demNguoc: Int, dungTop: List<Pair<String, Int>>, now: Long, deviceOwner: Boolean, tenCon: String?) = HienThi(
             qd.trangThai.name, qd.conPhut, qd.cauCon, qd.moLaiLuc?.toEpochMilli() ?: 0, qd.khoaCaMay, demNguoc,
-            demNguoc == 0 && vn.aiilab.aiigrow.con.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon,
+            demNguoc == 0 && vn.aiilab.aiigrow.maycon.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon,
         )
     }
 }

@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.Manifest
 import android.app.admin.DevicePolicyManager
@@ -7,7 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.UserManager
 import android.util.Log
-import vn.aiilab.aiigrow.con.logic.QuyetDinh
+import vn.aiilab.aiigrow.maycon.logic.QuyetDinh
 
 /**
  * Áp quyết định lên máy. Hai đường:

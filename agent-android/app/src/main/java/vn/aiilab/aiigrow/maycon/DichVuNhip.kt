@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -18,17 +18,17 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
-import vn.aiilab.aiigrow.con.logic.PhanHoiNhip
-import vn.aiilab.aiigrow.con.logic.TrangThai
-import vn.aiilab.aiigrow.con.logic.demNguocConLai
-import vn.aiilab.aiigrow.con.logic.docPhanHoiNhip
-import vn.aiilab.aiigrow.con.logic.goiAndroid
-import vn.aiilab.aiigrow.con.logic.laKhoa
-import vn.aiilab.aiigrow.con.logic.phutGiaiTri
-import vn.aiilab.aiigrow.con.logic.quyetDinh
-import vn.aiilab.aiigrow.con.logic.thanGhepToken
-import vn.aiilab.aiigrow.con.logic.thanNhip
-import vn.aiilab.aiigrow.con.logic.webChan
+import vn.aiilab.aiigrow.maycon.logic.PhanHoiNhip
+import vn.aiilab.aiigrow.maycon.logic.TrangThai
+import vn.aiilab.aiigrow.maycon.logic.demNguocConLai
+import vn.aiilab.aiigrow.maycon.logic.docPhanHoiNhip
+import vn.aiilab.aiigrow.maycon.logic.goiAndroid
+import vn.aiilab.aiigrow.maycon.logic.laKhoa
+import vn.aiilab.aiigrow.maycon.logic.phutGiaiTri
+import vn.aiilab.aiigrow.maycon.logic.quyetDinh
+import vn.aiilab.aiigrow.maycon.logic.thanGhepToken
+import vn.aiilab.aiigrow.maycon.logic.thanNhip
+import vn.aiilab.aiigrow.maycon.logic.webChan
 import java.time.Instant
 
 /**
@@ -209,7 +209,7 @@ class DichVuNhip : Service() {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tenCon = k.tenCon ?: "Con (thử)"; return null }
             return try {
-                val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.con.logic.thanGhep(ma, Build.MODEL ?: "Android"))
+                val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android"))
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
                 lamMoi(ctx)
                 null

@@ -12,7 +12,7 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | `logic/DemPhut.kt` | đếm phút tiền cảnh theo app từ sự kiện UsageStats; thân ghép / nhịp / xin thêm giờ |
 | `DichVuNhip` | dịch vụ tiền cảnh: vòng 5 giây, gọi máy chủ mỗi 60 giây, đo → quyết → thực thi, thông báo thường trực, mở màn khoá |
 | `NenTang.kt` | `UngDung` (hẹn WorkManager 15 phút), `ViecNhip`, `KhoiDong` (BOOT_COMPLETED), `ManCaiDat` (cài QR Android 10+) |
-| `QuanTri` | DeviceAdminReceiver `vn.aiilab.aiigrow.con/.QuanTri` |
+| `QuanTri` | DeviceAdminReceiver `vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri` |
 | `ThucThi` | Device Owner: `setPackagesSuspended`, `setLockTaskPackages`, hạn chế người dùng, Chrome `URLBlocklist`, DNS riêng tư, `lockNow`; gỡ từ xa |
 | `TroNang` | AccessibilityService (đường không reset): app bị chặn lên tiền cảnh ⇒ về Home + phủ màn chặn; khoá cả máy ⇒ phủ màn khoá |
 | `ManChinh` / `ManKhoa` | màn Con (còn phút, xin 30/60/120 + lời nhắn, đã dùng gì, ghép mã 6 số, cấp quyền) / màn khoá + đếm ngược |
@@ -51,11 +51,11 @@ Gradle 8.10.2 · AGP 8.7.3 · Kotlin 2.0.21 · minSdk 26 · targetSdk 35. Phụ 
 ```
 emulator -avd aiigrow-con -no-window -no-audio -no-boot-anim -memory 2048 &
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell dpm set-device-owner vn.aiilab.aiigrow.con/.QuanTri
+adb shell dpm set-device-owner vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri
 adb shell appops set vn.aiilab.aiigrow.con GET_USAGE_STATS allow
 # chế độ thử: bản debug đọc chính sách giả từ files/thu-chinh-sach.json (run-as), không ghép / không nhịp máy chủ
 adb shell "run-as vn.aiilab.aiigrow.con sh -c 'cat > files/thu-chinh-sach.json'" < thu/chinh-sach-binh-thuong.json
-adb shell am start -n vn.aiilab.aiigrow.con/.ManChinh
+adb shell am start -n vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.ManChinh
 adb shell pm list packages --suspended        # gói trong "chan" phải có ở đây
 adb shell "run-as vn.aiilab.aiigrow.con sh -c 'cat > files/thu-chinh-sach.json'" < thu/chinh-sach-khoa-ngay.json   # màn khoá + đếm ngược
 adb emu kill

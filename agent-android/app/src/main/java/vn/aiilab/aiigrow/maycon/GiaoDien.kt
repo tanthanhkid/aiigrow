@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.content.Context
 import android.graphics.Typeface
@@ -9,8 +9,8 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import vn.aiilab.aiigrow.con.logic.TrangThai
-import vn.aiilab.aiigrow.con.logic.mmss
+import vn.aiilab.aiigrow.maycon.logic.TrangThai
+import vn.aiilab.aiigrow.maycon.logic.mmss
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

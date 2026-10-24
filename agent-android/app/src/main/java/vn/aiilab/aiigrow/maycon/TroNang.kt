@@ -1,4 +1,4 @@
-package vn.aiilab.aiigrow.con
+package vn.aiilab.aiigrow.maycon
 
 import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
@@ -10,7 +10,7 @@ import android.os.Looper
 import android.provider.Settings
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
-import vn.aiilab.aiigrow.con.logic.GOI_LUON_CHO
+import vn.aiilab.aiigrow.maycon.logic.GOI_LUON_CHO
 
 /**
  * Đường KHÔNG cần khôi phục gốc: dịch vụ Trợ năng chỉ nghe «cửa sổ tiền cảnh đổi sang app nào» (không đọc nội dung màn hình —

@@ -356,7 +356,7 @@ export function huongDanCai(nen: NenChuyenDoi, token: string, goc: string): Huon
     case "android": return { nen, cach: "qr_device_owner", quyenAdmin: "không cần — Device Owner cấp khi cài bằng QR",
       buoc: ["Khôi phục gốc máy Con (máy mới)", "Ở màn chào chạm 6 lần, quét QR trong app Ba Mẹ", "Máy tự tải AiiGrow Con, tự ghép với gia đình"],
       chiTiet: { qrCaiDat: {
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/.QuanTri",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${g}/tai/aiigrow-con.apk`,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,   // giữ Chrome, Camera… của máy
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "<băm chữ ký APK — việc chờ bản build ký>",

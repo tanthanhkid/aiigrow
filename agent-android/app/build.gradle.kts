@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "vn.aiilab.aiigrow.con"
+    namespace = "vn.aiilab.aiigrow.maycon"   // thư mục mã không được tên «con» (tên cấm trên Windows, CI checkout hỏng); applicationId giữ nguyên
     compileSdk = 35
 
     defaultConfig {
