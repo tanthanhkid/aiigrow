@@ -128,6 +128,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "tuan-thu" && get) return json(await tt.chiTietTuanThu(fam, p[1]));
       if (sau === "cau-hinh-nen-tang" && get) return json(await cauHinhNenTangMay(fam, p[1]));
       if (sau === "mo-khan-cap" && post) return json(await tt.moKhanCap(fam, p[1], b, bm.id));
+      if (sau === "doi-ten" && post) return json(await gd.doiTenMay(fam, p[1], b.ten, bm.id));
       if (sau === "gan-con" && post) return json(await gd.ganConMay(fam, p[1], b.con, bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       if (sau === "ma-offline" && get) {
