@@ -193,3 +193,28 @@ test("tên Con/máy: taoCon chặn trùng + gộp khoảng trắng + NFC; đổi
   assert.equal((await g.doiTenMay(fam, r.deviceId, `  ${t80}  `)).doi, false);          // chỉ khác khoảng trắng ⇒ không đổi
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may'`, [fam])).length, 1);
 });
+
+test("suaCon: tên không đổi (sau chuẩn hoá) không kiểm trùng; đọc tên cũ trong khoá nên nhật ký `tu` đúng khi đổi song song", async () => {
+  const { fam } = await taoNha();
+  const a = await g.taoCon(fam, { ten: "Mon" });
+  // dữ liệu cũ trùng tên sẵn (tạo trước khi có luật chặn trùng)
+  await q(`insert into children(id, family_id, ten) values ('trung1', $1, 'Mon')`, [fam]);
+  await g.suaCon(fam, a, { ten: "  Mon ", avatar: "rob-sao", nhom: "teen" });      // tên không đổi + sửa avatar/nhóm ⇒ không ten_trung
+  const c = await g.conCua(fam, a);
+  assert.equal(c.avatar, "rob-sao");
+  assert.equal(c.nhom, "teen");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_con'`, [fam])).length, 0);
+  // tên mới trùng Con khác vẫn bị chặn
+  await loi(g.suaCon(fam, a, { ten: "mon", avatar: "rob" }), "ten_trung");
+  // hai lần đổi song song: nhật ký tạo chuỗi nhất quán (tu của lần sau = den của lần trước)
+  const b = await g.taoCon(fam, { ten: "Bo" });
+  await Promise.all([g.suaCon(fam, b, { ten: "Bo Mot" }), g.suaCon(fam, b, { ten: "Bo Hai" })]);
+  const ev = await q<{ d: { tu: string; den: string } | string }>(`select chi_tiet as d from events where family_id = $1 and loai = 'doi_ten_con' and child_id = $2 order by created_at, id`, [fam, b]);
+  const ds = ev.map((e) => (typeof e.d === "string" ? JSON.parse(e.d) : e.d));
+  assert.equal(ds.length, 2);
+  const cuoi = (await g.conCua(fam, b)).ten;
+  const dau = ds.find((x) => x.tu === "Bo")!;
+  const sau = ds.find((x) => x.tu !== "Bo")!;
+  assert.equal(sau.tu, dau.den);
+  assert.equal(sau.den, cuoi);
+});

@@ -1,8 +1,8 @@
 // bm-ob-con (bước 1/5): tên gọi, năm sinh, PIN — nhóm Nhí/Teen tự đề xuất theo tuổi (FR-01.02). Không hỏi trường, địa chỉ.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm } from "@/lib/api";
+import { bm, catTen, chuanHoaTen } from "@/lib/api";
 import { datTl } from "@/lib/thiet-lap";
 import { BaoLoi, BieuTron, Buoc, Canh, Chu, M, Man, Nut, OChon, ONhap, useLam } from "@/lib/ui";
 
@@ -15,16 +15,24 @@ export default function ObCon() {
   const [nhom, setNhom] = useState<"nhi" | "teen" | null>(null);
   const chon = nhom ?? deXuat;
   const { lam, loi, dangChay } = useLam();
+  // Con đã tạo ở lần bấm trước (quay lại / thử lại sau lỗi ở bước sau) — nhớ id để SỬA chứ không tạo lại (tạo lại ⇒ ten_trung với chính Con vừa tạo)
+  const daTao = useRef<string | null>(null);
   const tiep = () => lam(async () => {
-    const r = await bm.goi<{ id: string }>("con", { ten, namSinh: Number(nam) || null, pin: pin || null, nhom: chon });
-    datTl({ conId: r.id, tenCon: ten.trim(), nhom: chon });
+    const tenMoi = chuanHoaTen(ten);
+    if (daTao.current) {
+      await bm.goi(`con/${daTao.current}/sua`, { ten: tenMoi, nhom: chon, ...(pin ? { pin } : {}) });
+    } else {
+      const r = await bm.goi<{ id: string }>("con", { ten: tenMoi, namSinh: Number(nam) || null, pin: pin || null, nhom: chon });
+      daTao.current = r.id;
+    }
+    datTl({ conId: daTao.current, tenCon: tenMoi, nhom: chon });
     router.push("/thiet-lap/may");
   });
   return (
     <Man dau={<Buoc n={1} tong={5} nhan="Bước 1/5 · Con" />} day={<><BaoLoi loi={loi} />
       <Nut chu="Tiếp: chọn thiết bị" rong dangChay={dangChay} tat={!ten.trim() || (pin !== "" && !/^\d{4,6}$/.test(pin))} bam={tiep} /></>}>
       <Canh lv="so-tay" thap tieu="Con tên gì?" loi="Rob gợi ý trải nghiệm theo tuổi." />
-      <ONhap nhan="Tên gọi" value={ten} onChangeText={setTen} placeholder="Ken" maxLength={30} />
+      <ONhap nhan="Tên gọi" value={ten} onChangeText={(t) => setTen(catTen(t, 30))} placeholder="Ken" />
       <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
         <View style={{ flex: 1, minWidth: 140 }}><ONhap nhan="Năm sinh" value={nam} onChangeText={(t) => setNam(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="2017" /></View>
         <View style={{ flex: 1, minWidth: 140 }}><ONhap nhan="Mã PIN của Con" value={pin} onChangeText={(t) => setPin(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" secureTextEntry placeholder="4–6 số" /></View>

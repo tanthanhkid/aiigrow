@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, chuanHoaTen, type ConChiTiet } from "@/lib/api";
+import { bm, catTen, chuanHoaTen, type ConChiTiet } from "@/lib/api";
 import { saoChep } from "@/lib/luu-tep";
 import { datTl } from "@/lib/thiet-lap";
 import {
@@ -17,10 +17,10 @@ const IC_NEN = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt
 
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { d: goc, loi, matMang, tai } = useTai(async () => {
-    const [con, toi] = await Promise.all([bm.goi<ConChiTiet>(`con/${id}`), bm.goi<{ baMe: { vai: string } }>("toi")]);
-    return { con, xem: toi.baMe.vai === "xem" };
-  });
+  const { d: con, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${id}`));
+  // Vai Ba Mẹ — tải riêng: lỗi `toi` chỉ ẩn hàng «Tên», không làm hỏng cả màn (như mục liên kết AiiRob)
+  const vai = useTai(() => bm.goi<{ baMe: { vai: string } }>("toi"));
+  const goc = con ? { con, xem: vai.d?.baMe.vai === "xem" } : null;
   const [mo, setMo] = useState<"ten" | "pin" | "nhom" | { go: string; ten: string } | null>(null);
   const [pin, setPin] = useState("");
   const [ten, setTen] = useState("");
@@ -55,8 +55,8 @@ export default function HoSoCon() {
       ))}
       <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />
       <Nhom>
-        {goc.xem ? null : <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setLoi(null); setMo("ten"); }} />}
-        <Dong dau={goc.xem} tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
+        {!vai.d || goc.xem ? null : <Dong dau tieu="Tên" phu={`${d.ten} — đổi tên gọi của Con`} trai={<BieuTron ic="cuoi" mau="lam" />} bam={() => { setTen(d.ten); setLoi(null); setMo("ten"); }} />}
+        <Dong dau={!vai.d || goc.xem} tieu="Nhóm trải nghiệm" phu={`${d.nhom === "teen" ? "Teen" : "Nhí"}${d.namSinh ? ` · ${new Date().getFullYear() - d.namSinh} tuổi` : ""}`} trai={<BieuTron ic="cuoi" mau="vang" />} bam={() => setMo("nhom")} />
         <Dong tieu={`Mã PIN của ${d.ten}`} phu="Đặt lại khi Con quên — Con đăng xuất ở mọi máy" trai={<BieuTron ic="khoa" />} bam={() => setMo("pin")} />
         <Dong tieu="Giờ chơi & giới hạn" phu={`Trần ${d.thamSo.tran_ngay} phút/ngày`} trai={<BieuTron ic="dongho" />} bam={() => router.push(`/gio/${d.id}`)} />
         <Dong tieu="Thời gian màn hình" phu="App và trang web trong tuần, theo mục" trai={<BieuTron ic="cot" mau="tim" />} bam={() => router.push(`/man-hinh/${d.id}`)} />
@@ -73,7 +73,7 @@ export default function HoSoCon() {
         </Nhom>
       ) : null}
       <BangTruot mo={mo === "ten"} dong={dong} tieu={`Đổi tên ${d.ten}`}>
-        <ONhap nhan="Tên của Con" value={ten} onChangeText={(t) => setTen(t.slice(0, 30))} autoCapitalize="words" maxLength={30} />
+        <ONhap nhan="Tên của Con" value={ten} onChangeText={(t) => setTen(catTen(t, 30))} autoCapitalize="words" />
         <BaoLoi loi={loiLam} />
         <Nut chu="Lưu tên" rong dangChay={dangChay} tat={!chuanHoaTen(ten) || chuanHoaTen(ten) === d.ten} bam={() => lam(async () => {
           const moi = chuanHoaTen(ten);

@@ -80,16 +80,19 @@ export async function conCua(fam: string, id: string) {
 }
 
 export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar?: unknown; nhom?: unknown; pin?: unknown }, nguoi?: string) {
-  const cu = await conCua(fam, id);
+  await conCua(fam, id);
   if (b.ten !== undefined) {
     const ten = tenConHopLe(b.ten);
     await tx(async (t) => {
       await khoaTen(t, fam);
+      // Đọc tên cũ SAU khi giữ khoá: hai lần đổi song song không ghi nhật ký `tu` theo giá trị đã cũ.
+      const cu = (await t<{ ten: string }>(`select ten from children where id = $1 and family_id = $2`, [id, fam]))[0];
+      if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+      const tenCu = chuanHoaTen(cu.ten);
+      if (ten === tenCu) return;                 // tên không đổi (sau chuẩn hoá) ⇒ không kiểm trùng, không ghi — sửa avatar/nhóm/PIN kèm tên cũ vẫn qua
       await trungTenCon(t, fam, ten, id);
-      if (ten !== cu.ten) {
-        await t(`update children set ten = $2 where id = $1`, [id, ten]);
-        await ghiSuKien(fam, "doi_ten_con", { tu: cu.ten, den: ten }, { con: id, nguoi }, t);
-      }
+      await t(`update children set ten = $2 where id = $1`, [id, ten]);
+      await ghiSuKien(fam, "doi_ten_con", { tu: cu.ten, den: ten }, { con: id, nguoi }, t);
     });
   }
   if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
