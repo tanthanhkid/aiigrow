@@ -16,7 +16,9 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | `ThucThi` | Device Owner: `setPackagesSuspended`, `setLockTaskPackages`, hạn chế người dùng, Chrome `URLBlocklist`, DNS riêng tư, `lockNow`; gỡ từ xa |
 | `TroNang` | AccessibilityService (đường không reset): app bị chặn lên tiền cảnh ⇒ về Home + phủ màn chặn; khoá cả máy ⇒ phủ màn khoá |
 | `ManChinh` / `ManKhoa` | màn Con (còn phút, xin 30/60/120 + lời nhắn, đã dùng gì, ghép mã 6 số, cấp quyền) / màn khoá + đếm ngược |
-| `thu/` | chính sách giả cho chế độ thử cục bộ · `chup/` ảnh chụp emulator |
+| `Clay.kt` | ngôn ngữ «Clay gương» (`docs/THIET-KE-CLAY.md`) cho View: `ClayDrawable` (khối bo lớn, bóng kép, men gương, vệt men lướt), lò xo nhấn / vào lần lượt / ổ khoá đóng sập; tắt hoạt ảnh trong Trợ năng ⇒ không nảy |
+| `res/drawable-nodpi/fl_*.png` | icon Fluent Emoji 3D (Microsoft, MIT — `app/src/main/assets/FLUENT-EMOJI-LICENSE.txt`, đóng gói vào APK) |
+| `thu/` | chính sách giả cho chế độ thử cục bộ · `chup/` ảnh chụp emulator (`man-khoa.png` còn giao diện cũ) |
 
 ## Hai đường cài (chọn lúc ghép)
 **1. Device Owner bằng QR — mạnh nhất (máy mới hoặc khôi phục gốc).**

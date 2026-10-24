@@ -14,7 +14,9 @@ chính hãng, không ẩn mình — app luôn hiện dòng «Ba Mẹ quản lý 
 | `ShieldConfig/` | ShieldConfiguration ext | màn chặn tiếng Việt theo lý do + nút «Xin thêm giờ» |
 | `ShieldAction/` | ShieldAction ext | «Xin thêm giờ» ⇒ thông báo cục bộ, chạm vào mở app ở màn xin giờ |
 | `Tests/` | `ConCoreTests` | 33 test logic thuần + client/đồng bộ với bản giả |
-| `chup/` | — | ảnh chụp simulator iPhone 17 + iPad Pro 11" (iOS 26.5), dữ liệu giả |
+| `App/Clay.swift` | — | ngôn ngữ «Clay gương» (`docs/THIET-KE-CLAY.md`): `NenClay`, `NutClay` (bẹp-nảy lò xo + vệt men), `IconClay`, `vaoLanLuot`; Giảm chuyển động ⇒ chỉ mờ |
+| `TaiNguyen/` | app | `Fluent.xcassets` icon Fluent Emoji 3D (Microsoft, MIT — `FLUENT-EMOJI-LICENSE.txt`, đóng gói vào app); màn chặn dùng 4 icon riêng ở `ShieldConfig/ManChan.xcassets` |
+| `chup/` | — | ảnh chụp simulator iPhone 17 + iPad Pro 11" (iOS 26.5), dữ liệu giả (ảnh iPhone đã theo Clay 24/10, ảnh iPad còn giao diện cũ) |
 
 App group `group.vn.aiilab.aiigrow.con`; entitlement `com.apple.developer.family-controls` ở app + 3 extension; associated domain
 `applinks:aiigrow.aiilab.vn`; scheme `aiigrowcon://`.

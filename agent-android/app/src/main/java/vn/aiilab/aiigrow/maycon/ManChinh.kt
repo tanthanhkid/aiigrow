@@ -38,13 +38,17 @@ class ManChinh : Activity() {
     private var nutPhut: List<Button> = emptyList()
     private var daVe: String? = null
     private var tChao: TextView? = null
+    private var daVaoLan = false   // hiệu ứng vào lần lượt chỉ một lần mỗi lần mở màn, không lặp mỗi lần dựng lại
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = G.XANH
-        goc = G.cot(this).apply { setBackgroundColor(G.NEN) }
+        @Suppress("DEPRECATION") run {
+            window.statusBarColor = Clay.NEN_DINH
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        }
+        goc = G.cot(this, 16)
         setContentView(ScrollView(this).apply {
-            setBackgroundColor(G.NEN); isFillViewport = true; addView(goc)
+            background = G.nenMan(); isFillViewport = true; addView(goc)
             // targetSdk 35 = tràn viền bắt buộc: chừa chỗ thanh trạng thái / thanh điều hướng
             setOnApplyWindowInsetsListener { v, i -> @Suppress("DEPRECATION") v.setPadding(0, i.systemWindowInsetTop, 0, i.systemWindowInsetBottom); i }
         })
@@ -71,14 +75,15 @@ class ManChinh : Activity() {
             if (k.daGhep) dungManDaGhep() else dungManGhep()
             theQuyen()
             minhBach()
+            if (!daVaoLan) { daVaoLan = true; Clay.vaoLanLuot(goc) }
         }
         if (k.daGhep) capNhatSo(k)
     }
 
     private fun dauTrang(k: Kho) {
-        goc.addView(G.chu(this, "AiiGrow", 26f, G.XANH, true))
+        goc.addView(G.dauKhoi(this, R.drawable.fl_la, "AiiGrow", Clay.CHINH_SOFT, 20f, Clay.CHINH_INK))
         val ten = HienThi.doc(k.hienThi)?.tenCon ?: k.tenCon
-        tChao = G.chu(this, if (k.daGhep) "Chào ${ten ?: "con"}!" else "Máy của Con", 18f, G.CHU_PHU)
+        tChao = G.chu(this, if (k.daGhep) "Chào ${ten ?: "con"}!" else "Máy của Con", 30f, G.CHU, true).apply { setPadding(G.dp(this@ManChinh, 4), 0, 0, G.dp(this@ManChinh, 6)) }
         goc.addView(tChao)
         if (k.cheDoThu) goc.addView(G.chu(this, "Chế độ thử cục bộ (bản debug) — không gọi máy chủ", 13f, 0xFFB45309.toInt()))
     }
@@ -86,13 +91,15 @@ class ManChinh : Activity() {
     // ------------------------------------------------------------ chưa ghép
     private fun dungManGhep() {
         val t = G.the(this)
-        t.addView(G.chu(this, "Ghép với gia đình", 20f, G.CHU, true))
+        t.addView(G.dauKhoi(this, R.drawable.fl_dien_thoai, "Ghép với gia đình", Clay.LAM_SOFT))
         t.addView(G.chu(this, "Ba Mẹ mở app AiiGrow › Thêm máy › Android để lấy mã 6 số, rồi nhập vào đây.", 15f, G.CHU_PHU))
         val o = EditText(this).apply {
             hint = "Mã 6 số"; inputType = InputType.TYPE_CLASS_NUMBER; filters = arrayOf(InputFilter.LengthFilter(6))
-            textSize = 28f; gravity = Gravity.CENTER; letterSpacing = 0.3f; minHeight = G.dp(this@ManChinh, 56)
+            textSize = 28f; gravity = Gravity.CENTER; letterSpacing = 0.3f; minHeight = G.dp(this@ManChinh, 64)
+            background = ClayDrawable(this@ManChinh, Clay.Kieu.LOM); setTextColor(G.CHU); setHintTextColor(G.CHU_PHU)
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = G.dp(this@ManChinh, 12); bottomMargin = G.dp(this@ManChinh, 4) }
         }
-        val bao = G.chu(this, "", 14f, 0xFFB42318.toInt())
+        val bao = G.chu(this, "", 14f, Clay.LOI)
         t.addView(o)
         t.addView(G.nut(this, "Ghép máy") {
             val ma = chuanMaGhep(o.text.toString())
@@ -111,19 +118,19 @@ class ManChinh : Activity() {
     // ------------------------------------------------------------ đã ghép
     private fun dungManDaGhep() {
         val t = G.the(this, G.XANH)
-        t.addView(G.chu(this, "Giờ giải trí còn lại hôm nay", 15f, 0xDDFFFFFF.toInt()))
-        tPhut = G.chu(this, "—", 48f, G.TRANG, true)
+        t.addView(G.dauKhoi(this, R.drawable.fl_mat_troi, "Giờ giải trí còn lại hôm nay", Clay.CHINH_SOFT, 15f, 0xEEFFFFFF.toInt()))
+        tPhut = G.chu(this, "—", 48f, G.TRANG, true).apply { fontFeatureSettings = "tnum"; pivotX = 0f }
         tCau = G.chu(this, "", 16f, G.TRANG)
         tMoLai = G.chu(this, "", 14f, 0xDDFFFFFF.toInt())
         t.addView(tPhut); t.addView(tCau); t.addView(tMoLai)
         goc.addView(t)
 
         val x = G.the(this)
-        x.addView(G.chu(this, "Xin Ba Mẹ thêm giờ", 20f, G.CHU, true))
+        x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, "Xin Ba Mẹ thêm giờ", Clay.DIEM_SOFT))
         val hang = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         nutPhut = PHUT_XIN.map { p ->
             G.nut(this, "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == p) } }.apply {
-                layoutParams = LinearLayout.LayoutParams(0, G.dp(this@ManChinh, 56), 1f).apply { marginEnd = G.dp(this@ManChinh, 8); topMargin = G.dp(this@ManChinh, 10) }
+                layoutParams = LinearLayout.LayoutParams(0, layoutParams.height, 1f).apply { marginEnd = G.dp(this@ManChinh, 6); topMargin = G.dp(this@ManChinh, 6) }
             }
         }
         nutPhut.forEach(hang::addView)
@@ -131,10 +138,12 @@ class ManChinh : Activity() {
         x.addView(hang)
         val loi = EditText(this).apply {
             hint = "Lời nhắn cho Ba Mẹ (không bắt buộc)"; filters = arrayOf(InputFilter.LengthFilter(100)); minHeight = G.dp(this@ManChinh, 56)
+            background = ClayDrawable(this@ManChinh, Clay.Kieu.LOM); setTextColor(G.CHU); setHintTextColor(G.CHU_PHU); textSize = 16f
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = G.dp(this@ManChinh, 10) }
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         }
         x.addView(loi)
-        val bao = G.chu(this, "", 14f, G.XANH)
+        val bao = G.chu(this, "", 14f, Clay.CHINH_INK)
         x.addView(G.nut(this, "Gửi Ba Mẹ") {
             val than = thanXinThemGio(phutChon, loi.text.toString())
             bao.text = "Đang gửi…"
@@ -144,7 +153,7 @@ class ManChinh : Activity() {
         goc.addView(x)
 
         val d = G.the(this)
-        d.addView(G.chu(this, "Hôm nay con đã dùng", 20f, G.CHU, true))
+        d.addView(G.dauKhoi(this, R.drawable.fl_bieu_do, "Hôm nay con đã dùng", Clay.LAM_SOFT))
         dsDung = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         d.addView(dsDung)
         goc.addView(d)
@@ -154,7 +163,8 @@ class ManChinh : Activity() {
         if (!::tPhut.isInitialized) return
         val ht = HienThi.doc(k.hienThi) ?: run { tPhut.text = "—"; tCau.text = "Đang lấy luật của Ba Mẹ…"; return }
         tChao?.text = "Chào ${ht.tenCon ?: k.tenCon ?: "con"}!"
-        tPhut.text = "${ht.conPhut} phút"
+        val moi = "${ht.conPhut} phút"
+        if (tPhut.text.toString() != moi) { val coSo = tPhut.text.toString() != "—"; tPhut.text = moi; if (coSo) Clay.batNhe(tPhut) }
         tCau.text = ht.cauCon
         tMoLai.text = when {
             ht.demNguoc > 0 -> G.dongDemNguoc(ht)
@@ -178,12 +188,12 @@ class ManChinh : Activity() {
     private fun theQuyen() {
         val t = G.the(this, G.XANH_NHAT)
         if (QuanTri.laDeviceOwner(this)) {
-            t.addView(G.chu(this, "Cách quản lý: Device Owner", 17f, G.CHU, true))
+            t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: Device Owner", Clay.THE, 17f))
             t.addView(G.chu(this, "Máy được cài bằng QR khi khôi phục gốc. App bị chặn hiện xám «Đã tạm dừng».", 15f, G.CHU_PHU))
             if (!DoPhut.coQuyen(this)) t.addView(G.nut(this, "Cho phép đếm thời gian dùng", phu = true) { moCaiDat(Settings.ACTION_USAGE_ACCESS_SETTINGS) })
             goc.addView(t); return
         }
-        t.addView(G.chu(this, "Cách quản lý: không cần khôi phục gốc", 17f, G.CHU, true))
+        t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: không cần khôi phục gốc", Clay.THE, 17f))
         t.addView(G.chu(this, "Ba Mẹ bật đủ 3 quyền dưới đây. Muốn chặn mạnh hơn (app hiện «Đã tạm dừng»), cài lại bằng QR Device Owner.", 15f, G.CHU_PHU))
         val q = listOf(
             Triple("Quyền quản trị thiết bị (khoá máy)", QuanTri.laAdmin(this)) {
@@ -194,7 +204,7 @@ class ManChinh : Activity() {
             Triple("Trợ năng AiiGrow (màn chặn)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
         )
         for ((ten, co, mo) in q) {
-            if (co) t.addView(G.chu(this, "✓  $ten", 16f, G.XANH).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })
+            if (co) t.addView(G.chu(this, "✓  $ten", 16f, Clay.CHINH_INK).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })
             else t.addView(G.nut(this, "Bật: $ten", phu = true) { mo() })
         }
         goc.addView(t)

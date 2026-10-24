@@ -31,7 +31,7 @@ targets:
   AiiGrowCon:
     type: application
     platform: iOS
-    sources: [App, HeThong]
+    sources: [App, HeThong, TaiNguyen]
     dependencies:
       - target: ConCore
       - target: AiiGrowConMonitor
