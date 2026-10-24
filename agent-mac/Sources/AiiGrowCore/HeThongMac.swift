@@ -145,8 +145,10 @@ public final class HeThongMac: HeThong {
     if ma != 0 { ghiLog("Không chạy được trình gỡ (\(ma)): \(ra)") }
   }
 
-  /// PID trong `DuongDan.goCaiDangChay` còn sống và đúng là go-cai.sh (job launchd lẫn chạy tay bằng sudo).
+  /// PID trong `DuongDan.goCaiDangChay` còn sống và đúng là go-cai.sh (job launchd lẫn chạy tay bằng sudo), hoặc job gỡ từ xa đã submit
+  /// mà go-cai.sh chưa kịp ghi PID (nhãn có "PID").
   public func trinhGoDangChay() -> Bool {
+    if HeThongMac.chay("/bin/launchctl", ["list", HeThongMac.nhanTrinhGo], timeout: 10).1.contains("\"PID\"") { return true }
     guard let s = try? String(contentsOfFile: DuongDan.goCaiDangChay, encoding: .utf8),
           let pid = Int32(s.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0, kill(pid, 0) == 0 else { return false }
     return HeThongMac.chay("/bin/ps", ["-p", String(pid), "-o", "command="], timeout: 10).1.contains("go-cai")

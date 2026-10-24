@@ -120,11 +120,15 @@ public final class ApiClient: MayChuApi {
     return KetQuaYeuCau(id: id, trangThai: st)
   }
 
-  /// Kiểm bản mới (GET api/agent/ban-moi?platform=mac) → {version, url, sha256} hoặc nil nếu không có. Công khai, không cần token.
+  /// Kiểm bản mới (GET api/agent/ban-moi?platform=mac) → {version, url, sha256}; `null` ⇒ nil (chưa phát hành). Công khai, không cần token.
+  /// Thiếu trường / không phải JSON (proxy trả trang lạ…) ⇒ ném lỗi, KHÔNG coi là «đang là bản mới nhất».
   public func banMoi() async throws -> BanMoi? {
     let d = try await gui("GET", "api/agent/ban-moi?platform=mac", nil)
-    guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
-          let v = o["version"] as? String, let u = o["url"] as? String, let s = o["sha256"] as? String else { return nil }
+    let o = try? JSONSerialization.jsonObject(with: d, options: [.fragmentsAllowed])
+    if o is NSNull { return nil }
+    guard let o = o as? [String: Any], let v = o["version"] as? String, let u = o["url"] as? String, let s = o["sha256"] as? String else {
+      throw LoiApi(chu: "Manifest bản mới không đúng định dạng")
+    }
     return BanMoi(version: v, url: u, sha256: s)
   }
 

@@ -230,7 +230,7 @@ public actor BoCapNhat {
        dongHo().timeIntervalSince1970 - d.luc < 86_400 {
       if LuatCapNhat.laBanMoiHon(d.version, banHienTai) {
         so.dat("Chưa cài được bản \(d.version) (đã thử \(d.lan) lần) — lý do trong nhật ký /Library/Logs/AiiGrow; sẽ thử lại.", luc: dongHo())
-      } else if d.version == banHienTai {
+      } else if d.version == banHienTai, d.daGiao, dongHo().timeIntervalSince1970 - d.luc < 3600 {   // chỉ ngay sau lượt cài, không lặp mỗi lần khởi động lại
         so.dat("Đã cập nhật lên bản \(banHienTai).", luc: dongHo())
       }
     }
@@ -269,7 +269,7 @@ public actor BoCapNhat {
     let ban: BanMoi?
     do { ban = try await api.banMoi() } catch {
       heThong.ghiLog("Cập nhật: không hỏi được bản mới (\(error)).")
-      return ketThuc(.loi("Không kiểm tra được bản mới (mất mạng hoặc máy chủ chưa trả lời); sẽ thử lại sau."))
+      return ketThuc(.loi("Không kiểm tra được bản mới (mất mạng hoặc máy chủ trả sai); sẽ thử lại sau."))
     }
     if let m = ban, LuatCapNhat.tachBan(m.version) == nil {
       heThong.ghiLog("Cập nhật: TỪ CHỐI — bản «\(m.version)» trong manifest không đúng dạng x.y.z.")

@@ -392,6 +392,8 @@ final class CapNhatTests: XCTestCase {
     XCTAssertTrue(b.so.chu?.contains("Chưa cài được bản 0.1.2 (đã thử 2 lần)") ?? false, "\(b.so.chu ?? "nil")")
     fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(DauDaThu(version: "0.1.1", sha256: d.sha256, luc: d.luc))
     XCTAssertEqual(boCapNhat().so.chu, "Đã cập nhật lên bản 0.1.1.", "daemon mới sau khi cài xong ⇒ báo đã cập nhật")
+    fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(DauDaThu(version: "0.1.1", sha256: d.sha256, luc: gio.timeIntervalSince1970 - 7200))
+    XCTAssertNil(boCapNhat().so.chu, "khởi động lại vài giờ sau ⇒ không báo lại «đã cập nhật»")
     fake.tep["/gia/da-thu.json"] = try JSONEncoder().encode(DauDaThu(version: "0.1.0", sha256: d.sha256, luc: d.luc))
     XCTAssertNil(boCapNhat().so.chu, "dấu của bản cũ hơn ⇒ không báo")
   }
@@ -566,6 +568,15 @@ final class CapNhatTests: XCTestCase {
     let b = BoMay(api: MayChuGia(), heThong: fake, kho: kho, tuyChon: TuyChonBoMay(tuCapNhat: false), capNhat: cn)
     await b.kiemCapNhatDinhKy()
     XCTAssertTrue(fake.daCaiGoi.isEmpty, "tuCapNhat=false ⇒ không tải/cài")
+  }
+
+  func testManifestSaiDinhDangKhongBaoLaMoiNhat() async {
+    HttpMock.dat { path, _ in path.hasPrefix("api/agent/ban-moi") ? .init(ma: 200, than: Data("<html>proxy</html>".utf8)) : nil }
+    let k = await chay(boCapNhat())
+    guard case .loi = k else { return XCTFail("manifest hỏng không được coi là bản mới nhất: \(k)") }
+    HttpMock.dat { path, _ in path.hasPrefix("api/agent/ban-moi") ? .init(ma: 200, than: Data("null".utf8)) : nil }
+    let k2 = await chay(boCapNhat())
+    XCTAssertEqual(k2, .laMoiNhat("0.1.1"), "null = chưa phát hành")
   }
 
   func testLoiMangBaoChuDeHieu() async {
