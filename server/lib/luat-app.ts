@@ -81,11 +81,11 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
 }
 
 /** Luật CÒN HIỆU LỰC của đúng (Con, mục) — để «Hoàn tác» khôi phục như trước. Luật đã hết hạn coi như chưa có (Hoàn tác ⇒ luat/xoa). */
-export async function luatHienCo(fam: string, con: string, mucTho: unknown, t: Q = q) {
+export async function luatHienCo(fam: string, con: string, mucTho: unknown, t: Q = q, khoa = false) {
   const muc = chuanMuc(mucTho);
   if (!muc) return null;
   const r = await t<{ muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
-    `select muc, ten, loai, nhom, het from app_rules where family_id = $1 and child_id = $2 and muc = $3 and (het is null or het > now())`, [fam, con, muc]);
+    `select muc, ten, loai, nhom, het from app_rules where family_id = $1 and child_id = $2 and muc = $3 and (het is null or het > now())${khoa ? " for update" : ""}`, [fam, con, muc]);
   return r[0] ?? null;
 }
 

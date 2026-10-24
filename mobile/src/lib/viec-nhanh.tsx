@@ -14,7 +14,7 @@ type Bao = (chu: string, hoan?: () => void) => void;
 const baoLoiHoan = (bao: Bao, e: unknown) => bao(`Chưa hoàn tác được: ${cauLoi(e)}`);
 /** Màu icon máy — MỘT quy tắc cho Trang chủ và danh sách máy: ngoài vòng ⇒ đỏ; lệch chuẩn hoặc bảo vệ chưa đủ ⇒ cam; còn lại xanh. */
 export const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" =>
-  (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || (m.baoVe && m.baoVe !== "day_du") ? "cam" : "xanh");
+  (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || m.baoVe === "mot_phan" ? "cam" : "xanh");
 
 /** Thẻ một máy của Con ở Trang chủ. Chế độ chỉ có trên máy tính (Windows): máy khác không hiện nút đổi. */
 export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; bao: Bao; xem?: boolean }) {
@@ -25,7 +25,8 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
   // nhãn theo chế độ MÁY đang chạy (cheDoMay); lựa chọn của Ba Mẹ chưa tới máy thì hiện dòng «Đang chờ máy nhận…» bên dưới
   const cheDoThat = m.cheDoMay ?? m.cheDo;
   const doiSang: CheDoMay = m.cheDo === "chan" ? "giam-sat" : "chan";
-  const chuaDu = !!m.baoVe && m.baoVe !== "day_du";            // máy chủ cũ không gửi baoVe ⇒ không báo
+  // chỉ «mot_phan» là việc Ba Mẹ sửa được; «chua» (máy không có tác tử báo quyền) chỉ ghi một dòng; máy chủ cũ không gửi baoVe ⇒ không báo
+  const chuaDu = m.baoVe === "mot_phan";
   const doi = () => lam(async () => {
     // Hoàn tác chỉ khi Ba Mẹ đã từng chọn: chưa chọn (máy tự báo) thì gửi lại sẽ «ghim» một lựa chọn chưa từng có
     const cu = m.cheDoBaMeChon;
@@ -36,7 +37,6 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
   });
   const thieu = m.baoVeThieu ?? [];
   // cùng chữ với Hồ sơ Con / màn máy: «chua» là chưa có thông tin, không phải «chưa đủ»; nhiều mục thiếu thì nói số mục
-  const tieuBv = m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ";
   const lyDo = thieu.length > 1 ? `${thieu[0].ten} và ${thieu.length - 1} mục khác` : thieu[0]?.ten ?? m.baoVeCau;
   const dangKhan = !!m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
   return (
@@ -53,11 +53,11 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
         : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{`Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`}</Chu> : null}
       {chuaDu ? (
         <View style={{ marginTop: 10, gap: 6 }}>
-          <Chu kieu="dam" co={13.5} mau={M.canh}>{tieuBv}</Chu>
+          <Chu kieu="dam" co={13.5} mau={M.canh}>Bảo vệ chưa đủ</Chu>
           <Chu co={13.5} mau={M.chu2}>{lyDo}</Chu>
           <HaiNut><Nut chu="Sửa" ic="khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}`)} /></HaiNut>
         </View>
-      ) : null}
+      ) : m.baoVe === "chua" && m.baoVeCau ? <Chu co={13} mau={M.chu3} style={{ marginTop: 8 }}>{m.baoVeCau}</Chu> : null}
       {xem ? null : <View style={{ marginTop: 12 }}>
         <HaiNut>
           {win && m.cheDo && !dangGo && !cho ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}

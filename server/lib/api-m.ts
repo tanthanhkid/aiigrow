@@ -3,7 +3,7 @@
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
 import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
-import { one, q } from "./db.ts";
+import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { lichCua, sachCauHinh, thamSo, khoaGoc, khoaDen, moTamDen } from "./cau-hinh.ts";
 import * as gd from "./gia-dinh.ts";
@@ -211,15 +211,17 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       const daCo = new Set(ds.map((r) => `${r.child_id}|${r.muc}`));        // '' = cả nhà
       const coLuat = (muc: string, con: string) => la.khoaSo(muc).some((k) => daCo.has(`|${k}`) || daCo.has(`${con}|${k}`));
       const chuaTheoCon = await q<{ muc: string; child_id: string; phut: number }>(
+        // SQL bỏ trước mục đã có luật khớp ĐÚNG tên (phần lớn) rồi mới gom; JS chỉ còn kiểm tên miền cha + allowlist trên ≤ 500 dòng
         `select u.muc, u.child_id, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai = 'chua_phan_loai'
-           and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD') group by u.muc, u.child_id`, [fam]);
+           and u.ngay >= to_char(now() - interval '30 days', 'YYYY-MM-DD')
+           and not exists (select 1 from app_rules r where r.family_id = $1 and r.muc = u.muc and r.child_id in ('', u.child_id) and (r.het is null or r.het > now()))
+         group by u.muc, u.child_id order by phut desc limit 500`, [fam]);
       const gop = new Map<string, number>();
-      const heTh = la.allowlistHieuLuc();                                     // mục Admin thêm vào hệ thống sau khi đã ghi usage: không còn «chờ xếp»
-      for (const x of chuaTheoCon) if (!coLuat(x.muc, x.child_id) && !la.khoaSo(x.muc).some((k) => heTh.includes(k))) gop.set(x.muc, (gop.get(x.muc) ?? 0) + x.phut);
+      const he = la.allowlistHieuLuc();                                       // mục Admin thêm vào hệ thống sau khi đã ghi usage: không còn «chờ xếp»
+      for (const x of chuaTheoCon) if (!coLuat(x.muc, x.child_id) && !la.khoaSo(x.muc).some((k) => he.includes(k))) gop.set(x.muc, (gop.get(x.muc) ?? 0) + x.phut);
       const chuaXep = [...gop].map(([muc, phut]) => ({ muc, phut })).sort((a, b) => b.phut - a.phut).slice(0, 50);
       // «Đã thấy trên máy Con» (30 ngày) để Ba Mẹ CHỌN thay vì gõ tên tệp (DX-028): tên dễ hiểu + loại hiện tại; mục hệ thống không liệt kê
       // Chỉ màn Ứng dụng cần (`?thay=1`): Trang chủ / Chờ duyệt chỉ đọc chuaXep + ds, khỏi gộp 30 ngày usage mỗi lần tải.
-      const he = la.allowlistHieuLuc();
       const canThay = new URL(req.url).searchParams.get("thay") === "1";
       const thay = !canThay ? [] : await q<{ muc: string; phut: number }>(
         `select u.muc, sum(u.phut)::int as phut from usage u join children c on c.id = u.child_id where c.family_id = $1 and u.loai <> 'he_thong'
@@ -242,28 +244,36 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
         conPhut: Math.max(0, Math.ceil(x.toi_da_phut - x.phut_dung)) })) });
     }
     if (p[0] === "phien" && p[1] && p[2] === "dung" && post) {
-      const ph = await one<{ child_id: string }>(`select p.child_id from play_sessions p join children c on c.id = p.child_id where p.id = $1 and c.family_id = $2`, [p[1], fam]);
+      const ph = await one<{ child_id: string; trang_thai: string }>(`select p.child_id, p.trang_thai from play_sessions p join children c on c.id = p.child_id where p.id = $1 and c.family_id = $2`, [p[1], fam]);
       if (!ph) return loi("khong_thay", "Không thấy phiên chơi", 404);
+      // thẻ cũ (phiên đã kết thúc vì Con dừng / hết giờ…) ⇒ nói thật, không báo «Đã dừng» mà không có giờ nghỉ nào
+      if (ph.trang_thai === "ket_thuc") return loi("da_ket_thuc", "Phiên chơi này đã kết thúc rồi", 409);
       await dungPhien(ph.child_id, p[1], "ba_me_khoa", new Date(), { nghi: true, nguoi: bm.id });   // Con nghỉ nghi_giua phút; tính nốt phút như mọi đường dừng khác (≤ 2 phút/nhịp)
       return json({ ok: true });
     }
     if (d === "luat" && post) {
       // `truoc` = luật cũ của đúng (Con, mục) — app gửi lại nó (hoặc gọi luat/xoa nếu null) để «Hoàn tác»
       const con = b.con ? s(b.con, 40) : "";
-      const truoc = await la.luatHienCo(fam, con, b.muc);
-      // Hoàn tác (`neuLoai`): chỉ khôi phục khi luật vẫn đúng loại vừa đặt — người khác đã đổi trong lúc đó thì không đè
-      if (b.neuLoai !== undefined && (await la.luatHienCo(fam, con, b.muc))?.loai !== b.neuLoai)
-        return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);
       const het = b.het ? new Date(String(b.het)) : null;               // chỉ khi Hoàn tác khôi phục một luật có hạn
       if (het && isNaN(+het)) return loi("het_sai", "Hạn của luật không hợp lệ", 400);   // không lặng lẽ biến luật có hạn thành vĩnh viễn
-      const muc = await la.datLuat(fam, { con, muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom, het });
+      // Đọc luật cũ + ghi trong MỘT giao dịch, khoá dòng: Hoàn tác (`neuLoai`) chỉ khôi phục khi luật vẫn đúng loại vừa đặt —
+      // người khác đổi trong lúc đó thì không đè (kiểm và ghi không bị chen giữa)
+      const kq = await tx(async (t) => {
+        const truoc = await la.luatHienCo(fam, con, b.muc, t, true);
+        if (b.neuLoai !== undefined && truoc?.loai !== b.neuLoai) return null;
+        return { muc: await la.datLuat(fam, { con, muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom, het }, t), truoc };
+      });
+      if (!kq) return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);
+      const { muc, truoc } = kq;
       return json({ muc, truoc: truoc && { con, muc: truoc.muc, ten: truoc.ten, loai: truoc.loai, nhom: truoc.nhom, het: truoc.het } });
     }
     if (d === "luat/xoa" && post) {
       const con = b.con ? s(b.con, 40) : "";
-      if (b.neuLoai !== undefined && (await la.luatHienCo(fam, con, b.muc))?.loai !== b.neuLoai)
-        return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);
-      const muc = await la.xoaLuat(fam, { con, muc: b.muc });
+      const muc = await tx(async (t) => {
+        if (b.neuLoai !== undefined && (await la.luatHienCo(fam, con, b.muc, t, true))?.loai !== b.neuLoai) return null;
+        return la.xoaLuat(fam, { con, muc: b.muc }, t);
+      });
+      if (!muc) return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);
       await ghiSuKien(fam, "xoa_luat_app", { muc }, { nguoi: bm.id });
       return json({ muc });
     }

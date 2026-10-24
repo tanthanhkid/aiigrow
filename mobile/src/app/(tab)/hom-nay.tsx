@@ -146,7 +146,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao }: {
       {xem ? null : <Nut chu="Giao nhiệm vụ" ic="cong" rong bam={() => router.push(`/giao-nv?con=${c.id}`)} nhanDoc={`Giao nhiệm vụ cho ${c.ten}`} />}
 
       {choi.map((p) => <TheDangChoi key={p.id} p={p} tai={tai} bao={bao} xem={xem} />)}
-      <AppMoi ds={luat?.chuaXep ?? []} tai={() => { tai(); }} bao={bao} xem={xem} />
+      <AppMoi ds={luat?.chuaXep ?? []} tai={tai} bao={bao} xem={xem} />
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {o.map((x) => <OTinhNang key={x.tieu} {...x} />)}

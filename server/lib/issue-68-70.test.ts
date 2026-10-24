@@ -98,6 +98,9 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   const sau = (await q<{ nghi_den: Date | null; phut_dung: number; ly_do_ket: string }>(`select nghi_den, phut_dung, ly_do_ket from play_sessions where id = $1`, [ph.id]))[0];
   assert.ok(sau.nghi_den && new Date(sau.nghi_den).getTime() > Date.now(), "có giờ nghỉ sau Dừng");
   assert.ok(sau.phut_dung <= 2, String(sau.phut_dung));
+  // thẻ cũ: phiên đã kết thúc ⇒ 409, không báo «Đã dừng» giả
+  const lai = await m(`phien/${ph.id}/dung`, { tok, body: {} });
+  assert.deepEqual([lai.status, lai.body.error], [409, "da_ket_thuc"]);
   assert.equal(sau.ly_do_ket, "ba_me_khoa");
 });
 

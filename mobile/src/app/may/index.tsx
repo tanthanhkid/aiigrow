@@ -17,7 +17,7 @@ export default function MayTinhDienThoai() {
   const tieu = d?.c ? `Máy của ${d.c.ten}` : "Máy tính & điện thoại";
   if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Máy tính & điện thoại"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   // MỘT nguồn: mức bảo vệ do máy chủ tính (baoVe) — cùng giá trị với Hồ sơ Con; «tuân thủ» (điểm) chỉ là phần giờ máy / mất kết nối
-  const can = d.ds.filter((m) => m.trangThai === "ngoai_vong" || m.trangThai === "lech_chuan" || (!!m.baoVe && m.baoVe !== "day_du")).length;
+  const can = d.ds.filter((m) => m.trangThai === "ngoai_vong" || m.trangThai === "lech_chuan" || m.baoVe === "mot_phan").length   // «chua» (máy không có tác tử báo quyền) không phải việc Ba Mẹ sửa được;
   const c = d.c;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu={tieu} tai={tai}
