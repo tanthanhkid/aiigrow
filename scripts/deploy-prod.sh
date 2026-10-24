@@ -30,4 +30,5 @@ echo "== App: tsc + bản web trên localhost"
 [ $CHI_KIEM = 1 ] && { echo "Cổng kiểm đạt (không deploy)."; exit 0; }
 echo "== Deploy prod $(git rev-parse --short HEAD)"
 [ -f .vercel/project.json ] || vercel link --yes --project aiigrow >/dev/null
-vercel deploy --prod --yes
+rm -rf mobile/ios mobile/android mobile/build-ios   # thư mục native do expo prebuild/testflight sinh, không cần lên Vercel
+vercel deploy --prod --yes --archive=tgz   # >15000 file (node_modules mobile) ⇒ Vercel đòi gói tgz
