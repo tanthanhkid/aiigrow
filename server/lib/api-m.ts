@@ -121,7 +121,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     // «Gỡ máy này» an toàn: chủ gia đình + mật khẩu; máy đã đồng bộ ⇒ lệnh gỡ (xoá khi agent báo xong) — lib/lenh-may.ts › goMayAnToan
     if (p[0] === "may" && p[2] === "go" && !p[3] && post) return json(await goMayAnToan(bm, p[1], b));
     // M4b
-    if (d === "tuan-thu" && get) return json({ ds: await tt.dsTuanThu(fam) });
+    if (d === "tuan-thu" && get) return json({ ds: await tt.dsTuanThu(fam, new Date(), { nhe: new URL(req.url).searchParams.get("nhe") === "1" }) });
     if (d === "goi-cai" && post) return json(await taoGoiCai(fam, b, process.env.AIIGROW_APP_URL || new URL(req.url).origin, bm.id));
     if (p[0] === "may" && p[1]) {
       const sau = p.slice(2).join("/");

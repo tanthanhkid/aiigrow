@@ -4,10 +4,10 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, chuanHoaTen, type ConChiTiet } from "@/lib/api";
+import { bm, chuanHoaTen, type ConChiTiet, vaiToi } from "@/lib/api";
 import { saoChep } from "@/lib/luu-tep";
 import { datTl } from "@/lib/thiet-lap";
-import { IC_NEN } from "@/lib/viec-nhanh";
+import { DsThieuBaoVe, IC_NEN } from "@/lib/viec-nhanh";
 import {
   BangTruot, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, M, Man, Nhan, Nhom, Nut, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -19,8 +19,8 @@ export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d: con, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${id}`));
   // Vai Ba Mẹ — tải riêng: lỗi `toi` không làm hỏng cả màn; hàng «Tên» chỉ ẩn khi biết chắc là Chỉ xem (máy chủ chặn 403) (như mục liên kết AiiRob)
-  const vai = useTai(() => bm.goi<{ baMe: { vai: string } }>("toi"));
-  const goc = con ? { con, xem: vai.d?.baMe.vai === "xem" } : null;
+  const vai = useTai(vaiToi);
+  const goc = con ? { con, xem: vai.d === "xem" } : null;
   const [mo, setMo] = useState<"ten" | "pin" | "nhom" | { go: string; ten: string } | null>(null);
   const [pin, setPin] = useState("");
   const [ten, setTen] = useState("");
@@ -50,7 +50,7 @@ export default function HoSoCon() {
         <Nhom key={`bv-${m.id}`}>
           <Dong dau tieu={`${m.ten}: ${m.baoVe === "chua" ? "chưa có thông tin bảo vệ" : "bảo vệ chưa đầy đủ"}`} phu={m.baoVeCau ?? "Chưa nhận được báo cáo từ máy."}
             trai={<BieuTron ic="canh_bao" mau="cam" />} bam={() => router.push(`/may/${m.id}`)} />
-          {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} bam={() => router.push(`/may/${m.id}`)} />)}
+          <DsThieuBaoVe thieu={m.baoVeThieu} bam={() => router.push(`/may/${m.id}`)} />
         </Nhom>
       ))}
       <Nut chu="Ghép thêm máy" ic="laptop" loai="vien" rong bam={() => { datTl({ conId: d.id, tenCon: d.ten, nhom: d.nhom }); router.push("/thiet-lap/may"); }} />

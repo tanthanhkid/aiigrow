@@ -175,7 +175,9 @@ export type AppChuaXep = { muc: string; ten?: string; phut: number };
 export type PhienDang = { id: string; con: string; tenCon: string; may: string | null; muc: string; tenApp: string; tam: boolean; conPhut: number };
 
 /** Tài khoản Ba/Mẹ đang ở quyền «Chỉ xem»? (máy chủ trả 403 chi_xem cho mọi POST) — lỗi mạng ⇒ coi như không, máy chủ vẫn chặn. */
-export const laChiXem = () => bm.goi<{ baMe: { vai: string } }>("toi").then((t) => t.baMe.vai === "xem", () => false);
+export const laChiXem = () => vaiToi().then((v) => v === "xem", () => false);
+/** Vai của Ba/Mẹ đang đăng nhập (chu | duyet | xem) — MỘT chỗ đọc `toi` cho mọi màn cần quyền. */
+export const vaiToi = () => bm.goi<{ baMe: { vai: string } }>("toi").then((t) => t.baMe.vai);
 
 /** Tên nhiệm vụ tối thiểu (ký tự thật, sau trim) — PHẢI bằng server/lib/nhiem-vu.ts › TEN_NV_TOI_THIEU. */
 export const TEN_NV_TOI_THIEU = 3;

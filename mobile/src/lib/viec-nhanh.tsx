@@ -5,7 +5,7 @@ import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, TEN_CHE_DO, type AppChuaXep, type CheDoMay, type PhienDang, type TuanThuMay } from "./api";
 import { datTl } from "./thiet-lap";
-import { BaoLoi, BieuTron, cauLoi, Chu, HaiNut, M, Nhan, Nut, The, truoc, useLam, type TenIcon } from "./ui";
+import { BaoLoi, BieuTron, cauLoi, Chu, Dong, HaiNut, M, Nhan, Nut, The, truoc, useLam, type TenIcon } from "./ui";
 
 /** Icon theo nền tảng máy — dùng chung Trang chủ, Hồ sơ Con, danh sách máy. */
 export const IC_NEN: Record<TuanThuMay["nen"], TenIcon> = { windows: "may_tinh", mac: "laptop", ios: "tablet", android: "dt" };
@@ -136,3 +136,8 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
     </The>
   );
 }
+
+/** Các quyền bảo vệ còn thiếu + cách sửa — MỘT cách hiện cho Hồ sơ Con và màn máy. `bam` (tuỳ chọn) mở màn máy. */
+export const DsThieuBaoVe = ({ thieu, bam }: { thieu?: { ma: string; ten: string; cach: string }[]; bam?: () => void }) => (
+  <>{(thieu ?? []).map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} bam={bam} />)}</>
+);

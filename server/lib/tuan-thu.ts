@@ -215,8 +215,9 @@ async function mayCua(fam: string, mayId: string) {
 }
 
 /** Danh sách tuân thủ mọi máy của gia đình (quét mất nhịp trước). */
-export async function dsTuanThu(fam: string, now = new Date()) {
-  await quetMatNhip(fam, now);
+/** `nhe`: bỏ bước quét mất nhịp (ghi cảnh báo) — Trang chủ chỉ cần đọc chế độ + bảo vệ; màn Máy / nhịp máy vẫn quét như cũ. */
+export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolean } = {}) {
+  if (!o.nhe) await quetMatNhip(fam, now);
   const ds = await q<May>(`select * from devices where family_id = $1 order by created_at`, [fam]);
   const cfgCon = new Map((await q<{ id: string; c: Record<string, unknown> }>(`select id, cau_hinh as c from children where family_id = $1`, [fam])).map((x) => [x.id, x.c]));
   return Promise.all(ds.map(async (m) => {

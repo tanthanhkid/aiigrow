@@ -21,7 +21,7 @@ export default function TrangChu() {
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: CanhBao[] }>("canh-bao"), bm.goi<Luat>("luat").catch(() => null),
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),            // máy chủ cũ chưa có ⇒ không hiện thẻ «Đang chơi»
       // thẻ máy: chế độ + bảo vệ từ MỘT nguồn (tuan-thu), tải MỘT lần cho cả nhà (đổi Con không gọi lại); lỗi ⇒ ẩn thẻ, không chặn cả trang
-      bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null),
+      bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),  // nhẹ: không quét mất nhịp (màn Máy làm)
       laChiXem(),                                                            // quyền Chỉ xem ⇒ ẩn nút việc nhanh (máy chủ trả 403 chi_xem)
     ]);
     return { g, cb: cb.ds.filter((x) => !x.da_doc), luat, choi: choi?.ds ?? [], tt: tt?.ds ?? [], xem: toi };

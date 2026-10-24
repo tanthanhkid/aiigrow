@@ -5,10 +5,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, chuanHoaTen, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG } from "@/lib/api";
+import { bm, chuanHoaTen, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG, vaiToi } from "@/lib/api";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Canh, cauLoi, Chips, ChoTai, ChonMot, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
+import { DsThieuBaoVe } from "@/lib/viec-nhanh";
 
 const PHUT = [15, 30, 60, 120];
 const SU_KIEN: Record<string, string> = {
@@ -28,12 +29,12 @@ const GIO_MO_COI = 6;
 export default function AnToanMay() {
   const { id, mo: moSan } = useLocalSearchParams<{ id: string; mo?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const toi = await bm.goi<{ baMe: { vai: string } }>("toi");
+    const vai = await vaiToi();
     // Máy đã gỡ xong (agent báo đã gỡ / đã xoá hẳn) ⇒ không còn trong gia đình
     const m = await bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`).catch((e) => { if (e instanceof LoiApi && e.ma === "khong_thay") return null; throw e; });
     // máy Windows «dùng chung» ⇒ cần danh sách Con để gán (POST may/:id/gan-con)
     const con = m?.dungChung && m.nen === "windows" ? (await bm.goi<GiaDinh>("gia-dinh")).con : [];
-    return { m, con, chu: toi.baMe.vai === "chu", xem: toi.baMe.vai === "xem" };
+    return { m, con, chu: vai === "chu", xem: vai === "xem" };
   });
   const [mo, setMo] = useState<"khan" | "go" | "xoa" | "offline" | "tai_may" | "ten" | null>(null);
   const [phut, setPhut] = useState(30);
@@ -138,7 +139,7 @@ export default function AnToanMay() {
           <NhomTieu chu="Bảo vệ chưa đủ — cách sửa" />
           <Nhom>
             <Dong dau tieu={m.baoVe === "chua" ? "Chưa có thông tin bảo vệ" : "Bảo vệ chưa đủ"} phu={m.baoVeCau} trai={<BieuTron ic="canh_bao" mau="cam" />} />
-            {(m.baoVeThieu ?? []).map((t) => <Dong key={t.ma} tieu={t.ten} phu={`Cách sửa: ${t.cach}`} trai={<BieuTron ic="khoa" />} />)}
+            <DsThieuBaoVe thieu={m.baoVeThieu} />
           </Nhom>
         </>
       ) : null}
