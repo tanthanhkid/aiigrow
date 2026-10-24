@@ -91,6 +91,13 @@ public class ProcessGuardTests
     [InlineData(@"C:\Windows\System32\Tasks\game.exe", true)]
     [InlineData(@"C:\Windows\System32\spool\drivers\color\game.exe", true)]
     [InlineData(@"C:\Users\An\AppData\Local\Microsoft\WindowsApps\Microsoft.YourPhone_1\game.exe", true)]
+    [InlineData(@"C:\Windows\Tasks\svchost.exe", true)]                  // tên hệ thống nhưng ở thư mục Con ghi được ⇒ không miễn
+    [InlineData(@"C:\Windows\Temp\explorer.exe", true)]
+    [InlineData(@"C:\Users\An\AppData\Local\Microsoft\EdgeWebView\x\msedgewebview2.exe", true)]
+    [InlineData(@"C:\Program Files\Microsoft\EdgeWebView\Application\120.0\msedgewebview2.exe", false)]
+    [InlineData(@"C:\Windows\ImmersiveControlPanel\SystemSettings.exe", false)]
+    [InlineData(@"C:\Windows\System32\InputMethod\CHS\ChsIME.exe", false)]
+    [InlineData(@"C:\Windows\System32\Speech_OneCore\Common\SpeechRuntime.exe", false)]
     public void ShouldClose(string path, bool expected)
         => Assert.Equal(expected, ProcessGuard.ShouldClose(path, Allowed, NoDirs, Safe, Win));
 

@@ -288,12 +288,13 @@ internal sealed class AppForm : Form
             Render();
             ApplyKetNoiUi();
             Say("", false);
-            await LamMoiPhutChoiAsync();
+            var phut = LamMoiPhutChoiAsync();   // song song với cửa hàng / tin, không bắt hai mục đó chờ phien/xet
 
             var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
             _ch = ch;
             var (tin, _) = await HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
             if (tin != null) _tin = tin;
+            await phut;
             Render();
         }
         finally { _busy = false; }

@@ -164,6 +164,10 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         catch { return null; }
     }
 
+    /// <summary>SID tài khoản người: cục bộ / miền (S-1-5-21-…) hoặc Microsoft Entra ID (S-1-12-1-…) — bộ ghi áp cho mọi SID hợp lệ thì bộ gỡ phải duyệt đủ.</summary>
+    public static bool LaSidNguoiDung(string n) =>
+        (n.StartsWith("S-1-5-21-", StringComparison.Ordinal) || n.StartsWith("S-1-12-1-", StringComparison.Ordinal)) && AppLockerXml.IsValidSid(n);
+
     /// <summary>SID các hồ sơ người dùng trên máy (tài khoản cục bộ / miền, S-1-5-21-…) — cho bộ gỡ dọn mọi hive.</summary>
     public static List<string> TatCaHoSo()
     {
@@ -171,7 +175,7 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         try
         {
             using var k = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList");
-            if (k != null) ds.AddRange(k.GetSubKeyNames().Where(n => n.StartsWith("S-1-5-21-", StringComparison.Ordinal) && AppLockerXml.IsValidSid(n)));
+            if (k != null) ds.AddRange(k.GetSubKeyNames().Where(n => LaSidNguoiDung(n)));
         }
         catch { }
         return ds;
@@ -223,12 +227,15 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         using (var cu = users.OpenSubKey(ten, false))
             if (cu != null) { cu.Close(); GC.Collect(); GC.WaitForPendingFinalizers(); RegUnLoadKey(HkeyUsers, ten); }
         if (RegLoadKey(HkeyUsers, ten, tep) != 0) return false;   // đang bị khoá (Con vừa đăng nhập) ⇒ vòng sau thấy hive đã nạp
-        try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten, sid)); return true; }
+        var goXong = false;
+        try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten, sid)); }
         finally
         {
             GC.Collect(); GC.WaitForPendingFinalizers();
-            for (int i = 0; i < 10; i++) { if (RegUnLoadKey(HkeyUsers, ten) == 0) break; Thread.Sleep(200); }
+            for (int i = 0; i < 10; i++) { if (RegUnLoadKey(HkeyUsers, ten) == 0) { goXong = true; break; } Thread.Sleep(200); }
         }
+        // gỡ nạp hỏng ⇒ báo «chưa xong»: vòng sau gọi lại VoiHive, gỡ hive kẹt ở tên tạm (khối đầu hàm) trước khi Con đăng nhập — review #75
+        return goXong;
     }
 }
 

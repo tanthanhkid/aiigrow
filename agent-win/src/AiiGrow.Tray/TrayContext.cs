@@ -82,12 +82,27 @@ internal sealed class TrayContext : ApplicationContext
         BaoCapNhat.NeuVuaCapNhat(_ni);   // #33: «đã cập nhật lên bản X» (một lần mỗi tài khoản)
     }
 
-    /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay không có việc ở đây ⇒ thoát hẳn (BUG-007).</summary>
-    private void ThoatVoiPhienKhac()
+    private bool _anPhienKhac;
+
+    /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay ẩn, ngừng hỏi máy chủ, chỉ hỏi dịch vụ thưa (30 giây) — KHÔNG thoát hẳn:
+    /// quyết định dựa trên danh sách tài khoản dịch vụ đọc 2 phút/lần, có thể cũ (cài một chạm: Con vừa bị gỡ quyền quản trị) ⇒ đúng lại thì hiện lại (BUG-007, review #75).</summary>
+    private void AnVoiPhienKhac()
     {
-        _timer.Stop(); _hvTimer.Stop();
+        if (_anPhienKhac) return;
+        _anPhienKhac = true;
+        _hvTimer.Stop();
+        _timer.Interval = 30_000;
         _ni.Visible = false;
-        ExitThread();
+        if (_app is { IsDisposed: false }) _app.Hide();
+    }
+
+    private void HienLaiNeuDaAn()
+    {
+        if (!_anPhienKhac) return;
+        _anPhienKhac = false;
+        _timer.Interval = 3000;
+        _hvTimer.Start();
+        if (_daChao) _ni.Visible = true;
     }
 
     /// <summary>Bóng báo trên khay; nhớ mục để bấm vào thì mở đúng chỗ.</summary>
@@ -209,7 +224,8 @@ internal sealed class TrayContext : ApplicationContext
                 return;
             }
             _pipeFail = 0;
-            if (!res.State.PhienCon) { ThoatVoiPhienKhac(); return; }
+            if (!res.State.PhienCon) { AnVoiPhienKhac(); return; }
+            HienLaiNeuDaAn();
             Chao(true);
             _state = res.State;
             _at = DateTimeOffset.Now;

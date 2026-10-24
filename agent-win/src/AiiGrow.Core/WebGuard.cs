@@ -345,16 +345,17 @@ public static class WebGuard
             "Go-Web 'HKLM:'",
             // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp, hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
             "$pl='HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList'",
-            "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' })){",
+            "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' -or $_ -like 'S-1-12-1-*' })){",
             "  $goc=\"Registry::HKEY_USERS\\$s\"; $nap=$false",
             "  if(-not (Test-Path -LiteralPath $goc)){",
             "    $d=(Get-ItemProperty -LiteralPath \"$pl\\$s\" -ErrorAction SilentlyContinue).ProfileImagePath; if(-not $d){ continue }",
             "    $f=[Environment]::ExpandEnvironmentVariables($d)+'\\NTUSER.DAT'; if(-not (Test-Path -LiteralPath $f)){ continue }",
-            "    reg.exe load 'HKU\\AiiGrowGo' $f | Out-Null; if($LASTEXITCODE -ne 0){ continue }",
-            "    $goc='Registry::HKEY_USERS\\AiiGrowGo'; $nap=$true",
+            // tên tạm riêng mỗi SID: một hive gỡ nạp hỏng không chặn các hồ sơ sau; gỡ nạp thử lại tới 10 lần (handle của Get-Item còn mở)
+            "    $t=\"AiiGrowGo_$s\"; reg.exe load \"HKU\\$t\" $f | Out-Null; if($LASTEXITCODE -ne 0){ continue }",
+            "    $goc=\"Registry::HKEY_USERS\\$t\"; $nap=$true",
             "  }",
             "  Go-Web $goc",
-            "  if($nap){ [gc]::Collect(); Start-Sleep -Milliseconds 300; reg.exe unload 'HKU\\AiiGrowGo' | Out-Null }",
+            "  if($nap){ for($i=0;$i -lt 10;$i++){ [gc]::Collect(); [gc]::WaitForPendingFinalizers(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null; if($LASTEXITCODE -eq 0){ break }; Start-Sleep -Milliseconds 300 } }",
             "}",
             // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
             "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",

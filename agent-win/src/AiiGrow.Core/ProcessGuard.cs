@@ -59,25 +59,36 @@ public static class ProcessGuard
     /// mặc định được phép (BUG-007), chỉ khi đúng thư mục runtime.</summary>
     public const string WebView2Exe = "msedgewebview2.exe";
 
+    /// <summary>Thư mục con của Windows (chỉ quản trị ghi được) chứa thành phần phiên chạy nền: gói shell, tiện ích trình điều khiển, bộ gõ, giọng nói, Cài đặt.
+    /// KHÔNG gồm Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được ⇒ Con đặt game vào đó là lọt — review #75).</summary>
+    public static readonly string[] ThuMucConHeThong =
+    {
+        ThuMucSystemApps, @"System32\DriverStore", "ImmersiveControlPanel", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
+        @"System32\Speech_OneCore", @"SysWOW64\Speech_OneCore", @"System32\Speech", @"SysWOW64\Speech", @"System32\wbem", @"SysWOW64\wbem",
+    };
+
+    /// <summary>WebView2 runtime cài cho cả máy: «&lt;ổ&gt;:\Program Files[ (x86)]\Microsoft\EdgeWebView\» (chỉ quản trị ghi được).</summary>
+    private static readonly System.Text.RegularExpressions.Regex WebView2May = new(@"^[A-Za-z]:\\Program Files( \(x86\))?\\Microsoft\\EdgeWebView\\",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     public static bool LaTienTrinhHeThongPhien(string exePath, string? winDir)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var name = FileName(exePath);
-        if (name.Equals(WebView2Exe, StringComparison.OrdinalIgnoreCase)
-            && (exePath.Contains(@"\Microsoft\EdgeWebView\", StringComparison.OrdinalIgnoreCase)
-                || exePath.Contains("/Microsoft/EdgeWebView/", StringComparison.OrdinalIgnoreCase)))
-            return true;
+        // CHỈ runtime trong Program Files — «%LOCALAPPDATA%\Microsoft\EdgeWebView\…\msedgewebview2.exe» Con tự tạo được (review #75)
+        if (name.Equals(WebView2Exe, StringComparison.OrdinalIgnoreCase) && WebView2May.IsMatch(exePath.Replace('/', '\\'))) return true;
         if (string.IsNullOrWhiteSpace(winDir)) return false;
         var w = winDir.TrimEnd('\\', '/') + "\\";
         if (!exePath.StartsWith(w, StringComparison.OrdinalIgnoreCase)) return false;
-        if (exePath.StartsWith(w + ThuMucSystemApps + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-        // trình điều khiển (âm thanh, đồ hoạ…) cài tiện ích chạy trong phiên Con từ DriverStore — chỉ quản trị ghi được
-        if (exePath.StartsWith(w + @"System32\DriverStore\", StringComparison.OrdinalIgnoreCase)) return true;
-        if (TienTrinhHeThongPhien.Contains(name)) return true;
+        foreach (var con in ThuMucConHeThong)
+            if (exePath.StartsWith(w + con + "\\", StringComparison.OrdinalIgnoreCase)) return true;
+        // còn lại: chỉ exe nằm TRỰC TIẾP trong Windows / System32 / SysWOW64 (Con không tạo tệp ở đó được) — kể cả khi xét theo tên
+        // (svchost.exe trong Windows\Tasks do Con chép vào KHÔNG được miễn)
         var dir = DirName(exePath);
         var trucTiep = dir != null && (dir.Equals(w.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
             || dir.Equals(w + "System32", StringComparison.OrdinalIgnoreCase) || dir.Equals(w + "SysWOW64", StringComparison.OrdinalIgnoreCase));
-        return trucTiep && !UngDungTrongWindows.Contains(name);
+        if (!trucTiep) return false;
+        return TienTrinhHeThongPhien.Contains(name) || !UngDungTrongWindows.Contains(name);
     }
 
     /// <summary>Tên gói của app Store từ đường dẫn «…\WindowsApps\&lt;Gói&gt;_&lt;bản&gt;__&lt;nhàXB&gt;\app.exe» (chữ thường); không phải app Store ⇒ null.

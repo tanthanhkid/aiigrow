@@ -151,6 +151,13 @@ public class WebHiveTests
         Assert.False(h.DaLuu.ContainsKey(Con));
     }
 
+    [Theory]
+    [InlineData("S-1-5-21-1-2-3-1001", true)]
+    [InlineData("S-1-12-1-111-222-333-444", true)]   // tài khoản Microsoft Entra ID: bộ gỡ cũng phải duyệt
+    [InlineData("S-1-5-18", false)]
+    [InlineData("S-1-5-21-1-2-3-1001_Classes", false)]
+    public void LaSidNguoiDung_GomCaEntraId(string sid, bool kq) => Assert.Equal(kq, WindowsWebHiveHost.LaSidNguoiDung(sid));
+
     [Fact]
     public void SidSai_BiBo()
     {
