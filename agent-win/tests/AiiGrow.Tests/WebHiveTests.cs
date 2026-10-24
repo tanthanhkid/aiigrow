@@ -201,3 +201,40 @@ public class WebHiveTests
         Assert.Equal(kb, r.ReadToEnd());
     }
 }
+
+public class AclChinhSachTests
+{
+    private const string Con = "S-1-5-21-1-2-3-1001";
+    private static (string, System.Security.AccessControl.RegistryRights, bool) Q(string sid, System.Security.AccessControl.RegistryRights r, bool cho = true) => (sid, r, cho);
+
+    [Fact]
+    public void AclMacDinhPolicies_ConChiDoc_LaAnToan()
+    {
+        Assert.True(AclChinhSach.AnToan(AclChinhSach.HeThong, new[]
+        {
+            Q(AclChinhSach.HeThong, System.Security.AccessControl.RegistryRights.FullControl),
+            Q(AclChinhSach.QuanTri, System.Security.AccessControl.RegistryRights.FullControl),
+            Q(Con, System.Security.AccessControl.RegistryRights.ReadKey),
+            Q("S-1-3-0", (System.Security.AccessControl.RegistryRights)0x10000000),   // CREATOR OWNER GENERIC_ALL (chỉ khoá con)
+        }));
+    }
+
+    [Fact]
+    public void ConCoQuyenGhi_HoacChuLaCon_HoacGenericWrite_KhongAnToan()
+    {
+        Assert.False(AclChinhSach.AnToan(AclChinhSach.HeThong, new[] { Q(Con, System.Security.AccessControl.RegistryRights.FullControl) }));   // thừa kế SOFTWARE
+        Assert.False(AclChinhSach.AnToan(AclChinhSach.HeThong, new[] { Q("S-1-5-32-545", System.Security.AccessControl.RegistryRights.SetValue) }));
+        Assert.False(AclChinhSach.AnToan(AclChinhSach.HeThong, new[] { Q(Con, (System.Security.AccessControl.RegistryRights)0x40000000) }));
+        Assert.False(AclChinhSach.AnToan(Con, new[] { Q(Con, System.Security.AccessControl.RegistryRights.ReadKey) }));   // chủ khoá đổi được ACL
+        Assert.True(AclChinhSach.AnToan(AclChinhSach.QuanTri, new[] { Q(Con, System.Security.AccessControl.RegistryRights.FullControl, cho: false) }));   // quy tắc CẤM không trao quyền
+    }
+
+    [Fact]
+    public void DuongCanKhoa_TuPoliciesToiKhoaLuat_BoQuaKhoaNgoai()
+    {
+        Assert.Equal(new[] { @"SOFTWARE\Policies", @"SOFTWARE\Policies\Google", @"SOFTWARE\Policies\Google\Chrome", @"SOFTWARE\Policies\Google\Chrome\URLBlocklist" },
+            AclChinhSach.DuongCanKhoa(@"SOFTWARE\Policies\Google\Chrome\URLBlocklist"));
+        Assert.Empty(AclChinhSach.DuongCanKhoa(@"SOFTWARE\Microsoft\Windows"));
+        Assert.Empty(AclChinhSach.DuongCanKhoa(@"SOFTWARE\PoliciesX\A"));
+    }
+}

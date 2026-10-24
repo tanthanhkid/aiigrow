@@ -190,9 +190,18 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
 {
     private readonly RegistryHive _hive;
     private readonly string? _goc;   // null = chính hive (HKLM); khác null = khoá con của HKU (SID hoặc tên hive nạp tạm)
+    private readonly string? _sidCon;   // hive người dùng: SID chủ hive ⇒ khoá chính sách ta tạo chỉ cho người đó ĐỌC (AclChinhSach)
 
     public WindowsWebPolicyRegistry() : this(RegistryHive.LocalMachine, null) { }
-    public WindowsWebPolicyRegistry(RegistryHive hive, string? goc) { _hive = hive; _goc = goc; }
+    public WindowsWebPolicyRegistry(RegistryHive hive, string? goc, string? sidCon = null) { _hive = hive; _goc = goc; _sidCon = sidCon; }
+
+    /// <summary>Tạo/mở khoá để ghi; trong hive người dùng thì khoá chặt ACL đường SOFTWARE\Policies\… (tài khoản chuẩn chỉ đọc).</summary>
+    private RegistryKey TaoKhoa(RegistryKey goc, string khoa)
+    {
+        var k = goc.CreateSubKey(khoa, true);
+        if (_sidCon != null) AclChinhSach.KhoaChat(goc, khoa, _sidCon);
+        return k;
+    }
 
     [System.Runtime.InteropServices.DllImport("userenv.dll", SetLastError = true)]
     private static extern bool RefreshPolicyEx(bool bMachine, uint dwOptions);
@@ -244,7 +253,7 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
             if (trong) hklm.DeleteSubKey(khoaDs, false);
             return;
         }
-        using var k = hklm.CreateSubKey(khoaDs, true);
+        using var k = TaoKhoa(hklm, khoaDs);
         XoaMucCuaTa(k);
         for (int i = 0; i < muc.Count; i++) k.SetValue((WebPolicyKeys.ChiSoDau + 1 + i).ToString(), muc[i], RegistryValueKind.String);
     }
@@ -252,7 +261,7 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     public void DatDword(string khoa, string ten, int giaTri)
     {
         using var hklm = Hklm();
-        using var k = hklm.CreateSubKey(khoa, true);
+        using var k = TaoKhoa(hklm, khoa);
         k.SetValue(ten, giaTri, RegistryValueKind.DWord);
     }
 

@@ -1,4 +1,6 @@
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using Microsoft.Win32;
 
 namespace AiiGrow.Core;
@@ -88,7 +90,7 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
     public IWebPolicyRegistry May => new WindowsWebPolicyRegistry();
 
     private static bool _daBatQuyen;
-    private static void BatQuyen()
+    internal static void BatQuyen()
     {
         if (_daBatQuyen) return;
         try
@@ -96,7 +98,7 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
             if (!OpenProcessToken(System.Diagnostics.Process.GetCurrentProcess().Handle, 0x20 | 0x8, out var tok)) return;
             try
             {
-                foreach (var ten in new[] { "SeBackupPrivilege", "SeRestorePrivilege" })
+                foreach (var ten in new[] { "SeBackupPrivilege", "SeRestorePrivilege", "SeTakeOwnershipPrivilege" })
                 {
                     if (!LookupPrivilegeValue(null, ten, out var luid)) continue;
                     var tp = new TokenPrivileges { Count = 1, Luid = luid, Attr = 2 /* SE_PRIVILEGE_ENABLED */ };
@@ -141,18 +143,79 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         if (!AppLockerXml.IsValidSid(sid)) return false;
         using (var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))
         using (var k = users.OpenSubKey(sid, false))
-            if (k != null) { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, sid)); return true; }   // Con đang đăng nhập: hive đã nạp
+            if (k != null) { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, sid, sid)); return true; }   // Con đang đăng nhập: hive đã nạp
 
         var tep = DuongNtUser(sid);
         if (tep == null) return false;
         BatQuyen();
         var ten = "AiiGrowTmp_" + sid;
         if (RegLoadKey(HkeyUsers, ten, tep) != 0) return false;   // đang bị khoá (Con vừa đăng nhập) ⇒ vòng sau thấy hive đã nạp
-        try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten)); return true; }
+        try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten, sid)); return true; }
         finally
         {
             GC.Collect(); GC.WaitForPendingFinalizers();
             for (int i = 0; i < 10; i++) { if (RegUnLoadKey(HkeyUsers, ten) == 0) break; Thread.Sleep(200); }
+        }
+    }
+}
+
+/// <summary>ACL khoá chính sách trong hive người dùng (HKU\<SID>\SOFTWARE\Policies\…). Windows mặc định để SOFTWARE\Policies của HKCU chỉ
+/// SYSTEM / Administrators ghi, người dùng chỉ đọc — khoá con thừa kế. Nhưng hive có thể thiếu SOFTWARE\Policies (tạo mới thì thừa kế SOFTWARE:
+/// Con TOÀN QUYỀN ⇒ tự xoá luật chặn web) hoặc ai đó đã nới ACL. Nên sau khi ghi, dò từng khoá trên đường SOFTWARE\Policies → khoá luật:
+/// chưa an toàn thì đặt ACL bảo vệ (SYSTEM + Administrators toàn quyền, Con + ALL APPLICATION PACKAGES chỉ đọc, chủ = Administrators).</summary>
+public static class AclChinhSach
+{
+    public const string HeThong = "S-1-5-18", QuanTri = "S-1-5-32-544";
+    private const RegistryRights QuyenGhi = RegistryRights.SetValue | RegistryRights.CreateSubKey | RegistryRights.CreateLink | RegistryRights.Delete
+        | RegistryRights.ChangePermissions | RegistryRights.TakeOwnership | (RegistryRights)0x50000000 /* GENERIC_WRITE | GENERIC_ALL */;
+
+    /// <summary>THUẦN: ACL an toàn ⇔ chủ là SYSTEM/Administrators và không quy tắc CHO PHÉP nào trao quyền ghi cho ai khác
+    /// (CREATOR OWNER bỏ qua: chỉ áp cho người tạo khoá con — mà khoá con do SYSTEM tạo).</summary>
+    public static bool AnToan(string? chu, IEnumerable<(string Sid, RegistryRights Quyen, bool ChoPhep)> quyTac)
+    {
+        if (chu != HeThong && chu != QuanTri) return false;
+        return !quyTac.Any(q => q.ChoPhep && q.Sid is not (HeThong or QuanTri or "S-1-3-0") && (q.Quyen & QuyenGhi) != 0);
+    }
+
+    /// <summary>THUẦN: các khoá cần khoá chặt — từ SOFTWARE\Policies tới <paramref name="khoa"/> (khoá ngoài SOFTWARE\Policies ⇒ không có).</summary>
+    public static List<string> DuongCanKhoa(string khoa)
+    {
+        const string goc = @"SOFTWARE\Policies";
+        var ds = new List<string>();
+        if (!khoa.Equals(goc, StringComparison.OrdinalIgnoreCase) && !khoa.StartsWith(goc + "\\", StringComparison.OrdinalIgnoreCase)) return ds;
+        var cur = goc;
+        ds.Add(cur);
+        foreach (var phan in khoa.Substring(goc.Length).Split('\\', StringSplitOptions.RemoveEmptyEntries)) { cur += "\\" + phan; ds.Add(cur); }
+        return ds;
+    }
+
+    /// <summary>Dò và khoá chặt đường tới <paramref name="khoa"/> trong hive gốc <paramref name="goc"/>. Cố gắng hết sức: lỗi không chặn việc ghi luật.</summary>
+    public static void KhoaChat(RegistryKey goc, string khoa, string sidCon)
+    {
+        foreach (var duong in DuongCanKhoa(khoa))
+        {
+            try
+            {
+                using var k = goc.OpenSubKey(duong, RegistryKeyPermissionCheck.ReadWriteSubTree,
+                    RegistryRights.ReadPermissions | RegistryRights.ChangePermissions | RegistryRights.TakeOwnership);
+                if (k == null) continue;
+                var acl = k.GetAccessControl(AccessControlSections.Access | AccessControlSections.Owner);
+                var chu = (acl.GetOwner(typeof(SecurityIdentifier)) as SecurityIdentifier)?.Value;
+                var qt = acl.GetAccessRules(true, true, typeof(SecurityIdentifier)).Cast<RegistryAccessRule>()
+                    .Select(r => (((SecurityIdentifier)r.IdentityReference).Value, r.RegistryRights, r.AccessControlType == AccessControlType.Allow));
+                if (AnToan(chu, qt)) continue;
+                WindowsWebHiveHost.BatQuyen();
+                var moi = new RegistrySecurity();
+                moi.SetAccessRuleProtection(true, false);
+                moi.SetOwner(new SecurityIdentifier(QuanTri));
+                const InheritanceFlags ke = InheritanceFlags.ContainerInherit;
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(HeThong), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(QuanTri), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(sidCon), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
+                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier("S-1-15-2-1"), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
+                k.SetAccessControl(moi);
+            }
+            catch { }
         }
     }
 }
