@@ -587,11 +587,11 @@ await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / 
   xet(await doi("Xem ảnh"), "ảnh nghi trùng ⇒ «Xem ảnh» thay cho duyệt mù");
   await bamChon(nhan("Từ chối: Tập thể dục 30 phút"));
   xet(await doi("cần làm gì thêm?"), "Từ chối mở bảng lý do");
-  await bam("Ảnh chưa rõ — chụp lại nhé");
+  await bam("Chưa xong — làm tiếp nhé");
   await bam(`Gửi cho ${KEN}`);
   await sleep(600);
-  xet(nhatKy.some((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Ảnh chưa rõ — chụp lại nhé" && x.body?.boSung === true), "gửi từ chối kèm lý do đã chọn");
-  xet(await doi("Đã gửi «Ảnh chưa rõ — chụp lại nhé»"), "báo đã gửi lý do");
+  xet(nhatKy.some((x) => x.d === "luot/l3/tu-choi" && x.body?.lyDo === "Chưa xong — làm tiếp nhé" && x.body?.boSung === true), "gửi từ chối kèm lý do đã chọn");
+  xet(await doi("Đã gửi «Chưa xong — làm tiếp nhé»"), "báo đã gửi lý do");
   await bam(BILL);
   await bamChon(nhan("Duyệt: Xin thêm 15 phút"));
   xet(await doi("Ngoại lệ thứ 4 tuần này của Bill"), "có cảnh báo ngoại lệ ⇒ mở màn yêu cầu, không duyệt mù");

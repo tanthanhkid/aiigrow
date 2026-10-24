@@ -43,10 +43,12 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
   const [lyDo, setLyDo] = useState(0);
   const [lyDoYc, setLyDoYc] = useState(LY_DO_YC[0]);
   const [huyQua, setHuyQua] = useState<Phieu | null>(null);
+  const [xong, setXong] = useState<string[]>([]);                 // đã xử lý xong, chờ tải lại ⇒ ẩn để khỏi bấm lần hai
+  const daXong = (id: string) => setXong((a) => [...a, id]);
   // yêu cầu (có hạn) lên trước, rồi nhiệm vụ, quà; trong nhóm theo thời gian gửi
   const thu = { yc: 0, nv: 1, qua: 2 } as const;
   const luc = (v: ViecCho) => (v.k === "nv" ? v.x.nop_luc : v.x.created_at);
-  const con = [...ds].sort((a, b) => thu[a.k] - thu[b.k] || luc(a).localeCompare(luc(b)));
+  const con = ds.filter((v) => !xong.includes(v.x.id)).sort((a, b) => thu[a.k] - thu[b.k] || luc(a).localeCompare(luc(b)));
   const chay = (v: ViecCho, fn: () => Promise<unknown>, hangDoi?: boolean) => { setDang(v.x.id); return hl.lam(fn, { hangDoi }); };
 
   const duyet = (v: ViecCho) => {
@@ -55,7 +57,9 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
       if (x.nghi_trung) return moChiTiet(v);
       return chay(v, async () => {
         await bm.goi(`luot/${x.id}/duyet`, {});
+        daXong(x.id);
         bao(`Đã duyệt «${x.ten}» · +${x.diem} điểm cho ${ten}`, () => {
+          setXong((a) => a.filter((i) => i !== x.id));
           bm.goi(`luot/${x.id}/hoan-tac`, {}).then(tai, (e) => { bao(`Chưa hoàn tác được: ${cauLoi(e)}`); tai(); });
         });
         tai();
@@ -66,37 +70,37 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
       if (!ycMotCham(y)) return moChiTiet(v);
       const p = y.phut ?? 15;
       return chay(v, async () => {
-        const ct = await bm.goi<{ xemTruoc?: { mucCanhBao: string } }>(`yeu-cau/${y.id}`);
+        const ct = await bm.goi<{ trang_thai?: string; xemTruoc?: { mucCanhBao: string } }>(`yeu-cau/${y.id}`);
+        if (ct.trang_thai && ct.trang_thai !== "cho") { daXong(y.id); bao(`Yêu cầu này đã được xử lý`); tai(); return; }   // người khác trả lời trước
         if (ct.xemTruoc && ct.xemTruoc.mucCanhBao !== "khong") { moChiTiet(v); return; }   // có cảnh báo ngoại lệ ⇒ Ba Mẹ xem trên màn yêu cầu
         await bm.goi(`yeu-cau/${y.id}/dong-y`, { truDiem: false, phut: p });
+        daXong(y.id);
         bao(`Đã cho ${ten} thêm ${p} phút (ngoại lệ)`);
         tai();
-      }, true);
+      });                                                          // không hàng đợi: đồng ý gửi lại sẽ bị máy chủ báo «đã xử lý»
     }
     const x = v.x;
     return chay(v, async () => {
       await bm.goi(`phieu/${x.id}/xac-nhan`, {});
+      daXong(x.id);
       bao(x.loai === "voucher" ? `Đã xác nhận «${x.ten}» cho ${ten}` : `Đã trao «${x.ten}» cho ${ten}`);
       tai();
     });
   };
   const tuChoiNgay = (v: ViecCho) => {
     if (v.k === "qua") { hlHuy.setLoi(null); return setHuyQua(v.x); }
-    setLyDo(v.k === "nv" ? 1 : 0);
-    setLyDoYc(LY_DO_YC[0]);
+    hl.setLoi(null);
+    if (tuChoi?.x.id !== v.x.id) { setLyDo(0); setLyDoYc(LY_DO_YC[0]); }   // mở lại đúng việc vừa lỗi ⇒ giữ lý do đã chọn / tự viết
     setTuChoi(v);
   };
   const guiTuChoi = () => {
     const v = tuChoi;
     if (!v) return;
-    setTuChoi(null);
-    if (v.k === "nv") {
-      const l = LY_DO_NV[lyDo];
-      chay(v, async () => { await bm.goi(`luot/${v.x.id}/tu-choi`, { lyDo: l.chu, boSung: l.boSung }); bao(`Đã gửi «${l.chu}» cho ${ten}`); tai(); });
-    } else if (v.k === "yc") {
-      const l = lyDoYc.trim();
-      chay(v, async () => { await bm.goi(`yeu-cau/${v.x.id}/tu-choi`, { lyDo: l }); bao(`Đã trả lời ${ten}: ${l}`); tai(); });
-    }
+    // bảng giữ mở tới khi gửi được — lỗi hiện trong bảng, lý do đã chọn / tự viết không mất
+    const gui = v.k === "nv"
+      ? (() => { const l = LY_DO_NV[lyDo]; return async () => { await bm.goi(`luot/${v.x.id}/tu-choi`, { lyDo: l.chu, boSung: l.boSung }); bao(`Đã gửi «${l.chu}» cho ${ten}`); }; })()
+      : (() => { const l = lyDoYc.trim(); return async () => { await bm.goi(`yeu-cau/${v.x.id}/tu-choi`, { lyDo: l }); bao(`Đã trả lời ${ten}: ${l}`); }; })();
+    chay(v, async () => { await gui(); daXong(v.x.id); setTuChoi(null); tai(); });
   };
   const chuDuyet = (v: ViecCho) => v.k === "yc" ? (ycMotCham(v.x) ? "Duyệt" : "Xếp loại") : v.k === "qua" ? (v.x.loai === "voucher" ? "Xác nhận" : "Đã trao")
     : v.x.nghi_trung ? "Xem ảnh" : "Duyệt";
@@ -148,7 +152,8 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3 }: {
             <ONhap nhan="Hoặc tự viết" value={lyDoYc} onChangeText={setLyDoYc} maxLength={120} />
           </>
         )}
-        <Nut chu={`Gửi cho ${ten}`} rong tat={tuChoi?.k === "yc" && !lyDoYc.trim()} bam={guiTuChoi} />
+        <BaoLoi loi={hl.loi} />
+        <Nut chu={`Gửi cho ${ten}`} rong dangChay={hl.dangChay} tat={tuChoi?.k === "yc" && !lyDoYc.trim()} bam={guiTuChoi} />
       </BangTruot>
 
       {huyQua ? (
