@@ -5,7 +5,7 @@ import { docLog, nhanLog } from "./log-may.ts";
 import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { lichCua, sachCauHinh, thamSo, dangKhoa, khoaDen } from "./cau-hinh.ts";
+import { lichCua, sachCauHinh, thamSo, khoaGoc, khoaDen, moTamDen } from "./cau-hinh.ts";
 import * as gd from "./gia-dinh.ts";
 import * as nv from "./nhiem-vu.ts";
 import * as yc from "./yeu-cau.ts";
@@ -38,7 +38,7 @@ async function chiTietCon(bm: BaMe, id: string) {
   const may = await q<gd.May>(`select * from devices where child_id = $1 or (dung_chung and family_id = $2) order by created_at`, [id, bm.family_id]);
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [bm.family_id]))!;
   return {
-    id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: true, khoaNgay: dangKhoa(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh),
+    id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: true, khoaNgay: khoaGoc(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh), moTamDen: moTamDen(c.cau_hinh),
     lich: lichCua(c.lich as never), thamSo: thamSo(f.cau_hinh, c.cau_hinh), ...(await tomTatVi(c.id)),
     may: may.map((m) => ({ id: m.id, ten: m.name, nen: m.platform, dungChung: m.dung_chung, baoVe: gd.mucBaoVe(m), baoVeThieu: gd.chiTietBaoVe(m).thieu, baoVeCau: gd.chiTietBaoVe(m).cau,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null,

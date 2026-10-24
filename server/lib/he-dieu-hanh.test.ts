@@ -10,3 +10,7 @@ test("nhận diện máy mở trang /tai", () => {
   assert.equal(heDieuHanh("Mozilla/5.0 (Linux; Android 14; SM-A546E) Chrome/141.0 Mobile"), "android");
   assert.equal(heDieuHanh("curl/8.7.1"), "khac");
 });
+
+test("iPad cũ (UA có «iPad») ⇒ ios", () => {
+  assert.equal(heDieuHanh("Mozilla/5.0 (iPad; CPU OS 12_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"), "ios");
+});

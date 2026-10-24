@@ -5,7 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet, type Khung } from "@/lib/api";
 import { SuaKhung } from "@/lib/sua-gio";
-import { BangKhoa, cauKhoa, conHan, datKhoa } from "@/lib/khoa-may";
+import { BangKhoa, cauKhoa, cauMoTam, conHan, datKhoa } from "@/lib/khoa-may";
 import { BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, gioPhut, HaiNut, Man, Nhom, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 type Sua = "ngayThuong" | "cuoiTuan" | "ngu";
@@ -32,10 +32,11 @@ export default function GioChoi() {
     await tai();
   }, { hangDoi: true });
   const dangKhoa = d.khoaNgay && conHan(d.khoaDen);
+  const moTam = dangKhoa ? cauMoTam(d.moTamDen) : null;
   return (
     <Man lui={{ chu: "Trang chủ" }} tieu="Giờ dùng máy" noi={noi}>
       <Canh lv={dangKhoa ? "nghi" : "cho"} thap tieu={dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
-        loi={dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
+        loi={moTam ? `${moTam} — Ba Mẹ đã cho thêm giờ. ${d.khoaDen ? `Khoá tự hết lúc ${gioPhut(d.khoaDen)}.` : "Khoá giữ tới khi Ba Mẹ mở lại."}` : dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
       <BaoLoi loi={loiLam} />
       <HaiNut>
         {dangKhoa ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={moLai} />

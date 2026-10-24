@@ -82,13 +82,16 @@ export default function WebCon() {
   const chanNgay = (muc: string) => {
     datNhanh(muc, "chan", false, { trangThai: truocCua(muc), caNha: false }, `Đã chặn ${muc} — áp lên máy trong vài phút`);
   };
-  // Bỏ chặn = gỡ MỌI luật chặn của tên miền (của Con lẫn cả nhà); Hoàn tác đặt lại đúng từng luật
-  const boChan = (muc: string) => {
-    const ds = d.luat.filter((l) => l.tenMien === muc && l.trangThai === "chan");
+  // Bỏ chặn = gỡ luật chặn của tên miền (ô gõ / trang vào nhiều: của Con lẫn cả nhà; dòng «Đang chặn»: đúng luật của dòng đó).
+  // Gỡ dở chừng mà lỗi ⇒ tải lại để màn hình khớp máy chủ; Hoàn tác đặt lại đúng từng luật đã gỡ.
+  const boChan = (muc: string, nguon?: "con" | "gia_dinh") => {
+    const ds = d.luat.filter((l) => l.tenMien === muc && l.trangThai === "chan" && (!nguon || l.nguon === nguon));
     if (!ds.length) return;
     const caNhaCo = ds.some((l) => l.nguon === "gia_dinh");
     return lam(async () => {
-      for (const l of ds) await bm.goi(`con/${con}/web/trang`, { muc, trangThai: "mac_dinh", caNha: l.nguon === "gia_dinh" });
+      try {
+        for (const l of ds) await bm.goi(`con/${con}/web/trang`, { muc, trangThai: "mac_dinh", caNha: l.nguon === "gia_dinh" });
+      } catch (e) { void tai(); throw e; }
       bao(`Đã bỏ chặn ${muc}${caNhaCo ? " cho cả nhà" : ""}`, () => {
         (async () => { for (const l of ds) await bm.goi(`con/${con}/web/trang`, { muc, trangThai: "chan", caNha: l.nguon === "gia_dinh" }); })().then(() => tai(), () => tai());
       });
@@ -153,7 +156,7 @@ export default function WebCon() {
           <Nhom>
             {dangChan.map((l, i) => (
               <Dong key={`${l.nguon}-${l.tenMien}`} dau={i === 0} tieu={l.tenMien} phu={l.nguon === "gia_dinh" ? "Cả gia đình" : `Chỉ ${ten}`}
-                trai={<BieuTron ic="khoa" mau="do" />} phai={<NutDong chu="Bỏ chặn" loai="vien" tat={dangChay} bam={() => boChan(l.tenMien)} />}
+                trai={<BieuTron ic="khoa" mau="do" />} phai={<NutDong chu="Bỏ chặn" loai="vien" tat={dangChay} bam={() => boChan(l.tenMien, l.nguon)} />}
                 bam={() => mo(l.tenMien)} />
             ))}
           </Nhom>

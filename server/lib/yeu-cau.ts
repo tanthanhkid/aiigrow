@@ -3,7 +3,7 @@
 // Ứng điểm (nợ điểm) KHÔNG cho (KE-HOACH 5.5): «ngoại lệ không đủ điểm» nếu đồng ý thì là thêm giờ không trừ điểm, ghi là ngoại lệ.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, thamSo } from "./cau-hinh.ts";
+import { khoaGoc, moTamDen, thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { chuanMuc, datLuat } from "./luat-app.ts";
@@ -107,8 +107,10 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       // Ba Mẹ cho thêm giờ lúc Con đang «Khoá ngay» ⇒ mở TẠM đúng phần giờ đó rồi khoá lại (Khang 24/10: «xin thêm thời gian aiigrow không
       // bật lại» — cờ khoa_ngay cũ đè cửa sổ mở). Chỉ Ba Mẹ duyệt tay mới mở được; quy tắc tự động không vượt khoá (apQuyTacTuDong).
       const cfg = (await t<{ c: Record<string, unknown> }>(`select cau_hinh as c from children where id = $1`, [r.child_id]))[0]?.c;
-      if (nguoi && dangKhoa(cfg, now)) {
-        const moDen = (cuaSoDen ?? new Date(now.getTime() + phut * 60000)).toISOString();
+      // Duyệt lần nữa lúc đang mở tạm ⇒ cộng tiếp từ hạn mở tạm cũ. Không dùng cuaSoDen (đã gồm cả cửa sổ grant cũ ⇒ mở dài hơn số phút duyệt).
+      if (nguoi && khoaGoc(cfg, now)) {
+        const tu = Math.max(now.getTime(), Date.parse(moTamDen(cfg, now) ?? "") || 0);
+        const moDen = new Date(tu + phut * 60000).toISOString();
         await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('khoa_mo_tam_den', $2::text) where id = $1`, [r.child_id, moDen]);
         await ghiSuKien(fam, "mo_tam", { vi: "duyet_them_gio", yeu_cau: r.id, den: moDen }, { con: r.child_id, nguoi }, t);
       }
@@ -148,7 +150,7 @@ export async function apQuyTacTuDong(fam: string, id: string, now = new Date()) 
   const r = await one<Yc & { cau_hinh: Record<string, unknown>; tz: string }>(
     `select r.*, c.cau_hinh, f.tz from requests r join children c on c.id = r.child_id join families f on f.id = c.family_id where r.id = $1 and c.family_id = $2`, [id, fam]);
   if (!r || r.trang_thai !== "cho" || r.loai !== "them_gio" || r.phut !== 15 || r.cau_hinh?.tu_dong_15 !== true) return false;
-  if (dangKhoa(r.cau_hinh, now)) return false;   // Ba Mẹ đang «Khoá ngay» ⇒ để Ba Mẹ tự quyết, không tự mở
+  if (khoaGoc(r.cau_hinh, now)) return false;   // Ba Mẹ đang «Khoá ngay» (kể cả lúc đang mở tạm) ⇒ để Ba Mẹ tự quyết, không tự mở
   const daCo = await one(`select 1 from requests where child_id = $1 and tu_dong and created_at >= $2 and id <> $3`,
     [r.child_id, dauNgayUtc(gioDiaPhuong(now, r.tz).ngay, r.tz), r.id]);
   if (daCo) return false;

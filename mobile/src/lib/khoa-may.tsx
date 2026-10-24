@@ -15,6 +15,10 @@ export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới $
 /** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
 export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();
 
+/** Đang mở tạm (Ba Mẹ duyệt thêm giờ lúc khoá): «Mở tạm tới 10:41, rồi khoá lại»; null = không mở tạm. */
+export const cauMoTam = (moTamDen: string | null | undefined, now = new Date()) =>
+  moTamDen && Date.parse(moTamDen) > now.getTime() ? `Mở tạm tới ${gioPhut(moTamDen)}, rồi khoá lại` : null;
+
 /** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con). */
 export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null) {
   await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}) });
@@ -47,7 +51,7 @@ export function BangKhoa({ mo, dong, con, ten, xong }: {
         const den = han === "sang" ? "sang" : denCua(han);
         await datKhoa(con, true, den);
         dong();
-        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 7:00 sáng mai" : den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
+        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 7:00 sáng" : den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
       })} />
     </BangTruot>
   );

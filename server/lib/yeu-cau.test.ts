@@ -186,6 +186,17 @@ test("đang «Khoá ngay» mà Ba Mẹ duyệt thêm giờ ⇒ mở TẠM đúng
   assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 31 * 60_000)), true);
   assert.ok((await cfg()).khoa_den);
   assert.ok(await one(`select 1 from events where family_id = $1 and child_id = $2 and loai = 'mo_tam'`, [fam, con]));
+  // đang mở tạm, tự đồng ý vẫn không chạy (khoá gốc còn)
+  const tu2 = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 15, lyDo: "xin" }, new Date(now.getTime() + 5 * 60_000));
+  assert.equal(await yc.apQuyTacTuDong(fam, tu2.id, new Date(now.getTime() + 5 * 60_000)), false);
+  await yc.tuChoiYc(fam, tu2.id, bm, "không", new Date(now.getTime() + 5 * 60_000));
+  // duyệt lần 2 lúc đang mở tạm (phút 10, thêm 20') ⇒ cộng từ hạn mở tạm cũ: 30 + 20 = 50 — không lấy cửa sổ grant Windows (đã 30+20 từ lần trước ⇒ dễ dài hơn)
+  const t10 = new Date(now.getTime() + 10 * 60_000);
+  const b = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 20, lyDo: "xin" }, t10);
+  await yc.dongY(fam, b.id, bm, { truDiem: false, phut: 20 }, t10);
+  assert.equal((await cfg()).khoa_mo_tam_den, new Date(now.getTime() + 50 * 60_000).toISOString());
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 49 * 60_000)), false);
+  assert.equal(dangKhoa(await cfg(), new Date(now.getTime() + 51 * 60_000)), true);
   // khoá lại ⇒ phần mở tạm bị xoá
   await khoaNgay(fam, con, true, bm);
   assert.equal((await cfg()).khoa_mo_tam_den, undefined);

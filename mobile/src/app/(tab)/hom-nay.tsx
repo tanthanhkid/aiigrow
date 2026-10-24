@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type ThongKeWeb } from "@/lib/api";
 import { ChuongTb } from "@/lib/chuong-tb";
-import { BangKhoa, cauKhoa, conHan, datKhoa } from "@/lib/khoa-may";
+import { BangKhoa, cauKhoa, cauMoTam, conHan, datKhoa } from "@/lib/khoa-may";
 import {
   Avt, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, Chu, Dong, Icon, M, MAU_CON, Man, Nhan, Nhom, Nut, The, Tien, truoc, useHoanTac, useLam, useTai,
   type MauBt, type TenIcon,
@@ -68,6 +68,7 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
   const dangDung = may.find((m) => m.truc);
   // màn không tự tải lại: hạn khoá đã qua thì coi như đã mở, khớp server (cau-hinh.ts › dangKhoa)
   const khoaNgay = !!ct.d?.khoaNgay && conHan(ct.d.khoaDen);
+  const moTam = khoaNgay ? cauMoTam(ct.d?.moTamDen) : null;
   const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
   const conGiay = Math.max(0, c.tranNgay - c.phutChoi);
   const tai = () => { ct.tai(); taiLai(); };
@@ -104,9 +105,9 @@ function BangCon({ c, canhBao, luat, taiLai, bao }: {
       <The>
         {khoaNgay ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <BieuTron ic="khoa" mau="do" />
+            <BieuTron ic={moTam ? "dongho" : "khoa"} mau={moTam ? "cam" : "do"} />
             <View style={{ flex: 1 }}>
-              <Chu kieu="dam" co={13} mau={M.loi}>{`${c.ten} · máy đang khoá`}</Chu>
+              <Chu kieu="dam" co={13} mau={moTam ? M.chu2 : M.loi}>{moTam ? `${c.ten} · ${moTam.charAt(0).toLowerCase()}${moTam.slice(1)}` : `${c.ten} · máy đang khoá`}</Chu>
               <Chu kieu="rat" co={20}>{cauKhoa(ct.d?.khoaDen)}</Chu>
             </View>
           </View>
