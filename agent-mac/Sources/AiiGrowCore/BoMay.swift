@@ -113,7 +113,7 @@ public actor BoMay {
   public var canhBaoAdmin: String? {
     guard conLaAdmin else { return nil }
     let tk = cauHinh.taiKhoanCon
-    return "Tài khoản «\(tk)» của Con đang là quản trị (admin) — Con có thể tự gỡ AiiGrow."
+    return "Tài khoản «\(tk)» của Con đang là quản trị (admin). Cách xử lý: Cài đặt hệ thống › Người dùng & Nhóm › chọn tài khoản của Con › tắt \"Cho phép người dùng quản trị máy tính này\" (cần một tài khoản quản trị khác)."
   }
 
   private var api_mayChu: String { (api as? ApiClient)?.mayChu ?? cauHinh.mayChu }
@@ -311,7 +311,9 @@ public actor BoMay {
     switch yc {
     case .trangThai:
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
-      return .trangThai(apChinhSach())
+      var tt = apChinhSach()
+      if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }       // không nói với Con là Con tự gỡ được; máy chủ vẫn nhận conLaAdmin
+      return .trangThai(tt)
     case .ping, .appTienCanh:
       trayNhipCuoi = donDieu()
       return .ok(id: nil)
@@ -383,6 +385,6 @@ public actor BoMay {
       conPhut: phutDung.map { Int($0.rounded(.down)) },
       moDen: hl?.moDen, khoaDen: nil, demNguocGiay: demNguoc,
       yeuCauCho: [], duocDoiDiem: p?.canExchangePoints ?? false,
-      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: canhBaoAdmin)
+      matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: laCon ? nil : canhBaoAdmin)
   }
 }

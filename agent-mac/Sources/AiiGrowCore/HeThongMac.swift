@@ -34,8 +34,12 @@ public final class HeThongMac: HeThong {
       guard len > 0 else { continue }
       let duong = String(cString: buf)
       let app = QuyetDinhApp.appNgoaiCung(duong)
-      kq.append(TienTrinh(pid: pid, uid: k.kp_eproc.e_ucred.cr_uid, duongDan: duong, duongDanApp: app, bundleId: app.flatMap(bundleId),
+      var tt = (TienTrinh(pid: pid, uid: k.kp_eproc.e_ucred.cr_uid, duongDan: duong, duongDanApp: app, bundleId: app.flatMap(bundleId),
                           bundleIdGan: QuyetDinhApp.appGanNhat(duong).flatMap(bundleId)))
+      if duong.lowercased().contains("/library/input methods/"), let g = QuyetDinhApp.appGanNhat(duong) {
+        tt.laBoGo = QuyetDinhApp.plistLaBoGo(NSDictionary(contentsOfFile: g + "/Contents/Info.plist") as? [String: Any])
+      }
+      kq.append(tt)
     }
     return kq
   }

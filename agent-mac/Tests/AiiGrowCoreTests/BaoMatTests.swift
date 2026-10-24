@@ -638,8 +638,9 @@ final class BaoMatTests: XCTestCase {
     let tt = await b.xuLyIPC(.trangThai, uidGoi: 502)
     guard case let .trangThai(t) = tt else { return XCTFail() }
     XCTAssertNotNil(t.canhBaoAdmin, "tray (phiên Ba Mẹ) thấy cảnh báo")
+    XCTAssertTrue(chu.contains("Người dùng & Nhóm") && chu.contains("quản trị máy tính này"), "kèm cách xử lý")
     guard case let .trangThai(tc) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
-    XCTAssertEqual(tc.canhBaoAdmin, "Tài khoản «be» của Con đang là quản trị (admin) — Con có thể tự gỡ AiiGrow.", "phiên Con cũng thấy, câu trung tính")
+    XCTAssertNil(tc.canhBaoAdmin, "phiên Con KHÔNG thấy cảnh báo")
     // dong-bo mang cờ conLaAdmin + quyen thiếu
     HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [], "windows": ["mode": "tu_do", "cheDo": "chan", "locked": false, "nextCheckSec": 30,
         "serverTime": NgayGio.viet(Date()), "allowedApps": [], "learningApps": [], "web": ["cheDo": "mo", "chan": [], "cho": []]]]) }
@@ -689,6 +690,19 @@ final class BaoMatTests: XCTestCase {
       TienTrinh(pid: 77, uid: 501, duongDan: "/Users/be/Library/Application Support/Tailscale/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer"),
     ]
     XCTAssertEqual(QuyetDinhApp.canDong(ds, uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid), [76, 77], "Roblox giấu trong ~/Library/Input Methods bị đóng; bộ gõ ở /Library giữ")
+  }
+
+  func testBoGoTheoUserChiMienKhiInfoPlistLaBoGo() {
+    XCTAssertTrue(QuyetDinhApp.plistLaBoGo(["InputMethodConnectionName": "OpenKey_Connection"]))
+    XCTAssertTrue(QuyetDinhApp.plistLaBoGo(["ComponentInputModeDict": [:] as [String: Any]]))
+    XCTAssertTrue(QuyetDinhApp.plistLaBoGo(["tsInputMethodCharacterRepertoireKey": ["Latn"]]))
+    XCTAssertFalse(QuyetDinhApp.plistLaBoGo(["CFBundleIdentifier": "com.roblox.robloxplayer"]))
+    var bo = TienTrinh(pid: 80, uid: 501, duongDan: "/Users/be/Library/Input Methods/OpenKey.app/Contents/MacOS/OpenKey", bundleId: "com.x.openkey")
+    bo.laBoGo = true
+    let gia = TienTrinh(pid: 81, uid: 501, duongDan: "/Users/be/Library/Input Methods/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer")
+    var giaCoCo = gia; giaCoCo.laBoGo = true; giaCoCo.pid = 82
+    giaCoCo.duongDan = "/Users/be/Library/Caches/Roblox.app/Contents/MacOS/RobloxPlayer"          // cờ bộ gõ nhưng NGOÀI thư mục bộ gõ ⇒ không miễn
+    XCTAssertEqual(QuyetDinhApp.canDong([bo, gia, giaCoCo], uidCon: 501, chiAppHoc: true, choPhep: Array(QuyetDinhApp.heThong)).map(\.pid), [81, 82])
   }
 
   func testGoCaiXoaNhanLaunchctlCuoiTapLenh() throws {

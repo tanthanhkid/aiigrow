@@ -10,14 +10,14 @@ final class CuaSoKhongDong: NSWindow {
 }
 
 @MainActor
-final class TrayApp: NSObject, NSApplicationDelegate {
+final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   let model = TrayModel()
   let xin = XinModel()
   var item: NSStatusItem!
   var timerHoi: Timer?
   var timerGiao: Timer?
   var manKhoa: [CuaSoKhongDong] = []
-  var giuCanhBaoGhep = false
+  var ghepTT = TrayLogic.CuaSoGhep()
   var cuaSoXin: NSWindow?, cuaSoMo: NSWindow?, cuaSoGhep: NSWindow?
   var nhac = NhacGio()
   var cuaSoNhac: NSPanel?
@@ -109,7 +109,7 @@ final class TrayApp: NSObject, NSApplicationDelegate {
     if let w = giu { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
     xin.thongBao = ""
     let w = NSWindow(contentViewController: NSHostingController(rootView: v))
-    w.title = tieuDe; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false
+    w.title = tieuDe; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false; w.delegate = self
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     giu = w
     NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
@@ -138,16 +138,24 @@ final class TrayApp: NSObject, NSApplicationDelegate {
 
   func capNhatGhep(ep: Bool = false) {
     let can = TrayLogic.canGhep(model.tt, laAdmin: laAdmin())
-    if TrayLogic.dongCuaSoGhep(can: can, ep: ep, giuCanhBao: giuCanhBaoGhep) { cuaSoGhep?.close(); cuaSoGhep = nil; return }
-    if giuCanhBaoGhep { return }                      // cửa sổ đang hiện cảnh báo: giữ nguyên
+    if ghepTT.canDong(can: can, ep: ep) { cuaSoGhep?.close(); cuaSoGhep = nil; ghepTT.daDong(); return }
+    if let w = cuaSoGhep {                           // đã có cửa sổ (kể cả đang giữ cảnh báo): chỉ đưa lên trước khi Ba Mẹ chọn menu
+      if ghepTT.canDuaLenTruoc(ep: ep, coCuaSo: true) { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
+      return
+    }
     guard can else { return }
-    if let w = cuaSoGhep { if ep { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }; return }
     let ds = TrayLogic.taiKhoanThuong(dsclRa: chay("/usr/bin/dscl", [".", "-list", "/Users", "UniqueID"]), hienTai: NSUserName())
-    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, khiCanhBao: { [weak self] in self?.giuCanhBaoGhep = true }, dongLai: { [weak self] in
-      self?.giuCanhBaoGhep = false; self?.cuaSoGhep?.close(); self?.cuaSoGhep = nil; self?.hoi() })))
-    w.title = "AiiGrow · Ghép máy"; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false
+    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, khiCanhBao: { [weak self] in self?.ghepTT.hienCanhBao() }, dongLai: { [weak self] in
+      self?.cuaSoGhep?.close(); self?.hoi() })))
+    w.title = "AiiGrow · Ghép máy"; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false; w.delegate = self
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     cuaSoGhep = w
+  }
+
+  /// Nút X đỏ cũng reset: không để cờ giữ cảnh báo + cửa sổ đã đóng làm kẹt việc mở lại cửa sổ ghép.
+  func windowWillClose(_ n: Notification) {
+    guard let w = n.object as? NSWindow, w === cuaSoGhep else { return }
+    cuaSoGhep = nil; ghepTT.daDong()
   }
 
   // MARK: màn khoá toàn màn hình

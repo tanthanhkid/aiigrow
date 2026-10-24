@@ -12,6 +12,8 @@ public struct TienTrinh: Equatable {
   /// .app GẦN NHẤT chứa tệp thực thi (iPad: …/Wrapper/Game.app; launcher: …/LeagueClient.app) và bundle id của nó.
   public var duongDanAppGan: String?
   public var bundleIdGan: String?
+  /// .app gần nhất thật sự là bộ gõ (Info.plist có InputMethodConnectionName / tsInputMethodCharacterRepertoireKey / ComponentInputModeDict).
+  public var laBoGo = false
   public init(pid: Int32, uid: UInt32, duongDan: String, duongDanApp: String? = nil, bundleId: String? = nil, bundleIdGan: String? = nil) {
     self.pid = pid; self.uid = uid; self.duongDan = duongDan
     self.duongDanApp = duongDanApp ?? QuyetDinhApp.appNgoaiCung(duongDan); self.bundleId = bundleId
@@ -59,6 +61,18 @@ public enum QuyetDinhApp {
     return String(duongDan[..<r.upperBound]).trimmingCharacters(in: CharacterSet(charactersIn: "/")).withLeadingSlash
   }
 
+  /// Info.plist của một .app có phải bộ gõ (input method) thật không.
+  public static func plistLaBoGo(_ plist: [String: Any]?) -> Bool {
+    guard let p = plist else { return false }
+    return ["InputMethodConnectionName", "tsInputMethodCharacterRepertoireKey", "ComponentInputModeDict"].contains { p[$0] != nil }
+  }
+
+  /// «/users/<tên>/library/input methods/…» — thư mục Con ghi được: chỉ miễn khi .app trong đó thật là bộ gõ (`laBoGo`).
+  static func trongBoGoCuaNguoiDung(_ duongThap: String) -> Bool {
+    guard duongThap.hasPrefix("/users/") else { return false }
+    return duongThap.dropFirst("/users/".count).drop { $0 != "/" }.dropFirst().hasPrefix("library/input methods/")
+  }
+
   /// Tiến trình PHỤ chạy nền của một app (widget/extension, XPC, helper, login item) — không đóng riêng chúng; app chính bị đóng thì chúng tự chết.
   /// Mọi tiến trình khác thuộc .app (kể cả iPad Wrapper, launcher lồng nhau, Wine/CrossOver SharedSupport) xét theo bundle id.
   public static func laTienTrinhPhu(_ duongDan: String) -> Bool {
@@ -70,6 +84,7 @@ public enum QuyetDinhApp {
   public static func duocPhep(_ t: TienTrinh, choPhep: Set<String>) -> Bool {
     let duongThap = t.duongDan.lowercased()
     if thuMucMienTru.contains(where: { duongThap.hasPrefix($0) }) { return true }      // bộ gõ + công cụ hỗ trợ từ xa (thư mục gốc của root)
+    if t.laBoGo, trongBoGoCuaNguoiDung(duongThap) { return true }                      // bộ gõ cài theo user (OpenKey/EVKey/GoTiengViet) — phải có khoá bộ gõ trong Info.plist
     guard let app = t.duongDanApp else { return khopNgoaiApp(t, choPhep: Set(choPhep.map { $0.lowercased() })) }
     if laTienTrinhPhu(t.duongDan) { return true }                           // phụ (.appex/PlugIns/XPCServices/Helpers/LoginItems): không đóng riêng
     let choPhep = Set(choPhep.map { $0.lowercased() })                                // máy chủ luôn lưu chữ thường (chuanMuc); bundle id thật có chữ hoa

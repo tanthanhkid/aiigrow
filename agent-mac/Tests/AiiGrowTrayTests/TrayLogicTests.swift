@@ -180,9 +180,15 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertNil(TrayLogic.dongCanhBaoAdmin(nil))
   }
 
-  func testCuaSoGhepGiuKhiDangCanhBao() {
-    XCTAssertTrue(TrayLogic.dongCuaSoGhep(can: false, ep: false, giuCanhBao: false))
-    XCTAssertFalse(TrayLogic.dongCuaSoGhep(can: false, ep: false, giuCanhBao: true), "daGhep đã true nhưng cảnh báo còn hiện ⇒ không đóng")
-    XCTAssertFalse(TrayLogic.dongCuaSoGhep(can: true, ep: false, giuCanhBao: false))
+  func testCuaSoGhepGiuKhiDangCanhBaoVaResetKhiDong() {
+    var c = TrayLogic.CuaSoGhep()
+    XCTAssertTrue(c.canDong(can: false, ep: false))
+    c.hienCanhBao()
+    XCTAssertFalse(c.canDong(can: false, ep: false), "daGhep đã true nhưng cảnh báo còn hiện ⇒ không đóng")
+    XCTAssertTrue(c.canDuaLenTruoc(ep: true, coCuaSo: true), "menu Ghép máy đưa cửa sổ cảnh báo lên trước")
+    XCTAssertFalse(c.canDuaLenTruoc(ep: false, coCuaSo: true), "làm mới định kỳ không giành focus")
+    c.daDong()                                           // nút X đỏ
+    XCTAssertEqual(c, TrayLogic.CuaSoGhep(), "không kẹt cờ sau khi đóng")
+    XCTAssertTrue(c.canDong(can: false, ep: false))
   }
 }

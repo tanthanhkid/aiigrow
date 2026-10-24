@@ -81,8 +81,18 @@ public enum TrayLogic {
     return "Không giới hạn giờ hôm nay"
   }
 
-  /// Có đóng cửa sổ ghép ở lần làm mới không: không còn cần ghép ⇒ đóng, TRỪ khi đang hiện cảnh báo «Đã ghép máy, NHƯNG…» (giữ tới khi Ba Mẹ bấm «Đã hiểu»).
-  public static func dongCuaSoGhep(can: Bool, ep: Bool, giuCanhBao: Bool) -> Bool { !can && !ep && !giuCanhBao }
+  /// Trạng thái cửa sổ ghép: giữ cửa sổ khi đang hiện cảnh báo «Đã ghép máy, NHƯNG…»; đóng bằng nút X hay «Đã hiểu» đều phải reset sạch (không kẹt cờ).
+  public struct CuaSoGhep: Equatable {
+    public var giuCanhBao = false
+    public init() {}
+    /// Làm mới định kỳ: không còn cần ghép ⇒ đóng, TRỪ khi đang giữ cảnh báo.
+    public func canDong(can: Bool, ep: Bool) -> Bool { !can && !ep && !giuCanhBao }
+    /// Menu «Ghép máy» khi cửa sổ đã có: luôn đưa lên trước (kể cả cửa sổ cảnh báo bị che).
+    public func canDuaLenTruoc(ep: Bool, coCuaSo: Bool) -> Bool { ep && coCuaSo }
+    public mutating func hienCanhBao() { giuCanhBao = true }
+    /// Cửa sổ đã đóng (nút X, «Đã hiểu» hay đóng bằng mã) ⇒ bỏ cờ giữ.
+    public mutating func daDong() { giuCanhBao = false }
+  }
 
   /// Cảnh báo khi Con còn quyền admin (nil = ổn).
   public static func dongCanhBaoAdmin(_ t: TrangThai?) -> String? {
