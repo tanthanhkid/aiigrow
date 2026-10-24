@@ -99,7 +99,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
 export const GIU_KIEM_TOAN_NGAY = 90;
 
 /** Xoá hẳn audit của gia đình KHÔNG còn trong families khi dòng MỚI NHẤT của gia đình đó đã quá GIU_KIEM_TOAN_NGAY ngày — không phụ thuộc
- *  đường xoá nào. Đường xoá trong mã (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi) ghi mốc «xoa_gia_dinh»
+ *  đường xoá nào; có mốc «xoa_gia_dinh» thì tính từ mốc (dòng ghi sau khi xoá — vd trả lời chat cũ — không kéo dài hạn). Đường xoá trong mã (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi) ghi mốc «xoa_gia_dinh»
  *  nên dòng mới nhất = lúc xoá ⇒ đủ 90 ngày để xử lý khiếu nại; xoá tay theo yêu cầu email thì ghi mốc như vậy bằng tay.
  *  Kèm: dòng «quet_voucher» không gắn gia đình (mã không còn — có thể là phiếu của gia đình đã xoá — hoặc không có thật) quá 90 ngày.
  *  Gọi lặp vô hại. → số dòng đã xoá. */
@@ -108,7 +108,7 @@ export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number>
   const moc = new Date(now.getTime() - GIU_KIEM_TOAN_NGAY * 86_400_000);
   const giaDinh = await q<{ id: string }>(`delete from audit where family_id in (
       select x.family_id from audit x where x.family_id is not null and not exists (select 1 from families f where f.id = x.family_id)
-        group by x.family_id having max(x.created_at) < $1) returning id`, [moc]);
+        group by x.family_id having coalesce(min(x.created_at) filter (where x.hanh_dong = 'xoa_gia_dinh'), max(x.created_at)) < $1) returning id`, [moc]);
   const quet = await q<{ id: string }>(`delete from audit where created_at < $1 and family_id is null and hanh_dong = 'quet_voucher' returning id`, [moc]);
   return giaDinh.length + quet.length;
 }

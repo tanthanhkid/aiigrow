@@ -224,8 +224,10 @@ test("audit của gia đình đã xoá: giữ 90 ngày rồi xoá hẳn; gia đ�
   await ghiKiemToan({ id: "nv1", vai: "quay" }, "quet_voucher", { ma: "MOI10" }, null);
   await q(`update audit set created_at = $1 where chi_tiet->>'ma' = 'CU91'`, [lui(91)]);
   await q(`update audit set created_at = $1 where chi_tiet->>'ma' = 'MOI10'`, [lui(10)]);
+  // dòng ghi SAU khi xoá (trả lời chat cũ) không kéo dài hạn — tính từ mốc «xoa_gia_dinh»
+  await ghiKiemToan({ id: "nv1", vai: "admin" }, "tra_loi_ho_tro", { doDai: 2 }, f91);
   const quet = async () => (await q<{ ma: string }>(`select chi_tiet->>'ma' as ma from audit where family_id is null and chi_tiet->>'ma' in ('CU91', 'MOI10')`)).map((x) => x.ma);
-  assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 3, 2]);
+  assert.deepEqual([await dem(f89), await dem(f91), await dem(fCon)], [3, 4, 2]);
 
   await donKiemToanGiaDinhDaXoa(now);
   assert.equal(await dem("gd_khong_con"), 0);
