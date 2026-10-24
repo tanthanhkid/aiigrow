@@ -172,6 +172,7 @@ const MO_TA_QUYEN: Record<string, { ten: string; cach: string }> = {
   chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang ở chế độ Giám sát (chỉ ghi lại, chưa chặn). Mở app Ba Mẹ › Cài đặt › An toàn thiết bị › chọn máy › «Chặn thật»." },
   appLocker: { ten: "Khoá app «Chỉ app học» (AppLocker)", cach: "Windows chưa áp được luật chặn app: cần Windows Pro/Enterprise/Education và dịch vụ AiiGrow chạy bằng quyền quản trị — cài lại bằng «Run as administrator»." },
   dich_vu: { ten: "Dịch vụ AiiGrow", cach: "Cài lại AiiGrow bằng quyền quản trị." },
+  haQuyenAdmin: { ten: "Tài khoản Mac của Con vẫn là quản trị (admin)", cach: "Con có thể tự gỡ AiiGrow. Trên Mac: Cài đặt hệ thống › Người dùng & Nhóm › tài khoản của Con › tắt «Cho phép người dùng quản trị máy tính này» (cần một tài khoản quản trị khác của Ba Mẹ)." },
   phienCon: { ten: "Máy đang dùng tài khoản Windows khác (không phải của Con)", cach: "Lúc đó AiiGrow không chặn, không đếm giờ. Đăng xuất tài khoản đang dùng, để Con đăng nhập tài khoản Windows của mình." },
 };
 
