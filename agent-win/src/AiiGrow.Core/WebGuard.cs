@@ -6,8 +6,9 @@ using Microsoft.Win32;
 
 namespace AiiGrow.Core;
 
-// LỌC WEB theo tên miền bằng chính sách quản lý của trình duyệt (Chrome / Edge / Brave / Cốc Cốc): ghi HKLM\SOFTWARE\Policies\<hãng>\<trình duyệt>\
-// URLBlocklist + URLAllowlist (+ tắt chế độ ẩn danh / xoá lịch sử / khách để Con không lách). Máy chủ quyết định mọi thứ: danh sách nằm ở
+// LỌC WEB theo tên miền bằng chính sách quản lý của trình duyệt (Chrome / Edge / Brave / Cốc Cốc): ghi SOFTWARE\Policies\<hãng>\<trình duyệt>\
+// trong hive CỦA TÀI KHOẢN CON (HKU\<SID Con>, 0.2.6 — issue #68/S1: ghi HKLM thì chặn cả tài khoản Ba Mẹ), KHÔNG ghi HKLM nữa
+// (bản cũ ghi HKLM ⇒ <see cref="WebPolicyHives"/> gỡ sạch khi nâng cấp). URLBlocklist + URLAllowlist (+ tắt chế độ ẩn danh / xoá lịch sử / khách để Con không lách). Máy chủ quyết định mọi thứ: danh sách nằm ở
 // `dong-bo.windows.web` = {cheDo: mo|chi_cho_phep, chan[], cho[]} (server/lib/web.ts); agent chỉ áp.
 //   • CHỈ áp khi chế độ hiệu lực là «chan» (Ba Mẹ chọn «Chặn thật»). Giám sát / máy mồ côi / đang gỡ / Con mở tạm bằng mã offline ⇒ GỠ hết.
 //   • Chỉ đụng giá trị CỦA AIIGROW: tên số ≥ 90000 trong hai danh sách (mục Ba Mẹ/IT đặt sẵn tên 1,2,3… giữ nguyên) + ba cờ DWORD bên dưới.
@@ -122,7 +123,8 @@ public static class WebPolicyKeys
             cho.AddRange(new[] { "chrome://*", "edge://*", "brave://*", "coccoc://*" });
             if (WebPolicy.Sach(maychuHost) is { } h) cho.Add(h);
         }
-        chan.AddRange(p.Chan);
+        // «*» (chặn mọi trang) CHỈ thuộc chế độ «chỉ cho phép» do Ba Mẹ bật; chế độ «mở» chỉ chặn đúng các tên miền trong danh sách (Sach đã loại «*»).
+        chan.AddRange(p.Chan.Where(x => p.CheDo == WebPolicy.ChiChoPhep || (x != "*" && x.Contains('.'))));
         cho.AddRange(p.Cho);
         return (chan.Distinct().Take(TranMuc).ToList(), cho.Distinct().Take(TranMuc).ToList());
     }
@@ -146,12 +148,19 @@ public sealed class WebPolicyApplier
 
     public WebPolicyApplier(IWebPolicyRegistry reg) { _reg = reg; }
 
+    /// <summary>Dấu vân tay của điều sẽ ghi (null ⇒ «gỡ»).</summary>
+    public static string VanTay(WebPolicy? p, string? maychuHost)
+    {
+        var (chan, cho) = p == null ? (new List<string>(), new List<string>()) : WebPolicyKeys.Lap(p, maychuHost);
+        var dau = p == null ? "gỡ" : string.Join("\n", new[] { p.CheDo }.Concat(chan).Append("|").Concat(cho));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(dau)));
+    }
+
     /// <summary>Áp <paramref name="p"/> (null ⇒ gỡ hết). → true nếu đã ghi registry lần này.</summary>
     public bool Ap(WebPolicy? p, string? maychuHost)
     {
         var (chan, cho) = p == null ? (new List<string>(), new List<string>()) : WebPolicyKeys.Lap(p, maychuHost);
-        var dau = p == null ? "gỡ" : string.Join("\n", new[] { p.CheDo }.Concat(chan).Append("|").Concat(cho));
-        var vt = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(dau)));
+        var vt = VanTay(p, maychuHost);
         if (vt == _daAp) return false;
         try
         {
@@ -175,9 +184,16 @@ public sealed class WebPolicyApplier
     public bool GoTatCa() => Ap(null, null);
 }
 
-/// <summary>Ghi registry thật (HKLM 64-bit). Chạy bằng SYSTEM (dịch vụ) hoặc Administrator (bộ gỡ).</summary>
+/// <summary>Ghi registry thật (64-bit) vào HKLM (chỉ để GỠ luật bản cũ) hoặc một hive người dùng đã nạp (HKU\<SID> hoặc hive nạp tạm).
+/// Chạy bằng SYSTEM (dịch vụ) hoặc Administrator (bộ gỡ).</summary>
 public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
 {
+    private readonly RegistryHive _hive;
+    private readonly string? _goc;   // null = chính hive (HKLM); khác null = khoá con của HKU (SID hoặc tên hive nạp tạm)
+
+    public WindowsWebPolicyRegistry() : this(RegistryHive.LocalMachine, null) { }
+    public WindowsWebPolicyRegistry(RegistryHive hive, string? goc) { _hive = hive; _goc = goc; }
+
     [System.Runtime.InteropServices.DllImport("userenv.dll", SetLastError = true)]
     private static extern bool RefreshPolicyEx(bool bMachine, uint dwOptions);
     private const uint RP_FORCE = 1;
@@ -201,7 +217,12 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
         catch (Exception e) { return "không báo được: " + e.Message; }
     }
 
-    private static RegistryKey Hklm() => RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+    private RegistryKey Hklm()
+    {
+        var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
+        if (_goc == null) return b;
+        using (b) return b.OpenSubKey(_goc, true) ?? throw new IOException("Hive người dùng chưa nạp: " + _goc);
+    }
 
     private static bool XoaMucCuaTa(RegistryKey k)
     {
@@ -274,11 +295,18 @@ public static class WebGuard
         return WebPolicy.Parse(cfg.LastPolicyJson)?.HetMo(now);
     }
 
-    /// <summary>Gỡ chính sách web của AiiGrow khỏi registry (chạy lại bao nhiêu lần cũng được).</summary>
+    /// <summary>Gỡ chính sách web của AiiGrow khỏi registry: HKLM (bản cũ) + hive MỌI hồ sơ người dùng trên máy (chạy lại bao nhiêu lần cũng được).</summary>
     public static void GoChinhSach()
     {
+        var host = new WindowsWebHiveHost();
+        bool co = new WebPolicyApplier(host.May).GoTatCa();
+        foreach (var sid in WindowsWebHiveHost.TatCaHoSo())
+        {
+            try { if (host.VoiHive(sid, reg => new WebPolicyApplier(reg).GoTatCa())) co = true; }
+            catch { }
+        }
         // gỡ xong cũng báo trình duyệt — không thì Chrome đang mở vẫn chặn tới khi tắt hẳn (review #65)
-        if (new WebPolicyApplier(new WindowsWebPolicyRegistry()).GoTatCa()) WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai();
+        if (co) WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai();
     }
 
     /// <summary>Đoạn PowerShell tương đương, nhúng vào tác vụ dọn tách rời (SYSTEM) làm lưới đỡ khi dịch vụ không gỡ được.
@@ -299,6 +327,29 @@ public static class WebGuard
             "}",
             "foreach($d in " + dw + "){ $p=$d.Split('|'); $k=\"HKLM:\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } }",
             "foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){ $k=\"HKLM:\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
+            // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
+            "$pl='HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList'",
+            "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' })){",
+            "  $goc=\"Registry::HKEY_USERS\\$s\"; $nap=$false",
+            "  if(-not (Test-Path -LiteralPath $goc)){",
+            "    $d=(Get-ItemProperty -LiteralPath \"$pl\\$s\" -ErrorAction SilentlyContinue).ProfileImagePath; if(-not $d){ continue }",
+            "    $f=[Environment]::ExpandEnvironmentVariables($d)+'\\NTUSER.DAT'; if(-not (Test-Path -LiteralPath $f)){ continue }",
+            "    reg.exe load \"HKU\\AiiGrowGo\" $f | Out-Null; if($LASTEXITCODE -ne 0){ continue }",
+            "    $goc='Registry::HKEY_USERS\\AiiGrowGo'; $nap=$true",
+            "  }",
+            "  foreach($b in " + string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'")) + "){",
+            "    foreach($l in '" + WebPolicyKeys.DsChan + "','" + WebPolicyKeys.DsCho + "'){",
+            "      $k=\"$goc\\$b\\$l\"",
+            "      if(Test-Path -LiteralPath $k){",
+            "        (Get-Item -LiteralPath $k).GetValueNames() | Where-Object { $_ -match '^\\d+$' -and [int64]$_ -gt " + WebPolicyKeys.ChiSoDau + " } | ForEach-Object { Remove-ItemProperty -LiteralPath $k -Name $_ }",
+            "        if(@((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0){ Remove-Item -LiteralPath $k -Force }",
+            "      }",
+            "    }",
+            "    foreach($d in " + string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "'")).Distinct()) + "){ $q=$d.Split('|'); if($q[0] -eq $b){ $kk=\"$goc\\$b\"; if(Test-Path -LiteralPath $kk){ Remove-ItemProperty -LiteralPath $kk -Name $q[1] -ErrorAction SilentlyContinue } } }",
+            "    $kb=\"$goc\\$b\"; if((Test-Path -LiteralPath $kb) -and @((Get-Item -LiteralPath $kb).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $kb).Count -eq 0){ Remove-Item -LiteralPath $kb -Force }",
+            "  }",
+            "  if($nap){ [gc]::Collect(); Start-Sleep -Milliseconds 300; reg.exe unload 'HKU\\AiiGrowGo' | Out-Null }",
+            "}",
             // báo trình duyệt đang mở đọc lại chính sách (không thì vẫn chặn tới khi tắt hẳn)
             "try { gpupdate.exe /target:computer /force | Out-Null } catch { }",
         });
