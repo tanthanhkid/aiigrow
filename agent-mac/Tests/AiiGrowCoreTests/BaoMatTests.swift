@@ -31,9 +31,10 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(TienCanh.chon(thatSu: ""), DemPhut.khongRo)
   }
 
-  private func dungBoMay(_ fake: HeThongGia, dongHo: DongHoGia, thuMuc: String) throws -> (BoMay, ConfigStore) {
+  private func dungBoMay(_ fake: HeThongGia, dongHo: DongHoGia, thuMuc: String, policyJson: String? = nil) throws -> (BoMay, ConfigStore) {
     let kho = ConfigStore(duongDan: thuMuc + "/config.json")
-    try kho.sua { $0.token = "t"; $0.deviceId = "d"; $0.uidCon = 501; $0.taiKhoanCon = "be" }
+    let pol = try policyJson.map { try PolicyParser.parse($0) }
+    try kho.sua { $0.token = "t"; $0.deviceId = "d"; $0.uidCon = 501; $0.taiKhoanCon = "be"; $0.policyCuoi = pol; $0.policyLuc = dongHo.thuc }
     fake.uidTheoTen = ["be": 501]
     fake.phien = PhienConsole(uid: 501, manKhoa: false)
     let api = ApiClient(mayChu: "https://aiigrow.aiilab.vn", token: nil, session: HttpMock.session())
@@ -723,6 +724,117 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM], "IPC không leo thang kill")
     dongHo.tien(5); _ = await b.apChinhSach()
     XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM, SIGKILL], "vòng daemon sau ≥ 5 giây mới SIGKILL")
+  }
+
+  // MARK: review 12 — vòng áp tách khỏi đồng bộ, đếm ngược theo hạn chót, IPC tính tươi
+
+  private static let polKhoa = #"{"mode":"khoa","cheDo":"chan","nextCheckSec":30,"allowedApps":[],"learningApps":[]}"#
+  private static let polHoc = #"{"mode":"hoc","cheDo":"chan","nextCheckSec":30,"allowedApps":["com.apple.calculator"],"learningApps":["com.apple.calculator"]}"#
+  private func tt(_ b: BoMay, uid: UInt32 = 502) async -> TrangThai {
+    guard case let .trangThai(t) = await b.xuLyIPC(.trangThai, uidGoi: uid) else { fatalError("trangThai") }
+    return t
+  }
+  private let roblox = TienTrinh(pid: 90, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.robloxplayer")
+
+  func testDoiConsoleTuConSangBaMeTrangThaiLapTuc() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc, policyJson: Self.polKhoa)
+    await b.vongAp()
+    let a = await tt(b)
+    XCTAssertTrue(a.laPhienCon); XCTAssertEqual(a.cheDo, .khoa); XCTAssertNotNil(a.demNguocGiay)
+    fake.phien = PhienConsole(uid: 502, manKhoa: false)           // Ba Mẹ đăng nhập — KHÔNG có vòng áp nào chạy giữa chừng
+    let c = await tt(b)
+    XCTAssertFalse(c.laPhienCon, "laPhienCon theo console ngay lúc gọi")
+    XCTAssertNil(c.demNguocGiay, "không còn màn khoá/đếm ngược")
+  }
+
+  func testDongBoTreoVongApVanDongAppVaDemKhoa() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc, policyJson: Self.polHoc)
+    HttpMock.dat { _, _ in Thread.sleep(forTimeInterval: 3); return nil }      // dong-bo treo (rồi lỗi mạng)
+    defer { HttpMock.dat { _, _ in nil } }
+    let sync = Task { await b.vongDongBo() }
+    try await Task.sleep(nanoseconds: 300_000_000)                          // sync đang treo trong await mạng
+    fake.tienTrinhTheoUid[501] = [roblox]; fake.conSongPid = [90]
+    await b.vongAp()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM], "đang treo đồng bộ mà vòng áp vẫn đóng app")
+    await sync.value
+    // khoá: cũng đếm + đóng phiên khi đồng bộ treo
+    let thuMuc2 = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc2) }
+    let fake2 = HeThongGia(), dongHo2 = DongHoGia()
+    let (b2, _) = try dungBoMay(fake2, dongHo: dongHo2, thuMuc: thuMuc2, policyJson: Self.polKhoa)
+    let sync2 = Task { await b2.vongDongBo() }
+    try await Task.sleep(nanoseconds: 300_000_000)
+    let t0 = await b2.vongAp()
+    dongHo2.tien(10)
+    let t1 = await b2.vongAp()
+    XCTAssertEqual((t0.demNguocGiay ?? 0) - (t1.demNguocGiay ?? 0), 10, "vẫn đếm khoá khi đồng bộ treo")
+    dongHo2.tien(60); await b2.vongAp()
+    XCTAssertEqual(fake2.daDongPhien, [501], "hết hạn chót ⇒ đóng phiên dù đồng bộ treo")
+    await sync2.value
+  }
+
+  func testDemNguocIPCTheoThoiGianThatGiuaCacVong() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc, policyJson: Self.polKhoa)
+    await b.vongAp()
+    let d0 = await tt(b).demNguocGiay ?? -1
+    dongHo.tien(7)
+    let d1 = await tt(b).demNguocGiay ?? -1
+    XCTAssertEqual(d0 - d1, 7, "giữa hai vòng áp IPC vẫn đúng theo thời gian trôi")
+    for _ in 0..<10 { _ = await tt(b) }
+    let d2 = await tt(b).demNguocGiay ?? -1
+    XCTAssertEqual(d2, d1, "IPC dồn dập không làm nhanh hơn")
+    dongHo.tien(3); await b.vongAp()
+    let d3 = await tt(b).demNguocGiay ?? -1
+    XCTAssertEqual(d1 - d3, 3)
+  }
+
+  func testPidHetCanDongRoiCanLaiPhaiNhanTermTruoc() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc, policyJson: Self.polHoc)
+    fake.tienTrinhTheoUid[501] = [roblox]; fake.conSongPid = [90]
+    await b.vongAp()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM])
+    fake.tienTrinhTheoUid[501] = []                                    // hết cần đóng (app đã thoát khỏi danh sách)
+    dongHo.tien(5); await b.vongAp()
+    fake.tienTrinhTheoUid[501] = [roblox]                             // pid cũ lại cần đóng
+    dongHo.tien(5); await b.vongAp()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM, SIGTERM], "lần cần đóng mới ⇒ TERM trước, không KILL ngay")
+    dongHo.tien(5); await b.vongAp()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1), [SIGTERM, SIGTERM, SIGKILL])
+    fake.conSongPid = []; fake.tienTrinhTheoUid[501] = []; dongHo.tien(5); await b.vongAp()     // đã chết ⇒ quên
+    fake.conSongPid = [90]; fake.tienTrinhTheoUid[501] = [roblox]; dongHo.tien(5); await b.vongAp()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.1).suffix(1), [SIGTERM])
+  }
+
+  func testTuGoRoiGhepTrangThaiDaGhepTrueNgay() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    fake.uidTheoTen = ["be": 501, "ba": 502]; fake.admin = ["ba"]
+    var go = true
+    HttpMock.dat { path, _ in
+      if path.hasSuffix("dong-bo") {
+        return HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": go ? [["id": 1, "loai": "go"]] : [],
+          "windows": ["mode": "tu_do", "cheDo": "chan", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc), "web": ["cheDo": "mo", "chan": [], "cho": []]]])
+      }
+      if path.hasSuffix("ghep") { return HttpMock.json(200, ["deviceId": "d2", "token": "t2", "childName": "Bé"]) }
+      return HttpMock.json(200, [:])
+    }
+    defer { HttpMock.dat { _, _ in nil } }
+    await b.motVong()
+    let a = await tt(b)
+    XCTAssertFalse(a.daGhep, "sau tuGo: chưa ghép")
+    go = false
+    let kq = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case .ok = kq else { return XCTFail("ghep ok: \(kq)") }
+    let c = await tt(b)
+    XCTAssertTrue(c.daGhep, "ghép lại xong ⇒ .trangThai daGhep=true ngay, không chờ vòng áp")
   }
 
   func testGoCaiXoaNhanLaunchctlCuoiTapLenh() throws {

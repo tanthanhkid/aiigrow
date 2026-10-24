@@ -34,12 +34,13 @@ public actor BoMay {
   private var syncLuc: Double = 0
   private var matMang = false
   private var dangGhep = false
+  private var dangDongBo = false
   private var trayNhipCuoi: Double = -1_000_000
   /// Mốc đơn điệu lần áp gần nhất (để cộng giờ đã dùng + đếm giây mục app).
   private var apTruoc: Double
   private let demTienCanh: DemTienCanh
-  /// Đang đếm ngược khoá: còn mấy giây.
-  private var demNguocConLai: Int?
+  /// HẠN CHÓT (đồng hồ đơn điệu) đóng phiên Con khi đang khoá; nil = không đang đếm. Còn lại = max(0, khoaLuc − donDieu()) tính tại lúc hỏi.
+  private var khoaLuc: Double?
   private var daApHosts: String?
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
@@ -120,12 +121,22 @@ public actor BoMay {
 
   // MARK: vòng chạy
 
-  /// Một vòng (gọi mỗi `vongGiay`): đồng bộ nếu tới hạn, rồi áp chính sách. → trạng thái cho tray.
+  /// Vòng ĐỒNG BỘ (Task riêng của daemon): chỉ khi tới hạn `nextCheckSec`; chỉ cập nhật Policy + cache. Treo mạng ở đây KHÔNG làm ngưng vòng áp
+  /// (actor cho phép việc khác chạy trong lúc đang await mạng) và không bao giờ có hai lần đồng bộ chồng nhau.
+  public func vongDongBo() async {
+    guard cauHinh.daGhep, !dangDongBo, donDieu() >= syncLuc else { return }
+    dangDongBo = true; defer { dangDongBo = false }
+    await dongBo()
+  }
+
+  /// Vòng ÁP (Task riêng, 5 giây một lần): chỉ dùng Policy đã cache, KHÔNG BAO GIỜ await mạng — đóng app, hosts/plist, trừ giờ, đếm ngược khoá.
+  @discardableResult
+  public func vongAp() -> TrangThai { apChinhSach() }
+
+  /// Đồng bộ nếu tới hạn rồi áp một lần (dùng cho `--mot-vong` và test); daemon chạy hai vòng ở hai Task riêng.
   @discardableResult
   public func motVong() async -> TrangThai {
-    guard cauHinh.daGhep else { return trangThaiChuaGhep() }
-    let gio = donDieu()
-    if gio >= syncLuc { await dongBo() }
+    await vongDongBo()
     return apChinhSach()                 // đã gỡ từ xa trong dongBo ⇒ apChinhSach tự trả «chưa ghép», không áp gì
   }
 
@@ -171,23 +182,24 @@ public actor BoMay {
     }
   }
 
-  /// Áp Policy hiện có lên giờ hiện tại; cộng giờ đã dùng theo đồng hồ đơn điệu. → trạng thái cho tray.
-  /// CHỈ vòng daemon (motVong) được gọi — phần theo thời gian (trừ giờ, đếm ngược khoá, đóng app, leo thang kill) không được kích bởi IPC. Lưu trạng thái cho `docTrangThai`.
+  /// Áp Policy hiện có lên giờ hiện tại; cộng giờ đã dùng theo đồng hồ đơn điệu. CHỈ vòng áp của daemon gọi (IPC thì không — xem `trangThaiTuoi`).
   @discardableResult
-  public func apChinhSach() -> TrangThai {
-    let t = apChinhSachTho()
-    trangThaiCuoi = t
-    return t
-  }
+  public func apChinhSach() -> TrangThai { apChinhSachTho() }
 
-  private var trangThaiCuoi: TrangThai?
-
-  /// Chỉ ĐỌC (IPC `trangThai`): trả trạng thái của vòng gần nhất, không áp gì, không trừ giờ.
-  private func docTrangThai() -> TrangThai {
+  /// IPC `trangThai`: TÍNH TƯƠI, không tác dụng phụ — console hiện tại, Policy cache, đếm ngược từ hạn chót, daGhep hiện tại, sổ giờ hiện tại.
+  /// Không đóng app, không trừ giờ, không ghi gì.
+  private func trangThaiTuoi() -> TrangThai {
     guard cauHinh.daGhep else { return trangThaiChuaGhep() }
-    var t = trangThaiCuoi ?? trangThai(p: nil, hl: nil, laCon: false, phutDung: nil)
-    t.canhBaoAdmin = canhBaoAdmin
-    return t
+    let phien = heThong.phienConsole()
+    let laCon = phien?.uid == cauHinh.uidCon
+    let manKhoa = phien?.manKhoa ?? true
+    guard let p = policy else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
+    let hl = DanhGiaPolicy.tinh(p, now: dongHo(), daDungGiay: cauHinh.daDungGiayTuSync)
+    var demNguoc: Int?
+    if hl.khoa, laCon, !manKhoa {
+      demNguoc = Int(((khoaLuc ?? donDieu() + Double(tuyChon.demNguocKhoaGiay)) - donDieu()).clamped0.rounded(.up))
+    }
+    return trangThai(p: p, hl: hl, laCon: laCon, phutDung: hl.conPhut, demNguoc: demNguoc)
   }
 
   private func apChinhSachTho() -> TrangThai {
@@ -217,9 +229,12 @@ public actor BoMay {
     if let uidCon = cauHinh.uidCon, laCon, chan {
       let ds = heThong.tienTrinh(cuaUid: uidCon)
       let choPhep = p.allowedApps + Array(QuyetDinhApp.heThong)
-      for t in QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep) {
-        dongApp(t)
-      }
+      let can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep)
+      let canPid = Set(can.map(\.pid))
+      daGuiTerm = daGuiTerm.filter { canPid.contains($0.key) && heThong.conSong(pid: $0.key) }     // hết cần đóng / đã chết ⇒ quên SIGTERM cũ
+      for t in can { dongApp(t) }
+    } else {
+      daGuiTerm = [:]
     }
 
     // Web: plist chính sách trình duyệt (theo tài khoản Con) + khối hosts cho Safari. Giám sát ⇒ gỡ hết.
@@ -230,7 +245,7 @@ public actor BoMay {
     if hl.khoa, let uidCon = cauHinh.uidCon, laCon, !manKhoa {
       demNguoc = tienKhoa(uidCon: uidCon, chan: chan)
     } else {
-      demNguocConLai = nil
+      khoaLuc = nil
     }
     return trangThai(p: p, hl: hl, laCon: laCon, phutDung: hl.conPhut, demNguoc: demNguoc)
   }
@@ -292,10 +307,12 @@ public actor BoMay {
 
   // MARK: khoá + đóng app
 
+  /// Đếm ngược theo HẠN CHÓT: bắt đầu khoá ⇒ khoaLuc = bây giờ + demNguocKhoaGiay; còn lại tính từ đồng hồ đơn điệu, không phải bộ đếm theo vòng.
   private func tienKhoa(uidCon: UInt32, chan: Bool) -> Int {
-    let conLai = (demNguocConLai ?? tuyChon.demNguocKhoaGiay) - Int(tuyChon.vongGiay)
-    if conLai > 0 { demNguocConLai = conLai; return conLai }
-    demNguocConLai = 0
+    let gio = donDieu()
+    if khoaLuc == nil { khoaLuc = gio + Double(tuyChon.demNguocKhoaGiay) }
+    let conLai = (khoaLuc! - gio).clamped0
+    if conLai > 0 { return Int(conLai.rounded(.up)) }
     if chan {
       do { try heThong.dongPhien(uid: uidCon); heThong.ghiLog("Đã đóng phiên của Con (hết đếm ngược khoá).") }
       catch { heThong.ghiLog("Đóng phiên lỗi: \(error)") }
@@ -305,11 +322,11 @@ public actor BoMay {
     return 0
   }
 
-  /// SIGTERM; vòng sau nếu còn sống VÀ đã qua ≥ `vongGiay` giây (đồng hồ đơn điệu) kể từ SIGTERM của pid đó thì SIGKILL.
+  /// SIGTERM; vòng sau nếu pid VẪN cần đóng (daGuiTerm đã lọc ở mỗi vòng áp) VÀ đã qua ≥ `vongGiay` giây kể từ SIGTERM của lần cần đóng này thì SIGKILL.
   private var daGuiTerm: [Int32: Double] = [:]
   private func dongApp(_ t: TienTrinh) {
     let gio = donDieu()
-    if let luc = daGuiTerm[t.pid], heThong.conSong(pid: t.pid) {
+    if let luc = daGuiTerm[t.pid] {
       guard gio - luc >= tuyChon.vongGiay else { return }          // chưa đủ thời gian cho SIGTERM có tác dụng
       heThong.guiTinHieu(pid: t.pid, tinHieu: SIGKILL)
       daGuiTerm[t.pid] = nil
@@ -330,7 +347,7 @@ public actor BoMay {
     switch yc {
     case .trangThai:
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
-      var tt = docTrangThai()                                     // chỉ đọc: gọi dồn dập không làm đếm ngược/kill nhanh hơn
+      var tt = trangThaiTuoi()                                    // tính tươi, không tác dụng phụ: gọi dồn dập không làm đếm ngược/kill nhanh hơn
       if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }       // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
       return .trangThai(tt)
     case .ping, .appTienCanh:
@@ -376,7 +393,7 @@ public actor BoMay {
     cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
     api.datPhien(mayChu: cauHinh.mayChu, token: "")
     policy = nil
-    demNguocConLai = nil
+    khoaLuc = nil
     heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn; chạy trình gỡ.")
     heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)
   }
@@ -407,3 +424,5 @@ public actor BoMay {
       matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: canhBaoAdmin)
   }
 }
+
+private extension Double { var clamped0: Double { Swift.max(0, self) } }

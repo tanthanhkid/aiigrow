@@ -120,6 +120,7 @@ final class TichHopTests: XCTestCase {
       XCTAssertEqual(x.demNguocGiay, t5.demNguocGiay, "5. IPC không trừ đếm ngược")
     }
     HttpMock.dat { _, _ in self.dapDongBo(mode: "khoa") }
+    dongHo.donDieu += 5
     let t5b = await boMay.apChinhSach()
     XCTAssertEqual(t5b.demNguocGiay, t5.demNguocGiay! - 5, "5. chỉ vòng daemon trừ đúng một vongGiay")
 

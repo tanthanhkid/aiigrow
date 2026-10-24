@@ -113,14 +113,14 @@ struct GhepMayView: View {
     dangGui = true; loi = ""; khiGui(true)
     let ma = self.ma, chon = self.chon
     Task {
-      defer { dangGui = false; khiGui(false) }
+      defer { dangGui = false }                                  // KHÔNG khiGui(false) ở đây: cờ chặn tự đóng giữ tới khi dongLai chạy (hiện «Đã ghép máy» đủ 2 giây)
       do {
         switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon)) {
-        case .loi(_, let chu): loi = chu
-        case .canhBao(_, let chu): canhBao = chu; khiCanhBao()     // đã ghép nhưng cần Ba Mẹ làm thêm: giữ cửa sổ mở để đọc, không tự đóng
+        case .loi(_, let chu): loi = chu; khiGui(false)
+        case .canhBao(_, let chu): canhBao = chu; khiCanhBao(); khiGui(false)     // đã ghép nhưng cần Ba Mẹ làm thêm: giữ cửa sổ mở để đọc, không tự đóng
         default: xong = true; DispatchQueue.main.asyncAfter(deadline: .now() + 2) { dongLai() }
         }
-      } catch { loi = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé." }
+      } catch { loi = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé."; khiGui(false) }
     }
   }
 }

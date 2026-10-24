@@ -44,9 +44,16 @@ if motVong {
 } else {
   do { try socket.mo() } catch { heThong.ghiLog("Mở socket lỗi: \(error) — tiếp tục không có IPC.") }
   Task { await socket.phucVu() }
+  // Hai vòng ĐỘC LẬP: đồng bộ mạng treo không được làm ngưng việc áp chính sách (đóng app, khoá, hosts).
   Task {
     while true {
-      _ = await boMay.motVong()
+      await boMay.vongDongBo()
+      try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
+    }
+  }
+  Task {
+    while true {
+      _ = await boMay.vongAp()
       try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
     }
   }
