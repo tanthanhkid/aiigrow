@@ -33,6 +33,19 @@ const daDungTu = async (t: Q, con: string, tu: Date) =>
 const thuongHomNay = async (t: Q, con: string, ngay: string) =>
   (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null`, [con, ngay]))[0].p;
 
+/** Phút giải trí còn được chơi theo trần (ngày lẫn tuần, đã cộng phút thưởng hôm nay) — đúng như xetMoPhien tính `conNgay` / `conTuan`.
+ *  Dùng chung cho «≈ X phút chơi» ở app Ba Mẹ để con số không lệch với lúc Con thật sự mở phiên. */
+export async function conTheoTran(t: Q, con: string, ts: ThamSo, tz: string, now = new Date()) {
+  const ngay = gioDiaPhuong(now, tz).ngay;
+  // tuần tự: `t` có thể là giao dịch (xetMoPhien trong moPhien) — một kết nối, không bắn song song
+  const thuong = await thuongHomNay(t, con, ngay), homNay = await daDungTu(t, con, dauNgayUtc(ngay, tz));
+  const tuanNay = await daDungTu(t, con, dauNgayUtc(dauTuan(ngay), tz)), conThuong = await conThuongHomNay(t, con, ngay, tz);
+  /** conThuong: phút «thêm giờ» chưa dùng hôm nay — phiên tiêu nó trước, phần còn lại của trần mới tốn điểm */
+  const conNgay = ts.tran_ngay + thuong - homNay, conTuan = ts.tran_tuan + thuong - tuanNay;
+  /** conPhut: phút còn chơi được hôm nay (≥ 0) theo cả hai trần — một chỗ tính cho app Ba Mẹ lẫn trang «Nhà» của Con */
+  return { thuong, conThuong, daChoi: homNay, conNgay, conTuan, conPhut: Math.max(0, Math.min(conNgay, conTuan)) };
+}
+
 /** Phút còn lại tới hết khung giờ chơi hiện tại (null = đang ngoài khung). */
 function conTrongKhung(lich: BoiCanh["lich"], thu: number, phut: number) {
   const ds: Khung[] = laCuoiTuan(thu) ? lich.cuoiTuan : lich.ngayThuong;
@@ -63,15 +76,11 @@ export async function xetMoPhien(con: string, mucTho: string, o: { gioMaySai?: b
   // máy dùng chung: một máy chỉ một phiên — bạn khác đang chơi trên máy này thì phải dừng / «Đổi người» trước
   if (o.mayId && (await t(`select 1 from play_sessions where device_id = $1 and child_id <> $2 and trang_thai in ('chay', 'tam') limit 1`, [o.mayId, con])).length)
     return { duoc: false, lyDo: "may_dang_choi" };
-  const thuong = await thuongHomNay(t, con, g.ngay);
-  const homNay = await daDungTu(t, con, dauNgayUtc(g.ngay, b.tz));
-  const conNgay = b.ts.tran_ngay + thuong - homNay;
+  const { conNgay, conTuan, conThuong } = await conTheoTran(t, con, b.ts, b.tz, now);
   if (conNgay <= 0) return { duoc: false, lyDo: "dat_tran_ngay" };
-  const conTuan = b.ts.tran_tuan + thuong - (await daDungTu(t, con, dauNgayUtc(dauTuan(g.ngay), b.tz)));
   if (conTuan <= 0) return { duoc: false, lyDo: "dat_tran_tuan" };
   const gia = giaPhut(b.ts, pl.nhom);
   const du = await soDu(con, t);
-  const conThuong = await conThuongHomNay(t, con, g.ngay, b.tz);
   const phutBangDiem = gia > 0 ? Math.floor((du * 1000) / gia) : 24 * 60;
   if (phutBangDiem + conThuong <= 0) return { duoc: false, lyDo: "het_diem", soDu: du };
   const phutToiDa = Math.max(1, Math.min(b.ts.phien_toi_da + conThuong, phutBangDiem + conThuong, conNgay, conTuan, conKhung));

@@ -4,6 +4,7 @@ import { one, q } from "./db.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { congNgay, dauNgayUtc, dauTuan, gioDiaPhuong } from "./gio.ts";
 import { tomTatVi } from "./vi.ts";
+import { conTheoTran } from "./phien.ts";
 
 const NHOM_NV_CHU: Record<string, string> = { doc_sach: "đọc sách", viec_nha: "việc nhà", hoc_tap: "học tập", van_dong: "vận động", ky_nang: "kỹ năng", khac: "việc khác" };
 
@@ -14,20 +15,22 @@ export async function homNay(fam: string, con: string, now = new Date()) {
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const tu = dauNgayUtc(ngay, f.tz);
   const ts = thamSo(f.cau_hinh, c.cau_hinh);
-  const [r0, tc, vi] = await Promise.all([one<{ choi: number; nv_cho: number; yc_cho: number; phieu_cho: number; xong: number }>(
-    `select coalesce((select sum(phut_dung) from play_sessions where child_id = $1 and bat_dau >= $2), 0)::int as choi,
-            (select count(*)::int from submissions where child_id = $1 and trang_thai = 'cho_duyet') as nv_cho,
+  const [r0, tc, vi, tran] = await Promise.all([one<{ nv_cho: number; yc_cho: number; phieu_cho: number; xong: number }>(
+    `select (select count(*)::int from submissions where child_id = $1 and trang_thai = 'cho_duyet') as nv_cho,
             (select count(*)::int from requests where child_id = $1 and trang_thai = 'cho' and het_han > now()) as yc_cho,
             (select count(*)::int from redemptions where child_id = $1 and trang_thai = 'giu') as phieu_cho,
             (select count(*)::int from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc >= $2) as xong`, [con, tu]),
     q<{ ten: string }>(
     `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
-     order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con)]);
+     order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
-  return { ...vi, phutChoi: r.choi, tranNgay: ts.tran_ngay, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
+  const conPhut = tran.conPhut;
+  return { ...vi, phutChoi: tran.daChoi, tranNgay: ts.tran_ngay,
+    /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ) — như conNgay/conTuan của xetMoPhien */ conPhut, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
     homNayConDa: tichCuc,
-    /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút) */
-    phutDoiDuoc: Math.max(0, Math.floor((vi.soDu * 1000) / Math.max(1, ts.gia_game))) };
+    /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút), không quá phần trần còn lại
+     *  SAU phút thêm giờ chưa dùng (phiên tiêu thêm giờ trước, như xetMoPhien) */
+    phutDoiDuoc: Math.max(0, Math.min(Math.floor((vi.soDu * 1000) / ts.gia_game), conPhut - tran.conThuong)) };
 }
 
 async function tuan(con: string, tz: string, dau: string) {

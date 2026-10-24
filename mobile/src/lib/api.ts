@@ -63,7 +63,8 @@ export const goi = bm.goi;
 export type NhomCon = "nhi" | "teen";
 export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number };
   phutChoi: number; tranNgay: number; nhiemVuCho: number; yeuCauCho: number; phieuCho?: number; nhiemVuXong: number; homNayConDa: string[];
-  /** «≈ X phút chơi»: số dư đổi được bao nhiêu phút trò chơi (máy chủ tính theo giá của nhà); máy chủ cũ không gửi */ phutDoiDuoc?: number };
+  /** «≈ X phút chơi»: số dư đổi được bao nhiêu phút trò chơi (giá của nhà, không quá phần trần ngày/tuần còn lại); máy chủ cũ không gửi */ phutDoiDuoc?: number;
+  /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ); máy chủ cũ không gửi */ conPhut?: number };
 export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon };
 export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[] };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
@@ -72,7 +73,7 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
   baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
-export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa" | "phutDoiDuoc"> & {
+export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa" | "phutDoiDuoc" | "conPhut"> & {
   id: string; ten: string; namSinh: number | null; avatar: string; nhom: NhomCon; khoaNgay: boolean; /** hạn khoá (ISO); null = khoá tới khi Ba Mẹ mở */ khoaDen?: string | null;
   /** Ba Mẹ duyệt thêm giờ lúc đang khoá ⇒ máy mở tạm tới giờ này (ISO) rồi khoá lại; null = không mở tạm */ moTamDen?: string | null; lich: Lich; thamSo: Record<string, number>; may: MayCon[];
 };

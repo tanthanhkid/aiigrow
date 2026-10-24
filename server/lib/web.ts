@@ -5,9 +5,9 @@
 // Kho luật là app_rules sẵn có (muc = tên miền): Cho phép = loai «hoc», Chặn = «chan», «Giải trí» = giai_tri (mở khi có phiên điểm đúng trang).
 // Chỉ lưu TÊN MIỀN GỐC (bỏ www) + đếm — không URL, không tiêu đề, không nội dung (đúng cam kết riêng tư của nhật ký DNS).
 import { coTacTu } from "./chuyen-doi.ts";
-import { q } from "./db.ts";
+import { q, tx } from "./db.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, phanLoai } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, datLuat, phanLoai, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { cheDoCua } from "./lenh-may.ts";
@@ -109,7 +109,7 @@ export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; 
   if (!muc) throw new LoiNghiepVu("ten_mien_sai", "Nhập tên miền dạng ten.com (không cần https://)");
   const tt = String(b.trangThai ?? "");
   if (tt === "mac_dinh") {
-    await q(`delete from app_rules where family_id = $1 and child_id = $2 and muc = $3`, [fam, con, muc]);
+    await tx((t) => xoaLuat(fam, { con, muc }, t));   // khoá (nhà, Con, mục) như mọi đường ghi luật
     return { muc, trangThai: "mac_dinh" as const };
   }
   if (tt !== "cho_phep" && tt !== "chan") throw new LoiNghiepVu("trang_thai_sai", "Chọn Cho phép, Chặn hoặc Mặc định");
