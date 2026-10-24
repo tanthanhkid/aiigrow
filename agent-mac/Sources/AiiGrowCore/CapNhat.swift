@@ -120,15 +120,6 @@ public struct DauDaThu: Codable, Equatable {
   public init(version: String, sha256: String, luc: Double, lan: Int = 1, daGiao: Bool = true) {
     self.version = version; self.sha256 = sha256; self.luc = luc; self.lan = lan; self.daGiao = daGiao
   }
-  /// Dấu do bản 0.1.1 sớm ghi (chưa có `lan`) vẫn đọc được — coi như đã thử 1 lần.
-  public init(from decoder: Decoder) throws {
-    let c = try decoder.container(keyedBy: CodingKeys.self)
-    version = try c.decode(String.self, forKey: .version)
-    sha256 = try c.decode(String.self, forKey: .sha256)
-    luc = try c.decode(Double.self, forKey: .luc)
-    lan = try c.decodeIfPresent(Int.self, forKey: .lan) ?? 1
-    daGiao = try c.decodeIfPresent(Bool.self, forKey: .daGiao) ?? true
-  }
 }
 
 /// Câu trạng thái cập nhật để tray hiện — daemon ghi, BoMay đọc đồng bộ (không cần await vào actor).
@@ -409,11 +400,13 @@ public actor BoCapNhat {
     guard ghiDau() else { bo("không ghi được dấu đã thử nên không cài", chu: "lỗi ghi đĩa"); return }
     do {
       try await chayNgoaiActor({ Result { try ht.caiGoi(tep) } }).get()
-      // Gỡ (go-cai.sh / gỡ từ xa) xen vào đúng giữa lần kiểm cuối và submit: dừng job ngay, postinstall không được nạp lại máy vừa gỡ.
+      // Gỡ (go-cai.sh / gỡ từ xa) xen vào đúng giữa lần kiểm cuối và submit: KHÔNG `launchctl remove` job (có thể giết installer đang chạy ⇒
+      // cài nửa chừng). Thứ tự an toàn nằm trong job (lenhJobCai): ghi PID rồi mới kiểm dấu gỡ, ngay trước installer — thấy dấu thì không cài;
+      // dấu đến sau lần kiểm đó thì installer chạy trọn và postinstall (dấu gỡ + PID job còn sống) dọn, không nạp lại. Gói để job tự xoá.
       if heThong.docTep(DuongDan.daGo) != nil {
-        await chayNgoaiActor({ ht.dungCai() })
-        traDau()                                    // installer không chạy ⇒ không tính lượt
-        bo("máy bị gỡ ngay lúc giao installer — đã dừng lượt cài", chu: "máy đang được gỡ"); return
+        traDau()                                    // máy đang gỡ: lượt này không tính
+        heThong.ghiLog("Cập nhật: máy bị gỡ ngay lúc giao installer — job cài tự bỏ (hoặc postinstall dọn nếu installer đã chạy).")
+        so.dat("Chưa cập nhật bản \(m.version): máy đang được gỡ.", luc: dongHo()); return
       }
       so.dat("Đã tải bản \(m.version), đang cài…", luc: dongHo())
       heThong.ghiLog("Cập nhật: đã giao `installer` cho launchd (\(LuatCapNhat.nhanCai)) — daemon sẽ được nạp lại ở bản \(m.version).")

@@ -396,15 +396,16 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 4, "sau khi hết lượt, định kỳ không thử lại trước 24 giờ")
   }
 
-  func testDauDaThuCuThieuLanVanDoc() async throws {
-    // dấu do bản 0.1.1 sớm ghi (không có «lan») vẫn phải chặn cài lại ngay
-    let cu = #"{"version":"0.1.2","sha256":"\#(sha256Hex(noiDung))","luc":\#(gio.timeIntervalSince1970)}"#
-    let d = try JSONDecoder().decode(DauDaThu.self, from: Data(cu.utf8))
-    XCTAssertEqual(d.lan, 1)
+  func testDauDaThuDinhDang011VanDoc() async throws {
+    // đúng định dạng bản 0.1.1 đã phát hành ghi (đủ cả lan + daGiao) ⇒ vẫn chặn cài lại ngay
+    let cu = #"{"version":"0.1.2","sha256":"\#(sha256Hex(noiDung))","luc":\#(gio.timeIntervalSince1970),"lan":1,"daGiao":true}"#
+    XCTAssertEqual(try JSONDecoder().decode(DauDaThu.self, from: Data(cu.utf8)).lan, 1)
+    let ghi = String(decoding: try JSONEncoder().encode(DauDaThu(version: "0.1.2", sha256: "a", luc: 1)), as: UTF8.self)
+    XCTAssertTrue(ghi.contains("\"lan\"") && ghi.contains("\"daGiao\""), ghi)
     datMayChu()
     fake.tep["/gia/da-thu.json"] = Data(cu.utf8)
     _ = await chay(boCapNhat())
-    XCTAssertEqual(fake.daCaiGoi.count, 0, "dấu cũ không có lan vẫn được tôn trọng")
+    XCTAssertEqual(fake.daCaiGoi.count, 0)
   }
 
   func testGiaoInstallerLoiKhongTinhLanThu() async {
@@ -441,12 +442,15 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNil(boCapNhat().so.chu, "dấu của bản cũ hơn ⇒ không báo")
   }
 
-  func testBiGoDungLucGiaoInstallerThiDungJobCai() async {
+  /// Gỡ xen giữa lần kiểm cuối và submit: daemon KHÔNG giết job (installer có thể đang chạy ⇒ cài nửa chừng), không xoá gói job đang đọc.
+  func testBiGoDungLucGiaoInstallerKhongGietJobCai() async {
     datMayChu()
     let f = fake!; f.sauCaiGoi = { f.tep[DuongDan.daGo] = Data("da-go".utf8) }     // go-cai.sh ghi dấu ngay sau lần kiểm cuối
     _ = await chay(boCapNhat())
-    XCTAssertEqual(fake.daDungCai, 1, "job cài vừa submit phải bị dừng")
-    XCTAssertTrue(fake.log.contains { $0.contains("đã dừng lượt cài") })
+    XCTAssertEqual(fake.daCaiGoi.count, 1)
+    XCTAssertFalse(fake.daXoa.contains { $0.hasSuffix("AiiGrow-0.1.2.pkg") }, "gói để job tự xoá")
+    XCTAssertNil(fake.tep["/gia/da-thu.json"], "máy đang gỡ ⇒ lượt không tính")
+    XCTAssertTrue(fake.log.contains { $0.contains("job cài tự bỏ") })
   }
 
   func testLenhJobCaiDungCuPhapVaChongChayLai() throws {
@@ -461,20 +465,20 @@ final class CapNhatTests: XCTestCase {
   }
 
   /// Chạy lệnh job cài thật bằng sh, thay launchctl / installer / pkgutil bằng script giả ghi nhật ký.
-  private func chayJobCai(installerMa: Int, daGo: Bool, dauCu: Bool, coGoi: Bool = true) throws -> (log: String, ma: Int32) {
+  private func chayJobCai(installerMa: Int, daGo: Bool, dauCu: Bool, coGoi: Bool = true, goKhiCai: Bool = false) throws -> (log: String, ma: Int32) {
     let fm = FileManager.default
     let g = NSTemporaryDirectory() + "job-\(UUID().uuidString)"
     try fm.createDirectory(atPath: g, withIntermediateDirectories: true)
     defer { try? fm.removeItem(atPath: g) }
     let nk = g + "/nk.log"
-    func gia(_ ten: String, _ ma: Int) throws -> String {
+    func gia(_ ten: String, _ ma: Int, them: String = "") throws -> String {
       let f = g + "/" + ten
-      try "#!/bin/sh\necho \"\(ten) $*\" >> '\(nk)'\nexit \(ma)\n".write(toFile: f, atomically: true, encoding: .utf8)
+      try "#!/bin/sh\necho \"\(ten) $*\" >> '\(nk)'\n\(them)exit \(ma)\n".write(toFile: f, atomically: true, encoding: .utf8)
       chmod(f, 0o755); return f
     }
     let lenh = HeThongMac.lenhJobCai
       .replacingOccurrences(of: "/bin/launchctl", with: try gia("launchctl", 0))
-      .replacingOccurrences(of: "/usr/sbin/installer", with: try gia("installer", installerMa))
+      .replacingOccurrences(of: "/usr/sbin/installer", with: try gia("installer", installerMa, them: goKhiCai ? "echo da-go > '\(g)/da-go'\n" : ""))
       .replacingOccurrences(of: "/usr/sbin/pkgutil", with: try gia("pkgutil", 0))
     let goi = g + "/a.pkg", dau = g + "/pid", daGoTep = g + "/da-go", daemon = g + "/daemon.plist", tray = g + "/tray.plist"
     for f in [goi, daemon, tray] { try "x".write(toFile: f, atomically: true, encoding: .utf8) }
@@ -502,9 +506,16 @@ final class CapNhatTests: XCTestCase {
     let b = try chayJobCai(installerMa: 0, daGo: false, dauCu: false)
     XCTAssertFalse(b.log.contains("bootstrap"), "cài xong: postinstall lo, job không nạp lại")
     XCTAssertFalse(b.log.contains("pkgutil"))
-    let c = try chayJobCai(installerMa: 1, daGo: true, dauCu: false)
-    XCTAssertFalse(c.log.contains("bootstrap"), "máy vừa bị gỡ: không nạp lại")
-    XCTAssertTrue(c.log.contains("pkgutil --forget vn.aiilab.aiigrow.pkg"))
+    // gỡ đến TRƯỚC installer (daemon thấy dấu ngay sau submit): job không cài, không nạp lại, tự gỡ nhãn — không ai phải giết job
+    let c = try chayJobCai(installerMa: 0, daGo: true, dauCu: false)
+    XCTAssertFalse(c.log.contains("installer"), c.log)
+    XCTAssertFalse(c.log.contains("bootstrap"), c.log)
+    XCTAssertTrue(c.log.contains("launchctl remove \(LuatCapNhat.nhanCai)"), c.log)
+    XCTAssertEqual(c.ma, 0)
+    // gỡ đến giữa lúc installer chạy: cài trọn, không nạp lại, quên biên nhận (postinstall đã dọn)
+    let c2 = try chayJobCai(installerMa: 1, daGo: false, dauCu: false, goKhiCai: true)
+    XCTAssertFalse(c2.log.contains("bootstrap"), "máy vừa bị gỡ: không nạp lại")
+    XCTAssertTrue(c2.log.contains("pkgutil --forget vn.aiilab.aiigrow.pkg"))
     let d = try chayJobCai(installerMa: 0, daGo: false, dauCu: true)
     XCTAssertFalse(d.log.contains("installer"), "job bị launchd chạy lại: không cài lại")
     XCTAssertTrue(d.log.contains("launchctl bootstrap system"), d.log)
@@ -716,7 +727,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(try IPCMa.decoder.decode(TraLoi.self, from: t), .thongBao(chu: "x"))
   }
 
-  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.1") }
+  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.2") }
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
@@ -774,19 +785,18 @@ final class CapNhatTests: XCTestCase {
     XCTAssertTrue(s.contains("{ echo $$; LC_ALL=C /bin/ps -p $$ -o lstart=; } > \"$GO_PID\""))
   }
 
-  /// go-cai.sh đã phải dừng job cập nhật giữa chừng ⇒ giữ dấu «dung-cap-nhat»: installd cài nốt gói (đường $1 lạ) không nạp lại máy vừa gỡ.
-  func testPostinstallSauKhiGoCaiDungCapNhat() throws {
-    let s0 = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
-    let a = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: "dung-cap-nhat\n", dongLenh: true)
-    XCTAssertFalse(a.bootstrapDaemon); XCTAssertFalse(a.appConLai); XCTAssertTrue(a.quenBienNhan)
-    XCTAssertFalse(a.daGoConLai, "dấu dùng một lần")
-    let b = try chayPostinstall(daGo: true, pidDau: nil, coConfig: true, dauGo: "dung-cap-nhat\n", dongLenh: true)
-    XCTAssertTrue(b.bootstrapDaemon, "còn cấu hình ⇒ không phải máy vừa gỡ")
-    let c = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: "dung-cap-nhat\n")
-    XCTAssertTrue(c.bootstrapDaemon, "Ba Mẹ cài tay bằng Installer.app (không COMMAND_LINE_INSTALL) ngay sau khi gỡ ⇒ cài bình thường")
-    XCTAssertTrue(s0.contains("if \"$LC\" list vn.aiilab.aiigrow.capnhat 2>/dev/null | /usr/bin/grep -q '\"PID\"'; then DUNG_CAP_NHAT=1; fi"), "job nộp sau vòng chờ cũng tính")
+  /// Ba Mẹ cài lại bằng `installer` dòng lệnh ngay sau một lượt gỡ phải dừng cập nhật (máy không còn config.json, dấu còn mới): cài bình thường.
+  /// Gói tự cập nhật mà installd cài nốt thì nằm trong cap-nhat ⇒ vẫn bị dọn.
+  func testCaiTayDongLenhSauGoDungCapNhatKhongBiDon() throws {
+    for dau in ["dung-cap-nhat\n", "da-go\n"] {
+      let a = try chayPostinstall(daGo: true, pidDau: nil, coConfig: false, dauGo: dau, dongLenh: true)
+      XCTAssertTrue(a.bootstrapDaemon, "cài tay (\(dau)) không bị dọn"); XCTAssertTrue(a.appConLai); XCTAssertFalse(a.daGoConLai)
+      XCTAssertFalse(a.quenBienNhan)
+      let b = try chayPostinstall(daGo: true, pidDau: nil, goiTuDong: true, coConfig: false, dauGo: dau, dongLenh: true)
+      XCTAssertFalse(b.bootstrapDaemon, "installd cài nốt gói cap-nhat ⇒ dọn"); XCTAssertFalse(b.appConLai); XCTAssertTrue(b.quenBienNhan)
+    }
     let s = try String(contentsOfFile: BaoMatTests.goiDir + "/go-cai.sh", encoding: .utf8)
-    XCTAssertTrue(s.contains("echo \"dung-cap-nhat\" > \"$DA_GO\""))
+    XCTAssertFalse(s.contains("dung-cap-nhat"), "go-cai.sh không để dấu nào quyết định lần cài sau")
   }
 
   func testPostinstallPhanNhanhDaGo() throws {

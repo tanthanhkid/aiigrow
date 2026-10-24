@@ -3,6 +3,8 @@ import Foundation
 @testable import AiiGrowCore
 
 /// Biến dùng chung giữa luồng test, actor và hàng đợi GCD (chayNgoaiActor): mỗi lần đọc/ghi qua khoá — không đọc/ghi đồng thời một Dictionary/Array.
+/// Sửa tại chỗ (`tep[k] = v`, `.append`, `+= 1`) đi qua `_modify` giữ khoá TRỌN lượt đọc-sửa-ghi: chỉ get/set thì hai luồng cùng sửa sẽ
+/// mất một bản cập nhật (đọc bản cũ, ghi đè lên nhau). Trong lượt sửa không được đọc lại chính biến đó (khoá không đệ quy).
 @propertyWrapper final class Khoa<T> {
   private var v: T
   private let k = NSLock()
@@ -10,12 +12,13 @@ import Foundation
   var wrappedValue: T {
     get { k.lock(); defer { k.unlock() }; return v }
     set { k.lock(); v = newValue; k.unlock() }
+    _modify { k.lock(); defer { k.unlock() }; yield &v }
   }
 }
 
 final class HeThongGia: HeThong, @unchecked Sendable {
-  var tienTrinhTheoUid: [UInt32: [TienTrinh]] = [:]
-  var conSongPid: Set<Int32> = []
+  @Khoa var tienTrinhTheoUid: [UInt32: [TienTrinh]] = [:]
+  @Khoa var conSongPid: Set<Int32> = []
   @Khoa var tep: [String: Data] = [:]
   @Khoa var uidTheoTen: [String: UInt32] = [:]
   @Khoa var admin: Set<String> = []
@@ -24,10 +27,10 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   var tienCanhThat: String?                 // app tiền cảnh THẬT của phiên Con (daemon tự kiểm)
 
   // ghi lại tác động
-  var tinHieuDaGui: [(Int32, Int32)] = []
-  var daXoaDNS = 0
-  var daHaQuyen: [String] = []
-  var daDongPhien: [UInt32] = []
+  @Khoa var tinHieuDaGui: [(Int32, Int32)] = []
+  @Khoa var daXoaDNS = 0
+  @Khoa var daHaQuyen: [String] = []
+  @Khoa var daDongPhien: [UInt32] = []
   @Khoa var log: [String] = []
 
   func tienTrinh(cuaUid uid: UInt32) -> [TienTrinh] { tienTrinhTheoUid[uid] ?? [] }
@@ -40,8 +43,8 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func phienConsole() -> PhienConsole? { phien }
   func tenMay() -> String { ten }
   func appTienCanh(cuaUid uid: UInt32) -> String? { soLanKiemTienCanh += 1; return tienCanhThat }
-  var soLanKiemTienCanh = 0
-  var soLanChayTrinhGo = 0
+  @Khoa var soLanKiemTienCanh = 0
+  @Khoa var soLanChayTrinhGo = 0
   var loiHaQuyen: Error?
   func chayTrinhGo() { soLanChayTrinhGo += 1 }
   @Khoa var goDangChay = false
@@ -76,8 +79,6 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   func kiemSpctlGoi(_ duongDan: String) -> (Int32, String) { spctlRa }
   func caiGoi(_ duongDan: String) throws { if let e = loiCaiGoi { throw e }; daCaiGoi.append(duongDan); sauCaiGoi?() }
   var sauCaiGoi: (() -> Void)?
-  @Khoa var daDungCai = 0
-  func dungCai() { daDungCai += 1 }
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
