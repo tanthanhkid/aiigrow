@@ -25,7 +25,9 @@ export const DO = String.raw`(() => {
   const dongCua = node => { const rg = document.createRange(); rg.selectNodeContents(node); return [...rg.getClientRects()].filter(r => r.width>1); };
   const tn = []; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   while (w.nextNode()) { const n = w.currentNode; if (n.textContent.trim().length && n.parentElement && hien(n.parentElement) && !n.parentElement.closest('script,style,[aria-hidden=true]')) tn.push(n); }
-  const anhs = [...document.querySelectorAll('img,svg,video,canvas')].filter(hien).filter(a => { const r=a.getBoundingClientRect(); return r.width*r.height > 900; });
+  const anhs = [...document.querySelectorAll('img,svg,video,canvas')].filter(hien).filter(a => { const r=a.getBoundingClientRect(); return r.width*r.height > 900; })
+    // Đang mở hộp thoại (Modal RN-web = aria-modal): nội dung phía sau bị phủ, không ai đọc chữ đè lên nó ⇒ chỉ xét ảnh trong hộp thoại trên cùng.
+    .filter((a) => { const hop = [...document.querySelectorAll('[aria-modal=true]')].filter(hien).pop(); return !hop || hop.contains(a); });
   // Ảnh NỔI (nút trợ giúp góc màn): có tổ tiên absolute/fixed và không nằm trong vùng cuộn. Nội dung cuộn dưới nó lộ ra được khi cuộn
   // (WCAG 2.4.11 / F104 xét nội dung KHÔNG lộ ra được) ⇒ chỉ xét ở lượt đã cuộn hết (window.__gdCuoi), khi chữ cuối phải nằm ngoài nó.
   const noi = a => { let abs = false; for (let e = a; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e);
