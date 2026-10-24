@@ -10,8 +10,10 @@ internal sealed class FakeHiveHost : IWebHiveHost
     public readonly Dictionary<string, FakeWebRegistry> Hive = new(StringComparer.OrdinalIgnoreCase);
     public readonly HashSet<string> CoHoSo = new(StringComparer.OrdinalIgnoreCase);
     public IWebPolicyRegistry May => Hklm;
+    public int SoLanVoi;
     public bool VoiHive(string sid, Action<IWebPolicyRegistry> fn)
     {
+        SoLanVoi++;
         if (NemLoi.Contains(sid)) throw new UnauthorizedAccessException("Access to the registry key is denied.");
         if (!CoHoSo.Contains(sid)) return false;
         if (!Hive.TryGetValue(sid, out var r)) Hive[sid] = r = new FakeWebRegistry();
@@ -153,8 +155,30 @@ public class WebHiveTests
         var w3 = new WebPolicyHives(h);
         Assert.True(w3.Ap(Luat("a.com"), null, new[] { BaMe }, T0.AddMinutes(2)).DaDoi);
         Assert.False(h.Hive[Con].Ds.ContainsKey(Chrome + @"\URLBlocklist"));
-        Assert.False(h.DaLuu.ContainsKey(Con));
+        Assert.False(h.DaLuu.ContainsKey(Con));   // không còn là Con ⇒ thôi nhớ
     }
+
+    [Fact]
+    public void GiamSat_KhoiDongLai_KhongNapLaiHiveConChiDeGoThuKhongCo()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con); h.ChuaNap.Add(Con);
+        new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0);
+        Assert.Equal(1, h.SoLanVoi);
+        Assert.StartsWith("go:", h.DaLuu[Con]);
+        // dịch vụ khởi động lại, vẫn Giám sát ⇒ không nạp tạm NTUSER.DAT của Con (Con gõ mật khẩu đúng lúc đó sẽ vào hồ sơ tạm)
+        new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0.AddMinutes(1));
+        Assert.Equal(1, h.SoLanVoi);
+        // chuyển Chặn thật ⇒ ghi ngay
+        Assert.True(new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0.AddMinutes(2)).DaDoi);
+        Assert.Equal(new[] { "a.com" }, h.Hive[Con].Ds[Chrome + @"\URLBlocklist"]);
+    }
+
+    [Theory]
+    [InlineData("AiiGrowTmp_S-1-5-21-1-2-3-1001", true)]
+    [InlineData("AiiGrowGo_S-1-5-21-1-2-3-1001", true)]
+    [InlineData("S-1-5-21-1-2-3-1001", false)]
+    [InlineData(".DEFAULT", false)]
+    public void HiveTam_NhanCaHaiTienTo(string ten, bool tam) => Assert.Equal(tam, WindowsWebHiveHost.LaHiveTam(ten));
 
     [Theory]
     [InlineData("S-1-5-21-1-2-3-1001", true)]
@@ -252,20 +276,11 @@ public class WebHiveTests
     [Fact]
     public void AppLockerKhaDung_Chot_KhongThayCmdletTrenProChuaKetLuanNgay()
     {
-        Assert.Equal((false, true), AppLockerKhaDung.Chot("Core", null, 0));
-        Assert.Equal((true, true), AppLockerKhaDung.Chot("Professional", true, 0));
-        Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", null, 0));
-        Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", false, 1));   // một lần «không» có thể do module nạp lỗi
-        Assert.Equal((false, false), AppLockerKhaDung.Chot("Professional", false, AppLockerKhaDung.SoLanKhongChac));   // không chốt suốt đời trên Pro
-    }
-
-    [Fact]
-    public void AppLockerKhaDung_TinhTheoEditionVaCmdlet()
-    {
-        Assert.True(AppLockerKhaDung.Tinh("Professional", true));
-        Assert.True(AppLockerKhaDung.Tinh("Professional", null));
-        Assert.False(AppLockerKhaDung.Tinh("Professional", false));
-        Assert.False(AppLockerKhaDung.Tinh("Core", true));
+        Assert.Equal((false, true), AppLockerKhaDung.Chot("Core", null));
+        Assert.Equal((false, true), AppLockerKhaDung.Chot("CoreSingleLanguage", true));
+        Assert.Equal((true, true), AppLockerKhaDung.Chot("Professional", true));
+        Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", null));
+        Assert.Equal((true, false), AppLockerKhaDung.Chot("Professional", false));   // Pro không thấy cmdlet: KHÔNG gắn «Win Home», vẫn gỡ được luật đã áp
     }
 
     [Fact]

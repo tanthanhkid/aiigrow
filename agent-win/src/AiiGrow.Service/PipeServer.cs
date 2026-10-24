@@ -131,15 +131,15 @@ public sealed class PipeServer : BackgroundService
                 var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId!.Trim() : choices.FirstOrDefault() ?? "";
                 if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
                 if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };
-                // nhớ 60 giây: app mở thì khay hỏi mỗi phút — không dồn phien/xet lên máy chủ
+                // nhớ: «được» 60 giây, «từ chối» 15 giây (hết điểm thì mỗi lần mở hộp / làm mới không bắn thêm phien/xet; Ba Mẹ thêm điểm thì hiện sau ≤15 giây)
                 lock (_playInfoNho)
-                    if (_playInfoNho.TryGetValue(muc, out var nho) && now - nho.Luc < TimeSpan.FromSeconds(60)) return nho.Tra;
+                    if (_playInfoNho.TryGetValue(muc, out var nho) && now - nho.Luc < (nho.Tra.Status == "duoc" ? TimeSpan.FromSeconds(60) : TimeSpan.FromSeconds(15))) return nho.Tra;
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var xet = await api.CheckPlayAsync(muc, ct);
                     var tra = new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutHienThi : 0 };
-                    if (xet.Duoc) lock (_playInfoNho) _playInfoNho[muc] = (now, tra);   // KHÔNG nhớ lời từ chối: Ba Mẹ thêm giờ / điểm thì hiện ngay
+                    lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
                     return tra;
                 }
                 catch (Exception e) when (e is not OperationCanceledException) { return new PipeResponse { Ok = false, Error = e.Message }; }   // cả lỗi đọc JSON (phutToiDa lẻ…)

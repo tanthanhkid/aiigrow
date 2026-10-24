@@ -72,12 +72,14 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>Lần đầu biết đây là phiên của Con (hoặc dịch vụ không chạy ⇒ Con cần thấy lỗi): hiện biểu tượng + lời chào.</summary>
+    private bool _daLoiChao;      // lời chào + «đã cập nhật» chỉ khi dịch vụ đã trả lời — hiện biểu tượng sớm (dịch vụ chưa lên) không được nuốt lời chào
+
     private void Chao(bool coLoiChao)
     {
-        if (_daChao) return;
         _daChao = true;
-        _ni.Visible = true;
-        if (!coLoiChao) return;
+        if (!_ni.Visible) _ni.Visible = true;
+        if (!coLoiChao || _daLoiChao) return;
+        _daLoiChao = true;
         Toast(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Nhấn đúp vào biểu tượng AiiGrow để xem giờ, nhận nhiệm vụ và xem phần quà.", ToolTipIcon.Info, MucApp.HomNay);
         BaoCapNhat.NeuVuaCapNhat(_ni);   // #33: «đã cập nhật lên bản X» (một lần mỗi tài khoản)
     }

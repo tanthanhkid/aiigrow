@@ -123,8 +123,9 @@ public static class WebPolicyKeys
             cho.AddRange(new[] { "chrome://*", "edge://*", "brave://*", "coccoc://*" });
             if (WebPolicy.Sach(maychuHost) is { } h) cho.Add(h);
         }
-        // «*» (chặn mọi trang) CHỈ thuộc chế độ «chỉ cho phép» do Ba Mẹ bật; chế độ «mở» chỉ chặn đúng các tên miền trong danh sách (Sach đã loại «*»).
-        chan.AddRange(p.Chan.Where(x => p.CheDo == WebPolicy.ChiChoPhep || (x != "*" && x.Contains('.'))));
+        // «*» (chặn mọi trang) CHỈ thuộc chế độ «chỉ cho phép»; p.Chan đã qua WebPolicy.Sach (loại «*» và mục không có dấu chấm). Lỗi «chặn mọi trang»
+        // ở tài khoản Ba Mẹ (#68 S1) là do luật ghi vào HKLM — đã sửa bằng ghi theo hive Con (WebHives.cs), không phải ở đây.
+        chan.AddRange(p.Chan);
         cho.AddRange(p.Cho);
         return (chan.Distinct().Take(TranMuc).ToList(), cho.Distinct().Take(TranMuc).ToList());
     }
@@ -361,6 +362,8 @@ public static class WebGuard
             "  foreach($b in $wb){ $k=\"$g\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
             "}",
             "Go-Web 'HKLM:'",
+            // hive tạm còn kẹt (dịch vụ AiiGrowTmp_ / lần chạy trước AiiGrowGo_) ⇒ gỡ nạp trước: kẹt thì tài khoản đó đăng nhập vào hồ sơ tạm
+            "foreach($t in @(Get-ChildItem -LiteralPath 'Registry::HKEY_USERS' -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'AiiGrowTmp_*' -or $_ -like 'AiiGrowGo_*' })){ [gc]::Collect(); reg.exe unload \"HKU\\$t\" 2>$null | Out-Null }",
             // 0.2.6: luật web nằm trong hive từng tài khoản (HKU\\<SID>) — duyệt mọi hồ sơ (đang nạp, hoặc nạp tạm NTUSER.DAT), gỡ cùng các giá trị trên
             "$pl='HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList'",
             "foreach($s in @(Get-ChildItem -LiteralPath $pl -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName } | Where-Object { $_ -like 'S-1-5-21-*' -or $_ -like 'S-1-12-1-*' })){",

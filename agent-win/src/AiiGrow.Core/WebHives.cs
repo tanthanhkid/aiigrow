@@ -60,6 +60,8 @@ public sealed class WebPolicyHives
             {
                 if (sid == MocHklm) { _hklmDaGo = true; continue; }   // đã gỡ HKLM bản cũ ở lần chạy trước ⇒ không đụng HKLM nữa (cờ IT đặt được giữ nguyên)
                 if (!AppLockerXml.IsValidSid(sid)) continue;
+                // «go:» = hive đã kiểm và SẠCH (Giám sát) ⇒ khởi động lại không nạp tạm NTUSER.DAT của Con chỉ để gỡ thứ không có (review #75)
+                if (vt.StartsWith(TienToSach, StringComparison.Ordinal)) { _daAp[sid] = (vt.Substring(TienToSach.Length), DateTimeOffset.MinValue); continue; }
                 _daAp[sid] = (vt, DateTimeOffset.MinValue);   // quá hạn ⇒ hive đang nạp được ghi lại một lần, KHÔNG báo «đổi» nếu luật không đổi
                 _daGhiCho.Add(sid);
             }
@@ -71,9 +73,11 @@ public sealed class WebPolicyHives
     /// <summary>Dòng đánh dấu «đã gỡ luật HKLM bản cũ» trong tệp lưu — gỡ MỘT lần cho cả đời máy, không mỗi lần dịch vụ khởi động (review #75).</summary>
     public const string MocHklm = "HKLM";
 
+    private const string TienToSach = "go:";
+
     private Dictionary<string, string> DsLuu()
     {
-        var ds = _daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase);
+        var ds = _daAp.ToDictionary(x => x.Key, x => (_daGhiCho.Contains(x.Key) ? "" : TienToSach) + x.Value.VanTay, StringComparer.OrdinalIgnoreCase);
         if (_hklmDaGo) ds[MocHklm] = "da-go";
         return ds;
     }
@@ -125,6 +129,9 @@ public sealed class WebPolicyHives
             // khay của Con chỉ cần biết khi đổi cho tài khoản Con HIỆN TẠI — gỡ ở hive tài khoản cũ không bắn «Luật web vừa đổi» (review #75)
             if (doiLanNay && sids.Contains(sid, StringComparer.OrdinalIgnoreCase)) doiCon = true;
         }
+        // hive SẠCH của tài khoản không còn là Con ⇒ thôi nhớ (tệp lưu không phình theo tài khoản cũ)
+        if (childSids != null)
+            foreach (var cu in _daAp.Keys.Where(x => !_daGhiCho.Contains(x) && !sids.Contains(x, StringComparer.OrdinalIgnoreCase)).ToList()) _daAp.Remove(cu);
         var luu = ChuoiLuu();
         if (luu != _daLuu)
         {
@@ -232,13 +239,18 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         File.Move(tam, TepDaGhi, true);
     }
 
-    /// <summary>Gỡ nạp mọi hive còn kẹt ở tên tạm AiiGrowTmp_* (gọi cuối luồng gỡ: sau đó không còn dịch vụ nào gỡ hộ — kẹt thì tài khoản đó vào hồ sơ tạm).</summary>
+    /// <summary>THUẦN: tên hive tạm của AiiGrow — AiiGrowTmp_ (dịch vụ) và AiiGrowGo_ (kịch bản dọn PowerShell).</summary>
+    public static bool LaHiveTam(string ten) =>
+        ten.StartsWith("AiiGrowTmp_", StringComparison.OrdinalIgnoreCase) || ten.StartsWith("AiiGrowGo_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Gỡ nạp mọi hive còn kẹt ở tên tạm (gọi cuối luồng gỡ: sau đó không còn dịch vụ nào gỡ hộ — kẹt thì tài khoản đó vào hồ sơ tạm).</summary>
     public static void GoNapKet()
     {
+        lock (KhoaNap)
         try
         {
             using var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64);
-            foreach (var ten in users.GetSubKeyNames().Where(n => n.StartsWith("AiiGrowTmp_", StringComparison.OrdinalIgnoreCase)))
+            foreach (var ten in users.GetSubKeyNames().Where(LaHiveTam))
             {
                 BatQuyen();
                 for (int i = 0; i < 10; i++)
@@ -262,7 +274,16 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         return k != null;
     }
 
+    /// <summary>Một khoá cho mọi lần nạp / gỡ nạp hive tạm trong tiến trình (WebGuardWorker và luồng gỡ từ xa dùng chung tên AiiGrowTmp_&lt;SID&gt;):
+    /// không để luồng này gỡ nạp hive luồng kia đang ghi dở (review #75).</summary>
+    private static readonly object KhoaNap = new();
+
     public bool VoiHive(string sid, Action<IWebPolicyRegistry> fn)
+    {
+        lock (KhoaNap) return VoiHiveKhongKhoa(sid, fn);
+    }
+
+    private static bool VoiHiveKhongKhoa(string sid, Action<IWebPolicyRegistry> fn)
     {
         if (!AppLockerXml.IsValidSid(sid)) return false;
         using (var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))

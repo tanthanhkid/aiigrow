@@ -282,6 +282,8 @@ public static partial class SystemCleanup
             "function Remove-AiiAppLocker {",
             "  $ErrorActionPreference='Stop'",
             "  try {",
+            // Win Home: không có AppLocker ⇒ không thể còn luật của mình (không thì tác vụ không bao giờ tự huỷ, nạp hive mọi hồ sơ mỗi lần khởi động — review #75)
+            "    if (-not (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) -and (Get-ItemProperty -LiteralPath 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion').EditionID -like 'Core*') { return $true }",
             "    [xml]$p = Get-AppLockerPolicy -Local -Xml -ErrorAction Stop",
             "    if ($null -eq $p -or $null -eq $p.DocumentElement -or $p.DocumentElement.LocalName -ne 'AppLockerPolicy') { return $false }",
             $"    $ds = @($p.DocumentElement.ChildNodes | ForEach-Object {{ $_.ChildNodes }} | Where-Object {{ $_ -is [Xml.XmlElement] -and $_.GetAttribute('Name').StartsWith({tien}) }})",

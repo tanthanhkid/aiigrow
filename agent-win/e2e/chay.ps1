@@ -121,18 +121,33 @@ function LuatAiiGrow($xml, $sid = $null) {
 function LuatQuanTri($xml) { @($xml.SelectNodes("//*[starts-with(@Name,'QuanTri E2E')]")) }
 
 $KhoaWeb = [ordered]@{ Chrome = 'HKLM:\SOFTWARE\Policies\Google\Chrome'; Edge = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' }
-# 0.2.6 (issue #68): luật web của AiiGrow nằm trong hive của tài khoản CON (HKU\<SID>), không còn HKLM. Hive được nạp ở bước 1.4 (như lúc Con đăng nhập).
+# 0.2.6 (issue #68): luật web của AiiGrow nằm trong hive của tài khoản CON (HKU\<SID>), không còn HKLM. Con KHÔNG đăng nhập trong e2e ⇒ dịch vụ phải
+# nạp tạm NTUSER.DAT (đường thật khi Con chưa đăng nhập). e2e chỉ nạp hive lúc ĐỌC (tên riêng AiiE2E_Con) rồi gỡ nạp ngay — không giữ HKU\<SID>.
 $KhoaWebCon = [ordered]@{ Chrome = ''; Edge = '' }
 function DatKhoaWebCon($sid) {
   $KhoaWebCon.Chrome = "Registry::HKEY_USERS\$sid\SOFTWARE\Policies\Google\Chrome"
   $KhoaWebCon.Edge = "Registry::HKEY_USERS\$sid\SOFTWARE\Policies\Microsoft\Edge"
 }
-function GiaTriDs($khoa, $ds) {
-  $k = "$khoa\$ds"
-  if (-not (Test-Path $k)) { return @() }
-  $it = Get-Item $k
-  @($it.GetValueNames() | ForEach-Object { [pscustomobject]@{ Ten = $_; GiaTri = [string]$it.GetValue($_) } })
+# Chạy $sb trên khoá $khoa; khoá thuộc hive Con chưa nạp ⇒ nạp tạm NTUSER.DAT ở HKU\AiiE2E_Con, đọc, gỡ nạp (thử lại khi dịch vụ đang giữ tệp).
+function VoiHiveCon([string]$khoa, [scriptblock]$sb) {
+  $goc = "Registry::HKEY_USERS\$($Chung.SidCon)"
+  if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) { return (& $sb $khoa) }
+  $nap = $false
+  for ($i = 0; $i -lt 20 -and -not $nap; $i++) { & reg.exe load 'HKU\AiiE2E_Con' $Chung.NtUserCon 2>$null | Out-Null; $nap = ($LASTEXITCODE -eq 0); if (-not $nap) { Start-Sleep -Milliseconds 500 } }
+  if (-not $nap) { throw 'không nạp được hive của Con để đọc' }
+  try { return (& $sb ('Registry::HKEY_USERS\AiiE2E_Con' + $khoa.Substring($goc.Length))) }
+  finally { for ($i = 0; $i -lt 10; $i++) { [gc]::Collect(); [gc]::WaitForPendingFinalizers(); & reg.exe unload 'HKU\AiiE2E_Con' 2>$null | Out-Null; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep -Milliseconds 300 } }
 }
+function GiaTriDs($khoa, $ds) {
+  @(VoiHiveCon "$khoa\$ds" {
+    param($k)
+    if (-not (Test-Path -LiteralPath $k)) { return }
+    $it = Get-Item -LiteralPath $k
+    $it.GetValueNames() | ForEach-Object { [pscustomobject]@{ Ten = $_; GiaTri = [string]$it.GetValue($_) } }
+    $it.Close()
+  })
+}
+function CoWebCon { VoiHiveCon $KhoaWebCon.Chrome { param($k) Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue } }
 function MucIT {
   # Mục «1» do IT/Ba Mẹ đặt sẵn ở cả Chrome và Edge — AiiGrow không được đụng.
   $ds = @(foreach ($e in $KhoaWeb.GetEnumerator()) { $v = (Get-ItemProperty "$($e.Value)\URLBlocklist" -Name '1' -ErrorAction SilentlyContinue).'1'; [pscustomobject]@{ Ten = $e.Key; GiaTri = [string]$v } })
@@ -261,16 +276,16 @@ KichBan 'KB1' 'Đăng ký Ba Mẹ, tạo Con, gói cài một chạm' {
   if (-not (Get-LocalUser -Name $TenCon -ErrorAction SilentlyContinue)) { New-LocalUser -Name $TenCon -Password $mkCon -FullName 'Con E2E' -Description 'Tài khoản thử của e2e AiiGrow' | Out-Null }
   Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $TenCon -ErrorAction SilentlyContinue
   $Chung.SidCon = (Get-LocalUser -Name $TenCon).SID.Value
-  # Hồ sơ + hive của Con: tài khoản mới tạo chưa đăng nhập thì chưa có NTUSER.DAT ⇒ tạo hồ sơ rồi nạp hive tại HKU\<SID> (đúng như lúc Con đăng nhập)
+  # Hồ sơ của Con: tài khoản mới tạo chưa đăng nhập thì chưa có NTUSER.DAT ⇒ tạo hồ sơ (Con vẫn chưa đăng nhập ⇒ dịch vụ phải nạp tạm hive)
   Add-Type -Namespace AiiE2E -Name Prof -MemberDefinition '[DllImport("userenv.dll", CharSet=CharSet.Unicode)] public static extern int CreateProfile(string sid, string user, System.Text.StringBuilder path, uint size);' -ErrorAction SilentlyContinue
   $sbHs = New-Object System.Text.StringBuilder 260
   $hrHs = [AiiE2E.Prof]::CreateProfile($Chung.SidCon, $TenCon, $sbHs, 260)
   $duongHs = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$($Chung.SidCon)" -ErrorAction SilentlyContinue).ProfileImagePath
   $ntuser = if ($duongHs) { Join-Path $duongHs 'NTUSER.DAT' } else { $null }
   $nap = $false
-  if ($ntuser -and (Test-Path -LiteralPath $ntuser)) { & reg.exe load "HKU\$($Chung.SidCon)" $ntuser | Out-Null; $nap = ($LASTEXITCODE -eq 0) }
+  if ($ntuser -and (Test-Path -LiteralPath $ntuser)) { $Chung.NtUserCon = $ntuser; $nap = $true }
   DatKhoaWebCon $Chung.SidCon
-  Dat '1.4b' 'Hồ sơ + hive của Con nạp được (để kiểm luật web theo tài khoản Con)' $nap ("CreateProfile 0x{0:x} · NTUSER {1}" -f $hrHs, $ntuser)
+  Dat '1.4b' 'Hồ sơ của Con có NTUSER.DAT (để kiểm luật web theo tài khoản Con)' $nap ("CreateProfile 0x{0:x} · NTUSER {1}" -f $hrHs, $ntuser)
   $laAdmin = [bool](Get-LocalGroupMember -SID 'S-1-5-32-544' | Where-Object { $_.SID.Value -eq $Chung.SidCon })
   Dat '1.4' 'Tài khoản Windows thường của Con' ($Chung.SidCon -and -not $laAdmin) "$TenCon $($Chung.SidCon)"
   $goi = Api POST '/api/m/goi-cai' @{ con = $Chung.ConId; nen = 'windows' } $Chung.TokenBaMe
@@ -359,9 +374,11 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   Dat '4.4' "URLBlocklist Chrome + Edge có $TenMienChan" $webOk $chiTiet
   $hklmCu = @(); foreach ($k in $KhoaWeb.Values) { $hklmCu += MucAiiGrow $k 'URLBlocklist' }
   Dat '4.4b' 'HKLM không còn luật AiiGrow (luật cũ 90001 đã gỡ — luật chỉ ở hive Con)' ($hklmCu.Count -eq 0) ("còn {0} mục HKLM: {1}" -f $hklmCu.Count, (($hklmCu | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';'))
-  $co = Get-ItemProperty $KhoaWebCon.Chrome -ErrorAction SilentlyContinue
+  $co = CoWebCon
   Dat '4.5' 'Cờ trình duyệt (tắt ẩn danh / xoá lịch sử / khách)' ($co.IncognitoModeAvailability -eq 1 -and $co.AllowDeletingBrowserHistory -eq 0 -and $co.BrowserGuestModeEnabled -eq 0) "Incognito=$($co.IncognitoModeAvailability) XoaLS=$($co.AllowDeletingBrowserHistory) Khach=$($co.BrowserGuestModeEnabled)"
   $it = MucIT; Dat '4.6' 'Mục web của «IT» (tên 1) giữ nguyên' $it.Ok $it.ChiTiet
+  $ket = Cho { @(Get-ChildItem 'Registry::HKEY_USERS' | Where-Object { $_.PSChildName -like 'AiiGrow*' }).Count -eq 0 } 30 3
+  Dat '4.6b' 'Dịch vụ đã gỡ nạp hive tạm của Con (không kẹt AiiGrowTmp_*)' $ket ((@(Get-ChildItem 'Registry::HKEY_USERS' | Where-Object { $_.PSChildName -like 'AiiGrow*' }) | ForEach-Object { $_.PSChildName }) -join ',')
 
   # 4.7 — cài MỘT CHẠM không gắn tài khoản Con ⇒ AppLocker có áp không?
   Start-Sleep -Seconds 30
@@ -504,7 +521,7 @@ KichBan 'KB9' 'Gỡ --uninstall' {
   Dat '9.3' 'AppLocker không còn luật AiiGrow' (@(LuatAiiGrow (AppLocker)).Count -eq 0) "còn $(@(LuatAiiGrow (AppLocker)).Count)"
   Dat '9.4' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count)"
   $conWeb = @(); foreach ($k in (@($KhoaWeb.Values) + @($KhoaWebCon.Values))) { $conWeb += MucAiiGrow $k 'URLBlocklist'; $conWeb += MucAiiGrow $k 'URLAllowlist' }
-  $co = Get-ItemProperty $KhoaWebCon.Chrome -ErrorAction SilentlyContinue
+  $co = CoWebCon
   Dat '9.5' 'Chính sách web của AiiGrow đã dọn (danh sách + cờ)' ($conWeb.Count -eq 0 -and $null -eq $co.IncognitoModeAvailability -and $null -eq $co.BrowserGuestModeEnabled) ("còn {0} mục; Incognito={1} Khach={2}" -f $conWeb.Count, $co.IncognitoModeAvailability, $co.BrowserGuestModeEnabled)
   $it = MucIT; Dat '9.6' 'Mục web «IT» vẫn còn' $it.Ok $it.ChiTiet
   $run = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue).AiiGrowTray

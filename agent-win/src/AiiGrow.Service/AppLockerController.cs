@@ -18,7 +18,6 @@ public sealed class AppLockerController
     private bool? _khaDung;
     private bool? _khaDungTam;
     private long _khaDungTamDen;
-    private int _soLanKhong;
     /// <summary>AppLocker dùng được trên máy này không (BUG-005: Windows Home không có). Đọc một lần, nhớ cả đời dịch vụ.</summary>
     public bool KhaDung
     {
@@ -34,13 +33,13 @@ public sealed class AppLockerController
                 var r = Shell.PowerShell("if (Get-Command Get-AppLockerPolicy -ErrorAction SilentlyContinue) { 'co' } else { 'khong' }", 30000);
                 if (r.Ok) cmdlet = !r.Output.Contains("khong");
             }
-            _soLanKhong = cmdlet == false ? _soLanKhong + 1 : 0;
-            var (kq, chac) = AppLockerKhaDung.Chot(ed, cmdlet, _soLanKhong);
-            // chắc chắn (Home / có cmdlet / «không» nhiều lần liền) ⇒ nhớ suốt đời dịch vụ; chưa chắc ⇒ dùng tạm 10 phút, không chạy PowerShell
-            // (≤30 giây) hai lần mỗi nhịp; «không thấy cmdlet» trên Pro chưa chắc ⇒ vẫn coi là dùng được để còn gỡ luật đã áp (review #75)
+            var (kq, chac) = AppLockerKhaDung.Chot(ed, cmdlet);
+            // chắc chắn (Home / có cmdlet) ⇒ nhớ suốt đời dịch vụ; chưa chắc ⇒ dùng tạm 10 phút, không chạy PowerShell (≤30 giây) hai lần mỗi nhịp;
+            // «không thấy cmdlet» trên bản không phải Home ⇒ vẫn coi là dùng được để còn gỡ luật đã áp (review #75)
             if (chac) _khaDung = kq;
             else { _khaDungTam = kq; _khaDungTamDen = Environment.TickCount64 + 10 * 60 * 1000; }
-            if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}», cmdlet {c}) — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", cmdlet, AppLockerKhaDung.CauGhiChu);
+            if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}») — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", AppLockerKhaDung.CauGhiChu);
+            else if (!chac) _log.LogWarning("Chưa thấy cmdlet AppLocker (EditionID «{ed}», cmdlet {c}) — vẫn thử áp/gỡ, kiểm lại sau 10 phút", ed ?? "?", cmdlet);
             return kq;
         }
     }

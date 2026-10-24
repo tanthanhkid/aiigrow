@@ -13,22 +13,13 @@ public static class AppLockerKhaDung
     public static bool LaBanHome(string? editionId) =>
         !string.IsNullOrWhiteSpace(editionId) && editionId.Trim().StartsWith("Core", StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>Kết luận: không phải Home và cmdlet Get-AppLockerPolicy có ⇒ dùng được. <paramref name="coCmdlet"/> null = chưa kiểm được ⇒ không loại trừ.</summary>
-    public static bool Tinh(string? editionId, bool? coCmdlet) => !LaBanHome(editionId) && coCmdlet != false;
-
-    /// <summary>Số lần liền «không thấy cmdlet» (bản không phải Home) mới kết luận máy không có AppLocker.</summary>
-    public const int SoLanKhongChac = 3;
-
-    /// <summary>THUẦN — chốt một lần kiểm: (dùng được?, chắc chắn?). Home ⇒ (false, chắc). Có cmdlet ⇒ (true, chắc). Bản khác mà không thấy cmdlet:
-    /// có thể do module nạp lỗi nhất thời ⇒ VẪN coi là dùng được (để Reconcile còn gỡ luật đã áp khi chuyển Giám sát) cho tới khi
-    /// <see cref="SoLanKhongChac"/> lần liền đều «không» (review #75). Kiểm lỗi (null) ⇒ (true, chưa chắc).</summary>
-    public static (bool DungDuoc, bool ChacChan) Chot(string? editionId, bool? coCmdlet, int soLanKhongLien)
+    /// <summary>THUẦN — chốt một lần kiểm: (dùng được?, chắc chắn?). CHỈ bản Home mới là «không có AppLocker» (chắc). Có cmdlet ⇒ (true, chắc).
+    /// Bản khác mà không thấy cmdlet / kiểm lỗi: module nạp lỗi nhất thời ⇒ VẪN coi là dùng được (Reconcile còn gỡ luật đã áp khi chuyển Giám sát, quyền
+    /// appLocker báo đúng là thiếu khi áp hỏng, không gắn nhầm ghi chú «Win Home») — kiểm lại sau 10 phút (review #75).</summary>
+    public static (bool DungDuoc, bool ChacChan) Chot(string? editionId, bool? coCmdlet)
     {
         if (LaBanHome(editionId)) return (false, true);
-        if (coCmdlet == true) return (true, true);
-        // nhiều lần liền «không» ⇒ coi như không có, nhưng KHÔNG chốt suốt đời (vẫn kiểm lại mỗi 10 phút): module về lại thì Reconcile còn gỡ được luật đã áp
-        if (coCmdlet == false && soLanKhongLien >= SoLanKhongChac) return (false, false);
-        return (true, false);
+        return (true, coCmdlet == true);
     }
 
     public static string? DocEditionId()
