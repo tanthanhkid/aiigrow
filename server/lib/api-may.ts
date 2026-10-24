@@ -1,5 +1,6 @@
 // API agent thiết bị Con: /api/device/<đường>. Bearer = token thiết bị (ghép bằng mã 6 số). Token thiết bị KHÔNG gọi được API Ba Mẹ
 // (khác bảng, khác hàm kiểm) — không có lệnh «mở khoá» hay «cộng điểm» nào ở đây: điểm, phiên, phê duyệt chỉ máy chủ quyết.
+import { coTacTu } from "./chuyen-doi.ts";
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
 import { chinhSachWindows } from "./agent-windows.ts";
@@ -47,25 +48,26 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
       // Lỗi ở nhịp phiên không được làm hỏng cả lượt đồng bộ (agent giữ Policy cũ, thay đổi của Ba Mẹ không tới máy) ⇒ nuốt + ghi log.
       // 0.2.4: tính đúng `status.playSeconds` agent đếm (app chơi ở nền trước, màn hình mở); máy dùng chung lấy Con từ phiên mở trên máy (lib/phien-windows.ts).
+      // Mac chưa đo giây phiên ⇒ trang khay là nguồn nhịp duy nhất (choi-tre.ts › nhipTre); dong-bo của Mac không nhịp (cùng điều kiện «nền», tránh hai nguồn).
       if (may.platform === "windows") try {
         await nhipPhienWindows(may, con, b.status as TrangThaiNhip | undefined);
       } catch (e) { console.error("dong-bo: nhịp phiên Windows lỗi", e); }
       const pol = await dongBo(may, { ...b, conDangDung: con });
       // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi.
       // Kèm bí mật mã mở offline cho máy Windows (agent cache khi còn mạng để tự kiểm mã lúc mất mạng).
-      const biMatOffline = may.platform === "windows" ? await biMatOfflineMay(may.id) : null;
+      const biMatOffline = coTacTu(may.platform) ? await biMatOfflineMay(may.id) : null;
       const lenh = await lenhCho(may);
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
       // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
       const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"));
       // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
-      const moDen = may.platform === "windows" ? await hanMoCuaMay(may, con) : null;
-      const conThuong = may.platform === "windows" && con ? await thuongConLai(con) : 0;
+      const moDen = coTacTu(may.platform) ? await hanMoCuaMay(may, con) : null;
+      const conThuong = coTacTu(may.platform) && con ? await thuongConLai(con) : 0;
       // play* chỉ cho máy sở hữu phiên. Máy dùng chung + agent 0.2.4: phiên mở trên máy ⇒ ghép phần phiên vào Policy chung (chỉ cho «windows»).
-      const ghep = may.platform === "windows" && !con && laAgentMoi(b.status as TrangThaiNhip | undefined) ? await ghepPhienMayChung(may, pol) : null;
-      const moPhienMay = may.platform === "windows" && con ? await moRongPhienMay(may, con) : null;
+      const ghep = coTacTu(may.platform) && !con && laAgentMoi(b.status as TrangThaiNhip | undefined) ? await ghepPhienMayChung(may, pol) : null;
+      const moPhienMay = coTacTu(may.platform) && con ? await moRongPhienMay(may, con) : null;
       const windows = chinhSachWindows(ghep?.pol ?? pol, biMatOffline ?? undefined, cheDo,
-        { moDen, conThuong, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
+        { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
       if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay
       return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows });
     }

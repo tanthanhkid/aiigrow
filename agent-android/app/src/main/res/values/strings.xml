@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ten_app">AiiGrow Con</string>
+    <string name="ten_tro_nang">AiiGrow — màn chặn</string>
+    <string name="mo_ta_quan_tri">Ba Mẹ quản lý máy này bằng AiiGrow: khoá màn hình khi Khoá ngay hoặc tới giờ ngủ.</string>
+    <string name="mo_ta_tro_nang">AiiGrow chỉ xem ứng dụng nào đang mở để hiện màn chặn khi Ba Mẹ chưa cho dùng. AiiGrow không đọc nội dung màn hình, tin nhắn hay chữ con gõ.</string>
+</resources>

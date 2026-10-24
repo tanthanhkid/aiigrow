@@ -4,6 +4,7 @@
 //   3) máy chủ dịch luật tên miền sang `windows.web` (lib/agent-windows.ts) để agent ghi chính sách Chrome/Edge (URLBlocklist/URLAllowlist).
 // Kho luật là app_rules sẵn có (muc = tên miền): Cho phép = loai «hoc», Chặn = «chan», «Giải trí» = giai_tri (mở khi có phiên điểm đúng trang).
 // Chỉ lưu TÊN MIỀN GỐC (bỏ www) + đếm — không URL, không tiêu đề, không nội dung (đúng cam kết riêng tư của nhật ký DNS).
+import { coTacTu } from "./chuyen-doi.ts";
 import { q } from "./db.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, chuanMuc, datLuat, phanLoai } from "./luat-app.ts";
@@ -97,8 +98,8 @@ export async function thongKeWeb(fam: string, con: string, soNgay = 7, now = new
     soNgay: sn, homNay, theoNgay: ngayDs, tongGiay: ngayDs.reduce((a, x) => a + x.giay, 0), top: trang.slice(0, 30), tatCa: trang.length, luat,
     cheDoWeb: chiChoPhep ? "chi_cho_phep" as const : "mo" as const,
     heThong: allowlistHieuLuc().filter((x) => kieuMuc(x) === "web"),
-    // chỉ máy Windows lọc được web; Ba Mẹ cần biết có máy nào thực thi và đang ở chế độ nào
-    mayLoc: may.filter((m) => m.platform === "windows").map((m) => ({ id: m.id, ten: m.name, cheDo: cheDoCua(m as never) ?? "giam-sat", lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null })),
+    // chỉ máy có tác tử (Windows/Mac) lọc được web; Ba Mẹ cần biết có máy nào thực thi và đang ở chế độ nào
+    mayLoc: may.filter((m) => coTacTu(m.platform)).map((m) => ({ id: m.id, ten: m.name, cheDo: cheDoCua(m as never) ?? "giam-sat", lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null })),
   };
 }
 

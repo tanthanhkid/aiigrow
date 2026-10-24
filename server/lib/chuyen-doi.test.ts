@@ -135,3 +135,14 @@ test("cài một chạm: token nhúng sẵn trong gói / QR — không nhập UR
   assert.match(huongDanCai("mac", "TOK123", "https://app.test").chiTiet.tep as string, /TOK123\.pkg$/);
   assert.equal(huongDanCai("tizen", "x", "https://app.test").cach, "tang_mang");
 });
+
+test("kieuMuc: gói Android có đuôi .app vẫn là app (không nhầm thành web); bộ lọc cho phép của mac nhận .app, của Android giữ gói vn./com.", () => {
+  assert.equal(kieuMuc("vn.aiilab.demo.app"), "app");
+  assert.equal(kieuMuc("Safari.app"), "app");
+  assert.equal(kieuMuc("khanacademy.org"), "web");
+  const c = cs(); c.ungDung.heThong = ["vn.x.app", "Foo.app", "a.exe"];
+  const ck = (nen: "android" | "mac") => JSON.stringify(chuyenDoi(c, nen).muc.find((m) => m.khaNang === "cho_phep_app")!.cauHinh);
+  assert.match(ck("android"), /vn\.x\.app/);
+  assert.match(ck("mac"), /Foo\.app/);
+  assert.doesNotMatch(ck("android"), /Foo\.app/);
+});

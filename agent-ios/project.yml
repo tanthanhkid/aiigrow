@@ -1,0 +1,160 @@
+# AiiGrow Con — iPhone + iPad (iOS/iPadOS 16+). Sinh dự án: `xcodegen generate` (trong agent-ios/).
+# Đội ký: đặt DEVELOPMENT_TEAM khi build cho máy thật (README.md). Entitlement Family Controls bản phân phối cần Apple duyệt.
+name: AiiGrowCon
+options:
+  bundleIdPrefix: vn.aiilab.aiigrow
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+targets:
+  ConCore:
+    type: framework
+    platform: iOS
+    sources: [ConCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: vn.aiilab.aiigrow.con.core
+        APPLICATION_EXTENSION_API_ONLY: YES
+        GENERATE_INFOPLIST_FILE: YES
+        SKIP_INSTALL: YES
+
+  AiiGrowCon:
+    type: application
+    platform: iOS
+    sources: [App, HeThong]
+    dependencies:
+      - target: ConCore
+      - target: AiiGrowConMonitor
+      - target: AiiGrowConShieldConfig
+      - target: AiiGrowConShieldAction
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: AiiGrow Con
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UISupportedInterfaceOrientations~ipad:
+          [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [vn.aiilab.aiigrow.con.nhip]
+        CFBundleURLTypes:
+          - CFBundleURLName: vn.aiilab.aiigrow.con
+            CFBundleURLSchemes: [aiigrowcon]
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: App/AiiGrowCon.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.vn.aiilab.aiigrow.con]
+        com.apple.developer.associated-domains: ["applinks:aiigrow.aiilab.vn"]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: vn.aiilab.aiigrow.con
+        PRODUCT_NAME: AiiGrowCon
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+
+  AiiGrowConMonitor:
+    type: app-extension
+    platform: iOS
+    sources: [Monitor, HeThong]
+    dependencies: [{ target: ConCore }]
+    info:
+      path: Monitor/Info.plist
+      properties:
+        CFBundleDisplayName: AiiGrow Con Monitor
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).MonitorExtension
+    entitlements:
+      path: Monitor/Monitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.vn.aiilab.aiigrow.con]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: vn.aiilab.aiigrow.con.monitor
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+  AiiGrowConShieldConfig:
+    type: app-extension
+    platform: iOS
+    sources: [ShieldConfig]
+    dependencies: [{ target: ConCore }]
+    info:
+      path: ShieldConfig/Info.plist
+      properties:
+        CFBundleDisplayName: AiiGrow Con Shield
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    entitlements:
+      path: ShieldConfig/ShieldConfig.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.vn.aiilab.aiigrow.con]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: vn.aiilab.aiigrow.con.shieldconfig
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+  AiiGrowConShieldAction:
+    type: app-extension
+    platform: iOS
+    sources: [ShieldAction]
+    dependencies: [{ target: ConCore }]
+    info:
+      path: ShieldAction/Info.plist
+      properties:
+        CFBundleDisplayName: AiiGrow Con Shield Action
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    entitlements:
+      path: ShieldAction/ShieldAction.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.vn.aiilab.aiigrow.con]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: vn.aiilab.aiigrow.con.shieldaction
+        APPLICATION_EXTENSION_API_ONLY: YES
+
+  ConCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies: [{ target: ConCore }]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: vn.aiilab.aiigrow.con.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  AiiGrowCon:
+    build:
+      targets:
+        AiiGrowCon: all
+        ConCoreTests: [test]
+    test:
+      targets: [ConCoreTests]
+    run:
+      config: Debug
