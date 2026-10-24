@@ -19,6 +19,11 @@ public interface IWebHiveHost
     IWebPolicyRegistry May { get; }
     /// <summary>Chạy <paramref name="fn"/> trên hive của <paramref name="sid"/> (đang nạp, hoặc nạp tạm rồi gỡ nạp). false = chưa có hive (Con chưa đăng nhập lần nào / không nạp được).</summary>
     bool VoiHive(string sid, Action<IWebPolicyRegistry> fn);
+    /// <summary>Hive của <paramref name="sid"/> đang nạp (Con đang đăng nhập) — chỉ khi đó Con mới sửa được luật ⇒ mới cần ghi lại định kỳ.</summary>
+    bool DangNap(string sid);
+    /// <summary>Các hive đã ghi luật (SID → vân tay) lưu qua lần khởi động lại dịch vụ — không thì Con rời danh sách lúc dịch vụ tắt là luật kẹt lại.</summary>
+    IReadOnlyDictionary<string, string> DocDaGhi();
+    void LuuDaGhi(IReadOnlyDictionary<string, string> ds);
 }
 
 /// <summary>Kết quả một vòng <see cref="WebPolicyHives.Ap"/>.</summary>
@@ -34,7 +39,29 @@ public sealed class WebPolicyHives
     private readonly Dictionary<string, (string VanTay, DateTimeOffset Luc)> _daAp = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _daGhiCho = new(StringComparer.OrdinalIgnoreCase);   // hive ta đã ghi luật (còn luật) — Con rời danh sách thì phải gỡ
 
+    private bool _daDoc;
+    private string? _daLuu;
+
     public WebPolicyHives(IWebHiveHost host) { _host = host; }
+
+    private void DocLanDau()
+    {
+        if (_daDoc) return;
+        _daDoc = true;
+        try
+        {
+            foreach (var (sid, vt) in _host.DocDaGhi())
+            {
+                if (!AppLockerXml.IsValidSid(sid)) continue;
+                _daAp[sid] = (vt, DateTimeOffset.MinValue);   // quá hạn ⇒ hive đang nạp được ghi lại một lần, KHÔNG báo «đổi» nếu luật không đổi
+                _daGhiCho.Add(sid);
+            }
+        }
+        catch { }
+        _daLuu = ChuoiLuu();
+    }
+
+    private string ChuoiLuu() => string.Join("\n", _daGhiCho.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).Select(x => x + " " + _daAp[x].VanTay));
 
     /// <param name="p">null ⇒ gỡ hết (giám sát / mồ côi / đang gỡ…).</param>
     /// <param name="childSids">SID tài khoản Con (null = chưa đọc được ⇒ chỉ gỡ ở các hive đã ghi).</param>
@@ -48,6 +75,9 @@ public sealed class WebPolicyHives
             catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
         }
 
+        DocLanDau();
+        // chưa đọc được tài khoản Con (null) mà đang cần CHẶN ⇒ giữ nguyên luật đang có (như AppLocker), không gỡ nhầm; cần GỠ thì vẫn gỡ ở các hive đã ghi
+        if (childSids == null && p != null) return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi);
         var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var dich = sids.Concat(_daGhiCho.Where(x => !sids.Contains(x, StringComparer.OrdinalIgnoreCase))).ToList();
         var chua = new List<string>();
@@ -57,8 +87,9 @@ public sealed class WebPolicyHives
             var vt = WebPolicyApplier.VanTay(muon, maychuHost);
             var truoc = _daAp.TryGetValue(sid, out var t) ? t : default;
             var coTruoc = _daAp.ContainsKey(sid);
-            // chỉ ghi lại khi đổi, hoặc (có luật) quá hạn ghi lại; «gỡ» đã gỡ rồi thì thôi
-            if (coTruoc && truoc.VanTay == vt && (muon == null || now - truoc.Luc < GhiLaiSau)) continue;
+            // chỉ ghi lại khi đổi, hoặc (có luật) quá hạn ghi lại VÀ hive đang nạp; «gỡ» đã gỡ rồi thì thôi. Hive chưa nạp (Con chưa đăng nhập) thì Con
+            // không sửa được ⇒ không nạp tạm NTUSER.DAT mỗi 5 phút (nạp đúng lúc Con đăng nhập ⇒ Windows cấp hồ sơ tạm — review #75)
+            if (coTruoc && truoc.VanTay == vt && (muon == null || now - truoc.Luc < GhiLaiSau || !DangNapAnToan(sid))) continue;
             bool xong;
             try { xong = _host.VoiHive(sid, reg => new WebPolicyApplier(reg).Ap(muon, maychuHost)); }
             catch { xong = false; }
@@ -68,8 +99,16 @@ public sealed class WebPolicyHives
             if (muon != null) _daGhiCho.Add(sid); else _daGhiCho.Remove(sid);
             if (doiLanNay) doi = true;
         }
+        var luu = ChuoiLuu();
+        if (luu != _daLuu)
+        {
+            try { _host.LuuDaGhi(_daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase)); _daLuu = luu; }
+            catch { }   // vòng sau thử lưu lại
+        }
         return new KetQuaWebHive(doi, goHklm, chua, loi);
     }
+
+    private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }
 }
 
 /// <summary>Registry thật theo hive người dùng. Chạy bằng SYSTEM / Administrator.</summary>
@@ -138,6 +177,36 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         return ds;
     }
 
+    private static string TepDaGhi => Path.Combine(Paths.DataDir, "web-hives.txt");
+
+    public IReadOnlyDictionary<string, string> DocDaGhi()
+    {
+        var ds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (!File.Exists(TepDaGhi)) return ds;
+        foreach (var dong in File.ReadAllLines(TepDaGhi))
+        {
+            var ph = dong.Split(' ', 2, StringSplitOptions.TrimEntries);
+            if (ph.Length == 2 && AppLockerXml.IsValidSid(ph[0])) ds[ph[0]] = ph[1];
+        }
+        return ds;
+    }
+
+    public void LuuDaGhi(IReadOnlyDictionary<string, string> ds)
+    {
+        Directory.CreateDirectory(Paths.DataDir);
+        var tam = TepDaGhi + ".tmp";
+        File.WriteAllLines(tam, ds.Select(kv => kv.Key + " " + kv.Value));
+        File.Move(tam, TepDaGhi, true);
+    }
+
+    public bool DangNap(string sid)
+    {
+        if (!AppLockerXml.IsValidSid(sid)) return false;
+        using var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64);
+        using var k = users.OpenSubKey(sid, false);
+        return k != null;
+    }
+
     public bool VoiHive(string sid, Action<IWebPolicyRegistry> fn)
     {
         if (!AppLockerXml.IsValidSid(sid)) return false;
@@ -149,6 +218,10 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         if (tep == null) return false;
         BatQuyen();
         var ten = "AiiGrowTmp_" + sid;
+        // lần trước gỡ nạp hỏng (còn handle) ⇒ hive kẹt ở tên tạm, Con đăng nhập sẽ bị hồ sơ tạm: gỡ nạp trước khi nạp lại
+        using (var users = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))
+        using (var cu = users.OpenSubKey(ten, false))
+            if (cu != null) { cu.Close(); GC.Collect(); GC.WaitForPendingFinalizers(); RegUnLoadKey(HkeyUsers, ten); }
         if (RegLoadKey(HkeyUsers, ten, tep) != 0) return false;   // đang bị khoá (Con vừa đăng nhập) ⇒ vòng sau thấy hive đã nạp
         try { fn(new WindowsWebPolicyRegistry(RegistryHive.Users, ten, sid)); return true; }
         finally

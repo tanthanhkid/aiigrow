@@ -74,6 +74,23 @@ public class ProcessGuardTests
     [InlineData(@"C:\Program Files (x86)\Microsoft\EdgeWebView\Application\120.0\msedgewebview2.exe", false)]   // BUG-007
     [InlineData(@"C:\Users\An\Downloads\msedgewebview2.exe", true)]
     [InlineData(@"C:\WindowsEvil\x.exe", true)]
+    // review #75: thành phần Windows chạy nền nằm trực tiếp trong Windows/System32/SysWOW64 + DriverStore ⇒ giữ (in ấn, hộp chọn tệp, trợ năng…)
+    [InlineData(@"C:\Windows\splwow64.exe", false)]
+    [InlineData(@"C:\Windows\System32\rundll32.exe", false)]
+    [InlineData(@"C:\Windows\SysWOW64\rundll32.exe", false)]
+    [InlineData(@"C:\Windows\System32\CredentialUIBroker.exe", false)]
+    [InlineData(@"C:\Windows\System32\PickerHost.exe", false)]
+    [InlineData(@"C:\Windows\System32\osk.exe", false)]
+    [InlineData(@"C:\Windows\System32\Narrator.exe", false)]
+    [InlineData(@"C:\Windows\System32\DriverStore\FileRepository\realtek.inf_amd64_1\RtkAudUService64.exe", false)]
+    [InlineData(@"C:\Program Files\WindowsApps\Microsoft.YourPhone_1.0.0.0_x64__8wekyb3d8bbwe\PhoneExperienceHost.exe", false)]
+    // …nhưng app người dùng trong System32 và thư mục con Con ghi được thì vẫn qua phân loại
+    [InlineData(@"C:\Windows\regedit.exe", true)]
+    [InlineData(@"C:\Windows\SysWOW64\cmd.exe", true)]
+    [InlineData(@"C:\Windows\Temp\game.exe", true)]
+    [InlineData(@"C:\Windows\System32\Tasks\game.exe", true)]
+    [InlineData(@"C:\Windows\System32\spool\drivers\color\game.exe", true)]
+    [InlineData(@"C:\Users\An\AppData\Local\Microsoft\WindowsApps\Microsoft.YourPhone_1\game.exe", true)]
     public void ShouldClose(string path, bool expected)
         => Assert.Equal(expected, ProcessGuard.ShouldClose(path, Allowed, NoDirs, Safe, Win));
 
@@ -85,6 +102,11 @@ public class ProcessGuardTests
         Assert.False(ProcessGuard.ShouldClose(calc, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "calculatorapp.exe" }, NoDirs, Safe, Win));
         Assert.Equal("microsoft.windowscalculator", ProcessGuard.TenGoiStore(calc));
         Assert.Null(ProcessGuard.TenGoiStore(@"C:\Windows\System32\notepad.exe"));
+        // «WindowsApps» ngoài Program Files (Con tự tạo được) không phải gói Store ⇒ không mượn được tên gói được phép
+        var gia = @"C:\Users\An\Games\WindowsApps\Microsoft.WindowsCalculator_1_x64__8wekyb3d8bbwe\Roblox.exe";
+        Assert.Null(ProcessGuard.TenGoiStore(gia));
+        Assert.Null(ProcessGuard.TenGoiStore(@"C:\WindowsApps\Microsoft.WindowsCalculator_1\Roblox.exe"));
+        Assert.True(ProcessGuard.ShouldClose(gia, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "microsoft.windowscalculator" }, NoDirs, Safe, Win));
     }
 
     [Fact]

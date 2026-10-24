@@ -234,7 +234,8 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>Luật web trong hive của Con vừa đổi/gỡ (dịch vụ tăng WebRev): làm mới chính sách trình duyệt trong phiên này + nhắc mở lại trình duyệt nếu luật mới chưa áp.</summary>
     private void HandleWeb()
     {
-        if (_webRev < 0) { _webRev = _state.WebRev; return; }
+        // dịch vụ khởi động lại ⇒ WebRev đếm lại từ 0: chỉ đồng bộ con số, không báo «luật đổi» giả (review #75)
+        if (_webRev < 0 || _state.WebRev < _webRev) { _webRev = _state.WebRev; return; }
         if (_state.WebRev == _webRev) return;
         _webRev = _state.WebRev;
         UI.LamMoiChinhSachNguoiDung();

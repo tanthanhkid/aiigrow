@@ -423,8 +423,8 @@ internal sealed class AppForm : Form
             }
             _content.Controls.Add(row);
 
-            // BUG-006: luôn có nút «Chơi bằng điểm» khi đã ghép gia đình, kèm số phút đổi được.
-            if (_s.Paired && !_s.MoCoi)
+            // BUG-006: luôn có nút «Chơi bằng điểm» khi đã ghép gia đình, kèm số phút đổi được — trừ khi Ba Mẹ tắt đổi điểm hoặc khoá máy (cùng luật màn chặn)
+            if (_s.Paired && !_s.MoCoi && BlockScreenView.CanUsePoints(_s.Locked ? _s.LockReason : null, _s.CanExchangePoints))
             {
                 var pr = Row(_cw);
                 var choi = Btn("Chơi bằng điểm", false, 270);
@@ -458,7 +458,7 @@ internal sealed class AppForm : Form
             {
                 var n = HocVienView.SoViecMo(_tq);
                 c.Controls.Add(T(n > 0 ? $"Con có {n} việc đang chờ. Làm xong để tích điểm nhé!" : "Hôm nay con đã làm hết việc rồi. Giỏi lắm!", 12.5f, false));
-                c.Controls.Add(T($"{_tq.SoDu} điểm" + (_phutChoi is > 0 ? $"  ·  ≈ {_phutChoi} phút chơi" : "") + $"  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
+                c.Controls.Add(T($"{_tq.SoDu} điểm" + $"  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
             }
             var row = Row(_tw);
             var go = Btn("Xem nhiệm vụ", false, 210);

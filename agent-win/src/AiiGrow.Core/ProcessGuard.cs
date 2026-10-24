@@ -34,6 +34,24 @@ public static class ProcessGuard
         "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe", "sppsvc.exe",
     };
 
+    /// <summary>App NGƯỜI DÙNG mở được nằm ngay trong Windows / System32 / SysWOW64 — phải qua phân loại (BUG-008). Mọi exe KHÁC nằm TRỰC TIẾP trong
+    /// ba thư mục đó là thành phần Windows chạy nền (splwow64 in 32-bit, rundll32, CredentialUIBroker, PickerHost, rdpclip, osk/Narrator/Magnify,
+    /// MusNotifyIcon…) ⇒ miễn: đóng chúng làm hỏng in ấn, hộp chọn tệp, trợ năng và bắn popup «app bị chặn» liên tục (review #75).
+    /// Chỉ TRỰC TIẾP trong thư mục (không thư mục con): Con không tạo tệp ở đó được; thư mục con như Windows\Temp, System32\Tasks,
+    /// spool\drivers\color thì tài khoản chuẩn ghi được ⇒ không miễn.</summary>
+    public static readonly HashSet<string> UngDungTrongWindows = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "notepad.exe", "cmd.exe", "powershell.exe", "powershell_ise.exe", "pwsh.exe", "calc.exe", "mspaint.exe", "write.exe", "wordpad.exe",
+        "charmap.exe", "regedit.exe", "regedt32.exe", "wscript.exe", "cscript.exe", "mshta.exe", "snippingtool.exe", "winver.exe", "hh.exe",
+        "mstsc.exe", "ftp.exe", "telnet.exe", "bash.exe", "wsl.exe", "wslhost.exe",
+    };
+
+    /// <summary>Gói Store chạy nền của chính Windows (Phone Link, Widgets, Cross Device) — miễn như tiến trình hệ thống.</summary>
+    public static readonly HashSet<string> GoiStoreHeThong = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "microsoft.yourphone", "microsoftwindows.client.webexperience", "microsoftwindows.crossdevice", "microsoft.windows.shellexperiencehost",
+    };
+
     /// <summary>Thư mục gói giao diện shell của Windows (Start, Search, Lock screen, ô nhập…) — luôn cho chạy.</summary>
     public const string ThuMucSystemApps = "SystemApps";
 
@@ -53,7 +71,13 @@ public static class ProcessGuard
         var w = winDir.TrimEnd('\\', '/') + "\\";
         if (!exePath.StartsWith(w, StringComparison.OrdinalIgnoreCase)) return false;
         if (exePath.StartsWith(w + ThuMucSystemApps + "\\", StringComparison.OrdinalIgnoreCase)) return true;
-        return TienTrinhHeThongPhien.Contains(name);
+        // trình điều khiển (âm thanh, đồ hoạ…) cài tiện ích chạy trong phiên Con từ DriverStore — chỉ quản trị ghi được
+        if (exePath.StartsWith(w + @"System32\DriverStore\", StringComparison.OrdinalIgnoreCase)) return true;
+        if (TienTrinhHeThongPhien.Contains(name)) return true;
+        var dir = DirName(exePath);
+        var trucTiep = dir != null && (dir.Equals(w.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase)
+            || dir.Equals(w + "System32", StringComparison.OrdinalIgnoreCase) || dir.Equals(w + "SysWOW64", StringComparison.OrdinalIgnoreCase));
+        return trucTiep && !UngDungTrongWindows.Contains(name);
     }
 
     /// <summary>Tên gói của app Store từ đường dẫn «…\WindowsApps\&lt;Gói&gt;_&lt;bản&gt;__&lt;nhàXB&gt;\app.exe» (chữ thường); không phải app Store ⇒ null.
@@ -62,9 +86,11 @@ public static class ProcessGuard
     {
         if (string.IsNullOrWhiteSpace(exePath)) return null;
         var p = exePath.Replace('/', '\\');
-        const string mk = "\\WindowsApps\\";
+        // CHỈ «<ổ>:\Program Files\WindowsApps\» (chỉ hệ thống ghi được): «WindowsApps» ở chỗ khác (AppData\Local\Microsoft\WindowsApps, C:\WindowsApps
+        // Con tự tạo…) ⇒ không phải gói Store, không thì Con đặt game vào «…\WindowsApps\<gói được phép>_1\game.exe» là lọt (review #75)
+        const string mk = ":\\Program Files\\WindowsApps\\";
         var i = p.IndexOf(mk, StringComparison.OrdinalIgnoreCase);
-        if (i < 0) return null;
+        if (i != 1) return null;
         var rest = p[(i + mk.Length)..];
         var j = rest.IndexOf('\\');
         if (j <= 0) return null;
@@ -86,6 +112,7 @@ public static class ProcessGuard
         if (allowed.Contains(name)) return false;
         if (TenGoiStore(exePath) is { } goi && allowed.Contains(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;
+        if (TenGoiStore(exePath) is { } goiHt && GoiStoreHeThong.Contains(goiHt)) return false;
 
         foreach (var d in safeDirs)
         {

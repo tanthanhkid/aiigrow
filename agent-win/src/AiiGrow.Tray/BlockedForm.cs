@@ -42,6 +42,7 @@ internal sealed class BlockedForm : Form
 
         _play = UI.Btn(view.UsePointsLabel, true, 340);
         _play.Click += async (_, _) => await PlayAsync();
+        FormClosed += (_, _) => _dong = true;   // đăng ký MỘT lần (không trong PlayAsync: mỗi lần thử lại thêm một handler)
         if (view.ShowUsePoints) flow.Controls.Add(_play);
 
         _ask = UI.Btn(view.AskParentLabel, !view.ShowUsePoints, 340);
@@ -82,7 +83,6 @@ internal sealed class BlockedForm : Form
         _busy = true;
         _play.Enabled = _ask.Enabled = false;
         _msg.Text = "Đang hỏi máy chủ…";
-        FormClosed += (_, _) => _dong = true;
         var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Play, AppId = _appId });
         _busy = false;
         if (_dong || IsDisposed) return;   // Con đã bấm Đóng trong lúc chờ

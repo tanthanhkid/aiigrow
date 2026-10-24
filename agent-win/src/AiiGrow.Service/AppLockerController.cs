@@ -16,12 +16,16 @@ public sealed class AppLockerController
     public bool Applied { get; private set; }
 
     private bool? _khaDung;
+    private bool? _khaDungTam;
+    private long _khaDungTamDen;
     /// <summary>AppLocker dùng được trên máy này không (BUG-005: Windows Home không có). Đọc một lần, nhớ cả đời dịch vụ.</summary>
     public bool KhaDung
     {
         get
         {
             if (_khaDung is { } v) return v;
+            // lần kiểm trước chưa chắc (PowerShell lỗi/chậm) ⇒ dùng tạm kết quả đó 10 phút, không chạy PowerShell (≤30 giây) hai lần mỗi nhịp (review #75)
+            if (_khaDungTam is { } t && Environment.TickCount64 < _khaDungTamDen) return t;
             var ed = AppLockerKhaDung.DocEditionId();
             bool? cmdlet = null;
             if (!AppLockerKhaDung.LaBanHome(ed))
@@ -32,6 +36,7 @@ public sealed class AppLockerController
             var kq = AppLockerKhaDung.Tinh(ed, cmdlet);
             // đọc cmdlet lỗi (cmdlet = null) ⇒ chưa chắc: không nhớ, thử lại lần sau; Home / không có cmdlet là chắc chắn
             if (cmdlet != null || AppLockerKhaDung.LaBanHome(ed)) _khaDung = kq;
+            else { _khaDungTam = kq; _khaDungTamDen = Environment.TickCount64 + 10 * 60 * 1000; }
             if (!kq) _log.LogWarning("Máy không có AppLocker (EditionID «{ed}», cmdlet {c}) — tắt AppLocker, chặn bằng cách đóng app ngoài danh sách. {g}", ed ?? "?", cmdlet, AppLockerKhaDung.CauGhiChu);
             return kq;
         }

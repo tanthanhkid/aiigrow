@@ -31,6 +31,8 @@ internal sealed class ChoiBangDiemForm : Form
         flow.Controls.Add(UI.Text("Chơi bằng điểm", 14f, true, null, 340));
         flow.Controls.Add(_phut);
         if (phut.HasValue) CapNhatPhut(phut);
+        else if (choices.Count > 0) Shown += async (_, _) => await HoiPhutAsync(choices[0]);   // khay chưa có số phút ⇒ tự hỏi, không treo «Đang hỏi…»
+        else _phut.Text = "";
         if (choices.Count == 0)
             flow.Controls.Add(UI.Text("Ba Mẹ chưa chọn app giải trí nào cho con đổi điểm. Con xin Ba Mẹ nhé.", 11f, false, UI.Muted, 340));
         foreach (var c in choices)
@@ -47,6 +49,20 @@ internal sealed class ChoiBangDiemForm : Form
         flow.Controls.Add(dong);
         flow.Controls.Add(_msg);
         Controls.Add(flow);
+    }
+
+    private async Task HoiPhutAsync(string appId)
+    {
+        int? phut = null;
+        try
+        {
+            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = appId });
+            if (r.Ok) phut = r.PlayMinutes;
+        }
+        catch { }
+        if (IsDisposed) return;
+        if (phut.HasValue) CapNhatPhut(phut);
+        else _phut.Text = "Chưa hỏi được số phút chơi — con vẫn bấm chọn app để thử nhé.";
     }
 
     public void CapNhatPhut(int? phut)

@@ -83,8 +83,6 @@ public static class TrayView
         var n = (appId ?? "").Trim();
         if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
         if (TenDepApp.TryGetValue(n, out var dep)) return dep;
-        n = (appId ?? "").Trim();
-        if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
         if (n.Length == 0) return "App này";
         return char.ToUpperInvariant(n[0]) + n[1..];
     }

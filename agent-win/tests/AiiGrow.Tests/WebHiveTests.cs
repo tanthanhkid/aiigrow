@@ -17,6 +17,12 @@ internal sealed class FakeHiveHost : IWebHiveHost
         fn(r);
         return true;
     }
+    public readonly HashSet<string> ChuaNap = new(StringComparer.OrdinalIgnoreCase);   // hồ sơ có nhưng Con chưa đăng nhập (hive chưa nạp)
+    public bool DangNap(string sid) => CoHoSo.Contains(sid) && !ChuaNap.Contains(sid);
+    public Dictionary<string, string> DaLuu = new(StringComparer.OrdinalIgnoreCase);
+    public int SoLanLuu;
+    public IReadOnlyDictionary<string, string> DocDaGhi() => new Dictionary<string, string>(DaLuu, StringComparer.OrdinalIgnoreCase);
+    public void LuuDaGhi(IReadOnlyDictionary<string, string> ds) { DaLuu = new(ds, StringComparer.OrdinalIgnoreCase); SoLanLuu++; }
 }
 
 public class WebHiveTests
@@ -101,6 +107,48 @@ public class WebHiveTests
         var r = w.Ap(Luat("a.com"), null, Array.Empty<string>(), T0.AddSeconds(30));
         Assert.True(r.DaDoi);
         Assert.False(h.Hive[Con].Ds.ContainsKey(Chrome + @"\URLBlocklist"));
+    }
+
+    [Fact]
+    public void HiveChuaNap_KhongNapTamLaiMoi5Phut()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con); h.ChuaNap.Add(Con);
+        var w = new WebPolicyHives(h);
+        w.Ap(Luat("a.com"), null, new[] { Con }, T0);
+        var n = h.Hive[Con].SoLanGhi;
+        w.Ap(Luat("a.com"), null, new[] { Con }, T0 + WebPolicyHives.GhiLaiSau + TimeSpan.FromMinutes(1));
+        Assert.Equal(n, h.Hive[Con].SoLanGhi);   // Con chưa đăng nhập thì không sửa được luật ⇒ không nạp NTUSER.DAT lại
+        Assert.True(w.Ap(Luat("b.com"), null, new[] { Con }, T0 + TimeSpan.FromMinutes(7)).DaDoi);   // luật đổi thì vẫn ghi ngay
+    }
+
+    [Fact]
+    public void ChuaDocDuocTaiKhoan_GiuNguyenLuat_KhongGoNham()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        var w = new WebPolicyHives(h);
+        w.Ap(Luat("a.com"), null, new[] { Con }, T0);
+        var r = w.Ap(Luat("a.com"), null, null, T0.AddSeconds(30));
+        Assert.False(r.DaDoi);
+        Assert.Equal(new[] { "a.com" }, h.Hive[Con].Ds[Chrome + @"\URLBlocklist"]);
+        // nhưng cần GỠ (giám sát…) thì vẫn gỡ ở hive đã ghi
+        Assert.True(w.Ap(null, null, null, T0.AddSeconds(60)).DaDoi);
+        Assert.False(h.Hive[Con].Ds.ContainsKey(Chrome + @"\URLBlocklist"));
+    }
+
+    [Fact]
+    public void KhoiDongLai_NhoHiveDaGhi_GoKhiConRoiDanhSach_KhongBaoDoiGia()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con); h.CoHoSo.Add(BaMe);
+        new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.True(h.DaLuu.ContainsKey(Con));
+        // dịch vụ khởi động lại, luật không đổi ⇒ không báo «đổi» (khay không bắn thông báo giả)
+        var w2 = new WebPolicyHives(h);
+        Assert.False(w2.Ap(Luat("a.com"), null, new[] { Con }, T0.AddMinutes(1)).DaDoi);
+        // khởi động lại lần nữa, Con không còn trong danh sách ⇒ hive cũ vẫn được gỡ
+        var w3 = new WebPolicyHives(h);
+        Assert.True(w3.Ap(Luat("a.com"), null, new[] { BaMe }, T0.AddMinutes(2)).DaDoi);
+        Assert.False(h.Hive[Con].Ds.ContainsKey(Chrome + @"\URLBlocklist"));
+        Assert.False(h.DaLuu.ContainsKey(Con));
     }
 
     [Fact]
