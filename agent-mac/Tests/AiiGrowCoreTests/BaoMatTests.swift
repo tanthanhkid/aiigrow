@@ -415,6 +415,23 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(con?["HomepageLocation"] as? String, "https://x.vn", "khoá người khác giữ nguyên")
   }
 
+  func testGoTuXaGhiDauDaGoTruocKhiChoMayChu() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    final class Co: @unchecked Sendable { var dau: Bool? }
+    let coDau = Co()
+    HttpMock.dat { path, _ in
+      if path.hasSuffix("/xong") { coDau.dau = fake.tep[DuongDan.daGo] != nil; return HttpMock.json(200, [:]) }
+      return HttpMock.json(200, ["mode": "tu_do", "nextCheckSec": 30, "lenh": [["id": 1, "loai": "go"]],
+        "windows": ["mode": "tu_do", "nextCheckSec": 30, "serverTime": NgayGio.viet(dongHo.thuc)]])
+    }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    XCTAssertEqual(coDau.dau, true, "dấu da-go phải có trước khi chờ máy chủ (postinstall chạy giữa chừng không nạp lại)")
+    XCTAssertNotNil(fake.tep[DuongDan.daGo])
+  }
+
   func testChayXaOutputLienTucCoTran() {
     let t0 = Date()
     let (ma, ra) = HeThongMac.chay("/usr/bin/yes", ["aiigrow"], timeout: 10, trenOutput: 100_000)

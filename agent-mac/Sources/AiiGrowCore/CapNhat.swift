@@ -63,8 +63,9 @@ public enum LuatCapNhat {
 
   /// Chuyển hướng chỉ tới https: máy chủ đang dùng, github.com, *.githubusercontent.com.
   public static func choPhepChuyenHuong(_ url: URL?, mayChu: String) -> Bool {
-    guard let url, url.scheme?.lowercased() == "https", let h = url.host?.lowercased(), url.user == nil else { return false }
-    if let mc = URL(string: mayChu), let host = mc.host?.lowercased(), h == host, (url.port ?? 443) == (mc.port ?? 443) { return true }
+    guard let url else { return false }
+    if urlGoiHopLe(url.absoluteString, mayChu: mayChu) { return true }
+    guard url.scheme?.lowercased() == "https", let h = url.host?.lowercased(), url.user == nil, url.password == nil else { return false }
     return h == "github.com" || h.hasSuffix(".githubusercontent.com")
   }
 
@@ -84,6 +85,8 @@ public enum LuatCapNhat {
 
   /// Sau khi cài mà vẫn chạy bản cũ: cùng gói (sha256) chỉ cho thử lại bằng nút Ba Mẹ và sau ít nhất ngần này giây.
   public static let giayChoThuLai: Double = 3600
+  /// Gói hỏng (sha256/chữ ký/spctl — thường do mạng/proxy): nút Ba Mẹ thử lại sau ngần này giây.
+  public static let giayChoGoiHong: Double = 300
   /// Vòng định kỳ: cùng sha256 thử lại tối đa `toiDaLanThu` lần, mỗi lần cách nhau ≥ `giayGiuaCacLan`; quá thì mỗi `giayNghiSauHetLuot` mới thử một lần
   /// (lỗi tạm — proxy trả trang lạ, spctl không tới được Apple — không khoá máy ở bản cũ mãi). Nút Ba Mẹ vẫn thử được sau 1 giờ.
   public static let toiDaLanThu = 3
@@ -291,7 +294,8 @@ public actor BoCapNhat {
       lanDaThu = d.lan
       let troi = dongHo().timeIntervalSince1970 - d.luc
       // troi < 0: đồng hồ bị lùi sau khi ghi dấu ⇒ không chờ tới «tương lai» đó (vẫn giữ trần 3 lần cho lượt định kỳ)
-      let choLai = thuCong ? (troi < 0 || troi > LuatCapNhat.giayChoThuLai || !d.daGiao)
+      // gói hỏng (chưa giao installer): nút thử lại sau vài phút, không tải lại cả gói mỗi lần bấm
+      let choLai = thuCong ? (troi < 0 || troi > (d.daGiao ? LuatCapNhat.giayChoThuLai : LuatCapNhat.giayChoGoiHong))
                            : (troi < 0 || troi >= LuatCapNhat.giayNghiSauHetLuot
                               || (d.lan < LuatCapNhat.toiDaLanThu && troi >= LuatCapNhat.giayGiuaCacLan))
       if !choLai {

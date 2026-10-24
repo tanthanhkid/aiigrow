@@ -435,6 +435,8 @@ public actor BoMay {
   private func tuGo(lenhId: String) async {
     // Lệnh gỡ từ xa: trả quyền admin đã hạ, xoá chính sách web + hosts, xoá cấu hình. KHÔNG tự bootout launchd (gói cài lo).
     dangGo = true                                   // vòng áp chạy song song trong lúc await bên dưới — chặn nó áp lại plist/hosts/đóng app
+    // Dấu «máy đã gỡ» TRƯỚC await đầu tiên: installer tự cập nhật vừa giao xong mà postinstall chạy trong lúc chờ máy chủ thì không nạp lại daemon.
+    try? heThong.ghiTep(DuongDan.daGo, Data("da-go\n".utf8), quyen: 0o600)
     policy = nil; khoaLuc = nil
     apChinhSachTrinhDuyet(web: nil)
     // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.
@@ -449,7 +451,6 @@ public actor BoMay {
     api.datPhien(mayChu: cauHinh.mayChu, token: "")
     policy = nil
     khoaLuc = nil
-    try? heThong.ghiTep(DuongDan.daGo, Data("da-go\n".utf8), quyen: 0o600)       // bộ cập nhật + postinstall (cài tự động) thấy dấu này thì không nạp lại
     heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn; chạy trình gỡ.")
     dangGo = false                                  // daGhep đã false ⇒ vòng áp tự thả; để ghép lại (không khởi động lại daemon) vẫn chạy được
     heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)

@@ -536,9 +536,12 @@ final class CapNhatTests: XCTestCase {
     let d = try? JSONDecoder().decode(DauDaThu.self, from: fake.tep["/gia/da-thu.json"] ?? Data())
     XCTAssertEqual(d?.daGiao, false)
     datMayChu()                                                 // mạng đã ổn
+    gio = gio.addingTimeInterval(60)
+    let k0 = await chay(boCapNhat(), thuCong: true)
+    guard case .loi = k0 else { return XCTFail("bấm liên tục không được tải lại cả gói: \(k0)") }
     gio = gio.addingTimeInterval(600)
     let k = await chay(boCapNhat(), thuCong: true)
-    XCTAssertEqual(k, .dangTai("0.1.2"), "gói hỏng chưa giao installer ⇒ nút Ba Mẹ thử lại ngay")
+    XCTAssertEqual(k, .dangTai("0.1.2"), "gói hỏng chưa giao installer ⇒ nút Ba Mẹ thử lại sau vài phút")
   }
 
   func testLoiMangBaoChuDeHieu() async {
