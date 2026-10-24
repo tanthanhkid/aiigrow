@@ -6,9 +6,9 @@
 import type { May } from "./gia-dinh.ts";
 
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.5",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.5.exe",
-  sha256: "246a1f26b3d03e825852415cf4e10d975d549091fe090d8a012f4f1303a777fd",
+  version: "0.2.6",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.6.exe",
+  sha256: "0b1dfd704fb266359777aede6ab1638ee055f98f7784d6792b9148b48e06e4fd",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
