@@ -21,6 +21,7 @@ internal sealed class FakeHiveHost : IWebHiveHost
     public readonly HashSet<string> NemLoi = new(StringComparer.OrdinalIgnoreCase);
     public readonly HashSet<string> ChuaNap = new(StringComparer.OrdinalIgnoreCase);   // hồ sơ có nhưng Con chưa đăng nhập (hive chưa nạp)
     public bool DangNap(string sid) => CoHoSo.Contains(sid) && !ChuaNap.Contains(sid);
+    public bool ConHoSo(string sid) => CoHoSo.Contains(sid);
     public Dictionary<string, string> DaLuu = new(StringComparer.OrdinalIgnoreCase);
     public int SoLanLuu;
     public IReadOnlyDictionary<string, string> DocDaGhi() => new Dictionary<string, string>(DaLuu, StringComparer.OrdinalIgnoreCase);
@@ -50,8 +51,10 @@ public class WebHiveTests
     public void GoHklmCuMotLan()
     {
         var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };   // luật bản cũ trong HKLM
         var w = new WebPolicyHives(h);
         Assert.True(w.Ap(Luat("a.com"), null, new[] { Con }, T0).DaGoHklm);
+        Assert.Empty(h.Hklm.Ds);
         var n = h.Hklm.SoLanGhi;
         Assert.True(n > 0);
         Assert.False(w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30)).DaGoHklm);
@@ -168,6 +171,31 @@ public class WebHiveTests
         Assert.Empty(r.ChuaCoHive);
         Assert.Single(r.LoiHive!);
         Assert.StartsWith(Con + ":", r.LoiHive![0]);
+    }
+
+    [Fact]
+    public void HklmSach_KhongBaoDaGo()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        Assert.False(new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0).DaGoHklm);
+    }
+
+    [Fact]
+    public void GoHiveTaiKhoanCu_KhongBaoDoiChoConHienTai_HoSoBiXoaThiQuen()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con); h.CoHoSo.Add(BaMe);
+        var w = new WebPolicyHives(h);
+        w.Ap(Luat("a.com"), null, new[] { Con, BaMe }, T0);
+        // BaMe rời danh sách: hive được gỡ (DaDoi ⇒ báo trình duyệt cả máy) nhưng KHÔNG báo khay của Con (không thông báo giả)
+        var r0 = w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30));
+        Assert.True(r0.DaDoi);
+        Assert.False(r0.DoiChoConHienTai);
+        Assert.False(h.Hive[BaMe].Ds.ContainsKey(Chrome + @"\URLBlocklist"));
+        // hồ sơ Con bị xoá khỏi máy khi Con rời danh sách ⇒ không báo «chưa áp được» mãi
+        h.CoHoSo.Remove(Con);
+        var r = w.Ap(Luat("a.com"), null, Array.Empty<string>(), T0.AddSeconds(60));
+        Assert.Empty(r.ChuaCoHive);
+        Assert.False(h.DaLuu.ContainsKey(Con));
     }
 
     [Fact]

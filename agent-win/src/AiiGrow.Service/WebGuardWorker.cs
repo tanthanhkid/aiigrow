@@ -52,7 +52,9 @@ public sealed class WebGuardWorker : BackgroundService
         if (kq.DaDoi)
         {
             _log.LogInformation(p == null ? "Đã gỡ chính sách web của AiiGrow khỏi tài khoản Con" : "Đã áp chính sách web cho tài khoản Con: chế độ {c}, chặn {a}, cho phép {b}", p?.CheDo, p?.Chan.Count, p?.Cho.Count);
-            _rt?.WebDaDoi();   // khay (phiên Con) làm mới chính sách trình duyệt + nhắc mở lại trình duyệt
+            if (kq.DoiChoConHienTai) _rt?.WebDaDoi();   // khay (phiên Con) làm mới chính sách trình duyệt + nhắc mở lại trình duyệt
+            // lưới đỡ khi khay không chạy: tín hiệu chính sách MÁY cũng làm Chrome / Edge đọc lại cả HKCU (review #65/#75)
+            if (_baoDocLai) _log.LogInformation("Báo trình duyệt đọc lại chính sách: {c}", WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai());
         }
         var loiHive = string.Join("; ", kq.LoiHive ?? Array.Empty<string>());
         if (loiHive != _daBaoLoi)

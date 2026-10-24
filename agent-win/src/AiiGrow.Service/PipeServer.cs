@@ -138,7 +138,7 @@ public sealed class PipeServer : BackgroundService
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var xet = await api.CheckPlayAsync(muc, ct);
-                    var tra = new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutToiDa : 0 };
+                    var tra = new PipeResponse { Ok = true, Status = xet.Duoc ? "duoc" : "tu_choi", Message = xet.Duoc ? null : (xet.Cau ?? xet.LyDo), PlayMinutes = xet.Duoc ? xet.PhutHienThi : 0 };
                     lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
                     return tra;
                 }

@@ -139,6 +139,8 @@ public interface IWebPolicyRegistry
     void GoDword(string khoa, string ten);
     /// <summary>Xoá khoá nếu không còn giá trị / khoá con nào.</summary>
     void GoKhoaNeuTrong(string khoa);
+    /// <summary>Số giá trị CỦA AIIGROW đã thật sự xoá qua cổng này (để biết lần gỡ HKLM có gỡ gì không).</summary>
+    int SoMucDaXoa => 0;
 }
 
 public sealed class WebPolicyApplier
@@ -237,9 +239,11 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
         using (b) return b.OpenSubKey(_goc, true) ?? throw new IOException("Hive người dùng chưa nạp: " + _goc);
     }
 
-    private static bool XoaMucCuaTa(RegistryKey k)
+    public int SoMucDaXoa { get; private set; }
+
+    private bool XoaMucCuaTa(RegistryKey k, bool dem = true)
     {
-        foreach (var n in k.GetValueNames()) if (WebPolicyKeys.LaCuaTa(n)) k.DeleteValue(n, false);
+        foreach (var n in k.GetValueNames()) if (WebPolicyKeys.LaCuaTa(n)) { k.DeleteValue(n, false); if (dem) SoMucDaXoa++; }
         return k.GetValueNames().Length == 0 && k.SubKeyCount == 0;
     }
 
@@ -258,7 +262,7 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
             return;
         }
         using var k = TaoKhoa(hklm, khoaDs);
-        XoaMucCuaTa(k);
+        XoaMucCuaTa(k, dem: false);   // thay bằng danh sách mới, không phải «gỡ»
         for (int i = 0; i < muc.Count; i++) k.SetValue((WebPolicyKeys.ChiSoDau + 1 + i).ToString(), muc[i], RegistryValueKind.String);
     }
 
@@ -273,7 +277,7 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     {
         using var hklm = Hklm();
         using var k = hklm.OpenSubKey(khoa, true);
-        k?.DeleteValue(ten, false);
+        if (k?.GetValue(ten) != null) { k.DeleteValue(ten, false); SoMucDaXoa++; }
     }
 
     public void GoKhoaNeuTrong(string khoa)
@@ -312,7 +316,8 @@ public static class WebGuard
     public static void GoChinhSach()
     {
         var host = new WindowsWebHiveHost();
-        bool co = new WebPolicyApplier(host.May).GoTatCa();
+        bool co = false;
+        try { co = new WebPolicyApplier(host.May).GoTatCa(); } catch { }   // HKLM lỗi (IT khoá ACL…) không được chặn việc gỡ ở hive từng tài khoản
         foreach (var sid in WindowsWebHiveHost.TatCaHoSo())
         {
             try { if (host.VoiHive(sid, reg => new WebPolicyApplier(reg).GoTatCa())) co = true; }

@@ -94,6 +94,8 @@ public class ProcessGuardTests
     [InlineData(@"C:\Windows\System32\oobe\UserOOBEBroker.exe", false)]
     [InlineData(@"C:\Windows\System32\Microsoft-Edge-WebView\msedgewebview2.exe", false)]
     [InlineData(@"C:\Windows\System32\taskmgr.exe", true)]               // đóng được khay ⇒ phải qua phân loại
+    [InlineData(@"C:\Windows\PrintDialog\PrintDialog.exe", false)]
+    [InlineData(@"C:\Windows\System32\spool\drivers\x64\3\hpui.exe", false)]
     [InlineData(@"C:\Windows\Tasks\svchost.exe", true)]                  // tên hệ thống nhưng ở thư mục Con ghi được ⇒ không miễn
     [InlineData(@"C:\Windows\Temp\explorer.exe", true)]
     [InlineData(@"C:\Users\An\AppData\Local\Microsoft\EdgeWebView\x\msedgewebview2.exe", true)]
@@ -113,6 +115,13 @@ public class ProcessGuardTests
         Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\Microsoft.WindowsNotepad_11.0.0.0_x64__8wekyb3d8bbwe\Notepad\Notepad.exe", al, NoDirs, Safe, Win));
         Assert.True(ProcessGuard.ShouldClose(@"C:\Users\An\Downloads\notepad.exe", al, NoDirs, Safe, Win));
         Assert.True(ProcessGuard.ShouldClose(@"C:\Windows\Temp\taskmgr.exe", al, NoDirs, Safe, Win));
+        // Ba Mẹ cho phép thì bản thật ở thư mục con / Program Files vẫn chạy được
+        var al2 = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "powershell.exe", "wordpad.exe", "pwsh.exe" };
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", al2, NoDirs, Safe, Win));
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\Windows NT\Accessories\wordpad.exe", al2, NoDirs, Safe, Win));
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\PowerShell\7\pwsh.exe", al2, NoDirs, Safe, Win));
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Users\An\pwsh.exe", al2, NoDirs, Safe, Win));
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", Allowed, NoDirs, Safe, Win));   // không cho thì vẫn đóng
     }
 
     [Fact]
@@ -228,4 +237,17 @@ public class ConfigStoreTests
 
     [Fact]
     public void KhongCoFile_ThiTraNull() => Assert.Null(new ConfigStore(Path.Combine(Path.GetTempPath(), "khong-co", "c.json")).Load());
+}
+
+public class PlayCheckJsonTests
+{
+    [Fact]
+    public void PhutToiDaLe_DocDuoc_LamTronXuong()
+    {
+        // máy chủ cộng phút thưởng (real) ⇒ phutToiDa có thể lẻ; int? thì JSON lỗi và «Dùng điểm để chơi» hỏng (review #75)
+        var x = System.Text.Json.JsonSerializer.Deserialize<PlayCheck>("""{"duoc":true,"phutToiDa":22.5}""", Json.Options)!;
+        Assert.Equal(22.5, x.PhutToiDa);
+        Assert.Equal(22, x.PhutHienThi);
+        Assert.Null(System.Text.Json.JsonSerializer.Deserialize<PlayCheck>("""{"duoc":false}""", Json.Options)!.PhutHienThi);
+    }
 }

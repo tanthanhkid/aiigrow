@@ -172,8 +172,12 @@ public sealed class PlayCheck
     public string? LyDo { get; set; }
     /// <summary>Câu hiển thị cho con (do máy chủ soạn).</summary>
     public string? Cau { get; set; }
-    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Rob hiện «≈ X phút chơi». Số điểm KHÔNG sang khay.</summary>
-    public int? PhutToiDa { get; set; }
+    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Rob hiện «≈ X phút chơi». Số điểm KHÔNG sang khay.
+    /// Số THỰC: máy chủ cộng phút thưởng (real) nên có thể lẻ (22.5) — int? thì đọc JSON lỗi ⇒ cả «Dùng điểm để chơi» hỏng (review #75).
+    /// Hiển thị bằng <see cref="PhutHienThi"/>.</summary>
+    public double? PhutToiDa { get; set; }
+    /// <summary>Số phút làm tròn xuống để hiện cho Con (không hứa hơn máy chủ cho).</summary>
+    public int? PhutHienThi => PhutToiDa is { } p ? (int)Math.Floor(p) : null;
 }
 
 /// <summary>Kết quả mở phiên chơi (POST phien/mo).</summary>

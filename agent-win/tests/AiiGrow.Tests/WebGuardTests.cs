@@ -12,11 +12,12 @@ internal sealed class FakeWebRegistry : IWebPolicyRegistry
     public void DatDanhSach(string khoaDs, IReadOnlyList<string> muc)
     {
         SoLanGhi++;
-        if (muc.Count == 0) Ds.Remove(khoaDs); else Ds[khoaDs] = muc.ToList();
+        if (muc.Count == 0) { if (Ds.Remove(khoaDs)) SoMucDaXoa++; } else Ds[khoaDs] = muc.ToList();
     }
     public void DatDword(string khoa, string ten, int giaTri) { SoLanGhi++; Dword[khoa + "|" + ten] = giaTri; }
-    public void GoDword(string khoa, string ten) { SoLanGhi++; Dword.Remove(khoa + "|" + ten); }
+    public void GoDword(string khoa, string ten) { SoLanGhi++; if (Dword.Remove(khoa + "|" + ten)) SoMucDaXoa++; }
     public void GoKhoaNeuTrong(string khoa) { }
+    public int SoMucDaXoa { get; private set; }
 }
 
 public class WebPolicyTests

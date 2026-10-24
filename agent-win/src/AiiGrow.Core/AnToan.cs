@@ -233,11 +233,6 @@ public static partial class SystemCleanup
 
     public const string TenTacVuDon = "AiiGrow-Dontay";
 
-    /// <summary>Kịch bản PowerShell cho tác vụ dọn tách rời (SYSTEM). Chạy lại an toàn: thiếu thứ gì thì bỏ qua.
-    /// GỠ LUẬT APPLOCKER của AiiGrow (Name bắt đầu bằng «AiiGrow: ») như một LƯỚI ĐỠ, và CHỈ tự xoá tác vụ khi không còn luật nào của mình
-    /// VÀ đã xoá hết tệp — không để Con kẹt luật chặn kể cả khi dịch vụ gỡ luật thất bại.</summary>
-    /// <param name="traQuyen">tài khoản đã bị hạ lúc cài (<see cref="AgentConfig.DaHaQuyen"/>) — tác vụ thêm lại vào nhóm mỗi lần chạy (lưới đỡ khi
-    /// bộ gỡ chưa trả được quyền; đã là thành viên thì bỏ qua). Chỉ nhúng SID hợp lệ.</param>
     /// <summary>Nén gzip + base64 rồi bọc bằng vài dòng PowerShell giải nén chạy lại. Lý do: kịch bản đi qua HAI lớp -EncodedCommand (tham số tác vụ rồi lệnh đăng ký tác vụ),
     /// mỗi lớp nở ≈ 2,7 lần, mà dòng lệnh Windows tối đa ~32K ký tự — thêm phần gỡ luật web theo hive Con (0.2.6) làm e2e lỗi «The filename or extension is too long».</summary>
     public static string BocNen(string script)
@@ -253,6 +248,11 @@ public static partial class SystemCleanup
                "$r=New-Object IO.StreamReader($z,[Text.Encoding]::UTF8);Invoke-Expression $r.ReadToEnd()";
     }
 
+    /// <summary>Kịch bản PowerShell cho tác vụ dọn tách rời (SYSTEM). Chạy lại an toàn: thiếu thứ gì thì bỏ qua.
+    /// GỠ LUẬT APPLOCKER của AiiGrow (Name bắt đầu bằng «AiiGrow: ») như một LƯỚI ĐỠ, và CHỈ tự xoá tác vụ khi không còn luật nào của mình
+    /// VÀ đã xoá hết tệp — không để Con kẹt luật chặn kể cả khi dịch vụ gỡ luật thất bại.</summary>
+    /// <param name="traQuyen">tài khoản đã bị hạ lúc cài (<see cref="AgentConfig.DaHaQuyen"/>) — tác vụ thêm lại vào nhóm mỗi lần chạy (lưới đỡ khi
+    /// bộ gỡ chưa trả được quyền; đã là thành viên thì bỏ qua). Chỉ nhúng SID hợp lệ.</param>
     public static string KichBanDonTachRoi(string serviceName, string installDir, string dataDir, string uninstallKey, IEnumerable<QuyenDaHa>? traQuyen = null)
     {
         string Q(string s) => "'" + s.Replace("'", "''") + "'";

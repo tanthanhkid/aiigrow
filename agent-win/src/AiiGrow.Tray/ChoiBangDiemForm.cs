@@ -55,19 +55,21 @@ internal sealed class ChoiBangDiemForm : Form
 
     private async Task HoiPhutAsync(IReadOnlyList<string> choices)
     {
-        for (int i = 0; i < choices.Count && i < _nut.Count; i++)
+        // hỏi song song (pipe nhiều phiên bản; dịch vụ nhớ 60 giây) — 12 mục không phải chờ nối tiếp
+        var hoi = choices.Take(_nut.Count).Select(async (id, i) =>
         {
             int? phut = null;
             try
             {
-                var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = choices[i] });
+                var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = id });
                 if (r.Ok) phut = r.PlayMinutes;
             }
             catch { }
             if (IsDisposed) return;
-            var ten = "Chơi " + TrayView.FriendlyAppName(choices[i], null);
+            var ten = "Chơi " + TrayView.FriendlyAppName(id, null);
             _nut[i].Text = phut is > 0 ? $"{ten} · ≈ {phut} phút" : ten;
-        }
+        });
+        await Task.WhenAll(hoi);
     }
 
     private async Task ChoiAsync(string id)

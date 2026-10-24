@@ -65,7 +65,8 @@ public static class ProcessGuard
     /// KHÔNG gồm Windows\Temp, System32\Tasks, spool\drivers\color… (tài khoản chuẩn ghi được ⇒ Con đặt game vào đó là lọt — review #75).</summary>
     public static readonly string[] ThuMucConHeThong =
     {
-        ThuMucSystemApps, @"System32\DriverStore", @"System32\oobe", @"System32\Microsoft-Edge-WebView", "ImmersiveControlPanel", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
+        ThuMucSystemApps, @"System32\DriverStore", @"System32\oobe", @"System32\Microsoft-Edge-WebView", "ImmersiveControlPanel", "PrintDialog",
+        @"System32\spool\drivers\x64", @"System32\spool\drivers\W32X86", @"System32\spool\drivers\arm64", @"System32\WindowsPowerShell", @"SysWOW64\WindowsPowerShell", "IME", @"System32\InputMethod", @"SysWOW64\InputMethod",
         @"System32\Speech_OneCore", @"SysWOW64\Speech_OneCore", @"System32\Speech", @"SysWOW64\Speech", @"System32\wbem", @"SysWOW64\wbem",
     };
 
@@ -128,8 +129,12 @@ public static class ProcessGuard
         var name = FileName(exePath);
         var goi = TenGoiStore(exePath);
         if (goi != null && allowed.Contains(goi)) return true;
-        return allowed.Contains(name) && (!TenCuaWindows(name) || goi != null || winDir == null || TrongWindowsChiQuanTri(exePath, winDir));
+        return allowed.Contains(name) && (!TenCuaWindows(name) || goi != null || winDir == null || TrongWindowsChiQuanTri(exePath, winDir)
+            || ProgramFiles.IsMatch(exePath.Replace('/', '\\')));   // wordpad (Windows NT\Accessories), pwsh (PowerShell\7) — Program Files chỉ quản trị ghi
     }
+
+    private static readonly System.Text.RegularExpressions.Regex ProgramFiles = new(@"^[A-Za-z]:\\Program Files( \(x86\))?\\",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <param name="exePath">Đường dẫn đầy đủ của file chạy.</param>
     /// <param name="allowed">Tên exe (hoặc tên gói Store) được phép (so không phân biệt hoa thường).</param>

@@ -21,13 +21,19 @@ public interface IWebHiveHost
     bool VoiHive(string sid, Action<IWebPolicyRegistry> fn);
     /// <summary>Hive của <paramref name="sid"/> đang nạp (Con đang đăng nhập) — chỉ khi đó Con mới sửa được luật ⇒ mới cần ghi lại định kỳ.</summary>
     bool DangNap(string sid);
+    /// <summary>Máy còn hồ sơ của <paramref name="sid"/> (ProfileList có NTUSER.DAT) — không còn ⇒ thôi theo dõi hive đó.</summary>
+    bool ConHoSo(string sid);
     /// <summary>Các hive đã ghi luật (SID → vân tay) lưu qua lần khởi động lại dịch vụ — không thì Con rời danh sách lúc dịch vụ tắt là luật kẹt lại.</summary>
     IReadOnlyDictionary<string, string> DocDaGhi();
     void LuuDaGhi(IReadOnlyDictionary<string, string> ds);
 }
 
 /// <summary>Kết quả một vòng <see cref="WebPolicyHives.Ap"/>.</summary>
-public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<string> ChuaCoHive, string? LoiGoHklm, IReadOnlyList<string>? LoiHive = null);
+public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<string> ChuaCoHive, string? LoiGoHklm, IReadOnlyList<string>? LoiHive = null)
+{
+    /// <summary>Đổi ở hive của tài khoản Con hiện tại (khay cần làm mới + nhắc). DaDoi = đổi ở bất kỳ hive nào (báo trình duyệt cả máy đọc lại).</summary>
+    public bool DoiChoConHienTai { get; init; }
+}
 
 public sealed class WebPolicyHives
 {
@@ -67,11 +73,12 @@ public sealed class WebPolicyHives
     /// <param name="childSids">SID tài khoản Con (null = chưa đọc được ⇒ chỉ gỡ ở các hive đã ghi).</param>
     public KetQuaWebHive Ap(WebPolicy? p, string? maychuHost, IEnumerable<string>? childSids, DateTimeOffset now)
     {
-        bool doi = false, goHklm = false;
+        bool doi = false, doiCon = false, goHklm = false;
         string? loi = null;
         if (!_hklmDaGo)
         {
-            try { new WebPolicyApplier(_host.May).GoTatCa(); _hklmDaGo = true; goHklm = true; }
+            // DaGoHklm chỉ khi THẬT SỰ có luật cũ bị gỡ — không thì mỗi lần khởi động đều log sai + RefreshPolicyEx/gpupdate vô ích (review #75)
+            try { var may = _host.May; new WebPolicyApplier(may).GoTatCa(); _hklmDaGo = true; goHklm = may.SoMucDaXoa > 0; }
             catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
         }
 
@@ -94,11 +101,18 @@ public sealed class WebPolicyHives
             bool xong;
             try { xong = _host.VoiHive(sid, reg => new WebPolicyApplier(reg).Ap(muon, maychuHost)); }
             catch (Exception e) { loiHive.Add(sid + ": " + e.Message); continue; }   // ghi registry lỗi ≠ «chưa có hồ sơ» — báo riêng để log đúng
-            if (!xong) { chua.Add(sid); continue; }
+            if (!xong)
+            {
+                // cần GỠ mà hồ sơ đã bị xoá khỏi máy ⇒ không còn gì để gỡ: quên SID đó (không thử lại / báo «chưa áp được» mãi)
+                if (muon == null && !CoHoSoAnToan(sid)) { _daGhiCho.Remove(sid); _daAp.Remove(sid); continue; }
+                chua.Add(sid); continue;
+            }
             var doiLanNay = coTruoc ? truoc.VanTay != vt : _daGhiCho.Contains(sid) || muon != null;
             _daAp[sid] = (vt, now);
             if (muon != null) _daGhiCho.Add(sid); else _daGhiCho.Remove(sid);
             if (doiLanNay) doi = true;
+            // khay của Con chỉ cần biết khi đổi cho tài khoản Con HIỆN TẠI — gỡ ở hive tài khoản cũ không bắn «Luật web vừa đổi» (review #75)
+            if (doiLanNay && sids.Contains(sid, StringComparer.OrdinalIgnoreCase)) doiCon = true;
         }
         var luu = ChuoiLuu();
         if (luu != _daLuu)
@@ -106,10 +120,11 @@ public sealed class WebPolicyHives
             try { _host.LuuDaGhi(_daGhiCho.ToDictionary(x => x, x => _daAp[x].VanTay, StringComparer.OrdinalIgnoreCase)); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
-        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive);
+        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon };
     }
 
     private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }
+    private bool CoHoSoAnToan(string sid) { try { return _host.ConHoSo(sid); } catch { return true; } }
 }
 
 /// <summary>Registry thật theo hive người dùng. Chạy bằng SYSTEM / Administrator.</summary>
@@ -205,6 +220,8 @@ public sealed class WindowsWebHiveHost : IWebHiveHost
         File.WriteAllLines(tam, ds.Select(kv => kv.Key + " " + kv.Value));
         File.Move(tam, TepDaGhi, true);
     }
+
+    public bool ConHoSo(string sid) => DangNap(sid) || DuongNtUser(sid) != null;
 
     public bool DangNap(string sid)
     {
@@ -322,7 +339,10 @@ public static class AclChinhSach
                 moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(HeThong), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
                 moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(QuanTri), RegistryRights.FullControl, ke, PropagationFlags.None, AccessControlType.Allow));
                 moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(sidCon), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
-                moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier("S-1-15-2-1"), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
+                // giữ quyền ĐỌC như ACL mặc định của Policies: RESTRICTED, ALL APPLICATION PACKAGES, ALL RESTRICTED APPLICATION PACKAGES (tiến trình sandbox
+                // của Edge / WebView2 / UWP đọc chính sách người dùng) — review #75
+                foreach (var doc in new[] { "S-1-5-12", "S-1-15-2-1", "S-1-15-2-2" })
+                    moi.AddAccessRule(new RegistryAccessRule(new SecurityIdentifier(doc), RegistryRights.ReadKey, ke, PropagationFlags.None, AccessControlType.Allow));
                 k.SetAccessControl(moi);
             }
             catch { }
