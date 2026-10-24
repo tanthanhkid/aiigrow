@@ -140,3 +140,102 @@ test("cấp độ theo điểm kiếm được trọn đời, không theo số d
   assert.equal(await th.chaoMung(con), 0);
   assert.equal(await v.soDu(con), 10);
 });
+
+test("đổi tên Con và máy: chuẩn hoá, chặn rỗng/quá dài/trùng tên trong nhà, ghi nhật ký, cách ly gia đình", async () => {
+  const { fam } = await taoNha();
+  const ken = await g.taoCon(fam, { ten: "Ken" });
+  const bill = await g.taoCon(fam, { ten: "Bill" });
+  await g.suaCon(fam, ken, { ten: "  Kenny   Vũ " });
+  assert.equal((await g.conCua(fam, ken)).ten, "Kenny Vũ");
+  await loi(g.suaCon(fam, ken, { ten: "   " }), "thieu_ten");
+  await loi(g.suaCon(fam, ken, { ten: "x".repeat(31) }), "ten_qua_dai");
+  await loi(g.suaCon(fam, bill, { ten: "kenny vũ" }), "ten_trung");
+  await g.suaCon(fam, ken, { ten: "KENNY VŨ" });                      // tự đổi hoa thường tên mình thì được
+  assert.equal((await g.conCua(fam, ken)).ten, "KENNY VŨ");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_con'`, [fam])).length, 2);
+  const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "Laptop");
+  const dt = await g.doiTenMay(fam, r.deviceId, "  Máy   học bài ");
+  assert.equal(dt.ten, "Máy học bài");
+  assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
+  const dns = await import("./dns-gia-dinh.ts");
+  const may = (await g.mayTuToken(r.token))!;
+  assert.equal((await dns.thietBiChoMay(may)).ten, "Máy học bài");          // dòng DNS đã tạo, mang tên máy
+  await g.doiTenMay(fam, r.deviceId, "Máy mới");
+  assert.equal((await q<{ ten: string }>(`select ten from dns_thiet_bi where device_id = $1`, [r.deviceId]))[0].ten, "Máy mới");
+  const tuEv = (await q<{ d: { tu: string; den: string } | string }>(`select chi_tiet as d from events where family_id = $1 and loai = 'doi_ten_may' and device_id = $2 order by created_at desc, id desc limit 1`, [fam, r.deviceId]))[0].d;
+  assert.equal((typeof tuEv === "string" ? JSON.parse(tuEv) : tuEv).tu, "Máy học bài");
+  await g.doiTenMay(fam, r.deviceId, "Máy học bài");
+  await loi(g.doiTenMay(fam, r.deviceId, ""), "thieu_ten");
+  await loi(g.doiTenMay(fam, r.deviceId, "m".repeat(81)), "ten_qua_dai");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may' and device_id = $2 and child_id = $3`, [fam, r.deviceId, ken])).length, 3);   // 1 lần đổi đầu + 2 lần đổi trong khối DNS ở trên
+  const nha2 = await taoNha("Hoa");
+  await loi(g.doiTenMay(nha2.fam, r.deviceId, "Của người khác"), "khong_thay");
+  assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
+});
+
+test("tên Con/máy: taoCon gộp khoảng trắng + NFC và CHO PHÉP trùng tên (chỉ đổi tên mới chặn); đổi tên máy tới 80 ký tự; không đổi gì thì doi=false", async () => {
+  const { fam } = await taoNha();
+  const ken = await g.taoCon(fam, { ten: "  Kenny   Vũ " });
+  assert.equal((await g.conCua(fam, ken)).ten, "Kenny Vũ");
+  const trung = await g.taoCon(fam, { ten: "kenny   vũ" });                       // tạo mới: trùng tên vẫn được (bước thiết lập thử lại không kẹt)
+  assert.equal((await g.conCua(fam, trung)).ten, "kenny vũ");
+  await loi(g.taoCon(fam, { ten: "x".repeat(31) }), "ten_qua_dai");
+  // NFC: «ũ» dạng tổ hợp (u + dấu ngã) = «ũ» dựng sẵn; độ dài tính sau NFC
+  const nfd = await g.taoCon(fam, { ten: "Vi\u0323\u0302t".repeat(5) });             // 15 ký tự tổ hợp, 5×(V,i,ệ,t)
+  assert.equal((await g.conCua(fam, nfd)).ten, "Vi\u0323\u0302t".repeat(5).normalize("NFC"));
+  assert.equal((await g.conCua(fam, nfd)).ten.normalize("NFC"), (await g.conCua(fam, nfd)).ten);
+  assert.equal(g.chuanHoaTen("  A \t B\n"), "A B");
+  // dữ liệu cũ chưa chuẩn hoá (nhiều khoảng trắng) vẫn bị bắt trùng
+  await q(`insert into children(id, family_id, ten) values ('cu1', $1, ' Bé   Na ')`, [fam]);
+  await loi(g.suaCon(fam, ken, { ten: "BÉ  NA" }), "ten_trung");
+  // song song cùng tên: cả hai được tạo
+  const kq = await Promise.allSettled([g.taoCon(fam, { ten: "Song Song" }), g.taoCon(fam, { ten: "song song" })]);
+  assert.equal(kq.filter((x) => x.status === "fulfilled").length, 2);
+  // máy: 80 ký tự được (ghepMayGd lưu tới 80), 81 thì không
+  const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "m".repeat(80));
+  const t80 = "n".repeat(80);
+  assert.deepEqual(await g.doiTenMay(fam, r.deviceId, t80), { ok: true, ten: t80, doi: true });
+  await loi(g.doiTenMay(fam, r.deviceId, "n".repeat(81)), "ten_qua_dai");
+  assert.equal((await g.doiTenMay(fam, r.deviceId, `  ${t80}  `)).doi, false);          // chỉ khác khoảng trắng ⇒ không đổi
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may'`, [fam])).length, 1);
+});
+
+test("suaCon: tên không đổi (sau chuẩn hoá) không kiểm trùng; đọc tên cũ trong khoá nên nhật ký `tu` đúng khi đổi song song", async () => {
+  const { fam } = await taoNha();
+  const a = await g.taoCon(fam, { ten: "Mon" });
+  // dữ liệu cũ trùng tên sẵn (tạo trước khi có luật chặn trùng)
+  await q(`insert into children(id, family_id, ten) values ('trung1', $1, 'Mon')`, [fam]);
+  await g.suaCon(fam, a, { ten: "  Mon ", avatar: "rob-sao", nhom: "teen" });      // tên không đổi + sửa avatar/nhóm ⇒ không ten_trung
+  const c = await g.conCua(fam, a);
+  assert.equal(c.avatar, "rob-sao");
+  assert.equal(c.nhom, "teen");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_con'`, [fam])).length, 0);
+  // tên mới trùng Con khác vẫn bị chặn
+  await loi(g.suaCon(fam, a, { ten: "mon", avatar: "rob" }), "ten_trung");
+  // hai lần đổi song song: nhật ký tạo chuỗi nhất quán (tu của lần sau = den của lần trước)
+  const b = await g.taoCon(fam, { ten: "Bo" });
+  await Promise.all([g.suaCon(fam, b, { ten: "Bo Mot" }), g.suaCon(fam, b, { ten: "Bo Hai" })]);
+  const ev = await q<{ d: { tu: string; den: string } | string }>(`select chi_tiet as d from events where family_id = $1 and loai = 'doi_ten_con' and child_id = $2 order by created_at, id`, [fam, b]);
+  const ds = ev.map((e) => (typeof e.d === "string" ? JSON.parse(e.d) : e.d));
+  assert.equal(ds.length, 2);
+  const cuoi = (await g.conCua(fam, b)).ten;
+  const dau = ds.find((x) => x.tu === "Bo")!;
+  const sau = ds.find((x) => x.tu !== "Bo")!;
+  assert.equal(sau.tu, dau.den);
+  assert.equal(sau.den, cuoi);
+});
+
+test("tên không đổi sau chuẩn hoá nhưng lưu thô khác: ghi lại dạng chuẩn, không nhật ký, doi=false; bằng hẳn thì không ghi", async () => {
+  const { fam } = await taoNha();
+  await q(`insert into children(id, family_id, ten) values ('thoc1', $1, ' Bé   Na ')`, [fam]);
+  await g.suaCon(fam, "thoc1", { ten: "Bé Na" });
+  assert.equal((await g.conCua(fam, "thoc1")).ten, "Bé Na");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_con'`, [fam])).length, 0);
+  const ken = await g.taoCon(fam, { ten: "Ken" });
+  const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "Laptop");
+  await q(`update devices set name = '  Máy   Ken ' where id = $1`, [r.deviceId]);
+  assert.equal((await g.doiTenMay(fam, r.deviceId, "Máy Ken")).doi, false);
+  assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy Ken");
+  assert.equal((await g.doiTenMay(fam, r.deviceId, "Máy Ken")).doi, false);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_ten_may'`, [fam])).length, 0);
+});
