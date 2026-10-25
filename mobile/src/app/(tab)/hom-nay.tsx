@@ -72,7 +72,6 @@ export default function TrangChu() {
       </View>
     );
   }
-  const c = d.g.con[i];
   return (
     <View style={{ flex: 1 }}>
     <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />} tai={tai} vongTai noi={noi}>
@@ -93,7 +92,7 @@ export default function TrangChu() {
         </NhanMen>
         </View>
       </Vao>
-      {cua ? <BangCon key={c.id} {...cua} anMung={anMung} vi={vi} stVi={stVi} luat={d.luat} xem={d.xem} taiLai={tai} bao={bao} /> : null}
+      {cua ? <BangCon key={cua.c.id} {...cua} anMung={anMung} vi={vi} stVi={stVi} luat={d.luat} xem={d.xem} taiLai={tai} bao={bao} /> : null}
     </Man>
     <LopAnMung ref={lop} dich={dich} toi={batVi} />
     </View>

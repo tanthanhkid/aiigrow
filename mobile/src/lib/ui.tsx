@@ -51,7 +51,10 @@ export function Chu({ children, kieu = "thuong", co = 15, mau = M.chu, style, so
 const CAY_ICON = new Map<string, ReturnType<typeof parse>>();
 const cayIcon = (xml: string) => {
   let c = CAY_ICON.get(xml);
-  if (c === undefined) { c = parse(xml); CAY_ICON.set(xml, c); }
+  if (c === undefined) {
+    try { c = parse(xml); } catch { c = null; }       // như SvgXml: chuỗi hỏng ⇒ không vẽ icon, không sập màn
+    CAY_ICON.set(xml, c);
+  }
   return c;
 };
 
@@ -591,14 +594,16 @@ export function useTai<T>(fn: () => Promise<T>, khoa?: string) {
   // Mỗi lần màn được mở lại đều tải lại; dữ liệu về Y HỆT lần trước (so JSON) thì giữ nguyên đối tượng cũ ⇒ không vẽ lại cả màn
   // (đổi tab, quay về từ màn con). Màn tự đặt dữ liệu (setD) ⇒ quên mốc so, lần tải sau luôn đặt lại theo máy chủ.
   const moc = useRef<string | undefined>(docDaTai(khoa)?.j);
+  const lanTai = useRef(0);
   const setD = useCallback((v: React.SetStateAction<T | null>) => { moc.current = undefined; setD0(v); }, []);
   const [loi, setLoi] = useState<string | null>(null);
   const [matMang, setMatMang] = useState(false);
   // (không còn cờ «đang tải» trong state: vòng quay kéo-tải-lại do Man tự giữ — bật / tắt cờ mỗi lần tải là hai lần vẽ lại cả màn)
   const tai = useCallback(async () => {
-    const doi = doiDaTai;
+    const doi = doiDaTai, lan = ++lanTai.current;
     try {
       const v = await fn(), j = JSON.stringify(v);
+      if (lan !== lanTai.current) return;               // đã có lần tải mới hơn (vd sau khi ghi) ⇒ bỏ kết quả cũ, không đè
       if (j === undefined || j !== moc.current) { moc.current = j; setD0(v); }
       if (khoa) ghiDaTai(khoa, doi, v, j);
       setLoi(null);

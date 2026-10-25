@@ -1,6 +1,6 @@
 // Thanh điều hướng Ba Mẹ (kit.tab_bm): bốn mục — Trang chủ (bảng điều khiển) · Chờ duyệt · Nhiệm vụ & quà · Gia đình. «Báo cáo» không còn là tab
 // (route thường /bao-cao, mở từ Thời gian màn hình); số đỏ ở Chờ duyệt = nhiệm vụ + yêu cầu đang chờ của mọi Con.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -25,7 +25,9 @@ const SPEC_MO = { animation: "timing", config: { duration: 180 } } as const;
 
 function useChuyenTab(ds: string[], dang: number, giam: boolean) {
   const truoc = useRef<number | null>(null);
-  useEffect(() => {
+  // layout effect: chạy trong cùng lần commit với đổi tab, trước khi vẽ — cùng nhịp với lò xo của bộ điều hướng; lần dựng đầu (mở thẳng một tab,
+  // đăng nhập lại) đặt đúng vị trí mọi tab trước khung đầu tiên
+  useLayoutEffect(() => {
     const cu = truoc.current;
     truoc.current = dang;
     ds.forEach((ten, i) => {
