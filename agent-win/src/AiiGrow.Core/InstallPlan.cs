@@ -21,6 +21,7 @@ public static class InstallPlan
         new InstallStep("service", "Tạo dịch vụ " + Paths.ServiceName + " chạy bằng tài khoản hệ thống (LocalSystem), khởi động cùng máy"),
         new InstallStep("recovery", "Đặt khôi phục dịch vụ (sc failure: restart/restart/restart) để SCM tự chạy lại khi lỗi"),
         new InstallStep("tray-notice", "Đặt Tray tự chạy (HKLM Run) + thông báo trước đăng nhập 'Máy được Ba Mẹ quản lý'"),
+        new InstallStep("dns", "DNS gia đình: lấy hồ sơ DoH từ máy chủ (GET /api/device/ho-so-dns), đặt cho card mạng (Windows 11); không có IP resolver / Windows 10 ⇒ bỏ qua"),
         new InstallStep("applocker", "Dựng AppLocker: sinh XML luật chặn/cho phép rồi áp khi dịch vụ chạy trên máy con"),
     };
 
