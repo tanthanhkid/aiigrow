@@ -187,7 +187,7 @@ internal sealed class SetupForm : Form
         Man(2, "Điều khoản", "Trước khi cài, Ba Mẹ đọc nhanh", BuocChao);
         _body.Controls.Add(Tick("AiiGrow ghi tên app, trang web và số phút Con dùng máy để Ba Mẹ xem. Chỉ gia đình mình xem được."));
         _body.Controls.Add(Tick("Không chụp màn hình, không đọc tin nhắn, không ghi bàn phím của Con."));
-        _body.Controls.Add(Tick("Mặc định chỉ giám sát (ghi nhận, không khoá). Ba Mẹ bật «chặn thật» khi cần, ngay trong app."));
+        _body.Controls.Add(Tick("Cài xong là chặn luôn: app chưa được Ba Mẹ xếp loại không mở được, Con bấm «Xin phép Ba Mẹ» để Ba Mẹ duyệt. Ba Mẹ chuyển «Chỉ theo dõi» (không chặn) bất cứ lúc nào, ngay trong app."));
         _body.Controls.Add(Tick("Gỡ được bất cứ lúc nào: Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt, cần mật khẩu máy của Ba Mẹ."));
         var co = new CheckBox
         {
