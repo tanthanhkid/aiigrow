@@ -59,8 +59,19 @@ public enum LichSuWeb {
     lich.date(byAdding: .day, value: -1, to: lich.startOfDay(for: now)) ?? now.addingTimeInterval(-86_400)
   }
 
+  /// Dấu (đường + cỡ + giờ sửa) của các tệp lịch sử và -wal — đổi thì mới đọc lại.
+  public static func dauTep(_ ds: [String]) -> String {
+    let fm = FileManager.default
+    return ds.flatMap { [$0, $0 + "-wal"] }.compactMap { p -> String? in
+      guard let a = try? fm.attributesOfItem(atPath: p) else { return nil }
+      return "\(p):\((a[.size] as? NSNumber)?.intValue ?? 0):\((a[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0)"
+    }.joined(separator: ";")
+  }
+
   public static func than(_ ds: [TongWebNgay]) -> [String: Any] {
-    ["ds": ds.prefix(toiDaMotLan).map { ["ngay": $0.ngay, "tenMien": $0.tenMien, "soLan": $0.soLan, "giay": $0.giay, "lanCuoi": NgayGio.viet($0.lanCuoi)] }]
+    // vượt trần ⇒ ưu tiên HÔM NAY (ngày mới trước), rồi theo tên miền
+    let xep = ds.sorted { $0.ngay != $1.ngay ? $0.ngay > $1.ngay : $0.tenMien < $1.tenMien }
+    return ["ds": xep.prefix(toiDaMotLan).map { ["ngay": $0.ngay, "tenMien": $0.tenMien, "soLan": $0.soLan, "giay": $0.giay, "lanCuoi": NgayGio.viet($0.lanCuoi)] }]
   }
 
   // MARK: đọc tệp SQLite (chép ra thư mục tạm trước: trình duyệt đang mở giữ khoá ghi)

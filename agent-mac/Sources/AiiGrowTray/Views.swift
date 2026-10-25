@@ -178,7 +178,9 @@ struct GhepMayView: View {
       defer { dangGui = false }                                  // KHÔNG khiGui(false) ở đây: cờ chặn tự đóng giữ tới khi dongLai chạy (hiện «Đã ghép máy» đủ 2 giây)
       do {
         switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon)) {
-        case .loi(_, let chu): loi = chu; khiGui(false)
+        case .loi(let mx, let chu):
+          loi = chu; khiGui(false)
+          if ["ma_sai", "ma_da_dung", "ma_het_han", "sai_nen_tang"].contains(mx) && motCham { dungMa = true }   // token gói hỏng ⇒ hiện ô mã 6 số
         case .canhBao(_, let chu): canhBao = chu; khiCanhBao(); khiGui(false)     // đã ghép nhưng cần Ba Mẹ làm thêm: giữ cửa sổ mở để đọc, không tự đóng
         default: xong = true; DispatchQueue.main.asyncAfter(deadline: .now() + 2) { dongLai() }
         }

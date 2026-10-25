@@ -51,7 +51,7 @@ final class DongBoOSTests: XCTestCase {
     let b = BoDemLog()
     for i in 0..<1005 { b.them("dòng \(i)") }
     XCTAssertEqual(b.soDong, NhatKyMay.toiDaBoNho)
-    let lo = b.lo(); XCTAssertEqual(lo.count, 200); b.daGui(lo.count); XCTAssertEqual(b.soDong, 800)
+    let lo = b.lo(); XCTAssertEqual(lo.count, 200); b.them("mới"); b.daGui(den: lo.last!.so); XCTAssertEqual(b.soDong, 801, "dòng thêm trong lúc gửi vẫn giữ")
     var q: [SuKienMay] = []
     for i in 0..<205 { NhatKyMay.them(&q, SuKienMay(loai: "chan_app", luc: Date(), chiTiet: ["i": "\(i)"])) }
     XCTAssertEqual(q.count, 200); XCTAssertEqual(q.first?.chiTiet["i"], "5", "giữ sự kiện MỚI nhất")

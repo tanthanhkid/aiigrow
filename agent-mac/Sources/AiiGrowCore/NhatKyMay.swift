@@ -54,15 +54,18 @@ public enum NhatKyMay {
 /// Bộ đệm log trong bộ nhớ (an toàn luồng: ghiLog gọi từ nhiều nơi).
 public final class BoDemLog: @unchecked Sendable {
   private let khoa = NSLock()
-  private var ds: [DongLog] = []
+  private var ds: [(so: Int, dong: DongLog)] = []
+  private var soCuoi = 0
   public init() {}
   public func them(_ s: String, luc: Date = Date()) {
     khoa.lock(); defer { khoa.unlock() }
-    ds.append(DongLog(luc: luc, muc: NhatKyMay.muc(s), noiDung: s))
+    soCuoi += 1
+    ds.append((soCuoi, DongLog(luc: luc, muc: NhatKyMay.muc(s), noiDung: s)))
     if ds.count > NhatKyMay.toiDaBoNho { ds.removeFirst(ds.count - NhatKyMay.toiDaBoNho) }
   }
-  /// Lấy tối đa một lô để gửi (không xoá — gọi `daGui(n)` khi máy chủ nhận).
-  public func lo() -> [DongLog] { khoa.lock(); defer { khoa.unlock() }; return Array(ds.prefix(NhatKyMay.moiLanLog)) }
-  public func daGui(_ n: Int) { khoa.lock(); defer { khoa.unlock() }; ds.removeFirst(min(n, ds.count)) }
+  /// Lấy tối đa một lô để gửi kèm số thứ tự (không xoá — gọi `daGui(den:)` khi máy chủ nhận).
+  public func lo() -> [(so: Int, dong: DongLog)] { khoa.lock(); defer { khoa.unlock() }; return Array(ds.prefix(NhatKyMay.moiLanLog)) }
+  /// Bỏ các dòng đã gửi theo SỐ THỨ TỰ (dòng mới thêm / dòng cũ bị đẩy ra trong lúc gửi không làm xoá nhầm dòng chưa gửi).
+  public func daGui(den so: Int) { khoa.lock(); defer { khoa.unlock() }; ds.removeAll { $0.so <= so } }
   public var soDong: Int { khoa.lock(); defer { khoa.unlock() }; return ds.count }
 }
