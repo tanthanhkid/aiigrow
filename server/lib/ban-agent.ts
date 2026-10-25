@@ -7,7 +7,7 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
-// 0.2.10: exe từ CI agent-win run 40175224402 (job build goc, commit d4f5e46 (tag phathanh-4-src), PR #132); sha256 đo trên tệp tải về từ Release.
+// 0.2.10: exe từ CI agent-win run 40175224402 (job build goc, cây merge 70ed4e8 = d4f5e46 + main 4c3a55c, tag phathanh-4-src, PR #132); sha256 đo trên tệp tải về từ Release.
 export const BAN_AGENT_WINDOWS = {
   version: "0.2.10",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.10.exe",
