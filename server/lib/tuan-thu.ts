@@ -228,6 +228,7 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
     return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung, baoVe: bv.muc, baoVeCau: bv.cau, baoVeThieu: bv.thieu,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? banMayBao(m),
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
+      coMaOffline: coMaOffline(m.platform),   // app Ba Mẹ hiện «Mã mở khi mất mạng» theo cờ này (máy chủ cũ không gửi ⇒ chỉ Windows)
       // hạn «đang mở» thật của máy Windows (mở khẩn cấp hoặc thêm giờ đã duyệt) — app hiện «Đang mở tới …» + «Khoá lại ngay»
       // Con đang bị khoá thì cửa sổ không có tác dụng (khoá thắng — agent-windows) ⇒ không báo «Đang mở tới …»
       moDen: coCuaSoThemGio(m.platform) && !(m.child_id && dangKhoa(cfgCon.get(m.child_id), now)) ? (await hanMoCuaMay(m, m.child_id, now))?.toISOString() ?? null : null,

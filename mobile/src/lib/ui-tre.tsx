@@ -4,7 +4,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, TextInput, View, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useGlobalSearchParams } from "expo-router";
 import { VongClay } from "./bieu-do";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BieuTron, Chu, DiemPill, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
@@ -26,14 +26,30 @@ export function TreProvider({ children }: { children: ReactNode }) {
       setToi(r.con);
     } catch { /* mất mạng: giữ hồ sơ cũ */ }
   }, []);
+  // App native: agent Android / iOS mở thẳng `aiigrow://tre/nha?phien=<phiên Con>` (phiên lấy bằng POST /api/device/phien-web của máy Con)
+  // ⇒ nhận phiên từ tham số đường dẫn; link mới với phiên khác (đổi Con) thì đổi theo. Web đọc ?phien ở dưới (khung Kid của agent Windows).
+  const { phien: thamSoPhien } = useGlobalSearchParams<{ phien?: string }>();
+  const phienNative = Platform.OS !== "web" && typeof thamSoPhien === "string" && /^[\w-]{16,200}$/.test(thamSoPhien) ? thamSoPhien : null;
+  const daNhan = useRef<string | null>(phienNative);
+  const daNap = useRef(false);
+  useEffect(() => {
+    if (!phienNative || !daNap.current || daNhan.current === phienNative) return;
+    daNhan.current = phienNative;
+    (async () => {
+      await kid.dat(phienNative);
+      setCo(true);
+      setToi(null);
+      await nap();
+    })();
+  }, [phienNative, nap]);
   useEffect(() => {
     (async () => {
       await may.nap();
       // agent Windows mở khung Kid ở <server>/app/tre?phien=<phiên Con>: nhận phiên PIN từ query rồi xoá khỏi URL
-      const qPhien = Platform.OS === "web" ? new URLSearchParams(globalThis.location?.search ?? "").get("phien") : null;
+      const qPhien = Platform.OS === "web" ? new URLSearchParams(globalThis.location?.search ?? "").get("phien") : daNhan.current;
       if (qPhien) {
         await kid.dat(qPhien);
-        try {
+        if (Platform.OS === "web") try {
           const u = new URL(globalThis.location.href);
           u.searchParams.delete("phien");
           globalThis.history?.replaceState(globalThis.history.state, "", u.pathname + u.search + u.hash);
@@ -42,6 +58,7 @@ export function TreProvider({ children }: { children: ReactNode }) {
       const t = await kid.nap();
       setCo(!!t);
       if (t) await nap();
+      daNap.current = true;
       setSan(true);
     })();
     kid.onHetPhien(() => { setCo(false); setToi(null); router.replace("/tre/pin"); });

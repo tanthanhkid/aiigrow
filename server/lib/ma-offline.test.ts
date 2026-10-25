@@ -47,3 +47,9 @@ test("mã rác / sai định dạng ⇒ false", () => {
 test("vector cố định cho đối chiếu C#", () => {
   assert.equal(maOffline("test-secret-aiigrow", new Date(1_700_000_000_000)), "781646");
 });
+
+test("vector chung với agent iOS (agent-ios/Tests MaOfflineTests) và Windows (MaOffline.cs): RFC 6238 + mã AiiGrow cố định", () => {
+  // RFC 6238 phụ lục B (SHA1, T = 59 giây, bước 30, 8 số)
+  assert.equal(maOffline("12345678901234567890", new Date(59_000), 30, 8), "94287082");
+  assert.equal(maOffline("aiigrow-thu-ma-offline", new Date(1_700_000_000_000)), "703799");
+});

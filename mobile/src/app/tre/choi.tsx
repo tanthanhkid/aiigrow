@@ -2,7 +2,7 @@
 // Nhiều trò chơi được phép ⇒ chọn một (≤ 3 hiện sẵn). Chưa được chơi (nghỉ, ngoài giờ, hết trần, hết điểm) ⇒ đưa tới màn giải thích.
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Linking, Platform, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BaoLoi, CanhGiua, Chu, M, Nut, OChon, cauLoi, useLam, useTai } from "@/lib/ui";
 import { AppIc, ManTre, NenChoi, useTre } from "@/lib/ui-tre";
@@ -37,6 +37,9 @@ export default function BatDauChoi() {
   const batDau = () => lam(async () => {
     try {
       const p = await kid.goi<{ id: string }>("phien/mo", { muc: dangChon });
+      // iPhone / iPad: khiên Screen Time do app AiiGrow Con giữ — mở app đó để đồng bộ ngay, gỡ khiên giải trí đúng số phút của phiên
+      // (agent-ios KeHoach «phiendiem»). Chưa cài app Con thì bỏ qua.
+      if (Platform.OS === "ios") Linking.openURL(`aiigrowcon://choi?phien=${encodeURIComponent(p.id)}`).catch(() => {});
       router.replace(`/tre/phien/${p.id}?muc=${encodeURIComponent(dangChon ?? "")}`);
     } catch (e) {
       if (e instanceof LoiApi && e.ma === "khong_mo_duoc") { setXet({ duoc: false, cau: e.message }); return; }

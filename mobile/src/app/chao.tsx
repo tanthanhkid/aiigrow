@@ -21,6 +21,13 @@ export default function Chao() {
         <Pressable onPress={moTai} accessibilityRole="link" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
           <Chu kieu="rat" co={13} mau={M.chinhInk}>Tải cho máy của Con →</Chu>
         </Pressable>
+        {Platform.OS !== "web" ? (
+          // App native: điện thoại / máy tính bảng của Con dùng luôn app này cho màn Con (Nhiệm vụ, Nộp bài, Quà, Chơi bằng điểm)
+          <Pressable onPress={() => router.push("/tre")} accessibilityRole="button" accessibilityLabel="Máy của Con — mở màn của Con"
+            style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+            <Chu co={13} mau={M.chu3}>Đây là máy của Con? <Chu kieu="rat" co={13} mau={M.chinhInk}>Máy của Con</Chu></Chu>
+          </Pressable>
+        ) : null}
       </>
     }>
       <Canh lv="rob-goc" tieu="Con lớn lên bằng yêu thương" loi="Và nhận quyền lợi bằng nỗ lực của chính mình." />

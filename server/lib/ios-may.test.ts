@@ -60,6 +60,7 @@ test("thêm giờ cho máy iOS ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; 
   await tt.huyMoKhanCap(fam, may.id, bm, new Date());
   assert.equal((await nhip(r.token, ios())).body.grantEndsAt, null);
   // mã mở offline: iOS chưa có (Windows, Mac, Android có)
+  assert.equal((await tt.dsTuanThu(fam, new Date())).find((x) => x.id === may.id)?.coMaOffline, false, "cờ app Ba Mẹ theo cùng hàm");
   await assert.rejects(tt.maOfflineChoMay(fam, may.id, bm, new Date()), (e: { ma?: string }) => e.ma === "sai_nen_tang");
 });
 

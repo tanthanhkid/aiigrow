@@ -212,7 +212,7 @@ if (process.argv.includes("--giao-dien")) {
     M("con-chan-web", "/tre/chan-web?url=scratch.mit.edu", "Trang này Rob chưa biết"),
     M("con-chan-web (teen)", "/tre/chan-web?url=scratch.mit.edu", "Quy tắc: trang web mới", { kb: teen }),
     M("con-xin-phep", "/tre/xin-phep?loai=mo_web&gia=scratch.mit.edu&tu=chan-web", "Xin mở trang web"),
-    M("con-xin-phep (thêm giờ)", "/tre/xin-phep", "Thêm bao lâu?"),
+    M("con-xin-phep (thêm giờ)", "/tre/xin-phep", "Đổi điểm lấy giờ chơi"),
     M("con-xin-phep (đủ 3)", "/tre/xin-phep", "đã có 3 yêu cầu đang chờ", { kb: { "GET yeu-cau": { ds: [yc("a", "them_gio", { phut: 15 }), yc("b", "them_gio", { phut: 30 }), yc("c", "mo_web", { gia_tri: "abc.vn" })], lyDoNhanh: [] } } }),
     M("con-yeu-cau", "/tre/yeu-cau", "Ba Mẹ đồng ý rồi!"),
     M("con-yeu-cau (trống)", "/tre/yeu-cau", "chưa xin gì cả", { kb: { "GET yeu-cau": { ds: [], lyDoNhanh: [] } } }),

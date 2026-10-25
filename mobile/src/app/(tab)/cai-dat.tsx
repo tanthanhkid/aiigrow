@@ -2,7 +2,7 @@
 // thông báo + giờ yên lặng, trợ giúp, đăng xuất, XOÁ TÀI KHOẢN (Apple 5.1.1(v), server/lib/xoa-tai-khoan.ts). Việc hằng ngày (web, app, giờ, máy)
 // đã lên Trang chủ.
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { router } from "expo-router";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
@@ -64,6 +64,11 @@ export default function CaiDat() {
         {d.g.con.map((c, i) => <Dong key={c.id} dau={i === 0} tieu={c.ten} phu="Hồ sơ, nhóm tuổi, mã PIN, liên kết AiiRob" trai={<Avt ten={c.ten} mau={MAU_CON[i % MAU_CON.length]} />}
           bam={() => router.push(`/ho-so/${c.id}`)} />)}
         <Dong dau={!d.g.con.length} tieu="Thêm Con" trai={<BieuTron ic="cong" />} bam={() => router.push("/thiet-lap/ten-con")} />
+        {Platform.OS !== "web" && d.g.con.length ? (
+          // máy dùng chung với Con (iPad / điện thoại cũ): mở màn Con ngay trên máy này — Con chọn tên + PIN (ghép máy bằng mã 6 số lần đầu)
+          <Dong tieu="Máy của Con" phu="Mở màn của Con trên máy này: nhiệm vụ, nộp bài, quà, chơi bằng điểm" trai={<BieuTron ic="sao" mau="vang" />}
+            bam={() => router.push("/tre")} />
+        ) : null}
       </Nhom>
       <NhomTieu chu="Mọi người" />
       <Nhom>
