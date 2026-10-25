@@ -32,6 +32,7 @@ final class MonitorExtension: DeviceActivityMonitor {
   // Lịch không lặp có warningTime (thêm giờ, phiên điểm, mở bằng mã): iOS gọi trước khi lịch kết thúc ⇒ nhắc «còn 5 phút».
   override func intervalWillEndWarning(for activity: DeviceActivityName) {
     super.intervalWillEndWarning(for: activity)
-    ThongBao.nhacSapHet(activity.rawValue)
+    // chỉ nhắc khi hết lịch này máy thật sự khoá lại (thêm giờ hết nhưng phiên điểm / mã offline còn ⇒ im)
+    if ApLai.seKhoaSau(LapKeHoach.nhacTruoc + 1) { ThongBao.nhacSapHet(activity.rawValue) }
   }
 }

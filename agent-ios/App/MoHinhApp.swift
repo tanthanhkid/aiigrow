@@ -110,6 +110,7 @@ final class MoHinhApp: ObservableObject {
       if uq.trangThai == "approved" { ThongBao.xinQuyen() }     // nhắc «còn 5 phút» + «Xin thêm giờ» từ màn chặn cần quyền thông báo (hỏi một lần)
     } catch let e as LoiApi where e.chuaGhep {
       KhoBiMat.ghi(nil); man = .chuaGhep; loi = "Máy đã được gỡ khỏi gia đình. Nhờ Ba Mẹ ghép lại nếu cần."
+      for k in [Khoa.suKienCho, Khoa.moTamOffline] { kho.ghi(nil, k) }     // sự kiện / lượt mở của gia đình cũ không sang gia đình mới
     } catch {
       dongBo().apLucNay()           // mất mạng: vẫn áp theo kế hoạch đã nhớ
       loi = error.localizedDescription
@@ -134,11 +135,14 @@ final class MoHinhApp: ObservableObject {
     guard demo == nil else { return }
     dangBan = true; defer { dangBan = false }
     do {
-      let p = try await ApiClient(goc: mayChu, token: KhoBiMat.doc()).phienWeb()
-      let q = p      // base64url — đã an toàn trong URL
+      // máy dùng chung (chưa biết Con nào) ⇒ máy chủ trả chua_chon_con: mở màn Con không kèm phiên — Con chọn tên + PIN ở đó
+      let p: String?
+      do { p = try await ApiClient(goc: mayChu, token: KhoBiMat.doc()).phienWeb() }
+      catch LoiApi.mayChu(let ma, _, _) where ma == "chua_chon_con" { p = nil }
+      let q = p.map { "?phien=\($0)" } ?? ""       // base64url — đã an toàn trong URL
       let duoi = duong.isEmpty ? "" : "/\(duong)"
-      let app = URL(string: "aiigrow://tre\(duoi)?phien=\(q)")!
-      let web = URL(string: "\(mayChu.absoluteString)/tre\(duoi)?phien=\(q)")!
+      let app = URL(string: "aiigrow://tre\(duoi)\(q)")!
+      let web = URL(string: "\(mayChu.absoluteString)/tre\(duoi)\(q)")!
       loi = nil
       if await UIApplication.shared.open(app) { return }
       await UIApplication.shared.open(web)

@@ -65,12 +65,22 @@ public struct MoTamOffline: Codable, Equatable {
   public var maCuoi: String?
   public var maCuoiLuc: Date?
   public var saiLuc: [Date] = []
+  /// Giờ muộn nhất máy từng thấy trong lượt mở (app + chuông lịch ghi lại) — đồng hồ bị lùi về trước mốc này ⇒ coi như hết mở.
+  public var thayMuonNhat: Date?
   public init() {}
 
-  /// Đang mở? Đồng hồ bị lùi về trước lúc mở ⇒ coi như không mở (không kéo dài bằng cách chỉnh giờ).
+  /// Đang mở? Đồng hồ bị lùi (về trước lúc mở, hoặc về trước lần đã thấy) ⇒ coi như không mở (không kéo dài / hồi sinh bằng cách chỉnh giờ).
   public func dangMo(_ now: Date) -> Bool {
     guard let den = moDen, den > now else { return false }
+    if let t = thayMuonNhat, now < t.addingTimeInterval(-120) { return false }
     return moTu.map { now >= $0.addingTimeInterval(-60) } ?? true
+  }
+
+  /// Ghi giờ đã thấy (gọi mỗi lần app / extension suy lại khiên). → true nếu có đổi (cần lưu).
+  public mutating func ghiThay(_ now: Date) -> Bool {
+    guard moDen != nil, (thayMuonNhat ?? .distantPast) < now else { return false }
+    thayMuonNhat = now
+    return true
   }
 
   /// Hạn mở còn hiệu lực lúc `now` (nil = không mở).
@@ -93,7 +103,7 @@ public struct MoTamOffline: Codable, Equatable {
     }
     guard MaOffline.kiem(biMat, sach, now: now) else { saiLuc.append(now); return .sai }
     let p = min(120, max(5, phut))
-    moTu = now; moDen = now.addingTimeInterval(TimeInterval(p * 60))
+    moTu = now; moDen = now.addingTimeInterval(TimeInterval(p * 60)); thayMuonNhat = now
     maCuoi = sach; maCuoiLuc = now; saiLuc = []
     return .daMo
   }

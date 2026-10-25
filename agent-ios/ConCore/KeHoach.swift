@@ -79,6 +79,19 @@ public enum LapKeHoach {
     return den > now ? den : nil
   }
 
+  /// Lịch không lặp kết thúc ĐÚNG `den` (bắt đầu lùi lại cho đủ 15 phút — giới hạn DeviceActivity), nhắc trước 5 phút nếu còn đủ thời gian.
+  public static func lichMotLan(_ ten: String, den: Date, now: Date) -> MucLich {
+    MucLich(ten: ten, batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: min(now, den.addingTimeInterval(-Double(khoangNganNhat * 60))),
+            ketThucLuc: den, suKien: [], nhacTruocPhut: den.timeIntervalSince(now) > Double(nhacTruoc * 60) ? nhacTruoc : nil)
+  }
+
+  /// Thêm một lịch không lặp vào danh sách đã đầy (≤ lichToiDa): bỏ khung giờ chơi cuối cùng («mo.*», áp khi Con mở app) để chừa chỗ.
+  public static func themLich(_ ds: [MucLich], _ m: MucLich) -> [MucLich] {
+    var ds = ds.filter { $0.ten != m.ten }
+    if ds.count >= lichToiDa, let i = ds.lastIndex(where: { $0.ten.hasPrefix("mo.") }) { ds.remove(at: i) }
+    return ds + [m]
+  }
+
   /// `truoc`: kế hoạch đã lưu (giữ hạn phiên điểm đã neo).
   public static func tu(_ n: NhipTraVe, now: Date = Date(), truoc: KeHoach? = nil) -> KeHoach {
     let cs = n.chinhSach, nt = n.nenTang
@@ -122,19 +135,11 @@ public enum LapKeHoach {
     if tran > 0 { sk.append(SuKien(ten: "tran", phut: tran)) }
     lich.append(MucLich(ten: "ngay", batDau: 0, ketThuc: 1439, thu: nil, lap: true, suKien: sk))
     // 3. thêm giờ đã duyệt — một lịch không lặp kết thúc ĐÚNG lúc hết hạn (bắt đầu lùi lại cho đủ 15 phút)
-    if let moDen {
-      let bd = min(now, moDen.addingTimeInterval(-Double(khoangNganNhat * 60)))
-      lich.append(MucLich(ten: "themgio", batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: bd, ketThucLuc: moDen, suKien: [],
-                          nhacTruocPhut: moDen.timeIntervalSince(now) > Double(nhacTruoc * 60) ? nhacTruoc : nil))
-    }
-    // 3b. phiên Chơi bằng điểm — như thêm giờ: lịch không lặp kết thúc đúng hạn phiên (đã neo), nhắc trước 5 phút
-    let phien = cs.phienDiem?.phien
+    if let moDen { lich.append(lichMotLan("themgio", den: moDen, now: now)) }
+    // 3b. phiên Chơi bằng điểm mở trên CHÍNH máy này (máy chủ cũ không gửi `may` ⇒ nhận) — như thêm giờ: lịch không lặp đúng hạn phiên (đã neo)
+    let phien = cs.phienDiem?.phien.flatMap { p in p.may == nil || p.may == cs.may.id ? p : nil }
     let phienDen = hanPhienDiem(phien, truoc: truoc, now: now)
-    if let phienDen {
-      let bd = min(now, phienDen.addingTimeInterval(-Double(khoangNganNhat * 60)))
-      lich.append(MucLich(ten: "phiendiem", batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: bd, ketThucLuc: phienDen, suKien: [],
-                          nhacTruocPhut: phienDen.timeIntervalSince(now) > Double(nhacTruoc * 60) ? nhacTruoc : nil))
-    }
+    if let phienDen { lich.append(lichMotLan("phiendiem", den: phienDen, now: now)) }
     // 4. khung giờ chơi — chung mọi ngày nếu ngày thường = cuối tuần, không thì theo từng thứ
     var mo: [MucLich] = []
     let them = { (k: Khung, thu: Int?, ten: String) in

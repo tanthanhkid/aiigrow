@@ -355,6 +355,20 @@ final class ApiVaDongBoTests: XCTestCase {
     XCTAssertNil(het.phienDiemDen); XCTAssertNil(het.lich.first { $0.ten == "phiendiem" })
     // Khoá ngay / giờ ngủ vẫn thắng phiên điểm
     XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 22), dung: nil).lyDo, .ngu)
+    // phiên mở trên máy KHÁC (máy tính) ⇒ iPhone không gỡ khiên; mở trên chính máy này (may = m1) ⇒ gỡ
+    let s = String(data: nhipMau(), encoding: .utf8)!
+    let khac = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"P9","muc":"roblox.exe","conPhut":30,"may":"pc1"}"#)
+    XCTAssertNil(LapKeHoach.tu(try JSONDecoder().decode(NhipTraVe.self, from: khac.data(using: .utf8)!), now: t0).phienDiemDen)
+    let minh = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"P9","muc":"x","conPhut":30,"may":"m1"}"#)
+    XCTAssertNotNil(LapKeHoach.tu(try JSONDecoder().decode(NhipTraVe.self, from: minh.data(using: .utf8)!), now: t0).phienDiemDen)
+  }
+
+  func testLichMotLanChenVaoDanhSachDay() {
+    let day = (0..<LapKeHoach.lichToiDa).map { MucLich(ten: $0 == 0 ? "ngay" : "mo.\($0)", batDau: 0, ketThuc: 60, thu: nil, lap: true, suKien: []) }
+    let t = vn(26, 10)
+    let ds = LapKeHoach.themLich(day, LapKeHoach.lichMotLan("mooffline", den: t.addingTimeInterval(3600), now: t))
+    XCTAssertEqual(ds.count, LapKeHoach.lichToiDa); XCTAssertEqual(ds.last?.ten, "mooffline"); XCTAssertEqual(ds.last?.nhacTruocPhut, 5)
+    XCTAssertTrue(ds.contains { $0.ten == "ngay" })
   }
 
   func testMaOfflineCungSoVoiMayChuVaWindows() {
@@ -381,6 +395,11 @@ final class ApiVaDongBoTests: XCTestCase {
     for i in 0..<5 { XCTAssertEqual(m2.thuMo(biMat: bm, ma: "000000", now: t.addingTimeInterval(Double(i))), .sai) }
     XCTAssertEqual(m2.thuMo(biMat: bm, ma: "703799", now: t.addingTimeInterval(10)), .choThuLai)
     XCTAssertEqual(m2.thuMo(biMat: bm, ma: MaOffline.ma(bm, now: t.addingTimeInterval(700)), now: t.addingTimeInterval(700)), .daMo)
+    // lùi đồng hồ vào giữa lượt mở đã thấy hết ⇒ không hồi sinh
+    var m3 = MoTamOffline()
+    XCTAssertEqual(m3.thuMo(biMat: bm, ma: "703799", now: t), .daMo)
+    _ = m3.ghiThay(t.addingTimeInterval(65 * 60))
+    XCTAssertNil(m3.hanMo(t.addingTimeInterval(10 * 60)))
   }
 
   func testDongBoNhoBiMatMoBangMaVaHetKhiCoMang() async throws {

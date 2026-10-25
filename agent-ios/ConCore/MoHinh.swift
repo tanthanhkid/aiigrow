@@ -76,7 +76,9 @@ public struct ChinhSach: Codable {
   /// Phiên «Chơi bằng điểm» đang chạy (server/lib/chinh-sach.ts › phienDiem.phien): Con mở trên app AiiGrow (màn Con /tre/choi) hay máy khác.
   public struct PhienDang: Codable, Equatable {
     public var id: String; public var muc: String; public var conPhut: Int
-    public init(id: String, muc: String, conPhut: Int) { self.id = id; self.muc = muc; self.conPhut = conPhut }
+    /// Máy mở phiên (máy chủ mới gửi). Khác máy này ⇒ không gỡ khiên ở đây (phiên mở trên máy tính không mở iPhone).
+    public var may: String?
+    public init(id: String, muc: String, conPhut: Int, may: String? = nil) { self.id = id; self.muc = muc; self.conPhut = conPhut; self.may = may }
   }
   public struct PhienDiem: Codable { public var soDu: Int?; public var phien: PhienDang? }
 

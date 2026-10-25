@@ -313,7 +313,7 @@ export async function tinCayAdmin(fam: string, mayId: string, b: { ten?: unknown
 // ---------------------------------------------------------------- Mã mở offline (lib/ma-offline.ts): bí mật chung máy ↔ máy chủ
 import { BUOC_GIAY, DUNG_SAI, maOffline, taoBiMatOffline } from "./ma-offline.ts";
 
-/** Nền nhận bí mật mã offline: máy có tác tử (Windows, Mac — qua dong-bo) + Android (qua nhịp, nhip-may.ts). iOS chưa. */
+/** Nền nhận bí mật mã offline: máy có tác tử (Windows, Mac — qua dong-bo) + Android, iOS (qua nhịp, nhip-may.ts). */
 export const coMaOffline = (nen: string | null | undefined) => coTacTu(nen) || nen === "android" || nen === "ios";   // iOS: agent-ios MaOffline (nhịp mang bí mật)
 
 /** Lấy (hoặc tạo lần đầu) bí mật mã offline của một máy — dùng cả cho agent (theo deviceId) lẫn Ba Mẹ. */

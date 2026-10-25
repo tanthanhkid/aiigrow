@@ -34,6 +34,7 @@ final class MayChuHoSo {
         switch st {
         case .ready: xong = true; k.resume(returning: l.port?.rawValue ?? 0)
         case .failed(let e): xong = true; k.resume(throwing: e)
+        case .cancelled: xong = true; k.resume(throwing: CancellationError())
         default: break
         }
       }

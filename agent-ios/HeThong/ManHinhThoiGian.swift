@@ -110,10 +110,17 @@ public final class UyQuyenThat: HeThongUyQuyen {
 public enum ApLai {
   public static func lucNay(kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) {
     guard let kh = kho.doc(KeHoach.self, Khoa.keHoach) else { return }
-    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung),
-                             moOfflineDen: kho.doc(MoTamOffline.self, Khoa.moTamOffline)?.hanMo(now))
+    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: DongBo.hanMoOffline(kho, now))
     KhienThat().ap(k)
     kho.luu(k, Khoa.khienDangAp)
+  }
+
+  /// Lịch sắp hết (warningTime) có thật sự dẫn tới khoá không: `phut` phút nữa khiên có bật lại? (thêm giờ hết nhưng phiên điểm còn ⇒ không nhắc)
+  public static func seKhoaSau(_ phut: Int, kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) -> Bool {
+    guard let kh = kho.doc(KeHoach.self, Khoa.keHoach) else { return false }
+    let sau = now.addingTimeInterval(Double(phut) * 60)
+    let off = kho.doc(MoTamOffline.self, Khoa.moTamOffline)?.hanMo(now)
+    return TinhKhien.lucNay(kh, now: sau, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: off).muc != .khong
   }
 
   public static func ghiSuKien(_ ten: String, kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) {

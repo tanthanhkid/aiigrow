@@ -93,6 +93,14 @@ public final class DongBo {
     return .xong(kh)
   }
 
+  /// Hạn mở bằng mã offline lúc `now` + ghi «giờ đã thấy» (chống lùi đồng hồ). Dùng chung app / extension Monitor.
+  public static func hanMoOffline(_ kho: KhoGiaTri, _ now: Date) -> Date? {
+    guard var mt = kho.doc(MoTamOffline.self, Khoa.moTamOffline) else { return nil }
+    let den = mt.hanMo(now)
+    if den != nil, mt.ghiThay(now) { kho.luu(mt, Khoa.moTamOffline) }
+    return den
+  }
+
   /// Gửi hàng chờ sự kiện (mở bằng mã offline, gõ sai nhiều lần…). Lỗi ⇒ giữ lại, gửi ở lượt sau.
   public func guiSuKienCho() async {
     guard let ds = kho.doc([SuKienMay].self, Khoa.suKienCho), !ds.isEmpty else { return }
@@ -111,9 +119,7 @@ public final class DongBo {
     if kq == .daMo, let den = mt.moDen {
       kho.xepSuKien(SuKienMay(loai: "mo_ma_offline", luc: now, chiTiet: ["den": NgayISO.viet(den), "phut": String(MoTamOffline.phutMoMacDinh)]))
       if let kh = kho.doc(KeHoach.self, Khoa.keHoach) {
-        let bd = min(now, den.addingTimeInterval(-Double(LapKeHoach.khoangNganNhat * 60)))
-        try? lich.theoDoi(kh.lich + [MucLich(ten: "mooffline", batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: bd, ketThucLuc: den, suKien: [],
-                                             nhacTruocPhut: LapKeHoach.nhacTruoc)])
+        try? lich.theoDoi(LapKeHoach.themLich(kh.lich, LapKeHoach.lichMotLan("mooffline", den: den, now: now)))
       }
       apLucNay(now: now)
     } else if kq == .sai, mt.saiLuc.count == MoTamOffline.saiToiDa {
@@ -126,8 +132,7 @@ public final class DongBo {
   @discardableResult
   public func apLucNay(_ kh: KeHoach? = nil, now: Date = Date()) -> KhienMuonCo? {
     guard let kh = kh ?? kho.doc(KeHoach.self, Khoa.keHoach) else { return nil }
-    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung),
-                             moOfflineDen: kho.doc(MoTamOffline.self, Khoa.moTamOffline)?.hanMo(now))
+    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: Self.hanMoOffline(kho, now))
     khien.ap(k)
     kho.luu(k, Khoa.khienDangAp)
     return k
