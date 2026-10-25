@@ -154,6 +154,9 @@ export function nguonGoi(h: Headers) {
   return du.slice(0, 4).map((x) => x.replace(/^0+(?=.)/, "")).join(":");
 }
 
+/** Chế độ máy mới ghép: Windows/Mac (có tác tử chặn) ⇒ «chan» ngay; nền khác không có chế độ ⇒ null (để cột như cũ). */
+export const cheDoMayMoi = (nen: string): "chan" | null => (coTacTu(nen) ? "chan" : null);
+
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
 export function ghepMayGd(code: string, platform: string, tenMay: string) {
   return tx(async (t) => {
@@ -165,10 +168,15 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     if (m.platform !== platform) throw new LoiNghiepVu("sai_nen_tang", `Mã này dành cho ${TEN_NEN_TANG[m.platform]}`, 409);
     const id = newId(), token = taoToken();
     const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform];
-    await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen) values ($1,$2,$3,$4,$5,$6,$7, now())`,
-      [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id]);
+    // Máy MỚI có tác tử (Windows/Mac) vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»): ghi sẵn lựa chọn
+    // che_do = chan + che_do_ba_me ⇒ lần đồng bộ đầu máy chủ gửi cheDo «chan», agent (Win/Mac) đổi ngay — không cần ra bản agent mới.
+    // Máy đã ghép từ trước giữ nguyên (cột vẫn mặc định giam-sat / chưa chọn). Ba Mẹ vẫn chuyển «Chỉ theo dõi» được trên app.
+    const cheDo = cheDoMayMoi(platform);
+    await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen, che_do, che_do_ba_me)
+             values ($1,$2,$3,$4,$5,$6,$7, now(), $8, $9)`,
+      [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id, cheDo ?? "giam-sat", !!cheDo]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
-    await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu }, { con: m.child_id, may: id }, t);
+    await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu, ...(cheDo ? { cheDo } : {}) }, { con: m.child_id, may: id }, t);
     // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
     // (bộ cài 0.2.0/0.2.1 đọc vào string không-null — gửi null là rủi ro).
     const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten : undefined;
@@ -229,7 +237,7 @@ export type ThieuQuyen = { ma: string; ten: string; cach: string };
 const MO_TA_QUYEN: Record<string, { ten: string; cach: string }> = {
   dichVu: { ten: "Dịch vụ AiiGrow chạy nền", cach: "Cài lại AiiGrow trên máy Con: bấm phải vào trình cài › «Run as administrator» (cần quyền quản trị một lần)." },
   khay: { ten: "Khay AiiGrow trên màn hình Con", cach: "Đăng nhập đúng tài khoản Windows của Con; nếu vẫn không thấy biểu tượng AiiGrow ở góc phải dưới, khởi động lại máy." },
-  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang ở chế độ Giám sát (chỉ ghi lại, chưa chặn). Mở app Ba Mẹ › Cài đặt › An toàn thiết bị › chọn máy › «Chặn thật»." },
+  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang Chỉ theo dõi (ghi lại, chưa chặn). Máy mới ghép tự Chặn thật; máy này ghép từ trước hoặc Ba Mẹ đã chọn theo dõi — mở app Ba Mẹ › chọn máy › «Chặn thật» nếu muốn chặn." },
   appLocker: { ten: "Khoá app «Chỉ app học» (AppLocker)", cach: "Windows chưa áp được luật chặn app: cần Windows Pro/Enterprise/Education và dịch vụ AiiGrow chạy bằng quyền quản trị — cài lại bằng «Run as administrator»." },
   dich_vu: { ten: "Dịch vụ AiiGrow", cach: "Cài lại AiiGrow bằng quyền quản trị." },
   haQuyenAdmin: { ten: "Tài khoản Mac của Con vẫn là quản trị (admin)", cach: "Con có thể tự gỡ AiiGrow. Trên Mac: Cài đặt hệ thống › Người dùng & Nhóm › tài khoản của Con › tắt «Cho phép người dùng quản trị máy tính này» (cần một tài khoản quản trị khác của Ba Mẹ)." },
@@ -249,11 +257,20 @@ export function quyenCuaMay(may: Pick<May, "status">): Record<string, boolean> |
 }
 
 /** Mức bảo vệ + danh sách quyền còn thiếu (kèm cách khắc phục). Chưa từng kết nối ⇒ «chua»; kết nối được mà thiếu quyền ⇒ «mot_phan» (nói rõ thiếu gì). */
-export function chiTietBaoVe(may: Pick<May, "status" | "last_seen">): { muc: MucBaoVe; thieu: ThieuQuyen[]; cau: string } {
+/** Cách sửa «chanThat» theo lựa chọn của Ba Mẹ: đã chọn Chặn thật mà máy chưa đổi ⇒ đang chờ máy nhận (không bảo Ba Mẹ bật lại);
+ *  Ba Mẹ chủ ý chọn Chỉ theo dõi ⇒ nói đó là lựa chọn của Ba Mẹ. Chưa chọn (máy ghép trước 25/10) ⇒ câu chung ở MO_TA_QUYEN. */
+const CACH_CHAN_THAT = {
+  chan: "Ba Mẹ đã chọn Chặn thật — máy đổi ở lần đồng bộ tới (≤ 3 phút khi có mạng). Lâu vẫn chưa đổi: cập nhật AiiGrow trên máy Con lên bản mới nhất.",
+  "giam-sat": "Ba Mẹ đang để máy Chỉ theo dõi (ghi lại, chưa chặn). Muốn chặn: mở app Ba Mẹ › chọn máy › «Chặn thật».",
+} as const;
+
+export function chiTietBaoVe(may: Pick<May, "status" | "last_seen"> & Pick<Partial<May>, "che_do" | "che_do_ba_me">): { muc: MucBaoVe; thieu: ThieuQuyen[]; cau: string } {
   if (!may.last_seen) return { muc: "chua", thieu: [], cau: "Máy chưa kết nối lần nào — kiểm tra AiiGrow đã cài xong trên máy Con và máy có mạng." };
   const qy = quyenCuaMay(may);
   if (!qy) return { muc: "chua", thieu: [], cau: "Máy chưa báo quyền bảo vệ — cập nhật AiiGrow trên máy Con lên bản mới nhất." };
-  const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma, cach: MO_TA_QUYEN[ma]?.cach ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
+  const chon = may.che_do_ba_me ? (may.che_do === "chan" ? "chan" : "giam-sat") : null;
+  const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma,
+    cach: (ma === "chanThat" && chon ? CACH_CHAN_THAT[chon] : MO_TA_QUYEN[ma]?.cach) ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
   // agent-win 0.2.6 gửi ghiChuBaoVe («Win Home: chặn bằng cách đóng app», «Chrome: IT đặt danh sách web cho cả máy…») — nối vào câu ở MỌI mức, Ba Mẹ thấy cả khi còn thiếu quyền
   const ghiChu = typeof may.status?.ghiChuBaoVe === "string" && may.status.ghiChuBaoVe.trim() ? ` (${may.status.ghiChuBaoVe.trim().slice(0, 240)})` : "";
   // tên từng mục thiếu đã hiện ngay dưới (DsThieuBaoVe) ⇒ câu chỉ nói số mục, không lặp tên

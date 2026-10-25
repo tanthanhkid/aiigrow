@@ -67,6 +67,9 @@ export default function ObGhep() {
         <TickDong chu="Cấp quyền bảo vệ" trang={!may ? "sau" : may.baoVe === "day_du" ? "xong" : "cho"}
           phu={!may ? "Sau khi ghép xong" : may.baoVe === "day_du" ? "Bảo vệ đầy đủ" : "Bộ lọc web, chặn cài đặt, chống gỡ…"} />
       </The>
+      {nen === "windows" || nen === "mac" ? (
+        <Chu co={13.5} mau={M.chu2}>{`Cài xong là chặn luôn: app chưa xếp loại không mở được trên máy của ${ten}, ${ten} bấm «Xin phép» thì Ba Mẹ duyệt trong app. Muốn tạm chỉ theo dõi (không chặn) thì chọn «Chỉ theo dõi» ở thẻ máy.`}</Chu>
+      ) : null}
     </Man>
   );
 }

@@ -49,10 +49,13 @@ async function nha(ten = "Lan") {
   return { fam, bm, con, bmTok: await taoPhien(bm) };
 }
 const ghep = async (fam: string, con: string, ten = "PC của Ken") => g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", ten);
+/** Máy ghép TRƯỚC 25/10 (trước khi máy mới vào thẳng Chặn thật): cột còn mặc định — Ba Mẹ chưa chọn chế độ. */
+const mayCu = (id: string) => q(`update devices set che_do = 'giam-sat', che_do_ba_me = false where id = $1`, [id]);
 
 test("chế độ: Ba Mẹ chưa chọn ⇒ không ép, hiện chế độ máy báo; chủ / Ba Mẹ duyệt đổi được, vai Chỉ xem và nhà khác bị chặn; policy Windows mang cheDo; ghi nhật ký + báo", async () => {
   const { fam, con, bmTok } = await nha();
   const may = await ghep(fam, con);
+  await mayCu(may.deviceId);
   // chưa ai chọn + agent chưa báo ⇒ «chưa biết», máy chủ không gửi cheDo (agent giữ chế độ đang chạy)
   assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.windows.cheDo, undefined);
   const tt0 = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;
@@ -150,9 +153,34 @@ test("xoá hẳn: máy chưa đồng bộ lần nào ⇒ cần xoaHan; đang g�
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'go_may' and chi_tiet->>'cach' = 'xoa_han'`, [fam])).length, 2);
 });
 
+test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10): đồng bộ đầu đã gửi cheDo chan; Ba Mẹ vẫn chuyển Chỉ theo dõi được; máy cũ không bị đổi", async () => {
+  const { fam, con, bmTok } = await nha();
+  const may = await ghep(fam, con);
+  assert.equal((await dv("dong-bo", { tok: may.token, body: { status: { agent: "windows", cheDo: "giam-sat" } } })).body.windows.cheDo, "chan");
+  let tt = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([tt.cheDo, tt.cheDoMay, tt.cheDoBaMeChon], ["chan", "giam-sat", "chan"], "app thấy «đang chờ máy nhận Chặn thật», không phải lời nhắc bật");
+  // ghi nhật ký ghép kèm chế độ; không phát «đổi chế độ» (không ai đổi)
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'ghep_may' and chi_tiet->>'cheDo' = 'chan'`, [fam])).length, 1);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'doi_che_do'`, [fam])).length, 0);
+  // Ba Mẹ chọn Chỉ theo dõi ⇒ máy nhận giam-sat
+  assert.equal((await m(`may/${may.deviceId}/che-do`, { tok: bmTok, body: { cheDo: "giam-sat" } })).body.doi, true);
+  assert.equal((await dv("dong-bo", { tok: may.token, body: { status: { cheDo: "chan" } } })).body.windows.cheDo, "giam-sat");
+  // máy Mac mới cũng vậy; điện thoại không có chế độ (cột để mặc định, không «Ba Mẹ đã chọn»)
+  const mac = await g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "mac", "Mac của Ken");
+  assert.equal((await dv("dong-bo", { tok: mac.token, body: {} })).body.windows.cheDo, "chan");
+  const dt = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Điện thoại của Ken");
+  assert.deepEqual((await q<{ che_do: string; che_do_ba_me: boolean }>(`select che_do, che_do_ba_me from devices where id = $1`, [dt.deviceId]))[0],
+    { che_do: "giam-sat", che_do_ba_me: false });
+  // máy cũ (ghép trước, Ba Mẹ chưa chọn) giữ nguyên: máy chủ không ép chế độ
+  const cu = await ghep(fam, con, "PC cũ");
+  await mayCu(cu.deviceId);
+  assert.equal((await dv("dong-bo", { tok: cu.token, body: { status: { agent: "windows", cheDo: "giam-sat" } } })).body.windows.cheDo, undefined);
+});
+
 test("chế độ thật do agent báo: máy cài sẵn «chặn» hiện đúng «chặn», không bị tụt về giám sát; Ba Mẹ chọn rồi thì lựa chọn thắng", async () => {
   const { fam, con, bmTok } = await nha();
   const may = await ghep(fam, con);
+  await mayCu(may.deviceId);
   const p = (await dv("dong-bo", { tok: may.token, body: { status: { agent: "windows", cheDo: "chan" } } })).body;
   assert.equal(p.windows.cheDo, undefined, "chưa chọn ⇒ không ép giam-sat lên máy đang chặn");
   let tt = (await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body;

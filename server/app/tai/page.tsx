@@ -19,7 +19,7 @@ const BAO_MAC = {
 const GiamSat = () => (
   <div className="bao ok-b">
     <I3d ten="eyes" mau="xanh" />
-    <div>Sau khi ghép, máy chạy ở chế độ <b>giám sát</b> (ghi nhận, không khoá). Ba Mẹ bật “chặn thật” khi cần, ngay trong app.</div>
+    <div>Cài xong là <b>chặn luôn</b>: app chưa xếp loại không mở được, giờ ngủ thì khoá. Ba Mẹ muốn tạm chỉ theo dõi (ghi nhận, không chặn) thì chọn “Chỉ theo dõi” ngay trong app.</div>
   </div>
 );
 
@@ -75,7 +75,7 @@ export default async function TrangTai() {
         ) : null}
 
         {os === "mac" ? null : (<>
-          <p className="phu-de">Cài trên máy tính Windows để đồng hành cùng Con. Mặc định chỉ <b>giám sát</b>, không khoá máy.</p>
+          <p className="phu-de">Cài trên máy tính Windows để đồng hành cùng Con. Cài xong là <b>chặn luôn</b>; Ba Mẹ chuyển sang chỉ theo dõi được trong app.</p>
 
           <section className="the the-tai">
             <div className="dau-tai">

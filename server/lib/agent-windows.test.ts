@@ -1,7 +1,7 @@
 // Policy dịch cho agent Windows: chỉ app được phép chạy; app giải trí chỉ khi có phiên điểm đúng app; khoá ngay / giờ ngủ ⇒ khoá.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chinhSachWindows, nhipDongBo, TRINH_DUYET } from "./agent-windows.ts";
+import { chinhSachWindows, nhipDongBo, TRINH_DUYET, TRINH_DUYET_LOC_DUOC_MAC } from "./agent-windows.ts";
 import type { Policy } from "./may-con.ts";
 
 const goc = (o: Partial<Policy> = {}): Policy => ({
@@ -86,4 +86,15 @@ test("«Mở» có hạn ⇒ trang Giải trí mở trong trình duyệt, trang 
   assert.ok(mo.web.cho.includes("youtube.com"));
   const het = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() - 1000) });
   assert.deepEqual(het.web.chan, ["gamek.vn", "youtube.com"]);
+});
+
+test("máy mới Chặn thật ngay: «Chỉ trang đã duyệt» bật ⇒ trình duyệt lọc được (Chrome/Edge/Brave) chạy thường trực; web «mở» (mặc định) thì không; Mac bỏ Safari", () => {
+  assert.ok(!TRINH_DUYET.some((b) => chinhSachWindows(goc()).allowedApps.includes(b)), "web mở: trang chưa xếp sẽ lọt ⇒ không thả trình duyệt");
+  const w = chinhSachWindows(goc({ webChiChoPhep: true }));
+  assert.ok(TRINH_DUYET.every((b) => w.allowedApps.includes(b)));
+  assert.equal(w.web.cheDo, "chi_cho_phep");
+  assert.ok(!w.allowedApps.includes("firefox.exe"));
+  const mac = chinhSachWindows(goc({ webChiChoPhep: true, allowlistHeThong: ["com.apple.finder"] }), undefined, "chan", { nen: "mac" });
+  assert.ok(TRINH_DUYET_LOC_DUOC_MAC.every((b) => mac.allowedApps.includes(b)));
+  assert.ok(!mac.allowedApps.includes("com.apple.Safari"), "Safari chỉ chặn được bằng hosts (danh sách đen) — không «chỉ cho phép» được");
 });
