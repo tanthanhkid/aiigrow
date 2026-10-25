@@ -5,7 +5,7 @@
 //   (đổi cổng khi chạy song song: PHA_CONG=8192 PHA_CDP=9500, và EXPO_PUBLIC_API cùng cổng)
 //   EXPO_PUBLIC_API=http://localhost:8191 npx expo export --platform web --output-dir <thư mục>
 //   node scripts/pha.mjs <thư mục>                 # kịch bản luồng chính
-//   node scripts/pha.mjs <thư mục> --giao-dien     # cổng chuẩn giao diện (scripts/giao-dien.mjs) trên mọi màn Ba Mẹ
+//   node scripts/pha.mjs <thư mục> --giao-dien     # cổng chuẩn giao diện (scripts/giao-dien.mjs) trên mọi màn Ba Mẹ — dữ liệu thường + lượt chữ dài
 // GD_CHUP=<thư mục> [GD_CHUP_TAT_CA=1]: chụp màn (có lỗi / mọi màn). Mã thoát 1 nếu có SAI / còn lỗi giao diện.
 import http from "node:http";
 import { readFileSync, existsSync, statSync, mkdtempSync, rmSync } from "node:fs";
@@ -353,8 +353,29 @@ if (process.argv.includes("--giao-dien")) {
   dsMan.push(M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"));
   // PHA_MAN=<biểu thức chính quy>: chỉ chạy các màn khớp tên (soát nhanh khi sửa)
   if (process.env.PHA_MAN) dsMan.splice(0, dsMan.length, ...dsMan.filter((m) => new RegExp(process.env.PHA_MAN).test(m.ten)));
+  // Lượt CHỮ DÀI (Thanh 25/10 «chữ dài bị hỏng nút»): cùng các màn, dữ liệu giả đổi sang tên con 30 ký tự, tên máy 40 ký tự,
+  // tên miền 60 ký tự — luật NUT-TRAN (giao-dien.mjs) bắt chữ ló khỏi nút / cắt nửa dòng / nút tràn thẻ. PHA_CHU_DAI=0: bỏ lượt này.
+  const dung = (x, n) => { if ([...x].length !== n) throw new Error(`chữ dài «${x}» phải đúng ${n} ký tự`); return x; };
+  const TEN_DAI = dung("Nguyễn Hoàng Bảo Ngọc Minh Thư", 30), TEN_DAI2 = dung("Trần Lê Minh Khang Gia Bảo Huy", 30);
+  // tên miền 60 ký tự, nhiều nhãn (bẻ dòng được ở dấu chấm / gạch nối)
+  const mien = (goc) => { const duoi = ".thu-vien-hoc-tap.truc-tuyen-cho-tre-em.edu.vn", dau = goc.replace(/\./g, "-");
+    return dung((dau + "-hoc-tap-online-mien-phi").slice(0, 60 - duoi.length).replace(/-$/, "x") + duoi, 60); };
+  const MAY_DAI = { "Laptop của Bảo Anh · Windows 11": dung("Laptop của bé Bảo Anh · Win 11 Home 24H2", 40),
+    "Laptop của Bảo Anh": dung("Laptop học tập phòng ngủ của Bảo Anh Pro", 40),
+    "iPad của Bảo Anh": dung("iPad Air 11 inch M2 màu xanh của Bảo Anh", 40),
+    "Laptop của Bill": dung("Laptop chơi game phòng khách của Bill 07", 40), "Laptop-BILL": dung("LAPTOP-PHONG-KHACH-CUA-BILL-2026-MAY-SO2", 40) };
+  const MIEN = ["facebook.com", "khanacademy.org", "youtube.com", "gamevui.vn", "tiktok.com", "roblox.com", "minecraft.net"];
+  // tên máy → dấu giữ chỗ trước (tên máy dài có chữ «Bill», không để bước đổi tên con chèn vào), rồi tên miền, tên con, cuối cùng trả tên máy
+  const doiChu = (t) => { const ds = Object.entries(MAY_DAI); ds.forEach(([a], i) => { t = t.split(a).join(`\u0000${i}\u0000`); });
+    for (const d of MIEN) t = t.split(d).join(mien(d));
+    t = t.split(KEN).join(TEN_DAI).split(BILL).join(TEN_DAI2);
+    return t.replace(/\u0000(\d+)\u0000/g, (_, i) => ds[+i][1]); };
+  const daiHoa = (v) => typeof v === "string" ? doiChu(v) : typeof v === "function" ? (...a) => daiHoa(v(...a)) : Array.isArray(v) ? v.map(daiHoa)
+    : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, daiHoa(x)])) : v;
+  let chuDai = false;
   const vao = async (m) => {
     kb = { ...coBan, ...(m.kb ?? {}) };
+    if (chuDai) kb = daiHoa(kb);
     matMang = !!m.matMang;
     if (m.truoc) await m.truoc(); else await di(m.duong, m.token === undefined ? "tok-thu" : m.token);
     const ok = await doi(m.cho, 8000);
@@ -363,7 +384,14 @@ if (process.argv.includes("--giao-dien")) {
     console.log(`    KHÔNG TẢI: chưa thấy «${m.cho}» ở ${m.duong}: ${(await chu())?.replace(/\s+/g, " ").slice(0, 160)}`);
     return false;
   };
-  const tong = await chayCong({ goi, js, sleep, dsMan, vao });
+  // PHA_CHI_DAI=1: chỉ chạy lượt chữ dài (soát nhanh khi sửa)
+  let tong = process.env.PHA_CHI_DAI === "1" ? 0 : await chayCong({ goi, js, sleep, dsMan, vao });
+  if (process.env.PHA_CHU_DAI !== "0" || process.env.PHA_CHI_DAI === "1") {
+    chuDai = true;
+    console.log(`\n# LƯỢT CHỮ DÀI — tên con «${TEN_DAI}» (${[...TEN_DAI].length}), máy «${MAY_DAI["Laptop của Bảo Anh · Windows 11"]}» (40), miền «${mien("youtube.com")}» (${mien("youtube.com").length})`);
+    // chỉ đo ở 320px (khổ hẹp nhất — chữ dài vỡ ở đây trước) để cổng không chậm gấp đôi
+    tong += await chayCong({ goi, js, sleep, dsMan, vao, hau: "-dai", cheDo: [[320, false]] });
+  }
   ws.close(); chrome.kill(); may.close();
   await sleep(500);
   try { rmSync(hoSo, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ }

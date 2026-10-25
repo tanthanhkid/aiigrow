@@ -242,7 +242,7 @@ private struct NutClayThan<Nhan: View>: View {
     let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
     nhanView()
       .font(.system(size: 15, weight: .bold))
-      .lineLimit(2).multilineTextAlignment(.center)
+      .lineLimit(2).multilineTextAlignment(.center).truncationMode(.tail)   // chữ dài: tối đa 2 dòng rồi «…»
       .frame(maxWidth: .infinity, minHeight: cao)
       .padding(.horizontal, 14)
       .foregroundColor(mauChu)
