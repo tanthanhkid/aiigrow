@@ -153,8 +153,8 @@ public class KetNoiTests
     [InlineData("duyet_nhiem_vu", MucApp.NhiemVu)]
     [InlineData("tu_choi_nhiem_vu", MucApp.NhiemVu)]
     [InlineData("can_bo_sung", MucApp.NhiemVu)]
-    [InlineData("xac_nhan_qua", MucApp.PhanQua)]
-    [InlineData("huy_hieu", MucApp.PhanQua)]
+    [InlineData("xac_nhan_qua", MucApp.ViQua)]
+    [InlineData("huy_hieu", MucApp.ViQua)]
     [InlineData("loi_khen", MucApp.TinNhan)]
     [InlineData("loai_la", MucApp.TinNhan)]
     public void Toast_MoDungMuc(string loai, MucApp expected)

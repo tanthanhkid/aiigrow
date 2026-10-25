@@ -70,7 +70,7 @@ public static class KetNoiView
 }
 
 /// <summary>Mục trong cửa sổ app to của Con.</summary>
-public enum MucApp { HomNay, NhiemVu, PhanQua, TinNhan }
+public enum MucApp { HomNay, NhiemVu, PhanQua, TinNhan, ViQua }
 
 /// <summary>Chọn ảnh mascot theo ngữ cảnh (tên tệp trong Assets/mascot, không đuôi). Thuần để test.</summary>
 public static class MascotView
@@ -81,7 +81,7 @@ public static class MascotView
         return muc switch
         {
             MucApp.NhiemVu => xongHetViec ? "xong" : "so-tay",
-            MucApp.PhanQua => "qua",
+            MucApp.PhanQua or MucApp.ViQua => "qua",
             MucApp.TinNhan => "chi",
             _ => xongHetViec ? "xong" : "rob-goc",
         };

@@ -25,6 +25,15 @@ export async function conGoi(req: Request): Promise<(Con & { device_id: string |
   return c ? { ...c, device_id: may.id } : null;
 }
 
+/** Bảng quy tắc công khai của nhà (FR-06.05) — màn Con web và khay Windows (/api/device/hoc-vien/quy-tac) cùng một nguồn. */
+export async function quyTacCon(c: Pick<Con, "id" | "family_id" | "cau_hinh" | "lich">) {
+  const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [c.family_id]))!;
+  const ts = thamSo(f.cau_hinh, c.cau_hinh as Record<string, unknown>);
+  return { lich: lichCua(c.lich as never), tranNgay: ts.tran_ngay, tranTuan: ts.tran_tuan, phienToiDa: ts.phien_toi_da, nghiGiua: ts.nghi_giua,
+    giaPhut: { game: ts.gia_game / 1000, video_ngan: ts.gia_video_ngan / 1000, mxh: ts.gia_mxh / 1000, phim_gd: ts.gia_phim_gd / 1000 },
+    nhiemVu: (await nv.nvCuaCon(c.id)).map((x) => ({ ten: x.ten, diem: x.diem })), qua: (await pt.cuaHang(c.id)).qua.map((x) => ({ ten: x.ten, diem: x.diem })) };
+}
+
 export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
   try {
     const c = await conGoi(req);
@@ -54,13 +63,7 @@ export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
       return json({ ...r, trang_thai: tuDong ? "dong_y" : r.trang_thai });
     }
     if (p[0] === "yeu-cau" && p[2] === "huy" && post) { await yc.huyYeuCau(c.id, p[1]); return json({ ok: true }); }
-    if (d === "quy-tac" && get) {
-      const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [c.family_id]))!;
-      const ts = thamSo(f.cau_hinh, c.cau_hinh);
-      return json({ lich: lichCua(c.lich as never), tranNgay: ts.tran_ngay, tranTuan: ts.tran_tuan, phienToiDa: ts.phien_toi_da, nghiGiua: ts.nghi_giua,
-        giaPhut: { game: ts.gia_game / 1000, video_ngan: ts.gia_video_ngan / 1000, mxh: ts.gia_mxh / 1000, phim_gd: ts.gia_phim_gd / 1000 },
-        nhiemVu: (await nv.nvCuaCon(c.id)).map((x) => ({ ten: x.ten, diem: x.diem })), qua: (await pt.cuaHang(c.id)).qua.map((x) => ({ ten: x.ten, diem: x.diem })) });
-    }
+    if (d === "quy-tac" && get) return json(await quyTacCon(c));
     if (p[0] === "loi-khen" && p[2] === "phan-hoi" && post) {
       const r = await q(`update messages set phan_hoi = $3 where id = $1 and child_id = $2 returning id`, [p[1], c.id, String(b.phanHoi ?? "").slice(0, 60)]);
       if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy lời khen", 404);

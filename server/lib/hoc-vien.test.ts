@@ -114,3 +114,17 @@ test("khay học viên: token lạ bị chặn, đường lạ 404, không đụ
   assert.equal((await goi(a.tok, "hoc-vien/tong-quan")).body.nhiemVu.length, 0);
   await q(`select 1`);
 });
+
+test("khay học viên: ví quà, huy hiệu + cấp, bảng quy tắc (cùng dữ liệu màn Con web)", async () => {
+  const { tok } = await nha();
+  const vi = await goi(tok, "hoc-vien/vi-qua");
+  assert.equal(vi.status, 200);
+  assert.ok(Array.isArray(vi.body.voucher) && Array.isArray(vi.body.phieu));
+  const tt = await goi(tok, "hoc-vien/thanh-tich");
+  assert.equal(tt.status, 200);
+  assert.ok(tt.body.capDo.cap >= 1 && Array.isArray(tt.body.huyHieu) && tt.body.huyHieu.length > 0);
+  const qt = await goi(tok, "hoc-vien/quy-tac");
+  assert.equal(qt.status, 200);
+  assert.ok(qt.body.lich && typeof qt.body.tranNgay === "number" && typeof qt.body.giaPhut.game === "number");
+  assert.equal((await goi(tok, "hoc-vien/vi-qua", {})).status, 404);   // chỉ đọc
+});
