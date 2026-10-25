@@ -278,7 +278,11 @@ public final class HeThongMac: HeThong {
     guard ma == 0 else { throw LoiApi(chu: "Không đóng được phiên uid \(uid): \(ra)") }
   }
 
+  /// Bộ đệm log gửi lên máy chủ (BoMay.vongNhatKy) — mọi dòng ghiLog đều vào đây.
+  public let boDemLog = BoDemLog()
+
   public func ghiLog(_ s: String) {
+    boDemLog.them(s)
     let t = ISO8601DateFormatter().string(from: Date())
     print("\(t) \(s)")
     fflush(stdout)

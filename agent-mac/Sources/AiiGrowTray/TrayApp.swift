@@ -1,6 +1,7 @@
 // Ứng dụng menu bar AiiGrow (LSUIElement): biểu tượng, menu, hỏi daemon mỗi 5 giây, màn khoá, nhắc giờ, ghép máy.
 import AppKit
 import SwiftUI
+import UserNotifications
 import AiiGrowCore
 
 /// Cửa sổ không viền nhưng nhận được phím/chuột (cần cho nút trên màn khoá).
@@ -37,7 +38,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   func applicationDidFinishLaunching(_ n: Notification) {
     item = NSStatusItem.systemStatusItem
-    item.button?.image = NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: "AiiGrow")
+    item.button?.image = TrayApp.iconThanhMenu()
     item.button?.imagePosition = .imageLeading
     NotificationCenter.default.addObserver(self, selector: #selector(manHinhDoi),
       name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -48,6 +49,48 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // Tin mới của Con (Ba Mẹ giao việc / duyệt / nhắn) mỗi 30 giây; app đang mở thì tải lại mỗi 60 giây.
     timerTin = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in Task { @MainActor in self?.hoiTin() } }
     DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in self?.hoiTin() }
+    batThongBaoHeThong()
+  }
+
+  // MARK: thông báo hệ thống (UNUserNotification) cho tin mới — chỉ khi chạy trong AiiGrow.app (test / dev không có bundle ⇒ dùng bảng nhỏ)
+
+  var thongBaoHeThong = false
+  func batThongBaoHeThong() {
+    guard Bundle.main.bundleIdentifier != nil, Bundle.main.bundleURL.pathExtension == "app" else { return }
+    let c = UNUserNotificationCenter.current()
+    c.delegate = ThongBaoDelegate.chung
+    ThongBaoDelegate.chung.khiBam = { [weak self] muc in self?.moApp(muc) }
+    c.requestAuthorization(options: [.alert, .sound, .badge]) { ok, _ in
+      Task { @MainActor [weak self] in self?.thongBaoHeThong = ok }
+    }
+  }
+
+  /// Báo tin mới: thông báo hệ thống nếu được phép (Trung tâm thông báo giữ lại cho Con xem sau), không thì bảng nhỏ góc phải.
+  func baoTinMoi(_ tieu: String, _ noi: String, muc: MucApp) {
+    guard thongBaoHeThong else { hienTinMoi(tieu, noi, muc: muc); return }
+    // quyền có thể bị tắt sau lúc mở ⇒ hỏi lại mỗi lần, không được thì dùng bảng nhỏ
+    UNUserNotificationCenter.current().getNotificationSettings { st in
+      let duoc = st.authorizationStatus == .authorized && st.alertSetting == .enabled
+      Task { @MainActor [weak self] in
+        if duoc { self?.guiThongBao(tieu, noi, muc: muc) } else { self?.hienTinMoi(tieu, noi, muc: muc) }
+      }
+    }
+  }
+
+  func guiThongBao(_ tieu: String, _ noi: String, muc: MucApp) {
+    let nd = UNMutableNotificationContent()
+    nd.title = tieu; nd.body = noi; nd.sound = .default
+    nd.userInfo = ["muc": muc.rawValue]
+    UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: nd, trigger: nil))
+  }
+
+  /// Biểu tượng thanh menu = Rob (Mascot/rob-goc.png, 18pt); thiếu tệp ⇒ lá cây SF Symbol như trước.
+  static func iconThanhMenu() -> NSImage? {
+    guard let rob = FluentIcon.anh("rob-goc", thuMuc: "Mascot") else { return NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: "AiiGrow") }
+    let co = NSSize(width: 18, height: 18)
+    let anh = NSImage(size: co, flipped: false) { r in rob.draw(in: r, from: .zero, operation: .sourceOver, fraction: 1); return true }
+    anh.accessibilityDescription = "AiiGrow"
+    return anh
   }
 
   /// Phiên này là của Con, đã ghép, daemon trả lời ⇒ app của Con dùng được.
@@ -115,6 +158,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     if TrayLogic.canKiemCapNhat(t, laAdmin: laAdmin()) {
       if let c = TrayLogic.dongCapNhat(t, bayGio: bay) { dong(c) }
       muc("Kiểm tra cập nhật", #selector(kiemCapNhat))
+      muc("Cài hồ sơ DNS gia đình…", #selector(caiHoSoDns))
     }
     dong(TrayLogic.dongBanDangChay(t))
     dong(TrayLogic.dongDangBat)
@@ -123,7 +167,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   // MARK: hành động menu
 
-  @objc func moXin() { hien(&cuaSoXin, "AiiGrow · Xin thêm thời gian", XinThemCuaSo(tray: model, xin: xin)) }
+  @objc func moXin() { hien(&cuaSoXin, "AiiGrow · Xin thêm thời gian", XinThemCuaSo(tray: model, xin: xin, moChoi: { [weak self] in self?.cuaSoXin?.close(); self?.moChoi() })) }
   @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở trang hoặc app", XinMoView(tray: model, xin: xin)) }
   @objc func moAppCon() { moApp(nil) }
   @objc func moChoi() {
@@ -202,7 +246,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         moApp(.nhiemVu)
       } else if !khoa {
         let (tieu, noi) = HocVienView.thongBaoTin(moi)
-        hienTinMoi(tieu, noi, muc: HocVienView.mucChoTin(moi))
+        baoTinMoi(tieu, noi, muc: HocVienView.mucChoTin(moi))
       }
     }
   }
@@ -287,6 +331,30 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   }
   @objc func moGhep() { capNhatGhep(ep: true) }
 
+  /// Ba Mẹ (admin): lấy hồ sơ DNS gia đình (.mobileconfig) qua daemon, lưu vào Tải về rồi mở — macOS hiện «Hồ sơ đã tải», Ba Mẹ cài trong
+  /// Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Hồ sơ (macOS không cho cài hồ sơ im lặng ngoài MDM).
+  @objc func caiHoSoDns() {
+    Task {
+      var chu: String
+      do {
+        switch try await IPCClient.guiAsync(.hoSoDns, giay: 25) {
+        case .duLieu(let j):
+          if let (ten, noi) = TrayLogic.tachHoSoDns(Data(j.utf8)) {
+            let tm = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory
+            let u = tm.appendingPathComponent(ten)
+            try noi.write(to: u, atomically: true, encoding: .utf8)
+            NSWorkspace.shared.open(u)
+            chu = "Đã lưu «\(ten)» vào Tải về và mở. Vào Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Hồ sơ, chọn hồ sơ AiiGrow rồi bấm Cài đặt."
+          } else { chu = "Máy chủ chưa trả hồ sơ cho Apple." }
+        case .loi(_, let c): chu = c
+        default: chu = "Chưa lấy được hồ sơ."
+        }
+      } catch { chu = "Không liên lạc được dịch vụ AiiGrow. Thử lại sau vài giây." }
+      let a = NSAlert(); a.messageText = "Hồ sơ DNS gia đình"; a.informativeText = chu
+      a.addButton(withTitle: "Đã hiểu"); NSApp.activate(ignoringOtherApps: true); a.runModal()
+    }
+  }
+
   func hien<V: View>(_ giu: inout NSWindow?, _ tieuDe: String, _ v: V) {
     if let w = giu { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
     xin.thongBao = ""
@@ -329,7 +397,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
     guard can else { return }
     let ds = TrayLogic.taiKhoanThuong(dsclRa: chay("/usr/bin/dscl", [".", "-list", "/Users", "UniqueID"]), hienTai: NSUserName())
-    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, khiGui: { [weak self] bat in if bat { self?.ghepTT.batDauGui() } else { self?.ghepTT.guiXong() } }, khiCanhBao: { [weak self] in self?.ghepTT.hienCanhBao() }, dongLai: { [weak self] in
+    let w = NSWindow(contentViewController: NSHostingController(rootView: GhepMayView(taiKhoan: ds, coGoiCai: model.tt?.coGoiCai == true, tray: model, khiGui: { [weak self] bat in if bat { self?.ghepTT.batDauGui() } else { self?.ghepTT.guiXong() } }, khiCanhBao: { [weak self] in self?.ghepTT.hienCanhBao() }, dongLai: { [weak self] in
       self?.cuaSoGhep?.close(); self?.hoi() })))
     w.title = "AiiGrow · Ghép máy"; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false; w.delegate = self
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
@@ -396,3 +464,16 @@ extension NSStatusItem {
 
 /// Giữ YẾU một cửa sổ để closure tạo trước cửa sổ biết đúng cửa sổ của mình.
 @MainActor final class HopCuaSo { weak var w: NSWindow? }
+/// Bấm vào thông báo «tin mới» ⇒ mở app của Con đúng mục; app đang mở vẫn hiện thông báo dạng banner.
+final class ThongBaoDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+  static let chung = ThongBaoDelegate()
+  @MainActor var khiBam: ((MucApp) -> Void)?
+  func userNotificationCenter(_ c: UNUserNotificationCenter, didReceive r: UNNotificationResponse, withCompletionHandler xong: @escaping () -> Void) {
+    let muc = (r.notification.request.content.userInfo["muc"] as? String).flatMap(MucApp.init(rawValue:)) ?? .tinNhan
+    Task { @MainActor in ThongBaoDelegate.chung.khiBam?(muc); xong() }
+  }
+  func userNotificationCenter(_ c: UNUserNotificationCenter, willPresent n: UNNotification,
+                              withCompletionHandler xong: @escaping (UNNotificationPresentationOptions) -> Void) {
+    xong([.banner, .sound])
+  }
+}

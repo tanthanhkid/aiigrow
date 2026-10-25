@@ -64,6 +64,15 @@ fi
 /bin/chmod 0755 "$LOG"
 [ -f "$THU_MUC/config.json" ] && /bin/chmod 0600 "$THU_MUC/config.json"
 
+# Ghép MỘT CHẠM: app Ba Mẹ tải gói tên «AiiGrow_<token>.pkg» (server/lib/chuyen-doi.ts › huongDanCai; token 32 byte base64url = 43 ký tự; trình duyệt có thể thêm « (1)» / «-2»).
+# Lưu token (root 0600) cho daemon đổi lấy token máy khi Ba Mẹ chọn tài khoản của Con — không còn hỏi mã 6 số. Máy đã ghép thì bỏ qua.
+TEN_GOI=$(/usr/bin/basename "${PACKAGE_PATH:-${1:-}}" 2>/dev/null)
+TOKEN_GOI=$(printf '%s' "$TEN_GOI" | /usr/bin/sed -nE 's/^AiiGrow_([A-Za-z0-9_-]{43})( ?\([0-9]+\)|-[0-9]+)?\.pkg$/\1/p')
+if [ -n "$TOKEN_GOI" ] && ! /usr/bin/grep -q '"token" *: *"[^"]' "$THU_MUC/config.json" 2>/dev/null; then
+  ( umask 077; printf '%s\n' "$TOKEN_GOI" > "$THU_MUC/goi-cai-token" )
+  /usr/sbin/chown root:wheel "$THU_MUC/goi-cai-token"; /bin/chmod 0600 "$THU_MUC/goi-cai-token"
+fi
+
 for p in vn.aiilab.aiigrow.daemon:$GOC/Library/LaunchDaemons vn.aiilab.aiigrow.tray:$GOC/Library/LaunchAgents; do
   ten="${p%%:*}"; dich="${p#*:}"
   /bin/cp "$RES/$ten.plist" "$dich/$ten.plist"

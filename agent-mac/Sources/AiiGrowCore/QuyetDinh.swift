@@ -157,8 +157,12 @@ public enum QuyenIPC {
     switch y {
     case .trangThai:
       return .duoc                                                                       // ai cũng hỏi được; phần riêng của Con chỉ trả cho uid Con
-    case .ping, .appTienCanh, .xinThem, .xinMo, .hocVien, .choi, .choiThu:     // app của Con: chỉ uid Con (token máy không cho tài khoản khác dùng)
+    case .ping, .appTienCanh, .xinThem, .xinMo, .hocVien, .choi, .choiThu, .maOffline:     // app của Con: chỉ uid Con (token máy không cho tài khoản khác dùng)
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
+      return .duoc
+    case .hoSoDns:
+      guard daGhep else { return .tuChoi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+      guard laBaMe(uidGoi: uidGoi, uidCon: uidCon, laAdmin: laAdmin) else { return .tuChoi(ma: "can_admin", chu: "Chỉ tài khoản quản trị (Ba Mẹ) mới cài hồ sơ DNS.") }
       return .duoc
     case .capNhat:
       guard daGhep else { return .tuChoi(ma: "chua_ghep", chu: LuatCapNhat.chuChuaGhep) }

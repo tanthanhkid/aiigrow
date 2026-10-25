@@ -186,3 +186,18 @@ actor GioiHanIPC {
     if cho.isEmpty { dang = max(0, dang - 1) } else { cho.removeFirst().resume() }
   }
 }
+
+/// «Ba Mẹ dùng máy»: khoá màn hình ngay (SACLockScreenImmediate của login.framework — cùng việc Ctrl+Cmd+Q). Màn đăng nhập cho Ba Mẹ chọn
+/// tài khoản của mình (chuyển người dùng nhanh); phiên Con vẫn giữ. Không có hàm (macOS đổi) ⇒ rơi về `pmset displaysleepnow`.
+enum NhuongMay {
+  static func khoaManHinh() {
+    typealias Ham = @convention(c) () -> Int32
+    if let h = dlopen("/System/Library/PrivateFrameworks/login.framework/Versions/Current/login", RTLD_LAZY),
+       let f = dlsym(h, "SACLockScreenImmediate") {
+      _ = unsafeBitCast(f, to: Ham.self)()
+      return
+    }
+    let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/pmset"); p.arguments = ["displaysleepnow"]
+    try? p.run()
+  }
+}

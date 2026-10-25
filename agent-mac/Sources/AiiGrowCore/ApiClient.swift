@@ -14,6 +14,8 @@ public struct LoiApi: Error, Equatable, CustomStringConvertible {
   public var description: String { chu }
   /// Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline theo Policy nhớ.
   public var laMang: Bool { maHttp == nil || maHttp! >= 500 }
+  /// Mã lỗi của ghep-goi khi token gói cài hỏng hẳn (server/lib/lenh-may.ts › doiGoiCai) — daemon xoá token, tray quay về ô mã 6 số.
+  public static let maTokenGoiHong: Set<String> = ["ma_sai", "ma_da_dung", "ma_het_han", "sai_nen_tang"]
   /// Máy chủ KHẲNG ĐỊNH máy đã bị gỡ khỏi gia đình.
   public var laTokenSai: Bool { maHttp == 401 && (ma == "token_sai" || ma == "device_unknown") }
 }
@@ -43,6 +45,12 @@ public protocol MayChuApi: AnyObject {
   func nhipChoi(id: String, dangDung: Bool) async throws -> String
   /// POST api/device/phien/bu {ma, id, muc, phut, batDau, ketThuc} — gửi bù phút chơi lúc mất mạng (TRƯỚC dong-bo), `ma` một lần.
   func guiPhienBu(_ than: [String: Any]) async throws
+  /// POST api/device/ghep-goi {token, nen, tenMay} — ghép một chạm bằng token trong tên gói cài.
+  func ghepGoi(token: String, tenMay: String) async throws -> KetQuaGhep
+  /// POST api/device/log · su-kien · web/lich-su — thân dựng sẵn (NhatKyMay / LichSuWeb).
+  func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws
+  /// GET api/device/ho-so-dns — JSON nguyên văn.
+  func hoSoDns() async throws -> Data
 }
 
 /// Kết quả phien/xet. KHÔNG mang số điểm sang tray — chỉ «được / không», câu nhắc, số phút.
@@ -72,6 +80,9 @@ public extension MayChuApi {
   func moChoi(muc: String) async throws -> KetQuaMoChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
   func nhipChoi(id: String, dangDung: Bool) async throws -> String { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ nhịp phiên") }
   func guiPhienBu(_ than: [String: Any]) async throws {}
+  func ghepGoi(token: String, tenMay: String) async throws -> KetQuaGhep { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ ghép một chạm") }
+  func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws {}
+  func hoSoDns() async throws -> Data { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa có hồ sơ DNS") }
 }
 
 public final class ApiClient: MayChuApi {
@@ -110,8 +121,19 @@ public final class ApiClient: MayChuApi {
     return t
   }
 
+  public func ghepGoi(token: String, tenMay: String) async throws -> KetQuaGhep {
+    try ApiClient.tachGhep(try await gui("POST", "api/device/ghep-goi", ["token": token, "nen": "mac", "tenMay": tenMay]), mayChu: mayChu)
+  }
+
+  public func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws { _ = try await gui("POST", "api/device/" + duong, than) }
+
+  public func hoSoDns() async throws -> Data { try await gui("GET", "api/device/ho-so-dns", nil) }
+
   public func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep {
-    let d = try await gui("POST", "api/device/ghep", ["ma": ma.trimmingCharacters(in: .whitespaces), "nen": "mac", "tenMay": tenMay])
+    try ApiClient.tachGhep(try await gui("POST", "api/device/ghep", ["ma": ma.trimmingCharacters(in: .whitespaces), "nen": "mac", "tenMay": tenMay]), mayChu: mayChu)
+  }
+
+  static func tachGhep(_ d: Data, mayChu: String) throws -> KetQuaGhep {
     guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { throw LoiApi(chu: "Máy chủ trả dữ liệu không đúng định dạng") }
     let token = o["token"] as? String ?? ""
     guard !token.isEmpty else { throw LoiApi(chu: "Máy chủ không trả token") }
