@@ -331,7 +331,7 @@ final class ApiVaDongBoTests: XCTestCase {
 
   func nhipPhien(_ id: String?, conPhut: Int = 30, biMat: String? = nil) throws -> NhipTraVe {
     var s = String(data: nhipMau(), encoding: .utf8)!
-    if let id { s = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"\#(id)","muc":"com.mojang.minecraftpe","conPhut":\#(conPhut)}"#) }
+    if let id { s = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"\#(id)","muc":"com.mojang.minecraftpe","conPhut":\#(conPhut),"may":"m1"}"#) }
     if let biMat { s = s.replacingOccurrences(of: #""lenh":[]"#, with: #""lenh":[],"maOfflineBiMat":"\#(biMat)""#) }
     return try JSONDecoder().decode(NhipTraVe.self, from: s.data(using: .utf8)!)
   }
@@ -351,6 +351,10 @@ final class ApiVaDongBoTests: XCTestCase {
     // phiên mới ⇒ neo lại; hết phiên ⇒ không lịch
     XCTAssertEqual(LapKeHoach.tu(try nhipPhien("P2", conPhut: 10), now: t0.addingTimeInterval(40 * 60), truoc: kh2).phienDiemDen,
                    t0.addingTimeInterval(50 * 60))
+    // hết cửa sổ mà máy chủ vẫn báo cùng phiên (chưa nhận nhịp) ⇒ KHÔNG mở cửa sổ mới
+    let quaHan = LapKeHoach.tu(try nhipPhien("P1"), now: t0.addingTimeInterval(45 * 60), truoc: kh2)
+    XCTAssertNil(quaHan.lich.first { $0.ten == "phiendiem" })
+    XCTAssertEqual(LapKeHoach.tu(try nhipPhien("P1"), now: t0.addingTimeInterval(90 * 60), truoc: quaHan).phienDiemDen, kh.phienDiemDen)
     let het = LapKeHoach.tu(try nhipPhien(nil), now: t0, truoc: kh)
     XCTAssertNil(het.phienDiemDen); XCTAssertNil(het.lich.first { $0.ten == "phiendiem" })
     // Khoá ngay / giờ ngủ vẫn thắng phiên điểm
@@ -400,6 +404,8 @@ final class ApiVaDongBoTests: XCTestCase {
     XCTAssertEqual(m3.thuMo(biMat: bm, ma: "703799", now: t), .daMo)
     _ = m3.ghiThay(t.addingTimeInterval(65 * 60))
     XCTAssertNil(m3.hanMo(t.addingTimeInterval(10 * 60)))
+    // lùi đồng hồ về trước lúc nhập để gõ lại mã cũ ⇒ không nhận
+    XCTAssertEqual(m3.thuMo(biMat: bm, ma: "703799", now: t.addingTimeInterval(-90)), .daDung)
   }
 
   func testDongBoNhoBiMatMoBangMaVaHetKhiCoMang() async throws {

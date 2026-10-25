@@ -98,12 +98,14 @@ public struct MoTamOffline: Codable, Equatable {
     guard let biMat, !biMat.isEmpty else { return .chuaCoBiMat }
     if giayCho(now) > 0 { return .choThuLai }
     let sach = (ma ?? "").filter(\.isNumber)
+    // đồng hồ bị lùi về trước lần đã thấy ⇒ không nhận mã (chặn dùng lại mã cũ bằng cách chỉnh giờ)
+    if let t = [maCuoiLuc, thayMuonNhat].compactMap({ $0 }).max(), now < t.addingTimeInterval(-120) { return .daDung }
     if let cu = maCuoi, let luc = maCuoiLuc, sach == cu, now.timeIntervalSince(luc) < Self.nhoMaDaDung, now >= luc.addingTimeInterval(-60) {
       return dangMo(now) ? .dangMo : .daDung
     }
     guard MaOffline.kiem(biMat, sach, now: now) else { saiLuc.append(now); return .sai }
     let p = min(120, max(5, phut))
-    moTu = now; moDen = now.addingTimeInterval(TimeInterval(p * 60)); thayMuonNhat = now
+    moTu = now; moDen = now.addingTimeInterval(TimeInterval(p * 60)); thayMuonNhat = max(thayMuonNhat ?? now, now)
     maCuoi = sach; maCuoiLuc = now; saiLuc = []
     return .daMo
   }

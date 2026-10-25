@@ -71,12 +71,12 @@ public enum LapKeHoach {
   public static let khoangNganNhat = 15     // DeviceActivitySchedule tối thiểu 15 phút
   public static let nhacTruoc = 5           // nhắc «còn 5 phút» (như khay Windows / Mac)
 
-  /// Hạn gỡ khiên của phiên điểm: lần đầu thấy phiên ⇒ now + conPhut; đồng bộ lại cùng phiên ⇒ không quá hạn cũ (không tự kéo dài).
+  /// Hạn gỡ khiên của phiên điểm (mốc NEO, có thể đã qua): lần đầu thấy phiên ⇒ now + conPhut; đồng bộ lại cùng phiên ⇒ không quá hạn cũ —
+  /// kể cả khi hạn cũ đã hết (máy chủ chưa nhận nhịp nên conPhut không giảm: không được mở lại cửa sổ mới cho cùng phiên).
   public static func hanPhienDiem(_ p: ChinhSach.PhienDang?, truoc: KeHoach?, now: Date) -> Date? {
     guard let p, p.conPhut > 0 else { return nil }
     let moi = now.addingTimeInterval(Double(p.conPhut) * 60)
-    let den = (truoc?.phienDiem?.id == p.id ? truoc?.phienDiemDen : nil).map { min($0, moi) } ?? moi
-    return den > now ? den : nil
+    return (truoc?.phienDiem?.id == p.id ? truoc?.phienDiemDen : nil).map { min($0, moi) } ?? moi
   }
 
   /// Lịch không lặp kết thúc ĐÚNG `den` (bắt đầu lùi lại cho đủ 15 phút — giới hạn DeviceActivity), nhắc trước 5 phút nếu còn đủ thời gian.
@@ -136,10 +136,11 @@ public enum LapKeHoach {
     lich.append(MucLich(ten: "ngay", batDau: 0, ketThuc: 1439, thu: nil, lap: true, suKien: sk))
     // 3. thêm giờ đã duyệt — một lịch không lặp kết thúc ĐÚNG lúc hết hạn (bắt đầu lùi lại cho đủ 15 phút)
     if let moDen { lich.append(lichMotLan("themgio", den: moDen, now: now)) }
-    // 3b. phiên Chơi bằng điểm mở trên CHÍNH máy này (máy chủ cũ không gửi `may` ⇒ nhận) — như thêm giờ: lịch không lặp đúng hạn phiên (đã neo)
-    let phien = cs.phienDiem?.phien.flatMap { p in p.may == nil || p.may == cs.may.id ? p : nil }
+    // 3b. phiên Chơi bằng điểm mở trên CHÍNH máy này (`may` = id máy; phiên mở ở máy / trình duyệt khác không gỡ khiên iPhone)
+    //     — như thêm giờ: lịch không lặp đúng hạn phiên (đã neo; hết hạn rồi thì giữ mốc để không mở lại)
+    let phien = cs.phienDiem?.phien.flatMap { p in p.may == cs.may.id ? p : nil }
     let phienDen = hanPhienDiem(phien, truoc: truoc, now: now)
-    if let phienDen { lich.append(lichMotLan("phiendiem", den: phienDen, now: now)) }
+    if let phienDen, phienDen > now { lich.append(lichMotLan("phiendiem", den: phienDen, now: now)) }
     // 4. khung giờ chơi — chung mọi ngày nếu ngày thường = cuối tuần, không thì theo từng thứ
     var mo: [MucLich] = []
     let them = { (k: Khung, thu: Int?, ten: String) in

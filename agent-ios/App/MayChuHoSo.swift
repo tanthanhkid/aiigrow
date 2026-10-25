@@ -55,7 +55,7 @@ final class MayChuHoSo {
     if nen != .invalid {
       let n = nen
       nen = .invalid
-      DispatchQueue.main.async { UIApplication.shared.endBackgroundTask(n) }
+      UIApplication.shared.endBackgroundTask(n)     // gọi thẳng (kể cả trong expirationHandler) — không để quá hạn chạy nền
     }
   }
 }

@@ -430,6 +430,7 @@ struct ManDns: View {
       .background(Clay.nenMan)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
+      .onAppear { m.loi = nil }        // lỗi cũ của lượt đồng bộ không hiện lẫn vào bảng DNS
     }
     .navigationViewStyle(.stack)
   }

@@ -107,7 +107,10 @@ final class MoHinhApp: ObservableObject {
     do {
       if case .daGo = try await dongBo().chay() { man = .daGo }
       loi = nil
-      if uq.trangThai == "approved" { ThongBao.xinQuyen() }     // nhắc «còn 5 phút» + «Xin thêm giờ» từ màn chặn cần quyền thông báo (hỏi một lần)
+      // nhắc «còn 5 phút» + «Xin thêm giờ» từ màn chặn cần quyền thông báo — hỏi một lần
+      if uq.trangThai == "approved", !UserDefaults.standard.bool(forKey: "daXinThongBao") {
+        UserDefaults.standard.set(true, forKey: "daXinThongBao"); ThongBao.xinQuyen()
+      }
     } catch let e as LoiApi where e.chuaGhep {
       KhoBiMat.ghi(nil); man = .chuaGhep; loi = "Máy đã được gỡ khỏi gia đình. Nhờ Ba Mẹ ghép lại nếu cần."
       for k in [Khoa.suKienCho, Khoa.moTamOffline] { kho.ghi(nil, k) }     // sự kiện / lượt mở của gia đình cũ không sang gia đình mới
