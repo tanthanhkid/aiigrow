@@ -79,7 +79,8 @@ final class KeHoachTests: XCTestCase {
     let ngay = kh.lich.first { $0.ten == "ngay" }!
     XCTAssertEqual(ngay.suKien.last, SuKien(ten: "tran", phut: 120))
     XCTAssertEqual(ngay.suKien.first, SuKien(ten: "dung.5", phut: 5))
-    XCTAssertEqual(ngay.suKien.count, 120 / 5)        // dung.5 … dung.115 + tran
+    XCTAssertEqual(ngay.suKien.count, 120 / 5 + 1)    // dung.5 … dung.115 + nhac5 + tran
+    XCTAssertTrue(ngay.suKien.contains(SuKien(ten: "nhac5", phut: 115)))
     XCTAssertLessThanOrEqual(LapKeHoach.buocDo(480), 15)
     XCTAssertLessThanOrEqual(480 / LapKeHoach.buocDo(480), 40)
   }
@@ -324,6 +325,112 @@ final class ApiVaDongBoTests: XCTestCase {
     await dongBo().capNhatYeuCau()
     let sau = kho.doc(YeuCauDangCho.self, Khoa.yeuCauDangCho)!
     XCTAssertTrue(sau.xong); XCTAssertEqual(sau.cau, "Ba Mẹ đã đồng ý thêm 60 phút!")
+  }
+
+  // MARK: mục 5 — phiên Chơi bằng điểm, mã mở offline, nhắc 5 phút
+
+  func nhipPhien(_ id: String?, conPhut: Int = 30, biMat: String? = nil) throws -> NhipTraVe {
+    var s = String(data: nhipMau(), encoding: .utf8)!
+    if let id { s = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"\#(id)","muc":"com.mojang.minecraftpe","conPhut":\#(conPhut),"may":"m1"}"#) }
+    if let biMat { s = s.replacingOccurrences(of: #""lenh":[]"#, with: #""lenh":[],"maOfflineBiMat":"\#(biMat)""#) }
+    return try JSONDecoder().decode(NhipTraVe.self, from: s.data(using: .utf8)!)
+  }
+
+  func testPhienDiemGoKhienDungSoPhutVaKhongTuKeoDai() throws {
+    let t0 = vn(26, 10)                          // thứ Hai 10:00 — ngoài khung 17–19 ⇒ bình thường đang khiên giải trí
+    let kh = LapKeHoach.tu(try nhipPhien("P1"), now: t0)
+    XCTAssertEqual(kh.phienDiemDen, t0.addingTimeInterval(30 * 60))
+    let l = kh.lich.first { $0.ten == "phiendiem" }!
+    XCTAssertFalse(l.lap); XCTAssertEqual(l.ketThucLuc, kh.phienDiemDen); XCTAssertEqual(l.nhacTruocPhut, 5)
+    let k = TinhKhien.lucNay(kh, now: t0.addingTimeInterval(60), dung: nil)
+    XCTAssertEqual(k.muc, .khong); XCTAssertEqual(k.dangChoiDiem, true)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: t0.addingTimeInterval(31 * 60), dung: nil).lyDo, .ngoaiGio)
+    // đồng bộ lại 20 phút sau, máy chủ vẫn báo conPhut 30 (không nhịp) ⇒ hạn KHÔNG dời
+    let kh2 = LapKeHoach.tu(try nhipPhien("P1"), now: t0.addingTimeInterval(20 * 60), truoc: kh)
+    XCTAssertEqual(kh2.phienDiemDen, kh.phienDiemDen)
+    // phiên mới ⇒ neo lại; hết phiên ⇒ không lịch
+    XCTAssertEqual(LapKeHoach.tu(try nhipPhien("P2", conPhut: 10), now: t0.addingTimeInterval(40 * 60), truoc: kh2).phienDiemDen,
+                   t0.addingTimeInterval(50 * 60))
+    // hết cửa sổ mà máy chủ vẫn báo cùng phiên (chưa nhận nhịp) ⇒ KHÔNG mở cửa sổ mới
+    let quaHan = LapKeHoach.tu(try nhipPhien("P1"), now: t0.addingTimeInterval(45 * 60), truoc: kh2)
+    XCTAssertNil(quaHan.lich.first { $0.ten == "phiendiem" })
+    XCTAssertEqual(LapKeHoach.tu(try nhipPhien("P1"), now: t0.addingTimeInterval(90 * 60), truoc: quaHan).phienDiemDen, kh.phienDiemDen)
+    let het = LapKeHoach.tu(try nhipPhien(nil), now: t0, truoc: kh)
+    XCTAssertNil(het.phienDiemDen); XCTAssertNil(het.lich.first { $0.ten == "phiendiem" })
+    // Khoá ngay / giờ ngủ vẫn thắng phiên điểm
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 22), dung: nil).lyDo, .ngu)
+    // phiên mở trên máy KHÁC (máy tính) ⇒ iPhone không gỡ khiên; mở trên chính máy này (may = m1) ⇒ gỡ
+    let s = String(data: nhipMau(), encoding: .utf8)!
+    let khac = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"P9","muc":"roblox.exe","conPhut":30,"may":"pc1"}"#)
+    XCTAssertNil(LapKeHoach.tu(try JSONDecoder().decode(NhipTraVe.self, from: khac.data(using: .utf8)!), now: t0).phienDiemDen)
+    let minh = s.replacingOccurrences(of: #""phien":null"#, with: #""phien":{"id":"P9","muc":"x","conPhut":30,"may":"m1"}"#)
+    XCTAssertNotNil(LapKeHoach.tu(try JSONDecoder().decode(NhipTraVe.self, from: minh.data(using: .utf8)!), now: t0).phienDiemDen)
+  }
+
+  func testLichMotLanChenVaoDanhSachDay() {
+    let day = (0..<LapKeHoach.lichToiDa).map { MucLich(ten: $0 == 0 ? "ngay" : "mo.\($0)", batDau: 0, ketThuc: 60, thu: nil, lap: true, suKien: []) }
+    let t = vn(26, 10)
+    let ds = LapKeHoach.themLich(day, LapKeHoach.lichMotLan("mooffline", den: t.addingTimeInterval(3600), now: t))
+    XCTAssertEqual(ds.count, LapKeHoach.lichToiDa); XCTAssertEqual(ds.last?.ten, "mooffline"); XCTAssertEqual(ds.last?.nhacTruocPhut, 5)
+    XCTAssertTrue(ds.contains { $0.ten == "ngay" })
+  }
+
+  func testMaOfflineCungSoVoiMayChuVaWindows() {
+    // RFC 6238 phụ lục B (SHA1, T = 59 s, bước 30, 8 số) + vector AiiGrow trong server/lib/ma-offline.test.ts
+    XCTAssertEqual(MaOffline.ma("12345678901234567890", now: Date(timeIntervalSince1970: 59), buocGiay: 30, soChuSo: 8), "94287082")
+    let t = Date(timeIntervalSince1970: 1_700_000_000)
+    XCTAssertEqual(MaOffline.ma("aiigrow-thu-ma-offline", now: t), "703799")
+    XCTAssertTrue(MaOffline.kiem("aiigrow-thu-ma-offline", "703 799", now: t.addingTimeInterval(300)))   // dung sai ±1 bước
+    XCTAssertFalse(MaOffline.kiem("aiigrow-thu-ma-offline", "703799", now: t.addingTimeInterval(900)))
+    XCTAssertFalse(MaOffline.kiem(nil, "703799", now: t))
+    XCTAssertEqual(MaOffline.van("abcDEF_123-xyz"), "cabe62fd6d16")      // cùng số với máy chủ vanBiMat + agent Android
+  }
+
+  func testMoTamOfflineMotMaMotLuotSaiNhieuThiCho() {
+    let bm = "aiigrow-thu-ma-offline", t = Date(timeIntervalSince1970: 1_700_000_000)
+    var mt = MoTamOffline()
+    XCTAssertEqual(mt.thuMo(biMat: nil, ma: "703799", now: t), .chuaCoBiMat)
+    XCTAssertEqual(mt.thuMo(biMat: bm, ma: "703799", now: t), .daMo)
+    XCTAssertEqual(mt.hanMo(t.addingTimeInterval(59 * 60)), t.addingTimeInterval(60 * 60))
+    XCTAssertEqual(mt.thuMo(biMat: bm, ma: "703799", now: t.addingTimeInterval(60)), .dangMo)
+    XCTAssertEqual(mt.ketThucKhiCoMang(t.addingTimeInterval(10 * 60)), 50)
+    XCTAssertEqual(mt.thuMo(biMat: bm, ma: "703799", now: t.addingTimeInterval(11 * 60)), .daDung)
+    var m2 = MoTamOffline()
+    for i in 0..<5 { XCTAssertEqual(m2.thuMo(biMat: bm, ma: "000000", now: t.addingTimeInterval(Double(i))), .sai) }
+    XCTAssertEqual(m2.thuMo(biMat: bm, ma: "703799", now: t.addingTimeInterval(10)), .choThuLai)
+    XCTAssertEqual(m2.thuMo(biMat: bm, ma: MaOffline.ma(bm, now: t.addingTimeInterval(700)), now: t.addingTimeInterval(700)), .daMo)
+    // lùi đồng hồ vào giữa lượt mở đã thấy hết ⇒ không hồi sinh
+    var m3 = MoTamOffline()
+    XCTAssertEqual(m3.thuMo(biMat: bm, ma: "703799", now: t), .daMo)
+    _ = m3.ghiThay(t.addingTimeInterval(65 * 60))
+    XCTAssertNil(m3.hanMo(t.addingTimeInterval(10 * 60)))
+    // lùi đồng hồ về trước lúc nhập để gõ lại mã cũ ⇒ không nhận
+    XCTAssertEqual(m3.thuMo(biMat: bm, ma: "703799", now: t.addingTimeInterval(-90)), .daDung)
+  }
+
+  func testDongBoNhoBiMatMoBangMaVaHetKhiCoMang() async throws {
+    var nho: String?
+    let db = DongBo(api: ApiClient(goc: URL(string: "https://thu.vn")!, token: "t", vanChuyen: vc), kho: kho, khien: khien, lich: lich, uyQuyen: uq,
+                    chon: ChonGia(), xoaToken: {}, docBiMatOffline: { nho }, luuBiMatOffline: { nho = $0 })
+    vc.tra["POST /api/device/nhip"] = (try JSONEncoder().encode(try nhipPhien(nil, biMat: "aiigrow-thu-ma-offline")), 200)
+    vc.tra["POST /api/device/su-kien"] = (#"{"nhan":1}"#.data(using: .utf8)!, 200)
+    try await db.chay(now: vn(26, 10))
+    XCTAssertEqual(nho, "aiigrow-thu-ma-offline")
+    let t = vn(26, 22)                           // giờ ngủ ⇒ khiên mọi app; mã Ba Mẹ đọc ⇒ mở
+    let (kq, _) = db.moBangMaOffline(MaOffline.ma(nho!, now: t), biMat: nho, now: t)
+    XCTAssertEqual(kq, .daMo)
+    XCTAssertEqual(khien.lan.last?.dangMoOffline, true)
+    XCTAssertTrue(lich.lich.contains { $0.ten == "mooffline" })
+    XCTAssertEqual(kho.doc([SuKienMay].self, Khoa.suKienCho)?.first?.loai, "mo_ma_offline")
+    // có mạng lại ⇒ hết lượt mở, gửi sự kiện, vân bí mật đi kèm nhịp
+    try await db.chay(now: t.addingTimeInterval(120))
+    XCTAssertNil(kho.doc(MoTamOffline.self, Khoa.moTamOffline)?.hanMo(t.addingTimeInterval(121)))
+    XCTAssertEqual(khien.lan.last?.lyDo, .ngu)
+    XCTAssertNil(kho.doc([SuKienMay].self, Khoa.suKienCho))
+    XCTAssertTrue(vc.da.contains { $0.url!.path == "/api/device/su-kien" })
+    let nhipCuoi = vc.da.last { $0.url!.path == "/api/device/nhip" }!
+    let than = try JSONSerialization.jsonObject(with: nhipCuoi.httpBody!) as! [String: Any]
+    XCTAssertEqual(than["maOfflineVan"] as? String, MaOffline.van("aiigrow-thu-ma-offline"))
   }
 
   func testLoiNhanTrongDungCauMacDinh() async throws {

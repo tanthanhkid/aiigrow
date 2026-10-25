@@ -73,6 +73,14 @@ public struct ChinhSach: Codable {
   public struct UngDung: Codable { public var hoc: [MucChung]; public var giaiTri: [MucChung]; public var chan: [MucChung] }
   public struct NgoaiLe: Codable { public var phutThemHomNay: Int; public var moKhanCapDen: String? }
   public struct HieuLuc: Codable { public var giaiTriDuocMo: Bool; public var lyDo: [String] }
+  /// Phiên «Chơi bằng điểm» đang chạy (server/lib/chinh-sach.ts › phienDiem.phien): Con mở trên app AiiGrow (màn Con /tre/choi) hay máy khác.
+  public struct PhienDang: Codable, Equatable {
+    public var id: String; public var muc: String; public var conPhut: Int
+    /// Máy mở phiên (máy chủ mới gửi). Khác máy này ⇒ không gỡ khiên ở đây (phiên mở trên máy tính không mở iPhone).
+    public var may: String?
+    public init(id: String, muc: String, conPhut: Int, may: String? = nil) { self.id = id; self.muc = muc; self.conPhut = conPhut; self.may = may }
+  }
+  public struct PhienDiem: Codable { public var soDu: Int?; public var phien: PhienDang? }
 
   public var serverTime: String
   public var tz: String
@@ -84,6 +92,8 @@ public struct ChinhSach: Codable {
   public var ngoaiLe: NgoaiLe
   public var gioMaySai: Bool
   public var hieuLuc: HieuLuc
+  /// Máy chủ cũ không gửi ⇒ nil (không có phiên điểm).
+  public var phienDiem: PhienDiem?
 }
 
 public struct MucNenTang: Codable {
@@ -109,6 +119,9 @@ public struct NhipTraVe: Codable {
   public var lenh: [Lenh]
   public var grantEndsAt: String?
   public var moDen: String?
+  /// Bí mật mã mở offline (TOTP, server/lib/ma-offline.ts) — app nhớ trong Keychain để tự kiểm mã Ba Mẹ đọc khi mất mạng.
+  /// Chỉ gửi khi vân app báo (`NhipGui.maOfflineVan`) lệch; máy chủ cũ: nil.
+  public var maOfflineBiMat: String?
 }
 
 public enum NgayISO {
