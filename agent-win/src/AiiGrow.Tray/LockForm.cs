@@ -42,16 +42,16 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
             l.Margin = new Padding(0, 0, 0, 12);
             flow.Controls.Add(l);
         }
-        var ask = UI.Btn("Xin thêm thời gian", true, 300, "hourglass_not_done");
+        var ask = UI.Btn("Xin thêm thời gian", true, UI.Px(300), "hourglass_not_done");
         ask.Click += (_, _) =>
         {
             using var f = new RequestForm(_canExchange);
             f.ShowDialog(this);
         };
-        var logoff = UI.Btn("Lưu bài và đăng xuất", false, 300);
+        var logoff = UI.Btn("Lưu bài và đăng xuất", false, UI.Px(300));
         logoff.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown.exe", "/l") { CreateNoWindow = true, UseShellExecute = false });
         // #70 §1: Ba Mẹ cần máy ⇒ khoá phiên (chuyển người dùng), KHÔNG đăng xuất; phiên Con giữ nguyên, không trừ điểm.
-        var bame = UI.Btn("Ba Mẹ dùng máy", false, 300, "key");
+        var bame = UI.Btn("Ba Mẹ dùng máy", false, UI.Px(300), "key");
         bame.Click += (_, _) => UI.NhuongMayChoBaMe();
         var bameHint = new Label { AutoSize = true, ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(11f), Text = "Ba Mẹ cần máy? Bấm nút này hoặc Win+L", Margin = new Padding(0, 0, 0, 12) };
         flow.Controls.Add(ask);
@@ -59,7 +59,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         flow.Controls.Add(bameHint);
         flow.Controls.Add(logoff);
         // Mất mạng: Ba Mẹ đọc mã mở offline — gỡ được hết giờ, giờ ngủ, «Khoá ngay» (có mạng lại thì lượt mở kết thúc).
-        _code = new OfflineCodePanel(420, UI.Ink, UI.Muted) { Visible = false };
+        _code = new OfflineCodePanel(UI.Px(420), UI.Ink, UI.Muted) { Visible = false };
         flow.Controls.Add(_code);
 
         // Thẻ là FlowLayoutPanel (ClayFlow): Padding của thẻ tự đặt chỗ cho flow, AutoSize co giãn theo khi _code/_count bật tắt.

@@ -384,7 +384,7 @@ internal sealed class AppForm : Form
         AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
         Width = _cw, MinimumSize = new Size(_cw, 0), MaximumSize = new Size(_cw, 0),
         BackColor = bg ?? UI.Card, BoGoc = Px(28),
-        Padding = VeThe.Pad(Px(16), Px(12), Px(16), Px(6)), Margin = new Padding(0, 0, 0, Px(4)),
+        Padding = VeThe.Pad(Px(18), Px(16), Px(18), Px(10)), Margin = new Padding(0, 0, 0, Px(4)),   // lề trong ≥16 (đáy: 10 + lề dưới 8 của dòng cuối)
     };
 
     private FlowLayoutPanel Row(int width) => new()

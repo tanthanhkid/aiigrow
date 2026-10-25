@@ -125,7 +125,7 @@ internal sealed class SetupForm : Form
     {
         public bool Chon { get => _chon; set { _chon = value; BackColor = value ? ChinhSoft : Clay.The; Invalidate(true); } }
         private bool _chon;
-        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 14, 18, 14); }
+        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 16, 18, 16); }
         /// <summary>Lề bóng Clay theo DPI (VeThe.LeBong) — nội dung đặt lệch vào trong lề này.</summary>
         public static Padding Le => VeThe.LeBong;
         /// <summary>Thẻ Clay: thân đất sét có bóng kép; được chọn ⇒ nền ngọc nhạt + viền ngọc 2,5 (không chỉ dựa vào màu: viền dày hơn hẳn).</summary>
@@ -151,10 +151,10 @@ internal sealed class SetupForm : Form
     {
         var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, 10) };
         var le = The.Le;
-        var t1 = T(tieu, 12.5f, true, Chu, Rong - 40 - le.Horizontal); t1.Location = new Point(18 + le.Left, 14 + le.Top); t1.Margin = Padding.Empty;
+        var t1 = T(tieu, 12.5f, true, Chu, Rong - 40 - le.Horizontal); t1.Location = new Point(18 + le.Left, 16 + le.Top); t1.Margin = Padding.Empty;
         var t2 = T(khi, 10.5f, false, Chu2, Rong - 40 - le.Horizontal); t2.Location = new Point(18 + le.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
         the.Controls.Add(t1); the.Controls.Add(t2);
-        the.Height = t2.Top + t2.PreferredHeight + 14 + le.Bottom;   // + lề bóng Clay (theo DPI)
+        the.Height = t2.Top + t2.PreferredHeight + 16 + le.Bottom;   // + lề bóng Clay (theo DPI)
         foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
         return the;
     }
@@ -267,11 +267,11 @@ internal sealed class SetupForm : Form
     private void TaoMoi()
     {
         _body.Controls.Add(T("Tên đăng nhập của Con — gõ không dấu, không khoảng trắng, ví dụ: bin", 11f, true));
-        var ten = new TextBox { Width = 320, Font = new Font("Segoe UI", 13f), MaxLength = 20, Margin = new Padding(0, 0, 0, 12) };
-        _body.Controls.Add(ten);
+        var ten = new TextBox { Font = new Font("Segoe UI", 13f), MaxLength = 20 };
+        _body.Controls.Add(ONhapClay.Boc(ten, 320, new Padding(0, 0, 0, 12)));   // lòng chảo Clay thân ≥44 (TextBox trần cao ~30)
         _body.Controls.Add(T("Mật khẩu Con gõ khi mở máy — ít nhất 4 ký tự. Ba Mẹ ghi lại giúp Con nhớ.", 11f, true));
-        var mk = new TextBox { Width = 320, Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true, Margin = new Padding(0, 0, 0, 8) };
-        _body.Controls.Add(mk);
+        var mk = new TextBox { Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true };
+        _body.Controls.Add(ONhapClay.Boc(mk, 320, new Padding(0, 0, 0, 8)));
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
         _body.Controls.Add(T("Tài khoản mới là loại giới hạn: Con không tự tắt hay gỡ AiiGrow được.", 10.5f, false, Chu2));

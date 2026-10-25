@@ -33,7 +33,7 @@ internal sealed class NopBaiForm : Form
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(20, 16, 20, 10), AutoScroll = true,
+            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)), AutoScroll = true,
         };
         flow.Controls.Add(UI.Text(nv.Ten, 14f, true, null, 400));
         if (!string.IsNullOrWhiteSpace(nv.MoTa)) flow.Controls.Add(UI.Text(nv.MoTa, 10.5f, false, UI.Muted, 400));

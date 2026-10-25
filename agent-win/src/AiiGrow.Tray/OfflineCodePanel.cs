@@ -1,3 +1,4 @@
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
@@ -24,13 +25,15 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
         Controls.Add(UI.Text(BlockScreenView.OfflineCodeLabel, 11f, true, textColor, width));
 
         var row = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 0, 0), BackColor = Color.Transparent };
-        _box = new TextBox { MaxLength = 6, Width = 150, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "6 số", BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, ForeColor = UI.Ink, Margin = new Padding(0, 6, 0, 0) };
+        // Ô nhập lòng chảo Clay thân ≥44 (trước: TextBox viền mảnh trắng cao ~32px, lệch nút «Mở»).
+        _box = new TextBox { MaxLength = 6, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "6 số", ForeColor = UI.Ink };
         _box.KeyPress += (_, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
         _box.KeyDown += async (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await SendAsync(); } };
-        _go = UI.Btn("Mở", true, 96, "key");
-        _go.Margin = new Padding(8, 0, 0, 0);
+        var o = ONhapClay.Boc(_box, UI.Px(150));
+        _go = UI.Btn("Mở", true, UI.Px(96), "key");
+        _go.Margin = new Padding(UI.Px(8), Math.Max(0, VeThe.LeBong.Top - VeNut.LeBong.Top), 0, 0);   // thân nút ngang thân ô nhập
         _go.Click += async (_, _) => await SendAsync();
-        row.Controls.Add(_box);
+        row.Controls.Add(o);
         row.Controls.Add(_go);
         Controls.Add(row);
 

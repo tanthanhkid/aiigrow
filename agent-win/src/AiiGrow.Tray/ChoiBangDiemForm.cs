@@ -26,7 +26,7 @@ internal sealed class ChoiBangDiemForm : Form
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(18, 14, 18, 10), AutoScroll = true,
+            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)), AutoScroll = true,
         };
         flow.Controls.Add(UI.Text("Chơi bằng điểm", 14f, true, null, 340));
         flow.Controls.Add(_phut);
