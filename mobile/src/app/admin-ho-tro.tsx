@@ -1,9 +1,8 @@
 // bm-admin-ho-tro: hộp thư hỗ trợ cho quản trị AiiLab (Ba Mẹ có cờ admin, server kiểm lại ở /api/m/admin/ho-tro). Danh sách gia đình → chat → trả lời.
 import { useEffect, useState } from "react";
-import { BackHandler, View } from "react-native";
-import { KHOI } from "@/lib/clay";
+import { BackHandler } from "react-native";
 import { bm } from "@/lib/api";
-import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Dong, gioPhut, M, Man, Nhan, Nhom, OChat, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, BongChat, CanhGiua, ChoTai, Chu, Dong, gioPhut, M, Man, Nhan, Nhom, OChat, useLam, useTai } from "@/lib/ui";
 
 type Dong1 = { family_id: string; ten: string; tu: string; noi_dung: string; created_at: string; chua_tra_loi: boolean };
 type Tin = { id: string; tu: "ba_me" | "aiilab"; noi_dung: string; created_at: string };
@@ -50,15 +49,7 @@ function Chat({ fam, ve }: { fam: Dong1; ve: () => void }) {
         <OChat gia={nd} doi={setNd} gui={gui} dangChay={dangChay} nhan={`Trả lời ${fam.ten}`} />
       </>
     }>
-      {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : d.tin.map((t) => t.tu === "ba_me" ? (
-        <View key={t.id} style={{ alignSelf: "flex-start", backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%", ...KHOI.nho }}>
-          <Chu>{t.noi_dung}</Chu><Chu co={12} mau={M.chu3}>{gioPhut(t.created_at)}</Chu>
-        </View>
-      ) : (
-        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, borderBottomRightRadius: 6, maxWidth: "78%" }}>
-          <Chu mau="#fff">{t.noi_dung}</Chu><Chu co={12} mau="#ffffff">{gioPhut(t.created_at)}</Chu>
-        </View>
-      ))}
+      {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : d.tin.map((t) => <BongChat key={t.id} toi={t.tu !== "ba_me"} noiDung={t.noi_dung} luc={gioPhut(t.created_at)} style={t.tu === "ba_me" ? { alignSelf: "flex-start" } : undefined} />)}
     </Man>
   );
 }

@@ -442,6 +442,18 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
   );
 }
 
+/** Bong bóng chat clay (một kiểu cho Ba Mẹ ↔ AiiLab ở cả ho-tro và admin-ho-tro): `toi` = tin của mình (ngọc, bên phải),
+ *  còn lại khối sáng bên trái. Đuôi = góc dưới phía người gửi bo 8 (lớp men bo khớp góc đó). Không viền mảnh — docs/THIET-KE-CLAY.md §1. */
+export function BongChat({ toi, noiDung, luc, style }: { toi?: boolean; noiDung: string; luc: string; style?: ViewStyle }) {
+  const duoi = toi ? { borderBottomRightRadius: 8 } : { borderBottomLeftRadius: 8 };
+  return (
+    <View style={[s.bongChat, duoi, toi ? { alignSelf: "flex-end", backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#fff", ...KHOI.nho }, style]}>
+      <LopMen men={toi ? MEN.ngoc : MEN.sang} bo={22} goc={duoi} />
+      <Chu mau={toi ? "#fff" : M.chu}>{noiDung}</Chu><Chu co={12} mau={toi ? "#ffffff" : M.chu3}>{luc}</Chu>
+    </View>
+  );
+}
+
 /** Ô soạn tin dính đáy cho màn chat (đặt trong `day` của Man để tránh bàn phím). */
 export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t: string) => void; gui: () => void; dangChay?: boolean; nhan: string }) {
   const co = !!gia.trim();
@@ -657,6 +669,7 @@ const s = StyleSheet.create({
   dau: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 2, minHeight: 48 },
   lui: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44, paddingHorizontal: 6 },
   tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 30, lineHeight: 34, fontFamily: F.rat, color: M.chu, letterSpacing: -0.6 },
+  bongChat: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, maxWidth: "78%" },
   hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },
   day: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24, gap: 8, backgroundColor: M.nen },
   canh: { position: "relative", borderRadius: BO_CLAY.the, padding: 18, marginBottom: 26, flexDirection: "row", alignItems: "center", boxShadow: BONG.the },

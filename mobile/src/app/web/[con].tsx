@@ -34,8 +34,9 @@ function NutDong({ chu, loai, bam, tat }: { chu: string; loai: "do" | "vien"; ba
   return (
     // viên clay nhỏ (bóng kép + men), không viền mảnh — docs/THIET-KE-CLAY.md §1
     <NhanMen onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} hitSlop={6} muc="chip" sang men={MEN.sang}
-      style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 18, justifyContent: "center", opacity: tat ? 0.5 : 1,
-        backgroundColor: loai === "do" ? M.loiSoft : "#fff", ...KHOI.nho }}>
+      // độ mờ chỉ khi tắt — đặt opacity cố định sẽ đè opacity động của NhanMen (phản hồi nhấn khi bật Giảm chuyển động)
+      style={[{ minHeight: 44, paddingHorizontal: 14, borderRadius: 18, justifyContent: "center",
+        backgroundColor: loai === "do" ? M.loiSoft : "#fff", ...KHOI.nho }, tat && { opacity: 0.5 }]}>
       <Chu kieu="dam" co={13.5} mau={loai === "do" ? M.loi : M.chu}>{chu}</Chu>
     </NhanMen>
   );

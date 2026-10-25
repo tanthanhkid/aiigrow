@@ -51,12 +51,12 @@ export default function AnToanMay() {
   // Mở bảng mã mất mạng = bật cờ tải; effect bên dưới gọi máy chủ (một chỗ cho nút bấm, «Thử lại», «Lấy mã mới» và ?mo=offline).
   const xemMaOffline = () => { setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true); setLanMa((n) => n + 1); };
   useEffect(() => {
-    if (!lanMa) return;
+    if (!lanMa || !taiMa) return;                    // bảng đã đóng / đã tải xong ⇒ đổi id không tự tạo mã mới
     let bo = false;
     bm.goi<MaOffline>(`may/${id}/ma-offline`).then((v) => { if (!bo) setMaOff(v); }, (e) => { if (!bo) setLoiMa(cauLoi(e)); })
       .finally(() => { if (!bo) setTaiMa(false); });
     return () => { bo = true; };
-  }, [lanMa, id]);
+  }, [lanMa, id]);   // eslint-disable-line react-hooks/exhaustive-deps -- taiMa chỉ là điều kiện chặn, không phải lý do tải lại
   // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
   // Chỉ đổi state ⇒ chỉnh ngay lúc render (mẫu «điều chỉnh state khi dữ liệu đổi» của React), không setState trong effect; mở MỘT lần khi dữ liệu máy về.
   const [daMoSan, setDaMoSan] = useState(false);

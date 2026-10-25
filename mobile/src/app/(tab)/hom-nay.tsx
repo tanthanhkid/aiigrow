@@ -45,7 +45,8 @@ export default function TrangChu() {
     vi.current.measureInWindow((x, y, w, h) => ok(w && y >= 0 && y + h <= Dimensions.get("window").height ? { x: x + 34, y: y + h / 2 - 8 } : null));
   }), []);
   const anMung: AnMung = useCallback((n, tu) => lop.current?.ban(tu, n), []);
-  if (!d) return <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  // gốc cây giống lúc đã tải (View > Man) để chuông không bị gắn lại khi dữ liệu về (gọi thong-bao hai lần, mất mốc «tăng thì rung»)
+  if (!d) return <View style={{ flex: 1 }}><Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
   if (!d.g.con.length) {
     return (
       <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}>

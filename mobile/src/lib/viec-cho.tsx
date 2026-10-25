@@ -35,7 +35,8 @@ export type AnMung = (diem: number, tu: { x: number; y: number }) => void;
 /** Câu nói rõ AI xin GÌ (TestFlight build 6: thẻ chỉ có Duyệt / Từ chối, không biết duyệt cái gì). */
 const viet = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 // «khac»: tieuYc trả nguyên giá trị Con gõ (tên app, tên miền — có thể là tên riêng) ⇒ không hạ chữ đầu
-const tieu = (v: ViecCho, ten: string) => v.k === "yc" ? (v.x.loai === "khac" ? `${ten}: ${tieuYc(v.x)}` : `${ten} ${viet(tieuYc(v.x))}`) : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`;
+// tên lấy từ CHÍNH việc đó (ten_con), `ten` của thẻ chỉ dự phòng — thẻ dùng cho danh sách nhiều Con vẫn không gán nhầm Con
+const tieu = (v: ViecCho, tenThe: string) => { const ten = v.x.ten_con || tenThe; return v.k === "yc" ? (v.x.loai === "khac" ? `${ten}: ${tieuYc(v.x)}` : `${ten} ${viet(tieuYc(v.x))}`) : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`; };
 const phu = (v: ViecCho) => v.k === "nv" ? `+${v.x.diem} điểm · nộp ${gioPhut(v.x.nop_luc)}${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
   : v.k === "yc" ? `“${v.x.ly_do}” · ${gioPhut(v.x.created_at)}` : `Đổi ${v.x.diem} điểm · ${gioPhut(v.x.created_at)}`;
 const moChiTiet = (v: ViecCho) => router.push(v.k === "nv" ? `/duyet/${v.x.id}` : v.k === "yc" ? `/yeu-cau/${v.x.id}` : "/cho-duyet");
