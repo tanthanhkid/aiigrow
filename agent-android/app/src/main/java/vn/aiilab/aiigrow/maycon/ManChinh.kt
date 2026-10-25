@@ -134,23 +134,21 @@ class ManChinh : Activity() {
             G.nut(this, if (p == 120) "2 giờ" else "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == p) } }.apply {
                 // ba nút chung một hàng (~47dp chữ ở máy 360dp): một dòng, chữ tự thu 12–16sp thay vì rớt «phút» xuống dòng / bị cắt
                 maxLines = 1
-                setAutoSizeTextTypeUniformWithConfiguration(12, 16, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
                 val cach = G.dp(this@ManChinh, 3)   // chia đều khe giữa hai nút, không dồn lề phải
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                layoutParams = LinearLayout.LayoutParams(0, layoutParams.height.takeIf { it > 0 } ?: minHeight, 1f).apply {
                     marginStart = if (p == PHUT_XIN.first()) 0 else cach; marginEnd = if (p == PHUT_XIN.last()) 0 else cach; topMargin = G.dp(this@ManChinh, 6) }
             }
         }
         nutPhut.forEach(hang::addView)
-        // tự thu chữ từng nút ⇒ ba cỡ khác nhau; sau lần đo đầu, cả ba lấy cỡ nhỏ nhất cho đều
-        hang.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
-            override fun onPreDraw(): Boolean {
-                hang.viewTreeObserver.removeOnPreDrawListener(this)
-                val nho = nutPhut.minOf { it.textSize }
-                if (nutPhut.all { it.textSize == nho }) return true
-                nutPhut.forEach { it.setAutoSizeTextTypeWithDefaults(android.widget.TextView.AUTO_SIZE_TEXT_TYPE_NONE); it.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, nho) }
-                return false
-            }
-        })
+        // một cỡ chữ chung cho cả ba nút, tính lại mỗi khi bề rộng đổi (chia màn hình, xoay): lớn nhất 12–16sp mà nhãn dài nhất vừa một dòng
+        hang.addOnLayoutChangeListener { _, l, _, r, _, ol, _, or_, _ ->
+            if (r - l == or_ - ol) return@addOnLayoutChangeListener
+            val b = nutPhut.first(); val rong = b.width - b.paddingLeft - b.paddingRight
+            if (rong <= 0) return@addOnLayoutChangeListener
+            val sp = resources.displayMetrics.scaledDensity
+            val co = (16 downTo 12).firstOrNull { c -> nutPhut.all { n -> android.graphics.Paint(n.paint).apply { textSize = c * sp }.measureText(n.text.toString()) <= rong } } ?: 12
+            hang.post { nutPhut.forEach { it.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, co.toFloat()) } }
+        }
         nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == phutChon) }
         x.addView(hang)
         val loi = EditText(this).apply {
@@ -164,7 +162,7 @@ class ManChinh : Activity() {
         x.addView(loi)
         val bao = G.dongBao(this, Clay.CHINH_INK)
         x.addView(G.nut(this, "Gửi Ba Mẹ") {
-            val than = thanXinThemGio(phutChon, loi.text.toString())
+            val than = thanXinThemGio(phutChon, loi.text.toString().replace(Regex("\\s*\n\\s*"), " "))  // ô nhiều dòng: lý do gửi Ba Mẹ vẫn một dòng
             bao.text = "Đang gửi…"
             Thread { val s = DichVuNhip.xinThemGio(this, than); runOnUiThread { bao.text = s; loi.setText("") } }.start()
         })

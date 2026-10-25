@@ -369,7 +369,7 @@ struct ManChonApp: View {
       .onAppear { chon = m.luaChon.doc(nhan) }
       .onChange(of: nhan) { chon = m.luaChon.doc($0) }
       .navigationTitle("Ba Mẹ chọn app").navigationBarTitleDisplayMode(.inline)
-      .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong(ten: "Xong", hinh: "checkmark") { dong() } } }
+      .toolbar { ToolbarItem(placement: .confirmationAction) { NutDong(ten: "Xong", hinh: "checkmark") { dong() } } }
     }
     .navigationViewStyle(.stack)
   }

@@ -138,13 +138,16 @@ object GiaoDien {
 
     /** Nội dung màn khoá / màn chặn dùng chung cho ManKhoa (activity) và TroNang (lớp phủ trợ năng). */
     class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?) {
-        private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(c, 22), dp(c, 32), dp(c, 22), dp(c, 32)) }
+        private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(c, 22), dp(c, 24), dp(c, 22), dp(c, 24)) }
         /** Gốc cuộn được: máy nhỏ / cỡ chữ lớn thì nút «Xin Ba Mẹ thêm giờ» vẫn kéo tới được, không rơi khỏi đáy màn. Tràn viền (targetSdk 35):
          *  chừa thanh trạng thái / thanh điều hướng bằng insets thật thay vì đoán 48dp. */
         val goc = ScrollView(c).apply {
             background = nenMan(); isFillViewport = true; clipToPadding = false
             addView(cot, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            setOnApplyWindowInsetsListener { v, i -> @Suppress("DEPRECATION") v.setPadding(0, i.systemWindowInsetTop, 0, i.systemWindowInsetBottom); i }
+            // lớp phủ Trợ năng có thể không nhận insets ⇒ luôn chừa tối thiểu 24dp (thanh trạng thái / điều hướng 3 nút)
+            val toiThieu = dp(c, 24)
+            setPadding(0, toiThieu, 0, toiThieu)
+            setOnApplyWindowInsetsListener { v, i -> @Suppress("DEPRECATION") v.setPadding(0, maxOf(toiThieu, i.systemWindowInsetTop), 0, maxOf(toiThieu, i.systemWindowInsetBottom)); i }
         }
         private val khoi = the(c).apply { gravity = Gravity.CENTER_HORIZONTAL }
         private val vien = Clay.vien(c, R.drawable.fl_khoa, Clay.CHINH_SOFT, 92).apply { (layoutParams as ViewGroup.MarginLayoutParams).bottomMargin = dp(c, 10) }
