@@ -123,22 +123,25 @@ public final class HeThongMac: HeThong {
     return ThuocTinhTep(uid: st.st_uid, gid: st.st_gid, quyen: UInt16(st.st_mode & 0o7777))
   }
 
-  /// Kiểm chữ ký cả gói (SecStaticCodeCheckValidity, kiểm cả tài nguyên) tốn ~1 giây với Chrome ⇒ nhớ 10 phút theo đường dẫn .app.
-  private var nhoTeam: [String: (String?, Date)] = [:]
-  private let khoaTeam = NSLock()
-  public func teamIdApp(_ duongDanApp: String) -> String? {
-    khoaTeam.lock(); defer { khoaTeam.unlock() }
-    if let (t, luc) = nhoTeam[duongDanApp], Date().timeIntervalSince(luc) < 600 { return t }
+  /// Kiểm chữ ký cả gói với yêu cầu `anchor apple generic` + OU của chứng chỉ lá = Team ID (chứng chỉ tự ký mang OU giả không qua).
+  /// Tốn ~1 giây với Chrome ⇒ nhớ: hợp lệ 60 giây, không hợp lệ 30 giây (Chrome tự cập nhật dở thì lượt sau kiểm lại sớm).
+  private var nhoKy: [String: (Bool, Date)] = [:]
+  private let khoaKy = NSLock()
+  public func kyBoiTeam(_ duongDanApp: String, team: String) -> Bool {
+    let khoa = duongDanApp + "|" + team
+    khoaKy.lock(); defer { khoaKy.unlock() }
+    if let (ok, luc) = nhoKy[khoa], Date().timeIntervalSince(luc) < (ok ? 60 : 30) { return ok }
+    var ok = false
     var ma: SecStaticCode?
-    var team: String?
-    if SecStaticCodeCreateWithPath(URL(fileURLWithPath: duongDanApp) as CFURL, [], &ma) == errSecSuccess, let ma,
-       SecStaticCodeCheckValidity(ma, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), nil) == errSecSuccess {
-      var info: CFDictionary?
-      if SecCodeCopySigningInformation(ma, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
-         let d = info as? [String: Any] { team = d[kSecCodeInfoTeamIdentifier as String] as? String }
+    var yc: SecRequirement?
+    let chuoi = "anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
+    if team.allSatisfy({ $0.isLetter || $0.isNumber }),
+       SecRequirementCreateWithString(chuoi as CFString, [], &yc) == errSecSuccess,
+       SecStaticCodeCreateWithPath(URL(fileURLWithPath: duongDanApp) as CFURL, [], &ma) == errSecSuccess, let ma {
+      ok = SecStaticCodeCheckValidity(ma, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), yc) == errSecSuccess
     }
-    nhoTeam[duongDanApp] = (team, Date())
-    return team
+    nhoKy[khoa] = (ok, Date())
+    return ok
   }
 
   public func tenMay() -> String {

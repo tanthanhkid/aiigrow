@@ -250,12 +250,17 @@ public actor BoMay {
     if let uidCon = cauHinh.uidCon, laCon, chan {
       let ds = heThong.tienTrinh(cuaUid: uidCon)
       let choPhep = p.allowedApps + Array(QuyetDinhApp.heThong)
+      var nho: [String: Bool] = [:]                      // mỗi lượt kiểm MỘT lần cho mỗi .app (Chrome có hàng chục tiến trình phụ)
       let tinCay: (String, String) -> Bool = { [heThong] app, bundle in
+        if let v = nho[app + "|" + bundle] { return v }
         let td = ChinhSachTrinhDuyet.tatCa.first { $0.bundleApp.lowercased() == bundle }
-        let tt = [app, app + "/Contents", app + "/Contents/MacOS"].map { heThong.thuocTinhTep($0) }
-        return QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: tt, uidCon: uidCon, teamId: td?.teamId == nil ? nil : heThong.teamIdApp(app), teamMong: td?.teamId)
+        let tt = ["", "/Contents", "/Contents/MacOS", "/Contents/Frameworks"].map { heThong.thuocTinhTep(app + $0) }
+        let v = QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: tt, uidCon: uidCon, kyDung: td?.teamId.map { heThong.kyBoiTeam(app, team: $0) } ?? false)
+        nho[app + "|" + bundle] = v
+        return v
       }
-      let can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet, tinCay: tinCay)
+      let can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
+      if hl.chiAppHoc { trinhDuyetCanDong = [] }        // đã có một lượt đóng thật ⇒ trình duyệt mở từ giờ đọc luật mới
       let canPid = Set(can.map(\.pid))
       daGuiTerm = daGuiTerm.filter { canPid.contains($0.key) && heThong.conSong(pid: $0.key) }     // hết cần đóng / đã chết ⇒ quên SIGTERM cũ
       for t in can { dongApp(t) }
@@ -286,17 +291,22 @@ public actor BoMay {
   // MARK: web
 
   /// → bundle id .app (chữ thường) của trình duyệt mà plist luật web ĐANG đúng trên đĩa (rỗng khi không chặn / ghi lỗi / chưa biết tài khoản Con).
+  /// Trình duyệt vừa vào lọc (bundle id chữ thường) chưa qua lượt đóng app nào — xem apWeb.
+  private var trinhDuyetCanDong = Set<String>()
+
   @discardableResult
   private func apWeb(p: Policy, now: Date, chan: Bool, laCon: Bool, manKhoa: Bool) -> Set<String> {
     // hosts áp cho cả máy ⇒ chỉ đặt khi Con đang ở màn hình, gỡ khi không phải Con (để Ba Mẹ không bị chặn).
     let web = chan ? (p.web ?? ChinhSachWeb()).hetMo(now, moDen: p.grantEndsAt) : nil
     let dungHosts = chan && laCon && !manKhoa
     apHosts(web: dungHosts ? web : nil)
-    let (dung, vuaGhi) = apChinhSachTrinhDuyet(web: chan ? web : nil)
+    let (dung, vuaVao) = apChinhSachTrinhDuyet(web: chan ? web : nil)
+    trinhDuyetCanDong.formUnion(vuaVao)
+    if !chan { trinhDuyetCanDong = [] }
     // Policy không có khối web (máy chủ cũ / cache cũ) ⇒ chưa có luật lọc thật ⇒ không thả trình duyệt (an toàn trước).
-    // Plist VỪA ghi lượt này (mới vào Chặn thật / tệp bị xoá-sửa) ⇒ chưa thả: trình duyệt đang mở (nạp chính sách cũ, cfprefsd còn đệm) bị đóng ở lượt
-    // này, lượt sau (5 giây, plist đã đúng trên đĩa) mới được mở lại — mở lại thì đọc luật mới.
-    return web == nil || p.web == nil ? [] : dung.subtracting(vuaGhi)
+    // Trình duyệt VỪA VÀO lọc (trước đó không có plist của AiiGrow: mới vào Chặn thật / tệp bị xoá) ⇒ trinhDuyetCanDong: lượt đóng app KẾ TIẾP (khi Con ở
+    // màn hình + chỉ app học) đóng nó dù luật đã ghi (bản đang mở nạp chính sách cũ, cfprefsd còn đệm), sau đó mới thả. Sửa danh sách khi đang lọc thì không đóng.
+    return web == nil || p.web == nil ? [] : dung
   }
 
   private func apHosts(web: ChinhSachWeb?) {
@@ -313,16 +323,16 @@ public actor BoMay {
   }
 
   @discardableResult
-  private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) -> (dung: Set<String>, vuaGhi: Set<String>) {
+  private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) -> (dung: Set<String>, vuaVao: Set<String>) {
     guard let tk = cauHinh.uidCon.flatMap({ heThong.taiKhoan(cuaUid: $0) }) ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon) else { return ([], []) }
     return apChinhSachTrinhDuyet(taiKhoan: tk, web: web)
   }
 
   /// → bundle id .app (chữ thường) của trình duyệt có plist đúng nội dung mong muốn sau lượt này (đã đúng sẵn hoặc vừa ghi xong).
   @discardableResult
-  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) -> (dung: Set<String>, vuaGhi: Set<String>) {
+  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) -> (dung: Set<String>, vuaVao: Set<String>) {
     let host = URL(string: cauHinh.mayChu)?.host
-    var dung = Set<String>(), vuaGhi = Set<String>()
+    var dung = Set<String>(), vuaVao = Set<String>()
     for td in ChinhSachTrinhDuyet.tatCa {
       let duong = ChinhSachTrinhDuyet.duongDan(td, taiKhoan: tk, thuMucGoc: tuyChon.thuMucChinhSach)
       let cu = ChinhSachTrinhDuyet.giaiMa(heThong.docTep(duong))
@@ -333,10 +343,13 @@ public actor BoMay {
       // Bỏ qua ghi CHỈ khi tệp thật trên đĩa đang đúng nội dung mong muốn (tệp mất hoặc bị sửa ⇒ ghi lại).
       if let cu, NSDictionary(dictionary: cu).isEqual(to: moi) { dung.insert(td.bundleApp.lowercased()); continue }
       guard let data = try? ChinhSachTrinhDuyet.maHoa(moi) else { continue }
-      do { try heThong.ghiTep(duong, data, quyen: 0o644); dung.insert(td.bundleApp.lowercased()); vuaGhi.insert(td.bundleApp.lowercased()) }
+      do {
+        try heThong.ghiTep(duong, data, quyen: 0o644); dung.insert(td.bundleApp.lowercased())
+        if web != nil && cu?[ChinhSachTrinhDuyet.khoaDanhDau] == nil { vuaVao.insert(td.bundleApp.lowercased()) }
+      }
       catch { heThong.ghiLog("Ghi chính sách \(td.ten) lỗi: \(error)") }
     }
-    return (dung, vuaGhi)
+    return (dung, vuaVao)
   }
 
   // MARK: khoá + đóng app

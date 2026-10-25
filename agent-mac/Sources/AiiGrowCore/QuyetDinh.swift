@@ -122,8 +122,8 @@ public enum QuyetDinhApp {
 
   /// THUẦN: gói .app trình duyệt đáng tin ⇔ gói + Contents + Contents/MacOS KHÔNG thuộc tài khoản Con, không ai-cũng-ghi, nhóm ghi được thì nhóm phải là
   /// wheel (0) / admin (80) — Con thường không ghi được ⇒ không tráo tệp chạy; VÀ chữ ký hợp lệ đúng Team ID của hãng (nil ⇒ không tin).
-  public static func appTrinhDuyetTinCay(thuocTinh: [ThuocTinhTep?], uidCon: UInt32, teamId: String?, teamMong: String?) -> Bool {
-    guard let teamMong, teamId == teamMong, !thuocTinh.isEmpty else { return false }
+  public static func appTrinhDuyetTinCay(thuocTinh: [ThuocTinhTep?], uidCon: UInt32, kyDung: Bool) -> Bool {
+    guard kyDung, !thuocTinh.isEmpty else { return false }
     return thuocTinh.allSatisfy { a in
       guard let a, a.uid != uidCon, a.quyen & 0o002 == 0 else { return false }
       return a.quyen & 0o020 == 0 || a.gid == 0 || a.gid == 80
@@ -135,7 +135,8 @@ public enum QuyetDinhApp {
                              tinCay: ((String, String) -> Bool)? = nil) -> [TienTrinh] {
     guard chiAppHoc else { return [] }
     let cho = Set(choPhep.map { $0.lowercased() })
-    return ds.filter { $0.uid == uidCon && $0.pid > 1 && !duocPhep($0, choPhep: cho) && !laTrinhDuyetLoc($0, trinhDuyet: trinhDuyet, tinCay: tinCay) }
+    let td = Set(trinhDuyet.map { $0.lowercased() })
+    return ds.filter { $0.uid == uidCon && $0.pid > 1 && !duocPhep($0, choPhep: cho) && !laTrinhDuyetLoc($0, trinhDuyet: td, tinCay: tinCay) }
   }
 }
 

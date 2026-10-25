@@ -407,14 +407,12 @@ final class BaoMatTests: XCTestCase {
 
   func testTrinhDuyetKhongTinCay_VanDong() {
     let ok = ThuocTinhTep(uid: 0, gid: 80, quyen: 0o775)
-    XCTAssertTrue(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, teamId: "EQHXZ8M8AV", teamMong: "EQHXZ8M8AV"))
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, teamId: "XXXX", teamMong: "EQHXZ8M8AV"), "sai Team ID")
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, teamId: nil, teamMong: "EQHXZ8M8AV"), "chữ ký hỏng / không ký")
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, teamId: nil, teamMong: nil), "hãng chưa xác minh (Cốc Cốc)")
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ThuocTinhTep(uid: 501, gid: 20, quyen: 0o755), ok, ok], uidCon: 501, teamId: "T", teamMong: "T"), "gói thuộc Con")
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ThuocTinhTep(uid: 0, gid: 0, quyen: 0o777), ok], uidCon: 501, teamId: "T", teamMong: "T"), "ai cũng ghi")
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ThuocTinhTep(uid: 0, gid: 20, quyen: 0o775)], uidCon: 501, teamId: "T", teamMong: "T"), "nhóm staff ghi được")
-    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, nil, ok], uidCon: 501, teamId: "T", teamMong: "T"), "không đọc được")
+    XCTAssertTrue(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, kyDung: true))
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, kyDung: false), "sai Team ID / chữ ký hỏng / hãng chưa xác minh")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ThuocTinhTep(uid: 501, gid: 20, quyen: 0o755), ok, ok], uidCon: 501, kyDung: true), "gói thuộc Con")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ThuocTinhTep(uid: 0, gid: 0, quyen: 0o777), ok], uidCon: 501, kyDung: true), "ai cũng ghi")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ThuocTinhTep(uid: 0, gid: 20, quyen: 0o775)], uidCon: 501, kyDung: true), "nhóm staff ghi được")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, nil, ok], uidCon: 501, kyDung: true), "không đọc được")
   }
 
   func testChanThat_ChromeThuocCon_BiDong() async throws {

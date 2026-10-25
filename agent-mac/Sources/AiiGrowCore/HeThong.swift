@@ -32,8 +32,8 @@ public protocol HeThong: AnyObject {
   func lietKeThuMuc(_ duongDan: String) -> [String]
   /// Chủ sở hữu + nhóm + quyền (lstat) của một đường dẫn — nil = không đọc được.
   func thuocTinhTep(_ duongDan: String) -> ThuocTinhTep?
-  /// Team ID của .app SAU KHI kiểm chữ ký hợp lệ (cả tài nguyên trong gói) — nil = không ký / chữ ký hỏng.
-  func teamIdApp(_ duongDanApp: String) -> String?
+  /// .app có chữ ký hợp lệ (cả tài nguyên trong gói) bởi chứng chỉ Developer ID do Apple cấp cho đúng Team ID `team` không.
+  func kyBoiTeam(_ duongDanApp: String, team: String) -> Bool
   /// Bundle id app tiền cảnh của phiên đồ hoạ của uid — daemon TỰ kiểm, không tin tray báo. nil = không xác định được.
   func appTienCanh(cuaUid uid: UInt32) -> String?
   // — tác động —
@@ -82,7 +82,7 @@ public final class HeThongThu: HeThong {
   public func tenMay() -> String { that.tenMay() }
   public func lietKeThuMuc(_ duongDan: String) -> [String] { that.lietKeThuMuc(duongDan) }
   public func thuocTinhTep(_ duongDan: String) -> ThuocTinhTep? { that.thuocTinhTep(duongDan) }
-  public func teamIdApp(_ duongDanApp: String) -> String? { that.teamIdApp(duongDanApp) }
+  public func kyBoiTeam(_ duongDanApp: String, team: String) -> Bool { that.kyBoiTeam(duongDanApp, team: team) }
   public func appTienCanh(cuaUid uid: UInt32) -> String? { that.appTienCanh(cuaUid: uid) }
 
   public func guiTinHieu(pid: Int32, tinHieu: Int32) { se("gửi tín hiệu \(tinHieu) tới pid \(pid)") }

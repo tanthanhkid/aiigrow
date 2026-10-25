@@ -85,10 +85,10 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   @Khoa var thuocTinh: [String: ThuocTinhTep] = [:]
   @Khoa var teamId: [String: String] = [:]
   func thuocTinhTep(_ duongDan: String) -> ThuocTinhTep? { thuocTinh[duongDan] }
-  func teamIdApp(_ duongDanApp: String) -> String? { teamId[duongDanApp] }
+  func kyBoiTeam(_ duongDanApp: String, team: String) -> Bool { teamId[duongDanApp] == team }
   /// Đặt một .app trình duyệt «cài đúng»: gói + Contents + MacOS thuộc root:admin 755, chữ ký đúng Team ID.
   func appTinCay(_ app: String, team: String) {
-    for d in [app, app + "/Contents", app + "/Contents/MacOS"] { thuocTinh[d] = ThuocTinhTep(uid: 0, gid: 80, quyen: 0o755) }
+    for d in [app, app + "/Contents", app + "/Contents/MacOS", app + "/Contents/Frameworks"] { thuocTinh[d] = ThuocTinhTep(uid: 0, gid: 80, quyen: 0o755) }
     teamId[app] = team
   }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws {
