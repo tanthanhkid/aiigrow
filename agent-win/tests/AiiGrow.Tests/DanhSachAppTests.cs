@@ -258,7 +258,7 @@ public class DanhSachAppTests
     public void Bam_TatDinh_KhongPhuThuocThuTu_DoiTruongThiDoi()
     {
         var a = new[] { A("a"), A("b") };
-        Assert.Equal(DanhSachApp.TinhBam(a), DanhSachApp.TinhBam(a.Reverse()));
+        Assert.Equal(DanhSachApp.TinhBam(a), DanhSachApp.TinhBam(Enumerable.Reverse(a)));
         Assert.NotEqual(DanhSachApp.TinhBam(a), DanhSachApp.TinhBam(new[] { A("a"), A("b", "2") }));
         var icon = A("a"); icon.Icon = "xyz"; icon.IconBam = new string('1', 64);
         Assert.NotEqual(DanhSachApp.TinhBam(new[] { A("a") }), DanhSachApp.TinhBam(new[] { icon }));
