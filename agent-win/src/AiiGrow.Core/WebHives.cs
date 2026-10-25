@@ -37,6 +37,9 @@ public sealed record KetQuaWebHive(bool DaDoi, bool DaGoHklm, IReadOnlyList<stri
     public bool DoiChoConHienTai { get; init; }
     /// <summary>Trình duyệt có danh sách web cả máy (HKLM) của IT / Ba Mẹ ⇒ luật AiiGrow theo tài khoản Con KHÔNG có hiệu lực ở đó.</summary>
     public IReadOnlyList<string> HklmDe { get; init; } = Array.Empty<string>();
+    /// <summary>SID tài khoản Con mà luật web HIỆN TẠI đang nằm trong hive (ghi xong, đúng vân tay, lượt này không lỗi) — chỉ những tài khoản này
+    /// được chạy trình duyệt ở Chặn thật (TrinhDuyetLoc). Gỡ / chưa đọc được tài khoản ⇒ rỗng.</summary>
+    public IReadOnlyList<string> DaApCho { get; init; } = Array.Empty<string>();
 }
 
 public sealed class WebPolicyHives
@@ -161,7 +164,9 @@ public sealed class WebPolicyHives
             try { _host.LuuDaGhi(DsLuu()); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
-        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = hklmDe };
+        var daApCho = p == null ? new List<string>() : sids.Where(cs => _daGhiCho.Contains(cs) && _daAp.TryGetValue(cs, out var a) && a.VanTay == WebPolicyApplier.VanTay(p, maychuHost)
+            && !chua.Contains(cs, StringComparer.OrdinalIgnoreCase) && !loiHive.Any(l => l.StartsWith(cs + ":", StringComparison.OrdinalIgnoreCase))).ToList();
+        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = hklmDe, DaApCho = daApCho };
     }
 
     private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }

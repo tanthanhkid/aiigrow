@@ -16,6 +16,8 @@ public sealed class AppLockerOptions
     public IEnumerable<string> AllowedApps { get; set; } = Array.Empty<string>();
     /// <summary>Cho phép cả %PROGRAMFILES%. Mặc định tắt: nếu bật thì mọi app cài ở Program Files đều chạy được.</summary>
     public bool AllowProgramFiles { get; set; }
+    /// <summary>Chặn thật «chặn theo lọc»: trình duyệt được chạy cho từng SID Con (tên trong <see cref="TrinhDuyetLoc.TatCa"/>) — chỉ khi luật web đang áp cho SID đó.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>>? TrinhDuyetTheoSid { get; set; }
 }
 
 /// <summary>Một app bị chặn (trò chơi): chặn theo tên đường dẫn, và nếu có băm thì chặn cả theo băm SHA256 (đổi tên/di chuyển vẫn chặn).</summary>
@@ -183,10 +185,13 @@ public static class AppLockerXml
             if (n != null && seen.Add(n)) exceptions.Add(@"*\" + n);
         }
         foreach (var sid in o.Sids)
-            yield return Rule("Chỉ app học cho tài khoản của con", sid, "Deny", "*", exceptions);
+        {
+            var td = o.TrinhDuyetTheoSid != null && o.TrinhDuyetTheoSid.TryGetValue(sid, out var t) ? t : null;
+            yield return Rule("Chỉ app học cho tài khoản của con", sid, "Deny", "*", exceptions, td is { Count: > 0 } ? TrinhDuyetLoc.NgoaiLeAppLocker(td) : null);
+        }
     }
 
-    private static XElement Rule(string name, string sid, string action, string path, IEnumerable<string>? exceptions)
+    private static XElement Rule(string name, string sid, string action, string path, IEnumerable<string>? exceptions, IEnumerable<XElement>? ngoaiLeThem = null)
     {
         var full = Prefix + name;
         var el = new XElement("FilePathRule",
@@ -196,9 +201,8 @@ public static class AppLockerXml
             new XAttribute("UserOrGroupSid", sid),
             new XAttribute("Action", action),
             new XElement("Conditions", new XElement("FilePathCondition", new XAttribute("Path", path))));
-        var ex = exceptions?.ToList();
-        if (ex is { Count: > 0 })
-            el.Add(new XElement("Exceptions", ex.Select(e => new XElement("FilePathCondition", new XAttribute("Path", e)))));
+        var ex = (exceptions ?? Array.Empty<string>()).Select(e => new XElement("FilePathCondition", new XAttribute("Path", e))).Concat(ngoaiLeThem ?? Array.Empty<XElement>()).ToList();
+        if (ex.Count > 0) el.Add(new XElement("Exceptions", ex));
         return el;
     }
 

@@ -35,7 +35,9 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   từ chối» (khi không có phiên Con, `QuyenPhien.LaPhienCon` cho mọi phiên — KB10.5 ghi lại quan sát, đánh dấu BỎ).
 - **Không có khay**: khay là app WinForms chạy ở phiên người dùng (HKLM Run). Harness nói chuyện với dịch vụ qua named pipe `AiiGrow.Tray`
   giống khay (PipeRequest/PipeResponse JSON một dòng), nên kiểm được trạng thái, `sync-now`, `hoc-vien` — nhưng không thấy giao diện.
-- **AppLocker được ÁP (có luật, Exe Enabled, AppIDSvc chạy)** nhưng không thử chặn một exe dưới tài khoản Con (cần phiên Con). Server 2022
+- **AppLocker được ÁP (có luật, Exe Enabled, AppIDSvc chạy)**; quyết định cho từng exe kiểm bằng `Test-AppLockerPolicy -User aiicon` (KB4.12–4.14:
+  Chrome/Edge được chạy khi luật web đã áp — «chặn theo lọc», «chrome.exe» giả + Firefox vẫn bị chặn). KB4.17 mở Chrome headless THẬT bằng
+  tài khoản Con (`Start-Process -Credential`, không cần phiên đăng nhập): example.org vào được, example.com (Ba Mẹ chặn) thì không. Server 2022
   có AppLocker; máy gia đình Windows Home có thể không — xem `docs/KHA-THI.md`.
 - **Thông báo trước đăng nhập, Safe Mode, khởi động lại máy**: không kiểm (runner không khởi động lại được giữa job).
 - **Tự cập nhật** chờ `UpdateWorker` (2 phút sau khi dịch vụ chạy) — KB7b khởi động lại dịch vụ rồi chờ tối đa 8 phút.
