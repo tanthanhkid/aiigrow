@@ -92,7 +92,8 @@ nhanh_app() (
   wait "${pid[@]}" || true
   local loi=0 i
   for i in 0 1 2 3; do
-    [ "$(cat "$T/rc-${ten[$i]}" 2>/dev/null)" = 0 ] || { loi=1; echo "pha.mjs ${ten[$i]} LỖI:"; }
+    local rc; rc="$(cat "$T/rc-${ten[$i]}" 2>/dev/null || echo '?')"
+    [ "$rc" = 0 ] || { loi=1; echo "pha.mjs ${ten[$i]} LỖI (mã $rc$( [ "$rc" != '?' ] && [ "$rc" -gt 128 ] && echo " — bị giết bằng tín hiệu $((rc - 128))")):"; }
     cat "$T/pha-${ten[$i]}.txt" 2>/dev/null || true
   done
   [ $loi = 0 ]
