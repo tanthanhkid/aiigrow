@@ -22,9 +22,10 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
   const win = m.nen === "windows";
   const coCheDo = win || m.nen === "mac";   // Chặn thật / Chỉ theo dõi: máy có tác tử (Windows, Mac)
   const dangGo = !!m.dangGo;
-  const cho = !!(m.cheDoBaMeChon && m.cheDoMay && m.cheDoBaMeChon !== m.cheDoMay);
+  // máy mới ghép chưa đồng bộ lần nào: lựa chọn (Chặn thật lúc ghép) chưa tới máy ⇒ cũng là «đang chờ», không hiện «Đang chặn» sớm
+  const cho = !!(m.cheDoBaMeChon && (m.cheDoMay ? m.cheDoBaMeChon !== m.cheDoMay : !m.daDongBo));
   // nhãn theo chế độ MÁY đang chạy (cheDoMay); lựa chọn của Ba Mẹ chưa tới máy thì hiện dòng «Đang chờ máy nhận…» bên dưới
-  const cheDoThat = m.cheDoMay ?? m.cheDo;
+  const cheDoThat = m.cheDoMay ?? (m.daDongBo ? m.cheDo : null);
   const doiSang: CheDoMay = m.cheDo === "chan" ? "giam-sat" : "chan";
   // chỉ «mot_phan» là việc Ba Mẹ sửa được; «chua» (máy không có tác tử báo quyền) chỉ ghi một dòng; máy chủ cũ không gửi baoVe ⇒ không báo
   const chuaDu = m.baoVe === "mot_phan";

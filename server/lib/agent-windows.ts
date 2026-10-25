@@ -9,7 +9,7 @@
 //   • nextCheckSec ngắn lại khi đang có phiên / đang mở (và đúng lúc hết hạn mở) để thay đổi của Ba Mẹ tới máy Con trong ≤ 30 giây.
 //   • minutesLeft để trống: hết phiên chơi thì máy chủ đóng phiên, lần đồng bộ sau app giải trí rời danh sách (không khoá cả máy).
 // Agent khởi động ở GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do);
-// máy Windows/Mac ghép từ 25/10 có sẵn lựa chọn «chan» (gia-dinh.ts › cheDoMayMoi) ⇒ chặn thật từ lần đồng bộ đầu.
+// máy Windows/Mac riêng của Con ghép từ 25/10 có sẵn lựa chọn «chan» (gia-dinh.ts › cheDoMayMoi) ⇒ chặn thật từ lần đồng bộ đầu.
 import { kieuMuc } from "./chinh-sach.ts";
 import { gioDiaPhuong, laCuoiTuan, phutCua, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
@@ -51,10 +51,6 @@ const exe = (s: string) => s.toLowerCase().endsWith(".exe");
 export const TRINH_DUYET = ["chrome.exe", "msedge.exe", "brave.exe"];
 /** Như TRINH_DUYET nhưng cho macOS (bundle id — đúng chữ hoa/thường của hệ điều hành): agent-mac lọc web bằng chính sách Chrome/Edge/Brave/Cốc Cốc + khối hosts cho Safari. */
 export const TRINH_DUYET_MAC = ["com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari", "com.coccoc.Coccoc"];
-/** Trình duyệt cho chạy thường trực khi Ba Mẹ bật «Chỉ trang đã duyệt» (webChiChoPhep): chính sách trình duyệt chặn «*» trừ trang Cho phép /
- *  Allowlist hệ thống ⇒ Con mở được trang học ngay sau khi cài mà không lọt trang chưa xếp. Safari bị loại: agent-mac lọc Safari bằng hosts,
- *  chỉ chặn được theo danh sách đen, không «chỉ cho phép» được. Chế độ web «mo» (mặc định) KHÔNG thả trình duyệt — trang chưa xếp sẽ lọt. */
-export const TRINH_DUYET_LOC_DUOC_MAC = TRINH_DUYET_MAC.filter((b) => b !== "com.apple.Safari");
 
 /** Chu kỳ đồng bộ (giây): nhàn rỗi 120; có phiên / đang mở / còn «thưởng» chưa dùng 30; đang mở thì không quá hạn mở (để trả chặn đúng giờ). Agent kẹp 10–600. */
 export const NHIP_NHAN_ROI = 120;
@@ -108,8 +104,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   return {
     serverTime: p.serverTime, childName: p.con?.ten ?? "",
     mode: khoa ? "khoa" : dangMo ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
-    allowedApps: [...new Set([...p.allowlistHeThong.filter(laApp).map(chuan), ...hoc, ...choi, ...(phienWeb ? trinhDuyet : []),
-      ...(p.webChiChoPhep ? (mac ? TRINH_DUYET_LOC_DUOC_MAC : TRINH_DUYET) : [])])],
+    allowedApps: [...new Set([...p.allowlistHeThong.filter(laApp).map(chuan), ...hoc, ...choi, ...(phienWeb ? trinhDuyet : [])])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null,
     nextCheckSec: nhipToiKhoaLai(nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }), [p.khoaLaiLuc, p.khoaHetLuc], now),

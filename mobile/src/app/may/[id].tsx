@@ -20,7 +20,7 @@ const SU_KIEN: Record<string, string> = {
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
-  chan: "Máy mới ghép tự vào chế độ này — cài xong là chặn. Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web chỉ áp cho tài khoản Windows của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
+  chan: "Máy mới ghép tự vào chế độ này — cài xong là chặn. Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web chỉ áp cho tài khoản máy của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */

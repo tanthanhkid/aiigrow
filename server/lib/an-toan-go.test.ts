@@ -153,7 +153,7 @@ test("xoá hẳn: máy chưa đồng bộ lần nào ⇒ cần xoaHan; đang g�
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'go_may' and chi_tiet->>'cach' = 'xoa_han'`, [fam])).length, 2);
 });
 
-test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10): đồng bộ đầu đã gửi cheDo chan; Ba Mẹ vẫn chuyển Chỉ theo dõi được; máy cũ không bị đổi", async () => {
+test("máy MỚI của Con ghép vào thẳng Chặn thật (Thanh 25/10): đồng bộ đầu đã gửi cheDo chan; Ba Mẹ vẫn chuyển Chỉ theo dõi được; máy dùng chung / máy cũ không bị đổi", async () => {
   const { fam, con, bmTok } = await nha();
   const may = await ghep(fam, con);
   assert.equal((await dv("dong-bo", { tok: may.token, body: { status: { agent: "windows", cheDo: "giam-sat" } } })).body.windows.cheDo, "chan");
@@ -171,6 +171,9 @@ test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10): đồng bộ đ
   const dt = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Điện thoại của Ken");
   assert.deepEqual((await q<{ che_do: string; che_do_ba_me: boolean }>(`select che_do, che_do_ba_me from devices where id = $1`, [dt.deviceId]))[0],
     { che_do: "giam-sat", che_do_ba_me: false });
+  // máy dùng chung (chưa gán Con) không tự chặn — Ba Mẹ chọn trên app
+  const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC phòng khách");
+  assert.equal((await dv("dong-bo", { tok: chung.token, body: {} })).body.windows.cheDo, undefined);
   // máy cũ (ghép trước, Ba Mẹ chưa chọn) giữ nguyên: máy chủ không ép chế độ
   const cu = await ghep(fam, con, "PC cũ");
   await mayCu(cu.deviceId);

@@ -154,8 +154,9 @@ export function nguonGoi(h: Headers) {
   return du.slice(0, 4).map((x) => x.replace(/^0+(?=.)/, "")).join(":");
 }
 
-/** Chế độ máy mới ghép: Windows/Mac (có tác tử chặn) ⇒ «chan» ngay; nền khác không có chế độ ⇒ null (để cột như cũ). */
-export const cheDoMayMoi = (nen: string): "chan" | null => (coTacTu(nen) ? "chan" : null);
+/** Chế độ máy mới ghép: máy Windows/Mac RIÊNG của một Con ⇒ «chan» ngay. Máy dùng chung (chưa gán Con) ⇒ null: Ba Mẹ chưa xem ai dùng máy,
+ *  chặn ngay dễ khoá nhầm cả nhà — giữ như cũ, Ba Mẹ chọn trên app. Nền khác (điện thoại) không có chế độ ⇒ null (để cột như cũ). */
+export const cheDoMayMoi = (nen: string, conId: string | null): "chan" | null => (coTacTu(nen) && conId ? "chan" : null);
 
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
 export function ghepMayGd(code: string, platform: string, tenMay: string) {
@@ -168,10 +169,10 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     if (m.platform !== platform) throw new LoiNghiepVu("sai_nen_tang", `Mã này dành cho ${TEN_NEN_TANG[m.platform]}`, 409);
     const id = newId(), token = taoToken();
     const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform];
-    // Máy MỚI có tác tử (Windows/Mac) vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»): ghi sẵn lựa chọn
+    // Máy MỚI có tác tử (Windows/Mac) của một Con vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»): ghi sẵn lựa chọn
     // che_do = chan + che_do_ba_me ⇒ lần đồng bộ đầu máy chủ gửi cheDo «chan», agent (Win/Mac) đổi ngay — không cần ra bản agent mới.
     // Máy đã ghép từ trước giữ nguyên (cột vẫn mặc định giam-sat / chưa chọn). Ba Mẹ vẫn chuyển «Chỉ theo dõi» được trên app.
-    const cheDo = cheDoMayMoi(platform);
+    const cheDo = cheDoMayMoi(platform, m.child_id);
     await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen, che_do, che_do_ba_me)
              values ($1,$2,$3,$4,$5,$6,$7, now(), $8, $9)`,
       [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id, cheDo ?? "giam-sat", !!cheDo]);
