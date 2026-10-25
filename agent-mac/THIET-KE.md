@@ -23,6 +23,15 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - Nhịp phiên chơi: Policy có `playSessionId` (máy chủ chỉ gửi cho máy sở hữu phiên) ⇒ daemon gửi `phien/nhip {id, dangDung}` 30 giây/lần (`vongNhipChoi`, Task riêng); «ket_thuc» ⇒ đồng bộ ngay.
 - `TrangThai` thêm (chỉ cho phiên Con): `dsChoi`, `chanSeq/chanApp/chanTen/chanLyDo` (app vừa bị đóng — tray hiện màn chặn khi `chanSeq` tăng). Số điểm CHỈ có trong dữ liệu `hocVien` (như Windows); menu / màn khoá vẫn không hiện điểm.
 
+### 3c. Ngang các nền (BANG-TINH-NANG-OS mục 5, 25/10/2026)
+- Mã mở offline (`MaOffline.swift`, TOTP như server/lib/ma-offline.ts): IPC `maOffline(ma)` từ uid Con; sai 5 lần/10 phút ⇒ chờ; một mã một lượt; có mạng lại ⇒ kết thúc. Màn khoá hiện ô nhập khi `TrangThai.nhapMaOffline`.
+- Log + sự kiện (`NhatKyMay.swift`): mọi `ghiLog` vào bộ đệm, 5 phút gửi `api/device/log`; sự kiện (chan_app, mo/sai/het_ma_offline) lưu đĩa, gửi `su-kien` mã một lần.
+- Lịch sử web (`LichSuWeb.swift`): Chromium `History` + Safari `History.db` (Safari cần Full Disk Access cho daemon, thiếu thì bỏ qua) ⇒ tổng theo (ngày, tên miền) ⇒ `web/lich-su`.
+- Safari ở «chỉ cho phép» (không phải giờ học) bị đóng — hosts chỉ chặn được danh sách đen.
+- Ghép một chạm: postinstall lấy token từ tên `AiiGrow_<token>.pkg` ⇒ `goi-cai-token` (root 0600) ⇒ cửa sổ Ghép chỉ hỏi tài khoản Con (`ghep-goi`); token hỏng ⇒ quay về mã 6 số.
+- Hồ sơ DNS gia đình: menu Ba Mẹ «Cài hồ sơ DNS gia đình…» ⇒ IPC `hoSoDns` ⇒ lưu .mobileconfig vào Tải về và mở.
+- Tray: icon thanh menu = Rob; Hôm nay theo app (`homNayTheoApp`); «Ba Mẹ dùng máy» (khoá màn hình); «Hoặc đổi điểm lấy giờ chơi» trong Xin thêm giờ; tin mới qua UNUserNotification (trong AiiGrow.app).
+
 ## 4. Ghép máy
 Ba Mẹ cài `.pkg` (mật khẩu quản trị một lần) ⇒ tray trong phiên admin thấy `daGhep=false` ⇒ cửa sổ «Ghép máy»: chọn tài khoản Con
 (liệt kê user thường trên máy) + mã 6 số ⇒ `ghep` ⇒ daemon gọi server pair (platform `mac`), lưu token, **hạ tài khoản Con về Standard**

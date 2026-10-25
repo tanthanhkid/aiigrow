@@ -216,3 +216,14 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertTrue(c.canDong(can: false, ep: false))
   }
 }
+
+final class HoSoDnsTests: XCTestCase {
+  func testTachHoSoDnsTenTepAnToan() {
+    let d = Data(#"{"apple":{"mobileconfig":"<plist/>","tep":"../AiiGrow-DNS-ab12.mobileconfig"}}"#.utf8)
+    let r = TrayLogic.tachHoSoDns(d)
+    XCTAssertEqual(r?.0, "AiiGrow-DNS.mobileconfig", "tên có / hoặc bắt đầu bằng . ⇒ dùng tên mặc định")
+    XCTAssertEqual(TrayLogic.tachHoSoDns(Data(#"{"apple":{"mobileconfig":"x","tep":"AiiGrow-DNS-ab12.mobileconfig"}}"#.utf8))?.0, "AiiGrow-DNS-ab12.mobileconfig")
+    XCTAssertEqual(r?.1, "<plist/>")
+    XCTAssertNil(TrayLogic.tachHoSoDns(Data(#"{"android":{}}"#.utf8)))
+  }
+}

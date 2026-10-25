@@ -174,6 +174,15 @@ public enum TrayLogic {
     return dsclRa[r.upperBound...].split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).contains { $0 == Substring(ten) }
   }
 
+  /// GET ho-so-dns ⇒ (tên tệp an toàn, nội dung .mobileconfig). nil = không có phần Apple.
+  public static func tachHoSoDns(_ d: Data) -> (String, String)? {
+    guard let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any], let a = o["apple"] as? [String: Any],
+          let noi = a["mobileconfig"] as? String, !noi.isEmpty else { return nil }
+    let goc = (a["tep"] as? String) ?? "AiiGrow-DNS.mobileconfig"
+    let sach = String(goc.filter { $0.isASCII && ($0.isLetter || $0.isNumber || "-_.".contains($0)) }.prefix(80))
+    return (sach.hasSuffix(".mobileconfig") && !sach.hasPrefix(".") ? sach : "AiiGrow-DNS.mobileconfig", noi)
+  }
+
   /// Mã ghép: chỉ giữ chữ số, tối đa 6.
   public static func locMa(_ s: String) -> String { String(s.filter { $0.isASCII && $0.isNumber }.prefix(6)) }
   public static func maHopLe(_ s: String) -> Bool { s.count == 6 && s.allSatisfy { $0.isASCII && $0.isNumber } }

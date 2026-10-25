@@ -8,6 +8,8 @@ import AiiGrowCore
 struct XinThemView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
+  /// «Đổi điểm lấy giờ chơi» (agent-win RequestForm khi được đổi điểm) — nil = không hiện (vd trên màn khoá).
+  var moChoi: (() -> Void)? = nil
   @State private var phut = 30
   @State private var loiNhan = ""
 
@@ -24,6 +26,12 @@ struct XinThemView: View {
         .foregroundColor(ClayMau.chu).clayLom()
       Button("Xin Ba Mẹ") { xin.xinThem(phut: phut, loiNhan: loiNhan) }
         .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(xin.dangGui)
+      if let moChoi, let t = tray.tt, ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? []) {
+        Button(action: moChoi) {
+          HStack(spacing: 8) { HinhFluent(ten: "star", duPhong: "star.fill", co: 22); Text("Hoặc đổi điểm lấy giờ chơi").lineLimit(1) }
+        }
+        .buttonStyle(NutClayStyle(kieu: .sang))
+      }
       let dong = TrayLogic.dongYeuCau(tray.tt?.yeuCauCho ?? []) ?? xin.thongBao
       if !dong.isEmpty {
         Text(dong).font(.system(size: 14, weight: .medium)).fixedSize(horizontal: false, vertical: true)
@@ -37,9 +45,10 @@ struct XinThemView: View {
 struct XinThemCuaSo: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
+  var moChoi: (() -> Void)? = nil
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      XinThemView(tray: tray, xin: xin)
+      XinThemView(tray: tray, xin: xin, moChoi: moChoi)
         .padding(18).clayThe().vaoLanLuot(0)
       HStack(spacing: 6) {
         HinhFluent(ten: "seedling", duPhong: "leaf.fill", co: 16)
@@ -89,6 +98,8 @@ struct XinMoView: View {
 /// Cửa sổ «Ghép máy» của Ba Mẹ (phiên admin, máy chưa ghép).
 struct GhepMayView: View {
   let taiKhoan: [String]
+  /// Gói cài một chạm (token trong tên .pkg) ⇒ chỉ chọn tài khoản của Con, không hỏi mã 6 số (vẫn có lối «Dùng mã 6 số»).
+  var coGoiCai = false
   var khiGui: (Bool) -> Void = { _ in }        // true = bắt đầu gửi lệnh ghép (đặt cờ TRƯỚC IPC), false = đã có phản hồi
   var khiCanhBao: () -> Void = {}
   var dongLai: () -> Void
@@ -99,6 +110,8 @@ struct GhepMayView: View {
   @State private var xong = false
   @State private var canhBao = ""
   @State private var dangChonFocus = false
+  @State private var dungMa = false
+  private var motCham: Bool { coGoiCai && !dungMa }
   /// Đang gửi / đã ghép / đang cảnh báo ⇒ không đổi tài khoản, không bấm ghép lại.
   private var khoaNhap: Bool { dangGui || xong || !canhBao.isEmpty }
 
@@ -109,7 +122,8 @@ struct GhepMayView: View {
           .id(xong).transition(.scale(scale: 0.85).combined(with: .opacity))
         Text("Ghép máy này với Con").font(.system(size: 20, weight: .bold))
       }
-      Text("Chọn tài khoản macOS của Con và nhập mã 6 số lấy ở app AiiGrow Ba Mẹ.")
+      Text(motCham ? "Gói cài này đã mang mã của gia đình. Ba Mẹ chỉ cần chọn tài khoản macOS của Con."
+                   : "Chọn tài khoản macOS của Con và nhập mã 6 số lấy ở app AiiGrow Ba Mẹ.")
         .font(.system(size: 13)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
       if taiKhoan.isEmpty {
         Text("Chưa thấy tài khoản nào khác trên máy. Hãy tạo tài khoản cho Con ở Cài đặt hệ thống → Người dùng & Nhóm.")
@@ -131,9 +145,11 @@ struct GhepMayView: View {
         .disabled(khoaNhap)
         .opacity(khoaNhap ? 0.5 : 1)          // cùng mức mờ NutClayStyle khi tắt
       }
-      TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
-        .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
-        .frame(height: 32).padding(.horizontal, 14).frame(minHeight: 48).clayLom(bo: 18)
+      if !motCham {
+        TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
+          .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
+          .frame(height: 32).padding(.horizontal, 14).frame(minHeight: 48).clayLom(bo: 18)
+      }
       if !loi.isEmpty { Text(loi).font(.system(size: 13, weight: .medium)).foregroundColor(ClayMau.loi).fixedSize(horizontal: false, vertical: true) }
       if xong { Text("Đã ghép máy. Cảm ơn Ba Mẹ!").font(.system(size: 14, weight: .semibold)).foregroundColor(ClayMau.ngocInk) }
       if !canhBao.isEmpty {
@@ -141,7 +157,11 @@ struct GhepMayView: View {
         Button("Đã hiểu") { dongLai() }.buttonStyle(NutClayStyle(kieu: .sang))
       }
       Button(dangGui ? "Đang ghép…" : "Ghép máy") { gui() }
-        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(khoaNhap || !TrayLogic.maHopLe(ma) || chon.isEmpty)
+        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(khoaNhap || (!motCham && !TrayLogic.maHopLe(ma)) || chon.isEmpty)
+      if coGoiCai && !xong {
+        Button(dungMa ? "Dùng gói cài một chạm" : "Dùng mã 6 số thay vì gói cài") { dungMa.toggle(); loi = "" }
+          .buttonStyle(NutClayStyle(kieu: .sang)).disabled(khoaNhap)
+      }
       Text("Tài khoản Con sẽ về quyền người dùng thường (cần còn một tài khoản quản trị khác).")
         .font(.system(size: 11)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
     }
@@ -153,7 +173,7 @@ struct GhepMayView: View {
 
   private func gui() {
     dangGui = true; loi = ""; khiGui(true)
-    let ma = self.ma, chon = self.chon
+    let ma = motCham ? "" : self.ma, chon = self.chon
     Task {
       defer { dangGui = false }                                  // KHÔNG khiGui(false) ở đây: cờ chặn tự đóng giữ tới khi dongLai chạy (hiện «Đã ghép máy» đủ 2 giây)
       do {
@@ -207,6 +227,13 @@ struct ManKhoaView: View {
       case .khong:
         EmptyView()
       }
+      if tray.tt?.nhapMaOffline == true {
+        MaOfflineView()
+          .padding(20)
+          .clayThe(bo: 32)
+          .environment(\.colorScheme, .light)
+          .vaoLanLuot(1)
+      }
       XinThemView(tray: tray, xin: xin)
         .padding(20)
         .clayThe(bo: 32)
@@ -218,6 +245,52 @@ struct ManKhoaView: View {
       }
     }
     .foregroundColor(.white)
+  }
+}
+
+/// Ô «Mất mạng? Nhập mã của Ba Mẹ» trên màn khoá (agent-win OfflineCodePanel): Ba Mẹ xem mã 6 số trong app, đọc cho Con gõ; daemon tự kiểm.
+struct MaOfflineView: View {
+  var gui: (String) async -> TraLoi = { ma in (try? await IPCClient.guiAsync(.maOffline(ma: ma))) ?? .loi(ma: "ipc", chu: "AiiGrow đang khởi động lại, con thử lại sau vài giây nhé.") }
+  @State private var ma = ""
+  @State private var cau = ""
+  @State private var loi = false
+  @State private var dangGui = false
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(spacing: 12) {
+        VienClay(ten: "key", duPhong: "key.fill", nen: ClayMau.diemSoft, co: 44)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Mất mạng? Nhập mã của Ba Mẹ").font(.system(size: 17, weight: .bold)).lineLimit(1).truncationMode(.tail)
+          Text("Ba Mẹ xem mã 6 số trong app AiiGrow và đọc cho con.").font(.system(size: 12)).foregroundColor(ClayMau.chu3).lineLimit(2)
+        }
+      }
+      HStack(spacing: 12) {
+        TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
+          .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
+          .padding(.horizontal, 14).frame(minHeight: 48).clayLom(bo: 18)
+          .onSubmit { mo() }
+        Button(dangGui ? "Đang kiểm…" : "Mở máy") { mo() }
+          .buttonStyle(NutClayStyle(kieu: .thanChi)).frame(width: 150).disabled(dangGui || !TrayLogic.maHopLe(ma))
+      }
+      if !cau.isEmpty {
+        Text(cau).font(.system(size: 14, weight: .semibold)).foregroundColor(loi ? ClayMau.loi : ClayMau.ngocInk).fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .foregroundColor(ClayMau.chu)
+  }
+  private func mo() {
+    guard !dangGui, TrayLogic.maHopLe(ma) else { return }
+    dangGui = true
+    let m = ma
+    Task {
+      let r = await gui(m)
+      dangGui = false
+      switch r {
+      case .thongBao(let c): cau = c; loi = false
+      case .loi(let mx, let c): cau = mx == "yeu_cau_sai" ? "Dịch vụ AiiGrow trên máy là bản cũ, chưa nhận mã này." : c; loi = true; ma = ""
+      default: cau = "Chưa mở được."; loi = true
+      }
+    }
   }
 }
 

@@ -76,6 +76,8 @@ struct AppConView: View {
   var moXin: () -> Void = {}
   var moChoi: () -> Void = {}
   var moNop: (HvNhiemVu) -> Void = { _ in }
+  /// «Ba Mẹ dùng máy»: khoá màn hình để Ba Mẹ chọn tài khoản của mình (không đăng xuất Con, không trừ điểm).
+  var nhuongMay: () -> Void = { NhuongMay.khoaManHinh() }
   @State private var quaHoi: HvQua?
 
   private var tt: TrangThai? { tray.tt }
@@ -247,6 +249,19 @@ struct AppConView: View {
         Chu(tt?.daGhep == false ? "Ba Mẹ cần ghép máy này trong app AiiGrow của Ba Mẹ." : "Con chờ vài giây nhé.", co: 14, mau: ClayMau.loi)
       }
     }
+    if let ds = tt?.homNayTheoApp, !ds.isEmpty {
+      // Đã dùng hôm nay theo app (daemon đếm theo app tiền cảnh) — như mục Hôm nay của Android.
+      TheCon {
+        Chu("Hôm nay con đã dùng", co: 17, dam: .bold, dong: 1)
+        ForEach(Array(ds.prefix(6).enumerated()), id: \.offset) { _, d in
+          HStack(spacing: 10) {
+            Chu(HocVienView.tenMucChoi(d.muc), co: 14, dam: .medium, dong: 1)
+            Text(d.phut >= 60 ? "\(d.phut / 60) giờ \(d.phut % 60) phút" : "\(d.phut) phút")
+              .font(.system(size: 14, weight: .semibold)).foregroundColor(ClayMau.ngocInk).monospacedDigit().fixedSize()
+          }
+        }
+      }
+    }
     if tt?.daGhep == true {
       TheCon {
         Chu("Việc của con", co: 17, dam: .bold, dong: 1)
@@ -266,6 +281,11 @@ struct AppConView: View {
         .padding(.top, 4)
       }
       .vaoLanLuot(2)
+      // #70 §1 (như Windows): Ba Mẹ cần máy ⇒ khoá màn hình để chuyển tài khoản, không đăng xuất Con, không trừ điểm.
+      TheCon {
+        Chu("Ba Mẹ cần máy? Bấm nút này hoặc Ctrl ⌃ + Cmd ⌘ + Q", co: 14, mau: ClayMau.chu3, dong: 2)
+        NutIcon(chu: "Ba Mẹ dùng máy", icon: "key", rong: 240, lam: nhuongMay)
+      }
     }
   }
 

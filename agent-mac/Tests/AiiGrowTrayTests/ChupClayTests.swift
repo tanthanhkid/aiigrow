@@ -52,6 +52,7 @@ final class ChupClayTests: XCTestCase {
   func appMau() -> (AppConModel, TrayModel) {
     let tray = TrayModel()
     var t = tt(cheDo: .hoc, lyDo: nil, dem: nil); t.conPhut = 47; t.duocDoiDiem = true; t.dsChoi = ["com.roblox.roblox", "youtube.com"]
+    t.homNayTheoApp = [MucDung(muc: "com.apple.iWork.Pages", phut: 75, day: "x"), MucDung(muc: "com.roblox.roblox", phut: 20, day: "x"), MucDung(muc: "com.google.Chrome", phut: 12, day: "x")]
     tray.capNhat(t)
     let app = AppConModel(goi: { _ in .loi(ma: "thu", chu: "thử") })
     var tq = HvTongQuan(); tq.tenCon = "Bi"; tq.soDu = 128; tq.diemChoDuyet = 10; tq.capDo.cap = 3; tq.capDo.conThieu = 22
@@ -98,6 +99,10 @@ final class ChupClayTests: XCTestCase {
     let cm = ChoiModel(goi: { _ in .loi(ma: "thu", chu: "") }); cm.phut = ["com.roblox.roblox": 25]
     chup(ChoiBangDiemView(ds: ["com.roblox.roblox", "youtube.com", "Minecraft.app"], m: cm, tuHoi: false), "mac-choi-bang-diem", dir: dir)
     chup(ChanAppView(ten: "Roblox", lyDo: "chi_app_hoc", coChoi: true, m: ChoiModel(goi: { _ in .loi(ma: "", chu: "") }), muc: "com.roblox.roblox"), "mac-chan-app", dir: dir)
+    chup(XinThemCuaSo(tray: tray, xin: XinModel(), moChoi: {}), "mac-xin-them-doi-diem", dir: dir)
+    chup(GhepMayView(taiKhoan: ["bi", "na"], coGoiCai: true, dongLai: {}), "mac-ghep-mot-cham", dir: dir)
+    let khoa = TrayModel(); var tk = tt(cheDo: .khoa, lyDo: "het_gio", dem: nil); tk.matMang = true; tk.nhapMaOffline = true; khoa.capNhat(tk)
+    chup(ManKhoaView(tray: khoa, xin: XinModel()), "mac-man-khoa-ma-offline", CGSize(width: 1280, height: 1000), dir: dir)
     chup(TinMoiView(tieu: "Nhiệm vụ mới: Tưới cây", noi: "Ba Mẹ vừa giao cho con. Làm xong để tích điểm nhé!"), "mac-tin-moi", dir: dir)
   }
 

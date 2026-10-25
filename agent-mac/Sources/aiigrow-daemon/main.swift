@@ -27,7 +27,8 @@ let heThong: HeThong = laThu ? HeThongThu(heThat) : heThat
 let kho = ConfigStore(duongDan: duongCauHinh)
 let token = kho.doc()?.token
 let api = ApiClient(mayChu: kho.doc()?.mayChu ?? mayChu, token: token)
-let boMay = BoMay(api: api, heThong: heThong, kho: kho, tuyChon: TuyChonBoMay(tuCapNhat: !laThu), nguonApp: QuetAppMac())     // danh sách app thật: /Applications + ~/Applications của Con
+let boMay = BoMay(api: api, heThong: heThong, kho: kho, tuyChon: TuyChonBoMay(tuCapNhat: !laThu), nguonApp: QuetAppMac(),
+                   boDemLog: heThat.boDemLog, docLichSuWeb: !laThu)   // log + sự kiện + lịch sử web lên máy chủ mỗi 5 phút     // danh sách app thật: /Applications + ~/Applications của Con
 
 heThong.ghiLog("aiigrow-daemon \(PhienBan.hienTai) khởi động\(laThu ? " [THỬ]" : "") — cấu hình \(duongCauHinh), socket \(duongSocket)")
 
@@ -50,6 +51,13 @@ if motVong {
     while true {
       await boMay.vongDongBo()
       try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
+    }
+  }
+  // Log + sự kiện + lịch sử web (5 phút một lần, tự kiểm hạn) — Task riêng.
+  Task {
+    while true {
+      await boMay.vongNhatKy()
+      try? await Task.sleep(nanoseconds: 60 * 1_000_000_000)
     }
   }
   // Nhịp phiên chơi bằng điểm (phien/nhip, 30 giây khi Policy có playSessionId): Task riêng — mạng treo không chặn đồng bộ / áp.

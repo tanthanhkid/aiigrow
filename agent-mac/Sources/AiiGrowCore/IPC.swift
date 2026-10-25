@@ -14,6 +14,8 @@ public enum DuongDan {
   public static let goCaiDangChay = "/var/run/aiigrow-go-cai"      // go-cai.sh ghi PID của mình suốt lúc chạy (cả chạy tay); xoá khi thoát
   public static let dangCapNhat = "/var/run/aiigrow-capnhat"      // job tự cập nhật ghi PID của sh job; postinstall chỉ coi là «cài tự động» khi PID còn sống; go-cai.sh xoá
   public static let app = "/Applications/AiiGrow.app"            // tray (LSUIElement), daemon nằm ở Contents/MacOS/aiigrow-daemon
+  /// Token gói cài một chạm (postinstall đọc từ tên `AiiGrow_<token>.pkg`) — root 0600; ghép xong / token hỏng thì xoá.
+  public static let tokenGoi = thuMuc + "/goi-cai-token"
 }
 
 /// Tray → daemon.
@@ -39,6 +41,10 @@ public enum YeuCauTray: Codable, Equatable {
   case choi(muc: String)
   /// Hỏi «đổi được khoảng bao nhiêu phút» cho `muc` (phien/xet, nhớ 60/15 giây) — chỉ trả SỐ PHÚT, không trả số điểm. Trả `.choi`.
   case choiThu(muc: String)
+  /// Con gõ mã mở offline Ba Mẹ đọc (MaOffline.swift) — daemon tự kiểm, không cần máy chủ. Trả `.thongBao` (mở được) hoặc `.loi`.
+  case maOffline(ma: String)
+  /// Ba Mẹ (admin) lấy hồ sơ DNS gia đình (GET api/device/ho-so-dns) ⇒ `.duLieu(json)` có `apple.mobileconfig` + `apple.tep`.
+  case hoSoDns
 }
 
 /// Chế độ máy đang áp — cùng nghĩa với `mode` của server (tu_do / hoc / khoa).
@@ -70,6 +76,14 @@ public struct TrangThai: Codable, Equatable {
   public var chanApp: String?               // bundle id (chữ thường)
   public var chanTen: String?               // tên hiển thị (tên .app)
   public var chanLyDo: String?              // «ba_me_chan» | «chi_app_hoc» | «trinh_duyet»
+  /// Đang mở tạm bằng mã offline của Ba Mẹ tới lúc này (nil = không).
+  public var moOfflineDen: Date?
+  /// Màn khoá hiện ô «Mất mạng? Nhập mã của Ba Mẹ» (mất mạng + lý do khoá mã gỡ được). nil/false = không.
+  public var nhapMaOffline: Bool?
+  /// Phút đã dùng hôm nay theo app (bundle id, nhiều nhất trước) — mục Hôm nay của app Con. Chỉ cho phiên Con.
+  public var homNayTheoApp: [MucDung]?
+  /// Máy chưa ghép nhưng có token gói cài một chạm ⇒ cửa sổ Ghép chỉ hỏi tài khoản của Con, không hỏi mã 6 số. Chỉ cho phiên Ba Mẹ.
+  public var coGoiCai: Bool?
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
               demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil, capNhat: String? = nil, capNhatLuc: Date? = nil) {
     self.daGhep = daGhep; self.laPhienCon = laPhienCon; self.tenCon = tenCon; self.cheDo = cheDo; self.lyDoKhoa = lyDoKhoa; self.conPhut = conPhut

@@ -111,6 +111,8 @@ public struct Policy: Codable, Equatable {
   public var playWeb: Bool = false
   /// Phút phiên còn được chơi khi MẤT MẠNG (máy chủ tính sẵn: phút thưởng + phút mua được bằng số dư, không quá phiên) — hết thì khoá lại app chơi.
   public var playOfflineMinutes: Int?
+  /// Bí mật chung của mã mở offline (server/lib/ma-offline.ts) — CHỈ nằm trong cấu hình root 0600, không bao giờ sang tray.
+  public var maOfflineBiMat: String?
 
   public init() {}
 
@@ -138,6 +140,7 @@ public struct Policy: Codable, Equatable {
     playApp = s(.playApp).flatMap { $0.isEmpty ? nil : $0 }
     playWeb = ((try? c.decodeIfPresent(Bool.self, forKey: .playWeb)) ?? nil) ?? false
     if let d = (try? c.decodeIfPresent(Double.self, forKey: .playOfflineMinutes)) ?? nil, d.isFinite { playOfflineMinutes = max(0, Int(d.rounded(.down))) }
+    maOfflineBiMat = s(.maOfflineBiMat).flatMap { $0.isEmpty ? nil : $0 }
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -158,13 +161,14 @@ public struct Policy: Codable, Equatable {
     if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
     if !playChoices.isEmpty { try c.encode(playChoices, forKey: .playChoices) }
     try c.encodeIfPresent(playSessionId, forKey: .playSessionId)
+    try c.encodeIfPresent(maOfflineBiMat, forKey: .maOfflineBiMat)
     try c.encodeIfPresent(playApp, forKey: .playApp)
     if playWeb { try c.encode(playWeb, forKey: .playWeb) }
     try c.encodeIfPresent(playOfflineMinutes, forKey: .playOfflineMinutes)
   }
 
   enum CodingKeys: String, CodingKey {
-    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes
+    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes, maOfflineBiMat
   }
 }
 

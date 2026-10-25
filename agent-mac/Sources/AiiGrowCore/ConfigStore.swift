@@ -27,6 +27,10 @@ public struct CauHinhMay: Codable, Equatable {
   public var yeuCauAppDaXuLy: String?
   /// Phút chơi bằng điểm lúc MẤT MẠNG chờ gửi bù (phien/bu) — lưu đĩa, gửi trước lần dong-bo kế tiếp có mạng.
   public var phienBu: PhienBu?
+  /// Mở tạm bằng mã offline của Ba Mẹ (MaOffline.swift) — giữ qua khởi động lại daemon.
+  public var moTamOffline: MoTamOffline?
+  /// Sự kiện chờ gửi (NhatKyMay.swift) — lưu đĩa, xoá khi máy chủ nhận.
+  public var hangDoiSuKien: [SuKienMay] = []
 
   public init() {}
   public var daGhep: Bool { !token.isEmpty }
@@ -43,6 +47,8 @@ public struct CauHinhMay: Codable, Equatable {
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
     bamAppDaGui = (try? c.decodeIfPresent(String.self, forKey: .bamAppDaGui)) ?? nil
     yeuCauAppDaXuLy = (try? c.decodeIfPresent(String.self, forKey: .yeuCauAppDaXuLy)) ?? nil
+    moTamOffline = (try? c.decodeIfPresent(MoTamOffline.self, forKey: .moTamOffline)) ?? nil
+    hangDoiSuKien = g(.hangDoiSuKien, [])
     phienBu = (try? c.decodeIfPresent(PhienBu.self, forKey: .phienBu)) ?? nil
   }
 }
