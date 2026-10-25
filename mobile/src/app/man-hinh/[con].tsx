@@ -76,7 +76,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
         </Chu>
         <CotClay kieu="chong" max={lonNhat} cao={140} chon={ngay} tat={(i) => d.theoNgay[i].ngay > d.homNay}
           bam={(i) => { setNgay(ngay === i ? null : i); setHet(false); }}
-          ds={d.theoNgay.map((x) => ({ khoa: x.ngay, nhan: thuCua(x.ngay), doc: `${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`,
+          ds={d.theoNgay.map((x) => ({ khoa: x.ngay, nhan: thuCua(x.ngay), doc: `${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`, tong: x.giay,
             phan: theoMucXep(x.theoMuc).map(([m, p]) => ({ gia: p, mau: MUC[m].mau, mo: !!muc && muc !== m })) }))} />
       </The>
 

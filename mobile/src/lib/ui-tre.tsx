@@ -195,9 +195,8 @@ export function QuaO({ lv, nen, tieu, nhan, phu, bam, mo, nhanDoc }: { lv: LinhV
 export function Vong({ ti, chu, phu, co = 200 }: { ti: number; chu: string; phu?: string; co?: number }) {
   return (
     <VongClay ti={ti} co={co} day={16} nhanDoc={phu ? `${chu} ${phu}` : chu}>
-      <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.4}
-        style={{ fontFamily: F.rat, fontSize: co * 0.22, color: M.chu, letterSpacing: -1, fontVariant: ["tabular-nums"], maxWidth: co * 0.7 }}>{chu}</Text>
-      {phu ? <Chu kieu="dam" co={14} mau={M.chu3} dong={2} style={{ textAlign: "center", maxWidth: co * 0.62 }}>{phu}</Chu> : null}
+      <Text style={{ fontFamily: F.rat, fontSize: co * 0.22, color: M.chu, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>{chu}</Text>
+      {phu ? <Chu kieu="dam" co={14} mau={M.chu3} style={{ textAlign: "center", maxWidth: co * 0.66 }}>{phu}</Chu> : null}
     </VongClay>
   );
 }
