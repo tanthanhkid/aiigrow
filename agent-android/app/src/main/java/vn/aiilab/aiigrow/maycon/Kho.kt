@@ -42,6 +42,11 @@ class Kho(ctx: Context) {
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 
+    /** Danh sách app đã gửi được lần cuối (DanhSachApp.kt): bam, dấu theo khoa (JSON), yêu cầu «Làm mới» đã xử lý. */
+    var dsAppBam: String? get() = p.getString("dsAppBam", null); set(v) = p.edit().putString("dsAppBam", v).apply()
+    var dsAppDau: String? get() = p.getString("dsAppDau", null); set(v) = p.edit().putString("dsAppDau", v).apply()
+    var dsAppYeuCau: String? get() = p.getString("dsAppYeuCau", null); set(v) = p.edit().putString("dsAppYeuCau", v).apply()
+
     val daGhep get() = token != null || cheDoThu
 
     /** Chế độ thử cục bộ: bản debug + có tệp chính sách giả (adb đẩy vào files/). Không gọi máy chủ. */

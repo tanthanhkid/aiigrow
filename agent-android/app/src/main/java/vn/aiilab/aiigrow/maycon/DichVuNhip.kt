@@ -39,6 +39,7 @@ class DichVuNhip : Service() {
     private lateinit var luong: HandlerThread
     private lateinit var h: Handler
     private var lanGoiMayChu = 0L
+    private val dsApp by lazy { DanhSachApp(this) }
     private val nhanCaiApp = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) { h.post { vong(true) } }   // app mới cài ⇒ xét «chưa xếp» ngay
     }
@@ -53,6 +54,7 @@ class DichVuNhip : Service() {
         h = Handler(luong.looper)
         ContextCompat.registerReceiver(this, nhanCaiApp, IntentFilter(Intent.ACTION_PACKAGE_ADDED).apply { addDataScheme("package") },
             ContextCompat.RECEIVER_NOT_EXPORTED)
+        dsApp.dangKy()
         h.post(::lap)
     }
 
@@ -63,6 +65,7 @@ class DichVuNhip : Service() {
 
     override fun onDestroy() {
         try { unregisterReceiver(nhanCaiApp) } catch (_: Exception) {}
+        dsApp.huyDangKy()
         luong.quitSafely()
         super.onDestroy()
     }
@@ -90,6 +93,7 @@ class DichVuNhip : Service() {
         } else {
             if (k.token == null && k.tokenGoiCai != null) ghepBangGoi(k)
             if (k.token != null && (epGoi || nowMay - lanGoiMayChu >= 60_000)) { lanGoiMayChu = nowMay; goiNhip(k) }
+            try { dsApp.buoc(k) } catch (e: Exception) { Log.w(TAG, "danh sách app lỗi", e) }   // gửi app đã cài thật (Ba Mẹ chọn chặn)
             k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } }
         }
         if (ph == null) { capNhatThongBao(null); return }

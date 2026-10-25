@@ -40,4 +40,6 @@ class MayChu(private val goc: String, private val token: String?) {
     fun xinThemGio(than: JSONObject) = goi("yeu-cau", than)
     fun hoSoDns() = goi("ho-so-dns")
     fun xongLenh(id: String) = goi("lenh/$id/xong", JSONObject())
+    /** Danh sách app đã cài thật (DanhSachApp.kt): đủ / phần đổi; 409 can_gui_du ⇒ gửi đủ. */
+    fun ungDung(than: JSONObject) = goi("ung-dung", than)
 }

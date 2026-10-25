@@ -14,6 +14,14 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Thấy app có biểu tượng ở trình khởi chạy (Android 11+) để gửi danh sách app thật cho Ba Mẹ (DanhSachApp.kt) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".UngDung"
         android:allowBackup="false"
