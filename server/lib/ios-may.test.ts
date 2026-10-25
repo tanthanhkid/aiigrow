@@ -112,7 +112,7 @@ test("QR Device Owner Android: component + APK của tác tử máy Con, giữ C
   const cfg = (await import("../next.config.ts")).default;
   const rd = (await cfg.redirects!()) as { source: string; destination: string }[];
   assert.equal(rd.find((r) => r.source === "/tai/aiigrow-con.apk")?.destination,
-    "https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-0.2.1/AiiGrow-Con-android.apk");
+    `https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-${(await import("./ban-agent.ts")).BAN_CON_ANDROID.version}/AiiGrow-Con-android.apk`);
 });
 
 test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; không phải «có tác tử» (không mã offline)", async () => {

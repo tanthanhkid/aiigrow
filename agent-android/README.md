@@ -12,6 +12,7 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | `logic/DemPhut.kt` | đếm phút tiền cảnh theo app từ sự kiện UsageStats; thân ghép / nhịp / xin thêm giờ |
 | `DichVuNhip` | dịch vụ tiền cảnh: vòng 5 giây, gọi máy chủ mỗi 60 giây, đo → quyết → thực thi, thông báo thường trực, mở màn khoá |
 | `NenTang.kt` | `UngDung` (hẹn WorkManager 15 phút), `ViecNhip`, `KhoiDong` (BOOT_COMPLETED), `ManCaiDat` (cài QR Android 10+) |
+| `CapNhatApp.kt` · `logic/CapNhat.kt` | tự cập nhật (từ 0.2.2): manifest `ban-moi?platform=android`, tải + kiểm sha256 + chữ ký, PackageInstaller (mục «Tự cập nhật») |
 | `QuanTri` | DeviceAdminReceiver `vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri` |
 | `ThucThi` | Device Owner: `setPackagesSuspended`, `setLockTaskPackages`, hạn chế người dùng, Chrome `URLBlocklist`, DNS riêng tư, `lockNow`; gỡ từ xa |
 | `TroNang` | AccessibilityService (đường không reset): app bị chặn lên tiền cảnh ⇒ về Home + phủ màn chặn; khoá cả máy ⇒ phủ màn khoá |
@@ -32,6 +33,23 @@ Sau khi cài: bật «Truy cập dữ liệu sử dụng» cho AiiGrow Con (Andr
 Cài APK ⇒ mở AiiGrow Con ⇒ nhập mã 6 số Ba Mẹ đưa ⇒ bật 3 quyền ngay trên màn chính: Quản trị thiết bị (khoá màn hình),
 Truy cập dữ liệu sử dụng (đếm phút), Trợ năng «AiiGrow — màn chặn» (phủ màn chặn khi app bị chặn mở lên). Yếu hơn: app bị chặn vẫn mở được
 một khoảnh khắc trước khi bị phủ; Con có thể tắt Trợ năng (nhịp báo `troNang=false` cho Ba Mẹ); không lọc web, không chặn đổi giờ / Safe Mode.
+
+## Tự cập nhật (từ bản 0.2.2)
+**Máy đang ở 0.2.0 / 0.2.1 chưa có mã tự cập nhật ⇒ phải cài tay MỘT lần lên 0.2.2** (mở `https://aiigrow.aiilab.vn/tai/aiigrow-con.apk` trên máy Con,
+cài đè — cùng khoá ký nên giữ nguyên ghép / Device Owner / quyền). Từ 0.2.2 trở đi app tự lên bản mới:
+- Hỏi `GET <máy chủ>/api/agent/ban-moi?platform=android` (server/lib/ban-agent.ts › `BAN_CON_ANDROID`: version, versionCode, url, sha256)
+  mỗi lần tiến trình khởi động / mở app + mỗi 6 giờ (WorkManager, cần mạng). Chỉ cập nhật khi `versionCode` manifest > bản đang chạy.
+- Tải qua https: chặng đầu phải cùng gốc với máy chủ đã ghép (`/tai/AiiGrow-Con-<bản>.apk`), các chặng chuyển hướng chỉ tới
+  `github.com/tanthanhkid/aiigrow-tai/releases/download/…` hoặc `*.githubusercontent.com`; ≤ 200 MB.
+- Kiểm sha256 = manifest, đúng gói `vn.aiilab.aiigrow.con`, versionCode = manifest, chữ ký APK chứa mọi chứng chỉ đang ký app (xoay khoá v3 vẫn qua).
+  Sai bất kỳ bước nào ⇒ xoá tệp, không cài; thử lại đúng bản đó sau 24 giờ (mất mạng giữa chừng: 1 giờ) hoặc ngay khi manifest đổi sha256.
+- Cài bằng PackageInstaller: **Device Owner ⇒ im lặng** (đã thử trên emulator API 35: 0.2.2 → bản cao hơn tự cài, Chrome vẫn tạm dừng, dịch vụ nhịp
+  chạy lại, vẫn Device Owner). **Không phải Device Owner** ⇒ Android hiện hộp xác nhận + thông báo «Có bản AiiGrow mới»; chưa bật «Cho phép từ nguồn này»
+  cho AiiGrow thì thông báo + thẻ trên màn chính dẫn Ba Mẹ vào đúng chỗ bật (một lần).
+- Đang khoá / đếm ngược ⇒ hoãn 30 phút (cài đè làm app khởi động lại); hoãn liền quá 12 giờ thì cài luôn. Không Device Owner: hộp xác nhận
+  tự hiện lại tối đa mỗi 6 giờ (Huỷ ⇒ giữ tệp, thẻ «Cập nhật ngay» trên màn chính), thông báo «bật quyền» tối đa mỗi ngày. App tạm dừng do hệ thống giữ qua lần cập nhật; `MY_PACKAGE_REPLACED` bật lại dịch vụ.
+- Thử với máy chủ cục bộ: bản debug cho http tới `10.0.2.2` / `localhost` (src/debug, `mang_thu.xml`); đặt `mayChu` trong
+  `shared_prefs/aiigrow_con.xml` (run-as, giết tiến trình trong cùng lệnh — Device Owner không `force-stop` được).
 
 ## Android không làm được
 - Chặn khôi phục cài đặt gốc (máy biến mất ⇒ «ngoài vòng kiểm soát» + báo Ba Mẹ).
@@ -58,7 +76,8 @@ set -a; . ~/.aiigrow-android/ky.env; set +a     # AIIGROW_CON_KEYSTORE, _KEYSTOR
 # APK: app/build/outputs/apk/release/app-release.apk — thiếu tệp khoá hoặc mật khẩu thì assembleRelease/bundleRelease DỪNG (không ra gói chưa ký) ⇒ máy không có khoá chạy `assembleDebug`/`testDebugUnitTest`, đừng chạy `./gradlew build`
 ```
 Phát hành: tăng `versionCode`/`versionName` trong `app/build.gradle.kts` → `gh release create con-android-<bản> -R tanthanhkid/aiigrow-tai` kèm tệp `AiiGrow-Con-android.apk`
-→ sửa chuyển hướng `/tai/aiigrow-con.apk` trong `server/next.config.ts` sang release đó.
+→ tải lại tệp từ Release, `shasum -a 256` → điền `BAN_CON_ANDROID` (version, versionCode, url `/tai/AiiGrow-Con-<bản>.apk`, sha256) trong `server/lib/ban-agent.ts`
+→ sửa chuyển hướng `/tai/aiigrow-con.apk` trong `server/next.config.ts` sang release đó (test `ban-agent.test.ts` bắt hai chỗ phải cùng bản).
 Gradle 8.10.2 · AGP 8.7.3 · Kotlin 2.0.21 · minSdk 26 · targetSdk 35. Phụ thuộc: core-ktx, work-runtime-ktx.
 
 ## Thử trên emulator (không gọi máy chủ)

@@ -16,13 +16,16 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import java.util.concurrent.TimeUnit
 
-/** Khởi động: hẹn WorkManager 15 phút (dự phòng khi hệ điều hành dừng dịch vụ) + bật dịch vụ nhịp nếu đã ghép. */
+/** Khởi động: hẹn WorkManager 15 phút (dự phòng khi hệ điều hành dừng dịch vụ) + kiểm bản mới (CapNhatApp.kt). */
 class UngDung : Application() {
     override fun onCreate() {
         super.onCreate()
         DichVuNhip.taoKenh(this)
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("aiigrow-nhip", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<ViecNhip>(15, TimeUnit.MINUTES).build())
+        // tự cập nhật: kiểm mỗi 6 giờ + ngay mỗi lần tiến trình khởi động (mở app, khởi động máy, sau khi cập nhật để dọn tệp cũ)
+        CapNhat.henDinhKy(this)
+        CapNhat.chayNgay(this)
     }
 }
 

@@ -1,5 +1,5 @@
-// GET /api/agent/ban-moi[?platform=mac] — bản agent mới nhất {version, url, sha256} (lib/ban-agent.ts). Không có `platform` (agent Windows
-// 0.2.x) ⇒ bản Windows như trước; `platform=mac` ⇒ bản agent-mac. Công khai: không có gì bí mật, agent tự kiểm https + host + sha256 trước khi cài.
+// GET /api/agent/ban-moi[?platform=mac|android] — bản agent mới nhất {version, url, sha256} (+ versionCode cho android; lib/ban-agent.ts).
+// Không có `platform` (agent Windows 0.2.x) ⇒ bản Windows như trước; `platform=mac` ⇒ agent-mac; `platform=android` ⇒ app Con Android. Công khai: không có gì bí mật, agent tự kiểm https + host + sha256 trước khi cài.
 import { json } from "@/lib/api.ts";
 import { banAgentCho, gocCongKhai } from "@/lib/ban-agent.ts";
 

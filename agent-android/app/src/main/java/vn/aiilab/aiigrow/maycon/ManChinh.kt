@@ -56,6 +56,7 @@ class ManChinh : Activity() {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
         if (Kho(this).daGhep || QuanTri.laDeviceOwner(this)) DichVuNhip.batDau(this)
+        CapNhat.chayNgay(this)
     }
 
     override fun onResume() { super.onResume(); daVe = null; h.post(lap) }
@@ -68,11 +69,15 @@ class ManChinh : Activity() {
     private fun ve() {
         val k = Kho(this)
         val kieu = if (k.daGhep) "da_ghep" else "chua_ghep"
-        val quyen = "${QuanTri.laDeviceOwner(this)}${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}"
+        val laDo = QuanTri.laDeviceOwner(this)
+        // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
+        val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
+        val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
         if (daVe != kieu + quyen) {
             daVe = kieu + quyen
             goc.removeAllViews()
             dauTrang(k)
+            theCapNhat(k, laDo, duocCai)
             if (k.daGhep) dungManDaGhep() else dungManGhep()
             theQuyen()
             minhBach()
@@ -225,6 +230,22 @@ class ManChinh : Activity() {
             if (co) t.addView(G.chu(this, "✓  $ten", 16f, Clay.CHINH_INK).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })
             else t.addView(G.nut(this, "Bật: $ten", phu = true) { mo() })
         }
+        goc.addView(t)
+    }
+
+    /** Có bản mới đã tải + kiểm xong mà chưa cài (đường không reset): bật quyền cài cho AiiGrow rồi cập nhật. Device Owner tự cài im lặng. */
+    private fun theCapNhat(k: Kho, laDo: Boolean, duocCai: Boolean) {
+        val ban = k.banMoiCho ?: return
+        if (laDo) return
+        val t = G.the(this, G.XANH_NHAT)
+        t.addView(G.dauKhoi(this, R.drawable.fl_la, "Có bản AiiGrow mới $ban", Clay.CHINH_SOFT, 17f))
+        if (!duocCai) {
+            t.addView(G.chu(this, "Ba Mẹ bật «Cho phép từ nguồn này» cho AiiGrow (một lần) để app tự cập nhật.", 15f, G.CHU_PHU))
+            t.addView(G.nut(this, "Bật quyền cập nhật", phu = true) {
+                try { startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:$packageName"))) }
+                catch (_: Exception) { moCaiDat(Settings.ACTION_SECURITY_SETTINGS) }
+            })
+        } else t.addView(G.nut(this, "Cập nhật ngay") { CapNhat.chayNgay(this, epHoi = true) })
         goc.addView(t)
     }
 

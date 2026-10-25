@@ -18,8 +18,8 @@ android {
         applicationId = "vn.aiilab.aiigrow.con"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.2.2"
         buildConfigField("String", "MAY_CHU_MAC_DINH", "\"https://aiigrow.aiilab.vn\"")
     }
 
@@ -39,10 +39,13 @@ android {
         debug {
             // Chế độ thử cục bộ (đọc chính sách giả từ tệp, không gọi máy chủ) chỉ có ở bản debug.
             buildConfigField("boolean", "CHO_PHEP_THU", "true")
+            // tự cập nhật: cho http tới máy chủ thử (10.0.2.2 / localhost — src/debug/res/xml/mang_thu.xml)
+            buildConfigField("boolean", "CHO_PHEP_HTTP", "true")
         }
         release {
             isMinifyEnabled = false
             buildConfigField("boolean", "CHO_PHEP_THU", "false")
+            buildConfigField("boolean", "CHO_PHEP_HTTP", "false")
             if (tepKhoa != null) signingConfig = signingConfigs.getByName("phatHanh")
         }
     }
