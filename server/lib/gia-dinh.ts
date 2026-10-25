@@ -238,7 +238,7 @@ export type ThieuQuyen = { ma: string; ten: string; cach: string };
 const MO_TA_QUYEN: Record<string, { ten: string; cach: string }> = {
   dichVu: { ten: "Dịch vụ AiiGrow chạy nền", cach: "Cài lại AiiGrow trên máy Con: bấm phải vào trình cài › «Run as administrator» (cần quyền quản trị một lần)." },
   khay: { ten: "Khay AiiGrow trên màn hình Con", cach: "Đăng nhập đúng tài khoản Windows của Con; nếu vẫn không thấy biểu tượng AiiGrow ở góc phải dưới, khởi động lại máy." },
-  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang Chỉ theo dõi (ghi lại, chưa chặn). Máy mới ghép tự Chặn thật; máy này ghép từ trước hoặc Ba Mẹ đã chọn theo dõi — mở app Ba Mẹ › chọn máy › «Chặn thật» nếu muốn chặn." },
+  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang Chỉ theo dõi (ghi lại, chưa chặn). Muốn chặn: mở app Ba Mẹ › chọn máy › «Chặn thật»." },
   appLocker: { ten: "Khoá app «Chỉ app học» (AppLocker)", cach: "Windows chưa áp được luật chặn app: cần Windows Pro/Enterprise/Education và dịch vụ AiiGrow chạy bằng quyền quản trị — cài lại bằng «Run as administrator»." },
   dich_vu: { ten: "Dịch vụ AiiGrow", cach: "Cài lại AiiGrow bằng quyền quản trị." },
   haQuyenAdmin: { ten: "Tài khoản Mac của Con vẫn là quản trị (admin)", cach: "Con có thể tự gỡ AiiGrow. Trên Mac: Cài đặt hệ thống › Người dùng & Nhóm › tài khoản của Con › tắt «Cho phép người dùng quản trị máy tính này» (cần một tài khoản quản trị khác của Ba Mẹ)." },
@@ -261,7 +261,7 @@ export function quyenCuaMay(may: Pick<May, "status">): Record<string, boolean> |
 /** Cách sửa «chanThat» theo lựa chọn của Ba Mẹ: đã chọn Chặn thật mà máy chưa đổi ⇒ đang chờ máy nhận (không bảo Ba Mẹ bật lại);
  *  Ba Mẹ chủ ý chọn Chỉ theo dõi ⇒ nói đó là lựa chọn của Ba Mẹ. Chưa chọn (máy ghép trước 25/10) ⇒ câu chung ở MO_TA_QUYEN. */
 const CACH_CHAN_THAT = {
-  chan: "Ba Mẹ đã chọn Chặn thật — máy đổi ở lần đồng bộ tới (≤ 3 phút khi có mạng). Lâu vẫn chưa đổi: cập nhật AiiGrow trên máy Con lên bản mới nhất.",
+  chan: "Máy đang chuyển sang Chặn thật — máy đổi ở lần đồng bộ tới (≤ 3 phút khi có mạng). Lâu vẫn chưa đổi: cập nhật AiiGrow trên máy Con lên bản mới nhất.",
   "giam-sat": "Ba Mẹ đang để máy Chỉ theo dõi (ghi lại, chưa chặn). Muốn chặn: mở app Ba Mẹ › chọn máy › «Chặn thật».",
 } as const;
 

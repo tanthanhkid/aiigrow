@@ -78,9 +78,9 @@ test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn;
   assert.match(gs.thieu[0].cach, /Chặn thật/);
   // máy mới ghép: Ba Mẹ (mặc định) đã chọn Chặn thật ⇒ «đang chờ máy nhận», không bảo Ba Mẹ đi bật; Ba Mẹ chủ ý Chỉ theo dõi ⇒ nói là lựa chọn của Ba Mẹ
   assert.deepEqual([m.che_do, m.che_do_ba_me], ["chan", true]);
-  assert.match(g.chiTietBaoVe({ ...m, status: thô }).thieu[0].cach, /Ba Mẹ đã chọn Chặn thật — máy đổi ở lần đồng bộ tới/);
+  assert.match(g.chiTietBaoVe({ ...m, status: thô }).thieu[0].cach, /Máy đang chuyển sang Chặn thật — máy đổi ở lần đồng bộ tới/);
   assert.match(g.chiTietBaoVe({ ...m, che_do: "giam-sat", status: thô }).thieu[0].cach, /Ba Mẹ đang để máy Chỉ theo dõi/);
-  assert.match(g.chiTietBaoVe({ ...m, che_do_ba_me: false, status: thô }).thieu[0].cach, /Máy mới ghép tự Chặn thật/);
+  assert.match(g.chiTietBaoVe({ ...m, che_do_ba_me: false, status: thô }).thieu[0].cach, /Muốn chặn: mở app Ba Mẹ/);
   assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true } }).muc, "day_du");
   const gc = "Win Home: chặn bằng cách đóng app";
   assert.match(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true, ghiChuBaoVe: gc } }).cau, /Win Home/);
