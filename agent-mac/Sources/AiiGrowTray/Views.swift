@@ -17,14 +17,7 @@ struct XinThemView: View {
         VienClay(ten: "hourglass_not_done", duPhong: "hourglass", nen: ClayMau.diemSoft, co: 44)
         Text("Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
       }
-      HStack(spacing: 14) {                     // bóng nút lan ~7pt mỗi bên ⇒ khe 14 để bóng hai nút không chồng nhau
-        ForEach(TrayLogic.luaChonPhut, id: \.self) { p in
-          Button(TrayLogic.nhanLuaChonPhut(p)) { withAnimation(ClayMotion.bat) { phut = p } }
-            .buttonStyle(NutClayStyle(kieu: phut == p ? .ngoc : .sang))
-            .accessibilityAddTraits(phut == p ? .isSelected : [])
-        }
-      }
-      .padding(.vertical, 2)
+      ChipClay(ds: TrayLogic.luaChonPhut.map { ($0, TrayLogic.nhanLuaChonPhut($0)) }, chon: $phut)
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
         .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44)
@@ -59,6 +52,7 @@ struct XinThemCuaSo: View {
 }
 
 struct XinMoView: View {
+  static let loaiMo = [("web", "Trang web"), ("app", "App")]
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
   @State private var loai = "web"
@@ -73,14 +67,7 @@ struct XinMoView: View {
         Text("Con muốn mở gì?").font(.system(size: 17, weight: .bold))
       }
       // Hai nút kẹo thay segmented Picker (cao 24pt, dưới vùng bấm 44): cùng kiểu chip phút của «Xin thêm giờ».
-      HStack(spacing: 14) {
-        ForEach([("web", "Trang web"), ("app", "App")], id: \.0) { k, nhan in
-          Button(nhan) { withAnimation(ClayMotion.bat) { loai = k } }
-            .buttonStyle(NutClayStyle(kieu: loai == k ? .ngoc : .sang))
-            .accessibilityAddTraits(loai == k ? .isSelected : [])
-        }
-      }
-      .padding(.vertical, 2)
+      ChipClay(ds: XinMoView.loaiMo, chon: $loai)
       TextField(loai == "web" ? "Địa chỉ trang, ví dụ youtube.com" : "Tên app", text: $muc)
         .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
@@ -108,6 +95,9 @@ struct GhepMayView: View {
   @State private var dangGui = false
   @State private var xong = false
   @State private var canhBao = ""
+  @State private var dangChonFocus = false
+  /// Đang gửi / đã ghép / đang cảnh báo ⇒ không đổi tài khoản, không bấm ghép lại.
+  private var khoaNhap: Bool { dangGui || xong || !canhBao.isEmpty }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -133,9 +123,10 @@ struct GhepMayView: View {
         .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 48)
         .accessibilityHidden(true)
         .clayLom(bo: 18)
-        .overlay(ChonPopUp(ds: taiKhoan, chon: $chon, tieuDe: "Tài khoản của Con"))
-        .disabled(dangGui || xong || !canhBao.isEmpty)
-        .opacity(dangGui || xong || !canhBao.isEmpty ? 0.6 : 1)
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(ClayMau.ngoc, lineWidth: 2.5).opacity(dangChonFocus ? 1 : 0))
+        .overlay(ChonPopUp(ds: taiKhoan, chon: $chon, tieuDe: "Tài khoản của Con", focus: $dangChonFocus))
+        .disabled(khoaNhap)
+        .opacity(khoaNhap ? 0.5 : 1)          // cùng mức mờ NutClayStyle khi tắt
       }
       TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
         .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
@@ -147,7 +138,7 @@ struct GhepMayView: View {
         Button("Đã hiểu") { dongLai() }.buttonStyle(NutClayStyle(kieu: .sang))
       }
       Button(dangGui ? "Đang ghép…" : "Ghép máy") { gui() }
-        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(dangGui || xong || !TrayLogic.maHopLe(ma) || chon.isEmpty || !canhBao.isEmpty)
+        .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(khoaNhap || !TrayLogic.maHopLe(ma) || chon.isEmpty)
       Text("Tài khoản Con sẽ về quyền người dùng thường (cần còn một tài khoản quản trị khác).")
         .font(.system(size: 11)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
     }
@@ -265,7 +256,15 @@ struct ChonPopUp: NSViewRepresentable {
   let ds: [String]
   @Binding var chon: String
   let tieuDe: String
+  @Binding var focus: Bool
   @Environment(\.isEnabled) private var bat
+
+  /// Pop-up trong suốt tự vẽ vòng focus không thấy ⇒ báo ra để nhãn Clay vẽ viền ngọc thay.
+  final class PopUpTrong: NSPopUpButton {
+    var khiFocus: ((Bool) -> Void)?
+    override func becomeFirstResponder() -> Bool { let ok = super.becomeFirstResponder(); if ok { khiFocus?(true) }; return ok }
+    override func resignFirstResponder() -> Bool { let ok = super.resignFirstResponder(); if ok { khiFocus?(false) }; return ok }
+  }
 
   final class Dieu: NSObject {
     var chon: Binding<String>
@@ -273,8 +272,10 @@ struct ChonPopUp: NSViewRepresentable {
     @objc func doi(_ b: NSPopUpButton) { if let t = b.titleOfSelectedItem { chon.wrappedValue = t } }
   }
   func makeCoordinator() -> Dieu { Dieu($chon) }
-  func makeNSView(context: Context) -> NSPopUpButton {
-    let b = NSPopUpButton(frame: .zero, pullsDown: false)
+  func makeNSView(context: Context) -> PopUpTrong {
+    let b = PopUpTrong(frame: .zero, pullsDown: false)
+    let f = $focus
+    b.khiFocus = { v in DispatchQueue.main.async { f.wrappedValue = v } }
     b.isBordered = false
     b.alphaValue = 0                          // AppKit vẫn chuyển bấm cho view alpha 0 (khác isHidden); nhãn Clay bên dưới là phần nhìn thấy
     b.target = context.coordinator; b.action = #selector(Dieu.doi(_:))
@@ -284,10 +285,27 @@ struct ChonPopUp: NSViewRepresentable {
     }
     return b
   }
-  func updateNSView(_ b: NSPopUpButton, context: Context) {
+  func updateNSView(_ b: PopUpTrong, context: Context) {
     context.coordinator.chon = $chon
     if b.itemTitles != ds { b.removeAllItems(); b.addItems(withTitles: ds) }
-    if b.titleOfSelectedItem != chon, ds.contains(chon) { b.selectItem(withTitle: chon) }
+    if ds.contains(chon) { if b.titleOfSelectedItem != chon { b.selectItem(withTitle: chon) } }
+    else if let dau = ds.first { let c = $chon; DispatchQueue.main.async { c.wrappedValue = dau } }   // nhãn và giá trị gửi đi luôn khớp mục pop-up
     b.isEnabled = bat
+  }
+}
+
+/// Nhóm chip chọn một (nút kẹo Clay 46pt): đang chọn = ngọc, còn lại = sứ; khe 14 để bóng (~7pt mỗi bên) hai nút không chồng nhau.
+struct ChipClay<K: Hashable>: View {
+  let ds: [(K, String)]
+  @Binding var chon: K
+  var body: some View {
+    HStack(spacing: 14) {
+      ForEach(ds, id: \.0) { k, nhan in
+        Button(nhan) { withAnimation(ClayMotion.bat) { chon = k } }
+          .buttonStyle(NutClayStyle(kieu: chon == k ? .ngoc : .sang))
+          .accessibilityAddTraits(chon == k ? .isSelected : [])
+      }
+    }
+    .padding(.vertical, 2)
   }
 }
