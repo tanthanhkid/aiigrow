@@ -66,6 +66,8 @@ internal sealed class AppForm : Form
 
     public AppForm()
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         Text = "AiiGrow";
         Icon = UI.AppIcon();
         StartPosition = FormStartPosition.CenterScreen;
@@ -263,7 +265,15 @@ internal sealed class AppForm : Form
     public void ShowFront(MucApp? muc = null, bool noiLen = false)
     {
         if (muc != null) Select(muc.Value);
+        bool moMoi = !Visible;
         if (!Visible) Show(); else _ = RefreshAsync();
+        if (moMoi)
+        {
+            // Mở mới: tiêu điểm vào mục điều hướng (không phải nút đầu trong vùng nội dung — WinForms cuộn tới control có tiêu điểm ⇒ ở 150% app mở
+            // đã cuộn xuống, đồng hồ to bị cắt) rồi về đầu trang.
+            if (_nav.TryGetValue(_muc, out var nut)) ActiveControl = nut;
+            _content.AutoScrollPosition = Point.Empty;
+        }
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
         if (noiLen) { TopMost = true; TopMost = false; }
         BringToFront();

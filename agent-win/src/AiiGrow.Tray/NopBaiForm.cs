@@ -8,11 +8,11 @@ namespace AiiGrow.Tray;
 internal sealed class NopBaiForm : Form
 {
     private readonly HvNhiemVu _nv;
-    private readonly TextBox _note = new() { Multiline = true, Height = 90, Width = 400, Font = UI.F(11f), MaxLength = 500, BorderStyle = BorderStyle.FixedSingle };
-    private readonly Button _pick = UI.Btn("Chọn ảnh…", false, 400, "desktop_computer");
-    private readonly Label _file = UI.Text("", 10f, false, UI.Muted, 400);
-    private readonly Button _send = UI.Btn("Nộp cho Ba Mẹ", true, 400, "memo");
-    private readonly Label _msg = UI.Text("", 10.5f, true, UI.Green, 400);
+    private readonly TextBox _note = new() { Multiline = true, Height = UI.Px(90), Width = UI.Px(400), Font = UI.F(11f), MaxLength = 500, BorderStyle = BorderStyle.FixedSingle };
+    private readonly Button _pick = UI.Btn("Chọn ảnh…", false, UI.Px(400), "desktop_computer");
+    private readonly Label _file = UI.Text("", 10f, false, UI.Muted, UI.Px(400));
+    private readonly Button _send = UI.Btn("Nộp cho Ba Mẹ", true, UI.Px(400), "memo");
+    private readonly Label _msg = UI.Text("", 10.5f, true, UI.Green, UI.Px(400));
     private string? _anhBase64;
     private bool _busy;
 
@@ -21,6 +21,8 @@ internal sealed class NopBaiForm : Form
 
     public NopBaiForm(HvNhiemVu nv)
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _nv = nv;
         Text = "AiiGrow · Nộp bài";
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -28,18 +30,18 @@ internal sealed class NopBaiForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(UI.Px(440), UI.Px(490));
+        ClientSize = new Size(UI.Px(440) + SystemInformation.VerticalScrollBarWidth + UI.Px(6), UI.Px(490));   // chừa thanh cuộn dọc + lề nút ⇒ không cuộn ngang
 
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
             Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)), AutoScroll = true,
         };
-        flow.Controls.Add(UI.Text(nv.Ten, 14f, true, null, 400));
-        if (!string.IsNullOrWhiteSpace(nv.MoTa)) flow.Controls.Add(UI.Text(nv.MoTa, 10.5f, false, UI.Muted, 400));
+        flow.Controls.Add(UI.Text(nv.Ten, 14f, true, null, UI.Px(400)));
+        if (!string.IsNullOrWhiteSpace(nv.MoTa)) flow.Controls.Add(UI.Text(nv.MoTa, 10.5f, false, UI.Muted, UI.Px(400)));
         if (nv.TrangThai == "can_bo_sung" && !string.IsNullOrWhiteSpace(nv.LyDo))
-            flow.Controls.Add(UI.Text("Ba Mẹ nhắn: " + nv.LyDo, 10.5f, true, UI.Warn, 400));
-        flow.Controls.Add(UI.Text(HocVienView.CanChu(nv) ? "Con viết vài câu kể lại nhé" : "Ghi chú cho Ba Mẹ (không bắt buộc)", 10.5f, false, UI.Muted, 400));
+            flow.Controls.Add(UI.Text("Ba Mẹ nhắn: " + nv.LyDo, 10.5f, true, UI.Warn, UI.Px(400)));
+        flow.Controls.Add(UI.Text(HocVienView.CanChu(nv) ? "Con viết vài câu kể lại nhé" : "Ghi chú cho Ba Mẹ (không bắt buộc)", 10.5f, false, UI.Muted, UI.Px(400)));
         flow.Controls.Add(_note);
         if (HocVienView.CanAnh(nv) || nv.TrangThai == "can_bo_sung")
         {

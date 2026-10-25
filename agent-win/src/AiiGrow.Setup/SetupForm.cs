@@ -21,19 +21,21 @@ internal sealed class SetupForm : Form
     internal static readonly Color Nen = Clay.Nen;
     private const string MayChuMacDinh = "https://aiigrow.aiilab.vn";
     private const int TongBuoc = 5;
-    private const int Rong = 640;
+    /// <summary>Bề rộng cột nội dung — theo DPI (Clay.Si): trước đây 640 px cố định ⇒ ở 150% chữ / nút xuống dòng, phải cuộn.</summary>
+    private static int Rong => Clay.Si(640);
+    private static int S(int v) => Clay.Si(v);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool LockWorkStation();
 
-    private readonly Label _buocChu = new() { AutoSize = true, Font = new Font("Segoe UI", 10f, FontStyle.Bold), ForeColor = Chinh, Location = new Point(32, 18) };
-    private readonly ProgressBar _buocThanh = new() { Location = new Point(32, 44), Size = new Size(Rong, 6), Minimum = 0, Maximum = TongBuoc, Style = ProgressBarStyle.Continuous };
+    private readonly Label _buocChu = new() { AutoSize = true, Font = new Font("Segoe UI", 10f, FontStyle.Bold), ForeColor = Chinh, Location = new Point(S(32), S(18)) };
+    private readonly ProgressBar _buocThanh = new() { Location = new Point(S(32), S(44)), Size = new Size(Rong, S(6)), Minimum = 0, Maximum = TongBuoc, Style = ProgressBarStyle.Continuous };
     private readonly FlowLayoutPanel _body = new()
     {
         Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-        Padding = new Padding(32, 8, 24, 10), AutoScroll = true, BackColor = Nen,
+        Padding = new Padding(S(32), S(8), S(24), S(10)), AutoScroll = true, BackColor = Nen,
     };
-    private readonly Panel _dau = new() { Dock = DockStyle.Top, Height = 60, BackColor = Nen };
-    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = Clay.Si(44) + VeNut.LeBong.Vertical + 26, BackColor = Clay.The };
+    private readonly Panel _dau = new() { Dock = DockStyle.Top, Height = S(60), BackColor = Nen };
+    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = Clay.Si(44) + VeNut.LeBong.Vertical + S(26), BackColor = Clay.The };
     private List<LocalAccount> _accounts = new();
     private LocalAccount? _child;
     private bool _dongY;
@@ -42,11 +44,15 @@ internal sealed class SetupForm : Form
 
     public SetupForm()
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         Text = "Cài AiiGrow";
         // logo chuẩn trên thanh tiêu đề + taskbar: .ico nhiều cỡ nhúng trong exe (Icon(stream) tự chọn cỡ hợp màn)
         using (var ic = typeof(SetupForm).Assembly.GetManifestResourceStream("aiigrow.ico")) if (ic != null) Icon = new Icon(ic);
         Font = new Font("Segoe UI", 11f);
-        ClientSize = new Size(Rong + 64, 640);
+        ClientSize = new Size(Rong + S(64) + SystemInformation.VerticalScrollBarWidth, S(640));   // chừa thanh cuộn dọc ⇒ thẻ rộng Rong không bị cắt / cuộn ngang
+        var wa = Screen.PrimaryScreen!.WorkingArea;   // màn nhỏ / 150%+: không cao hơn vùng làm việc
+        if (Height > wa.Height) Height = wa.Height;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
@@ -72,12 +78,12 @@ internal sealed class SetupForm : Form
 
     // ---------------------------------------------------------------- khung chung
 
-    private Label T(string text, float pt = 11f, bool bold = false, Color? c = null, int rong = Rong)
+    private Label T(string text, float pt = 11f, bool bold = false, Color? c = null, int rong = 0)
         => new()
         {
-            Text = text, AutoSize = true, MaximumSize = new Size(rong, 0),
+            Text = text, AutoSize = true, MaximumSize = new Size(rong > 0 ? rong : Rong, 0),
             Font = new Font("Segoe UI", pt, bold ? FontStyle.Bold : FontStyle.Regular),
-            ForeColor = c ?? Chu, Margin = new Padding(0, 0, 0, 12), BackColor = Color.Transparent,
+            ForeColor = c ?? Chu, Margin = new Padding(0, 0, 0, S(12)), BackColor = Color.Transparent,
         };
 
     private static Button B(string text, bool chinh = true, int w = 200)
@@ -85,7 +91,7 @@ internal sealed class SetupForm : Form
         // Nút Clay (kẹo bọc đường / đất sét sứ), cao = thân 44 (theo DPI) + lề bóng.
         var b = new ClayButton
         {
-            Text = text, Width = w, Height = Clay.Si(44) + VeNut.LeBong.Vertical,
+            Text = text, Width = S(w), Height = Clay.Si(44) + VeNut.LeBong.Vertical,   // w theo px 96 dpi
             Font = new Font("Segoe UI", 11.5f, FontStyle.Bold),
             BackColor = chinh ? Chinh : Clay.The, ForeColor = chinh ? Color.White : Chu,
         };
@@ -103,7 +109,7 @@ internal sealed class SetupForm : Form
         if (lui != null)
         {
             var b = B("Quay lại", false, 130);
-            b.Location = new Point(32, 15);
+            b.Location = new Point(S(32), S(15));
             b.Click += (_, _) => lui();
             _chan.Controls.Add(b);
         }
@@ -112,7 +118,7 @@ internal sealed class SetupForm : Form
     private Button Tiep(string chu, Action bam, int w = 220)
     {
         var b = B(chu, true, w);
-        b.Location = new Point(_chan.Width - w - 32, 15);
+        b.Location = new Point(_chan.Width - b.Width - S(32), S(15));
         b.Anchor = AnchorStyles.Right | AnchorStyles.Top;
         b.Click += (_, _) => bam();
         _chan.Controls.Add(b);
@@ -127,14 +133,19 @@ internal sealed class SetupForm : Form
     {
         public bool Chon { get => _chon; set { _chon = value; BackColor = value ? ChinhSoft : Clay.The; Invalidate(true); } }
         private bool _chon;
-        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 16, 18, 16); }
+        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(S(18), S(16), S(18), S(16)); }
         /// <summary>Lề bóng Clay theo DPI (VeThe.LeBong) — nội dung đặt lệch vào trong lề này.</summary>
         public static Padding Le => VeThe.LeBong;
         /// <summary>Thẻ Clay: thân đất sét có bóng kép; được chọn ⇒ nền ngọc nhạt + viền ngọc 2,5 (không chỉ dựa vào màu: viền dày hơn hẳn).</summary>
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            var g = e.Graphics;
-            g.Clear(Parent?.BackColor ?? Nen);
+            e.Graphics.Clear(Parent?.BackColor ?? Nen);
+            VeNenRieng(e.Graphics, false);
+        }
+
+        public void VeNenRieng(Graphics g, bool ngoaiCung)
+        {
+            if (ngoaiCung) g.Clear(Parent?.BackColor ?? Nen);
             var le = Le;
             var r = new RectangleF(le.Left, le.Top, Width - le.Horizontal, Height - le.Vertical);
             if (r.Width < 4 || r.Height < 4) return;
@@ -151,11 +162,11 @@ internal sealed class SetupForm : Form
 
     private The TheChon(string tieu, string khi, Action bam)
     {
-        var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, 10) };
+        var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, S(10)) };
         var le = The.Le;
-        var rongChu = Rong - the.Padding.Horizontal - 4 - le.Horizontal;
+        var rongChu = Rong - the.Padding.Horizontal - S(4) - le.Horizontal;
         var t1 = T(tieu, 12.5f, true, Chu, rongChu); t1.Location = new Point(the.Padding.Left + le.Left, the.Padding.Top + le.Top); t1.Margin = Padding.Empty;
-        var t2 = T(khi, 10.5f, false, Chu2, rongChu); t2.Location = new Point(t1.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
+        var t2 = T(khi, 10.5f, false, Chu2, rongChu); t2.Location = new Point(t1.Left, t1.Top + t1.PreferredHeight + S(4)); t2.Margin = Padding.Empty;
         the.Controls.Add(t1); the.Controls.Add(t2);
         the.Height = t2.Top + t2.PreferredHeight + the.Padding.Bottom + le.Bottom;   // + lề bóng Clay (theo DPI)
         foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
@@ -195,7 +206,7 @@ internal sealed class SetupForm : Form
         {
             Text = "Tôi là Ba/Mẹ (hoặc người giám hộ) của Con và đồng ý cài AiiGrow lên máy này",
             AutoSize = true, MaximumSize = new Size(Rong, 0), Font = new Font("Segoe UI", 11f, FontStyle.Bold), ForeColor = Chu,
-            Checked = _dongY, Margin = new Padding(0, 8, 0, 8),
+            Checked = _dongY, Margin = new Padding(0, S(8), 0, S(8)),
         };
         _body.Controls.Add(co);
         var tiep = Tiep("Tiếp", BuocTaiKhoan);
@@ -259,7 +270,7 @@ internal sealed class SetupForm : Form
             var loai = a.IsAdmin ? "Toàn quyền — kiểu tài khoản của Ba Mẹ" : "Giới hạn — kiểu tài khoản của Con";
             var rb = new RadioButton
             {
-                AutoSize = true, MaximumSize = new Size(Rong, 0), Margin = new Padding(4, 0, 0, 10), Font = new Font("Segoe UI", 12f), ForeColor = Chu,
+                AutoSize = true, MaximumSize = new Size(Rong, 0), Margin = new Padding(S(4), 0, 0, S(10)), Font = new Font("Segoe UI", 12f), ForeColor = Chu,
                 Text = a.Name + (a.Sid == toi ? "  (bạn đang dùng)" : "") + "\n" + loai,
             };
             rb.CheckedChanged += (_, _) => { if (rb.Checked) { _child = a; tiep.Enabled = true; } };
@@ -339,7 +350,7 @@ internal sealed class SetupForm : Form
         {
             MaxLength = 6, Font = new Font("Segoe UI", 26f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center,
         };
-        _body.Controls.Add(ONhapClay.Boc(ma, Math.Min(Clay.Si(260), Rong - VeThe.LeBong.Horizontal), new Padding(0, 4, 0, 0)));   // lòng chảo Clay như các ô khác
+        _body.Controls.Add(ONhapClay.Boc(ma, Math.Min(Clay.Si(260), Rong - VeThe.LeBong.Horizontal), new Padding(0, S(4), 0, 0)));   // lòng chảo Clay như các ô khác
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
         Tiep("Ghép và cài đặt", () =>
@@ -359,11 +370,11 @@ internal sealed class SetupForm : Form
     {
         var child = o.Child;
         Man(5, "Cài đặt", "Đang cài AiiGrow…");
-        var thanh = new ProgressBar { Width = Rong, Height = 14, Maximum = StepLabels.Length, Style = ProgressBarStyle.Continuous, Margin = new Padding(0, 4, 0, 16) };
+        var thanh = new ProgressBar { Width = Rong, Height = S(14), Maximum = StepLabels.Length, Style = ProgressBarStyle.Continuous, Margin = new Padding(0, S(4), 0, S(16)) };
         _body.Controls.Add(thanh);
         var labels = StepLabels.Select(l => string.Format(l, child.Name)).ToArray();
         var ticks = labels.Select(l => Tick(l, false)).ToArray();
-        foreach (var t in ticks) { t.Margin = new Padding(0, 0, 0, 6); _body.Controls.Add(t); }
+        foreach (var t in ticks) { t.Margin = new Padding(0, 0, 0, S(6)); _body.Controls.Add(t); }
         var status = T("Đừng tắt máy trong lúc cài.", 11f, true, Chinh);
         _body.Controls.Add(status);
         _dangCai = true;
@@ -379,7 +390,7 @@ internal sealed class SetupForm : Form
             status.ForeColor = Loi;
             status.Text = "Chưa cài được: " + e.Message;
             var b = B("Quay lại", false, 130);
-            b.Location = new Point(32, 15);
+            b.Location = new Point(S(32), S(15));
             b.Click += (_, _) => BuocGhep();
             _chan.Controls.Add(b);
             Tiep("Thử lại", () => BuocCai(o), 140);
@@ -395,7 +406,7 @@ internal sealed class SetupForm : Form
         _body.Controls.Add(Tick("Biểu tượng AiiGrow nằm ở góc phải thanh tác vụ và trong menu Start"));
         _body.Controls.Add(T($"Bước cuối: chuyển sang tài khoản của {child.Name} (máy chỉ khoá màn hình, không đăng xuất — việc đang mở của bạn vẫn giữ nguyên). Muốn gỡ: Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt.", 11f, false, Chu2));
         var sau = B("Để sau", false, 130);
-        sau.Location = new Point(32, 15);
+        sau.Location = new Point(S(32), S(15));
         sau.Click += (_, _) => Close();
         _chan.Controls.Add(sau);
         // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở (DX-029). Ở màn khoá chọn tài khoản của Con.

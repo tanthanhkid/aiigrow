@@ -315,6 +315,19 @@ internal static class Clay
         g.InterpolationMode = im;
     }
 
+    /// <summary>Tắt UseMnemonic cho mọi Label / nút của <paramref name="c"/> và con cháu, kể cả con thêm sau (ControlAdded): WinForms mặc định coi «&»
+    /// là phím tắt ⇒ «Phần quà & điểm» mất dấu «&». Gọi MỘT lần đầu hàm dựng của mỗi Form.</summary>
+    public static void KhongMnemonic(Control c)
+    {
+        switch (c)
+        {
+            case Label l: l.UseMnemonic = false; break;
+            case ButtonBase b: b.UseMnemonic = false; break;
+        }
+        c.ControlAdded += (_, e) => { if (e.Control != null) KhongMnemonic(e.Control); };
+        foreach (Control con in c.Controls) KhongMnemonic(con);
+    }
+
     public static void ChatLuong(Graphics g)
     {
         g.SmoothingMode = SmoothingMode.AntiAlias;
@@ -323,18 +336,33 @@ internal static class Clay
         g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
     }
 
-    /// <summary>Vẽ nền của control cha vào vùng của <paramref name="c"/> (như BackColor trong suốt) — để góc bo và bóng nằm trên nền thật.</summary>
-    public static void VeNenCha(Control c, PaintEventArgs e, Action<Control, PaintEventArgs> paintBg, Action<Control, PaintEventArgs> paint)
+    /// <summary>Vẽ nền THẬT phía sau <paramref name="c"/> (như BackColor trong suốt) — để góc bo và bóng nằm trên nền thật.
+    /// TỰ dựng từ chuỗi tổ tiên, không qua InvokePaintBackground/InvokePaint của WinForms: với cha trong suốt (FlowLayoutPanel Transparent…) WinForms vẽ
+    /// nền trong suốt qua HDC của bộ đệm đôi DÙNG CHUNG, không vào bitmap của mình ⇒ bitmap giữ ảnh cũ (100%: chữ ma của nút khác chồng lên) hoặc
+    /// đen (150%). Ở đây: tổ tiên đặc ngoài cùng (Form / panel màu đặc) tô màu (hoặc tự vẽ nếu <see cref="IVeNenRieng"/>), rồi từng thẻ Clay bên trong
+    /// vẽ thân của nó lên trên, tổ tiên trong suốt không vẽ gì.</summary>
+    public static void VeNenCha(Control c, PaintEventArgs e, Action<Control, PaintEventArgs>? paintBg = null, Action<Control, PaintEventArgs>? paint = null)
     {
-        var cha = c.Parent;
-        if (cha == null) { e.Graphics.Clear(c.BackColor.A == 255 ? c.BackColor : SystemColors.Control); return; }
-        var st = e.Graphics.Save();
-        e.Graphics.TranslateTransform(-c.Left, -c.Top);
-        var vung = new Rectangle(c.Left, c.Top, c.Width, c.Height);
-        var pe = new PaintEventArgs(e.Graphics, vung);   // không Dispose: Graphics là của e
-        paintBg(cha, pe);
-        paint(cha, pe);
-        e.Graphics.Restore(st);
+        var g = e.Graphics;
+        var chuoi = new List<(Control P, int X, int Y)>();
+        int x = 0, y = 0;
+        for (Control? con = c, p = c.Parent; p != null; con = p, p = p.Parent)
+        {
+            x += con.Left; y += con.Top;
+            chuoi.Add((p, x, y));
+            if (p is Form || (p.BackColor.A == 255 && p is not IVeNenRieng)) break;   // nền đặc: không cần nhìn xa hơn
+        }
+        if (chuoi.Count == 0 || chuoi[^1].P is not Form && chuoi[^1].P.BackColor.A != 255)
+            g.Clear(c.BackColor.A == 255 ? c.BackColor : SystemColors.Control);
+        for (int i = chuoi.Count - 1; i >= 0; i--)
+        {
+            var (p, ox, oy) = chuoi[i];
+            var st = g.Save();
+            g.TranslateTransform(-ox, -oy);
+            if (p is IVeNenRieng r) r.VeNenRieng(g, i == chuoi.Count - 1);
+            else if (p.BackColor.A == 255) { using var b = new SolidBrush(p.BackColor); g.FillRectangle(b, p.ClientRectangle); }
+            g.Restore(st);
+        }
     }
 }
 
@@ -665,6 +693,9 @@ internal class ClayButton : Button
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        // ButtonBase đặt ControlStyles.Opaque ⇒ WinForms KHÔNG gọi OnPaintBackground; bộ đệm đôi dùng chung còn ảnh của control vẽ trước
+        // (100%: chữ ma của nút khác quanh góc bo; 150%: đen). Gốc lỗi 25/10 ⇒ tự vẽ nền ngay đầu OnPaint.
+        _nen.Ve(e);
         VeNut.Ve(this, e, _nn, _hover, _kieu, BoGoc, ShowFocusCues);
     }
 
@@ -707,6 +738,7 @@ internal class ClayRadio : RadioButton
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        _nen.Ve(e);   // RadioButton cũng là ButtonBase (Opaque) — xem ClayButton.OnPaint
         VeNut.Ve(this, e, _nn, _hover, KieuClay.TuDong, 0, ShowFocusCues);
     }
 
@@ -745,7 +777,12 @@ internal static class VeThe
 }
 
 /// <summary>Control tự vẽ nền phụ thuộc vị trí (thẻ Clay, nền gradient) — con dời chỗ trong nó thì phải vẽ lại nền đã nhớ.</summary>
-internal interface IVeNenRieng { }
+internal interface IVeNenRieng
+{
+    /// <summary>Vẽ lớp nền CỦA RIÊNG control này (thân thẻ, gradient) theo toạ độ của nó, lên trên phần nền phía sau đã vẽ sẵn.
+    /// <paramref name="ngoaiCung"/> = không còn gì phía sau (tổ tiên ngoài cùng) ⇒ tự tô nền đặc trước.</summary>
+    void VeNenRieng(Graphics g, bool ngoaiCung);
+}
 
 /// <summary>Thẻ Clay (Panel). Con bên trong nên để BackColor trong suốt để thấy men.</summary>
 internal class ClayCard : Panel, IVeNenRieng
@@ -762,6 +799,12 @@ internal class ClayCard : Panel, IVeNenRieng
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         BackColor = Clay.The;
         _nen = new NenCache(this, InvokePaintBackground, InvokePaint, g => VeThe.Ve(this, g, BoGoc, Lom));
+    }
+
+    public void VeNenRieng(Graphics g, bool ngoaiCung)
+    {
+        if (ngoaiCung) g.Clear(Parent?.BackColor.A == 255 ? Parent.BackColor : Clay.Nen);
+        VeThe.Ve(this, g, BoGoc, Lom);
     }
 
     /// <summary>Nền (cha + thân thẻ) nhớ trong bitmap: chữ trong suốt bên trong không vẽ lại bóng mỗi lần.</summary>
@@ -794,6 +837,12 @@ internal class ClayFlow : FlowLayoutPanel, IVeNenRieng
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
         BackColor = Clay.The;
         _nen = new NenCache(this, InvokePaintBackground, InvokePaint, g => VeThe.Ve(this, g, BoGoc, false));
+    }
+
+    public void VeNenRieng(Graphics g, bool ngoaiCung)
+    {
+        if (ngoaiCung) g.Clear(Parent?.BackColor.A == 255 ? Parent.BackColor : Clay.Nen);
+        VeThe.Ve(this, g, BoGoc, false);
     }
 
     protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);

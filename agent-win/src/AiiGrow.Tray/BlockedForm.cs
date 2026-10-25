@@ -23,6 +23,8 @@ internal sealed class BlockedForm : Form
 
     public BlockedForm(string? appId, string? appName, string? reason, bool canExchange, bool offline = false)
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _appId = appId; _canExchange = canExchange;
         var view = BlockScreenView.For(appId, appName, reason, canExchange, offline);
 

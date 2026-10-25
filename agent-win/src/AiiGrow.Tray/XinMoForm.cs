@@ -24,6 +24,7 @@ internal sealed class XinMoForm : Form
     /// <param name="muc">Điền sẵn (màn chặn: định danh app vừa bị đóng, ví dụ roblox.exe — Ba Mẹ duyệt là đúng app đó).</param>
     public XinMoForm(string loai = LoaiXin.MoWeb, string? muc = null)
     {
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         Text = "AiiGrow · Xin mở trang hoặc app";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false; MinimizeBox = false;

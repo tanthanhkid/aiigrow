@@ -8,10 +8,10 @@ internal sealed class RequestForm : Form
 {
     private readonly int[] _opts = { 30, 60, 120 };
     private readonly RadioButton[] _radios = new RadioButton[3];
-    private readonly TextBox _note = new() { Multiline = true, Height = 64, Width = 380, Font = UI.F(11f), MaxLength = 200, BorderStyle = BorderStyle.FixedSingle };
-    private readonly Button _send = UI.Btn("Xin bố mẹ", true, 380, "speech_balloon");
-    private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, 380, "star");
-    private readonly Label _msg = UI.Text("", 11f, true, UI.Green, 380);
+    private readonly TextBox _note = new() { Multiline = true, Height = UI.Px(64), Width = UI.Px(380), Font = UI.F(11f), MaxLength = 200, BorderStyle = BorderStyle.FixedSingle };
+    private readonly Button _send = UI.Btn("Xin bố mẹ", true, UI.Px(380), "speech_balloon");
+    private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, UI.Px(380), "star");
+    private readonly Label _msg = UI.Text("", 11f, true, UI.Green, UI.Px(380));
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private readonly string? _appId, _appName;
     private string? _pendingId;
@@ -19,6 +19,8 @@ internal sealed class RequestForm : Form
 
     public RequestForm(bool canExchange, string? appId = null, string? appName = null)
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _appId = appId; _appName = appName;
         Text = "AiiGrow · Xin thêm thời gian";
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -26,12 +28,12 @@ internal sealed class RequestForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(UI.Px(430), UI.Px(500));   // nút Clay cao theo DPI ⇒ cửa sổ cũng theo DPI
+        AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;   // cao theo nội dung (không có nút Đổi điểm ⇒ không thừa khoảng trống)
 
         var flow = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)),
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)), Margin = Padding.Empty,
         };
         flow.Controls.Add(UI.Text("Con muốn thêm bao lâu?", 16f, true));
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 10), BackColor = Color.Transparent };
