@@ -42,7 +42,7 @@ fun demTienCanh(ds: List<SuKienDung>, tu: Long, den: Long): Map<String, Long> {
 
 /** Tổng phút (làm tròn xuống) của các gói giải trí. */
 fun phutGiaiTri(msTheoGoi: Map<String, Long>, giaiTri: Set<String>): Int =
-    (msTheoGoi.filterKeys { it in giaiTri }.values.sum() / 60_000L).toInt()
+    giaiTri.map { it.lowercase() }.toSet().let { gt -> (msTheoGoi.filterKeys { it.lowercase() in gt }.values.sum() / 60_000L).toInt() }
 
 // ---------------------------------------------------------------- yêu cầu gửi máy chủ
 

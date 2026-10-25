@@ -47,13 +47,18 @@ object DoPhut {
         return demTienCanh(ds, dau, now).filterKeys { it.isNotEmpty() && it != ctx.packageName }
     }
 
-    /** App mở được từ trình khởi chạy (để xét «chưa xếp»). */
-    fun daCai(ctx: Context): List<GoiCai> {
+    /** App mở được từ trình khởi chạy — dùng chung cho «chưa xếp» (daCai) và danh sách app gửi Ba Mẹ (DanhSachApp). */
+    fun appLauncher(ctx: Context): List<ApplicationInfo> {
         val pm = ctx.packageManager
         val i = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val ds = if (Build.VERSION.SDK_INT >= 33) pm.queryIntentActivities(i, PackageManager.ResolveInfoFlags.of(0))
         else @Suppress("DEPRECATION") pm.queryIntentActivities(i, 0)
-        return ds.map { it.activityInfo.applicationInfo }.distinctBy { it.packageName }.map {
+        return ds.map { it.activityInfo.applicationInfo }.distinctBy { it.packageName }
+    }
+
+    /** App mở được từ trình khởi chạy (để xét «chưa xếp»). */
+    fun daCai(ctx: Context): List<GoiCai> {
+        return appLauncher(ctx).map {
             GoiCai(it.packageName, (it.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0)
         }
     }

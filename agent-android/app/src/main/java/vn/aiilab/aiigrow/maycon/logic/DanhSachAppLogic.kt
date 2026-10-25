@@ -108,12 +108,18 @@ const val CHO_SU_KIEN_GOI_MS = 10_000L
 /** Yêu cầu «Làm mới» của Ba Mẹ chưa xử lý. */
 fun coYeuCauMoi(t: TinHieuDanhSach?, g: DaGui): Boolean = t?.yeuCau != null && t.yeuCau != g.yeuCauDaXuLy
 
+/** Lần gửi lỗi liên tiếp thứ `n` (≥ 1) ⇒ chờ 1, 2, 4… phút, tối đa 30 phút, rồi mới quét + gửi lại. */
+fun choSauLoi(n: Int): Long = if (n <= 0) 0 else minOf(60_000L shl minOf(n - 1, 5), CHU_KY_QUET_MS)
+
 /**
- * Có nên quét PackageManager bây giờ không. `suKienGoiLuc` = lúc nhận PACKAGE_ADDED/REMOVED gần nhất chưa xử lý (0 = không có).
+ * Có nên quét PackageManager bây giờ không. `suKienGoiLuc` = lúc nhận PACKAGE_ADDED/REMOVED/REPLACED gần nhất chưa gửi được (0 = không có).
+ * `soLanLoi` = số lần quét + gửi lỗi liên tiếp (lùi dần, kể cả khi đang có yêu cầu «Làm mới»).
  */
-fun nenQuet(t: TinHieuDanhSach?, g: DaGui, lanQuetCuoi: Long, suKienGoiLuc: Long, now: Long): Boolean = when {
+fun nenQuet(t: TinHieuDanhSach?, g: DaGui, lanQuetCuoi: Long, suKienGoiLuc: Long, now: Long, soLanLoi: Int = 0): Boolean = when {
+    lanQuetCuoi == 0L -> true                                                         // dịch vụ vừa khởi động
+    soLanLoi > 0 && now - lanQuetCuoi < choSauLoi(soLanLoi) -> false
     coYeuCauMoi(t, g) -> true
-    g.bam == null -> now - lanQuetCuoi >= GIAN_CACH_LECH_MS || lanQuetCuoi == 0L    // chưa gửi được lần nào (vừa ghép / lần trước lỗi)
+    g.bam == null -> true                                                             // chưa gửi được lần nào (vừa ghép / lần trước lỗi)
     suKienGoiLuc > 0 && now - suKienGoiLuc >= CHO_SU_KIEN_GOI_MS -> true
     now - lanQuetCuoi >= CHU_KY_QUET_MS -> true
     t != null && t.bam != g.bam && now - lanQuetCuoi >= GIAN_CACH_LECH_MS -> true     // máy chủ giữ bam khác (hoặc null)

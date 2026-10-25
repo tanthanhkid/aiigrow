@@ -80,10 +80,14 @@ fun quyetDinh(
     grantEndsAt: Instant?,
 ): QuyetDinh {
     val g = gioDiaPhuong(now, cs.tz)
-    val tamThoiCho = cs.mucTamThoi.filter { (it.het == null || it.het.isAfter(now)) && it.loai != "chan" }.map { it.muc }.toSet()
-    val chan = goiAndroid(cs.chan) - tamThoiCho
-    val giaiTri = goiAndroid(cs.giaiTri) - tamThoiCho
-    val daXep = goiAndroid(cs.hoc) + goiAndroid(cs.giaiTri) + goiAndroid(cs.chan) + cs.heThong + tamThoiCho
+    // Máy chủ hạ chữ thường `muc` (danh sách app thật, server/lib/app-may.ts) mà package Android phân biệt hoa thường
+    // ⇒ quy mọi gói trong chính sách về đúng tên gói đang cài trên máy trước khi so.
+    val tenThuc = daCai.associateBy({ it.goi.lowercase() }, { it.goi })
+    fun theoMay(s: Collection<String>) = s.map { tenThuc[it.lowercase()] ?: it }.toSet()
+    val tamThoiCho = theoMay(cs.mucTamThoi.filter { (it.het == null || it.het.isAfter(now)) && it.loai != "chan" }.map { it.muc })
+    val chan = theoMay(goiAndroid(cs.chan)) - tamThoiCho
+    val giaiTri = theoMay(goiAndroid(cs.giaiTri)) - tamThoiCho
+    val daXep = theoMay(goiAndroid(cs.hoc) + goiAndroid(cs.giaiTri) + goiAndroid(cs.chan) + cs.heThong) + tamThoiCho
     // chua_xep = «chan» (server): app người dùng tự cài chưa được Ba Mẹ xếp ⇒ tạm dừng. App hệ thống không tính.
     val chuaXep = daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet()
     val coThe = { s: Set<String> -> (s - GOI_LUON_CHO) }
@@ -115,6 +119,9 @@ fun quyetDinh(
     if (conPhut <= 0) return kq(TrangThai.HET_GIO, chan + giaiTri + chuaXep, false, 0, dauKhungKe(g, khung), "Hết giờ giải trí hôm nay rồi. App học vẫn dùng được.")
     return kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Con còn $conPhut phút giải trí hôm nay.")
 }
+
+/** `a` trừ các gói có trong `b`, không phân biệt hoa thường (gói từ chính sách có thể đã bị hạ chữ thường). */
+fun truGoi(a: Set<String>, b: Set<String>): Set<String> { val bt = b.map { it.lowercase() }.toSet(); return a.filterNot { it.lowercase() in bt }.toSet() }
 
 // ---------------------------------------------------------------- đếm ngược trước khi khoá
 const val DEM_NGUOC_GIAY = 60

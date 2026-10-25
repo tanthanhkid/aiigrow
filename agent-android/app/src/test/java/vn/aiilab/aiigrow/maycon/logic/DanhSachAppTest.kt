@@ -85,6 +85,16 @@ class DanhSachAppTest {
         assertTrue(nenQuet(khop, g, now - 60_000, now - CHO_SU_KIEN_GOI_MS, now))
         assertTrue(nenQuet(null, DaGui(null, emptyMap(), null), 0, 0, now))             // vừa ghép
         assertFalse(nenQuet(null, g, now - 60_000, 0, now))                              // máy chủ cũ: chỉ theo chu kỳ
+
+        // gửi lỗi ⇒ lùi dần, kể cả khi có yêu cầu «Làm mới» hay chưa gửi được lần nào
+        val moi = TinHieuDanhSach("b1", "r2")
+        assertFalse(nenQuet(moi, g, now - 5_000, 0, now, soLanLoi = 1))
+        assertTrue(nenQuet(moi, g, now - 60_000, 0, now, soLanLoi = 1))
+        assertFalse(nenQuet(null, DaGui(null, emptyMap(), null), now - 60_000, 0, now, soLanLoi = 2))
+        assertTrue(nenQuet(null, DaGui(null, emptyMap(), null), now - 120_000, 0, now, soLanLoi = 2))
+        assertEquals(CHU_KY_QUET_MS, choSauLoi(50))
+        // sự kiện gói khi chưa gửi được lần nào vẫn được xét (không bị nhánh bam null nuốt)
+        assertTrue(nenQuet(null, DaGui(null, emptyMap(), null), now - 1_000, now - CHO_SU_KIEN_GOI_MS, now))
     }
 
     @Test fun cachGui_duDoiHayThoi() {
@@ -132,5 +142,17 @@ class DanhSachAppTest {
         assertTrue("com.roblox.client" in quyetDinh(cs, now, 600, daCai, null).goiChan)   // hết giờ
         // mục tạm thời loại «chan» không gỡ chặn
         assertTrue("com.roblox.client" in quyetDinh(cs.copy(mucTamThoi = listOf(MucTamThoi("com.roblox.client", "chan", null))), now, 0, daCai, null).goiChan)
+    }
+
+    /** Máy chủ hạ chữ thường `muc` ⇒ gói có chữ hoa vẫn phải bị chặn đúng tên gói thật trên máy. */
+    @Test fun chanKhongPhanBietHoaThuong() {
+        val cs = ChinhSach(ngayThuong = listOf(Khung("00:00", "23:59")), cuoiTuan = listOf(Khung("00:00", "23:59")), tranNgayPhut = 600,
+            chan = listOf(MucChung("com.ucmobile.intl", "app")), giaiTri = listOf(MucChung("com.supercell.clashofclans", "app")))
+        val daCai = listOf(GoiCai("com.UCMobile.intl", false), GoiCai("com.Supercell.ClashOfClans", false))
+        val now = Instant.parse("2026-10-21T11:00:00Z")
+        assertEquals(setOf("com.UCMobile.intl"), quyetDinh(cs, now, 0, daCai, null).goiChan)   // game đã xếp giải trí ⇒ không «chưa xếp»
+        assertEquals(setOf("com.UCMobile.intl", "com.Supercell.ClashOfClans"), quyetDinh(cs, now, 600, daCai, null).goiChan)
+        assertEquals(2, phutGiaiTri(mapOf("com.Supercell.ClashOfClans" to 120_000L), setOf("com.supercell.clashofclans")))
+        assertEquals(setOf("com.UCMobile.intl"), truGoi(setOf("com.UCMobile.intl", "com.Supercell.ClashOfClans"), setOf("com.supercell.clashofclans")))
     }
 }
