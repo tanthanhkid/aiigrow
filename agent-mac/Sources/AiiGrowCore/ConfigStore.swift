@@ -22,6 +22,9 @@ public struct CauHinhMay: Codable, Equatable {
   /// Tài khoản đã bị hạ khỏi nhóm admin lúc ghép (để trả lại khi gỡ).
   public var daHaQuyen: [String] = []
   public var lienLacCuoi: Date?
+  /// Danh sách app thật (DanhSachApp.swift): bam lần gửi được gần nhất + yeuCau «Làm mới» đã xử lý.
+  public var bamAppDaGui: String?
+  public var yeuCauAppDaXuLy: String?
 
   public init() {}
   public var daGhep: Bool { !token.isEmpty }
@@ -36,6 +39,8 @@ public struct CauHinhMay: Codable, Equatable {
     policyLuc = (try? c.decodeIfPresent(Date.self, forKey: .policyLuc)) ?? nil
     daDungGiayTuSync = g(.daDungGiayTuSync, 0); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
+    bamAppDaGui = (try? c.decodeIfPresent(String.self, forKey: .bamAppDaGui)) ?? nil
+    yeuCauAppDaXuLy = (try? c.decodeIfPresent(String.self, forKey: .yeuCauAppDaXuLy)) ?? nil
   }
 }
 

@@ -100,6 +100,8 @@ public struct Policy: Codable, Equatable {
   /// Chế độ Ba Mẹ chọn trên app — «giam-sat» | «chan»; nil = chưa chọn (giữ chế độ cục bộ).
   public var cheDo: String?
   public var web: ChinhSachWeb?
+  /// App Ba Mẹ đặt «Chặn» (DanhSachApp.swift) — đóng ở MỌI mode khi chặn thật.
+  public var blockedApps: [AppBiChan] = []
 
   public init() {}
 
@@ -119,6 +121,7 @@ public struct Policy: Codable, Equatable {
     canExchangePoints = ((try? c.decodeIfPresent(Bool.self, forKey: .canExchangePoints)) ?? nil) ?? false
     cheDo = s(.cheDo)
     web = (try? c.decodeIfPresent(ChinhSachWeb.self, forKey: .web)) ?? nil
+    blockedApps = AppBiChan.docDs(c, .blockedApps)
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -136,10 +139,11 @@ public struct Policy: Codable, Equatable {
     try c.encode(canExchangePoints, forKey: .canExchangePoints)
     try c.encodeIfPresent(cheDo, forKey: .cheDo)
     try c.encodeIfPresent(web, forKey: .web)
+    if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
   }
 
   enum CodingKeys: String, CodingKey {
-    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web
+    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps
   }
 }
 
@@ -200,7 +204,11 @@ public struct KetQuaDongBo {
   public var policy: Policy
   public var nextCheckSec: Int
   public var lenh: [LenhMay]
-  public init(policy: Policy, nextCheckSec: Int, lenh: [LenhMay]) { self.policy = policy; self.nextCheckSec = nextCheckSec; self.lenh = lenh }
+  /// Tín hiệu `danhSachApp` ở gốc phản hồi (nil = máy chủ cũ).
+  public var danhSachApp: TinHieuDanhSachApp?
+  public init(policy: Policy, nextCheckSec: Int, lenh: [LenhMay], danhSachApp: TinHieuDanhSachApp? = nil) {
+    self.policy = policy; self.nextCheckSec = nextCheckSec; self.lenh = lenh; self.danhSachApp = danhSachApp
+  }
 }
 
 /// Kết quả tạo lời xin (POST api/device/yeu-cau) — `status` «cho» | «tu_duyet»; máy chủ cũ chỉ có `trang_thai`.

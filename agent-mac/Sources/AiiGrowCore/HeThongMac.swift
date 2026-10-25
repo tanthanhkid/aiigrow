@@ -56,7 +56,8 @@ public final class HeThongMac: HeThong {
   private func bundleId(_ app: String) -> String? {
     khoa.lock(); defer { khoa.unlock() }
     if let b = boNhoBundle[app] { return b.isEmpty ? nil : b }
-    let plist = NSDictionary(contentsOfFile: app + "/Contents/Info.plist")
+    // app iPhone/iPad (…/Wrapper/Game.app) để Info.plist ở gốc gói, không trong Contents/
+    let plist = NSDictionary(contentsOfFile: app + "/Contents/Info.plist") ?? NSDictionary(contentsOfFile: app + "/Info.plist")
     let b = plist?["CFBundleIdentifier"] as? String ?? ""
     boNhoBundle[app] = b
     return b.isEmpty ? nil : b
