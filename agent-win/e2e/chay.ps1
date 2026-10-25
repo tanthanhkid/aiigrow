@@ -424,6 +424,10 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
     (Get-AppLockerPolicy -Effective -Xml) | Out-File -Encoding utf8 $TepHieuLuc
     [string](Test-AppLockerPolicy -XmlPolicy $TepHieuLuc -Path $duong -User $TenCon).PolicyDecision
   }
+  # Danh sách web CẢ MÁY của «IT» (mục «1» ở HKLM) thắng danh sách trong hive Con ⇒ AiiGrow (đúng thiết kế) KHÔNG thả Chrome/Edge khi có nó.
+  # Gỡ tạm mục IT để thử đường thả; KB6 đặt lại trước khi kiểm 6.4 (mục IT còn nguyên).
+  foreach ($k in $KhoaWeb.Values) { Remove-ItemProperty -Path "$k\URLBlocklist" -Name '1' -ErrorAction SilentlyContinue }
+  DongBoNgay
   if (-not (Test-Path $ChromeExe)) { Bo '4.12' 'Chặn thật: Chrome chạy được cho Con' "runner không có $ChromeExe" }
   else {
     $qd = Cho { $x = QuyetDinh $ChromeExe; if ($x -eq 'Allowed') { $x } } 150 5
@@ -499,6 +503,7 @@ KichBan 'KB5' 'Khoá ngay rồi mở lại' {
 
 # ------------------------------------------------------------------ KB6 — về Giám sát
 KichBan 'KB6' 'Về Giám sát: gỡ luật AiiGrow, giữ luật quản trị' {
+  foreach ($k in $KhoaWeb.Values) { New-Item -Path "$k\URLBlocklist" -Force | Out-Null; New-ItemProperty -Path "$k\URLBlocklist" -Name '1' -Value $WebQuanTri -PropertyType String -Force | Out-Null }   # đặt lại mục IT gỡ tạm ở KB4.12
   if (-not $Chung.MayId) { Bo 'KB6' 'Về Giám sát' 'chưa có máy'; return }
   $cd = Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe
   DongBoNgay
