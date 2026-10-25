@@ -2,17 +2,16 @@
 // đặt trong RÃNH LÕM (M.ranh + BONG.lom); vòng tiến độ là ỐNG đất sét có vệt sáng. Màu chỉ lấy từ token M; chất từ clay.ts.
 // Chuyển động «vui» + «ánh men»: cột mọc từ chân bằng lò xo vượt nhẹ (so le 45ms), xong thì một vệt men lướt một lần; thanh ngang dài ra
 // rồi vệt men lướt chéo; vòng quét tới giá trị. Reduce Motion ⇒ không mọc / không lướt, chỉ fade (docs/clay/M-anh-men.css cuối khối thông số).
-// «Mọc» chỉ dùng transform (Thanh duyệt 25/10): cột / thanh có kích thước cuối ngay từ đầu, TRỒI ra khỏi một khung cắt đặt ở chân (translate),
-// nên mỗi khung không phải tính lại bố cục; đầu bo + lớp men giữ nguyên hình (không scale). Trồi xong thì bỏ khung cắt ⇒ y hệt bản tĩnh.
+// «Mọc» chỉ dùng transform (Thanh duyệt 25/10): cột / thanh có kích thước cuối ngay từ đầu rồi scale từ chân (transformOrigin), nên mỗi khung
+// không phải tính lại bố cục. Đánh đổi đã chấp nhận: trong ~400ms mọc, đầu bo + lớp men hơi giãn theo; mọc xong (scale 1) y hệt bản tĩnh.
 // Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục), Tien (thanh tiến độ),
 // vòng đồng hồ của Con. Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
-import React, { useEffect, useState, type ReactNode } from "react";
+import React, { useEffect, type ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn, ReduceMotion, type SharedValue, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
-import { scheduleOnRN } from "react-native-worklets";
 import { BONG, MEN, VET } from "./clay";
 import { EASE } from "./chuyen-dong";
 import { F, M } from "./mau";
@@ -24,22 +23,17 @@ const SO_LE = 45;
 const VUOT = 1.05;
 
 /** Tiến trình «mọc» `p` (lò xo MOC sau `tre` ms) + «vệt men» `q` (0→1 một lần, bắt đầu `treVet` ms sau khi mọc). Chạy lại khi `lai` đổi
- * (vd thanh từ 0 lên có số khi dữ liệu về). Reduce Motion ⇒ p = 1 ngay, không vệt. `xong` = lò xo đã dừng (bỏ khung cắt). */
-function useMoc(giam: boolean, tre: number, treVet: number, tgVet: number, lai: boolean) {
+ * (vd thanh từ 0 lên có số khi dữ liệu về). Reduce Motion ⇒ p = 1 ngay, không vệt. */
+function useMoc(giam: boolean, tre: number, treVet: number, tgVet: number, lai: unknown) {
   const p = useSharedValue(giam ? 1 : 0), q = useSharedValue(0);
-  // xong theo từng lượt `lai`: lai đổi ⇒ tự về «chưa xong» mà không cần setState trong effect
-  const [xongVoi, setXongVoi] = useState<boolean | null>(null);
   useEffect(() => {
     if (giam) { p.set(1); q.set(0); return; }
     p.set(0); q.set(0);
-    p.set(withDelay(tre, withSpring(1, MOC, (het) => { if (het) scheduleOnRN(setXongVoi, lai); })));
+    p.set(withDelay(tre, withSpring(1, MOC)));
     q.set(withDelay(tre + treVet, withTiming(1, { duration: tgVet, easing: EASE.quet })));
   }, [giam, tre, treVet, tgVet, lai, p, q]);
-  return { p, q, xong: giam || xongVoi === lai };
+  return { p, q };
 }
-
-/** Khung cắt chừa ra ngoài hộp cột / thanh (px): đủ cho bóng BONG.cot + lò xo vượt ~4%. Riêng phía «chân» cắt đúng mép hộp. */
-const CHUA = 8;
 
 // ---------------------------------------------------------------- cột
 
@@ -98,25 +92,20 @@ const phanChong = (x: CotNgay): PhanCot[] => {
 /** Một cột clay: mọc từ chân (lò xo MOC, so le theo `thu`), xong một vệt men lướt dọc từ chân lên đỉnh. */
 function Cot({ thu, cao, phan, giam }: { thu: number; cao: number; phan: PhanCot[]; giam: boolean }) {
   const h = cao <= 0 ? 0 : Math.max(8, cao);
-  const { p, q, xong } = useMoc(giam, thu * SO_LE, 380, 450, h > 0);
-  // trồi từ chân: cột cao h sẵn, tịnh tiến xuống (1 − p)·h, phần dưới chân bị khung cắt che
-  const stCot = useAnimatedStyle(() => ({ transform: [{ translateY: h * (1 - Math.max(0, p.value)) }] }));
+  const { p, q } = useMoc(giam, thu * SO_LE, 380, 450, h > 0);
+  const stCot = useAnimatedStyle(() => ({ transform: [{ scaleY: Math.max(0, p.value) }] }));
   const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, transform: [{ translateY: (1 - 2 * q.value) * h }] }));
   const tong = phan.reduce((a, x) => a + x.gia, 0) || 1;
   // giá trị 0: một nụ nhỏ mờ giữ chỗ (cột đôi vẫn thấy đủ cặp Học / Giải trí)
   if (!h) return <View style={{ flex: 1, maxWidth: 30, height: 6, borderRadius: 3, backgroundColor: phan[0]?.mau, opacity: 0.3 }} />;
   return (
-    <View style={{ flex: 1, maxWidth: 30, height: h }}>
-      <View style={[s.catCot, !xong && s.cat]}>
-        <Animated.View style={[s.cot, stCot]}>
-          <View style={[StyleSheet.absoluteFill, { borderRadius: 999, overflow: "hidden", justifyContent: "flex-end" }]}>
-            {phan.map((x, k) => <View key={k} style={{ height: `${(x.gia / tong) * 100}%`, backgroundColor: x.mau, opacity: x.mo ? 0.28 : 1 }} />)}
-            <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.cot }]} />
-            {giam ? null : <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: VET.doc }, stVet]} />}
-          </View>
-        </Animated.View>
+    <Animated.View style={[{ flex: 1, maxWidth: 30, height: h, borderRadius: 999, boxShadow: BONG.cot, transformOrigin: "bottom" }, stCot]}>
+      <View style={[StyleSheet.absoluteFill, { borderRadius: 999, overflow: "hidden", justifyContent: "flex-end" }]}>
+        {phan.map((x, k) => <View key={k} style={{ height: `${(x.gia / tong) * 100}%`, backgroundColor: x.mau, opacity: x.mo ? 0.28 : 1 }} />)}
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.cot }]} />
+        {giam ? null : <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: VET.doc }, stVet]} />}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -128,26 +117,21 @@ export function ThanhClay({ ti, mau = M.chinh, cao = 14, tre = 0, nhanDoc }: { t
   const t = Math.min(1, Math.max(0, ti || 0));
   const dem = cao >= 12 ? 2 : 1.5;
   // chạy lại «dài ra» khi thanh từ trống lên có số (dữ liệu vừa về), không chạy lại mỗi lần số nhích (đồng hồ đếm)
-  const { p, q, xong } = useMoc(giam, tre, 360, 420, t > 0);
-  // trồi từ trái: thanh dài sẵn t·100%, tịnh tiến sang trái (1 − p) bề dài của chính nó. Khung cắt chừa bên phải tối đa tới mép trong rãnh
-  // (e = phần dư so với bề dài thanh) ⇒ gần đầy thì lò xo nảy không tràn rãnh, như bản cũ kẹp 100%.
-  const e = t >= 1 ? 0 : Math.min(0.06, 1 / t - 1);
-  const stThanh = useAnimatedStyle(() => ({ transform: [{ translateX: `${-(1 - Math.max(0, p.value)) * 100}%` }] }));
+  const { p, q } = useMoc(giam, tre, 360, 420, t > 0);
+  // dài sẵn t·100%, scale từ mép trái; gần đầy thì kẹp lò xo vượt để không tràn rãnh (như bản cũ kẹp 100%)
+  const vuotToiDa = t >= 1 ? 1 : Math.min(1.06, 1 / t);
+  const stThanh = useAnimatedStyle(() => ({ transform: [{ scaleX: Math.min(vuotToiDa, Math.max(0, p.value)) }] }));
   const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, transform: [{ translateX: `${(2.4 * q.value - 1.2) * 100}%` }] }));
   return (
     <View accessibilityRole="progressbar" accessibilityLabel={nhanDoc} accessibilityValue={{ min: 0, max: 100, now: Math.round(t * 100) }}
       style={{ height: cao, borderRadius: cao / 2, backgroundColor: M.ranh, padding: dem, boxShadow: BONG.lom, justifyContent: "center" }}>
       {t > 0 ? (
-        <View style={{ height: "100%", width: `${t * 100}%`, minWidth: cao - dem * 2 }}>
-          <View style={[{ position: "absolute", left: 0, top: -CHUA, bottom: -CHUA, right: `${-e * 100}%` }, !xong && s.cat]}>
-            <Animated.View style={[{ position: "absolute", left: 0, top: CHUA, bottom: CHUA, width: `${100 / (1 + e)}%`, borderRadius: cao / 2, boxShadow: BONG.cot }, stThanh]}>
-              <View style={[StyleSheet.absoluteFill, { borderRadius: cao / 2, overflow: "hidden", backgroundColor: mau }]}>
-                <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.ong }]} />
-                {giam ? null : <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, bottom: 0, width: "100%", backgroundImage: VET.toi }, stVet]} />}
-              </View>
-            </Animated.View>
+        <Animated.View style={[{ height: "100%", width: `${t * 100}%`, minWidth: cao - dem * 2, borderRadius: cao / 2, boxShadow: BONG.cot, transformOrigin: "left" }, stThanh]}>
+          <View style={[StyleSheet.absoluteFill, { borderRadius: cao / 2, overflow: "hidden", backgroundColor: mau }]}>
+            <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.ong }]} />
+            {giam ? null : <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, bottom: 0, width: "100%", backgroundImage: VET.toi }, stVet]} />}
           </View>
-        </View>
+        </Animated.View>
       ) : null}
     </View>
   );
@@ -217,9 +201,5 @@ export function ChuGiai({ ds }: { ds: { chu: string; mau: string }[] }) {
 }
 
 const s = StyleSheet.create({
-  // khung cắt quanh hộp cột (chừa hai bên + phía trên cho bóng và lò xo vượt; chân cắt đúng mép hộp) + cột đặt lại đúng hộp bên trong khung
-  catCot: { position: "absolute", left: -CHUA, right: -CHUA, top: -CHUA * 2, bottom: 0 },
-  cot: { position: "absolute", left: CHUA, right: CHUA, top: CHUA * 2, bottom: 0, borderRadius: 999, boxShadow: BONG.cot },
-  cat: { overflow: "hidden" },
   ranh: { alignSelf: "stretch", flexDirection: "row", alignItems: "flex-end", justifyContent: "center", gap: 3, padding: 4, borderRadius: 999, backgroundColor: M.ranh, boxShadow: BONG.lom },
 });
