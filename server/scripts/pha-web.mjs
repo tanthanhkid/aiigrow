@@ -25,8 +25,27 @@ const CONG = Number(process.env.PHA_CONG ?? 3311), CDP = Number(process.env.PHA_
 const GIAO_DIEN = process.argv.includes("--giao-dien");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// PHA_PROD=1: chạy bản đã `next build` (next start) — nhẹ, trang tải xong ngay; bản dev nặng làm Chrome headless có lúc treo chụp màn.
+// Bản build phải mới hơn mọi tệp ảnh hưởng giao diện (app/ lib/ public/ next.config.ts instrumentation.ts package.json) — không thì cổng đo nhầm bản cũ.
+// Kiểm TRƯỚC khi dựng dữ liệu thử.
+const PROD = !!process.env.PHA_PROD && process.env.PHA_PROD !== "0";
+if (PROD) {
+  const buildId = join(GOC_SV, ".next", "BUILD_ID");
+  if (!existsSync(buildId)) { console.error("PHA_PROD: chưa có .next — chạy `npx next build` trước."); process.exit(1); }
+  const luc = statSync(buildId).mtimeMs;
+  const moiHon = (p) => { try { const st = statSync(p);
+    return st.isDirectory() ? readdirSync(p).some((x) => moiHon(join(p, x))) : st.mtimeMs > luc; } catch { return false; /* tệp vừa xoá / symlink gãy */ } };
+  const cu = ["app", "lib", "public", "next.config.ts", "instrumentation.ts", "package.json"].filter((x) => moiHon(join(GOC_SV, x)));
+  if (cu.length) { console.error(`PHA_PROD: bản .next cũ hơn ${cu.join(", ")} — chạy lại \`npx next build\`.`); process.exit(1); }
+}
+
 // ---------------------------------------------------------------- máy chủ thật (next dev + PGlite tạm)
-const dbDir = mkdtempSync(join(tmpdir(), "aiig-pg-"));
+// Dọn khi thoát vì BẤT KỲ lý do gì (lỗi giữa chừng, hết giờ CDP, Ctrl-C): tắt next + Chrome, xoá hồ sơ Chrome + PGlite tạm.
+const don = { tienTrinh: [], thuMuc: [] };
+process.on("exit", () => { for (const t of don.tienTrinh) try { t.kill(); } catch { /* đã tắt */ }
+  for (const d of don.thuMuc) try { rmSync(d, { recursive: true, force: true }); } catch { /* còn bị giữ (Windows) */ } });
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => process.exit(130));
+const dbDir = mkdtempSync(join(tmpdir(), "aiig-pg-")); don.thuMuc.push(dbDir);
 const MK_AD = randomBytes(12).toString("base64url"), MK_Q = randomBytes(12).toString("base64url");
 const env = { ...process.env, PGLITE_DIR: dbDir, AIIGROW_OTP_THU: "1", NEXT_TELEMETRY_DISABLED: "1", DATABASE_URL: "" };
 delete env.DATABASE_URL;
@@ -35,17 +54,8 @@ const seed = spawnSync(process.execPath, ["scripts/tao-tai-khoan.ts"], { cwd: GO
   AIIGROW_QUAY_TEN: "quay.thu", AIIGROW_QUAY_MAT_KHAU: MK_Q, AIIGROW_QUAY_HIEN: "Nguyễn Thị Thu Thuỷ", AIIGROW_QUAY_SO: "Quầy 1" } });
 if (seed.status !== 0) { console.error("Không tạo được tài khoản:", seed.stderr || seed.stdout); process.exit(1); }
 
-// PHA_PROD=1: chạy bản đã `next build` (next start) — nhẹ, trang tải xong ngay; bản dev nặng làm Chrome headless có lúc treo chụp màn.
-// Bản build phải mới hơn mọi tệp app/ + lib/ — không thì cổng đo nhầm giao diện cũ.
-const PROD = process.env.PHA_PROD === "1";
-if (PROD) {
-  const buildId = join(GOC_SV, ".next", "BUILD_ID");
-  if (!existsSync(buildId)) { console.error("PHA_PROD=1 nhưng chưa có .next — chạy `npx next build` trước."); process.exit(1); }
-  const luc = statSync(buildId).mtimeMs;
-  const moi = (d) => readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() ? moi(join(d, e.name)) : statSync(join(d, e.name)).mtimeMs > luc);
-  if (moi(join(GOC_SV, "app")) || moi(join(GOC_SV, "lib"))) { console.error("PHA_PROD=1: bản .next cũ hơn mã app/ hoặc lib/ — chạy lại `npx next build`."); process.exit(1); }
-}
 const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", PROD ? "start" : "dev", "-p", String(CONG)], { cwd: GOC_SV, env, stdio: ["ignore", "pipe", "pipe"] });
+don.tienTrinh.push(next);
 let nextLog = "";
 next.stdout.on("data", (b) => { nextLog += b; }); next.stderr.on("data", (b) => { nextLog += b; });
 let song = false;
@@ -100,9 +110,7 @@ const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-web-"));
 // --disable-gpu: Mac tắt màn hình / máy bận thì GPU headless có lúc treo Page.captureScreenshot vô hạn
 const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
   "--no-default-browser-check", "--window-size=1440,900", "--lang=vi-VN", "--mute-audio", "about:blank"], { stdio: "ignore" });
-// lỗi giữa chừng (vd chụp màn hỏng) ⇒ vẫn tắt next dev + Chrome, không để máy chủ mồ côi giữ cổng
-process.on("exit", () => { try { chrome.kill(); } catch { /* đã tắt */ } try { next.kill(); } catch { /* đã tắt */ }
-  for (const d of [hoSo, dbDir]) try { rmSync(d, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ } });
+don.tienTrinh.push(chrome); don.thuMuc.push(hoSo);
 let trang;
 for (let i = 0; i < 60 && !trang; i++) {
   try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch { /* chờ Chrome */ }
@@ -257,7 +265,7 @@ if (GIAO_DIEN) {
         const caoNd = process.env.GD_CHUP_DAI ? Math.ceil((await goi("Page.getLayoutMetrics")).cssContentSize.height) : 0;
         if (caoNd) { await khung(rong, Math.max(caoNd, rong >= 1000 ? 900 : 844)); await sleep(400); }
         let a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
-        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd }); }   // máy bận: lần chụp đầu có khi trả lỗi
+        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png" }); }   // thử lại kiểu an toàn nhất: đúng khung nhìn   // máy bận: lần chụp đầu có khi trả lỗi
         if (caoNd) await khung(rong);
         if (a?.data) writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
         else console.log(`    (không chụp được: ${JSON.stringify(a)})`);
