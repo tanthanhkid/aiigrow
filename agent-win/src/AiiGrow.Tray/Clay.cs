@@ -971,10 +971,17 @@ internal static class ONhapClay
         o.Location = new Point(lb.Left + ngang, lb.Top + Math.Max(Clay.Si(10), (than - o.Height) / 2));
         vo.Controls.Add(o);
         vo.Click += (_, _) => o.Focus();
-        o.Enter += (_, _) => { vo.BackColor = Clay.NgocSoft; o.BackColor = Clay.NgocSoft; };
-        o.Leave += (_, _) => { vo.BackColor = Clay.Lom; o.BackColor = Clay.Lom; };
-        // Ô bị khoá (đang kiểm mã…) ⇒ lòng chảo mờ về sứ, không còn con trỏ gõ chữ.
-        o.EnabledChanged += (_, _) => { vo.Cursor = o.Enabled ? Cursors.IBeam : Cursors.Default; vo.BackColor = o.BackColor = o.Enabled ? Clay.Lom : Clay.The; };
+        // Màu suy từ (Enabled, Focused) mỗi lần — không phụ thuộc thứ tự Enter/Leave/EnabledChanged.
+        // Đang gõ ⇒ ngọc nhạt; bị khoá (đang kiểm mã…) ⇒ sứ, không còn con trỏ gõ chữ; còn lại ⇒ lòng chảo.
+        void Ve()
+        {
+            var mau = !o.Enabled ? Clay.The : o.Focused ? Clay.NgocSoft : Clay.Lom;
+            vo.Cursor = o.Enabled ? Cursors.IBeam : Cursors.Default;
+            if (vo.BackColor != mau) { vo.BackColor = mau; o.BackColor = mau; }
+        }
+        o.Enter += (_, _) => Ve();
+        o.Leave += (_, _) => Ve();
+        o.EnabledChanged += (_, _) => Ve();
         return vo;
     }
 }

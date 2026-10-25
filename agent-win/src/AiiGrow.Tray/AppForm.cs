@@ -378,10 +378,10 @@ internal sealed class AppForm : Form
         return b;
     }
 
-    /// <summary>Thẻ Clay: bo 28, bóng kép, dải men sáng mép trên (lề bóng nằm trong Padding).</summary>
     /// <summary>Lề ngang trong thẻ Clay (≥16) — dùng chung cho Card() và bề rộng chữ _tw.</summary>
     private static int LeNgangThe => Px(18);
 
+    /// <summary>Thẻ Clay: bo 28, bóng kép, dải men sáng mép trên (lề bóng nằm trong Padding).</summary>
     private FlowLayoutPanel Card(Color? bg = null) => new ClayFlow
     {
         AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,

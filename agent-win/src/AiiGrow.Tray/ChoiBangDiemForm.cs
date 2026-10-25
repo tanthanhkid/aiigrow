@@ -21,7 +21,8 @@ internal sealed class ChoiBangDiemForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(UI.Px(380), UI.Px(172 + Math.Clamp(choices.Count, 1, 8) * 58));   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
+        ClientSize = new Size(UI.Px(380) + SystemInformation.VerticalScrollBarWidth + UI.Px(6),   // chừa thanh cuộn dọc (>8 mục) + lề nút 3+3 ⇒ không cuộn ngang
+             UI.Px(172 + Math.Clamp(choices.Count, 1, 8) * 58));   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
 
         var flow = new FlowLayoutPanel
         {

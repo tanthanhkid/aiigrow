@@ -151,8 +151,9 @@ internal sealed class SetupForm : Form
     {
         var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, 10) };
         var le = The.Le;
-        var t1 = T(tieu, 12.5f, true, Chu, Rong - 40 - le.Horizontal); t1.Location = new Point(the.Padding.Left + le.Left, the.Padding.Top + le.Top); t1.Margin = Padding.Empty;
-        var t2 = T(khi, 10.5f, false, Chu2, Rong - 40 - le.Horizontal); t2.Location = new Point(t1.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
+        var rongChu = Rong - the.Padding.Horizontal - 4 - le.Horizontal;
+        var t1 = T(tieu, 12.5f, true, Chu, rongChu); t1.Location = new Point(the.Padding.Left + le.Left, the.Padding.Top + le.Top); t1.Margin = Padding.Empty;
+        var t2 = T(khi, 10.5f, false, Chu2, rongChu); t2.Location = new Point(t1.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
         the.Controls.Add(t1); the.Controls.Add(t2);
         the.Height = t2.Top + t2.PreferredHeight + the.Padding.Bottom + le.Bottom;   // + lề bóng Clay (theo DPI)
         foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
@@ -268,7 +269,7 @@ internal sealed class SetupForm : Form
     {
         _body.Controls.Add(T("Tên đăng nhập của Con — gõ không dấu, không khoảng trắng, ví dụ: bin", 11f, true));
         var ten = new TextBox { Font = new Font("Segoe UI", 13f), MaxLength = 20 };
-        _body.Controls.Add(ONhapClay.Boc(ten, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));   // lề bóng dưới (~12) là khoảng cách tới dòng sau   // lòng chảo Clay thân ≥44 (TextBox trần cao ~30)
+        _body.Controls.Add(ONhapClay.Boc(ten, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));   // lòng chảo Clay thân ≥44; lề bóng dưới (~12) là khoảng cách tới dòng sau
         _body.Controls.Add(T("Mật khẩu Con gõ khi mở máy — ít nhất 4 ký tự. Ba Mẹ ghi lại giúp Con nhớ.", 11f, true));
         var mk = new TextBox { Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true };
         _body.Controls.Add(ONhapClay.Boc(mk, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));
