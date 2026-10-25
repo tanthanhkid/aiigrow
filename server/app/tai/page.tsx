@@ -10,9 +10,10 @@ import { I3d, Ph } from "../_clay/Icon";
 
 const LINK_TAI = BAN_AGENT_WINDOWS.url;
 const LINK_APK = "/tai/aiigrow.apk";
+const LINK_APK_CON = "/tai/aiigrow-con.apk";
 
 const BAO_MAC = {
-  ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con cài được trên Windows và máy Mac.",
+  ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con cài được trên Windows, máy Mac và điện thoại Android (link tải bên dưới).",
 } as const;
 
 const GiamSat = () => (
@@ -66,9 +67,10 @@ export default async function TrangTai() {
         {os === "android" ? (
           <section className="the the-tai">
             <I3d ten="mobile-phone" mau="xanh" co={56} />
-            <a className="nut" href={LINK_APK}><Ph ten="download-simple" co={22} />Tải app Ba Mẹ cho Android</a>
-            <p className="ghi-tep">Tệp aiigrow.apk (bản thử) · app để Ba Mẹ quản lý. AiiGrow cho điện thoại Android của Con đang làm; máy Windows của Con tải bên dưới.</p>
-            <p className="ghi-tep">Luôn là bản mới nhất — có bản mới thì tải lại link này và cài đè, không cần gỡ.</p>
+            <a className="nut" href={LINK_APK_CON}><Ph ten="download-simple" co={22} />Điện thoại của Con: tải AiiGrow Con</a>
+            <p className="ghi-tep">Tệp AiiGrow-Con-android.apk · cài trên điện thoại của Con (Android hỏi thì cho phép «Cài ứng dụng không rõ nguồn gốc» với trình duyệt), mở app rồi nhập <b>mã 6 số</b> lấy trong app Ba Mẹ: Trang chủ → “Máy tính &amp; điện thoại” → <b>Ghép thêm máy</b>. Cài tay là mức bảo vệ Một phần; máy mới khôi phục gốc thì quét QR trong app Ba Mẹ để có đủ bảo vệ.</p>
+            <a className="nut" href={LINK_APK}><Ph ten="download-simple" co={22} />Điện thoại của Ba Mẹ: tải app Ba Mẹ</a>
+            <p className="ghi-tep">Tệp aiigrow.apk (bản thử) · app để Ba Mẹ quản lý, cài trên điện thoại của Ba Mẹ. Luôn là bản mới nhất — có bản mới thì tải lại link này và cài đè, không cần gỡ. Máy Windows của Con tải bên dưới.</p>
           </section>
         ) : null}
 
@@ -102,7 +104,7 @@ export default async function TrangTai() {
         </>)}
 
         {os === "android" ? null : (
-          <p className="duong-phu">App Ba Mẹ cho điện thoại Android: <a href={LINK_APK}>tải aiigrow.apk</a> (bản thử).</p>
+          <p className="duong-phu">App Ba Mẹ cho điện thoại Android: <a href={LINK_APK}>tải aiigrow.apk</a> (bản thử). Điện thoại Android của Con: <a href={LINK_APK_CON}>tải AiiGrow-Con-android.apk</a>.</p>
         )}
 
         <a className="nut vien nho nut-lui" href="/"><Ph ten="arrow-left" co={18} />Về app AiiGrow</a>

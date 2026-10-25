@@ -9,3 +9,7 @@ dist
 next-env.d.ts
 bin
 obj
+
+# Khoá ký app (không bao giờ commit)
+*.jks
+*.keystore

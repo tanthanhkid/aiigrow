@@ -359,10 +359,10 @@ export function huongDanCai(nen: NenChuyenDoi, token: string, goc: string): Huon
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri",
         "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${g}/tai/aiigrow-con.apk`,
         "android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true,   // giữ Chrome, Camera… của máy
-        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "<băm chữ ký APK — việc chờ bản build ký>",
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": "7WW8vTHg1Vu0clik_OQmB0gVrxb9rlj-Uku-tq8JxZM",   // base64url SHA-256 chứng chỉ khoá phát hành aiigrow-con (agent-android/README.md)
         "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": { aiigrow_token: token, aiigrow_may_chu: g },
       }, duPhong: `máy đang dùng: cài app «AiiGrow Con» rồi ghép bằng mã 6 số (không có Device Owner ⇒ mức bảo vệ Một phần)`,
-        ghiChu: "Bản phát hành APK AiiGrow Con (android-con-0.1.0) CHƯA có trên GitHub Release aiigrow-tai — link /tai/aiigrow-con.apk chỉ chạy được sau khi tải bản ký lên; chữ ký APK cũng chờ keystore phát hành." } };
+        ghiChu: "APK AiiGrow Con ký khoá phát hành, ở GitHub Release con-android-<bản> của aiigrow-tai — /tai/aiigrow-con.apk chuyển tới đó." } };
     default: return { nen, cach: "tang_mang", quyenAdmin: "quyền quản trị router của Ba Mẹ",
       buoc: ["Trong app Ba Mẹ chọn TV trong danh sách thiết bị của router (theo MAC) — một bước"],
       chiTiet: { ghiChu: "TV không có MDM cho gia đình: áp luật tầng mạng (router / DNS)" } };
