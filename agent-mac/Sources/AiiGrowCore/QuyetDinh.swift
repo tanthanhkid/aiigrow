@@ -109,11 +109,22 @@ public enum QuyetDinhApp {
     return choPhep.contains(ten) || choPhep.contains((ten as NSString).deletingPathExtension)
   }
 
+  /// «Chặn theo lọc» (Thanh 25/10): trình duyệt lọc web được (bundle id .app trong `trinhDuyet` — chỉ những trình duyệt plist chính sách đang đúng
+  /// trên đĩa) được chạy, NẾU .app nằm thẳng trong /Applications (root:admin — tài khoản Con thường không ghi được ⇒ không giả bundle id được).
+  /// Safari không bao giờ ở đây: không có chính sách URL ngoài MDM, hosts bị Private Relay / DoH / duyệt riêng tư vượt ⇒ vẫn chặn như app chưa xếp.
+  public static func laTrinhDuyetLoc(_ t: TienTrinh, trinhDuyet: Set<String>) -> Bool {
+    guard !trinhDuyet.isEmpty, let app = t.duongDanApp, let b = t.bundleId?.lowercased(), trinhDuyet.contains(b) else { return false }
+    let goc = "/Applications/"
+    guard app.lowercased().hasPrefix(goc.lowercased()), !app.contains("/../") else { return false }   // APFS không phân biệt hoa/thường
+    return !app.dropFirst(goc.count).contains("/")                                  // «/Applications/Google Chrome.app», không thư mục con
+  }
+
   /// Tiến trình cần đóng: chỉ khi «chỉ app học» và đang CHẶN THẬT; chỉ tiến trình của uid Con.
-  public static func canDong(_ ds: [TienTrinh], uidCon: UInt32, chiAppHoc: Bool, choPhep: [String]) -> [TienTrinh] {
+  public static func canDong(_ ds: [TienTrinh], uidCon: UInt32, chiAppHoc: Bool, choPhep: [String], trinhDuyet: Set<String> = []) -> [TienTrinh] {
     guard chiAppHoc else { return [] }
     let cho = Set(choPhep.map { $0.lowercased() })
-    return ds.filter { $0.uid == uidCon && $0.pid > 1 && !duocPhep($0, choPhep: cho) }
+    let td = Set(trinhDuyet.map { $0.lowercased() })
+    return ds.filter { $0.uid == uidCon && $0.pid > 1 && !duocPhep($0, choPhep: cho) && !laTrinhDuyetLoc($0, trinhDuyet: td) }
   }
 }
 

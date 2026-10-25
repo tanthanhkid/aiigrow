@@ -81,7 +81,11 @@ final class HeThongGia: HeThong, @unchecked Sendable {
   @Khoa var sauCaiGoi: (() -> Void)?
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
-  func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws { tep[duongDan] = d }
+  @Khoa var loiGhiTepChua: String?                // đường chứa chuỗi này ⇒ ghi lỗi (giả đĩa đầy / quyền)
+  func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws {
+    if let x = loiGhiTepChua, duongDan.contains(x) { throw NSError(domain: "gia", code: 13) }
+    tep[duongDan] = d
+  }
   @Khoa var daXoa: [String] = []
   func xoaTep(_ duongDan: String) { tep[duongDan] = nil; daXoa.append(duongDan) }
   func xoaBoNhoDNS() { daXoaDNS += 1 }
