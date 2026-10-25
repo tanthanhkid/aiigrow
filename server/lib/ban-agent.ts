@@ -5,6 +5,7 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
+// 0.2.7: exe từ CI agent-win run 40144815893 (job build goc, commit cc90c35 nhánh phathanh-clay, PR #102).
 export const BAN_AGENT_WINDOWS = {
   version: "0.2.7",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.7.exe",
@@ -15,6 +16,7 @@ export const BAN_AGENT_WINDOWS = {
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
+// 0.1.3: build-pkg.sh chạy trên Mac của Thanh từ commit 5f17954 nhánh phathanh-clay (PR #102), notarize Accepted.
 export const BAN_AGENT_MAC = {
   version: "0.1.3",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.3.pkg",

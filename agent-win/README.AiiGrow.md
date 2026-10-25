@@ -55,7 +55,6 @@ Dịch vụ bị dừng/đổ ⇒ **Windows SCM tự khởi động lại** bằ
   rồi `SystemCleanup.Run(ops, tuDichVu: false)`. Mỗi bước bọc riêng, chạy lại bao nhiêu lần cũng được.
 
 ## Lọc web theo tên miền + ghi lịch sử web (22/10)
-- **0.2.7**: giao diện Clay mới (khay, cửa sổ, icon Fluent 3D).
 - **0.2.6 (issue #68)**: luật web ghi vào hive của TÀI KHOẢN CON (`Core/WebHives.cs`; hive chưa nạp thì nạp tạm `NTUSER.DAT` bằng SeRestore) thay vì HKLM — bản cũ ghi HKLM nên
   Chrome của Ba Mẹ cũng bị chặn. Khởi động dịch vụ gỡ luật cũ trong HKLM một lần. Đổi/gỡ luật ⇒ dịch vụ tăng `WebRev`, khay của Con gọi `RefreshPolicyEx` và nhắc mở lại trình duyệt.
   «*» (chặn tất cả) chỉ có ở chế độ «Chỉ cho phép». Win Home không có AppLocker ⇒ chặn bằng đóng app (`Core/AppLockerKhaDung.cs`). Khay chỉ chạy ở phiên Con.
@@ -98,6 +97,7 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
   Màu theo token `mobile/src/lib/mau.ts`. Màn khoá / màn chặn toàn màn hình không đổi.
 
 ## Giao diện «Clay gương» (24/10/2026)
+Phát hành ở bản **0.2.7** (25/10/2026).
 Khay, app to, màn chặn, màn khoá và bộ cài vẽ theo `docs/THIET-KE-CLAY.md` bằng GDI+ (`src/AiiGrow.Tray/Clay.cs`, bộ cài link cùng tệp):
 nút/thẻ bo lớn, bóng kép, men bóng; nhấn = bẹp rồi nảy lò xo + vệt men lướt; Windows tắt «Hiệu ứng hoạt hình» ⇒ không scale, không vệt.
 Icon minh hoạ = Fluent Emoji 3D của Microsoft (`microsoft/fluentui-emoji`, commit `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`, giấy phép MIT —

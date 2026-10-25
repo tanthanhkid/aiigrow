@@ -18,7 +18,7 @@ test("manifest bản Mac: số bản, https trên tên miền máy chủ, tên g
   const u = new URL(BAN_AGENT_MAC.url);
   assert.equal(u.protocol, "https:");
   assert.equal(u.hostname, "aiigrow.aiilab.vn");
-  assert.equal(u.pathname, `/tai/AiiGrow-${BAN_AGENT_MAC.version}.pkg`, "khớp luật chuyển hướng mac-<bản> trong next.config");
+  assert.equal(u.pathname, `/tai/AiiGrow-${BAN_AGENT_MAC.version}.pkg`, "tên gói đúng mẫu /tai/AiiGrow-<bản>.pkg");
   assert.match(BAN_AGENT_MAC.sha256, /^[0-9a-f]{64}$/);
 });
 
