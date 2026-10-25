@@ -268,10 +268,10 @@ internal sealed class SetupForm : Form
     {
         _body.Controls.Add(T("Tên đăng nhập của Con — gõ không dấu, không khoảng trắng, ví dụ: bin", 11f, true));
         var ten = new TextBox { Font = new Font("Segoe UI", 13f), MaxLength = 20 };
-        _body.Controls.Add(ONhapClay.Boc(ten, Math.Min(Clay.Si(320), Rong), new Padding(0, 0, 0, 12)));   // lòng chảo Clay thân ≥44 (TextBox trần cao ~30)
+        _body.Controls.Add(ONhapClay.Boc(ten, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));   // lề bóng dưới (~12) là khoảng cách tới dòng sau   // lòng chảo Clay thân ≥44 (TextBox trần cao ~30)
         _body.Controls.Add(T("Mật khẩu Con gõ khi mở máy — ít nhất 4 ký tự. Ba Mẹ ghi lại giúp Con nhớ.", 11f, true));
         var mk = new TextBox { Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true };
-        _body.Controls.Add(ONhapClay.Boc(mk, Math.Min(Clay.Si(320), Rong), new Padding(0, 0, 0, 8)));
+        _body.Controls.Add(ONhapClay.Boc(mk, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
         _body.Controls.Add(T("Tài khoản mới là loại giới hạn: Con không tự tắt hay gỡ AiiGrow được.", 10.5f, false, Chu2));
@@ -336,7 +336,7 @@ internal sealed class SetupForm : Form
         {
             MaxLength = 6, Font = new Font("Segoe UI", 26f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center,
         };
-        _body.Controls.Add(ONhapClay.Boc(ma, Math.Min(Clay.Si(260), Rong), new Padding(0, 4, 0, 12)));   // lòng chảo Clay như các ô khác
+        _body.Controls.Add(ONhapClay.Boc(ma, Math.Min(Clay.Si(260), Rong - VeThe.LeBong.Horizontal), new Padding(0, 4, 0, 0)));   // lòng chảo Clay như các ô khác
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
         Tiep("Ghép và cài đặt", () =>

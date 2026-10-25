@@ -945,8 +945,8 @@ internal sealed class ClayMenuRenderer : ToolStripProfessionalRenderer
 
 /// <summary>Ô nhập Clay: TextBox không viền đặt trong lòng chảo ấn lõm (ClayCard Lom), thân cao ≥ 44 (theo DPI) — vùng bấm đủ,
 /// chữ cách mép ngang 14, nằm dưới dải bóng trong (10) của lòng chảo. Đang gõ ⇒ lòng chảo ngả ngọc nhạt (thấy rõ ô đang focus).
-/// Bấm vào lòng chảo ngoài chữ cũng vào ô. Dùng chung cho khay và bộ cài. ClayCard chừa lề bóng (VeThe.LeBong) quanh thân:
-/// <paramref name="le"/> là khoảng muốn có quanh THÂN, phần lề bóng được trừ bớt (lòng chảo không có bóng ngoài).</summary>
+/// Bấm vào lòng chảo ngoài chữ cũng vào ô. Dùng chung cho khay và bộ cài. ClayCard luôn chừa lề bóng (VeThe.LeBong, theo DPI) quanh thân
+/// như mọi thẻ Clay khác ⇒ <paramref name="le"/> là Margin cộng THÊM ngoài lề đó (thường để trống: lề bóng dưới ~12 đã là khoảng cách dòng).</summary>
 internal static class ONhapClay
 {
     /// <summary>Chiều cao thân lòng chảo cho một TextBox (đã bỏ viền).</summary>
@@ -966,13 +966,15 @@ internal static class ONhapClay
         {
             Lom = true, BoGoc = Clay.S(16), BackColor = Clay.Lom, Cursor = Cursors.IBeam,
             Width = rong + lb.Horizontal, Height = than + lb.Vertical,
-            Margin = new Padding(m.Left, m.Top, m.Right, Math.Max(0, m.Bottom - lb.Bottom)),
+            Margin = m,
         };
         o.Location = new Point(lb.Left + ngang, lb.Top + Math.Max(Clay.Si(10), (than - o.Height) / 2));
         vo.Controls.Add(o);
         vo.Click += (_, _) => o.Focus();
         o.Enter += (_, _) => { vo.BackColor = Clay.NgocSoft; o.BackColor = Clay.NgocSoft; };
         o.Leave += (_, _) => { vo.BackColor = Clay.Lom; o.BackColor = Clay.Lom; };
+        // Ô bị khoá (đang kiểm mã…) ⇒ lòng chảo mờ về sứ, không còn con trỏ gõ chữ.
+        o.EnabledChanged += (_, _) => { vo.Cursor = o.Enabled ? Cursors.IBeam : Cursors.Default; vo.BackColor = o.BackColor = o.Enabled ? Clay.Lom : Clay.The; };
         return vo;
     }
 }

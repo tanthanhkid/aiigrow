@@ -198,7 +198,7 @@ internal sealed class AppForm : Form
     private void ComputeWidths()
     {
         _cw = _lastW = CalcWidth();
-        _tw = _cw - Px(16) * 2 - Px(6) - VeThe.LeBong.Horizontal;
+        _tw = _cw - LeNgangThe * 2 - Px(6) - VeThe.LeBong.Horizontal;   // bề rộng chữ trong thẻ, theo đúng lề ngang của Card()
     }
 
     // =========================================================== nạp trạng thái từ khay
@@ -379,12 +379,15 @@ internal sealed class AppForm : Form
     }
 
     /// <summary>Thẻ Clay: bo 28, bóng kép, dải men sáng mép trên (lề bóng nằm trong Padding).</summary>
+    /// <summary>Lề ngang trong thẻ Clay (≥16) — dùng chung cho Card() và bề rộng chữ _tw.</summary>
+    private static int LeNgangThe => Px(18);
+
     private FlowLayoutPanel Card(Color? bg = null) => new ClayFlow
     {
         AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
         Width = _cw, MinimumSize = new Size(_cw, 0), MaximumSize = new Size(_cw, 0),
         BackColor = bg ?? UI.Card, BoGoc = Px(28),
-        Padding = VeThe.Pad(Px(18), Px(16), Px(18), Px(10)), Margin = new Padding(0, 0, 0, Px(4)),   // lề trong ≥16 (đáy: 10 + lề dưới 8 của dòng cuối)
+        Padding = VeThe.Pad(LeNgangThe, Px(16), LeNgangThe, Px(10)), Margin = new Padding(0, 0, 0, Px(4)),   // lề trong ≥16 (đáy: 10 + lề dưới 8 của dòng cuối)
     };
 
     private FlowLayoutPanel Row(int width) => new()
