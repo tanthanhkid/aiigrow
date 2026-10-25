@@ -79,6 +79,10 @@ public sealed class ApiClient : IDisposable
         return PostAsync<RequestResult>("api/device/yeu-cau", new { loai = "them_gio", phut = Math.Clamp(minutes, 5, 240), giaTri = appId, lyDo }, ct);
     }
 
+    /// <summary>«Xin mở trang hoặc app» (POST yeu-cau {loai: mo_web | cai_app, giaTri, lyDo}). Ba Mẹ đồng ý ⇒ máy chủ đặt luật cho mục đó (lib/yeu-cau.ts).</summary>
+    public Task<RequestResult> CreateOpenRequestAsync(string loai, string muc, string? note, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = loai == LoaiXin.MoWeb ? LoaiXin.MoWeb : LoaiXin.CaiApp, giaTri = muc, lyDo = XinMoView.LyDo(note, muc) }, ct);
+
     /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)
         => PostAsync<PlayCheck>("api/device/phien/xet", new { muc }, ct);

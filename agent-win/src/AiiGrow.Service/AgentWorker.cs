@@ -163,7 +163,7 @@ public sealed class AgentWorker : BackgroundService
         // Tray báo không có cửa sổ tiền cảnh (màn hình đã khoá): không tính giờ.
         if (fresh && string.IsNullOrEmpty(id)) return;
         // Tray chết: vẫn tính giờ phiên con dưới tên "không rõ" (con không thể ngưng đồng hồ bằng cách tắt tray).
-        _rt.CountUsage(now, fresh ? id! : "khong-ro", fresh ? (name ?? id!) : "Không rõ", elapsed);
+        _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed);
     }
 
     private async Task<DateTimeOffset> SyncAsync(AgentConfig cfg, bool active, DateTimeOffset now, CancellationToken ct)

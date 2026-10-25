@@ -35,8 +35,25 @@ public static class BlockScreenView
     /// <param name="appId">App vừa bị chặn: công cụ của Windows (cmd, taskmgr…) không bao giờ là app Giải trí ⇒ không mời «dùng điểm» (phien/xet luôn từ chối).</param>
     /// <param name="offline">Mất mạng ⇒ phien/xet không gọi được ⇒ không mời.</param>
     public static bool CanUsePoints(string? reason, bool canExchangePoints, string? appId = null, bool offline = false)
-        => canExchangePoints && reason != LockReasons.Khoa && !offline
-           && !(appId != null && ProcessGuard.UngDungTrongWindows.Contains(appId.Trim().EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? appId.Trim() : appId.Trim() + ".exe"));
+        => canExchangePoints && reason != LockReasons.Khoa && !offline && !(appId != null && LaCongCuWindows(appId));
+
+    /// <summary>App là công cụ của Windows (cmd, taskmgr… — <see cref="ProcessGuard.UngDungTrongWindows"/>), so theo tên exe.</summary>
+    private static bool LaCongCuWindows(string appId)
+    {
+        var t = appId.Trim();
+        return ProcessGuard.UngDungTrongWindows.Contains(t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe");
+    }
+
+    public const string AskOpenLabel = "Xin mở hẳn app này";
+
+    /// <summary>Nút «Xin mở hẳn app này» trên màn chặn: chỉ khi app bị chặn vì LUẬT (chưa phân loại / Ba Mẹ chặn) — Ba Mẹ đồng ý thì máy chủ đổi luật cho app đó.
+    /// Ngoài giờ, giờ ngủ, hết điểm, máy đang khoá: đổi luật không mở được ⇒ không mời (Con xin thêm giờ / dùng điểm). Không mời với công cụ của Windows.</summary>
+    public static bool CanAskOpen(string? appId, string? reason = null)
+    {
+        var t = (appId ?? "").Trim();
+        if (t.Length == 0 || t == UsageTracker.KhongRo || LaCongCuWindows(t)) return false;
+        return reason is not (LockReasons.HetGio or LockReasons.Ngu or LockReasons.HetDiem or LockReasons.Khoa);
+    }
 
     public const string OfflineCodeLabel = "Mất mạng? Nhập mã của Ba Mẹ";
 

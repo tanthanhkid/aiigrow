@@ -18,6 +18,9 @@ internal sealed class BlockedForm : Form
     private bool _busy;
     private bool _dong;
 
+    /// <summary>Con bấm «Xin mở hẳn app này» (định danh app) — khay mở <see cref="XinMoForm"/>.</summary>
+    public event Action<string>? XinMoApp;
+
     public BlockedForm(string? appId, string? appName, string? reason, bool canExchange, bool offline = false)
     {
         _appId = appId; _canExchange = canExchange;
@@ -67,6 +70,16 @@ internal sealed class BlockedForm : Form
             Close();
         };
         flow.Controls.Add(_ask);
+
+        // «Xin mở hẳn app này»: lời xin cai_app với định danh thật (roblox.exe…) — Ba Mẹ đồng ý là máy chủ đặt luật cho đúng app đó (như Mac XinMoView).
+        // Công cụ của Windows (cmd, taskmgr…) không mời xin mở.
+        if (BlockScreenView.CanAskOpen(appId, reason) && !offline)   // mất mạng: lời xin không tới được — giữ màn chặn với ô mã offline
+        {
+            var xinMo = UI.Btn(BlockScreenView.AskOpenLabel, false, UI.Px(340), "puzzle_piece");
+            // khay mở cửa sổ «Xin mở» (một bản cho cả khay) rồi màn chặn đóng — không lồng hộp thoại trong màn chặn mà khay có thể huỷ bất cứ lúc nào
+            xinMo.Click += (_, _) => { XinMoApp?.Invoke(appId!.Trim()); DongHan(); };
+            flow.Controls.Add(xinMo);
+        }
 
         // Mất mạng: «Xin phép Ba Mẹ» không tới được máy chủ ⇒ Ba Mẹ đọc mã mở offline cho Con gõ (luồng xin phép giữ nguyên).
         if (showCode)

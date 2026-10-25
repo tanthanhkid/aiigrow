@@ -65,6 +65,8 @@ public sealed class TrayState
     /// <summary>0.2.6 (BUG-007): khay đang chạy trong phiên của tài khoản Con? false ⇒ khay (phiên Ba Mẹ / tài khoản quản trị) tự thoát, không hiện biểu tượng / màn chặn.
     /// Mặc định true (dịch vụ cũ không gửi ⇒ như trước).</summary>
     public bool PhienCon { get; set; } = true;
+    /// <summary>25/10: phút đã dùng HÔM NAY theo app (dịch vụ đếm — <see cref="UsageTracker.DungHomNay"/>), nhiều nhất trước. Thẻ «Đã dùng hôm nay» ở app to.</summary>
+    public List<DungApp> DungTheoApp { get; set; } = new();
 }
 
 public sealed class PipeRequest
@@ -72,6 +74,8 @@ public sealed class PipeRequest
     public string Cmd { get; set; } = PipeCmd.State;
     public string? AppId { get; set; }
     public string? AppName { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.Request"/>: <see cref="LoaiXin"/> — them_gio (mặc định) | doi_diem | mo_web | cai_app.
+    /// Hai loại «mở»: giá trị (địa chỉ trang / tên app) ở <see cref="AppId"/>, tên hiển thị ở <see cref="AppName"/>.</summary>
     public string? Kind { get; set; }
     public int Minutes { get; set; }
     public string? Note { get; set; }

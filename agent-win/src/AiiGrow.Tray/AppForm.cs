@@ -51,7 +51,11 @@ internal sealed class AppForm : Form
     private int _cw, _tw, _lastW;
     private string _sig = "";
     private Label? _bigLbl, _capLbl;
+    private Control? _dungCard;      // thẻ «Đã dùng hôm nay» — thay tại chỗ khi số phút đổi (không vẽ lại cả trang mỗi phút)
+    private string _dungSig = "";
 
+    /// <summary>Con bấm «Xin mở trang hoặc app» (khay mở cửa sổ dùng chung).</summary>
+    public event Action? XinMoClicked;
     /// <summary>Con bấm «Thử kết nối lại» (khay gọi dịch vụ đồng bộ ngay).</summary>
     public event Action? RetryClicked;
     /// <summary>Con đã mở mục Tin nhắn (khay xoá số tin mới).</summary>
@@ -215,8 +219,9 @@ internal sealed class AppForm : Form
             if (dau != null && Visible) _ = LamMoiPhutChoiAsync();
         }
         ApplyKetNoiUi();
-        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}";
+        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.DungTheoApp.Count > 0}";
         if (sig != _sig) { _sig = sig; Render(); }
+        else CapNhatDungHomNay();
     }
 
     private void ApplyKetNoiUi()
@@ -350,6 +355,7 @@ internal sealed class AppForm : Form
         _content.SuspendLayout();
         foreach (var c in _content.Controls.Cast<Control>().ToList()) { _content.Controls.Remove(c); c.Dispose(); }
         _bigLbl = _capLbl = null;
+        _dungCard = null;
         switch (_muc)
         {
             case MucApp.HomNay: _title.Text = "Hôm nay"; RenderHomNay(); break;
@@ -402,6 +408,9 @@ internal sealed class AppForm : Form
         f.ShowDialog(this);
     }
 
+    /// <summary>«Xin mở trang hoặc app»: khay giữ MỘT cửa sổ cho cả menu khay / app to / màn chặn (không gửi trùng lời xin).</summary>
+    private void OpenXinMo() => XinMoClicked?.Invoke();
+
     // ---------------------------------------------------------------- Hôm nay
 
     private void RenderHomNay()
@@ -441,6 +450,9 @@ internal sealed class AppForm : Form
                 ex.Click += (_, _) => OpenRequest();
                 row.Controls.Add(ex);
             }
+            var xinMo = Btn("Xin mở trang hoặc app", false, 270, "globe_with_meridians");
+            xinMo.Click += (_, _) => OpenXinMo();
+            row.Controls.Add(xinMo);
             _content.Controls.Add(row);
 
             // BUG-006: luôn có nút «Chơi bằng điểm» khi đã ghép gia đình, kèm số phút đổi được — trừ khi Ba Mẹ tắt đổi điểm hoặc khoá máy (cùng luật màn chặn)
@@ -455,6 +467,9 @@ internal sealed class AppForm : Form
                     // số phút tính theo MỤC (máy chủ định giá theo nhóm) ⇒ nói rõ là của mục nào
                     _content.Controls.Add(T($"Điểm hiện có đổi được khoảng {_phutChoi} phút chơi {TrayView.FriendlyAppName(_s.PlayChoices.FirstOrDefault(), null)}.", 12f, false, UI.Muted, true));
             }
+
+            // Đã dùng hôm nay theo app (dịch vụ đếm theo app tiền cảnh — cùng số gửi máy chủ). Chưa có app nào ≥1 phút thì không hiện thẻ.
+            if (_s.DungTheoApp.Count > 0) { _dungCard = DungHomNayCard(); _content.Controls.Add(_dungCard); }
 
             // #70 §1: Ba Mẹ cần máy ⇒ chuyển người dùng (khoá phiên), không đăng xuất, không trừ điểm.
             var bm = Card();
@@ -496,6 +511,47 @@ internal sealed class AppForm : Form
             c.Controls.Add(row);
             _content.Controls.Add(c);
         }
+    }
+
+    private static string DungSig(TrayState s) => string.Join(',', s.DungTheoApp.Select(x => x.AppId + ":" + x.Phut));
+
+    /// <summary>Số phút theo app đổi (mỗi phút) ⇒ chỉ thay thẻ «Đã dùng hôm nay» tại đúng vị trí, giữ cuộn + tiêu điểm của trang.</summary>
+    private void CapNhatDungHomNay()
+    {
+        if (_dungCard == null || _dungCard.IsDisposed || _muc != MucApp.HomNay || DungSig(_s) == _dungSig) return;
+        var i = _content.Controls.GetChildIndex(_dungCard);
+        var moi = DungHomNayCard();
+        _content.SuspendLayout();
+        _content.Controls.Add(moi);
+        _content.Controls.SetChildIndex(moi, i);
+        _content.Controls.Remove(_dungCard);
+        _dungCard.Dispose();
+        _dungCard = moi;
+        _content.ResumeLayout(true);
+    }
+
+    private Control DungHomNayCard()
+    {
+        _dungSig = DungSig(_s);
+        var c = Card();
+        var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(4)) };
+        dau.Controls.Add(new ClayIcon { Size = new Size(Px(44), Px(44)), MauVien = UI.GreenSoft, Hinh = UI.Fluent("bar_chart"), Margin = new Padding(0, 0, Px(10), 0) });
+        var tieu = T($"Đã dùng hôm nay · {DungAppView.ThoiLuong(DungAppView.Tong(_s.DungTheoApp))}", 14f, true);
+        tieu.MaximumSize = new Size(_tw - Px(60), 0);
+        tieu.Margin = new Padding(0, Px(10), 0, 0);
+        dau.Controls.Add(tieu);
+        c.Controls.Add(dau);
+        foreach (var x in _s.DungTheoApp)
+        {
+            // tên app dài ⇒ cắt «…» trong một dòng (không co chữ), số phút luôn đủ ở bên phải
+            var dong = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = _tw, Height = Px(30), BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(2)) };
+            dong.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            dong.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            dong.Controls.Add(new Label { Text = x.Ten, AutoSize = false, AutoEllipsis = true, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = UI.F(12f), ForeColor = UI.Ink, BackColor = Color.Transparent, UseMnemonic = false }, 0, 0);
+            dong.Controls.Add(new Label { Text = DungAppView.ThoiLuong(x.Phut), AutoSize = true, Anchor = AnchorStyles.Right, Font = UI.F(12f, FontStyle.Bold), ForeColor = UI.GreenDark, BackColor = Color.Transparent, Margin = new Padding(Px(8), Px(5), 0, 0) }, 1, 0);
+            c.Controls.Add(dong);
+        }
+        return c;
     }
 
     // ---------------------------------------------------------------- Nhiệm vụ

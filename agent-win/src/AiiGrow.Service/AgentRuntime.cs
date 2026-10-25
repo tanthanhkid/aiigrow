@@ -471,6 +471,7 @@ public sealed class AgentRuntime
             s.BlockedSeq = _blockedSeq;
             s.BlockedAppId = _blockedId;
             s.BlockedAppName = _blockedName;
+            s.DungTheoApp = Usage.DungHomNay(now);
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
             // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.
