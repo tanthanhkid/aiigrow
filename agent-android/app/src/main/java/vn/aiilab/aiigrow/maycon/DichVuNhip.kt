@@ -57,7 +57,9 @@ class DichVuNhip : Service() {
         luong = HandlerThread("aiigrow-nhip").apply { start() }
         h = Handler(luong.looper)
         ContextCompat.registerReceiver(this, nhanCaiApp, IntentFilter(Intent.ACTION_PACKAGE_ADDED).apply {
-            addAction(Intent.ACTION_PACKAGE_REMOVED); addAction(Intent.ACTION_PACKAGE_REPLACED); addDataScheme("package") },
+            addAction(Intent.ACTION_PACKAGE_REMOVED); addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)   // bật / tắt activity launcher
+            addDataScheme("package") },
             ContextCompat.RECEIVER_NOT_EXPORTED)
         h.post(::lap)
     }
