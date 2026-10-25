@@ -157,6 +157,8 @@ export const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", 
 export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };
 export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
+/** Máy có «Mã mở khi mất mạng»: theo cờ máy chủ (tuan-thu.ts › coMaOffline); máy chủ cũ không gửi ⇒ chỉ Windows. */
+export const coMaOff = (m: Pick<TuanThuMay, "coMaOffline" | "nen">) => m.coMaOffline ?? m.nen === "windows";
 
 export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }> = {
   tuan_thu: { chu: "Tuân thủ", loai: "ok" }, lech_chuan: { chu: "Lệch chuẩn", loai: "canh" },

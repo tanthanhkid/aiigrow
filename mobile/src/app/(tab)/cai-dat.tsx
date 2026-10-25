@@ -65,9 +65,9 @@ export default function CaiDat() {
           bam={() => router.push(`/ho-so/${c.id}`)} />)}
         <Dong dau={!d.g.con.length} tieu="Thêm Con" trai={<BieuTron ic="cong" />} bam={() => router.push("/thiet-lap/ten-con")} />
         {Platform.OS !== "web" && d.g.con.length ? (
-          // máy dùng chung với Con (iPad / điện thoại cũ): mở màn Con ngay trên máy này — Con chọn tên + PIN (ghép máy bằng mã 6 số lần đầu)
-          <Dong tieu="Máy của Con" phu="Mở màn của Con trên máy này: nhiệm vụ, nộp bài, quà, chơi bằng điểm" trai={<BieuTron ic="sao" mau="vang" />}
-            bam={() => router.push("/tre")} />
+          // máy dùng chung với Con (iPad / điện thoại cũ): ĐĂNG XUẤT Ba Mẹ rồi mở màn Con — Con không quay vào app Ba Mẹ được (cần đăng nhập lại)
+          <Dong tieu="Máy của Con" phu="Đăng xuất Ba Mẹ trên máy này rồi mở màn của Con: nhiệm vụ, nộp bài, quà, chơi bằng điểm" trai={<BieuTron ic="sao" mau="vang" />}
+            bam={() => ra({ ve: "/tre" })} />
         ) : null}
       </Nhom>
       <NhomTieu chu="Mọi người" />

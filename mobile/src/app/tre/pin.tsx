@@ -98,13 +98,13 @@ function HoSoVaPin() {
   );
 }
 
-/** App native dùng chung với Ba Mẹ: lối về app Ba Mẹ (còn phiên ⇒ Hôm nay, chưa ⇒ Đăng nhập). Web (khung Kid trên máy tính) không hiện. */
+/** App native: lối Ba Mẹ đăng nhập lại (luôn qua mật khẩu / OTP — Con không tự vào app Ba Mẹ). Web (khung Kid trên máy tính) không hiện. */
 function VeBaMe() {
   const { co } = usePhien();
-  if (Platform.OS === "web") return null;
+  if (Platform.OS === "web" || co) return null;
   return (
-    <Pressable onPress={() => router.replace(co ? "/hom-nay" : "/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-      <Chu co={13} mau={M.chu3}>Ba Mẹ? <Chu kieu="rat" co={13} mau={M.chinhInk}>{co ? "Về app Ba Mẹ" : "Đăng nhập app Ba Mẹ"}</Chu></Chu>
+    <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+      <Chu co={13} mau={M.chu3}>Ba Mẹ? <Chu kieu="rat" co={13} mau={M.chinhInk}>Đăng nhập app Ba Mẹ</Chu></Chu>
     </Pressable>
   );
 }

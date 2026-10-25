@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, chuanHoaTen, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG, vaiToi } from "@/lib/api";
+import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG, vaiToi } from "@/lib/api";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Canh, cauLoi, Chips, ChoTai, ChonMot, Chu, Dong, M, Man, Nhom, NhomTieu, Nut, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -65,7 +65,7 @@ export default function AnToanMay() {
     // đang mở khẩn cấp / đang gỡ ⇒ không mở bảng (màn này cũng ẩn nút đó): khỏi tạo/kéo dài mở khẩn cấp thứ hai
     const dangKhan = !!d.m.moKhanCapDen && new Date(d.m.moKhanCapDen) > new Date();
     if (moSan === "khan" && !d.xem && !dangKhan && !d.m.dangGo) setMo("khan");
-    else if (moSan === "offline" && (d.m.coMaOffline ?? d.m.nen === "windows") && !d.xem) xemMaOffline();
+    else if (moSan === "offline" && coMaOff(d.m) && !d.xem) xemMaOffline();
   }
   const dangGo = !!d?.m?.dangGo;
   // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong — chỉ khi màn đang hiện
@@ -101,8 +101,6 @@ export default function AnToanMay() {
   );
   const m = d.m;
   const win = m.nen === "windows";
-  // «Mã mở khi mất mạng»: theo cờ máy chủ (mọi nền có agent tự kiểm mã — Windows, Mac, Android, iOS); máy chủ cũ ⇒ chỉ Windows
-  const coMaOff = m.coMaOffline ?? win;
   // Chế độ Chặn thật / Giám sát có trên máy có tác tử: Windows và Mac (máy chủ gửi cheDo cho cả hai — server/lib/chuyen-doi.ts › coTacTu)
   const coCheDo = win || m.nen === "mac";
   const khanCap = m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
@@ -184,7 +182,7 @@ export default function AnToanMay() {
         {!khanCap ? (
           <Dong dau={!!d.xem} tieu="Mở khẩn cấp" phu="Tạm mở giải trí có hạn giờ khi Con đang cần (vẫn giữ giờ ngủ, khoá ngày)" trai={<BieuTron ic="mo_khoa" mau="vang" />} bam={() => setMo("khan")} />
         ) : null}
-        {coMaOff ? (
+        {coMaOff(m) ? (
           <Dong dau={!!khanCap && !!d.xem} tieu="Mã mở khi mất mạng" phu="Máy mất mạng mà cần mở gấp — đọc mã này cho Con gõ vào máy" trai={<BieuTron ic="khoa" mau="lam" />} bam={xemMaOffline} />
         ) : null}
       </Nhom>

@@ -3,7 +3,7 @@
 // Mọi con số đọc từ máy chủ — mức bảo vệ lấy từ `baoVe` của máy chủ, không tự tính lại ở app.
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, TEN_CHE_DO, type AppChuaXep, type CheDoMay, type PhienDang, type TuanThuMay } from "./api";
+import { bm, coMaOff, TEN_CHE_DO, type AppChuaXep, type CheDoMay, type PhienDang, type TuanThuMay } from "./api";
 import { datTl } from "./thiet-lap";
 import { BaoLoi, BieuTron, cauLoi, Chu, Dong, HaiNut, M, Nhan, Nut, The, truoc, useLam, type TenIcon } from "./ui";
 
@@ -67,7 +67,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
           {/* chờ vì máy chưa đồng bộ lần nào (máy mới ghép) ⇒ vẫn cho đổi ngay sang Chỉ theo dõi */}
           {coCheDo && m.cheDo && !dangGo && (!cho || !m.daDongBo) ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
           {dangKhan || dangGo ? null : <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />}
-          {(m.coMaOffline ?? win) ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
+          {coMaOff(m) ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
         </HaiNut>
       </View>}
       <BaoLoi loi={loi} />

@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BieuTron, Chu, DiemPill, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
 import { BONG, KHOI, MEN } from "./clay";
 import { kid, may, type NhomTre, type NvTre, type ToiTre } from "./api-tre";
+import { GOC } from "./api";
 
 // ---------------------------------------------------------------- phiên Con (hồ sơ đang dùng)
 
@@ -26,42 +27,52 @@ export function TreProvider({ children }: { children: ReactNode }) {
       setToi(r.con);
     } catch { /* mất mạng: giữ hồ sơ cũ */ }
   }, []);
-  // App native: agent Android / iOS mở thẳng `aiigrow://tre/nha?phien=<phiên Con>` (phiên lấy bằng POST /api/device/phien-web của máy Con)
-  // ⇒ nhận phiên từ tham số đường dẫn; link mới với phiên khác (đổi Con) thì đổi theo. Web đọc ?phien ở dưới (khung Kid của agent Windows).
+  // App native: agent Android / iOS mở thẳng `aiigrow://tre?phien=<phiên Con>` (phiên lấy bằng POST /api/device/phien-web của máy Con)
+  // ⇒ nhận phiên từ tham số đường dẫn (link tới lúc đang nạp hay khi app đã mở đều nhận); link mới với phiên khác (đổi Con) thì đổi theo.
+  // KIỂM phiên với máy chủ trước khi thay: link rác / phiên hết hạn không đá phiên đang dùng. Web đọc ?phien ở dưới (khung Kid của agent Windows).
   const { phien: thamSoPhien } = useGlobalSearchParams<{ phien?: string }>();
   const phienNative = Platform.OS !== "web" && typeof thamSoPhien === "string" && /^[\w-]{16,200}$/.test(thamSoPhien) ? thamSoPhien : null;
-  const daNhan = useRef<string | null>(phienNative);
-  const daNap = useRef(false);
-  useEffect(() => {
-    if (!phienNative || !daNap.current || daNhan.current === phienNative) return;
-    daNhan.current = phienNative;
-    (async () => {
-      await kid.dat(phienNative);
+  const daNhan = useRef<string | null>(null);
+  const nhanPhien = useCallback(async (p: string) => {
+    if (daNhan.current === p) return false;
+    daNhan.current = p;
+    try {
+      const r = await fetch(`${GOC}/api/kid/toi`, { headers: { authorization: `Bearer ${p}` } });
+      if (!r.ok) return false;
+      const j = (await r.json()) as ToiTre;
+      await kid.dat(p);
       setCo(true);
-      setToi(null);
-      await nap();
-    })();
-  }, [phienNative, nap]);
+      setToi(j.con);
+      return true;
+    } catch { return false; }
+  }, []);
+  useEffect(() => {
+    if (!san || !phienNative) return;
+    const p = phienNative;
+    Promise.resolve().then(() => nhanPhien(p)).catch(() => {});   // nhận bất đồng bộ (kiểm với máy chủ), không đặt state ngay trong effect
+  }, [san, phienNative, nhanPhien]);
   useEffect(() => {
     (async () => {
       await may.nap();
       // agent Windows mở khung Kid ở <server>/app/tre?phien=<phiên Con>: nhận phiên PIN từ query rồi xoá khỏi URL
-      const qPhien = Platform.OS === "web" ? new URLSearchParams(globalThis.location?.search ?? "").get("phien") : daNhan.current;
+      const qPhien = Platform.OS === "web" ? new URLSearchParams(globalThis.location?.search ?? "").get("phien") : null;
       if (qPhien) {
         await kid.dat(qPhien);
-        if (Platform.OS === "web") try {
+        try {
           const u = new URL(globalThis.location.href);
           u.searchParams.delete("phien");
           globalThis.history?.replaceState(globalThis.history.state, "", u.pathname + u.search + u.hash);
         } catch { /* bỏ qua */ }
       }
+      // native: link sâu lúc mở app ⇒ nhận (đã kiểm) trước khi màn Con quyết «có phiên chưa»
+      if (phienNative) await nhanPhien(phienNative);
       const t = await kid.nap();
       setCo(!!t);
       if (t) await nap();
-      daNap.current = true;
       setSan(true);
     })();
     kid.onHetPhien(() => { setCo(false); setToi(null); router.replace("/tre/pin"); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nạp một lần lúc dựng; link tới sau do effect phía trên nhận
   }, [nap]);
   const vao = useCallback(async (t: string) => {
     await kid.dat(t);
