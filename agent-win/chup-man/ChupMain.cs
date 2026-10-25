@@ -121,7 +121,7 @@ internal static class ChupMain
         await Mot("choi-bang-diem", ManChoiBangDiem);
 
         await Mot("khay-menu", ManMenuKhay);
-        await Mot("bong-bao-con-5-phut", ManBongBao);
+        // Bóng báo khay («Còn 5 phút»…): runner Windows Server không hiện thông báo (đã thử, ảnh chỉ có màn nền) ⇒ không chụp được ở đây.
 
         await Mot("cai-1-chao", () => ManCai("cai-1-chao", _ => { }));
         await Mot("cai-2-dieu-khoan", () => ManCai("cai-2-dieu-khoan", f =>
@@ -257,17 +257,6 @@ internal static class ChupMain
         menu.Close();
         await Cho(3500);   // lượt hỏi dịch vụ đầu tiên của TrayContext hết giờ rồi mới huỷ
         ctx.Dispose();
-    }
-
-    private static async Task ManBongBao()
-    {
-        // Cùng chữ với TrayContext.HandleWarnings (còn 5 phút).
-        using var ni = new NotifyIcon { Icon = UI.TrayIcon(true), Text = "AiiGrow", Visible = true };
-        await Cho(500);
-        ni.ShowBalloonTip(10000, "Còn 5 phút", "Lưu bài đang làm nhé. Cần thêm giờ thì bấm Xin thêm thời gian.", ToolTipIcon.Warning);
-        await Cho(3500);
-        ChupManHinh("bong-bao-con-5-phut");
-        ni.Visible = false;
     }
 
     private static async Task ManCai(string ten, Action<SetupForm> buoc)
@@ -470,20 +459,12 @@ internal static class ChupMain
         return Rectangle.FromLTRB(w.Left, w.Top, w.Right, w.Bottom);
     }
 
-    private static void ChupManHinh(string ten)
-    {
-        var r = SystemInformation.VirtualScreen;
-        using var bmp = new Bitmap(r.Width, r.Height);
-        using (var g = Graphics.FromImage(bmp)) g.CopyFromScreen(r.Location, Point.Empty, r.Size);
-        Luu(bmp, ten, "CopyFromScreen", demLoi: false);   // bóng báo có thể không hiện trên runner — chỉ ghi lại, không tính lỗi
-    }
-
-    private static void Luu(Bitmap bmp, string ten, string cach, bool demLoi = true)
+    private static void Luu(Bitmap bmp, string ten, string cach)
     {
         var duong = Path.Combine(_ra, ten + ".png");
         bmp.Save(duong, ImageFormat.Png);
         var trang = DonSac(bmp);
-        if (trang && demLoi) _loi++;
+        if (trang) _loi++;
         Log($"{(trang ? "LỖI ảnh một màu" : "ok")} {ten}.png {bmp.Width}x{bmp.Height} ({cach})");
     }
 
