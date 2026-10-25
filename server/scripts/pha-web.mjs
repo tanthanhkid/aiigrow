@@ -16,6 +16,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { DO, GIAN, doTay } from "../../mobile/scripts/giao-dien.mjs";
+import { DO_CC } from "./do-chin-chu.mjs";
 
 const GOC_SV = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CHROME = process.argv.slice(2).find((x) => !x.startsWith("--")) ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -87,6 +88,8 @@ console.log(`dữ liệu: 2 gia đình, ${phieu.length + 1} phiếu quà, máy c
 const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-web-"));
 const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
   "--no-default-browser-check", "--window-size=1440,900", "--lang=vi-VN", "--mute-audio", "about:blank"], { stdio: "ignore" });
+// lỗi giữa chừng (vd chụp màn hỏng) ⇒ vẫn tắt next dev + Chrome, không để máy chủ mồ côi giữ cổng
+process.on("exit", () => { try { chrome.kill(); } catch { /* đã tắt */ } try { next.kill(); } catch { /* đã tắt */ } });
 let trang;
 for (let i = 0; i < 60 && !trang; i++) {
   try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch { /* chờ Chrome */ }
@@ -158,8 +161,9 @@ if (GIAO_DIEN) {
     P("tai-mac", "/tai", "Tải AiiGrow cho máy Mac", "mac"),
     P("tai-iphone", "/tai", "Bạn đang mở trang bằng iPhone", "iphone"),
     P("tai-android", "/tai", "Tải app Ba Mẹ cho Android", "android"),
-    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Đã cài rồi — mở app AiiGrow Con"),
+    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Mở app AiiGrow Con"),
     P("chinh-sach-rieng-tu", "/chinh-sach-rieng-tu", "AiiGrow Privacy Policy"),
+    P("loi-404", "/api/khong-co-duong-nay", "Không tìm thấy trang này"),
     Q("quay-dang-nhap", "Vào quầy", { token: null }),
     Q("quay-san-sang", "Sẵn sàng quét"),
     Q("cafe-quet (hợp lệ)", "Đã đánh dấu", { sau: () => quetMa(kho.shift()) }),
@@ -211,6 +215,7 @@ if (GIAO_DIEN) {
       await sleep(600);
       await js("window.__gdCuoi = false");
       const { L, DO_TAY } = (await js(DO)) ?? { L: [], DO_TAY: [] };
+      L.push(...((await js(DO_CC)) ?? []));                       // luật chỉn chu: lề thẻ ≥16, chồng, nổi đè, vùng bấm ≥44, cắt chữ
       await js("document.querySelectorAll('*').forEach((e) => { if (e.scrollHeight > e.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)) e.scrollTop = e.scrollHeight; }); window.__gdCuoi = true");
       await sleep(300);
       const sau = (await js(DO))?.L ?? [];
@@ -227,9 +232,11 @@ if (GIAO_DIEN) {
         // cả trang: nới khung cho bằng chiều cao nội dung rồi chụp, xong trả khung về (clip + captureBeyondViewport treo ở chế độ mobile)
         const caoNd = process.env.GD_CHUP_DAI ? Math.ceil((await goi("Page.getLayoutMetrics")).cssContentSize.height) : 0;
         if (caoNd) { await khung(rong, Math.max(caoNd, rong >= 1000 ? 900 : 844)); await sleep(400); }
-        const a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
+        let a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
+        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png" }); }   // máy bận: lần chụp đầu có khi trả lỗi
         if (caoNd) await khung(rong);
-        writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
+        if (a?.data) writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
+        else console.log(`    (không chụp được: ${JSON.stringify(a)})`);
       }
       console.log(`${man.ten.padEnd(30)} ${ds.length ? ds.length + " lỗi" : "đạt"}${tay.length ? ` (đo pixel ${tay.length} dòng trên nền gradient/ảnh)` : ""}`);
       for (const x of ds) console.log("    " + JSON.stringify(x));

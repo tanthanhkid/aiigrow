@@ -31,11 +31,11 @@
 .ad .hang{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
 .ad .hang>label{flex:1 1 180px;min-width:0}
 .ad .vien-chip{display:flex;gap:10px;flex-wrap:wrap}
-.ad .chip-x{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 4px 0 14px;border-radius:99px;background:var(--the);background-image:var(--men-sang);box-shadow:var(--clayNho);
+.ad .chip-x{display:inline-flex;align-items:center;gap:6px;min-height:52px;padding:4px 4px 4px 16px;border-radius:99px;background:var(--the);background-image:var(--men-sang);box-shadow:var(--clayNho);
   color:var(--chu2);font-weight:700;font-size:14px;max-width:100%}
 .ad .chip-x span{overflow-wrap:anywhere}
 .ad .chip-x.md{padding:0 14px;background:var(--lom);box-shadow:var(--lomIn);min-height:40px}
-.ad .chip-x button{width:36px;height:36px;border:0;border-radius:50%;background:var(--loi-soft);color:var(--loi);font-weight:800;cursor:pointer;flex:none;
+.ad .chip-x button{width:44px;height:44px;border:0;border-radius:50%;background:var(--loi-soft);color:var(--loi);font-weight:800;cursor:pointer;flex:none;
   transition:transform .42s var(--sp-tha)}
 .ad .chip-x button.an{transform:scale(.88)}
 .ad .bang{overflow-x:auto;border-radius:var(--bo-the);background:var(--the);background-image:var(--men-the);box-shadow:var(--clay);padding:6px}
@@ -44,12 +44,13 @@
 .ad th:first-child{border-radius:20px 0 0 20px}.ad th:last-child{border-radius:0 20px 20px 0}
 .ad td{padding:10px 12px;border-top:1px solid rgba(40,44,42,.08);vertical-align:top}
 .ad tr:first-child td{border-top:0}
+.ad tr:has(td input) td{vertical-align:middle}
 .ad td.so,.ad th.so{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ad td.nw{white-space:nowrap}
 .ad tr.tong td{font-weight:800;background:var(--chinh-soft);color:#08443a}
 .ad tr.tong td:first-child{border-radius:18px 0 0 18px}.ad tr.tong td:last-child{border-radius:0 18px 18px 0}
 .ad td input{width:110px;min-height:44px;border:1.5px solid var(--o-nhap);border-radius:14px;padding:0 10px;background:var(--lom);box-shadow:var(--lomIn);font-size:15px}
-.ad .tin-ds{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;padding:10px;border-radius:24px;background:var(--lom);box-shadow:var(--lomIn)}
+.ad .tin-ds{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;padding:16px;border-radius:24px;background:var(--lom);box-shadow:var(--lomIn)}
 .ad .tin{max-width:80%;padding:10px 14px;border-radius:20px 20px 20px 8px;background:var(--the);background-image:var(--men-sang);box-shadow:var(--clayNho);align-self:flex-start;overflow-wrap:anywhere}
 .ad .tin.aiilab{align-self:flex-end;border-radius:20px 20px 8px 20px;background:var(--keo-ngoc);box-shadow:var(--bong-ngoc);color:#fff}
 .ad .tin small{display:block;font-size:12.5px;color:var(--chu3);margin-top:2px}
