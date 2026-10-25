@@ -274,6 +274,8 @@ KichBan 'KB1' 'Đăng ký Ba Mẹ, tạo Con, gói cài một chạm' {
   # Bộ cài một chạm KHÔNG hỏi tài khoản Windows (Installer.RunOneTouchAsync); tạo sẵn tài khoản thường của Con để dùng ở KB4.
   $mkCon = ConvertTo-SecureString ('Aa1!' + [guid]::NewGuid().ToString('N')) -AsPlainText -Force
   if (-not (Get-LocalUser -Name $TenCon -ErrorAction SilentlyContinue)) { New-LocalUser -Name $TenCon -Password $mkCon -FullName 'Con E2E' -Description 'Tài khoản thử của e2e AiiGrow' | Out-Null }
+  else { Set-LocalUser -Name $TenCon -Password $mkCon }
+  $Chung.MkCon = $mkCon   # KB4.17: chạy Chrome bằng tài khoản Con (Start-Process -Credential) để thử AppLocker + lọc web thật
   Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $TenCon -ErrorAction SilentlyContinue
   $Chung.SidCon = (Get-LocalUser -Name $TenCon).SID.Value
   # Hồ sơ của Con: tài khoản mới tạo chưa đăng nhập thì chưa có NTUSER.DAT ⇒ tạo hồ sơ (Con vẫn chưa đăng nhập ⇒ dịch vụ phải nạp tạm hive)
@@ -406,6 +408,81 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $appid = Get-Service AppIDSvc -ErrorAction SilentlyContinue
   Dat '4.11' 'AppIDSvc chạy' ($appid.Status -eq 'Running') "AppIDSvc $($appid.Status)"
   $Chung.CoSid = $true
+
+  # 4.12–4.17 — «CHẶN THEO LỌC» (Thanh 25/10): ở Chặn thật trình duyệt lọc được (Chrome/Edge/Brave/Cốc Cốc) CHẠY ĐƯỢC khi luật web đã áp trong hive
+  # của Con; web vẫn lọc theo danh sách Ba Mẹ; «chrome.exe» giả / Firefox vẫn bị chặn như app chưa xếp loại.
+  $ChromeExe = Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'
+  $EdgeExe = Join-Path ${env:ProgramFiles(x86)} 'Microsoft\Edge\Application\msedge.exe'
+  if (-not (Test-Path $EdgeExe)) { $EdgeExe = Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe' }
+  $FirefoxExe = Join-Path $env:ProgramFiles 'Mozilla Firefox\firefox.exe'
+  $ThuMucCong = 'C:\Users\Public\aiigrow-e2e'
+  New-Item -ItemType Directory -Force $ThuMucCong | Out-Null
+  $ChromeGia = Join-Path $ThuMucCong 'chrome.exe'
+  Copy-Item (Join-Path $env:WINDIR 'System32\notepad.exe') $ChromeGia -Force   # «chrome.exe» giả: không ký Google, không ở thư mục cài
+  $TepHieuLuc = Join-Path $ThuMucLog 'applocker-hieu-luc.xml'
+  function QuyetDinh($duong) {
+    (Get-AppLockerPolicy -Effective -Xml) | Out-File -Encoding utf8 $TepHieuLuc
+    [string](Test-AppLockerPolicy -XmlPolicy $TepHieuLuc -Path $duong -User $TenCon).PolicyDecision
+  }
+  # Danh sách web CẢ MÁY của «IT» (mục «1» ở HKLM) thắng danh sách trong hive Con ⇒ AiiGrow (đúng thiết kế) KHÔNG thả Chrome/Edge khi có nó.
+  # Gỡ tạm mục IT để thử đường thả; KB6 đặt lại trước khi kiểm 6.4 (mục IT còn nguyên).
+  foreach ($k in $KhoaWeb.Values) { Remove-ItemProperty -Path "$k\URLBlocklist" -Name '1' -ErrorAction SilentlyContinue }
+  DongBoNgay
+  if (-not (Test-Path $ChromeExe)) { Bo '4.12' 'Chặn thật: Chrome chạy được cho Con' "runner không có $ChromeExe" }
+  else {
+    $qd = Cho { $x = QuyetDinh $ChromeExe; if ($x -eq 'Allowed') { $x } } 150 5
+    Dat '4.12' 'Chặn thật: AppLocker cho Con chạy Chrome (luật web đã áp)' ($qd -eq 'Allowed') ("Chrome: {0}" -f (QuyetDinh $ChromeExe))
+  }
+  if (Test-Path $EdgeExe) { $qe = QuyetDinh $EdgeExe; Dat '4.13' 'Chặn thật: AppLocker cho Con chạy Edge' ($qe -eq 'Allowed') "Edge ($EdgeExe): $qe" }
+  else { Bo '4.13' 'Chặn thật: Edge chạy được cho Con' "runner không có msedge.exe" }
+  $qg = QuyetDinh $ChromeGia
+  $qf = if (Test-Path $FirefoxExe) { QuyetDinh $FirefoxExe } else { 'không có Firefox' }
+  Dat '4.14' '«chrome.exe» giả (notepad đổi tên) + Firefox vẫn bị chặn' ($qg -like 'Denied*' -and ($qf -like 'Denied*' -or $qf -eq 'không có Firefox')) "chrome.exe giả: $qg · Firefox: $qf"
+  # tên nhà phát hành / sản phẩm AiiGrow ghim (agent-win/src/AiiGrow.Core/TrinhDuyetLoc.cs) phải khớp chữ ký thật của bản trên máy
+  $ky = @()
+  $okKy = $true
+  foreach ($x in @(@{ Exe = $ChromeExe; Pub = 'O=GOOGLE LLC, L=MOUNTAIN VIEW, S=CALIFORNIA, C=US'; Sp = 'GOOGLE CHROME' }, @{ Exe = $EdgeExe; Pub = 'O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US'; Sp = 'MICROSOFT EDGE' })) {
+    if (-not (Test-Path $x.Exe)) { continue }
+    $fi = Get-AppLockerFileInformation -Path $x.Exe
+    $pub = [string]$fi.Publisher.PublisherName; $sp = [string]$fi.Publisher.ProductName
+    if ($pub -ne $x.Pub -or $sp -ne $x.Sp) { $okKy = $false }
+    $ky += "$(Split-Path $x.Exe -Leaf): «$pub» / «$sp»"
+  }
+  Dat '4.15' 'Chữ ký thật của Chrome/Edge khớp nhà phát hành + sản phẩm AiiGrow ghim' $okKy ($ky -join ' · ')
+  $co = VoiHiveCon $KhoaWebCon.Edge { param($k) Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue }
+  $cc = CoWebCon
+  Dat '4.16' 'Tắt DoH + InPrivate/ẩn danh (Chrome + Edge, hive Con)' ($cc.DnsOverHttpsMode -eq 'off' -and $co.DnsOverHttpsMode -eq 'off' -and $co.InPrivateModeAvailability -eq 1 -and $cc.IncognitoModeAvailability -eq 1) "Chrome DoH=$($cc.DnsOverHttpsMode) Incognito=$($cc.IncognitoModeAvailability) · Edge DoH=$($co.DnsOverHttpsMode) InPrivate=$($co.InPrivateModeAvailability)"
+
+  # 4.17 — mở Chrome THẬT bằng tài khoản Con: trang không chặn (example.org) vào được, trang Ba Mẹ chặn (example.com) thì không
+  if (-not (Test-Path $ChromeExe) -or -not $Chung.MkCon) { Bo '4.17' 'Chrome của Con: trang chặn không vào được' 'không có Chrome / mật khẩu Con'; return }
+  [void](Api POST "/api/m/con/$($Chung.ConId)/web/trang" @{ muc = 'example.com'; trangThai = 'chan' } $Chung.TokenBaMe)
+  DongBoNgay
+  $coMuc = Cho { @(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist') | Where-Object { $_.GiaTri -eq 'example.com' } } 120 5
+  $cred = New-Object System.Management.Automation.PSCredential($TenCon, $Chung.MkCon)
+  function ChromeCuaCon($url, $nhan) {
+    $ra = Join-Path $ThuMucCong "$nhan.html"; $loi = Join-Path $ThuMucCong "$nhan.err.txt"
+    Remove-Item $ra, $loi -Force -ErrorAction SilentlyContinue
+    $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
+    $ts = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--dump-dom', $url)
+    try {
+      $pr = Start-Process -FilePath $ChromeExe -ArgumentList $ts -Credential $cred -LoadUserProfile -WorkingDirectory $ThuMucCong -RedirectStandardOutput $ra -RedirectStandardError $loi -WindowStyle Hidden -PassThru
+      # tiến trình của tài khoản khác: không chắc mở được handle để WaitForExit ⇒ thăm dò theo Id (≤ 90 giây) rồi giết cả cây nếu còn
+      for ($i = 0; $i -lt 45; $i++) { if (-not (Get-Process -Id $pr.Id -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Seconds 2 }
+      if (Get-Process -Id $pr.Id -ErrorAction SilentlyContinue) { & taskkill.exe /PID $pr.Id /T /F 2>&1 | Out-Null }
+      $maThoat = '?'; try { $maThoat = $pr.ExitCode } catch { }
+      $txt = if (Test-Path $ra) { Get-Content $ra -Raw -ErrorAction SilentlyContinue } else { '' }
+      $err = if (Test-Path $loi) { (Get-Content $loi -Raw -ErrorAction SilentlyContinue) } else { '' }
+      [pscustomobject]@{ Ma = $maThoat; Dom = [string]$txt; Loi = ([string]$err -replace "`r?`n", ' '); Ngoai = $null }
+    } catch { [pscustomobject]@{ Ma = -1; Dom = ''; Loi = ''; Ngoai = $_.Exception.Message } }
+  }
+  $mo = ChromeCuaCon 'https://example.org/' 'mo'
+  $chan = ChromeCuaCon 'https://example.com/' 'chan'
+  $vaoDuoc = $mo.Dom -match 'Example Domain'
+  # «bị chặn» phải là trang lỗi CHẶN THẬT của Chrome (ERR_BLOCKED_BY_ADMINISTRATOR) — lần chạy hỏng / hết giờ / DOM rỗng không được tính là chặn
+  $biChan = ($chan.Dom -notmatch 'Example Domain') -and ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR')
+  $ddChan = [string]($chan.Dom -replace '\s+', ' ')
+  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$(-not $biChan), ERR_BLOCKED=$($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
+  Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang thường vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 
 # ------------------------------------------------------------------ KB5 — Khoá ngay / mở lại
@@ -426,6 +503,7 @@ KichBan 'KB5' 'Khoá ngay rồi mở lại' {
 
 # ------------------------------------------------------------------ KB6 — về Giám sát
 KichBan 'KB6' 'Về Giám sát: gỡ luật AiiGrow, giữ luật quản trị' {
+  foreach ($k in $KhoaWeb.Values) { New-Item -Path "$k\URLBlocklist" -Force | Out-Null; New-ItemProperty -Path "$k\URLBlocklist" -Name '1' -Value $WebQuanTri -PropertyType String -Force | Out-Null }   # đặt lại mục IT gỡ tạm ở KB4.12
   if (-not $Chung.MayId) { Bo 'KB6' 'Về Giám sát' 'chưa có máy'; return }
   $cd = Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe
   DongBoNgay

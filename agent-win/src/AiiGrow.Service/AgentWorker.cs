@@ -111,7 +111,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps);
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps, _rt.TrinhDuyetLoc());
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -119,7 +119,14 @@ public sealed class AgentWorker : BackgroundService
                             _log.LogDebug("GIÁM SÁT: sẽ áp AppLocker (chỉ cho {n} app) — chưa áp thật (CheDo=giam-sat)", p.AllowedApps.Count);
                         }
 
-                        if (eff.AppLockerWanted && sess != null) EnforceAllowList(sess.SessionId, p, apThat);
+                        if (eff.AppLockerWanted && sess != null)
+                        {
+                            // trình duyệt được chạy cho tài khoản của phiên này (luật web đang áp trong hive của nó) — Giám sát thì không thả gì (chỉ ghi log «sẽ đóng»)
+                            var sidPhien = AppLockerXml.IsValidSid(cfg.ChildSid) && string.Equals(childUser, cfg.ChildUser, StringComparison.OrdinalIgnoreCase)
+                                ? cfg.ChildSid : taiKhoan?.FirstOrDefault(a => string.Equals(a.Name, childUser, StringComparison.OrdinalIgnoreCase))?.Sid;
+                            var td = apThat && sidPhien != null && _rt.TrinhDuyetLoc().TryGetValue(sidPhien, out var t) ? t : null;
+                            EnforceAllowList(sess.SessionId, p, apThat, td);
+                        }
 
                         _rt.SetLock(eff.Locked, eff.LockReason, now, active);
                         if (eff.Locked && active && _rt.LockGraceExpired(now) && (now - lastDisconnect).TotalSeconds > 30)
@@ -195,10 +202,14 @@ public sealed class AgentWorker : BackgroundService
     /// Quyết định "đóng cái nào" nằm ở lớp thuần <see cref="ProcessEnforcer"/>; worker chỉ cung cấp cổng hệ thống.</summary>
     private string _giamSatDaBao = "";
 
-    private void EnforceAllowList(int sessionId, Policy p, bool apThat)
+    private readonly KiemKyTrinhDuyet _kiemKy = new();
+
+    private void EnforceAllowList(int sessionId, Policy p, bool apThat, IReadOnlyList<string>? trinhDuyet)
     {
         // Giám sát (apThat=false): dryRun — liệt kê app SẼ bị đóng nhưng KHÔNG đóng thật.
-        var closed = ProcessEnforcer.Enforce(_procs, sessionId, p.AllowedApps, dryRun: !apThat);
+        var pf = TrinhDuyetLoc.ThuMucProgramFiles();
+        Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } ? path => TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem) : null;
+        var closed = ProcessEnforcer.Enforce(_procs, sessionId, p.AllowedApps, dryRun: !apThat, choThem: choThem);
         // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
         var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
         var ghiGiamSat = tap != _giamSatDaBao;

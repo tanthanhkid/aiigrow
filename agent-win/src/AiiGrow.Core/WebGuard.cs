@@ -110,6 +110,11 @@ public static class WebPolicyKeys
         (t.CoAn, 1), ("AllowDeletingBrowserHistory", 0), ("BrowserGuestModeEnabled", 0),
     };
 
+    /// <summary>Cờ CHUỖI AiiGrow đặt trong chế độ chặn (chỉ ở hive Con — bản cũ không ghi HKLM nên KHÔNG dùng làm dấu bản cũ):
+    /// tắt DNS-over-HTTPS của trình duyệt ⇒ trình duyệt hỏi DNS qua hệ thống (lọc DNS/hosts của máy, nếu có, không bị vượt). URLBlocklist
+    /// không phụ thuộc DNS nên DoH/proxy/VPN không lách được danh sách web; cờ này là lớp đỡ thêm.</summary>
+    public static IReadOnlyList<(string Ten, string GiaTri)> CoChuoi(TrinhDuyet t) => new[] { ("DnsOverHttpsMode", "off") };
+
     public static bool LaCuaTa(string tenGiaTri) => int.TryParse(tenGiaTri, out var n) && n > ChiSoDau;
 
     /// <summary>Mục pattern trình duyệt hiểu: tên miền (gồm tên miền con), «*» = tất cả; scheme nội bộ để giao diện trình duyệt không vỡ.</summary>
@@ -148,6 +153,10 @@ public interface IWebPolicyRegistry
     bool CoMucNguoiKhac(string khoaDs) => false;
     /// <summary>Đọc DWORD (null = không có).</summary>
     int? DocDword(string khoa, string ten) => null;
+    /// <summary>Ghi giá trị chuỗi (REG_SZ). Gỡ dùng <see cref="GoDword"/> (xoá giá trị theo tên, mọi kiểu).</summary>
+    void DatChuoi(string khoa, string ten, string giaTri) { }
+    /// <summary>Gỡ giá trị chuỗi CHỈ khi nó đúng là giá trị AiiGrow đặt (DnsOverHttpsMode=secure của IT / Ba Mẹ giữ nguyên).</summary>
+    void GoChuoiNeu(string khoa, string ten, string giaTri) => GoDword(khoa, ten);
 }
 
 public sealed class WebPolicyApplier
@@ -186,6 +195,10 @@ public sealed class WebPolicyApplier
                 foreach (var (ten, gt) in WebPolicyKeys.Co(t))
                 {
                     if (p == null) _reg.GoDword(t.Khoa, ten); else _reg.DatDword(t.Khoa, ten, gt);
+                }
+                foreach (var (ten, gt) in WebPolicyKeys.CoChuoi(t))
+                {
+                    if (p == null) _reg.GoChuoiNeu(t.Khoa, ten, gt); else _reg.DatChuoi(t.Khoa, ten, gt);
                 }
                 if (p == null) _reg.GoKhoaNeuTrong(t.Khoa);
             }
@@ -342,6 +355,21 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
         k.SetValue(ten, giaTri, RegistryValueKind.DWord);
     }
 
+    public void DatChuoi(string khoa, string ten, string giaTri)
+    {
+        using var hklm = Hklm();
+        using var k = TaoKhoa(hklm, khoa);
+        if (!string.Equals(k.GetValue(ten) as string, giaTri, StringComparison.Ordinal) || k.GetValueKind(ten) != RegistryValueKind.String)
+            k.SetValue(ten, giaTri, RegistryValueKind.String);
+    }
+
+    public void GoChuoiNeu(string khoa, string ten, string giaTri)
+    {
+        using var hklm = Hklm();
+        using var k = hklm.OpenSubKey(khoa, true);
+        if (k?.GetValue(ten) is string v && string.Equals(v, giaTri, StringComparison.OrdinalIgnoreCase)) { k.DeleteValue(ten, false); SoMucDaXoa++; }
+    }
+
     public void GoDword(string khoa, string ten)
     {
         using var hklm = Hklm();
@@ -417,10 +445,12 @@ public static class WebGuard
         // Gọn: một hàm Go-Web chạy cho HKLM (bản cũ) rồi từng hive hồ sơ — kịch bản đi qua -EncodedCommand trong tham số tác vụ (giới hạn ~32K ký tự), không lặp danh sách.
         var wb = string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'"));
         var dw = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "|" + c.GiaTri + "'")).Distinct());
+        var ws = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.CoChuoi(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "|" + c.GiaTri + "'")).Distinct());
         return string.Join("\n", new[]
         {
             "$wb=@(" + wb + ")",
             "$wd=@(" + dw + ")",
+            "$ws=@(" + ws + ")",
             // $chiKhiCoDau: HKLM — ba cờ DWORD chỉ gỡ khi còn mục 9000x của AiiGrow (dấu bản cũ đã ghi HKLM); không thì cờ là của IT, giữ (review #75)
             "function Go-Web($g, [bool]$chiKhiCoDau){",
             "  $dau=$false",
@@ -435,6 +465,8 @@ public static class WebGuard
             "  }",
             // dấu thứ hai như GoHklmCu bên C#: đủ cả ba cờ ĐÚNG giá trị AiiGrow ở mọi trình duyệt (bản cũ chặn trống danh sách vẫn ghi cờ)
             "  if($chiKhiCoDau -and -not $dau){ $du=$true; foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; $v=(Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).($p[1]); if($null -eq $v -or [int64]$v -ne [int64]$p[2]){ $du=$false; break } }; $dau=$du }",
+            // cờ chuỗi (DnsOverHttpsMode) chỉ có ở hive Con — HKLM không bao giờ có của AiiGrow; chỉ gỡ khi đúng giá trị AiiGrow đặt (của IT giữ nguyên)
+            "  if(-not $chiKhiCoDau){ foreach($d in $ws){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if((Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).($p[1]) -eq $p[2]){ Remove-ItemProperty -LiteralPath $k -Name $p[1] -ErrorAction SilentlyContinue } } }",
             "  if(-not $chiKhiCoDau -or $dau){ foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } } }",
             "  foreach($b in $wb){ $k=\"$g\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
             "}",
