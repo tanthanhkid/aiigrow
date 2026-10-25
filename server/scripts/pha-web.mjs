@@ -11,13 +11,13 @@
 //   GD_CHUP=<thư mục> [GD_CHUP_TAT_CA=1] [GD_CHUP_DAI=1]  chụp màn có lỗi / mọi màn (DAI: cả trang ở mọi khổ).  PHA_CHUP=<thư mục>  chụp bước SAI của kịch bản.
 // Mã thoát 1 nếu có bước SAI / còn lỗi giao diện.
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { DO, GIAN, doTay } from "../../mobile/scripts/giao-dien.mjs";
-import { DO_CC } from "./do-chin-chu.mjs";
+import { CUON_NGANG, DO_CC } from "./do-chin-chu.mjs";
 
 const GOC_SV = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CHROME = process.argv.slice(2).find((x) => !x.startsWith("--")) ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -35,8 +35,17 @@ const seed = spawnSync(process.execPath, ["scripts/tao-tai-khoan.ts"], { cwd: GO
   AIIGROW_QUAY_TEN: "quay.thu", AIIGROW_QUAY_MAT_KHAU: MK_Q, AIIGROW_QUAY_HIEN: "Nguyễn Thị Thu Thuỷ", AIIGROW_QUAY_SO: "Quầy 1" } });
 if (seed.status !== 0) { console.error("Không tạo được tài khoản:", seed.stderr || seed.stdout); process.exit(1); }
 
-// PHA_PROD=1: chạy bản đã `next build` (next start) — nhẹ, trang tải xong ngay; bản dev nặng làm Chrome headless có lúc treo chụp màn
-const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", process.env.PHA_PROD ? "start" : "dev", "-p", String(CONG)], { cwd: GOC_SV, env, stdio: ["ignore", "pipe", "pipe"] });
+// PHA_PROD=1: chạy bản đã `next build` (next start) — nhẹ, trang tải xong ngay; bản dev nặng làm Chrome headless có lúc treo chụp màn.
+// Bản build phải mới hơn mọi tệp app/ + lib/ — không thì cổng đo nhầm giao diện cũ.
+const PROD = process.env.PHA_PROD === "1";
+if (PROD) {
+  const buildId = join(GOC_SV, ".next", "BUILD_ID");
+  if (!existsSync(buildId)) { console.error("PHA_PROD=1 nhưng chưa có .next — chạy `npx next build` trước."); process.exit(1); }
+  const luc = statSync(buildId).mtimeMs;
+  const moi = (d) => readdirSync(d, { withFileTypes: true }).some((e) => e.isDirectory() ? moi(join(d, e.name)) : statSync(join(d, e.name)).mtimeMs > luc);
+  if (moi(join(GOC_SV, "app")) || moi(join(GOC_SV, "lib"))) { console.error("PHA_PROD=1: bản .next cũ hơn mã app/ hoặc lib/ — chạy lại `npx next build`."); process.exit(1); }
+}
+const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", PROD ? "start" : "dev", "-p", String(CONG)], { cwd: GOC_SV, env, stdio: ["ignore", "pipe", "pipe"] });
 let nextLog = "";
 next.stdout.on("data", (b) => { nextLog += b; }); next.stderr.on("data", (b) => { nextLog += b; });
 let song = false;
@@ -44,7 +53,7 @@ for (let i = 0; i < 240 && !song; i++) {
   try { song = (await fetch(`${GOC}/api/suc-khoe`)).ok; } catch { /* chờ next dev */ }
   if (!song) await sleep(500);
 }
-if (!song) { console.error("next dev không lên:\n" + nextLog.slice(-2000)); next.kill(); process.exit(1); }
+if (!song) { console.error(`next ${PROD ? "start" : "dev"} không lên:\n` + nextLog.slice(-2000)); next.kill(); process.exit(1); }
 
 const api = async (duong, o = {}) => {
   const r = await fetch(`${GOC}/api/${duong}`, { method: o.body === undefined ? "GET" : "POST",
@@ -92,7 +101,8 @@ const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-web-"));
 const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
   "--no-default-browser-check", "--window-size=1440,900", "--lang=vi-VN", "--mute-audio", "about:blank"], { stdio: "ignore" });
 // lỗi giữa chừng (vd chụp màn hỏng) ⇒ vẫn tắt next dev + Chrome, không để máy chủ mồ côi giữ cổng
-process.on("exit", () => { try { chrome.kill(); } catch { /* đã tắt */ } try { next.kill(); } catch { /* đã tắt */ } });
+process.on("exit", () => { try { chrome.kill(); } catch { /* đã tắt */ } try { next.kill(); } catch { /* đã tắt */ }
+  for (const d of [hoSo, dbDir]) try { rmSync(d, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ } });
 let trang;
 for (let i = 0; i < 60 && !trang; i++) {
   try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch { /* chờ Chrome */ }
@@ -114,8 +124,11 @@ ws.onmessage = async (e) => {
 };
 // Chrome headless chết giữa chừng (job dọn máy, máy hết RAM) ⇒ lệnh CDP không bao giờ trả lời: 180s thì dừng hẳn, không treo im.
 ws.onclose = () => { console.error("Chrome headless đã tắt giữa chừng — dừng."); process.exit(2); };
+// Chụp màn treo thì sau 60s trả lỗi (nơi gọi thử lại / bỏ ảnh), các lệnh khác 180s thì dừng hẳn.
 const goi = (method, params = {}) => new Promise((r) => { const id = ++so;
-  const h = setTimeout(() => { console.error(`CDP ${method} không trả lời sau 180s — dừng.`); process.exit(2); }, 180_000);
+  const h = method === "Page.captureScreenshot"
+    ? setTimeout(() => { delete cho[id]; r({ code: -1, message: "het-gio-60s" }); }, 60_000)
+    : setTimeout(() => { console.error(`CDP ${method} không trả lời sau 180s — dừng.`); process.exit(2); }, 180_000);
   cho[id] = (x) => { clearTimeout(h); r(x); }; ws.send(JSON.stringify({ id, method, params })); });
 await goi("Page.enable");
 await goi("Fetch.enable", { patterns: [{ urlPattern: `${GOC}/api/quay/quet`, requestStage: "Request" }] });
@@ -222,6 +235,10 @@ if (GIAO_DIEN) {
       await sleep(600);
       await js("window.__gdCuoi = false");
       const { L, DO_TAY } = (await js(DO)) ?? { L: [], DO_TAY: [] };
+      // LE-THE của bộ đo chung (mobile/scripts/giao-dien.mjs) đo cả chữ của bảng đang cuộn ngang (.bang trên màn hẹp): chữ cuộn ra ngoài khung là
+      // vị trí cuộn, không phải dính mép ⇒ bỏ các dòng nằm trong khung cuộn ngang đang tràn.
+      const trongCuon = new Set((await js(CUON_NGANG)) ?? []);
+      for (let i = L.length - 1; i >= 0; i--) if (L[i].luat === "LE-THE" && L[i].the && trongCuon.has(L[i].chu)) L.splice(i, 1);
       L.push(...((await js(DO_CC)) ?? []));                       // luật chỉn chu: lề thẻ ≥16, chồng, nổi đè, vùng bấm ≥44, cắt chữ
       await js("document.querySelectorAll('*').forEach((e) => { if (e.scrollHeight > e.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)) e.scrollTop = e.scrollHeight; }); window.__gdCuoi = true");
       await sleep(300);
@@ -240,7 +257,7 @@ if (GIAO_DIEN) {
         const caoNd = process.env.GD_CHUP_DAI ? Math.ceil((await goi("Page.getLayoutMetrics")).cssContentSize.height) : 0;
         if (caoNd) { await khung(rong, Math.max(caoNd, rong >= 1000 ? 900 : 844)); await sleep(400); }
         let a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
-        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png" }); }   // máy bận: lần chụp đầu có khi trả lỗi
+        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd }); }   // máy bận: lần chụp đầu có khi trả lỗi
         if (caoNd) await khung(rong);
         if (a?.data) writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
         else console.log(`    (không chụp được: ${JSON.stringify(a)})`);

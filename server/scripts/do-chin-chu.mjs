@@ -3,7 +3,7 @@
 //   LE-THE     khối đất sét (.the, .nhom, .o-so, .bao, lòng chảo bước, form đăng nhập…): nội dung cách mép trong ≥ 16px mỗi phía
 //              (chữ đo theo từng dòng thật, không theo hộp phần tử). Phần tử nằm ngoài mép ⇒ CHAM-MEP.
 //   CHONG      hai khối bấm được / khối đất sét không lồng nhau mà hộp chồng lên nhau (nút đè nút, nhãn đè viền thẻ, nút chồng bóng thẻ).
-//   NOI-DE     phần tử nổi (fixed/sticky/absolute ngoài vùng cuộn) che một phần tử bấm được không thuộc nó.
+//   NOI-DE     điểm giữa phần tử bấm được bị phần tử nổi (fixed/sticky/absolute) không thuộc nó che (elementFromPoint: đúng z-order, pointer-events).
 //   VUNG-BAM   phần tử bấm được (nút, chip, ô nhập, liên kết đứng riêng) < 44×44 (WCAG 2.5.5 AAA / Apple HIG). Liên kết nằm trong câu chữ
 //              là ngoại lệ của WCAG 2.5.8 — không xét.
 //   CAT-CHU    chữ bị cắt: phần tử overflow ≠ visible có nội dung chữ dài hơn khung (scrollWidth/Height), hoặc text-overflow: ellipsis đang cắt.
@@ -50,14 +50,16 @@ export const DO_CC = String.raw`(() => {
     const x = Math.min(p.right, q.right) - Math.max(p.left, q.left), y = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
     if (x > 1.5 && y > 1.5) bao('ch' + ten(a) + ten(b), { luat: 'CHONG', a: ten(a), b: ten(b), giao: [Math.round(x), Math.round(y)] });
   }
-  // ---- NOI-DE: phần tử nổi che vùng bấm
-  const noi = [...document.querySelectorAll('body *')].filter(e => { const cs = getComputedStyle(e); return (cs.position === 'fixed' || cs.position === 'sticky') && hien(e); });
-  for (const n of noi) { const p = n.getBoundingClientRect();
-    for (const b of [...document.querySelectorAll(BAM)].filter(hien)) { if (n.contains(b) || b.contains(n)) continue; const q = b.getBoundingClientRect();
-      const x = Math.min(p.right, q.right) - Math.max(p.left, q.left), y = Math.min(p.bottom, q.bottom) - Math.max(p.top, q.top);
-      if (x > 2 && y > 2) bao('noi' + ten(n) + ten(b), { luat: 'NOI-DE', noi: ten(n), bam: ten(b), giao: [Math.round(x), Math.round(y)] }); } }
+  // ---- NOI-DE: điểm giữa vùng bấm bị một phần tử nổi (fixed/sticky/absolute, nhận chuột) không thuộc nó che — theo elementFromPoint (đúng z-order, pointer-events)
+  const bamDs = [...document.querySelectorAll(BAM)].filter(hien);
+  const noiCua = e => { for (let k = e; k && k !== document.body; k = k.parentElement) { const p = getComputedStyle(k).position; if (p === 'fixed' || p === 'sticky' || p === 'absolute') return k; } return null; };
+  for (const b of bamDs) { const q = b.getBoundingClientRect(); const x = q.left + q.width / 2, y = q.top + q.height / 2;
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+    const t = document.elementFromPoint(x, y); if (!t || b.contains(t) || t.contains(b)) continue;
+    if (t.closest('label') && t.closest('label') === b.closest('label')) continue;
+    const n = noiCua(t); if (n && !n.contains(b)) bao('noi' + ten(n) + ten(b), { luat: 'NOI-DE', noi: ten(n), bam: ten(b) }); }
   // ---- VUNG-BAM ≥ 44
-  for (const b of [...document.querySelectorAll(BAM)].filter(hien)) {
+  for (const b of bamDs) {
     if (b.matches('a') && !b.matches('.nut,.chip,.dong,.o-so,.lui,nav a') && getComputedStyle(b).display === 'inline') continue;   // liên kết trong câu: ngoại lệ WCAG 2.5.8
     if (b.closest('.o-nhap') && b.matches('input,select,textarea')) continue;   // ô nhập đo theo khung .o-nhap (cả khung là vùng chạm)
     const r = (b.closest('label') && b.matches('input[type=checkbox],input[type=radio]') ? b.closest('label') : b).getBoundingClientRect();
@@ -69,7 +71,16 @@ export const DO_CC = String.raw`(() => {
     const catX = /(hidden|clip)/.test(cs.overflowX), catY = /(hidden|clip)/.test(cs.overflowY); if (!catX && !catY || e.matches('.sr')) continue;
     const q = e.getBoundingClientRect(); const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
     while (w.nextNode()) { const n = w.currentNode; if (!n.textContent.trim() || !n.parentElement || !hien(n.parentElement) || n.parentElement.closest('.sr')) continue;
+      let cuonCon = false; for (let k = n.parentElement; k && k !== e; k = k.parentElement) { const ks = getComputedStyle(k); if (/(auto|scroll)/.test(ks.overflowX + ks.overflowY)) { cuonCon = true; break; } }
+      if (cuonCon) continue;   // chữ trong vùng cuộn con: cuộn ra xem được, không phải bị cắt
       const ra = dongChu(n).some(r => catX && (r.left < q.left - 1 || r.right > q.right + 1) || catY && (r.top < q.top - 1 || r.bottom > q.bottom + 1));
       const elip = cs.textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth + 1;
       if (ra || elip) { bao('cat' + ten(e), { luat: 'CAT-CHU', el: ten(e), chu: n.textContent.trim().slice(0, 30), khung: r4(q) }); break; } } }
   return L; })()`;
+
+/** Chữ (40 ký tự đầu, như bộ đo chung cắt) nằm trong khung cuộn ngang đang tràn — để lọc LE-THE do vị trí cuộn. */
+export const CUON_NGANG = String.raw`(() => { const kq = [];
+  for (const k of document.querySelectorAll('body *')) { const cs = getComputedStyle(k);
+    if (!/(auto|scroll)/.test(cs.overflowX) || k.scrollWidth <= k.clientWidth + 1) continue;
+    const w = document.createTreeWalker(k, NodeFilter.SHOW_TEXT); while (w.nextNode()) { const t = w.currentNode.textContent.trim(); if (t) kq.push(t.slice(0, 40)); } }
+  return kq; })()`;

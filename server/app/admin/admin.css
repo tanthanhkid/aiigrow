@@ -1,7 +1,7 @@
 /* Cổng quản trị AiiLab — chất liệu Clay gương (app/clay.css, docs/THIET-KE-CLAY.md): thanh đầu và thanh mục là phiến đất sét nổi,
    mục đang mở là lòng chảo ngọc (như thanh tab app), bảng nằm trong khối đất sét. Rộng ≥ 1024px: thanh mục bên trái; hẹp hơn: các mục
    xếp thành chip xuống dòng trên đầu. Bảng rộng cuộn ngang trong khung riêng. */
-.ad .dau-ad{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;margin:12px 16px 0;padding:8px 10px 8px 12px;border-radius:28px;flex-wrap:wrap;
+.ad .dau-ad{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;margin:12px 16px 0;padding:8px 16px;border-radius:28px;flex-wrap:wrap;
   background:var(--the);background-image:var(--men-the);box-shadow:var(--clay)}
 .ad .dau-ad img{width:40px;height:40px;border-radius:12px;flex:none;box-shadow:var(--clayNho)}
 .ad .dau-ad .ten{font-size:17px;font-weight:800;line-height:1.25}
@@ -63,7 +63,7 @@
 .ad .the.dem>h2{margin-bottom:0}
 .ad .the .nhom{background:var(--lom);background-image:none;box-shadow:var(--lomIn)}
 @media (max-width:1023px){
-  .ad .dau-ad{margin:10px 12px 0;padding:8px 8px 8px 10px}
+  .ad .dau-ad{margin:10px 12px 0;padding:8px 16px}
   .ad .khung-ad{grid-template-columns:minmax(0,1fr);padding:16px 12px 32px;gap:16px}
   .ad nav.muc{position:static;flex-direction:row;flex-wrap:wrap;gap:8px;padding:0;background:none;box-shadow:none}
   .ad nav.muc a{background:var(--the);background-image:var(--men-sang);box-shadow:var(--clayNho);border-radius:99px;min-height:44px;font-size:14px;padding:0 14px 0 8px;gap:6px}
