@@ -42,7 +42,7 @@ export default function DiemQua() {
               <View key={x.id}>
                 <Dong dau={i === 0} tieu={`${x.ten_con} · ${x.ten}`} phu={`${x.diem} điểm`} trai={<BieuTron ic={IC_QUA[x.loai]?.[0] ?? "qua"} mau={IC_QUA[x.loai]?.[1] ?? "lam"} />}
                   phai={d.xem ? <Nhan loai="xam" chu="Chờ trao" /> : undefined} />
-                {d.xem ? null : <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 14 }}>
+                {d.xem ? null : <View style={{ flexDirection: "row", gap: 8, paddingLeft: 72, paddingRight: 16, paddingBottom: 14 }}>{/* thẳng cột chữ của Dong: 16 + viên 44 + 12 */}
                   <Nut chu="Đã trao" nho dangChay={dangChay} bam={() => xuLy(x, "xac-nhan")} />
                   <Nut chu="Huỷ" loai="vien" nho dangChay={dangChay} bam={() => setHuy(x)} />
                 </View>}

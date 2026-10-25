@@ -10,7 +10,7 @@ import { router } from "expo-router";
 import { Pressable, View, type GestureResponderEvent } from "react-native";
 import Animated, { FadeIn, LayoutAnimationConfig, useReducedMotion } from "react-native-reanimated";
 import { BONG } from "./clay";
-import { donLen, quayLai, roiDi } from "./chuyen-dong";
+import { donLen, NhanMen, quayLai, roiDi } from "./chuyen-dong";
 import { bm, tieuYc, type LuotCho, type YeuCau } from "./api";
 import { BangTruot, BaoLoi, cauLoi, Chu, Dong, gioPhut, Icon, M, Nut, OChon, ONhap, The, useLam } from "./ui";
 
@@ -34,7 +34,8 @@ export type AnMung = (diem: number, tu: { x: number; y: number }) => void;
 
 /** Câu nói rõ AI xin GÌ (TestFlight build 6: thẻ chỉ có Duyệt / Từ chối, không biết duyệt cái gì). */
 const viet = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
-const tieu = (v: ViecCho, ten: string) => v.k === "yc" ? `${ten} ${viet(tieuYc(v.x))}` : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`;
+// «khac»: tieuYc trả nguyên giá trị Con gõ (tên app, tên miền — có thể là tên riêng) ⇒ không hạ chữ đầu
+const tieu = (v: ViecCho, ten: string) => v.k === "yc" ? (v.x.loai === "khac" ? `${ten}: ${tieuYc(v.x)}` : `${ten} ${viet(tieuYc(v.x))}`) : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`;
 const phu = (v: ViecCho) => v.k === "nv" ? `+${v.x.diem} điểm · nộp ${gioPhut(v.x.nop_luc)}${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
   : v.k === "yc" ? `“${v.x.ly_do}” · ${gioPhut(v.x.created_at)}` : `Đổi ${v.x.diem} điểm · ${gioPhut(v.x.created_at)}`;
 const moChiTiet = (v: ViecCho) => router.push(v.k === "nv" ? `/duyet/${v.x.id}` : v.k === "yc" ? `/yeu-cau/${v.x.id}` : "/cho-duyet");
@@ -143,14 +144,14 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
         <Animated.View key={v.x.id} entering={v.x.id === vuaHoan ? quayLai(giam) : FadeIn.duration(220)} exiting={roiDi(giam)} layout={giam ? undefined : donLen}
           style={{ marginHorizontal: 12, marginBottom: 8, borderRadius: 24, backgroundColor: "#efeeea", boxShadow: BONG.lom, padding: 14, gap: 10 }}>
           {/* nội dung việc trên một hàng riêng (chạm ⇒ màn chi tiết), nút Duyệt / Từ chối xuống hàng dưới — không bóp chữ còn 0 */}
-          <Pressable onPress={() => moChiTiet(v)} accessibilityRole="button" accessibilityHint="Mở chi tiết" hitSlop={4}
+          <NhanMen onPress={() => moChiTiet(v)} accessibilityRole="button" accessibilityHint="Mở chi tiết" hitSlop={4} muc="khoi" sang
             style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5}>{tieu(v, ten)}</Chu>
               <Chu co={13.5} mau={M.chu3}>{phu(v)}</Chu>
             </View>
             <Icon ten="phai" mau="#b3b5b1" co={18} />
-          </Pressable>
+          </NhanMen>
           {xem ? null : (
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Nut chu={chuDuyet(v)} nho loai="ngoc"

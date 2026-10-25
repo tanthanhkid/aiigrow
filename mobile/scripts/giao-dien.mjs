@@ -79,18 +79,27 @@ export const DO = String.raw`(() => {
   if (!cuoi) {
     const NUT = '[role=button],[role=tab],[role=radio],[role=checkbox],[role=switch],[role=link],input,textarea';
     const bongNgoai = cs => cs.boxShadow !== 'none' && cs.boxShadow.split(/,(?![^(]*\))/).some(x => !/inset/.test(x));
-    const laThe = e => { if (e.matches(NUT) || e.matches('[role=tablist]')) return false; const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
-      return r.width >= 200 && parseFloat(cs.borderTopLeftRadius) >= 20 && bongNgoai(cs); };
-    const theCua = e => { for (let k = e.parentElement; k && k !== document.body; k = k.parentElement) { if (laThe(k)) return k; if (getComputedStyle(k).position === 'absolute') return null; } return null; };
+    // khối bấm được (NhanMen: ô tính năng, thẻ việc chờ) cũng là thẻ nếu đủ to (≥ 140 × 90) — nút / hàng danh sách thấp hơn thì không
+    const daXet = new Map();
+    const laThe = e => { if (daXet.has(e)) return daXet.get(e); let kq = false;
+      if (!e.matches('[role=tablist],[role=alert]')) { const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
+        const to = e.matches(NUT) ? r.width >= 140 && r.height >= 90 : r.width >= 200;
+        kq = to && parseFloat(cs.borderTopLeftRadius) >= 20 && bongNgoai(cs) && cs.position !== 'absolute'; }
+      daXet.set(e, kq); return kq; };
+    const theGan = new Map();
+    const theCua = e => { if (theGan.has(e)) return theGan.get(e); let kq = null;
+      for (let k = e.parentElement; k && k !== document.body; k = k.parentElement) { if (laThe(k)) { kq = k; break; } if (getComputedStyle(k).position === 'absolute') break; }
+      theGan.set(e, kq); return kq; };
     const daLe = new Set();
-    const xet = (el, rs, chu) => { const t = theCua(el); if (!t) return; const q = t.getBoundingClientRect();
-      for (const r of rs) { const le = Math.min(r.left - q.left, q.right - r.right); if (le < 15.5) { const k = ten(t) + '|' + chu; if (daLe.has(k)) return; daLe.add(k);
+    // nút / ảnh: ≥ 15.5; dòng chữ: ≥ 14 (react-native-web đo dòng chữ lố khung 1–2px do làm tròn font, không thấy bằng mắt)
+    const xet = (el, rs, chu, nguong = 15.5) => { const t = theCua(el); if (!t) return; const q = t.getBoundingClientRect();
+      for (const r of rs) { const le = Math.min(r.left - q.left, q.right - r.right); if (le < nguong) { const k = ten(t) + '|' + chu; if (daLe.has(k)) return; daLe.add(k);
         L.push({luat:'LE-THE', chu: chu.slice(0, 40), el: ten(el), the: ten(t), le: +le.toFixed(1)}); return; } } };
     // nút nhỏ trong thẻ: đo cả khối nút; hàng bấm được rộng gần hết thẻ (Dong trong Nhom) thì đo chữ của nó. Chữ bị cắt «…» đo theo khung chữ.
     for (const n of tn) { const p = n.parentElement, nut = p.closest(NUT), t = theCua(p); if (!t) continue;
       const nr = nut?.getBoundingClientRect(), hep = nr && nr.width < 0.9 * t.getBoundingClientRect().width;
       const rs = hep ? [nr] : p.scrollWidth > p.clientWidth + 1 ? [p.getBoundingClientRect()] : dongCua(n);
-      xet(hep ? nut : p, rs, n.textContent.trim()); }
+      xet(hep ? nut : p, rs, n.textContent.trim(), hep ? 15.5 : 14); }
     for (const a of [...document.querySelectorAll('img')].filter(hien)) { const r = a.getBoundingClientRect(); if (r.width <= 80) xet(a, [r], '(ảnh) ' + (a.src || '').split('/').pop().slice(0, 30)); }
   }
   return { L, DO_TAY }; })()`;

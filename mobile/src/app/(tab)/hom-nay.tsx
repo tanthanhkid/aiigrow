@@ -45,10 +45,10 @@ export default function TrangChu() {
     vi.current.measureInWindow((x, y, w, h) => ok(w && y >= 0 && y + h <= Dimensions.get("window").height ? { x: x + 34, y: y + h / 2 - 8 } : null));
   }), []);
   const anMung: AnMung = useCallback((n, tu) => lop.current?.ban(tu, n), []);
-  if (!d) return <Man tieuLon="Trang chủ" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.g.con.length) {
     return (
-      <Man tieuLon="Trang chủ" chat>
+      <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}>
         <CanhGiua lv="canh-trong" tieu="Chưa có Con nào" loi="Thêm hồ sơ Con đầu tiên để bắt đầu.">
           <Nut chu="Thêm Con" ic="cong" bam={() => router.push("/thiet-lap/ten-con")} />
         </CanhGiua>

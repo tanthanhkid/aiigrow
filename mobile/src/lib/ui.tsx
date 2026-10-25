@@ -381,7 +381,7 @@ const NEN = { bm: [M.dauBaMe, M.nen], nhi: [M.dauNhi, M.nen], teen: [M.dauTeen, 
 /** Khung một màn (kit.man): nền gradient đầu màn, đầu (lùi / tiêu đề / bên phải) hoặc tiêu đề lớn, thân cuộn, nút dính đáy, nút chat nổi. */
 export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, dau, day, tai, dangTai, chat, noi, khongCuon, cuonCuoi }: {
   children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string; bam?: () => void }; tieu?: string; tieuLon?: string; phai?: ReactNode;
-  /** nút nhỏ (≤ 2, vd chuông) đứng cùng hàng tiêu đề lớn, bên phải */ phaiTieu?: ReactNode;
+  /** nút nhỏ (≤ 2, vd chuông) đứng cùng hàng tiêu đề lớn, bên phải (không có tiêu đề lớn ⇒ góc phải thanh đầu) */ phaiTieu?: ReactNode;
   dau?: ReactNode; day?: ReactNode; tai?: () => void; dangTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
 }) {
   const cuon = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -394,7 +394,8 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
   // Nút chat Rob nằm TRONG hàng tiêu đề (cạnh tiêu đề lớn, hoặc góc phải thanh đầu) — không nổi đè nội dung / nút khi cuộn (TestFlight build 6).
   const nutChat = chat ? <NutChat /> : null;
   const chatTrenDau = !!nutChat && !tieuLon;
-  const dauMan = lui || tieu || phai || chatTrenDau ? (
+  const phaiDau = !tieuLon && phaiTieu ? phaiTieu : null;          // không có tiêu đề lớn ⇒ nút của hàng tiêu đề lên thanh đầu, không rơi mất
+  const dauMan = lui || tieu || phai || chatTrenDau || phaiDau ? (
     <View style={s.dau}>
       {lui ? (
         <Pressable onPress={ve} accessibilityRole="button" accessibilityLabel={lui.chu} hitSlop={6} style={s.lui}>
@@ -403,8 +404,8 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
         </Pressable>
       ) : null}
       {/* tiêu đề giữa chỉ đệm phải (cân với nút lùi) khi bên phải trống — có nút phải mà vẫn đệm 44 thì tiêu đề bị bóp còn «Thôn…» */}
-      {tieu ? <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: 17, color: M.chu, paddingRight: lui && !phai && !chatTrenDau ? 44 : 0 }}>{tieu}</Text> : <View style={{ flex: 1 }} />}
-      {phai || chatTrenDau ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center" }}>{phai}{chatTrenDau ? nutChat : null}</View> : null}
+      {tieu ? <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: 17, color: M.chu, paddingRight: lui && !phai && !chatTrenDau && !phaiDau ? 44 : 0 }}>{tieu}</Text> : <View style={{ flex: 1 }} />}
+      {phai || chatTrenDau || phaiDau ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center" }}>{phai}{phaiDau}{chatTrenDau ? nutChat : null}</View> : null}
     </View>
   ) : null;
   const than = (

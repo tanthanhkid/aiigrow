@@ -43,19 +43,20 @@ export default function AnToanMay() {
   const [tenMoi, setTenMoi] = useState("");
   const [maOff, setMaOff] = useState<MaOffline | null>(null);
   const [taiMa, setTaiMa] = useState(false);
+  const [lanMa, setLanMa] = useState(0);              // mỗi lần bấm xem mã = một lượt tải mới (bấm lại khi đang tải vẫn lấy mã mới nhất)
   const [loiMa, setLoiMa] = useState<string | null>(null);
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
   const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); };
   // Mở bảng mã mất mạng = bật cờ tải; effect bên dưới gọi máy chủ (một chỗ cho nút bấm, «Thử lại», «Lấy mã mới» và ?mo=offline).
-  const xemMaOffline = () => { setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true); };
+  const xemMaOffline = () => { setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true); setLanMa((n) => n + 1); };
   useEffect(() => {
-    if (!taiMa) return;
+    if (!lanMa) return;
     let bo = false;
     bm.goi<MaOffline>(`may/${id}/ma-offline`).then((v) => { if (!bo) setMaOff(v); }, (e) => { if (!bo) setLoiMa(cauLoi(e)); })
       .finally(() => { if (!bo) setTaiMa(false); });
     return () => { bo = true; };
-  }, [taiMa, id]);
+  }, [lanMa, id]);
   // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
   // Chỉ đổi state ⇒ chỉnh ngay lúc render (mẫu «điều chỉnh state khi dữ liệu đổi» của React), không setState trong effect; mở MỘT lần khi dữ liệu máy về.
   const [daMoSan, setDaMoSan] = useState(false);

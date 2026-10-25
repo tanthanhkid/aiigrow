@@ -51,11 +51,11 @@ function Chat({ fam, ve }: { fam: Dong1; ve: () => void }) {
       </>
     }>
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : d.tin.map((t) => t.tu === "ba_me" ? (
-        <View key={t.id} style={{ alignSelf: "flex-start", backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%", ...KHOI.nho }}>
+        <View key={t.id} style={{ alignSelf: "flex-start", backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%", ...KHOI.nho }}>
           <Chu>{t.noi_dung}</Chu><Chu co={12} mau={M.chu3}>{gioPhut(t.created_at)}</Chu>
         </View>
       ) : (
-        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomRightRadius: 6, maxWidth: "78%" }}>
+        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, borderBottomRightRadius: 6, maxWidth: "78%" }}>
           <Chu mau="#fff">{t.noi_dung}</Chu><Chu co={12} mau="#ffffff">{gioPhut(t.created_at)}</Chu>
         </View>
       ))}

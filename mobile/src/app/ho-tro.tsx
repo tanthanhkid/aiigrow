@@ -26,14 +26,14 @@ export default function HoTro() {
         <View key={t.id} style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
           <View style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: M.chinhSoft }, KHOI.nho]}><View style={{ width: 44, height: 44, borderRadius: 22, overflow: "hidden" }}><Rob ten="rob-goc" co={44} /></View></View>
           {/* bong bóng clay: khối sáng phồng (bóng kép + men), không viền mảnh — docs/THIET-KE-CLAY.md §1 */}
-          <View style={[{ backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%" }, KHOI.nho]}>
-            <LopMen men={MEN.sang} bo={22} />
+          <View style={[{ backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%" }, KHOI.nho]}>
+            <LopMen men={MEN.sang} bo={22} goc={{ borderBottomLeftRadius: 8 }} />
             <Chu>{t.noi_dung}</Chu><Chu co={12} mau={M.chu3}>{gioPhut(t.created_at)}</Chu>
           </View>
         </View>
       ) : (
-        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomRightRadius: 8, maxWidth: "78%", boxShadow: BONG.ngoc }}>
-          <LopMen men={MEN.ngoc} bo={22} />
+        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, borderBottomRightRadius: 8, maxWidth: "78%", boxShadow: BONG.ngoc }}>
+          <LopMen men={MEN.ngoc} bo={22} goc={{ borderBottomRightRadius: 8 }} />
           <Chu mau="#fff">{t.noi_dung}</Chu><Chu co={12} mau="#ffffff">{gioPhut(t.created_at)}</Chu>
         </View>
       ))}
