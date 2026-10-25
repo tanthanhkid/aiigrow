@@ -32,24 +32,29 @@ export function TreProvider({ children }: { children: ReactNode }) {
   // KIỂM phiên với máy chủ trước khi thay: link rác / phiên hết hạn không đá phiên đang dùng. Web đọc ?phien ở dưới (khung Kid của agent Windows).
   const { phien: thamSoPhien } = useGlobalSearchParams<{ phien?: string }>();
   const phienNative = Platform.OS !== "web" && typeof thamSoPhien === "string" && /^[\w-]{16,200}$/.test(thamSoPhien) ? thamSoPhien : null;
-  const daNhan = useRef<string | null>(null);
-  const nhanPhien = useCallback(async (p: string) => {
-    if (daNhan.current === p) return false;
-    daNhan.current = p;
+  const daNhan = useRef<string | null>(null);       // phiên đã nhận xong (chỉ ghi khi máy chủ xác nhận — lỗi mạng thì link sau thử lại)
+  const dangNhan = useRef<string | null>(null);
+  const nhanPhien = useCallback(async (p: string): Promise<ToiTre["con"] | null> => {
+    if (daNhan.current === p || dangNhan.current === p) return null;
+    dangNhan.current = p;
     try {
+      // kiểm bằng token tạm (chưa ghi đè phiên đang dùng) — cùng đường GOC/api/kid với client `kid`
       const r = await fetch(`${GOC}/api/kid/toi`, { headers: { authorization: `Bearer ${p}` } });
-      if (!r.ok) return false;
+      if (!r.ok) return null;
       const j = (await r.json()) as ToiTre;
+      if (kid.co()) await kid.goi("dang-xuat", {}).catch(() => {});      // phiên cũ của máy này: đăng xuất ở máy chủ trước khi thay
       await kid.dat(p);
+      daNhan.current = p;
       setCo(true);
       setToi(j.con);
-      return true;
-    } catch { return false; }
+      return j.con;
+    } catch { return null; } finally { dangNhan.current = null; }
   }, []);
   useEffect(() => {
     if (!san || !phienNative) return;
     const p = phienNative;
-    Promise.resolve().then(() => nhanPhien(p)).catch(() => {});   // nhận bất đồng bộ (kiểm với máy chủ), không đặt state ngay trong effect
+    // link tới khi app đã mở: nhận (kiểm với máy chủ) rồi đưa vào Nhà — màn chọn hồ sơ / ghép máy không tự đổi theo `co`
+    Promise.resolve().then(() => nhanPhien(p)).then((c) => { if (c) router.replace(c.daChao ? "/tre/nha" : "/tre/chao"); }).catch(() => {});
   }, [san, phienNative, nhanPhien]);
   useEffect(() => {
     (async () => {

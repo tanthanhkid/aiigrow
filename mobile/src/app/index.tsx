@@ -12,10 +12,11 @@ export default function Vao() {
   const { san, co } = usePhien();
   const [mayCon, setMayCon] = useState<boolean | null>(Platform.OS === "web" ? false : null);
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web" || !san || co) return;
     Promise.all([may.nap(), kid.nap()]).then(([m, k]) => setMayCon(!!m || !!k), () => setMayCon(false));
-  }, []);
-  if (!san || mayCon === null) return <XuongTai />;
+  }, [san, co]);
+  if (!san) return <XuongTai />;
   if (co) return <Redirect href="/hom-nay" />;
+  if (mayCon === null) return <XuongTai />;
   return mayCon ? <Redirect href="/tre" /> : <Chao />;
 }

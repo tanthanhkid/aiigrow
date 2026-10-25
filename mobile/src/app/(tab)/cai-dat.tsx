@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { KHOA_TAB, napGiaDinh } from "@/lib/tab-ba-me";
+import { may, nenMay } from "@/lib/api-tre";
 import { Avt, BangTruot, BaoLoi, baoKhiVe, BieuTron, ChoTai, Chu, Dong, M, MAU_CON, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, cauLoi, tien, useLam, useTai } from "@/lib/ui";
 
 const VAI = { chu: "Chủ gia đình", duyet: "Thành viên phê duyệt", xem: "Chỉ xem" } as const;
@@ -19,6 +20,8 @@ export default function CaiDat() {
   const [chan, setChan] = useState<{ ma: string; cau: string } | null>(null);
   const [dangKiem, setDangKiem] = useState(false);
   const { dangChay, loi: loiXoa, lam, setLoi } = useLam();
+  const [moCon, setMoCon] = useState(false);
+  const dua = useLam();
   const { d, loi, matMang, tai } = useTai(napGiaDinh, KHOA_TAB.giaDinh);
   if (!d) return <Man tieuLon="Gia đình"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const khac = d.tv.filter((x) => x.id !== d.toi.baMe.id);
@@ -67,7 +70,7 @@ export default function CaiDat() {
         {Platform.OS !== "web" && d.g.con.length ? (
           // máy dùng chung với Con (iPad / điện thoại cũ): ĐĂNG XUẤT Ba Mẹ rồi mở màn Con — Con không quay vào app Ba Mẹ được (cần đăng nhập lại)
           <Dong tieu="Máy của Con" phu="Đăng xuất Ba Mẹ trên máy này rồi mở màn của Con: nhiệm vụ, nộp bài, quà, chơi bằng điểm" trai={<BieuTron ic="sao" mau="vang" />}
-            bam={() => ra({ ve: "/tre" })} />
+            bam={() => { dua.setLoi(null); setMoCon(true); }} />
         ) : null}
       </Nhom>
       <NhomTieu chu="Mọi người" />
@@ -91,6 +94,28 @@ export default function CaiDat() {
         <Dong dau nguyHiem tieu="Xoá tài khoản" trai={<BieuTron ic="canh_bao" mau="do" />} bam={moBangXoa}
           phu={chuConNguoi ? "Mời các thành viên khác ra trước, rồi mới xoá được" : laChu ? "Xoá vĩnh viễn tài khoản và toàn bộ dữ liệu gia đình" : "Chỉ xoá tài khoản của bạn — gia đình vẫn giữ nguyên"} />
       </Nhom>
+
+      <BangTruot mo={moCon} dong={() => setMoCon(false)} tieu="Đưa máy này cho Con?">
+        <Chu mau={M.chu2}>Máy này sẽ thành máy của Con: Con chọn tên mình + PIN để làm nhiệm vụ, nộp bài, đổi quà, chơi bằng điểm.</Chu>
+        <View>
+          <TickDong chu="AiiGrow ghép máy này vào gia đình (nếu chưa ghép)" />
+          <TickDong trang="x" chu="Ba Mẹ được đăng xuất trên máy này" phu="Khi cần, Ba Mẹ đăng nhập lại bằng số điện thoại" />
+        </View>
+        <BaoLoi loi={dua.loi} />
+        <Nut chu="Đưa máy cho Con" rong dangChay={dua.dangChay} bam={() => dua.lam(async () => {
+          // ghép máy bằng mã do chính phiên Ba Mẹ tạo (một Con ⇒ máy riêng của Con đó; nhiều Con ⇒ máy dùng chung, Con chọn hồ sơ + PIN)
+          await may.nap();
+          if (!may.co()) {
+            const con = d.g.con.length === 1 ? d.g.con[0].id : null;
+            const { ma } = await bm.goi<{ ma: string }>("ma-ghep", { con, nen: nenMay() });
+            const r = await may.goi<{ token: string }>("ghep", { ma, nen: nenMay(), tenMay: "AiiGrow Kid" });
+            await may.dat(r.token);
+          }
+          setMoCon(false);
+          await ra({ ve: "/tre" });
+        })} />
+        <View style={{ marginTop: 8 }}><Nut chu="Để sau" loai="ma" rong bam={() => setMoCon(false)} /></View>
+      </BangTruot>
 
       <BangTruot mo={moXoa} dong={dongXoa} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản Chủ gia đình" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
         {chan ? (
