@@ -16,14 +16,17 @@ const baoLoiHoan = (bao: Bao, e: unknown) => bao(`Chưa hoàn tác được: ${c
 export const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" =>
   (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || m.baoVe === "mot_phan" ? "cam" : "xanh");
 
-/** Thẻ một máy của Con ở Trang chủ. Chế độ chỉ có trên máy tính (Windows): máy khác không hiện nút đổi. */
+/** Thẻ một máy của Con ở Trang chủ. Chế độ chỉ có trên máy tính (Windows, Mac): điện thoại / máy tính bảng không hiện nút đổi. */
 export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; bao: Bao; xem?: boolean }) {
   const { lam, loi, dangChay } = useLam();
   const win = m.nen === "windows";
+  const coCheDo = win || m.nen === "mac";   // Chặn thật / Chỉ theo dõi: máy có tác tử (Windows, Mac)
   const dangGo = !!m.dangGo;
-  const cho = !!(m.cheDoBaMeChon && m.cheDoMay && m.cheDoBaMeChon !== m.cheDoMay);
+  // máy mới ghép chưa đồng bộ lần nào: lựa chọn (Chặn thật lúc ghép) chưa tới máy ⇒ cũng là «đang chờ», không hiện «Đang chặn» sớm
+  const cho = !!(m.cheDoBaMeChon && (m.cheDoMay ? m.cheDoBaMeChon !== m.cheDoMay : !m.daDongBo));
   // nhãn theo chế độ MÁY đang chạy (cheDoMay); lựa chọn của Ba Mẹ chưa tới máy thì hiện dòng «Đang chờ máy nhận…» bên dưới
-  const cheDoThat = m.cheDoMay ?? m.cheDo;
+  // agent chưa báo (chưa đồng bộ / bản cũ) ⇒ không nhãn: lựa chọn trên máy chủ chưa chắc đã áp
+  const cheDoThat = m.cheDoMay;
   const doiSang: CheDoMay = m.cheDo === "chan" ? "giam-sat" : "chan";
   // chỉ «mot_phan» là việc Ba Mẹ sửa được; «chua» (máy không có tác tử báo quyền) chỉ ghi một dòng; máy chủ cũ không gửi baoVe ⇒ không báo
   const chuaDu = m.baoVe === "mot_phan";
@@ -47,10 +50,11 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
           <Chu kieu="rat" co={15.5} dong={1}>{m.ten}</Chu>
           <Chu co={13} mau={M.chu3}>{`Đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}${m.dungChung ? " · máy dùng chung" : ""}`}</Chu>
         </View>
-        {win && cheDoThat ? <Nhan chu={cheDoThat === "chan" ? "Đang chặn" : "Chỉ theo dõi"} loai={cheDoThat === "chan" ? "ok" : "xam"} cham /> : null}
+        {coCheDo && cheDoThat ? <Nhan chu={cheDoThat === "chan" ? "Đang chặn" : "Chỉ theo dõi"} loai={cheDoThat === "chan" ? "ok" : "xam"} cham /> : null}
       </View>
       {dangGo ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>Máy đang được gỡ AiiGrow — tạm không chặn gì.</Chu>
-        : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{`Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`}</Chu> : null}
+        : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{m.daDongBo ? `Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`
+          : `Máy chưa kết nối lần nào — ${TEN_CHE_DO[m.cheDoBaMeChon!]} áp ngay khi AiiGrow trên máy có mạng`}</Chu> : null}
       {chuaDu ? (
         <View style={{ marginTop: 10, gap: 6 }}>
           <Chu kieu="dam" co={13.5} mau={M.canh}>Bảo vệ chưa đủ</Chu>
@@ -60,7 +64,8 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
       ) : m.baoVe === "chua" && m.baoVeCau ? <Chu co={13} mau={M.chu3} style={{ marginTop: 8 }}>{m.baoVeCau}</Chu> : null}
       {xem ? null : <View style={{ marginTop: 12 }}>
         <HaiNut>
-          {win && m.cheDo && !dangGo && !cho ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
+          {/* chờ vì máy chưa đồng bộ lần nào (máy mới ghép) ⇒ vẫn cho đổi ngay sang Chỉ theo dõi */}
+          {coCheDo && m.cheDo && !dangGo && (!cho || !m.daDongBo) ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
           {dangKhan || dangGo ? null : <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />}
           {win ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
         </HaiNut>

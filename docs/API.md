@@ -145,7 +145,9 @@ Cổng mỏng cho ứng dụng khay của agent-win (`AppForm` — cửa sổ ap
 Xử lý: `server/lib/lenh-may.ts` (`datCheDo`, `goMayAnToan`, `trangThaiGo`). Test: `an-toan-go.test.ts`. Màn: app Ba Mẹ › máy › «An toàn & gỡ cài đặt».
 
 - **Chế độ**: `giam-sat` = chỉ ghi lại việc sẽ chặn, không chặn, không màn khoá · `chan` = chặn thật.
-  `devices.che_do` + `devices.che_do_ba_me` (Ba Mẹ đã chọn chưa). Chưa chọn ⇒ máy chủ **không** gửi `windows.cheDo` (agent giữ chế độ lúc cài) và
+  `devices.che_do` + `devices.che_do_ba_me` (Ba Mẹ đã chọn chưa). **Máy Windows/Mac riêng của Con ghép từ 25/10 vào thẳng Chặn thật** (máy dùng chung chưa gán Con thì không): lúc ghép ghi sẵn
+  `che_do = chan`, `che_do_ba_me = true` ⇒ lần đồng bộ đầu đã gửi `windows.cheDo = "chan"` (agent hiện có đổi ngay, không cần bản mới); máy ghép trước
+  giữ nguyên (chưa chọn). Ba Mẹ vẫn chuyển «Chỉ theo dõi» bằng `POST may/:id/che-do`. Chưa chọn ⇒ máy chủ **không** gửi `windows.cheDo` (agent giữ chế độ lúc cài) và
   app hiện chế độ agent báo (`status.cheDo`) — máy cài sẵn «chặn» không bị hiện nhầm «giám sát», cũng không lặng lẽ tụt về giám sát.
   Đã chọn ⇒ `dong-bo.windows.cheDo` mang lựa chọn; agent-win: giá trị máy chủ thắng `CheDo` cục bộ (`--che-do=` của Setup), lưu lại cho lúc mất mạng;
   đổi sang `giam-sat` ⇒ agent gỡ ngay luật AppLocker, thôi đóng app / ngắt phiên / màn khoá. Máy đang có lệnh gỡ chờ ⇒ luôn `giam-sat`.

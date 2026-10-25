@@ -16,10 +16,10 @@ const BAO_MAC = {
   ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con cài được trên Windows, máy Mac và điện thoại Android (link tải bên dưới).",
 } as const;
 
-const GiamSat = () => (
+const ChanLuon = () => (
   <div className="bao ok-b">
-    <I3d ten="eyes" mau="xanh" />
-    <div>Sau khi ghép, máy chạy ở chế độ <b>giám sát</b> (ghi nhận, không khoá). Ba Mẹ bật “chặn thật” khi cần, ngay trong app.</div>
+    <I3d ten="key" mau="xanh" />
+    <div>Cài xong trên máy của Con là <b>chặn luôn</b>: app chưa xếp loại không mở được, giờ ngủ thì khoá. Ba Mẹ muốn tạm chỉ theo dõi (ghi nhận, không chặn) thì chọn “Chỉ theo dõi” ngay trong app.</div>
   </div>
 );
 
@@ -48,7 +48,7 @@ export default async function TrangTai() {
               <li>Cửa sổ <b>Ghép máy</b> tự mở (hoặc bấm biểu tượng AiiGrow trên thanh menu → <b>Ghép máy với Con…</b>): chọn tài khoản của Con, nhập <b>mã 6 số</b> lấy trong app AiiGrow: Trang chủ → “Máy tính &amp; điện thoại” → <b>Ghép thêm máy</b>.</li>
               <li>macOS báo “Đã thêm mục nền” là bình thường — đừng tắt AiiGrow trong Mục đăng nhập.</li>
             </ol>
-            <GiamSat />
+            <ChanLuon />
             <p className="duong-phu">Máy Windows của Con: <a href={LINK_TAI}>tải AiiGrow-Setup.exe</a>.</p>
           </>
         ) : null}
@@ -75,7 +75,7 @@ export default async function TrangTai() {
         ) : null}
 
         {os === "mac" ? null : (<>
-          <p className="phu-de">Cài trên máy tính Windows để đồng hành cùng Con. Mặc định chỉ <b>giám sát</b>, không khoá máy.</p>
+          <p className="phu-de">Cài trên máy tính Windows để đồng hành cùng Con. Cài xong trên máy của Con là <b>chặn luôn</b>; Ba Mẹ chuyển sang chỉ theo dõi được trong app.</p>
 
           <section className="the the-tai">
             <div className="dau-tai">
@@ -96,7 +96,7 @@ export default async function TrangTai() {
             <li><b>Máy mới:</b> làm theo từng bước, nhập <b>mã 6 số</b> lấy trong app AiiGrow: Trang chủ → “Máy tính &amp; điện thoại” → <b>Ghép thêm máy</b>.</li>
           </ol>
 
-          <GiamSat />
+          <ChanLuon />
 
           <p className="duong-phu">
             Máy Mac của Con: <a href={BAN_AGENT_MAC.url}>tải AiiGrow-{BAN_AGENT_MAC.version}.pkg</a> (mở trang này trên máy Mac để xem cách cài).

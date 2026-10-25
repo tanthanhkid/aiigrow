@@ -20,7 +20,7 @@ const SU_KIEN: Record<string, string> = {
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
-  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web chỉ áp cho tài khoản Windows của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
+  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web chỉ áp cho tài khoản máy của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
@@ -96,6 +96,8 @@ export default function AnToanMay() {
   );
   const m = d.m;
   const win = m.nen === "windows";
+  // Chế độ Chặn thật / Giám sát có trên máy có tác tử: Windows và Mac (máy chủ gửi cheDo cho cả hai — server/lib/chuyen-doi.ts › coTacTu)
+  const coCheDo = win || m.nen === "mac";
   const khanCap = m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
   // Windows: «đang mở» gồm cả thêm giờ đã duyệt (moDen) — «Khoá lại ngay» đóng cả hai
   const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
@@ -105,7 +107,7 @@ export default function AnToanMay() {
       <Canh lv="chi" thap tieu={TT_TRANG[m.trangThai].chu}
         loi={`Đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}${m.phienBan ? ` · bản ${m.phienBan}` : ""}${m.dungChung ? " · máy dùng chung" : ""}`} />
 
-      {win ? (
+      {coCheDo ? (
         <View style={{ gap: 8 }}>
           <Chu kieu="rat" co={14}>Chế độ trên máy</Chu>
           {dangGo ? <Chu mau={M.chu2}>{m.cheDoMay ? TEN_CHE_DO[m.cheDoMay] : "Giám sát"} — tạm khoá vì máy đang được gỡ</Chu>

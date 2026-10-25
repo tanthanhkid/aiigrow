@@ -8,7 +8,8 @@
 //     «Chỉ app học» ở lần đồng bộ kế, khay hiện đồng hồ «đang được bố mẹ thêm giờ». Khoá ngay / giờ ngủ vẫn thắng. Hết hạn ⇒ máy chủ trả lại «hoc».
 //   • nextCheckSec ngắn lại khi đang có phiên / đang mở (và đúng lúc hết hạn mở) để thay đổi của Ba Mẹ tới máy Con trong ≤ 30 giây.
 //   • minutesLeft để trống: hết phiên chơi thì máy chủ đóng phiên, lần đồng bộ sau app giải trí rời danh sách (không khoá cả máy).
-// Agent mặc định chạy chế độ GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do).
+// Agent khởi động ở GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do);
+// máy Windows/Mac riêng của Con ghép từ 25/10 có sẵn lựa chọn «chan» (gia-dinh.ts › cheDoMayMoi) ⇒ chặn thật từ lần đồng bộ đầu.
 import { kieuMuc } from "./chinh-sach.ts";
 import { gioDiaPhuong, laCuoiTuan, phutCua, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
