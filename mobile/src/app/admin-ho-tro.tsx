@@ -1,6 +1,7 @@
 // bm-admin-ho-tro: hộp thư hỗ trợ cho quản trị AiiLab (Ba Mẹ có cờ admin, server kiểm lại ở /api/m/admin/ho-tro). Danh sách gia đình → chat → trả lời.
 import { useEffect, useState } from "react";
 import { BackHandler, View } from "react-native";
+import { KHOI } from "@/lib/clay";
 import { bm } from "@/lib/api";
 import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Dong, gioPhut, M, Man, Nhan, Nhom, OChat, useLam, useTai } from "@/lib/ui";
 
@@ -50,7 +51,7 @@ function Chat({ fam, ve }: { fam: Dong1; ve: () => void }) {
       </>
     }>
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : d.tin.map((t) => t.tu === "ba_me" ? (
-        <View key={t.id} style={{ alignSelf: "flex-start", backgroundColor: "#fff", borderWidth: 1, borderColor: M.vien, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomLeftRadius: 6, maxWidth: "78%" }}>
+        <View key={t.id} style={{ alignSelf: "flex-start", backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%", ...KHOI.nho }}>
           <Chu>{t.noi_dung}</Chu><Chu co={12} mau={M.chu3}>{gioPhut(t.created_at)}</Chu>
         </View>
       ) : (

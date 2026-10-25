@@ -100,7 +100,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
           {theoMuc.map((x, i) => (
             <Pressable key={x.muc} onPress={() => { setMuc(muc === x.muc ? null : x.muc); setHet(false); }} accessibilityRole="button"
               accessibilityState={{ selected: muc === x.muc }} accessibilityLabel={`${MUC[x.muc].chu}: ${gio(x.giay)}`}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 56,
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 16, minHeight: 56,
                 borderTopWidth: i ? 1 : 0, borderTopColor: M.vien, backgroundColor: muc === x.muc ? M.chinhSoft : undefined }}>
               <ODau muc={x.muc} />
               <View style={{ flex: 1, gap: 4 }}>

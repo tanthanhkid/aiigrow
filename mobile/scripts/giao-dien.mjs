@@ -5,6 +5,7 @@
 //   NUT-2-DONG  Material 3: nhãn nút / chip / tab chỉ một dòng.
 //   DE-ANH      WCAG 1.4.12 + F104: dòng chữ không chồng lên ảnh / mascot / svg không phải của nó.
 //   TRAN        WCAG 1.4.10: 320px không cuộn ngang; chữ không vượt khung có nền/viền.
+//   LE-THE      Chữ / ảnh nhỏ / nút trong thẻ clay cách mép trái-phải thẻ ≥ 16 (TestFlight build 6: nội dung dính mép thẻ).
 //   GIAN-CHU    WCAG 1.4.12: ép giãn dòng 1.5×, đoạn 2×, chữ 0.12em, từ 0.16em — ba luật sau vẫn phải đạt.
 // Khác bản gốc cho React Native Web: nút = phần tử role=button/tab/link (Pressable), ảnh = <img> (expo-image) + svg lớn.
 
@@ -72,6 +73,26 @@ export const DO = String.raw`(() => {
         break; } }
   }
   if (!cuoi && document.documentElement.scrollWidth > innerWidth + 1) L.push({luat:'TRAN', chu:'(cả trang)', el:'html', rong: document.documentElement.scrollWidth});
+  // 6. LE-THE (TestFlight build 6: chữ / icon / nút dính sát mép thẻ): thẻ clay = khối không bấm được, có bóng NGOÀI (box-shadow có phần
+  //    không inset), bo ≥ 20, rộng ≥ 200. Mọi chữ, ảnh nhỏ, nút nằm trong thẻ (thẻ gần nhất chứa nó) phải cách mép trái/phải thẻ ≥ 16
+  //    (cho lệch 0.5). Bỏ qua phần tử thuộc lớp absolute (mascot chờm, LopMen, huy hiệu số) — chúng cố ý đè mép.
+  if (!cuoi) {
+    const NUT = '[role=button],[role=tab],[role=radio],[role=checkbox],[role=switch],[role=link],input,textarea';
+    const bongNgoai = cs => cs.boxShadow !== 'none' && cs.boxShadow.split(/,(?![^(]*\))/).some(x => !/inset/.test(x));
+    const laThe = e => { if (e.matches(NUT) || e.matches('[role=tablist]')) return false; const cs = getComputedStyle(e); const r = e.getBoundingClientRect();
+      return r.width >= 200 && parseFloat(cs.borderTopLeftRadius) >= 20 && bongNgoai(cs); };
+    const theCua = e => { for (let k = e.parentElement; k && k !== document.body; k = k.parentElement) { if (laThe(k)) return k; if (getComputedStyle(k).position === 'absolute') return null; } return null; };
+    const daLe = new Set();
+    const xet = (el, rs, chu) => { const t = theCua(el); if (!t) return; const q = t.getBoundingClientRect();
+      for (const r of rs) { const le = Math.min(r.left - q.left, q.right - r.right); if (le < 15.5) { const k = ten(t) + '|' + chu; if (daLe.has(k)) return; daLe.add(k);
+        L.push({luat:'LE-THE', chu: chu.slice(0, 40), el: ten(el), the: ten(t), le: +le.toFixed(1)}); return; } } };
+    // nút nhỏ trong thẻ: đo cả khối nút; hàng bấm được rộng gần hết thẻ (Dong trong Nhom) thì đo chữ của nó. Chữ bị cắt «…» đo theo khung chữ.
+    for (const n of tn) { const p = n.parentElement, nut = p.closest(NUT), t = theCua(p); if (!t) continue;
+      const nr = nut?.getBoundingClientRect(), hep = nr && nr.width < 0.9 * t.getBoundingClientRect().width;
+      const rs = hep ? [nr] : p.scrollWidth > p.clientWidth + 1 ? [p.getBoundingClientRect()] : dongCua(n);
+      xet(hep ? nut : p, rs, n.textContent.trim()); }
+    for (const a of [...document.querySelectorAll('img')].filter(hien)) { const r = a.getBoundingClientRect(); if (r.width <= 80) xet(a, [r], '(ảnh) ' + (a.src || '').split('/').pop().slice(0, 30)); }
+  }
   return { L, DO_TAY }; })()`;
 
 /** WCAG 1.4.12: ép khoảng cách chữ tối thiểu người dùng có thể đặt. */

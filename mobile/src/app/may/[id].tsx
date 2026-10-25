@@ -2,7 +2,7 @@
 // (đổi từ xa), MỞ KHẨN CẤP (có hạn giờ), mã mở khi mất mạng, GỠ AN TOÀN (chỉ chủ gia đình, nhập lại mật khẩu; máy chỉ rời danh sách
 // khi agent báo đã gỡ — không để AiiGrow «dính» lại trên máy Con) + cách gỡ tại máy khi không có mạng.
 // Gọi GET may/:id/tuan-thu, POST may/:id/che-do, POST may/:id/mo-khan-cap(+/huy), GET may/:id/ma-offline, POST may/:id/go (docs/API.md).
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, chuanHoaTen, GOC, LoiApi, TEN_CHE_DO, type CheDoMay, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu, TT_TRANG, vaiToi } from "@/lib/api";
@@ -47,21 +47,25 @@ export default function AnToanMay() {
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
   const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); };
-  const xemMaOffline = async () => {
-    setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true);
-    try { setMaOff(await bm.goi<MaOffline>(`may/${id}/ma-offline`)); } catch (e) { setLoiMa(cauLoi(e)); } finally { setTaiMa(false); }
-  };
-  // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
-  const daMoSan = useRef(false);
+  // Mở bảng mã mất mạng = bật cờ tải; effect bên dưới gọi máy chủ (một chỗ cho nút bấm, «Thử lại», «Lấy mã mới» và ?mo=offline).
+  const xemMaOffline = () => { setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true); };
   useEffect(() => {
-    if (!d?.m || daMoSan.current || !moSan) return;
-    daMoSan.current = true;
+    if (!taiMa) return;
+    let bo = false;
+    bm.goi<MaOffline>(`may/${id}/ma-offline`).then((v) => { if (!bo) setMaOff(v); }, (e) => { if (!bo) setLoiMa(cauLoi(e)); })
+      .finally(() => { if (!bo) setTaiMa(false); });
+    return () => { bo = true; };
+  }, [taiMa, id]);
+  // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
+  // Chỉ đổi state ⇒ chỉnh ngay lúc render (mẫu «điều chỉnh state khi dữ liệu đổi» của React), không setState trong effect; mở MỘT lần khi dữ liệu máy về.
+  const [daMoSan, setDaMoSan] = useState(false);
+  if (d?.m && !daMoSan && moSan) {
+    setDaMoSan(true);
     // đang mở khẩn cấp / đang gỡ ⇒ không mở bảng (màn này cũng ẩn nút đó): khỏi tạo/kéo dài mở khẩn cấp thứ hai
     const dangKhan = !!d.m.moKhanCapDen && new Date(d.m.moKhanCapDen) > new Date();
     if (moSan === "khan" && !d.xem && !dangKhan && !d.m.dangGo) setMo("khan");
-    else if (moSan === "offline" && d.m.nen === "windows" && !d.xem) void xemMaOffline();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d, moSan]);
+    else if (moSan === "offline" && d.m.nen === "windows" && !d.xem) xemMaOffline();
+  }
   const dangGo = !!d?.m?.dangGo;
   // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong — chỉ khi màn đang hiện
   // (expo-router giữ màn trong stack khi mở màn khác ⇒ useFocusEffect dừng hẹn giờ khi rời màn).

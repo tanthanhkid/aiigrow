@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, M, Man, OChat, Rob, useLam, useTai } from "@/lib/ui";
+import { BONG, KHOI, MEN } from "@/lib/clay";
+import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, LopMen, M, Man, OChat, Rob, useLam, useTai } from "@/lib/ui";
 
 type Tin = { id: string; tu: "ba_me" | "aiilab"; noi_dung: string; created_at: string };
 
@@ -23,13 +24,16 @@ export default function HoTro() {
         <CanhGiua lv="rob-goc" tieu="Hỏi AiiLab bất cứ điều gì" loi="Người thật của AiiLab trả lời, thường trong 5 phút." />
       ) : d.tin.map((t) => t.tu === "aiilab" ? (
         <View key={t.id} style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, overflow: "hidden", backgroundColor: M.chinhSoft }}><Rob ten="rob-goc" co={44} /></View>
-          <View style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: M.vien, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomLeftRadius: 6, maxWidth: "78%" }}>
+          <View style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: M.chinhSoft }, KHOI.nho]}><View style={{ width: 44, height: 44, borderRadius: 22, overflow: "hidden" }}><Rob ten="rob-goc" co={44} /></View></View>
+          {/* bong bóng clay: khối sáng phồng (bóng kép + men), không viền mảnh — docs/THIET-KE-CLAY.md §1 */}
+          <View style={[{ backgroundColor: "#fff", paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomLeftRadius: 8, maxWidth: "78%" }, KHOI.nho]}>
+            <LopMen men={MEN.sang} bo={22} />
             <Chu>{t.noi_dung}</Chu><Chu co={12} mau={M.chu3}>{gioPhut(t.created_at)}</Chu>
           </View>
         </View>
       ) : (
-        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomRightRadius: 6, maxWidth: "78%" }}>
+        <View key={t.id} style={{ alignSelf: "flex-end", backgroundColor: M.chinh, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 22, borderBottomRightRadius: 8, maxWidth: "78%", boxShadow: BONG.ngoc }}>
+          <LopMen men={MEN.ngoc} bo={22} />
           <Chu mau="#fff">{t.noi_dung}</Chu><Chu co={12} mau="#ffffff">{gioPhut(t.created_at)}</Chu>
         </View>
       ))}

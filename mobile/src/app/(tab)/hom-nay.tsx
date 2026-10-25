@@ -59,7 +59,7 @@ export default function TrangChu() {
   const c = d.g.con[i];
   return (
     <View style={{ flex: 1 }}>
-    <Man tieuLon="Trang chủ" chat tai={tai} dangTai={dangTai} noi={noi}>
+    <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />} tai={tai} dangTai={dangTai} noi={noi}>
       <Vao thu={0}>
         <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap", alignItems: "center" }} accessibilityRole="tablist">
         {d.g.con.map((x, k) => (
@@ -75,7 +75,6 @@ export default function TrangChu() {
           style={[{ minHeight: 46, minWidth: 46, borderRadius: 23, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
           <Icon ten="cong" mau={M.chu2} co={22} />
         </NhanMen>
-        <View style={{ marginLeft: "auto" }}><ChuongTb /></View>
         </View>
       </Vao>
       <BangCon key={c.id} c={c} anMung={anMung} vi={vi} stVi={stVi} canhBao={d.cb.filter((x) => !x.child_id || x.child_id === c.id)} luat={d.luat} choi={d.choi.filter((p) => p.con === c.id)}
@@ -137,7 +136,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
       <Vao thu={1}>
       {viec ? <TheViecCho ds={viec} ten={c.ten} xem={xem} tai={tai} bao={bao} anMung={anMung} /> : (
         <NhanMen onPress={() => router.push("/cho-duyet")} accessibilityRole="button" muc="khoi" sang men={MEN.the}
-          style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, minHeight: 44, borderRadius: 28, backgroundColor: cho ? "#fff8f6" : M.the, borderWidth: cho ? 1.5 : 0, borderColor: "#f3c8bf" }, KHOI.the]}>
+          style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 44, borderRadius: 28, backgroundColor: cho ? "#fff8f6" : M.the, borderWidth: cho ? 1.5 : 0, borderColor: "#f3c8bf" }, KHOI.the]}>
           <BieuTron ic="chuong" mau={cho ? "do" : "xanh"} />
           <View style={{ flex: 1 }}>
             <Chu kieu="rat" co={16}>{cho ? `${cho} việc chờ Ba Mẹ` : "Không có việc nào chờ"}</Chu>
@@ -171,7 +170,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
           </View>
           <View>
             {khoaNgay ? <Nut chu="Mở lại" ic="mo_khoa" nho dangChay={dangChay} bam={moLai} nhanDoc={`Mở lại máy của ${c.ten}`} />
-              : <Nut chu="Khoá máy" ic="khoa" ic3d nho tat={!ct.d} bam={() => setKhoa(true)} nhanDoc={`Khoá máy của ${c.ten} ngay`} />}
+              : <Nut chu="Khoá máy" ic="khoa" ic3d nho loai="vien" tat={!ct.d} bam={() => setKhoa(true)} nhanDoc={`Khoá máy của ${c.ten} ngay`} />}
           </View>
         </View>
         {khoaNgay ? null : (
@@ -188,7 +187,8 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 11 }}>
         {o.map((x, k) => (
-          <Vao key={x.tieu} thu={3 + k} style={{ flexBasis: "30%", flexGrow: 1 }}>
+          // hai cột: ba cột ở máy 375pt chỉ còn ~95pt mỗi ô ⇒ chữ ba dòng, nhãn «mới» đè viên icon (TestFlight build 6)
+          <Vao key={x.tieu} thu={3 + k} style={{ flexBasis: "40%", flexGrow: 1 }}>
             {x.di === "/diem-qua" ? <Animated.View ref={vi} style={[{ flexGrow: 1 }, stVi]}><OTinhNang {...x} /></Animated.View> : <OTinhNang {...x} />}
           </Vao>
         ))}
@@ -221,7 +221,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
 function OTinhNang({ tieu, phu, ic, mau, di, nhan }: { tieu: string; phu: string; ic: TenIcon; mau: MauBt; di: string; nhan?: string }) {
   return (
     <NhanMen onPress={() => router.push(di as never)} accessibilityRole="button" accessibilityLabel={`${tieu}. ${phu}`} muc="khoi" sang men={MEN.the}
-      style={[{ flexGrow: 1, minHeight: 116, padding: 12, gap: 6, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
+      style={[{ flexGrow: 1, minHeight: 116, padding: 16, gap: 6, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
         <BieuTron ic={ic} mau={mau} />
         {nhan ? <Nhan chu={nhan} loai="canh" /> : null}
