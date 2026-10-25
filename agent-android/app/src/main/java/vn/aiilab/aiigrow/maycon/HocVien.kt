@@ -36,14 +36,24 @@ object HocVien {
     private val luong = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-hoc-vien").apply { isDaemon = true } }
     private val dangChay = java.util.concurrent.atomic.AtomicBoolean(false)
 
-    /** Mỗi lượt gọi máy chủ: nhịp phiên điểm + hỏi tin mới + lời xin trên luồng riêng — không chặn vòng thực thi 5 giây
+    /** Sau nhịp thành công: hỏi tin mới + lời xin trên luồng riêng — không chặn vòng thực thi 5 giây
      *  (lượt trước chưa xong ⇒ bỏ lượt này). */
-    fun chayNen(ctx: Context, cs: ChinhSach?) {
+    fun chayNen(ctx: Context) {
         if (!dangChay.compareAndSet(false, true)) return
         val c = ctx.applicationContext
         try {
-            luong.execute { try { nhipPhien(c, cs); hoiTin(c); hoiLoiXin(c) } catch (e: Exception) { NhatKy.canh(TAG, "hỏi tin / lời xin lỗi", e) } finally { dangChay.set(false) } }
+            luong.execute { try { hoiTin(c); hoiLoiXin(c) } catch (e: Exception) { NhatKy.canh(TAG, "hỏi tin / lời xin lỗi", e) } finally { dangChay.set(false) } }
         } catch (e: Exception) { dangChay.set(false) }
+    }
+
+    private val dangNhipPhien = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** Nhịp phiên điểm do máy này mở — mỗi lượt gọi máy chủ, KHÔNG phụ thuộc nhịp máy thành công; luồng riêng. Phiên kết thúc ⇒ áp luật lại ngay. */
+    fun nhipPhienNen(ctx: Context, cs: ChinhSach?) {
+        if (Kho(ctx).phienId == null || !dangNhipPhien.compareAndSet(false, true)) return
+        val c = ctx.applicationContext
+        try { luong.execute { try { nhipPhien(c, cs) } catch (_: Exception) {} finally { dangNhipPhien.set(false) } } }
+        catch (_: Exception) { dangNhipPhien.set(false) }
     }
 
     /** Máy rời gia đình / ghép lại ⇒ quên dữ liệu của Con cũ (tổng quan, tin đã thấy, lời xin, phiên điểm). */
@@ -166,7 +176,7 @@ object HocVien {
         val dangDung = dangDungPhien(DoPhut.tienCanh(ctx), goiAndroid(cs?.giaiTri ?: emptyList()))
         try {
             val r = may(k).goi("phien/nhip", JSONObject().put("id", id).put("dangDung", dangDung))
-            if (phienKetThuc(r)) { k.phienId = null; NhatKy.tin(TAG, "phiên điểm kết thúc: ${r.optString("lyDoKet")}") }
+            if (phienKetThuc(r)) { k.phienId = null; NhatKy.tin(TAG, "phiên điểm kết thúc: ${r.optString("lyDoKet")}"); DichVuNhip.lamMoi(ctx) }
         } catch (e: MayChu.Loi) { if (e.http == 404) k.phienId = null } catch (_: Exception) {}
     }
 }

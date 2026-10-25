@@ -32,28 +32,37 @@ class ManTre : Activity() {
     private var web: WebView? = null
     private var choTep: ValueCallback<Array<Uri>>? = null
     private var anhChup: Uri? = null
+    private var duongMuon = "nha"            // màn Con muốn mở (đổi khi mở lại từ thông báo / nút khác)
+    private var phienCon: String? = null     // phiên Con từ phien-web (null = chưa lấy / không lấy được)
+    private var daLayPhien = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val duong = duongTre(intent?.getStringExtra(DUONG))
         val deep = Intent(Intent.ACTION_VIEW, Uri.parse("aiigrow://tre/$duong"))
-        val app = packageManager.queryIntentActivities(deep, 0).firstOrNull { it.activityInfo.packageName != packageName }
+        // chỉ đúng app AiiGrow chính thức (không để app lạ đăng ký aiigrow:// chiếm lối vào)
+        val app = packageManager.queryIntentActivities(deep.setPackage(GOI_APP_AIIGROW), 0).firstOrNull()
         if (app != null) {
-            try { startActivity(deep.setPackage(app.activityInfo.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); finish(); return } catch (_: Exception) {}
+            try { startActivity(deep.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); finish(); return } catch (_: Exception) {}
         }
-        moWeb(duong)
+        duongMuon = duong
+        moWeb()
     }
 
     /** singleTask: mở lại từ thông báo / nút khác ⇒ đi đúng màn mới (không giữ trang cũ). */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent); setIntent(intent)
-        val duong = duongTre(intent.getStringExtra(DUONG))
+        duongMuon = duongTre(intent.getStringExtra(DUONG))
+        if (daLayPhien) taiTrang()   // chưa lấy xong phiên ⇒ luồng lấy phiên tự mở đúng màn mới khi xong
+    }
+
+    private fun taiTrang() {
         val w = web ?: return
-        w.loadUrl(Kho(this).mayChu.trimEnd('/') + "/tre/" + duong)   // phiên Con đã lưu trong trang từ lần mở trước
+        w.loadUrl(Kho(this).mayChu.trimEnd('/') + "/tre/" + duongMuon + (phienCon?.let { "?phien=" + URLEncoder.encode(it, "UTF-8") } ?: ""))
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun moWeb(duong: String) {
+    private fun moWeb() {
         val k = Kho(this)
         val goc = k.mayChu.trimEnd('/')
         val w = WebView(this).apply {
@@ -84,8 +93,7 @@ class ManTre : Activity() {
         Thread {
             // phiên Con 12 giờ (POST phien-web) — lỗi (mất mạng / máy dùng chung chưa chọn Con) ⇒ web tự hỏi hồ sơ + PIN
             val phien = if (k.token == null || k.cheDoThu) null else try { MayChu(goc, k.token).goi("phien-web", org.json.JSONObject()).optString("phienCon").ifBlank { null } } catch (_: Exception) { null }
-            val url = "$goc/tre/$duong" + (phien?.let { "?phien=" + URLEncoder.encode(it, "UTF-8") } ?: "")
-            runOnUiThread { if (!isFinishing) w.loadUrl(url) }
+            runOnUiThread { if (!isFinishing) { phienCon = phien; daLayPhien = true; taiTrang() } }
         }.start()
     }
 
@@ -126,6 +134,8 @@ class ManTre : Activity() {
 
     companion object {
         const val DUONG = "duong"
+        /** App AiiGrow (Expo, mobile/app.json › android.package). */
+        const val GOI_APP_AIIGROW = "vn.aiilab.aiigrow"
         private const val CHON_TEP = 41
         private const val TRANG_LOI = "<html><body style='font-family:sans-serif;padding:32px;color:#1d2a26;background:#f4f3ee'>" +
             "<h2>Chưa mở được</h2><p>Cần mạng để xem nhiệm vụ, nộp bài và đổi quà. Con kiểm tra Wi‑Fi rồi thử lại nhé.</p></body></html>"

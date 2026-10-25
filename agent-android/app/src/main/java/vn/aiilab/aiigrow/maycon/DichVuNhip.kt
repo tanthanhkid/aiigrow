@@ -177,7 +177,9 @@ class DichVuNhip : Service() {
         val truoc = k.lanNhipThanhCong
         val matPhut = if (truoc == 0L) 0 else ((System.currentTimeMillis() - truoc) / 60_000).toInt().coerceAtLeast(0)
         val ht = HienThi.doc(k.hienThi)
-        val tz = k.phanHoi?.let { try { docPhanHoiNhip(it).chinhSach.tz } catch (_: Exception) { null } } ?: "Asia/Ho_Chi_Minh"
+        val csCu = k.phanHoi?.let { try { docPhanHoiNhip(it).chinhSach } catch (_: Exception) { null } }
+        val tz = csCu?.tz ?: "Asia/Ho_Chi_Minh"
+        HocVien.nhipPhienNen(this, csCu)   // phiên chơi bằng điểm máy này mở: nhịp kể cả khi nhịp máy lỗi
         val dung = DoPhut.homNay(this, tz).mapValues { (it.value / 60_000).toInt() }
         val than = thanNhip(Instant.now().toString(), BuildConfig.VERSION_NAME, ht?.dangKhoaThat == true, QuanTri.laDeviceOwner(this),
             QuanTri.laAdmin(this), TroNang.dangBat(this), DoPhut.coQuyen(this), if (matPhut > 2) matPhut else 0, dung)
@@ -190,7 +192,7 @@ class DichVuNhip : Service() {
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
             MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)
             // nhiệm vụ / lời nhắn mới ⇒ thông báo (tạm thay FCM); lời xin thêm giờ đang chờ ⇒ Ba Mẹ trả lời thì báo — luồng riêng, không chặn vòng thực thi
-            HocVien.chayNen(this, try { docPhanHoiNhip(r.toString()).chinhSach } catch (_: Exception) { null })   // + nhịp phiên điểm máy này mở
+            HocVien.chayNen(this)
             if (System.currentTimeMillis() - lanGuiHangDoi > 120_000) { lanGuiHangDoi = System.currentTimeMillis(); NhatKy.gui(this, MayChu(k.mayChu, k.token)) }
             // DNS gia đình (server/lib/dns-gia-dinh.ts › hoSoDns): Device Owner tự đặt DNS riêng tư; gia đình chưa bật DNS ⇒ máy chủ trả lỗi, bỏ qua
             if (QuanTri.laDeviceOwner(this) && k.privateDnsDaDat == null) try {

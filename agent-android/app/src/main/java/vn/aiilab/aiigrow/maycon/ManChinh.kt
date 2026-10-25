@@ -42,7 +42,7 @@ class ManChinh : Activity() {
     private var nutPhut: List<Button> = emptyList()
     private var daVe: String? = null
     private var tChao: TextView? = null
-    private var daVaoLan = false
+    private var daVaoLan = false   // hiệu ứng vào lần lượt chỉ một lần mỗi lần mở màn, không lặp mỗi lần dựng lại
     // app Con (HocVien.kt): tổng quan, trạng thái lời xin, chơi bằng điểm
     private var tViec: TextView? = null
     private var dsNv: LinearLayout? = null
@@ -52,7 +52,7 @@ class ManChinh : Activity() {
     private var nutDungPhien: Button? = null
     private var theDiem: View? = null
     private var lanNapTQ = 0L
-    private var tqDaVe: String? = null   // hiệu ứng vào lần lượt chỉ một lần mỗi lần mở màn, không lặp mỗi lần dựng lại
+    private var tqDaVe: String? = null   // tổng quan đã vẽ (khỏi dựng lại danh sách mỗi 2 giây)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,8 +86,10 @@ class ManChinh : Activity() {
         // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
         val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
         val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
-        if (daVe != kieu + quyen) {
-            daVe = kieu + quyen
+        // danh sách trò đổi điểm theo luật mới nhất (luật tới sau khi ghép / Ba Mẹ thêm trò ⇒ dựng lại thẻ)
+        val appDiem = if (k.daGhep) cacAppDiem(k).joinToString(",") else ""
+        if (daVe != kieu + quyen + appDiem) {
+            daVe = kieu + quyen + appDiem
             goc.removeAllViews()
             dauTrang(k)
             theCapNhat(k, laDo, duocCai)
@@ -304,8 +306,7 @@ class ManChinh : Activity() {
     /** Đổi điểm lấy thời gian ngay trong thẻ xin giờ (phien/xet ⇒ xác nhận ⇒ phien/mo), như RequestForm.cs «Đổi điểm lấy thời gian». */
     private fun dungDoiDiem(x: LinearLayout) {
         val k = Kho(this)
-        val cs = try { (if (k.cheDoThu) k.tepThu.readText() else k.phanHoi)?.let { docPhanHoiNhip(it).chinhSach } } catch (_: Exception) { null }
-        val apps = if (cs == null) emptyList() else appChoiDiem(cs, DoPhut.daCai(this).map { it.goi }).take(6)
+        val apps = cacAppDiem(k)
         val d = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, G.dp(this@ManChinh, 14), 0, 0) }
         theDiem = d
         d.addView(G.chu(this, "Hoặc đổi điểm lấy thời gian", 17f, G.CHU, true))
@@ -342,7 +343,9 @@ class ManChinh : Activity() {
                 Thread {
                     val kq = HocVien.xet(this, muc)
                     runOnUiThread {
-                        b.isEnabled = true; daXet = if (kq.duoc) muc else null
+                        b.isEnabled = true
+                        if (chon != muc) return@runOnUiThread   // Con đã chọn app khác trong lúc chờ ⇒ bỏ kết quả cũ
+                        daXet = if (kq.duoc) muc else null
                         bao.text = if (kq.duoc) cauXetDuoc(kq, ten) else kq.cau
                         nutBatDau.visibility = if (kq.duoc) View.VISIBLE else View.GONE
                     }
@@ -355,12 +358,25 @@ class ManChinh : Activity() {
         capNhatXin(k)
     }
 
+    private fun chinhSach(k: Kho) = try { (if (k.cheDoThu) k.tepThu.readText() else k.phanHoi)?.let { docPhanHoiNhip(it).chinhSach } } catch (_: Exception) { null }
+
+    /** App giải trí có trên máy để đổi điểm (≤ 6) — nhớ theo luật để khỏi hỏi PackageManager mỗi 2 giây. */
+    private var appDiemTheo: Pair<String?, List<String>>? = null
+    private fun cacAppDiem(k: Kho): List<String> {
+        val nguon = if (k.cheDoThu) "thu" else k.phanHoi?.let { (chinhSach(k)?.giaiTri ?: emptyList()).toString() }
+        appDiemTheo?.let { if (it.first == nguon) return it.second }
+        val cs = chinhSach(k)
+        val ds = if (cs == null) emptyList() else appChoiDiem(cs, DoPhut.daCai(this).map { it.goi }).take(6)
+        appDiemTheo = nguon to ds
+        return ds
+    }
+
     /** Thẻ trạng thái lời xin (yeu-cau/:id, DichVuNhip hỏi mỗi nhịp) + phiên điểm đang chạy. */
     private fun capNhatXin(k: Kho) {
         tXin?.text = HocVien.cauLoiXin(k) ?: ""
         val dangChoi = k.phienId != null
         nutDungPhien?.visibility = if (dangChoi) View.VISIBLE else View.GONE
-        if (dangChoi) HienThi.doc(k.hienThi)?.let { tPhien?.text = "Đang chơi bằng điểm · còn ${it.conPhut} phút" }
+        if (dangChoi) chinhSach(k)?.phien?.let { tPhien?.text = "Đang chơi bằng điểm · còn ${it.conPhut} phút" }
         else if (tPhien?.text?.startsWith("Đang chơi") == true) tPhien?.text = ""
     }
 
