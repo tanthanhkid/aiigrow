@@ -1,11 +1,11 @@
 #!/bin/bash
 # Dựng agent-mac/ra/AiiGrow-<BAN>.pkg. Chỉ build, không cài.
-# Phát hành: BAN=0.1.3 KY_APP="Developer ID Application: …" KY_PKG="Developer ID Installer: …" NOTARY=1 ./build-pkg.sh
-# Thử không ký: THU=1 BAN=0.1.3 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
+# Phát hành: BAN=0.1.4 KY_APP="Developer ID Application: …" KY_PKG="Developer ID Installer: …" NOTARY=1 ./build-pkg.sh
+# Thử không ký: THU=1 BAN=0.1.4 ./build-pkg.sh      (ARCH=native để chỉ build kiến trúc máy này)
 set -euo pipefail
 cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
-BAN="${BAN:-0.1.3}"
+BAN="${BAN:-0.1.4}"
 # Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
 grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
 # Phát hành (NOTARY=1) phải ký thật cả app lẫn gói. Từ 0.1.1 máy tự cập nhật CHỈ nhận gói ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)»
