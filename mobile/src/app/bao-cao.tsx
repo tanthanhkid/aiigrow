@@ -1,11 +1,11 @@
 // bm-bao-cao: báo cáo tuần theo Con (FR-06.02/06.03) — biểu đồ học / giải trí theo ngày, top mục giải trí, câu chú giải đời thường.
 // Chỉ tên app/tên miền + thời lượng, không ghi nội dung. «Xuất CSV» mở được bằng Excel / Google Sheets.
 import { useState } from "react";
-import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, Dong, Luoi2, M, Man, Nhom, NhomTieu, Nut, OSo, The, useLam, useTai } from "@/lib/ui";
 import { luuTepChu } from "@/lib/luu-tep";
+import { ChuGiai, CotClay } from "@/lib/bieu-do";
 
 type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number }[]; tongGiaiTri: number; phutHoc: number; diemKiemTheoNhom: { nhom: string; diem: number; n: number }[];
   duyet: { duoc: number; tu_choi: number }; ngoaiLe: number; top: { muc: string; phut: number }[];
@@ -42,22 +42,13 @@ function BaoCaoCon({ id }: { id: string }) {
         <>
           <Canh lv="canh-tien-do" thap tieu={d.chuGiai[0] ?? `Tuần này của ${d.ten}`} loi={`Học ${gio(nay.phutHoc)} · Giải trí ${gio(nay.tongGiaiTri)}.`} />
           <The dem>
-            <View style={{ flexDirection: "row", gap: 14 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: M.chinh }} /><Chu kieu="dam" co={13} mau={M.chu2}>Học</Chu></View>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}><View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: M.tim }} /><Chu kieu="dam" co={13} mau={M.chu2}>Giải trí</Chu></View>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 10, height: 120, marginTop: 10, paddingHorizontal: 4 }}
-              accessibilityLabel={`Theo ngày: ${nay.giaiTriTheoNgay.map((x) => `${THU[new Date(`${x.ngay}T12:00:00`).getDay()]} học ${hocNgay(x.ngay)}, giải trí ${x.phut} phút`).join("; ")}`}>
-              {nay.giaiTriTheoNgay.map((x) => (
-                <View key={x.ngay} style={{ flex: 1, alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end" }}>
-                  <View style={{ width: "100%", flex: 1, flexDirection: "row", alignItems: "flex-end", gap: 3 }}>
-                    <View style={{ flex: 1, height: `${Math.max(2, (hocNgay(x.ngay) / max) * 100)}%`, backgroundColor: M.chinh, borderRadius: 6 }} />
-                    <View style={{ flex: 1, height: `${Math.max(2, (x.phut / max) * 100)}%`, backgroundColor: M.tim, borderRadius: 6 }} />
-                  </View>
-                  <Chu kieu="rat" co={12} mau={M.chu3}>{THU[new Date(`${x.ngay}T12:00:00`).getDay()]}</Chu>
-                </View>
-              ))}
-            </View>
+            <ChuGiai ds={[{ chu: "Học", mau: M.chinh }, { chu: "Giải trí", mau: M.tim }]} />
+            <CotClay max={max} cao={128} nhanDoc="Học và giải trí theo ngày"
+              ds={nay.giaiTriTheoNgay.map((x) => {
+                const thu = THU[new Date(`${x.ngay}T12:00:00`).getDay()] ?? "";
+                return { khoa: x.ngay, nhan: thu, doc: `${thu}: học ${gio(hocNgay(x.ngay))}, giải trí ${gio(x.phut)}`,
+                  phan: [{ gia: hocNgay(x.ngay), mau: M.chinh }, { gia: x.phut, mau: M.tim }] };
+              })} />
           </The>
           <Nhom>
             <Dong dau tieu="Thời gian màn hình" phu="Từng app, trang web trong tuần, theo mục" trai={<BieuTron ic="cot" mau="tim" />} bam={() => router.push(`/man-hinh/${id}`)} />

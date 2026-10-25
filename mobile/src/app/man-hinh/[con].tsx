@@ -6,16 +6,17 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ManHinhTuan, type MucMH } from "@/lib/api";
 import { BieuTron, CanhGiua, ChoTai, ChonMot, Chu, Dong, Icon, M, Man, Nhom, NhomTieu, Nut, The, type TenIcon, useTai } from "@/lib/ui";
+import { CotClay, ThanhClay } from "@/lib/bieu-do";
 
 const MUC: Record<MucMH, { chu: string; mau: string; ic: TenIcon }> = {
   hoc: { chu: "Học tập", mau: M.chinh, ic: "mu" },
   game: { chu: "Trò chơi", mau: M.tim, ic: "game" },
-  video: { chu: "Video & phim", mau: "#c2410c", ic: "camera" },
-  video_ngan: { chu: "Video ngắn", mau: "#be185d", ic: "tia" },
+  video: { chu: "Video & phim", mau: M.camDam, ic: "camera" },
+  video_ngan: { chu: "Video ngắn", mau: M.hong, ic: "tia" },
   mxh: { chu: "Mạng xã hội & chat", mau: M.lam, ic: "tin" },
-  tien_ich: { chu: "Công cụ & trình duyệt", mau: "#5c625f", ic: "banhrang" },
-  khac: { chu: "Giải trí khác", mau: "#4d7c0f", ic: "luoi" },
-  chua_xep: { chu: "Chưa phân loại", mau: "#8a8f8c", ic: "dau_hoi" },
+  tien_ich: { chu: "Công cụ & trình duyệt", mau: M.chu3, ic: "banhrang" },
+  khac: { chu: "Giải trí khác", mau: M.reu, ic: "luoi" },
+  chua_xep: { chu: "Chưa phân loại", mau: M.oNhap, ic: "dau_hoi" },
 };
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const thuCua = (ngay: string) => THU[new Date(`${ngay}T12:00:00`).getDay()] ?? "";
@@ -73,25 +74,10 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
         <Chu co={14} mau={M.chu2}>
           {`Trung bình ${gio(d.tbNgayGiay)}/ngày${lech !== null && lech !== 0 ? ` · ${lech > 0 ? "nhiều" : "ít"} hơn tuần trước ${Math.abs(lech)}%` : ""}`}
         </Chu>
-        <View accessibilityLabel={`Theo ngày: ${d.theoNgay.map((x) => `${thuCua(x.ngay)} ${gio(x.giay)}`).join("; ")}`}
-          style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, height: 150, marginTop: 12 }}>
-          {d.theoNgay.map((x, i) => {
-            const sau = x.ngay > d.homNay, chon = ngay === i, mo = ngay !== null && !chon;
-            return (
-              <Pressable key={x.ngay} disabled={sau} onPress={() => { setNgay(chon ? null : i); setHet(false); }}
-                accessibilityRole="button" accessibilityState={{ selected: chon }} accessibilityLabel={`${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`}
-                style={{ flex: 1, alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end", minWidth: 30, opacity: mo ? 0.4 : 1 }}>
-                <View style={{ width: "100%", maxWidth: 30, height: Math.max(3, (x.giay / lonNhat) * 112), borderRadius: 6, overflow: "hidden",
-                  backgroundColor: x.giay ? undefined : M.vien, justifyContent: "flex-end" }}>
-                  {theoMucXep(x.theoMuc).map(([m, p]) => (
-                    <View key={m} style={{ height: `${(p / Math.max(1, x.giay)) * 100}%`, backgroundColor: MUC[m].mau, opacity: muc && muc !== m ? 0.25 : 1 }} />
-                  ))}
-                </View>
-                <Chu kieu={chon ? "rat" : "thuong"} co={12} mau={chon ? M.chu : M.chu3}>{thuCua(x.ngay)}</Chu>
-              </Pressable>
-            );
-          })}
-        </View>
+        <CotClay kieu="chong" max={lonNhat} cao={140} chon={ngay} tat={(i) => d.theoNgay[i].ngay > d.homNay}
+          bam={(i) => { setNgay(ngay === i ? null : i); setHet(false); }}
+          ds={d.theoNgay.map((x) => ({ khoa: x.ngay, nhan: thuCua(x.ngay), doc: `${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`, tong: x.giay,
+            phan: theoMucXep(x.theoMuc).map(([m, p]) => ({ gia: p, mau: MUC[m].mau, mo: !!muc && muc !== m })) }))} />
       </The>
 
       <NhomTieu chu={ngay === null ? "Theo mục" : `Theo mục · ${thuCua(d.theoNgay[ngay].ngay)} ${ngayNgan(d.theoNgay[ngay].ngay)}`} />
@@ -108,9 +94,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
                   <Chu kieu="dam" co={15} style={{ flex: 1 }}>{MUC[x.muc].chu}</Chu>
                   <Chu kieu="rat" co={14} so>{gio(x.giay)}</Chu>
                 </View>
-                <View style={{ height: 6, borderRadius: 3, backgroundColor: M.xamSoft, overflow: "hidden" }}>
-                  <View style={{ width: `${tong ? (x.giay / tong) * 100 : 0}%`, height: "100%", backgroundColor: MUC[x.muc].mau }} />
-                </View>
+                <ThanhClay key={`${ngay}`} ti={tong ? x.giay / tong : 0} mau={MUC[x.muc].mau} cao={10} tre={i * 45} />
               </View>
               <Chu co={13} mau={M.chu3} so style={{ minWidth: 36, textAlign: "right" }}>{`${tong ? Math.round((x.giay / tong) * 100) : 0}%`}</Chu>
             </Pressable>
@@ -145,7 +129,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
   );
 }
 
-/** Thứ tự chồng trong cột: mục lớn nhất ở dưới cùng. */
+/** Thứ tự chồng trong cột (từ đỉnh xuống): mục nhỏ ở trên, mục lớn nhất ở chân. */
 function theoMucXep(tm: Partial<Record<MucMH, number>>) {
   return (Object.entries(tm) as [MucMH, number][]).filter(([, p]) => p > 0).sort((a, b) => a[1] - b[1]);
 }

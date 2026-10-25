@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { AppState, Platform, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Svg, { Circle } from "react-native-svg";
+import { VongClay } from "@/lib/bieu-do";
 import { BangMang, BaoLoi, Chu, F, Icon, M, Nut, Rob, laMatMang, useLam } from "@/lib/ui";
 import { NenChoi, amBao, useTre } from "@/lib/ui-tre";
 import { kid, tenMuc, type NhipChoi } from "@/lib/api-tre";
@@ -60,11 +60,7 @@ export default function DangChoi() {
           <View accessibilityRole="timer" accessibilityLabel={`Còn ${hai(con / 60)} phút ${hai(con % 60)} giây, ${n?.soDu ?? 0} điểm`}
             style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,.96)", borderRadius: 99, paddingVertical: 5,
               paddingLeft: 5, paddingRight: 12, shadowColor: "#000", shadowOpacity: 0.25, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
-            <Svg width={34} height={34}>
-              <Circle cx={17} cy={17} r={14} stroke="#e7e7e3" strokeWidth={6} fill="#fff" />
-              <Circle cx={17} cy={17} r={14} stroke={M.diem} strokeWidth={6} fill="none" strokeDasharray={`${2 * Math.PI * 14 * Math.min(1, ti)} 999`}
-                transform="rotate(-90 17 17)" />
-            </Svg>
+            <VongClay ti={ti} co={34} day={6} mau={M.diem} />
             <Text style={{ fontFamily: F.rat, fontSize: 16, color: M.chu, fontVariant: ["tabular-nums"] }}>{giay === null ? "--:--" : `${hai(con / 60)}:${hai(con % 60)}`}</Text>
             <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: M.diem, alignItems: "center", justifyContent: "center" }}>
               <Icon ten="sao" mau={M.diemInk} co={12} />

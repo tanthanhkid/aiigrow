@@ -6,9 +6,10 @@ import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { KHOI, MEN } from "@/lib/clay";
+import { CotClay } from "@/lib/bieu-do";
 import { bm, type ConChiTiet, type ThongKeWeb, type TrangThaiWeb } from "@/lib/api";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, HaiNut, Icon, Luoi2, M, Man, Nhan, NhanMen, Nhom, NhomTieu, Nut, OChon, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, HaiNut, Icon, Luoi2, M, Man, Nhan, NhanMen, Nhom, NhomTieu, Nut, OChon, ONhap, OSo, The, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 type Chon = "cho_phep" | "chan" | "mac_dinh";
@@ -200,14 +201,10 @@ export default function WebCon() {
         <OSo nho="Hôm nay" so={thoiLuong(d.homNay.giay)} phu={`${d.homNay.soTrang} trang · ${d.homNay.soLan} lượt mở`} />
         <OSo nho={`${d.soNgay} ngày qua`} so={thoiLuong(d.tongGiay)} phu={`${d.tatCa} trang khác nhau`} />
       </Luoi2>
-      <View accessibilityLabel={`Biểu đồ thời gian trên web ${d.soNgay} ngày`} style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, height: 96, paddingHorizontal: 4 }}>
-        {d.theoNgay.map((x, i) => (
-          <View key={x.ngay} style={{ flex: 1, alignItems: "center", gap: 4, height: "100%", justifyContent: "flex-end" }}>
-            <View style={{ width: "100%", maxWidth: 34, height: Math.max(3, (x.giay / lonNhat) * 64), borderRadius: 6, backgroundColor: i === d.theoNgay.length - 1 ? M.chinh : M.chinhSoft }} />
-            <Chu co={12} mau={M.chu3}>{thuCua(x.ngay)}</Chu>
-          </View>
-        ))}
-      </View>
+      <The dem>
+        <CotClay kieu="chong" max={lonNhat} cao={104} chon={d.theoNgay.length - 1} nhanDoc={`Biểu đồ thời gian trên web ${d.soNgay} ngày`}
+          ds={d.theoNgay.map((x) => ({ khoa: x.ngay, nhan: thuCua(x.ngay), doc: `${thuCua(x.ngay)}: ${thoiLuong(x.giay)}`, phan: [{ gia: x.giay, mau: M.chinh }] }))} />
+      </The>
 
       <Chu co={13} mau={M.chu3}>
         {chanThat.length ? `Đang chặn thật trên ${chanThat.map((m) => m.ten).join(", ")}: trang bị chặn hiện «bị chặn» trong Chrome, Edge, Brave, Cốc Cốc (trình duyệt khác như Firefox chưa được lọc). Luật áp cho mọi tài khoản Windows trên máy. ` : ""}

@@ -14,6 +14,8 @@ export const BONG = {
   ngoc: "0px 6px 10px -5px rgba(10,82,70,0.44), 0px 2px 3px -1px rgba(10,82,70,0.24), inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,30,25,0.4)",
   vang: "0px 6px 10px -5px rgba(150,100,0,0.38), 0px 2px 3px -1px rgba(150,100,0,0.22), inset 0px 1px 0px rgba(255,255,255,0.7), inset 0px -2px 3px rgba(120,70,0,0.35)",
   do: "0px 5px 9px -4px rgba(165,31,20,0.6), inset 0px 1px 0px rgba(255,255,255,0.4), inset 0px -2px 3px rgba(0,0,0,0.25)",
+  /** cột / thanh / chấm chú giải của biểu đồ: bóng ngắn (cột xếp sát 3px) + viền men trên, chân tối */
+  cot: "0px 3px 5px -2px rgba(28,32,30,0.32), inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.22)",
   noi: "0px -6px 24px -12px rgba(28,32,30,0.25), 0px 16px 26px -10px rgba(28,32,30,0.34), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -8px 14px -8px rgba(40,44,42,0.12)",
 } as const;
 
@@ -31,6 +33,10 @@ export const MEN = {
   vang: "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 24%, rgba(255,255,255,0) 26%), linear-gradient(180deg, #f7c21f 0%, #e9a800 100%)",
   /** huy hiệu số đỏ / thanh tiến độ: nửa trên men */
   nua: "linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 50%)",
+  /** cột biểu đồ (đứng): ống đất sét tráng men — vệt sáng dọc bên trái, mép phải tối, chỏm trên một đốm men */
+  cot: "radial-gradient(60% 9px at 50% 5px, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.42) 24%, rgba(255,255,255,0.12) 42%, rgba(255,255,255,0) 56%, rgba(0,0,0,0.12) 100%)",
+  /** thanh ngang biểu đồ / tiến độ: nửa trên men trắng cắt sắc, chân tối nhẹ */
+  ong: "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.16) 45%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.10) 100%)",
   /** ô tab đang chọn: ánh sáng phản chiếu đáy */
   day: "linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(255,255,255,0.55) 100%)",
 } as const;
@@ -39,6 +45,8 @@ export const MEN = {
 export const VET = {
   toi: "linear-gradient(105deg, rgba(255,255,255,0) 34%, rgba(255,255,255,0.10) 42%, rgba(255,255,255,0.55) 49%, rgba(255,255,255,0.16) 54%, rgba(255,255,255,0) 62%)",
   sang: "linear-gradient(105deg, rgba(255,255,255,0) 34%, rgba(40,44,42,0.035) 41%, rgba(255,255,255,1) 49%, rgba(255,255,255,0.5) 54%, rgba(255,255,255,0) 62%)",
+  /** vệt men lướt DỌC trên cột biểu đồ (cột hẹp, vệt chéo 105° không thấy) — chạy từ chân lên đỉnh một lần khi cột mọc xong */
+  doc: "linear-gradient(180deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.14) 42%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.14) 58%, rgba(255,255,255,0) 70%)",
 } as const;
 
 /** Bộ style dựng sẵn: khối đất sét sáng (thẻ), viên nhỏ sáng, lòng chảo. `backgroundColor` vẫn lấy từ token. */

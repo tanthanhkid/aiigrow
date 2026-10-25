@@ -18,6 +18,7 @@ import { BO, F, M } from "./mau";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
+import { ThanhClay } from "./bieu-do";
 import { LoiApi } from "./api";
 
 export { M, F, BO };
@@ -333,12 +334,8 @@ export function Buoc({ n, tong, nhan }: { n: number; tong: number; nhan?: string
   );
 }
 
-export const Tien = ({ ti, mau = M.chinh }: { ti: number; mau?: string }) => (
-  <View style={s.tien} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(Math.min(1, Math.max(0, ti)) * 100) }}>
-    <View style={{ width: `${Math.min(100, Math.max(0, ti * 100))}%`, height: "100%", borderRadius: 5, backgroundColor: mau, backgroundImage: MEN.nua,
-      boxShadow: "inset 0px 1px 2px rgba(255,255,255,0.3), inset 0px -1px 2px rgba(0,0,0,0.2)" }} />
-  </View>
-);
+/** Thanh tiến độ = thanh clay của bộ biểu đồ (lib/bieu-do.tsx): rãnh lõm + thanh men, dài ra bằng lò xo khi vào màn. */
+export const Tien = ({ ti, mau = M.chinh }: { ti: number; mau?: string }) => <ThanhClay ti={ti} mau={mau} />;
 
 export function OSo({ nho, so, don, phu, noi, bam, children }: { nho: string; so: string | number; don?: string; phu?: string; noi?: boolean; bam?: () => void; children?: ReactNode }) {
   const nd = (
@@ -710,7 +707,6 @@ const s = StyleSheet.create({
   congTacNut: { position: "absolute", top: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", ...KHOI.nho },
   bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 16, borderRadius: BO_CLAY.vien },
   dauTd: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  tien: { height: 14, borderRadius: 7, backgroundColor: "#e9e8e3", padding: 2, boxShadow: BONG.lom },
   oSo: { padding: 16, borderRadius: BO_CLAY.o, backgroundColor: "#fff", gap: 4, flexGrow: 1, minWidth: 140, ...KHOI.the },
   o: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, borderRadius: 18, paddingHorizontal: 14, minHeight: 52, fontSize: 16, fontFamily: F.thuong, color: M.chu, boxShadow: BONG.lom },
   oDang: { borderColor: M.chinh, shadowColor: M.chinh, shadowOpacity: 0.16, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
