@@ -11,7 +11,8 @@ export function PhienProvider({ children }: { children: ReactNode }) {
   const [san, setSan] = useState(false);
   const [co, setCo] = useState(false);
   useEffect(() => {
-    bm.nap().then((t) => { setCo(!!t); setSan(true); });
+    // đọc token hỏng (khoá máy lỗi…) ⇒ coi như chưa đăng nhập, vẫn dựng màn — không kẹt màn trắng
+    bm.nap().then((t) => { setCo(!!t); setSan(true); }, () => { setCo(false); setSan(true); });
     bm.onHetPhien(() => { setCo(false); router.replace("/chao"); });
   }, []);
   const vao = useCallback(async (t: string, moi?: boolean) => {
