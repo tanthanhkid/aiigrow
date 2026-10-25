@@ -241,6 +241,8 @@ public sealed class AgentConfig
     public DaChoiTheoPolicy? DaChoi { get; set; }
     /// <summary>25/10: bam danh sách app thật đã gửi được + yêu cầu «Làm mới» đã xử lý (DanhSachApp.cs, DanhSachAppWorker).</summary>
     public DanhSachAppDaGui? DanhSachApp { get; set; }
+    /// <summary>25/10: DNS gia đình trình cài đã đặt (IP resolver + mẫu DoH + DNS cũ của card) — gỡ cài trả lại (DnsGiaDinh.cs). null = chưa đặt.</summary>
+    public DnsGiaDinhDaDat? DnsGiaDinh { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

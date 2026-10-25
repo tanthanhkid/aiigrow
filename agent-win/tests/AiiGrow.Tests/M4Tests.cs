@@ -223,7 +223,7 @@ public class InstallPlanTests
     public void Steps_XinAdminMotLan_RoiCaiDichVu_DatRecovery_Enroll_DungAppLocker()
     {
         var ids = InstallPlan.Steps().Select(s => s.Id).ToList();
-        Assert.Equal(new[] { "admin", "enroll", "copy", "service", "recovery", "tray-notice", "applocker" }, ids);
+        Assert.Equal(new[] { "admin", "enroll", "copy", "service", "recovery", "tray-notice", "dns", "applocker" }, ids);
         Assert.Contains("requireAdministrator", InstallPlan.Steps().First(s => s.Id == "admin").MoTa);
         Assert.Contains("LocalSystem", InstallPlan.Steps().First(s => s.Id == "service").MoTa);
     }

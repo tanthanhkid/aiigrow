@@ -40,8 +40,16 @@ public static class AppsEntry
 }
 
 /// <summary>Thao tác gỡ thật trên Windows. Mọi bước chịu được việc đã gỡ rồi.</summary>
-public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup
+public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup, IDnsCleanup
 {
+    public void GoDnsGiaDinh()
+    {
+        var d = new ConfigStore().Load()?.DnsGiaDinh;
+        if (d == null || d.Ipv4.Count == 0) return;
+        var r = Shell.PowerShell(DnsGiaDinh.KichBanGo(d), 60000);
+        if (!r.Ok) throw new InvalidOperationException(r.Error.Trim());
+    }
+
     private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string PolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
 

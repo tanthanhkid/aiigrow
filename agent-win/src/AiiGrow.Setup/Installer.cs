@@ -38,6 +38,7 @@ internal static class Installer
         log("Đã ghép máy. Đang cài dịch vụ…");
         InstallFilesAndService();
         SetTrayAndNotice();
+        log(await Task.Run(() => DatDnsGiaDinhAsync(ct), ct));
         log("Xong. AiiGrow đang chạy trên máy này.");
     }
 
@@ -72,7 +73,26 @@ internal static class Installer
         step(2, null);
 
         SetTrayAndNotice();
+        Program.WriteLog(await Task.Run(() => DatDnsGiaDinhAsync()));   // PowerShell chạy nền, không đứng giao diện cài
         step(3, null);
+    }
+
+    /// <summary>DNS gia đình (BANG-TINH-NANG-OS mục 10): hồ sơ DoH từ máy chủ ⇒ đặt cho card mạng (Windows 11). Không chặn việc cài: lỗi / chưa hỗ trợ chỉ trả câu log.</summary>
+    internal static async Task<string> DatDnsGiaDinhAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var store = new ConfigStore();
+            var cfg = store.Load();
+            if (cfg is not { Paired: true }) return "DNS gia đình: máy chưa ghép — bỏ qua.";
+            var (_, chu) = await DnsGiaDinh.DatKhiCaiAsync(store, async () =>
+            {
+                using var api = new ApiClient(cfg.Server, cfg.Token);
+                return await api.RawAsync(HttpMethod.Get, DnsGiaDinh.DuongHoSo, null, ct);
+            }, s => Shell.PowerShell(s, 90000));
+            return "DNS gia đình: " + chu;
+        }
+        catch (Exception e) { return "DNS gia đình: bỏ qua (" + e.Message + ")"; }
     }
 
     internal static void SetTrayAndNotice()

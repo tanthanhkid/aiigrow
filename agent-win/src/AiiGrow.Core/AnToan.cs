@@ -182,6 +182,8 @@ public static partial class SystemCleanup
 
         // Chính sách web của trình duyệt (URLBlocklist…): gỡ TRƯỚC cổng AppLocker — luật chặn web hỏng không được để Con kẹt.
         if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
+        // DNS gia đình (cài đặt lúc cài): trả DNS cũ của card mạng — cũng trước cổng, cần cấu hình (chưa xoá) để biết đã đặt gì.
+        if (ops is IDnsCleanup dns) Buoc(log, "Trả DNS cũ của card mạng (gỡ DNS gia đình)", dns.GoDnsGiaDinh);
 
         // CỔNG: gỡ luật AppLocker. Hỏng ⇒ dừng lại, chưa đụng config/dịch vụ; lần sau thử lại (gỡ tại máy: hẹn tác vụ tách rời cũng gỡ luật).
         kq.AppLockerGo = Buoc(log, "Gỡ luật AppLocker của AiiGrow", ops.GoAppLocker);
@@ -222,6 +224,7 @@ public static partial class SystemCleanup
     {
         var log = new StringBuilder();
         if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
+        if (ops is IDnsCleanup dns) Buoc(log, "Trả DNS cũ của card mạng (gỡ DNS gia đình)", dns.GoDnsGiaDinh);
         Buoc(log, "Tắt tự khởi động lại của dịch vụ", ops.TatKhoiPhucDichVu);
         Buoc(log, "Hẹn dọn nốt sau khi dịch vụ dừng", ops.HenDonTachRoi);
         Buoc(log, "Gỡ khay tự chạy", ops.GoKhay);
@@ -350,6 +353,7 @@ public static class CaiLai
         foreach (var q in (cu?.DaHaQuyen ?? new()).Concat(moi.DaHaQuyen ?? new()))
             if (q != null && !string.IsNullOrEmpty(q.Sid) && !ds.Any(x => x.Sid == q.Sid && x.Nhom == q.Nhom)) ds.Add(q);
         moi.DaHaQuyen = ds;
+        moi.DnsGiaDinh ??= cu?.DnsGiaDinh;   // cài lại: còn nhớ DNS cũ của card để gỡ cài trả đúng (không lưu IP của AiiGrow làm «DNS cũ»)
         return moi;
     }
 
