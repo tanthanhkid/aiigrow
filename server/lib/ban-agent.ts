@@ -25,13 +25,30 @@ export const BAN_AGENT_MAC = {
   sha256: "d8e3ea1efabaa3e592912d626ce80ac31c08c15df798eadf71648b2dae16f806",
 } as const;
 
-/** Manifest bản mới theo nền tảng máy hỏi (`?platform=mac|windows`; không có ⇒ Windows để agent Windows cũ nhận y như trước).
- *  Mac: URL gói đặt trên CHÍNH máy chủ được hỏi (`origin` https — vd staging) vì agent Mac chỉ nhận gói cùng host với máy chủ nó ghép;
- *  /tai/AiiGrow-<bản>.pkg ở mọi bản triển khai đều chuyển tới cùng GitHub Release. */
+/** Bản app Con Android (agent-android, vn.aiilab.aiigrow.con, APK ký khoá phát hành aiigrow-con — chứng chỉ SHA-256 ED:65:…:C5:93).
+ *  App TỰ cập nhật từ bản 0.2.2 (hỏi `?platform=android` lúc mở + mỗi 6 giờ; 0.2.0/0.2.1 phải cài tay một lần): so `versionCode`,
+ *  tải qua https (chỉ theo chuyển hướng tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release), kiểm sha256
+ *  + chữ ký APK trùng chữ ký app đang chạy rồi cài (Device Owner: im lặng; không: hộp xác nhận của Android).
+ *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
+ *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
+ *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+export const BAN_CON_ANDROID = {
+  version: "0.2.1",
+  versionCode: 3,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.2.1.apk",
+  sha256: "e850328a5ad3ae0b7f53d8094698367db550b1da79787e247f7ea9ad201e3b81",
+} as const;
+
+/** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
+ *  nó ghép; /tai/<tệp> ở mọi bản triển khai đều chuyển tới cùng GitHub Release. */
+const theoGoc = <T extends { url: string }>(b: T, origin?: string): T =>
+  origin?.startsWith("https://") ? { ...b, url: origin + new URL(b.url).pathname } : b;
+
+/** Manifest bản mới theo nền tảng máy hỏi (`?platform=mac|android|windows`; không có ⇒ Windows để agent Windows cũ nhận y như trước). */
 export const banAgentCho = (platform: string | null | undefined, origin?: string) => {
-  if (platform !== "mac") return BAN_AGENT_WINDOWS;
-  if (!origin?.startsWith("https://")) return BAN_AGENT_MAC;
-  return { ...BAN_AGENT_MAC, url: origin + new URL(BAN_AGENT_MAC.url).pathname };
+  if (platform === "mac") return theoGoc(BAN_AGENT_MAC, origin);
+  if (platform === "android") return theoGoc(BAN_CON_ANDROID, origin);
+  return BAN_AGENT_WINDOWS;
 };
 
 /** Bản agent máy Windows tự báo trong status khi đồng bộ (`status.version`) — máy Windows không gửi nhịp nên tuan_thu_may.phien_ban trống. */
