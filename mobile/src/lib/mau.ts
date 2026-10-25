@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // Token màu + chữ của AiiGrow. Bảng hiện hành: hướng A «than chì & ngọc lục bảo» (24/10, ghi chú bên dưới). Một màu nhấn xanh ngọc;
 // vàng CHỈ dùng cho điểm. Tương phản WCAG đo lại 24/10 (review PR #66): chu/nen 17:1 · chu3/nen 5,66 · chinh/trắng 6,41 · trắng/nut 18,7 ·
 // chinhInk/chinhSoft 7,72 · tim/trắng 5,94 · viền ô nhập #8a8f8c trên trắng 3,29.
@@ -21,4 +23,8 @@ export const M = {
 
 export const BO = { nho: 12, vua: 18, the: 24 } as const;
 
-export const F = { thuong: "Inter_400Regular", dam: "Inter_600SemiBold", rat: "Inter_700Bold" } as const;
+/** Inter. iOS gọi theo tên PostScript trong tệp font nhúng (Inter-Regular…); Android theo tên tệp trong assets/fonts (plugin expo-font);
+ * web theo tên @font-face mà useFonts đặt (phong-chu.web.ts). Cả ba trỏ cùng ba tệp của @expo-google-fonts/inter ⇒ chữ y hệt. */
+export const F = Platform.OS === "ios"
+  ? ({ thuong: "Inter-Regular", dam: "Inter-SemiBold", rat: "Inter-Bold" } as const)
+  : ({ thuong: "Inter_400Regular", dam: "Inter_600SemiBold", rat: "Inter_700Bold" } as const);

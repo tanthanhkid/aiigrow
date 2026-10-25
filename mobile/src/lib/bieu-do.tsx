@@ -2,6 +2,8 @@
 // đặt trong RÃNH LÕM (M.ranh + BONG.lom); vòng tiến độ là ỐNG đất sét có vệt sáng. Màu chỉ lấy từ token M; chất từ clay.ts.
 // Chuyển động «vui» + «ánh men»: cột mọc từ chân bằng lò xo vượt nhẹ (so le 45ms), xong thì một vệt men lướt một lần; thanh ngang dài ra
 // rồi vệt men lướt chéo; vòng quét tới giá trị. Reduce Motion ⇒ không mọc / không lướt, chỉ fade (docs/clay/M-anh-men.css cuối khối thông số).
+// «Mọc» chỉ dùng transform (Thanh duyệt 25/10): cột / thanh có kích thước cuối ngay từ đầu rồi scale từ chân (transformOrigin), nên mỗi khung
+// không phải tính lại bố cục. Đánh đổi đã chấp nhận: trong ~400ms mọc, đầu bo + lớp men hơi giãn theo; mọc xong (scale 1) y hệt bản tĩnh.
 // Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục), Tien (thanh tiến độ),
 // vòng đồng hồ của Con. Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
 import React, { useEffect, type ReactNode } from "react";
@@ -91,13 +93,13 @@ const phanChong = (x: CotNgay): PhanCot[] => {
 function Cot({ thu, cao, phan, giam }: { thu: number; cao: number; phan: PhanCot[]; giam: boolean }) {
   const h = cao <= 0 ? 0 : Math.max(8, cao);
   const { p, q } = useMoc(giam, thu * SO_LE, 380, 450, h > 0);
-  const stCot = useAnimatedStyle(() => ({ height: h * Math.max(0, p.value) }));
+  const stCot = useAnimatedStyle(() => ({ transform: [{ scaleY: Math.max(0, p.value) }] }));
   const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, transform: [{ translateY: (1 - 2 * q.value) * h }] }));
   const tong = phan.reduce((a, x) => a + x.gia, 0) || 1;
   // giá trị 0: một nụ nhỏ mờ giữ chỗ (cột đôi vẫn thấy đủ cặp Học / Giải trí)
   if (!h) return <View style={{ flex: 1, maxWidth: 30, height: 6, borderRadius: 3, backgroundColor: phan[0]?.mau, opacity: 0.3 }} />;
   return (
-    <Animated.View style={[{ flex: 1, maxWidth: 30, borderRadius: 999, boxShadow: BONG.cot }, stCot]}>
+    <Animated.View style={[{ flex: 1, maxWidth: 30, height: h, borderRadius: 999, boxShadow: BONG.cot, transformOrigin: "bottom" }, stCot]}>
       <View style={[StyleSheet.absoluteFill, { borderRadius: 999, overflow: "hidden", justifyContent: "flex-end" }]}>
         {phan.map((x, k) => <View key={k} style={{ height: `${(x.gia / tong) * 100}%`, backgroundColor: x.mau, opacity: x.mo ? 0.28 : 1 }} />)}
         <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.cot }]} />
@@ -116,16 +118,18 @@ export function ThanhClay({ ti, mau = M.chinh, cao = 14, tre = 0, nhanDoc }: { t
   const dem = cao >= 12 ? 2 : 1.5;
   // chạy lại «dài ra» khi thanh từ trống lên có số (dữ liệu vừa về), không chạy lại mỗi lần số nhích (đồng hồ đếm)
   const { p, q } = useMoc(giam, tre, 360, 420, t > 0);
-  const stThanh = useAnimatedStyle(() => ({ width: `${Math.min(100, t * 100 * Math.max(0, p.value))}%`, minWidth: p.value > 0.05 ? cao - dem * 2 : 0 }));   // gần đầy: nảy không tràn rãnh
-  const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, left: `${(2.4 * q.value - 1.2) * 100}%` }));
+  // dài sẵn t·100%, scale từ mép trái; gần đầy thì kẹp lò xo vượt để không tràn rãnh (như bản cũ kẹp 100%)
+  const vuotToiDa = t >= 1 ? 1 : Math.min(1.06, 1 / t);
+  const stThanh = useAnimatedStyle(() => ({ transform: [{ scaleX: Math.min(vuotToiDa, Math.max(0, p.value)) }] }));
+  const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, transform: [{ translateX: `${(2.4 * q.value - 1.2) * 100}%` }] }));
   return (
     <View accessibilityRole="progressbar" accessibilityLabel={nhanDoc} accessibilityValue={{ min: 0, max: 100, now: Math.round(t * 100) }}
       style={{ height: cao, borderRadius: cao / 2, backgroundColor: M.ranh, padding: dem, boxShadow: BONG.lom, justifyContent: "center" }}>
       {t > 0 ? (
-        <Animated.View style={[{ height: "100%", borderRadius: cao / 2, boxShadow: BONG.cot }, stThanh]}>
+        <Animated.View style={[{ height: "100%", width: `${t * 100}%`, minWidth: cao - dem * 2, borderRadius: cao / 2, boxShadow: BONG.cot, transformOrigin: "left" }, stThanh]}>
           <View style={[StyleSheet.absoluteFill, { borderRadius: cao / 2, overflow: "hidden", backgroundColor: mau }]}>
             <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.ong }]} />
-            {giam ? null : <Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, bottom: 0, width: "100%", backgroundImage: VET.toi }, stVet]} />}
+            {giam ? null : <Animated.View pointerEvents="none" style={[{ position: "absolute", left: 0, top: 0, bottom: 0, width: "100%", backgroundImage: VET.toi }, stVet]} />}
           </View>
         </Animated.View>
       ) : null}

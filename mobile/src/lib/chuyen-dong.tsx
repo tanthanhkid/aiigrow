@@ -39,16 +39,27 @@ export type NhanMenProps = Omit<PressableProps, "style" | "children"> & {
 export const LopMen = ({ men, bo = 0, goc }: { men?: string; bo?: number; goc?: ViewStyle }) =>
   men ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: bo, backgroundImage: men }, goc]} /> : null;
 
+/** Lớp vệt men lướt chéo của NhanMen — chỉ gắn vào nút từ lần nhấn đầu (màn có ~30 nút ⇒ bớt 2 view + 1 style động mỗi nút lúc mở màn). */
+function VetMen({ q, w, sang, bo }: { q: SharedValue<number>; w: SharedValue<number>; sang?: boolean; bo: number }) {
+  const vet = useAnimatedStyle(() => ({ opacity: q.value > -1.15 && q.value < 1.15 ? 1 : 0, transform: [{ translateX: q.value * w.value }, { skewX: "-8deg" }] }));
+  return (
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden", borderRadius: bo }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundImage: sang ? VET.sang : VET.toi }, vet]} />
+    </View>
+  );
+}
+
 /** Pressable có phản hồi clay: nhấn xuống bẹp 110ms, thả ra nảy lò xo THẢ, một vệt men lướt chéo 420ms. Thay cho Pressable ở mọi chỗ bấm được. */
 export function NhanMen({ style, children, muc = "nut", sang, men, onPressIn, onPressOut, onLayout, disabled, ...p }: NhanMenProps) {
   const bo = (StyleSheet.flatten(style)?.borderRadius as number | undefined) ?? 0;
   const giam = useReducedMotion();
   const sx = useSharedValue(1), sy = useSharedValue(1), q = useSharedValue(-2), w = useSharedValue(0), mo = useSharedValue(1);
   const st = useAnimatedStyle(() => ({ opacity: mo.value, transform: [{ scaleX: sx.value }, { scaleY: sy.value }] }));
-  const vet = useAnimatedStyle(() => ({ opacity: q.value > -1.15 && q.value < 1.15 ? 1 : 0, transform: [{ translateX: q.value * w.value }, { skewX: "-8deg" }] }));
+  const [coVet, setCoVet] = useState(false);
   const [a, b] = EP[muc];
   const vao = (e: GestureResponderEvent) => {
     if (!giam && !disabled) {
+      if (!coVet) setCoVet(true);
       sx.set(withTiming(a, { duration: 110, easing: EASE.ep }));
       sy.set(withTiming(b, { duration: 110, easing: EASE.ep }));
       q.set(withSequence(withTiming(-1.15, { duration: 0 }), withTiming(1.15, { duration: muc === "khoi" ? 450 : 420, easing: EASE.quet })));
@@ -64,9 +75,7 @@ export function NhanMen({ style, children, muc = "nut", sang, men, onPressIn, on
       onLayout={(e: LayoutChangeEvent) => { w.set(e.nativeEvent.layout.width); onLayout?.(e); }} style={[st, style]}>
       <LopMen men={men} bo={bo} />
       {children}
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: "hidden", borderRadius: bo }]}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundImage: sang ? VET.sang : VET.toi }, vet]} />
-      </View>
+      {coVet ? <VetMen q={q} w={w} sang={sang} bo={bo} /> : null}
     </APressable>
   );
 }
