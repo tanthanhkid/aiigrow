@@ -151,7 +151,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "ung-dung/lam-moi" && post) return json(await am.yeuCauLamMoi(fam, p[1]));
       if (sau === "ung-dung/dat" && post) {
         const kq = await am.datTrangThaiApp(fam, p[1], b);
-        await ghiSuKien(fam, "dat_luat_app", { muc: kq.muc, loai: b.trangThai, con: kq.con || null, may: p[1] }, { nguoi: bm.id });
+        await ghiSuKien(fam, b.trangThai === "bo" ? "xoa_luat_app" : "dat_luat_app", { muc: kq.muc, ...(b.trangThai === "bo" ? {} : { loai: b.trangThai }), con: kq.con || null, may: p[1] }, { nguoi: bm.id });
         return json(kq);
       }
     }

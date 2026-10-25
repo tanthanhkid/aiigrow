@@ -113,6 +113,6 @@ export async function chinhSachChung(may: May, con: string | null, tuanThu: Tuan
   const mucTamThoi = con ? await q<{ muc: string; loai: string; het: Date }>(
     `select muc, loai, het from app_rules where family_id = $1 and child_id in ('', $2) and het is not null and het > $3 order by het`,
     [may.family_id, con, now]) : [];
-  return dungChinhSach(p, { ts, may, tuanThu, phutThem, mucTamThoi, appThat: await mucAppThat(may.family_id),
+  return dungChinhSach(p, { ts, may, tuanThu, phutThem, mucTamThoi, appThat: await mucAppThat(may.family_id, may.platform),
     ...(may.platform === "android" ? { goiThat: await goiAndroidThat(may.family_id) } : {}) });
 }

@@ -69,7 +69,8 @@ export default function UngDungMay() {
     return () => clearInterval(t);
   }, [choMay, tai]));
   useEffect(() => {
-    if (choMay !== null && d?.capNhatLuc && d.capNhatLuc !== capTruoc.current && new Date(d.capNhatLuc).getTime() >= choMay - 2000) {
+    // so với mốc MÁY CHỦ trước khi bấm (không so đồng hồ điện thoại — lệch giờ làm hỏng phép so)
+    if (choMay !== null && d?.capNhatLuc && d.capNhatLuc !== capTruoc.current) {
       setChoMay(null);
       bao(`Đã có danh sách mới từ ${d.may.ten}`);
     }
@@ -80,7 +81,7 @@ export default function UngDungMay() {
   const q = tim.trim().toLowerCase();
   const dem = (t: TrangThai) => d.ds.filter((a) => a.trangThai === t).length;
   const ds = d.ds.filter((a) => (loc === "tat_ca" || a.trangThai === loc)
-    && (!q || a.ten.toLowerCase().includes(q) || a.muc.includes(q) || (a.nhaPhatHanh ?? "").toLowerCase().includes(q)));
+    && (!q || a.ten.toLowerCase().includes(q) || a.muc.toLowerCase().includes(q) || (a.nhaPhatHanh ?? "").toLowerCase().includes(q)));
   const choLoc: { gia: Loc; chu: string }[] = [
     { gia: "tat_ca", chu: `Tất cả (${d.ds.length})` },
     ...(["chua_xep", "chan", "cho_phep", "hoc", "giai_tri"] as TrangThai[]).filter((t) => dem(t) > 0 || t === "chan").map((t) => ({ gia: t as Loc, chu: `${TT[t].chu} (${dem(t)})` })),
@@ -99,7 +100,9 @@ export default function UngDungMay() {
     await tai();
     bao(dat === "chan" ? `Đã chặn ${a.ten}` : `Đã xếp ${a.ten} vào ${TT[dat].chu}`, () => {
       const t = kq.truoc;
-      (t ? bm.goi("luat", { con: kq.con, muc: t.muc, ten: t.ten, loai: t.loai, nhom: t.nhom, het: t.het }) : bm.goi("luat/xoa", { con: kq.con, muc: kq.muc }))
+      // neuLoai: chỉ hoàn tác khi luật vẫn đúng loại vừa đặt — người khác đổi trong lúc đó ⇒ máy chủ trả 409, không đè
+      const neuLoai = dat === "cho_phep" ? "hoc" : dat;
+      (t ? bm.goi("luat", { con: kq.con, muc: t.muc, ten: t.ten, loai: t.loai, nhom: t.nhom, het: t.het, neuLoai }) : bm.goi("luat/xoa", { con: kq.con, muc: kq.muc, neuLoai }))
         .then(() => tai(), () => tai());
     });
   });

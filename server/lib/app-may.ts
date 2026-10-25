@@ -38,7 +38,8 @@ const chu = (v: unknown, n = 300) => {
 export function mucApp(v: unknown, giuHoa = false): string | null {
   const g = String(v ?? "").trim();
   const t = g.toLowerCase();
-  return /^[a-z0-9][a-z0-9 ._()+\-]{0,199}$/.test(t) && !t.includes("..") ? (giuHoa ? g : t) : null;
+  // chữ có dấu / CJK / «'» «&» «[]» «,» «!» hợp lệ trong tên tệp (原神.exe, Tom's Game.exe); vẫn cấm «/», «\\», «:», «..»
+  return /^[\p{L}\p{N}][\p{L}\p{N} ._()+\-'&[\],!]{0,199}$/u.test(t) && !t.includes("..") ? (giuHoa ? g : t) : null;
 }
 
 /** Làm sạch một app agent gửi; sai ⇒ null (bỏ qua, không làm hỏng cả lô). */
@@ -81,6 +82,7 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
   const bam = typeof b.bam === "string" && BAM.test(b.bam) ? b.bam.toLowerCase() : null;
   if (!bam) throw new LoiNghiepVu("bam_sai", "Thiếu mã băm danh sách app", 400);
   const du = b.du === true;
+  if (du && !Array.isArray(b.ds)) throw new LoiNghiepVu("thieu_ds", "Gửi đủ phải kèm ds", 400);   // không xoá sạch danh sách vì một lần gửi lỗi
   const giuHoa = may.platform === "android";
   const lay = (v: unknown) => (Array.isArray(v) ? v : []).slice(0, TOI_DA_APP).map((x) => sachApp(x as AppVao, giuHoa)).filter((x): x is AppSach => !!x);
   return tx(async (t) => {
@@ -184,8 +186,9 @@ export async function yeuCauLamMoi(fam: string, mayId: string) {
 }
 
 /** Mọi `muc` app thật của cả nhà (chữ thường) — để biết «microsoft.minecraftuwp», «ru.keepcoder.telegram»… là APP chứ không phải tên miền. */
-export async function mucAppThat(fam: string): Promise<Set<string>> {
-  const r = await q<{ muc: string }>(`select distinct a.muc from app_may a join devices d on d.id = a.device_id where d.family_id = $1`, [fam]);
+/** `nen`: chỉ app của máy cùng nền tảng (package Android không phải app trên Windows). Bỏ trống = mọi máy (để loại app khỏi danh sách web). */
+export async function mucAppThat(fam: string, nen?: string): Promise<Set<string>> {
+  const r = await q<{ muc: string }>(`select distinct a.muc from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and ($2::text is null or d.platform = $2)`, [fam, nen ?? null]);
   return new Set(r.map((x) => x.muc.toLowerCase()));
 }
 
@@ -202,7 +205,9 @@ export type AppChan = { muc: string; duongDan?: string; thuMuc?: string; sha256?
 export async function appChanCuaMay(may: Pick<May, "id" | "family_id" | "platform" | "dung_chung" | "child_id">, con: string | null): Promise<AppChan[]> {
   if (may.platform !== "windows" && may.platform !== "mac") return [];
   const ai = may.dung_chung ? con ?? "" : may.child_id ?? con ?? "";
-  const [luat, rows] = await Promise.all([dsLuat(may.family_id), q<DongApp>(`select * from app_may where device_id = $1`, [may.id])]);
+  // chỉ cột cần cho chặn (không kéo icon base64 ở mỗi lượt dong-bo)
+  const [luat, rows] = await Promise.all([dsLuat(may.family_id),
+    q<DongApp>(`select khoa, muc, duong_dan, thu_muc, sha256, nha_phat_hanh, team_id from app_may where device_id = $1`, [may.id])]);
   const allow = allowlistHieuLuc();
   const ra = new Map<string, AppChan>();
   for (const a of rows) {

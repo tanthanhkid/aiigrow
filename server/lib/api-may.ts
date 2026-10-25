@@ -69,7 +69,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const moPhienMay = coTacTu(may.platform) && con ? await moRongPhienMay(may, con) : null;
       // Danh sách app thật (lib/app-may.ts): mục app của cả nhà (gói Store không đuôi .exe vẫn là app) · app bị Chặn kèm định danh thật của máy này
       const [appThat, blockedApps, danhSachApp] = coTacTu(may.platform)
-        ? await Promise.all([mucAppThat(may.family_id), appChanCuaMay(may, con), tinHieuDanhSachApp(may.id)]) : [undefined, [], null];
+        ? await Promise.all([mucAppThat(may.family_id, may.platform), appChanCuaMay(may, con), tinHieuDanhSachApp(may.id)]) : [undefined, [], null];
       const windows = chinhSachWindows(ghep?.pol ?? pol, biMatOffline ?? undefined, cheDo,
         { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, appThat, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
       if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay

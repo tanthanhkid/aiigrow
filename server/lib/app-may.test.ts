@@ -62,6 +62,9 @@ test("agent gửi đủ ⇒ lưu; phần đổi chỉ nhận khi bamTruoc khớp
   // gửi đủ lần nữa thay toàn bộ
   await goiMay("ung-dung", tok, { du: true, bam: "d".repeat(64), ds: [ROBLOX] });
   assert.equal((await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds.length, 1);
+  // gửi đủ mà thiếu ds ⇒ 400, không xoá sạch
+  assert.equal((await goiMay("ung-dung", tok, { du: true, bam: "e".repeat(64) })).status, 400);
+  assert.equal((await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds.length, 1);
   // thiếu bam ⇒ 400
   assert.equal((await goiMay("ung-dung", tok, { du: true, ds: [] })).status, 400);
 });
@@ -89,6 +92,8 @@ test("Ba Mẹ đặt Chặn theo định danh thật ⇒ blockedApps của máy 
   assert.ok(db.windows.allowedApps.includes("scratch 3.exe"));
   assert.ok(!db.windows.allowedApps.includes("robloxplayerbeta.exe"));
   assert.equal(db.danhSachApp.bam, "a".repeat(64));
+  // gói Store không lọt vào danh sách web (chính sách trình duyệt) như một tên miền
+  assert.ok(![...db.windows.web.chan, ...db.windows.web.cho].includes("microsoft.minecraftuwp"));
   assert.equal(db.danhSachApp.yeuCau, null);
   // «Cho phép» tính Tiện ích ở thời gian màn hình, «Học tập» tính Học tập
   const luat = [{ child_id: "", muc: "microsoft.minecraftuwp", ten: "Minecraft", loai: "hoc", nhom: "cho_phep" }, { child_id: "", muc: "scratch 3.exe", ten: "Scratch", loai: "hoc", nhom: "khac" }] as any;
@@ -152,7 +157,9 @@ test("luồng xếp loại cũ: tên thật từ danh sách máy thay tên đoá
   assert.equal(l.chuaXep.find((x: any) => x.muc === "robloxplayerbeta.exe")?.ten, "Roblox Player");
 });
 
-test("sachApp: chặn định danh có «/» hoặc «..», team id sai bị bỏ, sha256 phải 64 hex", () => {
+test("sachApp: chặn định danh có «/» hoặc «..», team id sai bị bỏ, sha256 phải 64 hex; tên tệp có dấu / CJK hợp lệ", () => {
+  assert.equal(am.sachApp({ khoa: "a", muc: "原神.exe", ten: "Genshin" })?.muc, "原神.exe");
+  assert.equal(am.sachApp({ khoa: "a", muc: "Tom's Game.exe", ten: "T" })?.muc, "tom's game.exe");
   assert.equal(am.sachApp({ khoa: "a", muc: "../x.exe", ten: "X" }), null);
   assert.equal(am.sachApp({ khoa: "a", muc: "c:/x.exe", ten: "X" }), null);
   const a = am.sachApp({ khoa: "A", muc: "Game.EXE", ten: " Game ", teamId: "bad id!", sha256: "zz" })!;
