@@ -224,3 +224,5 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .trang-loi .dau-tai{display:flex;align-items:center;gap:14px}
 .ag .trang-loi h1{font-size:24px;line-height:1.2;font-weight:800;letter-spacing:-.4px}
 .ag .the-tai .nhan-o{margin:6px 0 -2px}
+/* chữ dài: nút xuống dòng vẫn có lề trên/dưới 8 (các biến thể .nho / .the-tai đặt padding:0 …) */
+.ag .nut.nho,.ag .the-tai .nut{padding-top:8px;padding-bottom:8px}

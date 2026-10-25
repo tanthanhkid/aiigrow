@@ -63,7 +63,9 @@ export const DO = String.raw`(() => {
     const nut = el.closest('button,a,[role=button],[role=tab],[role=link],[role=checkbox],[role=switch],[role=radio]');
     // Có hình minh hoạ (ảnh > 30×30, không phải icon) thì là thẻ / banner, không phải nút — Material 3: nút chỉ mang icon.
     const motNhan = nut && !anhs.some((a) => nut.contains(a)) && (() => { let k = 0; const w2 = document.createTreeWalker(nut, NodeFilter.SHOW_TEXT); while (w2.nextNode()) if (w2.currentNode.textContent.trim()) k++; return k === 1; })();
-    if (!cuoi && motNhan && chu.split(/\s+/).length <= 8) { const tops = new Set(dongCua(n).map(r => Math.round(r.top))); if (tops.size > 1) L.push({luat:'NUT-2-DONG', chu, el:ten(nut), dong: tops.size, rong: Math.round(nut.getBoundingClientRect().width)}); }
+    // nút một mình cả hàng (≥ 90% bề ngang khung cha — `rong`) được 2 dòng căn giữa cho nhãn có tên dài; nút cạnh nút khác: một dòng
+    const motHang = nut && nut.parentElement && nut.getBoundingClientRect().width >= 0.9 * nut.parentElement.getBoundingClientRect().width;
+    if (!cuoi && motNhan && chu.split(/\s+/).length <= 8) { const tops = new Set(dongCua(n).map(r => Math.round(r.top))); if (tops.size > (motHang ? 2 : 1)) L.push({luat:'NUT-2-DONG', chu, el:ten(nut), dong: tops.size, rong: Math.round(nut.getBoundingClientRect().width)}); }
     // 3. đè ảnh
     for (const r of dongCua(n)) for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
       const x = Math.min(r.right,q.right)-Math.max(r.left,q.left), y = Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
@@ -181,7 +183,7 @@ export async function doTay(goi, js, ds) {
  * Chạy cổng trên danh sách màn ở mọi chế độ: 320, 390, 390 + giãn chữ. `vao(man)` đưa trình duyệt tới màn (đã đặt dữ liệu giả) và đợi
  * nội dung. → tổng số lỗi (in từng lỗi dạng JSON).
  */
-export async function chayCong({ goi, js, sleep, dsMan, vao }) {
+export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "" }) {
   let tong = 0, soDoTay = 0;
   for (const [rong, gian] of [[320, false], [390, false], [390, true]]) {
     await goi("Emulation.setDeviceMetricsOverride", { width: rong, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -208,7 +210,7 @@ export async function chayCong({ goi, js, sleep, dsMan, vao }) {
       loi += ds.length;
       // GD_CHUP=<thư mục>: chụp mọi màn có lỗi (đính kèm PR / soi bằng mắt); thêm GD_CHUP_TAT_CA=1 thì chụp cả màn đạt
       if (process.env.GD_CHUP && (ds.length || process.env.GD_CHUP_TAT_CA)) { const a = await goi("Page.captureScreenshot", { format: "png" });
-        (await import("node:fs")).writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64")); }
+        (await import("node:fs")).writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}${hau}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64")); }
       console.log(`${man.ten.padEnd(34)} ${ds.length ? ds.length + " lỗi" : "đạt"}${tay.length ? ` (đo pixel ${tay.length} dòng trên nền gradient/ảnh)` : ""}`);
       for (const x of ds) console.log("    " + JSON.stringify(x));
     }

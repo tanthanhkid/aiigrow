@@ -365,9 +365,11 @@ if (process.argv.includes("--giao-dien")) {
     "iPad của Bảo Anh": dung("iPad Air 11 inch M2 màu xanh của Bảo Anh", 40),
     "Laptop của Bill": dung("Laptop chơi game phòng khách của Bill 07", 40), "Laptop-BILL": dung("LAPTOP-PHONG-KHACH-CUA-BILL-2026-MAY-SO2", 40) };
   const MIEN = ["facebook.com", "khanacademy.org", "youtube.com", "gamevui.vn", "tiktok.com", "roblox.com", "minecraft.net"];
-  const doiChu = (t) => { for (const [a, b] of Object.entries(MAY_DAI)) t = t.split(a).join(b);
+  // tên máy → dấu giữ chỗ trước (tên máy dài có chữ «Bill», không để bước đổi tên con chèn vào), rồi tên miền, tên con, cuối cùng trả tên máy
+  const doiChu = (t) => { const ds = Object.entries(MAY_DAI); ds.forEach(([a], i) => { t = t.split(a).join(`\u0000${i}\u0000`); });
     for (const d of MIEN) t = t.split(d).join(mien(d));
-    return t.split(KEN).join(TEN_DAI).split(BILL).join(TEN_DAI2); };
+    t = t.split(KEN).join(TEN_DAI).split(BILL).join(TEN_DAI2);
+    return t.replace(/\u0000(\d+)\u0000/g, (_, i) => ds[+i][1]); };
   const daiHoa = (v) => typeof v === "string" ? doiChu(v) : Array.isArray(v) ? v.map(daiHoa)
     : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, daiHoa(x)])) : v;
   let chuDai = false;
@@ -384,10 +386,10 @@ if (process.argv.includes("--giao-dien")) {
   };
   // PHA_CHI_DAI=1: chỉ chạy lượt chữ dài (soát nhanh khi sửa)
   let tong = process.env.PHA_CHI_DAI === "1" ? 0 : await chayCong({ goi, js, sleep, dsMan, vao });
-  if (process.env.PHA_CHU_DAI !== "0") {
+  if (process.env.PHA_CHU_DAI !== "0" || process.env.PHA_CHI_DAI === "1") {
     chuDai = true;
     console.log(`\n# LƯỢT CHỮ DÀI — tên con «${TEN_DAI}» (${[...TEN_DAI].length}), máy «${MAY_DAI["Laptop của Bảo Anh · Windows 11"]}» (40), miền «${mien("youtube.com")}» (${mien("youtube.com").length})`);
-    tong += await chayCong({ goi, js, sleep, dsMan, vao });
+    tong += await chayCong({ goi, js, sleep, dsMan, vao, hau: "-dai" });
   }
   ws.close(); chrome.kill(); may.close();
   await sleep(500);

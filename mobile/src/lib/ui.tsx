@@ -27,9 +27,9 @@ export type TenIcon = keyof typeof ICON;
 // ---------------------------------------------------------------- chữ, icon, mascot
 
 type Kieu = "thuong" | "dam" | "rat";
-/** Tên miền / đường dẫn (≥ 14 ký tự, có dấu chấm, có chữ cái — không đụng số «1.000.000»): chèn chỗ bẻ dòng vô hình (U+200B) sau mỗi
+/** Tên miền (≥ 14 ký tự, đuôi toàn chữ cái như .com/.vn — không đụng số «1.000.000» hay mã «3f9a….c1d2…» để chép): chèn chỗ bẻ dòng vô hình (U+200B) sau mỗi
  *  dấu chấm — trong bong bóng hẹp dòng gãy ở «.» (và «-», trình duyệt / iOS tự bẻ sau gạch nối) thay vì cắt giữa chữ («scratch.mit.ed|u»). */
-export const beMien = (t: string) => t.replace(/[\p{L}\d_-]+(?:\.[\p{L}\d_-]+)+/gu, (x) => (x.length >= 14 && /\p{L}/u.test(x) ? x.replace(/\./g, ".\u200B") : x));
+export const beMien = (t: string) => t.replace(/[\p{L}\d_-]+(?:\.[\p{L}\d_-]+)+/gu, (x) => (x.length >= 14 && /\.[a-z]{2,24}$/i.test(x) ? x.replace(/\./g, ".\u200B") : x));
 const be = (c: ReactNode) => (typeof c === "string" ? beMien(c) : Array.isArray(c) ? Children.map(c, (x) => (typeof x === "string" ? beMien(x) : x)) : c);
 /** Line-height theo cỡ: ≤16 → 1.45–1.5 (dấu tiếng Việt không bị cắt), 20 → 1.25, ≥24 → 1.15. */
 export function Chu({ children, kieu = "thuong", co = 15, mau = M.chu, style, so, dong }: {
@@ -118,11 +118,10 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
   huy: { nen: M.the, chu: M.huy, men: MEN.sang, bong: BONG.nho, sang: true }, vang: { nen: M.diem, chu: "#3d2600", men: MEN.vang, bong: BONG.vang, sang: true },
 };
 
-/** Nút (kit.nut). Nhãn MỘT dòng (Material 3): nút rộng theo chữ, thiếu chỗ thì `HaiNut` cho nút xuống hàng — không bẻ chữ.
- *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ co tối đa
- *  20% (adjustsFontSizeToFit — app thật) rồi «…» ở cuối; không cắt nửa chữ, không đẩy nút bên cạnh ra ngoài thẻ.
- *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên.
- *  Nhấn = bẹp-nảy + vệt men lướt (NhanMen). Icon trên nút: bản 3D nếu `ic3d`, mặc định icon đặc cùng màu chữ. */
+/** Nút (kit.nut). Nhãn một dòng (Material 3): nút rộng theo chữ, thiếu chỗ thì `HaiNut` cho nút xuống hàng — không bẻ chữ.
+ *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ quá dài
+ *  thì «…» ở cuối — không co chữ (người chọn cỡ chữ lớn phải được chữ lớn, WCAG 1.4.4), không cắt nửa chữ, không đẩy nút bên cạnh.
+ *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên. */
 export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc }: {
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
 }) {
@@ -137,7 +136,7 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
-          <Text numberOfLines={rong ? 2 : 1} ellipsizeMode="tail" adjustsFontSizeToFit={!rong} minimumFontScale={0.8}
+          <Text numberOfLines={rong ? 2 : 1} ellipsizeMode="tail"
             style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
         </View>
       )}
@@ -258,7 +257,7 @@ export function ChonMot<T extends string | number>({ ds, gia, doi }: { ds: { gia
       {ds.map((x) => (
         <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: x.gia === gia }} muc="chip" sang men={x.gia === gia ? MEN.sang : undefined}
           style={[s.chonO, x.gia === gia && s.chonOChon]}>
-          <Text numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: F.rat, fontSize: 14, color: x.gia === gia ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: "100%", fontFamily: F.rat, fontSize: 14, color: x.gia === gia ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
         </NhanMen>
       ))}
     </View>
@@ -273,7 +272,7 @@ export function Chips<T extends string | number>({ ds, chon, doi }: { ds: { gia:
         return (
           <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="checkbox" accessibilityState={{ checked: c }} muc="chip" sang men={c ? undefined : MEN.sang}
             style={[s.chip, c && { borderColor: M.chinh, backgroundColor: "#eef5f2" }]}>
-            <Text numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: "100%", fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
           </NhanMen>
         );
       })}
