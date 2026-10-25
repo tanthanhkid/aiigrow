@@ -43,6 +43,7 @@ internal sealed class SetupForm : Form
     public SetupForm()
     {
         Text = "Cài AiiGrow";
+        try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { } // logo chuẩn trên thanh tiêu đề + taskbar
         Font = new Font("Segoe UI", 11f);
         ClientSize = new Size(Rong + 64, 640);
         FormBorderStyle = FormBorderStyle.FixedDialog;

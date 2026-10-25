@@ -6,6 +6,8 @@
     <AssemblyName>AiiGrow.Setup</AssemblyName>
     <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Icon bộ cài = logo chuẩn AiiGrow «Rob tưới mầm» (cùng tệp với khay) -->
+    <ApplicationIcon>..\AiiGrow.Tray\Assets\aiigrow-khay.ico</ApplicationIcon>
   </PropertyGroup>
   <!-- Bộ cài MỘT FILE: build-mot-file.sh publish Service + Tray (một tệp, tự chứa) vào $(GoiDir) rồi publish Setup với -p:GoiDir=…
        ⇒ hai exe nằm trong AiiGrow-Setup.exe dưới dạng tài nguyên «goi/<tên>» (Goi.cs giải ra lúc cài). Không có GoiDir ⇒ bộ cài cũ (exe cạnh bên). -->
