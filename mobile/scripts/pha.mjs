@@ -179,18 +179,21 @@ coBan["POST con/c1/sua"] = { ok: true };
 coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
 coBan["GET may/m1/tuan-thu"] = { ...coBan["GET tuan-thu"].ds[0], daDongBo: true, dangGo: null, coTheXoaHan: false, cheDoBaMeChon: "chan", moDen: null, suKien: [] };
 // Ứng dụng trên máy (danh sách app ĐÃ CÀI THẬT do agent gửi — server/lib/app-may.ts): icon PNG nhỏ, tên dài, không icon, đủ các trạng thái
-const ICON = anhGia(32, 32);
+// icon THẬT của vài app phổ biến (PNG 96 px trích từ .icns bằng sips — scripts/icon-that.json); app không có icon ⇒ chữ cái đầu
+const ICON = JSON.parse(readFileSync(new URL("./icon-that.json", import.meta.url), "utf8"));
 const appMay = (khoa, ten, trangThai, o = {}) => ({ khoa, muc: khoa.replace(/^exe:.*\\/, "").replace(/^appx:/, "").replace(/_.*$/, ""), ten, nguon: "start", nhaPhatHanh: null,
-  teamId: null, duongDan: null, phienBan: null, icon: ICON, trangThai, nhom: trangThai === "giai_tri" ? "game" : null, theoCaNha: false, ...o });
+  teamId: null, duongDan: null, phienBan: null, icon: null, trangThai, nhom: trangThai === "giai_tri" ? "game" : null, theoCaNha: false, ...o });
 coBan["GET may/m1/ung-dung"] = { may: { id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", dungChung: false, con: "c1" },
   capNhatLuc: luc(12), yeuCauLuc: null, ds: [
-    appMay("exe:c:\\program files\\microsoft visual studio code\\code.exe", "Microsoft Visual Studio Code — Trình soạn mã cho học sinh lập trình", "hoc", { nguon: "registry", nhaPhatHanh: "Microsoft Corporation", phienBan: "1.95.3" }),
-    appMay("appx:microsoft.minecraftuwp_8wekyb3d8bbwe", "Minecraft for Windows", "giai_tri", { nguon: "store", nhaPhatHanh: "Mojang Studios" }),
-    appMay("exe:c:\\windows\\system32\\notepad.exe", "Notepad", "he_thong", { nhaPhatHanh: "Microsoft Windows" }),
+    appMay("exe:c:\\program files\\microsoft office\\root\\office16\\winword.exe", "Microsoft Word — Soạn thảo văn bản cho bài tập ở trường", "hoc", { nguon: "registry", nhaPhatHanh: "Microsoft Corporation", phienBan: "16.0.18129", icon: ICON.word }),
+    appMay("appx:bytedance.capcut_6yccndn6064se", "CapCut", "giai_tri", { nguon: "store", nhaPhatHanh: "Bytedance Pte. Ltd.", icon: ICON.capcut }),
+    appMay("exe:c:\\program files\\google\\chrome\\application\\chrome.exe", "Google Chrome", "he_thong", { nhaPhatHanh: "Google LLC", icon: ICON.chrome }),
+    appMay("exe:c:\\program files\\blender foundation\\blender 4.2\\blender.exe", "Blender", "chua_xep", { nguon: "registry", nhaPhatHanh: "Blender Foundation", icon: ICON.blender }),
+    appMay("exe:c:\\users\\baoanh\\appdata\\roaming\\zoom\\bin\\zoom.exe", "Zoom Workplace", "hoc", { nhaPhatHanh: "Zoom Communications, Inc.", icon: ICON.zoom }),
     appMay("exe:c:\\users\\baoanh\\appdata\\local\\roblox\\versions\\v1\\robloxplayerbeta.exe", "Roblox Player", "chua_xep", { nhaPhatHanh: "Roblox Corporation", phienBan: "0.650.0.6500718",
       duongDan: "C:\\Users\\baoanh\\AppData\\Local\\Roblox\\Versions\\version-2b8f4c1e9a7d4e21\\RobloxPlayerBeta.exe" }),
-    appMay("exe:c:\\users\\baoanh\\appdata\\local\\programs\\zalo\\zalo.exe", "Zalo", "chan", { nhaPhatHanh: "VNG Online Co., Ltd", icon: null }),
-    appMay("exe:c:\\program files\\scratch 3\\scratch 3.exe", "Scratch 3", "cho_phep", { nguon: "registry", nhaPhatHanh: "Scratch Foundation", theoCaNha: true }),
+    appMay("exe:c:\\users\\baoanh\\appdata\\local\\viber\\viber.exe", "Viber", "chan", { nhaPhatHanh: "Viber Media S.à r.l.", icon: ICON.viber }),
+    appMay("exe:c:\\program files\\microsoft office\\root\\office16\\excel.exe", "Microsoft Excel", "hoc", { nguon: "registry", nhaPhatHanh: "Microsoft Corporation", theoCaNha: true, icon: ICON.excel }),
   ] };
 coBan["POST may/m1/ung-dung/dat"] = (b) => ({ muc: kb["GET may/m1/ung-dung"].ds.find((x) => x.khoa === b?.khoa)?.muc ?? "x", con: "c1", truoc: null });
 coBan["POST may/m1/ung-dung/lam-moi"] = { yeuCauLuc: new Date().toISOString() };
@@ -343,7 +346,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ho-so-con", "/ho-so/c1", "Ghép thêm máy"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-ung-dung-may", "/ung-dung/m1", "Roblox Player"),
-    M("bm-ung-dung-may (bảng chọn)", "/ung-dung/m1", "kể cả giờ chơi", { truoc: async () => { await di("/ung-dung/m1"); await doi("Roblox Player"); await bam("Roblox Player"); } }),
+    M("bm-ung-dung-may (bảng chọn)", "/ung-dung/m1", "Lưu phân loại", { truoc: async () => { await di("/ung-dung/m1"); await doi("Roblox Player"); await bam("Roblox Player"); } }),
     M("bm-ung-dung-may (chưa có danh sách)", "/ung-dung/m1", "Chưa có danh sách ứng dụng", { kb: { "GET may/m1/ung-dung": { ...coBan["GET may/m1/ung-dung"], capNhatLuc: null, ds: [] } } }),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
@@ -764,13 +767,15 @@ await kichBan("Ứng dụng trên máy: danh sách app thật ⇒ tìm ⇒ Chặ
   xet(await doi("Ứng dụng trên máy Laptop của Bảo Anh"), "mở màn Ứng dụng trên máy <tên>");
   xet(await doi("Cập nhật lúc"), "hiện «Cập nhật lúc …»");
   xet((await chu()).includes("Microsoft Store") && (await chu()).includes("Roblox Corporation"), "hiện nguồn + nhà phát hành");
+  xet(await js(`[...document.querySelectorAll("img")].filter((i) => i.src.startsWith("data:image/png") && i.naturalWidth >= 96).length >= 5`), "icon thật ≥ 96 px hiện trong danh sách");
   await go("Tìm theo tên app hoặc nhà phát hành", "rob");
   await sleep(300);
-  xet(!(await chu()).includes("Zalo"), "tìm «rob» lọc danh sách");
+  xet(!(await chu()).includes("Viber"), "tìm «rob» lọc danh sách");
   await bam("Roblox Player");
-  xet(await doi("kể cả giờ chơi"), "mở bảng chọn, mặc định Chặn");
-  await bam("Lưu");
-  xet(await doi("Đã chặn Roblox Player"), "báo đã chặn + Hoàn tác");
+  xet(await doi("Lưu phân loại"), "mở bảng xếp loại như luồng cũ (Học tập / Giải trí / Chặn)");
+  await bam("Chặn hoàn toàn");
+  await bam("Lưu phân loại");
+  xet(await doi("Đã xếp Roblox Player vào Chặn"), "báo đã chặn + Hoàn tác");
   xet(nhatKy.some((x) => x.d === "may/m1/ung-dung/dat" && x.m === "POST" && x.body?.trangThai === "chan" && x.body?.khoa?.endsWith("robloxplayerbeta.exe")), "gửi khoa THẬT của máy, trạng thái chan");
   await bam("Hoàn tác");
   await sleep(500);
@@ -778,7 +783,7 @@ await kichBan("Ứng dụng trên máy: danh sách app thật ⇒ tìm ⇒ Chặ
   await go("Tìm theo tên app hoặc nhà phát hành", "");
   await bam("Chặn (1)");
   await sleep(300);
-  xet((await chu()).includes("Zalo") && !(await chu()).includes("Minecraft for Windows"), "lọc theo trạng thái Chặn");
+  xet((await chu()).includes("Viber") && !(await chu()).includes("CapCut"), "lọc theo trạng thái Chặn");
   await bam("Làm mới");
   await sleep(400);
   xet(nhatKy.some((x) => x.d === "may/m1/ung-dung/lam-moi" && x.m === "POST"), "Làm mới gửi yêu cầu cho máy");

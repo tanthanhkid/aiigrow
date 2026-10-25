@@ -7,7 +7,7 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, View } from "react-native";
 import { bm } from "@/lib/api";
 import {
-  BangTruot, BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
+  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, MAU_CON, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 type TrangThai = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
@@ -30,13 +30,14 @@ type Loc = "tat_ca" | TrangThai;
 type Dat = "cho_phep" | "hoc" | "giai_tri" | "chan";
 const CHO_MAY_MS = 5000, CHO_MAY_TOI_DA = 90_000;
 
-/** Icon thật của app (PNG base64 agent gửi) trong viên clay; không có ⇒ viên lưới. */
+/** Icon THẬT của app (PNG 96 px agent trích từ máy: exe/AppxManifest, .icns, PackageManager) — nhìn logo là nhận ra app.
+ *  Chỉ khi máy không trích được icon mới dùng chữ cái đầu của tên app. */
 function IconApp({ a }: { a: AppMay }) {
-  if (!a.icon) return <BieuTron ic={a.trangThai === "chan" ? "khoa" : "luoi"} mau={a.trangThai === "chan" ? "do" : "xam"} />;
   return (
-    <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
       boxShadow: "inset 0px 1px 0px rgba(255,255,255,0.9), 0px 2px 4px -1px rgba(0,0,0,0.18)" }}>
-      <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 30, height: 30 }} accessibilityIgnoresInvertColors />
+      {a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors />
+        : <Avt ten={a.ten} mau={MAU_CON[[...a.ten].reduce((n, c) => n + c.charCodeAt(0), 0) % MAU_CON.length]} co={40} />}
       {a.trangThai === "chan" ? (
         <View style={{ position: "absolute", right: -4, bottom: -4, width: 20, height: 20, borderRadius: 10, backgroundColor: M.loi, alignItems: "center", justifyContent: "center" }}>
           <Icon ten="khoa" mau="#fff" co={12} />
@@ -54,7 +55,7 @@ export default function UngDungMay() {
   const [tim, setTim] = useState("");
   const [loc, setLoc] = useState<Loc>("tat_ca");
   const [chon, setChon] = useState<AppMay | null>(null);
-  const [dat, setDat] = useState<Dat>("chan");
+  const [dat, setDat] = useState<Dat>("giai_tri");
   const [nhom, setNhom] = useState("game");
   const [choMay, setChoMay] = useState<number | null>(null);      // đã bấm Làm mới lúc này, đang chờ máy gửi
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -90,7 +91,7 @@ export default function UngDungMay() {
 
   const moChon = (a: AppMay) => {
     setChon(a);
-    setDat(a.trangThai === "he_thong" || a.trangThai === "chua_xep" ? "chan" : (a.trangThai as Dat));
+    setDat(a.trangThai === "he_thong" || a.trangThai === "chua_xep" ? "giai_tri" : a.trangThai === "cho_phep" ? "hoc" : (a.trangThai as Dat));
     setNhom(a.nhom ?? "game");
   };
   const luu = () => lam(async () => {
@@ -98,7 +99,7 @@ export default function UngDungMay() {
     const kq = await bm.goi<{ muc: string; con: string; truoc: LuatCu }>(`may/${may}/ung-dung/dat`, { khoa: a.khoa, trangThai: dat, nhom });
     setChon(null);
     await tai();
-    bao(dat === "chan" ? `Đã chặn ${a.ten}` : `Đã xếp ${a.ten} vào ${TT[dat].chu}`, () => {
+    bao(`Đã xếp ${a.ten} vào ${dat === "chan" ? "Chặn" : TT[dat].chu}`, () => {
       const t = kq.truoc;
       // neuLoai: chỉ hoàn tác khi luật vẫn đúng loại vừa đặt — người khác đổi trong lúc đó ⇒ máy chủ trả 409, không đè
       const neuLoai = dat === "cho_phep" ? "hoc" : dat;
@@ -171,15 +172,17 @@ export default function UngDungMay() {
           <Chu co={14.5}>App hệ thống luôn được dùng (không tính điểm) — Ba Mẹ không cần làm gì.</Chu>
         ) : (
           <>
+            {/* cùng các bước, cùng chữ với luồng xếp loại cũ (màn Ứng dụng / thẻ «app mới chờ xếp loại») — chỉ khác nguồn danh sách là app thật của máy */}
             <View style={{ gap: 8 }}>
-              <OChon chon={dat === "chan"} bam={() => setDat("chan")} trai={<BieuTron ic="khoa" mau="do" />} tieu="Chặn" phu="Con không mở được app này, kể cả giờ chơi" />
-              <OChon chon={dat === "cho_phep"} bam={() => setDat("cho_phep")} trai={<BieuTron ic="tick" />} tieu="Cho phép" phu="Dùng lúc nào cũng được, không trừ điểm" />
-              <OChon chon={dat === "hoc"} bam={() => setDat("hoc")} trai={<BieuTron ic="mu" mau="lam" />} tieu="Học tập" phu="Không trừ điểm, tính vào giờ học" />
-              <OChon chon={dat === "giai_tri"} bam={() => setDat("giai_tri")} trai={<BieuTron ic="game" mau="vang" />} tieu="Giải trí" phu="Chỉ trong giờ chơi, trừ điểm theo phút" />
+              <OChon chon={dat === "hoc"} bam={() => setDat("hoc")} trai={<BieuTron ic="mu" />} tieu="Học tập — miễn phí" phu="Không trừ điểm, dùng cả giờ học" />
+              <OChon chon={dat === "giai_tri"} bam={() => setDat("giai_tri")} trai={<BieuTron ic="game" mau="vang" />} tieu="Giải trí — trừ điểm" phu="Chỉ trong giờ chơi" />
+              <OChon chon={dat === "chan"} bam={() => setDat("chan")} trai={<BieuTron ic="khoa" mau="do" />} tieu="Chặn hoàn toàn" phu="Con không mở được" />
             </View>
             {dat === "giai_tri" ? <ChonMot ds={NHOM} gia={nhom} doi={setNhom} /> : null}
             <BaoLoi loi={loiLam} />
-            <Nut chu="Lưu" rong dangChay={dangChay} bam={luu} />
+            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}><Icon ten="dongho" mau={M.chu3} co={16} />
+              <Chu co={13} mau={M.chu3} style={{ flexShrink: 1 }}>Có hiệu lực trên máy Con ở lần đồng bộ kế (≤ 2 phút khi online).</Chu></View>
+            <Nut chu="Lưu phân loại" rong dangChay={dangChay} bam={luu} />
             {chon && chon.trangThai !== "chua_xep" && !chon.theoCaNha ? <Nut chu="Bỏ xếp loại" rong loai="vien" tat={dangChay} bam={boXep} /> : null}
           </>
         )}

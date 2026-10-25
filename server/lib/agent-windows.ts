@@ -67,8 +67,9 @@ export function nhipDongBo(o: { coPhien: boolean; moDen?: Date | null; now: Date
 
 /** `phienTien`: giá của phiên (phần nghìn điểm/phút, chốt lúc mở) và phần lẻ đang nợ (phan_nghin_tru − diem_tru·1000) — lib/phien-windows.ts › tienPhien. */
 /** `lichPhien`: lịch của Con đang chơi (máy dùng chung — Policy chung mang lịch mặc định) — chỉ dùng cho playOfflineMinutes. */
-/** `appThat`: mục app thật của cả nhà (lib/app-may.ts › mucAppThat) — gói Store «microsoft.minecraftuwp» không có đuôi .exe nhưng vẫn là APP. */
-export type MoRong = { nen?: "windows" | "mac"; moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"]; appThat?: Set<string> };
+/** `appThat`: mục app thật của CẢ NHÀ (lib/app-may.ts › mucAppThat) — để loại khỏi luật web. `appNen`: chỉ app máy CÙNG NỀN gửi — gói Store
+ *  «microsoft.minecraftuwp» không có đuôi .exe nhưng vẫn là app của Windows (vào allowedApps / playChoices); package Android thì không. */
+export type MoRong = { nen?: "windows" | "mac"; moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"]; appThat?: Set<string>; appNen?: Set<string> };
 
 /** Phút được chơi tiếp khi mất mạng (BRD 6.7) — tính như máy chủ tính ở nhịp: phút thưởng (thêm giờ) dùng trước, không trừ điểm;
  *  rồi tới số phút mua được bằng số dư sau khi trả phần lẻ đang nợ; không vượt phút còn lại của phiên. Giá 0 ⇒ chỉ giới hạn bởi phiên. */
@@ -93,7 +94,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
   // Máy Mac: app là bundle id / tên .app (không có .exe); không hạ chữ (danh sách hệ thống Mac có chữ hoa, tác tử so không phân biệt). Windows: tệp .exe, chữ thường.
   const mac = mo.nen === "mac";
-  const that = (s: string) => !!mo.appThat?.has(s.toLowerCase());
+  const that = (s: string) => !!(mo.appNen ?? mo.appThat)?.has(s.toLowerCase());
   const laApp = mac ? (s: string) => (kieuMuc(s.toLowerCase()) === "app" || that(s)) && !exe(s) : (s: string) => exe(s) || that(s);   // luật luôn chữ thường (chuanMuc); danh sách hệ thống/trình duyệt Mac có chữ hoa — tác tử Mac so không phân biệt hoa-thường
   const chuan = (s: string) => (mac ? s : s.toLowerCase());
   const trinhDuyet = mac ? TRINH_DUYET_MAC : TRINH_DUYET;

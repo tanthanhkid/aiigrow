@@ -13,7 +13,7 @@ import { allowlistHieuLuc, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT
 import { kieuMuc } from "./chinh-sach.ts";
 
 export const TOI_DA_APP = 1500;
-export const TOI_DA_ICON = 16_384;       // ký tự base64 (~12 KB PNG) — icon 32–48 px thường 1–5 KB
+export const TOI_DA_ICON = 65_536;       // ký tự base64 (~48 KB PNG) — icon THẬT 96 px (nét ở 40–48 pt @2x/@3x) thường 5–25 KB
 const NGUON = new Set(["registry", "start", "store", "applications", "user-applications", "launcher"]);
 const BAM = /^[0-9a-f]{16,128}$/i;
 const HEX64 = /^[0-9a-f]{64}$/i;
@@ -21,11 +21,11 @@ const B64 = /^[A-Za-z0-9+/]+=*$/;
 
 export type AppVao = {
   khoa?: unknown; muc?: unknown; ten?: unknown; nguon?: unknown; nhaPhatHanh?: unknown; teamId?: unknown;
-  duongDan?: unknown; thuMuc?: unknown; phienBan?: unknown; sha256?: unknown; icon?: unknown;
+  duongDan?: unknown; thuMuc?: unknown; phienBan?: unknown; sha256?: unknown; icon?: unknown; iconBam?: unknown;
 };
 type AppSach = {
   khoa: string; muc: string; ten: string; nguon: string | null; nha_phat_hanh: string | null; team_id: string | null;
-  duong_dan: string | null; thu_muc: string | null; phien_ban: string | null; sha256: string | null; icon: string | null;
+  duong_dan: string | null; thu_muc: string | null; phien_ban: string | null; sha256: string | null; icon: string | null; icon_bam: string | null;
 };
 export type DongApp = AppSach & { device_id: string; thay_luc: Date };
 
@@ -36,10 +36,10 @@ const chu = (v: unknown, n = 300) => {
 
 /** Mục để xếp / chặn: chữ thường (như app_rules.muc), không khoảng trắng, không «/» — Android/Mac/Windows đều thoả. */
 export function mucApp(v: unknown, giuHoa = false): string | null {
-  const g = String(v ?? "").trim();
+  const g = String(v ?? "").trim().normalize("NFC");
   const t = g.toLowerCase();
   // chữ có dấu / CJK / «'» «&» «[]» «,» «!» hợp lệ trong tên tệp (原神.exe, Tom's Game.exe); vẫn cấm «/», «\\», «:», «..»
-  return /^[\p{L}\p{N}][\p{L}\p{N} ._()+\-'&[\],!]{0,199}$/u.test(t) && !t.includes("..") ? (giuHoa ? g : t) : null;
+  return /^[\p{L}\p{N}][\p{L}\p{M}\p{N} ._()+\-'&[\],!]{0,199}$/u.test(t) && !t.includes("..") ? (giuHoa ? g : t) : null;
 }
 
 /** Làm sạch một app agent gửi; sai ⇒ null (bỏ qua, không làm hỏng cả lô). */
@@ -52,16 +52,19 @@ export function sachApp(a: AppVao, giuHoa = false): AppSach | null {
   const ten = chu(a.ten, 120);
   if (!khoa || !muc || !ten) return null;
   const icon = typeof a.icon === "string" && a.icon.length <= TOI_DA_ICON && B64.test(a.icon) ? a.icon : null;
+  // iconBam: SHA-256 của byte PNG — agent chỉ gửi ảnh khi icon mới/đổi; vắng iconBam mà có ảnh ⇒ máy chủ tự băm
+  const iconBam = typeof a.iconBam === "string" && HEX64.test(a.iconBam) ? a.iconBam.toLowerCase()
+    : icon ? createHash("sha256").update(Buffer.from(icon, "base64")).digest("hex") : null;
   const sha = typeof a.sha256 === "string" && HEX64.test(a.sha256) ? a.sha256.toLowerCase() : null;
   const team = chu(a.teamId, 20);
   return {
     khoa, muc, ten, nguon: NGUON.has(String(a.nguon)) ? String(a.nguon) : null, nha_phat_hanh: chu(a.nhaPhatHanh, 160),
     team_id: team && /^[A-Z0-9]{4,20}$/i.test(team) ? team.toUpperCase() : null,
-    duong_dan: chu(a.duongDan, 400), thu_muc: chu(a.thuMuc, 400), phien_ban: chu(a.phienBan, 60), sha256: sha, icon,
+    duong_dan: chu(a.duongDan, 400), thu_muc: chu(a.thuMuc, 400), phien_ban: chu(a.phienBan, 60), sha256: sha, icon, icon_bam: iconBam,
   };
 }
 
-const COT = ["khoa", "muc", "ten", "nguon", "nha_phat_hanh", "team_id", "duong_dan", "thu_muc", "phien_ban", "sha256", "icon"] as const;
+const COT = ["khoa", "muc", "ten", "nguon", "nha_phat_hanh", "team_id", "duong_dan", "thu_muc", "phien_ban", "sha256", "icon", "icon_bam"] as const;
 
 async function ghiApp(t: Q, mayId: string, ds: AppSach[]) {
   // gộp trùng khoa trong một lô (bản sau thắng) rồi ghi theo khúc 200 dòng (giới hạn tham số của Postgres: 65535)
@@ -72,7 +75,9 @@ async function ghiApp(t: Q, mayId: string, ds: AppSach[]) {
     const ts: unknown[] = [mayId];
     const vals = khuc.map((a) => `($1, ${COT.map((c) => { ts.push(a[c]); return `$${ts.length}`; }).join(", ")}, now())`);
     await t(`insert into app_may(device_id, ${COT.join(", ")}, thay_luc) values ${vals.join(", ")}
-             on conflict (device_id, khoa) do update set ${COT.filter((c) => c !== "khoa").map((c) => `${c} = excluded.${c}`).join(", ")}, thay_luc = now()`, ts);
+             on conflict (device_id, khoa) do update set ${COT.filter((c) => c !== "khoa" && c !== "icon").map((c) => `${c} = excluded.${c}`).join(", ")},
+               icon = case when excluded.icon is not null then excluded.icon when excluded.icon_bam = app_may.icon_bam then app_may.icon else null end,
+               thay_luc = now()`, ts);
   }
   return tat.length;
 }
@@ -91,7 +96,8 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
     const cu = (await t<{ app_bam: string | null }>(`select app_bam from devices where id = $1`, [may.id]))[0];
     if (du) {
       const ds = lay(b.ds);
-      await t(`delete from app_may where device_id = $1`, [may.id]);
+      // giữ dòng còn trên máy (để giữ icon theo iconBam khi lần gửi đủ không kèm ảnh), xoá dòng đã gỡ
+      await t(`delete from app_may where device_id = $1 and not (khoa = any($2::text[]))`, [may.id, ds.map((a) => a.khoa)]);
       await ghiApp(t, may.id, ds);
     } else {
       const truoc = typeof b.bamTruoc === "string" ? b.bamTruoc.toLowerCase() : "";
@@ -105,7 +111,9 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
     }
     await t(`update devices set app_bam = $2, app_luc = now() where id = $1`, [may.id, bam]);
     const n = (await t<{ n: number }>(`select count(*)::int as n from app_may where device_id = $1`, [may.id]))[0].n;
-    return { ok: true, bam, soApp: n };
+    // icon có băm mà máy chủ chưa có ảnh ⇒ agent gửi kèm ảnh ở lượt sau (phần đổi)
+    const thieuIcon = (await t<{ khoa: string }>(`select khoa from app_may where device_id = $1 and icon_bam is not null and icon is null limit 500`, [may.id])).map((x) => x.khoa);
+    return { ok: true, bam, soApp: n, thieuIcon };
   });
 }
 
@@ -189,8 +197,10 @@ export async function yeuCauLamMoi(fam: string, mayId: string) {
 /** `nen`: chỉ app của máy cùng nền tảng (package Android không phải app trên Windows). Bỏ trống = mọi máy (để loại app khỏi danh sách web). */
 export async function mucAppThat(fam: string, nen?: string): Promise<Set<string>> {
   const r = await q<{ muc: string }>(`select distinct a.muc from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and ($2::text is null or d.platform = $2)`, [fam, nen ?? null]);
-  return new Set(r.map((x) => x.muc.toLowerCase()));
+  // mục có dạng TÊN MIỀN thật (đuôi .com / .vn / 2 chữ…) không bao giờ được coi là app: agent bị sửa gửi «youtube.com» không gỡ được luật web của Ba Mẹ
+  return new Set(r.map((x) => x.muc.toLowerCase()).filter((m) => m.endsWith(".exe") || !DUOI_MIEN.test(m)));
 }
+const DUOI_MIEN = /\.([a-z]{2}|com|net|org|edu|gov|info|io|app|dev|me|tv|co|xyz|online|site|game|games|video|live|top|club|shop|store|ai|gg)$/;
 
 /** Package Android đúng hoa thường (luật lưu chữ thường) — chữ thường ⇒ package thật trên máy của cả nhà. */
 export async function goiAndroidThat(fam: string): Promise<Map<string, string>> {

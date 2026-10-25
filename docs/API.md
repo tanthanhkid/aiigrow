@@ -250,7 +250,7 @@ Chỉ lưu **tên miền gốc + đếm**, không URL đầy đủ, không tiêu
 | `POST /api/m/con/:id/cau-hinh {web_chi_cho_phep: 0\|1}` | tham số mới (mặc định 0): 1 = chỉ vào trang Cho phép (chặn `*`, cho phép danh sách) |
 | `dong-bo.windows.web` | `{cheDo: mo\|chi_cho_phep, chan[], cho[]}` cho agent Windows. Agent chỉ ghi vào Chrome/Edge/Brave khi chế độ là **Chặn thật** |
 
-## Danh sách app thật (25/10) — Ba Mẹ chặn / cho phép đúng app ĐÃ CÀI trên máy Con (`server/lib/app-may.ts`, test `app-may.test.ts`)
+## Danh sách app thật (25/10) — Ba Mẹ chặn / cho phép đúng app ĐÃ CÀI trên máy Con, kèm icon thật (`server/lib/app-may.ts`, test `app-may.test.ts`)
 
 Thanh: *"danh sách ứng dụng load trực tiếp từ máy thực tế để phụ huynh chọn đúng app muốn chặn, không chặn chủ quan từ trên app xuống"*.
 
@@ -259,7 +259,8 @@ Thanh: *"danh sách ứng dụng load trực tiếp từ máy thực tế để 
   giữ ⇒ **409 `can_gui_du`** (agent gửi đủ). 200 `{ok, bam, soApp}`. ≤ 1500 app/máy; icon > 16 KB base64 bị bỏ icon.
   App: `khoa` (duy nhất trong máy: Win32 `exe:<đường dẫn>`, Store `appx:<PackageFamilyName>`, bundle id, package), `muc` (định danh để xếp/chặn — tên exe
   chính / Name gói Store / bundle id / package; máy chủ hạ chữ thường), `ten`, `nguon` (registry | start | store | applications | user-applications | launcher),
-  `nhaPhatHanh`, `teamId` (Mac), `duongDan`, `thuMuc` (Windows: thư mục cài, không gửi thư mục quá rộng), `phienBan`, `sha256` (exe Windows), `icon` (PNG base64 ≤ 48 px).
+  `nhaPhatHanh`, `teamId` (Mac), `duongDan`, `thuMuc` (Windows: thư mục cài, không gửi thư mục quá rộng), `phienBan`, `sha256` (exe Windows), `icon` (PNG base64 icon THẬT trích từ máy, 96 px, ≤ 64 KB base64), `iconBam` (SHA-256 hex của byte PNG).
+  Icon theo băm: chỉ gửi `icon` khi app mới / icon đổi; gửi `iconBam` không kèm ảnh mà băm trùng ⇒ máy chủ giữ ảnh cũ. 200 có `thieuIcon: [khoa]` (băm có, ảnh chưa) ⇒ lượt sau gửi kèm ảnh.
 - `dong-bo` (Win/Mac) và `nhip` (Android) trả thêm ở gốc `danhSachApp: {bam, yeuCau}` — `yeuCau` đổi (Ba Mẹ bấm Làm mới) ⇒ gửi đủ; `bam` lệch ⇒ gửi phần đổi/đủ.
 - `dong-bo.windows.blockedApps: [{muc, duongDan?, thuMuc?, sha256?, nhaPhatHanh?, teamId?}]` — app Ba Mẹ đặt Chặn, kèm định danh thật của CHÍNH máy này;
   agent đóng ở mọi mode (kể cả `tu_do`) khi chế độ «chan». Android chặn theo `chinhSach.ungDung.chan` (gói lạ như `ru.*` nay có `kieu: "app"` nhờ danh sách thật).

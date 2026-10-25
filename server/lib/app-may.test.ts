@@ -41,7 +41,7 @@ test("agent gửi đủ ⇒ lưu; phần đổi chỉ nhận khi bamTruoc khớp
   const { tok, mayId, tokBm } = await nha();
   const r1 = await goiMay("ung-dung", tok, { du: true, bam: "a".repeat(64), ds: [ROBLOX, MINECRAFT, { khoa: "x", ten: "thiếu muc" }, { ...SCRATCH, icon: "A".repeat(am.TOI_DA_ICON + 4) }] });
   assert.equal(r1.status, 200);
-  assert.deepEqual(r1.body, { ok: true, bam: "a".repeat(64), soApp: 3 });
+  assert.deepEqual(r1.body, { ok: true, bam: "a".repeat(64), soApp: 3, thieuIcon: [] });
   // lệch bam ⇒ đòi gửi đủ, không ghi gì
   const lech = await goiMay("ung-dung", tok, { du: false, bamTruoc: "c".repeat(64), bam: "b".repeat(64), them: [NOTEPAD], bo: [] });
   assert.equal(lech.status, 409);
@@ -94,6 +94,11 @@ test("Ba Mẹ đặt Chặn theo định danh thật ⇒ blockedApps của máy 
   assert.equal(db.danhSachApp.bam, "a".repeat(64));
   // gói Store không lọt vào danh sách web (chính sách trình duyệt) như một tên miền
   assert.ok(![...db.windows.web.chan, ...db.windows.web.cho].includes("microsoft.minecraftuwp"));
+  // agent bị sửa gửi «youtube.com» như app không gỡ được luật web của Ba Mẹ
+  await goiBm("luat", tokBm, { muc: "youtube.com", loai: "chan" });
+  await goiMay("ung-dung", tok, { du: false, bamTruoc: "a".repeat(64), bam: "c".repeat(64), them: [{ khoa: "x", muc: "youtube.com", ten: "x" }], bo: [] });
+  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("youtube.com"));
+  await goiMay("ung-dung", tok, { du: false, bamTruoc: "c".repeat(64), bam: "a".repeat(64), them: [], bo: ["x"] });
   assert.equal(db.danhSachApp.yeuCau, null);
   // «Cho phép» tính Tiện ích ở thời gian màn hình, «Học tập» tính Học tập
   const luat = [{ child_id: "", muc: "microsoft.minecraftuwp", ten: "Minecraft", loai: "hoc", nhom: "cho_phep" }, { child_id: "", muc: "scratch 3.exe", ten: "Scratch", loai: "hoc", nhom: "khac" }] as any;
@@ -157,8 +162,23 @@ test("luồng xếp loại cũ: tên thật từ danh sách máy thay tên đoá
   assert.equal(l.chuaXep.find((x: any) => x.muc === "robloxplayerbeta.exe")?.ten, "Roblox Player");
 });
 
+test("icon theo băm: gửi đủ không kèm ảnh giữ icon cũ khi iconBam trùng; băm mới không ảnh ⇒ thieuIcon", async () => {
+  const { tok, mayId, tokBm } = await nha();
+  const png = Buffer.from("png-that-96").toString("base64");
+  const { createHash } = await import("node:crypto");
+  const bamIcon = createHash("sha256").update(Buffer.from(png, "base64")).digest("hex");
+  await goiMay("ung-dung", tok, { du: true, bam: "1".repeat(64), ds: [{ ...SCRATCH, icon: png }] });
+  const r = await goiMay("ung-dung", tok, { du: true, bam: "2".repeat(64), ds: [{ ...SCRATCH, iconBam: bamIcon }, { ...NOTEPAD, iconBam: "f".repeat(64) }] });
+  assert.deepEqual(r.body.thieuIcon, [NOTEPAD.khoa]);
+  const ds = (await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds;
+  assert.equal(ds.find((x: any) => x.muc === "scratch 3.exe").icon, png);
+  await goiMay("ung-dung", tok, { du: false, bamTruoc: "2".repeat(64), bam: "3".repeat(64), them: [{ ...NOTEPAD, icon: png, iconBam: "f".repeat(64) }], bo: [] });
+  assert.equal((await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds.find((x: any) => x.muc === "notepad.exe").icon, png);
+});
+
 test("sachApp: chặn định danh có «/» hoặc «..», team id sai bị bỏ, sha256 phải 64 hex; tên tệp có dấu / CJK hợp lệ", () => {
   assert.equal(am.sachApp({ khoa: "a", muc: "原神.exe", ten: "Genshin" })?.muc, "原神.exe");
+  assert.equal(am.sachApp({ khoa: "a", muc: "Ho\u0323c.exe", ten: "H" })?.muc, "học.exe");     // NFD ⇒ NFC
   assert.equal(am.sachApp({ khoa: "a", muc: "Tom's Game.exe", ten: "T" })?.muc, "tom's game.exe");
   assert.equal(am.sachApp({ khoa: "a", muc: "../x.exe", ten: "X" }), null);
   assert.equal(am.sachApp({ khoa: "a", muc: "c:/x.exe", ten: "X" }), null);

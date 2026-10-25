@@ -483,6 +483,7 @@ export const SCHEMA_M4B = [
     primary key (device_id, khoa)
   )`,
   // app_bam: băm danh sách agent gửi lần cuối (phần đổi chỉ nhận khi khớp) · app_luc: lúc nhận · app_yeu_cau: Ba Mẹ bấm «Làm mới»
+  `alter table app_may add column if not exists icon_bam text`,
   `alter table devices add column if not exists app_bam text`,
   `alter table devices add column if not exists app_luc timestamptz`,
   `alter table devices add column if not exists app_yeu_cau timestamptz`,
