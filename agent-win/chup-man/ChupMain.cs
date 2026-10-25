@@ -195,10 +195,13 @@ internal static class ChupMain
     private static async Task ManChan(string ten, string appId, string appName, string lyDo, bool doiDiem, bool matMang)
     {
         var f = new BlockedForm(appId, appName, lyDo, doiDiem, matMang);
-        f.Show();
-        await Cho(1200);
-        Chup(f, ten);
-        f.Dispose();
+        try
+        {
+            f.Show();
+            await Cho(1200);
+            Chup(f, ten);
+        }
+        finally { f.Dispose(); }
     }
 
     private static async Task ManKhoa(string ten, TrayState s)
@@ -206,12 +209,14 @@ internal static class ChupMain
         var f = new LockForm(s.CanExchangePoints);
         f.WindowState = FormWindowState.Normal;   // phóng to theo «màn giả định», không theo màn runner
         DatCuaSo(f, _man, laClient: false);
-        f.Show();          // đúng thứ tự TrayContext.HandleLock: Show rồi mới Apply
-        f.Apply(s);
-        await Cho(2200);   // chờ hiệu ứng ổ khoá «đóng sập»
-        Chup(f, ten);
-        f.CloseForReal();
-        f.Dispose();
+        try
+        {
+            f.Show();          // đúng thứ tự TrayContext.HandleLock: Show rồi mới Apply
+            f.Apply(s);
+            await Cho(2200);   // chờ hiệu ứng ổ khoá «đóng sập»
+            Chup(f, ten);
+        }
+        finally { f.CloseForReal(); f.Dispose(); }   // lỗi giữa chừng: màn khoá TopMost không được ở lại che các ảnh sau
     }
 
     private static async Task ManHop(string ten, Func<Form> tao)
@@ -219,10 +224,13 @@ internal static class ChupMain
         var f = tao();
         f.StartPosition = FormStartPosition.Manual;
         f.Location = new Point(40, 40);
-        f.Show();
-        await Cho(1000);
-        Chup(f, ten);
-        f.Dispose();
+        try
+        {
+            f.Show();
+            await Cho(1000);
+            Chup(f, ten);
+        }
+        finally { f.Dispose(); }
     }
 
     private static async Task ManChoiBangDiem()
@@ -264,12 +272,15 @@ internal static class ChupMain
         var f = new SetupForm();
         f.StartPosition = FormStartPosition.Manual;
         f.Location = new Point(40, 40);
-        f.Show();
-        await Cho(300);
-        buoc(f);
-        await Cho(1000);
-        Chup(f, ten);
-        f.Dispose();
+        try
+        {
+            f.Show();
+            await Cho(300);
+            buoc(f);
+            await Cho(1000);
+            Chup(f, ten);
+        }
+        finally { f.Dispose(); }
     }
 
     /// <summary>Bước «Cài»: máy chủ giả trên 127.0.0.1 nhận lời ghép nhưng chưa trả lời (chụp «Đang cài…»), rồi trả lỗi 410 «mã hết hạn» như máy chủ thật
@@ -282,7 +293,7 @@ internal static class ChupMain
         {
             var port = ((IPEndPoint)nghe.LocalEndpoint).Port;
             var ketNoi = nghe.AcceptTcpClientAsync();
-            var f = new SetupForm();
+            using var f = new SetupForm();   // lỗi / hết giờ chờ ⇒ cửa sổ «Đang cài…» TopMost không ở lại che ảnh sau
             f.StartPosition = FormStartPosition.Manual;
             f.Location = new Point(40, 40);
             f.Show();
@@ -308,7 +319,6 @@ internal static class ChupMain
                 await Cho(1500);
             }
             Chup(f, "cai-5-loi-ghep");
-            f.Dispose();
         }
         finally { nghe.Stop(); }
     }

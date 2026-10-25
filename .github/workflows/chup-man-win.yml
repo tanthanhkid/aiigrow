@@ -13,6 +13,7 @@ on:
       - 'agent-win/chup-man/**'
       - 'agent-win/src/AiiGrow.Tray/**'
       - 'agent-win/src/AiiGrow.Setup/**'
+      - 'agent-win/src/AiiGrow.Core/**'
       - '.github/workflows/chup-man-win.yml'
 
 permissions:
