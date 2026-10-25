@@ -109,7 +109,7 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .o-so.noi em{color:#8a2a1d}
 
 /* thông báo: lòng chảo có màu */
-.ag .bao{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:24px;font-size:14.5px;line-height:1.45;box-shadow:var(--lomIn)}
+.ag .bao{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:24px;font-size:14.5px;line-height:1.45;box-shadow:var(--lomIn)}
 .ag .bao .bt{width:40px;height:40px}.ag .bao .bt img{width:25px;height:25px}
 .ag .bao.loi-b{background:var(--loi-soft);color:#6f1710}.ag .bao.ok-b{background:var(--chinh-soft);color:#08443a}.ag .bao.canh-b{background:var(--canh-soft);color:#5f2b07}
 
@@ -119,11 +119,12 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .chip[aria-pressed=true],.ag .chip[aria-current=page]{background:var(--keo-toi);box-shadow:var(--bong-toi);color:#fff}
 
 /* công tắc: rãnh lõm + núm đất sét; bật = rãnh ngọc */
-.ag .cong-tac{flex:none;width:56px;height:34px;border-radius:99px;background:#7d827f;box-shadow:inset 0 3px 6px rgba(0,0,0,.25),inset 0 -1px 0 rgba(255,255,255,.4);position:relative;border:0;padding:0;cursor:pointer;
-  margin:5px 0}
-.ag .cong-tac::after{content:"";position:absolute;left:4px;top:4px;width:26px;height:26px;border-radius:50%;background:#fff;background-image:var(--men-sang);
+/* nút cao 44 (vùng bấm ≥44), rãnh 56×34 vẽ ở ::before giữa nút, núm ở ::after */
+.ag .cong-tac{flex:none;width:56px;height:44px;background:none;position:relative;border:0;padding:0;cursor:pointer;border-radius:99px}
+.ag .cong-tac::before{content:"";position:absolute;left:0;right:0;top:5px;height:34px;border-radius:99px;background:#7d827f;box-shadow:inset 0 3px 6px rgba(0,0,0,.25),inset 0 -1px 0 rgba(255,255,255,.4)}
+.ag .cong-tac::after{content:"";position:absolute;left:4px;top:9px;width:26px;height:26px;border-radius:50%;background:#fff;background-image:var(--men-sang);
   box-shadow:0 4px 6px -2px rgba(0,0,0,.35),inset 0 -3px 4px rgba(40,44,42,.12);transition:transform .42s var(--sp-tha)}
-.ag .cong-tac[aria-checked=true]{background:var(--keo-ngoc);box-shadow:inset 0 3px 6px rgba(0,30,25,.4),inset 0 -1px 0 rgba(255,255,255,.3)}
+.ag .cong-tac[aria-checked=true]::before{background:var(--keo-ngoc);box-shadow:inset 0 3px 6px rgba(0,30,25,.4),inset 0 -1px 0 rgba(255,255,255,.3)}
 .ag .cong-tac[aria-checked=true]::after{transform:translateX(22px)}
 .ag .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
@@ -146,23 +147,25 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .the-tai .dau-tai{display:flex;align-items:center;gap:12px}
 .ag .the-tai h2{font-size:18px;font-weight:800;line-height:1.3}
 .ag .the-tai .nut{min-height:60px;font-size:17px;padding:0 24px;border-radius:24px}
-@media (max-width:420px){.ag .trang{padding:28px 12px 48px}.ag .the-tai{padding:16px 14px}.ag .the-tai .nut{width:100%;font-size:15px;padding:0 12px;gap:6px;white-space:normal;text-align:center}}
+@media (max-width:420px){.ag .trang{padding:28px 16px 48px}.ag .the-tai{padding:18px 16px}.ag .the-tai .nut{width:100%;font-size:15px;padding:0 12px;gap:6px;white-space:normal;text-align:center}}
 .ag .ghi-tep{font-size:13.5px;color:var(--chu3)}
 .ag .duong-phu{font-size:14.5px;color:var(--chu2)}
 .ag .duong-phu a,.ag .ngay a{font-weight:700;white-space:nowrap}
 /* các bước: lòng chảo đánh số bằng viên kẹo */
 .ag ol.buoc{list-style:none;counter-reset:b;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
-.ag ol.buoc>li{counter-increment:b;position:relative;padding:14px 16px 14px 62px;border-radius:24px;background:var(--lom);box-shadow:var(--lomIn);line-height:1.6;min-height:60px}
-.ag ol.buoc>li::before{content:counter(b);position:absolute;left:14px;top:13px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;
+.ag ol.buoc>li{counter-increment:b;position:relative;padding:20px 18px 18px 64px;border-radius:24px;background:var(--lom);box-shadow:var(--lomIn);line-height:1.6;min-height:68px}
+.ag ol.buoc>li::before{content:counter(b);position:absolute;left:16px;top:16px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;
   background:var(--keo-ngoc);box-shadow:var(--bong-ngoc)}
 .ag .phu-nho{color:var(--chu3);font-size:14px}
 .ag .nut-lui{align-self:flex-start}
 .ag .ma-token{word-break:break-all}
 /* chính sách: từng mục là một khối, tiêu đề có icon 3D */
 .ag .chinh-sach{line-height:1.65;color:#1b2321}
-.ag .chinh-sach .the{padding:20px 20px 18px;display:flex;flex-direction:column;gap:10px}
+.ag .chinh-sach .the{padding:20px;display:flex;flex-direction:column;gap:10px}
 .ag .chinh-sach h2{display:flex;align-items:center;gap:12px;font-size:20px;line-height:1.3;font-weight:800}
-.ag .chinh-sach ul{line-height:1.7;padding-left:20px;margin:0;display:flex;flex-direction:column;gap:6px}
+.ag .chinh-sach>section>ul{line-height:1.7;padding:0;margin:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.ag .chinh-sach>section>ul>li{position:relative;padding-left:20px}
+.ag .chinh-sach>section>ul>li::before{content:"";position:absolute;left:2px;top:calc(.85em - 4px);width:8px;height:8px;border-radius:50%;background:var(--chinh);box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
 .ag .chinh-sach .ngay{color:#4d5350}
 .ag .chinh-sach .en h1{font-size:24px;font-weight:800}
 .ag .chinh-sach .en h2{font-size:18px;margin-top:10px}
@@ -214,3 +217,8 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
   .ag .cong-tac::after{transition:none!important}
 }
 @keyframes clay-mo{from{opacity:0}to{opacity:1}}
+/* trang lỗi (404 / lỗi chạy): một khối đất sét, tiêu đề cạnh icon */
+.ag .trang-loi{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding:24px 20px;margin-top:8vh}
+.ag .trang-loi .dau-tai{display:flex;align-items:center;gap:14px}
+.ag .trang-loi h1{font-size:24px;line-height:1.2;font-weight:800;letter-spacing:-.4px}
+.ag .the-tai .nhan-o{margin:6px 0 -2px}

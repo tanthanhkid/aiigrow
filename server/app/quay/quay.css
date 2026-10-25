@@ -1,7 +1,7 @@
 /* Quầy AiiCafe — theo thiết kế cafe-quet / cafe-da-dung (máy tính bảng ngang): trái là máy quét (phiến kẹo than chì, khung nét đứt,
    một nút vàng «Quét phiếu quà»), phải là kết quả to rõ trên khối đất sét. Màn hẹp thì xếp chồng. Chất liệu Clay gương: app/clay.css. */
 .ag.quay{display:flex;flex-direction:column}
-.quay .tren{display:flex;align-items:center;gap:12px;margin:12px 16px 0;padding:10px 12px 10px 14px;border-radius:28px;flex-wrap:wrap;
+.quay .tren{display:flex;align-items:center;gap:12px;margin:12px 16px 0;padding:10px 16px;border-radius:28px;flex-wrap:wrap;
   background:var(--the);background-image:var(--men-the);box-shadow:var(--clay)}
 .quay .tren .ten-quay{font-size:20px;font-weight:800;line-height:1.25}
 .quay .tren .phai{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}

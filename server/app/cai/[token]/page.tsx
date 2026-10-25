@@ -23,8 +23,8 @@ export default async function TrangCai({ params }: { params: Promise<{ token: st
         </ol>
         {token ? (
           <section className="the the-tai">
-            <I3d ten="mobile-phone" mau="xanh" co={56} />
-            <a className="nut" href={lienKetApp(token)}>Đã cài rồi — mở app AiiGrow Con</a>
+            <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={56} /><h2>Máy của Con đã cài app?</h2></div>
+            <a className="nut" href={lienKetApp(token)}>Mở app AiiGrow Con</a>
             <p className="ghi-tep">
               Mã gói cài: <code className="ma-token">{token}</code>
               <br />Mã dùng được một lần và có hạn; hết hạn thì nhờ Ba Mẹ tạo gói mới trong app Ba Mẹ.

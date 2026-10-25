@@ -7,15 +7,17 @@
 //
 //   PHA_CONG=3311 PHA_CDP=9502 node scripts/pha-web.mjs               # kịch bản luồng chính
 //   PHA_CONG=3311 PHA_CDP=9502 node scripts/pha-web.mjs --giao-dien   # cổng giao diện: 320 / 390 / 390 giãn chữ / 1440
+//   PHA_PROD=1  dùng bản `next build` (next start) thay next dev.
 //   GD_CHUP=<thư mục> [GD_CHUP_TAT_CA=1] [GD_CHUP_DAI=1]  chụp màn có lỗi / mọi màn (DAI: cả trang ở mọi khổ).  PHA_CHUP=<thư mục>  chụp bước SAI của kịch bản.
 // Mã thoát 1 nếu có bước SAI / còn lỗi giao diện.
 import { spawn, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import { DO, GIAN, doTay } from "../../mobile/scripts/giao-dien.mjs";
+import { CUON_NGANG, DO_CC } from "./do-chin-chu.mjs";
 
 const GOC_SV = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CHROME = process.argv.slice(2).find((x) => !x.startsWith("--")) ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
@@ -23,8 +25,29 @@ const CONG = Number(process.env.PHA_CONG ?? 3311), CDP = Number(process.env.PHA_
 const GIAO_DIEN = process.argv.includes("--giao-dien");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// PHA_PROD=1: chạy bản đã `next build` (next start) — nhẹ, trang tải xong ngay; bản dev nặng làm Chrome headless có lúc treo chụp màn.
+// Bản build phải mới hơn mọi tệp ảnh hưởng giao diện (app/ lib/ public/ next.config.ts instrumentation.ts package.json) — không thì cổng đo nhầm bản cũ.
+// Kiểm TRƯỚC khi dựng dữ liệu thử.
+const PROD = /^(1|true|yes)$/i.test(process.env.PHA_PROD ?? "");
+if (PROD) {
+  const buildId = join(GOC_SV, ".next", "BUILD_ID");
+  if (!existsSync(buildId)) { console.error("PHA_PROD: chưa có .next — chạy `npx next build` trước."); process.exit(1); }
+  const luc = statSync(buildId).mtimeMs;
+  // thư mục: so cả mtime của chính nó (xoá / đổi tên tệp bên trong đổi mtime thư mục); public/tai, public/app là tệp phát hành / bản web app — next start đọc thẳng, không cần build
+  const BO = new Set([join(GOC_SV, "public", "tai"), join(GOC_SV, "public", "app")]);
+  const moiHon = (p) => { if (BO.has(p)) return false; try { const st = statSync(p);
+    return st.mtimeMs > luc || (st.isDirectory() && readdirSync(p).some((x) => moiHon(join(p, x)))); } catch { return false; /* tệp vừa xoá / symlink gãy */ } };
+  const cu = ["app", "lib", "public", "next.config.ts", "instrumentation.ts", "package.json", "pnpm-lock.yaml", "tsconfig.json"].filter((x) => moiHon(join(GOC_SV, x)));
+  if (cu.length) { console.error(`PHA_PROD: bản .next cũ hơn ${cu.join(", ")} — chạy lại \`npx next build\`.`); process.exit(1); }
+}
+
 // ---------------------------------------------------------------- máy chủ thật (next dev + PGlite tạm)
-const dbDir = mkdtempSync(join(tmpdir(), "aiig-pg-"));
+// Dọn khi thoát vì BẤT KỲ lý do gì (lỗi giữa chừng, hết giờ CDP, Ctrl-C): tắt next + Chrome, xoá hồ sơ Chrome + PGlite tạm.
+const don = { tienTrinh: [], thuMuc: [] };
+process.on("exit", () => { for (const t of don.tienTrinh) try { t.kill(); } catch { /* đã tắt */ }
+  for (const d of don.thuMuc) try { rmSync(d, { recursive: true, force: true }); } catch { /* còn bị giữ (Windows) */ } });
+process.on("SIGINT", () => process.exit(130)); process.on("SIGTERM", () => process.exit(143));
+const dbDir = mkdtempSync(join(tmpdir(), "aiig-pg-")); don.thuMuc.push(dbDir);
 const MK_AD = randomBytes(12).toString("base64url"), MK_Q = randomBytes(12).toString("base64url");
 const env = { ...process.env, PGLITE_DIR: dbDir, AIIGROW_OTP_THU: "1", NEXT_TELEMETRY_DISABLED: "1", DATABASE_URL: "" };
 delete env.DATABASE_URL;
@@ -33,7 +56,8 @@ const seed = spawnSync(process.execPath, ["scripts/tao-tai-khoan.ts"], { cwd: GO
   AIIGROW_QUAY_TEN: "quay.thu", AIIGROW_QUAY_MAT_KHAU: MK_Q, AIIGROW_QUAY_HIEN: "Nguyễn Thị Thu Thuỷ", AIIGROW_QUAY_SO: "Quầy 1" } });
 if (seed.status !== 0) { console.error("Không tạo được tài khoản:", seed.stderr || seed.stdout); process.exit(1); }
 
-const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "-p", String(CONG)], { cwd: GOC_SV, env, stdio: ["ignore", "pipe", "pipe"] });
+const next = spawn(process.execPath, ["node_modules/next/dist/bin/next", PROD ? "start" : "dev", "-p", String(CONG)], { cwd: GOC_SV, env, stdio: ["ignore", "pipe", "pipe"] });
+don.tienTrinh.push(next);
 let nextLog = "";
 next.stdout.on("data", (b) => { nextLog += b; }); next.stderr.on("data", (b) => { nextLog += b; });
 let song = false;
@@ -41,7 +65,7 @@ for (let i = 0; i < 240 && !song; i++) {
   try { song = (await fetch(`${GOC}/api/suc-khoe`)).ok; } catch { /* chờ next dev */ }
   if (!song) await sleep(500);
 }
-if (!song) { console.error("next dev không lên:\n" + nextLog.slice(-2000)); next.kill(); process.exit(1); }
+if (!song) { console.error(`next ${PROD ? "start" : "dev"} không lên:\n` + nextLog.slice(-2000)); next.kill(); process.exit(1); }
 
 const api = async (duong, o = {}) => {
   const r = await fetch(`${GOC}/api/${duong}`, { method: o.body === undefined ? "GET" : "POST",
@@ -85,8 +109,10 @@ console.log(`dữ liệu: 2 gia đình, ${phieu.length + 1} phiếu quà, máy c
 
 // ---------------------------------------------------------------- Chrome + CDP
 const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-web-"));
-const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
+// --disable-gpu: Mac tắt màn hình / máy bận thì GPU headless có lúc treo Page.captureScreenshot vô hạn
+const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
   "--no-default-browser-check", "--window-size=1440,900", "--lang=vi-VN", "--mute-audio", "about:blank"], { stdio: "ignore" });
+don.tienTrinh.push(chrome); don.thuMuc.push(hoSo);
 let trang;
 for (let i = 0; i < 60 && !trang; i++) {
   try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch { /* chờ Chrome */ }
@@ -106,7 +132,14 @@ ws.onmessage = async (e) => {
   goi("Fetch.fulfillRequest", { requestId, responseCode: 200, responseHeaders: [{ name: "content-type", value: "application/json" }],
     body: Buffer.from(JSON.stringify(chanQuet)).toString("base64") });
 };
-const goi = (method, params = {}) => new Promise((r) => { cho[++so] = r; ws.send(JSON.stringify({ id: so, method, params })); });
+// Chrome headless chết giữa chừng (job dọn máy, máy hết RAM) ⇒ lệnh CDP không bao giờ trả lời: 180s thì dừng hẳn, không treo im.
+ws.onclose = () => { console.error("Chrome headless đã tắt giữa chừng — dừng."); process.exit(2); };
+// Chụp màn treo thì sau 60s trả lỗi (nơi gọi thử lại / bỏ ảnh), các lệnh khác 180s thì dừng hẳn.
+const goi = (method, params = {}) => new Promise((r) => { const id = ++so;
+  const h = method === "Page.captureScreenshot"
+    ? setTimeout(() => { delete cho[id]; r({ code: -1, message: "het-gio-60s" }); }, 60_000)
+    : setTimeout(() => { console.error(`CDP ${method} không trả lời sau 180s — dừng.`); process.exit(2); }, 180_000);
+  cho[id] = (x) => { clearTimeout(h); r(x); }; ws.send(JSON.stringify({ id, method, params })); });
 await goi("Page.enable");
 await goi("Fetch.enable", { patterns: [{ urlPattern: `${GOC}/api/quay/quet`, requestStage: "Request" }] });
 await goi("Emulation.setLocaleOverride", { locale: "vi-VN" });
@@ -137,7 +170,7 @@ const bam = async (txt) => {
   await sleep(400);
   return ok;
 };
-const dong = async () => { ws.close(); chrome.kill(); next.kill(); await sleep(800); for (const d of [hoSo, dbDir]) try { rmSync(d, { recursive: true, force: true }); } catch { /* còn giữ tệp */ } };
+const dong = async () => { ws.onclose = null; ws.close(); chrome.kill(); next.kill(); await sleep(800); for (const d of [hoSo, dbDir]) try { rmSync(d, { recursive: true, force: true }); } catch { /* còn giữ tệp */ } };
 
 // ---------------------------------------------------------------- cổng chuẩn giao diện
 if (GIAO_DIEN) {
@@ -157,9 +190,10 @@ if (GIAO_DIEN) {
     P("tai-windows", "/tai", "Tải AiiGrow cho Windows"),
     P("tai-mac", "/tai", "Tải AiiGrow cho máy Mac", "mac"),
     P("tai-iphone", "/tai", "Bạn đang mở trang bằng iPhone", "iphone"),
-    P("tai-android", "/tai", "Tải app Ba Mẹ cho Android", "android"),
-    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Đã cài rồi — mở app AiiGrow Con"),
+    P("tai-android", "/tai", "Tải app Ba Mẹ", "android"),
+    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Mở app AiiGrow Con"),
     P("chinh-sach-rieng-tu", "/chinh-sach-rieng-tu", "AiiGrow Privacy Policy"),
+    P("loi-404", "/api/khong-co-duong-nay", "Không tìm thấy trang này"),
     Q("quay-dang-nhap", "Vào quầy", { token: null }),
     Q("quay-san-sang", "Sẵn sàng quét"),
     Q("cafe-quet (hợp lệ)", "Đã đánh dấu", { sau: () => quetMa(kho.shift()) }),
@@ -211,12 +245,18 @@ if (GIAO_DIEN) {
       await sleep(600);
       await js("window.__gdCuoi = false");
       const { L, DO_TAY } = (await js(DO)) ?? { L: [], DO_TAY: [] };
+      // LE-THE của bộ đo chung (mobile/scripts/giao-dien.mjs) đo cả chữ của bảng đang cuộn ngang (.bang trên màn hẹp): chữ cuộn ra ngoài khung là
+      // vị trí cuộn, không phải dính mép ⇒ bỏ các dòng nằm trong khung cuộn ngang đang tràn.
+      const trongCuon = new Set((await js(CUON_NGANG)) ?? []);
+      for (let i = L.length - 1; i >= 0; i--) if (L[i].luat === "LE-THE" && L[i].the && trongCuon.has(L[i].chu)) L.splice(i, 1);
+      L.push(...((await js(DO_CC)) ?? []));                       // luật chỉn chu: lề thẻ ≥16, chồng, nổi đè, vùng bấm ≥44, cắt chữ
       await js("document.querySelectorAll('*').forEach((e) => { if (e.scrollHeight > e.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)) e.scrollTop = e.scrollHeight; }); window.__gdCuoi = true");
       await sleep(300);
       const sau = (await js(DO))?.L ?? [];
       await js("window.__gdCuoi = false; document.querySelectorAll('*').forEach((e) => { if (e.scrollTop) e.scrollTop = 0; })");
       await sleep(200);
-      L.push(...sau.map((x) => ({ ...x, cuon: "đã cuộn hết" })));
+      const trongCuon2 = new Set((await js(CUON_NGANG)) ?? []);
+      L.push(...sau.filter((x) => !(x.luat === "LE-THE" && x.the && trongCuon2.has(x.chu))).map((x) => ({ ...x, cuon: "đã cuộn hết" })));
       const ds = gian ? L.filter((x) => x.luat !== "TUONG-PHAN") : L;
       const tay = gian ? [] : await doTay(goi, js, DO_TAY);
       soDoTay += tay.length;
@@ -227,9 +267,12 @@ if (GIAO_DIEN) {
         // cả trang: nới khung cho bằng chiều cao nội dung rồi chụp, xong trả khung về (clip + captureBeyondViewport treo ở chế độ mobile)
         const caoNd = process.env.GD_CHUP_DAI ? Math.ceil((await goi("Page.getLayoutMetrics")).cssContentSize.height) : 0;
         if (caoNd) { await khung(rong, Math.max(caoNd, rong >= 1000 ? 900 : 844)); await sleep(400); }
-        const a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
+        let a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
+        let duoi = "";
+        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png" }); duoi = "-chi-khung-nhin"; }   // thử lại kiểu an toàn nhất: đúng khung nhìn (tên tệp ghi rõ)   // máy bận: lần chụp đầu có khi trả lỗi
         if (caoNd) await khung(rong);
-        writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
+        if (a?.data) writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}${duoi}.png`, Buffer.from(a.data, "base64"));
+        else console.log(`    (không chụp được: ${JSON.stringify(a)})`);
       }
       console.log(`${man.ten.padEnd(30)} ${ds.length ? ds.length + " lỗi" : "đạt"}${tay.length ? ` (đo pixel ${tay.length} dòng trên nền gradient/ảnh)` : ""}`);
       for (const x of ds) console.log("    " + JSON.stringify(x));
