@@ -730,7 +730,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(try IPCMa.decoder.decode(TraLoi.self, from: t), .thongBao(chu: "x"))
   }
 
-  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.3") }
+  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.4") }
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 

@@ -18,8 +18,8 @@ android {
         applicationId = "vn.aiilab.aiigrow.con"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.2.1"
         buildConfigField("String", "MAY_CHU_MAC_DINH", "\"https://aiigrow.aiilab.vn\"")
     }
 
