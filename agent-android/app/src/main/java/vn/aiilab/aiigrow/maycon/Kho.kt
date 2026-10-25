@@ -42,6 +42,20 @@ class Kho(ctx: Context) {
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 
+    /** Danh sách app đã gửi được lần cuối (DanhSachApp.kt): bam, dấu theo khoa (JSON), yêu cầu «Làm mới» đã xử lý. */
+    var dsAppBam: String? get() = p.getString("dsAppBam", null); set(v) = p.edit().putString("dsAppBam", v).apply()
+    var dsAppDau: String? get() = p.getString("dsAppDau", null); set(v) = p.edit().putString("dsAppDau", v).apply()
+    var dsAppYeuCau: String? get() = p.getString("dsAppYeuCau", null); set(v) = p.edit().putString("dsAppYeuCau", v).apply()
+    /** khoa → iconBam máy chủ đã có icon (JSON) và khoa máy chủ báo thiếu icon (JSON mảng). */
+    val dsAppIcon: String? get() = p.getString("dsAppIcon", null)
+    val dsAppThieuIcon: String? get() = p.getString("dsAppThieuIcon", null)
+
+    /** Ghi một lần (một edit) để bam và dấu theo khoa không lệch nhau nếu tiến trình chết giữa chừng. */
+    fun luuDsApp(bam: String, dau: String, yeuCau: String?, icon: String, thieuIcon: String) {
+        p.edit().putString("dsAppBam", bam).putString("dsAppDau", dau).putString("dsAppIcon", icon).putString("dsAppThieuIcon", thieuIcon)
+            .apply { if (yeuCau != null) putString("dsAppYeuCau", yeuCau) }.apply()
+    }
+
     val daGhep get() = token != null || cheDoThu
 
     /** Chế độ thử cục bộ: bản debug + có tệp chính sách giả (adb đẩy vào files/). Không gọi máy chủ. */

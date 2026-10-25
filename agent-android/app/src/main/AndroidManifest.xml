@@ -14,6 +14,15 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Hiện QUERY_ALL_PACKAGES đã cho thấy mọi gói; khối này là dự phòng để DanhSachApp.kt / DoPhut.daCai vẫn thấy app
+         có biểu tượng ở trình khởi chạy (Android 11+) nếu sau này phải bỏ QUERY_ALL_PACKAGES (chính sách Play). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".UngDung"
         android:allowBackup="false"
