@@ -70,8 +70,9 @@ hẹp nên commit chỉ đụng web không có run) → `gh run download <run-id
   Đúng ⇒ chạy `AiiGrow-Setup.exe --capnhat --im-lang` bằng tác vụ SYSTEM `AiiGrowCapNhat` (mã thoát 0 ok · 7 lỗi đã khôi phục · 8 lỗi chưa khôi phục).
   Khay báo «AiiGrow đã cập nhật lên bản X» một lần. Mỗi request gửi header `X-AiiGrow-Ban`.
 - **Phát bản mới**: tăng `<Version>` ở `Directory.Build.props` → exe từ CI (`gh run download <run-id> -n setup-goc`, như trên) hoặc
-  `./build-mot-file.sh` → `gh release create v<ver>` ở repo `tanthanhkid/aiigrow-tai` với tệp `AiiGrow-Setup-<ver>.exe` → sửa
-  `server/lib/ban-agent.ts` (version, url, sha256 của đúng tệp đã tải lên) khi e2e của run đó xanh → merge. (Blob bỏ từ 23/10.)
+  `./build-mot-file.sh` → `gh release create v<ver>` ở repo public `tanthanhkid/aiigrow-tai` với tệp `AiiGrow-Setup-<ver>.exe` → sửa
+  `server/lib/ban-agent.ts` (version, url, sha256 của đúng tệp đã tải lên) → merge. (Blob bỏ từ 23/10.) Không cần chờ e2e để lấy exe, nhưng
+  e2e của run đó đỏ ⇒ đừng merge manifest (máy Con tự cập nhật theo nó) và gỡ/đánh dấu release đó.
 - TODO: khay gợi ý «có bản mới» cho máy không tự cập nhật được (mạng chặn Blob…).
 
 ## Cài thử (máy Windows thật hoặc máy ảo)

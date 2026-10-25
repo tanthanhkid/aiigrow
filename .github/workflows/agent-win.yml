@@ -16,10 +16,10 @@ name: agent-win
 # paths: chỉ phần máy chủ mà agent Windows + e2e (agent-win/e2e/chay.ps1, proxy.mjs) thật sự chạy qua — /api/device/**, /api/agent/**,
 # /api/m/** (catch-all lib/api-m.ts: otp, dang-ky, con, goi-cai, may/che-do, toi, tuan-thu), /api/suc-khoe, toàn bộ server/lib (route dùng
 # chung lib; trừ *.test.ts) và cấu hình dựng Next (package.json, lockfile, next.config, tsconfig, instrumentation, middleware/proxy nếu thêm). Trang web/admin/cron/dns/
-# aiirob/quay không kích CI Windows. Thêm route mới mà agent gọi ⇒ thêm vào hai danh sách dưới.
+# aiirob/quay không kích CI Windows. Thêm route mới mà agent gọi ⇒ thêm vào danh sách dưới (push dùng lại qua anchor).
 on:
   pull_request:
-    paths:
+    paths: &duong_agent
       - 'agent-win/**'
       - '.github/workflows/agent-win.yml'
       - 'server/app/api/device/**'
@@ -37,22 +37,7 @@ on:
       - 'server/proxy.ts'
   push:
     branches: [main]
-    paths:
-      - 'agent-win/**'
-      - '.github/workflows/agent-win.yml'
-      - 'server/app/api/device/**'
-      - 'server/app/api/agent/**'
-      - 'server/app/api/m/**'
-      - 'server/app/api/suc-khoe/**'
-      - 'server/lib/**'
-      - '!server/lib/**/*.test.ts'
-      - 'server/package.json'
-      - 'server/pnpm-lock.yaml'
-      - 'server/next.config.ts'
-      - 'server/tsconfig.json'
-      - 'server/instrumentation.ts'
-      - 'server/middleware.ts'
-      - 'server/proxy.ts'
+    paths: *duong_agent   # YAML anchor (Actions hỗ trợ từ 09/2025) — một danh sách duy nhất
   workflow_dispatch:
 
 permissions:

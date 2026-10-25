@@ -22,17 +22,17 @@ git fetch -q origin
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 T="$(mktemp -d)"; D="$T/web"
 # Thoát (kể cả Ctrl-C / một nhánh lỗi): giết CẢ CÂY tiến trình con (pha.mjs, Chrome headless, expo, tsc…) để không mồ côi giữ cổng/RAM.
-diet() { local c; for c in $(pgrep -P "$1"); do diet "$c"; done; kill "$1" 2>/dev/null || true; }
+diet() { local c con; con="$(pgrep -P "$1")"; kill "$1" 2>/dev/null || true; for c in $con; do diet "$c"; done; }   # cha trước: shell cha không kịp sinh lượt mới
 diet_con() { local c; for c in $(pgrep -P "$1"); do diet "$c"; done; }
 trap 'diet_con $$; rm -rf "${T:?}"' EXIT
 trap 'exit 130' INT TERM
 BAT_DAU=$SECONDS
-# Máy 16 GB: đo tải + RAM rảnh TRƯỚC khi chạy (chưa lẫn tải của chính cổng). Tải 1 phút > TAI_TOI_DA (8) hoặc RAM rảnh < RAM_TOI_THIEU (4 GB)
+# Máy 16 GB: đo tải + RAM rảnh TRƯỚC khi chạy (chưa lẫn tải của chính cổng). Tải 1 phút > TAI_TOI_DA (8) hoặc bộ nhớ rảnh < RAM_TOI_THIEU (25%)
 # ⇒ chế độ nhẹ: hai nhánh nối tiếp, ba lượt giao diện nối tiếp (tối đa 2 Chrome) — hẹn giờ chờ của pha.mjs không bị trễ vì máy nghẽn.
 TAI="$(sysctl -n vm.loadavg 2>/dev/null | awk '{print int($2)}')"
-RAM_GB="$(vm_stat 2>/dev/null | awk '/page size of/{ps=$8} /Pages free/{f=$3} /Pages inactive/{i=$3} END{printf "%d", (f+i)*ps/1073741824}')"
-NHE=0; { [ "${TAI:-0}" -gt "${TAI_TOI_DA:-8}" ] || [ "${RAM_GB:-99}" -lt "${RAM_TOI_THIEU:-4}" ]; } && NHE=1
-echo "Tải máy ${TAI:-?} · RAM rảnh ~${RAM_GB:-?} GB ⇒ $([ $NHE = 1 ] && echo "chế độ NHẸ (nối tiếp)" || echo "song song")"
+RAM_PT="$(sysctl -n kern.memorystatus_level 2>/dev/null)"   # % bộ nhớ «rảnh» theo macOS (như memory_pressure), tính cả cache thu hồi được
+NHE=0; { [ "${TAI:-0}" -gt "${TAI_TOI_DA:-8}" ] || [ "${RAM_PT:-100}" -lt "${RAM_TOI_THIEU:-25}" ]; } && NHE=1
+echo "Tải máy ${TAI:-?} · bộ nhớ rảnh ${RAM_PT:-?}% ⇒ $([ $NHE = 1 ] && echo "chế độ NHẸ (nối tiếp)" || echo "song song")"
 
 bam() { { cat "$@" 2>/dev/null || true; } | shasum -a 256 | cut -c1-16; }   # tệp vắng (babel/metro config) bỏ qua
 # cai <thư mục> <lockfile> <lockfile ẩn trong node_modules> <lệnh…>: cài khi băm khác lần cài trước. Băm = đầu vào (lockfile + package.json +
@@ -51,8 +51,13 @@ npm_ci() { npm ci >/dev/null; }
 # Lỗi khác (mạng, lockfile lệch…) ⇒ cổng lỗi, KHÔNG ghi băm (lần sau cài lại) — tránh kiểm trên node_modules cũ.
 cai_server() {
   local o rc=0; o="$(pnpm install --frozen-lockfile 2>&1)" || rc=$?
-  [ $rc = 0 ] || { grep -q ERR_PNPM_IGNORED_BUILDS <<<"$o" && ! grep -v ERR_PNPM_IGNORED_BUILDS <<<"$o" | grep -q "ERR_PNPM_"; } \
-    || { echo "pnpm install máy chủ lỗi:"; tail -30 <<<"$o"; return 1; }
+  # mã ≠0 chỉ chấp nhận khi: lỗi ERR_PNPM_ DUY NHẤT là IGNORED_BUILDS + pnpm báo cài xong («Done in» / «Already up to date») + không lỗi mạng/lifecycle.
+  if [ $rc != 0 ]; then
+    local khac; khac="$(grep -oE 'ERR_PNPM_[A-Z_]+' <<<"$o" | grep -vc '^ERR_PNPM_IGNORED_BUILDS$' || true)"
+    if [ "${khac:-1}" != 0 ] || ! grep -qE '^(Done in|Already up to date)' <<<"$o" || grep -qE 'ELIFECYCLE|ECONN|ETIMEDOUT|EAI_AGAIN|npm ERR!' <<<"$o"; then
+      echo "pnpm install máy chủ lỗi (mã $rc):"; tail -30 <<<"$o"; return 1
+    fi
+  fi
   [ -d node_modules/next ] || { echo "pnpm install máy chủ lỗi (thiếu node_modules/next)"; return 1; }
 }
 
@@ -83,7 +88,7 @@ nhanh_app() (
   tm="$goc_cache/metro-$( { env | grep '^EXPO_PUBLIC_' | grep -v '^EXPO_PUBLIC_API=' | sort || true; bam node_modules/.lock-hash babel.config.* metro.config.* app.json app.config.* .env*; } | shasum -a 256 | cut -c1-16)"
   mkdir -p "$tm"; touch "$tm"   # touch: thư mục đang dùng không bị dọn dưới đây
   find "$goc_cache" -mindepth 1 -maxdepth 1 -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
-  TMPDIR="$tm" EXPO_PUBLIC_API=/ npx expo export --platform web --output-dir "$D" >/dev/null
+  TMPDIR="$tm" EXPO_BASE_URL="" EXPO_PUBLIC_API=/ npx expo export --platform web --output-dir "$D" >/dev/null
   echo "== App: pha.mjs luồng ∥ giao diện ×3 (export xong $((SECONDS - BAT_DAU))s)"
   # Cổng giao diện (~7 phút một lượt) chia ba lượt theo tên màn bằng PHA_MAN (lọc sẵn có trong pha.mjs). Lượt cuối là PHẦN BÙ của hai lượt
   # đầu ⇒ màn mới/đổi tên luôn rơi vào một lượt, không màn nào bị bỏ. Mỗi lượt cổng tĩnh + cổng CDP + hồ sơ Chrome riêng
@@ -102,7 +107,7 @@ nhanh_app() (
   wait "${pid[@]}" || true
   local loi=0 i
   for i in 0 1 2 3; do
-    local rc; rc="$(cat "$T/rc-${ten[$i]}" 2>/dev/null || echo '?')"
+    local rc; rc="$(cat "$T/rc-${ten[$i]}" 2>/dev/null || true)"; [ -n "$rc" ] || rc='?' 
     [ "$rc" = 0 ] || { loi=1; echo "pha.mjs ${ten[$i]} LỖI (mã $rc$( [ "$rc" != '?' ] && [ "$rc" -gt 128 ] && echo " — bị giết bằng tín hiệu $((rc - 128))")):"; }
     cat "$T/pha-${ten[$i]}.txt" 2>/dev/null || true
   done
@@ -114,12 +119,12 @@ nhanh_app() (
 # KHÔNG gọi nhánh trong ngữ cảnh `nhanh || …`: bash tắt set -e bên trong mọi lệnh đứng trước || / && (kể cả subshell, hàm) ⇒ lỗi bị nuốt.
 chay_nhanh() { set +e; "$1" > "$T/$2.txt" 2>&1; local rc=$?; [ $rc = 0 ] || touch "$T/hong"; exit $rc; }
 ( chay_nhanh nhanh_server server ) & PS=$!
-[ $NHE = 1 ] && { wait $PS || true; }
+RC_S=""; [ $NHE = 1 ] && { RC_S=0; wait $PS || RC_S=$?; }
 if [ ! -f "$T/hong" ]; then ( chay_nhanh nhanh_app app ) & PA=$!; fi
 while { kill -0 $PS 2>/dev/null || kill -0 "${PA:-$PS}" 2>/dev/null; } && [ ! -f "$T/hong" ]; do sleep 1; done
 [ -f "$T/hong" ] && diet_con $$
 LOI=0
-wait $PS 2>/dev/null || LOI=1; cat "$T/server.txt"
+if [ -n "$RC_S" ]; then [ "$RC_S" = 0 ] || LOI=1; else wait $PS 2>/dev/null || LOI=1; fi; cat "$T/server.txt"
 [ -n "${PA:-}" ] && { wait $PA 2>/dev/null || LOI=1; cat "$T/app.txt" 2>/dev/null || true; }
 [ -f "$T/hong" ] && LOI=1
 [ $LOI = 0 ] || { echo "Cổng kiểm LỖI (log nhánh lỗi ở trên) — $((SECONDS - BAT_DAU))s"; exit 1; }
