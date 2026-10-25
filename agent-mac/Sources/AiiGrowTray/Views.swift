@@ -1,5 +1,6 @@
 // Giao diện SwiftUI: xin thêm giờ, xin mở trang/app, ghép máy, màn khoá toàn màn hình.
 // Chất liệu Clay gương + icon Fluent 3D + motion «vui»/«ánh men» (Clay.swift, docs/THIET-KE-CLAY.md).
+import AppKit
 import SwiftUI
 import AiiGrowCore
 
@@ -16,7 +17,7 @@ struct XinThemView: View {
         VienClay(ten: "hourglass_not_done", duPhong: "hourglass", nen: ClayMau.diemSoft, co: 44)
         Text("Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
       }
-      HStack(spacing: 10) {
+      HStack(spacing: 14) {                     // bóng nút lan ~7pt mỗi bên ⇒ khe 14 để bóng hai nút không chồng nhau
         ForEach(TrayLogic.luaChonPhut, id: \.self) { p in
           Button(TrayLogic.nhanLuaChonPhut(p)) { withAnimation(ClayMotion.bat) { phut = p } }
             .buttonStyle(NutClayStyle(kieu: phut == p ? .ngoc : .sang))
@@ -25,7 +26,7 @@ struct XinThemView: View {
       .padding(.vertical, 2)
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
-        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40)
+        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44)
         .foregroundColor(ClayMau.chu).clayLom()
       Button("Xin Ba Mẹ") { xin.xinThem(phut: phut, loiNhan: loiNhan) }
         .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(xin.dangGui)
@@ -70,13 +71,20 @@ struct XinMoView: View {
           .id(loai).transition(.scale(scale: 0.85).combined(with: .opacity))
         Text("Con muốn mở gì?").font(.system(size: 17, weight: .bold))
       }
-      Picker("", selection: $loai.animation(ClayMotion.bat)) { Text("Trang web").tag("web"); Text("App").tag("app") }
-        .pickerStyle(.segmented).labelsHidden().frame(minHeight: 32)
+      // Hai nút kẹo thay segmented Picker (cao 24pt, dưới vùng bấm 44): cùng kiểu chip phút của «Xin thêm giờ».
+      HStack(spacing: 14) {
+        ForEach([("web", "Trang web"), ("app", "App")], id: \.0) { k, nhan in
+          Button(nhan) { withAnimation(ClayMotion.bat) { loai = k } }
+            .buttonStyle(NutClayStyle(kieu: loai == k ? .ngoc : .sang))
+            .accessibilityAddTraits(loai == k ? .isSelected : [])
+        }
+      }
+      .padding(.vertical, 2)
       TextField(loai == "web" ? "Địa chỉ trang, ví dụ youtube.com" : "Tên app", text: $muc)
-        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40).clayLom()
+        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Con cần mở để làm gì?", text: $loiNhan)
-        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 40).clayLom()
+        .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
       Button("Xin Ba Mẹ") { xin.xinMo(muc: muc.trimmingCharacters(in: .whitespaces), loai: loai, loiNhan: loiNhan) }
         .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(xin.dangGui || muc.trimmingCharacters(in: .whitespaces).isEmpty)
       let dong = TrayLogic.dongYeuCau(tray.tt?.yeuCauCho ?? []) ?? xin.thongBao
@@ -113,8 +121,20 @@ struct GhepMayView: View {
         Text("Chưa thấy tài khoản nào khác trên máy. Hãy tạo tài khoản cho Con ở Cài đặt hệ thống → Người dùng & Nhóm.")
           .font(.system(size: 13)).foregroundColor(ClayMau.loi)
       } else {
-        Picker("Tài khoản của Con", selection: $chon) { ForEach(taiKhoan, id: \.self) { Text($0).tag($0) } }
-          .frame(minHeight: 32)
+        // Ô chọn Clay cao 48 thay pop-up hệ thống (cao 22pt, dưới vùng bấm 44). Menu của SwiftUI trên macOS bỏ nhãn tuỳ biến
+        // (chỉ còn chữ + mũi tên) ⇒ dùng nút thường, bấm thì bật NSMenu ngay dưới con trỏ.
+        Button { MenuChon.hien(taiKhoan, dangChon: chon) { chon = $0 } } label: {
+          HStack(spacing: 8) {
+            Text("Tài khoản của Con").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
+            Spacer(minLength: 8)
+            Text(chon).font(.system(size: 15, weight: .semibold)).foregroundColor(ClayMau.chu).lineLimit(1).truncationMode(.middle)
+            Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .bold)).foregroundColor(ClayMau.chu3)
+          }
+          .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 48).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .clayLom(bo: 18)
+        .accessibilityLabel("Tài khoản của Con: \(chon)")
       }
       TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
         .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
@@ -128,7 +148,7 @@ struct GhepMayView: View {
       Button(dangGui ? "Đang ghép…" : "Ghép máy") { gui() }
         .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(dangGui || xong || !TrayLogic.maHopLe(ma) || chon.isEmpty || !canhBao.isEmpty)
       Text("Tài khoản Con sẽ về quyền người dùng thường (cần còn một tài khoản quản trị khác).")
-        .font(.system(size: 11)).foregroundColor(ClayMau.chu3)
+        .font(.system(size: 11)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
     }
     .padding(20).clayThe().vaoLanLuot(0)
     .padding(22).padding(.bottom, 12).frame(width: 460).nenClay()
@@ -236,5 +256,26 @@ struct KinhMo: View {
       hinh.strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
     }
     .shadow(color: .black.opacity(0.35), radius: 16, x: 0, y: 14)
+  }
+}
+
+/// NSMenu bật tại con trỏ để chọn một mục (popUp chạy đồng bộ tới khi menu đóng ⇒ đích giữ sống trong lúc đó).
+@MainActor
+final class MenuChon: NSObject {
+  private let khiChon: (String) -> Void
+  private init(_ khiChon: @escaping (String) -> Void) { self.khiChon = khiChon }
+  @objc private func bam(_ m: NSMenuItem) { khiChon(m.title) }
+
+  static func hien(_ ds: [String], dangChon: String, khiChon: @escaping (String) -> Void) {
+    let dich = MenuChon(khiChon)
+    let menu = NSMenu()
+    for t in ds {
+      let m = NSMenuItem(title: t, action: #selector(bam(_:)), keyEquivalent: "")
+      m.target = dich
+      m.state = t == dangChon ? .on : .off
+      menu.addItem(m)
+    }
+    menu.popUp(positioning: menu.items.first { $0.state == .on }, at: NSEvent.mouseLocation, in: nil)
+    withExtendedLifetime(dich) {}
   }
 }
