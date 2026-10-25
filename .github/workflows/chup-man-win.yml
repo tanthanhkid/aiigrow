@@ -42,6 +42,11 @@ jobs:
         continue-on-error: true
         run: |
           try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop; Write-Host 'Set-DisplayResolution: được' } catch { Write-Host "Set-DisplayResolution: không được — $($_.Exception.Message)" }
+          # bật thông báo (bóng báo khay) + thu nhỏ cửa sổ console của runner để nền ảnh chụp toàn màn sạch
+          foreach ($k in 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications', 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings') { New-Item -Path $k -Force | Out-Null }
+          New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\PushNotifications' -Name ToastEnabled -Value 1 -PropertyType DWord -Force | Out-Null
+          New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings' -Name NOC_GLOBAL_SETTING_TOASTS_ENABLED -Value 1 -PropertyType DWord -Force | Out-Null
+          try { (New-Object -ComObject Shell.Application).MinimizeAll() } catch { }
           Add-Type -AssemblyName System.Windows.Forms
           Write-Host ("Màn hình: {0}" -f [System.Windows.Forms.Screen]::PrimaryScreen.Bounds)
       - name: Chụp 100% và 150%

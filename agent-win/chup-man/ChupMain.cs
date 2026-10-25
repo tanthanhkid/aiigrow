@@ -425,15 +425,29 @@ internal static class ChupMain
         if (laClient) f.ClientSize = co; else f.Size = co;
     }
 
+    /// <summary>Chụp đúng những gì Windows hiện trên màn (CopyFromScreen theo khung DWM, cửa sổ nổi trên cùng) khi cửa sổ nằm trọn trong màn;
+    /// to hơn màn ⇒ PrintWindow(PW_RENDERFULLCONTENT) vào bitmap 24 bit. (PrintWindow vẽ sai nền đã nhớ của nút Clay — chỉ dùng khi bắt buộc.)</summary>
     private static void Chup(Control c, string ten)
     {
-        c.Refresh();
-        Application.DoEvents();
+        if (c is Form f) { f.TopMost = true; f.Activate(); }
+        for (int i = 0; i < 6; i++) { c.Refresh(); Application.DoEvents(); Thread.Sleep(50); }
+        var khung = KhungManHinh(c.Handle);
+        var man = SystemInformation.VirtualScreen;
         Bitmap? bmp = null;
-        var cach = "PrintWindow";
+        var cach = "CopyFromScreen";
         try
         {
-            bmp = ChupPrintWindow(c.Handle);
+            if (man.Contains(khung))
+            {
+                bmp = new Bitmap(khung.Width, khung.Height, PixelFormat.Format24bppRgb);
+                using var g = Graphics.FromImage(bmp);
+                g.CopyFromScreen(khung.Location, Point.Empty, khung.Size);
+            }
+            else
+            {
+                cach = "PrintWindow (cửa sổ to hơn màn)";
+                bmp = ChupPrintWindow(c.Handle);
+            }
             if (bmp == null || DonSac(bmp))
             {
                 bmp?.Dispose();
@@ -444,6 +458,15 @@ internal static class ChupMain
             Luu(bmp, ten, cach);
         }
         finally { bmp?.Dispose(); }
+    }
+
+    /// <summary>Khung cửa sổ trên màn (toạ độ màn), bỏ viền trong suốt Windows 10/11.</summary>
+    private static Rectangle KhungManHinh(IntPtr h)
+    {
+        if (DwmGetWindowAttribute(h, 9, out var e, Marshal.SizeOf<RECT>()) == 0 && e.Right > e.Left)
+            return Rectangle.FromLTRB(e.Left, e.Top, e.Right, e.Bottom);
+        GetWindowRect(h, out var w);
+        return Rectangle.FromLTRB(w.Left, w.Top, w.Right, w.Bottom);
     }
 
     private static void ChupManHinh(string ten)
@@ -494,7 +517,7 @@ internal static class ChupMain
         if (!GetWindowRect(h, out var w)) return null;
         int rw = w.Right - w.Left, rh = w.Bottom - w.Top;
         if (rw < 4 || rh < 4) return null;
-        using var full = new Bitmap(rw, rh, PixelFormat.Format32bppArgb);
+        using var full = new Bitmap(rw, rh, PixelFormat.Format24bppRgb);
         using (var g = Graphics.FromImage(full))
         {
             var dc = g.GetHdc();
@@ -508,7 +531,7 @@ internal static class ChupMain
             r.Intersect(cat);
             if (r.Width > 4 && r.Height > 4) cat = r;
         }
-        return full.Clone(cat, PixelFormat.Format32bppArgb);
+        return full.Clone(cat, PixelFormat.Format24bppRgb);
     }
 
     // =========================================================== phản chiếu (trường / bước riêng của Form)
