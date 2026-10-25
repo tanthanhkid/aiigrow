@@ -682,7 +682,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 1)
     let moi = Data("goi khac".utf8)
     HttpMock.dat { path, _ in
-      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.3", "url": "\(self.may)/tai/AiiGrow-0.1.3.pkg", "sha256": sha256Hex(moi)]) }
+      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.5", "url": "\(self.may)/tai/AiiGrow-0.1.5.pkg", "sha256": sha256Hex(moi)]) }
       return .init(ma: 200, than: moi)
     }
     _ = await chay(boCapNhat())
