@@ -51,7 +51,7 @@ object ThucThi {
             val loi = if (goiChan.isNotEmpty()) d.setPackagesSuspended(a, goiChan.toTypedArray(), true).toSet() else emptySet()
             // gói chưa cài / gói hệ thống bắt buộc trả về «không tạm dừng được» — không ghi là đã tạm dừng
             k.goiDaTamDung = goiChan - loi
-            if (loi.isNotEmpty() && loi != k.goiKhongDung) { k.goiKhongDung = loi; NhatKy.tin(TAG, "không tạm dừng được: $loi") }   // chỉ ghi khi đổi
+            if (loi != k.goiKhongDung) { k.goiKhongDung = loi; if (loi.isNotEmpty()) NhatKy.tin(TAG, "không tạm dừng được: $loi") }   // chỉ ghi khi đổi
             datWebChrome(ctx, webChan)
             if (khoaThat && qd.khoaCaMay && k.daLockNow != k.khoaTu) { k.daLockNow = k.khoaTu; d.lockNow() }
         } else {

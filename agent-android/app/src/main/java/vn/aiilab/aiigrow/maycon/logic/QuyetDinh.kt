@@ -134,6 +134,15 @@ fun quyetDinh(
     return kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Con còn $conPhut phút giải trí hôm nay.")
 }
 
+/** Giây tới đầu giờ ngủ kế tiếp (null nếu không đặt giờ ngủ). */
+fun giayToiNgu(cs: ChinhSach, now: Instant): Int? {
+    val ngu = cs.ngu ?: return null
+    if (ngu.tuPhut == ngu.denPhut) return null
+    val g = gioDiaPhuong(now, cs.tz)
+    val phut = ((ngu.tuPhut - g.phut + 1440) % 1440).let { if (it == 0) 1440 else it }
+    return phut * 60 - g.zdt.second
+}
+
 /** Trình duyệt không lọc web được: mọi trình duyệt trừ Chrome, trừ gói Ba Mẹ đã xếp (không phân biệt hoa thường), trừ gói luôn cho. */
 fun trinhDuyetKhongLoc(trinhDuyet: Set<String>, daXep: Set<String>): Set<String> {
     val xep = daXep.map { it.lowercase() }.toSet()

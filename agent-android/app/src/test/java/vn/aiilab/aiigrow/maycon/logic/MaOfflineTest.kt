@@ -11,6 +11,7 @@ import java.time.Instant
 class MaOfflineTest {
     // Số đối chiếu tính bằng server/lib/ma-offline.ts › maOffline (node) — máy chủ, agent-win và agent-android phải ra cùng mã.
     @Test fun cungMaVoiMayChu() {
+        assertEquals("cabe62fd6d16", vanBiMat("abcDEF_123-xyz"))   // = server/lib/nhip-may.ts › vanBiMat
         assertEquals("831732", MaOffline.ma("abcDEF_123-xyz", 1761400000000))
         assertEquals("153980", MaOffline.ma("k", 0))
         assertEquals("307297", MaOffline.ma("Bí mật", 1761400299000))
@@ -98,6 +99,10 @@ class MaOfflineTest {
         assertEquals("hết thêm giờ thì khoá ⇒ đếm tới hạn", 90, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 2, 100_000), q(TrangThai.HET_GIO, 0), 10_000))
         assertEquals("hết thêm giờ còn 40 phút ⇒ cộng vào", 90 + 2400, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 2, 100_000), q(TrangThai.BINH_THUONG, 40), 10_000))
         assertNull(giayConTruocKhoa(q(TrangThai.HET_GIO, 0), null, 0))
+        assertEquals("giờ ngủ tới trước hạn thêm giờ ⇒ đếm tới giờ ngủ", 120, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 60, 3_600_000), q(TrangThai.HET_GIO, 0), 0, 120))
+        val cs = ChinhSach(ngu = Khung("21:00", "06:30"))
+        assertEquals(5 * 60, giayToiNgu(cs, Instant.parse("2026-10-21T20:55:00+07:00")))
+        assertNull(giayToiNgu(ChinhSach(), Instant.parse("2026-10-21T20:55:00+07:00")))
     }
 
     @Test fun hangDoi_cheBiMat_catDong() {

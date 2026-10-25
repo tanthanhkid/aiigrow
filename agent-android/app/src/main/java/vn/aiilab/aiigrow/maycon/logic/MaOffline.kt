@@ -13,6 +13,10 @@ import kotlin.math.roundToInt
 // Phải RA ĐÚNG số như máy chủ (server/lib/ma-offline.ts) và agent-win (AiiGrow.Core/MaOffline.cs): TOTP RFC 6238, HMAC-SHA1,
 // khoá = UTF-8 của chuỗi bí mật, bước 300 giây, 6 chữ số, dung sai ±1 bước. Trạng thái «mở tạm» chép MoTamOffline.cs.
 
+/** Vân của bí mật (12 ký tự hex đầu của SHA-256) — agent báo vân, máy chủ so (server/lib/nhip-may.ts) để biết có phải gửi lại bí mật. */
+fun vanBiMat(biMat: String): String = MessageDigest.getInstance("SHA-256").digest(biMat.toByteArray(Charsets.UTF_8))
+    .joinToString("") { "%02x".format(it) }.take(12)
+
 object MaOffline {
     const val BUOC_GIAY = 300L
     const val SO_CHU_SO = 6

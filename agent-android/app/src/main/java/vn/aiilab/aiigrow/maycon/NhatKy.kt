@@ -54,7 +54,8 @@ object NhatKy {
     private val dangGui = java.util.concurrent.atomic.AtomicBoolean(false)
 
     /** Gửi hết hàng đợi trên luồng riêng (không chặn vòng thực thi). Lỗi ⇒ giữ nguyên, lần sau gửi. */
-    fun gui(c: Context, may: MayChu) {
+    fun gui(ctx: Context, may: MayChu) {
+        val c = ctx.applicationContext   // không giữ Service đã dừng trong tác vụ nền
         if (!dangGui.compareAndSet(false, true)) return
         luong.execute {
             try {

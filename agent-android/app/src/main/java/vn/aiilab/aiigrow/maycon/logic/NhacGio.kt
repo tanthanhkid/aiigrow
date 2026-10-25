@@ -21,16 +21,18 @@ data class NhacGio(val da5: Boolean = false, val da1: Boolean = false) {
  * Giây còn trước khi khoá: bình thường ⇒ phút còn (trần ngày, khung giờ, phiên điểm). Thêm giờ / mở bằng mã ⇒ tới hạn mở, cộng phút còn
  * SAU hạn nếu lúc đó máy không khoá (`sau` = quyết định tại hạn + 1 giây; vẫn được thêm giờ ⇒ không nhắc). Đang khoá / không tuân thủ ⇒ null.
  */
-fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long): Int? = when (qd.trangThai) {
+fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long, giayToiNgu: Int? = null): Int? = when (qd.trangThai) {
     TrangThai.BINH_THUONG -> qd.conPhut * 60
     TrangThai.DUOC_THEM_GIO -> {
         val toiHan = qd.moLaiLuc?.let { ((it.toEpochMilli() - nowMs) / 1000).toInt().coerceAtLeast(0) }
-        when {
+        val theoHan = when {
             toiHan == null -> qd.conPhut * 60
             sau == null || laKhoa(sau.trangThai) || sau.trangThai == TrangThai.KHONG_TUAN_THU -> toiHan
             sau.trangThai == TrangThai.BINH_THUONG -> toiHan + sau.conPhut * 60
             else -> null
         }
+        // giờ ngủ thắng thêm giờ (quyetDinh) ⇒ tới giờ ngủ trước thì khoá lúc đó
+        listOfNotNull(theoHan, giayToiNgu).minOrNull()
     }
     else -> null
 }

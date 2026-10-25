@@ -11,6 +11,10 @@ import { coCuaSoThemGio } from "./chuyen-doi.ts";
 import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu } from "./ios-may.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { tinHieuDanhSachApp } from "./app-may.ts";
+import { createHash } from "node:crypto";
+
+/** Vân bí mật mã offline: 12 ký tự hex đầu SHA-256 (agent-android logic/MaOffline.kt › vanBiMat). */
+export const vanBiMat = (s: string) => createHash("sha256").update(s, "utf8").digest("hex").slice(0, 12);
 
 export async function nhipMay(may: May, con: string | null, b: NhipVao, now = new Date()) {
   const kq = await nhanNhip(may, may.platform === "android" ? { ...b, thanhPhan: thanhPhanChoTuanThu(b.thanhPhan) } : b, now);
@@ -25,8 +29,9 @@ export async function nhipMay(may: May, con: string | null, b: NhipVao, now = ne
   else await luuAndroidNhip(may, b, now);
   const den = coCuaSoThemGio(may.platform) ? await hanMoCuaMay(may, con, now) : null;
   // Android: bí mật mã mở offline (lib/ma-offline.ts) — tác tử nhớ khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng (như dong-bo.windows.maOfflineBiMat).
-  // Agent báo `coMaOffline: true` khi đã nhớ bí mật ⇒ không gửi lại mỗi nhịp (đỡ một lần đọc DB, bí mật ít đi qua mạng).
-  const maOfflineBiMat = may.platform === "android" && (b as { coMaOffline?: unknown }).coMaOffline !== true ? await biMatOfflineMay(may.id) : null;
+  // Agent báo vân bí mật đang nhớ (`maOfflineVan`) ⇒ khớp thì không gửi lại (bí mật ít đi qua mạng); thiếu / lệch ⇒ gửi bí mật đúng.
+  const bm = may.platform === "android" ? await biMatOfflineMay(may.id) : null;
+  const maOfflineBiMat = bm && (b as { maOfflineVan?: unknown }).maOfflineVan !== vanBiMat(bm) ? bm : null;
   return { ...kqNhip, grantEndsAt: den ? den.toISOString() : null, moDen: den ? den.toISOString() : null, ...(maOfflineBiMat ? { maOfflineBiMat } : {}) };
 }
 

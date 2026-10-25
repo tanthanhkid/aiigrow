@@ -22,6 +22,8 @@ import vn.aiilab.aiigrow.maycon.logic.MoTamOffline
 import vn.aiilab.aiigrow.maycon.logic.NhacGio
 import vn.aiilab.aiigrow.maycon.logic.PhanHoiNhip
 import vn.aiilab.aiigrow.maycon.logic.giayConTruocKhoa
+import vn.aiilab.aiigrow.maycon.logic.giayToiNgu
+import vn.aiilab.aiigrow.maycon.logic.vanBiMat
 import vn.aiilab.aiigrow.maycon.logic.noiDungNhac
 import vn.aiilab.aiigrow.maycon.logic.tieuDeNhac
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
@@ -125,7 +127,9 @@ class DichVuNhip : Service() {
         val moOff = MoTamOffline.doc(k.moTamOffline).takeIf { it.dangMo(nowMay) }?.moDen?.let { Instant.ofEpochMilli(it + lech) }
         val laDo = QuanTri.laDeviceOwner(this)
         if (laDo && nowMay - lanQuetTrinhDuyet > 60_000) { trinhDuyet = DoPhut.trinhDuyet(this); lanQuetTrinhDuyet = nowMay }
-        val qd = quyetDinh(cs, now, phutGiaiTri(dung, goiAndroid(cs.giaiTri)), DoPhut.daCai(this), ph.grantEndsAt, moOff,
+        val daCai = DoPhut.daCai(this)
+        val phutGT = phutGiaiTri(dung, goiAndroid(cs.giaiTri))
+        val qd = quyetDinh(cs, now, phutGT, daCai, ph.grantEndsAt, moOff,
             if (laDo) trinhDuyet else emptySet())
 
         // đếm ngược 60 giây trước khi khoá thật (Con kịp lưu bài / chào bạn)
@@ -145,10 +149,13 @@ class DichVuNhip : Service() {
         capNhatThongBao(ht)
         TroNang.capNhat()
         // thêm giờ / mở bằng mã: xem lúc hết hạn máy có khoá không (hết hạn mà còn phút ⇒ không «máy sắp khoá» giả)
-        val sauHan = if (qd.trangThai == TrangThai.DUOC_THEM_GIO) qd.moLaiLuc?.plusSeconds(1)?.let { t ->
-            quyetDinh(cs, t, phutGiaiTri(dung, goiAndroid(cs.giaiTri)), DoPhut.daCai(this), ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet())
+        // (phút chơi trong lúc thêm giờ vẫn tính vào trần ngày ⇒ cộng phút còn tới hạn vào phút đã dùng; giờ ngủ tới trước hạn thì khoá sớm hơn)
+        val sauHan = if (qd.trangThai == TrangThai.DUOC_THEM_GIO) qd.moLaiLuc?.let { mo ->
+            val toiHanPhut = java.time.Duration.between(now, mo).toMinutes().toInt().coerceAtLeast(0)
+            quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet())
         } else null
-        nhacTruocKhoa(k, giayConTruocKhoa(qd, sauHan, now.toEpochMilli()), demNguoc, khoaThat, nowMay)
+        val nguToi = if (qd.trangThai == TrangThai.DUOC_THEM_GIO && moOff == null) giayToiNgu(cs, now) else null   // mã offline gỡ cả giờ ngủ
+        nhacTruocKhoa(k, giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay)
         if (laKhoa(qd.trangThai) && ManKhoa.dangMo == null && QuanTri.laDeviceOwner(this) && (qd.khoaCaMay || k.daBoQua != k.khoaTu)) {
             // Device Owner được mở activity từ nền (miễn trừ BAL cho DPC). Đường không reset: TroNang phủ màn khoá.
             startActivity(Intent(this, ManKhoa::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -173,7 +180,7 @@ class DichVuNhip : Service() {
         val dung = DoPhut.homNay(this, tz).mapValues { (it.value / 60_000).toInt() }
         val than = thanNhip(Instant.now().toString(), BuildConfig.VERSION_NAME, ht?.dangKhoaThat == true, QuanTri.laDeviceOwner(this),
             QuanTri.laAdmin(this), TroNang.dangBat(this), DoPhut.coQuyen(this), if (matPhut > 2) matPhut else 0, dung)
-            .put("coMaOffline", k.maOfflineBiMat != null)   // đã có bí mật mã offline ⇒ máy chủ khỏi gửi lại mỗi nhịp
+            .apply { k.maOfflineBiMat?.let { put("maOfflineVan", vanBiMat(it)) } }   // vân bí mật đang nhớ: khớp ⇒ máy chủ khỏi gửi lại, lệch ⇒ gửi bí mật đúng
         try {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
@@ -185,8 +192,8 @@ class DichVuNhip : Service() {
             // DNS gia đình (server/lib/dns-gia-dinh.ts › hoSoDns): Device Owner tự đặt DNS riêng tư; gia đình chưa bật DNS ⇒ máy chủ trả lỗi, bỏ qua
             if (QuanTri.laDeviceOwner(this) && k.privateDnsDaDat == null) try {
                 val host = MayChu(k.mayChu, k.token).hoSoDns().optJSONObject("android")?.optString("privateDns")
-                NhatKy.tin(TAG, "DNS gia đình: " + ThucThi.datPrivateDns(this, host))
-            } catch (e: Exception) { NhatKy.tin(TAG, "chưa có DNS gia đình: ${e.message}") }
+                Log.i(TAG, "DNS gia đình: " + ThucThi.datPrivateDns(this, host))   // mỗi nhịp tới khi gia đình bật DNS ⇒ chỉ logcat
+            } catch (e: Exception) { Log.i(TAG, "chưa có DNS gia đình: ${e.message}") }
         } catch (e: MayChu.Loi) {
             if (e.http == 401) { NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null; MoMaOffline.quen(k) }
         } catch (e: Exception) { Log.i(TAG, "mất mạng — chạy theo chính sách nhớ: ${e.message}") }
