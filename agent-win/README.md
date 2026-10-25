@@ -56,7 +56,8 @@ foreach ($p in 'Service','Tray','Setup') {
 
 Trên Mac chỉ build/test được logic: thêm `-p:EnableWindowsTargeting=true` (test DPAPI tự bỏ qua ngoài Windows).
 CI: `.github/workflows/agent-win.yml` (`windows-latest`, unit + build ×3 + e2e). Exe bản đang phát là artifact `setup-goc`, có ngay khi job
-build xong (không chờ e2e): `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc -D ra-ci` → `ra-ci/AiiGrow-Setup.exe`.
+build xong (không chờ e2e): `gh run list -R tanthanhkid/aiigrow -w agent-win -c <sha commit tăng Version>` lấy `<run-id>` của đúng commit (không lấy «run mới nhất của nhánh» — `paths`
+hẹp nên commit chỉ đụng web không có run) → `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc -D ra-ci` → `ra-ci/AiiGrow-Setup.exe`.
 
 ## Cập nhật đè và tự cập nhật (từ 0.2.0)
 

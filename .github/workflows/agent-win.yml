@@ -8,8 +8,9 @@ name: agent-win
 #
 # LẤY EXE SỚM (không chờ e2e ~6 phút): mỗi job build tải exe lên artifact `setup-<bản>` ngay khi build xong (upload-artifact@v4 — tải được
 # ngay cả khi run còn chạy). Bản phát hành là `setup-goc` (số bản trong Directory.Build.props):
-#   gh run list -R tanthanhkid/aiigrow -w agent-win -b <nhánh> -L 1          # lấy <run-id>
-#   gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc -D ra-ci     # → ra-ci/AiiGrow-Setup.exe
+#   gh run list -R tanthanhkid/aiigrow -w agent-win -c <sha commit tăng Version>   # lấy <run-id> của ĐÚNG commit (paths hẹp: commit chỉ
+#                                                    # đụng web/admin không có run — đừng lấy «run mới nhất của nhánh»)
+#   gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc -D ra-ci        # → ra-ci/AiiGrow-Setup.exe (in số bản: xem Chi tiết tệp)
 # Vẫn nên đợi e2e xanh trước khi trỏ server/lib/ban-agent.ts sang bản mới (xem chú thích ở đó).
 #
 # paths: chỉ phần máy chủ mà agent Windows + e2e (agent-win/e2e/chay.ps1, proxy.mjs) thật sự chạy qua — /api/device/**, /api/agent/**,
@@ -72,13 +73,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
+        id: dotnet
         with:
           dotnet-version: '8.0.x'
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-win-unit-${{ hashFiles('agent-win/**/*.csproj') }}
+          key: nuget-win-unit-${{ steps.dotnet.outputs.dotnet-version }}-${{ hashFiles('agent-win/**/*.csproj') }}
           restore-keys: nuget-win-unit-
       - name: dotnet test
         run: dotnet test agent-win/tests/AiiGrow.Tests -c Release --logger "trx;LogFileName=unit.trx" --logger "console;verbosity=normal" --results-directory test-results
@@ -98,14 +100,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
+        id: dotnet
         with:
           dotnet-version: '8.0.x'
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          # khoá riêng job build: gói runtime win-x64 của publish một tệp không có trong cache của job unit
-          key: nuget-win-build-${{ hashFiles('agent-win/**/*.csproj') }}
+          # khoá riêng job build (gói runtime win-x64 của publish một tệp không có trong cache job unit) + bản SDK (runtime pack theo bản vá .NET)
+          key: nuget-win-build-${{ steps.dotnet.outputs.dotnet-version }}-${{ hashFiles('agent-win/**/*.csproj') }}
           restore-keys: nuget-win-build-
       - name: Đặt số bản thử (chỉ trong job)
         if: matrix.ban != 'goc'
