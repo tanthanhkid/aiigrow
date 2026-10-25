@@ -87,6 +87,7 @@ internal static class ChupMain
         await Mot("app-nhiem-vu", () => ManApp("app-nhiem-vu", MucApp.NhiemVu, TrangThai(), true));
         await Mot("app-phan-qua", () => ManApp("app-phan-qua", MucApp.PhanQua, TrangThai(), true));
         await Mot("app-tin-nhan", () => ManApp("app-tin-nhan", MucApp.TinNhan, TrangThai(), true));
+        await Mot("app-vi-qua", () => ManApp("app-vi-qua", MucApp.ViQua, TrangThai(), true));
         await Mot("app-nhiem-vu-loi-tai", () => ManApp("app-nhiem-vu-loi-tai", MucApp.NhiemVu, TrangThai(), false,
             loiTai: "Không kết nối được máy chủ. Con kiểm tra Wi-Fi rồi bấm Thử lại nhé."));
 
@@ -179,6 +180,23 @@ internal static class ChupMain
             DatTruong(f, "_tq", TongQuan());
             DatTruong(f, "_ch", CuaHang());
             DatTruong(f, "_tin", Tin());
+            DatTruong(f, "_vi", HocVienView.Parse<HvViQua>("""
+                {"voucher":[{"ma":"AC-7K2P9Q","menh_gia":50000,"trang_thai":"da_phat_hanh","het_han":"2026-12-20T00:00:00Z"},
+                            {"ma":"AC-3M8D1X","menh_gia":20000,"trang_thai":"da_dung","het_han":"2026-11-01T00:00:00Z","dung_luc":"2026-10-20T03:00:00Z"}],
+                 "phieu":[{"id":"p1","ten":"Một buổi xem phim cùng Ba","loai":"qua","diem":200,"trang_thai":"giu","created_at":"2026-10-24T03:00:00Z"}]}
+                """));
+            DatTruong(f, "_tt", HocVienView.Parse<HvThanhTich>("""
+                {"chuoiNgay":4,"tongKiem":540,"capDo":{"cap":3,"diemCapSau":600,"conThieu":60},"huyHieu":[
+                 {"ma":"khoi_dau","ten":"Khởi đầu","mo_ta":"Nhiệm vụ đầu tiên được duyệt","dat":true,"datLuc":"2026-10-01T00:00:00Z"},
+                 {"ma":"mot_sach","ten":"Mọt sách","mo_ta":"10 nhiệm vụ học tập","dat":true,"datLuc":"2026-10-12T00:00:00Z"},
+                 {"ma":"tay_dam_dang","ten":"Tay đảm đang","mo_ta":"10 việc nhà","dat":false},
+                 {"ma":"chuoi_7","ten":"7 ngày liền","mo_ta":"Có nhiệm vụ được duyệt 7 ngày liền","dat":false},
+                 {"ma":"cap_5","ten":"Cây non","mo_ta":"Lên cấp 5","dat":false}]}
+                """));
+            DatTruong(f, "_qt", HocVienView.Parse<HvQuyTac>("""
+                {"lich":{"ngayThuong":[{"tu":"17:00","den":"20:00"}],"cuoiTuan":[{"tu":"08:00","den":"11:00"},{"tu":"15:00","den":"20:00"}],"ngu":{"tu":"21:30","den":"06:30"}},
+                 "tranNgay":120,"phienToiDa":45,"nghiGiua":15,"giaPhut":{"game":1,"video_ngan":1.5,"mxh":2,"phim_gd":0}}
+                """));
             DatTruong(f, "_phutChoi", (int?)18);
             DatTruong(f, "_phutChoiCua", s.PlayChoices.FirstOrDefault());
         }
