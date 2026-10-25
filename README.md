@@ -30,3 +30,5 @@ Merge vào `main` **không** tự deploy (`server/vercel.json` → `git.deployme
 `scripts/deploy-prod.sh` trên bản sạch của `origin/main`: test máy chủ + tsc + bản web chạy trên localhost (`pha.mjs` luồng + cổng giao diện),
 đạt mới `vercel deploy --prod`. Chỉ kiểm, không deploy: `scripts/deploy-prod.sh --chi-kiem`. Bản phát hành agent (manifest `server/lib/ban-agent.ts`)
 chỉ tới máy Con sau lần deploy này.
+Cổng ~2,5 phút khi đã cài (25/10: trước ~10 phút): bỏ cài khi lockfile không đổi, nhánh máy chủ ∥ nhánh app, cache Metro riêng của cổng,
+`pha.mjs` luồng ∥ cổng giao diện chia ba lượt (`PHA_MAN`) — chi tiết đầu `scripts/deploy-prod.sh`.

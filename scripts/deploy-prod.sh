@@ -4,6 +4,14 @@
 #   scripts/deploy-prod.sh            # cổng kiểm trên localhost rồi deploy prod
 #   scripts/deploy-prod.sh --chi-kiem # chỉ chạy cổng kiểm, không deploy
 # Cổng: test máy chủ + tsc (server, mobile) + bản web Expo chạy trên máy chủ localhost (pha.mjs: kịch bản luồng + cổng giao diện).
+# Tăng tốc (25/10) — không bỏ kiểm nào:
+#   · bỏ pnpm install / npm ci khi lockfile + package.json + bản node không đổi so với lần cài trước (băm ở node_modules/.lock-hash);
+#   · nhánh máy chủ (test + tsc) chạy SONG SONG nhánh app (tsc + expo export → pha luồng ∥ pha giao diện); nhánh nào lỗi ⇒ cổng lỗi, in log nhánh đó;
+#   · expo export không --clear: cache Metro RIÊNG của cổng ở ~/Library/Caches/aiigrow-cong/metro-<băm .lock-hash + cấu hình dựng> (TMPDIR riêng
+#     ⇒ không dùng chung $TMPDIR/metro-cache với bản dựng khác/EXPO_PUBLIC_API khác; cài lại node_modules hoặc đổi babel/metro/app config ⇒ cache mới);
+#   · bản web xuất với EXPO_PUBLIC_API=/ (gọi /api cùng nguồn — y như bản prod server/scripts/build-app.mjs) ⇒ các lượt pha.mjs chạy song song
+#     ở cổng riêng (luồng 8194/9502; giao diện chia ba lượt 8195–8197/9503–9505), mỗi lượt Chrome headless + hồ sơ tạm riêng, chặn /api của chính nguồn mình;
+#     tải máy cao / RAM ít (đo đầu cổng) ⇒ chế độ nhẹ: hai nhánh nối tiếp, ba lượt giao diện nối tiếp.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 CHI_KIEM=0; [ "${1:-}" = "--chi-kiem" ] && CHI_KIEM=1
@@ -12,22 +20,117 @@ git fetch -q origin
 [ -z "$(git status --porcelain)" ] || { echo "Cây git bẩn — commit/stash trước"; exit 1; }
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "HEAD khác origin/main — git checkout --detach origin/main"; exit 1; }
 CHROME="${CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
-D="$(mktemp -d)/web"
-trap 'rm -rf "${D:?}"' EXIT
+T="$(mktemp -d)"; D="$T/web"
+# Thoát (kể cả Ctrl-C / một nhánh lỗi): giết CẢ CÂY tiến trình con (pha.mjs, Chrome headless, expo, tsc…) để không mồ côi giữ cổng/RAM.
+diet() { local c con; con="$(pgrep -P "$1")"; kill "$1" 2>/dev/null || true; for c in $con; do diet "$c"; done; }   # cha trước: shell cha không kịp sinh lượt mới
+diet_con() { local c; for c in $(pgrep -P "$1"); do diet "$c"; done; }
+trap 'diet_con $$; rm -rf "${T:?}"' EXIT
+trap 'exit 130' INT TERM
+BAT_DAU=$SECONDS
+# Máy 16 GB: đo tải + RAM rảnh TRƯỚC khi chạy (chưa lẫn tải của chính cổng). Tải 1 phút > TAI_TOI_DA (8) hoặc bộ nhớ rảnh < RAM_TOI_THIEU (25%)
+# ⇒ chế độ nhẹ: hai nhánh nối tiếp, ba lượt giao diện nối tiếp (tối đa 2 Chrome) — hẹn giờ chờ của pha.mjs không bị trễ vì máy nghẽn.
+TAI="$(sysctl -n vm.loadavg 2>/dev/null | awk '{print int($2)}')"
+RAM_PT="$(sysctl -n kern.memorystatus_level 2>/dev/null)"   # % bộ nhớ «rảnh» theo macOS (như memory_pressure), tính cả cache thu hồi được
+NHE=0; { [ "${TAI:-0}" -gt "${TAI_TOI_DA:-8}" ] || [ "${RAM_PT:-100}" -lt "${RAM_TOI_THIEU:-25}" ]; } && NHE=1
+echo "Tải máy ${TAI:-?} · bộ nhớ rảnh ${RAM_PT:-?}% ⇒ $([ $NHE = 1 ] && echo "chế độ NHẸ (nối tiếp)" || echo "song song")"
 
-echo "== Máy chủ: test + tsc"
+bam() { { cat "$@" 2>/dev/null || true; } | shasum -a 256 | cut -c1-16; }   # tệp vắng (babel/metro config) bỏ qua
+# cai <thư mục> <lockfile> <lockfile ẩn trong node_modules> <lệnh…>: cài khi băm khác lần cài trước. Băm = đầu vào (lockfile + package.json +
+# .npmrc + node -v) : lockfile ẩn do npm/pnpm ghi lúc cài (node_modules/.package-lock.json, node_modules/.pnpm/lock.yaml) — ai `npm install x`
+# / `pnpm add` tay vào node_modules thì lockfile ẩn đổi ⇒ cài lại như npm ci. Băm ghi SAU khi cài xong.
+cai() {
+  local dir=$1 lock=$2 an=$3; shift 3
+  local vao; vao="$( { cat "$dir/$lock" "$dir/package.json" "$dir/.npmrc" 2>/dev/null || true; node -v; } | shasum -a 256 | cut -c1-16)"
+  if [ "$(cat "$dir/node_modules/.lock-hash" 2>/dev/null)" = "$vao:$(bam "$dir/node_modules/$an")" ]; then echo "  $dir: lockfile + node_modules không đổi — bỏ cài"; return 0; fi
+  rm -f "$dir/node_modules/.lock-hash"
+  (cd "$dir" && "$@") || return 1
+  echo "$vao:$(bam "$dir/node_modules/$an")" > "$dir/node_modules/.lock-hash"
+}
 # pnpm 10 trả mã lỗi ERR_PNPM_IGNORED_BUILDS (@sentry/cli) dù đã cài xong ⇒ không coi là lỗi, kiểm node_modules thay
-(cd server && { pnpm install --frozen-lockfile >/dev/null 2>&1 || true; } && [ -d node_modules/next ] || { echo "pnpm install máy chủ lỗi"; exit 1; }
- node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts > "$D.test.txt" 2>&1 || true
- grep -E "^ℹ (pass|fail)" "$D.test.txt"; grep -q "^ℹ fail 0" "$D.test.txt" || { echo "Test máy chủ lỗi — xem $D.test.txt"; exit 1; }
- npx tsc --noEmit -p .)
-rm -f server/pnpm-workspace.yaml
-echo "== App: tsc + bản web trên localhost"
-(cd mobile && npm ci >/dev/null && npx tsc --noEmit -p . \
- && EXPO_PUBLIC_API=http://localhost:8191 npx expo export --platform web --output-dir "$D" --clear >/dev/null \
- && node scripts/pha.mjs "$D" "$CHROME" && node scripts/pha.mjs "$D" "$CHROME" --giao-dien)
+npm_ci() { npm ci >/dev/null; }
+# Lỗi khác (mạng, lockfile lệch…) ⇒ cổng lỗi, KHÔNG ghi băm (lần sau cài lại) — tránh kiểm trên node_modules cũ.
+cai_server() {
+  local o rc=0; o="$(pnpm install --frozen-lockfile 2>&1)" || rc=$?
+  # mã ≠0 chỉ chấp nhận khi: lỗi ERR_PNPM_ DUY NHẤT là IGNORED_BUILDS + pnpm báo cài xong («Done in» / «Already up to date») + không lỗi mạng/lifecycle.
+  if [ $rc != 0 ]; then
+    local khac; khac="$(grep -oE 'ERR_PNPM_[A-Z_]+' <<<"$o" | grep -vc '^ERR_PNPM_IGNORED_BUILDS$' || true)"
+    if [ "${khac:-1}" != 0 ] || ! grep -qE '^(Done in|Already up to date)' <<<"$o" || grep -qE 'ELIFECYCLE|ECONN|ETIMEDOUT|EAI_AGAIN|npm ERR!' <<<"$o"; then
+      echo "pnpm install máy chủ lỗi (mã $rc):"; tail -30 <<<"$o"; return 1
+    fi
+  fi
+  [ -d node_modules/next ] || { echo "pnpm install máy chủ lỗi (thiếu node_modules/next)"; return 1; }
+}
 
-[ $CHI_KIEM = 1 ] && { echo "Cổng kiểm đạt (không deploy)."; exit 0; }
+nhanh_server() (
+  set -eE; trap 'echo "LỖI nhánh máy chủ — lệnh: $BASH_COMMAND"' ERR
+  echo "== Máy chủ: cài + test + tsc"
+  cai server pnpm-lock.yaml .pnpm/lock.yaml cai_server
+  rm -f server/pnpm-workspace.yaml
+  cd server
+  node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts > "$T/test.txt" 2>&1 || true
+  grep -E "^ℹ (pass|fail)" "$T/test.txt" || true
+  if ! grep -q "^ℹ fail 0" "$T/test.txt"; then
+    local giu; giu="$(mktemp -t aiigrow-test)"; cp "$T/test.txt" "$giu"   # $T bị xoá lúc thoát ⇒ giữ bản log đầy đủ
+    echo "Test máy chủ lỗi — log đầy đủ: $giu"; { grep -E -A15 "^ *✖|^not ok" "$T/test.txt" || tail -60 "$T/test.txt"; } | head -120; exit 1
+  fi
+  npx tsc --noEmit -p .
+  echo "== Máy chủ: đạt ($((SECONDS - BAT_DAU))s)"
+)
+
+nhanh_app() (
+  set -eE; trap 'echo "LỖI nhánh app — lệnh: $BASH_COMMAND"' ERR
+  echo "== App: cài + tsc + bản web"
+  cai mobile package-lock.json .package-lock.json npm_ci
+  cd mobile
+  npx tsc --noEmit -p .
+  # Cache Metro ngoài repo (không lọt vào gói vercel deploy); khoá = băm lần cài node_modules + cấu hình dựng; thư mục cũ >7 ngày tự dọn.
+  local goc_cache="${HOME}/Library/Caches/aiigrow-cong" tm
+  tm="$goc_cache/metro-$( { env | grep '^EXPO_PUBLIC_' | grep -v '^EXPO_PUBLIC_API=' | sort || true; bam node_modules/.lock-hash babel.config.* metro.config.* app.json app.config.* .env*; } | shasum -a 256 | cut -c1-16)"
+  mkdir -p "$tm"; touch "$tm"   # touch: thư mục đang dùng không bị dọn dưới đây
+  find "$goc_cache" -mindepth 1 -maxdepth 1 -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+  TMPDIR="$tm" EXPO_BASE_URL="" EXPO_PUBLIC_API=/ npx expo export --platform web --output-dir "$D" >/dev/null
+  echo "== App: pha.mjs luồng ∥ giao diện ×3 (export xong $((SECONDS - BAT_DAU))s)"
+  # Cổng giao diện (~7 phút một lượt) chia ba lượt theo tên màn bằng PHA_MAN (lọc sẵn có trong pha.mjs). Lượt cuối là PHẦN BÙ của hai lượt
+  # đầu ⇒ màn mới/đổi tên luôn rơi vào một lượt, không màn nào bị bỏ. Mỗi lượt cổng tĩnh + cổng CDP + hồ sơ Chrome riêng
+  # (cổng 8194–8197/9502–9505, tránh 8191–8193/9499–9501 của pha.mjs/pha-tre.mjs chạy tay; hai cổng kiểm cùng lúc: đặt CONG_PHA=<cổng gốc khác>).
+  local c=${CONG_PHA:-8194} k=$(( ${CONG_PHA:-8194} + 1308 ))
+  local -a ten=(luong gd-a gd-b gd-c) man=('' '^bm-[a-h]' '^bm-[i-t]' '^(?!bm-[a-t])') pid=()
+  # lượt <i>: 0 = kịch bản luồng, 1–3 = giao diện; mã thoát ghi ra $T/rc-<tên> để báo đúng lượt lỗi.
+  luot() { local rc=0; PHA_MAN="${man[$1]}" PHA_CONG=$((c + $1)) PHA_CDP=$((k + $1)) node scripts/pha.mjs "$D" "$CHROME" \
+             ${man[$1]:+--giao-dien} > "$T/pha-${ten[$1]}.txt" 2>&1 || rc=$?; echo $rc > "$T/rc-${ten[$1]}"; }
+  luot 0 & pid+=($!)
+  if [ $NHE = 1 ]; then
+    ( luot 1; luot 2; luot 3 ) & pid+=($!)
+  else
+    for i in 1 2 3; do luot $i & pid+=($!); done
+  fi
+  wait "${pid[@]}" || true
+  local loi=0 i
+  for i in 0 1 2 3; do
+    local rc; rc="$(cat "$T/rc-${ten[$i]}" 2>/dev/null || true)"; [ -n "$rc" ] || rc='?' 
+    [ "$rc" = 0 ] || { loi=1; echo "pha.mjs ${ten[$i]} LỖI (mã $rc$( [ "$rc" != '?' ] && [ "$rc" -gt 128 ] && echo " — bị giết bằng tín hiệu $((rc - 128))")):"; }
+    cat "$T/pha-${ten[$i]}.txt" 2>/dev/null || true
+  done
+  [ $loi = 0 ]
+  echo "== App: đạt ($((SECONDS - BAT_DAU))s)"
+)
+
+# Nhánh lỗi ⇒ ghi $T/hong; vòng chờ thấy là giết cây nhánh còn lại ngay (không đợi export + pha vô ích).
+# KHÔNG gọi nhánh trong ngữ cảnh `nhanh || …`: bash tắt set -e bên trong mọi lệnh đứng trước || / && (kể cả subshell, hàm) ⇒ lỗi bị nuốt.
+chay_nhanh() { set +e; "$1" > "$T/$2.txt" 2>&1; local rc=$?; [ $rc = 0 ] || touch "$T/hong"; exit $rc; }
+( chay_nhanh nhanh_server server ) & PS=$!
+RC_S=""; [ $NHE = 1 ] && { RC_S=0; wait $PS || RC_S=$?; }
+if [ ! -f "$T/hong" ]; then ( chay_nhanh nhanh_app app ) & PA=$!; fi
+while { kill -0 $PS 2>/dev/null || kill -0 "${PA:-$PS}" 2>/dev/null; } && [ ! -f "$T/hong" ]; do sleep 1; done
+[ -f "$T/hong" ] && diet_con $$
+LOI=0
+if [ -n "$RC_S" ]; then [ "$RC_S" = 0 ] || LOI=1; else wait $PS 2>/dev/null || LOI=1; fi; cat "$T/server.txt"
+[ -n "${PA:-}" ] && { wait $PA 2>/dev/null || LOI=1; cat "$T/app.txt" 2>/dev/null || true; }
+[ -f "$T/hong" ] && LOI=1
+[ $LOI = 0 ] || { echo "Cổng kiểm LỖI (log nhánh lỗi ở trên) — $((SECONDS - BAT_DAU))s"; exit 1; }
+echo "Cổng kiểm đạt — $((SECONDS - BAT_DAU))s"
+
+[ $CHI_KIEM = 1 ] && { echo "(không deploy)"; exit 0; }
 echo "== Deploy prod $(git rev-parse --short HEAD)"
 [ -f .vercel/project.json ] || vercel link --yes --project aiigrow >/dev/null
 rm -rf mobile/ios mobile/android mobile/build-ios   # thư mục native do expo prebuild/testflight sinh, không cần lên Vercel
