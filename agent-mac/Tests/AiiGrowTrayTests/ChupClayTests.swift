@@ -61,6 +61,7 @@ final class ChupClayTests: XCTestCase {
     // alpha 0 vẫn nhận bấm: điểm giữa ô trúng chính NSPopUpButton
     let w = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
     w.contentView = host; host.layoutSubtreeIfNeeded()
+    defer { w.contentView = nil; w.close() }
     let giua = p.convert(NSPoint(x: p.bounds.midX, y: p.bounds.midY), to: nil)
     let trung = w.contentView?.superview?.hitTest(giua) ?? host.hitTest(giua)
     XCTAssertTrue(trung === p, "bấm giữa ô phải trúng pop-up, trúng \(String(describing: trung))")

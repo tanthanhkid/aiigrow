@@ -123,7 +123,7 @@ struct GhepMayView: View {
         .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 48)
         .accessibilityHidden(true)
         .clayLom(bo: 18)
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(ClayMau.ngoc, lineWidth: 2.5).opacity(dangChonFocus ? 1 : 0))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(ClayMau.ngoc, lineWidth: 2.5).opacity(dangChonFocus && !khoaNhap ? 1 : 0))   // khoá rồi thì không vẽ như đang focus
         .overlay(ChonPopUp(ds: taiKhoan, chon: $chon, tieuDe: "Tài khoản của Con", focus: $dangChonFocus))
         .disabled(khoaNhap)
         .opacity(khoaNhap ? 0.5 : 1)          // cùng mức mờ NutClayStyle khi tắt
