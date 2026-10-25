@@ -943,10 +943,15 @@ internal sealed class ClayMenuRenderer : ToolStripProfessionalRenderer
     }
 }
 
-/// <summary>Ô nhập Clay: TextBox không viền đặt giữa lòng chảo ấn lõm (ClayCard Lom), thân cao ≥ 44 (theo DPI) — vùng bấm đủ,
-/// chữ cách mép ngang 14. Bấm vào lòng chảo ngoài chữ cũng vào ô. Dùng chung cho khay và bộ cài.</summary>
+/// <summary>Ô nhập Clay: TextBox không viền đặt trong lòng chảo ấn lõm (ClayCard Lom), thân cao ≥ 44 (theo DPI) — vùng bấm đủ,
+/// chữ cách mép ngang 14, nằm dưới dải bóng trong (10) của lòng chảo. Đang gõ ⇒ lòng chảo ngả ngọc nhạt (thấy rõ ô đang focus).
+/// Bấm vào lòng chảo ngoài chữ cũng vào ô. Dùng chung cho khay và bộ cài. ClayCard chừa lề bóng (VeThe.LeBong) quanh thân:
+/// <paramref name="le"/> là khoảng muốn có quanh THÂN, phần lề bóng được trừ bớt (lòng chảo không có bóng ngoài).</summary>
 internal static class ONhapClay
 {
+    /// <summary>Chiều cao thân lòng chảo cho một TextBox (đã bỏ viền).</summary>
+    public static int Than(TextBox o) => Math.Max(Clay.Si(44), o.PreferredHeight + Clay.Si(20));
+
     public static ClayCard Boc(TextBox o, int rong, Padding? le = null)
     {
         var lb = VeThe.LeBong;
@@ -955,15 +960,19 @@ internal static class ONhapClay
         o.Margin = Padding.Empty;
         var ngang = Clay.Si(14);
         o.Width = Math.Max(Clay.Si(40), rong - 2 * ngang);
-        var than = Math.Max(Clay.Si(44), o.PreferredHeight + Clay.Si(16));
+        var than = Than(o);
+        var m = le ?? Padding.Empty;
         var vo = new ClayCard
         {
             Lom = true, BoGoc = Clay.S(16), BackColor = Clay.Lom, Cursor = Cursors.IBeam,
-            Width = rong + lb.Horizontal, Height = than + lb.Vertical, Margin = le ?? Padding.Empty,
+            Width = rong + lb.Horizontal, Height = than + lb.Vertical,
+            Margin = new Padding(m.Left, m.Top, m.Right, Math.Max(0, m.Bottom - lb.Bottom)),
         };
-        o.Location = new Point(lb.Left + ngang, lb.Top + (than - o.Height) / 2);
+        o.Location = new Point(lb.Left + ngang, lb.Top + Math.Max(Clay.Si(10), (than - o.Height) / 2));
         vo.Controls.Add(o);
         vo.Click += (_, _) => o.Focus();
+        o.Enter += (_, _) => { vo.BackColor = Clay.NgocSoft; o.BackColor = Clay.NgocSoft; };
+        o.Leave += (_, _) => { vo.BackColor = Clay.Lom; o.BackColor = Clay.Lom; };
         return vo;
     }
 }

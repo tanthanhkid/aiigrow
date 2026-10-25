@@ -31,6 +31,7 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
         _box.KeyDown += async (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await SendAsync(); } };
         var o = ONhapClay.Boc(_box, UI.Px(150));
         _go = UI.Btn("Mở", true, UI.Px(96), "key");
+        _go.Height = ONhapClay.Than(_box) + VeNut.LeBong.Vertical;   // thân nút cao bằng thân ô nhập (khớp cả mép dưới)
         _go.Margin = new Padding(UI.Px(8), Math.Max(0, VeThe.LeBong.Top - VeNut.LeBong.Top), 0, 0);   // thân nút ngang thân ô nhập
         _go.Click += async (_, _) => await SendAsync();
         row.Controls.Add(o);
