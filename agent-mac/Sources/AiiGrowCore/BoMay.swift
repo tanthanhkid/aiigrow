@@ -52,7 +52,8 @@ public actor BoMay {
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
               dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
-              capNhat: BoCapNhat? = nil) {
+              capNhat: BoCapNhat? = nil, nguonApp: NguonApp? = nil) {
+    self.nguonApp = nguonApp
     self.capNhat = capNhat ?? BoCapNhat(api: api, heThong: heThong, mayChu: { [kho] in (api as? ApiClient)?.mayChu ?? kho.doc()?.mayChu ?? ApiClient.mayChuMacDinh },
                                                dongHo: dongHo)
     self.api = api; self.heThong = heThong; self.kho = kho; self.tuyChon = tuyChon
@@ -101,6 +102,7 @@ public actor BoMay {
       $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
     }
     cauHinh = kho.doc() ?? cauHinh
+    quenDanhSachApp()                                   // máy mới trên máy chủ ⇒ quét + gửi đủ ngay ở lần đồng bộ đầu
     // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
     if await !chayNgoaiActor({ ht.trinhGoDangChay() }) { heThong.xoaTep(DuongDan.daGo) }
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
@@ -188,6 +190,8 @@ public actor BoMay {
         $0.lienLacCuoi = self.dongHo()
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
+      tinHieuApp = kq.danhSachApp
+      kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
     } catch let e as LoiApi {
       matMang = e.laMang
       syncLuc = donDieu() + Double(policy?.nextCheckSec ?? 60)
@@ -242,20 +246,35 @@ public actor BoMay {
     let hl = DanhGiaPolicy.tinh(p, now: now, daDungGiay: cauHinh.daDungGiayTuSync)
     let chan = cheDoHieuLuc() == CheDoAgent.chan
 
+    // Web TRƯỚC: plist chính sách trình duyệt (theo tài khoản Con) + khối hosts cho Safari. Giám sát ⇒ gỡ hết.
+    // Kết quả = trình duyệt mà luật web đang đúng trên đĩa ⇒ «chặn theo lọc»: chỉ những trình duyệt này được chạy ở Chặn thật.
+    let trinhDuyet = apWeb(p: p, now: now, chan: chan, laCon: laCon, manKhoa: manKhoa)
+
     // App: đóng app ngoài danh sách của phiên Con (chỉ khi chặn thật + chỉ-app-học).
     if let uidCon = cauHinh.uidCon, laCon, chan {
       let ds = heThong.tienTrinh(cuaUid: uidCon)
       let choPhep = p.allowedApps + Array(QuyetDinhApp.heThong)
-      let can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep)
+      var nho: [String: Bool] = [:]                      // mỗi lượt kiểm MỘT lần cho mỗi .app (Chrome có hàng chục tiến trình phụ)
+      let tinCay: (String, String) -> Bool = { [heThong] app, bundle in
+        if let v = nho[app + "|" + bundle] { return v }
+        let td = ChinhSachTrinhDuyet.tatCa.first { $0.bundleApp.lowercased() == bundle }
+        let tt = ["", "/Contents", "/Contents/MacOS", "/Contents/Frameworks"].map { heThong.thuocTinhTep(app + $0) }
+        let v = QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: tt, uidCon: uidCon, kyDung: td?.teamId.map { heThong.kyBoiTeam(app, team: $0) } ?? false)
+        nho[app + "|" + bundle] = v
+        return v
+      }
+      var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
+      can += appBiChanCanDong(ds, uidCon: uidCon, p: p, chan: true, daCo: Set(can.map(\.pid)))     // app Ba Mẹ «Chặn»: MỌI mode
+      if hl.chiAppHoc { trinhDuyetCanDong = [] }        // đã có một lượt đóng thật ⇒ trình duyệt mở từ giờ đọc luật mới
       let canPid = Set(can.map(\.pid))
       daGuiTerm = daGuiTerm.filter { canPid.contains($0.key) && heThong.conSong(pid: $0.key) }     // hết cần đóng / đã chết ⇒ quên SIGTERM cũ
       for t in can { dongApp(t) }
     } else {
       daGuiTerm = [:]
+      if let uidCon = cauHinh.uidCon, laCon, !p.blockedApps.isEmpty {          // giám sát: chỉ ghi «sẽ đóng»
+        _ = appBiChanCanDong(heThong.tienTrinh(cuaUid: uidCon), uidCon: uidCon, p: p, chan: false, daCo: [])
+      } else { daBaoBiChan = [] }
     }
-
-    // Web: plist chính sách trình duyệt (theo tài khoản Con) + khối hosts cho Safari. Giám sát ⇒ gỡ hết.
-    apWeb(p: p, now: now, chan: chan, laCon: laCon, manKhoa: manKhoa)
 
     // Khoá: đếm ngược rồi đóng phiên Con.
     var demNguoc: Int? = nil
@@ -279,12 +298,23 @@ public actor BoMay {
 
   // MARK: web
 
-  private func apWeb(p: Policy, now: Date, chan: Bool, laCon: Bool, manKhoa: Bool) {
+  /// → bundle id .app (chữ thường) của trình duyệt mà plist luật web ĐANG đúng trên đĩa (rỗng khi không chặn / ghi lỗi / chưa biết tài khoản Con).
+  /// Trình duyệt vừa vào lọc (bundle id chữ thường) chưa qua lượt đóng app nào — xem apWeb.
+  private var trinhDuyetCanDong = Set<String>()
+
+  @discardableResult
+  private func apWeb(p: Policy, now: Date, chan: Bool, laCon: Bool, manKhoa: Bool) -> Set<String> {
     // hosts áp cho cả máy ⇒ chỉ đặt khi Con đang ở màn hình, gỡ khi không phải Con (để Ba Mẹ không bị chặn).
     let web = chan ? (p.web ?? ChinhSachWeb()).hetMo(now, moDen: p.grantEndsAt) : nil
     let dungHosts = chan && laCon && !manKhoa
     apHosts(web: dungHosts ? web : nil)
-    apChinhSachTrinhDuyet(web: chan ? web : nil)
+    let (dung, vuaVao) = apChinhSachTrinhDuyet(web: chan ? web : nil)
+    trinhDuyetCanDong.formUnion(vuaVao)
+    if !chan { trinhDuyetCanDong = [] }
+    // Policy không có khối web (máy chủ cũ / cache cũ) ⇒ chưa có luật lọc thật ⇒ không thả trình duyệt (an toàn trước).
+    // Trình duyệt VỪA VÀO lọc (trước đó không có plist của AiiGrow: mới vào Chặn thật / tệp bị xoá) ⇒ trinhDuyetCanDong: lượt đóng app KẾ TIẾP (khi Con ở
+    // màn hình + chỉ app học) đóng nó dù luật đã ghi (bản đang mở nạp chính sách cũ, cfprefsd còn đệm), sau đó mới thả. Sửa danh sách khi đang lọc thì không đóng.
+    return web == nil || p.web == nil ? [] : dung
   }
 
   private func apHosts(web: ChinhSachWeb?) {
@@ -300,13 +330,17 @@ public actor BoMay {
     } catch { heThong.ghiLog("Ghi hosts lỗi: \(error)") }
   }
 
-  private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) {
-    guard let tk = cauHinh.uidCon.flatMap({ heThong.taiKhoan(cuaUid: $0) }) ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon) else { return }
-    apChinhSachTrinhDuyet(taiKhoan: tk, web: web)
+  @discardableResult
+  private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) -> (dung: Set<String>, vuaVao: Set<String>) {
+    guard let tk = cauHinh.uidCon.flatMap({ heThong.taiKhoan(cuaUid: $0) }) ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon) else { return ([], []) }
+    return apChinhSachTrinhDuyet(taiKhoan: tk, web: web)
   }
 
-  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) {
+  /// → bundle id .app (chữ thường) của trình duyệt có plist đúng nội dung mong muốn sau lượt này (đã đúng sẵn hoặc vừa ghi xong).
+  @discardableResult
+  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) -> (dung: Set<String>, vuaVao: Set<String>) {
     let host = URL(string: cauHinh.mayChu)?.host
+    var dung = Set<String>(), vuaVao = Set<String>()
     for td in ChinhSachTrinhDuyet.tatCa {
       let duong = ChinhSachTrinhDuyet.duongDan(td, taiKhoan: tk, thuMucGoc: tuyChon.thuMucChinhSach)
       let cu = ChinhSachTrinhDuyet.giaiMa(heThong.docTep(duong))
@@ -315,11 +349,15 @@ public actor BoMay {
         continue
       }
       // Bỏ qua ghi CHỈ khi tệp thật trên đĩa đang đúng nội dung mong muốn (tệp mất hoặc bị sửa ⇒ ghi lại).
-      if let cu, NSDictionary(dictionary: cu).isEqual(to: moi) { continue }
+      if let cu, NSDictionary(dictionary: cu).isEqual(to: moi) { dung.insert(td.bundleApp.lowercased()); continue }
       guard let data = try? ChinhSachTrinhDuyet.maHoa(moi) else { continue }
-      do { try heThong.ghiTep(duong, data, quyen: 0o644) }
+      do {
+        try heThong.ghiTep(duong, data, quyen: 0o644); dung.insert(td.bundleApp.lowercased())
+        if web != nil && cu?[ChinhSachTrinhDuyet.khoaDanhDau] == nil { vuaVao.insert(td.bundleApp.lowercased()) }
+      }
       catch { heThong.ghiLog("Ghi chính sách \(td.ten) lỗi: \(error)") }
     }
+    return (dung, vuaVao)
   }
 
   // MARK: khoá + đóng app
@@ -482,6 +520,7 @@ public actor BoMay {
     do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
     // Thả hoàn toàn: xoá token + Policy (cả trong bộ nhớ lẫn đĩa) ⇒ các vòng sau coi như chưa ghép, không áp lại plist/hosts/đóng app.
     _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0 }
+    quenDanhSachApp()
     cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
     api.datPhien(mayChu: cauHinh.mayChu, token: "")
     policy = nil
@@ -503,6 +542,133 @@ public actor BoMay {
   private func cheDoHieuLuc() -> String {
     // Chế độ Ba Mẹ chọn (Policy.cheDo) thắng chế độ cục bộ; chưa chọn ⇒ giữ cục bộ.
     CheDoAgent.chuan(policy?.cheDo) ?? cauHinh.cheDo
+  }
+
+  // MARK: danh sách app thật + app bị Chặn (DanhSachApp.swift, QuetAppMac.swift)
+
+  private let nguonApp: NguonApp?
+  private var tinHieuApp: TinHieuDanhSachApp?
+  private var lanQuetApp: Double?
+  private var lanThuApp: Double?
+  /// 404 ở /ung-dung (máy chủ cũ) ⇒ thôi gửi tới lần khởi động sau.
+  private var tatGuiApp = false
+  private var viecApp: Task<Void, Never>?
+  /// Số lượt gửi hỏng liên tiếp — giãn lịch thử lại.
+  private var soLanLoiApp = 0
+  /// Máy chủ còn thiếu icon của vài app (gửi bù ở lượt sau).
+  private var conThieuIcon = false
+  /// «chặn|pid» app bị Chặn đã ghi log (tránh ghi mỗi 5 giây; đổi chặn ⇄ giám sát thì ghi lại).
+  private var daBaoBiChan: Set<String> = []
+
+  /// Tiến trình của app bị Ba Mẹ «Chặn» cần đóng (chặn thật) — giám sát thì chỉ ghi log «sẽ đóng», trả [].
+  private func appBiChanCanDong(_ ds: [TienTrinh], uidCon: UInt32, p: Policy, chan: Bool, daCo: Set<Int32>) -> [TienTrinh] {
+    let khop = DanhSachApp.canDongBiChan(ds, uidCon: uidCon, biChan: p.blockedApps).filter { !daCo.contains($0.0.pid) }
+    let dau = { (t: TienTrinh) in "\(chan)|\(t.pid)" }
+    for (t, b) in khop where !daBaoBiChan.contains(dau(t)) {
+      let team = b.teamId.map { " teamId \($0)" } ?? ""
+      heThong.ghiLog("\(chan ? "" : "[giám sát] sẽ đóng ")app Ba Mẹ chặn: \(b.muc)\(team) — \(t.bundleId ?? t.duongDan) pid \(t.pid)")
+    }
+    daBaoBiChan = Set(khop.map { dau($0.0) })
+    return chan ? khop.map(\.0) : []
+  }
+
+  /// Gọi sau mỗi lần đồng bộ được: tới lúc (khởi động / 30 phút / yeuCau đổi / bam máy chủ khác) thì quét + gửi trong Task riêng.
+  private func kichGuiDanhSachApp() {
+    guard nguonApp != nil, !tatGuiApp, viecApp == nil, cauHinh.daGhep, !dangGo,
+          DanhSachApp.canQuet(gio: donDieu(), lanQuetCuoi: lanQuetApp, lanThuCuoi: lanThuApp, tinHieu: tinHieuApp,
+                              bamDaGui: cauHinh.bamAppDaGui, yeuCauDaXuLy: cauHinh.yeuCauAppDaXuLy, soLanLoi: soLanLoiApp,
+                              conThieuIcon: conThieuIcon) else { return }
+    lanThuApp = donDieu()
+    let the = theHeApp
+    viecApp = Task { await self.guiDanhSachApp(the: the); self.xongViecApp(the: the) }
+  }
+
+  private func xongViecApp(the: Int) { if the == theHeApp { viecApp = nil } }
+  /// Tăng mỗi lần gỡ/ghép lại — lượt gửi của lần ghép cũ về muộn thì không ghi gì.
+  private var theHeApp = 0
+
+  /// Gỡ / ghép lại: quên mọi trạng thái gửi (máy chủ coi là máy mới).
+  private func quenDanhSachApp() {
+    theHeApp += 1; viecApp?.cancel(); viecApp = nil
+    lanQuetApp = nil; lanThuApp = nil; tatGuiApp = false; soLanLoiApp = 0; tinHieuApp = nil; conThieuIcon = false
+    cauHinh.bamAppDaGui = nil; cauHinh.yeuCauAppDaXuLy = nil
+    _ = try? kho.sua { $0.bamAppDaGui = nil; $0.yeuCauAppDaXuLy = nil }
+    unlink(SoAppDaGui.duongDan(canh: kho.duongDan))
+  }
+
+  /// Chỉ test: chờ lượt quét/gửi đang chạy (nếu có).
+  public func choDanhSachApp() async { await viecApp?.value }
+
+  private func guiDanhSachApp(the: Int) async {
+    guard let nguon = nguonApp else { return }
+    let tk = cauHinh.uidCon.flatMap { heThong.taiKhoan(cuaUid: $0) } ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon)
+    let ban = DanhSachApp.chuan(await chayNgoaiActor { nguon.quet(taiKhoanCon: tk) })
+    guard the == theHeApp else { return }                        // gỡ / ghép lại trong lúc quét
+    lanQuetApp = donDieu()
+    let duongSo = SoAppDaGui.duongDan(canh: kho.duongDan)
+    let so = SoAppDaGui.doc(duongSo).flatMap { $0.bam == cauHinh.bamAppDaGui ? $0 : nil }
+    let t = tinHieuApp, yeuCauMoi = DanhSachApp.coYeuCauMoi(t, daXuLy: cauHinh.yeuCauAppDaXuLy) ? t?.yeuCau : nil
+    let viec = DanhSachApp.quyetDinh(bamMoi: ban.bam, bamDaGui: cauHinh.bamAppDaGui, coBanTruoc: so != nil, tinHieu: t, yeuCauDaXuLy: cauHinh.yeuCauAppDaXuLy)
+    // khoa máy chủ còn thiếu icon (chỉ giữ khoa còn trong danh sách và có icon cục bộ)
+    let coIcon = Set(ban.ds.filter { $0.icon != nil }.map(\.khoa))
+    var thieu = Set(so?.thieuIcon ?? []).intersection(coIcon)
+    do {
+      switch viec {
+      case .khong:
+        if cauHinh.bamAppDaGui != ban.bam || so == nil { luuDaGui(ban, yeuCau: nil, thieu: thieu, duongSo: duongSo) }   // máy chủ đã giữ đúng bản này
+      case .du, .doi:
+        var than: ThanGuiApp
+        if viec == .doi {
+          let d = DanhSachApp.diff(truoc: so?.bamTung ?? [:], sau: ban)
+          than = .doi(bamTruoc: cauHinh.bamAppDaGui ?? "", bam: ban.bam, them: DanhSachApp.themKemIcon(d.them, iconTruoc: so?.iconTung ?? [:]), bo: d.bo)
+        } else { than = .du(bam: ban.bam, ds: ban.ds) }
+        var kq: KetQuaGuiApp
+        do { kq = try await api.guiUngDung(than) }
+        catch let e as LoiApi where e.maHttp == 409 && !than.laDu {
+          guard the == theHeApp else { return }
+          than = .du(bam: ban.bam, ds: ban.ds)                   // máy chủ giữ bản khác bamTruoc ⇒ gửi đủ ngay
+          kq = try await api.guiUngDung(than)
+        }
+        guard the == theHeApp, cauHinh.daGhep, !dangGo else { return }     // bị gỡ / ghép lại trong lúc gửi
+        // Máy chủ báo thiếu ⇒ theo đó; không báo ⇒ gửi đủ (không byte icon) coi như thiếu cả, phần đổi coi như đã có.
+        thieu = Set(kq.thieuIcon ?? (than.laDu ? Array(coIcon) : Array(thieu))).intersection(coIcon)
+        luuDaGui(ban, yeuCau: than.laDu ? yeuCauMoi : nil, thieu: thieu, duongSo: duongSo)
+        heThong.ghiLog("Đã gửi danh sách app (\(than.laDu ? "đủ" : "phần đổi"), \(ban.ds.count) app).")
+      }
+      // Gửi bù icon theo lô (phần đổi không xoá/thêm app, chỉ kèm byte icon).
+      for _ in 0..<20 where !thieu.isEmpty {
+        let lo = DanhSachApp.loIcon(ban.ds, thieu: thieu)
+        guard !lo.isEmpty else { break }
+        let kq = try await api.guiUngDung(.doi(bamTruoc: ban.bam, bam: ban.bam, them: lo, bo: []))
+        guard the == theHeApp, cauHinh.daGhep, !dangGo else { return }
+        let moi = Set(kq.thieuIcon ?? Array(thieu.subtracting(lo.map(\.khoa)))).intersection(coIcon)
+        let tienTrien = moi != thieu
+        thieu = moi
+        luuDaGui(ban, yeuCau: nil, thieu: thieu, duongSo: duongSo)
+        if !tienTrien { break }                                 // máy chủ không nhận icon nào nữa ⇒ thôi, lượt sau thử lại
+      }
+      soLanLoiApp = 0
+    } catch _ where the != theHeApp {
+      return                                                    // lỗi của lần ghép cũ — không đụng trạng thái mới
+    } catch let e as LoiApi where e.maHttp == 404 {
+      tatGuiApp = true
+      heThong.ghiLog("Máy chủ chưa nhận danh sách app (404) — thôi gửi tới lần khởi động sau.")
+    } catch {
+      soLanLoiApp += 1
+      heThong.ghiLog("Gửi danh sách app lỗi (\(error)) — thử lại lượt sau.")
+    }
+  }
+
+  private func luuDaGui(_ ban: BanDanhSachApp, yeuCau: String?, thieu: Set<String>, duongSo: String) {
+    var icon: [String: String] = [:]
+    for a in ban.ds { if let b = a.iconBam { icon[a.khoa] = b } }
+    do { try SoAppDaGui(bam: ban.bam, bamTung: ban.bamTung, iconTung: icon, thieuIcon: thieu.sorted()).ghi(duongSo) }
+    catch { heThong.ghiLog("Ghi \(duongSo) lỗi: \(error)") }
+    conThieuIcon = !thieu.isEmpty
+    cauHinh.bamAppDaGui = ban.bam
+    if let yeuCau { cauHinh.yeuCauAppDaXuLy = yeuCau }
+    let y = cauHinh.yeuCauAppDaXuLy
+    _ = try? kho.sua { $0.bamAppDaGui = ban.bam; $0.yeuCauAppDaXuLy = y }
   }
 
   private func trangThai(p: Policy?, hl: PolicyHieuLuc?, laCon: Bool, phutDung: Double?, demNguoc: Int? = nil) -> TrangThai {

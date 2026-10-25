@@ -20,7 +20,7 @@ const SU_KIEN: Record<string, string> = {
 const CHE_DO: { gia: CheDoMay; chu: string }[] = [{ gia: "giam-sat", chu: "Giám sát" }, { gia: "chan", chu: "Chặn thật" }];
 const GIAI_CHE_DO: Record<CheDoMay, string> = {
   "giam-sat": "Chỉ ghi lại những gì sẽ chặn: không chặn app, không khoá máy, không hiện màn khoá. Hợp để thử vài ngày hoặc khi cần tắt hết hạn chế.",
-  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Luật web chỉ áp cho tài khoản máy của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
+  chan: "Áp thật: chặn app ngoài danh sách, khoá máy ngoài giờ. Trình duyệt Chrome, Edge, Brave, Cốc Cốc vẫn dùng được, web lọc theo danh sách của Ba Mẹ (Safari, Firefox và trình duyệt lạ bị chặn như app chưa xếp). Luật web chỉ áp cho tài khoản máy của Con — tài khoản của Ba Mẹ không bị chặn web. Muốn tắt thì chọn lại Giám sát — máy đổi ở lần đồng bộ tới khi có mạng.",
 };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
@@ -164,6 +164,16 @@ export default function AnToanMay() {
         m.baoVe === "day_du" ? <Bao loai="ok" ic="tick" tieu="Máy được bảo vệ đầy đủ, không có vấn đề nào" />
           : !m.baoVe ? <Bao loai="ok" ic="tick" tieu="Không có vấn đề tuân thủ nào" /> : null   // máy chủ cũ chưa gửi baoVe
       )}
+
+      {["windows", "mac", "android"].includes(m.nen) ? (
+        <>
+          <NhomTieu chu="Ứng dụng" />
+          <Nhom>
+            <Dong dau tieu="Ứng dụng trên máy này" phu="Danh sách app đã cài thật trên máy — chọn đúng app để chặn hoặc cho phép" trai={<BieuTron ic="luoi" mau="tim" />}
+              bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} />
+          </Nhom>
+        </>
+      ) : null}
 
       <NhomTieu chu="Khi cần" />
 

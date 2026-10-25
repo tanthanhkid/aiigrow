@@ -61,20 +61,24 @@ public enum ChinhSachTrinhDuyet {
     public var bundleId: String
     public var coAnDanh: String
     public var scheme: String
+    /// Bundle id của .app trình duyệt (Edge: miền chính sách «com.microsoft.Edge» nhưng app là «com.microsoft.edgemac») — dùng cho «chặn theo lọc».
+    public var bundleApp: String
+    /// Team ID chữ ký Apple của hãng — nil = chưa xác minh được ⇒ KHÔNG thả trình duyệt này ở Chặn thật (chỉ lọc web).
+    public var teamId: String?
   }
 
   public static let thuMuc = "/Library/Managed Preferences"
   public static let khoaDanhDau = "AiiGrowManaged"
   public static let tatCa: [TrinhDuyet] = [
-    TrinhDuyet(ten: "Chrome", bundleId: "com.google.Chrome", coAnDanh: "IncognitoModeAvailability", scheme: "chrome://*"),
-    TrinhDuyet(ten: "Edge", bundleId: "com.microsoft.Edge", coAnDanh: "InPrivateModeAvailability", scheme: "edge://*"),
-    TrinhDuyet(ten: "Brave", bundleId: "com.brave.Browser", coAnDanh: "IncognitoModeAvailability", scheme: "brave://*"),
+    TrinhDuyet(ten: "Chrome", bundleId: "com.google.Chrome", coAnDanh: "IncognitoModeAvailability", scheme: "chrome://*", bundleApp: "com.google.Chrome", teamId: "EQHXZ8M8AV"),
+    TrinhDuyet(ten: "Edge", bundleId: "com.microsoft.Edge", coAnDanh: "InPrivateModeAvailability", scheme: "edge://*", bundleApp: "com.microsoft.edgemac", teamId: "UBF8T346G9"),
+    TrinhDuyet(ten: "Brave", bundleId: "com.brave.Browser", coAnDanh: "IncognitoModeAvailability", scheme: "brave://*", bundleApp: "com.brave.Browser", teamId: "KL8N8XSYF4"),
     // Cốc Cốc (Chromium, phổ biến ở VN) — thiếu thì Con mở YouTube bằng Cốc Cốc là lọt (agent-win 0.2.5).
-    TrinhDuyet(ten: "CocCoc", bundleId: "com.coccoc.Coccoc", coAnDanh: "IncognitoModeAvailability", scheme: "coccoc://*"),
+    TrinhDuyet(ten: "CocCoc", bundleId: "com.coccoc.Coccoc", coAnDanh: "IncognitoModeAvailability", scheme: "coccoc://*", bundleApp: "com.coccoc.Coccoc", teamId: nil),
   ]
   /// Khoá AiiGrow sở hữu trong plist — gỡ thì chỉ xoá các khoá này, khoá của người khác giữ nguyên.
   public static func khoaCuaTa(_ t: TrinhDuyet) -> [String] {
-    [khoaDanhDau, khoaGoc, "URLBlocklist", "URLAllowlist", t.coAnDanh, "AllowDeletingBrowserHistory", "BrowserGuestModeEnabled"]
+    [khoaDanhDau, khoaGoc, "URLBlocklist", "URLAllowlist", t.coAnDanh, "AllowDeletingBrowserHistory", "BrowserGuestModeEnabled", "DnsOverHttpsMode"]
   }
   public static let tranMuc = 900   // Chrome giới hạn 1000 mục mỗi danh sách
 
@@ -124,6 +128,7 @@ public enum ChinhSachTrinhDuyet {
       d[t.coAnDanh] = 1                    // không ẩn danh ⇒ lịch sử web luôn đủ
       d["AllowDeletingBrowserHistory"] = false
       d["BrowserGuestModeEnabled"] = false
+      d["DnsOverHttpsMode"] = "off"        // DNS qua hệ thống (khối hosts / lọc DNS không bị vượt); URLBlocklist vốn không phụ thuộc DNS
       goc = goc.filter { nho.contains($0.key) }
       if !goc.isEmpty { d[khoaGoc] = goc }
     }

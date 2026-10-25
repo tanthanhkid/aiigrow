@@ -18,6 +18,7 @@ public sealed class WebGuardWorker : BackgroundService
     private string? _daBaoLoi;
     private string? _daBaoLoiHklm;
     private string? _daBaoDe;
+    private string? _daBaoTrinhDuyet;
 
     public WebGuardWorker(ILogger<WebGuardWorker> log, AgentRuntime? rt = null, WebPolicyHives? hives = null)
     {
@@ -45,6 +46,15 @@ public sealed class WebGuardWorker : BackgroundService
         string? host = null;
         try { if (cfg is { Paired: true }) host = new Uri(ApiClient.NormalizeServer(cfg.Server)).Host; } catch { }
         var kq = _hives.Ap(p, host, _rt?.ChildSids, now);
+        // «chặn theo lọc»: trình duyệt chỉ được chạy cho tài khoản Con mà luật web đang có trong hive (AgentWorker đưa vào AppLocker + vòng đóng app)
+        var td = TrinhDuyetLoc.TheoSid(p, kq.DaApCho, kq.HklmDe);
+        var tdChuoi = string.Join("; ", td.OrderBy(x => x.Key).Select(x => x.Key + ": " + string.Join(",", x.Value)));
+        if (tdChuoi != _daBaoTrinhDuyet)
+        {
+            _daBaoTrinhDuyet = tdChuoi;
+            if (p != null) _log.LogInformation(td.Count > 0 ? "Chặn thật: trình duyệt được chạy (web lọc theo danh sách) — {ds}" : "Chặn thật: chưa thả trình duyệt (luật web chưa áp được cho tài khoản Con){ds}", tdChuoi);
+        }
+        _rt?.DatTrinhDuyetLoc(td);
         if (kq.DaGoHklm)
         {
             _log.LogInformation("Đã gỡ luật web cũ trong HKLM (bản trước 0.2.6 ghi cả máy) — tài khoản Ba Mẹ không còn bị chặn");

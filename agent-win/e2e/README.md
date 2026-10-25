@@ -6,7 +6,7 @@ Workflow `.github/workflows/agent-win.yml` (chạy khi PR/push đụng `agent-wi
 - **unit** — `dotnet test agent-win/tests/AiiGrow.Tests` trên Windows thật (test DPAPI… không tự bỏ qua như trên Mac).
 - **build** — `build-mot-file.sh` ba lần song song: bản đang phát (`Directory.Build.props`), `9.9.8`, `9.9.9` (sửa số bản trong job, không commit).
 - **e2e** — `chay.ps1` (Windows PowerShell 5.1, quyền admin của runner): bật `pnpm dev` (PGlite, OTP chế độ thử), `proxy.mjs`, rồi chạy
-  kịch bản KB1–KB10, mỗi kiểm tra in `PASS` / `FAIL` / `BỎ`, bảng tóm tắt ở Summary của run. Artifact `e2e-logs`: log máy chủ, proxy,
+  kịch bản KB1–KB11, mỗi kiểm tra in `PASS` / `FAIL` / `BỎ`, bảng tóm tắt ở Summary của run. Artifact `e2e-logs`: log máy chủ, proxy,
   `ProgramData\AiiGrow\*.log` (trước gỡ / sau gỡ / cuối), AppLocker XML, sự kiện AppLocker + SCM, `ket-qua.md`.
 
 Chạy tay trên một máy ảo Windows (KHÔNG chạy trên máy thật đang dùng — kịch bản bật AppLocker, ghi chính sách trình duyệt, tạo tài khoản `aiicon`):
@@ -35,7 +35,12 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   từ chối» (khi không có phiên Con, `QuyenPhien.LaPhienCon` cho mọi phiên — KB10.5 ghi lại quan sát, đánh dấu BỎ).
 - **Không có khay**: khay là app WinForms chạy ở phiên người dùng (HKLM Run). Harness nói chuyện với dịch vụ qua named pipe `AiiGrow.Tray`
   giống khay (PipeRequest/PipeResponse JSON một dòng), nên kiểm được trạng thái, `sync-now`, `hoc-vien` — nhưng không thấy giao diện.
-- **AppLocker được ÁP (có luật, Exe Enabled, AppIDSvc chạy)** nhưng không thử chặn một exe dưới tài khoản Con (cần phiên Con). Server 2022
+- **Chặn app từ danh sách app thật (KB11)**: agent gửi danh sách app đã cài lên `/api/device/ung-dung`, harness (Ba Mẹ) chọn một app thật của
+  runner (ưu tiên `firefox.exe`, rồi Notepad++ / 7-Zip / Git Bash, không thì exe đầu tiên ở Program Files — tên app ghi ở 11.2), đặt «chan», rồi kiểm
+  AppLocker có Deny cho SID Con theo đường dẫn exe, thư mục cài và băm AppLocker (`Get-AppLockerFileInformation`). Chạy app đó dưới phiên Con: BỎ (11.8).
+- **AppLocker được ÁP (có luật, Exe Enabled, AppIDSvc chạy)**; quyết định cho từng exe kiểm bằng `Test-AppLockerPolicy -User aiicon` (KB4.12–4.14:
+  Chrome/Edge được chạy khi luật web đã áp — «chặn theo lọc», «chrome.exe» giả + Firefox vẫn bị chặn). KB4.17 mở Chrome headless THẬT bằng
+  tài khoản Con (`Start-Process -Credential`, không cần phiên đăng nhập): example.org vào được, example.com (Ba Mẹ chặn) thì không. Server 2022
   có AppLocker; máy gia đình Windows Home có thể không — xem `docs/KHA-THI.md`.
 - **Thông báo trước đăng nhập, Safe Mode, khởi động lại máy**: không kiểm (runner không khởi động lại được giữa job).
 - **Tự cập nhật** chờ `UpdateWorker` (2 phút sau khi dịch vụ chạy) — KB7b khởi động lại dịch vụ rồi chờ tối đa 8 phút.

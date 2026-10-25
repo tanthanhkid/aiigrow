@@ -70,6 +70,7 @@ export function xepMuc(mucTho: string, luat: Luat[], allow: string[] = allowlist
   // Ba Mẹ đã xếp nhóm Giải trí cụ thể ⇒ dùng đúng nhóm đó; xếp APP vào «Học tập» ⇒ Học tập.
   // Trang web «Cho phép» cũng lưu loai hoc nhưng chỉ nghĩa là được mở (YouTube cho phép vẫn là Video) ⇒ theo bản chất.
   if (r?.loai === "giai_tri" && r.nhom !== "khac") return { muc: NHOM_SANG_MUC[r.nhom] ?? "khac", tenLuat: r.ten };
+  if (r?.loai === "hoc" && (r.nhom as string) === "cho_phep") return { muc: "tien_ich", tenLuat: r.ten };   // «Cho phép» ≠ Học tập
   if (r?.loai === "hoc" && kieuMuc(r.muc) !== "web") return { muc: "hoc", tenLuat: r.ten };
   if (TRINH_DUYET.has(m)) return { muc: "tien_ich", tenLuat: r?.ten };
   const gy = khoa.map((k) => GOI_Y.get(k)).find(Boolean);

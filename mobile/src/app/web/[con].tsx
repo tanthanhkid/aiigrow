@@ -207,7 +207,7 @@ export default function WebCon() {
       </The>
 
       <Chu co={13} mau={M.chu3}>
-        {chanThat.length ? `Đang chặn thật trên ${chanThat.map((m) => m.ten).join(", ")}: trang bị chặn hiện «bị chặn» trong Chrome, Edge, Brave, Cốc Cốc (trình duyệt khác như Firefox chưa được lọc). Luật áp cho mọi tài khoản Windows trên máy. ` : ""}
+        {chanThat.length ? `Đang chặn thật trên ${chanThat.map((m) => m.ten).join(", ")}: Con vẫn dùng được Chrome, Edge, Brave, Cốc Cốc, web lọc theo danh sách này (trang bị chặn hiện «bị chặn»); Safari, Firefox và trình duyệt lạ bị chặn như app chưa xếp. Luật chỉ áp cho tài khoản của Con trên máy. ` : ""}
         Luật lên máy trong vài phút khi máy online; tab đang mở cần tải lại. Chỉ ghi tên miền và thời gian, không ghi địa chỉ đầy đủ hay nội dung.
       </Chu>
 

@@ -372,6 +372,80 @@ final class BaoMatTests: XCTestCase {
     XCTAssertEqual(con.map(\.pid).sorted(), [21, 22], "Safari có trong allowlist thì được giữ")
   }
 
+  // «Chặn theo lọc» (Thanh 25/10): Chặn thật thả trình duyệt lọc được (plist chính sách đúng trên đĩa), Safari / bản giả vẫn đóng.
+  func testChanThatThaTrinhDuyetLocDuoc_SafariVaBanGiaVanDong() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    let chrome = TienTrinh(pid: 30, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    let edge = TienTrinh(pid: 31, uid: 501, duongDan: "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge", bundleId: "com.microsoft.edgemac")
+    let safari = TienTrinh(pid: 32, uid: 501, duongDan: "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app/Contents/MacOS/Safari", bundleId: "com.apple.Safari")
+    let gia = TienTrinh(pid: 33, uid: 501, duongDan: "/Users/be/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    let firefox = TienTrinh(pid: 34, uid: 501, duongDan: "/Applications/Firefox.app/Contents/MacOS/firefox", bundleId: "org.mozilla.firefox")
+    fake.tienTrinhTheoUid = [501: [chrome, edge, safari, gia, firefox]]
+    fake.appTinCay("/Applications/Google Chrome.app", team: "EQHXZ8M8AV")
+    fake.appTinCay("/Applications/Microsoft Edge.app", team: "UBF8T346G9")
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30,
+      "serverTime": NgayGio.viet(dongHo.thuc), "allowedApps": [], "web": ["cheDo": "mo", "chan": ["youtube.com"], "cho": []]]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    // lượt đầu vào Chặn thật: plist vừa ghi ⇒ Chrome/Edge đang mở (nạp chính sách cũ) cũng bị đóng
+    XCTAssertEqual(Set(fake.tinHieuDaGui.map(\.0)), [30, 31, 32, 33, 34], "mới ghi luật ⇒ đóng cả trình duyệt đang mở")
+    fake.tinHieuDaGui = []
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(Set(fake.tinHieuDaGui.map(\.0)), [32, 33, 34], "luật đã trên đĩa ⇒ Chrome/Edge chạy (web lọc); Safari, Chrome giả ngoài /Applications, Firefox bị đóng")
+    let duong = ChinhSachTrinhDuyet.duongDan(ChinhSachTrinhDuyet.tatCa[0], taiKhoan: "be", thuMucGoc: thuMuc + "/Managed")
+    XCTAssertEqual(ChinhSachTrinhDuyet.giaiMa(fake.tep[duong])?["DnsOverHttpsMode"] as? String, "off")
+    // ghi chính sách Chrome lỗi ⇒ an toàn trước: Chrome bị đóng (Edge vẫn lọc được nên vẫn chạy)
+    fake.tinHieuDaGui = []
+    fake.tep[duong] = nil
+    fake.loiGhiTepChua = "com.google.Chrome.plist"
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertTrue(fake.tinHieuDaGui.map(\.0).contains(30), "luật web Chrome chưa áp được ⇒ Chrome bị đóng")
+    XCTAssertFalse(fake.tinHieuDaGui.map(\.0).contains(31))
+  }
+
+  func testTrinhDuyetKhongTinCay_VanDong() {
+    let ok = ThuocTinhTep(uid: 0, gid: 80, quyen: 0o775)
+    XCTAssertTrue(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, kyDung: true))
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, kyDung: false), "sai Team ID / chữ ký hỏng / hãng chưa xác minh")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ThuocTinhTep(uid: 501, gid: 20, quyen: 0o755), ok, ok], uidCon: 501, kyDung: true), "gói thuộc Con")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ThuocTinhTep(uid: 0, gid: 0, quyen: 0o777), ok], uidCon: 501, kyDung: true), "ai cũng ghi")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ThuocTinhTep(uid: 0, gid: 20, quyen: 0o775)], uidCon: 501, kyDung: true), "nhóm staff ghi được")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, nil, ok], uidCon: 501, kyDung: true), "không đọc được")
+  }
+
+  func testChanThat_ChromeThuocCon_BiDong() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    let chrome = TienTrinh(pid: 30, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    fake.tienTrinhTheoUid = [501: [chrome]]
+    fake.appTinCay("/Applications/Google Chrome.app", team: "EQHXZ8M8AV")
+    fake.thuocTinh["/Applications/Google Chrome.app/Contents/MacOS"] = ThuocTinhTep(uid: 501, gid: 20, quyen: 0o755)   // cài khi Con còn là admin
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30,
+      "serverTime": NgayGio.viet(dongHo.thuc), "allowedApps": [], "web": ["cheDo": "mo", "chan": ["youtube.com"], "cho": []]]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    fake.tinHieuDaGui = []
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.0), [30], "Con tráo được tệp chạy ⇒ không thả")
+  }
+
+  func testLaTrinhDuyetLoc() {
+    let td: Set<String> = ["com.google.chrome"]
+    let chrome = TienTrinh(pid: 1, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    XCTAssertTrue(QuyetDinhApp.laTrinhDuyetLoc(chrome, trinhDuyet: td))
+    XCTAssertFalse(QuyetDinhApp.laTrinhDuyetLoc(chrome, trinhDuyet: []), "luật web chưa áp ⇒ không thả")
+    let conThuMuc = TienTrinh(pid: 2, uid: 501, duongDan: "/Applications/Games/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    XCTAssertFalse(QuyetDinhApp.laTrinhDuyetLoc(conThuMuc, trinhDuyet: td))
+    let tmp = TienTrinh(pid: 3, uid: 501, duongDan: "/private/tmp/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    XCTAssertFalse(QuyetDinhApp.laTrinhDuyetLoc(tmp, trinhDuyet: td))
+    let khac = TienTrinh(pid: 4, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.RobloxPlayer")
+    XCTAssertFalse(QuyetDinhApp.laTrinhDuyetLoc(khac, trinhDuyet: td))
+    XCTAssertFalse(ChinhSachTrinhDuyet.tatCa.contains { $0.bundleApp.lowercased() == "com.apple.safari" }, "Safari không lọc được ⇒ không bao giờ thả")
+  }
+
   func testGhiLaiChinhSachTrinhDuyetKhiTepMatHoacBiSua() async throws {
     let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
     let fake = HeThongGia(), dongHo = DongHoGia()

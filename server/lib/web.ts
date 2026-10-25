@@ -9,6 +9,7 @@ import { q, tx } from "./db.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, chuanMuc, datLuat, phanLoai, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
+import { mucAppThat } from "./app-may.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { cheDoCua } from "./lenh-may.ts";
 import type { May } from "./gia-dinh.ts";
@@ -84,9 +85,10 @@ export async function thongKeWeb(fam: string, con: string, soNgay = 7, now = new
     trang.push({ tenMien, giay: m.giay, soLan: m.soLan, lanCuoi: m.lanCuoi ? m.lanCuoi.toISOString() : null, trangThai: doiLoai(pl.loai), nguon: pl.nguon });
   }
   trang.sort((a, b) => b.giay - a.giay || b.soLan - a.soLan || a.tenMien.localeCompare(b.tenMien));
+  const appThat = await mucAppThat(fam);           // gói Store / bundle id máy gửi không phải tên miền
   const luat = (await q<{ child_id: string; muc: string; loai: string }>(
     `select child_id, muc, loai from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3) order by muc`, [fam, con, now]))
-    .filter((r) => kieuMuc(r.muc) === "web")
+    .filter((r) => kieuMuc(r.muc) === "web" && !appThat.has(r.muc.toLowerCase()))
     .map((r) => ({ tenMien: r.muc, trangThai: doiLoai(r.loai), nguon: r.child_id ? "con" as const : "gia_dinh" as const }));
   const c = (await q<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))[0];
   const chiChoPhep = Number(c?.cau_hinh?.web_chi_cho_phep ?? f?.cau_hinh?.web_chi_cho_phep ?? 0) === 1;
@@ -131,8 +133,9 @@ export type ChinhSachWeb = {
 };
 
 /** Hàm THUẦN: Policy ⇒ chính sách web cho agent. Giải trí (giai_tri) bị chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó. */
-export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep">, o: { moGiaiTri?: boolean } = {}): ChinhSachWeb {
-  const web = p.luat.filter((l) => kieuMuc(l.muc) === "web");
+/** `appThat`: mục app thật máy gửi (lib/app-may.ts) — gói Store «microsoft.minecraftuwp», bundle «ru.keepcoder.telegram» không phải tên miền. */
+export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep">, o: { moGiaiTri?: boolean; appThat?: Set<string> } = {}): ChinhSachWeb {
+  const web = p.luat.filter((l) => kieuMuc(l.muc) === "web" && !o.appThat?.has(l.muc.toLowerCase()));
   const phien = p.phien?.muc?.toLowerCase() ?? "";
   // moGiaiTri: Ba Mẹ đang «mở» có hạn (mở khẩn cấp / thêm giờ — agent-windows.ts) ⇒ mọi trang Giải trí mở, trang «chan» vẫn chặn.
   const mo = (m: string) => !!o.moGiaiTri || phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));

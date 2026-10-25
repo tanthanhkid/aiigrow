@@ -50,6 +50,29 @@ public sealed class AgentRuntime
     public void WebDaDoi() => Interlocked.Increment(ref _webRev);
     public int ChildSessionId { get; set; } = -1;
 
+    private (IReadOnlyDictionary<string, IReadOnlyList<string>> Ds, long Tick) _trinhDuyet = (new Dictionary<string, IReadOnlyList<string>>(), long.MinValue);
+    /// <summary>Kết quả hơn 3 phút không được WebGuardWorker làm mới (worker kẹt) ⇒ coi như chưa lọc được: thôi thả trình duyệt (an toàn trước).</summary>
+    public const long TrinhDuyetHetHanMs = 3 * 60 * 1000;
+
+    /// <summary>«Chặn theo lọc» (WebGuardWorker, mỗi vòng 30 giây): SID Con → trình duyệt được chạy vì luật web đang áp trong hive của SID đó.</summary>
+    public void DatTrinhDuyetLoc(IReadOnlyDictionary<string, IReadOnlyList<string>> ds)
+    {
+        lock (_gate) _trinhDuyet = (ds, Environment.TickCount64);
+    }
+
+    /// <summary>Trình duyệt được chạy theo SID ở Chặn thật (TrinhDuyetLoc). Rỗng khi: kết quả cũ quá hạn, hoặc phiên chơi WEB đã hết phút chơi
+    /// khi mất mạng (như trước: trình duyệt bị thu lại tới khi có mạng — trang của phiên còn trong danh sách «cho» tới lần đồng bộ sau).</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> TrinhDuyetLoc()
+    {
+        lock (_gate)
+        {
+            var rong = new Dictionary<string, IReadOnlyList<string>>();
+            if (_trinhDuyet.Tick == long.MinValue || Environment.TickCount64 - _trinhDuyet.Tick > TrinhDuyetHetHanMs) return rong;
+            if (_policy is { PlayWeb: true, PlaySessionId: { } id } && _phienOffline is { HetHan: true } d && d.PhienId == id) return rong;
+            return _trinhDuyet.Ds;
+        }
+    }
+
     public void LoadConfig()
     {
         lock (_gate)

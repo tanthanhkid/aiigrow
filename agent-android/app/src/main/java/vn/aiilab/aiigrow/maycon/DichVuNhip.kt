@@ -28,6 +28,7 @@ import vn.aiilab.aiigrow.maycon.logic.phutGiaiTri
 import vn.aiilab.aiigrow.maycon.logic.quyetDinh
 import vn.aiilab.aiigrow.maycon.logic.thanGhepToken
 import vn.aiilab.aiigrow.maycon.logic.thanNhip
+import vn.aiilab.aiigrow.maycon.logic.truGoi
 import vn.aiilab.aiigrow.maycon.logic.webChan
 import java.time.Instant
 
@@ -39,8 +40,12 @@ class DichVuNhip : Service() {
     private lateinit var luong: HandlerThread
     private lateinit var h: Handler
     private var lanGoiMayChu = 0L
+    private val dsApp by lazy { DanhSachApp(this) }
     private val nhanCaiApp = object : BroadcastReceiver() {
-        override fun onReceive(c: Context, i: Intent) { h.post { vong(true) } }   // app mới cài ⇒ xét «chưa xếp» ngay
+        override fun onReceive(c: Context, i: Intent) {
+            dsApp.coSuKienGoi(i.data?.schemeSpecificPart)   // cài / gỡ / cập nhật ⇒ gửi phần đổi danh sách app sớm
+            if (i.action == Intent.ACTION_PACKAGE_ADDED) h.post { vong(true) }   // app mới cài ⇒ xét «chưa xếp» ngay
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -51,7 +56,10 @@ class DichVuNhip : Service() {
         batTienCanh()
         luong = HandlerThread("aiigrow-nhip").apply { start() }
         h = Handler(luong.looper)
-        ContextCompat.registerReceiver(this, nhanCaiApp, IntentFilter(Intent.ACTION_PACKAGE_ADDED).apply { addDataScheme("package") },
+        ContextCompat.registerReceiver(this, nhanCaiApp, IntentFilter(Intent.ACTION_PACKAGE_ADDED).apply {
+            addAction(Intent.ACTION_PACKAGE_REMOVED); addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)   // bật / tắt activity launcher
+            addDataScheme("package") },
             ContextCompat.RECEIVER_NOT_EXPORTED)
         h.post(::lap)
     }
@@ -63,6 +71,7 @@ class DichVuNhip : Service() {
 
     override fun onDestroy() {
         try { unregisterReceiver(nhanCaiApp) } catch (_: Exception) {}
+        dsApp.dung()
         luong.quitSafely()
         super.onDestroy()
     }
@@ -90,6 +99,7 @@ class DichVuNhip : Service() {
         } else {
             if (k.token == null && k.tokenGoiCai != null) ghepBangGoi(k)
             if (k.token != null && (epGoi || nowMay - lanGoiMayChu >= 60_000)) { lanGoiMayChu = nowMay; goiNhip(k) }
+            dsApp.kich(k)   // gửi app đã cài thật (Ba Mẹ chọn chặn) — chạy luồng riêng, không chặn thực thi
             k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } }
         }
         if (ph == null) { capNhatThongBao(null); return }
@@ -105,7 +115,7 @@ class DichVuNhip : Service() {
         val demNguoc = if (k.khoaTu == 0L) 0 else demNguocConLai(Instant.ofEpochMilli(k.khoaTu), now)
         val khoaThat = laKhoa(qd.trangThai) && demNguoc == 0
         // trong lúc đếm ngược: app giải trí còn chạy; app bị chặn / chưa xếp vẫn chặn ngay
-        val goiChan = if (laKhoa(qd.trangThai) && !khoaThat) qd.goiChan - goiAndroid(cs.giaiTri) else qd.goiChan
+        val goiChan = if (laKhoa(qd.trangThai) && !khoaThat) truGoi(qd.goiChan, goiAndroid(cs.giaiTri)) else qd.goiChan
         ThucThi.apDung(this, qd, goiChan, khoaThat, webChan(cs))
         if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))
 

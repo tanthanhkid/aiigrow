@@ -463,6 +463,30 @@ export const SCHEMA_M4B = [
     primary key (device_id, ngay, ten_mien)
   )`,
   `create index if not exists web_nhat_ky_con on web_nhat_ky(child_id, ngay)`,
+  // Danh sách APP ĐÃ CÀI THẬT trên từng máy (lib/app-may.ts): agent quét máy rồi gửi lên; Ba Mẹ chọn từ đây để xếp / chặn đúng app.
+  // khoa: duy nhất trong máy (Win32 «exe:<đường dẫn>», Store «appx:<PackageFamilyName>», bundle id, package). muc: định danh để xếp/chặn
+  // (tên exe chính / tên gói Store / bundle id / package — chữ thường, như app_rules.muc). icon: PNG base64 nhỏ (≤ 48 px).
+  `create table if not exists app_may (
+    device_id text not null references devices(id) on delete cascade,
+    khoa text not null,
+    muc text not null,
+    ten text not null,
+    nguon text,
+    nha_phat_hanh text,
+    team_id text,
+    duong_dan text,
+    thu_muc text,
+    phien_ban text,
+    sha256 text,
+    icon text,
+    thay_luc timestamptz not null default now(),
+    primary key (device_id, khoa)
+  )`,
+  // app_bam: băm danh sách agent gửi lần cuối (phần đổi chỉ nhận khi khớp) · app_luc: lúc nhận · app_yeu_cau: Ba Mẹ bấm «Làm mới»
+  `alter table app_may add column if not exists icon_bam text`,
+  `alter table devices add column if not exists app_bam text`,
+  `alter table devices add column if not exists app_luc timestamptz`,
+  `alter table devices add column if not exists app_yeu_cau timestamptz`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

@@ -81,6 +81,8 @@ public sealed class Policy
     public double? PlayOfflineMinutes { get; set; }
     /// <summary>0.2.6: app / trang Giải trí Ba Mẹ đã xếp (chữ thường: .exe hoặc tên miền) — Rob cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
     public List<string> PlayChoices { get; set; } = new();
+    /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
+    public List<AppBiChan> BlockedApps { get; set; } = new();
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -237,6 +239,8 @@ public sealed class AgentConfig
     /// <summary>AiiGrow 0.2.4 (review PR #59, P2-5): số giây đã chơi phiên <see cref="Policy.PlaySessionId"/> tại máy kể từ khi nhận Policy đang
     /// giữ — về 0 khi có Policy mới. Ngưỡng đoạn offline mới = PlayOfflineMinutes − chừng này.</summary>
     public DaChoiTheoPolicy? DaChoi { get; set; }
+    /// <summary>25/10: bam danh sách app thật đã gửi được + yêu cầu «Làm mới» đã xử lý (DanhSachApp.cs, DanhSachAppWorker).</summary>
+    public DanhSachAppDaGui? DanhSachApp { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

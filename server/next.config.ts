@@ -23,10 +23,16 @@ const config: NextConfig = {
         destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/mac-:ban/AiiGrow-:ban.pkg",
         permanent: false,
       },
+      // App Con Android tự cập nhật (lib/ban-agent.ts › BAN_CON_ANDROID): tên tệp có số bản ⇒ sha256 trong manifest không lệch khi phát bản sau.
+      {
+        source: "/tai/AiiGrow-Con-:ban(\\d+\\.\\d+\\.\\d+).apk",
+        destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-:ban/AiiGrow-Con-android.apk",
+        permanent: false,
+      },
       // Tác tử máy Con Android (vn.aiilab.aiigrow.con, ký khoá phát hành aiigrow-con) — QR Device Owner + trang /tai trỏ /tai/aiigrow-con.apk ⇒ GitHub Release con-android-<bản>.
       {
         source: "/tai/aiigrow-con.apk",
-        destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-0.2.1/AiiGrow-Con-android.apk",
+        destination: "https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-0.2.2/AiiGrow-Con-android.apk",
         permanent: false,
       },
       // App Ba Mẹ cho Android: release cuộn android-moi-nhat (asset tên cố định, mobile/scripts/phat-hanh-apk.sh ghi đè mỗi lần phát hành) — không có redirect thì /tai/aiigrow.apk rơi vào index.html của SPA.

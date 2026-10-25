@@ -23,6 +23,7 @@ import { khoaTuanThu } from "./tuan-thu.ts";
 import { cheDoGuiMay, daGoTaiMay, doiGoiCai, lenhCho, xongLenh } from "./lenh-may.ts";
 import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
 import { nhanLichSuWeb } from "./web.ts";
+import { appChanCuaMay, mucAppThat, nhanDanhSachApp, tinHieuDanhSachApp } from "./app-may.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -66,10 +67,15 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // play* chỉ cho máy sở hữu phiên. Máy dùng chung + agent 0.2.4: phiên mở trên máy ⇒ ghép phần phiên vào Policy chung (chỉ cho «windows»).
       const ghep = coTacTu(may.platform) && !con && laAgentMoi(b.status as TrangThaiNhip | undefined) ? await ghepPhienMayChung(may, pol) : null;
       const moPhienMay = coTacTu(may.platform) && con ? await moRongPhienMay(may, con) : null;
+      // Danh sách app thật (lib/app-may.ts): mục app của cả nhà (gói Store không đuôi .exe vẫn là app) · app bị Chặn kèm định danh thật của máy này
+      // appThat: cả nhà (để loại khỏi luật web); appNen: chỉ máy cùng nền (để vào allowedApps / playChoices)
+      const [appThat, appNen, blockedApps, danhSachApp] = coTacTu(may.platform)
+        ? await Promise.all([mucAppThat(may.family_id), mucAppThat(may.family_id, may.platform), appChanCuaMay(may, con), tinHieuDanhSachApp(may.id)]) : [undefined, undefined, [], null];
       const windows = chinhSachWindows(ghep?.pol ?? pol, biMatOffline ?? undefined, cheDo,
-        { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
+        { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, appThat, appNen, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
       if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay
-      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows });
+      if (coTacTu(may.platform)) windows.blockedApps = blockedApps;
+      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows, ...(danhSachApp ? { danhSachApp } : {}) });
     }
     if (d === "nhip") return json(await nhipMay(may, con, b));
     // Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng / Setup --uninstall): bộ gỡ báo về trước khi xoá token ⇒ máy rời gia đình như gỡ từ xa
@@ -83,6 +89,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (d === "log" && req.method === "POST") return json(await nhanLog(may, b.ds));
     // Giám sát web: agent gửi TỔNG theo (ngày, tên miền) đọc từ lịch sử trình duyệt của Con — chỉ tên miền + đếm (lib/web.ts)
     if (d === "web/lich-su" && req.method === "POST") return json(await nhanLichSuWeb(may, con, b.ds));
+    // Danh sách app đã cài THẬT trên máy (đủ / phần đổi) — Ba Mẹ chọn từ đây để xếp / chặn (lib/app-may.ts). Không cần chọn Con.
+    if (d === "ung-dung" && req.method === "POST") return json(await nhanDanhSachApp(may, b));
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
     // Bù phút chơi khi mất mạng (agent 0.2.4 gửi TRƯỚC dong-bo khi có mạng lại). Máy dùng chung: Con lấy từ phiên `id` mở trên máy này.
     if (d === "phien/bu") {

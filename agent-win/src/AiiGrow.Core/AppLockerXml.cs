@@ -16,6 +16,8 @@ public sealed class AppLockerOptions
     public IEnumerable<string> AllowedApps { get; set; } = Array.Empty<string>();
     /// <summary>Cho phép cả %PROGRAMFILES%. Mặc định tắt: nếu bật thì mọi app cài ở Program Files đều chạy được.</summary>
     public bool AllowProgramFiles { get; set; }
+    /// <summary>Chặn thật «chặn theo lọc»: trình duyệt được chạy cho từng SID Con (tên trong <see cref="TrinhDuyetLoc.TatCa"/>) — chỉ khi luật web đang áp cho SID đó.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>>? TrinhDuyetTheoSid { get; set; }
 }
 
 /// <summary>Một app bị chặn (trò chơi): chặn theo tên đường dẫn, và nếu có băm thì chặn cả theo băm SHA256 (đổi tên/di chuyển vẫn chặn).</summary>
@@ -128,6 +130,30 @@ public static class AppLockerXml
                         new XAttribute("SourceFileLength", size)))));
     }
 
+    /// <summary>25/10 — chặn app thật (ChanAppThat.cs): gộp luật Deny theo đường dẫn / thư mục / băm cho từng SID Con vào chính sách sẵn có.
+    /// <paramref name="hoc"/> có ⇒ kèm chính sách «chỉ app học» (Deny * trừ ngoại lệ — Deny riêng app bị chặn vẫn thắng); null ⇒ nền
+    /// «cho mọi người chạy mọi đường dẫn» (mode tu_do) + chỉ Deny app bị chặn. Gỡ sạch luật "AiiGrow: " cũ trước khi thêm (như Merge).</summary>
+    public static string MergeChanApp(string? existingXml, IReadOnlyList<string> sids, IEnumerable<LuatChanApp> chan, AppLockerOptions? hoc)
+    {
+        foreach (var sid in sids)
+            if (!IsValidSid(sid)) throw new ArgumentException("SID không hợp lệ: " + sid);
+        var doc = Parse(existingXml);
+        StripOurs(doc);
+        var exe = Collection(doc, "Exe");
+        if (hoc != null) foreach (var r in OurRules(new AppLockerOptions { ChildSids = sids, AllowedApps = hoc.AllowedApps, AllowProgramFiles = hoc.AllowProgramFiles, TrinhDuyetTheoSid = hoc.TrinhDuyetTheoSid })) exe.Add(r);
+        else exe.Add(Rule("Cho phép mọi người dùng (nền)", "S-1-1-0", "Allow", "*", null));
+        var ds = chan.ToList();
+        foreach (var sid in sids)
+            foreach (var l in ds)
+            {
+                if (l.Path != null) exe.Add(Rule("Chặn app " + l.Ten + " [" + l.Path + "]", sid, "Deny", l.Path, null));
+                else if (l.HashData != null && l.HashLength is > 0)
+                    exe.Add(HashRule("Chặn app " + l.Ten + " [" + l.HashData + "]", sid, l.SourceFile ?? "app.exe", l.HashData.StartsWith("0x") ? l.HashData[2..] : l.HashData, l.HashLength.Value));
+            }
+        exe.SetAttributeValue("EnforcementMode", "Enabled");
+        return doc.ToString();
+    }
+
     public static string Merge(string? existingXml, AppLockerOptions o)
     {
         foreach (var sid in o.Sids)
@@ -183,10 +209,13 @@ public static class AppLockerXml
             if (n != null && seen.Add(n)) exceptions.Add(@"*\" + n);
         }
         foreach (var sid in o.Sids)
-            yield return Rule("Chỉ app học cho tài khoản của con", sid, "Deny", "*", exceptions);
+        {
+            var td = o.TrinhDuyetTheoSid != null && o.TrinhDuyetTheoSid.TryGetValue(sid, out var t) ? t : null;
+            yield return Rule("Chỉ app học cho tài khoản của con", sid, "Deny", "*", exceptions, td is { Count: > 0 } ? TrinhDuyetLoc.NgoaiLeAppLocker(td) : null);
+        }
     }
 
-    private static XElement Rule(string name, string sid, string action, string path, IEnumerable<string>? exceptions)
+    private static XElement Rule(string name, string sid, string action, string path, IEnumerable<string>? exceptions, IEnumerable<XElement>? ngoaiLeThem = null)
     {
         var full = Prefix + name;
         var el = new XElement("FilePathRule",
@@ -196,9 +225,8 @@ public static class AppLockerXml
             new XAttribute("UserOrGroupSid", sid),
             new XAttribute("Action", action),
             new XElement("Conditions", new XElement("FilePathCondition", new XAttribute("Path", path))));
-        var ex = exceptions?.ToList();
-        if (ex is { Count: > 0 })
-            el.Add(new XElement("Exceptions", ex.Select(e => new XElement("FilePathCondition", new XAttribute("Path", e)))));
+        var ex = (exceptions ?? Array.Empty<string>()).Select(e => new XElement("FilePathCondition", new XAttribute("Path", e))).Concat(ngoaiLeThem ?? Array.Empty<XElement>()).ToList();
+        if (ex.Count > 0) el.Add(new XElement("Exceptions", ex));
         return el;
     }
 
