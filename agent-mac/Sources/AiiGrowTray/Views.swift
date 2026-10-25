@@ -100,6 +100,8 @@ struct GhepMayView: View {
   let taiKhoan: [String]
   /// Gói cài một chạm (token trong tên .pkg) ⇒ chỉ chọn tài khoản của Con, không hỏi mã 6 số (vẫn có lối «Dùng mã 6 số»).
   var coGoiCai = false
+  /// Đọc cờ gói cài TƯƠI từ trạng thái (postinstall có thể ghi token sau khi cửa sổ đã mở).
+  @ObservedObject var tray: TrayModel = TrayModel()
   var khiGui: (Bool) -> Void = { _ in }        // true = bắt đầu gửi lệnh ghép (đặt cờ TRƯỚC IPC), false = đã có phản hồi
   var khiCanhBao: () -> Void = {}
   var dongLai: () -> Void
@@ -111,7 +113,7 @@ struct GhepMayView: View {
   @State private var canhBao = ""
   @State private var dangChonFocus = false
   @State private var dungMa = false
-  private var motCham: Bool { coGoiCai && !dungMa }
+  private var motCham: Bool { (coGoiCai || tray.tt?.coGoiCai == true) && !dungMa }
   /// Đang gửi / đã ghép / đang cảnh báo ⇒ không đổi tài khoản, không bấm ghép lại.
   private var khoaNhap: Bool { dangGui || xong || !canhBao.isEmpty }
 
@@ -158,7 +160,7 @@ struct GhepMayView: View {
       }
       Button(dangGui ? "Đang ghép…" : "Ghép máy") { gui() }
         .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(khoaNhap || (!motCham && !TrayLogic.maHopLe(ma)) || chon.isEmpty)
-      if coGoiCai && !xong {
+      if (coGoiCai || tray.tt?.coGoiCai == true) && !xong {
         Button(dungMa ? "Dùng gói cài một chạm" : "Dùng mã 6 số thay vì gói cài") { dungMa.toggle(); loi = "" }
           .buttonStyle(NutClayStyle(kieu: .sang)).disabled(khoaNhap)
       }
@@ -177,7 +179,7 @@ struct GhepMayView: View {
     Task {
       defer { dangGui = false }                                  // KHÔNG khiGui(false) ở đây: cờ chặn tự đóng giữ tới khi dongLai chạy (hiện «Đã ghép máy» đủ 2 giây)
       do {
-        switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon)) {
+        switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon), giay: 40) {   // gọi máy chủ + dscl: không báo lỗi giả trong lúc daemon vẫn ghép
         case .loi(let mx, let chu):
           loi = chu; khiGui(false)
           if LoiApi.maTokenGoiHong.contains(mx) && motCham { dungMa = true }   // token gói hỏng ⇒ hiện ô mã 6 số

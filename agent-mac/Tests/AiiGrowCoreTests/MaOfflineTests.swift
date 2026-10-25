@@ -73,8 +73,8 @@ final class MaOfflineTests: XCTestCase {
     HttpMock.dat { _, _ in nil }                     // mất mạng
     await b.vongDongBo()
     guard case .trangThai(let t1) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
-    XCTAssertEqual(t1.cheDo, .khoa); XCTAssertEqual(t1.nhapMaOffline, true); XCTAssertEqual(t1.demNguocGiay, 300, "chờ mã: đếm ngược dài 5 phút")
-    let ap = await b.vongAp(); XCTAssertEqual(ap.demNguocGiay, 300); XCTAssertTrue(fake.daDongPhien.isEmpty)
+    XCTAssertEqual(t1.cheDo, .khoa); XCTAssertEqual(t1.nhapMaOffline, true); XCTAssertNotNil(t1.demNguocGiay)
+    let ap = await b.vongAp(); XCTAssertEqual(ap.demNguocGiay, 300, "chờ mã: nới đếm ngược 5 phút"); XCTAssertTrue(fake.daDongPhien.isEmpty)
     let sai = await b.xuLyIPC(.maOffline(ma: "000000"), uidGoi: 501)
     guard case .loi = sai else { return XCTFail() }
     if case .duoc = QuyenIPC.kiem(.maOffline(ma: "1"), uidGoi: 502, uidCon: 501, daGhep: true, laAdmin: { _ in true }) { XCTFail("chỉ uid Con") }

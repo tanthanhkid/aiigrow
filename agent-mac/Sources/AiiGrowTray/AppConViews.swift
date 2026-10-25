@@ -249,6 +249,10 @@ struct AppConView: View {
         Chu(tt?.daGhep == false ? "Ba Mẹ cần ghép máy này trong app AiiGrow của Ba Mẹ." : "Con chờ vài giây nhé.", co: 14, mau: ClayMau.loi)
       }
     }
+    if tt?.nhapMaOffline == true, tt?.cheDo != .khoa {
+      // mất mạng giờ «chỉ app học»: Ba Mẹ đọc mã để mở tạm (trên màn khoá đã có ô riêng)
+      MaOfflineView().padding(18).clayThe(bo: 26)
+    }
     if let ds = tt?.homNayTheoApp, !ds.isEmpty {
       // Đã dùng hôm nay theo app (daemon đếm theo app tiền cảnh) — như mục Hôm nay của Android.
       TheCon {

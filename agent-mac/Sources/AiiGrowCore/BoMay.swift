@@ -103,7 +103,6 @@ public actor BoMay {
       guard !ma6.isEmpty else { throw LoiApi(ma: "thieu_ma", chu: "Nhập mã 6 số lấy ở app AiiGrow Ba Mẹ.") }
       kq = try await api.ghep(ma: ma6, tenMay: heThong.tenMay())
     }
-    heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil
     // Lưu token NGAY (mã ghép đã bị dùng): hạ quyền lỗi sau đó vẫn là máy đã ghép, chỉ cảnh báo.
     let cu = cauHinh.daHaQuyen
     try kho.sua {
@@ -115,6 +114,7 @@ public actor BoMay {
       $0.uidCon = uidCon
       $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
     }
+    heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
     quenDanhSachApp()                                   // máy mới trên máy chủ ⇒ quét + gửi đủ ngay ở lần đồng bộ đầu
     // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
@@ -175,7 +175,7 @@ public actor BoMay {
   /// Token gói cài một chạm (DuongDan.tokenGoi) — chỉ ký tự base64url, 16–128.
   private var tokenGoiNho: (luc: Double, gt: String?)?
   private func tokenGoi() -> String? {
-    if let n = tokenGoiNho, donDieu() - n.luc < 30 { return n.gt }      // tray hỏi trạng thái 5 giây/lần ⇒ không đọc đĩa mỗi lần
+    if let n = tokenGoiNho, donDieu() - n.luc < (n.gt == nil ? 5 : 30) { return n.gt }   // chưa có token: hỏi lại sau 5 giây (postinstall vừa ghi)      // tray hỏi trạng thái 5 giây/lần ⇒ không đọc đĩa mỗi lần
     let gt = docTokenGoi()
     tokenGoiNho = (donDieu(), gt)
     return gt
@@ -267,8 +267,7 @@ public actor BoMay {
     let hl = MoTamOffline.apDung(DanhGiaPolicy.tinh(p, now: dongHo(), daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo())
     var demNguoc: Int?
     if hl.khoa, laCon, !manKhoa {
-      let g = choNhapMaOffline(p, hl) ? BoMay.choMaGiay : tuyChon.demNguocKhoaGiay
-      demNguoc = Int(((khoaLuc ?? donDieu() + Double(g)) - donDieu()).clamped0.rounded(.up))
+      demNguoc = Int(((khoaLuc ?? donDieu() + Double(tuyChon.demNguocKhoaGiay)) - donDieu()).clamped0.rounded(.up))
     }
     return trangThai(p: p, hl: hl, laCon: laCon, phutDung: hl.conPhut, demNguoc: demNguoc)
   }
@@ -340,7 +339,7 @@ public actor BoMay {
     var demNguoc: Int? = nil
     if hl.khoa, let uidCon = cauHinh.uidCon, laCon, !manKhoa {
       // mất mạng + mã gỡ được: đếm ngược DÀI (5 phút) để Ba Mẹ kịp đọc mã — hết vẫn đăng xuất (màn khoá của tray tắt được, không phải hàng rào)
-      demNguoc = tienKhoa(uidCon: uidCon, chan: chan, giay: choNhapMaOffline(p, hl) ? BoMay.choMaGiay : tuyChon.demNguocKhoaGiay)
+      demNguoc = tienKhoa(uidCon: uidCon, chan: chan, giay: tuyChon.demNguocKhoaGiay, choMa: choNhapMaOffline(p, hl))
     } else {
       khoaLuc = nil
     }
@@ -425,9 +424,16 @@ public actor BoMay {
 
   /// Đếm ngược theo HẠN CHÓT: bắt đầu khoá ⇒ khoaLuc = bây giờ + demNguocKhoaGiay; còn lại tính từ đồng hồ đơn điệu, không phải bộ đếm theo vòng.
   static let choMaGiay = 300
-  private func tienKhoa(uidCon: UInt32, chan: Bool, giay: Int) -> Int {
+  /// Lần gần nhất đã nới đếm ngược để chờ mã offline — mỗi 30 phút chỉ nới MỘT lần (Con tắt Wi‑Fi rồi đăng nhập lại không được thêm 5 phút mãi).
+  private var noiChoMaLuc: Double?
+  private func tienKhoa(uidCon: UInt32, chan: Bool, giay: Int, choMa: Bool = false) -> Int {
     let gio = donDieu()
     if khoaLuc == nil { khoaLuc = gio + Double(giay) }
+    if choMa, noiChoMaLuc.map({ gio - $0 > 1800 }) ?? true {
+      khoaLuc = max(khoaLuc!, gio + Double(BoMay.choMaGiay)); noiChoMaLuc = gio                 // mất mạng giữa lúc đếm cũng được nới
+    } else if !choMa, khoaLuc! - gio > Double(giay) {
+      khoaLuc = gio + Double(giay)                                                             // có mạng lại (mã không dùng được nữa) ⇒ về đếm thường
+    }
     let conLai = (khoaLuc! - gio).clamped0
     if conLai > 0 { return Int(conLai.rounded(.up)) }
     if chan {
@@ -479,6 +485,7 @@ public actor BoMay {
       if uidGoi == cauHinh.uidCon { trayNhipCuoi = donDieu() }     // tray hỏi trạng thái mỗi 5 giây = nhịp «còn sống»
       var tt = trangThaiTuoi()                                    // tính tươi, không tác dụng phụ: gọi dồn dập không làm đếm ngược/kill nhanh hơn
       tt.banDaemon = PhienBan.hienTai
+      if tt.coGoiCai == true, uidGoi != 0, !(await laAdminDem(uidGoi)) { tt.coGoiCai = nil }   // token gói chờ: chỉ báo cho Ba Mẹ (admin)
       if uidGoi == cauHinh.uidCon { tt.canhBaoAdmin = nil }        // MỘT quy tắc ẩn: theo uid người gọi; Con không được nói là tự gỡ được (máy chủ vẫn nhận conLaAdmin)
       // Trạng thái cập nhật: chỉ Ba Mẹ (cùng quy tắc quyền IPC capNhat); admin tra qua bộ nhớ đệm (tray hỏi mỗi 5 giây, dscl không chạy mỗi lần)
       if let chu = capNhat.so.chu, QuyenIPC.laBaMe(uidGoi: uidGoi, uidCon: cauHinh.uidCon, laAdmin: laAdmin) {
@@ -729,7 +736,8 @@ public actor BoMay {
         return (LichSuWeb.tongHop(tep.chromium.flatMap { LichSuWeb.docChromium($0, tu: tu) } + tep.safari.flatMap { LichSuWeb.docSafari($0, tu: tu) }), dau)
       }
       if let ds {
-        do { if !ds.isEmpty { try await api.guiNhatKy("web/lich-su", LichSuWeb.than(ds)) }; dauLichSu = dau; lichSuLuc = donDieu() + 900 } catch {}
+        lichSuLuc = donDieu() + 900                     // gửi lỗi cũng giãn 15 phút (không chép lại tệp History lớn mỗi 5 phút)
+        do { if !ds.isEmpty { try await api.guiNhatKy("web/lich-su", LichSuWeb.than(ds)) }; dauLichSu = dau } catch {}
       }
     }
   }
@@ -751,7 +759,7 @@ public actor BoMay {
 
   /// Mất mạng + khoá mà mã gỡ được + máy đã có bí mật ⇒ màn khoá chờ mã (không đếm ngược đăng xuất).
   private func choNhapMaOffline(_ p: Policy, _ hl: PolicyHieuLuc) -> Bool {
-    matMang && hl.khoa && MoTamOffline.moDuocKhoa(hl.lyDoKhoa) && !(p.maOfflineBiMat ?? "").isEmpty
+    matMang && !(p.maOfflineBiMat ?? "").isEmpty && (hl.khoa ? MoTamOffline.moDuocKhoa(hl.lyDoKhoa) : hl.chiAppHoc)
   }
 
   /// Con gõ mã Ba Mẹ đọc: đọc – kiểm – ghi trên bản ở đĩa (lượt sai không mất khi daemon khởi động lại). Không cần mạng.
@@ -993,7 +1001,7 @@ public actor BoMay {
   private func trangThai(p: Policy?, hl: PolicyHieuLuc?, laCon: Bool, phutDung: Double?, demNguoc: Int? = nil) -> TrangThai {
     var che = CheDo(rawValue: p?.mode ?? CheDo.tuDo.rawValue) ?? .tuDo
     // chế độ hiển thị theo Policy HIỆU LỰC (mở tạm bằng mã offline gỡ khoá / «chỉ app học») — tray và thực thi không lệch nhau
-    if let hl, !hl.khoa, che == .khoa || (che == .hoc && !hl.chiAppHoc && moTamDangMo()) { che = hl.chiAppHoc ? .hoc : .tuDo }
+    if let hl, moTamDangMo(), !hl.khoa, che == .khoa || (che == .hoc && !hl.chiAppHoc) { che = hl.chiAppHoc ? .hoc : .tuDo }
     let chan = (p?.web ?? ChinhSachWeb()).chan
     var tt = TrangThai(
       daGhep: cauHinh.daGhep, laPhienCon: laCon, tenCon: cauHinh.tenCon.isEmpty ? nil : cauHinh.tenCon,
