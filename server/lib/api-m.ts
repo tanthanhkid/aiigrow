@@ -12,6 +12,7 @@ import * as yc from "./yeu-cau.ts";
 import * as pt from "./phan-thuong.ts";
 import * as la from "./luat-app.ts";
 import { tenApp } from "./ten-app.ts";
+import * as am from "./app-may.ts";
 import { dungPhien } from "./phien.ts";
 import { dieuChinhTay, lichSu, tomTatVi } from "./vi.ts";
 import { thanhTich } from "./thanh-tich.ts";
@@ -145,6 +146,15 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
       // Giám sát / Chặn thật do Ba Mẹ chọn từ xa (vai Chỉ xem đã bị chặn ở trên cùng mọi POST)
       if (sau === "che-do" && post) return json(await datCheDo(fam, p[1], b, bm.id));
+      // Danh sách app ĐÃ CÀI THẬT trên máy (agent gửi) — Ba Mẹ xếp / chặn đúng app của máy (lib/app-may.ts)
+      if (sau === "ung-dung" && get) return json(await am.dsAppMay(fam, p[1]));
+      if (sau === "ung-dung/lam-moi" && post) return json(await am.yeuCauLamMoi(fam, p[1]));
+      if (sau === "ung-dung/dat" && post) {
+        const kq = await am.datTrangThaiApp(fam, p[1], b);
+        if (b.trangThai !== "bo") await ghiSuKien(fam, "dat_luat_app", { muc: kq.muc, loai: b.trangThai, con: kq.con || null, may: p[1] }, { nguoi: bm.id });
+        else if (kq.truoc) await ghiSuKien(fam, "xoa_luat_app", { muc: kq.muc }, { nguoi: bm.id });
+        return json(kq);
+      }
     }
     // M4b mạng
     if (d === "dns" && get) return json({ nhaCungCap: (await dns.nhaCungCap(fam)).loai, thietBi: await dns.dsThietBiDns(fam), huongDan: dns.huongDanMang() });
@@ -232,9 +242,12 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       // «loại hiện tại» = luật CẢ NHÀ lâu dài, khớp cụ thể nhất (như phanLoai: mục dài hơn thắng). Luật riêng một Con / có hạn (Lần này, Hôm nay) không tính.
       const caNha = ds.filter((r) => !r.child_id && !r.het);
       const loaiCaNha = (muc: string) => caNha.filter((r) => la.khoaSo(muc).includes(r.muc)).sort((a, b) => b.muc.length - a.muc.length)[0]?.loai ?? "chua_xep";
+      // tên THẬT agent gửi trong danh sách app của máy (lib/app-may.ts) thắng tên đoán từ tệp
+      const tenThat = await am.tenAppThat(fam);
+      const ten = (muc: string) => tenThat.get(muc) ?? tenApp(muc);
       const daThay = thay.filter((x) => !la.khoaSo(x.muc).some((k) => he.includes(k)))
-        .map((x) => ({ muc: x.muc, ten: tenApp(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
-      return json({ ds, heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: tenApp(x.muc) })), ...(canThay ? { daThay } : {}) });
+        .map((x) => ({ muc: x.muc, ten: ten(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
+      return json({ ds, heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: ten(x.muc) })), ...(canThay ? { daThay } : {}) });
     }
     // Thẻ «Đang chơi» ở Trang chủ: phiên giải trí đang chạy / tạm của cả nhà (Con, máy, app, phút còn lại). «Dừng» = như Khoá ngay một phiên.
     if (d === "phien-dang" && get) {
