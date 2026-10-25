@@ -14,6 +14,7 @@ import android.text.InputFilter
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -94,12 +95,12 @@ class ManChinh : Activity() {
         t.addView(G.dauKhoi(this, R.drawable.fl_dien_thoai, "Ghép với gia đình", Clay.LAM_SOFT))
         t.addView(G.chu(this, "Ba Mẹ mở app AiiGrow › Thêm máy › Android để lấy mã 6 số, rồi nhập vào đây.", 15f, G.CHU_PHU))
         val o = EditText(this).apply {
-            hint = "Mã 6 số"; inputType = InputType.TYPE_CLASS_NUMBER; filters = arrayOf(InputFilter.LengthFilter(6))
+            hint = "000000"; contentDescription = "Mã 6 số"; inputType = InputType.TYPE_CLASS_NUMBER; filters = arrayOf(InputFilter.LengthFilter(6))
             textSize = 28f; gravity = Gravity.CENTER; letterSpacing = 0.3f; minHeight = G.dp(this@ManChinh, 64)
             background = ClayDrawable(this@ManChinh, Clay.Kieu.LOM); setTextColor(G.CHU); setHintTextColor(G.CHU_PHU)
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = G.dp(this@ManChinh, 12); bottomMargin = G.dp(this@ManChinh, 4) }
         }
-        val bao = G.chu(this, "", 14f, Clay.LOI)
+        val bao = G.dongBao(this, Clay.LOI)
         t.addView(o)
         t.addView(G.nut(this, "Ghép máy") {
             val ma = chuanMaGhep(o.text.toString())
@@ -127,25 +128,41 @@ class ManChinh : Activity() {
 
         val x = G.the(this)
         x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, "Xin Ba Mẹ thêm giờ", Clay.DIEM_SOFT))
-        val hang = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        // không canh theo baseline: nút có cỡ chữ khác nhau sẽ bị đẩy lệch dọc
+        val hang = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
         nutPhut = PHUT_XIN.map { p ->
-            G.nut(this, "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == p) } }.apply {
-                layoutParams = LinearLayout.LayoutParams(0, layoutParams.height, 1f).apply { marginEnd = G.dp(this@ManChinh, 6); topMargin = G.dp(this@ManChinh, 6) }
+            G.nut(this, if (p == 120) "2 giờ" else "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == p) } }.apply {
+                // ba nút chung một hàng (~47dp chữ ở máy 360dp): một dòng, chữ tự thu 12–16sp thay vì rớt «phút» xuống dòng / bị cắt
+                maxLines = 1
+                val cach = G.dp(this@ManChinh, 3)   // chia đều khe giữa hai nút, không dồn lề phải
+                layoutParams = LinearLayout.LayoutParams(0, layoutParams.height.takeIf { it > 0 } ?: minHeight, 1f).apply {
+                    marginStart = if (p == PHUT_XIN.first()) 0 else cach; marginEnd = if (p == PHUT_XIN.last()) 0 else cach; topMargin = G.dp(this@ManChinh, 6) }
             }
         }
         nutPhut.forEach(hang::addView)
+        // một cỡ chữ chung cho cả ba nút, tính lại mỗi khi bề rộng đổi (chia màn hình, xoay): lớn nhất 12–16sp mà nhãn dài nhất vừa một dòng
+        hang.addOnLayoutChangeListener { _, l, _, r, _, ol, _, or_, _ ->
+            if (r - l == or_ - ol) return@addOnLayoutChangeListener
+            val b = nutPhut.first(); val rong = b.width - b.paddingLeft - b.paddingRight
+            if (rong <= 0) return@addOnLayoutChangeListener
+            val sp = resources.displayMetrics.scaledDensity
+            val co = (16 downTo 12).firstOrNull { c -> nutPhut.all { n -> android.graphics.Paint(n.paint).apply { textSize = c * sp }.measureText(n.text.toString()) <= rong } } ?: 12
+            hang.post { nutPhut.forEach { it.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, co.toFloat()) } }
+        }
         nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == phutChon) }
         x.addView(hang)
         val loi = EditText(this).apply {
             hint = "Lời nhắn cho Ba Mẹ (không bắt buộc)"; filters = arrayOf(InputFilter.LengthFilter(100)); minHeight = G.dp(this@ManChinh, 56)
             background = ClayDrawable(this@ManChinh, Clay.Kieu.LOM); setTextColor(G.CHU); setHintTextColor(G.CHU_PHU); textSize = 16f
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = G.dp(this@ManChinh, 10) }
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            // nhiều dòng: chữ hệ thống lớn thì gợi ý / lời nhắn xuống dòng thay vì bị cắt ở mép ô
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            maxLines = 4
         }
         x.addView(loi)
-        val bao = G.chu(this, "", 14f, Clay.CHINH_INK)
+        val bao = G.dongBao(this, Clay.CHINH_INK)
         x.addView(G.nut(this, "Gửi Ba Mẹ") {
-            val than = thanXinThemGio(phutChon, loi.text.toString())
+            val than = thanXinThemGio(phutChon, loi.text.toString().replace(Regex("\\s*\n\\s*"), " "))  // ô nhiều dòng: lý do gửi Ba Mẹ vẫn một dòng
             bao.text = "Đang gửi…"
             Thread { val s = DichVuNhip.xinThemGio(this, than); runOnUiThread { bao.text = s; loi.setText("") } }.start()
         })
@@ -179,7 +196,8 @@ class ManChinh : Activity() {
                 orientation = LinearLayout.HORIZONTAL; minimumHeight = G.dp(this@ManChinh, 40); gravity = Gravity.CENTER_VERTICAL
                 addView(G.chu(this@ManChinh, DoPhut.tenApp(this@ManChinh, goi) + if (goi in ht.goiChan) " · đang chặn" else "", 16f).apply {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) })
-                addView(G.chu(this@ManChinh, "$p phút", 16f, G.CHU_PHU))
+                addView(G.chu(this@ManChinh, "$p phút", 16f, G.CHU_PHU).apply {
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = G.dp(this@ManChinh, 12) } })
             })
         }
     }
