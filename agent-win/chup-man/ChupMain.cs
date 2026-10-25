@@ -474,8 +474,28 @@ internal static class ChupMain
         var duong = Path.Combine(_ra, ten + ".png");
         bmp.Save(duong, ImageFormat.Png);
         var trang = DonSac(bmp);
-        if (trang) _loi++;
-        Log($"{(trang ? "LỖI ảnh một màu" : "ok")} {ten}.png {bmp.Width}x{bmp.Height} ({cach})");
+        var den = TiLeDen(bmp);
+        // Nền Clay vẽ hỏng (bitmap nền chưa khởi tạo) ra KHỐI ĐEN THUẦN quanh nút — giao diện AiiGrow không có màu đen thuần (chữ đậm nhất #0f1312).
+        var khoiDen = den > NguongDen;
+        if (trang || khoiDen) _loi++;
+        Log($"{(trang ? "LỖI ảnh một màu" : khoiDen ? $"LỖI khối đen {den:P1}" : "ok")} {ten}.png {bmp.Width}x{bmp.Height} ({cach}) đen {den:P2}");
+    }
+
+    /// <summary>Ngưỡng tỉ lệ điểm ảnh đen thuần (R,G,B ≤ 8) — quá ngưỡng là có khối đen (nền nút / thẻ vẽ hỏng).</summary>
+    private const double NguongDen = 0.005;
+
+    /// <summary>Tỉ lệ điểm ảnh đen thuần, lấy mẫu mỗi 3 px (bỏ 1 px viền cửa sổ).</summary>
+    private static double TiLeDen(Bitmap b)
+    {
+        long n = 0, den = 0;
+        for (int y = 1; y < b.Height - 1; y += 3)
+            for (int x = 1; x < b.Width - 1; x += 3)
+            {
+                var c = b.GetPixel(x, y);
+                n++;
+                if (c.R <= 8 && c.G <= 8 && c.B <= 8) den++;
+            }
+        return n == 0 ? 0 : (double)den / n;
     }
 
     /// <summary>Ảnh gần như một màu (trắng/đen/vỡ) — lấy mẫu lưới 24×24.</summary>

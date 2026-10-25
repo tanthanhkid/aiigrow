@@ -154,10 +154,12 @@ internal static class CapNhatSetup
 internal sealed class CapNhatForm : Form
 {
     private readonly PhatHienCai _ph;
-    private readonly Label _tieuDe = new() { AutoSize = true, MaximumSize = new Size(520, 0), Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = SetupForm.Chu, Location = new Point(32, 28) };
-    private readonly Label _loi = new() { AutoSize = true, MaximumSize = new Size(520, 0), Font = new Font("Segoe UI", 11f), ForeColor = SetupForm.Chu2, Location = new Point(32, 80) };
-    private readonly ProgressBar _thanh = new() { Location = new Point(32, 220), Size = new Size(520, 6), Style = ProgressBarStyle.Marquee, Visible = false };
-    private readonly FlowLayoutPanel _nut = new() { Location = new Point(32, 250), Size = new Size(540, 56), FlowDirection = FlowDirection.LeftToRight };
+    // Xếp dọc tự co theo nội dung (không toạ độ cố định): chữ dài / 150% đẩy nút xuống chứ không đẩy nút ra khỏi khung.
+    private static int S(int v) => AiiGrow.ClayUi.Clay.Si(v);
+    private readonly Label _tieuDe = new() { AutoSize = true, MaximumSize = new Size(S(520), 0), Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = SetupForm.Chu, Margin = new Padding(0, 0, 0, S(12)) };
+    private readonly Label _loi = new() { AutoSize = true, MaximumSize = new Size(S(520), 0), Font = new Font("Segoe UI", 11f), ForeColor = SetupForm.Chu2, Margin = new Padding(0, 0, 0, S(16)) };
+    private readonly ProgressBar _thanh = new() { Size = new Size(S(520), S(6)), Style = ProgressBarStyle.Marquee, Visible = false, Margin = new Padding(0, 0, 0, S(16)) };
+    private readonly FlowLayoutPanel _nut = new() { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(S(540), 0), Margin = Padding.Empty };
     private bool _dangChay;
 
     /// <summary>Ba Mẹ chọn «Sửa cài đặt» ⇒ Program mở trình cài đầy đủ (ghép lại / đổi tài khoản Con).</summary>
@@ -165,15 +167,24 @@ internal sealed class CapNhatForm : Form
 
     public CapNhatForm(PhatHienCai ph)
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _ph = ph;
         Text = "AiiGrow";
         Font = new Font("Segoe UI", 11f);
-        ClientSize = new Size(600, 330);
+        AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        MinimumSize = new Size(S(600), 0);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = SetupForm.Nen;
-        Controls.AddRange(new Control[] { _tieuDe, _loi, _thanh, _nut });
+        var cot = new FlowLayoutPanel
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Padding = new Padding(S(32), S(28), S(32), S(20)), Margin = Padding.Empty, BackColor = SetupForm.Nen,
+        };
+        cot.Controls.AddRange(new Control[] { _tieuDe, _loi, _thanh, _nut });
+        Controls.Add(cot);
         FormClosing += (_, e) => { if (_dangChay) e.Cancel = true; };
         if (ph.CheDo == CheDoBoCai.CapNhat) ManCapNhat(); else ManMoiNhat();
     }
@@ -231,13 +242,15 @@ internal sealed class CapNhatForm : Form
 
     private static Button Nut(string chu, bool chinh, Action bam)
     {
-        var b = new Button
+        // Nút Clay như trình cài (thân 44 theo DPI + lề bóng); rộng theo chữ, tối thiểu 150/180 theo DPI
+        var font = new Font("Segoe UI", 11f, FontStyle.Bold);
+        var rong = Math.Max(S(chinh ? 180 : 150), TextRenderer.MeasureText(chu, font).Width + S(48));
+        var b = new AiiGrow.ClayUi.ClayButton
         {
-            Text = chu, AutoSize = false, Size = new Size(chinh ? 180 : 150, 44), FlatStyle = FlatStyle.Flat,
-            BackColor = chinh ? SetupForm.Chinh : Color.White, ForeColor = chinh ? Color.White : SetupForm.Chu,
-            Font = new Font("Segoe UI", 11f, FontStyle.Bold), Margin = new Padding(0, 0, 12, 0), Cursor = Cursors.Hand,
+            Text = chu, AutoSize = false, Size = new Size(rong, AiiGrow.ClayUi.Clay.Si(44) + AiiGrow.ClayUi.VeNut.LeBong.Vertical),
+            BackColor = chinh ? SetupForm.Chinh : AiiGrow.ClayUi.Clay.The, ForeColor = chinh ? Color.White : SetupForm.Chu,
+            Font = font, Margin = new Padding(0, 0, S(12), 0), UseMnemonic = false,
         };
-        b.FlatAppearance.BorderColor = chinh ? SetupForm.Chinh : SetupForm.Vien;
         b.Click += (_, _) => bam();
         return b;
     }

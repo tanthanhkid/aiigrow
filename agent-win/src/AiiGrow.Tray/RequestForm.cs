@@ -8,10 +8,10 @@ internal sealed class RequestForm : Form
 {
     private readonly int[] _opts = { 30, 60, 120 };
     private readonly RadioButton[] _radios = new RadioButton[3];
-    private readonly TextBox _note = new() { Multiline = true, Height = 64, Width = 380, Font = UI.F(11f), MaxLength = 200, BorderStyle = BorderStyle.FixedSingle };
-    private readonly Button _send = UI.Btn("Xin bố mẹ", true, 380, "speech_balloon");
-    private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, 380, "star");
-    private readonly Label _msg = UI.Text("", 11f, true, UI.Green, 380);
+    private readonly TextBox _note = new() { Multiline = true, Height = UI.Px(64), Width = UI.Px(380), Font = UI.F(11f), MaxLength = 200, BorderStyle = BorderStyle.FixedSingle };
+    private readonly Button _send = UI.Btn("Xin bố mẹ", true, UI.Px(380), "speech_balloon");
+    private readonly Button _exchange = UI.Btn("Đổi điểm lấy thời gian", false, UI.Px(380), "star");
+    private readonly Label _msg = UI.Text("", 11f, true, UI.Green, UI.Px(380));
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private readonly string? _appId, _appName;
     private string? _pendingId;
@@ -19,6 +19,8 @@ internal sealed class RequestForm : Form
 
     public RequestForm(bool canExchange, string? appId = null, string? appName = null)
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _appId = appId; _appName = appName;
         Text = "AiiGrow · Xin thêm thời gian";
         FormBorderStyle = FormBorderStyle.FixedDialog;

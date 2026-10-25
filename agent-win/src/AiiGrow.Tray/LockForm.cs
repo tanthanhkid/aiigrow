@@ -8,12 +8,12 @@ namespace AiiGrow.Tray;
 internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
 {
     // Clay: nền tối ngọc sâu (gradient) + MỘT thẻ đất sét sáng ở giữa chứa ổ khoá, tiêu đề, đồng hồ và các nút.
-    private readonly Label _title = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent, MaximumSize = new Size(UI.Px(700), 0), Font = UI.F(26f, FontStyle.Bold) };
-    private readonly Label _hint = new() { AutoSize = true, MaximumSize = new Size(UI.Px(700), 0), ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(14f) };
-    private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(40f, FontStyle.Bold) };
-    private readonly Label _countCap = new() { AutoSize = true, ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(12f), Text = "máy sẽ khoá sau" };
-    private readonly Label _brand = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(11f), Text = "AiiGrow · máy này do bố mẹ quản lý" };
-    private readonly ClayIcon _khoa = new() { Size = new Size(UI.Px(104), UI.Px(104)), MauVien = Clay.DiemSoft, Margin = new Padding(0, 0, 0, 6) };
+    private readonly Label _title = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent, MaximumSize = new Size(UI.Px(720), 0), Font = UI.F(30f, FontStyle.Bold) };
+    private readonly Label _hint = new() { AutoSize = true, MaximumSize = new Size(UI.Px(720), 0), ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(16f) };
+    private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(64f, FontStyle.Bold) };   // đọc được từ xa như Mac ManKhoaView (88pt)
+    private readonly Label _countCap = new() { AutoSize = true, ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(14f), Text = "máy sẽ khoá sau" };
+    private readonly Label _brand = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(12f), Text = "AiiGrow · máy này do bố mẹ quản lý" };
+    private readonly ClayIcon _khoa = new() { Size = new Size(UI.Px(120), UI.Px(120)), MauVien = Clay.DiemSoft, Margin = new Padding(0, 0, 0, 6) };
     private readonly bool _canExchange;
     private bool _allowClose;
     private bool _locking;
@@ -21,6 +21,8 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
 
     public LockForm(bool canExchange)
     {
+
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _canExchange = canExchange;
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Maximized;
@@ -42,18 +44,25 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
             l.Margin = new Padding(0, 0, 0, 12);
             flow.Controls.Add(l);
         }
-        var ask = UI.Btn("Xin thêm thời gian", true, UI.Px(300), "hourglass_not_done");
+        var ask = UI.Btn("Xin thêm thời gian", true, UI.Px(400), "hourglass_not_done");
         ask.Click += (_, _) =>
         {
             using var f = new RequestForm(_canExchange);
             f.ShowDialog(this);
         };
-        var logoff = UI.Btn("Lưu bài và đăng xuất", false, UI.Px(300));
+        var logoff = UI.Btn("Lưu bài và đăng xuất", false, UI.Px(400));
         logoff.Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("shutdown.exe", "/l") { CreateNoWindow = true, UseShellExecute = false });
         // #70 §1: Ba Mẹ cần máy ⇒ khoá phiên (chuyển người dùng), KHÔNG đăng xuất; phiên Con giữ nguyên, không trừ điểm.
-        var bame = UI.Btn("Ba Mẹ dùng máy", false, UI.Px(300), "key");
+        var bame = UI.Btn("Ba Mẹ dùng máy", false, UI.Px(400), "key");
         bame.Click += (_, _) => UI.NhuongMayChoBaMe();
-        var bameHint = new Label { AutoSize = true, ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(11f), Text = "Ba Mẹ cần máy? Bấm nút này hoặc Win+L", Margin = new Padding(0, 0, 0, 12) };
+        var bameHint = new Label { AutoSize = true, ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(13f), Text = "Ba Mẹ cần máy? Bấm nút này hoặc Win+L", Margin = new Padding(0, 0, 0, 12) };
+        // nút to hơn nút thường (thân 56, chữ 14): màn khoá nhìn từ xa, ngón tay trẻ con
+        foreach (var b in new[] { ask, bame, logoff })
+        {
+            b.Height = Clay.Si(56) + VeNut.LeBong.Vertical;
+            b.Font = UI.F(14f, FontStyle.Bold);
+            b.Margin = new Padding(0, 0, 0, UI.Px(6));
+        }
         flow.Controls.Add(ask);
         flow.Controls.Add(bame);
         flow.Controls.Add(bameHint);
@@ -68,7 +77,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         var the = new ClayFlow
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = UI.Px(36), WrapContents = false,
-            Padding = VeThe.Pad(UI.Px(40), UI.Px(32), UI.Px(40), UI.Px(24)),
+            Padding = VeThe.Pad(UI.Px(56), UI.Px(44), UI.Px(56), UI.Px(32)),
         };
         the.Controls.Add(flow);
         var host = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Color.Transparent };
@@ -94,18 +103,20 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     }
 
     /// <summary>Nền tối ngọc sâu: gradient dọc + quầng sáng mềm sau thẻ (chữ trắng ở chân 9:1 trở lên).</summary>
-    protected override void OnPaintBackground(PaintEventArgs e)
+    protected override void OnPaintBackground(PaintEventArgs e) => VeNenRieng(e.Graphics, true);
+
+    public void VeNenRieng(Graphics g, bool ngoaiCung)
     {
         var r = ClientRectangle;
         if (r.Width <= 0 || r.Height <= 0) return;
         using (var lg = new LinearGradientBrush(r, Color.FromArgb(0x13, 0x4a, 0x41), Color.FromArgb(0x07, 0x24, 0x20), 90f))
-            e.Graphics.FillRectangle(lg, r);
-        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            g.FillRectangle(lg, r);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
         var q = new RectangleF(r.Width * 0.2f, r.Height * 0.05f, r.Width * 0.6f, r.Height * 0.75f);
         using var qp = new GraphicsPath();
         qp.AddEllipse(q);
         using var pg = new PathGradientBrush(qp) { CenterColor = Color.FromArgb(70, 0x5f, 0xc9, 0xb2), SurroundColors = new[] { Color.FromArgb(0, 0x13, 0x4a, 0x41) } };
-        e.Graphics.FillEllipse(pg, q);
+        g.FillEllipse(pg, q);
     }
 
     public void Apply(TrayState s)

@@ -165,3 +165,40 @@ jobs:
           name: e2e-logs
           path: e2e-logs
           if-no-files-found: warn
+
+  # Chụp mọi màn khay + bộ cài ở 100% / 150% (agent-win/chup-man, dữ liệu mẫu) và KIỂM tự động: ảnh một màu hoặc có khối đen thuần quanh nút
+  # (nền Clay vẽ hỏng — lỗi 25/10) ⇒ job đỏ. Ảnh ở artifact «man-win» (cùng định dạng workflow chup-man-win.yml).
+  chup-man:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build công cụ chụp
+        run: dotnet build agent-win/chup-man -c Release -o chup-bin
+      - name: Chụp 100% và 150% + kiểm khối đen
+        shell: pwsh
+        run: |
+          $ra = Join-Path $env:GITHUB_WORKSPACE 'man-win'
+          $loi = 0
+          foreach ($tl in @(@{ ten = '100'; k = '1' }, @{ ten = '150'; k = '1.5' })) {
+            $dir = Join-Path $ra $tl.ten
+            $p = Start-Process -FilePath (Join-Path $env:GITHUB_WORKSPACE 'chup-bin\AiiGrow.ChupMan.exe') `
+                 -ArgumentList @('--chup-man', "`"$dir`"", '--ti-le', $tl.k) -Wait -PassThru
+            Write-Host "== $($tl.ten)% — mã thoát $($p.ExitCode)"
+            if (Test-Path "$dir\chup.log") {
+              Get-Content "$dir\chup.log" -Encoding utf8
+              Get-Content "$dir\chup.log" -Encoding utf8 | Where-Object { $_ -match 'LỖI' } | ForEach-Object { Write-Host "::error::$($tl.ten)%: $_" }
+            }
+            if ($p.ExitCode -ne 0) { $loi++ }
+          }
+          exit $loi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: man-win
+          path: man-win
+          if-no-files-found: warn
+          retention-days: 14
