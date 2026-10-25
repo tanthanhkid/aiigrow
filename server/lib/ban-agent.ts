@@ -5,20 +5,22 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
+// 0.2.7: exe từ CI agent-win run 40144815893 (job build goc, commit cc90c35 nhánh phathanh-clay, PR #102).
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.6",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.6.exe",
-  sha256: "0b1dfd704fb266359777aede6ab1638ee055f98f7784d6792b9148b48e06e4fd",
+  version: "0.2.7",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.7.exe",
+  sha256: "645b58bd489772a8c597895291c62a7626341580dc744f846002510ff4736612",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
+// 0.1.3: build-pkg.sh chạy trên Mac của Thanh từ commit 5f17954 nhánh phathanh-clay (PR #102), notarize Accepted.
 export const BAN_AGENT_MAC = {
-  version: "0.1.2",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.2.pkg",
-  sha256: "000a0e6cdd4ebf75f2267266cff9c3625975624cb2b6803406f0208273ba36a9",
+  version: "0.1.3",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.3.pkg",
+  sha256: "8dc67732cfd5a29379dd5b17d330490701a8b0b48caff79a1ba07f426be0aa61",
 } as const;
 
 /** Manifest bản mới theo nền tảng máy hỏi (`?platform=mac|windows`; không có ⇒ Windows để agent Windows cũ nhận y như trước).
