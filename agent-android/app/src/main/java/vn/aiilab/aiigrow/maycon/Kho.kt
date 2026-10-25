@@ -53,6 +53,8 @@ class Kho(ctx: Context) {
     var yeuCauPhut: Int get() = p.getInt("yeuCauPhut", 0); set(v) = p.edit().putInt("yeuCauPhut", v).apply()
     var yeuCauLuc: Long get() = p.getLong("yeuCauLuc", 0); set(v) = p.edit().putLong("yeuCauLuc", v).apply()
     var yeuCauTrangThai: String? get() = p.getString("yeuCauTrangThai", null); set(v) = p.edit().putString("yeuCauTrangThai", v).apply()
+    /** Phiên điểm máy này biết là đã hết (luật nhớ còn `phienDiem.phien` cũ khi nhịp máy lỗi ⇒ bỏ qua). */
+    var phienHet: String? get() = p.getString("phienHet", null); set(v) = p.edit().putString("phienHet", v).apply()
     var phienId: String? get() = p.getString("phienId", null); set(v) = p.edit().putString("phienId", v).apply()
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()

@@ -120,7 +120,8 @@ class DichVuNhip : Service() {
         }
         if (ph == null) { capNhatThongBao(null); return }
         if (k.cheDoThu) ph.maOfflineBiMat?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }   // thử mã offline không cần máy chủ
-        val cs = ph.chinhSach
+        // phiên điểm máy này đã biết là hết mà luật nhớ (nhịp máy lỗi) vẫn ghi ⇒ không mở giải trí theo phiên đó nữa
+        val cs = ph.chinhSach.let { c -> if (c.phien != null && c.phien.id == k.phienHet) c.copy(phien = null) else c }
         val now = Instant.ofEpochMilli(nowMay + if (k.cheDoThu) 0 else k.lechGioMs)
         val dung = DoPhut.homNay(this, cs.tz, nowMay)
         val lech = if (k.cheDoThu) 0 else k.lechGioMs

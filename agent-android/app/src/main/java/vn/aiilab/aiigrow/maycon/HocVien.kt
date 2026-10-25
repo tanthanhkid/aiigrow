@@ -47,12 +47,14 @@ object HocVien {
     }
 
     private val dangNhipPhien = java.util.concurrent.atomic.AtomicBoolean(false)
+    // luồng riêng cho nhịp phiên điểm: không xếp hàng sau hỏi tin / lời xin đang chậm
+    private val luongPhien = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-phien-diem").apply { isDaemon = true } }
 
     /** Nhịp phiên điểm do máy này mở — mỗi lượt gọi máy chủ, KHÔNG phụ thuộc nhịp máy thành công; luồng riêng. Phiên kết thúc ⇒ áp luật lại ngay. */
     fun nhipPhienNen(ctx: Context, cs: ChinhSach?) {
         if (Kho(ctx).phienId == null || !dangNhipPhien.compareAndSet(false, true)) return
         val c = ctx.applicationContext
-        try { luong.execute { try { nhipPhien(c, cs) } catch (_: Exception) {} finally { dangNhipPhien.set(false) } } }
+        try { luongPhien.execute { try { nhipPhien(c, cs) } catch (_: Exception) {} finally { dangNhipPhien.set(false) } } }
         catch (_: Exception) { dangNhipPhien.set(false) }
     }
 
@@ -156,7 +158,7 @@ object HocVien {
         val k = Kho(ctx)
         val id = k.phienId ?: return null
         if (k.token == null) return CAU_THU
-        return try { may(k).goi("phien/dung", JSONObject().put("id", id)); k.phienId = null; DichVuNhip.lamMoi(ctx); null }
+        return try { may(k).goi("phien/dung", JSONObject().put("id", id)); ketThuc(ctx, k, id); null }
         catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa dừng được — máy đang mất mạng." }
     }
 
@@ -176,7 +178,15 @@ object HocVien {
         val dangDung = dangDungPhien(DoPhut.tienCanh(ctx), goiAndroid(cs?.giaiTri ?: emptyList()))
         try {
             val r = may(k).goi("phien/nhip", JSONObject().put("id", id).put("dangDung", dangDung))
-            if (phienKetThuc(r)) { k.phienId = null; NhatKy.tin(TAG, "phiên điểm kết thúc: ${r.optString("lyDoKet")}"); DichVuNhip.lamMoi(ctx) }
-        } catch (e: MayChu.Loi) { if (e.http == 404) k.phienId = null } catch (_: Exception) {}
+            if (phienKetThuc(r)) { ketThuc(ctx, k, id); NhatKy.tin(TAG, "phiên điểm kết thúc: ${r.optString("lyDoKet")}") }
+        } catch (e: MayChu.Loi) { if (e.http == 404) ketThuc(ctx, k, id) } catch (_: Exception) {}
+    }
+
+    /** Phiên `id` đã hết: quên id (chỉ khi vẫn là phiên đó — Con có thể vừa mở phiên mới), nhớ id đã hết để luật nhớ (`cs.phien`) không mở
+     *  giải trí tiếp khi nhịp máy đang lỗi, rồi áp luật lại ngay. */
+    private fun ketThuc(ctx: Context, k: Kho, id: String) {
+        synchronized(this) { if (k.phienId == id) k.phienId = null }
+        k.phienHet = id
+        DichVuNhip.lamMoi(ctx)
     }
 }
