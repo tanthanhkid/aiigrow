@@ -127,6 +127,9 @@ struct ManChinh: View {
   var trangThai: (String, String, Color) {
     // (câu, icon Fluent 3D, màu chữ, màu viên)
     guard let k = m.khien else { return ("Đang tải luật của Ba Mẹ…", "fl_dong_ho_cat", Clay.chu3) }
+    let gio = { (d: Date?) in d?.formatted(date: .omitted, time: .shortened) ?? "" }
+    if k.dangMoOffline == true { return ("Đang mở bằng mã của Ba Mẹ, tới \(gio(m.moOfflineDen))", "fl_ma_so", Clay.chinhInk) }
+    if k.dangChoiDiem == true { return ("Đang chơi bằng điểm, tới \(gio(m.keHoach?.phienDiemDen))", "fl_qua", Clay.chinhInk) }
     if k.dangThemGio, let den = m.keHoach?.moDen { return ("Đang dùng giờ Ba Mẹ thêm, tới \(den.formatted(date: .omitted, time: .shortened))", "fl_qua", Clay.chinhInk) }
     switch k.lyDo {
     case .khong: return ("Đang trong giờ chơi", "fl_mat_troi", Clay.chinhInk)
@@ -145,8 +148,12 @@ struct ManChinh: View {
           .vaoLanLuot(0)
         theThoiGian.vaoLanLuot(1)
         if let yc = m.yeuCau { theYeuCau(yc).vaoLanLuot(2) }
+        // Nhiệm vụ / nộp bài / quà / tin nhắn / chơi bằng điểm: màn Con trong app AiiGrow (aiigrow://tre?phien=…)
+        Button { Task { await m.moManCon() } } label: { Label("Nhiệm vụ & quà", systemImage: "star.fill") }
+          .buttonStyle(NutChinh()).disabled(m.dangBan).vaoLanLuot(3)
         Button { m.moXinThem = true } label: { Label("Xin thêm giờ", systemImage: "hand.raised.fill") }
-          .buttonStyle(NutChinh()).vaoLanLuot(3)
+          .buttonStyle(NutChinh(phu: true)).vaoLanLuot(3)
+        if m.coBiMatOffline, let k = m.khien, k.lyDo != .khong, k.dangMoOffline != true { theMaOffline.vaoLanLuot(4) }
         if m.uyQuyen != "approved" { theQuyen.vaoLanLuot(4) }
         theBaMe.vaoLanLuot(5)
         if let l = m.loi { Text(l).font(.footnote).foregroundColor(Clay.loi).multilineTextAlignment(.center) }
@@ -161,6 +168,22 @@ struct ManChinh: View {
     .sheet(isPresented: $m.moXinThem) { ManXinThem().environmentObject(m) }
     .sheet(isPresented: $m.moQuyen) { ManQuyen().environmentObject(m) }
     .sheet(isPresented: $moChon) { ManChonApp().environmentObject(m) }
+    .sheet(isPresented: $m.moMaOffline) { ManMaOffline().environmentObject(m) }
+    .sheet(isPresented: $m.moDns) { ManDns().environmentObject(m) }
+  }
+
+  var theMaOffline: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack(spacing: 10) {
+        IconClay(ten: "fl_ma_so", nen: Clay.lamSoft)
+        Text("Máy mất mạng?").font(.headline)
+      }
+      Text("Ba Mẹ mở app AiiGrow › Máy › «Mã mở khi mất mạng» rồi đọc 6 số cho con gõ.").font(.subheadline).foregroundColor(Clay.chu3)
+        .fixedSize(horizontal: false, vertical: true)
+      Button("Nhập mã của Ba Mẹ") { m.moMaOffline = true }.buttonStyle(NutChinh(phu: true))
+    }
+    .padding(.bottom, 8)
+    .khoiClay(bo: 28, dem: 16)
   }
 
   var theThoiGian: some View {
@@ -241,6 +264,7 @@ struct ManChinh: View {
       Text("App học: \(m.soLuong.hoc) · App giải trí: \(m.soLuong.giaiTri) (+\(m.soLuong.danhMucGiaiTri) nhóm) · Chặn: \(m.soLuong.chan)")
         .font(.subheadline).foregroundColor(Clay.chu3)
       Button("Chọn app học / giải trí") { moChon = true }.buttonStyle(NutChinh(phu: true))
+      Button("Cài lọc web gia đình (DNS)") { m.moDns = true }.buttonStyle(NutChinh(phu: true))
       ForEach(m.keHoach?.canhBao ?? [], id: \.self) { Text($0).font(.footnote).foregroundColor(Clay.canh) }
     }
     .padding(.bottom, 8)   // bóng nút (bán kính 8, lệch 8) không chạm mép đáy thẻ
@@ -269,7 +293,22 @@ struct ManXinThem: View {
     NavigationView {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
-          Text("Con muốn thêm bao lâu?").font(.headline)
+          // Đổi điểm lấy thời gian (như RequestForm Windows): chơi ngay bằng điểm ở màn Con, không chờ Ba Mẹ duyệt
+          Button { dong(); Task { await m.moManCon("choi") } } label: {
+            HStack(spacing: 12) {
+              IconClay(ten: "fl_qua", nen: Clay.canhSoft)
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Đổi điểm lấy giờ chơi").font(.headline).foregroundColor(Clay.chu)
+                Text("Có điểm thì chơi ngay, không cần chờ Ba Mẹ").font(.subheadline).foregroundColor(Clay.chu3)
+              }
+              Spacer(minLength: 0)
+              Image(systemName: "chevron.right").foregroundColor(Clay.chu3)
+            }
+            .frame(minHeight: 44)
+            .khoiClay(bo: 28, dem: 16)
+          }
+          .buttonStyle(.plain)
+          Text("Hoặc xin Ba Mẹ thêm bao lâu?").font(.headline)
           // ba nút một hàng; cỡ chữ lớn không vừa thì xếp dọc (không cắt thành «30 p…»)
           ViewThatFits(in: .horizontal) {
             HStack(spacing: 12) { nutPhut }
@@ -305,6 +344,90 @@ struct ManXinThem: View {
       }
       .background(Clay.nenMan)
       .navigationTitle("Xin thêm giờ")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
+    }
+    .navigationViewStyle(.stack)
+  }
+}
+
+// MARK: mã mở offline
+struct ManMaOffline: View {
+  @EnvironmentObject var m: MoHinhApp
+  @Environment(\.dismiss) var dong
+  @State var ma = ""
+  @State var kq: (Bool, String)?
+  @FocusState var dangGo: Bool
+  var body: some View {
+    NavigationView {
+      ScrollView {
+        VStack(spacing: 18) {
+          IconClay(ten: "fl_ma_so", nen: Clay.lamSoft, co: 72).vaoLanLuot(0)
+          Text("Mã của Ba Mẹ").font(.title2.bold())
+          Text("Khi máy mất mạng, Ba Mẹ mở app AiiGrow › Máy › «Mã mở khi mất mạng» và đọc 6 số. Mã đúng mở máy 60 phút; có mạng lại thì máy theo luật của Ba Mẹ như thường.")
+            .multilineTextAlignment(.center).foregroundColor(Clay.chu3).fixedSize(horizontal: false, vertical: true)
+          TextField("000000", text: $ma)
+            .keyboardType(.numberPad).textContentType(.oneTimeCode).focused($dangGo)
+            .font(.system(size: 40, weight: .semibold, design: .monospaced)).multilineTextAlignment(.center)
+            .frame(minHeight: 72).background(NenClay(kieu: .lom, bo: 24))
+            .onChange(of: ma) { v in let s = String(v.filter(\.isNumber).prefix(6)); if s != v { ma = s } }
+          if let kq {
+            Label(kq.1, systemImage: kq.0 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+              .font(.headline).foregroundColor(kq.0 ? Clay.chinhInk : Clay.loi).multilineTextAlignment(.leading)
+          }
+          Button("Mở máy") { kq = m.moBangMa(ma); if kq?.0 == true { ma = "" } }
+            .buttonStyle(NutChinh()).disabled(ma.count != 6).opacity(ma.count == 6 ? 1 : 0.5)
+          DongQuanLy()
+        }
+        .padding(20)
+      }
+      .background(Clay.nenMan)
+      .navigationTitle("Mở bằng mã").navigationBarTitleDisplayMode(.inline)
+      .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
+      .onAppear { dangGo = true }
+    }
+    .navigationViewStyle(.stack)
+  }
+}
+
+// MARK: hồ sơ DNS gia đình
+struct ManDns: View {
+  @EnvironmentObject var m: MoHinhApp
+  @Environment(\.dismiss) var dong
+  let buoc = [
+    "Bấm «Tải hồ sơ» — Safari mở và hỏi «Cho phép tải hồ sơ cấu hình?» ⇒ chọn Cho phép.",
+    "Mở Cài đặt › «Đã tải về hồ sơ» (ngay dưới tên Apple ID) ⇒ Cài đặt ⇒ nhập mật mã máy.",
+    "Xong: trang web Ba Mẹ chặn bị lọc ở mọi trình duyệt và app trên máy này, cả khi dùng 4G.",
+  ]
+  var body: some View {
+    NavigationView {
+      ScrollView {
+        VStack(alignment: .leading, spacing: 16) {
+          IconClay(ten: "fl_khoa", nen: Clay.chinhSoft, co: 72).frame(maxWidth: .infinity).vaoLanLuot(0)
+          Text("Lọc web gia đình (DNS)").font(.title2.bold())
+          Text("Hồ sơ DNS của gia đình lọc tên miền ngay trên máy, theo luật web Ba Mẹ đặt trong app AiiGrow. Ba Mẹ làm một lần, mất khoảng 1 phút.")
+            .foregroundColor(Clay.chu3).fixedSize(horizontal: false, vertical: true)
+          VStack(alignment: .leading, spacing: 12) {
+            ForEach(Array(buoc.enumerated()), id: \.offset) { i, s in
+              HStack(alignment: .top, spacing: 12) {
+                Text("\(i + 1)").font(.headline).foregroundColor(.white).frame(width: 30, height: 30).background(NenClay(kieu: .ngoc, bo: 15))
+                Text(s).fixedSize(horizontal: false, vertical: true)
+              }
+            }
+          }
+          .khoiClay()
+          if let l = m.loi { Text(l).font(.callout).foregroundColor(Clay.loi) }
+          Button { Task { await m.caiHoSoDns() } } label: {
+            if m.dangBan { ProgressView().tint(.white) } else { Text("Tải hồ sơ") }
+          }
+          .buttonStyle(NutChinh()).disabled(m.dangBan)
+          Text("Gỡ: Cài đặt › Cài đặt chung › VPN & Quản lý thiết bị › «AiiGrow — DNS gia đình» › Xoá hồ sơ (cần mật mã máy).")
+            .font(.footnote).foregroundColor(Clay.chu3).fixedSize(horizontal: false, vertical: true)
+          DongQuanLy()
+        }
+        .padding(20)
+      }
+      .background(Clay.nenMan)
       .navigationBarTitleDisplayMode(.inline)
       .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
     }

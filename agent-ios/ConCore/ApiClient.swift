@@ -4,6 +4,9 @@
 //   POST api/device/yeu-cau    {loai: "them_gio", phut, lyDo}                          → {id, trang_thai, status}
 //   GET  api/device/yeu-cau/:id                                                         → {status: duoc|cho|tu_choi, trangThai}
 //   POST api/device/lenh/:id/xong                                                       (báo xong lệnh «go»)
+//   POST api/device/su-kien    {ds: [SuKienMay]}                                        → {nhan}
+//   POST api/device/phien-web  {}                                                       → {phienCon, het}  (mở màn Con của app AiiGrow)
+//   POST api/device/ho-so-dns  {}                                                       → {apple: {mobileconfig, tep}, …}
 // Lỗi: {error, message} (server/lib/api.ts).
 import Foundation
 
@@ -45,6 +48,11 @@ public struct KetQuaYeuCau: Codable, Equatable {
 
 public struct TrangThaiYeuCau: Codable, Equatable { public var status: String; public var trangThai: String? }
 
+public struct HoSoDns: Codable, Equatable {
+  public struct Apple: Codable, Equatable { public var mobileconfig: String; public var tep: String }
+  public var apple: Apple
+}
+
 /// Nhịp gửi lên (khớp NhipVao ở server/lib/tuan-thu.ts). `ios` là phần thêm — máy chủ hiện bỏ qua (CAN-SERVER.md).
 public struct NhipGui: Codable, Equatable {
   public struct ThanhPhan: Codable, Equatable { public var quyenQuanLy: Bool; public var monitor: Bool }
@@ -59,6 +67,8 @@ public struct NhipGui: Codable, Equatable {
   public var nguon: String
   public var matKetNoiPhut: Int?
   public var ios: Ios
+  /// Vân bí mật mã offline đang nhớ (MaOffline.van) — khớp thì máy chủ không gửi lại bí mật (server/lib/nhip-may.ts).
+  public var maOfflineVan: String? = nil
 }
 
 public final class ApiClient {
@@ -115,6 +125,23 @@ public final class ApiClient {
 
   public func trangThaiYeuCau(_ id: String) async throws -> TrangThaiYeuCau {
     try await goi("GET", "api/device/yeu-cau/\(id)", nil, TrangThaiYeuCau.self)
+  }
+
+  public func guiSuKien(_ ds: [SuKienMay]) async throws {
+    struct Nhan: Decodable {}
+    let body = try JSONEncoder().encode(["ds": ds])
+    _ = try await goi("POST", "api/device/su-kien", body, Nhan.self)
+  }
+
+  /// Phiên Con 12 giờ cho màn Con (/tre) — app AiiGrow mở bằng `aiigrow://tre/nha?phien=…` (không cần chọn hồ sơ + PIN trên máy riêng).
+  public func phienWeb() async throws -> String {
+    struct P: Decodable { var phienCon: String }
+    return try await goi("POST", "api/device/phien-web", Self.json([:]), P.self).phienCon
+  }
+
+  /// Hồ sơ DNS gia đình (.mobileconfig) của chính máy này — server/lib/dns-gia-dinh.ts › hoSoDns.
+  public func hoSoDns() async throws -> HoSoDns {
+    try await goi("POST", "api/device/ho-so-dns", Self.json([:]), HoSoDns.self)
   }
 
   public func xongLenh(_ id: String) async throws {

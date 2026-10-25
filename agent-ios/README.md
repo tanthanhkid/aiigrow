@@ -35,6 +35,16 @@ App group `group.vn.aiilab.aiigrow.con`; entitlement `com.apple.developer.family
   - web ⇒ `webContent.blockedByFilter = .specific(WebDomain)` (≤ 50 tên miền: web chặn + web giải trí khi đang đóng);
   - Khoá ngay / giờ ngủ ⇒ khiên **mọi** danh mục (app hệ thống iOS tự miễn); ngoài giờ / hết phút / không tuân thủ ⇒ khiên app giải trí
     (trừ app học); luôn `denyAppInstallation`.
+- **Phiên «Chơi bằng điểm»** (`chinhSach.phienDiem.phien`): lịch không lặp «phiendiem» gỡ khiên giải trí đúng `conPhut`, neo từ lần đầu app
+  thấy phiên (đồng bộ lại không kéo dài). App AiiGrow (màn Con) mở phiên xong thì mở `aiigrowcon://choi` ⇒ app này đồng bộ ngay.
+- **Nhắc còn 5 phút**: sự kiện «nhac5» (trần − 5 phút) + `warningTime` 5 phút của lịch thêm giờ / phiên điểm / mở bằng mã ⇒ Monitor gửi thông báo cục bộ.
+- **Mã mở offline** (`ConCore/MaOffline.swift`, cùng TOTP với `server/lib/ma-offline.ts`, `agent-win MaOffline.cs`): nhịp mang `maOfflineBiMat`
+  (gửi lại khi vân `maOfflineVan` lệch) ⇒ Keychain; Con gõ 6 số Ba Mẹ đọc ⇒ mở 60 phút (lịch «mooffline»), sai 5 lần / 10 phút thì chờ;
+  có mạng lại ⇒ hết lượt mở; sự kiện `mo_ma_offline` / `sai_ma_offline` / `het_ma_offline` gửi `su-kien`.
+- **Nhiệm vụ & quà**: `POST api/device/phien-web` ⇒ mở app AiiGrow ở `aiigrow://tre?phien=…` (chưa cài ⇒ web `/tre?phien=…`); xin giờ có lối
+  «Đổi điểm lấy giờ chơi» (`/tre/choi`).
+- **DNS gia đình**: «Dành cho Ba Mẹ › Cài lọc web gia đình» ⇒ `ho-so-dns` ⇒ app phục vụ `.mobileconfig` ở 127.0.0.1 vài phút ⇒ Safari tải ⇒
+  Cài đặt › Đã tải về hồ sơ (iOS không cho app tự cài hồ sơ).
 - Lịch chỉ là chuông: mỗi lần chuông kêu extension gọi `TinhKhien.lucNay(kếHoạch, giờ)` — cùng hàm app dùng ⇒ không lệch.
   Thứ tự thắng: Khoá ngay > giờ ngủ > thêm giờ > không tuân thủ > hết phút > ngoài khung.
 
@@ -46,7 +56,7 @@ xcodebuild -scheme AiiGrowCon -destination 'generic/platform=iOS' -derivedDataPa
 xcodebuild -scheme AiiGrowCon -destination 'platform=iOS Simulator,name=AiiGrow Con iPhone' -derivedDataPath .build-dd -jobs 2 test
 # chụp màn với dữ liệu giả: xcrun simctl launch <sim> vn.aiilab.aiigrow.con -demo chuaGhep|nhapMa|chinh|xinThem|quyen
 ```
-Kết quả 24/10: build Simulator ✅, build máy thật không ký ✅, 33/33 test ✅. Chạy trên máy thật: đặt `DEVELOPMENT_TEAM` trong
+Kết quả 24/10: build Simulator ✅, build máy thật không ký ✅, 33/33 test ✅ (25/10: 37/37). Chạy trên máy thật: đặt `DEVELOPMENT_TEAM` trong
 `project.yml`, đăng ký app group + 4 bundle id trong tài khoản Apple Developer.
 
 ## ⚠️ Entitlement Family Controls — Thanh phải xin Apple

@@ -3,6 +3,10 @@
 //     hết thêm giờ) — mỗi lần chuông kêu, extension SUY LẠI trạng thái khiên từ kế hoạch + giờ hiện tại (TinhKhien.lucNay), không cộng dồn.
 //   • `tranPhut` + sự kiện «dung.N» mỗi `buocPhut`: DeviceActivityEvent đo phút app giải trí, ghi phút đã dùng vào app group.
 //   • web: webContent.blockedByFilter = .specific(WebDomain) — tối đa 50 tên miền (giới hạn Apple).
+//   • phiên «Chơi bằng điểm» (chinhSach.phienDiem.phien): lịch không lặp «phiendiem» gỡ khiên giải trí đúng `conPhut` tính từ lần ĐẦU app thấy
+//     phiên (không kéo dài khi đồng bộ lại) — app không chạy nền nên máy chủ là sổ điểm, iOS chỉ giữ cửa sổ mở.
+//   • nhắc trước 5 phút: sự kiện «nhac5» ở mốc trần − 5 phút (DeviceActivityEvent) + `nhacTruocPhut` (warningTime) cho lịch thêm giờ / phiên điểm
+//     ⇒ extension Monitor gửi thông báo cục bộ.
 import Foundation
 
 public struct SuKien: Codable, Equatable {
@@ -21,6 +25,8 @@ public struct MucLich: Codable, Equatable {
   public var batDauLuc: Date?
   public var ketThucLuc: Date?
   public var suKien: [SuKien]
+  /// warningTime của DeviceActivitySchedule: báo trước khi lịch kết thúc (nil = không). Chỉ dùng cho lịch không lặp (thêm giờ, phiên điểm).
+  public var nhacTruocPhut: Int? = nil
 }
 
 public struct KeHoach: Codable, Equatable {
@@ -43,14 +49,19 @@ public struct KeHoach: Codable, Equatable {
   public var serverTime: Date
   public var tenCon: String?
   public var dungChung: Bool
+  /// Phiên điểm app đã thấy + hạn gỡ khiên của nó (neo từ lần đầu thấy). Kế hoạch cũ trong kho không có ⇒ nil.
+  public var phienDiem: ChinhSach.PhienDang?
+  public var phienDiemDen: Date?
 
   public init(tz: String, moNgayThuong: [Khung], moCuoiTuan: [Khung], ngu: Khung?, tranPhut: Int, buocPhut: Int,
               webChan: [String], webGiaiTri: [String], khoaNgay: Bool, khoaGiaiTri: Bool, lyDoKhoa: [String], moDen: Date?,
-              chanCaiApp: Bool, lich: [MucLich], canhBao: [String], serverTime: Date, tenCon: String?, dungChung: Bool) {
+              chanCaiApp: Bool, lich: [MucLich], canhBao: [String], serverTime: Date, tenCon: String?, dungChung: Bool,
+              phienDiem: ChinhSach.PhienDang? = nil, phienDiemDen: Date? = nil) {
     self.tz = tz; self.moNgayThuong = moNgayThuong; self.moCuoiTuan = moCuoiTuan; self.ngu = ngu; self.tranPhut = tranPhut
     self.buocPhut = buocPhut; self.webChan = webChan; self.webGiaiTri = webGiaiTri; self.khoaNgay = khoaNgay
     self.khoaGiaiTri = khoaGiaiTri; self.lyDoKhoa = lyDoKhoa; self.moDen = moDen; self.chanCaiApp = chanCaiApp; self.lich = lich
     self.canhBao = canhBao; self.serverTime = serverTime; self.tenCon = tenCon; self.dungChung = dungChung
+    self.phienDiem = phienDiem; self.phienDiemDen = phienDiemDen
   }
 }
 
@@ -58,8 +69,18 @@ public enum LapKeHoach {
   public static let lichToiDa = 20          // DeviceActivityCenter giới hạn số activity theo dõi cùng lúc (~20)
   public static let webToiDa = 50           // WebContentSettings .specific tối đa 50 tên miền
   public static let khoangNganNhat = 15     // DeviceActivitySchedule tối thiểu 15 phút
+  public static let nhacTruoc = 5           // nhắc «còn 5 phút» (như khay Windows / Mac)
 
-  public static func tu(_ n: NhipTraVe, now: Date = Date()) -> KeHoach {
+  /// Hạn gỡ khiên của phiên điểm: lần đầu thấy phiên ⇒ now + conPhut; đồng bộ lại cùng phiên ⇒ không quá hạn cũ (không tự kéo dài).
+  public static func hanPhienDiem(_ p: ChinhSach.PhienDang?, truoc: KeHoach?, now: Date) -> Date? {
+    guard let p, p.conPhut > 0 else { return nil }
+    let moi = now.addingTimeInterval(Double(p.conPhut) * 60)
+    let den = (truoc?.phienDiem?.id == p.id ? truoc?.phienDiemDen : nil).map { min($0, moi) } ?? moi
+    return den > now ? den : nil
+  }
+
+  /// `truoc`: kế hoạch đã lưu (giữ hạn phiên điểm đã neo).
+  public static func tu(_ n: NhipTraVe, now: Date = Date(), truoc: KeHoach? = nil) -> KeHoach {
     let cs = n.chinhSach, nt = n.nenTang
     var canhBao: [String] = []
 
@@ -97,12 +118,22 @@ public enum LapKeHoach {
     }
     // 2. cả ngày: đo phút giải trí + mốc sang ngày mới (xoá «hết giờ» hôm qua)
     var sk: [SuKien] = stride(from: buoc, to: tran, by: buoc).map { SuKien(ten: "dung.\($0)", phut: $0) }
+    if tran > nhacTruoc { sk.append(SuKien(ten: "nhac5", phut: tran - nhacTruoc)) }
     if tran > 0 { sk.append(SuKien(ten: "tran", phut: tran)) }
     lich.append(MucLich(ten: "ngay", batDau: 0, ketThuc: 1439, thu: nil, lap: true, suKien: sk))
     // 3. thêm giờ đã duyệt — một lịch không lặp kết thúc ĐÚNG lúc hết hạn (bắt đầu lùi lại cho đủ 15 phút)
     if let moDen {
       let bd = min(now, moDen.addingTimeInterval(-Double(khoangNganNhat * 60)))
-      lich.append(MucLich(ten: "themgio", batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: bd, ketThucLuc: moDen, suKien: []))
+      lich.append(MucLich(ten: "themgio", batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: bd, ketThucLuc: moDen, suKien: [],
+                          nhacTruocPhut: moDen.timeIntervalSince(now) > Double(nhacTruoc * 60) ? nhacTruoc : nil))
+    }
+    // 3b. phiên Chơi bằng điểm — như thêm giờ: lịch không lặp kết thúc đúng hạn phiên (đã neo), nhắc trước 5 phút
+    let phien = cs.phienDiem?.phien
+    let phienDen = hanPhienDiem(phien, truoc: truoc, now: now)
+    if let phienDen {
+      let bd = min(now, phienDen.addingTimeInterval(-Double(khoangNganNhat * 60)))
+      lich.append(MucLich(ten: "phiendiem", batDau: 0, ketThuc: 0, thu: nil, lap: false, batDauLuc: bd, ketThucLuc: phienDen, suKien: [],
+                          nhacTruocPhut: phienDen.timeIntervalSince(now) > Double(nhacTruoc * 60) ? nhacTruoc : nil))
     }
     // 4. khung giờ chơi — chung mọi ngày nếu ngày thường = cuối tuần, không thì theo từng thứ
     var mo: [MucLich] = []
@@ -127,7 +158,8 @@ public enum LapKeHoach {
     return KeHoach(tz: tz, moNgayThuong: moNT, moCuoiTuan: moCT, ngu: ngu, tranPhut: tran, buocPhut: buoc,
                    webChan: webChan, webGiaiTri: webGT, khoaNgay: khoaNgay, khoaGiaiTri: khoaGT || khoaNgay, lyDoKhoa: lyDo,
                    moDen: moDen, chanCaiApp: true, lich: lich, canhBao: canhBao,
-                   serverTime: NgayISO.doc(n.serverTime) ?? now, tenCon: cs.con?.ten, dungChung: cs.may.dungChung)
+                   serverTime: NgayISO.doc(n.serverTime) ?? now, tenCon: cs.con?.ten, dungChung: cs.may.dungChung,
+                   phienDiem: phienDen == nil ? nil : phien, phienDiemDen: phienDen)
   }
 
   /// Bước đo phút: 5 phút, nới ra để không quá ~40 sự kiện.

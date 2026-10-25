@@ -1,4 +1,4 @@
-// Trạng thái app Con. Cờ debug `-demo <màn>` (chuaGhep | nhapMa | chinh | xinThem | quyen) dựng dữ liệu giả, không gọi mạng —
+// Trạng thái app Con. Cờ debug `-demo <màn>` (chuaGhep | nhapMa | chinh | xinThem | quyen | choiDiem | maOffline | dns) dựng dữ liệu giả, không gọi mạng —
 // chỉ để chụp màn trên simulator.
 import Foundation
 import SwiftUI
@@ -24,6 +24,9 @@ final class MoHinhApp: ObservableObject {
   @Published var moXinThem = false
   @Published var moQuyen = false
   @Published var lanDongBo: Date?
+  @Published var moMaOffline = false
+  @Published var moDns = false
+  @Published var coBiMatOffline = false
 
   let kho: KhoGiaTri
   let luaChon: LuaChonApp
@@ -44,7 +47,8 @@ final class MoHinhApp: ObservableObject {
 
   func dongBo() -> DongBo {
     DongBo(api: ApiClient(goc: mayChu, token: KhoBiMat.doc()), kho: kho, khien: KhienThat(chon: luaChon), lich: LichThat(chon: luaChon),
-           uyQuyen: uq, chon: luaChon, xoaToken: { KhoBiMat.ghi(nil) })
+           uyQuyen: uq, chon: luaChon, xoaToken: { KhoBiMat.ghi(nil) },
+           docBiMatOffline: { KhoBiMat.docBiMatOffline() }, luuBiMatOffline: { KhoBiMat.ghiBiMatOffline($0) })
   }
 
   func napTuKho(now: Date = Date()) {
@@ -58,8 +62,11 @@ final class MoHinhApp: ObservableObject {
       phutDaDung = TinhKhien.phutDaDung(kh, now: now, dung: nk)
     }
     soLuong = luaChon.dem()
-    if demo == nil { uyQuyen = uq.trangThai }
+    if demo == nil { uyQuyen = uq.trangThai; coBiMatOffline = KhoBiMat.docBiMatOffline() != nil }
   }
+
+  /// Hạn mở bằng mã offline đang chạy (nil = không).
+  var moOfflineDen: Date? { kho.doc(MoTamOffline.self, Khoa.moTamOffline)?.hanMo(Date()) }
 
   var tenCon: String? { keHoach?.tenCon ?? kho.doc(ThongTinMay.self, Khoa.thongTinMay)?.tenCon }
 
@@ -87,6 +94,8 @@ final class MoHinhApp: ObservableObject {
 
   func moLienKet(_ url: URL) {
     if url.scheme == LienKet.scheme, url.host == "xin-them-gio" { moXinThem = man == .chinh; return }
+    // app AiiGrow (màn Con) vừa mở phiên «Chơi bằng điểm» ⇒ đồng bộ ngay để gỡ khiên đúng số phút
+    if url.scheme == LienKet.scheme, url.host == "choi" { Task { await dongBoNgay() }; return }
     guard let c = LienKet.doc(url) else { return }
     if man == .chinh { loi = "Máy này đã ghép với gia đình rồi."; return }
     Task { await ghep(c) }
@@ -98,6 +107,7 @@ final class MoHinhApp: ObservableObject {
     do {
       if case .daGo = try await dongBo().chay() { man = .daGo }
       loi = nil
+      if uq.trangThai == "approved" { ThongBao.xinQuyen() }     // nhắc «còn 5 phút» + «Xin thêm giờ» từ màn chặn cần quyền thông báo (hỏi một lần)
     } catch let e as LoiApi where e.chuaGhep {
       KhoBiMat.ghi(nil); man = .chuaGhep; loi = "Máy đã được gỡ khỏi gia đình. Nhờ Ba Mẹ ghép lại nếu cần."
     } catch {
@@ -116,6 +126,43 @@ final class MoHinhApp: ObservableObject {
     dangBan = true; defer { dangBan = false }
     do { yeuCau = try await dongBo().xinThemGio(phut: phut, loiNhan: loiNhan); loi = nil; return true }
     catch { loi = error.localizedDescription; return false }
+  }
+
+  // MARK: màn Con trong app AiiGrow (nhiệm vụ, nộp bài, quà, tin nhắn, chơi bằng điểm)
+  /// Lấy phiên Con 12 giờ (POST api/device/phien-web) rồi mở app AiiGrow ở `aiigrow://tre[/duong]?phien=…`; chưa cài app ⇒ mở bản web.
+  func moManCon(_ duong: String = "") async {
+    guard demo == nil else { return }
+    dangBan = true; defer { dangBan = false }
+    do {
+      let p = try await ApiClient(goc: mayChu, token: KhoBiMat.doc()).phienWeb()
+      let q = p      // base64url — đã an toàn trong URL
+      let duoi = duong.isEmpty ? "" : "/\(duong)"
+      let app = URL(string: "aiigrow://tre\(duoi)?phien=\(q)")!
+      let web = URL(string: "\(mayChu.absoluteString)/tre\(duoi)?phien=\(q)")!
+      loi = nil
+      if await UIApplication.shared.open(app) { return }
+      await UIApplication.shared.open(web)
+    } catch { loi = error.localizedDescription }
+  }
+
+  // MARK: mã mở offline (Ba Mẹ đọc mã khi máy mất mạng)
+  func moBangMa(_ ma: String) -> (Bool, String) {
+    if demo != nil { return (ma == "123456", ma == "123456" ? "Đã mở 60 phút (tới 21:30). Chơi vui nhé!" : "Mã chưa đúng. Con nhờ Ba Mẹ đọc lại nhé.") }
+    let (kq, cau) = dongBo().moBangMaOffline(ma, biMat: KhoBiMat.docBiMatOffline())
+    napTuKho()
+    return (kq == .daMo || kq == .dangMo, cau)
+  }
+
+  // MARK: hồ sơ DNS gia đình (.mobileconfig)
+  func caiHoSoDns() async {
+    guard demo == nil else { return }
+    dangBan = true; defer { dangBan = false }
+    do {
+      let h = try await ApiClient(goc: mayChu, token: KhoBiMat.doc()).hoSoDns()
+      let url = try await MayChuHoSo.shared.phucVu(h.apple.mobileconfig, tep: h.apple.tep)
+      loi = nil
+      await UIApplication.shared.open(url)
+    } catch { loi = (error as? LoiApi)?.errorDescription ?? "Chưa mở được hồ sơ DNS. Thử lại sau ít phút nhé." }
   }
 
   // MARK: quyền Screen Time
@@ -177,6 +224,17 @@ final class MoHinhApp: ObservableObject {
     case "xinThem": man = .chinh; moXinThem = true
     case "quyen": man = .chinh; moQuyen = true; Task { await xinQuyen(conTrongGiaDinh: true) }
     case "daGo": man = .daGo
+    case "choiDiem":
+      var k2 = kh; k2.phienDiem = ChinhSach.PhienDang(id: "demo", muc: "com.mojang.minecraftpe", conPhut: 25); k2.phienDiemDen = now.addingTimeInterval(25 * 60)
+      kho.luu(k2, Khoa.keHoach)
+      kho.luu(TinhKhien.lucNay(k2, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)), Khoa.khienDangAp)
+      napTuKho(now: now); soLuong = SoLuongChon(hoc: 4, giaiTri: 6, chan: 2, danhMucGiaiTri: 2); man = .chinh
+    case "maOffline":
+      var k2 = kh; k2.khoaGiaiTri = false; k2.tranPhut = 55
+      kho.luu(k2, Khoa.keHoach)
+      kho.luu(TinhKhien.lucNay(k2, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)), Khoa.khienDangAp)
+      napTuKho(now: now); soLuong = SoLuongChon(hoc: 4, giaiTri: 6, chan: 2, danhMucGiaiTri: 2); coBiMatOffline = true; man = .chinh; moMaOffline = true
+    case "dns": man = .chinh; moDns = true
     default: man = .chinh
     }
   }

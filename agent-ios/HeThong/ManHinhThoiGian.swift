@@ -65,7 +65,8 @@ public final class LichThat: HeThongLich {
       } else {
         guard let a = m.batDauLuc, let b = m.ketThucLuc else { continue }
         let cal = Calendar.current, k: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
-        lich = DeviceActivitySchedule(intervalStart: cal.dateComponents(k, from: a), intervalEnd: cal.dateComponents(k, from: b), repeats: false)
+        lich = DeviceActivitySchedule(intervalStart: cal.dateComponents(k, from: a), intervalEnd: cal.dateComponents(k, from: b), repeats: false,
+                                      warningTime: m.nhacTruocPhut.map { DateComponents(minute: $0) })
       }
       var ev: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
       if coGiaiTri {
@@ -109,7 +110,8 @@ public final class UyQuyenThat: HeThongUyQuyen {
 public enum ApLai {
   public static func lucNay(kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) {
     guard let kh = kho.doc(KeHoach.self, Khoa.keHoach) else { return }
-    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung))
+    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung),
+                             moOfflineDen: kho.doc(MoTamOffline.self, Khoa.moTamOffline)?.hanMo(now))
     KhienThat().ap(k)
     kho.luu(k, Khoa.khienDangAp)
   }
