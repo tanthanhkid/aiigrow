@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     CÔNG CỤ CHỤP MÀN (không phải sản phẩm, không nằm trong AiiGrow.sln, không vào bộ cài): dựng từng Form của khay + bộ cài với dữ liệu mẫu rồi lưu PNG.
-    Chạy:  AiiGrow.ChupMan.exe --chup-man <thư mục> [--ti-le 1.5]      (CI: .github/workflows/chup-man-win.yml)
+    Chạy:  AiiGrow.ChupMan.exe (tham số: chup-man THƯ_MỤC, ti-le 1.5 — xem ChupMain.cs)      (CI: .github/workflows/chup-man-win.yml)
 
     Biên dịch LẠI mã nguồn AiiGrow.Tray + AiiGrow.Setup (bản chép trong obj/nguon, do chuan-bi-nguon.ps1 tạo trước khi build) vào exe này,
     nên exe khay/bộ cài thật KHÔNG đổi một dòng. Bản chép chỉ khác hai chỗ để giả lập DPI: «new Font(» → ChupDpi.Tao( (cỡ chữ × hệ số)
-    và hệ số Clay.Scale → ChupDpi.Dpi(…). Với --ti-le 1 (mặc định) hai hàm này trả đúng giá trị gốc.
+    và hệ số Clay.Scale → ChupDpi.Dpi(…). Với tỉ lệ 1 (mặc định) hai hàm này trả đúng giá trị gốc.
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
