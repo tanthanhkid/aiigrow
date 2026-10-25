@@ -30,8 +30,12 @@ object DoPhut {
         if (!coQuyen(ctx)) return emptyMap()
         val z = try { ZoneId.of(tz) } catch (_: Exception) { ZoneId.of("Asia/Ho_Chi_Minh") }
         val dau = Instant.ofEpochMilli(now).atZone(z).toLocalDate().atStartOfDay(z).toInstant().toEpochMilli()
-        val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val ev = usm.queryEvents(dau, now)
+        return demTienCanh(suKien(ctx, dau, now), dau, now).filterKeys { it.isNotEmpty() && it != ctx.packageName }
+    }
+
+    /** Sự kiện tiền cảnh trong [tu, den) đã đổi sang kiểu thuần (logic/DemPhut.kt) — một chỗ ánh xạ loại sự kiện. */
+    private fun suKien(ctx: Context, tu: Long, den: Long): List<SuKienDung> {
+        val ev = (ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager).queryEvents(tu, den)
         val ds = ArrayList<SuKienDung>()
         val e = UsageEvents.Event()
         while (ev.hasNextEvent()) {
@@ -44,21 +48,12 @@ object DoPhut {
             } ?: continue
             ds.add(SuKienDung(e.packageName ?: "", loai, e.timeStamp))
         }
-        return demTienCanh(ds, dau, now).filterKeys { it.isNotEmpty() && it != ctx.packageName }
+        return ds
     }
 
-    /** App đang ở tiền cảnh (sự kiện 30 phút gần nhất) — null nếu không biết / màn hình tắt. */
-    fun tienCanh(ctx: Context, now: Long = System.currentTimeMillis()): String? {
-        if (!coQuyen(ctx)) return null
-        val ev = (ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager).queryEvents(now - 30 * 60_000L, now)
-        val ds = ArrayList<SuKienDung>(); val e = UsageEvents.Event()
-        while (ev.hasNextEvent()) {
-            ev.getNextEvent(e)
-            val loai = when (e.eventType) { 1 -> LoaiSuKien.MO; 2 -> LoaiSuKien.DONG; 16 -> LoaiSuKien.TAT_MAN; else -> null } ?: continue
-            ds.add(SuKienDung(e.packageName ?: "", loai, e.timeStamp))
-        }
-        return vn.aiilab.aiigrow.maycon.logic.appTienCanh(ds)
-    }
+    /** App đang ở tiền cảnh — null nếu không biết / màn hình tắt. Xem 12 giờ gần nhất (một app mở liền nhiều giờ vẫn có sự kiện MO trong khoảng). */
+    fun tienCanh(ctx: Context, now: Long = System.currentTimeMillis()): String? =
+        if (!coQuyen(ctx)) null else vn.aiilab.aiigrow.maycon.logic.appTienCanh(suKien(ctx, now - 12 * 3600_000L, now))
 
     /** App mở được từ trình khởi chạy — dùng chung cho «chưa xếp» (daCai) và danh sách app gửi Ba Mẹ (DanhSachApp). */
     fun appLauncher(ctx: Context): List<ApplicationInfo> {

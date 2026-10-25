@@ -293,10 +293,7 @@ class ManChinh : Activity() {
             dsNhan?.addView(G.nut(this, "Con cảm ơn Ba Mẹ!", phu = true) { b ->
                 b.isEnabled = false; bao.text = "Đang gửi…"
                 Thread {
-                    val kk = Kho(this)
-                    val loi = try { MayChu(kk.mayChu, kk.token).goi("hoc-vien/loi-khen/$id/phan-hoi", org.json.JSONObject().put("phanHoi", "Con cảm ơn Ba Mẹ!")); null }
-                        catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa gửi được — máy đang mất mạng." }
-                    if (loi == null) HocVien.napTongQuan(this)
+                    val loi = HocVien.traLoi(this, id, "Con cảm ơn Ba Mẹ!")
                     runOnUiThread { if (loi == null) { bao.text = "Đã gửi Ba Mẹ."; veViec(Kho(this)) } else { bao.text = loi; b.isEnabled = true } }
                 }.start()
             })
@@ -323,27 +320,29 @@ class ManChinh : Activity() {
             d.addView(G.chu(this, "Chọn trò con muốn chơi:", 15f, G.CHU_PHU))
             var chon = apps.first()
             val bao = G.dongBao(this, Clay.CHINH_INK)
+            var daXet: String? = null   // app vừa xét được (nút «Bắt đầu» mở đúng app đó)
             val nutBatDau = G.nut(this, "Bắt đầu chơi bằng điểm", ngoc = true) { b ->
+                val muc = daXet ?: return@nut
                 b.isEnabled = false; bao.text = "Đang mở…"
                 Thread {
-                    val loi = HocVien.mo(this, chon)
-                    runOnUiThread { b.isEnabled = true; b.visibility = View.GONE; bao.text = loi ?: "Được rồi! Con chơi vui nhé."; capNhatXin(Kho(this)) }
+                    val loi = HocVien.mo(this, muc)
+                    runOnUiThread { b.isEnabled = true; if (loi == null) b.visibility = View.GONE; bao.text = loi ?: "Được rồi! Con chơi vui nhé."; capNhatXin(Kho(this)) }
                 }.start()
             }.apply { visibility = View.GONE }
             val nutApp = apps.map { g -> G.nut(this, DoPhut.tenApp(this, g), phu = true) { } }
             nutApp.forEachIndexed { i, b ->
                 b.maxLines = 1
-                b.setOnClickListener { chon = apps[i]; nutBatDau.visibility = View.GONE; bao.text = ""; nutApp.forEachIndexed { j, n -> G.chonTrongNhom(this, n, j == i) } }
+                b.setOnClickListener { chon = apps[i]; daXet = null; nutBatDau.visibility = View.GONE; bao.text = ""; nutApp.forEachIndexed { j, n -> G.chonTrongNhom(this, n, j == i) } }
                 G.chonTrongNhom(this, b, i == 0)
                 d.addView(b)
             }
             d.addView(G.nut(this, "Đổi điểm") { b ->
                 b.isEnabled = false; bao.text = "Đang xem con đổi được bao lâu…"; nutBatDau.visibility = View.GONE
-                val ten = DoPhut.tenApp(this, chon)
+                val muc = chon; val ten = DoPhut.tenApp(this, muc)
                 Thread {
-                    val kq = HocVien.xet(this, chon)
+                    val kq = HocVien.xet(this, muc)
                     runOnUiThread {
-                        b.isEnabled = true
+                        b.isEnabled = true; daXet = if (kq.duoc) muc else null
                         bao.text = if (kq.duoc) cauXetDuoc(kq, ten) else kq.cau
                         nutBatDau.visibility = if (kq.duoc) View.VISIBLE else View.GONE
                     }

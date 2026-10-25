@@ -44,6 +44,14 @@ class ManTre : Activity() {
         moWeb(duong)
     }
 
+    /** singleTask: mở lại từ thông báo / nút khác ⇒ đi đúng màn mới (không giữ trang cũ). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent); setIntent(intent)
+        val duong = duongTre(intent.getStringExtra(DUONG))
+        val w = web ?: return
+        w.loadUrl(Kho(this).mayChu.trimEnd('/') + "/tre/" + duong)   // phiên Con đã lưu trong trang từ lần mở trước
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun moWeb(duong: String) {
         val k = Kho(this)
@@ -89,7 +97,11 @@ class ManTre : Activity() {
         anhChup = uri
         val chup = Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, uri)
             .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        val dsChup = if (chup.resolveActivity(packageManager) != null) arrayOf(chup) else emptyArray()
+        // quyền ghi tệp phải cấp thẳng cho app camera (cờ GRANT không đi qua EXTRA_INITIAL_INTENTS của hộp chọn)
+        val camera = packageManager.queryIntentActivities(chup, 0)
+        for (r in camera) grantUriPermission(r.activityInfo.packageName, uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        chup.clipData = android.content.ClipData.newRawUri("", uri)
+        val dsChup = if (camera.isNotEmpty()) arrayOf(chup) else emptyArray()
         return if (p.isCaptureEnabled && dsChup.isNotEmpty()) chup
         else Intent.createChooser(chon, "Chọn ảnh bài làm").putExtra(Intent.EXTRA_INITIAL_INTENTS, dsChup)
     }

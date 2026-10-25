@@ -167,7 +167,7 @@ class DichVuNhip : Service() {
     private fun ghepBangGoi(k: Kho) {
         try {
             val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(k.tokenGoiCai!!, Build.MODEL ?: "Android"))
-            MoMaOffline.quen(k)
+            MoMaOffline.quen(k); HocVien.quen(k)
             k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
             k.tokenGoiCai = null
         } catch (e: Exception) { NhatKy.canh(TAG, "ghép bằng token gói cài lỗi", e) }
@@ -182,8 +182,6 @@ class DichVuNhip : Service() {
         val than = thanNhip(Instant.now().toString(), BuildConfig.VERSION_NAME, ht?.dangKhoaThat == true, QuanTri.laDeviceOwner(this),
             QuanTri.laAdmin(this), TroNang.dangBat(this), DoPhut.coQuyen(this), if (matPhut > 2) matPhut else 0, dung)
             .apply { k.maOfflineBiMat?.let { put("maOfflineVan", vanBiMat(it)) } }   // vân bí mật đang nhớ: khớp ⇒ máy chủ khỏi gửi lại, lệch ⇒ gửi bí mật đúng
-        // phiên chơi bằng điểm do máy này mở: nhịp trước ⇒ chính sách nhịp này thấy phiên đã kết thúc ngay
-        HocVien.nhipPhien(this, k.phanHoi?.let { try { docPhanHoiNhip(it).chinhSach } catch (_: Exception) { null } })
         try {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
@@ -192,7 +190,7 @@ class DichVuNhip : Service() {
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
             MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)
             // nhiệm vụ / lời nhắn mới ⇒ thông báo (tạm thay FCM); lời xin thêm giờ đang chờ ⇒ Ba Mẹ trả lời thì báo — luồng riêng, không chặn vòng thực thi
-            HocVien.chayNen(this)
+            HocVien.chayNen(this, try { docPhanHoiNhip(r.toString()).chinhSach } catch (_: Exception) { null })   // + nhịp phiên điểm máy này mở
             if (System.currentTimeMillis() - lanGuiHangDoi > 120_000) { lanGuiHangDoi = System.currentTimeMillis(); NhatKy.gui(this, MayChu(k.mayChu, k.token)) }
             // DNS gia đình (server/lib/dns-gia-dinh.ts › hoSoDns): Device Owner tự đặt DNS riêng tư; gia đình chưa bật DNS ⇒ máy chủ trả lỗi, bỏ qua
             if (QuanTri.laDeviceOwner(this) && k.privateDnsDaDat == null) try {
@@ -200,7 +198,7 @@ class DichVuNhip : Service() {
                 Log.i(TAG, "DNS gia đình: " + ThucThi.datPrivateDns(this, host))   // mỗi nhịp tới khi gia đình bật DNS ⇒ chỉ logcat
             } catch (e: Exception) { Log.i(TAG, "chưa có DNS gia đình: ${e.message}") }
         } catch (e: MayChu.Loi) {
-            if (e.http == 401) { NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null; MoMaOffline.quen(k) }
+            if (e.http == 401) { NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null; MoMaOffline.quen(k); HocVien.quen(k) }
         } catch (e: Exception) { Log.i(TAG, "mất mạng — chạy theo chính sách nhớ: ${e.message}") }
     }
 
@@ -308,7 +306,7 @@ class DichVuNhip : Service() {
             if (k.cheDoThu) { k.tenCon = k.tenCon ?: "Con (thử)"; return null }
             return try {
                 val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android"))
-                MoMaOffline.quen(k)
+                MoMaOffline.quen(k); HocVien.quen(k)
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
                 lamMoi(ctx)
                 null

@@ -36,12 +36,23 @@ object HocVien {
     private val luong = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-hoc-vien").apply { isDaemon = true } }
     private val dangChay = java.util.concurrent.atomic.AtomicBoolean(false)
 
-    /** Sau nhịp thành công: hỏi tin mới + lời xin trên luồng riêng (lượt trước chưa xong ⇒ bỏ lượt này). */
-    fun chayNen(ctx: Context) {
+    /** Mỗi lượt gọi máy chủ: nhịp phiên điểm + hỏi tin mới + lời xin trên luồng riêng — không chặn vòng thực thi 5 giây
+     *  (lượt trước chưa xong ⇒ bỏ lượt này). */
+    fun chayNen(ctx: Context, cs: ChinhSach?) {
         if (!dangChay.compareAndSet(false, true)) return
         val c = ctx.applicationContext
-        luong.execute { try { hoiTin(c); hoiLoiXin(c) } catch (e: Exception) { NhatKy.canh(TAG, "hỏi tin / lời xin lỗi", e) } finally { dangChay.set(false) } }
+        try {
+            luong.execute { try { nhipPhien(c, cs); hoiTin(c); hoiLoiXin(c) } catch (e: Exception) { NhatKy.canh(TAG, "hỏi tin / lời xin lỗi", e) } finally { dangChay.set(false) } }
+        } catch (e: Exception) { dangChay.set(false) }
     }
+
+    /** Máy rời gia đình / ghép lại ⇒ quên dữ liệu của Con cũ (tổng quan, tin đã thấy, lời xin, phiên điểm). */
+    fun quen(k: Kho) {
+        k.hvTongQuan = null; k.tinBay = null; k.tinDaThay = emptyList()
+        k.yeuCauId = null; k.yeuCauTrangThai = null; k.yeuCauLuc = 0; k.phienId = null
+    }
+
+    private const val CAU_THU = "Chế độ thử: không gọi máy chủ."
 
     /** Tổng quan (điểm, nhiệm vụ, lời nhắn Ba Mẹ) — lưu để màn chính hiện cả khi mất mạng. */
     fun napTongQuan(ctx: Context): Boolean {
@@ -86,7 +97,8 @@ object HocVien {
     fun ghiLoiXin(ctx: Context, id: String?, phut: Int, daDuyet: Boolean) {
         val k = Kho(ctx)
         k.yeuCauId = id; k.yeuCauPhut = phut; k.yeuCauLuc = System.currentTimeMillis()
-        k.yeuCauTrangThai = (if (daDuyet) TrangThaiXin.DUOC else TrangThaiXin.CHO).name
+        // không có id (máy chủ cũ) ⇒ không theo dõi được ⇒ không hiện «đang chờ» mãi
+        k.yeuCauTrangThai = if (daDuyet) TrangThaiXin.DUOC.name else if (id != null) TrangThaiXin.CHO.name else null
     }
 
     /** Câu trạng thái lời xin gần nhất cho thẻ trên màn chính (null = không có / đã cũ quá 24 giờ). */
@@ -112,6 +124,7 @@ object HocVien {
     // ------------------------------------------------------------ chơi bằng điểm (như ChoiBangDiemForm / RequestForm.ExchangeAsync)
     fun xet(ctx: Context, muc: String): KetXet {
         val k = Kho(ctx)
+        if (k.cheDoThu || k.token == null) return KetXet(false, 0, 0, CAU_THU)
         return try { docXet(may(k).goi("phien/xet", JSONObject().put("muc", muc))) }
         catch (e: MayChu.Loi) { KetXet(false, 0, 0, e.cau) } catch (_: Exception) { KetXet(false, 0, 0, "Chưa đổi được — máy đang mất mạng.") }
     }
@@ -119,6 +132,7 @@ object HocVien {
     /** Mở phiên ⇒ null nếu được (lưu id để máy này nhịp phiên), câu lỗi nếu không. */
     fun mo(ctx: Context, muc: String): String? {
         val k = Kho(ctx)
+        if (k.cheDoThu || k.token == null) return CAU_THU
         return try {
             val r = may(k).goi("phien/mo", JSONObject().put("muc", muc))
             k.phienId = r.optString("id").ifBlank { null }
@@ -131,11 +145,20 @@ object HocVien {
     fun dung(ctx: Context): String? {
         val k = Kho(ctx)
         val id = k.phienId ?: return null
+        if (k.token == null) return CAU_THU
         return try { may(k).goi("phien/dung", JSONObject().put("id", id)); k.phienId = null; DichVuNhip.lamMoi(ctx); null }
         catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa dừng được — máy đang mất mạng." }
     }
 
-    /** Nhịp phiên điểm do máy này mở (trước nhịp máy, mỗi 60 giây): «đang dùng» = app giải trí ở tiền cảnh ⇒ máy chủ trừ điểm theo phút thật. */
+    /** Con trả lời lời nhắn của Ba Mẹ (hoc-vien/loi-khen/:id/phan-hoi) ⇒ null nếu được, câu lỗi nếu không. */
+    fun traLoi(ctx: Context, id: String, noi: String): String? {
+        val k = Kho(ctx)
+        if (k.cheDoThu || k.token == null) return CAU_THU
+        return try { may(k).goi("hoc-vien/loi-khen/$id/phan-hoi", JSONObject().put("phanHoi", noi)); napTongQuan(ctx); null }
+        catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa gửi được — máy đang mất mạng." }
+    }
+
+    /** Nhịp phiên điểm do máy này mở (mỗi 60 giây): «đang dùng» = app giải trí ở tiền cảnh ⇒ máy chủ trừ điểm theo phút thật. */
     fun nhipPhien(ctx: Context, cs: ChinhSach?) {
         val k = Kho(ctx)
         val id = k.phienId ?: return
