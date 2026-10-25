@@ -126,7 +126,7 @@ struct NenClay: View {
 }
 
 extension View {
-  /// Khối đất sét (thẻ) bo 32, đệm 16.
+  /// Khối đất sét (thẻ) bo 32, đệm 18 (tối thiểu 16).
   func khoiClay(_ mau: Color = Clay.the, bo: CGFloat = 32, dem: CGFloat = 18) -> some View {
     padding(dem).frame(maxWidth: .infinity, alignment: .leading).background(NenClay(kieu: .the(mau), bo: bo))
   }
@@ -185,7 +185,8 @@ private struct NutClayThan: View {
 
   var body: some View {
     let nhan = c.isPressed && !giam
-    c.label.font(.headline).frame(maxWidth: .infinity, minHeight: cao).padding(.horizontal, 12)
+    // chữ cách mép khối 16 hai bên; nhãn dài xuống dòng căn giữa, khối cao ra (minHeight), không cắt
+    c.label.font(.headline).multilineTextAlignment(.center).padding(.vertical, 6).frame(maxWidth: .infinity, minHeight: cao).padding(.horizontal, 16)
       .foregroundColor(sang ? Clay.chinhInk : .white)
       .background(NenClay(kieu: kieu, bo: bo))
       .overlay(

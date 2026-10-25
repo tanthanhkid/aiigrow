@@ -153,7 +153,8 @@ object Clay {
  * Khối đất sét gương vẽ tay. Chừa lề trong bounds cho bóng ngoài (getPadding cộng lề này + đệm nội dung), nên View đặt nền này tự có đệm.
  * Bóng ngoài dùng setShadowLayer — vẽ bằng phần cứng từ Android 9; Android 8 không có bóng ngoài, phần men vẫn đủ.
  */
-class ClayDrawable(c: Context, kieu: Clay.Kieu, private val mau: Int = Clay.THE, boDp: Float = -1f, private val dem: Int = -1) : Drawable() {
+/** `leThe` = chừa lề bóng như thẻ lớn (khối ngọc dùng làm thẻ) để mép trái/phải thẳng hàng với các thẻ sáng cùng cột. */
+class ClayDrawable(c: Context, kieu: Clay.Kieu, private val mau: Int = Clay.THE, boDp: Float = -1f, private val dem: Int = -1, leThe: Boolean = false) : Drawable() {
     /** Đổi kiểu tại chỗ (vd VIEN ⇄ NGOC khi chọn) — chỉ giữa các kiểu nút cùng lề bóng. */
     var kieu: Clay.Kieu = kieu
         set(v) { if (field != v) { field = v; boNho.clear(); invalidateSelf() } }
@@ -163,12 +164,12 @@ class ClayDrawable(c: Context, kieu: Clay.Kieu, private val mau: Int = Clay.THE,
     private val bo = s(if (boDp >= 0) boDp else when (kieu) { Clay.Kieu.THE -> 32f; Clay.Kieu.LOM -> 24f; Clay.Kieu.THAN, Clay.Kieu.NGOC, Clay.Kieu.VIEN -> 22f; Clay.Kieu.VIEN_TRON -> 999f })
     private val lon get() = kieu == Clay.Kieu.THE
     // lề cho bóng: thẻ lớn bóng dài hơn nút
-    private val le = when (kieu) {
-        Clay.Kieu.LOM -> Rect(0, 0, 0, 0)
-        Clay.Kieu.THE -> Rect(s(6f).toInt(), s(3f).toInt(), s(6f).toInt(), s(16f).toInt())
+    private val le = when {
+        kieu == Clay.Kieu.LOM -> Rect(0, 0, 0, 0)
+        kieu == Clay.Kieu.THE || leThe -> Rect(s(6f).toInt(), s(3f).toInt(), s(6f).toInt(), s(16f).toInt())
         else -> Rect(s(4f).toInt(), s(2f).toInt(), s(4f).toInt(), s(10f).toInt())
     }
-    private val demNoi = if (dem >= 0) s(dem.toFloat()).toInt() else when (kieu) { Clay.Kieu.THE -> s(18f).toInt(); Clay.Kieu.LOM -> s(14f).toInt(); Clay.Kieu.VIEN_TRON -> 0; else -> s(16f).toInt() }
+    private val demNoi = if (dem >= 0) s(dem.toFloat()).toInt() else when (kieu) { Clay.Kieu.THE -> s(18f).toInt(); Clay.Kieu.LOM -> s(16f).toInt(); Clay.Kieu.VIEN_TRON -> 0; else -> s(16f).toInt() }
 
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private var doTrong = 255

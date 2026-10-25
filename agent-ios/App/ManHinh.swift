@@ -9,6 +9,18 @@ struct NutChinh: ButtonStyle {
   func makeBody(configuration c: Configuration) -> some View { NutClay(kieu: phu ? .vien : .than).makeBody(configuration: c) }
 }
 
+/// Nút đóng trên thanh điều hướng: biểu tượng (nhãn đọc cho VoiceOver). Chữ «Đóng» trong viên kính cố định của iOS 26 bị cắt
+/// thành «Đónç» khi cỡ chữ lớn; biểu tượng giữ nguyên kích thước, vùng chạm 44.
+struct NutDong: View {
+  var ten = "Đóng"
+  var hinh = "xmark"
+  let lam: () -> Void
+  var body: some View {
+    Button(action: lam) { Image(systemName: hinh).font(.body.weight(.semibold)).frame(minWidth: 44, minHeight: 44) }
+      .accessibilityLabel(ten)
+  }
+}
+
 struct DongQuanLy: View {
   var body: some View {
     Label("Ba Mẹ quản lý máy này bằng AiiGrow", systemImage: "person.2.fill")
@@ -37,12 +49,14 @@ struct ManGoc: View {
 struct ManChuaGhep: View {
   @EnvironmentObject var m: MoHinhApp
   var body: some View {
+    // cuộn được: iPhone nhỏ / cỡ chữ lớn thì nút «Nhập mã ghép» không bị đẩy khỏi đáy màn; máy lớn vẫn căn giữa như cũ (minHeight)
+    GeometryReader { g in ScrollView {
     VStack(spacing: 20) {
       Spacer()
       IconClay(ten: "fl_la", nen: Clay.chinhSoft, co: 104).vaoLanLuot(0)
-      Text("AiiGrow Con").font(.largeTitle.bold()).vaoLanLuot(1)
+      Text("AiiGrow Con").font(.largeTitle.bold()).multilineTextAlignment(.center).vaoLanLuot(1)
       Text("Ứng dụng giúp Ba Mẹ và con cùng giữ giờ chơi hợp lý trên iPhone, iPad.")
-        .multilineTextAlignment(.center).foregroundColor(Clay.chu3)
+        .multilineTextAlignment(.center).foregroundColor(Clay.chu3).fixedSize(horizontal: false, vertical: true)
       VStack(alignment: .leading, spacing: 12) {
         buoc(1, "Ba Mẹ mở app AiiGrow, chọn «Thêm máy» › iPhone/iPad.")
         buoc(2, "Quét mã QR bằng Camera của máy này — app tự ghép.")
@@ -52,9 +66,11 @@ struct ManChuaGhep: View {
       if let l = m.loi { Text(l).font(.callout).foregroundColor(Clay.loi).multilineTextAlignment(.center) }
       Spacer()
       Button("Nhập mã ghép") { m.loi = nil; m.man = .nhapMa }.buttonStyle(NutChinh())
-      Text("Máy được quản lý sẽ luôn hiện điều đó cho con biết.").font(.footnote).foregroundColor(Clay.chu3)
+      Text("Máy được quản lý sẽ luôn hiện điều đó cho con biết.").font(.footnote).foregroundColor(Clay.chu3).multilineTextAlignment(.center)
     }
     .padding(24)
+    .frame(minHeight: g.size.height)
+    } }
   }
   func buoc(_ i: Int, _ s: String) -> some View {
     HStack(alignment: .top, spacing: 12) {
@@ -71,6 +87,7 @@ struct ManNhapMa: View {
   @FocusState var dangGo: Bool
   var hopLe: Bool { LienKet.doc(chuoi: ma) != nil }
   var body: some View {
+    GeometryReader { g in ScrollView {
     VStack(spacing: 20) {
       HStack {
         Button { m.man = .chuaGhep } label: { Label("Quay lại", systemImage: "chevron.left").frame(minWidth: 44, minHeight: 44) }
@@ -96,6 +113,8 @@ struct ManNhapMa: View {
       DongQuanLy()
     }
     .padding(24)
+    .frame(minHeight: g.size.height)
+    } }
     .onAppear { dangGo = true }
   }
 }
@@ -121,7 +140,7 @@ struct ManChinh: View {
 
   var body: some View {
     ScrollView {
-      VStack(spacing: 16) {
+      VStack(spacing: 22) {   // thẻ đổ bóng 12+13pt: khe 22 để nút «Xin thêm giờ» không nằm trong bóng thẻ trên
         Text(m.tenCon.map { "Chào \($0)!" } ?? "Chào con!").font(.largeTitle.bold()).frame(maxWidth: .infinity, alignment: .leading)
           .vaoLanLuot(0)
         theThoiGian.vaoLanLuot(1)
@@ -166,7 +185,11 @@ struct ManChinh: View {
           Text("\(m.phutConLai)").font(.system(size: 56, weight: .bold, design: .rounded)).monospacedDigit()
             .contentTransition(.numericText()).animation(Clay.bat, value: m.phutConLai)
           Text("phút giải trí còn lại").font(.subheadline).foregroundColor(Clay.chu3)
+            .multilineTextAlignment(.center).lineLimit(3).minimumScaleFactor(0.6)
         }
+        // chữ nằm trong lòng vòng (đường kính trong 210 − 2×(10+11) = 168; dòng dưới tâm hẹp hơn): cỡ chữ lớn thì xuống dòng / thu,
+        // không chạm vòng
+        .frame(maxWidth: 144)
       }
       .frame(width: 210, height: 210)
       .accessibilityElement(children: .combine)
@@ -177,12 +200,13 @@ struct ManChinh: View {
       .accessibilityElement(children: .combine)
       Text("Hôm nay đã dùng \(m.phutDaDung) / \(m.keHoach?.tranPhut ?? 0) phút").font(.footnote).foregroundColor(Clay.chu3)
     }
-    .padding(.vertical, 8).frame(maxWidth: .infinity)
+    // vòng tràn 11pt ra ngoài khung 210 (nét 20 + viền men) ⇒ đệm dọc 12 để vòng cách mép thẻ ≥ 16
+    .padding(.vertical, 12).frame(maxWidth: .infinity)
     .khoiClay()
   }
 
   func theYeuCau(_ yc: YeuCauDangCho) -> some View {
-    HStack(spacing: 12) {
+    HStack(alignment: .top, spacing: 12) {   // icon đứng đầu dòng tiêu đề, không trôi xuống giữa khi chữ lớn rớt nhiều dòng
       IconClay(ten: yc.xong ? (yc.cau.contains("đồng ý thêm") ? "fl_dau_tich" : "fl_dau_x") : "fl_dong_ho",
                nen: yc.xong ? Clay.chinhSoft : Clay.canhSoft)
       VStack(alignment: .leading, spacing: 2) {
@@ -204,6 +228,7 @@ struct ManChinh: View {
       Text("Cần Ba Mẹ cấp quyền một lần để AiiGrow giữ giờ chơi trên máy này.").font(.subheadline).foregroundColor(Clay.chu3)
       Button("Cấp quyền") { m.moQuyen = true }.buttonStyle(NutChinh(phu: true))
     }
+    .padding(.bottom, 8)   // bóng nút (bán kính 8, lệch 8) không chạm mép đáy thẻ
     .khoiClay(bo: 28, dem: 16)
   }
 
@@ -218,6 +243,7 @@ struct ManChinh: View {
       Button("Chọn app học / giải trí") { moChon = true }.buttonStyle(NutChinh(phu: true))
       ForEach(m.keHoach?.canhBao ?? [], id: \.self) { Text($0).font(.footnote).foregroundColor(Clay.canh) }
     }
+    .padding(.bottom, 8)   // bóng nút (bán kính 8, lệch 8) không chạm mép đáy thẻ
     .khoiClay(bo: 28, dem: 16)
   }
 }
@@ -231,17 +257,23 @@ struct ManXinThem: View {
   @State var daGui = false
   let goiY = ["Con làm xong bài tập rồi ạ", "Con đang chơi dở với bạn", "Con xem nốt video học"]
 
+  var nutPhut: some View {
+    ForEach([30, 60, 120], id: \.self) { p in
+      Button { withAnimation(Clay.bat) { phut = p } } label: { Text(p == 120 ? "2 giờ" : "\(p) phút").lineLimit(1).fixedSize() }
+        .buttonStyle(NutClay(kieu: phut == p ? .ngoc : .vien, cao: 56))
+        .accessibilityAddTraits(phut == p ? .isSelected : [])
+    }
+  }
+
   var body: some View {
     NavigationView {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
           Text("Con muốn thêm bao lâu?").font(.headline)
-          HStack(spacing: 12) {
-            ForEach([30, 60, 120], id: \.self) { p in
-              Button { withAnimation(Clay.bat) { phut = p } } label: { Text(p == 120 ? "2 giờ" : "\(p) phút") }
-                .buttonStyle(NutClay(kieu: phut == p ? .ngoc : .vien, cao: 56))
-              .accessibilityAddTraits(phut == p ? .isSelected : [])
-            }
+          // ba nút một hàng; cỡ chữ lớn không vừa thì xếp dọc (không cắt thành «30 p…»)
+          ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { nutPhut }
+            VStack(spacing: 12) { nutPhut }
           }
           Text("Lời nhắn cho Ba Mẹ").font(.headline)
           TextField("Vì sao con cần thêm giờ?", text: $loiNhan)
@@ -274,7 +306,7 @@ struct ManXinThem: View {
       .background(Clay.nenMan)
       .navigationTitle("Xin thêm giờ")
       .navigationBarTitleDisplayMode(.inline)
-      .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Đóng") { dong() }.frame(minWidth: 44, minHeight: 44) } }
+      .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
     }
     .navigationViewStyle(.stack)
   }
@@ -303,7 +335,7 @@ struct ManQuyen: View {
           .tint(Clay.chinh).frame(minHeight: 44)
           if let l = m.loiQuyen {
             Label(l, systemImage: "info.circle.fill").font(.callout).foregroundColor(Clay.canh)
-              .khoiClay(Clay.canhSoft, bo: 24, dem: 14)
+              .khoiClay(Clay.canhSoft, bo: 24, dem: 16)
           }
           Button("Cấp quyền") { Task { await m.xinQuyen(conTrongGiaDinh: giaDinh) } }.buttonStyle(NutChinh())
           DongQuanLy()
@@ -312,7 +344,7 @@ struct ManQuyen: View {
       }
       .background(Clay.nenMan)
       .navigationBarTitleDisplayMode(.inline)
-      .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Đóng") { dong() }.frame(minWidth: 44, minHeight: 44) } }
+      .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
     }
     .navigationViewStyle(.stack)
   }
@@ -337,7 +369,7 @@ struct ManChonApp: View {
       .onAppear { chon = m.luaChon.doc(nhan) }
       .onChange(of: nhan) { chon = m.luaChon.doc($0) }
       .navigationTitle("Ba Mẹ chọn app").navigationBarTitleDisplayMode(.inline)
-      .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Xong") { dong() }.frame(minWidth: 44, minHeight: 44) } }
+      .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong(ten: "Xong", hinh: "checkmark") { dong() } } }
     }
     .navigationViewStyle(.stack)
   }

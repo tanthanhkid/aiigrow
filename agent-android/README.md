@@ -18,7 +18,7 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | `ManChinh` / `ManKhoa` | màn Con (còn phút, xin 30/60/120 + lời nhắn, đã dùng gì, ghép mã 6 số, cấp quyền) / màn khoá + đếm ngược |
 | `Clay.kt` | ngôn ngữ «Clay gương» (`docs/THIET-KE-CLAY.md`) cho View: `ClayDrawable` (khối bo lớn, bóng kép, men gương, vệt men lướt), lò xo nhấn / vào lần lượt / ổ khoá đóng sập; tắt hoạt ảnh trong Trợ năng ⇒ không nảy |
 | `res/drawable-nodpi/fl_*.png` | icon Fluent Emoji 3D (Microsoft, MIT — `app/src/main/assets/FLUENT-EMOJI-LICENSE.txt`, đóng gói vào APK) |
-| `thu/` | chính sách giả cho chế độ thử cục bộ · `chup/` ảnh chụp emulator (`man-khoa.png` còn giao diện cũ) |
+| `thu/` | chính sách giả cho chế độ thử cục bộ · `chup/` ảnh chụp emulator (Clay gương, chụp lại 25/10) |
 
 ## Hai đường cài (chọn lúc ghép)
 **1. Device Owner bằng QR — mạnh nhất (máy mới hoặc khôi phục gốc).**
