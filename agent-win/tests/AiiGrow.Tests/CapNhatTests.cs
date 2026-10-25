@@ -39,6 +39,15 @@ public class PhatHienCaiTests
     [InlineData("0.2.0", CheDoBoCai.DaMoiNhat)]
     [InlineData("0.3.0", CheDoBoCai.DaMoiNhat)]  // bản đang cài mới hơn bộ cài ⇒ không hạ bản
     public void DaCai(string? dangCai, CheDoBoCai ra) => Assert.Equal(ra, CapNhat.PhatHien(true, DaGhep(), dangCai, "0.2.0").CheDo);
+
+    // So SỐ chứ không so chuỗi: 0.2.10 > 0.2.9 (chuỗi thì "0.2.10" < "0.2.9").
+    [Fact]
+    public void BanHaiChuSo_SoTheoSo()
+    {
+        Assert.True(CapNhat.DocBan("0.2.10") > CapNhat.DocBan("0.2.9"));
+        Assert.Equal(CheDoBoCai.CapNhat, CapNhat.PhatHien(true, DaGhep(), "0.2.9", "0.2.10").CheDo);
+        Assert.Equal(CheDoBoCai.DaMoiNhat, CapNhat.PhatHien(true, DaGhep(), "0.2.10", "0.2.9").CheDo);
+    }
 }
 
 public class CapNhatMayTests : IDisposable
