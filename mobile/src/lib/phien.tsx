@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { bm } from "./api";
+import { quenDaTai } from "./ui";
 
 /** ra({ daXoa: true }): tài khoản vừa bị xoá trên máy chủ (phiên đã mất) ⇒ không gọi dang-xuat, chỉ xoá token trên máy. */
 type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean) => Promise<void>; ra: (o?: { daXoa?: boolean }) => Promise<void> };
@@ -12,15 +13,17 @@ export function PhienProvider({ children }: { children: ReactNode }) {
   const [co, setCo] = useState(false);
   useEffect(() => {
     bm.nap().then((t) => { setCo(!!t); setSan(true); });
-    bm.onHetPhien(() => { setCo(false); router.replace("/chao"); });
+    bm.onHetPhien(() => { quenDaTai(); setCo(false); router.replace("/chao"); });
   }, []);
   const vao = useCallback(async (t: string, moi?: boolean) => {
+    quenDaTai();
     await bm.dat(t);
     setCo(true);
     router.replace(moi ? "/thiet-lap/ten-con" : "/");
   }, []);
   const ra = useCallback(async (o?: { daXoa?: boolean }) => {
     if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
+    quenDaTai();
     await bm.dat(null);
     setCo(false);
     router.replace("/chao");

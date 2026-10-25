@@ -11,6 +11,11 @@ import { Avt, BangTruot, BaoLoi, baoKhiVe, BieuTron, ChoTai, Chu, Dong, M, MAU_C
 type Toi = { baMe: { id: string; ten: string; dinhDanh: string; vai: "chu" | "duyet" | "xem" }; laAdmin?: boolean };
 const VAI = { chu: "Chủ gia đình", duyet: "Thành viên phê duyệt", xem: "Chỉ xem" } as const;
 
+/** Dữ liệu tab (dùng chung với nạp trước ở app/(tab)/_layout.tsx). */
+export const napGiaDinh = async () => ({
+  toi: await bm.goi<Toi>("toi"), g: await bm.goi<GiaDinh>("gia-dinh"), tv: (await bm.goi<{ ds: { id: string; ten: string; vai: keyof typeof VAI }[] }>("thanh-vien")).ds,
+});
+
 export default function CaiDat() {
   const { ra } = usePhien();
   const [moXoa, setMoXoa] = useState(false);
@@ -19,9 +24,7 @@ export default function CaiDat() {
   const [chan, setChan] = useState<{ ma: string; cau: string } | null>(null);
   const [dangKiem, setDangKiem] = useState(false);
   const { dangChay, loi: loiXoa, lam, setLoi } = useLam();
-  const { d, loi, matMang, tai } = useTai(async () => ({
-    toi: await bm.goi<Toi>("toi"), g: await bm.goi<GiaDinh>("gia-dinh"), tv: (await bm.goi<{ ds: { id: string; ten: string; vai: keyof typeof VAI }[] }>("thanh-vien")).ds,
-  }));
+  const { d, loi, matMang, tai } = useTai(napGiaDinh, "tab:gia-dinh");
   if (!d) return <Man tieuLon="Gia đình"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const khac = d.tv.filter((x) => x.id !== d.toi.baMe.id);
   const laChu = d.toi.baMe.vai === "chu", chuConNguoi = laChu && khac.length > 0;

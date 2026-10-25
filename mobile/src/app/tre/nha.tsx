@@ -11,7 +11,7 @@ const MOT_NGAY = 86_400_000;
 
 export default function Nha() {
   const { ten, nhom, ra } = useTre();
-  const { d, loi, matMang, tai, dangTai, cu } = useTaiTre("nha", () => kid.goi<NhaTre>("nha"));
+  const { d, loi, matMang, tai, cu } = useTaiTre("nha", () => kid.goi<NhaTre>("nha"));
   // ăn mừng nhiệm vụ vừa được duyệt (một lần), gửi lại ảnh đang chờ mạng
   useFocusEffect(useCallback(() => {
     guiHangCho().catch(() => {});
@@ -32,7 +32,7 @@ export default function Nha() {
           : d.conPhut <= 0 ? { phu: "Hôm nay đã chơi đủ giờ", di: "/tre/gio-ngu?ly=dat_tran_ngay" }
             : { phu: `${d.conPhut} phút còn lại hôm nay · tới ${d.khung.den}`, di: "/tre/choi" };
   return (
-    <ManTre tab="nha" tai={tai} dangTai={dangTai}>
+    <ManTre tab="nha" tai={tai} vongTai>
       <DiemTren n={d.soDu} chuoi={d.chuoiNgay} />
       {matMang || cu ? <BangMang chu={`Mất mạng — ${ten} vẫn chơi được bằng ${d.soDu} điểm đã có. Nhiệm vụ nộp sẽ tự gửi khi có mạng.`} /> : null}
       <Canh lv="canh-diem" mau="vang" tieu={`${ten} có ${d.soDu} điểm`} loi={loiCanh}>

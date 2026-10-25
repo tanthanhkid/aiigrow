@@ -26,7 +26,7 @@ const ngayCua = (s: string) => {
 };
 
 export default function DsThongBaoMan() {
-  const { d, loi, matMang, tai, dangTai } = useTai(() => bm.goi<DsThongBao>("thong-bao"));
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<DsThongBao>("thong-bao"));
   // đã xem danh sách ⇒ đánh dấu đọc (chấm «mới» vẫn hiện tới lần mở sau để Ba Mẹ biết dòng nào vừa tới)
   const chuaDoc = d?.chuaDoc ?? 0;
   useEffect(() => { if (chuaDoc) bm.goi("thong-bao/doc", {}).catch(() => {}); }, [chuaDoc]);
@@ -47,7 +47,7 @@ export default function DsThongBaoMan() {
   }
   const yl = d.caiDat.yenLang;
   return (
-    <Man lui={{ chu: "Trang chủ" }} tieu="Thông báo" phai={phai} tai={tai} dangTai={dangTai}>
+    <Man lui={{ chu: "Trang chủ" }} tieu="Thông báo" phai={phai} tai={tai} vongTai>
       <Chu co={13.5} mau={M.chu3}>{d.chuaDoc ? `${d.chuaDoc} thông báo mới` : "Đã xem hết thông báo"}{yl.bat ? ` · giờ yên lặng ${yl.tu}–${yl.den}` : ""}</Chu>
       {nhom.map((g) => (
         <View key={g.ngay} style={{ gap: 12 }}>

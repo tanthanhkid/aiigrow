@@ -12,13 +12,16 @@ const tanSuat = (x: NhiemVu) => [x.bang_chung === "tu_dong" ? "Tự động · k
 type Phieu = { id: string; ten: string; loai: keyof typeof IC_QUA; diem: number; ten_con: string; created_at: string };
 const IC_QUA = { voucher: ["coc", "cam"], qua: ["qua", "lam"], dac_quyen: ["ban", "tim"], tiet_kiem: ["xu", "vang"] } as const;
 
+/** Dữ liệu tab (dùng chung với nạp trước ở app/(tab)/_layout.tsx). */
+export const napDiemQua = async () => ({
+  nv: (await bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")).ds, qua: (await bm.goi<{ ds: Qua[] }>("qua")).ds, quy: await bm.goi<{ soDu: number }>("quy"),
+  phieu: (await bm.goi<{ ds: Phieu[] }>("phieu")).ds,
+  xem: await laChiXem(),
+});
+
 export default function DiemQua() {
   const [the, setThe] = useState<"nv" | "qua">("nv");
-  const { d, loi, matMang, tai } = useTai(async () => ({
-    nv: (await bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")).ds, qua: (await bm.goi<{ ds: Qua[] }>("qua")).ds, quy: await bm.goi<{ soDu: number }>("quy"),
-    phieu: (await bm.goi<{ ds: Phieu[] }>("phieu")).ds,
-    xem: await laChiXem(),
-  }));
+  const { d, loi, matMang, tai } = useTai(napDiemQua, "tab:diem-qua");
   const [sua, setSua] = useState<NhiemVu | null>(null);
   const [huy, setHuy] = useState<Phieu | null>(null);
   const [diem, setDiem] = useState("");

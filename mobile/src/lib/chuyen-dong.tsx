@@ -1,6 +1,6 @@
 // Chuyển động «vui» + «ánh men» (Thanh chốt 24/10 — docs/THIET-KE-CLAY.md §3, thông số lấy từ đầu docs/clay/M-vui.js và M-anh-men.css).
 // Chỉ transform + opacity, 150–450ms. Reduce Motion (useReducedMotion) ⇒ bỏ nảy / vệt men / confetti / bay điểm / rung, chỉ còn fade.
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View, type GestureResponderEvent, type LayoutChangeEvent, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 import Animated, {
   Easing, FadeIn, type SharedValue, FadeInDown, FadeOut, Keyframe, LinearTransition, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue,
@@ -81,7 +81,8 @@ export const vaoLanLuot = (thu: number, giam?: boolean) =>
 /** Khối vào lần lượt (bọc một khối của màn). */
 export function Vao({ thu, children, style }: { thu: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const giam = useReducedMotion();
-  return <Animated.View entering={vaoLanLuot(thu, giam)} style={style}>{children}</Animated.View>;
+  const vao = useMemo(() => vaoLanLuot(thu, giam), [thu, giam]);
+  return <Animated.View entering={vao} style={style}>{children}</Animated.View>;
 }
 
 /** Hàng việc rời danh sách: trượt phải 40 + thu nhỏ + mờ (220ms), hàng dưới dồn lên bằng LinearTransition (240ms). */

@@ -1,5 +1,5 @@
 // Nút chuông Thông báo (FR-08.01) — tròn 44, số đỏ = thông báo chưa đọc của Ba/Mẹ này. Tải lại mỗi lần màn chứa nó được mở lại.
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Text } from "react-native";
 import Animated from "react-native-reanimated";
 import { BONG, KHOI, MEN } from "./clay";
@@ -8,7 +8,8 @@ import { router, useFocusEffect } from "expo-router";
 import { bm } from "./api";
 import { F, Icon3D, M, NhanMen } from "./ui";
 
-export function ChuongTb() {
+/** memo: màn chứa nó vẽ lại (toast, vòng tải) không kéo chuông vẽ lại theo. */
+export const ChuongTb = memo(function ChuongTb() {
   const [nap, setSo] = useState<number | null>(null);
   const so = nap ?? 0;
   const { st, rung } = useRung();
@@ -29,4 +30,4 @@ export function ChuongTb() {
       ) : null}
     </NhanMen>
   );
-}
+});
