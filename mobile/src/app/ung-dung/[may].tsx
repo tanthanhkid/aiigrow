@@ -51,7 +51,7 @@ const phuCua = (a: AppMay) => [a.nhaPhatHanh, a.nguon ? NGUON[a.nguon] : null, a
 
 export default function UngDungMay() {
   const { may } = useLocalSearchParams<{ may: string }>();
-  const { d, loi, matMang, tai, dangTai } = useTai(() => bm.goi<DsMay>(`may/${may}/ung-dung`));
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<DsMay>(`may/${may}/ung-dung`));
   const [tim, setTim] = useState("");
   const [loc, setLoc] = useState<Loc>("tat_ca");
   const [chon, setChon] = useState<AppMay | null>(null);
@@ -122,7 +122,7 @@ export default function UngDungMay() {
 
   const capNhat = d.capNhatLuc ? `Cập nhật lúc ${gioPhut(d.capNhatLuc)} (${truoc(d.capNhatLuc)})` : "Máy chưa gửi danh sách ứng dụng";
   return (
-    <Man lui={{ chu: "Máy" }} tieu="Ứng dụng" noi={noi} tai={tai} dangTai={dangTai}>
+    <Man lui={{ chu: "Máy" }} tieu="Ứng dụng" noi={noi} tai={tai} vongTai>
       <View style={{ gap: 4 }}>
         <Chu kieu="dam" co={22}>Ứng dụng trên máy {d.may.ten}</Chu>
         <Chu co={14} mau={M.chu3}>Danh sách lấy thẳng từ máy — chọn đúng app để chặn hoặc cho phép.</Chu>

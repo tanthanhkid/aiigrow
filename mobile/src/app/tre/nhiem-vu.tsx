@@ -10,7 +10,7 @@ const THU_TU: Record<NvTre["trang_thai_con"], number> = { can_bo_sung: 0, dang_l
 
 export default function NhiemVu() {
   const { ten } = useTre();
-  const { d, loi, matMang, tai, dangTai, cu } = useTaiTre("nhiem-vu", async () => ({
+  const { d, loi, matMang, tai, cu } = useTaiTre("nhiem-vu", async () => ({
     nha: await kid.goi<NhaTre>("nha"), ds: (await kid.goi<{ ds: NvTre[] }>("nhiem-vu")).ds,
   }));
   if (!d) return <ManTre tab="nhiem-vu"><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
@@ -26,7 +26,7 @@ export default function NhiemVu() {
   }
   const ds = [...d.ds].sort((a, b) => THU_TU[a.trang_thai_con] - THU_TU[b.trang_thai_con]);
   return (
-    <ManTre tab="nhiem-vu" tai={tai} dangTai={dangTai}>
+    <ManTre tab="nhiem-vu" tai={tai} vongTai>
       <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
       {matMang || cu ? <BangMang chu="Mất mạng — vẫn làm và chụp được, ảnh tự gửi khi có mạng." /> : null}
       <Canh lv="so-tay" tieu="Hôm nay làm gì nào?" loi="Chọn một việc, làm xong chụp ảnh là xong!" thap />

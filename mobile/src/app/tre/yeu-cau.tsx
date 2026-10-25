@@ -22,7 +22,7 @@ function trangThai(y: YcTre): { phu: string; nhan: [string, "ok" | "canh" | "xam
 
 export default function YeuCau() {
   const { ten } = useTre();
-  const { d, loi, matMang, tai, dangTai } = useTaiTre("yeu-cau", async () => ({
+  const { d, loi, matMang, tai } = useTaiTre("yeu-cau", async () => ({
     nha: await kid.goi<NhaTre>("nha"), ds: (await kid.goi<{ ds: YcTre[] }>("yeu-cau")).ds,
   }));
   const [huy, setHuy] = useState<YcTre | null>(null);
@@ -45,7 +45,7 @@ export default function YeuCau() {
         : { lv: "so-tay" as const, tieu: `Yêu cầu của ${ten}`, loi: "Xin gì thì xem trạng thái ở đây nhé." };
   const xacNhanHuy = () => lam(async () => { await kid.goi(`yeu-cau/${huy!.id}/huy`, {}); setHuy(null); await tai(); });
   return (
-    <ManTre tab="xin-phep" tai={tai} dangTai={dangTai}>
+    <ManTre tab="xin-phep" tai={tai} vongTai>
       <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
       <Canh lv={canh.lv} mau="vang" tieu={canh.tieu} loi={canh.loi} thap />
       <Nhom>

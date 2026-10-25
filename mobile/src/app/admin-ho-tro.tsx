@@ -13,11 +13,11 @@ export default function AdminHoTro() {
 }
 
 function DanhSach({ chon }: { chon: (f: Dong1) => void }) {
-  const { d, loi, matMang, tai, dangTai } = useTai(() => bm.goi<{ ds: Dong1[] }>("admin/ho-tro"));
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<{ ds: Dong1[] }>("admin/ho-tro"));
   useEffect(() => { const t = setInterval(tai, 15_000); return () => clearInterval(t); }, [tai]);
   const cho = d?.ds.filter((x) => x.chua_tra_loi).length ?? 0;
   return (
-    <Man lui={{ chu: "Quay lại" }} tieu="Hộp thư hỗ trợ" tai={tai} dangTai={dangTai}>
+    <Man lui={{ chu: "Quay lại" }} tieu="Hộp thư hỗ trợ" tai={tai} vongTai>
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : !d.ds.length ? (
         <CanhGiua lv="canh-trong" tieu="Chưa có tin nào" loi="Khi gia đình nhắn AiiLab, tin hiện ở đây." />
       ) : (

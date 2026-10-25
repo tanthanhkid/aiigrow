@@ -2,25 +2,18 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, LOAI_YC, NHOM_NV, tieuYc, type AppChuaXep, type LuotCho, type YeuCau, laChiXem } from "@/lib/api";
+import { bm, LOAI_YC, NHOM_NV, tieuYc } from "@/lib/api";
 import { AppMoi } from "@/lib/viec-nhanh";
+import { KHOA_TAB, napChoDuyet } from "@/lib/tab-ba-me";
 import { IC_QUA, type Phieu } from "@/lib/viec-cho";
 import {
   Avt, BangTruot, BieuTron, Canh, Chu, CanhGiua, ChoTai, Dong, gioPhut, MAU_CON, Man, Nhan, Nhom, NhomTieu, Nut, useHoanTac, useLam, useTai, BaoLoi, useBaoKhiVe,
 } from "@/lib/ui";
 
 
-type TuDong = { id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null };
 
 export default function ChoDuyet() {
-  const { d, loi, matMang, tai, dangTai } = useTai(async () => {
-    const [cd, luat, toi] = await Promise.all([
-      bm.goi<{ nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[]; tuDong?: TuDong[] }>("cho-duyet"),
-      bm.goi<{ chuaXep: AppChuaXep[] }>("luat").catch(() => null),         // app mới chưa xếp loại cũng là việc chờ Ba Mẹ (issue #70 §2.3)
-      laChiXem(),
-    ]);
-    return { ...cd, appMoi: luat?.chuaXep ?? [], xem: toi };
-  });
+  const { d, loi, matMang, tai } = useTai(napChoDuyet, KHOA_TAB.choDuyet);
   const [huy, setHuy] = useState<Phieu | null>(null);
   const hl = useLam();
   const { bao, noi } = useHoanTac();
@@ -36,7 +29,7 @@ export default function ChoDuyet() {
   const tong = d.nhiemVu.length + d.yeuCau.length + phieu.length;
   if (!tong && d.appMoi.length) {
     return (
-      <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
+      <Man tieuLon="Chờ duyệt" chat tai={tai} vongTai noi={noi}>
         <Canh lv="cho" thap tieu="Chỉ còn app mới chờ xếp loại" loi="Không có nhiệm vụ hay lời xin nào đang chờ." />
         <AppMoi ds={d.appMoi} tai={tai} bao={bao} toiDa={10} xem={d.xem} />
       </Man>
@@ -55,7 +48,7 @@ export default function ChoDuyet() {
   const cuNhat = [...d.nhiemVu.map((x) => x.nop_luc), ...d.yeuCau.map((x) => x.created_at), ...phieu.map((x) => x.created_at)].sort()[0];
   const phut = Math.max(1, Math.round((Date.now() - new Date(cuNhat).getTime()) / 60000));
   return (
-    <Man tieuLon="Chờ duyệt" chat tai={tai} dangTai={dangTai} noi={noi}>
+    <Man tieuLon="Chờ duyệt" chat tai={tai} vongTai noi={noi}>
       <Canh lv="cho" thap tieu={`${tong} việc đang chờ`} loi={`Cũ nhất ${phut < 60 ? `${phut} phút` : `${Math.round(phut / 60)} giờ`}. ${d.nhiemVu.length || d.yeuCau.length ? "Duyệt xong là điểm vào ví Con ngay." : "Con đã đổi điểm, chờ Ba Mẹ trao quà."}`} />
       <BaoLoi loi={hl.loi} />
       <AppMoi ds={d.appMoi} tai={tai} bao={bao} xem={d.xem} />

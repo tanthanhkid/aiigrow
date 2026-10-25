@@ -8,7 +8,7 @@ import { DiemTren, ManTre, ngayCua, useTaiTre } from "@/lib/ui-tre";
 import { kid, type NhaTre, type ViQua } from "@/lib/api-tre";
 
 export default function ViQuaTre() {
-  const { d, loi, matMang, tai, dangTai } = useTaiTre("vi-qua", async () => {
+  const { d, loi, matMang, tai } = useTaiTre("vi-qua", async () => {
     const [vi, nha] = await Promise.all([kid.goi<ViQua>("vi-qua"), kid.goi<NhaTre>("nha")]);
     return { vi, nha };
   });
@@ -26,7 +26,7 @@ export default function ViQuaTre() {
     );
   }
   return (
-    <ManTre tab="cua-hang" tai={tai} dangTai={dangTai}>
+    <ManTre tab="cua-hang" tai={tai} vongTai>
       <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
       {dung.map((v) => (
         <View key={v.ma} style={{ borderRadius: 26, overflow: "hidden", backgroundColor: "#3b2210" }}

@@ -23,32 +23,51 @@ function khach(tienTo: "m" | "kid", khoa: string) {
   const k = kho(khoa);
   let token: string | null = null;
   let hetPhien: (() => void) | null = null;
+  // GET cùng đường dẫn đang chờ trả lời ⇒ dùng chung một lời gọi (đổi tab: thanh tab và màn cùng hỏi «cho-duyet» một lúc). Chỉ GỘP lời
+  // gọi đang bay, không giữ kết quả: gọi sau khi lời trước đã về vẫn đi máy chủ như trước.
+  const dangBay = new Map<string, Promise<unknown>>();
+  // Dữ liệu cũ hết đúng: đổi phiên (đăng nhập / đăng xuất / hết phiên) hoặc vừa GHI (POST) ⇒ bỏ lời GET đang bay (lời gọi sau đi máy chủ mới)
+  // và báo cho bộ nhớ dữ liệu màn (lib/ui › useTai) quên hết.
+  const khiDoi = new Set<() => void>();
+  const doi = () => { dangBay.clear(); khiDoi.forEach((f) => f()); };
+  async function goiThat<T>(duong: string, body?: unknown): Promise<T> {
+    let r: Response;
+    try {
+      r = await fetch(`${GOC}/api/${tienTo}/${duong}`, {
+        method: body === undefined ? "GET" : "POST",
+        headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+    } catch {
+      throw new LoiApi("mat_mang", "Mất kết nối mạng — kiểm tra Wi‑Fi hoặc 4G rồi thử lại.", 0);
+    }
+    const j = await r.json().catch(() => ({}));
+    // 401 = hết phiên ⇒ đăng xuất. TRỪ xác thực lại mật khẩu ngay trong app (gỡ từ xa) — đó là mật khẩu sai, không phải hết phiên.
+    if (r.status === 401 && token && j.error !== "sai_mat_khau" && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong)) {
+      token = null;
+      xoaTl();
+      doi();
+      await k.xoa();
+      hetPhien?.();
+    }
+    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status);
+    return j as T;
+  }
   return {
     nap: async () => (token = await k.doc()),
-    dat: async (t: string | null) => { token = t; xoaTl(); await (t ? k.ghi(t) : k.xoa()); },
+    dat: async (t: string | null) => { token = t; xoaTl(); doi(); await (t ? k.ghi(t) : k.xoa()); },
+    /** Đăng ký nghe «dữ liệu cũ hết đúng» (đổi phiên, vừa ghi). */
+    khiDoi: (fn: () => void) => { khiDoi.add(fn); },
     co: () => !!token,
     onHetPhien: (fn: () => void) => { hetPhien = fn; },
-    async goi<T = any>(duong: string, body?: unknown): Promise<T> {
-      let r: Response;
-      try {
-        r = await fetch(`${GOC}/api/${tienTo}/${duong}`, {
-          method: body === undefined ? "GET" : "POST",
-          headers: { "content-type": "application/json", ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: body === undefined ? undefined : JSON.stringify(body),
-        });
-      } catch {
-        throw new LoiApi("mat_mang", "Mất kết nối mạng — kiểm tra Wi‑Fi hoặc 4G rồi thử lại.", 0);
-      }
-      const j = await r.json().catch(() => ({}));
-      // 401 = hết phiên ⇒ đăng xuất. TRỪ xác thực lại mật khẩu ngay trong app (gỡ từ xa) — đó là mật khẩu sai, không phải hết phiên.
-      if (r.status === 401 && token && j.error !== "sai_mat_khau" && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong)) {
-        token = null;
-        xoaTl();
-        await k.xoa();
-        hetPhien?.();
-      }
-      if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status);
-      return j as T;
+    goi<T = any>(duong: string, body?: unknown): Promise<T> {
+      if (body !== undefined) { doi(); return goiThat<T>(duong, body).finally(doi); }
+      const khoa = `${token ?? ""} ${duong}`;
+      const p = dangBay.get(khoa);
+      if (p) return p as Promise<T>;
+      const moi = goiThat<T>(duong).finally(() => dangBay.delete(khoa));
+      dangBay.set(khoa, moi);
+      return moi;
     },
   };
 }

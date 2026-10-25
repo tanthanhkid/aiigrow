@@ -2,7 +2,7 @@
 // Con, Duyệt / Từ chối tại chỗ (lib/viec-cho); rồi thẻ trạng thái gọn + «Khoá máy» (có hạn giờ),
 // lưới tính năng (Trang web · Ứng dụng · Giờ dùng máy · Thời gian màn hình · Máy · Nhiệm vụ) — mỗi ô một màn, ghi luôn tình trạng hiện tại
 // để Ba Mẹ biết mà không phải mở; 3 điều để khen, cảnh báo cần xem. Việc hằng ngày đều ở đây, «Gia đình» chỉ còn việc ít đụng.
-import { useCallback, useRef, useState, type RefObject } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type RefObject } from "react";
 import { router } from "expo-router";
 import { Dimensions, Pressable, View } from "react-native";
 import Animated, { useReducedMotion } from "react-native-reanimated";
@@ -22,7 +22,7 @@ type Luat = { chuaXep: AppChuaXep[]; ds: { child_id: string; loai: string }[] };
 type ChoDuyet = { nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[] };
 
 export default function TrangChu() {
-  const { d, loi, matMang, tai, dangTai } = useTai(async () => {
+  const { d, loi, matMang, tai } = useTai(async () => {
     const [g, cb, luat, choi, tt, toi, cd] = await Promise.all([
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: CanhBao[] }>("canh-bao"), bm.goi<Luat>("luat").catch(() => null),
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),            // máy chủ cũ chưa có ⇒ không hiện thẻ «Đang chơi»
@@ -45,6 +45,20 @@ export default function TrangChu() {
     vi.current.measureInWindow((x, y, w, h) => ok(w && y >= 0 && y + h <= Dimensions.get("window").height ? { x: x + 34, y: y + h / 2 - 8 } : null));
   }), []);
   const anMung: AnMung = useCallback((n, tu) => lop.current?.ban(tu, n), []);
+  const i = d ? Math.min(chon, d.g.con.length - 1) : 0;
+  // phần dữ liệu của Con đang xem — tính lại CHỈ khi dữ liệu / Con đổi: bảng của Con (BangCon, memo) không vẽ lại mỗi lần toast
+  // «Hoàn tác» hiện / tắt hay vòng quay tải lại bật / tắt
+  const cua = useMemo(() => {
+    const c = d?.g.con[i];
+    if (!d || !c) return null;
+    return {
+      c, canhBao: d.cb.filter((x) => !x.child_id || x.child_id === c.id), choi: d.choi.filter((p) => p.con === c.id),
+      mayTt: d.tt.filter((m) => m.con === c.id || m.dungChung),
+      viec: d.cd ? [...d.cd.nhiemVu.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "nv", x })),
+        ...d.cd.yeuCau.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "yc", x })),
+        ...(d.cd.phieu ?? []).filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "qua", x }))] : null,
+    };
+  }, [d, i]);
   // gốc cây giống lúc đã tải (View > Man) để chuông không bị gắn lại khi dữ liệu về (gọi thong-bao hai lần, mất mốc «tăng thì rung»)
   if (!d) return <View style={{ flex: 1 }}><Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
   if (!d.g.con.length) {
@@ -58,11 +72,9 @@ export default function TrangChu() {
       </View>
     );
   }
-  const i = Math.min(chon, d.g.con.length - 1);
-  const c = d.g.con[i];
   return (
     <View style={{ flex: 1 }}>
-    <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />} tai={tai} dangTai={dangTai} noi={noi}>
+    <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />} tai={tai} vongTai noi={noi}>
       <Vao thu={0}>
         <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap", alignItems: "center" }} accessibilityRole="tablist">
         {d.g.con.map((x, k) => (
@@ -80,11 +92,7 @@ export default function TrangChu() {
         </NhanMen>
         </View>
       </Vao>
-      <BangCon key={c.id} c={c} anMung={anMung} vi={vi} stVi={stVi} canhBao={d.cb.filter((x) => !x.child_id || x.child_id === c.id)} luat={d.luat} choi={d.choi.filter((p) => p.con === c.id)}
-        mayTt={d.tt.filter((m) => m.con === c.id || m.dungChung)} xem={d.xem} taiLai={tai} bao={bao}
-        viec={d.cd ? [...d.cd.nhiemVu.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "nv", x })),
-          ...d.cd.yeuCau.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "yc", x })),
-          ...(d.cd.phieu ?? []).filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "qua", x }))] : null} />
+      {cua ? <BangCon key={cua.c.id} {...cua} anMung={anMung} vi={vi} stVi={stVi} luat={d.luat} xem={d.xem} taiLai={tai} bao={bao} /> : null}
     </Man>
     <LopAnMung ref={lop} dich={dich} toi={batVi} />
     </View>
@@ -92,7 +100,7 @@ export default function TrangChu() {
 }
 
 type StyleVi = ReturnType<typeof useBat>["st"];
-function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung, vi, stVi }: {
+const BangCon = memo(function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung, vi, stVi }: {
   c: ConNgan; canhBao: CanhBao[]; luat: Luat | null; choi: PhienDang[]; mayTt: TuanThuMay[]; xem: boolean; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void;
   viec: ViecCho[] | null; anMung: AnMung; vi: RefObject<React.ComponentRef<typeof View> | null>; stVi: StyleVi;
 }) {
@@ -218,7 +226,7 @@ function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung
         xong={(chu, hoan) => { giat(); setVuaKhoa(true); bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
     </>
   );
-}
+});
 
 /** Một ô tính năng trên trang chủ: icon, tên, tình trạng hiện tại; chạm là sang màn của tính năng đó. */
 function OTinhNang({ tieu, phu, ic, mau, di, nhan }: { tieu: string; phu: string; ic: TenIcon; mau: MauBt; di: string; nhan?: string }) {

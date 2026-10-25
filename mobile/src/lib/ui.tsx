@@ -2,7 +2,7 @@
 // bong bóng thoại, nút (1 nút đặc mỗi màn · vien · ma · huy · vang), thẻ, danh sách nhóm, ô chọn, thanh chọn một, chip, báo, tiến độ.
 // Khung trạng thái chung (đang tải / trống / lỗi / mất mạng) + tải dữ liệu, thao tác ghi, hoàn tác chép mẫu của AiiControl.
 // Chuẩn: TIEU-CHUAN-GIAO-DIEN.md (WCAG 2.2 + Material 3) — nhãn nút một dòng, chạm ≥ 44, chữ không đè mascot.
-import React, { Children, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import React, { Children, memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type TextInputProps, type ViewStyle,
   useWindowDimensions,
@@ -11,7 +11,7 @@ import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeIn, FadeOut, FadeOutDown, useReducedMotion } from "react-native-reanimated";
-import { SvgXml } from "react-native-svg";
+import { parse, SvgAst } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ICON from "./icon.json";
 import { BO, F, M } from "./mau";
@@ -19,7 +19,7 @@ import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
 import { ThanhClay } from "./bieu-do";
-import { LoiApi } from "./api";
+import { bm, LoiApi } from "./api";
 
 export { M, F, BO };
 export { LopMen, NhanMen, Vao } from "./chuyen-dong";
@@ -46,17 +46,30 @@ export function Chu({ children, kieu = "thuong", co = 15, mau = M.chu, style, so
   );
 }
 
-/** Icon ĐẶC đơn giản (Phosphor Fill / Bold 2.1.1, MIT — icon.json) cho thanh tab, mũi tên, dấu cộng, chữ đi kèm. */
-export function Icon({ ten, mau = M.chu2, co = 20 }: { ten: TenIcon; mau?: string; co?: number }) {
-  const xml = `<svg viewBox="0 0 256 256" fill="${mau}">${ICON[ten]}</svg>`;
-  return <SvgXml xml={xml} width={co} height={co} />;
-}
+/** Cây SVG đã phân tích của mỗi cặp (icon, màu): SvgXml phân tích lại chuỗi XML ở MỖI lần gắn (hàng chục icon mỗi màn, mỗi lần mở màn)
+ *  — phân tích một lần rồi dùng lại, hình vẽ y hệt. Số cặp hữu hạn (≈ 60 icon × vài màu token). */
+const CAY_ICON = new Map<string, ReturnType<typeof parse>>();
+const cayIcon = (xml: string) => {
+  let c = CAY_ICON.get(xml);
+  if (c === undefined) {
+    try { c = parse(xml); } catch { c = null; }       // như SvgXml: chuỗi hỏng ⇒ không vẽ icon, không sập màn
+    CAY_ICON.set(xml, c);
+  }
+  return c;
+};
 
+/** Icon ĐẶC đơn giản (Phosphor Fill / Bold 2.1.1, MIT — icon.json) cho thanh tab, mũi tên, dấu cộng, chữ đi kèm. */
+export const Icon = memo(function Icon({ ten, mau = M.chu2, co = 20 }: { ten: TenIcon; mau?: string; co?: number }) {
+  return <SvgAst ast={cayIcon(`<svg viewBox="0 0 256 256" fill="${mau}">${ICON[ten]}</svg>`)} override={{ width: co, height: co }} />;
+});
+
+// Ảnh gói trong app (icon 3D, Rob): cachePolicy «memory-disk» ⇒ màn mới dựng (tab trượt vào, màn con) lấy ảnh đã giải mã trong bộ nhớ,
+// không hiện ô trống một nhịp rồi ảnh mới «bụp» ra.
 /** Icon minh hoạ 3D (Fluent Emoji 3D, assets/icon3d) — dùng trong viên clay. Tên chưa có bản 3D ⇒ icon đặc màu `mau`. */
-export function Icon3D({ ten, co = 26, mau = M.chu2 }: { ten: TenIcon; co?: number; mau?: string }) {
+export const Icon3D = memo(function Icon3D({ ten, co = 26, mau = M.chu2 }: { ten: TenIcon; co?: number; mau?: string }) {
   if (!co3D(ten)) return <Icon ten={ten} co={co * 0.85} mau={mau} />;
-  return <Image source={ICON_3D[ten]} style={{ width: co, height: co }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
-}
+  return <Image cachePolicy="memory-disk" source={ICON_3D[ten]} style={{ width: co, height: co }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
+});
 
 const LV = {
   "canh-cac-con": require("../../assets/linh-vat/canh-cac-con.webp"), "canh-diem": require("../../assets/linh-vat/canh-diem.webp"),
@@ -68,9 +81,9 @@ const LV = {
 } as const;
 export type LinhVat = keyof typeof LV;
 
-export const Rob = ({ ten, co = 72 }: { ten: LinhVat; co?: number }) => (
-  <Image source={LV[ten]} style={{ width: co, height: co }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-);
+export const Rob = memo(function Rob({ ten, co = 72 }: { ten: LinhVat; co?: number }) {
+  return <Image cachePolicy="memory-disk" source={LV[ten]} style={{ width: co, height: co }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
+});
 
 const MAU_CANH = { xanh: M.chinhSoft, vang: "#ffeab0", hong: "#fde3dc", tim: M.timSoft, xam: "#ecece8" } as const;
 export type MauCanh = keyof typeof MAU_CANH;
@@ -90,7 +103,7 @@ export function Canh({ lv, tieu, loi, mau = "xanh", thap, children }: { lv: Linh
         {to ? null : <View style={s.duoiBong} />}
       </View>
       <View pointerEvents="none" style={to ? { alignSelf: "flex-end", width: 96, height: 96, marginTop: 6, marginBottom: -30 } : [s.canhRob, { width: thap ? "42%" : "50%", maxWidth: thap ? 160 : 200 }]}>
-        <Image source={LV[lv]} style={{ width: "100%", height: "100%" }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+        <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: "100%", height: "100%" }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       </View>
     </View>
   );
@@ -100,7 +113,7 @@ export function Canh({ lv, tieu, loi, mau = "xanh", thap, children }: { lv: Linh
 export function CanhGiua({ lv, tieu, loi, children }: { lv: LinhVat; tieu: string; loi?: string; children?: ReactNode }) {
   return (
     <View style={{ flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 8, paddingHorizontal: 12 }}>
-      <Image source={LV[lv]} style={{ width: "62%", maxWidth: 260, aspectRatio: 1 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: "62%", maxWidth: 260, aspectRatio: 1 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       <View style={[s.bong, { maxWidth: 310, alignItems: "center", paddingHorizontal: 18 }]}>
         <Chu kieu="rat" co={20} style={{ textAlign: "center" }}>{tieu}</Chu>
         {loi ? <Chu co={15} mau={M.chu2} style={{ marginTop: 4, textAlign: "center" }}>{loi}</Chu> : null}
@@ -154,10 +167,11 @@ export const HaiNut = ({ children }: { children: ReactNode }) => <View style={{ 
  *  `dem` giữ lại cho chỗ gọi cũ (cũng là 16). Lỗi TestFlight build 6: thẻ máy / app mới quên `dem` ⇒ chữ, icon, nút dính mép trái thẻ. */
 export function The({ children, dem, sat, style, thu }: { children: ReactNode; dem?: boolean; sat?: boolean; style?: ViewStyle; thu?: number }) {
   const giam = useReducedMotion();
+  const vao = useMemo(() => (thu === undefined ? undefined : vaoLanLuot(thu, giam)), [thu, giam]);
   const bo = (style?.borderRadius as number | undefined) ?? BO_CLAY.the;
   const le = sat ? null : s.theLe;
   return thu === undefined ? <View style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</View>
-    : <Animated.View entering={vaoLanLuot(thu, giam)} style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</Animated.View>;
+    : <Animated.View entering={vao} style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</Animated.View>;
 }
 
 type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
@@ -165,13 +179,15 @@ const MAU_NHAN: Record<LoaiNhan, [string, string]> = {
   ok: [M.chinhSoft, M.chinhInk], canh: [M.canhSoft, M.canh], loi: [M.loiSoft, M.loi], xam: [M.xamSoft, M.chu2], lam: [M.lamSoft, M.lam],
   diem: [M.diemSoft, M.diemInk], tim: [M.timSoft, "#4b3cc4"],
 };
-export const Nhan = ({ chu, loai = "ok", cham, ic }: { chu: string; loai?: LoaiNhan; cham?: boolean; ic?: TenIcon }) => (
-  <View style={[s.nhan, { backgroundColor: MAU_NHAN[loai][0] }, KHOI.nho]}>
-    {cham ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MAU_NHAN[loai][1] }} /> : null}
-    {ic ? <Icon ten={ic} mau={MAU_NHAN[loai][1]} co={14} /> : null}
-    <Text numberOfLines={1} ellipsizeMode="tail" style={{ flexShrink: 1, fontFamily: F.rat, fontSize: 12.5, color: MAU_NHAN[loai][1], lineHeight: 18 }}>{chu}</Text>
-  </View>
-);
+export const Nhan = memo(function Nhan({ chu, loai = "ok", cham, ic }: { chu: string; loai?: LoaiNhan; cham?: boolean; ic?: TenIcon }) {
+  return (
+    <View style={[s.nhan, { backgroundColor: MAU_NHAN[loai][0] }, KHOI.nho]}>
+      {cham ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MAU_NHAN[loai][1] }} /> : null}
+      {ic ? <Icon ten={ic} mau={MAU_NHAN[loai][1]} co={14} /> : null}
+      <Text numberOfLines={1} ellipsizeMode="tail" style={{ flexShrink: 1, fontFamily: F.rat, fontSize: 12.5, color: MAU_NHAN[loai][1], lineHeight: 18 }}>{chu}</Text>
+    </View>
+  );
+});
 
 export const DiemPill = ({ n }: { n: number }) => (
   <View style={s.diemPill}>
@@ -184,14 +200,14 @@ export const DiemPill = ({ n }: { n: number }) => (
 const MAU_BT = { xanh: [M.chinhSoft, M.chinhInk], vang: [M.diemSoft, M.diemInk], do: [M.loiSoft, M.loi], cam: [M.canhSoft, M.canh], lam: [M.lamSoft, M.lam], tim: [M.timSoft, "#4b3cc4"], xam: [M.xamSoft, M.chu2] } as const;
 export type MauBt = keyof typeof MAU_BT;
 /** Viên clay tròn chứa icon minh hoạ 3D (Fluent Emoji). `co` tuỳ chọn cho viên to hơn (ô lớn màn Con). */
-export const BieuTron = ({ ic, mau = "xanh", lon, co }: { ic: TenIcon; mau?: MauBt; lon?: boolean; co?: number }) => {
+export const BieuTron = memo(function BieuTron({ ic, mau = "xanh", lon, co }: { ic: TenIcon; mau?: MauBt; lon?: boolean; co?: number }) {
   const d = co ?? (lon ? 56 : 44);
   return (
     <View style={[s.bieuTron, { width: d, height: d, borderRadius: d / 2, backgroundColor: MAU_BT[mau][0], backgroundImage: mau === "xam" ? MEN.sang : MEN.vien }, KHOI.nho]}>
       <Icon3D ten={ic} co={Math.round(d * 0.6)} mau={MAU_BT[mau][1]} />
     </View>
   );
-};
+});
 
 /** Chữ trên nền màu: trắng hay chữ đậm — chọn bên tương phản cao hơn (WCAG 1.4.3). */
 const doSang = (hex: string) => {
@@ -204,12 +220,14 @@ export const chuTren = (nen: string) => {
   return 1.05 / (l + 0.05) >= (l + 0.05) / (doSang(M.chu) + 0.05) ? "#ffffff" : M.chu;
 };
 export const MAU_CON = ["#c2410c", "#4b6bdc", "#0f6b5c", "#6c5ce7", "#b45309", "#be185d"];
-export const Avt = ({ ten, mau = MAU_CON[0], co = 44 }: { ten: string; mau?: string; co?: number }) => (
-  <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center",
-    boxShadow: "inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.25), 0px 2px 4px -1px rgba(0,0,0,0.25)" }}>
-    <Chu kieu="rat" mau={chuTren(mau)} co={co * 0.41}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
-  </View>
-);
+export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44 }: { ten: string; mau?: string; co?: number }) {
+  return (
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center",
+      boxShadow: "inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.25), 0px 2px 4px -1px rgba(0,0,0,0.25)" }}>
+      <Chu kieu="rat" mau={chuTren(mau)} co={co * 0.41}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
+    </View>
+  );
+});
 
 // ---------------------------------------------------------------- danh sách, ô chọn
 
@@ -388,12 +406,23 @@ export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string
 const NEN = { bm: [M.dauBaMe, M.nen], nhi: [M.dauNhi, M.nen], teen: [M.dauTeen, "#fbfbfd"] } as const;
 
 /** Khung một màn (kit.man): nền gradient đầu màn, đầu (lùi / tiêu đề / bên phải) hoặc tiêu đề lớn, thân cuộn, nút dính đáy, nút chat nổi. */
-export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, dau, day, tai, dangTai, chat, noi, khongCuon, cuonCuoi }: {
+export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, dau, day, tai, vongTai, chat, noi, khongCuon, cuonCuoi }: {
   children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string; bam?: () => void }; tieu?: string; tieuLon?: string; phai?: ReactNode;
   /** nút nhỏ (≤ 2, vd chuông) đứng cùng hàng tiêu đề lớn, bên phải (không có tiêu đề lớn ⇒ góc phải thanh đầu) */ phaiTieu?: ReactNode;
-  dau?: ReactNode; day?: ReactNode; tai?: () => void; dangTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
+  dau?: ReactNode; day?: ReactNode; tai?: () => unknown; /** kéo xuống để tải lại có vòng quay tới khi tải xong */ vongTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
 }) {
   const cuon = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  // Vòng quay «kéo để tải lại» CHỈ hiện khi Ba Mẹ kéo (tới khi lần tải đó xong): trước đây `refreshing` bám trạng thái tải của màn nên
+  // lần tải lại tự động mỗi khi mở lại màn (đổi tab) cũng bật vòng quay ⇒ iOS đẩy nội dung xuống rồi kéo lên — màn giật / chớp mỗi lần chuyển tab,
+  // và cả màn vẽ lại hai lần chỉ để bật / tắt vòng quay.
+  const [keo, setKeo] = useState(false);
+  const conMo = useRef(true);
+  useEffect(() => { conMo.current = true; return () => { conMo.current = false; }; }, []);
+  const keoTai = useCallback(async () => {
+    if (!vongTai) { tai?.(); return; }
+    setKeo(true);
+    try { await tai?.(); } finally { if (conMo.current) setKeo(false); }
+  }, [tai, vongTai]);
   useEffect(() => {      // bàn phím mở ⇒ khung co lại: cuộn lại tới tin mới nhất
     if (!cuonCuoi) return;
     const sk = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setTimeout(() => cuon.current?.scrollToEnd({ animated: true }), 60));
@@ -440,7 +469,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
       {khongCuon ? <View style={[s.than, { flex: 1 }]}>{than}</View> : (
         <ScrollView ref={cuon} contentContainerStyle={s.than} keyboardShouldPersistTaps="handled"
           onContentSizeChange={cuonCuoi ? () => cuon.current?.scrollToEnd({ animated: true }) : undefined}
-          refreshControl={tai ? <RefreshControl refreshing={!!dangTai} onRefresh={tai} tintColor={M.chinh} /> : undefined}>
+          refreshControl={tai ? <RefreshControl refreshing={keo} onRefresh={keoTai} tintColor={M.chinh} /> : undefined}>
           {than}
         </ScrollView>
       )}
@@ -483,7 +512,7 @@ export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t:
 function NutChat() {
   return (
     <NhanMen onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Chat với AiiLab" muc="chip" sang style={s.chat}>
-      <View style={s.chatMat}><Image source={LV["rob-goc"]} style={{ width: 62, height: 62, marginTop: -1 }} contentFit="cover" contentPosition="top" /></View>
+      <View style={s.chatMat}><Image cachePolicy="memory-disk" source={LV["rob-goc"]} style={{ width: 62, height: 62, marginTop: -1 }} contentFit="cover" contentPosition="top" /></View>
       <View style={s.chatCham} />
     </NhanMen>
   );
@@ -544,24 +573,45 @@ export const BaoLoi = ({ loi }: { loi?: string | null }) => (loi ? <Bao loai="lo
 
 const CHO_MANG_MS = 5000;
 
-/** Tải dữ liệu mỗi lần màn được mở lại. Mất mạng ⇒ `matMang`, tự tải lại mỗi 5 giây khi màn còn mở. */
-export function useTai<T>(fn: () => Promise<T>) {
-  const [d, setD] = useState<T | null>(null);
+/** Dữ liệu đã tải của các màn có `khoa` (tab Ba Mẹ): mở tab lần đầu là có nội dung ngay (đã nạp trước — app/(tab)/_layout.tsx), không chớp
+ *  khung xương; màn vẫn tải lại khi mở như thường. Chỉ dùng bản ≤ 60 giây; quên sạch khi đổi phiên hoặc vừa ghi gì (api › khiDoi) — lời tải
+ *  bắt đầu trước lúc quên thì không ghi vào (`doi` khác) ⇒ không hiện dữ liệu của tài khoản trước / việc đã xử lý. */
+const DA_TAI = new Map<string, { v: unknown; j: string; luc: number }>();
+const TUOI_DA_TAI = 60_000;
+let doiDaTai = 0;
+bm.khiDoi(() => { doiDaTai++; DA_TAI.clear(); });
+const ghiDaTai = (khoa: string, doi: number, v: unknown, j: string | undefined) => { if (j !== undefined && doi === doiDaTai) DA_TAI.set(khoa, { v, j, luc: Date.now() }); };
+const docDaTai = (khoa?: string) => { const x = khoa ? DA_TAI.get(khoa) : undefined; return x && Date.now() - x.luc < TUOI_DA_TAI ? x : undefined; };
+/** Nạp trước dữ liệu của một màn có `khoa` (lỗi thì thôi — màn tự tải lại khi mở). */
+export const napTruoc = (khoa: string, fn: () => Promise<unknown>) => {
+  const doi = doiDaTai;
+  return fn().then((v) => ghiDaTai(khoa, doi, v, JSON.stringify(v)), () => {});
+};
+
+/** Tải dữ liệu mỗi lần màn được mở lại. Mất mạng ⇒ `matMang`, tự tải lại mỗi 5 giây khi màn còn mở. `khoa`: nhớ dữ liệu giữa các lần dựng màn. */
+export function useTai<T>(fn: () => Promise<T>, khoa?: string) {
+  const [d, setD0] = useState<T | null>(() => (docDaTai(khoa)?.v as T | undefined) ?? null);
+  // Mỗi lần màn được mở lại đều tải lại; dữ liệu về Y HỆT lần trước (so JSON) thì giữ nguyên đối tượng cũ ⇒ không vẽ lại cả màn
+  // (đổi tab, quay về từ màn con). Màn tự đặt dữ liệu (setD) ⇒ quên mốc so, lần tải sau luôn đặt lại theo máy chủ.
+  const moc = useRef<string | undefined>(docDaTai(khoa)?.j);
+  const lanTai = useRef(0);
+  const setD = useCallback((v: React.SetStateAction<T | null>) => { moc.current = undefined; setD0(v); }, []);
   const [loi, setLoi] = useState<string | null>(null);
   const [matMang, setMatMang] = useState(false);
-  const [dangTai, setDangTai] = useState(false);
+  // (không còn cờ «đang tải» trong state: vòng quay kéo-tải-lại do Man tự giữ — bật / tắt cờ mỗi lần tải là hai lần vẽ lại cả màn)
   const tai = useCallback(async () => {
-    setDangTai(true);
+    const doi = doiDaTai, lan = ++lanTai.current;
     try {
-      setD(await fn());
+      const v = await fn(), j = JSON.stringify(v);
+      if (lan !== lanTai.current) return;               // đã có lần tải mới hơn (vd sau khi ghi) ⇒ bỏ kết quả cũ, không đè
+      if (j === undefined || j !== moc.current) { moc.current = j; setD0(v); }
+      if (khoa) ghiDaTai(khoa, doi, v, j);
       setLoi(null);
       setMatMang(false);
     } catch (e) {
       const mm = laMatMang(e);
       setMatMang(mm);
       setLoi(mm ? "Mất kết nối mạng — AiiGrow tự tải lại khi có mạng. Kiểm tra Wi‑Fi hoặc 4G." : cauLoi(e));
-    } finally {
-      setDangTai(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -571,7 +621,7 @@ export function useTai<T>(fn: () => Promise<T>) {
     const t = setInterval(tai, CHO_MANG_MS);
     return () => clearInterval(t);
   }, [matMang, tai]));
-  return { d, loi, matMang, tai, dangTai, setD };
+  return { d, loi, matMang, tai, setD };
 }
 
 /** Một thao tác ghi: trạng thái đang chạy + lỗi hiện ngay dưới form. `hangDoi` CHỈ cho thao tác đặt trạng thái (gửi lại cùng kết quả). */

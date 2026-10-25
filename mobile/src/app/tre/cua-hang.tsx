@@ -12,7 +12,7 @@ const HINH_QUA: Record<QuaTre["loai"], [LinhVat, string]> = {
 
 export default function CuaHang() {
   const { ten, nhom } = useTre();
-  const { d, loi, matMang, tai, dangTai, cu } = useTaiTre("cua-hang", async () => {
+  const { d, loi, matMang, tai, cu } = useTaiTre("cua-hang", async () => {
     const [ch, nha, tc] = await Promise.all([kid.goi<{ soDu: number; qua: QuaTre[] }>("cua-hang"), kid.goi<NhaTre>("nha"), kid.goi<{ ds: TroChoi[] }>("tro-choi")]);
     return { ch, nha, tc: tc.ds };
   });
@@ -30,7 +30,7 @@ export default function CuaHang() {
     );
   }
   return (
-    <ManTre tab="cua-hang" tai={tai} dangTai={dangTai}>
+    <ManTre tab="cua-hang" tai={tai} vongTai>
       <DiemTren n={d.ch.soDu} chuoi={d.nha.chuoiNgay} />
       {matMang || cu ? <BangMang chu={`Mất mạng — xem được quà nhưng chưa đổi được; điểm của ${ten} không bị trừ.`} /> : null}
       <Canh lv="qua" mau="vang" tieu={`${ten} đổi gì nào?`} loi="Đủ điểm thì nút sáng lên!" thap />
