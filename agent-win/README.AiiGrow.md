@@ -97,6 +97,7 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
   Màu theo token `mobile/src/lib/mau.ts`. Màn khoá / màn chặn toàn màn hình không đổi.
 
 ## Giao diện «Clay gương» (24/10/2026)
+Phát hành ở bản **0.2.7** (25/10/2026).
 Khay, app to, màn chặn, màn khoá và bộ cài vẽ theo `docs/THIET-KE-CLAY.md` bằng GDI+ (`src/AiiGrow.Tray/Clay.cs`, bộ cài link cùng tệp):
 nút/thẻ bo lớn, bóng kép, men bóng; nhấn = bẹp rồi nảy lò xo + vệt men lướt; Windows tắt «Hiệu ứng hoạt hình» ⇒ không scale, không vệt.
 Icon minh hoạ = Fluent Emoji 3D của Microsoft (`microsoft/fluentui-emoji`, commit `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`, giấy phép MIT —
