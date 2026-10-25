@@ -10,7 +10,9 @@ export const chuanHoaTen = (v: string) => v.normalize("NFC").trim().replace(/\s+
 export const LINK_TAI = "https://aiigrow.aiilab.vn/tai";
 
 const kho = (khoa: string) => ({
-  doc: () => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.getItem(khoa) ?? null) : SecureStore.getItemAsync(khoa)),
+  // đọc khoá máy lỗi (mục hỏng, thiếu quyền keychain) ⇒ coi như chưa có token, xoá mục hỏng — không để lời nạp phiên treo màn trắng
+  doc: () => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.getItem(khoa) ?? null)
+    : SecureStore.getItemAsync(khoa).catch(() => { SecureStore.deleteItemAsync(khoa).catch(() => {}); return null; })),
   ghi: (v: string) => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.setItem(khoa, v)) : SecureStore.setItemAsync(khoa, v)),
   xoa: () => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.removeItem(khoa)) : SecureStore.deleteItemAsync(khoa)),
 });

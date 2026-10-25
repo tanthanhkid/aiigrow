@@ -673,9 +673,15 @@ await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / 
 await kichBan("Đổi tab qua lại ×3 rồi về Trang chủ ⇒ vẫn bấm được + cuộn được (TestFlight build 10: Trang chủ đứng)", async () => {
   await di("/hom-nay");
   xet(await doi("việc chờ Ba Mẹ"), "Trang chủ đã tải");
+  // màn đang mở = tiêu đề lớn của tab nằm đúng lề trái (màn khác vẫn gắn nhưng trượt ra ngoài)
+  // (lỗi gốc chỉ có ở bản native — react-native-screens + native driver; web không tái hiện được, kịch bản này giữ hành vi đổi tab ở web.
+  //  Bản native kiểm tay trên Simulator Release: đổi tab ×3 về Trang chủ ⇒ bấm + cuộn được.)
   const tab = (t) => `[role="tab"][aria-label^="${t}"]`;
-  for (let r = 0; r < 3; r++) for (const t of ["Chờ duyệt", "Nhiệm vụ & quà", "Gia đình", "Trang chủ"]) { await bamChon(tab(t)); await sleep(450); }
-  xet(await doi("việc chờ Ba Mẹ"), "về lại Trang chủ");
+  const dangMo = async (t) => { for (const het = Date.now() + 4000; Date.now() < het;) { if (await js(`[...document.querySelectorAll('[role="heading"]')].some((e) => e.innerText?.trim() === ${JSON.stringify(t)} && Math.abs(e.getBoundingClientRect().left - 20) < 6)`)) return true; await sleep(100); } return false; };
+  let du = true;
+  for (let r = 0; r < 3; r++) for (const t of ["Chờ duyệt", "Nhiệm vụ & quà", "Gia đình", "Trang chủ"]) { await bamChon(tab(t)); du = (await dangMo(t)) && du; await sleep(350); }
+  xet(du, "mỗi lần bấm tab đều mở đúng tab (12 lần)");
+  xet(await dangMo("Trang chủ"), "về lại Trang chủ (tiêu đề Trang chủ đứng đúng chỗ, không trượt dở)");
   // bấm: điểm giữa chip «Bill» phải là chính nó (không bị màn tab khác trong suốt đè lên) và bấm thì đổi Con
   const chip = `() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText?.trim().endsWith(${JSON.stringify(BILL)}))`;
   const r = await viTriYen(chip);
