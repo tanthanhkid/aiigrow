@@ -51,6 +51,8 @@ internal sealed class AppForm : Form
     private int _cw, _tw, _lastW;
     private string _sig = "";
     private Label? _bigLbl, _capLbl;
+    private Control? _dungCard;      // thẻ «Đã dùng hôm nay» — thay tại chỗ khi số phút đổi (không vẽ lại cả trang mỗi phút)
+    private string _dungSig = "";
 
     /// <summary>Con bấm «Xin mở trang hoặc app» (khay mở cửa sổ dùng chung).</summary>
     public event Action? XinMoClicked;
@@ -217,8 +219,9 @@ internal sealed class AppForm : Form
             if (dau != null && Visible) _ = LamMoiPhutChoiAsync();
         }
         ApplyKetNoiUi();
-        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{(_muc == MucApp.HomNay ? string.Join(',', _s.DungTheoApp.Select(x => x.AppId + ":" + x.Phut)) : "")}";
+        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.DungTheoApp.Count > 0}";
         if (sig != _sig) { _sig = sig; Render(); }
+        else CapNhatDungHomNay();
     }
 
     private void ApplyKetNoiUi()
@@ -352,6 +355,7 @@ internal sealed class AppForm : Form
         _content.SuspendLayout();
         foreach (var c in _content.Controls.Cast<Control>().ToList()) { _content.Controls.Remove(c); c.Dispose(); }
         _bigLbl = _capLbl = null;
+        _dungCard = null;
         switch (_muc)
         {
             case MucApp.HomNay: _title.Text = "Hôm nay"; RenderHomNay(); break;
@@ -465,7 +469,7 @@ internal sealed class AppForm : Form
             }
 
             // Đã dùng hôm nay theo app (dịch vụ đếm theo app tiền cảnh — cùng số gửi máy chủ). Chưa có app nào ≥1 phút thì không hiện thẻ.
-            if (_s.DungTheoApp.Count > 0) _content.Controls.Add(DungHomNayCard());
+            if (_s.DungTheoApp.Count > 0) { _dungCard = DungHomNayCard(); _content.Controls.Add(_dungCard); }
 
             // #70 §1: Ba Mẹ cần máy ⇒ chuyển người dùng (khoá phiên), không đăng xuất, không trừ điểm.
             var bm = Card();
@@ -509,8 +513,26 @@ internal sealed class AppForm : Form
         }
     }
 
+    private static string DungSig(TrayState s) => string.Join(',', s.DungTheoApp.Select(x => x.AppId + ":" + x.Phut));
+
+    /// <summary>Số phút theo app đổi (mỗi phút) ⇒ chỉ thay thẻ «Đã dùng hôm nay» tại đúng vị trí, giữ cuộn + tiêu điểm của trang.</summary>
+    private void CapNhatDungHomNay()
+    {
+        if (_dungCard == null || _dungCard.IsDisposed || _muc != MucApp.HomNay || DungSig(_s) == _dungSig) return;
+        var i = _content.Controls.GetChildIndex(_dungCard);
+        var moi = DungHomNayCard();
+        _content.SuspendLayout();
+        _content.Controls.Add(moi);
+        _content.Controls.SetChildIndex(moi, i);
+        _content.Controls.Remove(_dungCard);
+        _dungCard.Dispose();
+        _dungCard = moi;
+        _content.ResumeLayout(true);
+    }
+
     private Control DungHomNayCard()
     {
+        _dungSig = DungSig(_s);
         var c = Card();
         var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(4)) };
         dau.Controls.Add(new ClayIcon { Size = new Size(Px(44), Px(44)), MauVien = UI.GreenSoft, Hinh = UI.Fluent("bar_chart"), Margin = new Padding(0, 0, Px(10), 0) });

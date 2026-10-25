@@ -32,6 +32,14 @@ public sealed class UsageTracker
         }
     }
 
+    /// <summary>Tên chỉ là tên tiến trình (không mô tả tệp — vd «RobloxPlayerBeta») ⇒ dùng tên đẹp của định danh (TenDepApp: «Roblox»).</summary>
+    private static string TenDep(string id, string? ten)
+    {
+        var goc = id.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? id[..^4] : id;
+        return string.IsNullOrWhiteSpace(ten) || string.Equals(ten, goc, StringComparison.OrdinalIgnoreCase) || string.Equals(ten, id, StringComparison.OrdinalIgnoreCase)
+            ? TrayView.FriendlyAppName(id, null) : ten;
+    }
+
     /// <summary>Phút đã dùng hôm nay theo app, nhiều nhất trước (bỏ «không rõ» và app dưới 1 phút), tối đa <paramref name="toiDa"/> dòng.</summary>
     public List<DungApp> DungHomNay(DateTimeOffset localNow, int toiDa = 8)
     {
@@ -41,7 +49,7 @@ public sealed class UsageTracker
             if (ngay != _ngayHomNay) return new List<DungApp>();
             return _homNay.Where(x => x.Key != KhongRo && x.Value.Sec >= 60)
                 .OrderByDescending(x => x.Value.Sec).ThenBy(x => x.Key, StringComparer.Ordinal).Take(Math.Max(0, toiDa))
-                .Select(x => new DungApp { AppId = x.Key, Ten = TrayView.FriendlyAppName(x.Key, x.Value.Name == x.Key ? null : x.Value.Name), Phut = (int)(x.Value.Sec / 60) })
+                .Select(x => new DungApp { AppId = x.Key, Ten = TenDep(x.Key, x.Value.Name), Phut = (int)(x.Value.Sec / 60) })
                 .ToList();
         }
     }

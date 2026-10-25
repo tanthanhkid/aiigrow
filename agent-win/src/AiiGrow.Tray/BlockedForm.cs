@@ -73,7 +73,7 @@ internal sealed class BlockedForm : Form
 
         // «Xin mở hẳn app này»: lời xin cai_app với định danh thật (roblox.exe…) — Ba Mẹ đồng ý là máy chủ đặt luật cho đúng app đó (như Mac XinMoView).
         // Công cụ của Windows (cmd, taskmgr…) không mời xin mở.
-        if (BlockScreenView.CanAskOpen(appId, reason))
+        if (BlockScreenView.CanAskOpen(appId, reason) && !offline)   // mất mạng: lời xin không tới được — giữ màn chặn với ô mã offline
         {
             var xinMo = UI.Btn(BlockScreenView.AskOpenLabel, false, UI.Px(340), "puzzle_piece");
             // khay mở cửa sổ «Xin mở» (một bản cho cả khay) rồi màn chặn đóng — không lồng hộp thoại trong màn chặn mà khay có thể huỷ bất cứ lúc nào

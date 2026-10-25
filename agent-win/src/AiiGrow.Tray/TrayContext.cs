@@ -226,7 +226,7 @@ internal sealed class TrayContext : ApplicationContext
     /// không mất lời xin, không gửi trùng). <paramref name="loai"/> / <paramref name="muc"/>: màn chặn điền sẵn app vừa bị đóng (chỉ khi chưa có cửa sổ).</summary>
     private void OpenXinMo(string loai = LoaiXin.MoWeb, string? muc = null)
     {
-        if (_xinMo is { IsDisposed: false }) { _xinMo.Activate(); return; }
+        if (_xinMo is { IsDisposed: false }) { if (muc != null) _xinMo.DienSan(loai, muc); _xinMo.Activate(); return; }
         _xinMo = new XinMoForm(loai, muc);
         _xinMo.FormClosed += (_, _) => { _xinMo?.Dispose(); _xinMo = null; };
         _xinMo.Show();

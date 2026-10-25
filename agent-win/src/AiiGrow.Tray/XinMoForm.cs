@@ -78,6 +78,15 @@ internal sealed class XinMoForm : Form
         DoiLoai();
     }
 
+    /// <summary>Cửa sổ đang mở mà màn chặn xin mở một app: điền app đó nếu chưa gửi lời xin nào (đang chờ Ba Mẹ thì giữ nguyên).</summary>
+    public void DienSan(string loai, string? muc)
+    {
+        if (_pendingId != null || _busy || string.IsNullOrWhiteSpace(muc)) return;
+        foreach (var c in _chip) c.Checked = (string)c.Tag! == loai;
+        _muc.Text = muc.Trim();
+        _msg.Text = "";
+    }
+
     private string Loai => _chip.FirstOrDefault(c => c.Checked)?.Tag as string ?? LoaiXin.MoWeb;
 
     private void DoiLoai()
@@ -93,6 +102,8 @@ internal sealed class XinMoForm : Form
         _icon.Hinh = UI.Fluent(web ? "globe_with_meridians" : "puzzle_piece");
         if (cu != null && cu != _icon.Hinh) _icon.DongSap(cu);
         _muc.PlaceholderText = XinMoView.GoiY(Loai);
+        // định danh exe (màn chặn điền sẵn) không phải địa chỉ trang ⇒ đổi sang «Trang web» thì xoá, Con gõ địa chỉ
+        if (web && _muc.Text.Trim().EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) _muc.Text = "";
         CapNhatNut();
     }
 
