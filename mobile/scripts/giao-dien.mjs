@@ -7,6 +7,8 @@
 //   TRAN        WCAG 1.4.10: 320px không cuộn ngang; chữ không vượt khung có nền/viền.
 //   LE-THE      Chữ / ảnh nhỏ / nút trong thẻ clay cách mép trái-phải thẻ (lề 16): nút / ảnh ≥ 15.5, dòng chữ ≥ 12 (web đo dòng theo
 //               font dự phòng nên lố 1–4px). Không đo ở lượt giãn chữ. TestFlight build 6: nội dung dính mép thẻ.
+//   NUT-TRAN    Thanh 25/10 «chữ dài bị hỏng nút»: chữ trong nút không ló khỏi khung nút (trừ khi cắt gọn «…»), không cắt nửa dòng,
+//               nút không tràn khỏi thẻ / màn. pha.mjs chạy thêm một lượt dữ liệu chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự).
 //   GIAN-CHU    WCAG 1.4.12: ép giãn dòng 1.5×, đoạn 2×, chữ 0.12em, từ 0.16em — ba luật sau vẫn phải đạt.
 // Khác bản gốc cho React Native Web: nút = phần tử role=button/tab/link (Pressable), ảnh = <img> (expo-image) + svg lớn.
 
@@ -74,6 +76,36 @@ export const DO = String.raw`(() => {
         break; } }
   }
   if (!cuoi && document.documentElement.scrollWidth > innerWidth + 1) L.push({luat:'TRAN', chu:'(cả trang)', el:'html', rong: document.documentElement.scrollWidth});
+  // 5. NUT-TRAN (Thanh 25/10 «chữ dài bị hỏng nút»): tên con / tên máy / tên miền dài không được làm vỡ nút.
+  //    (a) chữ trong nút không ló ra ngoài khung nút (trừ khi bị cắt gọn «…» bởi chính khung chữ), (b) chữ không bị cắt NỬA dòng theo
+  //    chiều dọc, (c) nút không tràn ra ngoài thẻ chứa nó / ra ngoài màn. Nút trong vùng cuộn ngang (thanh chip trượt) được nằm ngoài màn.
+  if (!cuoi) {
+    const NUTS = 'button,[role=button],[role=tab],[role=radio],[role=checkbox],[role=switch],[role=link]';
+    const cuonNgang = e => { for (let k = e.parentElement; k && k !== document.body; k = k.parentElement) { const cs = getComputedStyle(k);
+      if (/(auto|scroll)/.test(cs.overflowX) && k.scrollWidth > k.clientWidth + 1) return true; } return false; };
+    const ngoaiMan = e => { const r = e.getBoundingClientRect(); return r.bottom < 0 || r.top > innerHeight * 4; };
+    const daNut = new Set();
+    for (const b of [...document.querySelectorAll(NUTS)].filter(hien)) {
+      if (b.parentElement?.closest(NUTS) || ngoaiMan(b) || cuonNgang(b)) continue;
+      const q = b.getBoundingClientRect(), nhan = (b.innerText || b.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 50);
+      const bao = (x) => { const k = x.loi + nhan; if (!daNut.has(k)) { daNut.add(k); L.push({ luat: 'NUT-TRAN', chu: nhan, el: ten(b), ...x }); } };
+      if (q.right > innerWidth + 1 || q.left < -1) bao({ loi: 'nút ra ngoài màn', trai: Math.round(q.left), phai: Math.round(q.right) });
+      // thẻ / khung có nền gần nhất chứa nút (không tính lớp absolute)
+      for (let k = b.parentElement; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k); if (ks.position === 'absolute') break;
+        if (parseFloat(ks.borderTopLeftRadius) >= 16 && (mau(ks.backgroundColor)[3] > 0 || ks.boxShadow !== 'none')) { const t = k.getBoundingClientRect();
+          if (q.right > t.right + 1 || q.left < t.left - 1) bao({ loi: 'nút tràn khỏi thẻ', khung: ten(k), lo: Math.round(Math.max(q.right - t.right, t.left - q.left)) }); break; } }
+      const w3 = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
+      while (w3.nextNode()) { const n = w3.currentNode; const el = n.parentElement; if (!n.textContent.trim() || !el || !hien(el)) continue;
+        // khung cắt gần nhất giữa chữ và nút (Text numberOfLines ⇒ overflow hidden + «…»)
+        let cat = null; for (let k = el; k && k !== b; k = k.parentElement) { if (getComputedStyle(k).overflow !== 'visible') { cat = k; break; } }
+        if (cat) { const cs2 = getComputedStyle(cat), lh = parseFloat(cs2.lineHeight) || parseFloat(cs2.fontSize) * 1.3;
+          // cắt nửa dòng: phần bị giấu theo chiều dọc không phải bội số dòng (một dòng lẻ bị xén ngang thân chữ)
+          const an = cat.scrollHeight - cat.clientHeight; if (an > 3 && (an % lh) > 3 && (lh - (an % lh)) > 3) bao({ loi: 'chữ bị cắt nửa dòng', an });
+          const c = cat.getBoundingClientRect(); if (c.right > q.right + 2 || c.left < q.left - 2) bao({ loi: 'khung chữ ló ra khỏi nút', lo: Math.round(Math.max(c.right - q.right, q.left - c.left)) });
+          continue; }
+        if (dongCua(n).some(r => r.right > q.right + 2 || r.left < q.left - 2 || r.bottom > q.bottom + 2 || r.top < q.top - 2)) bao({ loi: 'chữ ló ra khỏi nút' }); }
+    }
+  }
   // 6. LE-THE (TestFlight build 6: chữ / icon / nút dính sát mép thẻ): thẻ clay = khối có bóng NGOÀI (box-shadow có phần không inset),
   //    bo ≥ 20, rộng ≥ 200 — hoặc khối bấm được đủ to (≥ 140 × 90: ô tính năng, thẻ việc chờ); không tính thanh tab, báo/toast (role=alert).
   //    Chữ, ảnh nhỏ, nút trong thẻ (thẻ gần nhất chứa nó) cách mép trái/phải thẻ: nút/ảnh ≥ 15.5, dòng chữ ≥ 12.

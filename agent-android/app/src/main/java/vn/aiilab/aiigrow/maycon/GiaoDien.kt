@@ -83,6 +83,8 @@ object GiaoDien {
     /** Nút kẹo dẻo tráng men, cao 56dp (không kể bóng). Chính = than chì; `ngoc` = điểm nhấn ngọc; `phu` = nút sáng chữ ngọc. */
     fun nut(c: Context, s: String, phu: Boolean = false, ngoc: Boolean = false, onClick: (View) -> Unit) = Button(c).apply {
         text = s; isAllCaps = false; textSize = 16f
+        // chữ dài (tên con / tên máy / cỡ chữ hệ thống lớn): tối đa 2 dòng căn giữa, quá nữa thì «…» cuối — không cắt nửa chữ, không đẩy khối
+        maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; gravity = android.view.Gravity.CENTER
         setTypeface(typeface, Typeface.BOLD)
         val kieu = if (phu) Clay.Kieu.VIEN else if (ngoc) Clay.Kieu.NGOC else Clay.Kieu.THAN
         background = nenNut(c, kieu)

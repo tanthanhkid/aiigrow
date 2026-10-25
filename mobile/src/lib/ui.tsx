@@ -2,9 +2,10 @@
 // bong bóng thoại, nút (1 nút đặc mỗi màn · vien · ma · huy · vang), thẻ, danh sách nhóm, ô chọn, thanh chọn một, chip, báo, tiến độ.
 // Khung trạng thái chung (đang tải / trống / lỗi / mất mạng) + tải dữ liệu, thao tác ghi, hoàn tác chép mẫu của AiiControl.
 // Chuẩn: TIEU-CHUAN-GIAO-DIEN.md (WCAG 2.2 + Material 3) — nhãn nút một dòng, chạm ≥ 44, chữ không đè mascot.
-import React, { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import React, { Children, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View, type GestureResponderEvent, type TextInputProps, type ViewStyle,
+  useWindowDimensions,
 } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Image } from "expo-image";
@@ -26,6 +27,10 @@ export type TenIcon = keyof typeof ICON;
 // ---------------------------------------------------------------- chữ, icon, mascot
 
 type Kieu = "thuong" | "dam" | "rat";
+/** Tên miền / đường dẫn (≥ 14 ký tự, có dấu chấm, có chữ cái — không đụng số «1.000.000»): chèn chỗ bẻ dòng vô hình (U+200B) sau mỗi
+ *  dấu chấm — trong bong bóng hẹp dòng gãy ở «.» (và «-», trình duyệt / iOS tự bẻ sau gạch nối) thay vì cắt giữa chữ («scratch.mit.ed|u»). */
+export const beMien = (t: string) => t.replace(/[\p{L}\d_-]+(?:\.[\p{L}\d_-]+)+/gu, (x) => (x.length >= 14 && /\p{L}/u.test(x) ? x.replace(/\./g, ".\u200B") : x));
+const be = (c: ReactNode) => (typeof c === "string" ? beMien(c) : Array.isArray(c) ? Children.map(c, (x) => (typeof x === "string" ? beMien(x) : x)) : c);
 /** Line-height theo cỡ: ≤16 → 1.45–1.5 (dấu tiếng Việt không bị cắt), 20 → 1.25, ≥24 → 1.15. */
 export function Chu({ children, kieu = "thuong", co = 15, mau = M.chu, style, so, dong }: {
   children: ReactNode; kieu?: Kieu; co?: number; mau?: string; style?: object; so?: boolean; dong?: number;
@@ -33,7 +38,7 @@ export function Chu({ children, kieu = "thuong", co = 15, mau = M.chu, style, so
   const lh = Math.round(co * (co >= 24 ? 1.15 : co >= 18 ? 1.3 : 1.47));
   return (
     <Text numberOfLines={dong} style={[{ fontFamily: F[kieu], fontSize: co, color: mau, lineHeight: lh }, so && { fontVariant: ["tabular-nums"] }, style]}>
-      {children}
+      {be(children)}
     </Text>
   );
 }
@@ -70,16 +75,18 @@ export type MauCanh = keyof typeof MAU_CANH;
 /** CẢNH đầu màn (kit.canh): bong bóng thoại trắng (tiêu đề + 1 câu) bên trái ≤ 56%, Rob to tràn mép dưới bên phải. `children` nằm
  * TRONG bong bóng (nhãn, nút nhỏ). Rob chờm 34 dưới cảnh ⇒ cảnh có marginBottom 26 + khoảng cách cột 12 để nội dung sau không bị đè. */
 export function Canh({ lv, tieu, loi, mau = "xanh", thap, children }: { lv: LinhVat; tieu: string; loi?: string; mau?: MauCanh; thap?: boolean; children?: ReactNode }) {
+  // Cỡ chữ hệ thống lớn (≥ 130%): bong bóng 56% chỉ còn một chữ mỗi dòng, tên dài gãy giữa chữ ⇒ bong bóng rộng hết cảnh, Rob nhỏ dưới góc phải.
+  const to = useWindowDimensions().fontScale >= 1.3;
   return (
-    <View style={[s.canh, { backgroundColor: MAU_CANH[mau], minHeight: thap ? 140 : 172 }]}>
+    <View style={[s.canh, { backgroundColor: MAU_CANH[mau], minHeight: thap ? 140 : 172 }, to && { flexDirection: "column", alignItems: "stretch", minHeight: 0 }]}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
-      <View style={s.bong}>
+      <View style={[s.bong, to && { maxWidth: "100%" }]}>
         <Chu kieu="rat" co={20} style={{ letterSpacing: -0.3 }}>{tieu}</Chu>
         {loi ? <Chu co={14.5} mau={M.chu2} style={{ marginTop: 4 }}>{loi}</Chu> : null}
         {children ? <View style={{ marginTop: 8, alignItems: "flex-start" }}>{children}</View> : null}
-        <View style={s.duoiBong} />
+        {to ? null : <View style={s.duoiBong} />}
       </View>
-      <View pointerEvents="none" style={[s.canhRob, { width: thap ? "42%" : "50%", maxWidth: thap ? 160 : 200 }]}>
+      <View pointerEvents="none" style={to ? { alignSelf: "flex-end", width: 96, height: 96, marginTop: 6, marginBottom: -30 } : [s.canhRob, { width: thap ? "42%" : "50%", maxWidth: thap ? 160 : 200 }]}>
         <Image source={LV[lv]} style={{ width: "100%", height: "100%" }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       </View>
     </View>
@@ -112,6 +119,9 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
 };
 
 /** Nút (kit.nut). Nhãn MỘT dòng (Material 3): nút rộng theo chữ, thiếu chỗ thì `HaiNut` cho nút xuống hàng — không bẻ chữ.
+ *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ co tối đa
+ *  20% (adjustsFontSizeToFit — app thật) rồi «…» ở cuối; không cắt nửa chữ, không đẩy nút bên cạnh ra ngoài thẻ.
+ *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên.
  *  Nhấn = bẹp-nảy + vệt men lướt (NhanMen). Icon trên nút: bản 3D nếu `ic3d`, mặc định icon đặc cùng màu chữ. */
 export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc }: {
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
@@ -122,12 +132,13 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
   return (
     <NhanMen onPress={bam} disabled={mo} accessibilityRole="button" muc="nut" sang={m.sang || !!tat} men={tat ? undefined : m.men}
       accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
-      style={[s.nut, nho && s.nutNho, rong ? { alignSelf: "stretch" } : { flexGrow: 1 },
+      style={[s.nut, nho && s.nutNho, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
         tat ? { backgroundColor: "#dcdcd8", boxShadow: BONG.lom } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
-          <Text numberOfLines={1} style={{ flexShrink: 1, fontFamily: F.rat, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
+          <Text numberOfLines={rong ? 2 : 1} ellipsizeMode="tail" adjustsFontSizeToFit={!rong} minimumFontScale={0.8}
+            style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
         </View>
       )}
     </NhanMen>
@@ -156,7 +167,7 @@ export const Nhan = ({ chu, loai = "ok", cham, ic }: { chu: string; loai?: LoaiN
   <View style={[s.nhan, { backgroundColor: MAU_NHAN[loai][0] }, KHOI.nho]}>
     {cham ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MAU_NHAN[loai][1] }} /> : null}
     {ic ? <Icon ten={ic} mau={MAU_NHAN[loai][1]} co={14} /> : null}
-    <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 12.5, color: MAU_NHAN[loai][1], lineHeight: 18 }}>{chu}</Text>
+    <Text numberOfLines={1} ellipsizeMode="tail" style={{ flexShrink: 1, fontFamily: F.rat, fontSize: 12.5, color: MAU_NHAN[loai][1], lineHeight: 18 }}>{chu}</Text>
   </View>
 );
 
@@ -247,7 +258,7 @@ export function ChonMot<T extends string | number>({ ds, gia, doi }: { ds: { gia
       {ds.map((x) => (
         <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: x.gia === gia }} muc="chip" sang men={x.gia === gia ? MEN.sang : undefined}
           style={[s.chonO, x.gia === gia && s.chonOChon]}>
-          <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 14, color: x.gia === gia ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
+          <Text numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: F.rat, fontSize: 14, color: x.gia === gia ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
         </NhanMen>
       ))}
     </View>
@@ -262,7 +273,7 @@ export function Chips<T extends string | number>({ ds, chon, doi }: { ds: { gia:
         return (
           <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="checkbox" accessibilityState={{ checked: c }} muc="chip" sang men={c ? undefined : MEN.sang}
             style={[s.chip, c && { borderColor: M.chinh, backgroundColor: "#eef5f2" }]}>
-            <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
+            <Text numberOfLines={1} ellipsizeMode="tail" adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
           </NhanMen>
         );
       })}
@@ -681,7 +692,7 @@ const s = StyleSheet.create({
   nutNho: { minHeight: 44, paddingHorizontal: 15, borderRadius: BO_CLAY.nutNho },
   the: { backgroundColor: M.the, borderRadius: BO_CLAY.the, ...KHOI.the },
   theLe: { padding: 16 },
-  nhan: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, alignSelf: "flex-start" },
+  nhan: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", flexShrink: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, alignSelf: "flex-start" },
   diemPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.diemSoft, borderRadius: 99, paddingLeft: 5, paddingRight: 13, paddingVertical: 4, alignSelf: "flex-start", ...KHOI.vien },
   bieuTron: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   nhom: { backgroundColor: M.the, borderRadius: BO_CLAY.the, overflow: "hidden", ...KHOI.the },
@@ -691,9 +702,9 @@ const s = StyleSheet.create({
   tron: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: M.oNhap, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
   tronTam: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#fff" },
   chonMot: { flexDirection: "row", flexWrap: "wrap", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom },
-  chonO: { flexGrow: 1, minHeight: 44, paddingVertical: 9, paddingHorizontal: 8, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  chonO: { flexGrow: 1, flexShrink: 1, maxWidth: "100%", minWidth: 0, minHeight: 44, paddingVertical: 9, paddingHorizontal: 8, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   chonOChon: { backgroundColor: "#fff", ...KHOI.nho },
-  chip: { minHeight: 44, paddingHorizontal: 15, borderRadius: 99, borderWidth: 1.5, borderColor: "transparent", backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho },
+  chip: { maxWidth: "100%", minHeight: 44, paddingHorizontal: 15, borderRadius: 99, borderWidth: 1.5, borderColor: "transparent", backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho },
   congTac: { width: 52, height: 32, borderRadius: 99, backgroundColor: "#8a8f8c", boxShadow: "inset 0px 3px 6px rgba(0,0,0,0.22), inset 0px -1px 0px rgba(255,255,255,0.4)" },
   congTacNut: { position: "absolute", top: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", ...KHOI.nho },
   bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 16, borderRadius: BO_CLAY.vien },

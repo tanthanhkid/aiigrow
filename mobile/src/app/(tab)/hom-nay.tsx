@@ -68,10 +68,10 @@ export default function TrangChu() {
         {d.g.con.map((x, k) => (
           // chip Con: kẹo dẻo — đang chọn than chì tráng men, còn lại viên sáng
           <NhanMen key={x.id} onPress={() => setChon(k)} accessibilityRole="tab" accessibilityState={{ selected: k === i }} muc="chip" sang={k !== i} men={k === i ? MEN.toi : MEN.sang}
-            style={[{ flexDirection: "row", alignItems: "center", gap: 7, minHeight: 46, paddingLeft: 7, paddingRight: 15, borderRadius: 99 },
+            style={[{ flexDirection: "row", alignItems: "center", gap: 7, minHeight: 46, paddingLeft: 7, paddingRight: 15, borderRadius: 99, maxWidth: "100%", flexShrink: 1 },
               k === i ? { backgroundColor: M.nut, boxShadow: BONG.toi } : { backgroundColor: M.the, ...KHOI.nho }]}>
             <Avt ten={x.ten} mau={MAU_CON[k % MAU_CON.length]} co={32} />
-            <Chu kieu="rat" co={14.5} mau={k === i ? "#fff" : M.chu2}>{x.ten}</Chu>
+            <Chu kieu="rat" co={14.5} mau={k === i ? "#fff" : M.chu2} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
           </NhanMen>
         ))}
         <NhanMen onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm Con" muc="chip" sang men={MEN.sang}
