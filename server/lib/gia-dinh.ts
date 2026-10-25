@@ -269,7 +269,8 @@ export function chiTietBaoVe(may: Pick<May, "status" | "last_seen"> & Pick<Parti
   if (!may.last_seen) return { muc: "chua", thieu: [], cau: "Máy chưa kết nối lần nào — kiểm tra AiiGrow đã cài xong trên máy Con và máy có mạng." };
   const qy = quyenCuaMay(may);
   if (!qy) return { muc: "chua", thieu: [], cau: "Máy chưa báo quyền bảo vệ — cập nhật AiiGrow trên máy Con lên bản mới nhất." };
-  const chon = may.che_do_ba_me ? (may.che_do === "chan" ? "chan" : "giam-sat") : null;
+  // máy mồ côi tự thôi chặn (moCoi) không «đang chuyển» gì ⇒ dùng câu chung
+  const chon = may.che_do_ba_me && may.status?.moCoi !== true ? (may.che_do === "chan" ? "chan" : "giam-sat") : null;
   const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma,
     cach: (ma === "chanThat" && chon ? CACH_CHAN_THAT[chon] : MO_TA_QUYEN[ma]?.cach) ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
   // agent-win 0.2.6 gửi ghiChuBaoVe («Win Home: chặn bằng cách đóng app», «Chrome: IT đặt danh sách web cho cả máy…») — nối vào câu ở MỌI mức, Ba Mẹ thấy cả khi còn thiếu quyền

@@ -53,7 +53,8 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
         {coCheDo && cheDoThat ? <Nhan chu={cheDoThat === "chan" ? "Đang chặn" : "Chỉ theo dõi"} loai={cheDoThat === "chan" ? "ok" : "xam"} cham /> : null}
       </View>
       {dangGo ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>Máy đang được gỡ AiiGrow — tạm không chặn gì.</Chu>
-        : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{`Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`}</Chu> : null}
+        : cho ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 8 }}>{m.daDongBo ? `Đang chờ máy nhận ${TEN_CHE_DO[m.cheDoBaMeChon!]} (≤ 3 phút)`
+          : `Máy chưa kết nối lần nào — ${TEN_CHE_DO[m.cheDoBaMeChon!]} áp ngay khi AiiGrow trên máy có mạng`}</Chu> : null}
       {chuaDu ? (
         <View style={{ marginTop: 10, gap: 6 }}>
           <Chu kieu="dam" co={13.5} mau={M.canh}>Bảo vệ chưa đủ</Chu>
