@@ -134,12 +134,10 @@ sealed class CachGui {
 
 /** Sau khi quét xong: gửi gì. `bamNay` = bam của danh sách vừa quét. */
 fun cachGui(t: TinHieuDanhSach?, g: DaGui, ds: List<AppMay>, bamNay: String): CachGui {
-    if (coYeuCauMoi(t, g)) return CachGui.Du
-    if (g.bam == null || g.dau.isEmpty()) return CachGui.Du
-    if (t != null && t.bam == null) return CachGui.Du              // máy chủ chưa có / đã xoá danh sách
-    if (t != null && t.bam != g.bam && t.bam != bamNay) return CachGui.Du   // máy chủ giữ bản khác bản mình gửi lần trước ⇒ phần đổi sẽ 409
-    if (bamNay == g.bam && (t == null || t.bam == bamNay)) return CachGui.KhongGui
-    if (t != null && t.bam == bamNay) return CachGui.KhongGui      // máy chủ đã khớp (vd lần gửi trước lưu được mà agent chưa kịp ghi)
+    // Đủ: yêu cầu «Làm mới» mới; chưa gửi được lần nào; máy chủ không có danh sách; máy chủ giữ bản lạ (phần đổi sẽ 409).
+    if (coYeuCauMoi(t, g) || g.bam == null || g.dau.isEmpty() || (t != null && (t.bam == null || (t.bam != g.bam && t.bam != bamNay)))) return CachGui.Du
+    // Thôi: máy chủ đã khớp bản vừa quét, hoặc không đổi so với lần gửi trước.
+    if (t?.bam == bamNay || bamNay == g.bam) return CachGui.KhongGui
     val d = tinhPhanDoi(g.dau, ds)
     return if (d.rong) CachGui.KhongGui else CachGui.Doi(g.bam, d)
 }

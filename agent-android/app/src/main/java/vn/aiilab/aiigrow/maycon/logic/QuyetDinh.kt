@@ -82,8 +82,10 @@ fun quyetDinh(
     val g = gioDiaPhuong(now, cs.tz)
     // Máy chủ hạ chữ thường `muc` (danh sách app thật, server/lib/app-may.ts) mà package Android phân biệt hoa thường
     // ⇒ quy mọi gói trong chính sách về đúng tên gói đang cài trên máy trước khi so.
+    // Trùng khớp chính xác thắng (hai gói chỉ khác hoa thường thì không gộp nhầm).
+    val tenCai = daCai.map { it.goi }.toSet()
     val tenThuc = daCai.associateBy({ it.goi.lowercase() }, { it.goi })
-    fun theoMay(s: Collection<String>) = s.map { tenThuc[it.lowercase()] ?: it }.toSet()
+    fun theoMay(s: Collection<String>) = s.map { if (it in tenCai) it else tenThuc[it.lowercase()] ?: it }.toSet()
     val tamThoiCho = theoMay(cs.mucTamThoi.filter { (it.het == null || it.het.isAfter(now)) && it.loai != "chan" }.map { it.muc })
     val chan = theoMay(goiAndroid(cs.chan)) - tamThoiCho
     val giaiTri = theoMay(goiAndroid(cs.giaiTri)) - tamThoiCho

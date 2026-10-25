@@ -21,6 +21,8 @@ import vn.aiilab.aiigrow.maycon.logic.nenQuet
 import vn.aiilab.aiigrow.maycon.logic.thanGuiDoi
 import vn.aiilab.aiigrow.maycon.logic.thanGuiDu
 import vn.aiilab.aiigrow.maycon.logic.TOI_DA_ICON_B64
+import vn.aiilab.aiigrow.maycon.logic.CHU_KY_QUET_MS
+import vn.aiilab.aiigrow.maycon.logic.TinHieuDanhSach
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -36,15 +38,20 @@ class DanhSachApp(private val ctx: Context) {
     private val suKienGoiLuc = AtomicLong(0)
     private var lanQuetCuoi = 0L
     private var soLanLoi = 0
-    /** Máy chủ cũ trả 404 ⇒ thôi gửi tới lần khởi động dịch vụ sau. */
-    @Volatile private var mayChuKhongHoTro = false
+    /** Máy chủ trả 404 (chưa có /ung-dung) ⇒ nghỉ tới mốc này rồi thử lại (dịch vụ chạy hàng tuần, máy chủ có thể lên sau). */
+    @Volatile private var nghiDen = 0L
+    /** Phản hồi nhịp đã đọc gần nhất (tránh đọc lại JSON mỗi 5 giây). */
+    private var phanHoiDaDoc: String? = null
+    private var tinHieu: TinHieuDanhSach? = null
+    /** Phản hồi nhịp có từ trước lần gửi được cuối ⇒ `bam` trong đó đã cũ, coi như máy chủ giữ bam mình vừa gửi. */
+    private var phanHoiLucGui: String? = null
 
     /** Gói được cài / gỡ / cập nhật (receiver của DichVuNhip). */
     fun coSuKienGoi(goi: String?) { if (goi != ctx.packageName) suKienGoiLuc.set(System.currentTimeMillis()) }
 
     /** Gọi mỗi vòng nhịp: chạy [buoc] trên luồng riêng (quét + POST có thể mất hàng chục giây), không chồng lượt. */
     fun kich(k: Kho) {
-        if (mayChuKhongHoTro || k.token == null || k.cheDoThu) return
+        if (System.currentTimeMillis() < nghiDen || k.token == null || k.cheDoThu) return
         if (!dangChay.compareAndSet(false, true)) return
         try {
             luong.execute { try { buoc(k) } catch (e: Exception) { Log.w(TAG, "danh sách app lỗi", e) } finally { dangChay.set(false) } }
@@ -56,17 +63,20 @@ class DanhSachApp(private val ctx: Context) {
     /** Một bước: xét tín hiệu nhịp + chu kỳ + sự kiện gói ⇒ quét ⇒ gửi đủ / phần đổi. */
     private fun buoc(k: Kho) {
         val now = System.currentTimeMillis()
-        val t = docTinHieuDanhSach(k.phanHoi)
-        val g = DaGui(k.dsAppBam, docDauJson(k.dsAppDau), k.dsAppYeuCau)
+        val ph = k.phanHoi
+        if (ph != phanHoiDaDoc) { phanHoiDaDoc = ph; tinHieu = docTinHieuDanhSach(ph) }
+        val t = if (ph != null && ph == phanHoiLucGui) tinHieu?.copy(bam = k.dsAppBam) else tinHieu
         val suKien = suKienGoiLuc.get()
-        if (!nenQuet(t, g, lanQuetCuoi, suKien, now, soLanLoi)) return
+        // nenQuet không cần dấu theo khoa ⇒ chỉ đọc JSON dấu khi thật sự quét
+        if (!nenQuet(t, DaGui(k.dsAppBam, emptyMap(), k.dsAppYeuCau), lanQuetCuoi, suKien, now, soLanLoi)) return
+        val g = DaGui(k.dsAppBam, docDauJson(k.dsAppDau), k.dsAppYeuCau)
         lanQuetCuoi = now
         var ok = false
         try {
             val ds = chuanDanhSach(quet(), ctx.packageName)
             val bam = bamDanhSach(ds)
             val mc = MayChu(k.mayChu, k.token)
-            fun luu() { k.dsAppBam = bam; k.dsAppDau = dauJson(dauTheoKhoa(ds)); t?.yeuCau?.let { k.dsAppYeuCau = it } }
+            fun luu() { k.luuDsApp(bam, dauJson(dauTheoKhoa(ds)), t?.yeuCau); phanHoiLucGui = ph }
             fun guiDu() { mc.ungDung(thanGuiDu(ds.map(::kemIcon), bam)); luu() }
             when (val c = cachGui(t, g, ds, bam)) {
                 CachGui.KhongGui -> { if (t?.bam == bam) luu() }
@@ -78,7 +88,7 @@ class DanhSachApp(private val ctx: Context) {
             ok = true
             Log.i(TAG, "danh sách app: ${ds.size} app, bam ${bam.take(8)}")
         } catch (e: MayChu.Loi) {
-            if (e.http == 404) { mayChuKhongHoTro = true; Log.i(TAG, "máy chủ chưa có /ung-dung — thôi gửi tới lần khởi động sau") }
+            if (e.http == 404) { nghiDen = System.currentTimeMillis() + CHU_KY_QUET_MS; Log.i(TAG, "máy chủ chưa có /ung-dung — thử lại sau 30 phút") }
             else Log.w(TAG, "gửi danh sách app lỗi ${e.http} ${e.ma}")
         } catch (e: Exception) { Log.i(TAG, "quét / gửi danh sách app lỗi — thử lại sau: ${e.message}") }
         if (ok) {
@@ -90,7 +100,7 @@ class DanhSachApp(private val ctx: Context) {
     /** App mở được từ trình khởi chạy (cần <queries> launcher trong manifest để thấy app khác trên Android 11+). Chưa nạp icon. */
     private fun quet(): List<AppMay> {
         val pm = ctx.packageManager
-        return DoPhut.appLauncher(ctx).filter { it.packageName != ctx.packageName }.map { ai ->
+        return DoPhut.appLauncher(ctx).map { ai ->   // chính AiiGrow Con bị chuanDanhSach bỏ
             val goi = ai.packageName
             AppMay(
                 khoa = goi, muc = goi,

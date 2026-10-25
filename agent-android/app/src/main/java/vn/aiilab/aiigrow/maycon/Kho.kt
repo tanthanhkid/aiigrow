@@ -47,6 +47,11 @@ class Kho(ctx: Context) {
     var dsAppDau: String? get() = p.getString("dsAppDau", null); set(v) = p.edit().putString("dsAppDau", v).apply()
     var dsAppYeuCau: String? get() = p.getString("dsAppYeuCau", null); set(v) = p.edit().putString("dsAppYeuCau", v).apply()
 
+    /** Ghi một lần (một edit) để bam và dấu theo khoa không lệch nhau nếu tiến trình chết giữa chừng. */
+    fun luuDsApp(bam: String, dau: String, yeuCau: String?) {
+        p.edit().putString("dsAppBam", bam).putString("dsAppDau", dau).apply { if (yeuCau != null) putString("dsAppYeuCau", yeuCau) }.apply()
+    }
+
     val daGhep get() = token != null || cheDoThu
 
     /** Chế độ thử cục bộ: bản debug + có tệp chính sách giả (adb đẩy vào files/). Không gọi máy chủ. */
