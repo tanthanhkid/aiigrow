@@ -46,6 +46,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", UI.Fluent("seedling"), (_, _) => OpenApp(MucApp.HomNay)));
         menu.Items.Add("Xin thêm thời gian", UI.Fluent("hourglass_not_done"), (_, _) => OpenRequest());
+        menu.Items.Add("Xin mở trang hoặc app…", UI.Fluent("globe_with_meridians"), (_, _) => OpenXinMo());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Máy này do bố mẹ quản lý bằng AiiGrow") { Enabled = false });
 
@@ -216,6 +217,17 @@ internal sealed class TrayContext : ApplicationContext
     {
         using var f = new RequestForm(_state.CanExchangePoints);
         f.ShowDialog();
+    }
+
+    private XinMoForm? _xinMo;
+
+    /// <summary>«Xin mở trang hoặc app» (một cửa sổ tại một thời điểm; bấm lại chỉ đưa lên trước — đang chờ Ba Mẹ thì không mất lời xin).</summary>
+    private void OpenXinMo()
+    {
+        if (_xinMo is { IsDisposed: false }) { _xinMo.Activate(); return; }
+        _xinMo = new XinMoForm();
+        _xinMo.FormClosed += (_, _) => { _xinMo?.Dispose(); _xinMo = null; };
+        _xinMo.Show();
     }
 
     private async Task TickAsync()

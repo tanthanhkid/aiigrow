@@ -68,6 +68,21 @@ internal sealed class BlockedForm : Form
         };
         flow.Controls.Add(_ask);
 
+        // «Xin mở hẳn app này»: lời xin cai_app với định danh thật (roblox.exe…) — Ba Mẹ đồng ý là máy chủ đặt luật cho đúng app đó (như Mac XinMoView).
+        // Công cụ của Windows (cmd, taskmgr…) không mời xin mở.
+        if (BlockScreenView.CanAskOpen(appId))
+        {
+            var xinMo = UI.Btn(BlockScreenView.AskOpenLabel, false, UI.Px(340), "puzzle_piece");
+            xinMo.Click += (_, _) =>
+            {
+                Hide();
+                using var f = new XinMoForm(LoaiXin.CaiApp, appId);
+                f.ShowDialog();
+                Close();
+            };
+            flow.Controls.Add(xinMo);
+        }
+
         // Mất mạng: «Xin phép Ba Mẹ» không tới được máy chủ ⇒ Ba Mẹ đọc mã mở offline cho Con gõ (luồng xin phép giữ nguyên).
         if (showCode)
         {

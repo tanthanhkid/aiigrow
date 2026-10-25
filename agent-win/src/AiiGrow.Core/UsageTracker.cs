@@ -4,7 +4,14 @@ namespace AiiGrow.Core;
 public sealed class UsageTracker
 {
     private readonly Dictionary<(string Day, string App), (string Name, double Sec)> _d = new();
+    /// <summary>Tổng giây đã dùng TRONG NGÀY theo app (không bị Drain trừ) — cho thẻ «Đã dùng hôm nay» của khay. Chỉ giữ ngày mới nhất.
+    /// Dịch vụ khởi động lại ⇒ đếm lại từ 0 (máy chủ vẫn giữ số lớn hơn bằng greatest).</summary>
+    private readonly Dictionary<string, (string Name, double Sec)> _homNay = new();
+    private string _ngayHomNay = "";
     private readonly object _gate = new();
+
+    /// <summary>Định danh dùng khi khay chết (không biết app tiền cảnh) — không hiện ở «đã dùng theo app».</summary>
+    public const string KhongRo = "khong-ro";
 
     public void Add(DateTimeOffset localNow, string appId, string appName, double seconds)
     {
@@ -14,6 +21,28 @@ public sealed class UsageTracker
         {
             _d.TryGetValue(key, out var cur);
             _d[key] = (string.IsNullOrWhiteSpace(appName) ? (cur.Name ?? appId) : appName, cur.Sec + seconds);
+            if (key.Item1 != _ngayHomNay)
+            {
+                if (string.CompareOrdinal(key.Item1, _ngayHomNay) < 0) return;   // giờ máy lùi qua nửa đêm: không trộn vào ngày mới
+                _homNay.Clear();
+                _ngayHomNay = key.Item1;
+            }
+            _homNay.TryGetValue(key.Item2, out var hn);
+            _homNay[key.Item2] = (string.IsNullOrWhiteSpace(appName) ? (hn.Name ?? appId) : appName, hn.Sec + seconds);
+        }
+    }
+
+    /// <summary>Phút đã dùng hôm nay theo app, nhiều nhất trước (bỏ «không rõ» và app dưới 1 phút), tối đa <paramref name="toiDa"/> dòng.</summary>
+    public List<DungApp> DungHomNay(DateTimeOffset localNow, int toiDa = 8)
+    {
+        var ngay = localNow.DateTime.ToString("yyyy-MM-dd");
+        lock (_gate)
+        {
+            if (ngay != _ngayHomNay) return new List<DungApp>();
+            return _homNay.Where(x => x.Key != KhongRo && x.Value.Sec >= 60)
+                .OrderByDescending(x => x.Value.Sec).ThenBy(x => x.Key, StringComparer.Ordinal).Take(Math.Max(0, toiDa))
+                .Select(x => new DungApp { AppId = x.Key, Ten = TrayView.FriendlyAppName(x.Key, x.Value.Name == x.Key ? null : x.Value.Name), Phut = (int)(x.Value.Sec / 60) })
+                .ToList();
         }
     }
 

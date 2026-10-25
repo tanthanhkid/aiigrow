@@ -38,6 +38,16 @@ public static class BlockScreenView
         => canExchangePoints && reason != LockReasons.Khoa && !offline
            && !(appId != null && ProcessGuard.UngDungTrongWindows.Contains(appId.Trim().EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? appId.Trim() : appId.Trim() + ".exe"));
 
+    public const string AskOpenLabel = "Xin mở hẳn app này";
+
+    /// <summary>Nút «Xin mở hẳn app này» trên màn chặn: có định danh app và không phải công cụ của Windows (cmd, taskmgr… — Ba Mẹ không mở cho Con).</summary>
+    public static bool CanAskOpen(string? appId)
+    {
+        var t = (appId ?? "").Trim();
+        if (t.Length == 0 || t == UsageTracker.KhongRo) return false;
+        return !ProcessGuard.UngDungTrongWindows.Contains(t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe");
+    }
+
     public const string OfflineCodeLabel = "Mất mạng? Nhập mã của Ba Mẹ";
 
     /// <summary>Ô nhập mã mở offline: chỉ hiện khi máy đang mất mạng. Màn khoá hiện khi lý do khoá mã gỡ được
