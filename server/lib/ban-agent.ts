@@ -32,11 +32,12 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+// 0.2.2: assembleRelease khoá aiigrow-con từ nhánh con-android-tu-capnhat (PR #121); sha256 đo trên tệp tải về từ Release.
 export const BAN_CON_ANDROID = {
-  version: "0.2.1",
-  versionCode: 3,
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.2.1.apk",
-  sha256: "e850328a5ad3ae0b7f53d8094698367db550b1da79787e247f7ea9ad201e3b81",
+  version: "0.2.2",
+  versionCode: 4,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.2.2.apk",
+  sha256: "3e46dc2f520310b4e638f4885ea5b2a396edd9f53a24b95dd5f1e8c59fef1e32",
 } as const;
 
 /** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
