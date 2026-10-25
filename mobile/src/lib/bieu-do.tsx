@@ -5,7 +5,7 @@
 // Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục), Tien (thanh tiến độ),
 // vòng đồng hồ của Con. Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
 import React, { useEffect, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn, ReduceMotion, type SharedValue, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming,
 } from "react-native-reanimated";
@@ -73,7 +73,7 @@ export function CotClay({ ds, max, kieu = "doi", cao = 120, chon = null, bam, ta
         const st = { flex: 1, minWidth: 0, alignItems: "center" as const, gap: 6 };
         return bam ? (
           <Pressable key={x.khoa} disabled={tat?.(i)} onPress={() => bam(i)} accessibilityRole="button" accessibilityState={{ selected: dangChon }}
-            accessibilityLabel={x.doc} hitSlop={{ top: 6, bottom: 6 }} style={st}>{noi}</Pressable>
+            accessibilityLabel={x.doc} hitSlop={{ top: 6, bottom: 6, left: 3, right: 3 }} style={st}>{noi}</Pressable>
         ) : <View key={x.khoa} style={st}>{noi}</View>;
       })}
     </Animated.View>
@@ -90,11 +90,12 @@ const phanChong = (x: CotNgay): PhanCot[] => {
 /** Một cột clay: mọc từ chân (lò xo MOC, so le theo `thu`), xong một vệt men lướt dọc từ chân lên đỉnh. */
 function Cot({ thu, cao, phan, giam }: { thu: number; cao: number; phan: PhanCot[]; giam: boolean }) {
   const h = cao <= 0 ? 0 : Math.max(8, cao);
-  const { p, q } = useMoc(giam, thu * SO_LE, 380, 520, h > 0);
+  const { p, q } = useMoc(giam, thu * SO_LE, 380, 450, h > 0);
   const stCot = useAnimatedStyle(() => ({ height: h * Math.max(0, p.value) }));
   const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, transform: [{ translateY: (1 - 2 * q.value) * h }] }));
   const tong = phan.reduce((a, x) => a + x.gia, 0) || 1;
-  if (!h) return <View style={{ flex: 1, maxWidth: 30 }} />;
+  // giá trị 0: một nụ nhỏ mờ giữ chỗ (cột đôi vẫn thấy đủ cặp Học / Giải trí)
+  if (!h) return <View style={{ flex: 1, maxWidth: 30, height: 6, borderRadius: 3, backgroundColor: phan[0]?.mau, opacity: 0.3 }} />;
   return (
     <Animated.View style={[{ flex: 1, maxWidth: 30, borderRadius: 999, boxShadow: BONG.cot }, stCot]}>
       <View style={[StyleSheet.absoluteFill, { borderRadius: 999, overflow: "hidden", justifyContent: "flex-end" }]}>
@@ -115,13 +116,13 @@ export function ThanhClay({ ti, mau = M.chinh, cao = 14, tre = 0, nhanDoc }: { t
   const dem = cao >= 12 ? 2 : 1.5;
   // chạy lại «dài ra» khi thanh từ trống lên có số (dữ liệu vừa về), không chạy lại mỗi lần số nhích (đồng hồ đếm)
   const { p, q } = useMoc(giam, tre, 360, 420, t > 0);
-  const stThanh = useAnimatedStyle(() => ({ width: `${Math.min(100, t * 100 * Math.max(0, p.value))}%` }));   // gần đầy: nảy không tràn rãnh
+  const stThanh = useAnimatedStyle(() => ({ width: `${Math.min(100, t * 100 * Math.max(0, p.value))}%`, minWidth: p.value > 0.05 ? cao - dem * 2 : 0 }));   // gần đầy: nảy không tràn rãnh
   const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, left: `${(2.4 * q.value - 1.2) * 100}%` }));
   return (
     <View accessibilityRole="progressbar" accessibilityLabel={nhanDoc} accessibilityValue={{ min: 0, max: 100, now: Math.round(t * 100) }}
       style={{ height: cao, borderRadius: cao / 2, backgroundColor: M.ranh, padding: dem, boxShadow: BONG.lom, justifyContent: "center" }}>
       {t > 0 ? (
-        <Animated.View style={[{ height: "100%", minWidth: cao - dem * 2, borderRadius: cao / 2, boxShadow: BONG.cot }, stThanh]}>
+        <Animated.View style={[{ height: "100%", borderRadius: cao / 2, boxShadow: BONG.cot }, stThanh]}>
           <View style={[StyleSheet.absoluteFill, { borderRadius: cao / 2, overflow: "hidden", backgroundColor: mau }]}>
             <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: MEN.ong }]} />
             {giam ? null : <Animated.View pointerEvents="none" style={[{ position: "absolute", top: 0, bottom: 0, width: "100%", backgroundImage: VET.toi }, stVet]} />}
@@ -145,7 +146,7 @@ export function VongClay({ ti, co = 200, day, mau = M.chinhSang, children, nhanD
   const r = co / 2 - sw / 2 - 1, t = Math.min(1, Math.max(0, ti || 0)), c = co / 2;
   const p = useSharedValue(giam ? 1 : 0);
   const coSo = t > 0;
-  useEffect(() => { if (giam) p.set(1); else { p.set(0); p.set(withTiming(1, { duration: 700, easing: EASE.men })); } }, [giam, coSo, p]);
+  useEffect(() => { if (giam) p.set(1); else { p.set(0); p.set(withTiming(1, { duration: 450, easing: EASE.men })); } }, [giam, coSo, p]);
   // ống màu + chân tối phía trong + vệt men phía ngoài: mỗi cung bán kính riêng (chu vi riêng) để cùng phủ một góc
   const cung = [{ r, mau, w: sw }, { r: r - sw * 0.3, mau: "rgba(0,0,0,0.16)", w: sw * 0.26 }, { r: r + sw * 0.16, mau: "rgba(255,255,255,0.55)", w: sw * 0.22 }];
   const dia = co - sw * 2 - 4;
@@ -176,7 +177,7 @@ function Cung({ c, r, mau, w, t, p }: { c: number; r: number; mau: string; w: nu
   const cv = 2 * Math.PI * r;
   const ap = useAnimatedProps(() => ({ strokeDashoffset: cv * (1 - t * p.value) }));
   return <ACircle cx={c} cy={c} r={r} stroke={mau} strokeWidth={w} fill="none" strokeLinecap="round" strokeDasharray={`${cv} ${cv}`}
-    strokeDashoffset={cv * (1 - t)} transform={`rotate(-90 ${c} ${c})`} animatedProps={ap} />;
+    strokeDashoffset={Platform.OS === "web" ? cv * (1 - t) : undefined} transform={`rotate(-90 ${c} ${c})`} animatedProps={ap} />;
 }
 
 // ---------------------------------------------------------------- chú giải
