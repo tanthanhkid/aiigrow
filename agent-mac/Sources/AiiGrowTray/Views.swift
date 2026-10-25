@@ -55,6 +55,8 @@ struct XinMoView: View {
   static let loaiMo = [("web", "Trang web"), ("app", "App")]
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
+  /// Mở từ màn «… chưa được mở»: điền sẵn app vừa bị chặn.
+  var appBanDau: String = ""
   @State private var loai = "web"
   @State private var muc = ""
   @State private var loiNhan = ""
@@ -80,6 +82,7 @@ struct XinMoView: View {
     }
     .padding(18).clayThe().vaoLanLuot(0)
     .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
+    .onAppear { if muc.isEmpty, !appBanDau.isEmpty { loai = "app"; muc = appBanDau } }
   }
 }
 

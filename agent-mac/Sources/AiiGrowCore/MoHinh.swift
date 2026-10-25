@@ -102,6 +102,10 @@ public struct Policy: Codable, Equatable {
   public var web: ChinhSachWeb?
   /// App Ba Mẹ đặt «Chặn» (DanhSachApp.swift) — đóng ở MỌI mode khi chặn thật.
   public var blockedApps: [AppBiChan] = []
+  /// App / trang Giải trí Ba Mẹ đã xếp — cửa sổ «Chơi bằng điểm» cho Con chọn (máy chủ: agent-windows.ts › playChoices; phien/xet vẫn quyết).
+  public var playChoices: [String] = []
+  /// Phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (máy chủ chỉ gửi cho máy sở hữu phiên) — daemon gửi phien/nhip cho phiên này.
+  public var playSessionId: String?
 
   public init() {}
 
@@ -122,6 +126,10 @@ public struct Policy: Codable, Equatable {
     cheDo = s(.cheDo)
     web = (try? c.decodeIfPresent(ChinhSachWeb.self, forKey: .web)) ?? nil
     blockedApps = AppBiChan.docDs(c, .blockedApps)
+    playChoices = (((try? c.decodeIfPresent([String].self, forKey: .playChoices)) ?? nil) ?? [])
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+    if let id = s(.playSessionId), !id.isEmpty { playSessionId = id }
+    else if let n = (try? c.decodeIfPresent(Int.self, forKey: .playSessionId)) ?? nil { playSessionId = String(n) }
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -140,10 +148,12 @@ public struct Policy: Codable, Equatable {
     try c.encodeIfPresent(cheDo, forKey: .cheDo)
     try c.encodeIfPresent(web, forKey: .web)
     if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
+    if !playChoices.isEmpty { try c.encode(playChoices, forKey: .playChoices) }
+    try c.encodeIfPresent(playSessionId, forKey: .playSessionId)
   }
 
   enum CodingKeys: String, CodingKey {
-    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps
+    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId
   }
 }
 

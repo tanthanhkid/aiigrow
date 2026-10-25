@@ -32,6 +32,13 @@ public enum YeuCauTray: Codable, Equatable {
   case ghep(ma: String, taiKhoanCon: String)
   /// Ba Mẹ (admin) bấm «Kiểm tra cập nhật»: daemon hỏi manifest ngay; có bản mới thì tải + cài nền. Trả `.thongBao`.
   case capNhat
+  /// App của Con (nhiệm vụ / nộp bài / phần quà / tin nhắn): daemon chuyển tới `api/device/<path>` bằng token máy (CHỈ đường trong
+  /// `HocVienPaths`, như agent-win PipeCmd.HocVien) và trả JSON nguyên văn ở `.duLieu`. `than` = thân JSON (chuỗi) cho POST.
+  case hocVien(method: String, path: String, than: String?)
+  /// «Chơi bằng điểm»: daemon xét (phien/xet) rồi mở (phien/mo) cho `muc` — chỉ mục trong `playChoices` của Policy. Trả `.choi`.
+  case choi(muc: String)
+  /// Hỏi «đổi được khoảng bao nhiêu phút» cho `muc` (phien/xet, nhớ 60/15 giây) — chỉ trả SỐ PHÚT, không trả số điểm. Trả `.choi`.
+  case choiThu(muc: String)
 }
 
 /// Chế độ máy đang áp — cùng nghĩa với `mode` của server (tu_do / hoc / khoa).
@@ -56,6 +63,13 @@ public struct TrangThai: Codable, Equatable {
   public var capNhatLuc: Date?
   public var banDaemon: String?            // bản daemon ĐANG chạy (tray cũ chưa nạp lại vẫn hiện đúng bản thật); nil = daemon cũ chưa gửi
   public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo + cách xử lý cho Ba Mẹ (KHÔNG trả cho phiên Con; máy chủ vẫn nhận conLaAdmin)
+  /// App / trang Giải trí Ba Mẹ cho đổi điểm (Policy.playChoices) — cửa sổ «Chơi bằng điểm». nil = daemon cũ.
+  public var dsChoi: [String]?
+  /// App vừa bị AiiGrow đóng trong phiên Con (màn «… chưa được mở»): `chanSeq` tăng mỗi lần đóng một app MỚI; nil = chưa có / daemon cũ.
+  public var chanSeq: Int?
+  public var chanApp: String?               // bundle id (chữ thường)
+  public var chanTen: String?               // tên hiển thị (tên .app)
+  public var chanLyDo: String?              // «ba_me_chan» | «chi_app_hoc»
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
               demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil, capNhat: String? = nil, capNhatLuc: Date? = nil) {
     self.daGhep = daGhep; self.laPhienCon = laPhienCon; self.tenCon = tenCon; self.cheDo = cheDo; self.lyDoKhoa = lyDoKhoa; self.conPhut = conPhut
@@ -80,6 +94,10 @@ public enum TraLoi: Codable, Equatable {
   case canhBao(id: String?, chu: String)   // thành công nhưng có điều Ba Mẹ cần biết (vd chưa hạ được quyền admin của Con)
   case thongBao(chu: String)               // câu kết quả (vd «Đang là bản mới nhất (0.1.1)»)
   case loi(ma: String, chu: String)        // chu: câu tiếng Việt hiện thẳng cho người dùng
+  /// Lệnh `hocVien`: thân JSON máy chủ trả (nguyên văn).
+  case duLieu(json: String)
+  /// Lệnh `choi` / `choiThu`: «duoc» | «tu_choi» | «mo» | «khong_co_muc»…; `phut` = số phút chơi (làm tròn xuống); `chu` = câu máy chủ soạn.
+  case choi(trangThai: String, phut: Int?, chu: String?)
 }
 
 public enum IPCMa {

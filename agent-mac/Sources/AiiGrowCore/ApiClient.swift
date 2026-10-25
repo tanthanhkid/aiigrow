@@ -33,6 +33,31 @@ public protocol MayChuApi: AnyObject {
   func banMoi() async throws -> BanMoi?
   /// POST api/device/ung-dung — danh sách app thật (DanhSachApp.swift).
   func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp
+  /// App của Con: GET/POST api/device/<path> (path đã qua HocVienPaths), trả thân JSON nguyên văn.
+  func hocVien(method: String, path: String, than: Data?) async throws -> Data
+  /// POST api/device/phien/xet {muc} — máy chủ quyết cho chơi bằng điểm hay không (+ số phút tối đa).
+  func xetChoi(muc: String) async throws -> KetQuaXetChoi
+  /// POST api/device/phien/mo {muc} — mở phiên chơi bằng điểm (sau khi xét «được»).
+  func moChoi(muc: String) async throws -> KetQuaMoChoi
+  /// POST api/device/phien/nhip {id, dangDung} — nhịp phiên chơi (máy chủ trừ điểm theo phút, hết thì «ket_thuc»). Trả trangThai.
+  func nhipChoi(id: String, dangDung: Bool) async throws -> String
+}
+
+/// Kết quả phien/xet. KHÔNG mang số điểm sang tray — chỉ «được / không», câu nhắc, số phút.
+public struct KetQuaXetChoi: Equatable, Sendable {
+  public var duoc: Bool
+  public var lyDo: String?
+  public var cau: String?
+  /// Số phút tối đa (máy chủ cộng phút thưởng ⇒ có thể lẻ) — hiện làm tròn xuống.
+  public var phutToiDa: Double?
+  public init(duoc: Bool, lyDo: String? = nil, cau: String? = nil, phutToiDa: Double? = nil) { self.duoc = duoc; self.lyDo = lyDo; self.cau = cau; self.phutToiDa = phutToiDa }
+  public var phutHienThi: Int? { phutToiDa.map { Int($0.rounded(.down)) } }
+}
+
+public struct KetQuaMoChoi: Equatable, Sendable {
+  public var id: String?
+  public var phutToiDa: Double?
+  public init(id: String?, phutToiDa: Double? = nil) { self.id = id; self.phutToiDa = phutToiDa }
 }
 
 public extension MayChuApi {
@@ -40,6 +65,10 @@ public extension MayChuApi {
   func baoXongLenh(id: String) async throws {}
   func banMoi() async throws -> BanMoi? { nil }
   func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp { throw LoiApi(maHttp: 404, ma: "not_found", chu: "Máy chủ chưa có danh sách app") }
+  func hocVien(method: String, path: String, than: Data?) async throws -> Data { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa có app của Con") }
+  func xetChoi(muc: String) async throws -> KetQuaXetChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
+  func moChoi(muc: String) async throws -> KetQuaMoChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
+  func nhipChoi(id: String, dangDung: Bool) async throws -> String { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ nhịp phiên") }
 }
 
 public final class ApiClient: MayChuApi {
@@ -155,9 +184,36 @@ public final class ApiClient: MayChuApi {
     return o["status"] as? String ?? "cho"
   }
 
+  public func hocVien(method: String, path: String, than: Data?) async throws -> Data {
+    try await guiTho(method.uppercased() == "POST" ? "POST" : "GET", "api/device/" + path, method.uppercased() == "POST" ? (than ?? Data("{}".utf8)) : nil)
+  }
+
+  public func xetChoi(muc: String) async throws -> KetQuaXetChoi {
+    let d = try await gui("POST", "api/device/phien/xet", ["muc": muc])
+    guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] else { throw LoiApi(chu: "Máy chủ trả dữ liệu không đúng định dạng") }
+    return KetQuaXetChoi(duoc: (o["duoc"] as? Bool) ?? false, lyDo: o["lyDo"] as? String, cau: o["cau"] as? String,
+                         phutToiDa: (o["phutToiDa"] as? NSNumber)?.doubleValue)
+  }
+
+  public func moChoi(muc: String) async throws -> KetQuaMoChoi {
+    let d = try await gui("POST", "api/device/phien/mo", ["muc": muc])
+    let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+    return KetQuaMoChoi(id: ApiClient.chuoi(o?["id"]), phutToiDa: (o?["phutToiDa"] as? NSNumber)?.doubleValue)
+  }
+
+  public func nhipChoi(id: String, dangDung: Bool) async throws -> String {
+    let d = try await gui("POST", "api/device/phien/nhip", ["id": id, "dangDung": dangDung])
+    let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+    return o?["trangThai"] as? String ?? ""
+  }
+
   // MARK: gửi
 
   private func gui(_ method: String, _ path: String, _ body: [String: Any]?) async throws -> Data {
+    try await guiTho(method, path, try body.map { try JSONSerialization.data(withJSONObject: $0) })
+  }
+
+  private func guiTho(_ method: String, _ path: String, _ body: Data?) async throws -> Data {
     let mayChu = self.mayChu, token = self.token
     guard let url = URL(string: mayChu + "/" + path) else { throw LoiApi(chu: "Địa chỉ máy chủ sai") }
     var req = URLRequest(url: url)
@@ -167,7 +223,7 @@ public final class ApiClient: MayChuApi {
     if let token { req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
     if let body {
       req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-      req.httpBody = try JSONSerialization.data(withJSONObject: body)
+      req.httpBody = body
     }
     let data: Data, resp: URLResponse
     do { (data, resp) = try await session.data(for: req) } catch {
