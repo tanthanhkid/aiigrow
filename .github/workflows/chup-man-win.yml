@@ -1,0 +1,69 @@
+name: chup-man-win
+
+# Chụp ảnh MỌI màn của agent Windows (khay: app Con, màn chặn, màn khoá, xin giờ, nộp bài, chơi bằng điểm, menu khay;
+# bộ cài: từng bước + cập nhật) ở 100% và 150% (giả lập — xem agent-win/chup-man/ChupDpi.cs), dữ liệu mẫu tiếng Việt.
+# Công cụ agent-win/chup-man biên dịch lại nguồn Tray/Setup vào exe riêng, không đụng dịch vụ / máy chủ / bộ cài thật.
+# Không phải kiểm thử sản phẩm và tách hẳn workflow agent-win (không thêm bước nào vào đó).
+# Ảnh: artifact «man-win» →  gh run download <run-id> -R tanthanhkid/aiigrow -n man-win -D <thư mục>
+on:
+  workflow_dispatch:
+  push:
+    branches: [chup-man-win]
+    paths:
+      - 'agent-win/chup-man/**'
+      - 'agent-win/src/AiiGrow.Tray/**'
+      - 'agent-win/src/AiiGrow.Setup/**'
+      - 'agent-win/src/AiiGrow.Core/**'
+      - '.github/workflows/chup-man-win.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chup-man-win-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: '1'
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+
+jobs:
+  chup:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build công cụ chụp
+        run: dotnet build agent-win/chup-man -c Release -o chup-bin
+      - name: Màn hình 1920×1080 (nếu runner cho đổi)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop; Write-Host 'Set-DisplayResolution: được' } catch { Write-Host "Set-DisplayResolution: không được — $($_.Exception.Message)" }
+          Add-Type -AssemblyName System.Windows.Forms
+          Write-Host ("Màn hình: {0}" -f [System.Windows.Forms.Screen]::PrimaryScreen.Bounds)
+      - name: Chụp 100% và 150%
+        shell: pwsh
+        run: |
+          $ra = Join-Path $env:GITHUB_WORKSPACE 'man-win'
+          $loi = 0
+          foreach ($tl in @(@{ ten = '100'; k = '1' }, @{ ten = '150'; k = '1.5' })) {
+            $dir = Join-Path $ra $tl.ten
+            $p = Start-Process -FilePath (Join-Path $env:GITHUB_WORKSPACE 'chup-bin\AiiGrow.ChupMan.exe') `
+                 -ArgumentList @('--chup-man', "`"$dir`"", '--ti-le', $tl.k) -Wait -PassThru
+            Write-Host "== $($tl.ten)% — mã thoát $($p.ExitCode)"
+            if (Test-Path "$dir\chup.log") { Get-Content "$dir\chup.log" -Encoding utf8 }
+            if ($p.ExitCode -ne 0) { $loi++ }
+          }
+          Get-ChildItem $ra -Recurse -Filter *.png | Measure-Object | ForEach-Object { Write-Host "Tổng ảnh: $($_.Count)" }
+          exit $loi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: man-win
+          path: man-win
+          if-no-files-found: warn
+          retention-days: 14

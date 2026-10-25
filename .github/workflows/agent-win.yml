@@ -21,6 +21,7 @@ on:
   pull_request:
     paths: &duong_agent
       - 'agent-win/**'
+      - '!agent-win/chup-man/**'   # công cụ chụp màn có workflow riêng (chup-man-win.yml)
       - '.github/workflows/agent-win.yml'
       - 'server/app/api/device/**'
       - 'server/app/api/agent/**'
