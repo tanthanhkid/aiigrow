@@ -40,12 +40,14 @@ internal static class UI
         return b;
     }
 
-    public static Label Text(string text, float pt = 11f, bool bold = false, Color? color = null, int maxWidth = 380)
+    /// <param name="maxWidth">Bề rộng tối đa (px đã theo DPI); 0 = 380 theo DPI.</param>
+    public static Label Text(string text, float pt = 11f, bool bold = false, Color? color = null, int maxWidth = 0)
         => new()
         {
             Text = text,
             AutoSize = true,
-            MaximumSize = new Size(maxWidth, 0),
+            UseMnemonic = false,
+            MaximumSize = new Size(maxWidth > 0 ? maxWidth : Px(380), 0),
             Font = F(pt, bold ? FontStyle.Bold : FontStyle.Regular),
             ForeColor = color ?? Ink,
             BackColor = Color.Transparent,   // thấy men của thẻ Clay phía sau

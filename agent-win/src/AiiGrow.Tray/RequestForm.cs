@@ -28,12 +28,12 @@ internal sealed class RequestForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(UI.Px(430), UI.Px(500));   // nút Clay cao theo DPI ⇒ cửa sổ cũng theo DPI
+        AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;   // cao theo nội dung (không có nút Đổi điểm ⇒ không thừa khoảng trống)
 
         var flow = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)),
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)), Margin = Padding.Empty,
         };
         flow.Controls.Add(UI.Text("Con muốn thêm bao lâu?", 16f, true));
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 10), BackColor = Color.Transparent };
