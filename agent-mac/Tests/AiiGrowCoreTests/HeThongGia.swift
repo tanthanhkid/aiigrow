@@ -82,6 +82,15 @@ final class HeThongGia: HeThong, @unchecked Sendable {
 
   func guiTinHieu(pid: Int32, tinHieu: Int32) { tinHieuDaGui.append((pid, tinHieu)) }
   @Khoa var loiGhiTepChua: String?                // đường chứa chuỗi này ⇒ ghi lỗi (giả đĩa đầy / quyền)
+  @Khoa var thuocTinh: [String: ThuocTinhTep] = [:]
+  @Khoa var teamId: [String: String] = [:]
+  func thuocTinhTep(_ duongDan: String) -> ThuocTinhTep? { thuocTinh[duongDan] }
+  func teamIdApp(_ duongDanApp: String) -> String? { teamId[duongDanApp] }
+  /// Đặt một .app trình duyệt «cài đúng»: gói + Contents + MacOS thuộc root:admin 755, chữ ký đúng Team ID.
+  func appTinCay(_ app: String, team: String) {
+    for d in [app, app + "/Contents", app + "/Contents/MacOS"] { thuocTinh[d] = ThuocTinhTep(uid: 0, gid: 80, quyen: 0o755) }
+    teamId[app] = team
+  }
   func ghiTep(_ duongDan: String, _ d: Data, quyen: Int) throws {
     if let x = loiGhiTepChua, duongDan.contains(x) { throw NSError(domain: "gia", code: 13) }
     tep[duongDan] = d

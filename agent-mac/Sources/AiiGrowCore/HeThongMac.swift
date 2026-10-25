@@ -8,6 +8,7 @@
 //   • hạ quyền: dseditgroup -o edit -d <tk> -t user admin · DNS: dscacheutil -flushcache + killall -HUP mDNSResponder.
 import Foundation
 import IOKit
+import Security
 import SystemConfiguration
 
 public final class HeThongMac: HeThong {
@@ -115,6 +116,30 @@ public final class HeThongMac: HeThong {
   }
 
   public func lietKeThuMuc(_ duongDan: String) -> [String] { (try? FileManager.default.contentsOfDirectory(atPath: duongDan)) ?? [] }
+
+  public func thuocTinhTep(_ duongDan: String) -> ThuocTinhTep? {
+    var st = stat()
+    guard lstat(duongDan, &st) == 0 else { return nil }
+    return ThuocTinhTep(uid: st.st_uid, gid: st.st_gid, quyen: UInt16(st.st_mode & 0o7777))
+  }
+
+  /// Kiểm chữ ký cả gói (SecStaticCodeCheckValidity, kiểm cả tài nguyên) tốn ~1 giây với Chrome ⇒ nhớ 10 phút theo đường dẫn .app.
+  private var nhoTeam: [String: (String?, Date)] = [:]
+  private let khoaTeam = NSLock()
+  public func teamIdApp(_ duongDanApp: String) -> String? {
+    khoaTeam.lock(); defer { khoaTeam.unlock() }
+    if let (t, luc) = nhoTeam[duongDanApp], Date().timeIntervalSince(luc) < 600 { return t }
+    var ma: SecStaticCode?
+    var team: String?
+    if SecStaticCodeCreateWithPath(URL(fileURLWithPath: duongDanApp) as CFURL, [], &ma) == errSecSuccess, let ma,
+       SecStaticCodeCheckValidity(ma, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), nil) == errSecSuccess {
+      var info: CFDictionary?
+      if SecCodeCopySigningInformation(ma, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+         let d = info as? [String: Any] { team = d[kSecCodeInfoTeamIdentifier as String] as? String }
+    }
+    nhoTeam[duongDanApp] = (team, Date())
+    return team
+  }
 
   public func tenMay() -> String {
     (SCDynamicStoreCopyComputerName(nil, nil) as String?) ?? Host.current().localizedName ?? "Mac"
