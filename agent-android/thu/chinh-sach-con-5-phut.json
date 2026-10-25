@@ -1,0 +1,10 @@
+{"serverTime":"2026-10-24T04:00:00Z","tuanThu":{"trangThai":"tuan_thu"},
+ "chinhSach":{"phienBan":1,"tz":"Asia/Ho_Chi_Minh","con":{"id":"thu","ten":"Bin","nhom":"9-12"},
+  "gioChoi":{"ngayThuong":[{"tu":"00:00","den":"23:59"}],"cuoiTuan":[{"tu":"00:00","den":"23:59"}],"ngu":{"tu":"23:59","den":"00:00"},"tranNgayPhut":5,"tranTuanPhut":600},
+  "ungDung":{"heThong":["com.android.settings"],"hoc":[{"muc":"com.google.android.calculator","kieu":"app"}],
+   "giaiTri":[{"muc":"com.google.android.youtube","kieu":"app","nhom":"video_ngan"}],
+   "chan":[{"muc":"com.android.chrome","kieu":"app"},{"muc":"tiktok.com","kieu":"web"}],"chuaXep":"chan"},
+  "phienDiem":{"soDu":0,"phien":null},"khoaNgay":false,
+  "ngoaiLe":{"phutThemHomNay":0,"mucTamThoi":[],"moKhanCapDen":null},
+  "hieuLuc":{"giaiTriDuocMo":true,"lyDo":[]}},
+ "nenTang":{"nen":"android"},"lenh":[]}

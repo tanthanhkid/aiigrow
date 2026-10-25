@@ -119,6 +119,7 @@ class DichVuNhip : Service() {
             k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } }
         }
         if (ph == null) { capNhatThongBao(null); return }
+        if (k.cheDoThu) ph.maOfflineBiMat?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }   // thử mã offline không cần máy chủ
         val cs = ph.chinhSach
         val now = Instant.ofEpochMilli(nowMay + if (k.cheDoThu) 0 else k.lechGioMs)
         val dung = DoPhut.homNay(this, cs.tz, nowMay)
@@ -181,6 +182,8 @@ class DichVuNhip : Service() {
         val than = thanNhip(Instant.now().toString(), BuildConfig.VERSION_NAME, ht?.dangKhoaThat == true, QuanTri.laDeviceOwner(this),
             QuanTri.laAdmin(this), TroNang.dangBat(this), DoPhut.coQuyen(this), if (matPhut > 2) matPhut else 0, dung)
             .apply { k.maOfflineBiMat?.let { put("maOfflineVan", vanBiMat(it)) } }   // vân bí mật đang nhớ: khớp ⇒ máy chủ khỏi gửi lại, lệch ⇒ gửi bí mật đúng
+        // phiên chơi bằng điểm do máy này mở: nhịp trước ⇒ chính sách nhịp này thấy phiên đã kết thúc ngay
+        HocVien.nhipPhien(this, k.phanHoi?.let { try { docPhanHoiNhip(it).chinhSach } catch (_: Exception) { null } })
         try {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
@@ -188,6 +191,8 @@ class DichVuNhip : Service() {
             r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
             MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)
+            // nhiệm vụ / lời nhắn mới ⇒ thông báo (tạm thay FCM); lời xin thêm giờ đang chờ ⇒ Ba Mẹ trả lời thì báo — luồng riêng, không chặn vòng thực thi
+            HocVien.chayNen(this)
             if (System.currentTimeMillis() - lanGuiHangDoi > 120_000) { lanGuiHangDoi = System.currentTimeMillis(); NhatKy.gui(this, MayChu(k.mayChu, k.token)) }
             // DNS gia đình (server/lib/dns-gia-dinh.ts › hoSoDns): Device Owner tự đặt DNS riêng tư; gia đình chưa bật DNS ⇒ máy chủ trả lỗi, bỏ qua
             if (QuanTri.laDeviceOwner(this) && k.privateDnsDaDat == null) try {
@@ -258,7 +263,10 @@ class DichVuNhip : Service() {
                 val nhac = NotificationChannel(KENH_NHAC, "Nhắc giờ", NotificationManager.IMPORTANCE_HIGH).apply {
                     description = "Còn 5 phút, còn 1 phút và đếm ngược trước khi máy khoá"
                 }
-                (ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannels(listOf(c, nhac))
+                val tin = NotificationChannel(HocVien.KENH_TIN, "Tin từ Ba Mẹ", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Nhiệm vụ mới, Ba Mẹ duyệt bài, lời nhắn, trả lời lời xin"
+                }
+                (ctx.getSystemService(NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannels(listOf(c, nhac, tin))
             }
         }
 
@@ -313,7 +321,9 @@ class DichVuNhip : Service() {
             if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }
             return try {
                 val r = MayChu(k.mayChu, k.token).xinThemGio(than)
-                if (r.optString("status") == "tu_duyet") { lamMoi(ctx); "Ba Mẹ đã tự động đồng ý!" } else "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé."
+                val tuDuyet = r.optString("status") == "tu_duyet"
+                HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, than.optInt("phut"), tuDuyet)   // theo dõi yeu-cau/:id tới khi Ba Mẹ trả lời
+                if (tuDuyet) { lamMoi(ctx); "Ba Mẹ đã tự động đồng ý!" } else "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé."
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Chưa gửi được — máy đang mất mạng." }
         }
     }

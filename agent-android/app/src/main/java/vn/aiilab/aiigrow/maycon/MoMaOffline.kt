@@ -19,7 +19,7 @@ object MoMaOffline {
     /** Hiện ô nhập mã: đã ghép, đang ở trạng thái khoá, máy mất mạng (nhịp thành công cuối > 3 phút). */
     fun nenHien(ctx: Context, ht: HienThi?): Boolean {
         val k = Kho(ctx)
-        return ht != null && k.daGhep && !k.cheDoThu && ht.trangThai in MO_DUOC && matMang(k.lanNhipThanhCong, System.currentTimeMillis())
+        return ht != null && k.daGhep && ht.trangThai in MO_DUOC && matMang(k.lanNhipThanhCong, System.currentTimeMillis())
     }
 
     /** Máy rời gia đình / ghép lại ⇒ quên bí mật + lượt mở cũ (mã của gia đình cũ không mở được máy nữa). */
@@ -28,7 +28,7 @@ object MoMaOffline {
     fun thu(ctx: Context, ma: String): String = synchronized(khoa) {
         val k = Kho(ctx)
         val now = System.currentTimeMillis()
-        val (kq, st) = MoTamOffline.doc(k.moTamOffline).thu(k.maOfflineBiMat, ma, now, lechMs = k.lechGioMs)
+        val (kq, st) = MoTamOffline.doc(k.moTamOffline).thu(k.maOfflineBiMat, ma, now, lechMs = if (k.cheDoThu) 0 else k.lechGioMs)
         k.moTamOffline = st.json()
         val tenMay = android.os.Build.MODEL ?: "Android"
         when {

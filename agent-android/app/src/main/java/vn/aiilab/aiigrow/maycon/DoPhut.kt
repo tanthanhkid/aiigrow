@@ -47,6 +47,19 @@ object DoPhut {
         return demTienCanh(ds, dau, now).filterKeys { it.isNotEmpty() && it != ctx.packageName }
     }
 
+    /** App đang ở tiền cảnh (sự kiện 30 phút gần nhất) — null nếu không biết / màn hình tắt. */
+    fun tienCanh(ctx: Context, now: Long = System.currentTimeMillis()): String? {
+        if (!coQuyen(ctx)) return null
+        val ev = (ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager).queryEvents(now - 30 * 60_000L, now)
+        val ds = ArrayList<SuKienDung>(); val e = UsageEvents.Event()
+        while (ev.hasNextEvent()) {
+            ev.getNextEvent(e)
+            val loai = when (e.eventType) { 1 -> LoaiSuKien.MO; 2 -> LoaiSuKien.DONG; 16 -> LoaiSuKien.TAT_MAN; else -> null } ?: continue
+            ds.add(SuKienDung(e.packageName ?: "", loai, e.timeStamp))
+        }
+        return vn.aiilab.aiigrow.maycon.logic.appTienCanh(ds)
+    }
+
     /** App mở được từ trình khởi chạy — dùng chung cho «chưa xếp» (daCai) và danh sách app gửi Ba Mẹ (DanhSachApp). */
     fun appLauncher(ctx: Context): List<ApplicationInfo> {
         val pm = ctx.packageManager
