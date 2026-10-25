@@ -180,10 +180,9 @@ public static partial class SystemCleanup
             kq.QuyenAdminTra = Buoc(log, "Trả quyền quản trị cho tài khoản Con", ops.TraQuyenQuanTri);
         }
 
-        // Chính sách web của trình duyệt (URLBlocklist…): gỡ TRƯỚC cổng AppLocker — luật chặn web hỏng không được để Con kẹt.
-        if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
-        // DNS gia đình (cài đặt lúc cài): trả DNS cũ của card mạng — cũng trước cổng, cần cấu hình (chưa xoá) để biết đã đặt gì.
-        if (ops is IDnsCleanup dns) Buoc(log, "Trả DNS cũ của card mạng (gỡ DNS gia đình)", dns.GoDnsGiaDinh);
+        // Chính sách web của trình duyệt (URLBlocklist…) + DNS gia đình: gỡ TRƯỚC cổng AppLocker — luật chặn web hỏng không được để Con kẹt;
+        // DNS cần cấu hình (chưa xoá) để biết đã đặt gì.
+        GoWebVaDns(log, ops);
 
         // CỔNG: gỡ luật AppLocker. Hỏng ⇒ dừng lại, chưa đụng config/dịch vụ; lần sau thử lại (gỡ tại máy: hẹn tác vụ tách rời cũng gỡ luật).
         kq.AppLockerGo = Buoc(log, "Gỡ luật AppLocker của AiiGrow", ops.GoAppLocker);
@@ -219,12 +218,18 @@ public static partial class SystemCleanup
         return kq;
     }
 
+    /// <summary>Phần hệ thống ngoài AppLocker, chung cho gỡ tại máy và gỡ từ xa (một chỗ — thêm khả năng gỡ mới thì thêm ở đây).</summary>
+    private static void GoWebVaDns(StringBuilder log, ICleanupOps ops)
+    {
+        if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
+        if (ops is IDnsCleanup dns) Buoc(log, "Trả DNS cũ của card mạng (gỡ DNS gia đình)", dns.GoDnsGiaDinh);
+    }
+
     /// <summary>Dọn phần CÒN LẠI khi dịch vụ tự gỡ, SAU khi đã gỡ AppLocker + trả quyền admin + ack (CommandProcessor làm riêng để báo đúng lúc).</summary>
     public static string DonPhanConLai(ICleanupOps ops)
     {
         var log = new StringBuilder();
-        if (ops is IWebCleanup web) Buoc(log, "Gỡ chính sách chặn web của trình duyệt", web.GoChinhSachWeb);
-        if (ops is IDnsCleanup dns) Buoc(log, "Trả DNS cũ của card mạng (gỡ DNS gia đình)", dns.GoDnsGiaDinh);
+        GoWebVaDns(log, ops);
         Buoc(log, "Tắt tự khởi động lại của dịch vụ", ops.TatKhoiPhucDichVu);
         Buoc(log, "Hẹn dọn nốt sau khi dịch vụ dừng", ops.HenDonTachRoi);
         Buoc(log, "Gỡ khay tự chạy", ops.GoKhay);

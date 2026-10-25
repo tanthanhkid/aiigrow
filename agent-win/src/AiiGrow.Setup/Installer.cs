@@ -38,7 +38,7 @@ internal static class Installer
         log("Đã ghép máy. Đang cài dịch vụ…");
         InstallFilesAndService();
         SetTrayAndNotice();
-        log(await Task.Run(() => DatDnsGiaDinhAsync(ct), ct));
+        log(await Task.Run(() => DatDnsGiaDinhAsync(ct)));   // không truyền ct cho Task.Run: huỷ lúc này không được làm hỏng lượt cài đã xong
         log("Xong. AiiGrow đang chạy trên máy này.");
     }
 

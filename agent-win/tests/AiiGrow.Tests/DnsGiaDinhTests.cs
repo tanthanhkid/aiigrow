@@ -47,8 +47,8 @@ public class DnsGiaDinhTests
     public void KichBanDat_DangKyDoh_DatChoCardVatLy_GhiDnsCu()
     {
         var s = DnsGiaDinh.KichBanDat(new[] { "203.0.113.5" }, "https://dns.aiigrow.vn/dns-query/a");
-        Assert.Contains("Add-DnsClientDohServerAddress -ServerAddress $ip -DohTemplate $doh -AllowFallbackToUdp $False -AutoUpgrade $True", s);
-        Assert.Contains("Get-NetAdapter -Physical | Set-DnsClientServerAddress -ServerAddresses $ips", s);
+        Assert.Contains("Add-DnsClientDohServerAddress -ServerAddress $ip -DohTemplate $doh -AllowFallbackToUdp $True -AutoUpgrade $True", s);
+        Assert.Contains("try { Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses $ips; $dat++ }", s);   // từng card, card lỗi không chặn card sau
         Assert.Contains("$ips = @('203.0.113.5')", s);
         Assert.Contains("KHONG_HO_TRO", s);
         // ghi DNS cũ TRƯỚC khi đổi
@@ -69,6 +69,18 @@ public class DnsGiaDinhTests
     }
 
     [Fact]
+    public void DocDnsCu_GiuCardVangMat_VaNhanIpCuCuaAiiGrow()
+    {
+        // lần trước resolver là 203.0.113.5; nay máy chủ đổi sang .9. G1 đang mang IP cũ ⇒ vẫn là của AiiGrow; G9 (USB rút ra) giữ giá trị đã nhớ.
+        var truoc = new Dictionary<string, string> { ["{G1}"] = "8.8.8.8", ["{G9}"] = "1.1.1.1" };
+        var cu = DnsGiaDinh.DocDnsCu("DNSCU={\"{G1}\":\"203.0.113.5\"}", new[] { "203.0.113.9" }, truoc, new[] { "203.0.113.5" });
+        Assert.Equal("8.8.8.8", cu["{G1}"]);
+        Assert.Equal("1.1.1.1", cu["{G9}"]);
+        // kịch bản hỏng trước dòng DNSCU ⇒ không mất bản đã nhớ
+        Assert.Equal("8.8.8.8", DnsGiaDinh.DocDnsCu("lỗi", new[] { "203.0.113.9" }, truoc)["{G1}"]);
+    }
+
+    [Fact]
     public void KichBanGo_ChiTraCardConDungIpAiiGrow_BoMauDohCuaMinh()
     {
         var s = DnsGiaDinh.KichBanGo(new DnsGiaDinhDaDat
@@ -76,6 +88,7 @@ public class DnsGiaDinhTests
             Ipv4 = new() { "203.0.113.5" }, MauDoh = "https://dns.aiigrow.vn/dns-query/a", DnsCu = new() { ["{G2}"] = "8.8.8.8" },
         });
         Assert.Contains("if (($ns -join ',') -eq ($ips -join ','))", s);
+        Assert.Contains("catch { $loi++", s);   // card lỗi không chặn các card sau
         Assert.Contains("-ResetServerAddresses", s);
         Assert.Contains("$x.DohTemplate -eq $doh", s);
         Assert.Contains("8.8.8.8", s);

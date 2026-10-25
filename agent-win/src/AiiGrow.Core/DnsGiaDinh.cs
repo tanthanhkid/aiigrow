@@ -84,17 +84,24 @@ public static class DnsGiaDinh
         sb.Append("Write-Output ('").Append(TienToCu).Append("' + (ConvertTo-Json -InputObject $cu -Compress)); ");
         sb.Append("foreach ($ip in $ips) { ");
         sb.Append("Get-DnsClientDohServerAddress -ServerAddress $ip -ErrorAction SilentlyContinue | Remove-DnsClientDohServerAddress -ErrorAction SilentlyContinue | Out-Null; ");
-        sb.Append("Add-DnsClientDohServerAddress -ServerAddress $ip -DohTemplate $doh -AllowFallbackToUdp $False -AutoUpgrade $True | Out-Null }; ");
-        sb.Append("Get-NetAdapter -Physical | Set-DnsClientServerAddress -ServerAddresses $ips; ");
-        sb.Append("Clear-DnsClientCache");
+        // Rơi về UDP = hỏi lại CHÍNH IP resolver đó qua cổng 53 (vẫn lọc) — chỉ để máy không mất DNS khi đường DoH chập chờn.
+        sb.Append("Add-DnsClientDohServerAddress -ServerAddress $ip -DohTemplate $doh -AllowFallbackToUdp $True -AutoUpgrade $True | Out-Null }; ");
+        // Từng card riêng: một card tắt / không có IPv4 (Bluetooth PAN…) không được chặn các card còn lại.
+        sb.Append("$dat = 0; foreach ($a in @(Get-NetAdapter -Physical)) { try { Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses $ips; $dat++ } ");
+        sb.Append("catch { Write-Output ('LOI_CARD=' + $a.Name + ': ' + $_.Exception.Message) } }; ");
+        sb.Append("try { Clear-DnsClientCache } catch {}; ");
+        sb.Append("if ($dat -eq 0) { Write-Output 'KHONG_CARD'; exit 4 }");
         return sb.ToString();
     }
 
     /// <summary>Đọc DNS cũ từ kết quả kịch bản đặt, gộp với lần cài trước: card đang mang đúng IP của AiiGrow (cài lại) thì giữ giá trị cũ đã lưu
     /// (không có ⇒ coi là DHCP) — không bao giờ lưu IP của chính AiiGrow làm «DNS cũ».</summary>
-    public static Dictionary<string, string> DocDnsCu(string? output, IReadOnlyList<string> ipv4, IReadOnlyDictionary<string, string>? truoc)
+    /// <param name="ipCu">IP resolver của lần cài trước (máy chủ có thể đã đổi IP): card đang mang IP cũ đó cũng là «của AiiGrow».</param>
+    public static Dictionary<string, string> DocDnsCu(string? output, IReadOnlyList<string> ipv4, IReadOnlyDictionary<string, string>? truoc, IReadOnlyList<string>? ipCu = null)
     {
-        var kq = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // bắt đầu từ bản đã nhớ: card vắng mặt lần này (USB rút ra) hay kịch bản hỏng trước dòng DNSCU vẫn giữ DNS cũ
+        var kq = new Dictionary<string, string>(truoc ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
+        bool CuaMinh(string? v) => LaCuaAiiGrow(v, ipv4) || (ipCu != null && LaCuaAiiGrow(v, ipCu));
         var dong = (output ?? "").Split('\n').Select(x => x.Trim()).FirstOrDefault(x => x.StartsWith(TienToCu, StringComparison.Ordinal));
         if (dong != null)
         {
@@ -103,12 +110,15 @@ public static class DnsGiaDinh
                 using var doc = JsonDocument.Parse(dong[TienToCu.Length..]);
                 if (doc.RootElement.ValueKind == JsonValueKind.Object)
                     foreach (var p in doc.RootElement.EnumerateObject())
-                        kq[p.Name] = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() ?? "" : "";
+                    {
+                        var v = p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() ?? "" : "";
+                        // card đang mang IP của AiiGrow (cài lại) ⇒ giữ giá trị đã nhớ (không có ⇒ DHCP); còn lại ⇒ DNS hiện tại là DNS cũ thật
+                        kq[p.Name] = CuaMinh(v) ? (truoc != null && truoc.TryGetValue(p.Name, out var c) && !CuaMinh(c) ? c : "") : v;
+                    }
             }
             catch (JsonException) { }
         }
-        foreach (var k in kq.Keys.ToList())
-            if (LaCuaAiiGrow(kq[k], ipv4)) kq[k] = truoc != null && truoc.TryGetValue(k, out var v) && !LaCuaAiiGrow(v, ipv4) ? v : "";
+        foreach (var k in kq.Keys.ToList()) if (CuaMinh(kq[k])) kq[k] = "";   // không bao giờ lưu IP của AiiGrow làm «DNS cũ»
         return kq;
     }
 
@@ -127,15 +137,19 @@ public static class DnsGiaDinh
         sb.Append("$ips = ").Append(MangPs(d.Ipv4)).Append("; $doh = ").Append(Shell.PsQuote(d.MauDoh)).Append("; ");
         sb.Append("$cu = ConvertFrom-Json ").Append(Shell.PsQuote(JsonSerializer.Serialize(d.DnsCu))).Append("; ");
         sb.Append(HamNameServer);
-        sb.Append("foreach ($a in @(Get-NetAdapter -Physical)) { $g = [string]$a.InterfaceGuid; ");
+        // Từng card / từng IP riêng (try): một card hỏng không được để các card sau kẹt resolver AiiGrow. Có lỗi ⇒ thoát 1 (dọn tiếp ở lần gỡ sau).
+        sb.Append("$loi = 0; foreach ($a in @(Get-NetAdapter -Physical)) { try { $g = [string]$a.InterfaceGuid; ");
         sb.Append("$ns = @((NS $g) -split '[, ]' | Where-Object { $_ }); ");
         sb.Append("if (($ns -join ',') -eq ($ips -join ',')) { $old = [string]$cu.$g; ");
         sb.Append("if ($old) { Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ServerAddresses @($old -split '[, ]' | Where-Object { $_ }) } ");
-        sb.Append("else { Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ResetServerAddresses } } }; ");
-        sb.Append("if (Get-Command Get-DnsClientDohServerAddress -ErrorAction SilentlyContinue) { foreach ($ip in $ips) { ");
+        sb.Append("else { Set-DnsClientServerAddress -InterfaceIndex $a.ifIndex -ResetServerAddresses } } } ");
+        sb.Append("catch { $loi++; Write-Output ('LOI_CARD=' + $a.Name + ': ' + $_.Exception.Message) } }; ");
+        sb.Append("if (Get-Command Get-DnsClientDohServerAddress -ErrorAction SilentlyContinue) { foreach ($ip in $ips) { try { ");
         sb.Append("$x = Get-DnsClientDohServerAddress -ServerAddress $ip -ErrorAction SilentlyContinue; ");
-        sb.Append("if ($x -and $x.DohTemplate -eq $doh) { Remove-DnsClientDohServerAddress -ServerAddress $ip | Out-Null } } }; ");
-        sb.Append("Clear-DnsClientCache");
+        sb.Append("if ($x -and $x.DohTemplate -eq $doh) { Remove-DnsClientDohServerAddress -ServerAddress $ip | Out-Null } } ");
+        sb.Append("catch { $loi++; Write-Output ('LOI_DOH=' + $ip + ': ' + $_.Exception.Message) } } }; ");
+        sb.Append("try { Clear-DnsClientCache } catch {}; ");
+        sb.Append("if ($loi -gt 0) { exit 1 }");
         return sb.ToString();
     }
 
@@ -152,15 +166,20 @@ public static class DnsGiaDinh
         var r = chay(KichBanDat(ips, doh));
         if (r.ExitCode == 3 || r.Output.Contains("KHONG_HO_TRO")) return (KetQuaDns.KhongHoTro, "Windows này chưa hỗ trợ DNS mã hoá (cần Windows 11) — bỏ qua.");
         // Lỗi giữa chừng vẫn lưu (mẫu DoH có thể đã đăng ký một phần) ⇒ gỡ cài dọn được. Kịch bản gỡ chạy lại an toàn.
-        AgentConfig? cfg = null;
-        try { cfg = store.Load(); } catch { }
-        if (cfg != null)
+        // UpdateIf (không Load + Save): dịch vụ vừa cài đang chạy và cũng ghi cấu hình.
+        try
         {
-            var truoc = cfg.DnsGiaDinh?.DnsCu;
-            cfg.DnsGiaDinh = new DnsGiaDinhDaDat { Ipv4 = ips, MauDoh = doh, DnsCu = DocDnsCu(r.Output, ips, truoc), Luc = DateTimeOffset.UtcNow };
-            store.Save(cfg);
+            store.UpdateIf(c =>
+            {
+                var truoc = c.DnsGiaDinh;
+                c.DnsGiaDinh = new DnsGiaDinhDaDat { Ipv4 = ips, MauDoh = doh, DnsCu = DocDnsCu(r.Output, ips, truoc?.DnsCu, truoc?.Ipv4), Luc = DateTimeOffset.UtcNow };
+                return true;
+            });
         }
-        return r.Ok ? (KetQuaDns.DaDat, $"Đã đặt DNS gia đình ({string.Join(", ", ips)}).") : (KetQuaDns.Loi, "Đặt DNS gia đình lỗi: " + FileLog.ChePhanBiMat(r.Error.Trim()));
+        catch (Exception e) { return (KetQuaDns.Loi, "Đã đặt DNS nhưng chưa lưu được cấu hình: " + e.Message); }
+        var loiCard = string.Join("; ", r.Output.Split('\n').Select(x => x.Trim()).Where(x => x.StartsWith("LOI_CARD=", StringComparison.Ordinal)).Select(x => x[9..]));
+        if (!r.Ok) return (KetQuaDns.Loi, "Đặt DNS gia đình lỗi: " + FileLog.ChePhanBiMat((r.Error.Trim() + " " + loiCard).Trim()));
+        return (KetQuaDns.DaDat, $"Đã đặt DNS gia đình ({string.Join(", ", ips)})." + (loiCard.Length > 0 ? " Có card chưa đặt được: " + loiCard : ""));
     }
 }
 
