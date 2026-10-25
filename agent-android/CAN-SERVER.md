@@ -9,7 +9,7 @@ Tác tử máy Con dùng gói **`vn.aiilab.aiigrow.con`** (app Ba Mẹ Expo đã
 "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri",
 "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": `${g}/tai/aiigrow-con.apk`,
 ```
-- `PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM`: băm SHA-256 (base64url) chữ ký APK — chỉ có khi có bản ký phát hành (chưa tạo keystore).
+- `PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM`: base64url SHA-256 chứng chỉ khoá phát hành `7WW8vTHg1Vu0clik_OQmB0gVrxb9rlj-Uku-tq8JxZM` — ĐÃ có (khoá aiigrow-con tạo 25/10/2026, agent-android/README.md; KHÔNG tạo khoá thứ hai).
 - `PROVISIONING_ADMIN_EXTRAS_BUNDLE` giữ nguyên `{ aiigrow_token, aiigrow_may_chu }` — tác tử đọc trong `ManCaiDat` (ADMIN_POLICY_COMPLIANCE) rồi gọi `POST /api/device/ghep-goi {token, nen:"android", tenMay}`.
 - `duPhong`: sửa lời "cài APK / Play" ⇒ tên app «AiiGrow Con»; máy đang dùng ghép bằng mã 6 số (`POST /api/device/ghep {ma, nen:"android", tenMay}`) — đã chạy được, không cần sửa.
 - Nên thêm `"android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED": true` (giữ Chrome, Camera… của máy).

@@ -105,7 +105,9 @@ test("QR Device Owner Android: component + APK của tác tử máy Con, giữ C
   assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME"], "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri");
   assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION"], "https://app.test/tai/aiigrow-con.apk");
   assert.equal(qr["android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED"], true);
-  assert.match(String(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM"]), /^[A-Za-z0-9_-]{43}$/, "base64url SHA-256 chứng chỉ ký");
+  // base64url của SHA-256 chứng chỉ khoá phát hành (agent-android/README.md) — lệch thì máy khôi phục gốc quét QR không cài được.
+  const vanTay = "ED:65:BC:BD:31:E0:D5:5B:B4:72:58:A4:FC:E4:26:07:48:15:AF:16:FD:AE:58:FE:52:4B:BE:B6:AF:09:C5:93";
+  assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM"], Buffer.from(vanTay.replaceAll(":", ""), "hex").toString("base64url"));
   assert.doesNotMatch(JSON.stringify(a), /\/tai\/aiigrow\.apk/);
   const cfg = (await import("../next.config.ts")).default;
   const rd = (await cfg.redirects!()) as { source: string; destination: string }[];

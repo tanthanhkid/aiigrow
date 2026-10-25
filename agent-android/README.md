@@ -55,7 +55,7 @@ SHA-256 chứng chỉ: `ED:65:BC:BD:31:E0:D5:5B:B4:72:58:A4:FC:E4:26:07:48:15:AF
 ```
 set -a; . ~/.aiigrow-android/ky.env; set +a     # AIIGROW_CON_KEYSTORE, _KEYSTORE_PASSWORD, _KEY_ALIAS, _KEY_PASSWORD (cũng nhận -P gradle property)
 ./gradlew assembleRelease --max-workers=2 && ./gradlew --stop
-# APK: app/build/outputs/apk/release/app-release.apk — thiếu biến thì bản release ra KHÔNG ký (app-release-unsigned.apk)
+# APK: app/build/outputs/apk/release/app-release.apk — thiếu biến thì assembleRelease DỪNG (không ra APK chưa ký)
 ```
 Phát hành: tăng `versionCode`/`versionName` trong `app/build.gradle.kts` → `gh release create con-android-<bản> -R tanthanhkid/aiigrow-tai` kèm tệp `AiiGrow-Con-android.apk`
 → sửa chuyển hướng `/tai/aiigrow-con.apk` trong `server/next.config.ts` sang release đó.

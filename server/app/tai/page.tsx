@@ -13,7 +13,7 @@ const LINK_APK = "/tai/aiigrow.apk";
 const LINK_APK_CON = "/tai/aiigrow-con.apk";
 
 const BAO_MAC = {
-  ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con cài được trên Windows và máy Mac.",
+  ios: "Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời). Máy của Con cài được trên Windows, máy Mac và điện thoại Android (link tải bên dưới).",
 } as const;
 
 const GiamSat = () => (

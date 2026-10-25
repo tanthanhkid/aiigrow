@@ -3,6 +3,11 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Khoá phát hành: ~/.aiigrow-android/aiigrow-con-release.jks (tạo 25/10/2026, Thanh duyệt), mật khẩu ở ~/.aiigrow-android/ky.env.
+// Đọc từ biến môi trường hoặc gradle property cùng tên. Thiếu ⇒ bản debug build như cũ, còn đóng gói release thì DỪNG (không ra APK chưa ký).
+fun bien(ten: String): String? = (System.getenv(ten) ?: project.findProperty(ten) as String?)?.takeIf { it.isNotBlank() }
+val tepKhoa = bien("AIIGROW_CON_KEYSTORE")
+
 android {
     namespace = "vn.aiilab.aiigrow.maycon"   // thư mục mã không được tên «con» (tên cấm trên Windows, CI checkout hỏng); applicationId giữ nguyên
     compileSdk = 35
@@ -17,11 +22,8 @@ android {
         buildConfigField("String", "MAY_CHU_MAC_DINH", "\"https://aiigrow.aiilab.vn\"")
     }
 
-    // Khoá phát hành: ~/.aiigrow-android/aiigrow-con-release.jks (tạo 25/10/2026, Thanh duyệt), mật khẩu ở ~/.aiigrow-android/ky.env.
-    // Đọc từ biến môi trường hoặc gradle property cùng tên; thiếu ⇒ không có cấu hình ký release (bản debug build như cũ).
-    fun bien(ten: String): String? = (System.getenv(ten) ?: project.findProperty(ten) as String?)?.takeIf { it.isNotBlank() }
-    val tepKhoa = bien("AIIGROW_CON_KEYSTORE")
     if (tepKhoa != null) {
+        require(bien("AIIGROW_CON_KEYSTORE_PASSWORD") != null) { "Có AIIGROW_CON_KEYSTORE mà thiếu AIIGROW_CON_KEYSTORE_PASSWORD — nạp ~/.aiigrow-android/ky.env" }
         signingConfigs {
             create("phatHanh") {
                 storeFile = file(tepKhoa)
@@ -50,6 +52,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
     testOptions { unitTests.isReturnDefaultValues = true }
+}
+
+if (tepKhoa == null) tasks.matching { it.name == "packageRelease" }.configureEach {
+    doFirst { throw GradleException("Bản release phải ký khoá phát hành: nạp ~/.aiigrow-android/ky.env (agent-android/README.md)") }
 }
 
 dependencies {
