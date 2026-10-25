@@ -465,6 +465,18 @@ public enum ChoiBangDiem {
     }
   }
 
+  /// «Đang chơi thật» cho phien/nhip (như Windows 0.2.4 chỉ đếm giây app chơi ở tiền cảnh): app tiền cảnh là app của phiên, hoặc một trình
+  /// duyệt khi phiên là trang web. false ⇒ máy chủ tạm dừng đếm (tạm lâu ⇒ đóng phiên). Chưa kiểm được tiền cảnh ⇒ coi là đang chơi.
+  public static func dangChoi(tienCanh: String?, playApp: String?, playWeb: Bool) -> Bool {
+    guard let tc = tienCanh?.lowercased(), !tc.isEmpty, tc != DemPhut.khongRo else { return true }
+    if playWeb {
+      let trinhDuyet = Set(ChinhSachTrinhDuyet.tatCa.flatMap { [$0.bundleApp.lowercased(), $0.bundleId.lowercased()] } + ["com.apple.safari"])
+      return trinhDuyet.contains(tc)
+    }
+    guard let app = playApp?.lowercased(), !app.isEmpty else { return true }
+    return tc == app || tc.hasPrefix(app + ".") || app.hasPrefix(tc + ".")
+  }
+
   /// Nhãn nút một mục: «Chơi Roblox · ≈ 25 phút».
   public static func nhanNut(_ muc: String, phut: Int?) -> String {
     let ten = "Chơi " + HocVienView.tenMucChoi(muc)

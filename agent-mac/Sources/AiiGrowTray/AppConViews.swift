@@ -453,10 +453,10 @@ struct NopBaiView: View {
     p.title = "Chọn ảnh bằng chứng"; p.allowedContentTypes = [.jpeg, .png, .heic, .tiff, .bmp, .gif]
     p.allowsMultipleSelection = false; p.canChooseDirectories = false
     guard p.runModal() == .OK, let u = p.url else { return }
-    if let img = NSImage(contentsOf: u), let d = AnhNop.jpeg(img) {
+    if let img = NSImage(contentsOf: u), let d = AnhNop.nen(img) {
       anh = d.base64EncodedString(); tenAnh = u.lastPathComponent; loi = ""
     } else {
-      anh = nil; tenAnh = ""; loi = "Ảnh này chưa đọc được. Con chọn ảnh khác nhé."
+      anh = nil; tenAnh = ""; loi = "Ảnh này chưa dùng được (lỗi hoặc quá nặng). Con chọn ảnh khác nhé."
     }
   }
 
@@ -553,6 +553,7 @@ struct ChanAppView: View {
     switch s {
     case "ba_me_chan": return "Ba Mẹ đã chặn app này trên máy."
     case "chi_app_hoc": return "Bây giờ chỉ mở được các app học Ba Mẹ cho phép."
+    case "trinh_duyet": return "Trình duyệt này chưa lọc web được. Con dùng trình duyệt Ba Mẹ cho phép nhé."
     default: return "Chưa được Ba Mẹ cho mở."
     }
   }

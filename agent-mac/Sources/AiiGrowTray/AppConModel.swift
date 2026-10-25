@@ -21,13 +21,20 @@ final class AppConModel: ObservableObject {
   @Published var phutChoi: Int?
   var phutChoiCua: String?
   private var dangTai = false
+  /// Có yêu cầu tải lại trong lúc đang tải (vd vừa Nhận việc) ⇒ tải thêm một lượt khi lượt đang chạy xong.
+  private var canTaiLai = false
+  private var dsChoiLai: [String] = []
 
   /// Gửi một lệnh IPC tới daemon — tiêm được (test / chụp ảnh không mở socket).
   let goi: (YeuCauTray) async -> TraLoi
 
   init(goi: @escaping (YeuCauTray) async -> TraLoi = AppConModel.goiThat) { self.goi = goi }
 
+  /// Lệnh đi máy chủ chờ tới 25 giây; daemon chỉ nhận 4 kết nối mỗi uid (SocketIPC.toiDaMoiUid) ⇒ tray chỉ cho 2 lệnh loại này cùng lúc,
+  /// còn chỗ cho `trangThai` 5 giây/lần (không thì mạng chậm làm tray tưởng daemon chết).
   nonisolated static func goiThat(_ yc: YeuCauTray) async -> TraLoi {
+    await GioiHanIPC.chung.vao()
+    defer { Task { await GioiHanIPC.chung.ra() } }
     do { return try await IPCClient.guiAsync(yc, giay: 25) } catch {
       return .loi(ma: "ipc", chu: "Chưa nối được dịch vụ AiiGrow. Con thử lại sau vài giây nhé.")
     }
@@ -54,18 +61,27 @@ final class AppConModel: ObservableObject {
 
   /// Tải lại cả ba nguồn (tổng quan trước — các mục khác chờ nó). `dsChoi` để hỏi số phút chơi của mục đầu.
   func lamMoi(dsChoi: [String] = []) async {
-    guard !dangTai else { return }
-    dangTai = true; defer { dangTai = false }
+    guard !dangTai else { canTaiLai = true; dsChoiLai = dsChoi; return }
+    dangTai = true
+    var ds = dsChoi
+    repeat {
+      canTaiLai = false
+      await taiMotLuot(dsChoi: ds)
+      ds = dsChoiLai
+    } while canTaiLai
+    dangTai = false
+  }
+
+  private func taiMotLuot(dsChoi: [String]) async {
     let (d, loi) = await hoi("GET", "hoc-vien/tong-quan")
     guard let d, let t = HvTongQuan.doc(d) else {
       loiTai = loi ?? "Máy chủ trả dữ liệu lạ. Con thử lại nhé."
       return
     }
     tq = t; loiTai = nil
-    async let phut: Void = lamMoiPhutChoi(dsChoi: dsChoi)
     if let c = await hoi("GET", "hoc-vien/cua-hang").0.flatMap(HvCuaHang.doc) { ch = c }
     if let x = await hoi("GET", "hoc-vien/tin").0.flatMap(HvTinDs.doc) { tin = x }
-    await phut
+    await lamMoiPhutChoi(dsChoi: dsChoi)
   }
 
   func lamMoiPhutChoi(dsChoi: [String]) async {
@@ -128,9 +144,9 @@ final class AppConModel: ObservableObject {
 
 /// Ảnh bằng chứng: thu nhỏ (cạnh dài ≤ 1280) rồi nén JPEG, giảm chất lượng dần tới khi ≤ 300 KB (agent-win NopBaiForm.ToJpeg).
 enum AnhNop {
-  static func jpeg(_ anh: NSImage) -> Data? {
+  static func jpeg(_ anh: NSImage, maxCanh: Int = AnhBangChung.maxCanh) -> Data? {
     guard let cg = anh.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
-    let (w, h) = AnhBangChung.vua(cg.width, cg.height)
+    let (w, h) = AnhBangChung.vua(cg.width, cg.height, maxCanh: maxCanh)
     guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h, bitsPerSample: 8, samplesPerPixel: 4,
                                      hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
           let ctx = NSGraphicsContext(bitmapImageRep: rep) else { return nil }
@@ -140,11 +156,31 @@ enum AnhNop {
     NSColor.white.setFill(); NSRect(x: 0, y: 0, width: w, height: h).fill()
     ctx.cgContext.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
     NSGraphicsContext.restoreGraphicsState()
-    var cuoi: Data?
     for q in [0.82, 0.70, 0.58, 0.46, 0.35] {
-      cuoi = rep.representation(using: .jpeg, properties: [.compressionFactor: q])
-      if let c = cuoi, c.count <= AnhBangChung.maxByte { break }
+      if let c = rep.representation(using: .jpeg, properties: [.compressionFactor: q]), c.count <= AnhBangChung.maxByte { return c }
     }
-    return cuoi
+    return nil
+  }
+
+  /// Nén về ≤ 300 KB: thử cạnh 1280, rồi nhỏ dần (ảnh nhiều chi tiết). Vẫn quá ⇒ nil (báo Con chọn ảnh khác, không gửi ảnh máy chủ sẽ từ chối).
+  static func nen(_ anh: NSImage) -> Data? {
+    for canh in [AnhBangChung.maxCanh, 960, 720] { if let d = jpeg(anh, maxCanh: canh) { return d } }
+    return nil
+  }
+}
+
+/// Hàng chờ nhỏ: tối đa `toiDa` lệnh IPC đi máy chủ cùng lúc từ tray.
+actor GioiHanIPC {
+  static let chung = GioiHanIPC(toiDa: 2)
+  private let toiDa: Int
+  private var dang = 0
+  private var cho: [CheckedContinuation<Void, Never>] = []
+  init(toiDa: Int) { self.toiDa = toiDa }
+  func vao() async {
+    if dang < toiDa { dang += 1; return }
+    await withCheckedContinuation { cho.append($0) }      // chỗ được chuyển thẳng từ ra() — dang giữ nguyên
+  }
+  func ra() {
+    if cho.isEmpty { dang = max(0, dang - 1) } else { cho.removeFirst().resume() }
   }
 }

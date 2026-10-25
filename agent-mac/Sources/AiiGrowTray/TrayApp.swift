@@ -127,6 +127,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở trang hoặc app", XinMoView(tray: model, xin: xin)) }
   @objc func moAppCon() { moApp(nil) }
   @objc func moChoi() {
+    if let w = cuaSoChoi { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }   // đã mở: chỉ đưa lên trước
     let ds = model.tt?.dsChoi ?? []
     let m = ChoiModel()
     hienCuaSo(&cuaSoChoi, "AiiGrow · Chơi bằng điểm", ChoiBangDiemView(ds: ds, m: m, dong: { [weak self] in self?.cuaSoChoi?.close() }))
@@ -166,12 +167,14 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   func moNop(_ nv: HvNhiemVu) {
     cuaSoNop?.close(); cuaSoNop = nil
+    let hop = HopCuaSo()
     let v = NopBaiView(nv: nv, app: appCon, xong: { [weak self] kq in
       guard let self else { return }
-      self.cuaSoNop?.close()
+      if let w = hop.w, self.cuaSoNop === w { w.close() }        // chỉ đóng ĐÚNG cửa sổ vừa nộp (Con có thể đã mở bài khác)
       Task { await self.appCon.lamMoi(dsChoi: self.model.tt?.dsChoi ?? []); self.appCon.noi(HocVienView.nopThongBao(kq)) }
     })
     hienCuaSo(&cuaSoNop, "AiiGrow · Nộp bài", v)
+    hop.w = cuaSoNop
   }
 
   /// Hỏi tin mới (hoc-vien/tin?sau=…) ⇒ bảng báo nhỏ góc phải; có nhiệm vụ mới ⇒ tự bật app ở mục Nhiệm vụ (BatNhiemVu).
@@ -230,7 +233,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     defer { chanSeqDaThay = seq }
     guard let cu = chanSeqDaThay, seq > cu, manKhoa.isEmpty, let ten = t.chanTen else { return }
     let muc = t.chanApp ?? ""
-    let coChoi = t.chanLyDo != "ba_me_chan"
+    let coChoi = t.chanLyDo == "chi_app_hoc"
       && ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? [], muc: muc)
     let m = ChoiModel()
     cuaSoChan?.close()
@@ -262,7 +265,10 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     w.title = tieuDe; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     giu = w
-    NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
+    // một lần, giữ cửa sổ YẾU và gỡ người nghe khi đóng ⇒ cửa sổ + cây SwiftUI được giải phóng (tray chạy suốt phiên)
+    var nghe: NSObjectProtocol?
+    nghe = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self, weak w] _ in
+      if let nghe { NotificationCenter.default.removeObserver(nghe) }
       Task { @MainActor in
         if self?.cuaSoChoi === w { self?.cuaSoChoi = nil }
         if self?.cuaSoNop === w { self?.cuaSoNop = nil }
@@ -385,3 +391,6 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 extension NSStatusItem {
   @MainActor static var systemStatusItem: NSStatusItem { NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength) }
 }
+
+/// Giữ YẾU một cửa sổ để closure tạo trước cửa sổ biết đúng cửa sổ của mình.
+@MainActor final class HopCuaSo { weak var w: NSWindow? }

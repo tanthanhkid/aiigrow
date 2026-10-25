@@ -106,6 +106,14 @@ final class HocVienTests: XCTestCase {
     XCTAssertFalse(b.nhan(coNvMoi: true, khoa: false, appDangHien: true, bayGio: t0.addingTimeInterval(900)))
   }
 
+  func testDangChoiTheoTienCanh() {
+    XCTAssertTrue(ChoiBangDiem.dangChoi(tienCanh: nil, playApp: "com.roblox.roblox", playWeb: false), "chưa kiểm được ⇒ tính")
+    XCTAssertTrue(ChoiBangDiem.dangChoi(tienCanh: "com.Roblox.Roblox", playApp: "com.roblox.roblox", playWeb: false))
+    XCTAssertFalse(ChoiBangDiem.dangChoi(tienCanh: "com.apple.iwork.pages", playApp: "com.roblox.roblox", playWeb: false), "tắt game làm bài ⇒ không trừ")
+    XCTAssertTrue(ChoiBangDiem.dangChoi(tienCanh: "com.google.Chrome", playApp: nil, playWeb: true))
+    XCTAssertFalse(ChoiBangDiem.dangChoi(tienCanh: "com.apple.iwork.pages", playApp: nil, playWeb: true))
+  }
+
   func testAnhVuaTran() {
     XCTAssertTrue(AnhBangChung.vua(4000, 3000) == (1280, 960))
     XCTAssertTrue(AnhBangChung.vua(800, 600) == (800, 600))
@@ -232,7 +240,8 @@ final class HocVienTests: XCTestCase {
   func testNhipPhienChoiKhiPolicyCoPhien() async throws {
     let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
     let fake = HeThongGia(), dh = DongHoGia()
-    let b = try dung(fake, dh, thuMuc, policy: #"{"mode":"hoc","playSessionId":"ph9"}"#)
+    let b = try dung(fake, dh, thuMuc, policy: #"{"mode":"hoc","playSessionId":"ph9","playApp":"com.roblox.roblox"}"#)
+    fake.tienCanhThat = "com.roblox.roblox"
     HttpMock.dat { path, _ in path == "api/device/phien/nhip" ? HttpMock.json(200, ["trangThai": "chay"]) : HttpMock.json(404, [:]) }
     await b.vongNhipChoi()
     XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/nhip")?["id"] as? String, "ph9")
@@ -243,6 +252,10 @@ final class HocVienTests: XCTestCase {
     dh.tien(31)
     await b.vongNhipChoi()
     XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/nhip")?["dangDung"] as? Bool, false, "màn khoá ⇒ tạm dừng đếm")
+    fake.phien = PhienConsole(uid: 501, manKhoa: false); fake.tienCanhThat = "com.apple.iwork.pages"
+    dh.tien(31)
+    await b.vongNhipChoi()
+    XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/nhip")?["dangDung"] as? Bool, false, "game không ở tiền cảnh ⇒ không trừ điểm")
   }
 
   func testKhongNhipKhiKhongCoPhien() async throws {

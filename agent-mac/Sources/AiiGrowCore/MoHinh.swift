@@ -106,6 +106,9 @@ public struct Policy: Codable, Equatable {
   public var playChoices: [String] = []
   /// Phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (máy chủ chỉ gửi cho máy sở hữu phiên) — daemon gửi phien/nhip cho phiên này.
   public var playSessionId: String?
+  /// Phiên đang chơi: app (bundle id) / trang web (playWeb) — daemon đo «đang chơi thật» khi gửi phien/nhip.
+  public var playApp: String?
+  public var playWeb: Bool = false
 
   public init() {}
 
@@ -130,6 +133,8 @@ public struct Policy: Codable, Equatable {
       .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     if let id = s(.playSessionId), !id.isEmpty { playSessionId = id }
     else if let n = (try? c.decodeIfPresent(Int.self, forKey: .playSessionId)) ?? nil { playSessionId = String(n) }
+    playApp = s(.playApp).flatMap { $0.isEmpty ? nil : $0 }
+    playWeb = ((try? c.decodeIfPresent(Bool.self, forKey: .playWeb)) ?? nil) ?? false
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -150,10 +155,12 @@ public struct Policy: Codable, Equatable {
     if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
     if !playChoices.isEmpty { try c.encode(playChoices, forKey: .playChoices) }
     try c.encodeIfPresent(playSessionId, forKey: .playSessionId)
+    try c.encodeIfPresent(playApp, forKey: .playApp)
+    if playWeb { try c.encode(playWeb, forKey: .playWeb) }
   }
 
   enum CodingKeys: String, CodingKey {
-    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId
+    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb
   }
 }
 

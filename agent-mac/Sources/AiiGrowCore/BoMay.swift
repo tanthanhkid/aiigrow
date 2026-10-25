@@ -177,7 +177,7 @@ public actor BoMay {
     let daGuiGiay = cauHinh.daDungGiayTuSync     // vòng áp vẫn cộng trong lúc await — chỉ trừ phần đã tính tới lúc gửi
     do {
       let kq = try await api.dongBo(trangThai: st, dung: dung, luc: dongHo())
-      if kq.policy != policy { choiNho = [:] }       // bật/tắt đổi điểm, mục chơi, phiên… đổi ⇒ số phút nhớ bỏ đi
+      if BoMay.dauChoi(kq.policy) != policy.map(BoMay.dauChoi) { choiNho = [:] }   // bật/tắt đổi điểm, mục chơi, phiên, chế độ đổi ⇒ số phút nhớ bỏ đi
       policy = kq.policy
       matMang = false
       syncLuc = donDieu() + Double(kq.nextCheckSec)
@@ -266,7 +266,7 @@ public actor BoMay {
       }
       var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
       let biChan = appBiChanCanDong(ds, uidCon: uidCon, p: p, chan: true, daCo: Set(can.map(\.pid)))     // app Ba Mẹ «Chặn»: MỌI mode
-      ghiAppVuaChan(moi: (can + biChan).filter { daGuiTerm[$0.pid] == nil }, baMeChan: Set(biChan.map(\.pid)))
+      ghiAppVuaChan(can: can + biChan, baMeChan: Set(biChan.map(\.pid)), chiAppHoc: hl.chiAppHoc)
       can += biChan
       if hl.chiAppHoc { trinhDuyetCanDong = [] }        // đã có một lượt đóng thật ⇒ trình duyệt mở từ giờ đọc luật mới
       let canPid = Set(can.map(\.pid))
@@ -274,6 +274,7 @@ public actor BoMay {
       for t in can { dongApp(t) }
     } else {
       daGuiTerm = [:]
+      chanDaBao = []
       if let uidCon = cauHinh.uidCon, laCon, !p.blockedApps.isEmpty {          // giám sát: chỉ ghi «sẽ đóng»
         _ = appBiChanCanDong(heThong.tienTrinh(cuaUid: uidCon), uidCon: uidCon, p: p, chan: false, daCo: [])
       } else { daBaoBiChan = [] }
@@ -531,6 +532,11 @@ public actor BoMay {
   /// Nhớ kết quả «chơi thử» theo mục: «được» 60 giây, «từ chối» 15 giây (mở hộp / làm mới không bắn phien/xet liên tục). Policy đổi ⇒ bỏ hết.
   private var choiNho: [String: (luc: Double, tra: TraLoi)] = [:]
 
+  /// Phần Policy ảnh hưởng «chơi bằng điểm» (serverTime / minutesLeft đổi mỗi lượt — không tính).
+  static func dauChoi(_ p: Policy) -> String {
+    [String(p.canExchangePoints), p.mode, String(p.locked), p.playSessionId ?? "", p.playChoices.joined(separator: ",")].joined(separator: "|")
+  }
+
   private func mucChoi(_ muc: String) -> String? {
     let m = muc.trimmingCharacters(in: .whitespacesAndNewlines)
     return (policy?.playChoices ?? []).first { $0.lowercased() == m.lowercased() }
@@ -577,14 +583,16 @@ public actor BoMay {
   private var nhipLuc: Double = 0
   private var dangNhip = false
   /// Nhịp phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (Policy.playSessionId): 30 giây một lần, «đang dùng» = Con đang ngồi máy (phiên console
-  /// của Con, màn không khoá). Máy chủ trừ điểm theo phút, hết phút / hết điểm / giờ ngủ ⇒ «ket_thuc» ⇒ đồng bộ ngay để khoá lại app chơi.
+  /// của Con, màn không khoá) VÀ app của phiên (hoặc trình duyệt nếu phiên web) ở tiền cảnh — như Windows 0.2.4. Máy chủ trừ điểm theo phút, hết phút / hết điểm / giờ ngủ ⇒ «ket_thuc» ⇒ đồng bộ ngay để khoá lại app chơi.
   /// Daemon gọi trong Task riêng (main.swift) — mạng treo không làm ngưng vòng áp / vòng đồng bộ.
   public func vongNhipChoi() async {
     guard cauHinh.daGhep, !dangGo, !dangNhip, let id = policy?.playSessionId, donDieu() >= nhipLuc else { return }
     dangNhip = true; defer { dangNhip = false }
     nhipLuc = donDieu() + 30
     do {
-      let tt = try await api.nhipChoi(id: id, dangDung: conDangDung() != nil)
+      let tienCanh = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
+      let dung = conDangDung() != nil && ChoiBangDiem.dangChoi(tienCanh: tienCanh, playApp: policy?.playApp, playWeb: policy?.playWeb ?? false)
+      let tt = try await api.nhipChoi(id: id, dangDung: dung)
       if tt == "ket_thuc" { dongBoSom(); choiNho = [:] }
     } catch let e as LoiApi {
       if !e.laMang { dongBoSom(); nhipLuc = donDieu() + 60 }       // phiên không còn (404/409) ⇒ lấy Policy mới; không bắn lại liên tục
@@ -764,14 +772,19 @@ public actor BoMay {
   /// .app (tiến trình nền / dòng lệnh thì không); nhiều tiến trình của cùng app trong một vòng = một lần; cùng app trong 15 giây = không báo lại.
   private var chanSeq = 0
   private var chanCuoi: (bundle: String, ten: String, lyDo: String, luc: Double)?
-  private func ghiAppVuaChan(moi: [TienTrinh], baMeChan: Set<Int32>) {
+  /// pid đã báo (giữ tới khi pid không còn trong danh sách cần đóng — SIGTERM rồi SIGKILL vẫn là MỘT lần báo).
+  private var chanDaBao: Set<Int32> = []
+  private func ghiAppVuaChan(can: [TienTrinh], baMeChan: Set<Int32>, chiAppHoc: Bool) {
+    let moi = can.filter { !chanDaBao.contains($0.pid) }
+    chanDaBao = Set(can.map(\.pid))
     guard let t = moi.first(where: { $0.duongDanApp != nil }), let app = t.duongDanApp else { return }
     let bundle = (t.bundleId ?? "").lowercased()
     let ten = URL(fileURLWithPath: app).deletingPathExtension().lastPathComponent
     let khoa = bundle.isEmpty ? app.lowercased() : bundle
     if let c = chanCuoi, c.bundle == khoa, donDieu() - c.luc < 15 { chanCuoi?.luc = donDieu(); return }
     chanSeq += 1
-    chanCuoi = (khoa, ten, baMeChan.contains(t.pid) ? "ba_me_chan" : "chi_app_hoc", donDieu())
+    // lý do: Ba Mẹ «Chặn» app · giờ chỉ app học · còn lại = trình duyệt chưa lọc web được (đóng vì luật web, không đổi điểm được)
+    chanCuoi = (khoa, ten, baMeChan.contains(t.pid) ? "ba_me_chan" : (chiAppHoc ? "chi_app_hoc" : "trinh_duyet"), donDieu())
   }
 
   private func trangThai(p: Policy?, hl: PolicyHieuLuc?, laCon: Bool, phutDung: Double?, demNguoc: Int? = nil) -> TrangThai {

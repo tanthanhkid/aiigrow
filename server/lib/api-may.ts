@@ -49,7 +49,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
       // Lỗi ở nhịp phiên không được làm hỏng cả lượt đồng bộ (agent giữ Policy cũ, thay đổi của Ba Mẹ không tới máy) ⇒ nuốt + ghi log.
       // 0.2.4: tính đúng `status.playSeconds` agent đếm (app chơi ở nền trước, màn hình mở); máy dùng chung lấy Con từ phiên mở trên máy (lib/phien-windows.ts).
-      // Mac chưa đo giây phiên ⇒ trang khay là nguồn nhịp duy nhất (choi-tre.ts › nhipTre); dong-bo của Mac không nhịp (cùng điều kiện «nền», tránh hai nguồn).
+      // Mac: dong-bo không nhịp phiên — daemon Mac (agent-mac BoMay.vongNhipChoi) gửi phien/nhip 30 giây/lần cho playSessionId, «đang dùng» theo app tiền cảnh;
+      // trang khay / app Con nhịp thêm cũng không tính đôi (nhip() chỉ cộng thời gian trôi từ nhip_cuoi).
       if (may.platform === "windows") try {
         await nhipPhienWindows(may, con, b.status as TrangThaiNhip | undefined);
       } catch (e) { console.error("dong-bo: nhịp phiên Windows lỗi", e); }

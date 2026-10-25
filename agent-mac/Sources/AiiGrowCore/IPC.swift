@@ -69,7 +69,7 @@ public struct TrangThai: Codable, Equatable {
   public var chanSeq: Int?
   public var chanApp: String?               // bundle id (chữ thường)
   public var chanTen: String?               // tên hiển thị (tên .app)
-  public var chanLyDo: String?              // «ba_me_chan» | «chi_app_hoc»
+  public var chanLyDo: String?              // «ba_me_chan» | «chi_app_hoc» | «trinh_duyet»
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
               demNguocGiay: Int?, yeuCauCho: [YeuCauDangCho], duocDoiDiem: Bool, matMang: Bool, trangChan: [String], canhBaoAdmin: String? = nil, capNhat: String? = nil, capNhatLuc: Date? = nil) {
     self.daGhep = daGhep; self.laPhienCon = laPhienCon; self.tenCon = tenCon; self.cheDo = cheDo; self.lyDoKhoa = lyDoKhoa; self.conPhut = conPhut
