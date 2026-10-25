@@ -80,12 +80,14 @@ export const DO_CC = String.raw`(() => {
       if (ra || elip) { bao('cat' + ten(e), { luat: 'CAT-CHU', el: ten(e), chu: n.textContent.trim().slice(0, 30), khung: r4(q) }); break; } } }
   return L; })()`;
 
-/** Chữ (40 ký tự đầu, như bộ đo chung cắt) đang bị khung cuộn ngang che một phần (cuộn ra ngoài phần thấy được) — để lọc LE-THE do vị trí cuộn.
- *  Chữ còn nằm trọn trong phần thấy được thì không vào danh sách ⇒ lỗi lề thật (vd ô đầu bảng cách mép 6) vẫn bị báo. */
+/** Chữ (40 ký tự đầu, như bộ đo chung cắt) nằm sát (<16) mép thấy được của khung cuộn ngang ở PHÍA CÒN NỘI DUNG CUỘN TỚI — để lọc LE-THE do vị trí cuộn.
+ *  Mép đầu/cuối thật của nội dung (vd ô đầu bảng cách mép 6 khi chưa cuộn) không bị lọc ⇒ lỗi lề thật vẫn bị báo. */
 export const CUON_NGANG = String.raw`(() => { const kq = [];
   for (const k of document.querySelectorAll('body *')) { if (k.scrollWidth <= k.clientWidth + 1) continue; const cs = getComputedStyle(k);
     if (!/(auto|scroll)/.test(cs.overflowX)) continue; const q = k.getBoundingClientRect(), trai = q.left + k.clientLeft, phai = trai + k.clientWidth;
     const w = document.createTreeWalker(k, NodeFilter.SHOW_TEXT);
     while (w.nextNode()) { const n = w.currentNode, t = n.textContent.trim(); if (!t) continue; const rg = document.createRange(); rg.selectNodeContents(n);
-      if ([...rg.getClientRects()].some((r) => r.width > 1 && (r.left < trai + 16 || r.right > phai - 16))) kq.push(t.slice(0, 40)); } }
+      // chỉ phía còn nội dung cuộn tới (mép đó là vị trí cuộn, không phải mép thẻ): trái khi đã cuộn qua, phải khi còn nội dung bên phải
+      const conTrai = k.scrollLeft > 0.5, conPhai = k.scrollLeft + k.clientWidth < k.scrollWidth - 0.5;
+      if ([...rg.getClientRects()].some((r) => r.width > 1 && (conTrai && r.left < trai + 16 || conPhai && r.right > phai - 16))) kq.push(t.slice(0, 40)); } }
   return kq; })()`;

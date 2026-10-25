@@ -28,14 +28,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // PHA_PROD=1: chạy bản đã `next build` (next start) — nhẹ, trang tải xong ngay; bản dev nặng làm Chrome headless có lúc treo chụp màn.
 // Bản build phải mới hơn mọi tệp ảnh hưởng giao diện (app/ lib/ public/ next.config.ts instrumentation.ts package.json) — không thì cổng đo nhầm bản cũ.
 // Kiểm TRƯỚC khi dựng dữ liệu thử.
-const PROD = !!process.env.PHA_PROD && process.env.PHA_PROD !== "0";
+const PROD = /^(1|true|yes)$/i.test(process.env.PHA_PROD ?? "");
 if (PROD) {
   const buildId = join(GOC_SV, ".next", "BUILD_ID");
   if (!existsSync(buildId)) { console.error("PHA_PROD: chưa có .next — chạy `npx next build` trước."); process.exit(1); }
   const luc = statSync(buildId).mtimeMs;
-  const moiHon = (p) => { try { const st = statSync(p);
-    return st.isDirectory() ? readdirSync(p).some((x) => moiHon(join(p, x))) : st.mtimeMs > luc; } catch { return false; /* tệp vừa xoá / symlink gãy */ } };
-  const cu = ["app", "lib", "public", "next.config.ts", "instrumentation.ts", "package.json"].filter((x) => moiHon(join(GOC_SV, x)));
+  // thư mục: so cả mtime của chính nó (xoá / đổi tên tệp bên trong đổi mtime thư mục); public/tai, public/app là tệp phát hành / bản web app — next start đọc thẳng, không cần build
+  const BO = new Set([join(GOC_SV, "public", "tai"), join(GOC_SV, "public", "app")]);
+  const moiHon = (p) => { if (BO.has(p)) return false; try { const st = statSync(p);
+    return st.mtimeMs > luc || (st.isDirectory() && readdirSync(p).some((x) => moiHon(join(p, x)))); } catch { return false; /* tệp vừa xoá / symlink gãy */ } };
+  const cu = ["app", "lib", "public", "next.config.ts", "instrumentation.ts", "package.json", "pnpm-lock.yaml", "tsconfig.json"].filter((x) => moiHon(join(GOC_SV, x)));
   if (cu.length) { console.error(`PHA_PROD: bản .next cũ hơn ${cu.join(", ")} — chạy lại \`npx next build\`.`); process.exit(1); }
 }
 
@@ -44,7 +46,7 @@ if (PROD) {
 const don = { tienTrinh: [], thuMuc: [] };
 process.on("exit", () => { for (const t of don.tienTrinh) try { t.kill(); } catch { /* đã tắt */ }
   for (const d of don.thuMuc) try { rmSync(d, { recursive: true, force: true }); } catch { /* còn bị giữ (Windows) */ } });
-for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => process.exit(130));
+process.on("SIGINT", () => process.exit(130)); process.on("SIGTERM", () => process.exit(143));
 const dbDir = mkdtempSync(join(tmpdir(), "aiig-pg-")); don.thuMuc.push(dbDir);
 const MK_AD = randomBytes(12).toString("base64url"), MK_Q = randomBytes(12).toString("base64url");
 const env = { ...process.env, PGLITE_DIR: dbDir, AIIGROW_OTP_THU: "1", NEXT_TELEMETRY_DISABLED: "1", DATABASE_URL: "" };
@@ -253,7 +255,8 @@ if (GIAO_DIEN) {
       const sau = (await js(DO))?.L ?? [];
       await js("window.__gdCuoi = false; document.querySelectorAll('*').forEach((e) => { if (e.scrollTop) e.scrollTop = 0; })");
       await sleep(200);
-      L.push(...sau.map((x) => ({ ...x, cuon: "đã cuộn hết" })));
+      const trongCuon2 = new Set((await js(CUON_NGANG)) ?? []);
+      L.push(...sau.filter((x) => !(x.luat === "LE-THE" && x.the && trongCuon2.has(x.chu))).map((x) => ({ ...x, cuon: "đã cuộn hết" })));
       const ds = gian ? L.filter((x) => x.luat !== "TUONG-PHAN") : L;
       const tay = gian ? [] : await doTay(goi, js, DO_TAY);
       soDoTay += tay.length;
@@ -265,9 +268,10 @@ if (GIAO_DIEN) {
         const caoNd = process.env.GD_CHUP_DAI ? Math.ceil((await goi("Page.getLayoutMetrics")).cssContentSize.height) : 0;
         if (caoNd) { await khung(rong, Math.max(caoNd, rong >= 1000 ? 900 : 844)); await sleep(400); }
         let a = await goi("Page.captureScreenshot", { format: "png", captureBeyondViewport: rong >= 1000 && !caoNd });
-        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png" }); }   // thử lại kiểu an toàn nhất: đúng khung nhìn   // máy bận: lần chụp đầu có khi trả lỗi
+        let duoi = "";
+        if (!a?.data) { await sleep(800); a = await goi("Page.captureScreenshot", { format: "png" }); duoi = "-chi-khung-nhin"; }   // thử lại kiểu an toàn nhất: đúng khung nhìn (tên tệp ghi rõ)   // máy bận: lần chụp đầu có khi trả lỗi
         if (caoNd) await khung(rong);
-        if (a?.data) writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64"));
+        if (a?.data) writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}${duoi}.png`, Buffer.from(a.data, "base64"));
         else console.log(`    (không chụp được: ${JSON.stringify(a)})`);
       }
       console.log(`${man.ten.padEnd(30)} ${ds.length ? ds.length + " lỗi" : "đạt"}${tay.length ? ` (đo pixel ${tay.length} dòng trên nền gradient/ảnh)` : ""}`);
