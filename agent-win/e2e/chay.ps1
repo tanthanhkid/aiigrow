@@ -132,7 +132,7 @@ function DatKhoaWebCon($sid) {
 function VoiHiveCon([string]$khoa, [scriptblock]$sb) {
   $goc = "Registry::HKEY_USERS\$($Chung.SidCon)"
   if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) {
-    [void](GoNapE2E)   # hive Con đã nạp thật (HKU\<SID>) mà mount tạm cũ còn ⇒ gỡ, không để kẹt NTUSER.DAT
+    if ($Chung.SidCon -and $khoa.StartsWith($goc)) { [void](GoNapE2E) }   # hive Con đã nạp thật (HKU\<SID>) mà mount tạm cũ còn ⇒ gỡ (chỉ khoá của Con)
     return (& $sb $khoa)
   }
   # lần trước gỡ nạp hỏng ⇒ hive còn ở tên tạm: dùng luôn (nạp lại sẽ hỏng vì tệp đang mở) rồi gỡ nạp lần nữa

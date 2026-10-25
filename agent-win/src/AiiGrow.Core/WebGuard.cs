@@ -258,12 +258,20 @@ public sealed class WebPolicyApplier
             bool de = false, it = false;
             foreach (var khoaDs in new[] { t.Khoa + "\\" + WebPolicyKeys.DsChan, t.Khoa + "\\" + WebPolicyKeys.DsCho })
             {
-                var tt = _reg.XemKhoaDs(khoaDs);
-                if (tt == KhoaDanhSach.Rong && daGoRong?.Contains(khoaDs) != true)
+                KhoaDanhSach tt;
+                try { tt = _reg.XemKhoaDs(khoaDs); }
+                catch { de = true; continue; }   // không đọc được ⇒ không thả (chưa chắc lọc), không báo là của IT; khoá khác vẫn xét tiếp
+                if (tt != KhoaDanhSach.Rong) daGoRong?.Remove(khoaDs);   // không còn rỗng (mất / IT đặt mục) ⇒ lần rỗng sau lại gỡ được
+                else if (daGoRong?.Contains(khoaDs) != true)
                 {
                     var go = false;
                     try { go = _reg.GoKhoaRong(khoaDs); } catch { }   // ACL của IT không cho xoá ⇒ khoá còn ⇒ đè
-                    if (go) { daGo.Add("HKLM\\" + khoaDs); daGoRong?.Add(khoaDs); tt = KhoaDanhSach.KhongCo; }
+                    if (go)
+                    {
+                        daGo.Add("HKLM\\" + khoaDs); daGoRong?.Add(khoaDs);
+                        de = true;   // vừa gỡ: trình duyệt đang chạy còn giữ danh sách máy trống tới khi đọc lại ⇒ thả ở lượt SAU (sau tín hiệu đọc lại)
+                        continue;
+                    }
                 }
                 if (tt != KhoaDanhSach.KhongCo) de = true;
                 if (tt is KhoaDanhSach.CoNguoiKhac or KhoaDanhSach.Rong) it = true;

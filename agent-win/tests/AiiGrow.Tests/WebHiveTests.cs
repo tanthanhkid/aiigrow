@@ -294,11 +294,26 @@ public class WebHiveTests
         var w = new WebPolicyHives(h);
         var r = w.Ap(Luat("a.com"), null, new[] { Con }, T0);
         Assert.Empty(r.HklmDe);
-        Assert.Empty(r.HklmKhongTha);
+        Assert.Equal(new[] { "Chrome", "Edge" }, r.HklmKhongTha);   // vừa gỡ: chờ trình duyệt đọc lại, thả ở lượt sau
         Assert.Equal(2, r.HklmDaGoRong.Count);           // worker ghi log + báo trình duyệt đọc lại chính sách
         Assert.Empty(h.Hklm.KhoaRong);
         Assert.Equal(new[] { Con }, r.DaApCho);
-        Assert.Empty(w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30)).HklmDaGoRong);   // không còn gì để gỡ ⇒ không báo lại
+        var r2 = w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30));
+        Assert.Empty(r2.HklmDaGoRong);                    // không còn gì để gỡ ⇒ không báo lại
+        Assert.Empty(r2.HklmKhongTha);                    // lượt sau: thả
+    }
+
+    [Fact]
+    public void KhoaRongDaGo_ITDatMucRoiXoa_LaiGoDuoc()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.KhoaRong.Add(Chrome + @"\URLBlocklist");
+        var w = new WebPolicyHives(h);
+        w.Ap(Luat("a.com"), null, new[] { Con }, T0);
+        h.Hklm.MucKhac.Add(Chrome + @"\URLBlocklist");                         // IT đặt mục
+        Assert.Equal(new[] { "Chrome" }, w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(30)).HklmDe);
+        h.Hklm.MucKhac.Clear(); h.Hklm.KhoaRong.Add(Chrome + @"\URLBlocklist");  // IT xoá hết mục, để lại khoá rỗng
+        Assert.Single(w.Ap(Luat("a.com"), null, new[] { Con }, T0.AddSeconds(60)).HklmDaGoRong);
     }
 
     [Fact]
