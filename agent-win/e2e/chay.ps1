@@ -336,7 +336,7 @@ KichBan 'KB3' 'Máy hiện ở app Ba Mẹ, đồng bộ lần đầu ≤ 3 phú
     Dat '3.4' 'Chi tiết Con thấy máy đang trực tuyến' ([bool](@($ct.may) | Where-Object { $_.id -eq $Chung.MayId -and $_.truc })) ("{0} máy; baoVe {1}" -f @($ct.may).Count, ((@($ct.may) | ForEach-Object { "$($_.baoVe):$($_.baoVeThieu -join '/')" }) -join ','))
   }
   $st = TrangThai
-  Dat '3.5' 'Pipe state: paired, chế độ mặc định giám sát' ($st.paired -and $st.cheDo -eq 'giam-sat') "paired $($st.paired) cheDo $($st.cheDo) mode $($st.mode) lastSyncAt $($st.lastSyncAt)"
+  Dat '3.5' 'Pipe state: paired, chế độ mặc định Chặn thật (cài xong là chặn luôn, #107/#108)' ($st.paired -and $st.cheDo -eq 'chan') "paired $($st.paired) cheDo $($st.cheDo) mode $($st.mode) lastSyncAt $($st.lastSyncAt)"
 }
 
 # ------------------------------------------------------------------ KB10 — named pipe như khay
