@@ -42,6 +42,8 @@ class CapNhatTest {
         assertFalse("đầu tiên phải là máy chủ đã ghép", urlDauHopLe("https://github.com/tanthanhkid/aiigrow-tai/releases/download/x/a.apk", mc))
         assertFalse(urlDauHopLe("https://aiigrow.aiilab.vn.ke.com/a.apk", mc))
         assertFalse("khác cổng", urlDauHopLe("https://aiigrow.aiilab.vn:8443/a.apk", mc))
+        assertTrue(":443 = bỏ trống", urlDauHopLe("https://aiigrow.aiilab.vn:443/a.apk", mc))
+        assertTrue(urlDauHopLe("$mc/a.apk", "https://aiigrow.aiilab.vn:443"))
         assertFalse(urlDauHopLe("http://aiigrow.aiilab.vn/a.apk", mc))
         assertTrue(urlDauHopLe("http://10.0.2.2:8787/a.apk", "http://10.0.2.2:8787", choPhepHttp = true))
         assertFalse(urlDauHopLe("http://10.0.2.2:8787/a.apk", "http://10.0.2.2:8787"))
@@ -83,5 +85,9 @@ class CapNhatTest {
         assertNotNull(loiApk(null, 4, listOf(ed65), goi, listOf(ed65), b))
         assertNotNull(loiApk(goi, 5, listOf(ed65), goi, listOf(ed65), b))
         assertNotNull(loiApk(goi, 4, listOf(khac), goi, listOf(ed65), b))
+        // Android 8.x không đọc được chữ ký APK chưa cài ⇒ nhường hệ thống; đọc được mà lệch thì vẫn loại
+        assertNull(loiApk(goi, 4, emptyList(), goi, listOf(ed65), b, khongDocDuocKy = true))
+        assertNotNull(loiApk(goi, 4, listOf(khac), goi, listOf(ed65), b, khongDocDuocKy = true))
+        assertNotNull(loiApk(goi, 4, emptyList(), goi, listOf(ed65), b))
     }
 }

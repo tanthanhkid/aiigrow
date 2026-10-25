@@ -32,6 +32,8 @@ class Kho(ctx: Context) {
     var goiDaTamDung: Set<String> get() = p.getStringSet("goiDaTamDung", emptySet()) ?: emptySet(); set(v) = p.edit().putStringSet("goiDaTamDung", v).apply()
     /** Bản mới đã tải + kiểm xong, đang chờ cài (chờ quyền «Cài ứng dụng không rõ nguồn» / chờ hết khoá) — màn chính hiện thẻ cập nhật. */
     var banMoiCho: String? get() = p.getString("banMoiCho", null); set(v) = p.edit().putString("banMoiCho", v).apply()
+    /** Lần cuối mở hộp xác nhận cài (đường không Device Owner) — tự hỏi lại tối đa mỗi 6 giờ. */
+    var lanHoiCai: Long get() = p.getLong("lanHoiCai", 0); set(v) = p.edit().putLong("lanHoiCai", v).apply()
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 

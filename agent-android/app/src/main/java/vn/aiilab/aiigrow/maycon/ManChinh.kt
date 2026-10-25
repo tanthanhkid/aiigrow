@@ -69,12 +69,15 @@ class ManChinh : Activity() {
     private fun ve() {
         val k = Kho(this)
         val kieu = if (k.daGhep) "da_ghep" else "chua_ghep"
-        val quyen = "${QuanTri.laDeviceOwner(this)}${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}${duocCai()}"
+        val laDo = QuanTri.laDeviceOwner(this)
+        // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
+        val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
+        val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
         if (daVe != kieu + quyen) {
             daVe = kieu + quyen
             goc.removeAllViews()
             dauTrang(k)
-            theCapNhat(k)
+            theCapNhat(k, laDo, duocCai)
             if (k.daGhep) dungManDaGhep() else dungManGhep()
             theQuyen()
             minhBach()
@@ -230,21 +233,19 @@ class ManChinh : Activity() {
         goc.addView(t)
     }
 
-    private fun duocCai() = Build.VERSION.SDK_INT < 26 || QuanTri.laDeviceOwner(this) || packageManager.canRequestPackageInstalls()
-
     /** Có bản mới đã tải + kiểm xong mà chưa cài (đường không reset): bật quyền cài cho AiiGrow rồi cập nhật. Device Owner tự cài im lặng. */
-    private fun theCapNhat(k: Kho) {
+    private fun theCapNhat(k: Kho, laDo: Boolean, duocCai: Boolean) {
         val ban = k.banMoiCho ?: return
-        if (QuanTri.laDeviceOwner(this)) return
+        if (laDo) return
         val t = G.the(this, G.XANH_NHAT)
         t.addView(G.dauKhoi(this, R.drawable.fl_la, "Có bản AiiGrow mới $ban", Clay.CHINH_SOFT, 17f))
-        if (!duocCai()) {
+        if (!duocCai) {
             t.addView(G.chu(this, "Ba Mẹ bật «Cho phép từ nguồn này» cho AiiGrow (một lần) để app tự cập nhật.", 15f, G.CHU_PHU))
             t.addView(G.nut(this, "Bật quyền cập nhật", phu = true) {
                 try { startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:$packageName"))) }
                 catch (_: Exception) { moCaiDat(Settings.ACTION_SECURITY_SETTINGS) }
             })
-        } else t.addView(G.nut(this, "Cập nhật ngay") { CapNhat.chayNgay(this) })
+        } else t.addView(G.nut(this, "Cập nhật ngay") { CapNhat.chayNgay(this, epHoi = true) })
         goc.addView(t)
     }
 

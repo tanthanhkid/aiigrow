@@ -30,10 +30,12 @@ private fun host(u: String, choPhepHttp: Boolean = false): String? = try {
     URI(u).let { if ((it.scheme == "https" || (choPhepHttp && it.scheme == "http")) && it.rawUserInfo == null) it.host?.lowercase() else null }
 } catch (_: Exception) { null }
 
-/** Cùng gốc (host + cổng) với máy chủ — so host thôi thì http://may-chu:9999 cũng lọt. */
+private fun cong(u: URI) = if (u.port >= 0) u.port else if (u.scheme == "https") 443 else 80
+
+/** Cùng gốc (scheme + host + cổng, :443 = bỏ trống) với máy chủ — so host thôi thì http://may-chu:9999 cũng lọt. */
 private fun cungGoc(u: String, mayChu: String, choPhepHttp: Boolean): Boolean = try {
     val a = URI(u); val b = URI(mayChu)
-    host(u, choPhepHttp) != null && host(u, choPhepHttp) == host(mayChu, choPhepHttp) && a.scheme == b.scheme && a.port == b.port
+    host(u, choPhepHttp) != null && host(u, choPhepHttp) == host(mayChu, choPhepHttp) && a.scheme == b.scheme && cong(a) == cong(b)
 } catch (_: Exception) { false }
 
 /** Địa chỉ đầu tiên phải là https trên CHÍNH host máy chủ app đã ghép (manifest staging trỏ /tai của staging). */
@@ -60,7 +62,7 @@ fun sha256Hex(i: InputStream): String {
 fun khopSha256(f: File, mongDoi: String): Boolean = f.isFile && f.inputStream().use { sha256Hex(it) } == mongDoi.lowercase()
 
 /** SHA-256 (hex thường) của chứng chỉ ký — đầu vào là byte DER từ `Signature.toByteArray()`. */
-fun vanTayChungChi(der: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(der).joinToString("") { "%02x".format(it) }
+fun vanTayChungChi(der: ByteArray): String = sha256Hex(der.inputStream())
 
 /**
  * Chữ ký APK mới hợp lệ để cài đè: mọi chứng chỉ đang ký app hiện tại phải có trong lịch sử ký của APK mới (APK v3 xoay khoá vẫn mang
@@ -69,10 +71,14 @@ fun vanTayChungChi(der: ByteArray): String = MessageDigest.getInstance("SHA-256"
 fun chuKyHopLe(lichSuApkMoi: Collection<String>, chungChiHienTai: Collection<String>): Boolean =
     chungChiHienTai.isNotEmpty() && lichSuApkMoi.isNotEmpty() && chungChiHienTai.all { it in lichSuApkMoi }
 
-/** Kiểm đủ một APK đã tải trước khi cài: đúng gói, đúng versionCode trong manifest, chữ ký khớp. Trả lý do sai, null = được cài. */
-fun loiApk(goiApk: String?, versionCodeApk: Long, lichSuApk: Collection<String>, goiHienTai: String, chungChiHienTai: Collection<String>, b: BanMoi): String? = when {
+/** Kiểm đủ một APK đã tải trước khi cài: đúng gói, đúng versionCode trong manifest, chữ ký khớp. Trả lý do sai, null = được cài.
+ *  `khongDocDuocKy` (Android 8.x): APK chưa cài có thể không trả chữ ký ⇒ lịch sử rỗng thì nhường hệ thống (cài đè khác khoá bị Android từ chối);
+ *  có chữ ký mà lệch thì vẫn loại. */
+fun loiApk(goiApk: String?, versionCodeApk: Long, lichSuApk: Collection<String>, goiHienTai: String, chungChiHienTai: Collection<String>, b: BanMoi,
+           khongDocDuocKy: Boolean = false): String? = when {
     goiApk != goiHienTai -> "sai gói ($goiApk)"
     versionCodeApk != b.versionCode -> "versionCode APK $versionCodeApk ≠ manifest ${b.versionCode}"
+    khongDocDuocKy && lichSuApk.isEmpty() -> null
     !chuKyHopLe(lichSuApk, chungChiHienTai) -> "chữ ký APK không trùng chữ ký app đang chạy"
     else -> null
 }
