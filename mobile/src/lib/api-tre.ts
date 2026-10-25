@@ -7,7 +7,9 @@ import { GOC, LoiApi, kid } from "./api";
 export { kid };
 
 const KHOA_MAY = "aiig_may";
-const docKho = (k: string) => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.getItem(k) ?? null) : SecureStore.getItemAsync(k));
+// đọc khoá máy lỗi ⇒ coi như trống + xoá mục hỏng (không treo màn trắng lúc nạp phiên)
+const docKho = (k: string) => (Platform.OS === "web" ? Promise.resolve(globalThis.localStorage?.getItem(k) ?? null)
+  : SecureStore.getItemAsync(k).catch(() => { SecureStore.deleteItemAsync(k).catch(() => {}); return null; }));
 const ghiKho = (k: string, v: string | null) =>
   Platform.OS === "web" ? Promise.resolve(v === null ? globalThis.localStorage?.removeItem(k) : globalThis.localStorage?.setItem(k, v))
     : v === null ? SecureStore.deleteItemAsync(k) : SecureStore.setItemAsync(k, v);

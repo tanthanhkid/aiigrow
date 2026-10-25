@@ -670,6 +670,35 @@ await kichBan("Trang chủ (bố cục 02): việc chờ đầu màn, Duyệt / 
   xet(nhatKy.some((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.truDiem === false && x.body?.phut === 15), "duyệt tại chỗ = ngoại lệ đúng số phút Con xin");
 });
 
+await kichBan("Đổi tab qua lại ×3 rồi về Trang chủ ⇒ vẫn bấm được + cuộn được (TestFlight build 10: Trang chủ đứng)", async () => {
+  await di("/hom-nay");
+  xet(await doi("việc chờ Ba Mẹ"), "Trang chủ đã tải");
+  // màn đang mở = tiêu đề lớn của tab nằm đúng lề trái (màn khác vẫn gắn nhưng trượt ra ngoài)
+  // (lỗi gốc chỉ có ở bản native — react-native-screens + native driver; web không tái hiện được, kịch bản này giữ hành vi đổi tab ở web.
+  //  Bản native kiểm tay trên Simulator Release: đổi tab ×3 về Trang chủ ⇒ bấm + cuộn được.)
+  const tab = (t) => `[role="tab"][aria-label^="${t}"]`;
+  const dangMo = async (t) => { for (const het = Date.now() + 4000; Date.now() < het;) { if (await js(`[...document.querySelectorAll('[role="heading"]')].some((e) => e.innerText?.trim() === ${JSON.stringify(t)} && Math.abs(e.getBoundingClientRect().left - 20) < 6)`)) return true; await sleep(100); } return false; };
+  let du = true;
+  for (let r = 0; r < 3; r++) for (const t of ["Chờ duyệt", "Nhiệm vụ & quà", "Gia đình", "Trang chủ"]) { await bamChon(tab(t)); du = (await dangMo(t)) && du; await sleep(350); }
+  xet(du, "mỗi lần bấm tab đều mở đúng tab (12 lần)");
+  xet(await dangMo("Trang chủ"), "về lại Trang chủ (tiêu đề Trang chủ đứng đúng chỗ, không trượt dở)");
+  // bấm: điểm giữa chip «Bill» phải là chính nó (không bị màn tab khác trong suốt đè lên) và bấm thì đổi Con
+  const chip = `() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText?.trim().endsWith(${JSON.stringify(BILL)}))`;
+  const r = await viTriYen(chip);
+  xet(!!r?.trung, "chip Con không bị lớp nào che (elementFromPoint trúng chip)");
+  if (r) await nhanChuot(r);
+  xet(await doi(`${BILL} xin thêm 15 phút`), "bấm chip Bill ⇒ hiện việc chờ của Bill");
+  // cuộn: lăn chuột giữa màn ⇒ khung cuộn của Trang chủ phải đổi vị trí
+  const khung = `(() => [...document.querySelectorAll("div")].filter((e) => e.scrollHeight > e.clientHeight + 40 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)
+    && e.innerText.includes("Trang chủ") && e.innerText.includes("Giao nhiệm vụ") && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
+  await js(`${khung}?.scrollTo(0, 0)`); await sleep(200);
+  const dau = await js(`${khung}?.scrollTop ?? -1`);
+  await goi("Input.dispatchMouseEvent", { type: "mouseWheel", x: 195, y: 420, deltaX: 0, deltaY: 500 });
+  await sleep(600);
+  const sau = await js(`${khung}?.scrollTop ?? -1`);
+  xet(dau === 0 && sau > 0, `lăn chuột ⇒ Trang chủ cuộn (scrollTop ${dau} → ${sau})`);
+});
+
 await kichBan("Báo cáo tuần ⇒ Xuất CSV", async () => {
   await di("/bao-cao");
   xet(await doi("Xuất CSV (Excel)"), "có nút Xuất CSV");

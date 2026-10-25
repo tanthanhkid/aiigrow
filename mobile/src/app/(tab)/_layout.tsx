@@ -97,7 +97,12 @@ export default function TabLayout() {
     return () => clearTimeout(t);
   }, []);
   return (
-    <Tabs tabBar={(p) => <ThanhTab {...p} />} screenOptions={({ route }) => {
+    // detachInactiveScreens={false}: KHÔNG để react-native-screens tự gỡ / gắn màn tab theo tiến trình của bộ điều hướng. Có chuyển động
+    // (transitionSpec) thì «màn tab còn gắn hay không» là phép nội suy trên tiến trình chạy native driver; bản native không đẩy giá trị cuối
+    // về prop activityState ⇒ màn tab vừa rời (vd Chờ duyệt) vẫn GẮN, nằm TRÊN Trang chủ (vùng chứa xếp theo thứ tự tab, bỏ qua zIndex):
+    // trong suốt vì nội dung đã trượt ra ngoài nhưng nuốt mọi chạm ⇒ Trang chủ «đứng», không bấm / không cuộn được (TestFlight build 10).
+    // Tắt tách màn ⇒ mỗi tab là View thường, màn đang mở zIndex 0 trên các màn khác (-1) ⇒ chạm luôn tới màn đang thấy.
+    <Tabs detachInactiveScreens={false} tabBar={(p) => <ThanhTab {...p} />} screenOptions={({ route }) => {
       const v = viTri(route.name);
       return {
         headerShown: false, sceneStyle: { backgroundColor: M.nen }, transitionSpec: giam ? SPEC_MO : SPEC_TRUOT,
