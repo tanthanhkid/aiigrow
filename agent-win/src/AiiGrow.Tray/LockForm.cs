@@ -10,10 +10,10 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     // Clay: nền tối ngọc sâu (gradient) + MỘT thẻ đất sét sáng ở giữa chứa ổ khoá, tiêu đề, đồng hồ và các nút.
     private readonly Label _title = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent, MaximumSize = new Size(UI.Px(720), 0), Font = UI.F(30f, FontStyle.Bold) };
     private readonly Label _hint = new() { AutoSize = true, MaximumSize = new Size(UI.Px(720), 0), ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(16f) };
-    private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(64f, FontStyle.Bold) };   // đọc được từ xa như Mac ManKhoaView (88pt)
+    private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(56f, FontStyle.Bold) };   // đọc được từ xa như Mac ManKhoaView (88pt)
     private readonly Label _countCap = new() { AutoSize = true, ForeColor = UI.Muted, BackColor = Color.Transparent, Font = UI.F(14f), Text = "máy sẽ khoá sau" };
     private readonly Label _brand = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(12f), Text = "AiiGrow · máy này do bố mẹ quản lý" };
-    private readonly ClayIcon _khoa = new() { Size = new Size(UI.Px(120), UI.Px(120)), MauVien = Clay.DiemSoft, Margin = new Padding(0, 0, 0, 6) };
+    private readonly ClayIcon _khoa = new() { Size = new Size(UI.Px(108), UI.Px(108)), MauVien = Clay.DiemSoft, Margin = new Padding(0, 0, 0, 6) };
     private readonly bool _canExchange;
     private bool _allowClose;
     private bool _locking;
@@ -77,13 +77,14 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         var the = new ClayFlow
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = UI.Px(36), WrapContents = false,
-            Padding = VeThe.Pad(UI.Px(56), UI.Px(44), UI.Px(56), UI.Px(32)),
+            Padding = VeThe.Pad(UI.Px(52), UI.Px(36), UI.Px(52), UI.Px(28)),
         };
         the.Controls.Add(flow);
         var host = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, BackColor = Color.Transparent };
         host.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         host.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        var center = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
+        // Màn thấp (1366×768, 150%): thẻ cao hơn chỗ trống ⇒ cuộn được, nút dưới cùng (Ba Mẹ dùng máy, đăng xuất) không bao giờ ra ngoài màn.
+        var center = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent, AutoScroll = true };
         center.Controls.Add(the);
         void GiuaThe() => the.Location = new Point(Math.Max(0, (center.Width - the.Width) / 2), Math.Max(0, (center.Height - the.Height) / 2));
         center.Resize += (_, _) => GiuaThe();

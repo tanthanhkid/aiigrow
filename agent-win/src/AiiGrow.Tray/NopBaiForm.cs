@@ -30,7 +30,7 @@ internal sealed class NopBaiForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(UI.Px(440), UI.Px(490));
+        ClientSize = new Size(UI.Px(440) + SystemInformation.VerticalScrollBarWidth + UI.Px(6), UI.Px(490));   // chừa thanh cuộn dọc + lề nút ⇒ không cuộn ngang
 
         var flow = new FlowLayoutPanel
         {

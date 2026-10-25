@@ -50,7 +50,7 @@ internal sealed class SetupForm : Form
         // logo chuẩn trên thanh tiêu đề + taskbar: .ico nhiều cỡ nhúng trong exe (Icon(stream) tự chọn cỡ hợp màn)
         using (var ic = typeof(SetupForm).Assembly.GetManifestResourceStream("aiigrow.ico")) if (ic != null) Icon = new Icon(ic);
         Font = new Font("Segoe UI", 11f);
-        ClientSize = new Size(Rong + S(64), S(640));
+        ClientSize = new Size(Rong + S(64) + SystemInformation.VerticalScrollBarWidth, S(640));   // chừa thanh cuộn dọc ⇒ thẻ rộng Rong không bị cắt / cuộn ngang
         var wa = Screen.PrimaryScreen!.WorkingArea;   // màn nhỏ / 150%+: không cao hơn vùng làm việc
         if (Height > wa.Height) Height = wa.Height;
         FormBorderStyle = FormBorderStyle.FixedDialog;

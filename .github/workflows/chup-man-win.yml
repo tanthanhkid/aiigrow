@@ -7,6 +7,11 @@ name: chup-man-win
 # Ảnh: artifact «man-win» →  gh run download <run-id> -R tanthanhkid/aiigrow -n man-win -D <thư mục>
 on:
   workflow_dispatch:
+  # đổi riêng công cụ chụp / bộ kiểm (agent-win.yml bỏ qua agent-win/chup-man/**) ⇒ vẫn chạy kiểm
+  pull_request:
+    paths:
+      - 'agent-win/chup-man/**'
+      - '.github/workflows/chup-man-win.yml'
   push:
     branches: [chup-man-win]
     paths:
