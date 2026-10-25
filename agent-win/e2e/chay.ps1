@@ -459,13 +459,12 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   DongBoNgay
   $coMuc = Cho { @(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist') | Where-Object { $_.GiaTri -eq 'example.com' } } 120 5
   $cred = New-Object System.Management.Automation.PSCredential($TenCon, $Chung.MkCon)
-  function ChromeCuaCon($url, $nhan) {
-    $ra = Join-Path $ThuMucCong "$nhan.html"; $loi = Join-Path $ThuMucCong "$nhan.err.txt"
+  # Chạy $exe bằng tài khoản Con (Start-Process -Credential -LoadUserProfile ⇒ HKCU của tiến trình = hive của Con)
+  function ChayBangCon($exe, $ts, $nhan) {
+    $ra = Join-Path $ThuMucCong "$nhan.out.txt"; $loi = Join-Path $ThuMucCong "$nhan.err.txt"
     Remove-Item $ra, $loi -Force -ErrorAction SilentlyContinue
-    $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
-    $ts = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--dump-dom', $url)
     try {
-      $pr = Start-Process -FilePath $ChromeExe -ArgumentList $ts -Credential $cred -LoadUserProfile -WorkingDirectory $ThuMucCong -RedirectStandardOutput $ra -RedirectStandardError $loi -WindowStyle Hidden -PassThru
+      $pr = Start-Process -FilePath $exe -ArgumentList $ts -Credential $cred -LoadUserProfile -WorkingDirectory $ThuMucCong -RedirectStandardOutput $ra -RedirectStandardError $loi -WindowStyle Hidden -PassThru
       # tiến trình của tài khoản khác: không chắc mở được handle để WaitForExit ⇒ thăm dò theo Id (≤ 90 giây) rồi giết cả cây nếu còn
       for ($i = 0; $i -lt 45; $i++) { if (-not (Get-Process -Id $pr.Id -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Seconds 2 }
       if (Get-Process -Id $pr.Id -ErrorAction SilentlyContinue) { & taskkill.exe /PID $pr.Id /T /F 2>&1 | Out-Null }
@@ -475,6 +474,18 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
       [pscustomobject]@{ Ma = $maThoat; Dom = [string]$txt; Loi = ([string]$err -replace "`r?`n", ' '); Ngoai = $null }
     } catch { [pscustomobject]@{ Ma = -1; Dom = ''; Loi = ''; Ngoai = $_.Exception.Message } }
   }
+  function ChromeCuaCon($url, $nhan) {
+    $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
+    ChayBangCon $ChromeExe @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--virtual-time-budget=5000', '--dump-dom', $url) $nhan
+  }
+  # CHẨN ĐOÁN (4.17 đỏ ở 0.2.9): hive nào đang nạp, tiến trình của Con thấy HKCU / USERPROFILE gì, Chrome của Con thấy chính sách gì
+  Log ("4.17 HKU trước khi chạy Chrome: " + ((Get-ChildItem Registry::HKEY_USERS -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName }) -join ', '))
+  $dg = ChayBangCon (Join-Path $env:WINDIR 'System32\cmd.exe') @('/c', 'whoami & echo UP=%USERPROFILE% & reg query HKCU\Software\Policies\Google\Chrome /s') 'diag'
+  Log ("4.17 cmd của Con: mã $($dg.Ma) $($dg.Ngoai) · " + ($dg.Dom -replace '\s+', ' ') + " · err " + $dg.Loi)
+  $pol = ChromeCuaCon 'chrome://policy' 'pol'
+  $tp = [string]($pol.Dom -replace '<[^>]+>', ' ' -replace '\s+', ' ')
+  $vt = $tp.IndexOf('URLBlocklist')
+  Log ("4.17 chrome://policy của Con: mã $($pol.Ma), $($pol.Dom.Length) ký tự, URLBlocklist ở $vt · " + $(if ($vt -ge 0) { $tp.Substring([Math]::Max(0, $vt - 200), [Math]::Min(600, $tp.Length - [Math]::Max(0, $vt - 200))) } else { $tp.Substring(0, [Math]::Min(600, $tp.Length)) }))
   $mo = ChromeCuaCon 'https://example.org/' 'mo'
   $chan = ChromeCuaCon 'https://example.com/' 'chan'
   $vaoDuoc = $mo.Dom -match 'Example Domain'
