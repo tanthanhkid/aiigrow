@@ -383,11 +383,17 @@ final class BaoMatTests: XCTestCase {
     let gia = TienTrinh(pid: 33, uid: 501, duongDan: "/Users/be/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
     let firefox = TienTrinh(pid: 34, uid: 501, duongDan: "/Applications/Firefox.app/Contents/MacOS/firefox", bundleId: "org.mozilla.firefox")
     fake.tienTrinhTheoUid = [501: [chrome, edge, safari, gia, firefox]]
+    fake.appTinCay("/Applications/Google Chrome.app", team: "EQHXZ8M8AV")
+    fake.appTinCay("/Applications/Microsoft Edge.app", team: "UBF8T346G9")
     HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30,
       "serverTime": NgayGio.viet(dongHo.thuc), "allowedApps": [], "web": ["cheDo": "mo", "chan": ["youtube.com"], "cho": []]]]) }
     defer { HttpMock.dat { _, _ in nil } }
     _ = await b.motVong()
-    XCTAssertEqual(Set(fake.tinHieuDaGui.map(\.0)), [32, 33, 34], "Chrome/Edge chạy (web lọc); Safari, Chrome giả ngoài /Applications, Firefox bị đóng")
+    // lượt đầu vào Chặn thật: plist vừa ghi ⇒ Chrome/Edge đang mở (nạp chính sách cũ) cũng bị đóng
+    XCTAssertEqual(Set(fake.tinHieuDaGui.map(\.0)), [30, 31, 32, 33, 34], "mới ghi luật ⇒ đóng cả trình duyệt đang mở")
+    fake.tinHieuDaGui = []
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(Set(fake.tinHieuDaGui.map(\.0)), [32, 33, 34], "luật đã trên đĩa ⇒ Chrome/Edge chạy (web lọc); Safari, Chrome giả ngoài /Applications, Firefox bị đóng")
     let duong = ChinhSachTrinhDuyet.duongDan(ChinhSachTrinhDuyet.tatCa[0], taiKhoan: "be", thuMucGoc: thuMuc + "/Managed")
     XCTAssertEqual(ChinhSachTrinhDuyet.giaiMa(fake.tep[duong])?["DnsOverHttpsMode"] as? String, "off")
     // ghi chính sách Chrome lỗi ⇒ an toàn trước: Chrome bị đóng (Edge vẫn lọc được nên vẫn chạy)
@@ -397,6 +403,33 @@ final class BaoMatTests: XCTestCase {
     dongHo.tien(5); _ = await b.apChinhSach()
     XCTAssertTrue(fake.tinHieuDaGui.map(\.0).contains(30), "luật web Chrome chưa áp được ⇒ Chrome bị đóng")
     XCTAssertFalse(fake.tinHieuDaGui.map(\.0).contains(31))
+  }
+
+  func testTrinhDuyetKhongTinCay_VanDong() {
+    let ok = ThuocTinhTep(uid: 0, gid: 80, quyen: 0o775)
+    XCTAssertTrue(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, kyDung: true))
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ok], uidCon: 501, kyDung: false), "sai Team ID / chữ ký hỏng / hãng chưa xác minh")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ThuocTinhTep(uid: 501, gid: 20, quyen: 0o755), ok, ok], uidCon: 501, kyDung: true), "gói thuộc Con")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ThuocTinhTep(uid: 0, gid: 0, quyen: 0o777), ok], uidCon: 501, kyDung: true), "ai cũng ghi")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, ok, ThuocTinhTep(uid: 0, gid: 20, quyen: 0o775)], uidCon: 501, kyDung: true), "nhóm staff ghi được")
+    XCTAssertFalse(QuyetDinhApp.appTrinhDuyetTinCay(thuocTinh: [ok, nil, ok], uidCon: 501, kyDung: true), "không đọc được")
+  }
+
+  func testChanThat_ChromeThuocCon_BiDong() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let (b, _) = try dungBoMay(fake, dongHo: dongHo, thuMuc: thuMuc)
+    let chrome = TienTrinh(pid: 30, uid: 501, duongDan: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", bundleId: "com.google.Chrome")
+    fake.tienTrinhTheoUid = [501: [chrome]]
+    fake.appTinCay("/Applications/Google Chrome.app", team: "EQHXZ8M8AV")
+    fake.thuocTinh["/Applications/Google Chrome.app/Contents/MacOS"] = ThuocTinhTep(uid: 501, gid: 20, quyen: 0o755)   // cài khi Con còn là admin
+    HttpMock.dat { _, _ in HttpMock.json(200, ["mode": "hoc", "nextCheckSec": 30, "windows": ["mode": "hoc", "cheDo": "chan", "nextCheckSec": 30,
+      "serverTime": NgayGio.viet(dongHo.thuc), "allowedApps": [], "web": ["cheDo": "mo", "chan": ["youtube.com"], "cho": []]]]) }
+    defer { HttpMock.dat { _, _ in nil } }
+    _ = await b.motVong()
+    fake.tinHieuDaGui = []
+    dongHo.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(fake.tinHieuDaGui.map(\.0), [30], "Con tráo được tệp chạy ⇒ không thả")
   }
 
   func testLaTrinhDuyetLoc() {

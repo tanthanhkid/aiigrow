@@ -8,6 +8,7 @@
 //   • hạ quyền: dseditgroup -o edit -d <tk> -t user admin · DNS: dscacheutil -flushcache + killall -HUP mDNSResponder.
 import Foundation
 import IOKit
+import Security
 import SystemConfiguration
 
 public final class HeThongMac: HeThong {
@@ -115,6 +116,33 @@ public final class HeThongMac: HeThong {
   }
 
   public func lietKeThuMuc(_ duongDan: String) -> [String] { (try? FileManager.default.contentsOfDirectory(atPath: duongDan)) ?? [] }
+
+  public func thuocTinhTep(_ duongDan: String) -> ThuocTinhTep? {
+    var st = stat()
+    guard lstat(duongDan, &st) == 0 else { return nil }
+    return ThuocTinhTep(uid: st.st_uid, gid: st.st_gid, quyen: UInt16(st.st_mode & 0o7777))
+  }
+
+  /// Kiểm chữ ký cả gói với yêu cầu `anchor apple generic` + OU của chứng chỉ lá = Team ID (chứng chỉ tự ký mang OU giả không qua).
+  /// Tốn ~1 giây với Chrome ⇒ nhớ: hợp lệ 60 giây, không hợp lệ 30 giây (Chrome tự cập nhật dở thì lượt sau kiểm lại sớm).
+  private var nhoKy: [String: (Bool, Date)] = [:]
+  private let khoaKy = NSLock()
+  public func kyBoiTeam(_ duongDanApp: String, team: String) -> Bool {
+    let khoa = duongDanApp + "|" + team
+    khoaKy.lock(); defer { khoaKy.unlock() }
+    if let (ok, luc) = nhoKy[khoa], Date().timeIntervalSince(luc) < (ok ? 60 : 30) { return ok }
+    var ok = false
+    var ma: SecStaticCode?
+    var yc: SecRequirement?
+    let chuoi = "anchor apple generic and certificate leaf[subject.OU] = \"\(team)\""
+    if team.allSatisfy({ $0.isLetter || $0.isNumber }),
+       SecRequirementCreateWithString(chuoi as CFString, [], &yc) == errSecSuccess,
+       SecStaticCodeCreateWithPath(URL(fileURLWithPath: duongDanApp) as CFURL, [], &ma) == errSecSuccess, let ma {
+      ok = SecStaticCodeCheckValidity(ma, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), yc) == errSecSuccess
+    }
+    nhoKy[khoa] = (ok, Date())
+    return ok
+  }
 
   public func tenMay() -> String {
     (SCDynamicStoreCopyComputerName(nil, nil) as String?) ?? Host.current().localizedName ?? "Mac"
