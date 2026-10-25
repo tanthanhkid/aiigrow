@@ -9,9 +9,11 @@ import type { May } from "./gia-dinh.ts";
 
 // 0.2.9: exe từ CI agent-win run 40170336623 (job build goc, commit 68d44f6 (tag phathanh-3-src), PR #128).
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.9",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.9.exe",
-  sha256: "e3f6ad9311f214bdf2eb907ec1f1746a6b1c59387c1647595718444b27ae1747",
+  // GIỮ 0.2.8 (25/10): e2e 0.2.9 mục 4.17 — Chrome tài khoản Con vẫn vào trang bị chặn ⇒ chưa cho máy tự lên 0.2.9 tới khi sửa.
+  // Bản 0.2.9 đã có ở Release v0.2.9 (sha256 e3f6ad93…1747).
+  version: "0.2.8",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.8.exe",
+  sha256: "71c9eaa4417cdd11f755e14f0bec2704852a23571d6bd01635b34eba6cb86300",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
