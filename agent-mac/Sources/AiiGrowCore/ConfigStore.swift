@@ -25,6 +25,8 @@ public struct CauHinhMay: Codable, Equatable {
   /// Danh sách app thật (DanhSachApp.swift): bam lần gửi được gần nhất + yeuCau «Làm mới» đã xử lý.
   public var bamAppDaGui: String?
   public var yeuCauAppDaXuLy: String?
+  /// Phút chơi bằng điểm lúc MẤT MẠNG chờ gửi bù (phien/bu) — lưu đĩa, gửi trước lần dong-bo kế tiếp có mạng.
+  public var phienBu: PhienBu?
 
   public init() {}
   public var daGhep: Bool { !token.isEmpty }
@@ -41,6 +43,23 @@ public struct CauHinhMay: Codable, Equatable {
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
     bamAppDaGui = (try? c.decodeIfPresent(String.self, forKey: .bamAppDaGui)) ?? nil
     yeuCauAppDaXuLy = (try? c.decodeIfPresent(String.self, forKey: .yeuCauAppDaXuLy)) ?? nil
+    phienBu = (try? c.decodeIfPresent(PhienBu.self, forKey: .phienBu)) ?? nil
+  }
+}
+
+/// Phiên chơi đang đếm bù khi mất mạng (agent-win PhienOffline): `ma` một lần ⇒ gửi lại không trừ đôi.
+public struct PhienBu: Codable, Equatable {
+  public var ma: String
+  public var id: String
+  public var muc: String
+  public var giay: Double
+  public var batDau: Date
+  public var ketThuc: Date
+  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date) {
+    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc
+  }
+  public var than: [String: Any] {
+    ["ma": ma, "id": id, "muc": muc, "phut": (giay / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
   }
 }
 

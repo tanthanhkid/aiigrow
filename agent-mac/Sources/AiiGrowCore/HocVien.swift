@@ -470,8 +470,7 @@ public enum ChoiBangDiem {
   public static func dangChoi(tienCanh: String?, playApp: String?, playWeb: Bool) -> Bool {
     guard let tc = tienCanh?.lowercased(), !tc.isEmpty, tc != DemPhut.khongRo else { return true }
     if playWeb {
-      let trinhDuyet = Set(ChinhSachTrinhDuyet.tatCa.flatMap { [$0.bundleApp.lowercased(), $0.bundleId.lowercased()] } + ["com.apple.safari"])
-      return trinhDuyet.contains(tc)
+      return ChinhSachTrinhDuyet.bundleMoi.contains(tc)
     }
     guard let app = playApp?.lowercased(), !app.isEmpty else { return true }
     return tc == app || tc.hasPrefix(app + ".") || app.hasPrefix(tc + ".")

@@ -294,7 +294,9 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     w.title = tieuDe; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false; w.delegate = self
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     giu = w
-    NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self] _ in
+    var nghe: NSObjectProtocol?
+    nghe = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: w, queue: .main) { [weak self, weak w] _ in
+      if let nghe { NotificationCenter.default.removeObserver(nghe) }
       Task { @MainActor in
         if self?.cuaSoXin === w { self?.cuaSoXin = nil }
         if self?.cuaSoMo === w { self?.cuaSoMo = nil }

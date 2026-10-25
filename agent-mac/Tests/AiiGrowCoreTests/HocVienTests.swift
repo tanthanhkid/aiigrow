@@ -268,6 +268,29 @@ final class HocVienTests: XCTestCase {
     XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/nhip")?["dangDung"] as? Bool, false, "game không ở tiền cảnh ⇒ không trừ điểm")
   }
 
+  func testMatMangDemBuRoiGuiTruocDongBo() async throws {
+    let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
+    let fake = HeThongGia(), dh = DongHoGia()
+    let pj = #"{"mode":"hoc","cheDo":"chan","allowedApps":["com.roblox.roblox"],"playSessionId":"ph5","playApp":"com.roblox.roblox","playOfflineMinutes":30}"#
+    let b = try dung(fake, dh, thuMuc, policy: pj)
+    fake.tienCanhThat = "com.roblox.roblox"
+    HttpMock.dat { _, _ in nil }                                  // mất mạng
+    await b.vongDongBo()
+    for _ in 0..<24 { dh.tien(5); _ = await b.vongAp() }         // 2 phút chơi
+    var buGui: [String: Any]?
+    HttpMock.dat { path, body in
+      if path == "api/device/phien/bu" { buGui = body; return HttpMock.json(200, ["phut": 2]) }
+      if path == "api/device/dong-bo" { return HttpMock.TraLoi(ma: 200, than: Data(#"{"windows":\#(pj),"nextCheckSec":30}"#.utf8)) }
+      return HttpMock.json(404, [:])
+    }
+    dh.tien(120)
+    await b.vongDongBo()
+    XCTAssertEqual(buGui?["id"] as? String, "ph5")
+    XCTAssertEqual((buGui?["phut"] as? Double) ?? 0, 2, accuracy: 0.2)
+    let thuTu = HttpMock.daGoi.map(\.path)
+    XCTAssertLessThan(thuTu.firstIndex(of: "api/device/phien/bu") ?? 99, thuTu.firstIndex(of: "api/device/dong-bo") ?? -1, "bù TRƯỚC dong-bo")
+  }
+
   func testKhongNhipKhiKhongCoPhien() async throws {
     let thuMuc = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: thuMuc) }
     let b = try dung(HeThongGia(), DongHoGia(), thuMuc, policy: #"{"mode":"hoc"}"#)

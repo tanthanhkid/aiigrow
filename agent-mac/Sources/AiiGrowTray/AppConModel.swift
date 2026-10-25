@@ -91,7 +91,7 @@ final class AppConModel: ObservableObject {
     if case let .choi(tt, phut, _) = await goi(.choiThu(muc: dau)) {
       phutChoiCua = dau
       phutChoi = tt == "duoc" ? phut : nil
-    }
+    } else { phutChoi = nil; phutChoiCua = nil }      // lỗi mạng / IPC ⇒ không giữ số phút cũ có thể đã sai
   }
 
   // MARK: hành động

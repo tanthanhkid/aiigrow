@@ -40,12 +40,12 @@ enum IPCClient {
     }
     var nhan = Data()
     var buf = [UInt8](repeating: 0, count: 8192)
-    while nhan.count < 1_000_000 {
+    while nhan.count < 8_000_000 {                     // .duLieu (JSON học viên) có thể vài trăm KB
       let n = read(fd, &buf, buf.count)
       if n < 0 { throw IPCLoi.docLoi }
       if n == 0 { break }
       nhan.append(buf, count: n)
-      if nhan.contains(0x0A) { break }
+      if buf[0..<n].contains(0x0A) { break }          // chỉ quét phần vừa đọc (không quét lại cả bộ đệm mỗi lần)
     }
     if let i = nhan.firstIndex(of: 0x0A) { nhan = nhan.prefix(upTo: i) }
     guard !nhan.isEmpty else { throw IPCLoi.docLoi }

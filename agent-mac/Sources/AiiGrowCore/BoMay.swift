@@ -175,6 +175,15 @@ public actor BoMay {
     DemPhut.don(&cauHinh.demPhut)
     let dung = DemPhut.tong(cauHinh.demPhut)
     let daGuiGiay = cauHinh.daDungGiayTuSync     // vòng áp vẫn cộng trong lúc await — chỉ trừ phần đã tính tới lúc gửi
+    if let bu = cauHinh.phienBu, !matMang || bu.giay > 0 {      // gửi bù TRƯỚC dong-bo (nhip_cuoi còn là nhịp online cuối ⇒ máy chủ đo được thời gian thật)
+      do {
+        if bu.giay >= 1 { try await api.guiPhienBu(bu.than) }
+        if cauHinh.phienBu?.ma == bu.ma { cauHinh.phienBu = nil; _ = try? kho.sua { $0.phienBu = nil } }
+      } catch let e as LoiApi where !e.laMang {
+        cauHinh.phienBu = nil; _ = try? kho.sua { $0.phienBu = nil }          // máy chủ từ chối hẳn (phiên lạ…) ⇒ bỏ, không gửi mãi
+        heThong.ghiLog("Gửi bù phút chơi bị từ chối: \(e.chu)")
+      } catch {}
+    }
     do {
       let kq = try await api.dongBo(trangThai: st, dung: dung, luc: dongHo())
       if BoMay.dauChoi(kq.policy) != policy.map(BoMay.dauChoi) { choiNho = [:] }   // bật/tắt đổi điểm, mục chơi, phiên, chế độ đổi ⇒ số phút nhớ bỏ đi
@@ -239,7 +248,8 @@ public actor BoMay {
     if laCon, !manKhoa {
       cauHinh.daDungGiayTuSync += troi
       demGiayApp(troi: troi, now: now)
-      _ = try? kho.sua { $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync; $0.demPhut = self.cauHinh.demPhut }
+      demPhutBu(troi: troi, now: now)
+      _ = try? kho.sua { $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync; $0.demPhut = self.cauHinh.demPhut; $0.phienBu = self.cauHinh.phienBu }
     }
 
     guard let p0 = policy else {
@@ -268,7 +278,10 @@ public actor BoMay {
       }
       var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
       let biChan = appBiChanCanDong(ds, uidCon: uidCon, p: p, chan: true, daCo: Set(can.map(\.pid)))     // app Ba Mẹ «Chặn»: MỌI mode
-      ghiAppVuaChan(can: can + biChan, baMeChan: Set(biChan.map(\.pid)), chiAppHoc: hl.chiAppHoc)
+      // trình duyệt chỉ bị đóng MỘT lần để nạp luật lọc mới (trinhDuyetCanDong) — Con mở lại được ngay ⇒ không hiện màn «chưa được mở»
+      let napLai = trinhDuyetCanDong
+      ghiAppVuaChan(can: (can + biChan).filter { !napLai.contains(($0.bundleId ?? "").lowercased()) && !napLai.contains($0.bundleId ?? "") },
+                    baMeChan: Set(biChan.map(\.pid)), chiAppHoc: hl.chiAppHoc)
       can += biChan
       if hl.chiAppHoc { trinhDuyetCanDong = [] }        // đã có một lượt đóng thật ⇒ trình duyệt mở từ giờ đọc luật mới
       let canPid = Set(can.map(\.pid))
@@ -524,7 +537,7 @@ public actor BoMay {
     if let than, than.utf8.count > 600_000 { return .loi(ma: "qua_lon", chu: "Ảnh quá lớn. Con chọn ảnh khác nhé.") }
     do {
       let d = try await api.hocVien(method: method, path: path, than: than.map { Data($0.utf8) })
-      if method.uppercased() == "POST", path.hasPrefix(HocVienPaths.goc + "doi/") { choiNho = [:] }     // đổi quà ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
+      if method.uppercased() == "POST" { choiNho = [:] }     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
       return .duLieu(json: String(decoding: d, as: UTF8.self))
     } catch let e as LoiApi {
       return .loi(ma: e.ma ?? "hoc_vien_loi", chu: BoMay.cauLoiCon(e))
@@ -545,7 +558,11 @@ public actor BoMay {
     var q = p
     var bo = Set<String>()
     if let a = p.playApp?.lowercased() { bo.insert(a) }
-    if p.playWeb { for t in ChinhSachTrinhDuyet.tatCa { bo.insert(t.bundleApp.lowercased()); bo.insert(t.bundleId.lowercased()) }; bo.insert("com.apple.safari") }
+    if p.playWeb {
+      bo.formUnion(ChinhSachTrinhDuyet.bundleMoi)
+      // trình duyệt lọc được không bị đóng (laTrinhDuyetLoc) ⇒ phải rút luôn tên miền của phiên khỏi danh sách cho phép (playApp = tên miền)
+      if let mien = p.playApp?.lowercased(), var w = q.web { w.cho.removeAll { $0.lowercased() == mien }; w.chan = Array(Set(w.chan + [mien])).sorted(); q.web = w }
+    }
     q.allowedApps.removeAll { bo.contains($0.lowercased()) }
     q.playSessionId = nil
     return q
@@ -584,7 +601,8 @@ public actor BoMay {
     do {
       let x = try await api.xetChoi(muc: m)
       guard x.duoc else { return .choi(trangThai: "tu_choi", phut: 0, chu: x.cau ?? x.lyDo) }
-      let mo = try await api.moChoi(muc: m)
+      let mo: KetQuaMoChoi
+      do { mo = try await api.moChoi(muc: m) } catch { dongBoSom(); throw error }   // hết giờ chờ mà máy chủ đã mở ⇒ lấy Policy ngay, không để Con bấm lại
       dongBoSom()                                     // Policy mới (app chơi được thả + playSessionId) tới ngay
       nhipLuc = donDieu() + 30
       return .choi(trangThai: "mo", phut: (mo.phutToiDa ?? x.phutToiDa).map { Int($0.rounded(.down)) }, chu: x.cau)
@@ -596,6 +614,19 @@ public actor BoMay {
   private func dongBoSom() {
     syncLuc = min(syncLuc, donDieu() + 2)
     if dangDongBo { syncSom = min(syncSom ?? .infinity, donDieu() + 2) }
+  }
+
+  /// Mất mạng giữa phiên chơi: cộng giây «đang chơi thật» (app của phiên ở tiền cảnh) để gửi bù khi có mạng lại — trong giới hạn
+  /// playOfflineMinutes (quá thì gioiHanPhienOffline đã khoá app chơi, không cộng nữa).
+  private func demPhutBu(troi: Double, now: Date) {
+    guard matMang, let p = policy, let id = p.playSessionId,
+          BoMay.gioiHanPhienOffline(p, matMang: true, tu: cauHinh.policyLuc, now: now).playSessionId != nil else { return }
+    let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
+    guard ChoiBangDiem.dangChoi(tienCanh: tc, playApp: p.playApp, playWeb: p.playWeb) else { return }
+    if let cu = cauHinh.phienBu, cu.id != id, cu.giay > 0 { return }     // còn phần bù của phiên trước chưa gửi ⇒ không đè
+    var bu = cauHinh.phienBu?.id == id ? cauHinh.phienBu! : PhienBu(id: id, muc: p.playApp ?? "", batDau: now, ketThuc: now)
+    bu.giay += troi; bu.ketThuc = now
+    cauHinh.phienBu = bu
   }
 
   /// Mốc (đơn điệu) gửi nhịp phiên chơi kế tiếp.

@@ -41,6 +41,8 @@ public protocol MayChuApi: AnyObject {
   func moChoi(muc: String) async throws -> KetQuaMoChoi
   /// POST api/device/phien/nhip {id, dangDung} — nhịp phiên chơi (máy chủ trừ điểm theo phút, hết thì «ket_thuc»). Trả trangThai.
   func nhipChoi(id: String, dangDung: Bool) async throws -> String
+  /// POST api/device/phien/bu {ma, id, muc, phut, batDau, ketThuc} — gửi bù phút chơi lúc mất mạng (TRƯỚC dong-bo), `ma` một lần.
+  func guiPhienBu(_ than: [String: Any]) async throws
 }
 
 /// Kết quả phien/xet. KHÔNG mang số điểm sang tray — chỉ «được / không», câu nhắc, số phút.
@@ -69,6 +71,7 @@ public extension MayChuApi {
   func xetChoi(muc: String) async throws -> KetQuaXetChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
   func moChoi(muc: String) async throws -> KetQuaMoChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
   func nhipChoi(id: String, dangDung: Bool) async throws -> String { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ nhịp phiên") }
+  func guiPhienBu(_ than: [String: Any]) async throws {}
 }
 
 public final class ApiClient: MayChuApi {
@@ -201,6 +204,8 @@ public final class ApiClient: MayChuApi {
     return KetQuaMoChoi(id: ApiClient.chuoi(o?["id"]), phutToiDa: (o?["phutToiDa"] as? NSNumber)?.doubleValue)
   }
 
+  public func guiPhienBu(_ than: [String: Any]) async throws { _ = try await gui("POST", "api/device/phien/bu", than) }
+
   public func nhipChoi(id: String, dangDung: Bool) async throws -> String {
     let d = try await gui("POST", "api/device/phien/nhip", ["id": id, "dangDung": dangDung])
     let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
@@ -239,9 +244,5 @@ public final class ApiClient: MayChuApi {
   }
 
   /// id là chuỗi hoặc số (FlexStringConverter).
-  static func chuoi(_ v: Any?) -> String? {
-    if let s = v as? String { return s }
-    if let n = v as? NSNumber { return n.stringValue }
-    return nil
-  }
+  static func chuoi(_ v: Any?) -> String? { JsonMem.chuoi(v) }
 }
