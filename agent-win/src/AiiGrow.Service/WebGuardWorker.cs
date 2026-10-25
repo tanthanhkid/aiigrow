@@ -47,18 +47,27 @@ public sealed class WebGuardWorker : BackgroundService
         try { if (cfg is { Paired: true }) host = new Uri(ApiClient.NormalizeServer(cfg.Server)).Host; } catch { }
         var kq = _hives.Ap(p, host, _rt?.ChildSids, now);
         // «chặn theo lọc»: trình duyệt chỉ được chạy cho tài khoản Con mà luật web đang có trong hive (AgentWorker đưa vào AppLocker + vòng đóng app)
-        var td = TrinhDuyetLoc.TheoSid(p, kq.DaApCho, kq.HklmDe);
+        var td = TrinhDuyetLoc.TheoSid(p, kq.DaApCho, kq.HklmKhongTha);
         var tdChuoi = string.Join("; ", td.OrderBy(x => x.Key).Select(x => x.Key + ": " + string.Join(",", x.Value)));
         if (tdChuoi != _daBaoTrinhDuyet)
         {
             _daBaoTrinhDuyet = tdChuoi;
-            if (p != null) _log.LogInformation(td.Count > 0 ? "Chặn thật: trình duyệt được chạy (web lọc theo danh sách) — {ds}" : "Chặn thật: chưa thả trình duyệt (luật web chưa áp được cho tài khoản Con){ds}", tdChuoi);
+            if (p != null && td.Count > 0) _log.LogInformation("Chặn thật: trình duyệt được chạy (web lọc theo danh sách) — {ds}", tdChuoi);
+            else if (p != null) _log.LogInformation("Chặn thật: chưa thả trình duyệt (luật web chưa áp được cho tài khoản Con, hoặc danh sách web cả máy HKLM đè: {hk})",
+                string.Join(",", kq.HklmKhongTha));
         }
         _rt?.DatTrinhDuyetLoc(td);
+        var canBao = false;   // báo trình duyệt đọc lại chính sách MỘT lần cuối lượt (RefreshPolicyEx force xử lý lại cả chính sách máy)
+        if (kq.HklmDaGoRong.Count > 0)
+        {
+            // Chrome / Edge đọc khoá danh sách RỖNG ở HKLM thành chính sách máy «danh sách trống», thắng danh sách của Con (e2e 4.17, 0.2.9)
+            _log.LogInformation("Đã gỡ khoá danh sách web RỖNG ở HKLM (chính sách máy «danh sách trống» đè luật web của Con): {ds}", string.Join(", ", kq.HklmDaGoRong));
+            canBao = true;
+        }
         if (kq.DaGoHklm)
         {
             _log.LogInformation("Đã gỡ luật web cũ trong HKLM (bản trước 0.2.6 ghi cả máy) — tài khoản Ba Mẹ không còn bị chặn");
-            if (_baoDocLai) _log.LogInformation("Báo trình duyệt (cả máy) đọc lại chính sách: {c}", WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai());
+            canBao = true;
         }
         // lỗi lặp lại (IT khoá ACL HKLM) chỉ log khi đổi — không 120 dòng/giờ
         if (kq.LoiGoHklm != _daBaoLoiHklm)
@@ -78,8 +87,9 @@ public sealed class WebGuardWorker : BackgroundService
             _log.LogInformation(p == null ? "Đã gỡ chính sách web của AiiGrow khỏi tài khoản Con" : "Đã áp chính sách web cho tài khoản Con: chế độ {c}, chặn {a}, cho phép {b}", p?.CheDo, p?.Chan.Count, p?.Cho.Count);
             if (kq.DoiChoConHienTai) _rt?.WebDaDoi();   // khay (phiên Con) làm mới chính sách trình duyệt + nhắc mở lại trình duyệt
             // lưới đỡ khi khay không chạy: tín hiệu chính sách MÁY cũng làm Chrome / Edge đọc lại cả HKCU (review #65/#75)
-            if (_baoDocLai) _log.LogInformation("Báo trình duyệt đọc lại chính sách: {c}", WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai());
+            canBao = true;
         }
+        if (canBao && _baoDocLai) _log.LogInformation("Báo trình duyệt đọc lại chính sách: {c}", WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai());
         var loiHive = string.Join("; ", kq.LoiHive ?? Array.Empty<string>());
         if (loiHive != _daBaoLoi)
         {

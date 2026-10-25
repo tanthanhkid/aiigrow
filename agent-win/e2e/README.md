@@ -40,7 +40,9 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   AppLocker có Deny cho SID Con theo đường dẫn exe, thư mục cài và băm AppLocker (`Get-AppLockerFileInformation`). Chạy app đó dưới phiên Con: BỎ (11.8).
 - **AppLocker được ÁP (có luật, Exe Enabled, AppIDSvc chạy)**; quyết định cho từng exe kiểm bằng `Test-AppLockerPolicy -User aiicon` (KB4.12–4.14:
   Chrome/Edge được chạy khi luật web đã áp — «chặn theo lọc», «chrome.exe» giả + Firefox vẫn bị chặn). KB4.17 mở Chrome headless THẬT bằng
-  tài khoản Con (`Start-Process -Credential`, không cần phiên đăng nhập): example.org vào được, example.com (Ba Mẹ chặn) thì không. Server 2022
+  tài khoản Con (`Start-Process -Credential`, không cần phiên đăng nhập): example.org vào được, example.com (Ba Mẹ chặn) thì không. Harness gỡ
+  tạm MỤC «1» của IT nhưng để lại khoá `URLBlocklist` RỖNG ở HKLM — Chrome coi khoá rỗng là chính sách máy «danh sách trống», thắng hive Con
+  (gốc lỗi 4.17 ở 0.2.9): agent phải gỡ khoá rỗng (hoặc tính là «HKLM đè», không thả trình duyệt) — 4.12 kiểm khoá đã gỡ. Server 2022
   có AppLocker; máy gia đình Windows Home có thể không — xem `docs/KHA-THI.md`.
 - **Thông báo trước đăng nhập, Safe Mode, khởi động lại máy**: không kiểm (runner không khởi động lại được giữa job).
 - **Tự cập nhật** chờ `UpdateWorker` (2 phút sau khi dịch vụ chạy) — KB7b khởi động lại dịch vụ rồi chờ tối đa 8 phút.

@@ -131,12 +131,33 @@ function DatKhoaWebCon($sid) {
 # Chạy $sb trên khoá $khoa; khoá thuộc hive Con chưa nạp ⇒ nạp tạm NTUSER.DAT ở HKU\AiiE2E_Con, đọc, gỡ nạp (thử lại khi dịch vụ đang giữ tệp).
 function VoiHiveCon([string]$khoa, [scriptblock]$sb) {
   $goc = "Registry::HKEY_USERS\$($Chung.SidCon)"
-  if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) { return (& $sb $khoa) }
-  $nap = $false
-  for ($i = 0; $i -lt 20 -and -not $nap; $i++) { & reg.exe load 'HKU\AiiE2E_Con' $Chung.NtUserCon 2>$null | Out-Null; $nap = ($LASTEXITCODE -eq 0); if (-not $nap) { Start-Sleep -Milliseconds 500 } }
+  if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) {
+    if ($Chung.SidCon -and $khoa.StartsWith($goc)) { [void](GoNapE2E) }   # hive Con đã nạp thật (HKU\<SID>) mà mount tạm cũ còn ⇒ gỡ (chỉ khoá của Con)
+    return (& $sb $khoa)
+  }
+  # lần trước gỡ nạp hỏng ⇒ hive còn ở tên tạm: dùng luôn (nạp lại sẽ hỏng vì tệp đang mở) rồi gỡ nạp lần nữa
+  $nap = Test-Path -LiteralPath 'Registry::HKEY_USERS\AiiE2E_Con'
+  for ($i = 0; $i -lt 20 -and -not $nap; $i++) { $nap = ((RegExe load 'HKU\AiiE2E_Con' $Chung.NtUserCon) -eq 0); if (-not $nap) { Start-Sleep -Milliseconds 500 } }
   if (-not $nap) { throw 'không nạp được hive của Con để đọc' }
   try { return (& $sb ('Registry::HKEY_USERS\AiiE2E_Con' + $khoa.Substring($goc.Length))) }
-  finally { for ($i = 0; $i -lt 10; $i++) { [gc]::Collect(); [gc]::WaitForPendingFinalizers(); & reg.exe unload 'HKU\AiiE2E_Con' 2>$null | Out-Null; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep -Milliseconds 300 } }
+  finally { [void](GoNapE2E) }
+}
+# reg.exe trả lỗi qua stderr (vd «ERROR: Access is denied.» khi hive còn handle mở): Windows PowerShell 5.1 với $ErrorActionPreference = 'Stop' biến
+# stderr của lệnh ngoài thành NGOẠI LỆ ⇒ vòng thử lại không chạy, cả kịch bản đỏ (KB9 chập chờn). Chạy reg.exe với 'Continue' cục bộ, chỉ xem mã thoát.
+function RegExe {
+  $ErrorActionPreference = 'Continue'
+  & reg.exe @args 2>&1 | Out-Null
+  $LASTEXITCODE
+}
+# Gỡ nạp hive tạm của e2e (thử ≤ 30 lần / ~15 giây). Hive Con kẹt ở tên tạm ⇒ Con «đăng nhập» (Start-Process -LoadUserProfile, 4.17) bị hồ sơ TẠM.
+function GoNapE2E {
+  for ($i = 0; $i -lt 30; $i++) {
+    if (-not (Test-Path -LiteralPath 'Registry::HKEY_USERS\AiiE2E_Con')) { return $true }
+    [gc]::Collect(); [gc]::WaitForPendingFinalizers()
+    if ((RegExe unload 'HKU\AiiE2E_Con') -eq 0) { return $true }
+    Start-Sleep -Milliseconds 500
+  }
+  $false
 }
 function GiaTriDs($khoa, $ds) {
   @(VoiHiveCon "$khoa\$ds" {
@@ -425,13 +446,15 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
     [string](Test-AppLockerPolicy -XmlPolicy $TepHieuLuc -Path $duong -User $TenCon).PolicyDecision
   }
   # Danh sách web CẢ MÁY của «IT» (mục «1» ở HKLM) thắng danh sách trong hive Con ⇒ AiiGrow (đúng thiết kế) KHÔNG thả Chrome/Edge khi có nó.
-  # Gỡ tạm mục IT để thử đường thả; KB6 đặt lại trước khi kiểm 6.4 (mục IT còn nguyên).
+  # Gỡ tạm mục IT để thử đường thả; KB6 đặt lại trước khi kiểm 6.4 (mục IT còn nguyên). Gỡ MỤC (không gỡ khoá) ⇒ còn khoá URLBlocklist RỖNG ở HKLM:
+  # Chrome đọc khoá rỗng thành chính sách máy «danh sách trống», vẫn thắng hive Con (gốc lỗi 4.17 ở 0.2.9) ⇒ agent phải tự gỡ khoá rỗng rồi mới thả.
   foreach ($k in $KhoaWeb.Values) { Remove-ItemProperty -Path "$k\URLBlocklist" -Name '1' -ErrorAction SilentlyContinue }
   DongBoNgay
   if (-not (Test-Path $ChromeExe)) { Bo '4.12' 'Chặn thật: Chrome chạy được cho Con' "runner không có $ChromeExe" }
   else {
     $qd = Cho { $x = QuyetDinh $ChromeExe; if ($x -eq 'Allowed') { $x } } 150 5
-    Dat '4.12' 'Chặn thật: AppLocker cho Con chạy Chrome (luật web đã áp)' ($qd -eq 'Allowed') ("Chrome: {0}" -f (QuyetDinh $ChromeExe))
+    $khoaRong = (@($KhoaWeb.GetEnumerator() | Where-Object { Test-Path "$($_.Value)\URLBlocklist" } | ForEach-Object { $_.Key }) -join ',')
+    Dat '4.12' 'Chặn thật: AppLocker cho Con chạy Chrome (luật web đã áp, khoá danh sách rỗng ở HKLM đã gỡ)' ($qd -eq 'Allowed' -and -not $khoaRong) ("Chrome: {0} · khoá URLBlocklist HKLM còn: «{1}»" -f (QuyetDinh $ChromeExe), $khoaRong)
   }
   if (Test-Path $EdgeExe) { $qe = QuyetDinh $EdgeExe; Dat '4.13' 'Chặn thật: AppLocker cho Con chạy Edge' ($qe -eq 'Allowed') "Edge ($EdgeExe): $qe" }
   else { Bo '4.13' 'Chặn thật: Edge chạy được cho Con' "runner không có msedge.exe" }
@@ -459,13 +482,12 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   DongBoNgay
   $coMuc = Cho { @(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist') | Where-Object { $_.GiaTri -eq 'example.com' } } 120 5
   $cred = New-Object System.Management.Automation.PSCredential($TenCon, $Chung.MkCon)
-  function ChromeCuaCon($url, $nhan) {
-    $ra = Join-Path $ThuMucCong "$nhan.html"; $loi = Join-Path $ThuMucCong "$nhan.err.txt"
+  # Chạy $exe bằng tài khoản Con (Start-Process -Credential -LoadUserProfile ⇒ HKCU của tiến trình = hive của Con)
+  function ChayBangCon($exe, $ts, $nhan) {
+    $ra = Join-Path $ThuMucCong "$nhan.out.txt"; $loi = Join-Path $ThuMucCong "$nhan.err.txt"
     Remove-Item $ra, $loi -Force -ErrorAction SilentlyContinue
-    $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
-    $ts = @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--dump-dom', $url)
     try {
-      $pr = Start-Process -FilePath $ChromeExe -ArgumentList $ts -Credential $cred -LoadUserProfile -WorkingDirectory $ThuMucCong -RedirectStandardOutput $ra -RedirectStandardError $loi -WindowStyle Hidden -PassThru
+      $pr = Start-Process -FilePath $exe -ArgumentList $ts -Credential $cred -LoadUserProfile -WorkingDirectory $ThuMucCong -RedirectStandardOutput $ra -RedirectStandardError $loi -WindowStyle Hidden -PassThru
       # tiến trình của tài khoản khác: không chắc mở được handle để WaitForExit ⇒ thăm dò theo Id (≤ 90 giây) rồi giết cả cây nếu còn
       for ($i = 0; $i -lt 45; $i++) { if (-not (Get-Process -Id $pr.Id -ErrorAction SilentlyContinue)) { break }; Start-Sleep -Seconds 2 }
       if (Get-Process -Id $pr.Id -ErrorAction SilentlyContinue) { & taskkill.exe /PID $pr.Id /T /F 2>&1 | Out-Null }
@@ -475,13 +497,25 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
       [pscustomobject]@{ Ma = $maThoat; Dom = [string]$txt; Loi = ([string]$err -replace "`r?`n", ' '); Ngoai = $null }
     } catch { [pscustomobject]@{ Ma = -1; Dom = ''; Loi = ''; Ngoai = $_.Exception.Message } }
   }
+  function ChromeCuaCon($url, $nhan) {
+    $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
+    ChayBangCon $ChromeExe @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--virtual-time-budget=5000', '--dump-dom', $url) $nhan
+  }
+  # mount tạm AiiE2E_Con còn ⇒ -LoadUserProfile không nạp được NTUSER.DAT ⇒ Con vào hồ sơ TẠM (HKCU trống) ⇒ 4.17 đỏ giả: gỡ, không được thì BỎ có lý do
+  if (-not (GoNapE2E)) { Bo '4.17' 'Chrome của Con: trang chặn không vào được' 'hive tạm HKU\AiiE2E_Con của harness không gỡ nạp được (NTUSER.DAT của Con bị khoá ⇒ hồ sơ tạm)'; return }
+  # Chẩn đoán (ghi log): hive nào đang nạp; tiến trình của Con thấy USERPROFILE (hồ sơ tạm?) + chính sách Chrome trong HKCU gì
+  Log ("4.17 HKU trước khi chạy Chrome: " + ((Get-ChildItem Registry::HKEY_USERS -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName }) -join ', '))
+  $dg = ChayBangCon (Join-Path $env:WINDIR 'System32\cmd.exe') @('/c', 'whoami & echo UP=%USERPROFILE% & reg query HKCU\Software\Policies\Google\Chrome /s') 'diag'
+  Log ("4.17 cmd của Con: mã $($dg.Ma) $($dg.Ngoai) · " + ($dg.Dom -replace '\s+', ' ') + " · err " + $dg.Loi)
   $mo = ChromeCuaCon 'https://example.org/' 'mo'
   $chan = ChromeCuaCon 'https://example.com/' 'chan'
   $vaoDuoc = $mo.Dom -match 'Example Domain'
-  # «bị chặn» phải là trang lỗi CHẶN THẬT của Chrome (ERR_BLOCKED_BY_ADMINISTRATOR) — lần chạy hỏng / hết giờ / DOM rỗng không được tính là chặn
-  $biChan = ($chan.Dom -notmatch 'Example Domain') -and ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR')
+  # «bị chặn» phải là lỗi CHẶN THẬT của Chrome (ERR_BLOCKED_BY_ADMINISTRATOR) — lần chạy hỏng / hết giờ / DOM rỗng không được tính là chặn.
+  # Headless (--dump-dom) không dump trang lỗi: DOM rỗng + stderr «Page load failed: net::ERR_BLOCKED_BY_ADMINISTRATOR» (headless_command_handler)
+  $loiChan = ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') -or ($chan.Loi -match 'ERR_BLOCKED_BY_ADMINISTRATOR')
+  $biChan = ($chan.Dom -notmatch 'Example Domain') -and $loiChan
   $ddChan = [string]($chan.Dom -replace '\s+', ' ')
-  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$(-not $biChan), ERR_BLOCKED=$($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
+  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$($chan.Dom -match 'Example Domain'), ERR_BLOCKED=$loiChan $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
   Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang thường vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 

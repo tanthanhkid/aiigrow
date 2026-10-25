@@ -22,6 +22,15 @@ internal sealed class FakeWebRegistry : IWebPolicyRegistry
     public void GoKhoaNeuTrong(string khoa) { }
     public int SoMucDaXoa { get; private set; }
     public readonly HashSet<string> MucKhac = new();   // danh sách có mục người khác đặt (IT «1»…)
+    public readonly HashSet<string> KhoaRong = new();  // khoá danh sách có nhưng RỖNG (IT xoá hết mục, để lại khoá)
+    public bool KhongGoDuoc;                           // ACL của IT không cho xoá khoá
+    public KhoaDanhSach XemKhoaDs(string k) =>
+        MucKhac.Contains(k) ? KhoaDanhSach.CoNguoiKhac : Ds.ContainsKey(k) ? KhoaDanhSach.ChiCuaTa : KhoaRong.Contains(k) ? KhoaDanhSach.Rong : KhoaDanhSach.KhongCo;
+    public bool GoKhoaRong(string k)
+    {
+        if (KhoaRong.Contains(k) && KhongGoDuoc) throw new UnauthorizedAccessException("Access to the registry key is denied.");
+        return KhoaRong.Remove(k);
+    }
     public bool CoMucCuaTa(string khoaDs) => Ds.ContainsKey(khoaDs);
     public bool CoMucNguoiKhac(string khoaDs) => MucKhac.Contains(khoaDs);
     public int? DocDword(string khoa, string ten) => Dword.TryGetValue(khoa + "|" + ten, out var v) ? v : null;
