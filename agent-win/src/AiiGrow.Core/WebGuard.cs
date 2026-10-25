@@ -155,6 +155,8 @@ public interface IWebPolicyRegistry
     int? DocDword(string khoa, string ten) => null;
     /// <summary>Ghi giá trị chuỗi (REG_SZ). Gỡ dùng <see cref="GoDword"/> (xoá giá trị theo tên, mọi kiểu).</summary>
     void DatChuoi(string khoa, string ten, string giaTri) { }
+    /// <summary>Gỡ giá trị chuỗi CHỈ khi nó đúng là giá trị AiiGrow đặt (DnsOverHttpsMode=secure của IT / Ba Mẹ giữ nguyên).</summary>
+    void GoChuoiNeu(string khoa, string ten, string giaTri) => GoDword(khoa, ten);
 }
 
 public sealed class WebPolicyApplier
@@ -196,7 +198,7 @@ public sealed class WebPolicyApplier
                 }
                 foreach (var (ten, gt) in WebPolicyKeys.CoChuoi(t))
                 {
-                    if (p == null) _reg.GoDword(t.Khoa, ten); else _reg.DatChuoi(t.Khoa, ten, gt);
+                    if (p == null) _reg.GoChuoiNeu(t.Khoa, ten, gt); else _reg.DatChuoi(t.Khoa, ten, gt);
                 }
                 if (p == null) _reg.GoKhoaNeuTrong(t.Khoa);
             }
@@ -361,6 +363,13 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
             k.SetValue(ten, giaTri, RegistryValueKind.String);
     }
 
+    public void GoChuoiNeu(string khoa, string ten, string giaTri)
+    {
+        using var hklm = Hklm();
+        using var k = hklm.OpenSubKey(khoa, true);
+        if (k?.GetValue(ten) is string v && string.Equals(v, giaTri, StringComparison.OrdinalIgnoreCase)) { k.DeleteValue(ten, false); SoMucDaXoa++; }
+    }
+
     public void GoDword(string khoa, string ten)
     {
         using var hklm = Hklm();
@@ -436,7 +445,7 @@ public static class WebGuard
         // Gọn: một hàm Go-Web chạy cho HKLM (bản cũ) rồi từng hive hồ sơ — kịch bản đi qua -EncodedCommand trong tham số tác vụ (giới hạn ~32K ký tự), không lặp danh sách.
         var wb = string.Join(",", WebPolicyKeys.TatCa.Select(t => "'" + t.Khoa + "'"));
         var dw = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.Co(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "|" + c.GiaTri + "'")).Distinct());
-        var ws = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.CoChuoi(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "'")).Distinct());
+        var ws = string.Join(",", WebPolicyKeys.TatCa.SelectMany(t => WebPolicyKeys.CoChuoi(t).Select(c => "'" + t.Khoa + "|" + c.Ten + "|" + c.GiaTri + "'")).Distinct());
         return string.Join("\n", new[]
         {
             "$wb=@(" + wb + ")",
@@ -456,8 +465,8 @@ public static class WebGuard
             "  }",
             // dấu thứ hai như GoHklmCu bên C#: đủ cả ba cờ ĐÚNG giá trị AiiGrow ở mọi trình duyệt (bản cũ chặn trống danh sách vẫn ghi cờ)
             "  if($chiKhiCoDau -and -not $dau){ $du=$true; foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; $v=(Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).($p[1]); if($null -eq $v -or [int64]$v -ne [int64]$p[2]){ $du=$false; break } }; $dau=$du }",
-            // cờ chuỗi (DnsOverHttpsMode) chỉ có ở hive Con — HKLM không bao giờ có của AiiGrow
-            "  if(-not $chiKhiCoDau){ foreach($d in $ws){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] -ErrorAction SilentlyContinue } } }",
+            // cờ chuỗi (DnsOverHttpsMode) chỉ có ở hive Con — HKLM không bao giờ có của AiiGrow; chỉ gỡ khi đúng giá trị AiiGrow đặt (của IT giữ nguyên)
+            "  if(-not $chiKhiCoDau){ foreach($d in $ws){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if((Get-ItemProperty -LiteralPath $k -ErrorAction SilentlyContinue).($p[1]) -eq $p[2]){ Remove-ItemProperty -LiteralPath $k -Name $p[1] -ErrorAction SilentlyContinue } } }",
             "  if(-not $chiKhiCoDau -or $dau){ foreach($d in $wd){ $p=$d.Split('|'); $k=\"$g\\\" + $p[0]; if(Test-Path -LiteralPath $k){ Remove-ItemProperty -LiteralPath $k -Name $p[1] } } }",
             "  foreach($b in $wb){ $k=\"$g\\$b\"; if((Test-Path -LiteralPath $k) -and @((Get-Item -LiteralPath $k).GetValueNames()).Count -eq 0 -and @(Get-ChildItem -LiteralPath $k).Count -eq 0){ Remove-Item -LiteralPath $k -Force } }",
             "}",

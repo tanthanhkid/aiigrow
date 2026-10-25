@@ -164,7 +164,8 @@ public sealed class WebPolicyHives
             try { _host.LuuDaGhi(DsLuu()); _daLuu = luu; }
             catch { }   // vòng sau thử lưu lại
         }
-        var daApCho = p == null ? new List<string>() : sids.Where(cs => _daGhiCho.Contains(cs) && _daAp.TryGetValue(cs, out var a) && a.VanTay == WebPolicyApplier.VanTay(p, maychuHost)
+        var vtHienTai = p == null ? null : WebPolicyApplier.VanTay(p, maychuHost);
+        var daApCho = p == null ? new List<string>() : sids.Where(cs => _daGhiCho.Contains(cs) && _daAp.TryGetValue(cs, out var a) && a.VanTay == vtHienTai
             && !chua.Contains(cs, StringComparer.OrdinalIgnoreCase) && !loiHive.Any(l => l.StartsWith(cs + ":", StringComparison.OrdinalIgnoreCase))).ToList();
         return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = hklmDe, DaApCho = daApCho };
     }

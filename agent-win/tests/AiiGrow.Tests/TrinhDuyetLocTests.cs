@@ -43,7 +43,7 @@ public class TrinhDuyetLocTests
         var xml = AppLockerXml.Build(new AppLockerOptions
         {
             ChildSids = new[] { Con, Con2 }, AllowedApps = new[] { "winword.exe" },
-            TrinhDuyetTheoSid = new Dictionary<string, IReadOnlyList<string>> { [Con] = new[] { "Chrome", "Edge" } },
+            TrinhDuyetTheoSid = new Dictionary<string, IReadOnlyList<string>> { [Con] = new[] { "Chrome", "Edge", "Brave", "CocCoc" } },
         });
         var doc = XDocument.Parse(xml);
         XElement LuatCua(string sid) => doc.Descendants("FilePathRule").Single(r => (string?)r.Attribute("UserOrGroupSid") == sid && (string?)r.Attribute("Action") == "Deny");
@@ -51,8 +51,11 @@ public class TrinhDuyetLocTests
         var pub = ex.Where(e => e.Name.LocalName == "FilePublisherCondition").ToList();
         Assert.Contains(pub, e => (string?)e.Attribute("PublisherName") == "O=GOOGLE LLC, L=MOUNTAIN VIEW, S=CALIFORNIA, C=US" && (string?)e.Attribute("ProductName") == "GOOGLE CHROME");
         Assert.Contains(pub, e => (string?)e.Attribute("ProductName") == "MICROSOFT EDGE");
+        Assert.DoesNotContain(pub, e => (string?)e.Attribute("ProductName") == "*");   // không bao giờ «mọi exe của nhà phát hành»
         Assert.All(pub, e => Assert.NotNull(e.Element("BinaryVersionRange")));
         Assert.Contains(ex, e => (string?)e.Attribute("Path") == @"%PROGRAMFILES%\Google\Chrome\Application\*");
+        Assert.Contains(ex, e => (string?)e.Attribute("Path") == @"%PROGRAMFILES%\BraveSoftware\Brave-Browser\Application\*");
+        Assert.Equal(2, pub.Count);                                                   // Brave / Cốc Cốc chỉ theo thư mục cài cả máy
         Assert.Contains(ex, e => (string?)e.Attribute("Path") == @"*\winword.exe");
         // mọi FilePathCondition đứng trước FilePublisherCondition (như XML Windows xuất)
         Assert.True(ex.FindLastIndex(e => e.Name.LocalName == "FilePathCondition") < ex.FindIndex(e => e.Name.LocalName == "FilePublisherCondition"));
@@ -105,8 +108,10 @@ public class TrinhDuyetLocTests
         Assert.False(TrinhDuyetLoc.ChoChay(p, ten, Pf, (_, _) => false));            // chép game vào đó, không ký ⇒ chặn
         Assert.False(TrinhDuyetLoc.ChoChay(p, ten, Pf, null));
         Assert.False(TrinhDuyetLoc.ChoChay(p, ten, Pf, (_, _) => throw new IOException()));
-        // Edge không cài theo người dùng ⇒ không nhận thư mục AppData
+        // Edge / Brave không nhận bản cài theo người dùng ⇒ không nhận thư mục AppData
         Assert.False(TrinhDuyetLoc.ChoChay(@"C:\Users\An\AppData\Local\Microsoft\Edge\Application\msedge.exe", ten, Pf, (_, _) => true));
+        Assert.False(TrinhDuyetLoc.ChoChay(@"C:\Users\An\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe", new[] { "Brave" }, Pf, (_, _) => true));
+        Assert.False(TrinhDuyetLoc.ChoChay("x", ten, Pf, (_, _) => true));             // đường quá ngắn không ném
     }
 
     [Theory]
@@ -167,6 +172,11 @@ public class TrinhDuyetLocTests
         Assert.Equal(1, reg.Dword[@"SOFTWARE\Policies\Microsoft\Edge|InPrivateModeAvailability"]);
         a.GoTatCa();
         Assert.Empty(reg.Chuoi);
+        // DoH của IT / Ba Mẹ (secure) không bị gỡ
+        reg.Chuoi[Chrome + "|DnsOverHttpsMode"] = "secure";
+        new WebPolicyApplier(reg).GoTatCa();
+        Assert.Equal("secure", reg.Chuoi[Chrome + "|DnsOverHttpsMode"]);
+        reg.Chuoi.Clear();
         Assert.Empty(reg.Dword);
         var s = WebGuard.KichBanGoChinhSach();
         Assert.Contains("DnsOverHttpsMode", s);

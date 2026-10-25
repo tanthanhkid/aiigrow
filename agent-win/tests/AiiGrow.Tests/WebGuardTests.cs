@@ -18,6 +18,7 @@ internal sealed class FakeWebRegistry : IWebPolicyRegistry
     public void GoDword(string khoa, string ten) { SoLanGhi++; if (Dword.Remove(khoa + "|" + ten) | Chuoi.Remove(khoa + "|" + ten)) SoMucDaXoa++; }
     public readonly Dictionary<string, string> Chuoi = new();
     public void DatChuoi(string khoa, string ten, string giaTri) { SoLanGhi++; Chuoi[khoa + "|" + ten] = giaTri; }
+    public void GoChuoiNeu(string khoa, string ten, string giaTri) { SoLanGhi++; if (Chuoi.TryGetValue(khoa + "|" + ten, out var v) && v == giaTri && Chuoi.Remove(khoa + "|" + ten)) SoMucDaXoa++; }
     public void GoKhoaNeuTrong(string khoa) { }
     public int SoMucDaXoa { get; private set; }
     public readonly HashSet<string> MucKhac = new();   // danh sách có mục người khác đặt (IT «1»…)

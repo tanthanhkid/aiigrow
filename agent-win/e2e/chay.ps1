@@ -474,8 +474,10 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $mo = ChromeCuaCon 'https://example.org/' 'mo'
   $chan = ChromeCuaCon 'https://example.com/' 'chan'
   $vaoDuoc = $mo.Dom -match 'Example Domain'
-  $biChan = ($chan.Dom -notmatch 'Example Domain')
-  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$(-not $biChan), ERR_BLOCKED=$($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') $($chan.Ngoai) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
+  # «bị chặn» phải là trang lỗi CHẶN THẬT của Chrome (ERR_BLOCKED_BY_ADMINISTRATOR) — lần chạy hỏng / hết giờ / DOM rỗng không được tính là chặn
+  $biChan = ($chan.Dom -notmatch 'Example Domain') -and ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR')
+  $ddChan = [string]($chan.Dom -replace '\s+', ' ')
+  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$(-not $biChan), ERR_BLOCKED=$($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
   Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang thường vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 

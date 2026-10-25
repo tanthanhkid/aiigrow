@@ -15,11 +15,11 @@ namespace AiiGrow.Core;
 
 /// <summary>Một trình duyệt AiiGrow lọc web được. <see cref="Ten"/> trùng <see cref="WebPolicyKeys.TrinhDuyet.Ten"/> (để khớp HklmDe).</summary>
 /// <param name="ThuMuc">Thư mục cài cả máy, tính từ Program Files / Program Files (x86).</param>
-/// <param name="NhaPhatHanh">Tên nhà phát hành theo cú pháp AppLocker (O=…, L=…, S=…, C=… chữ hoa) — đọc từ chứng chỉ ký thật.</param>
-/// <param name="SanPham">ProductName chữ hoa (AppLocker) — «*» khi nhà phát hành chỉ ký trình duyệt đó. Google / Microsoft ký nhiều thứ (Play Games…) ⇒ phải ghim sản phẩm.</param>
+/// <param name="NhaPhatHanh">Tên nhà phát hành theo cú pháp AppLocker (O=…, L=…, S=…, C=… chữ hoa) — null = không thả theo chữ ký (chỉ theo thư mục cài cả máy).</param>
+/// <param name="SanPham">ProductName chữ hoa (AppLocker / FileVersionInfo) — LUÔN ghim: nhà phát hành ký cả thứ khác (Google Play Games, updater, VPN helper…).</param>
 /// <param name="ToChuc">Giá trị O= trong chủ thể chứng chỉ (kiểm chữ ký bản cài theo người dùng).</param>
-/// <param name="ThuMucNguoiDung">Thư mục cài theo người dùng, tính từ %LOCALAPPDATA% (null = trình duyệt không cài kiểu đó).</param>
-public sealed record TrinhDuyetDaBiet(string Ten, string ThuMuc, string NhaPhatHanh, string SanPham, string ToChuc, string? ThuMucNguoiDung);
+/// <param name="ThuMucNguoiDung">Thư mục cài theo người dùng, tính từ %LOCALAPPDATA% (null = không nhận bản cài theo người dùng).</param>
+public sealed record TrinhDuyetDaBiet(string Ten, string ThuMuc, string? NhaPhatHanh, string? SanPham, string? ToChuc, string? ThuMucNguoiDung);
 
 public static class TrinhDuyetLoc
 {
@@ -27,8 +27,10 @@ public static class TrinhDuyetLoc
     {
         new("Chrome", @"Google\Chrome\Application", "O=GOOGLE LLC, L=MOUNTAIN VIEW, S=CALIFORNIA, C=US", "GOOGLE CHROME", "Google LLC", @"Google\Chrome\Application"),
         new("Edge", @"Microsoft\Edge\Application", "O=MICROSOFT CORPORATION, L=REDMOND, S=WASHINGTON, C=US", "MICROSOFT EDGE", "Microsoft Corporation", null),
-        new("Brave", @"BraveSoftware\Brave-Browser\Application", "O=BRAVE SOFTWARE, INC., L=SAN FRANCISCO, S=CALIFORNIA, C=US", "*", "Brave Software, Inc.", @"BraveSoftware\Brave-Browser\Application"),
-        new("CocCoc", @"CocCoc\Browser\Application", "O=COC COC COMPANY LIMITED, L=HA NOI, S=HA NOI, C=VN", "*", "Coc Coc Company Limited", @"CocCoc\Browser\Application"),
+        // Brave / Cốc Cốc: chưa kiểm được ProductName của bản thật trên máy Windows ⇒ KHÔNG thả theo chữ ký (nhà phát hành + sản phẩm «*» = mọi exe họ ký,
+        // ở mọi thư mục Con ghi được); chỉ bản cài cả máy trong Program Files. Bản cài theo người dùng vẫn bị chặn (an toàn trước).
+        new("Brave", @"BraveSoftware\Brave-Browser\Application", null, null, null, null),
+        new("CocCoc", @"CocCoc\Browser\Application", null, null, null, null),
     };
 
     public static TrinhDuyetDaBiet? Tim(string ten) => TatCa.FirstOrDefault(t => t.Ten.Equals(ten, StringComparison.OrdinalIgnoreCase));
@@ -53,7 +55,7 @@ public static class TrinhDuyetLoc
         // thứ tự như XML AppLocker Windows xuất: mọi FilePathCondition trước, rồi FilePublisherCondition
         var ds = ten.Select(Tim).Where(t => t != null).Select(t => t!).DistinctBy(t => t.Ten).ToList();
         foreach (var t in ds) yield return new XElement("FilePathCondition", new XAttribute("Path", @"%PROGRAMFILES%\" + t.ThuMuc + @"\*"));
-        foreach (var t in ds)
+        foreach (var t in ds.Where(t => t.NhaPhatHanh != null && t.SanPham != null))
             yield return new XElement("FilePublisherCondition",
                 new XAttribute("PublisherName", t.NhaPhatHanh), new XAttribute("ProductName", t.SanPham), new XAttribute("BinaryName", "*"),
                 new XElement("BinaryVersionRange", new XAttribute("LowSection", "*"), new XAttribute("HighSection", "*")));
@@ -65,7 +67,7 @@ public static class TrinhDuyetLoc
     /// (C:\Users\&lt;tên&gt;\AppData\Local\…) ⇒ chỉ khi <paramref name="kiemKy"/> xác nhận chữ ký thật (Con ghi được thư mục đó).</summary>
     public static bool ChoChay(string? exePath, IEnumerable<string>? ten, IEnumerable<string> programFiles, Func<string, TrinhDuyetDaBiet, bool>? kiemKy)
     {
-        if (string.IsNullOrWhiteSpace(exePath) || ten == null) return false;
+        if (string.IsNullOrWhiteSpace(exePath) || ten == null || exePath.Length < 4) return false;
         var p = exePath.Replace('/', '\\');
         if (p.Contains("..") || p.IndexOf(':', 2) >= 0) return false;   // «..», luồng dữ liệu phụ (a:b)
         foreach (var t in ten.Select(Tim).Where(t => t != null).Select(t => t!))
@@ -82,8 +84,10 @@ public static class TrinhDuyetLoc
         return false;
     }
 
-    /// <summary>Program Files + Program Files (x86) của máy này.</summary>
-    public static List<string> ThuMucProgramFiles() => new[]
+    /// <summary>Program Files + Program Files (x86) của máy này (không đổi suốt đời dịch vụ — đọc một lần).</summary>
+    public static IReadOnlyList<string> ThuMucProgramFiles() => _pf ??= DocProgramFiles();
+    private static IReadOnlyList<string>? _pf;
+    private static List<string> DocProgramFiles() => new[]
     {
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
@@ -105,18 +109,31 @@ public static class TrinhDuyetLoc
 /// <summary>Kiểm chữ ký Authenticode của bản cài theo người dùng (WinVerifyTrust + O= của người ký), nhớ theo (đường, cỡ, giờ sửa) — vòng đóng app chạy 5 giây/lần.</summary>
 public sealed class KiemKyTrinhDuyet
 {
-    private readonly Dictionary<string, (long Co, DateTime Sua, bool Ok)> _nho = new(StringComparer.OrdinalIgnoreCase);
+    // Con sở hữu thư mục AppData: cỡ + giờ sửa giả được (SetFileTime) ⇒ nhớ theo BĂM nội dung; băm lại sau tối đa 30 giây (tráo tệp bị phát hiện ở lượt kế).
+    private readonly Dictionary<string, (string Bam, long Tick, bool Ok)> _nho = new(StringComparer.OrdinalIgnoreCase);
+    private const long BamLaiSauMs = 30_000;
 
     public bool Kiem(string path, TrinhDuyetDaBiet t)
     {
-        var fi = new FileInfo(path);
-        if (!fi.Exists) return false;
+        if (t.ToChuc == null || t.SanPham == null || t.ThuMucNguoiDung == null) return false;
         var khoa = path + "|" + t.Ten;
+        var bay = Environment.TickCount64;
         lock (_nho)
-            if (_nho.TryGetValue(khoa, out var c) && c.Co == fi.Length && c.Sua == fi.LastWriteTimeUtc) return c.Ok;
-        var ok = ChuKyHopLe(path) && TrinhDuyetLoc.DungToChuc(NguoiKy(path), t.ToChuc);
-        lock (_nho) { if (_nho.Count > 200) _nho.Clear(); _nho[khoa] = (fi.Length, fi.LastWriteTimeUtc, ok); }
+            if (_nho.TryGetValue(khoa, out var c) && bay - c.Tick < BamLaiSauMs) return c.Ok;
+        string bam;
+        try { using var f = File.OpenRead(path); bam = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(f)); }
+        catch { return false; }
+        lock (_nho)
+            if (_nho.TryGetValue(khoa, out var c) && c.Bam == bam) { _nho[khoa] = (bam, bay, c.Ok); return c.Ok; }
+        var ok = ChuKyHopLe(path) && TrinhDuyetLoc.DungToChuc(NguoiKy(path), t.ToChuc) && DungSanPham(path, t.SanPham);
+        lock (_nho) { if (_nho.Count > 200) _nho.Clear(); _nho[khoa] = (bam, bay, ok); }
         return ok;
+    }
+
+    private static bool DungSanPham(string path, string sanPham)
+    {
+        try { return string.Equals(System.Diagnostics.FileVersionInfo.GetVersionInfo(path).ProductName?.Trim(), sanPham, StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
     }
 
     private static string? NguoiKy(string path)
