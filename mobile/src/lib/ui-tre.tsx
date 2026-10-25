@@ -4,12 +4,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, TextInput, View, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useGlobalSearchParams } from "expo-router";
 import { VongClay } from "./bieu-do";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BieuTron, Chu, DiemPill, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
 import { BONG, KHOI, MEN } from "./clay";
 import { kid, may, type NhomTre, type NvTre, type ToiTre } from "./api-tre";
+import { GOC } from "./api";
 
 // ---------------------------------------------------------------- phiên Con (hồ sơ đang dùng)
 
@@ -26,6 +27,35 @@ export function TreProvider({ children }: { children: ReactNode }) {
       setToi(r.con);
     } catch { /* mất mạng: giữ hồ sơ cũ */ }
   }, []);
+  // App native: agent Android / iOS mở thẳng `aiigrow://tre?phien=<phiên Con>` (phiên lấy bằng POST /api/device/phien-web của máy Con)
+  // ⇒ nhận phiên từ tham số đường dẫn (link tới lúc đang nạp hay khi app đã mở đều nhận); link mới với phiên khác (đổi Con) thì đổi theo.
+  // KIỂM phiên với máy chủ trước khi thay: link rác / phiên hết hạn không đá phiên đang dùng. Web đọc ?phien ở dưới (khung Kid của agent Windows).
+  const { phien: thamSoPhien } = useGlobalSearchParams<{ phien?: string }>();
+  const phienNative = Platform.OS !== "web" && typeof thamSoPhien === "string" && /^[\w-]{16,200}$/.test(thamSoPhien) ? thamSoPhien : null;
+  const daNhan = useRef<string | null>(null);       // phiên đã nhận xong (chỉ ghi khi máy chủ xác nhận — lỗi mạng thì link sau thử lại)
+  const dangNhan = useRef<string | null>(null);
+  const nhanPhien = useCallback(async (p: string): Promise<ToiTre["con"] | null> => {
+    if (daNhan.current === p || dangNhan.current === p) return null;
+    dangNhan.current = p;
+    try {
+      // kiểm bằng token tạm (chưa ghi đè phiên đang dùng) — cùng đường GOC/api/kid với client `kid`
+      const r = await fetch(`${GOC}/api/kid/toi`, { headers: { authorization: `Bearer ${p}` } });
+      if (!r.ok) return null;
+      const j = (await r.json()) as ToiTre;
+      if (kid.co()) await kid.goi("dang-xuat", {}).catch(() => {});      // phiên cũ của máy này: đăng xuất ở máy chủ trước khi thay
+      await kid.dat(p);
+      daNhan.current = p;
+      setCo(true);
+      setToi(j.con);
+      return j.con;
+    } catch { return null; } finally { dangNhan.current = null; }
+  }, []);
+  useEffect(() => {
+    if (!san || !phienNative) return;
+    const p = phienNative;
+    // link tới khi app đã mở: nhận (kiểm với máy chủ) rồi đưa vào Nhà — màn chọn hồ sơ / ghép máy không tự đổi theo `co`
+    Promise.resolve().then(() => nhanPhien(p)).then((c) => { if (c) router.replace(c.daChao ? "/tre/nha" : "/tre/chao"); }).catch(() => {});
+  }, [san, phienNative, nhanPhien]);
   useEffect(() => {
     (async () => {
       await may.nap();
@@ -39,12 +69,15 @@ export function TreProvider({ children }: { children: ReactNode }) {
           globalThis.history?.replaceState(globalThis.history.state, "", u.pathname + u.search + u.hash);
         } catch { /* bỏ qua */ }
       }
+      // native: link sâu lúc mở app ⇒ nạp phiên cũ (để đăng xuất nó ở máy chủ) rồi nhận phiên mới (đã kiểm) trước khi màn Con quyết «có phiên chưa»
+      if (phienNative) { await kid.nap(); await nhanPhien(phienNative); }
       const t = await kid.nap();
       setCo(!!t);
       if (t) await nap();
       setSan(true);
     })();
     kid.onHetPhien(() => { setCo(false); setToi(null); router.replace("/tre/pin"); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nạp một lần lúc dựng; link tới sau do effect phía trên nhận
   }, [nap]);
   const vao = useCallback(async (t: string) => {
     await kid.dat(t);

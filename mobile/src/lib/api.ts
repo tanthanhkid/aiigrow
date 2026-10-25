@@ -134,6 +134,8 @@ export type TuanThuMay = {
   trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
   /** Windows: hạn «đang mở» thật (mở khẩn cấp hoặc thêm giờ đã duyệt) — null = không mở. Máy chủ cũ không gửi. */
   moDen?: string | null;
+  /** Máy tự kiểm được mã mở offline (server/lib/ma-offline.ts › NEN_MA_OFFLINE). Máy chủ cũ không gửi ⇒ chỉ Windows. */
+  coMaOffline?: boolean;
   lenhCho: { id: string; loai: string }[];
   /** Chế độ hiển thị: Ba Mẹ đã chọn (POST may/:id/che-do), không thì chế độ máy báo; null = chưa biết (agent cũ / chưa đồng bộ).
    *  giam-sat = chỉ ghi lại, không chặn · chan = chặn thật. */
@@ -155,6 +157,8 @@ export const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", 
 export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };
 export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
+/** Máy có «Mã mở khi mất mạng»: theo cờ máy chủ (tuan-thu.ts › coMaOffline); máy chủ cũ không gửi ⇒ chỉ Windows. */
+export const coMaOff = (m: Pick<TuanThuMay, "coMaOffline" | "nen">) => m.coMaOffline ?? m.nen === "windows";
 
 export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }> = {
   tuan_thu: { chu: "Tuân thủ", loai: "ok" }, lech_chuan: { chu: "Lệch chuẩn", loai: "canh" },

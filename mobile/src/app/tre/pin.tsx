@@ -1,6 +1,8 @@
 // con-pin «Ai đang dùng máy?» (FR-01.03): máy dùng chung nhiều Con — chạm tên mình rồi nhập PIN. Máy chưa ghép ⇒ nhập mã ghép 6 số Ba Mẹ đưa.
 import { useEffect, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
+import { router } from "expo-router";
+import { usePhien } from "@/lib/phien";
 import { Avt, BaoLoi, Canh, CanhGiua, ChoTai, Chu, Luoi2, M, MAU_CON, Ma6, Nut, cauLoi, useLam, useTai } from "@/lib/ui";
 import { ManTre, OPin, useTre } from "@/lib/ui-tre";
 import { may, nenMay } from "@/lib/api-tre";
@@ -26,6 +28,8 @@ function GhepMay({ xong }: { xong: () => void }) {
       <Canh lv="rob-goc" mau="vang" tieu="Ghép máy với AiiGrow" loi="Nhờ Ba Mẹ tạo mã ghép trong app, rồi nhập 6 số vào đây nhé." />
       <Ma6 gia={ma} doi={setMa} nhan="Mã ghép 6 số" />
       <BaoLoi loi={loi} />
+      {Platform.OS !== "web" ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Máy đã cài AiiGrow Con? Mở app đó rồi chạm «Nhiệm vụ & quà» — không cần mã.</Chu> : null}
+      <VeBaMe />
     </ManTre>
   );
 }
@@ -89,6 +93,18 @@ function HoSoVaPin() {
       {dangChon ? <View style={{ marginTop: 6 }}><OPin gia={pin} doi={setPin} /></View> : null}
       {dangChay ? <Chu kieu="dam" co={14} mau={M.chu3} style={{ textAlign: "center" }}>Đang mở…</Chu> : null}
       <BaoLoi loi={loiVao} />
+      <VeBaMe />
     </ManTre>
+  );
+}
+
+/** App native: lối Ba Mẹ đăng nhập lại (luôn qua mật khẩu / OTP — Con không tự vào app Ba Mẹ). Web (khung Kid trên máy tính) không hiện. */
+function VeBaMe() {
+  const { co } = usePhien();
+  if (Platform.OS === "web" || co) return null;
+  return (
+    <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+      <Chu co={13} mau={M.chu3}>Ba Mẹ? <Chu kieu="rat" co={13} mau={M.chinhInk}>Đăng nhập app Ba Mẹ</Chu></Chu>
+    </Pressable>
   );
 }

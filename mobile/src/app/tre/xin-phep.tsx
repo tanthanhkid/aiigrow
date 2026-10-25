@@ -4,8 +4,8 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BaoLoi, Canh, CanhGiua, ChonMot, Chu, Icon, M, Nut, ONhap, useLam, useTai } from "@/lib/ui";
-import { ChipMot, ManTre, useTre } from "@/lib/ui-tre";
-import { kid, type YcTre } from "@/lib/api-tre";
+import { ChipMot, ManTre, OLon, useTaiTre, useTre } from "@/lib/ui-tre";
+import { kid, type NhaTre, type YcTre } from "@/lib/api-tre";
 import { LoiApi } from "@/lib/api";
 
 type Loai = "them_gio" | "mo_web" | "cai_app" | "khac";
@@ -23,6 +23,11 @@ export default function XinPhep() {
   const [tuViet, setTuViet] = useState("");
   const [day, setDay] = useState(false);
   const yc = useTai(() => kid.goi<{ ds: YcTre[]; lyDoNhanh: string[] }>("yeu-cau"));
+  // Đổi điểm lấy thời gian ngay trong màn xin giờ (như RequestForm của khay Windows): có điểm, đang trong giờ chơi ⇒ khỏi chờ Ba Mẹ duyệt
+  const nha = useTaiTre("nha", () => kid.goi<NhaTre>("nha"));
+  // chỉ gợi ý khi chơi được NGAY: có điểm, trong khung, chưa hết trần, không giờ ngủ / đang nghỉ / phiên khác (lý do khác ⇒ xin Ba Mẹ)
+  const n = nha.d;
+  const doiDuoc = !!n && n.soDu > 0 && !n.phien && n.khung.dang && n.conPhut > 0 && !n.gioNgu && !(n.nghiDen && new Date(n.nghiDen) > new Date());
   const { dangChay, loi, lam, setLoi } = useLam();
   const cho = yc.d?.ds.filter((x) => x.trang_thai === "cho").length ?? 0;
   const nhanh = (yc.d?.lyDoNhanh ?? ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan"]).slice(0, 3);
@@ -57,9 +62,15 @@ export default function XinPhep() {
           gia={loai} doi={(v) => { setLoai(v); setGia(""); }} />
       ) : null}
       {loai === "them_gio" ? (
-        <View>
-          <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>Thêm bao lâu?</Chu>
-          <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
+        <View style={{ gap: 12 }}>
+          {doiDuoc ? (
+            <OLon ic="game" mau="vang" tieu="Đổi điểm lấy giờ chơi" phu={`${ten} có ${n!.soDu} điểm · chơi ngay, không cần chờ Ba Mẹ`}
+              bam={() => router.push("/tre/choi")} />
+          ) : null}
+          <View>
+            <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{doiDuoc ? "Hoặc xin Ba Mẹ thêm bao lâu?" : "Thêm bao lâu?"}</Chu>
+            <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
+          </View>
         </View>
       ) : giaCoSan ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: M.xamSoft, borderRadius: 16, paddingHorizontal: 14, minHeight: 52 }}>
