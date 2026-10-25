@@ -194,9 +194,9 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       guard let d = await appCon.hoi("GET", path).0, let r = HvTinDs.doc(d) else { return }
       let moi = tinTheo.nhan(r)
       guard !moi.isEmpty else { return }
-      appCon.tinMoi += moi.count
+      if !(appDangHien && appCon.muc == .tinNhan) { appCon.tinMoi += moi.count }   // đang xem Tin nhắn ⇒ đã thấy, không đếm là chưa đọc
       veLai()
-      if appDangHien { await appCon.lamMoi(dsChoi: model.tt?.dsChoi ?? []) }
+      if appDangHien && !lamMoiApp { await appCon.lamMoi(dsChoi: model.tt?.dsChoi ?? []) }
       let khoa = model.tt?.cheDo == .khoa || !manKhoa.isEmpty
       if batNv.nhan(coNvMoi: HocVienView.coNhiemVuMoi(moi), khoa: khoa, appDangHien: appDangHien, bayGio: Date()) {
         moApp(.nhiemVu)
@@ -231,7 +231,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   func xetAppVuaChan() {
     guard let t = model.tt, !model.matKetNoi, t.laPhienCon, let seq = t.chanSeq else { return }
     defer { chanSeqDaThay = seq }
-    guard let cu = chanSeqDaThay, seq > cu, manKhoa.isEmpty, let ten = t.chanTen else { return }
+    guard let cu = chanSeqDaThay, seq != cu, seq > 0, manKhoa.isEmpty, let ten = t.chanTen else { return }   // != : daemon khởi động lại đếm từ 0
     let muc = t.chanApp ?? ""
     let coChoi = t.chanLyDo == "chi_app_hoc"
       && ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? [], muc: muc)

@@ -35,7 +35,9 @@ final class AppConModel: ObservableObject {
   nonisolated static func goiThat(_ yc: YeuCauTray) async -> TraLoi {
     await GioiHanIPC.chung.vao()
     defer { Task { await GioiHanIPC.chung.ra() } }
-    do { return try await IPCClient.guiAsync(yc, giay: 25) } catch {
+    // daemon có thể gọi máy chủ HAI lần (choi: xet rồi mo, mỗi lần tới 20–30 giây) ⇒ chờ lâu hơn trường hợp xấu nhất, không báo lỗi giả
+    // trong khi daemon vẫn mở phiên / đổi quà (Con bấm lại ⇒ trừ điểm hai lần).
+    do { return try await IPCClient.guiAsync(yc, giay: 70) } catch {
       return .loi(ma: "ipc", chu: "Chưa nối được dịch vụ AiiGrow. Con thử lại sau vài giây nhé.")
     }
   }

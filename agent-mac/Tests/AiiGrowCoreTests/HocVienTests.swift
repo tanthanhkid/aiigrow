@@ -114,6 +114,16 @@ final class HocVienTests: XCTestCase {
     XCTAssertFalse(ChoiBangDiem.dangChoi(tienCanh: "com.apple.iwork.pages", playApp: nil, playWeb: true))
   }
 
+  func testPhienChoiMatMangChiTrongPhutChoPhep() throws {
+    let p = try PolicyParser.parse(#"{"mode":"hoc","allowedApps":["com.apple.pages","com.roblox.roblox"],"playSessionId":"ph","playApp":"com.roblox.roblox","playOfflineMinutes":10}"#)
+    let t = Date(timeIntervalSince1970: 1000)
+    XCTAssertEqual(BoMay.gioiHanPhienOffline(p, matMang: false, tu: t, now: t.addingTimeInterval(9999)), p, "có mạng ⇒ máy chủ quyết")
+    XCTAssertEqual(BoMay.gioiHanPhienOffline(p, matMang: true, tu: t, now: t.addingTimeInterval(9 * 60)), p)
+    let het = BoMay.gioiHanPhienOffline(p, matMang: true, tu: t, now: t.addingTimeInterval(11 * 60))
+    XCTAssertEqual(het.allowedApps, ["com.apple.pages"]); XCTAssertNil(het.playSessionId)
+    XCTAssertEqual(p.playOfflineMinutes, 10)
+  }
+
   func testAnhVuaTran() {
     XCTAssertTrue(AnhBangChung.vua(4000, 3000) == (1280, 960))
     XCTAssertTrue(AnhBangChung.vua(800, 600) == (800, 600))

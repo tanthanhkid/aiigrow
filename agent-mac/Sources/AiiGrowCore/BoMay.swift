@@ -215,7 +215,8 @@ public actor BoMay {
     let phien = heThong.phienConsole()
     let laCon = phien?.uid == cauHinh.uidCon
     let manKhoa = phien?.manKhoa ?? true
-    guard let p = policy else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
+    guard let p0 = policy else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
+    let p = BoMay.gioiHanPhienOffline(p0, matMang: matMang, tu: cauHinh.policyLuc, now: dongHo())
     let hl = DanhGiaPolicy.tinh(p, now: dongHo(), daDungGiay: cauHinh.daDungGiayTuSync)
     var demNguoc: Int?
     if hl.khoa, laCon, !manKhoa {
@@ -241,9 +242,10 @@ public actor BoMay {
       _ = try? kho.sua { $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync; $0.demPhut = self.cauHinh.demPhut }
     }
 
-    guard let p = policy else {
+    guard let p0 = policy else {
       return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
     }
+    let p = BoMay.gioiHanPhienOffline(p0, matMang: matMang, tu: cauHinh.policyLuc, now: now)
     let hl = DanhGiaPolicy.tinh(p, now: now, daDungGiay: cauHinh.daDungGiayTuSync)
     let chan = cheDoHieuLuc() == CheDoAgent.chan
 
@@ -525,12 +527,29 @@ public actor BoMay {
       if method.uppercased() == "POST", path.hasPrefix(HocVienPaths.goc + "doi/") { choiNho = [:] }     // đổi quà ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
       return .duLieu(json: String(decoding: d, as: UTF8.self))
     } catch let e as LoiApi {
-      return .loi(ma: e.ma ?? "hoc_vien_loi", chu: e.laMang && e.maHttp == nil ? "Chưa có mạng, con thử lại sau nhé." : e.chu)
+      return .loi(ma: e.ma ?? "hoc_vien_loi", chu: BoMay.cauLoiCon(e))
     } catch { return .loi(ma: "hoc_vien_loi", chu: "\(error)") }
   }
 
   /// Nhớ kết quả «chơi thử» theo mục: «được» 60 giây, «từ chối» 15 giây (mở hộp / làm mới không bắn phien/xet liên tục). Policy đổi ⇒ bỏ hết.
   private var choiNho: [String: (luc: Double, tra: TraLoi)] = [:]
+
+  /// Câu lỗi cho Con: không tới được máy chủ ⇒ «chưa có mạng»; máy chủ trả lỗi ⇒ câu máy chủ.
+  static func cauLoiCon(_ e: LoiApi) -> String { e.laMang && e.maHttp == nil ? "Chưa có mạng, con thử lại sau nhé." : e.chu }
+
+  /// Mất mạng giữa phiên chơi bằng điểm: chỉ được chơi tiếp `playOfflineMinutes` phút kể từ lần đồng bộ cuối (như Windows 0.2.4) — quá thì
+  /// bỏ app chơi (và trình duyệt nếu phiên web) khỏi danh sách được mở. Không có số ⇒ 0 phút (không chơi «chùa» khi tắt Wi‑Fi).
+  static func gioiHanPhienOffline(_ p: Policy, matMang: Bool, tu: Date?, now: Date) -> Policy {
+    guard matMang, p.playSessionId != nil, let tu else { return p }
+    guard now.timeIntervalSince(tu) > Double((p.playOfflineMinutes ?? 0) * 60) else { return p }
+    var q = p
+    var bo = Set<String>()
+    if let a = p.playApp?.lowercased() { bo.insert(a) }
+    if p.playWeb { for t in ChinhSachTrinhDuyet.tatCa { bo.insert(t.bundleApp.lowercased()); bo.insert(t.bundleId.lowercased()) }; bo.insert("com.apple.safari") }
+    q.allowedApps.removeAll { bo.contains($0.lowercased()) }
+    q.playSessionId = nil
+    return q
+  }
 
   /// Phần Policy ảnh hưởng «chơi bằng điểm» (serverTime / minutesLeft đổi mỗi lượt — không tính).
   static func dauChoi(_ p: Policy) -> String {
@@ -553,7 +572,7 @@ public actor BoMay {
       let tra = TraLoi.choi(trangThai: x.duoc ? "duoc" : "tu_choi", phut: x.duoc ? x.phutHienThi : 0, chu: x.duoc ? nil : (x.cau ?? x.lyDo))
       choiNho[khoa] = (donDieu(), tra)
       return tra
-    } catch let e as LoiApi { return .loi(ma: e.ma ?? "choi_loi", chu: e.laMang && e.maHttp == nil ? "Chưa có mạng, con thử lại sau nhé." : e.chu) }
+    } catch let e as LoiApi { return .loi(ma: e.ma ?? "choi_loi", chu: BoMay.cauLoiCon(e)) }
     catch { return .loi(ma: "choi_loi", chu: "\(error)") }
   }
 
@@ -569,7 +588,7 @@ public actor BoMay {
       dongBoSom()                                     // Policy mới (app chơi được thả + playSessionId) tới ngay
       nhipLuc = donDieu() + 30
       return .choi(trangThai: "mo", phut: (mo.phutToiDa ?? x.phutToiDa).map { Int($0.rounded(.down)) }, chu: x.cau)
-    } catch let e as LoiApi { return .loi(ma: e.ma ?? "choi_loi", chu: e.laMang && e.maHttp == nil ? "Chưa có mạng, con thử lại sau nhé." : e.chu) }
+    } catch let e as LoiApi { return .loi(ma: e.ma ?? "choi_loi", chu: BoMay.cauLoiCon(e)) }
     catch { return .loi(ma: "choi_loi", chu: "\(error)") }
   }
 
@@ -582,6 +601,7 @@ public actor BoMay {
   /// Mốc (đơn điệu) gửi nhịp phiên chơi kế tiếp.
   private var nhipLuc: Double = 0
   private var dangNhip = false
+  private var nhipLoiLienTiep = 0
   /// Nhịp phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (Policy.playSessionId): 30 giây một lần, «đang dùng» = Con đang ngồi máy (phiên console
   /// của Con, màn không khoá) VÀ app của phiên (hoặc trình duyệt nếu phiên web) ở tiền cảnh — như Windows 0.2.4. Máy chủ trừ điểm theo phút, hết phút / hết điểm / giờ ngủ ⇒ «ket_thuc» ⇒ đồng bộ ngay để khoá lại app chơi.
   /// Daemon gọi trong Task riêng (main.swift) — mạng treo không làm ngưng vòng áp / vòng đồng bộ.
@@ -594,9 +614,12 @@ public actor BoMay {
       let dung = conDangDung() != nil && ChoiBangDiem.dangChoi(tienCanh: tienCanh, playApp: policy?.playApp, playWeb: policy?.playWeb ?? false)
       let tt = try await api.nhipChoi(id: id, dangDung: dung)
       if tt == "ket_thuc" { dongBoSom(); choiNho = [:] }
+      nhipLoiLienTiep = 0
     } catch let e as LoiApi {
+      nhipLoiLienTiep += 1
       if !e.laMang { dongBoSom(); nhipLuc = donDieu() + 60 }       // phiên không còn (404/409) ⇒ lấy Policy mới; không bắn lại liên tục
-      heThong.ghiLog("Nhịp phiên chơi lỗi (\(e.chu)).")
+      else { nhipLuc = donDieu() + min(300, 30 * Double(1 << min(nhipLoiLienTiep, 4))) }   // mất mạng: giãn dần tới 5 phút
+      if nhipLoiLienTiep == 1 { heThong.ghiLog("Nhịp phiên chơi lỗi (\(e.chu)) — thử lại giãn dần, không ghi tiếp tới khi được.") }
     } catch {}
   }
 

@@ -488,8 +488,12 @@ final class ChoiModel: ObservableObject {
 
   /// Hỏi số phút cho TỪNG mục (máy chủ định giá theo nhóm), tuần tự (giới hạn kết nối IPC mỗi uid), tối đa 12 mục đầu; daemon nhớ 60 giây.
   func hoiPhut(_ ds: [String]) async {
-    for m in ds.prefix(12) {
-      if case let .choi(tt, p, _) = await goi(.choiThu(muc: m)), tt == "duoc", let p, p > 0 { phut[m] = p }
+    let goi = self.goi
+    await withTaskGroup(of: (String, Int?).self) { g in        // song song — GioiHanIPC giữ tối đa 2 lệnh cùng lúc
+      for m in ds.prefix(12) {
+        g.addTask { if case let .choi(tt, p, _) = await goi(.choiThu(muc: m)), tt == "duoc", let p, p > 0 { return (m, p) }; return (m, nil) }
+      }
+      for await (m, p) in g { if let p { phut[m] = p } }
     }
   }
 

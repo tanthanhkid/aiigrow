@@ -9,7 +9,7 @@ import Foundation
 enum JsonMem {
   static func chuoi(_ v: Any?) -> String? {
     if let s = v as? String { return s }
-    if let n = v as? NSNumber, !(v is Bool) { return n.stringValue }
+    if let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() { return n.stringValue }
     return nil
   }
   static func so(_ v: Any?) -> Int? {
@@ -442,7 +442,7 @@ public enum AnhBangChung {
 public enum ChoiBangDiem {
   /// Nút hiện khi máy chủ cho đổi điểm, không bị Ba Mẹ khoá, không mất mạng (phien/xet không gọi được), và (nếu biết app) app nằm trong danh sách.
   public static func hienNut(duocDoiDiem: Bool, lyDoKhoa: String?, matMang: Bool, dsChoi: [String], muc: String? = nil) -> Bool {
-    guard duocDoiDiem, lyDoKhoa != "ba_me_khoa", lyDoKhoa != "khoa", !matMang else { return false }
+    guard duocDoiDiem, !["ba_me_khoa", "khoa", "gio_ngu", "ngu"].contains(lyDoKhoa ?? ""), !matMang else { return false }   // giờ ngủ: máy chủ luôn từ chối
     guard let muc else { return true }
     return trongDs(muc, dsChoi)
   }
