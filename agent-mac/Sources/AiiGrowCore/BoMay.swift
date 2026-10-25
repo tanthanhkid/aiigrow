@@ -288,7 +288,8 @@ public actor BoMay {
     let dungHosts = chan && laCon && !manKhoa
     apHosts(web: dungHosts ? web : nil)
     let daAp = apChinhSachTrinhDuyet(web: chan ? web : nil)
-    return web == nil ? [] : daAp
+    // Policy không có khối web (máy chủ cũ / cache cũ) ⇒ chưa có luật lọc thật ⇒ không thả trình duyệt (an toàn trước)
+    return web == nil || p.web == nil ? [] : daAp
   }
 
   private func apHosts(web: ChinhSachWeb?) {

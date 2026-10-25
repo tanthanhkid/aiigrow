@@ -115,7 +115,7 @@ public enum QuyetDinhApp {
   public static func laTrinhDuyetLoc(_ t: TienTrinh, trinhDuyet: Set<String>) -> Bool {
     guard !trinhDuyet.isEmpty, let app = t.duongDanApp, let b = t.bundleId?.lowercased(), trinhDuyet.contains(b) else { return false }
     let goc = "/Applications/"
-    guard app.hasPrefix(goc), !app.contains("/../") else { return false }
+    guard app.lowercased().hasPrefix(goc.lowercased()), !app.contains("/../") else { return false }   // APFS không phân biệt hoa/thường
     return !app.dropFirst(goc.count).contains("/")                                  // «/Applications/Google Chrome.app», không thư mục con
   }
 
