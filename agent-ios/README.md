@@ -82,5 +82,5 @@ Không có APNs nên app chỉ biết Ba Mẹ bấm Khoá ngay / duyệt thêm g
 | Con tự bỏ chọn app trong màn Ba Mẹ | — | ⚠️ màn chọn app chưa khoá bằng mật khẩu Ba Mẹ (CAN-SERVER mục 5); với `.individual`, Con có thể thu hồi quyền trong Cài đặt — máy chủ thấy qua nhịp (`appQuanLyBat=false`) |
 
 ## Chưa làm / việc chờ
-- Máy dùng chung (chọn hồ sơ + PIN), phiên điểm trên iOS, icon app (AppIcon trống).
+- Máy dùng chung (chọn hồ sơ + PIN), phiên điểm trên iOS.
 - Chạy thật trên iPhone/iPad (cần team ký + entitlement); chưa cài lên máy của Thanh, chưa đẩy TestFlight.

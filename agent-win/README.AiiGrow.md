@@ -88,7 +88,7 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
 
 ## Khay và app to của Con
 
-- **Biểu tượng khay** = mascot Rob (`AiiGrow.Tray/Assets/*.ico`, nhúng vào exe). Màu khi đã kết nối; **xám + chấm đỏ** khi không (tooltip nói rõ lý do):
+- **Biểu tượng khay** = logo chuẩn «Rob tưới mầm» (`AiiGrow.Tray/Assets/*.ico`, xuất từ `mobile/assets/icon.png`, nhúng vào exe; cũng là icon của AiiGrow-Setup.exe). Màu khi đã kết nối; **xám + chấm đỏ** khi không (tooltip nói rõ lý do):
   «Dịch vụ AiiGrow không chạy» (khay không gọi được named pipe 2 lần liền) · «KHÔNG kết nối máy chủ từ HH:MM — kiểm tra Wi-Fi» (dịch vụ không tới máy chủ)
   · «Máy chưa ghép — mở AiiGrow-Setup để ghép lại» (chưa ghép / mồ côi / 401 token_sai) · «Đã kết nối · đồng bộ lúc HH:MM». Chọn trạng thái ở lớp thuần `Core/KetNoiView.cs` (có test).
   Dịch vụ thăm dò nhẹ máy chủ mỗi 15 giây (`ApiClient.PingAsync`) nên khay đổi trong ≤30 giây dù nhịp đồng bộ thưa. Menu chuột phải: dòng trạng thái · «Thử kết nối lại» (lệnh pipe `sync-now`) · «Mở AiiGrow».
