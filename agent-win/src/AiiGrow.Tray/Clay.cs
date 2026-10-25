@@ -592,7 +592,8 @@ internal static class VeNut
         var trai = b.TextAlign is ContentAlignment.MiddleLeft or ContentAlignment.TopLeft or ContentAlignment.BottomLeft;
         var phai = b.TextAlign is ContentAlignment.MiddleRight or ContentAlignment.TopRight or ContentAlignment.BottomRight;
         // nhãn giữa: các dòng (chữ dài rớt dòng) căn giữa nhau, không lệch trái trong khối
-        if (!trai && !phai) sf.Alignment = StringAlignment.Center;
+        var giua = !trai && !phai && hinh == null;
+        if (giua) sf.Alignment = StringAlignment.Center;
         var co = g.MeasureString(b.Text, b.Font, (int)Math.Max(1, noi.Width - (hinh != null ? coHinh + Clay.S(8) : 0)), sf);
         var tong = co.Width + (hinh != null ? coHinh + Clay.S(8) : 0);
         var x = trai ? noi.X : phai ? noi.Right - tong : noi.X + (noi.Width - tong) / 2;
@@ -610,7 +611,7 @@ internal static class VeNut
             x += coHinh + Clay.S(8);
         }
         using (var br = new SolidBrush(mauChu))
-            g.DrawString(b.Text, b.Font, br, new RectangleF(x, noi.Y, Math.Max(1, trai || phai ? noi.Right - x : Math.Min(noi.Right - x, co.Width + 2)), noi.Height), sf);
+            g.DrawString(b.Text, b.Font, br, giua ? noi : new RectangleF(x, noi.Y, Math.Max(1, noi.Right - x), noi.Height), sf);
 
         // vòng tiêu điểm bàn phím (không dựa vào màu riêng)
         if (b.Focused && focusCue && b.Enabled)

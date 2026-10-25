@@ -185,8 +185,8 @@ private struct NutClayThan: View {
 
   var body: some View {
     let nhan = c.isPressed && !giam
-    // chữ cách mép khối 16 hai bên; nhãn dài xuống dòng căn giữa, khối cao ra (minHeight), không cắt
-    // tên dài / cỡ chữ lớn: tối đa 2 dòng rồi «…» cuối (không co chữ — giữ cỡ người dùng chọn)
+    // chữ cách mép khối 16 hai bên; nhãn dài xuống dòng căn giữa, khối cao ra (minHeight); quá 2 dòng thì «…» cuối
+    // (không co chữ — giữ cỡ người dùng chọn; quy tắc chữ dài 25/10: tối đa 2 dòng)
     c.label.font(.headline).multilineTextAlignment(.center).lineLimit(2).truncationMode(.tail).padding(.vertical, 6).frame(maxWidth: .infinity, minHeight: cao).padding(.horizontal, 16)
       .foregroundColor(sang ? Clay.chinhInk : .white)
       .background(NenClay(kieu: kieu, bo: bo))

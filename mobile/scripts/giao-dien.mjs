@@ -63,8 +63,9 @@ export const DO = String.raw`(() => {
     const nut = el.closest('button,a,[role=button],[role=tab],[role=link],[role=checkbox],[role=switch],[role=radio]');
     // Có hình minh hoạ (ảnh > 30×30, không phải icon) thì là thẻ / banner, không phải nút — Material 3: nút chỉ mang icon.
     const motNhan = nut && !anhs.some((a) => nut.contains(a)) && (() => { let k = 0; const w2 = document.createTreeWalker(nut, NodeFilter.SHOW_TEXT); while (w2.nextNode()) if (w2.currentNode.textContent.trim()) k++; return k === 1; })();
-    // nút một mình cả hàng (≥ 90% bề ngang khung cha — `rong`) được 2 dòng căn giữa cho nhãn có tên dài; nút cạnh nút khác: một dòng
-    const motHang = nut && nut.parentElement && nut.getBoundingClientRect().width >= 0.9 * nut.parentElement.getBoundingClientRect().width;
+    // nút một mình cả hàng (≥ 90% bề ngang khung cha — nút «rong») được 2 dòng căn giữa cho nhãn có tên dài; nút cạnh nút khác: một dòng
+    const longCha = (p) => { const cs = getComputedStyle(p); return p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); };
+    const motHang = nut && nut.parentElement && nut.getBoundingClientRect().width >= 0.9 * longCha(nut.parentElement);
     if (!cuoi && motNhan && chu.split(/\s+/).length <= 8) { const tops = new Set(dongCua(n).map(r => Math.round(r.top))); if (tops.size > (motHang ? 2 : 1)) L.push({luat:'NUT-2-DONG', chu, el:ten(nut), dong: tops.size, rong: Math.round(nut.getBoundingClientRect().width)}); }
     // 3. đè ảnh
     for (const r of dongCua(n)) for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
@@ -90,7 +91,7 @@ export const DO = String.raw`(() => {
     for (const b of [...document.querySelectorAll(NUTS)].filter(hien)) {
       if (b.parentElement?.closest(NUTS) || ngoaiMan(b) || cuonNgang(b)) continue;
       const q = b.getBoundingClientRect(), nhan = (b.innerText || b.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 50);
-      const bao = (x) => { const k = x.loi + nhan; if (!daNut.has(k)) { daNut.add(k); L.push({ luat: 'NUT-TRAN', chu: nhan, el: ten(b), ...x }); } };
+      const bao = (x) => { const k = x.loi + nhan + Math.round(q.left) + ',' + Math.round(q.top); if (!daNut.has(k)) { daNut.add(k); L.push({ luat: 'NUT-TRAN', chu: nhan, el: ten(b), ...x }); } };
       if (q.right > innerWidth + 1 || q.left < -1) bao({ loi: 'nút ra ngoài màn', trai: Math.round(q.left), phai: Math.round(q.right) });
       // thẻ / khung có nền gần nhất chứa nút (không tính lớp absolute)
       for (let k = b.parentElement; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k); if (ks.position === 'absolute') break;
@@ -103,7 +104,7 @@ export const DO = String.raw`(() => {
         if (cat) { const cs2 = getComputedStyle(cat), lh = parseFloat(cs2.lineHeight) || parseFloat(cs2.fontSize) * 1.3;
           // cắt nửa dòng: phần bị giấu theo chiều dọc không phải bội số dòng (một dòng lẻ bị xén ngang thân chữ)
           const an = cat.scrollHeight - cat.clientHeight; if (an > 3 && (an % lh) > 3 && (lh - (an % lh)) > 3) bao({ loi: 'chữ bị cắt nửa dòng', an });
-          const c = cat.getBoundingClientRect(); if (c.right > q.right + 2 || c.left < q.left - 2) bao({ loi: 'khung chữ ló ra khỏi nút', lo: Math.round(Math.max(c.right - q.right, q.left - c.left)) });
+          const c = cat.getBoundingClientRect(); if (c.right > q.right + 2 || c.left < q.left - 2 || c.bottom > q.bottom + 2 || c.top < q.top - 2) bao({ loi: 'khung chữ ló ra khỏi nút', lo: Math.round(Math.max(c.right - q.right, q.left - c.left)) });
           continue; }
         if (dongCua(n).some(r => r.right > q.right + 2 || r.left < q.left - 2 || r.bottom > q.bottom + 2 || r.top < q.top - 2)) bao({ loi: 'chữ ló ra khỏi nút' }); }
     }

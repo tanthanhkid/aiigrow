@@ -370,7 +370,7 @@ if (process.argv.includes("--giao-dien")) {
     for (const d of MIEN) t = t.split(d).join(mien(d));
     t = t.split(KEN).join(TEN_DAI).split(BILL).join(TEN_DAI2);
     return t.replace(/\u0000(\d+)\u0000/g, (_, i) => ds[+i][1]); };
-  const daiHoa = (v) => typeof v === "string" ? doiChu(v) : Array.isArray(v) ? v.map(daiHoa)
+  const daiHoa = (v) => typeof v === "string" ? doiChu(v) : typeof v === "function" ? (...a) => daiHoa(v(...a)) : Array.isArray(v) ? v.map(daiHoa)
     : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, daiHoa(x)])) : v;
   let chuDai = false;
   const vao = async (m) => {
