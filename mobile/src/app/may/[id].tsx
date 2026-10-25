@@ -165,6 +165,16 @@ export default function AnToanMay() {
           : !m.baoVe ? <Bao loai="ok" ic="tick" tieu="Không có vấn đề tuân thủ nào" /> : null   // máy chủ cũ chưa gửi baoVe
       )}
 
+      {["windows", "mac", "android"].includes(m.nen) ? (
+        <>
+          <NhomTieu chu="Ứng dụng" />
+          <Nhom>
+            <Dong dau tieu="Ứng dụng trên máy này" phu="Danh sách app đã cài thật trên máy — chọn đúng app để chặn hoặc cho phép" trai={<BieuTron ic="luoi" mau="tim" />}
+              bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} />
+          </Nhom>
+        </>
+      ) : null}
+
       <NhomTieu chu="Khi cần" />
 
       <Nhom>

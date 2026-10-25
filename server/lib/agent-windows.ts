@@ -30,6 +30,8 @@ export type PolicyWindows = {
   web: ChinhSachWeb;
   /** Agent 0.2.6: app (.exe) / trang web Ba Mẹ đã xếp Giải trí — khay Rob cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ vẫn quyết ở phien/xet). */
   playChoices: string[];
+  /** App Ba Mẹ đặt «Chặn» kèm định danh thật của chính máy này (lib/app-may.ts › appChanCuaMay) — agent đóng ở MỌI mode khi chế độ «chan». */
+  blockedApps?: { muc: string; duongDan?: string; thuMuc?: string; sha256?: string; nhaPhatHanh?: string; teamId?: string }[];
   // 0.2.4 — chỉ có khi đang có phiên chơi bằng điểm mà agent cho chạy (app .exe của phiên, hoặc trình duyệt cho phiên web).
   // Agent dùng khi MẤT MẠNG (BRD 6.7): chỉ đếm lúc app chơi ở nền trước + màn hình mở; vượt `playOfflineMinutes` ⇒ tự bỏ app chơi
   // (và trình duyệt nếu `playWeb`) khỏi allowedApps, coi phiên đã hết; có mạng lại gửi `phien/bu` {id = playSessionId} trước dong-bo.
@@ -65,7 +67,8 @@ export function nhipDongBo(o: { coPhien: boolean; moDen?: Date | null; now: Date
 
 /** `phienTien`: giá của phiên (phần nghìn điểm/phút, chốt lúc mở) và phần lẻ đang nợ (phan_nghin_tru − diem_tru·1000) — lib/phien-windows.ts › tienPhien. */
 /** `lichPhien`: lịch của Con đang chơi (máy dùng chung — Policy chung mang lịch mặc định) — chỉ dùng cho playOfflineMinutes. */
-export type MoRong = { nen?: "windows" | "mac"; moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"] };
+/** `appThat`: mục app thật của cả nhà (lib/app-may.ts › mucAppThat) — gói Store «microsoft.minecraftuwp» không có đuôi .exe nhưng vẫn là APP. */
+export type MoRong = { nen?: "windows" | "mac"; moDen?: Date | null; conThuong?: number; phienTien?: { giaPhanNghin: number; noPhanNghin: number }; lichPhien?: Policy["lich"]; appThat?: Set<string> };
 
 /** Phút được chơi tiếp khi mất mạng (BRD 6.7) — tính như máy chủ tính ở nhịp: phút thưởng (thêm giờ) dùng trước, không trừ điểm;
  *  rồi tới số phút mua được bằng số dư sau khi trả phần lẻ đang nợ; không vượt phút còn lại của phiên. Giá 0 ⇒ chỉ giới hạn bởi phiên. */
@@ -90,7 +93,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const ngu = !!p.lich?.ngu && trongKhung(g.phut, p.lich.ngu);
   // Máy Mac: app là bundle id / tên .app (không có .exe); không hạ chữ (danh sách hệ thống Mac có chữ hoa, tác tử so không phân biệt). Windows: tệp .exe, chữ thường.
   const mac = mo.nen === "mac";
-  const laApp = mac ? (s: string) => kieuMuc(s.toLowerCase()) === "app" && !exe(s) : exe;   // luật luôn chữ thường (chuanMuc); danh sách hệ thống/trình duyệt Mac có chữ hoa — tác tử Mac so không phân biệt hoa-thường
+  const that = (s: string) => !!mo.appThat?.has(s.toLowerCase());
+  const laApp = mac ? (s: string) => (kieuMuc(s.toLowerCase()) === "app" || that(s)) && !exe(s) : (s: string) => exe(s) || that(s);   // luật luôn chữ thường (chuanMuc); danh sách hệ thống/trình duyệt Mac có chữ hoa — tác tử Mac so không phân biệt hoa-thường
   const chuan = (s: string) => (mac ? s : s.toLowerCase());
   const trinhDuyet = mac ? TRINH_DUYET_MAC : TRINH_DUYET;
   const hoc = p.luat.filter((l) => l.loai === "hoc" && laApp(l.muc)).map((l) => chuan(l.muc));

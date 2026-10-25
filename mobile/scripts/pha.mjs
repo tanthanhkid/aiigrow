@@ -178,6 +178,23 @@ coBan["GET may/m1/ma-offline"] = { ma: "482917", conGiay: 0, hieuLucPhut: 5, phu
 coBan["POST con/c1/sua"] = { ok: true };
 coBan["POST may/m1/doi-ten"] = { ok: true, ten: "Máy học bài" };
 coBan["GET may/m1/tuan-thu"] = { ...coBan["GET tuan-thu"].ds[0], daDongBo: true, dangGo: null, coTheXoaHan: false, cheDoBaMeChon: "chan", moDen: null, suKien: [] };
+// Ứng dụng trên máy (danh sách app ĐÃ CÀI THẬT do agent gửi — server/lib/app-may.ts): icon PNG nhỏ, tên dài, không icon, đủ các trạng thái
+const ICON = anhGia(32, 32);
+const appMay = (khoa, ten, trangThai, o = {}) => ({ khoa, muc: khoa.replace(/^exe:.*\\/, "").replace(/^appx:/, "").replace(/_.*$/, ""), ten, nguon: "start", nhaPhatHanh: null,
+  teamId: null, duongDan: null, phienBan: null, icon: ICON, trangThai, nhom: trangThai === "giai_tri" ? "game" : null, theoCaNha: false, ...o });
+coBan["GET may/m1/ung-dung"] = { may: { id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", dungChung: false, con: "c1" },
+  capNhatLuc: luc(12), yeuCauLuc: null, ds: [
+    appMay("exe:c:\\program files\\microsoft visual studio code\\code.exe", "Microsoft Visual Studio Code — Trình soạn mã cho học sinh lập trình", "hoc", { nguon: "registry", nhaPhatHanh: "Microsoft Corporation", phienBan: "1.95.3" }),
+    appMay("appx:microsoft.minecraftuwp_8wekyb3d8bbwe", "Minecraft for Windows", "giai_tri", { nguon: "store", nhaPhatHanh: "Mojang Studios" }),
+    appMay("exe:c:\\windows\\system32\\notepad.exe", "Notepad", "he_thong", { nhaPhatHanh: "Microsoft Windows" }),
+    appMay("exe:c:\\users\\baoanh\\appdata\\local\\roblox\\versions\\v1\\robloxplayerbeta.exe", "Roblox Player", "chua_xep", { nhaPhatHanh: "Roblox Corporation", phienBan: "0.650.0.6500718",
+      duongDan: "C:\\Users\\baoanh\\AppData\\Local\\Roblox\\Versions\\version-2b8f4c1e9a7d4e21\\RobloxPlayerBeta.exe" }),
+    appMay("exe:c:\\users\\baoanh\\appdata\\local\\programs\\zalo\\zalo.exe", "Zalo", "chan", { nhaPhatHanh: "VNG Online Co., Ltd", icon: null }),
+    appMay("exe:c:\\program files\\scratch 3\\scratch 3.exe", "Scratch 3", "cho_phep", { nguon: "registry", nhaPhatHanh: "Scratch Foundation", theoCaNha: true }),
+  ] };
+coBan["POST may/m1/ung-dung/dat"] = (b) => ({ muc: kb["GET may/m1/ung-dung"].ds.find((x) => x.khoa === b?.khoa)?.muc ?? "x", con: "c1", truoc: null });
+coBan["POST may/m1/ung-dung/lam-moi"] = { yeuCauLuc: new Date().toISOString() };
+coBan["POST luat/xoa"] = { muc: "x" };
 // Xoá tài khoản (Apple 5.1.1(v)): chủ là người lớn cuối ⇒ xoá cả gia đình
 // (giả như máy chủ: hỏi trước {kiemTra} hoặc xoá thật đều bị chặn 409 khi còn Ba/Mẹ khác / còn máy)
 coBan["POST xoa-tai-khoan"] = (b) => {
@@ -325,6 +342,9 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-app-web", "/app-web", "LUÔN ĐƯỢC DÙNG"),
     M("bm-ho-so-con", "/ho-so/c1", "Ghép thêm máy"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
+    M("bm-ung-dung-may", "/ung-dung/m1", "Roblox Player"),
+    M("bm-ung-dung-may (bảng chọn)", "/ung-dung/m1", "kể cả giờ chơi", { truoc: async () => { await di("/ung-dung/m1"); await doi("Roblox Player"); await bam("Roblox Player"); } }),
+    M("bm-ung-dung-may (chưa có danh sách)", "/ung-dung/m1", "Chưa có danh sách ứng dụng", { kb: { "GET may/m1/ung-dung": { ...coBan["GET may/m1/ung-dung"], capNhatLuc: null, ds: [] } } }),
     M("bm-tin-khen", "/loi-khen/c1", "Khen"),
     M("bm-cai-dat", "/cai-dat", "Chat với AiiLab"),
     M("bm-cai-dat (xoá tài khoản)", "/cai-dat", "Xoá vĩnh viễn", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } },
@@ -735,6 +755,34 @@ await kichBan("Ứng dụng: chọn từ app đã thấy (tên dễ hiểu) thay
   await bam("Lưu phân loại");
   await sleep(500);
   xet(nhatKy.some((x) => x.d === "luat" && x.m === "POST" && x.body?.muc === "msedge.exe" && x.body?.ten === "Microsoft Edge"), "lưu msedge.exe kèm tên Microsoft Edge");
+});
+
+await kichBan("Ứng dụng trên máy: danh sách app thật ⇒ tìm ⇒ Chặn đúng app (theo khoa của máy) ⇒ Hoàn tác; Làm mới gửi yêu cầu", async () => {
+  await di("/may/m1");
+  await doi("Ứng dụng trên máy này");
+  await bam("Ứng dụng trên máy này");
+  xet(await doi("Ứng dụng trên máy Laptop của Bảo Anh"), "mở màn Ứng dụng trên máy <tên>");
+  xet(await doi("Cập nhật lúc"), "hiện «Cập nhật lúc …»");
+  xet((await chu()).includes("Microsoft Store") && (await chu()).includes("Roblox Corporation"), "hiện nguồn + nhà phát hành");
+  await go("Tìm theo tên app hoặc nhà phát hành", "rob");
+  await sleep(300);
+  xet(!(await chu()).includes("Zalo"), "tìm «rob» lọc danh sách");
+  await bam("Roblox Player");
+  xet(await doi("kể cả giờ chơi"), "mở bảng chọn, mặc định Chặn");
+  await bam("Lưu");
+  xet(await doi("Đã chặn Roblox Player"), "báo đã chặn + Hoàn tác");
+  xet(nhatKy.some((x) => x.d === "may/m1/ung-dung/dat" && x.m === "POST" && x.body?.trangThai === "chan" && x.body?.khoa?.endsWith("robloxplayerbeta.exe")), "gửi khoa THẬT của máy, trạng thái chan");
+  await bam("Hoàn tác");
+  await sleep(500);
+  xet(nhatKy.some((x) => x.d === "luat/xoa" && x.m === "POST" && x.body?.muc === "robloxplayerbeta.exe" && x.body?.con === "c1"), "Hoàn tác bỏ luật vừa đặt");
+  await go("Tìm theo tên app hoặc nhà phát hành", "");
+  await bam("Chặn (1)");
+  await sleep(300);
+  xet((await chu()).includes("Zalo") && !(await chu()).includes("Minecraft for Windows"), "lọc theo trạng thái Chặn");
+  await bam("Làm mới");
+  await sleep(400);
+  xet(nhatKy.some((x) => x.d === "may/m1/ung-dung/lam-moi" && x.m === "POST"), "Làm mới gửi yêu cầu cho máy");
+  xet(await doi("Đang chờ máy gửi danh sách mới"), "hiện đang chờ máy");
 });
 
 await kichBan("An toàn thiết bị và Hồ sơ Con báo CÙNG một mức bảo vệ", async () => {

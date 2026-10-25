@@ -10,12 +10,14 @@ import { lenhCho } from "./lenh-may.ts";
 import { coCuaSoThemGio } from "./chuyen-doi.ts";
 import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu } from "./ios-may.ts";
 import { hanMoCuaMay } from "./tuan-thu.ts";
+import { tinHieuDanhSachApp } from "./app-may.ts";
 
 export async function nhipMay(may: May, con: string | null, b: NhipVao, now = new Date()) {
   const kq = await nhanNhip(may, may.platform === "android" ? { ...b, thanhPhan: thanhPhanChoTuanThu(b.thanhPhan) } : b, now);
   const cs = await chinhSachChung(may, con, kq.tuanThu, now);
   const nen = ((NEN_CHUYEN_DOI as readonly string[]).includes(may.platform) ? may.platform : "windows") as NenChuyenDoi;
-  const kqNhip = { serverTime: now.toISOString(), tuanThu: kq.tuanThu, chinhSach: cs, nenTang: chuyenDoi(cs, nen), lenh: await lenhCho(may) };
+  const kqNhip = { serverTime: now.toISOString(), tuanThu: kq.tuanThu, chinhSach: cs, nenTang: chuyenDoi(cs, nen), lenh: await lenhCho(may),
+    danhSachApp: await tinHieuDanhSachApp(may.id) };   // agent gửi lại danh sách app thật khi bam lệch / Ba Mẹ bấm «Làm mới» (lib/app-may.ts)
   if (may.platform !== "ios" && may.platform !== "android") return kqNhip;
   // iPhone/iPad: lưu phần `ios` + trả hạn «thêm giờ đã duyệt / mở khẩn cấp» (app lập lịch DeviceActivity «themgio» kết thúc đúng hạn).
   // Máy Con Android: lưu `android` (phút dùng theo app + quyền) + cùng hạn ở gốc phản hồi (tác tử đọc `grantEndsAt`).

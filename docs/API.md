@@ -249,3 +249,25 @@ Chỉ lưu **tên miền gốc + đếm**, không URL đầy đủ, không tiêu
 | `POST /api/m/con/:id/web/trang {muc, trangThai: cho_phep\|chan\|mac_dinh, caNha?}` | đặt/bỏ luật cho một tên miền (một Con, hoặc `caNha: true` cho cả gia đình). 409 `he_thong` nếu là trang hệ thống; ghi sự kiện `doi_luat_web` |
 | `POST /api/m/con/:id/cau-hinh {web_chi_cho_phep: 0\|1}` | tham số mới (mặc định 0): 1 = chỉ vào trang Cho phép (chặn `*`, cho phép danh sách) |
 | `dong-bo.windows.web` | `{cheDo: mo\|chi_cho_phep, chan[], cho[]}` cho agent Windows. Agent chỉ ghi vào Chrome/Edge/Brave khi chế độ là **Chặn thật** |
+
+## Danh sách app thật (25/10) — Ba Mẹ chặn / cho phép đúng app ĐÃ CÀI trên máy Con (`server/lib/app-may.ts`, test `app-may.test.ts`)
+
+Thanh: *"danh sách ứng dụng load trực tiếp từ máy thực tế để phụ huynh chọn đúng app muốn chặn, không chặn chủ quan từ trên app xuống"*.
+
+### Agent — `/api/device/*`
+- `POST ung-dung` — đủ `{du: true, bam, ds: [App]}` hoặc phần đổi `{du: false, bamTruoc, bam, them: [App], bo: [khoa]}`. `bamTruoc` khác bam máy chủ
+  giữ ⇒ **409 `can_gui_du`** (agent gửi đủ). 200 `{ok, bam, soApp}`. ≤ 1500 app/máy; icon > 16 KB base64 bị bỏ icon.
+  App: `khoa` (duy nhất trong máy: Win32 `exe:<đường dẫn>`, Store `appx:<PackageFamilyName>`, bundle id, package), `muc` (định danh để xếp/chặn — tên exe
+  chính / Name gói Store / bundle id / package; máy chủ hạ chữ thường), `ten`, `nguon` (registry | start | store | applications | user-applications | launcher),
+  `nhaPhatHanh`, `teamId` (Mac), `duongDan`, `thuMuc` (Windows: thư mục cài, không gửi thư mục quá rộng), `phienBan`, `sha256` (exe Windows), `icon` (PNG base64 ≤ 48 px).
+- `dong-bo` (Win/Mac) và `nhip` (Android) trả thêm ở gốc `danhSachApp: {bam, yeuCau}` — `yeuCau` đổi (Ba Mẹ bấm Làm mới) ⇒ gửi đủ; `bam` lệch ⇒ gửi phần đổi/đủ.
+- `dong-bo.windows.blockedApps: [{muc, duongDan?, thuMuc?, sha256?, nhaPhatHanh?, teamId?}]` — app Ba Mẹ đặt Chặn, kèm định danh thật của CHÍNH máy này;
+  agent đóng ở mọi mode (kể cả `tu_do`) khi chế độ «chan». Android chặn theo `chinhSach.ungDung.chan` (gói lạ như `ru.*` nay có `kieu: "app"` nhờ danh sách thật).
+
+### App Ba Mẹ — `/api/m/*`
+- `GET may/:id/ung-dung` → `{may, capNhatLuc, yeuCauLuc, ds: [{khoa, muc, ten, nguon, nhaPhatHanh, teamId, duongDan, phienBan, icon, trangThai, nhom, theoCaNha, tamThoi?}]}`;
+  `trangThai`: he_thong | cho_phep | hoc | giai_tri | chan | chua_xep (Allowlist hệ thống → luật riêng Con dùng máy → luật cả nhà).
+- `POST may/:id/ung-dung/dat {khoa, trangThai: cho_phep|hoc|giai_tri|chan|bo, nhom?}` → `{muc, con, truoc}` — `muc` lấy từ danh sách của máy (app không còn ⇒ 404
+  `khong_thay_app`). Máy riêng ⇒ luật riêng của Con; máy dùng chung ⇒ luật cả nhà. «Cho phép» = `loai hoc` + `nhom cho_phep` (thời gian màn hình tính Tiện ích).
+  Hoàn tác: `luat` với `truoc` / `luat/xoa` khi `truoc` null.
+- `POST may/:id/ung-dung/lam-moi` → `{yeuCauLuc}`.

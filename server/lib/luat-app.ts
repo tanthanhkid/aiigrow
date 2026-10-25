@@ -71,7 +71,8 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   if (khoaSo(muc).some((k) => allowlistHieuLuc().includes(k))) throw new LoiNghiepVu("he_thong", "Mục này thuộc danh sách hệ thống, luôn được dùng", 409);
   const loai = ["hoc", "giai_tri", "chan"].includes(String(b.loai)) ? String(b.loai) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn Học tập, Giải trí hoặc Chặn");
-  const nhom = (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
+  // «Cho phép» (màn Ứng dụng trên máy): luật hoc + nhóm cho_phep — dùng mọi lúc, không trừ điểm; thống kê màn hình tính Tiện ích (man-hinh.ts › xepMuc)
+  const nhom = loai === "hoc" && b.nhom === "cho_phep" ? "cho_phep" : (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
   const con = b.con ?? "";
   if (con && !(await t(`select 1 from children where id = $1 and family_id = $2`, [con, fam])).length) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   await khoaLuat(t, fam, con, muc);   // mọi đường ghi (duyệt yêu cầu, web…) cũng xếp hàng sau lượt xếp / hoàn tác đang chạy; khoá lồng nhau không sao
