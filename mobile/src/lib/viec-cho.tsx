@@ -34,10 +34,10 @@ export type AnMung = (diem: number, tu: { x: number; y: number }) => void;
 
 /** Câu nói rõ AI xin GÌ (TestFlight build 6: thẻ chỉ có Duyệt / Từ chối, không biết duyệt cái gì). */
 const viet = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
-// «khac»: tieuYc trả nguyên giá trị Con gõ (tên app, tên miền — có thể là tên riêng) ⇒ không hạ chữ đầu
 /** Nhãn đọc màn hình của nút Duyệt / Từ chối: ngắn — tên việc (thẻ đã nói của Con nào). */
 const tieuNgan = (v: ViecCho) => (v.k === "yc" ? tieuYc(v.x) : v.x.ten);
-// tên lấy từ CHÍNH việc đó (ten_con), `ten` của thẻ chỉ dự phòng — thẻ dùng cho danh sách nhiều Con vẫn không gán nhầm Con
+// tên lấy từ CHÍNH việc đó (ten_con), `ten` của thẻ chỉ dự phòng — thẻ dùng cho danh sách nhiều Con vẫn không gán nhầm Con.
+// «khac»: tieuYc trả nguyên giá trị Con gõ (tên app, tên miền — có thể là tên riêng) ⇒ không hạ chữ đầu.
 const tieu = (v: ViecCho, tenThe: string) => { const ten = v.x.ten_con || tenThe; return v.k === "yc" ? (v.x.loai === "khac" ? `${ten}: ${tieuYc(v.x)}` : `${ten} ${viet(tieuYc(v.x))}`) : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`; };
 const phu = (v: ViecCho) => v.k === "nv" ? `+${v.x.diem} điểm · nộp ${gioPhut(v.x.nop_luc)}${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
   : v.k === "yc" ? `“${v.x.ly_do}” · ${gioPhut(v.x.created_at)}` : `Đổi ${v.x.diem} điểm · ${gioPhut(v.x.created_at)}`;
@@ -147,7 +147,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
         <Animated.View key={v.x.id} entering={v.x.id === vuaHoan ? quayLai(giam) : FadeIn.duration(220)} exiting={roiDi(giam)} layout={giam ? undefined : donLen}
           style={{ marginHorizontal: 12, marginBottom: 8, borderRadius: 24, backgroundColor: "#efeeea", boxShadow: BONG.lom, padding: 14, gap: 10 }}>
           {/* nội dung việc trên một hàng riêng (chạm ⇒ màn chi tiết), nút Duyệt / Từ chối xuống hàng dưới — không bóp chữ còn 0 */}
-          <NhanMen onPress={() => moChiTiet(v)} accessibilityRole="button" accessibilityHint="Mở chi tiết" hitSlop={4} muc="khoi" sang
+          <NhanMen onPress={() => moChiTiet(v)} accessibilityRole="button" accessibilityLabel={`${tieu(v, ten)}. ${phu(v)}`} accessibilityHint="Mở chi tiết" hitSlop={4} muc="khoi" sang
             style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5}>{tieu(v, ten)}</Chu>

@@ -49,11 +49,13 @@ export default function TrangChu() {
   if (!d) return <View style={{ flex: 1 }}><Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
   if (!d.g.con.length) {
     return (
+      <View style={{ flex: 1 }}>
       <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}>
         <CanhGiua lv="canh-trong" tieu="Chưa có Con nào" loi="Thêm hồ sơ Con đầu tiên để bắt đầu.">
           <Nut chu="Thêm Con" ic="cong" bam={() => router.push("/thiet-lap/ten-con")} />
         </CanhGiua>
       </Man>
+      </View>
     );
   }
   const i = Math.min(chon, d.g.con.length - 1);

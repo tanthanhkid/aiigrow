@@ -142,7 +142,7 @@ export const HaiNut = ({ children }: { children: ReactNode }) => <View style={{ 
 export function The({ children, dem, sat, style, thu }: { children: ReactNode; dem?: boolean; sat?: boolean; style?: ViewStyle; thu?: number }) {
   const giam = useReducedMotion();
   const bo = (style?.borderRadius as number | undefined) ?? BO_CLAY.the;
-  const le = sat && !dem ? null : s.theLe;
+  const le = sat ? null : s.theLe;
   return thu === undefined ? <View style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</View>
     : <Animated.View entering={vaoLanLuot(thu, giam)} style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</Animated.View>;
 }

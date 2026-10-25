@@ -93,15 +93,16 @@ export const DO = String.raw`(() => {
     const theCua = e => { if (theGan.has(e)) return theGan.get(e); let kq = null;
       for (let k = e.parentElement; k && k !== document.body; k = k.parentElement) { if (laThe(k)) { kq = k; break; } if (getComputedStyle(k).position === 'absolute') break; }
       theGan.set(e, kq); return kq; };
-    const daLe = new Set();
+    const daLe = new Set(), khung = new Map();
+    const hop = (t) => { if (!khung.has(t)) khung.set(t, t.getBoundingClientRect()); return khung.get(t); };
     // nút / ảnh: ≥ 15.5; dòng chữ: ≥ 12 (react-native-web đo dòng theo font dự phòng trước khi Inter tải xong ⇒ dòng dài lố khung 1–4px trên web;
     // app thật không bị). Lỗi gốc build 6 là lề 0 nên ngưỡng 12 vẫn bắt được.
-    const xet = (el, rs, chu, nguong = 15.5) => { const t = theCua(el); if (!t) return; const q = t.getBoundingClientRect();
+    const xet = (el, rs, chu, nguong = 15.5) => { const t = theCua(el); if (!t) return; const q = hop(t);
       for (const r of rs) { const le = Math.min(r.left - q.left, q.right - r.right); if (le < nguong) { const k = ten(t) + '|' + chu; if (daLe.has(k)) return; daLe.add(k);
         L.push({luat:'LE-THE', chu: chu.slice(0, 40), el: ten(el), the: ten(t), le: +le.toFixed(1)}); return; } } };
     // nút nhỏ trong thẻ: đo cả khối nút; hàng bấm được rộng gần hết thẻ (Dong trong Nhom) thì đo chữ của nó. Chữ bị cắt «…» đo theo khung chữ.
     for (const n of tn) { const p = n.parentElement, nut = p.closest(NUT), t = theCua(p); if (!t) continue;
-      const nr = nut?.getBoundingClientRect(), hep = nr && nr.width < 0.9 * t.getBoundingClientRect().width;
+      const nr = nut?.getBoundingClientRect(), hep = nr && nr.width < 0.9 * hop(t).width;
       const rs = hep ? [nr] : p.scrollWidth > p.clientWidth + 1 ? [p.getBoundingClientRect()] : dongCua(n);
       xet(hep ? nut : p, rs, n.textContent.trim(), hep ? 15.5 : 12); }
     for (const a of [...document.querySelectorAll('img')].filter(hien)) { const r = a.getBoundingClientRect(); if (r.width <= 80) xet(a, [r], '(ảnh) ' + (a.src || '').split('/').pop().slice(0, 30)); }

@@ -47,7 +47,7 @@ export default function AnToanMay() {
   const [loiMa, setLoiMa] = useState<string | null>(null);
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
-  const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); };
+  const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); setTaiMa(false); };   // đóng bảng khi đang tải mã ⇒ huỷ lượt tải
   // Mở bảng mã mất mạng = bật cờ tải; effect bên dưới gọi máy chủ (một chỗ cho nút bấm, «Thử lại», «Lấy mã mới» và ?mo=offline).
   const xemMaOffline = () => { setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true); setLanMa((n) => n + 1); };
   useEffect(() => {
