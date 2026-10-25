@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import { bm } from "./api";
 
 /** ra({ daXoa: true }): tài khoản vừa bị xoá trên máy chủ (phiên đã mất) ⇒ không gọi dang-xuat, chỉ xoá token trên máy. */
-type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean) => Promise<void>; ra: (o?: { daXoa?: boolean; ve?: "/tre" }) => Promise<void> };
+type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean) => Promise<void>; ra: (o?: { daXoa?: boolean }) => Promise<void> };
 const Ctx = createContext<Phien>({ san: false, co: false, vao: async () => {}, ra: async () => {} });
 
 export function PhienProvider({ children }: { children: ReactNode }) {
@@ -19,12 +19,11 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     setCo(true);
     router.replace(moi ? "/thiet-lap/ten-con" : "/");
   }, []);
-  // `ve: "/tre"`: Ba Mẹ đưa máy cho Con (Cài đặt › Máy của Con) — đăng xuất trước để Con không vào được app Ba Mẹ
-  const ra = useCallback(async (o?: { daXoa?: boolean; ve?: "/tre" }) => {
+  const ra = useCallback(async (o?: { daXoa?: boolean }) => {
     if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
     await bm.dat(null);
     setCo(false);
-    router.replace(o?.ve ?? "/chao");
+    router.replace("/chao");
   }, []);
   // Chưa nạp xong token thì chưa dựng màn: mở thẳng một đường dẫn (tải lại trang web, link sâu) không được gọi API khi chưa có Bearer.
   return <Ctx.Provider value={{ san, co, vao, ra }}>{san ? children : null}</Ctx.Provider>;

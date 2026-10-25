@@ -69,8 +69,8 @@ export function TreProvider({ children }: { children: ReactNode }) {
           globalThis.history?.replaceState(globalThis.history.state, "", u.pathname + u.search + u.hash);
         } catch { /* bỏ qua */ }
       }
-      // native: link sâu lúc mở app ⇒ nhận (đã kiểm) trước khi màn Con quyết «có phiên chưa»
-      if (phienNative) await nhanPhien(phienNative);
+      // native: link sâu lúc mở app ⇒ nạp phiên cũ (để đăng xuất nó ở máy chủ) rồi nhận phiên mới (đã kiểm) trước khi màn Con quyết «có phiên chưa»
+      if (phienNative) { await kid.nap(); await nhanPhien(phienNative); }
       const t = await kid.nap();
       setCo(!!t);
       if (t) await nap();
