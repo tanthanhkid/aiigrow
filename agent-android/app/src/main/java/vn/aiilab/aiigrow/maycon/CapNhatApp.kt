@@ -98,20 +98,20 @@ object CapNhat {
         val k = Kho(ctx)
         val now = System.currentTimeMillis()
         val mayChu = k.mayChu.trimEnd('/')
-        val b = try { layManifest(mayChu) } catch (e: Exception) { Log.i(TAG, "không lấy được manifest: ${e.message}"); return KetQua.LOI }
+        val b = try { layManifest(mayChu) } catch (e: Exception) { NhatKy.tin(TAG, "không lấy được manifest: ${e.message}"); return KetQua.LOI }
         if (!canCapNhat(b, BuildConfig.VERSION_CODE.toLong())) {
             thuMuc(ctx).listFiles()?.forEach { it.delete() }   // bản đã cài xong / manifest lùi bản ⇒ dọn tệp cũ
             k.banMoiCho = null; k.hoanTu = 0; huyThongBao(ctx)
             return KetQua.KHONG_CO
         }
         b!!
-        if (!urlDauHopLe(b.url, mayChu, choPhepHttp)) { Log.w(TAG, "URL APK không trên máy chủ ${mayChu}: ${b.url}"); return KetQua.LOI }
+        if (!urlDauHopLe(b.url, mayChu, choPhepHttp)) { NhatKy.canh(TAG, "URL APK không trên máy chủ ${mayChu}: ${b.url}"); return KetQua.LOI }
         // bản này vừa hỏng (tải / sha256 / chữ ký / cài) ⇒ không tải lại mỗi lần tiến trình khởi động: chờ hết hạn hoặc manifest đổi
         if (!epHoi && k.shaLoi == b.sha256 && now < k.thuLaiSau) return KetQua.LOI
         k.banMoiCho = b.version
         val laDo = QuanTri.laDeviceOwner(ctx)
         // các cổng xét TRƯỚC khi tải (không tải APK khi chưa cài được)
-        if (dangKhoa(k, now)) { Log.i(TAG, "đang khoá / đếm ngược — hoãn cài ${b.version} 30 phút"); chayNgay(ctx, 30, epHoi); return KetQua.HOAN }
+        if (dangKhoa(k, now)) { NhatKy.tin(TAG, "đang khoá / đếm ngược — hoãn cài ${b.version} 30 phút"); chayNgay(ctx, 30, epHoi); return KetQua.HOAN }
         if (!laDo && Build.VERSION.SDK_INT >= 26 && !ctx.packageManager.canRequestPackageInstalls()) {
             if (epHoi || now - k.lanBaoQuyen !in 0 until BAO_QUYEN_MS) {
                 k.lanBaoQuyen = now
@@ -135,12 +135,12 @@ object CapNhat {
             kiemApk(ctx, tep, b)?.let { return hong(ctx, k, b, "APK bị loại: $it", NGHI_HONG_MS) }
         } catch (e: Exception) { return hong(ctx, k, b, "tải APK lỗi: ${e.message}", NGHI_TAI_MS) }
         return try { if (cai(ctx, tep, b, laDo, k)) KetQua.DA_GUI_CAI else KetQua.HOAN }
-        catch (e: Exception) { Log.w(TAG, "PackageInstaller lỗi", e); hong(ctx, k, b, "PackageInstaller lỗi", NGHI_HONG_MS) }
+        catch (e: Exception) { NhatKy.canh(TAG, "PackageInstaller lỗi", e); hong(ctx, k, b, "PackageInstaller lỗi", NGHI_HONG_MS) }
     }
 
     /** Hỏng một bước: xoá tệp, bỏ thẻ «có bản mới», nghỉ `nghiMs` rồi mới thử lại đúng bản này (manifest đổi sha256 ⇒ thử ngay). */
     fun hong(ctx: Context, k: Kho, b: BanMoi?, lyDo: String, nghiMs: Long): KetQua {
-        Log.w(TAG, "${b?.version ?: "bản mới"}: $lyDo — xoá tệp, không cài, thử lại sau ${nghiMs / 60_000} phút")
+        NhatKy.canh(TAG, "${b?.version ?: "bản mới"}: $lyDo — xoá tệp, không cài, thử lại sau ${nghiMs / 60_000} phút")
         xoaTep(ctx); k.banMoiCho = null
         k.shaLoi = b?.sha256 ?: k.shaLoi; k.thuLaiSau = System.currentTimeMillis() + nghiMs
         return KetQua.LOI
@@ -239,11 +239,11 @@ object CapNhat {
             pi.openSession(id).use { s ->
                 tep.inputStream().use { i -> s.openWrite("aiigrow-con.apk", 0, tep.length()).use { o -> i.copyTo(o); s.fsync(o) } }
                 // xét khoá lần nữa ngay trước commit: cài đè khởi động lại app giữa lúc khoá / đếm ngược
-                if (dangKhoa(k)) { s.abandon(); Log.i(TAG, "vừa vào khoá — hoãn cài ${b.version} 30 phút"); chayNgay(ctx, 30); return false }
+                if (dangKhoa(k)) { s.abandon(); NhatKy.tin(TAG, "vừa vào khoá — hoãn cài ${b.version} 30 phút"); chayNgay(ctx, 30); return false }
                 val nhan = Intent(ctx, NhanKetQuaCai::class.java).setPackage(ctx.packageName).putExtra("ban", b.version).putExtra("sha", b.sha256)
                 // FLAG_MUTABLE bắt buộc: hệ thống điền EXTRA_STATUS / EXTRA_INTENT vào intent kết quả
                 val co = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
-                Log.i(TAG, "cài ${b.version} (versionCode ${b.versionCode}) — ${if (laDo) "Device Owner, im lặng" else "chờ xác nhận"}")
+                NhatKy.tin(TAG, "cài ${b.version} (versionCode ${b.versionCode}) — ${if (laDo) "Device Owner, im lặng" else "chờ xác nhận"}")
                 s.commit(PendingIntent.getBroadcast(ctx, id, nhan, co).intentSender)
                 if (!laDo) k.lanHoiCai = System.currentTimeMillis()   // chỉ khi commit xong (hộp xác nhận thật sự hiện)
                 k.hoanTu = 0
@@ -264,7 +264,7 @@ object CapNhat {
             nm.notify(MA_TB, NotificationCompat.Builder(ctx, KENH).setSmallIcon(R.drawable.ic_aiigrow).setColor(0xFF1F8A70.toInt())
                 .setContentTitle(tieuDe).setContentText(noi).setStyle(NotificationCompat.BigTextStyle().bigText(noi))
                 .setContentIntent(pi).setAutoCancel(true).setOnlyAlertOnce(true).build())
-        } catch (e: SecurityException) { Log.i(TAG, "chưa có quyền thông báo") }
+        } catch (e: SecurityException) { NhatKy.tin(TAG, "chưa có quyền thông báo") }
     }
 
     fun huyThongBao(ctx: Context) { (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(MA_TB) }

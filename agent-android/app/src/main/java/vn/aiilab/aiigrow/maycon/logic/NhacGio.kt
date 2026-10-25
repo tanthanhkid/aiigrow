@@ -1,0 +1,31 @@
+package vn.aiilab.aiigrow.maycon.logic
+
+// Nhắc «còn 5 phút» / «còn 1 phút» trước khi khoá — cùng mốc với khay Windows (TrayContext.HandleWarnings) và Mac (TrayLogic.swift):
+// báo 5 phút khi còn (240, 300] giây, báo 1 phút khi còn (0, 60] giây; còn > 330 giây thì cho báo 5 phút lại, > 90 giây thì cho báo 1 phút lại
+// (thêm giờ / Ba Mẹ đổi luật). Mỗi mốc báo một lần.
+
+data class NhacGio(val da5: Boolean = false, val da1: Boolean = false) {
+    /** `conGiay` = giây còn trước khi khoá (null = không đếm, vd đang khoá / không giới hạn). Trả (mốc phải báo 5 | 1 | null, trạng thái mới). */
+    fun xet(conGiay: Int?): Pair<Int?, NhacGio> {
+        if (conGiay == null) return null to this
+        var s = this
+        if (conGiay > 330) s = s.copy(da5 = false)
+        if (conGiay > 90) s = s.copy(da1 = false)
+        if (conGiay in 241..300 && !s.da5) return 5 to s.copy(da5 = true)
+        if (conGiay in 1..60 && !s.da1) return 1 to s.copy(da1 = true, da5 = true)
+        return null to s
+    }
+}
+
+/**
+ * Giây còn trước khi khoá theo trạng thái hiện tại: thêm giờ / mở bằng mã ⇒ tới hạn mở; bình thường ⇒ phút còn (theo trần ngày, khung giờ, phiên điểm).
+ * Đang khoá / không tuân thủ ⇒ null (không nhắc).
+ */
+fun giayConTruocKhoa(t: TrangThai, conPhut: Int, moLaiLucMs: Long?, nowMs: Long): Int? = when (t) {
+    TrangThai.DUOC_THEM_GIO -> moLaiLucMs?.let { ((it - nowMs) / 1000).toInt().coerceAtLeast(0) } ?: conPhut * 60
+    TrangThai.BINH_THUONG -> conPhut * 60
+    else -> null
+}
+
+fun tieuDeNhac(moc: Int) = if (moc == 5) "Còn 5 phút" else "Còn 1 phút"
+fun noiDungNhac(moc: Int) = if (moc == 5) "Lưu bài đang làm nhé. Cần thêm giờ thì mở AiiGrow để xin Ba Mẹ." else "Máy sắp khoá. Lưu bài ngay nhé."

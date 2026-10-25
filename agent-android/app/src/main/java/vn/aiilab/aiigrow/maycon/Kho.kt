@@ -39,6 +39,9 @@ class Kho(ctx: Context) {
     var shaLoi: String? get() = p.getString("shaLoi", null); set(v) = p.edit().putString("shaLoi", v).apply()
     var thuLaiSau: Long get() = p.getLong("thuLaiSau", 0); set(v) = p.edit().putLong("thuLaiSau", v).apply()
     var hoanTu: Long get() = p.getLong("hoanTu", 0); set(v) = p.edit().putLong("hoanTu", v).apply()
+    /** Mã mở offline: bí mật máy chủ gửi trong nhịp (nhớ để kiểm mã khi mất mạng) + trạng thái mở tạm (logic/MaOffline.kt, JSON). */
+    var maOfflineBiMat: String? get() = p.getString("maOfflineBiMat", null); set(v) = p.edit().putString("maOfflineBiMat", v).apply()
+    var moTamOffline: String? get() = p.getString("moTamOffline", null); set(v) = p.edit().putString("moTamOffline", v).apply()
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 

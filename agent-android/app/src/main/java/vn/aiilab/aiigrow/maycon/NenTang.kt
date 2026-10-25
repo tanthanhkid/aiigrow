@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 class UngDung : Application() {
     override fun onCreate() {
         super.onCreate()
+        NhatKy.gan(this)
         DichVuNhip.taoKenh(this)
         WorkManager.getInstance(this).enqueueUniquePeriodicWork("aiigrow-nhip", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<ViecNhip>(15, TimeUnit.MINUTES).build())

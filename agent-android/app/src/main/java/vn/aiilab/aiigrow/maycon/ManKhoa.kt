@@ -22,7 +22,8 @@ class ManKhoa : Activity() {
         dangMo = this
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (android.os.Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(false); setTurnScreenOn(false) }
-        v = GiaoDien.ManKhoaView(this, onXin = { startActivity(Intent(this, ManChinh::class.java).putExtra("xin", true)) }, onVe = { veNha() })
+        v = GiaoDien.ManKhoaView(this, onXin = { startActivity(Intent(this, ManChinh::class.java).putExtra("xin", true)) }, onVe = { veNha() },
+            onMa = { MoMaOffline.thu(this, it) })
         setContentView(v.goc)
     }
 
@@ -46,6 +47,7 @@ class ManKhoa : Activity() {
             if (!conKhoa) { thoatLockTask(); finish(); return }
             v.ve(ht!!)
             v.nutVe?.visibility = if (ht.khoaCaMay) android.view.View.GONE else android.view.View.VISIBLE
+            v.hienMa(MoMaOffline.nenHien(this@ManKhoa, ht))
             if (ht.khoaCaMay && ht.dangKhoaThat && QuanTri.laDeviceOwner(this@ManKhoa) && !dangLockTask) {
                 try { startLockTask(); dangLockTask = true } catch (_: Exception) {}
             }

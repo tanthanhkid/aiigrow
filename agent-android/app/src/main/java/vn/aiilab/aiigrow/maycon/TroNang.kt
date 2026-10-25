@@ -51,6 +51,7 @@ class TroNang : AccessibilityService() {
         val v = phu ?: GiaoDien.ManKhoaView(this,
             onXin = { an(); startActivity(Intent(this, ManChinh::class.java).putExtra("xin", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) },
             onVe = { an(); performGlobalAction(GLOBAL_ACTION_HOME) },
+            onMa = { MoMaOffline.thu(this, it) },
         ).also {
             phu = it
             val lp = WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
@@ -60,6 +61,7 @@ class TroNang : AccessibilityService() {
         phuGoi = goi
         v.ve(ht, goi)
         v.nutVe?.visibility = if (ht.khoaCaMay && ht.dangKhoaThat) android.view.View.GONE else android.view.View.VISIBLE
+        v.hienMa(MoMaOffline.nenHien(this, ht))
     }
 
     private fun an() {

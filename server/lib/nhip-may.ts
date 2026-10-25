@@ -9,7 +9,7 @@ import { conCua } from "./gia-dinh.ts";
 import { lenhCho } from "./lenh-may.ts";
 import { coCuaSoThemGio } from "./chuyen-doi.ts";
 import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu } from "./ios-may.ts";
-import { hanMoCuaMay } from "./tuan-thu.ts";
+import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { tinHieuDanhSachApp } from "./app-may.ts";
 
 export async function nhipMay(may: May, con: string | null, b: NhipVao, now = new Date()) {
@@ -24,7 +24,9 @@ export async function nhipMay(may: May, con: string | null, b: NhipVao, now = ne
   if (may.platform === "ios") await luuIosNhip(may, (b as { ios?: unknown }).ios, now);
   else await luuAndroidNhip(may, b, now);
   const den = coCuaSoThemGio(may.platform) ? await hanMoCuaMay(may, con, now) : null;
-  return { ...kqNhip, grantEndsAt: den ? den.toISOString() : null, moDen: den ? den.toISOString() : null };
+  // Android: bí mật mã mở offline (lib/ma-offline.ts) — tác tử nhớ khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng (như dong-bo.windows.maOfflineBiMat).
+  const maOfflineBiMat = may.platform === "android" ? await biMatOfflineMay(may.id) : null;
+  return { ...kqNhip, grantEndsAt: den ? den.toISOString() : null, moDen: den ? den.toISOString() : null, ...(maOfflineBiMat ? { maOfflineBiMat } : {}) };
 }
 
 // ---------------------------------------------------------------- phía Ba Mẹ: xem trước cấu hình nền tảng · luật tầng mạng cho TV

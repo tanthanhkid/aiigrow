@@ -53,6 +53,8 @@ data class PhanHoiNhip(
     val lenh: List<Lenh>,
     val grantEndsAt: Instant?,
     val privateDns: String?,
+    /** Bí mật mã mở offline (nhịp Android — server/lib/nhip-may.ts); null = máy chủ chưa gửi. */
+    val maOfflineBiMat: String? = null,
 )
 
 private fun JSONObject.chuoi(k: String): String? = if (has(k) && !isNull(k)) optString(k) else null
@@ -135,6 +137,7 @@ fun docPhanHoiNhip(s: String): PhanHoiNhip {
         lenh = lenh,
         grantEndsAt = grant,
         privateDns = o.chuoi("privateDns") ?: o.optJSONObject("android")?.chuoi("privateDns"),
+        maOfflineBiMat = o.chuoi("maOfflineBiMat")?.takeIf { it.isNotBlank() },
     )
 }
 

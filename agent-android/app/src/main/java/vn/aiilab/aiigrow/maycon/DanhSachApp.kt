@@ -61,7 +61,7 @@ class DanhSachApp(private val ctx: Context) {
         if (System.currentTimeMillis() < nghiDen || k.token == null || k.cheDoThu) return
         if (!dangChay.compareAndSet(false, true)) return
         try {
-            luong.execute { try { buoc(k) } catch (e: Exception) { Log.w(TAG, "danh sách app lỗi", e) } finally { dangChay.set(false) } }
+            luong.execute { try { buoc(k) } catch (e: Exception) { NhatKy.canh(TAG, "danh sách app lỗi", e) } finally { dangChay.set(false) } }
         } catch (e: Exception) { dangChay.set(false) }
     }
 
@@ -105,11 +105,11 @@ class DanhSachApp(private val ctx: Context) {
                 }
             }
             ok = true
-            Log.i(TAG, "danh sách app: ${ds.size} app, bam ${bam.take(8)}")
+            NhatKy.tin(TAG, "danh sách app: ${ds.size} app, bam ${bam.take(8)}")
         } catch (e: MayChu.Loi) {
-            if (e.http == 404) { nghiDen = System.currentTimeMillis() + CHU_KY_QUET_MS; Log.i(TAG, "máy chủ chưa có /ung-dung — thử lại sau 30 phút") }
-            else Log.w(TAG, "gửi danh sách app lỗi ${e.http} ${e.ma}")
-        } catch (e: Exception) { Log.i(TAG, "quét / gửi danh sách app lỗi — thử lại sau: ${e.message}") }
+            if (e.http == 404) { nghiDen = System.currentTimeMillis() + CHU_KY_QUET_MS; NhatKy.tin(TAG, "máy chủ chưa có /ung-dung — thử lại sau 30 phút") }
+            else NhatKy.canh(TAG, "gửi danh sách app lỗi ${e.http} ${e.ma}")
+        } catch (e: Exception) { NhatKy.tin(TAG, "quét / gửi danh sách app lỗi — thử lại sau: ${e.message}") }
         if (ok) {
             soLanLoi = 0
             suKienGoiLuc.compareAndSet(suKien, 0)   // sự kiện tới trong lúc gửi thì giữ lại cho lượt sau
