@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    CÔNG CỤ CHỤP MÀN (không phải sản phẩm, không nằm trong AiiGrow.sln, không vào bộ cài): dựng từng Form của khay + bộ cài với dữ liệu mẫu rồi lưu PNG.
+    Chạy:  AiiGrow.ChupMan.exe --chup-man <thư mục> [--ti-le 1.5]      (CI: .github/workflows/chup-man-win.yml)
+
+    Biên dịch LẠI mã nguồn AiiGrow.Tray + AiiGrow.Setup (bản chép trong obj/nguon, do chuan-bi-nguon.ps1 tạo trước khi build) vào exe này,
+    nên exe khay/bộ cài thật KHÔNG đổi một dòng. Bản chép chỉ khác hai chỗ để giả lập DPI: «new Font(» → ChupDpi.Tao( (cỡ chữ × hệ số)
+    và hệ số Clay.Scale → ChupDpi.Dpi(…). Với --ti-le 1 (mặc định) hai hàm này trả đúng giá trị gốc.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>AiiGrow.ChupMan</RootNamespace>
+    <AssemblyName>AiiGrow.ChupMan</AssemblyName>
+    <!-- Tray/Program.cs và Setup/Program.cs đều có Main ⇒ chỉ định điểm vào của công cụ -->
+    <StartupObject>AiiGrow.ChupMan.ChupMain</StartupObject>
+    <NguonChep>$(MSBuildProjectDirectory)/obj/nguon</NguonChep>
+    <!-- aiigrow-khay.ico nhúng hai lần (khay + bộ cài, khác LogicalName) ⇒ tắt glob/kiểm trùng EmbeddedResource mặc định -->
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <NoWarn>$(NoWarn);CS0162;CS0169;CS0414;CS0649</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\AiiGrow.Core\AiiGrow.Core.csproj" />
+    <!-- tài nguyên nhúng giống hệt AiiGrow.Tray.csproj / AiiGrow.Setup.csproj (cùng LogicalName) -->
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\aiigrow-khay.ico" LogicalName="aiigrow-khay.ico" />
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\aiigrow-khay-mat-ket-noi.ico" LogicalName="aiigrow-khay-mat-ket-noi.ico" />
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\fluent\*.png" LogicalName="fluent.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\aiigrow-khay.ico" LogicalName="aiigrow.ico" />
+  </ItemGroup>
+
+  <!-- Chép + biến đổi nguồn Tray/Setup rồi thêm vào Compile (item thêm trong target ⇒ thấy cả ở lần build đầu). -->
+  <Target Name="ChepNguonAiiGrow" BeforeTargets="BeforeBuild;CoreCompile">
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/chuan-bi-nguon.ps1&quot; -Ra &quot;$(NguonChep)&quot;" />
+    <ItemGroup>
+      <Compile Remove="$(NguonChep)/**/*.cs" />
+      <Compile Include="$(NguonChep)/**/*.cs" />
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
+    <!-- glob mặc định của SDK không được nhặt bản chép (obj/ đã bị loại, nhưng ghi rõ cho chắc) -->
+    <Compile Remove="obj/**" />
+  </ItemGroup>
+</Project>
