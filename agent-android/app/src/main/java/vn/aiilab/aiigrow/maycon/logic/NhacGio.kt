@@ -18,12 +18,20 @@ data class NhacGio(val da5: Boolean = false, val da1: Boolean = false) {
 }
 
 /**
- * Giây còn trước khi khoá theo trạng thái hiện tại: thêm giờ / mở bằng mã ⇒ tới hạn mở; bình thường ⇒ phút còn (theo trần ngày, khung giờ, phiên điểm).
- * Đang khoá / không tuân thủ ⇒ null (không nhắc).
+ * Giây còn trước khi khoá: bình thường ⇒ phút còn (trần ngày, khung giờ, phiên điểm). Thêm giờ / mở bằng mã ⇒ tới hạn mở, cộng phút còn
+ * SAU hạn nếu lúc đó máy không khoá (`sau` = quyết định tại hạn + 1 giây; vẫn được thêm giờ ⇒ không nhắc). Đang khoá / không tuân thủ ⇒ null.
  */
-fun giayConTruocKhoa(t: TrangThai, conPhut: Int, moLaiLucMs: Long?, nowMs: Long): Int? = when (t) {
-    TrangThai.DUOC_THEM_GIO -> moLaiLucMs?.let { ((it - nowMs) / 1000).toInt().coerceAtLeast(0) } ?: conPhut * 60
-    TrangThai.BINH_THUONG -> conPhut * 60
+fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long): Int? = when (qd.trangThai) {
+    TrangThai.BINH_THUONG -> qd.conPhut * 60
+    TrangThai.DUOC_THEM_GIO -> {
+        val toiHan = qd.moLaiLuc?.let { ((it.toEpochMilli() - nowMs) / 1000).toInt().coerceAtLeast(0) }
+        when {
+            toiHan == null -> qd.conPhut * 60
+            sau == null || laKhoa(sau.trangThai) || sau.trangThai == TrangThai.KHONG_TUAN_THU -> toiHan
+            sau.trangThai == TrangThai.BINH_THUONG -> toiHan + sau.conPhut * 60
+            else -> null
+        }
+    }
     else -> null
 }
 

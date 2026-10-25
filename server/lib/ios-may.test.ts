@@ -134,6 +134,7 @@ test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsA
   assert.match(String(sau.body.maOfflineBiMat), /^[A-Za-z0-9_-]{20,}$/);
   const mo = await tt.maOfflineChoMay(fam, may.id, bm, new Date());
   assert.ok((await import("./ma-offline.ts")).kiemMaOffline(sau.body.maOfflineBiMat, mo.ma));
+  assert.equal((await nhipAnd(r.token, { coMaOffline: true })).body.maOfflineBiMat, undefined, "agent đã nhớ bí mật ⇒ không gửi lại");
 });
 
 test("nhịp Android lưu status.android (phút dùng theo app + quyền); deviceOwner=false / troNang=false trên Device Owner KHÔNG bị tính app_tat, usageStats=false thì có", async () => {

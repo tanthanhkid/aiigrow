@@ -24,7 +24,7 @@ fun dongLog(lucIso: String, muc: String, nguon: String, noiDung: String): String
     .put("luc", lucIso).put("muc", if (muc in setOf("tin", "canh", "loi")) muc else "tin").put("nguon", nguon.take(60))
     .put("noiDung", cheBiMat(noiDung).take(LOG_DAI)).toString()
 
-fun dongSuKien(ma: String, loai: String, lucIso: String, chiTiet: Map<String, String>): String = JSONObject()
+fun dongSuKien(ma: String, loai: String, lucIso: String, chiTiet: Map<String, Any>): String = JSONObject()
     .put("ma", ma.take(64)).put("loai", loai).put("luc", lucIso).put("chiTiet", JSONObject(chiTiet)).toString()
 
 /** Giữ tối đa `toiDa` dòng cuối (dòng rỗng bỏ). */

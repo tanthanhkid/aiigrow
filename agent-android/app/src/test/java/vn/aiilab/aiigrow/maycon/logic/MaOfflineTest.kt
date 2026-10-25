@@ -48,6 +48,9 @@ class MaOfflineTest {
         assertEquals(KetQuaMoOffline.CHO_THU_LAI, s.thu(bm, "831732", t + 6000).first)
         assertEquals("sai cũ ra khỏi cửa sổ 10 phút ⇒ gõ lại được", 0, s.choGiay(t + 11 * 60_000L))
         assertEquals(KetQuaMoOffline.CHUA_CO_BI_MAT, MoTamOffline().thu(null, "831732", t).first)
+        // máy chậm 20 phút so với máy chủ: mã Ba Mẹ thấy (giờ máy chủ) vẫn nhận nhờ lechMs
+        assertEquals(KetQuaMoOffline.SAI, MoTamOffline().thu(bm, "831732", t - 20 * 60_000L).first)
+        assertEquals(KetQuaMoOffline.DA_MO, MoTamOffline().thu(bm, "831732", t - 20 * 60_000L, lechMs = 20 * 60_000L).first)
         assertTrue(cauMoOffline(KetQuaMoOffline.DA_MO, st, t) { "10:00" }.startsWith("Đã mở 60 phút"))
     }
 
@@ -75,6 +78,9 @@ class MaOfflineTest {
         assertTrue("trình duyệt hệ thống không lọc được ⇒ tạm dừng", "com.sec.android.app.sbrowser" in q.goiChan)
         assertFalse("Chrome lọc được (URLBlocklist) ⇒ chạy", "com.android.chrome" in q.goiChan)
         assertFalse("Ba Mẹ đã xếp Firefox ⇒ theo Ba Mẹ", "org.mozilla.firefox" in q.goiChan)
+        val them = quyetDinh(cs, Instant.parse("2026-10-21T12:00:00+07:00"), 0, daCai, Instant.parse("2026-10-21T13:00:00+07:00"), null, td)
+        assertEquals(TrangThai.DUOC_THEM_GIO, them.trangThai)
+        assertTrue("thêm giờ vẫn chặn trình duyệt không lọc được", "com.sec.android.app.sbrowser" in them.goiChan)
         assertFalse("không Device Owner (không truyền) ⇒ không chặn", "com.sec.android.app.sbrowser" in quyetDinh(cs, Instant.parse("2026-10-21T12:00:00+07:00"), 0, daCai, null).goiChan)
     }
 
@@ -87,9 +93,11 @@ class MaOfflineTest {
         assertEquals(5, x(280)); assertEquals(1, x(55))
         assertNull(NhacGio().xet(null).first)
         assertNull("nhảy thẳng xuống 3 phút (Ba Mẹ đổi luật) ⇒ không báo 5", NhacGio().xet(180).first)
-        assertEquals(300, giayConTruocKhoa(TrangThai.BINH_THUONG, 5, null, 0))
-        assertEquals(90, giayConTruocKhoa(TrangThai.DUOC_THEM_GIO, 2, 100_000, 10_000))
-        assertNull(giayConTruocKhoa(TrangThai.HET_GIO, 0, null, 0))
+        fun q(t: TrangThai, p: Int, mo: Long? = null) = QuyetDinh(t, emptySet(), false, p, mo?.let { Instant.ofEpochMilli(it) }, "")
+        assertEquals(300, giayConTruocKhoa(q(TrangThai.BINH_THUONG, 5), null, 0))
+        assertEquals("hết thêm giờ thì khoá ⇒ đếm tới hạn", 90, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 2, 100_000), q(TrangThai.HET_GIO, 0), 10_000))
+        assertEquals("hết thêm giờ còn 40 phút ⇒ cộng vào", 90 + 2400, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 2, 100_000), q(TrangThai.BINH_THUONG, 40), 10_000))
+        assertNull(giayConTruocKhoa(q(TrangThai.HET_GIO, 0), null, 0))
     }
 
     @Test fun hangDoi_cheBiMat_catDong() {

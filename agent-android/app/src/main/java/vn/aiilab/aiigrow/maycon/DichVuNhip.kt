@@ -54,7 +54,7 @@ class DichVuNhip : Service() {
     private val nhanCaiApp = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
             dsApp.coSuKienGoi(i.data?.schemeSpecificPart)   // cài / gỡ / cập nhật ⇒ gửi phần đổi danh sách app sớm
-            lanQuetTrinhDuyet = 0                            // trình duyệt mới cài ⇒ quét lại ngay
+            h.post { lanQuetTrinhDuyet = 0 }                 // trình duyệt mới cài ⇒ quét lại ngay (biến của luồng nhịp)
             if (i.action == Intent.ACTION_PACKAGE_ADDED) h.post { vong(true) }   // app mới cài ⇒ xét «chưa xếp» ngay
         }
     }
@@ -137,14 +137,18 @@ class DichVuNhip : Service() {
         // trong lúc đếm ngược: app giải trí còn chạy; app bị chặn / chưa xếp vẫn chặn ngay
         val goiChan = if (laKhoa(qd.trangThai) && !khoaThat) truGoi(qd.goiChan, goiAndroid(cs.giaiTri)) else qd.goiChan
         ThucThi.apDung(this, qd, goiChan, khoaThat, webChan(cs))
-        if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) NhatKy.tin(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))
+        if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))   // mỗi vòng ⇒ chỉ logcat
 
         val top = dung.entries.sortedByDescending { it.value }.map { it.key to (it.value / 60_000).toInt() }.filter { it.second > 0 }.take(5)
         val ht = HienThi.tu(qd, demNguoc, top, nowMay, QuanTri.laDeviceOwner(this), cs.tenCon ?: k.tenCon).copy(goiChan = goiChan)
         k.hienThi = ht.json()
         capNhatThongBao(ht)
         TroNang.capNhat()
-        nhacTruocKhoa(k, qd.trangThai, qd.conPhut, qd.moLaiLuc?.toEpochMilli(), now.toEpochMilli(), demNguoc, khoaThat, nowMay)
+        // thêm giờ / mở bằng mã: xem lúc hết hạn máy có khoá không (hết hạn mà còn phút ⇒ không «máy sắp khoá» giả)
+        val sauHan = if (qd.trangThai == TrangThai.DUOC_THEM_GIO) qd.moLaiLuc?.plusSeconds(1)?.let { t ->
+            quyetDinh(cs, t, phutGiaiTri(dung, goiAndroid(cs.giaiTri)), DoPhut.daCai(this), ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet())
+        } else null
+        nhacTruocKhoa(k, giayConTruocKhoa(qd, sauHan, now.toEpochMilli()), demNguoc, khoaThat, nowMay)
         if (laKhoa(qd.trangThai) && ManKhoa.dangMo == null && QuanTri.laDeviceOwner(this) && (qd.khoaCaMay || k.daBoQua != k.khoaTu)) {
             // Device Owner được mở activity từ nền (miễn trừ BAL cho DPC). Đường không reset: TroNang phủ màn khoá.
             startActivity(Intent(this, ManKhoa::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -155,6 +159,7 @@ class DichVuNhip : Service() {
     private fun ghepBangGoi(k: Kho) {
         try {
             val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(k.tokenGoiCai!!, Build.MODEL ?: "Android"))
+            MoMaOffline.quen(k)
             k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
             k.tokenGoiCai = null
         } catch (e: Exception) { NhatKy.canh(TAG, "ghép bằng token gói cài lỗi", e) }
@@ -168,6 +173,7 @@ class DichVuNhip : Service() {
         val dung = DoPhut.homNay(this, tz).mapValues { (it.value / 60_000).toInt() }
         val than = thanNhip(Instant.now().toString(), BuildConfig.VERSION_NAME, ht?.dangKhoaThat == true, QuanTri.laDeviceOwner(this),
             QuanTri.laAdmin(this), TroNang.dangBat(this), DoPhut.coQuyen(this), if (matPhut > 2) matPhut else 0, dung)
+            .put("coMaOffline", k.maOfflineBiMat != null)   // đã có bí mật mã offline ⇒ máy chủ khỏi gửi lại mỗi nhịp
         try {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
@@ -182,14 +188,14 @@ class DichVuNhip : Service() {
                 NhatKy.tin(TAG, "DNS gia đình: " + ThucThi.datPrivateDns(this, host))
             } catch (e: Exception) { NhatKy.tin(TAG, "chưa có DNS gia đình: ${e.message}") }
         } catch (e: MayChu.Loi) {
-            if (e.http == 401) { NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null }
-        } catch (e: Exception) { NhatKy.tin(TAG, "mất mạng — chạy theo chính sách nhớ: ${e.message}") }
+            if (e.http == 401) { NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null; MoMaOffline.quen(k) }
+        } catch (e: Exception) { Log.i(TAG, "mất mạng — chạy theo chính sách nhớ: ${e.message}") }
     }
 
     /** Nhắc 5 phút / 1 phút (thông báo ưu tiên cao, như bóng báo khay Windows) + thông báo đếm ngược khi bắt đầu 60 giây trước khoá. */
-    private fun nhacTruocKhoa(k: Kho, t: TrangThai, conPhut: Int, moLaiLuc: Long?, nowSv: Long, demNguoc: Int, khoaThat: Boolean, nowMay: Long) {
+    private fun nhacTruocKhoa(k: Kho, conGiay: Int?, demNguoc: Int, khoaThat: Boolean, nowMay: Long) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val (moc, moi) = nhac.xet(giayConTruocKhoa(t, conPhut, moLaiLuc, nowSv))
+        val (moc, moi) = nhac.xet(conGiay)
         nhac = moi
         if (moc != null) nm.notify(MA_NHAC, thongBaoNhac(this, tieuDeNhac(moc), noiDungNhac(moc), null))
         if (demNguoc > 0 && !khoaThat) {
@@ -287,6 +293,7 @@ class DichVuNhip : Service() {
             if (k.cheDoThu) { k.tenCon = k.tenCon ?: "Con (thử)"; return null }
             return try {
                 val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android"))
+                MoMaOffline.quen(k)
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
                 lamMoi(ctx)
                 null

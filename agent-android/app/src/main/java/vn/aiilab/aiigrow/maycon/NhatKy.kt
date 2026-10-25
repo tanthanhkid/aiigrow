@@ -37,7 +37,7 @@ object NhatKy {
     }
 
     /** Sự kiện cho Ba Mẹ (loại phải có trong SU_KIEN_MAY của máy chủ, vd mo_ma_offline). `ma` sinh một lần ⇒ gửi lại không trùng. */
-    fun suKien(c: Context, loai: String, chiTiet: Map<String, String> = emptyMap()) {
+    fun suKien(c: Context, loai: String, chiTiet: Map<String, Any> = emptyMap()) {
         them(tepSuKien(c), dongSuKien(UUID.randomUUID().toString(), loai, Instant.now().toString(), chiTiet), SU_KIEN_GIU)
         tin("SuKien", "sự kiện $loai")
     }
@@ -50,10 +50,18 @@ object NhatKy {
         } catch (e: Exception) { Log.w(TAG, "ghi hàng đợi", e) }
     }
 
-    /** Gửi hết hàng đợi (luồng nền, sau nhịp thành công). Lỗi ⇒ giữ nguyên, lần sau gửi. */
+    private val luong = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-nhat-ky").apply { isDaemon = true } }
+    private val dangGui = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** Gửi hết hàng đợi trên luồng riêng (không chặn vòng thực thi). Lỗi ⇒ giữ nguyên, lần sau gửi. */
     fun gui(c: Context, may: MayChu) {
-        guiTep(tepSuKien(c), SU_KIEN_MOI_LAN) { may.suKien(it) }
-        guiTep(tepLog(c), LOG_MOI_LAN) { may.log(it) }
+        if (!dangGui.compareAndSet(false, true)) return
+        luong.execute {
+            try {
+                guiTep(tepSuKien(c), SU_KIEN_MOI_LAN) { may.suKien(it) }
+                guiTep(tepLog(c), LOG_MOI_LAN) { may.log(it) }
+            } finally { dangGui.set(false) }
+        }
     }
 
     private fun guiTep(f: File, moiLan: Int, goi: (org.json.JSONObject) -> Unit) {

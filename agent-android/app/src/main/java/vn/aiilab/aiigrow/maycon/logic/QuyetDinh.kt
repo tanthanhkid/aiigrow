@@ -96,8 +96,9 @@ fun quyetDinh(
     val giaiTri = theoMay(goiAndroid(cs.giaiTri)) - tamThoiCho
     val daXep = theoMay(goiAndroid(cs.hoc) + goiAndroid(cs.giaiTri) + goiAndroid(cs.chan) + cs.heThong) + tamThoiCho
     // chua_xep = «chan» (server): app người dùng tự cài chưa được Ba Mẹ xếp ⇒ tạm dừng. App hệ thống không tính.
-    val chuaXep = daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet() +
-        trinhDuyetKhongLoc(trinhDuyet, daXep)
+    // trình duyệt không lọc được: chặn ở MỌI trạng thái (kể cả thêm giờ / mở bằng mã — lúc đó Con đang có giờ tự do, càng cần lọc web)
+    val khongLoc = trinhDuyetKhongLoc(trinhDuyet, daXep)
+    val chuaXep = daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet() + khongLoc
     val coThe = { s: Set<String> -> (s - GOI_LUON_CHO) }
 
     val khung = if (g.cuoiTuan) cs.cuoiTuan else cs.ngayThuong
@@ -113,14 +114,14 @@ fun quyetDinh(
     // Mã mở offline của Ba Mẹ thắng mọi khoá (máy mất mạng, đây là đường duy nhất để mở) — chỉ app Ba Mẹ chặn hẳn vẫn chặn.
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
         val p = Duration.between(now, moOfflineDen).toMinutes().toInt() + 1
-        return kq(TrangThai.DUOC_THEM_GIO, chan, false, p, moOfflineDen, "Ba Mẹ đã mở máy bằng mã.")
+        return kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, moOfflineDen, "Ba Mẹ đã mở máy bằng mã.")
     }
     // Khoá ngay / giờ ngủ thắng cả thêm giờ (như agent-win).
     if (cs.khoaNgay) return kq(TrangThai.KHOA_NGAY, chan + giaiTri + chuaXep, true, 0, null, "Ba Mẹ vừa khoá máy. Con nghỉ một chút nhé.")
     if (trongNgu) return kq(TrangThai.GIO_NGU, chan + giaiTri + chuaXep, true, 0, cs.ngu?.let { hetNgu(g, it) }, "Đến giờ ngủ rồi. Chúc con ngủ ngon!")
     if (mo != null) {
         val p = Duration.between(now, mo).toMinutes().toInt() + 1
-        return kq(TrangThai.DUOC_THEM_GIO, chan, false, p, mo, "Ba Mẹ đã cho thêm giờ.")
+        return kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, mo, "Ba Mẹ đã cho thêm giờ.")
     }
     if (!cs.giaiTriDuocMo || "khong_tuan_thu" in cs.lyDo || "gio_may_sai" in cs.lyDo) {
         val cau = cs.cauTuanThuCon.firstOrNull() ?: "Máy đang tạm khoá giải trí. Con nhờ Ba Mẹ kiểm tra giúp nhé."

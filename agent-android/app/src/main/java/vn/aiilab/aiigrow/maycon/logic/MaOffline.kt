@@ -66,15 +66,16 @@ data class MoTamOffline(
         return maxOf(1, ceil((cuNhat + CUA_SO_SAI_PHUT * 60_000L - now) / 1000.0).toInt())
     }
 
-    /** Con gõ mã. Trả kết quả + trạng thái mới (đúng ⇒ mở tới now + phut). */
-    fun thu(biMat: String?, ma: String?, now: Long, phut: Int = PHUT_MO): Pair<KetQuaMoOffline, MoTamOffline> {
+    /** Con gõ mã. Trả kết quả + trạng thái mới (đúng ⇒ mở tới now + phut). `lechMs` = giờ máy chủ − giờ máy: mã Ba Mẹ thấy tính theo
+     *  đồng hồ máy chủ ⇒ kiểm theo now + lechMs (máy lệch giờ vẫn nhận đúng mã); hạn mở / lượt sai vẫn tính theo đồng hồ máy. */
+    fun thu(biMat: String?, ma: String?, now: Long, phut: Int = PHUT_MO, lechMs: Long = 0): Pair<KetQuaMoOffline, MoTamOffline> {
         if (biMat.isNullOrEmpty()) return KetQuaMoOffline.CHUA_CO_BI_MAT to this
         val gon = copy(saiLuc = saiConTinh(now))
         if (gon.choGiay(now) > 0) return KetQuaMoOffline.CHO_THU_LAI to gon
         val sach = (ma ?: "").filter { it.isDigit() }
         val trungMaCu = maCuoi != null && maCuoiLuc != null && sach == maCuoi && now - maCuoiLuc < NHO_MA_DA_DUNG_MS && now >= maCuoiLuc - 60_000
         if (trungMaCu) return (if (dangMo(now)) KetQuaMoOffline.DANG_MO else KetQuaMoOffline.DA_DUNG) to gon
-        if (!MaOffline.kiem(biMat, sach, now)) return KetQuaMoOffline.SAI to gon.copy(saiLuc = gon.saiLuc + now)
+        if (!MaOffline.kiem(biMat, sach, now + lechMs)) return KetQuaMoOffline.SAI to gon.copy(saiLuc = gon.saiLuc + now)
         val p = phut.coerceIn(5, 120)
         return KetQuaMoOffline.DA_MO to MoTamOffline(now, now + p * 60_000L, sach, now, emptyList())
     }

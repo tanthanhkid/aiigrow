@@ -25,7 +25,8 @@ export async function nhipMay(may: May, con: string | null, b: NhipVao, now = ne
   else await luuAndroidNhip(may, b, now);
   const den = coCuaSoThemGio(may.platform) ? await hanMoCuaMay(may, con, now) : null;
   // Android: bí mật mã mở offline (lib/ma-offline.ts) — tác tử nhớ khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng (như dong-bo.windows.maOfflineBiMat).
-  const maOfflineBiMat = may.platform === "android" ? await biMatOfflineMay(may.id) : null;
+  // Agent báo `coMaOffline: true` khi đã nhớ bí mật ⇒ không gửi lại mỗi nhịp (đỡ một lần đọc DB, bí mật ít đi qua mạng).
+  const maOfflineBiMat = may.platform === "android" && (b as { coMaOffline?: unknown }).coMaOffline !== true ? await biMatOfflineMay(may.id) : null;
   return { ...kqNhip, grantEndsAt: den ? den.toISOString() : null, moDen: den ? den.toISOString() : null, ...(maOfflineBiMat ? { maOfflineBiMat } : {}) };
 }
 

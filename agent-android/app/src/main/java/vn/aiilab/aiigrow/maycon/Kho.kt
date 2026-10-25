@@ -29,6 +29,7 @@ class Kho(ctx: Context) {
     var daCaiDatDo: Boolean get() = p.getBoolean("daCaiDatDo", false); set(v) = p.edit().putBoolean("daCaiDatDo", v).apply()
     var privateDnsDaDat: String? get() = p.getString("privateDns", null); set(v) = p.edit().putString("privateDns", v).apply()
     var webDaDat: String? get() = p.getString("webDaDat", null); set(v) = p.edit().putString("webDaDat", v).apply()
+    var goiKhongDung: Set<String> get() = p.getStringSet("goiKhongDung", emptySet()) ?: emptySet(); set(v) = p.edit().putStringSet("goiKhongDung", v).apply()
     var goiDaTamDung: Set<String> get() = p.getStringSet("goiDaTamDung", emptySet()) ?: emptySet(); set(v) = p.edit().putStringSet("goiDaTamDung", v).apply()
     /** Bản mới đã tải + kiểm xong, đang chờ cài (chờ quyền «Cài ứng dụng không rõ nguồn» / chờ hết khoá) — màn chính hiện thẻ cập nhật. */
     var banMoiCho: String? get() = p.getString("banMoiCho", null); set(v) = p.edit().putString("banMoiCho", v).apply()
