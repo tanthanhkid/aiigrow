@@ -5,12 +5,49 @@ name: agent-win
 #   build — bộ cài một tệp ở ba số bản: bản đang phát (Directory.Build.props) + hai bản cao hơn để thử cập nhật
 #   e2e   — máy chủ Next cục bộ (PGlite) + agent-win/e2e/chay.ps1: cài im lặng, đồng bộ, Chặn thật (AppLocker + web), khoá,
 #           Giám sát, cập nhật đè, giả lỗi, tự cập nhật, gỡ. Xem agent-win/e2e/README.md.
+#
+# LẤY EXE SỚM (không chờ e2e ~6 phút): mỗi job build tải exe lên artifact `setup-<bản>` ngay khi build xong (upload-artifact@v4 — tải được
+# ngay cả khi run còn chạy). Bản phát hành là `setup-goc` (số bản trong Directory.Build.props):
+#   gh run list -R tanthanhkid/aiigrow -w agent-win -b <nhánh> -L 1          # lấy <run-id>
+#   gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc -D ra-ci     # → ra-ci/AiiGrow-Setup.exe
+# Vẫn nên đợi e2e xanh trước khi trỏ server/lib/ban-agent.ts sang bản mới (xem chú thích ở đó).
+#
+# paths: chỉ phần máy chủ mà agent Windows + e2e (agent-win/e2e/chay.ps1, proxy.mjs) thật sự chạy qua — /api/device/**, /api/agent/**,
+# /api/m/** (catch-all lib/api-m.ts: otp, dang-ky, con, goi-cai, may/che-do, toi, tuan-thu), /api/suc-khoe, toàn bộ server/lib (route dùng
+# chung lib; trừ *.test.ts) và cấu hình dựng Next (package.json, lockfile, next.config, tsconfig, instrumentation). Trang web/admin/cron/dns/
+# aiirob/quay không kích CI Windows. Thêm route mới mà agent gọi ⇒ thêm vào hai danh sách dưới.
 on:
   pull_request:
-    paths: ['agent-win/**', 'server/**', '.github/workflows/agent-win.yml']
+    paths:
+      - 'agent-win/**'
+      - '.github/workflows/agent-win.yml'
+      - 'server/app/api/device/**'
+      - 'server/app/api/agent/**'
+      - 'server/app/api/m/**'
+      - 'server/app/api/suc-khoe/**'
+      - 'server/lib/**'
+      - '!server/lib/**/*.test.ts'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/next.config.ts'
+      - 'server/tsconfig.json'
+      - 'server/instrumentation.ts'
   push:
     branches: [main]
-    paths: ['agent-win/**', 'server/**', '.github/workflows/agent-win.yml']
+    paths:
+      - 'agent-win/**'
+      - '.github/workflows/agent-win.yml'
+      - 'server/app/api/device/**'
+      - 'server/app/api/agent/**'
+      - 'server/app/api/m/**'
+      - 'server/app/api/suc-khoe/**'
+      - 'server/lib/**'
+      - '!server/lib/**/*.test.ts'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/next.config.ts'
+      - 'server/tsconfig.json'
+      - 'server/instrumentation.ts'
   workflow_dispatch:
 
 permissions:
@@ -33,6 +70,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-win-${{ hashFiles('agent-win/**/*.csproj') }}
+          restore-keys: nuget-win-
       - name: dotnet test
         run: dotnet test agent-win/tests/AiiGrow.Tests -c Release --logger "trx;LogFileName=unit.trx" --logger "console;verbosity=normal" --results-directory test-results
       - if: always()
@@ -53,6 +96,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-win-${{ hashFiles('agent-win/**/*.csproj') }}
+          restore-keys: nuget-win-
       - name: Đặt số bản thử (chỉ trong job)
         if: matrix.ban != 'goc'
         shell: bash
@@ -65,6 +114,7 @@ jobs:
           printf '#!/usr/bin/env bash\nshift 2\nexec sha256sum "$@"\n' > "$HOME/shim/shasum"
           chmod +x "$HOME/shim/shasum"
           PATH="$HOME/shim:$PATH" agent-win/build-mot-file.sh
+      # Exe có ngay khi job này xong — phát hành lấy `setup-goc` bằng gh run download (chú thích đầu tệp), không chờ e2e.
       - uses: actions/upload-artifact@v4
         with:
           name: setup-${{ matrix.ban }}

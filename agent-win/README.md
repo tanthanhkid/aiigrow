@@ -55,7 +55,8 @@ foreach ($p in 'Service','Tray','Setup') {
 (bản zip cũ chạy như trước). Bộ cài là wizard 5 bước: Chào → Điều khoản → Tài khoản của Con → Ghép máy (mã 6 số) → Cài.
 
 Trên Mac chỉ build/test được logic: thêm `-p:EnableWindowsTargeting=true` (test DPAPI tự bỏ qua ngoài Windows).
-CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish, artifact `AiiGrow-win-x64`).
+CI: `.github/workflows/agent-win.yml` (`windows-latest`, unit + build ×3 + e2e). Exe bản đang phát là artifact `setup-goc`, có ngay khi job
+build xong (không chờ e2e): `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc -D ra-ci` → `ra-ci/AiiGrow-Setup.exe`.
 
 ## Cập nhật đè và tự cập nhật (từ 0.2.0)
 
@@ -67,8 +68,9 @@ CI: `.github/workflows/agent-win.yml` (`windows-latest`, build + test + publish,
   mới hơn, URL https cùng host máy chủ hoặc `*.public.blob.vercel-storage.com`; tải về `ProgramData\AiiGrow\cap-nhat`, sha256 sai ⇒ xoá.
   Đúng ⇒ chạy `AiiGrow-Setup.exe --capnhat --im-lang` bằng tác vụ SYSTEM `AiiGrowCapNhat` (mã thoát 0 ok · 7 lỗi đã khôi phục · 8 lỗi chưa khôi phục).
   Khay báo «AiiGrow đã cập nhật lên bản X» một lần. Mỗi request gửi header `X-AiiGrow-Ban`.
-- **Phát bản mới**: tăng `<Version>` ở `Directory.Build.props` → `./build-mot-file.sh` → tải `ra/AiiGrow-Setup.exe` lên Blob
-  `tai/AiiGrow-Setup-<ver>.exe` (không thêm đuôi ngẫu nhiên) → sửa `server/lib/ban-agent.ts` (version, url, sha256) → merge.
+- **Phát bản mới**: tăng `<Version>` ở `Directory.Build.props` → exe từ CI (`gh run download <run-id> -n setup-goc`, như trên) hoặc
+  `./build-mot-file.sh` → `gh release create v<ver>` ở repo `tanthanhkid/aiigrow-tai` với tệp `AiiGrow-Setup-<ver>.exe` → sửa
+  `server/lib/ban-agent.ts` (version, url, sha256 của đúng tệp đã tải lên) khi e2e của run đó xanh → merge. (Blob bỏ từ 23/10.)
 - TODO: khay gợi ý «có bản mới» cho máy không tự cập nhật được (mạng chặn Blob…).
 
 ## Cài thử (máy Windows thật hoặc máy ảo)

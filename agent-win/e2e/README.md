@@ -1,6 +1,7 @@
 # E2E agent Windows trên GitHub Actions
 
-Workflow `.github/workflows/agent-win.yml` (chạy khi PR/push đụng `agent-win/**`, `server/**`, hoặc bấm tay):
+Workflow `.github/workflows/agent-win.yml` (chạy khi PR/push đụng `agent-win/**`, phần máy chủ agent dùng — `server/app/api/{device,agent,m,suc-khoe}/**`,
+`server/lib/**` trừ test, cấu hình dựng Next — xem `paths` trong workflow; route mới mà agent/harness gọi thì thêm vào đó — hoặc bấm tay):
 
 - **unit** — `dotnet test agent-win/tests/AiiGrow.Tests` trên Windows thật (test DPAPI… không tự bỏ qua như trên Mac).
 - **build** — `build-mot-file.sh` ba lần song song: bản đang phát (`Directory.Build.props`), `9.9.8`, `9.9.9` (sửa số bản trong job, không commit).
