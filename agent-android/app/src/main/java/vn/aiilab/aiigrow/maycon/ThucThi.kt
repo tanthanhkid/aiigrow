@@ -37,7 +37,7 @@ object ThucThi {
             // Trợ năng AiiGrow luôn được phép (Device Owner không bật hộ được; Con/Ba Mẹ bật trong Cài đặt nếu muốn màn phủ).
             d.setPermittedAccessibilityServices(a, null)
             k.daCaiDatDo = true
-        } catch (e: Exception) { Log.w(TAG, "cài đặt Device Owner lỗi", e) }
+        } catch (e: Exception) { NhatKy.canh(TAG, "cài đặt Device Owner lỗi", e) }
     }
 
     fun apDung(ctx: Context, qd: QuyetDinh, goiChan: Set<String>, khoaThat: Boolean, webChan: List<String>) {
@@ -51,14 +51,14 @@ object ThucThi {
             val loi = if (goiChan.isNotEmpty()) d.setPackagesSuspended(a, goiChan.toTypedArray(), true).toSet() else emptySet()
             // gói chưa cài / gói hệ thống bắt buộc trả về «không tạm dừng được» — không ghi là đã tạm dừng
             k.goiDaTamDung = goiChan - loi
-            if (loi.isNotEmpty()) Log.i(TAG, "không tạm dừng được: $loi")
+            if (loi != k.goiKhongDung) { k.goiKhongDung = loi; if (loi.isNotEmpty()) NhatKy.tin(TAG, "không tạm dừng được: $loi") }   // chỉ ghi khi đổi
             datWebChrome(ctx, webChan)
             if (khoaThat && qd.khoaCaMay && k.daLockNow != k.khoaTu) { k.daLockNow = k.khoaTu; d.lockNow() }
         } else {
             k.goiDaTamDung = emptySet()   // đường không reset: TroNang đọc HienThi.goiChan
             if (khoaThat && qd.khoaCaMay && QuanTri.laAdmin(ctx) && k.daLockNow != k.khoaTu) {
                 k.daLockNow = k.khoaTu
-                try { QuanTri.dpm(ctx).lockNow() } catch (e: SecurityException) { Log.w(TAG, "lockNow", e) }
+                try { QuanTri.dpm(ctx).lockNow() } catch (e: SecurityException) { NhatKy.canh(TAG, "lockNow", e) }
             }
         }
     }
@@ -72,7 +72,7 @@ object ThucThi {
             val b = Bundle().apply { if (web.isNotEmpty()) putStringArray("URLBlocklist", web.toTypedArray()) }
             QuanTri.dpm(ctx).setApplicationRestrictions(QuanTri.ten(ctx), "com.android.chrome", b)
             k.webDaDat = khoa
-        } catch (e: Exception) { Log.w(TAG, "Chrome restrictions", e) }
+        } catch (e: Exception) { NhatKy.canh(TAG, "Chrome restrictions", e) }
     }
 
     /** DNS riêng tư gia đình (Device Owner, API 29+). Trả mô tả kết quả. Gọi trên luồng nền (Android tự kiểm máy chủ DNS). */
@@ -101,7 +101,7 @@ object ThucThi {
                 if (Build.VERSION.SDK_INT >= 29) d.setGlobalPrivateDnsModeOpportunistic(a)
                 d.setLockTaskPackages(a, arrayOf())
                 @Suppress("DEPRECATION") d.clearDeviceOwnerApp(ctx.packageName)
-            } catch (e: Exception) { Log.w(TAG, "gỡ Device Owner", e) }
+            } catch (e: Exception) { NhatKy.canh(TAG, "gỡ Device Owner", e) }
         } else if (QuanTri.laAdmin(ctx)) {
             QuanTri.dpm(ctx).removeActiveAdmin(QuanTri.ten(ctx))
         }

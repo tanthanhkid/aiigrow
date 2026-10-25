@@ -40,6 +40,9 @@ class MayChu(private val goc: String, private val token: String?) {
     fun xinThemGio(than: JSONObject) = goi("yeu-cau", than)
     fun hoSoDns() = goi("ho-so-dns")
     fun xongLenh(id: String) = goi("lenh/$id/xong", JSONObject())
+    /** Nhật ký agent (server/lib/log-may.ts) và sự kiện (`ma` một lần — server/lib/may-con.ts › nhanSuKien): thân { ds: [...] }. */
+    fun log(than: JSONObject) = goi("log", than)
+    fun suKien(than: JSONObject) = goi("su-kien", than)
     /** Danh sách app đã cài thật (DanhSachApp.kt): đủ / phần đổi; 409 can_gui_du ⇒ gửi đủ. */
     fun ungDung(than: JSONObject) = goi("ung-dung", than)
 }

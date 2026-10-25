@@ -139,7 +139,7 @@ object GiaoDien {
     }
 
     /** Nội dung màn khoá / màn chặn dùng chung cho ManKhoa (activity) và TroNang (lớp phủ trợ năng). */
-    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?) {
+    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> String)? = null) {
         private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(c, 22), dp(c, 24), dp(c, 22), dp(c, 24)) }
         /** Gốc cuộn được: máy nhỏ / cỡ chữ lớn thì nút «Xin Ba Mẹ thêm giờ» vẫn kéo tới được, không rơi khỏi đáy màn. Tràn viền (targetSdk 35):
          *  chừa thanh trạng thái / thanh điều hướng bằng insets thật thay vì đoán 48dp. */
@@ -163,9 +163,36 @@ object GiaoDien {
         val nutVe = onVe?.let { f -> nut(c, "Về màn hình chính", phu = true) { f() }.apply { (layoutParams as LinearLayout.LayoutParams).apply { marginStart = dp(c, 2); marginEnd = dp(c, 2) } } }
         private var hinhDangHien = 0
 
+        /** Mã mở khi mất mạng (MaOffline.kt): Ba Mẹ xem mã trong app AiiGrow, đọc cho Con gõ. Chỉ hiện khi máy mất mạng và đang khoá. */
+        val oMa = android.widget.EditText(c).apply {
+            hint = "Mã 6 số"; contentDescription = "Mã mở của Ba Mẹ"; inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            filters = arrayOf(android.text.InputFilter.LengthFilter(6)); textSize = 24f; gravity = Gravity.CENTER; letterSpacing = 0.25f
+            minHeight = dp(c, 56); background = ClayDrawable(c, Clay.Kieu.LOM); setTextColor(CHU); setHintTextColor(CHU_PHU)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 10) }
+        }
+        val baoMa = dongBao(c, Clay.CHINH_INK)
+        val theMa = the(c).apply {
+            (layoutParams as LinearLayout.LayoutParams).topMargin = dp(c, 14)
+            addView(chu(c, "Máy đang mất mạng?", 18f, CHU, true))
+            addView(chu(c, "Nhờ Ba Mẹ mở app AiiGrow › Máy › «Mã mở khi mất mạng» rồi đọc mã cho con gõ vào đây.", 15f, CHU_PHU))
+            addView(oMa)
+            addView(nut(c, "Mở bằng mã", phu = true) {
+                val f = onMa ?: return@nut
+                baoMa.text = f(oMa.text.toString()); oMa.setText("")
+            })
+            addView(baoMa)
+            visibility = View.GONE
+        }
+
         init {
             khoi.addView(vien); khoi.addView(tieuDe); khoi.addView(dem); khoi.addView(cau)
-            cot.addView(khoi); cot.addView(nutXin); nutVe?.let(cot::addView); cot.addView(ghi)
+            cot.addView(khoi); cot.addView(nutXin); nutVe?.let(cot::addView); cot.addView(theMa); cot.addView(ghi)
+        }
+
+        /** Hiện / ẩn ô nhập mã (gọi mỗi lần vẽ lại). */
+        fun hienMa(hien: Boolean) {
+            val v = if (hien && onMa != null) View.VISIBLE else View.GONE
+            if (theMa.visibility != v) theMa.visibility = v
         }
 
         fun ve(ht: HienThi, goiChan: String? = null) {

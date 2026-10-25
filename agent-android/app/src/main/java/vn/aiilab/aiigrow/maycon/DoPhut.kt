@@ -63,6 +63,15 @@ object DoPhut {
         }
     }
 
+    /** Gói mở được trang web bất kỳ (trình duyệt): xử lý VIEW http(s) chung, không gắn tên miền riêng. Trừ chính AiiGrow. */
+    fun trinhDuyet(ctx: Context): Set<String> {
+        val pm = ctx.packageManager
+        val i = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("http://aiigrow-kiem-trinh-duyet.invalid/")).addCategory(Intent.CATEGORY_BROWSABLE)
+        val ds = if (Build.VERSION.SDK_INT >= 33) pm.queryIntentActivities(i, PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()))
+        else @Suppress("DEPRECATION") pm.queryIntentActivities(i, PackageManager.MATCH_ALL)
+        return ds.map { it.activityInfo.packageName }.filter { it != ctx.packageName }.toSet()
+    }
+
     fun tenApp(ctx: Context, goi: String): String = try {
         val pm = ctx.packageManager
         pm.getApplicationLabel(pm.getApplicationInfo(goi, 0)).toString()

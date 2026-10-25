@@ -17,6 +17,9 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | `ThucThi` | Device Owner: `setPackagesSuspended`, `setLockTaskPackages`, hạn chế người dùng, Chrome `URLBlocklist`, DNS riêng tư, `lockNow`; gỡ từ xa |
 | `TroNang` | AccessibilityService (đường không reset): app bị chặn lên tiền cảnh ⇒ về Home + phủ màn chặn; khoá cả máy ⇒ phủ màn khoá |
 | `ManChinh` / `ManKhoa` | màn Con (còn phút, xin 30/60/120 + lời nhắn, đã dùng gì, ghép mã 6 số, cấp quyền) / màn khoá + đếm ngược |
+| `logic/MaOffline.kt` · `MoMaOffline` | mã mở khi mất mạng (TOTP như `server/lib/ma-offline.ts`, `agent-win` `MaOffline.cs` / `MoTamOffline.cs`): bí mật đến trong nhịp (`maOfflineBiMat`), ô nhập trên màn khoá / màn phủ khi mất mạng > 3 phút; mở 60 phút, sai 5 lần / 10 phút phải chờ, có mạng lại ⇒ hết lượt |
+| `logic/NhacGio.kt` | nhắc «Còn 5 phút» / «Còn 1 phút» (kênh thông báo ưu tiên cao «Nhắc giờ») + thông báo đồng hồ đếm ngược khi bắt đầu 60 giây trước khoá |
+| `NhatKy` · `logic/HangDoi.kt` | nhật ký agent ⇒ `POST /api/device/log`, sự kiện (`mo_ma_offline`, `sai_ma_offline`, `het_ma_offline`) ⇒ `POST /api/device/su-kien`; hàng đợi tệp, gửi bù sau nhịp thành công (≤ mỗi 2 phút), che token |
 | `Clay.kt` | ngôn ngữ «Clay gương» (`docs/THIET-KE-CLAY.md`) cho View: `ClayDrawable` (khối bo lớn, bóng kép, men gương, vệt men lướt), lò xo nhấn / vào lần lượt / ổ khoá đóng sập; tắt hoạt ảnh trong Trợ năng ⇒ không nảy |
 | `res/drawable-nodpi/fl_*.png` | icon Fluent Emoji 3D (Microsoft, MIT — `app/src/main/assets/FLUENT-EMOJI-LICENSE.txt`, đóng gói vào APK) |
 | `thu/` | chính sách giả cho chế độ thử cục bộ · `chup/` ảnh chụp emulator (Clay gương, chụp lại 25/10) |
@@ -55,7 +58,8 @@ cài đè — cùng khoá ký nên giữ nguyên ghép / Device Owner / quyền)
 - Chặn khôi phục cài đặt gốc (máy biến mất ⇒ «ngoài vòng kiểm soát» + báo Ba Mẹ).
 - Nhịp mỗi phút khi máy ngủ sâu (Doze): dịch vụ tiền cảnh + WorkManager 15 phút là tối đa không cần đẩy FCM.
 - Device Owner không tự cấp «Truy cập dữ liệu sử dụng» và không tự bật Trợ năng.
-- Lọc web chỉ trong Chrome (cấu hình quản lý); trình duyệt khác = app chưa xếp ⇒ tạm dừng. Chưa kiểm Chrome có áp `URLBlocklist` (đặt bằng `setApplicationRestrictions`, mảng chuỗi) — cần mở trang bị chặn trên máy thật.
+- Lọc web chỉ trong Chrome (cấu hình quản lý). Device Owner: mọi trình duyệt khác (kể cả trình duyệt cài sẵn như Samsung Internet) bị tạm dừng
+  trừ khi Ba Mẹ tự xếp nó (như Windows chặn Firefox / Opera ở Chặn thật); đường không reset không chặn trình duyệt (dựa DNS gia đình). Chưa kiểm Chrome có áp `URLBlocklist` (đặt bằng `setApplicationRestrictions`, mảng chuỗi) — cần mở trang bị chặn trên máy thật.
 - Không tạm dừng được app bắt buộc của hệ thống (Cài đặt, Điện thoại, trình khởi chạy) — `setPackagesSuspended` trả về gói lỗi.
 - Phiên chơi bằng điểm (`phien/xet|mo|nhip`) chưa làm ở bản 0.1: giải trí mở trong khung giờ tới trần phút/ngày (+ phút Ba Mẹ thêm).
 

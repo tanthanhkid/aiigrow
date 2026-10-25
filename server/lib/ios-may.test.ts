@@ -59,7 +59,7 @@ test("thêm giờ cho máy iOS ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; 
   assert.equal((await tt.dsTuanThu(fam, new Date())).find((x) => x.id === may.id)?.moDen, den.toISOString());
   await tt.huyMoKhanCap(fam, may.id, bm, new Date());
   assert.equal((await nhip(r.token, ios())).body.grantEndsAt, null);
-  // mã mở offline vẫn chỉ cho máy tính có tác tử
+  // mã mở offline: iOS chưa có (Windows, Mac, Android có)
   await assert.rejects(tt.maOfflineChoMay(fam, may.id, bm, new Date()), (e: { ma?: string }) => e.ma === "sai_nen_tang");
 });
 
@@ -115,7 +115,7 @@ test("QR Device Owner Android: component + APK của tác tử máy Con, giữ C
     `https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-${(await import("./ban-agent.ts")).BAN_CON_ANDROID.version}/AiiGrow-Con-android.apk`);
 });
 
-test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; không phải «có tác tử» (không mã offline)", async () => {
+test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsAt/moDen + bí mật mã offline", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "An" });
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Android của An");
@@ -130,7 +130,14 @@ test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsA
   const sau = await nhipAnd(r.token, {});
   assert.equal(sau.body.grantEndsAt, den.toISOString());
   assert.equal(sau.body.moDen, den.toISOString());
-  await assert.rejects(tt.maOfflineChoMay(fam, may.id, bm, new Date()), (e: { ma?: string }) => e.ma === "sai_nen_tang");
+  // mã mở offline: nhịp Android mang bí mật; Ba Mẹ lấy được mã, agent tính ra cùng mã (lib/ma-offline.ts)
+  assert.match(String(sau.body.maOfflineBiMat), /^[A-Za-z0-9_-]{20,}$/);
+  const mo = await tt.maOfflineChoMay(fam, may.id, bm, new Date());
+  assert.ok((await import("./ma-offline.ts")).kiemMaOffline(sau.body.maOfflineBiMat, mo.ma));
+  const { vanBiMat } = await import("./nhip-may.ts");
+  assert.equal(vanBiMat("abcDEF_123-xyz"), "cabe62fd6d16");   // cùng số với agent-android MaOfflineTest
+  assert.equal((await nhipAnd(r.token, { maOfflineVan: vanBiMat(sau.body.maOfflineBiMat) })).body.maOfflineBiMat, undefined, "vân khớp ⇒ không gửi lại");
+  assert.equal((await nhipAnd(r.token, { maOfflineVan: "000000000000" })).body.maOfflineBiMat, sau.body.maOfflineBiMat, "vân lệch ⇒ gửi lại bí mật đúng");
 });
 
 test("nhịp Android lưu status.android (phút dùng theo app + quyền); deviceOwner=false / troNang=false trên Device Owner KHÔNG bị tính app_tat, usageStats=false thì có", async () => {
