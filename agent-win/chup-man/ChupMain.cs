@@ -206,8 +206,8 @@ internal static class ChupMain
         var f = new LockForm(s.CanExchangePoints);
         f.WindowState = FormWindowState.Normal;   // phóng to theo «màn giả định», không theo màn runner
         DatCuaSo(f, _man, laClient: false);
+        f.Show();          // đúng thứ tự TrayContext.HandleLock: Show rồi mới Apply
         f.Apply(s);
-        f.Show();
         await Cho(2200);   // chờ hiệu ứng ổ khoá «đóng sập»
         Chup(f, ten);
         f.CloseForReal();
@@ -429,8 +429,9 @@ internal static class ChupMain
     /// to hơn màn ⇒ PrintWindow(PW_RENDERFULLCONTENT) vào bitmap 24 bit. (PrintWindow vẽ sai nền đã nhớ của nút Clay — chỉ dùng khi bắt buộc.)</summary>
     private static void Chup(Control c, string ten)
     {
-        if (c is Form f) { f.TopMost = true; f.Activate(); }
-        for (int i = 0; i < 6; i++) { c.Refresh(); Application.DoEvents(); Thread.Sleep(50); }
+        // Không gọi Refresh/Invalidate: ảnh phải giống hệt lúc Con thấy (vẽ lại cưỡng bức làm đổi nền đã nhớ của nút Clay).
+        if (c is Form f && !f.TopMost) { f.TopMost = true; }
+        for (int i = 0; i < 6; i++) { Application.DoEvents(); Thread.Sleep(50); }
         var khung = KhungManHinh(c.Handle);
         var man = SystemInformation.VirtualScreen;
         Bitmap? bmp = null;
