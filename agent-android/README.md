@@ -53,7 +53,7 @@ Khoá phát hành DUY NHẤT: `~/.aiigrow-android/aiigrow-con-release.jks` (alia
 Mật khẩu + đường dẫn ở `~/.aiigrow-android/ky.env` (chmod 600) — không commit, không in ra. Mất khoá này thì máy đã cài KHÔNG cập nhật đè được (Device Owner phải khôi phục gốc) ⇒ giữ bản sao an toàn.
 SHA-256 chứng chỉ: `ED:65:BC:BD:31:E0:D5:5B:B4:72:58:A4:FC:E4:26:07:48:15:AF:16:FD:AE:58:FE:52:4B:BE:B6:AF:09:C5:93`.
 ```
-set -a; . ~/.aiigrow-android/ky.env; set +a     # AIIGROW_CON_KEYSTORE, _KEYSTORE_PASSWORD, _KEY_ALIAS, _KEY_PASSWORD (cũng nhận -P gradle property)
+set -a; . ~/.aiigrow-android/ky.env; set +a     # AIIGROW_CON_KEYSTORE, _KEYSTORE_PASSWORD, _KEY_ALIAS, _KEY_PASSWORD
 ./gradlew assembleRelease --max-workers=2 && ./gradlew --stop
 # APK: app/build/outputs/apk/release/app-release.apk — thiếu tệp khoá hoặc mật khẩu thì assembleRelease/bundleRelease DỪNG (không ra gói chưa ký) ⇒ máy không có khoá chạy `assembleDebug`/`testDebugUnitTest`, đừng chạy `./gradlew build`
 ```

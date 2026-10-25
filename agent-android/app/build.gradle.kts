@@ -30,6 +30,7 @@ android {
                 storePassword = bien("AIIGROW_CON_KEYSTORE_PASSWORD")
                 keyAlias = bien("AIIGROW_CON_KEY_ALIAS") ?: "aiigrow-con"
                 keyPassword = bien("AIIGROW_CON_KEY_PASSWORD") ?: storePassword
+                enableV3Signing = true   // v3 ⇒ sau này xoay khoá được (proof-of-rotation) mà không phải khôi phục gốc máy Device Owner
             }
         }
     }
