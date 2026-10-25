@@ -130,6 +130,30 @@ public static class AppLockerXml
                         new XAttribute("SourceFileLength", size)))));
     }
 
+    /// <summary>25/10 — chặn app thật (ChanAppThat.cs): gộp luật Deny theo đường dẫn / thư mục / băm cho từng SID Con vào chính sách sẵn có.
+    /// <paramref name="hoc"/> có ⇒ kèm chính sách «chỉ app học» (Deny * trừ ngoại lệ — Deny riêng app bị chặn vẫn thắng); null ⇒ nền
+    /// «cho mọi người chạy mọi đường dẫn» (mode tu_do) + chỉ Deny app bị chặn. Gỡ sạch luật "AiiGrow: " cũ trước khi thêm (như Merge).</summary>
+    public static string MergeChanApp(string? existingXml, IReadOnlyList<string> sids, IEnumerable<LuatChanApp> chan, AppLockerOptions? hoc)
+    {
+        foreach (var sid in sids)
+            if (!IsValidSid(sid)) throw new ArgumentException("SID không hợp lệ: " + sid);
+        var doc = Parse(existingXml);
+        StripOurs(doc);
+        var exe = Collection(doc, "Exe");
+        if (hoc != null) foreach (var r in OurRules(new AppLockerOptions { ChildSids = sids, AllowedApps = hoc.AllowedApps, AllowProgramFiles = hoc.AllowProgramFiles, TrinhDuyetTheoSid = hoc.TrinhDuyetTheoSid })) exe.Add(r);
+        else exe.Add(Rule("Cho phép mọi người dùng (nền)", "S-1-1-0", "Allow", "*", null));
+        var ds = chan.ToList();
+        foreach (var sid in sids)
+            foreach (var l in ds)
+            {
+                if (l.Path != null) exe.Add(Rule("Chặn app " + l.Ten + " [" + l.Path + "]", sid, "Deny", l.Path, null));
+                else if (l.HashData != null && l.HashLength is > 0)
+                    exe.Add(HashRule("Chặn app " + l.Ten + " [" + l.HashData + "]", sid, l.SourceFile ?? "app.exe", l.HashData.StartsWith("0x") ? l.HashData[2..] : l.HashData, l.HashLength.Value));
+            }
+        exe.SetAttributeValue("EnforcementMode", "Enabled");
+        return doc.ToString();
+    }
+
     public static string Merge(string? existingXml, AppLockerOptions o)
     {
         foreach (var sid in o.Sids)

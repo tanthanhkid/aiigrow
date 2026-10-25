@@ -111,7 +111,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps, _rt.TrinhDuyetLoc());
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps, _rt.TrinhDuyetLoc(), p.BlockedApps);
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -127,6 +127,8 @@ public sealed class AgentWorker : BackgroundService
                             var td = apThat && sidPhien != null && _rt.TrinhDuyetLoc().TryGetValue(sidPhien, out var t) ? t : null;
                             EnforceAllowList(sess.SessionId, p, apThat, td);
                         }
+                        // 25/10: app Ba Mẹ đặt «Chặn» (định danh thật của máy) — MỌI mode kể cả tu_do; giám sát chỉ ghi log (ChanAppThat.cs)
+                        if (sess != null && p.BlockedApps.Count > 0) EnforceChanApp(sess.SessionId, p, apThat);
 
                         _rt.SetLock(eff.Locked, eff.LockReason, now, active);
                         if (eff.Locked && active && _rt.LockGraceExpired(now) && (now - lastDisconnect).TotalSeconds > 30)
@@ -220,6 +222,25 @@ public sealed class AgentWorker : BackgroundService
             else if (ghiGiamSat) _log.LogInformation("GIÁM SÁT: sẽ đóng app ngoài danh sách: {exe} — chưa đóng thật (CheDo=giam-sat)", exe);
             var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
             if (apThat) _rt.RecordBlocked(exe, bare);   // giám sát: app không bị đóng ⇒ không hiện màn «app bị chặn»
+        }
+    }
+
+    private string _chanDaBao = "";
+
+    private void EnforceChanApp(int sessionId, Policy p, bool apThat)
+    {
+        var ds = ChanAppThat.Enforce(_procs, sessionId, p.BlockedApps, dryRun: !apThat, bam: BamTepCache.Chung.BamNen);
+        var tap = string.Join(",", ds.Select(x => x.Exe).Distinct().OrderBy(x => x, StringComparer.Ordinal));
+        var ghi = tap != _chanDaBao;
+        _chanDaBao = tap;
+        foreach (var (exe, muc) in ds)
+        {
+            if (apThat)
+            {
+                _log.LogInformation("Đóng app Ba Mẹ đã Chặn: {exe} (luật {muc})", exe, muc);
+                _rt.RecordBlocked(exe, exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe);
+            }
+            else if (ghi) _log.LogInformation("GIÁM SÁT: sẽ chặn app Ba Mẹ đã Chặn: {exe} (luật {muc}) — chưa đóng thật (CheDo=giam-sat)", exe, muc);
         }
     }
 

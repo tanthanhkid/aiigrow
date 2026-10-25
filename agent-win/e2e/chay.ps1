@@ -485,6 +485,48 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang thường vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 
+# ------------------------------------------------------------------ KB11 — Ba Mẹ chặn app lấy từ DANH SÁCH APP THẬT của máy (25/10)
+# Agent quét app đã cài (registry / Start Menu / Store) ⇒ POST /api/device/ung-dung; Ba Mẹ đọc GET /api/m/may/<id>/ung-dung, đặt «chan» một app thật
+# ⇒ dong-bo.windows.blockedApps mang đường dẫn / thư mục / SHA-256 của chính máy ⇒ AppLocker có Deny cho SID Con theo đường dẫn + băm.
+# Chạy app thật dưới phiên Con: BỎ (runner không có phiên đăng nhập của Con — README).
+KichBan 'KB11' 'Chặn app chọn từ danh sách app thật của máy' {
+  if (-not $Chung.MayId -or -not $Chung.CoSid) { Bo 'KB11' 'Chặn app thật' 'chưa có máy / chưa gắn tài khoản Con (KB4)'; return }
+  $t = Get-Date
+  $ds = @(Cho { $r = Api GET "/api/m/may/$($Chung.MayId)/ung-dung" $null $Chung.TokenBaMe; $d = @($r.ds); if ($d.Count) { $d } } 300 10)
+  $giay = [int]((Get-Date) - $t).TotalSeconds
+  $nguon = (@($ds | Group-Object nguon) | ForEach-Object { "$($_.Name)=$($_.Count)" }) -join ' '
+  Dat '11.1' 'Máy chủ có danh sách app thật của máy (agent gửi /ung-dung)' ($ds.Count -gt 0) "$($ds.Count) app sau $giay giây · $nguon"
+  if (-not $ds.Count) { return }
+  # Chọn một app Win32 thật có trên runner windows-latest: ưu tiên Firefox / Notepad++ / 7-Zip / Git Bash, không thì app exe đầu tiên ở Program Files
+  $uuTien = @('firefox.exe', 'notepad++.exe', '7zfm.exe', 'git-bash.exe')
+  $app = $null
+  foreach ($m in $uuTien) { $app = @($ds | Where-Object { $_.muc -eq $m -and $_.duongDan -and (Test-Path -LiteralPath $_.duongDan) })[0]; if ($app) { break } }
+  if (-not $app) { $app = @($ds | Where-Object { $_.khoa -like 'exe:*' -and $_.duongDan -like '*\Program Files*' -and (Test-Path -LiteralPath $_.duongDan) } | Sort-Object khoa)[0] }
+  Dat '11.2' 'Chọn một app thật trong danh sách' ([bool]$app) ("chọn «{0}» muc {1} · {2} · thuMuc {3} · nguon {4}" -f $app.ten, $app.muc, $app.duongDan, $app.thuMuc, $app.nguon)
+  if (-not $app) { return }
+  $Chung.AppChan = $app
+  $dat = Api POST "/api/m/may/$($Chung.MayId)/ung-dung/dat" @{ khoa = $app.khoa; trangThai = 'chan' } $Chung.TokenBaMe
+  Dat '11.3' 'Ba Mẹ đặt «Chặn» app đó (ung-dung/dat)' ([bool]$dat) (ConvertTo-Json $dat -Compress -Depth 4)
+  DongBoNgay
+  # AppLocker: Deny cho SID Con theo đường dẫn exe (+ thư mục cài nếu có) + băm AppLocker (Get-AppLockerFileInformation — băm Authenticode AppLocker so)
+  $duong = [string]$app.duongDan
+  $luat = @(Cho { $l = @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//FilePathCondition') | Where-Object { $_.Path -eq $duong }).Count }); if ($l.Count) { $l } } 180 5)
+  Dat '11.4' 'AppLocker có luật Deny cho SID Con đúng đường dẫn exe' ($luat.Count -gt 0) ("{0} luật: {1}" -f $luat.Count, ((@($luat) | ForEach-Object { $_.Name }) -join ' | '))
+  $bamApp = $null
+  try { $bamApp = ([xml](Get-AppLockerFileInformation -Path $duong | New-AppLockerPolicy -RuleType Hash -User Everyone -Xml)).SelectSingleNode('//FileHash').Data } catch { }
+  $bam = @(Cho { $h = @((AppLocker).SelectNodes("//FileHashRule[starts-with(@Name,'AiiGrow: ') and @Action='Deny' and @UserOrGroupSid='$($Chung.SidCon)']") | Where-Object { $_.Conditions.FileHashCondition.FileHash.Data -eq $bamApp }); if ($h.Count) { $h } } 60 5)
+  Dat '11.5' 'AppLocker có luật Deny theo băm của exe đó' ($bamApp -and $bam.Count -gt 0) ("băm AppLocker {0} · {1} luật băm khớp" -f $bamApp, $bam.Count)
+  if ($app.thuMuc) {
+    $tm = ([string]$app.thuMuc).TrimEnd('\') + '\*'
+    $luatTm = @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//FilePathCondition') | Where-Object { $_.Path -eq $tm }).Count })
+    Dat '11.6' 'AppLocker có luật Deny theo thư mục cài' ($luatTm.Count -gt 0) "$tm · $($luatTm.Count) luật"
+  } else { Bo '11.6' 'AppLocker có luật Deny theo thư mục cài' 'app không có thuMuc (thư mục quá rộng hoặc không rõ — agent không gửi)' }
+  Dat '11.7' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
+  Bo '11.8' "Chạy $($app.muc) dưới phiên Con ⇒ bị chặn / bị đóng" 'runner không có phiên đăng nhập của Con (xem README) — đã kiểm luật AppLocker ở 11.4–11.6'
+  # trả lại như trước để KB5–KB9 không mang luật chặn app này
+  try { [void](Api POST "/api/m/may/$($Chung.MayId)/ung-dung/dat" @{ khoa = $app.khoa; trangThai = 'bo' } $Chung.TokenBaMe); DongBoNgay } catch { Log "bỏ chặn app KB11 lỗi: $($_.Exception.Message)" }
+}
+
 # ------------------------------------------------------------------ KB5 — Khoá ngay / mở lại
 KichBan 'KB5' 'Khoá ngay rồi mở lại' {
   if (-not $Chung.MayId) { Bo 'KB5' 'Khoá ngay' 'chưa có máy'; return }

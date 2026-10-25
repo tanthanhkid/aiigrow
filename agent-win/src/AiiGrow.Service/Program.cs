@@ -47,6 +47,9 @@ builder.Services.AddHostedService<PipeServer>();
 builder.Services.AddHostedService<WebHistoryWorker>();
 builder.Services.AddHostedService<WebGuardWorker>();
 
+// Danh sách app đã cài THẬT ⇒ POST /api/device/ung-dung (Ba Mẹ chọn app thật để chặn / cho phép) — DanhSachAppWorker.cs.
+builder.Services.AddHostedService<DanhSachAppWorker>();
+
 // Heartbeat + gỡ từ xa.
 builder.Services.AddHostedService<HeartbeatWorker>();
 
