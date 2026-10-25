@@ -96,6 +96,7 @@ class MaOfflineTest {
         assertNull("nhảy thẳng xuống 3 phút (Ba Mẹ đổi luật) ⇒ không báo 5", NhacGio().xet(180).first)
         fun q(t: TrangThai, p: Int, mo: Long? = null) = QuyetDinh(t, emptySet(), false, p, mo?.let { Instant.ofEpochMilli(it) }, "")
         assertEquals(300, giayConTruocKhoa(q(TrangThai.BINH_THUONG, 5), null, 0))
+        assertEquals("giờ ngủ tới trước trần ngày", 240, giayConTruocKhoa(q(TrangThai.BINH_THUONG, 60), null, 0, 240))
         assertEquals("hết thêm giờ thì khoá ⇒ đếm tới hạn", 90, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 2, 100_000), q(TrangThai.HET_GIO, 0), 10_000))
         assertEquals("hết thêm giờ còn 40 phút ⇒ cộng vào", 90 + 2400, giayConTruocKhoa(q(TrangThai.DUOC_THEM_GIO, 2, 100_000), q(TrangThai.BINH_THUONG, 40), 10_000))
         assertNull(giayConTruocKhoa(q(TrangThai.HET_GIO, 0), null, 0))

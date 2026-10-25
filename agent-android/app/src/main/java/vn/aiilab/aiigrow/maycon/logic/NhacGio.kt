@@ -22,7 +22,7 @@ data class NhacGio(val da5: Boolean = false, val da1: Boolean = false) {
  * SAU hạn nếu lúc đó máy không khoá (`sau` = quyết định tại hạn + 1 giây; vẫn được thêm giờ ⇒ không nhắc). Đang khoá / không tuân thủ ⇒ null.
  */
 fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long, giayToiNgu: Int? = null): Int? = when (qd.trangThai) {
-    TrangThai.BINH_THUONG -> qd.conPhut * 60
+    TrangThai.BINH_THUONG -> listOfNotNull(qd.conPhut * 60, giayToiNgu).min()
     TrangThai.DUOC_THEM_GIO -> {
         val toiHan = qd.moLaiLuc?.let { ((it.toEpochMilli() - nowMs) / 1000).toInt().coerceAtLeast(0) }
         val theoHan = when {

@@ -57,12 +57,14 @@ object NhatKy {
     fun gui(ctx: Context, may: MayChu) {
         val c = ctx.applicationContext   // không giữ Service đã dừng trong tác vụ nền
         if (!dangGui.compareAndSet(false, true)) return
-        luong.execute {
-            try {
-                guiTep(tepSuKien(c), SU_KIEN_MOI_LAN) { may.suKien(it) }
-                guiTep(tepLog(c), LOG_MOI_LAN) { may.log(it) }
-            } finally { dangGui.set(false) }
-        }
+        try {
+            luong.execute {
+                try {
+                    guiTep(tepSuKien(c), SU_KIEN_MOI_LAN) { may.suKien(it) }
+                    guiTep(tepLog(c), LOG_MOI_LAN) { may.log(it) }
+                } finally { dangGui.set(false) }
+            }
+        } catch (e: Exception) { dangGui.set(false) }
     }
 
     private fun guiTep(f: File, moiLan: Int, goi: (org.json.JSONObject) -> Unit) {
