@@ -11,6 +11,10 @@ export const M = {
   diem: "#f5b70a", diemInk: "#7a4a00", diemSoft: "#fff1c9",
   canh: "#92400e", canhSoft: "#fff4e0", loi: "#b42318", loiSoft: "#fef0ee", huy: "#c03a2b",
   lam: "#1d4ed8", lamSoft: "#e8f0ff", xamSoft: "#ebebe7", tim: "#5b4fd6", timSoft: "#ecebfb",
+  // màu mục của biểu đồ Thời gian màn hình (giữ đúng giá trị cũ của man-hinh/[con].tsx, gom về token): cam video, hồng video ngắn, rêu giải trí khác
+  camDam: "#c2410c", hong: "#be185d", reu: "#4d7c0f",
+  // rãnh lõm của biểu đồ / thanh tiến độ (clay-a-goc-guong.css --lom)
+  ranh: "#e9e8e3",
   // nền đầu màn (gradient 300px): Ba Mẹ xám ngọc rất nhạt, Con Nhí vàng nhạt, Teen xanh lam xám
   dauBaMe: "#e6ece9", dauNhi: "#fff0c7", dauTeen: "#e8ecf7",
 } as const;

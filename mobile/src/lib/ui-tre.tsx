@@ -5,7 +5,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import { Platform, Pressable, Text, TextInput, View, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import Svg, { Circle } from "react-native-svg";
+import { VongClay } from "./bieu-do";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BieuTron, Chu, DiemPill, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
 import { BONG, KHOI, MEN } from "./clay";
@@ -193,18 +193,12 @@ export function QuaO({ lv, nen, tieu, nhan, phu, bam, mo, nhanDoc }: { lv: LinhV
 
 /** Vòng tròn màu đếm giờ (.vong): không chữ dài, hợp nhóm Nhí (BRD 8.2). `ti` 0..1. */
 export function Vong({ ti, chu, phu, co = 200 }: { ti: number; chu: string; phu?: string; co?: number }) {
-  const r = co / 2 - 8, cv = 2 * Math.PI * r, p = Math.min(1, Math.max(0, ti));
   return (
-    <View style={{ width: co, height: co, alignItems: "center", justifyContent: "center" }} accessibilityRole="progressbar"
-      accessibilityLabel={phu ? `${chu} ${phu}` : chu} accessibilityValue={{ min: 0, max: 100, now: Math.round(p * 100) }}>
-      <Svg width={co} height={co} style={{ position: "absolute" }}>
-        <Circle cx={co / 2} cy={co / 2} r={r} stroke="#e7e7e3" strokeWidth={16} fill="#fff" />
-        <Circle cx={co / 2} cy={co / 2} r={r} stroke={M.chinhSang} strokeWidth={16} fill="none" strokeDasharray={`${cv * p} ${cv}`}
-          strokeLinecap="round" transform={`rotate(-90 ${co / 2} ${co / 2})`} />
-      </Svg>
-      <Text style={{ fontFamily: F.rat, fontSize: co * 0.22, color: M.chu, letterSpacing: -1, fontVariant: ["tabular-nums"] }}>{chu}</Text>
-      {phu ? <Chu kieu="dam" co={14} mau={M.chu3}>{phu}</Chu> : null}
-    </View>
+    <VongClay ti={ti} co={co} day={16} nhanDoc={phu ? `${chu} ${phu}` : chu}>
+      <Text numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.4}
+        style={{ fontFamily: F.rat, fontSize: co * 0.22, color: M.chu, letterSpacing: -1, fontVariant: ["tabular-nums"], maxWidth: co * 0.7 }}>{chu}</Text>
+      {phu ? <Chu kieu="dam" co={14} mau={M.chu3} dong={2} style={{ textAlign: "center", maxWidth: co * 0.62 }}>{phu}</Chu> : null}
+    </VongClay>
   );
 }
 
