@@ -6,7 +6,8 @@ plugins {
 // Khoá phát hành: ~/.aiigrow-android/aiigrow-con-release.jks (tạo 25/10/2026, Thanh duyệt), mật khẩu ở ~/.aiigrow-android/ky.env.
 // Đọc từ biến môi trường hoặc gradle property cùng tên. Thiếu ⇒ bản debug build như cũ, còn đóng gói release thì DỪNG (không ra APK chưa ký).
 fun bien(ten: String): String? = (System.getenv(ten) ?: project.findProperty(ten) as String?)?.takeIf { it.isNotBlank() }
-val tepKhoa = bien("AIIGROW_CON_KEYSTORE")
+// Đủ cả tệp khoá lẫn mật khẩu mới có cấu hình ký; thiếu một trong hai ⇒ coi như không có khoá (debug vẫn build, release dừng).
+val tepKhoa = bien("AIIGROW_CON_KEYSTORE")?.takeIf { bien("AIIGROW_CON_KEYSTORE_PASSWORD") != null }
 
 android {
     namespace = "vn.aiilab.aiigrow.maycon"   // thư mục mã không được tên «con» (tên cấm trên Windows, CI checkout hỏng); applicationId giữ nguyên
@@ -23,7 +24,6 @@ android {
     }
 
     if (tepKhoa != null) {
-        require(bien("AIIGROW_CON_KEYSTORE_PASSWORD") != null) { "Có AIIGROW_CON_KEYSTORE mà thiếu AIIGROW_CON_KEYSTORE_PASSWORD — nạp ~/.aiigrow-android/ky.env" }
         signingConfigs {
             create("phatHanh") {
                 storeFile = file(tepKhoa)
@@ -54,8 +54,8 @@ android {
     testOptions { unitTests.isReturnDefaultValues = true }
 }
 
-if (tepKhoa == null) tasks.matching { it.name == "packageRelease" }.configureEach {
-    doFirst { throw GradleException("Bản release phải ký khoá phát hành: nạp ~/.aiigrow-android/ky.env (agent-android/README.md)") }
+if (tepKhoa == null) tasks.matching { it.name == "packageRelease" || it.name == "signReleaseBundle" }.configureEach {
+    doFirst { throw GradleException("Bản release phải ký khoá phát hành: nạp ~/.aiigrow-android/ky.env (cần AIIGROW_CON_KEYSTORE + AIIGROW_CON_KEYSTORE_PASSWORD; agent-android/README.md)") }
 }
 
 dependencies {

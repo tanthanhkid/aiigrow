@@ -67,10 +67,10 @@ export default async function TrangTai() {
         {os === "android" ? (
           <section className="the the-tai">
             <I3d ten="mobile-phone" mau="xanh" co={56} />
-            <a className="nut" href={LINK_APK}><Ph ten="download-simple" co={22} />Tải app Ba Mẹ cho Android</a>
-            <p className="ghi-tep">Tệp aiigrow.apk (bản thử) · app để Ba Mẹ quản lý. Luôn là bản mới nhất — có bản mới thì tải lại link này và cài đè, không cần gỡ.</p>
-            <a className="nut vien" href={LINK_APK_CON}><Ph ten="download-simple" co={22} />Tải AiiGrow Con cho Android</a>
-            <p className="ghi-tep">Tệp AiiGrow-Con-android.apk · cài trên điện thoại Android của Con, mở app rồi nhập mã 6 số trong app Ba Mẹ. Máy Windows của Con tải bên dưới.</p>
+            <a className="nut" href={LINK_APK_CON}><Ph ten="download-simple" co={22} />Tải AiiGrow Con cho Android</a>
+            <p className="ghi-tep">Tệp AiiGrow-Con-android.apk · cài trên điện thoại của Con (Android hỏi thì cho phép «Cài ứng dụng không rõ nguồn gốc» với trình duyệt), mở app rồi nhập <b>mã 6 số</b> lấy trong app Ba Mẹ: Trang chủ → “Máy tính &amp; điện thoại” → <b>Ghép thêm máy</b>. Cài tay là mức bảo vệ Một phần; máy mới khôi phục gốc thì quét QR trong app Ba Mẹ để có đủ bảo vệ.</p>
+            <a className="nut vien" href={LINK_APK}><Ph ten="download-simple" co={22} />Tải app Ba Mẹ cho Android</a>
+            <p className="ghi-tep">Tệp aiigrow.apk (bản thử) · app để Ba Mẹ quản lý, cài trên điện thoại của Ba Mẹ. Luôn là bản mới nhất — có bản mới thì tải lại link này và cài đè, không cần gỡ. Máy Windows của Con tải bên dưới.</p>
           </section>
         ) : null}
 
