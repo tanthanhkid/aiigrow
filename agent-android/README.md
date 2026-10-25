@@ -42,11 +42,12 @@ cài đè — cùng khoá ký nên giữ nguyên ghép / Device Owner / quyền)
 - Tải qua https: chặng đầu phải cùng gốc với máy chủ đã ghép (`/tai/AiiGrow-Con-<bản>.apk`), các chặng chuyển hướng chỉ tới
   `github.com/tanthanhkid/aiigrow-tai/releases/download/…` hoặc `*.githubusercontent.com`; ≤ 200 MB.
 - Kiểm sha256 = manifest, đúng gói `vn.aiilab.aiigrow.con`, versionCode = manifest, chữ ký APK chứa mọi chứng chỉ đang ký app (xoay khoá v3 vẫn qua).
-  Sai bất kỳ bước nào ⇒ xoá tệp, không cài, lượt sau thử lại.
+  Sai bất kỳ bước nào ⇒ xoá tệp, không cài; thử lại đúng bản đó sau 24 giờ (mất mạng giữa chừng: 1 giờ) hoặc ngay khi manifest đổi sha256.
 - Cài bằng PackageInstaller: **Device Owner ⇒ im lặng** (đã thử trên emulator API 35: 0.2.2 → bản cao hơn tự cài, Chrome vẫn tạm dừng, dịch vụ nhịp
   chạy lại, vẫn Device Owner). **Không phải Device Owner** ⇒ Android hiện hộp xác nhận + thông báo «Có bản AiiGrow mới»; chưa bật «Cho phép từ nguồn này»
   cho AiiGrow thì thông báo + thẻ trên màn chính dẫn Ba Mẹ vào đúng chỗ bật (một lần).
-- Đang khoá / đếm ngược ⇒ hoãn 30 phút (cài đè làm app khởi động lại). App tạm dừng do hệ thống giữ qua lần cập nhật; `MY_PACKAGE_REPLACED` bật lại dịch vụ.
+- Đang khoá / đếm ngược ⇒ hoãn 30 phút (cài đè làm app khởi động lại); hoãn liền quá 12 giờ thì cài luôn. Không Device Owner: hộp xác nhận
+  tự hiện lại tối đa mỗi 6 giờ (Huỷ ⇒ giữ tệp, thẻ «Cập nhật ngay» trên màn chính), thông báo «bật quyền» tối đa mỗi ngày. App tạm dừng do hệ thống giữ qua lần cập nhật; `MY_PACKAGE_REPLACED` bật lại dịch vụ.
 - Thử với máy chủ cục bộ: bản debug cho http tới `10.0.2.2` / `localhost` (src/debug, `mang_thu.xml`); đặt `mayChu` trong
   `shared_prefs/aiigrow_con.xml` (run-as, giết tiến trình trong cùng lệnh — Device Owner không `force-stop` được).
 

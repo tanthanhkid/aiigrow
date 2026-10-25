@@ -34,6 +34,11 @@ class Kho(ctx: Context) {
     var banMoiCho: String? get() = p.getString("banMoiCho", null); set(v) = p.edit().putString("banMoiCho", v).apply()
     /** Lần cuối mở hộp xác nhận cài (đường không Device Owner) — tự hỏi lại tối đa mỗi 6 giờ. */
     var lanHoiCai: Long get() = p.getLong("lanHoiCai", 0); set(v) = p.edit().putLong("lanHoiCai", v).apply()
+    /** Cập nhật: thông báo «bật quyền» lần cuối; sha256 bản vừa hỏng + thời điểm được thử lại; lúc bắt đầu hoãn vì khoá (≤ 12 giờ). */
+    var lanBaoQuyen: Long get() = p.getLong("lanBaoQuyen", 0); set(v) = p.edit().putLong("lanBaoQuyen", v).apply()
+    var shaLoi: String? get() = p.getString("shaLoi", null); set(v) = p.edit().putString("shaLoi", v).apply()
+    var thuLaiSau: Long get() = p.getLong("thuLaiSau", 0); set(v) = p.edit().putLong("thuLaiSau", v).apply()
+    var hoanTu: Long get() = p.getLong("hoanTu", 0); set(v) = p.edit().putLong("hoanTu", v).apply()
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 
