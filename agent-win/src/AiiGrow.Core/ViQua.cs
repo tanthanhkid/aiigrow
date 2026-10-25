@@ -91,6 +91,14 @@ public static class ViQuaView
     /// <summary>Tên cấp như màn Con web (huy-hieu.tsx).</summary>
     public static string TenCap(int cap) => TenCapDs[Math.Clamp(cap, 1, TenCapDs.Length) - 1];
 
+    /// <summary>«Còn 60 điểm nữa lên cấp 4 «Mầm xanh»» — từ cấp 10 tên không đổi nữa ⇒ không hứa tên mới.</summary>
+    public static string LenCap(HvCapDo c)
+    {
+        var sau = c.Cap + 1;
+        var ten = TenCap(sau) != TenCap(c.Cap) ? $" «{TenCap(sau)}»" : "";
+        return $"Còn {c.ConThieu} điểm nữa lên cấp {sau}{ten}";
+    }
+
     /// <summary>50000 ⇒ «50.000đ».</summary>
     public static string Tien(int n) => n.ToString("#,0", CultureInfo.InvariantCulture).Replace(',', '.') + "đ";
 

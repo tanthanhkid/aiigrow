@@ -48,6 +48,8 @@ internal sealed class AppForm : Form
     private HvViQua? _vi;
     private HvThanhTich? _tt;
     private HvQuyTac? _qt;
+    private DateTimeOffset _viThuLuc = DateTimeOffset.MinValue;
+    private readonly List<Image> _anhQr = new();   // ảnh QR của lần vẽ trước — PictureBox.Dispose không huỷ Image ⇒ tự huỷ khi vẽ lại
     private bool _busy;
     /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
     private string? _loiTai;
@@ -290,6 +292,7 @@ internal sealed class AppForm : Form
         _sig = "";
         Render();
         _content.AutoScrollPosition = Point.Empty;
+        if (muc == MucApp.ViQua) _ = RefreshAsync();   // ví / huy hiệu đổi theo việc ở mục khác (đổi quà, Ba Mẹ xác nhận) ⇒ tải mới khi mở mục
     }
 
     private void Say(string s, bool error)
@@ -322,14 +325,17 @@ internal sealed class AppForm : Form
 
             var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
             _ch = ch;
-            if (_muc == MucApp.ViQua || _vi == null)   // mục Ví quà: ba nguồn chỉ đọc (máy chủ cũ không có đường ⇒ null, mục hiện «chưa tải được»)
+            // Mục Ví quà: ba nguồn chỉ đọc, song song. Đang ở mục khác thì chỉ tải sẵn lần đầu; lỗi (máy chủ cũ chưa có đường) ⇒ thử lại thưa (10 phút)
+            if (_muc == MucApp.ViQua || (_vi == null && DateTimeOffset.Now - _viThuLuc > TimeSpan.FromMinutes(10)))
             {
-                var (vi, _) = await HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua");
-                var (tt, _) = await HvApi.GetAsync<HvThanhTich>("hoc-vien/thanh-tich");
-                var (qt, _) = await HvApi.GetAsync<HvQuyTac>("hoc-vien/quy-tac");
-                if (vi != null) _vi = vi;
-                if (tt != null) _tt = tt;
-                if (qt != null) _qt = qt;
+                _viThuLuc = DateTimeOffset.Now;
+                var tVi = HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua");
+                var tTt = HvApi.GetAsync<HvThanhTich>("hoc-vien/thanh-tich");
+                var tQt = HvApi.GetAsync<HvQuyTac>("hoc-vien/quy-tac");
+                await Task.WhenAll(tVi, tTt, tQt);
+                if (tVi.Result.Data != null) _vi = tVi.Result.Data;
+                if (tTt.Result.Data != null) _tt = tTt.Result.Data;
+                if (tQt.Result.Data != null) _qt = tQt.Result.Data;
             }
             var (tin, _) = await HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
             if (tin != null) _tin = tin;
@@ -376,6 +382,8 @@ internal sealed class AppForm : Form
         ComputeWidths();
         _content.SuspendLayout();
         foreach (var c in _content.Controls.Cast<Control>().ToList()) { _content.Controls.Remove(c); c.Dispose(); }
+        foreach (var a in _anhQr) a.Dispose();
+        _anhQr.Clear();
         _bigLbl = _capLbl = null;
         _dungCard = null;
         switch (_muc)
@@ -756,12 +764,12 @@ internal sealed class AppForm : Form
         {
             var cap = Card(UI.PointSoft);
             cap.Controls.Add(T($"Cấp {_tt.CapDo.Cap} · {ViQuaView.TenCap(_tt.CapDo.Cap)}", 16f, true, UI.PointInk));
-            cap.Controls.Add(T($"Còn {_tt.CapDo.ConThieu} điểm nữa lên cấp {_tt.CapDo.Cap + 1} «{ViQuaView.TenCap(_tt.CapDo.Cap + 1)}»", 12f, false, UI.PointInk));
+            cap.Controls.Add(T(ViQuaView.LenCap(_tt.CapDo), 12f, false, UI.PointInk));
             cap.Controls.Add(new ThanhTienDo { TiLe = ViQuaView.TienDo(_tt), Width = _tw, Height = Px(14), Margin = new Padding(0, Px(2), 0, Px(10)) });
             if (_tt.ChuoiNgay > 0) cap.Controls.Add(T($"Chuỗi {_tt.ChuoiNgay} ngày liền có nhiệm vụ được duyệt", 11.5f, false, UI.PointInk));
             _content.Controls.Add(cap);
             var luoi = Row(_cw);
-            var w = (_cw - Px(12) * 2) / 3;
+            var w = (_cw - Px(12) * 3) / 3;   // mỗi ô có lề phải 12 ⇒ ba ô một hàng
             foreach (var h in ViQuaView.SapXep(_tt.HuyHieu)) luoi.Controls.Add(HuyHieuO(h, w));
             _content.Controls.Add(luoi);
         }
@@ -806,6 +814,7 @@ internal sealed class AppForm : Form
         var co = Px(200);
         Image? anh = null;
         try { anh = UI.AnhQr(MaQr.MaTran(v.Ma), co); } catch { /* mã lạ: vẫn hiện chữ mã */ }
+        if (anh != null) _anhQr.Add(anh);
         if (anh != null)
             c.Controls.Add(new PictureBox { Image = anh, Size = new Size(co, co), SizeMode = PictureBoxSizeMode.Normal, BackColor = Color.White, Margin = new Padding(0, 0, 0, Px(6)), AccessibleName = "Mã QR " + v.Ma });
         var ma = T(v.Ma, 16f, true);
@@ -940,7 +949,8 @@ internal sealed class ThanhTienDo : Control
         var r = Height / 2f;
         using (var ranh = Bo(new RectangleF(0, 0, Width - 1, Height - 1), r)) using (var b = new SolidBrush(Clay.Lom)) g.FillPath(b, ranh);
         var w = (float)((Width - 1) * Math.Clamp(TiLe, 0, 1));
-        if (w >= Height)
+        if (TiLe > 0) w = Math.Max(w, Height);   // tiến độ nhỏ vẫn thấy một viên tròn, không như số 0
+        if (w > 0)
             using (var di = Bo(new RectangleF(0, 0, w, Height - 1), r)) using (var b = new SolidBrush(Clay.Diem)) g.FillPath(b, di);
     }
 

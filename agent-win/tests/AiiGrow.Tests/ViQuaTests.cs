@@ -42,6 +42,13 @@ public class ViQuaTests
     public void TenCap(int cap, string ten) => Assert.Equal(ten, ViQuaView.TenCap(cap));
 
     [Fact]
+    public void LenCap_TuCap10KhongHuaTenMoi()
+    {
+        Assert.Equal("Còn 60 điểm nữa lên cấp 4 «Mầm xanh»", ViQuaView.LenCap(new HvCapDo { Cap = 3, ConThieu = 60 }));
+        Assert.Equal("Còn 500 điểm nữa lên cấp 11", ViQuaView.LenCap(new HvCapDo { Cap = 10, ConThieu = 500 }));
+    }
+
+    [Fact]
     public void Tien() => Assert.Equal("50.000đ", ViQuaView.Tien(50000));
 
     [Fact]

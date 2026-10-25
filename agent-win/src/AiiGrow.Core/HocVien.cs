@@ -237,7 +237,7 @@ public static class HocVienView
         return ($"Có {moi.Count} tin mới", Cat(string.Join(" · ", dau), 180));
     }
 
-    /// <summary>Bấm vào toast ⇒ mở app to đúng mục: tin về nhiệm vụ → Nhiệm vụ, quà / huy hiệu → Phần quà, lời khen → Tin nhắn;
+    /// <summary>Bấm vào toast ⇒ mở app to đúng mục: tin về nhiệm vụ → Nhiệm vụ, quà bị huỷ → Phần quà, quà đã xác nhận / huy hiệu → Ví quà, lời khen → Tin nhắn;
     /// nhiều loại lẫn nhau ⇒ Tin nhắn (hộp thư liệt kê hết).</summary>
     public static MucApp MucChoTin(IReadOnlyList<HvTin> moi)
     {
