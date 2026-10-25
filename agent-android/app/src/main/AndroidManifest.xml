@@ -21,6 +21,13 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="aiigrow" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
     </queries>
 
     <application
@@ -43,6 +50,17 @@
             android:excludeFromRecents="true" android:taskAffinity="vn.aiilab.aiigrow.con.khoa"
             android:lockTaskMode="if_whitelisted"
             android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
+
+        <!-- Màn Con (Nhiệm vụ / Nộp bài / Quà…): mở app AiiGrow qua aiigrow://tre/… hoặc web /tre trong WebView riêng (ManTre.kt) -->
+        <activity android:name=".ManTre" android:exported="false" android:launchMode="singleTask"
+            android:taskAffinity="vn.aiilab.aiigrow.con.tre" android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+
+        <!-- Ảnh chụp nộp bài từ WebView: camera ghi vào cache/anh của AiiGrow -->
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.tep"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/tep" />
+        </provider>
 
         <!-- Cài Device Owner bằng QR (Android 10+) -->
         <activity android:name=".ManCaiDat" android:exported="true"

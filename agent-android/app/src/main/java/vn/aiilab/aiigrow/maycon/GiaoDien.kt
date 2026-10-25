@@ -165,7 +165,7 @@ object GiaoDien {
 
         /** Mã mở khi mất mạng (MaOffline.kt): Ba Mẹ xem mã trong app AiiGrow, đọc cho Con gõ. Chỉ hiện khi máy mất mạng và đang khoá. */
         val oMa = android.widget.EditText(c).apply {
-            hint = "Mã 6 số"; contentDescription = "Mã mở của Ba Mẹ"; inputType = android.text.InputType.TYPE_CLASS_NUMBER
+            hint = "000000"; contentDescription = "Mã mở 6 số của Ba Mẹ"; inputType = android.text.InputType.TYPE_CLASS_NUMBER
             filters = arrayOf(android.text.InputFilter.LengthFilter(6)); textSize = 24f; gravity = Gravity.CENTER; letterSpacing = 0.25f
             minHeight = dp(c, 56); background = ClayDrawable(c, Clay.Kieu.LOM); setTextColor(CHU); setHintTextColor(CHU_PHU)
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 10) }

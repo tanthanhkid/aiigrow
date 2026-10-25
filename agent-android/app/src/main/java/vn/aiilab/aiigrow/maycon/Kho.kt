@@ -43,6 +43,19 @@ class Kho(ctx: Context) {
     /** Mã mở offline: bí mật máy chủ gửi trong nhịp (nhớ để kiểm mã khi mất mạng) + trạng thái mở tạm (logic/MaOffline.kt, JSON). */
     var maOfflineBiMat: String? get() = p.getString("maOfflineBiMat", null); set(v) = p.edit().putString("maOfflineBiMat", v).apply()
     var moTamOffline: String? get() = p.getString("moTamOffline", null); set(v) = p.edit().putString("moTamOffline", v).apply()
+    /** App Con (HocVien.kt): tổng quan hoc-vien/tong-quan gần nhất (JSON), mốc + id tin đã thấy, lời xin đang theo dõi, phiên điểm máy này mở. */
+    var hvTongQuan: String? get() = p.getString("hvTongQuan", null); set(v) = p.edit().putString("hvTongQuan", v).apply()
+    var tinBay: String? get() = p.getString("tinBay", null); set(v) = p.edit().putString("tinBay", v).apply()
+    var tinDaThay: List<String>
+        get() = try { JSONArray(p.getString("tinDaThay", "[]")).let { a -> (0 until a.length()).map { a.optString(it) } } } catch (_: Exception) { emptyList() }
+        set(v) = p.edit().putString("tinDaThay", JSONArray(v).toString()).apply()
+    var yeuCauId: String? get() = p.getString("yeuCauId", null); set(v) = p.edit().putString("yeuCauId", v).apply()
+    var yeuCauPhut: Int get() = p.getInt("yeuCauPhut", 0); set(v) = p.edit().putInt("yeuCauPhut", v).apply()
+    var yeuCauLuc: Long get() = p.getLong("yeuCauLuc", 0); set(v) = p.edit().putLong("yeuCauLuc", v).apply()
+    var yeuCauTrangThai: String? get() = p.getString("yeuCauTrangThai", null); set(v) = p.edit().putString("yeuCauTrangThai", v).apply()
+    /** Phiên điểm máy này biết là đã hết (luật nhớ còn `phienDiem.phien` cũ khi nhịp máy lỗi ⇒ bỏ qua). */
+    var phienHet: String? get() = p.getString("phienHet", null); set(v) = p.edit().putString("phienHet", v).apply()
+    var phienId: String? get() = p.getString("phienId", null); set(v) = p.edit().putString("phienId", v).apply()
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 

@@ -55,7 +55,13 @@ class ManKhoa : Activity() {
         }
     }
 
-    private fun thoatLockTask() { if (dangLockTask) try { stopLockTask(); dangLockTask = false } catch (_: Exception) {} }
+    /** Thoát lock task kể cả khi nó do lần chạy trước bật (tiến trình chết / cập nhật giữa lúc khoá ⇒ `dangLockTask` của bản này là false
+     *  mà task vẫn khoá ⇒ finish() bị chặn, màn khoá đứng hình dù đã mở bằng mã / hết khoá). */
+    private fun thoatLockTask() {
+        val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        if (dangLockTask || am.lockTaskModeState != android.app.ActivityManager.LOCK_TASK_MODE_NONE) try { stopLockTask() } catch (_: Exception) {}
+        dangLockTask = false
+    }
 
     companion object {
         @Volatile var dangMo: ManKhoa? = null
