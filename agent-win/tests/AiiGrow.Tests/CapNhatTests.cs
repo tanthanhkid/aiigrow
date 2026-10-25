@@ -39,6 +39,13 @@ public class PhatHienCaiTests
     [InlineData("0.2.0", CheDoBoCai.DaMoiNhat)]
     [InlineData("0.3.0", CheDoBoCai.DaMoiNhat)]  // bản đang cài mới hơn bộ cài ⇒ không hạ bản
     public void DaCai(string? dangCai, CheDoBoCai ra) => Assert.Equal(ra, CapNhat.PhatHien(true, DaGhep(), dangCai, "0.2.0").CheDo);
+
+    // So SỐ chứ không so chuỗi: 0.2.10 > 0.2.9 (chuỗi thì "0.2.10" < "0.2.9").
+    [Theory]
+    [InlineData("0.2.9", "0.2.10", CheDoBoCai.CapNhat)]
+    [InlineData("0.2.10", "0.2.9", CheDoBoCai.DaMoiNhat)]
+    public void BanHaiChuSo_SoTheoSo(string dangCai, string banMoi, CheDoBoCai ra) =>
+        Assert.Equal(ra, CapNhat.PhatHien(true, DaGhep(), dangCai, banMoi).CheDo);
 }
 
 public class CapNhatMayTests : IDisposable
@@ -219,6 +226,14 @@ public class TuCapNhatTests
     [InlineData("0.3.0", "https://public.blob.vercel-storage.com.ke-xau.com/a.exe")]
     [InlineData("0.3.0", "file:///C:/a.exe")]
     public void TuChoi(string ver, string url) => Assert.NotNull(TuCapNhat.KiemManifest(M(ver, url), May, Dang));
+
+    // Agent 0.2.9 đang chạy phải nhận 0.2.10 là MỚI HƠN (so số, không so chuỗi); 0.2.10 đang chạy thì bỏ qua 0.2.9.
+    [Fact]
+    public void BanHaiChuSo_TuCapNhat()
+    {
+        Assert.Null(TuCapNhat.KiemManifest(M("0.2.10", May + "/tai/AiiGrow-Setup-0.2.10.exe"), May, new Version(0, 2, 9)));
+        Assert.NotNull(TuCapNhat.KiemManifest(M("0.2.9", May + "/tai/AiiGrow-Setup-0.2.9.exe"), May, new Version(0, 2, 10)));
+    }
 
     [Theory]
     [InlineData("")]
