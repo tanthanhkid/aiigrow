@@ -47,4 +47,22 @@ final class ChupClayTests: XCTestCase {
     let dem = TrayModel(); dem.capNhat(tt(cheDo: .tuDo, lyDo: "het_gio", dem: 54))
     chup(ManKhoaView(tray: dem, xin: xin), "mac-dem-nguoc", CGSize(width: 1280, height: 900), dir: dir)
   }
+
+  /// Ô chọn tài khoản (Ghép máy): NSPopUpButton trong suốt phải phủ kín ô Clay — vùng bấm ≥ 44pt, rộng gần hết thẻ.
+  func testOChonTaiKhoanDu44() {
+    let host = NSHostingView(rootView: GhepMayView(taiKhoan: ["bi", "na"], dongLai: {}))
+    host.frame = NSRect(origin: .zero, size: host.fittingSize)
+    host.layoutSubtreeIfNeeded()
+    func tim(_ v: NSView) -> NSPopUpButton? { if let p = v as? NSPopUpButton { return p }; for c in v.subviews { if let p = tim(c) { return p } }; return nil }
+    guard let p = tim(host) else { return XCTFail("không thấy NSPopUpButton") }
+    XCTAssertGreaterThanOrEqual(p.frame.height, 44, "vùng bấm ô chọn tài khoản")
+    XCTAssertGreaterThanOrEqual(p.frame.width, 300)
+    XCTAssertEqual(p.itemTitles, ["bi", "na"])
+    // alpha 0 vẫn nhận bấm: điểm giữa ô trúng chính NSPopUpButton
+    let w = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+    w.contentView = host; host.layoutSubtreeIfNeeded()
+    let giua = p.convert(NSPoint(x: p.bounds.midX, y: p.bounds.midY), to: nil)
+    let trung = w.contentView?.superview?.hitTest(giua) ?? host.hitTest(giua)
+    XCTAssertTrue(trung === p, "bấm giữa ô phải trúng pop-up, trúng \(String(describing: trung))")
+  }
 }

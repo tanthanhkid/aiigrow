@@ -21,6 +21,7 @@ struct XinThemView: View {
         ForEach(TrayLogic.luaChonPhut, id: \.self) { p in
           Button(TrayLogic.nhanLuaChonPhut(p)) { withAnimation(ClayMotion.bat) { phut = p } }
             .buttonStyle(NutClayStyle(kieu: phut == p ? .ngoc : .sang))
+            .accessibilityAddTraits(phut == p ? .isSelected : [])
         }
       }
       .padding(.vertical, 2)
@@ -121,20 +122,20 @@ struct GhepMayView: View {
         Text("Chưa thấy tài khoản nào khác trên máy. Hãy tạo tài khoản cho Con ở Cài đặt hệ thống → Người dùng & Nhóm.")
           .font(.system(size: 13)).foregroundColor(ClayMau.loi)
       } else {
-        // Ô chọn Clay cao 48 thay pop-up hệ thống (cao 22pt, dưới vùng bấm 44). Menu của SwiftUI trên macOS bỏ nhãn tuỳ biến
-        // (chỉ còn chữ + mũi tên) ⇒ dùng nút thường, bấm thì bật NSMenu ngay dưới con trỏ.
-        Button { MenuChon.hien(taiKhoan, dangChon: chon) { chon = $0 } } label: {
-          HStack(spacing: 8) {
-            Text("Tài khoản của Con").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
-            Spacer(minLength: 8)
-            Text(chon).font(.system(size: 15, weight: .semibold)).foregroundColor(ClayMau.chu).lineLimit(1).truncationMode(.middle)
-            Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .bold)).foregroundColor(ClayMau.chu3)
-          }
-          .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 48).contentShape(Rectangle())
+        // Ô chọn Clay cao 48 thay pop-up hệ thống (cao 22pt, dưới vùng bấm 44): nhãn Clay vẽ bên dưới, NSPopUpButton thật trong suốt
+        // phủ kín 48pt ⇒ giữ nguyên menu neo theo nút, bàn phím, VoiceOver «pop-up» của hệ thống.
+        HStack(spacing: 8) {
+          Text("Tài khoản của Con").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
+          Spacer(minLength: 8)
+          Text(chon).font(.system(size: 15, weight: .semibold)).foregroundColor(ClayMau.chu).lineLimit(1).truncationMode(.middle)
+          Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .bold)).foregroundColor(ClayMau.chu3)
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 48)
+        .accessibilityHidden(true)
         .clayLom(bo: 18)
-        .accessibilityLabel("Tài khoản của Con: \(chon)")
+        .overlay(ChonPopUp(ds: taiKhoan, chon: $chon, tieuDe: "Tài khoản của Con"))
+        .disabled(dangGui || xong || !canhBao.isEmpty)
+        .opacity(dangGui || xong || !canhBao.isEmpty ? 0.6 : 1)
       }
       TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
         .textFieldStyle(.plain).font(.system(size: 22, weight: .medium, design: .monospaced))
@@ -259,23 +260,34 @@ struct KinhMo: View {
   }
 }
 
-/// NSMenu bật tại con trỏ để chọn một mục (popUp chạy đồng bộ tới khi menu đóng ⇒ đích giữ sống trong lúc đó).
-@MainActor
-final class MenuChon: NSObject {
-  private let khiChon: (String) -> Void
-  private init(_ khiChon: @escaping (String) -> Void) { self.khiChon = khiChon }
-  @objc private func bam(_ m: NSMenuItem) { khiChon(m.title) }
+/// NSPopUpButton thật, trong suốt, phủ kín ô Clay: bấm chỗ nào trong ô cũng mở menu neo theo ô; bàn phím + VoiceOver như pop-up hệ thống.
+struct ChonPopUp: NSViewRepresentable {
+  let ds: [String]
+  @Binding var chon: String
+  let tieuDe: String
+  @Environment(\.isEnabled) private var bat
 
-  static func hien(_ ds: [String], dangChon: String, khiChon: @escaping (String) -> Void) {
-    let dich = MenuChon(khiChon)
-    let menu = NSMenu()
-    for t in ds {
-      let m = NSMenuItem(title: t, action: #selector(bam(_:)), keyEquivalent: "")
-      m.target = dich
-      m.state = t == dangChon ? .on : .off
-      menu.addItem(m)
+  final class Dieu: NSObject {
+    var chon: Binding<String>
+    init(_ c: Binding<String>) { chon = c }
+    @objc func doi(_ b: NSPopUpButton) { if let t = b.titleOfSelectedItem { chon.wrappedValue = t } }
+  }
+  func makeCoordinator() -> Dieu { Dieu($chon) }
+  func makeNSView(context: Context) -> NSPopUpButton {
+    let b = NSPopUpButton(frame: .zero, pullsDown: false)
+    b.isBordered = false
+    b.alphaValue = 0                          // AppKit vẫn chuyển bấm cho view alpha 0 (khác isHidden); nhãn Clay bên dưới là phần nhìn thấy
+    b.target = context.coordinator; b.action = #selector(Dieu.doi(_:))
+    b.setAccessibilityLabel(tieuDe)
+    for h in [NSLayoutConstraint.Orientation.horizontal, .vertical] {   // để SwiftUI kéo giãn nút phủ kín ô 48pt (mặc định ôm cao 22)
+      b.setContentHuggingPriority(.defaultLow - 1, for: h); b.setContentCompressionResistancePriority(.defaultLow - 1, for: h)
     }
-    menu.popUp(positioning: menu.items.first { $0.state == .on }, at: NSEvent.mouseLocation, in: nil)
-    withExtendedLifetime(dich) {}
+    return b
+  }
+  func updateNSView(_ b: NSPopUpButton, context: Context) {
+    context.coordinator.chon = $chon
+    if b.itemTitles != ds { b.removeAllItems(); b.addItems(withTitles: ds) }
+    if b.titleOfSelectedItem != chon, ds.contains(chon) { b.selectItem(withTitle: chon) }
+    b.isEnabled = bat
   }
 }
