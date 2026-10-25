@@ -105,12 +105,12 @@ test("QR Device Owner Android: component + APK của tác tử máy Con, giữ C
   assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME"], "vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri");
   assert.equal(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION"], "https://app.test/tai/aiigrow-con.apk");
   assert.equal(qr["android.app.extra.PROVISIONING_LEAVE_ALL_SYSTEM_APPS_ENABLED"], true);
-  assert.match(String(a.chiTiet.ghiChu), /CHƯA có/);
+  assert.match(String(qr["android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM"]), /^[A-Za-z0-9_-]{43}$/, "base64url SHA-256 chứng chỉ ký");
   assert.doesNotMatch(JSON.stringify(a), /\/tai\/aiigrow\.apk/);
   const cfg = (await import("../next.config.ts")).default;
   const rd = (await cfg.redirects!()) as { source: string; destination: string }[];
   assert.equal(rd.find((r) => r.source === "/tai/aiigrow-con.apk")?.destination,
-    "https://github.com/tanthanhkid/aiigrow-tai/releases/download/android-con-0.1.0/aiigrow-con-0.1.0.apk");
+    "https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-0.2.0/AiiGrow-Con-android.apk");
 });
 
 test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; không phải «có tác tử» (không mã offline)", async () => {

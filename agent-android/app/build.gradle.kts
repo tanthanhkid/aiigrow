@@ -12,9 +12,24 @@ android {
         applicationId = "vn.aiilab.aiigrow.con"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
         buildConfigField("String", "MAY_CHU_MAC_DINH", "\"https://aiigrow.aiilab.vn\"")
+    }
+
+    // Khoá phát hành: ~/.aiigrow-android/aiigrow-con-release.jks (tạo 25/10/2026, Thanh duyệt), mật khẩu ở ~/.aiigrow-android/ky.env.
+    // Đọc từ biến môi trường hoặc gradle property cùng tên; thiếu ⇒ không có cấu hình ký release (bản debug build như cũ).
+    fun bien(ten: String): String? = (System.getenv(ten) ?: project.findProperty(ten) as String?)?.takeIf { it.isNotBlank() }
+    val tepKhoa = bien("AIIGROW_CON_KEYSTORE")
+    if (tepKhoa != null) {
+        signingConfigs {
+            create("phatHanh") {
+                storeFile = file(tepKhoa)
+                storePassword = bien("AIIGROW_CON_KEYSTORE_PASSWORD")
+                keyAlias = bien("AIIGROW_CON_KEY_ALIAS") ?: "aiigrow-con"
+                keyPassword = bien("AIIGROW_CON_KEY_PASSWORD") ?: storePassword
+            }
+        }
     }
 
     buildTypes {
@@ -25,7 +40,7 @@ android {
         release {
             isMinifyEnabled = false
             buildConfigField("boolean", "CHO_PHEP_THU", "false")
-            // Chưa có keystore phát hành (luật: không tự tạo khoá) — bản release ký sau.
+            if (tepKhoa != null) signingConfig = signingConfigs.getByName("phatHanh")
         }
     }
     buildFeatures { buildConfig = true }
