@@ -35,6 +35,8 @@ export type AnMung = (diem: number, tu: { x: number; y: number }) => void;
 /** Câu nói rõ AI xin GÌ (TestFlight build 6: thẻ chỉ có Duyệt / Từ chối, không biết duyệt cái gì). */
 const viet = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
 // «khac»: tieuYc trả nguyên giá trị Con gõ (tên app, tên miền — có thể là tên riêng) ⇒ không hạ chữ đầu
+/** Nhãn đọc màn hình của nút Duyệt / Từ chối: ngắn — tên việc (thẻ đã nói của Con nào). */
+const tieuNgan = (v: ViecCho) => (v.k === "yc" ? tieuYc(v.x) : v.x.ten);
 // tên lấy từ CHÍNH việc đó (ten_con), `ten` của thẻ chỉ dự phòng — thẻ dùng cho danh sách nhiều Con vẫn không gán nhầm Con
 const tieu = (v: ViecCho, tenThe: string) => { const ten = v.x.ten_con || tenThe; return v.k === "yc" ? (v.x.loai === "khac" ? `${ten}: ${tieuYc(v.x)}` : `${ten} ${viet(tieuYc(v.x))}`) : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`; };
 const phu = (v: ViecCho) => v.k === "nv" ? `+${v.x.diem} điểm · nộp ${gioPhut(v.x.nop_luc)}${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
@@ -156,8 +158,8 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
           {xem ? null : (
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Nut chu={chuDuyet(v)} nho loai="ngoc"
-                dangChay={hl.dangChay && dang === v.x.id} tat={hl.dangChay && dang !== v.x.id} bam={(e) => { duyet(v, e); }} nhanDoc={`${chuDuyet(v)}: ${tieu(v, ten)}`} />
-              <Nut chu={v.k === "qua" ? "Huỷ" : "Từ chối"} nho loai="vien" tat={hl.dangChay} bam={() => tuChoiNgay(v)} nhanDoc={`${v.k === "qua" ? "Huỷ" : "Từ chối"}: ${tieu(v, ten)}`} />
+                dangChay={hl.dangChay && dang === v.x.id} tat={hl.dangChay && dang !== v.x.id} bam={(e) => { duyet(v, e); }} nhanDoc={`${chuDuyet(v)}: ${tieuNgan(v)}`} />
+              <Nut chu={v.k === "qua" ? "Huỷ" : "Từ chối"} nho loai="vien" tat={hl.dangChay} bam={() => tuChoiNgay(v)} nhanDoc={`${v.k === "qua" ? "Huỷ" : "Từ chối"}: ${tieuNgan(v)}`} />
             </View>
           )}
         </Animated.View>
