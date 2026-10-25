@@ -111,9 +111,11 @@ nhanh_app() (
 )
 
 # Nhánh lỗi ⇒ ghi $T/hong; vòng chờ thấy là giết cây nhánh còn lại ngay (không đợi export + pha vô ích).
-( nhanh_server > "$T/server.txt" 2>&1 || { touch "$T/hong"; exit 1; } ) & PS=$!
+# KHÔNG gọi nhánh trong ngữ cảnh `nhanh || …`: bash tắt set -e bên trong mọi lệnh đứng trước || / && (kể cả subshell, hàm) ⇒ lỗi bị nuốt.
+chay_nhanh() { set +e; "$1" > "$T/$2.txt" 2>&1; local rc=$?; [ $rc = 0 ] || touch "$T/hong"; exit $rc; }
+( chay_nhanh nhanh_server server ) & PS=$!
 [ $NHE = 1 ] && { wait $PS || true; }
-if [ ! -f "$T/hong" ]; then ( nhanh_app > "$T/app.txt" 2>&1 || { touch "$T/hong"; exit 1; } ) & PA=$!; fi
+if [ ! -f "$T/hong" ]; then ( chay_nhanh nhanh_app app ) & PA=$!; fi
 while { kill -0 $PS 2>/dev/null || kill -0 "${PA:-$PS}" 2>/dev/null; } && [ ! -f "$T/hong" ]; do sleep 1; done
 [ -f "$T/hong" ] && diet_con $$
 LOI=0
