@@ -19,9 +19,12 @@ internal sealed class FakeWebRegistry : IWebPolicyRegistry
     public readonly Dictionary<string, string> Chuoi = new();
     public void DatChuoi(string khoa, string ten, string giaTri) { SoLanGhi++; Chuoi[khoa + "|" + ten] = giaTri; }
     public void GoChuoiNeu(string khoa, string ten, string giaTri) { SoLanGhi++; if (Chuoi.TryGetValue(khoa + "|" + ten, out var v) && v == giaTri && Chuoi.Remove(khoa + "|" + ten)) SoMucDaXoa++; }
-    public void GoKhoaNeuTrong(string khoa) { }
+    public void GoKhoaNeuTrong(string khoa) { if (KhoaRong.Contains(khoa) && KhongGoDuoc) throw new UnauthorizedAccessException("Access to the registry key is denied."); KhoaRong.Remove(khoa); }
     public int SoMucDaXoa { get; private set; }
     public readonly HashSet<string> MucKhac = new();   // danh sách có mục người khác đặt (IT «1»…)
+    public readonly HashSet<string> KhoaRong = new();  // khoá danh sách có nhưng RỖNG (IT xoá hết mục, để lại khoá)
+    public bool KhongGoDuoc;                           // ACL của IT không cho xoá khoá
+    public bool CoKhoa(string khoa) => Ds.ContainsKey(khoa) || MucKhac.Contains(khoa) || KhoaRong.Contains(khoa);
     public bool CoMucCuaTa(string khoaDs) => Ds.ContainsKey(khoaDs);
     public bool CoMucNguoiKhac(string khoaDs) => MucKhac.Contains(khoaDs);
     public int? DocDword(string khoa, string ten) => Dword.TryGetValue(khoa + "|" + ten, out var v) ? v : null;

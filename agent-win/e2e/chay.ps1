@@ -132,11 +132,29 @@ function DatKhoaWebCon($sid) {
 function VoiHiveCon([string]$khoa, [scriptblock]$sb) {
   $goc = "Registry::HKEY_USERS\$($Chung.SidCon)"
   if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) { return (& $sb $khoa) }
-  $nap = $false
-  for ($i = 0; $i -lt 20 -and -not $nap; $i++) { & reg.exe load 'HKU\AiiE2E_Con' $Chung.NtUserCon 2>$null | Out-Null; $nap = ($LASTEXITCODE -eq 0); if (-not $nap) { Start-Sleep -Milliseconds 500 } }
+  # lần trước gỡ nạp hỏng ⇒ hive còn ở tên tạm: dùng luôn (nạp lại sẽ hỏng vì tệp đang mở) rồi gỡ nạp lần nữa
+  $nap = Test-Path -LiteralPath 'Registry::HKEY_USERS\AiiE2E_Con'
+  for ($i = 0; $i -lt 20 -and -not $nap; $i++) { $nap = ((RegExe load 'HKU\AiiE2E_Con' $Chung.NtUserCon) -eq 0); if (-not $nap) { Start-Sleep -Milliseconds 500 } }
   if (-not $nap) { throw 'không nạp được hive của Con để đọc' }
   try { return (& $sb ('Registry::HKEY_USERS\AiiE2E_Con' + $khoa.Substring($goc.Length))) }
-  finally { for ($i = 0; $i -lt 10; $i++) { [gc]::Collect(); [gc]::WaitForPendingFinalizers(); & reg.exe unload 'HKU\AiiE2E_Con' 2>$null | Out-Null; if ($LASTEXITCODE -eq 0) { break }; Start-Sleep -Milliseconds 300 } }
+  finally { [void](GoNapE2E) }
+}
+# reg.exe trả lỗi qua stderr (vd «ERROR: Access is denied.» khi hive còn handle mở): Windows PowerShell 5.1 với $ErrorActionPreference = 'Stop' biến
+# stderr của lệnh ngoài thành NGOẠI LỆ ⇒ vòng thử lại không chạy, cả kịch bản đỏ (KB9 chập chờn). Chạy reg.exe với 'Continue' cục bộ, chỉ xem mã thoát.
+function RegExe {
+  $ErrorActionPreference = 'Continue'
+  & reg.exe @args 2>&1 | Out-Null
+  $LASTEXITCODE
+}
+# Gỡ nạp hive tạm của e2e (thử ≤ 30 lần / ~15 giây). Hive Con kẹt ở tên tạm ⇒ Con «đăng nhập» (Start-Process -LoadUserProfile, 4.17) bị hồ sơ TẠM.
+function GoNapE2E {
+  for ($i = 0; $i -lt 30; $i++) {
+    if (-not (Test-Path -LiteralPath 'Registry::HKEY_USERS\AiiE2E_Con')) { return $true }
+    [gc]::Collect(); [gc]::WaitForPendingFinalizers()
+    if ((RegExe unload 'HKU\AiiE2E_Con') -eq 0) { return $true }
+    Start-Sleep -Milliseconds 500
+  }
+  $false
 }
 function GiaTriDs($khoa, $ds) {
   @(VoiHiveCon "$khoa\$ds" {
@@ -425,13 +443,15 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
     [string](Test-AppLockerPolicy -XmlPolicy $TepHieuLuc -Path $duong -User $TenCon).PolicyDecision
   }
   # Danh sách web CẢ MÁY của «IT» (mục «1» ở HKLM) thắng danh sách trong hive Con ⇒ AiiGrow (đúng thiết kế) KHÔNG thả Chrome/Edge khi có nó.
-  # Gỡ tạm mục IT để thử đường thả; KB6 đặt lại trước khi kiểm 6.4 (mục IT còn nguyên).
+  # Gỡ tạm mục IT để thử đường thả; KB6 đặt lại trước khi kiểm 6.4 (mục IT còn nguyên). Gỡ MỤC (không gỡ khoá) ⇒ còn khoá URLBlocklist RỖNG ở HKLM:
+  # Chrome đọc khoá rỗng thành chính sách máy «danh sách trống», vẫn thắng hive Con (gốc lỗi 4.17 ở 0.2.9) ⇒ agent phải tự gỡ khoá rỗng rồi mới thả.
   foreach ($k in $KhoaWeb.Values) { Remove-ItemProperty -Path "$k\URLBlocklist" -Name '1' -ErrorAction SilentlyContinue }
   DongBoNgay
   if (-not (Test-Path $ChromeExe)) { Bo '4.12' 'Chặn thật: Chrome chạy được cho Con' "runner không có $ChromeExe" }
   else {
     $qd = Cho { $x = QuyetDinh $ChromeExe; if ($x -eq 'Allowed') { $x } } 150 5
-    Dat '4.12' 'Chặn thật: AppLocker cho Con chạy Chrome (luật web đã áp)' ($qd -eq 'Allowed') ("Chrome: {0}" -f (QuyetDinh $ChromeExe))
+    $khoaRong = (@($KhoaWeb.GetEnumerator() | Where-Object { Test-Path "$($_.Value)\URLBlocklist" } | ForEach-Object { $_.Key }) -join ',')
+    Dat '4.12' 'Chặn thật: AppLocker cho Con chạy Chrome (luật web đã áp, khoá danh sách rỗng ở HKLM đã gỡ)' ($qd -eq 'Allowed' -and -not $khoaRong) ("Chrome: {0} · khoá URLBlocklist HKLM còn: «{1}»" -f (QuyetDinh $ChromeExe), $khoaRong)
   }
   if (Test-Path $EdgeExe) { $qe = QuyetDinh $EdgeExe; Dat '4.13' 'Chặn thật: AppLocker cho Con chạy Edge' ($qe -eq 'Allowed') "Edge ($EdgeExe): $qe" }
   else { Bo '4.13' 'Chặn thật: Edge chạy được cho Con' "runner không có msedge.exe" }
@@ -478,14 +498,10 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
     $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
     ChayBangCon $ChromeExe @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--virtual-time-budget=5000', '--dump-dom', $url) $nhan
   }
-  # CHẨN ĐOÁN (4.17 đỏ ở 0.2.9): hive nào đang nạp, tiến trình của Con thấy HKCU / USERPROFILE gì, Chrome của Con thấy chính sách gì
+  # Chẩn đoán (ghi log): hive nào đang nạp; tiến trình của Con thấy USERPROFILE (hồ sơ tạm?) + chính sách Chrome trong HKCU gì
   Log ("4.17 HKU trước khi chạy Chrome: " + ((Get-ChildItem Registry::HKEY_USERS -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName }) -join ', '))
   $dg = ChayBangCon (Join-Path $env:WINDIR 'System32\cmd.exe') @('/c', 'whoami & echo UP=%USERPROFILE% & reg query HKCU\Software\Policies\Google\Chrome /s') 'diag'
   Log ("4.17 cmd của Con: mã $($dg.Ma) $($dg.Ngoai) · " + ($dg.Dom -replace '\s+', ' ') + " · err " + $dg.Loi)
-  $pol = ChromeCuaCon 'chrome://policy' 'pol'
-  $tp = [string]($pol.Dom -replace '<[^>]+>', ' ' -replace '\s+', ' ')
-  $vt = $tp.IndexOf('URLBlocklist')
-  Log ("4.17 chrome://policy của Con: mã $($pol.Ma), $($pol.Dom.Length) ký tự, URLBlocklist ở $vt · " + $(if ($vt -ge 0) { $tp.Substring([Math]::Max(0, $vt - 200), [Math]::Min(600, $tp.Length - [Math]::Max(0, $vt - 200))) } else { $tp.Substring(0, [Math]::Min(600, $tp.Length)) }))
   $mo = ChromeCuaCon 'https://example.org/' 'mo'
   $chan = ChromeCuaCon 'https://example.com/' 'chan'
   $vaoDuoc = $mo.Dom -match 'Example Domain'

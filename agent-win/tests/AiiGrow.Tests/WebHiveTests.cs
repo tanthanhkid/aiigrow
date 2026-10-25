@@ -283,6 +283,39 @@ public class WebHiveTests
         Assert.Empty(new WebPolicyHives(h).Ap(null, null, new[] { Con }, T0).HklmDe);   // Giám sát: không có gì để báo
     }
 
+    // e2e 4.17 (0.2.9): IT xoá hết mục nhưng để lại khoá URLBlocklist RỖNG ở HKLM ⇒ Chrome đọc thành chính sách máy «danh sách trống», thắng hive Con
+    // ⇒ Con vào được trang Ba Mẹ chặn trong khi AiiGrow đã thả Chrome. Khoá rỗng: gỡ đi (không mang ý định của IT); không gỡ được ⇒ tính là đè.
+    [Fact]
+    public void KhoaDanhSachRongHklm_DuocGo_KhongDe()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.KhoaRong.Add(Chrome + @"\URLBlocklist");
+        h.Hklm.KhoaRong.Add(@"SOFTWARE\Policies\Microsoft\Edge\URLAllowlist");
+        var r = new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.Empty(r.HklmDe);
+        Assert.Empty(h.Hklm.KhoaRong);
+        Assert.Equal(new[] { Con }, r.DaApCho);
+    }
+
+    [Fact]
+    public void KhoaDanhSachRongHklm_KhongGoDuoc_TinhLaDe()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.KhoaRong.Add(Chrome + @"\URLBlocklist");
+        h.Hklm.KhongGoDuoc = true;
+        Assert.Equal(new[] { "Chrome" }, new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0).HklmDe);
+    }
+
+    [Fact]
+    public void LuatCuAiiGrowTrongHklm_GoCungLuot_KhongBaoDe()
+    {
+        var h = new FakeHiveHost(); h.CoHoSo.Add(Con);
+        h.Hklm.Ds[Chrome + @"\URLBlocklist"] = new() { "a.com" };   // luật bản cũ (≤0.2.5) ở HKLM
+        var r = new WebPolicyHives(h).Ap(Luat("a.com"), null, new[] { Con }, T0);
+        Assert.True(r.DaGoHklm);
+        Assert.Empty(r.HklmDe);
+    }
+
     [Fact]
     public void HklmSach_KhongBaoDaGo()
     {

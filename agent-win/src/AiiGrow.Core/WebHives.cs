@@ -110,16 +110,21 @@ public sealed class WebPolicyHives
             catch (Exception e) { loi = e.Message; }   // vòng sau thử lại
         }
 
-        // danh sách web CẢ MÁY do IT / Ba Mẹ đặt thắng danh sách trong hive Con (Chrome / Edge không gộp) ⇒ báo, không im lặng (review #75)
-        IReadOnlyList<string> hklmDe = Array.Empty<string>();
-        if (p != null) { try { hklmDe = new WebPolicyApplier(_host.May).TrinhDuyetBiHklmDe(); } catch { } }
+        // danh sách web CẢ MÁY (HKLM, kể cả khoá rỗng) thắng danh sách trong hive Con (Chrome / Edge không gộp) ⇒ báo, không im lặng (review #75), và
+        // không thả trình duyệt đó. Tính SAU khi gỡ HKLM bản cũ (luật cũ của chính AiiGrow vừa gỡ không còn đè).
+        IReadOnlyList<string> HklmDe()
+        {
+            if (p == null) return Array.Empty<string>();
+            try { return new WebPolicyApplier(_host.May).TrinhDuyetBiHklmDe(); }
+            catch { return WebPolicyKeys.TatCa.Select(t => t.Ten).ToList(); }   // không đọc được HKLM ⇒ coi như bị đè: không thả trình duyệt khi chưa chắc lọc
+        }
 
         // chưa đọc được tài khoản Con (null) mà đang cần CHẶN ⇒ giữ nguyên luật đang có (như AppLocker), không gỡ nhầm; cần GỠ thì vẫn gỡ ở các hive đã ghi
         // (chưa biết tài khoản Con quá 2 phút ⇒ vẫn gỡ HKLM: không để luật cũ chặn cả tài khoản Ba Mẹ mãi)
         if (childSids == null && p != null)
         {
             if (now - _batDau.Value >= TimeSpan.FromMinutes(2)) GoHklm();
-            return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi) { HklmDe = hklmDe };
+            return new KetQuaWebHive(false, goHklm, Array.Empty<string>(), loi) { HklmDe = HklmDe() };
         }
         var sids = (childSids ?? Array.Empty<string>()).Where(AppLockerXml.IsValidSid).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var dich = sids.Concat(_daGhiCho.Where(x => !sids.Contains(x, StringComparer.OrdinalIgnoreCase))).ToList();
@@ -167,7 +172,7 @@ public sealed class WebPolicyHives
         var vtHienTai = p == null ? null : WebPolicyApplier.VanTay(p, maychuHost);
         var daApCho = p == null ? new List<string>() : sids.Where(cs => _daGhiCho.Contains(cs) && _daAp.TryGetValue(cs, out var a) && a.VanTay == vtHienTai
             && !chua.Contains(cs, StringComparer.OrdinalIgnoreCase) && !loiHive.Any(l => l.StartsWith(cs + ":", StringComparison.OrdinalIgnoreCase))).ToList();
-        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = hklmDe, DaApCho = daApCho };
+        return new KetQuaWebHive(doi, goHklm, chua, loi, loiHive) { DoiChoConHienTai = doiCon, HklmDe = HklmDe(), DaApCho = daApCho };
     }
 
     private bool DangNapAnToan(string sid) { try { return _host.DangNap(sid); } catch { return false; } }

@@ -151,6 +151,9 @@ public interface IWebPolicyRegistry
     bool CoMucCuaTa(string khoaDs) => false;
     /// <summary>Danh sách <paramref name="khoaDs"/> có mục do người khác đặt (IT / Ba Mẹ).</summary>
     bool CoMucNguoiKhac(string khoaDs) => false;
+    /// <summary>Khoá <paramref name="khoa"/> TỒN TẠI (kể cả rỗng). Chrome / Edge đọc khoá danh sách rỗng trong HKLM thành chính sách MÁY «danh sách trống»
+    /// — vẫn thắng danh sách trong hive Con (e2e 4.17, 0.2.9).</summary>
+    bool CoKhoa(string khoa) => CoMucCuaTa(khoa) || CoMucNguoiKhac(khoa);
     /// <summary>Đọc DWORD (null = không có).</summary>
     int? DocDword(string khoa, string ten) => null;
     /// <summary>Ghi giá trị chuỗi (REG_SZ). Gỡ dùng <see cref="GoDword"/> (xoá giá trị theo tên, mọi kiểu).</summary>
@@ -228,11 +231,26 @@ public sealed class WebPolicyApplier
         _daAp = null;
     }
 
-    /// <summary>Trình duyệt có danh sách web CẢ MÁY (HKLM) do IT / Ba Mẹ đặt: Chrome / Edge không gộp danh sách máy với danh sách người dùng — danh sách
-    /// máy thắng, luật AiiGrow trong hive Con bị bỏ qua ⇒ phải báo Ba Mẹ (review #75).</summary>
-    public List<string> TrinhDuyetBiHklmDe() =>
-        WebPolicyKeys.TatCa.Where(t => _reg.CoMucNguoiKhac(t.Khoa + "\\" + WebPolicyKeys.DsChan) || _reg.CoMucNguoiKhac(t.Khoa + "\\" + WebPolicyKeys.DsCho))
-            .Select(t => t.Ten).ToList();
+    /// <summary>Trình duyệt có danh sách web CẢ MÁY (HKLM): Chrome / Edge không gộp danh sách máy với danh sách người dùng — danh sách máy thắng, luật
+    /// AiiGrow trong hive Con bị bỏ qua ⇒ phải báo Ba Mẹ (review #75) và KHÔNG thả trình duyệt ở Chặn thật (TrinhDuyetLoc).
+    /// Tính theo KHOÁ, không theo mục: khoá URLBlocklist / URLAllowlist RỖNG trong HKLM (IT xoá hết mục nhưng để lại khoá, bản cũ gỡ dở…) Chrome vẫn đọc
+    /// thành chính sách máy «danh sách trống» ⇒ hive Con mất hiệu lực, Con vào được trang Ba Mẹ chặn (e2e 4.17, 0.2.9). Khoá rỗng không mang ý định
+    /// nào của IT ⇒ gỡ luôn (mục IT có thật thì giữ nguyên, chỉ báo).</summary>
+    public List<string> TrinhDuyetBiHklmDe()
+    {
+        var ds = new List<string>();
+        foreach (var t in WebPolicyKeys.TatCa)
+        {
+            var de = false;
+            foreach (var khoaDs in new[] { t.Khoa + "\\" + WebPolicyKeys.DsChan, t.Khoa + "\\" + WebPolicyKeys.DsCho })
+            {
+                try { _reg.GoKhoaNeuTrong(khoaDs); } catch { }   // không gỡ được (ACL của IT) ⇒ khoá còn ⇒ tính là đè bên dưới
+                if (_reg.CoKhoa(khoaDs)) de = true;
+            }
+            if (de) ds.Add(t.Ten);
+        }
+        return ds;
+    }
 }
 
 /// <summary>Ghi registry thật (64-bit) vào HKLM (chỉ để GỠ luật bản cũ) hoặc một hive người dùng đã nạp (HKU\<SID> hoặc hive nạp tạm).
@@ -329,6 +347,15 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
 
     public bool CoMucCuaTa(string khoaDs) => DemMuc(khoaDs, true);
     public bool CoMucNguoiKhac(string khoaDs) => DemMuc(khoaDs, false);
+
+    public bool CoKhoa(string khoa)
+    {
+        using var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
+        using var g = _goc == null ? null : b.OpenSubKey(_goc, false);
+        if (_goc != null && g == null) return false;
+        using var k = (g ?? b).OpenSubKey(khoa, false);
+        return k != null;
+    }
 
     private bool DemMuc(string khoaDs, bool cuaTa)
     {
