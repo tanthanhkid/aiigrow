@@ -7,18 +7,18 @@
 import React, { useEffect, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  FadeIn, ReduceMotion, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming,
+  FadeIn, ReduceMotion, type SharedValue, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle } from "react-native-svg";
 import { BONG, MEN, VET } from "./clay";
 import { EASE } from "./chuyen-dong";
 import { F, M } from "./mau";
 
-/** Lò xo «mọc»: vượt ~6% rồi về (vui nhưng không lắc lâu). */
-const MOC = { stiffness: 230, damping: 15, mass: 1 } as const;
+/** Lò xo «mọc»: ζ = 22 / (2·√230) ≈ 0,73 ⇒ vượt ~4% rồi về (vui nhưng không lắc lâu). */
+const MOC = { stiffness: 230, damping: 22, mass: 1 } as const;
 const SO_LE = 45;
-/** Lò xo vượt tối đa ~7% ⇒ cột cao nhất chỉ chiếm phần này của rãnh để lúc nảy không trồi khỏi rãnh. */
-const VUOT = 1.07;
+/** Lò xo vượt tối đa ~4% (MOC) ⇒ cột cao nhất chỉ chiếm 1/1,05 rãnh để lúc nảy không trồi khỏi rãnh. */
+const VUOT = 1.05;
 
 /** Tiến trình «mọc» `p` (lò xo MOC sau `tre` ms) + «vệt men» `q` (0→1 một lần, bắt đầu `treVet` ms sau khi mọc). Chạy lại khi `lai` đổi
  * (vd thanh từ 0 lên có số khi dữ liệu về). Reduce Motion ⇒ p = 1 ngay, không vệt. */
@@ -37,7 +37,7 @@ function useMoc(giam: boolean, tre: number, treVet: number, tgVet: number, lai: 
 
 export type PhanCot = { gia: number; mau: string; /** làm mờ (đang lọc mục khác) */ mo?: boolean };
 export type CotNgay = { khoa: string; nhan: string; /** đọc cho trình đọc màn hình */ doc: string; phan: PhanCot[];
-  /** cột chồng: tổng thật của ngày (mặc định = tổng các phần); phần chưa chia mục hiện màu M.oNhap */ tong?: number };
+  /** cột chồng: tổng thật của ngày (mặc định = tổng các phần); phần chưa chia mục hiện màu M.vien2 */ tong?: number };
 
 /**
  * Biểu đồ cột clay. `kieu="doi"`: mỗi phần một cột đứng cạnh nhau (Báo cáo: học / giải trí). `kieu="chong"`: các phần chồng thành một cột
@@ -51,12 +51,15 @@ export function CotClay({ ds, max, kieu = "doi", cao = 120, chon = null, bam, ta
   const dinh = Math.max(1, max), dai = (cao - 8) / VUOT;
   return (
     <Animated.View entering={giam ? FadeIn.duration(200).reduceMotion(ReduceMotion.Never) : undefined}
-      accessibilityLabel={nhanDoc} style={{ flexDirection: "row", gap: 6, marginTop: 12 }}>
+      // không bấm được ⇒ cả biểu đồ là MỘT phần tử đọc: tóm tắt + từng ngày; bấm được ⇒ mỗi ngày một nút (nhãn riêng)
+      accessible={!bam} accessibilityLabel={!bam ? [nhanDoc, ...ds.map((x) => x.doc)].filter(Boolean).join("; ") : undefined}
+      style={{ flexDirection: "row", gap: 6, marginTop: 12 }}>
       {ds.map((x, i) => {
-        const dangChon = chon === i, mo = chon !== null && chon !== undefined && !dangChon;
+        // chỉ làm mờ ngày khác khi đang LỌC (có bam); không bấm được thì `chon` chỉ đánh dấu (vd hôm nay). Nhãn không mờ — giữ tương phản chữ.
+        const dangChon = chon === i, mo = !!bam && chon !== null && chon !== undefined && !dangChon;
         const noi = (
           <>
-            <View style={[s.ranh, { height: cao }, dangChon && { backgroundColor: M.chinhSoft }]}>
+            <View style={[s.ranh, { height: cao }, dangChon && { backgroundColor: M.chinhSoft }, mo && { opacity: 0.45 }]}>
               {kieu === "chong"
                 ? <Cot thu={i} cao={Math.min(1, tongCot(x) / dinh) * dai} phan={phanChong(x)} giam={giam} />
                 : x.phan.map((p, k) => <Cot key={k} thu={i} cao={Math.min(1, p.gia / dinh) * dai} phan={[p]} giam={giam} />)}
@@ -67,11 +70,11 @@ export function CotClay({ ds, max, kieu = "doi", cao = 120, chon = null, bam, ta
             </Text>
           </>
         );
-        const st = { flex: 1, minWidth: 0, alignItems: "center" as const, gap: 6, opacity: mo ? 0.45 : 1 };
+        const st = { flex: 1, minWidth: 0, alignItems: "center" as const, gap: 6 };
         return bam ? (
           <Pressable key={x.khoa} disabled={tat?.(i)} onPress={() => bam(i)} accessibilityRole="button" accessibilityState={{ selected: dangChon }}
             accessibilityLabel={x.doc} hitSlop={{ top: 6, bottom: 6 }} style={st}>{noi}</Pressable>
-        ) : <View key={x.khoa} accessible accessibilityLabel={x.doc} style={st}>{noi}</View>;
+        ) : <View key={x.khoa} style={st}>{noi}</View>;
       })}
     </Animated.View>
   );
@@ -81,7 +84,7 @@ const tongCot = (x: CotNgay) => Math.max(x.tong ?? 0, x.phan.reduce((a, p) => a 
 /** Phần chồng + phần «chưa chia mục» (tong lớn hơn tổng các phần) ở đỉnh. */
 const phanChong = (x: CotNgay): PhanCot[] => {
   const du = tongCot(x) - x.phan.reduce((a, p) => a + p.gia, 0);
-  return du > 0 ? [{ gia: du, mau: M.oNhap, mo: x.phan.some((p) => p.mo) }, ...x.phan] : x.phan;
+  return du > 0 ? [{ gia: du, mau: M.vien2, mo: x.phan.some((p) => p.mo) }, ...x.phan] : x.phan;   // khác màu «Chưa phân loại» (oNhap)
 };
 
 /** Một cột clay: mọc từ chân (lò xo MOC, so le theo `thu`), xong một vệt men lướt dọc từ chân lên đỉnh. */
@@ -112,7 +115,7 @@ export function ThanhClay({ ti, mau = M.chinh, cao = 14, tre = 0, nhanDoc }: { t
   const dem = cao >= 12 ? 2 : 1.5;
   // chạy lại «dài ra» khi thanh từ trống lên có số (dữ liệu vừa về), không chạy lại mỗi lần số nhích (đồng hồ đếm)
   const { p, q } = useMoc(giam, tre, 360, 420, t > 0);
-  const stThanh = useAnimatedStyle(() => ({ width: `${t * 100 * Math.max(0, p.value)}%` }));
+  const stThanh = useAnimatedStyle(() => ({ width: `${Math.min(100, t * 100 * Math.max(0, p.value))}%` }));   // gần đầy: nảy không tràn rãnh
   const stVet = useAnimatedStyle(() => ({ opacity: q.value > 0 && q.value < 1 ? 1 : 0, left: `${(2.4 * q.value - 1.2) * 100}%` }));
   return (
     <View accessibilityRole="progressbar" accessibilityLabel={nhanDoc} accessibilityValue={{ min: 0, max: 100, now: Math.round(t * 100) }}
@@ -139,35 +142,24 @@ export function VongClay({ ti, co = 200, day, mau = M.chinhSang, children, nhanD
 }) {
   const giam = useReducedMotion();
   const sw = day ?? Math.max(5, Math.round(co * 0.08));
-  const r = co / 2 - sw / 2 - 1, cv = 2 * Math.PI * r, t = Math.min(1, Math.max(0, ti || 0)), c = co / 2;
+  const r = co / 2 - sw / 2 - 1, t = Math.min(1, Math.max(0, ti || 0)), c = co / 2;
   const p = useSharedValue(giam ? 1 : 0);
-  useEffect(() => { if (!giam) p.set(withTiming(1, { duration: 700, easing: EASE.men })); else p.set(1); }, [giam, p]);
-  // mỗi vòng (ống, chân tối, vệt men) có bán kính riêng ⇒ chu vi riêng, để ba cung dài đúng cùng một góc
-  const r1 = r - sw * 0.3, r2 = r + sw * 0.16, cv1 = 2 * Math.PI * r1, cv2 = 2 * Math.PI * r2;
-  const ong = useAnimatedProps(() => ({ strokeDashoffset: cv * (1 - t * p.value) }));
-  const ong1 = useAnimatedProps(() => ({ strokeDashoffset: cv1 * (1 - t * p.value) }));
-  const ong2 = useAnimatedProps(() => ({ strokeDashoffset: cv2 * (1 - t * p.value) }));
+  const coSo = t > 0;
+  useEffect(() => { if (giam) p.set(1); else { p.set(0); p.set(withTiming(1, { duration: 700, easing: EASE.men })); } }, [giam, coSo, p]);
+  // ống màu + chân tối phía trong + vệt men phía ngoài: mỗi cung bán kính riêng (chu vi riêng) để cùng phủ một góc
+  const cung = [{ r, mau, w: sw }, { r: r - sw * 0.3, mau: "rgba(0,0,0,0.16)", w: sw * 0.26 }, { r: r + sw * 0.16, mau: "rgba(255,255,255,0.55)", w: sw * 0.22 }];
   const dia = co - sw * 2 - 4;
   return (
-    <View style={{ width: co, height: co, alignItems: "center", justifyContent: "center" }} accessibilityRole="progressbar" accessibilityLabel={nhanDoc}
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(t * 100) }}>
+    <View style={{ width: co, height: co, alignItems: "center", justifyContent: "center" }}
+      {...(nhanDoc ? { accessibilityRole: "progressbar" as const, accessibilityLabel: nhanDoc, accessibilityValue: { min: 0, max: 100, now: Math.round(t * 100) } }
+        : { accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" as const })}>
       <View style={{ position: "absolute", width: co, height: co, borderRadius: co / 2, boxShadow: co >= 80 ? BONG.nho : undefined }} />
       <Svg width={co} height={co} style={{ position: "absolute" }}>
         {/* rãnh lõm: xám + bóng trong (vòng tối mảnh phía trong) + mép sáng ngoài */}
         <Circle cx={c} cy={c} r={r} stroke={M.ranh} strokeWidth={sw} fill="none" />
         <Circle cx={c} cy={c} r={r - sw * 0.28} stroke="rgba(40,44,42,0.10)" strokeWidth={sw * 0.38} fill="none" />
         <Circle cx={c} cy={c} r={r + sw * 0.42} stroke="rgba(255,255,255,0.95)" strokeWidth={Math.max(1, sw * 0.14)} fill="none" />
-        {t > 0 ? (
-          <>
-            <ACircle cx={c} cy={c} r={r} stroke={mau} strokeWidth={sw} fill="none" strokeLinecap="round" strokeDasharray={`${cv} ${cv}`}
-              strokeDashoffset={cv * (1 - t)} transform={`rotate(-90 ${c} ${c})`} animatedProps={ong} />
-            {/* ống: chân tối phía trong + vệt men trắng phía ngoài, cùng độ dài cung */}
-            <ACircle cx={c} cy={c} r={r1} stroke="rgba(0,0,0,0.16)" strokeWidth={sw * 0.26} fill="none" strokeLinecap="round"
-              strokeDasharray={`${cv1} ${cv1}`} strokeDashoffset={cv1 * (1 - t)} transform={`rotate(-90 ${c} ${c})`} animatedProps={ong1} />
-            <ACircle cx={c} cy={c} r={r2} stroke="rgba(255,255,255,0.55)" strokeWidth={sw * 0.22} fill="none" strokeLinecap="round"
-              strokeDasharray={`${cv2} ${cv2}`} strokeDashoffset={cv2 * (1 - t)} transform={`rotate(-90 ${c} ${c})`} animatedProps={ong2} />
-          </>
-        ) : null}
+        {t > 0 ? cung.map((x, k) => <Cung key={k} c={c} t={t} p={p} {...x} />) : null}
       </Svg>
       {children ? (
         <View style={{ width: dia, height: dia, borderRadius: dia / 2, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
@@ -177,6 +169,14 @@ export function VongClay({ ti, co = 200, day, mau = M.chinhSang, children, nhanD
       ) : null}
     </View>
   );
+}
+
+/** Một cung của vòng: dash theo chu vi của chính nó, quét theo `p`; có strokeDashoffset tĩnh cho web. */
+function Cung({ c, r, mau, w, t, p }: { c: number; r: number; mau: string; w: number; t: number; p: SharedValue<number> }) {
+  const cv = 2 * Math.PI * r;
+  const ap = useAnimatedProps(() => ({ strokeDashoffset: cv * (1 - t * p.value) }));
+  return <ACircle cx={c} cy={c} r={r} stroke={mau} strokeWidth={w} fill="none" strokeLinecap="round" strokeDasharray={`${cv} ${cv}`}
+    strokeDashoffset={cv * (1 - t)} transform={`rotate(-90 ${c} ${c})`} animatedProps={ap} />;
 }
 
 // ---------------------------------------------------------------- chú giải
