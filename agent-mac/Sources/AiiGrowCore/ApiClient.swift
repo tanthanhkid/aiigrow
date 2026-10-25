@@ -31,12 +31,15 @@ public protocol MayChuApi: AnyObject {
   func baoXongLenh(id: String) async throws
   /// GET api/agent/ban-moi?platform=mac — nil nếu máy chủ không có manifest.
   func banMoi() async throws -> BanMoi?
+  /// POST api/device/ung-dung — danh sách app thật (DanhSachApp.swift).
+  func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp
 }
 
 public extension MayChuApi {
   func datPhien(mayChu: String, token: String) {}
   func baoXongLenh(id: String) async throws {}
   func banMoi() async throws -> BanMoi? { nil }
+  func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp { throw LoiApi(maHttp: 404, ma: "not_found", chu: "Máy chủ chưa có danh sách app") }
 }
 
 public final class ApiClient: MayChuApi {
@@ -99,13 +102,15 @@ public final class ApiClient: MayChuApi {
     let p = try PolicyParser.parse(PolicyParser.layKhoiPolicy(raw))
     var next = p.nextCheckSec
     var lenh: [LenhMay] = []
+    var dsApp: TinHieuDanhSachApp?
     if let o = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] {
       if let n = o["nextCheckSec"] as? Int, n > 0 { next = n }
       for l in o["lenh"] as? [[String: Any]] ?? [] {
         if let id = chuoi(l["id"]), let loai = l["loai"] as? String, !id.isEmpty, !loai.isEmpty { lenh.append(LenhMay(id: id, loai: loai)) }
       }
+      dsApp = TinHieuDanhSachApp.tach(o)
     }
-    return KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh)
+    return KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh, danhSachApp: dsApp)
   }
 
   public func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async throws -> KetQuaYeuCau {
@@ -130,6 +135,12 @@ public final class ApiClient: MayChuApi {
       throw LoiApi(chu: "Manifest bản mới không đúng định dạng")
     }
     return BanMoi(version: v, url: u, sha256: s)
+  }
+
+  public func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp {
+    let d = try await gui("POST", "api/device/ung-dung", try than.json())
+    let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+    return KetQuaGuiApp(bam: o?["bam"] as? String, soApp: o?["soApp"] as? Int, thieuIcon: o?["thieuIcon"] as? [String])
   }
 
   public func baoXongLenh(id: String) async throws {
