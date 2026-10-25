@@ -14,6 +14,8 @@ public struct LoiApi: Error, Equatable, CustomStringConvertible {
   public var description: String { chu }
   /// Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline theo Policy nhớ.
   public var laMang: Bool { maHttp == nil || maHttp! >= 500 }
+  /// Mã lỗi của ghep-goi khi token gói cài hỏng hẳn (server/lib/lenh-may.ts › doiGoiCai) — daemon xoá token, tray quay về ô mã 6 số.
+  public static let maTokenGoiHong: Set<String> = ["ma_sai", "ma_da_dung", "ma_het_han", "sai_nen_tang"]
   /// Máy chủ KHẲNG ĐỊNH máy đã bị gỡ khỏi gia đình.
   public var laTokenSai: Bool { maHttp == 401 && (ma == "token_sai" || ma == "device_unknown") }
 }

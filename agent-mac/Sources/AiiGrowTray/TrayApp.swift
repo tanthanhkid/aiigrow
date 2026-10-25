@@ -68,6 +68,16 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   /// Báo tin mới: thông báo hệ thống nếu được phép (Trung tâm thông báo giữ lại cho Con xem sau), không thì bảng nhỏ góc phải.
   func baoTinMoi(_ tieu: String, _ noi: String, muc: MucApp) {
     guard thongBaoHeThong else { hienTinMoi(tieu, noi, muc: muc); return }
+    // quyền có thể bị tắt sau lúc mở ⇒ hỏi lại mỗi lần, không được thì dùng bảng nhỏ
+    UNUserNotificationCenter.current().getNotificationSettings { st in
+      let duoc = st.authorizationStatus == .authorized && st.alertSetting == .enabled
+      Task { @MainActor [weak self] in
+        if duoc { self?.guiThongBao(tieu, noi, muc: muc) } else { self?.hienTinMoi(tieu, noi, muc: muc) }
+      }
+    }
+  }
+
+  func guiThongBao(_ tieu: String, _ noi: String, muc: MucApp) {
     let nd = UNMutableNotificationContent()
     nd.title = tieu; nd.body = noi; nd.sound = .default
     nd.userInfo = ["muc": muc.rawValue]

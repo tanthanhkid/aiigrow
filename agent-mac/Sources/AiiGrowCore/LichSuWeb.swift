@@ -82,7 +82,7 @@ public enum LichSuWeb {
 
   public static func docChromium(_ duongDan: String, tu: Date) -> [LuotWeb] {
     let moc = Int64((tu.timeIntervalSince1970 + lech1601) * 1_000_000)
-    return truyVan(duongDan, "select u.url, v.visit_time, v.visit_duration from visits v join urls u on u.id = v.url where v.visit_time >= ?1", moc) { st in
+    return truyVan(duongDan, "select u.url, v.visit_time, v.visit_duration from visits v join urls u on u.id = v.url where v.visit_time >= ?1 order by v.visit_time desc", moc) { st in
       let url = String(cString: sqlite3_column_text(st, 0))
       let t = Double(sqlite3_column_int64(st, 1)) / 1_000_000 - lech1601
       return LuotWeb(url: url, luc: Date(timeIntervalSince1970: t), giay: Double(sqlite3_column_int64(st, 2)) / 1_000_000)
@@ -91,7 +91,7 @@ public enum LichSuWeb {
 
   public static func docSafari(_ duongDan: String, tu: Date) -> [LuotWeb] {
     let moc = Int64(tu.timeIntervalSinceReferenceDate)
-    return truyVan(duongDan, "select i.url, v.visit_time from history_visits v join history_items i on i.id = v.history_item where v.visit_time >= ?1", moc) { st in
+    return truyVan(duongDan, "select i.url, v.visit_time from history_visits v join history_items i on i.id = v.history_item where v.visit_time >= ?1 order by v.visit_time desc", moc) { st in
       LuotWeb(url: String(cString: sqlite3_column_text(st, 0)), luc: Date(timeIntervalSinceReferenceDate: sqlite3_column_double(st, 1)), giay: 0)
     }
   }

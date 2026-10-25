@@ -68,11 +68,13 @@ final class MaOfflineTests: XCTestCase {
     dh.thuc = t0
     let pj = #"{"mode":"khoa","locked":true,"lockReason":"khoa","maOfflineBiMat":"bi-mat-thu_ABC"}"#
     let (b, kho) = try dung(fake, dh, thuMuc, policy: pj)
+    guard case .loi(let maOn, _) = await b.xuLyIPC(.maOffline(ma: "957503"), uidGoi: 501) else { return XCTFail() }
+    XCTAssertEqual(maOn, "dang_co_mang", "có mạng ⇒ không nhận mã")
     HttpMock.dat { _, _ in nil }                     // mất mạng
     await b.vongDongBo()
     guard case .trangThai(let t1) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
-    XCTAssertEqual(t1.cheDo, .khoa); XCTAssertEqual(t1.nhapMaOffline, true); XCTAssertNil(t1.demNguocGiay, "chờ mã: không đếm ngược đăng xuất")
-    let ap = await b.vongAp(); XCTAssertNil(ap.demNguocGiay); XCTAssertTrue(fake.daDongPhien.isEmpty)
+    XCTAssertEqual(t1.cheDo, .khoa); XCTAssertEqual(t1.nhapMaOffline, true); XCTAssertEqual(t1.demNguocGiay, 300, "chờ mã: đếm ngược dài 5 phút")
+    let ap = await b.vongAp(); XCTAssertEqual(ap.demNguocGiay, 300); XCTAssertTrue(fake.daDongPhien.isEmpty)
     let sai = await b.xuLyIPC(.maOffline(ma: "000000"), uidGoi: 501)
     guard case .loi = sai else { return XCTFail() }
     if case .duoc = QuyenIPC.kiem(.maOffline(ma: "1"), uidGoi: 502, uidCon: 501, daGhep: true, laAdmin: { _ in true }) { XCTFail("chỉ uid Con") }

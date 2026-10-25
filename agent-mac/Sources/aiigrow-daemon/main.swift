@@ -28,7 +28,7 @@ let kho = ConfigStore(duongDan: duongCauHinh)
 let token = kho.doc()?.token
 let api = ApiClient(mayChu: kho.doc()?.mayChu ?? mayChu, token: token)
 let boMay = BoMay(api: api, heThong: heThong, kho: kho, tuyChon: TuyChonBoMay(tuCapNhat: !laThu), nguonApp: QuetAppMac(),
-                   boDemLog: heThat.boDemLog, docLichSuWeb: !laThu)   // log + sự kiện + lịch sử web lên máy chủ mỗi 5 phút     // danh sách app thật: /Applications + ~/Applications của Con
+                   boDemLog: heThat.boDemLog, docLichSuWeb: !laThu)   // danh sách app thật: /Applications + ~/Applications của Con; log + sự kiện + lịch sử web lên máy chủ
 
 heThong.ghiLog("aiigrow-daemon \(PhienBan.hienTai) khởi động\(laThu ? " [THỬ]" : "") — cấu hình \(duongCauHinh), socket \(duongSocket)")
 

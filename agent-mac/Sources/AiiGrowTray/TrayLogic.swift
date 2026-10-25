@@ -14,7 +14,6 @@ public enum TrayLogic {
   public static func chonMan(_ t: TrangThai?) -> ManToanMan {
     guard let t, t.laPhienCon else { return .khong }
     if let g = t.demNguocGiay, g > 0 { return .demNguoc(giay: g, lyDo: t.lyDoKhoa) }
-    if t.nhapMaOffline == true { return .khoa(lyDo: t.lyDoKhoa) }        // mất mạng: giữ màn khoá có ô nhập mã (daemon không đăng xuất)
     if t.cheDo == .khoa { return .khoa(lyDo: t.lyDoKhoa) }
     return .khong
   }
