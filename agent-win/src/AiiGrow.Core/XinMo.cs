@@ -37,7 +37,9 @@ public static class XinMoView
     {
         var t = (loiNhan ?? "").Trim();
         if (t.Length == 0) t = "Con xin mở " + muc;
-        return t.Length <= LoiNhanToiDa ? t : t[..LoiNhanToiDa];
+        if (t.Length <= LoiNhanToiDa) return t;
+        var n = char.IsHighSurrogate(t[LoiNhanToiDa - 1]) ? LoiNhanToiDa - 1 : LoiNhanToiDa;   // không cắt đôi emoji (cặp UTF-16)
+        return t[..n];
     }
 
     /// <summary>Câu báo theo trạng thái lời xin (cùng bộ trạng thái với xin thêm giờ — <see cref="TrayView.XinGio"/>).</summary>

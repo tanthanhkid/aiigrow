@@ -60,6 +60,22 @@ public class DongBoOsTests
     [InlineData(null, false)]
     public void ManChan_XinMoHanApp(string? appId, bool hien) => Assert.Equal(hien, BlockScreenView.CanAskOpen(appId));
 
+    [Theory]
+    [InlineData(LockReasons.ChuaPhanLoai, true)]
+    [InlineData(null, true)]
+    [InlineData(LockReasons.HetGio, false)]
+    [InlineData(LockReasons.Ngu, false)]
+    [InlineData(LockReasons.HetDiem, false)]
+    [InlineData(LockReasons.Khoa, false)]
+    public void ManChan_XinMoHanApp_ChiKhiDoiLuatMoDuoc(string? lyDo, bool hien) => Assert.Equal(hien, BlockScreenView.CanAskOpen("roblox.exe", lyDo));
+
+    [Fact]
+    public void XinMo_LyDo_KhongCatDoiEmoji()
+    {
+        var t = XinMoView.LyDo(new string('a', XinMoView.LoiNhanToiDa - 1) + "😀", "x");
+        Assert.False(char.IsHighSurrogate(t[^1]));
+    }
+
     [Fact]
     public void PipeRequest_XinMo_GiuLoaiVaGiaTri()
     {

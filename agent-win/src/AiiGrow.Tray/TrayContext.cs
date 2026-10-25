@@ -133,6 +133,7 @@ internal sealed class TrayContext : ApplicationContext
             _app = new AppForm();
             _app.TinDaXem += () => _tinMoi = 0;
             _app.RetryClicked += () => _ = RetryAsync();
+            _app.XinMoClicked += () => OpenXinMo();
         }
         if (tuToast) _tinMoi = 0;
         PushApp();
@@ -221,11 +222,12 @@ internal sealed class TrayContext : ApplicationContext
 
     private XinMoForm? _xinMo;
 
-    /// <summary>«Xin mở trang hoặc app» (một cửa sổ tại một thời điểm; bấm lại chỉ đưa lên trước — đang chờ Ba Mẹ thì không mất lời xin).</summary>
-    private void OpenXinMo()
+    /// <summary>«Xin mở trang hoặc app» (một cửa sổ tại một thời điểm cho menu khay, app to, màn chặn; bấm lại chỉ đưa lên trước — đang chờ Ba Mẹ thì
+    /// không mất lời xin, không gửi trùng). <paramref name="loai"/> / <paramref name="muc"/>: màn chặn điền sẵn app vừa bị đóng (chỉ khi chưa có cửa sổ).</summary>
+    private void OpenXinMo(string loai = LoaiXin.MoWeb, string? muc = null)
     {
         if (_xinMo is { IsDisposed: false }) { _xinMo.Activate(); return; }
-        _xinMo = new XinMoForm();
+        _xinMo = new XinMoForm(loai, muc);
         _xinMo.FormClosed += (_, _) => { _xinMo?.Dispose(); _xinMo = null; };
         _xinMo.Show();
     }
@@ -315,6 +317,7 @@ internal sealed class TrayContext : ApplicationContext
         // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         _blocked = new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints, _state.Offline);
+        _blocked.XinMoApp += id => OpenXinMo(LoaiXin.CaiApp, id);
         _blocked.Show();
     }
 

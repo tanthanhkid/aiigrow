@@ -74,7 +74,7 @@ public sealed class PipeServer : BackgroundService
                     var req = string.IsNullOrEmpty(line) ? null : JsonSerializer.Deserialize<PipeRequest>(line, Json.Options);
                     var h = pipe.SafePipeHandle.DangerousGetHandle();
                     var clientSession = SessionHelper.PipeClientSession(h);
-                    bool khay = req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo && _laKhayThat(h);
+                    bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo || (req?.Cmd == PipeCmd.Request && LoaiXin.LaXinMo(req.Kind))) && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
@@ -157,6 +157,8 @@ public sealed class PipeServer : BackgroundService
                 // «Xin mở trang hoặc app» (mo_web / cai_app): giá trị ở AppId. Máy chủ chuẩn hoá + quyết; ở đây chỉ chặn ô trống / quá dài.
                 if (LoaiXin.LaXinMo(req.Kind))
                 {
+                    // như Play: chỉ khay đã cài — tiến trình lạ trong phiên Con không gửi được lời xin mở tuỳ ý bằng token máy (review #75)
+                    if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được gửi lời xin này" };
                     var muc = XinMoView.ChuanMuc(req.AppId);
                     if (muc == null) return new PipeResponse { Ok = false, Error = "Con ghi địa chỉ trang hoặc tên app nhé." };
                     try

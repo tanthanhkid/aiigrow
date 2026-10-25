@@ -52,6 +52,8 @@ internal sealed class AppForm : Form
     private string _sig = "";
     private Label? _bigLbl, _capLbl;
 
+    /// <summary>Con bấm «Xin mở trang hoặc app» (khay mở cửa sổ dùng chung).</summary>
+    public event Action? XinMoClicked;
     /// <summary>Con bấm «Thử kết nối lại» (khay gọi dịch vụ đồng bộ ngay).</summary>
     public event Action? RetryClicked;
     /// <summary>Con đã mở mục Tin nhắn (khay xoá số tin mới).</summary>
@@ -215,7 +217,7 @@ internal sealed class AppForm : Form
             if (dau != null && Visible) _ = LamMoiPhutChoiAsync();
         }
         ApplyKetNoiUi();
-        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{string.Join(',', _s.DungTheoApp.Select(x => x.AppId + ":" + x.Phut))}";
+        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{(_muc == MucApp.HomNay ? string.Join(',', _s.DungTheoApp.Select(x => x.AppId + ":" + x.Phut)) : "")}";
         if (sig != _sig) { _sig = sig; Render(); }
     }
 
@@ -402,11 +404,8 @@ internal sealed class AppForm : Form
         f.ShowDialog(this);
     }
 
-    private void OpenXinMo()
-    {
-        using var f = new XinMoForm();
-        f.ShowDialog(this);
-    }
+    /// <summary>«Xin mở trang hoặc app»: khay giữ MỘT cửa sổ cho cả menu khay / app to / màn chặn (không gửi trùng lời xin).</summary>
+    private void OpenXinMo() => XinMoClicked?.Invoke();
 
     // ---------------------------------------------------------------- Hôm nay
 
