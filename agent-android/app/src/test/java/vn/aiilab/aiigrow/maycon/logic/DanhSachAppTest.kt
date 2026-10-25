@@ -33,6 +33,7 @@ class DanhSachAppTest {
         assertEquals(a, bamDanhSach(listOf(olm, yt, rb)))
         assertEquals(a, bamDanhSach(listOf(yt.copy(icon = "khác"), rb, olm)))
         assertNotEquals(a, bamDanhSach(listOf(yt.copy(phienBan = "19.2"), rb, olm)))
+        assertNotEquals(a, bamDanhSach(listOf(yt.copy(iconBam = "ib2"), rb, olm)))   // bam tính theo iconBam
         assertNotEquals(a, bamDanhSach(listOf(yt, rb)))
         assertEquals(64, a.length)
     }
@@ -154,5 +155,47 @@ class DanhSachAppTest {
         assertEquals(setOf("com.UCMobile.intl", "com.Supercell.ClashOfClans"), quyetDinh(cs, now, 600, daCai, null).goiChan)
         assertEquals(2, phutGiaiTri(mapOf("com.Supercell.ClashOfClans" to 120_000L), setOf("com.supercell.clashofclans")))
         assertEquals(setOf("com.UCMobile.intl"), truGoi(setOf("com.UCMobile.intl", "com.Supercell.ClashOfClans"), setOf("com.supercell.clashofclans")))
+    }
+
+    @Test fun icon_chiGuiKhiMoiDoiHoacThieu() {
+        val a = yt.copy(iconBam = "i1"); val b = rb.copy(icon = "Ymlu", iconBam = "i2"); val c = olm.copy(icon = "b2xt", iconBam = "i3")
+        val ds = listOf(a, b, c)
+        // lần đầu: gửi icon cho mọi app có icon
+        assertEquals(listOf("aWNvbg==", "Ymlu", "b2xt"), chonIcon(ds, emptyMap(), emptySet()).map { it.icon })
+        // máy chủ đã có icon a, b cùng băm; c đổi icon ⇒ chỉ c gửi icon, a/b vẫn giữ iconBam
+        val g = chonIcon(ds, mapOf(a.khoa to "i1", b.khoa to "i2", c.khoa to "cu"), emptySet())
+        assertEquals(listOf(null, null, "b2xt"), g.map { it.icon })
+        assertEquals(listOf("i1", "i2", "i3"), g.map { it.iconBam })
+        assertFalse(g[0].json().has("icon")); assertEquals("i1", g[0].json().getString("iconBam"))
+        // máy chủ báo thiếu icon b ⇒ gửi icon b dù cùng băm
+        assertEquals(listOf(null, "Ymlu", null), chonIcon(ds, mapOf(a.khoa to "i1", b.khoa to "i2", c.khoa to "i3"), setOf(b.khoa)).map { it.icon })
+        // icon quá trần ⇒ bỏ cả icon lẫn iconBam
+        val to = chuanDanhSach(listOf(c.copy(icon = "A".repeat(TOI_DA_ICON_B64 + 1))), minh).single()
+        assertNull(to.icon); assertNull(to.iconBam)
+        assertEquals("b2xt", chuanDanhSach(listOf(c), minh).single().icon)
+    }
+
+    @Test fun thieuIcon_docLuuVaGuiBu() {
+        val r = org.json.JSONObject("""{"ok":true,"bam":"x","soApp":3,"thieuIcon":["com.roblox.client",""]}""")
+        assertEquals(setOf("com.roblox.client"), docThieuIcon(r))
+        assertTrue(docThieuIcon(org.json.JSONObject("""{"ok":true}""")).isEmpty()); assertTrue(docThieuIcon(null).isEmpty())
+        assertEquals(setOf("a", "b"), docDsJson(dsJson(setOf("b", "a")))); assertTrue(docDsJson("hỏng").isEmpty())
+
+        val a = yt.copy(iconBam = "i1"); val b = rb.copy(icon = "Ymlu", iconBam = "i2")
+        // sau gửi: b vừa gửi icon nhưng máy chủ báo thiếu ⇒ không ghi nhận; a đã có từ trước cùng băm ⇒ giữ
+        assertEquals(mapOf(a.khoa to "i1"), iconSauGui(listOf(a, b), setOf(b.khoa), mapOf(a.khoa to "i1"), setOf(b.khoa)))
+        assertEquals(mapOf(a.khoa to "i1", b.khoa to "i2"), iconSauGui(listOf(a, b), setOf(b.khoa), mapOf(a.khoa to "i1"), emptySet()))
+        assertEquals(emptyMap<String, String>(), iconSauGui(listOf(a), emptySet(), mapOf(a.khoa to "cu"), emptySet()))   // băm đổi mà chưa gửi icon
+
+        // lượt sau: không đổi gì nhưng có thieuIcon ⇒ quét ngay và gửi phần đổi chỉ gồm app thiếu, kèm icon
+        val ds = listOf(a, b); val bam = bamDanhSach(ds)
+        val g = DaGui(bam, dauTheoKhoa(ds), "r1", mapOf(a.khoa to "i1"), setOf(b.khoa))
+        assertTrue(nenQuet(TinHieuDanhSach(bam, "r1"), g, 10_000_000L - 1_000, 0, 10_000_000L))
+        val c = cachGui(TinHieuDanhSach(bam, "r1"), g, ds, bam) as CachGui.Doi
+        assertEquals(bam, c.bamTruoc)
+        assertEquals(listOf(b.khoa), c.phan.them.map { it.khoa }); assertTrue(c.phan.bo.isEmpty())
+        assertEquals("Ymlu", chonIcon(c.phan.them, g.iconDaGui, g.thieuIcon).single().icon)
+        // app thiếu icon đã bị gỡ / không có icon ⇒ thôi
+        assertEquals(CachGui.KhongGui, cachGui(TinHieuDanhSach(bam, "r1"), g.copy(thieuIcon = setOf("da.go")), ds, bam))
     }
 }

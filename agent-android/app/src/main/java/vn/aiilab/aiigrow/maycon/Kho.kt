@@ -46,10 +46,14 @@ class Kho(ctx: Context) {
     var dsAppBam: String? get() = p.getString("dsAppBam", null); set(v) = p.edit().putString("dsAppBam", v).apply()
     var dsAppDau: String? get() = p.getString("dsAppDau", null); set(v) = p.edit().putString("dsAppDau", v).apply()
     var dsAppYeuCau: String? get() = p.getString("dsAppYeuCau", null); set(v) = p.edit().putString("dsAppYeuCau", v).apply()
+    /** khoa → iconBam máy chủ đã có icon (JSON) và khoa máy chủ báo thiếu icon (JSON mảng). */
+    val dsAppIcon: String? get() = p.getString("dsAppIcon", null)
+    val dsAppThieuIcon: String? get() = p.getString("dsAppThieuIcon", null)
 
     /** Ghi một lần (một edit) để bam và dấu theo khoa không lệch nhau nếu tiến trình chết giữa chừng. */
-    fun luuDsApp(bam: String, dau: String, yeuCau: String?) {
-        p.edit().putString("dsAppBam", bam).putString("dsAppDau", dau).apply { if (yeuCau != null) putString("dsAppYeuCau", yeuCau) }.apply()
+    fun luuDsApp(bam: String, dau: String, yeuCau: String?, icon: String, thieuIcon: String) {
+        p.edit().putString("dsAppBam", bam).putString("dsAppDau", dau).putString("dsAppIcon", icon).putString("dsAppThieuIcon", thieuIcon)
+            .apply { if (yeuCau != null) putString("dsAppYeuCau", yeuCau) }.apply()
     }
 
     val daGhep get() = token != null || cheDoThu

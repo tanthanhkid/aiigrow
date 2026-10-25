@@ -20,7 +20,14 @@ import vn.aiilab.aiigrow.maycon.logic.docTinHieuDanhSach
 import vn.aiilab.aiigrow.maycon.logic.nenQuet
 import vn.aiilab.aiigrow.maycon.logic.thanGuiDoi
 import vn.aiilab.aiigrow.maycon.logic.thanGuiDu
-import vn.aiilab.aiigrow.maycon.logic.TOI_DA_ICON_B64
+import org.json.JSONObject
+import vn.aiilab.aiigrow.maycon.logic.CO_ICON_PX
+import vn.aiilab.aiigrow.maycon.logic.chonIcon
+import vn.aiilab.aiigrow.maycon.logic.docDsJson
+import vn.aiilab.aiigrow.maycon.logic.docThieuIcon
+import vn.aiilab.aiigrow.maycon.logic.dsJson
+import vn.aiilab.aiigrow.maycon.logic.iconSauGui
+import vn.aiilab.aiigrow.maycon.logic.sha256Hex
 import vn.aiilab.aiigrow.maycon.logic.CHU_KY_QUET_MS
 import vn.aiilab.aiigrow.maycon.logic.TinHieuDanhSach
 import java.io.ByteArrayOutputStream
@@ -68,20 +75,32 @@ class DanhSachApp(private val ctx: Context) {
         val t = if (ph != null && ph == phanHoiLucGui) tinHieu?.copy(bam = k.dsAppBam) else tinHieu
         val suKien = suKienGoiLuc.get()
         // nenQuet không cần dấu theo khoa ⇒ chỉ đọc JSON dấu khi thật sự quét
-        if (!nenQuet(t, DaGui(k.dsAppBam, emptyMap(), k.dsAppYeuCau), lanQuetCuoi, suKien, now, soLanLoi)) return
-        val g = DaGui(k.dsAppBam, docDauJson(k.dsAppDau), k.dsAppYeuCau)
+        val thieu = docDsJson(k.dsAppThieuIcon)
+        if (!nenQuet(t, DaGui(k.dsAppBam, emptyMap(), k.dsAppYeuCau, thieuIcon = thieu), lanQuetCuoi, suKien, now, soLanLoi)) return
+        val g = DaGui(k.dsAppBam, docDauJson(k.dsAppDau), k.dsAppYeuCau, docDauJson(k.dsAppIcon), thieu)
         lanQuetCuoi = now
         var ok = false
         try {
             val ds = chuanDanhSach(quet(), ctx.packageName)
             val bam = bamDanhSach(ds)
             val mc = MayChu(k.mayChu, k.token)
-            fun luu() { k.luuDsApp(bam, dauJson(dauTheoKhoa(ds)), t?.yeuCau); phanHoiLucGui = ph }
-            fun guiDu() { mc.ungDung(thanGuiDu(ds.map(::kemIcon), bam)); luu() }
+            /** Lưu sau khi gửi được; `guiIcon` = khoa vừa gửi kèm icon, `r` = phản hồi 200 (đọc `thieuIcon`). */
+            fun luu(guiIcon: Set<String>, r: JSONObject?) {
+                val thieuMoi = docThieuIcon(r)
+                k.luuDsApp(bam, dauJson(dauTheoKhoa(ds)), t?.yeuCau, dauJson(iconSauGui(ds, guiIcon, g.iconDaGui, thieuMoi)), dsJson(thieuMoi))
+                phanHoiLucGui = ph
+            }
+            fun guiDu() {
+                val gui = chonIcon(ds, g.iconDaGui, g.thieuIcon)
+                luu(gui.filter { it.icon != null }.map { it.khoa }.toSet(), mc.ungDung(thanGuiDu(gui, bam)))
+            }
             when (val c = cachGui(t, g, ds, bam)) {
-                CachGui.KhongGui -> { if (t?.bam == bam) luu() }
+                CachGui.KhongGui -> { if (t?.bam == bam || g.thieuIcon.isNotEmpty()) luu(emptySet(), null) }
                 CachGui.Du -> guiDu()
-                is CachGui.Doi -> try { mc.ungDung(thanGuiDoi(c.bamTruoc, bam, c.phan.copy(them = c.phan.them.map(::kemIcon)))); luu() } catch (e: MayChu.Loi) {
+                is CachGui.Doi -> try {
+                    val them = chonIcon(c.phan.them, g.iconDaGui, g.thieuIcon)
+                    luu(them.filter { it.icon != null }.map { it.khoa }.toSet(), mc.ungDung(thanGuiDoi(c.bamTruoc, bam, c.phan.copy(them = them))))
+                } catch (e: MayChu.Loi) {
                     if (e.http == 409 || e.ma == "can_gui_du") guiDu() else throw e
                 }
             }
@@ -97,7 +116,7 @@ class DanhSachApp(private val ctx: Context) {
         } else soLanLoi++
     }
 
-    /** App mở được từ trình khởi chạy (cần <queries> launcher trong manifest để thấy app khác trên Android 11+). Chưa nạp icon. */
+    /** App mở được từ trình khởi chạy (cần <queries> launcher trong manifest để thấy app khác trên Android 11+), kèm icon thật + iconBam. */
     private fun quet(): List<AppMay> {
         val pm = ctx.packageManager
         return DoPhut.appLauncher(ctx).map { ai ->   // chính AiiGrow Con bị chuanDanhSach bỏ
@@ -110,32 +129,31 @@ class DanhSachApp(private val ctx: Context) {
                     if (Build.VERSION.SDK_INT >= 33) pm.getPackageInfo(goi, PackageManager.PackageInfoFlags.of(0)).versionName
                     else @Suppress("DEPRECATION") pm.getPackageInfo(goi, 0).versionName
                 } catch (_: Exception) { null },
-            )
+            ).let { a ->
+                // Icon thật từ PackageManager (AdaptiveIconDrawable vẽ cả nền + tiền cảnh qua draw()); quá cỡ ⇒ chuanDanhSach bỏ.
+                val png = try { iconPng(pm.getApplicationIcon(ai)) } catch (_: Exception) { null }
+                if (png == null) a else a.copy(icon = Base64.encodeToString(png, Base64.NO_WRAP), iconBam = sha256Hex(png))
+            }
         }
     }
-
-    /** Nạp icon chỉ cho app sắp gửi (icon không vào bam). Quá 16 KB base64 thì bỏ icon. */
-    private fun kemIcon(a: AppMay): AppMay = try {
-        a.copy(icon = iconPng(ctx.packageManager.getApplicationIcon(a.khoa)).takeIf { it.length <= TOI_DA_ICON_B64 })
-    } catch (_: Exception) { a }
 
     private fun nguoiCai(pm: PackageManager, goi: String): String? = try {
         if (Build.VERSION.SDK_INT >= 30) pm.getInstallSourceInfo(goi).installingPackageName
         else @Suppress("DEPRECATION") pm.getInstallerPackageName(goi)
     } catch (_: Exception) { null }
 
-    private fun iconPng(d: android.graphics.drawable.Drawable): String {
+    private fun iconPng(d: android.graphics.drawable.Drawable): ByteArray {
         val b = Bitmap.createBitmap(CO_ICON, CO_ICON, Bitmap.Config.ARGB_8888)
         val c = Canvas(b)
         d.setBounds(0, 0, CO_ICON, CO_ICON); d.draw(c)
         val o = ByteArrayOutputStream()
         b.compress(Bitmap.CompressFormat.PNG, 100, o)
         b.recycle()
-        return Base64.encodeToString(o.toByteArray(), Base64.NO_WRAP)
+        return o.toByteArray()
     }
 
     companion object {
         private const val TAG = "AiiGrowDsApp"
-        private const val CO_ICON = 32
+        private const val CO_ICON = CO_ICON_PX
     }
 }

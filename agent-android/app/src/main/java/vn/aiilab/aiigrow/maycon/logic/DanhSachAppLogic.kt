@@ -17,26 +17,30 @@ data class AppMay(
     val nguon: String = "launcher",
     val nhaPhatHanh: String? = null,
     val phienBan: String? = null,
-    /** PNG base64 (không tiền tố data:). Không vào bam — nén PNG không bảo đảm tất định giữa các lần quét. */
+    /** PNG 96×96 base64 (không tiền tố data:). Chỉ gửi khi app mới / icon đổi / máy chủ báo thiếu (xem [chonIcon]). */
     val icon: String? = null,
+    /** SHA-256 hex chữ thường của byte PNG — luôn gửi; máy chủ giữ icon cũ nếu trùng. Vào bam thay cho icon. */
+    val iconBam: String? = null,
 ) {
     fun json(): JSONObject = JSONObject().put("khoa", khoa).put("muc", muc).put("ten", ten).put("nguon", nguon).apply {
         nhaPhatHanh?.let { put("nhaPhatHanh", it) }
         phienBan?.let { put("phienBan", it) }
         icon?.let { put("icon", it) }
+        iconBam?.let { put("iconBam", it) }
     }
 
-    /** Dấu riêng của app: đổi khi tên / phiên bản / nhà phát hành đổi ⇒ vào `them` của lần gửi phần đổi. */
-    val dau: String get() = sha256Hex(listOf(khoa, muc, ten, nguon, nhaPhatHanh ?: "", phienBan ?: "").joinToString("\u0001"))
+    /** Dấu riêng của app: đổi khi tên / phiên bản / nhà phát hành / icon (iconBam) đổi ⇒ vào `them` của lần gửi phần đổi. */
+    val dau: String get() = sha256Hex(listOf(khoa, muc, ten, nguon, nhaPhatHanh ?: "", phienBan ?: "", iconBam ?: "").joinToString("\u0001"))
 }
 
 const val TOI_DA_APP = 1500
 const val TOI_DA_CHU = 300
-/** Icon base64 lớn hơn mức này máy chủ bỏ — agent bỏ luôn cho nhẹ đường truyền. */
-const val TOI_DA_ICON_B64 = 16 * 1024
+/** Cỡ icon (px) và trần base64 — quá trần thì bỏ cả icon lẫn iconBam (máy chủ không nhận). */
+const val CO_ICON_PX = 96
+const val TOI_DA_ICON_B64 = 64 * 1024
 
-fun sha256Hex(s: String): String =
-    MessageDigest.getInstance("SHA-256").digest(s.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+fun sha256Hex(b: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
+fun sha256Hex(s: String): String = sha256Hex(s.toByteArray(Charsets.UTF_8))
 
 /** Chuẩn hoá danh sách quét: bỏ khoá trống / chính AiiGrow Con, trùng khoá giữ bản đầu, cắt chữ ≤ 300, icon quá cỡ bỏ, sắp theo khoa. */
 fun chuanDanhSach(ds: List<AppMay>, goiMinh: String): List<AppMay> {
@@ -50,8 +54,7 @@ fun chuanDanhSach(ds: List<AppMay>, goiMinh: String): List<AppMay> {
                 khoa = a.khoa.take(TOI_DA_CHU), muc = a.muc.take(TOI_DA_CHU),
                 ten = cat(a.ten) ?: a.khoa.take(TOI_DA_CHU),
                 nhaPhatHanh = cat(a.nhaPhatHanh), phienBan = cat(a.phienBan),
-                icon = a.icon?.takeIf { it.isNotEmpty() && it.length <= TOI_DA_ICON_B64 },
-            )
+            ).let { b -> if (a.icon.isNullOrEmpty() || a.icon.length > TOI_DA_ICON_B64) b.copy(icon = null, iconBam = null) else b }
         }
         .sortedBy { it.khoa }
         .take(TOI_DA_APP)
@@ -96,8 +99,32 @@ fun docTinHieuDanhSach(phanHoi: String?): TinHieuDanhSach? = try {
     }
 } catch (_: Exception) { null }
 
-/** Trạng thái agent đã lưu (Kho). */
-data class DaGui(val bam: String?, val dau: Map<String, String>, val yeuCauDaXuLy: String?)
+/**
+ * Trạng thái agent đã lưu (Kho). `iconDaGui` = khoa → iconBam máy chủ đã có icon; `thieuIcon` = khoa máy chủ báo thiếu icon
+ * (phản hồi 200 `thieuIcon`) ⇒ lượt sau gửi `them` kèm icon.
+ */
+data class DaGui(
+    val bam: String?, val dau: Map<String, String>, val yeuCauDaXuLy: String?,
+    val iconDaGui: Map<String, String> = emptyMap(), val thieuIcon: Set<String> = emptySet(),
+)
+
+/** Giữ `icon` chỉ cho app mới / icon đổi (iconBam khác bản máy chủ đã có) / máy chủ báo thiếu; còn lại bỏ `icon`, giữ `iconBam`. */
+fun chonIcon(ds: List<AppMay>, iconDaGui: Map<String, String>, thieuIcon: Set<String>): List<AppMay> =
+    ds.map { if (it.icon != null && (it.khoa in thieuIcon || iconDaGui[it.khoa] != it.iconBam)) it else it.copy(icon = null) }
+
+/** Sau khi gửi được: khoa → iconBam máy chủ có icon (vừa gửi icon, hoặc trước đó đã có cùng iconBam), trừ khoa máy chủ báo thiếu. */
+fun iconSauGui(ds: List<AppMay>, daGuiIcon: Set<String>, truoc: Map<String, String>, thieuIcon: Set<String>): Map<String, String> =
+    ds.filter { it.iconBam != null && it.khoa !in thieuIcon && (it.khoa in daGuiIcon || truoc[it.khoa] == it.iconBam) }.associate { it.khoa to it.iconBam!! }
+
+/** `thieuIcon: [khoa…]` trong phản hồi 200 của /ung-dung (vắng ⇒ rỗng). */
+fun docThieuIcon(o: JSONObject?): Set<String> = o?.optJSONArray("thieuIcon")?.let { a ->
+    (0 until a.length()).mapNotNull { a.optString(it).ifBlank { null } }.toSet()
+} ?: emptySet()
+
+fun dsJson(s: Collection<String>): String = JSONArray(s.sorted()).toString()
+fun docDsJson(s: String?): Set<String> = try {
+    if (s.isNullOrBlank()) emptySet() else JSONArray(s).let { a -> (0 until a.length()).mapNotNull { a.optString(it).ifBlank { null } }.toSet() }
+} catch (_: Exception) { emptySet() }
 
 const val CHU_KY_QUET_MS = 30 * 60_000L
 /** Lệch bam với máy chủ (không phải yêu cầu «Làm mới») ⇒ quét lại nhưng không dày hơn mức này. */
@@ -119,7 +146,8 @@ fun nenQuet(t: TinHieuDanhSach?, g: DaGui, lanQuetCuoi: Long, suKienGoiLuc: Long
     lanQuetCuoi == 0L -> true                                                         // dịch vụ vừa khởi động
     soLanLoi > 0 && now - lanQuetCuoi < choSauLoi(soLanLoi) -> false
     coYeuCauMoi(t, g) -> true
-    g.bam == null -> true                                                             // chưa gửi được lần nào (vừa ghép / lần trước lỗi)
+    g.bam == null -> true
+    g.thieuIcon.isNotEmpty() -> true                                                  // máy chủ báo thiếu icon ⇒ gửi bù ngay                                                             // chưa gửi được lần nào (vừa ghép / lần trước lỗi)
     suKienGoiLuc > 0 && now - suKienGoiLuc >= CHO_SU_KIEN_GOI_MS -> true
     now - lanQuetCuoi >= CHU_KY_QUET_MS -> true
     t != null && t.bam != g.bam && now - lanQuetCuoi >= GIAN_CACH_LECH_MS -> true     // máy chủ giữ bam khác (hoặc null)
@@ -136,8 +164,12 @@ sealed class CachGui {
 fun cachGui(t: TinHieuDanhSach?, g: DaGui, ds: List<AppMay>, bamNay: String): CachGui {
     // Đủ: yêu cầu «Làm mới» mới; chưa gửi được lần nào; máy chủ không có danh sách; máy chủ giữ bản lạ (phần đổi sẽ 409).
     if (coYeuCauMoi(t, g) || g.bam == null || g.dau.isEmpty() || (t != null && (t.bam == null || (t.bam != g.bam && t.bam != bamNay)))) return CachGui.Du
-    // Thôi: máy chủ đã khớp bản vừa quét, hoặc không đổi so với lần gửi trước.
-    if (t?.bam == bamNay || bamNay == g.bam) return CachGui.KhongGui
-    val d = tinhPhanDoi(g.dau, ds)
-    return if (d.rong) CachGui.KhongGui else CachGui.Doi(g.bam, d)
+    // Bản máy chủ đang giữ: bamNay (đã khớp bản vừa quét) hoặc bam lần gửi trước.
+    val coSo = if (t?.bam == bamNay || bamNay == g.bam) bamNay else g.bam
+    val d = if (coSo == bamNay) PhanDoi(emptyList(), emptyList()) else tinhPhanDoi(g.dau, ds)
+    // App máy chủ báo thiếu icon ⇒ thêm vào `them` (kèm icon) dù không đổi gì.
+    val khoaThem = d.them.map { it.khoa }.toSet()
+    val bu = ds.filter { it.khoa in g.thieuIcon && it.icon != null && it.khoa !in khoaThem }
+    val phan = PhanDoi(d.them + bu, d.bo)
+    return if (phan.rong) CachGui.KhongGui else CachGui.Doi(coSo, phan)
 }
