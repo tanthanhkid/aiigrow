@@ -682,7 +682,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(fake.daCaiGoi.count, 1)
     let moi = Data("goi khac".utf8)
     HttpMock.dat { path, _ in
-      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.5", "url": "\(self.may)/tai/AiiGrow-0.1.5.pkg", "sha256": sha256Hex(moi)]) }
+      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.6", "url": "\(self.may)/tai/AiiGrow-0.1.6.pkg", "sha256": sha256Hex(moi)]) }
       return .init(ma: 200, than: moi)
     }
     _ = await chay(boCapNhat())
@@ -730,7 +730,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(try IPCMa.decoder.decode(TraLoi.self, from: t), .thongBao(chu: "x"))
   }
 
-  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.4") }
+  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.5") }
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
