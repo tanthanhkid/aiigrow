@@ -132,6 +132,14 @@ test("Mac: bundle id + Team ID; luật Chặn cả nhà không có trong danh s�
   const nh = (await goiMay("nhip", an.tok, {})).body;
   assert.deepEqual(nh.chinhSach.ungDung.chan, [{ muc: "ru.ok.android", kieu: "app" }]);
   assert.equal(nh.danhSachApp.bam, "f".repeat(64));
+  // package Android phân biệt hoa thường: giữ đúng com.UCMobile.intl từ máy tới chinhSach (luật vẫn lưu chữ thường)
+  await goiMay("ung-dung", an.tok, { du: false, bamTruoc: "f".repeat(64), bam: "9".repeat(64), them: [{ khoa: "com.UCMobile.intl", muc: "com.UCMobile.intl", ten: "UC Browser", nguon: "launcher" }] });
+  const ds = (await goiBm(`may/${an.mayId}/ung-dung`, an.tokBm)).body.ds;
+  assert.ok(ds.some((x: any) => x.khoa === "com.UCMobile.intl" && x.muc === "com.UCMobile.intl"));
+  assert.equal((await goiBm(`may/${an.mayId}/ung-dung/dat`, an.tokBm, { khoa: "com.UCMobile.intl", trangThai: "chan" })).status, 200);
+  assert.equal((await goiBm(`may/${an.mayId}/ung-dung`, an.tokBm)).body.ds.find((x: any) => x.khoa === "com.UCMobile.intl").trangThai, "chan");
+  const cs2 = (await goiMay("nhip", an.tok, {})).body.chinhSach.ungDung.chan;
+  assert.ok(cs2.some((x: any) => x.muc === "com.UCMobile.intl" && x.kieu === "app"), JSON.stringify(cs2));
 });
 
 test("luồng xếp loại cũ: tên thật từ danh sách máy thay tên đoán ở «Chưa xếp»", async () => {

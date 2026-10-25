@@ -8,7 +8,7 @@ import { gioDiaPhuong, type Khung } from "./gio.ts";
 import { taoPolicy, type Policy } from "./may-con.ts";
 import type { May } from "./gia-dinh.ts";
 import type { NhomGiaiTri } from "./luat-app.ts";
-import { mucAppThat } from "./app-may.ts";
+import { goiAndroidThat, mucAppThat } from "./app-may.ts";
 
 export type KieuMuc = "app" | "web";
 export type MucChung = { muc: string; kieu: KieuMuc; nhom?: NhomGiaiTri | null; giaPhanNghin?: number | null };
@@ -58,10 +58,13 @@ export function dungChinhSach(p: Policy, o: {
   phutThem: number; mucTamThoi: { muc: string; loai: string; het: Date | string }[];
   /** Mục app thật máy Con đã gửi (lib/app-may.ts) — package «ru.keepcoder.telegram» không theo mẫu com./vn. vẫn là APP. */
   appThat?: Set<string>;
+  /** Máy Android: luật lưu chữ thường ⇒ trả package đúng hoa thường thật trên máy (com.UCMobile.intl) — lib/app-may.ts › goiAndroidThat. */
+  goiThat?: Map<string, string>;
 }): ChinhSachChung {
   const kieu = (muc: string): KieuMuc => (o.appThat?.has(muc.toLowerCase()) ? "app" : kieuMuc(muc));
+  const ten = (muc: string) => o.goiThat?.get(muc.toLowerCase()) ?? muc;
   const m = (l: Policy["luat"][number]): MucChung =>
-    l.loai === "giai_tri" ? { muc: l.muc, kieu: kieu(l.muc), nhom: l.nhom as NhomGiaiTri, giaPhanNghin: l.giaPhanNghin } : { muc: l.muc, kieu: kieu(l.muc) };
+    l.loai === "giai_tri" ? { muc: ten(l.muc), kieu: kieu(l.muc), nhom: l.nhom as NhomGiaiTri, giaPhanNghin: l.giaPhanNghin } : { muc: ten(l.muc), kieu: kieu(l.muc) };
   const lyDo: ChinhSachChung["hieuLuc"]["lyDo"] = [];
   if (p.khoaNgay) lyDo.push("khoa_ngay");
   if (p.gioMaySai) lyDo.push("gio_may_sai");
@@ -110,5 +113,6 @@ export async function chinhSachChung(may: May, con: string | null, tuanThu: Tuan
   const mucTamThoi = con ? await q<{ muc: string; loai: string; het: Date }>(
     `select muc, loai, het from app_rules where family_id = $1 and child_id in ('', $2) and het is not null and het > $3 order by het`,
     [may.family_id, con, now]) : [];
-  return dungChinhSach(p, { ts, may, tuanThu, phutThem, mucTamThoi, appThat: await mucAppThat(may.family_id) });
+  return dungChinhSach(p, { ts, may, tuanThu, phutThem, mucTamThoi, appThat: await mucAppThat(may.family_id),
+    ...(may.platform === "android" ? { goiThat: await goiAndroidThat(may.family_id) } : {}) });
 }

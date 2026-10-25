@@ -35,16 +35,19 @@ const chu = (v: unknown, n = 300) => {
 };
 
 /** Mục để xếp / chặn: chữ thường (như app_rules.muc), không khoảng trắng, không «/» — Android/Mac/Windows đều thoả. */
-export function mucApp(v: unknown): string | null {
-  const t = String(v ?? "").trim().toLowerCase();
-  return /^[a-z0-9][a-z0-9 ._()+\-]{0,199}$/.test(t) && !t.includes("..") ? t : null;
+export function mucApp(v: unknown, giuHoa = false): string | null {
+  const g = String(v ?? "").trim();
+  const t = g.toLowerCase();
+  return /^[a-z0-9][a-z0-9 ._()+\-]{0,199}$/.test(t) && !t.includes("..") ? (giuHoa ? g : t) : null;
 }
 
 /** Làm sạch một app agent gửi; sai ⇒ null (bỏ qua, không làm hỏng cả lô). */
-export function sachApp(a: AppVao): AppSach | null {
+/** `giuHoa`: máy Android — package phân biệt hoa thường (com.UCMobile.intl) ⇒ giữ nguyên `muc` và `khoa`; so luật vẫn không phân biệt. */
+export function sachApp(a: AppVao, giuHoa = false): AppSach | null {
   if (!a || typeof a !== "object") return null;
-  const khoa = chu(a.khoa, 300)?.toLowerCase();
-  const muc = mucApp(a.muc);
+  const k = chu(a.khoa, 300);
+  const khoa = giuHoa ? k : k?.toLowerCase();
+  const muc = mucApp(a.muc, giuHoa);
   const ten = chu(a.ten, 120);
   if (!khoa || !muc || !ten) return null;
   const icon = typeof a.icon === "string" && a.icon.length <= TOI_DA_ICON && B64.test(a.icon) ? a.icon : null;
@@ -78,7 +81,8 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
   const bam = typeof b.bam === "string" && BAM.test(b.bam) ? b.bam.toLowerCase() : null;
   if (!bam) throw new LoiNghiepVu("bam_sai", "Thiếu mã băm danh sách app", 400);
   const du = b.du === true;
-  const lay = (v: unknown) => (Array.isArray(v) ? v : []).slice(0, TOI_DA_APP).map((x) => sachApp(x as AppVao)).filter((x): x is AppSach => !!x);
+  const giuHoa = may.platform === "android";
+  const lay = (v: unknown) => (Array.isArray(v) ? v : []).slice(0, TOI_DA_APP).map((x) => sachApp(x as AppVao, giuHoa)).filter((x): x is AppSach => !!x);
   return tx(async (t) => {
     // khoá theo máy: hai lượt gửi chồng nhau (dịch vụ khởi động lại) không đan xen xoá/ghi
     await t(`select pg_advisory_xact_lock(hashtext($1))`, [`app-may:${may.id}`]);
@@ -90,7 +94,7 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
     } else {
       const truoc = typeof b.bamTruoc === "string" ? b.bamTruoc.toLowerCase() : "";
       if (!cu?.app_bam || cu.app_bam !== truoc) throw new LoiNghiepVu("can_gui_du", "Máy chủ cần danh sách đầy đủ", 409);
-      const bo = (Array.isArray(b.bo) ? b.bo : []).slice(0, TOI_DA_APP).map((x) => chu(x, 300)?.toLowerCase()).filter((x): x is string => !!x);
+      const bo = (Array.isArray(b.bo) ? b.bo : []).slice(0, TOI_DA_APP).map((x) => (giuHoa ? chu(x, 300) : chu(x, 300)?.toLowerCase())).filter((x): x is string => !!x);
       if (bo.length) await t(`delete from app_may where device_id = $1 and khoa = any($2::text[])`, [may.id, bo]);
       await ghiApp(t, may.id, lay(b.them));
       // vượt trần sau khi cộng phần đổi ⇒ đòi gửi đủ (danh sách đủ đã cắt ở TOI_DA_APP)
@@ -114,8 +118,8 @@ export type TrangThaiApp = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan"
 
 /** Trạng thái của một app trên máy của Con `con` ('' = máy dùng chung ⇒ chỉ luật cả nhà) — cùng thứ tự với phanLoai:
  *  Allowlist hệ thống → luật riêng của Con → luật cả nhà. */
-export function trangThaiApp(muc: string, con: string, luat: LuatGon[], allow: string[] = allowlistHieuLuc()) {
-  const khoa = khoaSo(muc);
+export function trangThaiApp(mucTho: string, con: string, luat: LuatGon[], allow: string[] = allowlistHieuLuc()) {
+  const khoa = khoaSo(mucTho.toLowerCase());
   if (khoa.some((k) => allow.includes(k))) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, theoCaNha: false };
   const r = luat.filter((l) => khoa.includes(l.muc) && (l.child_id === "" || (con && l.child_id === con)))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
@@ -158,7 +162,7 @@ export async function datTrangThaiApp(fam: string, mayId: string, b: Record<stri
   const may = await mayCua(fam, mayId);
   const tt = String(b.trangThai ?? "");
   if (!(TRANG_THAI_DAT as readonly string[]).includes(tt)) throw new LoiNghiepVu("trang_thai_sai", "Chọn Cho phép, Học tập, Giải trí hoặc Chặn");
-  const app = await one<DongApp>(`select * from app_may where device_id = $1 and khoa = $2`, [may.id, String(b.khoa ?? "").toLowerCase()]);
+  const app = await one<DongApp>(`select * from app_may where device_id = $1 and khoa = $2`, [may.id, may.platform === "android" ? String(b.khoa ?? "") : String(b.khoa ?? "").toLowerCase()]);
   if (!app) throw new LoiNghiepVu("khong_thay_app", "Máy này không còn app đó — bấm Làm mới để lấy danh sách mới", 404);
   const con = may.dung_chung ? "" : may.child_id ?? "";
   return tx(async (t) => {
@@ -182,7 +186,13 @@ export async function yeuCauLamMoi(fam: string, mayId: string) {
 /** Mọi `muc` app thật của cả nhà (chữ thường) — để biết «microsoft.minecraftuwp», «ru.keepcoder.telegram»… là APP chứ không phải tên miền. */
 export async function mucAppThat(fam: string): Promise<Set<string>> {
   const r = await q<{ muc: string }>(`select distinct a.muc from app_may a join devices d on d.id = a.device_id where d.family_id = $1`, [fam]);
-  return new Set(r.map((x) => x.muc));
+  return new Set(r.map((x) => x.muc.toLowerCase()));
+}
+
+/** Package Android đúng hoa thường (luật lưu chữ thường) — chữ thường ⇒ package thật trên máy của cả nhà. */
+export async function goiAndroidThat(fam: string): Promise<Map<string, string>> {
+  const r = await q<{ muc: string }>(`select distinct a.muc from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and d.platform = 'android' and a.muc <> lower(a.muc)`, [fam]);
+  return new Map(r.map((x) => [x.muc.toLowerCase(), x.muc]));
 }
 
 export type AppChan = { muc: string; duongDan?: string; thuMuc?: string; sha256?: string; nhaPhatHanh?: string; teamId?: string };
@@ -214,7 +224,7 @@ export async function appChanCuaMay(may: Pick<May, "id" | "family_id" | "platfor
 /** Tên thật của app trên máy cho các mục (luồng «Chưa xếp» / «Đã thấy» cũ hiện tên đúng thay vì tên đoán từ tệp). */
 export async function tenAppThat(fam: string): Promise<Map<string, string>> {
   const r = await q<{ muc: string; ten: string }>(
-    `select distinct on (a.muc) a.muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 order by a.muc, a.thay_luc desc`, [fam]);
+    `select distinct on (lower(a.muc)) lower(a.muc) as muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 order by lower(a.muc), a.thay_luc desc`, [fam]);
   return new Map(r.map((x) => [x.muc, x.ten]));
 }
 
