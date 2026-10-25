@@ -47,7 +47,7 @@ public sealed class WebGuardWorker : BackgroundService
         try { if (cfg is { Paired: true }) host = new Uri(ApiClient.NormalizeServer(cfg.Server)).Host; } catch { }
         var kq = _hives.Ap(p, host, _rt?.ChildSids, now);
         // «chặn theo lọc»: trình duyệt chỉ được chạy cho tài khoản Con mà luật web đang có trong hive (AgentWorker đưa vào AppLocker + vòng đóng app)
-        var td = TrinhDuyetLoc.TheoSid(p, kq.DaApCho, kq.HklmDe);
+        var td = TrinhDuyetLoc.TheoSid(p, kq.DaApCho, kq.HklmKhongTha);
         var tdChuoi = string.Join("; ", td.OrderBy(x => x.Key).Select(x => x.Key + ": " + string.Join(",", x.Value)));
         if (tdChuoi != _daBaoTrinhDuyet)
         {
@@ -55,6 +55,12 @@ public sealed class WebGuardWorker : BackgroundService
             if (p != null) _log.LogInformation(td.Count > 0 ? "Chặn thật: trình duyệt được chạy (web lọc theo danh sách) — {ds}" : "Chặn thật: chưa thả trình duyệt (luật web chưa áp được cho tài khoản Con){ds}", tdChuoi);
         }
         _rt?.DatTrinhDuyetLoc(td);
+        if (kq.HklmDaGoRong.Count > 0)
+        {
+            // Chrome / Edge đọc khoá danh sách RỖNG ở HKLM thành chính sách máy «danh sách trống», thắng danh sách của Con (e2e 4.17, 0.2.9)
+            _log.LogInformation("Đã gỡ khoá danh sách web RỖNG ở HKLM (chính sách máy «danh sách trống» đè luật web của Con): {ds}", string.Join(", ", kq.HklmDaGoRong));
+            if (_baoDocLai) _log.LogInformation("Báo trình duyệt (cả máy) đọc lại chính sách: {c}", WindowsWebPolicyRegistry.BaoTrinhDuyetDocLai());
+        }
         if (kq.DaGoHklm)
         {
             _log.LogInformation("Đã gỡ luật web cũ trong HKLM (bản trước 0.2.6 ghi cả máy) — tài khoản Ba Mẹ không còn bị chặn");

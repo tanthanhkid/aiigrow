@@ -131,7 +131,10 @@ function DatKhoaWebCon($sid) {
 # Chạy $sb trên khoá $khoa; khoá thuộc hive Con chưa nạp ⇒ nạp tạm NTUSER.DAT ở HKU\AiiE2E_Con, đọc, gỡ nạp (thử lại khi dịch vụ đang giữ tệp).
 function VoiHiveCon([string]$khoa, [scriptblock]$sb) {
   $goc = "Registry::HKEY_USERS\$($Chung.SidCon)"
-  if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) { return (& $sb $khoa) }
+  if (-not $Chung.SidCon -or -not $khoa.StartsWith($goc) -or (Test-Path -LiteralPath $goc) -or -not $Chung.NtUserCon) {
+    [void](GoNapE2E)   # hive Con đã nạp thật (HKU\<SID>) mà mount tạm cũ còn ⇒ gỡ, không để kẹt NTUSER.DAT
+    return (& $sb $khoa)
+  }
   # lần trước gỡ nạp hỏng ⇒ hive còn ở tên tạm: dùng luôn (nạp lại sẽ hỏng vì tệp đang mở) rồi gỡ nạp lần nữa
   $nap = Test-Path -LiteralPath 'Registry::HKEY_USERS\AiiE2E_Con'
   for ($i = 0; $i -lt 20 -and -not $nap; $i++) { $nap = ((RegExe load 'HKU\AiiE2E_Con' $Chung.NtUserCon) -eq 0); if (-not $nap) { Start-Sleep -Milliseconds 500 } }
@@ -498,6 +501,8 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
     $ud = Join-Path $ThuMucCong ("ud-" + $nhan)
     ChayBangCon $ChromeExe @('--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', "--user-data-dir=$ud", '--virtual-time-budget=5000', '--dump-dom', $url) $nhan
   }
+  # mount tạm AiiE2E_Con còn ⇒ -LoadUserProfile không nạp được NTUSER.DAT ⇒ Con vào hồ sơ TẠM (HKCU trống) ⇒ 4.17 đỏ giả: gỡ, không được thì BỎ có lý do
+  if (-not (GoNapE2E)) { Bo '4.17' 'Chrome của Con: trang chặn không vào được' 'hive tạm HKU\AiiE2E_Con của harness không gỡ nạp được (NTUSER.DAT của Con bị khoá ⇒ hồ sơ tạm)'; return }
   # Chẩn đoán (ghi log): hive nào đang nạp; tiến trình của Con thấy USERPROFILE (hồ sơ tạm?) + chính sách Chrome trong HKCU gì
   Log ("4.17 HKU trước khi chạy Chrome: " + ((Get-ChildItem Registry::HKEY_USERS -ErrorAction SilentlyContinue | ForEach-Object { $_.PSChildName }) -join ', '))
   $dg = ChayBangCon (Join-Path $env:WINDIR 'System32\cmd.exe') @('/c', 'whoami & echo UP=%USERPROFILE% & reg query HKCU\Software\Policies\Google\Chrome /s') 'diag'
@@ -505,10 +510,12 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $mo = ChromeCuaCon 'https://example.org/' 'mo'
   $chan = ChromeCuaCon 'https://example.com/' 'chan'
   $vaoDuoc = $mo.Dom -match 'Example Domain'
-  # «bị chặn» phải là trang lỗi CHẶN THẬT của Chrome (ERR_BLOCKED_BY_ADMINISTRATOR) — lần chạy hỏng / hết giờ / DOM rỗng không được tính là chặn
-  $biChan = ($chan.Dom -notmatch 'Example Domain') -and ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR')
+  # «bị chặn» phải là lỗi CHẶN THẬT của Chrome (ERR_BLOCKED_BY_ADMINISTRATOR) — lần chạy hỏng / hết giờ / DOM rỗng không được tính là chặn.
+  # Headless (--dump-dom) không dump trang lỗi: DOM rỗng + stderr «Page load failed: net::ERR_BLOCKED_BY_ADMINISTRATOR» (headless_command_handler)
+  $loiChan = ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') -or ($chan.Loi -match 'ERR_BLOCKED_BY_ADMINISTRATOR')
+  $biChan = ($chan.Dom -notmatch 'Example Domain') -and $loiChan
   $ddChan = [string]($chan.Dom -replace '\s+', ' ')
-  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$(-not $biChan), ERR_BLOCKED=$($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
+  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$($chan.Dom -match 'Example Domain'), ERR_BLOCKED=$loiChan $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
   Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang thường vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 

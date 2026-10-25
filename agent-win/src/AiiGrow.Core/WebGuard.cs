@@ -151,15 +151,28 @@ public interface IWebPolicyRegistry
     bool CoMucCuaTa(string khoaDs) => false;
     /// <summary>Danh sách <paramref name="khoaDs"/> có mục do người khác đặt (IT / Ba Mẹ).</summary>
     bool CoMucNguoiKhac(string khoaDs) => false;
-    /// <summary>Khoá <paramref name="khoa"/> TỒN TẠI (kể cả rỗng). Chrome / Edge đọc khoá danh sách rỗng trong HKLM thành chính sách MÁY «danh sách trống»
-    /// — vẫn thắng danh sách trong hive Con (e2e 4.17, 0.2.9).</summary>
-    bool CoKhoa(string khoa) => CoMucCuaTa(khoa) || CoMucNguoiKhac(khoa);
+    /// <summary>Tình trạng khoá danh sách <paramref name="khoaDs"/> (một lần mở). Chrome / Edge đọc MỌI khoá danh sách có mặt — kể cả RỖNG — thành chính
+    /// sách: ở HKLM nó là chính sách MÁY, thắng danh sách trong hive Con (e2e 4.17, 0.2.9).</summary>
+    KhoaDanhSach XemKhoaDs(string khoaDs) => CoMucNguoiKhac(khoaDs) ? KhoaDanhSach.CoNguoiKhac : CoMucCuaTa(khoaDs) ? KhoaDanhSach.ChiCuaTa : KhoaDanhSach.KhongCo;
+    /// <summary>Xoá khoá <paramref name="khoaDs"/> nếu RỖNG (không giá trị, không khoá con). true = đã xoá.</summary>
+    bool GoKhoaRong(string khoaDs) => false;
     /// <summary>Đọc DWORD (null = không có).</summary>
     int? DocDword(string khoa, string ten) => null;
     /// <summary>Ghi giá trị chuỗi (REG_SZ). Gỡ dùng <see cref="GoDword"/> (xoá giá trị theo tên, mọi kiểu).</summary>
     void DatChuoi(string khoa, string ten, string giaTri) { }
     /// <summary>Gỡ giá trị chuỗi CHỈ khi nó đúng là giá trị AiiGrow đặt (DnsOverHttpsMode=secure của IT / Ba Mẹ giữ nguyên).</summary>
     void GoChuoiNeu(string khoa, string ten, string giaTri) => GoDword(khoa, ten);
+}
+
+/// <summary>Tình trạng một khoá danh sách web (URLBlocklist / URLAllowlist).</summary>
+public enum KhoaDanhSach { KhongCo, Rong, ChiCuaTa, CoNguoiKhac }
+
+/// <summary>Danh sách web CẢ MÁY (HKLM) theo trình duyệt. <see cref="KhongTha"/>: có khoá danh sách ở HKLM (của bất kỳ ai, kể cả rỗng) ⇒ danh sách hive
+/// Con không hiệu lực ⇒ KHÔNG thả trình duyệt đó ở Chặn thật. <see cref="CuaIT"/>: phần do người khác đặt (mục IT / khoá rỗng không gỡ được) ⇒ báo Ba Mẹ.
+/// <see cref="DaGoRong"/>: khoá rỗng vừa gỡ lượt này ⇒ phải báo trình duyệt đọc lại chính sách.</summary>
+public sealed record HklmDanhSach(IReadOnlyList<string> KhongTha, IReadOnlyList<string> CuaIT, IReadOnlyList<string> DaGoRong)
+{
+    public static readonly HklmDanhSach Trong = new(Array.Empty<string>(), Array.Empty<string>(), Array.Empty<string>());
 }
 
 public sealed class WebPolicyApplier
@@ -231,25 +244,34 @@ public sealed class WebPolicyApplier
         _daAp = null;
     }
 
-    /// <summary>Trình duyệt có danh sách web CẢ MÁY (HKLM): Chrome / Edge không gộp danh sách máy với danh sách người dùng — danh sách máy thắng, luật
-    /// AiiGrow trong hive Con bị bỏ qua ⇒ phải báo Ba Mẹ (review #75) và KHÔNG thả trình duyệt ở Chặn thật (TrinhDuyetLoc).
-    /// Tính theo KHOÁ, không theo mục: khoá URLBlocklist / URLAllowlist RỖNG trong HKLM (IT xoá hết mục nhưng để lại khoá, bản cũ gỡ dở…) Chrome vẫn đọc
-    /// thành chính sách máy «danh sách trống» ⇒ hive Con mất hiệu lực, Con vào được trang Ba Mẹ chặn (e2e 4.17, 0.2.9). Khoá rỗng không mang ý định
-    /// nào của IT ⇒ gỡ luôn (mục IT có thật thì giữ nguyên, chỉ báo).</summary>
-    public List<string> TrinhDuyetBiHklmDe()
+    /// <summary>Danh sách web CẢ MÁY (HKLM): Chrome / Edge không gộp danh sách máy với danh sách người dùng — danh sách máy thắng, luật AiiGrow trong
+    /// hive Con bị bỏ qua ⇒ báo Ba Mẹ (review #75) và KHÔNG thả trình duyệt ở Chặn thật (TrinhDuyetLoc). Tính theo KHOÁ, không theo mục: khoá
+    /// URLBlocklist / URLAllowlist RỖNG ở HKLM (IT xoá hết mục nhưng để lại khoá…) Chrome vẫn đọc thành chính sách máy «danh sách trống» ⇒ Con vào được
+    /// trang Ba Mẹ chặn (e2e 4.17, 0.2.9). Khoá rỗng không mang ý định nào ⇒ gỡ (một lần — <paramref name="daGoRong"/>: khoá đã gỡ mà lại xuất hiện là do
+    /// Group Policy dựng lại ⇒ để yên, tính là của IT). Gỡ luật bản cũ của chính AiiGrow là việc của <see cref="GoHklmCu"/>; còn sót thì vẫn không thả
+    /// trình duyệt nhưng không báo là của IT.</summary>
+    public HklmDanhSach XemHklm(ISet<string>? daGoRong = null)
     {
-        var ds = new List<string>();
+        List<string> khongTha = new(), cuaIT = new(), daGo = new();
         foreach (var t in WebPolicyKeys.TatCa)
         {
-            var de = false;
+            bool de = false, it = false;
             foreach (var khoaDs in new[] { t.Khoa + "\\" + WebPolicyKeys.DsChan, t.Khoa + "\\" + WebPolicyKeys.DsCho })
             {
-                try { _reg.GoKhoaNeuTrong(khoaDs); } catch { }   // không gỡ được (ACL của IT) ⇒ khoá còn ⇒ tính là đè bên dưới
-                if (_reg.CoKhoa(khoaDs)) de = true;
+                var tt = _reg.XemKhoaDs(khoaDs);
+                if (tt == KhoaDanhSach.Rong && daGoRong?.Contains(khoaDs) != true)
+                {
+                    var go = false;
+                    try { go = _reg.GoKhoaRong(khoaDs); } catch { }   // ACL của IT không cho xoá ⇒ khoá còn ⇒ đè
+                    if (go) { daGo.Add("HKLM\\" + khoaDs); daGoRong?.Add(khoaDs); tt = KhoaDanhSach.KhongCo; }
+                }
+                if (tt != KhoaDanhSach.KhongCo) de = true;
+                if (tt is KhoaDanhSach.CoNguoiKhac or KhoaDanhSach.Rong) it = true;
             }
-            if (de) ds.Add(t.Ten);
+            if (de) khongTha.Add(t.Ten);
+            if (it) cuaIT.Add(t.Ten);
         }
-        return ds;
+        return new HklmDanhSach(khongTha, cuaIT, daGo);
     }
 }
 
@@ -348,32 +370,38 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     public bool CoMucCuaTa(string khoaDs) => DemMuc(khoaDs, true);
     public bool CoMucNguoiKhac(string khoaDs) => DemMuc(khoaDs, false);
 
-    public bool CoKhoa(string khoa)
+    /// <summary>Mở <paramref name="khoa"/> chỉ đọc rồi gọi <paramref name="fn"/> (null = không có). Đóng cả khoá gốc hive tạm — còn handle thì gỡ nạp hỏng.</summary>
+    private T Doc<T>(string khoa, Func<RegistryKey?, T> fn)
     {
         using var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
         using var g = _goc == null ? null : b.OpenSubKey(_goc, false);
-        if (_goc != null && g == null) return false;
+        if (_goc != null && g == null) return fn(null);
         using var k = (g ?? b).OpenSubKey(khoa, false);
-        return k != null;
+        return fn(k);
     }
 
-    private bool DemMuc(string khoaDs, bool cuaTa)
+    private bool DemMuc(string khoaDs, bool cuaTa) =>
+        Doc(khoaDs, k => k != null && k.GetValueNames().Any(n => n.Length > 0 && WebPolicyKeys.LaCuaTa(n) == cuaTa));
+
+    public KhoaDanhSach XemKhoaDs(string khoaDs) => Doc(khoaDs, k =>
     {
-        using var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
-        using var g = _goc == null ? null : b.OpenSubKey(_goc, false);   // đóng cả khoá gốc hive tạm — còn handle thì gỡ nạp hỏng
-        if (_goc != null && g == null) return false;
-        using var k = (g ?? b).OpenSubKey(khoaDs, false);
-        return k != null && k.GetValueNames().Any(n => n.Length > 0 && WebPolicyKeys.LaCuaTa(n) == cuaTa);
+        if (k == null) return KhoaDanhSach.KhongCo;
+        var ten = k.GetValueNames();
+        if (ten.Length == 0 && k.SubKeyCount == 0) return KhoaDanhSach.Rong;
+        // giá trị không phải của AiiGrow (mục IT, «**delvals.», giá trị mặc định…) hoặc khoá con ⇒ của người khác
+        return k.SubKeyCount > 0 || ten.Any(n => !WebPolicyKeys.LaCuaTa(n)) ? KhoaDanhSach.CoNguoiKhac : KhoaDanhSach.ChiCuaTa;
+    });
+
+    public bool GoKhoaRong(string khoaDs)
+    {
+        using var hklm = Hklm();
+        using (var k = hklm.OpenSubKey(khoaDs, false))
+            if (k == null || k.ValueCount != 0 || k.SubKeyCount != 0) return false;
+        hklm.DeleteSubKey(khoaDs, false);
+        return true;
     }
 
-    public int? DocDword(string khoa, string ten)
-    {
-        using var b = RegistryKey.OpenBaseKey(_hive, RegistryView.Registry64);
-        using var g = _goc == null ? null : b.OpenSubKey(_goc, false);
-        if (_goc != null && g == null) return null;
-        using var k = (g ?? b).OpenSubKey(khoa, false);
-        return k?.GetValue(ten) is int v ? v : null;
-    }
+    public int? DocDword(string khoa, string ten) => Doc(khoa, k => k?.GetValue(ten) is int v ? v : (int?)null);
 
     public void DatDword(string khoa, string ten, int giaTri)
     {
