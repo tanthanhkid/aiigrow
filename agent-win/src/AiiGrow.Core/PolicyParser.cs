@@ -39,6 +39,7 @@ public static class PolicyParser
         p.AllowedApps = CleanList(p.AllowedApps);
         p.PlayChoices = CleanList(p.PlayChoices);
         p.LearningApps = CleanList(p.LearningApps);
+        p.BlockedApps = ChanAppThat.Chuan(p.BlockedApps);
         if (p.NextCheckSec <= 0) p.NextCheckSec = 30;
         p.NextCheckSec = Math.Clamp(p.NextCheckSec, 10, 600);
         if (p.MinutesLeft is < 0) p.MinutesLeft = 0;

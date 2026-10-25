@@ -46,12 +46,15 @@ public sealed class AppLockerController
 
     /// <summary>Đưa AppLocker về đúng trạng thái mong muốn. Trả true nếu luật AiiGrow đang có hiệu lực.</summary>
     /// <param name="trinhDuyet">«Chặn theo lọc»: SID → trình duyệt được chạy (TrinhDuyetLoc) — chỉ những SID luật web đang áp.</param>
-    public bool Reconcile(bool wantApply, IReadOnlyList<string> sids, IEnumerable<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>>? trinhDuyet = null)
+    /// <param name="chan">25/10: app Ba Mẹ đặt «Chặn» (Policy.BlockedApps) — có ⇒ thêm luật Deny cho SID Con ở MỌI mode (kể cả khi không «chỉ app học»).</param>
+    public bool Reconcile(bool wantApply, IReadOnlyList<string> sids, IEnumerable<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>>? trinhDuyet = null,
+        IReadOnlyList<AppBiChan>? chan = null)
     {
         if (!KhaDung) { Applied = false; return false; }   // Win Home: không áp, không gỡ, không log mỗi nhịp
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
         var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
-        var want = wantApply && ds.Count > 0;
+        var luatChan = chan is { Count: > 0 } ? ChanAppThat.LuatAppLocker(chan, Environment.GetFolderPath(Environment.SpecialFolder.Windows), ProcessGuard.DefaultSafeDirs(), BamAppLocker) : new List<LuatChanApp>();
+        var want = (wantApply || luatChan.Count > 0) && ds.Count > 0;
         if (ds.Count > 0) _daBaoKhongSid = false;
         if (wantApply && ds.Count == 0 && !_daBaoKhongSid)
         {
@@ -61,11 +64,11 @@ public sealed class AppLockerController
         var td = want && trinhDuyet != null
             ? ds.Where(trinhDuyet.ContainsKey).ToDictionary(s => s, s => (IReadOnlyList<string>)trinhDuyet[s].OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(), StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
-        var key = want ? string.Join(";", ds) + "|" + string.Join(",", list) + "|" + string.Join(";", td.OrderBy(x => x.Key).Select(x => x.Key + "=" + string.Join(",", x.Value))) : "off";
+        var key = want ? string.Join(";", ds) + "|" + (wantApply ? string.Join(",", list) : "-") + "|" + ChanAppThat.VanTay(luatChan) + "|" + string.Join(";", td.OrderBy(x => x.Key).Select(x => x.Key + "=" + string.Join(",", x.Value))) : "off";
         if (key == _lastKey) return Applied;
         if (DateTimeOffset.UtcNow < _nextTry) return Applied;
 
-        bool ok = want ? Apply(ds, list, td) : Remove();
+        bool ok = want ? Apply(ds, list, td, wantApply, luatChan) : Remove();
         if (ok) { _lastKey = key; Applied = want; }
         else _nextTry = DateTimeOffset.UtcNow.AddSeconds(60);
         return Applied;
@@ -83,7 +86,7 @@ public sealed class AppLockerController
         try { return File.ReadAllText(tmp); } catch { loi = true; return null; }
     }
 
-    private bool Apply(List<string> sids, List<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>> trinhDuyet)
+    private bool Apply(List<string> sids, List<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>> trinhDuyet, bool hoc = true, List<LuatChanApp>? chan = null)
     {
         try
         {
@@ -93,14 +96,15 @@ public sealed class AppLockerController
             var cu = ReadExisting(out var loiDoc);
             _docLoi = loiDoc ? _docLoi + 1 : 0;
             if (loiDoc && _docLoi < AppLockerXml.DocLoiToiDa) return false;
-            var xml = AppLockerXml.Merge(cu, new AppLockerOptions { ChildSids = sids, AllowedApps = apps, TrinhDuyetTheoSid = trinhDuyet });
+            var opt = new AppLockerOptions { ChildSids = sids, AllowedApps = apps, TrinhDuyetTheoSid = trinhDuyet };
+            var xml = chan is { Count: > 0 } ? AppLockerXml.MergeChanApp(cu, sids, chan, hoc ? opt : null) : AppLockerXml.Merge(cu, opt);
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
             File.WriteAllText(file, xml, new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Set-AppLockerPolicy lỗi: {e}", set.Error); return false; }
             EnsureAppIdSvc();
             _docLoi = 0;
-            _log.LogInformation("Đã áp AppLocker cho {soTk} tài khoản với {n} app; trình duyệt (web lọc) cho {td} tài khoản", sids.Count, apps.Count, trinhDuyet.Count);
+            _log.LogInformation("Đã áp AppLocker cho {soTk} tài khoản với {n} app; trình duyệt (web lọc) cho {td} tài khoản{chan}", sids.Count, hoc ? apps.Count : 0, trinhDuyet.Count, chan is { Count: > 0 } ? $", {chan.Count} luật chặn app" : "");
             return true;
         }
         catch (Exception e)
@@ -137,6 +141,49 @@ public sealed class AppLockerController
             _log.LogError(e, "Gỡ AppLocker lỗi");
             return false;
         }
+    }
+
+    private readonly Dictionary<string, (long Len, DateTime Mtime, (string, long, string)? Kq, long HetLuc)> _bamAl = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _dangBamAl = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Băm AppLocker của tệp (Get-AppLockerFileInformation ⇒ New-AppLockerPolicy -RuleType Hash: băm Authenticode SHA256 mà AppLocker so,
+    /// KHÔNG phải SHA-256 phẳng của tệp). Chưa có ⇒ đọc ở luồng nền (PowerShell vài giây/tệp không chặn vòng thực thi — review #126), trả null lần này:
+    /// luật đường dẫn áp ngay, luật băm thêm ở nhịp sau (vân tay luật đổi ⇒ ghi lại). Lỗi ⇒ thử lại sau 10 phút. Tệp không có ⇒ null.</summary>
+    private (string Data, long Length, string SourceFile)? BamAppLocker(string path)
+    {
+        var fi = new FileInfo(path);
+        if (!fi.Exists) return null;
+        lock (_bamAl)
+        {
+            if (_bamAl.TryGetValue(path, out var c) && c.Len == fi.Length && c.Mtime == fi.LastWriteTimeUtc && (c.Kq != null || Environment.TickCount64 < c.HetLuc))
+                return c.Kq;
+            if (!_dangBamAl.Add(path)) return null;
+        }
+        Task.Run(() =>
+        {
+            (string, long, string)? kq = null;
+            try
+            {
+                var r = Shell.PowerShell("Get-AppLockerFileInformation -Path " + Shell.PsQuote(path) + " | New-AppLockerPolicy -RuleType Hash -User Everyone -Xml", 60000);
+                if (r.Ok)
+                {
+                    var fh = System.Xml.Linq.XDocument.Parse(r.Output.Trim()).Descendants("FileHash").FirstOrDefault();
+                    if (fh != null && long.TryParse((string?)fh.Attribute("SourceFileLength"), out var len))
+                        kq = ((string?)fh.Attribute("Data") ?? "", len, (string?)fh.Attribute("SourceFileName") ?? Path.GetFileName(path));
+                }
+                else _log.LogDebug("Đọc băm AppLocker của {p} lỗi: {e}", path, r.Error);
+            }
+            catch (Exception e) { _log.LogDebug("Đọc băm AppLocker của {p} lỗi: {e}", path, e.Message); }
+            finally
+            {
+                lock (_bamAl)
+                {
+                    _bamAl[path] = (fi.Length, fi.LastWriteTimeUtc, kq, Environment.TickCount64 + 10 * 60 * 1000);
+                    _dangBamAl.Remove(path);
+                }
+            }
+        });
+        return null;
     }
 
     private static void EnsureAppIdSvc()
