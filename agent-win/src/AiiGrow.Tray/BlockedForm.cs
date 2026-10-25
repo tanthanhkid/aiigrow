@@ -42,7 +42,7 @@ internal sealed class BlockedForm : Form
         var flow = new FlowLayoutPanel
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(UI.Px(18), UI.Px(14), UI.Px(18), UI.Px(10)), Margin = Padding.Empty,
+            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)), Margin = Padding.Empty,
         };
         // Dòng đầu: viên clay biển dừng (Fluent 3D) + tên app — chữ giữ nguyên.
         var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, 4) };

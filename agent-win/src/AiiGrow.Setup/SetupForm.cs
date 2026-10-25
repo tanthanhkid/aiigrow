@@ -125,7 +125,7 @@ internal sealed class SetupForm : Form
     {
         public bool Chon { get => _chon; set { _chon = value; BackColor = value ? ChinhSoft : Clay.The; Invalidate(true); } }
         private bool _chon;
-        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 14, 18, 14); }
+        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(18, 16, 18, 16); }
         /// <summary>Lề bóng Clay theo DPI (VeThe.LeBong) — nội dung đặt lệch vào trong lề này.</summary>
         public static Padding Le => VeThe.LeBong;
         /// <summary>Thẻ Clay: thân đất sét có bóng kép; được chọn ⇒ nền ngọc nhạt + viền ngọc 2,5 (không chỉ dựa vào màu: viền dày hơn hẳn).</summary>
@@ -151,10 +151,11 @@ internal sealed class SetupForm : Form
     {
         var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, 10) };
         var le = The.Le;
-        var t1 = T(tieu, 12.5f, true, Chu, Rong - 40 - le.Horizontal); t1.Location = new Point(18 + le.Left, 14 + le.Top); t1.Margin = Padding.Empty;
-        var t2 = T(khi, 10.5f, false, Chu2, Rong - 40 - le.Horizontal); t2.Location = new Point(18 + le.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
+        var rongChu = Rong - the.Padding.Horizontal - 4 - le.Horizontal;
+        var t1 = T(tieu, 12.5f, true, Chu, rongChu); t1.Location = new Point(the.Padding.Left + le.Left, the.Padding.Top + le.Top); t1.Margin = Padding.Empty;
+        var t2 = T(khi, 10.5f, false, Chu2, rongChu); t2.Location = new Point(t1.Left, t1.Top + t1.PreferredHeight + 4); t2.Margin = Padding.Empty;
         the.Controls.Add(t1); the.Controls.Add(t2);
-        the.Height = t2.Top + t2.PreferredHeight + 14 + le.Bottom;   // + lề bóng Clay (theo DPI)
+        the.Height = t2.Top + t2.PreferredHeight + the.Padding.Bottom + le.Bottom;   // + lề bóng Clay (theo DPI)
         foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
         return the;
     }
@@ -267,11 +268,11 @@ internal sealed class SetupForm : Form
     private void TaoMoi()
     {
         _body.Controls.Add(T("Tên đăng nhập của Con — gõ không dấu, không khoảng trắng, ví dụ: bin", 11f, true));
-        var ten = new TextBox { Width = 320, Font = new Font("Segoe UI", 13f), MaxLength = 20, Margin = new Padding(0, 0, 0, 12) };
-        _body.Controls.Add(ten);
+        var ten = new TextBox { Font = new Font("Segoe UI", 13f), MaxLength = 20 };
+        _body.Controls.Add(ONhapClay.Boc(ten, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));   // lòng chảo Clay thân ≥44; lề bóng dưới (~12) là khoảng cách tới dòng sau
         _body.Controls.Add(T("Mật khẩu Con gõ khi mở máy — ít nhất 4 ký tự. Ba Mẹ ghi lại giúp Con nhớ.", 11f, true));
-        var mk = new TextBox { Width = 320, Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true, Margin = new Padding(0, 0, 0, 8) };
-        _body.Controls.Add(mk);
+        var mk = new TextBox { Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true };
+        _body.Controls.Add(ONhapClay.Boc(mk, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
         _body.Controls.Add(T("Tài khoản mới là loại giới hạn: Con không tự tắt hay gỡ AiiGrow được.", 10.5f, false, Chu2));
@@ -334,10 +335,9 @@ internal sealed class SetupForm : Form
         _body.Controls.Add(T("Trên điện thoại của Ba Mẹ, mở app AiiGrow → bước «Ghép máy» (hoặc Hồ sơ Con › Ghép thêm máy). App hiện mã 6 số — gõ vào ô dưới. Mã hết hạn sau 15 phút."));
         var ma = new TextBox
         {
-            Width = 260, MaxLength = 6, Font = new Font("Segoe UI", 26f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center,
-            Margin = new Padding(0, 4, 0, 12),
+            MaxLength = 6, Font = new Font("Segoe UI", 26f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center,
         };
-        _body.Controls.Add(ma);
+        _body.Controls.Add(ONhapClay.Boc(ma, Math.Min(Clay.Si(260), Rong - VeThe.LeBong.Horizontal), new Padding(0, 4, 0, 0)));   // lòng chảo Clay như các ô khác
         var loi = T("", 11f, true, Loi);
         _body.Controls.Add(loi);
         Tiep("Ghép và cài đặt", () =>

@@ -31,7 +31,7 @@ internal sealed class RequestForm : Form
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(20, 16, 20, 10),
+            Padding = new Padding(UI.Px(20), UI.Px(16), UI.Px(20), UI.Px(10)),
         };
         flow.Controls.Add(UI.Text("Con muốn thêm bao lâu?", 16f, true));
         var row = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 10), BackColor = Color.Transparent };

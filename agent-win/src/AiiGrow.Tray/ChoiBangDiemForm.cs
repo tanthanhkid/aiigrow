@@ -21,12 +21,13 @@ internal sealed class ChoiBangDiemForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         TopMost = true;
         BackColor = UI.Paper;
-        ClientSize = new Size(UI.Px(380), UI.Px(160 + Math.Clamp(choices.Count, 1, 8) * 58));   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
+        ClientSize = new Size(UI.Px(380) + SystemInformation.VerticalScrollBarWidth + UI.Px(6),   // chừa thanh cuộn dọc (>8 mục) + lề nút 3+3 ⇒ không cuộn ngang
+             UI.Px(172 + Math.Clamp(choices.Count, 1, 8) * 58));   // nhiều mục (tới 40) ⇒ cuộn, không cao quá màn hình
 
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-            Padding = new Padding(18, 14, 18, 10), AutoScroll = true,
+            Padding = new Padding(UI.Px(18), UI.Px(16), UI.Px(18), UI.Px(10)), AutoScroll = true,   // ngang giữ 18: nút rộng 340
         };
         flow.Controls.Add(UI.Text("Chơi bằng điểm", 14f, true, null, 340));
         flow.Controls.Add(_phut);

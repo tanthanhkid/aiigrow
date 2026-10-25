@@ -942,3 +942,46 @@ internal sealed class ClayMenuRenderer : ToolStripProfessionalRenderer
         public override Color MenuItemBorder => Clay.NgocSoft;
     }
 }
+
+/// <summary>Ô nhập Clay: TextBox không viền đặt trong lòng chảo ấn lõm (ClayCard Lom), thân cao ≥ 44 (theo DPI) — vùng bấm đủ,
+/// chữ cách mép ngang 14, nằm dưới dải bóng trong (10) của lòng chảo. Đang gõ ⇒ lòng chảo ngả ngọc nhạt (thấy rõ ô đang focus).
+/// Bấm vào lòng chảo ngoài chữ cũng vào ô. Dùng chung cho khay và bộ cài. ClayCard luôn chừa lề bóng (VeThe.LeBong, theo DPI) quanh thân
+/// như mọi thẻ Clay khác ⇒ <paramref name="le"/> là Margin cộng THÊM ngoài lề đó (thường để trống: lề bóng dưới ~12 đã là khoảng cách dòng).</summary>
+internal static class ONhapClay
+{
+    /// <summary>Chiều cao thân lòng chảo cho một TextBox (đã bỏ viền).</summary>
+    public static int Than(TextBox o) => Math.Max(Clay.Si(44), o.PreferredHeight + Clay.Si(20));
+
+    public static ClayCard Boc(TextBox o, int rong, Padding? le = null)
+    {
+        var lb = VeThe.LeBong;
+        o.BorderStyle = BorderStyle.None;
+        o.BackColor = Clay.Lom;
+        o.Margin = Padding.Empty;
+        var ngang = Clay.Si(14);
+        o.Width = Math.Max(Clay.Si(40), rong - 2 * ngang);
+        var than = Than(o);
+        var m = le ?? Padding.Empty;
+        var vo = new ClayCard
+        {
+            Lom = true, BoGoc = Clay.S(16), BackColor = Clay.Lom, Cursor = Cursors.IBeam,
+            Width = rong + lb.Horizontal, Height = than + lb.Vertical,
+            Margin = m,
+        };
+        o.Location = new Point(lb.Left + ngang, lb.Top + Math.Max(Clay.Si(10), (than - o.Height) / 2));
+        vo.Controls.Add(o);
+        vo.Click += (_, _) => o.Focus();
+        // Màu suy từ (Enabled, Focused) mỗi lần — không phụ thuộc thứ tự Enter/Leave/EnabledChanged.
+        // Đang gõ ⇒ ngọc nhạt; bị khoá (đang kiểm mã…) ⇒ sứ, không còn con trỏ gõ chữ; còn lại ⇒ lòng chảo.
+        void Ve()
+        {
+            var mau = !o.Enabled ? Clay.The : o.Focused ? Clay.NgocSoft : Clay.Lom;
+            vo.Cursor = o.Enabled ? Cursors.IBeam : Cursors.Default;
+            if (vo.BackColor != mau) { vo.BackColor = mau; o.BackColor = mau; }
+        }
+        o.Enter += (_, _) => Ve();
+        o.Leave += (_, _) => Ve();
+        o.EnabledChanged += (_, _) => Ve();
+        return vo;
+    }
+}
