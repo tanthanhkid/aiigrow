@@ -184,9 +184,9 @@ export async function doTay(goi, js, ds) {
  * Chạy cổng trên danh sách màn ở mọi chế độ: 320, 390, 390 + giãn chữ. `vao(man)` đưa trình duyệt tới màn (đã đặt dữ liệu giả) và đợi
  * nội dung. → tổng số lỗi (in từng lỗi dạng JSON).
  */
-export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "" }) {
+export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "", cheDo = [[320, false], [390, false], [390, true]] }) {
   let tong = 0, soDoTay = 0;
-  for (const [rong, gian] of [[320, false], [390, false], [390, true]]) {
+  for (const [rong, gian] of cheDo) {
     await goi("Emulation.setDeviceMetricsOverride", { width: rong, height: 844, deviceScaleFactor: 1, mobile: true });
     let loi = 0;
     console.log(`\n## ${rong}px${gian ? " + giãn chữ (WCAG 1.4.12)" : ""}`);
@@ -218,6 +218,6 @@ export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "" }) {
     console.log(`→ ${loi} lỗi / ${dsMan.length} màn @${rong}px${gian ? " giãn" : ""}`);
     tong += loi;
   }
-  console.log(`\nCỔNG GIAO DIỆN: ${tong} lỗi · ${dsMan.length} màn × 3 chế độ · đo pixel ${soDoTay} dòng`);
+  console.log(`\nCỔNG GIAO DIỆN: ${tong} lỗi · ${dsMan.length} màn × ${cheDo.length} chế độ · đo pixel ${soDoTay} dòng`);
   return tong;
 }

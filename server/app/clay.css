@@ -58,8 +58,8 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 /* ---------- nút kẹo dẻo: 1 nút đặc mỗi vùng (.nut than chì) · .ngoc điểm nhấn · .vien phụ · .ma cấp ba · .vang chỉ cho quét phiếu quà ---------- */
 .ag .nut{position:relative;overflow:hidden;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 22px;border-radius:var(--bo);border:0;
   background:var(--keo-toi);box-shadow:var(--bong-toi);color:#fff;font-weight:700;font-size:16px;cursor:pointer;text-decoration:none;
-  /* chữ dài (Thanh 25/10): nút không vượt khung, nhãn xuống dòng gọn căn giữa (bẻ từ quá dài khi buộc phải), khối cao ra */
-  max-width:100%;white-space:normal;text-align:center;line-height:1.3;padding-block:8px;overflow-wrap:break-word;
+  /* chữ dài (Thanh 25/10): nút không vượt khung, nhãn xuống dòng gọn căn giữa (từ quá dài — tên máy, tên miền — chỉ bẻ khi buộc phải), khối cao ra */
+  max-width:100%;white-space:normal;text-align:center;line-height:1.3;padding-block:8px;overflow-wrap:anywhere;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .ag .nut.ngoc{background:var(--keo-ngoc);box-shadow:var(--bong-ngoc)}
 .ag .nut.vien{background:var(--the);background-image:var(--men-sang);color:var(--chu);box-shadow:var(--clayNho)}

@@ -29,7 +29,7 @@ export type TenIcon = keyof typeof ICON;
 type Kieu = "thuong" | "dam" | "rat";
 /** Tên miền (≥ 14 ký tự, đuôi toàn chữ cái như .com/.vn — không đụng số «1.000.000» hay mã «3f9a….c1d2…» để chép): chèn chỗ bẻ dòng vô hình (U+200B) sau mỗi
  *  dấu chấm — trong bong bóng hẹp dòng gãy ở «.» (và «-», trình duyệt / iOS tự bẻ sau gạch nối) thay vì cắt giữa chữ («scratch.mit.ed|u»). */
-const DUOI_TEP = /\.(pdf|png|jpe?g|webp|gif|heic|docx?|xlsx?|pptx?|zip|exe|apk|pkg|dmg|msi|txt|csv|json)$/i;
+const DUOI_TEP = /\.(pdf|png|jpe?g|webp|gif|heic|docx?|xlsx?|pptx?|zip|exe|apk|pkg|dmg|msi|txt|csv|json|md|html?)$/i;
 export const beMien = (t: string) => t.replace(/[\p{L}\d_-]+(?:\.[\p{L}\d_-]+)+/gu, (x, o: number) =>
   x.length >= 14 && /\.[a-z]{2,24}$/i.test(x) && !DUOI_TEP.test(x) && t[o - 1] !== "@" && t[o + x.length] !== "@" && t[o - 1] !== "/" ? x.replace(/\./g, ".\u200B") : x);
 const be = (c: ReactNode) => (typeof c === "string" ? beMien(c) : Array.isArray(c) ? Children.map(c, (x) => (typeof x === "string" ? beMien(x) : x)) : c);

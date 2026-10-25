@@ -389,7 +389,8 @@ if (process.argv.includes("--giao-dien")) {
   if (process.env.PHA_CHU_DAI !== "0" || process.env.PHA_CHI_DAI === "1") {
     chuDai = true;
     console.log(`\n# LƯỢT CHỮ DÀI — tên con «${TEN_DAI}» (${[...TEN_DAI].length}), máy «${MAY_DAI["Laptop của Bảo Anh · Windows 11"]}» (40), miền «${mien("youtube.com")}» (${mien("youtube.com").length})`);
-    tong += await chayCong({ goi, js, sleep, dsMan, vao, hau: "-dai" });
+    // chỉ đo ở 320px (khổ hẹp nhất — chữ dài vỡ ở đây trước) để cổng không chậm gấp đôi
+    tong += await chayCong({ goi, js, sleep, dsMan, vao, hau: "-dai", cheDo: [[320, false]] });
   }
   ws.close(); chrome.kill(); may.close();
   await sleep(500);
