@@ -4,10 +4,11 @@
 // chế độ Giám sát chỉ ghi lại. Chỉ ghi tên miền + thời gian, không ghi địa chỉ đầy đủ hay nội dung.
 import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { KHOI, MEN } from "@/lib/clay";
 import { bm, type ConChiTiet, type ThongKeWeb, type TrangThaiWeb } from "@/lib/api";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, HaiNut, Icon, Luoi2, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, HaiNut, Icon, Luoi2, M, Man, Nhan, NhanMen, Nhom, NhomTieu, Nut, OChon, ONhap, OSo, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 type Chon = "cho_phep" | "chan" | "mac_dinh";
@@ -31,11 +32,13 @@ const tenMien = (t: string) => t.trim().toLowerCase().replace(/^https?:\/\//, ""
 /** Nút nhỏ ngay trên dòng danh sách (Chặn / Bỏ chặn) — vùng chạm ≥ 44. */
 function NutDong({ chu, loai, bam, tat }: { chu: string; loai: "do" | "vien"; bam: () => void; tat?: boolean }) {
   return (
-    <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} hitSlop={6}
-      style={{ minHeight: 44, paddingHorizontal: 12, borderRadius: 10, justifyContent: "center", borderWidth: 1, opacity: tat ? 0.5 : 1,
-        borderColor: loai === "do" ? "#f3c9c4" : M.vien2, backgroundColor: loai === "do" ? M.loiSoft : "#fff" }}>
+    // viên clay nhỏ (bóng kép + men), không viền mảnh — docs/THIET-KE-CLAY.md §1
+    <NhanMen onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} hitSlop={6} muc="chip" sang men={MEN.sang}
+      // độ mờ chỉ khi tắt — đặt opacity cố định sẽ đè opacity động của NhanMen (phản hồi nhấn khi bật Giảm chuyển động)
+      style={[{ minHeight: 44, paddingHorizontal: 14, borderRadius: 18, justifyContent: "center",
+        backgroundColor: loai === "do" ? M.loiSoft : "#fff", ...KHOI.nho }, tat && { opacity: 0.5 }]}>
       <Chu kieu="dam" co={13.5} mau={loai === "do" ? M.loi : M.chu}>{chu}</Chu>
-    </Pressable>
+    </NhanMen>
   );
 }
 
@@ -137,14 +140,14 @@ export default function WebCon() {
           {NHANH.map((x) => {
             const chan = biChan(x.muc);
             return (
-              <Pressable key={x.muc} disabled={dangChay} accessibilityRole="button" accessibilityState={{ selected: chan }}
+              <NhanMen key={x.muc} disabled={dangChay} accessibilityRole="button" accessibilityState={{ selected: chan }} muc="chip" sang men={MEN.sang}
                 accessibilityLabel={chan ? `${x.ten} đang chặn — chạm để bỏ chặn` : `Chặn ${x.ten}`}
                 onPress={() => (chan ? boChan(x.muc) : chanNgay(x.muc))}
-                style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 99, borderWidth: 1,
-                  borderColor: chan ? "#f3c9c4" : M.vien2, backgroundColor: chan ? M.loiSoft : "#fff" }}>
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 99,
+                  backgroundColor: chan ? M.loiSoft : "#fff", ...KHOI.nho }}>
                 <Icon ten={chan ? "khoa" : "cong"} co={16} mau={chan ? M.loi : M.chu2} />
                 <Chu kieu="dam" co={14} mau={chan ? M.loi : M.chu2}>{x.ten}</Chu>
-              </Pressable>
+              </NhanMen>
             );
           })}
         </View>

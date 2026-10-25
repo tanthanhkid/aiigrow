@@ -136,12 +136,15 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
 
 export const HaiNut = ({ children }: { children: ReactNode }) => <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{children}</View>;
 
-/** Thẻ đất sét (khối phồng bo lớn, bóng kép, dải men cong mép trên). `thu` = thứ tự vào lần lượt khi màn mở. */
-export function The({ children, dem, style, thu }: { children: ReactNode; dem?: boolean; style?: ViewStyle; thu?: number }) {
+/** Thẻ đất sét (khối phồng bo lớn, bóng kép, dải men cong mép trên). `thu` = thứ tự vào lần lượt khi màn mở.
+ *  Lề trong MẶC ĐỊNH 16 (chuẩn: mọi thẻ lề trong ≥ 16, không phần tử chạm mép thẻ) — `sat` chỉ cho thẻ tự lo lề từng hàng (danh sách sát mép).
+ *  `dem` giữ lại cho chỗ gọi cũ (cũng là 16). Lỗi TestFlight build 6: thẻ máy / app mới quên `dem` ⇒ chữ, icon, nút dính mép trái thẻ. */
+export function The({ children, dem, sat, style, thu }: { children: ReactNode; dem?: boolean; sat?: boolean; style?: ViewStyle; thu?: number }) {
   const giam = useReducedMotion();
   const bo = (style?.borderRadius as number | undefined) ?? BO_CLAY.the;
-  return thu === undefined ? <View style={[s.the, dem && { padding: 16 }, style]}><LopMen men={MEN.the} bo={bo} />{children}</View>
-    : <Animated.View entering={vaoLanLuot(thu, giam)} style={[s.the, dem && { padding: 16 }, style]}><LopMen men={MEN.the} bo={bo} />{children}</Animated.View>;
+  const le = sat ? null : s.theLe;
+  return thu === undefined ? <View style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</View>
+    : <Animated.View entering={vaoLanLuot(thu, giam)} style={[s.the, le, style]}><LopMen men={MEN.the} bo={bo} />{children}</Animated.View>;
 }
 
 type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
@@ -376,8 +379,9 @@ export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string
 const NEN = { bm: [M.dauBaMe, M.nen], nhi: [M.dauNhi, M.nen], teen: [M.dauTeen, "#fbfbfd"] } as const;
 
 /** Khung một màn (kit.man): nền gradient đầu màn, đầu (lùi / tiêu đề / bên phải) hoặc tiêu đề lớn, thân cuộn, nút dính đáy, nút chat nổi. */
-export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, tai, dangTai, chat, noi, khongCuon, cuonCuoi }: {
+export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, dau, day, tai, dangTai, chat, noi, khongCuon, cuonCuoi }: {
   children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string; bam?: () => void }; tieu?: string; tieuLon?: string; phai?: ReactNode;
+  /** nút nhỏ (≤ 2, vd chuông) đứng cùng hàng tiêu đề lớn, bên phải (không có tiêu đề lớn ⇒ góc phải thanh đầu) */ phaiTieu?: ReactNode;
   dau?: ReactNode; day?: ReactNode; tai?: () => void; dangTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
 }) {
   const cuon = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -387,7 +391,11 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, 
     return () => sk.remove();
   }, [cuonCuoi]);
   const ve = () => (lui?.bam ? lui.bam() : lui?.ve ? router.replace(lui.ve as never) : router.canGoBack() ? router.back() : router.replace("/"));
-  const dauMan = lui || tieu || phai ? (
+  // Nút chat Rob nằm TRONG hàng tiêu đề (cạnh tiêu đề lớn, hoặc góc phải thanh đầu) — không nổi đè nội dung / nút khi cuộn (TestFlight build 6).
+  const nutChat = chat ? <NutChat /> : null;
+  const chatTrenDau = !!nutChat && !tieuLon;
+  const phaiDau = !tieuLon && phaiTieu ? phaiTieu : null;          // không có tiêu đề lớn ⇒ nút của hàng tiêu đề lên thanh đầu, không rơi mất
+  const dauMan = lui || tieu || phai || chatTrenDau || phaiDau ? (
     <View style={s.dau}>
       {lui ? (
         <Pressable onPress={ve} accessibilityRole="button" accessibilityLabel={lui.chu} hitSlop={6} style={s.lui}>
@@ -395,24 +403,33 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, 
           <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 16, color: M.chinhInk }}>{lui.chu}</Text>
         </Pressable>
       ) : null}
-      {tieu ? <Text numberOfLines={1} style={{ flex: 1, textAlign: "center", fontFamily: F.rat, fontSize: 17, color: M.chu, paddingRight: lui ? 44 : 0 }}>{tieu}</Text> : <View style={{ flex: 1 }} />}
-      {phai ? <View style={{ marginLeft: "auto", flexDirection: "row", gap: 4, alignItems: "center" }}>{phai}</View> : null}
+      {/* tiêu đề giữa chỉ đệm phải (cân với nút lùi) khi bên phải trống — có nút phải mà vẫn đệm 44 thì tiêu đề bị bóp còn «Thôn…» */}
+      {tieu ? <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: 17, color: M.chu, paddingRight: lui && !phai && !chatTrenDau && !phaiDau ? 44 : 0 }}>{tieu}</Text> : <View style={{ flex: 1 }} />}
+      {phai || chatTrenDau || phaiDau ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center" }}>{phai}{phaiDau}{chatTrenDau ? nutChat : null}</View> : null}
     </View>
   ) : null;
   const than = (
     <>
-      {tieuLon ? <Text style={s.tieuLon} accessibilityRole="header">{tieuLon}</Text> : null}
+      {tieuLon ? (
+        <View style={s.hangTieu}>
+          <Text style={[s.tieuLon, { flex: 1 }]} accessibilityRole="header">{tieuLon}</Text>
+          {phaiTieu}
+          {nutChat}
+        </View>
+      ) : null}
       {children}
     </>
   );
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: M.nen }} edges={["top", "left", "right"]}>
       <LinearGradient colors={NEN[nen] as unknown as [string, string]} locations={[0, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: 300 }} />
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>   {/* Android: app.json để softwareKeyboardLayoutMode mặc định (resize) — hệ điều hành đã co cửa sổ, KAV thêm sẽ co hai lần */}
+      {/* Android: app.json để softwareKeyboardLayoutMode mặc định (resize) — hệ điều hành đã co cửa sổ, KAV thêm sẽ co hai lần.
+          Chú thích KHÔNG đặt sau thẻ mở trên cùng dòng: khoảng trắng trước {…} thành chuỗi chữ trần trong View ⇒ lỗi «Text strings must be rendered within <Text>». */}
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {dauMan}
       {dau}
       {khongCuon ? <View style={[s.than, { flex: 1 }]}>{than}</View> : (
-        <ScrollView ref={cuon} contentContainerStyle={[s.than, chat && { paddingBottom: 96 }]} keyboardShouldPersistTaps="handled"
+        <ScrollView ref={cuon} contentContainerStyle={s.than} keyboardShouldPersistTaps="handled"
           onContentSizeChange={cuonCuoi ? () => cuon.current?.scrollToEnd({ animated: true }) : undefined}
           refreshControl={tai ? <RefreshControl refreshing={!!dangTai} onRefresh={tai} tintColor={M.chinh} /> : undefined}>
           {than}
@@ -420,9 +437,20 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, dau, day, 
       )}
       {day ? <View style={s.day}>{day}</View> : null}
       </KeyboardAvoidingView>
-      {chat ? <NutChat coDay={!!day} /> : null}
       {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: day ? 120 : 100, zIndex: Z.toast }}>{noi}</View> : null}
     </SafeAreaView>
+  );
+}
+
+/** Bong bóng chat clay (một kiểu cho Ba Mẹ ↔ AiiLab ở cả ho-tro và admin-ho-tro): `toi` = tin của mình (ngọc, bên phải),
+ *  còn lại khối sáng bên trái. Đuôi = góc dưới phía người gửi bo 8 (lớp men bo khớp góc đó). Không viền mảnh — docs/THIET-KE-CLAY.md §1. */
+export function BongChat({ toi, noiDung, luc, style }: { toi?: boolean; noiDung: string; luc: string; style?: ViewStyle }) {
+  const duoi = toi ? { borderBottomRightRadius: 8 } : { borderBottomLeftRadius: 8 };
+  return (
+    <View style={[s.bongChat, duoi, toi ? { alignSelf: "flex-end", backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#fff", ...KHOI.nho }, style]}>
+      <LopMen men={toi ? MEN.ngoc : MEN.sang} bo={22} goc={duoi} />
+      <Chu mau={toi ? "#fff" : M.chu}>{noiDung}</Chu><Chu co={12} mau={toi ? "#ffffff" : M.chu3}>{luc}</Chu>
+    </View>
   );
 }
 
@@ -442,14 +470,13 @@ export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t:
   );
 }
 
-/** Nút nổi DUY NHẤT (kit .noi-chat): mặt Rob mở chat hỗ trợ với người thật của AiiLab. */
-function NutChat({ coDay }: { coDay: boolean }) {
+/** Nút chat (kit .noi-chat): mặt Rob mở chat hỗ trợ với người thật của AiiLab — viên 46 trong hàng tiêu đề, không nổi đè nội dung. */
+function NutChat() {
   return (
-    <Pressable onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Chat với AiiLab"
-      style={[s.chat, { bottom: coDay ? 112 : 16 }]}>
-      <Image source={LV["rob-goc"]} style={{ width: 90, height: 90, marginTop: -2 }} contentFit="cover" contentPosition="top" />
+    <NhanMen onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Chat với AiiLab" muc="chip" sang style={s.chat}>
+      <View style={s.chatMat}><Image source={LV["rob-goc"]} style={{ width: 62, height: 62, marginTop: -1 }} contentFit="cover" contentPosition="top" /></View>
       <View style={s.chatCham} />
-    </Pressable>
+    </NhanMen>
   );
 }
 
@@ -642,6 +669,8 @@ const s = StyleSheet.create({
   dau: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 2, minHeight: 48 },
   lui: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44, paddingHorizontal: 6 },
   tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 30, lineHeight: 34, fontFamily: F.rat, color: M.chu, letterSpacing: -0.6 },
+  bongChat: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, maxWidth: "78%" },
+  hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },
   day: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24, gap: 8, backgroundColor: M.nen },
   canh: { position: "relative", borderRadius: BO_CLAY.the, padding: 18, marginBottom: 26, flexDirection: "row", alignItems: "center", boxShadow: BONG.the },
   bong: { position: "relative", zIndex: 3, backgroundColor: "#fff", borderRadius: 24, paddingVertical: 14, paddingHorizontal: 16, maxWidth: "56%", boxShadow: BONG.nho },
@@ -651,13 +680,14 @@ const s = StyleSheet.create({
   nut: { minHeight: 52, paddingHorizontal: 20, borderRadius: BO_CLAY.nut, alignItems: "center", justifyContent: "center" },
   nutNho: { minHeight: 44, paddingHorizontal: 15, borderRadius: BO_CLAY.nutNho },
   the: { backgroundColor: M.the, borderRadius: BO_CLAY.the, ...KHOI.the },
+  theLe: { padding: 16 },
   nhan: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, alignSelf: "flex-start" },
   diemPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.diemSoft, borderRadius: 99, paddingLeft: 5, paddingRight: 13, paddingVertical: 4, alignSelf: "flex-start", ...KHOI.vien },
   bieuTron: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   nhom: { backgroundColor: M.the, borderRadius: BO_CLAY.the, overflow: "hidden", ...KHOI.the },
-  dong: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 60 },
+  dong: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 16, minHeight: 60 },
   dongVien: { borderTopWidth: 1, borderTopColor: "#efefec" },
-  oChon: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: BO_CLAY.vien, borderWidth: 1.5, borderColor: "transparent", backgroundColor: M.the, ...KHOI.nho },
+  oChon: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: BO_CLAY.vien, borderWidth: 1.5, borderColor: "transparent", backgroundColor: M.the, ...KHOI.nho },
   tron: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: M.oNhap, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
   tronTam: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#fff" },
   chonMot: { flexDirection: "row", flexWrap: "wrap", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom },
@@ -666,17 +696,17 @@ const s = StyleSheet.create({
   chip: { minHeight: 44, paddingHorizontal: 15, borderRadius: 99, borderWidth: 1.5, borderColor: "transparent", backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho },
   congTac: { width: 52, height: 32, borderRadius: 99, backgroundColor: "#8a8f8c", boxShadow: "inset 0px 3px 6px rgba(0,0,0,0.22), inset 0px -1px 0px rgba(255,255,255,0.4)" },
   congTacNut: { position: "absolute", top: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: "#fff", ...KHOI.nho },
-  bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 14, borderRadius: BO_CLAY.vien },
+  bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 16, borderRadius: BO_CLAY.vien },
   dauTd: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   tien: { height: 14, borderRadius: 7, backgroundColor: "#e9e8e3", padding: 2, boxShadow: BONG.lom },
-  oSo: { padding: 14, borderRadius: BO_CLAY.o, backgroundColor: "#fff", gap: 4, flexGrow: 1, minWidth: 140, ...KHOI.the },
+  oSo: { padding: 16, borderRadius: BO_CLAY.o, backgroundColor: "#fff", gap: 4, flexGrow: 1, minWidth: 140, ...KHOI.the },
   o: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, borderRadius: 18, paddingHorizontal: 14, minHeight: 52, fontSize: 16, fontFamily: F.thuong, color: M.chu, boxShadow: BONG.lom },
   oDang: { borderColor: M.chinh, shadowColor: M.chinh, shadowOpacity: 0.16, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
   oSai: { borderColor: M.loi },
   ma6: { width: 42, height: 54, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.vien2, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
-  chat: { position: "absolute", right: 14, width: 60, height: 60, borderRadius: 30, backgroundColor: "#fff", zIndex: 25, alignItems: "center",
-    borderWidth: 2, borderColor: M.chinhSoft, boxShadow: BONG.nho, overflow: "hidden" },
-  chatCham: { position: "absolute", right: 4, bottom: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: M.chinh, borderWidth: 2, borderColor: "#fff" },
+  chat: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#fff", ...KHOI.nho },
+  chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },
+  chatCham: { position: "absolute", right: -1, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: M.chinh, borderWidth: 2, borderColor: "#fff" },
   bangTruot: { backgroundColor: M.nen, borderTopLeftRadius: 34, borderTopRightRadius: 34, paddingTop: 10, paddingHorizontal: 18, paddingBottom: 34, gap: 12,
     boxShadow: "0px -10px 30px -12px rgba(28,32,30,0.3), inset 0px 1.5px 0px rgba(255,255,255,1)" },
   toast: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: M.chu, borderRadius: 24, paddingVertical: 8, paddingLeft: 10, paddingRight: 8, minHeight: 56,

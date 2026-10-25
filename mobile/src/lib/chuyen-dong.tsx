@@ -35,9 +35,9 @@ export type NhanMenProps = Omit<PressableProps, "style" | "children"> & {
   /** lớp men tĩnh (MEN.*) nằm dưới nội dung */ men?: string;
 };
 
-/** Lớp men tĩnh dưới nội dung của một khối (đặt làm con ĐẦU TIÊN). `bo` = bo góc của khối. */
-export const LopMen = ({ men, bo = 0 }: { men?: string; bo?: number }) =>
-  men ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: bo, backgroundImage: men }]} /> : null;
+/** Lớp men tĩnh dưới nội dung của một khối (đặt làm con ĐẦU TIÊN). `bo` = bo góc của khối; `goc` = bo riêng từng góc (đuôi bong bóng chat). */
+export const LopMen = ({ men, bo = 0, goc }: { men?: string; bo?: number; goc?: ViewStyle }) =>
+  men ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: bo, backgroundImage: men }, goc]} /> : null;
 
 /** Pressable có phản hồi clay: nhấn xuống bẹp 110ms, thả ra nảy lò xo THẢ, một vệt men lướt chéo 420ms. Thay cho Pressable ở mọi chỗ bấm được. */
 export function NhanMen({ style, children, muc = "nut", sang, men, onPressIn, onPressOut, onLayout, disabled, ...p }: NhanMenProps) {

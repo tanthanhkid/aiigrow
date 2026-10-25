@@ -38,11 +38,15 @@ export default function DiemQua() {
           <Canh lv="so-tay" thap tieu={`Phiếu chờ trao (${d.phieu.length})`} loi="Con đã đổi điểm, chờ Ba Mẹ trao quà. Huỷ thì hoàn điểm cho Con." />
           <Nhom>
             {d.phieu.map((x, i) => (
-              <Dong key={x.id} dau={i === 0} tieu={`${x.ten_con} · ${x.ten}`} phu={`${x.diem} điểm`} trai={<BieuTron ic={IC_QUA[x.loai]?.[0] ?? "qua"} mau={IC_QUA[x.loai]?.[1] ?? "lam"} />}
-                phai={d.xem ? <Nhan loai="xam" chu="Chờ trao" /> : <View style={{ flexDirection: "row", gap: 6 }}>
+              // nút Đã trao / Huỷ xuống hàng dưới tên phiếu: để cùng hàng thì chữ bị bóp và «Huỷ» tràn khỏi thẻ ở máy 375pt
+              <View key={x.id}>
+                <Dong dau={i === 0} tieu={`${x.ten_con} · ${x.ten}`} phu={`${x.diem} điểm`} trai={<BieuTron ic={IC_QUA[x.loai]?.[0] ?? "qua"} mau={IC_QUA[x.loai]?.[1] ?? "lam"} />}
+                  phai={d.xem ? <Nhan loai="xam" chu="Chờ trao" /> : undefined} />
+                {d.xem ? null : <View style={{ flexDirection: "row", gap: 8, paddingLeft: 72, paddingRight: 16, paddingBottom: 14 }}>{/* thẳng cột chữ của Dong: 16 + viên 44 + 12 */}
                   <Nut chu="Đã trao" nho dangChay={dangChay} bam={() => xuLy(x, "xac-nhan")} />
                   <Nut chu="Huỷ" loai="vien" nho dangChay={dangChay} bam={() => setHuy(x)} />
-                </View>} />
+                </View>}
+              </View>
             ))}
           </Nhom>
         </>

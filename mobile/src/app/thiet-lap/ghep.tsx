@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { router } from "expo-router";
 import { Linking, Pressable, View } from "react-native";
 import { bm, LINK_TAI, type ConChiTiet } from "@/lib/api";
+import { BONG } from "@/lib/clay";
 import { saoChep } from "@/lib/luu-tep";
 import { layTl } from "@/lib/thiet-lap";
 import { Bao, BaoLoi, Buoc, Chu, M, Man, Nut, The, TickDong, useHoanTac, useLam } from "@/lib/ui";
@@ -40,12 +41,14 @@ export default function ObGhep() {
           <View style={{ alignItems: "center", gap: 14 }}>
             <Chu kieu="rat" co={17} style={{ textAlign: "center" }}>{`Trên laptop của ${ten}: vào trang dưới, tải và chạy AiiGrow-Setup.exe rồi nhập mã này.`}</Chu>
             <Pressable onPress={() => { Linking.openURL(LINK_TAI).catch(() => bao(`Chưa mở được — gõ ${LINK_NGAN} trên trình duyệt`)); }} accessibilityRole="link"
-              style={{ alignSelf: "stretch", borderRadius: 12, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.vien2, paddingVertical: 10, paddingHorizontal: 12, alignItems: "center", minHeight: 44 }}>
+              style={{ alignSelf: "stretch", borderRadius: 18, backgroundColor: "#fff", boxShadow: BONG.lom, paddingVertical: 12, paddingHorizontal: 14, alignItems: "center", minHeight: 48 }}>
               <Chu kieu="rat" co={18} so mau={M.chinhInk}>{LINK_NGAN}</Chu>
             </Pressable>
-            <View style={{ flexDirection: "row", gap: 6 }}>
+            {/* 6 ô chia đều bề ngang (≤ 46 mỗi ô): cố định 44 thì ở máy 320pt hàng ô tràn khỏi thẻ */}
+            <View style={{ flexDirection: "row", gap: 6, alignSelf: "stretch", justifyContent: "center" }}>
               {(ma ?? "      ").split("").map((c, i) => (
-                <View key={i} style={{ width: 46, height: 62, borderRadius: 12, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.vien2, alignItems: "center", justifyContent: "center" }}>
+                // ô mã = lòng chảo ấn lõm (docs/clay), không viền mảnh
+                <View key={i} style={{ flex: 1, maxWidth: 46, height: 62, borderRadius: 16, backgroundColor: "#fff", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
                   <Chu kieu="rat" co={30} so>{c}</Chu>
                 </View>
               ))}

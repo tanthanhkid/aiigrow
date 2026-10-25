@@ -1,12 +1,13 @@
 // bm-duyet-nv: xem ảnh bằng chứng, chỉnh điểm ±, lời khen, Duyệt (1 chạm) / Cần chụp lại / Từ chối (bm-tu-choi: bảng lý do nhẹ nhàng).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { Image } from "expo-image";
 import { bm } from "@/lib/api";
+import { BO_CLAY, KHOI, MEN } from "@/lib/clay";
 import { LY_DO_NV } from "@/lib/viec-cho";
 import {
-  Avt, BangTruot, BaoLoi, ChoTai, Chips, Chu, gioPhut, HaiNut, Icon, M, Man, Nhan, Nut, OChon, ONhap, The, useLam, useTai,
+  Avt, BangTruot, BaoLoi, ChoTai, Chips, Chu, gioPhut, HaiNut, Icon, M, Man, Nhan, NhanMen, Nut, OChon, ONhap, The, useLam, useTai,
 } from "@/lib/ui";
 
 type Luot = { id: string; child_id: string; ten_con: string; ten: string; diem_md: number; trang_thai: string; nop_luc: string; ghi_chu: string | null;
@@ -60,13 +61,16 @@ export default function DuyetNv() {
       {daXuLy ? <Nhan loai="xam" chu="Nhiệm vụ này đã được xử lý" /> : null}
       {d.anh.length ? d.anh.map((a) => (
         // Dấu thời gian + nhãn so trùng nằm DƯỚI ảnh (không phủ lên ảnh — chữ trên ảnh thật khó đọc, WCAG 1.4.3 / F104).
-        <View key={a.id} style={{ borderRadius: 20, overflow: "hidden", backgroundColor: M.the, borderWidth: 1, borderColor: M.vien }}>
+        // khung ảnh = thẻ clay (bóng kép ở lớp ngoài, cắt bo ở lớp trong — bóng không bị overflow cắt mất), không viền mảnh
+        <View key={a.id} style={[{ borderRadius: BO_CLAY.the, backgroundColor: M.the }, KHOI.the]}>
+        <View style={{ borderRadius: BO_CLAY.the, overflow: "hidden" }}>
           <Image source={{ uri: `data:${a.mime};base64,${a.base64}` }} style={{ width: "100%", aspectRatio: 4 / 3, backgroundColor: "#cfe3e6" }} contentFit="cover"
             accessibilityLabel={`Ảnh ${l.ten_con} chụp lúc ${gioPhut(a.chupLuc)}`} />
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, paddingHorizontal: 12, paddingVertical: 10 }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}>
             <Chu kieu="dam" co={13} mau={M.chu2} so style={{ flexShrink: 1 }}>{`Chụp lúc ${gioPhut(a.chupLuc)} · trong app`}</Chu>
             <Nhan loai={l.nghi_trung ? "canh" : "ok"} ic={l.nghi_trung ? "canh_bao" : "tick"} chu={l.nghi_trung ? "Giống ảnh đã nộp trước" : "Không trùng ảnh cũ"} />
           </View>
+        </View>
         </View>
       )) : <The dem><Chu mau={M.chu2}>{l.ghi_chu ? `“${l.ghi_chu}”` : "Nhiệm vụ này không có ảnh."}</Chu></The>}
       {d.anh.length && l.ghi_chu ? <The dem><Chu mau={M.chu2}>{`“${l.ghi_chu}”`}</Chu></The> : null}
@@ -74,9 +78,9 @@ export default function DuyetNv() {
         <>
           <The dem style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ flex: 1 }}><Chu kieu="rat">Điểm thưởng</Chu><Chu co={13} mau={M.chu3}>{`Mặc định của nhiệm vụ: ${l.diem_md}`}</Chu></View>
-            <Pressable onPress={() => setDiem(Math.max(1, dm - 1))} accessibilityRole="button" accessibilityLabel="Bớt một điểm" style={nutTron}><Icon ten="tru" /></Pressable>
+            <NhanMen onPress={() => setDiem(Math.max(1, dm - 1))} accessibilityRole="button" accessibilityLabel="Bớt một điểm" muc="chip" sang men={MEN.sang} style={nutTron}><Icon ten="tru" /></NhanMen>
             <Chu kieu="rat" co={24} so style={{ width: 44, textAlign: "center" }}>{dm}</Chu>
-            <Pressable onPress={() => setDiem(dm + 1)} accessibilityRole="button" accessibilityLabel="Thêm một điểm" style={nutTron}><Icon ten="cong" /></Pressable>
+            <NhanMen onPress={() => setDiem(dm + 1)} accessibilityRole="button" accessibilityLabel="Thêm một điểm" muc="chip" sang men={MEN.sang} style={nutTron}><Icon ten="cong" /></NhanMen>
           </The>
           <View>
             <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{`Lời khen gửi ${l.ten_con}`}</Chu>
@@ -97,4 +101,5 @@ export default function DuyetNv() {
   );
 }
 
-const nutTron = { width: 44, height: 44, borderRadius: 14, borderWidth: 1.5, borderColor: M.vien2, alignItems: "center", justifyContent: "center" } as const;
+/** nút ± điểm: viên clay sáng 44 (bóng kép + men), không viền mảnh */
+const nutTron = { width: 44, height: 44, borderRadius: 22, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho } as const;

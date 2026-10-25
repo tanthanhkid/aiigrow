@@ -74,13 +74,13 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
           {`Trung bình ${gio(d.tbNgayGiay)}/ngày${lech !== null && lech !== 0 ? ` · ${lech > 0 ? "nhiều" : "ít"} hơn tuần trước ${Math.abs(lech)}%` : ""}`}
         </Chu>
         <View accessibilityLabel={`Theo ngày: ${d.theoNgay.map((x) => `${thuCua(x.ngay)} ${gio(x.giay)}`).join("; ")}`}
-          style={{ flexDirection: "row", alignItems: "flex-end", gap: 8, height: 150, marginTop: 12 }}>
+          style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, height: 150, marginTop: 12 }}>
           {d.theoNgay.map((x, i) => {
             const sau = x.ngay > d.homNay, chon = ngay === i, mo = ngay !== null && !chon;
             return (
               <Pressable key={x.ngay} disabled={sau} onPress={() => { setNgay(chon ? null : i); setHet(false); }}
                 accessibilityRole="button" accessibilityState={{ selected: chon }} accessibilityLabel={`${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`}
-                style={{ flex: 1, alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end", minWidth: 32, opacity: mo ? 0.4 : 1 }}>
+                style={{ flex: 1, alignItems: "center", gap: 6, height: "100%", justifyContent: "flex-end", minWidth: 30, opacity: mo ? 0.4 : 1 }}>
                 <View style={{ width: "100%", maxWidth: 30, height: Math.max(3, (x.giay / lonNhat) * 112), borderRadius: 6, overflow: "hidden",
                   backgroundColor: x.giay ? undefined : M.vien, justifyContent: "flex-end" }}>
                   {theoMucXep(x.theoMuc).map(([m, p]) => (
@@ -100,7 +100,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
           {theoMuc.map((x, i) => (
             <Pressable key={x.muc} onPress={() => { setMuc(muc === x.muc ? null : x.muc); setHet(false); }} accessibilityRole="button"
               accessibilityState={{ selected: muc === x.muc }} accessibilityLabel={`${MUC[x.muc].chu}: ${gio(x.giay)}`}
-              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 56,
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 16, minHeight: 56,
                 borderTopWidth: i ? 1 : 0, borderTopColor: M.vien, backgroundColor: muc === x.muc ? M.chinhSoft : undefined }}>
               <ODau muc={x.muc} />
               <View style={{ flex: 1, gap: 4 }}>

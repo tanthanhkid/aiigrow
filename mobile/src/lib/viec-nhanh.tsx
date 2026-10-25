@@ -93,11 +93,12 @@ export function TheDangChoi({ p, tai, bao, xem }: { p: PhienDang; tai: () => voi
           <Chu kieu="rat" co={15.5}>{`${p.tenCon} ${p.tam ? "tạm nghỉ" : "đang chơi"} ${p.tenApp}`}</Chu>
           <Chu co={13} mau={M.chu3}>{`${p.may ? `${p.may} · ` : ""}còn ${p.conPhut} phút`}</Chu>
         </View>
-        {xem ? null : <Nut chu="Dừng" nho loai="huy" dangChay={dangChay} bam={() => lam(async () => {
+        {/* bọc View: Nut tự giãn (flexGrow) sẽ chiếm nửa hàng, bóp tên phiên còn 4 dòng */}
+        {xem ? null : <View><Nut chu="Dừng" nho loai="huy" dangChay={dangChay} bam={() => lam(async () => {
           await bm.goi(`phien/${p.id}/dung`, {});
           bao(`Đã dừng phiên chơi ${p.tenApp} của ${p.tenCon} — Con nghỉ giữa giờ rồi mới mở lại được`);
           tai();
-        })} />}
+        })} /></View>}
       </View>
       <BaoLoi loi={loi} />
     </The>

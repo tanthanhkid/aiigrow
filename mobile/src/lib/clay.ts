@@ -4,14 +4,15 @@
 // của React Native ≥ 0.80 (kiến trúc mới) và react-native-web — một nguồn cho cả app lẫn bản web.
 import type { ViewStyle } from "react-native";
 
-/** Bóng kép. `the`: thẻ/khối lớn · `nho`: nút sáng, chip, viên icon · `lom`: lòng chảo ấn lõm (rãnh tiến độ, ô nhập, hàng việc). */
+/** Bóng kép. Bóng ngoài của nút/chip ngắn (≤ 10px) để hai nút xếp sát (khoảng 8) không chồng bóng lên nhau (TestFlight build 6: «nặng»).
+ * `the`: thẻ/khối lớn · `nho`: nút sáng, chip, viên icon · `lom`: lòng chảo ấn lõm (rãnh tiến độ, ô nhập, hàng việc). */
 export const BONG = {
-  the: "0px 22px 30px -14px rgba(28,32,30,0.30), 0px 6px 10px -5px rgba(28,32,30,0.16), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -2px 0px rgba(255,255,255,0.7), inset 0px -10px 16px -8px rgba(40,44,42,0.12)",
-  nho: "0px 12px 16px -8px rgba(28,32,30,0.34), 0px 3px 5px -2px rgba(28,32,30,0.20), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -6px 10px -5px rgba(40,44,42,0.14)",
+  the: "0px 16px 24px -14px rgba(28,32,30,0.26), 0px 4px 8px -5px rgba(28,32,30,0.14), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -2px 0px rgba(255,255,255,0.7), inset 0px -10px 16px -8px rgba(40,44,42,0.12)",
+  nho: "0px 6px 10px -6px rgba(28,32,30,0.26), 0px 2px 3px -1px rgba(28,32,30,0.14), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -6px 10px -5px rgba(40,44,42,0.14)",
   lom: "inset 0px 4px 8px rgba(40,44,42,0.13), inset 0px -1.5px 0px rgba(255,255,255,0.95)",
-  toi: "0px 12px 16px -6px rgba(15,19,18,0.55), 0px 3px 5px -2px rgba(15,19,18,0.32), inset 0px 1px 0px rgba(255,255,255,0.45), inset 0px -2px 3px rgba(0,0,0,0.4)",
-  ngoc: "0px 12px 16px -6px rgba(10,82,70,0.6), 0px 3px 5px -2px rgba(10,82,70,0.32), inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,30,25,0.4)",
-  vang: "0px 12px 16px -6px rgba(150,100,0,0.5), 0px 3px 5px -2px rgba(150,100,0,0.3), inset 0px 1px 0px rgba(255,255,255,0.7), inset 0px -2px 3px rgba(120,70,0,0.35)",
+  toi: "0px 6px 10px -5px rgba(15,19,18,0.40), 0px 2px 3px -1px rgba(15,19,18,0.24), inset 0px 1px 0px rgba(255,255,255,0.45), inset 0px -2px 3px rgba(0,0,0,0.4)",
+  ngoc: "0px 6px 10px -5px rgba(10,82,70,0.44), 0px 2px 3px -1px rgba(10,82,70,0.24), inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,30,25,0.4)",
+  vang: "0px 6px 10px -5px rgba(150,100,0,0.38), 0px 2px 3px -1px rgba(150,100,0,0.22), inset 0px 1px 0px rgba(255,255,255,0.7), inset 0px -2px 3px rgba(120,70,0,0.35)",
   do: "0px 5px 9px -4px rgba(165,31,20,0.6), inset 0px 1px 0px rgba(255,255,255,0.4), inset 0px -2px 3px rgba(0,0,0,0.25)",
   noi: "0px -6px 24px -12px rgba(28,32,30,0.25), 0px 16px 26px -10px rgba(28,32,30,0.34), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -8px 14px -8px rgba(40,44,42,0.12)",
 } as const;
