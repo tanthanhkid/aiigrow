@@ -7,7 +7,7 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
-// 0.2.9: exe từ CI agent-win run 40170336623 (job build goc, commit 68d44f6 nhánh phathanh-3, PR #128).
+// 0.2.9: exe từ CI agent-win run 40170336623 (job build goc, commit 68d44f6 (tag phathanh-3-src), PR #128).
 export const BAN_AGENT_WINDOWS = {
   version: "0.2.9",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.9.exe",
@@ -18,7 +18,7 @@ export const BAN_AGENT_WINDOWS = {
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
-// 0.1.5: build-pkg.sh chạy trên Mac của Thanh từ commit 68d44f6 nhánh phathanh-3 (PR #128), notarize Accepted.
+// 0.1.5: build-pkg.sh chạy trên Mac của Thanh từ commit 68d44f6 (tag phathanh-3-src) (PR #128), notarize Accepted.
 export const BAN_AGENT_MAC = {
   version: "0.1.5",
   url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.5.pkg",
@@ -32,7 +32,7 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
-// 0.2.3: assembleRelease khoá aiigrow-con từ commit 68d44f6 nhánh phathanh-3 (PR #128); sha256 đo trên tệp tải về từ Release.
+// 0.2.3: assembleRelease khoá aiigrow-con từ commit 68d44f6 (tag phathanh-3-src) (PR #128); sha256 đo trên tệp tải về từ Release.
 export const BAN_CON_ANDROID = {
   version: "0.2.3",
   versionCode: 5,
