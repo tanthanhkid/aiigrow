@@ -242,20 +242,21 @@ public actor BoMay {
     let hl = DanhGiaPolicy.tinh(p, now: now, daDungGiay: cauHinh.daDungGiayTuSync)
     let chan = cheDoHieuLuc() == CheDoAgent.chan
 
+    // Web TRƯỚC: plist chính sách trình duyệt (theo tài khoản Con) + khối hosts cho Safari. Giám sát ⇒ gỡ hết.
+    // Kết quả = trình duyệt mà luật web đang đúng trên đĩa ⇒ «chặn theo lọc»: chỉ những trình duyệt này được chạy ở Chặn thật.
+    let trinhDuyet = apWeb(p: p, now: now, chan: chan, laCon: laCon, manKhoa: manKhoa)
+
     // App: đóng app ngoài danh sách của phiên Con (chỉ khi chặn thật + chỉ-app-học).
     if let uidCon = cauHinh.uidCon, laCon, chan {
       let ds = heThong.tienTrinh(cuaUid: uidCon)
       let choPhep = p.allowedApps + Array(QuyetDinhApp.heThong)
-      let can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep)
+      let can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet)
       let canPid = Set(can.map(\.pid))
       daGuiTerm = daGuiTerm.filter { canPid.contains($0.key) && heThong.conSong(pid: $0.key) }     // hết cần đóng / đã chết ⇒ quên SIGTERM cũ
       for t in can { dongApp(t) }
     } else {
       daGuiTerm = [:]
     }
-
-    // Web: plist chính sách trình duyệt (theo tài khoản Con) + khối hosts cho Safari. Giám sát ⇒ gỡ hết.
-    apWeb(p: p, now: now, chan: chan, laCon: laCon, manKhoa: manKhoa)
 
     // Khoá: đếm ngược rồi đóng phiên Con.
     var demNguoc: Int? = nil
@@ -279,12 +280,15 @@ public actor BoMay {
 
   // MARK: web
 
-  private func apWeb(p: Policy, now: Date, chan: Bool, laCon: Bool, manKhoa: Bool) {
+  /// → bundle id .app (chữ thường) của trình duyệt mà plist luật web ĐANG đúng trên đĩa (rỗng khi không chặn / ghi lỗi / chưa biết tài khoản Con).
+  @discardableResult
+  private func apWeb(p: Policy, now: Date, chan: Bool, laCon: Bool, manKhoa: Bool) -> Set<String> {
     // hosts áp cho cả máy ⇒ chỉ đặt khi Con đang ở màn hình, gỡ khi không phải Con (để Ba Mẹ không bị chặn).
     let web = chan ? (p.web ?? ChinhSachWeb()).hetMo(now, moDen: p.grantEndsAt) : nil
     let dungHosts = chan && laCon && !manKhoa
     apHosts(web: dungHosts ? web : nil)
-    apChinhSachTrinhDuyet(web: chan ? web : nil)
+    let daAp = apChinhSachTrinhDuyet(web: chan ? web : nil)
+    return web == nil ? [] : daAp
   }
 
   private func apHosts(web: ChinhSachWeb?) {
@@ -300,13 +304,17 @@ public actor BoMay {
     } catch { heThong.ghiLog("Ghi hosts lỗi: \(error)") }
   }
 
-  private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) {
-    guard let tk = cauHinh.uidCon.flatMap({ heThong.taiKhoan(cuaUid: $0) }) ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon) else { return }
-    apChinhSachTrinhDuyet(taiKhoan: tk, web: web)
+  @discardableResult
+  private func apChinhSachTrinhDuyet(web: ChinhSachWeb?) -> Set<String> {
+    guard let tk = cauHinh.uidCon.flatMap({ heThong.taiKhoan(cuaUid: $0) }) ?? (cauHinh.taiKhoanCon.isEmpty ? nil : cauHinh.taiKhoanCon) else { return [] }
+    return apChinhSachTrinhDuyet(taiKhoan: tk, web: web)
   }
 
-  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) {
+  /// → bundle id .app (chữ thường) của trình duyệt có plist đúng nội dung mong muốn sau lượt này (đã đúng sẵn hoặc vừa ghi xong).
+  @discardableResult
+  private func apChinhSachTrinhDuyet(taiKhoan tk: String, web: ChinhSachWeb?) -> Set<String> {
     let host = URL(string: cauHinh.mayChu)?.host
+    var dung = Set<String>()
     for td in ChinhSachTrinhDuyet.tatCa {
       let duong = ChinhSachTrinhDuyet.duongDan(td, taiKhoan: tk, thuMucGoc: tuyChon.thuMucChinhSach)
       let cu = ChinhSachTrinhDuyet.giaiMa(heThong.docTep(duong))
@@ -315,11 +323,12 @@ public actor BoMay {
         continue
       }
       // Bỏ qua ghi CHỈ khi tệp thật trên đĩa đang đúng nội dung mong muốn (tệp mất hoặc bị sửa ⇒ ghi lại).
-      if let cu, NSDictionary(dictionary: cu).isEqual(to: moi) { continue }
+      if let cu, NSDictionary(dictionary: cu).isEqual(to: moi) { dung.insert(td.bundleApp.lowercased()); continue }
       guard let data = try? ChinhSachTrinhDuyet.maHoa(moi) else { continue }
-      do { try heThong.ghiTep(duong, data, quyen: 0o644) }
+      do { try heThong.ghiTep(duong, data, quyen: 0o644); dung.insert(td.bundleApp.lowercased()) }
       catch { heThong.ghiLog("Ghi chính sách \(td.ten) lỗi: \(error)") }
     }
+    return dung
   }
 
   // MARK: khoá + đóng app
