@@ -693,6 +693,9 @@ internal class ClayButton : Button
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        // ButtonBase đặt ControlStyles.Opaque ⇒ WinForms KHÔNG gọi OnPaintBackground; bộ đệm đôi dùng chung còn ảnh của control vẽ trước
+        // (100%: chữ ma của nút khác quanh góc bo; 150%: đen). Gốc lỗi 25/10 ⇒ tự vẽ nền ngay đầu OnPaint.
+        _nen.Ve(e);
         VeNut.Ve(this, e, _nn, _hover, _kieu, BoGoc, ShowFocusCues);
     }
 
@@ -735,6 +738,7 @@ internal class ClayRadio : RadioButton
 
     protected override void OnPaint(PaintEventArgs e)
     {
+        _nen.Ve(e);   // RadioButton cũng là ButtonBase (Opaque) — xem ClayButton.OnPaint
         VeNut.Ve(this, e, _nn, _hover, KieuClay.TuDong, 0, ShowFocusCues);
     }
 

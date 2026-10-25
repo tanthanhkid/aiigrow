@@ -178,6 +178,13 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Build công cụ chụp
         run: dotnet build agent-win/chup-man -c Release -o chup-bin
+      - name: Màn hình 1920×1080 (runner có lúc 1024×768 ⇒ cửa sổ to hơn màn phải chụp bằng PrintWindow)
+        shell: powershell
+        continue-on-error: true
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop; Write-Host 'Set-DisplayResolution: được' } catch { Write-Host "Set-DisplayResolution: không được — $($_.Exception.Message)" }
+          Add-Type -AssemblyName System.Windows.Forms
+          Write-Host ("Màn hình: {0}" -f [System.Windows.Forms.Screen]::PrimaryScreen.Bounds)
       - name: Chụp 100% và 150% + kiểm khối đen
         shell: pwsh
         run: |
