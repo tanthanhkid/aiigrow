@@ -69,6 +69,9 @@ public enum ChinhSachTrinhDuyet {
 
   public static let thuMuc = "/Library/Managed Preferences"
   public static let khoaDanhDau = "AiiGrowManaged"
+  /// Bundle id (chữ thường) của mọi trình duyệt AiiGrow biết, kể cả Safari — dùng chung cho nhịp phiên web và cắt phiên khi mất mạng.
+  public static var bundleMoi: Set<String> { Set(tatCa.flatMap { [$0.bundleApp.lowercased(), $0.bundleId.lowercased()] } + ["com.apple.safari"]) }
+
   public static let tatCa: [TrinhDuyet] = [
     TrinhDuyet(ten: "Chrome", bundleId: "com.google.Chrome", coAnDanh: "IncognitoModeAvailability", scheme: "chrome://*", bundleApp: "com.google.Chrome", teamId: "EQHXZ8M8AV"),
     TrinhDuyet(ten: "Edge", bundleId: "com.microsoft.Edge", coAnDanh: "InPrivateModeAvailability", scheme: "edge://*", bundleApp: "com.microsoft.edgemac", teamId: "UBF8T346G9"),

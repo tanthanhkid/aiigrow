@@ -35,6 +35,8 @@ cp vn.aiilab.aiigrow.daemon.plist vn.aiilab.aiigrow.tray.plist go-cai.sh scripts
 chmod 755 "$APP/Contents/Resources/go-cai.sh"   # daemon tự chạy khi nhận lệnh gỡ từ xa
 # Icon Fluent Emoji 3D (MIT) của tray — FluentIcon tìm ở Contents/Resources/Fluent; thiếu thì rơi về SF Symbol.
 cp -R "$MAC/Sources/AiiGrowTray/Fluent" "$APP/Contents/Resources/Fluent"
+# Mascot Rob của app Con (cùng ảnh agent-win Assets/mascot) — FluentIcon.anh(…, thuMuc: "Mascot") tìm ở Contents/Resources/Mascot.
+cp -R "$MAC/Sources/AiiGrowTray/Mascot" "$APP/Contents/Resources/Mascot"
 # Icon app (Finder, Launchpad, hộp thoại quyền) = logo chuẩn «Rob tưới mầm» — xuất từ mobile/assets/icon.png.
 cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 plutil -lint "$APP/Contents/Info.plist" vn.aiilab.aiigrow.*.plist >/dev/null

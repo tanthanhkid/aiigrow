@@ -52,6 +52,13 @@ if motVong {
       try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
     }
   }
+  // Nhịp phiên chơi bằng điểm (phien/nhip, 30 giây khi Policy có playSessionId): Task riêng — mạng treo không chặn đồng bộ / áp.
+  Task {
+    while true {
+      await boMay.vongNhipChoi()
+      try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+    }
+  }
   Task {
     while true {
       _ = await boMay.vongAp()

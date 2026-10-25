@@ -60,22 +60,24 @@ enum FluentIcon {
 
   /// Tìm `<ten>.png`: gói phát hành chép vào `AiiGrow.app/Contents/Resources/Fluent/` (goi/build-pkg.sh);
   /// lúc dev/test lấy từ bundle tài nguyên SwiftPM cạnh tệp chạy. KHÔNG dùng `Bundle.module` (thiếu bundle là fatalError).
-  static func anh(_ ten: String) -> NSImage? {
-    if let c = cache[ten] { return c }    // c: NSImage? — nil đã nhớ thì không dò đĩa lại
+  /// `thuMuc`: «Fluent» (icon 3D) hoặc «Mascot» (Rob của app Con) — cùng cách tìm.
+  static func anh(_ ten: String, thuMuc goc: String = "Fluent") -> NSImage? {
+    let khoa = goc + "/" + ten
+    if let c = cache[khoa] { return c }    // c: NSImage? — nil đã nhớ thì không dò đĩa lại
     var thuMuc: [URL] = []
-    if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent("Fluent")) }
+    if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent(goc)) }
     let canh = [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
                 Bundle(for: MocBundle.self).bundleURL.deletingLastPathComponent()].compactMap { $0 }   // dòng cuối: lúc chạy test (.xctest nằm cạnh bundle tài nguyên)
     for g in canh {
       let b = g.appendingPathComponent("AiiGrowMac_AiiGrowTray.bundle")
-      thuMuc.append(b.appendingPathComponent("Fluent"))
-      thuMuc.append(b.appendingPathComponent("Contents/Resources/Fluent"))
+      thuMuc.append(b.appendingPathComponent(goc))
+      thuMuc.append(b.appendingPathComponent("Contents/Resources/" + goc))
     }
     for d in thuMuc {
       let u = d.appendingPathComponent(ten + ".png")
-      if let img = NSImage(contentsOf: u) { cache[ten] = .some(img); return img }
+      if let img = NSImage(contentsOf: u) { cache[khoa] = .some(img); return img }
     }
-    cache[ten] = .some(nil)
+    cache[khoa] = .some(nil)
     return nil
   }
 }

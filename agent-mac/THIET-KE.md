@@ -17,6 +17,12 @@ không ẩn mình, Con luôn biết máy được quản lý. Server coi máy n�
 Unix socket, một dòng JSON yêu cầu (`YeuCauTray`) ⇒ một dòng JSON trả lời (`TraLoi`). Kiểm `getpeereid`:
 lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin và khi chưa ghép. Tray hỏi `trangThai` mỗi 5 giây.
 
+### 3b. App «AiiGrow của Con» (ngang agent-win AppForm, 25/10/2026)
+- Menu (phiên Con, đã ghép) «Mở AiiGrow của Con…» ⇒ cửa sổ 4 mục Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn (`AppConViews.swift`, `AppConModel.swift`); nộp bài (ảnh nén ≤ 300 KB), chơi bằng điểm, màn «… chưa được mở», bảng tin mới (hỏi `hoc-vien/tin` mỗi 30 giây; nhiệm vụ mới ⇒ tự bật mục Nhiệm vụ theo `BatNhiemVu`).
+- IPC: `hocVien(method, path, than)` ⇒ `.duLieu(json)` — daemon chỉ chuyển đường trong `HocVienPaths` tới `api/device/hoc-vien/*` bằng token máy (tray không giữ token). `choi(muc)` (phien/xet → phien/mo) / `choiThu(muc)` (phien/xet, nhớ 60/15 giây) ⇒ `.choi(trangThai, phut, chu)`; chỉ mục trong `Policy.playChoices`. Cả ba chỉ nhận từ uid Con.
+- Nhịp phiên chơi: Policy có `playSessionId` (máy chủ chỉ gửi cho máy sở hữu phiên) ⇒ daemon gửi `phien/nhip {id, dangDung}` 30 giây/lần (`vongNhipChoi`, Task riêng); «ket_thuc» ⇒ đồng bộ ngay.
+- `TrangThai` thêm (chỉ cho phiên Con): `dsChoi`, `chanSeq/chanApp/chanTen/chanLyDo` (app vừa bị đóng — tray hiện màn chặn khi `chanSeq` tăng). Số điểm CHỈ có trong dữ liệu `hocVien` (như Windows); menu / màn khoá vẫn không hiện điểm.
+
 ## 4. Ghép máy
 Ba Mẹ cài `.pkg` (mật khẩu quản trị một lần) ⇒ tray trong phiên admin thấy `daGhep=false` ⇒ cửa sổ «Ghép máy»: chọn tài khoản Con
 (liệt kê user thường trên máy) + mã 6 số ⇒ `ghep` ⇒ daemon gọi server pair (platform `mac`), lưu token, **hạ tài khoản Con về Standard**
