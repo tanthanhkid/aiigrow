@@ -14,7 +14,7 @@ name: agent-win
 #
 # paths: chỉ phần máy chủ mà agent Windows + e2e (agent-win/e2e/chay.ps1, proxy.mjs) thật sự chạy qua — /api/device/**, /api/agent/**,
 # /api/m/** (catch-all lib/api-m.ts: otp, dang-ky, con, goi-cai, may/che-do, toi, tuan-thu), /api/suc-khoe, toàn bộ server/lib (route dùng
-# chung lib; trừ *.test.ts) và cấu hình dựng Next (package.json, lockfile, next.config, tsconfig, instrumentation). Trang web/admin/cron/dns/
+# chung lib; trừ *.test.ts) và cấu hình dựng Next (package.json, lockfile, next.config, tsconfig, instrumentation, middleware/proxy nếu thêm). Trang web/admin/cron/dns/
 # aiirob/quay không kích CI Windows. Thêm route mới mà agent gọi ⇒ thêm vào hai danh sách dưới.
 on:
   pull_request:
@@ -32,6 +32,8 @@ on:
       - 'server/next.config.ts'
       - 'server/tsconfig.json'
       - 'server/instrumentation.ts'
+      - 'server/middleware.ts'
+      - 'server/proxy.ts'
   push:
     branches: [main]
     paths:
@@ -48,6 +50,8 @@ on:
       - 'server/next.config.ts'
       - 'server/tsconfig.json'
       - 'server/instrumentation.ts'
+      - 'server/middleware.ts'
+      - 'server/proxy.ts'
   workflow_dispatch:
 
 permissions:
@@ -74,8 +78,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-win-${{ hashFiles('agent-win/**/*.csproj') }}
-          restore-keys: nuget-win-
+          key: nuget-win-unit-${{ hashFiles('agent-win/**/*.csproj') }}
+          restore-keys: nuget-win-unit-
       - name: dotnet test
         run: dotnet test agent-win/tests/AiiGrow.Tests -c Release --logger "trx;LogFileName=unit.trx" --logger "console;verbosity=normal" --results-directory test-results
       - if: always()
@@ -100,8 +104,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-win-${{ hashFiles('agent-win/**/*.csproj') }}
-          restore-keys: nuget-win-
+          # khoá riêng job build: gói runtime win-x64 của publish một tệp không có trong cache của job unit
+          key: nuget-win-build-${{ hashFiles('agent-win/**/*.csproj') }}
+          restore-keys: nuget-win-build-
       - name: Đặt số bản thử (chỉ trong job)
         if: matrix.ban != 'goc'
         shell: bash
