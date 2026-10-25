@@ -19,7 +19,7 @@ import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
 import { ThanhClay } from "./bieu-do";
-import { LoiApi } from "./api";
+import { bm, LoiApi } from "./api";
 
 export { M, F, BO };
 export { LopMen, NhanMen, Vao } from "./chuyen-dong";
@@ -414,7 +414,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
   // và cả màn vẽ lại hai lần chỉ để bật / tắt vòng quay.
   const [keo, setKeo] = useState(false);
   const conMo = useRef(true);
-  useEffect(() => () => { conMo.current = false; }, []);
+  useEffect(() => { conMo.current = true; return () => { conMo.current = false; }; }, []);
   const keoTai = useCallback(async () => {
     if (!vongTai) { tai?.(); return; }
     setKeo(true);
@@ -571,28 +571,36 @@ export const BaoLoi = ({ loi }: { loi?: string | null }) => (loi ? <Bao loai="lo
 const CHO_MANG_MS = 5000;
 
 /** Dữ liệu đã tải của các màn có `khoa` (tab Ba Mẹ): mở tab lần đầu là có nội dung ngay (đã nạp trước — app/(tab)/_layout.tsx), không chớp
- *  khung xương; màn vẫn tải lại khi mở như thường. Xoá khi đổi phiên (bm.dat). */
-const DA_TAI = new Map<string, { v: unknown; j: string }>();
-export const quenDaTai = () => DA_TAI.clear();
+ *  khung xương; màn vẫn tải lại khi mở như thường. Chỉ dùng bản ≤ 60 giây; quên sạch khi đổi phiên hoặc vừa ghi gì (api › khiDoi) — lời tải
+ *  bắt đầu trước lúc quên thì không ghi vào (`doi` khác) ⇒ không hiện dữ liệu của tài khoản trước / việc đã xử lý. */
+const DA_TAI = new Map<string, { v: unknown; j: string; luc: number }>();
+const TUOI_DA_TAI = 60_000;
+let doiDaTai = 0;
+bm.khiDoi(() => { doiDaTai++; DA_TAI.clear(); });
+const ghiDaTai = (khoa: string, doi: number, v: unknown, j: string | undefined) => { if (j !== undefined && doi === doiDaTai) DA_TAI.set(khoa, { v, j, luc: Date.now() }); };
+const docDaTai = (khoa?: string) => { const x = khoa ? DA_TAI.get(khoa) : undefined; return x && Date.now() - x.luc < TUOI_DA_TAI ? x : undefined; };
 /** Nạp trước dữ liệu của một màn có `khoa` (lỗi thì thôi — màn tự tải lại khi mở). */
-export const napTruoc = (khoa: string, fn: () => Promise<unknown>) =>
-  fn().then((v) => { const j = JSON.stringify(v); if (j !== undefined) DA_TAI.set(khoa, { v, j }); }, () => {});
+export const napTruoc = (khoa: string, fn: () => Promise<unknown>) => {
+  const doi = doiDaTai;
+  return fn().then((v) => ghiDaTai(khoa, doi, v, JSON.stringify(v)), () => {});
+};
 
 /** Tải dữ liệu mỗi lần màn được mở lại. Mất mạng ⇒ `matMang`, tự tải lại mỗi 5 giây khi màn còn mở. `khoa`: nhớ dữ liệu giữa các lần dựng màn. */
 export function useTai<T>(fn: () => Promise<T>, khoa?: string) {
-  const [d, setD0] = useState<T | null>(() => (khoa ? (DA_TAI.get(khoa)?.v as T | undefined) ?? null : null));
+  const [d, setD0] = useState<T | null>(() => (docDaTai(khoa)?.v as T | undefined) ?? null);
   // Mỗi lần màn được mở lại đều tải lại; dữ liệu về Y HỆT lần trước (so JSON) thì giữ nguyên đối tượng cũ ⇒ không vẽ lại cả màn
   // (đổi tab, quay về từ màn con). Màn tự đặt dữ liệu (setD) ⇒ quên mốc so, lần tải sau luôn đặt lại theo máy chủ.
-  const moc = useRef<string | undefined>(khoa ? DA_TAI.get(khoa)?.j : undefined);
+  const moc = useRef<string | undefined>(docDaTai(khoa)?.j);
   const setD = useCallback((v: React.SetStateAction<T | null>) => { moc.current = undefined; setD0(v); }, []);
   const [loi, setLoi] = useState<string | null>(null);
   const [matMang, setMatMang] = useState(false);
   // (không còn cờ «đang tải» trong state: vòng quay kéo-tải-lại do Man tự giữ — bật / tắt cờ mỗi lần tải là hai lần vẽ lại cả màn)
   const tai = useCallback(async () => {
+    const doi = doiDaTai;
     try {
       const v = await fn(), j = JSON.stringify(v);
       if (j === undefined || j !== moc.current) { moc.current = j; setD0(v); }
-      if (khoa && j !== undefined) DA_TAI.set(khoa, { v, j });
+      if (khoa) ghiDaTai(khoa, doi, v, j);
       setLoi(null);
       setMatMang(false);
     } catch (e) {

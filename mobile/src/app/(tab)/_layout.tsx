@@ -1,15 +1,13 @@
 // Thanh điều hướng Ba Mẹ (kit.tab_bm): bốn mục — Trang chủ (bảng điều khiển) · Chờ duyệt · Nhiệm vụ & quà · Gia đình. «Báo cáo» không còn là tab
 // (route thường /bao-cao, mở từ Thời gian màn hình); số đỏ ở Chờ duyệt = nhiệm vụ + yêu cầu đang chờ của mọi Con.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated as RNAnimated, Text, View, useWindowDimensions } from "react-native";
+import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { bm } from "@/lib/api";
 import { F, Icon, LopMen, M, NhanMen, napTruoc, type TenIcon } from "@/lib/ui";
-import { napChoDuyet } from "./cho-duyet";
-import { napDiemQua } from "./diem-qua";
-import { napGiaDinh } from "./cai-dat";
+import { KHOA_TAB, napChoDuyet, napDiemQua, napGiaDinh } from "@/lib/tab-ba-me";
 import { BONG, MEN } from "@/lib/clay";
 import { useBat, useKhiTang } from "@/lib/chuyen-dong";
 import Animated, { useReducedMotion } from "react-native-reanimated";
@@ -34,7 +32,8 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
       const toi = i === dang ? 0 : i > dang ? 1 : -1, v = viTri(ten);
       // chỉ màn cũ và màn mới chạy; tab khác đặt thẳng về đúng phía (lần dựng đầu: mọi tab đặt thẳng)
       if (cu === null || cu === dang || (i !== dang && i !== cu)) { v.setValue(toi); return; }
-      (giam ? RNAnimated.timing(v, { toValue: toi, duration: 180, useNativeDriver: true }) : RNAnimated.spring(v, { toValue: toi, ...LO_XO, useNativeDriver: true })).start();
+      const nd = Platform.OS !== "web";   // web không có native driver
+      (giam ? RNAnimated.timing(v, { toValue: toi, duration: 180, useNativeDriver: nd }) : RNAnimated.spring(v, { toValue: toi, ...LO_XO, useNativeDriver: nd })).start();
     });
   }, [ds, dang, giam]);
 }
@@ -92,7 +91,7 @@ export default function TabLayout() {
   const giam = useReducedMotion();
   // Nạp trước dữ liệu ba tab còn lại khi Trang chủ đã lên: mở tab lần đầu là có nội dung ngay, trượt vào không chớp khung xương.
   useEffect(() => {
-    const t = setTimeout(() => { napTruoc("tab:cho-duyet", napChoDuyet); napTruoc("tab:diem-qua", napDiemQua); napTruoc("tab:gia-dinh", napGiaDinh); }, 1200);
+    const t = setTimeout(() => { napTruoc(KHOA_TAB.choDuyet, napChoDuyet); napTruoc(KHOA_TAB.diemQua, napDiemQua); napTruoc(KHOA_TAB.giaDinh, napGiaDinh); }, 1200);
     return () => clearTimeout(t);
   }, []);
   return (

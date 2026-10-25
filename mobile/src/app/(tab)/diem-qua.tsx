@@ -2,26 +2,20 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, NHOM_NV, type NhiemVu, type Qua, laChiXem } from "@/lib/api";
+import { bm, NHOM_NV, type NhiemVu } from "@/lib/api";
 import {
   BangTruot, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, Man, Nhan, Nhom, Nut, ONhap, tien, useBaoKhiVe, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
+import { KHOA_TAB, napDiemQua, type PhieuDoi } from "@/lib/tab-ba-me";
 
 const tanSuat = (x: NhiemVu) => [x.bang_chung === "tu_dong" ? "Tự động · không cần duyệt" : x.bang_chung === "anh" ? "Ảnh" : "Viết vài câu",
   x.toi_da_ngay ? `tối đa ${x.toi_da_ngay} lần/ngày` : x.toi_da_tuan ? `${x.toi_da_tuan} lần/tuần` : "", x.kieu === "thu_thach" ? "thử thách" : ""].filter(Boolean).join(" · ");
-type Phieu = { id: string; ten: string; loai: keyof typeof IC_QUA; diem: number; ten_con: string; created_at: string };
+type Phieu = PhieuDoi;
 const IC_QUA = { voucher: ["coc", "cam"], qua: ["qua", "lam"], dac_quyen: ["ban", "tim"], tiet_kiem: ["xu", "vang"] } as const;
-
-/** Dữ liệu tab (dùng chung với nạp trước ở app/(tab)/_layout.tsx). */
-export const napDiemQua = async () => ({
-  nv: (await bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")).ds, qua: (await bm.goi<{ ds: Qua[] }>("qua")).ds, quy: await bm.goi<{ soDu: number }>("quy"),
-  phieu: (await bm.goi<{ ds: Phieu[] }>("phieu")).ds,
-  xem: await laChiXem(),
-});
 
 export default function DiemQua() {
   const [the, setThe] = useState<"nv" | "qua">("nv");
-  const { d, loi, matMang, tai } = useTai(napDiemQua, "tab:diem-qua");
+  const { d, loi, matMang, tai } = useTai(napDiemQua, KHOA_TAB.diemQua);
   const [sua, setSua] = useState<NhiemVu | null>(null);
   const [huy, setHuy] = useState<Phieu | null>(null);
   const [diem, setDiem] = useState("");
