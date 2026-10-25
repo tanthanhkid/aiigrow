@@ -58,7 +58,7 @@ internal static class UI
 
     private static Stream? Res(string name) => typeof(UI).Assembly.GetManifestResourceStream(name);
 
-    /// <summary>Biểu tượng khay: mascot Rob màu khi đã kết nối; xám + chấm đỏ khi mất kết nối / dịch vụ không chạy / chưa ghép.</summary>
+    /// <summary>Biểu tượng khay: logo chuẩn «Rob tưới mầm» (scripts/xuat-logo.py) khi đã kết nối; xám + chấm đỏ khi mất kết nối / dịch vụ không chạy / chưa ghép.</summary>
     public static Icon TrayIcon(bool ketNoi)
         => LoadIcon(ketNoi ? "aiigrow-khay.ico" : "aiigrow-khay-mat-ket-noi.ico", SystemInformation.SmallIconSize);
 

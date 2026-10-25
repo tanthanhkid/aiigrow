@@ -43,7 +43,8 @@ internal sealed class SetupForm : Form
     public SetupForm()
     {
         Text = "Cài AiiGrow";
-        try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { } // logo chuẩn trên thanh tiêu đề + taskbar
+        // logo chuẩn trên thanh tiêu đề + taskbar: .ico nhiều cỡ nhúng trong exe (Icon(stream) tự chọn cỡ hợp màn)
+        using (var ic = typeof(SetupForm).Assembly.GetManifestResourceStream("aiigrow.ico")) if (ic != null) Icon = new Icon(ic);
         Font = new Font("Segoe UI", 11f);
         ClientSize = new Size(Rong + 64, 640);
         FormBorderStyle = FormBorderStyle.FixedDialog;

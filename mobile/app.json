@@ -16,8 +16,7 @@
       "package": "vn.aiilab.aiigrow",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundImage": "./assets/adaptive-icon-nen.png",
-        "backgroundColor": "#1C7E75"
+        "backgroundImage": "./assets/adaptive-icon-nen.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -28,7 +27,7 @@
       "expo-font",
       [
         "expo-splash-screen",
-        { "image": "./assets/splash-icon.png", "imageWidth": 160, "resizeMode": "contain", "backgroundColor": "#1C7E75" }
+        { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#16776F" }
       ],
       [
         "expo-camera",
