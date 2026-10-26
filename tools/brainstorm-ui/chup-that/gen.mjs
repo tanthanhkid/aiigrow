@@ -17,8 +17,11 @@ for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) {
 const CDP = 9693;
 const hoSo = mkdtempSync(join(tmpdir(), "aiig-gen-"));
 const chrome = spawn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run", "about:blank"], { stdio: "ignore" });
+process.on("exit", () => { try { chrome.kill(); } catch {} });   // throw giữa chừng vẫn tắt Chrome
+setTimeout(() => { console.error("gen.mjs quá 15 phút — dừng"); process.exit(1); }, 15 * 60e3).unref();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let trang; for (let i = 0; i < 40 && !trang; i++) { try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch {} if (!trang) await sleep(300); }
+if (!trang) throw new Error("không mở được Chrome headless cổng " + CDP);
 const ws = new WebSocket(trang.webSocketDebuggerUrl); await new Promise((r) => (ws.onopen = r));
 let n = 0; const cho = {}; ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && cho[m.id]) { cho[m.id](m.result); delete cho[m.id]; } };
 const goi = (method, params = {}) => new Promise((r) => { cho[++n] = r; ws.send(JSON.stringify({ id: n, method, params })); });
@@ -67,7 +70,7 @@ for (const b of buoc) {
       tc = tc.replace(/ class="([^"]*)"/, (x, c) => { co = true; return ` class="${c} ${ten}"`; });
       return `<${the}${co ? tc : tc + ` class="${ten}"`}>`; });
     // !important: thay vai trò ưu tiên của style nội tuyến so với luật lớp sẵn có
-    const luat = [...lop].map(([css, ten]) => `.${ten}{${css.split(";").filter((x) => x.trim()).map((x) => x.includes("!important") ? x : x + " !important").join(";")}}`).join("\n");
+    const luat = [...lop].map(([css, ten]) => `.${ten}{${css.split(/;(?![^(]*\))(?=(?:[^"]*"[^"]*")*[^"]*$)/).filter((x) => x.trim()).map((x) => x.includes("!important") ? x : x + " !important").join(";")}}`).join("\n");
     html = html.replace("</head>", `<style>${luat}</style></head>`); }
   if (/https?:\/\/(localhost|127\.0\.0\.1)/.test(html)) throw new Error("còn URL localhost trong " + b.key);
   for (const m of html.matchAll(/\/that\/a\/([\w.-]+)/g)) dung.add(m[1]);

@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from "node:fs"; import { join, resolve } from "node:path"; import { pathToFileURL } from "node:url"; import { tmpdir } from "node:os"; import { spawn, execFileSync } from "node:child_process";
 import pixelmatch from "pixelmatch"; import { PNG } from "pngjs";
 const [BS, RA] = process.argv.slice(2).map((x) => resolve(x));
-const CONG = process.env.CONG; if (!CONG) throw new Error("đặt CONG=<cổng server.mjs đang chạy từ chính thư mục này>"); const R = process.env.HOME + "/OFFLINE_FILES/Code/aiigrow-thiet-ke";
+const CONG = process.env.CONG; if (!CONG) throw new Error("đặt CONG=<cổng server.mjs đang chạy từ chính thư mục này>"); const R = process.env.BS_THIET_KE || process.env.HOME + "/OFFLINE_FILES/Code/aiigrow-thiet-ke";
 const ds = JSON.parse(readFileSync(join(BS, "web/that/ds.json"), "utf8"));
 const cu = {}; for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) for (const h of (await import(pathToFileURL(join(BS, "web/hanh-trinh", t + ".js")).href)).default) for (const b of h.buoc) cu[b.key] = b;
 const TMP = join(BS, "web/_cu"); mkdirSync(TMP, { recursive: true }); mkdirSync(join(RA, "cu"), { recursive: true });

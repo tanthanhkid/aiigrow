@@ -872,7 +872,7 @@ async function chayHanhTrinh(l, g, buoc, khiBatDau) {
     if (ctl.signal.aborted) throw new DOMException('dừng', 'AbortError');
     const sys = heThong(await taiAssets());
     const user = loiHanhTrinh({ y: l.yTuong, lan: g, buoc, k: l.k, n: l.n });
-    const maxTokens = Math.min(64000, Math.max(Number(caiDat.maxTokens) || 16000, buoc.length * 6000 + 4000));
+    const maxTokens = Math.min(64000, Math.max(Number(caiDat.maxTokens) || 16000, buoc.reduce((t, b) => t + Math.max(6000, Math.ceil((b.html || '').length / 2.5)), 4000)));   // màn chụp DOM thật 20–77 KB cần nhiều token hơn màn dựng tay
     const toanMock = `Ý TƯỞNG: Mock PA ${l.k} — ${HUONG[(l.k - 1) % HUONG.length].split(/[:,.]/)[0]}\n` + buoc.map((b) => `MÀN: ${b.key}\n\`\`\`html\n${mockSua(b.html, l.k, l.yTuong)}\n\`\`\``).join('\n');
     const { txt, lyDo, dung } = await (laMock()
       ? goiMock({ toan: toanMock, signal: ctl.signal, moiChu, khiBatDau, khoaCache: g.id + buoc.length, vaoCache: Math.round((sys.length + user[0].length) / 3.2) })
@@ -971,6 +971,7 @@ function kieuThietBi(f) {
   const l = timLan(MAN[keyCua(f)].lan); const { w } = kichThuoc(f);
   if (l.nen === 'Web') return 'web';
   if (l.nen === 'Mac' || /^cmt-mac-/.test(keyCua(f))) return 'mac';   // lane Windows có xen màn Mac
+  if (w === 375) return 'iphone';   // màn chụp DOM từ app Expo thật (web/that, iPhone 375×812)
   if (w === 390 || w === 360) return l.nen === 'Điện thoại' || l.nen === 'Android' ? 'android' : 'iphone';
   return 'win';
 }
