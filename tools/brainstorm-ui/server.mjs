@@ -5,7 +5,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ganRealtime } from './realtime.mjs';
+import { ganRealtime, phatPhong } from './realtime.mjs';
+import { taoKhoBienThe } from './kho-bien-the.mjs';
 
 const GOC = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(GOC, '../..');
@@ -93,6 +94,7 @@ const CSP = [
 ].join('; ');
 
 let cong = Number(process.env.PORT) || 5178;
+const khoBt = taoKhoBienThe({ THIET_KE, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong });
 
 function gui(res, ma, kieu, noiDung, them = {}) {
   res.writeHead(ma, { 'Content-Type': kieu, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...them });
@@ -146,6 +148,7 @@ const may = http.createServer(async (req, res) => {
     const p = decodeURIComponent(url.pathname);
 
     if (p === '/api/phien-ban' || p.startsWith('/api/phien-ban/')) return await apiPhienBan(req, res, p);
+    if (p === '/api/bien-the' || p.startsWith('/api/bien-the/')) return await khoBt.xuLy(req, res, p, url);
     if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');
 
     if (p === '/api/assets') {

@@ -247,3 +247,10 @@ body.an-ben #vung{left:0}
 #di-theo button{min-height:32px;border-radius:99px;background:#fff;color:#0f1312;font:700 12px Inter;padding:0 12px}
 .khung.nguoi-chon{outline:3px solid var(--mau-nguoi);outline-offset:4px}
 .khung .tag-nguoi{position:absolute;right:0;top:-26px;background:var(--mau-nguoi);color:#fff;font:700 12px Inter;padding:3px 8px;border-radius:8px;white-space:nowrap;pointer-events:none}
+
+/* thùng rác kho biến thể */
+.hop-rac{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:10px}
+.rac-ds{display:flex;flex-direction:column;gap:8px}
+.rac-muc{display:flex;align-items:center;gap:10px;background:#f3f2ee;border-radius:14px;padding:10px 12px}
+.rac-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.rac-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

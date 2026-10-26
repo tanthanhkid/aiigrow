@@ -10,7 +10,7 @@ export function mauTen(ten) { // màu cố định theo tên
 }
 const chuDau = (ten) => ([...(ten || '?').trim()][0] || '?').toUpperCase();
 
-// C: { st, vung, phong, sec(), cheDo(), suaId(), doiSec(sec, cheDo), datView({x,y,z}), dom, toast, nhanSu(m), nhanBt(f), nhanXoa(ids) }
+// C: { st, vung, phong, sec(), cheDo(), suaId(), doiSec(sec, cheDo), datView({x,y,z}), dom, toast, nhanSu(m), nhanKho(m), khiChao(m), khiCham(m) }
 export function taoRealtime(C) {
   const $ = (s) => document.querySelector(s);
   const ban = new Map();   // id → {id, ten, mau, tro:{x,y,sec,cd,t}, ve:{x,y}, nhin, chon, el}
@@ -54,10 +54,10 @@ export function taoRealtime(C) {
   function nhan(m) {
     if (m.t === 'chao') { C.khiChao?.(m); toi = m.id; for (const x of m.nguoi) { const p = nguoi(x.id, x.ten); if (x.tro) p.tro = { ...x.tro, t: Date.now() }; p.nhin = x.nhin; p.chon = x.chon; } veNguoi(); veChon(); chay(); return; }
     if (m.t === 'cham') { C.khiCham?.(m); return; } // máy chủ bỏ gói vì vượt nhịp: gửi lại sau
+    if (m.t === 'kho') { C.nhanKho?.(m); return; } // kho biến thể trên máy chủ vừa đổi
     if (m.id === toi) return;
     if (m.t === 'vao') { nguoi(m.id, m.ten); veNguoi(); return; }
     if (m.t === 'ra') { const p = ban.get(m.id); p?.el?.remove(); ban.delete(m.id); if (diTheo === m.id) boTheo(); veNguoi(); veChon(); return; }
-    if (m.t === 'bt' && !ban.has(m.id)) { C.nhanBt(m.f, { ten: String(m.ten || 'Người khác').slice(0, 40) }, !!m.bu); return; } // bù từ bộ nhớ máy chủ / người đã rời
     const p = ban.get(m.id); if (!p) return;
     if (m.t === 'ten') { p.ten = m.ten; p.mau = mauTen(m.ten); p.el?.remove(); p.el = null; veNguoi(); veChon(); }
     else if (m.t === 'tro') { p.tro = { x: m.x, y: m.y, sec: m.sec, cd: m.cd, t: Date.now() }; chay(); }
@@ -65,7 +65,6 @@ export function taoRealtime(C) {
     else if (m.t === 'nhin') { p.nhin = m; if (diTheo === p.id) theoKip(p); }
     else if (m.t === 'chon') { p.chon = m; veChon(); }
     else if (m.t === 'su') C.nhanSu(m, p);
-    else if (m.t === 'bt') C.nhanBt(m.f, p);
   }
 
   // ---------- gửi ----------
