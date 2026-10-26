@@ -3,462 +3,539 @@
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-chao.png",
-  "lech": 2.75
+  "lech": 2.75,
+  "ke": "bm1-dang-ky"
  },
  "bm1-dang-ky": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-dang-ky.png",
-  "lech": 2.72
+  "lech": 2.72,
+  "ke": "bm1-otp"
  },
  "bm1-otp": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-otp.png",
-  "lech": 7.12
+  "lech": 7.12,
+  "ke": "bm1-ob-ten-con"
  },
  "bm1-ob-ten-con": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-ten-con.png",
-  "lech": 3.01
+  "lech": 3.01,
+  "ke": "bm1-ob-may"
  },
  "bm1-ob-may": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-may.png",
-  "lech": 4.4
+  "lech": 4.4,
+  "ke": "bm1-ob-ghep"
  },
  "bm1-ob-ghep": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-ghep.png",
-  "lech": 2.92
+  "lech": 2.92,
+  "ke": "bm1-ob-mau"
  },
  "bm1-ob-mau": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-mau.png",
-  "lech": 2.66
+  "lech": 2.66,
+  "ke": "bm1-ob-gio"
  },
  "bm1-ob-gio": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-gio.png",
-  "lech": 3.34
+  "lech": 3.34,
+  "ke": "bm1-ob-xong"
  },
  "bm1-ob-xong": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-xong.png",
-  "lech": 1.19
+  "lech": 1.19,
+  "ke": "bm1-dang-nhap"
  },
  "bm1-dang-nhap": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-dang-nhap.png",
-  "lech": 1.61
+  "lech": 1.61,
+  "ke": "bm1-moi"
  },
  "bm1-moi": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-moi.png",
-  "lech": 2.74
+  "lech": 2.74,
+  "ke": null
  },
  "bm1-may-ds": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/8-ds-may.png",
-  "lech": 2.58
+  "lech": 2.58,
+  "ke": "bm1-may-chon-loai"
  },
  "bm1-may-chon-loai": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-may.png",
-  "lech": 4.4
+  "lech": 4.4,
+  "ke": "bm1-may-ghep"
  },
  "bm1-may-ghep": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ob-ghep.png",
-  "lech": 2.92
+  "lech": 2.92,
+  "ke": "bm1-may-moi"
  },
  "bm1-may-moi": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/9-may.png",
-  "lech": 2.63
+  "lech": 2.63,
+  "ke": null
  },
  "bm2-trang-chu": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/1-trang-chu.png",
-  "lech": 2.92
+  "lech": 2.92,
+  "ke": "bm2-may-ds"
  },
  "bm2-may-ds": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/8-ds-may.png",
-  "lech": 2.58
+  "lech": 2.58,
+  "ke": "bm2-may-m1"
  },
  "bm2-may-m1": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/9-may.png",
-  "lech": 2.63
+  "lech": 2.63,
+  "ke": "bm2-may-m2"
  },
  "bm2-may-m2": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-may-m2.png",
-  "lech": 2.23
+  "lech": 2.23,
+  "ke": "bm2-gio"
  },
  "bm2-gio": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-gio.png",
-  "lech": 2.42
+  "lech": 2.42,
+  "ke": "bm2-ho-so"
  },
  "bm2-ho-so": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ho-so-con.png",
-  "lech": 3.5
+  "lech": 3.5,
+  "ke": null
  },
  "bm2-ung-dung-may": {
   "w": 375,
   "h": 812,
   "anh": null,
-  "lech": null
+  "lech": null,
+  "ke": "bm2-app-web"
  },
  "bm2-app-web": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-app-web.png",
-  "lech": 3.86
+  "lech": 3.86,
+  "ke": "bm2-web"
  },
  "bm2-web": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-web.png",
-  "lech": 3.3
+  "lech": 3.3,
+  "ke": "bm2-yeu-cau-web"
  },
  "bm2-yeu-cau-web": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-yeu-cau-web.png",
-  "lech": 3.42
+  "lech": 3.42,
+  "ke": null
  },
  "bm2-bao-cao": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/6-bao-cao.png",
-  "lech": 2.32
+  "lech": 2.32,
+  "ke": "bm2-man-hinh"
  },
  "bm2-man-hinh": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/7-man-hinh.png",
-  "lech": 3.89
+  "lech": 3.89,
+  "ke": "bm2-vi"
  },
  "bm2-vi": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-vi.png",
-  "lech": 3.76
+  "lech": 3.76,
+  "ke": null
  },
  "bm2-gia-dinh": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/5-gia-dinh.png",
-  "lech": 2.58
+  "lech": 2.58,
+  "ke": "bm2-thanh-vien"
  },
  "bm2-thanh-vien": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-thanh-vien.png",
-  "lech": 3.08
+  "lech": 3.08,
+  "ke": "bm2-thong-bao"
  },
  "bm2-thong-bao": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-thong-bao.png",
-  "lech": 4.66
+  "lech": 4.66,
+  "ke": "bm2-thong-bao-cai-dat"
  },
  "bm2-thong-bao-cai-dat": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-thong-bao-cai-dat.png",
-  "lech": 5.72
+  "lech": 5.72,
+  "ke": "bm2-ho-tro"
  },
  "bm2-ho-tro": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-ho-tro.png",
-  "lech": 2.66
+  "lech": 2.66,
+  "ke": "bm2-quy"
  },
  "bm2-quy": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-quy.png",
-  "lech": 3.42
+  "lech": 3.42,
+  "ke": "bm2-admin-ho-tro"
  },
  "bm2-admin-ho-tro": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-admin-ho-tro.png",
-  "lech": 0.49
+  "lech": 0.49,
+  "ke": null
  },
  "bm3-duyet-thong-bao": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-thong-bao.png",
-  "lech": 4.66
+  "lech": 4.66,
+  "ke": "bm3-duyet-cho-duyet"
  },
  "bm3-duyet-cho-duyet": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/3-cho-duyet.png",
-  "lech": 3
+  "lech": 3,
+  "ke": "bm3-duyet-canh-bao"
  },
  "bm3-duyet-canh-bao": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-canh-bao.png",
-  "lech": 4.43
+  "lech": 4.43,
+  "ke": "bm3-duyet-canh-bao-chi-tiet"
  },
  "bm3-duyet-canh-bao-chi-tiet": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-canh-bao-chi-tiet.png",
-  "lech": 2.49
+  "lech": 2.49,
+  "ke": "bm3-duyet-them-gio"
  },
  "bm3-duyet-them-gio": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-yeu-cau-them-gio.png",
-  "lech": 4.64
+  "lech": 4.64,
+  "ke": "bm3-duyet-nhiem-vu"
  },
  "bm3-duyet-nhiem-vu": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-duyet-nv.png",
-  "lech": 4.57
+  "lech": 4.57,
+  "ke": "bm3-duyet-xong"
  },
  "bm3-duyet-xong": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-duyet-xong.png",
-  "lech": 2.1
+  "lech": 2.1,
+  "ke": "bm3-duyet-trong"
  },
  "bm3-duyet-trong": {
   "w": 375,
   "h": 812,
   "anh": null,
-  "lech": null
+  "lech": null,
+  "ke": "bm3-duyet-mat-mang"
  },
  "bm3-duyet-mat-mang": {
   "w": 375,
   "h": 812,
   "anh": null,
-  "lech": null
+  "lech": null,
+  "ke": null
  },
  "bm3-nv-qua": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/hieu-nang-2/sau/4-diem-qua.png",
-  "lech": 2.49
+  "lech": 2.49,
+  "ke": "bm3-nv-giao"
  },
  "bm3-nv-giao": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-giao-nv.png",
-  "lech": 4.09
+  "lech": 4.09,
+  "ke": "bm3-nv-duyet"
  },
  "bm3-nv-duyet": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-duyet-nv.png",
-  "lech": 4.57
+  "lech": 4.57,
+  "ke": "bm3-nv-loi-khen"
  },
  "bm3-nv-loi-khen": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-loi-khen.png",
-  "lech": 2.88
+  "lech": 2.88,
+  "ke": "bm3-nv-vi"
  },
  "bm3-nv-vi": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-bm-vi.png",
-  "lech": 3.76
+  "lech": 3.76,
+  "ke": "bm3-nv-trao-qua"
  },
  "bm3-nv-trao-qua": {
   "w": 375,
   "h": 812,
   "anh": null,
-  "lech": null
+  "lech": null,
+  "ke": "bm3-nv-trong"
  },
  "bm3-nv-trong": {
   "w": 375,
   "h": 812,
   "anh": null,
-  "lech": null
+  "lech": null,
+  "ke": null
  },
  "cdt-chao": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-chao.png",
-  "lech": 1.47
+  "lech": 1.47,
+  "ke": "cdt-cai"
  },
  "cdt-cai": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-cai.png",
-  "lech": 1.58
+  "lech": 1.58,
+  "ke": "cdt-chua-ghep"
  },
  "cdt-nha": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-nha.png",
-  "lech": 0.97
+  "lech": 0.97,
+  "ke": "cdt-nha-chinh"
  },
  "cdt-nha-chinh": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-nha-cuon.png",
-  "lech": 0.95
+  "lech": 0.95,
+  "ke": "cdt-nhiem-vu"
  },
  "cdt-nhiem-vu": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-nhiem-vu.png",
-  "lech": 2.51
+  "lech": 2.51,
+  "ke": "cdt-nv-chi-tiet"
  },
  "cdt-nv-chi-tiet": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-nv-chi-tiet.png",
-  "lech": 1.78
+  "lech": 1.78,
+  "ke": "cdt-dang-lam"
  },
  "cdt-dang-lam": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-nv-dang.png",
-  "lech": 1.14
+  "lech": 1.14,
+  "ke": "cdt-chup"
  },
  "cdt-chup": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-chup.png",
-  "lech": 0.49
+  "lech": 0.49,
+  "ke": "cdt-cho-duyet"
  },
  "cdt-cho-duyet": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-cho-duyet.png",
-  "lech": 0.83
+  "lech": 0.83,
+  "ke": "cdt-duoc-duyet"
  },
  "cdt-duoc-duyet": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-duoc-duyet.png",
-  "lech": 0.97
+  "lech": 0.97,
+  "ke": "cdt-chup-lai"
  },
  "cdt-chup-lai": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-chup-lai.png",
-  "lech": 0.94
+  "lech": 0.94,
+  "ke": "cdt-vi-qua"
  },
  "cdt-vi-qua": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-vi-qua.png",
-  "lech": 1.76
+  "lech": 1.76,
+  "ke": "cdt-cua-hang"
  },
  "cdt-cua-hang": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-cua-hang.png",
-  "lech": 3.12
+  "lech": 3.12,
+  "ke": "cdt-doi-qua"
  },
  "cdt-doi-qua": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-doi-qua.png",
-  "lech": 1.85
+  "lech": 1.85,
+  "ke": "cdt-huy-hieu"
  },
  "cdt-huy-hieu": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-huy-hieu.png",
-  "lech": 3.19
+  "lech": 3.19,
+  "ke": null
  },
  "cdt-gio-may": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-gio-may.png",
-  "lech": 2
+  "lech": 2,
+  "ke": "cdt-choi"
  },
  "cdt-choi": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-choi.png",
-  "lech": 0.77
+  "lech": 0.77,
+  "ke": "cdt-phien"
  },
  "cdt-phien": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-phien.png",
-  "lech": 0.49
+  "lech": 0.49,
+  "ke": "cdt-nhac-5-phut"
  },
  "cdt-het-phien": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-het-phien.png",
-  "lech": 1.34
+  "lech": 1.34,
+  "ke": "cdt-gio-ngu"
  },
  "cdt-gio-ngu": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-gio-ngu.png",
-  "lech": 0.81
+  "lech": 0.81,
+  "ke": "cdt-android-khoa"
  },
  "cdt-xin-phep": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-xin-phep.png",
-  "lech": 2.08
+  "lech": 2.08,
+  "ke": "cdt-yeu-cau"
  },
  "cdt-yeu-cau": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-yeu-cau.png",
-  "lech": 1.99
+  "lech": 1.99,
+  "ke": "cdt-ios-xin-them"
  },
  "cdt-chan-web": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-chan-web.png",
-  "lech": 0.59
+  "lech": 0.59,
+  "ke": "cdt-webview"
  },
  "cdt-quy-tac": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-quy-tac.png",
-  "lech": 1.85
+  "lech": 1.85,
+  "ke": "cdt-pin-ghep"
  },
  "cdt-pin-ghep": {
   "w": 375,
   "h": 812,
   "anh": "chinchu-ios/sau-con-pin.png",
-  "lech": 1.45
+  "lech": 1.45,
+  "ke": "cdt-pin-ai"
  },
  "cdt-pin-ai": {
   "w": 375,
   "h": 812,
   "anh": "man-dienthoai-2510/expo-con-pin.jpg",
-  "lech": 5.75
+  "lech": 5.75,
+  "ke": null
  }
 }

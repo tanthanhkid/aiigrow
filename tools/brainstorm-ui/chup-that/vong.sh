@@ -19,11 +19,13 @@ for NB in ${=NHOM}; do
 done
 grep -E "chưa thấy|LỖI|KHÔNG|Error|chưa giả: [A-Z]" $S/log-chup.txt
 fi
-ARGS=$(python3 -c "
-import json,re
-r=json.load(open('$S/ra/refs.json'))
-print(' '.join(f'{k}={v}' for k,v in r.items() if v and re.fullmatch(r'$RE',k)))")
+[ -f $S/ra/refs.json ] || { echo "chưa có $S/ra/refs.json — chạy chụp trước (bỏ chi-so)"; exit 1; }
+ARGS=$(RE="$RE" REFS=$S/ra/refs.json python3 -c "
+import json,os,re
+r=json.load(open(os.environ['REFS']))
+print(' '.join(f'{k}={v}' for k,v in r.items() if v and re.fullmatch(os.environ['RE'],k)))")
+[ -n "$ARGS" ] || { echo "không màn nào khớp «$RE» có ảnh thật"; exit 1; }
 (node so.mjs $S/ra/html $S/ra/a $R/chinchu-ios $S/ra/so $S/ra/bang.json ${=ARGS} > $S/log-so.txt 2>&1 & P=$!; for i in $(seq 800); do kill -0 $P 2>/dev/null || break; sleep 1; done; kill $P 2>/dev/null)
 pkill -f "remote-debugging-port=9691"
 cat $S/log-so.txt
-# đưa vào bàn: TOI_TAY="$(cat toi-tay.json)" node gen.mjs $CC/.. $S/ra   (rồi node cu.mjs $CC/.. $S/ra để đo HTML dựng tay cũ, cần server.mjs chạy cổng 5188)
+# đưa vào bàn: TOI_TAY="$(cat toi-tay.json)" node gen.mjs $CC/.. $S/ra   (đo HTML dựng tay cũ: chạy server.mjs của thư mục này rồi CONG=<cổng> node cu.mjs $CC/.. $S/ra)

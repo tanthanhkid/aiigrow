@@ -1,16 +1,17 @@
 // node gen.mjs <repo brainstorm-ui> <ra> — đưa HTML chụp DOM vào web/that/ (html + a + ds.json), gắn data-toi sẵn
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, mkdtempSync, rmSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-const [BS, RA] = process.argv.slice(2);
+const [BS, RA] = process.argv.slice(2).map((x) => resolve(x));
 const TOI_TAY = JSON.parse(process.env.TOI_TAY || "{}"); // key → chữ trên nút (khi nhãn «…» trong hành trình khác chữ app thật)
 const refs = JSON.parse(readFileSync(join(RA, "refs.json"), "utf8"));
 const bang = JSON.parse(readFileSync(join(RA, "bang.json"), "utf8"));
 const buoc = [];
 for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) {
-  const m = await import(join(BS, "web/hanh-trinh", t + ".js"));
+  const m = await import(pathToFileURL(join(BS, "web/hanh-trinh", t + ".js")).href);
   for (const h of m.default) h.buoc.forEach((b, i) => buoc.push({ key: b.key, toi: b.toi, ke: h.buoc[i + 1], ten: b.ten }));
 }
 const CDP = 9693;
@@ -46,7 +47,7 @@ for (const b of buoc) {
   const f = join(RA, "html", b.key + ".html"); if (!existsSync(f)) continue;
   let html = readFileSync(f, "utf8").replace(/ data-r="[^"]*"/g, "");
   // ảnh thanh trạng thái / bàn phím: chuyển vào trong #root (ảnh thu nhỏ của bàn chỉ chụp phần tử đầu tiên của body)
-  const lop = []; html = html.replace(/<img alt="" src="\/that\/a\/(?:sb|kb)-[^>]+>/g, (m) => { lop.push(m); return ""; });
+  const lop = []; html = html.replace(/<img alt="" src="\/that\/a\/(?:sb|kb)-[^>]+>|<div style="position:fixed;left:0;right:0;top:0;height:50px;[\s\S]*?<\/svg><\/div>/g, (m) => { lop.push(m); return ""; });
   if (lop.length) { if (!/<div id="root"[^>]*>/.test(html)) throw new Error("không thấy #root " + b.key); html = html.replace(/<div id="root"[^>]*>/, (m) => m + lop.join("")); }
   if (b.toi && b.ke) {
     const r = (await goi("Runtime.evaluate", { expression: `(${GAN})(${JSON.stringify(html)}, ${JSON.stringify(b.toi)}, ${JSON.stringify(b.ke.key)}, ${JSON.stringify(b.ke.ten)}, ${JSON.stringify(TOI_TAY[b.key] || "")})`, returnByValue: true })).result.value;
@@ -56,14 +57,29 @@ for (const b of buoc) {
   html = html.replace(/data:image\/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]{2000,})/g, (m, loai, b64) => {
     const buf = Buffer.from(b64, "base64"); const ten = createHash("sha1").update(buf).digest("hex").slice(0, 12) + "." + (loai === "jpeg" ? "jpg" : loai);
     writeFileSync(join(RA, "a", ten), buf); return "/that/a/" + ten; });
+  // style="…" nội tuyến (react-native-web đổ rất nhiều, lặp lại) → lớp .tN trong <style>: HTML nhẹ ~3 lần, hiển thị giữ nguyên
+  { const lop = new Map(); const goVe = (t) => t.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+    html = html.replace(/<([a-zA-Z][\w-]*)([^<>]*?) style="([^"]*)"([^<>]*)>/g, (m, the, truoc, st, sau) => {
+      if (the === "img" && /\/that\/a\/(sb|kb)-/.test(m)) return m; // ảnh lớp phủ của gen: giữ nguyên
+      const css = goVe(st).trim(); if (!css || css.includes("<")) return m;
+      if (!lop.has(css)) lop.set(css, "t" + lop.size.toString(36));
+      const ten = lop.get(css); let tc = truoc + sau, co = false;
+      tc = tc.replace(/ class="([^"]*)"/, (x, c) => { co = true; return ` class="${c} ${ten}"`; });
+      return `<${the}${co ? tc : tc + ` class="${ten}"`}>`; });
+    // !important: thay vai trò ưu tiên của style nội tuyến so với luật lớp sẵn có
+    const luat = [...lop].map(([css, ten]) => `.${ten}{${css.split(";").filter((x) => x.trim()).map((x) => x.includes("!important") ? x : x + " !important").join(";")}}`).join("\n");
+    html = html.replace("</head>", `<style>${luat}</style></head>`); }
   if (/https?:\/\/(localhost|127\.0\.0\.1)/.test(html)) throw new Error("còn URL localhost trong " + b.key);
   for (const m of html.matchAll(/\/that\/a\/([\w.-]+)/g)) dung.add(m[1]);
   writeFileSync(join(ra, "html", b.key + ".html"), html);
   const ref = refs[b.key];
   const anh = !ref ? null : ref.startsWith("../") ? ref.slice(3) : "chinchu-ios/" + ref;
-  ds[b.key] = { w: 375, h: 812, anh, lech: bang[b.key]?.pt ?? null };
+  ds[b.key] = { w: 375, h: 812, anh, lech: bang[b.key]?.pt ?? null, ke: b.ke?.key ?? null }; // ke: bước kế lúc gắn data-toi
 }
 for (const a of dung) if (existsSync(join(RA, "a", a))) copyFileSync(join(RA, "a", a), join(ra, "a", a));
+// bỏ màn không còn trong hành trình nào (key đổi tên/xoá)
+const conKey = new Set(buoc.map((b) => b.key));
+for (const k of Object.keys(ds)) if (!conKey.has(k)) { delete ds[k]; rmSync(join(ra, "html", k + ".html"), { force: true }); console.log("bỏ màn cũ", k); }
 // chỉ xoá tệp a/ không còn HTML nào trong web/that/html dùng tới
 const conDung = new Set(); for (const h of readdirSync(join(ra, "html"))) for (const m of readFileSync(join(ra, "html", h), "utf8").matchAll(/\/that\/a\/([\w.-]+)/g)) conDung.add(m[1]);
 for (const a of conDung) if (!existsSync(join(ra, "a", a))) throw new Error("thiếu tệp a/" + a);

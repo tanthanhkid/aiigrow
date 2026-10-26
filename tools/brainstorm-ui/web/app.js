@@ -1077,7 +1077,7 @@ async function htmlTuDung(html, khoaScript = true) {
   const css = await cssKit;
   s = s.replace(/<link[^>]*href=["']\/assets\/clay-kit\.css["'][^>]*>/gi, () => `<style>${css}</style>`);
   // ảnh bộ kit (/assets/) và ảnh màn chụp thật (/that/a/) → data URL; font của màn thật chỉ nhúng khi xuất/lưu (ảnh thu nhỏ bỏ font)
-  const ds = [...new Set([...(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || []), ...(s.match(khoaScript ? /\/that\/a\/[\w.-]+\.(?:png|webp|jpg|ttf)/g : /\/that\/a\/[\w.-]+\.(?:png|webp|jpg)/g) || [])])];
+  const ds = [...new Set([...(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || []), ...(s.match(khoaScript ? /\/that\/a\/[\w.-]+\.(?:png|webp|jpe?g|gif|svg|ttf|otf|woff2?)/g : /\/that\/a\/[\w.-]+\.(?:png|webp|jpe?g|gif|svg)/g) || [])])];
   for (const u of ds) { try { const d = await thanhDataUrl(u); s = s.split(u).join(d); } catch { /* giữ nguyên */ } }
   return s;
 }

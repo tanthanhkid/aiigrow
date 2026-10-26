@@ -35,11 +35,12 @@ async function thayManThat(ds, loi) {
   try { bang = await (await fetch('/that/ds.json')).json(); } catch { return; }
   if (!bang || typeof bang !== 'object') return;
   const viec = [];
-  for (const h of ds) for (const b of h.buoc) {
-    const t = bang[b.key]; if (!t) continue;
+  for (const h of ds) h.buoc.forEach((b, i) => {
+    const t = bang[b.key]; if (!t) return;
+    const doiKe = t.ke !== (h.buoc[i + 1]?.key ?? null); // hành trình đã đổi thứ tự sau lần gen ⇒ bỏ data-toi gắn sẵn, để ganToi gắn lại
     viec.push(fetch(`/that/html/${b.key}.html`).then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status)))).then((html) => {
-      b.html = html; b.w = t.w; b.h = t.h; b.anh = t.anh || ''; // không có ảnh thật thì bỏ lớp ảnh của màn dựng tay cũ
+      b.html = doiKe ? html.replace(/ data-toi="[^"]*"/g, '') : html; b.w = t.w; b.h = t.h; b.anh = t.anh || ''; // không có ảnh thật thì bỏ lớp ảnh của màn dựng tay cũ
     }).catch(() => loi.push(`không tải được màn thật ${b.key}`)));
-  }
+  });
   await Promise.all(viec);
 }

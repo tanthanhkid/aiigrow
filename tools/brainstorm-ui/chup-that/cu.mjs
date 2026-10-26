@@ -1,9 +1,10 @@
 // node cu.mjs <brainstorm-ui> <ra> — render HTML DỰNG TAY cũ (390×844) đúng khổ ảnh thật, so pixel; ghi ra/cu/<key>.png + ra/bang-cu.json
-import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from "node:fs"; import { join } from "node:path"; import { tmpdir } from "node:os"; import { spawn, execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync, existsSync } from "node:fs"; import { join, resolve } from "node:path"; import { pathToFileURL } from "node:url"; import { tmpdir } from "node:os"; import { spawn, execFileSync } from "node:child_process";
 import pixelmatch from "pixelmatch"; import { PNG } from "pngjs";
-const [BS, RA] = process.argv.slice(2); const R = process.env.HOME + "/OFFLINE_FILES/Code/aiigrow-thiet-ke";
+const [BS, RA] = process.argv.slice(2).map((x) => resolve(x));
+const CONG = process.env.CONG; if (!CONG) throw new Error("đặt CONG=<cổng server.mjs đang chạy từ chính thư mục này>"); const R = process.env.HOME + "/OFFLINE_FILES/Code/aiigrow-thiet-ke";
 const ds = JSON.parse(readFileSync(join(BS, "web/that/ds.json"), "utf8"));
-const cu = {}; for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) for (const h of (await import(join(BS, "web/hanh-trinh", t + ".js"))).default) for (const b of h.buoc) cu[b.key] = b;
+const cu = {}; for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) for (const h of (await import(pathToFileURL(join(BS, "web/hanh-trinh", t + ".js")).href)).default) for (const b of h.buoc) cu[b.key] = b;
 const TMP = join(BS, "web/_cu"); mkdirSync(TMP, { recursive: true }); mkdirSync(join(RA, "cu"), { recursive: true });
 const CDP = 9695; const hoSo = mkdtempSync(join(tmpdir(), "aiig-cu-"));
 const chrome = spawn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: "ignore" });
@@ -21,7 +22,8 @@ for (const [k, t] of Object.entries(ds)) {
   const W = r.width, H = r.height, w0 = cu[k].w, dpr = W / w0;
   writeFileSync(join(TMP, k + ".html"), cu[k].html);
   await goi("Emulation.setDeviceMetricsOverride", { width: w0, height: Math.ceil(H / dpr), deviceScaleFactor: dpr, mobile: true });
-  await goi("Page.navigate", { url: `http://127.0.0.1:${process.env.CONG || 5188}/_cu/${k}.html` }); await sleep(1200);
+  const url = `http://127.0.0.1:${CONG}/_cu/${k}.html`; if (!(await fetch(url)).ok) throw new Error("server không phục vụ " + url);
+  await goi("Page.navigate", { url }); await sleep(1200);
   const s = await goi("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: w0, height: H / dpr, scale: 1 } });
   let m = PNG.sync.read(Buffer.from(s.data, "base64"));
   if (m.width !== W || m.height !== H) { const o = new PNG({ width: W, height: H }); o.data.fill(255); for (let y = 0; y < Math.min(H, m.height); y++) m.data.copy(o.data, y * W * 4, y * m.width * 4, y * m.width * 4 + Math.min(W, m.width) * 4); m = o; }

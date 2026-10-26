@@ -37,6 +37,7 @@ const docPng = (f) => { if (!existsSync(f)) throw new Error("thiếu " + f);
 const bang = existsSync(BANG) ? JSON.parse(readFileSync(BANG, "utf8")) : {};
 for (const c of cap) {
   const [key, ref] = c.split("="); if (!ref) { console.log("bỏ", c); continue; }
+  if (!existsSync(join(HTML, key + ".html"))) { console.log("THIẾU HTML", key); continue; }
   const r = docPng(join(REF, ref));
   const W = r.width, H = r.height, dpr = W / 375;
   await goi("Emulation.setDeviceMetricsOverride", { width: 375, height: Math.ceil(H / dpr), deviceScaleFactor: dpr, mobile: true });
