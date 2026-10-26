@@ -1279,7 +1279,7 @@ function chupLai() {
   const k = st.khung.slice(), l = st.lanBt.slice(), cha = new Map(st.khung.map((f) => [f.id, f.cha])), moc = xoaXa.n;
   return () => {
     // mục NGƯỜI KHÁC đã xoá sau lúc chụp thì không hồi sinh (chỉ hoàn tác việc của mình)
-    const nguoiKhacXoa = (id) => (xoaXa.ds.get(id) || -1) >= moc;
+    const nguoiKhacXoa = (id) => (xoaXa.ds.get(id) || 0) > moc;
     st.khung = [...k.filter((f) => !nguoiKhacXoa(f.id) && !(f.lan && nguoiKhacXoa(f.lan))), ...st.khung.filter((f) => !k.includes(f))];
     st.lanBt = [...l.filter((x) => !nguoiKhacXoa(x.id)), ...st.lanBt.filter((x) => !l.includes(x))];
     for (const f of k) if (cha.has(f.id)) f.cha = cha.get(f.id);
@@ -1416,9 +1416,21 @@ async function goiKho(url, than) {
     if (j.loi?.length) toast(`Máy chủ không nhận ${j.loi.length} mục: ${j.loi[0]}`, true);
     loiKho = 0; return j;
   } catch (e) {
-    if (!loiKho++) toast(`Chưa lưu được biến thể lên máy chủ (${e.message}) — tự thử lại.`, true);
+    if (!loiKho++) toast(`Chưa lưu được biến thể lên máy chủ (${e.message}) — tự thử lại; tạm giữ trong trình duyệt này.`, true);
+    luuDuPhong();
     luuLai(Math.min(30000, 2000 * loiKho)); return null;
   }
+}
+// máy chủ không nhận được: giữ tạm các mục chưa lên máy chủ trong localStorage (bs.v2) — lần gửi được sau, diTru đẩy lên rồi dọn
+function luuDuPhong() {
+  try {
+    const khung = st.khung.filter((f) => khungLuu(f) && daGui.get(`k:${f.id}`) !== kyKhung(f)).map((f) => { const o = banLuu(f); o.html = f.html || ''; if (f.htmlSua) o.htmlSua = f.htmlSua; if (f.htmlGocSua) o.htmlGocSua = f.htmlGocSua; return o; });
+    const lanBt = st.lanBt.filter((l) => daGui.get(`l:${l.id}`) !== kyLan(l)).map(banLuu);
+    if (!khung.length && !lanBt.length) return;
+    const cu = doc(KHOA_LUU, null) || {}; // gộp với bản cũ chưa di trú xong (không đè mất)
+    const gop = (a, b) => [...(a || []).filter((x) => !b.some((y) => y.id === x?.id)), ...b];
+    localStorage.setItem(KHOA_LUU, JSON.stringify({ khung: gop(cu.khung, khung), lanBt: gop(cu.lanBt, lanBt) }));
+  } catch { /* đầy bộ nhớ trình duyệt: chỉ còn bản trong trang */ }
 }
 async function dongBoKho() {
   if (!khoSan) return; // chưa tải xong kho: napKho sẽ gọi lại
@@ -1463,6 +1475,7 @@ async function dongBoKho() {
       if (!j) return;
       for (const id of phan) daGui.delete(id);
     }
+    if (doc(KHOA_LUU, null)) await diTru(); // còn bản dự phòng / di trú dở: đẩy nốt lên rồi dọn
   } finally { dangDb = false; if (laiDb) { laiDb = false; luuLai(0); } }
 }
 // đang sinh thì cứ 45 giây làm mới khung «đang sinh» trên máy chủ (người khác biết việc còn chạy)
@@ -1494,9 +1507,11 @@ setInterval(() => {
 async function layBanMoiHon(xd) {
   const dsL = xd?.lan || [], dsK = xd?.khung || [];
   if (!dsL.length && !dsK.length) return;
-  for (const m of dsL) apLan(m, true);
-  for (const g of await taiKhung(dsK)) apKhung(g, g, true);
-  toast(`Người khác vừa sửa ${dsL.length + dsK.length} mục trước bạn — đã lấy bản mới nhất.`, true);
+  let n = 0;
+  for (const m of dsL) { if (apLan(m, true)) n++; else { const l = st.lanBt.find((x) => x.id === m.id); if (l) l.tSua = m.tSua; } }
+  for (const g of await taiKhung(dsK)) { if (apKhung(g, g, true)) n++; else { const f = timKhung(g.id); if (f) f.tSua = g.tSua; } } // đang sửa/đang chạy trên máy này: bản của mình ghi đè ở lần lưu sau
+  if (n) toast(`Người khác vừa sửa ${n} mục trước bạn — đã lấy bản mới nhất.`, true);
+  else luuLai(0);
   veTatCa();
 }
 
@@ -1533,14 +1548,17 @@ function boKhung(ids) {
   for (const id of ids) if (!timKhung(id)) daGui.delete(`k:${id}`);
   if (!xoa.length) return 0;
   for (const id of xoa) { daGui.delete(`k:${id}`); xoaXa.ds.set(id, ++xoaXa.n); }
-  for (const f of st.khung) if (xoa.includes(f.cha)) f.cha = timKhung(f.cha)?.cha || f.goc;
+  // nối lại cha cho màn con: người xoá đã ghi cha mới lên máy chủ ⇒ không coi là thay đổi của máy này
+  for (const f of st.khung) if (xoa.includes(f.cha)) { const dongBo = daGui.get(`k:${f.id}`) === kyKhung(f); f.cha = timKhung(f.cha)?.cha || f.goc; if (dongBo) daGui.set(`k:${f.id}`, kyKhung(f)); }
   st.khung = st.khung.filter((f) => !xoa.includes(f.id)); for (const id of xoa) st.chon.delete(id);
   return xoa.length;
 }
 function boLan(ids) {
   const xoa = ids.filter((id) => { const l = st.lanBt.find((x) => x.id === id); return l && !banLan(l); });
-  for (const id of ids) daGui.delete(`l:${id}`);
+  for (const id of ids) if (!st.lanBt.some((x) => x.id === id)) daGui.delete(`l:${id}`);
   if (!xoa.length) return 0;
+  for (const id of xoa) daGui.delete(`l:${id}`);
+  for (const f of st.khung) if (f.lan && xoa.includes(f.lan)) daGui.delete(`k:${f.id}`); // máy chủ đã đưa các màn vào thùng rác cùng phương án
   for (const id of xoa) xoaXa.ds.set(id, ++xoaXa.n);
   st.lanBt = st.lanBt.filter((l) => !xoa.includes(l.id));
   st.khung = st.khung.filter((f) => !f.lan || !xoa.includes(f.lan));
@@ -1578,7 +1596,7 @@ async function apDs(dsK, dsL) {
 }
 
 // ---- nạp cả kho (lúc mở trang + mỗi lần nối lại realtime): bản máy chủ là chuẩn, trừ mục đang dở tay trên máy này
-let dangNap = null;
+let dangNap = null, napLuc = 0;
 function napKho() { return (dangNap ||= (async () => { try { await napKho2(); } finally { dangNap = null; } })()); }
 async function napKho2() {
   if (!khoSan) await diTru();
@@ -1594,7 +1612,7 @@ async function napKho2() {
   // mục máy này từng có trên máy chủ mà nay không còn ⇒ người khác đã xoá
   boKhung(xoaK.filter((id) => daGui.has(`k:${id}`)));
   boLan(xoaL.filter((id) => daGui.has(`l:${id}`)));
-  const dau = !khoSan; khoSan = true;
+  const dau = !khoSan; khoSan = true; napLuc = Date.now();
   if (dau && boLoKho) { boLoKho = false; setTimeout(napKho, 0); } // có thay đổi phát tới trong lúc nạp lần đầu: nạp lại cho khớp
   veTatCa();
   if (dau && !st.views[khoaView()]) vuaMan();
@@ -1698,10 +1716,10 @@ async function napLaiPhienBan(key) {
 function nhanSu(m, p) {
   if (m.loai === 'thay' && coMan(m.key)) napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`));
 }
-rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => napKho(), khiCham, sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
+rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); }, khiCham, sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
   doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), datView: (v) => { st.view = v; apView(); luuView(); } });
 
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
   lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
 napKho();
-window.__bs = { rt, khoXong: () => khoSan, napKho, moRac, daGui, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+window.__bs = { rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

@@ -76,6 +76,7 @@ export function taoKhoBienThe(C) {
     if (!cu && BO.k.size >= SO_TOI_DA) return { loi: `Kho đã đủ ${SO_TOI_DA} biến thể — dọn bớt` };
     const coPhu = !!(phu.htmlSua || phu.htmlGocSua);
     m.b = html || coPhu ? bam(html, phu.htmlSua, phu.htmlGocSua) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
+    if (m.tt === 'dang' && !html && !coPhu && cu) m.b = cu.b || ''; // đang sinh lại: giữ HTML cũ trên máy chủ tới khi có bản xong
     if (cu?.b !== m.b) {
       if (html) ghi(path.join(dir('k'), `${m.id}.html`), html); else xoaTep(path.join(dir('k'), `${m.id}.html`));
       if (coPhu) ghi(tepPhu(m.id), JSON.stringify(phu)); else xoaTep(tepPhu(m.id));
@@ -186,10 +187,10 @@ export function taoKhoBienThe(C) {
   }
   const phienCua = (req) => chu(String(req.headers['x-bs-phien'] || ''), 40) || '';
   const nguoiCua = (req) => { try { return decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { return ''; } };
-  function docDu(id) { // thông tin + HTML (+ bản sửa tay) của một khung
+  async function docDu(id) { // thông tin + HTML (+ bản sửa tay) của một khung — đọc bất đồng bộ, không chặn realtime
     const meta = BO.k.get(id); if (!meta) return null;
-    let html = ''; try { html = fs.readFileSync(path.join(dir('k'), `${id}.html`), 'utf8'); } catch { /* khung chưa có HTML */ }
-    const phu = docJson(tepPhu(id)) || {};
+    let html = ''; try { html = await fs.promises.readFile(path.join(dir('k'), `${id}.html`), 'utf8'); } catch { /* khung chưa có HTML */ }
+    let phu = {}; try { phu = JSON.parse(await fs.promises.readFile(tepPhu(id), 'utf8')) || {}; } catch { /* không có */ }
     return { ...meta, html, ...(phu.htmlSua ? { htmlSua: phu.htmlSua } : {}), ...(phu.htmlGocSua ? { htmlGocSua: phu.htmlGocSua } : {}) };
   }
 
@@ -206,13 +207,13 @@ export function taoKhoBienThe(C) {
         const ds = [], con = []; let co = 0;
         for (const id of ids) {
           if (co > 16e6) { con.push(id); continue; }
-          const g = docDu(id); if (!g) continue;
+          const g = await docDu(id); if (!g) continue;
           co += (g.html?.length || 0) + (g.htmlSua?.length || 0) + (g.htmlGocSua?.length || 0); ds.push(g);
         }
         return json(res, 200, { ds, con });
       }
       const m = p.match(/^\/api\/bien-the\/k\/([\w-]{1,120})$/);
-      if (m) { const g = docDu(m[1]); return g ? json(res, 200, g) : json(res, 404, { loi: 'Không có biến thể này' }); }
+      if (m) { const g = await docDu(m[1]); return g ? json(res, 200, g) : json(res, 404, { loi: 'Không có biến thể này' }); }
       return json(res, 404, { loi: 'Không có' });
     }
     if (req.method !== 'POST') return json(res, 405, { loi: 'Không hỗ trợ' });
