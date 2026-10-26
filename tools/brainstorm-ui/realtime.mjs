@@ -7,7 +7,9 @@ const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const GOI_NHO = 4 * 1024;             // gói thường (con trỏ, chọn…)
 const GOI_LON = 6 * 1024 * 1024;      // gói «bt» mang HTML biến thể
 const TOI_DA_PHONG = 40;              // người mỗi phòng
-const NHIP = { tro: [40, 1000], khac: [30, 1000], bt: [20, 60000] }; // [số gói, trong bao nhiêu ms]
+const NHIP = { tro: [40, 1000], khac: [30, 1000], bt: [120, 60000] }; // [số gói, trong bao nhiêu ms]
+const BT_BYTE = 40 * 1024 * 1024;     // tổng byte gói «bt» mỗi người mỗi phút
+const DON_TOI_DA = 16 * 1024 * 1024;  // người nhận chậm (tunnel yếu) dồn quá mức này thì bỏ qua gói lớn cho họ
 const LOAI = new Set(['tro', 'nhin', 'chon', 'roi', 'su', 'bt', 'ten']);
 const phong = new Map();              // tên phòng → Map(id → kết nối)
 
@@ -21,8 +23,21 @@ function khung(op, buf) { // gói server → trình duyệt: không mask
   else { dau = Buffer.alloc(10); dau[0] = 0x80 | op; dau[1] = 127; dau.writeBigUInt64BE(BigInt(n), 2); }
   return Buffer.concat([dau, buf]);
 }
-function gui(k, obj) { if (!k.dong && k.sock.writable) k.sock.write(khung(1, Buffer.from(JSON.stringify(obj)))); }
-function phat(tenPhong, tu, obj) { for (const k of phong.get(tenPhong)?.values() || []) if (k !== tu) gui(k, obj); }
+function guiGoi(k, goi) {
+  if (k.dong || !k.sock.writable) return;
+  if (goi.length > GOI_NHO && k.sock.writableLength > DON_TOI_DA) return; // không để bộ nhớ phình vì một người nhận chậm
+  k.sock.write(goi);
+}
+const gui = (k, obj) => guiGoi(k, khung(1, Buffer.from(JSON.stringify(obj))));
+// dựng gói MỘT lần rồi gửi cho cả phòng
+function phat(tenPhong, tu, obj) {
+  const p = phong.get(tenPhong); if (!p) return;
+  const goi = khung(1, Buffer.from(JSON.stringify(obj)));
+  for (const k of p.values()) if (k !== tu) guiGoi(k, goi);
+}
+// máy chủ chủ động báo (vd. góp ý mới): gửi cho mọi người trong phòng
+export const phatPhong = (tenPhong, obj) => phat(tenPhong, null, obj);
+export const dsPhong = () => [...phong.keys()];
 function choPhep(k, loai) {
   const [n, ms] = NHIP[loai] || NHIP.khac; const now = Date.now();
   const d = (k.dem[loai] ||= { t: now, n: 0 });
@@ -44,26 +59,34 @@ function sach(m) {
   }
 }
 
+// Đệm theo mảnh + tổng độ dài: chỉ nối khi đủ một gói (không chép lại cả bộ đệm mỗi mảnh TCP).
 function docGoi(k, chunk, khiGoi) {
-  k.dem0 = k.dem0 ? Buffer.concat([k.dem0, chunk]) : chunk;
+  k.ds.push(chunk); k.n += chunk.length;
   for (;;) {
-    const b = k.dem0; if (b.length < 2) return;
+    if (k.n < Math.max(2, k.can)) return;
+    if (k.ds.length > 1) k.ds = [Buffer.concat(k.ds, k.n)];
+    const b = k.ds[0];
     const fin = b[0] & 0x80, op = b[0] & 0x0f, mask = b[1] & 0x80; let n = b[1] & 0x7f, p = 2;
     if (!mask) return dongK(k, 1002);
     if (n === 126) { if (b.length < 4) return; n = b.readUInt16BE(2); p = 4; }
     else if (n === 127) { if (b.length < 10) return; const big = b.readBigUInt64BE(2); if (big > BigInt(GOI_LON)) return dongK(k, 1009); n = Number(big); p = 10; }
     if (n + (k.manh?.length || 0) > GOI_LON) return dongK(k, 1009);
-    if (b.length < p + 4 + n) return;
+    if (b.length < p + 4 + n) { k.can = p + 4 + n; return; }
+    k.can = 0;
     const m = b.subarray(p, p + 4); const du = Buffer.from(b.subarray(p + 4, p + 4 + n));
     for (let i = 0; i < du.length; i++) du[i] ^= m[i & 3];
-    k.dem0 = b.length > p + 4 + n ? b.subarray(p + 4 + n) : null;
+    const con = b.subarray(p + 4 + n); k.ds = con.length ? [con] : []; k.n = con.length;
     if (op === 8) return dongK(k, 1000);
     if (op === 9) { if (k.sock.writable) k.sock.write(khung(10, du)); }
-    else if (op === 1 || op === 0) {
-      k.manh = k.manh ? Buffer.concat([k.manh, du]) : du;
-      if (fin) { const s = k.manh; k.manh = null; khiGoi(s); }
-    }
-    if (!k.dem0) return;
+    else if (op === 1 || op === 2) { // đầu một thông điệp (2 = nhị phân: bỏ qua nội dung)
+      if (k.ghep) return dongK(k, 1002);
+      if (fin) { if (op === 1) khiGoi(du); } else { k.ghep = op; k.manh = op === 1 ? du : null; }
+    } else if (op === 0) { // mảnh tiếp theo: phải có thông điệp đang ghép
+      if (!k.ghep) return dongK(k, 1002);
+      if (k.ghep === 1) k.manh = Buffer.concat([k.manh, du]);
+      if (fin) { const s = k.manh, loai = k.ghep; k.manh = null; k.ghep = 0; if (loai === 1) khiGoi(s); }
+    } else if (op >= 3) return dongK(k, 1002);
+    if (!k.n) return;
   }
 }
 function dongK(k, ma = 1000) {
@@ -89,7 +112,7 @@ export function ganRealtime(may, hopLeNguon) {
     const nhan = crypto.createHash('sha1').update(khoa + GUID).digest('base64');
     sock.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${nhan}\r\n\r\n`);
     sock.setNoDelay(true);
-    const k = { id: crypto.randomBytes(6).toString('hex'), sock, phong: tenPhong, ten: chuNgan(url.searchParams.get('ten'), 40) || 'Khách', dem: {}, tt: {} };
+    const k = { id: crypto.randomBytes(6).toString('hex'), sock, phong: tenPhong, ten: chuNgan(url.searchParams.get('ten'), 40) || 'Khách', dem: {}, tt: {}, ds: [], n: 0, can: 0, ghep: 0, manh: null, btByte: { t: 0, n: 0 } };
     phong.set(tenPhong, p);
     // người đang có trong phòng + trạng thái gần nhất của họ
     gui(k, { t: 'chao', id: k.id, nguoi: [...p.values()].map((x) => ({ id: x.id, ten: x.ten, ...x.tt })) });
@@ -103,7 +126,9 @@ export function ganRealtime(may, hopLeNguon) {
         const loaiGoi = s.length > GOI_NHO ? 'bt' : null;
         let m; try { m = JSON.parse(s.toString('utf8')); } catch { return; }
         if (!m || !LOAI.has(m.t) || (loaiGoi && m.t !== 'bt')) return;
-        if (!choPhep(k, m.t === 'tro' || m.t === 'bt' ? m.t : 'khac')) return;
+        let duoc = choPhep(k, m.t === 'tro' || m.t === 'bt' ? m.t : 'khac');
+        if (m.t === 'bt' && duoc) { const now = Date.now(); if (now - k.btByte.t > 60000) k.btByte = { t: now, n: 0 }; k.btByte.n += s.length; duoc = k.btByte.n <= BT_BYTE; }
+        if (!duoc) { if (m.t === 'bt' || m.t === 'su') gui(k, { t: 'cham', loai: m.t, id: chuNgan(m.f?.id, 80) }); return; } // báo người gửi để gửi lại sau
         const g = sach(m); if (!g) return;
         if (g.t === 'ten') k.ten = g.ten;
         else if (g.t === 'tro' || g.t === 'nhin' || g.t === 'chon') k.tt[g.t] = g;

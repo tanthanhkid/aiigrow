@@ -40,7 +40,7 @@ export function taoRealtime(C) {
     const u = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws?phong=${encodeURIComponent(C.phong)}&ten=${encodeURIComponent(ten)}`;
     try { ws = new WebSocket(u); } catch { henLai(); return; }
     ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch { return; } nhan(m); };
-    ws.onopen = () => { lui = 1000; lanNhin = 0; guiNhin(true); guiChon(true); veNguoi(); };
+    ws.onopen = () => { lui = 1000; lanNhin = 0; guiNhin(true); guiChon(true); veNguoi(); C.khiNoi?.(); };
     ws.onclose = () => { ws = null; for (const p of ban.values()) p.el?.remove(); ban.clear(); veNguoi(); veChon(); henLai(); };
   }
   function henLai() { clearTimeout(henNoi); henNoi = setTimeout(moKetNoi, lui); lui = Math.min(lui * 2, 15000); }
@@ -53,8 +53,9 @@ export function taoRealtime(C) {
   }
   function nhan(m) {
     if (m.t === 'chao') { toi = m.id; for (const x of m.nguoi) { const p = nguoi(x.id, x.ten); if (x.tro) p.tro = { ...x.tro, t: Date.now() }; p.nhin = x.nhin; p.chon = x.chon; } veNguoi(); veChon(); chay(); return; }
+    if (m.t === 'cham') { C.khiCham?.(m); return; } // máy chủ bỏ gói vì vượt nhịp: gửi lại sau
     if (m.id === toi) return;
-    if (m.t === 'vao') { nguoi(m.id, m.ten); veNguoi(); return; }
+    if (m.t === 'vao') { nguoi(m.id, m.ten); veNguoi(); C.khiVao?.(m); return; }
     if (m.t === 'ra') { const p = ban.get(m.id); p?.el?.remove(); ban.delete(m.id); if (diTheo === m.id) boTheo(); veNguoi(); veChon(); return; }
     const p = ban.get(m.id); if (!p) return;
     if (m.t === 'ten') { p.ten = m.ten; p.mau = mauTen(m.ten); p.el?.remove(); p.el = null; veNguoi(); veChon(); }
@@ -186,7 +187,7 @@ export function taoRealtime(C) {
   if (ten) moKetNoi(); else hoiTen(true);
   veNguoi();
   return {
-    khiDoiView() { guiNhin(); if (chuot) guiTro(); if (ban.size) chay(); },
+    khiDoiView() { if (!diTheo) guiNhin(); if (chuot) guiTro(); if (ban.size) chay(); }, // đang đi theo: không phát khung nhìn (hai người theo nhau sẽ thu nhỏ mãi)
     khiVe() { guiChon(); veChon(); },
     phat: gui,
     ten: () => ten,
