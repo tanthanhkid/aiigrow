@@ -9,7 +9,9 @@ const GOI_LON = 6 * 1024 * 1024;      // gói «bt» mang HTML biến thể
 const TOI_DA_PHONG = 40;              // người mỗi phòng
 const NHIP = { tro: [40, 1000], khac: [30, 1000], bt: [120, 60000] }; // [số gói, trong bao nhiêu ms]
 const BT_BYTE = 40 * 1024 * 1024;     // tổng byte gói «bt» mỗi người mỗi phút
-const DON_TOI_DA = 16 * 1024 * 1024;  // người nhận chậm (tunnel yếu) dồn quá mức này thì bỏ qua gói lớn cho họ
+const DON_TOI_DA = 16 * 1024 * 1024;  // người nhận chậm (tunnel yếu) dồn quá mức này: cắt kết nối, nối lại sẽ nhận đủ từ bộ nhớ phòng
+const BO_NHO_PHONG = 80 * 1024 * 1024; // bộ nhớ biến thể mỗi phòng (người vào sau nhận lại từ đây, không ai phải phát lại)
+const boNho = new Map();               // tên phòng → Map(id biến thể → { goi, b, n }) — giữ suốt đời tiến trình, cũ nhất bị bỏ khi đầy
 const LOAI = new Set(['tro', 'nhin', 'chon', 'roi', 'su', 'bt', 'ten']);
 const phong = new Map();              // tên phòng → Map(id → kết nối)
 
@@ -25,19 +27,20 @@ function khung(op, buf) { // gói server → trình duyệt: không mask
 }
 function guiGoi(k, goi) {
   if (k.dong || !k.sock.writable) return;
-  if (goi.length > GOI_NHO && k.sock.writableLength > DON_TOI_DA) return; // không để bộ nhớ phình vì một người nhận chậm
+  if (k.sock.writableLength > DON_TOI_DA) { dongK(k, 1013); return; } // người nhận quá chậm: cắt, nối lại sẽ nhận đủ (không lặng lẽ bỏ gói)
   k.sock.write(goi);
 }
-const gui = (k, obj) => guiGoi(k, khung(1, Buffer.from(JSON.stringify(obj))));
+const goiCua = (obj) => khung(1, Buffer.from(JSON.stringify(obj)));
+const gui = (k, obj) => guiGoi(k, goiCua(obj));
 // dựng gói MỘT lần rồi gửi cho cả phòng
-function phat(tenPhong, tu, obj) {
-  const p = phong.get(tenPhong); if (!p) return;
-  const goi = khung(1, Buffer.from(JSON.stringify(obj)));
-  for (const k of p.values()) if (k !== tu) guiGoi(k, goi);
+function phatGoi(tenPhong, tu, goi) { for (const k of phong.get(tenPhong)?.values() || []) if (k !== tu) guiGoi(k, goi); }
+const phat = (tenPhong, tu, obj) => phatGoi(tenPhong, tu, goiCua(obj));
+function nhoBt(tenPhong, id, b, goi) {
+  const m = boNho.get(tenPhong) || new Map(); boNho.set(tenPhong, m);
+  m.delete(id); m.set(id, { goi, b, n: goi.length });
+  let tong = 0; for (const x of m.values()) tong += x.n;
+  for (const [k2, x] of m) { if (tong <= BO_NHO_PHONG) break; m.delete(k2); tong -= x.n; }
 }
-// máy chủ chủ động báo (vd. góp ý mới): gửi cho mọi người trong phòng
-export const phatPhong = (tenPhong, obj) => phat(tenPhong, null, obj);
-export const dsPhong = () => [...phong.keys()];
 function choPhep(k, loai) {
   const [n, ms] = NHIP[loai] || NHIP.khac; const now = Date.now();
   const d = (k.dem[loai] ||= { t: now, n: 0 });
@@ -54,7 +57,8 @@ function sach(m) {
     case 'roi': return { t: 'roi' };
     case 'ten': return { t: 'ten', ten: chuNgan(m.ten, 40) || 'Khách' };
     case 'su': return { t: 'su', loai: chuNgan(m.loai, 20), key: chuNgan(m.key, 80), ids: (Array.isArray(m.ids) ? m.ids : []).slice(0, 200).map((x) => chuNgan(x, 80)).filter(Boolean) };
-    case 'bt': return m.f && typeof m.f === 'object' ? { t: 'bt', f: m.f } : null; // khung biến thể: bên nhận tự kiểm/làm sạch HTML
+    case 'bt': return m.f && typeof m.f === 'object' && typeof m.f.id === 'string' && /^[\w-]{1,80}$/.test(m.f.id) && typeof m.f.b === 'string' && m.f.b.length <= 40
+      ? { t: 'bt', f: m.f } : null; // khung biến thể (b = băm HTML của người gửi): bên nhận tự kiểm/làm sạch HTML
     default: return null;
   }
 }
@@ -67,7 +71,7 @@ function docGoi(k, chunk, khiGoi) {
     if (k.ds.length > 1) k.ds = [Buffer.concat(k.ds, k.n)];
     const b = k.ds[0];
     const fin = b[0] & 0x80, op = b[0] & 0x0f, mask = b[1] & 0x80; let n = b[1] & 0x7f, p = 2;
-    if (!mask) return dongK(k, 1002);
+    if (!mask || (op >= 8 && (!fin || n > 125))) return dongK(k, 1002); // gói điều khiển: không mảnh, ≤125 byte
     if (n === 126) { if (b.length < 4) return; n = b.readUInt16BE(2); p = 4; }
     else if (n === 127) { if (b.length < 10) return; const big = b.readBigUInt64BE(2); if (big > BigInt(GOI_LON)) return dongK(k, 1009); n = Number(big); p = 10; }
     if (n + (k.manh?.length || 0) > GOI_LON) return dongK(k, 1009);
@@ -85,7 +89,7 @@ function docGoi(k, chunk, khiGoi) {
       if (!k.ghep) return dongK(k, 1002);
       if (k.ghep === 1) k.manh = Buffer.concat([k.manh, du]);
       if (fin) { const s = k.manh, loai = k.ghep; k.manh = null; k.ghep = 0; if (loai === 1) khiGoi(s); }
-    } else if (op >= 3) return dongK(k, 1002);
+    } else if (op === 10) { /* pong: trả lời ping của máy chủ */ } else return dongK(k, 1002);
     if (!k.n) return;
   }
 }
@@ -115,7 +119,10 @@ export function ganRealtime(may, hopLeNguon) {
     const k = { id: crypto.randomBytes(6).toString('hex'), sock, phong: tenPhong, ten: chuNgan(url.searchParams.get('ten'), 40) || 'Khách', dem: {}, tt: {}, ds: [], n: 0, can: 0, ghep: 0, manh: null, btByte: { t: 0, n: 0 } };
     phong.set(tenPhong, p);
     // người đang có trong phòng + trạng thái gần nhất của họ
-    gui(k, { t: 'chao', id: k.id, nguoi: [...p.values()].map((x) => ({ id: x.id, ten: x.ten, ...x.tt })) });
+    // + danh sách biến thể phòng đang nhớ (id → băm) để người vào biết cần gửi bù gì; rồi gửi lại từng biến thể đã nhớ
+    const nho = boNho.get(tenPhong);
+    gui(k, { t: 'chao', id: k.id, nguoi: [...p.values()].map((x) => ({ id: x.id, ten: x.ten, ...x.tt })), btCo: Object.fromEntries([...(nho?.entries() || [])].map(([id, x]) => [id, x.b])) });
+    for (const x of nho?.values() || []) guiGoi(k, x.goi);
     p.set(k.id, k);
     phat(tenPhong, k, { t: 'vao', id: k.id, ten: k.ten });
     let lanCuoi = Date.now();
@@ -128,12 +135,18 @@ export function ganRealtime(may, hopLeNguon) {
         if (!m || !LOAI.has(m.t) || (loaiGoi && m.t !== 'bt')) return;
         let duoc = choPhep(k, m.t === 'tro' || m.t === 'bt' ? m.t : 'khac');
         if (m.t === 'bt' && duoc) { const now = Date.now(); if (now - k.btByte.t > 60000) k.btByte = { t: now, n: 0 }; k.btByte.n += s.length; duoc = k.btByte.n <= BT_BYTE; }
-        if (!duoc) { if (m.t === 'bt' || m.t === 'su') gui(k, { t: 'cham', loai: m.t, id: chuNgan(m.f?.id, 80) }); return; } // báo người gửi để gửi lại sau
+        if (!duoc) { // báo người gửi để gửi lại sau
+          if (m.t === 'bt' || m.t === 'su') { const g0 = sach(m); gui(k, { t: 'cham', loai: m.t, id: chuNgan(m.f?.id, 80), su: g0?.t === 'su' ? g0 : null }); }
+          return;
+        }
         const g = sach(m); if (!g) return;
         if (g.t === 'ten') k.ten = g.ten;
         else if (g.t === 'tro' || g.t === 'nhin' || g.t === 'chon') k.tt[g.t] = g;
         else if (g.t === 'roi') delete k.tt.tro;
-        phat(tenPhong, k, { ...g, id: k.id });
+        const goi = goiCua({ ...g, id: k.id });
+        if (g.t === 'bt') nhoBt(tenPhong, g.f.id, g.f.b, goi);
+        else if (g.t === 'su' && g.loai === 'xoa') for (const id of g.ids) boNho.get(tenPhong)?.delete(id);
+        phatGoi(tenPhong, k, goi);
       });
     });
     const xong = () => { clearInterval(nhip); dongK(k, 1001); };
