@@ -217,7 +217,7 @@ function moTraLoi(the, g, focus = true) {
 function canTen() { if (rt?.ten()) return true; $('#lop-ten').hidden = false; $('#ten-nhap').focus(); toast('Đặt tên trước để mọi người biết ai góp ý.'); return false; }
 async function guiApi(url, than) {
   try {
-    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(than) });
+    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-nguoi': encodeURIComponent(rt?.ten() || '') }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
     if (r.status === 410) { het(j.loi || 'Link đã bị thu hồi.'); return null; }
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);

@@ -17,7 +17,7 @@ export const dauChuQuan = () => (maChuQuan() ? { 'x-bs-chu-quan': maChuQuan() } 
 export function ganGopY(A) {
   const D = { du: null, canMa: false, tab: 'gy', loc: { ht: '', nguoi: '', tt: 'mo' }, dangTai: null };
   async function goi(url, than) {
-    const r = await fetch(url, than === undefined ? { headers: dauChuQuan() } : { method: 'POST', headers: { 'content-type': 'application/json', ...dauChuQuan() }, body: JSON.stringify(than) });
+    const r = await fetch(url, than === undefined ? { headers: dauChuQuan() } : { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-nguoi': encodeURIComponent(A.tenNguoi() || ''), ...dauChuQuan() }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
     if (r.status === 403 && j.canMa) { D.canMa = true; D.du = null; ve(); A.veBen(); throw new Error('Cần mã chủ quản'); }
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
@@ -62,7 +62,7 @@ export function ganGopY(A) {
     $('#pn-gy [data-tab="dx"]').textContent = `Đề xuất${tong.cho ? ` (${tong.cho})` : ''}`;
     const than = $('#pn-gy-than');
     // giữ câu trả lời đang gõ dở khi vẽ lại (có góp ý mới)
-    const nhap = [...than.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta }));
+    const nhap = [...than.querySelectorAll('[data-gy] form:not(.pn-sua) textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta }));
     queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; traLoi(the, g, false); const ta = the.querySelector('form textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
     than.innerHTML = '';
     if (D.canMa) return veNhapMa(than);
@@ -75,7 +75,7 @@ export function ganGopY(A) {
     const i = tao('input'); i.type = 'password'; i.placeholder = 'Mã chủ quản'; i.autocomplete = 'off'; i.value = maChuQuan();
     const b = tao('button', 'nut-chinh', 'Mở khoá'); b.type = 'submit';
     f.append(i, b); than.append(f);
-    f.onsubmit = (e) => { e.preventDefault(); ghiMa(i.value.trim()); D.canMa = false; tai(); };
+    f.onsubmit = (e) => { e.preventDefault(); ghiMa(i.value.trim()); D.canMa = false; tai(); A.daMoKhoa?.(); };
   }
 
   // ---------- tab Góp ý ----------
@@ -128,8 +128,23 @@ export function ganGopY(A) {
     nut(g.tt === 'mo' ? '✓ Đã xử lý' : 'Mở lại', () => doiTt(g, g.tt === 'mo' ? 'xong' : 'mo'));
     nut('Trả lời', () => traLoi(the, g));
     if (g.ycBt && g.tt === 'mo' && g.key && Object.hasOwn(A.MAN, g.key)) nut('✨ Sinh biến thể', () => suaTheoGopY(g.key, [g]));
+    nut('Sửa', () => suaGopY(the, g));
+    const sMuc = tao('select', 'pn-muc'); sMuc.title = 'Đổi mức góp ý'; sMuc.setAttribute('aria-label', 'Mức góp ý');
+    for (const [v, t] of Object.entries(MUC_TEN)) sMuc.append(new Option(t, v));
+    sMuc.value = g.muc; sMuc.onchange = () => doiGopY(g, 'muc', { muc: sMuc.value }); hang.append(sMuc);
+    nut('Xoá', () => { if (confirm(`Xoá góp ý của ${g.ten}? (vẫn khôi phục được từ «🕘 Lịch sử»)`)) doiGopY(g, 'xoa', {}); }, 'nut-nhe nguy');
+    if (A.moLichSuAudit) nut('🕘 Lịch sử', () => A.moLichSuAudit({ id: g.id, ht: g.ht, ten: `góp ý của ${g.ten}` }));
     the.append(hang);
     return the;
+  }
+  async function doiGopY(g, loai, than) {
+    try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/${loai}`, than); await tai(); } catch (e) { A.toast(`Không lưu được: ${e.message}`, true); }
+  }
+  function suaGopY(the, g) {
+    if (the.querySelector('form.pn-sua')) return;
+    const f = tao('form', 'pn-tl-hop pn-sua'); const ta = tao('textarea'); ta.rows = 3; ta.maxLength = 2000; ta.required = true; ta.value = g.noi;
+    const b = tao('button', 'nut-chinh', 'Lưu'); b.type = 'submit'; f.append(ta, b); the.append(f); ta.focus();
+    f.onsubmit = (e) => { e.preventDefault(); doiGopY(g, 'sua', { noi: ta.value }); };
   }
   async function doiTt(g, tt) {
     try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }); await tai(); } catch (e) { A.toast(`Không đổi được: ${e.message}`, true); }
