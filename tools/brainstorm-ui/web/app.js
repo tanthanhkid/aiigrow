@@ -1117,7 +1117,7 @@ async function thayMan(key, html, meta = {}) {
 }
 async function thayTheoDeXuat(dx, key, html, meta) {
   dangThay.add(key);
-  try { await GY.chapNhan(dx, { html: lamSach(html), w: meta.w, h: meta.h }); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
+  try { await GY.chapNhan(dx, { html: lamSach(html), w: meta.w, h: meta.h, suaTiep: true }); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
   meta.truocVe?.();
   st.khung = st.khung.filter((f) => f.id !== meta.bt); st.chon.delete(meta.bt); // khung tạm của đề xuất đã xong việc
   qtDaVe = ''; veTatCa(); luuLai();
@@ -1641,8 +1641,7 @@ GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTat
   async apManifest(key, m) {
     if (!coMan(key) || !m) return;
     PB[key] = m; await apPhienBan(key);
-    qtDaVe = ''; veTatCa(); luuLai();
-    rt?.phat({ t: 'su', loai: 'thay', key });
+    qtDaVe = ''; veTatCa(); luuLai(); // các bàn khác nhận {t:'rv', loai:'thay'} do máy chủ phát — không phát thêm lần nữa
   },
   // «Sửa tiếp»: đưa bản đề xuất lên bàn thành khung tạm cạnh màn gốc, mở Chế độ Sửa; Thay màn từ khung này = Accept
   moDeXuatTrenBan(dx, html) {

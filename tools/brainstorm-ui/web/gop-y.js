@@ -24,9 +24,12 @@ export function ganGopY(A) {
     return j;
   }
   async function tai() {
-    if (D.dangTai) return D.dangTai;
+    if (D.dangTai) { D.lai = true; return D.dangTai; } // đang tải: tải thêm một lượt sau để không lỡ thay đổi mới
     D.dangTai = (async () => {
-      try { D.du = await goi('/api/review'); D.canMa = false; } catch { /* đã hiện lý do */ }
+      do {
+        D.lai = false;
+        try { D.du = await goi('/api/review'); D.canMa = false; } catch { /* đã hiện lý do */ }
+      } while (D.lai);
       ve(); A.veBen(); A.veTatCa(false);
     })().finally(() => { D.dangTai = null; });
     return D.dangTai;
@@ -57,7 +60,11 @@ export function ganGopY(A) {
     if ($('#pn-gy').hidden) return;
     document.querySelectorAll('#pn-gy [data-tab]').forEach((b) => b.classList.toggle('bat', b.dataset.tab === D.tab));
     $('#pn-gy [data-tab="dx"]').textContent = `Đề xuất${tong.cho ? ` (${tong.cho})` : ''}`;
-    const than = $('#pn-gy-than'); than.innerHTML = '';
+    const than = $('#pn-gy-than');
+    // giữ câu trả lời đang gõ dở khi vẽ lại (có góp ý mới)
+    const nhap = [...than.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta }));
+    queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; traLoi(the, g); const ta = the.querySelector('form textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
+    than.innerHTML = '';
     if (D.canMa) return veNhapMa(than);
     if (!D.du) { than.append(tao('p', 'phu', 'Đang tải…')); return; }
     if (D.tab === 'gy') veGopY(than); else if (D.tab === 'dx') veDeXuat(than); else veChiaSe(than);
@@ -106,7 +113,7 @@ export function ganGopY(A) {
   }
   const locGopY = (ds) => ds.filter((g) => (!D.loc.ht || g.ht === D.loc.ht) && (!D.loc.nguoi || g.ten === D.loc.nguoi) && (!D.loc.tt || g.tt === D.loc.tt));
   function theGopY(g) {
-    const the = tao('article', `pn-the muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : ''));
+    const the = tao('article', `pn-the muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '')); the.dataset.gy = `${g.ht}/${g.id}`;
     const dau = tao('div', 'pn-gy-dau');
     dau.append(tao('b', '', g.ten), tao('span', 'chip muc', MUC_TEN[g.muc] || g.muc), tao('span', 'chip', `v${g.v}`));
     if (g.ghim) dau.append(tao('span', 'chip', '📌 ghim'));
@@ -222,7 +229,7 @@ export function ganGopY(A) {
   }
   $('#dx-chap').onclick = async () => {
     const dx = dxMo; if (!dx) return; $('#dx-chap').disabled = true;
-    try { await chapNhan(dx); $('#lop-dx').hidden = true; } catch (e) { A.toast(`Không áp dụng được: ${e.message}`, true); } finally { $('#dx-chap').disabled = false; }
+    try { await chapNhan(dx, { html: A.lamSach(dx.html || ''), w: dx.w, h: dx.h }); $('#lop-dx').hidden = true; } catch (e) { A.toast(`Không áp dụng được: ${e.message}`, true); } finally { $('#dx-chap').disabled = false; }
   };
   $('#dx-tu').onclick = async () => {
     const dx = dxMo; if (!dx) return;

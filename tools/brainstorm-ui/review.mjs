@@ -123,6 +123,9 @@ export function taoReview(C) {
         if (s.thuHoi) return json(res, 410, { loi: 'Link góp ý này đã bị thu hồi' }), true;
         if (!ghiVao) {
           if (!c) return json(res, 200, goiReview(s)), true;
+          if (c === 'moi' && !d) { // chỉ góp ý + đề xuất (khi có thay đổi), không tải lại cả snapshot màn
+            return json(res, 200, { gopY: docJson(tepGopY(s.ht), () => ({ ds: [] })).ds.map(gopYRa), deXuat: docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.map(deXuatRa) }), true;
+          }
           if (c === 'de-xuat' && ID.test(d || '') && !e) { // xem HTML một đề xuất của cùng hành trình
             const dx = docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.find((x) => x.id === d);
             if (!dx) return json(res, 404, { loi: 'Không có đề xuất' }), true;
@@ -162,7 +165,7 @@ export function taoReview(C) {
           const mo = await khoa();
           try {
             const g = docJson(tepGopY(s.ht), () => ({ ds: [] })); const x = g.ds.find((y) => y.id === d);
-            if (!x || x.ma !== s.ma) return json(res, 404, { loi: 'Không có góp ý này trong link' }), true;
+            if (!x) return json(res, 404, { loi: 'Không có góp ý này trong hành trình' }), true; // góp ý của link cũ («từ v1») cùng hành trình cũng được
             x.ycBt = true; ghi(tepGopY(s.ht), g); bao(s.ht, 'gop-y');
             return json(res, 200, x), true;
           } finally { mo(); }
@@ -272,9 +275,11 @@ export function taoReview(C) {
             return json(res, 200, deXuatRa(x)), true;
           }
           // Accept changes = Thay màn: phiên bản mới ghi tác giả + liên kết góp ý. «Sửa tiếp» gửi kèm HTML đã sửa.
-          const html = typeof t.html === 'string' && t.html.trim() ? t.html : fs.readFileSync(path.join(thuDeXuat(b), `${x.id}.html`), 'utf8');
+          // HTML do bàn chủ quản gửi (đã qua lamSach như Thay màn) — không ghi thẳng HTML thô người review gửi lên vào kho phiên bản
+          const html = typeof t.html === 'string' && t.html.trim() ? t.html : '';
+          if (!html) return json(res, 400, { loi: 'Thiếu HTML đã làm sạch của đề xuất' }), true;
           const [ma, m] = await C.ghiPhienBan(x.key, { html, w: t.w ?? x.w, h: t.h ?? x.h, nhan: `Đề xuất của ${x.ten}${x.nhan ? ` · ${x.nhan}` : ''}`,
-            yTuong: gy ? gy.noi : '', nguon: 'de-xuat', model: x.model, tacGia: x.ten, gy: x.gy || '', dx: x.id, suaTiep: !!t.html });
+            yTuong: gy ? gy.noi : '', nguon: 'de-xuat', model: x.model }, { tacGia: x.ten, gy: x.gy || '', dx: x.id, suaTiep: !!t.suaTiep });
           if (ma !== 200) return json(res, ma, m), true;
           x.tt = 'chap'; x.vMoi = m.hien; x.tXl = new Date().toISOString();
           ghi(tepDeXuat(b), dx);

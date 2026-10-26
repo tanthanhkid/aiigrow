@@ -212,11 +212,12 @@ async function apiPhienBan(req, res, p) {
   if (review.khoaBang() && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
   let than;
   try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
+  if (than && than.nguon === 'de-xuat') than.nguon = ''; // «đề xuất góp ý» chỉ ghi qua review.mjs (không giả tác giả được)
   const [ma, obj] = await ghiPhienBan(key, than);
   return json(res, ma, obj);
 }
 // Thêm một phiên bản (dùng chung cho Thay màn, Khôi phục và «Accept changes» của đề xuất góp ý) → [mã HTTP, manifest | lỗi]
-async function ghiPhienBan(key, than) {
+async function ghiPhienBan(key, than, tin = null) { // tin: trường tin cậy do review.mjs đặt (tác giả + liên kết góp ý)
   if (!(await keyMan()).has(key)) return [404, { loi: 'Không có màn này' }];
   let moKhoa;
   try { moKhoa = await khoaPb(key); } catch { return [503, { loi: 'Kho phiên bản đang bận — thử lại' }]; }
@@ -237,7 +238,7 @@ async function ghiPhienBan(key, than) {
       Object.assign(muc, { tep: v, w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined,
         nhan: chuNgan(than.nhan, 120), yTuong: chuNgan(than.yTuong, 600), nguon: chuNgan(than.nguon, 20), model: chuNgan(than.model, 60), bt: chuNgan(than.bt, 80) });
       // đề xuất góp ý được chấp nhận: ghi tác giả + liên kết góp ý/đề xuất (chỉ review.mjs đặt các trường này)
-      if (than.nguon === 'de-xuat') Object.assign(muc, { tacGia: chuNgan(than.tacGia, 40), gy: chuNgan(than.gy, 40), dx: chuNgan(than.dx, 40), suaTiep: !!than.suaTiep });
+      if (tin) Object.assign(muc, { nguon: 'de-xuat', tacGia: chuNgan(tin.tacGia, 40), gy: chuNgan(tin.gy, 40), dx: chuNgan(tin.dx, 40), suaTiep: !!tin.suaTiep });
       ghiAtomic(path.join(thuMucPb(key), `v${v}.html`), html);
     }
     m.key = key; m.ds.push(muc); m.hien = v;

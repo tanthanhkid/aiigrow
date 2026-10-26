@@ -18,13 +18,21 @@ const laMock = () => MOCK_URL || docKey().toLowerCase().startsWith('mock');
 const gioVN = (t) => { try { return new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); } catch { return ''; } };
 const tao = (tag, lop, chu) => { const e = document.createElement(tag); if (lop) e.className = lop; if (chu != null) e.textContent = chu; return e; };
 
-const R = { goi: null, mo: '', play: false, ghim: false, ghimCho: null, ganDay: null, bt: [], dangSinh: false };
+const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, ghimCho: null, ganDay: null, bt: [], dangSinh: false };
 let rt = null;
 const st = { view: { x: 0, y: 0, z: 1 }, chon: new Set() };
 
 // ---------- tải ----------
 async function tai() {
   if (!MA) return het('Địa chỉ không đúng dạng /r/<mã>.');
+  if (R.goi) { // đã có snapshot màn: chỉ tải lại góp ý + đề xuất (nhẹ)
+    try {
+      const r = await fetch(`/api/review/r/${MA}/moi`); const j = await r.json().catch(() => ({}));
+      if (r.status === 404 || r.status === 410) return het(j.loi || 'Link góp ý không còn.');
+      if (r.ok) { R.goi.gopY = j.gopY; R.goi.deXuat = j.deXuat; veDsMan(); veGopY(); veGhim(); }
+    } catch { /* lần sau */ }
+    return;
+  }
   let r; try { r = await fetch(`/api/review/r/${MA}`); } catch { toast('Không tải được — kiểm mạng rồi tải lại trang.', true); return; }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return het(j.loi || `Lỗi ${r.status}`);
@@ -45,17 +53,18 @@ function veDsMan() {
   const ol = $('#ds-man'); ol.innerHTML = '';
   const dem = new Map(); for (const g of R.goi.gopY) if (g.tt === 'mo' && g.key) dem.set(g.key, (dem.get(g.key) || 0) + 1);
   R.goi.man.forEach((m, i) => {
-    const li = tao('li'); const b = tao('button', 'muc-man' + (R.mo === m.key ? ' bat' : ''));
+    const li = tao('li'); const b = tao('button', 'muc-man' + (R.i === i ? ' bat' : ''));
     b.type = 'button'; b.dataset.key = m.key;
     b.append(tao('span', 'so-tt', String(i + 1)), tao('span', 't', m.ten));
     if (dem.get(m.key)) b.append(tao('span', 'dem', String(dem.get(m.key))));
-    b.onclick = () => mo(m.key); li.append(b); ol.append(li);
+    b.onclick = () => mo(m.key, i); li.append(b); ol.append(li);
   });
   for (const b of document.querySelectorAll('.muc-dac')) b.classList.toggle('bat', b.dataset.mo === R.mo);
 }
 document.querySelectorAll('.muc-dac').forEach((b) => { b.onclick = () => mo(b.dataset.mo); });
-function mo(key) {
-  R.mo = key; R.ghimCho = null; capNhatGhimCho();
+// i: vị trí trong hành trình (một màn có thể được ghé nhiều lần, vd. A→B→A→C)
+function mo(key, i = R.goi.man.findIndex((x) => x.key === key)) {
+  R.mo = key; R.i = R.goi.man[i]?.key === key ? i : -1; R.ghimCho = null; capNhatGhimCho();
   try { history.replaceState(null, '', `#${encodeURIComponent(key)}`); } catch { /* bỏ qua */ }
   const m = manCua(key);
   $('#san').hidden = !m; $('#qt-anh').hidden = true; $('#qt-trong').hidden = true; $('#chung-trong').hidden = key !== 'chung';
@@ -68,7 +77,6 @@ function mo(key) {
     ifr.srcdoc = lamSach(m.html);
     vuaKhung();
   }
-  const i = R.goi.man.findIndex((x) => x.key === key);
   $('#vi-tri').textContent = m ? `Màn ${i + 1}/${R.goi.man.length} · ${m.ten}` : key === 'qt' ? 'Quy trình' : 'Góp ý chung';
   $('#nut-truoc').disabled = i <= 0; $('#nut-sau').disabled = i < 0 || i >= R.goi.man.length - 1;
   $('#gy-noi').placeholder = m ? `Góp ý cho màn «${m.ten}»…` : 'Góp ý cho cả hành trình…';
@@ -76,7 +84,7 @@ function mo(key) {
   veDsMan(); veGopY(); veGhim();
   rt?.khiDoiView();
 }
-const buoc = (d) => { const i = R.goi.man.findIndex((x) => x.key === R.mo); const m = R.goi.man[i + d]; if (m) mo(m.key); };
+const buoc = (d) => { const i = R.i + d; const m = R.goi.man[i]; if (R.i >= 0 && m) mo(m.key, i); };
 $('#nut-truoc').onclick = () => buoc(-1); $('#nut-sau').onclick = () => buoc(1);
 addEventListener('keydown', (e) => {
   if (e.target.closest('input,textarea,select') || !$('#lop-hoi').hidden || !$('#lop-bt').hidden) return;
@@ -160,8 +168,13 @@ function veGhim() {
 
 // ---------- góp ý ----------
 const gopYCua = (mo) => (R.goi?.gopY || []).filter((g) => (mo === 'chung' ? !g.key : g.key === mo));
+// vẽ lại danh sách (có góp ý mới của người khác) mà không mất câu trả lời đang gõ dở
+function giuNhap(goc) {
+  const ds = [...goc.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta, a: ta.selectionStart, b: ta.selectionEnd }));
+  return (moLai) => { for (const x of ds) { const ta = moLai(x.id); if (!ta) continue; ta.value = x.v; if (x.dang) { ta.focus(); try { ta.setSelectionRange(x.a, x.b); } catch { /* bỏ qua */ } } } };
+}
 function veGopY() {
-  const d = $('#ds-gy'); d.innerHTML = '';
+  const d = $('#ds-gy'); const traNhap = giuNhap(d); d.innerHTML = '';
   if (R.mo === 'qt') { d.append(tao('p', 'phu', 'Chọn một màn hoặc «Góp ý chung» để xem và viết góp ý.')); veDeXuat(); return; }
   const ds = gopYCua(R.mo);
   if (!ds.length) d.append(tao('p', 'phu', 'Chưa có góp ý nào ở đây.'));
@@ -189,6 +202,7 @@ function veGopY() {
     if (g.key && manCua(g.key)) { const bb = tao('button', 'nut-nhe', '✨ Biến thể theo góp ý này'); bb.type = 'button'; bb.onclick = () => hoiBienThe(g); hang.append(bb); }
     the.append(hang); d.append(the);
   }
+  traNhap((id) => { const the = d.querySelector(`[data-gy="${CSS.escape(id)}"]`); const g = ds.find((x) => x.id === id); if (!the || !g) return null; moTraLoi(the, g); return the.querySelector('form textarea'); });
   veDeXuat();
 }
 function moTraLoi(the, g) {
@@ -227,7 +241,10 @@ $('#hop-gy').addEventListener('submit', async (e) => {
 
 // ---------- biến thể theo góp ý (key của chính người review) ----------
 let hoiCho = null;
-function hoiBienThe(g) { hoiCho = g; $('#lop-hoi').hidden = false; $('#hoi-co').focus(); }
+function hoiBienThe(g) {
+  // đang sinh, hoặc đã sinh xong khi hộp đóng: mở lại kết quả thay vì sinh lượt mới (tốn key người review)
+  if (R.dangSinh || (R.chuaXem && R.bt[0]?.gy.id === g.id)) { R.chuaXem = false; $('#lop-bt').hidden = false; veBienThe(); return; }
+  hoiCho = g; $('#lop-hoi').hidden = false; $('#hoi-co').focus(); }
 $('#hoi-khong').onclick = () => { $('#lop-hoi').hidden = true; hoiCho = null; toast('Đã gửi góp ý.'); };
 $('#hoi-co').onclick = () => {
   $('#lop-hoi').hidden = true; const g = hoiCho; hoiCho = null; if (!g) return;
@@ -277,7 +294,10 @@ async function sinhBienThe(g, n) {
       } catch (e) { f.tt = 'loi'; f.tien = e.message; }
       veBienThe();
     }));
-  } finally { R.dangSinh = false; veBienThe(); }
+  } finally {
+    R.dangSinh = false; veBienThe();
+    if ($('#lop-bt').hidden) { R.chuaXem = true; toast('Biến thể theo góp ý đã sinh xong — bấm ✨ ở góp ý đó để xem.'); }
+  }
 }
 function oMan(html, w, h, rong) {
   const z = rong / w; const vo = tao('div', 'o-man'); vo.style.width = `${rong}px`; vo.style.height = `${Math.round(h * z)}px`;
@@ -306,7 +326,7 @@ function veBienThe() {
     l.append(c);
   }
 }
-$('#bt-dong').onclick = () => { if (R.dangSinh && !confirm('Đang sinh biến thể — đóng thì vẫn chạy nền, mở lại bằng nút ✨ sẽ sinh lượt mới. Đóng?')) return; $('#lop-bt').hidden = true; };
+$('#bt-dong').onclick = () => { if (R.dangSinh && !confirm('Đang sinh biến thể — đóng thì vẫn chạy nền, bấm ✨ ở góp ý đó để mở lại. Đóng?')) return; $('#lop-bt').hidden = true; };
 
 // ---------- đề xuất (chỉ xem trạng thái; người phụ trách duyệt ở bàn chính) ----------
 function veDeXuat() {
