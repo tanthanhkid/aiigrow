@@ -27,7 +27,7 @@ export function taoReview(C) {
   // ---------- chủ quản ----------
   // 127.0.0.1/localhost gõ thẳng (không qua tunnel) = chủ quản. Qua tên miền: header x-bs-chu-quan khớp «ma» trong chu-quan.json (Thanh tự đặt, ngoài git).
   // Chưa có tệp ⇒ qua tên miền không ai là chủ quản. Sai mã bị giới hạn 10 lần/phút mỗi IP.
-  const saiMa = new Map(); const saiTong = { t: 0, n: 0 };
+  const saiMa = new Map(); const SAI_TONG = new Map(); // loại bí mật → { t, n }
   // chỉ tin cf-connecting-ip khi yêu cầu đến từ cloudflared trên máy này (loopback); nối thẳng thì dùng địa chỉ socket
   const ipCua = (req) => { const s = req.socket.remoteAddress || ''; return /^(127\.|::1$|::ffff:127\.)/.test(s) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : s; };
   const AU = C.audit || { ghi() {} };
@@ -78,8 +78,9 @@ export function taoReview(C) {
   function kiemBiMat(req, ma, gui, au) {
     if (laNoiBo(req)) return true;
     if (ma.length < 8 || !gui) return false;
-    const ip = ipCua(req); const now = Date.now(); const s = saiMa.get(ip);
+    const ip = `${au.loai}|${ipCua(req)}`; const now = Date.now(); const s = saiMa.get(ip);
     if (s && now - s.t < 60000 && s.n >= 10) return false;
+    let saiTong = SAI_TONG.get(au.loai); if (!saiTong) SAI_TONG.set(au.loai, saiTong = { t: 0, n: 0 });
     if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
     if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
     if (dungMa(ma, gui)) return true;

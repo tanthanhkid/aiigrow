@@ -62,8 +62,7 @@ export function taoMcp(C) {
       writeHead(m, hd) { this.ma = m; Object.assign(this.hd, hd || {}); this.headersSent = true; return this; },
       setHeader(k, v) { this.hd[k] = v; }, write(b) { if (b != null) this.phan.push(Buffer.isBuffer(b) ? b : Buffer.from(String(b))); return true; },
       end(b) { this.write(b); xong(); } };
-    await C.xuLyYeuCau(req, res);
-    let hen; await Promise.race([da, new Promise((_, hong) => { hen = setTimeout(() => hong(LOI(`Yêu cầu nội bộ ${duong.split('?')[0]} không trả lời sau 60 giây`)), 60000); })]).finally(() => clearTimeout(hen));
+    let hen; await Promise.race([da, Promise.resolve(C.xuLyYeuCau(req, res)).then(() => da), new Promise((_, hong) => { hen = setTimeout(() => hong(LOI(`Yêu cầu nội bộ ${duong.split('?')[0]} không trả lời sau 60 giây`)), 60000); })]).finally(() => clearTimeout(hen));
     const buf = Buffer.concat(res.phan); const kieu = String(res.hd['Content-Type'] || '');
     return { ma: res.ma, kieu, buf, j: kieu.startsWith('application/json') ? (() => { try { return JSON.parse(buf.toString('utf8')); } catch { return null; } })() : null };
   }
@@ -143,7 +142,9 @@ export function taoMcp(C) {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': t.csp });
     res.end(t.html);
   }
-  const tatChrome = () => { try { trinh?.process()?.kill('SIGKILL'); } catch { /* đã tắt */ } };
+  const MO = new Map(); // browser → thư mục hồ sơ tạm (dọn cả khi tắt cưỡng bức / thoát tiến trình)
+  const giet = (b) => { try { b?.process()?.kill('SIGKILL'); } catch { /* đã tắt */ } const d = MO.get(b); MO.delete(b); if (d) try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* bỏ qua */ } };
+  const tatChrome = () => { for (const b of [...MO.keys()]) giet(b); };
   const khiTin = (sig) => () => { tatChrome(); process.exit(sig === 'SIGINT' ? 130 : 0); };
   const BAT = { SIGTERM: khiTin('SIGTERM'), SIGINT: khiTin('SIGINT'), SIGHUP: khiTin('SIGHUP') };
   async function trinhDuyet() {
@@ -153,15 +154,15 @@ export function taoMcp(C) {
       if (!fs.existsSync(CHROME)) throw LOI(`Không thấy Chrome ở ${CHROME} — đặt BS_CHROME=<đường dẫn Chrome>`);
       const { default: puppeteer } = await import('puppeteer-core');
       thuMucTrinh = fs.mkdtempSync(path.join(os.tmpdir(), 'bs-mcp-chrome-'));
-      const b = await puppeteer.launch({ executablePath: CHROME, headless: true, pipe: true, userDataDir: thuMucTrinh,
+      let b; try { b = await puppeteer.launch({ executablePath: CHROME, headless: true, pipe: true, userDataDir: thuMucTrinh,
         handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false,
-        args: ['--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync', '--hide-scrollbars', '--mute-audio', '--disable-background-networking', '--force-color-profile=srgb'] });
-      const dir = thuMucTrinh;
+        args: ['--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-sync', '--hide-scrollbars', '--mute-audio', '--disable-background-networking', '--force-color-profile=srgb'] }); } catch (e) { try { fs.rmSync(thuMucTrinh, { recursive: true, force: true }); } catch { /* bỏ qua */ } throw e; }
+      const dir = thuMucTrinh; MO.set(b, dir);
       for (const [s, f] of Object.entries(BAT)) process.on(s, f);
       b.on('disconnected', () => {
         if (trinh === b) { trinh = null; domTrang = null; domP = null; }
         for (const [s, f] of Object.entries(BAT)) process.off(s, f);
-        try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* bỏ qua */ }
+        MO.delete(b); try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* bỏ qua */ }
       });
       trinh = b; return b;
     })().finally(() => { moTrinh = null; });
@@ -170,7 +171,7 @@ export function taoMcp(C) {
   process.on('exit', tatChrome);
   function henTat() {
     clearTimeout(henDong);
-    henDong = setTimeout(() => { if (dangDung) return henTat(); const b = trinh; trinh = null; domTrang = null; domP = null; b?.close().catch(() => tatChrome()); }, RANH_DONG);
+    henDong = setTimeout(() => { if (dangDung) return henTat(); const b = trinh; trinh = null; domTrang = null; domP = null; if (b) Promise.race([b.close(), new Promise((_, h) => setTimeout(h, 10000).unref?.())]).catch(() => giet(b)); }, RANH_DONG);
     henDong.unref?.();
   }
   let dangChup = 0; const hangCho = [];
@@ -308,16 +309,15 @@ export function taoMcp(C) {
         const ra = [];
         for (const l of LAN) {
           if (a.hanh_trinh && l.id !== a.hanh_trinh) continue;
-          const buoc = [];
-          for (const key of l.buoc) {
+          const buoc = await Promise.all(l.buoc.map(async (key) => {
             const m = MAN[key]; const mf = pb[key]; const muc = mf?.ds.find((x) => x.v === mf.hien);
             let html = m.html;
             if (muc?.tep) { try { html = (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`)).html; } catch { /* bỏ qua */ } }
             const toi = dataToi(html);
-            buoc.push({ key, ten: m.ten, w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
+            return { key, ten: m.ten, w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
               dataToi: toi.length ? toi : m.ke && m.toi ? [`${m.ke} (gắn theo nhãn «${m.toi}» khi hiển thị)`] : [],
-              soBienThe: kho.khung.filter((f) => f.goc === key && !f.lan).length });
-          }
+              soBienThe: kho.khung.filter((f) => f.goc === key && !f.lan).length };
+          }));
           ra.push({ id: l.id, ten: l.ten, vai: l.vai, nen: l.nen, mo: l.mo || undefined, buoc, phuongAn: kho.lan.filter((x) => x.tu === l.id).map(tomLan) });
         }
         if (a.hanh_trinh && !ra.length) throw LOI(`Không có hành trình «${a.hanh_trinh}»`);
@@ -514,9 +514,9 @@ export function taoMcp(C) {
         const k = a.k || 1, n = Math.max(a.n || 1, k);
         let dot = a.dot || Date.now().toString(36);
         if (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) { if (a.dot) throw LOI(`Đợt ${a.dot} đã có biến thể k=${k} (bt-${a.dot}-${k}) — dùng k khác`); while (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) dot += 'm'; }
-        const f = { id: `bt-${dot}-${k}`, loai: 'bien', goc: ng.key, cha: ng.cha, dot, k, n, yTuong: a.y_tuong, w: ng.w, h: ng.h, html: sach, tt: 'xong', nhan: (nhan || `Biến thể ${k}`).slice(0, 200), model: (a.model || 'mcp').slice(0, 60) };
+        const f = { id: `bt-${dot}-${k}`, loai: 'bien', goc: ng.key, cha: ng.cha, dot, k, n, yTuong: a.y_tuong, w: ng.w, h: ng.h, html: sach, tt: 'xong', nhan: (nhan || `Biến thể ${k}`).slice(0, 200), model: (a.model || 'mcp').slice(0, 60), tSuaCu: 0 };
         const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { khung: [f], lan: [] });
-        if (!r.khung?.length) throw LOI(`Máy chủ không nhận: ${(r.loi || []).join('; ') || 'xung đột'}`);
+        if (!r.khung?.length) throw LOI(`Máy chủ không nhận: ${(r.loi || []).join('; ') || `xung đột — ${f.id} đã có (đợt/k trùng), dùng k hoặc dot khác`}`);
         const ra = [chu({ id: f.id, key: ng.key, cha: ng.cha, nhan: f.nhan, w: f.w, h: f.h, lamSachDoi: sach !== html, lienKet: await soLienKet(ng.html, sach) })];
         if (a.anh !== false) { try { ra.push(anh(await chup(sach, f.w, f.h, 1))); } catch (e) { ra.push(chu(`(Đã lưu; chỉ chụp ảnh lỗi: ${e.message} — gọi doc_bien_the để xem ảnh)`)); } }
         return ra;
@@ -553,11 +553,11 @@ export function taoMcp(C) {
         const dot = Date.now().toString(36);
         const soMoi = Math.max(0, ...kho.lan.filter((b) => b.tu === l.id).map((b) => b.k || 0)) + 1;
         let id = `pa-${dot}-1`; while (kho.lan.some((x) => x.id === id)) id += 'm';
-        const lan = { id, tu: l.id, nguon: a.tu_phuong_an || l.id, buoc: l.buoc, k: soMoi, n: 1, yTuong: a.y_tuong, tt: 'xong', model: (a.model || 'mcp').slice(0, 60), nhan: (nhan || `Phương án ${soMoi}`).slice(0, 200) };
+        const lan = { id, tu: l.id, nguon: a.tu_phuong_an || l.id, buoc: l.buoc, k: soMoi, n: 1, yTuong: a.y_tuong, tt: 'xong', model: (a.model || 'mcp').slice(0, 60), nhan: (nhan || `Phương án ${soMoi}`).slice(0, 200), tSuaCu: 0 };
         const khung = [], lk = {};
         for (const b of buoc) {
           const sach = await domGoi('lamSach', theoKey.get(b.key));
-          khung.push({ id: `${id}-${b.key}`, loai: 'bien', lan: id, goc: b.key, cha: b.key, dot, k: soMoi, w: b.w, h: b.h, html: sach, tt: 'xong', yTuong: a.y_tuong, model: lan.model });
+          khung.push({ id: `${id}-${b.key}`, loai: 'bien', lan: id, goc: b.key, cha: b.key, dot, k: soMoi, w: b.w, h: b.h, html: sach, tt: 'xong', yTuong: a.y_tuong, model: lan.model, tSuaCu: 0 });
           const s = await soLienKet(b.html, sach); if (s.thieu.length || s.keyLa.length) lk[b.key] = s;
         }
         const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { lan: [lan], khung });
