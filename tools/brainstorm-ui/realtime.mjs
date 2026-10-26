@@ -11,8 +11,9 @@ const NHIP = { tro: [40, 1000], khac: [30, 1000], bt: [120, 60000] }; // [số g
 const BT_BYTE = 40 * 1024 * 1024;     // tổng byte gói «bt» mỗi người mỗi phút
 const DON_TOI_DA = 16 * 1024 * 1024;  // người nhận chậm (tunnel yếu) dồn quá mức này: cắt kết nối, nối lại sẽ nhận đủ từ bộ nhớ phòng
 const BO_NHO_PHONG = 80 * 1024 * 1024; // bộ nhớ biến thể mỗi phòng (người vào sau nhận lại từ đây, không ai phải phát lại)
-const boNho = new Map();               // tên phòng → Map(id biến thể → { goi, b, n }) — giữ suốt đời tiến trình, cũ nhất bị bỏ khi đầy
-const LOAI = new Set(['tro', 'nhin', 'chon', 'roi', 'su', 'bt', 'ten']);
+const boNho = new Map();               // tên phòng → Map(id biến thể → { g, b, n }) — giữ suốt đời tiến trình, cũ nhất bị bỏ khi đầy
+const PHONG_NHO = new Set(['bang']);   // chỉ phòng bàn chính được nhớ biến thể (bộ nhớ có trần)
+const LOAI = new Set(['tro', 'nhin', 'chon', 'roi', 'su', 'bt', 'ten', 'xin']);
 const phong = new Map();              // tên phòng → Map(id → kết nối)
 
 const chuNgan = (v, n) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, n) : '');
@@ -35,11 +36,18 @@ const gui = (k, obj) => guiGoi(k, goiCua(obj));
 // dựng gói MỘT lần rồi gửi cho cả phòng
 function phatGoi(tenPhong, tu, goi) { for (const k of phong.get(tenPhong)?.values() || []) if (k !== tu) guiGoi(k, goi); }
 const phat = (tenPhong, tu, obj) => phatGoi(tenPhong, tu, goiCua(obj));
-function nhoBt(tenPhong, id, b, goi) {
+function nhoBt(tenPhong, id, b, g, n) {
+  if (!PHONG_NHO.has(tenPhong)) return;
   const m = boNho.get(tenPhong) || new Map(); boNho.set(tenPhong, m);
-  m.delete(id); m.set(id, { goi, b, n: goi.length });
+  m.delete(id); m.set(id, { g, b, n });
   let tong = 0; for (const x of m.values()) tong += x.n;
   for (const [k2, x] of m) { if (tong <= BO_NHO_PHONG) break; m.delete(k2); tong -= x.n; }
+}
+// gói bù cho một người: gửi khi bộ đệm còn dưới 2 MB, phần còn lại chờ 'drain'
+function bom(k) {
+  while (k.hang.length && !k.dong && k.sock.writable && k.sock.writableLength < 2 * 1024 * 1024) {
+    const x = k.hang.shift(); k.sock.write(goiCua({ ...x.g, id: 'may-chu', bu: true }));
+  }
 }
 function choPhep(k, loai) {
   const [n, ms] = NHIP[loai] || NHIP.khac; const now = Date.now();
@@ -56,6 +64,7 @@ function sach(m) {
     case 'chon': return { t: 'chon', ids: (Array.isArray(m.ids) ? m.ids : []).slice(0, 20).map((x) => chuNgan(x, 80)).filter(Boolean), sua: chuNgan(m.sua, 80) || null };
     case 'roi': return { t: 'roi' };
     case 'ten': return { t: 'ten', ten: chuNgan(m.ten, 40) || 'Khách' };
+    case 'xin': return { t: 'xin', ids: (Array.isArray(m.ids) ? m.ids : []).slice(0, 100).map((x) => chuNgan(x, 80)).filter(Boolean) };
     case 'su': return { t: 'su', loai: chuNgan(m.loai, 20), key: chuNgan(m.key, 80), ids: (Array.isArray(m.ids) ? m.ids : []).slice(0, 200).map((x) => chuNgan(x, 80)).filter(Boolean) };
     case 'bt': return m.f && typeof m.f === 'object' && typeof m.f.id === 'string' && /^[\w-]{1,80}$/.test(m.f.id) && typeof m.f.b === 'string' && m.f.b.length <= 40
       ? { t: 'bt', f: m.f } : null; // khung biến thể (b = băm HTML của người gửi): bên nhận tự kiểm/làm sạch HTML
@@ -116,14 +125,15 @@ export function ganRealtime(may, hopLeNguon) {
     const nhan = crypto.createHash('sha1').update(khoa + GUID).digest('base64');
     sock.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${nhan}\r\n\r\n`);
     sock.setNoDelay(true);
-    const k = { id: crypto.randomBytes(6).toString('hex'), sock, phong: tenPhong, ten: chuNgan(url.searchParams.get('ten'), 40) || 'Khách', dem: {}, tt: {}, ds: [], n: 0, can: 0, ghep: 0, manh: null, btByte: { t: 0, n: 0 } };
+    const k = { id: crypto.randomBytes(6).toString('hex'), sock, phong: tenPhong, ten: chuNgan(url.searchParams.get('ten'), 40) || 'Khách', dem: {}, tt: {}, hang: [], ds: [], n: 0, can: 0, ghep: 0, manh: null, btByte: { t: 0, n: 0 } };
     phong.set(tenPhong, p);
     // người đang có trong phòng + trạng thái gần nhất của họ
     // + danh sách biến thể phòng đang nhớ (id → băm) để người vào biết cần gửi bù gì; rồi gửi lại từng biến thể đã nhớ
+    // người vào tự so rồi «xin» đúng cái thiếu/khác — máy chủ không đổ cả kho vào kết nối mới
     const nho = boNho.get(tenPhong);
-    gui(k, { t: 'chao', id: k.id, nguoi: [...p.values()].map((x) => ({ id: x.id, ten: x.ten, ...x.tt })), btCo: Object.fromEntries([...(nho?.entries() || [])].map(([id, x]) => [id, x.b])) });
-    for (const x of nho?.values() || []) guiGoi(k, x.goi);
+    const cu = [...p.values()].map((x) => ({ id: x.id, ten: x.ten, ...x.tt }));
     p.set(k.id, k);
+    gui(k, { t: 'chao', id: k.id, nguoi: cu, btCo: Object.fromEntries([...(nho?.entries() || [])].map(([id, x]) => [id, x.b])) });
     phat(tenPhong, k, { t: 'vao', id: k.id, ten: k.ten });
     let lanCuoi = Date.now();
     const nhip = setInterval(() => { if (Date.now() - lanCuoi > 90000) dongK(k, 1001); else if (k.sock.writable) k.sock.write(khung(9, Buffer.alloc(0))); }, 30000);
@@ -140,16 +150,22 @@ export function ganRealtime(may, hopLeNguon) {
           return;
         }
         const g = sach(m); if (!g) return;
+        if (g.t === 'xin') { // gửi bù biến thể đã nhớ, giãn theo bộ đệm (không vượt ngưỡng cắt người chậm)
+          const nho2 = boNho.get(tenPhong);
+          for (const id of g.ids) { const x = nho2?.get(id); if (x && k.hang.length < 2000) k.hang.push(x); }
+          bom(k); return;
+        }
         if (g.t === 'ten') k.ten = g.ten;
         else if (g.t === 'tro' || g.t === 'nhin' || g.t === 'chon') k.tt[g.t] = g;
         else if (g.t === 'roi') delete k.tt.tro;
-        const goi = goiCua({ ...g, id: k.id });
-        if (g.t === 'bt') nhoBt(tenPhong, g.f.id, g.f.b, goi);
+        const goi = goiCua({ ...g, id: k.id, ...(g.t === 'bt' ? { ten: k.ten } : {}) });
+        if (g.t === 'bt') nhoBt(tenPhong, g.f.id, g.f.b, { ...g, ten: k.ten }, goi.length);
         else if (g.t === 'su' && g.loai === 'xoa') for (const id of g.ids) boNho.get(tenPhong)?.delete(id);
         phatGoi(tenPhong, k, goi);
       });
     });
-    const xong = () => { clearInterval(nhip); dongK(k, 1001); };
+    sock.on('drain', () => bom(k));
+    const xong = () => { clearInterval(nhip); k.hang = []; dongK(k, 1001); };
     sock.on('close', xong); sock.on('error', xong); sock.on('end', xong);
   });
 }

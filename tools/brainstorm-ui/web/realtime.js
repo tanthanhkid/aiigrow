@@ -57,6 +57,7 @@ export function taoRealtime(C) {
     if (m.id === toi) return;
     if (m.t === 'vao') { nguoi(m.id, m.ten); veNguoi(); return; }
     if (m.t === 'ra') { const p = ban.get(m.id); p?.el?.remove(); ban.delete(m.id); if (diTheo === m.id) boTheo(); veNguoi(); veChon(); return; }
+    if (m.t === 'bt' && !ban.has(m.id)) { C.nhanBt(m.f, { ten: String(m.ten || 'Người khác').slice(0, 40) }, !!m.bu); return; } // bù từ bộ nhớ máy chủ / người đã rời
     const p = ban.get(m.id); if (!p) return;
     if (m.t === 'ten') { p.ten = m.ten; p.mau = mauTen(m.ten); p.el?.remove(); p.el = null; veNguoi(); veChon(); }
     else if (m.t === 'tro') { p.tro = { x: m.x, y: m.y, sec: m.sec, cd: m.cd, t: Date.now() }; chay(); }

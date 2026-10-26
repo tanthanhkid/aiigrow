@@ -1424,14 +1424,20 @@ function dongBoBt() {
     for (const id of lo) xoaCho.delete(id);
   }
 }
-// vừa vào phòng: máy chủ cho biết nó đang nhớ biến thể nào (id → băm). Cái gì máy này có mà máy chủ thiếu/khác thì gửi bù.
+// vừa vào phòng: máy chủ cho biết nó đang nhớ biến thể nào (id → băm của người gửi).
+// Máy chủ có mà máy này thiếu/cũ ⇒ «xin» bản của máy chủ; máy này có (chưa sửa) mà máy chủ thiếu ⇒ gửi bù. Bản đang sửa dở trên máy này do dongBoBt gửi.
 function khiChao(m) {
   const co = m.btCo && typeof m.btCo === 'object' ? m.btCo : {};
-  for (const f of st.khung) {
-    if (!dongBoDuoc(f) || daBiet.get(f.id) !== bam(f.html)) continue; // chưa gửi/đã sửa: dongBoBt tự gửi
-    const b = f.bNhan || daBiet.get(f.id);
-    if (!Object.hasOwn(co, f.id) || co[f.id] !== b) daBiet.delete(f.id);
+  const xin = [];
+  for (const [id, b] of Object.entries(co)) {
+    if (!/^[\w-]{1,80}$/.test(id) || typeof b !== 'string') continue;
+    const f = timKhung(id);
+    if (!f) { xin.push(id); continue; }
+    if (!dongBoDuoc(f) || daBiet.get(id) !== bam(f.html)) continue;
+    if ((f.bNhan || daBiet.get(id)) !== b) xin.push(id);
   }
+  for (let i = 0; i < xin.length; i += 100) rt?.phat({ t: 'xin', ids: xin.slice(i, i + 100) });
+  for (const f of st.khung) if (dongBoDuoc(f) && !Object.hasOwn(co, f.id) && daBiet.get(f.id) === bam(f.html)) daBiet.delete(f.id);
   henDongBo(300 + Math.random() * 700);
 }
 function khiCham(m) {
@@ -1451,7 +1457,8 @@ async function napLaiPhienBan(key) {
   if (!$('#lop-ls').hidden && ls.key === key) veLichSu();
   if (!$('#lop-play').hidden) vePlay('');
 }
-function nhanBt(g, p) {
+let buDem = 0, henBu = 0;
+function nhanBt(g, p, bu = false) {
   if (!g || typeof g.id !== 'string' || !/^[\w-]{1,80}$/.test(g.id) || !coMan(g.goc) || typeof g.html !== 'string') return;
   const w = Number(g.w), h = Number(g.h); if (!(w > 0 && w < 5000 && h > 0 && h < 20000)) return;
   const cu = timKhung(g.id);
@@ -1468,6 +1475,11 @@ function nhanBt(g, p) {
       model: String(g.model || '').slice(0, 60), suaTay: Array.isArray(g.suaTay) ? g.suaTay.slice(0, 200).map((x) => String(x).slice(0, 300)) : undefined, tu: String(p?.ten || '').slice(0, 40) });
   }
   daBiet.set(g.id, bam(html)); timKhung(g.id).bNhan = String(g.b).slice(0, 40); // không phát ngược lại
+  if (bu) { // bù lúc vào phòng: gộp một lần vẽ + một thông báo
+    buDem++; clearTimeout(henBu);
+    henBu = setTimeout(() => { veTatCa(); luuLai(); toast(`Đã nhận ${buDem} biến thể từ bàn chung.`); buDem = 0; }, 300);
+    return;
+  }
   veTatCa(); luuLai();
   toast(`${p?.ten || 'Người khác'} vừa ${cu ? 'cập nhật' : 'thêm'} một biến thể của «${MAN[g.goc].ten}».`);
 }
