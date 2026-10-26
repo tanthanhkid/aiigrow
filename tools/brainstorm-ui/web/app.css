@@ -21,8 +21,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .nhom{display:flex;gap:6px;align-items:center}
 .nhom.phai{margin-left:auto}
 #nut-zoom{min-width:62px}
-.nhan-che-do{font:700 12px Inter;color:#6e4300;background:#fbecc0;border-radius:99px;padding:4px 10px}
-.nhan-che-do:empty{display:none}
+.nhan-che-do{min-height:36px;font:800 13px Inter;color:#8a3c0c;background:#f9e7d2;border-radius:99px;padding:0 14px;box-shadow:0 0 0 2px #8a3c0c}
+.nhan-che-do[hidden]{display:none}
+.dau-khung .nhom-ten.mock{background:#f9e7d2;color:#8a3c0c}
 .nut-cai-dat.can{box-shadow:0 0 0 3px #f5b70a,var(--bong)}
 /* vùng vẽ */
 #vung{position:fixed;inset:56px 0 0 272px;overflow:hidden;cursor:grab;outline:none;

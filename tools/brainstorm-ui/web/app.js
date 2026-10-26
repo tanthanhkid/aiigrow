@@ -188,6 +188,7 @@ function apView() {
   vung.style.backgroundPosition = `${x}px ${y}px`;
   $('#nut-zoom').textContent = `${Math.round(z * 100)}%`;
   henAo();
+  Sua.khiDoiView();
 }
 
 // Ảo hoá: iframe chỉ sống khi khung nằm trong viewport (+ lề) và zoom ≥ 40%; còn lại là ảnh thu nhỏ / khung xám.
@@ -322,7 +323,9 @@ function veKhung(f) {
   if (d.iframe) { d.iframe.width = w; d.iframe.height = h; d.iframe.title = tenCua(f); }
   d.el.querySelector('.xam span').textContent = tenCua(f);
   const m = MAN[keyCua(f)];
-  d.el.querySelector('.nhom-ten').textContent = f.loai === 'goc' ? `Bước ${m.buoc + 1}` : f.lan ? `PA ${timLan(f.lan)?.k || ''} · ${m.ten}` : 'Biến thể';
+  const laMockKhung = f.loai !== 'goc' && (f.model === 'mock' || (!!f.lan && timLan(f.lan)?.model === 'mock'));
+  d.el.querySelector('.nhom-ten').textContent = (f.loai === 'goc' ? `Bước ${m.buoc + 1}` : f.lan ? `PA ${timLan(f.lan)?.k || ''} · ${m.ten}` : 'Biến thể') + (laMockKhung ? ' · mock' : '');
+  d.el.querySelector('.nhom-ten').classList.toggle('mock', laMockKhung);
   d.el.querySelector('.ten').textContent = tenCua(f);
   d.el.querySelector('.ghim').hidden = !f.ghim;
   const tt = d.el.querySelector('.tt');
@@ -643,7 +646,7 @@ function veBang() {
     $('#bang-nhom').textContent = f.loai === 'goc' ? `Bước ${MAN[f.key].buoc + 1} · ${timLan(MAN[f.key].lan).ten} · ${nhomCua(f)}` : `Biến thể của «${MAN[f.goc]?.ten || '…'}» · ${nhomCua(f)}`;
     $('#nhan-y').textContent = 'Ý của anh cho biến thể màn này';
     $('#nhan-so').textContent = 'Số biến thể';
-    $('#so-bt').innerHTML = [3, 4, 5, 6].map((n) => `<option ${n === caiDat.soBt ? 'selected' : ''}>${n}</option>`).join('');
+    $('#so-bt').innerHTML = [1, 2, 3, 4, 5, 6].map((n) => `<option ${n === caiDat.soBt ? 'selected' : ''}>${n}</option>`).join('');
     $('#nut-sinh').firstChild.textContent = 'Sinh biến thể ';
     $('#nut-ghim').textContent = f.ghim ? 'Bỏ ghim' : 'Ghim & lưu';
     $('#nut-xoa').disabled = f.loai === 'goc';
@@ -785,7 +788,7 @@ async function sinh() {
   st.khung.push(...moi);
   for (const f of moi) st.dangChay.set(f.id, new AbortController());
   st.chon.clear(); st.chon.add(cha.id); veTatCa(); vuaMan([cha.id, ...moi.map((f) => f.id)]);
-  trangThaiBang(`Đang sinh ${n} biến thể bằng ${laMock() ? 'mock' : modelDung()} — gửi 1 yêu cầu trước để ghi cache…`);
+  trangThaiBang(`Đang sinh ${n} biến thể bằng ${laMock() ? 'mock' : modelDung()} ${n > 1 ? ' — gửi 1 yêu cầu trước để ghi cache…' : '…'}`);
   const kq = await chayLoat(moi.map((f) => (bao) => chay(f, htmlCua(cha), tenCua(cha), bao)));
   const ok = kq.filter((r) => r.status === 'fulfilled' && r.value).length;
   const tong = moi.reduce((a, f) => ({ ghi: a.ghi + (f.dung?.ghi || 0), doc: a.doc + (f.dung?.doc || 0) }), { ghi: 0, doc: 0 });
@@ -1214,6 +1217,8 @@ function moCaiDat() {
   $('#lop-cai-dat').hidden = false; $('#cd-key').focus();
 }
 $('#nut-cai-dat').onclick = moCaiDat;
+// Mock chỉ chèn một dòng CSS + nhãn vào bản gốc → mọi biến thể gần như giống nhau; giải thích rõ để khỏi tưởng lỗi.
+$('#che-do').onclick = () => toast(MOCK_URL ? 'Đang chạy MOCK vì địa chỉ có ?mock=1: biến thể chỉ là bản gốc chèn nhãn, KHÔNG gọi Claude. Bỏ ?mock=1 khỏi địa chỉ (và dán key thật trong ⚙ Cài đặt) để Claude sinh thật.' : 'Đang chạy MOCK vì key bắt đầu bằng «mock»: biến thể chỉ là bản gốc chèn nhãn, KHÔNG gọi Claude. Mở ⚙ Cài đặt, dán key Claude thật để sinh thật.', true);
 $('#cd-dong').onclick = dongLop;
 $('#lop-cai-dat').addEventListener('pointerdown', (e) => { if (e.target.id === 'lop-cai-dat') dongLop(); });
 $('#cd-hien').onclick = () => { const i = $('#cd-key'); i.type = i.type === 'password' ? 'text' : 'password'; $('#cd-hien').textContent = i.type === 'password' ? 'Hiện' : 'Ẩn'; };
@@ -1228,7 +1233,7 @@ $('#hop-cai-dat').addEventListener('submit', (e) => {
 });
 $('#chon-model').addEventListener('change', () => { caiDat.model = $('#chon-model').value; caiDat.modelKhac = ''; luuCaiDat(); });
 function capNhatCheDo() {
-  $('#che-do').textContent = laMock() ? 'MOCK — không gọi API' : '';
+  $('#che-do').textContent = laMock() ? '⚠ MOCK — không gọi Claude' : ''; $('#che-do').hidden = !laMock();
   $('#nut-cai-dat').classList.toggle('can', !laMock() && !docKey());
 }
 

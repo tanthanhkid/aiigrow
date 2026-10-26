@@ -32,7 +32,7 @@
   </div>
   <select id="chon-sec" aria-label="Section"></select>
   <div class="nhom phai">
-    <span id="che-do" class="nhan-che-do"></span>
+    <button type="button" id="che-do" class="nhan-che-do" hidden title="Đang ở chế độ mock — bấm để xem cách gọi Claude thật"></button>
     <button id="nut-cai-dat" class="nut-cai-dat" title="Cài đặt API key và model">⚙ Cài đặt</button>
   </div>
 </header>
@@ -53,7 +53,7 @@
   <textarea id="y-tuong" rows="4" placeholder="Ví dụ: cho mascot Rob cầm đồng hồ, gom việc chờ thành một thẻ lớn, nút Duyệt to hơn…"></textarea>
   <div class="hang">
     <label class="phu" for="so-bt" id="nhan-so">Số biến thể</label>
-    <select id="so-bt"><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+    <select id="so-bt"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
     <select id="chon-model" aria-label="Model"></select>
   </div>
   <button id="nut-sinh" class="nut-chinh">Sinh biến thể <kbd>⌘↵</kbd></button>

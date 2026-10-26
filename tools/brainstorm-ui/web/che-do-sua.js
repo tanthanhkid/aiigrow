@@ -63,13 +63,14 @@ export function batSua(id) {
   if (!f) { C.toast('Chọn một khung trước (bấm vào khung) rồi bấm E.'); return; }
   if (!C.htmlCua(f) || f.tt === 'dang') { C.toast('Khung này chưa có nội dung xong để sửa.', true); return; }
   if (S.id) thoat();
+  const d = C.dom.get(f.id);
+  if (!d || !d.el.isConnected) { C.toast('Khung này không hiện trên bàn vẽ (đang ở Quy trình hoặc section khác) — mở section của khung rồi bấm E.', true); return; }
+  for (const k of LICH.keys()) if (!C.timKhung(k)) LICH.delete(k); // bỏ lịch sử của khung đã xoá
   S.id = f.id; S.f = f; S.sel = S.hover = S.keo = S.suaChu = null; S.ifr = S.tl = null;
   document.body.classList.add('dang-sua');
   $('#nut-sua')?.classList.add('bat');
   C.st.chon.clear(); C.st.chon.add(f.id); C.st.lanChon = null;
   C.veTatCa(false); C.vuaMan([f.id]);
-  const d = C.dom.get(f.id);
-  if (!d) { S.id = null; document.body.classList.remove('dang-sua'); C.toast('Khung không nằm trong section đang mở.', true); return; }
   S.d = d; d.el.classList.add('dang-sua');
   S.lop = document.createElement('div'); S.lop.className = 'lop-sua';
   const { w, h } = C.kichThuoc(f);
@@ -81,7 +82,7 @@ export function batSua(id) {
   $('#bang-sua').hidden = false; $('#bs-khung').textContent = C.tenCua(f);
   $('#bs-ap').hidden = f.loai !== 'bien';
   veBang();
-  S.z = 0; cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(vong);
+  S.z = 0; khiDoiView();
   choIframe(0);
 }
 
@@ -141,7 +142,6 @@ export function thoat({ im = false } = {}) {
   if (S.suaChu) ketThucSuaChu();
   const L = LICH.get(S.id); const coDoi = L && L.vt > 0;
   S.ac?.abort(); S.ac = null;
-  cancelAnimationFrame(S.raf);
   S.lop?.remove();
   S.d?.el.classList.remove('dang-sua');
   if (S.ifr && S.tl) {
@@ -157,12 +157,14 @@ export function thoat({ im = false } = {}) {
   if (coDoi && !im) C.toast('Đã thoát Sửa. Bản sửa chưa lưu vẫn giữ — chọn khung, bấm E để sửa tiếp.');
 }
 
-function vong() {
-  if (!S.id) return;
-  const z = C.st.view.z;
-  if (z !== S.z) { S.z = z; S.lop.style.setProperty('--z', z); }
-  if (!S.d.el.isConnected || (S.ifr && S.d.iframe !== S.ifr)) { thoat({ im: true }); return; } // đổi section / khung bị gỡ
-  S.raf = requestAnimationFrame(vong);
+// app.js gọi mỗi khi view đổi (apView — kể cả đổi section/chế độ): cập nhật cỡ tay nắm theo zoom, thoát nếu khung đã bị gỡ
+export function khiDoiView() {
+  if (!S.id || !S.lop) return;
+  queueMicrotask(() => {
+    if (!S.id) return;
+    if (!S.d.el.isConnected || (S.ifr && S.d.iframe !== S.ifr)) { thoat({ im: true }); return; }
+    const z = C.st.view.z; if (z !== S.z) { S.z = z; S.lop.style.setProperty('--z', z); }
+  });
 }
 
 // ---------- lịch sử (theo khung) ----------
@@ -188,7 +190,9 @@ function ghiLich(moTa) {
   const L = LICH.get(S.id); if (!L) return;
   L.ds.length = L.vt + 1;
   L.ds.push({ ...chup(), moTa });
-  if (L.ds.length > 200) L.ds.splice(1, 1);
+  // giới hạn bộ nhớ: tối đa 80 bước và ~16 MB chữ mỗi khung (màn chụp DOM RN-web rất nặng)
+  let tong = L.ds.reduce((a, x) => a + x.html.length, 0);
+  while (L.ds.length > 2 && (L.ds.length > 80 || tong > 8e6)) tong -= L.ds.splice(1, 1)[0].html.length;
   L.vt = L.ds.length - 1;
   veBang(); ve();
 }
@@ -285,6 +289,7 @@ function nhanChuot(e) {
   if (e.button !== 0) return;
   if (S.suaChu) { if (S.suaChu.contains(e.target)) return; ketThucSuaChu(); }
   let t = e.target; if (t === S.tl.documentElement) t = S.tl.body;
+  const svg = t.closest?.('svg'); if (svg) { let n = svg; while (n.parentElement?.closest('svg')) n = n.parentElement.closest('svg'); t = n; } // icon: chọn cả svg, không chọn path
   chon(t);
   S.keo = { loai: 'cho', el: t, sx: e.clientX, sy: e.clientY, alt: e.altKey };
 }
@@ -294,8 +299,9 @@ const LA = /^(BUTTON|A|INPUT|TEXTAREA|SELECT|LABEL|IMG|SVG|PATH|VIDEO|CANVAS|PIC
 // Cha đích hợp lệ: cha hiện tại luôn được; khối khác phải là flex/grid có ≥2 con thấy được (màn chụp DOM RN-web: div nào cũng flex)
 // và con trỏ nằm ở VÙNG GIỮA của khối (mép ngoài = chèn trước/sau khối đó ở cấp trên, kiểu Webflow).
 function laCho(a, el, x, y) {
+  if (LA.test(a.tagName) || a.closest('svg,button,a')) return false;
   if (a === el.parentElement) return true;
-  if (LA.test(a.tagName) || a.closest('svg,button,a') || a === S.tl.body) return false;
+  if (a === S.tl.body) return false;
   if (!/flex|grid/.test(getComputedStyle(a).display)) return false;
   if ([...a.children].filter((c) => c !== el && c.getBoundingClientRect().width * c.getBoundingClientRect().height > 64).length < 2) return false;
   const r = a.getBoundingClientRect(); const lx = Math.min(24, r.width / 4), ly = Math.min(24, r.height / 4);
@@ -345,6 +351,8 @@ function keoDi(e) {
   const k = S.keo; const dx = e.clientX - k.sx, dy = e.clientY - k.sy;
   if (k.loai === 'cho') {
     if (Math.abs(dx) + Math.abs(dy) < 5 || k.el === S.tl.body) return;
+    const nut = k.el.parentElement?.closest('button,a,[role=button],[data-toi]'); // kéo chữ/icon trong nút = kéo cả nút
+    if (nut && nut !== S.tl.body) { k.el = nut; chon(nut); }
     k.loai = k.alt || e.altKey ? 'tudo' : 'doi';
     if (k.loai === 'tudo') k.goc = dichCu(k.el); else { k.opa = k.el.style.opacity; k.el.style.opacity = '0.4'; }
     S.hover = null;
@@ -383,12 +391,17 @@ function batDauCo(e) {
   e.preventDefault(); e.stopPropagation(); // không để bàn vẽ coi là kéo khung
   const el = S.sel; const r = el.getBoundingClientRect(); const h = tay.dataset.h;
   const k = { loai: 'co', el, h, sx: e.clientX, sy: e.clientY, w0: r.width, h0: r.height, z: C.st.view.z };
-  if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
-  if (el.parentElement && /flex/.test(getComputedStyle(el.parentElement).display)) el.style.flex = 'none';
-  S.keo = k; tay.setPointerCapture(e.pointerId);
+  S.keo = k;
+  const chuanBi = () => { // lần di đầu tiên: cố định cỡ theo border-box (w0/h0 đo bằng border-box), thôi co giãn flex
+    k.daDi = true;
+    if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
+    if (getComputedStyle(el).boxSizing !== 'border-box') el.style.boxSizing = 'border-box';
+    if (el.parentElement && /flex/.test(getComputedStyle(el.parentElement).display)) el.style.flex = 'none';
+  }; tay.setPointerCapture(e.pointerId);
   const di = (ev) => {
     const b = ev.shiftKey ? 8 : 4;
     const dx = (ev.clientX - k.sx) / k.z, dy = (ev.clientY - k.sy) / k.z;
+    if (!k.daDi) { if (Math.abs(dx) + Math.abs(dy) < 2) return; chuanBi(); }
     if (/[ew]/.test(h)) { k.w = Math.max(4, s4(k.w0 + (h.includes('e') ? dx : -dx), b)); el.style.width = `${k.w}px`; el.style.maxWidth = 'none'; }
     if (/[ns]/.test(h)) { k.hh = Math.max(4, s4(k.h0 + (h.includes('s') ? dy : -dy), b)); el.style.height = `${k.hh}px`; }
     const r2 = hop(el); const so = S.lop.querySelector('.ls-so');
@@ -404,8 +417,18 @@ function batDauCo(e) {
 }
 
 // ---------- sửa chữ ----------
+// Chỉ sửa chữ phần tử «chữ»: không chứa icon/ảnh/nút/liên kết con và mọi con đều inline — tránh gõ đè cả cây con.
+function suaChuDuoc(el) {
+  if (!(el.textContent || '').trim() || el.closest('svg')) return false;
+  for (const n of el.querySelectorAll('*')) {
+    if (/^(SVG|IMG|BUTTON|A|INPUT|TEXTAREA|SELECT|VIDEO|CANVAS|PICTURE)$/i.test(n.tagName) || n.hasAttribute('data-toi')) return false;
+    if (!/^inline$|^contents$/.test(getComputedStyle(n).display) && n.tagName !== 'BR') return false;
+  }
+  return true;
+}
 function batSuaChu(el) {
   if (!el || el === S.tl.body) return;
+  if (!suaChuDuoc(el)) { C.toast('Chỉ sửa chữ được phần tử chứa chữ (không chứa icon/nút con) — bấm đúp ngay vào dòng chữ.', true); return; }
   if (S.suaChu) ketThucSuaChu();
   chon(el);
   S.suaChu = el; S.chuCu = el.textContent;
@@ -540,13 +563,18 @@ function taoBang() {
   });
   $('#bs-vet').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && b.dataset.d) chon(theoDuong(JSON.parse(b.dataset.d))); });
 }
+const AM_DUOC = /^margin/;
 function datSo(p, v) {
   if (!S.sel) return;
-  const n = parseFloat(v); if (!Number.isFinite(n)) return;
+  const n = parseFloat(v); if (!Number.isFinite(n) || (n < 0 && !AM_DUOC.test(p))) return;
+  if (S.soTruoc?.p !== p) S.soTruoc = { p, v: S.sel.style[p] };
   S.sel.style[p] = `${n}px`; ve();
 }
 const TEN_P = { paddingTop: 'đệm trên', paddingRight: 'đệm phải', paddingBottom: 'đệm dưới', paddingLeft: 'đệm trái', marginTop: 'lề trên', marginRight: 'lề phải', marginBottom: 'lề dưới', marginLeft: 'lề trái', gap: 'khe', borderRadius: 'bo góc', fontSize: 'cỡ chữ' };
-function ghiSo(p) { if (S.sel) ghiLich(`Đổi ${TEN_P[p] || p} ${moTaEl(S.sel)} → ${S.sel.style[p]}`); }
+function ghiSo(p) {
+  const t = S.soTruoc; S.soTruoc = null;
+  if (S.sel && t && t.p === p && S.sel.style[p] !== t.v) ghiLich(`Đổi ${TEN_P[p] || p} ${moTaEl(S.sel)} → ${S.sel.style[p]}`); else veBang();
+}
 
 function veMau() {
   const trongMan = new Map(); // màu đang dùng trong màn (biến :root + mã hex trong <style>) ngoài bảng Clay
@@ -642,7 +670,7 @@ function apVaoKhung() {
   C.veTatCa(false); C.luuLai();
   C.toast('Đã áp bản sửa vào khung biến thể này.');
 }
-const demToi = (html) => (html.match(/data-toi=["'][^"']+["']/g) || []).map((x) => x.slice(9, -1)).sort().join(',');
+const demToi = (html) => (html.match(/data-toi=["'][^"']+["']/g) || []).map((x) => x.slice(10, -1)).sort().join(',');
 function loiLamMuot(sua, ds, w, h) {
   return `Thanh vừa SỬA TAY màn ở trên bằng chế độ Sửa (kéo thả, chỉnh số trực tiếp). Các thao tác theo thứ tự:
 ${ds.map((t, i) => `${i + 1}. ${t}`).join('\n')}
@@ -703,6 +731,7 @@ export async function chayLamMuot(f) {
     if (lyDo === 'max_tokens') f.loi = 'Bị cắt vì hết max_tokens — tăng trong ⚙ Cài đặt rồi Thử lại.';
     const truoc = demToi(f.htmlSua), sau = demToi(f.html);
     C.toast(truoc === sau ? `Đã làm mượt · cache ${dung.doc ? 'đọc ' + C.so(dung.doc) : 'ghi ' + C.so(dung.ghi)} token.` : `Đã làm mượt nhưng data-toi đổi (trước: ${truoc || 'không'} · sau: ${sau || 'không'}) — kiểm lại liên kết.`, truoc !== sau);
+    if (f.tt === 'xong') delete f.htmlSua; // xong thì không cần giữ bản sửa (đỡ nặng localStorage); lỗi thì giữ để Thử lại
     return f.tt === 'xong';
   } catch (e) {
     f.tt = 'loi'; f.loi = e.name === 'AbortError' ? 'Đã dừng.' : e.message;
