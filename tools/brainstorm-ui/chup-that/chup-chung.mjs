@@ -56,7 +56,7 @@ export function vietLaiUrl(html, { dist, goc, raThuMuc, tienTo = "/that/a/" }) {
     const dich = join(raThuMuc, ten);
     if (!existsSync(dich)) writeFileSync(dich, buf);
     return tienTo + ten;
-  }).replace(/&quot;(\/that\/a\/[^&]+)&quot;/g, "&quot;$1&quot;");
+  });
 }
 
 // Thanh trạng thái iOS (iPhone 13 mini, 375pt) vẽ tĩnh — giờ lấy theo ảnh thật
@@ -88,7 +88,7 @@ export async function chayChup({ goi, js, sleep, ds, vao, ra, dist, goc }) {
     await js("document.fonts.ready.then(() => true)");
     await sleep(m.cho2 ?? 1600);
     if (m.sau) await m.sau();
-    await js(`Promise.race([new Promise((r) => setTimeout(r, 3000)), Promise.all([...document.images].map((i) => i.complete ? 1 : new Promise((r) => { i.onload = i.onerror = r; })))])`);
+    await js(`Promise.race([new Promise((r) => setTimeout(r, 3000)), Promise.all([...document.images].map((i) => i.complete ? 1 : new Promise((r) => { i.addEventListener("load", r, { once: true }); i.addEventListener("error", r, { once: true }); })))])`);
     console.log("  chụp DOM…");
     await sleep(300);
     const hgio = gio.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Ho_Chi_Minh" });

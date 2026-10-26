@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, mkdte
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 const [BS, RA] = process.argv.slice(2);
 const TOI_TAY = JSON.parse(process.env.TOI_TAY || "{}"); // key → chữ trên nút (khi nhãn «…» trong hành trình khác chữ app thật)
 const refs = JSON.parse(readFileSync(join(RA, "refs.json"), "utf8"));
@@ -39,7 +40,8 @@ const GAN = `(html, nhan, dich, tenDich, tay) => {
   return null;
 }`;
 const ra = join(BS, "web/that"); mkdirSync(join(ra, "html"), { recursive: true }); mkdirSync(join(ra, "a"), { recursive: true });
-const ds = {}; const dung = new Set(); const thieu = [];
+// gộp vào ds.json đang có: lượt chụp chỉ một phần (regex) không làm rơi các màn khác
+const ds = existsSync(join(ra, "ds.json")) ? JSON.parse(readFileSync(join(ra, "ds.json"), "utf8")) : {}; const dung = new Set(); const thieu = [];
 for (const b of buoc) {
   const f = join(RA, "html", b.key + ".html"); if (!existsSync(f)) continue;
   let html = readFileSync(f, "utf8").replace(/ data-r="[^"]*"/g, "");
@@ -50,14 +52,22 @@ for (const b of buoc) {
     const r = (await goi("Runtime.evaluate", { expression: `(${GAN})(${JSON.stringify(html)}, ${JSON.stringify(b.toi)}, ${JSON.stringify(b.ke.key)}, ${JSON.stringify(b.ke.ten)}, ${JSON.stringify(TOI_TAY[b.key] || "")})`, returnByValue: true })).result.value;
     if (r) { html = r.html; console.log("toi", b.key, "→", b.ke.key, "«" + r.khop + "»", r.the); } else { thieu.push(b.key); console.log("THIẾU toi", b.key, b.toi); }
   }
+  // data: URI lớn (ảnh giả của kịch bản pha) → tệp trong a/ để HTML nhẹ (HTML còn đi vào prompt Claude)
+  html = html.replace(/data:image\/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/=]{2000,})/g, (m, loai, b64) => {
+    const buf = Buffer.from(b64, "base64"); const ten = createHash("sha1").update(buf).digest("hex").slice(0, 12) + "." + (loai === "jpeg" ? "jpg" : loai);
+    writeFileSync(join(RA, "a", ten), buf); return "/that/a/" + ten; });
+  if (/https?:\/\/(localhost|127\.0\.0\.1)/.test(html)) throw new Error("còn URL localhost trong " + b.key);
   for (const m of html.matchAll(/\/that\/a\/([\w.-]+)/g)) dung.add(m[1]);
   writeFileSync(join(ra, "html", b.key + ".html"), html);
   const ref = refs[b.key];
   const anh = !ref ? null : ref.startsWith("../") ? ref.slice(3) : "chinchu-ios/" + ref;
   ds[b.key] = { w: 375, h: 812, anh, lech: bang[b.key]?.pt ?? null };
 }
-for (const a of dung) copyFileSync(join(RA, "a", a), join(ra, "a", a));
-for (const a of readdirSync(join(ra, "a"))) if (!dung.has(a)) rmSync(join(ra, "a", a));
+for (const a of dung) if (existsSync(join(RA, "a", a))) copyFileSync(join(RA, "a", a), join(ra, "a", a));
+// chỉ xoá tệp a/ không còn HTML nào trong web/that/html dùng tới
+const conDung = new Set(); for (const h of readdirSync(join(ra, "html"))) for (const m of readFileSync(join(ra, "html", h), "utf8").matchAll(/\/that\/a\/([\w.-]+)/g)) conDung.add(m[1]);
+for (const a of conDung) if (!existsSync(join(ra, "a", a))) throw new Error("thiếu tệp a/" + a);
+for (const a of readdirSync(join(ra, "a"))) if (!conDung.has(a)) rmSync(join(ra, "a", a));
 writeFileSync(join(ra, "ds.json"), JSON.stringify(ds, null, 1) + "\n");
 console.log("màn", Object.keys(ds).length, "tệp a", dung.size, "thiếu toi", thieu.join(" "));
 ws.close(); chrome.kill(); await sleep(300); try { rmSync(hoSo, { recursive: true, force: true }); } catch {}

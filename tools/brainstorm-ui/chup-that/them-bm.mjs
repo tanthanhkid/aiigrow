@@ -76,7 +76,7 @@
     if (m.truoc) await m.truoc(); else await di(m.duong, m.token === undefined ? "tok-thu" : m.token);
     const ok = m.cho ? await doi(m.cho, 9000) : true;
     if (!ok) console.log(`    chưa thấy «${m.cho}»: ${(await chu())?.replace(/\s+/g, " ").slice(0, 160)}`);
-    return true;
+    return ok; // không thấy chữ chờ ⇒ bỏ qua, giữ bản chụp cũ (khỏi ghi đè bằng màn đang tải/lỗi)
   };
   await chayChup({ goi, js, sleep, ds: ds.filter((m) => (!loc || loc.test(m.key)) && (!process.env.CHUP_NHOM || m.nhom === process.env.CHUP_NHOM || (!m.ref && process.env.CHUP_NHOM === "A"))), vao, ra: process.env.CHUP_RA, dist: DIR, goc: GOC });
   console.log("chưa giả:", [...new Set(nhatKy.filter((x) => !kb[`${x.m} ${x.d}`]).map((x) => `${x.m} ${x.d}`))].join(", "));

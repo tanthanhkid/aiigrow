@@ -1076,7 +1076,8 @@ async function htmlTuDung(html, khoaScript = true) {
   cssKit ??= fetch('/assets/clay-kit.css').then((r) => { if (!r.ok) throw new Error(`clay-kit.css ${r.status}`); return r.text(); }).catch((e) => { cssKit = null; throw e; });
   const css = await cssKit;
   s = s.replace(/<link[^>]*href=["']\/assets\/clay-kit\.css["'][^>]*>/gi, () => `<style>${css}</style>`);
-  const ds = [...new Set(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || [])];
+  // ảnh bộ kit (/assets/) và ảnh màn chụp thật (/that/a/) → data URL; font của màn thật chỉ nhúng khi xuất/lưu (ảnh thu nhỏ bỏ font)
+  const ds = [...new Set([...(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || []), ...(s.match(khoaScript ? /\/that\/a\/[\w.-]+\.(?:png|webp|jpg|ttf)/g : /\/that\/a\/[\w.-]+\.(?:png|webp|jpg)/g) || [])])];
   for (const u of ds) { try { const d = await thanhDataUrl(u); s = s.split(u).join(d); } catch { /* giữ nguyên */ } }
   return s;
 }
@@ -1091,8 +1092,8 @@ $('#nut-html').onclick = async () => {
 // Chụp HTML thành PNG trong iframe ẩn (nội dung đã lamSach; chỉ html-to-image của mình chạy, CSP trang vẫn áp).
 async function chupAnh(html, { w, h }, { pixelRatio = 2, skipFonts = false, doLk: doCa = false } = {}) {
   let s = await htmlTuDung(html, false);
-  // srcdoc kế thừa CSP của trang (script-src 'self' — inline script/on* không chạy); thêm lớp chặn: không gọi mạng (trừ ảnh/font tĩnh /that/, /assets/ để nhúng vào ảnh), không base/form
-  if (skipFonts) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob: ${location.origin}/that/a/ ${location.origin}/assets/; object-src 'none'; base-uri 'none'; form-action 'none'">`); // ảnh thu nhỏ tự động: không cần font mạng
+  // srcdoc kế thừa CSP của trang (script-src 'self' — inline script/on* không chạy); thêm lớp chặn: không gọi mạng, không base/form
+  if (skipFonts) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">`); // ảnh thu nhỏ tự động: không cần font mạng
   const ifr = document.createElement('iframe');
   ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts');
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });

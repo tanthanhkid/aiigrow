@@ -10,7 +10,9 @@ export PY=${PY:-python3} THANH_PY=$CC/thanh.py
 if [ "$3" != chi-so ]; then
 node dung.mjs $W/mobile/scripts/$GOC $THEM $S/chup-$LOAI.mjs || exit 1
 : > $S/log-chup.txt
-for NB in A:$(node -e 'console.log(new Date("2026-10-25T07:19:00+07:00").getTime())') B:$(node -e 'console.log(new Date("2026-10-25T10:00:00+07:00").getTime())'); do
+NHOM="A:$(node -e 'console.log(new Date("2026-10-25T07:19:00+07:00").getTime())')"
+[ $LOAI = bm ] && NHOM="$NHOM B:$(node -e 'console.log(new Date("2026-10-25T10:00:00+07:00").getTime())')" # màn Con chỉ có nhóm A
+for NB in ${=NHOM}; do
  NH=${NB%%:*}; BAY=${NB##*:}
  (CHUP_NHOM=$NH PHA_CONG=8291 PHA_CDP=9591 PHA_BAY=$BAY CHUP_CHUNG=$CC/chup-chung.mjs REF_DIR=$R/chinchu-ios REF_GOC=$R CHUP_RA=$S/ra CHUP_MAN="^($RE)$" node $S/chup-$LOAI.mjs $S/dist >> $S/log-chup.txt 2>&1 & P=$!; for i in $(seq 800); do kill -0 $P 2>/dev/null || break; sleep 1; done; kill $P 2>/dev/null)
  pkill -f "remote-debugging-port=9591"

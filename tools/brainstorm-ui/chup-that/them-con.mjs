@@ -42,7 +42,7 @@
     await di(m.duong, { con: m.con === undefined ? "tok-con" : m.con, mayTok: m.mayTok === undefined ? "tok-may" : m.mayTok, daXem: m.daXem ?? ["l1"] });
     const ok = await doi(m.cho, 9000);
     if (!ok) console.log(`    chưa thấy «${m.cho}»: ${(await chu())?.replace(/\s+/g, " ").slice(0, 160)}`);
-    return true;
+    return ok; // không thấy chữ chờ ⇒ bỏ qua, giữ bản chụp cũ
   };
   await chayChup({ goi, js, sleep, ds: ds.filter((m) => (!loc || loc.test(m.key)) && (!process.env.CHUP_NHOM || m.nhom === process.env.CHUP_NHOM)), vao, ra: process.env.CHUP_RA, dist: DIR, goc: GOC });
   console.log("chưa giả:", [...new Set(nhatKy.filter((x) => !kb[`${x.m} ${x.d}`]).map((x) => `${x.m} ${x.d}`))].join(", "));

@@ -2,7 +2,7 @@
 // Mở từng HTML tĩnh trong Chrome headless RIÊNG (hồ sơ tạm) đúng khổ ảnh thật, chụp, so pixel bằng pixelmatch (ngưỡng 0.1, bỏ khử răng cưa).
 import http from "node:http";
 import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync, mkdirSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn, execFileSync } from "node:child_process";
 import pixelmatch from "pixelmatch";
@@ -14,12 +14,12 @@ mkdirSync(RA, { recursive: true });
 const LOAI = { ".html": "text/html; charset=utf-8", ".png": "image/png", ".webp": "image/webp", ".jpg": "image/jpeg", ".ttf": "font/ttf", ".svg": "image/svg+xml", ".css": "text/css" };
 const may = http.createServer((req, res) => {
   const p = decodeURIComponent(req.url.split("?")[0]);
-  let f = null;
-  if (p.startsWith("/h/")) f = join(HTML, p.slice(3));
-  else if (p.startsWith("/that/a/")) f = join(A, p.slice(8));
+  let f = null; const trong = (goc, ten) => { const x = resolve(goc, ten); return x.startsWith(resolve(goc) + sep) ? x : null; };
+  if (p.startsWith("/h/")) f = trong(HTML, p.slice(3));
+  else if (p.startsWith("/that/a/")) f = trong(A, p.slice(8));
   if (!f || !existsSync(f)) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { "content-type": LOAI[extname(f)] ?? "application/octet-stream" }); res.end(readFileSync(f));
-}).listen(CONG);
+}).listen(CONG, "127.0.0.1");
 const hoSo = mkdtempSync(join(tmpdir(), "aiig-so-"));
 const chrome = spawn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`,
   "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: "ignore" });
