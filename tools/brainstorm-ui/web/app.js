@@ -1102,7 +1102,7 @@ async function thayMan(key, html, meta = {}) {
   if (dxKhung) return thayTheoDeXuat(dxKhung, key, html, meta);
   dangThay.add(key); html = lamSach(html);
   try {
-    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json', ...dauChuQuan() },
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() },
       body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '' }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
@@ -1112,13 +1112,14 @@ async function thayMan(key, html, meta = {}) {
   meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
   qtDaVe = ''; veTatCa(); luuLai();
   toast(`Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}; bản cũ vẫn trong Lịch sử.`);
-  rt?.phat({ t: 'su', loai: 'thay', key });
   return true;
 }
 async function thayTheoDeXuat(dx, key, html, meta) {
   dangThay.add(key);
-  try { await GY.chapNhan(dx, { html: lamSach(html), w: meta.w, h: meta.h, suaTiep: true }); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
+  const sach = lamSach(html);
+  try { await GY.chapNhan(dx, { html: sach, w: meta.w, h: meta.h, suaTiep: sach !== dx.h0 }); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
   meta.truocVe?.();
+  for (const f of st.khung) if (f.cha === meta.bt) f.cha = f.goc; // biến thể sinh từ khung tạm: nối về màn gốc
   st.khung = st.khung.filter((f) => f.id !== meta.bt); st.chon.delete(meta.bt); // khung tạm của đề xuất đã xong việc
   qtDaVe = ''; veTatCa(); luuLai();
   return true;
@@ -1173,14 +1174,13 @@ $('#ls-khoi-phuc').onclick = async () => {
   if (dangThay.has(key)) { toast('Màn này đang được thay — đợi chút.'); return; }
   $('#ls-khoi-phuc').disabled = true; dangThay.add(key);
   try {
-    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', body: JSON.stringify({ tu: v }), headers: { 'content-type': 'application/json', ...dauChuQuan() } });
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', body: JSON.stringify({ tu: v }), headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() } });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
     PB[key] = j;
   } catch (e) { toast(`Không khôi phục được: ${e.message}`, true); veLichSu(); return; } finally { dangThay.delete(key); }
   try { await apPhienBan(key); } catch (e) { toast(`Đã khôi phục trên máy chủ (v${PB[key].hien}) nhưng chưa tải được bản đó (${e.message}) — tải lại trang.`, true); }
   ls.v = PB[key].hien; qtDaVe = ''; veTatCa(); veLichSu();
   toast(`Đã khôi phục v${v} thành v${PB[key].hien} — «${MAN[key].ten}» hiển thị bản này ở mọi nơi.`);
-  rt?.phat({ t: 'su', loai: 'thay', key });
 };
 
 let hoanTac = null;
@@ -1373,7 +1373,8 @@ async function dongBoKho() {
       lo.lan.push(coSo(banLuu(l), l)); ky.set(`l:${l.id}`, k);
     }
     for (const [f, k] of ghiK) {
-      const o = coSo(banLuu(f), f); o.html = f.tt === 'dang' ? '' : f.html || ''; // HTML dở dang lúc đang sinh không gửi (người xem thấy «đang sinh…»)
+      const o = coSo(banLuu(f), f); if (typeof o.cha === 'string' && o.cha.startsWith('dx-')) o.cha = f.goc; // khung đề xuất tạm không lưu: không trỏ cha vào nó
+      o.html = f.tt === 'dang' ? '' : f.html || ''; // HTML dở dang lúc đang sinh không gửi (người xem thấy «đang sinh…»)
       if (f.htmlSua) o.htmlSua = f.htmlSua; if (f.htmlGocSua) o.htmlGocSua = f.htmlGocSua;
       const n = (o.html.length + (f.htmlSua?.length || 0) + (f.htmlGocSua?.length || 0)) * 3 + 4000; // ước số BYTE (UTF-8 + thoát JSON)
       if ((co + n > 20e6 || lo.lan.length + lo.khung.length >= LO_TOI_DA) && !(await day())) return;
@@ -1578,9 +1579,7 @@ async function nhanKho(m) {
   } else return;
   clearTimeout(henVe); henVe = setTimeout(() => { veTatCa(); veBang(); }, 60); // gộp nhiều thay đổi liền nhau thành một lần vẽ
 }
-function khiCham(m) { // máy chủ bỏ gói «thay màn» vì vượt nhịp: gửi lại sau 5 giây
-  if (m.su?.loai === 'thay' && coMan(m.su.key)) setTimeout(() => rt?.phat({ t: 'su', loai: 'thay', key: m.su.key }), 5000);
-}
+function khiCham() { /* «thay màn» nay do máy chủ phát ({t:'rv'}), không còn gói client cần gửi lại */ }
 
 // ---- thùng rác (xoá mềm 7 ngày)
 async function moRac() {
@@ -1628,7 +1627,7 @@ function nhanSu(m, p) {
   if (m.loai === 'thay' && coMan(m.key)) napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`));
 }
 GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTatCa, veBen, doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), secCuaLan, lamSach,
-  tenNguoi: () => rt?.ten() || '',
+  tenNguoi: () => rt?.ten() || '', phien: PHIEN,
   svgHanhTrinh: (id) => qt.svgHanhTrinh(id),
   napLai: (key) => napLaiPhienBan(key),
   // «✨ Sửa theo góp ý»: chọn màn gốc, điền ý = các góp ý, chạy luồng sinh biến thể như thường (prompt caching)
@@ -1650,7 +1649,7 @@ GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTat
     let f = timKhung(id);
     if (!f) {
       f = { id, loai: 'bien', goc: dx.key, cha: dx.key, html: lamSach(html), w: dx.w || MAN[dx.key].w, h: dx.h || MAN[dx.key].h, x: 0, y: 0, tt: 'xong',
-        nhan: `Đề xuất của ${dx.ten}`, yTuong: dx.nhan || 'Đề xuất từ góp ý', model: dx.model || '', deXuat: { ht: dx.ht, id: dx.id, key: dx.key, ten: dx.ten } };
+        nhan: `Đề xuất của ${dx.ten}`, yTuong: dx.nhan || 'Đề xuất từ góp ý', model: dx.model || '', deXuat: { ht: dx.ht, id: dx.id, key: dx.key, ten: dx.ten, h0: lamSach(html) } };
       st.khung.push(f);
     }
     st.chon.clear(); st.chon.add(id); veTatCa(); vuaMan([dx.key, id]);

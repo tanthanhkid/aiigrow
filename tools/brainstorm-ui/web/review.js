@@ -36,14 +36,12 @@ async function tai() {
   let r; try { r = await fetch(`/api/review/r/${MA}`); } catch { toast('Không tải được — kiểm mạng rồi tải lại trang.', true); return; }
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return het(j.loi || `Lỗi ${r.status}`);
-  const dau = !R.goi; R.goi = j;
+  R.goi = j;
   document.title = `Góp ý · ${j.htTen}`;
   $('#ht-ten').textContent = j.htTen; $('#ht-v').textContent = `v${j.v}`; $('#ht-ghi').textContent = j.ghiChu || '';
-  if (dau) {
-    veDsMan();
-    const h = decodeURIComponent(location.hash.slice(1));
-    mo(j.man.some((m) => m.key === h) || h === 'qt' || h === 'chung' ? h : j.man[0]?.key || 'chung');
-  } else { veDsMan(); veGopY(); veGhim(); }
+  veDsMan();
+  const h = decodeURIComponent(location.hash.slice(1));
+  mo(j.man.some((m) => m.key === h) || h === 'qt' || h === 'chung' ? h : j.man[0]?.key || 'chung');
 }
 function het(ly) { $('#het').hidden = false; $('#het-ly').textContent = ly; document.body.classList.add('da-het'); }
 const manCua = (key) => R.goi?.man.find((m) => m.key === key);
@@ -283,7 +281,8 @@ async function sinhBienThe(g, n) {
     const sys = heThong(await taiAssets());
     await chayLoat(R.bt.map((f) => async (bao) => {
       const user = loiNguoiDung({ y, html: htmlGoc, w: m.w, h: m.h, ten: m.ten, k: f.k, n });
-      const moiChu = (txt) => { f.tien = `${(txt.length / 1024).toFixed(1)} kB`; veBienThe(); };
+      // chữ chạy về: chỉ đổi dòng tiến độ của biến thể này, không dựng lại cả lưới (iframe + lamSach màn gốc)
+      const moiChu = (txt) => { f.tien = `${(txt.length / 1024).toFixed(1)} kB`; if (f._cap?.isConnected) f._cap.textContent = `${f.k}. Đang sinh… ${f.tien}`; else veBienThe(); };
       try {
         const { txt } = await (laMock()
           ? goiMock({ toan: `Ý TƯỞNG: Mock ${f.k} — ${HUONG[(f.k - 1) % HUONG.length].split(/[:,.]/)[0]}\n\`\`\`html\n${mockSua(htmlGoc, f.k, g.noi)}\n\`\`\``, signal: new AbortController().signal, moiChu, khiBatDau: bao, khoaCache: htmlGoc, vaoCache: Math.round((sys.length + user[0].length) / 3.2) })
@@ -311,7 +310,7 @@ function veBienThe() {
   const goc = tao('figure', 'the-bt goc'); goc.append(tao('figcaption', '', `Gốc (v${R.goi.v})`), oMan(lamSach(m.html), m.w, m.h, rong)); l.append(goc);
   for (const f of R.bt) {
     const c = tao('figure', 'the-bt'); const cap = tao('figcaption', '', f.tt === 'xong' ? `${f.k}. ${f.nhan}` : f.tt === 'loi' ? `${f.k}. Lỗi: ${f.tien}` : `${f.k}. Đang sinh… ${f.tien}`);
-    c.append(cap);
+    c.append(cap); Object.defineProperty(f, '_cap', { value: cap, writable: true, configurable: true, enumerable: false });
     if (f.html) c.append(oMan(f.html, f.w, f.h, rong)); else c.append(tao('div', 'o-man cho'));
     if (f.tt === 'xong') {
       const b = tao('button', f.daGui ? 'nut-nhe' : 'nut-chinh', f.daGui ? '✓ Đã đề xuất — chờ duyệt' : 'Đề xuất áp dụng'); b.type = 'button'; b.disabled = !!f.daGui;

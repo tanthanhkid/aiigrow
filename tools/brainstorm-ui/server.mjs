@@ -152,7 +152,11 @@ const may = http.createServer(async (req, res) => {
     const p = decodeURIComponent(url.pathname);
 
     if (p === '/api/phien-ban' || p.startsWith('/api/phien-ban/')) return await apiPhienBan(req, res, p);
-    if (p === '/api/bien-the' || p.startsWith('/api/bien-the/')) return await khoBt.xuLy(req, res, p, url);
+    if (p === '/api/bien-the' || p.startsWith('/api/bien-the/')) {
+      // khoaBang: qua tên miền, ghi kho biến thể (sinh/xoá/khôi phục) cũng cần mã chủ quản; đọc thì ai mở bàn cũng được
+      if (req.method === 'POST' && review.khoaBang() && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
+      return await khoBt.xuLy(req, res, p, url);
+    }
     if (p === '/api/review' || p.startsWith('/api/review/')) return await review.xuLy(req, res, p);
     if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');
 
@@ -214,6 +218,10 @@ async function apiPhienBan(req, res, p) {
   try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
   if (than && than.nguon === 'de-xuat') than.nguon = ''; // «đề xuất góp ý» chỉ ghi qua review.mjs (không giả tác giả được)
   const [ma, obj] = await ghiPhienBan(key, than);
+  if (ma === 200) { // máy chủ báo mọi bàn (không dựa vào client phát qua realtime — phòng chỉ-xem không phát được)
+    let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { /* bỏ qua */ }
+    phatPhong('bang', { t: 'rv', loai: 'thay', key, ten, tu: String(req.headers['x-bs-phien'] || '').slice(0, 40) });
+  }
   return json(res, ma, obj);
 }
 // Thêm một phiên bản (dùng chung cho Thay màn, Khôi phục và «Accept changes» của đề xuất góp ý) → [mã HTTP, manifest | lỗi]
@@ -255,5 +263,6 @@ may.on('listening', () => {
   if (!fs.existsSync(TEP['/vendor/html-to-image.js'])) console.warn('! Chưa có node_modules/html-to-image — chạy `npm install` để xuất PNG.');
   console.log(`\n  Bàn brainstorm AiiGrow đang chạy:  http://127.0.0.1:${cong}/\n  (thử không cần key: http://127.0.0.1:${cong}/?mock=1)  ·  Ctrl+C để tắt\n`);
 });
-ganRealtime(may, hopLeNguon, (ten) => ten === 'bang' || (/^r-[a-f0-9]{32}$/.test(ten) && review.conHieuLuc(ten.slice(2))));
+// bàn chính khi khoaBang mà người nối không phải chủ quản: chỉ được con trỏ/nhìn/tên ('xem'), không phát thao tác
+ganRealtime(may, hopLeNguon, (ten, req) => (ten === 'bang' ? (review.khoaBang() && !review.laChuQuan(req) ? 'xem' : true) : /^r-[a-f0-9]{32}$/.test(ten) && review.conHieuLuc(ten.slice(2))));
 may.listen(cong, '127.0.0.1');

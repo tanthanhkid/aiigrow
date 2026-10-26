@@ -28,7 +28,8 @@ export function taoReview(C) {
   // 127.0.0.1/localhost gõ thẳng (không qua tunnel) = chủ quản. Qua tên miền: header x-bs-chu-quan khớp «ma» trong chu-quan.json (Thanh tự đặt, ngoài git).
   // Chưa có tệp ⇒ qua tên miền không ai là chủ quản. Sai mã bị giới hạn 10 lần/phút mỗi IP.
   const saiMa = new Map();
-  const ipCua = (req) => String(req.headers['cf-connecting-ip'] || req.socket.remoteAddress || '');
+  // chỉ tin cf-connecting-ip khi yêu cầu đến từ cloudflared trên máy này (loopback); nối thẳng thì dùng địa chỉ socket
+  const ipCua = (req) => { const s = req.socket.remoteAddress || ''; return /^(127\.|::1$|::ffff:127\.)/.test(s) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : s; };
   function cauHinh() { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); return j && typeof j === 'object' ? j : {}; } catch { return {}; } }
   function laNoiBo(req) {
     const h = String(req.headers.host || '').toLowerCase();
@@ -92,13 +93,17 @@ export function taoReview(C) {
   // ---------- dữ liệu gửi ra ----------
   const gopYRa = (g) => ({ ...g });
   const deXuatRa = (d) => { const { tep, ...con } = d; return con; };
+  // gửi cho người review: bỏ mã link («ma») của từng góp ý/trả lời/đề xuất — biết mã link khác là vào được link đó (kể cả khi link mình bị thu hồi)
+  const boMa = (o) => { const { ma, ...con } = o; return con; }; // eslint-disable-line no-unused-vars
+  const gopYCho = (g) => ({ ...boMa(g), tl: (g.tl || []).map(boMa) });
+  const deXuatCho = (d) => boMa(deXuatRa(d));
   function goiReview(s) {
     const meta = JSON.parse(fs.readFileSync(path.join(thuSnap(s.ma), 'meta.json'), 'utf8'));
     const man = meta.man.map((m) => ({ ...m, html: fs.readFileSync(path.join(thuSnap(s.ma), `m-${m.key}.html`), 'utf8') }));
     let qt = ''; try { qt = fs.readFileSync(path.join(thuSnap(s.ma), 'qt.svg'), 'utf8'); } catch { /* không có sơ đồ */ }
     const cungHt = dsChiaSe().filter((x) => x.ht === s.ht).map((x) => ({ ma: x.ma, v: x.v }));
     return { ma: s.ma, ht: s.ht, htTen: meta.htTen, v: s.v, ghiChu: s.ghiChu, t: s.t, man, qt, phienBan: cungHt.map((x) => x.v),
-      gopY: docJson(tepGopY(s.ht), () => ({ ds: [] })).ds.map(gopYRa), deXuat: docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.map(deXuatRa) };
+      gopY: docJson(tepGopY(s.ht), () => ({ ds: [] })).ds.map(gopYCho), deXuat: docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.map(deXuatCho) };
   }
 
   // ---------- xử lý ----------
@@ -124,7 +129,7 @@ export function taoReview(C) {
         if (!ghiVao) {
           if (!c) return json(res, 200, goiReview(s)), true;
           if (c === 'moi' && !d) { // chỉ góp ý + đề xuất (khi có thay đổi), không tải lại cả snapshot màn
-            return json(res, 200, { gopY: docJson(tepGopY(s.ht), () => ({ ds: [] })).ds.map(gopYRa), deXuat: docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.map(deXuatRa) }), true;
+            return json(res, 200, { gopY: docJson(tepGopY(s.ht), () => ({ ds: [] })).ds.map(gopYCho), deXuat: docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.map(deXuatCho) }), true;
           }
           if (c === 'de-xuat' && ID.test(d || '') && !e) { // xem HTML một đề xuất của cùng hành trình
             const dx = docJson(tepDeXuat(s.ht), () => ({ ds: [] })).ds.find((x) => x.id === d);
@@ -167,7 +172,7 @@ export function taoReview(C) {
             const g = docJson(tepGopY(s.ht), () => ({ ds: [] })); const x = g.ds.find((y) => y.id === d);
             if (!x) return json(res, 404, { loi: 'Không có góp ý này trong hành trình' }), true; // góp ý của link cũ («từ v1») cùng hành trình cũng được
             x.ycBt = true; ghi(tepGopY(s.ht), g); bao(s.ht, 'gop-y');
-            return json(res, 200, x), true;
+            return json(res, 200, gopYCho(x)), true;
           } finally { mo(); }
         }
         if (c === 'de-xuat' && !d) { // đề xuất thay đổi (Chờ duyệt) — KHÔNG đụng design gốc
@@ -182,6 +187,7 @@ export function taoReview(C) {
             if (t.gy && !gy) return json(res, 404, { loi: 'Không có góp ý gắn với đề xuất' }), true;
             const dx = docJson(tepDeXuat(s.ht), () => ({ ds: [] }));
             if (dx.ds.length >= TOI_DA.deXuat) return json(res, 409, { loi: 'Hành trình này đã quá nhiều đề xuất' }), true;
+            if (dx.ds.filter((x) => x.tt === 'cho').length >= 60) return json(res, 409, { loi: 'Đã có 60 đề xuất chờ duyệt — đợi người phụ trách duyệt bớt' }), true;
             const w = Math.round(Number(t.w)), h = Math.round(Number(t.h));
             const moi = { id: idMoi(), ma: s.ma, v: s.v, key, gy: gy?.id || null, ten: ten40(t.ten), nhan: sachChu(t.nhan, 120), model: sachChu(t.model, 60),
               w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined, tt: 'cho', t: new Date().toISOString() };
@@ -216,7 +222,7 @@ export function taoReview(C) {
         const qt = typeof t.qt === 'string' && /^<svg[\s>]/.test(t.qt.trim()) ? t.qt : '';
         const mo = await khoa();
         try {
-          const ds = dsChiaSe(); if (ds.length >= TOI_DA.chiaSe) return json(res, 409, { loi: 'Quá nhiều link chia sẻ — thu hồi bớt' }), true;
+          const ds = dsChiaSe(); if (ds.filter((x) => !x.thuHoi).length >= TOI_DA.chiaSe) return json(res, 409, { loi: 'Quá nhiều link chia sẻ đang mở — thu hồi bớt' }), true;
           const ma = crypto.randomBytes(16).toString('hex'); // 128 bit
           const v = ds.filter((x) => x.ht === h.id).reduce((a2, x) => Math.max(a2, x.v), 0) + 1;
           const s = { ma, ht: h.id, htTen: h.ten, v, ghiChu: sachChu(t.ghiChu, 300), t: new Date().toISOString(), thuHoi: null, soMan: man.length };

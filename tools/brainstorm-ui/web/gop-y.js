@@ -84,6 +84,7 @@ export function ganGopY(A) {
     const loc = tao('div', 'pn-loc');
     const sHt = tao('select'); sHt.append(new Option('Mọi hành trình', ''));
     for (const ht of [...new Set(ds.map((g) => g.ht))]) sHt.append(new Option(`${tenHt(ht)} (${dem(ht).mo} mở)`, ht));
+    if (D.loc.ht && ![...sHt.options].some((o) => o.value === D.loc.ht)) sHt.append(new Option(`${tenHt(D.loc.ht)} (0 mở)`, D.loc.ht)); // hành trình vừa chia sẻ, chưa có góp ý
     sHt.value = D.loc.ht; sHt.onchange = () => { D.loc.ht = sHt.value; ve(); };
     const sNg = tao('select'); sNg.append(new Option('Mọi người', ''));
     for (const t of [...new Set(ds.map((g) => g.ten))]) sNg.append(new Option(t, t));
@@ -288,7 +289,8 @@ export function ganGopY(A) {
 
   return {
     tai, mo, dem, chiaSe, chapNhan, xemDeXuat,
-    nhanRv(m) { if (m.loai === 'thay' && m.key) A.napLai(m.key); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
+    nhanRv(m) {
+      if (m.loai === 'thay' && m.key) A.napLai(m.key).then(() => { if (m.ten && m.tu !== A.phien && A.MAN[m.key]) A.toast(`${m.ten} vừa đổi phiên bản màn «${A.MAN[m.key].ten}».`); }); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
     du: () => D.du,
   };
 }

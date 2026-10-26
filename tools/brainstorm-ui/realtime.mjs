@@ -105,8 +105,9 @@ export function ganRealtime(may, hopLeNguon, phongHopLe = () => true) {
     const tenPhong = url.searchParams.get('phong') || '';
     const khoa = req.headers['sec-websocket-key'];
     if (!/^[a-z0-9:-]{1,60}$/.test(tenPhong) || !khoa || req.headers['sec-websocket-version'] !== '13') return huy(400, 'Bad Request');
-    if (!phongHopLe(tenPhong)) return huy(403, 'Forbidden');
-    const chiTro = tenPhong !== 'bang';
+    const hl = phongHopLe(tenPhong, req);
+    if (!hl) return huy(403, 'Forbidden');
+    const chiTro = tenPhong !== 'bang' || hl === 'xem';
     const p = phong.get(tenPhong) || new Map();
     if (p.size >= TOI_DA_PHONG) return huy(503, 'Phong day');
     const nhan = crypto.createHash('sha1').update(khoa + GUID).digest('base64');
