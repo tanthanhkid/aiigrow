@@ -113,7 +113,7 @@ function doiSec(id, { bay = true } = {}) {
   if (!secTu(id) || id === st.sec) return;
   st.sec = id; caiDat.sec = id; luuCaiDat();
   try { history.replaceState(null, '', `#${encodeURIComponent(id)}`); } catch { /* bỏ qua */ }
-  st.chon.clear(); st.lanChon = null;
+  st.chon.clear(); st.lanChon = null; st.thay = null; // tập khung đang thấy của section cũ không còn đúng
   veTatCa();
   if (st.views[id]) { st.view = { ...st.views[id] }; apView(); } else if (bay) vuaMan();
 }
@@ -188,7 +188,7 @@ function capNhatAo() {
   const r = vung.getBoundingClientRect(); const { x, y, z } = st.view;
   const thay = new Set();
   for (const [id, d] of dom) {
-    const f = timKhung(id); if (!f) continue;
+    const f = d.f; if (!f) continue;
     const { w, h } = kichThuoc(f);
     const sx = x + f.x * z, sy = y + f.y * z, sw = w * z, sh = (h + DAU) * z;
     const trong = sx + sw > -LE_AO && sx < r.width + LE_AO && sy + sh > -LE_AO && sy < r.height + LE_AO;
@@ -199,25 +199,26 @@ function capNhatAo() {
   if (!cu || cu.size !== thay.size || [...thay].some((id) => !cu.has(id))) henVeNoi();
 }
 function datSong(f, d, song) {
+  if (song === !!d.iframe && (d.iframe || (d.daAnh && d.daAnh === d.bam))) return; // không đổi gì
   const than = d.el.querySelector('.than');
   if (song && !d.iframe && htmlCua(f)) {
     const ifr = document.createElement('iframe');
     ifr.setAttribute('sandbox', 'allow-same-origin'); // không script; cùng nguồn để đo nút data-toi
     ifr.referrerPolicy = 'no-referrer';
     const { w, h } = kichThuoc(f); ifr.width = w; ifr.height = h; ifr.title = tenCua(f);
-    ifr.addEventListener('load', () => doLienKet(f.id));
+    ifr.addEventListener('load', () => { if (d.iframe === ifr) d.el.classList.add('song'); doLienKet(f.id); }); // giữ ảnh thu nhỏ tới khi iframe tải xong
     d.iframe = ifr; d.banIfr = htmlCua(f); ifr.srcdoc = d.banIfr;
     than.prepend(ifr);
-  } else if (!song && d.iframe) { d.iframe.remove(); d.iframe = null; }
-  d.el.classList.toggle('song', !!d.iframe);
+  } else if (!song && d.iframe) { d.iframe.remove(); d.iframe = null; d.el.classList.remove('song'); }
   if (!d.iframe) xepAnh(f);
 }
 // mã băm rẻ để nhận ra HTML đã đổi (khoá cho ảnh thu nhỏ + liên kết đã đo)
 function bam(sv) { let h = 0x811c9dc5, g = 5381; for (let i = 0; i < sv.length; i++) { const c = sv.charCodeAt(i); h = Math.imul(h ^ c, 16777619); g = ((g << 5) + g + c) | 0; } return `${sv.length}:${h >>> 0}:${g >>> 0}`; }
 const anhNho = new Map();  // băm → objectURL ('' = chụp lỗi); giữ tối đa 400, bỏ cái cũ nhất
+const loiChup = new Map(); // băm → số lần chụp lỗi
 function ghiAnhNho(k, url) {
   anhNho.set(k, url);
-  while (anhNho.size > 400) { const [k0, u0] = anhNho.entries().next().value; anhNho.delete(k0); lkDo.delete(k0); if (u0) URL.revokeObjectURL(u0); }
+  while (anhNho.size > 600) { const [k0, u0] = anhNho.entries().next().value; anhNho.delete(k0); lkDo.delete(k0); if (u0) URL.revokeObjectURL(u0); }
 }
 const lkDo = new Map();    // băm → [liên kết đã đo]
 const hangCho = [];        // khung chờ chụp ảnh thu nhỏ
@@ -226,7 +227,8 @@ function bamCua(f, d) { const html = htmlCua(f); if (d.banBam !== html) { d.banB
 function xepAnh(f) {
   const d = dom.get(f.id); if (!d || f.tt === 'dang' || !htmlCua(f)) return;
   const k = bamCua(f, d);
-  if (anhNho.has(k)) { if (anhNho.get(k)) datAnhNho(d, anhNho.get(k)); return; }
+  if (anhNho.has(k)) { const u = anhNho.get(k); anhNho.delete(k); anhNho.set(k, u); if (u) datAnhNho(d, u); d.daAnh = k; return; } // chạm = mới dùng (LRU)
+  if ((loiChup.get(k) || 0) >= 2) return; // chụp lỗi 2 lần: để khung xám
   if (!hangCho.includes(f.id)) hangCho.push(f.id);
   if (!dangChup) setTimeout(chupHang, 30);
 }
@@ -252,10 +254,10 @@ async function chupHang() {
           const { blob, lk } = await chupAnh(htmlCua(f), kichThuoc(f), { pixelRatio: 0.45, skipFonts: true, doLk: true });
           ghiAnhNho(k, URL.createObjectURL(blob));
           if (lk) { lkDo.set(k, lk); const d2 = dom.get(id); if (d2 && bamCua(f, d2) === k && !d2.lk.length) { d2.lk = lk; henVeNoi(); } }
-        } catch { ghiAnhNho(k, ''); }
+        } catch { loiChup.set(k, (loiChup.get(k) || 0) + 1); continue; }
       }
       const d3 = dom.get(id);
-      if (d3 && !d3.iframe && bamCua(f, d3) === k && anhNho.get(k)) datAnhNho(d3, anhNho.get(k));
+      if (d3 && !d3.iframe && bamCua(f, d3) === k && anhNho.get(k)) { datAnhNho(d3, anhNho.get(k)); d3.daAnh = k; }
       await new Promise((r) => setTimeout(r, 10));
     }
   } finally { dangChup = false; }
@@ -281,7 +283,7 @@ function doLk(tl) {
 }
 function doLienKet(id) {
   const d = dom.get(id); const f = timKhung(id); if (!d || !d.iframe || !f) return;
-  try { d.lk = doLk(d.iframe.contentDocument); lkDo.set(bamCua(f, d), d.lk); } catch { /* giữ số đo cũ */ }
+  try { d.lk = doLk(d.iframe.contentDocument); if (f.tt !== 'dang') lkDo.set(bamCua(f, d), d.lk); } catch { /* giữ số đo cũ */ }
   henVeNoi();
 }
 
@@ -290,6 +292,7 @@ function veKhung(f) {
   const an = !lan || !lanHien(lan);
   if (an) { const cu = dom.get(f.id); if (cu) { cu.el.remove(); dom.delete(f.id); } return; } // ngoài section: không dựng gì
   const d = dom.get(f.id) || taoDom(f);
+  d.f = f;
   const { w, h } = kichThuoc(f);
   d.el.style.left = `${f.x}px`; d.el.style.top = `${f.y}px`; d.el.style.width = `${w}px`;
   d.el.classList.toggle('chon', st.chon.has(f.id));
@@ -461,6 +464,10 @@ function veTatCa(xep = true) {
 
 // ---------- thanh bên: danh sách hành trình ----------
 function veBen() {
+  const cs = $('#chon-sec'); // cửa sổ hẹp (thanh bên ẩn): chọn section ở thanh trên
+  cs.innerHTML = SECTIONS.map((x) => `<option value="${x.id}"${x.id === st.sec ? ' selected' : ''}></option>`).join('');
+  [...cs.options].forEach((o, i) => { o.textContent = SECTIONS[i].ten; });
+  cs.onchange = () => doiSec(cs.value);
   const ds = $('#ben-ds'); ds.innerHTML = '';
   for (const sec of SECTIONS) {
     const mo = sec.id === st.sec;
@@ -937,7 +944,7 @@ function dongLop() { $('#lop-xem').hidden = true; $('#xem-luoi').innerHTML = '';
 // ---------- PLAY: prototype bấm được kiểu Figma ----------
 const play = { lich: [], lan: null };
 function moPlay(id, lanId) {
-  id ||= khungChon()?.id || (st.lanChon && khungCuaLan(timLan(st.lanChon), timLan(st.lanChon).buoc[0])?.id) || timKhung(LAN_GOC[0].buoc[0])?.id;
+  id ||= khungChon()?.id || (st.lanChon && khungCuaLan(timLan(st.lanChon), timLan(st.lanChon).buoc[0])?.id) || (() => { const l = timLan(SECTIONS.find((x) => x.id === st.sec)?.lan[0]); return l && timKhung(l.buoc[0])?.id; })() || timKhung(LAN_GOC[0].buoc[0])?.id;
   const f = timKhung(id); if (!f || !htmlCua(f)) { toast('Màn này chưa có nội dung để Play.', true); return; }
   play.lan = lanId || lanCuaKhung(f)?.id;
   play.lich = [f.id];
@@ -1071,7 +1078,9 @@ $('#nut-html').onclick = async () => {
 
 // Chụp HTML thành PNG trong iframe ẩn (nội dung đã lamSach; chỉ html-to-image của mình chạy, CSP trang vẫn áp).
 async function chupAnh(html, { w, h }, { pixelRatio = 2, skipFonts = false, doLk: doCa = false } = {}) {
-  const s = await htmlTuDung(html, false);
+  let s = await htmlTuDung(html, false);
+  // srcdoc kế thừa CSP của trang (script-src 'self' — inline script/on* không chạy); thêm lớp chặn: không gọi mạng, không base/form
+  s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">`);
   const ifr = document.createElement('iframe');
   ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts');
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });
