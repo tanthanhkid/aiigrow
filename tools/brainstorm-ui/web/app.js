@@ -66,6 +66,7 @@ for (const k of Object.keys(MAN)) st.khung.push({ id: k, loai: 'goc', key: k });
 if (luu) {
   for (const f of luu.khung || []) if (f.loai === 'bien' && MAN[f.goc]) st.khung.push(f);
   st.lanBt = (luu.lanBt || []).filter((l) => LAN_GOC.some((g) => g.id === l.tu));
+  st.khung = st.khung.filter((f) => !f.lan || st.lanBt.some((l) => l.id === f.lan));
 }
 { const v = doc(KHOA_VIEW, null); if (v && Number.isFinite(v.z)) st.view = v; }
 for (const f of st.khung) if (f.tt === 'dang') { f.tt = 'loi'; f.loi = 'Trang đã tải lại khi đang sinh — bấm Thử lại.'; }
@@ -332,6 +333,7 @@ svgNoi.addEventListener('pointerover', (e) => { const g = e.target.closest('g.lk
 svgNoi.addEventListener('pointerout', (e) => { const g = e.target.closest('g.lk'); if (g) noiBatLk(+g.dataset.i, false); });
 
 function veTatCa(xep = true) {
+  for (const c of [...st.chon]) if (!timKhung(c)) st.chon.delete(c);
   if (xep) sapXep();
   const con = new Set(st.khung.map((f) => f.id));
   for (const [id, d] of dom) if (!con.has(id)) { d.el.remove(); dom.delete(id); }
@@ -412,7 +414,7 @@ vung.addEventListener('pointerdown', (e) => {
   if (e.target.closest('button')) return;
   const khungEl = e.target.closest('.khung');
   if (!khungEl || phimCach || e.button === 1) {
-    keo = { loai: 'nen', sx: e.clientX, sy: e.clientY, vx: st.view.x, vy: st.view.y, dich: false, lan: e.target.closest('.dau-lan') };
+    keo = { loai: 'nen', sx: e.clientX, sy: e.clientY, vx: st.view.x, vy: st.view.y, dich: false, lan: e.button === 0 && !phimCach ? e.target.closest('.dau-lan') : null };
     vung.classList.add('dang-keo');
   } else {
     const id = khungEl.dataset.id;
@@ -616,6 +618,7 @@ function canKey() {
 async function sinh() {
   if (!khungChon() && st.lanChon) return sinhHanhTrinh();
   const cha = khungChon(); if (!cha) return;
+  if (!htmlCua(cha) || cha.tt === 'dang') { trangThaiBang('Khung này chưa sinh xong — đợi xong (hoặc Thử lại) rồi mới sinh tiếp.', true); return; }
   const y = $('#y-tuong').value.trim();
   if (!y) { trangThaiBang('Gõ ý của anh trước đã.', true); $('#y-tuong').focus(); return; }
   if (canKey()) return;
@@ -638,6 +641,7 @@ async function sinh() {
 
 async function chay(f, htmlGoc, tenGoc, khiBatDau) {
   const ctl = new AbortController(); st.dangChay.set(f.id, ctl); veBang();
+  if (!laMock()) f.model = modelDung(); else f.model = 'mock';
   f.tt = 'dang'; f.loi = ''; f.htmlGoc = htmlGoc; f.tenGoc = tenGoc; f.tienDo = 'Đang gọi Claude…'; veKhung(f);
   const batDau = Date.now(); let lanVe = 0;
   const moiChu = (txt, dung, nghi) => {
@@ -674,6 +678,7 @@ async function chay(f, htmlGoc, tenGoc, khiBatDau) {
 async function sinhHanhTrinh(lanLai) {
   const nguon = lanLai ? timLan(lanLai.nguon) || timLan(lanLai.tu) : timLan(st.lanChon);
   const g = nguon.goc ? nguon : timLan(nguon.tu);
+  if (lanLai ? st.dangChay.has(lanLai.id) : !nguon.goc && nguon.tt !== 'xong') { trangThaiBang('Phương án này chưa sinh xong.', true); return; }
   const y = lanLai ? lanLai.yTuong : $('#y-tuong').value.trim();
   if (!y) { trangThaiBang('Gõ ý của anh cho cả hành trình trước đã.', true); $('#y-tuong').focus(); return; }
   if (canKey()) return;
@@ -753,7 +758,8 @@ async function chayHanhTrinh(l, g, buoc, khiBatDau) {
 function thuLai(id) {
   const f = timKhung(id); if (!f) return;
   if (canKey()) return;
-  if (f.lan) { const l = timLan(f.lan); if (l) sinhHanhTrinh(l); return; }
+  if (f.lan) { const l = timLan(f.lan); if (l && !st.dangChay.has(l.id)) sinhHanhTrinh(l); return; }
+  if (st.dangChay.has(f.id)) return;
   const cha = timKhung(f.cha);
   const htmlGoc = cha ? htmlCua(cha) : f.htmlGoc; const tenGoc = cha ? tenCua(cha) : f.tenGoc;
   if (!htmlGoc) { toast('Không còn khung gốc để sinh lại.', true); return; }
@@ -934,7 +940,7 @@ async function chupPng(f) {
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });
   document.body.appendChild(ifr);
   try {
-    await new Promise((ok, hong) => { ifr.onload = ok; ifr.onerror = hong; ifr.srcdoc = s.replace('</head>', '<script src="/vendor/html-to-image.js"></script></head>'); });
+    await new Promise((ok, hong) => { ifr.onload = ok; ifr.onerror = hong; const d = new DOMParser().parseFromString(s, 'text/html'); const sc = d.createElement('script'); sc.src = '/vendor/html-to-image.js'; d.head.appendChild(sc); ifr.srcdoc = '<!doctype html>\n' + d.documentElement.outerHTML; });
     const win = ifr.contentWindow;
     for (let i = 0; i < 50 && !win.htmlToImage; i++) await new Promise((r) => setTimeout(r, 100));
     if (!win.htmlToImage) throw new Error('Chưa có html-to-image — chạy npm install trong tools/brainstorm-ui.');
@@ -966,7 +972,15 @@ $('#nut-ghim').onclick = async () => {
 };
 
 let hoanTac = null;
-function chupLai() { const k = structuredClone(st.khung), l = structuredClone(st.lanBt); return () => { st.khung = k; st.lanBt = l; st.chon.clear(); veTatCa(); luuLai(); }; }
+// Hoàn tác: giữ đúng các đối tượng (việc đang sinh vẫn ghi vào chúng), nhớ cha cũ; khung sinh ra sau khi xoá vẫn giữ.
+function chupLai() {
+  const k = st.khung.slice(), l = st.lanBt.slice(), cha = new Map(st.khung.map((f) => [f.id, f.cha]));
+  return () => {
+    st.khung = [...k, ...st.khung.filter((f) => !k.includes(f))]; st.lanBt = [...l, ...st.lanBt.filter((x) => !l.includes(x))];
+    for (const f of k) if (cha.has(f.id)) f.cha = cha.get(f.id);
+    st.chon.clear(); veTatCa(); luuLai();
+  };
+}
 function xoaChon() {
   const ids = [...st.chon].filter((id) => { const f = timKhung(id); return f && f.loai !== 'goc' && !f.lan; });
   if (!ids.length) { toast('Màn gốc và màn trong phương án hành trình không xoá lẻ được — xoá cả phương án ở đầu hàng.'); return; }
@@ -981,6 +995,7 @@ function xoaPhuongAn(id) {
   hoanTac = chupLai();
   st.dangChay.get(id)?.abort();
   st.khung = st.khung.filter((f) => f.lan !== id); st.lanBt = st.lanBt.filter((l) => l.id !== id);
+  for (const c of [...st.chon]) if (!timKhung(c)) st.chon.delete(c);
   if (st.lanChon === id) st.lanChon = null;
   veTatCa(); luuLai(); toast('Đã xoá phương án — ⌘Z để hoàn tác.');
 }
@@ -1040,6 +1055,6 @@ function toast(t, loi = false) {
 // ---------- khởi động ----------
 napModel($('#chon-model'), caiDat.model);
 capNhatCheDo(); apView(); veTatCa();
-if (!luu) vuaMan();
+if (!doc(KHOA_VIEW, null)) vuaMan();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
 window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan }; // để nghiệm thu tự động

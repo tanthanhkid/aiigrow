@@ -11,8 +11,9 @@ export async function taiHanhTrinh() {
     for (const h of r.value.default) {
       const hop = h && h.id && Array.isArray(h.buoc);
       if (!hop) { loi.push(`${TEP[i]}: hành trình hỏng`); continue; }
+      if (ds.some((x) => x.id === h.id)) { loi.push(`trùng id hành trình ${h.id}`); continue; }
       h.buoc = h.buoc.filter((b) => b && b.key && typeof b.html === 'string' && b.w > 0 && b.h > 0);
-      if (h.buoc.length) ds.push(h);
+      ds.push(h);
     }
   });
   if (!ds.length) {
@@ -23,5 +24,5 @@ export async function taiHanhTrinh() {
   // key trùng giữa các tệp → giữ bản đầu, báo lỗi
   const da = new Set();
   for (const h of ds) h.buoc = h.buoc.filter((b) => { if (da.has(b.key)) { loi.push(`trùng key ${b.key}`); return false; } da.add(b.key); return true; });
-  return { ds, loi };
+  return { ds: ds.filter((h) => h.buoc.length), loi };
 }
