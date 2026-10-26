@@ -214,11 +214,17 @@ function datSong(f, d, song) {
 }
 // mã băm rẻ để nhận ra HTML đã đổi (khoá cho ảnh thu nhỏ + liên kết đã đo)
 function bam(sv) { let h = 0x811c9dc5, g = 5381; for (let i = 0; i < sv.length; i++) { const c = sv.charCodeAt(i); h = Math.imul(h ^ c, 16777619); g = ((g << 5) + g + c) | 0; } return `${sv.length}:${h >>> 0}:${g >>> 0}`; }
-const anhNho = new Map();  // băm → objectURL ('' = chụp lỗi); giữ tối đa 400, bỏ cái cũ nhất
+const anhNho = new Map();  // băm → objectURL; giữ tối đa 400 (ảnh nhỏ pixelRatio 0.45), bỏ cái ít dùng nhất mà không khung nào đang hiện
 const loiChup = new Map(); // băm → số lần chụp lỗi
 function ghiAnhNho(k, url) {
   anhNho.set(k, url);
-  while (anhNho.size > 600) { const [k0, u0] = anhNho.entries().next().value; anhNho.delete(k0); lkDo.delete(k0); if (u0) URL.revokeObjectURL(u0); }
+  if (anhNho.size <= 400) return;
+  const dangDung = new Set([...dom.values()].map((d) => d.bam)); dangDung.add(k);
+  for (const [k0, u0] of anhNho) {
+    if (anhNho.size <= 400) break;
+    if (dangDung.has(k0)) continue;
+    anhNho.delete(k0); lkDo.delete(k0); if (u0) URL.revokeObjectURL(u0);
+  }
 }
 const lkDo = new Map();    // băm → [liên kết đã đo]
 const hangCho = [];        // khung chờ chụp ảnh thu nhỏ
@@ -228,6 +234,7 @@ function xepAnh(f) {
   const d = dom.get(f.id); if (!d || f.tt === 'dang' || !htmlCua(f)) return;
   const k = bamCua(f, d);
   if (anhNho.has(k)) { const u = anhNho.get(k); anhNho.delete(k); anhNho.set(k, u); if (u) datAnhNho(d, u); d.daAnh = k; return; } // chạm = mới dùng (LRU)
+  if (d.daAnh !== k) { d.el.querySelector('.anh-nho')?.remove(); d.daAnh = ''; } // HTML đã đổi: bỏ ảnh của bản cũ, hiện khung xám tới khi có ảnh mới
   if ((loiChup.get(k) || 0) >= 2) return; // chụp lỗi 2 lần: để khung xám
   if (!hangCho.includes(f.id)) hangCho.push(f.id);
   if (!dangChup) setTimeout(chupHang, 30);
@@ -252,7 +259,7 @@ async function chupHang() {
       if (!anhNho.has(k)) {
         try {
           const { blob, lk } = await chupAnh(htmlCua(f), kichThuoc(f), { pixelRatio: 0.45, skipFonts: true, doLk: true });
-          ghiAnhNho(k, URL.createObjectURL(blob));
+          ghiAnhNho(k, URL.createObjectURL(blob)); loiChup.clear(); // chụp được lại ⇒ lỗi trước có thể chỉ thoáng qua, cho thử lại
           if (lk) { lkDo.set(k, lk); const d2 = dom.get(id); if (d2 && bamCua(f, d2) === k && !d2.lk.length) { d2.lk = lk; henVeNoi(); } }
         } catch { loiChup.set(k, (loiChup.get(k) || 0) + 1); continue; }
       }
@@ -465,9 +472,12 @@ function veTatCa(xep = true) {
 // ---------- thanh bên: danh sách hành trình ----------
 function veBen() {
   const cs = $('#chon-sec'); // cửa sổ hẹp (thanh bên ẩn): chọn section ở thanh trên
-  cs.innerHTML = SECTIONS.map((x) => `<option value="${x.id}"${x.id === st.sec ? ' selected' : ''}></option>`).join('');
-  [...cs.options].forEach((o, i) => { o.textContent = SECTIONS[i].ten; });
-  cs.onchange = () => doiSec(cs.value);
+  if (cs.options.length !== SECTIONS.length) {
+    cs.innerHTML = SECTIONS.map((x) => `<option value="${x.id}"></option>`).join('');
+    [...cs.options].forEach((o, i) => { o.textContent = SECTIONS[i].ten; });
+    cs.onchange = () => doiSec(cs.value);
+  }
+  if (cs.value !== st.sec) cs.value = st.sec;
   const ds = $('#ben-ds'); ds.innerHTML = '';
   for (const sec of SECTIONS) {
     const mo = sec.id === st.sec;
@@ -1080,7 +1090,7 @@ $('#nut-html').onclick = async () => {
 async function chupAnh(html, { w, h }, { pixelRatio = 2, skipFonts = false, doLk: doCa = false } = {}) {
   let s = await htmlTuDung(html, false);
   // srcdoc kế thừa CSP của trang (script-src 'self' — inline script/on* không chạy); thêm lớp chặn: không gọi mạng, không base/form
-  s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">`);
+  if (skipFonts) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">`); // ảnh thu nhỏ tự động: không cần font mạng
   const ifr = document.createElement('iframe');
   ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts');
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });
