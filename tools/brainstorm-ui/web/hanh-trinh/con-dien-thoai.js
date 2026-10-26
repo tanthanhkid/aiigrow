@@ -1,5 +1,6 @@
 // Hành trình Con trên điện thoại (app Con Expo mobile/src/app/tre/*, iPhone agent-ios, Android agent-android). Màn 390×844. Key tiền tố `cdt-`.
 import { I, P, sb, doc, dt } from '../kit/dung.js';
+import { khop } from './that/index.js';   // màn Android dựng khớp ảnh chụp thật (that/android.js, 360×800 @3x)
 
 const CSS = `
 .dt{background:linear-gradient(180deg,#fdf0c9 0,#f6f4ee 36%,#f4f3ef 100%)}
@@ -230,7 +231,7 @@ export default [
       { key: 'cdt-gio-may', ten: 'Giờ máy lệch', w: 390, h: 844, html: gioMay, anh: A + 'gio-may.png', toi: 'Chỉnh giờ rồi chọn trò chơi' },
       { key: 'cdt-choi', ten: 'Chơi trò chơi?', w: 390, h: 844, html: choi, anh: A + 'choi.png', toi: 'Bấm «Bắt đầu chơi»' },
       { key: 'cdt-phien', ten: 'Đang chơi', w: 390, h: 844, html: phien, anh: A + 'phien.png', toi: 'Còn 5 phút (Android)' },
-      { key: 'cdt-nhac-5-phut', ten: 'Nhắc còn 5 phút', w: 390, h: 844, html: nhac, anh: 'man-android-2510/nhac-con-5-phut.jpg', toi: 'Hết phiên' },
+      khop({ key: 'cdt-nhac-5-phut', ten: 'Nhắc còn 5 phút', w: 390, h: 844, html: nhac, anh: 'man-android-2510/nhac-con-5-phut.jpg', toi: 'Hết phiên' }, 'android-nhac-5-phut'),
       { key: 'cdt-het-phien', ten: 'Hết phiên — nghỉ', w: 390, h: 844, html: hetPhien, anh: A + 'het-phien.png', toi: 'Tới giờ ngủ' },
       { key: 'cdt-gio-ngu', ten: 'Giờ ngủ', w: 390, h: 844, html: gioNgu, anh: A + 'gio-ngu.png', toi: 'Ba Mẹ khoá máy (Android)' },
       { key: 'cdt-android-khoa', ten: 'Máy đang khoá', w: 390, h: 844, html: androidKhoa, anh: A + 'android-khoa.png' }] },
@@ -243,11 +244,15 @@ export default [
   { id: 'con-dt-chan', vai: 'Con', nen: 'Điện thoại', ten: 'Bị chặn & mất mạng', mo: 'Con gặp trang web bị chặn, máy khoá khi mất mạng, nhập mã của Ba Mẹ để mở 60 phút, và lọc web DNS trên iPhone.',
     buoc: [
       { key: 'cdt-chan-web', ten: 'Trang web bị chặn', w: 390, h: 844, html: chanWeb, anh: A + 'chan-web.png', toi: 'Mở trong app (Android)' },
-      { key: 'cdt-webview', ten: 'Không tải được', w: 390, h: 844, html: webview, anh: 'man-android-2510/man-tre-webview.jpg', toi: 'Máy khoá, mất mạng' },
-      { key: 'cdt-ma-offline', ten: 'Khoá — nhập mã offline', w: 390, h: 844, html: maOff(true, false), anh: 'man-android-2510/man-khoa-ma-offline.jpg', toi: 'Gõ mã 6 số của Ba Mẹ' },
-      { key: 'cdt-ma-da-mo', ten: 'Đã mở bằng mã', w: 390, h: 844, html: maOff(false, true), anh: 'man-android-2510/man-khoa-ma-da-mo.jpg', toi: 'iPhone: mở bằng mã' },
+      khop({ key: 'cdt-webview', ten: 'Không tải được', w: 390, h: 844, html: webview, anh: 'man-android-2510/man-tre-webview.jpg', toi: 'Máy khoá, mất mạng' }, 'android-tre-webview'),
+      khop({ key: 'cdt-ma-offline', ten: 'Khoá — nhập mã offline', w: 390, h: 844, html: maOff(true, false), anh: 'man-android-2510/man-khoa-ma-offline.jpg', toi: 'Gõ mã 6 số của Ba Mẹ' }, 'android-khoa-ma-offline'),
+      khop({ key: 'cdt-ma-da-mo', ten: 'Đã mở bằng mã', w: 390, h: 844, html: maOff(false, true), anh: 'man-android-2510/man-khoa-ma-da-mo.jpg', toi: 'iPhone: mở bằng mã' }, 'android-khoa-ma-da-mo'),
       { key: 'cdt-ios-ma-offline', ten: 'iPhone: mở bằng mã', w: 390, h: 844, html: maOfflineIos, anh: 'man-dienthoai-2510/ios-con-maOffline.jpg', toi: 'Cài lọc web gia đình' },
       { key: 'cdt-ios-dns', ten: 'iPhone: lọc web DNS', w: 390, h: 844, html: dns, anh: 'man-dienthoai-2510/ios-con-dns.jpg' }] },
+  { id: 'con-dt-android', vai: 'Con', nen: 'Android', ten: 'Màn chính Android', mo: 'App Con trên Android (agent-android): việc của con hôm nay và đổi điểm lấy giờ chơi.',
+    buoc: [khop({ key: 'cdt-android-viec', ten: 'Việc của con', w: 360, h: 800, html: '', toi: 'Đổi điểm lấy giờ chơi' }, 'android-chinh-viec-cua-con'),
+      khop({ key: 'cdt-android-doi-diem', ten: 'Đổi điểm', w: 360, h: 800, html: '' }, 'android-chinh-doi-diem')] },
+
   { id: 'con-dt-khac', vai: 'Con', nen: 'Điện thoại', ten: 'Quy tắc & PIN', mo: 'Con xem quy tắc nhà mình và ghép máy, chọn tên rồi nhập PIN khi dùng chung một điện thoại.',
     buoc: [
       { key: 'cdt-quy-tac', ten: 'Quy tắc nhà mình', w: 390, h: 844, html: quyTac, anh: A + 'quy-tac.png', toi: 'Mở màn ghép máy' },

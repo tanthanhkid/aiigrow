@@ -13,6 +13,12 @@ const DA_LUU = path.join(GOC, 'da-luu');
 const THU_MUC = {
   '/assets/icon3d/': path.join(REPO, 'mobile/assets/icon3d'),
   '/assets/rob/': path.join(REPO, 'mobile/assets/linh-vat'),
+  // asset thật của app gốc — dùng cho màn native dựng khớp ảnh chụp
+  '/assets/win/fluent/': path.join(REPO, 'agent-win/src/AiiGrow.Tray/Assets/fluent'),
+  '/assets/win/mascot/': path.join(REPO, 'agent-win/src/AiiGrow.Tray/Assets/mascot'),
+  '/assets/mac/fluent/': path.join(REPO, 'agent-mac/Sources/AiiGrowTray/Fluent'),
+  '/assets/mac/mascot/': path.join(REPO, 'agent-mac/Sources/AiiGrowTray/Mascot'),
+  '/assets/android/': path.join(REPO, 'agent-android/app/src/main/res/drawable-nodpi'),
 };
 const TEP = {
   '/assets/logo.png': path.join(REPO, 'server/public/logo.png'),
@@ -20,11 +26,11 @@ const TEP = {
   '/vendor/html-to-image.js': path.join(GOC, 'node_modules/html-to-image/dist/html-to-image.js'),
 };
 const LOAI = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon' };
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff': 'font/woff', '.woff2': 'font/woff2', '.gif': 'image/gif' };
 const ANH = /\.(png|webp)$/i;
 // Lớp «ảnh thật» để đối chiếu: ảnh chụp trong thư mục thiết kế cạnh repo (chỉ vài thư mục con, chỉ ảnh).
 const THIET_KE = process.env.BS_THIET_KE || path.join(process.env.HOME || '', 'OFFLINE_FILES/Code/aiigrow-thiet-ke');
-const REF_DIR = new Set(['chinchu-ios', 'man-mac-2510', 'man-win-2510', 'man-android-2510', 'man-dienthoai-2510']);
+const REF_DIR = new Set(['chinchu-ios', 'chinchu-ios/hieu-nang-2/sau', 'man-mac-2510', 'man-win-2510', 'man-android-2510', 'man-dienthoai-2510']);
 const ANH_REF = /\.(png|jpe?g|webp)$/i;
 
 const CSP = [
@@ -109,8 +115,11 @@ const may = http.createServer(async (req, res) => {
     }
     if (TEP[p]) return guiTep(res, TEP[p]);
     if (p.startsWith('/ref/')) {
-      const [thu, ten, ...thua] = p.slice(5).split('/');
-      const tep = !thua.length && REF_DIR.has(thu) ? trongThuMuc(path.join(THIET_KE, thu), ten || '') : null;
+      // /ref/<thư mục>/<tệp> hoặc /ref/<thư mục>/<thư mục con>/<tệp> (vd. man-win-2510/100/app-hom-nay.png);
+      // thư mục nhiều cấp có trong REF_DIR (vd. chinchu-ios/hieu-nang-2/sau) thì khớp nguyên cụm.
+      const phan = p.slice(5).split('/'); const ten = phan.pop() || ''; const [thu, ...con] = phan;
+      const tep = REF_DIR.has(phan.join('/')) ? trongThuMuc(path.join(THIET_KE, ...phan), ten)
+        : con.length <= 1 && REF_DIR.has(thu) && con.every((c) => /^[\w.%-]+$/.test(c) && !c.startsWith('.')) ? trongThuMuc(path.join(THIET_KE, thu, ...con), ten) : null;
       return tep && ANH_REF.test(tep) ? guiTep(res, tep) : gui(res, 404, 'text/plain', 'Không có');
     }
     for (const [tienTo, thuMuc] of Object.entries(THU_MUC)) {

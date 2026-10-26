@@ -31,7 +31,7 @@ export function heThong(assets) {
 # Luật đo được (WCAG 2.2 + Material 3)
 - Lề ngang của nội dung ≥16px; vùng bấm ≥44×44px; tương phản chữ ≥4.5:1 (chữ lớn ≥3:1).
 - Nhãn nút một dòng (white-space:nowrap), thiếu chỗ thì nới/xếp chồng nút, không bẻ chữ. Chữ dài dùng dấu «…» (text-overflow:ellipsis) hoặc xuống dòng có kiểm soát — không tràn khỏi khung, không đè mascot.
-- Giữ ĐÚNG kích thước khung của màn gốc (điện thoại 390×844, máy tính 1100×720, hộp thoại 560×460): phần tử gốc có width/height cố định, overflow hidden, không cuộn ngang.
+- Giữ ĐÚNG kích thước khung của màn gốc (điện thoại 390×844 hoặc 375×812, Android 360×800, máy tính 1100×720, hộp thoại 560×460): phần tử gốc có width/height cố định, overflow hidden, không cuộn ngang.
 
 # Kỹ thuật đầu ra
 - Trả về tài liệu HTML đầy đủ (<!doctype html>…), CSS trong <style> và/hoặc dùng stylesheet bộ kit: <link rel="stylesheet" href="/assets/clay-kit.css"> (có sẵn các lớp: .dt .sb .cuon .tieuLon .lui .the .o .nut(.ngoc/.vien/.nho/.rong) .bt(.xanh/.vang/.cam/.lam/.tim/.xam/.lon) .chip(.dang/.ngoc/.chon) .avt .cho .dau .dem .viec .viecs .ds .dong .huy(.ok/.lech) .tien .cham .canh-rob .bong .cot .nhap .tab .desk .ben .chinh .khoa .hop .ic .mot, biến CSS --clay --clayNho --lomIn và các token màu ở trên).

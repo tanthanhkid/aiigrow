@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+    <meta httpequiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>AiiGrow</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    
+  <style>html { text-size-adjust: 100%; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+body { margin: 0px; }
+input::-webkit-search-cancel-button, input::-webkit-search-decoration, input::-webkit-search-results-button, input::-webkit-search-results-decoration { display: none; }
+.css-g5y9jx { align-content: flex-start; align-items: stretch; background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; display: flex; flex-basis: auto; flex-direction: column; flex-shrink: 0; list-style: none; margin: 0px; min-height: 0px; min-width: 0px; padding: 0px; position: relative; text-decoration: none; z-index: 0; }
+.css-146c3p1 { background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; color: rgb(0, 0, 0); display: inline; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; list-style: none; margin: 0px; padding: 0px; position: relative; text-align: start; text-decoration: none; white-space: pre-wrap; overflow-wrap: break-word; }
+.css-11aywtz { appearance: none; background-color: rgba(0, 0, 0, 0); border-radius: 0px; border: 0px solid black; box-sizing: border-box; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0px; padding: 0px; resize: none; }
+.r-13awgt0 { flex: 1 1 0%; }
+.r-1udh08x { overflow: hidden; }
+.r-1uu6nss { padding: 5px; }
+.r-16uyjmq { border-radius: 22px; }
+.r-1llaxt6 { border-radius: 30px; }
+.r-6ncur5 { border-radius: 18px; }
+.r-78vmp4 { border-radius: 99px; }
+.r-1rf8fdq { border-width: 1.5px; }
+.r-36as0c { border-color: rgb(138, 143, 140); }
+.r-ytbthy { padding-bottom: 10px; padding-top: 10px; }
+.r-3o4zer { padding-left: 12px; padding-right: 12px; }
+.r-3pj75a { padding-left: 16px; padding-right: 16px; }
+.r-18c5d7m { padding-left: 6px; padding-right: 6px; }
+.r-xjggfu { padding-bottom: 3px; padding-top: 3px; }
+.r-1ubuhtd { padding-left: 10px; padding-right: 10px; }
+.r-gu64tb { padding-left: 14px; padding-right: 14px; }
+.r-1p0dtai { bottom: 0px; }
+.r-1d2f490 { left: 0px; }
+.r-u8s1d { position: absolute; }
+.r-zchlnj { right: 0px; }
+.r-ipm5af { top: 0px; }
+.r-633pao { pointer-events: none !important; }
+.r-11yh6sk { overflow-x: hidden; }
+.r-150rngu { }
+.r-eqz5dr { flex-direction: column; }
+.r-16y2uox { flex-grow: 1; }
+.r-1wbh5a2 { flex-shrink: 1; }
+.r-1rnoaur { overflow-y: auto; }
+.r-agouwx { transform: translateZ(0px); }
+.r-18u37iz { flex-direction: row; }
+.r-1777fci { justify-content: center; }
+.r-dnmrzs { max-width: 100%; }
+.r-1udbk01 { text-overflow: ellipsis; }
+.r-3s2u2q { white-space: nowrap; }
+.r-1iln25a { overflow-wrap: normal; }
+.r-1loqt21 { cursor: pointer; }
+.r-1awozwy { align-items: center; }
+@-webkit-keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.r-1otgn73 { touch-action: manipulation; }
+.r-14lw9ot { background-color: rgb(255, 255, 255); }
+@-webkit-keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@-webkit-keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@-webkit-keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@-webkit-keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@-webkit-keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+@keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.r-k200y { align-self: flex-start; }
+.r-6taxm2::-webkit-input-placeholder { color: var(--placeholderTextColor); opacity: 1; }
+.r-6taxm2::placeholder { color: var(--placeholderTextColor); opacity: 1; }
+.r-ubezar { font-size: 16px; }
+.r-1ssbvtb { gap: 12px; }
+.r-qn3fzs { padding-bottom: 24px; }
+.r-1w6e6rj { flex-wrap: wrap; }
+.r-d4uiiy { box-shadow: rgba(40, 44, 42, 0.13) 0px 4px 8px inset, rgba(255, 255, 255, 0.95) 0px -1.5px 0px inset; }
+.r-1h8ys4a { padding-top: 4px; }
+.r-ojf8lh { gap: 6px; }
+.r-1pl7oy7 { min-height: 48px; }
+.r-vmopo1 { padding-top: 2px; }
+.r-z5qs1h { gap: 2px; }
+.r-peo1c { min-height: 44px; }
+.r-yhcc76 { color: rgb(15, 19, 18); }
+.r-d09qxx { box-shadow: rgba(28, 32, 30, 0.26) 0px 16px 24px -14px, rgba(28, 32, 30, 0.14) 0px 4px 8px -5px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(255, 255, 255, 0.7) 0px -2px 0px inset, rgba(40, 44, 42, 0.12) 0px -10px 16px -8px inset; }
+.r-19yznuf { min-height: 52px; }
+.r-h10h58 { min-height: 60px; }
+.r-1p5doym { border-top-color: rgb(239, 239, 236); }
+.r-5kkj8d { border-top-width: 1px; }
+.r-p37qgn { background-color: rgb(235, 235, 231); }
+.r-9aw3ui { gap: 4px; }
+.r-vsb09d { font-family: Inter_400Regular; }
+html, body { height: 100%; }
+body { overflow: hidden; }
+#root { display: flex; height: 100%; flex: 1 1 0%; }
+@font-face { font-family: Inter_400Regular; src: url("/that/a/7a3fa76705ad.ttf"); }
+@font-face { font-family: Inter_600SemiBold; src: url("/that/a/863e1483cb0c.ttf"); }
+@font-face { font-family: Inter_700Bold; src: url("/that/a/5a912e060035.ttf"); }
+@keyframes RollOutRight { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(100vw) rotate(180deg); }
+}
+@keyframes RollOutLeft { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(-100vw) rotate(-180deg); }
+}
+@keyframes RollInRight { 
+  0% { transform: translateX(100vw) rotate(180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RollInLeft { 
+  0% { transform: translateX(-100vw) rotate(-180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RotateOutUpRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateOutUpLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(-250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateInUpRight { 
+  0% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInUpLeft { 
+  0% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownRight { 
+  0% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownLeft { 
+  0% { transform: translateX(-50%) translateY(-250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes PinwheelOut { 
+  0% { transform: rotate(0rad) scale(1); opacity: 1; }
+  100% { transform: rotate(5rad) scale(0); opacity: 0; }
+}
+@keyframes PinwheelIn { 
+  0% { transform: rotate(5rad) scale(0); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes LightSpeedOutLeft { 
+  0% { transform: translateX(0vw) skew(0deg); opacity: 1; }
+  100% { transform: translateX(-100vw) skew(45deg); opacity: 0; }
+}
+@keyframes LightSpeedOutRight { 
+  0% { transform: translateX(0vw) skewX(0deg); opacity: 1; }
+  100% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+}
+@keyframes LightSpeedInLeft { 
+  0% { transform: translateX(-100vw) skewX(45deg); opacity: 0; }
+  70% { transform: skewX(-10deg); }
+  85% { transform: skewX(5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes LightSpeedInRight { 
+  0% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+  70% { transform: skewX(10deg); }
+  85% { transform: skewX(-5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes SlideOutDown { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes SlideOutUp { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes SlideOutLeft { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100vw); }
+}
+@keyframes SlideOutRight { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(100vw); }
+}
+@keyframes SlideInDown { 
+  0% { transform: translateY(100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInUp { 
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInLeft { 
+  0% { transform: translateX(-100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes SlideInRight { 
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes ZoomOutEasyDown { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(100%) scale(0); }
+}
+@keyframes ZoomOutEasyUp { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(-100%) scale(0); }
+}
+@keyframes ZoomOutDown { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(100vh) scale(0); }
+}
+@keyframes ZoomOutUp { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(-100vh) scale(0); }
+}
+@keyframes ZoomOutLeft { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(-100vw) scale(0); }
+}
+@keyframes ZoomOutRight { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(100vw) scale(0); }
+}
+@keyframes ZoomOutRotate { 
+  0% { transform: scale(1) rotate(0rad); }
+  100% { transform: scale(0) rotate(0.3rad); }
+}
+@keyframes ZoomOut { 
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
+}
+@keyframes ZoomInEasyDown { 
+  0% { transform: translateY(100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInEasyUp { 
+  0% { transform: translateY(-100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInDown { 
+  0% { transform: translateY(100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInUp { 
+  0% { transform: translateY(-100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInLeft { 
+  0% { transform: translateX(-100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRight { 
+  0% { transform: translateX(100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRotate { 
+  0% { transform: scale(0) rotate(0.3rad); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes ZoomIn { 
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+@keyframes StretchOutY { 
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+@keyframes StretchOutX { 
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes StretchInY { 
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+@keyframes StretchInX { 
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes FlipOutEasyY { 
+  0% { transform: perspective(500px) rotateY(0deg); }
+  100% { transform: perspective(500px) rotateY(90deg); }
+}
+@keyframes FlipOutEasyX { 
+  0% { transform: perspective(500px) rotateX(0deg); }
+  100% { transform: perspective(500px) rotateX(90deg); }
+}
+@keyframes FlipOutXDown { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+}
+@keyframes FlipOutXUp { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+}
+@keyframes FlipOutYLeft { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+}
+@keyframes FlipOutYRight { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+}
+@keyframes FlipInEasyY { 
+  0% { transform: perspective(500px) rotateY(90deg); }
+  100% { transform: perspective(500px) rotateY(0deg); }
+}
+@keyframes FlipInEasyX { 
+  0% { transform: perspective(500px) rotateX(90deg); }
+  100% { transform: perspective(500px) rotateX(0deg); }
+}
+@keyframes FlipInXDown { 
+  0% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInXUp { 
+  0% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInYLeft { 
+  0% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes FlipInYRight { 
+  0% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes BounceOutDown { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(-10px); }
+  30% { transform: translateY(10px); }
+  45% { transform: translateY(-20px); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes BounceOutUp { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(10px); }
+  30% { transform: translateY(-10px); }
+  45% { transform: translateY(20px); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes BounceOutLeft { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(10px); }
+  30% { transform: translateX(-10px); }
+  45% { transform: translateX(20px); }
+  100% { transform: translateX(-100vh); }
+}
+@keyframes BounceOutRight { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(-10px); }
+  30% { transform: translateX(10px); }
+  45% { transform: translateX(-20px); }
+  100% { transform: translateX(100vh); }
+}
+@keyframes BounceOut { 
+  0% { transform: scale(1); }
+  15% { transform: scale(1.1); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  100% { transform: scale(0.1); }
+}
+@keyframes BounceInDown { 
+  0% { transform: translateY(100vh); }
+  55% { transform: translateY(-20px); }
+  70% { transform: translateY(10px); }
+  85% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInUp { 
+  0% { transform: translateY(-100vh); }
+  55% { transform: translateY(20px); }
+  70% { transform: translateY(-10px); }
+  85% { transform: translateY(10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInLeft { 
+  0% { transform: translateX(-100vw); }
+  55% { transform: translateX(20px); }
+  70% { transform: translateX(-10px); }
+  85% { transform: translateX(10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceInRight { 
+  0% { transform: translateX(100vw); }
+  55% { transform: translateX(-20px); }
+  70% { transform: translateX(10px); }
+  85% { transform: translateX(-10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceIn { 
+  0% { transform: scale(0); }
+  55% { transform: scale(1.2); }
+  70% { transform: scale(0.9); }
+  85% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes FadeOutDown { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(25px); }
+}
+@keyframes FadeOutUp { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(-25px); }
+}
+@keyframes FadeOutLeft { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(-25px); }
+}
+@keyframes FadeOutRight { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(25px); }
+}
+@keyframes FadeOut { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes FadeInDown { 
+  0% { opacity: 0; transform: translateY(25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInUp { 
+  0% { opacity: 0; transform: translateY(-25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInLeft { 
+  0% { opacity: 0; transform: translateX(-25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeInRight { 
+  0% { opacity: 0; transform: translateX(25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeIn { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}</style><style>.t0{position: absolute !important; inset: 0px !important; pointer-events: none !important; visibility: hidden !important}
+.t1{background-color: rgb(242, 242, 242) !important; display: flex !important}
+.t2{background-color: rgb(244, 244, 242) !important}
+.t3{flex: 1 1 0% !important; background-color: rgb(244, 244, 242) !important; padding: 50px 0px 0px !important}
+.t4{position: absolute !important; left: 0px !important; right: 0px !important; top: 0px !important; height: 300px !important; background-image: linear-gradient(rgb(230, 236, 233), rgb(244, 244, 242) 100%) !important}
+.t5{flex: 1 1 0% !important}
+.t6{font-family: Inter_700Bold !important; font-size: 16px !important; color: rgb(10, 82, 70) !important}
+.t7{flex: 1 1 0% !important; min-width: 0px !important; text-align: center !important; font-family: Inter_700Bold !important; font-size: 17px !important; color: rgb(15, 19, 18) !important; padding-right: 44px !important}
+.t8{font-family: Inter_700Bold !important; font-size: 14px !important; color: rgb(15, 19, 18) !important; line-height: 21px !important; margin-bottom: 6px !important}
+.t9{--placeholderTextColor: #5c625f !important}
+.ta{opacity: 1 !important; transform: scaleX(1) scaleY(1) !important; flex-grow: 1 !important; flex-shrink: 1 !important; max-width: 100% !important; min-width: 0px !important; min-height: 44px !important; padding: 9px 8px !important; border-radius: 17px !important; align-items: center !important; justify-content: center !important; background-color: rgb(255, 255, 255) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.tb{border-radius: 17px !important; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%) !important}
+.tc{max-width: 100% !important; font-family: Inter_700Bold !important; font-size: 14px !important; color: rgb(10, 82, 70) !important; line-height: 20px !important}
+.td{opacity: 1 !important; transform: scaleX(1) scaleY(1) !important; flex-grow: 1 !important; flex-shrink: 1 !important; max-width: 100% !important; min-width: 0px !important; min-height: 44px !important; padding: 9px 8px !important; border-radius: 17px !important; align-items: center !important; justify-content: center !important}
+.te{max-width: 100% !important; font-family: Inter_700Bold !important; font-size: 14px !important; color: rgb(63, 69, 66) !important; line-height: 20px !important}
+.tf{border-radius: 30px !important; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%) !important}
+.tg{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(227, 239, 235) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.th{overflow: hidden !important; width: 26px !important; height: 26px !important}
+.ti{object-position: left 50% top 50% !important; width: 100% !important; height: 100% !important; position: absolute !important; left: 0px !important; top: 0px !important; object-fit: contain !important; transition-duration: 0ms !important; transition-timing-function: linear !important}
+.tj{flex: 1 1 0% !important; min-width: 0px !important}
+.tk{font-family: Inter_700Bold !important; font-size: 15.5px !important; color: rgb(15, 19, 18) !important; line-height: 23px !important}
+.tl{font-family: Inter_400Regular !important; font-size: 13.5px !important; color: rgb(92, 98, 95) !important; line-height: 20px !important}
+.tm{background-color: rgb(255, 244, 224) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.tn{flex-shrink: 1 !important; font-family: Inter_700Bold !important; font-size: 12.5px !important; color: rgb(146, 64, 14) !important; line-height: 18px !important}
+.to{flex-direction: row !important; justify-content: space-between !important; align-items: center !important; margin: 4px 6px -4px !important; gap: 8px !important}
+.tp{font-family: Inter_700Bold !important; font-size: 13px !important; color: rgb(92, 98, 95) !important; line-height: 19px !important; text-transform: uppercase !important; letter-spacing: 0.4px !important; flex-shrink: 1 !important}
+.tq{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(232, 240, 255) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.tr{background-color: rgb(227, 239, 235) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.ts{flex-shrink: 1 !important; font-family: Inter_700Bold !important; font-size: 12.5px !important; color: rgb(10, 82, 70) !important; line-height: 18px !important}
+.tt{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(236, 235, 251) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.tu{position: fixed !important; left: 0px !important; top: 0px !important; width: 0px !important; height: 0px !important; z-index: -1 !important; overflow: hidden !important; visibility: hidden !important; transition-duration: 0.05s !important; transition-property: padding !important; transition-delay: 0s !important; padding-top: env(safe-area-inset-top) !important; padding-bottom: env(safe-area-inset-bottom) !important; padding-left: env(safe-area-inset-left) !important; padding-right: env(safe-area-inset-right) !important}</style></head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    
+    <!-- The root element for your Expo app. -->
+    <div id="root"><img alt="" src="/that/a/sb-bm2-app-web.png" style="position:fixed;left:0;top:0;width:375px;height:50px;z-index:2147483647;pointer-events:none"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0"><div class="t0"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af t1"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 t2"><div class="css-g5y9jx t3"><div class="css-g5y9jx t4"></div><div class="css-g5y9jx t5"><div class="css-g5y9jx r-1awozwy r-18u37iz r-ojf8lh r-1pl7oy7 r-3o4zer r-vmopo1"><div aria-label="Trang chủ" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 r-1awozwy r-18u37iz r-z5qs1h r-peo1c r-18c5d7m" type="button"><svg viewBox="0 0 256 256" fill="#0a5246" width="20" height="20"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t6">Trang chủ</div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t7">Ứng dụng</div></div><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-1ssbvtb r-qn3fzs r-3pj75a r-1h8ys4a"><div class="css-g5y9jx"><div dir="auto" class="css-146c3p1 t8" data-toi="bm2-web">Tìm app hoặc trang web (vd Edge, YouTube)</div><input placeholder="Edge, Roblox, youtube.com…" autocapitalize="none" autocomplete="on" autocorrect="on" dir="auto" rows="1" spellcheck="true" virtualkeyboardpolicy="auto" aria-label="Tìm app hoặc trang web (vd Edge, YouTube)" class="css-11aywtz r-6taxm2 r-14lw9ot r-36as0c r-6ncur5 r-1rf8fdq r-d4uiiy r-yhcc76 r-vsb09d r-ubezar r-19yznuf r-gu64tb t9" value=""></div><div role="radiogroup" class="css-g5y9jx r-p37qgn r-16uyjmq r-d4uiiy r-18u37iz r-1w6e6rj r-9aw3ui r-1uu6nss"><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ta"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tb"></div><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tc">Chưa xếp (3)</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 td"><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a te">Đã thấy (3)</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 td"><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a te">Học tập</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 td"><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a te">Giải trí</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 td"><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a te">Chặn</div></div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tf"></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci tg"><div data-expoimage="true" class="css-g5y9jx th"><div><img fetchpriority="auto" loading="lazy" src="/that/a/35a323515cb2.webp" class="ti"></div></div></div><div class="css-g5y9jx tj"><div dir="auto" class="css-146c3p1 tk">tiktok.com</div><div dir="auto" class="css-146c3p1 tl">12 phút trên máy Con · chưa xếp</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd tm"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tn">Xếp</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci tg"><div data-expoimage="true" class="css-g5y9jx th"><div><img fetchpriority="auto" loading="lazy" src="/that/a/a2bf473f22b4.webp" class="ti"></div></div></div><div class="css-g5y9jx tj"><div dir="auto" class="css-146c3p1 tk">Capcut</div><div dir="auto" class="css-146c3p1 tl">4 phút trên máy Con · chưa xếp · capcut.exe</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd tm"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tn">Xếp</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci tg"><div data-expoimage="true" class="css-g5y9jx th"><div><img fetchpriority="auto" loading="lazy" src="/that/a/a2bf473f22b4.webp" class="ti"></div></div></div><div class="css-g5y9jx tj"><div dir="auto" class="css-146c3p1 tk">Minecraft launcher</div><div dir="auto" class="css-146c3p1 tl">30 phút trên máy Con · chưa xếp · minecraft.launcher.exe</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd tm"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tn">Xếp</div></div></div></div></div><div class="css-g5y9jx to"><div dir="auto" class="css-146c3p1 tp">Luôn được dùng (hệ thống)</div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tf"></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci tq"><div data-expoimage="true" class="css-g5y9jx th"><div><img fetchpriority="auto" loading="lazy" src="/that/a/a2bf473f22b4.webp" class="ti"></div></div></div><div class="css-g5y9jx tj"><div dir="auto" class="css-146c3p1 tk">Word, Excel, PowerPoint</div><div dir="auto" class="css-146c3p1 tl">Không tính điểm, Ba Mẹ không cần làm gì</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd tr"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a ts">Học tập</div></div></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci tt"><div data-expoimage="true" class="css-g5y9jx th"><div><img fetchpriority="auto" loading="lazy" src="/that/a/5dc9e2eea6cc.webp" class="ti"></div></div></div><div class="css-g5y9jx tj"><div dir="auto" class="css-146c3p1 tk">AiiRob</div><div dir="auto" class="css-146c3p1 tl">Học cùng Rob · tự cộng điểm khi đạt</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd tr"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a ts">Học tập</div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+  
+
+
+<div class="tu"></div><div></div></body></html>

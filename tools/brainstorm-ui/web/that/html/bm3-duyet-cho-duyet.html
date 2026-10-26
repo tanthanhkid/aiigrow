@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+    <meta httpequiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>AiiGrow</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    
+  <style>html { text-size-adjust: 100%; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+body { margin: 0px; }
+.css-g5y9jx { align-content: flex-start; align-items: stretch; background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; display: flex; flex-basis: auto; flex-direction: column; flex-shrink: 0; list-style: none; margin: 0px; min-height: 0px; min-width: 0px; padding: 0px; position: relative; text-decoration: none; z-index: 0; }
+.css-146c3p1 { background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; color: rgb(0, 0, 0); display: inline; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; list-style: none; margin: 0px; padding: 0px; position: relative; text-align: start; text-decoration: none; white-space: pre-wrap; overflow-wrap: break-word; }
+.css-1jxf684 { background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; color: inherit; display: inline; font: inherit; list-style: none; margin: 0px; padding: 0px; position: relative; text-align: inherit; text-decoration: none; white-space: inherit; overflow-wrap: break-word; }
+.r-13awgt0 { flex: 1 1 0%; }
+.r-d045u9 { border-width: 2px; }
+.r-1udh08x { overflow: hidden; }
+.r-11mg6pl { border-color: rgb(255, 255, 255); }
+.r-1llaxt6 { border-radius: 30px; }
+.r-whuqzp { padding: 18px; }
+.r-1fuqb1j { border-radius: 24px; }
+.r-cdmcib { border-radius: 3px; }
+.r-nsbfu8 { padding: 16px; }
+.r-78vmp4 { border-radius: 99px; }
+.r-1gb1gic { border-radius: 23px; }
+.r-jcqwt4 { border-color: rgb(227, 239, 235); }
+.r-1px6drs { border-radius: 7px; }
+.r-ytbthy { padding-bottom: 10px; padding-top: 10px; }
+.r-3pj75a { padding-left: 16px; padding-right: 16px; }
+.r-1537yvj { margin-left: 4px; margin-right: 4px; }
+.r-1ml3abn { padding-bottom: 14px; padding-top: 14px; }
+.r-xjggfu { padding-bottom: 3px; padding-top: 3px; }
+.r-1ubuhtd { padding-left: 10px; padding-right: 10px; }
+.r-1p0dtai { bottom: 0px; }
+.r-1d2f490 { left: 0px; }
+.r-u8s1d { position: absolute; }
+.r-zchlnj { right: 0px; }
+.r-ipm5af { top: 0px; }
+.r-633pao > * { pointer-events: none; }
+.r-633pao { pointer-events: none !important; }
+.r-11yh6sk { overflow-x: hidden; }
+.r-150rngu { }
+.r-eqz5dr { flex-direction: column; }
+.r-16y2uox { flex-grow: 1; }
+.r-1wbh5a2 { flex-shrink: 1; }
+.r-1rnoaur { overflow-y: auto; }
+.r-agouwx { transform: translateZ(0px); }
+.r-18u37iz { flex-direction: row; }
+.r-1777fci { justify-content: center; }
+.r-dnmrzs { max-width: 100%; }
+.r-1udbk01 { text-overflow: ellipsis; }
+.r-3s2u2q { white-space: nowrap; }
+.r-1iln25a { overflow-wrap: normal; }
+.r-1loqt21 { cursor: pointer; }
+.r-1awozwy { align-items: center; }
+@-webkit-keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.r-1otgn73 { touch-action: manipulation; }
+.r-10ptun7 { height: 16px; }
+.r-1janqcz { width: 16px; }
+.r-14lw9ot { background-color: rgb(255, 255, 255); }
+@-webkit-keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@-webkit-keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@-webkit-keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@-webkit-keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@-webkit-keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+@keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.r-k200y { align-self: flex-start; }
+.r-14gqq1x { margin-top: 4px; }
+.r-1ssbvtb { gap: 12px; }
+.r-qn3fzs { padding-bottom: 24px; }
+.r-1h8ys4a { padding-top: 4px; }
+.r-ojf8lh { gap: 6px; }
+.r-yhcc76 { color: rgb(15, 19, 18); }
+.r-1fx275y { font-family: Inter_700Bold; }
+.r-1ra0lkn { font-size: 30px; }
+.r-c4c50z { letter-spacing: -0.6px; }
+.r-2agvir { line-height: 34px; }
+.r-f1odvy { margin-bottom: 6px; }
+.r-uaa2di { gap: 10px; }
+.r-14q5wjw { padding-right: 2px; }
+.r-d09qxx { box-shadow: rgba(28, 32, 30, 0.26) 0px 16px 24px -14px, rgba(28, 32, 30, 0.14) 0px 4px 8px -5px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(255, 255, 255, 0.7) 0px -2px 0px inset, rgba(40, 44, 42, 0.12) 0px -10px 16px -8px inset; }
+.r-1ivnorr { margin-bottom: 26px; }
+.r-bnwqim { position: relative; }
+.r-fv5sc { box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset; }
+.r-irkv1b { max-width: 56%; }
+.r-1g40b8q { z-index: 3; }
+.r-1ji8njp { margin-top: -8px; }
+.r-3psxfr { right: -6px; }
+.r-1v2oles { top: 50%; }
+.r-17hmhgr { transform: rotate(45deg); }
+.r-1ujkv8a { aspect-ratio: 1 / 1; }
+.r-1bs6j6t { bottom: -34px; }
+.r-kquydp { right: -4px; }
+.r-136ojw6 { z-index: 2; }
+.r-h10h58 { min-height: 60px; }
+.r-1p5doym { border-top-color: rgb(239, 239, 236); }
+.r-5kkj8d { border-top-width: 1px; }
+.r-195d4m8 { height: 46px; }
+.r-r6l3g7 { width: 46px; }
+.r-13g9doi { background-color: rgb(15, 107, 92); }
+.r-jumn1c { bottom: -1px; }
+.r-1pexk7n { height: 14px; }
+.r-dvzd6p { right: -1px; }
+.r-1mcorv5 { width: 14px; }
+html, body { height: 100%; }
+body { overflow: hidden; }
+#root { display: flex; height: 100%; flex: 1 1 0%; }
+@keyframes RollOutRight { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(100vw) rotate(180deg); }
+}
+@keyframes RollOutLeft { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(-100vw) rotate(-180deg); }
+}
+@keyframes RollInRight { 
+  0% { transform: translateX(100vw) rotate(180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RollInLeft { 
+  0% { transform: translateX(-100vw) rotate(-180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RotateOutUpRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateOutUpLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(-250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateInUpRight { 
+  0% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInUpLeft { 
+  0% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownRight { 
+  0% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownLeft { 
+  0% { transform: translateX(-50%) translateY(-250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes PinwheelOut { 
+  0% { transform: rotate(0rad) scale(1); opacity: 1; }
+  100% { transform: rotate(5rad) scale(0); opacity: 0; }
+}
+@keyframes PinwheelIn { 
+  0% { transform: rotate(5rad) scale(0); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes LightSpeedOutLeft { 
+  0% { transform: translateX(0vw) skew(0deg); opacity: 1; }
+  100% { transform: translateX(-100vw) skew(45deg); opacity: 0; }
+}
+@keyframes LightSpeedOutRight { 
+  0% { transform: translateX(0vw) skewX(0deg); opacity: 1; }
+  100% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+}
+@keyframes LightSpeedInLeft { 
+  0% { transform: translateX(-100vw) skewX(45deg); opacity: 0; }
+  70% { transform: skewX(-10deg); }
+  85% { transform: skewX(5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes LightSpeedInRight { 
+  0% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+  70% { transform: skewX(10deg); }
+  85% { transform: skewX(-5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes SlideOutDown { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes SlideOutUp { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes SlideOutLeft { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100vw); }
+}
+@keyframes SlideOutRight { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(100vw); }
+}
+@keyframes SlideInDown { 
+  0% { transform: translateY(100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInUp { 
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInLeft { 
+  0% { transform: translateX(-100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes SlideInRight { 
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes ZoomOutEasyDown { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(100%) scale(0); }
+}
+@keyframes ZoomOutEasyUp { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(-100%) scale(0); }
+}
+@keyframes ZoomOutDown { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(100vh) scale(0); }
+}
+@keyframes ZoomOutUp { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(-100vh) scale(0); }
+}
+@keyframes ZoomOutLeft { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(-100vw) scale(0); }
+}
+@keyframes ZoomOutRight { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(100vw) scale(0); }
+}
+@keyframes ZoomOutRotate { 
+  0% { transform: scale(1) rotate(0rad); }
+  100% { transform: scale(0) rotate(0.3rad); }
+}
+@keyframes ZoomOut { 
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
+}
+@keyframes ZoomInEasyDown { 
+  0% { transform: translateY(100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInEasyUp { 
+  0% { transform: translateY(-100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInDown { 
+  0% { transform: translateY(100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInUp { 
+  0% { transform: translateY(-100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInLeft { 
+  0% { transform: translateX(-100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRight { 
+  0% { transform: translateX(100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRotate { 
+  0% { transform: scale(0) rotate(0.3rad); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes ZoomIn { 
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+@keyframes StretchOutY { 
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+@keyframes StretchOutX { 
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes StretchInY { 
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+@keyframes StretchInX { 
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes FlipOutEasyY { 
+  0% { transform: perspective(500px) rotateY(0deg); }
+  100% { transform: perspective(500px) rotateY(90deg); }
+}
+@keyframes FlipOutEasyX { 
+  0% { transform: perspective(500px) rotateX(0deg); }
+  100% { transform: perspective(500px) rotateX(90deg); }
+}
+@keyframes FlipOutXDown { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+}
+@keyframes FlipOutXUp { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+}
+@keyframes FlipOutYLeft { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+}
+@keyframes FlipOutYRight { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+}
+@keyframes FlipInEasyY { 
+  0% { transform: perspective(500px) rotateY(90deg); }
+  100% { transform: perspective(500px) rotateY(0deg); }
+}
+@keyframes FlipInEasyX { 
+  0% { transform: perspective(500px) rotateX(90deg); }
+  100% { transform: perspective(500px) rotateX(0deg); }
+}
+@keyframes FlipInXDown { 
+  0% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInXUp { 
+  0% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInYLeft { 
+  0% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes FlipInYRight { 
+  0% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes BounceOutDown { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(-10px); }
+  30% { transform: translateY(10px); }
+  45% { transform: translateY(-20px); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes BounceOutUp { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(10px); }
+  30% { transform: translateY(-10px); }
+  45% { transform: translateY(20px); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes BounceOutLeft { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(10px); }
+  30% { transform: translateX(-10px); }
+  45% { transform: translateX(20px); }
+  100% { transform: translateX(-100vh); }
+}
+@keyframes BounceOutRight { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(-10px); }
+  30% { transform: translateX(10px); }
+  45% { transform: translateX(-20px); }
+  100% { transform: translateX(100vh); }
+}
+@keyframes BounceOut { 
+  0% { transform: scale(1); }
+  15% { transform: scale(1.1); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  100% { transform: scale(0.1); }
+}
+@keyframes BounceInDown { 
+  0% { transform: translateY(100vh); }
+  55% { transform: translateY(-20px); }
+  70% { transform: translateY(10px); }
+  85% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInUp { 
+  0% { transform: translateY(-100vh); }
+  55% { transform: translateY(20px); }
+  70% { transform: translateY(-10px); }
+  85% { transform: translateY(10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInLeft { 
+  0% { transform: translateX(-100vw); }
+  55% { transform: translateX(20px); }
+  70% { transform: translateX(-10px); }
+  85% { transform: translateX(10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceInRight { 
+  0% { transform: translateX(100vw); }
+  55% { transform: translateX(-20px); }
+  70% { transform: translateX(10px); }
+  85% { transform: translateX(-10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceIn { 
+  0% { transform: scale(0); }
+  55% { transform: scale(1.2); }
+  70% { transform: scale(0.9); }
+  85% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes FadeOutDown { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(25px); }
+}
+@keyframes FadeOutUp { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(-25px); }
+}
+@keyframes FadeOutLeft { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(-25px); }
+}
+@keyframes FadeOutRight { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(25px); }
+}
+@keyframes FadeOut { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes FadeInDown { 
+  0% { opacity: 0; transform: translateY(25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInUp { 
+  0% { opacity: 0; transform: translateY(-25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInLeft { 
+  0% { opacity: 0; transform: translateX(-25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeInRight { 
+  0% { opacity: 0; transform: translateX(25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeIn { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@font-face { font-family: Inter_400Regular; src: url("/that/a/7a3fa76705ad.ttf"); }
+@font-face { font-family: Inter_600SemiBold; src: url("/that/a/863e1483cb0c.ttf"); }
+@font-face { font-family: Inter_700Bold; src: url("/that/a/5a912e060035.ttf"); }</style><style>.t0{position: absolute !important; inset: 0px !important; pointer-events: none !important; visibility: hidden !important}
+.t1{background-color: rgb(242, 242, 242) !important; display: flex !important}
+.t2{background-color: rgb(244, 244, 242) !important}
+.t3{flex-direction: column !important}
+.t4{z-index: 0 !important}
+.t5{background-color: rgb(244, 244, 242) !important; transform: translateX(0px) !important}
+.t6{flex: 1 1 0% !important; background-color: rgb(244, 244, 242) !important; padding: 50px 0px 0px !important}
+.t7{position: absolute !important; left: 0px !important; right: 0px !important; top: 0px !important; height: 300px !important; background-image: linear-gradient(rgb(230, 236, 233), rgb(244, 244, 242) 100%) !important}
+.t8{flex: 1 1 0% !important}
+.t9{opacity: 1 !important; transform: scaleX(1) scaleY(1) !important; width: 46px !important; height: 46px !important; border-radius: 23px !important; background-color: rgb(255, 255, 255) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.ta{overflow: hidden !important; width: 62px !important; height: 62px !important; margin-top: -1px !important}
+.tb{object-position: left 50% top 0px !important; width: 100% !important; height: 100% !important; position: absolute !important; left: 0px !important; top: 0px !important; object-fit: cover !important; transition-duration: 0ms !important; transition-timing-function: linear !important}
+.tc{background-color: rgb(227, 239, 235) !important; min-height: 140px !important}
+.td{border-radius: 30px !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important}
+.te{font-family: Inter_700Bold !important; font-size: 20px !important; color: rgb(15, 19, 18) !important; line-height: 26px !important; letter-spacing: -0.3px !important}
+.tf{font-family: Inter_400Regular !important; font-size: 14.5px !important; color: rgb(63, 69, 66) !important; line-height: 21px !important; margin-top: 4px !important}
+.tg{width: 128.886px !important; max-width: 160px !important}
+.th{overflow: hidden !important; width: 100% !important; height: 100% !important}
+.ti{object-position: left 50% top 50% !important; width: 100% !important; height: 100% !important; position: absolute !important; left: 0px !important; top: 0px !important; object-fit: contain !important; transition-duration: 0ms !important; transition-timing-function: linear !important}
+.tj{border-radius: 30px !important; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%) !important}
+.tk{flex-direction: row !important; align-items: center !important; gap: 12px !important}
+.tl{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(236, 235, 251) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.tm{overflow: hidden !important; width: 26px !important; height: 26px !important}
+.tn{font-family: Inter_700Bold !important; font-size: 15.5px !important; color: rgb(15, 19, 18) !important; line-height: 23px !important}
+.to{font-family: Inter_400Regular !important; font-size: 13px !important; color: rgb(92, 98, 95) !important; line-height: 19px !important}
+.tp{margin-top: 12px !important; gap: 8px !important}
+.tq{font-family: Inter_600SemiBold !important; font-size: 14.5px !important; color: rgb(15, 19, 18) !important; line-height: 21px !important}
+.tr{flex-flow: wrap !important; gap: 8px !important}
+.ts{opacity: 1 !important; transform: scaleX(1) scaleY(1) !important; align-items: center !important; justify-content: center !important; min-height: 44px !important; padding-right: 15px !important; padding-left: 15px !important; border-radius: 18px !important; flex-grow: 1 !important; flex-shrink: 1 !important; max-width: 100% !important; min-width: 0px !important; background-color: rgb(255, 255, 255) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.tt{border-radius: 18px !important; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%) !important}
+.tu{flex-direction: row !important; align-items: center !important; gap: 7px !important; max-width: 100% !important}
+.tv{flex-shrink: 1 !important; min-width: 0px !important; text-align: center !important; font-family: Inter_700Bold !important; font-size: 14.5px !important; color: rgb(15, 19, 18) !important; line-height: 20px !important}
+.tw{flex-shrink: 1 !important; min-width: 0px !important; text-align: center !important; font-family: Inter_700Bold !important; font-size: 14.5px !important; color: rgb(192, 58, 43) !important; line-height: 20px !important}
+.tx{gap: 12px !important}
+.ty{flex-direction: row !important; justify-content: space-between !important; align-items: center !important; margin: 4px 6px -4px !important; gap: 8px !important}
+.tz{font-family: Inter_700Bold !important; font-size: 13px !important; color: rgb(92, 98, 95) !important; line-height: 19px !important; text-transform: uppercase !important; letter-spacing: 0.4px !important; flex-shrink: 1 !important}
+.t10{font-family: Inter_700Bold !important; font-size: 14px !important; color: rgb(10, 82, 70) !important; line-height: 21px !important}
+.t11{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(232, 240, 255) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.t12{flex: 1 1 0% !important; min-width: 0px !important}
+.t13{font-family: Inter_400Regular !important; font-size: 13.5px !important; color: rgb(92, 98, 95) !important; line-height: 20px !important}
+.t14{background-color: rgb(255, 241, 201) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.t15{flex-shrink: 1 !important; font-family: Inter_700Bold !important; font-size: 12.5px !important; color: rgb(122, 74, 0) !important; line-height: 18px !important}
+.t16{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(227, 239, 235) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.t17{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(255, 244, 224) !important; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.t18{width: 44px !important; height: 44px !important; border-radius: 22px !important; background-color: rgb(75, 107, 220) !important; align-items: center !important; justify-content: center !important; box-shadow: rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.25) 0px -2px 3px inset, rgba(0, 0, 0, 0.25) 0px 2px 4px -1px !important}
+.t19{font-family: Inter_700Bold !important; font-size: 18.04px !important; color: rgb(255, 255, 255) !important; line-height: 23px !important}
+.t1a{background-color: rgb(255, 244, 224) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.t1b{flex-shrink: 1 !important; font-family: Inter_700Bold !important; font-size: 12.5px !important; color: rgb(146, 64, 14) !important; line-height: 18px !important}
+.t1c{background-color: rgb(235, 235, 231) !important; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset !important}
+.t1d{flex-shrink: 1 !important; font-family: Inter_700Bold !important; font-size: 12.5px !important; color: rgb(63, 69, 66) !important; line-height: 18px !important}
+.t1e{background-color: rgb(244, 244, 242) !important; padding: 6px 10px 28px !important}
+.t1f{flex-direction: row !important; background-color: rgb(255, 255, 255) !important; border-radius: 34px !important; padding: 6px !important; box-shadow: rgba(28, 32, 30, 0.25) 0px -6px 24px -12px, rgba(28, 32, 30, 0.34) 0px 16px 26px -10px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.12) 0px -8px 14px -8px inset !important}
+.t1g{border-radius: 34px !important; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%) !important}
+.t1h{opacity: 1 !important; transform: scaleX(1) scaleY(1) !important; flex: 1 1 0% !important; align-items: center !important; justify-content: center !important; gap: 2px !important; min-height: 58px !important; min-width: 0px !important; border-radius: 26px !important}
+.t1i{font-family: Inter_600SemiBold !important; font-size: 11.5px !important; color: rgb(92, 98, 95) !important}
+.t1j{opacity: 1 !important; transform: scaleX(1) scaleY(1) !important; flex: 1 1 0% !important; align-items: center !important; justify-content: center !important; gap: 2px !important; min-height: 58px !important; min-width: 0px !important; border-radius: 26px !important; background-color: rgb(227, 239, 235) !important; box-shadow: rgba(40, 44, 42, 0.13) 0px 4px 8px inset, rgba(255, 255, 255, 0.95) 0px -1.5px 0px inset !important}
+.t1k{border-radius: 26px !important; background-image: linear-gradient(rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.55) 100%) !important}
+.t1l{font-family: Inter_600SemiBold !important; font-size: 11.5px !important; color: rgb(10, 82, 70) !important}
+.t1m{position: absolute !important; top: 3px !important; left: 56% !important; background-color: rgb(192, 58, 43) !important; min-width: 19px !important; height: 19px !important; border-radius: 10px !important; padding-right: 5px !important; padding-left: 5px !important; align-items: center !important; justify-content: center !important; box-shadow: rgba(165, 31, 20, 0.6) 0px 5px 9px -4px, rgba(255, 255, 255, 0.4) 0px 1px 0px inset, rgba(0, 0, 0, 0.25) 0px -2px 3px inset !important; transform: scale(1) !important}
+.t1n{font-family: Inter_700Bold !important; font-size: 11px !important; color: rgb(255, 255, 255) !important}
+.t1o{position: fixed !important; left: 0px !important; top: 0px !important; width: 0px !important; height: 0px !important; z-index: -1 !important; overflow: hidden !important; visibility: hidden !important; transition-duration: 0.05s !important; transition-property: padding !important; transition-delay: 0s !important; padding-top: env(safe-area-inset-top) !important; padding-bottom: env(safe-area-inset-bottom) !important; padding-left: env(safe-area-inset-left) !important; padding-right: env(safe-area-inset-right) !important}</style></head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    
+    <!-- The root element for your Expo app. -->
+    <div id="root"><img alt="" src="/that/a/sb-bm3-duyet-cho-duyet.png" style="position:fixed;left:0;top:0;width:375px;height:50px;z-index:2147483647;pointer-events:none"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0"><div class="t0"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af t1"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 t2"><div class="t0"></div><div class="css-g5y9jx r-13awgt0 t3"><div class="css-g5y9jx r-13awgt0 r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af t4"><div class="css-g5y9jx r-13awgt0 t5"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx t6"><div class="css-g5y9jx t7"></div><div class="css-g5y9jx t8"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-1ssbvtb r-qn3fzs r-3pj75a r-1h8ys4a"><div class="css-g5y9jx r-1awozwy r-18u37iz r-uaa2di r-14q5wjw"><h1 dir="auto" role="heading" class="css-146c3p1 r-yhcc76 r-1fx275y r-1ra0lkn r-c4c50z r-2agvir r-f1odvy r-1537yvj r-14gqq1x t8">Chờ duyệt</h1><div aria-label="Chat với AiiLab" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 t9" type="button"><div class="css-g5y9jx r-1awozwy r-jcqwt4 r-1gb1gic r-d045u9 r-195d4m8 r-1udh08x r-r6l3g7"><div data-expoimage="true" class="css-g5y9jx ta"><div><img fetchpriority="auto" loading="lazy" src="/that/a/028675f635a4.webp" class="tb"></div></div></div><div class="css-g5y9jx r-13g9doi r-11mg6pl r-1px6drs r-d045u9 r-jumn1c r-1pexk7n r-u8s1d r-dvzd6p r-1mcorv5"></div></div></div><div class="css-g5y9jx r-1awozwy r-1llaxt6 r-d09qxx r-18u37iz r-1ivnorr r-whuqzp r-bnwqim tc"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao td"></div><div class="css-g5y9jx r-14lw9ot r-1fuqb1j r-fv5sc r-irkv1b r-1ml3abn r-3pj75a r-bnwqim r-1g40b8q"><div dir="auto" class="css-146c3p1 te">4 việc đang chờ</div><div dir="auto" class="css-146c3p1 tf">Cũ nhất 1 giờ. Duyệt xong là điểm vào ví Con ngay.</div><div class="css-g5y9jx r-14lw9ot r-cdmcib r-10ptun7 r-1ji8njp r-u8s1d r-3psxfr r-1v2oles r-17hmhgr r-1janqcz"></div></div><div class="css-g5y9jx r-1ujkv8a r-1bs6j6t r-u8s1d r-kquydp r-136ojw6 r-633pao tg"><div data-expoimage="true" class="css-g5y9jx th"><div><img fetchpriority="auto" loading="lazy" src="/that/a/c096e420d737.webp" class="ti"></div></div></div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-nsbfu8"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tj"></div><div class="css-g5y9jx tk"><div class="css-g5y9jx r-1awozwy r-1777fci tl"><div data-expoimage="true" class="css-g5y9jx tm"><div><img fetchpriority="auto" loading="lazy" src="/that/a/a2bf473f22b4.webp" class="ti"></div></div></div><div class="css-g5y9jx t8"><div dir="auto" class="css-146c3p1 tn">3 app mới chờ xếp loại</div><div dir="auto" class="css-146c3p1 to">Trên máy các Con · chưa xếp thì không mở được khi Chặn thật.</div></div></div><div class="css-g5y9jx tp"><div dir="auto" class="css-146c3p1 tq">tiktok.com<span class="css-1jxf684 to">  ·  12 phút đã dùng</span></div><div class="css-g5y9jx tr"><div aria-label="Học tập" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tv">Học tập</div></div></div><div aria-label="Giải trí" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tv">Giải trí</div></div></div><div aria-label="Chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tw">Chặn</div></div></div></div></div><div class="css-g5y9jx tp"><div dir="auto" class="css-146c3p1 tq">Capcut<span class="css-1jxf684 to">  ·  4 phút đã dùng</span></div><div class="css-g5y9jx tr"><div aria-label="Học tập" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tv">Học tập</div></div></div><div aria-label="Giải trí" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tv">Giải trí</div></div></div><div aria-label="Chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tw">Chặn</div></div></div></div></div><div class="css-g5y9jx tp"><div dir="auto" class="css-146c3p1 tq">Minecraft launcher<span class="css-1jxf684 to">  ·  30 phút đã dùng</span></div><div class="css-g5y9jx tr"><div aria-label="Học tập" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tv">Học tập</div></div></div><div aria-label="Giải trí" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tv">Giải trí</div></div></div><div aria-label="Chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 ts" type="button"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tt"></div><div class="css-g5y9jx tu"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a tw">Chặn</div></div></div></div></div></div><div class="css-g5y9jx tx"><div class="css-g5y9jx ty"><div dir="auto" class="css-146c3p1 tz">Nguyễn Ngọc Bảo Anh · 3 nhiệm vụ</div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div dir="auto" class="css-146c3p1 t10">Duyệt cả 3</div></div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tj"></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci t11"><div data-expoimage="true" class="css-g5y9jx tm"><div><img fetchpriority="auto" loading="lazy" src="/that/a/15646fb4c002.webp" class="ti"></div></div></div><div class="css-g5y9jx t12"><div dir="auto" class="css-146c3p1 tn">Rửa chén sau bữa tối</div><div dir="auto" class="css-146c3p1 t13">Nộp 09:48 · 1 ảnh</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd t14"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t15">+10</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci t16"><div data-expoimage="true" class="css-g5y9jx tm"><div><img fetchpriority="auto" loading="lazy" src="/that/a/989ca64567f6.webp" class="ti"></div></div></div><div class="css-g5y9jx t12"><div dir="auto" class="css-146c3p1 tn">Đọc sách “Dế Mèn phiêu lưu ký” 50 trang</div><div dir="auto" class="css-146c3p1 t13">Nộp 09:25 · 2 ảnh</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd t14"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t15">+10</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci t17"><div data-expoimage="true" class="css-g5y9jx tm"><div><img fetchpriority="auto" loading="lazy" src="/that/a/ebf02669b93e.webp" class="ti"></div></div></div><div class="css-g5y9jx t12"><div dir="auto" class="css-146c3p1 tn">Tập thể dục 30 phút</div><div dir="auto" class="css-146c3p1 t13">Nộp 09:00 · 1 ảnh · ảnh giống lần trước</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd t14"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t15">+10</div></div></div></div></div></div><div class="css-g5y9jx tx"><div class="css-g5y9jx ty"><div dir="auto" class="css-146c3p1 tz">Bill · 1 yêu cầu</div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tj"></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx t18"><div dir="auto" class="css-146c3p1 t19">B</div></div><div class="css-g5y9jx t12"><div dir="auto" class="css-146c3p1 tn">Xin thêm 15 phút</div><div dir="auto" class="css-146c3p1 t13">“Con đang xây dở nhà” · 09:57</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd t1a"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t1b">Thêm giờ</div></div></div></div></div></div><div class="css-g5y9jx ty"><div dir="auto" class="css-146c3p1 tz">Tự động duyệt hôm nay</div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao tj"></div><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci tl"><div data-expoimage="true" class="css-g5y9jx tm"><div><img fetchpriority="auto" loading="lazy" src="/that/a/5dc9e2eea6cc.webp" class="ti"></div></div></div><div class="css-g5y9jx t12"><div dir="auto" class="css-146c3p1 tn">Học 1 bài với AiiRob: Phân số bài 4 · 92%</div><div dir="auto" class="css-146c3p1 t13">Nguyễn Ngọc Bảo Anh · +20 điểm · AiiRob tự cộng</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd t1c"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t1d">Đã duyệt</div></div></div></div></div></div></div></div></div></div></div></div></div><div class="css-g5y9jx t1e"><div role="tablist" class="css-g5y9jx t1f"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao t1g"></div><div aria-label="Trang chủ" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 t1h" data-toi="bm3-duyet-canh-bao"><svg viewBox="0 0 256 256" fill="#5c625f" width="24" height="24"><path d="M224,120v96a8,8,0,0,1-8,8H160a8,8,0,0,1-8-8V164a4,4,0,0,0-4-4H108a4,4,0,0,0-4,4v52a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V120a16,16,0,0,1,4.69-11.31l80-80a16,16,0,0,1,22.62,0l80,80A16,16,0,0,1,224,120Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t1i">Trang chủ</div></div><div aria-label="Chờ duyệt, 4 việc" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 t1j"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao t1k"></div><svg viewBox="0 0 256 256" fill="#0a5246" width="24" height="24"><path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t1l">Chờ duyệt</div><div class="css-g5y9jx t1m"><div dir="auto" class="css-146c3p1 t1n">4</div></div></div><div aria-label="Nhiệm vụ &amp; quà" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 t1h"><svg viewBox="0 0 256 256" fill="#5c625f" width="24" height="24"><path d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,86l59-4.76,22.76-55.08a16.36,16.36,0,0,1,30.27,0l22.75,55.08,59,4.76a16.46,16.46,0,0,1,9.37,28.86Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t1i">Nhiệm vụ &amp; quà</div></div><div aria-label="Gia đình" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 t1h"><svg viewBox="0 0 256 256" fill="#5c625f" width="24" height="24"><path d="M64.12,147.8a4,4,0,0,1-4,4.2H16a8,8,0,0,1-7.8-6.17,8.35,8.35,0,0,1,1.62-6.93A67.79,67.79,0,0,1,37,117.51a40,40,0,1,1,66.46-35.8,3.94,3.94,0,0,1-2.27,4.18A64.08,64.08,0,0,0,64,144C64,145.28,64,146.54,64.12,147.8Zm182-8.91A67.76,67.76,0,0,0,219,117.51a40,40,0,1,0-66.46-35.8,3.94,3.94,0,0,0,2.27,4.18A64.08,64.08,0,0,1,192,144c0,1.28,0,2.54-.12,3.8a4,4,0,0,0,4,4.2H240a8,8,0,0,0,7.8-6.17A8.33,8.33,0,0,0,246.17,138.89Zm-89,43.18a48,48,0,1,0-58.37,0A72.13,72.13,0,0,0,65.07,212,8,8,0,0,0,72,224H184a8,8,0,0,0,6.93-12A72.15,72.15,0,0,0,157.19,182.07Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a t1i">Gia đình</div></div></div></div></div></div></div></div></div></div></div></div>
+  
+
+
+<div class="t1o"></div></body></html>
