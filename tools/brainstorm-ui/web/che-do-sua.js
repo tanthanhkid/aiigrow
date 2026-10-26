@@ -708,8 +708,11 @@ async function thayManSua() {
   const f = S.f; const html = htmlDaSua(); const key = C.keyCua(f); const { w, h } = C.kichThuoc(f);
   S.ban = true; document.body.classList.add('sua-ban'); // khoá sửa khi đang gửi: sửa thêm lúc này sẽ mất
   try {
-    await C.thayMan(key, html, { w, h, nhan: 'Sửa tay', yTuong: `✎ Sửa tay: ${tomTat(ds)}`, nguon: 'sua', model: 'sửa tay',
-      truocVe: () => { if (S.f === f) { thoat({ im: true }); LICH.delete(f.id); } } });
+    await C.thayMan(key, html, { w, h, nhan: 'Sửa tay', yTuong: `✎ Sửa tay: ${tomTat(ds)}`, nguon: 'sua', model: 'sửa tay', bt: f.loai === 'bien' ? f.id : '',
+      truocVe: () => {
+        if (f.loai === 'bien') { f.html = C.lamSach(html); f.suaTay = [...(f.suaTay || []), ...ds]; } // khung biến thể giữ đúng bản đang dùng
+        if (S.f === f) { thoat({ im: true }); LICH.delete(f.id); }
+      } });
   } finally { S.ban = false; document.body.classList.remove('sua-ban'); }
 }
 function apVaoKhung() {

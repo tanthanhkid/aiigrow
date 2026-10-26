@@ -36,22 +36,31 @@ const PHIEN_BAN = process.env.BS_PHIEN_BAN || path.join(THIET_KE, 'brainstorm-ui
 const PB_TOI_DA = 300;               // số phiên bản tối đa mỗi màn
 const PB_CO = 6 * 1024 * 1024;       // cỡ tối đa một bản HTML
 // Danh sách key màn có thật: lấy từ chính các tệp hành trình (cùng nguồn với trình duyệt) — key lạ bị từ chối, không bao giờ thành đường dẫn.
+// Nạp MỘT lần từ chính web/hanh-trinh/index.js (cùng danh sách tệp với trình duyệt); lỗi thì thử lại sau 10 giây. Thêm màn mới ⇒ khởi động lại máy chủ.
 let KEY_MAN = new Set(), keyLuc = 0;
-const HANH_TRINH = ['bm-1', 'bm-2', 'bm-3', 'con-may-tinh', 'con-dien-thoai', 'co-san'];
-// Nạp lại (bỏ cache import) khi gặp key lạ và lần nạp trước đã quá 10 giây — thêm màn mới không cần khởi động lại máy chủ.
-async function keyMan(canCo) {
-  if (canCo && KEY_MAN.has(canCo)) return KEY_MAN;
-  if (Date.now() - keyLuc < 10000 && KEY_MAN.size) return KEY_MAN;
+async function keyMan() {
+  if (KEY_MAN.size || Date.now() - keyLuc < 10000) return KEY_MAN;
   keyLuc = Date.now();
-  const moi = new Set();
-  const kq = await Promise.allSettled(HANH_TRINH.map((t) => import(`./web/hanh-trinh/${t}.js?t=${keyLuc}`)));
-  for (const r of kq) {
-    if (r.status !== 'fulfilled') continue;
-    const d = r.value.default || r.value.MAN || [];
-    for (const x of d) for (const b of x.buoc || [x]) if (typeof b?.key === 'string' && /^[a-z0-9][a-z0-9-]{0,79}$/.test(b.key)) moi.add(b.key);
-  }
-  if (moi.size) KEY_MAN = moi; else console.error('Không đọc được danh sách màn từ web/hanh-trinh/');
+  try {
+    const { taiHanhTrinh } = await import('./web/hanh-trinh/index.js');
+    const { ds } = await taiHanhTrinh(); // fetch('/that/ds.json') trong Node lỗi ⇒ bỏ qua, key không đổi
+    KEY_MAN = new Set(ds.flatMap((h) => h.buoc.map((b) => b.key)).filter((k) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(k)));
+  } catch (e) { console.error('Không đọc được danh sách màn:', e.message); }
   return KEY_MAN;
+}
+// Khoá liên tiến trình theo màn (nhiều máy chủ từ nhiều worktree dùng chung kho): mkdir là thao tác nguyên tử.
+const ngu = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function khoaPb(key) {
+  const k = path.join(PHIEN_BAN, `.khoa-${key}`);
+  fs.mkdirSync(PHIEN_BAN, { recursive: true });
+  for (let i = 0; i < 100; i++) {
+    try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try { if (Date.now() - fs.statSync(k).mtimeMs > 10000) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
+      ngu(20);
+    }
+  }
+  throw Object.assign(new Error('bận'), { ma: 503 });
 }
 const thuMucPb = (key) => path.join(PHIEN_BAN, key);
 function docManifest(key) {
@@ -183,26 +192,30 @@ async function apiPhienBan(req, res, p) {
   if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
   let than;
   try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
-  const m = docManifest(key);
-  if (m.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `Màn này đã có ${PB_TOI_DA} phiên bản` });
-  const v = (m.ds.at(-1)?.v || 0) + 1;
-  const muc = { v, t: new Date().toISOString() };
-  fs.mkdirSync(thuMucPb(key), { recursive: true });
-  if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
-    const tu = Number(than.tu); const cu = tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
-    if (!Number.isInteger(tu) || !cu) return json(res, 400, { loi: 'Không có bản để khôi phục' });
-    Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc' });
-  } else {
-    const html = than?.html;
-    if (typeof html !== 'string' || !html.trim() || html.length > PB_CO) return json(res, 400, { loi: 'Thiếu HTML hoặc quá lớn' });
-    const w = Math.round(Number(than.w)), h = Math.round(Number(than.h));
-    Object.assign(muc, { tep: v, w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined,
-      nhan: chuNgan(than.nhan, 120), yTuong: chuNgan(than.yTuong, 600), nguon: chuNgan(than.nguon, 20), model: chuNgan(than.model, 60), bt: chuNgan(than.bt, 80) });
-    ghiAtomic(path.join(thuMucPb(key), `v${v}.html`), html);
-  }
-  m.key = key; m.ds.push(muc); m.hien = v;
-  ghiAtomic(path.join(thuMucPb(key), 'manifest.json'), JSON.stringify(m, null, 1));
-  return json(res, 200, m);
+  let moKhoa;
+  try { moKhoa = khoaPb(key); } catch { return json(res, 503, { loi: 'Kho phiên bản đang bận — thử lại' }); }
+  try {
+    const m = docManifest(key);
+    if (m.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `Màn này đã có ${PB_TOI_DA} phiên bản` });
+    const v = (m.ds.at(-1)?.v || 0) + 1;
+    const muc = { v, t: new Date().toISOString() };
+    fs.mkdirSync(thuMucPb(key), { recursive: true });
+    if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
+      const tu = Number(than.tu); const cu = tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
+      if (!Number.isInteger(tu) || !cu) return json(res, 400, { loi: 'Không có bản để khôi phục' });
+      Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc' });
+    } else {
+      const html = than?.html;
+      if (typeof html !== 'string' || !html.trim() || html.length > PB_CO) return json(res, 400, { loi: 'Thiếu HTML hoặc quá lớn' });
+      const w = Math.round(Number(than.w)), h = Math.round(Number(than.h));
+      Object.assign(muc, { tep: v, w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined,
+        nhan: chuNgan(than.nhan, 120), yTuong: chuNgan(than.yTuong, 600), nguon: chuNgan(than.nguon, 20), model: chuNgan(than.model, 60), bt: chuNgan(than.bt, 80) });
+      ghiAtomic(path.join(thuMucPb(key), `v${v}.html`), html);
+    }
+    m.key = key; m.ds.push(muc); m.hien = v;
+    ghiAtomic(path.join(thuMucPb(key), 'manifest.json'), JSON.stringify(m, null, 1));
+    return json(res, 200, m);
+  } finally { moKhoa(); }
 }
 
 may.on('error', (e) => {
