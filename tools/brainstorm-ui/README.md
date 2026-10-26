@@ -15,3 +15,4 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
 - Prompt caching: system + HTML ngữ cảnh gắn `cache_control` (ttl 1h); yêu cầu đầu ghi cache, các yêu cầu sau đọc cache. Số token hiện trên khung.
 - Ghim & lưu → `tools/brainstorm-ui/da-luu/` (đã .gitignore). Xuất PNG/HTML tự đứng.
 - Màn gốc: `web/hanh-trinh/*.js` (mỗi bước: key, ten, w, h, html, anh, toi).
+- Màn iPhone Ba Mẹ + Con `/tre`: DOM chụp từ app Expo chạy thật ở `web/that/` (thay HTML dựng tay khi có) — cách làm và % lệch so với ảnh thật trong `DO-KHOP.md`.
