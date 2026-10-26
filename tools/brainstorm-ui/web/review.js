@@ -4,6 +4,7 @@
 import { taoRealtime, mauTen } from './realtime.js';
 import { heThong, loiNguoiDung, tachKetQua, HUONG } from './prompt.js';
 import { goiClaude, goiMock, mockSua, chayLoat, lamSach, taiAssets } from './claude.js';
+import { taoAnXuLy, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
 
 const $ = (s) => document.querySelector(s);
 const MA = (location.pathname.match(/^\/r\/([a-f0-9]{32})\/?$/) || [])[1] || '';
@@ -20,6 +21,10 @@ const tao = (tag, lop, chu) => { const e = document.createElement(tag); if (lop)
 
 const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, lich: [], ghimCho: null, ganDay: null, bt: [], dangSinh: false };
 let rt = null;
+// góp ý «Đã xử lý» (và đề xuất đã duyệt) mặc định ẩn ở danh sách + ghim; công tắc «Hiện đã xử lý (N)» ở đầu danh sách
+const XL = taoAnXuLy('bs.r-hien-xl', () => { veGopY(); veGhim(); }, (t) => !!rt?.ten() && t.ten === rt.ten()); // trả lời của chính mình không tính là «mới»
+const giuNhapId = new Set(); // góp ý đang gõ trả lời dở: vẫn hiện dù vừa bị đánh dấu xử lý (không mất chữ)
+const hienGy = (g) => XL.hien || !daXuLyGy(g) || giuNhapId.has(g.id);
 const st = { view: { x: 0, y: 0, z: 1 }, chon: new Set() };
 
 // ---------- tải ----------
@@ -218,8 +223,9 @@ function capNhatGhimCho() {
 }
 function veGhim() {
   const l = $('#lop-ghim'); l.innerHTML = '';
-  const ds = gopYCua(R.mo).filter((g) => g.ghim);
-  ds.forEach((g, i) => {
+  // số ghim đánh trên MỌI ghim (kể cả đang ẩn) để «ghim 3» không đổi nghĩa khi có ghim được xử lý
+  gopYCua(R.mo).filter((g) => g.ghim).forEach((g, i) => {
+    if (!hienGy(g)) return;
     const b = tao('button', `ghim muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '') + (g.v !== R.goi.v ? ' cu' : ''), String(i + 1));
     b.type = 'button'; b.style.left = `${g.ghim.x}%`; b.style.top = `${g.ghim.y}%`; b.title = `${g.ten}: ${g.noi}`;
     b.onclick = (e) => { e.stopPropagation(); const el = document.querySelector(`[data-gy="${g.id}"]`); el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); el?.classList.add('nhay'); setTimeout(() => el?.classList.remove('nhay'), 1200); };
@@ -233,23 +239,29 @@ const gopYCua = (mo) => (R.goi?.gopY || []).filter((g) => (mo === 'chung' ? !g.k
 // vẽ lại danh sách (có góp ý mới của người khác) mà không mất câu trả lời đang gõ dở
 function giuNhap(goc) {
   const ds = [...goc.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta, a: ta.selectionStart, b: ta.selectionEnd }));
+  giuNhapId.clear(); for (const x of ds) if (x.v.trim() || x.dang) giuNhapId.add(x.id);
   return (moLai) => { for (const x of ds) { const ta = moLai(x.id); if (!ta) continue; ta.value = x.v; if (x.dang) { ta.focus(); try { ta.setSelectionRange(x.a, x.b); } catch { /* bỏ qua */ } } } };
 }
 function veGopY() {
   const d = $('#ds-gy'); const traNhap = giuNhap(d); d.innerHTML = '';
   if (R.mo === 'qt') { d.append(tao('p', 'phu', 'Chọn một màn hoặc «Góp ý chung» để xem và viết góp ý.')); veDeXuat(); return; }
-  const ds = gopYCua(R.mo);
-  if (!ds.length) d.append(tao('p', 'phu', 'Chưa có góp ý nào ở đây.'));
-  let stt = 0;
+  const tatCa = gopYCua(R.mo); const xl = tatCa.filter(daXuLyGy);
+  const soDx = (R.goi?.deXuat || []).filter((x) => x.key === R.mo && daXuLyDx(x)).length;
+  if (xl.length || soDx || XL.hien) d.append(XL.congTac(xl.length + soDx, xl.some((g) => XL.traLoiChuaXem(g).length)));
+  if (XL.hien) XL.danhDauDaXem(xl);
+  const soGhim = new Map(tatCa.filter((g) => g.ghim).map((g, i) => [g.id, i + 1]));
+  const ds = tatCa.filter(hienGy);
+  if (!ds.length) d.append(tao('p', 'phu', xl.length ? `Không còn góp ý đang mở ở đây — ${xl.length} góp ý đã xử lý đang ẩn.` : 'Chưa có góp ý nào ở đây.'));
   for (const g of ds) {
     const the = tao('article', `gy muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '')); the.dataset.gy = g.id;
     const dau = tao('div', 'gy-dau');
     const av = tao('span', 'avt nho', ([...g.ten][0] || '?').toUpperCase()); av.style.setProperty('--mau', mauTen(g.ten));
     dau.append(av, tao('b', '', g.ten), tao('span', `chip muc`, MUC_TEN[g.muc] || g.muc));
-    if (g.ghim) dau.append(tao('span', 'chip', `📌 ${++stt}`));
+    if (g.ghim) dau.append(tao('span', 'chip', `📌 ${soGhim.get(g.id)}`));
     if (g.v !== R.goi.v) dau.append(tao('span', 'chip cu', `từ v${g.v}`));
     dau.append(tao('span', 'chip ' + (g.tt === 'xong' ? 'ok' : 'mo'), g.tt === 'xong' ? 'Đã xử lý' : 'Mở'));
     if (g.ycBt) dau.append(tao('span', 'chip', 'Đã yêu cầu biến thể'));
+    const moi = XL.moiSauXl(g).length; if (moi) dau.append(tao('span', 'chip cu', `↩ ${moi} trả lời sau khi xử lý`));
     dau.append(tao('span', 'phu gio', gioVN(g.t)));
     the.append(dau, tao('p', 'gy-noi', g.noi));
     for (const t of g.tl || []) {
@@ -275,7 +287,8 @@ function moTraLoi(the, g, focus = true) {
     e.preventDefault(); if (!canTen()) return;
     const j = await guiApi(`/api/review/r/${MA}/gop-y`, { cha: g.id, noi: ta.value, ten: rt.ten() }); if (!j) return;
     f.remove(); // đã gửi: đóng hộp trả lời (không giữ lại như bản nháp)
-    (g.tl ||= []).push(j); veGopY();
+    (g.tl ||= []).push(j); veGopY(); veGhim();
+    if (daXuLyGy(g) && !XL.hien) toast('Đã gửi trả lời — góp ý này đã được xử lý nên ẩn khỏi danh sách (bật «Hiện đã xử lý» để xem).');
   };
 }
 function canTen() { if (rt?.ten()) return true; $('#lop-ten').hidden = false; $('#ten-nhap').focus(); toast('Đặt tên trước để mọi người biết ai góp ý.'); return false; }
@@ -395,7 +408,7 @@ $('#bt-dong').onclick = () => { if (R.dangSinh && !confirm('Đang sinh biến th
 // ---------- đề xuất (chỉ xem trạng thái; người phụ trách duyệt ở bàn chính) ----------
 function veDeXuat() {
   const d = $('#ds-dx'); d.innerHTML = '';
-  const ds = (R.goi?.deXuat || []).filter((x) => x.key === R.mo);
+  const ds = (R.goi?.deXuat || []).filter((x) => x.key === R.mo && (XL.hien || !daXuLyDx(x)));
   $('#dx-tieu').hidden = !ds.length;
   for (const x of ds.slice().reverse()) {
     const the = tao('div', `dx tt-${x.tt}`);

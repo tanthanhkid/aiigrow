@@ -1,6 +1,8 @@
 // Bàn chính — phía chủ quản của «Góp ý»: chia sẻ hành trình lấy ý kiến (/r/<mã>), xem/lọc góp ý, đánh dấu đã xử lý,
 // «✨ Sửa theo góp ý» (luồng biến thể sẵn có), duyệt «Đề xuất thay đổi» của người review (Accept = Thay màn / Từ chối / Sửa tiếp), xuất Markdown.
 // Quyền chủ quản kiểm ở MÁY CHỦ: 127.0.0.1 gõ thẳng, hoặc mã chủ quản (chu-quan.json ngoài git) gửi qua header x-bs-chu-quan.
+import { taoAnXuLy, truotRa, huyTruot, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
+
 const $ = (s) => document.querySelector(s);
 const KHOA_MA = 'bs.chu-quan';
 const MUC_TEN = { loi: 'Lỗi', 'de-xuat': 'Đề xuất', 'cau-hoi': 'Câu hỏi' };
@@ -15,7 +17,10 @@ export const dauChuQuan = () => (maChuQuan() ? { 'x-bs-chu-quan': maChuQuan() } 
 // A: { MAN, LAN_GOC, timLan, timKhung, st, dom, toast, vuaMan, veTatCa, veBen, doiSec, secCuaLan, sinhTheoY(key, y), svgHanhTrinh(id),
 //      apManifest(key, manifest), moDeXuatTrenBan(dx, html), tenNguoi() }
 export function ganGopY(A) {
-  const D = { du: null, canMa: false, tab: 'gy', loc: { ht: '', nguoi: '', tt: 'mo' }, dangTai: null };
+  const D = { du: null, canMa: false, tab: 'gy', loc: { ht: '', nguoi: '' }, dangTai: null };
+  // góp ý «Đã xử lý» + đề xuất đã duyệt mặc định ẩn; công tắc «Hiện đã xử lý (N)» ở đầu danh sách
+  const XL = taoAnXuLy('bs.hien-xl', () => ve(), (t) => !!t.chuQuan); // trả lời của phía phụ trách không tính là «mới»
+  const XLdx = taoAnXuLy('bs.hien-xl-dx', () => ve()); // tab Đề xuất: công tắc riêng (đề xuất không có trả lời ⇒ không chấm)
   async function goi(url, than) {
     const r = await fetch(url, than === undefined ? { headers: dauChuQuan() } : { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-nguoi': encodeURIComponent(A.tenNguoi() || ''), ...dauChuQuan() }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
@@ -28,13 +33,14 @@ export function ganGopY(A) {
     D.dangTai = (async () => {
       do {
         D.lai = false;
-        try { D.du = await goi('/api/review'); D.canMa = false; } catch { /* đã hiện lý do */ }
+        try { const du = await goi('/api/review'); await D.truot; D.du = du; D.canMa = false; } catch { /* đã hiện lý do */ } // đang trượt thẻ: vẽ lại sau khi trượt xong
       } while (D.lai);
       ve(); A.veBen(); A.veTatCa(false);
     })().finally(() => { D.dangTai = null; });
     return D.dangTai;
   }
   const gopYCua = (ht) => D.du?.gopY?.[ht] || [];
+  const gocNoi = (id) => { const [ht, gid] = id.split('/'); return gopYCua(ht).find((g) => g.id === gid)?.noi; };
   const deXuatCua = (ht) => D.du?.deXuat?.[ht] || [];
   const tatCaGopY = () => Object.entries(D.du?.gopY || {}).flatMap(([ht, ds]) => ds.map((g) => ({ ...g, ht })));
   const tatCaDeXuat = () => Object.entries(D.du?.deXuat || {}).flatMap(([ht, ds]) => ds.map((x) => ({ ...x, ht })));
@@ -63,6 +69,7 @@ export function ganGopY(A) {
     const than = $('#pn-gy-than');
     // giữ câu trả lời đang gõ dở khi vẽ lại (có góp ý mới)
     const nhap = [...than.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, sua: !!ta.closest('form.pn-sua'), v: ta.value, dang: document.activeElement === ta }));
+    D.giu = new Set(nhap.filter((x) => (x.sua ? x.v !== gocNoi(x.id) : x.v.trim()) || x.dang).map((x) => x.id)); // đang gõ dở: vẫn hiện dù vừa bị đánh dấu xử lý
     queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; if (x.sua) suaGopY(the, g, false); else traLoi(the, g, false); const ta = the.querySelector(x.sua ? 'form.pn-sua textarea' : 'form:not(.pn-sua) textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
     than.innerHTML = '';
     if (D.canMa) return veNhapMa(than);
@@ -89,12 +96,17 @@ export function ganGopY(A) {
     const sNg = tao('select'); sNg.append(new Option('Mọi người', ''));
     for (const t of [...new Set(ds.map((g) => g.ten))]) sNg.append(new Option(t, t));
     sNg.value = D.loc.nguoi; sNg.onchange = () => { D.loc.nguoi = sNg.value; ve(); };
-    const sTt = tao('select'); for (const [v, t] of [['mo', 'Đang mở'], ['xong', 'Đã xử lý'], ['', 'Mọi trạng thái']]) sTt.append(new Option(t, v));
-    sTt.value = D.loc.tt; sTt.onchange = () => { D.loc.tt = sTt.value; ve(); };
     const md = tao('button', 'nut-nhe', 'Xuất Markdown'); md.type = 'button'; md.onclick = xuatMd;
-    loc.append(sHt, sNg, sTt, md); than.append(loc);
+    loc.append(sHt, sNg, md); than.append(loc);
+    const khop = locNguoiHt(ds); const xl = khop.filter(daXuLyGy);
+    if (xl.length || XL.hien) than.append(XL.congTac(xl.length, xl.some((g) => XL.traLoiChuaXem(g).length)));
+    if (XL.hien) XL.danhDauDaXem(xl);
     const hien = locGopY(ds);
-    if (!hien.length) { than.append(tao('p', 'phu', ds.length ? 'Không có góp ý khớp bộ lọc.' : 'Chưa có góp ý nào. Mở tab «Chia sẻ» để tạo link cho người review.')); return; }
+    if (!hien.length) {
+      than.append(tao('p', 'phu', !ds.length ? 'Chưa có góp ý nào. Mở tab «Chia sẻ» để tạo link cho người review.'
+        : xl.length ? `Không còn góp ý đang mở — ${xl.length} góp ý đã xử lý đang ẩn.` : 'Không có góp ý khớp bộ lọc.'));
+      return;
+    }
     // nhóm theo hành trình → màn
     const nhom = new Map();
     for (const g of hien) { const k = `${g.ht}|${g.key || ''}`; if (!nhom.has(k)) nhom.set(k, []); nhom.get(k).push(g); }
@@ -112,13 +124,16 @@ export function ganGopY(A) {
       for (const g of gs) than.append(theGopY(g));
     }
   }
-  const locGopY = (ds) => ds.filter((g) => (!D.loc.ht || g.ht === D.loc.ht) && (!D.loc.nguoi || g.ten === D.loc.nguoi) && (!D.loc.tt || g.tt === D.loc.tt));
+  const locNguoiHt = (ds) => ds.filter((g) => (!D.loc.ht || g.ht === D.loc.ht) && (!D.loc.nguoi || g.ten === D.loc.nguoi));
+  const locGopY = (ds) => locNguoiHt(ds).filter((g) => XL.hien || !daXuLyGy(g) || D.giu?.has(`${g.ht}/${g.id}`));
   function theGopY(g) {
     const the = tao('article', `pn-the muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '')); the.dataset.gy = `${g.ht}/${g.id}`;
     const dau = tao('div', 'pn-gy-dau');
     dau.append(tao('b', '', g.ten), tao('span', 'chip muc', MUC_TEN[g.muc] || g.muc), tao('span', 'chip', `v${g.v}`));
     if (g.ghim) dau.append(tao('span', 'chip', '📌 ghim'));
     if (g.ycBt) dau.append(tao('span', 'chip vang', 'Yêu cầu biến thể'));
+    if (g.tt === 'xong') dau.append(tao('span', 'chip chap', 'Đã xử lý'));
+    const moi = XL.moiSauXl(g).length; if (moi) dau.append(tao('span', 'chip vang', `↩ ${moi} trả lời sau khi xử lý`));
     dau.append(tao('span', 'phu', gioVN(g.t)));
     the.append(dau, tao('p', 'pn-noi', g.noi));
     for (const t of g.tl || []) { const tl = tao('div', 'pn-tl'); tl.append(tao('b', '', t.ten + (t.chuQuan ? ' (phụ trách)' : '')), tao('span', 'phu', ` ${gioVN(t.t)}`), tao('p', '', t.noi)); the.append(tl); }
@@ -148,7 +163,20 @@ export function ganGopY(A) {
     f.onsubmit = async (e) => { e.preventDefault(); b.disabled = true; if (await doiGopY(g, 'sua', { noi: ta.value })) f.remove(); else b.disabled = false; }; // lỗi: giữ chữ đã gõ
   }
   async function doiTt(g, tt) {
-    try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }); await tai(); } catch (e) { A.toast(`Không đổi được: ${e.message}`, true); }
+    // đánh dấu xử lý khi đang ẩn mục đã xử lý: thẻ trượt ra cùng lúc gửi lệnh; lỗi thì trả thẻ về chỗ
+    const the0 = $('#pn-gy-than')?.querySelector(`[data-gy="${CSS.escape(`${g.ht}/${g.id}`)}"]`);
+    const dangGo = [...(the0?.querySelectorAll('form textarea') || [])].some((ta) => (ta.closest('form.pn-sua') ? ta.value !== g.noi : ta.value.trim())); // đang gõ dở: thẻ được giữ lại, không trượt
+    const an = tt === 'xong' && !XL.hien && !dangGo; const the = an ? the0 : null;
+    let x;
+    const tr = truotRa(the); if (the) { const p = tr.then(() => { if (D.truot === p) D.truot = null; }); D.truot = p; } // tai() chờ trượt xong mới vẽ lại
+    try { [x] = await Promise.all([goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }), tr]); }
+    catch (e) { huyTruot(the); A.toast(`Không đổi được: ${e.message}`, true); return; }
+    // ghi ngay vào dữ liệu đang có: tải lại lỗi (mạng chập) thì thẻ vẫn không hiện lại như còn mở
+    const ds = D.du?.gopY?.[g.ht]; const i = ds ? ds.findIndex((y) => y.id === g.id) : -1; if (i >= 0 && x?.id) ds[i] = x;
+    ve(); A.veBen();
+    if (tt === 'xong') A.toast(`Đã xử lý góp ý của ${g.ten}${an ? ' — đã ẩn khỏi danh sách' : ''}.`, false, { chu: 'Hoàn tác', lam: () => doiTt(g, 'mo') });
+    else A.toast(`Đã mở lại góp ý của ${g.ten}.`);
+    tai();
   }
   function traLoi(the, g, focus = true) {
     if (the.querySelector('form:not(.pn-sua)')) return;
@@ -156,7 +184,8 @@ export function ganGopY(A) {
     const b = tao('button', 'nut-chinh', 'Gửi'); b.type = 'submit'; f.append(ta, b); the.append(f); if (focus) ta.focus();
     f.onsubmit = async (e) => {
       e.preventDefault();
-      try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tl`, { noi: ta.value, ten: A.tenNguoi() || 'Thanh' }); f.remove(); await tai(); } catch (er) { A.toast(`Không gửi được: ${er.message}`, true); }
+      try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tl`, { noi: ta.value, ten: A.tenNguoi() || 'Thanh' }); f.remove(); await tai(); } catch (er) { A.toast(`Không gửi được: ${er.message}`, true); return; }
+      if (daXuLyGy(g) && !XL.hien) A.toast('Đã gửi trả lời — góp ý này đã xử lý nên ẩn khỏi danh sách (bật «Hiện đã xử lý» để xem).');
     };
   }
   // nhảy tới màn + hiện ghim tạm trên khung gốc
@@ -181,7 +210,7 @@ export function ganGopY(A) {
     A.sinhTheoY(key, y);
   }
   function xuatMd() {
-    const ds = locGopY(tatCaGopY());
+    const ds = locNguoiHt(tatCaGopY()); // xuất đủ cả góp ý đã xử lý ([x]) — không theo công tắc ẩn
     const dong = [`# Góp ý thiết kế AiiGrow — ${new Date().toLocaleString('vi-VN')}`, ''];
     let htCu = '', keyCu = null;
     const sach = (t) => String(t).replace(/\r?\n/g, ' ').trim();
@@ -197,10 +226,13 @@ export function ganGopY(A) {
 
   // ---------- tab Đề xuất ----------
   function veDeXuat(than) {
-    const ds = tatCaDeXuat().sort((a, b) => (a.tt === 'cho') === (b.tt === 'cho') ? b.t.localeCompare(a.t) : a.tt === 'cho' ? -1 : 1);
-    if (!ds.length) { than.append(tao('p', 'phu', 'Chưa có đề xuất thay đổi. Người review tạo biến thể theo góp ý rồi bấm «Đề xuất áp dụng» thì đề xuất hiện ở đây.')); return; }
+    const tatCa = tatCaDeXuat(); const xl = tatCa.filter(daXuLyDx);
+    if (!tatCa.length) { than.append(tao('p', 'phu', 'Chưa có đề xuất thay đổi. Người review tạo biến thể theo góp ý rồi bấm «Đề xuất áp dụng» thì đề xuất hiện ở đây.')); return; }
+    if (xl.length || XLdx.hien) than.append(XLdx.congTac(xl.length, false));
+    const ds = tatCa.filter((x) => XLdx.hien || !daXuLyDx(x)).sort((a, b) => (a.tt === 'cho') === (b.tt === 'cho') ? b.t.localeCompare(a.t) : a.tt === 'cho' ? -1 : 1);
+    if (!ds.length) { than.append(tao('p', 'phu', `Không còn đề xuất chờ duyệt — ${xl.length} đề xuất đã duyệt đang ẩn.`)); return; }
     for (const x of ds) {
-      const the = tao('article', `pn-dx tt-${x.tt}`);
+      const the = tao('article', `pn-dx tt-${x.tt}` + (x.tt !== 'cho' ? ' xong' : ''));
       the.append(tao('b', '', `${tenMan(x.key)} — ${x.nhan || 'Đề xuất'}`), tao('span', `chip ${x.tt}`, TT_DX[x.tt] + (x.vMoi ? ` (v${x.vMoi})` : '')),
         tao('span', 'phu', `${x.ten} · ${tenHt(x.ht)} · ${gioVN(x.t)}`));
       const gy = x.gy ? gopYCua(x.ht).find((g) => g.id === x.gy) : null;
