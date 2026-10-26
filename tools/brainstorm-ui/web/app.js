@@ -62,7 +62,11 @@ function ganToi(html, nhan, dich, tenDich) {
     el.setAttribute('data-toi', dich);
     return '<!doctype html>\n' + d.documentElement.outerHTML;
   }
-  return html;
+  // màn không có nút nào khớp (vd. khung bộ cài Mac chụp không kèm nút) ⇒ bấm cả màn để sang bước kế
+  const goc = d.body.firstElementChild;
+  if (!goc) return html;
+  goc.setAttribute('data-toi', dich);
+  return '<!doctype html>\n' + d.documentElement.outerHTML;
 }
 
 // ---------- trạng thái ----------
@@ -969,8 +973,10 @@ function dongPlay() {
 }
 function kieuThietBi(f) {
   const l = timLan(MAN[keyCua(f)].lan); const { w } = kichThuoc(f);
-  if (w === 390) return l.nen === 'Web' ? 'web' : l.nen === 'Điện thoại' || l.nen === 'Android' ? 'android' : 'iphone';
-  return l.nen === 'Mac' ? 'mac' : 'win';
+  if (l.nen === 'Web') return 'web';
+  if (w === 360) return 'android';   // màn Android khớp ảnh thật (360×800 @3x)
+  if (w === 390) return l.nen === 'Điện thoại' || l.nen === 'Android' ? 'android' : 'iphone';
+  return l.nen === 'Mac' || /^cmt-mac-/.test(keyCua(f)) ? 'mac' : 'win';   // lane Windows có xen màn Mac
 }
 function vePlay(huong) {
   const f = timKhung(play.lich.at(-1)); if (!f) return;

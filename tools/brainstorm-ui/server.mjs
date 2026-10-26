@@ -115,8 +115,10 @@ const may = http.createServer(async (req, res) => {
     }
     if (TEP[p]) return guiTep(res, TEP[p]);
     if (p.startsWith('/ref/')) {
-      const [thu, ten, ...thua] = p.slice(5).split('/');
-      const tep = !thua.length && REF_DIR.has(thu) ? trongThuMuc(path.join(THIET_KE, thu), ten || '') : null;
+      // /ref/<thư mục>/<tệp> hoặc /ref/<thư mục>/<thư mục con>/<tệp> (vd. man-win-2510/100/app-hom-nay.png)
+      const [thu, ...con] = p.slice(5).split('/');
+      const ten = con.pop() || '';
+      const tep = con.length <= 1 && REF_DIR.has(thu) && con.every((c) => /^[\w-]+$/.test(c)) ? trongThuMuc(path.join(THIET_KE, thu, ...con), ten) : null;
       return tep && ANH_REF.test(tep) ? guiTep(res, tep) : gui(res, 404, 'text/plain', 'Không có');
     }
     for (const [tienTo, thuMuc] of Object.entries(THU_MUC)) {

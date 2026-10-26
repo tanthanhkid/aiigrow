@@ -64,7 +64,7 @@ export default [
   { id: 'con-xin', vai: 'Con', nen: 'Windows', ten: 'Xin thêm giờ · xin mở · chơi bằng điểm', mo: 'Con xin Ba Mẹ thêm giờ, xin mở trang hoặc app, hoặc tự đổi điểm lấy giờ chơi.',
     buoc: [
       S('xin-them-gio', 'Xin thêm giờ', 'Bấm «Xin bố mẹ»; trên Mac giống vậy'),
-      S('mac-xin-them', 'Xin thêm giờ (Mac)', 'Có điểm thì hiện thêm nút đổi điểm lấy giờ chơi'),
+      S('mac-xin-them', 'Xin thêm giờ (Mac)', 'Bấm «Xin Ba Mẹ»; có điểm thì hiện thêm nút đổi điểm'),
       S('mac-xin-them-doi-diem', 'Xin thêm giờ (Mac) + đổi điểm', 'Hoặc xin mở trang hoặc app'),
       S('mac-xin-mo', 'Xin mở trang hoặc app', 'Hoặc dùng điểm để chơi'),
       S('choi-bang-diem', 'Chơi bằng điểm'),

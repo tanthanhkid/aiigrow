@@ -1,5 +1,5 @@
 // Gom các màn native dựng KHỚP ẢNH CHỤP THẬT (đo pixel, xem tools/brainstorm-ui/DO-KHOP.md mục Native).
-// THAT[key] = { key, w, h, dsf?, html, anh } — hành trình (con-may-tinh.js, con-dien-thoai.js, bm-1.js) thay html/w/h/anh theo key.
+// THAT[key] = { key, w, h, dsf?, html, anh } — dsf chỉ dùng khi đo (DPR của ảnh chụp); bàn brainstorm vẽ theo w×h CSS px — hành trình (con-may-tinh.js, con-dien-thoai.js, bm-1.js) thay html/w/h/anh theo key.
 import winCai from './win-cai.js';
 import winApp from './win-app.js';
 import winHop from './win-hop.js';
@@ -15,6 +15,6 @@ export const THAT = Object.fromEntries([...winCai, ...winApp, ...winHop, ...winK
 // b: bước hành trình; khoa: key trong THAT. Giữ key/ten/toi của bước, lấy w/h/html/anh của màn khớp ảnh thật.
 export function khop(b, khoa) {
   const m = THAT[khoa];
-  if (!m) return b;
+  if (!m) throw new Error('thiếu màn khớp ảnh thật: ' + khoa);
   return { ...b, w: m.w, h: m.h, html: m.html, anh: m.anh };
 }
