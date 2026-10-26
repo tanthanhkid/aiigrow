@@ -1,0 +1,16 @@
+{
+  "name": "aiigrow-brainstorm-ui",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Bàn brainstorm giao diện AiiGrow chạy localhost: canvas kiểu Figma, Claude sinh biến thể theo Clay gương",
+  "type": "module",
+  "scripts": {
+    "brainstorm": "node server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js"
+  },
+  "dependencies": {
+    "html-to-image": "1.11.11"
+  },
+  "engines": { "node": ">=18" }
+}
