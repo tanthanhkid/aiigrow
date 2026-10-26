@@ -22,7 +22,8 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
 
 ## Kho biến thể chung (máy chủ)
 
-- Mọi biến thể màn lẻ và phương án hành trình lưu trên máy chủ, kho ngoài git `aiigrow-thiet-ke/brainstorm-ui/bien-the/` (đổi bằng `BS_BIEN_THE`): `k/<id>.json` + `k/<id>.html`, `l/<id>.json`. Ghi atomic, giới hạn 3 MB HTML/khung, 4000 mục/loại, 900 lần ghi/phút/IP; ghi kiểm Origin/Host như kho phiên bản.
-- Ai mở bàn (127.0.0.1 hay qua tên miền) cũng thấy cùng một bộ; sinh/xoá/khôi phục của người này hiện ngay bên người kia qua realtime, kể cả khung «đang sinh» (người sinh làm mới mỗi 45 giây; quá 2,5 phút không làm mới thì hiện «bị gián đoạn»). Hai tiến trình dùng chung kho (5178, 5181) thấy thay đổi của nhau qua `fs.watch`.
+- Mọi biến thể màn lẻ và phương án hành trình lưu trên máy chủ, kho ngoài git `aiigrow-thiet-ke/brainstorm-ui/bien-the/` (đổi bằng `BS_BIEN_THE`): `k/<id>.json` + `k/<id>.html` (+ `k/<id>.phu`: bản sửa tay của khung «Làm mượt»), `l/<id>.json`. Máy chủ giữ chỉ mục thông tin trong bộ nhớ (quét lại mỗi phút). Ghi atomic, tối đa 200 mục/lần ghi (vượt thì 413, không cắt lặng lẽ), giới hạn 3 MB HTML/khung, 4000 mục/loại, 900 lần ghi/phút/IP; ghi kiểm Origin/Host như kho phiên bản.
+- Ai mở bàn (127.0.0.1 hay qua tên miền) cũng thấy cùng một bộ; sinh/xoá/khôi phục của người này hiện ngay bên người kia qua realtime, kể cả khung «đang sinh» (người sinh làm mới mỗi 45 giây; quá 2,5 phút không làm mới thì hiện «bị gián đoạn»). Hai tiến trình dùng chung kho (5178, 5181) thấy thay đổi của nhau qua `fs.watch` + quét mỗi phút.
+- Client gửi kèm `tSuaCu` (bản máy chủ nó dựa vào); máy chủ đã có bản mới hơn thì không đè mà trả `xungDot`, client lấy bản mới nhất. Mục máy chủ không nhận (`tuChoi`) không bị coi là đã lưu và không gửi lại tới khi đổi; lúc di trú thì giữ riêng ở `bs.v2.khong-nhan`.
 - Xoá = xoá mềm: vào `rac/`, giữ 7 ngày, khôi phục ở «🗑 Thùng rác».
 - localStorage chỉ còn cài đặt, key, tên, khung nhìn. Lần đầu mở bản này, biến thể cũ trong localStorage (`bs.v2`) tự chuyển lên máy chủ (chỉ thêm mục chưa có) rồi được dọn.

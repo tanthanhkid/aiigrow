@@ -1,5 +1,5 @@
 // Kho biến thể dùng chung (ngoài git): mọi khung biến thể + phương án hành trình của bàn, ai mở bàn cũng thấy cùng một bộ.
-// Mỗi mục một tệp: k/<id>.json (thông tin khung) + k/<id>.html (HTML), l/<id>.json (phương án hành trình).
+// Mỗi mục một tệp: k/<id>.json (thông tin khung) + k/<id>.html (HTML) [+ k/<id>.phu: bản sửa tay của khung «Làm mượt»], l/<id>.json (phương án).
 // Xoá = xoá mềm: chuyển vào rac/ (giữ 7 ngày, khôi phục được). Ghi atomic, giới hạn cỡ + tốc độ, kiểm Origin như kho phiên bản.
 // Thay đổi được phát cho phòng realtime «bang» ({t:'kho'}); thay đổi do TIẾN TRÌNH KHÁC ghi cùng kho (vd. 5178 và 5181) bắt bằng fs.watch.
 import fs from 'node:fs';
@@ -13,20 +13,29 @@ const THAN_TOI_DA = 24 * 1024 * 1024;    // một lần ghi (nhiều mục)
 const SO_TOI_DA = 4000;                  // số mục tối đa mỗi loại
 const RAC_GIU = 7 * 24 * 3600 * 1000;    // thùng rác 7 ngày
 const LOAI = { k: 'khung', l: 'lan' };
+const SO_MOI_LAN = 200;                  // số mục tối đa mỗi yêu cầu (client chia lô nhỏ hơn)
+const TEN_MUC = /^([\w-]{1,120})\.json$/;
 
 export function taoKhoBienThe(C) {
   const KHO = process.env.BS_BIEN_THE || path.join(C.THIET_KE, 'brainstorm-ui/bien-the');
   const dir = (l) => path.join(KHO, l);
   for (const l of ['k', 'l', 'rac']) fs.mkdirSync(dir(l), { recursive: true });
-  const bamHtml = (s) => crypto.createHash('sha1').update(s).digest('hex').slice(0, 16);
+  const bam = (...ds) => crypto.createHash('sha1').update(ds.map((x) => x || '').join('\0')).digest('hex').slice(0, 16);
   const docJson = (t) => { try { return JSON.parse(fs.readFileSync(t, 'utf8')); } catch { return null; } };
+  const tepMuc = (l, id) => path.join(dir(l), `${id}.json`);
+  const tepPhu = (id) => path.join(dir('k'), `${id}.phu`);
 
-  // ---- tự ghi gần đây (để fs.watch bỏ qua thay đổi của chính tiến trình này)
-  const tuGhi = new Map();
-  const danhDau = (tep) => { tuGhi.set(tep, Date.now()); if (tuGhi.size > 5000) for (const [k, t] of tuGhi) if (Date.now() - t > 5000) tuGhi.delete(k); };
-  const ghi = (tep, nd) => { danhDau(tep); C.ghiAtomic(tep, nd); };
-  const xoaTep = (tep) => { danhDau(tep); try { fs.unlinkSync(tep); } catch { /* không có */ } };
-  const doiTen = (a, b) => { danhDau(a); danhDau(b); try { fs.renameSync(a, b); return true; } catch { return false; } };
+  // ---- chỉ mục thông tin trong bộ nhớ (đọc đĩa một lần lúc chạy; ghi/watch/quét định kỳ cập nhật)
+  const BO = { k: new Map(), l: new Map() };
+  for (const l of ['k', 'l']) {
+    let ten = []; try { ten = fs.readdirSync(dir(l)); } catch { /* rỗng */ }
+    for (const t of ten) { const id = t.match(TEN_MUC)?.[1]; const m = id && docJson(path.join(dir(l), t)); if (m && m.id === id) BO[l].set(id, m); }
+  }
+  const ghi = (tep, nd) => C.ghiAtomic(tep, nd);
+  const xoaTep = (tep) => { try { fs.unlinkSync(tep); } catch { /* không có */ } };
+  const doiTen = (a, b) => { try { fs.renameSync(a, b); return true; } catch { return false; } };
+  const datMuc = (l, m) => { ghi(tepMuc(l, m.id), JSON.stringify(m)); BO[l].set(m.id, m); };
+  const boMuc = (l, id) => { BO[l].delete(id); xoaTep(tepMuc(l, id)); };
 
   // ---- làm sạch dữ liệu vào: chỉ giữ trường của bàn, chuỗi cắt ngắn; HTML được trang làm sạch lại khi hiển thị
   const chu = (v, n) => (typeof v === 'string' ? v.slice(0, n) : undefined);
@@ -39,6 +48,7 @@ export function taoKhoBienThe(C) {
       nhan: chu(f.nhan, 200), model: chu(f.model, 60), ghim: f.ghim ? true : undefined, tu: chu(f.tu, 40), nguoi: chu(f.nguoi, 40),
       dung: f.dung && typeof f.dung === 'object' ? Object.fromEntries(Object.entries(f.dung).slice(0, 8).filter(([, v]) => Number.isFinite(v)).map(([k, v]) => [String(k).slice(0, 10), v])) : undefined,
       suaTay: Array.isArray(f.suaTay) ? f.suaTay.slice(0, 200).map((x) => String(x).slice(0, 300)) : undefined,
+      tenGocSua: chu(f.tenGocSua, 200),
     };
     if (!(m.w > 0 && m.w < 5000 && m.h > 0 && m.h < 20000)) return null;
     return JSON.parse(JSON.stringify(m)); // bỏ undefined
@@ -46,52 +56,49 @@ export function taoKhoBienThe(C) {
   function sachLan(l) {
     if (!l || typeof l !== 'object' || !ID.test(l.id || '') || typeof l.tu !== 'string' || !ID.test(l.tu)) return null;
     const s = JSON.stringify(l); if (s.length > META_TOI_DA) return null;
-    const { tienDo, dangChay, ...r } = JSON.parse(s); // eslint-disable-line no-unused-vars
+    const { tienDo, dangChay, tSuaCu, ...r } = JSON.parse(s); // eslint-disable-line no-unused-vars
     return r;
   }
-
-  // ---- đọc
-  function docMuc(l, id) {
-    const m = docJson(path.join(dir(l), `${id}.json`)); if (!m) return null;
-    return m;
-  }
-  function dsMuc(l) {
-    let ten; try { ten = fs.readdirSync(dir(l)); } catch { return []; }
-    return ten.filter((t) => t.endsWith('.json')).map((t) => docJson(path.join(dir(l), t))).filter(Boolean);
-  }
-  function demMuc(l) { try { return fs.readdirSync(dir(l)).filter((t) => t.endsWith('.json')).length; } catch { return 0; } }
+  // client gửi kèm tSuaCu = bản máy chủ nó đang dựa trên; máy chủ đã có bản mới hơn ⇒ không đè (trả bản hiện tại để client lấy)
+  const cuHon = (cu, o) => !!cu && Number.isFinite(o?.tSuaCu) && (cu.tSua || 0) > o.tSuaCu;
 
   // ---- ghi một khung / phương án (giữ tSua tăng dần)
   function ghiKhung(f, nguoi) {
-    const m = sachKhung(f); if (!m) return { loi: 'Khung không hợp lệ' };
+    const m = sachKhung(f); if (!m) return { loi: `Khung ${String(f?.id || '').slice(0, 40)} không hợp lệ` };
     const html = typeof f.html === 'string' ? f.html : '';
-    if (html.length > HTML_TOI_DA) return { loi: `HTML của ${m.id} quá lớn` };
+    const phu = { htmlSua: typeof f.htmlSua === 'string' ? f.htmlSua : '', htmlGocSua: typeof f.htmlGocSua === 'string' ? f.htmlGocSua : '' };
+    if (html.length > HTML_TOI_DA || phu.htmlSua.length > HTML_TOI_DA || phu.htmlGocSua.length > HTML_TOI_DA) return { loi: `HTML của ${m.id} quá lớn` };
     if (JSON.stringify(m).length > META_TOI_DA) return { loi: `Thông tin ${m.id} quá lớn` };
-    const cu = docMuc('k', m.id);
-    if (!cu && demMuc('k') >= SO_TOI_DA) return { loi: `Kho đã đủ ${SO_TOI_DA} biến thể — dọn bớt` };
-    m.b = html ? bamHtml(html) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
-    if (html && cu?.b !== m.b) ghi(path.join(dir('k'), `${m.id}.html`), html);
-    if (!html) xoaTep(path.join(dir('k'), `${m.id}.html`));
-    ghi(path.join(dir('k'), `${m.id}.json`), JSON.stringify(m));
+    const cu = BO.k.get(m.id);
+    if (cuHon(cu, f)) return { xungDot: cu };
+    if (!cu && BO.k.size >= SO_TOI_DA) return { loi: `Kho đã đủ ${SO_TOI_DA} biến thể — dọn bớt` };
+    const coPhu = !!(phu.htmlSua || phu.htmlGocSua);
+    m.b = html || coPhu ? bam(html, phu.htmlSua, phu.htmlGocSua) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
+    if (cu?.b !== m.b) {
+      if (html) ghi(path.join(dir('k'), `${m.id}.html`), html); else xoaTep(path.join(dir('k'), `${m.id}.html`));
+      if (coPhu) ghi(tepPhu(m.id), JSON.stringify(phu)); else xoaTep(tepPhu(m.id));
+    }
+    datMuc('k', m);
     raRac('k', m.id, false); // ghi lại một mục đang trong thùng rác (vd. hoàn tác) ⇒ mục sống lại
     return { m };
   }
   function ghiLan(l0) {
     const l = sachLan(l0); if (!l) return { loi: 'Phương án không hợp lệ' };
-    const cu = docMuc('l', l.id);
-    if (!cu && demMuc('l') >= SO_TOI_DA) return { loi: 'Kho phương án đã đầy' };
+    const cu = BO.l.get(l.id);
+    if (cuHon(cu, l0)) return { xungDot: cu };
+    if (!cu && BO.l.size >= SO_TOI_DA) return { loi: 'Kho phương án đã đầy' };
     l.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1);
-    ghi(path.join(dir('l'), `${l.id}.json`), JSON.stringify(l));
+    datMuc('l', l);
     raRac('l', l.id, false);
     return { m: l };
   }
   // ---- thùng rác
   const tepRac = (l, id, duoi) => path.join(dir('rac'), `${l}-${id}.${duoi}`);
   function vaoRac(l, id, nguoi) {
-    const m = docMuc(l, id); if (!m) return false;
+    const m = BO[l].get(id); if (!m) return false;
     ghi(tepRac(l, id, 'json'), JSON.stringify({ ...m, tXoa: Date.now(), nguoiXoa: chu(nguoi, 40) }));
-    if (l === 'k') doiTen(path.join(dir('k'), `${id}.html`), tepRac(l, id, 'html'));
-    xoaTep(path.join(dir(l), `${id}.json`));
+    if (l === 'k') { doiTen(path.join(dir('k'), `${id}.html`), tepRac(l, id, 'html')); doiTen(tepPhu(id), tepRac(l, id, 'phu')); }
+    boMuc(l, id);
     return true;
   }
   // khôi phục (ghiLai=true) hoặc chỉ bỏ khỏi thùng rác (khi mục vừa được ghi mới)
@@ -101,12 +108,12 @@ export function taoKhoBienThe(C) {
     if (ghiLai && m) {
       const { tXoa, nguoiXoa, ...goc } = m; // eslint-disable-line no-unused-vars
       goc.tSua = Math.max(Date.now(), (goc.tSua || 0) + 1);
-      if (l === 'k') doiTen(tepRac(l, id, 'html'), path.join(dir('k'), `${id}.html`));
-      ghi(path.join(dir(l), `${id}.json`), JSON.stringify(goc));
+      if (l === 'k') { doiTen(tepRac(l, id, 'html'), path.join(dir('k'), `${id}.html`)); doiTen(tepRac(l, id, 'phu'), tepPhu(id)); }
+      datMuc(l, goc);
       xoaTep(t);
       return goc;
     }
-    xoaTep(t); xoaTep(tepRac(l, id, 'html'));
+    xoaTep(t); xoaTep(tepRac(l, id, 'html')); xoaTep(tepRac(l, id, 'phu'));
     return null;
   }
   function donRac() {
@@ -115,31 +122,46 @@ export function taoKhoBienThe(C) {
       if (!t.endsWith('.json')) continue;
       const m = docJson(path.join(dir('rac'), t));
       if (m && Date.now() - (m.tXoa || 0) <= RAC_GIU) continue;
-      xoaTep(path.join(dir('rac'), t)); xoaTep(path.join(dir('rac'), t.replace(/\.json$/, '.html')));
+      for (const d of ['json', 'html', 'phu']) xoaTep(path.join(dir('rac'), t.replace(/\.json$/, `.${d}`)));
     }
   }
   donRac(); setInterval(donRac, 3600 * 1000).unref();
 
   // ---- phát thay đổi
   const phat = (obj) => C.phat('bang', { t: 'kho', ...obj });
-  // tiến trình khác ghi cùng kho (5178 ↔ 5181): đọc lại tệp rồi phát cho phòng của tiến trình này
+  // Tiến trình khác ghi cùng kho (5178 ↔ 5181): so tệp với chỉ mục trong bộ nhớ — khác thì cập nhật chỉ mục rồi phát.
+  // Ghi của chính tiến trình này đã vào chỉ mục trước nên tự khớp, không phát lại.
+  function soLai(l, id) {
+    const m = docJson(tepMuc(l, id)); const cu = BO[l].get(id);
+    if (m && m.id === id) { if (cu && cu.tSua === m.tSua && cu.b === m.b) return; BO[l].set(id, m); phat({ loai: 'ghi', [LOAI[l]]: [m], tu: '' }); }
+    else if (cu && !fs.existsSync(tepMuc(l, id))) { BO[l].delete(id); phat({ loai: 'xoa', [LOAI[l]]: [id], tu: '' }); }
+  }
   const henWatch = new Map();
   for (const l of ['k', 'l']) {
     try {
       fs.watch(dir(l), (ev, ten) => {
-        if (!ten || !ten.endsWith('.json')) return;
-        const tep = path.join(dir(l), ten);
-        if (Date.now() - (tuGhi.get(tep) || 0) < 3000) return;
-        clearTimeout(henWatch.get(tep));
-        henWatch.set(tep, setTimeout(() => {
-          henWatch.delete(tep);
-          const id = ten.slice(0, -5); const m = docMuc(l, id);
-          if (m) phat({ loai: 'ghi', [LOAI[l]]: [m], tu: '' });
-          else phat({ loai: 'xoa', [LOAI[l]]: [id], tu: '' });
-        }, 150));
+        const id = ten && String(ten).match(TEN_MUC)?.[1]; if (!id) return;
+        const khoa = `${l}:${id}`;
+        clearTimeout(henWatch.get(khoa));
+        henWatch.set(khoa, setTimeout(() => { henWatch.delete(khoa); soLai(l, id); }, 150));
       }).on('error', () => {});
-    } catch { /* hệ thống không hỗ trợ: chỉ thiếu đồng bộ giữa hai tiến trình */ }
+    } catch { /* hệ thống không hỗ trợ: quét định kỳ bên dưới vẫn bắt kịp */ }
   }
+  // quét định kỳ (phòng khi fs.watch lỡ sự kiện): đọc bất đồng bộ, không chặn event loop
+  async function quet() {
+    for (const l of ['k', 'l']) {
+      let ten = []; try { ten = await fs.promises.readdir(dir(l)); } catch { continue; }
+      const co = new Set();
+      for (const t of ten) {
+        const id = t.match(TEN_MUC)?.[1]; if (!id) continue; co.add(id);
+        let m = null; try { m = JSON.parse(await fs.promises.readFile(path.join(dir(l), t), 'utf8')); } catch { continue; }
+        const cu = BO[l].get(id);
+        if (m?.id === id && (!cu || cu.tSua !== m.tSua || cu.b !== m.b) && (!cu || (m.tSua || 0) >= (cu.tSua || 0))) { BO[l].set(id, m); phat({ loai: 'ghi', [LOAI[l]]: [m], tu: '' }); }
+      }
+      for (const id of [...BO[l].keys()]) if (!co.has(id) && !fs.existsSync(tepMuc(l, id))) { BO[l].delete(id); phat({ loai: 'xoa', [LOAI[l]]: [id], tu: '' }); }
+    }
+  }
+  setInterval(() => { quet().catch(() => {}); }, 60000).unref();
 
   // ---- giới hạn tốc độ ghi theo IP
   const dem = new Map();
@@ -152,21 +174,33 @@ export function taoKhoBienThe(C) {
   }
   const phienCua = (req) => chu(String(req.headers['x-bs-phien'] || ''), 40) || '';
   const nguoiCua = (req) => { try { return decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { return ''; } };
+  function docDu(id) { // thông tin + HTML (+ bản sửa tay) của một khung
+    const meta = BO.k.get(id); if (!meta) return null;
+    let html = ''; try { html = fs.readFileSync(path.join(dir('k'), `${id}.html`), 'utf8'); } catch { /* khung chưa có HTML */ }
+    const phu = docJson(tepPhu(id)) || {};
+    return { ...meta, html, ...(phu.htmlSua ? { htmlSua: phu.htmlSua } : {}), ...(phu.htmlGocSua ? { htmlGocSua: phu.htmlGocSua } : {}) };
+  }
 
-  async function xuLy(req, res, p) {
+  async function xuLy(req, res, p, url) {
     const { json } = C;
     if (req.method === 'GET') {
-      if (p === '/api/bien-the') return json(res, 200, { khung: dsMuc('k'), lan: dsMuc('l') });
+      if (p === '/api/bien-the') return json(res, 200, { khung: [...BO.k.values()], lan: [...BO.l.values()], gio: Date.now() });
       if (p === '/api/bien-the/rac') {
-        let ten = []; try { ten = fs.readdirSync(dir('rac')).filter((t) => t.endsWith('.json')); } catch { /* rỗng */ }
+        let ten = []; try { ten = fs.readdirSync(dir('rac')).filter((t) => /^[kl]-[\w-]{1,120}\.json$/.test(t)); } catch { /* rỗng */ }
         return json(res, 200, { ds: ten.map((t) => ({ l: t.slice(0, 1), ...docJson(path.join(dir('rac'), t)) })).filter((x) => x.id).sort((a, b) => b.tXoa - a.tXoa) });
       }
-      const m = p.match(/^\/api\/bien-the\/k\/([\w-]{1,120})$/);
-      if (m) {
-        const meta = docMuc('k', m[1]); if (!meta) return json(res, 404, { loi: 'Không có biến thể này' });
-        let html = ''; try { html = fs.readFileSync(path.join(dir('k'), `${m[1]}.html`), 'utf8'); } catch { /* khung chưa có HTML */ }
-        return json(res, 200, { ...meta, html });
+      if (p === '/api/bien-the/goi') { // nhiều khung một lần (?ids=a,b,c — tối đa 40), dừng khi đã quá ~16 MB, phần còn lại trả trong «con»
+        const ids = String(url?.searchParams.get('ids') || '').split(',').filter((x) => ID.test(x)).slice(0, 40);
+        const ds = [], con = []; let co = 0;
+        for (const id of ids) {
+          if (co > 16e6) { con.push(id); continue; }
+          const g = docDu(id); if (!g) continue;
+          co += (g.html?.length || 0) + (g.htmlSua?.length || 0) + (g.htmlGocSua?.length || 0); ds.push(g);
+        }
+        return json(res, 200, { ds, con });
       }
+      const m = p.match(/^\/api\/bien-the\/k\/([\w-]{1,120})$/);
+      if (m) { const g = docDu(m[1]); return g ? json(res, 200, g) : json(res, 404, { loi: 'Không có biến thể này' }); }
       return json(res, 404, { loi: 'Không có' });
     }
     if (req.method !== 'POST') return json(res, 405, { loi: 'Không hỗ trợ' });
@@ -174,21 +208,25 @@ export function taoKhoBienThe(C) {
     if (!choGhi(req)) return json(res, 429, { loi: 'Ghi quá nhanh — đợi chút' });
     let than; try { than = JSON.parse(await C.docThan(req, THAN_TOI_DA)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Gói ghi quá lớn' : 'Không đọc được yêu cầu' }); }
     const phien = phienCua(req), nguoi = nguoiCua(req);
-    const dsK = Array.isArray(than?.khung) ? than.khung.slice(0, 200) : [];
-    const dsL = Array.isArray(than?.lan) ? than.lan.slice(0, 200) : [];
+    const dsK = Array.isArray(than?.khung) ? than.khung : [];
+    const dsL = Array.isArray(than?.lan) ? than.lan : [];
+    if (dsK.length + dsL.length > SO_MOI_LAN) return json(res, 413, { loi: `Mỗi lần ghi tối đa ${SO_MOI_LAN} mục` }); // không cắt lặng lẽ
     if (p === '/api/bien-the/ghi' || p === '/api/bien-the/di-tru') {
       const chiThem = p.endsWith('di-tru'); // di trú từ localStorage: chỉ thêm mục chưa có (kể cả đã nằm trong thùng rác thì bỏ qua)
-      const ra = { khung: [], lan: [] }, loi = [];
-      for (const l of dsL) {
-        if (chiThem && (!ID.test(l?.id || '') || docMuc('l', l.id) || fs.existsSync(tepRac('l', l.id, 'json')))) continue;
-        const r = ghiLan(l); if (r.m) ra.lan.push(r.m); else loi.push(r.loi);
-      }
-      for (const f of dsK) {
-        if (chiThem && (!ID.test(f?.id || '') || docMuc('k', f.id) || fs.existsSync(tepRac('k', f.id, 'json')))) continue;
-        const r = ghiKhung(f, nguoi); if (r.m) ra.khung.push(r.m); else loi.push(r.loi);
+      // trả: ra = mục đã ghi; tuChoi = id máy chủ không nhận (kèm loi); xungDot = bản máy chủ mới hơn bản client dựa vào
+      const ra = { khung: [], lan: [] }, loi = [], tuChoi = { khung: [], lan: [] }, xungDot = { khung: [], lan: [] }, boQua = { khung: [], lan: [] };
+      for (const [l, ds, ghiMot] of [['l', dsL, (x) => ghiLan(x)], ['k', dsK, (x) => ghiKhung(x, nguoi)]]) {
+        const ten = LOAI[l];
+        for (const x of ds) {
+          if (chiThem && ID.test(x?.id || '') && (BO[l].has(x.id) || fs.existsSync(tepRac(l, x.id, 'json')))) { boQua[ten].push(x.id); continue; }
+          const r = ghiMot(x);
+          if (r.m) ra[ten].push(r.m);
+          else if (r.xungDot) xungDot[ten].push(r.xungDot);
+          else { loi.push(r.loi); tuChoi[ten].push(String(x?.id || '')); }
+        }
       }
       if (ra.khung.length || ra.lan.length) phat({ loai: 'ghi', ...ra, tu: phien, ten: nguoi });
-      return json(res, loi.length && !ra.khung.length && !ra.lan.length ? 400 : 200, { ...ra, loi });
+      return json(res, 200, { ...ra, loi, tuChoi, xungDot, boQua });
     }
     if (p === '/api/bien-the/xoa') {
       const ra = { khung: [], lan: [] };

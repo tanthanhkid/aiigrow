@@ -148,7 +148,7 @@ const may = http.createServer(async (req, res) => {
     const p = decodeURIComponent(url.pathname);
 
     if (p === '/api/phien-ban' || p.startsWith('/api/phien-ban/')) return await apiPhienBan(req, res, p);
-    if (p === '/api/bien-the' || p.startsWith('/api/bien-the/')) return await khoBt.xuLy(req, res, p);
+    if (p === '/api/bien-the' || p.startsWith('/api/bien-the/')) return await khoBt.xuLy(req, res, p, url);
     if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');
 
     if (p === '/api/assets') {
