@@ -74,16 +74,19 @@ export function taoMcp(C) {
   }
 
   // ================= dữ liệu màn gốc (giống app.js: hành trình + màn «giống thật» ở web/that/) =================
-  let manP = null;
-  function taiMan() {
-    if (!manP) manP = (async () => {
+  const gocCache = new Map();
+  let manP = null, manLuc = 0;
+  function taiMan() { // nạp lại sau 30 giây (web/that/ có thể được chụp lại khi máy chủ đang chạy); lần nạp thiếu tệp hành trình không được giữ
+    if (manP && Date.now() - manLuc > 30000) manP = null;
+    if (!manP) { manLuc = Date.now(); gocCache.clear(); manP = (async () => {
       const lay = async (u) => {
         const t = path.resolve(C.WEB, String(u).replace(/^\/+/, ''));
         if (!t.startsWith(C.WEB + path.sep)) throw new Error('ngoài web/');
         const s = await fs.promises.readFile(t, 'utf8');
         return { ok: true, json: async () => JSON.parse(s), text: async () => s };
       };
-      const { ds } = await taiHanhTrinh(lay);
+      const { ds, loi } = await taiHanhTrinh(lay);
+      if (loi.some((x) => /\.js/.test(x))) manLuc = 0; // tệp hành trình nạp lỗi: lần gọi sau thử lại
       const LAN = [], MAN = {};
       for (const h of ds) {
         if (!KEY.test(h.id)) continue;
@@ -91,13 +94,12 @@ export function taoMcp(C) {
         h.buoc.forEach((b, i) => { const ke = h.buoc[i + 1]; MAN[b.key] = { key: b.key, ten: b.ten, w: b.w, h: b.h, html: b.html, anh: b.anh || '', toi: b.toi || '', lan: h.id, buoc: i, ke: ke?.key || '' }; });
       }
       return { LAN, MAN };
-    })().catch((e) => { manP = null; throw e; });
+    })().catch((e) => { manP = null; throw e; }); }
     return manP;
   }
   const timHt = async (id) => { const { LAN } = await taiMan(); const l = LAN.find((x) => x.id === id); if (!l) throw LOI(`Không có hành trình «${id}» — xem ds_hanh_trinh`); return l; };
   const timMan = async (key) => { const { MAN } = await taiMan(); const m = MAN[key]; if (!m) throw LOI(`Không có màn «${key}» — xem ds_hanh_trinh`); return m; };
   // bản trong mã (v0) đã gắn data-toi như bàn web
-  const gocCache = new Map();
   async function htmlGoc(m) {
     if (gocCache.has(m.key)) return gocCache.get(m.key);
     const { MAN } = await taiMan();
@@ -105,16 +107,16 @@ export function taoMcp(C) {
     gocCache.set(m.key, html); return html;
   }
   // trạng thái hiện hành của một màn (như apPhienBan của app.js): HTML (đã lamSach + giữ data-toi), w, h, manifest
-  async function hienHanh(req0, key, v = null) {
+  async function hienHanh(req0, key, v = null, pbSan = null) {
     const m = await timMan(key);
-    const ds = await goiJ(req0, 'GET', '/api/phien-ban');
+    const ds = pbSan || await goiJ(req0, 'GET', '/api/phien-ban');
     const mf = ds[key] || { key, hien: 0, ds: [] };
     const vv = v == null ? mf.hien || 0 : v;
     const muc = vv ? mf.ds.find((x) => x.v === vv) : null;
     if (vv && !muc) throw LOI(`Màn ${key} không có phiên bản v${vv} (đang có: ${mf.ds.map((x) => `v${x.v}`).join(', ') || 'chỉ v0'})`);
     let html;
     if (muc?.tep) {
-      const r = await goiJ(req0, 'GET', `/api/phien-ban/${key}/${muc.tep}`);
+      const r = await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`);
       html = await domGoi('lamSach', r.html);
       if (m.ke && m.toi && !/data-toi=/.test(html)) { const { MAN } = await taiMan(); html = await domGoi('ganToi', html, m.toi, m.ke, MAN[m.ke]?.ten || ''); }
     } else html = await htmlGoc(m);
@@ -177,11 +179,11 @@ export function taoMcp(C) {
     try { return await fn(await trinhDuyet()); } finally { dangDung--; henTat(); }
   }
   async function voiTrang(fn) {
-    if (dangChup >= SO_TRANG) await new Promise((r) => hangCho.push(r));
-    dangChup++;
+    if (dangChup >= SO_TRANG) await new Promise((r) => hangCho.push(r)); // được trao chỗ trực tiếp (dangChup giữ nguyên)
+    else dangChup++;
     try {
       return await voiTrinh(async (b) => { const pg = await b.newPage(); try { return await fn(pg); } finally { pg.close().catch(() => {}); } });
-    } finally { dangChup--; hangCho.shift()?.(); }
+    } finally { const ke = hangCho.shift(); if (ke) ke(); else dangChup--; }
   }
   // trang chạy NGUYÊN mã web (lamSach của web/claude.js, ganToi của web/gan-toi.js)
   async function domGoi(ten, ...a) {
@@ -198,27 +200,32 @@ export function taoMcp(C) {
       return domTrang.evaluate((t, x) => window.__bs[t](...x), ten, a);
     });
   }
-  const anhCache = new Map();
+  const anhCache = new Map(); let anhByte = 0; const ANH_BYTE = 80 * 1024 * 1024; // cache ảnh giới hạn theo tổng byte
   async function chup(html, w, h, tiLe = 1) {
     w = Math.round(w); h = Math.round(h);
     if (!(w > 0 && w <= 5000 && h > 0 && h <= 20000)) throw LOI(`Khung lạ ${w}×${h}`);
     const k = sha1(html, w, h, tiLe);
-    if (anhCache.has(k)) { const v = anhCache.get(k); anhCache.delete(k); anhCache.set(k, v); return v; }
+    if (anhCache.has(k)) { const v = anhCache.get(k); anhCache.delete(k); anhCache.set(k, v); return v; } // LRU
+    let du = true;
     const buf = await voiTrang(async (pg) => {
       await pg.setViewport({ width: w, height: h, deviceScaleFactor: tiLe });
-      await pg.goto(datTrang(html, CSP_ANH), { waitUntil: 'networkidle0', timeout: 20000 }).catch(() => {});
+      const r = await pg.goto(datTrang(html, CSP_ANH), { waitUntil: 'networkidle0', timeout: 20000 }).catch(() => { du = false; return null; }); // hết giờ chờ mạng (font chậm): vẫn chụp nhưng không cache
+      if (r && r.status() !== 200) throw LOI(`Không tải được trang chụp (HTTP ${r.status()})`);
       await pg.evaluate(() => document.fonts?.ready).catch(() => {});
       return Buffer.from(await pg.screenshot({ type: 'png', clip: { x: 0, y: 0, width: w, height: h } }));
     });
-    anhCache.set(k, buf); if (anhCache.size > 150) anhCache.delete(anhCache.keys().next().value);
+    if (du) { anhCache.set(k, buf); anhByte += buf.length; while (anhByte > ANH_BYTE && anhCache.size > 1) { const [k0, b0] = anhCache.entries().next().value; anhCache.delete(k0); anhByte -= b0.length; } }
     return buf;
   }
   // ghép nhiều ảnh thành một hàng (ảnh cả hành trình)
-  async function ghep(ds, tiLe) {
+  async function ghep(ds, tiLe0) {
     const pad = 24, gap = 24, nhanCao = 28;
+    // tự thu nhỏ cho vừa 7900px (giới hạn ảnh của client) thay vì báo lỗi
+    const tong = ds.reduce((t, x) => t + x.w, 0), cao0 = Math.max(...ds.map((x) => x.h));
+    const tiLe = Math.min(tiLe0, (7900 - pad * 2 - gap * (ds.length - 1)) / tong, (7900 - pad * 2 - nhanCao) / cao0);
+    if (!(tiLe > 0.05)) throw LOI('Hành trình quá dài để ghép một ảnh — đặt ghep=false');
     const rong = ds.reduce((t, x) => t + Math.round(x.w * tiLe), 0) + gap * (ds.length - 1) + pad * 2;
     const cao = Math.max(...ds.map((x) => Math.round(x.h * tiLe))) + nhanCao + pad * 2;
-    if (rong > 7900 || cao > 7900) throw LOI(`Ảnh ghép ${rong}×${cao} quá lớn — giảm ti_le hoặc đặt ghep=false`);
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     const html = `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#dcdad4;width:${rong}px;height:${cao}px"><div style="display:flex;gap:${gap}px;padding:${pad}px;align-items:flex-start">${
       ds.map((x) => `<figure style="margin:0;width:${Math.round(x.w * tiLe)}px"><figcaption style="height:${nhanCao}px;font:600 13px system-ui;color:#2e3533;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.nhan)}</figcaption><img style="display:block;width:${Math.round(x.w * tiLe)}px;height:${Math.round(x.h * tiLe)}px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.18)" src="data:image/png;base64,${x.png.toString('base64')}"></figure>`).join('')}</div></body>`;
@@ -293,7 +300,7 @@ export function taoMcp(C) {
           for (const key of l.buoc) {
             const m = MAN[key]; const mf = pb[key]; const muc = mf?.ds.find((x) => x.v === mf.hien);
             let html = m.html;
-            if (muc?.tep) { try { html = (await goiJ(req0, 'GET', `/api/phien-ban/${key}/${muc.tep}`)).html; } catch { /* bỏ qua */ } }
+            if (muc?.tep) { try { html = (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`)).html; } catch { /* bỏ qua */ } }
             const toi = dataToi(html);
             buoc.push({ key, ten: m.ten, w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
               dataToi: toi.length ? toi : m.ke && m.toi ? [`${m.ke} (gắn theo nhãn «${m.toi}» khi hiển thị)`] : [],
@@ -325,19 +332,20 @@ export function taoMcp(C) {
         const l = await timHt(a.hanh_trinh);
         const kho = a.phuong_an ? await dsKho(req0) : null;
         if (a.phuong_an && !kho.lan.some((x) => x.id === a.phuong_an && x.tu === l.id)) throw LOI(`Không có phương án ${a.phuong_an} của ${l.id}`);
-        const ds = [];
-        for (const key of l.buoc) {
+        const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const ds = await Promise.all(l.buoc.map(async (key) => {
           let html, w, h, nhan;
           const f = kho?.khung.find((x) => x.lan === a.phuong_an && x.goc === key);
           if (f) { const g = await docKhung(req0, f.id); html = g.html; w = g.w; h = g.h; nhan = `${key} · ${g.nhan || ''}`; }
-          if (!html) { const hh = await hienHanh(req0, key); html = hh.html; w = hh.w; h = hh.h; nhan = `${key} · ${hh.m.ten}`; }
-          ds.push({ key, w, h, nhan, html });
-        }
+          if (!html) { const hh = await hienHanh(req0, key, null, pb); html = hh.html; w = hh.w; h = hh.h; nhan = `${key} · ${hh.m.ten}`; }
+          return { key, w, h, nhan, html };
+        }));
         const ghepAnh = a.ghep !== false;
         const tl = a.ti_le || (ghepAnh ? 0.5 : 1);
-        if (ghepAnh) { for (const x of ds) x.png = await chup(x.html, x.w, x.h, 1); return [chu(`Hành trình «${l.ten}»${a.phuong_an ? ` · phương án ${a.phuong_an}` : ''}: ${ds.map((x) => x.key).join(' → ')}`), anh(await ghep(ds, tl))]; }
+        if (ghepAnh) { await Promise.all(ds.map(async (x) => { x.png = await chup(x.html, x.w, x.h, 1); })); return [chu(`Hành trình «${l.ten}»${a.phuong_an ? ` · phương án ${a.phuong_an}` : ''}: ${ds.map((x) => x.key).join(' → ')}`), anh(await ghep(ds, tl))]; }
         const ra = [];
-        for (const x of ds) { ra.push(chu(x.nhan)); ra.push(anh(await chup(x.html, x.w, x.h, tl))); }
+        const pngs = await Promise.all(ds.map((x) => chup(x.html, x.w, x.h, tl)));
+        ds.forEach((x, i) => { ra.push(chu(x.nhan)); ra.push(anh(pngs[i])); });
         return ra;
       });
 
@@ -380,14 +388,14 @@ export function taoMcp(C) {
           const hh = await hienHanh(req0, a.key); key = a.key;
           than = { html: await domGoi('lamSach', a.html), w: hh.w, h: hh.h, nhan: a.nhan || 'Thay qua MCP', yTuong: a.y_tuong || '', nguon: 'mcp', model: '' };
         }
-        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${key}`, than);
+        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(key)}`, than);
         return [chu({ key, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
       });
 
     T('khoi_phuc_phien_ban', 'Khôi phục một phiên bản cũ của màn (v=0 là bản trong mã) — ghi thành phiên bản mới, không xoá gì.',
       { key: z.string(), v: z.number().int().min(0) }, async (a) => {
         await timMan(a.key);
-        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${a.key}`, { tu: a.v });
+        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { tu: a.v });
         return [chu({ key: a.key, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
       });
 
@@ -423,14 +431,14 @@ export function taoMcp(C) {
       });
 
     T('tra_loi_gop_y', 'Chủ quản trả lời một góp ý.',
-      { hanh_trinh: z.string(), id: z.string(), noi: z.string(), ten: z.string().optional() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/gop-y/${a.hanh_trinh}/${a.id}/tl`, { noi: a.noi, ten: a.ten || tenNguoi(req0) }))]);
+      { hanh_trinh: z.string(), id: z.string(), noi: z.string(), ten: z.string().optional() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/gop-y/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/tl`, { noi: a.noi, ten: a.ten || tenNguoi(req0) }))]);
 
     T('doi_trang_thai_gop_y', 'Đổi trạng thái góp ý: «mo» (đang mở) hoặc «xong» (Đã xử lý).',
-      { hanh_trinh: z.string(), id: z.string(), tt: z.enum(['mo', 'xong']) }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/gop-y/${a.hanh_trinh}/${a.id}/tt`, { tt: a.tt }))]);
+      { hanh_trinh: z.string(), id: z.string(), tt: z.enum(['mo', 'xong']) }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/gop-y/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/tt`, { tt: a.tt }))]);
 
     T('doc_de_xuat', 'Đọc một đề xuất thay đổi (biến thể do reviewer gửi) + HTML + ảnh render. Cần quyền chủ quản.',
       { hanh_trinh: z.string(), id: z.string(), html: z.boolean().optional(), anh: z.boolean().optional() }, async (a) => {
-        const d = await goiJ(req0, 'GET', `/api/review/de-xuat/${a.hanh_trinh}/${a.id}`);
+        const d = await goiJ(req0, 'GET', `/api/review/de-xuat/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}`);
         const { html, ...meta } = d; const m = await timMan(d.key);
         const sach = await domGoi('lamSach', html);
         const ra = [chu(meta)];
@@ -441,14 +449,14 @@ export function taoMcp(C) {
 
     T('chap_nhan_de_xuat', '«Accept changes» một đề xuất: áp HTML đề xuất (đã làm sạch) lên màn gốc thành phiên bản mới, ghi tác giả, tự đóng góp ý gắn kèm.',
       { hanh_trinh: z.string(), id: z.string() }, async (a) => {
-        const d = await goiJ(req0, 'GET', `/api/review/de-xuat/${a.hanh_trinh}/${a.id}`);
+        const d = await goiJ(req0, 'GET', `/api/review/de-xuat/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}`);
         const m = await timMan(d.key);
-        const r = await goiJ(req0, 'POST', `/api/review/de-xuat/${a.hanh_trinh}/${a.id}/chap`, { html: await domGoi('lamSach', d.html), w: d.w || m.w, h: d.h || m.h });
+        const r = await goiJ(req0, 'POST', `/api/review/de-xuat/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/chap`, { html: await domGoi('lamSach', d.html), w: d.w || m.w, h: d.h || m.h });
         return [chu({ deXuat: r.deXuat, dangDung: `v${r.manifest?.hien}` })];
       });
 
     T('tu_choi_de_xuat', 'Từ chối một đề xuất (kèm lý do).',
-      { hanh_trinh: z.string(), id: z.string(), ly_do: z.string().optional() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/de-xuat/${a.hanh_trinh}/${a.id}/tu`, { lyDo: a.ly_do || '' }))]);
+      { hanh_trinh: z.string(), id: z.string(), ly_do: z.string().optional() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/de-xuat/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/tu`, { lyDo: a.ly_do || '' }))]);
 
     T('nhat_ky', 'Đọc nhật ký audit gần đây (mới nhất trước; nội dung HTML lớn rút gọn). Lọc theo loại (tiền tố, vd «man.», «bien-the.»), người, màn, hành trình, ngày. Cần quyền chủ quản.',
       { gioi: z.number().int().min(1).max(300).optional(), loai: z.string().optional(), nguoi: z.string().optional(), key: z.string().optional(), hanh_trinh: z.string().optional(), tu: z.string().optional().describe('YYYY-MM-DD'), den: z.string().optional() }, async (a) => {
@@ -466,8 +474,9 @@ export function taoMcp(C) {
         const n = a.so_bien_the || 1;
         const ng = await nguonBienThe(req0, a.key, a.tu_bien_the);
         const sys = heThong(await assetsTxt(req0));
-        const ra = [chu({ buoc: 'Bước 1/2', key: ng.key, cha: ng.cha, ten: ng.ten, w: ng.w, h: ng.h, n, dataToiGoc: dataToi(ng.html),
-          cachDung: `Với mỗi k=1..${n}: dùng [system] + [user khối 1] + [user khối 2 của k] làm prompt, sinh câu trả lời «Ý TƯỞNG: …» + một khối \`\`\`html\`\`\`; rồi gọi tao_bien_the { ${a.tu_bien_the ? `tu_bien_the: "${ng.cha}"` : `key: "${ng.key}"`}, y_tuong, k, n: ${n}, tra_loi: <nguyên câu trả lời> } (hoặc html + nhan). Giữ data-toi đúng giá trị trên nút tương ứng.` }),
+        const dot = Date.now().toString(36);
+        const ra = [chu({ buoc: 'Bước 1/2', key: ng.key, cha: ng.cha, ten: ng.ten, w: ng.w, h: ng.h, n, dot, dataToiGoc: dataToi(ng.html),
+          cachDung: `Với mỗi k=1..${n}: dùng [system] + [user khối 1] + [user khối 2 của k] làm prompt, sinh câu trả lời «Ý TƯỞNG: …» + một khối \`\`\`html\`\`\`; rồi gọi tao_bien_the { ${a.tu_bien_the ? `tu_bien_the: "${ng.cha}"` : `key: "${ng.key}"`}, y_tuong, k, n: ${n}, dot: "${dot}", tra_loi: <nguyên câu trả lời> } (hoặc html + nhan). Giữ data-toi đúng giá trị trên nút tương ứng.` }),
           chu(`[system]\n${sys}`)];
         for (let k = 1; k <= n; k++) {
           const user = loiNguoiDung({ y: a.y_tuong, html: ng.html, w: ng.w, h: ng.h, ten: ng.ten, k, n });
@@ -482,7 +491,8 @@ export function taoMcp(C) {
 
     T('tao_bien_the', 'Bước 2: lưu một biến thể do bạn sinh vào kho biến thể chung (ai đang mở bàn thấy ngay). HTML được làm sạch bằng lamSach như web. Trả id, so khớp data-toi và ảnh render để tự kiểm.',
       { key: z.string().optional(), tu_bien_the: z.string().optional(), y_tuong: z.string(), html: z.string().optional(), tra_loi: z.string().optional().describe('Nguyên câu trả lời «Ý TƯỞNG: …» + ```html``` (thay cho html + nhan)'),
-        nhan: z.string().optional(), k: z.number().int().min(1).max(6).optional(), n: z.number().int().min(1).max(6).optional(), model: z.string().optional().describe('Model đã sinh (vd claude-opus-…)'), anh: z.boolean().optional() }, async (a) => {
+        nhan: z.string().optional(), k: z.number().int().min(1).max(6).optional(), n: z.number().int().min(1).max(6).optional(),
+        dot: z.string().regex(/^[a-z0-9]{4,20}$/).optional().describe('Mã đợt (lấy từ ngu_canh_bien_the) — các biến thể k=1..n cùng đợt xếp chung một hàng như bàn web'), model: z.string().optional().describe('Model đã sinh (vd claude-opus-…)'), anh: z.boolean().optional() }, async (a) => {
         let html = a.html, nhan = a.nhan;
         if (!html && a.tra_loi) { const t = tachKetQua(a.tra_loi); html = t.html; nhan ||= t.nhan; }
         if (!html || !html.trim()) throw LOI('Thiếu HTML (html hoặc tra_loi có khối ```html```)');
@@ -490,12 +500,13 @@ export function taoMcp(C) {
         const sach = await domGoi('lamSach', html);
         const kho = await dsKho(req0);
         const k = a.k || 1, n = Math.max(a.n || 1, k);
-        let dot = Date.now().toString(36); while (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) dot += 'm';
+        let dot = a.dot || Date.now().toString(36);
+        if (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) { if (a.dot) throw LOI(`Đợt ${a.dot} đã có biến thể k=${k} (bt-${a.dot}-${k}) — dùng k khác`); while (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) dot += 'm'; }
         const f = { id: `bt-${dot}-${k}`, loai: 'bien', goc: ng.key, cha: ng.cha, dot, k, n, yTuong: a.y_tuong, w: ng.w, h: ng.h, html: sach, tt: 'xong', nhan: (nhan || `Biến thể ${k}`).slice(0, 200), model: (a.model || 'mcp').slice(0, 60) };
         const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { khung: [f], lan: [] });
         if (!r.khung?.length) throw LOI(`Máy chủ không nhận: ${(r.loi || []).join('; ') || 'xung đột'}`);
         const ra = [chu({ id: f.id, key: ng.key, cha: ng.cha, nhan: f.nhan, w: f.w, h: f.h, lamSachDoi: sach !== html, lienKet: await soLienKet(ng.html, sach) })];
-        if (a.anh !== false) ra.push(anh(await chup(sach, f.w, f.h, 1)));
+        if (a.anh !== false) { try { ra.push(anh(await chup(sach, f.w, f.h, 1))); } catch (e) { ra.push(chu(`(Đã lưu; chỉ chụp ảnh lỗi: ${e.message} — gọi doc_bien_the để xem ảnh)`)); } }
         return ra;
       });
 
@@ -512,7 +523,7 @@ export function taoMcp(C) {
           ra.push(chu(`[user khối 2 — k=${k}/${n}]\n${user[1]}`));
         }
         ra.push(chu({ gopYDangMo: await gopYMo(req0, l.id, null) }));
-        if (a.anh) { for (const b of buoc) b.png = await chup(b.html, b.w, b.h, 1); ra.push(anh(await ghep(buoc.map((b) => ({ ...b, nhan: `${b.key} · ${b.ten}` })), 0.5))); }
+        if (a.anh) { await Promise.all(buoc.map(async (b) => { b.png = await chup(b.html, b.w, b.h, 1); })); ra.push(anh(await ghep(buoc.map((b) => ({ ...b, nhan: `${b.key} · ${b.ten}` })), 0.5))); }
         return ra;
       });
 
@@ -540,7 +551,10 @@ export function taoMcp(C) {
         const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { lan: [lan], khung });
         if (!r.lan?.length || r.khung?.length !== khung.length) throw LOI(`Máy chủ không nhận đủ: ${(r.loi || []).join('; ') || 'xung đột'}`);
         const ra = [chu({ id, hanhTrinh: l.id, k: soMoi, nhan: lan.nhan, khung: khung.map((f) => f.id), lienKetLech: lk })];
-        if (a.anh !== false) { const ds = []; for (const f of khung) ds.push({ w: f.w, h: f.h, nhan: f.goc, png: await chup(f.html, f.w, f.h, 1) }); ra.push(anh(await ghep(ds, 0.5))); }
+        if (a.anh !== false) {
+          try { const ds = await Promise.all(khung.map(async (f) => ({ w: f.w, h: f.h, nhan: f.goc, png: await chup(f.html, f.w, f.h, 1) }))); ra.push(anh(await ghep(ds, 0.5))); }
+          catch (e) { ra.push(chu(`(Đã lưu; chỉ chụp ảnh lỗi: ${e.message} — gọi anh_hanh_trinh với phuong_an để xem)`)); }
+        }
         return ra;
       });
 
@@ -548,14 +562,13 @@ export function taoMcp(C) {
       const { MAN } = await taiMan();
       const kho = tuPa ? await dsKho(req0) : null;
       if (tuPa && !kho.lan.some((x) => x.id === tuPa && x.tu === l.id)) throw LOI(`Không có phương án ${tuPa} của ${l.id}`);
-      const ra = [];
-      for (const key of l.buoc) {
-        const hh = await hienHanh(req0, key); let html = hh.html;
+      const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+      return Promise.all(l.buoc.map(async (key) => {
+        const hh = await hienHanh(req0, key, null, pb); let html = hh.html;
         const f = kho?.khung.find((x) => x.lan === tuPa && x.goc === key);
         if (f) { const g = await docKhung(req0, f.id); if (g.html) html = g.html; }
-        ra.push({ key, ten: MAN[key].ten, w: hh.w, h: hh.h, html, toi: MAN[key].toi });
-      }
-      return ra;
+        return { key, ten: MAN[key].ten, w: hh.w, h: hh.h, html, toi: MAN[key].toi };
+      }));
     }
     return s;
   }

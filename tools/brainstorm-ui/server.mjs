@@ -207,6 +207,7 @@ async function xuLyYeuCau(req, res) {
   } catch {
     // Không in nội dung yêu cầu ra log.
     if (!res.headersSent) return json(res, 500, { loi: 'Lỗi máy chủ cục bộ' });
+    try { res.end(); } catch { /* đã đóng */ }
   }
 }
 

@@ -67,8 +67,16 @@ export function taoReview(C) {
     const kq = kiemMa(req); daKiem.set(req, kq); return kq;
   }
   function kiemMa(req) {
+    return kiemBiMat(req, String(cauHinh().ma || ''), String(req.headers['x-bs-chu-quan'] || ''), { loai: 'quyen.sai-ma', ten: 'mã chủ quản', duong: String(req.url || '').split('?')[0].slice(0, 80) });
+  }
+  // Mật khẩu MCP («maMcp» trong chu-quan.json): gọi /mcp qua tên miền bắt buộc «Authorization: Bearer <maMcp>»; 127.0.0.1 gõ thẳng thì mở.
+  function kiemMaMcp(req) {
+    const m = String(req.headers.authorization || '').match(/^Bearer\s+(.+)$/i);
+    return kiemBiMat(req, String(cauHinh().maMcp || ''), m ? m[1].trim() : '', { loai: 'quyen.sai-ma-mcp', ten: 'mật khẩu MCP', duong: '/mcp', them: { nguon: 'mcp' } });
+  }
+  // So một bí mật (mã chủ quản / mật khẩu MCP) — dùng CHUNG bộ giới hạn sai: 10 lần/phút/IP, 100 lần/phút cả máy chủ. Không bao giờ ghi giá trị mã.
+  function kiemBiMat(req, ma, gui, au) {
     if (laNoiBo(req)) return true;
-    const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
     if (ma.length < 8 || !gui) return false;
     const ip = ipCua(req); const now = Date.now(); const s = saiMa.get(ip);
     if (s && now - s.t < 60000 && s.n >= 10) return false;
@@ -78,24 +86,7 @@ export function taoReview(C) {
     saiTong.n++;
     let n = 1; if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else n = ++s.n;
     // ghi audit lần sai ĐẦU của mỗi IP mỗi phút và lần chạm ngưỡng chặn — không để dò mã làm đầy nhật ký
-    if (n === 1 || n === 10) AU.ghi({ loai: 'quyen.sai-ma', dt: { duong: String(req.url || '').split('?')[0].slice(0, 80) }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro' }, truoc: null, sau: null, ghiChu: `thử mã chủ quản sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
-    if (saiMa.size > 5000) saiMa.clear();
-    return false;
-  }
-  // Mật khẩu MCP («maMcp» trong chu-quan.json): gọi /mcp qua tên miền bắt buộc «Authorization: Bearer <maMcp>»; 127.0.0.1 gõ thẳng thì mở.
-  // Sai mã dùng chung bộ giới hạn với mã chủ quản (10 lần/phút/IP, 100 lần/phút cả máy chủ). Không bao giờ ghi giá trị mã.
-  function kiemMaMcp(req) {
-    if (laNoiBo(req)) return true;
-    const ma = String(cauHinh().maMcp || ''); const m = String(req.headers.authorization || '').match(/^Bearer\s+(.+)$/i); const gui = m ? m[1].trim() : '';
-    if (ma.length < 8 || !gui) return false;
-    const ip = ipCua(req); const now = Date.now(); const s = saiMa.get(ip);
-    if (s && now - s.t < 60000 && s.n >= 10) return false;
-    if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
-    if (saiTong.n >= 100) return false;
-    if (dungMa(ma, gui)) return true;
-    saiTong.n++;
-    let n = 1; if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else n = ++s.n;
-    if (n === 1 || n === 10) AU.ghi({ loai: 'quyen.sai-ma-mcp', dt: { duong: '/mcp' }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro', nguon: 'mcp' }, truoc: null, sau: null, ghiChu: `thử mật khẩu MCP sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
+    if (n === 1 || n === 10) AU.ghi({ loai: au.loai, dt: { duong: au.duong }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro', ...(au.them || {}) }, truoc: null, sau: null, ghiChu: `thử ${au.ten} sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
     if (saiMa.size > 5000) saiMa.clear();
     return false;
   }

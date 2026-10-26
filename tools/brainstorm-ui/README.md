@@ -88,5 +88,5 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
 | `ds_gop_y`, `them_gop_y`, `tra_loi_gop_y`, `doi_trang_thai_gop_y` | góp ý (mặc định ẩn Đã xử lý; thêm góp ý qua link `/r/` mới nhất đang mở) |
 | `doc_de_xuat`, `chap_nhan_de_xuat`, `tu_choi_de_xuat` | đề xuất của reviewer |
 | `nhat_ky` | audit gần đây (HTML lớn rút gọn) |
-| `ngu_canh_bien_the` → `tao_bien_the` | biến thể một màn, 2 bước: ngữ cảnh y hệt bàn web (system `heThong`, `loiNguoiDung` theo k/n, kit CSS, ảnh màn, góp ý mở) → lưu HTML/câu trả lời do client sinh (lamSach, so `data-toi`, trả id + ảnh) |
+| `ngu_canh_bien_the` → `tao_bien_the` | biến thể một màn, 2 bước (truyền lại `dot` để k=1..n xếp chung một hàng): ngữ cảnh y hệt bàn web (system `heThong`, `loiNguoiDung` theo k/n, kit CSS, ảnh màn, góp ý mở) → lưu HTML/câu trả lời do client sinh (lamSach, so `data-toi`, trả id + ảnh) |
 | `ngu_canh_hanh_trinh` → `tao_phuong_an` | như trên cho CẢ hành trình (`loiHanhTrinh` / `tachHanhTrinh`) |
