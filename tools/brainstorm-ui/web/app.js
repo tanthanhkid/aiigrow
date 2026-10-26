@@ -4,6 +4,7 @@ import { taiHanhTrinh } from './hanh-trinh/index.js';
 import { taoQuyTrinh } from './quy-trinh.js';
 import { heThong, loiNguoiDung, tachKetQua, loiHanhTrinh, tachHanhTrinh, HUONG } from './prompt.js';
 import * as Sua from './che-do-sua.js';
+import { taoRealtime } from './realtime.js';
 
 const $ = (s) => document.querySelector(s);
 const MODELS = [['claude-opus-5-5', 'Claude Opus 5.5'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5']];
@@ -142,11 +143,13 @@ const lanHien = (l) => st.cheDo !== 'qt' && secCuaLan(l) === st.sec;
 if (st.views[khoaView()]) st.view = { ...st.views[khoaView()] };
 
 let henLuu = 0;
+let rt = null; // lớp realtime (gán khi khởi động)
 function luuLai() {
   clearTimeout(henLuu);
   henLuu = setTimeout(() => {
     const khung = st.khung.filter((f) => f.loai === 'bien').map(({ htmlGoc, tenGoc, ...f }) => f);
     if (!ghi(KHOA_LUU, { khung: [...khung, ...st.giuKhung], lanBt: [...st.lanBt, ...st.giuLan] })) toast('Bộ nhớ trình duyệt đầy — xoá bớt biến thể (Dọn biến thể) để lưu.', true);
+    dongBoBt();
   }, 300);
 }
 let henView = 0;
@@ -225,6 +228,7 @@ function apView() {
   $('#nut-zoom').textContent = `${Math.round(z * 100)}%`;
   henAo();
   Sua.khiDoiView();
+  rt?.khiDoiView();
 }
 
 // Ảo hoá: iframe chỉ sống khi khung nằm trong viewport (+ lề) và zoom ≥ 40%; còn lại là ảnh thu nhỏ / khung xám.
@@ -524,7 +528,7 @@ function veTatCa(xep = true) {
   if (st.cheDo === 'qt' && qtDaVe !== st.sec) { qtDaVe = st.sec; qt.ve(st.sec, SECTIONS.find((x) => x.id === st.sec)?.lan || []); }
   if (st.cheDo !== 'qt') qtDaVe = '';
   $('#nut-qt').classList.toggle('bat', st.cheDo === 'qt');
-  henAo(); Sua.khiDoiView();
+  henAo(); Sua.khiDoiView(); rt?.khiVe();
   $('#nut-so-sanh').disabled = !(st.chon.size >= 2 && st.chon.size <= 4);
   $('#nut-so-sanh').textContent = st.chon.size >= 2 ? `So sánh (${st.chon.size})` : 'So sánh';
   $('#nut-lk').classList.toggle('bat', caiDat.lienKet);
@@ -1218,6 +1222,7 @@ async function thayMan(key, html, meta = {}) {
   meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
   qtDaVe = ''; veTatCa(); luuLai();
   toast(`Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}; bản cũ vẫn trong Lịch sử.`);
+  rt?.phat({ t: 'su', loai: 'thay', key });
   return true;
 }
 async function thayBangKhung(id) {
@@ -1277,6 +1282,7 @@ $('#ls-khoi-phuc').onclick = async () => {
   try { await apPhienBan(key); } catch (e) { toast(`Đã khôi phục trên máy chủ (v${PB[key].hien}) nhưng chưa tải được bản đó (${e.message}) — tải lại trang.`, true); }
   ls.v = PB[key].hien; qtDaVe = ''; veTatCa(); veLichSu();
   toast(`Đã khôi phục v${v} thành v${PB[key].hien} — «${MAN[key].ten}» hiển thị bản này ở mọi nơi.`);
+  rt?.phat({ t: 'su', loai: 'thay', key });
 };
 
 let hoanTac = null;
@@ -1384,6 +1390,64 @@ if (!st.views[khoaView()]) vuaMan();
 ghiHash();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
 { let an = false; try { an = localStorage.getItem('bs.an-ben') === '1'; } catch { /* bỏ qua */ } if (an) datBen(true, false); }
+// ---------- realtime: con trỏ + đồng bộ bảng với người khác cùng mở ----------
+// Biến thể màn lẻ: sau mỗi lần lưu, so với bản đã biết → phát khung mới/đổi, phát id đã xoá. Phương án hành trình không đồng bộ.
+const daBiet = new Map(); // id → băm HTML đã phát/nhận
+const dongBoDuoc = (f) => f.loai === 'bien' && !f.lan && f.tt === 'xong' && !!f.html && !!MAN[f.goc];
+const goiBt = (f) => ({ id: f.id, loai: 'bien', goc: f.goc, cha: f.cha, dot: f.dot, k: f.k, n: f.n, yTuong: f.yTuong, w: f.w, h: f.h, html: f.html, nhan: f.nhan, model: f.model, dung: f.dung, suaTay: f.suaTay });
+for (const f of st.khung) if (dongBoDuoc(f)) daBiet.set(f.id, bam(f.html));
+function dongBoBt() {
+  if (!rt) return;
+  const con = new Set();
+  for (const f of st.khung) {
+    if (!dongBoDuoc(f)) continue; con.add(f.id);
+    const b = bam(f.html); if (daBiet.get(f.id) === b) continue;
+    if (f.html.length > 5.5e6) continue; // quá cỡ gói: giữ riêng máy này
+    daBiet.set(f.id, b); rt.phat({ t: 'bt', f: goiBt(f) });
+  }
+  const xoa = [...daBiet.keys()].filter((id) => !con.has(id) && !st.khung.some((f) => f.id === id));
+  if (xoa.length) { for (const id of xoa) daBiet.delete(id); rt.phat({ t: 'su', loai: 'xoa', ids: xoa }); }
+}
+async function napLaiPhienBan(key) {
+  if (!MAN[key]) return;
+  try {
+    const r = await fetch('/api/phien-ban'); if (!r.ok) return; const ds = await r.json();
+    if (ds[key]) { PB[key] = ds[key]; await apPhienBan(key); } else { delete PB[key]; await apPhienBan(key); }
+  } catch { return; }
+  qtDaVe = ''; veTatCa();
+  if (!$('#lop-ls').hidden && ls.key === key) veLichSu();
+  if (!$('#lop-play').hidden) vePlay('');
+}
+function nhanBt(g, p) {
+  if (!g || typeof g.id !== 'string' || !/^[\w-]{1,80}$/.test(g.id) || !MAN[g.goc] || typeof g.html !== 'string') return;
+  const w = Number(g.w), h = Number(g.h); if (!(w > 0 && w < 5000 && h > 0 && h < 20000)) return;
+  const html = lamSach(g.html);
+  const cu = timKhung(g.id);
+  if (cu) { if (cu.loai !== 'bien' || cu.lan) return; cu.html = html; cu.nhan = String(g.nhan || cu.nhan || '').slice(0, 200); }
+  else {
+    const cha = typeof g.cha === 'string' && timKhung(g.cha) ? g.cha : g.goc;
+    st.khung.push({ id: g.id, loai: 'bien', goc: g.goc, cha, dot: String(g.dot || g.id).slice(0, 40), k: Number(g.k) || 1, n: Number(g.n) || 1,
+      yTuong: String(g.yTuong || '').slice(0, 2000), w, h, x: 0, y: 0, html, tt: 'xong', nhan: String(g.nhan || '').slice(0, 200),
+      model: String(g.model || '').slice(0, 60), suaTay: Array.isArray(g.suaTay) ? g.suaTay.slice(0, 200).map((x) => String(x).slice(0, 300)) : undefined, tu: String(p?.ten || '').slice(0, 40) });
+  }
+  daBiet.set(g.id, bam(html)); // không phát ngược lại
+  veTatCa(); luuLai();
+  toast(`${p?.ten || 'Người khác'} vừa ${cu ? 'cập nhật' : 'thêm'} một biến thể của «${MAN[g.goc].ten}».`);
+}
+function nhanSu(m, p) {
+  if (m.loai === 'thay' && MAN[m.key]) { napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`)); return; }
+  if (m.loai === 'xoa') {
+    const ids = m.ids.filter((id) => { const f = timKhung(id); return f && f.loai === 'bien' && !f.lan && !dangDungBt(f) && !st.dangChay.has(id) && Sua.dangSua() !== id; });
+    if (!ids.length) return;
+    for (const id of ids) daBiet.delete(id);
+    for (const f of st.khung) if (ids.includes(f.cha)) f.cha = timKhung(f.cha)?.cha || f.goc;
+    st.khung = st.khung.filter((f) => !ids.includes(f.id)); for (const id of ids) st.chon.delete(id);
+    veTatCa(); luuLai(); toast(`${p.ten} vừa xoá ${ids.length} biến thể.`);
+  }
+}
+rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanBt, nhanSu, sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
+  doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), datView: (v) => { st.view = v; apView(); luuView(); } });
+
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
   lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
-window.__bs = { pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+window.__bs = { rt, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

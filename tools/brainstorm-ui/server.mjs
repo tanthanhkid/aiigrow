@@ -5,6 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ganRealtime } from './realtime.mjs';
 
 const GOC = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(GOC, '../..');
@@ -99,11 +100,13 @@ function gui(res, ma, kieu, noiDung, them = {}) {
 }
 const json = (res, ma, obj) => gui(res, ma, 'application/json; charset=utf-8', JSON.stringify(obj));
 
-function guiTep(res, tep) {
+// connect-src thêm ws(s):// đúng host đang truy cập (qua tunnel là host tunnel) cho lớp realtime.
+const cspCho = (req) => { const h = req.headers.host || ''; return /^[\w.-]+(:\d+)?$/.test(h) ? CSP.replace("connect-src 'self'", `connect-src 'self' ws://${h} wss://${h}`) : CSP; };
+function guiTep(res, tep, csp = CSP) {
   fs.readFile(tep, (loi, buf) => {
     if (loi) return gui(res, 404, 'text/plain; charset=utf-8', 'Không có');
     const kieu = LOAI[path.extname(tep).toLowerCase()] || 'application/octet-stream';
-    gui(res, 200, kieu, buf, kieu.startsWith('text/html') ? { 'Content-Security-Policy': CSP } : {});
+    gui(res, 200, kieu, buf, kieu.startsWith('text/html') ? { 'Content-Security-Policy': csp } : {});
   });
 }
 
@@ -167,7 +170,7 @@ const may = http.createServer(async (req, res) => {
     const ten = p === '/' ? 'index.html' : p.slice(1);
     const tep = path.resolve(WEB, ten);
     if (!tep.startsWith(WEB + path.sep)) return gui(res, 404, 'text/plain', 'Không có');
-    return guiTep(res, tep);
+    return guiTep(res, tep, cspCho(req));
   } catch {
     // Không in nội dung yêu cầu ra log.
     return json(res, 500, { loi: 'Lỗi máy chủ cục bộ' });
@@ -231,4 +234,5 @@ may.on('listening', () => {
   if (!fs.existsSync(TEP['/vendor/html-to-image.js'])) console.warn('! Chưa có node_modules/html-to-image — chạy `npm install` để xuất PNG.');
   console.log(`\n  Bàn brainstorm AiiGrow đang chạy:  http://127.0.0.1:${cong}/\n  (thử không cần key: http://127.0.0.1:${cong}/?mock=1)  ·  Ctrl+C để tắt\n`);
 });
+ganRealtime(may, hopLeNguon);
 may.listen(cong, '127.0.0.1');
