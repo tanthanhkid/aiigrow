@@ -78,7 +78,6 @@ if (luu) {
 }
 const viewDaLuu = doc(KHOA_VIEW, null) || {};
 st.views = viewDaLuu && !Number.isFinite(viewDaLuu.z) ? viewDaLuu : {};
-if (st.views[st.sec]) st.view = { ...st.views[st.sec] };
 for (const f of st.khung) if (f.tt === 'dang') { f.tt = 'loi'; f.loi = 'Trang đã tải lại khi đang sinh — bấm Thử lại.'; }
 for (const l of st.lanBt) if (l.tt === 'dang') { l.tt = 'loi'; l.loi = 'Trang đã tải lại khi đang sinh.'; }
 
@@ -98,6 +97,7 @@ const secCuaLan = (l) => { const g = l && (l.goc ? l : timLan(l.tu)); return g ?
 const secTu = (id) => (SECTIONS.some((x) => x.id === id) ? id : '');
 st.sec = secTu(decodeURIComponent(location.hash.slice(1))) || secTu(caiDat.sec) || SECTIONS[0]?.id;
 const lanHien = (l) => secCuaLan(l) === st.sec;
+if (st.views[st.sec]) st.view = { ...st.views[st.sec] };
 
 let henLuu = 0;
 function luuLai() {
@@ -213,8 +213,12 @@ function datSong(f, d, song) {
   if (!d.iframe) xepAnh(f);
 }
 // mã băm rẻ để nhận ra HTML đã đổi (khoá cho ảnh thu nhỏ + liên kết đã đo)
-function bam(sv) { let h = 5381; for (let i = 0; i < sv.length; i += Math.max(1, sv.length >> 12)) h = ((h << 5) + h + sv.charCodeAt(i)) | 0; return `${sv.length}:${h}`; }
-const anhNho = new Map();  // băm → objectURL
+function bam(sv) { let h = 0x811c9dc5, g = 5381; for (let i = 0; i < sv.length; i++) { const c = sv.charCodeAt(i); h = Math.imul(h ^ c, 16777619); g = ((g << 5) + g + c) | 0; } return `${sv.length}:${h >>> 0}:${g >>> 0}`; }
+const anhNho = new Map();  // băm → objectURL ('' = chụp lỗi); giữ tối đa 400, bỏ cái cũ nhất
+function ghiAnhNho(k, url) {
+  anhNho.set(k, url);
+  while (anhNho.size > 400) { const [k0, u0] = anhNho.entries().next().value; anhNho.delete(k0); lkDo.delete(k0); if (u0) URL.revokeObjectURL(u0); }
+}
 const lkDo = new Map();    // băm → [liên kết đã đo]
 const hangCho = [];        // khung chờ chụp ảnh thu nhỏ
 let dangChup = false;
@@ -222,31 +226,36 @@ function bamCua(f, d) { const html = htmlCua(f); if (d.banBam !== html) { d.banB
 function xepAnh(f) {
   const d = dom.get(f.id); if (!d || f.tt === 'dang' || !htmlCua(f)) return;
   const k = bamCua(f, d);
-  if (anhNho.has(k)) { datAnhNho(d, anhNho.get(k)); return; }
+  if (anhNho.has(k)) { if (anhNho.get(k)) datAnhNho(d, anhNho.get(k)); return; }
   if (!hangCho.includes(f.id)) hangCho.push(f.id);
   if (!dangChup) setTimeout(chupHang, 30);
 }
 function datAnhNho(d, url) {
   let img = d.el.querySelector('.anh-nho');
-  if (!img) { img = document.createElement('img'); img.className = 'anh-nho'; img.alt = ''; img.decoding = 'async'; d.el.querySelector('.than').prepend(img); }
+  if (!img) { img = document.createElement('img'); img.className = 'anh-nho'; img.alt = ''; img.decoding = 'async'; img.draggable = false; d.el.querySelector('.than').prepend(img); }
   if (img.getAttribute('src') !== url) img.src = url;
 }
 async function chupHang() {
   if (dangChup) return; dangChup = true;
   try {
     while (hangCho.length) {
-      // ưu tiên khung đang nằm gần viewport
-      const id = hangCho.shift(); const f = timKhung(id); const d = dom.get(id);
+      // ưu tiên khung gần tâm viewport
+      const r = vung.getBoundingClientRect(); const { x, y, z } = st.view;
+      const cx = (r.width / 2 - x) / z, cy = (r.height / 2 - y) / z;
+      let tot = 0, kc = Infinity;
+      hangCho.forEach((hid, i) => { const g = timKhung(hid); if (!g) return; const v = Math.hypot(g.x - cx, g.y - cy); if (v < kc) { kc = v; tot = i; } });
+      const id = hangCho.splice(tot, 1)[0]; const f = timKhung(id); const d = dom.get(id);
       if (!f || !d || f.tt === 'dang' || !htmlCua(f)) continue;
       const k = bamCua(f, d);
       if (!anhNho.has(k)) {
         try {
           const { blob, lk } = await chupAnh(htmlCua(f), kichThuoc(f), { pixelRatio: 0.45, skipFonts: true, doLk: true });
-          anhNho.set(k, URL.createObjectURL(blob));
-          if (lk) { lkDo.set(k, lk); if (!d.lk.length) { d.lk = lk; henVeNoi(); } }
-        } catch { anhNho.set(k, ''); }
+          ghiAnhNho(k, URL.createObjectURL(blob));
+          if (lk) { lkDo.set(k, lk); const d2 = dom.get(id); if (d2 && bamCua(f, d2) === k && !d2.lk.length) { d2.lk = lk; henVeNoi(); } }
+        } catch { ghiAnhNho(k, ''); }
       }
-      if (dom.get(id) && !dom.get(id).iframe && anhNho.get(k)) datAnhNho(dom.get(id), anhNho.get(k));
+      const d3 = dom.get(id);
+      if (d3 && !d3.iframe && bamCua(f, d3) === k && anhNho.get(k)) datAnhNho(d3, anhNho.get(k));
       await new Promise((r) => setTimeout(r, 10));
     }
   } finally { dangChup = false; }
@@ -1045,7 +1054,7 @@ async function htmlTuDung(html, khoaScript = true) {
   let s = lamSach(html);
   // tệp xuất/lưu mở ngoài bàn này: cấm mọi script (lớp chặn thứ hai sau lamSach)
   if (khoaScript) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'">`);
-  cssKit ??= fetch('/assets/clay-kit.css').then((r) => r.text());
+  cssKit ??= fetch('/assets/clay-kit.css').then((r) => { if (!r.ok) throw new Error(`clay-kit.css ${r.status}`); return r.text(); }).catch((e) => { cssKit = null; throw e; });
   const css = await cssKit;
   s = s.replace(/<link[^>]*href=["']\/assets\/clay-kit\.css["'][^>]*>/gi, () => `<style>${css}</style>`);
   const ds = [...new Set(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || [])];
@@ -1191,4 +1200,4 @@ capNhatCheDo(); apView(); veTatCa();
 if (!st.views[st.sec]) vuaMan();
 try { history.replaceState(null, '', `#${encodeURIComponent(st.sec)}`); } catch { /* bỏ qua */ }
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
-window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, SECTIONS, dom, anhNho }; // để nghiệm thu tự động // để nghiệm thu tự động
+window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, SECTIONS, dom, anhNho }; // để nghiệm thu tự động

@@ -68,7 +68,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .than{position:relative;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 24px 60px -30px rgba(28,32,30,.45),0 0 0 1px rgba(15,19,18,.08)}
 .than iframe{position:absolute;inset:0;display:block;border:0;background:#fff;pointer-events:none;z-index:1}
 .than .xam{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:repeating-linear-gradient(135deg,#f1f0ec 0 18px,#ecebe6 18px 36px);font:700 22px Inter;color:#9a9890;text-align:center}
-.than .anh-nho{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;object-position:top left;background:#fff}
+.than .anh-nho{position:absolute;inset:0;z-index:1;pointer-events:none;width:100%;height:100%;object-fit:cover;object-position:top left;background:#fff}
 .than .anh-that,.than .tien-do{z-index:2}
 .than .phu-chuot{position:absolute;inset:0;cursor:default}
 .khung.chon .than{box-shadow:0 0 0 3px #0f6b5c,0 24px 60px -30px rgba(28,32,30,.45)}
@@ -133,11 +133,7 @@ kbd{font:600 11px Inter;opacity:.6;margin-left:4px}
 .ben-sec .so{font:600 11.5px Inter;color:var(--chu3);flex:none}
 .ben-sec.bat{background:#e6f2ef;color:var(--ngocDam)}
 .ben-sec:hover{background:#f1f0ec}
-.ben-loc{display:flex;flex-wrap:wrap;gap:6px;padding:6px 16px 10px;border-bottom:1px solid var(--vien)}
-.ben-loc button{min-height:32px;padding:0 10px;font-size:12.5px;border-radius:99px;box-shadow:inset 0 0 0 1px var(--vien);background:#fff}
-.ben-loc button.bat{background:#0f6b5c;color:#fff;box-shadow:none}
 .ben-ds{flex:1;overflow:auto;padding:8px 8px 24px}
-.ben-nhom{font:700 12px Inter;color:var(--chu3);text-transform:uppercase;letter-spacing:.4px;padding:12px 8px 4px}
 .ben-muc{width:100%;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 10px;border-radius:12px;background:transparent;box-shadow:none;text-align:left;font-weight:600}
 .ben-muc .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ben-muc .so{font:600 12px Inter;color:var(--chu3)}
