@@ -65,8 +65,9 @@ function trongThuMuc(thuMuc, ten) {
 function docThan(req, gioiHan = 8 * 1024 * 1024) {
   return new Promise((ok, hong) => {
     let n = 0; const phan = [];
-    req.on('data', (c) => { n += c.length; if (n > gioiHan) { hong(new Error('quá lớn')); req.destroy(); } else phan.push(c); });
-    req.on('end', () => ok(Buffer.concat(phan).toString('utf8')));
+    let qua = false;
+    req.on('data', (c) => { n += c.length; if (n > gioiHan) qua = true; else phan.push(c); });
+    req.on('end', () => (qua ? hong(Object.assign(new Error('quá lớn'), { ma: 413 })) : ok(Buffer.concat(phan).toString('utf8'))));
     req.on('error', hong);
   });
 }
@@ -86,13 +87,18 @@ const may = http.createServer(async (req, res) => {
 
     if (p === '/api/luu' && req.method === 'POST') {
       if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
-      const { ten, html } = JSON.parse(await docThan(req));
+      let than;
+      try { than = await docThan(req); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Tệp quá lớn (>8 MB) — dùng Tải HTML' : 'Không đọc được yêu cầu' }); }
+      const { ten, html } = JSON.parse(than);
       if (typeof html !== 'string' || !html.trim()) return json(res, 400, { loi: 'Thiếu HTML' });
       fs.mkdirSync(DA_LUU, { recursive: true });
       const d = new Date(); const pad = (x) => String(x).padStart(2, '0');
       const ma = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-      const tep = path.join(DA_LUU, `${ma}-${tenTep(ten)}.html`);
-      fs.writeFileSync(tep, html);
+      let tep;
+      for (let i = 0; ; i++) {
+        tep = path.join(DA_LUU, `${ma}-${tenTep(ten)}${i ? '-' + i : ''}.html`);
+        try { fs.writeFileSync(tep, html, { flag: 'wx' }); break; } catch (e) { if (e.code !== 'EEXIST' || i > 50) throw e; }
+      }
       return json(res, 200, { tep: path.relative(REPO, tep) });
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');

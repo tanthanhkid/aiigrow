@@ -61,12 +61,13 @@ function ganToi(html, nhan, dich, tenDich) {
 // ---------- trạng thái ----------
 const luu = doc(KHOA_LUU, null);
 const KHOA_VIEW = 'bs.view';
-const st = { khung: [], lanBt: [], view: { x: 40, y: 40, z: 0.2 }, chon: new Set(), lanChon: null, dangChay: new Map(), viTriLan: new Map() };
+const st = { khung: [], lanBt: [], giuKhung: [], giuLan: [], view: { x: 40, y: 40, z: 0.2 }, chon: new Set(), lanChon: null, dangChay: new Map(), viTriLan: new Map() };
 for (const k of Object.keys(MAN)) st.khung.push({ id: k, loai: 'goc', key: k });
 if (luu) {
-  for (const f of luu.khung || []) if (f.loai === 'bien' && MAN[f.goc]) st.khung.push(f);
-  st.lanBt = (luu.lanBt || []).filter((l) => LAN_GOC.some((g) => g.id === l.tu));
-  st.khung = st.khung.filter((f) => !f.lan || st.lanBt.some((l) => l.id === f.lan));
+  // mục của màn/hành trình hiện không tải được (tệp lỗi…) giữ riêng và ghi lại nguyên vẹn — không bao giờ xoá im lặng
+  const lanCo = (id) => LAN_GOC.some((g) => g.id === id);
+  for (const l of luu.lanBt || []) (lanCo(l.tu) ? st.lanBt : st.giuLan).push(l);
+  for (const f of luu.khung || []) (f.loai === 'bien' && MAN[f.goc] && (!f.lan || st.lanBt.some((l) => l.id === f.lan)) ? st.khung : st.giuKhung).push(f);
 }
 { const v = doc(KHOA_VIEW, null); if (v && Number.isFinite(v.z)) st.view = v; }
 for (const f of st.khung) if (f.tt === 'dang') { f.tt = 'loi'; f.loi = 'Trang đã tải lại khi đang sinh — bấm Thử lại.'; }
@@ -87,7 +88,7 @@ function luuLai() {
   clearTimeout(henLuu);
   henLuu = setTimeout(() => {
     const khung = st.khung.filter((f) => f.loai === 'bien').map(({ htmlGoc, tenGoc, ...f }) => f);
-    if (!ghi(KHOA_LUU, { khung, lanBt: st.lanBt })) toast('Bộ nhớ trình duyệt đầy — xoá bớt biến thể (Dọn biến thể) để lưu.', true);
+    if (!ghi(KHOA_LUU, { khung: [...khung, ...st.giuKhung], lanBt: [...st.lanBt, ...st.giuLan] })) toast('Bộ nhớ trình duyệt đầy — xoá bớt biến thể (Dọn biến thể) để lưu.', true);
   }, 300);
 }
 let henView = 0;
@@ -565,6 +566,7 @@ async function goiClaude({ sys, user, signal, moiChu, khiBatDau, maxTokens }) {
       } else if (ev.type === 'error') throw new Error(`Claude báo lỗi giữa chừng: ${ev.error?.message || ev.error?.type}`);
     }
   }
+  if (!lyDo) throw new Error('Kết nối tới Claude bị đứt giữa chừng — Thử lại.');
   return { txt, lyDo, dung };
 }
 
@@ -629,6 +631,7 @@ async function sinh() {
   const moi = [];
   for (let k = 1; k <= n; k++) moi.push({ id: `bt-${dot}-${k}`, loai: 'bien', goc: keyCua(cha), cha: cha.id, dot, k, n, yTuong: y, w, h, x: 0, y: 0, html: '', tt: 'dang', tienDo: 'Đang chờ lượt…', model: laMock() ? 'mock' : modelDung() });
   st.khung.push(...moi);
+  for (const f of moi) st.dangChay.set(f.id, new AbortController());
   st.chon.clear(); st.chon.add(cha.id); veTatCa(); vuaMan([cha.id, ...moi.map((f) => f.id)]);
   trangThaiBang(`Đang sinh ${n} biến thể bằng ${laMock() ? 'mock' : modelDung()} — gửi 1 yêu cầu trước để ghi cache…`);
   const kq = await chayLoat(moi.map((f) => (bao) => chay(f, htmlCua(cha), tenCua(cha), bao)));
@@ -640,11 +643,14 @@ async function sinh() {
 }
 
 async function chay(f, htmlGoc, tenGoc, khiBatDau) {
-  const ctl = new AbortController(); st.dangChay.set(f.id, ctl); veBang();
+  const ctl = st.dangChay.get(f.id) || new AbortController(); st.dangChay.set(f.id, ctl); veBang();
   if (!laMock()) f.model = modelDung(); else f.model = 'mock';
   f.tt = 'dang'; f.loi = ''; f.htmlGoc = htmlGoc; f.tenGoc = tenGoc; f.tienDo = 'Đang gọi Claude…'; veKhung(f);
   const batDau = Date.now(); let lanVe = 0;
+  let lanTach = 0;
   const moiChu = (txt, dung, nghi) => {
+    if (Date.now() - lanTach < 400) return; // điều tiết: không quét lại cả chuỗi ở mỗi delta
+    lanTach = Date.now();
     const { nhan, html } = tachKetQua(txt);
     f.dung = { ...dung };
     const giay = Math.round((Date.now() - batDau) / 1000);
@@ -654,6 +660,7 @@ async function chay(f, htmlGoc, tenGoc, khiBatDau) {
     veKhung(f);
   };
   try {
+    if (ctl.signal.aborted) throw new DOMException('dừng', 'AbortError');
     const sys = heThong(await taiAssets());
     const user = loiNguoiDung({ y: f.yTuong, html: htmlGoc, w: f.w, h: f.h, ten: tenGoc, k: f.k, n: f.n });
     const { txt, lyDo, dung } = await (laMock()
@@ -696,6 +703,7 @@ async function sinhHanhTrinh(lanLai) {
       st.lanBt.push(l);
       for (const b of buoc) st.khung.push({ id: `${l.id}-${b.key}`, loai: 'bien', lan: l.id, goc: b.key, cha: b.key, dot, k: l.k, w: b.w, h: b.h, html: '', tt: 'dang', tienDo: 'Đang chờ lượt…', yTuong: y, x: 0, y: 0 });
     }
+    if (!st.dangChay.has(l.id)) st.dangChay.set(l.id, new AbortController());
     lans.push(l);
   }
   st.lanChon = lans[0].id; veTatCa();
@@ -708,13 +716,16 @@ async function sinhHanhTrinh(lanLai) {
 }
 
 async function chayHanhTrinh(l, g, buoc, khiBatDau) {
-  const ctl = new AbortController(); st.dangChay.set(l.id, ctl); veBang();
+  const ctl = st.dangChay.get(l.id) || new AbortController(); st.dangChay.set(l.id, ctl); veBang();
   const khung = buoc.map((b) => st.khung.find((f) => f.lan === l.id && f.goc === b.key)).filter(Boolean);
   l.tt = 'dang'; l.loi = '';
   for (const f of khung) { f.tt = 'dang'; f.loi = ''; f.tienDo = 'Đang gọi Claude…'; }
   veTatCa(false);
   const batDau = Date.now(); let lanVe = 0;
+  let lanTach = 0;
   const moiChu = (txt, dung, nghi) => {
+    if (Date.now() - lanTach < 600) return;
+    lanTach = Date.now();
     l.dung = { ...dung };
     const { nhan, man } = tachHanhTrinh(txt);
     if (nhan) l.nhan = nhan;
@@ -727,6 +738,7 @@ async function chayHanhTrinh(l, g, buoc, khiBatDau) {
     if (Date.now() - lanVe > 800) { lanVe = Date.now(); khung.forEach(veKhung); veDauLan(); }
   };
   try {
+    if (ctl.signal.aborted) throw new DOMException('dừng', 'AbortError');
     const sys = heThong(await taiAssets());
     const user = loiHanhTrinh({ y: l.yTuong, lan: g, buoc, k: l.k, n: l.n });
     const maxTokens = Math.min(64000, Math.max(Number(caiDat.maxTokens) || 16000, buoc.length * 6000 + 4000));
@@ -1006,6 +1018,7 @@ $('#nut-xoa-bt').onclick = () => {
   if (!n) { toast('Không có biến thể chưa ghim.'); return; }
   if (!confirm(`Xoá ${n} biến thể màn lẻ chưa ghim? (đã ghim và phương án hành trình giữ lại)`)) return;
   hoanTac = chupLai();
+  for (const f of st.khung) if (f.loai !== 'goc' && !f.ghim && !f.lan) st.dangChay.get(f.id)?.abort();
   st.khung = st.khung.filter((f) => f.loai === 'goc' || f.ghim || f.lan); st.chon.clear();
   for (const f of st.khung) if (f.cha && !timKhung(f.cha)) f.cha = f.goc;
   veTatCa(); luuLai(); toast(`Đã dọn ${n} biến thể — ⌘Z để hoàn tác.`);
