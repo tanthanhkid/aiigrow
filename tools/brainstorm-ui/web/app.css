@@ -140,7 +140,7 @@ kbd{font:600 11px Inter;opacity:.6;margin-left:4px}
 .ben-muc.pa{padding-left:24px;font-weight:500;color:var(--ngocDam)}
 .ben-muc:hover{background:#fff}
 .ben-muc.bat{background:#dcebe6;color:#0a5246}
-#bang.che-do-lan #nut-xem,#bang.che-do-lan #nut-ghim,#bang.che-do-lan #nut-html,#bang.che-do-lan #nut-png,#bang.che-do-lan #nut-xoa{display:none}
+#bang.che-do-lan #nut-xem,#bang.che-do-lan #nut-thay-bang,#bang.che-do-lan #nut-ls-bang,#bang.che-do-lan .menu-phu,#bang.che-do-lan #nut-xoa{display:none}
 /* play */
 .lop-play{flex-direction:column;align-items:stretch;justify-content:stretch;background:#16201d;padding:0;gap:0}
 .play-tren,.play-duoi{display:flex;align-items:center;gap:10px;padding:10px 16px;color:#e8ece9;min-height:60px}
@@ -191,3 +191,34 @@ body.che-do-qt .chi-canvas,body.che-do-qt #noi{display:none}
 #qt-lop g.qt-man:hover .qt-hop,#qt-lop g.qt-man:focus .qt-hop{stroke:#0f6b5c;stroke-width:3.5}
 #qt-lop g.qt-man:focus{outline:none}
 #qt-lop .qt-song{position:absolute;transform-origin:0 0;border:0;background:#fff;pointer-events:none;border-radius:6px}
+
+/* thay màn + lịch sử phiên bản */
+.luoi-nut button[hidden]{display:none}
+.menu-phu summary{cursor:pointer;padding:4px 0}
+.dau-khung .nut-thay,.dau-khung .nut-xoa-k,.dau-khung .nut-ls{min-height:26px;height:26px;padding:0 10px;border-radius:9px;font:700 12px Inter;flex:none;margin-left:6px}
+.dau-khung .nut-thay{background:#0f6b5c;color:#fff}
+.dau-khung .nut-xoa-k{color:var(--loi)}
+.dau-khung .nut-ls{background:#e6f2ef;color:var(--ngocDam)}
+.dau-khung [hidden]{display:none}
+#toast.co-nut{pointer-events:auto}
+#toast button{margin-left:10px;min-height:32px;padding:0 12px;border-radius:10px;background:#fff;color:#0f1312;font:700 13px Inter}
+.hop-ls{max-width:1100px}
+.ls-than{flex:1;min-height:0;display:flex;gap:16px}
+.ls-ds{width:320px;flex:none;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.ls-muc{display:flex;gap:10px;align-items:flex-start;text-align:left;padding:10px 12px;border-radius:14px;background:#f4f3ef;min-height:44px;width:100%}
+.ls-muc.bat{box-shadow:inset 0 0 0 2px #0f6b5c;background:#e6f2ef}
+.ls-muc .ls-v{font:800 14px Inter;color:var(--ngocDam);flex:none;min-width:30px}
+.ls-muc .ls-ch{display:flex;flex-direction:column;gap:2px;min-width:0;white-space:normal}
+.ls-muc .ls-ch .phu{font-size:12px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ls-muc.hien .ls-v::after{content:' ●';color:#0f6b5c}
+.ls-xem{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px}
+.ls-xem .vo{overflow:hidden;border-radius:8px;box-shadow:0 0 0 1px rgba(15,19,18,.1),0 20px 40px -20px rgba(0,0,0,.4);background:#fff;flex:none}
+.ls-xem iframe{border:0;transform-origin:0 0;display:block}
+@media (max-width:760px){.ls-than{flex-direction:column}.ls-ds{width:auto;max-height:35%}}
+/* thanh bên ẩn/hiện */
+.ben-tieu{display:flex;align-items:center;justify-content:space-between;gap:8px}
+body.an-ben #ben{display:none}
+body.an-ben #vung{left:0}
+#mo-ben{position:fixed;left:0;top:72px;z-index:16;width:28px;min-height:48px;padding:0;border-radius:0 12px 12px 0;background:rgba(247,246,243,.96);box-shadow:1px 0 0 var(--vien),0 4px 12px -6px rgba(0,0,0,.3);font:800 16px Inter}
+#mo-ben[hidden]{display:none}
+@media (max-width:760px){#mo-ben{display:none}}

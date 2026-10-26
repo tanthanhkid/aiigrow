@@ -60,3 +60,5 @@ body.dang-sua #bang{display:none!important}
 .bs-goi-y{font-size:12px;line-height:1.5;margin:0}
 @media (max-width:760px){#bang-sua{left:16px;width:auto;top:auto;bottom:16px;max-height:60%}}
 body.che-do-qt #nut-sua{display:none}
+body.sua-ban .lop-sua,body.sua-ban .khung.dang-sua .than iframe,body.sua-ban #bang-sua{pointer-events:none}
+body.sua-ban #bang-sua{opacity:.7}

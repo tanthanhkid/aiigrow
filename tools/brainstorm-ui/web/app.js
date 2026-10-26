@@ -29,7 +29,7 @@ const ghi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return
 const docKey = () => { try { return localStorage.getItem(KHOA_KEY) || ''; } catch { return ''; } };
 const ghiKey = (v) => { try { v ? localStorage.setItem(KHOA_KEY, v) : localStorage.removeItem(KHOA_KEY); } catch { /* bỏ qua */ } };
 
-const caiDat = Object.assign({ model: MODELS[0][0], modelKhac: '', maxTokens: 16000, soBt: 4, soPa: 2, lienKet: true, lkChon: true, anhThat: false, playDung: 'goc' }, doc(KHOA_CD, {}));
+const caiDat = Object.assign({ model: MODELS[0][0], modelKhac: '', maxTokens: 16000, soBt: 4, soPa: 2, lienKet: true, lkChon: true, anhThat: false }, doc(KHOA_CD, {}));
 const luuCaiDat = () => ghi(KHOA_CD, caiDat);
 const MOCK_URL = new URLSearchParams(location.search).has('mock');
 const laMock = () => MOCK_URL || docKey().toLowerCase().startsWith('mock');
@@ -45,6 +45,42 @@ for (const h of HANH_TRINH) {
   h.buoc.forEach((b, i) => { MAN[b.key] = { ...b, lan: h.id, buoc: i }; });
   // gắn data-toi lên nút dẫn sang bước kế (theo chữ trong «…» của nhãn hành động)
   h.buoc.forEach((b, i) => { const ke = h.buoc[i + 1]; if (ke && b.toi) MAN[b.key].html = ganToi(MAN[b.key].html, b.toi, ke.key, ke.ten); });
+}
+for (const m of Object.values(MAN)) m.goc0 = { html: m.html, w: m.w, h: m.h }; // v0 = bản trong mã
+
+// ---------- phiên bản màn («Thay màn»): kho trên máy chủ, ai mở bàn (kể cả qua tunnel) cũng thấy ----------
+const PB = {};               // key → manifest {hien, ds:[{v, t, tep, w, h, nhan, yTuong, nguon, tu}]}
+const HTML_PB = new Map();   // `${key}/${tep}` → HTML
+const mucPb = (key, v) => PB[key]?.ds.find((x) => x.v === v);
+async function htmlPhienBan(key, v) {
+  const muc = v ? mucPb(key, v) : null;
+  if (!muc || !muc.tep) return MAN[key].goc0.html; // v0 hoặc bản khôi phục về v0
+  const k = `${key}/${muc.tep}`;
+  if (!HTML_PB.has(k)) {
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`);
+    const j = await r.json(); if (!r.ok || typeof j.html !== 'string') throw new Error(j.loi || r.status);
+    HTML_PB.set(k, lamSach(j.html));
+  }
+  return HTML_PB.get(k);
+}
+// đặt bản hiện của màn: giữ data-toi (bản mới thiếu thì gắn lại theo nhãn bước như bản trong mã)
+async function apPhienBan(key) {
+  const m = MAN[key]; const pb = PB[key]; const muc = mucPb(key, pb?.hien);
+  let html = await htmlPhienBan(key, muc?.v || 0);
+  if (PB[key] !== pb) return; // trong lúc tải đã có Thay màn/Khôi phục mới hơn: bản đó tự áp
+  const l = LAN_GOC.find((x) => x.id === m.lan); const ke = l?.buoc[m.buoc + 1];
+  if (ke && m.toi && !/data-toi=/.test(html)) html = ganToi(html, m.toi, ke, MAN[ke]?.ten);
+  m.html = html; m.w = muc?.w || m.goc0.w; m.h = muc?.h || m.goc0.h;
+}
+// Nạp sau lần vẽ đầu (không chặn trang): màn nào có bản đã thay thì đổi sang bản đó khi tải xong.
+async function taiPhienBan() {
+  let ds; try { const r = await fetch('/api/phien-ban'); if (!r.ok) return; ds = await r.json(); } catch { return; } // máy chủ cũ: dùng bản trong mã
+  const loi = [];
+  await Promise.all(Object.entries(ds).map(async ([key, m]) => {
+    if (!MAN[key] || !Array.isArray(m?.ds) || PB[key]) return; // PB đã có: phiên này vừa Thay màn, giữ bản mới hơn
+    try { PB[key] = m; await apPhienBan(key); } catch { if (PB[key] === m) { loi.push(key); delete PB[key]; MAN[key].html = MAN[key].goc0.html; } }
+  }));
+  if (loi.length) toast(`Không tải được phiên bản đã thay của: ${loi.join(', ')} — đang hiện bản trong mã.`, true);
 }
 
 function ganToi(html, nhan, dich, tenDich) {
@@ -287,11 +323,14 @@ async function chupHang() {
 function taoDom(f) {
   const el = document.createElement('div');
   el.className = 'khung'; el.dataset.id = f.id;
-  el.innerHTML = `<div class="dau-khung"><span class="nhom-ten"></span><span class="ghim" hidden>★</span><span class="ten"></span><span class="tt"></span><button type="button" class="nut-play" title="Play từ màn này">▶</button></div>
+  el.innerHTML = `<div class="dau-khung"><span class="nhom-ten"></span><span class="ghim" hidden>★</span><span class="ten"></span><span class="tt"></span><button type="button" class="nut-ls" title="Lịch sử phiên bản của màn" hidden></button><button type="button" class="nut-thay" title="Thay màn hiện tại bằng biến thể này (bản cũ vẫn trong Lịch sử)" hidden>✓ Thay màn</button><button type="button" class="nut-xoa-k" title="Xoá biến thể (⌘Z hoàn tác)" hidden>✕ Xoá</button><button type="button" class="nut-play" title="Play từ màn này">▶</button></div>
     <div class="than"><div class="xam"><span></span></div><div class="phu-chuot"></div></div>`;
   theGioi.appendChild(el);
   const d = { el, iframe: null, ban: '', lk: [] };
   el.querySelector('.nut-play').onclick = (e) => { e.stopPropagation(); moPlay(f.id); };
+  el.querySelector('.nut-thay').onclick = (e) => { e.stopPropagation(); thayBangKhung(f.id); };
+  el.querySelector('.nut-xoa-k').onclick = (e) => { e.stopPropagation(); xoaKhung([f.id]); };
+  el.querySelector('.nut-ls').onclick = (e) => { e.stopPropagation(); moLichSu(keyCua(f)); };
   dom.set(f.id, d);
   return d;
 }
@@ -328,9 +367,13 @@ function veKhung(f) {
   d.el.querySelector('.nhom-ten').classList.toggle('mock', laMockKhung);
   d.el.querySelector('.ten').textContent = tenCua(f);
   d.el.querySelector('.ghim').hidden = !f.ghim;
+  const pb = f.loai === 'goc' && PB[f.key];
+  const nLs = d.el.querySelector('.nut-ls'); nLs.hidden = !pb; if (pb) nLs.textContent = `v${pb.hien} · Lịch sử`;
+  d.el.querySelector('.nut-thay').hidden = !duocThay(f);
+  d.el.querySelector('.nut-xoa-k').hidden = f.loai === 'goc' || !!f.lan || f.tt === 'dang' || dangDungBt(f);
   const tt = d.el.querySelector('.tt');
   tt.className = 'tt' + (f.tt === 'loi' ? ' loi' : '');
-  tt.textContent = f.tt === 'dang' ? (f.tienDo || 'đang sinh…') : f.tt === 'loi' ? 'lỗi' : f.dung ? chuDung(f.dung) : '';
+  tt.textContent = f.tt === 'dang' ? (f.tienDo || 'đang sinh…') : f.tt === 'loi' ? 'lỗi' : dangDungBt(f) ? `✓ đang dùng (v${PB[keyCua(f)].hien})` : f.dung ? chuDung(f.dung) : '';
   tt.title = f.dung ? chuDung(f.dung, true) : '';
   const html = htmlCua(f);
   if (html && d.ban !== html) {
@@ -341,7 +384,7 @@ function veKhung(f) {
   }
   // lớp ảnh thật
   let anh = than.querySelector('.anh-that');
-  if (caiDat.anhThat && f.loai === 'goc' && m.anh) {
+  if (caiDat.anhThat && f.loai === 'goc' && m.anh && !daThayKhacGoc(f.key)) {
     if (!anh) { anh = document.createElement('img'); anh.className = 'anh-that'; anh.alt = 'Ảnh chụp thật'; than.appendChild(anh); }
     anh.src = `/ref/${m.anh}`; anh.classList.toggle('ghep', /\/ss-/.test(m.anh));
   } else if (anh) anh.remove();
@@ -399,10 +442,9 @@ function veDauLan() {
 }
 
 // Mũi tên: từ đúng nút có data-toi trong khung tới cạnh màn đích; nhãn = chữ trên nút.
-function dichCua(f, key, cheDo = 'goc') {
+function dichCua(f, key) {
   if (!MAN[key]) return null;
   if (f.lan) { const t = st.khung.find((x) => x.lan === f.lan && x.goc === key); if (t && htmlCua(t)) return t; }
-  if (cheDo === 'ghim') { const g = st.khung.filter((x) => x.loai === 'bien' && !x.lan && x.goc === key && x.ghim && x.html).at(-1); if (g) return g; }
   return timKhung(key);
 }
 let henNoi = 0;
@@ -608,6 +650,7 @@ vung.addEventListener('pointercancel', thaKeo);
 const dangGo = (e) => e.target.closest('input,textarea,select');
 addEventListener('keydown', (e) => {
   if (!$('#lop-play').hidden) { phimPlay(e); return; }
+  if (!$('#lop-ls').hidden) { if (e.key === 'Escape') dongLop(); return; } // hộp Lịch sử mở: phím tắt bàn vẽ không chạy phía sau
   if (e.key === 'Escape') { dongLop(); return; }
   if (dangGo(e)) return;
   if (e.code === 'Space') { phimCach = true; vung.style.cursor = 'grab'; e.preventDefault(); }
@@ -620,6 +663,16 @@ addEventListener('keydown', (e) => {
   else if ((e.key === 'Delete' || e.key === 'Backspace') && st.chon.size) xoaChon();
 });
 addEventListener('keyup', (e) => { if (e.code === 'Space') { phimCach = false; vung.style.cursor = ''; } });
+// thanh bên trái: ẩn/hiện (\ hoặc ⌘\), nhớ trong localStorage; canvas giãn hết bề ngang rồi tính lại ảo hoá iframe
+function datBen(an, luu = true) {
+  document.body.classList.toggle('an-ben', an);
+  $('#an-ben').setAttribute('aria-expanded', String(!an)); $('#mo-ben').hidden = !an;
+  if (luu) { try { localStorage.setItem('bs.an-ben', an ? '1' : '0'); } catch { /* bỏ qua */ } }
+  st.thay = null; apView(); henVeNoi(); if (st.cheDo === 'qt') qt.capNhatAo?.(ZOOM_SONG, LE_AO);
+}
+const doiBen = () => datBen(!document.body.classList.contains('an-ben'));
+$('#an-ben').onclick = doiBen; $('#mo-ben').onclick = doiBen;
+addEventListener('keydown', (e) => { if (e.key === '\\' && [...document.querySelectorAll('.lop')].every((l) => l.hidden) && !e.altKey && !e.shiftKey && !dangGo(e) && $('#lop-play').hidden && !Sua.dangSua()) { e.preventDefault(); doiBen(); } });
 function batLienKet() { caiDat.lienKet = !caiDat.lienKet; luuCaiDat(); veTatCa(false); toast(caiDat.lienKet ? 'Hiện liên kết (L).' : 'Ẩn liên kết (L).'); }
 $('#nut-lk').onclick = batLienKet;
 $('#nut-anh').onclick = () => { caiDat.anhThat = !caiDat.anhThat; luuCaiDat(); veTatCa(false); toast(caiDat.anhThat ? 'Đang phủ ảnh chụp thật lên màn gốc (màn không có ảnh giữ nguyên).' : 'Tắt ảnh thật.'); };
@@ -648,8 +701,9 @@ function veBang() {
     $('#nhan-so').textContent = 'Số biến thể';
     $('#so-bt').innerHTML = [1, 2, 3, 4, 5, 6].map((n) => `<option ${n === caiDat.soBt ? 'selected' : ''}>${n}</option>`).join('');
     $('#nut-sinh').firstChild.textContent = 'Sinh biến thể ';
-    $('#nut-ghim').textContent = f.ghim ? 'Bỏ ghim' : 'Ghim & lưu';
-    $('#nut-xoa').disabled = f.loai === 'goc';
+    $('#nut-thay-bang').hidden = f.loai === 'goc'; $('#nut-thay-bang').disabled = !duocThay(f);
+    $('#nut-ls-bang').hidden = f.loai !== 'goc'; $('#nut-ls-bang').textContent = PB[keyCua(f)] ? `Lịch sử (v${PB[keyCua(f)].hien})` : 'Lịch sử (v0)';
+    $('#nut-xoa').hidden = f.loai === 'goc'; $('#nut-xoa').disabled = !!f.lan;
     $('#nut-sinh').disabled = !htmlCua(f) || f.tt === 'dang';
   }
   $('#nut-dung').hidden = st.dangChay.size === 0;
@@ -974,7 +1028,7 @@ $('#nut-xem').onclick = () => { const f = khungChon(); if (f) xemLon([f.id]); };
 $('#nut-so-sanh').onclick = () => xemLon([...st.chon]);
 $('#xem-dong').onclick = dongLop;
 $('#lop-xem').addEventListener('pointerdown', (e) => { if (e.target.id === 'lop-xem') dongLop(); });
-function dongLop() { $('#lop-xem').hidden = true; $('#xem-luoi').innerHTML = ''; $('#lop-cai-dat').hidden = true; }
+function dongLop() { $('#lop-xem').hidden = true; $('#xem-luoi').innerHTML = ''; $('#lop-cai-dat').hidden = true; if (!$('#lop-ls').hidden) { $('#lop-ls').hidden = true; $('#ls-vo iframe').srcdoc = ''; } }
 
 // ---------- PLAY: prototype bấm được kiểu Figma ----------
 const play = { lich: [], lan: null };
@@ -983,7 +1037,7 @@ function moPlay(id, lanId) {
   const f = timKhung(id); if (!f || !htmlCua(f)) { toast('Màn này chưa có nội dung để Play.', true); return; }
   play.lan = lanId || lanCuaKhung(f)?.id;
   play.lich = [f.id];
-  $('#pl-dung').value = caiDat.playDung; $('#pl-anh').checked = caiDat.anhThat;
+  $('#pl-anh').checked = caiDat.anhThat;
   $('#lop-play').hidden = false;
   vePlay('');
 }
@@ -1008,7 +1062,7 @@ function vePlay(huong) {
   tb.className = `thiet-bi tb-${kieu}`;
   const san = $('#pl-san').getBoundingClientRect();
   const m = MAN[keyCua(f)];
-  const coAnh = $('#pl-anh').checked && m.anh;
+  const coAnh = $('#pl-anh').checked && m.anh && !(f.loai === 'goc' && daThayKhacGoc(f.key));
   const vien = kieu === 'iphone' || kieu === 'android' ? 36 : 44;
   const z = Math.min(1, (san.height - 24) / (h + vien), (san.width / (coAnh ? 2 : 1) - 48) / (w + 28));
   tb.style.setProperty('--z', z);
@@ -1054,7 +1108,7 @@ function ganBamPlay(ifr, f) {
   tl.addEventListener('keydown', (e) => { if (e.key === 'Escape') dongPlay(); });
 }
 function diToi(tu, key) {
-  const T = dichCua(tu, key, $('#pl-dung').value);
+  const T = dichCua(tu, key);
   if (!T || !htmlCua(T)) { toast('Màn đích chưa có.', true); return; }
   play.lich.push(T.id); vePlay('phai');
 }
@@ -1062,7 +1116,7 @@ function buocLan(d) {
   const f = timKhung(play.lich.at(-1)); const l = timLan(play.lan); if (!f || !l) return;
   const i = l.buoc.indexOf(keyCua(f)) + d; if (i < 0 || i >= l.buoc.length) return;
   let T = khungCuaLan(l, l.buoc[i]);
-  if (l.goc) T = dichCua(f, l.buoc[i], $('#pl-dung').value);
+  if (l.goc) T = dichCua(f, l.buoc[i]);
   if (!T || !htmlCua(T)) return;
   play.lich.push(T.id); vePlay(d > 0 ? 'phai' : 'trai');
 }
@@ -1077,7 +1131,6 @@ $('#pl-dong').onclick = dongPlay;
 $('#pl-lui').onclick = luiPlay;
 $('#pl-ke').onclick = () => buocLan(1);
 $('#pl-truoc').onclick = () => buocLan(-1);
-$('#pl-dung').onchange = () => { caiDat.playDung = $('#pl-dung').value; luuCaiDat(); };
 $('#pl-anh').onchange = () => vePlay('');
 $('#nut-play').onclick = () => moPlay();
 $('#nut-play-bang').onclick = () => { const f = khungChon(); if (f) moPlay(f.id); else if (st.lanChon) { const l = timLan(st.lanChon); moPlay(khungCuaLan(l, l.buoc[0])?.id, l.id); } };
@@ -1145,19 +1198,85 @@ $('#nut-png').onclick = async () => {
   catch (e) { trangThaiBang(`Xuất PNG lỗi: ${e.message}`, true); }
 };
 
-$('#nut-ghim').onclick = async () => {
-  const f = khungChon(); if (!f || !htmlCua(f)) return;
-  f.ghim = !f.ghim; veTatCa(false); luuLai();
-  if (!f.ghim) { toast('Đã bỏ ghim (tệp đã lưu vẫn giữ trong da-luu/).'); return; }
+// ---------- THAY MÀN: biến thể ổn thì thành phiên bản mới của màn gốc (màn gốc hiển thị bản này ở mọi nơi) ----------
+const dangDungBt = (f) => f.loai !== 'goc' && mucPb(keyCua(f), PB[keyCua(f)]?.hien)?.bt === f.id;
+const daThayKhacGoc = (key) => !!mucPb(key, PB[key]?.hien)?.tep; // đang hiện bản khác bản trong mã (ảnh chụp thật không còn khớp)
+const duocThay = (f) => f.loai !== 'goc' && f.tt !== 'dang' && f.tt !== 'loi' && !!htmlCua(f) && !!MAN[keyCua(f)];
+const dangThay = new Set();
+async function thayMan(key, html, meta = {}) {
+  if (!MAN[key] || !html) return false;
+  if (dangThay.has(key)) { toast('Màn này đang được thay — đợi chút.'); return false; }
+  dangThay.add(key); html = lamSach(html);
   try {
-    const html = await htmlTuDung(htmlCua(f));
-    const r = await fetch('/api/luu', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ten: `${MAN[keyCua(f)].ten}-${tenCua(f)}`, html }) });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.loi || r.status);
-    toast(`Đã ghim và lưu: ${j.tep}`);
-  } catch (e) {
-    toast(`Ghim rồi nhưng không ghi được tệp (${e.message}) — dùng Tải HTML.`, true);
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '' }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
+    PB[key] = j; const muc = mucPb(key, j.hien); if (muc?.tep) HTML_PB.set(`${key}/${muc.tep}`, html);
+    await apPhienBan(key);
+  } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
+  meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
+  qtDaVe = ''; veTatCa(); luuLai();
+  toast(`Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}; bản cũ vẫn trong Lịch sử.`);
+  return true;
+}
+async function thayBangKhung(id) {
+  const f = timKhung(id); if (!f || !duocThay(f)) return;
+  const { w, h } = kichThuoc(f);
+  await thayMan(keyCua(f), htmlCua(f), { w, h, nhan: f.nhan || tenCua(f), yTuong: f.yTuong || '', nguon: f.lan ? 'pa' : f.suaTay ? 'sua' : 'bien', model: f.model || '', bt: f.id });
+
+}
+$('#nut-thay-bang').onclick = () => { const f = khungChon(); if (f) thayBangKhung(f.id); };
+$('#nut-ls-bang').onclick = () => { const f = khungChon(); if (f) moLichSu(keyCua(f)); };
+
+// Lịch sử phiên bản: xem từng bản (không đổi gì), «Khôi phục bản này» thêm một phiên bản mới (lịch sử không bao giờ bị xoá).
+const ls = { key: '', v: 0 };
+function moLichSu(key) {
+  if (!MAN[key]) return;
+  ls.key = key; ls.v = PB[key]?.hien || 0;
+  $('#lop-ls').hidden = false; veLichSu();
+}
+function veLichSu() {
+  const { key } = ls; const m = MAN[key]; const pb = PB[key]; const hien = pb?.hien || 0;
+  $('#ls-tieu').textContent = `Lịch sử «${m.ten}» · đang dùng v${hien}`;
+  const ds = [{ v: 0, nhan: 'Bản gốc trong mã', yTuong: '' }, ...(pb?.ds || [])].reverse();
+  const ol = $('#ls-ds'); ol.innerHTML = '';
+  for (const x of ds) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ls-muc' + (x.v === ls.v ? ' bat' : '') + (x.v === hien ? ' hien' : '');
+    b.dataset.v = x.v;
+    b.innerHTML = '<span class="ls-v"></span><span class="ls-ch"><b></b><span class="phu"></span></span>';
+    b.querySelector('.ls-v').textContent = `v${x.v}`;
+    b.querySelector('b').textContent = (x.nhan || (x.nguon === 'sua' ? 'Sửa tay' : 'Biến thể')) + (x.v === hien ? ' · đang dùng' : '');
+    b.querySelector('.phu').textContent = [x.t ? new Date(x.t).toLocaleString('vi-VN') : 'trong mã nguồn', x.yTuong].filter(Boolean).join(' · ');
+    b.title = x.yTuong || '';
+    b.onclick = () => { ls.v = x.v; veLichSu(); };
+    ol.appendChild(b);
   }
+  $('#ls-khoi-phuc').disabled = ls.v === hien;
+  $('#ls-khoi-phuc').textContent = ls.v === hien ? 'Đang dùng bản này' : `Khôi phục v${ls.v}`;
+  const muc = mucPb(key, ls.v); const w = muc?.w || m.goc0.w, h = muc?.h || m.goc0.h;
+  const vo = $('#ls-vo'); const r = vo.parentElement.getBoundingClientRect();
+  const z = Math.min(1, (r.width - 8) / w, (r.height - 60) / h);
+  vo.style.width = `${w * z}px`; vo.style.height = `${h * z}px`;
+  const ifr = vo.querySelector('iframe'); ifr.width = w; ifr.height = h; ifr.style.transform = `scale(${z})`;
+  const v = ls.v;
+  htmlPhienBan(key, v).then((html) => { if (ls.key === key && ls.v === v && ifr.srcdoc !== html) ifr.srcdoc = html; })
+    .catch((e) => { if (ls.v === v) { ifr.srcdoc = ''; toast(`Không tải được v${v}: ${e.message}`, true); } });
+}
+$('#ls-dong').onclick = dongLop;
+$('#lop-ls').addEventListener('pointerdown', (e) => { if (e.target.id === 'lop-ls') dongLop(); });
+$('#ls-khoi-phuc').onclick = async () => {
+  const { key, v } = ls; if (v === (PB[key]?.hien || 0)) return;
+  if (dangThay.has(key)) { toast('Màn này đang được thay — đợi chút.'); return; }
+  $('#ls-khoi-phuc').disabled = true; dangThay.add(key);
+  try {
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tu: v }) });
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
+    PB[key] = j;
+  } catch (e) { toast(`Không khôi phục được: ${e.message}`, true); veLichSu(); return; } finally { dangThay.delete(key); }
+  try { await apPhienBan(key); } catch (e) { toast(`Đã khôi phục trên máy chủ (v${PB[key].hien}) nhưng chưa tải được bản đó (${e.message}) — tải lại trang.`, true); }
+  ls.v = PB[key].hien; qtDaVe = ''; veTatCa(); veLichSu();
+  toast(`Đã khôi phục v${v} thành v${PB[key].hien} — «${MAN[key].ten}» hiển thị bản này ở mọi nơi.`);
 };
 
 let hoanTac = null;
@@ -1170,15 +1289,19 @@ function chupLai() {
     st.chon.clear(); veTatCa(); luuLai();
   };
 }
-function xoaChon() {
-  const ids = [...st.chon].filter((id) => { const f = timKhung(id); return f && f.loai !== 'goc' && !f.lan; });
+function xoaChon() { xoaKhung([...st.chon]); }
+function xoaKhung(chon) {
+  const dung = chon.filter((id) => { const f = timKhung(id); return f && dangDungBt(f); });
+  if (dung.length) toast('Biến thể đang dùng làm màn không xoá được — Khôi phục bản khác trong Lịch sử trước.', true);
+  const ids = chon.filter((id) => { const f = timKhung(id); return f && f.loai !== 'goc' && !f.lan && !dung.includes(id); });
+  if (!ids.length && dung.length) return;
   if (!ids.length) { toast('Màn gốc và màn trong phương án hành trình không xoá lẻ được — xoá cả phương án ở đầu hàng.'); return; }
   hoanTac = chupLai();
   for (const id of ids) st.dangChay.get(id)?.abort();
   for (const f of st.khung) if (ids.includes(f.cha)) f.cha = timKhung(f.cha)?.cha || f.goc;
   st.khung = st.khung.filter((f) => !ids.includes(f.id)); st.chon.clear();
   veTatCa(); luuLai();
-  toast(`Đã xoá ${ids.length} biến thể — bấm ⌘Z để hoàn tác.`);
+  toast(`Đã xoá ${ids.length} biến thể.`, false, { chu: 'Hoàn tác (⌘Z)', lam: () => { if (hoanTac) { hoanTac(); hoanTac = null; toast('Đã hoàn tác.'); } } });
 }
 function xoaPhuongAn(id) {
   hoanTac = chupLai();
@@ -1188,15 +1311,16 @@ function xoaPhuongAn(id) {
   if (st.lanChon === id) st.lanChon = null;
   veTatCa(); luuLai(); toast('Đã xoá phương án — ⌘Z để hoàn tác.');
 }
-addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !dangGo(e) && hoanTac) { hoanTac(); hoanTac = null; toast('Đã hoàn tác.'); } });
+addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !dangGo(e) && hoanTac && !Sua.dangSua() && $('#lop-ls').hidden) { hoanTac(); hoanTac = null; toast('Đã hoàn tác.'); } });
 $('#nut-xoa').onclick = xoaChon;
+const donDuoc = (f) => f.loai !== 'goc' && !f.lan && !f.ghim && !dangDungBt(f); // ghim cũ vẫn được giữ
 $('#nut-xoa-bt').onclick = () => {
-  const n = st.khung.filter((f) => f.loai !== 'goc' && !f.ghim && !f.lan).length;
-  if (!n) { toast('Không có biến thể chưa ghim.'); return; }
-  if (!confirm(`Xoá ${n} biến thể màn lẻ chưa ghim? (đã ghim và phương án hành trình giữ lại)`)) return;
+  const n = st.khung.filter(donDuoc).length;
+  if (!n) { toast('Không có biến thể màn lẻ nào để dọn.'); return; }
+  if (!confirm(`Xoá ${n} biến thể màn lẻ? (biến thể đang dùng làm màn, biến thể ghim ★ cũ và phương án hành trình giữ lại; ⌘Z hoàn tác)`)) return;
   hoanTac = chupLai();
-  for (const f of st.khung) if (f.loai !== 'goc' && !f.ghim && !f.lan) st.dangChay.get(f.id)?.abort();
-  st.khung = st.khung.filter((f) => f.loai === 'goc' || f.ghim || f.lan); st.chon.clear();
+  for (const f of st.khung) if (donDuoc(f)) st.dangChay.get(f.id)?.abort();
+  st.khung = st.khung.filter((f) => !donDuoc(f)); st.chon.clear();
   for (const f of st.khung) if (f.cha && !timKhung(f.cha)) f.cha = f.goc;
   veTatCa(); luuLai(); toast(`Đã dọn ${n} biến thể — ⌘Z để hoàn tác.`);
 };
@@ -1239,9 +1363,11 @@ function capNhatCheDo() {
 
 // ---------- toast ----------
 let henToast = 0;
-function toast(t, loi = false) {
+function toast(t, loi = false, nut = null) {
   const el = $('#toast'); el.textContent = t; el.classList.toggle('loi', loi); el.classList.add('hien');
-  clearTimeout(henToast); henToast = setTimeout(() => el.classList.remove('hien'), loi ? 7000 : 4000);
+  el.classList.toggle('co-nut', !!nut);
+  if (nut) { const b = document.createElement('button'); b.type = 'button'; b.textContent = nut.chu; b.onclick = () => { el.classList.remove('hien', 'co-nut'); nut.lam(); }; el.append(' ', b); }
+  clearTimeout(henToast); henToast = setTimeout(() => el.classList.remove('hien', 'co-nut'), nut ? 8000 : loi ? 7000 : 4000);
 }
 
 // ---------- khởi động ----------
@@ -1257,6 +1383,7 @@ capNhatCheDo(); apView(); veTatCa();
 if (!st.views[khoaView()]) vuaMan();
 ghiHash();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
+{ let an = false; try { an = localStorage.getItem('bs.an-ben') === '1'; } catch { /* bỏ qua */ } if (an) datBen(true, false); }
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
-  lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung });
-window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+  lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
+window.__bs = { pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

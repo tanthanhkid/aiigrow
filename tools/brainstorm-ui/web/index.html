@@ -20,7 +20,7 @@
   <div class="nhom">
     <button id="nut-so-sanh" class="chi-canvas" disabled title="Shift+bấm để chọn 2–4 khung">So sánh</button>
     <button id="nut-xep" class="chi-canvas" title="Xếp gọn cả bàn: hành trình theo hàng, biến thể thành cây dưới khung cha">Sắp xếp lại</button>
-    <button id="nut-xoa-bt" class="chi-canvas" title="Xoá mọi biến thể chưa ghim">Dọn biến thể</button>
+    <button id="nut-xoa-bt" class="chi-canvas" title="Xoá mọi biến thể màn lẻ (giữ biến thể đang dùng làm màn)">Dọn biến thể</button>
   </div>
   <div class="nhom">
     <button id="nut-lk" class="bat-tat chi-canvas" title="Hiện/ẩn mũi tên liên kết giữa các màn (L)">Liên kết <kbd>L</kbd></button>
@@ -38,9 +38,11 @@
 </header>
 
 <nav id="ben" aria-label="Hành trình">
-  <div class="ben-dau"><b>Hành trình</b><span id="ben-dem" class="phu"></span></div>
+  <div class="ben-dau"><div class="ben-tieu"><b>Hành trình</b><button type="button" id="an-ben" class="nut-x" aria-expanded="true" aria-controls="ben" title="Ẩn thanh bên (\ hoặc ⌘\)">‹</button></div><span id="ben-dem" class="phu"></span></div>
   <div id="ben-ds" class="ben-ds"></div>
 </nav>
+
+<button type="button" id="mo-ben" hidden title="Hiện thanh hành trình (\ hoặc ⌘\)" aria-label="Hiện thanh hành trình">›</button>
 
 <main id="vung" tabindex="0" aria-label="Bàn vẽ: kéo nền để di chuyển, cuộn để di chuyển, Ctrl/⌘ + cuộn để phóng to">
   <div id="the-gioi"><svg id="noi" width="1" height="1" overflow="visible"></svg></div>
@@ -62,11 +64,11 @@
   <div class="luoi-nut">
     <button id="nut-play-bang">▶ Play</button>
     <button id="nut-xem">Xem lớn</button>
-    <button id="nut-ghim">Ghim & lưu</button>
-    <button id="nut-html">Tải HTML</button>
-    <button id="nut-png">Tải PNG</button>
-    <button id="nut-xoa" class="nguy">Xoá khung</button>
+    <button id="nut-thay-bang" class="nut-chinh" title="Thay màn hiện tại bằng biến thể này — bản cũ vẫn trong Lịch sử">✓ Thay màn</button>
+    <button id="nut-ls-bang" title="Các phiên bản của màn này">Lịch sử</button>
+    <button id="nut-xoa" class="nguy" title="Xoá biến thể (⌘Z hoàn tác)">✕ Xoá</button>
   </div>
+  <details class="menu-phu"><summary class="phu">Tải về…</summary><div class="luoi-nut"><button id="nut-html">Tải HTML</button><button id="nut-png">Tải PNG</button></div></details>
   <details><summary class="phu">Prompt Claude nhận (xem)</summary><pre id="xem-prompt"></pre></details>
 </aside>
 
@@ -77,11 +79,21 @@
   </div>
 </div>
 
+<div id="lop-ls" class="lop" hidden>
+  <div class="hop-xem hop-ls" role="dialog" aria-labelledby="ls-tieu">
+    <div class="dau-bang"><b id="ls-tieu"></b><button id="ls-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <div class="ls-than">
+      <div id="ls-ds" class="ls-ds" aria-label="Các phiên bản"></div>
+      <div class="ls-xem"><div id="ls-vo" class="vo"><iframe sandbox="allow-same-origin" referrerpolicy="no-referrer" title="Xem trước phiên bản"></iframe></div>
+        <button type="button" id="ls-khoi-phuc" class="nut-chinh">Khôi phục bản này</button></div>
+    </div>
+  </div>
+</div>
+
 <div id="lop-play" class="lop lop-play" hidden>
   <div class="play-tren">
     <button id="pl-lui" title="Quay lại (←)">← Quay lại</button>
     <div id="pl-vet" class="vet" aria-label="Các màn đã đi"></div>
-    <select id="pl-dung" aria-label="Màn dùng khi Play"><option value="goc">Dùng màn gốc</option><option value="ghim">Dùng biến thể đã ghim</option></select>
     <label class="o-chon"><input type="checkbox" id="pl-anh"> Ảnh thật</label>
     <button id="pl-dong" class="nut-x" aria-label="Thoát Play (Esc)">×</button>
   </div>

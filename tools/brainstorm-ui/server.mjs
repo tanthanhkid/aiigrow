@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Máy chủ cục bộ của bàn brainstorm: phục vụ web/, ảnh AiiGrow trong repo, và ghi biến thể đã ghim vào da-luu/.
+// Máy chủ cục bộ của bàn brainstorm: phục vụ web/, ảnh AiiGrow trong repo, và kho phiên bản màn («Thay màn»).
 // Chỉ nghe 127.0.0.1. KHÔNG ghi log nội dung yêu cầu; key Claude không bao giờ đi qua đây (trình duyệt gọi thẳng api.anthropic.com).
 import http from 'node:http';
 import fs from 'node:fs';
@@ -9,7 +9,6 @@ import { fileURLToPath } from 'node:url';
 const GOC = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(GOC, '../..');
 const WEB = path.join(GOC, 'web');
-const DA_LUU = path.join(GOC, 'da-luu');
 const THU_MUC = {
   '/assets/icon3d/': path.join(REPO, 'mobile/assets/icon3d'),
   '/assets/rob/': path.join(REPO, 'mobile/assets/linh-vat'),
@@ -32,6 +31,53 @@ const ANH = /\.(png|webp)$/i;
 const THIET_KE = process.env.BS_THIET_KE || path.join(process.env.HOME || '', 'OFFLINE_FILES/Code/aiigrow-thiet-ke');
 const REF_DIR = new Set(['chinchu-ios', 'chinchu-ios/hieu-nang-2/sau', 'man-mac-2510', 'man-win-2510', 'man-android-2510', 'man-dienthoai-2510']);
 const ANH_REF = /\.(png|jpe?g|webp)$/i;
+// Phiên bản màn («Thay màn»): kho ngoài git, mỗi màn một thư mục <key>/ gồm manifest.json + vN.html. v0 = bản trong mã (không ghi ra kho).
+const PHIEN_BAN = process.env.BS_PHIEN_BAN || path.join(THIET_KE, 'brainstorm-ui/phien-ban');
+const PB_TOI_DA = 300;               // số phiên bản tối đa mỗi màn
+const PB_CO = 6 * 1024 * 1024;       // cỡ tối đa một bản HTML
+// Danh sách key màn có thật: lấy từ chính các tệp hành trình (cùng nguồn với trình duyệt) — key lạ bị từ chối, không bao giờ thành đường dẫn.
+// Nạp MỘT lần từ chính web/hanh-trinh/index.js (cùng danh sách tệp với trình duyệt); lỗi thì thử lại sau 10 giây. Thêm màn mới ⇒ khởi động lại máy chủ.
+let KEY_MAN = new Set(), keyLuc = 0, keyDu = false;
+async function keyMan() {
+  if (keyDu || Date.now() - keyLuc < 10000) return KEY_MAN;
+  keyLuc = Date.now();
+  try {
+    const { taiHanhTrinh } = await import('./web/hanh-trinh/index.js');
+    const { ds, loi } = await taiHanhTrinh(); // fetch('/that/ds.json') trong Node lỗi ⇒ bỏ qua, key không đổi
+    keyDu = !loi.some((x) => /\.js/.test(x)); // có tệp hành trình nạp lỗi: 10 giây sau thử lại
+    KEY_MAN = new Set(ds.flatMap((h) => h.buoc.map((b) => b.key)).filter((k) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(k)));
+  } catch (e) { console.error('Không đọc được danh sách màn:', e.message); }
+  return KEY_MAN;
+}
+// Khoá liên tiến trình theo màn (nhiều máy chủ từ nhiều worktree dùng chung kho): mkdir là thao tác nguyên tử.
+const ngu = (ms) => new Promise((r) => setTimeout(r, ms));
+async function khoaPb(key) {
+  const k = path.join(PHIEN_BAN, `.khoa-${key}`);
+  fs.mkdirSync(PHIEN_BAN, { recursive: true });
+  for (let i = 0; i < 100; i++) {
+    try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try { if (Date.now() - fs.statSync(k).mtimeMs > 10000) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
+      await ngu(20);
+    }
+  }
+  throw Object.assign(new Error('bận'), { ma: 503 });
+}
+const thuMucPb = (key) => path.join(PHIEN_BAN, key);
+// Chưa có tệp ⇒ manifest rỗng; tệp có mà hỏng ⇒ báo lỗi (không bao giờ ghi đè lịch sử bằng manifest rỗng).
+function docManifest(key) {
+  let tho;
+  try { tho = fs.readFileSync(path.join(thuMucPb(key), 'manifest.json'), 'utf8'); } catch (e) { if (e.code === 'ENOENT') return { key, hien: 0, ds: [] }; throw e; }
+  const m = JSON.parse(tho);
+  if (!m || !Array.isArray(m.ds)) throw new Error(`manifest hỏng: ${key}`);
+  return m;
+}
+function ghiAtomic(tep, noiDung) {
+  const tam = `${tep}.${process.pid}.${Date.now()}.tam`;
+  fs.writeFileSync(tam, noiDung); fs.renameSync(tam, tep);
+}
+const HOST_TIN = ['trycloudflare.com', 'phanmemtrinity.com', 'aiilab.vn', ...(process.env.BS_HOST || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)];
+const chuNgan = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
 
 const CSP = [
   "default-src 'self'",
@@ -80,33 +126,23 @@ function docThan(req, gioiHan = 8 * 1024 * 1024) {
 
 function hopLeNguon(req) {
   const o = req.headers.origin;
-  return o === `http://127.0.0.1:${cong}` || o === `http://localhost:${cong}`;
+  if (o === `http://127.0.0.1:${cong}` || o === `http://localhost:${cong}`) return true;
+  // Qua tunnel (cloudflared giữ Host gốc): chấp nhận khi Origin trùng đúng Host của yêu cầu VÀ Host thuộc tên miền tin cậy
+  // (chặn DNS rebinding: trang lạ trỏ tên miền của nó về 127.0.0.1 thì Host là tên miền lạ). Thêm tên miền bằng BS_HOST=a.com,b.vn.
+  if (!o || !req.headers.host || (req.headers['sec-fetch-site'] && req.headers['sec-fetch-site'] !== 'same-origin')) return false;
+  try {
+    const u = new URL(o); if ((u.protocol !== 'https:' && u.protocol !== 'http:') || u.host !== req.headers.host) return false;
+    return HOST_TIN.some((d) => u.hostname === d || u.hostname.endsWith(`.${d}`));
+  } catch { return false; }
 }
 
-const tenTep = (s) => (s || 'bien-the').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D')
-  .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'bien-the';
 
 const may = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
     const p = decodeURIComponent(url.pathname);
 
-    if (p === '/api/luu' && req.method === 'POST') {
-      if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
-      let than;
-      try { than = await docThan(req); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Tệp quá lớn (>8 MB) — dùng Tải HTML' : 'Không đọc được yêu cầu' }); }
-      const { ten, html } = JSON.parse(than);
-      if (typeof html !== 'string' || !html.trim()) return json(res, 400, { loi: 'Thiếu HTML' });
-      fs.mkdirSync(DA_LUU, { recursive: true });
-      const d = new Date(); const pad = (x) => String(x).padStart(2, '0');
-      const ma = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-      let tep;
-      for (let i = 0; ; i++) {
-        tep = path.join(DA_LUU, `${ma}-${tenTep(ten)}${i ? '-' + i : ''}.html`);
-        try { fs.writeFileSync(tep, html, { flag: 'wx' }); break; } catch (e) { if (e.code !== 'EEXIST' || i > 50) throw e; }
-      }
-      return json(res, 200, { tep: path.relative(REPO, tep) });
-    }
+    if (p === '/api/phien-ban' || p.startsWith('/api/phien-ban/')) return await apiPhienBan(req, res, p);
     if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');
 
     if (p === '/api/assets') {
@@ -137,6 +173,55 @@ const may = http.createServer(async (req, res) => {
     return json(res, 500, { loi: 'Lỗi máy chủ cục bộ' });
   }
 });
+
+// GET  /api/phien-ban              → { <key>: manifest } của mọi màn đã có phiên bản
+// GET  /api/phien-ban/<key>/<v>     → { html } của bản v (v ≥ 1)
+// POST /api/phien-ban/<key>         → thêm bản mới và đặt làm bản hiện: { html, w, h, yTuong, nhan, nguon, model } hoặc { tu: <v cũ> } (khôi phục; 0 = bản trong mã)
+async function apiPhienBan(req, res, p) {
+  const [, , , key, vChu, ...du] = p.split('/');
+  if (!key) {
+    if (req.method !== 'GET') return json(res, 405, { loi: 'Không hỗ trợ' });
+    const keys = await keyMan(); const ra = {};
+    let ds = []; try { ds = fs.readdirSync(PHIEN_BAN); } catch { /* chưa có kho */ }
+    for (const k of ds) if (keys.has(k)) { try { const m = docManifest(k); if (m.ds.length) ra[k] = m; } catch { /* manifest hỏng: bỏ qua màn này */ } }
+    return json(res, 200, ra);
+  }
+  if (du.length || !(await keyMan(key)).has(key)) return json(res, 404, { loi: 'Không có màn này' });
+  if (req.method === 'GET') {
+    const v = Number(vChu); let m; try { m = docManifest(key); } catch { return json(res, 500, { loi: 'Manifest phiên bản hỏng' }); }
+    const muc = Number.isInteger(v) && v >= 1 ? m.ds.find((x) => x.v === v) : null;
+    if (!muc || !muc.tep) return json(res, 404, { loi: 'Không có bản này' });
+    try { return json(res, 200, { html: fs.readFileSync(path.join(thuMucPb(key), `v${muc.tep}.html`), 'utf8') }); } catch { return json(res, 404, { loi: 'Mất tệp bản này' }); }
+  }
+  if (req.method !== 'POST' || vChu) return json(res, 405, { loi: 'Không hỗ trợ' });
+  if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
+  let than;
+  try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
+  let moKhoa;
+  try { moKhoa = await khoaPb(key); } catch { return json(res, 503, { loi: 'Kho phiên bản đang bận — thử lại' }); }
+  try {
+    let m; try { m = docManifest(key); } catch { return json(res, 500, { loi: 'Manifest phiên bản hỏng — sửa tay trong kho trước khi ghi tiếp' }); }
+    if (m.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `Màn này đã có ${PB_TOI_DA} phiên bản` });
+    const v = (m.ds.at(-1)?.v || 0) + 1;
+    const muc = { v, t: new Date().toISOString() };
+    fs.mkdirSync(thuMucPb(key), { recursive: true });
+    if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
+      const tu = than.tu; const cu = !Number.isInteger(tu) ? null : tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
+      if (!Number.isInteger(tu) || !cu) return json(res, 400, { loi: 'Không có bản để khôi phục' });
+      Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc', bt: cu.bt });
+    } else {
+      const html = than?.html;
+      if (typeof html !== 'string' || !html.trim() || html.length > PB_CO) return json(res, 400, { loi: 'Thiếu HTML hoặc quá lớn' });
+      const w = Math.round(Number(than.w)), h = Math.round(Number(than.h));
+      Object.assign(muc, { tep: v, w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined,
+        nhan: chuNgan(than.nhan, 120), yTuong: chuNgan(than.yTuong, 600), nguon: chuNgan(than.nguon, 20), model: chuNgan(than.model, 60), bt: chuNgan(than.bt, 80) });
+      ghiAtomic(path.join(thuMucPb(key), `v${v}.html`), html);
+    }
+    m.key = key; m.ds.push(muc); m.hien = v;
+    ghiAtomic(path.join(thuMucPb(key), 'manifest.json'), JSON.stringify(m, null, 1));
+    return json(res, 200, m);
+  } finally { moKhoa(); }
+}
 
 may.on('error', (e) => {
   if (e.code === 'EADDRINUSE' && cong < (Number(process.env.PORT) || 5178) + 20) { cong += 1; may.listen(cong, '127.0.0.1'); return; }

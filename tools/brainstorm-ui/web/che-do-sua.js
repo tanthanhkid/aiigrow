@@ -496,7 +496,8 @@ function nhanBan() {
 
 // ---------- phím ----------
 function phim(e) {
-  if (!$('#lop-play').hidden || !$('#lop-xem').hidden || !$('#lop-cai-dat').hidden) return;
+  if (S.ban) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+  if (!$('#lop-play').hidden || !$('#lop-xem').hidden || !$('#lop-cai-dat').hidden || !$('#lop-ls').hidden) return;
   const go = e.target?.closest?.('input,textarea,select');
   const mod = e.metaKey || e.ctrlKey; const k = e.key;
   if (!S.id) {
@@ -547,8 +548,9 @@ function taoBang() {
   </div>
   <details id="bs-nk"><summary class="phu">Những gì đã sửa (<span id="bs-so-nk">0</span>)</summary><ol id="bs-ds-nk"></ol></details>
   <div class="bs-ket">
-    <button type="button" id="bs-luu" class="nut-chinh">Lưu thành biến thể</button>
+    <button type="button" id="bs-thay" class="nut-chinh">✓ Thay màn</button>
     <button type="button" id="bs-muot">✨ Làm mượt bằng Claude</button>
+    <button type="button" id="bs-luu">Tạo biến thể</button>
     <button type="button" id="bs-ap">Áp vào khung này</button>
     <button type="button" id="bs-thoat">Thoát Sửa <kbd>E</kbd></button>
   </div>
@@ -561,6 +563,7 @@ function taoBang() {
   $('#bs-nhan').onclick = nhanBan;
   $('#bs-xoa').onclick = xoaEl;
   $('#bs-luu').onclick = luuBienThe;
+  $('#bs-thay').onclick = thayManSua;
   $('#bs-ap').onclick = apVaoKhung;
   $('#bs-muot').onclick = lamMuot;
   // ô số: gõ → áp ngay; xong (change) → ghi lịch sử
@@ -631,7 +634,7 @@ function veBang() {
   $('#bs-dem').textContent = nk.length ? `${nk.length} thay đổi` : 'chưa sửa gì';
   $('#bs-so-nk').textContent = nk.length;
   $('#bs-ds-nk').innerHTML = ''; for (const t of nk) { const li = document.createElement('li'); li.textContent = t; $('#bs-ds-nk').appendChild(li); }
-  $('#bs-luu').disabled = !nk.length; $('#bs-ap').disabled = !nk.length; $('#bs-muot').disabled = !nk.length;
+  $('#bs-luu').disabled = !nk.length; $('#bs-thay').disabled = !nk.length; $('#bs-ap').disabled = !nk.length; $('#bs-muot').disabled = !nk.length;
   const el = S.sel && S.sel.isConnected ? S.sel : null;
   $('#bs-tt').classList.toggle('tat', !el);
   const vet = $('#bs-vet'); vet.innerHTML = '';
@@ -697,6 +700,20 @@ function luuBienThe() {
   C.st.chon.clear(); C.st.chon.add(moi.id);
   C.veTatCa(); C.vuaMan([f.id, moi.id]); C.luuLai();
   C.toast(`Đã lưu thành biến thể mới cạnh «${C.tenCua(f)}» — khung gốc giữ nguyên.`);
+}
+// Thay màn trực tiếp: bản sửa thành phiên bản mới của màn (màn gốc hiển thị bản này ở mọi nơi; bản cũ còn trong Lịch sử).
+async function thayManSua() {
+  if (!S.tl) return;
+  const ds = nhatKy(); if (!ds.length) { C.toast('Chưa sửa gì.'); return; }
+  const f = S.f; const html = htmlDaSua(); const key = C.keyCua(f); const { w, h } = C.kichThuoc(f);
+  S.ban = true; document.body.classList.add('sua-ban'); // khoá sửa khi đang gửi: sửa thêm lúc này sẽ mất
+  try {
+    await C.thayMan(key, html, { w, h, nhan: 'Sửa tay', yTuong: `✎ Sửa tay: ${tomTat(ds)}`, nguon: 'sua', model: 'sửa tay', bt: f.loai === 'bien' ? f.id : '',
+      truocVe: () => {
+        if (f.loai === 'bien') { f.html = C.lamSach(html); f.suaTay = [...(f.suaTay || []), ...ds]; } // khung biến thể giữ đúng bản đang dùng
+        if (S.f === f) { thoat({ im: true }); LICH.delete(f.id); }
+      } });
+  } finally { S.ban = false; document.body.classList.remove('sua-ban'); }
 }
 function apVaoKhung() {
   const f = S.f; if (!S.tl || f.loai !== 'bien') return;
