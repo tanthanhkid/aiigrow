@@ -200,16 +200,17 @@ function veGopY() {
     if (g.key && manCua(g.key)) { const bb = tao('button', 'nut-nhe', '✨ Biến thể theo góp ý này'); bb.type = 'button'; bb.onclick = () => hoiBienThe(g); hang.append(bb); }
     the.append(hang); d.append(the);
   }
-  traNhap((id) => { const the = d.querySelector(`[data-gy="${CSS.escape(id)}"]`); const g = ds.find((x) => x.id === id); if (!the || !g) return null; moTraLoi(the, g); return the.querySelector('form textarea'); });
+  traNhap((id) => { const the = d.querySelector(`[data-gy="${CSS.escape(id)}"]`); const g = ds.find((x) => x.id === id); if (!the || !g) return null; moTraLoi(the, g, false); return the.querySelector('form textarea'); });
   veDeXuat();
 }
-function moTraLoi(the, g) {
+function moTraLoi(the, g, focus = true) {
   if (the.querySelector('form')) return;
   const f = tao('form', 'tl-hop'); const ta = tao('textarea'); ta.rows = 2; ta.maxLength = 2000; ta.required = true; ta.placeholder = 'Trả lời…';
-  const b = tao('button', 'nut-chinh', 'Gửi'); b.type = 'submit'; f.append(ta, b); the.append(f); ta.focus();
+  const b = tao('button', 'nut-chinh', 'Gửi'); b.type = 'submit'; f.append(ta, b); the.append(f); if (focus) ta.focus();
   f.onsubmit = async (e) => {
     e.preventDefault(); if (!canTen()) return;
     const j = await guiApi(`/api/review/r/${MA}/gop-y`, { cha: g.id, noi: ta.value, ten: rt.ten() }); if (!j) return;
+    f.remove(); // đã gửi: đóng hộp trả lời (không giữ lại như bản nháp)
     (g.tl ||= []).push(j); veGopY();
   };
 }

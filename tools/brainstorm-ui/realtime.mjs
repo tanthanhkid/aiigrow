@@ -35,6 +35,7 @@ const phat = (tenPhong, tu, obj) => phatGoi(tenPhong, tu, goiCua(obj));
 // máy chủ tự phát (thay đổi kho biến thể…) — không có người gửi
 export const phatPhong = (tenPhong, obj) => { if (phong.has(tenPhong)) phat(tenPhong, null, obj); };
 export const dsPhong = () => [...phong.keys()];
+export const dongPhong = (tenPhong) => { for (const k of [...(phong.get(tenPhong)?.values() || [])]) dongK(k, 4403); }; // vd. link góp ý bị thu hồi
 function choPhep(k, loai) {
   const [n, ms] = NHIP[loai] || NHIP.khac; const now = Date.now();
   const d = (k.dem[loai] ||= { t: now, n: 0 });

@@ -5,7 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ganRealtime, phatPhong, dsPhong } from './realtime.mjs';
+import { ganRealtime, phatPhong, dsPhong, dongPhong } from './realtime.mjs';
 import { taoKhoBienThe } from './kho-bien-the.mjs';
 import { taoReview } from './review.mjs';
 
@@ -98,7 +98,7 @@ const CSP = [
 let cong = Number(process.env.PORT) || 5178;
 const khoBt = taoKhoBienThe({ THIET_KE, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong });
 const review = taoReview({ THIET_KE, hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
-  docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), ghiPhienBan: (...a) => ghiPhienBan(...a), phat: phatPhong, dsPhong });
+  docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), ghiPhienBan: (...a) => ghiPhienBan(...a), phat: phatPhong, dsPhong, dongPhong });
 
 function gui(res, ma, kieu, noiDung, them = {}) {
   res.writeHead(ma, { 'Content-Type': kieu, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...them });

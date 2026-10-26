@@ -63,7 +63,7 @@ export function ganGopY(A) {
     const than = $('#pn-gy-than');
     // giữ câu trả lời đang gõ dở khi vẽ lại (có góp ý mới)
     const nhap = [...than.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta }));
-    queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; traLoi(the, g); const ta = the.querySelector('form textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
+    queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; traLoi(the, g, false); const ta = the.querySelector('form textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
     than.innerHTML = '';
     if (D.canMa) return veNhapMa(than);
     if (!D.du) { than.append(tao('p', 'phu', 'Đang tải…')); return; }
@@ -134,13 +134,13 @@ export function ganGopY(A) {
   async function doiTt(g, tt) {
     try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }); await tai(); } catch (e) { A.toast(`Không đổi được: ${e.message}`, true); }
   }
-  function traLoi(the, g) {
+  function traLoi(the, g, focus = true) {
     if (the.querySelector('form')) return;
     const f = tao('form', 'pn-tl-hop'); const ta = tao('textarea'); ta.rows = 2; ta.maxLength = 2000; ta.required = true; ta.placeholder = 'Trả lời người review…';
-    const b = tao('button', 'nut-chinh', 'Gửi'); b.type = 'submit'; f.append(ta, b); the.append(f); ta.focus();
+    const b = tao('button', 'nut-chinh', 'Gửi'); b.type = 'submit'; f.append(ta, b); the.append(f); if (focus) ta.focus();
     f.onsubmit = async (e) => {
       e.preventDefault();
-      try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tl`, { noi: ta.value, ten: A.tenNguoi() || 'Thanh' }); await tai(); } catch (er) { A.toast(`Không gửi được: ${er.message}`, true); }
+      try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tl`, { noi: ta.value, ten: A.tenNguoi() || 'Thanh' }); f.remove(); await tai(); } catch (er) { A.toast(`Không gửi được: ${er.message}`, true); }
     };
   }
   // nhảy tới màn + hiện ghim tạm trên khung gốc
@@ -221,8 +221,9 @@ export function ganGopY(A) {
     $('#dx-ly').hidden = true; $('#dx-ly').value = '';
     $('#lop-dx').hidden = false;
   }
-  async function chapNhan(dx, them = {}) {
+  async function chapNhan(dx, them = {}, truocVe = null) {
     const j = await goi(`/api/review/de-xuat/${dx.ht}/${dx.id}/chap`, them);
+    truocVe?.(); // vd. thoát Chế độ Sửa trước khi vẽ lại bàn (như Thay màn)
     await A.apManifest(dx.key, j.manifest);
     A.toast(`Đã áp dụng đề xuất của ${dx.ten} — «${A.MAN[dx.key].ten}» đang dùng v${j.manifest.hien}; góp ý gắn kèm chuyển «Đã xử lý».`);
     tai();
@@ -290,7 +291,7 @@ export function ganGopY(A) {
   return {
     tai, mo, dem, chiaSe, chapNhan, xemDeXuat,
     nhanRv(m) {
-      if (m.loai === 'thay' && m.key) A.napLai(m.key).then(() => { if (m.ten && m.tu !== A.phien && A.MAN[m.key]) A.toast(`${m.ten} vừa đổi phiên bản màn «${A.MAN[m.key].ten}».`); }); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
+      if (m.loai === 'thay' && m.key && m.tu !== A.phien) A.napLai(m.key).then(() => { if (m.ten && m.tu !== A.phien && A.MAN[m.key]) A.toast(`${m.ten} vừa đổi phiên bản màn «${A.MAN[m.key].ten}».`); }); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
     du: () => D.du,
   };
 }

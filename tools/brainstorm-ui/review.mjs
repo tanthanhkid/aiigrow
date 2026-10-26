@@ -27,10 +27,15 @@ export function taoReview(C) {
   // ---------- chủ quản ----------
   // 127.0.0.1/localhost gõ thẳng (không qua tunnel) = chủ quản. Qua tên miền: header x-bs-chu-quan khớp «ma» trong chu-quan.json (Thanh tự đặt, ngoài git).
   // Chưa có tệp ⇒ qua tên miền không ai là chủ quản. Sai mã bị giới hạn 10 lần/phút mỗi IP.
-  const saiMa = new Map();
+  const saiMa = new Map(); const saiTong = { t: 0, n: 0 };
   // chỉ tin cf-connecting-ip khi yêu cầu đến từ cloudflared trên máy này (loopback); nối thẳng thì dùng địa chỉ socket
   const ipCua = (req) => { const s = req.socket.remoteAddress || ''; return /^(127\.|::1$|::ffff:127\.)/.test(s) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : s; };
-  function cauHinh() { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); return j && typeof j === 'object' ? j : {}; } catch { return {}; } }
+  let cq = { t: -1, j: {} }; // nhớ theo mtime: không đọc lại tệp mỗi yêu cầu
+  function cauHinh() {
+    let t = 0; try { t = fs.statSync(TEP_CQ).mtimeMs; } catch { return {}; }
+    if (t !== cq.t) { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' ? j : {} }; } catch { cq = { t, j: {} }; } }
+    return cq.j;
+  }
   function laNoiBo(req) {
     const h = String(req.headers.host || '').toLowerCase();
     return /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(h) && !req.headers['cf-connecting-ip'] && !req.headers['cf-ray'] && !req.headers['x-forwarded-for'];
@@ -41,8 +46,11 @@ export function taoReview(C) {
     if (ma.length < 8 || !gui) return false;
     const ip = ipCua(req); const now = Date.now(); const s = saiMa.get(ip);
     if (s && now - s.t < 60000 && s.n >= 10) return false;
+    if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
+    if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
     const bang = (x) => crypto.createHash('sha256').update(x).digest();
     if (crypto.timingSafeEqual(bang(ma), bang(gui))) return true;
+    saiTong.n++;
     if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else s.n++;
     if (saiMa.size > 5000) saiMa.clear();
     return false;
@@ -85,7 +93,7 @@ export function taoReview(C) {
 
   // phát cho bàn chính + mọi trang review cùng hành trình (trang tự tải lại phần đổi)
   function bao(ht, loai, them = {}) {
-    let ma = []; try { ma = dsChiaSe().filter((s) => s.ht === ht).map((s) => `r-${s.ma}`); } catch { /* kho hỏng: chỉ báo bàn */ }
+    let ma = []; try { ma = dsChiaSe().filter((s) => s.ht === ht && !s.thuHoi).map((s) => `r-${s.ma}`); } catch { /* kho hỏng: chỉ báo bàn */ }
     const phong = new Set(C.dsPhong());
     for (const p of ['bang', ...ma]) if (phong.has(p)) C.phat(p, { t: 'rv', loai, ht, ...them });
   }
@@ -184,7 +192,7 @@ export function taoReview(C) {
           try {
             const g = docJson(tepGopY(s.ht), () => ({ ds: [] }));
             const gy = t.gy ? g.ds.find((x) => x.id === t.gy) : null;
-            if (t.gy && !gy) return json(res, 404, { loi: 'Không có góp ý gắn với đề xuất' }), true;
+            if (t.gy && (!gy || gy.key !== t.key)) return json(res, 404, { loi: 'Không có góp ý của màn này gắn với đề xuất' }), true;
             const dx = docJson(tepDeXuat(s.ht), () => ({ ds: [] }));
             if (dx.ds.length >= TOI_DA.deXuat) return json(res, 409, { loi: 'Hành trình này đã quá nhiều đề xuất' }), true;
             if (dx.ds.filter((x) => x.tt === 'cho').length >= 60) return json(res, 409, { loi: 'Đã có 60 đề xuất chờ duyệt — đợi người phụ trách duyệt bớt' }), true;
@@ -245,6 +253,7 @@ export function taoReview(C) {
           const ds = dsChiaSe(); const s = ds.find((x) => x.ma === b); if (!s) return json(res, 404, { loi: 'Không có link này' }), true;
           s.thuHoi ||= new Date().toISOString(); ghi(tepChiaSe(), { ds });
           C.phat(`r-${s.ma}`, { t: 'rv', loai: 'thu-hoi', ht: s.ht }); bao(s.ht, 'chia-se');
+          setTimeout(() => C.dongPhong?.(`r-${s.ma}`), 300); // báo xong thì cắt kết nối realtime của link đã thu hồi
           return json(res, 200, s), true;
         } finally { mo(); }
       }

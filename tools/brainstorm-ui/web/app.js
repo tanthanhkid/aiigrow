@@ -1117,8 +1117,7 @@ async function thayMan(key, html, meta = {}) {
 async function thayTheoDeXuat(dx, key, html, meta) {
   dangThay.add(key);
   const sach = lamSach(html);
-  try { await GY.chapNhan(dx, { html: sach, w: meta.w, h: meta.h, suaTiep: sach !== dx.h0 }); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
-  meta.truocVe?.();
+  try { await GY.chapNhan(dx, { html: sach, w: meta.w, h: meta.h, suaTiep: sach !== dx.h0 }, () => meta.truocVe?.()); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
   for (const f of st.khung) if (f.cha === meta.bt) f.cha = f.goc; // biến thể sinh từ khung tạm: nối về màn gốc
   st.khung = st.khung.filter((f) => f.id !== meta.bt); st.chon.delete(meta.bt); // khung tạm của đề xuất đã xong việc
   qtDaVe = ''; veTatCa(); luuLai();
