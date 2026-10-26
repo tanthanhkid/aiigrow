@@ -1,6 +1,7 @@
 // Bàn brainstorm giao diện AiiGrow — canvas kiểu Figma xếp theo HÀNH TRÌNH + Claude sinh biến thể + chế độ Play (prototype).
 // Vanilla JS, không build.
 import { taiHanhTrinh } from './hanh-trinh/index.js';
+import { taoQuyTrinh } from './quy-trinh.js';
 import { heThong, loiNguoiDung, tachKetQua, loiHanhTrinh, tachHanhTrinh, HUONG } from './prompt.js';
 
 const $ = (s) => document.querySelector(s);
@@ -95,9 +96,13 @@ for (const l of LAN_GOC) { const id = maSec(l); let s = SECTIONS.find((x) => x.i
 { const thu = Object.keys(SEC_TEN); const hang = (x) => (x.id === 'bo-cai' ? 99 : thu.includes(x.id) ? thu.indexOf(x.id) : 50); SECTIONS.sort((p, q) => hang(p) - hang(q)); }
 const secCuaLan = (l) => { const g = l && (l.goc ? l : timLan(l.tu)); return g ? maSec(g) : ''; };
 const secTu = (id) => (SECTIONS.some((x) => x.id === id) ? id : '');
-st.sec = secTu(decodeURIComponent(location.hash.slice(1))) || secTu(caiDat.sec) || SECTIONS[0]?.id;
-const lanHien = (l) => secCuaLan(l) === st.sec;
-if (st.views[st.sec]) st.view = { ...st.views[st.sec] };
+// hash: #<section> (canvas) hoặc #qt:<section> (Quy trình)
+const docHash = () => { const h = decodeURIComponent(location.hash.slice(1)); return h.startsWith('qt:') ? { cheDo: 'qt', sec: secTu(h.slice(3)) } : { cheDo: h ? 'canvas' : '', sec: secTu(h) }; };
+{ const h = docHash(); st.sec = h.sec || secTu(caiDat.sec) || SECTIONS[0]?.id; st.cheDo = h.cheDo || (caiDat.cheDo === 'qt' ? 'qt' : 'canvas'); }
+const khoaView = () => (st.cheDo === 'qt' ? 'qt:' : '') + st.sec;
+const ghiHash = () => { try { history.replaceState(null, '', `#${st.cheDo === 'qt' ? 'qt:' : ''}${encodeURIComponent(st.sec)}`); } catch { /* bỏ qua */ } };
+const lanHien = (l) => st.cheDo !== 'qt' && secCuaLan(l) === st.sec;
+if (st.views[khoaView()]) st.view = { ...st.views[khoaView()] };
 
 let henLuu = 0;
 function luuLai() {
@@ -108,16 +113,18 @@ function luuLai() {
   }, 300);
 }
 let henView = 0;
-function luuView() { st.views[st.sec] = { ...st.view }; clearTimeout(henView); henView = setTimeout(() => ghi(KHOA_VIEW, st.views), 300); }
-function doiSec(id, { bay = true } = {}) {
-  if (!secTu(id) || id === st.sec) return;
-  st.sec = id; caiDat.sec = id; luuCaiDat();
-  try { history.replaceState(null, '', `#${encodeURIComponent(id)}`); } catch { /* bỏ qua */ }
-  st.chon.clear(); st.lanChon = null; st.thay = null; // tập khung đang thấy của section cũ không còn đúng
+function luuView() { st.views[khoaView()] = { ...st.view }; clearTimeout(henView); henView = setTimeout(() => ghi(KHOA_VIEW, st.views), 300); }
+function doiSec(id, { bay = true, cheDo = st.cheDo } = {}) {
+  if (!secTu(id) || (id === st.sec && cheDo === st.cheDo)) return;
+  st.sec = id; caiDat.sec = id; st.cheDo = cheDo; caiDat.cheDo = cheDo; luuCaiDat();
+  ghiHash();
+  st.chon.clear(); st.lanChon = null; st.thay = null;
+  qt.bat(cheDo === 'qt'); document.body.classList.toggle('che-do-qt', cheDo === 'qt');
   veTatCa();
-  if (st.views[id]) { st.view = { ...st.views[id] }; apView(); } else if (bay) vuaMan();
+  if (st.views[khoaView()]) { st.view = { ...st.views[khoaView()] }; apView(); } else if (bay) vuaMan();
 }
-addEventListener('hashchange', () => doiSec(decodeURIComponent(location.hash.slice(1))));
+const doiCheDo = () => doiSec(st.sec, { cheDo: st.cheDo === 'qt' ? 'canvas' : 'qt' });
+addEventListener('hashchange', () => { const h = docHash(); if (h.sec) doiSec(h.sec, { cheDo: h.cheDo || 'canvas' }); });
 
 // ---------- SẮP XẾP: hàng hành trình xếp dọc; biến thể thành cây theo tầng ngay dưới khung cha; không bao giờ chồng ----------
 function conCua(id) { return st.khung.filter((f) => f.cha === id && !f.lan && f.loai === 'bien'); }
@@ -185,6 +192,7 @@ function apView() {
 let henAoId = 0;
 function henAo() { cancelAnimationFrame(henAoId); henAoId = requestAnimationFrame(capNhatAo); }
 function capNhatAo() {
+  if (st.cheDo === 'qt') { qt.capNhatAo(ZOOM_SONG, LE_AO); return; }
   const r = vung.getBoundingClientRect(); const { x, y, z } = st.view;
   const thay = new Set();
   for (const [id, d] of dom) {
@@ -462,7 +470,11 @@ function veTatCa(xep = true) {
   const con = new Set(st.khung.map((f) => f.id));
   for (const [id, d] of dom) if (!con.has(id)) { d.el.remove(); dom.delete(id); }
   st.khung.forEach(veKhung);
-  veDauLan(); henVeNoi(); veBang(); veBen(); henAo();
+  veDauLan(); henVeNoi(); veBang(); veBen();
+  if (st.cheDo === 'qt' && qtDaVe !== st.sec) { qtDaVe = st.sec; qt.ve(st.sec, SECTIONS.find((x) => x.id === st.sec)?.lan || []); }
+  if (st.cheDo !== 'qt') qtDaVe = '';
+  $('#nut-qt').classList.toggle('bat', st.cheDo === 'qt');
+  henAo();
   $('#nut-so-sanh').disabled = !(st.chon.size >= 2 && st.chon.size <= 4);
   $('#nut-so-sanh').textContent = st.chon.size >= 2 ? `So sánh (${st.chon.size})` : 'So sánh';
   $('#nut-lk').classList.toggle('bat', caiDat.lienKet);
@@ -504,7 +516,7 @@ function veBen() {
 }
 function bayToiLan(id) {
   const l = timLan(id); if (!l) return;
-  if (!lanHien(l)) doiSec(secCuaLan(l), { bay: false });
+  if (!lanHien(l)) doiSec(secCuaLan(l), { bay: false, cheDo: 'canvas' });
   st.lanChon = id; veTatCa(false);
   const vt = st.viTriLan.get(id); if (vt) vuaHop(vt.x, vt.y, vt.x + vt.w, vt.y + Math.min(vt.h, 1400));
 }
@@ -526,6 +538,7 @@ function vuaHop(x0, y0, x1, y1) {
   st.view = { z, x: le - x0 * z, y: le - y0 * z }; apView(); luuView();
 }
 function vuaMan(ids) {
+  if (st.cheDo === 'qt') { const b = qt.hop(); if (b) vuaHop(b.x0 - 20, b.y0 - 20, b.x1 + 20, b.y1 + 20); return; }
   const ds = (ids ? st.khung.filter((f) => ids.includes(f.id)) : st.khung).filter((f) => dom.get(f.id) && !dom.get(f.id).el.hidden);
   if (!ds.length) return;
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -546,7 +559,8 @@ vung.addEventListener('pointerdown', (e) => {
   if (e.target.closest('button')) return;
   const khungEl = e.target.closest('.khung');
   if (!khungEl || phimCach || e.button === 1) {
-    keo = { loai: 'nen', sx: e.clientX, sy: e.clientY, vx: st.view.x, vy: st.view.y, dich: false, lan: e.button === 0 && !phimCach ? e.target.closest('.dau-lan') : null };
+    keo = { loai: 'nen', sx: e.clientX, sy: e.clientY, vx: st.view.x, vy: st.view.y, dich: false, lan: e.button === 0 && !phimCach ? e.target.closest('.dau-lan') : null,
+      viec: e.button === 0 && !phimCach ? e.target.closest('#qt-lop g.qt-man') : null };
     vung.classList.add('dang-keo');
   } else {
     const id = khungEl.dataset.id;
@@ -572,6 +586,7 @@ vung.addEventListener('pointermove', (e) => {
 });
 const thaKeo = () => {
   if (!keo) return;
+  if (keo.loai === 'nen' && !keo.dich && keo.viec) { const m = keo.viec.dataset.man; keo = null; vung.classList.remove('dang-keo'); moPlay(m); return; }
   if (keo.loai === 'nen' && !keo.dich && keo.lan) chonLan(keo.lan.dataset.lan);
   else if (keo.loai === 'nen' && !keo.dich && (st.chon.size || st.lanChon)) { st.chon.clear(); st.lanChon = null; veTatCa(false); }
   // thả khung đã kéo: xếp lại để không bao giờ chồng (vị trí do bộ xếp quyết)
@@ -592,6 +607,7 @@ addEventListener('keydown', (e) => {
   else if (e.key === '-') phong(1 / 1.2);
   else if (e.key === '!' || (e.shiftKey && e.code === 'Digit1')) vuaMan();
   else if (e.key === 'l' || e.key === 'L') batLienKet();
+  else if (e.key === 'b' || e.key === 'B') doiCheDo();
   else if (e.key === 'p' || e.key === 'P') moPlay(khungChon()?.id);
   else if ((e.key === 'Delete' || e.key === 'Backspace') && st.chon.size) xoaChon();
 });
@@ -965,7 +981,7 @@ function moPlay(id, lanId) {
 function dongPlay() {
   $('#lop-play').hidden = true; $('#pl-thiet-bi').innerHTML = '';
   const f = timKhung(play.lich.at(-1)); const sec = f && secCuaLan(lanCuaKhung(f));
-  if (sec && sec !== st.sec) { doiSec(sec, { bay: false }); st.chon.clear(); st.chon.add(f.id); veTatCa(false); vuaMan([f.id]); toast(`Đã sang section «${SECTIONS.find((x) => x.id === sec).ten}» — màn cuối khi Play.`); }
+  if (sec && sec !== st.sec && st.cheDo !== 'qt') { doiSec(sec, { bay: false }); st.chon.clear(); st.chon.add(f.id); veTatCa(false); vuaMan([f.id]); toast(`Đã sang section «${SECTIONS.find((x) => x.id === sec).ten}» — màn cuối khi Play.`); }
 }
 function kieuThietBi(f) {
   const l = timLan(MAN[keyCua(f)].lan); const { w } = kichThuoc(f);
@@ -1215,8 +1231,14 @@ function toast(t, loi = false) {
 
 // ---------- khởi động ----------
 napModel($('#chon-model'), caiDat.model);
+let qtDaVe = '';
+const qt = taoQuyTrinh({ MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, moPlay: (k) => moPlay(k), toast, view: () => st.view });
+qt.bat(st.cheDo === 'qt'); document.body.classList.toggle('che-do-qt', st.cheDo === 'qt');
+$('#nut-qt').onclick = doiCheDo;
+$('#nut-qt-svg').onclick = () => qt.xuat('svg', `quy-trinh-${st.sec}`);
+$('#nut-qt-png').onclick = () => qt.xuat('png', `quy-trinh-${st.sec}`);
 capNhatCheDo(); apView(); veTatCa();
-if (!st.views[st.sec]) vuaMan();
-try { history.replaceState(null, '', `#${encodeURIComponent(st.sec)}`); } catch { /* bỏ qua */ }
+if (!st.views[khoaView()]) vuaMan();
+ghiHash();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
-window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, SECTIONS, dom, anhNho }; // để nghiệm thu tự động
+window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho }; // để nghiệm thu tự động

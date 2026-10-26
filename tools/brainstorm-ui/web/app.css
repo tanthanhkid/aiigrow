@@ -180,3 +180,13 @@ kbd{font:600 11px Inter;opacity:.6;margin-left:4px}
 #ben-ds .ben-muc{padding-left:22px}
 #chon-sec{display:none}
 @media (max-width:760px){#ben{display:none}#vung{left:0}#chon-sec{display:block;min-height:40px;max-width:180px}}
+
+/* chế độ Quy trình (BPMN lai giao diện) */
+body:not(.che-do-qt) .chi-qt{display:none}
+body.che-do-qt .chi-canvas,body.che-do-qt #noi{display:none}
+#qt-lop{position:absolute;left:0;top:0}
+#qt-lop .qt-svg{display:block}
+#qt-lop g.qt-man{cursor:pointer}
+#qt-lop g.qt-man:hover .qt-hop,#qt-lop g.qt-man:focus .qt-hop{stroke:#0f6b5c;stroke-width:3.5}
+#qt-lop g.qt-man:focus{outline:none}
+#qt-lop .qt-song{position:absolute;transform-origin:0 0;border:0;background:#fff;pointer-events:none;border-radius:6px}
