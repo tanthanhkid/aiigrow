@@ -27,21 +27,21 @@ export function taoReview(C) {
   // ---------- chủ quản ----------
   // 127.0.0.1/localhost gõ thẳng (không qua tunnel) = chủ quản. Qua tên miền: header x-bs-chu-quan khớp «ma» trong chu-quan.json (Thanh tự đặt, ngoài git).
   // Chưa có tệp ⇒ qua tên miền không ai là chủ quản. Sai mã bị giới hạn 10 lần/phút mỗi IP.
-  const saiMa = new Map(); const saiTong = { t: 0, n: 0 };
+  const saiMa = new Map(); const SAI_TONG = new Map(); // loại bí mật → { t, n }
   // chỉ tin cf-connecting-ip khi yêu cầu đến từ cloudflared trên máy này (loopback); nối thẳng thì dùng địa chỉ socket
   const ipCua = (req) => { const s = req.socket.remoteAddress || ''; return /^(127\.|::1$|::ffff:127\.)/.test(s) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : s; };
   const AU = C.audit || { ghi() {} };
   let cq = { t: -1, j: {} }; // nhớ theo mtime: không đọc lại tệp mỗi yêu cầu
   // tóm tắt quyền để ghi audit — KHÔNG BAO GIỜ ghi mã (kể cả băm của mã); chỉ «có mã» + «mã vừa đổi»
-  const tomCq = (j) => ({ khoaBang: j.khoaBang === true, coMa: String(j.ma || '').length >= 8 });
+  const tomCq = (j) => ({ khoaBang: j.khoaBang === true, coMa: String(j.ma || '').length >= 8, coMaMcp: String(j.maMcp || '').length >= 8 });
   function cauHinh() {
     let t = 0; try { t = fs.statSync(TEP_CQ).mtimeMs; } catch { t = 0; }
     if (t !== cq.t) {
       const cu = cq;
       if (!t) cq = { t, j: {} };
       else { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' ? j : {} }; } catch { cq = { t, j: {} }; } }
-      const a = tomCq(cu.j), b = { ...tomCq(cq.j), doiMa: String(cu.j.ma || '') !== String(cq.j.ma || '') };
-      if (cu.t !== -1 && (b.doiMa || a.khoaBang !== b.khoaBang || a.coMa !== b.coMa)) // lần đọc đầu tiên khi chạy máy chủ không phải «đổi»
+      const a = tomCq(cu.j), b = { ...tomCq(cq.j), doiMa: String(cu.j.ma || '') !== String(cq.j.ma || ''), doiMaMcp: String(cu.j.maMcp || '') !== String(cq.j.maMcp || '') };
+      if (cu.t !== -1 && (b.doiMa || b.doiMaMcp || a.khoaBang !== b.khoaBang || a.coMa !== b.coMa || a.coMaMcp !== b.coMaMcp)) // lần đọc đầu tiên khi chạy máy chủ không phải «đổi»
         AU.ghi({ loai: 'quyen.doi-cau-hinh', dt: { tep: 'chu-quan.json' }, ai: { ten: 'máy chủ', vai: 'he-thong' }, truoc: a, sau: b, ghiChu: t ? 'chu-quan.json đổi' : 'chu-quan.json bị xoá' }, { motLan: `cq:${t}` });
     }
     return cq.j;
@@ -67,18 +67,27 @@ export function taoReview(C) {
     const kq = kiemMa(req); daKiem.set(req, kq); return kq;
   }
   function kiemMa(req) {
+    return kiemBiMat(req, String(cauHinh().ma || ''), String(req.headers['x-bs-chu-quan'] || ''), { loai: 'quyen.sai-ma', ten: 'mã chủ quản', duong: String(req.url || '').split('?')[0].slice(0, 80) });
+  }
+  // Mật khẩu MCP («maMcp» trong chu-quan.json): gọi /mcp qua tên miền bắt buộc «Authorization: Bearer <maMcp>»; 127.0.0.1 gõ thẳng thì mở.
+  function kiemMaMcp(req) {
+    const m = String(req.headers.authorization || '').match(/^Bearer\s+(.+)$/i);
+    return kiemBiMat(req, String(cauHinh().maMcp || ''), m ? m[1].trim() : '', { loai: 'quyen.sai-ma-mcp', ten: 'mật khẩu MCP', duong: '/mcp', them: { nguon: 'mcp' } });
+  }
+  // So một bí mật (mã chủ quản / mật khẩu MCP) — dùng CHUNG bộ giới hạn sai: 10 lần/phút/IP, 100 lần/phút cả máy chủ. Không bao giờ ghi giá trị mã.
+  function kiemBiMat(req, ma, gui, au) {
     if (laNoiBo(req)) return true;
-    const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
     if (ma.length < 8 || !gui) return false;
-    const ip = ipCua(req); const now = Date.now(); const s = saiMa.get(ip);
+    const ip = `${au.loai}|${ipCua(req)}`; const now = Date.now(); const s = saiMa.get(ip);
     if (s && now - s.t < 60000 && s.n >= 10) return false;
+    let saiTong = SAI_TONG.get(au.loai); if (!saiTong) SAI_TONG.set(au.loai, saiTong = { t: 0, n: 0 });
     if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
     if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
     if (dungMa(ma, gui)) return true;
     saiTong.n++;
     let n = 1; if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else n = ++s.n;
     // ghi audit lần sai ĐẦU của mỗi IP mỗi phút và lần chạm ngưỡng chặn — không để dò mã làm đầy nhật ký
-    if (n === 1 || n === 10) AU.ghi({ loai: 'quyen.sai-ma', dt: { duong: String(req.url || '').split('?')[0].slice(0, 80) }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro' }, truoc: null, sau: null, ghiChu: `thử mã chủ quản sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
+    if (n === 1 || n === 10) AU.ghi({ loai: au.loai, dt: { duong: au.duong }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro', ...(au.them || {}) }, truoc: null, sau: null, ghiChu: `thử ${au.ten} sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
     if (saiMa.size > 5000) saiMa.clear();
     return false;
   }
@@ -382,5 +391,5 @@ export function taoReview(C) {
     } finally { mo(); }
   }
 
-  return { xuLy, laChuQuan, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
+  return { xuLy, laChuQuan, kiemMaMcp, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
 }

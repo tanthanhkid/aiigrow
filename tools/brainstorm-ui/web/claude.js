@@ -102,12 +102,13 @@ export function lamSach(html) {
 
 
 // Danh sách ảnh dùng được trong biến thể (đưa vào prompt hệ thống).
+// j = kết quả /api/assets — dùng chung với MCP của máy chủ (cùng một chuỗi trong prompt hệ thống)
+export const vanBanAssets = (j) => `- Icon 3D Fluent (đặt trong .bt): ${j.icon3d.map((t) => `/assets/icon3d/${t}`).join(', ')}\n- Mascot Rob (cảnh): ${j.rob.map((t) => `/assets/rob/${t}`).join(', ')}\n- Logo: /assets/logo.png`;
 let assetsVanBan = '';
 export async function taiAssets() {
   if (assetsVanBan) return assetsVanBan;
   try {
-    const j = await (await fetch('/api/assets')).json();
-    assetsVanBan = `- Icon 3D Fluent (đặt trong .bt): ${j.icon3d.map((t) => `/assets/icon3d/${t}`).join(', ')}\n- Mascot Rob (cảnh): ${j.rob.map((t) => `/assets/rob/${t}`).join(', ')}\n- Logo: /assets/logo.png`;
+    assetsVanBan = vanBanAssets(await (await fetch('/api/assets')).json());
   } catch { assetsVanBan = '- /assets/rob/rob-goc.webp, /assets/icon3d/khoa.webp, /assets/logo.png'; }
   return assetsVanBan;
 }

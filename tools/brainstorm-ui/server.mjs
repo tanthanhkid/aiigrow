@@ -9,6 +9,7 @@ import { ganRealtime, phatPhong, dsPhong, dongPhong } from './realtime.mjs';
 import { taoKhoBienThe } from './kho-bien-the.mjs';
 import { taoReview } from './review.mjs';
 import { taoAudit } from './audit.mjs';
+import { taoMcp } from './mcp.mjs';
 
 const GOC = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(GOC, '../..');
@@ -101,9 +102,10 @@ let cong = Number(process.env.PORT) || 5178;
 // Không ghi mã chủ quản (header x-bs-chu-quan không bao giờ được chép), key Claude không đi qua máy chủ này.
 const audit = taoAudit({ THIET_KE });
 const uaNgan = (u) => String(u || '').replace(/\s+/g, ' ').replace(/\(KHTML, like Gecko\) ?/, '').slice(0, 120);
+const REQ_MCP = new WeakSet(); // yêu cầu nội bộ do MCP dựng (mcp.mjs) — audit ghi nguon: 'mcp'
 function aiCua(req, them = {}) {
   let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 40); } catch { /* tên hỏng */ }
-  return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong, ...them };
+  return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong, ...(REQ_MCP.has(req) ? { nguon: 'mcp' } : {}), ...them };
 }
 const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong });
 const review = taoReview({ THIET_KE, audit, ai: (...a) => aiCua(...a), hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
@@ -155,10 +157,17 @@ function hopLeNguon(req) {
 }
 
 
-const may = http.createServer(async (req, res) => {
+// MCP (Streamable HTTP, /mcp): mọi thao tác đi qua chính xuLyYeuCau bên dưới bằng yêu cầu nội bộ mang quyền của người gọi MCP.
+const mcp = taoMcp({ xuLyYeuCau: (...a) => xuLyYeuCau(...a), cong: () => cong, WEB, THIET_KE, HOST_TIN, hopLeNguon: (req) => hopLeNguon(req),
+  json: (...a) => json(...a), docThan: (...a) => docThan(...a), danhDau: (req) => REQ_MCP.add(req), kiemMaMcp: (req) => review.kiemMaMcp(req) });
+const may = http.createServer((req, res) => xuLyYeuCau(req, res));
+async function xuLyYeuCau(req, res) {
   try {
     const url = new URL(req.url, 'http://x');
     const p = decodeURIComponent(url.pathname);
+
+    if (p === '/mcp') return await mcp.xuLy(req, res);
+    if (p.startsWith('/__mcp/trang/')) return mcp.trang(req, res, p.slice(13));
 
     if (p === '/api/phien-ban' || p.startsWith('/api/phien-ban/')) return await apiPhienBan(req, res, p);
     if (p === '/api/bien-the' || p.startsWith('/api/bien-the/')) {
@@ -197,9 +206,10 @@ const may = http.createServer(async (req, res) => {
     return guiTep(res, tep, cspCho(req));
   } catch {
     // Không in nội dung yêu cầu ra log.
-    return json(res, 500, { loi: 'Lỗi máy chủ cục bộ' });
+    if (!res.headersSent) return json(res, 500, { loi: 'Lỗi máy chủ cục bộ' });
+    try { res.end(); } catch { /* đã đóng */ }
   }
-});
+}
 
 // GET  /api/phien-ban              → { <key>: manifest } của mọi màn đã có phiên bản
 // GET  /api/phien-ban/<key>/<v>     → { html } của bản v (v ≥ 1)

@@ -7,10 +7,15 @@
   "scripts": {
     "brainstorm": "node server.mjs",
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js"
+    "check": "node --check server.mjs && node --check mcp.mjs && node --check web/gan-toi.js && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js"
   },
   "dependencies": {
-    "html-to-image": "1.11.11"
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "html-to-image": "1.11.11",
+    "puppeteer-core": "25.16.0",
+    "zod": "4.6.7"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }
