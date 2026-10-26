@@ -611,7 +611,7 @@ addEventListener('keydown', (e) => {
   else if (e.key === '-') phong(1 / 1.2);
   else if (e.key === '!' || (e.shiftKey && e.code === 'Digit1')) vuaMan();
   else if (e.key === 'l' || e.key === 'L') batLienKet();
-  else if (e.key === 'b' || e.key === 'B') doiCheDo();
+  else if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) doiCheDo();
   else if (e.key === 'p' || e.key === 'P') moPlay(khungChon()?.id);
   else if ((e.key === 'Delete' || e.key === 'Backspace') && st.chon.size) xoaChon();
 });

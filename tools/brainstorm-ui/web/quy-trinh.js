@@ -6,7 +6,7 @@ const GAP_X = 64, GAP_Y = 28, LE_POOL = 56, DAU_POOL = 54, GIUA_POOL = 150, LAN_
 const TEN_LAN = Object.fromEntries(LAN_QT.map((l) => [l.id, l.ten]));
 const MAU_LAN = { con: '#fbf7ee', may: '#f3f6f9', chu: '#f4f2f8', bm: '#eef6f3' };
 
-const rongNhan = (t) => Math.min(180, String(t).length * 6.8 + 16);
+const rongNhan = (t) => Math.min(260, String(t).length * 6.8 + 16); // ≈ 36 ký tự, khớp với chữ bẻ dòng bên dưới
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // bẻ dòng thô theo số ký tự (dùng chung cho màn hình và tệp xuất, không cần đo font)
 function beDong(t, max = 22, toiDa = 3) {
@@ -141,11 +141,12 @@ export function taoQuyTrinh(api) {
         d = `M${x1},${y1} C${x1 + k},${y1} ${x2 - k},${y2} ${x2},${y2}`; mx = (x1 + x2) / 2; my = (y1 + y2) / 2;
       } else {
         // cạnh lùi / cùng cột: vòng xuống dưới
-        const day = Math.max(a.b, b.b) + 46;
-        d = `M${a.cx},${a.b} C${a.cx},${day} ${b.cx},${day} ${b.cx},${b.b}`; mx = (a.cx + b.cx) / 2; my = day - 10;
+        // đi từ đáy cả khối (dưới tên bước), vòng xuống dưới để không đè chữ
+        const ya = A.y + A.h, yb = B.y + B.h, day = Math.max(ya, yb) + 46;
+        d = `M${a.cx},${ya} C${a.cx},${day} ${b.cx},${day} ${b.cx},${yb}`; mx = (a.cx + b.cx) / 2; my = day - 10;
       }
       s += `<path class="qt-canh${tin ? ' tin' : ''}" d="${d}" marker-end="url(#${tin ? 'qt-mui-mo' : 'qt-mui'})"${tin ? ' marker-start="url(#qt-cham)"' : ''}/>`;
-      if (c.nhan) s += `<g class="qt-nhan-canh"><rect x="${mx - rongNhan(c.nhan) / 2}" y="${my - 11}" width="${rongNhan(c.nhan)}" height="20" rx="10"/>${chu(mx, my + 4, c.nhan, { max: 26, toiDa: 1 })}</g>`;
+      if (c.nhan) s += `<g class="qt-nhan-canh"><rect x="${mx - rongNhan(c.nhan) / 2}" y="${my - 11}" width="${rongNhan(c.nhan)}" height="20" rx="10"/>${chu(mx, my + 4, c.nhan, { max: 36, toiDa: 1 })}</g>`;
     }
     // nút
     for (const x of nut.values()) {
@@ -237,9 +238,9 @@ export function taoQuyTrinh(api) {
     if (lop.hidden) return;
     const { x: vx, y: vy, z } = api.view(); const r = vung.getBoundingClientRect();
     const con = new Set();
-    if (z >= nguong) {
+    {
       for (const P of ds) for (const x of P.nut.values()) {
-        if (x.loai !== 'man') continue;
+        if (x.loai !== 'man' || z * x.s < nguong) continue; // ngưỡng theo cỡ màn thật trên màn hình (x.s là tỉ lệ ảnh trong khối)
         const sx = vx + x.x * z, sy = vy + (P.y + x.y) * z;
         if (sx + x.w * z < -le || sx > r.width + le || sy + x.h * z < -le || sy > r.height + le) continue;
         const id = `${P.q.id}/${x.id}`; con.add(id);
@@ -276,7 +277,8 @@ export function taoQuyTrinh(api) {
     }
     const b = hop(); const w = b.x1 + 40, h = b.y1 + 40;
     const noi = ds.map((P) => `<g transform="translate(20,${P.y + 20})">${svgPool(P, (k) => data.get(k))}</g>`).join('');
-    return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><style>${CSS_SVG}</style>${DEFS}<rect width="100%" height="100%" fill="#f7f6f3"/>${noi}</svg>`, w, h };
+    const sach = (t) => t.replace(/ role="button" tabindex="0"/g, '').replace(/<title>[^<]*<\/title>/g, ''); // tệp xuất: bỏ phần chỉ dùng trong app
+    return { svg: sach(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><style>${CSS_SVG}</style>${DEFS}<rect width="100%" height="100%" fill="#f7f6f3"/>${noi}</svg>`), w, h };
   }
   let dangXuat = false;
   async function xuat(kieu, tenTep) {
