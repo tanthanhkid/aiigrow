@@ -13,6 +13,7 @@ const LICH = new Map(); // id khung → { goc: html khung lúc bắt đầu, ds:
 
 export const giuSong = (id) => S.id === id;
 export const dangSua = () => S.id;
+export const phanTuChon = () => S.sel; // cho nghiệm thu tự động
 
 // ---------- token Clay (docs/THIET-KE-CLAY.md + web/kit/clay-kit.css) ----------
 const TOKEN = [
@@ -144,7 +145,8 @@ export function thoat({ im = false } = {}) {
   S.lop?.remove();
   S.d?.el.classList.remove('dang-sua');
   if (S.ifr && S.tl) {
-    if (coDoi && S.d.iframe === S.ifr) S.ifr.srcdoc = S.d.banIfr || C.htmlCua(S.f); // trả khung về HTML đã lưu; bản sửa dở nằm trong lịch sử
+    // bỏ iframe đã sửa (đặt lại srcdoc cùng giá trị không nạp lại) → ảo hoá dựng iframe mới từ HTML đã lưu; bản sửa dở nằm trong lịch sử
+    if (coDoi && S.d.iframe === S.ifr) { S.ifr.remove(); S.d.iframe = null; S.d.el.classList.remove('song'); }
     else { S.tl.querySelectorAll('[data-bs-sua]').forEach((n) => n.remove()); S.tl.querySelectorAll('[contenteditable]').forEach((n) => n.removeAttribute('contenteditable')); }
   }
   Object.assign(S, { id: null, f: null, d: null, ifr: null, tl: null, lop: null, sel: null, hover: null, keo: null, suaChu: null });
@@ -266,6 +268,7 @@ function thuocDo(A, B) {
 
 // ---------- chọn ----------
 function chon(el) {
+  S.moVet = false;
   if (S.suaChu && el !== S.suaChu) ketThucSuaChu();
   if (el === S.tl?.documentElement) el = S.tl.body;
   S.sel = el || null; veBang(); ve();
@@ -288,11 +291,15 @@ function nhanChuot(e) {
 
 // ---------- kéo: đổi thứ tự / sang cha khác / dịch tự do ----------
 const LA = /^(BUTTON|A|INPUT|TEXTAREA|SELECT|LABEL|IMG|SVG|PATH|VIDEO|CANVAS|PICTURE)$/i;
-function laCho(a, el) {
+// Cha đích hợp lệ: cha hiện tại luôn được; khối khác phải là flex/grid có ≥2 con thấy được (màn chụp DOM RN-web: div nào cũng flex)
+// và con trỏ nằm ở VÙNG GIỮA của khối (mép ngoài = chèn trước/sau khối đó ở cấp trên, kiểu Webflow).
+function laCho(a, el, x, y) {
   if (a === el.parentElement) return true;
-  if (LA.test(a.tagName) || a.closest('svg,button,a')) return false;
-  const ds = getComputedStyle(a).display;
-  return /flex|grid/.test(ds) && [...a.children].some((c) => c !== el);
+  if (LA.test(a.tagName) || a.closest('svg,button,a') || a === S.tl.body) return false;
+  if (!/flex|grid/.test(getComputedStyle(a).display)) return false;
+  if ([...a.children].filter((c) => c !== el && c.getBoundingClientRect().width * c.getBoundingClientRect().height > 64).length < 2) return false;
+  const r = a.getBoundingClientRect(); const lx = Math.min(24, r.width / 4), ly = Math.min(24, r.height / 4);
+  return x > r.left + lx && x < r.right - lx && y > r.top + ly && y < r.bottom - ly;
 }
 function huongCua(a) {
   const cs = getComputedStyle(a);
@@ -304,7 +311,7 @@ function timCho(x, y, el) {
   const ds = S.tl.elementsFromPoint(x, y);
   const t = ds.find((n) => !el.contains(n) && n !== S.tl.documentElement && !n.hasAttribute('data-bs-sua')) || S.tl.body;
   for (let a = t; a && a !== S.tl.documentElement; a = a.parentElement) {
-    if (!laCho(a, el)) continue;
+    if (!laCho(a, el, x, y)) continue;
     const huong = huongCua(a);
     const con = [...a.children].filter((c) => c !== el && !/^(STYLE|SCRIPT|LINK|META)$/.test(c.tagName) && !/absolute|fixed/.test(getComputedStyle(c).position) && c.getBoundingClientRect().width + c.getBoundingClientRect().height > 0);
     let ref = null;
@@ -487,8 +494,8 @@ function taoBang() {
   <details id="bs-nk"><summary class="phu">Những gì đã sửa (<span id="bs-so-nk">0</span>)</summary><ol id="bs-ds-nk"></ol></details>
   <div class="bs-ket">
     <button type="button" id="bs-luu" class="nut-chinh">Lưu thành biến thể</button>
-    <button type="button" id="bs-ap">Áp vào khung này</button>
     <button type="button" id="bs-muot">✨ Làm mượt bằng Claude</button>
+    <button type="button" id="bs-ap">Áp vào khung này</button>
     <button type="button" id="bs-thoat">Thoát Sửa <kbd>E</kbd></button>
   </div>
   <p class="phu bs-goi-y">Rê: viền xanh · Bấm: chọn · ↑: chọn cha · Esc: bỏ chọn · Kéo: đổi thứ tự / sang khối khác · Alt+kéo: dịch tự do · Alt+rê: đo khoảng cách · Tay nắm: đổi cỡ (Shift = bước 8) · Bấm đúp/Enter: sửa chữ · ⌘D nhân bản · ⌫ xoá · ⌘Z / ⇧⌘Z</p>`;
@@ -531,7 +538,7 @@ function taoBang() {
     if (p === 'background') { S.sel.style.background = v; } else S.sel.style.color = v;
     ghiLich(`Đổi ${p === 'color' ? 'màu chữ' : 'màu nền'} ${moTaEl(S.sel)} → ${m.title}`);
   });
-  $('#bs-vet').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) chon(theoDuong(JSON.parse(b.dataset.d))); });
+  $('#bs-vet').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && b.dataset.d) chon(theoDuong(JSON.parse(b.dataset.d))); });
 }
 function datSo(p, v) {
   if (!S.sel) return;
@@ -573,7 +580,9 @@ function veBang() {
   const r = el.getBoundingClientRect();
   $('#bs-ten').textContent = `${moTaEl(el)} · ${Math.round(r.width)}×${Math.round(r.height)}`;
   const chuoi = []; for (let n = el; n && n !== S.tl.documentElement; n = n.parentElement) chuoi.unshift(n);
+  const rut = chuoi.length > 7; // cây sâu (màn chụp DOM RN-web): body › … › 5 cấp gần nhất; bấm … để mở đủ
   chuoi.forEach((n, i) => {
+    if (rut && !S.moVet && i > 0 && i < chuoi.length - 5) { if (i === 1) { vet.append('›'); const r = document.createElement('button'); r.type = 'button'; r.className = 'rut'; r.textContent = `… ${chuoi.length - 6} cấp`; r.onclick = () => { S.moVet = true; veBang(); }; vet.appendChild(r); } return; }
     if (i) vet.append('›');
     const b = document.createElement('button'); b.type = 'button'; b.textContent = tenEl(n); b.dataset.d = JSON.stringify(duongCua(n));
     if (n === el) b.className = 'bat'; vet.appendChild(b);
@@ -619,7 +628,7 @@ function luuBienThe() {
   const f = S.f; const html = htmlDaSua();
   const moi = khungMoi(f, { yTuong: `✎ Sửa tay: ${tomTat(ds)}`, html, tt: 'xong', nhan: 'Sửa tay', model: 'sửa tay', suaTay: ds });
   C.st.khung.push(moi);
-  LICH.delete(f.id); thoat({ im: true });
+  thoat({ im: true }); LICH.delete(f.id); // thoát trước để iframe gốc được trả về HTML đã lưu
   C.st.chon.clear(); C.st.chon.add(moi.id);
   C.veTatCa(); C.vuaMan([f.id, moi.id]); C.luuLai();
   C.toast(`Đã lưu thành biến thể mới cạnh «${C.tenCua(f)}» — khung gốc giữ nguyên.`);
@@ -629,7 +638,7 @@ function apVaoKhung() {
   const ds = nhatKy(); if (!ds.length) { C.toast('Chưa sửa gì.'); return; }
   const html = htmlDaSua();
   f.html = html; f.suaTay = [...(f.suaTay || []), ...ds];
-  LICH.delete(f.id); thoat({ im: true });
+  thoat({ im: true }); LICH.delete(f.id); // thoát trước để iframe gốc được trả về HTML đã lưu
   C.veTatCa(false); C.luuLai();
   C.toast('Đã áp bản sửa vào khung biến thể này.');
 }
@@ -652,7 +661,7 @@ Việc của bạn là LÀM MƯỢT bản sửa tay, không sáng tác lại:
 }
 function mockMuot(html) {
   return html.replace('</head>', '<style>body *{transition:none}</style></head>')
-    .replace(/(<body[^>]*>)/, '$1<div style="position:absolute;right:16px;bottom:16px;z-index:9;background:#0f6b5c;color:#fff;font:700 14px Inter;padding:8px 14px;border-radius:99px">Mock: đã làm mượt</div>');
+    .replace(/(<body[^>]*>)/, '$1<div style="position:absolute;right:16px;bottom:16px;z-index:9;background:#0f6b5c;color:#fff;font:700 14px Inter,system-ui,sans-serif;padding:8px 14px;border-radius:99px">Mock: đã làm mượt</div>');
 }
 async function lamMuot() {
   if (!S.tl) return;
@@ -661,7 +670,7 @@ async function lamMuot() {
   const f = S.f; const sua = htmlDaSua();
   const moi = khungMoi(f, { yTuong: `✨ Làm mượt bản sửa tay: ${tomTat(ds)}`, html: sua, htmlSua: sua, suaTay: ds, tt: 'dang', tienDo: 'Đang gọi Claude…', nhan: 'Làm mượt', model: C.laMock() ? 'mock' : C.modelDung(), htmlGoc: C.htmlCua(f), tenGoc: C.tenCua(f) });
   C.st.khung.push(moi);
-  LICH.delete(f.id); thoat({ im: true });
+  thoat({ im: true }); LICH.delete(f.id); // thoát trước để iframe gốc được trả về HTML đã lưu
   C.st.chon.clear(); C.st.chon.add(f.id);
   C.veTatCa(); C.vuaMan([f.id, moi.id]);
   return chayLamMuot(moi);
