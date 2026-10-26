@@ -222,3 +222,28 @@ body.an-ben #vung{left:0}
 #mo-ben{position:fixed;left:0;top:72px;z-index:16;width:28px;min-height:48px;padding:0;border-radius:0 12px 12px 0;background:rgba(247,246,243,.96);box-shadow:1px 0 0 var(--vien),0 4px 12px -6px rgba(0,0,0,.3);font:800 16px Inter}
 #mo-ben[hidden]{display:none}
 @media (max-width:760px){#mo-ben{display:none}}
+
+/* realtime: con trỏ người khác, avatar, đi theo */
+#lop-tro{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
+.tro-nguoi{position:absolute;left:0;top:0;will-change:transform}
+.tro-nguoi[hidden]{display:none}
+.tro-nguoi svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.tro-nguoi .ten-tro{position:absolute;left:14px;top:18px;background:var(--mau);color:#fff;font:700 12px Inter;padding:3px 8px;border-radius:8px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.tro-nguoi .mui-mep{display:none}
+.tro-nguoi.mep svg{display:none}
+.tro-nguoi.mep .mui-mep{display:block;position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:var(--mau);box-shadow:0 0 0 2px #fff}
+.tro-nguoi.mep .mui-mep::after{content:'';position:absolute;left:16px;top:5px;border:5px solid transparent;border-left:8px solid var(--mau)}
+.tro-nguoi.mep .ten-tro{left:auto;right:14px;top:-9px}
+.nguoi{display:flex;align-items:center;gap:0;margin-right:6px}
+.avt{width:32px;height:32px;min-height:32px;padding:0;border-radius:50%;background:var(--mau);color:#fff;font:800 13px Inter;box-shadow:0 0 0 2px #fff;margin-left:-6px;flex:none}
+.avt.toi{margin-left:0;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--mau)}
+.avt.mat{opacity:.5}
+.avt.theo{box-shadow:0 0 0 2px #fff,0 0 0 4px #0f1312}
+#menu-nguoi{position:fixed;z-index:35;background:var(--the);border-radius:14px;box-shadow:0 20px 40px -16px rgba(0,0,0,.4),0 0 0 1px var(--vien);padding:8px;display:flex;flex-direction:column;gap:4px;min-width:220px}
+#menu-nguoi b{padding:4px 8px;font:800 14px Inter}
+#menu-nguoi button{text-align:left;min-height:40px}
+#di-theo{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:20;background:#0f1312;color:#fff;border-radius:99px;padding:6px 6px 6px 16px;display:flex;gap:10px;align-items:center;font:700 13px Inter}
+#di-theo[hidden]{display:none}
+#di-theo button{min-height:32px;border-radius:99px;background:#fff;color:#0f1312;font:700 12px Inter;padding:0 12px}
+.khung.nguoi-chon{outline:3px solid var(--mau-nguoi);outline-offset:4px}
+.khung .tag-nguoi{position:absolute;right:0;top:-26px;background:var(--mau-nguoi);color:#fff;font:700 12px Inter;padding:3px 8px;border-radius:8px;white-space:nowrap;pointer-events:none}

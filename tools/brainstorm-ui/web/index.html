@@ -32,6 +32,7 @@
   </div>
   <select id="chon-sec" aria-label="Section"></select>
   <div class="nhom phai">
+    <div id="nguoi" class="nguoi" aria-label="Người đang xem bàn"></div>
     <button type="button" id="che-do" class="nhan-che-do" hidden title="Đang ở chế độ mock — bấm để xem cách gọi Claude thật"></button>
     <button id="nut-cai-dat" class="nut-cai-dat" title="Cài đặt API key và model">⚙ Cài đặt</button>
   </div>
@@ -78,6 +79,16 @@
     <div id="xem-luoi"></div>
   </div>
 </div>
+
+<div id="lop-ten" class="lop" hidden>
+  <form id="hop-ten" class="hop" autocomplete="off">
+    <div class="dau-bang"><b>Bạn tên gì?</b><button type="button" id="ten-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <p class="phu">Tên hiện cạnh con trỏ của bạn để mọi người cùng xem bàn biết ai đang ở đâu. Lưu trong trình duyệt này, đổi được bất cứ lúc nào (bấm vòng tên góc trên phải).</p>
+    <input id="ten-nhap" maxlength="40" placeholder="Ví dụ: Thanh" spellcheck="false" aria-label="Tên của bạn">
+    <div class="hang ket"><span style="flex:1"></span><button type="submit" class="nut-chinh">Vào bàn</button></div>
+  </form>
+</div>
+<div id="di-theo" hidden><span></span><button type="button">Thôi đi theo (Esc)</button></div>
 
 <div id="lop-ls" class="lop" hidden>
   <div class="hop-xem hop-ls" role="dialog" aria-labelledby="ls-tieu">
