@@ -12,7 +12,14 @@ const GV = 150;          // khoảng trên mỗi hàng biến thể (chỗ ghi �
 const GH = 48;           // khoảng giữa các biến thể trong hàng
 const GLAN = 240;        // khoảng giữa hai hàng hành trình
 const KHOA_LUU = 'bs.v2', KHOA_KEY = 'bs.key', KHOA_CD = 'bs.cai-dat';
-const NEN = ['Tất cả', 'iPhone', 'Điện thoại', 'Windows', 'Mac', 'Web'];
+const ZOOM_SONG = 0.4;   // dưới mức này dùng ảnh thu nhỏ thay iframe
+const LE_AO = 500;       // lề (px màn hình) quanh viewport vẫn giữ iframe
+// Section kiểu Pages của Figma: chỉ dựng section đang mở.
+const SEC_MAP = { 'bm-lan-dau': 'bm-dau', 'bm-ghep-may': 'bm-dau', 'bm-hang-ngay': 'bm-ngay', 'bm-ung-dung': 'bm-ngay',
+  'bm-duyet': 'bm-nv', 'bm-nhiem-vu': 'bm-nv', 'bm-bao-cao': 'bm-nv', 'bm-cai-dat': 'bm-cd',
+  'web-tai': 'bo-cai', 'con-cai-win': 'bo-cai', 'con-cai-mac': 'bo-cai', 'con-dt-cai': 'bo-cai' };
+const SEC_TEN = { 'bm-dau': 'Ba Mẹ · Lần đầu & ghép máy', 'bm-ngay': 'Ba Mẹ · Hằng ngày', 'bm-nv': 'Ba Mẹ · Duyệt, nhiệm vụ & báo cáo',
+  'bm-cd': 'Ba Mẹ · Cài đặt & hỗ trợ', 'bo-cai': 'Bộ cài & trang tải' };
 
 // ---------- lưu trữ cục bộ (mọi truy cập bọc try/catch) ----------
 const doc = (k, macDinh) => { try { const v = localStorage.getItem(k); return v == null ? macDinh : JSON.parse(v); } catch { return macDinh; } };
@@ -20,7 +27,7 @@ const ghi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return
 const docKey = () => { try { return localStorage.getItem(KHOA_KEY) || ''; } catch { return ''; } };
 const ghiKey = (v) => { try { v ? localStorage.setItem(KHOA_KEY, v) : localStorage.removeItem(KHOA_KEY); } catch { /* bỏ qua */ } };
 
-const caiDat = Object.assign({ model: MODELS[0][0], modelKhac: '', maxTokens: 16000, soBt: 4, soPa: 2, loc: 'Tất cả', lienKet: true, lkChon: true, anhThat: false, playDung: 'goc' }, doc(KHOA_CD, {}));
+const caiDat = Object.assign({ model: MODELS[0][0], modelKhac: '', maxTokens: 16000, soBt: 4, soPa: 2, lienKet: true, lkChon: true, anhThat: false, playDung: 'goc' }, doc(KHOA_CD, {}));
 const luuCaiDat = () => ghi(KHOA_CD, caiDat);
 const MOCK_URL = new URLSearchParams(location.search).has('mock');
 const laMock = () => MOCK_URL || docKey().toLowerCase().startsWith('mock');
@@ -69,7 +76,9 @@ if (luu) {
   for (const l of luu.lanBt || []) (lanCo(l.tu) ? st.lanBt : st.giuLan).push(l);
   for (const f of luu.khung || []) (f.loai === 'bien' && MAN[f.goc] && (!f.lan || st.lanBt.some((l) => l.id === f.lan)) ? st.khung : st.giuKhung).push(f);
 }
-{ const v = doc(KHOA_VIEW, null); if (v && Number.isFinite(v.z)) st.view = v; }
+const viewDaLuu = doc(KHOA_VIEW, null) || {};
+st.views = viewDaLuu && !Number.isFinite(viewDaLuu.z) ? viewDaLuu : {};
+if (st.views[st.sec]) st.view = { ...st.views[st.sec] };
 for (const f of st.khung) if (f.tt === 'dang') { f.tt = 'loi'; f.loi = 'Trang đã tải lại khi đang sinh — bấm Thử lại.'; }
 for (const l of st.lanBt) if (l.tt === 'dang') { l.tt = 'loi'; l.loi = 'Trang đã tải lại khi đang sinh.'; }
 
@@ -81,7 +90,14 @@ const tenCua = (f) => (f.loai === 'goc' ? MAN[f.key].ten : f.nhan || MAN[f.goc]?
 const timLan = (id) => LAN_GOC.find((l) => l.id === id) || st.lanBt.find((l) => l.id === id);
 const lanCuaKhung = (f) => (f.lan ? timLan(f.lan) : timLan(MAN[keyCua(f)]?.lan));
 const nhomCua = (f) => { const l = timLan(MAN[keyCua(f)]?.lan); return l ? `${l.vai} · ${l.nen}` : ''; };
-const lanHien = (l) => { const g = l.goc ? l : timLan(l.tu); return caiDat.loc === 'Tất cả' || g?.nen === caiDat.loc; };
+const maSec = (l) => SEC_MAP[l.id] || `${l.vai}-${l.nen}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const SECTIONS = [];
+for (const l of LAN_GOC) { const id = maSec(l); let s = SECTIONS.find((x) => x.id === id); if (!s) SECTIONS.push(s = { id, ten: SEC_TEN[id] || `${l.vai} · ${l.nen}`, lan: [] }); s.lan.push(l.id); }
+{ const thu = Object.keys(SEC_TEN); const hang = (x) => (x.id === 'bo-cai' ? 99 : thu.includes(x.id) ? thu.indexOf(x.id) : 50); SECTIONS.sort((p, q) => hang(p) - hang(q)); }
+const secCuaLan = (l) => { const g = l && (l.goc ? l : timLan(l.tu)); return g ? maSec(g) : ''; };
+const secTu = (id) => (SECTIONS.some((x) => x.id === id) ? id : '');
+st.sec = secTu(decodeURIComponent(location.hash.slice(1))) || secTu(caiDat.sec) || SECTIONS[0]?.id;
+const lanHien = (l) => secCuaLan(l) === st.sec;
 
 let henLuu = 0;
 function luuLai() {
@@ -92,7 +108,16 @@ function luuLai() {
   }, 300);
 }
 let henView = 0;
-function luuView() { clearTimeout(henView); henView = setTimeout(() => ghi(KHOA_VIEW, st.view), 300); }
+function luuView() { st.views[st.sec] = { ...st.view }; clearTimeout(henView); henView = setTimeout(() => ghi(KHOA_VIEW, st.views), 300); }
+function doiSec(id, { bay = true } = {}) {
+  if (!secTu(id) || id === st.sec) return;
+  st.sec = id; caiDat.sec = id; luuCaiDat();
+  try { history.replaceState(null, '', `#${encodeURIComponent(id)}`); } catch { /* bỏ qua */ }
+  st.chon.clear(); st.lanChon = null;
+  veTatCa();
+  if (st.views[id]) { st.view = { ...st.views[id] }; apView(); } else if (bay) vuaMan();
+}
+addEventListener('hashchange', () => doiSec(decodeURIComponent(location.hash.slice(1))));
 
 // ---------- SẮP XẾP: hàng hành trình xếp dọc; biến thể thành cây theo tầng ngay dưới khung cha; không bao giờ chồng ----------
 function conCua(id) { return st.khung.filter((f) => f.cha === id && !f.lan && f.loai === 'bien'); }
@@ -153,47 +178,117 @@ function apView() {
   vung.style.backgroundSize = `${24 * z}px ${24 * z}px`;
   vung.style.backgroundPosition = `${x}px ${y}px`;
   $('#nut-zoom').textContent = `${Math.round(z * 100)}%`;
+  henAo();
+}
+
+// Ảo hoá: iframe chỉ sống khi khung nằm trong viewport (+ lề) và zoom ≥ 40%; còn lại là ảnh thu nhỏ / khung xám.
+let henAoId = 0;
+function henAo() { cancelAnimationFrame(henAoId); henAoId = requestAnimationFrame(capNhatAo); }
+function capNhatAo() {
+  const r = vung.getBoundingClientRect(); const { x, y, z } = st.view;
+  const thay = new Set();
+  for (const [id, d] of dom) {
+    const f = timKhung(id); if (!f) continue;
+    const { w, h } = kichThuoc(f);
+    const sx = x + f.x * z, sy = y + f.y * z, sw = w * z, sh = (h + DAU) * z;
+    const trong = sx + sw > -LE_AO && sx < r.width + LE_AO && sy + sh > -LE_AO && sy < r.height + LE_AO;
+    if (trong) thay.add(id);
+    datSong(f, d, trong && z >= ZOOM_SONG);
+  }
+  const cu = st.thay; st.thay = thay;
+  if (!cu || cu.size !== thay.size || [...thay].some((id) => !cu.has(id))) henVeNoi();
+}
+function datSong(f, d, song) {
+  const than = d.el.querySelector('.than');
+  if (song && !d.iframe && htmlCua(f)) {
+    const ifr = document.createElement('iframe');
+    ifr.setAttribute('sandbox', 'allow-same-origin'); // không script; cùng nguồn để đo nút data-toi
+    ifr.referrerPolicy = 'no-referrer';
+    const { w, h } = kichThuoc(f); ifr.width = w; ifr.height = h; ifr.title = tenCua(f);
+    ifr.addEventListener('load', () => doLienKet(f.id));
+    d.iframe = ifr; d.banIfr = htmlCua(f); ifr.srcdoc = d.banIfr;
+    than.prepend(ifr);
+  } else if (!song && d.iframe) { d.iframe.remove(); d.iframe = null; }
+  d.el.classList.toggle('song', !!d.iframe);
+  if (!d.iframe) xepAnh(f);
+}
+// mã băm rẻ để nhận ra HTML đã đổi (khoá cho ảnh thu nhỏ + liên kết đã đo)
+function bam(sv) { let h = 5381; for (let i = 0; i < sv.length; i += Math.max(1, sv.length >> 12)) h = ((h << 5) + h + sv.charCodeAt(i)) | 0; return `${sv.length}:${h}`; }
+const anhNho = new Map();  // băm → objectURL
+const lkDo = new Map();    // băm → [liên kết đã đo]
+const hangCho = [];        // khung chờ chụp ảnh thu nhỏ
+let dangChup = false;
+function bamCua(f, d) { const html = htmlCua(f); if (d.banBam !== html) { d.banBam = html; d.bam = html ? bam(html) : ''; } return d.bam; }
+function xepAnh(f) {
+  const d = dom.get(f.id); if (!d || f.tt === 'dang' || !htmlCua(f)) return;
+  const k = bamCua(f, d);
+  if (anhNho.has(k)) { datAnhNho(d, anhNho.get(k)); return; }
+  if (!hangCho.includes(f.id)) hangCho.push(f.id);
+  if (!dangChup) setTimeout(chupHang, 30);
+}
+function datAnhNho(d, url) {
+  let img = d.el.querySelector('.anh-nho');
+  if (!img) { img = document.createElement('img'); img.className = 'anh-nho'; img.alt = ''; img.decoding = 'async'; d.el.querySelector('.than').prepend(img); }
+  if (img.getAttribute('src') !== url) img.src = url;
+}
+async function chupHang() {
+  if (dangChup) return; dangChup = true;
+  try {
+    while (hangCho.length) {
+      // ưu tiên khung đang nằm gần viewport
+      const id = hangCho.shift(); const f = timKhung(id); const d = dom.get(id);
+      if (!f || !d || f.tt === 'dang' || !htmlCua(f)) continue;
+      const k = bamCua(f, d);
+      if (!anhNho.has(k)) {
+        try {
+          const { blob, lk } = await chupAnh(htmlCua(f), kichThuoc(f), { pixelRatio: 0.45, skipFonts: true, doLk: true });
+          anhNho.set(k, URL.createObjectURL(blob));
+          if (lk) { lkDo.set(k, lk); if (!d.lk.length) { d.lk = lk; henVeNoi(); } }
+        } catch { anhNho.set(k, ''); }
+      }
+      if (dom.get(id) && !dom.get(id).iframe && anhNho.get(k)) datAnhNho(dom.get(id), anhNho.get(k));
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  } finally { dangChup = false; }
 }
 
 function taoDom(f) {
   const el = document.createElement('div');
   el.className = 'khung'; el.dataset.id = f.id;
   el.innerHTML = `<div class="dau-khung"><span class="nhom-ten"></span><span class="ghim" hidden>★</span><span class="ten"></span><span class="tt"></span><button type="button" class="nut-play" title="Play từ màn này">▶</button></div>
-    <div class="than"><iframe sandbox="allow-same-origin" referrerpolicy="no-referrer" title=""></iframe><div class="phu-chuot"></div></div>`;
+    <div class="than"><div class="xam"><span></span></div><div class="phu-chuot"></div></div>`;
   theGioi.appendChild(el);
-  const d = { el, iframe: el.querySelector('iframe'), ban: '', lk: [] };
-  // iframe không chạy script (sandbox không có allow-scripts); cùng nguồn để đo vị trí nút data-toi
-  d.iframe.addEventListener('load', () => { doLienKet(f.id); });
+  const d = { el, iframe: null, ban: '', lk: [] };
   el.querySelector('.nut-play').onclick = (e) => { e.stopPropagation(); moPlay(f.id); };
   dom.set(f.id, d);
   return d;
 }
 
+function doLk(tl) {
+  return [...tl.querySelectorAll('[data-toi]')].map((n) => {
+    const r = n.getBoundingClientRect();
+    return { toi: n.getAttribute('data-toi'), x: r.left, y: r.top, w: r.width, h: r.height, chu: (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
+  }).filter((l) => l.w > 0 && l.h > 0);
+}
 function doLienKet(id) {
-  const d = dom.get(id); if (!d) return;
-  try {
-    const tl = d.iframe.contentDocument;
-    d.lk = [...tl.querySelectorAll('[data-toi]')].map((n) => {
-      const r = n.getBoundingClientRect();
-      return { toi: n.getAttribute('data-toi'), x: r.left, y: r.top, w: r.width, h: r.height, chu: (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40) };
-    }).filter((l) => l.w > 0 && l.h > 0);
-  } catch { d.lk = []; }
+  const d = dom.get(id); const f = timKhung(id); if (!d || !d.iframe || !f) return;
+  try { d.lk = doLk(d.iframe.contentDocument); lkDo.set(bamCua(f, d), d.lk); } catch { /* giữ số đo cũ */ }
   henVeNoi();
 }
 
 function veKhung(f) {
   const lan = lanCuaKhung(f);
   const an = !lan || !lanHien(lan);
-  const d = dom.get(f.id) || (an ? null : taoDom(f));
-  if (!d) return;
-  d.el.hidden = an; if (an) return;
+  if (an) { const cu = dom.get(f.id); if (cu) { cu.el.remove(); dom.delete(f.id); } return; } // ngoài section: không dựng gì
+  const d = dom.get(f.id) || taoDom(f);
   const { w, h } = kichThuoc(f);
   d.el.style.left = `${f.x}px`; d.el.style.top = `${f.y}px`; d.el.style.width = `${w}px`;
   d.el.classList.toggle('chon', st.chon.has(f.id));
   d.el.classList.toggle('bien', f.loai !== 'goc');
   const than = d.el.querySelector('.than');
   than.style.width = `${w}px`; than.style.height = `${h}px`;
-  d.iframe.width = w; d.iframe.height = h; d.iframe.title = tenCua(f);
+  if (d.iframe) { d.iframe.width = w; d.iframe.height = h; d.iframe.title = tenCua(f); }
+  d.el.querySelector('.xam span').textContent = tenCua(f);
   const m = MAN[keyCua(f)];
   d.el.querySelector('.nhom-ten').textContent = f.loai === 'goc' ? `Bước ${m.buoc + 1}` : f.lan ? `PA ${timLan(f.lan)?.k || ''} · ${m.ten}` : 'Biến thể';
   d.el.querySelector('.ten').textContent = tenCua(f);
@@ -203,7 +298,12 @@ function veKhung(f) {
   tt.textContent = f.tt === 'dang' ? (f.tienDo || 'đang sinh…') : f.tt === 'loi' ? 'lỗi' : f.dung ? chuDung(f.dung) : '';
   tt.title = f.dung ? chuDung(f.dung, true) : '';
   const html = htmlCua(f);
-  if (html && d.ban !== html) { d.ban = html; d.iframe.srcdoc = html; }
+  if (html && d.ban !== html) {
+    d.ban = html;
+    const k = bamCua(f, d); d.lk = lkDo.get(k) || (f.tt === 'dang' ? d.lk : []);
+    if (d.iframe && d.banIfr !== html) { d.banIfr = html; d.iframe.srcdoc = html; }
+    if (!d.iframe) xepAnh(f);
+  }
   // lớp ảnh thật
   let anh = than.querySelector('.anh-that');
   if (caiDat.anhThat && f.loai === 'goc' && m.anh) {
@@ -271,6 +371,9 @@ function dichCua(f, key, cheDo = 'goc') {
   return timKhung(key);
 }
 let henNoi = 0;
+// đích các liên kết của khung (để giữ mũi tên khi khung nguồn ra ngoài viewport mà đích vẫn thấy)
+function ds0(f) { const d = dom.get(f.id); const m = MAN[keyCua(f)]; const ids = (d?.lk || []).map((L) => dichCua(f, L.toi)?.id);
+  if (f.loai === 'goc' && m.toi) ids.push(timLan(m.lan).buoc[m.buoc + 1]); return ids.filter(Boolean); }
 function henVeNoi() { cancelAnimationFrame(henNoi); henNoi = requestAnimationFrame(veNoi); }
 function veNoi() {
   theGioi.querySelectorAll('.nhan-lk,.nhan-y').forEach((n) => n.remove());
@@ -290,6 +393,7 @@ function veNoi() {
   if (caiDat.lienKet) {
     for (const f of st.khung) {
       const d = dom.get(f.id); if (!d || d.el.hidden) continue;
+      if (st.thay && !st.thay.has(f.id) && !ds0(f).some((t) => st.thay.has(t))) continue; // chỉ tính mũi tên của khung đang thấy
       let ds = d.lk;
       const m = MAN[keyCua(f)];
       if (!ds.length && f.loai === 'goc' && m.toi) { const ke = timLan(m.lan).buoc[m.buoc + 1]; if (ke) ds = [{ toi: ke, chu: m.toi, du: true }]; }
@@ -339,7 +443,7 @@ function veTatCa(xep = true) {
   const con = new Set(st.khung.map((f) => f.id));
   for (const [id, d] of dom) if (!con.has(id)) { d.el.remove(); dom.delete(id); }
   st.khung.forEach(veKhung);
-  veDauLan(); henVeNoi(); veBang(); veBen();
+  veDauLan(); henVeNoi(); veBang(); veBen(); henAo();
   $('#nut-so-sanh').disabled = !(st.chon.size >= 2 && st.chon.size <= 4);
   $('#nut-so-sanh').textContent = st.chon.size >= 2 ? `So sánh (${st.chon.size})` : 'So sánh';
   $('#nut-lk').classList.toggle('bat', caiDat.lienKet);
@@ -348,32 +452,33 @@ function veTatCa(xep = true) {
 
 // ---------- thanh bên: danh sách hành trình ----------
 function veBen() {
-  const loc = $('#ben-loc');
-  if (!loc.childElementCount) {
-    for (const n of NEN) { const b = document.createElement('button'); b.type = 'button'; b.textContent = n; b.dataset.nen = n; b.onclick = () => { caiDat.loc = n; luuCaiDat(); st.chon.clear(); veTatCa(); vuaMan(); }; loc.appendChild(b); }
-  }
-  loc.querySelectorAll('button').forEach((b) => b.classList.toggle('bat', b.dataset.nen === caiDat.loc));
   const ds = $('#ben-ds'); ds.innerHTML = '';
-  const nhom = new Map();
-  for (const l of LAN_GOC) { if (!lanHien(l)) continue; const k = `${l.vai} · ${l.nen}`; if (!nhom.has(k)) nhom.set(k, []); nhom.get(k).push(l); }
-  for (const [k, ls] of nhom) {
-    const h = document.createElement('div'); h.className = 'ben-nhom'; h.textContent = k; ds.appendChild(h);
-    for (const l of ls) {
+  for (const sec of SECTIONS) {
+    const mo = sec.id === st.sec;
+    const soMan = sec.lan.reduce((a, id) => a + timLan(id).buoc.length, 0);
+    const h = document.createElement('button'); h.type = 'button'; h.className = 'ben-sec' + (mo ? ' bat' : '');
+    h.innerHTML = '<span class="t"></span><span class="so"></span>';
+    h.querySelector('.t').textContent = sec.ten; h.querySelector('.so').textContent = `${sec.lan.length} · ${soMan} màn`;
+    h.setAttribute('aria-expanded', mo); h.onclick = () => doiSec(sec.id);
+    ds.appendChild(h);
+    if (!mo) continue;
+    for (const id of sec.lan) {
+      const l = timLan(id);
       for (const x of [l, ...st.lanBt.filter((b) => b.tu === l.id)]) {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'ben-muc' + (x.goc ? '' : ' pa') + (st.lanChon === x.id ? ' bat' : '');
         b.innerHTML = '<span class="t"></span><span class="so"></span>';
         b.querySelector('.t').textContent = x.goc ? x.ten : `PA ${x.k}: ${x.nhan || x.yTuong}`;
-        b.querySelector('.so').textContent = x.goc ? x.buoc.length : '';
+        b.querySelector('.so').textContent = x.goc ? `${x.nen} · ${x.buoc.length}` : '';
         b.onclick = () => bayToiLan(x.id);
         ds.appendChild(b);
       }
     }
   }
-  $('#ben-dem').textContent = `${LAN_GOC.length} hành trình · ${Object.keys(MAN).length} màn${LOI_TAI.length ? ' · lỗi tải: ' + LOI_TAI.join(', ') : ''}`;
+  $('#ben-dem').textContent = `${SECTIONS.length} section · ${LAN_GOC.length} hành trình · ${Object.keys(MAN).length} màn${LOI_TAI.length ? ' · lỗi tải: ' + LOI_TAI.join(', ') : ''}`;
 }
 function bayToiLan(id) {
   const l = timLan(id); if (!l) return;
-  if (!lanHien(l)) { caiDat.loc = 'Tất cả'; luuCaiDat(); veTatCa(); }
+  if (!lanHien(l)) doiSec(secCuaLan(l), { bay: false });
   st.lanChon = id; veTatCa(false);
   const vt = st.viTriLan.get(id); if (vt) vuaHop(vt.x, vt.y, vt.x + vt.w, vt.y + Math.min(vt.h, 1400));
 }
@@ -831,7 +936,11 @@ function moPlay(id, lanId) {
   $('#lop-play').hidden = false;
   vePlay('');
 }
-function dongPlay() { $('#lop-play').hidden = true; $('#pl-thiet-bi').innerHTML = ''; }
+function dongPlay() {
+  $('#lop-play').hidden = true; $('#pl-thiet-bi').innerHTML = '';
+  const f = timKhung(play.lich.at(-1)); const sec = f && secCuaLan(lanCuaKhung(f));
+  if (sec && sec !== st.sec) { doiSec(sec, { bay: false }); st.chon.clear(); st.chon.add(f.id); veTatCa(false); vuaMan([f.id]); toast(`Đã sang section «${SECTIONS.find((x) => x.id === sec).ten}» — màn cuối khi Play.`); }
+}
 function kieuThietBi(f) {
   const l = timLan(MAN[keyCua(f)].lan); const { w } = kichThuoc(f);
   if (w === 390) return l.nen === 'Web' ? 'web' : l.nen === 'Điện thoại' || l.nen === 'Android' ? 'android' : 'iphone';
@@ -921,16 +1030,23 @@ $('#nut-play-bang').onclick = () => { const f = khungChon(); if (f) moPlay(f.id)
 addEventListener('resize', () => { if (!$('#lop-play').hidden) vePlay(''); });
 
 // ---------- xuất / lưu ----------
-async function thanhDataUrl(url) {
-  const b = await (await fetch(url)).blob();
-  return new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
+const dataUrlDem = new Map();
+function thanhDataUrl(url) {
+  if (!dataUrlDem.has(url)) {
+    dataUrlDem.set(url, fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then((b) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); }))
+      .catch((e) => { dataUrlDem.delete(url); throw e; }));
+  }
+  return dataUrlDem.get(url);
 }
+let cssKit = null;
 // HTML tự đứng: nhúng clay-kit.css và ảnh /assets/* thành data URI → mở được ở bất cứ đâu.
 async function htmlTuDung(html, khoaScript = true) {
   let s = lamSach(html);
   // tệp xuất/lưu mở ngoài bàn này: cấm mọi script (lớp chặn thứ hai sau lamSach)
   if (khoaScript) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'">`);
-  const css = await (await fetch('/assets/clay-kit.css')).text();
+  cssKit ??= fetch('/assets/clay-kit.css').then((r) => r.text());
+  const css = await cssKit;
   s = s.replace(/<link[^>]*href=["']\/assets\/clay-kit\.css["'][^>]*>/gi, () => `<style>${css}</style>`);
   const ds = [...new Set(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || [])];
   for (const u of ds) { try { const d = await thanhDataUrl(u); s = s.split(u).join(d); } catch { /* giữ nguyên */ } }
@@ -944,11 +1060,11 @@ $('#nut-html').onclick = async () => {
   taiVe(`aiigrow-${slug(tenCua(f))}.html`, new Blob([await htmlTuDung(htmlCua(f))], { type: 'text/html' }));
 };
 
-async function chupPng(f) {
-  const { w, h } = kichThuoc(f);
-  const s = await htmlTuDung(htmlCua(f), false);
+// Chụp HTML thành PNG trong iframe ẩn (nội dung đã lamSach; chỉ html-to-image của mình chạy, CSP trang vẫn áp).
+async function chupAnh(html, { w, h }, { pixelRatio = 2, skipFonts = false, doLk: doCa = false } = {}) {
+  const s = await htmlTuDung(html, false);
   const ifr = document.createElement('iframe');
-  ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts'); // nội dung đã lamSach (không còn script) — chỉ chạy html-to-image của mình
+  ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts');
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });
   document.body.appendChild(ifr);
   try {
@@ -956,12 +1072,16 @@ async function chupPng(f) {
     const win = ifr.contentWindow;
     for (let i = 0; i < 50 && !win.htmlToImage; i++) await new Promise((r) => setTimeout(r, 100));
     if (!win.htmlToImage) throw new Error('Chưa có html-to-image — chạy npm install trong tools/brainstorm-ui.');
-    await win.document.fonts?.ready;
+    if (!skipFonts) await win.document.fonts?.ready;
+    const lk = doCa ? doLk(win.document) : null;
     const goc = [...win.document.body.children].find((n) => !/^(STYLE|LINK|SCRIPT|META|TEMPLATE)$/.test(n.tagName) && n.getBoundingClientRect().width > 0) || win.document.body;
-    const opt = { width: w, height: h, pixelRatio: 2, cacheBust: false };
-    try { return await win.htmlToImage.toBlob(goc, opt); } catch { return await win.htmlToImage.toBlob(goc, { ...opt, skipFonts: true }); }
+    const opt = { width: w, height: h, pixelRatio, cacheBust: false, skipFonts };
+    let blob;
+    try { blob = await win.htmlToImage.toBlob(goc, opt); } catch { blob = await win.htmlToImage.toBlob(goc, { ...opt, skipFonts: true }); }
+    return { blob, lk };
   } finally { ifr.remove(); }
 }
+const chupPng = async (f) => (await chupAnh(htmlCua(f), kichThuoc(f))).blob;
 $('#nut-png').onclick = async () => {
   const f = khungChon(); if (!f || !htmlCua(f)) return;
   try { trangThaiBang('Đang xuất PNG…'); const b = await chupPng(f); taiVe(`aiigrow-${slug(tenCua(f))}.png`, b); trangThaiBang(''); }
@@ -1068,6 +1188,7 @@ function toast(t, loi = false) {
 // ---------- khởi động ----------
 napModel($('#chon-model'), caiDat.model);
 capNhatCheDo(); apView(); veTatCa();
-if (!doc(KHOA_VIEW, null)) vuaMan();
+if (!st.views[st.sec]) vuaMan();
+try { history.replaceState(null, '', `#${encodeURIComponent(st.sec)}`); } catch { /* bỏ qua */ }
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
-window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan }; // để nghiệm thu tự động
+window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, SECTIONS, dom, anhNho }; // để nghiệm thu tự động // để nghiệm thu tự động
