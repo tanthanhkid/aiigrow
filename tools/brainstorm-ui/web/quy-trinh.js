@@ -20,7 +20,10 @@ const chu = (x, y, t, { lop = '', max = 22, toiDa = 3, cao = 15 } = {}) =>
   `<text class="${lop}" x="${x}" y="${y}" text-anchor="middle">${beDong(t, max, toiDa).map((d, i) => `<tspan x="${x}" dy="${i ? cao : 0}">${esc(d)}</tspan>`).join('')}</text>`;
 
 export function taoQuyTrinh(api) {
-  const { MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, loiChup, moPlay, toast } = api;
+  const { MAN, timLan, vung, theGioi, chupAnh, anhNho, ghiAnhNho, loiChup, lkDo, moPlay, toast } = api;
+  // mã băm theo key màn (HTML màn gốc ít đổi): tránh băm lại cả chuỗi mỗi lần vẽ
+  const bamDem = new Map();
+  const bam = (html) => { let v = bamDem.get(html); if (!v) { v = api.bam(html); if (bamDem.size > 500) bamDem.clear(); bamDem.set(html, v); } return v; };
   // chụp một ảnh thu nhỏ; dùng chung cho nền và tệp xuất, không chụp trùng; lỗi 2 lần thì thôi (như canvas)
   const dangBay = new Map();
   function chupMot(m) {
@@ -28,8 +31,8 @@ export function taoQuyTrinh(api) {
     if (anhNho.has(k)) return Promise.resolve(anhNho.get(k));
     if ((loiChup.get(k) || 0) >= 2) return Promise.resolve('');
     if (!dangBay.has(k)) {
-      dangBay.set(k, chupAnh(m.html, { w: m.w, h: m.h }, { pixelRatio: 0.45, skipFonts: true })
-        .then(({ blob }) => { const u = URL.createObjectURL(blob); ghiAnhNho(k, u); return u; })
+      dangBay.set(k, chupAnh(m.html, { w: m.w, h: m.h }, { pixelRatio: 0.45, skipFonts: true, doLk: true })
+        .then(({ blob, lk }) => { const u = URL.createObjectURL(blob); ghiAnhNho(k, u); if (lk && !lkDo.has(k)) lkDo.set(k, lk); return anhNho.get(k); }) // đo nút data-toi luôn để canvas có mũi tên
         .catch(() => { loiChup.set(k, (loiChup.get(k) || 0) + 1); return ''; })
         .finally(() => dangBay.delete(k)));
     }
@@ -199,7 +202,7 @@ export function taoQuyTrinh(api) {
     lop.appendChild(svgEl);
     xepChup();
   }
-  const anhCua = (k) => { const m = MAN[k]; if (!m) return ''; const u = anhNho.get(bam(m.html)); return u || ''; };
+  const anhCua = (k) => { const m = MAN[k]; if (!m) return ''; const h = bam(m.html); const u = anhNho.get(h); if (u) { anhNho.delete(h); anhNho.set(h, u); } return u || ''; }; // chạm = mới dùng (LRU)
   // chụp ảnh thu nhỏ còn thiếu, gần tâm viewport trước; xong cái nào thay vào chỗ đó
   const cho = []; let dangChup = false;
   function xepChup() {
@@ -257,7 +260,7 @@ export function taoQuyTrinh(api) {
   }
 
   // bấm việc có giao diện ⇒ Play từ bước đó: chuột xử lý ở thaKeo của app.js (pointer capture, phân biệt kéo/bấm); đây là bàn phím
-  lop.addEventListener('keydown', (e) => { const g = e.target.closest('g.qt-man'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); moPlay(g.dataset.man); } });
+  lop.addEventListener('keydown', (e) => { const g = e.target.closest('g.qt-man'); if (g && e.key === 'Enter') { e.preventDefault(); moPlay(g.dataset.man); } });
 
   // ---- xuất ----
   async function svgXuat() {
@@ -275,13 +278,17 @@ export function taoQuyTrinh(api) {
     const noi = ds.map((P) => `<g transform="translate(20,${P.y + 20})">${svgPool(P, (k) => data.get(k))}</g>`).join('');
     return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><style>${CSS_SVG}</style>${DEFS}<rect width="100%" height="100%" fill="#f7f6f3"/>${noi}</svg>`, w, h };
   }
+  let dangXuat = false;
   async function xuat(kieu, tenTep) {
     if (!ds.length) { toast('Section này chưa có quy trình.', true); return; }
-    toast('Đang dựng tệp sơ đồ…');
-    try { await xuat2(kieu, tenTep); } catch (e) { toast(`Không xuất được sơ đồ: ${e.message || e}`, true); }
+    if (dangXuat) { toast('Đang xuất sơ đồ, chờ chút…'); return; }
+    dangXuat = true; toast('Đang dựng tệp sơ đồ…');
+    try { await xuat2(kieu, tenTep); } catch (e) { toast(`Không xuất được sơ đồ: ${e.message || e}`, true); } finally { dangXuat = false; }
   }
   async function xuat2(kieu, tenTep) {
+    const dsLuc = ds;
     const { svg, w, h } = await svgXuat();
+    if (ds !== dsLuc || lop.hidden) throw new Error('đã đổi section/chế độ trong lúc xuất');
     let blob = new Blob([svg], { type: 'image/svg+xml' });
     if (kieu === 'png') {
       const tl = Math.min(2, 16000 / Math.max(w, h), Math.sqrt(16e6 / (w * h))); // giữ dưới giới hạn canvas của Safari/iOS

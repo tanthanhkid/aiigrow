@@ -227,6 +227,8 @@ const anhNho = new Map();  // băm → objectURL; giữ tối đa 400 (ảnh nh�
 const loiChup = new Map(); // băm → số lần chụp lỗi
 let dangDungNgoai = () => []; // ảnh thu nhỏ chế độ Quy trình đang hiện (gán sau khi tạo qt)
 function ghiAnhNho(k, url) {
+  const cu = anhNho.get(k);
+  if (cu && url !== cu) { URL.revokeObjectURL(url); return; } // canvas và Quy trình lỡ chụp trùng: giữ bản đã có, không rò blob
   anhNho.set(k, url);
   if (anhNho.size <= 400) return;
   const dangDung = new Set([...dom.values()].map((d) => d.bam).concat(dangDungNgoai())); dangDung.add(k);
@@ -586,9 +588,9 @@ vung.addEventListener('pointermove', (e) => {
     svgNoi.style.visibility = 'hidden'; // thả ra sẽ xếp lại + vẽ lại liên kết một lần
   }
 });
-const thaKeo = () => {
+const thaKeo = (e) => {
   if (!keo) return;
-  if (keo.loai === 'nen' && !keo.dich && keo.viec) { const m = keo.viec.dataset.man; keo = null; vung.classList.remove('dang-keo'); moPlay(m); return; }
+  if (keo.loai === 'nen' && !keo.dich && keo.viec && e?.type === 'pointerup') { const m = keo.viec.dataset.man; keo = null; vung.classList.remove('dang-keo'); moPlay(m); return; }
   if (keo.loai === 'nen' && !keo.dich && keo.lan) chonLan(keo.lan.dataset.lan);
   else if (keo.loai === 'nen' && !keo.dich && (st.chon.size || st.lanChon)) { st.chon.clear(); st.lanChon = null; veTatCa(false); }
   // thả khung đã kéo: xếp lại để không bao giờ chồng (vị trí do bộ xếp quyết)
@@ -1234,7 +1236,7 @@ function toast(t, loi = false) {
 // ---------- khởi động ----------
 napModel($('#chon-model'), caiDat.model);
 let qtDaVe = '';
-const qt = taoQuyTrinh({ MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, loiChup, moPlay: (k) => moPlay(k), toast, view: () => st.view });
+const qt = taoQuyTrinh({ MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, loiChup, lkDo, moPlay: (k) => moPlay(k), toast, view: () => st.view });
 dangDungNgoai = qt.dangDung;
 qt.bat(st.cheDo === 'qt'); document.body.classList.toggle('che-do-qt', st.cheDo === 'qt');
 $('#nut-qt').onclick = doiCheDo;
