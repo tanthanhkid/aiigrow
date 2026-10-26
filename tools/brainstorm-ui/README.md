@@ -54,3 +54,39 @@ localStorage), phương án, phiên bản màn (Thay màn, khôi phục, Accept 
   **Khôi phục trạng thái này** cho biến thể/phương án/màn/góp ý (ghi thành sự kiện MỚI, lịch sử cũ giữ nguyên), xuất CSV/JSONL theo khoảng ngày.
   Mỗi khung có **🕘 Nhật ký** ở bảng bên phải, mỗi góp ý có **🕘 Lịch sử**.
 - Không có API sửa/xoá audit. Sao lưu: thư mục `brainstorm-ui/audit` (trong `aiigrow-thiet-ke`).
+
+## MCP (cho Claude Code / client MCP)
+
+Endpoint **Streamable HTTP `/mcp`** ngay trong `server.mjs` (cùng cổng — `mcp.mjs`, stateless, chỉ POST). Máy chủ **không gọi AI**: AI là của người dùng qua MCP.
+
+```bash
+# trên máy Thanh (127.0.0.1 = chủ quản, không cần mật khẩu)
+claude mcp add --transport http aiigrow-figma http://127.0.0.1:5181/mcp
+# qua tên miền: bắt buộc mật khẩu MCP; thao tác của chủ quản thêm mã chủ quản
+claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mcp \
+  --header "Authorization: Bearer <maMcp>" [--header "x-bs-chu-quan: <mã chủ quản>"] [--header "x-bs-nguoi: <tên hiện trong audit>"]
+```
+
+- **Mật khẩu MCP**: trường `maMcp` (≥8 ký tự) trong `chu-quan.json` (ngoài git, `BS_CHU_QUAN`). Qua tên miền thiếu/sai Bearer ⇒ 401; sai mã dùng chung giới hạn
+  với mã chủ quản (10 lần/phút/IP, 100 lần/phút cả máy chủ), lần sai ghi audit `quyen.sai-ma-mcp` (chỉ độ dài, không ghi mã). Chưa đặt `maMcp` ⇒ /mcp chỉ dùng
+  được từ 127.0.0.1. Có `maMcp` = quyền cộng tác viên; thao tác riêng của chủ quản (Accept, góp ý, audit, Thay màn khi `khoaBang`…) cần thêm header `x-bs-chu-quan`.
+- **Quyền & audit**: mỗi tool đi qua CHÍNH đường xử lý API web bằng một yêu cầu nội bộ mang danh tính người gọi (Host, IP thật, header cloudflared, mã chủ quản)
+  ⇒ kiểm `khoaBang`, giới hạn tốc độ, realtime phát cho người đang xem bàn, audit đủ như web; audit có `ai.nguon = "mcp"`.
+- **Chống DNS rebinding**: Host phải là 127.0.0.1/localhost hoặc tên miền tin cậy (`BS_HOST`); có Origin thì phải trùng Host tin cậy.
+- **Ảnh**: Chrome đã cài trên Mac (`BS_CHROME` để đổi; không tải Chromium) chạy headless qua `puppeteer-core`, một trình duyệt dùng chung, mở khi cần, tự đóng
+  sau 2 phút rảnh, hồ sơ tạm riêng; ảnh cache theo băm HTML. HTML màn đưa cho Chrome qua `/__mcp/trang/<mã một lần>` (chỉ loopback, CSP cấm script).
+  `lamSach` (web/claude.js) và `ganToi` (web/gan-toi.js) chạy nguyên mã web trong trang của Chrome đó.
+
+| Tool | Việc |
+|---|---|
+| `ds_hanh_trinh` | hành trình + màn (key, tên, w×h hiện hành, phiên bản, ảnh thật, `data-toi`, số biến thể, phương án) |
+| `doc_man` | HTML hiện hành (hoặc bản `v`) + lịch sử phiên bản |
+| `anh_man` | PNG đúng khung w×h (tuỳ `v`, `anh_that` kèm ảnh chụp thật, `ti_le`) |
+| `anh_hanh_trinh` | ảnh cả hành trình / một phương án — ghép một ảnh (mặc định) hoặc từng ảnh |
+| `ds_bien_the`, `doc_bien_the`, `xoa_bien_the` | kho biến thể chung (đọc kèm ảnh; xoá mềm) |
+| `thay_man`, `khoi_phuc_phien_ban` | Thay màn bằng biến thể/HTML; khôi phục bản cũ |
+| `ds_gop_y`, `them_gop_y`, `tra_loi_gop_y`, `doi_trang_thai_gop_y` | góp ý (mặc định ẩn Đã xử lý; thêm góp ý qua link `/r/` mới nhất đang mở) |
+| `doc_de_xuat`, `chap_nhan_de_xuat`, `tu_choi_de_xuat` | đề xuất của reviewer |
+| `nhat_ky` | audit gần đây (HTML lớn rút gọn) |
+| `ngu_canh_bien_the` → `tao_bien_the` | biến thể một màn, 2 bước: ngữ cảnh y hệt bàn web (system `heThong`, `loiNguoiDung` theo k/n, kit CSS, ảnh màn, góp ý mở) → lưu HTML/câu trả lời do client sinh (lamSach, so `data-toi`, trả id + ảnh) |
+| `ngu_canh_hanh_trinh` → `tao_phuong_an` | như trên cho CẢ hành trình (`loiHanhTrinh` / `tachHanhTrinh`) |

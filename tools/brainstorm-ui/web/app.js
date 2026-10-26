@@ -3,6 +3,7 @@
 import { taiHanhTrinh } from './hanh-trinh/index.js';
 import { taoQuyTrinh } from './quy-trinh.js';
 import { heThong, loiNguoiDung, tachKetQua, loiHanhTrinh, tachHanhTrinh, HUONG } from './prompt.js';
+import { ganToi } from './gan-toi.js';
 import * as Sua from './che-do-sua.js';
 import { taoRealtime } from './realtime.js';
 import * as CL from './claude.js';
@@ -87,25 +88,6 @@ async function taiPhienBan() {
   if (loi.length) toast(`Không tải được phiên bản đã thay của: ${loi.join(', ')} — đang hiện bản trong mã.`, true);
 }
 
-function ganToi(html, nhan, dich, tenDich) {
-  if (/data-toi=/.test(html)) return html;
-  // các cụm thử lần lượt: chữ trong «…», nhãn bỏ động từ đầu, tên màn đích
-  const thu = [...nhan.matchAll(/«([^»]+)»/g)].map((m) => m[1]);
-  thu.push(nhan.replace(/^(.*,\s*)?(Bấm|Chạm|Chọn|Nhấn|Mở|Sang|Vào|Về|Xem)\s+/i, ''), tenDich || '');
-  const d = new DOMParser().parseFromString(html, 'text/html');
-  const tatCa = [...d.body.querySelectorAll('*')].map((el) => [el, (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()]);
-  for (const c of thu) {
-    const chu = c.trim().toLowerCase(); if (chu.length < 2) continue;
-    let tot = null, dai = Infinity;
-    for (const [el, t] of tatCa) if (t.includes(chu) && t.length <= dai) { tot = el; dai = t.length; }
-    if (!tot) continue;
-    const bam = tot.closest('button,a,.nut,.chip,.o,.viec,.dong,.the,.bt,[role=button]');
-    const el = bam && (bam.textContent || '').length < 160 ? bam : tot;
-    el.setAttribute('data-toi', dich);
-    return '<!doctype html>\n' + d.documentElement.outerHTML;
-  }
-  return html;
-}
 
 // ---------- trạng thái ----------
 const KHOA_VIEW = 'bs.view';

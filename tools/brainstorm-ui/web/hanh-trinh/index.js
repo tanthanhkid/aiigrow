@@ -3,7 +3,8 @@ import { MAN } from './co-san.js';
 
 const TEP = ['./bm-1.js', './bm-2.js', './bm-3.js', './con-may-tinh.js', './con-dien-thoai.js'];
 
-export async function taiHanhTrinh() {
+// lay: hàm thay fetch (máy chủ Node đọc thẳng tệp web/that/ — MCP); mặc định fetch của trình duyệt.
+export async function taiHanhTrinh(lay = (u) => fetch(u)) {
   const kq = await Promise.allSettled(TEP.map((t) => import(t)));
   const ds = []; const loi = [];
   kq.forEach((r, i) => {
@@ -21,7 +22,7 @@ export async function taiHanhTrinh() {
     ds.push({ id: 'mau-bm', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Màn mẫu Ba Mẹ', mo: '', buoc: nhom('Ba Mẹ') },
       { id: 'mau-con', vai: 'Con', nen: 'Windows', ten: 'Màn mẫu Con', mo: '', buoc: nhom('Con') });
   }
-  await thayManThat(ds, loi);
+  await thayManThat(ds, loi, lay);
   // key trùng giữa các tệp → giữ bản đầu, báo lỗi
   const da = new Set();
   for (const h of ds) h.buoc = h.buoc.filter((b) => { if (da.has(b.key)) { loi.push(`trùng key ${b.key}`); return false; } da.add(b.key); return true; });
@@ -30,15 +31,15 @@ export async function taiHanhTrinh() {
 
 // Màn «giống thật»: DOM chụp từ app Expo chạy thật (Ba Mẹ + Con /tre, iPhone 375×812) nằm ở web/that/ — xem DO-KHOP.md.
 // Có bản chụp thì thay HTML dựng tay của bước đó; tải lỗi thì giữ bản dựng tay.
-async function thayManThat(ds, loi) {
+async function thayManThat(ds, loi, lay) {
   let bang;
-  try { bang = await (await fetch('/that/ds.json')).json(); } catch { return; }
+  try { bang = await (await lay('/that/ds.json')).json(); } catch { return; }
   if (!bang || typeof bang !== 'object') return;
   const viec = [];
   for (const h of ds) h.buoc.forEach((b, i) => {
     const t = bang[b.key]; if (!t) return;
     const doiKe = t.ke !== (h.buoc[i + 1]?.key ?? null); // hành trình đã đổi thứ tự sau lần gen ⇒ bỏ data-toi gắn sẵn, để ganToi gắn lại
-    viec.push(fetch(`/that/html/${b.key}.html`).then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status)))).then((html) => {
+    viec.push(lay(`/that/html/${b.key}.html`).then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status)))).then((html) => {
       b.html = doiKe ? html.replace(/ data-toi="[^"]*"/g, '') : html; b.w = t.w; b.h = t.h; b.anh = t.anh || ''; // không có ảnh thật thì bỏ lớp ảnh của màn dựng tay cũ
     }).catch(() => loi.push(`không tải được màn thật ${b.key}`)));
   });
