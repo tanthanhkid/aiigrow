@@ -94,6 +94,22 @@ internal static class UI
         return ImgCache[name] = img;
     }
 
+    /// <summary>Ảnh mã QR <paramref name="co"/>×<paramref name="co"/> px: ô mực chữ trên nền trắng, không làm mờ (máy quét đọc được).</summary>
+    public static Bitmap AnhQr(bool[,] m, int co)
+    {
+        var n = m.GetLength(0);
+        var bmp = new Bitmap(co, co);
+        using var g = Graphics.FromImage(bmp);
+        g.Clear(Color.White);
+        var o = Math.Max(1, co / n);
+        var le = (co - o * n) / 2;
+        using var b = new SolidBrush(Ink);
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+                if (m[y, x]) g.FillRectangle(b, le + x * o, le + y * o, o, o);
+        return bmp;
+    }
+
     /// <summary>Icon Fluent Emoji 3D (MIT, Assets/fluent/) theo tên tệp không đuôi (locked, alarm_clock…); null nếu thiếu.</summary>
     public static Image? Fluent(string name)
     {

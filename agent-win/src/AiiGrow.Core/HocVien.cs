@@ -237,14 +237,15 @@ public static class HocVienView
         return ($"Có {moi.Count} tin mới", Cat(string.Join(" · ", dau), 180));
     }
 
-    /// <summary>Bấm vào toast ⇒ mở app to đúng mục: tin về nhiệm vụ → Nhiệm vụ, quà / huy hiệu → Phần quà, lời khen → Tin nhắn;
+    /// <summary>Bấm vào toast ⇒ mở app to đúng mục: tin về nhiệm vụ → Nhiệm vụ, quà bị huỷ → Phần quà, quà đã xác nhận / huy hiệu → Ví quà, lời khen → Tin nhắn;
     /// nhiều loại lẫn nhau ⇒ Tin nhắn (hộp thư liệt kê hết).</summary>
     public static MucApp MucChoTin(IReadOnlyList<HvTin> moi)
     {
         static MucApp? Muc(string loai) => loai switch
         {
             "giao_nhiem_vu" or "nhiem_vu_moi" or "duyet_nhiem_vu" or "tu_duyet_nhiem_vu" or "tu_choi_nhiem_vu" or "can_bo_sung" => MucApp.NhiemVu,
-            "xac_nhan_qua" or "huy_qua" or "huy_hieu" => MucApp.PhanQua,
+            "huy_qua" => MucApp.PhanQua,
+            "xac_nhan_qua" or "huy_hieu" => MucApp.ViQua,   // quà đã xác nhận nằm trong Ví quà; huy hiệu mới ở cùng mục
             _ => MucApp.TinNhan,
         };
         var ds = moi.Select(t => Muc(t.Loai)!.Value).Distinct().ToList();
@@ -341,7 +342,7 @@ public static class HocVienPaths
         if (s.Any(x => x.Length == 0 || !x.All(c => char.IsLetterOrDigit(c) || c is '-' or '_'))) return false;
         return (m, s.Length) switch
         {
-            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang",
+            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang" or "vi-qua" or "thanh-tich" or "quy-tac",
             ("POST", 2) => s[0] == "doi",
             ("POST", 3) => (s[0] == "nhiem-vu" && s[2] == "bat-dau") || (s[0] == "luot" && s[2] == "nop") || (s[0] == "loi-khen" && s[2] == "phan-hoi"),
             _ => false,

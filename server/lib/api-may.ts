@@ -16,6 +16,10 @@ import { conChoBu, ghepPhienMayChung, laAgentMoi, moRongPhienMay, nhipPhienWindo
 import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
 import * as nv from "./nhiem-vu.ts";
+import * as pt from "./phan-thuong.ts";
+import { thanhTich } from "./thanh-tich.ts";
+import { quyTacCon } from "./api-con.ts";
+import type { Con } from "./gia-dinh.ts";
 import { dsCon } from "./gia-dinh.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
 import { nhipMay } from "./nhip-may.ts";
@@ -108,6 +112,14 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       if (p[1] === "nhiem-vu" && p[3] === "bat-dau" && post) return json({ luot: await nv.batDau(con, p[2]) });
       if (p[1] === "luot" && p[3] === "nop" && post) return json(await hocVien.nopKhay(con, p[2], { anh: b.anh, ghiChu: b.ghiChu }));
       if (r === "cua-hang" && get) return json(await hocVien.cuaHangKhay(con));
+      // 25/10: ví quà (phiếu QR), huy hiệu + cấp, bảng quy tắc — cùng dữ liệu màn Con web /tre (vi-qua, huy-hieu, quy-tac), chỉ đọc
+      if (r === "vi-qua" && get) return json(await pt.viQua(con));
+      if (r === "thanh-tich" && get) return json(await thanhTich(con));
+      if (r === "quy-tac" && get) {
+        const c = await one<Con>(`select * from children where id = $1`, [con]);
+        if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ của con", 404);
+        return json(await quyTacCon(c));
+      }
       if (p[1] === "doi" && p[2] && post) return json(await hocVien.doiQuaKhay(con, p[2]));
       if (p[1] === "loi-khen" && p[3] === "phan-hoi" && post) return json(await hocVien.phanHoiLoiKhen(con, p[2], b.phanHoi));
       return loi("khong_co_duong", "Không có đường này", 404);

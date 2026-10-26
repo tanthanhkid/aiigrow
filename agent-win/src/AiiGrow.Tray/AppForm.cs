@@ -45,6 +45,11 @@ internal sealed class AppForm : Form
     private string? _phutChoiCua;   // mục (PlayChoices[0]) mà _phutChoi thuộc về — mục đầu đổi thì số cũ bỏ đi, hỏi lại (giá theo nhóm khác nhau)
     private HvCuaHang? _ch;
     private HvTinDs? _tin;
+    private HvViQua? _vi;
+    private HvThanhTich? _tt;
+    private HvQuyTac? _qt;
+    private DateTimeOffset _viThuLuc = DateTimeOffset.MinValue;
+    private readonly List<Image> _anhQr = new();   // ảnh QR của lần vẽ trước — PictureBox.Dispose không huỷ Image ⇒ tự huỷ khi vẽ lại
     private bool _busy;
     /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
     private string? _loiTai;
@@ -76,7 +81,7 @@ internal sealed class AppForm : Form
         BackColor = UI.Paper;
         Padding = new Padding(Px(10), Px(10), 0, Px(4));   // thanh bên là phiến Clay nổi, chừa chỗ cho bóng
         ClientSize = new Size(Px(1000), Px(680));
-        MinimumSize = new Size(Px(880), Px(600));
+        MinimumSize = new Size(Px(880), Px(640));
         // Không vượt quá màn hình nhỏ (laptop 1366×768).
         var wa = Screen.PrimaryScreen!.WorkingArea;
         if (Width > wa.Width || Height > wa.Height) Size = new Size(Math.Min(Width, wa.Width), Math.Min(Height, wa.Height));
@@ -142,7 +147,7 @@ internal sealed class AppForm : Form
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Color.Transparent,
             Padding = new Padding(Px(12), Px(12), Px(12), 0), AutoScroll = false,
         };
-        _mascot.Size = new Size(inner, Px(210));
+        _mascot.Size = new Size(inner, Px(160));   // 5 mục điều hướng vẫn vừa thanh bên ở chiều cao tối thiểu
         _mascot.Margin = new Padding(0, 0, 0, Px(6));
         _name.Font = UI.F(17f, FontStyle.Bold);
         _name.MaximumSize = new Size(inner, 0);
@@ -155,7 +160,7 @@ internal sealed class AppForm : Form
         flow.Controls.Add(_name);
         flow.Controls.Add(_pill);
 
-        foreach (var (muc, text, icon) in new[] { (MucApp.HomNay, "Hôm nay", "alarm_clock"), (MucApp.NhiemVu, "Nhiệm vụ", "memo"), (MucApp.PhanQua, "Phần quà & điểm", "wrapped_gift"), (MucApp.TinNhan, "Tin nhắn", "speech_balloon") })
+        foreach (var (muc, text, icon) in new[] { (MucApp.HomNay, "Hôm nay", "alarm_clock"), (MucApp.NhiemVu, "Nhiệm vụ", "memo"), (MucApp.PhanQua, "Phần quà & điểm", "wrapped_gift"), (MucApp.TinNhan, "Tin nhắn", "speech_balloon"), (MucApp.ViQua, "Ví quà & huy hiệu", "ticket") })
         {
             var b = new ClayButton
             {
@@ -287,6 +292,7 @@ internal sealed class AppForm : Form
         _sig = "";
         Render();
         _content.AutoScrollPosition = Point.Empty;
+        if (muc == MucApp.ViQua) _ = RefreshAsync();   // ví / huy hiệu đổi theo việc ở mục khác (đổi quà, Ba Mẹ xác nhận) ⇒ tải mới khi mở mục
     }
 
     private void Say(string s, bool error)
@@ -319,6 +325,18 @@ internal sealed class AppForm : Form
 
             var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
             _ch = ch;
+            // Mục Ví quà: ba nguồn chỉ đọc, song song. Đang ở mục khác thì chỉ tải sẵn lần đầu; lỗi (máy chủ cũ chưa có đường) ⇒ thử lại thưa (10 phút)
+            if (_muc == MucApp.ViQua || (_vi == null && DateTimeOffset.Now - _viThuLuc > TimeSpan.FromMinutes(10)))
+            {
+                _viThuLuc = DateTimeOffset.Now;
+                var tVi = HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua");
+                var tTt = HvApi.GetAsync<HvThanhTich>("hoc-vien/thanh-tich");
+                var tQt = HvApi.GetAsync<HvQuyTac>("hoc-vien/quy-tac");
+                await Task.WhenAll(tVi, tTt, tQt);
+                if (tVi.Result.Data != null) _vi = tVi.Result.Data;
+                if (tTt.Result.Data != null) _tt = tTt.Result.Data;
+                if (tQt.Result.Data != null) _qt = tQt.Result.Data;
+            }
             var (tin, _) = await HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
             if (tin != null) _tin = tin;
             await phut;
@@ -364,6 +382,8 @@ internal sealed class AppForm : Form
         ComputeWidths();
         _content.SuspendLayout();
         foreach (var c in _content.Controls.Cast<Control>().ToList()) { _content.Controls.Remove(c); c.Dispose(); }
+        foreach (var a in _anhQr) a.Dispose();
+        _anhQr.Clear();
         _bigLbl = _capLbl = null;
         _dungCard = null;
         switch (_muc)
@@ -371,6 +391,7 @@ internal sealed class AppForm : Form
             case MucApp.HomNay: _title.Text = "Hôm nay"; RenderHomNay(); break;
             case MucApp.NhiemVu: _title.Text = "Nhiệm vụ của con"; RenderViec(); break;
             case MucApp.PhanQua: _title.Text = "Phần quà & điểm"; RenderQua(); break;
+            case MucApp.ViQua: _title.Text = "Ví quà & huy hiệu"; RenderViQua(); break;
             default: _title.Text = "Tin nhắn"; RenderTinNhan(); break;
         }
         _content.ResumeLayout(true);
@@ -700,6 +721,127 @@ internal sealed class AppForm : Form
         Say(HocVienView.DoiThongBao(kq, q.Ten), false);
     }
 
+    // ---------------------------------------------------------------- Ví quà · huy hiệu · quy tắc (như màn Con web /tre)
+
+    private void RenderViQua()
+    {
+        if (VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có ví quà.", "Đang tải…")) return;
+        var now = DateTimeOffset.Now;
+
+        // --- Ví quà
+        _content.Controls.Add(T("Ví quà", 15f, true, null, true));
+        if (_vi == null) _content.Controls.Add(T("Chưa tải được ví quà. Con thử lại sau nhé.", 12.5f, false, UI.Muted, true));
+        else
+        {
+            var dung = ViQuaView.DungDuoc(_vi, now);
+            foreach (var v in dung) _content.Controls.Add(PhieuQrCard(v));
+            if (dung.Count > 0) _content.Controls.Add(T("Đưa mã này cho nhân viên AiiCafe quét. Mỗi phiếu chỉ dùng một lần.", 11.5f, false, UI.Muted, true));
+            var cu = _vi.Voucher.Select(v => (v, chu: ViQuaView.TrangThaiCu(v))).Where(x => x.chu != null).Take(10).ToList();
+            if (_vi.Phieu.Count > 0 || cu.Count > 0)
+            {
+                var c = Card();
+                foreach (var p in _vi.Phieu) c.Controls.Add(T($"{p.Ten}  ·  {ViQuaView.PhieuCho(p)}", 12f, true));
+                foreach (var (v, chu) in cu) c.Controls.Add(T($"Phiếu quà AiiCafe {ViQuaView.Tien(v.MenhGia)}  ·  {chu}", 12f, false, UI.Muted));
+                _content.Controls.Add(c);
+            }
+            if (dung.Count == 0 && _vi.Phieu.Count == 0 && cu.Count == 0)
+            {
+                var c = Card();
+                c.Controls.Add(T("Ví quà còn trống", 14f, true));
+                c.Controls.Add(T("Đổi điểm ở mục Phần quà & điểm là quà hiện ở đây.", 12f, false, UI.Muted));
+                var go = Btn("Xem phần quà", false, 220, "wrapped_gift");
+                go.Height = Px(50);
+                go.Click += (_, _) => Select(MucApp.PhanQua);
+                c.Controls.Add(go);
+                _content.Controls.Add(c);
+            }
+        }
+
+        // --- Huy hiệu & cấp
+        _content.Controls.Add(T("Huy hiệu & cấp", 15f, true, null, true));
+        if (_tt == null) _content.Controls.Add(T("Chưa tải được huy hiệu.", 12.5f, false, UI.Muted, true));
+        else
+        {
+            var cap = Card(UI.PointSoft);
+            cap.Controls.Add(T($"Cấp {_tt.CapDo.Cap} · {ViQuaView.TenCap(_tt.CapDo.Cap)}", 16f, true, UI.PointInk));
+            cap.Controls.Add(T(ViQuaView.LenCap(_tt.CapDo), 12f, false, UI.PointInk));
+            cap.Controls.Add(new ThanhTienDo { TiLe = ViQuaView.TienDo(_tt), Width = _tw, Height = Px(14), Margin = new Padding(0, Px(2), 0, Px(10)) });
+            if (_tt.ChuoiNgay > 0) cap.Controls.Add(T($"Chuỗi {_tt.ChuoiNgay} ngày liền có nhiệm vụ được duyệt", 11.5f, false, UI.PointInk));
+            _content.Controls.Add(cap);
+            var luoi = Row(_cw);
+            var w = (_cw - Px(12) * 3) / 3;   // mỗi ô có lề phải 12 ⇒ ba ô một hàng
+            foreach (var h in ViQuaView.SapXep(_tt.HuyHieu)) luoi.Controls.Add(HuyHieuO(h, w));
+            _content.Controls.Add(luoi);
+        }
+
+        // --- Quy tắc nhà mình
+        _content.Controls.Add(T("Quy tắc nhà mình", 15f, true, null, true));
+        if (_qt == null) _content.Controls.Add(T("Chưa tải được bảng quy tắc.", 12.5f, false, UI.Muted, true));
+        else
+        {
+            var q = _qt;
+            var c = Card();
+            c.Controls.Add(T("Ai cũng thấy giống nhau — công bằng!", 11.5f, false, UI.Muted));
+            void Dong(string tieu, string noi)
+            {
+                c.Controls.Add(T(tieu, 12.5f, true));
+                var l = T(noi, 12f, false, UI.Muted);
+                l.Margin = new Padding(0, 0, 0, Px(10));
+                c.Controls.Add(l);
+            }
+            Dong("Giờ chơi", $"{ViQuaView.Khung(q.Lich.NgayThuong)} · cuối tuần {ViQuaView.Khung(q.Lich.CuoiTuan)}");
+            Dong("Mỗi lần chơi", $"Tối đa {q.PhienToiDa} phút, nghỉ {q.NghiGiua} phút");
+            Dong("Mỗi ngày", $"Chơi tối đa {q.TranNgay} phút");
+            Dong("Trò chơi", ViQuaView.Gia(q.GiaPhut.Game));
+            Dong("Video ngắn", ViQuaView.Gia(q.GiaPhut.VideoNgan));
+            Dong("Mạng xã hội", ViQuaView.Gia(q.GiaPhut.Mxh));
+            Dong("Phim gia đình", ViQuaView.Gia(q.GiaPhut.PhimGd));
+            Dong("Giờ ngủ", $"{q.Lich.Ngu.Tu}–{q.Lich.Ngu.Den} · máy nghỉ, chỉ còn app học");
+            _content.Controls.Add(c);
+        }
+    }
+
+    private Control PhieuQrCard(HvVoucherVi v)
+    {
+        var c = Card();
+        var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(6)) };
+        dau.Controls.Add(new ClayIcon { Size = new Size(Px(44), Px(44)), MauVien = UI.PointSoft, Hinh = UI.Fluent("ticket"), Margin = new Padding(0, 0, Px(10), 0) });
+        var tieu = T($"Phiếu quà AiiCafe {ViQuaView.Tien(v.MenhGia)}", 15f, true);
+        tieu.MaximumSize = new Size(_tw - Px(60), 0);
+        tieu.Margin = new Padding(0, Px(10), 0, 0);
+        dau.Controls.Add(tieu);
+        c.Controls.Add(dau);
+        var co = Px(200);
+        Image? anh = null;
+        try { anh = UI.AnhQr(MaQr.MaTran(v.Ma), co); } catch { /* mã lạ: vẫn hiện chữ mã */ }
+        if (anh != null) _anhQr.Add(anh);
+        if (anh != null)
+            c.Controls.Add(new PictureBox { Image = anh, Size = new Size(co, co), SizeMode = PictureBoxSizeMode.Normal, BackColor = Color.White, Margin = new Padding(0, 0, 0, Px(6)), AccessibleName = "Mã QR " + v.Ma });
+        var ma = T(v.Ma, 16f, true);
+        ma.UseMnemonic = false;
+        c.Controls.Add(ma);
+        if (v.HetHan != null) c.Controls.Add(T("Dùng trước " + ViQuaView.Ngay(v.HetHan), 12f, false, UI.Muted));
+        return c;
+    }
+
+    private Control HuyHieuO(HvHuyHieu h, int w)
+    {
+        var c = new ClayFlow
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Width = w, MinimumSize = new Size(w, 0), MaximumSize = new Size(w, 0), BoGoc = Px(22),
+            BackColor = h.Dat ? UI.Card : UI.Paper,
+            Padding = VeThe.Pad(Px(16), Px(12), Px(16), Px(8)), Margin = new Padding(0, 0, Px(12), Px(4)),
+        };
+        var tw = w - Px(32) - VeThe.LeBong.Horizontal;
+        c.Controls.Add(new ClayIcon { Size = new Size(Px(44), Px(44)), MauVien = h.Dat ? UI.PointSoft : UI.Paper, Hinh = h.Dat ? UI.Fluent("sports_medal") : UI.Fluent("locked"), Margin = new Padding(0, 0, 0, Px(4)) });
+        c.Controls.Add(UI.Text(h.Ten, 12f, true, h.Dat ? UI.Ink : UI.Muted, tw));
+        var phu = UI.Text(h.Dat && h.DatLuc != null ? "Đạt " + ViQuaView.Ngay(h.DatLuc) : h.MoTa, 10.5f, false, UI.Muted, tw);
+        c.Controls.Add(phu);
+        c.AccessibleName = $"{h.Ten}: {(h.Dat ? "đã đạt" : "chưa đạt")}. {h.MoTa}";
+        return c;
+    }
+
     // ---------------------------------------------------------------- Tin nhắn
 
     /// <summary>Mục chưa có dữ liệu học viên: chưa ghép / đang tải / LỖI (lý do + «Thử lại»). true = đã vẽ, mục dừng ở đây.</summary>
@@ -784,5 +926,41 @@ internal sealed class AppForm : Form
         if (kq == null) { Say(loi ?? "Chưa gửi được. Con thử lại nhé.", true); return; }
         await RefreshAsync();
         Say("Đã nhắn lại Ba Mẹ.", false);
+    }
+}
+
+/// <summary>Thanh tiến độ lên cấp kiểu Clay: rãnh lõm + phần đã đi màu điểm, bo tròn.</summary>
+internal sealed class ThanhTienDo : Control
+{
+    public double TiLe { get; set; }
+
+    public ThanhTienDo()
+    {
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+        BackColor = UI.PointSoft;
+        TabStop = false;
+    }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.Clear(BackColor);
+        var r = Height / 2f;
+        using (var ranh = Bo(new RectangleF(0, 0, Width - 1, Height - 1), r)) using (var b = new SolidBrush(Clay.Lom)) g.FillPath(b, ranh);
+        var w = (float)((Width - 1) * Math.Clamp(TiLe, 0, 1));
+        if (TiLe > 0) w = Math.Max(w, Height);   // tiến độ nhỏ vẫn thấy một viên tròn, không như số 0
+        if (w > 0)
+            using (var di = Bo(new RectangleF(0, 0, w, Height - 1), r)) using (var b = new SolidBrush(Clay.Diem)) g.FillPath(b, di);
+    }
+
+    private static System.Drawing.Drawing2D.GraphicsPath Bo(RectangleF k, float r)
+    {
+        var p = new System.Drawing.Drawing2D.GraphicsPath();
+        var d = Math.Min(r * 2, Math.Min(k.Width, k.Height));
+        p.AddArc(k.X, k.Y, d, d, 90, 180);
+        p.AddArc(k.Right - d, k.Y, d, d, 270, 180);
+        p.CloseFigure();
+        return p;
     }
 }
