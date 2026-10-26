@@ -3,6 +3,7 @@
 import { taiHanhTrinh } from './hanh-trinh/index.js';
 import { taoQuyTrinh } from './quy-trinh.js';
 import { heThong, loiNguoiDung, tachKetQua, loiHanhTrinh, tachHanhTrinh, HUONG } from './prompt.js';
+import * as Sua from './che-do-sua.js';
 
 const $ = (s) => document.querySelector(s);
 const MODELS = [['claude-opus-5-5', 'Claude Opus 5.5'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5']];
@@ -202,7 +203,7 @@ function capNhatAo() {
     const sx = x + f.x * z, sy = y + f.y * z, sw = w * z, sh = (h + DAU) * z;
     const trong = sx + sw > -LE_AO && sx < r.width + LE_AO && sy + sh > -LE_AO && sy < r.height + LE_AO;
     if (trong) thay.add(id);
-    datSong(f, d, trong && z >= ZOOM_SONG);
+    datSong(f, d, (trong && z >= ZOOM_SONG) || Sua.giuSong(id)); // khung đang Sửa luôn giữ iframe sống
   }
   const cu = st.thay; st.thay = thay;
   if (!cu || cu.size !== thay.size || [...thay].some((id) => !cu.has(id))) henVeNoi();
@@ -923,6 +924,7 @@ function thuLai(id) {
   if (canKey()) return;
   if (f.lan) { const l = timLan(f.lan); if (l && !st.dangChay.has(l.id)) sinhHanhTrinh(l); return; }
   if (st.dangChay.has(f.id)) return;
+  if (f.htmlSua) { Sua.chayLamMuot(f); return; } // khung «Làm mượt» của chế độ Sửa
   const cha = timKhung(f.cha);
   const htmlGoc = cha ? htmlCua(cha) : f.htmlGoc; const tenGoc = cha ? tenCua(cha) : f.tenGoc;
   if (!htmlGoc) { toast('Không còn khung gốc để sinh lại.', true); return; }
@@ -1250,4 +1252,6 @@ capNhatCheDo(); apView(); veTatCa();
 if (!st.views[khoaView()]) vuaMan();
 ghiHash();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
-window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho }; // để nghiệm thu tự động
+Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
+  lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung });
+window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
