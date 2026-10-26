@@ -37,7 +37,7 @@ export function taoKhoBienThe(C) {
   const datMuc = (l, m) => { ghi(tepMuc(l, m.id), JSON.stringify(m)); BO[l].set(m.id, m); };
   const boMuc = (l, id) => { BO[l].delete(id); xoaTep(tepMuc(l, id)); };
   // ---- audit: trạng thái đầy đủ của một mục (thông tin + HTML + bản sửa tay) để ghi «trước/sau»
-  const A = C.audit || { ghi() {} };
+  const A = C.audit || { ghi: () => [] };
   const docTep = (t) => { try { return fs.readFileSync(t, 'utf8'); } catch { return ''; } };
   function trangThai(l, id, meta, tuRac = false) {
     if (!meta) return null;
@@ -313,10 +313,11 @@ export function taoKhoBienThe(C) {
       return { m: null };
     }
     const x = { ...trangThaiCu, id }; for (const k of ['tSuaCu', 'trongThungRac', 'tXoa', 'nguoiXoa']) delete x[k];
+    const tuRac = l === 'l' && !BO.l.has(id); // phương án đang không trên bàn (thùng rác / đã xoá vĩnh viễn) — chỉ khi đó mới kéo màn của nó ra
     const r = l === 'k' ? ghiKhung(x, ai?.ten, ai, 'bien-the.khoi-phuc-lich-su') : ghiLan(x, ai, 'phuong-an.khoi-phuc-lich-su');
     if (r.ev) { r.ev.ghiChu = `khôi phục trạng thái ${nguon} · ${r.ev.ghiChu}`; evs.push(r.ev); }
     const khung = [];
-    if (r.m && l === 'l') { // phương án sống lại ⇒ các màn của nó đang trong thùng rác cũng ra (như khôi phục từ Thùng rác)
+    if (r.m && tuRac) { // phương án sống lại ⇒ các màn của nó đang trong thùng rác cũng ra (như khôi phục từ Thùng rác)
       let ten = []; try { ten = fs.readdirSync(dir('rac')).filter((t) => /^k-[\w-]{1,120}\.json$/.test(t)); } catch { /* rỗng */ }
       for (const t of ten) { const kid = t.slice(2, -5); if (docJson(path.join(dir('rac'), t))?.lan === id) { const g = raRac('k', kid, true, ai, evs); if (g) khung.push(g); } }
     }

@@ -118,10 +118,10 @@ export function taoAudit({ THIET_KE }) {
       for (const e of ds) e.tLuc ||= new Date().toISOString(); // giờ thật của thao tác (giữ nguyên nếu phải ghi lại sau)
       const dong = ds.map((e) => ({ t: e.tLuc, loai: e.loai, dt: e.dt || {}, ai: e.ai || {}, truoc: gom(e.truoc ?? null), sau: gom(e.sau ?? null), ...(e.ghiChu ? { ghiChu: String(e.ghiChu).slice(0, 300) } : {}) }));
       mo2 = khoa();
-      if (motLan) { // sự kiện nhiều tiến trình cùng thấy (vd. đổi chu-quan.json): chỉ ghi một lần
-        const tm = path.join(DIR, '.mot-lan'); let cu = ''; try { cu = fs.readFileSync(tm, 'utf8'); } catch { /* chưa có */ }
+      const tm = path.join(DIR, '.mot-lan');
+      if (motLan) { // sự kiện nhiều tiến trình cùng thấy (vd. đổi chu-quan.json): chỉ ghi một lần — dấu ghi SAU khi đã nối được (ghi lỗi thì tiến trình kia còn ghi)
+        let cu = ''; try { cu = fs.readFileSync(tm, 'utf8'); } catch { /* chưa có */ }
         if (cu === motLan) return [];
-        fs.writeFileSync(tm, motLan);
       }
       const d = duoi(); const ngay = ngayCua(); const tep = `${ngay}.jsonl`;
       let { i, h } = d; const ra = []; let nd = '';
@@ -138,6 +138,7 @@ export function taoAudit({ THIET_KE }) {
         fs.writeSync(fd, nd); fs.fsyncSync(fd);
       } finally { fs.closeSync(fd); }
       nho = { tep, co: fs.statSync(duong).size, i, h };
+      if (motLan) try { fs.writeFileSync(tm, motLan); } catch { /* lỗi dấu: cùng lắm ghi trùng một lần */ }
       return ra;
     } catch (e) {
       console.error('! audit không ghi được:', e.message);

@@ -138,13 +138,14 @@ export function ganGopY(A) {
     return the;
   }
   async function doiGopY(g, loai, than) {
-    try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/${loai}`, than); await tai(); } catch (e) { A.toast(`Không lưu được: ${e.message}`, true); }
+    try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/${loai}`, than); } catch (e) { A.toast(`Không lưu được: ${e.message}`, true); return false; }
+    await tai(); return true;
   }
   function suaGopY(the, g, focus = true) {
     if (the.querySelector('form.pn-sua')) return;
     const f = tao('form', 'pn-tl-hop pn-sua'); const ta = tao('textarea'); ta.rows = 3; ta.maxLength = 2000; ta.required = true; ta.value = g.noi;
     const b = tao('button', 'nut-chinh', 'Lưu'); b.type = 'submit'; f.append(ta, b); the.append(f); if (focus) ta.focus();
-    f.onsubmit = (e) => { e.preventDefault(); f.remove(); doiGopY(g, 'sua', { noi: ta.value }); };
+    f.onsubmit = async (e) => { e.preventDefault(); b.disabled = true; if (await doiGopY(g, 'sua', { noi: ta.value })) f.remove(); else b.disabled = false; }; // lỗi: giữ chữ đã gõ
   }
   async function doiTt(g, tt) {
     try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }); await tai(); } catch (e) { A.toast(`Không đổi được: ${e.message}`, true); }

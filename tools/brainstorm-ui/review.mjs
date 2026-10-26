@@ -46,9 +46,16 @@ export function taoReview(C) {
     }
     return cq.j;
   }
-  // vai của người gọi để ghi audit — KHÔNG đếm lần sai (khác laChuQuan)
-  // vai của người gọi để ghi audit — dùng chính laChuQuan (một yêu cầu chỉ kiểm/đếm mã một lần, mã sai ở mọi đường đều bị giới hạn + ghi audit)
-  const vaiCua = (req) => (laChuQuan(req) ? 'chu-quan' : 'cong-tac');
+  // vai của người gọi để ghi audit — chỉ SO mã, KHÔNG đếm lần sai/không ghi «sai mã» (ghi kho khi chưa khoá bảng không phải là thử mã:
+  // mã cũ còn kèm theo trong lúc tự lưu không được làm đầy audit hay khoá IP của chủ quản)
+  function vaiCua(req) {
+    if (daKiem.has(req)) return daKiem.get(req) ? 'chu-quan' : 'cong-tac';
+    if (laNoiBo(req)) return 'chu-quan';
+    const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
+    return ma.length >= 8 && gui && dungMa(ma, gui) ? 'chu-quan' : 'cong-tac';
+  }
+  const bang = (x) => crypto.createHash('sha256').update(x).digest();
+  const dungMa = (ma, gui) => crypto.timingSafeEqual(bang(ma), bang(gui));
   function laNoiBo(req) {
     const h = String(req.headers.host || '').toLowerCase();
     return /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(h) && !req.headers['cf-connecting-ip'] && !req.headers['cf-ray'] && !req.headers['x-forwarded-for'];
@@ -67,11 +74,11 @@ export function taoReview(C) {
     if (s && now - s.t < 60000 && s.n >= 10) return false;
     if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
     if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
-    const bang = (x) => crypto.createHash('sha256').update(x).digest();
-    if (crypto.timingSafeEqual(bang(ma), bang(gui))) return true;
+    if (dungMa(ma, gui)) return true;
     saiTong.n++;
-    if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else s.n++;
-    AU.ghi({ loai: 'quyen.sai-ma', dt: { duong: String(req.url || '').split('?')[0].slice(0, 80) }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro' }, truoc: null, sau: null, ghiChu: `thử mã chủ quản sai (độ dài ${gui.length})` });
+    let n = 1; if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else n = ++s.n;
+    // ghi audit lần sai ĐẦU của mỗi IP mỗi phút và lần chạm ngưỡng chặn — không để dò mã làm đầy nhật ký
+    if (n === 1 || n === 10) AU.ghi({ loai: 'quyen.sai-ma', dt: { duong: String(req.url || '').split('?')[0].slice(0, 80) }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro' }, truoc: null, sau: null, ghiChu: `thử mã chủ quản sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
     if (saiMa.size > 5000) saiMa.clear();
     return false;
   }
