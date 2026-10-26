@@ -99,7 +99,7 @@ export function tachHanhTrinh(txt) {
   const m = txt.match(/Ý TƯỞNG\s*:\s*(.+)/i);
   const nhan = m ? m[1].trim().replace(/[*`]/g, '').slice(0, 80) : '';
   const man = [];
-  const re = /MÀN\s*:\s*([\w-]+)\s*```html\s*([\s\S]*?)(```|$)/gi;
+  const re = /MÀN\s*:?\s*[*`\s]*([\w-]+)[*`]*\s*```html\s*([\s\S]*?)(```|$)/gi;
   let r;
   while ((r = re.exec(txt))) man.push({ key: r[1], html: r[2].trim(), xong: r[3] === '```' });
   return { nhan, man };

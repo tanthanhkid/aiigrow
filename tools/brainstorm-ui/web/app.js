@@ -60,13 +60,14 @@ function ganToi(html, nhan, dich, tenDich) {
 
 // ---------- trạng thái ----------
 const luu = doc(KHOA_LUU, null);
+const KHOA_VIEW = 'bs.view';
 const st = { khung: [], lanBt: [], view: { x: 40, y: 40, z: 0.2 }, chon: new Set(), lanChon: null, dangChay: new Map(), viTriLan: new Map() };
 for (const k of Object.keys(MAN)) st.khung.push({ id: k, loai: 'goc', key: k });
 if (luu) {
   for (const f of luu.khung || []) if (f.loai === 'bien' && MAN[f.goc]) st.khung.push(f);
   st.lanBt = (luu.lanBt || []).filter((l) => LAN_GOC.some((g) => g.id === l.tu));
-  if (luu.view) st.view = luu.view;
 }
+{ const v = doc(KHOA_VIEW, null); if (v && Number.isFinite(v.z)) st.view = v; }
 for (const f of st.khung) if (f.tt === 'dang') { f.tt = 'loi'; f.loi = 'Trang đã tải lại khi đang sinh — bấm Thử lại.'; }
 for (const l of st.lanBt) if (l.tt === 'dang') { l.tt = 'loi'; l.loi = 'Trang đã tải lại khi đang sinh.'; }
 
@@ -84,10 +85,12 @@ let henLuu = 0;
 function luuLai() {
   clearTimeout(henLuu);
   henLuu = setTimeout(() => {
-    const khung = st.khung.filter((f) => f.loai === 'bien');
-    if (!ghi(KHOA_LUU, { khung, lanBt: st.lanBt, view: st.view })) toast('Bộ nhớ trình duyệt đầy — xoá bớt biến thể (Dọn biến thể) để lưu.', true);
+    const khung = st.khung.filter((f) => f.loai === 'bien').map(({ htmlGoc, tenGoc, ...f }) => f);
+    if (!ghi(KHOA_LUU, { khung, lanBt: st.lanBt })) toast('Bộ nhớ trình duyệt đầy — xoá bớt biến thể (Dọn biến thể) để lưu.', true);
   }, 300);
 }
+let henView = 0;
+function luuView() { clearTimeout(henView); henView = setTimeout(() => ghi(KHOA_VIEW, st.view), 300); }
 
 // ---------- SẮP XẾP: hàng hành trình xếp dọc; biến thể thành cây theo tầng ngay dưới khung cha; không bao giờ chồng ----------
 function conCua(id) { return st.khung.filter((f) => f.cha === id && !f.lan && f.loai === 'bien'); }
@@ -109,6 +112,8 @@ function thuTuLan() {
 }
 function khungCuaLan(l, key) { return l.goc ? timKhung(key) : st.khung.find((f) => f.lan === l.id && f.goc === key); }
 function sapXep() {
+  // biến thể mất cha (cha bị xoá) → nối về màn gốc của nó
+  for (const f of st.khung) if (f.loai === 'bien' && !f.lan && !timKhung(f.cha)) f.cha = f.goc;
   let y = 0;
   st.hangY = [];
   for (const l of thuTuLan()) {
@@ -238,7 +243,7 @@ function veDauLan() {
       el.innerHTML = `<div class="nhan-lan"></div><div class="ten-lan"></div><div class="mo-lan"></div><div class="nut-lan">
         <button type="button" data-l="play">▶ Play hành trình</button><button type="button" data-l="sinh">✨ Biến thể cả hành trình</button>${l.goc ? '' : '<button type="button" data-l="xoa" class="nguy">Xoá phương án</button>'}</div>`;
       el.addEventListener('click', (e) => {
-        const b = e.target.closest('button'); if (!b) { chonLan(l.id); return; }
+        const b = e.target.closest('button'); if (!b) return; // bấm nền đầu hàng: xử lý ở thaKeo (pointer capture nuốt click)
         if (b.dataset.l === 'play') moPlay(khungCuaLan(l, l.buoc[0])?.id, l.id);
         else if (b.dataset.l === 'sinh') chonLan(l.id, true);
         else if (b.dataset.l === 'xoa') xoaPhuongAn(l.id);
@@ -378,13 +383,13 @@ function phong(heSo, cx, cy) {
   const px = cx - r.left, py = cy - r.top;
   st.view.x = px - (px - st.view.x) * (z / st.view.z);
   st.view.y = py - (py - st.view.y) * (z / st.view.z);
-  st.view.z = z; apView(); luuLai();
+  st.view.z = z; apView(); luuView();
 }
 function vuaHop(x0, y0, x1, y1) {
   const r = vung.getBoundingClientRect(); const le = 50;
   const rong = r.width - le * 2 - (st.chon.size || st.lanChon ? 360 : 0);
   const z = Math.min(1, rong / (x1 - x0), (r.height - le * 2) / (y1 - y0));
-  st.view = { z, x: le - x0 * z, y: le - y0 * z }; apView(); luuLai();
+  st.view = { z, x: le - x0 * z, y: le - y0 * z }; apView(); luuView();
 }
 function vuaMan(ids) {
   const ds = (ids ? st.khung.filter((f) => ids.includes(f.id)) : st.khung).filter((f) => dom.get(f.id) && !dom.get(f.id).el.hidden);
@@ -398,7 +403,7 @@ function vuaMan(ids) {
 vung.addEventListener('wheel', (e) => {
   e.preventDefault();
   if (e.ctrlKey || e.metaKey) phong(Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
-  else { st.view.x -= e.deltaX; st.view.y -= e.deltaY; apView(); luuLai(); }
+  else { st.view.x -= e.deltaX; st.view.y -= e.deltaY; apView(); luuView(); }
 }, { passive: false });
 
 let keo = null, phimCach = false, lanBam = { id: '', t: 0 };
@@ -428,15 +433,17 @@ vung.addEventListener('pointermove', (e) => {
   if (keo.loai === 'nen') { st.view.x = keo.vx + dx; st.view.y = keo.vy + dy; apView(); }
   else if (keo.dich) {
     for (const g of keo.goc) { g.f.x = Math.round(g.x + dx / st.view.z); g.f.y = Math.round(g.y + dy / st.view.z); const d = dom.get(g.f.id); d.el.style.left = `${g.f.x}px`; d.el.style.top = `${g.f.y}px`; }
-    henVeNoi();
+    svgNoi.style.visibility = 'hidden'; // thả ra sẽ xếp lại + vẽ lại liên kết một lần
   }
 });
 const thaKeo = () => {
   if (!keo) return;
-  if (keo.loai === 'nen' && !keo.dich && !keo.lan && (st.chon.size || st.lanChon)) { st.chon.clear(); st.lanChon = null; veTatCa(false); }
+  if (keo.loai === 'nen' && !keo.dich && keo.lan) chonLan(keo.lan.dataset.lan);
+  else if (keo.loai === 'nen' && !keo.dich && (st.chon.size || st.lanChon)) { st.chon.clear(); st.lanChon = null; veTatCa(false); }
   // thả khung đã kéo: xếp lại để không bao giờ chồng (vị trí do bộ xếp quyết)
-  if (keo.loai === 'khung' && keo.dich) veTatCa();
-  keo = null; vung.classList.remove('dang-keo'); luuLai();
+  if (keo.loai === 'khung' && keo.dich) { svgNoi.style.visibility = ''; veTatCa(); }
+  const daKeoKhung = keo.loai === 'khung' && keo.dich;
+  keo = null; vung.classList.remove('dang-keo'); if (daKeoKhung) luuLai(); else luuView();
 };
 vung.addEventListener('pointerup', thaKeo);
 vung.addEventListener('pointercancel', thaKeo);
@@ -596,7 +603,7 @@ async function goiMock({ toan, signal, moiChu, khiBatDau, khoaCache, vaoCache })
 // Bỏ <script>, on*, iframe… khỏi HTML do Claude sinh (khung đã sandbox không script; đây là lớp thứ hai cho tệp xuất/lưu/play).
 function lamSach(html) {
   const d = new DOMParser().parseFromString(html, 'text/html');
-  d.querySelectorAll('script,iframe,object,embed,base,meta[http-equiv],form').forEach((n) => n.remove());
+  d.querySelectorAll('script,iframe,frame,object,embed,base,meta[http-equiv],form,noscript,template,noembed,noframes,xmp,plaintext').forEach((n) => n.remove());
   d.querySelectorAll('*').forEach((n) => { for (const a of [...n.attributes]) if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); });
   return '<!doctype html>\n' + d.documentElement.outerHTML;
 }
@@ -665,7 +672,7 @@ async function chay(f, htmlGoc, tenGoc, khiBatDau) {
 
 // ---------- biến thể cho CẢ hành trình: mỗi phương án là một hàng mới ngay dưới hàng gốc ----------
 async function sinhHanhTrinh(lanLai) {
-  const nguon = lanLai ? timLan(lanLai.tu) : timLan(st.lanChon);
+  const nguon = lanLai ? timLan(lanLai.nguon) || timLan(lanLai.tu) : timLan(st.lanChon);
   const g = nguon.goc ? nguon : timLan(nguon.tu);
   const y = lanLai ? lanLai.yTuong : $('#y-tuong').value.trim();
   if (!y) { trangThaiBang('Gõ ý của anh cho cả hành trình trước đã.', true); $('#y-tuong').focus(); return; }
@@ -677,7 +684,9 @@ async function sinhHanhTrinh(lanLai) {
   const buoc = g.buoc.map((key) => { const f = khungCuaLan(nguon, key) || timKhung(key); return { key, ten: MAN[key].ten, w: MAN[key].w, h: MAN[key].h, html: htmlCua(f) || MAN[key].html, toi: MAN[key].toi }; });
   const lans = [];
   for (let k = 1; k <= n; k++) {
-    const l = lanLai || { id: `pa-${dot}-${k}`, tu: g.id, buoc: g.buoc, k: st.lanBt.filter((b) => b.tu === g.id).length + 1, n, yTuong: y, tt: 'dang', model: laMock() ? 'mock' : modelDung() };
+    const soMoi = Math.max(0, ...st.lanBt.filter((b) => b.tu === g.id).map((b) => b.k || 0)) + 1;
+    const l = lanLai || { id: `pa-${dot}-${k}`, tu: g.id, nguon: nguon.id, buoc: g.buoc, k: soMoi, n, yTuong: y, tt: 'dang' };
+    l.model = laMock() ? 'mock' : modelDung();
     if (!lanLai) {
       st.lanBt.push(l);
       for (const b of buoc) st.khung.push({ id: `${l.id}-${b.key}`, loai: 'bien', lan: l.id, goc: b.key, cha: b.key, dot, k: l.k, w: b.w, h: b.h, html: '', tt: 'dang', tienDo: 'Đang chờ lượt…', yTuong: y, x: 0, y: 0 });
@@ -899,8 +908,10 @@ async function thanhDataUrl(url) {
   return new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(b); });
 }
 // HTML tự đứng: nhúng clay-kit.css và ảnh /assets/* thành data URI → mở được ở bất cứ đâu.
-async function htmlTuDung(html) {
+async function htmlTuDung(html, khoaScript = true) {
   let s = lamSach(html);
+  // tệp xuất/lưu mở ngoài bàn này: cấm mọi script (lớp chặn thứ hai sau lamSach)
+  if (khoaScript) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; base-uri 'none'">`);
   const css = await (await fetch('/assets/clay-kit.css')).text();
   s = s.replace(/<link[^>]*href=["']\/assets\/clay-kit\.css["'][^>]*>/gi, () => `<style>${css}</style>`);
   const ds = [...new Set(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || [])];
@@ -917,7 +928,7 @@ $('#nut-html').onclick = async () => {
 
 async function chupPng(f) {
   const { w, h } = kichThuoc(f);
-  const s = await htmlTuDung(htmlCua(f));
+  const s = await htmlTuDung(htmlCua(f), false);
   const ifr = document.createElement('iframe');
   ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts'); // nội dung đã lamSach (không còn script) — chỉ chạy html-to-image của mình
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });
@@ -928,7 +939,7 @@ async function chupPng(f) {
     for (let i = 0; i < 50 && !win.htmlToImage; i++) await new Promise((r) => setTimeout(r, 100));
     if (!win.htmlToImage) throw new Error('Chưa có html-to-image — chạy npm install trong tools/brainstorm-ui.');
     await win.document.fonts?.ready;
-    const goc = win.document.body.firstElementChild || win.document.body;
+    const goc = [...win.document.body.children].find((n) => !/^(STYLE|LINK|SCRIPT|META|TEMPLATE)$/.test(n.tagName) && n.getBoundingClientRect().width > 0) || win.document.body;
     const opt = { width: w, height: h, pixelRatio: 2, cacheBust: false };
     try { return await win.htmlToImage.toBlob(goc, opt); } catch { return await win.htmlToImage.toBlob(goc, { ...opt, skipFonts: true }); }
   } finally { ifr.remove(); }
@@ -955,7 +966,7 @@ $('#nut-ghim').onclick = async () => {
 };
 
 let hoanTac = null;
-function chupLai() { const k = st.khung.slice(), l = st.lanBt.slice(); return () => { st.khung = k; st.lanBt = l; veTatCa(); luuLai(); }; }
+function chupLai() { const k = structuredClone(st.khung), l = structuredClone(st.lanBt); return () => { st.khung = k; st.lanBt = l; st.chon.clear(); veTatCa(); luuLai(); }; }
 function xoaChon() {
   const ids = [...st.chon].filter((id) => { const f = timKhung(id); return f && f.loai !== 'goc' && !f.lan; });
   if (!ids.length) { toast('Màn gốc và màn trong phương án hành trình không xoá lẻ được — xoá cả phương án ở đầu hàng.'); return; }
@@ -1031,4 +1042,4 @@ napModel($('#chon-model'), caiDat.model);
 capNhatCheDo(); apView(); veTatCa();
 if (!luu) vuaMan();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
-window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat }; // để nghiệm thu tự động
+window.__bs = { st, MAN, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan }; // để nghiệm thu tự động
