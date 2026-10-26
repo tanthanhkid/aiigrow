@@ -13,8 +13,8 @@ export async function taiHanhTrinh(lay = (u) => fetch(u)) {
       const hop = h && h.id && Array.isArray(h.buoc);
       if (!hop) { loi.push(`${TEP[i]}: hành trình hỏng`); continue; }
       if (ds.some((x) => x.id === h.id)) { loi.push(`trùng id hành trình ${h.id}`); continue; }
-      h.buoc = h.buoc.filter((b) => b && b.key && typeof b.html === 'string' && b.w > 0 && b.h > 0);
-      ds.push(h);
+      // bản sao: không sửa đối tượng của mô-đun (máy chủ Node giữ mô-đun suốt đời tiến trình — MCP nạp lại nhiều lần)
+      ds.push({ ...h, buoc: h.buoc.filter((b) => b && b.key && typeof b.html === 'string' && b.w > 0 && b.h > 0).map((b) => ({ ...b })) });
     }
   });
   if (!ds.length) {
