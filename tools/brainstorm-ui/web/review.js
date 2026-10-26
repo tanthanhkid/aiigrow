@@ -223,8 +223,9 @@ function capNhatGhimCho() {
 }
 function veGhim() {
   const l = $('#lop-ghim'); l.innerHTML = '';
-  const ds = gopYCua(R.mo).filter((g) => g.ghim && hienGy(g));
-  ds.forEach((g, i) => {
+  // số ghim đánh trên MỌI ghim (kể cả đang ẩn) để «ghim 3» không đổi nghĩa khi có ghim được xử lý
+  gopYCua(R.mo).filter((g) => g.ghim).forEach((g, i) => {
+    if (!hienGy(g)) return;
     const b = tao('button', `ghim muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '') + (g.v !== R.goi.v ? ' cu' : ''), String(i + 1));
     b.type = 'button'; b.style.left = `${g.ghim.x}%`; b.style.top = `${g.ghim.y}%`; b.title = `${g.ten}: ${g.noi}`;
     b.onclick = (e) => { e.stopPropagation(); const el = document.querySelector(`[data-gy="${g.id}"]`); el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); el?.classList.add('nhay'); setTimeout(() => el?.classList.remove('nhay'), 1200); };
@@ -248,15 +249,15 @@ function veGopY() {
   const soDx = (R.goi?.deXuat || []).filter((x) => x.key === R.mo && daXuLyDx(x)).length;
   if (xl.length || soDx || XL.hien) d.append(XL.congTac(xl.length + soDx, xl.some((g) => XL.traLoiChuaXem(g).length)));
   if (XL.hien) XL.danhDauDaXem(xl);
+  const soGhim = new Map(tatCa.filter((g) => g.ghim).map((g, i) => [g.id, i + 1]));
   const ds = tatCa.filter(hienGy);
   if (!ds.length) d.append(tao('p', 'phu', xl.length ? `Không còn góp ý đang mở ở đây — ${xl.length} góp ý đã xử lý đang ẩn.` : 'Chưa có góp ý nào ở đây.'));
-  let stt = 0;
   for (const g of ds) {
     const the = tao('article', `gy muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '')); the.dataset.gy = g.id;
     const dau = tao('div', 'gy-dau');
     const av = tao('span', 'avt nho', ([...g.ten][0] || '?').toUpperCase()); av.style.setProperty('--mau', mauTen(g.ten));
     dau.append(av, tao('b', '', g.ten), tao('span', `chip muc`, MUC_TEN[g.muc] || g.muc));
-    if (g.ghim) dau.append(tao('span', 'chip', `📌 ${++stt}`));
+    if (g.ghim) dau.append(tao('span', 'chip', `📌 ${soGhim.get(g.id)}`));
     if (g.v !== R.goi.v) dau.append(tao('span', 'chip cu', `từ v${g.v}`));
     dau.append(tao('span', 'chip ' + (g.tt === 'xong' ? 'ok' : 'mo'), g.tt === 'xong' ? 'Đã xử lý' : 'Mở'));
     if (g.ycBt) dau.append(tao('span', 'chip', 'Đã yêu cầu biến thể'));

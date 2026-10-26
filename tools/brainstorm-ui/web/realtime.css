@@ -33,5 +33,5 @@
 .cong-tac-xl.bat .ct-nut::after{transform:translateX(12px)}
 .cong-tac-xl:focus-visible{outline:3px solid var(--ngoc);outline-offset:2px}
 .cong-tac-xl .ct-cham{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:#e8590c;box-shadow:0 0 0 2px #fff}
-.truot-ra{overflow:hidden;transition:transform .3s ease,opacity .3s ease,height .3s ease .05s,padding .3s ease .05s,margin .3s ease .05s!important;transform:translateX(110%);opacity:0;height:0!important;padding-top:0!important;padding-bottom:0!important;margin-top:-10px!important}
+.truot-ra{overflow:hidden;transition:transform .3s ease,opacity .3s ease,height .3s ease .05s,padding .3s ease .05s,margin .3s ease .05s!important;transform:translateX(48px);opacity:0;height:0!important;padding-top:0!important;padding-bottom:0!important;margin-top:-10px!important}
 @media (prefers-reduced-motion:reduce){.truot-ra,.cong-tac-xl .ct-nut,.cong-tac-xl .ct-nut::after{transition:none!important}}

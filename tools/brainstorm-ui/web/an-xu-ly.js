@@ -49,6 +49,6 @@ export function truotRa(el) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.style.display = 'none'; return Promise.resolve(); }
   el.style.height = `${el.offsetHeight}px`; void el.offsetHeight; // cố định chiều cao để thu lại mượt
   el.classList.add('truot-ra');
-  return new Promise((xong) => setTimeout(xong, 340)); // khớp thời gian transition trong CSS (.truot-ra)
+  return new Promise((xong) => setTimeout(xong, 370)); // khớp thời gian transition trong CSS (.truot-ra)
 }
 export function huyTruot(el) { if (!el) return; el.classList.remove('truot-ra'); el.style.height = ''; el.style.display = ''; }
