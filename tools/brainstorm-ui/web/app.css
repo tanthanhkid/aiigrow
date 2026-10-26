@@ -223,30 +223,55 @@ body.an-ben #vung{left:0}
 #mo-ben[hidden]{display:none}
 @media (max-width:760px){#mo-ben{display:none}}
 
-/* realtime: con trỏ người khác, avatar, đi theo */
-#lop-tro{position:absolute;inset:0;pointer-events:none;z-index:6;overflow:hidden}
-.tro-nguoi{position:absolute;left:0;top:0;will-change:transform}
-.tro-nguoi[hidden]{display:none}
-.tro-nguoi svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
-.tro-nguoi .ten-tro{position:absolute;left:14px;top:18px;background:var(--mau);color:#fff;font:700 12px Inter;padding:3px 8px;border-radius:8px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-.tro-nguoi .mui-mep{display:none}
-.tro-nguoi.mep svg{display:none}
-.tro-nguoi.mep .mui-mep{display:block;position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:var(--mau);box-shadow:0 0 0 2px #fff}
-.tro-nguoi.mep .mui-mep::after{content:'';position:absolute;left:16px;top:5px;border:5px solid transparent;border-left:8px solid var(--mau)}
-.tro-nguoi.mep .ten-tro{left:auto;right:14px;top:-9px}
-.nguoi{display:flex;align-items:center;gap:0;margin-right:6px}
-.avt{width:32px;height:32px;min-height:32px;padding:0;border-radius:50%;background:var(--mau);color:#fff;font:800 13px Inter;box-shadow:0 0 0 2px #fff;margin-left:-6px;flex:none}
-.avt.toi{margin-left:0;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--mau)}
-.avt.mat{opacity:.5}
-.avt.theo{box-shadow:0 0 0 2px #fff,0 0 0 4px #0f1312}
-#menu-nguoi{position:fixed;z-index:35;background:var(--the);border-radius:14px;box-shadow:0 20px 40px -16px rgba(0,0,0,.4),0 0 0 1px var(--vien);padding:8px;display:flex;flex-direction:column;gap:4px;min-width:220px}
-#menu-nguoi b{padding:4px 8px;font:800 14px Inter}
-#menu-nguoi button{text-align:left;min-height:40px}
-#di-theo{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:20;background:#0f1312;color:#fff;border-radius:99px;padding:6px 6px 6px 16px;display:flex;gap:10px;align-items:center;font:700 13px Inter}
-#di-theo[hidden]{display:none}
-#di-theo button{min-height:32px;border-radius:99px;background:#fff;color:#0f1312;font:700 12px Inter;padding:0 12px}
-.khung.nguoi-chon{outline:3px solid var(--mau-nguoi);outline-offset:4px}
-.khung .tag-nguoi{position:absolute;right:0;top:-26px;background:var(--mau-nguoi);color:#fff;font:700 12px Inter;padding:3px 8px;border-radius:8px;white-space:nowrap;pointer-events:none}
+
+/* Góp ý (gop-y.js) */
+#nut-gop-y{white-space:nowrap}
+.pn-gy{position:fixed;right:16px;top:72px;bottom:16px;width:400px;max-width:calc(100% - 32px);overflow:auto;background:var(--the);border-radius:22px;box-shadow:0 30px 60px -24px rgba(28,32,30,.45),0 2px 8px -2px rgba(28,32,30,.2);padding:16px;display:flex;flex-direction:column;gap:10px;z-index:17}
+.pn-gy[hidden]{display:none}
+body.co-pn-gy #bang{right:432px}
+.pn-tab{display:flex;gap:6px}
+.pn-tab button{flex:1;min-height:36px}
+.pn-tab button.bat{background:var(--ngocNhat);box-shadow:inset 0 0 0 2px var(--ngoc)}
+.pn-gy-than{display:flex;flex-direction:column;gap:10px}
+.pn-loc{display:flex;flex-wrap:wrap;gap:6px}
+.pn-loc select{flex:1;min-width:110px}
+.pn-nhom{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}
+.pn-nhom b{font:800 14px Inter}
+.pn-nhom button{margin-left:auto;min-height:32px}
+.pn-gy-the,.pn-gy article{background:#f3f2ee;border-radius:14px;padding:10px 12px;border-left:4px solid var(--ngoc)}
+.pn-gy article.muc-loi{border-left-color:var(--loi)}
+.pn-gy article.muc-cau-hoi{border-left-color:#3d5a99}
+.pn-gy article.xong{opacity:.65}
+.pn-gy article.pn-dx.tt-cho{border-left-color:#c98a00}
+.pn-gy article.pn-dx.tt-tu{border-left-color:var(--loi)}
+.pn-gy-dau{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pn-noi{margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.pn-tl{margin:4px 0 0 10px;padding:4px 8px;border-left:2px solid var(--vien)}
+.pn-tl p{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.pn-nut{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.pn-nut button,.pn-nut .nut-a{min-height:32px;font-size:13px}
+.nut-a{display:inline-flex;align-items:center;padding:0 12px;border-radius:12px;background:var(--the);box-shadow:0 2px 6px -2px rgba(28,32,30,.25);color:inherit;text-decoration:none;font-weight:600}
+.pn-tl-hop{display:flex;gap:6px;align-items:flex-end;margin-top:6px}
+.pn-tl-hop textarea{flex:1}
+.pn-cs,.pn-ma{display:flex;flex-direction:column;gap:8px;background:#f3f2ee;border-radius:14px;padding:12px}
+.pn-link.thu-hoi{opacity:.55}
+.pn-gy .chip{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;border-radius:99px;background:#e4e3df;font:700 12px Inter;color:var(--chu2);white-space:nowrap}
+.pn-gy .chip.muc{background:#0f1312;color:#fff}
+.pn-gy .chip.vang,.pn-gy .chip.cho{background:#fbecc0;color:#6e4300}
+.pn-gy .chip.chap{background:var(--ngocNhat);color:var(--ngocDam)}
+.pn-gy .chip.tu{background:#f6d9d6;color:var(--loi)}
+.ben-muc .dem-gy{margin-left:6px;background:#8a3c0c;color:#fff;border-radius:99px;font:800 11px Inter;padding:2px 7px;white-space:nowrap}
+.ghim-tam{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50% 50% 50% 4px;background:#f5b70a;box-shadow:0 0 0 3px #fff,0 6px 14px rgba(0,0,0,.3);z-index:5;pointer-events:auto;animation:ghim-nhay 1s ease-in-out 3}
+@keyframes ghim-nhay{50%{transform:scale(1.35)}}
+.hop-dx{width:min(1400px,100%);max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:10px}
+.dx-luoi{display:flex;gap:16px;overflow:auto;align-items:flex-start;padding:4px 2px 8px}
+.dx-o{margin:0;display:flex;flex-direction:column;gap:8px;flex:none}
+.dx-o figcaption{font:700 13px Inter}
+.dx-vo{position:relative;overflow:hidden;border-radius:14px;background:#fff;box-shadow:0 10px 24px -12px rgba(28,32,30,.35)}
+.dx-vo iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;pointer-events:none;background:#fff}
+.dx-o.chenh .dx-vo{isolation:isolate}
+.dx-nut{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+@media (max-width:760px){.pn-gy{left:16px;right:16px;width:auto}body.co-pn-gy #bang{right:16px}}
 
 /* thùng rác kho biến thể */
 .hop-rac{width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:10px}

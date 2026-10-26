@@ -34,6 +34,7 @@ function phatGoi(tenPhong, tu, goi) { for (const k of phong.get(tenPhong)?.value
 const phat = (tenPhong, tu, obj) => phatGoi(tenPhong, tu, goiCua(obj));
 // máy chủ tự phát (thay đổi kho biến thể…) — không có người gửi
 export const phatPhong = (tenPhong, obj) => { if (phong.has(tenPhong)) phat(tenPhong, null, obj); };
+export const dsPhong = () => [...phong.keys()];
 function choPhep(k, loai) {
   const [n, ms] = NHIP[loai] || NHIP.khac; const now = Date.now();
   const d = (k.dem[loai] ||= { t: now, n: 0 });
@@ -93,7 +94,9 @@ function dongK(k, ma = 1000) {
 }
 
 // Gắn vào máy chủ http: /ws?phong=<tên>&ten=<tên người>. hopLeNguon: hàm kiểm Origin của server.mjs.
-export function ganRealtime(may, hopLeNguon) {
+// phongHopLe(tên): phòng nào được mở (bàn chính + phòng của link góp ý còn hiệu lực).
+// Phòng góp ý («r-…») chỉ chuyển con trỏ/khung nhìn: biến thể/sửa của người review không được phát cho người khác.
+export function ganRealtime(may, hopLeNguon, phongHopLe = () => true) {
   may.on('upgrade', (req, sock) => {
     const huy = (ma, chu) => { try { sock.end(`HTTP/1.1 ${ma} ${chu}\r\nConnection: close\r\n\r\n`); } catch { /* bỏ qua */ } };
     let url; try { url = new URL(req.url, 'http://x'); } catch { return huy(400, 'Bad Request'); }
@@ -102,6 +105,8 @@ export function ganRealtime(may, hopLeNguon) {
     const tenPhong = url.searchParams.get('phong') || '';
     const khoa = req.headers['sec-websocket-key'];
     if (!/^[a-z0-9:-]{1,60}$/.test(tenPhong) || !khoa || req.headers['sec-websocket-version'] !== '13') return huy(400, 'Bad Request');
+    if (!phongHopLe(tenPhong)) return huy(403, 'Forbidden');
+    const chiTro = tenPhong !== 'bang';
     const p = phong.get(tenPhong) || new Map();
     if (p.size >= TOI_DA_PHONG) return huy(503, 'Phong day');
     const nhan = crypto.createHash('sha1').update(khoa + GUID).digest('base64');
@@ -120,7 +125,7 @@ export function ganRealtime(may, hopLeNguon) {
       lanCuoi = Date.now();
       docGoi(k, c, (s) => {
         let m; try { m = JSON.parse(s.toString('utf8')); } catch { return; }
-        if (!m || !LOAI.has(m.t)) return;
+        if (!m || !LOAI.has(m.t) || (chiTro && m.t === 'su')) return; // phòng góp ý /r/: chỉ con trỏ/nhìn/tên
         if (!choPhep(k, m.t === 'tro' ? 'tro' : 'khac')) { // báo người gửi để gửi lại sau
           if (m.t === 'su') gui(k, { t: 'cham', loai: 'su', su: sach(m) });
           return;
