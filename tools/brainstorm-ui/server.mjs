@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { ganRealtime, phatPhong, dsPhong, dongPhong } from './realtime.mjs';
 import { taoKhoBienThe } from './kho-bien-the.mjs';
 import { taoReview } from './review.mjs';
+import { taoAudit } from './audit.mjs';
 
 const GOC = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(GOC, '../..');
@@ -96,8 +97,16 @@ const CSP = [
 ].join('; ');
 
 let cong = Number(process.env.PORT) || 5178;
-const khoBt = taoKhoBienThe({ THIET_KE, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong });
-const review = taoReview({ THIET_KE, hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
+// Nhật ký audit (append-only, chuỗi băm): ai — tên hiển thị, vai, mã /r/, IP thật (cf-connecting-ip chỉ tin khi đến từ cloudflared loopback), user-agent rút gọn.
+// Không ghi mã chủ quản (header x-bs-chu-quan không bao giờ được chép), key Claude không đi qua máy chủ này.
+const audit = taoAudit({ THIET_KE });
+const uaNgan = (u) => String(u || '').replace(/\s+/g, ' ').replace(/\(KHTML, like Gecko\) ?/, '').slice(0, 120);
+function aiCua(req, them = {}) {
+  let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 40); } catch { /* tên hỏng */ }
+  return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong, ...them };
+}
+const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong });
+const review = taoReview({ THIET_KE, audit, ai: (...a) => aiCua(...a), hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
   docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), ghiPhienBan: (...a) => ghiPhienBan(...a), phat: phatPhong, dsPhong, dongPhong });
 
 function gui(res, ma, kieu, noiDung, them = {}) {
@@ -158,6 +167,7 @@ const may = http.createServer(async (req, res) => {
       return await khoBt.xuLy(req, res, p, url);
     }
     if (p === '/api/review' || p.startsWith('/api/review/')) return await review.xuLy(req, res, p);
+    if (p === '/api/audit' || p.startsWith('/api/audit/')) return await apiAudit(req, res, p, url);
     if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');
 
     if (p === '/api/assets') {
@@ -217,7 +227,7 @@ async function apiPhienBan(req, res, p) {
   let than;
   try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
   if (than && than.nguon === 'de-xuat') than.nguon = ''; // «đề xuất góp ý» chỉ ghi qua review.mjs (không giả tác giả được)
-  const [ma, obj] = await ghiPhienBan(key, than);
+  const [ma, obj] = await ghiPhienBan(key, than, null, aiCua(req));
   if (ma === 200) { // máy chủ báo mọi bàn (không dựa vào client phát qua realtime — phòng chỉ-xem không phát được)
     let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { /* bỏ qua */ }
     phatPhong('bang', { t: 'rv', loai: 'thay', key, ten, tu: String(req.headers['x-bs-phien'] || '').slice(0, 40) });
@@ -225,7 +235,7 @@ async function apiPhienBan(req, res, p) {
   return json(res, ma, obj);
 }
 // Thêm một phiên bản (dùng chung cho Thay màn, Khôi phục và «Accept changes» của đề xuất góp ý) → [mã HTTP, manifest | lỗi]
-async function ghiPhienBan(key, than, tin = null) { // tin: trường tin cậy do review.mjs đặt (tác giả + liên kết góp ý)
+async function ghiPhienBan(key, than, tin = null, ai = null, loaiAu = '') { // tin: trường tin cậy do review.mjs đặt (tác giả + liên kết góp ý); ai: người làm (audit)
   if (!(await keyMan()).has(key)) return [404, { loi: 'Không có màn này' }];
   let moKhoa;
   try { moKhoa = await khoaPb(key); } catch { return [503, { loi: 'Kho phiên bản đang bận — thử lại' }]; }
@@ -249,10 +259,72 @@ async function ghiPhienBan(key, than, tin = null) { // tin: trường tin cậy 
       if (tin) Object.assign(muc, { nguon: 'de-xuat', tacGia: chuNgan(tin.tacGia, 40), gy: chuNgan(tin.gy, 40), dx: chuNgan(tin.dx, 40), suaTiep: !!tin.suaTiep });
       ghiAtomic(path.join(thuMucPb(key), `v${v}.html`), html);
     }
+    const hienCu = m.hien || 0;
     m.key = key; m.ds.push(muc); m.hien = v;
     ghiAtomic(path.join(thuMucPb(key), 'manifest.json'), JSON.stringify(m, null, 1));
+    if (ai) { // trước = bản đang dùng (kèm HTML), sau = bản mới (kèm HTML) — HTML vào blob theo băm
+      const banCua = (vv) => { const x = vv === 0 ? { v: 0, tep: 0 } : m.ds.find((y) => y.v === vv); if (!x) return null;
+        let html = ''; if (x.tep) { try { html = fs.readFileSync(path.join(thuMucPb(key), `v${x.tep}.html`), 'utf8'); } catch { /* mất tệp */ } }
+        return { ...x, ...(x.tep ? { html } : { trongMa: true }) }; };
+      audit.ghi({ loai: loaiAu || (muc.nguon === 'khoi-phuc' ? 'man.khoi-phuc' : muc.nguon === 'de-xuat' ? 'man.de-xuat' : 'man.thay'), dt: { key, v }, ai, truoc: banCua(hienCu), sau: banCua(v) });
+    }
     return [200, m];
   } finally { moKhoa(); }
+}
+
+// ---- Lịch sử thay đổi (audit) — CHỈ chủ quản; không có đường sửa/xoá audit.
+// GET  /api/audit?tu=&den=&loai=&nguoi=&key=&ht=&id=&gioi=   → { ds, conNua } (mới nhất trước; nội dung lớn để dạng {$blob})
+// GET  /api/audit/mo?ngay=&i=                                → { e, truoc, sau } đã dựng lại đủ HTML từ blob
+// GET  /api/audit/xuat?tu=&den=&dang=csv|jsonl               → tệp tải về
+// POST /api/audit/khoi-phuc { ngay, i, ben: 'truoc'|'sau' }  → ghi trạng thái đó thành thay đổi MỚI (biến thể/phương án/màn/góp ý)
+async function apiAudit(req, res, p, url) {
+  if (!review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
+  const q = (k) => String(url.searchParams.get(k) || '');
+  const ngay = (k) => (/^\d{4}-\d{2}-\d{2}$/.test(q(k)) ? q(k) : '');
+  if (req.method === 'GET') {
+    if (p === '/api/audit') {
+      const ht = q('ht'); await keyMan();
+      return json(res, 200, await audit.doc({ tu: ngay('tu'), den: ngay('den'), loai: q('loai').slice(0, 40), nguoi: q('nguoi').slice(0, 40), key: q('key').slice(0, 80), id: q('id').slice(0, 120),
+        ht: ht.slice(0, 80), keysHt: ht && HANH_TRINH.get(ht) ? new Set(HANH_TRINH.get(ht).buoc) : null, gioi: Number(q('gioi')) || 300 }));
+    }
+    if (p === '/api/audit/mo') {
+      const e = await audit.tim(ngay('ngay'), Number(q('i'))); if (!e) return json(res, 404, { loi: 'Không có sự kiện này' });
+      const dung = (v) => { try { return { v: audit.mo(v) }; } catch (er) { return { loi: er.message }; } };
+      const tr = dung(e.truoc), sa = dung(e.sau);
+      return json(res, 200, { e, truoc: tr.v ?? null, sau: sa.v ?? null, loi: tr.loi || sa.loi || undefined });
+    }
+    if (p === '/api/audit/xuat') {
+      const dang = q('dang') === 'jsonl' ? 'jsonl' : 'csv'; const tu = ngay('tu'), den = ngay('den');
+      const ten = `audit-${tu || 'dau'}_${den || 'nay'}.${dang}`;
+      return gui(res, 200, dang === 'csv' ? 'text/csv; charset=utf-8' : 'application/x-ndjson; charset=utf-8', (dang === 'csv' ? '\ufeff' : '') + await audit.xuat(tu, den, dang), { 'Content-Disposition': `attachment; filename="${ten}"` });
+    }
+    return json(res, 404, { loi: 'Không có' });
+  }
+  if (req.method !== 'POST' || p !== '/api/audit/khoi-phuc') return json(res, 405, { loi: 'Không hỗ trợ' });
+  if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
+  let t; try { t = JSON.parse(await docThan(req, 4096)); } catch { return json(res, 400, { loi: 'Không đọc được yêu cầu' }); }
+  const e = await audit.tim(String(t?.ngay || ''), Number(t?.i)); if (!e) return json(res, 404, { loi: 'Không có sự kiện này' });
+  const ben = t.ben === 'truoc' ? 'truoc' : 'sau';
+  let st; try { st = audit.mo(e[ben]); } catch (er) { return json(res, 500, { loi: `Không dựng lại được: ${er.message}` }); }
+  const nguon = `${e.ngay} #${e.i} (${ben === 'truoc' ? 'trước' : 'sau'} «${e.loai}»)`; const ai = aiCua(req);
+  if (/^(bien-the|phuong-an)\./.test(e.loai)) {
+    const r = khoBt.datLai(e.dt?.l, e.dt?.id, st, ai, nguon);
+    return r.loi ? json(res, 409, { loi: r.loi }) : r.xungDot ? json(res, 409, { loi: 'Mục vừa bị sửa — thử lại' }) : json(res, 200, { ok: true, m: r.m });
+  }
+  if (/^man\./.test(e.loai)) {
+    const key = e.dt?.key; if (!st) return json(res, 400, { loi: 'Không có trạng thái để khôi phục' });
+    let m0; try { m0 = docManifest(key); } catch { return json(res, 500, { loi: 'Manifest phiên bản hỏng' }); }
+    const con = st.v === 0 || st.trongMa ? { tu: 0 } : m0.ds.some((x) => x.v === st.v && x.tep === st.tep && fs.existsSync(path.join(thuMucPb(key), `v${x.tep}.html`))) ? { tu: st.v }
+      : { html: st.html, w: st.w, h: st.h, nhan: `Khôi phục từ lịch sử ${nguon}`.slice(0, 120), yTuong: st.yTuong || '', nguon: 'lich-su' };
+    const [ma, obj] = await ghiPhienBan(key, con, null, ai, 'man.khoi-phuc-lich-su');
+    if (ma === 200) phatPhong('bang', { t: 'rv', loai: 'thay', key, ten: ai.ten, tu: '' });
+    return json(res, ma, ma === 200 ? { ok: true, manifest: obj } : obj);
+  }
+  if (/^gop-y\./.test(e.loai)) {
+    const r = await review.datGopY(e.dt?.ht, e.dt?.id, st, ai, nguon);
+    return r.loi ? json(res, 409, { loi: r.loi }) : json(res, 200, { ok: true, m: r.m });
+  }
+  return json(res, 400, { loi: 'Loại sự kiện này không khôi phục được' });
 }
 
 may.on('error', (e) => {

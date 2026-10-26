@@ -36,3 +36,20 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
 - Bàn chính: nút «💬 Góp ý» (lọc theo hành trình/người/trạng thái, «Tới» ghim, Đã xử lý, ✨ Sửa theo góp ý, xuất Markdown), tab «Đề xuất» (gốc | đề xuất | chênh lệch; Accept changes = Thay màn ghi tác giả + góp ý; Từ chối kèm lý do; Sửa tiếp trong Chế độ Sửa).
 - Kho ngoài git: `aiigrow-thiet-ke/brainstorm-ui/review/` (đổi bằng `BS_REVIEW`).
 - **Quyền chủ quản** (kiểm ở máy chủ): mở bàn ở `127.0.0.1` là chủ quản. Qua tên miền/tunnel cần mã trong `aiigrow-thiet-ke/brainstorm-ui/chu-quan.json` (ngoài git, đổi bằng `BS_CHU_QUAN`): `{"ma": "<≥8 ký tự>", "khoaBang": false}`; bàn sẽ hỏi mã khi mở «Góp ý». Chưa đặt mã thì quyền chủ quản chỉ có trên 127.0.0.1. `khoaBang: true` thì qua tên miền Thay màn/Khôi phục và ghi kho biến thể (sinh/xoá/khôi phục) cũng cần mã; realtime bàn chính của người chưa có mã chỉ còn con trỏ/nhìn/tên. Thay màn do máy chủ báo cho mọi bàn. Link `/r/` không bao giờ có quyền Accept/Thay màn. **Lưu ý:** khi `khoaBang` tắt, ai biết tên miền của bàn (kể cả người nhận link `/r/`) vẫn mở được bàn chính và Thay màn như cộng tác viên — chia sẻ link `/r/` cho người ngoài nhóm thì bật `khoaBang: true`.
+
+## Lịch sử thay đổi (audit)
+
+Mọi thao tác ghi phía máy chủ được ghi vào nhật ký **append-only** — biến thể (tạo/sửa/xoá/khôi phục/xoá vĩnh viễn khi dọn thùng rác/di trú
+localStorage), phương án, phiên bản màn (Thay màn, khôi phục, Accept đề xuất), góp ý (tạo/trả lời/sửa/xoá/đổi trạng thái/đổi mức/yêu cầu biến thể),
+đề xuất (tạo/Accept/Sửa tiếp/từ chối), link `/r/` (tạo/thu hồi), đổi `chu-quan.json` và thử mã chủ quản sai.
+
+- Lưu ở `aiigrow-thiet-ke/brainstorm-ui/audit/<YYYY-MM-DD>.jsonl` (đổi bằng `BS_AUDIT`): một dòng một sự kiện `{i, t, loai, dt, ai, truoc, sau, ghiChu, p}`,
+  ghi nối + fsync. `ai` = tên hiển thị, vai (`chu-quan`/`cong-tac`/`reviewer`), mã `/r/`, IP thật (`cf-connecting-ip`, chỉ tin khi đến từ cloudflared trên máy),
+  user-agent rút gọn. **Không bao giờ** ghi mã chủ quản hay key Claude.
+- Chuỗi băm: `p` = sha256 của dòng ngay trước (liền qua các ngày). Kiểm: `node tools/brainstorm-ui/audit-kiem.mjs [thư mục] [--blob]` — thoát 1 và chỉ
+  tệp:dòng nếu có dòng bị sửa/xoá/chèn.
+- Nội dung lớn (HTML > 2 KB) lưu theo băm ở `audit/blob/<sha256>.html.gz`, không bao giờ xoá (kể cả khi dọn thùng rác) ⇒ mọi trạng thái cũ dựng lại được.
+- Xem: nút **🕘 Lịch sử** trên thanh trên (chỉ chủ quản) — lọc theo người/loại/màn/hành trình/id/ngày, xem trước ↔ sau (HTML + diff chữ),
+  **Khôi phục trạng thái này** cho biến thể/phương án/màn/góp ý (ghi thành sự kiện MỚI, lịch sử cũ giữ nguyên), xuất CSV/JSONL theo khoảng ngày.
+  Mỗi khung có **🕘 Nhật ký** ở bảng bên phải, mỗi góp ý có **🕘 Lịch sử**.
+- Không có API sửa/xoá audit. Sao lưu: thư mục `brainstorm-ui/audit` (trong `aiigrow-thiet-ke`).

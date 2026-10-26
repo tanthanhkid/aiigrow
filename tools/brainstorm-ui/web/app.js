@@ -7,6 +7,7 @@ import * as Sua from './che-do-sua.js';
 import { taoRealtime } from './realtime.js';
 import * as CL from './claude.js';
 import { ganGopY, dauChuQuan } from './gop-y.js';
+import { ganLichSu } from './lich-su.js';
 
 const $ = (s) => document.querySelector(s);
 const MODELS = [['claude-opus-5-5', 'Claude Opus 5.5'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5']];
@@ -1295,6 +1296,7 @@ if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
 // Mọi biến thể màn lẻ và phương án hành trình nằm ở máy chủ (kho-bien-the.mjs, ngoài git): ai mở bàn cũng thấy cùng một bộ.
 // Máy này: luuLai() → dongBoKho() gửi phần khác so với bản máy chủ đang có (daGui: chữ ký đã gửi/nhận).
 // Máy chủ phát {t:'kho'} cho phòng «bang» → nhanKho() áp thay đổi của người khác (kể cả khung «đang sinh»).
+const CQ = { la: false, luc: 0 }; // đã biết mình là chủ quản (máy chủ xác nhận) — chỉ khi đó lệnh ghi kho mới kèm mã (mã cũ/sai không đốt lượt thử)
 const PHIEN = Math.random().toString(36).slice(2, 12); // định danh tab: máy chủ kèm theo khi phát, tab tự bỏ qua thay đổi của chính mình
 const coMan = (k) => typeof k === 'string' && Object.hasOwn(MAN, k);
 const KHONG_LUU = new Set(['htmlGoc', 'tenGoc', 'x', 'y', 'tienDo', 'html', 'htmlSua', 'htmlGocSua', '_h', 'tSua', 'b', 'bSv', 'nguoi']);
@@ -1320,8 +1322,9 @@ const banLan = (l) => !!l && (st.dangChay.has(l.id) || (daGui.has(`l:${l.id}`) &
 
 async function goiKho(url, than) {
   try {
-    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || '') }, body: JSON.stringify(than) });
+    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...(CQ.la ? dauChuQuan() : {}) }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
+    if (r.status === 403 && j.canMa && CQ.la) { CQ.la = false; CQ.luc = 0; $('#nut-ls-thay-doi').hidden = true; $('#nut-au-bang').hidden = true; } // mã đã đổi/thu hồi: thôi kèm mã cũ (khỏi đốt lượt thử)
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
     if (j.loi?.length) toast(`Máy chủ không nhận ${j.loi.length} mục: ${j.loi[0]}`, true);
     loiKho = 0; return j;
@@ -1626,6 +1629,7 @@ function nhanSu(m, p) {
   if (m.loai === 'thay' && coMan(m.key)) napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`));
 }
 GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTatCa, veBen, doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), secCuaLan, lamSach,
+  moLichSuAudit: (loc) => LS.mo(loc), daMoKhoa: () => laChuQuan(true),
   tenNguoi: () => rt?.ten() || '', phien: PHIEN,
   svgHanhTrinh: (id) => qt.svgHanhTrinh(id),
   napLai: (key) => napLaiPhienBan(key),
@@ -1660,6 +1664,21 @@ rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao
 
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
   lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
+// «🕘 Lịch sử thay đổi» (audit máy chủ) — chỉ chủ quản thấy nút; máy chủ vẫn kiểm quyền ở mọi yêu cầu
+async function laChuQuan(lai = false) {
+  if (!lai && Date.now() - CQ.luc < 30000) return CQ.la;
+  try { const j = await (await fetch('/api/review/toi', { headers: dauChuQuan() })).json(); CQ.la = !!j.chuQuan; } catch { CQ.la = false; }
+  CQ.luc = Date.now(); $('#nut-ls-thay-doi').hidden = !CQ.la; $('#nut-au-bang').hidden = !CQ.la;
+  return CQ.la;
+}
+const LS = ganLichSu({ MAN, LAN_GOC, toast, lamSach, chuQuan: () => laChuQuan(true), taiGopY: () => GY.tai(), tenNguoi: () => rt?.ten() || '',
+  async apManifest(key, m) { if (!coMan(key) || !m) return; PB[key] = m; await apPhienBan(key); qtDaVe = ''; veTatCa(); } });
+$('#nut-au-bang').onclick = () => {
+  const f = khungChon(); const l = !f && st.lanChon ? timLan(st.lanChon) : null;
+  if (f) LS.mo(f.loai === 'goc' ? { key: f.key } : { id: f.id, ten: tenCua(f) });
+  else if (l) LS.mo(l.goc ? { ht: l.id } : { id: l.id, ten: `Phương án ${l.k}` });
+};
 napKho();
 GY.tai();
-window.__bs = { GY, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+laChuQuan();
+window.__bs = { GY, LS, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

@@ -279,3 +279,30 @@ body.co-pn-gy #bang{right:432px}
 .rac-muc{display:flex;align-items:center;gap:10px;background:#f3f2ee;border-radius:14px;padding:10px 12px}
 .rac-t{flex:1;min-width:0;display:flex;flex-direction:column}
 .rac-t b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Lịch sử thay đổi (audit) */
+.hop-au{width:min(1400px,100%);height:calc(100vh - 32px);display:flex;flex-direction:column;gap:10px}
+.au-loc{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.au-loc input,.au-loc select{min-height:36px;border:1px solid var(--vien);border-radius:10px;background:#fff;padding:0 8px;max-width:220px}
+.au-loc label{display:flex;align-items:center;gap:4px}
+.au-xuat{margin-left:auto;display:flex;gap:6px}
+.au-than{flex:1;min-height:0;display:grid;grid-template-columns:minmax(260px,360px) 1fr;gap:12px}
+.au-ds{overflow:auto;display:flex;flex-direction:column;gap:6px;padding:2px}
+.au-muc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;white-space:normal;padding:8px 10px;min-height:0;border-radius:12px;box-shadow:none;background:#f3f2ee}
+.au-muc.bat{background:var(--ngocNhat);box-shadow:inset 0 0 0 2px var(--ngoc)}
+.au-muc.nguy b{color:var(--loi)}
+.au-dt{font-size:13px;color:var(--chu2);word-break:break-word}
+.au-chi-tiet{overflow:auto;display:flex;flex-direction:column;gap:10px;min-width:0}
+.au-dau{display:flex;flex-direction:column;gap:2px}
+.au-ua{font-size:12px;word-break:break-all}
+.au-hai{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.au-o{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 300px;max-width:520px}
+.au-o figcaption{font:700 13px Inter}
+.au-vo{position:relative;overflow:hidden;border-radius:14px;background:#fff;box-shadow:0 10px 24px -12px rgba(28,32,30,.35)}
+.au-vo iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;pointer-events:none;background:#fff}
+.au-json,.au-diff-than{margin:0;white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,Menlo,monospace;background:#f3f2ee;border-radius:10px;padding:10px;max-height:360px;overflow:auto}
+.au-diff-than{max-height:none}
+.au-tru{background:#f6d9d6;color:#7a1a12;display:block}
+.au-cong{background:#d7efe6;color:#0a5246;display:block}
+.au-bo{color:var(--chu3)}
+.au-rong{padding:24px 8px}
+@media (max-width:760px){.au-than{grid-template-columns:1fr}.au-ds{max-height:40vh}}

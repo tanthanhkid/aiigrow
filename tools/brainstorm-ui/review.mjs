@@ -30,17 +30,43 @@ export function taoReview(C) {
   const saiMa = new Map(); const saiTong = { t: 0, n: 0 };
   // chỉ tin cf-connecting-ip khi yêu cầu đến từ cloudflared trên máy này (loopback); nối thẳng thì dùng địa chỉ socket
   const ipCua = (req) => { const s = req.socket.remoteAddress || ''; return /^(127\.|::1$|::ffff:127\.)/.test(s) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : s; };
+  const AU = C.audit || { ghi() {} };
   let cq = { t: -1, j: {} }; // nhớ theo mtime: không đọc lại tệp mỗi yêu cầu
+  // tóm tắt quyền để ghi audit — KHÔNG BAO GIỜ ghi mã (kể cả băm của mã); chỉ «có mã» + «mã vừa đổi»
+  const tomCq = (j) => ({ khoaBang: j.khoaBang === true, coMa: String(j.ma || '').length >= 8 });
   function cauHinh() {
-    let t = 0; try { t = fs.statSync(TEP_CQ).mtimeMs; } catch { return {}; }
-    if (t !== cq.t) { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' ? j : {} }; } catch { cq = { t, j: {} }; } }
+    let t = 0; try { t = fs.statSync(TEP_CQ).mtimeMs; } catch { t = 0; }
+    if (t !== cq.t) {
+      const cu = cq;
+      if (!t) cq = { t, j: {} };
+      else { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' ? j : {} }; } catch { cq = { t, j: {} }; } }
+      const a = tomCq(cu.j), b = { ...tomCq(cq.j), doiMa: String(cu.j.ma || '') !== String(cq.j.ma || '') };
+      if (cu.t !== -1 && (b.doiMa || a.khoaBang !== b.khoaBang || a.coMa !== b.coMa)) // lần đọc đầu tiên khi chạy máy chủ không phải «đổi»
+        AU.ghi({ loai: 'quyen.doi-cau-hinh', dt: { tep: 'chu-quan.json' }, ai: { ten: 'máy chủ', vai: 'he-thong' }, truoc: a, sau: b, ghiChu: t ? 'chu-quan.json đổi' : 'chu-quan.json bị xoá' }, { motLan: `cq:${t}` });
+    }
     return cq.j;
   }
+  // vai của người gọi để ghi audit — chỉ SO mã, KHÔNG đếm lần sai/không ghi «sai mã» (ghi kho khi chưa khoá bảng không phải là thử mã:
+  // mã cũ còn kèm theo trong lúc tự lưu không được làm đầy audit hay khoá IP của chủ quản)
+  function vaiCua(req) {
+    if (daKiem.has(req)) return daKiem.get(req) ? 'chu-quan' : 'cong-tac';
+    if (laNoiBo(req)) return 'chu-quan';
+    const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
+    return ma.length >= 8 && gui && dungMa(ma, gui) ? 'chu-quan' : 'cong-tac';
+  }
+  const bang = (x) => crypto.createHash('sha256').update(x).digest();
+  const dungMa = (ma, gui) => crypto.timingSafeEqual(bang(ma), bang(gui));
   function laNoiBo(req) {
     const h = String(req.headers.host || '').toLowerCase();
     return /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(h) && !req.headers['cf-connecting-ip'] && !req.headers['cf-ray'] && !req.headers['x-forwarded-for'];
   }
+  const daKiem = new WeakMap(); // req → kết quả: gọi laChuQuan nhiều lần trong một yêu cầu không đếm sai nhiều lần
   function laChuQuan(req) {
+    if (daKiem.has(req)) return daKiem.get(req);
+    daKiem.set(req, false); // trong lúc kiểm (vd. ghi audit «sai mã» gọi lại vaiCua) coi như chưa phải chủ quản — không đệ quy
+    const kq = kiemMa(req); daKiem.set(req, kq); return kq;
+  }
+  function kiemMa(req) {
     if (laNoiBo(req)) return true;
     const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
     if (ma.length < 8 || !gui) return false;
@@ -48,10 +74,11 @@ export function taoReview(C) {
     if (s && now - s.t < 60000 && s.n >= 10) return false;
     if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
     if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
-    const bang = (x) => crypto.createHash('sha256').update(x).digest();
-    if (crypto.timingSafeEqual(bang(ma), bang(gui))) return true;
+    if (dungMa(ma, gui)) return true;
     saiTong.n++;
-    if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else s.n++;
+    let n = 1; if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else n = ++s.n;
+    // ghi audit lần sai ĐẦU của mỗi IP mỗi phút và lần chạm ngưỡng chặn — không để dò mã làm đầy nhật ký
+    if (n === 1 || n === 10) AU.ghi({ loai: 'quyen.sai-ma', dt: { duong: String(req.url || '').split('?')[0].slice(0, 80) }, ai: { ...(C.ai ? C.ai(req) : {}), vai: 'khong-ro' }, truoc: null, sau: null, ghiChu: `thử mã chủ quản sai (độ dài ${gui.length})${n === 10 ? ' · lần thứ 10 trong 1 phút — IP bị chặn thử tới hết phút' : ''}` });
     if (saiMa.size > 5000) saiMa.clear();
     return false;
   }
@@ -116,6 +143,8 @@ export function taoReview(C) {
 
   // ---------- xử lý ----------
   // trả true nếu đã xử lý yêu cầu
+  const sao = (o) => (o == null ? null : JSON.parse(JSON.stringify(o)));
+  const aiCua = (req, them = {}) => (C.ai ? C.ai(req, them) : them);
   async function xuLy(req, res, p) {
     const { json } = C;
     const phan = p.split('/').slice(1); // ['api','review',...]
@@ -155,20 +184,24 @@ export function taoReview(C) {
           try {
             const g = docJson(tepGopY(s.ht), () => ({ ds: [] }));
             if (g.ds.length >= TOI_DA.gopY) return json(res, 409, { loi: 'Hành trình này đã quá nhiều góp ý' }), true;
-            let moi;
+            let moi, ev;
             if (t.cha) { // trả lời: cùng hành trình
               const cha = g.ds.find((x) => x.id === t.cha); if (!cha) return json(res, 404, { loi: 'Không có góp ý để trả lời' }), true;
               if ((cha.tl || []).length >= 200) return json(res, 409, { loi: 'Luồng quá dài' }), true;
+              const truoc = sao(cha);
               moi = { id: idMoi(), ten: ten40(t.ten), noi, t: new Date().toISOString(), ma: s.ma };
               (cha.tl ||= []).push(moi);
+              ev = { loai: 'gop-y.tra-loi', dt: { ht: s.ht, id: cha.id, key: cha.key || undefined, ma: s.ma }, truoc, sau: sao(cha) };
             } else {
               const key = t.key == null || t.key === '' ? null : String(t.key);
               if (key && !keySnap.has(key)) return json(res, 400, { loi: 'Màn không thuộc link này' }), true;
               const gh = t.ghim && key ? { x: Math.min(100, Math.max(0, Number(t.ghim.x) || 0)), y: Math.min(100, Math.max(0, Number(t.ghim.y) || 0)), sel: sachChu(t.ghim.sel, 300) } : null;
               moi = { id: idMoi(), ma: s.ma, v: s.v, key, ghim: gh, muc: MUC.has(t.muc) ? t.muc : 'de-xuat', tt: 'mo', ten: ten40(t.ten), noi, t: new Date().toISOString(), tl: [], ycBt: false };
               g.ds.push(moi);
+              ev = { loai: 'gop-y.tao', dt: { ht: s.ht, id: moi.id, key: key || undefined, ma: s.ma }, truoc: null, sau: sao(moi) };
             }
             ghi(tepGopY(s.ht), g);
+            AU.ghi({ ...ev, ai: aiCua(req, { vai: 'reviewer', ma: s.ma, ten: moi.ten }) });
             bao(s.ht, 'gop-y');
             return json(res, 200, moi), true;
           } finally { mo(); }
@@ -179,7 +212,10 @@ export function taoReview(C) {
           try {
             const g = docJson(tepGopY(s.ht), () => ({ ds: [] })); const x = g.ds.find((y) => y.id === d);
             if (!x) return json(res, 404, { loi: 'Không có góp ý này trong hành trình' }), true; // góp ý của link cũ («từ v1») cùng hành trình cũng được
-            x.ycBt = true; ghi(tepGopY(s.ht), g); bao(s.ht, 'gop-y');
+            const truoc = sao(x);
+            x.ycBt = true; ghi(tepGopY(s.ht), g);
+            AU.ghi({ loai: 'gop-y.yc-bien-the', dt: { ht: s.ht, id: x.id, key: x.key || undefined, ma: s.ma }, ai: aiCua(req, { vai: 'reviewer', ma: s.ma }), truoc, sau: sao(x) });
+            bao(s.ht, 'gop-y');
             return json(res, 200, gopYCho(x)), true;
           } finally { mo(); }
         }
@@ -202,6 +238,7 @@ export function taoReview(C) {
             fs.mkdirSync(thuDeXuat(s.ht), { recursive: true });
             C.ghiAtomic(path.join(thuDeXuat(s.ht), `${moi.id}.html`), t.html);
             dx.ds.push(moi); ghi(tepDeXuat(s.ht), dx);
+            AU.ghi({ loai: 'de-xuat.tao', dt: { ht: s.ht, id: moi.id, key, gy: moi.gy || undefined, ma: s.ma }, ai: aiCua(req, { vai: 'reviewer', ma: s.ma, ten: moi.ten }), truoc: null, sau: { ...moi, html: t.html } });
             bao(s.ht, 'de-xuat');
             return json(res, 200, moi), true;
           } finally { mo(); }
@@ -243,6 +280,7 @@ export function taoReview(C) {
           if (qt) C.ghiAtomic(path.join(thu, 'qt.svg'), qt);
           C.ghiAtomic(path.join(thu, 'meta.json'), JSON.stringify(meta));
           ds.push(s); ghi(tepChiaSe(), { ds });
+          AU.ghi({ loai: 'link.tao', dt: { ht: h.id, ma }, ai: aiCua(req), truoc: null, sau: { ...s, man: meta.man } });
           bao(h.id, 'chia-se');
           return json(res, 200, s), true;
         } finally { mo(); }
@@ -251,7 +289,9 @@ export function taoReview(C) {
         const mo = await khoa();
         try {
           const ds = dsChiaSe(); const s = ds.find((x) => x.ma === b); if (!s) return json(res, 404, { loi: 'Không có link này' }), true;
+          const truoc = sao(s);
           s.thuHoi ||= new Date().toISOString(); ghi(tepChiaSe(), { ds });
+          if (!truoc.thuHoi) AU.ghi({ loai: 'link.thu-hoi', dt: { ht: s.ht, ma: s.ma }, ai: aiCua(req), truoc, sau: sao(s) });
           C.phat(`r-${s.ma}`, { t: 'rv', loai: 'thu-hoi', ht: s.ht }); bao(s.ht, 'chia-se');
           setTimeout(() => C.dongPhong?.(`r-${s.ma}`), 300); // báo xong thì cắt kết nối realtime của link đã thu hồi
           return json(res, 200, s), true;
@@ -263,11 +303,17 @@ export function taoReview(C) {
         try {
           const g = docJson(tepGopY(b), () => ({ ds: [] })); const x = g.ds.find((y) => y.id === c);
           if (!x) return json(res, 404, { loi: 'Không có góp ý này' }), true;
-          if (d === 'tt') { if (t.tt !== 'mo' && t.tt !== 'xong') return json(res, 400, { loi: 'Trạng thái lạ' }), true; x.tt = t.tt; x.tXl = new Date().toISOString(); }
-          else if (d === 'tl') { const noi = sachChu(t.noi, 2000); if (!noi) return json(res, 400, { loi: 'Trả lời trống' }), true; (x.tl ||= []).push({ id: idMoi(), ten: ten40(t.ten), noi, t: new Date().toISOString(), chuQuan: true }); }
+          const truoc = sao(x); let loai;
+          if (d === 'tt') { if (t.tt !== 'mo' && t.tt !== 'xong') return json(res, 400, { loi: 'Trạng thái lạ' }), true; x.tt = t.tt; x.tXl = new Date().toISOString(); loai = 'gop-y.trang-thai'; }
+          else if (d === 'tl') { const noi = sachChu(t.noi, 2000); if (!noi) return json(res, 400, { loi: 'Trả lời trống' }), true; (x.tl ||= []).push({ id: idMoi(), ten: ten40(t.ten), noi, t: new Date().toISOString(), chuQuan: true }); loai = 'gop-y.tra-loi'; }
+          else if (d === 'muc') { if (!MUC.has(t.muc)) return json(res, 400, { loi: 'Mức lạ' }), true; x.muc = t.muc; loai = 'gop-y.muc'; }
+          else if (d === 'sua') { const noi = sachChu(t.noi, 2000); if (!noi) return json(res, 400, { loi: 'Góp ý trống' }), true; x.noi = noi; x.tSuaNoi = new Date().toISOString(); loai = 'gop-y.sua'; }
+          else if (d === 'xoa') { g.ds.splice(g.ds.indexOf(x), 1); loai = 'gop-y.xoa'; }
           else return json(res, 404, { loi: 'Không có' }), true;
-          ghi(tepGopY(b), g); bao(b, 'gop-y');
-          return json(res, 200, x), true;
+          ghi(tepGopY(b), g);
+          AU.ghi({ loai, dt: { ht: b, id: x.id, key: x.key || undefined }, ai: aiCua(req, t.ten && d === 'tl' ? { ten: ten40(t.ten) } : {}), truoc, sau: d === 'xoa' ? null : sao(x) });
+          bao(b, 'gop-y');
+          return json(res, 200, d === 'xoa' ? { xoa: x.id } : x), true;
         } finally { mo(); }
       }
       if (a === 'de-xuat' && HT.has(b) && ID.test(c || '')) {
@@ -284,9 +330,12 @@ export function taoReview(C) {
           if (!x) return json(res, 404, { loi: 'Không có đề xuất' }), true;
           if (x.tt !== 'cho') return json(res, 409, { loi: `Đề xuất này đã ${x.tt === 'chap' ? 'được áp dụng' : 'bị từ chối'}` }), true;
           const g = docJson(tepGopY(b), () => ({ ds: [] })); const gy = x.gy ? g.ds.find((y) => y.id === x.gy) : null;
+          const truocDx = sao(deXuatRa(x));
           if (d === 'tu') {
             x.tt = 'tu'; x.lyDo = sachChu(t.lyDo, 600); x.tXl = new Date().toISOString();
-            ghi(tepDeXuat(b), dx); bao(b, 'de-xuat');
+            ghi(tepDeXuat(b), dx);
+            AU.ghi({ loai: 'de-xuat.tu-choi', dt: { ht: b, id: x.id, key: x.key, gy: x.gy || undefined }, ai: aiCua(req), truoc: truocDx, sau: sao(deXuatRa(x)) });
+            bao(b, 'de-xuat');
             return json(res, 200, deXuatRa(x)), true;
           }
           // Accept changes = Thay màn: phiên bản mới ghi tác giả + liên kết góp ý. «Sửa tiếp» gửi kèm HTML đã sửa.
@@ -294,11 +343,16 @@ export function taoReview(C) {
           const html = typeof t.html === 'string' && t.html.trim() ? t.html : '';
           if (!html) return json(res, 400, { loi: 'Thiếu HTML đã làm sạch của đề xuất' }), true;
           const [ma, m] = await C.ghiPhienBan(x.key, { html, w: t.w ?? x.w, h: t.h ?? x.h, nhan: `Đề xuất của ${x.ten}${x.nhan ? ` · ${x.nhan}` : ''}`,
-            yTuong: gy ? gy.noi : '', nguon: 'de-xuat', model: x.model }, { tacGia: x.ten, gy: x.gy || '', dx: x.id, suaTiep: !!t.suaTiep });
+            yTuong: gy ? gy.noi : '', nguon: 'de-xuat', model: x.model }, { tacGia: x.ten, gy: x.gy || '', dx: x.id, suaTiep: !!t.suaTiep }, aiCua(req));
           if (ma !== 200) return json(res, ma, m), true;
           x.tt = 'chap'; x.vMoi = m.hien; x.tXl = new Date().toISOString();
           ghi(tepDeXuat(b), dx);
-          if (gy && gy.tt !== 'xong') { gy.tt = 'xong'; gy.tXl = x.tXl; ghi(tepGopY(b), g); }
+          const evs = [{ loai: t.suaTiep ? 'de-xuat.sua-tiep' : 'de-xuat.chap', dt: { ht: b, id: x.id, key: x.key, gy: x.gy || undefined }, ai: aiCua(req), truoc: truocDx, sau: { ...sao(deXuatRa(x)), htmlApDung: html } }];
+          if (gy && gy.tt !== 'xong') {
+            const truocGy = sao(gy); gy.tt = 'xong'; gy.tXl = x.tXl; ghi(tepGopY(b), g);
+            evs.push({ loai: 'gop-y.trang-thai', dt: { ht: b, id: gy.id, key: gy.key || undefined }, ai: aiCua(req), truoc: truocGy, sau: sao(gy), ghiChu: 'tự chuyển «Đã xử lý» khi áp dụng đề xuất' });
+          }
+          AU.ghi(evs);
           bao(b, 'de-xuat'); C.phat('bang', { t: 'rv', loai: 'thay', key: x.key, ht: b });
           return json(res, 200, { deXuat: deXuatRa(x), manifest: m }), true;
         } finally { mo(); }
@@ -309,5 +363,24 @@ export function taoReview(C) {
     }
   }
 
-  return { xuLy, laChuQuan, khoaBang, conHieuLuc };
+  // «Khôi phục trạng thái này» cho một góp ý (từ Lịch sử thay đổi): thay/chèn lại bản cũ, null = xoá. Ghi sự kiện MỚI.
+  async function datGopY(ht, id, cu, ai, nguon) {
+    if (!(await C.hanhTrinh()).has(ht) || !ID.test(String(id))) return { loi: 'Góp ý không hợp lệ' };
+    const mo = await khoa();
+    try {
+      const g = docJson(tepGopY(ht), () => ({ ds: [] })); const k = g.ds.findIndex((y) => y.id === id);
+      const truoc = k >= 0 ? sao(g.ds[k]) : null;
+      if (cu == null) { if (k < 0) return { loi: 'Góp ý không còn' }; g.ds.splice(k, 1); }
+      else {
+        if (!cu || typeof cu !== 'object' || cu.id !== id) return { loi: 'Trạng thái góp ý hỏng' };
+        if (k >= 0) g.ds[k] = cu; else { if (g.ds.length >= TOI_DA.gopY) return { loi: 'Quá nhiều góp ý' }; g.ds.push(cu); }
+      }
+      ghi(tepGopY(ht), g);
+      AU.ghi({ loai: 'gop-y.khoi-phuc-lich-su', dt: { ht, id, key: (cu || truoc)?.key || undefined }, ai, truoc, sau: cu, ghiChu: `khôi phục trạng thái ${nguon}` });
+      bao(ht, 'gop-y');
+      return { m: cu };
+    } finally { mo(); }
+  }
+
+  return { xuLy, laChuQuan, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
 }

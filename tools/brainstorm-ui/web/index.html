@@ -35,6 +35,7 @@
   <select id="chon-sec" aria-label="Section"></select>
   <div class="nhom phai">
     <div id="nguoi" class="nguoi" aria-label="Người đang xem bàn"></div>
+    <button type="button" id="nut-ls-thay-doi" hidden title="Lịch sử thay đổi trên máy chủ (audit) — chỉ chủ quản">🕘 Lịch sử</button>
     <button type="button" id="nut-gop-y" title="Góp ý của người review, đề xuất thay đổi chờ duyệt, link chia sẻ">💬 Góp ý</button>
     <button type="button" id="che-do" class="nhan-che-do" hidden title="Đang ở chế độ mock — bấm để xem cách gọi Claude thật"></button>
     <button id="nut-cai-dat" class="nut-cai-dat" title="Cài đặt API key và model">⚙ Cài đặt</button>
@@ -70,6 +71,7 @@
     <button id="nut-xem">Xem lớn</button>
     <button id="nut-thay-bang" class="nut-chinh" title="Thay màn hiện tại bằng biến thể này — bản cũ vẫn trong Lịch sử">✓ Thay màn</button>
     <button id="nut-ls-bang" title="Các phiên bản của màn này">Lịch sử</button>
+    <button id="nut-au-bang" hidden title="Mọi thay đổi của khung này trên máy chủ (audit) — chỉ chủ quản">🕘 Nhật ký</button>
     <button id="nut-xoa" class="nguy" title="Xoá biến thể (⌘Z hoàn tác)">✕ Xoá</button>
   </div>
   <details class="menu-phu"><summary class="phu">Tải về…</summary><div class="luoi-nut"><button id="nut-html">Tải HTML</button><button id="nut-png">Tải PNG</button></div></details>
@@ -116,6 +118,26 @@
       <button type="button" id="dx-sua" title="Mở bản đề xuất trong Chế độ Sửa trên bàn; Thay màn từ đó = chấp nhận">✎ Sửa tiếp</button>
       <button type="button" id="dx-tu" class="nguy">Từ chối</button>
       <button type="button" id="dx-chap" class="nut-chinh">✓ Accept changes</button>
+    </div>
+  </div>
+</div>
+<!-- Lịch sử thay đổi (audit, chỉ chủ quản) -->
+<div id="lop-au" class="lop" hidden>
+  <div class="hop-xem hop-au" role="dialog" aria-labelledby="au-tieu">
+    <div class="dau-bang"><b id="au-tieu">🕘 Lịch sử thay đổi</b><button type="button" id="au-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <div class="au-loc">
+      <input id="au-nguoi" list="au-nguoi-ds" placeholder="Người (tên / mã /r/)" aria-label="Lọc theo người" maxlength="40"><datalist id="au-nguoi-ds"></datalist>
+      <select id="au-loai" aria-label="Lọc theo loại"></select>
+      <select id="au-man" aria-label="Lọc theo màn"></select>
+      <select id="au-ht" aria-label="Lọc theo hành trình"></select>
+      <input id="au-id" placeholder="id biến thể / góp ý" aria-label="Lọc theo id" maxlength="120">
+      <label class="phu">Từ <input type="date" id="au-tu"></label><label class="phu">đến <input type="date" id="au-den"></label>
+      <button type="button" id="au-bo-loc" class="nut-nhe">Bỏ lọc</button>
+      <span class="au-xuat"><button type="button" id="au-xuat-csv">Xuất CSV</button><button type="button" id="au-xuat-jsonl">Xuất JSONL</button></span>
+    </div>
+    <div class="au-than">
+      <div id="au-ds" class="au-ds" aria-label="Sự kiện"></div>
+      <div id="au-chi-tiet" class="au-chi-tiet"></div>
     </div>
   </div>
 </div>
