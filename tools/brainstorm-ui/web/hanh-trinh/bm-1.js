@@ -1,6 +1,7 @@
 // Hành trình Ba Mẹ (iPhone): Lần đầu dùng, Ghép thêm máy, và trang web tải bộ cài (/tai, /cai).
 // Dựng theo mobile/src/app/{chao,dang-ky,otp,dang-nhap,moi}.tsx, thiet-lap/*.tsx, may/*.tsx, server/app/tai.
 import { I, P, sb, tab, doc, dt } from '../kit/dung.js';
+import { khop } from './that/index.js';   // trang tải dựng khớp ảnh chụp thật (that/web-tai.js)
 
 const A = 'chinchu-ios/';
 const CSS = `
@@ -248,10 +249,11 @@ export default [
     ] },
   { id: 'web-tai', vai: 'Ba Mẹ', nen: 'Web', ten: 'Trang tải bộ cài', mo: 'Trang aiigrow.aiilab.vn/tai (và /cai) mở trên máy Con hoặc điện thoại: tải bộ cài theo nền tảng rồi nhập mã ghép.',
     buoc: [
-      B('bm1-web-tai-windows', 'Tải cho Windows', taiWin, 'sau-web-tai-windows-390.png', 'Chọn máy Mac'),
-      B('bm1-web-tai-mac', 'Tải cho Mac', taiMac, 'sau-web-tai-mac-390.png', 'Chọn Android'),
-      B('bm1-web-tai-android', 'Tải cho Android', taiAnd, 'sau-web-tai-android-390.png', 'Mở bằng iPhone'),
-      B('bm1-web-tai-iphone', 'Mở bằng iPhone', taiIos, 'sau-web-tai-iphone-390.png', 'Mở link ghép iPhone/iPad'),
+      khop(B('bm1-web-tai-may-tinh', 'Trang tải trên máy tính', '', '', 'Mở trên điện thoại'), 'web-tai-windows-1440'),
+      khop(B('bm1-web-tai-windows', 'Tải cho Windows', taiWin, 'sau-web-tai-windows-390.png', 'Chọn máy Mac'), 'web-tai-windows-390'),
+      khop(B('bm1-web-tai-mac', 'Tải cho Mac', taiMac, 'sau-web-tai-mac-390.png', 'Chọn Android'), 'web-tai-mac-390'),
+      khop(B('bm1-web-tai-android', 'Tải cho Android', taiAnd, 'sau-web-tai-android-390.png', 'Mở bằng iPhone'), 'web-tai-android-390'),
+      khop(B('bm1-web-tai-iphone', 'Mở bằng iPhone', taiIos, 'sau-web-tai-iphone-390.png', 'Mở link ghép iPhone/iPad'), 'web-tai-iphone-390'),
       B('bm1-web-cai', 'Cài cho iPhone/iPad (/cai)', cai, 'sau-web-cai-390.png'),
     ] },
 ];

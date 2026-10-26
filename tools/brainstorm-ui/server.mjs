@@ -13,6 +13,12 @@ const DA_LUU = path.join(GOC, 'da-luu');
 const THU_MUC = {
   '/assets/icon3d/': path.join(REPO, 'mobile/assets/icon3d'),
   '/assets/rob/': path.join(REPO, 'mobile/assets/linh-vat'),
+  // asset thật của app gốc — dùng cho màn native dựng khớp ảnh chụp
+  '/assets/win/fluent/': path.join(REPO, 'agent-win/src/AiiGrow.Tray/Assets/fluent'),
+  '/assets/win/mascot/': path.join(REPO, 'agent-win/src/AiiGrow.Tray/Assets/mascot'),
+  '/assets/mac/fluent/': path.join(REPO, 'agent-mac/Sources/AiiGrowTray/Fluent'),
+  '/assets/mac/mascot/': path.join(REPO, 'agent-mac/Sources/AiiGrowTray/Mascot'),
+  '/assets/android/': path.join(REPO, 'agent-android/app/src/main/res/drawable-nodpi'),
 };
 const TEP = {
   '/assets/logo.png': path.join(REPO, 'server/public/logo.png'),
