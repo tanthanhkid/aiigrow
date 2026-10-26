@@ -21,6 +21,7 @@
     <button id="nut-so-sanh" class="chi-canvas" disabled title="Shift+bấm để chọn 2–4 khung">So sánh</button>
     <button id="nut-xep" class="chi-canvas" title="Xếp gọn cả bàn: hành trình theo hàng, biến thể thành cây dưới khung cha">Sắp xếp lại</button>
     <button id="nut-xoa-bt" class="chi-canvas" title="Xoá mọi biến thể màn lẻ (giữ biến thể đang dùng làm màn)">Dọn biến thể</button>
+    <button id="nut-rac" class="chi-canvas" title="Biến thể / phương án đã xoá (giữ 7 ngày, khôi phục được)">🗑 Thùng rác</button>
   </div>
   <div class="nhom">
     <button id="nut-lk" class="bat-tat chi-canvas" title="Hiện/ẩn mũi tên liên kết giữa các màn (L)">Liên kết <kbd>L</kbd></button>
@@ -90,6 +91,12 @@
 </div>
 <div id="di-theo" hidden><span></span><button type="button">Thôi đi theo (Esc)</button></div>
 
+<div id="lop-rac" class="lop" hidden>
+  <div class="hop-xem hop-rac" role="dialog" aria-labelledby="rac-tieu">
+    <div class="dau-bang"><b id="rac-tieu">🗑 Thùng rác — giữ 7 ngày</b><button type="button" id="rac-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <div id="rac-ds" class="rac-ds"></div>
+  </div>
+</div>
 <div id="lop-ls" class="lop" hidden>
   <div class="hop-xem hop-ls" role="dialog" aria-labelledby="ls-tieu">
     <div class="dau-bang"><b id="ls-tieu"></b><button id="ls-dong" class="nut-x" aria-label="Đóng">×</button></div>

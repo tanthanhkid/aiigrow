@@ -19,3 +19,10 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
 - Thanh hành trình bên trái ẩn/hiện bằng nút ‹ / › hoặc phím `\` (⌘\).
 - Màn gốc: `web/hanh-trinh/*.js` (mỗi bước: key, ten, w, h, html, anh, toi).
 - Màn iPhone Ba Mẹ + Con `/tre`: DOM chụp từ app Expo chạy thật ở `web/that/` (thay HTML dựng tay khi có) — cách làm và % lệch so với ảnh thật trong `DO-KHOP.md`.
+
+## Kho biến thể chung (máy chủ)
+
+- Mọi biến thể màn lẻ và phương án hành trình lưu trên máy chủ, kho ngoài git `aiigrow-thiet-ke/brainstorm-ui/bien-the/` (đổi bằng `BS_BIEN_THE`): `k/<id>.json` + `k/<id>.html`, `l/<id>.json`. Ghi atomic, giới hạn 3 MB HTML/khung, 4000 mục/loại, 900 lần ghi/phút/IP; ghi kiểm Origin/Host như kho phiên bản.
+- Ai mở bàn (127.0.0.1 hay qua tên miền) cũng thấy cùng một bộ; sinh/xoá/khôi phục của người này hiện ngay bên người kia qua realtime, kể cả khung «đang sinh» (người sinh làm mới mỗi 45 giây; quá 2,5 phút không làm mới thì hiện «bị gián đoạn»). Hai tiến trình dùng chung kho (5178, 5181) thấy thay đổi của nhau qua `fs.watch`.
+- Xoá = xoá mềm: vào `rac/`, giữ 7 ngày, khôi phục ở «🗑 Thùng rác».
+- localStorage chỉ còn cài đặt, key, tên, khung nhìn. Lần đầu mở bản này, biến thể cũ trong localStorage (`bs.v2`) tự chuyển lên máy chủ (chỉ thêm mục chưa có) rồi được dọn.
