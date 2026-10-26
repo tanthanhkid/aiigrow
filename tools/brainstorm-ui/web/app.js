@@ -119,8 +119,9 @@ function doiSec(id, { bay = true, cheDo = st.cheDo } = {}) {
   st.sec = id; caiDat.sec = id; st.cheDo = cheDo; caiDat.cheDo = cheDo; luuCaiDat();
   ghiHash();
   st.chon.clear(); st.lanChon = null; st.thay = null;
-  qt.bat(cheDo === 'qt'); document.body.classList.toggle('che-do-qt', cheDo === 'qt');
-  veTatCa();
+  document.body.classList.toggle('che-do-qt', cheDo === 'qt');
+  veTatCa(); // vẽ sơ đồ section mới trước, rồi mới bật lớp (để hàng chụp ảnh không chạy theo section cũ)
+  qt.bat(cheDo === 'qt');
   if (st.views[khoaView()]) { st.view = { ...st.views[khoaView()] }; apView(); } else if (bay) vuaMan();
 }
 const doiCheDo = () => doiSec(st.sec, { cheDo: st.cheDo === 'qt' ? 'canvas' : 'qt' });
@@ -224,10 +225,11 @@ function datSong(f, d, song) {
 function bam(sv) { let h = 0x811c9dc5, g = 5381; for (let i = 0; i < sv.length; i++) { const c = sv.charCodeAt(i); h = Math.imul(h ^ c, 16777619); g = ((g << 5) + g + c) | 0; } return `${sv.length}:${h >>> 0}:${g >>> 0}`; }
 const anhNho = new Map();  // băm → objectURL; giữ tối đa 400 (ảnh nhỏ pixelRatio 0.45), bỏ cái ít dùng nhất mà không khung nào đang hiện
 const loiChup = new Map(); // băm → số lần chụp lỗi
+let dangDungNgoai = () => []; // ảnh thu nhỏ chế độ Quy trình đang hiện (gán sau khi tạo qt)
 function ghiAnhNho(k, url) {
   anhNho.set(k, url);
   if (anhNho.size <= 400) return;
-  const dangDung = new Set([...dom.values()].map((d) => d.bam)); dangDung.add(k);
+  const dangDung = new Set([...dom.values()].map((d) => d.bam).concat(dangDungNgoai())); dangDung.add(k);
   for (const [k0, u0] of anhNho) {
     if (anhNho.size <= 400) break;
     if (dangDung.has(k0)) continue;
@@ -1232,7 +1234,8 @@ function toast(t, loi = false) {
 // ---------- khởi động ----------
 napModel($('#chon-model'), caiDat.model);
 let qtDaVe = '';
-const qt = taoQuyTrinh({ MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, moPlay: (k) => moPlay(k), toast, view: () => st.view });
+const qt = taoQuyTrinh({ MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, loiChup, moPlay: (k) => moPlay(k), toast, view: () => st.view });
+dangDungNgoai = qt.dangDung;
 qt.bat(st.cheDo === 'qt'); document.body.classList.toggle('che-do-qt', st.cheDo === 'qt');
 $('#nut-qt').onclick = doiCheDo;
 $('#nut-qt-svg').onclick = () => qt.xuat('svg', `quy-trinh-${st.sec}`);

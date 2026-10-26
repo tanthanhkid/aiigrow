@@ -20,7 +20,21 @@ const chu = (x, y, t, { lop = '', max = 22, toiDa = 3, cao = 15 } = {}) =>
   `<text class="${lop}" x="${x}" y="${y}" text-anchor="middle">${beDong(t, max, toiDa).map((d, i) => `<tspan x="${x}" dy="${i ? cao : 0}">${esc(d)}</tspan>`).join('')}</text>`;
 
 export function taoQuyTrinh(api) {
-  const { MAN, timLan, LAN_GOC, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, moPlay, toast } = api;
+  const { MAN, timLan, vung, theGioi, chupAnh, bam, anhNho, ghiAnhNho, loiChup, moPlay, toast } = api;
+  // chụp một ảnh thu nhỏ; dùng chung cho nền và tệp xuất, không chụp trùng; lỗi 2 lần thì thôi (như canvas)
+  const dangBay = new Map();
+  function chupMot(m) {
+    const k = bam(m.html);
+    if (anhNho.has(k)) return Promise.resolve(anhNho.get(k));
+    if ((loiChup.get(k) || 0) >= 2) return Promise.resolve('');
+    if (!dangBay.has(k)) {
+      dangBay.set(k, chupAnh(m.html, { w: m.w, h: m.h }, { pixelRatio: 0.45, skipFonts: true })
+        .then(({ blob }) => { const u = URL.createObjectURL(blob); ghiAnhNho(k, u); return u; })
+        .catch(() => { loiChup.set(k, (loiChup.get(k) || 0) + 1); return ''; })
+        .finally(() => dangBay.delete(k)));
+    }
+    return dangBay.get(k);
+  }
   const lop = document.createElement('div'); lop.id = 'qt-lop'; lop.hidden = true; theGioi.appendChild(lop);
   let ds = []; // pool đã bố trí của section đang mở
   const song = new Map(); // id việc → iframe sống
@@ -33,9 +47,11 @@ export function taoQuyTrinh(api) {
       if (bao.has(id)) continue;
       const l = timLan(id); if (!l) continue;
       const lan = l.vai === 'Con' ? 'con' : 'bm';
-      const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...l.buoc.map((k) => ({ id: k, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
-      const noi = []; let truoc = 'bd';
-      for (const k of l.buoc) { noi.push([truoc, k, truoc === 'bd' ? '' : MAN[truoc].toi || '']); truoc = k; }
+      const buoc = l.buoc.filter((k) => MAN[k]);
+      // id theo thứ tự bước: một màn ghé hai lần vẫn là hai nút
+      const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map((k, i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
+      const noi = []; let truoc = 'bd', keTruoc = '';
+      buoc.forEach((k, i) => { noi.push([truoc, `${i}:${k}`, keTruoc ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; });
       noi.push([truoc, 'kt', '']);
       kq.push({ id: `tu-${l.id}`, ten: `${l.ten} (tự sinh từ chuỗi màn)`, tuSinh: true, nut, noi });
     }
@@ -187,7 +203,8 @@ export function taoQuyTrinh(api) {
   // chụp ảnh thu nhỏ còn thiếu, gần tâm viewport trước; xong cái nào thay vào chỗ đó
   const cho = []; let dangChup = false;
   function xepChup() {
-    for (const P of ds) for (const x of P.nut.values()) if (x.loai === 'man' && !anhNho.has(bam(MAN[x.man].html)) && !cho.some((c) => c.x === x)) cho.push({ P, x });
+    cho.length = 0; // bỏ việc của lần vẽ trước
+    for (const P of ds) for (const x of P.nut.values()) { if (x.loai !== 'man') continue; const k = bam(MAN[x.man].html); if (!anhNho.has(k) && (loiChup.get(k) || 0) < 2) cho.push({ P, x }); }
     if (!dangChup) chupTiep();
   }
   async function chupTiep() {
@@ -199,11 +216,7 @@ export function taoQuyTrinh(api) {
         let tot = 0, kc = Infinity;
         cho.forEach((c, i) => { const v = Math.hypot(c.x.x - cx, c.P.y + c.x.y - cy); if (v < kc) { kc = v; tot = i; } });
         const { P, x } = cho.splice(tot, 1)[0]; if (!ds.includes(P)) continue;
-        const m = MAN[x.man]; const k = bam(m.html);
-        if (!anhNho.has(k)) {
-          try { const { blob } = await chupAnh(m.html, { w: m.w, h: m.h }, { pixelRatio: 0.45, skipFonts: true }); ghiAnhNho(k, URL.createObjectURL(blob)); } catch { continue; } // lỗi: để ô xám, lần vẽ sau thử lại
-        }
-        const u = anhNho.get(k); if (!u || !svgEl) continue;
+        const u = await chupMot(MAN[x.man]); if (!u || !svgEl) continue; // lỗi: để ô xám
         for (const g of svgEl.querySelectorAll(`g.qt-man[data-man="${CSS.escape(x.man)}"]`)) {
           const xam = g.querySelector('.qt-xam'); if (!xam) continue;
           const im = document.createElementNS('http://www.w3.org/2000/svg', 'image');
@@ -243,17 +256,13 @@ export function taoQuyTrinh(api) {
     return { x0: 0, y0: 0, x1: Math.max(...ds.map((P) => P.w)), y1: ds.at(-1).y + ds.at(-1).h };
   }
 
-  // bấm việc có giao diện ⇒ Play từ bước đó
-  lop.addEventListener('click', (e) => { const g = e.target.closest('g.qt-man'); if (g) moPlay(g.dataset.man); });
+  // bấm việc có giao diện ⇒ Play từ bước đó: chuột xử lý ở thaKeo của app.js (pointer capture, phân biệt kéo/bấm); đây là bàn phím
   lop.addEventListener('keydown', (e) => { const g = e.target.closest('g.qt-man'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); moPlay(g.dataset.man); } });
 
   // ---- xuất ----
   async function svgXuat() {
     // đủ ảnh trước khi xuất
-    for (const P of ds) for (const x of P.nut.values()) if (x.loai === 'man') {
-      const m = MAN[x.man]; const k = bam(m.html);
-      if (!anhNho.has(k)) { try { const { blob } = await chupAnh(m.html, { w: m.w, h: m.h }, { pixelRatio: 0.45, skipFonts: true }); ghiAnhNho(k, URL.createObjectURL(blob)); } catch { /* xuất với ô xám */ } }
-    }
+    for (const P of ds) for (const x of P.nut.values()) if (x.loai === 'man') await chupMot(MAN[x.man]); // lỗi thì xuất ô xám
     const data = new Map();
     for (const P of ds) for (const x of P.nut.values()) if (x.loai === 'man' && !data.has(x.man)) {
       const u = anhCua(x.man); if (!u) { data.set(x.man, ''); continue; }
@@ -269,16 +278,20 @@ export function taoQuyTrinh(api) {
   async function xuat(kieu, tenTep) {
     if (!ds.length) { toast('Section này chưa có quy trình.', true); return; }
     toast('Đang dựng tệp sơ đồ…');
+    try { await xuat2(kieu, tenTep); } catch (e) { toast(`Không xuất được sơ đồ: ${e.message || e}`, true); }
+  }
+  async function xuat2(kieu, tenTep) {
     const { svg, w, h } = await svgXuat();
     let blob = new Blob([svg], { type: 'image/svg+xml' });
     if (kieu === 'png') {
-      const tl = Math.min(2, 16000 / Math.max(w, h));
+      const tl = Math.min(2, 16000 / Math.max(w, h), Math.sqrt(16e6 / (w * h))); // giữ dưới giới hạn canvas của Safari/iOS
       const url = URL.createObjectURL(blob);
       try {
         const img = new Image(); img.src = url; await img.decode();
         const cv = document.createElement('canvas'); cv.width = Math.round(w * tl); cv.height = Math.round(h * tl);
         const g = cv.getContext('2d'); g.scale(tl, tl); g.drawImage(img, 0, 0);
         blob = await new Promise((ok) => cv.toBlob(ok, 'image/png'));
+        if (!blob) throw new Error('canvas quá lớn');
       } finally { URL.revokeObjectURL(url); }
     }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${tenTep}.${kieu}`; a.click();
@@ -288,7 +301,8 @@ export function taoQuyTrinh(api) {
 
   return {
     lop, ve, capNhatAo, hop, xuat,
-    bat(b) { lop.hidden = !b; if (!b) { for (const ifr of song.values()) ifr.remove(); song.clear(); } else xepChup(); },
+    bat(b) { lop.hidden = !b; if (!b) { for (const ifr of song.values()) ifr.remove(); song.clear(); } else if (ds.length) xepChup(); },
     soSong: () => song.size, soPool: () => ds.length,
+    dangDung: () => (lop.hidden ? [] : ds.flatMap((P) => [...P.nut.values()].filter((x) => x.loai === 'man').map((x) => bam(MAN[x.man].html)))),
   };
 }
