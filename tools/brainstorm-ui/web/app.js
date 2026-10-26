@@ -788,7 +788,7 @@ async function sinh() {
   st.khung.push(...moi);
   for (const f of moi) st.dangChay.set(f.id, new AbortController());
   st.chon.clear(); st.chon.add(cha.id); veTatCa(); vuaMan([cha.id, ...moi.map((f) => f.id)]);
-  trangThaiBang(`Đang sinh ${n} biến thể bằng ${laMock() ? 'mock' : modelDung()} ${n > 1 ? ' — gửi 1 yêu cầu trước để ghi cache…' : '…'}`);
+  trangThaiBang(`Đang sinh ${n} biến thể bằng ${laMock() ? 'mock' : modelDung()}${n > 1 ? ' — gửi 1 yêu cầu trước để ghi cache…' : '…'}`);
   const kq = await chayLoat(moi.map((f) => (bao) => chay(f, htmlCua(cha), tenCua(cha), bao)));
   const ok = kq.filter((r) => r.status === 'fulfilled' && r.value).length;
   const tong = moi.reduce((a, f) => ({ ghi: a.ghi + (f.dung?.ghi || 0), doc: a.doc + (f.dung?.doc || 0) }), { ghi: 0, doc: 0 });
