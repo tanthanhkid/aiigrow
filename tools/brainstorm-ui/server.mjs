@@ -37,35 +37,40 @@ const PB_TOI_DA = 300;               // số phiên bản tối đa mỗi màn
 const PB_CO = 6 * 1024 * 1024;       // cỡ tối đa một bản HTML
 // Danh sách key màn có thật: lấy từ chính các tệp hành trình (cùng nguồn với trình duyệt) — key lạ bị từ chối, không bao giờ thành đường dẫn.
 // Nạp MỘT lần từ chính web/hanh-trinh/index.js (cùng danh sách tệp với trình duyệt); lỗi thì thử lại sau 10 giây. Thêm màn mới ⇒ khởi động lại máy chủ.
-let KEY_MAN = new Set(), keyLuc = 0;
+let KEY_MAN = new Set(), keyLuc = 0, keyDu = false;
 async function keyMan() {
-  if (KEY_MAN.size || Date.now() - keyLuc < 10000) return KEY_MAN;
+  if (keyDu || Date.now() - keyLuc < 10000) return KEY_MAN;
   keyLuc = Date.now();
   try {
     const { taiHanhTrinh } = await import('./web/hanh-trinh/index.js');
-    const { ds } = await taiHanhTrinh(); // fetch('/that/ds.json') trong Node lỗi ⇒ bỏ qua, key không đổi
+    const { ds, loi } = await taiHanhTrinh(); // fetch('/that/ds.json') trong Node lỗi ⇒ bỏ qua, key không đổi
+    keyDu = !loi.some((x) => /\.js/.test(x)); // có tệp hành trình nạp lỗi: 10 giây sau thử lại
     KEY_MAN = new Set(ds.flatMap((h) => h.buoc.map((b) => b.key)).filter((k) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(k)));
   } catch (e) { console.error('Không đọc được danh sách màn:', e.message); }
   return KEY_MAN;
 }
 // Khoá liên tiến trình theo màn (nhiều máy chủ từ nhiều worktree dùng chung kho): mkdir là thao tác nguyên tử.
-const ngu = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-function khoaPb(key) {
+const ngu = (ms) => new Promise((r) => setTimeout(r, ms));
+async function khoaPb(key) {
   const k = path.join(PHIEN_BAN, `.khoa-${key}`);
   fs.mkdirSync(PHIEN_BAN, { recursive: true });
   for (let i = 0; i < 100; i++) {
     try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
       if (e.code !== 'EEXIST') throw e;
       try { if (Date.now() - fs.statSync(k).mtimeMs > 10000) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
-      ngu(20);
+      await ngu(20);
     }
   }
   throw Object.assign(new Error('bận'), { ma: 503 });
 }
 const thuMucPb = (key) => path.join(PHIEN_BAN, key);
+// Chưa có tệp ⇒ manifest rỗng; tệp có mà hỏng ⇒ báo lỗi (không bao giờ ghi đè lịch sử bằng manifest rỗng).
 function docManifest(key) {
-  try { const m = JSON.parse(fs.readFileSync(path.join(thuMucPb(key), 'manifest.json'), 'utf8')); if (m && Array.isArray(m.ds)) return m; } catch { /* chưa có */ }
-  return { key, hien: 0, ds: [] };
+  let tho;
+  try { tho = fs.readFileSync(path.join(thuMucPb(key), 'manifest.json'), 'utf8'); } catch (e) { if (e.code === 'ENOENT') return { key, hien: 0, ds: [] }; throw e; }
+  const m = JSON.parse(tho);
+  if (!m || !Array.isArray(m.ds)) throw new Error(`manifest hỏng: ${key}`);
+  return m;
 }
 function ghiAtomic(tep, noiDung) {
   const tam = `${tep}.${process.pid}.${Date.now()}.tam`;
@@ -178,12 +183,12 @@ async function apiPhienBan(req, res, p) {
     if (req.method !== 'GET') return json(res, 405, { loi: 'Không hỗ trợ' });
     const keys = await keyMan(); const ra = {};
     let ds = []; try { ds = fs.readdirSync(PHIEN_BAN); } catch { /* chưa có kho */ }
-    for (const k of ds) if (keys.has(k)) { const m = docManifest(k); if (m.ds.length) ra[k] = m; }
+    for (const k of ds) if (keys.has(k)) { try { const m = docManifest(k); if (m.ds.length) ra[k] = m; } catch { /* manifest hỏng: bỏ qua màn này */ } }
     return json(res, 200, ra);
   }
   if (du.length || !(await keyMan(key)).has(key)) return json(res, 404, { loi: 'Không có màn này' });
   if (req.method === 'GET') {
-    const v = Number(vChu); const m = docManifest(key);
+    const v = Number(vChu); let m; try { m = docManifest(key); } catch { return json(res, 500, { loi: 'Manifest phiên bản hỏng' }); }
     const muc = Number.isInteger(v) && v >= 1 ? m.ds.find((x) => x.v === v) : null;
     if (!muc || !muc.tep) return json(res, 404, { loi: 'Không có bản này' });
     try { return json(res, 200, { html: fs.readFileSync(path.join(thuMucPb(key), `v${muc.tep}.html`), 'utf8') }); } catch { return json(res, 404, { loi: 'Mất tệp bản này' }); }
@@ -193,17 +198,17 @@ async function apiPhienBan(req, res, p) {
   let than;
   try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
   let moKhoa;
-  try { moKhoa = khoaPb(key); } catch { return json(res, 503, { loi: 'Kho phiên bản đang bận — thử lại' }); }
+  try { moKhoa = await khoaPb(key); } catch { return json(res, 503, { loi: 'Kho phiên bản đang bận — thử lại' }); }
   try {
-    const m = docManifest(key);
+    let m; try { m = docManifest(key); } catch { return json(res, 500, { loi: 'Manifest phiên bản hỏng — sửa tay trong kho trước khi ghi tiếp' }); }
     if (m.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `Màn này đã có ${PB_TOI_DA} phiên bản` });
     const v = (m.ds.at(-1)?.v || 0) + 1;
     const muc = { v, t: new Date().toISOString() };
     fs.mkdirSync(thuMucPb(key), { recursive: true });
     if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
-      const tu = Number(than.tu); const cu = tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
+      const tu = than.tu; const cu = !Number.isInteger(tu) ? null : tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
       if (!Number.isInteger(tu) || !cu) return json(res, 400, { loi: 'Không có bản để khôi phục' });
-      Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc' });
+      Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc', bt: cu.bt });
     } else {
       const html = than?.html;
       if (typeof html !== 'string' || !html.trim() || html.length > PB_CO) return json(res, 400, { loi: 'Thiếu HTML hoặc quá lớn' });

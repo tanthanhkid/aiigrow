@@ -65,8 +65,9 @@ async function htmlPhienBan(key, v) {
 }
 // đặt bản hiện của màn: giữ data-toi (bản mới thiếu thì gắn lại theo nhãn bước như bản trong mã)
 async function apPhienBan(key) {
-  const m = MAN[key]; const muc = mucPb(key, PB[key]?.hien);
+  const m = MAN[key]; const pb = PB[key]; const muc = mucPb(key, pb?.hien);
   let html = await htmlPhienBan(key, muc?.v || 0);
+  if (PB[key] !== pb) return; // trong lúc tải đã có Thay màn/Khôi phục mới hơn: bản đó tự áp
   const l = LAN_GOC.find((x) => x.id === m.lan); const ke = l?.buoc[m.buoc + 1];
   if (ke && m.toi && !/data-toi=/.test(html)) html = ganToi(html, m.toi, ke, MAN[ke]?.ten);
   m.html = html; m.w = muc?.w || m.goc0.w; m.h = muc?.h || m.goc0.h;
@@ -77,7 +78,7 @@ async function taiPhienBan() {
   const loi = [];
   await Promise.all(Object.entries(ds).map(async ([key, m]) => {
     if (!MAN[key] || !Array.isArray(m?.ds) || PB[key]) return; // PB đã có: phiên này vừa Thay màn, giữ bản mới hơn
-    try { PB[key] = m; await apPhienBan(key); } catch { loi.push(key); delete PB[key]; MAN[key].html = MAN[key].goc0.html; }
+    try { PB[key] = m; await apPhienBan(key); } catch { if (PB[key] === m) { loi.push(key); delete PB[key]; MAN[key].html = MAN[key].goc0.html; } }
   }));
   if (loi.length) toast(`Không tải được phiên bản đã thay của: ${loi.join(', ')} — đang hiện bản trong mã.`, true);
 }
@@ -369,7 +370,7 @@ function veKhung(f) {
   const pb = f.loai === 'goc' && PB[f.key];
   const nLs = d.el.querySelector('.nut-ls'); nLs.hidden = !pb; if (pb) nLs.textContent = `v${pb.hien} · Lịch sử`;
   d.el.querySelector('.nut-thay').hidden = !duocThay(f);
-  d.el.querySelector('.nut-xoa-k').hidden = f.loai === 'goc' || !!f.lan || f.tt === 'dang';
+  d.el.querySelector('.nut-xoa-k').hidden = f.loai === 'goc' || !!f.lan || f.tt === 'dang' || dangDungBt(f);
   const tt = d.el.querySelector('.tt');
   tt.className = 'tt' + (f.tt === 'loi' ? ' loi' : '');
   tt.textContent = f.tt === 'dang' ? (f.tienDo || 'đang sinh…') : f.tt === 'loi' ? 'lỗi' : dangDungBt(f) ? `✓ đang dùng (v${PB[keyCua(f)].hien})` : f.dung ? chuDung(f.dung) : '';
@@ -671,7 +672,7 @@ function datBen(an, luu = true) {
 }
 const doiBen = () => datBen(!document.body.classList.contains('an-ben'));
 $('#an-ben').onclick = doiBen; $('#mo-ben').onclick = doiBen;
-addEventListener('keydown', (e) => { if (e.key === '\\' && $('#lop-ls').hidden && !e.altKey && !e.shiftKey && !dangGo(e) && $('#lop-play').hidden && !Sua.dangSua()) { e.preventDefault(); doiBen(); } });
+addEventListener('keydown', (e) => { if (e.key === '\\' && [...document.querySelectorAll('.lop')].every((l) => l.hidden) && !e.altKey && !e.shiftKey && !dangGo(e) && $('#lop-play').hidden && !Sua.dangSua()) { e.preventDefault(); doiBen(); } });
 function batLienKet() { caiDat.lienKet = !caiDat.lienKet; luuCaiDat(); veTatCa(false); toast(caiDat.lienKet ? 'Hiện liên kết (L).' : 'Ẩn liên kết (L).'); }
 $('#nut-lk').onclick = batLienKet;
 $('#nut-anh').onclick = () => { caiDat.anhThat = !caiDat.anhThat; luuCaiDat(); veTatCa(false); toast(caiDat.anhThat ? 'Đang phủ ảnh chụp thật lên màn gốc (màn không có ảnh giữ nguyên).' : 'Tắt ảnh thật.'); };
@@ -1290,7 +1291,10 @@ function chupLai() {
 }
 function xoaChon() { xoaKhung([...st.chon]); }
 function xoaKhung(chon) {
-  const ids = chon.filter((id) => { const f = timKhung(id); return f && f.loai !== 'goc' && !f.lan; });
+  const dung = chon.filter((id) => { const f = timKhung(id); return f && dangDungBt(f); });
+  if (dung.length) toast('Biến thể đang dùng làm màn không xoá được — Khôi phục bản khác trong Lịch sử trước.', true);
+  const ids = chon.filter((id) => { const f = timKhung(id); return f && f.loai !== 'goc' && !f.lan && !dung.includes(id); });
+  if (!ids.length && dung.length) return;
   if (!ids.length) { toast('Màn gốc và màn trong phương án hành trình không xoá lẻ được — xoá cả phương án ở đầu hàng.'); return; }
   hoanTac = chupLai();
   for (const id of ids) st.dangChay.get(id)?.abort();
@@ -1309,11 +1313,11 @@ function xoaPhuongAn(id) {
 }
 addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !dangGo(e) && hoanTac && !Sua.dangSua() && $('#lop-ls').hidden) { hoanTac(); hoanTac = null; toast('Đã hoàn tác.'); } });
 $('#nut-xoa').onclick = xoaChon;
-const donDuoc = (f) => f.loai !== 'goc' && !f.lan && !dangDungBt(f);
+const donDuoc = (f) => f.loai !== 'goc' && !f.lan && !f.ghim && !dangDungBt(f); // ghim cũ vẫn được giữ
 $('#nut-xoa-bt').onclick = () => {
   const n = st.khung.filter(donDuoc).length;
   if (!n) { toast('Không có biến thể màn lẻ nào để dọn.'); return; }
-  if (!confirm(`Xoá ${n} biến thể màn lẻ? (biến thể đang dùng làm màn và phương án hành trình giữ lại; ⌘Z hoàn tác)`)) return;
+  if (!confirm(`Xoá ${n} biến thể màn lẻ? (biến thể đang dùng làm màn, biến thể ghim ★ cũ và phương án hành trình giữ lại; ⌘Z hoàn tác)`)) return;
   hoanTac = chupLai();
   for (const f of st.khung) if (donDuoc(f)) st.dangChay.get(f.id)?.abort();
   st.khung = st.khung.filter((f) => !donDuoc(f)); st.chon.clear();
