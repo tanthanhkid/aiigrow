@@ -18,7 +18,7 @@ const laMock = () => MOCK_URL || docKey().toLowerCase().startsWith('mock');
 const gioVN = (t) => { try { return new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); } catch { return ''; } };
 const tao = (tag, lop, chu) => { const e = document.createElement(tag); if (lop) e.className = lop; if (chu != null) e.textContent = chu; return e; };
 
-const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, ghimCho: null, ganDay: null, bt: [], dangSinh: false };
+const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, lich: [], ghimCho: null, ganDay: null, bt: [], dangSinh: false };
 let rt = null;
 const st = { view: { x: 0, y: 0, z: 1 }, chon: new Set() };
 
@@ -101,32 +101,87 @@ function vuaKhung() {
 }
 addEventListener('resize', vuaKhung);
 
-// trong màn (cùng origin, không script): Play theo data-toi; chuột trong màn chuyển ra trang để con trỏ realtime vẫn chạy
+// ---------- chế độ: Xem · ▶ Play · 📌 Ghim (loại trừ nhau; phím P / G, Esc về Xem) ----------
+// Play như bàn chính: nút có data-toi → màn đích; nút «quay lại» → lùi theo lịch sử Play; nút chưa nối màn → nháy viền các nút đi được + báo.
+const LUI = /^(?:[‹←<❮〈]\s*)?(?:quay lại|trở lại|trở về|back|huỷ|hủy)?\s*$/i;
+const KIEU_PLAY = 'html.play [data-toi]{cursor:pointer!important}html.play a,html.play button,html.play [role=button]{cursor:pointer}'
+  + 'html.goi-y [data-toi]{outline:3px solid rgba(43,183,163,.9)!important;outline-offset:2px;transition:outline-color .2s}';
+function cheDoTrongKhung() {
+  const d = $('#khung').contentDocument; if (!d?.documentElement) return;
+  d.documentElement.classList.toggle('play', R.play);
+}
+function datCheDo(c) {
+  R.play = c === 'play'; R.ghim = c === 'ghim';
+  for (const [id, b] of [['#nut-play', R.play], ['#nut-ghim', R.ghim]]) { $(id).setAttribute('aria-pressed', b); $(id).classList.toggle('bat', b); }
+  $('#nut-play').textContent = R.play ? '■ Dừng Play' : '▶ Play';
+  $('#lop-ghim').classList.toggle('dang-ghim', R.ghim);
+  $('#san').classList.toggle('dang-play', R.play);
+  if (R.play) R.lich = manCua(R.mo) ? [R.mo] : [];
+  cheDoTrongKhung();
+}
+const nutLui = (el) => {
+  const chu = (el.textContent || '').replace(/\s+/g, ' ').trim(); const nhan = `${el.getAttribute('aria-label') || ''} ${el.getAttribute('title') || ''}`;
+  return (chu.length <= 12 && chu !== '' && LUI.test(chu)) || /quay lại|trở lại|back/i.test(nhan) || /(^|[\s-])(lui|back|quay-lai|tro-lai)([\s-]|$)/i.test(el.className || '');
+};
+let henNhay = 0, lanBao = 0;
+function nhayGoiY(d, chu) {
+  d.documentElement.classList.add('goi-y'); clearTimeout(henNhay); henNhay = setTimeout(() => d.documentElement.classList.remove('goi-y'), 800);
+  if (Date.now() - lanBao > 2500) { lanBao = Date.now(); toast(chu); }
+}
+function playToi(key) { R.lich.push(key); mo(key); }
+function playLui() {
+  if (R.lich.length > 1) { R.lich.pop(); mo(R.lich.at(-1)); return true; }
+  if (R.i > 0) { buoc(-1); R.lich = [R.mo]; return true; }
+  return false;
+}
+// trong màn (cùng origin, không script): bắt bấm theo chế độ; chuột trong màn chuyển ra trang để con trỏ realtime vẫn chạy
 function ganTrongKhung(ifr) {
   const d = ifr.contentDocument; if (!d) return;
+  const st2 = d.createElement('style'); st2.textContent = KIEU_PLAY; (d.head || d.documentElement).appendChild(st2);
+  // pointerdown trong iframe không nổi ra #vung: báo cho realtime để thôi «đi theo» (không thì màn người kia kéo về, Play như bị đơ)
+  d.addEventListener('pointerdown', () => $('#vung').dispatchEvent(new PointerEvent('pointerdown')), true);
   d.addEventListener('click', (e) => {
     const a = e.target.closest?.('[data-toi]');
-    if (a || e.target.closest?.('a,button')) e.preventDefault();
-    if (R.play && a && manCua(a.dataset.toi)) mo(a.dataset.toi);
+    const nut = a || e.target.closest?.('a,button,[role=button],label,.nut,.chip,.the,.o,.dong,.viec,.bt');
+    const go = e.target.closest?.('input,textarea,select');
+    if (nut && !go) e.preventDefault();
+    if (R.play) {
+      if (go) return; // cho gõ thử trong ô
+      if (a) { const k = a.dataset.toi; if (manCua(k)) playToi(k); else nhayGoiY(d, `Nút «${(a.textContent || '').trim().slice(0, 30)}» dẫn tới màn không có trong link này.`); return; }
+      if (nut && nutLui(nut)) { if (!playLui()) nhayGoiY(d, 'Đây là màn đầu — không còn màn để quay lại.'); return; }
+      const coDich = d.querySelector('[data-toi]');
+      nhayGoiY(d, coDich ? 'Nút này chưa nối màn — bấm nút có viền xanh để đi tiếp.' : 'Màn cuối của hành trình — không còn nút đi tiếp (← để quay lại).');
+      return;
+    }
+    if (!R.ghim && (a || nut) && Date.now() - lanBao > 4000) { lanBao = Date.now(); toast('Đang ở chế độ Xem — bấm ▶ Play (phím P) để bấm nút đi tiếp như app thật.'); }
   }, true);
   d.addEventListener('pointermove', (e) => {
     const r = ifr.getBoundingClientRect(); const z = st.view.z;
     dispatchEvent(new PointerEvent('pointermove', { clientX: r.left + e.clientX * z, clientY: r.top + e.clientY * z }));
   }, { passive: true });
-  d.documentElement.classList.toggle('play', R.play);
+  d.addEventListener('keydown', phimCheDo);
+  cheDoTrongKhung();
 }
 $('#nut-play').onclick = () => {
-  R.play = !R.play; if (R.play) datGhim(false);
-  $('#nut-play').setAttribute('aria-pressed', R.play); $('#nut-play').classList.toggle('bat', R.play);
-  toast(R.play ? 'Play: bấm nút trong màn để đi tiếp như app thật (← → để chuyển màn).' : 'Đã tắt Play.');
+  if (!R.play && !manCua(R.mo)) { toast('Mở một màn rồi mới Play được.'); return; }
+  datCheDo(R.play ? 'xem' : 'play');
+  toast(R.play ? 'Play: bấm nút trong màn để đi tiếp như app thật · ← quay lại · Esc dừng.' : 'Đã dừng Play.');
 };
 
 // ---------- ghim ----------
-function datGhim(b) {
-  R.ghim = b; $('#nut-ghim').setAttribute('aria-pressed', b); $('#nut-ghim').classList.toggle('bat', b); $('#lop-ghim').classList.toggle('dang-ghim', b);
-  if (b && R.play) { R.play = false; $('#nut-play').setAttribute('aria-pressed', false); $('#nut-play').classList.remove('bat'); }
+const datGhim = (b) => datCheDo(b ? 'ghim' : 'xem');
+$('#nut-ghim').onclick = () => { if (!manCua(R.mo)) { toast('Mở một màn rồi mới ghim được.'); return; } datGhim(!R.ghim); if (R.ghim) toast('Ghim: bấm vào chỗ trên màn muốn góp ý · Esc thôi.'); };
+function phimCheDo(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input,textarea,select,[contenteditable]')) return;
+  if (!$('#lop-hoi').hidden || !$('#lop-bt').hidden || !$('#lop-key').hidden || !$('#lop-xem').hidden || !$('#lop-ten').hidden) return;
+  const k = e.key.toLowerCase();
+  if (k === 'p') { e.preventDefault(); $('#nut-play').click(); }
+  else if (k === 'g') { e.preventDefault(); $('#nut-ghim').click(); }
+  else if (e.key === 'Escape' && (R.play || R.ghim)) { e.preventDefault(); datCheDo('xem'); toast('Chế độ Xem.'); }
+  else if (R.play && (e.key === 'ArrowLeft' || e.key === 'Backspace')) { e.preventDefault(); e.stopImmediatePropagation(); playLui(); }
+  else if (R.play && e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); const t = R.mo; buoc(1); if (R.mo !== t) R.lich.push(R.mo); }
 }
-$('#nut-ghim').onclick = () => { if (!manCua(R.mo)) { toast('Mở một màn rồi mới ghim được.'); return; } datGhim(!R.ghim); if (R.ghim) toast('Bấm vào chỗ trên màn muốn góp ý.'); };
+addEventListener('keydown', phimCheDo, true);
 function selectorCua(el, goc) {
   const ph = [];
   for (let n = el; n && n !== goc && n.nodeType === 1 && ph.length < 8; n = n.parentElement) {
