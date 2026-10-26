@@ -969,8 +969,10 @@ function dongPlay() {
 }
 function kieuThietBi(f) {
   const l = timLan(MAN[keyCua(f)].lan); const { w } = kichThuoc(f);
-  if (w === 390) return l.nen === 'Web' ? 'web' : l.nen === 'Điện thoại' || l.nen === 'Android' ? 'android' : 'iphone';
-  return l.nen === 'Mac' ? 'mac' : 'win';
+  if (l.nen === 'Web') return 'web';
+  if (l.nen === 'Mac' || /^cmt-mac-/.test(keyCua(f))) return 'mac';   // lane Windows có xen màn Mac
+  if (w === 390 || w === 360) return l.nen === 'Điện thoại' || l.nen === 'Android' ? 'android' : 'iphone';
+  return 'win';
 }
 function vePlay(huong) {
   const f = timKhung(play.lich.at(-1)); if (!f) return;

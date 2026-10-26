@@ -13,6 +13,12 @@ const DA_LUU = path.join(GOC, 'da-luu');
 const THU_MUC = {
   '/assets/icon3d/': path.join(REPO, 'mobile/assets/icon3d'),
   '/assets/rob/': path.join(REPO, 'mobile/assets/linh-vat'),
+  // asset thật của app gốc — dùng cho màn native dựng khớp ảnh chụp
+  '/assets/win/fluent/': path.join(REPO, 'agent-win/src/AiiGrow.Tray/Assets/fluent'),
+  '/assets/win/mascot/': path.join(REPO, 'agent-win/src/AiiGrow.Tray/Assets/mascot'),
+  '/assets/mac/fluent/': path.join(REPO, 'agent-mac/Sources/AiiGrowTray/Fluent'),
+  '/assets/mac/mascot/': path.join(REPO, 'agent-mac/Sources/AiiGrowTray/Mascot'),
+  '/assets/android/': path.join(REPO, 'agent-android/app/src/main/res/drawable-nodpi'),
 };
 const TEP = {
   '/assets/logo.png': path.join(REPO, 'server/public/logo.png'),
@@ -109,8 +115,10 @@ const may = http.createServer(async (req, res) => {
     }
     if (TEP[p]) return guiTep(res, TEP[p]);
     if (p.startsWith('/ref/')) {
-      const [thu, ten, ...thua] = p.slice(5).split('/');
-      const tep = !thua.length && REF_DIR.has(thu) ? trongThuMuc(path.join(THIET_KE, thu), ten || '') : null;
+      // /ref/<thư mục>/<tệp> hoặc /ref/<thư mục>/<thư mục con>/<tệp> (vd. man-win-2510/100/app-hom-nay.png)
+      const [thu, ...con] = p.slice(5).split('/');
+      const ten = con.pop() || '';
+      const tep = con.length <= 1 && REF_DIR.has(thu) && con.every((c) => /^[\w.%-]+$/.test(c) && !c.startsWith('.')) ? trongThuMuc(path.join(THIET_KE, thu, ...con), ten) : null;
       return tep && ANH_REF.test(tep) ? guiTep(res, tep) : gui(res, 404, 'text/plain', 'Không có');
     }
     for (const [tienTo, thuMuc] of Object.entries(THU_MUC)) {
