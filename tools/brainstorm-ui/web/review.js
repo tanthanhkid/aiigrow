@@ -18,7 +18,7 @@ const laMock = () => MOCK_URL || docKey().toLowerCase().startsWith('mock');
 const gioVN = (t) => { try { return new Date(t).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); } catch { return ''; } };
 const tao = (tag, lop, chu) => { const e = document.createElement(tag); if (lop) e.className = lop; if (chu != null) e.textContent = chu; return e; };
 
-const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, lich: [], ghimCho: null, ganDay: null, bt: [], dangSinh: false };
+const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, lich: [], dangLui: false, ghimCho: null, ganDay: null, bt: [], dangSinh: false };
 let rt = null;
 const st = { view: { x: 0, y: 0, z: 1 }, chon: new Set() };
 
@@ -85,7 +85,7 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key)) {
   rt?.khiDoiView();
 }
 const buoc = (d) => { const i = R.i + d; const m = R.goi.man[i]; if (R.i >= 0 && m) mo(m.key, i); };
-$('#nut-truoc').onclick = () => buoc(-1); $('#nut-sau').onclick = () => buoc(1);
+$('#nut-truoc').onclick = () => (R.play ? playLui() : buoc(-1)); $('#nut-sau').onclick = () => buoc(1);
 
 // khung vừa vùng giữa; st.view = vị trí + tỉ lệ của màn trong #vung (toạ độ «canvas» của con trỏ = px của màn)
 function vuaKhung() {
@@ -101,7 +101,7 @@ addEventListener('resize', vuaKhung);
 
 // ---------- chế độ: Xem · ▶ Play · 📌 Ghim (loại trừ nhau; phím P / G, Esc về Xem) ----------
 // Play như bàn chính: nút có data-toi → màn đích; nút «quay lại» → lùi theo lịch sử Play; nút chưa nối màn → nháy viền các nút đi được + báo.
-const LUI_CHU = /^(?:[‹←❮]\s*)?(?:quay lại|trở lại|trở về)$/i;
+const LUI_CHU = /^(?:[‹←❮<]|(?:[‹←❮<]\s*)?(?:quay lại|trở lại|trở về)(?:\s.*)?)$/i;
 const LUI_NHAN = /^\s*(?:quay lại|trở lại|trở về|back|go back)\s*$/i;
 const KIEU_PLAY = 'html.play [data-toi]{cursor:pointer!important}html.play a,html.play button,html.play [role=button]{cursor:pointer}'
   + 'html.goi-y [data-toi]{outline:3px solid rgba(43,183,163,.9)!important;outline-offset:2px;transition:outline-color .2s}';
@@ -125,10 +125,11 @@ const nutLui = (el) => {
 let henNhay = 0, lanBao = 0;
 function nhayGoiY(d, chu) {
   d.documentElement.classList.add('goi-y'); clearTimeout(henNhay); henNhay = setTimeout(() => d.documentElement.classList.remove('goi-y'), 800);
-  if (Date.now() - lanBao > 2500) { lanBao = Date.now(); toast(chu); }
+  if (chu && Date.now() - lanBao > 2500) { lanBao = Date.now(); toast(chu); }
 }
 // đích: lần ghé kế tiếp của màn đó sau vị trí hiện tại (hành trình có thể ghé lại một màn, vd. A→B→A→C)
-function playToi(key) { const ds = R.goi.man; let i = ds.findIndex((m, j) => j > R.i && m.key === key); if (i < 0) i = ds.findIndex((m) => m.key === key); mo(key, i); }
+// không có lần ghé sau thì lấy lần ghé gần nhất phía trước
+function playToi(key) { const ds = R.goi.man; let i = ds.findIndex((m, j) => j > R.i && m.key === key); if (i < 0) i = ds.findLastIndex((m) => m.key === key); mo(key, i); }
 function playLui() {
   let t = null;
   if (R.lich.length > 1) { R.lich.pop(); t = R.lich.at(-1); } else if (R.i > 0) { t = { key: R.goi.man[R.i - 1].key, i: R.i - 1 }; R.lich = [t]; }
@@ -141,17 +142,18 @@ function ganTrongKhung(ifr) {
   const d = ifr.contentDocument; if (!d) return;
   const st2 = d.createElement('style'); st2.textContent = KIEU_PLAY; (d.head || d.documentElement).appendChild(st2);
   // pointerdown trong iframe không nổi ra #vung: báo cho realtime để thôi «đi theo» (không thì màn người kia kéo về, Play như bị đơ)
-  d.addEventListener('pointerdown', () => $('#vung').dispatchEvent(new PointerEvent('pointerdown')), true);
+  d.addEventListener('pointerdown', () => rt?.boTheo(), true);
   d.addEventListener('click', (e) => {
     const a = e.target.closest?.('[data-toi]');
     const go = e.target.closest?.('input,textarea,select,label');
-    const nut = a || (!go && e.target.closest?.('a,button,[role=button],.nut,.chip,.the,.o,.dong,.viec,.bt'));
-    if (a || (nut && !go)) e.preventDefault();
+    const nut = a || (!go && e.target.closest?.('a,button,[role=button],.nut'));
+    if (a || e.target.closest?.('a') || (nut && !go)) e.preventDefault(); // link không bao giờ rời srcdoc
     if (R.play) {
       if (a) { const k = a.dataset.toi; if (manCua(k)) playToi(k); else nhayGoiY(d, `Nút «${(a.textContent || '').trim().slice(0, 30)}» dẫn tới màn không có trong link này.`); return; }
       if (go) return; // cho gõ/tick thử trong ô
       if (nut && nutLui(nut)) { if (!playLui()) nhayGoiY(d, 'Đây là màn đầu — không còn màn để quay lại.'); return; }
       const coDich = d.querySelector('[data-toi]');
+      if (!nut) { nhayGoiY(d, ''); return; } // bấm chỗ trống/chữ: chỉ nháy viền, không báo
       nhayGoiY(d, coDich ? 'Nút này chưa nối màn — bấm nút có viền xanh để đi tiếp.' : 'Màn cuối của hành trình — không còn nút đi tiếp (← để quay lại).');
       return;
     }
@@ -181,6 +183,7 @@ function phimCheDo(e) {
   if ((k === 'p' || k === 'g') && e.repeat) { e.preventDefault(); return; }
   if (k === 'p') { e.preventDefault(); $('#nut-play').click(); }
   else if (k === 'g') { e.preventDefault(); $('#nut-ghim').click(); }
+  else if (e.key === 'Escape' && rt?.dangTheo()) { e.preventDefault(); rt.boTheo(); } // Esc trước hết thôi «đi theo», giữ chế độ
   else if (e.key === 'Escape' && (R.play || R.ghim)) { e.preventDefault(); datCheDo('xem'); toast('Chế độ Xem.'); }
   else if (e.key === 'ArrowLeft' || (R.play && e.key === 'Backspace')) { e.preventDefault(); if (R.play) playLui(); else buoc(-1); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); buoc(1); }

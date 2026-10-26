@@ -190,6 +190,7 @@ export function taoRealtime(C) {
   return {
     khiDoiView() { if (!diTheo) guiNhin(); if (chuot) guiTro(); if (ban.size) chay(); }, // đang đi theo: không phát khung nhìn (hai người theo nhau sẽ thu nhỏ mãi)
     khiVe() { guiChon(); veChon(); },
+    boTheo, dangTheo: () => !!diTheo,
     phat: gui,
     ten: () => ten,
     nguoi: () => [...ban.values()].map((p) => ({ id: p.id, ten: p.ten, tro: p.tro, chon: p.chon })),
