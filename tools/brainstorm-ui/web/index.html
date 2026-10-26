@@ -7,6 +7,7 @@
 <link rel="icon" href="/assets/logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/realtime.css">
 </head>
 <body>
 <header id="thanh">
@@ -34,6 +35,7 @@
   <select id="chon-sec" aria-label="Section"></select>
   <div class="nhom phai">
     <div id="nguoi" class="nguoi" aria-label="Người đang xem bàn"></div>
+    <button type="button" id="nut-gop-y" title="Góp ý của người review, đề xuất thay đổi chờ duyệt, link chia sẻ">💬 Góp ý</button>
     <button type="button" id="che-do" class="nhan-che-do" hidden title="Đang ở chế độ mock — bấm để xem cách gọi Claude thật"></button>
     <button id="nut-cai-dat" class="nut-cai-dat" title="Cài đặt API key và model">⚙ Cài đặt</button>
   </div>
@@ -95,6 +97,26 @@
   <div class="hop-xem hop-rac" role="dialog" aria-labelledby="rac-tieu">
     <div class="dau-bang"><b id="rac-tieu">🗑 Thùng rác — giữ 7 ngày</b><button type="button" id="rac-dong" class="nut-x" aria-label="Đóng">×</button></div>
     <div id="rac-ds" class="rac-ds"></div>
+  </div>
+</div>
+<!-- Góp ý: bảng bên phải (góp ý / đề xuất chờ duyệt / link chia sẻ) -->
+<aside id="pn-gy" class="pn-gy" hidden aria-label="Góp ý">
+  <div class="dau-bang"><b>Góp ý</b><button type="button" id="pn-gy-dong" class="nut-x" aria-label="Đóng">×</button></div>
+  <div class="pn-tab" role="tablist"><button type="button" data-tab="gy">Góp ý</button><button type="button" data-tab="dx">Đề xuất</button><button type="button" data-tab="cs">Chia sẻ</button></div>
+  <div id="pn-gy-than" class="pn-gy-than"></div>
+</aside>
+<!-- duyệt một đề xuất: gốc | đề xuất | chênh lệch -->
+<div id="lop-dx" class="lop" hidden>
+  <div class="hop-xem hop-dx" role="dialog" aria-labelledby="dx-tieu">
+    <div class="dau-bang"><b id="dx-tieu"></b><button type="button" id="dx-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <p id="dx-gy" class="phu"></p>
+    <div id="dx-luoi" class="dx-luoi"></div>
+    <textarea id="dx-ly" rows="2" maxlength="600" placeholder="Lý do từ chối (người review sẽ thấy)" hidden></textarea>
+    <div class="dx-nut">
+      <button type="button" id="dx-sua" title="Mở bản đề xuất trong Chế độ Sửa trên bàn; Thay màn từ đó = chấp nhận">✎ Sửa tiếp</button>
+      <button type="button" id="dx-tu" class="nguy">Từ chối</button>
+      <button type="button" id="dx-chap" class="nut-chinh">✓ Accept changes</button>
+    </div>
   </div>
 </div>
 <div id="lop-ls" class="lop" hidden>

@@ -5,6 +5,8 @@ import { taoQuyTrinh } from './quy-trinh.js';
 import { heThong, loiNguoiDung, tachKetQua, loiHanhTrinh, tachHanhTrinh, HUONG } from './prompt.js';
 import * as Sua from './che-do-sua.js';
 import { taoRealtime } from './realtime.js';
+import * as CL from './claude.js';
+import { ganGopY, dauChuQuan } from './gop-y.js';
 
 const $ = (s) => document.querySelector(s);
 const MODELS = [['claude-opus-5-5', 'Claude Opus 5.5'], ['claude-sonnet-5-5', 'Claude Sonnet 5.5']];
@@ -203,6 +205,7 @@ function sapXep() {
 
 // ---------- vẽ ----------
 const vung = $('#vung'), theGioi = $('#the-gioi'), svgNoi = $('#noi');
+let GY = null;       // phần «Góp ý» (gop-y.js), gắn ở cuối tệp
 const dom = new Map();   // id khung → {el, iframe, ban, lk}
 const domLan = new Map();
 
@@ -411,12 +414,13 @@ function veDauLan() {
     if (!el) {
       el = document.createElement('div'); el.className = 'dau-lan' + (l.goc ? '' : ' pa'); el.dataset.lan = l.id;
       el.innerHTML = `<div class="nhan-lan"></div><div class="ten-lan"></div><div class="mo-lan"></div><div class="nut-lan">
-        <button type="button" data-l="play">▶ Play hành trình</button><button type="button" data-l="sinh">✨ Biến thể cả hành trình</button>${l.goc ? '' : '<button type="button" data-l="xoa" class="nguy">Xoá phương án</button>'}</div>`;
+        <button type="button" data-l="play">▶ Play hành trình</button><button type="button" data-l="sinh">✨ Biến thể cả hành trình</button>${l.goc ? '<button type="button" data-l="gy">💬 Chia sẻ để góp ý</button>' : '<button type="button" data-l="xoa" class="nguy">Xoá phương án</button>'}</div>`;
       el.addEventListener('click', (e) => {
         const b = e.target.closest('button'); if (!b) return; // bấm nền đầu hàng: xử lý ở thaKeo (pointer capture nuốt click)
         if (b.dataset.l === 'play') moPlay(khungCuaLan(l, l.buoc[0])?.id, l.id);
         else if (b.dataset.l === 'sinh') chonLan(l.id, true);
         else if (b.dataset.l === 'xoa') xoaPhuongAn(l.id);
+        else if (b.dataset.l === 'gy') GY?.mo('cs', l.id);
       });
       theGioi.appendChild(el); domLan.set(l.id, el);
     }
@@ -547,6 +551,8 @@ function veBen() {
         b.innerHTML = '<span class="t"></span><span class="so"></span>';
         b.querySelector('.t').textContent = x.goc ? x.ten : `PA ${x.k}: ${x.nhan || x.yTuong}`;
         b.querySelector('.so').textContent = x.goc ? `${x.nen} · ${x.buoc.length}` : '';
+        const d = x.goc && GY?.dem(x.id);
+        if (d && (d.mo || d.cho)) { const c = document.createElement('span'); c.className = 'dem-gy'; c.title = `${d.mo} góp ý đang mở · ${d.cho} đề xuất chờ duyệt`; c.textContent = `💬${d.mo}${d.cho ? ` ⇄${d.cho}` : ''}`; b.appendChild(c); }
         b.onclick = () => bayToiLan(x.id);
         ds.appendChild(b);
       }
@@ -701,115 +707,9 @@ function veBang() {
 $('#bang-dong').onclick = () => { st.chon.clear(); st.lanChon = null; veTatCa(false); };
 
 // ---------- gọi Claude (có prompt caching) ----------
-let assetsVanBan = '';
-async function taiAssets() {
-  if (assetsVanBan) return assetsVanBan;
-  try {
-    const j = await (await fetch('/api/assets')).json();
-    assetsVanBan = `- Icon 3D Fluent (đặt trong .bt): ${j.icon3d.map((t) => `/assets/icon3d/${t}`).join(', ')}\n- Mascot Rob (cảnh): ${j.rob.map((t) => `/assets/rob/${t}`).join(', ')}\n- Logo: /assets/logo.png`;
-  } catch { assetsVanBan = '- /assets/rob/rob-goc.webp, /assets/icon3d/khoa.webp, /assets/logo.png'; }
-  return assetsVanBan;
-}
-
-function baoLoiApi(ma, j) {
-  const t = j?.error?.message || '';
-  if (ma === 401) return 'Key không hợp lệ (401) — mở ⚙ Cài đặt kiểm lại key.';
-  if (ma === 403) return `Key không có quyền (403): ${t}`;
-  if (ma === 404) return `Không thấy model «${modelDung()}» (404) — chọn model khác trong ⚙ Cài đặt. ${t}`;
-  if (ma === 429) return `Vượt giới hạn tốc độ (429) — đợi chút rồi Thử lại. ${t}`;
-  if (ma === 529 || ma === 503) return `Claude đang quá tải (${ma}) — Thử lại sau ít phút.`;
-  if (ma === 400) return `Yêu cầu bị từ chối (400): ${t}`;
-  return `Lỗi API ${ma}: ${t || 'không rõ'}`;
-}
-
-// Cấu trúc cache: [system cố định ⟨cache 1h⟩] → [user: ngữ cảnh màn/hành trình ⟨cache 1h⟩] → [user: ý + hướng k — thay đổi].
-// Gọi song song: bắn 1 yêu cầu trước, đợi message_start (tiền tố đã được ghi cache) rồi mới bắn phần còn lại → các yêu cầu sau đọc cache.
-const CACHE = { type: 'ephemeral', ttl: '1h' };
-async function goiClaude({ sys, user, signal, moiChu, khiBatDau, maxTokens }) {
-  let res;
-  try {
-    res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', signal,
-      headers: { 'content-type': 'application/json', 'x-api-key': docKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: modelDung(), max_tokens: maxTokens || Number(caiDat.maxTokens) || 16000, stream: true,
-        system: [{ type: 'text', text: sys, cache_control: CACHE }],
-        messages: [{ role: 'user', content: [{ type: 'text', text: user[0], cache_control: CACHE }, { type: 'text', text: user[1] }] }],
-      }),
-    });
-  } catch (e) {
-    if (e.name === 'AbortError') throw e;
-    throw new Error('Không gọi được api.anthropic.com — kiểm mạng/VPN rồi Thử lại.');
-  }
-  if (!res.ok) { const j = await res.json().catch(() => null); throw new Error(baoLoiApi(res.status, j)); }
-  const doc = res.body.getReader(); const giai = new TextDecoder();
-  let dem = '', txt = '', lyDo = ''; const dung = {};
-  for (;;) {
-    const { value, done } = await doc.read();
-    if (done) break;
-    dem += giai.decode(value, { stream: true });
-    let i;
-    while ((i = dem.indexOf('\n')) >= 0) {
-      const dong = dem.slice(0, i).trim(); dem = dem.slice(i + 1);
-      if (!dong.startsWith('data:')) continue;
-      let ev; try { ev = JSON.parse(dong.slice(5)); } catch { continue; }
-      if (ev.type === 'message_start') {
-        const u = ev.message?.usage || {};
-        Object.assign(dung, { vao: u.input_tokens || 0, ghi: u.cache_creation_input_tokens || 0, doc: u.cache_read_input_tokens || 0, ra: u.output_tokens || 0 });
-        khiBatDau?.(dung); moiChu(txt, dung);
-      } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') { txt += ev.delta.text; moiChu(txt, dung); }
-      else if (ev.type === 'content_block_delta' && ev.delta?.type === 'thinking_delta') { moiChu(txt, dung, true); }
-      else if (ev.type === 'message_delta') {
-        if (ev.delta?.stop_reason) lyDo = ev.delta.stop_reason;
-        if (ev.usage) { if (ev.usage.output_tokens != null) dung.ra = ev.usage.output_tokens; if (ev.usage.cache_read_input_tokens != null) dung.doc = ev.usage.cache_read_input_tokens; if (ev.usage.cache_creation_input_tokens != null) dung.ghi = ev.usage.cache_creation_input_tokens; }
-      } else if (ev.type === 'error') throw new Error(`Claude báo lỗi giữa chừng: ${ev.error?.message || ev.error?.type}`);
-    }
-  }
-  if (!lyDo) throw new Error('Kết nối tới Claude bị đứt giữa chừng — Thử lại.');
-  return { txt, lyDo, dung };
-}
-
-// Chạy loạt: việc đầu chạy trước, đợi nó bắt đầu (cache đã ghi) rồi mới bắn các việc còn lại.
-async function chayLoat(viec) {
-  if (!viec.length) return [];
-  let bao; const daBatDau = new Promise((r) => { bao = r; });
-  const dau = viec[0](bao).finally(() => bao());
-  await daBatDau;
-  return Promise.allSettled([dau, ...viec.slice(1).map((v) => v(() => {}))]);
-}
-
-// Chế độ mock: giả lập stream + số token cache để thử cả luồng mà không cần key.
-const MOCK_CSS = [
-  '.the,.o{border-radius:40px!important}.tieuLon{color:#0a5246}',
-  '.cuon,.chinh{flex-direction:column-reverse!important}',
-  '.the{background-color:#e3efea!important}.nut{min-height:58px!important}',
-  '.the:nth-of-type(n+3){display:none!important}.tieuLon{font-size:40px!important;line-height:46px!important}',
-  '.viec,.the{outline:3px dashed #f5b70a;outline-offset:-6px}',
-  'body{filter:hue-rotate(-12deg) saturate(1.2)}.nut{border-radius:99px!important}',
-];
-const mockSua = (html, k, y) => html.replace('</head>', `<style>${MOCK_CSS[(k - 1) % MOCK_CSS.length]}</style></head>`)
-  .replace(/(<body[^>]*>\s*<div[^>]*>)/, `$1<div style="position:absolute;left:16px;right:16px;top:8px;z-index:9;background:#0f6b5c;color:#fff;font:700 14px Inter;padding:8px 14px;border-radius:99px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mock ${k}: ${y.replace(/[<&]/g, '')}</div>`);
-const mockDaGhi = new Set();
-async function goiMock({ toan, signal, moiChu, khiBatDau, khoaCache, vaoCache }) {
-  await new Promise((r) => setTimeout(r, 250));
-  const dung = mockDaGhi.has(khoaCache) ? { vao: 40, ghi: 0, doc: vaoCache, ra: 0 } : { vao: 40, ghi: vaoCache, doc: 0, ra: 0 };
-  mockDaGhi.add(khoaCache); khiBatDau?.(dung);
-  let txt = ''; const buoc = Math.ceil(toan.length / 24);
-  for (let i = 0; i < toan.length; i += buoc) {
-    if (signal.aborted) throw new DOMException('dừng', 'AbortError');
-    await new Promise((r) => setTimeout(r, 60 + Math.random() * 80));
-    txt += toan.slice(i, i + buoc); dung.ra = Math.round(txt.length / 3.5); moiChu(txt, dung);
-  }
-  return { txt, lyDo: 'end_turn', dung };
-}
-
-// Bỏ <script>, on*, iframe… khỏi HTML do Claude sinh (khung đã sandbox không script; đây là lớp thứ hai cho tệp xuất/lưu/play).
-function lamSach(html) {
-  const d = new DOMParser().parseFromString(html, 'text/html');
-  d.querySelectorAll('script,iframe,frame,object,embed,base,meta[http-equiv],form,noscript,template,noembed,noframes,xmp,plaintext').forEach((n) => n.remove());
-  d.querySelectorAll('*').forEach((n) => { for (const a of [...n.attributes]) if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name); });
-  return '<!doctype html>\n' + d.documentElement.outerHTML;
-}
+// phần gọi Claude/mock/làm sạch nằm ở claude.js (dùng chung với trang góp ý /r/); ở đây chỉ gắn key + model của bàn
+const { taiAssets, chayLoat, goiMock, mockSua, lamSach } = CL;
+const goiClaude = (o) => CL.goiClaude({ ...o, key: docKey(), model: modelDung(), maxTokens: o.maxTokens || Number(caiDat.maxTokens) || 16000 });
 
 function canKey() {
   if (laMock() || docKey()) return false;
@@ -1197,9 +1097,12 @@ const dangThay = new Set();
 async function thayMan(key, html, meta = {}) {
   if (!MAN[key] || !html) return false;
   if (dangThay.has(key)) { toast('Màn này đang được thay — đợi chút.'); return false; }
+  // khung mở từ «Sửa tiếp» một đề xuất góp ý: Thay màn = «Accept changes» của đề xuất đó (máy chủ ghi tác giả + liên kết góp ý)
+  const dxKhung = meta.bt ? timKhung(meta.bt)?.deXuat : null;
+  if (dxKhung) return thayTheoDeXuat(dxKhung, key, html, meta);
   dangThay.add(key); html = lamSach(html);
   try {
-    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() },
       body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '' }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
@@ -1209,7 +1112,15 @@ async function thayMan(key, html, meta = {}) {
   meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
   qtDaVe = ''; veTatCa(); luuLai();
   toast(`Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}; bản cũ vẫn trong Lịch sử.`);
-  rt?.phat({ t: 'su', loai: 'thay', key });
+  return true;
+}
+async function thayTheoDeXuat(dx, key, html, meta) {
+  dangThay.add(key);
+  const sach = lamSach(html);
+  try { await GY.chapNhan(dx, { html: sach, w: meta.w, h: meta.h, suaTiep: sach !== dx.h0 }, () => meta.truocVe?.()); } catch (e) { toast(`Không áp dụng được đề xuất: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
+  for (const f of st.khung) if (f.cha === meta.bt) f.cha = f.goc; // biến thể sinh từ khung tạm: nối về màn gốc
+  st.khung = st.khung.filter((f) => f.id !== meta.bt); st.chon.delete(meta.bt); // khung tạm của đề xuất đã xong việc
+  qtDaVe = ''; veTatCa(); luuLai();
   return true;
 }
 async function thayBangKhung(id) {
@@ -1262,14 +1173,13 @@ $('#ls-khoi-phuc').onclick = async () => {
   if (dangThay.has(key)) { toast('Màn này đang được thay — đợi chút.'); return; }
   $('#ls-khoi-phuc').disabled = true; dangThay.add(key);
   try {
-    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tu: v }) });
+    const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', body: JSON.stringify({ tu: v }), headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() } });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
     PB[key] = j;
   } catch (e) { toast(`Không khôi phục được: ${e.message}`, true); veLichSu(); return; } finally { dangThay.delete(key); }
   try { await apPhienBan(key); } catch (e) { toast(`Đã khôi phục trên máy chủ (v${PB[key].hien}) nhưng chưa tải được bản đó (${e.message}) — tải lại trang.`, true); }
   ls.v = PB[key].hien; qtDaVe = ''; veTatCa(); veLichSu();
   toast(`Đã khôi phục v${v} thành v${PB[key].hien} — «${MAN[key].ten}» hiển thị bản này ở mọi nơi.`);
-  rt?.phat({ t: 'su', loai: 'thay', key });
 };
 
 let hoanTac = null;
@@ -1403,7 +1313,7 @@ function bamH(f) { // chữ ký phần HTML (kể cả bản sửa tay của khu
 }
 const kyKhung = (f) => JSON.stringify(banLuu(f)) + '|' + bamH(f);
 const kyLan = (l) => JSON.stringify(banLuu(l));
-const khungLuu = (f) => f.loai === 'bien' && coMan(f.goc);
+const khungLuu = (f) => f.loai === 'bien' && !f.deXuat && coMan(f.goc); // khung đề xuất tạm («Sửa tiếp» góp ý) không vào kho chung
 // đang dở tay trên máy này: không để bản máy chủ đè lên
 const banKhung = (f) => !!f && (Sua.dangSua() === f.id || st.dangChay.has(f.id) || (!!f.lan && st.dangChay.has(f.lan)) || (daGui.has(`k:${f.id}`) && daGui.get(`k:${f.id}`) !== kyKhung(f)));
 const banLan = (l) => !!l && (st.dangChay.has(l.id) || (daGui.has(`l:${l.id}`) && daGui.get(`l:${l.id}`) !== kyLan(l)));
@@ -1462,7 +1372,8 @@ async function dongBoKho() {
       lo.lan.push(coSo(banLuu(l), l)); ky.set(`l:${l.id}`, k);
     }
     for (const [f, k] of ghiK) {
-      const o = coSo(banLuu(f), f); o.html = f.tt === 'dang' ? '' : f.html || ''; // HTML dở dang lúc đang sinh không gửi (người xem thấy «đang sinh…»)
+      const o = coSo(banLuu(f), f); if (typeof o.cha === 'string' && o.cha.startsWith('dx-')) o.cha = f.goc; // khung đề xuất tạm không lưu: không trỏ cha vào nó
+      o.html = f.tt === 'dang' ? '' : f.html || ''; // HTML dở dang lúc đang sinh không gửi (người xem thấy «đang sinh…»)
       if (f.htmlSua) o.htmlSua = f.htmlSua; if (f.htmlGocSua) o.htmlGocSua = f.htmlGocSua;
       const n = (o.html.length + (f.htmlSua?.length || 0) + (f.htmlGocSua?.length || 0)) * 3 + 4000; // ước số BYTE (UTF-8 + thoát JSON)
       if ((co + n > 20e6 || lo.lan.length + lo.khung.length >= LO_TOI_DA) && !(await day())) return;
@@ -1667,9 +1578,7 @@ async function nhanKho(m) {
   } else return;
   clearTimeout(henVe); henVe = setTimeout(() => { veTatCa(); veBang(); }, 60); // gộp nhiều thay đổi liền nhau thành một lần vẽ
 }
-function khiCham(m) { // máy chủ bỏ gói «thay màn» vì vượt nhịp: gửi lại sau 5 giây
-  if (m.su?.loai === 'thay' && coMan(m.su.key)) setTimeout(() => rt?.phat({ t: 'su', loai: 'thay', key: m.su.key }), 5000);
-}
+function khiCham() { /* «thay màn» nay do máy chủ phát ({t:'rv'}), không còn gói client cần gửi lại */ }
 
 // ---- thùng rác (xoá mềm 7 ngày)
 async function moRac() {
@@ -1716,10 +1625,41 @@ async function napLaiPhienBan(key) {
 function nhanSu(m, p) {
   if (m.loai === 'thay' && coMan(m.key)) napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`));
 }
-rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); }, khiCham, sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
+GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTatCa, veBen, doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), secCuaLan, lamSach,
+  tenNguoi: () => rt?.ten() || '', phien: PHIEN,
+  svgHanhTrinh: (id) => qt.svgHanhTrinh(id),
+  napLai: (key) => napLaiPhienBan(key),
+  // «✨ Sửa theo góp ý»: chọn màn gốc, điền ý = các góp ý, chạy luồng sinh biến thể như thường (prompt caching)
+  sinhTheoY(key, y) {
+    if (!coMan(key)) return;
+    st.lanChon = null; st.chon.clear(); st.chon.add(key); veTatCa(false);
+    $('#y-tuong').value = y; capNhatXemPrompt(); sinh();
+  },
+  // «Accept changes» xong: máy chủ trả manifest mới → áp ngay + báo các bàn khác như Thay màn
+  async apManifest(key, m) {
+    if (!coMan(key) || !m) return;
+    PB[key] = m; await apPhienBan(key);
+    qtDaVe = ''; veTatCa(); luuLai(); // các bàn khác nhận {t:'rv', loai:'thay'} do máy chủ phát — không phát thêm lần nữa
+  },
+  // «Sửa tiếp»: đưa bản đề xuất lên bàn thành khung tạm cạnh màn gốc, mở Chế độ Sửa; Thay màn từ khung này = Accept
+  moDeXuatTrenBan(dx, html) {
+    if (!coMan(dx.key)) return;
+    const id = `dx-${dx.id}`;
+    let f = timKhung(id);
+    if (!f) {
+      f = { id, loai: 'bien', goc: dx.key, cha: dx.key, html: lamSach(html), w: dx.w || MAN[dx.key].w, h: dx.h || MAN[dx.key].h, x: 0, y: 0, tt: 'xong',
+        nhan: `Đề xuất của ${dx.ten}`, yTuong: dx.nhan || 'Đề xuất từ góp ý', model: dx.model || '', deXuat: { ht: dx.ht, id: dx.id, key: dx.key, ten: dx.ten, h0: lamSach(html) } };
+      st.khung.push(f);
+    }
+    st.chon.clear(); st.chon.add(id); veTatCa(); vuaMan([dx.key, id]);
+    setTimeout(() => Sua.batSua(id), 150);
+  },
+});
+rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); }, khiCham, nhanRv: (m) => GY?.nhanRv(m), sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
   doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), datView: (v) => { st.view = v; apView(); luuView(); } });
 
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
   lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
 napKho();
-window.__bs = { rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+GY.tai();
+window.__bs = { GY, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

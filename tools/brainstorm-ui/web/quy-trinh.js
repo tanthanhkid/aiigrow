@@ -48,17 +48,21 @@ export function taoQuyTrinh(api) {
     const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || MAN[x.man]) }));
     for (const id of lanCuaSec) {
       if (bao.has(id)) continue;
-      const l = timLan(id); if (!l) continue;
-      const lan = l.vai === 'Con' ? 'con' : 'bm';
-      const buoc = l.buoc.filter((k) => MAN[k]);
-      // id theo thứ tự bước: một màn ghé hai lần vẫn là hai nút
-      const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map((k, i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
-      const noi = []; let truoc = 'bd', keTruoc = '';
-      buoc.forEach((k, i) => { noi.push([truoc, `${i}:${k}`, keTruoc ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; });
-      noi.push([truoc, 'kt', '']);
-      kq.push({ id: `tu-${l.id}`, ten: `${l.ten} (tự sinh từ chuỗi màn)`, tuSinh: true, nut, noi });
+      const q = tuChuoi(timLan(id)); if (q) kq.push(q);
     }
     return kq;
+  }
+  // quy trình tự sinh từ chuỗi màn của một hành trình
+  function tuChuoi(l) {
+    if (!l) return null;
+    const lan = l.vai === 'Con' ? 'con' : 'bm';
+    const buoc = l.buoc.filter((k) => MAN[k]);
+    // id theo thứ tự bước: một màn ghé hai lần vẫn là hai nút
+    const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map((k, i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
+    const noi = []; let truoc = 'bd', keTruoc = '';
+    buoc.forEach((k, i) => { noi.push([truoc, `${i}:${k}`, keTruoc ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; });
+    noi.push([truoc, 'kt', '']);
+    return { id: `tu-${l.id}`, ten: `${l.ten} (tự sinh từ chuỗi màn)`, tuSinh: true, nut, noi };
   }
 
   // ---- bố trí: hạng theo đường dài nhất (bỏ cạnh lùi), cột theo hạng, lane theo vai ----
@@ -264,7 +268,9 @@ export function taoQuyTrinh(api) {
   lop.addEventListener('keydown', (e) => { const g = e.target.closest('g.qt-man'); if (g && e.key === 'Enter') { e.preventDefault(); moPlay(g.dataset.man); } });
 
   // ---- xuất ----
-  async function svgXuat() {
+  async function svgXuat(ds0 = ds) {
+    const ds = ds0;
+    if (!ds.length) throw new Error('chưa có quy trình');
     // đủ ảnh trước khi xuất
     for (const P of ds) for (const x of P.nut.values()) if (x.loai === 'man') await chupMot(MAN[x.man]); // lỗi thì xuất ô xám
     const data = new Map();
@@ -275,7 +281,7 @@ export function taoQuyTrinh(api) {
         data.set(x.man, await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(b); }));
       } catch { data.set(x.man, ''); } // ảnh đã bị đuổi khỏi bộ nhớ đệm: xuất ô xám
     }
-    const b = hop(); const w = b.x1 + 40, h = b.y1 + 40;
+    const w = Math.max(...ds.map((P) => P.w)) + 40, h = ds.at(-1).y + ds.at(-1).h + 40;
     const noi = ds.map((P) => `<g transform="translate(20,${P.y + 20})">${svgPool(P, (k) => data.get(k))}</g>`).join('');
     const sach = (t) => t.replace(/ role="button" tabindex="0"/g, '').replace(/<title>[^<]*<\/title>/g, ''); // tệp xuất: bỏ phần chỉ dùng trong app
     return { svg: sach(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><style>${CSS_SVG}</style>${DEFS}<rect width="100%" height="100%" fill="#f7f6f3"/>${noi}</svg>`), w, h };
@@ -308,8 +314,18 @@ export function taoQuyTrinh(api) {
     toast(`Đã xuất ${kieu.toUpperCase()} sơ đồ quy trình.`);
   }
 
+  // SVG (ảnh nhúng data URL) cho MỘT hành trình — ảnh chụp kèm link góp ý /r/: quy trình khai báo có hanh chứa id, không có thì tự sinh từ chuỗi màn
+  async function svgHanhTrinh(htId) {
+    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || MAN[x.man]) }));
+    if (!qs.length) { const q = tuChuoi(timLan(htId)); qs = q ? [q] : []; }
+    if (!qs.length) return '';
+    const pools = []; let y = 0;
+    for (const q of qs) { const P = boTri(q); P.y = y; pools.push(P); y += P.h + GIUA_POOL; }
+    return (await svgXuat(pools)).svg;
+  }
+
   return {
-    lop, ve, capNhatAo, hop, xuat,
+    lop, ve, capNhatAo, hop, xuat, svgHanhTrinh,
     bat(b) { lop.hidden = !b; if (!b) { for (const ifr of song.values()) ifr.remove(); song.clear(); } else if (ds.length) xepChup(); },
     soSong: () => song.size, soPool: () => ds.length,
     dangDung: () => (lop.hidden ? [] : ds.flatMap((P) => [...P.nut.values()].filter((x) => x.loai === 'man').map((x) => bam(MAN[x.man].html)))),

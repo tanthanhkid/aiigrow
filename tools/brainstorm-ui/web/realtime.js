@@ -52,6 +52,7 @@ export function taoRealtime(C) {
     return p;
   }
   function nhan(m) {
+    if (m.t === 'rv') { C.nhanRv?.(m); return; } // trạng thái góp ý/đề xuất do máy chủ phát
     if (m.t === 'chao') { C.khiChao?.(m); toi = m.id; for (const x of m.nguoi) { const p = nguoi(x.id, x.ten); if (x.tro) p.tro = { ...x.tro, t: Date.now() }; p.nhin = x.nhin; p.chon = x.chon; } veNguoi(); veChon(); chay(); return; }
     if (m.t === 'cham') { C.khiCham?.(m); return; } // máy chủ bỏ gói vì vượt nhịp: gửi lại sau
     if (m.t === 'kho') { C.nhanKho?.(m); return; } // kho biến thể trên máy chủ vừa đổi

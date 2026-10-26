@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Góp ý thiết kế AiiGrow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="/realtime.css">
+<link rel="stylesheet" href="/review.css">
+</head>
+<body>
+<header class="tren">
+  <div class="tieu"><b id="ht-ten">Đang tải…</b><span id="ht-v" class="chip"></span><span id="ht-ghi" class="phu"></span></div>
+  <div class="phai">
+    <div id="nguoi" class="nguoi" aria-label="Người đang xem"></div>
+    <button type="button" id="nut-key" class="nut-nhe" title="Key Claude của bạn — chỉ lưu trong trình duyệt này, chỉ gửi tới api.anthropic.com">🔑 Key Claude</button>
+  </div>
+</header>
+<div class="than">
+  <nav class="trai" aria-label="Các màn của hành trình">
+    <div class="nhom-t">Màn theo thứ tự hành trình</div>
+    <ol id="ds-man"></ol>
+    <button type="button" class="muc-dac" data-mo="qt">◇ Quy trình</button>
+    <button type="button" class="muc-dac" data-mo="chung">💬 Góp ý chung cho hành trình</button>
+  </nav>
+  <main class="giua">
+    <div class="thanh-cu">
+      <button type="button" id="nut-truoc" title="Màn trước (←)">◀</button>
+      <span id="vi-tri" class="phu"></span>
+      <button type="button" id="nut-sau" title="Màn sau (→)">▶</button>
+      <span class="gian"></span>
+      <button type="button" id="nut-play" aria-pressed="false" title="Bấm nút trong màn để đi tiếp như app thật">▶ Play</button>
+      <button type="button" id="nut-ghim" aria-pressed="false" title="Bấm lên màn để ghim góp ý vào đúng chỗ">📌 Ghim góp ý</button>
+    </div>
+    <div id="vung" class="vung">
+      <div id="san" class="san">
+        <iframe id="khung" title="Màn đang xem" sandbox="allow-same-origin"></iframe>
+        <div id="lop-ghim" class="lop-ghim"></div>
+      </div>
+      <img id="qt-anh" class="qt-anh" alt="Sơ đồ quy trình của hành trình" hidden>
+      <div id="qt-trong" class="trong" hidden>Hành trình này chưa có sơ đồ quy trình.</div>
+      <div id="chung-trong" class="trong" hidden>Góp ý cho cả hành trình (không gắn vào màn nào) — viết ở khung bên phải.</div>
+    </div>
+  </main>
+  <aside class="phai-pn" aria-label="Góp ý">
+    <form id="hop-gy" class="hop-gy">
+      <div class="dong-gy">
+        <label>Loại <select id="gy-muc"><option value="loi">Lỗi</option><option value="de-xuat" selected>Đề xuất</option><option value="cau-hoi">Câu hỏi</option></select></label>
+        <span id="gy-ghim" class="chip" hidden></span>
+      </div>
+      <textarea id="gy-noi" rows="3" maxlength="2000" placeholder="Góp ý của bạn cho màn này…" required></textarea>
+      <div class="dong-gy"><span id="gy-cho" class="phu"></span><button type="submit" class="nut-chinh">Gửi góp ý</button></div>
+    </form>
+    <div id="ds-gy" class="ds-gy"></div>
+    <div class="nhom-t" id="dx-tieu" hidden>Đề xuất thay đổi cho màn này</div>
+    <div id="ds-dx" class="ds-dx"></div>
+  </aside>
+</div>
+
+<!-- tên (dùng chung với realtime.js) -->
+<div id="lop-ten" class="lop" hidden>
+  <form id="hop-ten" class="hop nho">
+    <h2>Bạn tên gì?</h2>
+    <p class="phu">Tên hiện trên con trỏ và góp ý của bạn để mọi người cùng xem biết ai đang nói.</p>
+    <input id="ten-nhap" maxlength="40" autocomplete="nickname" placeholder="Ví dụ: Lan Anh" required>
+    <div class="nut-hang"><button type="button" id="ten-dong" class="nut-nhe">Để sau</button><button type="submit" class="nut-chinh">Xong</button></div>
+  </form>
+</div>
+<div id="di-theo" hidden><span></span><button type="button">Thôi đi theo (Esc)</button></div>
+
+<!-- hỏi tạo biến thể -->
+<div id="lop-hoi" class="lop" hidden>
+  <div class="hop nho" role="dialog" aria-labelledby="hoi-tieu">
+    <h2 id="hoi-tieu">Tạo biến thể theo góp ý này?</h2>
+    <p class="phu">Claude dựng thử màn đã sửa theo góp ý của bạn. Biến thể KHÔNG đổi thiết kế gốc — bạn chọn bản ưng rồi bấm «Đề xuất áp dụng», người phụ trách duyệt mới áp dụng.</p>
+    <label class="dong-gy">Số biến thể <select id="hoi-so"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+    <div class="nut-hang"><button type="button" id="hoi-khong" class="nut-nhe">Không</button><button type="button" id="hoi-co" class="nut-chinh">Có, tạo biến thể</button></div>
+  </div>
+</div>
+
+<!-- key Claude của người review -->
+<div id="lop-key" class="lop" hidden>
+  <form id="hop-key" class="hop nho">
+    <h2>Key Claude của bạn</h2>
+    <p class="phu">Key chỉ lưu trong trình duyệt này và chỉ gửi thẳng tới api.anthropic.com — không qua máy chủ của bàn. Không có key? Bấm «Gửi yêu cầu» để người phụ trách sinh biến thể giúp.</p>
+    <input id="key-nhap" type="password" autocomplete="off" placeholder="sk-ant-…">
+    <div class="nut-hang"><button type="button" id="key-xoa" class="nut-nhe">Xoá key</button><button type="button" id="key-yc" class="nut-nhe" hidden>Gửi yêu cầu biến thể</button><button type="submit" class="nut-chinh">Lưu</button></div>
+  </form>
+</div>
+
+<!-- so sánh biến thể -->
+<div id="lop-bt" class="lop" hidden>
+  <div class="hop lon" role="dialog" aria-labelledby="bt-tieu">
+    <div class="dau-hop"><h2 id="bt-tieu">Biến thể theo góp ý</h2><button type="button" id="bt-dong" class="nut-nhe">Đóng</button></div>
+    <p id="bt-y" class="phu"></p>
+    <div id="bt-luoi" class="luoi"></div>
+  </div>
+</div>
+
+<!-- xem một đề xuất -->
+<div id="lop-xem" class="lop" hidden>
+  <div class="hop lon" role="dialog" aria-labelledby="xem-tieu">
+    <div class="dau-hop"><h2 id="xem-tieu"></h2><button type="button" id="xem-dong" class="nut-nhe">Đóng</button></div>
+    <div id="xem-luoi" class="luoi"></div>
+  </div>
+</div>
+
+<div id="het" class="het" hidden><h1>Link góp ý không dùng được</h1><p id="het-ly"></p></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/review.js"></script>
+</body>
+</html>
