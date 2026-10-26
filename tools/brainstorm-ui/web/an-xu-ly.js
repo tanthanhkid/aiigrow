@@ -22,7 +22,7 @@ export function taoAnXuLy(khoa, veLai, boQua = () => false) {
     danhDauDaXem(ds) {
       let doi = false;
       for (const g of ds) for (const t of S.traLoiChuaXem(g)) { daXem.add(t.id); doi = true; }
-      if (doi) ghi(`${khoa}.xem`, JSON.stringify([...daXem].slice(-1000)));
+      if (doi) ghi(`${khoa}.xem`, JSON.stringify([...daXem].slice(-5000)));
     },
     // công tắc: soXl = số mục đã xử lý (đang ẩn hoặc đang hiện), coMoi = có trả lời mới chưa xem
     congTac(soXl, coMoi) {
@@ -36,7 +36,7 @@ export function taoAnXuLy(khoa, veLai, boQua = () => false) {
         b.setAttribute('aria-label', `Hiện đã xử lý (${soXl}) — có trả lời mới`);
       }
       b.disabled = !soXl && !hien;
-      b.onclick = () => { hien = !hien; ghi(khoa, hien ? '1' : '0'); veLai(); };
+      b.onclick = () => { hien = !hien; ghi(khoa, hien ? '1' : '0'); veLai(); document.querySelector('.cong-tac-xl')?.focus(); }; // vẽ lại thay nút: giữ focus bàn phím
       return b;
     },
   };

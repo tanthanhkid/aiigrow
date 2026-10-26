@@ -33,7 +33,7 @@ export function ganGopY(A) {
     D.dangTai = (async () => {
       do {
         D.lai = false;
-        try { D.du = await goi('/api/review'); D.canMa = false; } catch { /* đã hiện lý do */ }
+        try { const du = await goi('/api/review'); await D.truot; D.du = du; D.canMa = false; } catch { /* đã hiện lý do */ } // đang trượt thẻ: vẽ lại sau khi trượt xong
       } while (D.lai);
       ve(); A.veBen(); A.veTatCa(false);
     })().finally(() => { D.dangTai = null; });
@@ -99,7 +99,7 @@ export function ganGopY(A) {
     const md = tao('button', 'nut-nhe', 'Xuất Markdown'); md.type = 'button'; md.onclick = xuatMd;
     loc.append(sHt, sNg, md); than.append(loc);
     const khop = locNguoiHt(ds); const xl = khop.filter(daXuLyGy);
-    than.append(XL.congTac(xl.length, xl.some((g) => XL.traLoiChuaXem(g).length)));
+    if (xl.length || XL.hien) than.append(XL.congTac(xl.length, xl.some((g) => XL.traLoiChuaXem(g).length)));
     if (XL.hien) XL.danhDauDaXem(xl);
     const hien = locGopY(ds);
     if (!hien.length) {
@@ -168,7 +168,8 @@ export function ganGopY(A) {
     const dangGo = [...(the0?.querySelectorAll('form textarea') || [])].some((ta) => (ta.closest('form.pn-sua') ? ta.value !== g.noi : ta.value.trim())); // đang gõ dở: thẻ được giữ lại, không trượt
     const an = tt === 'xong' && !XL.hien && !dangGo; const the = an ? the0 : null;
     let x;
-    try { [x] = await Promise.all([goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }), truotRa(the)]); }
+    const tr = truotRa(the); if (the) { const p = tr.then(() => { if (D.truot === p) D.truot = null; }); D.truot = p; } // tai() chờ trượt xong mới vẽ lại
+    try { [x] = await Promise.all([goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }), tr]); }
     catch (e) { huyTruot(the); A.toast(`Không đổi được: ${e.message}`, true); return; }
     // ghi ngay vào dữ liệu đang có: tải lại lỗi (mạng chập) thì thẻ vẫn không hiện lại như còn mở
     const ds = D.du?.gopY?.[g.ht]; const i = ds ? ds.findIndex((y) => y.id === g.id) : -1; if (i >= 0 && x?.id) ds[i] = x;
@@ -227,7 +228,7 @@ export function ganGopY(A) {
   function veDeXuat(than) {
     const tatCa = tatCaDeXuat(); const xl = tatCa.filter(daXuLyDx);
     if (!tatCa.length) { than.append(tao('p', 'phu', 'Chưa có đề xuất thay đổi. Người review tạo biến thể theo góp ý rồi bấm «Đề xuất áp dụng» thì đề xuất hiện ở đây.')); return; }
-    than.append(XLdx.congTac(xl.length, false));
+    if (xl.length || XLdx.hien) than.append(XLdx.congTac(xl.length, false));
     const ds = tatCa.filter((x) => XLdx.hien || !daXuLyDx(x)).sort((a, b) => (a.tt === 'cho') === (b.tt === 'cho') ? b.t.localeCompare(a.t) : a.tt === 'cho' ? -1 : 1);
     if (!ds.length) { than.append(tao('p', 'phu', `Không còn đề xuất chờ duyệt — ${xl.length} đề xuất đã duyệt đang ẩn.`)); return; }
     for (const x of ds) {
