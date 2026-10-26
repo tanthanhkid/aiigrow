@@ -61,7 +61,8 @@ export function taoAudit({ THIET_KE }) {
   // Khoá do người dùng gửi mà bắt đầu bằng «$» được thêm một «$» (vd. «$blob» → «$$blob») để không giả được tham chiếu blob; mo() bỏ lại.
   function gom(v, sau = 0) {
     if (typeof v === 'string') return v.length > BLOB_TU ? { $blob: luuBlob(v), n: v.length } : v;
-    if (!v || typeof v !== 'object' || sau > 8) return v;
+    if (!v || typeof v !== 'object') return v;
+    if (sau > 8) return { $json: gom(JSON.stringify(v), 0) }; // sâu hơn: cất nguyên dạng chuỗi (không còn khoá «$» nào lọt qua)
     if (Array.isArray(v)) return v.map((x) => gom(x, sau + 1));
     const o = {}; for (const [k, x] of Object.entries(v)) if (x !== undefined) o[k.startsWith('$') ? `$${k}` : k] = gom(x, sau + 1);
     return o;
@@ -70,6 +71,7 @@ export function taoAudit({ THIET_KE }) {
   function mo(v, sau = 0) {
     if (!v || typeof v !== 'object' || sau > 10) return v;
     if (typeof v.$blob === 'string' && Object.keys(v).every((k) => k === '$blob' || k === 'n')) { const s = docBlob(v.$blob); if (s == null) throw new Error(`thiếu blob ${v.$blob.slice(0, 12)}`); return s; }
+    if (Object.keys(v).length === 1 && v.$json !== undefined) return JSON.parse(mo(v.$json, sau + 1));
     if (Array.isArray(v)) return v.map((x) => mo(x, sau + 1));
     const o = {}; for (const [k, x] of Object.entries(v)) o[k.startsWith('$$') ? k.slice(1) : k] = mo(x, sau + 1);
     return o;
@@ -78,11 +80,12 @@ export function taoAudit({ THIET_KE }) {
   // ---- khoá liên tiến trình (đồng bộ: một lần ghi chỉ vài ms)
   function khoa() {
     const k = path.join(DIR, '.khoa');
-    // mỗi lần ghi chỉ vài ms ⇒ khoá cũ hơn 1,5 s là của tiến trình đã chết giữa chừng: gỡ. Chờ tối đa ~2 s (không treo máy chủ lâu).
+    // mỗi lần ghi chỉ vài ms ⇒ khoá cũ hơn 10 s là của tiến trình đã chết giữa chừng: gỡ. Chờ tối đa ~2 s mỗi lần (không treo máy chủ lâu);
+    // không lấy được khoá thì sự kiện vào hàng chờ trong bộ nhớ, thử lại mỗi giây (không mất sự kiện, không gỡ khoá của người đang ghi).
     for (let i = 0; i < 1000; i++) {
       try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
         if (e.code !== 'EEXIST') throw e;
-        try { if (Date.now() - fs.statSync(k).mtimeMs > 1500) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
+        try { if (Date.now() - fs.statSync(k).mtimeMs > 10000) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
         nguDb(2);
       }
     }
@@ -107,12 +110,13 @@ export function taoAudit({ THIET_KE }) {
   }
 
   // ghi nhiều sự kiện một lần (một khoá, một fsync). ev: { loai, dt, ai, truoc, sau, ghiChu }. Lỗi audit KHÔNG làm hỏng thao tác chính — chỉ báo log.
-  function ghi(evs, { motLan } = {}) {
+  function ghi(evs, { motLan, hoan } = {}) {
     const ds = (Array.isArray(evs) ? evs : [evs]).filter(Boolean);
     if (!ds.length) return [];
     let mo2;
     try {
-      const dong = ds.map((e) => ({ loai: e.loai, dt: e.dt || {}, ai: e.ai || {}, truoc: gom(e.truoc ?? null), sau: gom(e.sau ?? null), ...(e.ghiChu ? { ghiChu: String(e.ghiChu).slice(0, 300) } : {}) }));
+      for (const e of ds) e.tLuc ||= new Date().toISOString(); // giờ thật của thao tác (giữ nguyên nếu phải ghi lại sau)
+      const dong = ds.map((e) => ({ t: e.tLuc, loai: e.loai, dt: e.dt || {}, ai: e.ai || {}, truoc: gom(e.truoc ?? null), sau: gom(e.sau ?? null), ...(e.ghiChu ? { ghiChu: String(e.ghiChu).slice(0, 300) } : {}) }));
       mo2 = khoa();
       if (motLan) { // sự kiện nhiều tiến trình cùng thấy (vd. đổi chu-quan.json): chỉ ghi một lần
         const tm = path.join(DIR, '.mot-lan'); let cu = ''; try { cu = fs.readFileSync(tm, 'utf8'); } catch { /* chưa có */ }
@@ -122,7 +126,7 @@ export function taoAudit({ THIET_KE }) {
       const d = duoi(); const ngay = ngayCua(); const tep = `${ngay}.jsonl`;
       let { i, h } = d; const ra = []; let nd = '';
       for (const o of dong) {
-        const dongTho = JSON.stringify({ i: i + 1, t: new Date().toISOString(), ...o, p: h });
+        const dongTho = JSON.stringify({ i: i + 1, ...o, p: h });
         i += 1; h = sha(dongTho); nd += dongTho + '\n'; ra.push({ ngay, i });
       }
       const duong = path.join(DIR, tep);
@@ -137,8 +141,15 @@ export function taoAudit({ THIET_KE }) {
       return ra;
     } catch (e) {
       console.error('! audit không ghi được:', e.message);
+      if (!motLan && !hoan) { cho2.push(...ds); henLai(); } // thử lại sau (người gọi coi như chưa ghi — vd. dọn thùng rác sẽ không xoá tệp)
       return [];
     } finally { mo2?.(); }
+  }
+  const cho2 = []; let hen = null;
+  function henLai() {
+    if (hen) return;
+    hen = setTimeout(() => { hen = null; const ds = cho2.splice(0, 500); if (ds.length && !ghi(ds, { hoan: true }).length) { cho2.unshift(...ds); henLai(); } else if (cho2.length) henLai(); }, 1000);
+    hen.unref?.();
   }
 
   // ---- đọc (chỉ chủ quản — server kiểm quyền trước khi gọi)

@@ -1324,6 +1324,7 @@ async function goiKho(url, than) {
   try {
     const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...(CQ.la ? dauChuQuan() : {}) }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
+    if (r.status === 403 && j.canMa && CQ.la) { CQ.la = false; CQ.luc = 0; $('#nut-ls-thay-doi').hidden = true; $('#nut-au-bang').hidden = true; } // mã đã đổi/thu hồi: thôi kèm mã cũ (khỏi đốt lượt thử)
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
     if (j.loi?.length) toast(`Máy chủ không nhận ${j.loi.length} mục: ${j.loi[0]}`, true);
     loiKho = 0; return j;

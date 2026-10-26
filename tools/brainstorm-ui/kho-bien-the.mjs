@@ -160,14 +160,17 @@ export function taoKhoBienThe(C) {
   function donRac() {
     let ten; try { ten = fs.readdirSync(dir('rac')); } catch { return; }
     for (const t of ten) {
-      if (!t.endsWith('.json')) continue;
+      const mm = t.match(/^([kl])-([\w-]{1,120})\.json$/); if (!mm) continue;
       const m = docJson(path.join(dir('rac'), t));
       if (m && Date.now() - (m.tXoa || 0) <= RAC_GIU) continue;
-      // xoá vĩnh viễn: ghi đủ nội dung vào audit (blob) TRƯỚC khi xoá tệp — dựng lại được từ «Lịch sử thay đổi»
-      const l = t.slice(0, 1); const id = t.slice(2, -5);
-      if (m && (l === 'k' || l === 'l')) A.ghi({ loai: l === 'k' ? 'bien-the.xoa-vinh-vien' : 'phuong-an.xoa-vinh-vien', dt: dtCua(l, { ...m, id }), ai: { ten: 'máy chủ', vai: 'he-thong' },
-        truoc: { ...trangThai(l, id, m, true), tXoa: m.tXoa, nguoiXoa: m.nguoiXoa }, sau: null, ghiChu: 'dọn thùng rác sau 7 ngày' });
-      for (const d of ['json', 'html', 'phu']) xoaTep(path.join(dir('rac'), t.replace(/\.json$/, `.${d}`)));
+      // xoá vĩnh viễn: «giành» mục bằng đổi tên (chỉ MỘT tiến trình 5178/5181 thắng), ghi đủ nội dung vào audit (blob),
+      // CHỈ xoá tệp khi audit đã ghi được — không thì trả tên cũ, lượt dọn sau thử lại
+      const [, l, id] = mm; const giu = path.join(dir('rac'), `${t}.don-${process.pid}`);
+      if (!doiTen(path.join(dir('rac'), t), giu)) continue;
+      const da = m ? A.ghi({ loai: l === 'k' ? 'bien-the.xoa-vinh-vien' : 'phuong-an.xoa-vinh-vien', dt: dtCua(l, { ...m, id }), ai: { ten: 'máy chủ', vai: 'he-thong' },
+        truoc: { ...trangThai(l, id, m, true), tXoa: m.tXoa, nguoiXoa: m.nguoiXoa }, sau: null, ghiChu: 'dọn thùng rác sau 7 ngày' }, { hoan: true }) : []; // hoan: không xếp hàng — lượt dọn sau tự ghi lại
+      if (m && !da.length) { doiTen(giu, path.join(dir('rac'), t)); continue; }
+      xoaTep(giu); for (const d of ['html', 'phu']) xoaTep(tepRac(l, id, d));
     }
   }
   donRac(); setInterval(donRac, 3600 * 1000).unref();

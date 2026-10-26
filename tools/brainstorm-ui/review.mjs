@@ -47,17 +47,19 @@ export function taoReview(C) {
     return cq.j;
   }
   // vai của người gọi để ghi audit — KHÔNG đếm lần sai (khác laChuQuan)
-  function vaiCua(req) {
-    if (laNoiBo(req)) return 'chu-quan';
-    const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
-    if (ma.length >= 8 && gui) { const bang = (x) => crypto.createHash('sha256').update(x).digest(); if (crypto.timingSafeEqual(bang(ma), bang(gui))) return 'chu-quan'; }
-    return 'cong-tac';
-  }
+  // vai của người gọi để ghi audit — dùng chính laChuQuan (một yêu cầu chỉ kiểm/đếm mã một lần, mã sai ở mọi đường đều bị giới hạn + ghi audit)
+  const vaiCua = (req) => (laChuQuan(req) ? 'chu-quan' : 'cong-tac');
   function laNoiBo(req) {
     const h = String(req.headers.host || '').toLowerCase();
     return /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(h) && !req.headers['cf-connecting-ip'] && !req.headers['cf-ray'] && !req.headers['x-forwarded-for'];
   }
+  const daKiem = new WeakMap(); // req → kết quả: gọi laChuQuan nhiều lần trong một yêu cầu không đếm sai nhiều lần
   function laChuQuan(req) {
+    if (daKiem.has(req)) return daKiem.get(req);
+    daKiem.set(req, false); // trong lúc kiểm (vd. ghi audit «sai mã» gọi lại vaiCua) coi như chưa phải chủ quản — không đệ quy
+    const kq = kiemMa(req); daKiem.set(req, kq); return kq;
+  }
+  function kiemMa(req) {
     if (laNoiBo(req)) return true;
     const ma = String(cauHinh().ma || ''); const gui = String(req.headers['x-bs-chu-quan'] || '');
     if (ma.length < 8 || !gui) return false;
