@@ -38,9 +38,11 @@
 </header>
 
 <nav id="ben" aria-label="Hành trình">
-  <div class="ben-dau"><b>Hành trình</b><span id="ben-dem" class="phu"></span></div>
+  <div class="ben-dau"><div class="ben-tieu"><b>Hành trình</b><button type="button" id="an-ben" class="nut-x" aria-expanded="true" aria-controls="ben" title="Ẩn thanh bên (\ hoặc ⌘\)">‹</button></div><span id="ben-dem" class="phu"></span></div>
   <div id="ben-ds" class="ben-ds"></div>
 </nav>
+
+<button type="button" id="mo-ben" hidden title="Hiện thanh hành trình (\ hoặc ⌘\)" aria-label="Hiện thanh hành trình">›</button>
 
 <main id="vung" tabindex="0" aria-label="Bàn vẽ: kéo nền để di chuyển, cuộn để di chuyển, Ctrl/⌘ + cuộn để phóng to">
   <div id="the-gioi"><svg id="noi" width="1" height="1" overflow="visible"></svg></div>
@@ -62,11 +64,11 @@
   <div class="luoi-nut">
     <button id="nut-play-bang">▶ Play</button>
     <button id="nut-xem">Xem lớn</button>
-    <button id="nut-ghim">Ghim & lưu</button>
-    <button id="nut-html">Tải HTML</button>
-    <button id="nut-png">Tải PNG</button>
-    <button id="nut-xoa" class="nguy">Xoá khung</button>
+    <button id="nut-thay-bang" class="nut-chinh" title="Thay màn hiện tại bằng biến thể này — bản cũ vẫn trong Lịch sử">✓ Thay màn</button>
+    <button id="nut-ls-bang" title="Các phiên bản của màn này">Lịch sử</button>
+    <button id="nut-xoa" class="nguy" title="Xoá biến thể (⌘Z hoàn tác)">✕ Xoá</button>
   </div>
+  <details class="menu-phu"><summary class="phu">Tải về…</summary><div class="luoi-nut"><button id="nut-html">Tải HTML</button><button id="nut-png">Tải PNG</button></div></details>
   <details><summary class="phu">Prompt Claude nhận (xem)</summary><pre id="xem-prompt"></pre></details>
 </aside>
 
@@ -74,6 +76,17 @@
   <div class="hop-xem">
     <div class="dau-bang"><b id="xem-tieu"></b><button id="xem-dong" class="nut-x" aria-label="Đóng">×</button></div>
     <div id="xem-luoi"></div>
+  </div>
+</div>
+
+<div id="lop-ls" class="lop" hidden>
+  <div class="hop-xem hop-ls" role="dialog" aria-labelledby="ls-tieu">
+    <div class="dau-bang"><b id="ls-tieu"></b><button id="ls-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <div class="ls-than">
+      <div id="ls-ds" class="ls-ds" aria-label="Các phiên bản"></div>
+      <div class="ls-xem"><div id="ls-vo" class="vo"><iframe sandbox="allow-same-origin" referrerpolicy="no-referrer" title="Xem trước phiên bản"></iframe></div>
+        <button type="button" id="ls-khoi-phuc" class="nut-chinh">Khôi phục bản này</button></div>
+    </div>
   </div>
 </div>
 
