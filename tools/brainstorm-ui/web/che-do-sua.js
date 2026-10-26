@@ -496,6 +496,7 @@ function nhanBan() {
 
 // ---------- phím ----------
 function phim(e) {
+  if (S.ban) { e.preventDefault(); e.stopImmediatePropagation(); return; }
   if (!$('#lop-play').hidden || !$('#lop-xem').hidden || !$('#lop-cai-dat').hidden || !$('#lop-ls').hidden) return;
   const go = e.target?.closest?.('input,textarea,select');
   const mod = e.metaKey || e.ctrlKey; const k = e.key;
@@ -705,10 +706,11 @@ async function thayManSua() {
   if (!S.tl) return;
   const ds = nhatKy(); if (!ds.length) { C.toast('Chưa sửa gì.'); return; }
   const f = S.f; const html = htmlDaSua(); const key = C.keyCua(f); const { w, h } = C.kichThuoc(f);
-  const ok = await C.thayMan(key, html, { w, h, nhan: 'Sửa tay', yTuong: `✎ Sửa tay: ${tomTat(ds)}`, nguon: 'sua', model: 'sửa tay' });
-  if (!ok || S.f !== f) return;
-  thoat({ im: true }); LICH.delete(f.id);
-  C.veTatCa(false);
+  S.ban = true; document.body.classList.add('sua-ban'); // khoá sửa khi đang gửi: sửa thêm lúc này sẽ mất
+  try {
+    await C.thayMan(key, html, { w, h, nhan: 'Sửa tay', yTuong: `✎ Sửa tay: ${tomTat(ds)}`, nguon: 'sua', model: 'sửa tay',
+      truocVe: () => { if (S.f === f) { thoat({ im: true }); LICH.delete(f.id); } } });
+  } finally { S.ban = false; document.body.classList.remove('sua-ban'); }
 }
 function apVaoKhung() {
   const f = S.f; if (!S.tl || f.loai !== 'bien') return;

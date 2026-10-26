@@ -71,15 +71,16 @@ async function apPhienBan(key) {
   if (ke && m.toi && !/data-toi=/.test(html)) html = ganToi(html, m.toi, ke, MAN[ke]?.ten);
   m.html = html; m.w = muc?.w || m.goc0.w; m.h = muc?.h || m.goc0.h;
 }
-const LOI_PB = [];
-try {
-  const r = await fetch('/api/phien-ban'); const ds = r.ok ? await r.json() : {};
+// Nạp sau lần vẽ đầu (không chặn trang): màn nào có bản đã thay thì đổi sang bản đó khi tải xong.
+async function taiPhienBan() {
+  let ds; try { const r = await fetch('/api/phien-ban'); if (!r.ok) return; ds = await r.json(); } catch { return; } // máy chủ cũ: dùng bản trong mã
+  const loi = [];
   await Promise.all(Object.entries(ds).map(async ([key, m]) => {
-    if (!MAN[key] || !Array.isArray(m?.ds)) return;
-    PB[key] = m;
-    try { await apPhienBan(key); } catch { LOI_PB.push(key); delete PB[key]; MAN[key].html = MAN[key].goc0.html; }
+    if (!MAN[key] || !Array.isArray(m?.ds) || PB[key]) return; // PB đã có: phiên này vừa Thay màn, giữ bản mới hơn
+    try { PB[key] = m; await apPhienBan(key); } catch { loi.push(key); delete PB[key]; MAN[key].html = MAN[key].goc0.html; }
   }));
-} catch { /* máy chủ cũ không có API phiên bản: dùng bản trong mã */ }
+  if (loi.length) toast(`Không tải được phiên bản đã thay của: ${loi.join(', ')} — đang hiện bản trong mã.`, true);
+}
 
 function ganToi(html, nhan, dich, tenDich) {
   if (/data-toi=/.test(html)) return html;
@@ -371,7 +372,7 @@ function veKhung(f) {
   d.el.querySelector('.nut-xoa-k').hidden = f.loai === 'goc' || !!f.lan || f.tt === 'dang';
   const tt = d.el.querySelector('.tt');
   tt.className = 'tt' + (f.tt === 'loi' ? ' loi' : '');
-  tt.textContent = f.tt === 'dang' ? (f.tienDo || 'đang sinh…') : f.tt === 'loi' ? 'lỗi' : f.daThay ? `✓ đã thay (v${f.daThay})` : f.dung ? chuDung(f.dung) : '';
+  tt.textContent = f.tt === 'dang' ? (f.tienDo || 'đang sinh…') : f.tt === 'loi' ? 'lỗi' : dangDungBt(f) ? `✓ đang dùng (v${PB[keyCua(f)].hien})` : f.dung ? chuDung(f.dung) : '';
   tt.title = f.dung ? chuDung(f.dung, true) : '';
   const html = htmlCua(f);
   if (html && d.ban !== html) {
@@ -382,7 +383,7 @@ function veKhung(f) {
   }
   // lớp ảnh thật
   let anh = than.querySelector('.anh-that');
-  if (caiDat.anhThat && f.loai === 'goc' && m.anh) {
+  if (caiDat.anhThat && f.loai === 'goc' && m.anh && !daThayKhacGoc(f.key)) {
     if (!anh) { anh = document.createElement('img'); anh.className = 'anh-that'; anh.alt = 'Ảnh chụp thật'; than.appendChild(anh); }
     anh.src = `/ref/${m.anh}`; anh.classList.toggle('ghep', /\/ss-/.test(m.anh));
   } else if (anh) anh.remove();
@@ -1035,7 +1036,7 @@ function moPlay(id, lanId) {
   const f = timKhung(id); if (!f || !htmlCua(f)) { toast('Màn này chưa có nội dung để Play.', true); return; }
   play.lan = lanId || lanCuaKhung(f)?.id;
   play.lich = [f.id];
-  $('#pl-dung').value = caiDat.playDung; $('#pl-anh').checked = caiDat.anhThat;
+  $('#pl-anh').checked = caiDat.anhThat;
   $('#lop-play').hidden = false;
   vePlay('');
 }
@@ -1060,7 +1061,7 @@ function vePlay(huong) {
   tb.className = `thiet-bi tb-${kieu}`;
   const san = $('#pl-san').getBoundingClientRect();
   const m = MAN[keyCua(f)];
-  const coAnh = $('#pl-anh').checked && m.anh;
+  const coAnh = $('#pl-anh').checked && m.anh && !(f.loai === 'goc' && daThayKhacGoc(f.key));
   const vien = kieu === 'iphone' || kieu === 'android' ? 36 : 44;
   const z = Math.min(1, (san.height - 24) / (h + vien), (san.width / (coAnh ? 2 : 1) - 48) / (w + 28));
   tb.style.setProperty('--z', z);
@@ -1106,7 +1107,7 @@ function ganBamPlay(ifr, f) {
   tl.addEventListener('keydown', (e) => { if (e.key === 'Escape') dongPlay(); });
 }
 function diToi(tu, key) {
-  const T = dichCua(tu, key, $('#pl-dung').value);
+  const T = dichCua(tu, key);
   if (!T || !htmlCua(T)) { toast('Màn đích chưa có.', true); return; }
   play.lich.push(T.id); vePlay('phai');
 }
@@ -1114,7 +1115,7 @@ function buocLan(d) {
   const f = timKhung(play.lich.at(-1)); const l = timLan(play.lan); if (!f || !l) return;
   const i = l.buoc.indexOf(keyCua(f)) + d; if (i < 0 || i >= l.buoc.length) return;
   let T = khungCuaLan(l, l.buoc[i]);
-  if (l.goc) T = dichCua(f, l.buoc[i], $('#pl-dung').value);
+  if (l.goc) T = dichCua(f, l.buoc[i]);
   if (!T || !htmlCua(T)) return;
   play.lich.push(T.id); vePlay(d > 0 ? 'phai' : 'trai');
 }
@@ -1129,7 +1130,6 @@ $('#pl-dong').onclick = dongPlay;
 $('#pl-lui').onclick = luiPlay;
 $('#pl-ke').onclick = () => buocLan(1);
 $('#pl-truoc').onclick = () => buocLan(-1);
-$('#pl-dung').onchange = () => { caiDat.playDung = $('#pl-dung').value; luuCaiDat(); };
 $('#pl-anh').onchange = () => vePlay('');
 $('#nut-play').onclick = () => moPlay();
 $('#nut-play-bang').onclick = () => { const f = khungChon(); if (f) moPlay(f.id); else if (st.lanChon) { const l = timLan(st.lanChon); moPlay(khungCuaLan(l, l.buoc[0])?.id, l.id); } };
@@ -1198,17 +1198,22 @@ $('#nut-png').onclick = async () => {
 };
 
 // ---------- THAY MÀN: biến thể ổn thì thành phiên bản mới của màn gốc (màn gốc hiển thị bản này ở mọi nơi) ----------
+const dangDungBt = (f) => f.loai !== 'goc' && mucPb(keyCua(f), PB[keyCua(f)]?.hien)?.bt === f.id;
+const daThayKhacGoc = (key) => !!mucPb(key, PB[key]?.hien)?.tep; // đang hiện bản khác bản trong mã (ảnh chụp thật không còn khớp)
 const duocThay = (f) => f.loai !== 'goc' && f.tt !== 'dang' && f.tt !== 'loi' && !!htmlCua(f) && !!MAN[keyCua(f)];
+const dangThay = new Set();
 async function thayMan(key, html, meta = {}) {
-  if (!MAN[key] || !html) return false;
+  if (!MAN[key] || !html || dangThay.has(key)) return false;
+  dangThay.add(key); html = lamSach(html);
   try {
     const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '' }) });
+      body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '' }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
     PB[key] = j; const muc = mucPb(key, j.hien); if (muc?.tep) HTML_PB.set(`${key}/${muc.tep}`, html);
     await apPhienBan(key);
-  } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; }
+  } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
+  meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
   qtDaVe = ''; veTatCa(); luuLai();
   toast(`Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}; bản cũ vẫn trong Lịch sử.`);
   return true;
@@ -1216,8 +1221,8 @@ async function thayMan(key, html, meta = {}) {
 async function thayBangKhung(id) {
   const f = timKhung(id); if (!f || !duocThay(f)) return;
   const { w, h } = kichThuoc(f);
-  const ok = await thayMan(keyCua(f), htmlCua(f), { w, h, nhan: f.nhan || tenCua(f), yTuong: f.yTuong || '', nguon: f.lan ? 'pa' : f.suaTay ? 'sua' : 'bien', model: f.model || '' });
-  if (ok) { f.daThay = PB[keyCua(f)].hien; veKhung(f); luuLai(); }
+  const ok = await thayMan(keyCua(f), htmlCua(f), { w, h, nhan: f.nhan || tenCua(f), yTuong: f.yTuong || '', nguon: f.lan ? 'pa' : f.suaTay ? 'sua' : 'bien', model: f.model || '', bt: f.id });
+
 }
 $('#nut-thay-bang').onclick = () => { const f = khungChon(); if (f) thayBangKhung(f.id); };
 $('#nut-ls-bang').onclick = () => { const f = khungChon(); if (f) moLichSu(keyCua(f)); };
@@ -1370,8 +1375,7 @@ capNhatCheDo(); apView(); veTatCa();
 if (!st.views[khoaView()]) vuaMan();
 ghiHash();
 if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
-else if (LOI_PB.length) toast(`Không tải được phiên bản đã thay của: ${LOI_PB.join(', ')} — đang hiện bản trong mã.`, true);
 { let an = false; try { an = localStorage.getItem('bs.an-ben') === '1'; } catch { /* bỏ qua */ } if (an) datBen(true, false); }
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
   lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
-window.__bs = { st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+window.__bs = { pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
