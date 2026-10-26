@@ -15,6 +15,6 @@ export const THAT = Object.fromEntries([...winCai, ...winApp, ...winHop, ...winK
 // b: bước hành trình; khoa: key trong THAT. Giữ key/ten/toi của bước, lấy w/h/html/anh của màn khớp ảnh thật.
 export function khop(b, khoa) {
   const m = THAT[khoa];
-  if (!m) throw new Error('thiếu màn khớp ảnh thật: ' + khoa);
+  if (!m) { console.error('thiếu màn khớp ảnh thật: ' + khoa); return b; }   // giữ bước cũ, không làm rơi cả tệp hành trình
   return { ...b, w: m.w, h: m.h, html: m.html, anh: m.anh };
 }

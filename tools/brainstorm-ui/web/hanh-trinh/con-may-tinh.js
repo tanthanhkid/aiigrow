@@ -27,8 +27,8 @@ export default [
 
   { id: 'con-cai-mac', vai: 'Con', nen: 'Mac', ten: 'Cài trên Mac', mo: 'Ba Mẹ cài AiiGrow lên Mac của Con rồi ghép máy bằng mã 6 số, hoặc một chạm nếu gói cài đã mang mã gia đình.',
     buoc: [
-      S('mac-chao', 'Chào mừng', 'Tiếp sang điều khoản'),
-      S('mac-dieu-khoan', 'Điều khoản', 'Đồng ý và cài, rồi mở AiiGrow trên thanh menu'),
+      S('mac-chao', 'Chào mừng', 'Đọc «Chào mừng đến với AiiGrow» rồi bấm Tiếp tục của trình cài'),
+      S('mac-dieu-khoan', 'Điều khoản', 'Đồng ý «Điều khoản» và cài, rồi mở AiiGrow trên thanh menu'),
       S('mac-ghep-may', 'Ghép máy bằng mã 6 số', 'Gói cài đã mang mã gia đình thì chỉ cần một chạm'),
       S('mac-ghep-mot-cham', 'Ghép máy một chạm'),
     ] },
