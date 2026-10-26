@@ -9,7 +9,7 @@ import crypto from 'node:crypto';
 const ID = /^[\w-]{1,120}$/;
 const HTML_TOI_DA = 3 * 1024 * 1024;     // một khung
 const META_TOI_DA = 64 * 1024;           // thông tin khung / phương án (không kể HTML)
-const THAN_TOI_DA = 24 * 1024 * 1024;    // một lần ghi (nhiều mục)
+const THAN_TOI_DA = 40 * 1024 * 1024;    // một lần ghi (nhiều mục); client chia lô ≤ ~20 MB, một khung tối đa 3 × 3 MB ký tự
 const SO_TOI_DA = 4000;                  // số mục tối đa mỗi loại
 const RAC_GIU = 7 * 24 * 3600 * 1000;    // thùng rác 7 ngày
 const LOAI = { k: 'khung', l: 'lan' };
@@ -69,8 +69,10 @@ export function taoKhoBienThe(C) {
     const phu = { htmlSua: typeof f.htmlSua === 'string' ? f.htmlSua : '', htmlGocSua: typeof f.htmlGocSua === 'string' ? f.htmlGocSua : '' };
     if (html.length > HTML_TOI_DA || phu.htmlSua.length > HTML_TOI_DA || phu.htmlGocSua.length > HTML_TOI_DA) return { loi: `HTML của ${m.id} quá lớn` };
     if (JSON.stringify(m).length > META_TOI_DA) return { loi: `Thông tin ${m.id} quá lớn` };
-    const cu = BO.k.get(m.id);
+    // đọc bản trên ĐĨA (không tin chỉ mục): tiến trình kia (5178/5181) có thể vừa ghi mà watch chưa tới
+    const cu = docJson(tepMuc('k', m.id)); if (cu) BO.k.set(m.id, cu);
     if (cuHon(cu, f)) return { xungDot: cu };
+    if (m.lan && !BO.l.has(m.lan) && !fs.existsSync(tepMuc('l', m.lan))) return { loi: `Phương án của ${m.id} không còn` };
     if (!cu && BO.k.size >= SO_TOI_DA) return { loi: `Kho đã đủ ${SO_TOI_DA} biến thể — dọn bớt` };
     const coPhu = !!(phu.htmlSua || phu.htmlGocSua);
     m.b = html || coPhu ? bam(html, phu.htmlSua, phu.htmlGocSua) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
@@ -84,7 +86,7 @@ export function taoKhoBienThe(C) {
   }
   function ghiLan(l0) {
     const l = sachLan(l0); if (!l) return { loi: 'Phương án không hợp lệ' };
-    const cu = BO.l.get(l.id);
+    const cu = docJson(tepMuc('l', l.id)); if (cu) BO.l.set(l.id, cu);
     if (cuHon(cu, l0)) return { xungDot: cu };
     if (!cu && BO.l.size >= SO_TOI_DA) return { loi: 'Kho phương án đã đầy' };
     l.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1);
@@ -100,6 +102,13 @@ export function taoKhoBienThe(C) {
     if (l === 'k') { doiTen(path.join(dir('k'), `${id}.html`), tepRac(l, id, 'html')); doiTen(tepPhu(id), tepRac(l, id, 'phu')); }
     boMuc(l, id);
     return true;
+  }
+  // xoá phương án ⇒ các màn của nó cùng vào thùng rác (không để khung mồ côi trên máy chủ)
+  function vaoRacLan(id, nguoi) {
+    if (!vaoRac('l', id, nguoi)) return null;
+    const khung = [...BO.k.values()].filter((m) => m.lan === id).map((m) => m.id);
+    for (const k of khung) vaoRac('k', k, nguoi);
+    return khung;
   }
   // khôi phục (ghiLai=true) hoặc chỉ bỏ khỏi thùng rác (khi mục vừa được ghi mới)
   function raRac(l, id, ghiLai) {
@@ -166,10 +175,13 @@ export function taoKhoBienThe(C) {
   // ---- giới hạn tốc độ ghi theo IP
   const dem = new Map();
   function choGhi(req) {
-    const ip = req.headers['cf-connecting-ip'] || req.socket.remoteAddress || '';
+    // chỉ tin cf-connecting-ip khi yêu cầu đến từ cloudflared trên máy này (loopback); client nối thẳng thì dùng địa chỉ socket
+    const sock = req.socket.remoteAddress || '';
+    const ip = /^(127\.|::1$|::ffff:127\.)/.test(sock) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : sock;
     const now = Date.now(); const d = dem.get(ip) || { t: now, n: 0 };
     if (now - d.t > 60000) { d.t = now; d.n = 0; }
-    d.n++; dem.set(ip, d); if (dem.size > 2000) dem.clear();
+    d.n++; dem.set(ip, d);
+    if (dem.size > 2000) for (const [k, v] of dem) if (now - v.t > 60000) dem.delete(k); // chỉ bỏ bộ đếm đã hết phút
     return d.n <= 900;
   }
   const phienCua = (req) => chu(String(req.headers['x-bs-phien'] || ''), 40) || '';
@@ -230,7 +242,7 @@ export function taoKhoBienThe(C) {
     }
     if (p === '/api/bien-the/xoa') {
       const ra = { khung: [], lan: [] };
-      for (const id of dsL) if (ID.test(String(id)) && vaoRac('l', id, nguoi)) ra.lan.push(id);
+      for (const id of dsL) { const k = ID.test(String(id)) && vaoRacLan(id, nguoi); if (k) { ra.lan.push(id); ra.khung.push(...k); } }
       for (const id of dsK) if (ID.test(String(id)) && vaoRac('k', id, nguoi)) ra.khung.push(id);
       if (ra.khung.length || ra.lan.length) phat({ loai: 'xoa', ...ra, tu: phien, ten: nguoi });
       return json(res, 200, ra);
