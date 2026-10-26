@@ -1,7 +1,7 @@
 // Bàn chính — phía chủ quản của «Góp ý»: chia sẻ hành trình lấy ý kiến (/r/<mã>), xem/lọc góp ý, đánh dấu đã xử lý,
 // «✨ Sửa theo góp ý» (luồng biến thể sẵn có), duyệt «Đề xuất thay đổi» của người review (Accept = Thay màn / Từ chối / Sửa tiếp), xuất Markdown.
 // Quyền chủ quản kiểm ở MÁY CHỦ: 127.0.0.1 gõ thẳng, hoặc mã chủ quản (chu-quan.json ngoài git) gửi qua header x-bs-chu-quan.
-import { taoAnXuLy, truotRa, huyTruot, traLoiMoiSauXl, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
+import { taoAnXuLy, truotRa, huyTruot, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
 
 const $ = (s) => document.querySelector(s);
 const KHOA_MA = 'bs.chu-quan';
@@ -19,7 +19,7 @@ export const dauChuQuan = () => (maChuQuan() ? { 'x-bs-chu-quan': maChuQuan() } 
 export function ganGopY(A) {
   const D = { du: null, canMa: false, tab: 'gy', loc: { ht: '', nguoi: '' }, dangTai: null };
   // góp ý «Đã xử lý» + đề xuất đã duyệt mặc định ẩn; công tắc «Hiện đã xử lý (N)» ở đầu danh sách
-  const XL = taoAnXuLy('bs.hien-xl', () => ve());
+  const XL = taoAnXuLy('bs.hien-xl', () => ve(), (t) => !!t.chuQuan); // trả lời của phía phụ trách không tính là «mới»
   async function goi(url, than) {
     const r = await fetch(url, than === undefined ? { headers: dauChuQuan() } : { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-nguoi': encodeURIComponent(A.tenNguoi() || ''), ...dauChuQuan() }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
@@ -131,7 +131,7 @@ export function ganGopY(A) {
     if (g.ghim) dau.append(tao('span', 'chip', '📌 ghim'));
     if (g.ycBt) dau.append(tao('span', 'chip vang', 'Yêu cầu biến thể'));
     if (g.tt === 'xong') dau.append(tao('span', 'chip chap', 'Đã xử lý'));
-    const moi = traLoiMoiSauXl(g).length; if (moi) dau.append(tao('span', 'chip vang', `↩ ${moi} trả lời sau khi xử lý`));
+    const moi = XL.moiSauXl(g).length; if (moi) dau.append(tao('span', 'chip vang', `↩ ${moi} trả lời sau khi xử lý`));
     dau.append(tao('span', 'phu', gioVN(g.t)));
     the.append(dau, tao('p', 'pn-noi', g.noi));
     for (const t of g.tl || []) { const tl = tao('div', 'pn-tl'); tl.append(tao('b', '', t.ten + (t.chuQuan ? ' (phụ trách)' : '')), tao('span', 'phu', ` ${gioVN(t.t)}`), tao('p', '', t.noi)); the.append(tl); }
@@ -162,11 +162,16 @@ export function ganGopY(A) {
   }
   async function doiTt(g, tt) {
     // đánh dấu xử lý khi đang ẩn mục đã xử lý: thẻ trượt ra cùng lúc gửi lệnh; lỗi thì trả thẻ về chỗ
-    const the = tt === 'xong' && !XL.hien ? $('#pn-gy-than')?.querySelector(`[data-gy="${CSS.escape(`${g.ht}/${g.id}`)}"]`) : null;
-    try { await Promise.all([goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }), truotRa(the)]); }
+    const the0 = $('#pn-gy-than')?.querySelector(`[data-gy="${CSS.escape(`${g.ht}/${g.id}`)}"]`);
+    const dangGo = [...(the0?.querySelectorAll('textarea') || [])].some((ta) => ta.value.trim()); // đang gõ dở: thẻ được giữ lại, không trượt
+    const an = tt === 'xong' && !XL.hien && !dangGo; const the = an ? the0 : null;
+    let x;
+    try { [x] = await Promise.all([goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }), truotRa(the)]); }
     catch (e) { huyTruot(the); A.toast(`Không đổi được: ${e.message}`, true); return; }
-    await tai();
-    if (tt === 'xong') A.toast(`Đã xử lý góp ý của ${g.ten}${XL.hien ? '' : ' — đã ẩn khỏi danh sách'}.`, false, { chu: 'Hoàn tác', lam: () => doiTt(g, 'mo') });
+    // ghi ngay vào dữ liệu đang có: tải lại lỗi (mạng chập) thì thẻ vẫn không hiện lại như còn mở
+    const ds = D.du?.gopY?.[g.ht]; const i = ds ? ds.findIndex((y) => y.id === g.id) : -1; if (i >= 0 && x?.id) ds[i] = x;
+    ve(); A.veBen(); await tai();
+    if (tt === 'xong') A.toast(`Đã xử lý góp ý của ${g.ten}${an ? ' — đã ẩn khỏi danh sách' : ''}.`, false, { chu: 'Hoàn tác', lam: () => doiTt(g, 'mo') });
     else A.toast(`Đã mở lại góp ý của ${g.ten}.`);
   }
   function traLoi(the, g, focus = true) {
@@ -218,7 +223,7 @@ export function ganGopY(A) {
   function veDeXuat(than) {
     const tatCa = tatCaDeXuat(); const xl = tatCa.filter(daXuLyDx);
     if (!tatCa.length) { than.append(tao('p', 'phu', 'Chưa có đề xuất thay đổi. Người review tạo biến thể theo góp ý rồi bấm «Đề xuất áp dụng» thì đề xuất hiện ở đây.')); return; }
-    than.append(XL.congTac(xl.length, false));
+    than.append(XL.congTac(xl.length, tatCaGopY().some((g) => daXuLyGy(g) && XL.traLoiChuaXem(g).length)));
     const ds = tatCa.filter((x) => XL.hien || !daXuLyDx(x)).sort((a, b) => (a.tt === 'cho') === (b.tt === 'cho') ? b.t.localeCompare(a.t) : a.tt === 'cho' ? -1 : 1);
     if (!ds.length) { than.append(tao('p', 'phu', `Không còn đề xuất chờ duyệt — ${xl.length} đề xuất đã duyệt đang ẩn.`)); return; }
     for (const x of ds) {

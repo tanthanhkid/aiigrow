@@ -4,24 +4,25 @@
 const doc = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
 const ghi = (k, v) => { try { localStorage.setItem(k, v); } catch { /* chế độ riêng tư / chặn storage: chỉ nhớ trong phiên */ } };
 
-// trả lời đến sau lúc đánh dấu xử lý (góp ý cũ chưa có tXl thì không tính)
-export const traLoiMoiSauXl = (g) => (g.tt === 'xong' && g.tXl ? (g.tl || []).filter((t) => t.t > g.tXl) : []);
+// trả lời đến sau lúc đánh dấu xử lý (góp ý cũ chưa có tXl thì không tính); boQua(t): trả lời của chính mình thì không tính
+export const traLoiMoiSauXl = (g, boQua = () => false) => (g.tt === 'xong' && g.tXl ? (g.tl || []).filter((t) => t.t > g.tXl && !boQua(t)) : []);
 export const daXuLyGy = (g) => g.tt === 'xong';
 export const daXuLyDx = (x) => x.tt !== 'cho';
 
 // khoa: tên khoá localStorage riêng của trang; veLai(): vẽ lại danh sách khi đổi
-export function taoAnXuLy(khoa, veLai) {
+export function taoAnXuLy(khoa, veLai, boQua = () => false) {
   let hien = doc(khoa) === '1';
-  // mốc «đã xem» của chấm báo: trả lời mới hơn mốc này mới nháy
-  let daXem = doc(`${khoa}.xem`) || '';
+  // id các trả lời-sau-xử-lý đã xem (theo từng trả lời, không theo mốc giờ: xem màn/hành trình này không «nuốt» trả lời ở chỗ khác)
+  let daXem; try { daXem = new Set(JSON.parse(doc(`${khoa}.xem`) || '[]')); } catch { daXem = new Set(); }
   const S = {
     get hien() { return hien; },
-    // id của trả lời mới chưa xem (để đánh dấu thẻ khi đang hiện)
-    traLoiChuaXem(g) { return traLoiMoiSauXl(g).filter((t) => t.t > daXem); },
-    // ghi mốc đã xem = trả lời mới nhất trong các mục đang hiện
+    moiSauXl: (g) => traLoiMoiSauXl(g, boQua),
+    traLoiChuaXem(g) { return traLoiMoiSauXl(g, boQua).filter((t) => !daXem.has(t.id)); },
+    // ds: các góp ý đang thật sự hiện trên màn (công tắc bật) — chỉ đánh dấu những trả lời đó
     danhDauDaXem(ds) {
-      const moi = ds.flatMap((g) => traLoiMoiSauXl(g).map((t) => t.t)).sort().at(-1) || '';
-      if (moi > daXem) { daXem = moi; ghi(`${khoa}.xem`, daXem); }
+      let doi = false;
+      for (const g of ds) for (const t of S.traLoiChuaXem(g)) { daXem.add(t.id); doi = true; }
+      if (doi) ghi(`${khoa}.xem`, JSON.stringify([...daXem].slice(-1000)));
     },
     // công tắc: soXl = số mục đã xử lý (đang ẩn hoặc đang hiện), coMoi = có trả lời mới chưa xem
     congTac(soXl, coMoi) {

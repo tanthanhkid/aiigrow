@@ -22,3 +22,16 @@
 #di-theo button{min-height:32px;border-radius:99px;background:#fff;color:#0f1312;font:700 12px Inter;padding:0 12px}
 .khung.nguoi-chon{outline:3px solid var(--mau-nguoi);outline-offset:4px}
 .khung .tag-nguoi{position:absolute;right:0;top:-26px;background:var(--mau-nguoi);color:#fff;font:700 12px Inter;padding:3px 8px;border-radius:8px;white-space:nowrap;pointer-events:none}
+
+/* Ẩn đã xử lý (an-xu-ly.js): công tắc «Hiện đã xử lý (N)» + thẻ trượt ra — dùng chung bàn chính + /r/ */
+.cong-tac-xl{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 12px 0 6px;border:0;border-radius:99px;background:#e9e8e3;color:var(--chu2);font:700 12.5px Inter;cursor:pointer;position:relative}
+.cong-tac-xl:disabled{opacity:.5;cursor:default}
+.cong-tac-xl .ct-nut{width:30px;height:18px;border-radius:99px;background:#c9c7c0;position:relative;transition:background .2s}
+.cong-tac-xl .ct-nut::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .2s}
+.cong-tac-xl.bat{background:var(--ngocNhat);color:var(--ngocDam)}
+.cong-tac-xl.bat .ct-nut{background:var(--ngoc)}
+.cong-tac-xl.bat .ct-nut::after{transform:translateX(12px)}
+.cong-tac-xl:focus-visible{outline:3px solid var(--ngoc);outline-offset:2px}
+.cong-tac-xl .ct-cham{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:#e8590c;box-shadow:0 0 0 2px #fff}
+.truot-ra{overflow:hidden;transition:transform .3s ease,opacity .3s ease,height .3s ease .05s,padding .3s ease .05s,margin .3s ease .05s!important;transform:translateX(110%);opacity:0;height:0!important;padding-top:0!important;padding-bottom:0!important;margin-top:-10px!important}
+@media (prefers-reduced-motion:reduce){.truot-ra,.cong-tac-xl .ct-nut,.cong-tac-xl .ct-nut::after{transition:none!important}}

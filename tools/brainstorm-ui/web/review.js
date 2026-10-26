@@ -4,7 +4,7 @@
 import { taoRealtime, mauTen } from './realtime.js';
 import { heThong, loiNguoiDung, tachKetQua, HUONG } from './prompt.js';
 import { goiClaude, goiMock, mockSua, chayLoat, lamSach, taiAssets } from './claude.js';
-import { taoAnXuLy, traLoiMoiSauXl, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
+import { taoAnXuLy, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
 
 const $ = (s) => document.querySelector(s);
 const MA = (location.pathname.match(/^\/r\/([a-f0-9]{32})\/?$/) || [])[1] || '';
@@ -22,7 +22,7 @@ const tao = (tag, lop, chu) => { const e = document.createElement(tag); if (lop)
 const R = { goi: null, mo: '', i: -1, chuaXem: false, play: false, ghim: false, lich: [], ghimCho: null, ganDay: null, bt: [], dangSinh: false };
 let rt = null;
 // góp ý «Đã xử lý» (và đề xuất đã duyệt) mặc định ẩn ở danh sách + ghim; công tắc «Hiện đã xử lý (N)» ở đầu danh sách
-const XL = taoAnXuLy('bs.r-hien-xl', () => { veGopY(); veGhim(); });
+const XL = taoAnXuLy('bs.r-hien-xl', () => { veGopY(); veGhim(); }, (t) => !!rt?.ten() && t.ten === rt.ten()); // trả lời của chính mình không tính là «mới»
 const giuNhapId = new Set(); // góp ý đang gõ trả lời dở: vẫn hiện dù vừa bị đánh dấu xử lý (không mất chữ)
 const hienGy = (g) => XL.hien || !daXuLyGy(g) || giuNhapId.has(g.id);
 const st = { view: { x: 0, y: 0, z: 1 }, chon: new Set() };
@@ -260,7 +260,7 @@ function veGopY() {
     if (g.v !== R.goi.v) dau.append(tao('span', 'chip cu', `từ v${g.v}`));
     dau.append(tao('span', 'chip ' + (g.tt === 'xong' ? 'ok' : 'mo'), g.tt === 'xong' ? 'Đã xử lý' : 'Mở'));
     if (g.ycBt) dau.append(tao('span', 'chip', 'Đã yêu cầu biến thể'));
-    const moi = traLoiMoiSauXl(g).length; if (moi) dau.append(tao('span', 'chip cu', `↩ ${moi} trả lời sau khi xử lý`));
+    const moi = XL.moiSauXl(g).length; if (moi) dau.append(tao('span', 'chip cu', `↩ ${moi} trả lời sau khi xử lý`));
     dau.append(tao('span', 'phu gio', gioVN(g.t)));
     the.append(dau, tao('p', 'gy-noi', g.noi));
     for (const t of g.tl || []) {
@@ -286,7 +286,8 @@ function moTraLoi(the, g, focus = true) {
     e.preventDefault(); if (!canTen()) return;
     const j = await guiApi(`/api/review/r/${MA}/gop-y`, { cha: g.id, noi: ta.value, ten: rt.ten() }); if (!j) return;
     f.remove(); // đã gửi: đóng hộp trả lời (không giữ lại như bản nháp)
-    (g.tl ||= []).push(j); veGopY();
+    (g.tl ||= []).push(j); veGopY(); veGhim();
+    if (daXuLyGy(g) && !XL.hien) toast('Đã gửi trả lời — góp ý này đã được xử lý nên ẩn khỏi danh sách (bật «Hiện đã xử lý» để xem).');
   };
 }
 function canTen() { if (rt?.ten()) return true; $('#lop-ten').hidden = false; $('#ten-nhap').focus(); toast('Đặt tên trước để mọi người biết ai góp ý.'); return false; }
