@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bàn brainstorm AiiGrow</title>
+<link rel="icon" href="/assets/logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header id="thanh">
+  <div class="thuong-hieu"><img src="/assets/logo.png" alt=""><b>Bàn brainstorm</b><span>AiiGrow</span></div>
+  <div class="nhom">
+    <button id="nut-thu" title="Thu nhỏ (−)">−</button>
+    <button id="nut-zoom" class="so" title="Về 100%">100%</button>
+    <button id="nut-phong" title="Phóng to (+)">+</button>
+    <button id="nut-vua" title="Vừa màn hình (Shift+1)">Vừa màn</button>
+  </div>
+  <div class="nhom">
+    <button id="nut-so-sanh" disabled title="Shift+bấm để chọn 2–4 khung">So sánh</button>
+    <button id="nut-xep" title="Xếp gọn cả bàn: hành trình theo hàng, biến thể thành cây dưới khung cha">Sắp xếp lại</button>
+    <button id="nut-xoa-bt" title="Xoá mọi biến thể chưa ghim">Dọn biến thể</button>
+  </div>
+  <div class="nhom">
+    <button id="nut-lk" class="bat-tat" title="Hiện/ẩn mũi tên liên kết giữa các màn (L)">Liên kết <kbd>L</kbd></button>
+    <button id="nut-anh" class="bat-tat" title="Phủ ảnh chụp thật lên màn gốc để đối chiếu">Ảnh thật</button>
+    <button id="nut-play" class="nut-chinh nho" title="Play prototype từ màn đang chọn (P)">▶ Play</button>
+  </div>
+  <div class="nhom phai">
+    <span id="che-do" class="nhan-che-do"></span>
+    <button id="nut-cai-dat" class="nut-cai-dat" title="Cài đặt API key và model">⚙ Cài đặt</button>
+  </div>
+</header>
+
+<nav id="ben" aria-label="Hành trình">
+  <div class="ben-dau"><b>Hành trình</b><span id="ben-dem" class="phu"></span></div>
+  <div id="ben-loc" class="ben-loc" role="group" aria-label="Lọc theo nền tảng"></div>
+  <div id="ben-ds" class="ben-ds"></div>
+</nav>
+
+<main id="vung" tabindex="0" aria-label="Bàn vẽ: kéo nền để di chuyển, cuộn để di chuyển, Ctrl/⌘ + cuộn để phóng to">
+  <div id="the-gioi"><svg id="noi" width="1" height="1" overflow="visible"></svg></div>
+  <div id="goi-y">Kéo nền để di chuyển · Ctrl/⌘ + cuộn (hoặc chụm 2 ngón) để phóng · Kéo thanh tiêu đề để dời khung · Shift+bấm để chọn nhiều · Bấm đúp để xem lớn · P để Play · L bật/tắt liên kết</div>
+</main>
+
+<aside id="bang" hidden>
+  <div class="dau-bang"><div><div id="bang-nhom" class="phu"></div><b id="bang-ten"></b></div><button id="bang-dong" class="nut-x" aria-label="Bỏ chọn">×</button></div>
+  <label for="y-tuong" class="phu" id="nhan-y">Ý của anh cho biến thể</label>
+  <textarea id="y-tuong" rows="4" placeholder="Ví dụ: cho mascot Rob cầm đồng hồ, gom việc chờ thành một thẻ lớn, nút Duyệt to hơn…"></textarea>
+  <div class="hang">
+    <label class="phu" for="so-bt" id="nhan-so">Số biến thể</label>
+    <select id="so-bt"><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+    <select id="chon-model" aria-label="Model"></select>
+  </div>
+  <button id="nut-sinh" class="nut-chinh">Sinh biến thể <kbd>⌘↵</kbd></button>
+  <button id="nut-dung" class="nut-phu" hidden>Dừng tất cả</button>
+  <div id="bang-trang-thai" class="phu" aria-live="polite"></div>
+  <div class="luoi-nut">
+    <button id="nut-play-bang">▶ Play</button>
+    <button id="nut-xem">Xem lớn</button>
+    <button id="nut-ghim">Ghim & lưu</button>
+    <button id="nut-html">Tải HTML</button>
+    <button id="nut-png">Tải PNG</button>
+    <button id="nut-xoa" class="nguy">Xoá khung</button>
+  </div>
+  <details><summary class="phu">Prompt Claude nhận (xem)</summary><pre id="xem-prompt"></pre></details>
+</aside>
+
+<div id="lop-xem" class="lop" hidden>
+  <div class="hop-xem">
+    <div class="dau-bang"><b id="xem-tieu"></b><button id="xem-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <div id="xem-luoi"></div>
+  </div>
+</div>
+
+<div id="lop-play" class="lop lop-play" hidden>
+  <div class="play-tren">
+    <button id="pl-lui" title="Quay lại (←)">← Quay lại</button>
+    <div id="pl-vet" class="vet" aria-label="Các màn đã đi"></div>
+    <select id="pl-dung" aria-label="Màn dùng khi Play"><option value="goc">Dùng màn gốc</option><option value="ghim">Dùng biến thể đã ghim</option></select>
+    <label class="o-chon"><input type="checkbox" id="pl-anh"> Ảnh thật</label>
+    <button id="pl-dong" class="nut-x" aria-label="Thoát Play (Esc)">×</button>
+  </div>
+  <div id="pl-san" class="play-san"><div id="pl-thiet-bi" class="thiet-bi"></div><img id="pl-anh-that" alt="Ảnh chụp thật" hidden></div>
+  <div class="play-duoi"><button id="pl-truoc">‹ Bước trước</button><span id="pl-buoc"></span><button id="pl-ke">Bước kế ›</button></div>
+</div>
+
+<div id="lop-cai-dat" class="lop" hidden>
+  <form id="hop-cai-dat" class="hop" autocomplete="off">
+    <div class="dau-bang"><b>Cài đặt</b><button type="button" id="cd-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <label for="cd-key">API key Claude (Anthropic)</label>
+    <div class="hang"><input id="cd-key" type="password" spellcheck="false" placeholder="sk-ant-…" autocomplete="off"><button type="button" id="cd-hien">Hiện</button></div>
+    <p class="phu">Key chỉ lưu trong trình duyệt này (localStorage) và chỉ gửi tới <code>api.anthropic.com</code>. Không ghi ra tệp, không đi qua máy chủ cục bộ. Gõ key bắt đầu bằng <code>mock</code> để thử mà không gọi API.</p>
+    <label for="cd-model">Model mặc định</label>
+    <select id="cd-model"></select>
+    <input id="cd-model-khac" placeholder="Mã model khác (tuỳ chọn)" spellcheck="false">
+    <div class="hang">
+      <div style="flex:1"><label for="cd-max">max_tokens mỗi biến thể</label><input id="cd-max" type="number" min="2000" max="64000" step="1000"></div>
+    </div>
+    <div class="hang ket">
+      <button type="button" id="cd-xoa" class="nguy">Xoá key</button>
+      <span style="flex:1"></span>
+      <button type="submit" class="nut-chinh">Lưu</button>
+    </div>
+  </form>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

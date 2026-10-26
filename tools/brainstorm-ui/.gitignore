@@ -1,0 +1,4 @@
+node_modules/
+da-luu/
+.env*
+*.key
