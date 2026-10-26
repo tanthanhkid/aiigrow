@@ -83,15 +83,16 @@ export function batSua(id) {
   $('#bs-ap').hidden = f.loai !== 'bien';
   veBang();
   S.z = 0; khiDoiView();
-  choIframe(0);
+  S.phien = (S.phien || 0) + 1;
+  choIframe(0, S.phien);
 }
 
-function choIframe(lan) {
-  if (!S.id) return;
+function choIframe(lan, phien) {
+  if (!S.id || phien !== S.phien) return;
   const d = S.d;
   if (d.iframe && d.el.classList.contains('song') && d.iframe.contentDocument?.body) { ganIframe(d.iframe); return; }
   if (lan > 300) { C.toast('Iframe của khung chưa sẵn sàng — thử bấm E lại.', true); thoat(); return; }
-  requestAnimationFrame(() => choIframe(lan + 1));
+  requestAnimationFrame(() => choIframe(lan + 1, phien));
 }
 
 function ganIframe(ifr) {
@@ -105,6 +106,7 @@ function ganIframe(ifr) {
   tl.addEventListener('pointermove', diChuot, o);
   tl.addEventListener('pointerdown', nhanChuot, o);
   tl.addEventListener('pointerup', thaKeo, o);
+  tl.addEventListener('pointercancel', () => thaKeo(true), o);
   tl.addEventListener('pointerleave', () => { if (!S.keo) { S.hover = null; ve(); } }, o);
   tl.addEventListener('dblclick', (e) => { const t = e.target; if (t && t !== tl.body && t !== tl.documentElement) { e.preventDefault(); batSuaChu(t); } }, o);
   tl.addEventListener('click', (e) => { if (!e.target.closest?.('[contenteditable]')) e.preventDefault(); }, { ...o, capture: true });
@@ -291,7 +293,7 @@ function chonCha() { if (S.sel && S.sel !== S.tl.body && S.sel.parentElement) ch
 
 function diChuot(e) {
   S.alt = e.altKey;
-  if (S.keo) { keoDi(e); return; }
+  if (S.keo) { if (S.keo.loai !== 'co' && e.buttons === 0) { thaKeo(true); return; } keoDi(e); return; }
   const t = e.target === S.tl.documentElement ? null : e.target;
   if (t !== S.hover || S.alt) { S.hover = t; ve(); }
 }
@@ -482,6 +484,13 @@ function xoaEl() {
 function nhanBan() {
   const el = S.sel; if (!el || el === S.tl.body) return;
   const ban = el.cloneNode(true); // giữ nguyên data-toi (nhân bản giữ đích)
+  const doi = new Map(); const hau = Math.random().toString(36).slice(2, 6);
+  for (const n of [ban, ...ban.querySelectorAll('[id]')]) if (n.id) { const m = `${n.id}-${hau}`; doi.set(n.id, m); n.id = m; }
+  if (doi.size) for (const n of [ban, ...ban.querySelectorAll('*')]) for (const a of [...n.attributes]) {
+    let v = a.value, moi = v;
+    for (const [c, m] of doi) { moi = moi.split(`url(#${c})`).join(`url(#${m})`); if ((a.name === 'href' || a.name === 'xlink:href') && moi === `#${c}`) moi = `#${m}`; if ((a.name === 'for' || a.name === 'aria-labelledby' || a.name === 'aria-describedby') && moi === c) moi = m; }
+    if (moi !== v) n.setAttribute(a.name, moi);
+  }
   el.after(ban); S.sel = ban; ghiLich(`Nhân bản ${moTaEl(el)}`);
 }
 
@@ -589,13 +598,13 @@ const AM_DUOC = /^margin/;
 function datSo(p, v) {
   if (!S.sel) return;
   const n = parseFloat(v); if (!Number.isFinite(n) || (n < 0 && !AM_DUOC.test(p))) return;
-  if (S.soTruoc?.p !== p) S.soTruoc = { p, v: S.sel.style[p] };
+  if (S.soTruoc?.p !== p || S.soTruoc.el !== S.sel) S.soTruoc = { el: S.sel, p, v: S.sel.style[p] };
   S.sel.style[p] = `${n}px`; ve();
 }
 const TEN_P = { paddingTop: 'đệm trên', paddingRight: 'đệm phải', paddingBottom: 'đệm dưới', paddingLeft: 'đệm trái', marginTop: 'lề trên', marginRight: 'lề phải', marginBottom: 'lề dưới', marginLeft: 'lề trái', gap: 'khe', borderRadius: 'bo góc', fontSize: 'cỡ chữ' };
 function ghiSo(p) {
   const t = S.soTruoc; S.soTruoc = null;
-  if (S.sel && t && t.p === p && S.sel.style[p] !== t.v) ghiLich(`Đổi ${TEN_P[p] || p} ${moTaEl(S.sel)} → ${S.sel.style[p]}`); else veBang();
+  if (t && t.p === p && t.el?.isConnected && t.el.style[p] !== t.v) ghiLich(`Đổi ${TEN_P[p] || p} ${moTaEl(t.el)} → ${t.el.style[p]}`); else veBang();
 }
 
 function veMau() {
@@ -648,11 +657,17 @@ function veBang() {
   document.querySelector('#bs-tt input[data-p="gap"]').disabled = !(laFlex || laLuoi);
   for (const s of document.querySelectorAll('#bs-tt select[data-p]')) s.value = cs[s.dataset.p];
   const fw = $('#bs-tt select[data-p="fontWeight"]'); fw.value = String(Math.round((parseInt(cs.fontWeight, 10) || 400) / 100) * 100);
-  const b = $('#bs-bong'); b.value = el.style.boxShadow === 'none' ? 'none' : String(BONG.findIndex(([k, , gt]) => el.style.boxShadow === gt || (k && el.style.boxShadow === `var(--${k})`)));
+  const b = $('#bs-bong'); const bh = el.style.boxShadow; b.value = bh === 'none' ? 'none' : String(BONG.findIndex(([k, , gt]) => bh === chuanBong(gt) || (k && bh === `var(--${k})`)));
   if (b.value === '-1' || !b.value) b.value = '';
   const mc = sangHex(cs.color), mn = sangHex(cs.backgroundColor);
   document.querySelectorAll('#bang-sua .bs-mau[data-m="color"] .o-mau').forEach((n) => n.classList.toggle('bat', n.dataset.hx === mc));
   document.querySelectorAll('#bang-sua .bs-mau[data-m="background"] .o-mau').forEach((n) => n.classList.toggle('bat', n.dataset.hx ? n.dataset.hx === mn : mn === 'transparent'));
+}
+
+const BONG_CHUAN = new Map();
+function chuanBong(gt) { // trình duyệt chuẩn hoá chuỗi box-shadow (màu → rgba, thứ tự) — so sau khi chuẩn hoá
+  if (!BONG_CHUAN.has(gt)) { const t = document.createElement('i'); t.style.boxShadow = gt; BONG_CHUAN.set(gt, t.style.boxShadow); }
+  return BONG_CHUAN.get(gt);
 }
 
 // ---------- lưu / áp / làm mượt ----------

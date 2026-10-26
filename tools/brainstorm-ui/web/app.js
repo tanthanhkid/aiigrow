@@ -482,7 +482,7 @@ function veTatCa(xep = true) {
   if (st.cheDo === 'qt' && qtDaVe !== st.sec) { qtDaVe = st.sec; qt.ve(st.sec, SECTIONS.find((x) => x.id === st.sec)?.lan || []); }
   if (st.cheDo !== 'qt') qtDaVe = '';
   $('#nut-qt').classList.toggle('bat', st.cheDo === 'qt');
-  henAo();
+  henAo(); Sua.khiDoiView();
   $('#nut-so-sanh').disabled = !(st.chon.size >= 2 && st.chon.size <= 4);
   $('#nut-so-sanh').textContent = st.chon.size >= 2 ? `So sánh (${st.chon.size})` : 'So sánh';
   $('#nut-lk').classList.toggle('bat', caiDat.lienKet);
