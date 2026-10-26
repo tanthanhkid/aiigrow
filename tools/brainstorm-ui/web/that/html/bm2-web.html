@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+    <meta httpequiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>AiiGrow</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    
+  <style>html { text-size-adjust: 100%; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+body { margin: 0px; }
+input::-webkit-search-cancel-button, input::-webkit-search-decoration, input::-webkit-search-results-button, input::-webkit-search-results-decoration { display: none; }
+.css-g5y9jx { align-content: flex-start; align-items: stretch; background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; display: flex; flex-basis: auto; flex-direction: column; flex-shrink: 0; list-style: none; margin: 0px; min-height: 0px; min-width: 0px; padding: 0px; position: relative; text-decoration: none; z-index: 0; }
+.css-146c3p1 { background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; color: rgb(0, 0, 0); display: inline; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; list-style: none; margin: 0px; padding: 0px; position: relative; text-align: start; text-decoration: none; white-space: pre-wrap; overflow-wrap: break-word; }
+.css-11aywtz { appearance: none; background-color: rgba(0, 0, 0, 0); border-radius: 0px; border: 0px solid black; box-sizing: border-box; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0px; padding: 0px; resize: none; }
+.r-13awgt0 { flex: 1 1 0%; }
+.r-1udh08x { overflow: hidden; }
+.r-1uu6nss { padding: 5px; }
+.r-cpet4d { border-radius: 999px; }
+.r-tuq35u { padding: 4px; }
+.r-16uyjmq { border-radius: 22px; }
+.r-1llaxt6 { border-radius: 30px; }
+.r-6ncur5 { border-radius: 18px; }
+.r-nsbfu8 { padding: 16px; }
+.r-78vmp4 { border-radius: 99px; }
+.r-1rf8fdq { border-width: 1.5px; }
+.r-36as0c { border-color: rgb(138, 143, 140); }
+.r-4zvafu { border-radius: 26px; }
+.r-ytbthy { padding-bottom: 10px; padding-top: 10px; }
+.r-3o4zer { padding-left: 12px; padding-right: 12px; }
+.r-3pj75a { padding-left: 16px; padding-right: 16px; }
+.r-18c5d7m { padding-left: 6px; padding-right: 6px; }
+.r-xjggfu { padding-bottom: 3px; padding-top: 3px; }
+.r-1ubuhtd { padding-left: 10px; padding-right: 10px; }
+.r-gu64tb { padding-left: 14px; padding-right: 14px; }
+.r-1p0dtai { bottom: 0px; }
+.r-1d2f490 { left: 0px; }
+.r-u8s1d { position: absolute; }
+.r-zchlnj { right: 0px; }
+.r-ipm5af { top: 0px; }
+.r-633pao { pointer-events: none !important; }
+.r-11yh6sk { overflow-x: hidden; }
+.r-150rngu { }
+.r-eqz5dr { flex-direction: column; }
+.r-16y2uox { flex-grow: 1; }
+.r-1wbh5a2 { flex-shrink: 1; }
+.r-1rnoaur { overflow-y: auto; }
+.r-agouwx { transform: translateZ(0px); }
+.r-18u37iz { flex-direction: row; }
+.r-1777fci { justify-content: center; }
+.r-dnmrzs { max-width: 100%; }
+.r-1udbk01 { text-overflow: ellipsis; }
+.r-3s2u2q { white-space: nowrap; }
+.r-1iln25a { overflow-wrap: normal; }
+.r-1loqt21 { cursor: pointer; }
+.r-1awozwy { align-items: center; }
+@-webkit-keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.r-1otgn73 { touch-action: manipulation; }
+.r-14lw9ot { background-color: rgb(255, 255, 255); }
+@-webkit-keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@-webkit-keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@-webkit-keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@-webkit-keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@-webkit-keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+@keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.r-k200y { align-self: flex-start; }
+.r-6taxm2::-webkit-input-placeholder { color: var(--placeholderTextColor); opacity: 1; }
+.r-6taxm2::placeholder { color: var(--placeholderTextColor); opacity: 1; }
+.r-ubezar { font-size: 16px; }
+.r-1ssbvtb { gap: 12px; }
+.r-qn3fzs { padding-bottom: 24px; }
+.r-1w6e6rj { flex-wrap: wrap; }
+.r-obd0qt { align-items: flex-end; }
+.r-1pz39u2 { align-self: stretch; }
+.r-6tpqnf { background-color: rgb(233, 232, 227); }
+.r-d4uiiy { box-shadow: rgba(40, 44, 42, 0.13) 0px 4px 8px inset, rgba(255, 255, 255, 0.95) 0px -1.5px 0px inset; }
+.r-1599tul { gap: 3px; }
+.r-1h8ys4a { padding-top: 4px; }
+.r-ojf8lh { gap: 6px; }
+.r-1pl7oy7 { min-height: 48px; }
+.r-vmopo1 { padding-top: 2px; }
+.r-z5qs1h { gap: 2px; }
+.r-peo1c { min-height: 44px; }
+.r-yhcc76 { color: rgb(15, 19, 18); }
+.r-d09qxx { box-shadow: rgba(28, 32, 30, 0.26) 0px 16px 24px -14px, rgba(28, 32, 30, 0.14) 0px 4px 8px -5px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(255, 255, 255, 0.7) 0px -2px 0px inset, rgba(40, 44, 42, 0.12) 0px -10px 16px -8px inset; }
+.r-19yznuf { min-height: 52px; }
+.r-h10h58 { min-height: 60px; }
+.r-1p5doym { border-top-color: rgb(239, 239, 236); }
+.r-5kkj8d { border-top-width: 1px; }
+.r-p37qgn { background-color: rgb(235, 235, 231); }
+.r-9aw3ui { gap: 4px; }
+.r-qtfnoi { min-width: 140px; }
+.r-vsb09d { font-family: Inter_400Regular; }
+html, body { height: 100%; }
+body { overflow: hidden; }
+#root { display: flex; height: 100%; flex: 1 1 0%; }
+@font-face { font-family: Inter_400Regular; src: url("/that/a/7a3fa76705ad.ttf"); }
+@font-face { font-family: Inter_600SemiBold; src: url("/that/a/863e1483cb0c.ttf"); }
+@font-face { font-family: Inter_700Bold; src: url("/that/a/5a912e060035.ttf"); }
+@keyframes RollOutRight { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(100vw) rotate(180deg); }
+}
+@keyframes RollOutLeft { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(-100vw) rotate(-180deg); }
+}
+@keyframes RollInRight { 
+  0% { transform: translateX(100vw) rotate(180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RollInLeft { 
+  0% { transform: translateX(-100vw) rotate(-180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RotateOutUpRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateOutUpLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(-250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateInUpRight { 
+  0% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInUpLeft { 
+  0% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownRight { 
+  0% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownLeft { 
+  0% { transform: translateX(-50%) translateY(-250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes PinwheelOut { 
+  0% { transform: rotate(0rad) scale(1); opacity: 1; }
+  100% { transform: rotate(5rad) scale(0); opacity: 0; }
+}
+@keyframes PinwheelIn { 
+  0% { transform: rotate(5rad) scale(0); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes LightSpeedOutLeft { 
+  0% { transform: translateX(0vw) skew(0deg); opacity: 1; }
+  100% { transform: translateX(-100vw) skew(45deg); opacity: 0; }
+}
+@keyframes LightSpeedOutRight { 
+  0% { transform: translateX(0vw) skewX(0deg); opacity: 1; }
+  100% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+}
+@keyframes LightSpeedInLeft { 
+  0% { transform: translateX(-100vw) skewX(45deg); opacity: 0; }
+  70% { transform: skewX(-10deg); }
+  85% { transform: skewX(5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes LightSpeedInRight { 
+  0% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+  70% { transform: skewX(10deg); }
+  85% { transform: skewX(-5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes SlideOutDown { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes SlideOutUp { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes SlideOutLeft { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100vw); }
+}
+@keyframes SlideOutRight { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(100vw); }
+}
+@keyframes SlideInDown { 
+  0% { transform: translateY(100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInUp { 
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInLeft { 
+  0% { transform: translateX(-100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes SlideInRight { 
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes ZoomOutEasyDown { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(100%) scale(0); }
+}
+@keyframes ZoomOutEasyUp { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(-100%) scale(0); }
+}
+@keyframes ZoomOutDown { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(100vh) scale(0); }
+}
+@keyframes ZoomOutUp { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(-100vh) scale(0); }
+}
+@keyframes ZoomOutLeft { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(-100vw) scale(0); }
+}
+@keyframes ZoomOutRight { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(100vw) scale(0); }
+}
+@keyframes ZoomOutRotate { 
+  0% { transform: scale(1) rotate(0rad); }
+  100% { transform: scale(0) rotate(0.3rad); }
+}
+@keyframes ZoomOut { 
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
+}
+@keyframes ZoomInEasyDown { 
+  0% { transform: translateY(100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInEasyUp { 
+  0% { transform: translateY(-100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInDown { 
+  0% { transform: translateY(100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInUp { 
+  0% { transform: translateY(-100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInLeft { 
+  0% { transform: translateX(-100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRight { 
+  0% { transform: translateX(100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRotate { 
+  0% { transform: scale(0) rotate(0.3rad); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes ZoomIn { 
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+@keyframes StretchOutY { 
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+@keyframes StretchOutX { 
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes StretchInY { 
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+@keyframes StretchInX { 
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes FlipOutEasyY { 
+  0% { transform: perspective(500px) rotateY(0deg); }
+  100% { transform: perspective(500px) rotateY(90deg); }
+}
+@keyframes FlipOutEasyX { 
+  0% { transform: perspective(500px) rotateX(0deg); }
+  100% { transform: perspective(500px) rotateX(90deg); }
+}
+@keyframes FlipOutXDown { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+}
+@keyframes FlipOutXUp { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+}
+@keyframes FlipOutYLeft { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+}
+@keyframes FlipOutYRight { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+}
+@keyframes FlipInEasyY { 
+  0% { transform: perspective(500px) rotateY(90deg); }
+  100% { transform: perspective(500px) rotateY(0deg); }
+}
+@keyframes FlipInEasyX { 
+  0% { transform: perspective(500px) rotateX(90deg); }
+  100% { transform: perspective(500px) rotateX(0deg); }
+}
+@keyframes FlipInXDown { 
+  0% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInXUp { 
+  0% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInYLeft { 
+  0% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes FlipInYRight { 
+  0% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes BounceOutDown { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(-10px); }
+  30% { transform: translateY(10px); }
+  45% { transform: translateY(-20px); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes BounceOutUp { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(10px); }
+  30% { transform: translateY(-10px); }
+  45% { transform: translateY(20px); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes BounceOutLeft { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(10px); }
+  30% { transform: translateX(-10px); }
+  45% { transform: translateX(20px); }
+  100% { transform: translateX(-100vh); }
+}
+@keyframes BounceOutRight { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(-10px); }
+  30% { transform: translateX(10px); }
+  45% { transform: translateX(-20px); }
+  100% { transform: translateX(100vh); }
+}
+@keyframes BounceOut { 
+  0% { transform: scale(1); }
+  15% { transform: scale(1.1); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  100% { transform: scale(0.1); }
+}
+@keyframes BounceInDown { 
+  0% { transform: translateY(100vh); }
+  55% { transform: translateY(-20px); }
+  70% { transform: translateY(10px); }
+  85% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInUp { 
+  0% { transform: translateY(-100vh); }
+  55% { transform: translateY(20px); }
+  70% { transform: translateY(-10px); }
+  85% { transform: translateY(10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInLeft { 
+  0% { transform: translateX(-100vw); }
+  55% { transform: translateX(20px); }
+  70% { transform: translateX(-10px); }
+  85% { transform: translateX(10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceInRight { 
+  0% { transform: translateX(100vw); }
+  55% { transform: translateX(-20px); }
+  70% { transform: translateX(10px); }
+  85% { transform: translateX(-10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceIn { 
+  0% { transform: scale(0); }
+  55% { transform: scale(1.2); }
+  70% { transform: scale(0.9); }
+  85% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes FadeOutDown { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(25px); }
+}
+@keyframes FadeOutUp { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(-25px); }
+}
+@keyframes FadeOutLeft { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(-25px); }
+}
+@keyframes FadeOutRight { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(25px); }
+}
+@keyframes FadeOut { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes FadeInDown { 
+  0% { opacity: 0; transform: translateY(25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInUp { 
+  0% { opacity: 0; transform: translateY(-25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInLeft { 
+  0% { opacity: 0; transform: translateX(-25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeInRight { 
+  0% { opacity: 0; transform: translateX(25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeIn { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}</style></head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    
+    <!-- The root element for your Expo app. -->
+    <div id="root"><img alt="" src="/that/a/sb-bm2-web.png" style="position:fixed;left:0;top:0;width:375px;height:50px;z-index:2147483647;pointer-events:none"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0"><div style="position: absolute; inset: 0px; pointer-events: none; visibility: hidden;"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color: rgb(242, 242, 242); display: flex;"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color: rgb(244, 244, 242);"><div class="css-g5y9jx" style="flex: 1 1 0%; background-color: rgb(244, 244, 242); padding: 50px 0px 0px;"><div class="css-g5y9jx" style="position: absolute; left: 0px; right: 0px; top: 0px; height: 300px; background-image: linear-gradient(rgb(230, 236, 233), rgb(244, 244, 242) 100%);"></div><div class="css-g5y9jx" style="flex: 1 1 0%;"><div class="css-g5y9jx r-1awozwy r-18u37iz r-ojf8lh r-1pl7oy7 r-3o4zer r-vmopo1"><div aria-label="Trang chủ" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73 r-1awozwy r-18u37iz r-z5qs1h r-peo1c r-18c5d7m" type="button"><svg viewBox="0 0 256 256" fill="#0a5246" width="20" height="20"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_700Bold; font-size: 16px; color: rgb(10, 82, 70);">Trang chủ</div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="flex: 1 1 0%; min-width: 0px; text-align: center; font-family: Inter_700Bold; font-size: 17px; color: rgb(15, 19, 18); padding-right: 44px;">Trang web</div></div><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-1ssbvtb r-qn3fzs r-3pj75a r-1h8ys4a"><div role="radiogroup" class="css-g5y9jx r-p37qgn r-16uyjmq r-d4uiiy r-18u37iz r-1w6e6rj r-9aw3ui r-1uu6nss"><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" style="opacity: 1; transform: scaleX(1) scaleY(1); flex-grow: 1; flex-shrink: 1; max-width: 100%; min-width: 0px; min-height: 44px; padding: 9px 8px; border-radius: 17px; align-items: center; justify-content: center; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 17px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="max-width: 100%; font-family: Inter_700Bold; font-size: 14px; color: rgb(10, 82, 70); line-height: 20px;">Chặn từng trang</div></div><div role="radio" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" style="opacity: 1; transform: scaleX(1) scaleY(1); flex-grow: 1; flex-shrink: 1; max-width: 100%; min-width: 0px; min-height: 44px; padding: 9px 8px; border-radius: 17px; align-items: center; justify-content: center;"><div dir="auto" class="css-146c3p1 r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="max-width: 100%; font-family: Inter_700Bold; font-size: 14px; color: rgb(63, 69, 66); line-height: 20px;">Chỉ trang đã duyệt</div></div></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">Nguyễn Ngọc Bảo Anh vào được mọi trang, trừ trang bạn chặn.</div><div class="css-g5y9jx"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 14px; color: rgb(15, 19, 18); line-height: 21px; margin-bottom: 6px;">Chặn một trang</div><input placeholder="youtube.com" autocapitalize="none" autocorrect="off" autocomplete="on" dir="auto" rows="1" spellcheck="false" virtualkeyboardpolicy="auto" aria-label="Chặn một trang" class="css-11aywtz r-6taxm2 r-14lw9ot r-36as0c r-6ncur5 r-1rf8fdq r-d4uiiy r-yhcc76 r-vsb09d r-ubezar r-19yznuf r-gu64tb" type="url" value="" style="--placeholderTextColor: #5c625f;"></div><div class="css-g5y9jx" style="flex-flow: wrap; gap: 8px;"><div aria-label="YouTube đang chặn — chạm để bỏ chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); flex-direction: row; align-items: center; gap: 6px; min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 99px; background-color: rgb(254, 240, 238); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 99px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><svg viewBox="0 0 256 256" fill="#b42318" width="16" height="16"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,84a12,12,0,1,1,12-12A12,12,0,0,1,128,164Zm32-84H96V56a32,32,0,0,1,64,0Z"></path></svg><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 14px; color: rgb(180, 35, 24); line-height: 21px;">YouTube</div></div><div aria-label="TikTok đang chặn — chạm để bỏ chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); flex-direction: row; align-items: center; gap: 6px; min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 99px; background-color: rgb(254, 240, 238); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 99px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><svg viewBox="0 0 256 256" fill="#b42318" width="16" height="16"><path d="M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80Zm-80,84a12,12,0,1,1,12-12A12,12,0,0,1,128,164Zm32-84H96V56a32,32,0,0,1,64,0Z"></path></svg><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 14px; color: rgb(180, 35, 24); line-height: 21px;">TikTok</div></div><div aria-label="Chặn Facebook" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); flex-direction: row; align-items: center; gap: 6px; min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 99px; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 99px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><svg viewBox="0 0 256 256" fill="#3f4542" width="16" height="16"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 14px; color: rgb(63, 69, 66); line-height: 21px;">Facebook</div></div><div aria-label="Chặn Roblox" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); flex-direction: row; align-items: center; gap: 6px; min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 99px; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 99px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><svg viewBox="0 0 256 256" fill="#3f4542" width="16" height="16"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 14px; color: rgb(63, 69, 66); line-height: 21px;">Roblox</div></div></div><div class="css-g5y9jx" style="flex-direction: row; justify-content: space-between; align-items: center; margin: 4px 6px -4px; gap: 8px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 1;">Đang chặn · 3</div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 30px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(254, 240, 238); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/fd052ad40bdd.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">youtube.com</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">Chỉ Nguyễn Ngọc Bảo Anh</div></div><div aria-label="Bỏ chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 18px; justify-content: center; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 18px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13.5px; color: rgb(15, 19, 18); line-height: 20px;">Bỏ chặn</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(254, 240, 238); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/fd052ad40bdd.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">youtube.com</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">Cả gia đình</div></div><div aria-label="Bỏ chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 18px; justify-content: center; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 18px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13.5px; color: rgb(15, 19, 18); line-height: 20px;">Bỏ chặn</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(254, 240, 238); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/fd052ad40bdd.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">tiktok.com</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">Cả gia đình</div></div><div aria-label="Bỏ chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 18px; justify-content: center; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 18px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13.5px; color: rgb(15, 19, 18); line-height: 20px;">Bỏ chặn</div></div></div></div></div><div class="css-g5y9jx" style="flex-direction: row; justify-content: space-between; align-items: center; margin: 4px 6px -4px; gap: 8px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 1;">Luôn cho phép</div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 30px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(227, 239, 235); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/f71dc09f938b.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">khanacademy.​org</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">Cả gia đình</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd" style="background-color: rgb(227, 239, 235); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="flex-shrink: 1; font-family: Inter_700Bold; font-size: 12.5px; color: rgb(10, 82, 70); line-height: 18px;">Cho phép</div></div></div></div></div><div class="css-g5y9jx" style="flex-direction: row; justify-content: space-between; align-items: center; margin: 4px 6px -4px; gap: 8px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 1;">Nguyễn Ngọc Bảo Anh vào nhiều nhất · 7 ngày</div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-1udh08x"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 30px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(232, 240, 255); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/35a323515cb2.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">facebook.com</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">2 giờ 10 phút · 34 lượt · 2 giờ trước</div></div><div aria-label="Chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 18px; justify-content: center; background-color: rgb(254, 240, 238); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 18px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13.5px; color: rgb(180, 35, 24); line-height: 20px;">Chặn</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(227, 239, 235); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/35a323515cb2.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">khanacademy.​org</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">1 giờ 5 phút · 12 lượt · 4 giờ trước</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd" style="background-color: rgb(227, 239, 235); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="flex-shrink: 1; font-family: Inter_700Bold; font-size: 12.5px; color: rgb(10, 82, 70); line-height: 18px;">Cho phép</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(254, 240, 238); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/35a323515cb2.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">youtube.com</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">50 phút · 20 lượt · 2 giờ trước</div></div><div class="css-g5y9jx r-1awozwy r-k200y r-78vmp4 r-18u37iz r-1wbh5a2 r-ojf8lh r-dnmrzs r-xjggfu r-1ubuhtd" style="background-color: rgb(254, 240, 238); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="flex-shrink: 1; font-family: Inter_700Bold; font-size: 12.5px; color: rgb(180, 35, 24); line-height: 18px;">Chặn</div></div></div></div><div role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" data-toi="bm2-yeu-cau-web"><div class="css-g5y9jx r-1awozwy r-18u37iz r-1ssbvtb r-h10h58 r-ytbthy r-3pj75a r-1p5doym r-5kkj8d"><div class="css-g5y9jx r-1awozwy r-1777fci" style="width: 44px; height: 44px; border-radius: 22px; background-color: rgb(232, 240, 255); background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 26px; height: 26px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/35a323515cb2.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15.5px; color: rgb(15, 19, 18); line-height: 23px;">gamevui.vn</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13.5px; color: rgb(92, 98, 95); line-height: 20px;">20 phút · 5 lượt · 11 giờ trước</div></div><div aria-label="Chặn" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 44px; padding-right: 14px; padding-left: 14px; border-radius: 18px; justify-content: center; background-color: rgb(254, 240, 238); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 18px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13.5px; color: rgb(180, 35, 24); line-height: 20px;">Chặn</div></div></div></div></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">Hiện 4 trang vào nhiều nhất, còn 14 trang nữa.</div><div class="css-g5y9jx" style="flex-direction: row; justify-content: space-between; align-items: center; margin: 4px 6px -4px; gap: 8px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 1;">Thời gian trên web</div></div><div class="css-g5y9jx" style="flex-flow: wrap; gap: 10px;"><div class="css-g5y9jx" style="flex: 1 1 0%;"><div class="css-g5y9jx r-14lw9ot r-4zvafu r-d09qxx r-16y2uox r-9aw3ui r-qtfnoi r-nsbfu8"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 26px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">Hôm nay</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 24px; color: rgb(15, 19, 18); letter-spacing: -0.5px; font-variant: tabular-nums; line-height: 30px;">45 phút</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">6 trang · 14 lượt mở</div></div></div><div class="css-g5y9jx" style="flex: 1 1 0%;"><div class="css-g5y9jx r-14lw9ot r-4zvafu r-d09qxx r-16y2uox r-9aw3ui r-qtfnoi r-nsbfu8"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 26px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_600SemiBold; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">7 ngày qua</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 24px; color: rgb(15, 19, 18); letter-spacing: -0.5px; font-variant: tabular-nums; line-height: 30px;">8 giờ 37 phút</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">18 trang khác nhau</div></div></div></div><div class="css-g5y9jx r-14lw9ot r-1llaxt6 r-d09qxx r-nsbfu8"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 30px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div aria-label="Biểu đồ thời gian trên web 7 ngày; T7: 1 giờ; CN: 1 giờ 30 phút; T2: 40 phút; T3: 1 giờ 40 phút; T4: 1 giờ 10 phút; T5: 1 giờ 52 phút; T6: 45 phút" class="css-g5y9jx" style="flex-direction: row; gap: 6px; margin-top: 12px;"><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-6tpqnf r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px;"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 49.1258px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-49.1258px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 12px; line-height: 17px; color: rgb(92, 98, 95); text-align: center; align-self: stretch;">T7</div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-6tpqnf r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px;"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 73.6887px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-73.6887px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 12px; line-height: 17px; color: rgb(92, 98, 95); text-align: center; align-self: stretch;">CN</div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-6tpqnf r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px;"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 32.7505px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-32.7505px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 12px; line-height: 17px; color: rgb(92, 98, 95); text-align: center; align-self: stretch;">T2</div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-6tpqnf r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px;"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 81.8763px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-81.8763px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 12px; line-height: 17px; color: rgb(92, 98, 95); text-align: center; align-self: stretch;">T3</div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-6tpqnf r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px;"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 57.3134px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-57.3134px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 12px; line-height: 17px; color: rgb(92, 98, 95); text-align: center; align-self: stretch;">T4</div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-6tpqnf r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px;"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 91.4286px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-91.4286px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 12px; line-height: 17px; color: rgb(92, 98, 95); text-align: center; align-self: stretch;">T5</div></div><div class="css-g5y9jx" style="flex: 1 1 0%; min-width: 0px; align-items: center; gap: 6px;"><div class="css-g5y9jx r-obd0qt r-1pz39u2 r-cpet4d r-d4uiiy r-18u37iz r-1599tul r-1777fci r-tuq35u" style="height: 104px; background-color: rgb(227, 239, 235);"><div class="css-g5y9jx" style="flex: 1 1 0%; max-width: 30px; height: 36.8443px; border-radius: 999px; box-shadow: rgba(28, 32, 30, 0.32) 0px 3px 5px -2px, rgba(255, 255, 255, 0.5) 0px 1px 0px inset, rgba(0, 0, 0, 0.22) 0px -2px 3px inset; transform-origin: center bottom; transform: scaleY(1);"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="border-radius: 999px; overflow: hidden; justify-content: flex-end;"><div class="css-g5y9jx" style="height: 100%; background-color: rgb(15, 107, 92); opacity: 1;"></div><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="background-image: radial-gradient(60% 9px at 50% 5px, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.42) 24%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0) 56%, rgba(0, 0, 0, 0.12) 100%);"></div><div class="css-g5y9jx r-633pao" style="position: absolute; inset: 0px; background-image: linear-gradient(rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.14) 58%, rgba(255, 255, 255, 0) 70%); opacity: 0; transform: translateY(-36.8443px);"></div></div></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_700Bold; font-size: 12px; line-height: 17px; color: rgb(15, 19, 18); text-align: center; align-self: stretch;">T6</div></div></div></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 13px; color: rgb(92, 98, 95); line-height: 19px;">Đang chặn thật trên Laptop của Bảo Anh: Con vẫn dùng được Chrome, Edge, Brave, Cốc Cốc, web lọc theo danh sách này (trang bị chặn hiện «bị chặn»); Safari, Firefox và trình duyệt lạ bị chặn như app chưa xếp. Luật chỉ áp cho tài khoản của Con trên máy. Luật lên máy trong vài phút khi máy online; tab đang mở cần tải lại. Chỉ ghi tên miền và thời gian, không ghi địa chỉ đầy đủ hay nội dung.</div></div></div></div></div></div></div></div></div></div></div></div>
+  
+
+
+<div style="position: fixed; left: 0px; top: 0px; width: 0px; height: 0px; z-index: -1; overflow: hidden; visibility: hidden; transition-duration: 0.05s; transition-property: padding; transition-delay: 0s; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);"></div><div></div></body></html>

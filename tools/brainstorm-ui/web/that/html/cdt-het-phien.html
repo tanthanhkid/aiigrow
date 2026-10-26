@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+    <meta httpequiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>AiiGrow</title>
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    
+  <style>html { text-size-adjust: 100%; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+body { margin: 0px; }
+.css-g5y9jx { align-content: flex-start; align-items: stretch; background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; display: flex; flex-basis: auto; flex-direction: column; flex-shrink: 0; list-style: none; margin: 0px; min-height: 0px; min-width: 0px; padding: 0px; position: relative; text-decoration: none; z-index: 0; }
+.css-146c3p1 { background-color: rgba(0, 0, 0, 0); border: 0px solid black; box-sizing: border-box; color: rgb(0, 0, 0); display: inline; font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; list-style: none; margin: 0px; padding: 0px; position: relative; text-align: start; text-decoration: none; white-space: pre-wrap; overflow-wrap: break-word; }
+.r-13awgt0 { flex: 1 1 0%; }
+.r-1udh08x { overflow: hidden; }
+.r-1fuqb1j { border-radius: 24px; }
+.r-cdmcib { border-radius: 3px; }
+.r-78vmp4 { border-radius: 99px; }
+.r-3pj75a { padding-left: 16px; padding-right: 16px; }
+.r-1ml3abn { padding-bottom: 14px; padding-top: 14px; }
+.r-cnw61z { padding-bottom: 4px; padding-top: 4px; }
+.r-1p0dtai { bottom: 0px; }
+.r-1d2f490 { left: 0px; }
+.r-u8s1d { position: absolute; }
+.r-zchlnj { right: 0px; }
+.r-ipm5af { top: 0px; }
+.r-633pao { pointer-events: none !important; }
+.r-11yh6sk { overflow-x: hidden; }
+.r-150rngu { }
+.r-eqz5dr { flex-direction: column; }
+.r-16y2uox { flex-grow: 1; }
+.r-1wbh5a2 { flex-shrink: 1; }
+.r-1rnoaur { overflow-y: auto; }
+.r-agouwx { transform: translateZ(0px); }
+.r-18u37iz { flex-direction: row; }
+.r-dnmrzs { max-width: 100%; }
+.r-1udbk01 { text-overflow: ellipsis; }
+.r-3s2u2q { white-space: nowrap; }
+.r-1iln25a { overflow-wrap: normal; }
+.r-1loqt21 { cursor: pointer; }
+.r-1awozwy { align-items: center; }
+@-webkit-keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes r-11cv4x { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.r-1otgn73 { touch-action: manipulation; }
+.r-10ptun7 { height: 16px; }
+.r-1janqcz { width: 16px; }
+.r-14lw9ot { background-color: rgb(255, 255, 255); }
+@-webkit-keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes r-imtty0 { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@-webkit-keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes r-t2lo5v { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@-webkit-keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@keyframes r-1pzkwqh { 
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0%); }
+}
+@-webkit-keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@keyframes r-1iq689l { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100%); }
+}
+@-webkit-keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+@keyframes r-q67da2 { 
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+.r-k200y { align-self: flex-start; }
+.r-vboj7i { top: -7px; }
+.r-1ssbvtb { gap: 12px; }
+.r-qn3fzs { padding-bottom: 24px; }
+.r-1h8ys4a { padding-top: 4px; }
+.r-ojf8lh { gap: 6px; }
+.r-bnwqim { position: relative; }
+.r-fv5sc { box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset; }
+.r-1g40b8q { z-index: 3; }
+.r-17hmhgr { transform: rotate(45deg); }
+.r-1wyvozj { left: 50%; }
+.r-htfu76 { margin-left: -8px; }
+.r-1d9ofch { background-color: rgb(255, 241, 201); }
+.r-qhyqy2 { padding-left: 5px; }
+.r-1ba89he { padding-right: 13px; }
+html, body { height: 100%; }
+body { overflow: hidden; }
+#root { display: flex; height: 100%; flex: 1 1 0%; }
+@keyframes RollOutRight { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(100vw) rotate(180deg); }
+}
+@keyframes RollOutLeft { 
+  0% { transform: translateX(0vw) rotate(0deg); }
+  100% { transform: translateX(-100vw) rotate(-180deg); }
+}
+@keyframes RollInRight { 
+  0% { transform: translateX(100vw) rotate(180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RollInLeft { 
+  0% { transform: translateX(-100vw) rotate(-180deg); }
+  100% { transform: translateX(0vw) rotate(0deg); }
+}
+@keyframes RotateOutUpRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateOutUpLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(-250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownRight { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+}
+@keyframes RotateOutDownLeft { 
+  0% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+  100% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+}
+@keyframes RotateInUpRight { 
+  0% { transform: translateX(40%) translateY(250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInUpLeft { 
+  0% { transform: translateX(-40%) translateY(250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownRight { 
+  0% { transform: translateX(40%) translateY(-250%) rotate(90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes RotateInDownLeft { 
+  0% { transform: translateX(-50%) translateY(-250%) rotate(-90deg); opacity: 0; }
+  100% { transform: translateX(0%) translateY(0%) rotate(0deg); opacity: 1; }
+}
+@keyframes PinwheelOut { 
+  0% { transform: rotate(0rad) scale(1); opacity: 1; }
+  100% { transform: rotate(5rad) scale(0); opacity: 0; }
+}
+@keyframes PinwheelIn { 
+  0% { transform: rotate(5rad) scale(0); opacity: 0; }
+  100% { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes LightSpeedOutLeft { 
+  0% { transform: translateX(0vw) skew(0deg); opacity: 1; }
+  100% { transform: translateX(-100vw) skew(45deg); opacity: 0; }
+}
+@keyframes LightSpeedOutRight { 
+  0% { transform: translateX(0vw) skewX(0deg); opacity: 1; }
+  100% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+}
+@keyframes LightSpeedInLeft { 
+  0% { transform: translateX(-100vw) skewX(45deg); opacity: 0; }
+  70% { transform: skewX(-10deg); }
+  85% { transform: skewX(5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes LightSpeedInRight { 
+  0% { transform: translateX(100vw) skewX(-45deg); opacity: 0; }
+  70% { transform: skewX(10deg); }
+  85% { transform: skewX(-5deg); }
+  100% { transform: skewX(0deg); }
+}
+@keyframes SlideOutDown { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes SlideOutUp { 
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes SlideOutLeft { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100vw); }
+}
+@keyframes SlideOutRight { 
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(100vw); }
+}
+@keyframes SlideInDown { 
+  0% { transform: translateY(100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInUp { 
+  0% { transform: translateY(-100vh); }
+  100% { transform: translateY(0%); }
+}
+@keyframes SlideInLeft { 
+  0% { transform: translateX(-100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes SlideInRight { 
+  0% { transform: translateX(100vw); }
+  100% { transform: translateX(0%); }
+}
+@keyframes ZoomOutEasyDown { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(100%) scale(0); }
+}
+@keyframes ZoomOutEasyUp { 
+  0% { transform: translateY(0%) scale(1); }
+  100% { transform: translateY(-100%) scale(0); }
+}
+@keyframes ZoomOutDown { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(100vh) scale(0); }
+}
+@keyframes ZoomOutUp { 
+  0% { transform: translateX(0vh) scale(1); }
+  100% { transform: translateY(-100vh) scale(0); }
+}
+@keyframes ZoomOutLeft { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(-100vw) scale(0); }
+}
+@keyframes ZoomOutRight { 
+  0% { transform: translateX(0vw) scale(1); }
+  100% { transform: translateX(100vw) scale(0); }
+}
+@keyframes ZoomOutRotate { 
+  0% { transform: scale(1) rotate(0rad); }
+  100% { transform: scale(0) rotate(0.3rad); }
+}
+@keyframes ZoomOut { 
+  0% { transform: scale(1); }
+  100% { transform: scale(0); }
+}
+@keyframes ZoomInEasyDown { 
+  0% { transform: translateY(100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInEasyUp { 
+  0% { transform: translateY(-100%) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInDown { 
+  0% { transform: translateY(100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInUp { 
+  0% { transform: translateY(-100vh) scale(0); }
+  100% { transform: translateY(0%) scale(1); }
+}
+@keyframes ZoomInLeft { 
+  0% { transform: translateX(-100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRight { 
+  0% { transform: translateX(100vw) scale(0); }
+  100% { transform: translateX(0%) scale(1); }
+}
+@keyframes ZoomInRotate { 
+  0% { transform: scale(0) rotate(0.3rad); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes ZoomIn { 
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+@keyframes StretchOutY { 
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+@keyframes StretchOutX { 
+  0% { transform: scaleX(1); }
+  100% { transform: scaleX(0); }
+}
+@keyframes StretchInY { 
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+@keyframes StretchInX { 
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+@keyframes FlipOutEasyY { 
+  0% { transform: perspective(500px) rotateY(0deg); }
+  100% { transform: perspective(500px) rotateY(90deg); }
+}
+@keyframes FlipOutEasyX { 
+  0% { transform: perspective(500px) rotateX(0deg); }
+  100% { transform: perspective(500px) rotateX(90deg); }
+}
+@keyframes FlipOutXDown { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+}
+@keyframes FlipOutXUp { 
+  0% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+  100% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+}
+@keyframes FlipOutYLeft { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+}
+@keyframes FlipOutYRight { 
+  0% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+  100% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+}
+@keyframes FlipInEasyY { 
+  0% { transform: perspective(500px) rotateY(90deg); }
+  100% { transform: perspective(500px) rotateY(0deg); }
+}
+@keyframes FlipInEasyX { 
+  0% { transform: perspective(500px) rotateX(90deg); }
+  100% { transform: perspective(500px) rotateX(0deg); }
+}
+@keyframes FlipInXDown { 
+  0% { transform: perspective(500px) rotateX(-90deg) translateY(100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInXUp { 
+  0% { transform: perspective(500px) rotateX(90deg) translateY(-100%); }
+  100% { transform: perspective(500px) rotateX(0deg) translateY(0%); }
+}
+@keyframes FlipInYLeft { 
+  0% { transform: perspective(500px) rotateY(-90deg) translateX(-100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes FlipInYRight { 
+  0% { transform: perspective(500px) rotateY(90deg) translateX(100%); }
+  100% { transform: perspective(500px) rotateY(0deg) translateX(0%); }
+}
+@keyframes BounceOutDown { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(-10px); }
+  30% { transform: translateY(10px); }
+  45% { transform: translateY(-20px); }
+  100% { transform: translateY(100vh); }
+}
+@keyframes BounceOutUp { 
+  0% { transform: translateY(0px); }
+  15% { transform: translateY(10px); }
+  30% { transform: translateY(-10px); }
+  45% { transform: translateY(20px); }
+  100% { transform: translateY(-100vh); }
+}
+@keyframes BounceOutLeft { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(10px); }
+  30% { transform: translateX(-10px); }
+  45% { transform: translateX(20px); }
+  100% { transform: translateX(-100vh); }
+}
+@keyframes BounceOutRight { 
+  0% { transform: translateX(0px); }
+  15% { transform: translateX(-10px); }
+  30% { transform: translateX(10px); }
+  45% { transform: translateX(-20px); }
+  100% { transform: translateX(100vh); }
+}
+@keyframes BounceOut { 
+  0% { transform: scale(1); }
+  15% { transform: scale(1.1); }
+  30% { transform: scale(0.9); }
+  45% { transform: scale(1.2); }
+  100% { transform: scale(0.1); }
+}
+@keyframes BounceInDown { 
+  0% { transform: translateY(100vh); }
+  55% { transform: translateY(-20px); }
+  70% { transform: translateY(10px); }
+  85% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInUp { 
+  0% { transform: translateY(-100vh); }
+  55% { transform: translateY(20px); }
+  70% { transform: translateY(-10px); }
+  85% { transform: translateY(10px); }
+  100% { transform: translateY(0px); }
+}
+@keyframes BounceInLeft { 
+  0% { transform: translateX(-100vw); }
+  55% { transform: translateX(20px); }
+  70% { transform: translateX(-10px); }
+  85% { transform: translateX(10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceInRight { 
+  0% { transform: translateX(100vw); }
+  55% { transform: translateX(-20px); }
+  70% { transform: translateX(10px); }
+  85% { transform: translateX(-10px); }
+  100% { transform: translateX(0px); }
+}
+@keyframes BounceIn { 
+  0% { transform: scale(0); }
+  55% { transform: scale(1.2); }
+  70% { transform: scale(0.9); }
+  85% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+@keyframes FadeOutDown { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(25px); }
+}
+@keyframes FadeOutUp { 
+  0% { opacity: 1; transform: translateY(0px); }
+  100% { opacity: 0; transform: translateY(-25px); }
+}
+@keyframes FadeOutLeft { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(-25px); }
+}
+@keyframes FadeOutRight { 
+  0% { opacity: 1; transform: translateX(0px); }
+  100% { opacity: 0; transform: translateX(25px); }
+}
+@keyframes FadeOut { 
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes FadeInDown { 
+  0% { opacity: 0; transform: translateY(25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInUp { 
+  0% { opacity: 0; transform: translateY(-25px); }
+  100% { opacity: 1; transform: translateY(0px); }
+}
+@keyframes FadeInLeft { 
+  0% { opacity: 0; transform: translateX(-25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeInRight { 
+  0% { opacity: 0; transform: translateX(25px); }
+  100% { opacity: 1; transform: translateX(0px); }
+}
+@keyframes FadeIn { 
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@font-face { font-family: Inter_400Regular; src: url("/that/a/7a3fa76705ad.ttf"); }
+@font-face { font-family: Inter_600SemiBold; src: url("/that/a/863e1483cb0c.ttf"); }
+@font-face { font-family: Inter_700Bold; src: url("/that/a/5a912e060035.ttf"); }</style></head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    
+    <!-- The root element for your Expo app. -->
+    <div id="root"><img alt="" src="/that/a/sb-cdt-het-phien.png" style="position:fixed;left:0;top:0;width:375px;height:50px;z-index:2147483647;pointer-events:none"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0"><div style="position: absolute; inset: 0px; pointer-events: none; visibility: hidden;"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color: rgb(242, 242, 242); display: flex;"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color: rgb(244, 244, 242);"><div style="position: absolute; inset: 0px; pointer-events: none; visibility: hidden;"></div><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0 r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af" style="background-color: rgb(242, 242, 242); display: flex;"><div class="css-g5y9jx r-13awgt0"><div class="css-g5y9jx r-13awgt0" style="background-color: rgb(244, 244, 242);"><div class="css-g5y9jx" style="flex: 1 1 0%; background-color: rgb(244, 244, 242);"><div class="css-g5y9jx" style="flex: 1 1 0%; background-color: rgb(244, 244, 242); padding: 50px 0px 0px;"><div class="css-g5y9jx" style="position: absolute; left: 0px; right: 0px; top: 0px; height: 300px; background-image: linear-gradient(rgb(255, 240, 199), rgb(244, 244, 242) 100%);"></div><div class="css-g5y9jx" style="flex: 1 1 0%;"><div class="css-g5y9jx r-150rngu r-eqz5dr r-16y2uox r-1wbh5a2 r-11yh6sk r-1rnoaur r-agouwx"><div class="css-g5y9jx r-1ssbvtb r-qn3fzs r-3pj75a r-1h8ys4a"><div class="css-g5y9jx" style="flex-flow: wrap; align-items: center; justify-content: space-between; gap: 8px;"><div class="css-g5y9jx r-1awozwy r-k200y r-1d9ofch r-78vmp4 r-fv5sc r-18u37iz r-ojf8lh r-cnw61z r-qhyqy2 r-1ba89he"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 99px; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%);"></div><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 24px; height: 24px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/4b317d500175.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 15px; color: rgb(122, 74, 0); line-height: 22px; font-variant: tabular-nums;">45 điểm</div></div><div aria-label="Chuỗi 6 ngày — xem huy hiệu" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="min-height: 44px; justify-content: center;"><div class="css-g5y9jx" style="flex-direction: row; align-items: center; gap: 5px; background-color: rgb(255, 241, 201); border-radius: 99px; padding: 3px 11px 3px 6px; box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 99px; background-image: radial-gradient(60% 34% at 50% 18%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%);"></div><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 20px; height: 20px;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/ba41f2854c05.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_700Bold; font-size: 12.5px; color: rgb(122, 74, 0); line-height: 18px;">6 ngày</div></div></div></div><div class="css-g5y9jx" style="flex-grow: 1; align-items: center; justify-content: center; gap: 12px; padding: 8px 12px;"><div data-expoimage="true" class="css-g5y9jx" style="overflow: hidden; width: 62%; max-width: 260px; aspect-ratio: 1 / 1;"><div><img fetchpriority="auto" loading="lazy" src="/that/a/a4354721e0dd.webp" style="object-position: left 50% top 50%; width: 100%; height: 100%; position: absolute; left: 0px; top: 0px; object-fit: contain; transition-duration: 0ms; transition-timing-function: linear;"></div></div><div class="css-g5y9jx r-14lw9ot r-1fuqb1j r-fv5sc r-1ml3abn r-bnwqim r-1g40b8q" style="max-width: 310px; align-items: center; padding-right: 18px; padding-left: 18px;"><div dir="auto" class="css-146c3p1" style="font-family: Inter_700Bold; font-size: 20px; color: rgb(15, 19, 18); line-height: 26px; text-align: center;">Nghỉ 60 phút nhé!</div><div dir="auto" class="css-146c3p1" style="font-family: Inter_400Regular; font-size: 15px; color: rgb(63, 69, 66); line-height: 22px; margin-top: 4px; text-align: center;">Trò chơi mở lại lúc 08:19. Làm một nhiệm vụ để có thêm điểm nào?</div><div class="css-g5y9jx r-14lw9ot r-cdmcib r-10ptun7 r-1wyvozj r-htfu76 r-u8s1d r-vboj7i r-17hmhgr r-1janqcz"></div></div><div class="css-g5y9jx" style="align-self: stretch; align-items: center; gap: 8px;"><div aria-label="Làm nhiệm vụ" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 52px; padding-right: 20px; padding-left: 20px; border-radius: 22px; align-items: center; justify-content: center; flex-grow: 1; flex-shrink: 1; max-width: 100%; min-width: 0px; background-color: rgb(15, 19, 18); box-shadow: rgba(15, 19, 18, 0.4) 0px 6px 10px -5px, rgba(15, 19, 18, 0.24) 0px 2px 3px -1px, rgba(255, 255, 255, 0.45) 0px 1px 0px inset, rgba(0, 0, 0, 0.4) 0px -2px 3px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 22px; background-image: linear-gradient(rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.08) 24%, rgba(255, 255, 255, 0) 26%), radial-gradient(60% 40% at 50% 105%, rgba(120, 140, 135, 0.35) 0%, rgba(0, 0, 0, 0) 100%), linear-gradient(rgb(46, 53, 51) 0%, rgb(18, 22, 21) 100%);"></div><div class="css-g5y9jx" style="flex-direction: row; align-items: center; gap: 7px; max-width: 100%;"><svg viewBox="0 0 256 256" fill="#ffffff" width="20" height="20"><path d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,86l59-4.76,22.76-55.08a16.36,16.36,0,0,1,30.27,0l22.75,55.08,59,4.76a16.46,16.46,0,0,1,9.37,28.86Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="flex-shrink: 1; min-width: 0px; text-align: center; font-family: Inter_700Bold; font-size: 16px; color: rgb(255, 255, 255); line-height: 22px;">Làm nhiệm vụ</div></div></div><div aria-label="Xin thêm giờ" role="button" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" type="button" style="opacity: 1; transform: scaleX(1) scaleY(1); min-height: 52px; padding-right: 20px; padding-left: 20px; border-radius: 22px; align-items: center; justify-content: center; flex-grow: 1; flex-shrink: 1; max-width: 100%; min-width: 0px; background-color: rgb(255, 255, 255); box-shadow: rgba(28, 32, 30, 0.26) 0px 6px 10px -6px, rgba(28, 32, 30, 0.14) 0px 2px 3px -1px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.14) 0px -6px 10px -5px inset;" data-toi="cdt-gio-ngu"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 22px; background-image: linear-gradient(rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.85) 44%, rgba(232, 231, 226, 0) 50%, rgba(40, 44, 42, 0.05) 100%);"></div><div class="css-g5y9jx" style="flex-direction: row; align-items: center; gap: 7px; max-width: 100%;"><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="flex-shrink: 1; min-width: 0px; text-align: center; font-family: Inter_700Bold; font-size: 16px; color: rgb(15, 19, 18); line-height: 22px;">Xin thêm giờ</div></div></div></div></div></div></div></div></div><div class="css-g5y9jx" style="padding: 6px 10px 28px;"><div role="tablist" class="css-g5y9jx" style="flex-direction: row; background-color: rgb(255, 255, 255); border-radius: 34px; padding: 6px; box-shadow: rgba(28, 32, 30, 0.25) 0px -6px 24px -12px, rgba(28, 32, 30, 0.34) 0px 16px 26px -10px, rgb(255, 255, 255) 0px 1.5px 0px inset, rgba(40, 44, 42, 0.12) 0px -8px 14px -8px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 34px; background-image: radial-gradient(46% 18px at 50% 3px, rgb(255, 255, 255) 0%, rgba(255, 255, 255, 0.95) 62%, rgba(255, 255, 255, 0) 78%), linear-gradient(rgba(254, 254, 253, 0) 26%, rgba(40, 44, 42, 0.02) 60%, rgba(40, 44, 42, 0.06) 100%);"></div><div aria-label="Nhà" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" style="opacity: 1; transform: scaleX(1) scaleY(1); flex: 1 1 0%; align-items: center; justify-content: center; gap: 2px; min-height: 62px; min-width: 0px; border-radius: 26px; background-color: rgb(227, 239, 235); box-shadow: rgba(40, 44, 42, 0.13) 0px 4px 8px inset, rgba(255, 255, 255, 0.95) 0px -1.5px 0px inset;"><div class="css-g5y9jx r-1p0dtai r-1d2f490 r-u8s1d r-zchlnj r-ipm5af r-633pao" style="border-radius: 26px; background-image: linear-gradient(rgba(255, 255, 255, 0) 60%, rgba(255, 255, 255, 0.55) 100%);"></div><svg viewBox="0 0 256 256" fill="#0a5246" width="28" height="28"><path d="M224,120v96a8,8,0,0,1-8,8H160a8,8,0,0,1-8-8V164a4,4,0,0,0-4-4H108a4,4,0,0,0-4,4v52a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V120a16,16,0,0,1,4.69-11.31l80-80a16,16,0,0,1,22.62,0l80,80A16,16,0,0,1,224,120Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 13px; color: rgb(10, 82, 70);">Nhà</div></div><div aria-label="Nhiệm vụ" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" style="opacity: 1; transform: scaleX(1) scaleY(1); flex: 1 1 0%; align-items: center; justify-content: center; gap: 2px; min-height: 62px; min-width: 0px; border-radius: 26px;"><svg viewBox="0 0 256 256" fill="#5c625f" width="28" height="28"><path d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,86l59-4.76,22.76-55.08a16.36,16.36,0,0,1,30.27,0l22.75,55.08,59,4.76a16.46,16.46,0,0,1,9.37,28.86Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 13px; color: rgb(92, 98, 95);">Nhiệm vụ</div></div><div aria-label="Cửa hàng" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" style="opacity: 1; transform: scaleX(1) scaleY(1); flex: 1 1 0%; align-items: center; justify-content: center; gap: 2px; min-height: 62px; min-width: 0px; border-radius: 26px;"><svg viewBox="0 0 256 256" fill="#5c625f" width="28" height="28"><path d="M216,72H180.92c.39-.33.79-.65,1.17-1A29.53,29.53,0,0,0,192,49.57,32.62,32.62,0,0,0,158.44,16,29.53,29.53,0,0,0,137,25.91a54.94,54.94,0,0,0-9,14.48,54.94,54.94,0,0,0-9-14.48A29.53,29.53,0,0,0,97.56,16,32.62,32.62,0,0,0,64,49.57,29.53,29.53,0,0,0,73.91,71c.38.33.78.65,1.17,1H40A16,16,0,0,0,24,88v32a16,16,0,0,0,16,16v64a16,16,0,0,0,16,16h60a4,4,0,0,0,4-4V120H40V88h80v32h16V88h80v32H136v92a4,4,0,0,0,4,4h60a16,16,0,0,0,16-16V136a16,16,0,0,0,16-16V88A16,16,0,0,0,216,72ZM84.51,59a13.69,13.69,0,0,1-4.5-10A16.62,16.62,0,0,1,96.59,32h.49a13.69,13.69,0,0,1,10,4.5c8.39,9.48,11.35,25.2,12.39,34.92C109.71,70.39,94,67.43,84.51,59Zm87,0c-9.49,8.4-25.24,11.36-35,12.4C137.7,60.89,141,45.5,149,36.51a13.69,13.69,0,0,1,10-4.5h.49A16.62,16.62,0,0,1,176,49.08,13.69,13.69,0,0,1,171.49,59Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 13px; color: rgb(92, 98, 95);">Cửa hàng</div></div><div aria-label="Xin phép" role="tab" tabindex="0" class="css-g5y9jx r-1loqt21 r-1otgn73" style="opacity: 1; transform: scaleX(1) scaleY(1); flex: 1 1 0%; align-items: center; justify-content: center; gap: 2px; min-height: 62px; min-width: 0px; border-radius: 26px;"><svg viewBox="0 0 256 256" fill="#5c625f" width="28" height="28"><path d="M128,24A104,104,0,0,0,36.18,176.88L24.83,210.93a16,16,0,0,0,20.24,20.24l34.05-11.35A104,104,0,1,0,128,24ZM84,140a12,12,0,1,1,12-12A12,12,0,0,1,84,140Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,128,140Zm44,0a12,12,0,1,1,12-12A12,12,0,0,1,172,140Z"></path></svg><div dir="auto" class="css-146c3p1 r-dnmrzs r-1udh08x r-1udbk01 r-3s2u2q r-1iln25a" style="font-family: Inter_600SemiBold; font-size: 13px; color: rgb(92, 98, 95);">Xin phép</div></div></div></div></div></div></div></div></div></div></div></div></div></div></div></div>
+  
+
+
+<div style="position: fixed; left: 0px; top: 0px; width: 0px; height: 0px; z-index: -1; overflow: hidden; visibility: hidden; transition-duration: 0.05s; transition-property: padding; transition-delay: 0s; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right);"></div></body></html>

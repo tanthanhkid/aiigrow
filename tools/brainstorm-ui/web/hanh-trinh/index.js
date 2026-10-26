@@ -21,8 +21,24 @@ export async function taiHanhTrinh() {
     ds.push({ id: 'mau-bm', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Màn mẫu Ba Mẹ', mo: '', buoc: nhom('Ba Mẹ') },
       { id: 'mau-con', vai: 'Con', nen: 'Windows', ten: 'Màn mẫu Con', mo: '', buoc: nhom('Con') });
   }
+  await thayManThat(ds, loi);
   // key trùng giữa các tệp → giữ bản đầu, báo lỗi
   const da = new Set();
   for (const h of ds) h.buoc = h.buoc.filter((b) => { if (da.has(b.key)) { loi.push(`trùng key ${b.key}`); return false; } da.add(b.key); return true; });
   return { ds: ds.filter((h) => h.buoc.length), loi };
+}
+
+// Màn «giống thật»: DOM chụp từ app Expo chạy thật (Ba Mẹ + Con /tre, iPhone 375×812) nằm ở web/that/ — xem DO-KHOP.md.
+// Có bản chụp thì thay HTML dựng tay của bước đó; tải lỗi thì giữ bản dựng tay.
+async function thayManThat(ds, loi) {
+  let bang;
+  try { bang = await (await fetch('/that/ds.json')).json(); } catch { return; }
+  const viec = [];
+  for (const h of ds) for (const b of h.buoc) {
+    const t = bang[b.key]; if (!t) continue;
+    viec.push(fetch(`/that/html/${b.key}.html`).then((r) => (r.ok ? r.text() : Promise.reject(new Error(r.status)))).then((html) => {
+      b.html = html; b.w = t.w; b.h = t.h; if (t.anh) b.anh = t.anh;
+    }).catch(() => loi.push(`không tải được màn thật ${b.key}`)));
+  }
+  await Promise.all(viec);
 }

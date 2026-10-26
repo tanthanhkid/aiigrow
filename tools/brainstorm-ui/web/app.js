@@ -1091,8 +1091,8 @@ $('#nut-html').onclick = async () => {
 // Chụp HTML thành PNG trong iframe ẩn (nội dung đã lamSach; chỉ html-to-image của mình chạy, CSP trang vẫn áp).
 async function chupAnh(html, { w, h }, { pixelRatio = 2, skipFonts = false, doLk: doCa = false } = {}) {
   let s = await htmlTuDung(html, false);
-  // srcdoc kế thừa CSP của trang (script-src 'self' — inline script/on* không chạy); thêm lớp chặn: không gọi mạng, không base/form
-  if (skipFonts) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'">`); // ảnh thu nhỏ tự động: không cần font mạng
+  // srcdoc kế thừa CSP của trang (script-src 'self' — inline script/on* không chạy); thêm lớp chặn: không gọi mạng (trừ ảnh/font tĩnh /that/, /assets/ để nhúng vào ảnh), không base/form
+  if (skipFonts) s = s.replace(/<head([^>]*)>/i, `<head$1><meta http-equiv="Content-Security-Policy" content="script-src 'self'; connect-src data: blob: ${location.origin}/that/a/ ${location.origin}/assets/; object-src 'none'; base-uri 'none'; form-action 'none'">`); // ảnh thu nhỏ tự động: không cần font mạng
   const ifr = document.createElement('iframe');
   ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts');
   Object.assign(ifr.style, { position: 'fixed', left: '-10000px', top: '0', width: `${w}px`, height: `${h}px`, border: '0' });

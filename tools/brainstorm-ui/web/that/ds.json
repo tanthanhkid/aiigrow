@@ -1,0 +1,464 @@
+{
+ "bm1-chao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-chao.png",
+  "lech": 2.75
+ },
+ "bm1-dang-ky": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-dang-ky.png",
+  "lech": 2.72
+ },
+ "bm1-otp": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-otp.png",
+  "lech": 7.12
+ },
+ "bm1-ob-ten-con": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-ten-con.png",
+  "lech": 3.01
+ },
+ "bm1-ob-may": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-may.png",
+  "lech": 4.4
+ },
+ "bm1-ob-ghep": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-ghep.png",
+  "lech": 2.92
+ },
+ "bm1-ob-mau": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-mau.png",
+  "lech": 2.66
+ },
+ "bm1-ob-gio": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-gio.png",
+  "lech": 3.34
+ },
+ "bm1-ob-xong": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-xong.png",
+  "lech": 1.19
+ },
+ "bm1-dang-nhap": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-dang-nhap.png",
+  "lech": 1.61
+ },
+ "bm1-moi": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-moi.png",
+  "lech": 2.74
+ },
+ "bm1-may-ds": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/8-ds-may.png",
+  "lech": 2.58
+ },
+ "bm1-may-chon-loai": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-may.png",
+  "lech": 4.4
+ },
+ "bm1-may-ghep": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ob-ghep.png",
+  "lech": 2.92
+ },
+ "bm1-may-moi": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/9-may.png",
+  "lech": 2.63
+ },
+ "bm2-trang-chu": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/1-trang-chu.png",
+  "lech": 2.92
+ },
+ "bm2-may-ds": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/8-ds-may.png",
+  "lech": 2.58
+ },
+ "bm2-may-m1": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/9-may.png",
+  "lech": 2.63
+ },
+ "bm2-may-m2": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-may-m2.png",
+  "lech": 2.23
+ },
+ "bm2-gio": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-gio.png",
+  "lech": 2.42
+ },
+ "bm2-ho-so": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ho-so-con.png",
+  "lech": 3.5
+ },
+ "bm2-ung-dung-may": {
+  "w": 375,
+  "h": 812,
+  "anh": null,
+  "lech": null
+ },
+ "bm2-app-web": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-app-web.png",
+  "lech": 3.86
+ },
+ "bm2-web": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-web.png",
+  "lech": 3.3
+ },
+ "bm2-yeu-cau-web": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-yeu-cau-web.png",
+  "lech": 3.42
+ },
+ "bm2-bao-cao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/6-bao-cao.png",
+  "lech": 2.32
+ },
+ "bm2-man-hinh": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/7-man-hinh.png",
+  "lech": 3.89
+ },
+ "bm2-vi": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-vi.png",
+  "lech": 3.76
+ },
+ "bm2-gia-dinh": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/5-gia-dinh.png",
+  "lech": 2.58
+ },
+ "bm2-thanh-vien": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-thanh-vien.png",
+  "lech": 3.08
+ },
+ "bm2-thong-bao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-thong-bao.png",
+  "lech": 4.66
+ },
+ "bm2-thong-bao-cai-dat": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-thong-bao-cai-dat.png",
+  "lech": 5.72
+ },
+ "bm2-ho-tro": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-ho-tro.png",
+  "lech": 2.66
+ },
+ "bm2-quy": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-quy.png",
+  "lech": 3.42
+ },
+ "bm2-admin-ho-tro": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-admin-ho-tro.png",
+  "lech": 0.49
+ },
+ "bm3-duyet-thong-bao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-thong-bao.png",
+  "lech": 4.66
+ },
+ "bm3-duyet-cho-duyet": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/3-cho-duyet.png",
+  "lech": 3
+ },
+ "bm3-duyet-canh-bao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-canh-bao.png",
+  "lech": 4.43
+ },
+ "bm3-duyet-canh-bao-chi-tiet": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-canh-bao-chi-tiet.png",
+  "lech": 2.49
+ },
+ "bm3-duyet-them-gio": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-yeu-cau-them-gio.png",
+  "lech": 4.64
+ },
+ "bm3-duyet-nhiem-vu": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-duyet-nv.png",
+  "lech": 4.57
+ },
+ "bm3-duyet-xong": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-duyet-xong.png",
+  "lech": 2.1
+ },
+ "bm3-duyet-trong": {
+  "w": 375,
+  "h": 812,
+  "anh": null,
+  "lech": null
+ },
+ "bm3-duyet-mat-mang": {
+  "w": 375,
+  "h": 812,
+  "anh": null,
+  "lech": null
+ },
+ "bm3-nv-qua": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/hieu-nang-2/sau/4-diem-qua.png",
+  "lech": 2.49
+ },
+ "bm3-nv-giao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-giao-nv.png",
+  "lech": 4.09
+ },
+ "bm3-nv-duyet": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-duyet-nv.png",
+  "lech": 4.57
+ },
+ "bm3-nv-loi-khen": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-loi-khen.png",
+  "lech": 2.88
+ },
+ "bm3-nv-vi": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-bm-vi.png",
+  "lech": 3.76
+ },
+ "bm3-nv-trao-qua": {
+  "w": 375,
+  "h": 812,
+  "anh": null,
+  "lech": null
+ },
+ "bm3-nv-trong": {
+  "w": 375,
+  "h": 812,
+  "anh": null,
+  "lech": null
+ },
+ "cdt-chao": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-chao.png",
+  "lech": 1.47
+ },
+ "cdt-cai": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-cai.png",
+  "lech": 1.58
+ },
+ "cdt-nha": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-nha.png",
+  "lech": 0.97
+ },
+ "cdt-nha-chinh": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-nha-cuon.png",
+  "lech": 0.95
+ },
+ "cdt-nhiem-vu": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-nhiem-vu.png",
+  "lech": 2.51
+ },
+ "cdt-nv-chi-tiet": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-nv-chi-tiet.png",
+  "lech": 1.78
+ },
+ "cdt-dang-lam": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-nv-dang.png",
+  "lech": 1.14
+ },
+ "cdt-chup": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-chup.png",
+  "lech": 0.49
+ },
+ "cdt-cho-duyet": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-cho-duyet.png",
+  "lech": 0.83
+ },
+ "cdt-duoc-duyet": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-duoc-duyet.png",
+  "lech": 0.97
+ },
+ "cdt-chup-lai": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-chup-lai.png",
+  "lech": 0.94
+ },
+ "cdt-vi-qua": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-vi-qua.png",
+  "lech": 1.76
+ },
+ "cdt-cua-hang": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-cua-hang.png",
+  "lech": 3.12
+ },
+ "cdt-doi-qua": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-doi-qua.png",
+  "lech": 1.85
+ },
+ "cdt-huy-hieu": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-huy-hieu.png",
+  "lech": 3.19
+ },
+ "cdt-gio-may": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-gio-may.png",
+  "lech": 2
+ },
+ "cdt-choi": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-choi.png",
+  "lech": 0.77
+ },
+ "cdt-phien": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-phien.png",
+  "lech": 0.49
+ },
+ "cdt-het-phien": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-het-phien.png",
+  "lech": 1.34
+ },
+ "cdt-gio-ngu": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-gio-ngu.png",
+  "lech": 0.81
+ },
+ "cdt-xin-phep": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-xin-phep.png",
+  "lech": 2.08
+ },
+ "cdt-yeu-cau": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-yeu-cau.png",
+  "lech": 1.99
+ },
+ "cdt-chan-web": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-chan-web.png",
+  "lech": 0.59
+ },
+ "cdt-quy-tac": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-quy-tac.png",
+  "lech": 1.85
+ },
+ "cdt-pin-ghep": {
+  "w": 375,
+  "h": 812,
+  "anh": "chinchu-ios/sau-con-pin.png",
+  "lech": 1.45
+ },
+ "cdt-pin-ai": {
+  "w": 375,
+  "h": 812,
+  "anh": "man-dienthoai-2510/expo-con-pin.jpg",
+  "lech": 5.75
+ }
+}
