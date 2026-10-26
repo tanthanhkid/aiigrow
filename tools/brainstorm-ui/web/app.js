@@ -1296,6 +1296,7 @@ if (LOI_TAI.length) toast(`Không tải được: ${LOI_TAI.join(', ')}`, true);
 // Mọi biến thể màn lẻ và phương án hành trình nằm ở máy chủ (kho-bien-the.mjs, ngoài git): ai mở bàn cũng thấy cùng một bộ.
 // Máy này: luuLai() → dongBoKho() gửi phần khác so với bản máy chủ đang có (daGui: chữ ký đã gửi/nhận).
 // Máy chủ phát {t:'kho'} cho phòng «bang» → nhanKho() áp thay đổi của người khác (kể cả khung «đang sinh»).
+const CQ = { la: false, luc: 0 }; // đã biết mình là chủ quản (máy chủ xác nhận) — chỉ khi đó lệnh ghi kho mới kèm mã (mã cũ/sai không đốt lượt thử)
 const PHIEN = Math.random().toString(36).slice(2, 12); // định danh tab: máy chủ kèm theo khi phát, tab tự bỏ qua thay đổi của chính mình
 const coMan = (k) => typeof k === 'string' && Object.hasOwn(MAN, k);
 const KHONG_LUU = new Set(['htmlGoc', 'tenGoc', 'x', 'y', 'tienDo', 'html', 'htmlSua', 'htmlGocSua', '_h', 'tSua', 'b', 'bSv', 'nguoi']);
@@ -1321,7 +1322,7 @@ const banLan = (l) => !!l && (st.dangChay.has(l.id) || (daGui.has(`l:${l.id}`) &
 
 async function goiKho(url, than) {
   try {
-    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() }, body: JSON.stringify(than) });
+    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...(CQ.la ? dauChuQuan() : {}) }, body: JSON.stringify(than) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
     if (j.loi?.length) toast(`Máy chủ không nhận ${j.loi.length} mục: ${j.loi[0]}`, true);
@@ -1663,12 +1664,11 @@ rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
   lamSach, goiClaude, goiMock, taiAssets, canKey, laMock, modelDung, thayMan });
 // «🕘 Lịch sử thay đổi» (audit máy chủ) — chỉ chủ quản thấy nút; máy chủ vẫn kiểm quyền ở mọi yêu cầu
-let cqLuc = 0, cqLa = false;
 async function laChuQuan(lai = false) {
-  if (!lai && Date.now() - cqLuc < 30000) return cqLa;
-  try { const j = await (await fetch('/api/review/toi', { headers: dauChuQuan() })).json(); cqLa = !!j.chuQuan; } catch { cqLa = false; }
-  cqLuc = Date.now(); $('#nut-ls-thay-doi').hidden = !cqLa; $('#nut-au-bang').hidden = !cqLa;
-  return cqLa;
+  if (!lai && Date.now() - CQ.luc < 30000) return CQ.la;
+  try { const j = await (await fetch('/api/review/toi', { headers: dauChuQuan() })).json(); CQ.la = !!j.chuQuan; } catch { CQ.la = false; }
+  CQ.luc = Date.now(); $('#nut-ls-thay-doi').hidden = !CQ.la; $('#nut-au-bang').hidden = !CQ.la;
+  return CQ.la;
 }
 const LS = ganLichSu({ MAN, LAN_GOC, toast, lamSach, chuQuan: () => laChuQuan(true), taiGopY: () => GY.tai(), tenNguoi: () => rt?.ten() || '',
   async apManifest(key, m) { if (!coMan(key) || !m) return; PB[key] = m; await apPhienBan(key); qtDaVe = ''; veTatCa(); } });

@@ -103,9 +103,7 @@ const audit = taoAudit({ THIET_KE });
 const uaNgan = (u) => String(u || '').replace(/\s+/g, ' ').replace(/\(KHTML, like Gecko\) ?/, '').slice(0, 120);
 function aiCua(req, them = {}) {
   let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 40); } catch { /* tên hỏng */ }
-  const s = req.socket.remoteAddress || '';
-  const ip = /^(127\.|::1$|::ffff:127\.)/.test(s) && req.headers['cf-connecting-ip'] ? String(req.headers['cf-connecting-ip']).slice(0, 64) : s;
-  return { ten, vai: review.vaiCua(req), ip, ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong, ...them };
+  return { ten, vai: review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong, ...them };
 }
 const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong });
 const review = taoReview({ THIET_KE, audit, ai: (...a) => aiCua(...a), hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
@@ -286,11 +284,11 @@ async function apiAudit(req, res, p, url) {
   if (req.method === 'GET') {
     if (p === '/api/audit') {
       const ht = q('ht'); await keyMan();
-      return json(res, 200, audit.doc({ tu: ngay('tu'), den: ngay('den'), loai: q('loai').slice(0, 40), nguoi: q('nguoi').slice(0, 40), key: q('key').slice(0, 80), id: q('id').slice(0, 120),
+      return json(res, 200, await audit.doc({ tu: ngay('tu'), den: ngay('den'), loai: q('loai').slice(0, 40), nguoi: q('nguoi').slice(0, 40), key: q('key').slice(0, 80), id: q('id').slice(0, 120),
         ht: ht.slice(0, 80), keysHt: ht && HANH_TRINH.get(ht) ? new Set(HANH_TRINH.get(ht).buoc) : null, gioi: Number(q('gioi')) || 300 }));
     }
     if (p === '/api/audit/mo') {
-      const e = audit.tim(ngay('ngay'), Number(q('i'))); if (!e) return json(res, 404, { loi: 'Không có sự kiện này' });
+      const e = await audit.tim(ngay('ngay'), Number(q('i'))); if (!e) return json(res, 404, { loi: 'Không có sự kiện này' });
       const dung = (v) => { try { return { v: audit.mo(v) }; } catch (er) { return { loi: er.message }; } };
       const tr = dung(e.truoc), sa = dung(e.sau);
       return json(res, 200, { e, truoc: tr.v ?? null, sau: sa.v ?? null, loi: tr.loi || sa.loi || undefined });
@@ -298,14 +296,14 @@ async function apiAudit(req, res, p, url) {
     if (p === '/api/audit/xuat') {
       const dang = q('dang') === 'jsonl' ? 'jsonl' : 'csv'; const tu = ngay('tu'), den = ngay('den');
       const ten = `audit-${tu || 'dau'}_${den || 'nay'}.${dang}`;
-      return gui(res, 200, dang === 'csv' ? 'text/csv; charset=utf-8' : 'application/x-ndjson; charset=utf-8', (dang === 'csv' ? '\ufeff' : '') + audit.xuat(tu, den, dang), { 'Content-Disposition': `attachment; filename="${ten}"` });
+      return gui(res, 200, dang === 'csv' ? 'text/csv; charset=utf-8' : 'application/x-ndjson; charset=utf-8', (dang === 'csv' ? '\ufeff' : '') + await audit.xuat(tu, den, dang), { 'Content-Disposition': `attachment; filename="${ten}"` });
     }
     return json(res, 404, { loi: 'Không có' });
   }
   if (req.method !== 'POST' || p !== '/api/audit/khoi-phuc') return json(res, 405, { loi: 'Không hỗ trợ' });
   if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
   let t; try { t = JSON.parse(await docThan(req, 4096)); } catch { return json(res, 400, { loi: 'Không đọc được yêu cầu' }); }
-  const e = audit.tim(String(t?.ngay || ''), Number(t?.i)); if (!e) return json(res, 404, { loi: 'Không có sự kiện này' });
+  const e = await audit.tim(String(t?.ngay || ''), Number(t?.i)); if (!e) return json(res, 404, { loi: 'Không có sự kiện này' });
   const ben = t.ben === 'truoc' ? 'truoc' : 'sau';
   let st; try { st = audit.mo(e[ben]); } catch (er) { return json(res, 500, { loi: `Không dựng lại được: ${er.message}` }); }
   const nguon = `${e.ngay} #${e.i} (${ben === 'truoc' ? 'trước' : 'sau'} «${e.loai}»)`; const ai = aiCua(req);

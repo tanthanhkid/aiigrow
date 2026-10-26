@@ -92,17 +92,21 @@ export function taoKhoBienThe(C) {
     const coPhu = !!(phu.htmlSua || phu.htmlGocSua);
     m.b = html || coPhu ? bam(html, phu.htmlSua, phu.htmlGocSua) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
     if (m.tt === 'dang' && !html && !coPhu && cu) m.b = cu.b || ''; // đang sinh lại: giữ HTML cũ trên máy chủ tới khi có bản xong
-    const truoc = cu ? trangThai('k', m.id, cu) : racCu ? trangThai('k', m.id, racCu, true) : null; // đủ HTML: khôi phục từ bất kỳ sự kiện nào cũng dựng lại được
+    // audit: so thông tin + băm HTML trước (rẻ); chỉ khi có đổi mới đọc HTML cũ (đủ HTML ⇒ khôi phục từ bất kỳ sự kiện nào cũng dựng lại được)
+    const goc = cu || racCu; const moiTao = !goc;
+    const doi = doiCua(goc && { ...goc, tXoa: undefined, nguoiXoa: undefined }, m).concat(moiTao || goc.b !== m.b ? ['html'] : []);
+    const ghiAu = !!ai && (doi.length > 0 || !!loai);
+    const truoc = ghiAu && goc ? trangThai('k', m.id, goc, !cu) : null;
     if (cu?.b !== m.b) {
       if (html) ghi(path.join(dir('k'), `${m.id}.html`), html); else xoaTep(path.join(dir('k'), `${m.id}.html`));
       if (coPhu) ghi(tepPhu(m.id), JSON.stringify(phu)); else xoaTep(tepPhu(m.id));
     }
     datMuc('k', m);
     raRac('k', m.id, false); // ghi lại một mục đang trong thùng rác (vd. hoàn tác) ⇒ mục sống lại
-    const doi = doiCua(truoc && { ...truoc, html: undefined, htmlSua: undefined, htmlGocSua: undefined }, m).concat(truoc?.b !== m.b || (!cu && !racCu) ? ['html'] : []);
-    if (ai && (doi.length || loai)) {
-      const sau = trangThai('k', m.id, m); // blob trùng nội dung được dùng lại — không tốn chỗ khi HTML không đổi
-      return { m, ev: { loai: loai || (!cu && !racCu ? 'bien-the.tao' : 'bien-the.sua'), dt: dtCua('k', m), ai, truoc, sau, ghiChu: !cu && !racCu ? 'tạo mới' : `${racCu ? 'ghi lại mục trong thùng rác · ' : ''}đổi: ${[...new Set(doi)].join(', ')}` } };
+    if (ghiAu) {
+      // HTML vừa ghi có sẵn trong bộ nhớ; chỉ khi giữ HTML cũ («đang sinh lại») mới đọc lại tệp
+      const sau = cu?.b !== m.b ? { ...m, html, ...(phu.htmlSua ? { htmlSua: phu.htmlSua } : {}), ...(phu.htmlGocSua ? { htmlGocSua: phu.htmlGocSua } : {}) } : trangThai('k', m.id, m);
+      return { m, ev: { loai: loai || (moiTao ? 'bien-the.tao' : 'bien-the.sua'), dt: dtCua('k', m), ai, truoc, sau, ghiChu: moiTao ? 'tạo mới' : `${racCu ? 'ghi lại mục trong thùng rác · ' : ''}đổi: ${[...new Set(doi)].join(', ')}` } };
     }
     return { m };
   }
@@ -298,7 +302,7 @@ export function taoKhoBienThe(C) {
   function datLai(l, id, trangThaiCu, ai, nguon) {
     if (!LOAI[l] || !ID.test(String(id))) return { loi: 'Mục không hợp lệ' };
     const evs = [];
-    if (trangThaiCu == null) {
+    if (trangThaiCu == null || trangThaiCu.trongThungRac) { // trạng thái «không có» hoặc «đang trong thùng rác» ⇒ đưa mục vào thùng rác
       const ok = l === 'l' ? vaoRacLan(id, ai?.ten, ai, evs) : vaoRac('k', id, ai?.ten, ai, evs);
       if (!ok) return { loi: 'Mục không còn trên bàn' };
       for (const e of evs) { e.ghiChu = `${e.ghiChu} · khôi phục trạng thái ${nguon}`; }
@@ -307,8 +311,14 @@ export function taoKhoBienThe(C) {
     }
     const x = { ...trangThaiCu, id }; for (const k of ['tSuaCu', 'trongThungRac', 'tXoa', 'nguoiXoa']) delete x[k];
     const r = l === 'k' ? ghiKhung(x, ai?.ten, ai, 'bien-the.khoi-phuc-lich-su') : ghiLan(x, ai, 'phuong-an.khoi-phuc-lich-su');
-    if (r.ev) { r.ev.ghiChu = `khôi phục trạng thái ${nguon} · ${r.ev.ghiChu}`; A.ghi(r.ev); }
-    if (r.m) phat({ loai: 'ghi', [LOAI[l]]: [r.m], tu: '', ten: ai?.ten || '' });
+    if (r.ev) { r.ev.ghiChu = `khôi phục trạng thái ${nguon} · ${r.ev.ghiChu}`; evs.push(r.ev); }
+    const khung = [];
+    if (r.m && l === 'l') { // phương án sống lại ⇒ các màn của nó đang trong thùng rác cũng ra (như khôi phục từ Thùng rác)
+      let ten = []; try { ten = fs.readdirSync(dir('rac')).filter((t) => /^k-[\w-]{1,120}\.json$/.test(t)); } catch { /* rỗng */ }
+      for (const t of ten) { const kid = t.slice(2, -5); if (docJson(path.join(dir('rac'), t))?.lan === id) { const g = raRac('k', kid, true, ai, evs); if (g) khung.push(g); } }
+    }
+    A.ghi(evs);
+    if (r.m) phat({ loai: 'ghi', [LOAI[l]]: [r.m], ...(khung.length ? { khung } : {}), tu: '', ten: ai?.ten || '' });
     return r;
   }
   return { xuLy, KHO, datLai };

@@ -62,8 +62,8 @@ export function ganGopY(A) {
     $('#pn-gy [data-tab="dx"]').textContent = `Đề xuất${tong.cho ? ` (${tong.cho})` : ''}`;
     const than = $('#pn-gy-than');
     // giữ câu trả lời đang gõ dở khi vẽ lại (có góp ý mới)
-    const nhap = [...than.querySelectorAll('[data-gy] form:not(.pn-sua) textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, v: ta.value, dang: document.activeElement === ta }));
-    queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; traLoi(the, g, false); const ta = the.querySelector('form textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
+    const nhap = [...than.querySelectorAll('[data-gy] form textarea')].map((ta) => ({ id: ta.closest('[data-gy]').dataset.gy, sua: !!ta.closest('form.pn-sua'), v: ta.value, dang: document.activeElement === ta }));
+    queueMicrotask(() => { for (const x of nhap) { const the = than.querySelector(`[data-gy="${CSS.escape(x.id)}"]`); const [ht, id] = x.id.split('/'); const g = gopYCua(ht).find((y) => y.id === id); if (!the || !g) continue; if (x.sua) suaGopY(the, g, false); else traLoi(the, g, false); const ta = the.querySelector(x.sua ? 'form.pn-sua textarea' : 'form:not(.pn-sua) textarea'); if (ta) { ta.value = x.v; if (x.dang) ta.focus(); } } });
     than.innerHTML = '';
     if (D.canMa) return veNhapMa(than);
     if (!D.du) { than.append(tao('p', 'phu', 'Đang tải…')); return; }
@@ -140,17 +140,17 @@ export function ganGopY(A) {
   async function doiGopY(g, loai, than) {
     try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/${loai}`, than); await tai(); } catch (e) { A.toast(`Không lưu được: ${e.message}`, true); }
   }
-  function suaGopY(the, g) {
+  function suaGopY(the, g, focus = true) {
     if (the.querySelector('form.pn-sua')) return;
     const f = tao('form', 'pn-tl-hop pn-sua'); const ta = tao('textarea'); ta.rows = 3; ta.maxLength = 2000; ta.required = true; ta.value = g.noi;
-    const b = tao('button', 'nut-chinh', 'Lưu'); b.type = 'submit'; f.append(ta, b); the.append(f); ta.focus();
-    f.onsubmit = (e) => { e.preventDefault(); doiGopY(g, 'sua', { noi: ta.value }); };
+    const b = tao('button', 'nut-chinh', 'Lưu'); b.type = 'submit'; f.append(ta, b); the.append(f); if (focus) ta.focus();
+    f.onsubmit = (e) => { e.preventDefault(); f.remove(); doiGopY(g, 'sua', { noi: ta.value }); };
   }
   async function doiTt(g, tt) {
     try { await goi(`/api/review/gop-y/${g.ht}/${g.id}/tt`, { tt }); await tai(); } catch (e) { A.toast(`Không đổi được: ${e.message}`, true); }
   }
   function traLoi(the, g, focus = true) {
-    if (the.querySelector('form')) return;
+    if (the.querySelector('form:not(.pn-sua)')) return;
     const f = tao('form', 'pn-tl-hop'); const ta = tao('textarea'); ta.rows = 2; ta.maxLength = 2000; ta.required = true; ta.placeholder = 'Trả lời người review…';
     const b = tao('button', 'nut-chinh', 'Gửi'); b.type = 'submit'; f.append(ta, b); the.append(f); if (focus) ta.focus();
     f.onsubmit = async (e) => {

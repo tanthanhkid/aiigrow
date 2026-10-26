@@ -373,5 +373,5 @@ export function taoReview(C) {
     } finally { mo(); }
   }
 
-  return { xuLy, laChuQuan, khoaBang, conHieuLuc, vaiCua, datGopY };
+  return { xuLy, laChuQuan, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
 }

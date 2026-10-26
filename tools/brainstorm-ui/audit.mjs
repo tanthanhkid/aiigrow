@@ -57,12 +57,13 @@ export function taoAudit({ THIET_KE }) {
     if (!SHA.test(String(h))) return null;
     try { const s = zlib.gunzipSync(fs.readFileSync(tepBlob(h))).toString('utf8'); return sha(s) === h ? s : null; } catch { return null; }
   }
-  // giá trị → bản ghi được: chuỗi dài thành {$blob}; đi sâu tối đa 8 tầng
+  // giá trị → bản ghi được: chuỗi dài thành {$blob}; đi sâu tối đa 8 tầng.
+  // Khoá do người dùng gửi mà bắt đầu bằng «$» được thêm một «$» (vd. «$blob» → «$$blob») để không giả được tham chiếu blob; mo() bỏ lại.
   function gom(v, sau = 0) {
     if (typeof v === 'string') return v.length > BLOB_TU ? { $blob: luuBlob(v), n: v.length } : v;
     if (!v || typeof v !== 'object' || sau > 8) return v;
     if (Array.isArray(v)) return v.map((x) => gom(x, sau + 1));
-    const o = {}; for (const [k, x] of Object.entries(v)) if (x !== undefined) o[k] = gom(x, sau + 1);
+    const o = {}; for (const [k, x] of Object.entries(v)) if (x !== undefined) o[k.startsWith('$') ? `$${k}` : k] = gom(x, sau + 1);
     return o;
   }
   // ngược lại: {$blob} → chuỗi gốc (dựng lại trạng thái)
@@ -70,18 +71,19 @@ export function taoAudit({ THIET_KE }) {
     if (!v || typeof v !== 'object' || sau > 10) return v;
     if (typeof v.$blob === 'string' && Object.keys(v).every((k) => k === '$blob' || k === 'n')) { const s = docBlob(v.$blob); if (s == null) throw new Error(`thiếu blob ${v.$blob.slice(0, 12)}`); return s; }
     if (Array.isArray(v)) return v.map((x) => mo(x, sau + 1));
-    const o = {}; for (const [k, x] of Object.entries(v)) o[k] = mo(x, sau + 1);
+    const o = {}; for (const [k, x] of Object.entries(v)) o[k.startsWith('$$') ? k.slice(1) : k] = mo(x, sau + 1);
     return o;
   }
 
   // ---- khoá liên tiến trình (đồng bộ: một lần ghi chỉ vài ms)
   function khoa() {
     const k = path.join(DIR, '.khoa');
+    // mỗi lần ghi chỉ vài ms ⇒ khoá cũ hơn 1,5 s là của tiến trình đã chết giữa chừng: gỡ. Chờ tối đa ~2 s (không treo máy chủ lâu).
     for (let i = 0; i < 1000; i++) {
       try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
         if (e.code !== 'EEXIST') throw e;
-        try { if (Date.now() - fs.statSync(k).mtimeMs > 10000) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
-        nguDb(5);
+        try { if (Date.now() - fs.statSync(k).mtimeMs > 1500) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
+        nguDb(2);
       }
     }
     throw new Error('audit bận');
@@ -95,7 +97,10 @@ export function taoAudit({ THIET_KE }) {
     // tiến trình khác vừa ghi (hoặc mới chạy): đọc dòng cuối; tệp ngày mới mà rỗng thì lùi về tệp trước
     for (let j = ds.length - 1; j >= 0; j--) {
       const d = dongCuoi(path.join(DIR, ds[j])); if (!d) continue;
-      let i = 0; try { i = Number(JSON.parse(d).i) || 0; } catch { /* dòng hỏng: vẫn nối chuỗi theo băm của nó, audit-kiem sẽ báo */ }
+      let i = 0;
+      try { i = Number(JSON.parse(d).i) || 0; } catch { // dòng cuối hỏng (ghi dở): đếm như audit-kiem — dòng hỏng chiếm một số thứ tự; vẫn nối chuỗi theo băm của nó
+        for (const x of fs.readFileSync(path.join(DIR, ds[j]), 'utf8').split('\n').filter(Boolean)) { try { i = Number(JSON.parse(x).i) || i + 1; } catch { i += 1; } }
+      }
       return { tep: cuoi, co, i, h: sha(d) };
     }
     return { tep: cuoi, co, i: 0, h: P0 };
@@ -121,7 +126,13 @@ export function taoAudit({ THIET_KE }) {
         i += 1; h = sha(dongTho); nd += dongTho + '\n'; ra.push({ ngay, i });
       }
       const duong = path.join(DIR, tep);
-      const fd = fs.openSync(duong, 'a'); try { fs.writeSync(fd, nd); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+      // lần ghi trước bị cắt giữa chừng (tệp không kết thúc bằng \n): xuống dòng trước — dòng dở thành một dòng hỏng riêng (audit-kiem báo), sự kiện mới không bị dính vào
+      const fd = fs.openSync(duong, 'a+');
+      try {
+        const co = fs.fstatSync(fd).size;
+        if (co) { const b = Buffer.alloc(1); fs.readSync(fd, b, 0, 1, co - 1); if (b[0] !== 10) nd = `\n${nd}`; }
+        fs.writeSync(fd, nd); fs.fsyncSync(fd);
+      } finally { fs.closeSync(fd); }
       nho = { tep, co: fs.statSync(duong).size, i, h };
       return ra;
     } catch (e) {
@@ -132,7 +143,8 @@ export function taoAudit({ THIET_KE }) {
 
   // ---- đọc (chỉ chủ quản — server kiểm quyền trước khi gọi)
   // loc: { tu, den: 'YYYY-MM-DD', loai (tiền tố), nguoi (chuỗi con của tên), key, ht (+ keysHt), id, gioi, sauI }
-  function doc(loc = {}) {
+  const docTep = async (t) => { try { return await fs.promises.readFile(path.join(DIR, t), 'utf8'); } catch { return null; } };
+  async function doc(loc = {}) {
     const ngay = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(String(s || '')) ? String(s) : '');
     const tu = ngay(loc.tu), den = ngay(loc.den);
     const gioi = Math.min(Math.max(Number(loc.gioi) || 300, 1), 5000);
@@ -144,7 +156,7 @@ export function taoAudit({ THIET_KE }) {
       && (!loc.ht || e.dt?.ht === loc.ht || (loc.keysHt && loc.keysHt.has(e.dt?.key)));
     const tep = dsTep(DIR).filter((t) => { const d = t.slice(0, 10); return (!tu || d >= tu) && (!den || d <= den); }).reverse();
     for (const t of tep) {
-      let dong; try { dong = fs.readFileSync(path.join(DIR, t), 'utf8').split('\n'); } catch { continue; }
+      const noi = await docTep(t); if (noi == null) continue; const dong = noi.split('\n');
       for (let j = dong.length - 1; j >= 0; j--) {
         if (!dong[j]) continue;
         let e; try { e = JSON.parse(dong[j]); } catch { continue; }
@@ -157,20 +169,20 @@ export function taoAudit({ THIET_KE }) {
     return { ds: ra, conNua };
   }
   // tìm một sự kiện theo (ngày, i)
-  function tim(ngay, i) {
+  async function tim(ngay, i) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(ngay)) || !Number.isInteger(i)) return null;
-    let s; try { s = fs.readFileSync(path.join(DIR, `${ngay}.jsonl`), 'utf8'); } catch { return null; }
+    const s = await docTep(`${ngay}.jsonl`); if (s == null) return null;
     for (const d of s.split('\n')) { if (!d) continue; try { const e = JSON.parse(d); if (e.i === i) return { ngay, ...e }; } catch { /* bỏ dòng hỏng */ } }
     return null;
   }
   // tệp xuất theo khoảng ngày: jsonl nguyên văn (giữ chuỗi băm), csv thì một cột cho mỗi trường chính
-  function xuat(tu, den, dang) {
+  async function xuat(tu, den, dang) {
     const tep = dsTep(DIR).filter((t) => { const d = t.slice(0, 10); return (!tu || d >= tu) && (!den || d <= den); });
-    if (dang === 'jsonl') return tep.map((t) => { try { return fs.readFileSync(path.join(DIR, t), 'utf8'); } catch { return ''; } }).join('');
+    if (dang === 'jsonl') { let ra = ''; for (const t of tep) ra += (await docTep(t)) || ''; return ra; }
     const o = (v) => { const s = v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v); return /[",\n\r]/.test(s) || /^[=+\-@\t]/.test(s) ? `"${(/^[=+\-@\t]/.test(s) ? "'" : '') + s.replace(/"/g, '""')}"` : s; };
     const hang = [['ngay', 'i', 't', 'loai', 'doi_tuong', 'ten', 'vai', 'ma_r', 'ip', 'ua', 'truoc', 'sau', 'ghi_chu', 'p'].join(',')];
     for (const t of tep) {
-      let s; try { s = fs.readFileSync(path.join(DIR, t), 'utf8'); } catch { continue; }
+      const s = await docTep(t); if (s == null) continue;
       for (const d of s.split('\n')) {
         if (!d) continue; let e; try { e = JSON.parse(d); } catch { continue; }
         hang.push([t.slice(0, 10), e.i, e.t, e.loai, e.dt, e.ai?.ten, e.ai?.vai, e.ai?.ma, e.ai?.ip, e.ai?.ua, e.truoc, e.sau, e.ghiChu, e.p].map(o).join(','));
