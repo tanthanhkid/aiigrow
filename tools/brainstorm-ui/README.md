@@ -39,8 +39,9 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
 - **Quyền chủ quản** (kiểm ở máy chủ): mở bàn ở `127.0.0.1` là chủ quản. Qua tên miền/tunnel cần mã trong `aiigrow-thiet-ke/brainstorm-ui/chu-quan.json` (ngoài git, đổi bằng `BS_CHU_QUAN`): `{"ma": "<≥8 ký tự>", "khoaBang": false}`; bàn sẽ hỏi mã khi mở «Góp ý». Chưa đặt mã thì quyền chủ quản chỉ có trên 127.0.0.1. `khoaBang: true` thì qua tên miền Thay màn/Khôi phục và ghi kho biến thể (sinh/xoá/khôi phục) cũng cần mã; realtime bàn chính của người chưa có mã chỉ còn con trỏ/nhìn/tên. Thay màn do máy chủ báo cho mọi bàn. Link `/r/` không bao giờ có quyền Accept/Thay màn. **Lưu ý:** khi `khoaBang` tắt, ai biết tên miền của bàn (kể cả người nhận link `/r/`) vẫn mở được bàn chính và Thay màn như cộng tác viên — chia sẻ link `/r/` cho người ngoài nhóm thì bật `khoaBang: true`.
 - **Mật khẩu chung** (`cong-vao.mjs`, cổng đứng trước mọi đường): khi `chu-quan.json` có `matKhau` (≥8 ký tự) và `biMatPhien` (≥32 ký tự, ngẫu nhiên),
   vào qua tên miền phải đăng nhập ở `/__dang-nhap` — áp cho trang, `/api`, `/ref`, `/assets`, link `/r/`, realtime `/ws`. Đúng ⇒ cookie `bs_phien`
-  (HttpOnly, Secure, SameSite=Lax, 30 ngày, ký HMAC-SHA256 bằng `biMatPhien` + băm mật khẩu: đổi mật khẩu là mọi phiên cũ hết hiệu lực). Sai dùng chung giới hạn
-  với mã chủ quản, audit `quyen.sai-mat-khau` (chỉ độ dài). `127.0.0.1` gõ thẳng không cần. `/mcp` nhận `Bearer <maMcp>` hoặc cookie phiên. Đăng xuất: `/__dang-xuat`.
+  (HttpOnly, Secure, SameSite=Lax, 30 ngày, ký HMAC-SHA256 bằng `biMatPhien` + băm mật khẩu: đổi mật khẩu là mọi phiên cũ hết hiệu lực). Sai mật khẩu: giới hạn
+  10 lần/phút/IP (bộ đếm riêng), audit `quyen.sai-mat-khau` (chỉ độ dài); gõ đúng không bị ngưỡng chung chặn. Thiếu `biMatPhien` thì máy chủ tự sinh;
+  `chu-quan.json` hỏng ⇒ cổng đóng (503), không mở toang. Phiên hết hạn khi đang mở bàn ⇒ dải báo «Đăng nhập lại» (không tự chuyển trang). `127.0.0.1` gõ thẳng không cần. `/mcp` nhận `Bearer <maMcp>` hoặc cookie phiên (cookie chỉ khi đã đặt `maMcp`). Đăng xuất: `/__dang-xuat`.
   Mật khẩu chung chỉ là cổng vào — Accept/Thay màn khi `khoaBang` vẫn cần mã chủ quản `x-bs-chu-quan`.
 
 ## Lịch sử thay đổi (audit)

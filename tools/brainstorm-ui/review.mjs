@@ -33,18 +33,28 @@ export function taoReview(C) {
   const AU = C.audit || { ghi() {} };
   let cq = { t: -1, j: {} }; // nhớ theo mtime: không đọc lại tệp mỗi yêu cầu
   // tóm tắt quyền để ghi audit — KHÔNG BAO GIỜ ghi mã (kể cả băm của mã); chỉ «có mã» + «mã vừa đổi»
-  const tomCq = (j) => ({ khoaBang: j.khoaBang === true, coMa: String(j.ma || '').length >= 8, coMaMcp: String(j.maMcp || '').length >= 8, coMatKhau: String(j.matKhau || '').length >= 8 });
+  const tomCq = (j) => ({ khoaBang: j.khoaBang === true, coMa: String(j.ma || '').length >= 8, coMaMcp: String(j.maMcp || '').length >= 8, coMatKhau: String(j.matKhau || '').length >= 8, coBiMatPhien: String(j.biMatPhien || '').length >= 32 });
   function cauHinh() {
     let t = 0; try { t = fs.statSync(TEP_CQ).mtimeMs; } catch { t = 0; }
     if (t !== cq.t) {
       const cu = cq;
       if (!t) cq = { t, j: {} };
-      else { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' ? j : {} }; } catch { cq = { t, j: {} }; } }
-      const a = tomCq(cu.j), b = { ...tomCq(cq.j), doiMa: String(cu.j.ma || '') !== String(cq.j.ma || ''), doiMaMcp: String(cu.j.maMcp || '') !== String(cq.j.maMcp || ''), doiMatKhau: String(cu.j.matKhau || '') !== String(cq.j.matKhau || '') };
-      if (cu.t !== -1 && (b.doiMa || b.doiMaMcp || b.doiMatKhau || a.khoaBang !== b.khoaBang || a.coMa !== b.coMa || a.coMaMcp !== b.coMaMcp || a.coMatKhau !== b.coMatKhau)) // lần đọc đầu tiên khi chạy máy chủ không phải «đổi»
+      else { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' && !Array.isArray(j) ? j : {}, hong: !(j && typeof j === 'object' && !Array.isArray(j)) }; } catch { cq = { t, j: {}, hong: true }; } }
+      const a = tomCq(cu.j), b = { ...tomCq(cq.j), doiMa: String(cu.j.ma || '') !== String(cq.j.ma || ''), doiMaMcp: String(cu.j.maMcp || '') !== String(cq.j.maMcp || ''), doiMatKhau: String(cu.j.matKhau || '') !== String(cq.j.matKhau || ''), doiBiMatPhien: String(cu.j.biMatPhien || '') !== String(cq.j.biMatPhien || '') };
+      if (cu.t !== -1 && (b.doiMa || b.doiMaMcp || b.doiMatKhau || b.doiBiMatPhien || a.coBiMatPhien !== b.coBiMatPhien || a.khoaBang !== b.khoaBang || a.coMa !== b.coMa || a.coMaMcp !== b.coMaMcp || a.coMatKhau !== b.coMatKhau)) // lần đọc đầu tiên khi chạy máy chủ không phải «đổi»
         AU.ghi({ loai: 'quyen.doi-cau-hinh', dt: { tep: 'chu-quan.json' }, ai: { ten: 'máy chủ', vai: 'he-thong' }, truoc: a, sau: b, ghiChu: t ? 'chu-quan.json đổi' : 'chu-quan.json bị xoá' }, { motLan: `cq:${t}` });
     }
     return cq.j;
+  }
+  // chu-quan.json có mà đọc không được (JSON hỏng, đang ghi dở…) ⇒ cổng mật khẩu ĐÓNG (server.mjs trả 503), không mở toang
+  const cauHinhHong = () => { cauHinh(); return cq.hong === true; };
+  // có matKhau mà thiếu biMatPhien ⇒ tự sinh (ngẫu nhiên 256 bit), ghi lại chu-quan.json (chmod 600) — không bao giờ in ra
+  function damBaoBiMatPhien() {
+    const j = cauHinh();
+    if (cq.hong || String(j.matKhau || '').length < 8 || String(j.biMatPhien || '').length >= 32) return;
+    const moi = { ...j, biMatPhien: crypto.randomBytes(32).toString('hex') };
+    const tam = `${TEP_CQ}.${process.pid}.${Date.now()}.tam`;
+    fs.writeFileSync(tam, JSON.stringify(moi, null, 1), { mode: 0o600 }); fs.renameSync(tam, TEP_CQ);
   }
   // vai của người gọi để ghi audit — chỉ SO mã, KHÔNG đếm lần sai/không ghi «sai mã» (ghi kho khi chưa khoá bảng không phải là thử mã:
   // mã cũ còn kèm theo trong lúc tự lưu không được làm đầy audit hay khoá IP của chủ quản)
@@ -76,7 +86,7 @@ export function taoReview(C) {
   }
   // Mật khẩu chung («matKhau» trong chu-quan.json): cổng vào mọi đường khi vào qua tên miền (cong-vao.mjs). Cùng bộ giới hạn sai.
   function kiemMatKhau(req, gui) {
-    return kiemBiMat(req, String(cauHinh().matKhau || ''), String(gui || ''), { loai: 'quyen.sai-mat-khau', ten: 'mật khẩu chung', duong: '/__dang-nhap' });
+    return kiemBiMat(req, String(cauHinh().matKhau || ''), String(gui || ''), { loai: 'quyen.sai-mat-khau', ten: 'mật khẩu chung', duong: '/__dang-nhap', dungTruocTong: true });
   }
   // So một bí mật (mã chủ quản / mật khẩu MCP / mật khẩu chung) — dùng CHUNG bộ giới hạn sai: 10 lần/phút/IP, 100 lần/phút cả máy chủ. Không bao giờ ghi giá trị mã.
   function kiemBiMat(req, ma, gui, au) {
@@ -86,6 +96,8 @@ export function taoReview(C) {
     if (s && now - s.t < 60000 && s.n >= 10) return false;
     let saiTong = SAI_TONG.get(au.loai); if (!saiTong) SAI_TONG.set(au.loai, saiTong = { t: 0, n: 0 });
     if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
+    // mật khẩu chung là cổng vào của cả nhóm: người lạ làm đầy ngưỡng chung không được khoá người gõ đúng (vẫn giữ ngưỡng 10/phút/IP)
+    if (au.dungTruocTong && dungMa(ma, gui)) return true;
     if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
     if (dungMa(ma, gui)) return true;
     saiTong.n++;
@@ -395,5 +407,5 @@ export function taoReview(C) {
     } finally { mo(); }
   }
 
-  return { xuLy, laChuQuan, kiemMaMcp, kiemMatKhau, laNoiBo, cauHinh, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
+  return { xuLy, laChuQuan, kiemMaMcp, kiemMatKhau, laNoiBo, cauHinh, cauHinhHong, damBaoBiMatPhien, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
 }

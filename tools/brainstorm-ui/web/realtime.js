@@ -41,7 +41,8 @@ export function taoRealtime(C) {
     try { ws = new WebSocket(u); } catch { henLai(); return; }
     ws.onmessage = (e) => { let m; try { m = JSON.parse(e.data); } catch { return; } nhan(m); };
     ws.onopen = () => { lui = 1000; lanNhin = 0; guiNhin(true); guiChon(true); veNguoi(); };
-    ws.onclose = () => { ws = null; for (const p of ban.values()) p.el?.remove(); ban.clear(); veNguoi(); veChon(); henLai(); };
+    let moDuoc = false; ws.addEventListener('open', () => { moDuoc = true; });
+    ws.onclose = () => { if (!moDuoc) window.__bsKiemPhien?.(); ws = null; for (const p of ban.values()) p.el?.remove(); ban.clear(); veNguoi(); veChon(); henLai(); };
   }
   function henLai() { clearTimeout(henNoi); henNoi = setTimeout(moKetNoi, lui); lui = Math.min(lui * 2, 15000); }
   const gui = (m) => { if (ws?.readyState === 1) { try { ws.send(JSON.stringify(m)); return true; } catch { /* rớt */ } } return false; };

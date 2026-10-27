@@ -1,5 +1,5 @@
-// Cổng mật khẩu chung của bàn brainstorm (qua tên miền). Module THUẦN — không đọc tệp, không biết http của Node —
-// để server.mjs (Mac) và Worker Cloudflare dùng chung một logic.
+// Cổng mật khẩu chung của bàn brainstorm (qua tên miền). Không đọc tệp, không biết http của Node — server.mjs (Mac) và Worker Cloudflare
+// (bật nodejs_compat cho node:crypto) dùng chung một logic.
 // Phiên = cookie «bs_phien» = "<hạn ms>.<HMAC-SHA256(biMatPhien, 'v1|hạn|sha256(matKhau)')>": đổi mật khẩu hoặc biMatPhien ⇒ mọi phiên cũ hết hiệu lực.
 // Không bao giờ ghi/in mật khẩu hay bí mật.
 import crypto from 'node:crypto';
@@ -8,6 +8,7 @@ export const TEN_COOKIE = 'bs_phien';
 export const HAN_PHIEN = 30 * 24 * 3600 * 1000; // 30 ngày
 export const DUONG_DANG_NHAP = '/__dang-nhap';
 export const DUONG_DANG_XUAT = '/__dang-xuat';
+export const DUONG_PHIEN = '/__phien'; // 200 nếu phiên còn, 401 {canDangNhap} nếu hết — realtime.js hỏi khi /ws bị từ chối
 
 const bam = (x) => crypto.createHash('sha256').update(String(x)).digest('hex');
 const ky = (biMat, han, matKhau) => crypto.createHmac('sha256', String(biMat)).update(`v1|${han}|${bam(matKhau)}`).digest('base64url');
@@ -48,7 +49,7 @@ export function tiepAnToan(s) {
 }
 
 // Đường KHÔNG qua cổng: trang đăng nhập/xuất; /mcp tự kiểm (Bearer maMcp hoặc cookie); /__mcp/trang chỉ loopback (tự kiểm)
-export const duongMien = (p) => p === DUONG_DANG_NHAP || p === DUONG_DANG_XUAT || p === '/mcp' || p.startsWith('/__mcp/trang/');
+export const duongMien = (p) => p === DUONG_DANG_NHAP || p === DUONG_DANG_XUAT || p === DUONG_PHIEN || p === '/mcp' || p.startsWith('/__mcp/trang/');
 
 // Chưa đăng nhập: trang (GET đòi HTML) ⇒ chuyển tới đăng nhập; còn lại ⇒ 401 JSON
 export const muonTrang = (method, accept) => (method === 'GET' || method === 'HEAD') && /text\/html/.test(String(accept || ''));
