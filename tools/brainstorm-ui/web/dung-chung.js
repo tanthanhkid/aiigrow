@@ -30,7 +30,7 @@ export function goiYDungChung(ds) {
   const giong = (t, g, cungTen) => t >= 0.85 || (cungTen && t >= 0.4) || (t >= 0.6 && g() >= 0.9);
   const cha = new Map(M.map((m) => [m.key, m.key]));
   const goc = (k) => { while (cha.get(k) !== k) { cha.set(k, cha.get(cha.get(k))); k = cha.get(k); } return k; };
-  const canh = [];
+  const canh = [], lechCap = []; // cặp lệch KHÔNG nối vào cụm (union-find bắc cầu sẽ gom cả hai màn cùng đã sửa) — mỗi cặp một gợi ý riêng
   for (let i = 0; i < M.length; i++) for (let j = i + 1; j < M.length; j++) {
     const a = M[i], b = M[j];
     if (a.lan === b.lan || (a.nhom && a.nhom === b.nhom)) continue;
@@ -44,17 +44,19 @@ export function goiYDungChung(ds) {
     if (Math.abs((a.w0 ?? a.w) - (b.w0 ?? b.w)) > 8 || Math.abs((a.h0 ?? a.h) - (b.h0 ?? b.h)) > 40) continue; // cỡ khung bản trong mã
     const ga = v0Cua(a), gb = v0Cua(b); const t0 = jac(ga.t, gb.t);
     // ngưỡng chặt hơn trùng thường: nhãn khẳng định «vốn là một màn trong mã»
-    if (t0 >= 0.85 || (cungTen && t0 >= 0.6)) { canh.push({ a: a.key, b: b.key, t: t0, cungTen, daLech: true }); cha.set(goc(a.key), goc(b.key)); }
+    if (t0 >= 0.85 || (cungTen && t0 >= 0.6)) lechCap.push({ a: a.key, b: b.key, t: t0, cungTen });
   }
   const cum = new Map();
   for (const c of canh) { const g = goc(c.a); if (!cum.has(g)) cum.set(g, { keys: new Set(), canh: [] }); const x = cum.get(g); x.keys.add(c.a); x.keys.add(c.b); x.canh.push(c); }
   const thuTu = new Map(ds.map((m, i) => [m.key, i]));
-  return [...cum.values()].map((x) => {
+  const thuong = [...cum.values()].map((x) => {
     const keys = [...x.keys].sort((p, q) => thuTu.get(p) - thuTu.get(q));
     const ten = x.canh.every((c) => c.cungTen) ? 'cùng tên' : '';
-    const thuong = x.canh.filter((c) => !c.daLech); const lech = thuong.length < x.canh.length; const tatCaLech = !thuong.length;
-    const diem = Math.min(...(tatCaLech ? x.canh : thuong).map((c) => c.t));
-    return { ds: keys, diem: Math.round(diem * 100) / 100, daLech: lech, chiLech: tatCaLech,
-      lyDo: [ten, tatCaLech ? `bản trong mã giống ${Math.round(diem * 100)}% — một bên đã sửa, bên kia chưa theo` : `nội dung giống ${Math.round(diem * 100)}%`, !tatCaLech && lech ? 'có màn đã sửa lệch' : ''].filter(Boolean).join(', ') };
-  }).sort((p, q) => Number(p.chiLech) - Number(q.chiLech) || q.diem - p.diem || q.ds.length - p.ds.length); // trùng thật trước, cặp đã lệch sau
+    const diem = Math.min(...x.canh.map((c) => c.t));
+    return { ds: keys, diem: Math.round(diem * 100) / 100, daLech: false, lyDo: [ten, `nội dung giống ${Math.round(diem * 100)}%`].filter(Boolean).join(', ') };
+  }).sort((p, q) => q.diem - p.diem || q.ds.length - p.ds.length);
+  const lech = lechCap.map((c) => ({ ds: [c.a, c.b].sort((p, q) => thuTu.get(p) - thuTu.get(q)), diem: Math.round(c.t * 100) / 100, daLech: true,
+    lyDo: [c.cungTen ? 'cùng tên' : '', `bản trong mã giống ${Math.round(c.t * 100)}% — một bên đã sửa, bên kia chưa theo`].filter(Boolean).join(', ') }))
+    .sort((p, q) => q.diem - p.diem);
+  return [...thuong, ...lech]; // trùng thật trước, cặp đã lệch sau
 }
