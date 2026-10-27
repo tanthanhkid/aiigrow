@@ -90,7 +90,7 @@ export function taoKhoBienThe(C) {
     if (!cu && BO.k.size >= SO_TOI_DA) return { loi: `Kho đã đủ ${SO_TOI_DA} biến thể — dọn bớt` };
     const racCu = !cu && fs.existsSync(tepRac('k', m.id, 'json')) ? docJson(tepRac('k', m.id, 'json')) : null;
     // biến thể đã dùng để Thay màn rồi tự gỡ: bàn nào còn giữ bản cũ (tab chưa tải lại, lượt đồng bộ đang bay) không được làm nó sống lại
-    if (racCu?.thay && !songLai) return { loi: `Biến thể ${m.id} đã dùng để Thay màn và được gỡ khỏi bàn — muốn lấy lại thì khôi phục trong 🗑 Thùng rác` };
+    if (racCu?.thay && !songLai) return { boQua: true }; // lượt ghi tới muộn (đang bay lúc Thay màn) — bỏ qua im lặng, không báo lỗi
     const coPhu = !!(phu.htmlSua || phu.htmlGocSua);
     m.b = html || coPhu ? bam(html, phu.htmlSua, phu.htmlGocSua) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
     if (m.tt === 'dang' && !html && !coPhu && cu) m.b = cu.b || ''; // đang sinh lại: giữ HTML cũ trên máy chủ tới khi có bản xong
@@ -152,6 +152,11 @@ export function taoKhoBienThe(C) {
     for (const e of evs) e.ghiChu = `tự gỡ khỏi bàn sau Thay màn «${key}» → v${v} (HTML giữ trong phiên bản màn) · ${e.ghiChu}`;
     A.ghi(evs);
     phat({ loai: 'xoa', khung: [id], tu: phien, ten: nguoi, ly: 'thay' });
+    // màn con của nó nối về cha của nó ngay trên máy chủ (cùng quy tắc bàn dùng khi gỡ khung) — đúng cả khi Thay qua MCP
+    const chaMoi = m.cha && BO.k.has(m.cha) ? m.cha : m.goc;
+    const con = [...BO.k.values()].filter((c) => c.cha === id).map((c) => ({ ...c, cha: chaMoi, tSua: Math.max(Date.now(), (c.tSua || 0) + 1) }));
+    for (const c of con) datMuc('k', c);
+    if (con.length) phat({ loai: 'ghi', khung: con, tu: phien, ten: nguoi });
     return id;
   }
   // khôi phục (ghiLai=true) hoặc chỉ bỏ khỏi thùng rác (khi mục vừa được ghi mới)
@@ -294,6 +299,7 @@ export function taoKhoBienThe(C) {
           if (r.ev) evs.push(r.ev);
           if (r.m) ra[ten].push(r.m);
           else if (r.xungDot) xungDot[ten].push(r.xungDot);
+          else if (r.boQua) boQua[ten].push(String(x?.id || ''));
           else { loi.push(r.loi); tuChoi[ten].push(String(x?.id || '')); }
         }
       }

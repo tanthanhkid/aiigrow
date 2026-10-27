@@ -290,8 +290,8 @@ export function taoUngDung(O = {}) {
       phatPhong('bang', { t: 'rv', loai: 'thay', key, ten, tu: phien });
       review.baoThayMan(key, { ten });
       // Thay màn bằng một biến thể (bt) ⇒ biến thể đó rời bàn, chỗ của nó để trống (Khôi phục/Xoá màn không có bt; thất bại thì không tới đây)
-      const thayHtml = than && than.tu == null && than.xoa !== true && than.khoiPhucXoa !== true;
-      if (thayHtml && typeof than.bt === 'string' && than.bt) btXoa = khoBt.goSauThay(than.bt, { key, v: obj.hien, ai: aiCua(req), phien, nguoi: ten });
+      const moi = obj.ds.find((x) => x.v === obj.hien); // chỉ nhánh «HTML mới» ghi tệp riêng (tep === v); khôi phục/xoá màn trỏ tệp cũ
+      if (moi && moi.tep === moi.v && typeof than.bt === 'string' && than.bt && moi.bt === than.bt) btXoa = khoBt.goSauThay(than.bt, { key, v: obj.hien, ai: aiCua(req), phien, nguoi: ten });
     }
     return json(res, ma, btXoa ? { ...obj, btXoa } : obj);
   }
