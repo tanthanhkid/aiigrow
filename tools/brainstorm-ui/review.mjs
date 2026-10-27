@@ -154,6 +154,16 @@ export function taoReview(C) {
     for (const p of ['bang', ...ma]) if (phong.has(p)) C.phat(p, { t: 'rv', loai, ht, ...them });
   }
 
+  // màn vừa đổi phiên bản (Thay màn / Khôi phục / Accept): báo các trang /r/ đang mở có màn đó, để Xem/Play đổi sang bản mới không cần tải lại
+  async function baoThayMan(key, them = {}) {
+    try {
+      const phong = new Set(C.dsPhong());
+      const ds = dsChiaSe().filter((s) => !s.thuHoi && phong.has(`r-${s.ma}`)); if (!ds.length) return;
+      const HT = await C.hanhTrinh(); // link chụp đúng các màn của hành trình ⇒ lọc theo hành trình, không đọc snapshot
+      for (const s of ds) if (HT.get(s.ht)?.buoc.includes(key)) C.phat(`r-${s.ma}`, { t: 'rv', loai: 'thay', key, ht: s.ht, ...them });
+    } catch { /* kho hỏng: chỉ báo bàn chính */ }
+  }
+
   // ---------- dữ liệu gửi ra ----------
   const gopYRa = (g) => ({ ...g });
   const deXuatRa = (d) => { const { tep, ...con } = d; return con; };
@@ -382,7 +392,7 @@ export function taoReview(C) {
             evs.push({ loai: 'gop-y.trang-thai', dt: { ht: b, id: gy.id, key: gy.key || undefined }, ai: aiCua(req), truoc: truocGy, sau: sao(gy), ghiChu: 'tự chuyển «Đã xử lý» khi áp dụng đề xuất' });
           }
           AU.ghi(evs);
-          bao(b, 'de-xuat'); C.phat('bang', { t: 'rv', loai: 'thay', key: x.key, ht: b });
+          bao(b, 'de-xuat'); C.phat('bang', { t: 'rv', loai: 'thay', key: x.key, ht: b }); baoThayMan(x.key);
           return json(res, 200, { deXuat: deXuatRa(x), manifest: m }), true;
         } finally { mo(); }
       }
@@ -411,5 +421,5 @@ export function taoReview(C) {
     } finally { mo(); }
   }
 
-  return { xuLy, laChuQuan, kiemMaMcp, kiemMatKhau, laNoiBo, cauHinh, cauHinhHong, damBaoBiMatPhien, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
+  return { xuLy, baoThayMan, laChuQuan, kiemMaMcp, kiemMatKhau, laNoiBo, cauHinh, cauHinhHong, damBaoBiMatPhien, khoaBang, conHieuLuc, vaiCua, datGopY, ipCua };
 }

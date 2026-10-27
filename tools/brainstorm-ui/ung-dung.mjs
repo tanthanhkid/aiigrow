@@ -283,6 +283,7 @@ export function taoUngDung(O = {}) {
     if (ma === 200) { // máy chủ báo mọi bàn (không dựa vào client phát qua realtime — phòng chỉ-xem không phát được)
       let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { /* bỏ qua */ }
       phatPhong('bang', { t: 'rv', loai: 'thay', key, ten, tu: String(req.headers['x-bs-phien'] || '').slice(0, 40) });
+      review.baoThayMan(key, { ten });
     }
     return json(res, ma, obj);
   }
@@ -369,7 +370,7 @@ export function taoUngDung(O = {}) {
       const con = st.v === 0 || st.trongMa ? { tu: 0 } : m0.ds.some((x) => x.v === st.v && x.tep === st.tep && fs.existsSync(path.join(thuMucPb(key), `v${x.tep}.html`))) ? { tu: st.v }
         : { html: st.html, w: st.w, h: st.h, nhan: `Khôi phục từ lịch sử ${nguon}`.slice(0, 120), yTuong: st.yTuong || '', nguon: 'lich-su' };
       const [ma, obj] = await ghiPhienBan(key, con, null, ai, 'man.khoi-phuc-lich-su');
-      if (ma === 200) phatPhong('bang', { t: 'rv', loai: 'thay', key, ten: ai.ten, tu: '' });
+      if (ma === 200) { phatPhong('bang', { t: 'rv', loai: 'thay', key, ten: ai.ten, tu: '' }); review.baoThayMan(key, { ten: ai.ten }); }
       return json(res, ma, ma === 200 ? { ok: true, manifest: obj } : obj);
     }
     if (/^gop-y\./.test(e.loai)) {

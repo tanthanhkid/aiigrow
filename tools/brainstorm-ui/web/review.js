@@ -5,6 +5,7 @@ import { taoRealtime, mauTen } from './realtime.js';
 import { heThong, loiNguoiDung, tachKetQua, HUONG } from './prompt.js';
 import { goiClaude, goiMock, mockSua, chayLoat, lamSach, taiAssets } from './claude.js';
 import { taoAnXuLy, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
+import { ganToi } from './gan-toi.js';
 
 const $ = (s) => document.querySelector(s);
 const MA = (location.pathname.match(/^\/r\/([a-f0-9]{32})\/?$/) || [])[1] || '';
@@ -42,6 +43,7 @@ async function tai() {
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return het(j.loi || `Lỗi ${r.status}`);
   R.goi = j;
+  await Promise.race([dongBoBan(), new Promise((r) => setTimeout(r, 4000))]); veBan(); // mạng treo: vẽ ảnh chụp trước, bản mới tự thay khi tải xong
   document.title = `Góp ý · ${j.htTen}`;
   $('#ht-ten').textContent = j.htTen; $('#ht-v').textContent = `v${j.v}`; $('#ht-ghi').textContent = j.ghiChu || '';
   veDsMan();
@@ -49,7 +51,67 @@ async function tai() {
   mo(j.man.some((m) => m.key === h) || h === 'qt' || h === 'chung' ? h : j.man[0]?.key || 'chung');
 }
 function het(ly) { $('#het').hidden = false; $('#het-ly').textContent = ly; document.body.classList.add('da-het'); }
-const manCua = (key) => R.goi?.man.find((m) => m.key === key);
+const manChup = (key) => R.goi?.man.find((m) => m.key === key); // bản đóng băng lúc tạo link
+// Bản đang hiển thị: màn đã được «Thay màn»/Khôi phục trên bàn chính sau khi chia sẻ ⇒ bản hiện hành (Xem, Play, Ghim, biến thể theo góp ý),
+// trừ khi người xem bấm «Bản lúc chia sẻ» để đối chiếu.
+const manCua = (key) => { const m = manChup(key); const x = m && !R.banChup && HIEN.get(key); return x ? { ...m, ...x, moi: true } : m; };
+
+// ---------- bản hiện hành của các màn (kho phiên bản của bàn chính) ----------
+const HIEN = new Map(); // key → { v, html, w, h } — chỉ màn đã khác bản lúc chia sẻ
+let maGoc = null;       // Promise<Map key → { html, w, h, toi, ke, keTen }>: bản trong mã (v0) + nhãn bước để gắn data-toi như bàn chính
+function banTrongMa() {
+  return (maGoc ||= import('./hanh-trinh/index.js').then(({ taiHanhTrinh }) => taiHanhTrinh()).then(({ ds }) => {
+    const bang = new Map();
+    for (const h of ds) h.buoc.forEach((b, i) => { const ke = h.buoc[i + 1]; bang.set(b.key, { html: ke && b.toi ? ganToi(b.html, b.toi, ke.key, ke.ten) : b.html, w: b.w, h: b.h, toi: b.toi, ke: ke?.key, keTen: ke?.ten }); });
+    return bang;
+  }).catch((e) => { maGoc = null; throw e; }));
+}
+// chiKey: chỉ nạp lại một màn (tin realtime «thay»). Trả Set các key vừa đổi bản hiển thị.
+async function napHienHanh(chiKey = '') {
+  const doi = new Set();
+  let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return doi; ds = await r.json(); } catch { return doi; }
+  await Promise.all([...new Map(R.goi.man.map((m) => [m.key, m])).values()].map(async (m) => { // một màn ghé nhiều lần: xử lý một lần
+    if (chiKey && m.key !== chiKey) return;
+    const mf = ds[m.key]; const hien = mf?.hien || 0;
+    const muc = mf?.ds?.find((x) => x.v === hien); const mucChup = mf?.ds?.find((x) => x.v === (m.pb || 0));
+    if (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0)) { if (HIEN.delete(m.key)) doi.add(m.key); return; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
+    if (HIEN.get(m.key)?.v === hien) return;
+    try {
+      let html = '', w = m.w, h = m.h;
+      if (muc?.tep) {
+        const r = await fetch(`/api/phien-ban/${encodeURIComponent(m.key)}/${muc.tep}`, { cache: 'no-store' });
+        const j = await r.json(); if (!r.ok || typeof j.html !== 'string') throw new Error(j.loi || r.status);
+        html = j.html; w = muc.w || w; h = muc.h || h;
+        if (!/data-toi=/.test(html)) { // bản mới thiếu nút nối màn kế: gắn lại theo nhãn bước như bàn chính (lỗi tải hành trình thì để nguyên)
+          const goc = await banTrongMa().then((b) => b.get(m.key)).catch(() => null);
+          if (goc?.toi && goc.ke) html = ganToi(html, goc.toi, goc.ke, goc.keTen);
+        }
+      } else { // khôi phục về bản trong mã (v0)
+        const goc = (await banTrongMa()).get(m.key);
+        html = goc?.html || ''; w = goc?.w || w; h = goc?.h || h;
+      }
+      if (!html) return;
+      HIEN.set(m.key, { v: hien, html, w, h }); doi.add(m.key);
+    } catch { /* lỗi mạng: giữ bản đang có, lần đồng bộ sau thử lại */ }
+  }));
+  return doi;
+}
+function veBan() {
+  const b = $('#nut-ban'); const n = HIEN.size; b.hidden = !n; if (!n) R.banChup = false;
+  b.textContent = R.banChup ? '🕘 Đang xem bản lúc chia sẻ' : `✨ Đang xem bản mới nhất`;
+  b.title = R.banChup ? 'Bấm để về bản mới nhất (sau Thay màn trên bàn chính)' : `${n} màn đã được thay sau khi chia sẻ link — bấm để xem bản lúc chia sẻ`;
+  b.setAttribute('aria-pressed', String(!!R.banChup));
+}
+// đồng bộ rồi vẽ lại màn đang mở nếu nó đổi (giữ lịch sử Play + ghim đang chờ gửi). Tuần tự: lượt sau luôn lấy manifest sau lượt trước.
+let hangBan = Promise.resolve();
+function dongBoBan(chiKey = '') { const p = hangBan.then(() => dongBoBan0(chiKey)); hangBan = p.catch(() => {}); return p; }
+async function dongBoBan0(chiKey) {
+  const doi = await napHienHanh(chiKey);
+  if (!doi.size) return doi;
+  veBan();
+  if (!R.banChup && (doi.has(R.mo) || R.mo === 'qt')) { const g = R.ghimCho; mo(R.mo, R.i, false); if (g) { R.ghimCho = g; capNhatGhimCho(); veGhim(); } } else veDsMan();
+  return doi;
+}
 
 // ---------- danh sách màn + mở màn ----------
 function veDsMan() {
@@ -59,6 +121,7 @@ function veDsMan() {
     const li = tao('li'); const b = tao('button', 'muc-man' + (R.i === i ? ' bat' : ''));
     b.type = 'button'; b.dataset.key = m.key;
     b.append(tao('span', 'so-tt', String(i + 1)), tao('span', 't', m.ten));
+    if (HIEN.has(m.key) && !R.banChup) { const x = tao('span', 'moi', 'mới'); x.title = `Đã thay sau khi chia sẻ — đang hiện v${HIEN.get(m.key).v}`; b.append(x); }
     if (dem.get(m.key)) b.append(tao('span', 'dem', String(dem.get(m.key))));
     b.onclick = () => mo(m.key, i); li.append(b); ol.append(li);
   });
@@ -83,7 +146,8 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
     ifr.srcdoc = lamSach(m.html);
     vuaKhung();
   }
-  $('#vi-tri').textContent = m ? `Màn ${i + 1}/${R.goi.man.length} · ${m.ten}` : key === 'qt' ? 'Quy trình' : 'Góp ý chung';
+  $('#vi-tri').textContent = m ? `Màn ${i + 1}/${R.goi.man.length} · ${m.ten}${m.moi ? ` · bản mới v${m.v}` : ''}`
+    : key === 'qt' ? `Quy trình${HIEN.size && !R.banChup ? ` (sơ đồ chụp lúc chia sẻ — ${HIEN.size} màn đã thay sau đó)` : ''}` : 'Góp ý chung';
   $('#nut-truoc').disabled = i <= 0 && !(R.play && R.lich.length > 1); $('#nut-sau').disabled = i < 0 || i >= R.goi.man.length - 1;
   $('#gy-noi').placeholder = m ? `Góp ý cho màn «${m.ten}»…` : 'Góp ý cho cả hành trình…';
   $('#hop-gy').hidden = key === 'qt';
@@ -181,6 +245,11 @@ $('#nut-play').onclick = () => {
 
 // ---------- ghim ----------
 const datGhim = (b) => datCheDo(b ? 'ghim' : 'xem');
+$('#nut-ban').onclick = () => {
+  R.banChup = !R.banChup; veBan();
+  if (R.mo) { const g = R.ghimCho; mo(R.mo, R.i, false); if (g) { R.ghimCho = g; capNhatGhimCho(); veGhim(); } }
+  toast(R.banChup ? 'Đang xem bản lúc chia sẻ link (để đối chiếu).' : 'Đang xem bản mới nhất.');
+};
 $('#nut-ghim').onclick = () => { if (!manCua(R.mo)) { toast('Mở một màn rồi mới ghim được.'); return; } datGhim(!R.ghim); if (R.ghim) toast('Ghim: bấm vào chỗ trên màn muốn góp ý · Esc thôi.'); };
 // một bộ phím cho cả trang lẫn trong màn (iframe): ← → chuyển màn (Play: ← lùi theo lịch sử), P / G / Esc đổi chế độ
 function phimCheDo(e) {
@@ -352,6 +421,7 @@ async function sinhBienThe(g, n) {
   if (R.dangSinh) { toast('Đang sinh biến thể — đợi xong đã.'); return; }
   R.dangSinh = true;
   const y = yCua(g); const htmlGoc = lamSach(m.html);
+  R.btGoc = { html: htmlGoc, w: m.w, h: m.h, nhan: m.moi ? `Gốc (bản mới v${m.v})` : `Gốc (v${R.goi.v})` }; // đúng bản đã gửi Claude, dù sau đó màn đổi bản
   R.bt = Array.from({ length: n }, (_, i) => ({ k: i + 1, n, html: '', nhan: '', tt: 'dang', tien: 'Đang chờ lượt…', gy: g, key: m.key, w: m.w, h: m.h, model: laMock() ? 'mock' : MODEL }));
   $('#bt-y').textContent = `«${g.noi}» — ${n} biến thể bằng ${laMock() ? 'mock (không gọi Claude)' : MODEL}. Thiết kế gốc không đổi cho tới khi người phụ trách duyệt.`;
   $('#lop-bt').hidden = false; veBienThe();
@@ -385,7 +455,8 @@ function veBienThe() {
   const l = $('#bt-luoi'); l.innerHTML = '';
   const m = R.bt[0] && manCua(R.bt[0].key); if (!m) return;
   const rong = Math.min(300, Math.max(200, (innerWidth - 120) / (R.bt.length + 1) - 24));
-  const goc = tao('figure', 'the-bt goc'); goc.append(tao('figcaption', '', `Gốc (v${R.goi.v})`), oMan(lamSach(m.html), m.w, m.h, rong)); l.append(goc);
+  const G = R.btGoc || { html: lamSach(m.html), w: m.w, h: m.h, nhan: `Gốc (v${R.goi.v})` };
+  const goc = tao('figure', 'the-bt goc'); goc.append(tao('figcaption', '', G.nhan), oMan(G.html, G.w, G.h, rong)); l.append(goc);
   for (const f of R.bt) {
     const c = tao('figure', 'the-bt'); const cap = tao('figcaption', '', f.tt === 'xong' ? `${f.k}. ${f.nhan}` : f.tt === 'loi' ? `${f.k}. Lỗi: ${f.tien}` : `${f.k}. Đang sinh… ${f.tien}`);
     c.append(cap); Object.defineProperty(f, '_cap', { value: cap, writable: true, configurable: true, enumerable: false });
@@ -420,7 +491,7 @@ function veDeXuat() {
 }
 async function xemDeXuat(x) {
   let j; try { const r = await fetch(`/api/review/r/${MA}/de-xuat/${x.id}`); j = await r.json(); if (!r.ok) throw new Error(j.loi); } catch (e) { toast(`Không mở được đề xuất: ${e.message || ''}`, true); return; }
-  const m = manCua(x.key); const w = x.w || m.w, h = x.h || m.h;
+  const m = manChup(x.key); const w = x.w || m.w, h = x.h || m.h; // «Gốc» = bản lúc chia sẻ (bản hiện hành có thể chính là đề xuất đã Accept)
   $('#xem-tieu').textContent = `${x.nhan || 'Đề xuất'} — ${TT_DX[x.tt]}`;
   const l = $('#xem-luoi'); l.innerHTML = ''; const rong = Math.min(360, (innerWidth - 140) / 2);
   const a = tao('figure', 'the-bt goc'); a.append(tao('figcaption', '', 'Gốc'), oMan(lamSach(m.html), m.w, m.h, rong));
@@ -439,8 +510,15 @@ await tai();
 if (R.goi) {
   let henTai = 0;
   rt = taoRealtime({ st, vung: $('#vung'), dom: new Map(), phong: `r-${MA}`, toast, nhanBt: () => {}, nhanSu: () => {},
-    nhanRv: (m) => { if (m.loai === 'thu-hoi') { het('Link góp ý này đã bị thu hồi.'); return; } clearTimeout(henTai); henTai = setTimeout(tai, 300); },
+    nhanRv: (m) => {
+      if (m.loai === 'thu-hoi') { het('Link góp ý này đã bị thu hồi.'); return; }
+      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.has(m.key) && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
+      clearTimeout(henTai); henTai = setTimeout(tai, 300);
+    },
+    khiChao: () => { dongBoBan(); }, // mỗi lần (nối lại) realtime: tin «thay» lúc chưa nối/rớt mạng có thể đã lỡ
+
     sec: () => R.mo, cheDo: () => 'canvas', suaId: () => null, doiSec: (sec) => { if (sec !== R.mo) mo(sec); }, datView: () => {} });
   vuaKhung();
 }
-window.__rv = { R, mo, st, sinhBienThe, get rt() { return rt; } }; // để nghiệm thu tự động
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && R.goi) dongBoBan(); });
+window.__rv = { R, mo, st, sinhBienThe, HIEN, dongBoBan, get rt() { return rt; } }; // để nghiệm thu tự động
