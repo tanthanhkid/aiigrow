@@ -17,7 +17,7 @@ export function ganDungChung(c) {
   let goiY = [], cq = false, dangMo = false, tapTrung = '', henGy = 0;
 
   function tinhGoiY() {
-    goiY = goiYDungChung(Object.keys(MAN).map((k) => ({ key: k, ten: MAN[k].ten, lan: MAN[k].lan, w: MAN[k].w, h: MAN[k].h, html: thoCua(k), nhom: MAN[k].dc?.id || '', xoa: daXoa(k) })));
+    goiY = goiYDungChung(Object.keys(MAN).map((k) => ({ key: k, ten: MAN[k].ten, lan: MAN[k].lan, w: MAN[k].w, h: MAN[k].h, html: thoCua(k), goc: MAN[k].goc0.tho, nhom: MAN[k].dc?.id || '', xoa: daXoa(k) })));
     const n = goiY.length; const b = $('#nut-dc'); if (b) { b.querySelector('.dem').textContent = n ? String(n) : ''; b.title = `Màn dùng chung giữa các luồng — ${n ? `${n} gợi ý gộp` : 'không có gợi ý mới'}`; }
     return goiY;
   }

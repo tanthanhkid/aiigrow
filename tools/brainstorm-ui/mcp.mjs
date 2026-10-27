@@ -538,7 +538,7 @@ export function taoMcp(C) {
             try { html.set(k, (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(k)}/${muc.tep}`)).html); } catch { /* bỏ màn này */ }
           })));
           const kc = (k) => { const muc = pb[k]?.ds?.find((x) => x.v === pb[k].hien); return { w: muc?.w || MAN[k].w, h: muc?.h || MAN[k].h }; };
-          ra.goiY = goiYDungChung(LAN.flatMap((l) => l.buoc.map((k) => ({ key: k, ten: MAN[k].ten, lan: l.id, ...kc(k), html: html.get(k), nhom: pb[k]?.dc?.id, xoa: daXoaMf(pb[k]) }))))
+          ra.goiY = goiYDungChung(LAN.flatMap((l) => l.buoc.map((k) => ({ key: k, ten: MAN[k].ten, lan: l.id, ...kc(k), html: html.get(k), goc: MAN[k].html, nhom: pb[k]?.dc?.id, xoa: daXoaMf(pb[k]) }))))
             .map((x) => ({ man: x.ds.map(moTa), lyDo: x.lyDo, diem: x.diem, nguonGoiY: moiNhat(pb, x.ds) || x.ds[0] }));
           ra.cachGop = 'gop_dung_chung { keys: [...], nguon: <key có nội dung muốn giữ — mặc định màn sửa gần nhất> }';
         }
