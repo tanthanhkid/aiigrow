@@ -1790,7 +1790,7 @@ async function dongBoPhienBan0() {
   // phiên bản chỉ thêm, không xoá ⇒ chỉ nhận manifest máy chủ DÀI HƠN bản đang có (fetch gửi trước một lần Thay màn của chính phiên này
   // về sau thì ngắn hơn — bỏ, không ghi đè bản mới). Manifest hỏng (không có ds) cũng bỏ.
   // màn dùng chung: nhóm/lớp liên kết đổi (gộp, tách, sửa liên kết) không thêm phiên bản ⇒ so thêm dấu thời gian của nhóm
-  const moiHon = (a, b) => Array.isArray(a?.ds) && (a.ds.length > (b?.ds?.length || 0) || (a.ds.length === (b?.ds?.length || 0) && (a.dc?.t || '') !== (b?.dc?.t || '')));
+  const moiHon = (a, b) => Array.isArray(a?.ds) && (a.ds.length > (b?.ds?.length || 0) || (a.ds.length === (b?.ds?.length || 0) && (a.dc?.t || '') > (b?.dc?.t || '')));
   const doi = Object.keys(MAN).filter((k) => !dangThay.has(k) && moiHon(ds[k], PB[k]));
   if (!doi.length) return 0;
   await Promise.all(doi.map(async (k) => {

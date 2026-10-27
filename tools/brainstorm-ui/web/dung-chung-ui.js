@@ -30,7 +30,8 @@ export function ganDungChung(c) {
   }
   // lớp liên kết của mỗi màn lúc gộp: màn chưa có data-toi trong nội dung (liên kết tự gắn theo nhãn bước) giữ «tự động»,
   // màn khác chụp liên kết đang hiệu lực (kể cả sửa tay #163) để áp lên nội dung chung
-  const lopKhiGop = (k) => (/data-toi=|data-lk-sua/.test(thoCua(k)) ? layLop(MAN[k].html) : { tuDong: true });
+  // màn đã ở nhóm khác: giữ lớp liên kết đang có của nó (nội dung lưu của màn được lan tới không còn data-toi)
+  const lopKhiGop = (k) => (MAN[k].dc ? MAN[k].dc.lop || { tuDong: true } : /data-toi=|data-lk-sua/.test(thoCua(k)) ? layLop(MAN[k].html) : { tuDong: true });
   async function gop(ds, nguon) {
     if (!(await laChuQuan(true))) { toast('Chỉ chủ quản gộp được màn dùng chung (mở 🔑 trong Góp ý).', true); return false; }
     const m = MAN[nguon]; const lop = Object.fromEntries(ds.map((k) => [k, lopKhiGop(k)]));
@@ -44,13 +45,12 @@ export function ganDungChung(c) {
   async function tach(key) {
     if (!(await laChuQuan(true))) { toast('Chỉ chủ quản tách được màn dùng chung.', true); return false; }
     const d = MAN[key]?.dc; if (!d) return false;
-    const con = d.ds.filter((k) => k !== key && coMan(k)); const roi = con.length < 2 ? d.ds.filter(coMan) : [key];
-    // giữ bản hiện tại + liên kết riêng của luồng làm bản riêng
-    const html = Object.fromEntries(roi.filter((k) => !daXoa(k)).map((k) => [k, apLop(thoCua(k), MAN[k].dc?.lop)]));
+    // giữ bản hiện tại + liên kết riêng của luồng làm bản riêng — gửi cho MỌI màn trong nhóm, máy chủ quyết màn nào rời (nhóm còn 1 màn thì giải tán)
+    const html = Object.fromEntries(d.ds.filter((k) => coMan(k) && !daXoa(k)).map((k) => [k, apLop(thoCua(k), MAN[k].dc?.lop)]));
     try {
       const j = await goi('tach', { key, html });
       await dongBoPhienBan();
-      toast(j.giaiTan ? `Đã tách — nhóm chỉ còn một màn nên giải tán; ${roi.map((k) => `«${nhan(k)}»`).join(', ')} giờ là màn riêng.` : `Đã tách «${nhan(key)}» khỏi nhóm dùng chung — giữ bản hiện tại làm bản riêng.`);
+      toast(j.giaiTan ? `Đã tách — nhóm chỉ còn một màn nên giải tán; ${(j.roi || []).filter(coMan).map((k) => `«${nhan(k)}»`).join(', ')} giờ là màn riêng.` : `Đã tách «${nhan(key)}» khỏi nhóm dùng chung — giữ bản hiện tại làm bản riêng.`);
       return true;
     } catch (e) { toast(`Không tách được: ${e.message}`, true); dongBoPhienBan(); return false; }
   }

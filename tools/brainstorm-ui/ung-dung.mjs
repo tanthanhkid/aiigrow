@@ -69,7 +69,7 @@ export function taoUngDung(O = {}) {
   async function khoaPb(key, han = 10000) { // han: khoá cũ hơn chừng này coi như kẹt (tiến trình chết) — khoá «dung-chung» giữ lâu (lan tới 20 màn) nên dài hơn
     const k = path.join(PHIEN_BAN, `.khoa-${key}`);
     fs.mkdirSync(PHIEN_BAN, { recursive: true });
-    for (let i = 0; i < (han > 10000 ? 1500 : 100); i++) {
+    for (let i = 0; i < (han > 10000 ? 2500 : 100); i++) {
       try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
         if (e.code !== 'EEXIST') throw e;
         try { if (Date.now() - fs.statSync(k).mtimeMs > han) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
@@ -392,7 +392,8 @@ export function taoUngDung(O = {}) {
     if (!Array.isArray(lop.ds) || lop.ds.length > 200) return null;
     const ds = [];
     for (const x of lop.ds) {
-      if (!x || typeof x !== 'object' || typeof x.toi !== 'string' || !keys.has(x.toi) || typeof x.the !== 'string' || !/^[a-z][a-z0-9-]{0,30}$/.test(x.the)) return null;
+      if (!x || typeof x !== 'object' || typeof x.toi !== 'string' || typeof x.the !== 'string' || !/^[a-z][a-z0-9-]{0,30}$/.test(x.the)) return null;
+      if (!keys.has(x.toi)) continue; // đích không còn trong mã (liên kết hỏng): bỏ riêng mục đó, không từ chối cả lớp
       const n = Number.isInteger(x.n) && x.n >= 0 && x.n < 100000 ? x.n : 0; const o = Number.isInteger(x.o) && x.o >= -1 && x.o < 100000 ? x.o : -1;
       ds.push({ the: x.the, chu: chuNgan(x.chu, 60), n, o, toi: x.toi });
     }
@@ -403,7 +404,7 @@ export function taoUngDung(O = {}) {
   const hienCua = (m) => m.ds.find((x) => x.v === m.hien) || null;
   const daXoaKey = (k) => { try { return !!hienCua(docManifest(k))?.xoa; } catch { return false; } };
   const sao = (o) => JSON.parse(JSON.stringify(o));
-  const KHOA_DC = 120000; // khoá nhóm dùng chung: coi là kẹt sau 2 phút (một lượt lan tối đa 20 màn × 6 MB)
+  const KHOA_DC = 45000; // khoá nhóm dùng chung: coi là kẹt sau 45 giây (lượt lan tối đa 20 màn thường vài giây); người chờ đợi tới ~50 giây
   // nội dung chung lưu sang màn khác: bỏ liên kết của luồng nguồn (mỗi luồng áp lớp riêng khi vẽ) ⇒ đọc thẳng bản lưu (Lịch sử, sau khi tách) không mang nút của luồng khác
   const boLk = (h) => String(h).replace(/\sdata-(?:toi|lk-sua|lk-mat)(?:="[^"]*")?/g, '');
   function baoDoi(keys, ten, im = true) { for (const k of keys) { phatPhong('bang', { t: 'rv', loai: 'thay', key: k, ten, tu: '', ...(im ? { im: true } : {}) }); review.baoThayMan(k, { ten }); } }
@@ -521,7 +522,11 @@ export function taoUngDung(O = {}) {
       // tach
       const key = String(t.key || ''); const g = nhomCua(dc, key);
       if (!g) return json(res, 409, { loi: 'Màn này không thuộc nhóm dùng chung nào' });
-      const con = g.ds.filter((k) => k !== key); const roi = con.length < 2 ? g.ds.slice() : [key];
+      const con = g.ds.filter((k) => k !== key && keys.has(k)); const roi = con.length < 2 ? g.ds.filter((k) => keys.has(k)) : [key];
+      // màn đang bị xoá khỏi luồng không nhận được bản riêng (liên kết của nó sẽ mất) ⇒ khôi phục màn trước rồi mới tách
+      for (const k of roi) if (daXoaKey(k)) return json(res, 409, { loi: `«${tenMan(k)}» đang bị xoá khỏi hành trình — khôi phục màn đó trước rồi tách` });
+      // kiểm trước mọi màn ghi được (tránh tách dở dang: màn đầu đã có bản «tách», màn sau lỗi)
+      for (const k of roi) { let mk; try { mk = docManifest(k); } catch { return json(res, 500, { loi: `Manifest phiên bản của «${tenMan(k)}» hỏng` }); } if (mk.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `«${tenMan(k)}» đã có ${PB_TOI_DA} phiên bản` }); }
       for (const k of roi) if (!daXoaKey(k) && (typeof t.html?.[k] !== 'string' || !t.html[k].trim() || t.html[k].length > PB_CO)) return json(res, 400, { loi: `Thiếu HTML (đã áp liên kết riêng) của «${tenMan(k)}»` });
       const truoc = sao(g);
       for (const k of roi) {
@@ -530,10 +535,10 @@ export function taoUngDung(O = {}) {
         const r = await ghiPhienBan0(k, { html: t.html[k], w: mk?.w, h: mk?.h, nhan: 'Tách khỏi nhóm dùng chung — giữ bản hiện tại làm bản riêng', nguon: 'tach' }, null, ai, 'man.dung-chung', true, { au: { tach: g.id } });
         if (r[0] !== 200) return json(res, r[0], r[1]);
       }
-      if (roi.length === g.ds.length) delete dc.nhom[g.id];
+      if (con.length < 2) delete dc.nhom[g.id];
       else { g.ds = con; const lk = { ...(g.lk || {}) }; delete lk[key]; g.lk = lk; g.t = bay; }
       ghiDc(dc);
-      audit.ghi({ loai: 'dung-chung.tach', dt: { nhom: g.id, key, roi, con: roi.length === truoc.ds.length ? [] : con }, ai, truoc, sau: dc.nhom[g.id] || null });
+      audit.ghi({ loai: 'dung-chung.tach', dt: { nhom: g.id, key, roi, con: dc.nhom[g.id] ? con : [] }, ai, truoc, sau: dc.nhom[g.id] || null });
       baoDoi(truoc.ds, ai.ten, false);
       return json(res, 200, { ok: true, roi, giaiTan: !dc.nhom[g.id] });
     } finally { mo(); }

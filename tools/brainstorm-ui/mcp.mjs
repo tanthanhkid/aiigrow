@@ -120,9 +120,9 @@ export function taoMcp(C) {
     if (muc?.tep) {
       const r = await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`);
       html = tho = await domGoi('lamSach', r.html);
-      if (mf.dc) html = await domGoi('apLop', tho, JSON.stringify(mf.dc.lop || { tuDong: true })); // màn dùng chung: liên kết riêng của luồng này
-      if (m.ke && m.toi && !/data-toi=/.test(html)) { const { MAN } = await taiMan(); html = await domGoi('ganToi', html, m.toi, m.ke, MAN[m.ke]?.ten || ''); }
     } else { html = await htmlGoc(m); tho = m.html; }
+    if (mf.dc) html = await domGoi('apLop', muc?.tep ? tho : html, JSON.stringify(mf.dc.lop || { tuDong: true })); // màn dùng chung: liên kết riêng của luồng này (cả v0)
+    if ((muc?.tep || mf.dc) && m.ke && m.toi && !/data-toi=/.test(html)) { const { MAN } = await taiMan(); html = await domGoi('ganToi', html, m.toi, m.ke, MAN[m.ke]?.ten || ''); }
     return { m, html, tho, w: muc?.w || m.w, h: muc?.h || m.h, v: vv, mf };
   }
   // màn dùng chung: nhóm + các màn cùng nhóm ở hành trình khác (cho doc_man / thay_man / ngu_canh_bien_the)
@@ -565,9 +565,8 @@ export function taoMcp(C) {
       { key: z.string() }, async (a) => {
         const pb = await goiJ(req0, 'GET', '/api/phien-ban');
         const g = pb[a.key]?.dc; if (!g) throw LOI(`Màn ${a.key} không dùng chung với màn nào`);
-        const con = g.ds.filter((k) => k !== a.key); const roi = con.length < 2 ? g.ds : [a.key];
-        const html = {};
-        for (const k of roi) { if (daXoaMf(pb[k])) continue; const hh = await hienHanh(req0, k, null, pb); html[k] = await domGoi('apLop', hh.tho, JSON.stringify(pb[k].dc.lop || { tuDong: true })); }
+        const html = {}; // gửi bản đã áp liên kết của MỌI màn trong nhóm — máy chủ tự quyết màn nào rời nhóm
+        for (const k of g.ds.filter((x) => pb[x])) { if (daXoaMf(pb[k])) continue; const hh = await hienHanh(req0, k, null, pb); html[k] = await domGoi('apLop', hh.tho, JSON.stringify(pb[k].dc.lop || { tuDong: true })); }
         const r = await goiJ(req0, 'POST', '/api/dung-chung/tach', { key: a.key, html });
         return [chu({ key: a.key, daTach: r.roi, nhomGiaiTan: !!r.giaiTan })];
       });
