@@ -11,13 +11,14 @@ export const TEN_LOAI = {
   'phuong-an.tao': 'Tạo phương án', 'phuong-an.sua': 'Sửa phương án', 'phuong-an.xoa': 'Xoá phương án (vào thùng rác)', 'phuong-an.khoi-phuc': 'Khôi phục phương án từ thùng rác',
   'phuong-an.xoa-vinh-vien': 'Xoá vĩnh viễn phương án', 'phuong-an.di-tru': 'Di trú phương án từ trình duyệt', 'phuong-an.khoi-phuc-lich-su': 'Khôi phục phương án từ lịch sử',
   'man.thay': 'Thay màn', 'man.khoi-phuc': 'Khôi phục phiên bản màn', 'man.de-xuat': 'Thay màn bằng đề xuất', 'man.khoi-phuc-lich-su': 'Khôi phục màn từ lịch sử', 'man.xoa': 'Xoá màn khỏi hành trình', 'man.khoi-phuc-xoa': 'Khôi phục màn đã xoá', 'man.lien-ket': 'Sửa liên kết màn',
+  'man.dung-chung': 'Cập nhật màn dùng chung', 'dung-chung.gop': 'Gộp màn dùng chung', 'dung-chung.tach': 'Tách màn khỏi nhóm dùng chung', 'dung-chung.lien-ket': 'Sửa liên kết riêng của màn dùng chung', 'dung-chung.lech': 'Màn dùng chung chưa lan được nội dung',
   'gop-y.tao': 'Góp ý mới', 'gop-y.tra-loi': 'Trả lời góp ý', 'gop-y.sua': 'Sửa góp ý', 'gop-y.xoa': 'Xoá góp ý', 'gop-y.trang-thai': 'Đổi trạng thái góp ý', 'gop-y.muc': 'Đổi mức góp ý',
   'gop-y.yc-bien-the': 'Yêu cầu biến thể', 'gop-y.khoi-phuc-lich-su': 'Khôi phục góp ý từ lịch sử',
   'de-xuat.tao': 'Đề xuất thay đổi mới', 'de-xuat.chap': 'Accept đề xuất', 'de-xuat.sua-tiep': 'Áp dụng đề xuất sau «Sửa tiếp»', 'de-xuat.tu-choi': 'Từ chối đề xuất',
   'link.tao': 'Tạo link góp ý /r/', 'link.thu-hoi': 'Thu hồi link /r/',
   'quyen.sai-ma': 'Thử mã chủ quản sai', 'quyen.sai-ma-mcp': 'Thử mật khẩu MCP sai', 'quyen.sai-mat-khau': 'Thử mật khẩu chung sai', 'quyen.doi-cau-hinh': 'Đổi quyền (chu-quan.json)',
 };
-const NHOM = [['', 'Mọi loại'], ['bien-the.', 'Biến thể'], ['phuong-an.', 'Phương án'], ['man.', 'Phiên bản màn'], ['gop-y.', 'Góp ý'], ['de-xuat.', 'Đề xuất'], ['link.', 'Link /r/'], ['quyen.', 'Quyền chủ quản'],
+const NHOM = [['', 'Mọi loại'], ['bien-the.', 'Biến thể'], ['phuong-an.', 'Phương án'], ['man.', 'Phiên bản màn'], ['dung-chung.', 'Màn dùng chung'], ['gop-y.', 'Góp ý'], ['de-xuat.', 'Đề xuất'], ['link.', 'Link /r/'], ['quyen.', 'Quyền chủ quản'],
   ['bien-the.xoa-vinh-vien', '— Xoá vĩnh viễn']];
 const VAI = { 'chu-quan': 'chủ quản', 'cong-tac': 'cộng tác', reviewer: 'reviewer', 'he-thong': 'hệ thống', 'khong-ro': '?' };
 const KHOI_PHUC_DUOC = /^(bien-the|phuong-an|man|gop-y)\./;
@@ -107,7 +108,10 @@ export function ganLichSu(A) {
     const dt = e.dt || {};
     if (dt.l === 'k') return `${tenMan(dt.key)} · biến thể ${dt.id}`;
     if (dt.l === 'l') return `phương án ${dt.id}${dt.key ? ` · từ ${tenMan(dt.key)}` : ''}`;
-    if (/^man\./.test(e.loai)) return `${tenMan(dt.key)} → v${dt.v}`;
+    if (/^man\./.test(e.loai)) return `${tenMan(dt.key)} → v${dt.v}${dt.tu ? ` · theo ${tenMan(dt.tu)}` : ''}${dt.dungChung?.length ? ` · cùng cập nhật ${dt.dungChung.map(tenMan).join(', ')}` : ''}`;
+    if (e.loai === 'dung-chung.gop') return `${(dt.ds || []).map(tenMan).join(' + ')} · gốc ${tenMan(dt.nguon)}`;
+    if (e.loai === 'dung-chung.tach') return `${(dt.roi || []).map(tenMan).join(', ')} rời nhóm${dt.con?.length ? ` · còn ${dt.con.map(tenMan).join(', ')}` : ' · nhóm giải tán'}`;
+    if (e.loai === 'dung-chung.lien-ket') return `${tenMan(dt.key)} · liên kết riêng`;
     if (/^(gop-y|de-xuat)\./.test(e.loai)) return `${tenHt(dt.ht)}${dt.key ? ` · ${tenMan(dt.key)}` : ''} · ${dt.id}`;
     if (/^link\./.test(e.loai)) return `${tenHt(dt.ht)} · /r/${String(dt.ma || '').slice(0, 8)}…`;
     return dt.duong || dt.tep || '';

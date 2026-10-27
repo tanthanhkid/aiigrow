@@ -7,7 +7,7 @@
   "scripts": {
     "brainstorm": "node server.mjs",
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check mcp.mjs && node --check web/gan-toi.js && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js"
+    "check": "node --check server.mjs && node --check mcp.mjs && node --check web/gan-toi.js && node --check web/dung-chung.js && node --check web/dung-chung-ui.js && node --check ung-dung.mjs && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",

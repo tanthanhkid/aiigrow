@@ -46,6 +46,22 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
   `chu-quan.json` hỏng ⇒ cổng đóng (503), không mở toang. Phiên hết hạn khi đang mở bàn ⇒ dải báo «Đăng nhập lại» (không tự chuyển trang). `127.0.0.1` gõ thẳng không cần. `/mcp` nhận `Bearer <maMcp>` hoặc cookie phiên (cookie chỉ khi đã đặt `maMcp`). Đăng xuất: `/__dang-xuat`.
   Mật khẩu chung chỉ là cổng vào — Accept/Thay màn khi `khoaBang` vẫn cần mã chủ quản `x-bs-chu-quan`.
 
+## Màn dùng chung giữa các luồng
+
+Một màn có thể nằm ở nhiều hành trình (vd «Máy của con» ở Hằng ngày và Ghép thêm máy). Chủ quản gộp chúng thành **một nội dung chung**:
+sửa ở bất kỳ màn nào trong nhóm (Thay màn, Sửa, Khôi phục, Accept đề xuất, MCP) thì máy chủ ghi cùng nội dung thành phiên bản mới của mọi màn trong nhóm
+(nhãn «Dùng chung · theo …», audit `man.dung-chung` + `dt.dungChung` = các màn bị ảnh hưởng) ⇒ realtime, Play, Quy trình, `/r/`, ảnh MCP đọc như màn thường.
+
+- **Liên kết riêng từng luồng**: `phien-ban/dung-chung.json` giữ nhóm `{id, ds, moi, lk, t}`; `lk[key]` là lớp liên kết của màn đó (`{tuDong:true}` = gắn theo
+  nhãn bước như màn trong mã, hoặc danh sách nút `{the, chu, n, o, toi}`). Khi vẽ, bàn/Play/`/r/`/MCP gỡ mọi `data-toi` của nội dung chung rồi áp lớp của luồng
+  (`web/gan-toi.js` `apLop`); nút không còn khớp sau khi nội dung đổi thì khung báo «⚠ N liên kết chưa khớp». Sửa liên kết (🔗) của màn dùng chung chỉ đổi lớp
+  của luồng đó (audit `dung-chung.lien-ket`, không thành phiên bản mới). Máy chủ không phân tích HTML — lớp do trình duyệt/Chrome của MCP tính.
+- **Gộp / tách** (chỉ chủ quản): nút **🔗 Dùng chung** trên thanh trên (số = gợi ý) hoặc nhãn «🔗 dùng chung · N luồng» trên khung. Gợi ý tự dò màn khác luồng
+  cùng tên hoặc HTML gần giống (`web/dung-chung.js`, chỉ gợi ý — không tự gộp); chọn màn làm gốc (mặc định bản mới nhất), xem trước cạnh nhau rồi Gộp.
+  Tách: màn giữ bản hiện tại (kèm liên kết của luồng) làm bản riêng; nhóm còn 1 màn thì giải tán. Audit `dung-chung.gop` / `dung-chung.tach`.
+- Khôi phục phiên bản lan cho cả nhóm (trừ về v0 — bản trong mã riêng từng màn: tách trước). Xoá màn (#163) chỉ xoá khỏi luồng đó; khôi phục màn thì nhận lại
+  nội dung chung mới nhất.
+
 ## Lịch sử thay đổi (audit)
 
 Mọi thao tác ghi phía máy chủ được ghi vào nhật ký **append-only** — biến thể (tạo/sửa/xoá/khôi phục/xoá vĩnh viễn khi dọn thùng rác/di trú
@@ -85,7 +101,7 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
   sau 2 phút rảnh, hồ sơ tạm riêng; ảnh cache theo băm HTML. HTML màn đưa cho Chrome qua `/__mcp/trang/<mã một lần>` (chỉ loopback, CSP cấm script).
   `lamSach` (web/claude.js) và `ganToi` (web/gan-toi.js) chạy nguyên mã web trong trang của Chrome đó.
 
-**26 tool:**
+**29 tool:**
 
 | Tool | Việc |
 |---|---|
@@ -101,6 +117,7 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
 | `doc_de_xuat`, `chap_nhan_de_xuat`, `tu_choi_de_xuat` | đề xuất của reviewer |
 | `nhat_ky` | audit gần đây (HTML lớn rút gọn) |
 | `ngu_canh_bien_the` → `tao_bien_the` | biến thể một màn, 2 bước (truyền lại `dot` để k=1..n xếp chung một hàng): ngữ cảnh y hệt bàn web (system `heThong`, `loiNguoiDung` theo k/n, kit CSS, ảnh màn, góp ý mở) → lưu HTML/câu trả lời do client sinh (lamSach, so `data-toi`, trả id + ảnh) |
+| `ds_dung_chung`, `gop_dung_chung`, `tach_dung_chung` | màn dùng chung: liệt kê nhóm + gợi ý gộp (màn trùng/giống nhau giữa các luồng, kèm màn mới nhất làm gốc); gộp (chủ quản, `nguon` mặc định màn có bản mới nhất); tách một màn ra (giữ bản hiện tại làm bản riêng). `doc_man`/`thay_man`/`ngu_canh_bien_the`/`ds_hanh_trinh` báo `dungChung` (các luồng cùng nội dung) |
 | `ngu_canh_hanh_trinh` → `tao_phuong_an` | như trên cho CẢ hành trình (`loiHanhTrinh` / `tachHanhTrinh`) |
 
 ## Bản Cloudflare (aiigrow-figma.aiilab.vn)

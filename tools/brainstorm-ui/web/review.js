@@ -5,7 +5,7 @@ import { taoRealtime, mauTen } from './realtime.js';
 import { heThong, loiNguoiDung, tachKetQua, HUONG } from './prompt.js';
 import { goiClaude, goiMock, mockSua, chayLoat, lamSach, taiAssets } from './claude.js';
 import { taoAnXuLy, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
-import { ganToi } from './gan-toi.js';
+import { ganToi, apLop } from './gan-toi.js';
 
 const $ = (s) => document.querySelector(s);
 const MA = (location.pathname.match(/^\/r\/([a-f0-9]{32})\/?$/) || [])[1] || '';
@@ -69,6 +69,8 @@ function banTrongMa() {
   }).catch((e) => { maGoc = null; throw e; }));
 }
 // chiKey: chỉ nạp lại một màn (tin realtime «thay»). Trả Set các key vừa đổi bản hiển thị.
+const DC_GIONG = new Map(); // màn dùng chung → dấu (phiên bản|nhóm) đã đối chiếu: vẫn như bản chia sẻ
+const toiCua = (h) => [...new DOMParser().parseFromString(String(h), 'text/html').querySelectorAll('[data-toi]')].map((el) => `${(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60)}→${el.getAttribute('data-toi')}`).sort().join('|'); // nút nào → đâu
 async function napHienHanh(chiKey = '') {
   const doi = new Set();
   let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return doi; ds = await r.json(); } catch { return doi; }
@@ -77,14 +79,16 @@ async function napHienHanh(chiKey = '') {
     const mf = ds[m.key]; const hien = mf?.hien || 0;
     const muc = mf?.ds?.find((x) => x.v === hien); const mucChup = mf?.ds?.find((x) => x.v === (m.pb || 0));
     if (muc?.xoa) { if (!HIEN.get(m.key)?.xoa) { HIEN.set(m.key, { v: hien, xoa: true }); doi.add(m.key); } return; } // chủ quản xoá màn khỏi hành trình
-    if (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0)) { if (HIEN.delete(m.key)) doi.add(m.key); return; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
-    if (HIEN.get(m.key)?.v === hien) return;
+    const dc = mf?.dc; const dau = dc ? `${hien}|${dc.t}` : hien; // màn dùng chung: lớp liên kết của luồng đổi được mà không thêm phiên bản
+    if (!dc && (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0))) { if (HIEN.delete(m.key)) doi.add(m.key); return; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
+    if (HIEN.get(m.key)?.dau === dau || (!HIEN.has(m.key) && DC_GIONG.get(m.key) === dau)) return;
     try {
       let html = '', w = m.w, h = m.h;
       if (muc?.tep) {
         const r = await fetch(`/api/phien-ban/${encodeURIComponent(m.key)}/${muc.tep}`, { cache: 'no-store' });
         const j = await r.json(); if (!r.ok || typeof j.html !== 'string') throw new Error(j.loi || r.status);
         html = j.html; w = muc.w || w; h = muc.h || h;
+        if (dc) html = apLop(html, dc.lop); // nội dung chung + liên kết riêng của luồng này
         if (!/data-toi=/.test(html)) { // bản mới thiếu nút nối màn kế: gắn lại theo nhãn bước như bàn chính (lỗi tải hành trình thì để nguyên)
           const goc = await banTrongMa().then((b) => b.get(m.key)).catch(() => null);
           if (goc?.toi && goc.ke) html = ganToi(html, goc.toi, goc.ke, goc.keTen);
@@ -94,7 +98,9 @@ async function napHienHanh(chiKey = '') {
         html = goc?.html || ''; w = goc?.w || w; h = goc?.h || h;
       }
       if (!html) return;
-      HIEN.set(m.key, { v: hien, html, w, h }); doi.add(m.key);
+      // màn dùng chung chưa đổi gì kể từ lúc chia sẻ (cùng tệp, cùng liên kết): giữ bản đã chia sẻ, không đánh «mới»
+      if (dc && (muc?.tep || 0) === (mucChup?.tep || 0) && toiCua(html) === toiCua(m.html || '')) { DC_GIONG.set(m.key, dau); if (HIEN.delete(m.key)) doi.add(m.key); return; }
+      HIEN.set(m.key, { v: hien, dau, html, w, h }); doi.add(m.key);
     } catch { /* lỗi mạng: giữ bản đang có, lần đồng bộ sau thử lại */ }
   }));
   return doi;

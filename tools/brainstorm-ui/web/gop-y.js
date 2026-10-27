@@ -279,7 +279,7 @@ export function ganGopY(A) {
     return j;
   }
   $('#dx-chap').onclick = async () => {
-    const dx = dxMo; if (!dx) return; $('#dx-chap').disabled = true;
+    const dx = dxMo; if (!dx) return; if (A.hoiDungChung && !A.hoiDungChung(dx.key)) return; $('#dx-chap').disabled = true;
     try { await chapNhan(dx, { html: A.lamSach(dx.html || ''), w: dx.w, h: dx.h }); $('#lop-dx').hidden = true; } catch (e) { A.toast(`Không áp dụng được: ${e.message}`, true); } finally { $('#dx-chap').disabled = false; }
   };
   $('#dx-tu').onclick = async () => {
@@ -340,7 +340,7 @@ export function ganGopY(A) {
   return {
     tai, mo, dem, chiaSe, chapNhan, xemDeXuat,
     nhanRv(m) {
-      if (m.loai === 'thay' && m.key && m.tu !== A.phien) A.napLai(m.key).then(() => { if (m.ten && m.tu !== A.phien && A.MAN[m.key]) A.toast(`${m.ten} vừa đổi phiên bản màn «${A.MAN[m.key].ten}».`); }); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
+      if (m.loai === 'thay' && m.key && m.tu !== A.phien) A.napLai(m.key).then(() => { if (m.ten && !m.im && m.tu !== A.phien && A.MAN[m.key]) A.toast(`${m.ten} vừa đổi phiên bản màn «${A.MAN[m.key].ten}».`); }); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
     du: () => D.du,
   };
 }
