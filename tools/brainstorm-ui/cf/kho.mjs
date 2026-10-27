@@ -53,6 +53,7 @@ if (lenh === 'nap') {
   console.log(`Đã nạp ${n} tệp (${(tong / 1048576).toFixed(1)} MB) lên ${goc}`);
 } else {
   const xa = await (await goi('/__kho/ds')).json();
+  if (!Array.isArray(xa) || (!xa.length && dsCucBo().length)) { console.error('Cloudflare trả danh sách rỗng mà cục bộ còn tệp — dừng, không xoá gì'); process.exit(1); }
   const coXa = new Set(); let tai = 0, xoa = 0;
   for (const f of xa) {
     const tuongDoi = f.p.slice(KHO.length); coXa.add(tuongDoi);

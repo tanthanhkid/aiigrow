@@ -54,13 +54,14 @@ export class Ban extends DurableObject {
     ganKho(ctx.storage.sql, { [TEP_CQ]: () => JSON.stringify(cqTuEnv(env)) });
     for (const d of ['bien-the', 'phien-ban', 'review', 'audit']) fs.mkdirSync(`${THIET_KE}/brainstorm-ui/${d}`, { recursive: true });
     this.rt = taoRealtimeDo(ctx);
-    this.dung();
+    this.app = null; // dựng lõi khi có yêu cầu đầu tiên (thức dậy chỉ để chuyển tin realtime thì không phải quét kho)
   }
 
   dung() { // dựng lõi (đọc chỉ mục biến thể, đuôi audit… từ kho) — gọi lại sau khi nạp dữ liệu di trú
     const { env } = this; const { phatPhong, dsPhong, dongPhong } = this.rt;
-    this.app = taoUngDung({
-      GOC: '/ung-dung', REPO: '/repo', WEB: '/web', THIET_KE, phatPhong, dsPhong, dongPhong, hostThem: hostThem(env), coNoiBo: false, motTienTrinh: true,
+    return taoUngDung({
+      GOC: '/ung-dung', REPO: '/repo', WEB: '/web', THIET_KE, phatPhong,
+      dsAssets: async () => (await env.ASSETS.fetch(new Request('https://tinh.noi-bo/_cf/api-assets.json'))).json(), dsPhong, dongPhong, hostThem: hostThem(env), coNoiBo: false, motTienTrinh: true,
       mcp: {
         layWeb: async (u) => env.ASSETS.fetch(new Request(new URL(String(u), 'https://tinh.noi-bo'))),
         moTrinh: () => puppeteer.launch(env.BROWSER, { keep_alive: 60000 }),
@@ -77,7 +78,10 @@ export class Ban extends DurableObject {
 
   async fetch(request) {
     const url = new URL(request.url);
-    this.goc = url.origin;
+    // Cloudflare công khai: thiếu/ngắn MAT_KHAU hoặc BI_MAT_PHIEN thì ĐÓNG mọi đường động (không như Mac, nơi «chưa đặt mật khẩu» = chỉ 127.0.0.1)
+    if (!CV.congBat(cqTuEnv(this.env))) return new Response('Chưa đặt MAT_KHAU / BI_MAT_PHIEN — bàn đóng.', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
+    this.goc = this.env.GOC || url.origin; // GOC cố định (tên miền chính) để MCP chụp ảnh không bị yêu cầu từ host khác chen ngang
+    this.app ||= this.dung();
     if (url.pathname === '/ws') {
       if ((request.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return new Response('Not Found', { status: 404 });
       const req = await reqTu(request);
@@ -95,7 +99,7 @@ export class Ban extends DurableObject {
   // ---- /__kho: di trú dữ liệu từ Mac lên + kéo dữ liệu về Mac để sao lưu git. CHỈ chủ quản: mã chủ quản (x-bs-chu-quan) + mật khẩu (cookie hoặc Bearer maMcp).
   // GET  /__kho/ds                      → [{ p, co, m }] mọi tệp dưới /kho/brainstorm-ui (trừ chu-quan.json)
   // GET  /__kho/tep?p=<đường>           → nội dung thô
-  // POST /__kho/nap  [{ p, b64, noi? }] → ghi (noi = ghi nối); chỉ dưới bien-the/ phien-ban/ review/ audit/
+  // POST /__kho/nap  [{ p, b64 }]       → tạo tệp mới (không ghi đè tệp đã có); chỉ dưới bien-the/ phien-ban/ review/ audit/
   async kho(req, res, url) {
     const { review } = this.app;
     const json = (ma, o) => { res.writeHead(ma, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
@@ -119,14 +123,15 @@ export class Ban extends DurableObject {
       let n = 0;
       for (const x of ds) {
         if (!hopLe(x?.p) || typeof x.b64 !== 'string') return json(400, { loi: `Đường lạ: ${String(x?.p).slice(0, 100)}` });
-        const b = Buffer.from(x.b64, 'base64');
-        if (x.noi) fs.appendFileSync(x.p, b); else fs.writeFileSync(x.p, b);
+        // chỉ tạo tệp CHƯA có (di trú vào kho trống): không ghi đè/nối — audit đã có trên Cloudflare không sửa được qua đây
+        if (fs.existsSync(x.p)) return json(409, { loi: `Đã có, không ghi đè: ${x.p.slice(GOC_KHO.length, GOC_KHO.length + 100)}`, n });
+        fs.writeFileSync(x.p, Buffer.from(x.b64, 'base64'));
         n++;
       }
       return json(200, { ok: true, n, canKhoiDongLai: true });
     }
     if (req.method === 'POST' && url.pathname === '/__kho/khoi-dong-lai') { // nạp xong: dựng lại lõi (chỉ mục biến thể, đuôi audit…) từ kho mới
-      this.dung(); return json(200, { ok: true });
+      this.app = this.dung(); return json(200, { ok: true });
     }
     return json(404, { loi: 'Không có' });
   }

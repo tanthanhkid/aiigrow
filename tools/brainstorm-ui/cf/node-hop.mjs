@@ -40,6 +40,9 @@ export function resMoi() {
 // chạy một handler kiểu Node (req, res) → Response
 export async function chayNode(xuLy, request) {
   const req = await reqTu(request); const res = resMoi();
-  await Promise.all([Promise.resolve(xuLy(req, res)), res.xong]);
+  try { await xuLy(req, res); } catch (e) { console.error('chayNode', e?.message); if (res.writable) { if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end(res.headersSent ? undefined : 'Lỗi máy chủ'); } }
+  // handler đã trả mà chưa end (vd. lỗi sau writeHead): chờ tối đa 30 giây rồi tự đóng, không treo yêu cầu
+  if (res.writable) await Promise.race([res.xong, new Promise((ok) => setTimeout(ok, 30000))]);
+  if (res.writable) { if (!res.headersSent) res.writeHead(500); res.end(); }
   return res.thanhResponse();
 }

@@ -221,6 +221,7 @@ export function taoUngDung(O = {}) {
       if (req.method !== 'GET' && req.method !== 'HEAD') return gui(res, 405, 'text/plain', 'Không hỗ trợ');
 
       if (p === '/api/assets') {
+        if (O.dsAssets) return json(res, 200, await O.dsAssets()); // Cloudflare: danh sách dựng sẵn trong tệp tĩnh
         const ds = (d) => { try { return fs.readdirSync(d).filter((f) => ANH.test(f)).sort(); } catch { return []; } };
         return json(res, 200, { icon3d: ds(THU_MUC['/assets/icon3d/']), rob: ds(THU_MUC['/assets/rob/']) });
       }

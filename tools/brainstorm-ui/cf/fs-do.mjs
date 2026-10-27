@@ -98,6 +98,7 @@ function unlinkSync(p) {
 }
 function renameSync(a, b) {
   a = chuan(a); b = chuan(b); if (a === b) return;
+  if (AO.has(a)) throw loi('EACCES', a); if (AO.has(b)) throw loi('EACCES', b); // tệp ảo (chu-quan.json từ bí mật) chỉ đọc
   const d = dong(a); if (!d) throw loi('ENOENT', a); if (d.thu) throw loi('EISDIR', a); // máy chủ chỉ đổi tên tệp
   if (dong(b)?.thu) throw loi('EISDIR', b);
   dsMoi(b);

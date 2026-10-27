@@ -104,7 +104,7 @@ Bản chạy thật nằm trên Cloudflare, không phụ thuộc Mac (`cf/`). L�
 - **Worker** (`cf/worker.mjs`): cổng mật khẩu chung cho mọi đường; tệp tĩnh lấy từ Workers Static Assets (`cf/dist`, do `cf/dung.mjs` dựng: web/, ảnh asset, và chỉ những ảnh «thật» mà hành trình dùng).
 - **Durable Object `Ban`** (một bản `bang`): `/api`, `/mcp`, `/ws`, `/__*` chạy NGUYÊN lõi `ung-dung.mjs`. Lõi gọi `node:fs` nhưng wrangler alias trỏ nó về `cf/fs-do.mjs` (fs đồng bộ trên SQLite của DO). Realtime dùng WebSocket ngủ đông (`cf/realtime-do.mjs`, cùng giao thức với `realtime.mjs`). Ảnh màn MCP chụp bằng Browser Rendering (`@cloudflare/puppeteer`).
 - **Chi phí**: Durable Object, Static Assets và Browser Rendering đều nằm trong hạn mức gói Workers Paid (5 USD/tháng) ở mức dùng của vài người. Không bật Containers.
-- **Bí mật** (`wrangler secret`, không nằm trong repo): `MAT_KHAU` (mật khẩu chung), `BI_MAT_PHIEN` (khoá ký cookie, ≥32 ký tự), `MA_CHU_QUAN`, `MA_MCP`. Biến thường đặt trong `cf/wrangler.jsonc`: `KHOA_BANG`, `HOST_THEM`.
+- **Bí mật** (`wrangler secret`, không nằm trong repo): `MAT_KHAU` (mật khẩu chung), `BI_MAT_PHIEN` (khoá ký cookie, ≥32 ký tự), `MA_CHU_QUAN`, `MA_MCP`. Biến thường đặt trong `cf/wrangler.jsonc`: `KHOA_BANG`, `HOST_THEM`, `GOC` (tên miền chính, dùng cho trang chụp ảnh MCP). Thiếu `MAT_KHAU`/`BI_MAT_PHIEN` thì mọi đường trả 503 (đóng, không mở).
 
 ```bash
 cd tools/brainstorm-ui && npm install && cd cf && npm install
@@ -116,7 +116,7 @@ npx wrangler tail                  # xem log
 ```
 
 - **Dữ liệu** (biến thể, phiên bản, góp ý, audit) nằm trong DO. Dùng `cf/kho.mjs` để chuyển giữa DO và thư mục Mac (chỉ chủ quản; mật khẩu và mã đọc từ `BS_MAT_KHAU`/`BS_MA_CHU_QUAN` hoặc `chu-quan.json` của thư mục):
-  - `node cf/kho.mjs nap https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — di trú một lần lên Cloudflare.
+  - `node cf/kho.mjs nap https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — di trú một lần lên Cloudflare (chỉ tạo tệp chưa có; không ghi đè, nên audit đã có trên Cloudflare không sửa được qua đây).
   - `node cf/kho.mjs keo https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — kéo về Mac. Job sao lưu git (`tro_ly/jobs/brainstorm-sao-luu/sao-luu.sh`) chạy lệnh này trước khi commit.
 - **Mac chỉ đọc**: chạy `server.mjs` với `BS_CHI_DOC=https://aiigrow-figma.aiilab.vn` thì mọi lệnh ghi `/api` trả 423 và chỉ tới bản Cloudflare. Như vậy không có hai nguồn dữ liệu.
 - **MCP qua Cloudflare**:

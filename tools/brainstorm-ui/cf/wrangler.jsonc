@@ -12,6 +12,6 @@
   "browser": { "binding": "BROWSER" },
   // «node:fs» của lõi ⇒ SQLite của Durable Object; puppeteer-core (bản Mac) ⇒ rỗng (Cloudflare dùng Browser Rendering)
   "alias": { "node:fs": "./fs-do.mjs", "fs": "./fs-do.mjs", "puppeteer-core": "./trong.mjs" },
-  "vars": { "KHOA_BANG": "false", "HOST_THEM": "workers.dev" },
+  "vars": { "KHOA_BANG": "false", "HOST_THEM": "workers.dev", "GOC": "https://aiigrow-figma.aiilab.vn" },
   "observability": { "enabled": true, "head_sampling_rate": 1 }
 }
