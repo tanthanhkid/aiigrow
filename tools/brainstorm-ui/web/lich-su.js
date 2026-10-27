@@ -15,7 +15,7 @@ export const TEN_LOAI = {
   'gop-y.yc-bien-the': 'Yêu cầu biến thể', 'gop-y.khoi-phuc-lich-su': 'Khôi phục góp ý từ lịch sử',
   'de-xuat.tao': 'Đề xuất thay đổi mới', 'de-xuat.chap': 'Accept đề xuất', 'de-xuat.sua-tiep': 'Áp dụng đề xuất sau «Sửa tiếp»', 'de-xuat.tu-choi': 'Từ chối đề xuất',
   'link.tao': 'Tạo link góp ý /r/', 'link.thu-hoi': 'Thu hồi link /r/',
-  'quyen.sai-ma': 'Thử mã chủ quản sai', 'quyen.doi-cau-hinh': 'Đổi quyền (chu-quan.json)',
+  'quyen.sai-ma': 'Thử mã chủ quản sai', 'quyen.sai-ma-mcp': 'Thử mật khẩu MCP sai', 'quyen.sai-mat-khau': 'Thử mật khẩu chung sai', 'quyen.doi-cau-hinh': 'Đổi quyền (chu-quan.json)',
 };
 const NHOM = [['', 'Mọi loại'], ['bien-the.', 'Biến thể'], ['phuong-an.', 'Phương án'], ['man.', 'Phiên bản màn'], ['gop-y.', 'Góp ý'], ['de-xuat.', 'Đề xuất'], ['link.', 'Link /r/'], ['quyen.', 'Quyền chủ quản'],
   ['bien-the.xoa-vinh-vien', '— Xoá vĩnh viễn']];
