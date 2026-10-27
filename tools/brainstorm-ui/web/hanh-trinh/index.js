@@ -1,11 +1,16 @@
 // Gom mọi hành trình. Tệp nào lỗi/thiếu thì bỏ qua (không làm hỏng cả bàn); không có tệp nào thì dùng 11 màn mẫu.
 import { MAN } from './co-san.js';
 
-const TEP = ['./bm-1.js', './bm-2.js', './bm-3.js', './con-may-tinh.js', './con-dien-thoai.js'];
+// import() với chuỗi cố định: trình duyệt nạp từng tệp (tệp lỗi thì bỏ qua), bộ gói của bản Cloudflare (wrangler/esbuild) gom được vào Worker.
+const NAP = {
+  './bm-1.js': () => import('./bm-1.js'), './bm-2.js': () => import('./bm-2.js'), './bm-3.js': () => import('./bm-3.js'),
+  './con-may-tinh.js': () => import('./con-may-tinh.js'), './con-dien-thoai.js': () => import('./con-dien-thoai.js'),
+};
+const TEP = Object.keys(NAP);
 
 // lay: hàm thay fetch (máy chủ Node đọc thẳng tệp web/that/ — MCP); mặc định fetch của trình duyệt.
 export async function taiHanhTrinh(lay = (u) => fetch(u)) {
-  const kq = await Promise.allSettled(TEP.map((t) => import(t)));
+  const kq = await Promise.allSettled(TEP.map((t) => NAP[t]()));
   const ds = []; const loi = [];
   kq.forEach((r, i) => {
     if (r.status !== 'fulfilled' || !Array.isArray(r.value.default)) { loi.push(TEP[i]); return; }

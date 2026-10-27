@@ -96,3 +96,30 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
 | `nhat_ky` | audit gần đây (HTML lớn rút gọn) |
 | `ngu_canh_bien_the` → `tao_bien_the` | biến thể một màn, 2 bước (truyền lại `dot` để k=1..n xếp chung một hàng): ngữ cảnh y hệt bàn web (system `heThong`, `loiNguoiDung` theo k/n, kit CSS, ảnh màn, góp ý mở) → lưu HTML/câu trả lời do client sinh (lamSach, so `data-toi`, trả id + ảnh) |
 | `ngu_canh_hanh_trinh` → `tao_phuong_an` | như trên cho CẢ hành trình (`loiHanhTrinh` / `tachHanhTrinh`) |
+
+## Bản Cloudflare (aiigrow-figma.aiilab.vn)
+
+Bản chạy thật nằm trên Cloudflare, không phụ thuộc Mac (`cf/`). Lõi xử lý là `ung-dung.mjs` (`taoUngDung`), dùng chung cho `server.mjs` (Mac) và `cf/worker.mjs`.
+
+- **Worker** (`cf/worker.mjs`): cổng mật khẩu chung cho mọi đường; tệp tĩnh lấy từ Workers Static Assets (`cf/dist`, do `cf/dung.mjs` dựng: web/, ảnh asset, và chỉ những ảnh «thật» mà hành trình dùng).
+- **Durable Object `Ban`** (một bản `bang`): `/api`, `/mcp`, `/ws`, `/__*` chạy NGUYÊN lõi `ung-dung.mjs`. Lõi gọi `node:fs` nhưng wrangler alias trỏ nó về `cf/fs-do.mjs` (fs đồng bộ trên SQLite của DO). Realtime dùng WebSocket ngủ đông (`cf/realtime-do.mjs`, cùng giao thức với `realtime.mjs`). Ảnh màn MCP chụp bằng Browser Rendering (`@cloudflare/puppeteer`).
+- **Chi phí**: Durable Object, Static Assets và Browser Rendering đều nằm trong hạn mức gói Workers Paid (5 USD/tháng) ở mức dùng của vài người. Không bật Containers.
+- **Bí mật** (`wrangler secret`, không nằm trong repo): `MAT_KHAU` (mật khẩu chung), `BI_MAT_PHIEN` (khoá ký cookie, ≥32 ký tự), `MA_CHU_QUAN`, `MA_MCP`. Biến thường đặt trong `cf/wrangler.jsonc`: `KHOA_BANG`, `HOST_THEM`, `GOC` (tên miền chính, dùng cho trang chụp ảnh MCP). Thiếu `MAT_KHAU`/`BI_MAT_PHIEN` thì mọi đường trả 503 (đóng, không mở).
+
+```bash
+cd tools/brainstorm-ui && npm install && cd cf && npm install
+# tài khoản Cloudflare: CLOUDFLARE_API_TOKEN, hoặc CLOUDFLARE_API_KEY + CLOUDFLARE_EMAIL, và CLOUDFLARE_ACCOUNT_ID
+npm run dung                       # dựng cf/dist (ảnh thật đọc từ BS_THIET_KE, mặc định ~/OFFLINE_FILES/Code/aiigrow-thiet-ke)
+npm run deploy                     # dựng + Worker + DO + custom domain aiigrow-figma.aiilab.vn (routes trong wrangler.jsonc)
+npx wrangler secret bulk <tệp.json> # đặt 4 bí mật một lần (tệp JSON tạm, xoá ngay sau đó)
+npx wrangler tail                  # xem log
+```
+
+- **Dữ liệu** (biến thể, phiên bản, góp ý, audit) nằm trong DO. Dùng `cf/kho.mjs` để chuyển giữa DO và thư mục Mac (chỉ chủ quản; mật khẩu và mã đọc từ `BS_MAT_KHAU`/`BS_MA_CHU_QUAN` hoặc `chu-quan.json` của thư mục):
+  - `node cf/kho.mjs nap https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — di trú lên Cloudflare (ghi đè, đứt thì chạy lại). Nạp đủ thì tự chốt, đường nạp đóng hẳn, nên audit trên Cloudflare không bị bản Mac cũ đè.
+  - `node cf/kho.mjs keo https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — kéo về Mac. Job sao lưu git (`tro_ly/jobs/brainstorm-sao-luu/sao-luu.sh`) chạy lệnh này trước khi commit. Nếu sắp xoá > 20% tệp cục bộ, lệnh vẫn tải tệp mới nhưng không xoá và thoát 1; kiểm rồi chạy tay với `--cho-xoa`.
+- **Mac chỉ đọc**: chạy `server.mjs` với `BS_CHI_DOC=https://aiigrow-figma.aiilab.vn` thì mọi lệnh ghi `/api` trả 423 và chỉ tới bản Cloudflare. Như vậy không có hai nguồn dữ liệu.
+- **MCP qua Cloudflare**:
+  `claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mcp --header "Authorization: Bearer <maMcp>" [--header "x-bs-chu-quan: <mã chủ quản>"]`.
+  Trên Cloudflare không có «127.0.0.1 = chủ quản»: thao tác của chủ quản luôn cần mã chủ quản.
+- **Khác bản Mac**: tệp audit theo ngày đặt tên theo giờ UTC; trạng thái con trỏ realtime mất khi DO ngủ đông (người dùng gửi lại ngay khi di chuột).

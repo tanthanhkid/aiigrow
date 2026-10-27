@@ -173,7 +173,10 @@ export function taoKhoBienThe(C) {
       xoaTep(giu); for (const d of ['html', 'phu']) xoaTep(tepRac(l, id, d));
     }
   }
-  donRac(); setInterval(donRac, 3600 * 1000).unref();
+  // C.motTienTrinh (Cloudflare: một Durable Object duy nhất ghi kho): không hẹn giờ (DO được ngủ đông); dọn rác lúc DO thức dậy + tối đa 1 lần/giờ khi có ghi
+  let donLuc = Date.now(); donRac();
+  if (!C.motTienTrinh) setInterval(donRac, 3600 * 1000).unref?.();
+  const donNeuToi = () => { if (C.motTienTrinh && Date.now() - donLuc > 3600 * 1000) { donLuc = Date.now(); try { donRac(); } catch { /* lượt sau */ } } };
 
   // ---- phát thay đổi
   const phat = (obj) => C.phat('bang', { t: 'kho', ...obj });
@@ -185,7 +188,7 @@ export function taoKhoBienThe(C) {
     else if (cu && !fs.existsSync(tepMuc(l, id))) { BO[l].delete(id); phat({ loai: 'xoa', [LOAI[l]]: [id], tu: '' }); }
   }
   const henWatch = new Map();
-  for (const l of ['k', 'l']) {
+  if (!C.motTienTrinh) for (const l of ['k', 'l']) {
     try {
       fs.watch(dir(l), (ev, ten) => {
         const id = ten && String(ten).match(TEN_MUC)?.[1]; if (!id) return;
@@ -209,7 +212,7 @@ export function taoKhoBienThe(C) {
       for (const id of [...BO[l].keys()]) if (!co.has(id) && !fs.existsSync(tepMuc(l, id))) { BO[l].delete(id); phat({ loai: 'xoa', [LOAI[l]]: [id], tu: '' }); }
     }
   }
-  setInterval(() => { quet().catch(() => {}); }, 60000).unref();
+  if (!C.motTienTrinh) setInterval(() => { quet().catch(() => {}); }, 60000).unref?.();
 
   // ---- giới hạn tốc độ ghi theo IP
   const dem = new Map();
@@ -233,6 +236,7 @@ export function taoKhoBienThe(C) {
   }
 
   async function xuLy(req, res, p, url) {
+    if (req.method === 'POST') donNeuToi();
     const { json } = C;
     if (req.method === 'GET') {
       if (p === '/api/bien-the') return json(res, 200, { khung: [...BO.k.values()], lan: [...BO.l.values()], gio: Date.now() });
