@@ -18,14 +18,15 @@ function khungThe(html) { // bộ ba thẻ mở liên tiếp (bỏ data-toi / da
 }
 const jac = (a, b) => { if (!a.size && !b.size) return 0; let i = 0; for (const x of a) if (b.has(x)) i++; return i / (a.size + b.size - i); };
 
-// ds: [{ key, ten, lan, w, h, html, goc?: HTML bản trong mã (v0), nhom?: id nhóm dùng chung đang có, xoa?: bool }]
+// ds: [{ key, ten, lan, w, h, html, goc?: HTML bản trong mã (v0), w0?/h0?: cỡ khung v0, nhom?: id nhóm dùng chung đang có, xoa?: bool }]
 // goc: hai màn vốn là MỘT màn trong mã mà một bên đã sửa (chính trường hợp «sửa luồng này luồng kia không đổi») — vẫn gợi ý
 // → [{ ds: [key…], diem: 0..1, lyDo }] — mỗi gợi ý ≥ 2 màn ở ≥ 2 hành trình, chưa cùng một nhóm
 export function goiYDungChung(ds) {
   const v0 = new Map(); const v0Cua = (m) => { if (!v0.has(m.key)) v0.set(m.key, { t: capChu(m.goc), g: khungThe(m.goc) }); return v0.get(m.key); };
   const M = ds.filter((m) => m && m.key && !m.xoa && m.html).map((m) => ({ ...m, t: capChu(m.html), g: khungThe(m.html), n: chuanTen(m.ten), daSua: false }));
-  // «đã sửa» so theo chữ đã chuẩn hoá, không theo chuỗi thô: web (đã lamSach) và MCP (HTML gốc) ra cùng kết quả
-  for (const m of M) if (m.goc && m.goc !== m.html) { const g = v0Cua(m); m.daSua = jac(g.t, m.t) < 1 || jac(g.g, m.g) < 1; }
+  // «đã sửa» = CHỮ khác bản trong mã (chỉ so chữ: lamSach đổi thẻ/thuộc tính, sửa liên kết chỉ đổi data-toi — đều không tính là sửa)
+  const cungTap = (a, b) => a.size === b.size && [...a].every((x) => b.has(x));
+  for (const m of M) if (m.goc && m.goc !== m.html) m.daSua = !cungTap(v0Cua(m).t, m.t);
   const giong = (t, g, cungTen) => t >= 0.85 || (cungTen && t >= 0.4) || (t >= 0.6 && g() >= 0.9);
   const cha = new Map(M.map((m) => [m.key, m.key]));
   const goc = (k) => { while (cha.get(k) !== k) { cha.set(k, cha.get(cha.get(k))); k = cha.get(k); } return k; };
@@ -39,9 +40,11 @@ export function goiYDungChung(ds) {
       if (giong(t, () => jac(a.g, b.g), cungTen)) { canh.push({ a: a.key, b: b.key, t, cungTen }); cha.set(goc(a.key), goc(b.key)); continue; }
     }
     // đúng MỘT bên đã sửa (hai bên cùng sửa = cố ý khác nhau, không gợi ý): so bản trong mã — cỡ khung hiện tại có thể đã đổi theo bản sửa
-    if (a.daSua === b.daSua || !a.goc || !b.goc || Math.abs(a.w - b.w) > 8) continue;
+    if (a.daSua === b.daSua || !a.goc || !b.goc) continue;
+    if (Math.abs((a.w0 ?? a.w) - (b.w0 ?? b.w)) > 8 || Math.abs((a.h0 ?? a.h) - (b.h0 ?? b.h)) > 40) continue; // cỡ khung bản trong mã
     const ga = v0Cua(a), gb = v0Cua(b); const t0 = jac(ga.t, gb.t);
-    if (giong(t0, () => jac(ga.g, gb.g), cungTen)) { canh.push({ a: a.key, b: b.key, t: t0, cungTen, daLech: true }); cha.set(goc(a.key), goc(b.key)); }
+    // ngưỡng chặt hơn trùng thường: nhãn khẳng định «vốn là một màn trong mã»
+    if (t0 >= 0.85 || (cungTen && t0 >= 0.6)) { canh.push({ a: a.key, b: b.key, t: t0, cungTen, daLech: true }); cha.set(goc(a.key), goc(b.key)); }
   }
   const cum = new Map();
   for (const c of canh) { const g = goc(c.a); if (!cum.has(g)) cum.set(g, { keys: new Set(), canh: [] }); const x = cum.get(g); x.keys.add(c.a); x.keys.add(c.b); x.canh.push(c); }
@@ -51,7 +54,7 @@ export function goiYDungChung(ds) {
     const ten = x.canh.every((c) => c.cungTen) ? 'cùng tên' : '';
     const thuong = x.canh.filter((c) => !c.daLech); const lech = thuong.length < x.canh.length; const tatCaLech = !thuong.length;
     const diem = Math.min(...(tatCaLech ? x.canh : thuong).map((c) => c.t));
-    return { ds: keys, diem: Math.round(diem * 100) / 100, daLech: lech,
+    return { ds: keys, diem: Math.round(diem * 100) / 100, daLech: lech, chiLech: tatCaLech,
       lyDo: [ten, tatCaLech ? `bản trong mã giống ${Math.round(diem * 100)}% — một bên đã sửa, bên kia chưa theo` : `nội dung giống ${Math.round(diem * 100)}%`, !tatCaLech && lech ? 'có màn đã sửa lệch' : ''].filter(Boolean).join(', ') };
-  }).sort((p, q) => Number(p.daLech) - Number(q.daLech) || q.diem - p.diem || q.ds.length - p.ds.length); // trùng thật trước, cặp đã lệch sau
+  }).sort((p, q) => Number(p.chiLech) - Number(q.chiLech) || q.diem - p.diem || q.ds.length - p.ds.length); // trùng thật trước, cặp đã lệch sau
 }
