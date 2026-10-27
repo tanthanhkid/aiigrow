@@ -48,7 +48,8 @@ async function tai() {
   $('#ht-ten').textContent = j.htTen; $('#ht-v').textContent = `v${j.v}`; $('#ht-ghi').textContent = j.ghiChu || '';
   veDsMan();
   const h = decodeURIComponent(location.hash.slice(1));
-  mo(j.man.some((m) => m.key === h) || h === 'qt' || h === 'chung' ? h : j.man[0]?.key || 'chung');
+  const dau = j.man.find((m) => !daXoa(m.key))?.key || 'chung'; // màn đã xoá khỏi hành trình: không mở
+  mo((j.man.some((m) => m.key === h) && !daXoa(h)) || h === 'qt' || h === 'chung' ? h : dau);
 }
 function het(ly) { $('#het').hidden = false; $('#het-ly').textContent = ly; document.body.classList.add('da-het'); }
 const manChup = (key) => R.goi?.man.find((m) => m.key === key); // bản đóng băng lúc tạo link

@@ -444,7 +444,8 @@ export function taoMcp(C) {
       { key: z.string(), ly_do: z.string().optional() }, async (a) => {
         await timMan(a.key);
         const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { xoa: true, lyDo: a.ly_do || '' });
-        return [chu({ key: a.key, daXoa: true, dangDung: `v${mf.hien}`, lienKetHong: await lienKetHong(req0, a.key) })];
+        let hong; try { hong = await lienKetHong(req0, a.key); } catch (e) { hong = `chưa liệt kê được (${e.message}) — gọi ds_lien_ket_hong`; } // màn ĐÃ xoá: không báo lỗi vì bước phụ
+        return [chu({ key: a.key, daXoa: true, dangDung: `v${mf.hien}`, lienKetHong: hong })];
       });
 
     T('khoi_phuc_man', 'Khôi phục một màn đã bị xoá khỏi hành trình — CHỈ chủ quản. Ghi thành phiên bản mới (audit man.khoi-phuc-xoa) dùng đúng HTML trước khi xoá; liên kết tới màn này hết hỏng.',
@@ -463,7 +464,7 @@ export function taoMcp(C) {
     T('ds_lien_ket', 'Liệt kê liên kết của một màn (bản đang dùng): từng phần tử có data-toi (phan_tu = vị trí phần tử, chu, toi, hỏng?). tat_ca=true kèm cả nút/phần tử bấm được CHƯA nối (để tạo liên kết mới).',
       { key: z.string(), tat_ca: z.boolean().optional() }, async (a) => {
         const { MAN } = await taiMan();
-        const hh = await hienHanh(req0, a.key); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, a.key, null, pb);
         const ds = JSON.parse(await domGoi('dsLienKet', hh.html, !!a.tat_ca));
         return [chu({ key: a.key, ten: hh.m.ten, v: hh.v, ...(daXoaMf(hh.mf) ? { daXoa: true } : {}),
           lienKet: ds.map((x) => ({ phan_tu: x.i, the: x.the, chu: x.chu, toi: x.toi || null, toiTen: x.toi ? MAN[x.toi]?.ten : undefined, hong: x.toi ? (!MAN[x.toi] || daXoaMf(pb[x.toi])) || undefined : undefined })) })];
@@ -473,7 +474,7 @@ export function taoMcp(C) {
       { key: z.string(), toi: z.string().nullable(), phan_tu: z.number().int().min(0).optional(), chu: z.string().optional(), toi_cu: z.string().optional() }, async (a) => {
         const { MAN } = await taiMan();
         const toi = a.toi || '';
-        const hh = await hienHanh(req0, a.key); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, a.key, null, pb);
         if (daXoaMf(hh.mf)) throw LOI(`Màn ${a.key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
         if (toi) { if (!MAN[toi]) throw LOI(`Không có màn đích «${toi}» — xem ds_hanh_trinh`); if (daXoaMf(pb[toi])) throw LOI(`Màn đích ${toi} đã bị xoá khỏi hành trình — chọn màn khác hoặc khoi_phuc_man`); }
         const ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
@@ -627,9 +628,9 @@ export function taoMcp(C) {
         let man = a.man || [], nhan = a.nhan;
         if (!man.length && a.tra_loi) { const t = tachHanhTrinh(a.tra_loi); const cut = t.man.filter((x) => !x.xong).map((x) => x.key); if (cut.length) throw LOI(`Câu trả lời bị cắt ở màn: ${cut.join(', ')} — sinh lại đủ rồi gửi`); man = t.man; nhan ||= t.nhan; }
         const theoKey = new Map(man.filter((x) => x.html?.trim()).map((x) => [x.key, x.html]));
-        const thieu = l.buoc.filter((k) => !theoKey.has(k)); const la = [...theoKey.keys()].filter((k) => !l.buoc.includes(k));
+        const buoc = await buocNguon(l, a.tu_phuong_an); const con = buoc.map((b) => b.key); // bỏ màn đã xoá
+        const thieu = con.filter((k) => !theoKey.has(k)); const la = [...theoKey.keys()].filter((k) => !con.includes(k));
         if (thieu.length) throw LOI(`Thiếu HTML cho màn: ${thieu.join(', ')}${la.length ? ` · key lạ: ${la.join(', ')}` : ''}`);
-        const buoc = await buocNguon(l, a.tu_phuong_an);
         const kho = await dsKho(req0);
         const dot = Date.now().toString(36);
         const soMoi = Math.max(0, ...kho.lan.filter((b) => b.tu === l.id).map((b) => b.k || 0)) + 1;
@@ -656,7 +657,7 @@ export function taoMcp(C) {
       const kho = tuPa ? await dsKho(req0) : null;
       if (tuPa && !kho.lan.some((x) => x.id === tuPa && x.tu === l.id)) throw LOI(`Không có phương án ${tuPa} của ${l.id}`);
       const pb = await goiJ(req0, 'GET', '/api/phien-ban');
-      return Promise.all(l.buoc.map(async (key) => {
+      return Promise.all(l.buoc.filter((key) => !daXoaMf(pb[key])).map(async (key) => { // màn đã xoá khỏi hành trình: không đưa vào phương án
         const hh = await hienHanh(req0, key, null, pb); let html = hh.html;
         const f = kho?.khung.find((x) => x.lan === tuPa && x.goc === key);
         if (f) { const g = await docKhung(req0, f.id); if (g.html) html = g.html; }

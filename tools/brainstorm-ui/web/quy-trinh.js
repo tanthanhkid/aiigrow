@@ -43,9 +43,21 @@ export function taoQuyTrinh(api) {
   const song = new Map(); // id việc → iframe sống
 
   // ---- dữ liệu: quy trình định nghĩa + sinh tự động từ chuỗi màn ----
+  // bỏ nút màn không có / đã xoá khỏi hành trình; cạnh qua nút bị bỏ được nối thẳng (A→B→C bỏ B ⇒ A→C, giữ nhãn cạnh vào)
+  function boManXoa(q) {
+    const bo = new Set(q.nut.filter((x) => x.loai === 'man' && (!MAN[x.man] || MAN[x.man].xoa)).map((x) => x.id));
+    if (!bo.size) return q;
+    let noi = q.noi.slice();
+    for (const r of bo) {
+      const vao = noi.filter(([, b]) => b === r), ra = noi.filter(([a]) => a === r);
+      noi = noi.filter(([a, b]) => a !== r && b !== r);
+      for (const [a, , nhan] of vao) for (const [, b] of ra) if (a !== b && !noi.some(([x, y]) => x === a && y === b)) noi.push([a, b, nhan]);
+    }
+    return { ...q, nut: q.nut.filter((x) => !bo.has(x.id)), noi };
+  }
   function quyTrinhCua(sec, lanCuaSec) {
     const bao = new Set(QT.flatMap((q) => q.hanh || []));
-    const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || (MAN[x.man] && !MAN[x.man].xoa)) }));
+    const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => boManXoa(q));
     for (const id of lanCuaSec) {
       if (bao.has(id)) continue;
       const q = tuChuoi(timLan(id)); if (q) kq.push(q);
@@ -316,7 +328,7 @@ export function taoQuyTrinh(api) {
 
   // SVG (ảnh nhúng data URL) cho MỘT hành trình — ảnh chụp kèm link góp ý /r/: quy trình khai báo có hanh chứa id, không có thì tự sinh từ chuỗi màn
   async function svgHanhTrinh(htId) {
-    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || (MAN[x.man] && !MAN[x.man].xoa)) }));
+    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => boManXoa(q));
     if (!qs.length) { const q = tuChuoi(timLan(htId)); qs = q ? [q] : []; }
     if (!qs.length) return '';
     const pools = []; let y = 0;

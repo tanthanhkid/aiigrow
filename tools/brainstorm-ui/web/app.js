@@ -799,7 +799,7 @@ async function sinhHanhTrinh(lanLai) {
   if (!lanLai) { caiDat.soPa = n; luuCaiDat(); }
   const dot = Date.now().toString(36);
   // nguồn là một phương án → dùng HTML của phương án đó làm gốc
-  const buoc = g.buoc.map((key) => { const f = khungCuaLan(nguon, key) || timKhung(key); return { key, ten: MAN[key].ten, w: MAN[key].w, h: MAN[key].h, html: htmlCua(f) || MAN[key].html, toi: MAN[key].toi }; });
+  const buoc = g.buoc.filter((key) => !daXoa(key)).map((key) => { const f = khungCuaLan(nguon, key) || timKhung(key); return { key, ten: MAN[key].ten, w: MAN[key].w, h: MAN[key].h, html: htmlCua(f) || MAN[key].html, toi: MAN[key].toi }; });
   const lans = [];
   for (let k = 1; k <= n; k++) {
     const soMoi = Math.max(0, ...st.lanBt.filter((b) => b.tu === g.id).map((b) => b.k || 0)) + 1;
@@ -932,7 +932,12 @@ const play = { lich: [], lan: null };
 function moPlay(id, lanId) {
   id ||= khungChon()?.id || (st.lanChon && khungCuaLan(timLan(st.lanChon), timLan(st.lanChon).buoc[0])?.id) || (() => { const l = timLan(SECTIONS.find((x) => x.id === st.sec)?.lan[0]); return l && timKhung(l.buoc[0])?.id; })() || timKhung(LAN_GOC[0].buoc[0])?.id;
   const f = timKhung(id); if (!f || !htmlCua(f)) { toast('Màn này chưa có nội dung để Play.', true); return; }
-  if (daXoa(keyCua(f))) { toast('Màn này đã bị xoá khỏi hành trình — khôi phục rồi mới Play được.', true); return; }
+  if (daXoa(keyCua(f))) { // vd. ▶ cả hành trình mà bước 1 đã xoá: bắt đầu từ bước còn lại đầu tiên sau nó
+    const l = timLan(lanId) || lanCuaKhung(f); const i = l ? l.buoc.indexOf(keyCua(f)) : -1;
+    const k = i >= 0 ? l.buoc.slice(i + 1).find((x) => !daXoa(x)) : null; const T = k && khungCuaLan(l, k);
+    if (!T || !htmlCua(T)) { toast('Màn này đã bị xoá khỏi hành trình — khôi phục rồi mới Play được.', true); return; }
+    return moPlay(T.id, lanId);
+  }
   play.lan = lanId || lanCuaKhung(f)?.id;
   play.lich = [f.id];
   $('#pl-anh').checked = caiDat.anhThat;
@@ -987,7 +992,7 @@ function vePlay(huong) {
     vet.appendChild(b);
   });
   $('#pl-lui').disabled = play.lich.length < 2;
-  const l = timLan(play.lan); const viTri = l ? l.buoc.indexOf(keyCua(f)) : -1;
+  const l0 = timLan(play.lan); const l = l0 && { ...l0, buoc: l0.buoc.filter((k) => !daXoa(k)) }; const viTri = l ? l.buoc.indexOf(keyCua(f)) : -1; // đếm bước bỏ màn đã xoá
   $('#pl-truoc').disabled = viTri <= 0; $('#pl-ke').disabled = viTri < 0 || viTri >= l.buoc.length - 1;
   $('#pl-buoc').textContent = l && viTri >= 0 ? `${l.goc ? l.ten : 'Phương án ' + l.k} · bước ${viTri + 1}/${l.buoc.length}${m.toi && viTri < l.buoc.length - 1 ? ' · tiếp: ' + m.toi : ''}` : `${tenCua(f)} (ngoài hành trình)`;
 }
@@ -1203,7 +1208,8 @@ async function xoaMan(key, xoa) {
   if (xoa && !confirm(`Xoá «${m.ten}» khỏi hành trình?\n\nPlay, Quy trình và link góp ý /r/ sẽ bỏ qua màn này; các nút dẫn tới nó thành «liên kết hỏng» cho tới khi nối lại. Khôi phục được bất cứ lúc nào (lịch sử giữ nguyên).`)) return;
   if (dangThay.has(key)) { toast('Màn này đang được thay — đợi chút.'); return; }
   dangThay.add(key);
-  try { PB[key] = await ghiPb(key, xoa ? { xoa: true } : { khoiPhucXoa: true }); await apPhienBan(key); } catch (e) { toast(`Không ${xoa ? 'xoá' : 'khôi phục'} được màn: ${e.message}`, true); return; } finally { dangThay.delete(key); }
+  try { PB[key] = await ghiPb(key, xoa ? { xoa: true } : { khoiPhucXoa: true }); } catch (e) { toast(`Không ${xoa ? 'xoá' : 'khôi phục'} được màn: ${e.message}`, true); dangThay.delete(key); return; }
+  try { await apPhienBan(key); } catch (e) { MAN[key].xoa = xoa; toast(`Đã ${xoa ? 'xoá' : 'khôi phục'} trên máy chủ nhưng chưa tải được bản màn (${e.message}) — tải lại trang.`, true); } finally { dangThay.delete(key); }
   qtDaVe = ''; veTatCa(); if (!$('#lop-lk').hidden) veLienKet();
   const tro = xoa ? Object.keys(MAN).filter((k) => !daXoa(k) && lkHong(MAN[k].html).includes(key)).length : 0;
   toast(xoa ? `Đã xoá «${m.ten}» khỏi hành trình${tro ? ` — ${tro} màn có nút dẫn tới nó (⚠ liên kết hỏng, bấm để nối lại)` : ''}.` : `Đã khôi phục «${m.ten}» vào hành trình.`);
