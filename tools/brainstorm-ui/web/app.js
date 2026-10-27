@@ -1137,12 +1137,13 @@ async function thayMan(key, html, meta = {}) {
     await apPhienBan(key);
   } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
   meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
-  if (btXoa) goSauThay(btXoa);
+  canhBaoThay = ''; if (btXoa) goSauThay(btXoa);
   qtDaVe = ''; veTatCa(); luuLai();
-  toast(meta.bao ? meta.bao.replace('{v}', PB[key].hien) : `Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}${btXoa ? '; biến thể đã rời bàn, chỗ của nó để trống' : ''}. Bản cũ và bản vừa thay đều trong Lịch sử.`);
+  toast(meta.bao ? meta.bao.replace('{v}', PB[key].hien) : `Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}${btXoa ? '; biến thể đã rời bàn, chỗ của nó để trống' : ''}. Bản cũ và bản vừa thay đều trong Lịch sử.${canhBaoThay ? ` Lưu ý: ${canhBaoThay}.` : ''}`, !!canhBaoThay);
   return true;
 }
 // biến thể vừa dùng để Thay màn: máy chủ đã cho vào thùng rác ⇒ gỡ khỏi bàn này (không gửi xoá lại), màn con nối về cha của nó; chỗ trống giữ nguyên
+let canhBaoThay = '';
 // (máy chủ cũng đã nối màn con về cha của nó — boKhung nối y hệt và coi là đã đồng bộ; xoaXa giữ cho hoàn tác không hồi sinh nó)
 const goSauThay = (id) => boKhung([id], { sauThay: true, im: true });
 // đề xuất đã xử lý (Accept/Từ chối ở bàn này, bàn khác hay qua MCP) ⇒ khung tạm «Sửa tiếp» của nó rời bàn
@@ -1570,8 +1571,9 @@ function boKhung(ids, { sauThay = false, mayChu = false, im = false } = {}) { //
     const dangSinh = xoa.filter((id) => st.dangChay.has(id));
     if (Sua.dangSua() && xoa.includes(Sua.dangSua())) Sua.thoat({ im: true });
     for (const id of xoa) { st.dangChay.get(id)?.abort(); tuChoi.delete(`k:${id}`); }
-    if (dangSinh.length) toast('Biến thể đang sinh lại vừa được dùng để Thay màn và đã rời bàn — lượt sinh lại đã huỷ.', true);
-    if (matSua.length) toast('Biến thể bạn đang sửa vừa được dùng để Thay màn và đã rời bàn — phần sửa chưa lưu của nó không còn (bản đã Thay nằm trong Lịch sử màn).', true);
+    const bao = [dangSinh.length && 'lượt sinh lại của nó đã huỷ', matSua.length && 'phần sửa chưa lưu của nó không còn (bản đã Thay nằm trong Lịch sử màn)'].filter(Boolean).join('; ');
+    canhBaoThay = bao; // bàn vừa bấm Thay: thayMan ghép vào toast «Đã thay…» (một toast đè toast kia)
+    if (bao && !im) toast(`Biến thể vừa được dùng để Thay màn và đã rời bàn — ${bao}.`, true);
   }
   for (const id of xoa) { daGui.delete(`k:${id}`); xoaXa.ds.set(id, ++xoaXa.n); }
   // nối lại cha cho màn con: người xoá đã ghi cha mới lên máy chủ ⇒ không coi là thay đổi của máy này

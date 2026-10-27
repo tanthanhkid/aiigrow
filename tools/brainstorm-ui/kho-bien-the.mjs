@@ -157,7 +157,7 @@ export function taoKhoBienThe(C) {
     const chaMoi = m.cha && BO.k.has(m.cha) ? m.cha : m.goc;
     const con = [], evCon = [];
     for (const c0 of [...BO.k.values()].filter((c) => c.cha === id)) {
-      const c = docJson(tepMuc('k', c0.id)) || c0; if (c.cha !== id) continue;
+      const c = docJson(tepMuc('k', c0.id)); if (!c || c.cha !== id) continue; // tệp không còn (tiến trình khác vừa xoá) ⇒ không ghi lại
       const moi = { ...c, cha: chaMoi, tSua: Math.max(Date.now(), (c.tSua || 0) + 1) };
       const truoc = trangThai('k', c.id, c); // đủ HTML: khôi phục từ Lịch sử thay đổi không làm mất HTML
       datMuc('k', moi); con.push(moi);
