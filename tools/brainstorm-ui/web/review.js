@@ -54,7 +54,8 @@ function het(ly) { $('#het').hidden = false; $('#het-ly').textContent = ly; docu
 const manChup = (key) => R.goi?.man.find((m) => m.key === key); // bản đóng băng lúc tạo link
 // Bản đang hiển thị: màn đã được «Thay màn»/Khôi phục trên bàn chính sau khi chia sẻ ⇒ bản hiện hành (Xem, Play, Ghim, biến thể theo góp ý),
 // trừ khi người xem bấm «Bản lúc chia sẻ» để đối chiếu.
-const manCua = (key) => { const m = manChup(key); const x = m && !R.banChup && HIEN.get(key); return x ? { ...m, ...x, moi: true } : m; };
+const manCua = (key) => { const m = manChup(key); const x = m && !R.banChup && HIEN.get(key); return x?.xoa ? null : x ? { ...m, ...x, moi: true } : m; }; // màn đã bị xoá khỏi hành trình: không xem/Play
+const daXoa = (key) => !R.banChup && !!HIEN.get(key)?.xoa;
 
 // ---------- bản hiện hành của các màn (kho phiên bản của bàn chính) ----------
 const HIEN = new Map(); // key → { v, html, w, h } — chỉ màn đã khác bản lúc chia sẻ
@@ -74,6 +75,7 @@ async function napHienHanh(chiKey = '') {
     if (chiKey && m.key !== chiKey) return;
     const mf = ds[m.key]; const hien = mf?.hien || 0;
     const muc = mf?.ds?.find((x) => x.v === hien); const mucChup = mf?.ds?.find((x) => x.v === (m.pb || 0));
+    if (muc?.xoa) { if (!HIEN.get(m.key)?.xoa) { HIEN.set(m.key, { v: hien, xoa: true }); doi.add(m.key); } return; } // chủ quản xoá màn khỏi hành trình
     if (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0)) { if (HIEN.delete(m.key)) doi.add(m.key); return; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
     if (HIEN.get(m.key)?.v === hien) return;
     try {
@@ -109,6 +111,10 @@ async function dongBoBan0(chiKey) {
   const doi = await napHienHanh(chiKey);
   if (!doi.size) return doi;
   veBan();
+  if (daXoa(R.mo)) { // màn đang mở vừa bị xoá: sang màn kế còn lại (hoặc Góp ý chung)
+    const ten = manChup(R.mo)?.ten || R.mo; let i = R.goi.man.findIndex((x, j) => j > R.i && !daXoa(x.key)); if (i < 0) i = R.goi.man.findIndex((x) => !daXoa(x.key));
+    if (i >= 0) mo(R.goi.man[i].key, i, false); else mo('chung'); toast(`Màn «${ten}» vừa bị xoá khỏi hành trình.`); return doi;
+  }
   if (!R.banChup && (doi.has(R.mo) || R.mo === 'qt')) { const g = R.ghimCho; mo(R.mo, R.i, false); if (g) { R.ghimCho = g; capNhatGhimCho(); veGhim(); } } else veDsMan();
   return doi;
 }
@@ -118,6 +124,7 @@ function veDsMan() {
   const ol = $('#ds-man'); ol.innerHTML = '';
   const dem = new Map(); for (const g of R.goi.gopY) if (g.tt === 'mo' && g.key) dem.set(g.key, (dem.get(g.key) || 0) + 1);
   R.goi.man.forEach((m, i) => {
+    if (daXoa(m.key)) return; // đã xoá khỏi hành trình (bấm «Bản lúc chia sẻ» để xem lại)
     const li = tao('li'); const b = tao('button', 'muc-man' + (R.i === i ? ' bat' : ''));
     b.type = 'button'; b.dataset.key = m.key;
     b.append(tao('span', 'so-tt', String(i + 1)), tao('span', 't', m.ten));
@@ -154,7 +161,7 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
   veDsMan(); veGopY(); veGhim();
   rt?.khiDoiView();
 }
-const buoc = (d) => { const i = R.i + d; const m = R.goi.man[i]; if (R.i >= 0 && m) mo(m.key, i); };
+const buoc = (d) => { let i = R.i + d; while (R.goi.man[i] && daXoa(R.goi.man[i].key)) i += d; const m = R.goi.man[i]; if (R.i >= 0 && m) mo(m.key, i); }; // bỏ qua màn đã xoá
 // tự chuyển màn = thôi «đi theo» người khác (không thì màn người kia kéo về)
 $('#nut-truoc').onclick = () => { rt?.boTheo(); if (R.play) playLui(); else buoc(-1); }; $('#nut-sau').onclick = () => { rt?.boTheo(); buoc(1); };
 
@@ -220,7 +227,7 @@ function ganTrongKhung(ifr) {
     const nut = a || (!go && e.target.closest?.('a,button,[role=button],.nut'));
     if (a || e.target.closest?.('a') || (nut && !go)) e.preventDefault(); // link không bao giờ rời srcdoc
     if (R.play) {
-      if (a) { const k = a.dataset.toi; if (manCua(k)) playToi(k); else nhayGoiY(d, `Nút «${(a.textContent || '').trim().slice(0, 30)}» dẫn tới màn không có trong link này.`); return; }
+      if (a) { const k = a.dataset.toi; if (manCua(k)) playToi(k); else nhayGoiY(d, daXoa(k) ? `Liên kết hỏng: nút «${(a.textContent || '').trim().slice(0, 30)}» dẫn tới màn đã bị xoá khỏi hành trình.` : `Nút «${(a.textContent || '').trim().slice(0, 30)}» dẫn tới màn không có trong link này.`); return; }
       if (go) return; // cho gõ/tick thử trong ô
       if (nut && nutLui(nut)) { if (!playLui()) nhayGoiY(d, 'Đây là màn đầu — không còn màn để quay lại.'); return; }
       if (!nut) { nhayGoiY(d, ''); return; } // bấm chỗ trống/chữ: chỉ nháy viền, không báo

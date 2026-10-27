@@ -10,7 +10,7 @@ export const TEN_LOAI = {
   'bien-the.xoa-vinh-vien': 'Xoá vĩnh viễn biến thể (dọn thùng rác)', 'bien-the.di-tru': 'Di trú biến thể từ trình duyệt', 'bien-the.khoi-phuc-lich-su': 'Khôi phục biến thể từ lịch sử',
   'phuong-an.tao': 'Tạo phương án', 'phuong-an.sua': 'Sửa phương án', 'phuong-an.xoa': 'Xoá phương án (vào thùng rác)', 'phuong-an.khoi-phuc': 'Khôi phục phương án từ thùng rác',
   'phuong-an.xoa-vinh-vien': 'Xoá vĩnh viễn phương án', 'phuong-an.di-tru': 'Di trú phương án từ trình duyệt', 'phuong-an.khoi-phuc-lich-su': 'Khôi phục phương án từ lịch sử',
-  'man.thay': 'Thay màn', 'man.khoi-phuc': 'Khôi phục phiên bản màn', 'man.de-xuat': 'Thay màn bằng đề xuất', 'man.khoi-phuc-lich-su': 'Khôi phục màn từ lịch sử',
+  'man.thay': 'Thay màn', 'man.khoi-phuc': 'Khôi phục phiên bản màn', 'man.de-xuat': 'Thay màn bằng đề xuất', 'man.khoi-phuc-lich-su': 'Khôi phục màn từ lịch sử', 'man.xoa': 'Xoá màn khỏi hành trình', 'man.khoi-phuc-xoa': 'Khôi phục màn đã xoá', 'man.lien-ket': 'Sửa liên kết màn',
   'gop-y.tao': 'Góp ý mới', 'gop-y.tra-loi': 'Trả lời góp ý', 'gop-y.sua': 'Sửa góp ý', 'gop-y.xoa': 'Xoá góp ý', 'gop-y.trang-thai': 'Đổi trạng thái góp ý', 'gop-y.muc': 'Đổi mức góp ý',
   'gop-y.yc-bien-the': 'Yêu cầu biến thể', 'gop-y.khoi-phuc-lich-su': 'Khôi phục góp ý từ lịch sử',
   'de-xuat.tao': 'Đề xuất thay đổi mới', 'de-xuat.chap': 'Accept đề xuất', 'de-xuat.sua-tiep': 'Áp dụng đề xuất sau «Sửa tiếp»', 'de-xuat.tu-choi': 'Từ chối đề xuất',

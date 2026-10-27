@@ -45,7 +45,7 @@ export function taoQuyTrinh(api) {
   // ---- dữ liệu: quy trình định nghĩa + sinh tự động từ chuỗi màn ----
   function quyTrinhCua(sec, lanCuaSec) {
     const bao = new Set(QT.flatMap((q) => q.hanh || []));
-    const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || MAN[x.man]) }));
+    const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || (MAN[x.man] && !MAN[x.man].xoa)) }));
     for (const id of lanCuaSec) {
       if (bao.has(id)) continue;
       const q = tuChuoi(timLan(id)); if (q) kq.push(q);
@@ -56,7 +56,7 @@ export function taoQuyTrinh(api) {
   function tuChuoi(l) {
     if (!l) return null;
     const lan = l.vai === 'Con' ? 'con' : 'bm';
-    const buoc = l.buoc.filter((k) => MAN[k]);
+    const buoc = l.buoc.filter((k) => MAN[k] && !MAN[k].xoa);
     // id theo thứ tự bước: một màn ghé hai lần vẫn là hai nút
     const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map((k, i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
     const noi = []; let truoc = 'bd', keTruoc = '';
@@ -316,7 +316,7 @@ export function taoQuyTrinh(api) {
 
   // SVG (ảnh nhúng data URL) cho MỘT hành trình — ảnh chụp kèm link góp ý /r/: quy trình khai báo có hanh chứa id, không có thì tự sinh từ chuỗi màn
   async function svgHanhTrinh(htId) {
-    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || MAN[x.man]) }));
+    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => ({ ...q, nut: q.nut.filter((x) => x.loai !== 'man' || (MAN[x.man] && !MAN[x.man].xoa)) }));
     if (!qs.length) { const q = tuChuoi(timLan(htId)); qs = q ? [q] : []; }
     if (!qs.length) return '';
     const pools = []; let y = 0;

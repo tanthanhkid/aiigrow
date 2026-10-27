@@ -123,6 +123,26 @@ export function taoMcp(C) {
     } else html = await htmlGoc(m);
     return { m, html, w: muc?.w || m.w, h: muc?.h || m.h, v: vv, mf };
   }
+  const daXoaMf = (mf) => !!mf?.ds?.find((x) => x.v === mf.hien)?.xoa; // màn đã bị chủ quản xoá khỏi hành trình
+  // Liên kết hỏng trên cả bàn: nút (data-toi) của màn CÒN trong hành trình trỏ tới màn không có / đã xoá. chiToi: chỉ nút trỏ tới màn này.
+  async function lienKetHong(req0, chiToi = '') {
+    const { LAN, MAN } = await taiMan(); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+    const hongK = (k) => !MAN[k] || daXoaMf(pb[k]);
+    const keys = [...new Set(LAN.flatMap((l) => l.buoc))].filter((k) => !daXoaMf(pb[k]));
+    const ra = [];
+    await Promise.all(keys.map(async (key) => {
+      const m = MAN[key]; const mf = pb[key]; const muc = mf?.ds.find((x) => x.v === mf.hien);
+      let tho = m.html;
+      if (muc?.tep) { try { tho = (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`)).html; } catch { return; } }
+      let toi = dataToi(tho);
+      if (!toi.length && !/data-lk-sua/.test(tho) && m.ke && m.toi) toi = [m.ke]; // nút gắn theo nhãn bước khi hiển thị
+      if (!toi.some((k) => hongK(k) && (!chiToi || k === chiToi))) return; // lọc rẻ bằng regex trước, chỉ màn có hỏng mới dựng DOM
+      const hh = await hienHanh(req0, key, null, pb);
+      const nut = JSON.parse(await domGoi('dsLienKet', hh.html, false)).filter((x) => hongK(x.toi) && (!chiToi || x.toi === chiToi));
+      if (nut.length) ra.push({ key, ten: m.ten, hanhTrinh: m.lan, v: hh.v, nut: nut.map((x) => ({ phan_tu: x.i, chu: x.chu, toi: x.toi, ly_do: MAN[x.toi] ? 'màn đích đã bị xoá' : 'màn đích không còn' })) });
+    }));
+    return ra.sort((a, b) => a.key.localeCompare(b.key));
+  }
   const tomMf = (mf) => ({ hien: mf.hien || 0, lichSu: [{ v: 0, nhan: 'bản trong mã' }, ...mf.ds.map((x) => ({ v: x.v, t: x.t, nhan: x.nhan, nguon: x.nguon, model: x.model || undefined, tu: x.tu, tacGia: x.tacGia, yTuong: x.yTuong ? String(x.yTuong).slice(0, 200) : undefined, w: x.w, h: x.h }))] });
 
   // ================= Chrome headless dùng chung =================
@@ -209,7 +229,7 @@ export function taoMcp(C) {
         if (!domP) domP = (async () => {
           const pg = await b.newPage(); await C.chuanBiTrang?.(pg);
           await pg.goto(datTrang('<!doctype html><meta charset="utf-8"><title>dom</title>', CSP_DOM));
-          await pg.evaluate("(async () => { const [cl, gt] = await Promise.all([import('/claude.js'), import('/gan-toi.js')]); window.__bs = { lamSach: cl.lamSach, ganToi: gt.ganToi }; })()"); // chuỗi: chạy trong Chrome, bộ gói Worker không được đụng vào import()
+          await pg.evaluate("(async () => { const [cl, gt] = await Promise.all([import('/claude.js'), import('/gan-toi.js')]); window.__bs = { lamSach: cl.lamSach, ganToi: gt.ganToi, dsLienKet: (h, t) => JSON.stringify(gt.dsLienKet(h, t)), datLienKet: gt.datLienKet }; })()"); // chuỗi: chạy trong Chrome, bộ gói Worker không được đụng vào import()
           domTrang = pg; return pg;
         })().finally(() => { domP = null; });
         await domP;
@@ -303,7 +323,8 @@ export function taoMcp(C) {
     const s = new McpServer({ name: 'aiigrow-figma', version: '1.0.0' }, {
       instructions: 'Bàn brainstorm giao diện AiiGrow (hành trình → màn → biến thể). Đọc: ds_hanh_trinh, doc_man, anh_man, anh_hanh_trinh, ds_bien_the, doc_bien_the, ds_gop_y, doc_de_xuat, nhat_ky. '
         + 'Tạo biến thể 2 bước (máy chủ không gọi AI): ngu_canh_bien_the → bạn tự sinh HTML theo đúng system prompt + tin nhắn trả về → tao_bien_the (kèm html hoặc nguyên câu trả lời «Ý TƯỞNG…```html```»). Cả hành trình: ngu_canh_hanh_trinh → tao_phuong_an. '
-        + 'Ghi (thay_man, khoi_phuc_phien_ban, xoa_bien_the, chap_nhan_de_xuat…) cần quyền chủ quản như bàn web: 127.0.0.1 tự là chủ quản; qua tên miền cần mật khẩu MCP (Authorization: Bearer <maMcp>) và, cho thao tác của chủ quản, thêm header x-bs-chu-quan.',
+        + 'Liên kết giữa màn: ds_lien_ket, ds_lien_ket_hong, sua_lien_ket (tạo/đổi/gỡ). Xoá/khôi phục màn (chỉ chủ quản): xoa_man, khoi_phuc_man. '
+        + 'Ghi (thay_man, khoi_phuc_phien_ban, sua_lien_ket, xoa_bien_the, chap_nhan_de_xuat…) cần quyền chủ quản như bàn web: 127.0.0.1 tự là chủ quản; qua tên miền cần mật khẩu MCP (Authorization: Bearer <maMcp>) và, cho thao tác của chủ quản, thêm header x-bs-chu-quan.',
     });
     const T = (ten, mo, schema, fn) => s.registerTool(ten, { description: mo, inputSchema: schema }, async (a) => {
       try { return { content: await fn(a) }; } catch (e) { return { isError: true, content: [chu(e.mcp || e.message ? e.message : 'Lỗi')] }; }
@@ -322,8 +343,8 @@ export function taoMcp(C) {
             let html = m.html;
             if (muc?.tep) { try { html = (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`)).html; } catch { /* bỏ qua */ } }
             const toi = dataToi(html);
-            return { key, ten: m.ten, w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
-              dataToi: toi.length ? toi : m.ke && m.toi ? [`${m.ke} (gắn theo nhãn «${m.toi}» khi hiển thị)`] : [],
+            return { key, ten: m.ten, ...(muc?.xoa ? { daXoa: true } : {}), w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
+              dataToi: toi.length || /data-lk-sua/.test(html) ? toi : m.ke && m.toi ? [`${m.ke} (gắn theo nhãn «${m.toi}» khi hiển thị)`] : [],
               soBienThe: kho.khung.filter((f) => f.goc === key && !f.lan).length };
           }));
           ra.push({ id: l.id, ten: l.ten, vai: l.vai, nen: l.nen, mo: l.mo || undefined, buoc, phuongAn: kho.lan.filter((x) => x.tu === l.id).map(tomLan) });
@@ -335,7 +356,7 @@ export function taoMcp(C) {
     T('doc_man', 'Đọc HTML hiện hành của một màn (bản đang dùng sau «Thay màn», đã làm sạch như bàn web) + lịch sử phiên bản. Truyền v để đọc một phiên bản cụ thể (0 = bản trong mã).',
       { key: z.string(), v: z.number().int().min(0).optional(), chi_lich_su: z.boolean().optional().describe('true: chỉ trả lịch sử, không trả HTML') }, async (a) => {
         const hh = await hienHanh(req0, a.key, a.v ?? null);
-        const meta = { key: a.key, ten: hh.m.ten, hanhTrinh: hh.m.lan, w: hh.w, h: hh.h, dangXem: `v${hh.v}`, dataToi: dataToi(hh.html), anhThat: hh.m.anh ? `/ref/${hh.m.anh}` : undefined, ...tomMf(hh.mf) };
+        const meta = { key: a.key, ten: hh.m.ten, ...(daXoaMf(hh.mf) ? { daXoa: true } : {}), hanhTrinh: hh.m.lan, w: hh.w, h: hh.h, dangXem: `v${hh.v}`, dataToi: dataToi(hh.html), anhThat: hh.m.anh ? `/ref/${hh.m.anh}` : undefined, ...tomMf(hh.mf) };
         return a.chi_lich_su ? [chu(meta)] : [chu(meta), chu(hh.html)];
       });
 
@@ -353,7 +374,7 @@ export function taoMcp(C) {
         const kho = a.phuong_an ? await dsKho(req0) : null;
         if (a.phuong_an && !kho.lan.some((x) => x.id === a.phuong_an && x.tu === l.id)) throw LOI(`Không có phương án ${a.phuong_an} của ${l.id}`);
         const pb = await goiJ(req0, 'GET', '/api/phien-ban');
-        const ds = await Promise.all(l.buoc.map(async (key) => {
+        const ds = await Promise.all(l.buoc.filter((key) => !daXoaMf(pb[key])).map(async (key) => { // màn đã xoá khỏi hành trình: bỏ qua như Play
           let html, w, h, nhan;
           const f = kho?.khung.find((x) => x.lan === a.phuong_an && x.goc === key);
           if (f) { const g = await docKhung(req0, f.id); html = g.html; w = g.w; h = g.h; nhan = `${key} · ${g.nhan || ''}`; }
@@ -417,6 +438,58 @@ export function taoMcp(C) {
         await timMan(a.key);
         const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { tu: a.v });
         return [chu({ key: a.key, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
+      });
+
+    T('xoa_man', 'Xoá (mềm) một màn khỏi hành trình — CHỈ chủ quản (như nút 🗑 trên bàn web). Ghi thành phiên bản mới có cờ xoá (audit man.xoa), lịch sử giữ nguyên; Play, Quy trình, link góp ý /r/ bỏ qua màn này; các nút dẫn tới nó thành «liên kết hỏng» (trả về luôn — nối lại bằng sua_lien_ket). Khôi phục: khoi_phuc_man.',
+      { key: z.string(), ly_do: z.string().optional() }, async (a) => {
+        await timMan(a.key);
+        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { xoa: true, lyDo: a.ly_do || '' });
+        return [chu({ key: a.key, daXoa: true, dangDung: `v${mf.hien}`, lienKetHong: await lienKetHong(req0, a.key) })];
+      });
+
+    T('khoi_phuc_man', 'Khôi phục một màn đã bị xoá khỏi hành trình — CHỈ chủ quản. Ghi thành phiên bản mới (audit man.khoi-phuc-xoa) dùng đúng HTML trước khi xoá; liên kết tới màn này hết hỏng.',
+      { key: z.string() }, async (a) => {
+        await timMan(a.key);
+        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { khoiPhucXoa: true });
+        return [chu({ key: a.key, daXoa: false, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
+      });
+
+    T('ds_lien_ket_hong', 'Liệt kê liên kết hỏng trên bàn: nút (data-toi) của các màn còn trong hành trình trỏ tới màn đã xoá / không còn — kèm phan_tu + chữ nút để sửa bằng sua_lien_ket.',
+      { toi: z.string().optional().describe('Chỉ các nút trỏ tới màn này') }, async (a) => {
+        const ds = await lienKetHong(req0, a.toi || '');
+        return [chu(ds.length ? ds : 'Không có liên kết hỏng.')];
+      });
+
+    T('ds_lien_ket', 'Liệt kê liên kết của một màn (bản đang dùng): từng phần tử có data-toi (phan_tu = vị trí phần tử, chu, toi, hỏng?). tat_ca=true kèm cả nút/phần tử bấm được CHƯA nối (để tạo liên kết mới).',
+      { key: z.string(), tat_ca: z.boolean().optional() }, async (a) => {
+        const { MAN } = await taiMan();
+        const hh = await hienHanh(req0, a.key); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const ds = JSON.parse(await domGoi('dsLienKet', hh.html, !!a.tat_ca));
+        return [chu({ key: a.key, ten: hh.m.ten, v: hh.v, ...(daXoaMf(hh.mf) ? { daXoa: true } : {}),
+          lienKet: ds.map((x) => ({ phan_tu: x.i, the: x.the, chu: x.chu, toi: x.toi || null, toiTen: x.toi ? MAN[x.toi]?.ten : undefined, hong: x.toi ? (!MAN[x.toi] || daXoaMf(pb[x.toi])) || undefined : undefined })) })];
+      });
+
+    T('sua_lien_ket', 'Tạo / đổi / gỡ liên kết của nút trên một màn (màn nguồn key + phần tử → màn đích toi; toi="" hoặc null = gỡ). Chọn phần tử bằng phan_tu (từ ds_lien_ket / ds_lien_ket_hong), hoặc chu (chữ trên nút, phải khớp đúng một phần tử), hoặc toi_cu (mọi nút đang trỏ tới màn đó — vd. nối lại liên kết hỏng sau khi xoá màn). Lưu thành phiên bản mới của màn nguồn (audit man.lien-ket); Play, Quy trình, link /r/ và realtime dùng ngay. Quyền như Thay màn.',
+      { key: z.string(), toi: z.string().nullable(), phan_tu: z.number().int().min(0).optional(), chu: z.string().optional(), toi_cu: z.string().optional() }, async (a) => {
+        const { MAN } = await taiMan();
+        const toi = a.toi || '';
+        const hh = await hienHanh(req0, a.key); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        if (daXoaMf(hh.mf)) throw LOI(`Màn ${a.key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
+        if (toi) { if (!MAN[toi]) throw LOI(`Không có màn đích «${toi}» — xem ds_hanh_trinh`); if (daXoaMf(pb[toi])) throw LOI(`Màn đích ${toi} đã bị xoá khỏi hành trình — chọn màn khác hoặc khoi_phuc_man`); }
+        const ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
+        const chuan = (t) => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        let chon;
+        if (a.phan_tu != null) { chon = ds.filter((x) => x.i === a.phan_tu); if (a.chu != null && chon[0] && chuan(chon[0].chu) !== chuan(a.chu)) throw LOI(`Phần tử ${a.phan_tu} có chữ «${chon[0].chu}», không phải «${a.chu}» — màn có thể vừa đổi, gọi lại ds_lien_ket`); }
+        else if (a.chu != null) { chon = ds.filter((x) => chuan(x.chu) === chuan(a.chu)); if (!chon.length) chon = ds.filter((x) => chuan(x.chu).includes(chuan(a.chu))); }
+        else if (a.toi_cu) chon = ds.filter((x) => x.toi === a.toi_cu);
+        else throw LOI('Cần phan_tu, chu hoặc toi_cu để chọn nút');
+        if (!chon.length) throw LOI(`Không thấy phần tử phù hợp trên ${a.key} — xem ds_lien_ket (tat_ca=true)`);
+        if (a.toi_cu == null && chon.length > 1) throw LOI(`Có ${chon.length} phần tử khớp: ${chon.map((x) => `#${x.i} «${x.chu}»`).join(', ')} — chọn bằng phan_tu`);
+        let html = hh.html;
+        for (const x of chon) { html = await domGoi('datLienKet', html, x.i, toi, x.chu); if (!html) throw LOI(`Không đặt được liên kết cho phần tử #${x.i}`); }
+        const nhan = `Liên kết ${chon.map((x) => `«${x.chu || x.the}»`).join(', ')} ${toi ? `→ ${MAN[toi].ten}` : 'gỡ'} (MCP)`.slice(0, 120);
+        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { html: await domGoi('lamSach', html), w: hh.w, h: hh.h, nhan, nguon: 'lien-ket' });
+        return [chu({ key: a.key, dangDung: `v${mf.hien}`, daSua: chon.map((x) => ({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null })) })];
       });
 
     T('ds_gop_y', 'Liệt kê góp ý (mặc định bỏ góp ý «Đã xử lý») và đề xuất (mặc định chỉ đề xuất chờ duyệt) theo hành trình/màn, kèm các link góp ý /r/ đang mở. Cần quyền chủ quản.',

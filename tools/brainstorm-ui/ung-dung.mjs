@@ -279,6 +279,10 @@ export function taoUngDung(O = {}) {
     let than;
     try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
     if (than && than.nguon === 'de-xuat') than.nguon = ''; // «đề xuất góp ý» chỉ ghi qua review.mjs (không giả tác giả được)
+    if (than && /^(xoa|khoi-phuc-xoa)$/.test(than.nguon)) than.nguon = ''; // chỉ đặt qua cờ xoa / khoiPhucXoa
+    // Xoá màn khỏi hành trình / khôi phục màn đã xoá — CHỈ chủ quản (kể cả khi không khoá bảng); màn đang bị xoá thì mọi ghi khác cũng cần chủ quản
+    let dangXoa = false; try { const m0 = docManifest(key); dangXoa = !!m0.ds.find((x) => x.v === m0.hien)?.xoa; } catch { /* ghiPhienBan tự báo manifest hỏng */ }
+    if ((than?.xoa === true || than?.khoiPhucXoa === true || dangXoa) && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
     const [ma, obj] = await ghiPhienBan(key, than, null, aiCua(req));
     if (ma === 200) { // máy chủ báo mọi bàn (không dựa vào client phát qua realtime — phòng chỉ-xem không phát được)
       let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { /* bỏ qua */ }
@@ -298,7 +302,15 @@ export function taoUngDung(O = {}) {
       const v = (m.ds.at(-1)?.v || 0) + 1;
       const muc = { v, t: new Date().toISOString() };
       fs.mkdirSync(thuMucPb(key), { recursive: true });
-      if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
+      const cuoi = m.ds.find((x) => x.v === m.hien) || null; const dangXoa = !!cuoi?.xoa;
+      if (than?.xoa === true || than?.khoiPhucXoa === true) { // xoá mềm / khôi phục: bản mới trỏ đúng tệp đang dùng, chỉ đổi cờ xoa (lịch sử giữ nguyên)
+        if (than.xoa === true && dangXoa) return [409, { loi: 'Màn này đã bị xoá rồi' }];
+        if (than.khoiPhucXoa === true && !dangXoa) return [409, { loi: 'Màn này không bị xoá' }];
+        Object.assign(muc, { tep: cuoi?.tep || 0, w: cuoi?.w, h: cuoi?.h, bt: cuoi?.bt, yTuong: chuNgan(than.lyDo, 300),
+          ...(than.xoa === true ? { xoa: true, nhan: 'Xoá màn khỏi hành trình', nguon: 'xoa' } : { nhan: 'Khôi phục màn đã xoá', nguon: 'khoi-phuc-xoa' }) });
+      } else if (dangXoa && (than?.tu == null)) {
+        return [409, { loi: 'Màn đang bị xoá khỏi hành trình — khôi phục màn trước' }];
+      } else if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
         const tu = than.tu; const cu = !Number.isInteger(tu) ? null : tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
         if (!Number.isInteger(tu) || !cu) return [400, { loi: 'Không có bản để khôi phục' }];
         Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc', bt: cu.bt });
@@ -319,7 +331,8 @@ export function taoUngDung(O = {}) {
         const banCua = (vv) => { const x = vv === 0 ? { v: 0, tep: 0 } : m.ds.find((y) => y.v === vv); if (!x) return null;
           let html = ''; if (x.tep) { try { html = fs.readFileSync(path.join(thuMucPb(key), `v${x.tep}.html`), 'utf8'); } catch { /* mất tệp */ } }
           return { ...x, ...(x.tep ? { html } : { trongMa: true }) }; };
-        audit.ghi({ loai: loaiAu || (muc.nguon === 'khoi-phuc' ? 'man.khoi-phuc' : muc.nguon === 'de-xuat' ? 'man.de-xuat' : 'man.thay'), dt: { key, v }, ai, truoc: banCua(hienCu), sau: banCua(v) });
+        const LOAI = { 'khoi-phuc': 'man.khoi-phuc', 'de-xuat': 'man.de-xuat', xoa: 'man.xoa', 'khoi-phuc-xoa': 'man.khoi-phuc-xoa', 'lien-ket': 'man.lien-ket' };
+        audit.ghi({ loai: loaiAu || LOAI[muc.nguon] || 'man.thay', dt: { key, v }, ai, truoc: banCua(hienCu), sau: banCua(v) });
       }
       return [200, m];
     } finally { moKhoa(); }

@@ -32,6 +32,7 @@ cd tools/brainstorm-ui && npm install && npm run brainstorm   # → http://127.0
 
 - Đầu mỗi hành trình có «💬 Chia sẻ để góp ý»: chụp đóng băng các màn (phiên bản đang dùng) + sơ đồ Quy trình thành link `/r/<mã 128 bit>` (v1, v2… theo hành trình, có ghi chú, thu hồi được ở tab «Chia sẻ»).
 - Người review mở `/r/<mã>`: xem theo thứ tự hành trình, Play, Quy trình; ghim góp ý (toạ độ % + selector) hoặc góp ý chung; Lỗi/Đề xuất/Câu hỏi; trả lời theo luồng. Góp ý gắn phiên bản: link mới vẫn thấy góp ý cũ («từ v1»). Màn được «Thay màn»/Khôi phục trên bàn chính SAU khi chia sẻ: trang `/r/` hiện bản hiện hành (Xem, Play, Ghim, biến thể theo góp ý; dấu «mới», đổi theo realtime), nút «✨ Đang xem bản mới nhất ↔ 🕘 bản lúc chia sẻ» để đối chiếu; sơ đồ Quy trình vẫn là ảnh lúc chia sẻ.
+- **Xoá màn / liên kết** (27/10): chủ quản bấm 🗑 trên khung màn gốc để xoá màn khỏi hành trình — xoá mềm, ghi thành phiên bản mới có cờ `xoa` (audit `man.xoa`), khung mờ đi kèm nút «↺ Khôi phục màn». Play/Quy trình/link `/r/` bỏ qua màn đã xoá; nút dẫn tới nó hiện «⚠ N liên kết hỏng» trên khung nguồn. Nút 🔗 mở bảng liên kết của màn: đổi màn đích / gỡ từng nút, hoặc bật «Hiện cả nút chưa nối» để tạo liên kết mới — mỗi thay đổi là một phiên bản mới của màn nguồn (audit `man.lien-ket`, quyền như Thay màn), realtime báo mọi bàn và `/r/`. Liên kết đã sửa tay đánh dấu `data-lk-sua` trên `<body>` để không tự gắn lại theo nhãn bước.
 - Bàn chính và `/r/` tự đối chiếu phiên bản màn với máy chủ khi nối lại realtime, khi mở Play và khi quay lại tab — tin «Thay màn» lỡ lúc WebSocket rớt (deploy, máy ngủ) không làm Play kẹt bản cũ.
 - Gửi góp ý xong hỏi «Tạo biến thể theo góp ý này?» — dùng key Claude của CHÍNH người review (lưu trong trình duyệt, chỉ gửi api.anthropic.com); không có key thì gửi «Yêu cầu biến thể». Biến thể ưng thì «Đề xuất áp dụng» → đề xuất Chờ duyệt, thiết kế gốc KHÔNG đổi.
 - Bàn chính: nút «💬 Góp ý» (lọc theo hành trình/người, «Tới» ghim, Đã xử lý, ✨ Sửa theo góp ý, xuất Markdown), tab «Đề xuất» (gốc | đề xuất | chênh lệch; Accept changes = Thay màn ghi tác giả + góp ý; Từ chối kèm lý do; Sửa tiếp trong Chế độ Sửa).
@@ -84,6 +85,8 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
   sau 2 phút rảnh, hồ sơ tạm riêng; ảnh cache theo băm HTML. HTML màn đưa cho Chrome qua `/__mcp/trang/<mã một lần>` (chỉ loopback, CSP cấm script).
   `lamSach` (web/claude.js) và `ganToi` (web/gan-toi.js) chạy nguyên mã web trong trang của Chrome đó.
 
+**26 tool:**
+
 | Tool | Việc |
 |---|---|
 | `ds_hanh_trinh` | hành trình + màn (key, tên, w×h hiện hành, phiên bản, ảnh thật, `data-toi`, số biến thể, phương án) |
@@ -92,6 +95,8 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
 | `anh_hanh_trinh` | ảnh cả hành trình / một phương án — ghép một ảnh (mặc định) hoặc từng ảnh |
 | `ds_bien_the`, `doc_bien_the`, `xoa_bien_the` | kho biến thể chung (đọc kèm ảnh; xoá mềm) |
 | `thay_man`, `khoi_phuc_phien_ban` | Thay màn bằng biến thể/HTML; khôi phục bản cũ |
+| `xoa_man`, `khoi_phuc_man` | xoá mềm một màn khỏi hành trình / khôi phục (chỉ chủ quản; là phiên bản mới có cờ `xoa`, audit `man.xoa` / `man.khoi-phuc-xoa`) |
+| `ds_lien_ket`, `ds_lien_ket_hong`, `sua_lien_ket` | liên kết `data-toi` của một màn (kèm nút chưa nối khi `tat_ca`); liên kết hỏng cả bàn (trỏ tới màn đã xoá/không còn); tạo/đổi/gỡ liên kết (chọn nút theo `phan_tu`, `chu` hoặc `toi_cu`) — lưu thành phiên bản mới của màn nguồn, audit `man.lien-ket`, quyền như Thay màn |
 | `ds_gop_y`, `them_gop_y`, `tra_loi_gop_y`, `doi_trang_thai_gop_y` | góp ý (mặc định ẩn Đã xử lý; thêm góp ý qua link `/r/` mới nhất đang mở) |
 | `doc_de_xuat`, `chap_nhan_de_xuat`, `tu_choi_de_xuat` | đề xuất của reviewer |
 | `nhat_ky` | audit gần đây (HTML lớn rút gọn) |
