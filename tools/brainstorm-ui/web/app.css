@@ -329,3 +329,28 @@ body.co-pn-gy #bang{right:432px}
 .lk-trong{color:var(--chu3);margin:8px 0}
 .hop-lk .o-chon{display:flex;align-items:center;gap:8px;font-weight:600;margin:0}
 .hop-lk .o-chon input{width:18px;height:18px;min-height:0;flex:none;margin:0;padding:0}
+/* «🔗 Dùng chung» — nhãn dưới khung + bảng gộp/tách */
+.nut-dc{position:absolute;left:8px;top:8px;min-height:28px;height:28px;padding:0 10px;border-radius:999px;background:#e6f2ef;color:#0a5246;font:700 12px Inter;white-space:nowrap;z-index:4;box-shadow:inset 0 0 0 1.5px #9fd0c4,0 4px 12px -6px rgba(0,0,0,.35);cursor:pointer}
+.nut-dc[hidden]{display:none}
+.nut-dc.mat{background:#fdf1dc;color:#7a4a00;box-shadow:inset 0 0 0 1.5px #e8c27a}
+#nut-dc .dem:not(:empty){display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:#0f6b5c;color:#fff;font:700 11px/18px Inter;text-align:center}
+.hop-dc{width:min(1040px,100%);max-height:min(88vh,900px)}
+.dc-luoi{overflow:auto;display:flex;flex-direction:column;gap:14px;min-height:0}
+.dc-muc h3{margin:4px 0 8px;font:800 15px Inter}
+.dc-the{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:#f4f3ef;margin-bottom:10px}
+.dc-tieu{font-weight:800}
+.dc-cac{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px}
+.dc-man{display:flex;flex-direction:column;gap:6px;flex:none;width:170px;font-weight:600;margin:0}
+.dc-dau{display:flex;gap:6px;align-items:flex-start;font-size:12.5px}
+.dc-dau input,.dc-chan input{width:16px;height:16px;min-height:0;flex:none;margin:2px 0 0;padding:0}
+.dc-ten{min-width:0;overflow-wrap:anywhere}
+.dc-chan{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--chu3)}
+.dc-vo{position:relative;overflow:hidden;border-radius:12px;background:#fff;box-shadow:0 8px 20px -12px rgba(28,32,30,.35)}
+.dc-vo iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0;pointer-events:none;background:#fff}
+.dc-toi,.dc-tach{min-height:30px;padding:0 10px;border-radius:9px;font:700 12px Inter}
+.dc-tach{color:#a3271b}
+.dc-dong{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#fff;flex-wrap:wrap}
+.dc-dong .dc-ten{flex:1 1 200px}
+.dc-tay{display:flex;gap:8px;flex-wrap:wrap}
+.dc-tay select{flex:1 1 220px;min-height:36px;border-radius:10px;max-width:100%}
+.dc-cq{margin:0;padding:8px 10px;border-radius:10px;background:#fdf1dc;color:#7a4a00;font-weight:600}

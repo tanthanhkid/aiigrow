@@ -45,3 +45,45 @@ export function datLienKet(html, i, toi, kiemChu = null) {
   d.body.setAttribute('data-lk-sua', '');
   return '<!doctype html>\n' + d.documentElement.outerHTML;
 }
+
+// ---- Màn dùng chung: nội dung chung một bản cho nhiều luồng, còn «lớp liên kết» (data-toi) lưu riêng từng luồng và áp lên lúc hiển thị ----
+// lop = { tuDong: true } (gắn theo nhãn bước như màn thường) | { ds: [{ the, chu, n, o, toi }] }:
+//   the + chu + n: thẻ, chữ (60 ký tự) và thứ tự trong các phần tử cùng thẻ + chữ; o: thứ tự trong các phần tử bấm được (dự phòng khi chữ nút đổi).
+const BAM_O = 'button,a,[role=button],.nut,.chip,.o,.viec,.dong,.the,.bt';
+function moTa(d) {
+  const dem = new Map(); const bam = [];
+  const info = [...d.body.querySelectorAll('*')].map((el) => {
+    const the = el.tagName.toLowerCase(); const chu = chuCua(el).slice(0, 60); const k = `${the}\u0000${chu}`;
+    const n = dem.get(k) || 0; dem.set(k, n + 1);
+    let o = -1; if (el.matches(BAM_O)) { o = bam.length; bam.push(el); }
+    return { el, the, chu, n, o };
+  });
+  return { info, bam };
+}
+// lớp liên kết của một HTML đang hiển thị (đã gắn data-toi). HTML không có data-toi và chưa sửa tay ⇒ tự gắn theo nhãn bước.
+export function layLop(html) {
+  const s = String(html || '');
+  if (!/data-toi=|data-lk-sua/.test(s)) return { tuDong: true };
+  const d = new DOMParser().parseFromString(s, 'text/html');
+  return { ds: moTa(d).info.filter((x) => x.el.getAttribute('data-toi')).slice(0, 200).map(({ el, the, chu, n, o }) => ({ the, chu, n, o, toi: el.getAttribute('data-toi') })) };
+}
+// áp lớp liên kết của MỘT luồng lên nội dung chung: gỡ mọi data-toi có sẵn (của luồng khác), đặt lại theo lớp. Nút không tìm thấy ⇒ đếm vào data-lk-mat.
+export function apLop(html, lop) {
+  const d = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  d.querySelectorAll('[data-toi]').forEach((el) => el.removeAttribute('data-toi'));
+  d.body.removeAttribute('data-lk-sua'); d.body.removeAttribute('data-lk-mat');
+  if (lop && !lop.tuDong) {
+    const { info, bam } = moTa(d); let mat = 0;
+    for (const L of Array.isArray(lop.ds) ? lop.ds : []) {
+      if (!L || !L.toi) continue;
+      const cung = info.filter((x) => x.the === L.the && x.chu === L.chu && !x.el.hasAttribute('data-toi'));
+      let el = (cung.find((x) => x.n === L.n) || cung[0])?.el;
+      if (!el && L.chu) el = info.find((x) => x.chu === L.chu && !x.el.hasAttribute('data-toi') && x.el.matches(BAM_O))?.el;
+      if (!el && Number.isInteger(L.o) && L.o >= 0 && bam[L.o] && !bam[L.o].hasAttribute('data-toi')) el = bam[L.o];
+      if (el) el.setAttribute('data-toi', L.toi); else mat++;
+    }
+    d.body.setAttribute('data-lk-sua', '');
+    if (mat) d.body.setAttribute('data-lk-mat', String(mat));
+  }
+  return '<!doctype html>\n' + d.documentElement.outerHTML;
+}
