@@ -46,7 +46,8 @@ export function ganDungChung(c) {
     if (!(await laChuQuan(true))) { toast('Chỉ chủ quản tách được màn dùng chung.', true); return false; }
     const d = MAN[key]?.dc; if (!d) return false;
     // giữ bản hiện tại + liên kết riêng của luồng làm bản riêng — gửi cho MỌI màn trong nhóm, máy chủ quyết màn nào rời (nhóm còn 1 màn thì giải tán)
-    const html = Object.fromEntries(d.ds.filter((k) => coMan(k) && !daXoa(k)).map((k) => [k, apLop(thoCua(k), MAN[k].dc?.lop)]));
+    const con = d.ds.filter((k) => k !== key && coMan(k)); const roi = con.length < 2 ? d.ds.filter(coMan) : [key]; // cùng cách tính với máy chủ
+    const html = Object.fromEntries(roi.filter((k) => !daXoa(k)).map((k) => [k, apLop(thoCua(k), MAN[k].dc?.lop)]));
     try {
       const j = await goi('tach', { key, html });
       await dongBoPhienBan();

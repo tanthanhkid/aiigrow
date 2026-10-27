@@ -565,8 +565,9 @@ export function taoMcp(C) {
       { key: z.string() }, async (a) => {
         const pb = await goiJ(req0, 'GET', '/api/phien-ban');
         const g = pb[a.key]?.dc; if (!g) throw LOI(`Màn ${a.key} không dùng chung với màn nào`);
-        const html = {}; // gửi bản đã áp liên kết của MỌI màn trong nhóm — máy chủ tự quyết màn nào rời nhóm
-        for (const k of g.ds.filter((x) => pb[x])) { if (daXoaMf(pb[k])) continue; const hh = await hienHanh(req0, k, null, pb); html[k] = await domGoi('apLop', hh.tho, JSON.stringify(pb[k].dc.lop || { tuDong: true })); }
+        const { MAN } = await taiMan(); const con = g.ds.filter((k) => k !== a.key && MAN[k]); const roi = con.length < 2 ? g.ds.filter((k) => MAN[k]) : [a.key]; // cùng cách tính với máy chủ
+        const html = {};
+        for (const k of roi) { if (daXoaMf(pb[k])) continue; const hh = await hienHanh(req0, k, null, pb); html[k] = await domGoi('apLop', hh.tho, JSON.stringify(pb[k]?.dc?.lop || g.lk?.[k] || { tuDong: true })); }
         const r = await goiJ(req0, 'POST', '/api/dung-chung/tach', { key: a.key, html });
         return [chu({ key: a.key, daTach: r.roi, nhomGiaiTan: !!r.giaiTan })];
       });

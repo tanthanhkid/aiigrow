@@ -69,7 +69,8 @@ export function taoUngDung(O = {}) {
   async function khoaPb(key, han = 10000) { // han: khoá cũ hơn chừng này coi như kẹt (tiến trình chết) — khoá «dung-chung» giữ lâu (lan tới 20 màn) nên dài hơn
     const k = path.join(PHIEN_BAN, `.khoa-${key}`);
     fs.mkdirSync(PHIEN_BAN, { recursive: true });
-    for (let i = 0; i < (han > 10000 ? 2500 : 100); i++) {
+    const het = Date.now() + Math.min(han / 2, 60000); // chờ tối đa nửa ngưỡng kẹt (khoá màn: 5 s; khoá nhóm: 60 s)
+    while (Date.now() < het) {
       try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
         if (e.code !== 'EEXIST') throw e;
         try { if (Date.now() - fs.statSync(k).mtimeMs > han) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
@@ -390,13 +391,14 @@ export function taoUngDung(O = {}) {
     if (!lop || typeof lop !== 'object') return null;
     if (lop.tuDong === true) return { tuDong: true };
     if (!Array.isArray(lop.ds) || lop.ds.length > 200) return null;
-    const ds = [];
+    const ds = []; let boQua = 0;
     for (const x of lop.ds) {
       if (!x || typeof x !== 'object' || typeof x.toi !== 'string' || typeof x.the !== 'string' || !/^[a-z][a-z0-9-]{0,30}$/.test(x.the)) return null;
-      if (!keys.has(x.toi)) continue; // đích không còn trong mã (liên kết hỏng): bỏ riêng mục đó, không từ chối cả lớp
+      if (!keys.has(x.toi)) { boQua++; continue; } // đích không còn trong mã (liên kết hỏng): bỏ riêng mục đó, không từ chối cả lớp
       const n = Number.isInteger(x.n) && x.n >= 0 && x.n < 100000 ? x.n : 0; const o = Number.isInteger(x.o) && x.o >= -1 && x.o < 100000 ? x.o : -1;
       ds.push({ the: x.the, chu: chuNgan(x.chu, 60), n, o, toi: x.toi });
     }
+    if (boQua && !ds.length) return null; // mọi mục đều trỏ tới màn không có (vd. gõ sai key) ⇒ từ chối, không lặng lẽ xoá sạch liên kết của luồng
     return { ds };
   }
   const lopHopLe = (lop, keys) => !!lopSach(lop, keys);
@@ -404,7 +406,7 @@ export function taoUngDung(O = {}) {
   const hienCua = (m) => m.ds.find((x) => x.v === m.hien) || null;
   const daXoaKey = (k) => { try { return !!hienCua(docManifest(k))?.xoa; } catch { return false; } };
   const sao = (o) => JSON.parse(JSON.stringify(o));
-  const KHOA_DC = 45000; // khoá nhóm dùng chung: coi là kẹt sau 45 giây (lượt lan tối đa 20 màn thường vài giây); người chờ đợi tới ~50 giây
+  const KHOA_DC = 120000; // khoá nhóm dùng chung: coi là kẹt sau 2 phút (lượt lan tối đa 20 màn thường vài giây, không bị cướp giữa chừng); người chờ đợi tới 60 giây
   // nội dung chung lưu sang màn khác: bỏ liên kết của luồng nguồn (mỗi luồng áp lớp riêng khi vẽ) ⇒ đọc thẳng bản lưu (Lịch sử, sau khi tách) không mang nút của luồng khác
   const boLk = (h) => String(h).replace(/\sdata-(?:toi|lk-sua|lk-mat)(?:="[^"]*")?/g, '');
   function baoDoi(keys, ten, im = true) { for (const k of keys) { phatPhong('bang', { t: 'rv', loai: 'thay', key: k, ten, tu: '', ...(im ? { im: true } : {}) }); review.baoThayMan(k, { ten }); } }
@@ -506,15 +508,17 @@ export function taoUngDung(O = {}) {
         for (const g0 of cu) delete dc.nhom[g0.id];
         const g = { id, ds: tatCa, lk, moi: null, t: bay, tao: ai.ten || '' };
         dc.nhom[id] = g; ghiDc(dc);
-        for (const k of [t.nguon, ...tatCa.filter((x) => x !== t.nguon)]) {
+        const traLai = () => { delete dc.nhom[id]; for (const g0 of truoc) dc.nhom[g0.id] = g0; ghiDc(dc); }; // chưa ghi màn nào: trả nhóm về như cũ
+        try { for (const k of [t.nguon, ...tatCa.filter((x) => x !== t.nguon)]) {
           if (daXoaKey(k)) continue;
           const r = await ghiPhienBan0(k, { html: k === t.nguon ? t.html : boLk(t.html), w, h, nhan: `Gộp dùng chung — nội dung của «${tenMan(t.nguon)}»`, nguon: 'dung-chung' }, null, ai, 'man.dung-chung', true, { dcTu: t.nguon, au: { gop: id, nguon: t.nguon } });
           if (r[0] === 200) anhHuong.push(k);
-          else if (k === t.nguon) { delete dc.nhom[id]; for (const g0 of truoc) dc.nhom[g0.id] = g0; ghiDc(dc); return json(res, r[0], r[1]); } // chưa ghi màn nào: trả nhóm về như cũ
+          else if (k === t.nguon) { traLai(); return json(res, r[0], r[1]); }
           else loi.push(`${tenMan(k)}: ${r[1]?.loi || r[0]}`);
         }
         const mucN = hienCua(docManifest(t.nguon));
         g.moi = { key: t.nguon, tep: mucN.tep, w: mucN.w, h: mucN.h }; ghiDc(dc);
+        } catch (e) { if (!anhHuong.length) traLai(); else { try { const mucN = hienCua(docManifest(t.nguon)); g.moi = { key: t.nguon, tep: mucN.tep, w: mucN.w, h: mucN.h }; ghiDc(dc); } catch { /* giữ nhóm, lần sửa sau lan lại */ } } throw e; }
         audit.ghi({ loai: 'dung-chung.gop', dt: { nhom: id, ds: tatCa, nguon: t.nguon }, ai, truoc: truoc.length ? truoc : null, sau: g });
         baoDoi(tatCa, ai.ten, false);
         return json(res, 200, { ok: true, nhom: g, anhHuong, loi });
@@ -523,10 +527,8 @@ export function taoUngDung(O = {}) {
       const key = String(t.key || ''); const g = nhomCua(dc, key);
       if (!g) return json(res, 409, { loi: 'Màn này không thuộc nhóm dùng chung nào' });
       const con = g.ds.filter((k) => k !== key && keys.has(k)); const roi = con.length < 2 ? g.ds.filter((k) => keys.has(k)) : [key];
-      // màn đang bị xoá khỏi luồng không nhận được bản riêng (liên kết của nó sẽ mất) ⇒ khôi phục màn trước rồi mới tách
-      for (const k of roi) if (daXoaKey(k)) return json(res, 409, { loi: `«${tenMan(k)}» đang bị xoá khỏi hành trình — khôi phục màn đó trước rồi tách` });
       // kiểm trước mọi màn ghi được (tránh tách dở dang: màn đầu đã có bản «tách», màn sau lỗi)
-      for (const k of roi) { let mk; try { mk = docManifest(k); } catch { return json(res, 500, { loi: `Manifest phiên bản của «${tenMan(k)}» hỏng` }); } if (mk.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `«${tenMan(k)}» đã có ${PB_TOI_DA} phiên bản` }); }
+      for (const k of roi) { if (daXoaKey(k)) continue; let mk; try { mk = docManifest(k); } catch { return json(res, 500, { loi: `Manifest phiên bản của «${tenMan(k)}» hỏng` }); } if (mk.ds.length >= PB_TOI_DA) return json(res, 409, { loi: `«${tenMan(k)}» đã có ${PB_TOI_DA} phiên bản` }); }
       for (const k of roi) if (!daXoaKey(k) && (typeof t.html?.[k] !== 'string' || !t.html[k].trim() || t.html[k].length > PB_CO)) return json(res, 400, { loi: `Thiếu HTML (đã áp liên kết riêng) của «${tenMan(k)}»` });
       const truoc = sao(g);
       for (const k of roi) {

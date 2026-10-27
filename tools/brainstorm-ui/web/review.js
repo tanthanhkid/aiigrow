@@ -70,7 +70,7 @@ function banTrongMa() {
 }
 // chiKey: chỉ nạp lại một màn (tin realtime «thay»). Trả Set các key vừa đổi bản hiển thị.
 const DC_GIONG = new Map(); // màn dùng chung → dấu (phiên bản|nhóm) đã đối chiếu: vẫn như bản chia sẻ
-const toiCua = (h) => [...new Set([...String(h).matchAll(/data-toi="([^"]*)"/g)].map((x) => x[1]))].sort().join(',');
+const toiCua = (h) => [...new DOMParser().parseFromString(String(h), 'text/html').querySelectorAll('[data-toi]')].map((el) => `${(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60)}→${el.getAttribute('data-toi')}`).sort().join('|'); // nút nào → đâu
 async function napHienHanh(chiKey = '') {
   const doi = new Set();
   let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return doi; ds = await r.json(); } catch { return doi; }
