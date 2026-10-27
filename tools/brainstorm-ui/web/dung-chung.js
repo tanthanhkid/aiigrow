@@ -22,31 +22,36 @@ const jac = (a, b) => { if (!a.size && !b.size) return 0; let i = 0; for (const 
 // goc: hai màn vốn là MỘT màn trong mã mà một bên đã sửa (chính trường hợp «sửa luồng này luồng kia không đổi») — vẫn gợi ý
 // → [{ ds: [key…], diem: 0..1, lyDo }] — mỗi gợi ý ≥ 2 màn ở ≥ 2 hành trình, chưa cùng một nhóm
 export function goiYDungChung(ds) {
-  const M = ds.filter((m) => m && m.key && !m.xoa && m.html).map((m) => ({ ...m, t: capChu(m.html), g: khungThe(m.html), n: chuanTen(m.ten), daSua: !!m.goc && m.goc !== m.html }));
-  const giong = (a, b, t, g, cungTen) => t >= 0.85 || (cungTen && t >= 0.4) || (t >= 0.6 && g() >= 0.9);
-  const goc0 = new Map(); const gocCua = (m) => { if (!goc0.has(m.key)) goc0.set(m.key, { t: capChu(m.goc), g: khungThe(m.goc) }); return goc0.get(m.key); };
+  const v0 = new Map(); const v0Cua = (m) => { if (!v0.has(m.key)) v0.set(m.key, { t: capChu(m.goc), g: khungThe(m.goc) }); return v0.get(m.key); };
+  const M = ds.filter((m) => m && m.key && !m.xoa && m.html).map((m) => ({ ...m, t: capChu(m.html), g: khungThe(m.html), n: chuanTen(m.ten), daSua: false }));
+  // «đã sửa» so theo chữ đã chuẩn hoá, không theo chuỗi thô: web (đã lamSach) và MCP (HTML gốc) ra cùng kết quả
+  for (const m of M) if (m.goc && m.goc !== m.html) { const g = v0Cua(m); m.daSua = jac(g.t, m.t) < 1 || jac(g.g, m.g) < 1; }
+  const giong = (t, g, cungTen) => t >= 0.85 || (cungTen && t >= 0.4) || (t >= 0.6 && g() >= 0.9);
   const cha = new Map(M.map((m) => [m.key, m.key]));
   const goc = (k) => { while (cha.get(k) !== k) { cha.set(k, cha.get(cha.get(k))); k = cha.get(k); } return k; };
   const canh = [];
   for (let i = 0; i < M.length; i++) for (let j = i + 1; j < M.length; j++) {
     const a = M[i], b = M[j];
     if (a.lan === b.lan || (a.nhom && a.nhom === b.nhom)) continue;
-    if (Math.abs(a.w - b.w) > 8 || Math.abs(a.h - b.h) > 40) continue; // khác nền tảng / khác cỡ khung: không gộp
-    const t = jac(a.t, b.t); const cungTen = !!a.n && a.n === b.n;
-    if (giong(a, b, t, () => jac(a.g, b.g), cungTen)) { canh.push({ a: a.key, b: b.key, t, cungTen }); cha.set(goc(a.key), goc(b.key)); continue; }
-    if (!(a.daSua || b.daSua) || !a.goc || !b.goc) continue;
-    const ga = gocCua(a), gb = gocCua(b); const t0 = jac(ga.t, gb.t);
-    if (giong(a, b, t0, () => jac(ga.g, gb.g), cungTen)) { canh.push({ a: a.key, b: b.key, t: t0, cungTen, daLech: true }); cha.set(goc(a.key), goc(b.key)); }
+    const cungTen = !!a.n && a.n === b.n;
+    if (Math.abs(a.w - b.w) <= 8 && Math.abs(a.h - b.h) <= 40) { // khác nền tảng / khác cỡ khung: không gộp
+      const t = jac(a.t, b.t);
+      if (giong(t, () => jac(a.g, b.g), cungTen)) { canh.push({ a: a.key, b: b.key, t, cungTen }); cha.set(goc(a.key), goc(b.key)); continue; }
+    }
+    // đúng MỘT bên đã sửa (hai bên cùng sửa = cố ý khác nhau, không gợi ý): so bản trong mã — cỡ khung hiện tại có thể đã đổi theo bản sửa
+    if (a.daSua === b.daSua || !a.goc || !b.goc || Math.abs(a.w - b.w) > 8) continue;
+    const ga = v0Cua(a), gb = v0Cua(b); const t0 = jac(ga.t, gb.t);
+    if (giong(t0, () => jac(ga.g, gb.g), cungTen)) { canh.push({ a: a.key, b: b.key, t: t0, cungTen, daLech: true }); cha.set(goc(a.key), goc(b.key)); }
   }
   const cum = new Map();
   for (const c of canh) { const g = goc(c.a); if (!cum.has(g)) cum.set(g, { keys: new Set(), canh: [] }); const x = cum.get(g); x.keys.add(c.a); x.keys.add(c.b); x.canh.push(c); }
   const thuTu = new Map(ds.map((m, i) => [m.key, i]));
   return [...cum.values()].map((x) => {
     const keys = [...x.keys].sort((p, q) => thuTu.get(p) - thuTu.get(q));
-    const diem = Math.min(...x.canh.map((c) => c.t));
     const ten = x.canh.every((c) => c.cungTen) ? 'cùng tên' : '';
-    const lech = x.canh.some((c) => c.daLech);
+    const thuong = x.canh.filter((c) => !c.daLech); const lech = thuong.length < x.canh.length; const tatCaLech = !thuong.length;
+    const diem = Math.min(...(tatCaLech ? x.canh : thuong).map((c) => c.t));
     return { ds: keys, diem: Math.round(diem * 100) / 100, daLech: lech,
-      lyDo: [ten, lech ? `bản trong mã giống ${Math.round(diem * 100)}% — một bên đã sửa, bên kia chưa theo` : `nội dung giống ${Math.round(diem * 100)}%`].filter(Boolean).join(', ') };
-  }).sort((p, q) => q.diem - p.diem || q.ds.length - p.ds.length);
+      lyDo: [ten, tatCaLech ? `bản trong mã giống ${Math.round(diem * 100)}% — một bên đã sửa, bên kia chưa theo` : `nội dung giống ${Math.round(diem * 100)}%`, !tatCaLech && lech ? 'có màn đã sửa lệch' : ''].filter(Boolean).join(', ') };
+  }).sort((p, q) => Number(p.daLech) - Number(q.daLech) || q.diem - p.diem || q.ds.length - p.ds.length); // trùng thật trước, cặp đã lệch sau
 }
