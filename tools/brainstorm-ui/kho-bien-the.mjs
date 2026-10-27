@@ -152,11 +152,19 @@ export function taoKhoBienThe(C) {
     for (const e of evs) e.ghiChu = `tự gỡ khỏi bàn sau Thay màn «${key}» → v${v} (HTML giữ trong phiên bản màn) · ${e.ghiChu}`;
     A.ghi(evs);
     phat({ loai: 'xoa', khung: [id], tu: phien, ten: nguoi, ly: 'thay' });
-    // màn con của nó nối về cha của nó ngay trên máy chủ (cùng quy tắc bàn dùng khi gỡ khung) — đúng cả khi Thay qua MCP
+    // màn con của nó nối về cha của nó ngay trên máy chủ (cùng quy tắc bàn dùng khi gỡ khung) — đúng cả khi Thay qua MCP.
+    // Đọc lại từ đĩa (tiến trình kia có thể vừa ghi), ghi audit bien-the.sua; phát tu:'' để cả bàn vừa Thay cũng nhận tSua mới.
     const chaMoi = m.cha && BO.k.has(m.cha) ? m.cha : m.goc;
-    const con = [...BO.k.values()].filter((c) => c.cha === id).map((c) => ({ ...c, cha: chaMoi, tSua: Math.max(Date.now(), (c.tSua || 0) + 1) }));
-    for (const c of con) datMuc('k', c);
-    if (con.length) phat({ loai: 'ghi', khung: con, tu: phien, ten: nguoi });
+    const con = [], evCon = [];
+    for (const c0 of [...BO.k.values()].filter((c) => c.cha === id)) {
+      const c = docJson(tepMuc('k', c0.id)) || c0; if (c.cha !== id) continue;
+      const moi = { ...c, cha: chaMoi, tSua: Math.max(Date.now(), (c.tSua || 0) + 1) };
+      const truoc = trangThai('k', c.id, c); // đủ HTML: khôi phục từ Lịch sử thay đổi không làm mất HTML
+      datMuc('k', moi); con.push(moi);
+      evCon.push({ loai: 'bien-the.sua', dt: dtCua('k', moi), ai, truoc, sau: trangThai('k', moi.id, moi), ghiChu: `nối về ${chaMoi} vì khung cha ${id} rời bàn sau Thay màn` });
+    }
+    A.ghi(evCon);
+    if (con.length) phat({ loai: 'ghi', khung: con, tu: '', ten: nguoi });
     return id;
   }
   // khôi phục (ghiLai=true) hoặc chỉ bỏ khỏi thùng rác (khi mục vừa được ghi mới)

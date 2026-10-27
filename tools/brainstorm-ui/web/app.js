@@ -1464,6 +1464,9 @@ async function dongBoKho() {
       for (const m of j.lan || []) { daGui.set(`l:${m.id}`, ky.get(`l:${m.id}`)); tuChoi.delete(`l:${m.id}`); const l = st.lanBt.find((x) => x.id === m.id); if (l) l.tSua = m.tSua; }
       for (const id of j.tuChoi?.khung || []) if (ky.has(`k:${id}`)) tuChoi.set(`k:${id}`, ky.get(`k:${id}`));
       for (const id of j.tuChoi?.lan || []) if (ky.has(`l:${id}`)) tuChoi.set(`l:${id}`, ky.get(`l:${id}`));
+      // máy chủ bỏ qua: biến thể đã dùng để Thay màn và rời bàn (lượt ghi tới muộn / bàn lỡ tin realtime) ⇒ gỡ theo, báo nếu mất bản sửa
+      const daThay = (j.boQua?.khung || []).filter((id) => ky.has(`k:${id}`));
+      if (daThay.length && boKhung(daThay, { sauThay: true })) { clearTimeout(henVe); henVe = setTimeout(() => { veTatCa(); veBang(); }, 60); }
       await layBanMoiHon(j.xungDot);
       lo = { khung: [], lan: [] }; co = 0; ky = new Map(); return true;
     };
@@ -1562,14 +1565,18 @@ function boKhung(ids, { sauThay = false, mayChu = false, im = false } = {}) { //
   for (const id of ids) if (!timKhung(id)) daGui.delete(`k:${id}`);
   if (!xoa.length) return 0;
   if (sauThay) {
-    const matSua = xoa.filter((id) => Sua.dangSua() === id || banKhung(timKhung(id)));
+    // im: bàn vừa bấm Thay (bản sửa qua thayManSua đã nằm trong phiên bản mới; Chế độ Sửa đã thoát) — chỉ báo khi khung vẫn đang Sửa
+    const matSua = xoa.filter((id) => Sua.dangSua() === id || (!im && !st.dangChay.has(id) && banKhung(timKhung(id))));
+    const dangSinh = xoa.filter((id) => st.dangChay.has(id));
     if (Sua.dangSua() && xoa.includes(Sua.dangSua())) Sua.thoat({ im: true });
     for (const id of xoa) { st.dangChay.get(id)?.abort(); tuChoi.delete(`k:${id}`); }
-    if (matSua.length && !im) toast('Biến thể bạn đang sửa vừa được dùng để Thay màn và đã rời bàn — phần sửa chưa lưu của nó không còn (bản đã Thay nằm trong Lịch sử màn).', true);
+    if (dangSinh.length) toast('Biến thể đang sinh lại vừa được dùng để Thay màn và đã rời bàn — lượt sinh lại đã huỷ.', true);
+    if (matSua.length) toast('Biến thể bạn đang sửa vừa được dùng để Thay màn và đã rời bàn — phần sửa chưa lưu của nó không còn (bản đã Thay nằm trong Lịch sử màn).', true);
   }
   for (const id of xoa) { daGui.delete(`k:${id}`); xoaXa.ds.set(id, ++xoaXa.n); }
   // nối lại cha cho màn con: người xoá đã ghi cha mới lên máy chủ ⇒ không coi là thay đổi của máy này
-  for (const f of st.khung) if (xoa.includes(f.cha)) { const dongBo = daGui.get(`k:${f.id}`) === kyKhung(f); f.cha = timKhung(f.cha)?.cha || f.goc; if (dongBo) daGui.set(`k:${f.id}`, kyKhung(f)); }
+  // cùng quy tắc với máy chủ (kho-bien-the goSauThay): cha của khung bị gỡ nếu còn là khung thật trên bàn (không phải khung tạm đề xuất), không thì màn gốc
+  for (const f of st.khung) if (xoa.includes(f.cha)) { const dongBo = daGui.get(`k:${f.id}`) === kyKhung(f); const p = timKhung(f.cha)?.cha; f.cha = p && !p.startsWith('dx-') && timKhung(p) && !xoa.includes(p) ? p : f.goc; if (dongBo) daGui.set(`k:${f.id}`, kyKhung(f)); }
   st.khung = st.khung.filter((f) => !xoa.includes(f.id)); for (const id of xoa) st.chon.delete(id);
   return xoa.length;
 }
