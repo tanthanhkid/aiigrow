@@ -35,6 +35,7 @@ export function ganGopY(A) {
         D.lai = false;
         try { const du = await goi('/api/review'); await D.truot; D.du = du; D.canMa = false; } catch { /* đã hiện lý do */ } // đang trượt thẻ: vẽ lại sau khi trượt xong
       } while (D.lai);
+      A.donKhungDeXuat?.(Object.values(D.du?.deXuat || {}).flat()); // đề xuất đã Accept/Từ chối ⇒ khung «Sửa tiếp» của nó rời bàn
       ve(); A.veBen(); A.veTatCa(false);
     })().finally(() => { D.dangTai = null; });
     return D.dangTai;

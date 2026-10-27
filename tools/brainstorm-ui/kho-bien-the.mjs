@@ -41,7 +41,7 @@ export function taoKhoBienThe(C) {
   const docTep = (t) => { try { return fs.readFileSync(t, 'utf8'); } catch { return ''; } };
   function trangThai(l, id, meta, tuRac = false) {
     if (!meta) return null;
-    const { tXoa, nguoiXoa, ...m } = meta; // eslint-disable-line no-unused-vars
+    const { tXoa, nguoiXoa, thay, ...m } = meta; // eslint-disable-line no-unused-vars
     if (l !== 'k') return m;
     const html = docTep(tuRac ? tepRac('k', id, 'html') : path.join(dir('k'), `${id}.html`));
     let phu = {}; try { phu = JSON.parse(docTep(tuRac ? tepRac('k', id, 'phu') : tepPhu(id)) || '{}') || {}; } catch { /* hỏng */ }
@@ -77,7 +77,7 @@ export function taoKhoBienThe(C) {
   const cuHon = (cu, o) => !!cu && Number.isFinite(o?.tSuaCu) && (cu.tSua || 0) > o.tSuaCu;
 
   // ---- ghi một khung / phương án (giữ tSua tăng dần)
-  function ghiKhung(f, nguoi, ai = null, loai = '') {
+  function ghiKhung(f, nguoi, ai = null, loai = '', songLai = false) { // songLai: cho ghi lại cả biến thể đã gỡ sau Thay màn (khôi phục từ Lịch sử thay đổi)
     const m = sachKhung(f); if (!m) return { loi: `Khung ${String(f?.id || '').slice(0, 40)} không hợp lệ` };
     const html = typeof f.html === 'string' ? f.html : '';
     const phu = { htmlSua: typeof f.htmlSua === 'string' ? f.htmlSua : '', htmlGocSua: typeof f.htmlGocSua === 'string' ? f.htmlGocSua : '' };
@@ -89,12 +89,14 @@ export function taoKhoBienThe(C) {
     if (m.lan && !BO.l.has(m.lan) && !fs.existsSync(tepMuc('l', m.lan))) return { loi: `Phương án của ${m.id} không còn` };
     if (!cu && BO.k.size >= SO_TOI_DA) return { loi: `Kho đã đủ ${SO_TOI_DA} biến thể — dọn bớt` };
     const racCu = !cu && fs.existsSync(tepRac('k', m.id, 'json')) ? docJson(tepRac('k', m.id, 'json')) : null;
+    // biến thể đã dùng để Thay màn rồi tự gỡ: bàn nào còn giữ bản cũ (tab chưa tải lại, lượt đồng bộ đang bay) không được làm nó sống lại
+    if (racCu?.thay && !songLai) return { boQua: true }; // lượt ghi tới muộn (đang bay lúc Thay màn) — bỏ qua im lặng, không báo lỗi
     const coPhu = !!(phu.htmlSua || phu.htmlGocSua);
     m.b = html || coPhu ? bam(html, phu.htmlSua, phu.htmlGocSua) : ''; m.tSua = Math.max(Date.now(), (cu?.tSua || 0) + 1); m.nguoi = chu(nguoi, 40) || m.nguoi;
     if (m.tt === 'dang' && !html && !coPhu && cu) m.b = cu.b || ''; // đang sinh lại: giữ HTML cũ trên máy chủ tới khi có bản xong
     // audit: so thông tin + băm HTML trước (rẻ); chỉ khi có đổi mới đọc HTML cũ (đủ HTML ⇒ khôi phục từ bất kỳ sự kiện nào cũng dựng lại được)
     const goc = cu || racCu; const moiTao = !goc;
-    const doi = doiCua(goc && { ...goc, tXoa: undefined, nguoiXoa: undefined }, m).concat(moiTao || goc.b !== m.b ? ['html'] : []);
+    const doi = doiCua(goc && { ...goc, tXoa: undefined, nguoiXoa: undefined, thay: undefined }, m).concat(moiTao || goc.b !== m.b ? ['html'] : []);
     const ghiAu = !!ai && (doi.length > 0 || !!loai);
     const truoc = ghiAu && goc ? trangThai('k', m.id, goc, !cu) : null;
     if (cu?.b !== m.b) {
@@ -125,10 +127,10 @@ export function taoKhoBienThe(C) {
   }
   // ---- thùng rác
   const tepRac = (l, id, duoi) => path.join(dir('rac'), `${l}-${id}.${duoi}`);
-  function vaoRac(l, id, nguoi, ai = null, evs = null) {
+  function vaoRac(l, id, nguoi, ai = null, evs = null, them = null) { // them: trường ghi thêm vào mục thùng rác (vd. thay: { key, v })
     const m = BO[l].get(id); if (!m) return false;
     if (evs) evs.push({ loai: l === 'k' ? 'bien-the.xoa' : 'phuong-an.xoa', dt: dtCua(l, m), ai, truoc: trangThai(l, id, m), sau: null, ghiChu: 'vào thùng rác (giữ 7 ngày)' });
-    ghi(tepRac(l, id, 'json'), JSON.stringify({ ...m, tXoa: Date.now(), nguoiXoa: chu(nguoi, 40) }));
+    ghi(tepRac(l, id, 'json'), JSON.stringify({ ...m, tXoa: Date.now(), nguoiXoa: chu(nguoi, 40), ...(them || {}) }));
     if (l === 'k') { doiTen(path.join(dir('k'), `${id}.html`), tepRac(l, id, 'html')); doiTen(tepPhu(id), tepRac(l, id, 'phu')); }
     boMuc(l, id);
     return true;
@@ -140,13 +142,38 @@ export function taoKhoBienThe(C) {
     for (const k of khung) vaoRac('k', k, nguoi, ai, evs);
     return khung;
   }
+  // Thay màn bằng biến thể thành công ⇒ biến thể đó rời bàn (xoá mềm vào thùng rác, đúng đường xoá thường: audit bien-the.xoa + phát realtime).
+  // HTML của nó đã nằm trong phiên bản màn nên Khôi phục phiên bản vẫn chạy. Chỉ biến thể lẻ của đúng màn đó; màn trong phương án hành trình giữ nguyên.
+  function goSauThay(id, { key, v, ai = null, phien = '', nguoi = '' } = {}) {
+    const m = ID.test(String(id || '')) ? BO.k.get(id) : null;
+    if (!m || m.goc !== key || m.lan) return null;
+    const evs = [];
+    if (!vaoRac('k', id, nguoi, ai, evs, { thay: { key, v } })) return null;
+    for (const e of evs) e.ghiChu = `tự gỡ khỏi bàn sau Thay màn «${key}» → v${v} (HTML giữ trong phiên bản màn) · ${e.ghiChu}`;
+    A.ghi(evs);
+    phat({ loai: 'xoa', khung: [id], tu: phien, ten: nguoi, ly: 'thay' });
+    // màn con của nó nối về cha của nó ngay trên máy chủ (cùng quy tắc bàn dùng khi gỡ khung) — đúng cả khi Thay qua MCP.
+    // Đọc lại từ đĩa (tiến trình kia có thể vừa ghi), ghi audit bien-the.sua; phát tu:'' để cả bàn vừa Thay cũng nhận tSua mới.
+    const chaMoi = m.cha && BO.k.has(m.cha) ? m.cha : m.goc;
+    const con = [], evCon = [];
+    for (const c0 of [...BO.k.values()].filter((c) => c.cha === id)) {
+      const c = docJson(tepMuc('k', c0.id)); if (!c || c.cha !== id) continue; // tệp không còn (tiến trình khác vừa xoá) ⇒ không ghi lại
+      const moi = { ...c, cha: chaMoi, tSua: Math.max(Date.now(), (c.tSua || 0) + 1) };
+      const truoc = trangThai('k', c.id, c); // đủ HTML: khôi phục từ Lịch sử thay đổi không làm mất HTML
+      datMuc('k', moi); con.push(moi);
+      evCon.push({ loai: 'bien-the.sua', dt: dtCua('k', moi), ai, truoc, sau: trangThai('k', moi.id, moi), ghiChu: `nối về ${chaMoi} vì khung cha ${id} rời bàn sau Thay màn` });
+    }
+    A.ghi(evCon);
+    if (con.length) phat({ loai: 'ghi', khung: con, tu: '', ten: nguoi });
+    return id;
+  }
   // khôi phục (ghiLai=true) hoặc chỉ bỏ khỏi thùng rác (khi mục vừa được ghi mới)
   function raRac(l, id, ghiLai, ai = null, evs = null) {
     const t = tepRac(l, id, 'json'); if (!fs.existsSync(t)) return null;
     const m = docJson(t);
     if (ghiLai && m) {
       const truoc = evs ? trangThai(l, id, m, true) : null;
-      const { tXoa, nguoiXoa, ...goc } = m; // eslint-disable-line no-unused-vars
+      const { tXoa, nguoiXoa, thay, ...goc } = m; // eslint-disable-line no-unused-vars
       goc.tSua = Math.max(Date.now(), (goc.tSua || 0) + 1);
       if (l === 'k') { doiTen(tepRac(l, id, 'html'), path.join(dir('k'), `${id}.html`)); doiTen(tepRac(l, id, 'phu'), tepPhu(id)); }
       datMuc(l, goc);
@@ -280,6 +307,7 @@ export function taoKhoBienThe(C) {
           if (r.ev) evs.push(r.ev);
           if (r.m) ra[ten].push(r.m);
           else if (r.xungDot) xungDot[ten].push(r.xungDot);
+          else if (r.boQua) boQua[ten].push(String(x?.id || ''));
           else { loi.push(r.loi); tuChoi[ten].push(String(x?.id || '')); }
         }
       }
@@ -318,7 +346,7 @@ export function taoKhoBienThe(C) {
     }
     const x = { ...trangThaiCu, id }; for (const k of ['tSuaCu', 'trongThungRac', 'tXoa', 'nguoiXoa']) delete x[k];
     const tuRac = l === 'l' && !BO.l.has(id); // phương án đang không trên bàn (thùng rác / đã xoá vĩnh viễn) — chỉ khi đó mới kéo màn của nó ra
-    const r = l === 'k' ? ghiKhung(x, ai?.ten, ai, 'bien-the.khoi-phuc-lich-su') : ghiLan(x, ai, 'phuong-an.khoi-phuc-lich-su');
+    const r = l === 'k' ? ghiKhung(x, ai?.ten, ai, 'bien-the.khoi-phuc-lich-su', true) : ghiLan(x, ai, 'phuong-an.khoi-phuc-lich-su');
     if (r.ev) { r.ev.ghiChu = `khôi phục trạng thái ${nguon} · ${r.ev.ghiChu}`; evs.push(r.ev); }
     const khung = [];
     if (r.m && tuRac) { // phương án sống lại ⇒ các màn của nó đang trong thùng rác cũng ra (như khôi phục từ Thùng rác)
@@ -329,5 +357,5 @@ export function taoKhoBienThe(C) {
     if (r.m) phat({ loai: 'ghi', [LOAI[l]]: [r.m], ...(khung.length ? { khung } : {}), tu: '', ten: ai?.ten || '' });
     return r;
   }
-  return { xuLy, KHO, datLai };
+  return { xuLy, KHO, datLai, goSauThay };
 }

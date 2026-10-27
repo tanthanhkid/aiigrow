@@ -155,9 +155,16 @@ function hangBienThe(nut, lech, ra) {
   const dot = [...new Set(con.map((f) => f.dot))];
   for (const d of dot) {
     const ds = con.filter((f) => f.dot === d).sort((a, b) => a.k - b.k);
-    ra.push({ lech, ds, cha: nut.id });
-    let x = lech;
-    for (const f of ds) { hangBienThe(f, x, ra); x += f.w + GH; }
+    // giữ chỗ theo thứ tự k trong đợt: biến thể đã rời bàn (vd. dùng để Thay màn) để lại ô trống, các biến thể còn lại không dồn sang
+    const theoK = ds.every((f, i) => Number.isInteger(f.k) && f.k >= 1 && f.k <= 12 && (!i || f.k > ds[i - 1].k));
+    const oTrong = ds[0] ? ds[0].w : 0;
+    const dx = []; let x = 0, kTruoc = 0;
+    for (const f of ds) {
+      if (theoK) { x += (f.k - kTruoc - 1) * (oTrong + GH); kTruoc = f.k; }
+      dx.push(x); x += f.w + GH;
+    }
+    ra.push({ lech, ds, dx, cha: nut.id });
+    ds.forEach((f, i) => hangBienThe(f, lech + dx[i], ra));
   }
   return ra;
 }
@@ -183,7 +190,7 @@ function sapXep() {
       for (const h of hangBienThe(f, 0, [])) {
         yy += GV;
         let xx = x + h.lech; let cao = 0;
-        for (const b of h.ds) { b.x = xx; b.y = yy; xx += b.w + GH; cao = Math.max(cao, b.h + DAU); }
+        h.ds.forEach((b, i) => { b.x = x + h.lech + h.dx[i]; b.y = yy; xx = b.x + b.w + GH; cao = Math.max(cao, b.h + DAU); });
         rong = Math.max(rong, xx - GH - x);
         st.hangY.push({ x: x + h.lech, y: yy, ds: h.ds });
         yy += cao;
@@ -309,7 +316,7 @@ async function chupHang() {
 function taoDom(f) {
   const el = document.createElement('div');
   el.className = 'khung'; el.dataset.id = f.id;
-  el.innerHTML = `<div class="dau-khung"><span class="nhom-ten"></span><span class="ghim" hidden>★</span><span class="ten"></span><span class="tt"></span><button type="button" class="nut-hong" title="Nút dẫn tới màn đã xoá/không còn — bấm để nối lại" hidden></button><button type="button" class="nut-lk-k" title="Liên kết của màn: nối / đổi / gỡ màn đích của từng nút" hidden>🔗</button><button type="button" class="nut-xoa-man" title="Xoá màn khỏi hành trình (chủ quản; khôi phục được)" hidden>🗑</button><button type="button" class="nut-ls" title="Lịch sử phiên bản của màn" hidden></button><button type="button" class="nut-thay" title="Thay màn hiện tại bằng biến thể này (bản cũ vẫn trong Lịch sử)" hidden>✓ Thay màn</button><button type="button" class="nut-xoa-k" title="Xoá biến thể (⌘Z hoàn tác)" hidden>✕ Xoá</button><button type="button" class="nut-play" title="Play từ màn này">▶</button></div>
+  el.innerHTML = `<div class="dau-khung"><span class="nhom-ten"></span><span class="ghim" hidden>★</span><span class="ten"></span><span class="tt"></span><button type="button" class="nut-hong" title="Nút dẫn tới màn đã xoá/không còn — bấm để nối lại" hidden></button><button type="button" class="nut-lk-k" title="Liên kết của màn: nối / đổi / gỡ màn đích của từng nút" hidden>🔗</button><button type="button" class="nut-xoa-man" title="Xoá màn khỏi hành trình (chủ quản; khôi phục được)" hidden>🗑</button><button type="button" class="nut-ls" title="Lịch sử phiên bản của màn" hidden></button><button type="button" class="nut-thay" title="Thay màn hiện tại bằng biến thể này — biến thể rời bàn (chỗ để trống), bản cũ và bản mới đều trong Lịch sử" hidden>✓ Thay màn</button><button type="button" class="nut-xoa-k" title="Xoá biến thể (⌘Z hoàn tác)" hidden>✕ Xoá</button><button type="button" class="nut-play" title="Play từ màn này">▶</button></div>
     <div class="than"><div class="xam"><span></span></div><div class="phu-chuot"></div></div>`;
   theGioi.appendChild(el);
   const d = { el, iframe: null, ban: '', lk: [] };
@@ -1119,18 +1126,35 @@ async function thayMan(key, html, meta = {}) {
   const dxKhung = meta.bt ? timKhung(meta.bt)?.deXuat : null;
   if (dxKhung) return thayTheoDeXuat(dxKhung, key, html, meta);
   dangThay.add(key); html = lamSach(html);
+  let btXoa = null;
   try {
     const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() },
       body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '', goc: meta.goc }) }); // goc: bản đang sửa — máy chủ từ chối nếu màn vừa có bản mới hơn
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { if (j.lech) dongBoPhienBan(); throw new Error(j.loi || `HTTP ${r.status}`); }
-    PB[key] = j; const muc = mucPb(key, j.hien); if (muc?.tep) HTML_PB.set(`${key}/${muc.tep}`, html);
+    const { btXoa: xoa, ...mf } = j; btXoa = xoa || null; // btXoa: máy chủ đã đưa biến thể vừa dùng vào thùng rác
+    PB[key] = mf; const muc = mucPb(key, mf.hien); if (muc?.tep) HTML_PB.set(`${key}/${muc.tep}`, html);
     await apPhienBan(key);
   } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
   meta.truocVe?.(); // vd. Chế độ Sửa thoát trước, để khung đang sửa không bị nạp lại dưới tay
+  canhBaoThay = ''; if (btXoa) goSauThay(btXoa);
   qtDaVe = ''; veTatCa(); luuLai();
-  toast(meta.bao ? meta.bao.replace('{v}', PB[key].hien) : `Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}; bản cũ vẫn trong Lịch sử.`);
+  toast(meta.bao ? meta.bao.replace('{v}', PB[key].hien) : `Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}${btXoa ? '; biến thể đã rời bàn, chỗ của nó để trống' : ''}. Bản cũ và bản vừa thay đều trong Lịch sử.${canhBaoThay ? ` Lưu ý: ${canhBaoThay}.` : ''}`, !!canhBaoThay);
   return true;
+}
+// biến thể vừa dùng để Thay màn: máy chủ đã cho vào thùng rác ⇒ gỡ khỏi bàn này (không gửi xoá lại), màn con nối về cha của nó; chỗ trống giữ nguyên
+let canhBaoThay = '';
+// (máy chủ cũng đã nối màn con về cha của nó — boKhung nối y hệt và coi là đã đồng bộ; xoaXa giữ cho hoàn tác không hồi sinh nó)
+const goSauThay = (id) => boKhung([id], { sauThay: true, im: true });
+// đề xuất đã xử lý (Accept/Từ chối ở bàn này, bàn khác hay qua MCP) ⇒ khung tạm «Sửa tiếp» của nó rời bàn
+function donKhungDeXuat(dsDx) {
+  const xong = new Set((dsDx || []).filter((x) => x.tt && x.tt !== 'cho').map((x) => x.id));
+  const bo = st.khung.filter((f) => f.deXuat && xong.has(f.deXuat.id) && Sua.dangSua() !== f.id).map((f) => f.id);
+  if (!bo.length) return 0;
+  toast(`Đề xuất đã được xử lý — ${bo.length} khung «Sửa tiếp» của nó rời bàn.`);
+  for (const f of st.khung) if (bo.includes(f.cha)) f.cha = f.goc;
+  st.khung = st.khung.filter((f) => !bo.includes(f.id)); for (const id of bo) st.chon.delete(id);
+  return bo.length;
 }
 async function thayTheoDeXuat(dx, key, html, meta) {
   dangThay.add(key);
@@ -1441,6 +1465,9 @@ async function dongBoKho() {
       for (const m of j.lan || []) { daGui.set(`l:${m.id}`, ky.get(`l:${m.id}`)); tuChoi.delete(`l:${m.id}`); const l = st.lanBt.find((x) => x.id === m.id); if (l) l.tSua = m.tSua; }
       for (const id of j.tuChoi?.khung || []) if (ky.has(`k:${id}`)) tuChoi.set(`k:${id}`, ky.get(`k:${id}`));
       for (const id of j.tuChoi?.lan || []) if (ky.has(`l:${id}`)) tuChoi.set(`l:${id}`, ky.get(`l:${id}`));
+      // máy chủ bỏ qua: biến thể đã dùng để Thay màn và rời bàn (lượt ghi tới muộn / bàn lỡ tin realtime) ⇒ gỡ theo, báo nếu mất bản sửa
+      const daThay = (j.boQua?.khung || []).filter((id) => ky.has(`k:${id}`));
+      if (daThay.length && boKhung(daThay, { sauThay: true })) { clearTimeout(henVe); henVe = setTimeout(() => { veTatCa(); veBang(); }, 60); }
       await layBanMoiHon(j.xungDot);
       lo = { khung: [], lan: [] }; co = 0; ky = new Map(); return true;
     };
@@ -1532,13 +1559,26 @@ function apKhung(m, nguon, ep = false) {
   if (f) { for (const k of Object.keys(f)) delete f[k]; Object.assign(f, moi); } else st.khung.push(f = moi);
   daGui.set(`k:${f.id}`, kyKhung(f)); return true;
 }
-function boKhung(ids) {
-  const xoa = ids.filter((id) => { const f = timKhung(id); return f && f.loai === 'bien' && !banKhung(f) && Sua.dangSua() !== id && !dangDungBt(f); });
+// sauThay: biến thể vừa dùng để Thay màn — máy chủ đã gỡ, bàn này gỡ theo kể cả khi đang sửa/đang là bản dùng/chưa đồng bộ (có báo nếu mất bản sửa).
+// mayChu: nạp lại kho thấy mục đã biến mất trên máy chủ ⇒ bỏ chặn «đang dùng làm màn» (biến thể dùng để Thay màn nay rời bàn).
+function boKhung(ids, { sauThay = false, mayChu = false, im = false } = {}) { // im: chính bàn vừa Thay màn (bản sửa đã nằm trong phiên bản mới)
+  const xoa = ids.filter((id) => { const f = timKhung(id); return f && f.loai === 'bien' && (sauThay || (Sua.dangSua() !== id && !banKhung(f) && (mayChu || !dangDungBt(f)))); });
   for (const id of ids) if (!timKhung(id)) daGui.delete(`k:${id}`);
   if (!xoa.length) return 0;
+  if (sauThay) {
+    // im: bàn vừa bấm Thay (bản sửa qua thayManSua đã nằm trong phiên bản mới; Chế độ Sửa đã thoát) — chỉ báo khi khung vẫn đang Sửa
+    const matSua = xoa.filter((id) => Sua.dangSua() === id || (!im && !st.dangChay.has(id) && banKhung(timKhung(id))));
+    const dangSinh = xoa.filter((id) => st.dangChay.has(id));
+    if (Sua.dangSua() && xoa.includes(Sua.dangSua())) Sua.thoat({ im: true });
+    for (const id of xoa) { st.dangChay.get(id)?.abort(); tuChoi.delete(`k:${id}`); }
+    const bao = [dangSinh.length && 'lượt sinh lại của nó đã huỷ', matSua.length && 'phần sửa chưa lưu của nó không còn (bản đã Thay nằm trong Lịch sử màn)'].filter(Boolean).join('; ');
+    canhBaoThay = bao; // bàn vừa bấm Thay: thayMan ghép vào toast «Đã thay…» (một toast đè toast kia)
+    if (bao && !im) toast(`Biến thể vừa được dùng để Thay màn và đã rời bàn — ${bao}.`, true);
+  }
   for (const id of xoa) { daGui.delete(`k:${id}`); xoaXa.ds.set(id, ++xoaXa.n); }
   // nối lại cha cho màn con: người xoá đã ghi cha mới lên máy chủ ⇒ không coi là thay đổi của máy này
-  for (const f of st.khung) if (xoa.includes(f.cha)) { const dongBo = daGui.get(`k:${f.id}`) === kyKhung(f); f.cha = timKhung(f.cha)?.cha || f.goc; if (dongBo) daGui.set(`k:${f.id}`, kyKhung(f)); }
+  // cùng quy tắc với máy chủ (kho-bien-the goSauThay): cha của khung bị gỡ nếu còn là khung thật trên bàn (không phải khung tạm đề xuất), không thì màn gốc
+  for (const f of st.khung) if (xoa.includes(f.cha)) { const dongBo = daGui.get(`k:${f.id}`) === kyKhung(f); const p = timKhung(f.cha)?.cha; f.cha = p && !p.startsWith('dx-') && timKhung(p) && !xoa.includes(p) ? p : f.goc; if (dongBo) daGui.set(`k:${f.id}`, kyKhung(f)); }
   st.khung = st.khung.filter((f) => !xoa.includes(f.id)); for (const id of xoa) st.chon.delete(id);
   return xoa.length;
 }
@@ -1599,7 +1639,7 @@ async function napKho2() {
   const xoaK = daXoa('k'), xoaL = daXoa('l');
   await apDs(j.khung, j.lan);
   // mục máy này từng có trên máy chủ mà nay không còn ⇒ người khác đã xoá
-  boKhung(xoaK.filter((id) => daGui.has(`k:${id}`)));
+  boKhung(xoaK.filter((id) => daGui.has(`k:${id}`)), { mayChu: true });
   boLan(xoaL.filter((id) => daGui.has(`l:${id}`)));
   const dau = !khoSan; khoSan = true; napLuc = Date.now();
   if (dau && boLoKho) { boLoKho = false; setTimeout(napKho, 0); } // có thay đổi phát tới trong lúc nạp lần đầu: nạp lại cho khớp
@@ -1650,9 +1690,9 @@ async function nhanKho(m) {
     if (!n) return;
     if (moiXong) toast(`${ai} vừa thêm ${moiXong} biến thể.`);
   } else if (m.loai === 'xoa') {
-    const n = boKhung(Array.isArray(m.khung) ? m.khung : []) + boLan(Array.isArray(m.lan) ? m.lan : []);
+    const n = boKhung(Array.isArray(m.khung) ? m.khung : [], { sauThay: m.ly === 'thay' }) + boLan(Array.isArray(m.lan) ? m.lan : []);
     if (!n) return;
-    toast(`${ai} vừa xoá ${n} mục (còn trong 🗑 Thùng rác 7 ngày).`);
+    if (m.ly !== 'thay') toast(`${ai} vừa xoá ${n} mục (còn trong 🗑 Thùng rác 7 ngày).`); // Thay màn đã có toast riêng (tin «rv»)
   } else return;
   clearTimeout(henVe); henVe = setTimeout(() => { veTatCa(); veBang(); }, 60); // gộp nhiều thay đổi liền nhau thành một lần vẽ
 }
@@ -1670,7 +1710,7 @@ async function moRac() {
     const t = document.createElement('div'); t.className = 'rac-t';
     const ten = x.l === 'l' ? `Phương án ${x.k || ''} — ${x.nhan || x.yTuong || x.id}` : `${x.nhan || 'Biến thể'} · ${MAN[x.goc].ten}`;
     const tg = new Date(x.tXoa).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-    t.append(Object.assign(document.createElement('b'), { textContent: ten }), Object.assign(document.createElement('span'), { className: 'phu', textContent: `xoá ${tg}${x.nguoiXoa ? ' · ' + x.nguoiXoa : ''}` }));
+    t.append(Object.assign(document.createElement('b'), { textContent: ten }), Object.assign(document.createElement('span'), { className: 'phu', textContent: `${x.thay ? `dùng để Thay màn (v${x.thay.v}) ${tg}` : `xoá ${tg}`}${x.nguoiXoa ? ' · ' + x.nguoiXoa : ''}` }));
     const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Khôi phục';
     b.onclick = async () => {
       b.disabled = true;
@@ -1723,7 +1763,7 @@ addEventListener('visibilitychange', () => { if (document.visibilityState === 'v
 function nhanSu(m, p) {
   if (m.loai === 'thay' && coMan(m.key)) napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`));
 }
-GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTatCa, veBen, doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), secCuaLan, lamSach,
+GY = ganGopY({ donKhungDeXuat: (ds) => { if (donKhungDeXuat(ds)) veTatCa(); }, MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTatCa, veBen, doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), secCuaLan, lamSach,
   moLichSuAudit: (loc) => LS.mo(loc), daMoKhoa: () => laChuQuan(true),
   tenNguoi: () => rt?.ten() || '', phien: PHIEN,
   svgHanhTrinh: (id) => qt.svgHanhTrinh(id),
