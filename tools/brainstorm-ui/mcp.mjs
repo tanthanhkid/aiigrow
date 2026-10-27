@@ -25,7 +25,7 @@ const RANH_DONG = 120000;            // Chrome rảnh bao lâu thì đóng
 const SO_TRANG = 3;                  // số trang chụp cùng lúc
 const THAN_MCP = 48 * 1024 * 1024;   // một yêu cầu MCP (tao_phuong_an mang HTML nhiều màn)
 const CSP_ANH = ["default-src 'self'", "script-src 'none'", "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: blob:", "connect-src 'none'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'none'"].join('; ');
+  "img-src 'self' data: blob:", "media-src 'none'", "connect-src 'none'", "frame-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'none'"].join('; ');
 const CSP_DOM = "default-src 'none'; script-src 'self'";
 const KEY = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const sha1 = (...x) => crypto.createHash('sha1').update(x.join('\0')).digest('hex');

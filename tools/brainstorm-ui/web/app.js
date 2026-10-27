@@ -3,7 +3,7 @@
 import { taiHanhTrinh } from './hanh-trinh/index.js';
 import { taoQuyTrinh } from './quy-trinh.js';
 import { heThong, loiNguoiDung, tachKetQua, loiHanhTrinh, tachHanhTrinh, HUONG } from './prompt.js';
-import { ganToi, dsLienKet, datLienKet, layLop, apLop } from './gan-toi.js';
+import { ganToi, dsLienKet, datLienKet, layLop, apLop, phatVideo } from './gan-toi.js';
 import { ganDungChung } from './dung-chung-ui.js';
 import * as Sua from './che-do-sua.js';
 import { taoRealtime } from './realtime.js';
@@ -254,7 +254,7 @@ function datSong(f, d, song) {
     ifr.setAttribute('sandbox', 'allow-same-origin'); // không script; cùng nguồn để đo nút data-toi
     ifr.referrerPolicy = 'no-referrer';
     const { w, h } = kichThuoc(f); ifr.width = w; ifr.height = h; ifr.title = tenCua(f);
-    ifr.addEventListener('load', () => { if (d.iframe === ifr) d.el.classList.add('song'); doLienKet(f.id); }); // giữ ảnh thu nhỏ tới khi iframe tải xong
+    ifr.addEventListener('load', () => { if (d.iframe === ifr) d.el.classList.add('song'); doLienKet(f.id); phatVideo(ifr.contentDocument); }); // giữ ảnh thu nhỏ tới khi iframe tải xong
     d.iframe = ifr; d.banIfr = htmlCua(f); ifr.srcdoc = d.banIfr;
     than.prepend(ifr);
   } else if (!song && d.iframe) { d.iframe.remove(); d.iframe = null; d.el.classList.remove('song'); }
@@ -1030,6 +1030,7 @@ function ganBamPlay(ifr, f) {
   const st2 = tl.createElement('style');
   st2.textContent = 'html.goi-y [data-toi]{outline:3px solid rgba(43,183,163,.85)!important;outline-offset:2px;transition:outline-color .2s}[data-toi]{cursor:pointer}';
   tl.head?.appendChild(st2);
+  phatVideo(tl);
   tl.addEventListener('click', (e) => {
     const t = e.target.closest('[data-toi]');
     if (t) { e.preventDefault(); diToi(f, t.getAttribute('data-toi')); return; }
@@ -1089,8 +1090,8 @@ async function htmlTuDung(html, khoaScript = true) {
   cssKit ??= fetch('/assets/clay-kit.css').then((r) => { if (!r.ok) throw new Error(`clay-kit.css ${r.status}`); return r.text(); }).catch((e) => { cssKit = null; throw e; });
   const css = await cssKit;
   s = s.replace(/<link[^>]*href=["']\/assets\/clay-kit\.css["'][^>]*>/gi, () => `<style>${css}</style>`);
-  // ảnh bộ kit (/assets/) và ảnh màn chụp thật (/that/a/) → data URL; font của màn thật chỉ nhúng khi xuất/lưu (ảnh thu nhỏ bỏ font)
-  const ds = [...new Set([...(s.match(/\/assets\/[\w./-]+\.(?:png|webp)/g) || []), ...(s.match(khoaScript ? /\/that\/a\/[\w.-]+\.(?:png|webp|jpe?g|gif|svg|ttf|otf|woff2?)/g : /\/that\/a\/[\w.-]+\.(?:png|webp|jpe?g|gif|svg)/g) || [])])];
+  // ảnh bộ kit (/assets/), ảnh nền màn (/anh/, vd. Welcome — cả poster của <video>) và ảnh màn chụp thật (/that/a/) → data URL; font của màn thật chỉ nhúng khi xuất/lưu (ảnh thu nhỏ bỏ font)
+  const ds = [...new Set([...(s.match(/\/(?:assets|anh)\/[\w./-]+\.(?:png|webp)/g) || []), ...(s.match(khoaScript ? /\/that\/a\/[\w.-]+\.(?:png|webp|jpe?g|gif|svg|ttf|otf|woff2?)/g : /\/that\/a\/[\w.-]+\.(?:png|webp|jpe?g|gif|svg)/g) || [])])];
   for (const u of ds) { try { const d = await thanhDataUrl(u); s = s.split(u).join(d); } catch { /* giữ nguyên */ } }
   return s;
 }

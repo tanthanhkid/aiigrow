@@ -39,12 +39,14 @@ export default {
     else if (p === '/api/assets') tep = '/_cf/api-assets.json';
     else if (/^\/r\/[a-f0-9]{32}\/?$/.test(p)) tep = '/review.html';
     else if (p.startsWith('/_cf/')) return new Response('Không có', { status: 404 });
-    const r = await env.ASSETS.fetch(new Request(new URL(tep, url.origin), { method: request.method }));
+    // Range: Safari chỉ phát <video> khi máy chủ trả 206 theo Range (video intro màn Welcome)
+    const rg = request.headers.get('range');
+    const r = await env.ASSETS.fetch(new Request(new URL(tep, url.origin), { method: request.method, headers: rg ? { range: rg } : {} }));
     if (!r.ok) return new Response('Không có', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8' } });
     const h = new Headers(r.headers);
     h.set('Cache-Control', 'no-store'); h.set('X-Content-Type-Options', 'nosniff');
     if ((h.get('content-type') || '').startsWith('text/html')) h.set('Content-Security-Policy', cspChoHost(url.host));
-    return new Response(r.body, { status: 200, headers: h });
+    return new Response(r.body, { status: r.status === 206 ? 206 : 200, headers: h });
   },
 };
 

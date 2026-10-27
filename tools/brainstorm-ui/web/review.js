@@ -5,7 +5,7 @@ import { taoRealtime, mauTen } from './realtime.js';
 import { heThong, loiNguoiDung, tachKetQua, HUONG } from './prompt.js';
 import { goiClaude, goiMock, mockSua, chayLoat, lamSach, taiAssets } from './claude.js';
 import { taoAnXuLy, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
-import { ganToi, apLop } from './gan-toi.js';
+import { ganToi, apLop, phatVideo } from './gan-toi.js';
 
 const $ = (s) => document.querySelector(s);
 const MA = (location.pathname.match(/^\/r\/([a-f0-9]{32})\/?$/) || [])[1] || '';
@@ -234,6 +234,7 @@ function playLui() {
 function ganTrongKhung(ifr) {
   const d = ifr.contentDocument; if (!d) return;
   const st2 = d.createElement('style'); st2.textContent = KIEU_PLAY; (d.head || d.documentElement).appendChild(st2);
+  phatVideo(d);
   // pointerdown trong iframe không nổi ra #vung: báo cho realtime để thôi «đi theo» (không thì màn người kia kéo về, Play như bị đơ)
   d.addEventListener('pointerdown', () => rt?.boTheo(), true);
   d.addEventListener('click', (e) => {
