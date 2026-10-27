@@ -64,8 +64,8 @@ const toiCon = (k) => { const m = MAN[k]; const ke = m && LAN_GOC.find((x) => x.
 // liên kết hỏng của một HTML: data-toi trỏ tới màn không có / đã xoá
 const TOI_CUA = new Map(); // HTML → các key data-toi (nhớ theo chuỗi)
 function lkHong(html) {
-  if (!TOI_CUA.has(html)) { if (TOI_CUA.size > 500) TOI_CUA.clear(); TOI_CUA.set(html, [...new Set([...String(html || '').matchAll(/data-toi="([^"]*)"/g)].map((x) => x[1]))]); }
-  return TOI_CUA.get(html).filter((k) => !MAN[k] || daXoa(k));
+  if (!TOI_CUA.has(html)) { if (TOI_CUA.size > 200) TOI_CUA.clear(); TOI_CUA.set(html, [...new Set([...String(html || '').matchAll(/data-toi="([^"]*)"/g)].map((x) => x[1]))]); }
+  return TOI_CUA.get(html).filter((k) => k && (!MAN[k] || daXoa(k)));
 }
 async function htmlPhienBan(key, v) {
   const muc = v ? mucPb(key, v) : null;
@@ -811,6 +811,7 @@ async function sinhHanhTrinh(lanLai) {
       st.lanBt.push(l);
       for (const b of buoc) st.khung.push({ id: `${l.id}-${b.key}`, loai: 'bien', lan: l.id, goc: b.key, cha: b.key, dot, k: l.k, w: b.w, h: b.h, html: '', tt: 'dang', tienDo: 'Đang chờ lượt…', yTuong: y, x: 0, y: 0 });
     }
+    if (lanLai) l.buoc = buoc.map((b) => b.key); // sinh lại: bỏ màn đã xoá như khung đang sinh
     if (!st.dangChay.has(l.id)) st.dangChay.set(l.id, new AbortController());
     lans.push(l);
   }

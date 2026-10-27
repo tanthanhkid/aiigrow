@@ -127,7 +127,7 @@ export function taoMcp(C) {
   // Liên kết hỏng trên cả bàn: nút (data-toi) của màn CÒN trong hành trình trỏ tới màn không có / đã xoá. chiToi: chỉ nút trỏ tới màn này.
   async function lienKetHong(req0, chiToi = '') {
     const { LAN, MAN } = await taiMan(); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
-    const hongK = (k) => !MAN[k] || daXoaMf(pb[k]);
+    const hongK = (k) => !!k && (!MAN[k] || daXoaMf(pb[k])); // data-toi="" không tính
     const keys = [...new Set(LAN.flatMap((l) => l.buoc))].filter((k) => !daXoaMf(pb[k]));
     const ra = [];
     let con = 0; const cho = []; // tối đa 6 màn cùng lúc (đọc tệp + Chrome dùng chung)
@@ -473,10 +473,12 @@ export function taoMcp(C) {
       });
 
     T('sua_lien_ket', 'Tạo / đổi / gỡ liên kết của nút trên một màn (màn nguồn key + phần tử → màn đích toi; toi="" hoặc null = gỡ). Chọn phần tử bằng phan_tu (từ ds_lien_ket / ds_lien_ket_hong), hoặc chu (chữ trên nút, phải khớp đúng một phần tử), hoặc toi_cu (mọi nút đang trỏ tới màn đó — vd. nối lại liên kết hỏng sau khi xoá màn). Lưu thành phiên bản mới của màn nguồn (audit man.lien-ket); Play, Quy trình, link /r/ và realtime dùng ngay. Quyền như Thay màn.',
-      { key: z.string(), toi: z.string().nullable(), phan_tu: z.number().int().min(0).optional(), chu: z.string().optional(), toi_cu: z.string().optional() }, async (a) => {
+      { key: z.string(), toi: z.string().nullable(), phan_tu: z.number().int().min(0).optional(), chu: z.string().optional(), toi_cu: z.string().optional(), v: z.number().int().min(0).optional().describe('Phiên bản lúc lấy phan_tu (ds_lien_ket trả v) — lệch thì báo lỗi thay vì sửa nhầm phần tử') }, async (a) => {
         const { MAN } = await taiMan();
         const toi = a.toi || '';
         const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, a.key, null, pb);
+        if (a.v != null && a.v !== hh.v) throw LOI(`Màn ${a.key} đã sang v${hh.v} (bạn lấy phan_tu ở v${a.v}) — gọi lại ds_lien_ket`);
+        if (a.phan_tu != null && a.v == null && a.chu == null) throw LOI('Chọn theo phan_tu cần kèm v (từ ds_lien_ket) hoặc chu để không sửa nhầm phần tử khi màn vừa đổi');
         if (daXoaMf(hh.mf)) throw LOI(`Màn ${a.key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
         if (toi) { if (!MAN[toi]) throw LOI(`Không có màn đích «${toi}» — xem ds_hanh_trinh`); if (daXoaMf(pb[toi])) throw LOI(`Màn đích ${toi} đã bị xoá khỏi hành trình — chọn màn khác hoặc khoi_phuc_man`); }
         const ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
@@ -663,7 +665,8 @@ export function taoMcp(C) {
         const hh = await hienHanh(req0, key, null, pb); let html = hh.html;
         const f = kho?.khung.find((x) => x.lan === tuPa && x.goc === key);
         if (f) { const g = await docKhung(req0, f.id); if (g.html) html = g.html; }
-        return { key, ten: MAN[key].ten, w: hh.w, h: hh.h, html, toi: MAN[key].toi };
+        const ke = MAN[key].ke; // nhãn hành động sang bước kế chỉ khi bước kế còn (không thì nó dẫn tới màn đã xoá)
+        return { key, ten: MAN[key].ten, w: hh.w, h: hh.h, html, toi: ke && !daXoaMf(pb[ke]) ? MAN[key].toi : '' };
       }));
     }
     return s;

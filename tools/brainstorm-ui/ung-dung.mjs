@@ -315,7 +315,8 @@ export function taoUngDung(O = {}) {
         Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc', bt: cu.bt });
       } else {
         const html = than?.html;
-        if (Number.isInteger(than?.goc) && than.goc !== (m.hien || 0)) return [409, { loi: `Màn vừa có bản mới (v${m.hien}) — đã tải lại, thử lại`, lech: true }]; // sửa dựa trên bản cũ (vd. sửa liên kết) không đè bản mới hơn !== 'string' || !html.trim() || html.length > PB_CO) return [400, { loi: 'Thiếu HTML hoặc quá lớn' }];
+        if (Number.isInteger(than?.goc) && than.goc !== (m.hien || 0)) return [409, { loi: `Màn vừa có bản mới (v${m.hien}) — đã tải lại, thử lại`, lech: true }]; // sửa dựa trên bản cũ (vd. sửa liên kết) không đè bản mới hơn
+        if (typeof html !== 'string' || !html.trim() || html.length > PB_CO) return [400, { loi: 'Thiếu HTML hoặc quá lớn' }];
         const w = Math.round(Number(than.w)), h = Math.round(Number(than.h));
         Object.assign(muc, { tep: v, w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined,
           nhan: chuNgan(than.nhan, 120), yTuong: chuNgan(than.yTuong, 600), nguon: chuNgan(than.nguon, 20), model: chuNgan(than.model, 60), bt: chuNgan(than.bt, 80) });

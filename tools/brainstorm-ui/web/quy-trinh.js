@@ -51,7 +51,7 @@ export function taoQuyTrinh(api) {
     for (const r of bo) {
       const vao = noi.filter(([, b]) => b === r), ra = noi.filter(([a]) => a === r);
       noi = noi.filter(([a, b]) => a !== r && b !== r);
-      for (const [a, , nhan] of vao) for (const [, b] of ra) if (a !== b && !noi.some(([x, y]) => x === a && y === b)) noi.push([a, b, nhan]);
+      for (const [a] of vao) for (const [, b] of ra) if (a !== b && !noi.some(([x, y]) => x === a && y === b)) noi.push([a, b, '']); // nhãn cũ dẫn tới màn đã xoá: bỏ
     }
     return { ...q, nut: q.nut.filter((x) => !bo.has(x.id)), noi };
   }
@@ -68,11 +68,12 @@ export function taoQuyTrinh(api) {
   function tuChuoi(l) {
     if (!l) return null;
     const lan = l.vai === 'Con' ? 'con' : 'bm';
-    const buoc = l.buoc.filter((k) => MAN[k] && !MAN[k].xoa);
+    const buoc = l.buoc.map((k, j) => [k, j]).filter(([k]) => MAN[k] && !MAN[k].xoa); // [key, vị trí gốc] — một màn có thể ghé hai lần
     // id theo thứ tự bước: một màn ghé hai lần vẫn là hai nút
-    const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map((k, i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
+    const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map(([k], i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
     const noi = []; let truoc = 'bd', keTruoc = '';
-    buoc.forEach((k, i) => { noi.push([truoc, `${i}:${k}`, keTruoc && l.buoc[l.buoc.indexOf(keTruoc) + 1] === k ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; }); // nhãn chỉ khi đúng bước kế (bước giữa bị xoá ⇒ không nhãn)
+    let jTruoc = -1;
+    buoc.forEach(([k, j], i) => { noi.push([truoc, `${i}:${k}`, keTruoc && jTruoc === j - 1 ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; jTruoc = j; }); // nhãn chỉ khi đúng bước kế (bước giữa bị xoá ⇒ không nhãn)
     noi.push([truoc, 'kt', '']);
     return { id: `tu-${l.id}`, ten: `${l.ten} (tự sinh từ chuỗi màn)`, tuSinh: true, nut, noi };
   }

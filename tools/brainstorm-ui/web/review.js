@@ -107,13 +107,14 @@ function veBan() {
 }
 // đồng bộ rồi vẽ lại màn đang mở nếu nó đổi (giữ lịch sử Play + ghim đang chờ gửi). Tuần tự: lượt sau luôn lấy manifest sau lượt trước.
 let hangBan = Promise.resolve();
+const daMoKhiXoa = new Set(); // màn bị xoá lúc đang mở: dongBoBan0 đã báo — tin realtime không báo lần hai
 function dongBoBan(chiKey = '') { const p = hangBan.then(() => dongBoBan0(chiKey)); hangBan = p.catch(() => {}); return p; }
 async function dongBoBan0(chiKey) {
   const doi = await napHienHanh(chiKey);
   if (!doi.size) return doi;
   veBan();
   if (daXoa(R.mo)) { // màn đang mở vừa bị xoá: sang màn kế còn lại (hoặc Góp ý chung)
-    const ten = manChup(R.mo)?.ten || R.mo; let i = R.goi.man.findIndex((x, j) => j > R.i && !daXoa(x.key)); if (i < 0) i = R.goi.man.findIndex((x) => !daXoa(x.key));
+    const ten = manChup(R.mo)?.ten || R.mo; daMoKhiXoa.add(R.mo); let i = R.goi.man.findIndex((x, j) => j > R.i && !daXoa(x.key)); if (i < 0) i = R.goi.man.findIndex((x) => !daXoa(x.key));
     if (i >= 0) mo(R.goi.man[i].key, i, false); else mo('chung'); toast(`Màn «${ten}» vừa bị xoá khỏi hành trình.`); return doi;
   }
   if (!R.banChup && (doi.has(R.mo) || R.mo === 'qt')) { const g = R.ghimCho; mo(R.mo, R.i, false); if (g) { R.ghimCho = g; capNhatGhimCho(); veGhim(); } } else veDsMan();
@@ -162,7 +163,7 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
   const conLai = R.goi.man.filter((x) => !daXoa(x.key)).length, thu = R.goi.man.slice(0, i + 1).filter((x) => !daXoa(x.key)).length; // đếm bỏ màn đã xoá
   $('#vi-tri').textContent = m ? `Màn ${thu}/${conLai} · ${m.ten}${m.moi ? ` · bản mới v${m.v}` : ''}`
     : key === 'qt' ? `Quy trình${HIEN.size && !R.banChup ? ` (sơ đồ chụp lúc chia sẻ — ${HIEN.size} màn đã thay sau đó)` : ''}` : 'Góp ý chung';
-  $('#nut-truoc').disabled = i <= 0 && !(R.play && R.lich.length > 1); $('#nut-sau').disabled = i < 0 || !R.goi.man.some((x, n) => n > i && !daXoa(x.key));
+  $('#nut-truoc').disabled = !R.goi.man.some((x, n) => n < i && !daXoa(x.key)) && !(R.play && R.lich.length > 1); $('#nut-sau').disabled = i < 0 || !R.goi.man.some((x, n) => n > i && !daXoa(x.key));
   $('#gy-noi').placeholder = m ? `Góp ý cho màn «${m.ten}»…` : 'Góp ý cho cả hành trình…';
   $('#hop-gy').hidden = key === 'qt';
   veDsMan(); veGopY(); veGhim();
@@ -527,7 +528,7 @@ if (R.goi) {
   rt = taoRealtime({ st, vung: $('#vung'), dom: new Map(), phong: `r-${MA}`, toast, nhanBt: () => {}, nhanSu: () => {},
     nhanRv: (m) => {
       if (m.loai === 'thu-hoi') { het('Link góp ý này đã bị thu hồi.'); return; }
-      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.get(m.key)?.xoa && !R.banChup && R.mo !== m.key) toast(`Màn «${x.ten}» vừa bị xoá khỏi hành trình.`); else if (doi.has(m.key) && x && HIEN.has(m.key) && !HIEN.get(m.key).xoa && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
+      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.get(m.key)?.xoa) { /* dongBoBan0 đã báo nếu đang mở màn đó */ if (!R.banChup && !daMoKhiXoa.delete(m.key)) toast(`Màn «${x.ten}» vừa bị xoá khỏi hành trình.`); } else if (doi.has(m.key) && x && HIEN.has(m.key) && !HIEN.get(m.key).xoa && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
       clearTimeout(henTai); henTai = setTimeout(tai, 300);
     },
     khiChao: () => { dongBoBan(); }, // mỗi lần (nối lại) realtime: tin «thay» lúc chưa nối/rớt mạng có thể đã lỡ
