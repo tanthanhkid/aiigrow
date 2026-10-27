@@ -1598,20 +1598,17 @@ async function moRac() {
 }
 $('#nut-rac').onclick = moRac;
 $('#rac-dong').onclick = () => { $('#lop-rac').hidden = true; };
-async function napLaiPhienBan(key) {
-  if (!coMan(key)) return;
-  try {
-    const r = await fetch('/api/phien-ban'); if (!r.ok) return; const ds = await r.json();
-    if (ds[key]) { PB[key] = ds[key]; await apPhienBan(key); } else { delete PB[key]; await apPhienBan(key); }
-  } catch { return; }
-  qtDaVe = ''; veTatCa();
-  if (!$('#lop-ls').hidden && ls.key === key) veLichSu();
-  if (!$('#lop-play').hidden) vePlay('');
-}
+// tin realtime «thay»: đi chung hàng đồng bộ (tuần tự, không ghi PB đua nhau)
+async function napLaiPhienBan(key) { if (coMan(key)) await dongBoPhienBan(); }
 // Đối chiếu MỌI màn với máy chủ: tin realtime «thay» có thể lỡ (WebSocket rớt/nối lại khi deploy, máy ngủ, tab nền) ⇒ bàn và Play kẹt bản cũ
 // tới khi tải lại trang. Gọi khi nối lại realtime, khi mở Play, khi quay lại tab. Chỉ tải HTML của màn đổi bản.
-let dongBoDang = null;
-function dongBoPhienBan() { return (dongBoDang ||= dongBoPhienBan0().finally(() => { dongBoDang = null; })); }
+// Tuần tự: lời gọi tới khi đang chạy ⇒ chạy thêm MỘT lượt sau (manifest lấy SAU tin mới nhất), không chạy chồng.
+let dongBoDang = null, dongBoLai = false, pbDaNap = false;
+function dongBoPhienBan() {
+  if (dongBoDang) { dongBoLai = true; return dongBoDang; }
+  dongBoDang = (async () => { let n = 0; do { dongBoLai = false; n += await dongBoPhienBan0(); } while (dongBoLai); return n; })().finally(() => { dongBoDang = null; });
+  return dongBoDang;
+}
 async function dongBoPhienBan0() {
   let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return 0; ds = await r.json(); } catch { return 0; }
   const khac = (a, b) => (a?.hien || 0) !== (b?.hien || 0) || (a?.ds?.length || 0) !== (b?.ds?.length || 0);
@@ -1619,7 +1616,8 @@ async function dongBoPhienBan0() {
   if (!doi.length) return 0;
   await Promise.all(doi.map(async (k) => {
     const truoc = PB[k];
-    try { if (Array.isArray(ds[k]?.ds)) PB[k] = ds[k]; else delete PB[k]; await apPhienBan(k); } catch { if (truoc) PB[k] = truoc; else delete PB[k]; }
+    const moi = Array.isArray(ds[k]?.ds) ? ds[k] : undefined;
+    try { if (moi) PB[k] = moi; else delete PB[k]; await apPhienBan(k); } catch { if (PB[k] === moi) { if (truoc) PB[k] = truoc; else delete PB[k]; } } // chỉ trả lại khi chưa ai đặt bản mới hơn
   }));
   qtDaVe = ''; veTatCa();
   if (!$('#lop-ls').hidden && doi.includes(ls.key)) veLichSu();
@@ -1661,7 +1659,8 @@ GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTat
     setTimeout(() => Sua.batSua(id), 150);
   },
 });
-rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); dongBoPhienBan(); }, khiCham, nhanRv: (m) => GY?.nhanRv(m), sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
+// khiChao: nối lại realtime ⇒ đồng bộ phiên bản màn (lần nối đầu taiPhienBan đang nạp, bỏ qua)
+rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); if (pbDaNap) dongBoPhienBan(); }, khiCham, nhanRv: (m) => GY?.nhanRv(m), sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
   doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), datView: (v) => { st.view = v; apView(); luuView(); } });
 
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,
@@ -1683,4 +1682,4 @@ $('#nut-au-bang').onclick = () => {
 napKho();
 GY.tai();
 laChuQuan();
-window.__bs = { GY, LS, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+window.__bs = { GY, LS, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { pbDaNap = true; qtDaVe = ''; veTatCa(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

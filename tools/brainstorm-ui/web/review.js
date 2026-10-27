@@ -43,7 +43,7 @@ async function tai() {
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return het(j.loi || `Lỗi ${r.status}`);
   R.goi = j;
-  await napHienHanh(); veBan();
+  await dongBoBan(); veBan();
   document.title = `Góp ý · ${j.htTen}`;
   $('#ht-ten').textContent = j.htTen; $('#ht-v').textContent = `v${j.v}`; $('#ht-ghi').textContent = j.ghiChu || '';
   veDsMan();
@@ -66,29 +66,34 @@ function banTrongMa() {
     return bang;
   }).catch((e) => { maGoc = null; throw e; }));
 }
-// chiKey: chỉ nạp lại một màn (tin realtime «thay»). Trả true nếu có màn đổi.
+// chiKey: chỉ nạp lại một màn (tin realtime «thay»). Trả Set các key vừa đổi bản hiển thị.
 async function napHienHanh(chiKey = '') {
-  let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return false; ds = await r.json(); } catch { return false; }
-  let doi = false;
-  for (const m of R.goi.man) {
-    if (chiKey && m.key !== chiKey) continue;
+  const doi = new Set();
+  let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return doi; ds = await r.json(); } catch { return doi; }
+  await Promise.all(R.goi.man.map(async (m) => {
+    if (chiKey && m.key !== chiKey) return;
     const mf = ds[m.key]; const hien = mf?.hien || 0;
     const muc = mf?.ds?.find((x) => x.v === hien); const mucChup = mf?.ds?.find((x) => x.v === (m.pb || 0));
-    if (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0)) { if (HIEN.delete(m.key)) doi = true; continue; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
-    if (HIEN.get(m.key)?.v === hien) continue;
+    if (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0)) { if (HIEN.delete(m.key)) doi.add(m.key); return; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
+    if (HIEN.get(m.key)?.v === hien) return;
     try {
-      const goc = (await banTrongMa()).get(m.key);
-      let html = goc?.html || '', w = goc?.w || m.w, h = goc?.h || m.h;
+      let html = '', w = m.w, h = m.h;
       if (muc?.tep) {
         const r = await fetch(`/api/phien-ban/${encodeURIComponent(m.key)}/${muc.tep}`, { cache: 'no-store' });
         const j = await r.json(); if (!r.ok || typeof j.html !== 'string') throw new Error(j.loi || r.status);
         html = j.html; w = muc.w || w; h = muc.h || h;
-        if (goc?.toi && goc.ke && !/data-toi=/.test(html)) html = ganToi(html, goc.toi, goc.ke, goc.keTen);
+        if (!/data-toi=/.test(html)) { // bản mới thiếu nút nối màn kế: gắn lại theo nhãn bước như bàn chính (lỗi tải hành trình thì để nguyên)
+          const goc = await banTrongMa().then((b) => b.get(m.key)).catch(() => null);
+          if (goc?.toi && goc.ke) html = ganToi(html, goc.toi, goc.ke, goc.keTen);
+        }
+      } else { // khôi phục về bản trong mã (v0)
+        const goc = (await banTrongMa()).get(m.key);
+        html = goc?.html || ''; w = goc?.w || w; h = goc?.h || h;
       }
-      if (!html) continue;
-      HIEN.set(m.key, { v: hien, html, w, h }); doi = true;
+      if (!html) return;
+      HIEN.set(m.key, { v: hien, html, w, h }); doi.add(m.key);
     } catch { /* lỗi mạng: giữ bản đang có, lần đồng bộ sau thử lại */ }
-  }
+  }));
   return doi;
 }
 function veBan() {
@@ -97,13 +102,15 @@ function veBan() {
   b.title = R.banChup ? 'Bấm để về bản mới nhất (sau Thay màn trên bàn chính)' : `${n} màn đã được thay sau khi chia sẻ link — bấm để xem bản lúc chia sẻ`;
   b.setAttribute('aria-pressed', String(!!R.banChup));
 }
-// đồng bộ rồi vẽ lại màn đang mở (giữ lịch sử Play)
-async function dongBoBan(chiKey = '') {
+// đồng bộ rồi vẽ lại màn đang mở nếu nó đổi (giữ lịch sử Play + ghim đang chờ gửi). Tuần tự: lượt sau luôn lấy manifest sau lượt trước.
+let hangBan = Promise.resolve();
+function dongBoBan(chiKey = '') { const p = hangBan.then(() => dongBoBan0(chiKey)); hangBan = p.catch(() => {}); return p; }
+async function dongBoBan0(chiKey) {
   const doi = await napHienHanh(chiKey);
-  if (!doi) return false;
+  if (!doi.size) return doi;
   veBan();
-  if (R.mo && (!chiKey || R.mo === chiKey || R.mo === 'qt')) mo(R.mo, R.i, false); else veDsMan();
-  return true;
+  if (!R.banChup && (doi.has(R.mo) || R.mo === 'qt')) { const g = R.ghimCho; mo(R.mo, R.i, false); if (g) { R.ghimCho = g; capNhatGhimCho(); veGhim(); } } else veDsMan();
+  return doi;
 }
 
 // ---------- danh sách màn + mở màn ----------
@@ -414,6 +421,7 @@ async function sinhBienThe(g, n) {
   if (R.dangSinh) { toast('Đang sinh biến thể — đợi xong đã.'); return; }
   R.dangSinh = true;
   const y = yCua(g); const htmlGoc = lamSach(m.html);
+  R.btGoc = { html: htmlGoc, w: m.w, h: m.h, nhan: m.moi ? `Gốc (bản mới v${m.v})` : `Gốc (v${R.goi.v})` }; // đúng bản đã gửi Claude, dù sau đó màn đổi bản
   R.bt = Array.from({ length: n }, (_, i) => ({ k: i + 1, n, html: '', nhan: '', tt: 'dang', tien: 'Đang chờ lượt…', gy: g, key: m.key, w: m.w, h: m.h, model: laMock() ? 'mock' : MODEL }));
   $('#bt-y').textContent = `«${g.noi}» — ${n} biến thể bằng ${laMock() ? 'mock (không gọi Claude)' : MODEL}. Thiết kế gốc không đổi cho tới khi người phụ trách duyệt.`;
   $('#lop-bt').hidden = false; veBienThe();
@@ -447,7 +455,8 @@ function veBienThe() {
   const l = $('#bt-luoi'); l.innerHTML = '';
   const m = R.bt[0] && manCua(R.bt[0].key); if (!m) return;
   const rong = Math.min(300, Math.max(200, (innerWidth - 120) / (R.bt.length + 1) - 24));
-  const goc = tao('figure', 'the-bt goc'); goc.append(tao('figcaption', '', `Gốc (v${R.goi.v})`), oMan(lamSach(m.html), m.w, m.h, rong)); l.append(goc);
+  const G = R.btGoc || { html: lamSach(m.html), w: m.w, h: m.h, nhan: `Gốc (v${R.goi.v})` };
+  const goc = tao('figure', 'the-bt goc'); goc.append(tao('figcaption', '', G.nhan), oMan(G.html, G.w, G.h, rong)); l.append(goc);
   for (const f of R.bt) {
     const c = tao('figure', 'the-bt'); const cap = tao('figcaption', '', f.tt === 'xong' ? `${f.k}. ${f.nhan}` : f.tt === 'loi' ? `${f.k}. Lỗi: ${f.tien}` : `${f.k}. Đang sinh… ${f.tien}`);
     c.append(cap); Object.defineProperty(f, '_cap', { value: cap, writable: true, configurable: true, enumerable: false });
@@ -499,14 +508,14 @@ addEventListener('keydown', (e) => { if (e.key === 'Escape') for (const id of ['
 // ---------- khởi động ----------
 await tai();
 if (R.goi) {
-  let henTai = 0;
+  let henTai = 0, daChao = false;
   rt = taoRealtime({ st, vung: $('#vung'), dom: new Map(), phong: `r-${MA}`, toast, nhanBt: () => {}, nhanSu: () => {},
     nhanRv: (m) => {
       if (m.loai === 'thu-hoi') { het('Link góp ý này đã bị thu hồi.'); return; }
-      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi && x) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
+      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.has(m.key) && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
       clearTimeout(henTai); henTai = setTimeout(tai, 300);
     },
-    khiChao: () => { dongBoBan(); }, // nối lại realtime: tin «thay» lúc rớt mạng có thể đã lỡ
+    khiChao: () => { if (daChao) dongBoBan(); daChao = true; }, // nối LẠI realtime: tin «thay» lúc rớt mạng có thể đã lỡ (lần đầu: tai() vừa nạp)
 
     sec: () => R.mo, cheDo: () => 'canvas', suaId: () => null, doiSec: (sec) => { if (sec !== R.mo) mo(sec); }, datView: () => {} });
   vuaKhung();
