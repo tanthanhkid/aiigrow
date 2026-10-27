@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 // Chuyển dữ liệu bàn brainstorm giữa thư mục Mac và Durable Object trên Cloudflare (đường /__kho của cf/worker.mjs — chỉ chủ quản).
-//   node cf/kho.mjs nap <url> <thư mục brainstorm-ui> [--chot] — đưa bien-the/ phien-ban/ review/ audit/ lên (ghi đè cùng đường, chạy lại được);
-//                                                       --chot: chốt di trú, từ đó Cloudflare đóng /__kho/nap
-//   node cf/kho.mjs keo <url> <thư mục brainstorm-ui>   — kéo về (sao lưu git): tải tệp mới/đổi, xoá tệp cục bộ không còn trên Cloudflare
+//   node cf/kho.mjs nap <url> <thư mục brainstorm-ui>   — di trú: đưa bien-the/ phien-ban/ review/ audit/ lên (ghi đè cùng đường; đứt giữa chừng thì chạy lại);
+//                                                        nạp đủ thì TỰ CHỐT — từ đó Cloudflare đóng /__kho/nap, audit trên đó không bị bản Mac cũ đè
+//   node cf/kho.mjs keo <url> <thư mục brainstorm-ui> [--cho-xoa] — kéo về (sao lưu git): tải tệp mới/đổi, xoá tệp cục bộ không còn trên Cloudflare;
+//                                                        sắp xoá > 20% tệp cục bộ thì vẫn tải nhưng KHÔNG xoá và thoát 1 (xoá thật nhiều thì chạy tay với --cho-xoa)
 // Bí mật đọc từ biến môi trường BS_MAT_KHAU + BS_MA_CHU_QUAN, thiếu thì từ <thư mục>/chu-quan.json (matKhau, ma). Không in bí mật.
 import fs from 'node:fs';
 import path from 'node:path';
 
-const [, , lenh, URL_GOC, THU] = process.argv;
-if (!['nap', 'keo'].includes(lenh) || !URL_GOC || !THU) { console.error('Dùng: node cf/kho.mjs nap|keo <url> <thư mục brainstorm-ui>'); process.exit(2); }
+const CO = new Set(process.argv.slice(2).filter((a) => a.startsWith('--')));
+const [lenh, URL_GOC, THU] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+if (!['nap', 'keo'].includes(lenh) || !URL_GOC || !THU) { console.error('Dùng: node cf/kho.mjs nap <url> <thư mục> | keo <url> <thư mục> [--cho-xoa]'); process.exit(2); }
 const goc = URL_GOC.replace(/\/+$/, '');
 let cq = {}; try { cq = JSON.parse(fs.readFileSync(path.join(THU, 'chu-quan.json'), 'utf8')); } catch { /* dùng biến môi trường */ }
 const MK = process.env.BS_MAT_KHAU || cq.matKhau; const MA = process.env.BS_MA_CHU_QUAN || cq.ma;
@@ -50,17 +52,15 @@ if (lenh === 'nap') {
     lo.push({ p: KHO + f.tuongDoi, b64: b.toString('base64') }); co += b.length;
   }
   await day();
-  if (process.argv.includes('--chot')) { await goi('/__kho/chot', { method: 'POST' }); console.log('Đã chốt di trú'); }
+  await goi('/__kho/chot', { method: 'POST' }); // chốt + dựng lại lõi một lần
   console.log(`Đã nạp ${n} tệp (${(tong / 1048576).toFixed(1)} MB) lên ${goc}`);
 } else {
   const xa = await (await goi('/__kho/ds')).json();
-  // chặn xoá hàng loạt: thiếu hẳn một thư mục gốc đang có cục bộ, hoặc sẽ xoá > 20% tệp cục bộ ⇒ dừng, không đụng gì
-  const cucBo = dsCucBo(); const tapXa = new Set(Array.isArray(xa) ? xa.map((f) => f.p.slice(KHO.length)) : []);
+  if (!Array.isArray(xa)) { console.error('Cloudflare trả dữ liệu lạ — dừng'); process.exit(1); }
+  // chặn xoá hàng loạt (DO mất dữ liệu, nhầm URL…): sắp xoá > 20% tệp cục bộ (hoặc Cloudflare rỗng) ⇒ vẫn tải tệp mới, KHÔNG xoá, thoát 1
+  const cucBo = dsCucBo(); const tapXa = new Set(xa.map((f) => f.p.slice(KHO.length)));
   const seXoa = cucBo.filter((f) => !tapXa.has(f.tuongDoi)).length;
-  const thieuThu = THU_MUC.filter((t) => cucBo.some((f) => f.tuongDoi.startsWith(`${t}/`)) && ![...tapXa].some((p) => p.startsWith(`${t}/`)));
-  if (!Array.isArray(xa) || thieuThu.length || (seXoa > 5 && seXoa > cucBo.length * 0.2)) {
-    console.error(`Danh sách Cloudflare đáng ngờ (thiếu thư mục: ${thieuThu.join(', ') || 'không'}; sẽ xoá ${seXoa}/${cucBo.length}) — dừng, không xoá gì`); process.exit(1);
-  }
+  const dangNgo = !CO.has('--cho-xoa') && ((seXoa > 5 && seXoa > cucBo.length * 0.2) || (!xa.length && cucBo.length));
   const coXa = new Set(); let tai = 0, xoa = 0;
   for (const f of xa) {
     const tuongDoi = f.p.slice(KHO.length); coXa.add(tuongDoi);
@@ -72,6 +72,7 @@ if (lenh === 'nap') {
     const tam = `${dich}.keo.tam`; fs.writeFileSync(tam, b); fs.renameSync(tam, dich);
     const t = new Date(f.m); fs.utimesSync(dich, t, t); tai++;
   }
+  if (dangNgo) { console.error(`Kéo về: tải ${tai}; KHÔNG xoá — sắp xoá ${seXoa}/${cucBo.length} tệp cục bộ là đáng ngờ (kiểm rồi chạy tay với --cho-xoa)`); process.exit(1); }
   for (const f of dsCucBo()) if (!coXa.has(f.tuongDoi)) { fs.unlinkSync(f.a); xoa++; }
   console.log(`Kéo về: ${xa.length} tệp trên Cloudflare, tải ${tai}, xoá ${xoa} tệp cục bộ đã không còn`);
 }

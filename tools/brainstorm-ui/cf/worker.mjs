@@ -82,8 +82,9 @@ export class Ban extends DurableObject {
     // Cloudflare công khai: thiếu/ngắn MAT_KHAU hoặc BI_MAT_PHIEN thì ĐÓNG mọi đường động (không như Mac, nơi «chưa đặt mật khẩu» = chỉ 127.0.0.1)
     if (!CV.congBat(cqTuEnv(this.env))) return new Response('Chưa đặt MAT_KHAU / BI_MAT_PHIEN — bàn đóng.', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
     // gốc cho trang chụp ảnh MCP: bản deploy (tên miền chính hoặc *.workers.dev) luôn dùng GOC cố định để yêu cầu từ host khác không chen ngang; wrangler dev dùng chính nó
-    const chinh = this.env.GOC && (url.host === new URL(this.env.GOC).host || url.hostname.endsWith('.workers.dev'));
-    this.goc = chinh ? this.env.GOC : url.origin;
+    let hostGoc = ''; try { hostGoc = new URL(this.env.GOC).host; } catch { /* GOC hỏng/thiếu ⇒ dùng origin của yêu cầu */ }
+    const chinh = hostGoc && (url.host === hostGoc || url.hostname.startsWith('aiigrow-figma.') && url.hostname.endsWith('.workers.dev'));
+    this.goc = chinh ? this.env.GOC.replace(/\/+$/, '') : url.origin;
     this.app ||= this.dung();
     if (url.pathname === '/ws') {
       if ((request.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return new Response('Not Found', { status: 404 });
@@ -127,9 +128,8 @@ export class Ban extends DurableObject {
       // di trú chỉ mở tới khi chốt (/__kho/chot): trước đó ghi đè được (chạy lại nap khi đứt giữa chừng), sau đó đóng hẳn — audit trên Cloudflare không sửa được qua đây
       if (fs.existsSync(CHOT)) return json(410, { loi: 'Đã chốt di trú — /__kho/nap đóng' });
       for (const x of ds) if (!hopLe(x?.p) || typeof x.b64 !== 'string') return json(400, { loi: `Đường lạ: ${String(x?.p).slice(0, 100)}` }); // kiểm cả lô trước khi ghi
-      for (const x of ds) fs.writeFileSync(x.p, Buffer.from(x.b64, 'base64'));
-      this.app = this.dung(); // dựng lại lõi (chỉ mục biến thể, đuôi audit…) theo kho vừa nạp
-      return json(200, { ok: true, n: ds.length });
+      this.ctx.storage.transactionSync(() => { for (const x of ds) fs.writeFileSync(x.p, Buffer.from(x.b64, 'base64')); }); // cả lô hoặc không gì
+      return json(200, { ok: true, n: ds.length }); // lõi dựng lại một lần khi chốt
     }
     if (req.method === 'POST' && url.pathname === '/__kho/chot') {
       if (!fs.existsSync(CHOT)) fs.writeFileSync(CHOT, new Date().toISOString());
