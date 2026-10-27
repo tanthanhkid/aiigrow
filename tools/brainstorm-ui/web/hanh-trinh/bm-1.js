@@ -67,6 +67,17 @@ const ochon = (c, ic, mau, ten, phu) => `<div class="ochon ${c ? 'c' : ''}"><div
 const nutDen = (t, ic = '') => `<button class="nut rong">${ic}${t}</button>`;
 
 // ---------- Hành trình 1: Lần đầu dùng ----------
+// Welcome — màn đầu tiên khi Ba Mẹ mở app lần đầu (ảnh 03 Gemini «Tối giản thương hiệu», Thanh chọn 27/10; README ở aiigrow-thiet-ke/welcome-gemini-27102026).
+// Nền = ảnh tĩnh (đã cắt dấu ✦) phủ kín khung; video intro (nếu có tệp) phủ đúng khung ảnh, phát 1 lần rồi dừng ở khung cuối = ảnh tĩnh.
+// Không có tệp video ⇒ chỉ thấy ảnh (poster + <img> nằm dưới). Ảnh MCP (anh_man) chặn media nên luôn là khung tĩnh. Nút thật bằng kit Clay, đáy ảnh chừa ~22%.
+const WC = '/anh/welcome/welcome-03';
+const welcome = dt(`<img class="wc-nen" src="${WC}.webp" alt="AiiGrow · Ươm mầm thói quen số">
+<video class="wc-nen" src="${WC}-intro.mp4" poster="${WC}.webp" autoplay muted playsinline preload="auto"></video>
+${sb('07:19')}
+<div class="day" style="bottom:34px;gap:4px"><button class="nut ngoc rong" style="min-height:56px;font-size:17px" data-toi="bm1-chao">Bắt đầu</button>
+  <a class="lk" style="justify-content:center;min-height:44px" data-toi="bm1-dang-nhap">Tôi đã có tài khoản</a></div>`,
+CSS + '.dt:has(.wc-nen){background:#f3f3ef}.wc-nen{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 50%;display:block}video.wc-nen{pointer-events:none}video.wc-nen::-webkit-media-controls{display:none!important}.dt:has(.wc-nen) .sb{position:relative;z-index:1}');
+
 const chao = dt(`${sb('07:20')}<div class="pg" style="gap:14px">
   ${canh('rob-goc', 'Con lớn lên bằng yêu thương', 'Và nhận quyền lợi bằng nỗ lực của chính mình.')}
   <section class="the" style="display:flex;flex-direction:column;gap:12px;padding:18px">
@@ -228,6 +239,7 @@ const B = (key, ten, html, anh, toi, w = 390, h = 844) => ({ key, ten, w, h, htm
 export default [
   { id: 'bm-lan-dau', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Lần đầu dùng', mo: 'Ba Mẹ mở app lần đầu, đăng ký bằng số điện thoại, xác thực mã 6 số, rồi thiết lập hồ sơ Con, máy, nhiệm vụ & quà, giờ chơi.',
     buoc: [
+      B('bm1-welcome', 'Welcome — mở app lần đầu', welcome, '', 'Bấm «Bắt đầu»'),
       B('bm1-chao', 'Chào', chao, 'ss-bm-chao.jpg', 'Bấm «Bắt đầu bằng số điện thoại»'),
       B('bm1-dang-ky', 'Đăng ký', dangKy, 'ss-bm-dang-ky.jpg', 'Bấm «Gửi mã»'),
       B('bm1-otp', 'Nhập mã 6 số', otp, 'ss-bm-otp.jpg', 'Bấm «Xác nhận»'),

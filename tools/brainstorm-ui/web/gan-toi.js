@@ -87,3 +87,9 @@ export function apLop(html, lop) {
   }
   return '<!doctype html>\n' + d.documentElement.outerHTML;
 }
+
+// Iframe màn có sandbox không script nên trình duyệt chặn thuộc tính autoplay (cờ «sandboxed automatic features»).
+// Trang cha (cùng nguồn) gọi play() thay: video tắt tiếng phát một lần rồi dừng ở khung cuối (vd. intro màn Welcome); lỗi/thiếu tệp thì poster đứng yên.
+export function phatVideo(d) {
+  for (const v of d?.querySelectorAll?.('video[autoplay]') || []) { v.muted = true; try { v.play()?.catch?.(() => {}); } catch { /* bỏ qua */ } }
+}

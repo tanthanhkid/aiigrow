@@ -20,6 +20,7 @@ export default [
     id: 'qt-lan-dau', ten: 'Lần đầu dùng: đăng ký → thiết lập → máy nhận luật', sec: ['bm-dau'], hanh: ['bm-lan-dau'],
     nut: [
       n('bd', 'bd', 'bm', 'Tải app'),
+      n('welcome', 'man', 'bm', 'Welcome', 'bm1-welcome'),
       n('chao', 'man', 'bm', 'Chào', 'bm1-chao'),
       n('dk', 'man', 'bm', 'Đăng ký', 'bm1-dang-ky'),
       n('gui-ma', 'he', 'chu', 'Gửi mã 6 số qua SMS'),
@@ -37,7 +38,7 @@ export default [
       n('xong', 'man', 'bm', 'Xong rồi', 'bm1-ob-xong'),
       n('kt', 'kt', 'bm', 'Vào Trang chủ'),
     ],
-    noi: [['bd', 'chao'], ['chao', 'dk'], ['dk', 'gui-ma', 'Gửi mã'], ['gui-ma', 'otp', 'SMS'], ['otp', 'ma-dung', 'Xác nhận'],
+    noi: [['bd', 'welcome'], ['welcome', 'chao', 'Bắt đầu'], ['chao', 'dk'], ['dk', 'gui-ma', 'Gửi mã'], ['gui-ma', 'otp', 'SMS'], ['otp', 'ma-dung', 'Xác nhận'],
       ['ma-dung', 'con', 'Đúng'], ['ma-dung', 'otp', 'Sai'], ['con', 'may'], ['may', 'ghep'], ['ghep', 'cai', 'Mã ghép'],
       ['cai', 'ghep-xong'], ['ghep-xong', 'mau', 'Đã ghép'], ['mau', 'gio'], ['gio', 'luu', 'Lưu và gửi'], ['luu', 'ap'], ['luu', 'xong'], ['xong', 'kt']],
   },
