@@ -120,7 +120,7 @@ export function taoMcp(C) {
     if (muc?.tep) {
       const r = await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`);
       html = tho = await domGoi('lamSach', r.html);
-      if (mf.dc && v == null) html = await domGoi('apLop', tho, JSON.stringify(mf.dc.lop || { tuDong: true })); // màn dùng chung: liên kết riêng của luồng này
+      if (mf.dc) html = await domGoi('apLop', tho, JSON.stringify(mf.dc.lop || { tuDong: true })); // màn dùng chung: liên kết riêng của luồng này
       if (m.ke && m.toi && !/data-toi=/.test(html)) { const { MAN } = await taiMan(); html = await domGoi('ganToi', html, m.toi, m.ke, MAN[m.ke]?.ten || ''); }
     } else { html = await htmlGoc(m); tho = m.html; }
     return { m, html, tho, w: muc?.w || m.w, h: muc?.h || m.h, v: vv, mf };
@@ -449,8 +449,8 @@ export function taoMcp(C) {
         const pb0 = await goiJ(req0, 'GET', '/api/phien-ban');
         if (pb0[key]?.dc && !pb0[key].dc.lop?.tuDong) { const lop = JSON.parse(await domGoi('layLop', than.html)); if (lop.ds?.length) than.lop = lop; } // nút của luồng này theo bản mới
         const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(key)}`, than);
-        const { btXoa, dcAnhHuong, ...m0 } = mf;
-        return [chu({ key, dangDung: `v${m0.hien}`, ...(btXoa ? { bienTheDaGo: btXoa } : {}), ...(m0.dc ? { dungChung: await (async () => { const d = await dungChungCua(key, m0); const da = new Set(dcAnhHuong || []); return { ...d, daCapNhat: (d?.voi || []).filter((x) => da.has(x.key)).map((x) => `${x.tenHanhTrinh} › ${x.ten} (${x.key})`) }; })() } : {}), ...tomMf(m0) })];
+        const { btXoa, dcAnhHuong, dcLoi, ...m0 } = mf;
+        return [chu({ key, dangDung: `v${m0.hien}`, ...(btXoa ? { bienTheDaGo: btXoa } : {}), ...(m0.dc ? { dungChung: await (async () => { const d = await dungChungCua(key, m0); const da = new Set(dcAnhHuong || []); return { ...d, daCapNhat: (d?.voi || []).filter((x) => da.has(x.key)).map((x) => `${x.tenHanhTrinh} › ${x.ten} (${x.key})`), ...(dcLoi ? { chuaCapNhat: dcLoi } : {}) }; })() } : {}), ...tomMf(m0) })];
       });
 
     T('khoi_phuc_phien_ban', 'Khôi phục một phiên bản cũ của màn (v=0 là bản trong mã) — ghi thành phiên bản mới, không xoá gì.',

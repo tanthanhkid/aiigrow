@@ -69,6 +69,8 @@ function banTrongMa() {
   }).catch((e) => { maGoc = null; throw e; }));
 }
 // chiKey: chỉ nạp lại một màn (tin realtime «thay»). Trả Set các key vừa đổi bản hiển thị.
+const DC_GIONG = new Map(); // màn dùng chung → dấu (phiên bản|nhóm) đã đối chiếu: vẫn như bản chia sẻ
+const toiCua = (h) => [...new Set([...String(h).matchAll(/data-toi="([^"]*)"/g)].map((x) => x[1]))].sort().join(',');
 async function napHienHanh(chiKey = '') {
   const doi = new Set();
   let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return doi; ds = await r.json(); } catch { return doi; }
@@ -79,7 +81,7 @@ async function napHienHanh(chiKey = '') {
     if (muc?.xoa) { if (!HIEN.get(m.key)?.xoa) { HIEN.set(m.key, { v: hien, xoa: true }); doi.add(m.key); } return; } // chủ quản xoá màn khỏi hành trình
     const dc = mf?.dc; const dau = dc ? `${hien}|${dc.t}` : hien; // màn dùng chung: lớp liên kết của luồng đổi được mà không thêm phiên bản
     if (!dc && (hien === (m.pb || 0) || (muc?.tep || 0) === (mucChup?.tep || 0))) { if (HIEN.delete(m.key)) doi.add(m.key); return; } // cùng tệp HTML (vd. khôi phục về đúng bản đã chia sẻ)
-    if (HIEN.get(m.key)?.v === dau) return;
+    if (HIEN.get(m.key)?.dau === dau || (!HIEN.has(m.key) && DC_GIONG.get(m.key) === dau)) return;
     try {
       let html = '', w = m.w, h = m.h;
       if (muc?.tep) {
@@ -96,7 +98,9 @@ async function napHienHanh(chiKey = '') {
         html = goc?.html || ''; w = goc?.w || w; h = goc?.h || h;
       }
       if (!html) return;
-      HIEN.set(m.key, { v: dau, html, w, h }); doi.add(m.key);
+      // màn dùng chung chưa đổi gì kể từ lúc chia sẻ (cùng tệp, cùng liên kết): giữ bản đã chia sẻ, không đánh «mới»
+      if (dc && (muc?.tep || 0) === (mucChup?.tep || 0) && toiCua(html) === toiCua(m.html || '')) { DC_GIONG.set(m.key, dau); if (HIEN.delete(m.key)) doi.add(m.key); return; }
+      HIEN.set(m.key, { v: hien, dau, html, w, h }); doi.add(m.key);
     } catch { /* lỗi mạng: giữ bản đang có, lần đồng bộ sau thử lại */ }
   }));
   return doi;

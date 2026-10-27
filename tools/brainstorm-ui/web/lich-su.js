@@ -11,7 +11,7 @@ export const TEN_LOAI = {
   'phuong-an.tao': 'Tạo phương án', 'phuong-an.sua': 'Sửa phương án', 'phuong-an.xoa': 'Xoá phương án (vào thùng rác)', 'phuong-an.khoi-phuc': 'Khôi phục phương án từ thùng rác',
   'phuong-an.xoa-vinh-vien': 'Xoá vĩnh viễn phương án', 'phuong-an.di-tru': 'Di trú phương án từ trình duyệt', 'phuong-an.khoi-phuc-lich-su': 'Khôi phục phương án từ lịch sử',
   'man.thay': 'Thay màn', 'man.khoi-phuc': 'Khôi phục phiên bản màn', 'man.de-xuat': 'Thay màn bằng đề xuất', 'man.khoi-phuc-lich-su': 'Khôi phục màn từ lịch sử', 'man.xoa': 'Xoá màn khỏi hành trình', 'man.khoi-phuc-xoa': 'Khôi phục màn đã xoá', 'man.lien-ket': 'Sửa liên kết màn',
-  'man.dung-chung': 'Cập nhật màn dùng chung', 'dung-chung.gop': 'Gộp màn dùng chung', 'dung-chung.tach': 'Tách màn khỏi nhóm dùng chung', 'dung-chung.lien-ket': 'Sửa liên kết riêng của màn dùng chung',
+  'man.dung-chung': 'Cập nhật màn dùng chung', 'dung-chung.gop': 'Gộp màn dùng chung', 'dung-chung.tach': 'Tách màn khỏi nhóm dùng chung', 'dung-chung.lien-ket': 'Sửa liên kết riêng của màn dùng chung', 'dung-chung.lech': 'Màn dùng chung chưa lan được nội dung',
   'gop-y.tao': 'Góp ý mới', 'gop-y.tra-loi': 'Trả lời góp ý', 'gop-y.sua': 'Sửa góp ý', 'gop-y.xoa': 'Xoá góp ý', 'gop-y.trang-thai': 'Đổi trạng thái góp ý', 'gop-y.muc': 'Đổi mức góp ý',
   'gop-y.yc-bien-the': 'Yêu cầu biến thể', 'gop-y.khoi-phuc-lich-su': 'Khôi phục góp ý từ lịch sử',
   'de-xuat.tao': 'Đề xuất thay đổi mới', 'de-xuat.chap': 'Accept đề xuất', 'de-xuat.sua-tiep': 'Áp dụng đề xuất sau «Sửa tiếp»', 'de-xuat.tu-choi': 'Từ chối đề xuất',

@@ -14,7 +14,7 @@ export function ganDungChung(c) {
   const nhan = (k) => `${tenLuong(k)} › ${MAN[k]?.ten || k}`;
   const lucCua = (k) => { const pb = PB[k]; const m = pb?.ds?.find((x) => x.v === pb.hien); return m?.tep ? Date.parse(m.t) || 0 : 0; }; // v0 (bản trong mã) = cũ nhất
   const moiNhat = (ds) => ds.slice().sort((a, b) => lucCua(b) - lucCua(a))[0];
-  let goiY = [], cq = false, dangMo = false, tapTrung = '';
+  let goiY = [], cq = false, dangMo = false, tapTrung = '', henGy = 0;
 
   function tinhGoiY() {
     goiY = goiYDungChung(Object.keys(MAN).map((k) => ({ key: k, ten: MAN[k].ten, lan: MAN[k].lan, w: MAN[k].w, h: MAN[k].h, html: thoCua(k), nhom: MAN[k].dc?.id || '', xoa: daXoa(k) })));
@@ -140,7 +140,7 @@ export function ganDungChung(c) {
   $('#nut-dc').onclick = () => mo('');
   return {
     mo, dong, gop, tach, tinhGoiY, goiY: () => goiY, nhom: nhomDangCo,
-    khiDoi() { tinhGoiY(); if (dangMo) ve(); },
+    khiDoi() { if (dangMo && !$('#lop-dc').hidden) { ve(); return; } clearTimeout(henGy); henGy = setTimeout(tinhGoiY, 1500); }, // đóng bảng: chỉ đếm lại gợi ý (gộp nhiều lần đổi thành một)
     datCq(la) { cqNho = !!la; },
   };
 }

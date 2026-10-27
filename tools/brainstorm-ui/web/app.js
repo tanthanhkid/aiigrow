@@ -1151,7 +1151,7 @@ async function thayMan(key, html, meta = {}) {
   const dxKhung = meta.bt ? timKhung(meta.bt)?.deXuat : null;
   if (dxKhung) return thayTheoDeXuat(dxKhung, key, html, meta);
   dangThay.add(key); html = lamSach(html);
-  let btXoa = null, dcAnh = [];
+  let btXoa = null, dcAnh = [], dcLoiBao = '';
   // màn dùng chung: nút của chính luồng này theo bản mới (vd. Claude đổi chữ nút) — các luồng khác giữ lớp liên kết của chúng
   let lop; if (MAN[key].dc && !MAN[key].dc.lop?.tuDong && meta.nguon !== 'lien-ket') { const l = layLop(html); if (l.ds?.length) lop = l; }
   try {
@@ -1159,7 +1159,7 @@ async function thayMan(key, html, meta = {}) {
       body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '', goc: meta.goc, lop }) }); // goc: bản đang sửa — máy chủ từ chối nếu màn vừa có bản mới hơn
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { if (j.lech || j.dungChung) dongBoPhienBan(); throw new Error(j.loi || `HTTP ${r.status}`); }
-    const { btXoa: xoa, dcAnhHuong, ...mf } = j; btXoa = xoa || null; dcAnh = dcAnhHuong || []; // btXoa: máy chủ đã đưa biến thể vừa dùng vào thùng rác
+    const { btXoa: xoa, dcAnhHuong, dcLoi, ...mf } = j; btXoa = xoa || null; dcAnh = dcAnhHuong || []; dcLoiBao = dcLoi?.join("; ") || ""; // btXoa: máy chủ đã đưa biến thể vừa dùng vào thùng rác
     PB[key] = mf; const muc = mucPb(key, mf.hien); if (muc?.tep) HTML_PB.set(`${key}/${muc.tep}`, html);
     await apPhienBan(key);
   } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
@@ -1168,7 +1168,8 @@ async function thayMan(key, html, meta = {}) {
   if (dcAnh.length) dongBoPhienBan(); // màn cùng nhóm dùng chung vừa nhận bản mới
   qtDaVe = ''; veTatCa(); luuLai();
   const dcBao = dcAnh.length ? ` Dùng chung: đã cập nhật ${dcAnh.map((k) => `«${timLan(MAN[k]?.lan)?.ten || ''} › ${MAN[k]?.ten || k}»`).join(', ')} (liên kết của từng luồng giữ nguyên).` : '';
-  toast(meta.bao ? meta.bao.replace('{v}', PB[key].hien) : `Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}${btXoa ? '; biến thể đã rời bàn, chỗ của nó để trống' : ''}. Bản cũ và bản vừa thay đều trong Lịch sử.${dcBao}${canhBaoThay ? ` Lưu ý: ${canhBaoThay}.` : ''}`, !!canhBaoThay);
+  const dcLech = dcLoiBao ? ` ⚠ Chưa lan được sang: ${dcLoiBao} — mở 🔗 Dùng chung để kiểm.` : '';
+  toast(meta.bao ? meta.bao.replace('{v}', PB[key].hien) : `Đã thay «${MAN[key].ten}» — đang dùng v${PB[key].hien}${btXoa ? '; biến thể đã rời bàn, chỗ của nó để trống' : ''}. Bản cũ và bản vừa thay đều trong Lịch sử.${dcBao}${dcLech}${canhBaoThay ? ` Lưu ý: ${canhBaoThay}.` : ''}`, !!canhBaoThay || !!dcLech);
   return true;
 }
 // biến thể vừa dùng để Thay màn: máy chủ đã cho vào thùng rác ⇒ gỡ khỏi bàn này (không gửi xoá lại), màn con nối về cha của nó; chỗ trống giữ nguyên
@@ -1247,7 +1248,7 @@ $('#ls-khoi-phuc').onclick = async () => {
   try {
     const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', body: JSON.stringify({ tu: v }), headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() } });
     const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
-    const { dcAnhHuong, ...mf } = j; PB[key] = mf; if (dcAnhHuong?.length) dongBoPhienBan(); // dùng chung: các luồng khác cũng nhận bản khôi phục
+    const { dcAnhHuong, dcLoi, ...mf } = j; PB[key] = mf; if (dcAnhHuong?.length) dongBoPhienBan(); // dùng chung: các luồng khác cũng nhận bản khôi phục
   } catch (e) { toast(`Không khôi phục được: ${e.message}`, true); veLichSu(); return; } finally { dangThay.delete(key); }
   try { await apPhienBan(key); } catch (e) { toast(`Đã khôi phục trên máy chủ (v${PB[key].hien}) nhưng chưa tải được bản đó (${e.message}) — tải lại trang.`, true); }
   ls.v = PB[key].hien; qtDaVe = ''; veTatCa(); veLichSu();
@@ -1258,7 +1259,7 @@ $('#ls-khoi-phuc').onclick = async () => {
 async function ghiPb(key, than) {
   const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', body: JSON.stringify(than), headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() } });
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.canMa ? 'Cần mã chủ quản (mở 🔑 trong Góp ý)' : j.loi || `HTTP ${r.status}`);
-  const { dcAnhHuong, ...mf } = j; return mf;
+  const { dcAnhHuong, dcLoi, ...mf } = j; return mf;
 }
 async function xoaMan(key, xoa) {
   const m = MAN[key]; if (!m) return;
@@ -1823,7 +1824,7 @@ GY = ganGopY({ donKhungDeXuat: (ds) => { if (donKhungDeXuat(ds)) veTatCa(); }, M
   hoiDungChung: (k) => hoiDungChung(k, 'Accept đề xuất cho'),
   async apManifest(key, m) {
     if (!coMan(key) || !m) return;
-    const { dcAnhHuong, ...mf } = m; PB[key] = mf; await apPhienBan(key); if (dcAnhHuong?.length) dongBoPhienBan(); // dùng chung: các chỗ khác cũng nhận bản mới
+    const { dcAnhHuong, dcLoi, ...mf } = m; PB[key] = mf; await apPhienBan(key); if (dcAnhHuong?.length) dongBoPhienBan(); // dùng chung: các chỗ khác cũng nhận bản mới
     qtDaVe = ''; veTatCa(); luuLai(); // các bàn khác nhận {t:'rv', loai:'thay'} do máy chủ phát — không phát thêm lần nữa
   },
   // «Sửa tiếp»: đưa bản đề xuất lên bàn thành khung tạm cạnh màn gốc, mở Chế độ Sửa; Thay màn từ khung này = Accept
@@ -1856,7 +1857,7 @@ async function laChuQuan(lai = false) {
   return CQ.la;
 }
 const LS = ganLichSu({ MAN, LAN_GOC, toast, lamSach, chuQuan: () => laChuQuan(true), taiGopY: () => GY.tai(), tenNguoi: () => rt?.ten() || '',
-  async apManifest(key, m) { if (!coMan(key) || !m) return; const { dcAnhHuong, ...mf } = m; PB[key] = mf; await apPhienBan(key); if (dcAnhHuong?.length) dongBoPhienBan(); qtDaVe = ''; veTatCa(); } });
+  async apManifest(key, m) { if (!coMan(key) || !m) return; const { dcAnhHuong, dcLoi, ...mf } = m; PB[key] = mf; await apPhienBan(key); if (dcAnhHuong?.length) dongBoPhienBan(); qtDaVe = ''; veTatCa(); } });
 $('#nut-au-bang').onclick = () => {
   const f = khungChon(); const l = !f && st.lanChon ? timLan(st.lanChon) : null;
   if (f) LS.mo(f.loai === 'goc' ? { key: f.key } : { id: f.id, ten: tenCua(f) });

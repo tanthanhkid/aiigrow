@@ -66,13 +66,13 @@ export function taoUngDung(O = {}) {
   }
   // Khoá liên tiến trình theo màn (nhiều máy chủ từ nhiều worktree dùng chung kho): mkdir là thao tác nguyên tử.
   const ngu = (ms) => new Promise((r) => setTimeout(r, ms));
-  async function khoaPb(key) {
+  async function khoaPb(key, han = 10000) { // han: khoá cũ hơn chừng này coi như kẹt (tiến trình chết) — khoá «dung-chung» giữ lâu (lan tới 20 màn) nên dài hơn
     const k = path.join(PHIEN_BAN, `.khoa-${key}`);
     fs.mkdirSync(PHIEN_BAN, { recursive: true });
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < (han > 10000 ? 1500 : 100); i++) {
       try { fs.mkdirSync(k); return () => { try { fs.rmdirSync(k); } catch { /* đã gỡ */ } }; } catch (e) {
         if (e.code !== 'EEXIST') throw e;
-        try { if (Date.now() - fs.statSync(k).mtimeMs > 10000) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
+        try { if (Date.now() - fs.statSync(k).mtimeMs > han) fs.rmdirSync(k); } catch { /* tiến trình khác vừa gỡ */ }
         await ngu(20);
       }
     }
@@ -264,7 +264,8 @@ export function taoUngDung(O = {}) {
       if (req.method !== 'GET') return json(res, 405, { loi: 'Không hỗ trợ' });
       const keys = await keyMan(); const ra = {};
       let ds = []; try { ds = fs.readdirSync(PHIEN_BAN); } catch { /* chưa có kho */ }
-      let dc; try { dc = docDc(); } catch { return json(res, 500, { loi: 'Tệp màn dùng chung (dung-chung.json) hỏng' }); }
+      // dung-chung.json hỏng: vẫn trả phiên bản của mọi màn (không kèm nhóm) — chỉ thao tác ghi của màn bị chặn tới khi sửa tệp
+      let dc; try { dc = docDc(); } catch { console.error('[phien-ban] dung-chung.json hỏng — trả manifest không kèm nhóm'); dc = { nhom: {} }; }
       for (const k of ds) if (keys.has(k)) { try { const m = docManifest(k); if (m.ds.length) ra[k] = kemDc(k, m, dc); } catch { /* manifest hỏng: bỏ qua màn này */ } }
       return json(res, 200, ra);
     }
@@ -311,7 +312,7 @@ export function taoUngDung(O = {}) {
         if (r[0] !== 'lai') return r[0] === 200 ? [200, kemDc(key, r[1])] : r;
         continue; // vừa được gộp vào nhóm trong lúc chờ khoá: ghi lại theo đường dùng chung
       }
-      let mo; try { mo = await khoaPb('dung-chung'); } catch { return [503, { loi: 'Kho phiên bản đang bận — thử lại' }]; }
+      let mo; try { mo = await khoaPb('dung-chung', KHOA_DC); } catch { return [503, { loi: 'Kho phiên bản đang bận — thử lại' }]; }
       try { return await ghiDungChung(key, than, tin, ai, loaiAu); } finally { mo(); }
     }
     return [503, { loi: 'Kho phiên bản đang bận — thử lại' }];
@@ -402,6 +403,9 @@ export function taoUngDung(O = {}) {
   const hienCua = (m) => m.ds.find((x) => x.v === m.hien) || null;
   const daXoaKey = (k) => { try { return !!hienCua(docManifest(k))?.xoa; } catch { return false; } };
   const sao = (o) => JSON.parse(JSON.stringify(o));
+  const KHOA_DC = 120000; // khoá nhóm dùng chung: coi là kẹt sau 2 phút (một lượt lan tối đa 20 màn × 6 MB)
+  // nội dung chung lưu sang màn khác: bỏ liên kết của luồng nguồn (mỗi luồng áp lớp riêng khi vẽ) ⇒ đọc thẳng bản lưu (Lịch sử, sau khi tách) không mang nút của luồng khác
+  const boLk = (h) => String(h).replace(/\sdata-(?:toi|lk-sua|lk-mat)(?:="[^"]*")?/g, '');
   function baoDoi(keys, ten, im = true) { for (const k of keys) { phatPhong('bang', { t: 'rv', loai: 'thay', key: k, ten, tu: '', ...(im ? { im: true } : {}) }); review.baoThayMan(k, { ten }); } }
   // (đang giữ khoá «dung-chung») ghi một phiên bản cho màn trong nhóm rồi lan nội dung sang các màn cùng nhóm
   async function ghiDungChung(key, than, tin, ai, loaiAu) {
@@ -423,28 +427,30 @@ export function taoUngDung(O = {}) {
     if (laXoa) return [200, kemDc(key, m, dc)]; // xoá màn ở MỘT luồng: các luồng khác giữ nguyên
     if (laKpXoa) { // lúc màn bị xoá nội dung chung có thể đã đổi: lấy bản mới nhất của nhóm
       const moi = g.moi; const html = moi && !(moi.key === key && moi.tep === muc.tep) ? docTepPb(moi.key, moi.tep) : null;
-      if (html != null && html !== docTepPb(key, muc.tep)) {
-        const r2 = await ghiPhienBan0(key, { html, w: moi.w, h: moi.h, nhan: 'Dùng chung — lấy nội dung mới nhất của nhóm', nguon: 'dung-chung' }, null, ai, 'man.dung-chung', true, { dcTu: moi.key, au: { tu: moi.key } });
+      if (html != null && boLk(html) !== boLk(docTepPb(key, muc.tep) ?? '')) {
+        const r2 = await ghiPhienBan0(key, { html: boLk(html), w: moi.w, h: moi.h, nhan: 'Dùng chung — lấy nội dung mới nhất của nhóm', nguon: 'dung-chung' }, null, ai, 'man.dung-chung', true, { dcTu: moi.key, au: { tu: moi.key } });
         if (r2[0] === 200) m = r2[1];
       }
       return [200, kemDc(key, m, dc)];
     }
     const html = docTepPb(key, muc.tep);
-    const anhHuong = [];
+    const anhHuong = [], dcLoi = [];
     if (html != null) {
+      const chung = boLk(html);
       for (const k of khac) {
         if (daXoaKey(k)) continue;
-        const r2 = await ghiPhienBan0(k, { html, w: muc.w, h: muc.h, nhan: `Dùng chung · theo «${tenMan(key)}» v${muc.v}`, yTuong: muc.yTuong || '', nguon: 'dung-chung', model: muc.model || '' },
+        const r2 = await ghiPhienBan0(k, { html: chung, w: muc.w, h: muc.h, nhan: `Dùng chung · theo «${tenMan(key)}» v${muc.v}`, yTuong: muc.yTuong || '', nguon: 'dung-chung', model: muc.model || '' },
           null, ai, 'man.dung-chung', true, { dcTu: key, au: { tu: key, vTu: muc.v } });
-        if (r2[0] === 200) anhHuong.push(k);
+        if (r2[0] === 200) anhHuong.push(k); else dcLoi.push(`${tenMan(k)}: ${r2[1]?.loi || r2[0]}`);
       }
       g.moi = { key, tep: muc.tep, w: muc.w, h: muc.h };
+      if (dcLoi.length) { console.error('[dung-chung] lan nội dung lỗi:', dcLoi.join('; ')); audit.ghi({ loai: 'dung-chung.lech', dt: { nhom: g.id, key, loi: dcLoi }, ai }); }
     }
     const lop = than?.lop != null ? lopSach(than.lop, await keyMan()) : null; // nút của chính màn này theo bản mới (vd. Claude đổi chữ nút)
     if (lop) g.lk = { ...(g.lk || {}), [key]: lop };
     g.t = new Date().toISOString(); ghiDc(dc);
     baoDoi(anhHuong, ai?.ten || '');
-    return [200, { ...kemDc(key, m, dc), dcAnhHuong: anhHuong }];
+    return [200, { ...kemDc(key, m, dc), dcAnhHuong: anhHuong, ...(dcLoi.length ? { dcLoi } : {}) }];
   }
 
   // GET  /api/dung-chung                    → { nhom: [{ id, ds, lk, moi, t, tao }] }
@@ -465,7 +471,7 @@ export function taoUngDung(O = {}) {
     let t; try { t = JSON.parse(await docThan(req, 3 * PB_CO)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Quá lớn' : 'Không đọc được yêu cầu' }); }
     if (!t || typeof t !== 'object') return json(res, 400, { loi: 'Không đọc được yêu cầu' });
     const ai = aiCua(req);
-    let mo; try { mo = await khoaPb('dung-chung'); } catch { return json(res, 503, { loi: 'Kho phiên bản đang bận — thử lại' }); }
+    let mo; try { mo = await khoaPb('dung-chung', KHOA_DC); } catch { return json(res, 503, { loi: 'Kho phiên bản đang bận — thử lại' }); }
     try {
       let dc; try { dc = docDc(); } catch { return json(res, 500, { loi: 'Tệp màn dùng chung (dung-chung.json) hỏng' }); }
       const bay = new Date().toISOString();
@@ -494,16 +500,20 @@ export function taoUngDung(O = {}) {
         for (const k of ds) lk[k] = t.lop?.[k] != null ? lopSach(t.lop[k], keys) : lk[k] || { tuDong: true };
         const w = Math.round(Number(t.w)), h = Math.round(Number(t.h));
         const anhHuong = []; const loi = [];
+        // đăng ký nhóm TRƯỚC khi ghi các màn: Thay màn chen vào giữa chừng sẽ đi đường dùng chung và chờ khoá nhóm (đang giữ) thay vì ghi lẻ
+        const truoc = cu.map(sao);
+        for (const g0 of cu) delete dc.nhom[g0.id];
+        const g = { id, ds: tatCa, lk, moi: null, t: bay, tao: ai.ten || '' };
+        dc.nhom[id] = g; ghiDc(dc);
         for (const k of [t.nguon, ...tatCa.filter((x) => x !== t.nguon)]) {
           if (daXoaKey(k)) continue;
-          const r = await ghiPhienBan0(k, { html: t.html, w, h, nhan: `Gộp dùng chung — nội dung của «${tenMan(t.nguon)}»`, nguon: 'dung-chung' }, null, ai, 'man.dung-chung', true, { dcTu: t.nguon, au: { gop: id, nguon: t.nguon } });
-          if (r[0] === 200) anhHuong.push(k); else if (k === t.nguon) return json(res, r[0], r[1]); else loi.push(`${tenMan(k)}: ${r[1]?.loi || r[0]}`);
+          const r = await ghiPhienBan0(k, { html: k === t.nguon ? t.html : boLk(t.html), w, h, nhan: `Gộp dùng chung — nội dung của «${tenMan(t.nguon)}»`, nguon: 'dung-chung' }, null, ai, 'man.dung-chung', true, { dcTu: t.nguon, au: { gop: id, nguon: t.nguon } });
+          if (r[0] === 200) anhHuong.push(k);
+          else if (k === t.nguon) { delete dc.nhom[id]; for (const g0 of truoc) dc.nhom[g0.id] = g0; ghiDc(dc); return json(res, r[0], r[1]); } // chưa ghi màn nào: trả nhóm về như cũ
+          else loi.push(`${tenMan(k)}: ${r[1]?.loi || r[0]}`);
         }
         const mucN = hienCua(docManifest(t.nguon));
-        const truoc = cu.map(sao);
-        for (const g of cu) delete dc.nhom[g.id];
-        const g = { id, ds: tatCa, lk, moi: { key: t.nguon, tep: mucN.tep, w: mucN.w, h: mucN.h }, t: bay, tao: ai.ten || '' };
-        dc.nhom[id] = g; ghiDc(dc);
+        g.moi = { key: t.nguon, tep: mucN.tep, w: mucN.w, h: mucN.h }; ghiDc(dc);
         audit.ghi({ loai: 'dung-chung.gop', dt: { nhom: id, ds: tatCa, nguon: t.nguon }, ai, truoc: truoc.length ? truoc : null, sau: g });
         baoDoi(tatCa, ai.ten, false);
         return json(res, 200, { ok: true, nhom: g, anhHuong, loi });
