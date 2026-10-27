@@ -57,7 +57,7 @@ sửa ở bất kỳ màn nào trong nhóm (Thay màn, Sửa, Khôi phục, Acce
   (`web/gan-toi.js` `apLop`); nút không còn khớp sau khi nội dung đổi thì khung báo «⚠ N liên kết chưa khớp». Sửa liên kết (🔗) của màn dùng chung chỉ đổi lớp
   của luồng đó (audit `dung-chung.lien-ket`, không thành phiên bản mới). Máy chủ không phân tích HTML — lớp do trình duyệt/Chrome của MCP tính.
 - **Gộp / tách** (chỉ chủ quản): nút **🔗 Dùng chung** trên thanh trên (số = gợi ý) hoặc nhãn «🔗 dùng chung · N luồng» trên khung. Gợi ý tự dò màn khác luồng
-  cùng tên hoặc HTML gần giống (`web/dung-chung.js`, chỉ gợi ý — không tự gộp); chọn màn làm gốc (mặc định bản mới nhất), xem trước cạnh nhau rồi Gộp.
+  cùng tên hoặc HTML gần giống, kể cả cặp vốn chung bản trong mã mà đúng một bên đã sửa (`daLech`) (`web/dung-chung.js`, chỉ gợi ý — không tự gộp); chọn màn làm gốc (mặc định bản mới nhất), xem trước cạnh nhau rồi Gộp.
   Tách: màn giữ bản hiện tại (kèm liên kết của luồng) làm bản riêng; nhóm còn 1 màn thì giải tán. Audit `dung-chung.gop` / `dung-chung.tach`.
 - Khôi phục phiên bản lan cho cả nhóm (trừ về v0 — bản trong mã riêng từng màn: tách trước). Xoá màn (#163) chỉ xoá khỏi luồng đó; khôi phục màn thì nhận lại
   nội dung chung mới nhất.
