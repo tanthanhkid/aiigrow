@@ -326,7 +326,7 @@ export function ganGopY(A) {
     const l = A.timLan(ht); if (!l?.goc) return;
     A.toast('Đang dựng ảnh chụp hành trình + sơ đồ quy trình…');
     let qt = ''; try { qt = await A.svgHanhTrinh(ht); } catch { qt = ''; }
-    const man = l.buoc.filter((k) => Object.hasOwn(A.MAN, k)).map((k) => { const m = A.MAN[k]; return { key: k, ten: m.ten, html: m.html, w: m.w, h: m.h, pb: m.pbV ?? (A.PB[k]?.hien || 0) }; });
+    const man = l.buoc.filter((k) => Object.hasOwn(A.MAN, k) && !A.MAN[k].xoa).map((k) => { const m = A.MAN[k]; return { key: k, ten: m.ten, html: m.html, w: m.w, h: m.h, pb: m.pbV ?? (A.PB[k]?.hien || 0) }; });
     try {
       const s = await goi('/api/review/chia-se', { ht, ghiChu, man, qt });
       const url = `${location.origin}/r/${s.ma}`;

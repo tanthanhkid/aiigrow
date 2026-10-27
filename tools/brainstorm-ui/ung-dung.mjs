@@ -279,6 +279,9 @@ export function taoUngDung(O = {}) {
     let than;
     try { than = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
     if (than && than.nguon === 'de-xuat') than.nguon = ''; // «đề xuất góp ý» chỉ ghi qua review.mjs (không giả tác giả được)
+    if (than && /^(xoa|khoi-phuc-xoa)$/.test(than.nguon)) than.nguon = ''; // chỉ đặt qua cờ xoa / khoiPhucXoa
+    // Xoá màn khỏi hành trình / khôi phục màn đã xoá — CHỈ chủ quản (kể cả khi không khoá bảng). Màn đang bị xoá: ghiPhienBan từ chối mọi ghi khác (trong khoá).
+    if ((than?.xoa === true || than?.khoiPhucXoa === true) && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
     const [ma, obj] = await ghiPhienBan(key, than, null, aiCua(req));
     if (ma === 200) { // máy chủ báo mọi bàn (không dựa vào client phát qua realtime — phòng chỉ-xem không phát được)
       let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { /* bỏ qua */ }
@@ -298,12 +301,21 @@ export function taoUngDung(O = {}) {
       const v = (m.ds.at(-1)?.v || 0) + 1;
       const muc = { v, t: new Date().toISOString() };
       fs.mkdirSync(thuMucPb(key), { recursive: true });
-      if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
+      const cuoi = m.ds.find((x) => x.v === m.hien) || null; const dangXoa = !!cuoi?.xoa;
+      if (than?.xoa === true || than?.khoiPhucXoa === true) { // xoá mềm / khôi phục: bản mới trỏ đúng tệp đang dùng, chỉ đổi cờ xoa (lịch sử giữ nguyên)
+        if (than.xoa === true && dangXoa) return [409, { loi: 'Màn này đã bị xoá rồi' }];
+        if (than.khoiPhucXoa === true && !dangXoa) return [409, { loi: 'Màn này không bị xoá' }];
+        Object.assign(muc, { tep: cuoi?.tep || 0, w: cuoi?.w, h: cuoi?.h, bt: cuoi?.bt, yTuong: chuNgan(than.lyDo, 300),
+          ...(than.xoa === true ? { xoa: true, nhan: 'Xoá màn khỏi hành trình', nguon: 'xoa' } : { nhan: 'Khôi phục màn đã xoá', nguon: 'khoi-phuc-xoa' }) });
+      } else if (dangXoa) { // kể cả «Khôi phục vN»: phải «Khôi phục màn» trước (đúng loại audit, đúng quyền chủ quản)
+        return [409, { loi: 'Màn đang bị xoá khỏi hành trình — khôi phục màn trước' }];
+      } else if (than && than.tu != null) { // khôi phục: bản mới trỏ về tệp của bản cũ (không chép, không xoá gì)
         const tu = than.tu; const cu = !Number.isInteger(tu) ? null : tu === 0 ? { v: 0 } : m.ds.find((x) => x.v === tu);
         if (!Number.isInteger(tu) || !cu) return [400, { loi: 'Không có bản để khôi phục' }];
         Object.assign(muc, { tu, tep: cu.tep || 0, w: cu.w, h: cu.h, nhan: `Khôi phục v${tu}`, yTuong: cu.yTuong || '', nguon: 'khoi-phuc', bt: cu.bt });
       } else {
         const html = than?.html;
+        if (Number.isInteger(than?.goc) && than.goc !== (m.hien || 0)) return [409, { loi: `Màn vừa có bản mới (v${m.hien}) — đã tải lại, thử lại`, lech: true }]; // sửa dựa trên bản cũ (vd. sửa liên kết) không đè bản mới hơn
         if (typeof html !== 'string' || !html.trim() || html.length > PB_CO) return [400, { loi: 'Thiếu HTML hoặc quá lớn' }];
         const w = Math.round(Number(than.w)), h = Math.round(Number(than.h));
         Object.assign(muc, { tep: v, w: w > 0 && w < 5000 ? w : undefined, h: h > 0 && h < 20000 ? h : undefined,
@@ -319,7 +331,8 @@ export function taoUngDung(O = {}) {
         const banCua = (vv) => { const x = vv === 0 ? { v: 0, tep: 0 } : m.ds.find((y) => y.v === vv); if (!x) return null;
           let html = ''; if (x.tep) { try { html = fs.readFileSync(path.join(thuMucPb(key), `v${x.tep}.html`), 'utf8'); } catch { /* mất tệp */ } }
           return { ...x, ...(x.tep ? { html } : { trongMa: true }) }; };
-        audit.ghi({ loai: loaiAu || (muc.nguon === 'khoi-phuc' ? 'man.khoi-phuc' : muc.nguon === 'de-xuat' ? 'man.de-xuat' : 'man.thay'), dt: { key, v }, ai, truoc: banCua(hienCu), sau: banCua(v) });
+        const LOAI = { 'khoi-phuc': 'man.khoi-phuc', 'de-xuat': 'man.de-xuat', xoa: 'man.xoa', 'khoi-phuc-xoa': 'man.khoi-phuc-xoa', 'lien-ket': 'man.lien-ket' };
+        audit.ghi({ loai: loaiAu || LOAI[muc.nguon] || 'man.thay', dt: { key, v }, ai, truoc: banCua(hienCu), sau: banCua(v) });
       }
       return [200, m];
     } finally { moKhoa(); }
@@ -365,7 +378,14 @@ export function taoUngDung(O = {}) {
       return r.loi ? json(res, 409, { loi: r.loi }) : r.xungDot ? json(res, 409, { loi: 'Mục vừa bị sửa — thử lại' }) : json(res, 200, { ok: true, m: r.m });
     }
     if (/^man\./.test(e.loai)) {
-      const key = e.dt?.key; if (!st) return json(res, 400, { loi: 'Không có trạng thái để khôi phục' });
+      const key = e.dt?.key;
+      if (/^man\.(xoa|khoi-phuc-xoa)$/.test(e.loai)) { // đặt lại trạng thái xoá: «sau man.xoa» / «trước man.khoi-phuc-xoa» = xoá; ngược lại = khôi phục
+        const xoa = (e.loai === 'man.xoa') === (ben === 'sau');
+        const [ma, obj] = await ghiPhienBan(key, xoa ? { xoa: true } : { khoiPhucXoa: true }, null, ai);
+        if (ma === 200) { phatPhong('bang', { t: 'rv', loai: 'thay', key, ten: ai.ten, tu: '' }); review.baoThayMan(key, { ten: ai.ten }); }
+        return json(res, ma, ma === 200 ? { ok: true, manifest: obj } : obj);
+      }
+      if (!st) return json(res, 400, { loi: 'Không có trạng thái để khôi phục' });
       let m0; try { m0 = docManifest(key); } catch { return json(res, 500, { loi: 'Manifest phiên bản hỏng' }); }
       const con = st.v === 0 || st.trongMa ? { tu: 0 } : m0.ds.some((x) => x.v === st.v && x.tep === st.tep && fs.existsSync(path.join(thuMucPb(key), `v${x.tep}.html`))) ? { tu: st.v }
         : { html: st.html, w: st.w, h: st.h, nhan: `Khôi phục từ lịch sử ${nguon}`.slice(0, 120), yTuong: st.yTuong || '', nguon: 'lich-su' };
