@@ -124,11 +124,12 @@ async function dongBoBan0(chiKey) {
 function veDsMan() {
   const ol = $('#ds-man'); ol.innerHTML = '';
   const dem = new Map(); for (const g of R.goi.gopY) if (g.tt === 'mo' && g.key) dem.set(g.key, (dem.get(g.key) || 0) + 1);
+  let stt = 0;
   R.goi.man.forEach((m, i) => {
     if (daXoa(m.key)) return; // đã xoá khỏi hành trình (bấm «Bản lúc chia sẻ» để xem lại)
     const li = tao('li'); const b = tao('button', 'muc-man' + (R.i === i ? ' bat' : ''));
     b.type = 'button'; b.dataset.key = m.key;
-    b.append(tao('span', 'so-tt', String(i + 1)), tao('span', 't', m.ten));
+    b.append(tao('span', 'so-tt', String(++stt)), tao('span', 't', m.ten));
     if (HIEN.has(m.key) && !R.banChup) { const x = tao('span', 'moi', 'mới'); x.title = `Đã thay sau khi chia sẻ — đang hiện v${HIEN.get(m.key).v}`; b.append(x); }
     if (dem.get(m.key)) b.append(tao('span', 'dem', String(dem.get(m.key))));
     b.onclick = () => mo(m.key, i); li.append(b); ol.append(li);
@@ -138,6 +139,10 @@ function veDsMan() {
 document.querySelectorAll('.muc-dac').forEach((b) => { b.onclick = () => mo(b.dataset.mo); });
 // i: vị trí trong hành trình (một màn có thể được ghé nhiều lần, vd. A→B→A→C)
 function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
+  if (daXoa(key)) { // màn đã xoá khỏi hành trình (mọi đường: danh sách, Play lùi, đi theo, đổi bản): sang màn còn lại gần nhất
+    let j = R.goi.man.findIndex((x, n) => n > i && !daXoa(x.key)); if (j < 0) j = R.goi.man.findLastIndex((x) => !daXoa(x.key));
+    return j >= 0 ? mo(R.goi.man[j].key, j, ghi) : mo('chung', -1, ghi);
+  }
   R.mo = key; R.i = R.goi.man[i]?.key === key ? i : -1; R.ghimCho = null; capNhatGhimCho();
   // Play: mọi đường đổi màn (nút trong màn, ◀ ▶, danh sách, đi theo) đều vào lịch sử để «Quay lại» đúng; lùi thì không ghi
   if (R.play && !manCua(key)) datCheDo('xem'); // Quy trình / Góp ý chung: không có màn để Play
@@ -154,9 +159,10 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
     ifr.srcdoc = lamSach(m.html);
     vuaKhung();
   }
-  $('#vi-tri').textContent = m ? `Màn ${i + 1}/${R.goi.man.length} · ${m.ten}${m.moi ? ` · bản mới v${m.v}` : ''}`
+  const conLai = R.goi.man.filter((x) => !daXoa(x.key)).length, thu = R.goi.man.slice(0, i + 1).filter((x) => !daXoa(x.key)).length; // đếm bỏ màn đã xoá
+  $('#vi-tri').textContent = m ? `Màn ${thu}/${conLai} · ${m.ten}${m.moi ? ` · bản mới v${m.v}` : ''}`
     : key === 'qt' ? `Quy trình${HIEN.size && !R.banChup ? ` (sơ đồ chụp lúc chia sẻ — ${HIEN.size} màn đã thay sau đó)` : ''}` : 'Góp ý chung';
-  $('#nut-truoc').disabled = i <= 0 && !(R.play && R.lich.length > 1); $('#nut-sau').disabled = i < 0 || i >= R.goi.man.length - 1;
+  $('#nut-truoc').disabled = i <= 0 && !(R.play && R.lich.length > 1); $('#nut-sau').disabled = i < 0 || !R.goi.man.some((x, n) => n > i && !daXoa(x.key));
   $('#gy-noi').placeholder = m ? `Góp ý cho màn «${m.ten}»…` : 'Góp ý cho cả hành trình…';
   $('#hop-gy').hidden = key === 'qt';
   veDsMan(); veGopY(); veGhim();
@@ -211,7 +217,8 @@ function nhayGoiY(d, chu) {
 function playToi(key) { const ds = R.goi.man; let i = ds.findIndex((m, j) => j > R.i && m.key === key); if (i < 0) i = ds.findLastIndex((m) => m.key === key); mo(key, i); }
 function playLui() {
   let t = null;
-  if (R.lich.length > 1) { R.lich.pop(); t = R.lich.at(-1); } else if (R.i > 0) { t = { key: R.goi.man[R.i - 1].key, i: R.i - 1 }; R.lich = [t]; }
+  R.lich = R.lich.filter((x) => !daXoa(x.key)); // màn bị xoá giữa chừng: bỏ khỏi lịch sử Play
+  if (R.lich.length > 1) { R.lich.pop(); t = R.lich.at(-1); } else { const j = R.goi.man.findLastIndex((x, n) => n < R.i && !daXoa(x.key)); if (R.i > 0 && j >= 0) { t = { key: R.goi.man[j].key, i: j }; R.lich = [t]; } }
   if (!t) return false;
   mo(t.key, t.i, false);
   return true;
@@ -520,7 +527,7 @@ if (R.goi) {
   rt = taoRealtime({ st, vung: $('#vung'), dom: new Map(), phong: `r-${MA}`, toast, nhanBt: () => {}, nhanSu: () => {},
     nhanRv: (m) => {
       if (m.loai === 'thu-hoi') { het('Link góp ý này đã bị thu hồi.'); return; }
-      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.has(m.key) && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
+      if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.get(m.key)?.xoa && !R.banChup && R.mo !== m.key) toast(`Màn «${x.ten}» vừa bị xoá khỏi hành trình.`); else if (doi.has(m.key) && x && HIEN.has(m.key) && !HIEN.get(m.key).xoa && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
       clearTimeout(henTai); henTai = setTimeout(tai, 300);
     },
     khiChao: () => { dongBoBan(); }, // mỗi lần (nối lại) realtime: tin «thay» lúc chưa nối/rớt mạng có thể đã lỡ

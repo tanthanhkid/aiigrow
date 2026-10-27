@@ -21,7 +21,7 @@ export function ganToi(html, nhan, dich, tenDich) {
 
 // ---- Sửa liên kết (bàn web + MCP): «phần tử» = vị trí trong d.body.querySelectorAll('*') của HTML (ổn định với cùng một HTML) ----
 const BAM_DUOC = 'button,a,[role=button],.nut,.chip,.o,.viec,.dong,.the,.bt,[data-toi]';
-const chuCua = (el) => (el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
+const chuCua = (el) => ((el.textContent || '').trim() || el.getAttribute('aria-label') || el.getAttribute('title') || el.getAttribute('alt') || '').replace(/\s+/g, ' ').trim();
 // → [{ i, the, chu, toi }]: mọi phần tử đang có data-toi + (tatCa) các phần tử bấm được khác (bỏ khối bọc có nút con)
 export function dsLienKet(html, tatCa = false) {
   const d = new DOMParser().parseFromString(String(html || ''), 'text/html');

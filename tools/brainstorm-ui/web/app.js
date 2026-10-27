@@ -59,6 +59,8 @@ const HTML_PB = new Map();   // `${key}/${tep}` → HTML
 const mucPb = (key, v) => PB[key]?.ds.find((x) => x.v === v);
 const CQ = { la: false, luc: 0 }; // đã biết mình là chủ quản (máy chủ xác nhận) — chỉ khi đó lệnh ghi kho mới kèm mã (mã cũ/sai không đốt lượt thử)
 const daXoa = (k) => !!MAN[k]?.xoa; // màn đã bị chủ quản xoá khỏi hành trình (xoá mềm = một phiên bản có cờ xoa)
+// nhãn hành động sang bước kế — bỏ khi bước kế (theo mã) đã bị xoá (nhãn đó dẫn tới màn không còn)
+const toiCon = (k) => { const m = MAN[k]; const ke = m && LAN_GOC.find((x) => x.id === m.lan)?.buoc[m.buoc + 1]; return m?.toi && ke && !daXoa(ke) ? m.toi : ''; };
 // liên kết hỏng của một HTML: data-toi trỏ tới màn không có / đã xoá
 const TOI_CUA = new Map(); // HTML → các key data-toi (nhớ theo chuỗi)
 function lkHong(html) {
@@ -799,11 +801,11 @@ async function sinhHanhTrinh(lanLai) {
   if (!lanLai) { caiDat.soPa = n; luuCaiDat(); }
   const dot = Date.now().toString(36);
   // nguồn là một phương án → dùng HTML của phương án đó làm gốc
-  const buoc = g.buoc.filter((key) => !daXoa(key)).map((key) => { const f = khungCuaLan(nguon, key) || timKhung(key); return { key, ten: MAN[key].ten, w: MAN[key].w, h: MAN[key].h, html: htmlCua(f) || MAN[key].html, toi: MAN[key].toi }; });
+  const buoc = g.buoc.filter((key) => !daXoa(key)).map((key) => { const f = khungCuaLan(nguon, key) || timKhung(key); return { key, ten: MAN[key].ten, w: MAN[key].w, h: MAN[key].h, html: htmlCua(f) || MAN[key].html, toi: toiCon(key) }; });
   const lans = [];
   for (let k = 1; k <= n; k++) {
     const soMoi = Math.max(0, ...st.lanBt.filter((b) => b.tu === g.id).map((b) => b.k || 0)) + 1;
-    const l = lanLai || { id: `pa-${dot}-${k}`, tu: g.id, nguon: nguon.id, buoc: g.buoc, k: soMoi, n, yTuong: y, tt: 'dang' };
+    const l = lanLai || { id: `pa-${dot}-${k}`, tu: g.id, nguon: nguon.id, buoc: buoc.map((b) => b.key), k: soMoi, n, yTuong: y, tt: 'dang' };
     l.model = laMock() ? 'mock' : modelDung();
     if (!lanLai) {
       st.lanBt.push(l);
@@ -894,7 +896,7 @@ async function capNhatXemPrompt() {
   const f = khungChon(); const yy = $('#y-tuong').value || '…';
   let u;
   if (f) { const { w, h } = kichThuoc(f); u = loiNguoiDung({ y: yy, html: '(HTML của khung đang chọn)', w, h, ten: tenCua(f), k: 1, n: Number($('#so-bt').value) }); }
-  else if (st.lanChon) { const l = timLan(st.lanChon); const g = l.goc ? l : timLan(l.tu); u = loiHanhTrinh({ y: yy, lan: g, buoc: g.buoc.map((k) => ({ ...MAN[k], html: '(HTML màn)' })), k: 1, n: Number($('#so-bt').value) }); }
+  else if (st.lanChon) { const l = timLan(st.lanChon); const g = l.goc ? l : timLan(l.tu); u = loiHanhTrinh({ y: yy, lan: g, buoc: g.buoc.filter((k) => !daXoa(k)).map((k) => ({ ...MAN[k], toi: toiCon(k), html: '(HTML màn)' })), k: 1, n: Number($('#so-bt').value) }); }
   else return;
   $('#xem-prompt').textContent = `[system — cache 1h]\n${heThong(await taiAssets())}\n\n[user khối 1 — cache 1h]\n${u[0]}\n\n[user khối 2 — thay đổi mỗi lần]\n${u[1]}`;
 }
@@ -994,7 +996,7 @@ function vePlay(huong) {
   $('#pl-lui').disabled = play.lich.length < 2;
   const l0 = timLan(play.lan); const l = l0 && { ...l0, buoc: l0.buoc.filter((k) => !daXoa(k)) }; const viTri = l ? l.buoc.indexOf(keyCua(f)) : -1; // đếm bước bỏ màn đã xoá
   $('#pl-truoc').disabled = viTri <= 0; $('#pl-ke').disabled = viTri < 0 || viTri >= l.buoc.length - 1;
-  $('#pl-buoc').textContent = l && viTri >= 0 ? `${l.goc ? l.ten : 'Phương án ' + l.k} · bước ${viTri + 1}/${l.buoc.length}${m.toi && viTri < l.buoc.length - 1 ? ' · tiếp: ' + m.toi : ''}` : `${tenCua(f)} (ngoài hành trình)`;
+  $('#pl-buoc').textContent = l && viTri >= 0 ? `${l.goc ? l.ten : 'Phương án ' + l.k} · bước ${viTri + 1}/${l.buoc.length}${toiCon(keyCua(f)) && viTri < l.buoc.length - 1 ? ' · tiếp: ' + toiCon(keyCua(f)) : ''}` : `${tenCua(f)} (ngoài hành trình)`;
 }
 function ganBamPlay(ifr, f) {
   let tl; try { tl = ifr.contentDocument; } catch { return; }
@@ -1118,9 +1120,9 @@ async function thayMan(key, html, meta = {}) {
   dangThay.add(key); html = lamSach(html);
   try {
     const r = await fetch(`/api/phien-ban/${encodeURIComponent(key)}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-bs-phien': PHIEN, 'x-bs-nguoi': encodeURIComponent(rt?.ten() || ''), ...dauChuQuan() },
-      body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '' }) });
+      body: JSON.stringify({ html, w: meta.w, h: meta.h, nhan: meta.nhan || '', yTuong: meta.yTuong || '', nguon: meta.nguon || '', model: meta.model || '', bt: meta.bt || '', goc: meta.goc }) }); // goc: bản đang sửa — máy chủ từ chối nếu màn vừa có bản mới hơn
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.loi || `HTTP ${r.status}`);
+    if (!r.ok) { if (j.lech) dongBoPhienBan(); throw new Error(j.loi || `HTTP ${r.status}`); }
     PB[key] = j; const muc = mucPb(key, j.hien); if (muc?.tep) HTML_PB.set(`${key}/${muc.tep}`, html);
     await apPhienBan(key);
   } catch (e) { toast(`Không thay được màn: ${e.message}`, true); return false; } finally { dangThay.delete(key); }
@@ -1248,7 +1250,7 @@ async function suaLienKet(key, x, toi) {
   const html = datLienKet(m.html, x.i, toi, x.chu);
   if (!html) { toast('Màn vừa đổi bản — đã tải lại danh sách liên kết.', true); veLienKet(); return; }
   const nhan = `Liên kết «${x.chu || x.the}» ${toi ? `→ ${MAN[toi]?.ten || toi}` : 'gỡ'}${x.toi && toi ? ` (trước: ${MAN[x.toi]?.ten || x.toi})` : ''}`;
-  const ok = await thayMan(key, html, { w: m.w, h: m.h, nhan: nhan.slice(0, 120), nguon: 'lien-ket', bao: `Đã lưu liên kết của «${m.ten}» — v${'{v}'}; Play/Quy trình/link /r/ dùng ngay.` });
+  const ok = await thayMan(key, html, { w: m.w, h: m.h, goc: m.pbV || 0, nhan: nhan.slice(0, 120), nguon: 'lien-ket', bao: `Đã lưu liên kết của «${m.ten}» — v${'{v}'}; Play/Quy trình/link /r/ dùng ngay.` });
   if (!$('#lop-lk').hidden && lk.key === key) veLienKet();
   return ok;
 }

@@ -72,7 +72,7 @@ export function taoQuyTrinh(api) {
     // id theo thứ tự bước: một màn ghé hai lần vẫn là hai nút
     const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map((k, i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
     const noi = []; let truoc = 'bd', keTruoc = '';
-    buoc.forEach((k, i) => { noi.push([truoc, `${i}:${k}`, keTruoc ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; });
+    buoc.forEach((k, i) => { noi.push([truoc, `${i}:${k}`, keTruoc && l.buoc[l.buoc.indexOf(keTruoc) + 1] === k ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; }); // nhãn chỉ khi đúng bước kế (bước giữa bị xoá ⇒ không nhãn)
     noi.push([truoc, 'kt', '']);
     return { id: `tu-${l.id}`, ten: `${l.ten} (tự sinh từ chuỗi màn)`, tuSinh: true, nut, noi };
   }

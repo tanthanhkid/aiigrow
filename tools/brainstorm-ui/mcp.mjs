@@ -130,7 +130,9 @@ export function taoMcp(C) {
     const hongK = (k) => !MAN[k] || daXoaMf(pb[k]);
     const keys = [...new Set(LAN.flatMap((l) => l.buoc))].filter((k) => !daXoaMf(pb[k]));
     const ra = [];
-    await Promise.all(keys.map(async (key) => {
+    let con = 0; const cho = []; // tối đa 6 màn cùng lúc (đọc tệp + Chrome dùng chung)
+    const luot = async (fn) => { if (con >= 6) await new Promise((r) => cho.push(r)); con++; try { return await fn(); } finally { con--; cho.shift()?.(); } };
+    await Promise.all(keys.map((key) => luot(async () => {
       const m = MAN[key]; const mf = pb[key]; const muc = mf?.ds.find((x) => x.v === mf.hien);
       let tho = m.html;
       if (muc?.tep) { try { tho = (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`)).html; } catch { return; } }
@@ -140,7 +142,7 @@ export function taoMcp(C) {
       const hh = await hienHanh(req0, key, null, pb);
       const nut = JSON.parse(await domGoi('dsLienKet', hh.html, false)).filter((x) => hongK(x.toi) && (!chiToi || x.toi === chiToi));
       if (nut.length) ra.push({ key, ten: m.ten, hanhTrinh: m.lan, v: hh.v, nut: nut.map((x) => ({ phan_tu: x.i, chu: x.chu, toi: x.toi, ly_do: MAN[x.toi] ? 'màn đích đã bị xoá' : 'màn đích không còn' })) });
-    }));
+    })));
     return ra.sort((a, b) => a.key.localeCompare(b.key));
   }
   const tomMf = (mf) => ({ hien: mf.hien || 0, lichSu: [{ v: 0, nhan: 'bản trong mã' }, ...mf.ds.map((x) => ({ v: x.v, t: x.t, nhan: x.nhan, nguon: x.nguon, model: x.model || undefined, tu: x.tu, tacGia: x.tacGia, yTuong: x.yTuong ? String(x.yTuong).slice(0, 200) : undefined, w: x.w, h: x.h }))] });
@@ -489,7 +491,7 @@ export function taoMcp(C) {
         let html = hh.html;
         for (const x of chon) { html = await domGoi('datLienKet', html, x.i, toi, x.chu); if (!html) throw LOI(`Không đặt được liên kết cho phần tử #${x.i}`); }
         const nhan = `Liên kết ${chon.map((x) => `«${x.chu || x.the}»`).join(', ')} ${toi ? `→ ${MAN[toi].ten}` : 'gỡ'} (MCP)`.slice(0, 120);
-        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { html: await domGoi('lamSach', html), w: hh.w, h: hh.h, nhan, nguon: 'lien-ket' });
+        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { html: await domGoi('lamSach', html), w: hh.w, h: hh.h, nhan, nguon: 'lien-ket', goc: hh.v });
         return [chu({ key: a.key, dangDung: `v${mf.hien}`, daSua: chon.map((x) => ({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null })) })];
       });
 
@@ -635,7 +637,7 @@ export function taoMcp(C) {
         const dot = Date.now().toString(36);
         const soMoi = Math.max(0, ...kho.lan.filter((b) => b.tu === l.id).map((b) => b.k || 0)) + 1;
         let id = `pa-${dot}-1`; while (kho.lan.some((x) => x.id === id)) id += 'm';
-        const lan = { id, tu: l.id, nguon: a.tu_phuong_an || l.id, buoc: l.buoc, k: soMoi, n: 1, yTuong: a.y_tuong, tt: 'xong', model: (a.model || 'mcp').slice(0, 60), nhan: (nhan || `Phương án ${soMoi}`).slice(0, 200), tSuaCu: 0 };
+        const lan = { id, tu: l.id, nguon: a.tu_phuong_an || l.id, buoc: con, k: soMoi, n: 1, yTuong: a.y_tuong, tt: 'xong', model: (a.model || 'mcp').slice(0, 60), nhan: (nhan || `Phương án ${soMoi}`).slice(0, 200), tSuaCu: 0 };
         const khung = [], lk = {};
         for (const b of buoc) {
           const sach = await domGoi('lamSach', theoKey.get(b.key));
