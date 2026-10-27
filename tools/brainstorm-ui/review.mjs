@@ -71,6 +71,7 @@ export function taoReview(C) {
   const bang = (x) => crypto.createHash('sha256').update(x).digest();
   const dungMa = (ma, gui) => crypto.timingSafeEqual(bang(ma), bang(gui));
   function laNoiBo(req) {
+    if (C.coNoiBo === false) return false; // Cloudflare: không có lối «127.0.0.1»
     const h = String(req.headers.host || '').toLowerCase();
     return /^(127\.0\.0\.1|localhost)(:\d+)?$/.test(h) && !req.headers['cf-connecting-ip'] && !req.headers['cf-ray'] && !req.headers['x-forwarded-for'];
   }

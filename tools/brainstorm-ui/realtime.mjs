@@ -6,13 +6,13 @@ import crypto from 'node:crypto';
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 const GOI_LON = 4 * 1024;             // gói từ trình duyệt (con trỏ, chọn…): nhỏ
-const TOI_DA_PHONG = 40;              // người mỗi phòng
-const NHIP = { tro: [40, 1000], khac: [30, 1000] }; // [số gói, trong bao nhiêu ms]
+export const TOI_DA_PHONG = 40;              // người mỗi phòng
+export const NHIP = { tro: [40, 1000], khac: [30, 1000] }; // [số gói, trong bao nhiêu ms]
 const DON_TOI_DA = 16 * 1024 * 1024;  // người nhận chậm (tunnel yếu) dồn quá mức này: cắt kết nối, nối lại thì tải lại kho
-const LOAI = new Set(['tro', 'nhin', 'chon', 'roi', 'su', 'ten']);
+export const LOAI = new Set(['tro', 'nhin', 'chon', 'roi', 'su', 'ten']);
 const phong = new Map();              // tên phòng → Map(id → kết nối)
 
-const chuNgan = (v, n) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, n) : '');
+export const chuNgan = (v, n) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, n) : '');
 const so = (v) => (Number.isFinite(v) ? Math.round(v * 10) / 10 : 0);
 
 function khung(op, buf) { // gói server → trình duyệt: không mask
@@ -44,7 +44,7 @@ function choPhep(k, loai) {
 }
 
 // Làm sạch từng loại gói trước khi chuyển tiếp (chỉ giữ trường đã biết).
-function sach(m) {
+export function sach(m) {
   switch (m.t) {
     case 'tro': return { t: 'tro', x: so(m.x), y: so(m.y), sec: chuNgan(m.sec, 40), cd: m.cd === 'qt' ? 'qt' : 'canvas' };
     case 'nhin': return { t: 'nhin', x: so(m.x), y: so(m.y), w: so(m.w), h: so(m.h), sec: chuNgan(m.sec, 40), cd: m.cd === 'qt' ? 'qt' : 'canvas' };

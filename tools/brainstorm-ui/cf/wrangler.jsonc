@@ -1,0 +1,17 @@
+// Bàn brainstorm AiiGrow trên Cloudflare. Deploy: `npm run deploy` trong thư mục này (README «Bản Cloudflare»).
+{
+  "name": "aiigrow-figma",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [{ "pattern": "aiigrow-figma.aiilab.vn", "custom_domain": true }],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": true, "html_handling": "none", "not_found_handling": "none" },
+  "durable_objects": { "bindings": [{ "name": "BAN", "class_name": "Ban" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Ban"] }],
+  "browser": { "binding": "BROWSER" },
+  // «node:fs» của lõi ⇒ SQLite của Durable Object; puppeteer-core (bản Mac) ⇒ rỗng (Cloudflare dùng Browser Rendering)
+  "alias": { "node:fs": "./fs-do.mjs", "fs": "./fs-do.mjs", "puppeteer-core": "./trong.mjs" },
+  "vars": { "KHOA_BANG": "false", "HOST_THEM": "workers.dev" },
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

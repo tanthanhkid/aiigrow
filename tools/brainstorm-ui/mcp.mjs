@@ -9,12 +9,11 @@
 // HTML màn được phục vụ cho Chrome qua /__mcp/trang/<mã dùng một lần> (chỉ loopback, CSP cấm script). lamSach/ganToi chạy NGUYÊN mã của web
 // (web/claude.js, web/gan-toi.js) trong một trang của chính Chrome đó ⇒ làm sạch y hệt trình duyệt.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { Readable } from 'node:stream';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { z } from 'zod';
 import { heThong, loiNguoiDung, loiHanhTrinh, tachKetQua, tachHanhTrinh, HUONG } from './web/prompt.js';
 import { vanBanAssets } from './web/claude.js';
@@ -32,6 +31,9 @@ const sha1 = (...x) => crypto.createHash('sha1').update(x.join('\0')).digest('he
 const dataToi = (html) => [...new Set([...String(html || '').matchAll(/data-toi="([^"]*)"/g)].map((m) => m[1]))];
 const LOI = (msg) => Object.assign(new Error(msg), { mcp: true });
 
+// Móc riêng của nền tảng (C.*, mặc định = bản Mac): layWeb(u) đọc tệp web/ (Cloudflare: ASSETS); moTrinh() mở trình duyệt puppeteer
+// (Cloudflare: Browser Rendering); urlTrang(ma) + trangHopLe(req): trang chụp một lần; chuanBiTrang(pg): vd. đặt cookie phiên để trang tải /claude.js, ảnh;
+// anhByte/domByte/ranhDong: cỡ cache và thời gian rảnh trước khi đóng trình duyệt.
 export function taoMcp(C) {
   // ================= yêu cầu nội bộ: đi qua đúng xuLyYeuCau của server.mjs =================
   const laLoopbackHost = (h) => /^(127\.0\.0\.1|localhost)(:\d+)?$/i.test(String(h || ''));
@@ -73,18 +75,18 @@ export function taoMcp(C) {
   }
 
   // ================= dữ liệu màn gốc (giống app.js: hành trình + màn «giống thật» ở web/that/) =================
+  const layWeb = C.layWeb || (async (u) => {
+    const t = path.resolve(C.WEB, String(u).replace(/^\/+/, ''));
+    if (!t.startsWith(C.WEB + path.sep)) throw new Error('ngoài web/');
+    const s = await fs.promises.readFile(t, 'utf8');
+    return { ok: true, json: async () => JSON.parse(s), text: async () => s };
+  });
   const gocCache = new Map();
   let manP = null, manLuc = 0;
   function taiMan() { // nạp lại sau 30 giây (web/that/ có thể được chụp lại khi máy chủ đang chạy); lần nạp thiếu tệp hành trình không được giữ
     if (manP && Date.now() - manLuc > 30000) manP = null;
     if (!manP) { manLuc = Date.now(); gocCache.clear(); manP = (async () => {
-      const lay = async (u) => {
-        const t = path.resolve(C.WEB, String(u).replace(/^\/+/, ''));
-        if (!t.startsWith(C.WEB + path.sep)) throw new Error('ngoài web/');
-        const s = await fs.promises.readFile(t, 'utf8');
-        return { ok: true, json: async () => JSON.parse(s), text: async () => s };
-      };
-      const { ds, loi } = await taiHanhTrinh(lay);
+      const { ds, loi } = await taiHanhTrinh(layWeb);
       void loi; // tệp hành trình lỗi: mô-đun ESM lỗi bị Node giữ — sửa xong phải khởi động lại máy chủ (như keyMan)
       const LAN = [], MAN = {};
       for (const h of ds) {
@@ -130,12 +132,12 @@ export function taoMcp(C) {
     const ma = crypto.randomBytes(16).toString('hex');
     TRANG.set(ma, { html, csp, het: Date.now() + 120000 });
     for (const [k, v] of TRANG) if (v.het < Date.now()) TRANG.delete(k);
-    return `http://127.0.0.1:${C.cong()}/__mcp/trang/${ma}`;
+    return C.urlTrang ? C.urlTrang(ma) : `http://127.0.0.1:${C.cong()}/__mcp/trang/${ma}`;
   }
   function trang(req, res, ma) { // chỉ Chrome của chính máy chủ (loopback, không qua tunnel) — mã dùng một lần
     const sock = req.socket.remoteAddress || '';
     const t = /^[a-f0-9]{32}$/.test(ma) ? TRANG.get(ma) : null;
-    if (!t || !laLoopbackHost(req.headers.host) || !/^(127\.|::1$|::ffff:127\.)/.test(sock) || req.headers['cf-ray'] || req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']) {
+    if (!t || (C.trangHopLe ? !C.trangHopLe(req) : !laLoopbackHost(req.headers.host) || !/^(127\.|::1$|::ffff:127\.)/.test(sock) || req.headers['cf-ray'] || req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'])) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Không có');
     }
     TRANG.delete(ma);
@@ -149,8 +151,14 @@ export function taoMcp(C) {
   const BAT = { SIGTERM: khiTin('SIGTERM'), SIGINT: khiTin('SIGINT'), SIGHUP: khiTin('SIGHUP') };
   async function trinhDuyet() {
     clearTimeout(henDong);
-    if (trinh?.connected) return trinh;
+    if (trinh && (trinh.connected ?? trinh.isConnected?.())) return trinh;
+    if (!moTrinh && C.moTrinh) moTrinh = (async () => { // nền tảng tự mở trình duyệt (Cloudflare Browser Rendering)
+      const b = await C.moTrinh();
+      b.on('disconnected', () => { if (trinh === b) { trinh = null; domTrang = null; domP = null; } });
+      trinh = b; return b;
+    })().finally(() => { moTrinh = null; });
     if (!moTrinh) moTrinh = (async () => {
+      const os = await import('node:os');
       if (!fs.existsSync(CHROME)) throw LOI(`Không thấy Chrome ở ${CHROME} — đặt BS_CHROME=<đường dẫn Chrome>`);
       const { default: puppeteer } = await import('puppeteer-core');
       thuMucTrinh = fs.mkdtempSync(path.join(os.tmpdir(), 'bs-mcp-chrome-'));
@@ -168,10 +176,10 @@ export function taoMcp(C) {
     })().finally(() => { moTrinh = null; });
     return moTrinh;
   }
-  process.on('exit', tatChrome);
+  if (!C.moTrinh) process.on('exit', tatChrome);
   function henTat() {
     clearTimeout(henDong);
-    henDong = setTimeout(() => { if (dangDung) return henTat(); const b = trinh; trinh = null; domTrang = null; domP = null; if (b) Promise.race([b.close(), new Promise((_, h) => setTimeout(h, 10000).unref?.())]).catch(() => giet(b)); }, RANH_DONG);
+    henDong = setTimeout(() => { if (dangDung) return henTat(); const b = trinh; trinh = null; domTrang = null; domP = null; if (b) Promise.race([b.close(), new Promise((_, h) => setTimeout(h, 10000).unref?.())]).catch(() => giet(b)); }, C.ranhDong || RANH_DONG);
     henDong.unref?.();
   }
   let dangChup = 0; const hangCho = [];
@@ -183,7 +191,7 @@ export function taoMcp(C) {
     if (dangChup >= SO_TRANG) await new Promise((r) => hangCho.push(r)); // được trao chỗ trực tiếp (dangChup giữ nguyên)
     else dangChup++;
     try {
-      return await voiTrinh(async (b) => { const pg = await b.newPage(); try { return await fn(pg); } finally { pg.close().catch(() => {}); } });
+      return await voiTrinh(async (b) => { const pg = await b.newPage(); try { await C.chuanBiTrang?.(pg); return await fn(pg); } finally { pg.close().catch(() => {}); } });
     } finally { const ke = hangCho.shift(); if (ke) ke(); else dangChup--; }
   }
   // trang chạy NGUYÊN mã web (lamSach của web/claude.js, ganToi của web/gan-toi.js)
@@ -192,16 +200,16 @@ export function taoMcp(C) {
     const k = sha1(ten, ...a);
     if (domCache.has(k)) return domCache.get(k);
     const ra = await domChay(ten, ...a);
-    if (!domCache.has(k)) { domCache.set(k, ra); domByte += ra.length; while (domByte > 40e6 && domCache.size > 1) { const [k0, v0] = domCache.entries().next().value; domCache.delete(k0); domByte -= v0.length; } }
+    if (!domCache.has(k)) { domCache.set(k, ra); domByte += ra.length; while (domByte > (C.domByte || 40e6) && domCache.size > 1) { const [k0, v0] = domCache.entries().next().value; domCache.delete(k0); domByte -= v0.length; } }
     return ra;
   }
   async function domChay(ten, ...a) {
     return voiTrinh(async (b) => {
       if (!domTrang || domTrang.isClosed()) {
         if (!domP) domP = (async () => {
-          const pg = await b.newPage();
+          const pg = await b.newPage(); await C.chuanBiTrang?.(pg);
           await pg.goto(datTrang('<!doctype html><meta charset="utf-8"><title>dom</title>', CSP_DOM));
-          await pg.evaluate(async () => { const [cl, gt] = await Promise.all([import('/claude.js'), import('/gan-toi.js')]); window.__bs = { lamSach: cl.lamSach, ganToi: gt.ganToi }; });
+          await pg.evaluate("(async () => { const [cl, gt] = await Promise.all([import('/claude.js'), import('/gan-toi.js')]); window.__bs = { lamSach: cl.lamSach, ganToi: gt.ganToi }; })()"); // chuỗi: chạy trong Chrome, bộ gói Worker không được đụng vào import()
           domTrang = pg; return pg;
         })().finally(() => { domP = null; });
         await domP;
@@ -209,7 +217,7 @@ export function taoMcp(C) {
       return domTrang.evaluate((t, x) => window.__bs[t](...x), ten, a);
     });
   }
-  const anhCache = new Map(); let anhByte = 0; const ANH_BYTE = 80 * 1024 * 1024; // cache ảnh giới hạn theo tổng byte
+  const anhCache = new Map(); let anhByte = 0; const ANH_BYTE = C.anhByte || 80 * 1024 * 1024; // cache ảnh giới hạn theo tổng byte
   async function chup(html, w, h, tiLe = 1) {
     w = Math.round(w); h = Math.round(h);
     if (!(w > 0 && w <= 5000 && h > 0 && h <= 20000)) throw LOI(`Khung lạ ${w}×${h}`);
@@ -288,7 +296,7 @@ export function taoMcp(C) {
     } catch (e) { return { khongDoc: e.message }; }
   }
   const assetsTxt = async (req0) => vanBanAssets(await goiJ(req0, 'GET', '/api/assets'));
-  const kitCss = () => fs.promises.readFile(path.join(C.WEB, 'kit/clay-kit.css'), 'utf8').catch(() => '');
+  const kitCss = () => layWeb('/kit/clay-kit.css').then((r) => r.text()).catch(() => '');
 
   // ================= máy chủ MCP cho một yêu cầu (stateless) =================
   function taoServer(req0) {
@@ -597,10 +605,16 @@ export function taoMcp(C) {
     let body;
     try { body = JSON.parse(await C.docThan(req, THAN_MCP)); } catch (e) { return loiRpc(e.ma === 413 ? -32000 : -32700, e.ma === 413 ? 'Yêu cầu quá lớn' : 'Parse error', e.ma === 413 ? 413 : 400); }
     const srv = taoServer(req);
-    const tr = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
-    res.on('close', () => { tr.close().catch(() => {}); srv.close().catch(() => {}); });
-    await srv.connect(tr);
-    await tr.handleRequest(req, res, body);
+    // transport chuẩn web (Request → Response) — cùng một đường cho Node và Cloudflare
+    const tr = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+    try {
+      await srv.connect(tr);
+      const hd = new Headers();
+      for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string' && !/^(host|content-length|connection|transfer-encoding)$/i.test(k)) hd.set(k, v);
+      const r = await tr.handleRequest(new Request('http://mcp.noi-bo/mcp', { method: 'POST', headers: hd, body: JSON.stringify(body) }), { parsedBody: body });
+      const ra = Buffer.from(await r.arrayBuffer()); const hra = {}; r.headers.forEach((v, k) => { hra[k] = v; });
+      res.writeHead(r.status, hra); res.end(ra);
+    } finally { tr.close().catch(() => {}); srv.close().catch(() => {}); }
   }
 
   return { xuLy, trang };
