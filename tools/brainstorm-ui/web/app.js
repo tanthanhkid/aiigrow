@@ -75,7 +75,7 @@ async function apPhienBan(key) {
   if (PB[key] !== pb) return; // trong lúc tải đã có Thay màn/Khôi phục mới hơn: bản đó tự áp
   const l = LAN_GOC.find((x) => x.id === m.lan); const ke = l?.buoc[m.buoc + 1];
   if (ke && m.toi && !/data-toi=/.test(html)) html = ganToi(html, m.toi, ke, MAN[ke]?.ten);
-  m.html = html; m.w = muc?.w || m.goc0.w; m.h = muc?.h || m.goc0.h;
+  m.html = html; m.w = muc?.w || m.goc0.w; m.h = muc?.h || m.goc0.h; m.pbV = muc?.v || 0; // pbV: phiên bản ĐÚNG của m.html (PB có thể đi trước khi đang tải)
 }
 // Nạp sau lần vẽ đầu (không chặn trang): màn nào có bản đã thay thì đổi sang bản đó khi tải xong.
 async function taiPhienBan() {
@@ -1611,13 +1611,15 @@ function dongBoPhienBan() {
 }
 async function dongBoPhienBan0() {
   let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return 0; ds = await r.json(); } catch { return 0; }
-  const khac = (a, b) => (a?.hien || 0) !== (b?.hien || 0) || (a?.ds?.length || 0) !== (b?.ds?.length || 0);
-  const doi = Object.keys(MAN).filter((k) => !dangThay.has(k) && khac(ds[k], PB[k]));
+  // phiên bản chỉ thêm, không xoá ⇒ chỉ nhận manifest máy chủ DÀI HƠN bản đang có (fetch gửi trước một lần Thay màn của chính phiên này
+  // về sau thì ngắn hơn — bỏ, không ghi đè bản mới). Manifest hỏng (không có ds) cũng bỏ.
+  const moiHon = (a, b) => Array.isArray(a?.ds) && a.ds.length > (b?.ds?.length || 0);
+  const doi = Object.keys(MAN).filter((k) => !dangThay.has(k) && moiHon(ds[k], PB[k]));
   if (!doi.length) return 0;
   await Promise.all(doi.map(async (k) => {
     const truoc = PB[k];
-    const moi = Array.isArray(ds[k]?.ds) ? ds[k] : undefined;
-    try { if (moi) PB[k] = moi; else delete PB[k]; await apPhienBan(k); } catch { if (PB[k] === moi) { if (truoc) PB[k] = truoc; else delete PB[k]; } } // chỉ trả lại khi chưa ai đặt bản mới hơn
+    const moi = ds[k];
+    try { PB[k] = moi; await apPhienBan(k); } catch { if (PB[k] === moi) { if (truoc) PB[k] = truoc; else delete PB[k]; } } // chỉ trả lại khi chưa ai đặt bản mới hơn
   }));
   qtDaVe = ''; veTatCa();
   if (!$('#lop-ls').hidden && doi.includes(ls.key)) veLichSu();

@@ -155,14 +155,13 @@ export function taoReview(C) {
   }
 
   // màn vừa đổi phiên bản (Thay màn / Khôi phục / Accept): báo các trang /r/ đang mở có màn đó, để Xem/Play đổi sang bản mới không cần tải lại
-  function baoThayMan(key, them = {}) {
-    let ds = []; try { ds = dsChiaSe().filter((s) => !s.thuHoi); } catch { return; }
-    const phong = new Set(C.dsPhong());
-    for (const s of ds) {
-      if (!phong.has(`r-${s.ma}`)) continue;
-      let co = false; try { co = (JSON.parse(fs.readFileSync(path.join(thuSnap(s.ma), 'meta.json'), 'utf8')).man || []).some((m) => m.key === key); } catch { /* snapshot hỏng: bỏ qua */ }
-      if (co) C.phat(`r-${s.ma}`, { t: 'rv', loai: 'thay', key, ht: s.ht, ...them });
-    }
+  async function baoThayMan(key, them = {}) {
+    try {
+      const phong = new Set(C.dsPhong());
+      const ds = dsChiaSe().filter((s) => !s.thuHoi && phong.has(`r-${s.ma}`)); if (!ds.length) return;
+      const HT = await C.hanhTrinh(); // link chụp đúng các màn của hành trình ⇒ lọc theo hành trình, không đọc snapshot
+      for (const s of ds) if (HT.get(s.ht)?.buoc.includes(key)) C.phat(`r-${s.ma}`, { t: 'rv', loai: 'thay', key, ht: s.ht, ...them });
+    } catch { /* kho hỏng: chỉ báo bàn chính */ }
   }
 
   // ---------- dữ liệu gửi ra ----------

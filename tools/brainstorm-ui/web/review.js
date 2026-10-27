@@ -43,7 +43,7 @@ async function tai() {
   const j = await r.json().catch(() => ({}));
   if (!r.ok) return het(j.loi || `Lỗi ${r.status}`);
   R.goi = j;
-  await dongBoBan(); veBan();
+  await Promise.race([dongBoBan(), new Promise((r) => setTimeout(r, 4000))]); veBan(); // mạng treo: vẽ ảnh chụp trước, bản mới tự thay khi tải xong
   document.title = `Góp ý · ${j.htTen}`;
   $('#ht-ten').textContent = j.htTen; $('#ht-v').textContent = `v${j.v}`; $('#ht-ghi').textContent = j.ghiChu || '';
   veDsMan();
@@ -70,7 +70,7 @@ function banTrongMa() {
 async function napHienHanh(chiKey = '') {
   const doi = new Set();
   let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return doi; ds = await r.json(); } catch { return doi; }
-  await Promise.all(R.goi.man.map(async (m) => {
+  await Promise.all([...new Map(R.goi.man.map((m) => [m.key, m])).values()].map(async (m) => { // một màn ghé nhiều lần: xử lý một lần
     if (chiKey && m.key !== chiKey) return;
     const mf = ds[m.key]; const hien = mf?.hien || 0;
     const muc = mf?.ds?.find((x) => x.v === hien); const mucChup = mf?.ds?.find((x) => x.v === (m.pb || 0));
@@ -247,7 +247,7 @@ $('#nut-play').onclick = () => {
 const datGhim = (b) => datCheDo(b ? 'ghim' : 'xem');
 $('#nut-ban').onclick = () => {
   R.banChup = !R.banChup; veBan();
-  if (R.mo) mo(R.mo, R.i, false);
+  if (R.mo) { const g = R.ghimCho; mo(R.mo, R.i, false); if (g) { R.ghimCho = g; capNhatGhimCho(); veGhim(); } }
   toast(R.banChup ? 'Đang xem bản lúc chia sẻ link (để đối chiếu).' : 'Đang xem bản mới nhất.');
 };
 $('#nut-ghim').onclick = () => { if (!manCua(R.mo)) { toast('Mở một màn rồi mới ghim được.'); return; } datGhim(!R.ghim); if (R.ghim) toast('Ghim: bấm vào chỗ trên màn muốn góp ý · Esc thôi.'); };
@@ -491,7 +491,7 @@ function veDeXuat() {
 }
 async function xemDeXuat(x) {
   let j; try { const r = await fetch(`/api/review/r/${MA}/de-xuat/${x.id}`); j = await r.json(); if (!r.ok) throw new Error(j.loi); } catch (e) { toast(`Không mở được đề xuất: ${e.message || ''}`, true); return; }
-  const m = manCua(x.key); const w = x.w || m.w, h = x.h || m.h;
+  const m = manChup(x.key); const w = x.w || m.w, h = x.h || m.h; // «Gốc» = bản lúc chia sẻ (bản hiện hành có thể chính là đề xuất đã Accept)
   $('#xem-tieu').textContent = `${x.nhan || 'Đề xuất'} — ${TT_DX[x.tt]}`;
   const l = $('#xem-luoi'); l.innerHTML = ''; const rong = Math.min(360, (innerWidth - 140) / 2);
   const a = tao('figure', 'the-bt goc'); a.append(tao('figcaption', '', 'Gốc'), oMan(lamSach(m.html), m.w, m.h, rong));
@@ -508,14 +508,14 @@ addEventListener('keydown', (e) => { if (e.key === 'Escape') for (const id of ['
 // ---------- khởi động ----------
 await tai();
 if (R.goi) {
-  let henTai = 0, daChao = false;
+  let henTai = 0;
   rt = taoRealtime({ st, vung: $('#vung'), dom: new Map(), phong: `r-${MA}`, toast, nhanBt: () => {}, nhanSu: () => {},
     nhanRv: (m) => {
       if (m.loai === 'thu-hoi') { het('Link góp ý này đã bị thu hồi.'); return; }
       if (m.loai === 'thay' && m.key) { dongBoBan(m.key).then((doi) => { const x = manChup(m.key); if (doi.has(m.key) && x && HIEN.has(m.key) && !R.banChup) toast(`${m.ten ? `${m.ten} vừa thay` : 'Vừa có bản mới của'} màn «${x.ten}» — đang hiện bản mới.`); }); return; }
       clearTimeout(henTai); henTai = setTimeout(tai, 300);
     },
-    khiChao: () => { if (daChao) dongBoBan(); daChao = true; }, // nối LẠI realtime: tin «thay» lúc rớt mạng có thể đã lỡ (lần đầu: tai() vừa nạp)
+    khiChao: () => { dongBoBan(); }, // mỗi lần (nối lại) realtime: tin «thay» lúc chưa nối/rớt mạng có thể đã lỡ
 
     sec: () => R.mo, cheDo: () => 'canvas', suaId: () => null, doiSec: (sec) => { if (sec !== R.mo) mo(sec); }, datView: () => {} });
   vuaKhung();
