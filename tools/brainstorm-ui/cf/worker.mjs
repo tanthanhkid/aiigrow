@@ -14,6 +14,7 @@ import { taoUngDung } from '../ung-dung.mjs';
 
 const THIET_KE = '/kho';
 const TEP_CQ = `${THIET_KE}/brainstorm-ui/chu-quan.json`;
+const CHOT = `${THIET_KE}/.di-tru-da-chot`; // có tệp này thì /__kho/nap đóng
 const cqTuEnv = (env) => ({ ma: env.MA_CHU_QUAN || '', maMcp: env.MA_MCP || '', matKhau: env.MAT_KHAU || '', biMatPhien: env.BI_MAT_PHIEN || '', khoaBang: env.KHOA_BANG === 'true' });
 const hostThem = (env) => String(env.HOST_THEM || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
 // đường do Durable Object xử lý; còn lại là tệp tĩnh
@@ -61,7 +62,7 @@ export class Ban extends DurableObject {
     const { env } = this; const { phatPhong, dsPhong, dongPhong } = this.rt;
     return taoUngDung({
       GOC: '/ung-dung', REPO: '/repo', WEB: '/web', THIET_KE, phatPhong,
-      dsAssets: async () => (await env.ASSETS.fetch(new Request('https://tinh.noi-bo/_cf/api-assets.json'))).json(), dsPhong, dongPhong, hostThem: hostThem(env), coNoiBo: false, motTienTrinh: true,
+      dsAssets: async () => { const r = await env.ASSETS.fetch(new Request('https://tinh.noi-bo/_cf/api-assets.json')); if (!r.ok) throw new Error('Thiếu _cf/api-assets.json — chạy lại cf/dung.mjs'); return r.json(); }, dsPhong, dongPhong, hostThem: hostThem(env), coNoiBo: false, motTienTrinh: true,
       mcp: {
         layWeb: async (u) => env.ASSETS.fetch(new Request(new URL(String(u), 'https://tinh.noi-bo'))),
         moTrinh: () => puppeteer.launch(env.BROWSER, { keep_alive: 60000 }),
@@ -80,7 +81,9 @@ export class Ban extends DurableObject {
     const url = new URL(request.url);
     // Cloudflare công khai: thiếu/ngắn MAT_KHAU hoặc BI_MAT_PHIEN thì ĐÓNG mọi đường động (không như Mac, nơi «chưa đặt mật khẩu» = chỉ 127.0.0.1)
     if (!CV.congBat(cqTuEnv(this.env))) return new Response('Chưa đặt MAT_KHAU / BI_MAT_PHIEN — bàn đóng.', { status: 503, headers: { 'content-type': 'text/plain; charset=utf-8' } });
-    this.goc = this.env.GOC || url.origin; // GOC cố định (tên miền chính) để MCP chụp ảnh không bị yêu cầu từ host khác chen ngang
+    // gốc cho trang chụp ảnh MCP: bản deploy (tên miền chính hoặc *.workers.dev) luôn dùng GOC cố định để yêu cầu từ host khác không chen ngang; wrangler dev dùng chính nó
+    const chinh = this.env.GOC && (url.host === new URL(this.env.GOC).host || url.hostname.endsWith('.workers.dev'));
+    this.goc = chinh ? this.env.GOC : url.origin;
     this.app ||= this.dung();
     if (url.pathname === '/ws') {
       if ((request.headers.get('upgrade') || '').toLowerCase() !== 'websocket') return new Response('Not Found', { status: 404 });
@@ -99,7 +102,8 @@ export class Ban extends DurableObject {
   // ---- /__kho: di trú dữ liệu từ Mac lên + kéo dữ liệu về Mac để sao lưu git. CHỈ chủ quản: mã chủ quản (x-bs-chu-quan) + mật khẩu (cookie hoặc Bearer maMcp).
   // GET  /__kho/ds                      → [{ p, co, m }] mọi tệp dưới /kho/brainstorm-ui (trừ chu-quan.json)
   // GET  /__kho/tep?p=<đường>           → nội dung thô
-  // POST /__kho/nap  [{ p, b64 }]       → tạo tệp mới (không ghi đè tệp đã có); chỉ dưới bien-the/ phien-ban/ review/ audit/
+  // POST /__kho/nap  [{ p, b64 }]       → ghi (đè) tệp, chỉ dưới bien-the/ phien-ban/ review/ audit/; CHỈ trước khi chốt
+  // POST /__kho/chot                    → chốt di trú: từ đó nap trả 410
   async kho(req, res, url) {
     const { review } = this.app;
     const json = (ma, o) => { res.writeHead(ma, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
@@ -120,17 +124,15 @@ export class Ban extends DurableObject {
       const phan = []; for await (const c of req) phan.push(c);
       let ds; try { ds = JSON.parse(Buffer.concat(phan).toString('utf8')); } catch { return json(400, { loi: 'JSON hỏng' }); }
       if (!Array.isArray(ds)) return json(400, { loi: 'Cần mảng' });
-      let n = 0;
-      for (const x of ds) {
-        if (!hopLe(x?.p) || typeof x.b64 !== 'string') return json(400, { loi: `Đường lạ: ${String(x?.p).slice(0, 100)}` });
-        // chỉ tạo tệp CHƯA có (di trú vào kho trống): không ghi đè/nối — audit đã có trên Cloudflare không sửa được qua đây
-        if (fs.existsSync(x.p)) return json(409, { loi: `Đã có, không ghi đè: ${x.p.slice(GOC_KHO.length, GOC_KHO.length + 100)}`, n });
-        fs.writeFileSync(x.p, Buffer.from(x.b64, 'base64'));
-        n++;
-      }
-      return json(200, { ok: true, n, canKhoiDongLai: true });
+      // di trú chỉ mở tới khi chốt (/__kho/chot): trước đó ghi đè được (chạy lại nap khi đứt giữa chừng), sau đó đóng hẳn — audit trên Cloudflare không sửa được qua đây
+      if (fs.existsSync(CHOT)) return json(410, { loi: 'Đã chốt di trú — /__kho/nap đóng' });
+      for (const x of ds) if (!hopLe(x?.p) || typeof x.b64 !== 'string') return json(400, { loi: `Đường lạ: ${String(x?.p).slice(0, 100)}` }); // kiểm cả lô trước khi ghi
+      for (const x of ds) fs.writeFileSync(x.p, Buffer.from(x.b64, 'base64'));
+      this.app = this.dung(); // dựng lại lõi (chỉ mục biến thể, đuôi audit…) theo kho vừa nạp
+      return json(200, { ok: true, n: ds.length });
     }
-    if (req.method === 'POST' && url.pathname === '/__kho/khoi-dong-lai') { // nạp xong: dựng lại lõi (chỉ mục biến thể, đuôi audit…) từ kho mới
+    if (req.method === 'POST' && url.pathname === '/__kho/chot') {
+      if (!fs.existsSync(CHOT)) fs.writeFileSync(CHOT, new Date().toISOString());
       this.app = this.dung(); return json(200, { ok: true });
     }
     return json(404, { loi: 'Không có' });

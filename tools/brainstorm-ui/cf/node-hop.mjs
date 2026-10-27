@@ -40,9 +40,11 @@ export function resMoi() {
 // chạy một handler kiểu Node (req, res) → Response
 export async function chayNode(xuLy, request) {
   const req = await reqTu(request); const res = resMoi();
-  try { await xuLy(req, res); } catch (e) { console.error('chayNode', e?.message); if (res.writable) { if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end(res.headersSent ? undefined : 'Lỗi máy chủ'); } }
-  // handler đã trả mà chưa end (vd. lỗi sau writeHead): chờ tối đa 30 giây rồi tự đóng, không treo yêu cầu
-  if (res.writable) await Promise.race([res.xong, new Promise((ok) => setTimeout(ok, 30000))]);
-  if (res.writable) { if (!res.headersSent) res.writeHead(500); res.end(); }
+  // mọi thứ còn trong bộ đệm (chưa gửi đi) ⇒ lỗi giữa chừng thì thay hẳn bằng 500, không trả 200 với thân cụt
+  const loi500 = () => { res.ma = 500; res.hd = { 'content-type': 'text/plain; charset=utf-8' }; res.phan = [Buffer.from('Lỗi máy chủ')]; res.writable = false; };
+  try { await xuLy(req, res); } catch (e) { console.error('chayNode', e?.message); if (res.writable) loi500(); }
+  // handler đã trả mà chưa end (vd. ghi bằng callback): chờ tối đa 30 giây rồi coi là lỗi; hẹn giờ luôn được huỷ để DO ngủ đông được
+  if (res.writable) { let hen; await Promise.race([res.xong, new Promise((ok) => { hen = setTimeout(ok, 30000); })]).finally(() => clearTimeout(hen)); }
+  if (res.writable) loi500();
   return res.thanhResponse();
 }

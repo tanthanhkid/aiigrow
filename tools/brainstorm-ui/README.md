@@ -116,7 +116,7 @@ npx wrangler tail                  # xem log
 ```
 
 - **Dữ liệu** (biến thể, phiên bản, góp ý, audit) nằm trong DO. Dùng `cf/kho.mjs` để chuyển giữa DO và thư mục Mac (chỉ chủ quản; mật khẩu và mã đọc từ `BS_MAT_KHAU`/`BS_MA_CHU_QUAN` hoặc `chu-quan.json` của thư mục):
-  - `node cf/kho.mjs nap https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — di trú một lần lên Cloudflare (chỉ tạo tệp chưa có; không ghi đè, nên audit đã có trên Cloudflare không sửa được qua đây).
+  - `node cf/kho.mjs nap https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui> [--chot]` — di trú lên Cloudflare (ghi đè, chạy lại được); `--chot` đóng hẳn đường nạp, nên audit trên Cloudflare không sửa được qua đây.
   - `node cf/kho.mjs keo https://aiigrow-figma.aiilab.vn <thư mục brainstorm-ui>` — kéo về Mac. Job sao lưu git (`tro_ly/jobs/brainstorm-sao-luu/sao-luu.sh`) chạy lệnh này trước khi commit.
 - **Mac chỉ đọc**: chạy `server.mjs` với `BS_CHI_DOC=https://aiigrow-figma.aiilab.vn` thì mọi lệnh ghi `/api` trả 423 và chỉ tới bản Cloudflare. Như vậy không có hai nguồn dữ liệu.
 - **MCP qua Cloudflare**:

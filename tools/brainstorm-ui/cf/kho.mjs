@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Chuyển dữ liệu bàn brainstorm giữa thư mục Mac và Durable Object trên Cloudflare (đường /__kho của cf/worker.mjs — chỉ chủ quản).
-//   node cf/kho.mjs nap <url> <thư mục brainstorm-ui>   — đưa bien-the/ phien-ban/ review/ audit/ lên (di trú một lần; ghi đè cùng đường)
+//   node cf/kho.mjs nap <url> <thư mục brainstorm-ui> [--chot] — đưa bien-the/ phien-ban/ review/ audit/ lên (ghi đè cùng đường, chạy lại được);
+//                                                       --chot: chốt di trú, từ đó Cloudflare đóng /__kho/nap
 //   node cf/kho.mjs keo <url> <thư mục brainstorm-ui>   — kéo về (sao lưu git): tải tệp mới/đổi, xoá tệp cục bộ không còn trên Cloudflare
 // Bí mật đọc từ biến môi trường BS_MAT_KHAU + BS_MA_CHU_QUAN, thiếu thì từ <thư mục>/chu-quan.json (matKhau, ma). Không in bí mật.
 import fs from 'node:fs';
@@ -49,11 +50,17 @@ if (lenh === 'nap') {
     lo.push({ p: KHO + f.tuongDoi, b64: b.toString('base64') }); co += b.length;
   }
   await day();
-  await goi('/__kho/khoi-dong-lai', { method: 'POST' });
+  if (process.argv.includes('--chot')) { await goi('/__kho/chot', { method: 'POST' }); console.log('Đã chốt di trú'); }
   console.log(`Đã nạp ${n} tệp (${(tong / 1048576).toFixed(1)} MB) lên ${goc}`);
 } else {
   const xa = await (await goi('/__kho/ds')).json();
-  if (!Array.isArray(xa) || (!xa.length && dsCucBo().length)) { console.error('Cloudflare trả danh sách rỗng mà cục bộ còn tệp — dừng, không xoá gì'); process.exit(1); }
+  // chặn xoá hàng loạt: thiếu hẳn một thư mục gốc đang có cục bộ, hoặc sẽ xoá > 20% tệp cục bộ ⇒ dừng, không đụng gì
+  const cucBo = dsCucBo(); const tapXa = new Set(Array.isArray(xa) ? xa.map((f) => f.p.slice(KHO.length)) : []);
+  const seXoa = cucBo.filter((f) => !tapXa.has(f.tuongDoi)).length;
+  const thieuThu = THU_MUC.filter((t) => cucBo.some((f) => f.tuongDoi.startsWith(`${t}/`)) && ![...tapXa].some((p) => p.startsWith(`${t}/`)));
+  if (!Array.isArray(xa) || thieuThu.length || (seXoa > 5 && seXoa > cucBo.length * 0.2)) {
+    console.error(`Danh sách Cloudflare đáng ngờ (thiếu thư mục: ${thieuThu.join(', ') || 'không'}; sẽ xoá ${seXoa}/${cucBo.length}) — dừng, không xoá gì`); process.exit(1);
+  }
   const coXa = new Set(); let tai = 0, xoa = 0;
   for (const f of xa) {
     const tuongDoi = f.p.slice(KHO.length); coXa.add(tuongDoi);
