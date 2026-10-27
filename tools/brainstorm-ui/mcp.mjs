@@ -418,7 +418,7 @@ export function taoMcp(C) {
         return [chu({ daXoa: r })];
       });
 
-    T('thay_man', '«Thay màn»: đặt một biến thể (bien_the) hoặc một HTML (html + key) làm bản đang dùng của màn — thêm phiên bản mới, bản cũ vẫn trong lịch sử. HTML được làm sạch (lamSach) như bàn web.',
+    T('thay_man', '«Thay màn»: đặt một biến thể (bien_the) hoặc một HTML (html + key) làm bản đang dùng của màn — thêm phiên bản mới, bản cũ vẫn trong lịch sử. HTML được làm sạch (lamSach) như bàn web. Thay bằng bien_the thành công thì biến thể đó rời bàn (xoá mềm vào thùng rác, chỗ của nó để trống, các biến thể khác giữ nguyên); HTML của nó nằm trong phiên bản màn nên khoi_phuc_phien_ban vẫn dùng được. Màn trong phương án hành trình thì giữ nguyên.',
       { bien_the: z.string().optional(), key: z.string().optional(), html: z.string().optional(), nhan: z.string().optional(), y_tuong: z.string().optional() }, async (a) => {
         let key, than;
         if (a.bien_the) {
@@ -432,7 +432,8 @@ export function taoMcp(C) {
           than = { html: await domGoi('lamSach', a.html), w: hh.w, h: hh.h, nhan: a.nhan || 'Thay qua MCP', yTuong: a.y_tuong || '', nguon: 'mcp', model: '' };
         }
         const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(key)}`, than);
-        return [chu({ key, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
+        const { btXoa, ...m0 } = mf;
+        return [chu({ key, dangDung: `v${m0.hien}`, ...(btXoa ? { bienTheDaGo: btXoa } : {}), ...tomMf(m0) })];
       });
 
     T('khoi_phuc_phien_ban', 'Khôi phục một phiên bản cũ của màn (v=0 là bản trong mã) — ghi thành phiên bản mới, không xoá gì.',

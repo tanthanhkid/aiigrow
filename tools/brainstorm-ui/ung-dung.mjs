@@ -283,12 +283,17 @@ export function taoUngDung(O = {}) {
     // Xoá màn khỏi hành trình / khôi phục màn đã xoá — CHỈ chủ quản (kể cả khi không khoá bảng). Màn đang bị xoá: ghiPhienBan từ chối mọi ghi khác (trong khoá).
     if ((than?.xoa === true || than?.khoiPhucXoa === true) && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
     const [ma, obj] = await ghiPhienBan(key, than, null, aiCua(req));
+    let btXoa = null;
     if (ma === 200) { // máy chủ báo mọi bàn (không dựa vào client phát qua realtime — phòng chỉ-xem không phát được)
       let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).slice(0, 40); } catch { /* bỏ qua */ }
-      phatPhong('bang', { t: 'rv', loai: 'thay', key, ten, tu: String(req.headers['x-bs-phien'] || '').slice(0, 40) });
+      const phien = String(req.headers['x-bs-phien'] || '').slice(0, 40);
+      phatPhong('bang', { t: 'rv', loai: 'thay', key, ten, tu: phien });
       review.baoThayMan(key, { ten });
+      // Thay màn bằng một biến thể (bt) ⇒ biến thể đó rời bàn, chỗ của nó để trống (Khôi phục/Xoá màn không có bt; thất bại thì không tới đây)
+      const thayHtml = than && than.tu == null && than.xoa !== true && than.khoiPhucXoa !== true;
+      if (thayHtml && typeof than.bt === 'string' && than.bt) btXoa = khoBt.goSauThay(than.bt, { key, v: obj.hien, ai: aiCua(req), phien, nguoi: ten });
     }
-    return json(res, ma, obj);
+    return json(res, ma, btXoa ? { ...obj, btXoa } : obj);
   }
   // Thêm một phiên bản (dùng chung cho Thay màn, Khôi phục và «Accept changes» của đề xuất góp ý) → [mã HTTP, manifest | lỗi]
   async function ghiPhienBan(key, than, tin = null, ai = null, loaiAu = '') { // tin: trường tin cậy do review.mjs đặt (tác giả + liên kết góp ý); ai: người làm (audit)
