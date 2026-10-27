@@ -10,6 +10,7 @@ import { taoKhoBienThe } from './kho-bien-the.mjs';
 import { taoReview } from './review.mjs';
 import { taoAudit } from './audit.mjs';
 import { taoMcp } from './mcp.mjs';
+import * as CV from './cong-vao.mjs';
 
 const GOC = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(GOC, '../..');
@@ -159,8 +160,51 @@ function hopLeNguon(req) {
 
 // MCP (Streamable HTTP, /mcp): mọi thao tác đi qua chính xuLyYeuCau bên dưới bằng yêu cầu nội bộ mang quyền của người gọi MCP.
 const mcp = taoMcp({ xuLyYeuCau: (...a) => xuLyYeuCau(...a), cong: () => cong, WEB, THIET_KE, HOST_TIN, hopLeNguon: (req) => hopLeNguon(req),
-  json: (...a) => json(...a), docThan: (...a) => docThan(...a), danhDau: (req) => REQ_MCP.add(req), kiemMaMcp: (req) => review.kiemMaMcp(req) });
-const may = http.createServer((req, res) => xuLyYeuCau(req, res));
+  json: (...a) => json(...a), docThan: (...a) => docThan(...a), danhDau: (req) => REQ_MCP.add(req), kiemMaMcp: (req) => (String(review.cauHinh().maMcp || '').length >= 8 && coPhien(req)) || review.kiemMaMcp(req) });
+
+// ---- Cổng mật khẩu chung (cong-vao.mjs): qua tên miền, MỌI đường (trang, /api, /ref, /assets, /r/, /ws) cần đăng nhập khi chu-quan.json có
+// «matKhau» + «biMatPhien». 127.0.0.1 gõ thẳng vẫn vào. /mcp nhận Bearer <maMcp> hoặc cookie phiên. Cổng đứng TRƯỚC xuLyYeuCau
+// (yêu cầu nội bộ do MCP dựng không đi qua đây — /mcp đã kiểm ở cửa).
+// /mcp nhận cookie chỉ khi đã đặt maMcp (chưa đặt maMcp thì /mcp qua tên miền vẫn đóng như trước).
+const coPhien = (req, cq = review.cauHinh()) => CV.phienHopLe(cq, CV.docCookie(req.headers.cookie));
+const daVao = (req, cq = review.cauHinh()) => review.laNoiBo(req) || (!review.cauHinhHong() && !CV.congBat(cq)) || coPhien(req, cq);
+let dauCong = null;
+async function congVao(req, res) {
+  let u; try { u = new URL(req.url, 'http://x'); } catch { u = new URL('http://x/'); }
+  let p; try { p = decodeURIComponent(u.pathname); } catch { p = ''; }
+  if (review.laNoiBo(req)) return p === CV.DUONG_DANG_NHAP ? (res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' }), res.end(), true) : false;
+  review.damBaoBiMatPhien();
+  const cq = review.cauHinh();
+  // đổi mật khẩu / biMatPhien ⇒ cắt mọi kết nối realtime đang mở (nối lại phải qua cổng với cookie mới)
+  const dau = `${cq.matKhau || ''}\u0000${cq.biMatPhien || ''}`;
+  if (dauCong !== null && dau !== dauCong) for (const ph of dsPhong()) dongPhong(ph);
+  dauCong = dau;
+  // chu-quan.json hỏng: đóng cổng (trừ /mcp và trang chụp nội bộ — tự kiểm), không lặng lẽ mở cho mọi người
+  if (review.cauHinhHong() && !(p === '/mcp' || p.startsWith('/__mcp/trang/'))) { gui(res, 503, 'text/plain; charset=utf-8', 'Cấu hình quyền (chu-quan.json) đang hỏng — chủ quản sửa tệp rồi tải lại trang.'); return true; }
+  const trangDn = (ma, loi, tiep) => gui(res, ma, 'text/html; charset=utf-8', CV.trangDangNhap({ loi, tiep }), { 'Content-Security-Policy': CV.CSP_DANG_NHAP, 'X-Frame-Options': 'DENY' });
+  if (p === CV.DUONG_DANG_XUAT) {
+    if (req.headers['sec-fetch-site'] && !['same-origin', 'none'].includes(req.headers['sec-fetch-site'])) { gui(res, 403, 'text/plain', 'Không hỗ trợ'); return true; } // trang lạ không đăng xuất hộ được
+    res.writeHead(302, { Location: CV.DUONG_DANG_NHAP, 'Set-Cookie': CV.cookieXoa(), 'Cache-Control': 'no-store' }); res.end(); return true; }
+  if (p === CV.DUONG_PHIEN) { daVao(req, cq) ? json(res, 200, { ok: true }) : json(res, 401, { loi: 'Cần đăng nhập mật khẩu chung', canDangNhap: true }); return true; }
+  if (p === CV.DUONG_DANG_NHAP) {
+    if (!CV.congBat(cq)) { res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' }); res.end(); return true; }
+    if (req.method === 'GET' || req.method === 'HEAD') { trangDn(200, '', u.searchParams.get('tiep')); return true; }
+    if (req.method !== 'POST') { gui(res, 405, 'text/plain', 'Không hỗ trợ'); return true; }
+    let f; try { f = new URLSearchParams(await docThan(req, 4096)); } catch { gui(res, 413, 'text/plain', 'Quá lớn'); return true; }
+    const tiep = CV.tiepAnToan(f.get('tiep'));
+    if (!review.kiemMatKhau(req, f.get('mat_khau') || '')) { trangDn(401, 'Mật khẩu chưa đúng (sai nhiều lần thì chờ 1 phút).', tiep); return true; }
+    res.writeHead(303, { Location: tiep, 'Set-Cookie': CV.cookieDat(CV.taoGiaTriPhien(cq)), 'Cache-Control': 'no-store' }); res.end(); return true;
+  }
+  if (CV.duongMien(p) || daVao(req, cq)) return false;
+  if (CV.muonTrang(req.method, req.headers.accept)) {
+    res.writeHead(302, { Location: `${CV.DUONG_DANG_NHAP}?tiep=${encodeURIComponent(CV.tiepAnToan(req.url))}`, 'Cache-Control': 'no-store' }); res.end(); return true;
+  }
+  json(res, 401, { loi: 'Cần đăng nhập mật khẩu chung', canDangNhap: true }); return true;
+}
+const may = http.createServer(async (req, res) => {
+  try { if (await congVao(req, res)) return; } catch { if (!res.headersSent) return json(res, 500, { loi: 'Lỗi máy chủ cục bộ' }); return; }
+  return xuLyYeuCau(req, res);
+});
 async function xuLyYeuCau(req, res) {
   try {
     const url = new URL(req.url, 'http://x');
@@ -346,5 +390,5 @@ may.on('listening', () => {
   console.log(`\n  Bàn brainstorm AiiGrow đang chạy:  http://127.0.0.1:${cong}/\n  (thử không cần key: http://127.0.0.1:${cong}/?mock=1)  ·  Ctrl+C để tắt\n`);
 });
 // bàn chính khi khoaBang mà người nối không phải chủ quản: chỉ được con trỏ/nhìn/tên ('xem'), không phát thao tác
-ganRealtime(may, hopLeNguon, (ten, req) => (ten === 'bang' ? (review.khoaBang() && !review.laChuQuan(req) ? 'xem' : true) : /^r-[a-f0-9]{32}$/.test(ten) && review.conHieuLuc(ten.slice(2))));
+ganRealtime(may, (req) => hopLeNguon(req) && daVao(req), (ten, req) => (ten === 'bang' ? (review.khoaBang() && !review.laChuQuan(req) ? 'xem' : true) : /^r-[a-f0-9]{32}$/.test(ten) && review.conHieuLuc(ten.slice(2))));
 may.listen(cong, '127.0.0.1');
