@@ -914,6 +914,7 @@ function moPlay(id, lanId) {
   $('#pl-anh').checked = caiDat.anhThat;
   $('#lop-play').hidden = false;
   vePlay('');
+  dongBoPhienBan(); // màn vừa được người khác thay mà lỡ tin realtime: đổi ngay trong Play (vePlay lại khi có khác)
 }
 function dongPlay() {
   $('#lop-play').hidden = true; $('#pl-thiet-bi').innerHTML = '';
@@ -1607,6 +1608,25 @@ async function napLaiPhienBan(key) {
   if (!$('#lop-ls').hidden && ls.key === key) veLichSu();
   if (!$('#lop-play').hidden) vePlay('');
 }
+// Đối chiếu MỌI màn với máy chủ: tin realtime «thay» có thể lỡ (WebSocket rớt/nối lại khi deploy, máy ngủ, tab nền) ⇒ bàn và Play kẹt bản cũ
+// tới khi tải lại trang. Gọi khi nối lại realtime, khi mở Play, khi quay lại tab. Chỉ tải HTML của màn đổi bản.
+let dongBoDang = null;
+function dongBoPhienBan() { return (dongBoDang ||= dongBoPhienBan0().finally(() => { dongBoDang = null; })); }
+async function dongBoPhienBan0() {
+  let ds; try { const r = await fetch('/api/phien-ban', { cache: 'no-store' }); if (!r.ok) return 0; ds = await r.json(); } catch { return 0; }
+  const khac = (a, b) => (a?.hien || 0) !== (b?.hien || 0) || (a?.ds?.length || 0) !== (b?.ds?.length || 0);
+  const doi = Object.keys(MAN).filter((k) => !dangThay.has(k) && khac(ds[k], PB[k]));
+  if (!doi.length) return 0;
+  await Promise.all(doi.map(async (k) => {
+    const truoc = PB[k];
+    try { if (Array.isArray(ds[k]?.ds)) PB[k] = ds[k]; else delete PB[k]; await apPhienBan(k); } catch { if (truoc) PB[k] = truoc; else delete PB[k]; }
+  }));
+  qtDaVe = ''; veTatCa();
+  if (!$('#lop-ls').hidden && doi.includes(ls.key)) veLichSu();
+  if (!$('#lop-play').hidden) vePlay('');
+  return doi.length;
+}
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') dongBoPhienBan(); });
 function nhanSu(m, p) {
   if (m.loai === 'thay' && coMan(m.key)) napLaiPhienBan(m.key).then(() => toast(`${p.ten} vừa đổi phiên bản màn «${MAN[m.key].ten}».`));
 }
@@ -1641,7 +1661,7 @@ GY = ganGopY({ MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTat
     setTimeout(() => Sua.batSua(id), 150);
   },
 });
-rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); }, khiCham, nhanRv: (m) => GY?.nhanRv(m), sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
+rt = taoRealtime({ st, vung, dom, phong: 'bang', toast, nhanSu, nhanKho, khiChao: () => { if (Date.now() - napLuc > 3000) napKho(); dongBoPhienBan(); }, khiCham, nhanRv: (m) => GY?.nhanRv(m), sec: () => st.sec, cheDo: () => st.cheDo, suaId: () => Sua.dangSua(),
   doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), datView: (v) => { st.view = v; apView(); luuView(); } });
 
 Sua.gan({ st, dom, vung, timKhung, khungChon, kichThuoc, htmlCua, tenCua, keyCua, veTatCa, veKhung, veBang, vuaMan, luuLai, toast, henAo, so,

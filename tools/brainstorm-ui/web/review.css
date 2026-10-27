@@ -33,6 +33,8 @@ textarea{resize:vertical;width:100%}
 .muc-man .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .muc-man .dem{background:#8a3c0c;color:#fff;border-radius:99px;font:800 11px Inter;padding:2px 7px}
 .muc-dac{margin-top:6px}
+.muc-man .moi{background:var(--ngoc);color:#fff;border-radius:99px;font:800 11px Inter;padding:2px 7px}
+#nut-ban[hidden]{display:none}
 .giua{position:relative;display:flex;flex-direction:column;min-width:0}
 .thanh-cu{display:flex;align-items:center;gap:8px;padding:10px 16px}
 .thanh-cu .gian{flex:1}
