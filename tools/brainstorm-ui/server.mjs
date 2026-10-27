@@ -168,16 +168,23 @@ const mcp = taoMcp({ xuLyYeuCau: (...a) => xuLyYeuCau(...a), cong: () => cong, W
 // /mcp nhận cookie chỉ khi đã đặt maMcp (chưa đặt maMcp thì /mcp qua tên miền vẫn đóng như trước).
 const coPhien = (req, cq = review.cauHinh()) => CV.phienHopLe(cq, CV.docCookie(req.headers.cookie));
 const daVao = (req, cq = review.cauHinh()) => review.laNoiBo(req) || (!review.cauHinhHong() && !CV.congBat(cq)) || coPhien(req, cq);
+let dauCong = null;
 async function congVao(req, res) {
   let u; try { u = new URL(req.url, 'http://x'); } catch { u = new URL('http://x/'); }
   let p; try { p = decodeURIComponent(u.pathname); } catch { p = ''; }
   if (review.laNoiBo(req)) return p === CV.DUONG_DANG_NHAP ? (res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' }), res.end(), true) : false;
   review.damBaoBiMatPhien();
   const cq = review.cauHinh();
+  // đổi mật khẩu / biMatPhien ⇒ cắt mọi kết nối realtime đang mở (nối lại phải qua cổng với cookie mới)
+  const dau = `${cq.matKhau || ''}\u0000${cq.biMatPhien || ''}`;
+  if (dauCong !== null && dau !== dauCong) for (const ph of dsPhong()) dongPhong(ph);
+  dauCong = dau;
   // chu-quan.json hỏng: đóng cổng (trừ /mcp và trang chụp nội bộ — tự kiểm), không lặng lẽ mở cho mọi người
   if (review.cauHinhHong() && !(p === '/mcp' || p.startsWith('/__mcp/trang/'))) { gui(res, 503, 'text/plain; charset=utf-8', 'Cấu hình quyền (chu-quan.json) đang hỏng — chủ quản sửa tệp rồi tải lại trang.'); return true; }
   const trangDn = (ma, loi, tiep) => gui(res, ma, 'text/html; charset=utf-8', CV.trangDangNhap({ loi, tiep }), { 'Content-Security-Policy': CV.CSP_DANG_NHAP, 'X-Frame-Options': 'DENY' });
-  if (p === CV.DUONG_DANG_XUAT) { res.writeHead(302, { Location: CV.DUONG_DANG_NHAP, 'Set-Cookie': CV.cookieXoa(), 'Cache-Control': 'no-store' }); res.end(); return true; }
+  if (p === CV.DUONG_DANG_XUAT) {
+    if (req.headers['sec-fetch-site'] && !['same-origin', 'none'].includes(req.headers['sec-fetch-site'])) { gui(res, 403, 'text/plain', 'Không hỗ trợ'); return true; } // trang lạ không đăng xuất hộ được
+    res.writeHead(302, { Location: CV.DUONG_DANG_NHAP, 'Set-Cookie': CV.cookieXoa(), 'Cache-Control': 'no-store' }); res.end(); return true; }
   if (p === CV.DUONG_PHIEN) { daVao(req, cq) ? json(res, 200, { ok: true }) : json(res, 401, { loi: 'Cần đăng nhập mật khẩu chung', canDangNhap: true }); return true; }
   if (p === CV.DUONG_DANG_NHAP) {
     if (!CV.congBat(cq)) { res.writeHead(302, { Location: '/', 'Cache-Control': 'no-store' }); res.end(); return true; }

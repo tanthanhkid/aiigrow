@@ -38,7 +38,7 @@ export function taoReview(C) {
     let t = 0; try { t = fs.statSync(TEP_CQ).mtimeMs; } catch { t = 0; }
     if (t !== cq.t) {
       const cu = cq;
-      if (!t) cq = { t, j: {} };
+      if (!t) cq = { t, j: {}, hong: String(cu.j.matKhau || '').length >= 8 }; // đã có mật khẩu mà tệp biến mất (đang lưu lại/di chuyển) ⇒ đóng cổng, không mở toang
       else { try { const j = JSON.parse(fs.readFileSync(TEP_CQ, 'utf8')); cq = { t, j: j && typeof j === 'object' && !Array.isArray(j) ? j : {}, hong: !(j && typeof j === 'object' && !Array.isArray(j)) }; } catch { cq = { t, j: {}, hong: true }; } }
       const a = tomCq(cu.j), b = { ...tomCq(cq.j), doiMa: String(cu.j.ma || '') !== String(cq.j.ma || ''), doiMaMcp: String(cu.j.maMcp || '') !== String(cq.j.maMcp || ''), doiMatKhau: String(cu.j.matKhau || '') !== String(cq.j.matKhau || ''), doiBiMatPhien: String(cu.j.biMatPhien || '') !== String(cq.j.biMatPhien || '') };
       if (cu.t !== -1 && (b.doiMa || b.doiMaMcp || b.doiMatKhau || b.doiBiMatPhien || a.coBiMatPhien !== b.coBiMatPhien || a.khoaBang !== b.khoaBang || a.coMa !== b.coMa || a.coMaMcp !== b.coMaMcp || a.coMatKhau !== b.coMatKhau)) // lần đọc đầu tiên khi chạy máy chủ không phải «đổi»
@@ -49,12 +49,16 @@ export function taoReview(C) {
   // chu-quan.json có mà đọc không được (JSON hỏng, đang ghi dở…) ⇒ cổng mật khẩu ĐÓNG (server.mjs trả 503), không mở toang
   const cauHinhHong = () => { cauHinh(); return cq.hong === true; };
   // có matKhau mà thiếu biMatPhien ⇒ tự sinh (ngẫu nhiên 256 bit), ghi lại chu-quan.json (chmod 600) — không bao giờ in ra
+  let loiBiMat = false;
   function damBaoBiMatPhien() {
     const j = cauHinh();
     if (cq.hong || String(j.matKhau || '').length < 8 || String(j.biMatPhien || '').length >= 32) return;
     const moi = { ...j, biMatPhien: crypto.randomBytes(32).toString('hex') };
     const tam = `${TEP_CQ}.${process.pid}.${Date.now()}.tam`;
-    fs.writeFileSync(tam, JSON.stringify(moi, null, 1), { mode: 0o600 }); fs.renameSync(tam, TEP_CQ);
+    try { fs.writeFileSync(tam, JSON.stringify(moi, null, 1), { mode: 0o600 }); fs.renameSync(tam, TEP_CQ); } catch (e) {
+      try { fs.unlinkSync(tam); } catch { /* chưa tạo */ }
+      if (!loiBiMat) console.error('! Không ghi được biMatPhien vào chu-quan.json:', e.code || e.message, '— cổng mật khẩu chưa bật'); loiBiMat = true;
+    }
   }
   // vai của người gọi để ghi audit — chỉ SO mã, KHÔNG đếm lần sai/không ghi «sai mã» (ghi kho khi chưa khoá bảng không phải là thử mã:
   // mã cũ còn kèm theo trong lúc tự lưu không được làm đầy audit hay khoá IP của chủ quản)
@@ -86,7 +90,7 @@ export function taoReview(C) {
   }
   // Mật khẩu chung («matKhau» trong chu-quan.json): cổng vào mọi đường khi vào qua tên miền (cong-vao.mjs). Cùng bộ giới hạn sai.
   function kiemMatKhau(req, gui) {
-    return kiemBiMat(req, String(cauHinh().matKhau || ''), String(gui || ''), { loai: 'quyen.sai-mat-khau', ten: 'mật khẩu chung', duong: '/__dang-nhap', dungTruocTong: true });
+    return kiemBiMat(req, String(cauHinh().matKhau || ''), String(gui || ''), { loai: 'quyen.sai-mat-khau', ten: 'mật khẩu chung', duong: '/__dang-nhap', tongToiDa: 1000 });
   }
   // So một bí mật (mã chủ quản / mật khẩu MCP / mật khẩu chung) — dùng CHUNG bộ giới hạn sai: 10 lần/phút/IP, 100 lần/phút cả máy chủ. Không bao giờ ghi giá trị mã.
   function kiemBiMat(req, ma, gui, au) {
@@ -96,9 +100,8 @@ export function taoReview(C) {
     if (s && now - s.t < 60000 && s.n >= 10) return false;
     let saiTong = SAI_TONG.get(au.loai); if (!saiTong) SAI_TONG.set(au.loai, saiTong = { t: 0, n: 0 });
     if (now - saiTong.t >= 60000) { saiTong.t = now; saiTong.n = 0; }
-    // mật khẩu chung là cổng vào của cả nhóm: người lạ làm đầy ngưỡng chung không được khoá người gõ đúng (vẫn giữ ngưỡng 10/phút/IP)
-    if (au.dungTruocTong && dungMa(ma, gui)) return true;
-    if (saiTong.n >= 100) return false; // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ
+    // chặn đoán mã kể cả khi IP bị giả: tối đa 100 lần sai/phút cho cả máy chủ (mật khẩu chung — cổng vào của cả nhóm — 1000, để người lạ khó khoá cả nhóm)
+    if (saiTong.n >= (au.tongToiDa || 100)) return false;
     if (dungMa(ma, gui)) return true;
     saiTong.n++;
     let n = 1; if (!s || now - s.t >= 60000) saiMa.set(ip, { t: now, n: 1 }); else n = ++s.n;
