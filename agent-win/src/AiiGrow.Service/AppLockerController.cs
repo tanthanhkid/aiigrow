@@ -56,7 +56,7 @@ public sealed class AppLockerController
         // đọc/ghi lỗi ⇒ thử lại sau 60 giây, tối đa 5 lần (không chạy PowerShell mỗi nhịp 5 giây — review #170)
         if (!_daKiemAppx && Environment.TickCount64 >= _appxThuLaiLuc)
         {
-            _daKiemAppx = KiemSuaAppx("khởi động") != null || ++_appxLoi >= AppLockerXml.DocLoiToiDa;
+            _daKiemAppx = KiemSuaAppx("khởi động") != null || ++_appxLoi >= 10;   // bỏ cuộc thì Apply/Remove vẫn sửa + báo (BaoDaSuaAppx)
             _appxThuLaiLuc = Environment.TickCount64 + 60_000;
         }
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
@@ -101,17 +101,7 @@ public sealed class AppLockerController
             File.WriteAllText(file, AppLockerXml.SuaAppx(cu!), new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("da-sua-appx LỖI: không ghi được luật Appx ({luc}): {e}", luc, set.Error); return null; }
-            var n = KhoiDongLaiShell();
-            _log.LogWarning("da-sua-appx: AppLocker chặn Exe mà thiếu luật Appx (Start/Search của Windows bị chặn) — đã thêm luật cho mọi gói có chữ ký ({luc}), khởi động lại {n} tiến trình Start/Search", luc, n);
-            try
-            {
-                new ConfigStore().Update(c => c.Queue.Add(new SuKien
-                {
-                    Loai = "da_sua_appx",
-                    ChiTiet = new() { ["may"] = Environment.MachineName, ["luc"] = luc, ["ban"] = TuCapNhat.BanHienTai().ToString(3) },
-                }));
-            }
-            catch (Exception e) { _log.LogDebug("Ghi sự kiện da_sua_appx lỗi: {e}", e.Message); }
+            BaoDaSuaAppx(luc);
             return true;
         }
         catch (Exception e)
@@ -119,6 +109,22 @@ public sealed class AppLockerController
             _log.LogError(e, "da-sua-appx LỖI ({luc})", luc);
             return null;
         }
+    }
+
+    /// <summary>Máy vừa thoát trạng thái Exe bật + Appx rỗng: khởi động lại Start/Search (tiến trình cũ đã bị từ chối), log «da-sua-appx», sự kiện da_sua_appx.</summary>
+    private void BaoDaSuaAppx(string luc)
+    {
+        var n = KhoiDongLaiShell();
+        _log.LogWarning("da-sua-appx: AppLocker chặn Exe mà thiếu luật Appx (Start/Search của Windows bị chặn) — đã sửa ({luc}), khởi động lại {n} tiến trình Start/Search", luc, n);
+        try
+        {
+            new ConfigStore().Update(c => c.Queue.Add(new SuKien
+            {
+                Loai = "da_sua_appx",
+                ChiTiet = new() { ["may"] = Environment.MachineName, ["luc"] = luc, ["ban"] = TuCapNhat.BanHienTai().ToString(3) },
+            }));
+        }
+        catch (Exception e) { _log.LogDebug("Ghi sự kiện da_sua_appx lỗi: {e}", e.Message); }
     }
 
     /// <summary>Đóng tiến trình shell dạng gói ở mọi phiên — Windows tự mở lại ngay, lần này qua luật Appx mới. Không đụng explorer.</summary>
@@ -159,11 +165,11 @@ public sealed class AppLockerController
             var opt = new AppLockerOptions { ChildSids = sids, AllowedApps = apps, TrinhDuyetTheoSid = trinhDuyet };
             var xml = chan is { Count: > 0 } ? AppLockerXml.MergeChanApp(cu, sids, chan, hoc ? opt : null) : AppLockerXml.Merge(cu, opt);
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
-            // mỗi lần áp «Chặn thật»: Exe bật thì Appx phải có luật cho phép (GiuShellChay) — kiểm trên chính bản sắp ghi, không đọc lại bằng PowerShell
-            if (AppLockerXml.ThieuAppx(xml)) { _log.LogError("da-sua-appx LỖI: chính sách sắp áp chặn Start/Search (thiếu luật Appx) — không áp"); return false; }
             File.WriteAllText(file, xml, new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Set-AppLockerPolicy lỗi: {e}", set.Error); return false; }
+            // chính sách cũ (bản ≤0.2.10) chặn Start/Search, bản vừa ghi đã có luật Appx (GiuShellChay) ⇒ khởi động lại shell + báo
+            if (AppLockerXml.ThieuAppx(cu) && !AppLockerXml.ThieuAppx(xml)) BaoDaSuaAppx("áp Chặn thật");
             EnsureAppIdSvc();
             _docLoi = 0;
             _log.LogInformation("Đã áp AppLocker cho {soTk} tài khoản với {n} app; trình duyệt (web lọc) cho {td} tài khoản{chan}", sids.Count, hoc ? apps.Count : 0, trinhDuyet.Count, chan is { Count: > 0 } ? $", {chan.Count} luật chặn app" : "");
@@ -192,9 +198,11 @@ public sealed class AppLockerController
                     return true;
             }
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
-            File.WriteAllText(file, AppLockerXml.RemoveOurs(existing!), new System.Text.UTF8Encoding(false));
+            var moi = AppLockerXml.RemoveOurs(existing!);
+            File.WriteAllText(file, moi, new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Gỡ AppLocker lỗi: {e}", set.Error); return false; }
+            if (AppLockerXml.ThieuAppx(existing) && !AppLockerXml.ThieuAppx(moi)) BaoDaSuaAppx("gỡ luật");
             _log.LogInformation("Đã gỡ luật AppLocker của AiiGrow");
             return true;
         }
