@@ -1375,7 +1375,7 @@ function napManThem() { // tuần tự như dongBoPhienBan: lời gọi tới kh
       let kho; try { const r = await fetch('/api/man-them', { cache: 'no-store' }); if (!r.ok) continue; kho = MTH.chuanKho(await r.json()); } catch { continue; }
       if (JSON.stringify(kho) === JSON.stringify(MT_KHO)) continue;
       const moi = apManThem(kho); doi = true;
-      if (moi) await dongBoPhienBan(); // nội dung (v1…) của màn mới
+      await dongBoPhienBan(); // nội dung (v1…) của màn mới; đổi tên khung trống ⇒ bản mới
     } while (napMtLai);
     if (doi) { qtDaVe = ''; veTatCa(); DC?.khiDoi(); if (!$('#lop-lk').hidden) veLienKet(); if (!$('#lop-play').hidden) vePlay(''); }
     return doi;
@@ -1400,13 +1400,14 @@ function moThemMan(lanId, sau = undefined) {
   them.lan = l.id; dongLop();
   $('#them-ht').textContent = `Hành trình «${l.ten}» · ${l.vai} · ${l.nen}`;
   // vị trí: mặc định ngay sau màn đang chọn của hành trình này, không thì cuối
-  const chon = khungChon(); const keyChon = chon && MAN[keyCua(chon)]?.lan === l.id ? keyCua(chon) : '';
+  const chon = khungChon(); const keyChon = chon && MAN[keyCua(chon)]?.lan === l.id && !daXoa(keyCua(chon)) ? keyCua(chon) : ''; // màn đã xoá không có trong danh sách vị trí
   const vt = $('#them-vi-tri'); vt.innerHTML = '';
   const op = (v, t, cha = vt) => { const o = document.createElement('option'); o.value = v; o.textContent = t; cha.appendChild(o); return o; };
   op('^', 'Đầu hành trình');
   l.buoc.forEach((k, i) => { if (!daXoa(k)) op(k, `Sau bước ${i + 1} · ${MAN[k].ten}`); });
   op('$', 'Cuối hành trình');
   vt.value = sau !== undefined ? (sau === '' ? '^' : sau) : keyChon || '$';
+  if (!vt.value) vt.value = '$'; // giá trị không có trong danh sách (vd. màn đã xoá) ⇒ cuối, không lặng lẽ chèn đầu
   const tu = $('#them-tu'); tu.innerHTML = '';
   for (const x of LAN_GOC) {
     const g = document.createElement('optgroup'); g.label = x.ten;
@@ -1414,6 +1415,7 @@ function moThemMan(lanId, sau = undefined) {
     if (g.children.length) tu.appendChild(g);
   }
   tu.value = keyChon || l.buoc.find((k) => !daXoa(k)) || '';
+  if (!tu.value) tu.selectedIndex = 0;
   const mau = MAN[l.buoc.find((k) => !daXoa(k))] || MAN[l.buoc[0]] || { w: 390, h: 844 };
   $('#them-w').value = mau.w; $('#them-h').value = mau.h;
   $('#them-ten').value = ''; $('#them-html').value = '';
@@ -1433,7 +1435,7 @@ $('#hop-them').addEventListener('submit', async (e) => {
   const l = timLan(them.lan); if (!l) return;
   const ten = $('#them-ten').value.replace(/\s+/g, ' ').trim(); if (!ten) { toast('Nhập tên màn.', true); $('#them-ten').focus(); return; }
   const cach = $('#hop-them').querySelector('input[name="them-cach"]:checked')?.value || 'trong';
-  const vt = $('#them-vi-tri').value; const sau = vt === '$' ? null : vt === '^' ? '' : vt;
+  const vt = $('#them-vi-tri').value; const sau = vt === '^' ? '' : vt && vt !== '$' ? vt : null;
   let html, w = Math.round(Number($('#them-w').value)), h = Math.round(Number($('#them-h').value)), tu = '';
   if (cach === 'nhan-ban') {
     tu = $('#them-tu').value; const m = MAN[tu]; if (!m) { toast('Chọn màn để nhân bản.', true); return; }

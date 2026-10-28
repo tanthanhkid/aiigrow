@@ -86,7 +86,7 @@ export function taoMcp(C) {
   const gocCache = new Map();
   let manP = null, manLuc = 0, mtKy = '';
   function taiMan() { // nạp lại sau 30 giây (web/that/ có thể được chụp lại khi máy chủ đang chạy) hoặc khi màn thêm đổi; lần nạp thiếu tệp hành trình không được giữ
-    const mt = C.manThem ? C.manThem() : { man: {}, thuTu: {} }; const ky = JSON.stringify(mt);
+    const mt = C.manThem ? C.manThem() : { man: {}, thuTu: {} }; const ky = C.manThemKy ? String(C.manThemKy()) : JSON.stringify(mt); // dấu phiên bản kho (không stringify cả kho mỗi lần)
     if (manP && (Date.now() - manLuc > 30000 || ky !== mtKy)) manP = null;
     if (!manP) { manLuc = Date.now(); mtKy = ky; gocCache.clear(); manP = (async () => {
       const { ds: ds0, loi } = await taiHanhTrinh(layWeb);

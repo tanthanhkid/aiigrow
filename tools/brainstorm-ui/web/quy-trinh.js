@@ -55,8 +55,8 @@ export function taoQuyTrinh(api) {
     }
     return { ...q, nut: q.nut.filter((x) => !bo.has(x.id)), noi };
   }
-  // màn «Thêm màn» (không có trong sơ đồ vẽ tay): chèn vào sơ đồ của hành trình chứa nó — ngay sau màn đứng trước gần nhất có trong sơ đồ
-  // (nhận lại các cạnh ra của màn đó); không có màn trước thì đứng ngay trước màn kế gần nhất (nhận các cạnh vào).
+  // màn «Thêm màn» (không có trong sơ đồ vẽ tay): chèn vào sơ đồ của hành trình chứa nó — cạnh không nhãn từ màn đứng trước gần nhất có trong sơ đồ
+  // và tới màn kế gần nhất; cạnh/nhãn sẵn có giữ nguyên (đúng nút data-toi thật).
   function chenManThem(q) {
     let nut = null, noi = null;
     for (const ht of q.hanh || []) {
@@ -66,15 +66,13 @@ export function taoQuyTrinh(api) {
         nut ||= q.nut.slice(); noi ||= q.noi.map((c) => c.slice());
         const tim = (ds) => { for (const pk of ds) { const x = nut.find((n) => n.loai === 'man' && n.man === pk); if (x) return x; } return null; };
         const id = `them:${k}`;
-        const truoc = tim(l.buoc.slice(0, i).reverse());
-        if (truoc) {
-          for (const c of noi) if (c[0] === truoc.id) c[0] = id;
-          noi.push([truoc.id, id, '']); nut.push({ id, loai: 'man', lan: truoc.lan, ten: MAN[k].ten, man: k });
-          return;
-        }
-        const sau = tim(l.buoc.slice(i + 1)); if (!sau) return;
-        for (const c of noi) if (c[1] === sau.id) c[1] = id;
-        noi.push([id, sau.id, '']); nut.push({ id, loai: 'man', lan: sau.lan, ten: MAN[k].ten, man: k });
+        // KHÔNG chuyển cạnh/nhãn của màn khác: nút data-toi thật của màn trước vẫn đi thẳng tới màn kế (ke0) — màn thêm chỉ được chen vào thứ tự
+        const truoc = tim(l.buoc.slice(0, i).reverse()), sau = tim(l.buoc.slice(i + 1));
+        if (!truoc && !sau) return;
+        const lan = (truoc || sau).lan;
+        nut.push({ id, loai: 'man', lan, ten: MAN[k].ten, man: k });
+        if (truoc) noi.push([truoc.id, id, '']);
+        if (sau) noi.push([id, sau.id, '']);
       });
     }
     return nut ? { ...q, nut, noi } : q;

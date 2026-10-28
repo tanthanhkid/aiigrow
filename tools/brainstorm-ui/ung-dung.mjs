@@ -53,11 +53,24 @@ export function taoUngDung(O = {}) {
   const MT_TOI_DA = 300;               // số màn thêm tối đa cả bàn
   // tệp chưa có ⇒ kho rỗng; tệp hỏng ⇒ ném lỗi (không bao giờ ghi đè bằng kho rỗng)
   function docMt() { let tho; try { tho = fs.readFileSync(TEP_MT(), 'utf8'); } catch (e) { if (e.code === 'ENOENT') return MT.KHO_RONG(); throw e; } return MT.chuanKho(JSON.parse(tho)); }
-  const laThem = (key) => { if (!MT.KEY_THEM.test(String(key))) return false; try { return !!docMt().man[key]; } catch { return false; } };
+  // bản nhớ theo dấu tệp (mtime + cỡ): đường nóng (keyMan, laThem, MCP) không đọc + parse lại tệp mỗi lần. Chính máy chủ ghi ⇒ ghiMt xoá dấu.
+  const MT_NHO = { ky: null, kho: MT.KHO_RONG(), hong: false, ver: 0 };
+  function mtNho() {
+    let ky = 'khong'; try { const s = fs.statSync(TEP_MT()); ky = `${s.mtimeMs}:${s.size}`; } catch { /* chưa có tệp */ }
+    if (ky !== MT_NHO.ky) {
+      MT_NHO.ky = ky; MT_NHO.ver++;
+      try { MT_NHO.kho = docMt(); MT_NHO.hong = false; } catch { console.error('[man-them] man-them.json hỏng — bỏ qua màn thêm'); MT_NHO.kho = MT.KHO_RONG(); MT_NHO.hong = true; }
+    }
+    return MT_NHO;
+  }
+  const ghiMt = (mt) => { ghiAtomic(TEP_MT(), JSON.stringify(mt, null, 1)); MT_NHO.ky = null; };
+  // tệp hỏng ⇒ coi mọi key dạng them-… là màn thêm (không lặng lẽ thành «màn trong mã»: vẫn chặn v0, quyền xoá như màn thêm)
+  const laThem = (key) => MT.KEY_THEM.test(String(key)) && (mtNho().hong || !!mtNho().kho.man[key]);
   // Danh sách key màn có thật: lấy từ chính các tệp hành trình (cùng nguồn với trình duyệt) — key lạ bị từ chối, không bao giờ thành đường dẫn.
   // Nạp MỘT lần từ chính web/hanh-trinh/index.js (cùng danh sách tệp với trình duyệt); lỗi thì thử lại sau 10 giây. Màn mới trong mã ⇒ khởi động lại máy chủ.
   // + MÀN THÊM trên bàn («+ Thêm màn», kho phien-ban/man-them.json — web/man-them.js): ghép vào mỗi lần tệp đổi, không cần khởi động lại.
   let KEY_MAN = new Set(), HANH_TRINH = new Map(), TEN_MAN = new Map(), keyLuc = 0, keyDu = false, DS0 = [], mtKy = null;
+  const KEY_HL = /^[a-z0-9][a-z0-9-]{0,79}$/; // key hành trình / màn trong mã hợp lệ
   async function keyMan() {
     if (!keyDu && Date.now() - keyLuc >= 10000) {
       keyLuc = Date.now();
@@ -65,16 +78,15 @@ export function taoUngDung(O = {}) {
         const { taiHanhTrinh } = await import('./web/hanh-trinh/index.js');
         const { ds, loi } = await taiHanhTrinh(); // fetch('/that/ds.json') trong Node lỗi ⇒ bỏ qua, key không đổi
         keyDu = !loi.some((x) => /\.js/.test(x)); // có tệp hành trình nạp lỗi: 10 giây sau thử lại
-        DS0 = ds.filter((h) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(h.id)).map((h) => ({ id: h.id, ten: String(h.ten || h.id), nen: h.nen,
-          buoc: h.buoc.filter((b) => /^[a-z0-9][a-z0-9-]{0,79}$/.test(b.key)).map((b) => ({ key: b.key, ten: String(b.ten || b.key) })) }));
-        mtKy = null;
+        DS0 = ds.filter((h) => KEY_HL.test(h.id)).map((h) => ({ id: h.id, ten: String(h.ten || h.id), nen: h.nen,
+          buoc: h.buoc.filter((b) => KEY_HL.test(b.key)).map((b) => ({ key: b.key, ten: String(b.ten || b.key) })) }));
+        mtKy = null; // DS0 đổi ⇒ dựng lại
       } catch (e) { console.error('Không đọc được danh sách màn:', e.message); }
     }
-    let tho = ''; try { tho = fs.readFileSync(TEP_MT(), 'utf8'); } catch { /* chưa có màn thêm */ }
-    if (tho !== mtKy) {
-      mtKy = tho;
-      let kho; try { kho = tho ? MT.chuanKho(JSON.parse(tho)) : MT.KHO_RONG(); } catch { console.error('[man-them] man-them.json hỏng — bỏ qua màn thêm'); kho = MT.KHO_RONG(); }
-      const ds = MT.ghepManThem(DS0, kho);
+    const nho = mtNho();
+    if (nho.ver !== mtKy) {
+      mtKy = nho.ver;
+      const ds = MT.ghepManThem(DS0, nho.kho);
       KEY_MAN = new Set(ds.flatMap((h) => h.buoc.map((b) => b.key)));
       TEN_MAN = new Map(ds.flatMap((h) => h.buoc.map((b) => [b.key, String(b.ten || b.key)])));
       HANH_TRINH = new Map(ds.map((h) => [h.id, { id: h.id, ten: h.ten, buoc: h.buoc.map((b) => b.key) }]));
@@ -173,7 +185,7 @@ export function taoUngDung(O = {}) {
 
 
   // MCP (Streamable HTTP, /mcp): mọi thao tác đi qua chính xuLyYeuCau bên dưới bằng yêu cầu nội bộ mang quyền của người gọi MCP.
-  const mcp = taoMcp({ xuLyYeuCau: (...a) => xuLyYeuCau(...a), cong, WEB, THIET_KE, HOST_TIN, manThem: () => { try { return docMt(); } catch { return MT.KHO_RONG(); } }, ...(O.mcp || {}), hopLeNguon: (req) => hopLeNguon(req),
+  const mcp = taoMcp({ xuLyYeuCau: (...a) => xuLyYeuCau(...a), cong, WEB, THIET_KE, HOST_TIN, manThem: () => mtNho().kho, manThemKy: () => mtNho().ver, ...(O.mcp || {}), hopLeNguon: (req) => hopLeNguon(req),
     json: (...a) => json(...a), docThan: (...a) => docThan(...a), danhDau: (req) => REQ_MCP.add(req), kiemMaMcp: (req) => (String(review.cauHinh().maMcp || '').length >= 8 && coPhien(req)) || review.kiemMaMcp(req) });
 
   // ---- Cổng mật khẩu chung (cong-vao.mjs): qua tên miền, MỌI đường (trang, /api, /ref, /assets, /r/, /ws) cần đăng nhập khi chu-quan.json có
@@ -620,31 +632,42 @@ export function taoUngDung(O = {}) {
         if (r[0] !== 200) return json(res, r[0], r[1]);
         tt.splice(i, 0, key);
         mt.man[key] = { key, ht: ht.id, ten, w, h, t: new Date().toISOString(), tao: ai.ten || '' }; mt.thuTu[ht.id] = tt;
-        ghiAtomic(TEP_MT(), JSON.stringify(mt, null, 1));
+        ghiMt(mt);
         baoManThem({ key, ht: ht.id, viec: 'them', ten: ai.ten || '', tu: ai.phien || '' });
         return json(res, 200, { key, man: mt.man[key], thuTu: tt, manifest: r[1] });
       }
       const key = String(t.key || ''); const m = mt.man[key];
       if (!m) return json(res, 404, { loi: 'Không có màn thêm này — màn trong mã không đổi tên/đổi chỗ trên bàn' });
       const ht = htCua(m.ht); if (!ht) return json(res, 409, { loi: 'Hành trình của màn này không còn trong mã' });
-      const doi = [];
-      if (t.ten != null) {
-        if (!ten) return json(res, 400, { loi: 'Cần tên màn' });
-        if (ten !== m.ten) { audit.ghi({ loai: 'man.doi-ten', dt: { key, ht: ht.id, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten } }); m.ten = ten; doi.push('ten'); }
-      }
-      if ('sau' in t) {
-        const tt0 = thuTuCua(ht.id); const tt = tt0.filter((k) => k !== key);
+      const doi = []; const au = []; const ten0 = m.ten;
+      if (t.ten != null && !ten) return json(res, 400, { loi: 'Cần tên màn' });
+      let ttMoi = null; const tt0 = thuTuCua(ht.id);
+      if ('sau' in t) { // kiểm vị trí TRƯỚC mọi thay đổi (sai ⇒ 400, không ghi gì, không audit)
+        const tt = tt0.filter((k) => k !== key);
         const i = t.sau === key ? -1 : MT.chiSoChen(tt, t.sau ?? null);
         if (i < 0) return json(res, 400, { loi: 'Vị trí mới không thuộc hành trình này' });
         tt.splice(i, 0, key);
-        if (tt.join() !== tt0.join()) {
-          audit.ghi({ loai: 'man.doi-cho', dt: { key, ht: ht.id, sau: i === 0 ? '' : tt[i - 1], viTri: i + 1 }, ai, truoc: { ht: ht.id, thuTu: tt0 }, sau: { ht: ht.id, thuTu: tt } });
-          mt.thuTu[ht.id] = tt; doi.push('cho');
-        }
+        if (tt.join() !== tt0.join()) { ttMoi = tt; au.push({ loai: 'man.doi-cho', dt: { key, ht: ht.id, sau: i === 0 ? '' : tt[i - 1], viTri: i + 1 }, ai, truoc: { ht: ht.id, thuTu: tt0 }, sau: { ht: ht.id, thuTu: tt } }); doi.push('cho'); }
       }
-      if (doi.length) { ghiAtomic(TEP_MT(), JSON.stringify(mt, null, 1)); baoManThem({ key, ht: ht.id, viec: doi.join(','), ten: ai.ten || '', tu: ai.phien || '' }); }
+      if (t.ten != null && ten !== m.ten) { au.unshift({ loai: 'man.doi-ten', dt: { key, ht: ht.id, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten } }); doi.unshift('ten'); }
+      if (doi.length) {
+        if (doi.includes('ten')) m.ten = ten;
+        if (ttMoi) mt.thuTu[ht.id] = ttMoi;
+        ghiMt(mt); audit.ghi(au); // ghi tệp xong mới audit (ghi lỗi ⇒ ném, không để audit sai)
+        if (doi.includes('ten')) await capNhatKhungTrong(key, ten0, ten, ai);
+        baoManThem({ key, ht: ht.id, viec: doi.join(','), ten: ai.ten || '', tu: ai.phien || '' });
+      }
       return json(res, 200, { key, man: m, thuTu: thuTuCua(ht.id), doi });
     } finally { mo(); }
+  }
+  // đổi tên màn thêm mà bản đang dùng vẫn là «khung trống» của tên cũ ⇒ thêm phiên bản khung trống mang tên mới (tiêu đề trong khung, Play, /r/, ảnh MCP khớp tên)
+  async function capNhatKhungTrong(key, tenCu, tenMoi, ai) {
+    try {
+      const m = docManifest(key); const muc = m.ds.find((x) => x.v === m.hien); if (!muc?.tep || muc.xoa) return;
+      if (fs.readFileSync(path.join(thuMucPb(key), `v${muc.tep}.html`), 'utf8') !== MT.khungTrong(tenCu)) return;
+      const r = await ghiPhienBan(key, { html: MT.khungTrong(tenMoi), w: muc.w, h: muc.h, nhan: 'Đổi tên — cập nhật tiêu đề khung trống', nguon: 'them' }, null, ai, 'man.thay');
+      if (r[0] === 200) baoDoi([key], ai?.ten || '');
+    } catch (e) { console.error('[man-them] không cập nhật được khung trống:', e.message); }
   }
   // khôi phục từ Lịch sử thay đổi: tên / thứ tự hành trình của màn thêm về trạng thái st ({ ten } | { ht, thuTu })
   async function datLaiManThem(e, st, ai, nguon) {
@@ -652,17 +675,19 @@ export function taoUngDung(O = {}) {
     try {
       let mt; try { mt = docMt(); } catch { return [500, { loi: 'Tệp màn thêm (man-them.json) hỏng' }]; }
       const m = mt.man[e.dt?.key]; if (!m) return [409, { loi: 'Màn thêm này không còn' }];
+      let au = null, tenCu = '';
       if (e.loai === 'man.doi-ten') {
         const ten = sachTen(st?.ten); if (!ten) return [400, { loi: 'Không có tên để khôi phục' }];
-        audit.ghi({ loai: 'man.doi-ten', dt: { key: m.key, ht: m.ht, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten }, ghiChu: `Khôi phục từ ${nguon}` }); m.ten = ten;
+        au = { loai: 'man.doi-ten', dt: { key: m.key, ht: m.ht, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten }, ghiChu: `Khôi phục từ ${nguon}` }; tenCu = m.ten; m.ten = ten;
       } else {
         if (!Array.isArray(st?.thuTu) || st.ht !== m.ht) return [400, { loi: 'Không có thứ tự để khôi phục' }];
         await keyMan(); const ht = DS0.find((x) => x.id === m.ht); if (!ht) return [409, { loi: 'Hành trình không còn trong mã' }];
         const tt0 = MT.thuTuHt(ht.buoc.map((b) => b.key), m.ht, mt);
         mt.thuTu[m.ht] = st.thuTu.filter((k) => typeof k === 'string');
-        audit.ghi({ loai: 'man.doi-cho', dt: { key: m.key, ht: m.ht }, ai, truoc: { ht: m.ht, thuTu: tt0 }, sau: { ht: m.ht, thuTu: MT.thuTuHt(ht.buoc.map((b) => b.key), m.ht, mt) }, ghiChu: `Khôi phục từ ${nguon}` });
+        au = ({ loai: 'man.doi-cho', dt: { key: m.key, ht: m.ht }, ai, truoc: { ht: m.ht, thuTu: tt0 }, sau: { ht: m.ht, thuTu: MT.thuTuHt(ht.buoc.map((b) => b.key), m.ht, mt) }, ghiChu: `Khôi phục từ ${nguon}` });
       }
-      ghiAtomic(TEP_MT(), JSON.stringify(mt, null, 1));
+      ghiMt(mt); audit.ghi(au);
+      if (tenCu) await capNhatKhungTrong(m.key, tenCu, m.ten, ai);
       baoManThem({ key: m.key, ht: m.ht, viec: 'khoi-phuc', ten: ai.ten || '', tu: '' });
       return [200, { ok: true }];
     } finally { mo(); }
