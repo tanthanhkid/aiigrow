@@ -14,7 +14,8 @@ import { Client } from 'langsmith';
 
 // Thao tác phá huỷ / khó thấy ngay ⇒ hỏi «Làm / Bỏ» trong chat (trừ khi bật «Tự làm không hỏi»).
 export const PHA_HUY = new Set(['xoa_man', 'thay_man', 'gop_dung_chung', 'tach_dung_chung', 'khoi_phuc_phien_ban', 'xoa_bien_the', 'don_bien_the',
-  'chap_nhan_de_xuat', 'tu_choi_de_xuat', 'xoa_gop_y', 'khoi_phuc_tu_nhat_ky', 'thu_hoi_link_gop_y', 'sua_lien_ket_nhieu', 'sua_bien_the']);
+  'chap_nhan_de_xuat', 'tu_choi_de_xuat', 'xoa_gop_y', 'khoi_phuc_tu_nhat_ky', 'thu_hoi_link_gop_y']);
+// Sửa liên kết / sửa biến thể không hỏi: mỗi lần là một phiên bản mới của màn (Lịch sử phiên bản quay lại được), agent tự sửa biến thể nó vừa tạo.
 
 const HE_THONG = `Bạn là «Trợ lý» trong bàn brainstorm giao diện AiiGrow (canvas kiểu Figma: mỗi hành trình là một hàng màn, dưới mỗi màn là các biến thể; có phiên bản màn, liên kết data-toi giữa màn, màn dùng chung, góp ý /r/, đề xuất chờ duyệt, nhật ký audit).
 Người dùng ra lệnh bằng tiếng Việt hoặc tiếng Anh; bạn TỰ làm bằng tool rồi báo lại. Trả lời bằng ngôn ngữ người dùng dùng (mặc định tiếng Việt có dấu), ngắn gọn.

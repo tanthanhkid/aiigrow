@@ -531,14 +531,14 @@ export function taoMcp(C) {
       const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, key, null, pb);
       if (vGoc != null && vGoc !== hh.v) throw LOI(`Màn ${key} đã sang v${hh.v} (bạn lấy phan_tu ở v${vGoc}) — gọi lại ds_lien_ket`);
       if (daXoaMf(hh.mf)) throw LOI(`Màn ${key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
-      let ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
+      const dsGoc = JSON.parse(await domGoi('dsLienKet', hh.html, true)); let ds = dsGoc; // phan_tu chọn theo danh sách GỐC; chu / toi_cu theo trạng thái sau các thay đổi trước trong lô
       let html = hh.html; const daSua = [];
       for (const a of ds0) {
         const toi = a.toi || '';
         if (toi) { if (!MAN[toi]) throw LOI(`Không có màn đích «${toi}» — xem ds_hanh_trinh hoặc tim_man`); if (daXoaMf(pb[toi])) throw LOI(`Màn đích ${toi} đã bị xoá khỏi hành trình — chọn màn khác hoặc khoi_phuc_man`); }
         if (a.phan_tu != null && vGoc == null && a.chu == null) throw LOI('Chọn theo phan_tu cần kèm v (từ ds_lien_ket) hoặc chu để không sửa nhầm phần tử khi màn vừa đổi');
         let chon;
-        if (a.phan_tu != null) { chon = ds.filter((x) => x.i === a.phan_tu); if (a.chu != null && chon[0] && chuanChu(chon[0].chu) !== chuanChu(a.chu)) throw LOI(`Phần tử ${a.phan_tu} có chữ «${chon[0].chu}», không phải «${a.chu}» — màn có thể vừa đổi, gọi lại ds_lien_ket`); }
+        if (a.phan_tu != null) { chon = dsGoc.filter((x) => x.i === a.phan_tu); if (a.chu != null && chon[0] && chuanChu(chon[0].chu) !== chuanChu(a.chu)) throw LOI(`Phần tử ${a.phan_tu} có chữ «${chon[0].chu}», không phải «${a.chu}» — màn có thể vừa đổi, gọi lại ds_lien_ket`); }
         else if (a.chu != null) { chon = ds.filter((x) => chuanChu(x.chu) === chuanChu(a.chu)); if (!chon.length) chon = ds.filter((x) => chuanChu(x.chu).includes(chuanChu(a.chu))); }
         else if (a.toi_cu) chon = ds.filter((x) => x.toi === a.toi_cu);
         else throw LOI('Cần phan_tu, chu hoặc toi_cu để chọn nút');

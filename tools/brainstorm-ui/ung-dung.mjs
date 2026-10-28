@@ -138,7 +138,7 @@ export function taoUngDung(O = {}) {
   function aiCua(req, them = {}) {
     let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 40); } catch { /* tên hỏng */ }
     // Trợ lý AI trong bàn (web/tro-ly.js) gọi /mcp kèm câu lệnh gốc ⇒ nguon 'tro-ly-ai' + lenh (cắt 200 ký tự). Chỉ tin trên yêu cầu nội bộ do MCP dựng.
-    let lenh = ''; if (REQ_MCP.has(req) && req.headers['x-bs-tro-ly']) { let s = String(req.headers['x-bs-tro-ly']); for (let k = 0; k < 4 && !lenh; k++) { try { lenh = decodeURIComponent(s).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) || '(trống)'; } catch { s = s.slice(0, Math.max(0, s.lastIndexOf('%'))); } } lenh ||= '(lệnh hỏng)'; }
+    let lenh = ''; if (REQ_MCP.has(req) && req.headers['x-bs-tro-ly']) { let s = String(req.headers['x-bs-tro-ly']); for (let k = 0; k < 16 && !lenh && s; k++) { try { lenh = decodeURIComponent(s).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) || '(trống)'; } catch { s = s.slice(0, Math.max(0, s.lastIndexOf('%'))); } } lenh ||= '(lệnh hỏng)'; }
     return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong: cong(), ...(REQ_MCP.has(req) ? { nguon: lenh ? 'tro-ly-ai' : 'mcp', ...(lenh ? { lenh } : {}) } : {}), ...them };
   }
   const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong, motTienTrinh: O.motTienTrinh });

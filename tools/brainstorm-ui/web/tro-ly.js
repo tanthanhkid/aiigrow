@@ -15,7 +15,7 @@ const el = (tag, cls, chu) => { const e = document.createElement(tag); if (cls) 
 const TEN_VIEC = { xoa_man: 'Xoá màn', thay_man: 'Thay màn', gop_dung_chung: 'Gộp thành màn dùng chung', tach_dung_chung: 'Tách khỏi dùng chung',
   khoi_phuc_phien_ban: 'Khôi phục phiên bản màn', xoa_bien_the: 'Xoá biến thể', don_bien_the: 'Dọn biến thể (vào thùng rác)', chap_nhan_de_xuat: 'Accept đề xuất (đổi thiết kế gốc)',
   tu_choi_de_xuat: 'Từ chối đề xuất', xoa_gop_y: 'Xoá hẳn góp ý', khoi_phuc_tu_nhat_ky: 'Khôi phục trạng thái từ nhật ký', thu_hoi_link_gop_y: 'Thu hồi link góp ý',
-  sua_lien_ket_nhieu: 'Sửa nhiều liên kết một lần', sua_bien_the: 'Ghi đè nội dung biến thể' };
+ };
 
 const cd = Object.assign({ model: MODEL[0][0], tuLam: false }, doc(KHOA_TL, {}));
 let chat = doc(KHOA_CHAT, []); if (!Array.isArray(chat)) chat = [];
@@ -49,7 +49,7 @@ $('#nut-cai-dat').addEventListener('click', () => { const ls = doc(KHOA_LS, {});
 $('#hop-cai-dat').addEventListener('submit', () => {
   const key = $('#cd-ls-key').value.trim(), project = $('#cd-ls-du-an').value.trim().slice(0, 80);
   if (key) ghi(KHOA_LS, { key, project }); else { try { localStorage.removeItem(KHOA_LS); } catch { /* bỏ qua */ } }
-  if (!pn.hidden) ve();
+  if (!pn.hidden && !dangChay) ve();
 });
 
 // ---------- vẽ ----------
@@ -118,7 +118,7 @@ function xacNhan({ ten, args }) {
     a.append(el('b', '', `${TEN_VIEC[ten] || ten}?`));
     // tên màn đọc được (tránh bấm «Làm» nhầm màn trùng tên): «Tên màn · Hành trình» (key)
     const tenMan = (k) => { const m = window.__bs?.MAN?.[k]; return m ? `«${m.ten}» (${k})` : k; };
-    const dich = [args?.key, ...(Array.isArray(args?.keys) ? args.keys : [])].filter(Boolean);
+    const dich = [...new Set([args?.key, ...(Array.isArray(args?.keys) ? args.keys : []), ...(Array.isArray(args?.thay_doi) ? args.thay_doi.map((x) => x?.key) : [])].filter(Boolean))];
     if (dich.length) a.append(el('p', 'tl-dich', dich.map(tenMan).join(' + ')));
     const tom = Object.entries(args || {}).filter(([k]) => !/html|tra_loi|^keys?$/.test(k)).map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`).join(' · ');
     if (tom) a.append(el('p', 'phu', tom.slice(0, 400)));
@@ -170,7 +170,7 @@ async function guiLenh(lenh) {
 const tomTat = (v) => { const s = typeof v === 'string' ? v : JSON.stringify(v); return s.length > 500 ? `${s.slice(0, 500)}…` : s; };
 function loiDe(e) {
   const s = String(e?.message || e);
-  if (/MCP HTTP 401|Cần mật khẩu MCP/.test(s)) return 'Bàn không cho Trợ lý gọi tool (phiên đăng nhập hết hạn?) — tải lại trang, đăng nhập lại rồi thử.';
+  if (/MCP HTTP 401|Cần mật khẩu MCP/.test(s)) return 'Bàn không cho Trợ lý gọi tool: qua tên miền, Trợ lý cần cổng mật khẩu chung đang bật và phiên đăng nhập còn hạn — tải lại trang, đăng nhập lại; nếu bàn chưa đặt mật khẩu chung thì chủ quản đặt «matKhau» trong chu-quan.json (hoặc dùng 127.0.0.1).';
   if (/401|authentication|invalid x-api-key/i.test(s)) return 'Key Claude không hợp lệ (401) — kiểm lại ở ⚙ Cài đặt.';
   if (/429|rate.?limit/i.test(s)) return 'Claude đang giới hạn tốc độ (429) — đợi một lát rồi gửi lại.';
   if (/529|overloaded/i.test(s)) return 'Claude đang quá tải (529) — thử lại sau ít phút.';
