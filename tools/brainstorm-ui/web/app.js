@@ -1375,7 +1375,7 @@ function napManThem() { // tuần tự như dongBoPhienBan: lời gọi tới kh
       let kho; try { const r = await fetch('/api/man-them', { cache: 'no-store' }); if (!r.ok) continue; kho = MTH.chuanKho(await r.json()); } catch { continue; }
       if (JSON.stringify(kho) === JSON.stringify(MT_KHO)) continue;
       const moi = apManThem(kho); doi = true;
-      await dongBoPhienBan(); // nội dung (v1…) của màn mới; đổi tên khung trống ⇒ bản mới
+      if (moi) await dongBoPhienBan(); // nội dung (v1…) của màn mới (đổi tên khung trống: máy chủ phát «thay» riêng)
     } while (napMtLai);
     if (doi) { qtDaVe = ''; veTatCa(); DC?.khiDoi(); if (!$('#lop-lk').hidden) veLienKet(); if (!$('#lop-play').hidden) vePlay(''); }
     return doi;
