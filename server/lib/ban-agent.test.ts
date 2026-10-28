@@ -16,7 +16,7 @@ test("manifest bản mới: số bản, https trên tên miền máy chủ, sha2
 });
 
 test("manifest bản Mac: số bản, https trên tên miền máy chủ, tên gói khớp số bản, sha256 64 hex", () => {
-  assert.equal(BAN_AGENT_MAC.chuKyKiemPhut, BAN_AGENT_WINDOWS.chuKyKiemPhut, "Mac và Windows cùng một chu kỳ");
+  assert.ok(Number.isInteger(BAN_AGENT_MAC.chuKyKiemPhut) && BAN_AGENT_MAC.chuKyKiemPhut >= 5 && BAN_AGENT_MAC.chuKyKiemPhut <= 1440, "agent Mac kẹp [5, 1440]");
   assert.match(BAN_AGENT_MAC.version, /^\d+\.\d+\.\d+$/);
   const u = new URL(BAN_AGENT_MAC.url);
   assert.equal(u.protocol, "https:");

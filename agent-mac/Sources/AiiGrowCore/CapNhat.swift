@@ -121,7 +121,7 @@ public enum LuatCapNhat {
   /// Đọc chuKyKiemPhut dễ dãi (số, chuỗi số; giá trị lạ ⇒ nil): máy chủ ghi sai kiểu không được làm hỏng cả manifest.
   public static func docChuKy(_ v: Any?) -> Double? {
     if let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() { return n.doubleValue }
-    if let s = v as? String { return Double(s.trimmingCharacters(in: .whitespaces)) }
+    if let s = v as? String { return Double(s.trimmingCharacters(in: .whitespacesAndNewlines)) }
     return nil
   }
 
@@ -290,7 +290,8 @@ public actor BoCapNhat {
   /// `daGiuCho`: người gọi đã `giuChoNgay()` thành công.
   public func batDau(thuCong: Bool = false, daGiuCho: Bool = false, choPhep: @escaping @Sendable () async -> Bool) async -> KetQuaCapNhat {
     if !daGiuCho { guard so.giuCho() else { return .dangBan } }
-    choRieng = min(chuKy, LuatCapNhat.giayThuLaiManifest)     // lượt dừng sớm (chưa ghép, mất mạng…) thì thử lại sớm; đọc được manifest mới xoá
+    // khoảng chờ riêng chỉ do lượt ĐỊNH KỲ đặt (nút Ba Mẹ không xê dịch lịch): lượt dừng sớm (chưa ghép, mất mạng…) thì thử lại sớm
+    if !thuCong { choRieng = min(chuKy, LuatCapNhat.giayThuLaiManifest) }
     guard await choPhep() else {
       heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ — không tự cập nhật.")
       return ketThuc(.loi(LuatCapNhat.chuChuaGhep))
@@ -308,7 +309,7 @@ public actor BoCapNhat {
       return ketThuc(.loi("Không kiểm tra được bản mới (mất mạng hoặc máy chủ trả sai); sẽ thử lại sau."))
     }
     if let m = ban { chuKy = LuatCapNhat.chuKyGiay(phut: m.chuKyKiemPhut) }   // `null` (chưa phát hành) giữ chu kỳ cũ
-    choRieng = nil
+    if !thuCong { choRieng = nil }
     if let m = ban, LuatCapNhat.tachBan(m.version) == nil {
       heThong.ghiLog("Cập nhật: TỪ CHỐI — bản «\(m.version)» trong manifest không đúng dạng x.y.z.")
       return ketThuc(.loi("Máy chủ báo bản «\(m.version)» sai dạng, không cập nhật."))
@@ -357,6 +358,9 @@ public actor BoCapNhat {
     var chuan = m; chuan.sha256 = sha
     let kq = KetQuaCapNhat.dangTai(m.version)
     so.dat(kq.chu, luc: dongHo())
+    // Đã bắt đầu tải gói: mọi lỗi từ đây (mạng, mã HTTP, đĩa, chữ ký, installer) ⇒ lượt định kỳ kế chờ ≥1 giờ, không tải lại gói mỗi chu kỳ 15 phút.
+    // Giao được installer thì daemon bị nạp lại, giá trị này không còn ý nghĩa.
+    if !thuCong { choRieng = max(chuKy, LuatCapNhat.giayThuLaiTai) }
     tacVu = Task { await self.taiVaCai(chuan, lan: lanDaThu + 1, choPhep: choPhep) }
     return kq
   }
@@ -373,11 +377,6 @@ public actor BoCapNhat {
     func bo(_ lyDo: String, chu: String = "gói tải về không dùng được") {
       heThong.ghiLog("Cập nhật: \(lyDo) — KHÔNG cài."); heThong.xoaTep(tep)
       so.dat("Chưa cập nhật được bản \(m.version): \(chu); sẽ thử lại (chi tiết trong /Library/Logs/AiiGrow).", luc: dongHo())
-    }
-    /// Tải hỏng/đứt (chưa có gói để kiểm): không tính lượt thử, nhưng lượt định kỳ kế chờ ≥1 giờ (không tải lại gói mỗi chu kỳ 15 phút).
-    func boTai(_ lyDo: String, chu: String = "gói tải về không dùng được") {
-      choRieng = max(chuKy, LuatCapNhat.giayThuLaiTai)
-      bo(lyDo, chu: chu)
     }
     /// Gói tải về hỏng (sha256 lệch / chữ ký / spctl): cũng tính một lượt thử ⇒ trần 3 lần cách 6 giờ áp luôn, không tải lại cả gói mỗi 6 giờ mãi.
     func boVaDem(_ lyDo: String) {
@@ -414,13 +413,13 @@ public actor BoCapNhat {
       let tai = TaiCoTran(mayChu: mayChu(), ghi: ghi, toiDa: toiDaByte)
       let (resp, loi) = await tai.chay(session, URLRequest(url: u))
       try? ghi.close()
-      if tai.quaCo { boTai("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
-      if let loi { boTai("tải lỗi: \(loi)", chu: "mất mạng hoặc tải bị ngắt"); return }
+      if tai.quaCo { bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
+      if let loi { bo("tải lỗi: \(loi)", chu: "mất mạng hoặc tải bị ngắt"); return }
       guard let h = resp as? HTTPURLResponse, h.statusCode == 200 else {
-        boTai("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)", chu: "máy chủ phát hành trả lỗi"); return
+        bo("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)", chu: "máy chủ phát hành trả lỗi"); return
       }
       let kich = (try? FileManager.default.attributesOfItem(atPath: tam.path)[.size] as? Int) ?? 0
-      guard kich > 0, kich <= toiDaByte else { boTai("kích thước gói bất thường (\(kich) byte)"); return }
+      guard kich > 0, kich <= toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }
       let duong = tam.path
       guard let sha = await chayNgoaiActor({ LuatCapNhat.sha256Tep(duong) }) else { bo("không đọc được tệp tải", chu: "lỗi ghi đĩa"); return }
       guard sha == m.sha256 else { boVaDem("sha256 lệch (nhận \(sha.prefix(12))…, manifest \(m.sha256.prefix(12))…)"); return }
