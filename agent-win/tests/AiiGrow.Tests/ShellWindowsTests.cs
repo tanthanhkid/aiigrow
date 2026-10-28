@@ -174,6 +174,55 @@ public class ShellWindowsTests
     }
 
     [Fact]
+    public void AppLocker_AppxChiCoLuatDenyCuaQuanTri_ThemAllowGiuCheDo()
+    {
+        var cu = """
+            <AppLockerPolicy Version="1">
+              <RuleCollection Type="Appx" EnforcementMode="AuditOnly">
+                <FilePublisherRule Id="00000000-0000-0000-0000-0000000000aa" Name="Chặn Minecraft" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+                  <Conditions><FilePublisherCondition PublisherName="*" ProductName="Microsoft.MinecraftUWP" BinaryName="*"><BinaryVersionRange LowSection="*" HighSection="*" /></FilePublisherCondition></Conditions>
+                </FilePublisherRule>
+              </RuleCollection>
+            </AppLockerPolicy>
+            """;
+        var ap = AppLockerXml.Merge(cu, new AppLockerOptions { ChildSid = Sid });
+        var appx = Col(ap, "Appx");
+        Assert.False(AppLockerXml.ExeChanShell(ap));
+        Assert.Equal("AuditOnly", (string?)appx.Attribute("EnforcementMode"));
+        Assert.Contains(appx.Elements("FilePublisherRule"), r => (string?)r.Attribute("Name") == AppLockerXml.TenLuatAppx);
+        // gỡ ⇒ trả đúng như quản trị để: còn luật Deny của họ, chế độ của họ
+        var go = Col(AppLockerXml.RemoveOurs(ap), "Appx");
+        Assert.Equal("AuditOnly", (string?)go.Attribute("EnforcementMode"));
+        Assert.Equal("Chặn Minecraft", (string?)Assert.Single(go.Elements("FilePublisherRule")).Attribute("Name"));
+    }
+
+    [Fact]
+    public void AppLocker_RuleCollectionExtensions_KhongTinhLaLuat()
+    {
+        // Get-AppLockerPolicy -Local -Xml trên Win10/11 trả kèm <RuleCollectionExtensions> — không phải luật
+        var cu = """
+            <AppLockerPolicy Version="1">
+              <RuleCollection Type="Appx" EnforcementMode="NotConfigured">
+                <RuleCollectionExtensions><ThresholdExtensions><Services EnforcementMode="NotConfigured" /></ThresholdExtensions></RuleCollectionExtensions>
+              </RuleCollection>
+              <RuleCollection Type="Exe" EnforcementMode="Enabled">
+                <FilePathRule Id="00000000-0000-0000-0000-000000000001" Name="AiiGrow: Cho phép mọi người dùng (nền)" Description="" UserOrGroupSid="S-1-1-0" Action="Allow">
+                  <Conditions><FilePathCondition Path="*" /></Conditions>
+                </FilePathRule>
+                <RuleCollectionExtensions><ThresholdExtensions><Services EnforcementMode="NotConfigured" /></ThresholdExtensions><RedstoneExtensions><SystemApps Allow="Enabled" /></RedstoneExtensions></RuleCollectionExtensions>
+              </RuleCollection>
+            </AppLockerPolicy>
+            """;
+        Assert.True(AppLockerXml.ThieuAppx(cu));
+        var ap = AppLockerXml.Merge(cu, new AppLockerOptions { ChildSid = Sid });
+        Assert.False(AppLockerXml.ExeChanShell(ap));
+        Assert.Equal("Enabled", (string?)Col(ap, "Appx").Attribute("EnforcementMode"));
+        var go = AppLockerXml.RemoveOurs(ap);
+        Assert.Equal("NotConfigured", (string?)Col(go, "Appx").Attribute("EnforcementMode"));
+        Assert.Equal("NotConfigured", (string?)Col(go, "Exe").Attribute("EnforcementMode"));
+    }
+
+    [Fact]
     public void AppLocker_ChinhSachExeCuaQuanTri_KhongPhaiViecCuaAiiGrow()
     {
         // trường / công ty cố ý bật Exe + để Appx rỗng, không có luật AiiGrow ⇒ không tự «sửa»
