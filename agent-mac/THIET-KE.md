@@ -46,7 +46,7 @@ nếu đang là admin (bắt buộc còn một admin khác), lưu uid Con.
 - Mất mạng: chạy theo Policy nhớ, giờ còn lại tự trừ.
 
 ## 6. Tự cập nhật (từ bản 0.1.1)
-`CapNhat.swift` (`BoCapNhat`, `LuatCapNhat`), gọi từ `BoMay.kiemCapNhatDinhKy` (Task riêng trong `main.swift`: +90 giây, rồi mỗi 6 giờ) và `BoMay.capNhatNgay` (IPC `capNhat`).
+`CapNhat.swift` (`BoCapNhat`, `LuatCapNhat`), gọi từ `BoMay.kiemCapNhatDinhKy` (Task riêng trong `main.swift`: +90 giây, rồi theo chuKyKiemPhut của máy chủ, mặc định 6 giờ) và `BoMay.capNhatNgay` (IPC `capNhat`).
 - **Quyết định**: manifest công khai, nhưng chỉ máy ĐÃ ghép mới tự cập nhật (chưa ghép thì nút «Kiểm tra cập nhật» ẩn); chỉ khi `version` > `PhienBan.hienTai` theo số x.y.z; cờ chống chạy chồng; đang `dangGo` thì bỏ (hỏi lại ngay trước khi cài).
 - **An toàn**: URL gói https + host = host máy chủ đang dùng; chuyển hướng chỉ tới https `github.com/tanthanhkid/aiigrow-tai/releases/download/…`, đúng hai host `release-assets.githubusercontent.com` / `objects.githubusercontent.com`, và host máy chủ (đổi nơi phát hành ⇒ sửa `choPhepChuyenHuong`) (tối đa 5 lần, chặn bằng URLSessionTaskDelegate);
   tải vào `…/AiiGrow/cap-nhat` (0700, tệp 0600); sha256 khớp manifest; `pkgutil --check-signature` ra «signed by a developer certificate issued by Apple» + chứng chỉ đầu chuỗi

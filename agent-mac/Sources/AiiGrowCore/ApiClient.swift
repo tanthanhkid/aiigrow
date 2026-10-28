@@ -188,7 +188,7 @@ public final class ApiClient: MayChuApi {
     guard let o = o as? [String: Any], let v = o["version"] as? String, let u = o["url"] as? String, let s = o["sha256"] as? String else {
       throw LoiApi(chu: "Manifest bản mới không đúng định dạng")
     }
-    return BanMoi(version: v, url: u, sha256: s)
+    return BanMoi(version: v, url: u, sha256: s, chuKyKiemPhut: LuatCapNhat.docChuKy(o["chuKyKiemPhut"]))
   }
 
   public func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp {

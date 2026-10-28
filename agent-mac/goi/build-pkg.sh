@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 GOI="$PWD"; MAC="$(cd .. && pwd)"
-BAN="${BAN:-0.1.5}"
+BAN="${BAN:-0.1.6}"
 # Bản trong mã (PhienBan.hienTai — gửi lên máy chủ) phải khớp bản gói, lệch thì dừng.
 grep -qF "hienTai = \"$BAN\"" ../Sources/AiiGrowCore/MoHinh.swift || { echo "BAN=$BAN lệch PhienBan.hienTai trong MoHinh.swift" >&2; exit 1; }
 # Phát hành (NOTARY=1) phải ký thật cả app lẫn gói. Từ 0.1.1 máy tự cập nhật CHỈ nhận gói ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)»
