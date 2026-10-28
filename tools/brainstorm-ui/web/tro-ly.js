@@ -14,7 +14,8 @@ const el = (tag, cls, chu) => { const e = document.createElement(tag); if (cls) 
 
 const TEN_VIEC = { xoa_man: 'Xoá màn', thay_man: 'Thay màn', gop_dung_chung: 'Gộp thành màn dùng chung', tach_dung_chung: 'Tách khỏi dùng chung',
   khoi_phuc_phien_ban: 'Khôi phục phiên bản màn', xoa_bien_the: 'Xoá biến thể', don_bien_the: 'Dọn biến thể (vào thùng rác)', chap_nhan_de_xuat: 'Accept đề xuất (đổi thiết kế gốc)',
-  tu_choi_de_xuat: 'Từ chối đề xuất', xoa_gop_y: 'Xoá hẳn góp ý', khoi_phuc_tu_nhat_ky: 'Khôi phục trạng thái từ nhật ký', thu_hoi_link_gop_y: 'Thu hồi link góp ý' };
+  tu_choi_de_xuat: 'Từ chối đề xuất', xoa_gop_y: 'Xoá hẳn góp ý', khoi_phuc_tu_nhat_ky: 'Khôi phục trạng thái từ nhật ký', thu_hoi_link_gop_y: 'Thu hồi link góp ý',
+  sua_lien_ket_nhieu: 'Sửa nhiều liên kết một lần', sua_bien_the: 'Ghi đè nội dung biến thể' };
 
 const cd = Object.assign({ model: MODEL[0][0], tuLam: false }, doc(KHOA_TL, {}));
 let chat = doc(KHOA_CHAT, []); if (!Array.isArray(chat)) chat = [];
@@ -30,7 +31,7 @@ $('#tl-tu-lam').onchange = () => { cd.tuLam = $('#tl-tu-lam').checked; ghi(KHOA_
 
 function mo(bat = pn.hidden) {
   pn.hidden = !bat; document.body.classList.toggle('mo-tl', bat); $('#nut-tro-ly').setAttribute('aria-expanded', String(bat));
-  if (bat) { ve(); setTimeout(() => nhap.focus(), 30); }
+  if (bat) { if (!dangChay) ve(); setTimeout(() => nhap.focus(), 30); } // đang chạy: giữ nguyên DOM (thẻ «Làm / Bỏ» đang chờ, tin đang stream)
 }
 $('#nut-tro-ly').onclick = () => mo();
 $('#pn-tl-dong').onclick = () => mo(false);
@@ -134,7 +135,9 @@ function xacNhan({ ten, args }) {
 async function guiLenh(lenh) {
   const key = docKey();
   if (!key || key.toLowerCase().startsWith('mock')) { ve(); $('#nut-cai-dat').click(); return; }
-  const lichSu = chat.filter((m) => !m.loi).map((m) => ({ vai: m.vai, chu: m.chu })).slice(-12);
+  // lịch sử gửi Claude: chỉ cặp (người → AI) trọn vẹn, AI không lỗi — luôn bắt đầu bằng người, không hai lượt người liền nhau
+  const cap = []; for (let i = 0; i + 1 < chat.length; i++) if (chat[i].vai === 'nguoi' && chat[i + 1].vai === 'ai' && !chat[i + 1].loi && chat[i + 1].chu) { cap.push({ vai: 'nguoi', chu: chat[i].chu }, { vai: 'ai', chu: chat[i + 1].chu }); i++; }
+  const lichSu = cap.slice(-12);
   chat.push({ vai: 'nguoi', chu: lenh, t: Date.now() });
   const m = { vai: 'ai', chu: '', buoc: [], dang: true, t: Date.now() }; chat.push(m);
   ve(); let the = than.lastElementChild;
@@ -167,10 +170,10 @@ async function guiLenh(lenh) {
 const tomTat = (v) => { const s = typeof v === 'string' ? v : JSON.stringify(v); return s.length > 500 ? `${s.slice(0, 500)}…` : s; };
 function loiDe(e) {
   const s = String(e?.message || e);
+  if (/MCP HTTP 401|Cần mật khẩu MCP/.test(s)) return 'Bàn không cho Trợ lý gọi tool (phiên đăng nhập hết hạn?) — tải lại trang, đăng nhập lại rồi thử.';
   if (/401|authentication|invalid x-api-key/i.test(s)) return 'Key Claude không hợp lệ (401) — kiểm lại ở ⚙ Cài đặt.';
   if (/429|rate.?limit/i.test(s)) return 'Claude đang giới hạn tốc độ (429) — đợi một lát rồi gửi lại.';
   if (/529|overloaded/i.test(s)) return 'Claude đang quá tải (529) — thử lại sau ít phút.';
-  if (/Cần mật khẩu MCP|401/.test(s)) return 'Bàn không cho Trợ lý gọi tool — tải lại trang (đăng nhập lại) rồi thử.';
   return `Lỗi: ${s.slice(0, 300)}`;
 }
 function luuChat() { // bỏ ảnh khỏi bản lưu, giữ 60 tin gần nhất

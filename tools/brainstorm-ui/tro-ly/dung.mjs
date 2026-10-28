@@ -11,7 +11,7 @@ export const RA = path.join(DIR, 'dist', 'tro-ly-ai.js');
 const VAO = path.join(DIR, 'agent.mjs');
 
 export function canDung() {
-  try { return fs.statSync(RA).mtimeMs < fs.statSync(VAO).mtimeMs; } catch { return true; }
+  try { const ra = fs.statSync(RA).mtimeMs; return [VAO, path.join(DIR, 'dung.mjs'), path.join(DIR, '..', 'package-lock.json')].some((f) => { try { return fs.statSync(f).mtimeMs > ra; } catch { return false; } }); } catch { return true; }
 }
 export async function dungTroLy({ im = false } = {}) {
   const { build } = await import('esbuild');

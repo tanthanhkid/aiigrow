@@ -56,7 +56,7 @@ export function taoMcp(C) {
     const h = { host, 'user-agent': String(req0.headers['user-agent'] || 'mcp').slice(0, 200), 'x-bs-phien': 'mcp', 'x-bs-nguoi': encodeURIComponent(tenNguoi(req0)) };
     for (const k of ['cf-connecting-ip', 'cf-ray', 'x-forwarded-for']) if (req0.headers[k]) h[k] = req0.headers[k];
     const ma = maChuQuan(req0); if (ma) h['x-bs-chu-quan'] = ma;
-    if (req0.headers['x-bs-tro-ly']) h['x-bs-tro-ly'] = String(req0.headers['x-bs-tro-ly']).slice(0, 1200); // câu lệnh gốc của Trợ lý AI (đã mã hoá URI) — audit ghi «qua Trợ lý AI»
+    if (req0.headers['x-bs-tro-ly'] && !req0.headers.authorization) h['x-bs-tro-ly'] = String(req0.headers['x-bs-tro-ly']).slice(0, 1200); // câu lệnh gốc của Trợ lý AI (đã mã hoá URI) — audit ghi «qua Trợ lý AI»
     if (method !== 'GET') { // Host đã được kiểm ở cửa /mcp ⇒ Origin nội bộ = đúng Host đó (qua hopLeNguon như trang web)
       h['content-type'] = 'application/json';
       h.origin = laLoopbackHost(host) ? `http://127.0.0.1:${C.cong()}` : `https://${host}`;
@@ -531,7 +531,7 @@ export function taoMcp(C) {
       const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, key, null, pb);
       if (vGoc != null && vGoc !== hh.v) throw LOI(`Màn ${key} đã sang v${hh.v} (bạn lấy phan_tu ở v${vGoc}) — gọi lại ds_lien_ket`);
       if (daXoaMf(hh.mf)) throw LOI(`Màn ${key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
-      const ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
+      let ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
       let html = hh.html; const daSua = [];
       for (const a of ds0) {
         const toi = a.toi || '';
@@ -544,7 +544,12 @@ export function taoMcp(C) {
         else throw LOI('Cần phan_tu, chu hoặc toi_cu để chọn nút');
         if (!chon.length) throw LOI(`Không thấy phần tử phù hợp${a.chu != null ? ` với chữ «${a.chu}»` : ''} trên ${key} — xem ds_lien_ket (tat_ca=true)`);
         if (a.toi_cu == null && chon.length > 1) throw LOI(`Có ${chon.length} phần tử khớp «${a.chu ?? a.phan_tu}» trên ${key}: ${chon.map((x) => `#${x.i} «${x.chu}»`).join(', ')} — chọn bằng phan_tu (+ v)`);
-        for (const x of chon) { html = await domGoi('datLienKet', html, x.i, toi, x.chu); if (!html) throw LOI(`Không đặt được liên kết cho phần tử #${x.i}`); daSua.push({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null }); }
+        for (const x of chon) {
+          html = await domGoi('datLienKet', html, x.i, toi, x.chu); if (!html) throw LOI(`Không đặt được liên kết cho phần tử #${x.i}`);
+          const cu = daSua.find((d) => d.phan_tu === x.i); // cùng nút đổi hai lần trong một lô: giữ «truoc» gốc, «sau» mới nhất
+          if (cu) cu.sau = toi || null; else daSua.push({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null });
+        }
+        ds = JSON.parse(await domGoi('dsLienKet', html, true)); // thay đổi sau trong lô (toi_cu…) thấy kết quả của thay đổi trước
       }
       const nhan = `Liên kết ${daSua.map((x) => `«${x.chu}»`).join(', ')} ${daSua.length === 1 ? (daSua[0].sau ? `→ ${MAN[daSua[0].sau].ten}` : 'gỡ') : `(${daSua.length} nút)`} (MCP)`.slice(0, 120);
       if (hh.mf.dc) { // màn dùng chung: chỉ đổi lớp liên kết riêng của luồng này (nội dung chung không đổi)
