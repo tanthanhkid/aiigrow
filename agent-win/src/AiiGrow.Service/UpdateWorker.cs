@@ -26,31 +26,47 @@ public sealed class UpdateWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         _ = Task.Run(BatLaiTuKhoiDong);   // không chặn dịch vụ khởi động (sc.exe tối đa 30 giây/lệnh)
-        var chuKy = TuCapNhat.ChuKyMacDinh;
         var hen = DateTimeOffset.UtcNow.AddMinutes(2);
         while (!ct.IsCancellationRequested)
         {
             var bayGio = DateTimeOffset.UtcNow;
-            hen = TuCapNhat.KeTiep(hen, bayGio, chuKy);
+            hen = TuCapNhat.KeTiep(hen, bayGio, _chuKy);
             if (bayGio >= hen)
             {
-                try { chuKy = await KiemMotLuot(ct) ?? chuKy; }
-                catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Tự cập nhật: {Loi}", e.Message); }
-                hen = DateTimeOffset.UtcNow + chuKy;
+                TimeSpan cho;
+                try { cho = await KiemMotLuot(ct); }
+                // chỉ dừng khi dịch vụ dừng: hết hạn của HttpClient/CancelAfter cũng là OperationCanceledException — lọt ra là BackgroundService
+                // đổ và kéo cả dịch vụ (chặn app, lọc web) chết theo
+                catch (Exception e) when (!ct.IsCancellationRequested)
+                {
+                    // chưa đọc được manifest (mạng chưa lên sau khi thức, máy chủ lỗi): thử lại sớm, không đợi trọn chu kỳ — chỉ tốn một GET nhỏ
+                    _log.LogWarning("Tự cập nhật: {Loi}", e.Message);
+                    cho = _chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest;
+                }
+                catch (OperationCanceledException) { break; }
+                hen = DateTimeOffset.UtcNow + cho;
             }
             try { await Task.Delay(TimeSpan.FromMinutes(1), ct); } catch (OperationCanceledException) { break; }
         }
     }
 
-    /// <returns>Chu kỳ máy chủ đặt (null = chưa đọc được manifest).</returns>
-    private async Task<TimeSpan?> KiemMotLuot(CancellationToken ct)
+    /// <summary>Chu kỳ máy chủ đặt lần gần nhất đọc được manifest (mặc định 6 giờ).</summary>
+    private TimeSpan _chuKy = TuCapNhat.ChuKyMacDinh;
+    private static readonly TimeSpan ThuLaiManifest = TimeSpan.FromMinutes(15);
+    /// <summary>Tải bộ cài (~182 MB) hỏng/đứt: chờ ít nhất 1 giờ mới tải lại — chu kỳ 15 phút không được biến thành vòng tải liên tục.</summary>
+    private static readonly TimeSpan ThuLaiTai = TimeSpan.FromHours(1);
+    /// <summary>Không nhận được byte nào trong ngần này ⇒ coi là mạng treo, bỏ lượt tải (không giới hạn tổng thời gian: mạng chậm vẫn tải xong).</summary>
+    private static readonly TimeSpan HanDungTai = TimeSpan.FromMinutes(2);
+
+    /// <returns>Thời gian chờ tới lượt kiểm sau.</returns>
+    private async Task<TimeSpan> KiemMotLuot(CancellationToken ct)
     {
         var cfg = _store.Load();
-        if (cfg is not { Paired: true }) return null;
+        if (cfg is not { Paired: true }) return ThuLaiManifest;   // vừa ghép máy thì lượt đầu tới sớm
         var hienTai = TuCapNhat.BanHienTai();
 
         // KHÔNG gắn token máy: manifest công khai, còn tệp cài tải từ Vercel Blob (ngoài máy chủ AiiGrow) — gửi Bearer theo là lộ token máy cho bên thứ ba.
-        using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        using var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
         var server = ApiClient.NormalizeServer(cfg.Server);
         BanMoi? m;
         using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
@@ -59,37 +75,59 @@ public sealed class UpdateWorker : BackgroundService
             var json = await http.GetStringAsync(server + TuCapNhat.DuongManifest, cts.Token);
             m = JsonSerializer.Deserialize<BanMoi>(json);
         }
-        var chuKy = TuCapNhat.ChuKyKiem(m?.ChuKyKiemPhut);
+        if (m == null) return ThuLaiManifest;                       // thân lạ (null) — giữ chu kỳ cũ, không đè về 6 giờ
+        _chuKy = TuCapNhat.ChuKyKiem(m.ChuKyKiemPhut);
         var lyDo = TuCapNhat.KiemManifest(m, server, hienTai);
-        if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return chuKy; }
-        if (DaThuGanDay(m!.Version)) return chuKy;
+        if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return _chuKy; }
+        if (DaThuGanDay(m.Version)) return _chuKy;
 
         Directory.CreateDirectory(ThuMuc);
         var tep = Path.Combine(ThuMuc, "AiiGrow-Setup-" + CapNhat.DocBan(m.Version)!.ToString(3) + ".exe");
         DonBoCaiCu(tep);
         var tam = tep + ".tai";
         _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
-        // HttpClient.Timeout không phủ phần thân của GetStreamAsync ⇒ mạng treo giữa chừng là vòng kiểm đứng mãi: giới hạn cả lượt tải 30 phút
-        using (var hanTai = CancellationTokenSource.CreateLinkedTokenSource(ct))
+        try { await TaiVe(http, m.Url, tam, ct); }
+        catch (Exception e) when (!ct.IsCancellationRequested)
         {
-            hanTai.CancelAfter(TimeSpan.FromMinutes(30));
-            await using var vao = await http.GetStreamAsync(m.Url, hanTai.Token);
-            await using var ra = File.Create(tam);
-            await vao.CopyToAsync(ra, hanTai.Token);
+            try { File.Delete(tam); } catch { }
+            _log.LogWarning("Tự cập nhật: tải bản {Ban} lỗi ({Loi}) ⇒ thử lại sau {Gio}", m.Version, e.Message, ThuLaiTai);
+            return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
         }
 
         if (!TuCapNhat.KhopSha256(tam, m.Sha256))
         {
             try { File.Delete(tam); } catch { }
-            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy");
-            return chuKy;
+            // manifest/tệp lệch nhau thì tải lại cũng lệch: ghi «đã thử» ⇒ 24 giờ mới tải lại bản này (không đốt 182 MB mỗi chu kỳ)
+            GhiDaThu(m.Version);
+            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; bản {Ban} thử lại sau 24 giờ", m.Version);
+            return _chuKy;
         }
         File.Move(tam, tep, true);
-        // ghi «đã thử» SAU khi tải đúng: tải hỏng/đứt giữa chừng thì lượt 6 giờ sau tải lại, không phải chờ 24 giờ
+        // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
         GhiDaThu(m.Version);
         ChayBoCai(tep);
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
-        return chuKy;
+        return _chuKy;
+    }
+
+    /// <summary>Tải về <paramref name="tam"/>; mỗi lần đọc phải nhận được dữ liệu trong <see cref="HanDungTai"/> (HttpClient.Timeout không phủ
+    /// phần thân của stream ⇒ trước đây mạng treo giữa chừng là vòng kiểm đứng mãi).</summary>
+    private static async Task TaiVe(HttpClient http, string url, string tam, CancellationToken ct)
+    {
+        using var han = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        han.CancelAfter(HanDungTai);
+        using var res = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, han.Token);
+        res.EnsureSuccessStatusCode();
+        await using var vao = await res.Content.ReadAsStreamAsync(han.Token);
+        await using var ra = File.Create(tam);
+        var buf = new byte[81920];
+        while (true)
+        {
+            han.CancelAfter(HanDungTai);
+            var n = await vao.ReadAsync(buf, han.Token);
+            if (n == 0) break;
+            await ra.WriteAsync(buf.AsMemory(0, n), ct);
+        }
     }
 
     /// <summary>Chạy bộ cài bằng tác vụ SYSTEM tách rời: dịch vụ bị bộ cài dừng không kéo bộ cài chết theo.</summary>
