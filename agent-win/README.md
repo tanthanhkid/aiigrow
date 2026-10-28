@@ -65,7 +65,7 @@ hẹp nên commit chỉ đụng web không có run) → `gh run download <run-id
   sao lưu `Program Files\AiiGrow` sang `AiiGrow.sao-luu`, chép bản mới, chạy lại, ghi số bản ở mục Ứng dụng. Config/token, tài khoản Con,
   luật AppLocker (ProgramData / chính sách Windows) không đụng ⇒ không ghép lại. Lỗi giữa chừng ⇒ chép bản sao lưu trở lại.
   Cùng bản hoặc bản cũ hơn ⇒ «Đã là bản mới nhất» (Mở lại · Sửa cài đặt). `--sua` ép chạy wizard cài như cũ.
-- **Tự cập nhật**: dịch vụ (`UpdateWorker`) hỏi `GET /api/agent/ban-moi` sau 2 phút rồi mỗi 6 giờ → `{version, url, sha256}`. Chỉ nhận bản
+- **Tự cập nhật**: dịch vụ (`UpdateWorker`) hỏi `GET /api/agent/ban-moi` sau 2 phút rồi theo `chuKyKiemPhut` của manifest (kẹp 5–1440 phút, thiếu ⇒ 6 giờ, tính theo giờ thật) → `{version, url, sha256}`. Chỉ nhận bản
   mới hơn, URL https cùng host máy chủ hoặc `*.public.blob.vercel-storage.com`; tải về `ProgramData\AiiGrow\cap-nhat`, sha256 sai ⇒ xoá.
   Đúng ⇒ chạy `AiiGrow-Setup.exe --capnhat --im-lang` bằng tác vụ SYSTEM `AiiGrowCapNhat` (mã thoát 0 ok · 7 lỗi đã khôi phục · 8 lỗi chưa khôi phục).
   Khay báo «AiiGrow đã cập nhật lên bản X» một lần. Mỗi request gửi header `X-AiiGrow-Ban`.

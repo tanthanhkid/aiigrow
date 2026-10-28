@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AiiGrow.Core;
@@ -190,11 +191,35 @@ public sealed class BanMoi
     [JsonPropertyName("version")] public string Version { get; set; } = "";
     [JsonPropertyName("url")] public string Url { get; set; } = "";
     [JsonPropertyName("sha256")] public string Sha256 { get; set; } = "";
+    /// <summary>0.2.12: chu kỳ hỏi bản mới (phút) do máy chủ đặt — <see cref="TuCapNhat.ChuKyKiem"/>.</summary>
+    [JsonIgnore] public double? ChuKyKiemPhut { get; set; }
+    /// <summary>Đọc dễ dãi (số, số thập phân, chuỗi số; giá trị lạ ⇒ bỏ qua): máy chủ ghi sai kiểu không được làm hỏng cả manifest —
+    /// agent không đọc được manifest thì không bao giờ thấy bản sửa.</summary>
+    [JsonPropertyName("chuKyKiemPhut")]
+    public JsonElement? ChuKyKiemPhutTho
+    {
+        get => ChuKyKiemPhut is { } v ? JsonSerializer.SerializeToElement(v) : null;
+        set => ChuKyKiemPhut = value is { } e ? e.ValueKind switch
+        {
+            JsonValueKind.Number when e.TryGetDouble(out var d) => d,
+            JsonValueKind.String when double.TryParse(e.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d) => d,
+            _ => null,
+        } : null;
+    }
 }
 
 public static class TuCapNhat
 {
     public const string DuongManifest = "/api/agent/ban-moi";
+
+    /// <summary>Chu kỳ mặc định khi máy chủ không gửi chuKyKiemPhut (hoặc không đọc được manifest).</summary>
+    public static readonly TimeSpan ChuKyMacDinh = TimeSpan.FromHours(6);
+
+    /// <summary>Chu kỳ hỏi bản mới: chuKyKiemPhut của máy chủ kẹp [5, 1440] phút; không có ⇒ 6 giờ.</summary>
+    public static TimeSpan ChuKyKiem(double? phut) => phut is { } p && double.IsFinite(p) ? TimeSpan.FromMinutes(Math.Clamp(Math.Round(p, MidpointRounding.AwayFromZero), 5, 1440)) : ChuKyMacDinh;
+
+    /// <summary>Lần kiểm kế tiếp theo GIỜ THẬT. Đồng hồ máy bị lùi (Con chỉnh giờ) ⇒ không để hẹn xa quá một chu kỳ tính từ bây giờ.</summary>
+    public static DateTimeOffset KeTiep(DateTimeOffset hen, DateTimeOffset bayGio, TimeSpan chuKy) => hen > bayGio + chuKy ? bayGio + chuKy : hen;
     /// <summary>Bộ cài nằm trên Vercel Blob của AiiGrow (ngoài tên miền máy chủ).</summary>
     public const string DuoiBlob = ".public.blob.vercel-storage.com";
 

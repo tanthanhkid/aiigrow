@@ -53,7 +53,7 @@ builder.Services.AddHostedService<DanhSachAppWorker>();
 // Heartbeat + gỡ từ xa.
 builder.Services.AddHostedService<HeartbeatWorker>();
 
-// Tự cập nhật: kiểm /api/agent/ban-moi lúc khởi động + mỗi 6 giờ (UpdateWorker.cs).
+// Tự cập nhật: kiểm /api/agent/ban-moi lúc khởi động + theo chuKyKiemPhut của máy chủ, mặc định 6 giờ (UpdateWorker.cs).
 builder.Services.AddHostedService<UpdateWorker>();
 
 builder.Build().Run();

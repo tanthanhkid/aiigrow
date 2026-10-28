@@ -1,4 +1,4 @@
-// Bản agent Windows máy chủ đang phát — agent (UpdateWorker, 0.2.0+) hỏi GET /api/agent/ban-moi lúc khởi động + mỗi 6 giờ,
+// Bản agent Windows máy chủ đang phát — agent (UpdateWorker, 0.2.0+) hỏi GET /api/agent/ban-moi lúc khởi động + theo chuKyKiemPhut (dưới đây),
 // có bản mới hơn thì tải, KIỂM sha256 rồi tự cài đè (giữ config). Phát bản mới: build agent-win (exe của CI có ngay khi job build xong,
 // không chờ e2e: run của đúng commit (`gh run list -w agent-win -c <sha>`) → `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc` — xem đầu
 // .github/workflows/agent-win.yml; e2e của run đó đỏ ⇒ đừng merge manifest này) → `gh release create v<bản>` ở repo
@@ -7,11 +7,16 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
-// 0.2.11 (28/10, sửa Start menu đơ — AppLocker thiếu luật Appx): exe từ CI agent-win run 40644506976 (job build goc, commit 3eb5ba9, PR #170); sha256 đo trên tệp tải về từ Release.
+/** Chu kỳ agent Windows (0.2.12+) hỏi bản mới, phút — agent kẹp [5, 1440], không có trường ⇒ 6 giờ. Giai đoạn dev: 15 (Thanh 28/10).
+ *  TRƯỚC GOLIVE đổi về 360 (6 giờ) — chỉ sửa số này rồi deploy máy chủ, không phát lại agent. Đồng hồ là giờ thật (máy ngủ vẫn tính). */
+export const CHU_KY_KIEM_PHUT_WINDOWS = 15;
+
+// 0.2.12 (28/10, tự cập nhật theo giờ thật + chuKyKiemPhut; 0.2.11 sửa Start menu đơ): exe từ CI agent-win run 40648893556 (job build goc, commit ae9f0c1, PR #171); sha256 đo trên tệp tải về từ Release.
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.11",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.11.exe",
-  sha256: "a8822f15b74f1e3a6ef34431b65ed078018fc9f59bb8e3ec7374461c5342ea58",
+  chuKyKiemPhut: CHU_KY_KIEM_PHUT_WINDOWS,
+  version: "0.2.12",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.12.exe",
+  sha256: "f48532fa52ce0ba0a7aef1dfa610aa5bfc668caac3513ad82eb9fb468f2e2530",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
