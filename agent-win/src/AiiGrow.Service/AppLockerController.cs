@@ -51,6 +51,9 @@ public sealed class AppLockerController
         IReadOnlyList<AppBiChan>? chan = null)
     {
         if (!KhaDung) { Applied = false; return false; }   // Win Home: không áp, không gỡ, không log mỗi nhịp
+        // 28/10: lần đầu sau khi dịch vụ khởi động (vd ngay sau khi tự cập nhật) — chữa máy bản cũ để lại Exe bật + Appx rỗng (Start đơ),
+        // TRƯỚC khi áp/gỡ (áp/gỡ của bản này cũng tự sửa, nhưng khi đó không còn biết máy từng hỏng để báo «da-sua-appx»)
+        if (!_daKiemAppx) _daKiemAppx = KiemSuaAppx("khởi động") != null;
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
         var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
         var luatChan = chan is { Count: > 0 } ? ChanAppThat.LuatAppLocker(chan, Environment.GetFolderPath(Environment.SpecialFolder.Windows), ProcessGuard.DefaultSafeDirs(), BamAppLocker) : new List<LuatChanApp>();
@@ -69,9 +72,60 @@ public sealed class AppLockerController
         if (DateTimeOffset.UtcNow < _nextTry) return Applied;
 
         bool ok = want ? Apply(ds, list, td, wantApply, luatChan) : Remove();
+        if (ok && want) KiemSuaAppx("áp Chặn thật");   // kiểm lại chính sách thật sau khi áp: Exe bật thì Appx phải có luật cho phép
         if (ok) { _lastKey = key; Applied = want; }
         else _nextTry = DateTimeOffset.UtcNow.AddSeconds(60);
         return Applied;
+    }
+
+    private bool _daKiemAppx;
+
+    /// <summary>Đọc chính sách AppLocker thật; Exe bật mà Appx rỗng ⇒ gộp luật Appx mặc định (Set-AppLockerPolicy -Merge), khởi động lại tiến trình
+    /// Start / Search để Windows nạp lại, ghi log «da-sua-appx» + sự kiện da_sua_appx lên máy chủ. Trả null khi đọc lỗi (thử lại ở nhịp sau),
+    /// false khi chính sách ổn, true khi vừa sửa.</summary>
+    private bool? KiemSuaAppx(string luc)
+    {
+        try
+        {
+            Directory.CreateDirectory(Paths.DataDir);
+            var cu = ReadExisting(out var loi);
+            if (loi) return null;
+            if (!AppLockerXml.ThieuAppx(cu)) return false;
+            var file = Path.Combine(Paths.DataDir, "applocker-appx.xml");
+            File.WriteAllText(file, AppLockerXml.SuaAppx(cu!), new System.Text.UTF8Encoding(false));
+            var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
+            if (!set.Ok) { _log.LogError("da-sua-appx LỖI: không ghi được luật Appx ({luc}): {e}", luc, set.Error); return null; }
+            var n = KhoiDongLaiShell();
+            _log.LogWarning("da-sua-appx: AppLocker chặn Exe mà thiếu luật Appx (Start/Search của Windows bị chặn) — đã thêm luật cho mọi gói có chữ ký ({luc}), khởi động lại {n} tiến trình Start/Search", luc, n);
+            try
+            {
+                new ConfigStore().Update(c => c.Queue.Add(new SuKien
+                {
+                    Loai = "da_sua_appx",
+                    ChiTiet = new() { ["may"] = Environment.MachineName, ["luc"] = luc, ["ban"] = TuCapNhat.BanHienTai().ToString(3) },
+                }));
+            }
+            catch (Exception e) { _log.LogDebug("Ghi sự kiện da_sua_appx lỗi: {e}", e.Message); }
+            return true;
+        }
+        catch (Exception e)
+        {
+            _log.LogError(e, "da-sua-appx LỖI ({luc})", luc);
+            return null;
+        }
+    }
+
+    /// <summary>Đóng tiến trình shell dạng gói ở mọi phiên — Windows tự mở lại ngay, lần này qua luật Appx mới. Không đụng explorer.</summary>
+    private static int KhoiDongLaiShell()
+    {
+        var n = 0;
+        foreach (var ten in new[] { "StartMenuExperienceHost", "SearchHost", "SearchApp", "ShellExperienceHost", "TextInputHost" })
+            foreach (var p in System.Diagnostics.Process.GetProcessesByName(ten))
+            {
+                try { p.Kill(); n++; } catch { }
+                finally { p.Dispose(); }
+            }
+        return n;
     }
 
     private string? ReadExisting() => ReadExisting(out _);

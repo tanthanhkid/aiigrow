@@ -90,6 +90,7 @@ public static class AppLockerXml
         var exe = Collection(doc, "Exe");
         foreach (var r in BlockListRules(o)) exe.Add(r);
         exe.SetAttributeValue("EnforcementMode", "Enabled");
+        GiuShellChay(doc);
         return doc.ToString();
     }
 
@@ -151,6 +152,7 @@ public static class AppLockerXml
                     exe.Add(HashRule("Chặn app " + l.Ten + " [" + l.HashData + "]", sid, l.SourceFile ?? "app.exe", l.HashData.StartsWith("0x") ? l.HashData[2..] : l.HashData, l.HashLength.Value));
             }
         exe.SetAttributeValue("EnforcementMode", "Enabled");
+        GiuShellChay(doc);
         return doc.ToString();
     }
 
@@ -163,6 +165,54 @@ public static class AppLockerXml
         var exe = Collection(doc, "Exe");
         foreach (var r in OurRules(o)) exe.Add(r);
         exe.SetAttributeValue("EnforcementMode", "Enabled");
+        GiuShellChay(doc);
+        return doc.ToString();
+    }
+
+    /// <summary>Tên luật Appx «cho mọi gói Store có chữ ký» — luật mặc định của Windows, AiiGrow thêm khi bật Exe.</summary>
+    public const string TenLuatAppx = Prefix + "Cho phép mọi gói Store có chữ ký (Start, Search, Cài đặt…)";
+
+    /// <summary>28/10 (Start menu đơ trên máy ThinkPad): bật Exe mà nhóm Appx RỖNG ⇒ Windows chặn MỌI gói Store với MỌI tài khoản — Start
+    /// (StartMenuExperienceHost), Search (SearchHost), Action Center, Widgets, ô nhập (TextInputHost, gói MicrosoftWindows.Client.CBS) đều là gói ⇒
+    /// bấm phím Windows không mở được gì. Nên mỗi lần bật Exe: nhóm Appx không có luật của người khác thì thêm luật mặc định của Windows «Everyone chạy
+    /// mọi gói có chữ ký» + bật nhóm Appx. Quản trị đã có luật Appx riêng ⇒ không đụng (nhóm đó đã được cấu hình, có luật cho phép của họ).
+    /// App Store bị chặn cho Con vẫn đóng bằng ProcessGuard / ChanAppThat. Gỡ (RemoveOurs) ⇒ nhóm Appx rỗng lại về NotConfigured.</summary>
+    private static void GiuShellChay(XDocument doc)
+    {
+        var appx = Collection(doc, "Appx");
+        if (appx.Elements().Any()) return;   // StripOurs chạy trước ⇒ còn phần tử là luật của người khác
+        appx.Add(new XElement("FilePublisherRule",
+            new XAttribute("Id", StableGuid(TenLuatAppx + "|S-1-1-0").ToString()),
+            new XAttribute("Name", TenLuatAppx),
+            new XAttribute("Description", "Do AiiGrow tạo. Không có luật này thì Start, Search, Cài đặt của Windows không mở được."),
+            new XAttribute("UserOrGroupSid", "S-1-1-0"),
+            new XAttribute("Action", "Allow"),
+            new XElement("Conditions",
+                new XElement("FilePublisherCondition",
+                    new XAttribute("PublisherName", "*"), new XAttribute("ProductName", "*"), new XAttribute("BinaryName", "*"),
+                    new XElement("BinaryVersionRange", new XAttribute("LowSection", "0.0.0.0"), new XAttribute("HighSection", "*"))))));
+        appx.SetAttributeValue("EnforcementMode", "Enabled");
+    }
+
+    /// <summary>Chính sách đang chặn shell: Exe bật (Enabled, có luật) mà nhóm Appx không có luật nào ⇒ Start / Search / Action Center không mở được.
+    /// Bản 0.2.10 trở về trước để lại đúng trạng thái này trên máy (28/10).</summary>
+    public static bool ThieuAppx(string? xml)
+    {
+        if (string.IsNullOrWhiteSpace(xml)) return false;
+        XDocument d;
+        try { d = XDocument.Parse(xml); } catch { return false; }
+        var cs = d.Root?.Elements("RuleCollection").ToList() ?? new();
+        var exe = cs.FirstOrDefault(c => (string?)c.Attribute("Type") == "Exe");
+        var appx = cs.FirstOrDefault(c => (string?)c.Attribute("Type") == "Appx");
+        return exe != null && (string?)exe.Attribute("EnforcementMode") == "Enabled" && exe.Elements().Any()
+            && (appx == null || !appx.Elements().Any());
+    }
+
+    /// <summary>Thêm luật Appx «Everyone chạy mọi gói có chữ ký» vào chính sách sẵn có (không đụng luật nào khác) — chữa máy đã bị <see cref="ThieuAppx"/>.</summary>
+    public static string SuaAppx(string xml)
+    {
+        var doc = Parse(xml);
+        GiuShellChay(doc);
         return doc.ToString();
     }
 
