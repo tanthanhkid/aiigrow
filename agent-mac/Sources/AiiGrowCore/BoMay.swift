@@ -537,10 +537,12 @@ public actor BoMay {
   }
 
   /// Daemon gọi (Task riêng, theo `LichCapNhat`); chờ lượt tải/cài nền xong rồi mới trả.
-  public func kiemCapNhatDinhKy() async {
-    guard tuyChon.tuCapNhat else { heThong.ghiLog("[thử] bỏ qua vòng tự cập nhật."); return }
+  /// Trả số giây chờ tới lượt kế (chu kỳ máy chủ đặt, hoặc khoảng lùi sau lỗi).
+  @discardableResult public func kiemCapNhatDinhKy() async -> Double {
+    guard tuyChon.tuCapNhat else { heThong.ghiLog("[thử] bỏ qua vòng tự cập nhật."); return LuatCapNhat.chuKyMacDinhGiay }
     _ = await capNhat.batDau(choPhep: { await self.coTheCapNhat() })
     await capNhat.choXong()
+    return await capNhat.choLaiGiay()
   }
 
   /// Chỉ cập nhật khi đã ghép và không đang gỡ.

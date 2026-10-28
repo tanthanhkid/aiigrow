@@ -1,4 +1,4 @@
-// Tự cập nhật tác tử Mac (THIET-KE.md mục «Tự cập nhật»). Daemon hỏi GET api/agent/ban-moi?platform=mac lúc khởi động (+90 giây) rồi mỗi 6 giờ;
+// Tự cập nhật tác tử Mac (THIET-KE.md mục «Tự cập nhật»). Daemon hỏi GET api/agent/ban-moi?platform=mac lúc khởi động (+90 giây) rồi theo chuKyKiemPhut của máy chủ (mặc định 6 giờ);
 // bản mới hơn thì tải .pkg về thư mục root-only, kiểm sha256 + chữ ký Developer ID Installer + spctl, rồi cài đè bằng `installer` chạy như job launchd riêng
 // (preinstall của gói sẽ bootout chính daemon nên không thể chạy làm con của daemon). Bất kỳ bước nào sai ⇒ xoá tệp, ghi log, KHÔNG cài.
 // Cùng luật an toàn với agent-win UpdateWorker; khác: chữ ký kiểm bằng pkgutil/spctl thay vì Authenticode.
@@ -10,7 +10,11 @@ public struct BanMoi: Equatable {
   public var version: String
   public var url: String
   public var sha256: String
-  public init(version: String, url: String, sha256: String) { self.version = version; self.url = url; self.sha256 = sha256 }
+  /// 0.1.6: chu kỳ hỏi bản mới (phút) do máy chủ đặt — `LuatCapNhat.chuKyGiay(phut:)`. nil = máy chủ không gửi ⇒ 6 giờ.
+  public var chuKyKiemPhut: Double?
+  public init(version: String, url: String, sha256: String, chuKyKiemPhut: Double? = nil) {
+    self.version = version; self.url = url; self.sha256 = sha256; self.chuKyKiemPhut = chuKyKiemPhut
+  }
 }
 
 public enum KetQuaCapNhat: Equatable {
@@ -99,6 +103,28 @@ public enum LuatCapNhat {
   public static let giayGiuaCacLan: Double = 6 * 3600
   public static let giayNghiSauHetLuot: Double = 86_400
 
+  /// Chu kỳ mặc định khi máy chủ không gửi chuKyKiemPhut (hoặc chưa đọc được manifest) — như agent Windows.
+  public static let chuKyMacDinhGiay: Double = 6 * 3600
+  /// Chưa đọc được manifest / chưa ghép: thử lại sau tối đa 15 phút (chỉ tốn một GET nhỏ).
+  public static let giayThuLaiManifest: Double = 15 * 60
+  /// Tải gói hỏng/đứt (mạng, mã HTTP lạ): tải lại sau ≥1 giờ — chu kỳ 15 phút không được thành vòng tải gói liên tục.
+  public static let giayThuLaiTai: Double = 3600
+  /// Trần tổng một lượt tải gói (timeoutIntervalForRequest 30 giây đã bỏ lượt khi mạng đứng): mạng chậm vẫn tải xong.
+  public static let giayTranTai: Double = 3 * 3600
+
+  /// Chu kỳ hỏi bản mới (giây): chuKyKiemPhut của máy chủ làm tròn nửa lên, kẹp [5, 1440] phút; không có / không hữu hạn ⇒ 6 giờ.
+  public static func chuKyGiay(phut: Double?) -> Double {
+    guard let p = phut, p.isFinite else { return chuKyMacDinhGiay }
+    return min(max(p.rounded(.toNearestOrAwayFromZero), 5), 1440) * 60
+  }
+
+  /// Đọc chuKyKiemPhut dễ dãi (số, chuỗi số; giá trị lạ ⇒ nil): máy chủ ghi sai kiểu không được làm hỏng cả manifest.
+  public static func docChuKy(_ v: Any?) -> Double? {
+    if let n = v as? NSNumber, CFGetTypeID(n) != CFBooleanGetTypeID() { return n.doubleValue }
+    if let s = v as? String { return Double(s.trimmingCharacters(in: .whitespaces)) }
+    return nil
+  }
+
   /// Đầu ra `pkgutil --check-signature`: trạng thái ký bởi chứng chỉ nhà phát triển do Apple cấp + chứng chỉ ĐẦU chuỗi đúng `nguoiKy`.
   public static func chuKyDung(_ ra: String) -> Bool {
     let dong = ra.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
@@ -138,13 +164,16 @@ public final class SoTinhCapNhat: @unchecked Sendable {
   public func dat(_ c: String, luc: Date = Date()) { khoa.lock(); _chu = c; _luc = luc; khoa.unlock() }
 }
 
-/// Lịch tự cập nhật của daemon: trễ 90 giây sau khởi động rồi mỗi 6 giờ. `ngu` trả false ⇒ dừng (test; daemon: bị huỷ).
+/// Lịch tự cập nhật của daemon: trễ 90 giây sau khởi động, rồi chờ đúng khoảng `viec` trả về (chu kỳ máy chủ đặt, hoặc khoảng lùi sau lỗi).
+/// `ngu` trả false ⇒ dừng (test; daemon: bị huỷ). Daemon ngủ theo đồng hồ treo tường (main.swift) nên máy ngủ vẫn tính giờ.
 public enum LichCapNhat {
   public static let truocGiay: Double = 90
-  public static let chuKyGiay: Double = 6 * 3600
-  public static func chay(ngu: (Double) async -> Bool, viec: () async -> Void) async {
+  public static func chay(ngu: (Double) async -> Bool, viec: () async -> Double) async {
     guard await ngu(truocGiay) else { return }
-    repeat { await viec() } while await ngu(chuKyGiay)
+    while true {
+      let cho = await viec()
+      guard await ngu(cho) else { return }
+    }
   }
 }
 
@@ -207,7 +236,7 @@ public actor BoCapNhat {
   private lazy var session: URLSession = sessionTiem ?? {
     let c = URLSessionConfiguration.ephemeral
     c.timeoutIntervalForRequest = 30
-    c.timeoutIntervalForResource = 900
+    c.timeoutIntervalForResource = LuatCapNhat.giayTranTai
     return URLSession(configuration: c)
   }()
   private let thuMuc: String
@@ -216,6 +245,12 @@ public actor BoCapNhat {
   private let dongHo: () -> Date
   private let toiDaByte: Int
   private var tacVu: Task<Void, Never>?
+  /// Chu kỳ máy chủ đặt lần gần nhất đọc được manifest.
+  private var chuKy: Double = LuatCapNhat.chuKyMacDinhGiay
+  /// Khoảng chờ riêng cho lượt vừa rồi (lỗi manifest / tải hỏng); nil ⇒ `chuKy`.
+  private var choRieng: Double?
+  /// Daemon hỏi sau mỗi lượt định kỳ: chờ bao lâu tới lượt kế (giây).
+  public func choLaiGiay() -> Double { choRieng ?? chuKy }
   /// Câu trạng thái cho tray (đọc không cần await).
   public nonisolated let so: SoTinhCapNhat
 
@@ -255,6 +290,7 @@ public actor BoCapNhat {
   /// `daGiuCho`: người gọi đã `giuChoNgay()` thành công.
   public func batDau(thuCong: Bool = false, daGiuCho: Bool = false, choPhep: @escaping @Sendable () async -> Bool) async -> KetQuaCapNhat {
     if !daGiuCho { guard so.giuCho() else { return .dangBan } }
+    choRieng = min(chuKy, LuatCapNhat.giayThuLaiManifest)     // lượt dừng sớm (chưa ghép, mất mạng…) thì thử lại sớm; đọc được manifest mới xoá
     guard await choPhep() else {
       heThong.ghiLog("Cập nhật: máy chưa ghép / đang gỡ — không tự cập nhật.")
       return ketThuc(.loi(LuatCapNhat.chuChuaGhep))
@@ -270,6 +306,10 @@ public actor BoCapNhat {
     do { ban = try await api.banMoi() } catch {
       heThong.ghiLog("Cập nhật: không hỏi được bản mới (\(error)).")
       return ketThuc(.loi("Không kiểm tra được bản mới (mất mạng hoặc máy chủ trả sai); sẽ thử lại sau."))
+    }
+    if let m = ban {   // `null` (chưa phát hành) giữ chu kỳ cũ
+      chuKy = LuatCapNhat.chuKyGiay(phut: m.chuKyKiemPhut)
+      choRieng = nil
     }
     if let m = ban, LuatCapNhat.tachBan(m.version) == nil {
       heThong.ghiLog("Cập nhật: TỪ CHỐI — bản «\(m.version)» trong manifest không đúng dạng x.y.z.")
@@ -336,6 +376,11 @@ public actor BoCapNhat {
       heThong.ghiLog("Cập nhật: \(lyDo) — KHÔNG cài."); heThong.xoaTep(tep)
       so.dat("Chưa cập nhật được bản \(m.version): \(chu); sẽ thử lại (chi tiết trong /Library/Logs/AiiGrow).", luc: dongHo())
     }
+    /// Tải hỏng/đứt (chưa có gói để kiểm): không tính lượt thử, nhưng lượt định kỳ kế chờ ≥1 giờ (không tải lại gói mỗi chu kỳ 15 phút).
+    func boTai(_ lyDo: String, chu: String = "gói tải về không dùng được") {
+      choRieng = max(chuKy, LuatCapNhat.giayThuLaiTai)
+      bo(lyDo, chu: chu)
+    }
     /// Gói tải về hỏng (sha256 lệch / chữ ký / spctl): cũng tính một lượt thử ⇒ trần 3 lần cách 6 giờ áp luôn, không tải lại cả gói mỗi 6 giờ mãi.
     func boVaDem(_ lyDo: String) {
       ghiDau(daGiao: false)
@@ -371,10 +416,10 @@ public actor BoCapNhat {
       let tai = TaiCoTran(mayChu: mayChu(), ghi: ghi, toiDa: toiDaByte)
       let (resp, loi) = await tai.chay(session, URLRequest(url: u))
       try? ghi.close()
-      if tai.quaCo { bo("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
-      if let loi { bo("tải lỗi: \(loi)", chu: "mất mạng hoặc tải bị ngắt"); return }
+      if tai.quaCo { boTai("gói vượt \(toiDaByte) byte — đã dừng tải"); return }
+      if let loi { boTai("tải lỗi: \(loi)", chu: "mất mạng hoặc tải bị ngắt"); return }
       guard let h = resp as? HTTPURLResponse, h.statusCode == 200 else {
-        bo("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)", chu: "máy chủ phát hành trả lỗi"); return
+        boTai("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)", chu: "máy chủ phát hành trả lỗi"); return
       }
       let kich = (try? FileManager.default.attributesOfItem(atPath: tam.path)[.size] as? Int) ?? 0
       guard kich > 0, kich <= toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }

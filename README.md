@@ -31,8 +31,8 @@ Merge vào `main` **không** tự deploy (`server/vercel.json` → `git.deployme
 đạt mới `vercel deploy --prod`. Chỉ kiểm, không deploy: `scripts/deploy-prod.sh --chi-kiem`. Bản phát hành agent (manifest `server/lib/ban-agent.ts`)
 chỉ tới máy Con sau lần deploy này.
 
-**Trước golive — đổi chu kỳ tự cập nhật về 6 giờ.** Agent Windows 0.2.12+ hỏi bản mới theo `chuKyKiemPhut` trong manifest
-(`CHU_KY_KIEM_PHUT_WINDOWS` ở `server/lib/ban-agent.ts`, agent kẹp [5, 1440] phút, không có trường ⇒ 6 giờ). Giai đoạn dev đặt **15**;
+**Trước golive — đổi chu kỳ tự cập nhật về 6 giờ.** Agent Windows 0.2.12+ và agent Mac 0.1.6+ hỏi bản mới theo `chuKyKiemPhut` trong manifest
+(một hằng chung `CHU_KY_KIEM_PHUT` ở `server/lib/ban-agent.ts` cho cả hai, agent kẹp [5, 1440] phút, không có trường ⇒ 6 giờ). Giai đoạn dev đặt **15**;
 trước golive sửa thành **360** rồi chạy `scripts/deploy-prod.sh` — chỉ máy chủ, không phát lại agent; máy Con nhận chu kỳ mới ở lượt hỏi kế tiếp.
 
 Cổng ~2,5 phút khi đã cài (25/10: trước ~10 phút): bỏ cài khi lockfile không đổi, nhánh máy chủ ∥ nhánh app, cache Metro riêng của cổng,

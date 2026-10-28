@@ -712,15 +712,70 @@ final class CapNhatTests: XCTestCase {
     XCTAssertNil(LuatCapNhat.sha256Tep(p + "-khong-co"))
   }
 
-  func testLichCapNhatTruoc90GiayRoiMoi6Gio() async {
+  func testLichCapNhatTruoc90GiayRoiChoTheoViecTraVe() async {
     final class Ghi: @unchecked Sendable { var ngu: [Double] = []; var viec = 0 }
     let g = Ghi()
-    await LichCapNhat.chay(ngu: { g.ngu.append($0); return g.ngu.count < 3 }, viec: { g.viec += 1 })
-    XCTAssertEqual(g.ngu, [90, 21600, 21600])
+    await LichCapNhat.chay(ngu: { g.ngu.append($0); return g.ngu.count < 3 }, viec: { g.viec += 1; return g.viec == 1 ? 900 : 3600 })
+    XCTAssertEqual(g.ngu, [90, 900, 3600])
     XCTAssertEqual(g.viec, 2)
     let h = Ghi()
-    await LichCapNhat.chay(ngu: { h.ngu.append($0); return false }, viec: { h.viec += 1 })      // bị huỷ khi đang chờ 90 giây ⇒ không kiểm
+    await LichCapNhat.chay(ngu: { h.ngu.append($0); return false }, viec: { h.viec += 1; return 900 })      // bị huỷ khi đang chờ 90 giây ⇒ không kiểm
     XCTAssertEqual(h.viec, 0)
+  }
+
+  // 0.1.6 (như Windows 0.2.12): chu kỳ do máy chủ đặt (chuKyKiemPhut), kẹp [5, 1440] phút, làm tròn nửa lên; không có ⇒ 6 giờ.
+  func testChuKyKiemKepTrongKhoang() {
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: nil), 21600)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: 15), 900)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: 360), 21600)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: 0), 300)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: -3), 300)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: 6.5), 420)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: 100_000), 86_400)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: .nan), 21600)
+    XCTAssertEqual(LuatCapNhat.chuKyGiay(phut: .infinity), 21600)
+  }
+
+  /// Máy chủ ghi sai kiểu (thập phân, chuỗi, rác) không được làm hỏng cả manifest — hỏng là agent không bao giờ thấy bản sửa.
+  func testManifestDocChuKyDeDai() async throws {
+    let api = ApiClient(mayChu: may, token: nil, session: HttpMock.session())
+    let ca: [(Any?, Double?)] = [(15, 15), (7.5, 7.5), ("15", 15), ("abc", nil), (true, nil), (["x": 1], nil), (nil, nil)]
+    for (v, mong) in ca {
+      var o: [String: Any] = ["version": "0.1.6", "url": "\(may)/tai/a.pkg", "sha256": "x"]
+      if let v { o["chuKyKiemPhut"] = v }
+      HttpMock.dat { path, _ in path.hasPrefix("api/agent/ban-moi") ? HttpMock.json(200, o) : nil }
+      let m = try await api.banMoi()
+      XCTAssertEqual(m?.version, "0.1.6", "\(String(describing: v))")
+      XCTAssertEqual(m?.chuKyKiemPhut, mong, "\(String(describing: v))")
+    }
+  }
+
+  /// Lượt định kỳ trả khoảng chờ: đọc được manifest ⇒ chu kỳ máy chủ; mất mạng ⇒ ≤15 phút; tải gói hỏng ⇒ ≥1 giờ (không tải lại mỗi 15 phút).
+  func testChoLaiTheoKetQuaLuot() async {
+    let b = boCapNhat()
+    HttpMock.dat { _, _ in nil }                                         // máy chủ không trả lời
+    _ = await chay(b)
+    var cho = await b.choLaiGiay()
+    XCTAssertEqual(cho, 900, "chưa đọc được manifest ⇒ thử lại sau 15 phút, không chờ 6 giờ")
+    let u = "\(may)/tai/AiiGrow-0.1.2.pkg"
+    HttpMock.dat { path, _ in
+      if path == "api/agent/ban-moi" { return HttpMock.json(200, ["version": "0.1.2", "url": u, "sha256": sha256Hex(self.noiDung), "chuKyKiemPhut": 15]) }
+      if path.hasPrefix("tai/") { return .init(ma: 503, than: Data()) }
+      return nil
+    }
+    _ = await chay(b)
+    cho = await b.choLaiGiay()
+    XCTAssertEqual(cho, 3600, "tải gói hỏng ⇒ ≥1 giờ")
+    HttpMock.dat { path, _ in
+      path == "api/agent/ban-moi" ? HttpMock.json(200, ["version": "0.1.1", "url": u, "sha256": sha256Hex(self.noiDung), "chuKyKiemPhut": 15]) : nil
+    }
+    _ = await chay(b)
+    cho = await b.choLaiGiay()
+    XCTAssertEqual(cho, 900, "đang là bản mới nhất ⇒ chu kỳ máy chủ đặt")
+    HttpMock.dat { path, _ in path == "api/agent/ban-moi" ? .init(ma: 200, than: Data("null".utf8)) : nil }
+    _ = await chay(b)
+    cho = await b.choLaiGiay()
+    XCTAssertEqual(cho, 900, "manifest null giữ chu kỳ cũ")
   }
 
   func testIPCKhuHoiCapNhat() throws {
@@ -730,7 +785,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(try IPCMa.decoder.decode(TraLoi.self, from: t), .thongBao(chu: "x"))
   }
 
-  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.5") }
+  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.6") }
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
