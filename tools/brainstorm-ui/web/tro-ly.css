@@ -1,0 +1,42 @@
+/* ✦ Trợ lý AI — panel chat bên phải (web/tro-ly.js) */
+.nut-tro-ly{position:fixed;right:16px;bottom:16px;z-index:18;min-height:48px;padding:0 20px;border-radius:99px;background:#0f1312;color:#fff;font:700 15px Inter,system-ui,sans-serif;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.35),0 14px 28px -12px rgba(15,19,18,.75)}
+.nut-tro-ly:active{transform:scale(.96)}
+body.mo-tl .nut-tro-ly{display:none}
+.pn-tl{position:fixed;right:16px;top:72px;bottom:16px;width:420px;max-width:calc(100% - 32px);background:var(--the);border-radius:22px;box-shadow:0 30px 60px -24px rgba(28,32,30,.45),0 2px 8px -2px rgba(28,32,30,.2);padding:14px;display:flex;flex-direction:column;gap:10px;z-index:19}
+.pn-tl[hidden]{display:none}
+.pn-tl .dau-bang{display:flex;align-items:center;gap:8px}
+body.mo-tl #bang,body.mo-tl .pn-gy{right:452px}
+.tl-than{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}
+.tl-tin{border-radius:16px;padding:10px 12px;line-height:1.45;overflow-wrap:anywhere}
+.tl-tin p{margin:0 0 4px}.tl-tin p.trong{height:4px}
+.tl-tin li{margin:0 0 3px 16px}
+.tl-nguoi{align-self:flex-end;max-width:88%;background:#0f1312;color:#fff;border-bottom-right-radius:6px}
+.tl-ai{background:#f3f2ee;border-bottom-left-radius:6px}
+.tl-he{background:var(--ngocNhat);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.tl-goi-y{min-height:32px;font-weight:500;text-align:left;white-space:normal}
+.tl-xac-nhan{background:#fff6dc;border-left:4px solid #c98a00;display:flex;flex-direction:column;gap:6px}
+.tl-xac-nhan.da-bo{opacity:.7}.tl-xac-nhan .hang{display:flex;gap:8px}
+.tl-cac-buoc{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.tl-buoc{background:#fff;border-radius:10px;padding:4px 8px;font-size:12.5px}
+.tl-buoc summary{cursor:pointer;color:var(--chu2);font-weight:600}
+.tl-buoc.loi summary{color:var(--loi)}.tl-buoc.chay summary{color:var(--ngoc)}
+.tl-buoc pre{white-space:pre-wrap;margin:4px 0;font-size:11.5px;max-height:180px;overflow:auto;color:var(--chu3)}
+.tl-buoc img{max-width:100%;border-radius:8px;margin-top:4px;box-shadow:var(--bong)}
+.tl-man{min-height:26px;padding:0 8px;margin:0 2px;border-radius:99px;background:var(--ngocNhat);color:var(--ngocDam);box-shadow:none;font-weight:700;vertical-align:baseline}
+.tl-man.mat{text-decoration:line-through;opacity:.6}
+.tl-chu code{background:#e7e6e1;border-radius:6px;padding:0 4px;font-size:12.5px}
+.tl-loi{color:var(--loi);font-weight:600}
+.tl-form{display:flex;flex-direction:column;gap:8px}
+.tl-form textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:64px;border-radius:14px;border:1px solid var(--vien);padding:10px 12px;font:500 14px/1.4 Inter,system-ui,sans-serif;background:#fff}
+.tl-form .hang{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tl-bat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--chu2);min-height:44px}
+.tl-form select{min-height:36px;border-radius:10px}
+.pn-tl.dang-chay .tl-ai:last-of-type .tl-chu::after{content:'▍';animation:tl-nhay 1s steps(2) infinite;color:var(--ngoc)}
+@keyframes tl-nhay{50%{opacity:0}}
+.cd-ls{margin:6px 0}.cd-ls summary{cursor:pointer;font-weight:600;color:var(--chu2)}
+.cd-ls input{width:100%;box-sizing:border-box}
+@media (prefers-reduced-motion:reduce){.pn-tl.dang-chay .tl-ai:last-of-type .tl-chu::after{animation:none}}
+@media (max-width:720px){.pn-tl{left:16px;width:auto}body.mo-tl #bang,body.mo-tl .pn-gy{right:16px}}
+#goi-y{max-width:calc(100% - 200px)}
+.tl-dich{font-weight:700;color:var(--chu)}

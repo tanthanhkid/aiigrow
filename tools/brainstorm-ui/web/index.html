@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="/app.css">
 <link rel="stylesheet" href="/realtime.css">
+<link rel="stylesheet" href="/tro-ly.css">
 </head>
 <body>
 <header id="thanh">
@@ -202,6 +203,22 @@
   <div class="play-duoi"><button id="pl-truoc">‹ Bước trước</button><span id="pl-buoc"></span><button id="pl-ke">Bước kế ›</button></div>
 </div>
 
+<button type="button" id="nut-tro-ly" class="nut-tro-ly" aria-expanded="false" aria-controls="pn-tl" title="Trợ lý AI: ra lệnh bằng lời — tạo biến thể, nối, thay, thêm, xoá màn… (phím /)">✦ Trợ lý</button>
+<aside id="pn-tl" class="pn-tl" hidden aria-label="Trợ lý AI">
+  <div class="dau-bang"><b>✦ Trợ lý</b><span style="flex:1"></span><button type="button" id="tl-moi" title="Bắt đầu cuộc chat mới (xoá lịch sử chat trong trình duyệt này)">Mới</button><button type="button" id="pn-tl-dong" class="nut-x" aria-label="Đóng">×</button></div>
+  <div id="tl-than" class="tl-than" aria-live="polite"></div>
+  <form id="tl-form" class="tl-form" autocomplete="off">
+    <textarea id="tl-nhap" rows="3" placeholder="Ra lệnh… vd «thay màn Ví điểm bằng biến thể 2» (Enter gửi, Shift+Enter xuống dòng)" aria-label="Lệnh cho Trợ lý"></textarea>
+    <div class="hang">
+      <label class="tl-bat" title="Bật: xoá/thay/gộp/khôi phục chạy luôn, không hỏi «Làm / Bỏ»"><input type="checkbox" id="tl-tu-lam"> Tự làm không hỏi</label>
+      <select id="tl-model" aria-label="Model của Trợ lý"></select>
+      <span style="flex:1"></span>
+      <button type="button" id="tl-dung" class="nguy" hidden>■ Dừng</button>
+      <button type="submit" id="tl-gui" class="nut-chinh">Gửi</button>
+    </div>
+  </form>
+</aside>
+
 <div id="lop-cai-dat" class="lop" hidden>
   <form id="hop-cai-dat" class="hop" autocomplete="off">
     <div class="dau-bang"><b>Cài đặt</b><button type="button" id="cd-dong" class="nut-x" aria-label="Đóng">×</button></div>
@@ -214,6 +231,13 @@
     <div class="hang">
       <div style="flex:1"><label for="cd-max">max_tokens mỗi biến thể</label><input id="cd-max" type="number" min="2000" max="64000" step="1000"></div>
     </div>
+    <details class="cd-ls"><summary>✦ Trợ lý · LangSmith tracing (tuỳ chọn)</summary>
+      <label for="cd-ls-key">LangSmith API key (tuỳ chọn)</label>
+      <input id="cd-ls-key" type="password" spellcheck="false" placeholder="lsv2_…" autocomplete="off">
+      <label for="cd-ls-du-an">Project</label>
+      <input id="cd-ls-du-an" spellcheck="false" placeholder="aiigrow-figma">
+      <p class="phu">Có key thì mỗi lệnh của ✦ Trợ lý được ghi vết lên LangSmith (api.smith.langchain.com). Key lưu trong trình duyệt này, để trống = tắt.</p>
+    </details>
     <div class="hang ket">
       <button type="button" id="cd-xoa" class="nguy">Xoá key</button>
       <span style="flex:1"></span>
@@ -225,5 +249,6 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="/phien.js"></script>
 <script type="module" src="/app.js"></script>
+<script type="module" src="/tro-ly.js"></script>
 </body>
 </html>

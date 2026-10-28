@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Dựng thư mục tệp tĩnh cf/dist cho Worker (chạy trước `wrangler deploy`, xem README «Bản Cloudflare»):
 //   web/ (trừ _cu) · ảnh asset của app trong repo (đúng các tiền tố THU_MUC của ung-dung.mjs) · /assets/logo.png · /assets/clay-kit.css ·
-//   /vendor/html-to-image.js · ảnh «thật» CHỌN LỌC: chỉ những ảnh mà hành trình trỏ tới (trường anh) từ thư mục thiết kế (BS_THIET_KE) ·
+//   /vendor/html-to-image.js · /vendor/tro-ly-ai.js (✦ Trợ lý AI, dựng bằng esbuild) · ảnh «thật» CHỌN LỌC: chỉ những ảnh mà hành trình trỏ tới (trường anh) từ thư mục thiết kế (BS_THIET_KE) ·
 //   /_cf/api-assets.json (thay cho GET /api/assets đọc thư mục).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,6 +47,7 @@ for (const [dich, nguon] of Object.entries(THU_MUC)) {
 chep(path.join(REPO, 'server/public/logo.png'), path.join(DIST, 'assets/logo.png'));
 chep(path.join(WEB, 'kit/clay-kit.css'), path.join(DIST, 'assets/clay-kit.css'));
 chep(path.join(GOC, 'node_modules/html-to-image/dist/html-to-image.js'), path.join(DIST, 'vendor/html-to-image.js'));
+{ const { dungTroLy } = await import('../tro-ly/dung.mjs'); chep(await dungTroLy(), path.join(DIST, 'vendor/tro-ly-ai.js')); } // ✦ Trợ lý AI (LangGraph.js bundle)
 fs.mkdirSync(path.join(DIST, '_cf'), { recursive: true });
 fs.writeFileSync(path.join(DIST, '_cf/api-assets.json'), JSON.stringify(ds));
 

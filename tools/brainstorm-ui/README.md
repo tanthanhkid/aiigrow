@@ -109,7 +109,7 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
   sau 2 phút rảnh, hồ sơ tạm riêng; ảnh cache theo băm HTML. HTML màn đưa cho Chrome qua `/__mcp/trang/<mã một lần>` (chỉ loopback, CSP cấm script).
   `lamSach` (web/claude.js) và `ganToi` (web/gan-toi.js) chạy nguyên mã web trong trang của Chrome đó.
 
-**31 tool:**
+**51 tool** (31 gốc + 20 thêm cho ✦ Trợ lý AI ngày 28/10 — kiểm từng tool trên kho tạm: `npm run kiem-mcp [thư mục kho mẫu]`):
 
 | Tool | Việc |
 |---|---|
@@ -128,6 +128,32 @@ claude mcp add --transport http aiigrow-figma https://aiigrow-figma.aiilab.vn/mc
 | `ngu_canh_bien_the` → `tao_bien_the` | biến thể một màn, 2 bước (truyền lại `dot` để k=1..n xếp chung một hàng): ngữ cảnh y hệt bàn web (system `heThong`, `loiNguoiDung` theo k/n, kit CSS, ảnh màn, góp ý mở) → lưu HTML/câu trả lời do client sinh (lamSach, so `data-toi`, trả id + ảnh) |
 | `ds_dung_chung`, `gop_dung_chung`, `tach_dung_chung` | màn dùng chung: liệt kê nhóm + gợi ý gộp (màn trùng/giống nhau giữa các luồng, kèm màn mới nhất làm gốc); gộp (chủ quản, `nguon` mặc định màn có bản mới nhất); tách một màn ra (giữ bản hiện tại làm bản riêng). `doc_man`/`thay_man`/`ngu_canh_bien_the`/`ds_hanh_trinh` báo `dungChung` (các luồng cùng nội dung) |
 | `ngu_canh_hanh_trinh` → `tao_phuong_an` | như trên cho CẢ hành trình (`loiHanhTrinh` / `tachHanhTrinh`) |
+| `quyen_cua_toi` | quyền người gọi (chủ quản?, `khoaBang`) + danh sách tool chỉ chủ quản dùng được |
+| `tim_man` | tìm màn theo tên / key / chữ hiển thị (không phân biệt dấu) → key |
+| `lien_ket_man` | liên kết RA (nút → màn) và VÀO (màn nào trỏ tới) của một màn |
+| `sua_lien_ket_nhieu` | nối/đổi/gỡ nhiều nút trên nhiều màn một lần (mỗi màn một phiên bản; lỗi từng màn báo riêng) |
+| `so_sanh_phien_ban` | so hai phiên bản màn: chữ hiển thị thêm/bớt + diff HTML theo dòng |
+| `tao_nhieu_bien_the`, `sua_bien_the` | lưu 1–6 biến thể cùng đợt; sửa HTML/nhãn biến thể đã có (như «Áp vào khung này» trong Chế độ Sửa) |
+| `don_bien_the`, `ds_thung_rac`, `khoi_phuc_bien_the` | «Dọn biến thể» (cả bàn / một màn / một hành trình, giữ ★ và phương án); xem 🗑 Thùng rác; khôi phục |
+| `ds_de_xuat`, `gui_de_xuat` | đề xuất theo trạng thái (chờ / chấp / từ chối); gửi đề xuất như reviewer qua link `/r/` |
+| `ds_link_gop_y`, `tao_link_gop_y`, `thu_hoi_link_gop_y` | link góp ý `/r/` (chủ quản) |
+| `sua_gop_y`, `xoa_gop_y` | chủ quản sửa nội dung / mức, xoá hẳn góp ý |
+| `xem_su_kien_nhat_ky`, `khoi_phuc_tu_nhat_ky` | mở một sự kiện audit (trước ↔ sau); «Khôi phục trạng thái này» |
+| `doc_quy_trinh` | sơ đồ Quy trình (lane, sự kiện, gateway, màn) để hiểu luồng trước khi thêm/xoá/nối |
+
+Thao tác chỉ hiển thị trên bàn (zoom, Sắp xếp lại, ▶ Play, Ảnh thật, xuất PNG/SVG/CSV) không đổi dữ liệu nên không có tool ghi; agent «nhìn» bằng `anh_man`, `anh_hanh_trinh`, `doc_quy_trinh`.
+
+## ✦ Trợ lý AI (chat ra lệnh trên bàn)
+
+Nút **✦ Trợ lý** (góc phải dưới, phím `/`) mở panel chat: gõ lệnh tiếng Việt/Anh — «tạo 3 biến thể cho màn Chào theo kiểu tối giản», «nối nút Bắt đầu của Welcome sang màn Đăng ký», «thay màn Ví điểm bằng biến thể 2», «thêm màn Cài đặt thông báo sau màn Hồ sơ», «xoá màn …», «gộp các màn Máy của con thành dùng chung» — agent tự lên kế hoạch, gọi tool, làm xong báo lại.
+
+- **Chạy ở đâu**: vòng agent **LangGraph.js** (`createReactAgent` + `@langchain/anthropic`, streaming) chạy **trong trình duyệt** (`tro-ly/agent.mjs`, bundle esbuild → `/vendor/tro-ly-ai.js`; Mac tự dựng khi `server.mjs` khởi động, Cloudflare dựng trong `cf/dung.mjs`; dựng tay: `npm run dung-tro-ly`). Model: Claude Sonnet 5.5 (mặc định) hoặc Opus 5.5 — chọn ngay dưới ô chat.
+- **Key ở đâu**: **key Claude của chính người dùng** — ⚙ Cài đặt → «API key Claude», lưu `localStorage["bs.key"]` của trình duyệt đó (chung với «Sinh biến thể»), trình duyệt gửi THẲNG tới `api.anthropic.com` (header direct-browser-access), không qua máy chủ của bàn, không ghi tệp. **LangSmith tracing (tuỳ chọn)**: ⚙ Cài đặt → «✦ Trợ lý · LangSmith» → key + project, lưu `localStorage["bs.langsmith"]`, gửi tới `api.smith.langchain.com`; để trống = tắt, agent vẫn chạy. Lịch sử chat: `localStorage["bs.tro-ly.chat"]` (60 tin, không lưu ảnh).
+- **Tool**: KHÔNG có bộ tool riêng — panel nạp `tools/list` từ `/mcp` cùng origin và gọi `tools/call` (51 tool ở bảng trên). `/mcp` nhận trình duyệt đã vào bàn (cookie mật khẩu chung) khi yêu cầu cùng origin có header `x-bs-tro-ly` (trang khác origin không gửi được header này nếu không qua preflight CORS).
+- **Quyền**: đúng quyền người đang chat — cookie mật khẩu chung + mã chủ quản nếu họ đã nhập (💬 Góp ý); không nâng quyền. Audit ghi `ai.nguon = "tro-ly-ai"` + `ai.lenh` (câu lệnh gốc, cắt 120 ký tự); 🕘 Lịch sử hiện «qua Trợ lý AI: «…»».
+- **An toàn**: xoá màn, Thay màn, gộp/tách dùng chung, khôi phục phiên bản, xoá/dọn biến thể, Accept/từ chối đề xuất, xoá góp ý, thu hồi link, khôi phục từ nhật ký ⇒ thẻ **«Làm / Bỏ»** trong chat (hiện tên màn + key). Công tắc «Tự làm không hỏi» (mặc định tắt). Mọi thay đổi quay lại được bằng Lịch sử phiên bản / 🗑 Thùng rác / 🕘 Lịch sử thay đổi — agent nói cách quay lại trong câu trả lời. Nút «■ Dừng» huỷ lượt đang chạy.
+- **Ngữ cảnh**: mỗi lệnh kèm section, chế độ, khung đang chọn, hành trình + màn trong section; system prompt có luật Clay gương (`docs/THIET-KE-CLAY.md`), Gu giao diện của Thanh, UI-FOUNDATIONS; tạo biến thể đi `ngu_canh_bien_the` → tự viết HTML → `tao_nhieu_bien_the` (lamSach) → xem ảnh trả về để tự kiểm. Tên màn trong câu trả lời là nút bấm bay tới khung.
+- CSP `connect-src` có `https://api.anthropic.com` và `https://api.smith.langchain.com`.
 
 ## Bản Cloudflare (aiigrow-figma.aiilab.vn)
 

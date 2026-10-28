@@ -5,7 +5,7 @@ export const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob:",
-  "connect-src 'self' data: blob: https://api.anthropic.com https://fonts.googleapis.com https://fonts.gstatic.com",
+  "connect-src 'self' data: blob: https://api.anthropic.com https://api.smith.langchain.com https://fonts.googleapis.com https://fonts.gstatic.com",
   "frame-src 'self' about: data: blob:",
   "object-src 'none'",
   "base-uri 'none'",

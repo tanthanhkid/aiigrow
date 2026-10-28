@@ -7,7 +7,9 @@
   "scripts": {
     "brainstorm": "node server.mjs",
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check mcp.mjs && node --check web/gan-toi.js && node --check web/dung-chung.js && node --check web/dung-chung-ui.js && node --check ung-dung.mjs && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js"
+    "dung-tro-ly": "node tro-ly/dung.mjs",
+    "kiem-mcp": "node kiem-mcp.mjs",
+    "check": "node --check server.mjs && node --check mcp.mjs && node --check web/gan-toi.js && node --check web/dung-chung.js && node --check web/dung-chung-ui.js && node --check ung-dung.mjs && node --check web/app.js && node --check web/hanh-trinh/index.js && node --check web/prompt.js && node --check web/tro-ly.js && node --check tro-ly/agent.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
@@ -17,5 +19,12 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "@langchain/anthropic": "1.5.12",
+    "@langchain/core": "1.2.18",
+    "@langchain/langgraph": "1.5.0",
+    "esbuild": "0.28.0",
+    "langsmith": "0.11.0"
   }
 }

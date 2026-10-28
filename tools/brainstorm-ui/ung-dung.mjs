@@ -37,6 +37,7 @@ export function taoUngDung(O = {}) {
     '/assets/logo.png': path.join(REPO, 'server/public/logo.png'),
     '/assets/clay-kit.css': path.join(WEB, 'kit/clay-kit.css'),
     '/vendor/html-to-image.js': path.join(GOC, 'node_modules/html-to-image/dist/html-to-image.js'),
+    '/vendor/tro-ly-ai.js': path.join(GOC, 'tro-ly/dist/tro-ly-ai.js'), // ✦ Trợ lý AI (bundle esbuild — tro-ly/dung.mjs)
   };
   const LOAI = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
     '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.json': 'application/json', '.ico': 'image/x-icon', '.ttf': 'font/ttf', '.otf': 'font/otf', '.woff': 'font/woff', '.woff2': 'font/woff2', '.gif': 'image/gif', '.mp4': 'video/mp4', '.webm': 'video/webm' };
@@ -136,7 +137,9 @@ export function taoUngDung(O = {}) {
   const REQ_MCP = new WeakSet(); // yêu cầu nội bộ do MCP dựng (mcp.mjs) — audit ghi nguon: 'mcp'
   function aiCua(req, them = {}) {
     let ten = ''; try { ten = decodeURIComponent(String(req.headers['x-bs-nguoi'] || '')).replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 40); } catch { /* tên hỏng */ }
-    return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong: cong(), ...(REQ_MCP.has(req) ? { nguon: 'mcp' } : {}), ...them };
+    // Trợ lý AI trong bàn (web/tro-ly.js) gọi /mcp kèm câu lệnh gốc ⇒ nguon 'tro-ly-ai' + lenh (cắt 200 ký tự). Chỉ tin trên yêu cầu nội bộ do MCP dựng.
+    let lenh = ''; if (REQ_MCP.has(req) && req.headers['x-bs-tro-ly']) { let s = String(req.headers['x-bs-tro-ly']); for (let k = 0; k < 16 && !lenh && s; k++) { try { lenh = decodeURIComponent(s).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) || '(trống)'; } catch { s = s.slice(0, Math.max(0, s.lastIndexOf('%'))); } } lenh ||= '(lệnh hỏng)'; }
+    return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong: cong(), ...(REQ_MCP.has(req) ? { nguon: lenh ? 'tro-ly-ai' : 'mcp', ...(lenh ? { lenh } : {}) } : {}), ...them };
   }
   const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong, motTienTrinh: O.motTienTrinh });
   const review = taoReview({ THIET_KE, audit, coNoiBo: O.coNoiBo, ai: (...a) => aiCua(...a), hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
@@ -190,7 +193,11 @@ export function taoUngDung(O = {}) {
 
   // MCP (Streamable HTTP, /mcp): mọi thao tác đi qua chính xuLyYeuCau bên dưới bằng yêu cầu nội bộ mang quyền của người gọi MCP.
   const mcp = taoMcp({ xuLyYeuCau: (...a) => xuLyYeuCau(...a), cong, WEB, THIET_KE, HOST_TIN, manThem: () => { const n = mtNho(); return { kho: n.kho, ver: n.ver }; }, ...(O.mcp || {}), hopLeNguon: (req) => hopLeNguon(req),
-    json: (...a) => json(...a), docThan: (...a) => docThan(...a), danhDau: (req) => REQ_MCP.add(req), kiemMaMcp: (req) => (String(review.cauHinh().maMcp || '').length >= 8 && coPhien(req)) || review.kiemMaMcp(req) });
+    json: (...a) => json(...a), docThan: (...a) => docThan(...a), danhDau: (req) => REQ_MCP.add(req), kiemMaMcp: (req) => (String(review.cauHinh().maMcp || '').length >= 8 && coPhien(req)) || review.kiemMaMcp(req)
+      // ✦ Trợ lý AI trên bàn: trình duyệt đã vào bàn (cookie mật khẩu chung) gọi /mcp CÙNG ORIGIN kèm header x-bs-tro-ly
+      // (header tự đặt ⇒ trang khác origin phải qua preflight CORS, không được phép) — quyền y như người đó trên bàn web.
+      // Bắt buộc cookie phiên thật (đã qua mật khẩu chung) hoặc loopback: tên miền chưa bật cổng mật khẩu thì /mcp vẫn đóng như trước.
+      || (!!req.headers['x-bs-tro-ly'] && !!req.headers.origin && hopLeNguon(req) && (review.laNoiBo(req) || coPhien(req))) });
 
   // ---- Cổng mật khẩu chung (cong-vao.mjs): qua tên miền, MỌI đường (trang, /api, /ref, /assets, /r/, /ws) cần đăng nhập khi chu-quan.json có
   // «matKhau» + «biMatPhien». 127.0.0.1 gõ thẳng vẫn vào. /mcp nhận Bearer <maMcp> hoặc cookie phiên. Cổng đứng TRƯỚC xuLyYeuCau
