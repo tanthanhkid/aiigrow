@@ -174,6 +174,40 @@ public class ShellWindowsTests
     }
 
     [Fact]
+    public void AppLocker_AppxChiCoLuatDeny_VanThemLuatChoPhep()
+    {
+        var cu = """
+            <AppLockerPolicy Version="1">
+              <RuleCollection Type="Appx" EnforcementMode="Enabled">
+                <FilePublisherRule Id="00000000-0000-0000-0000-0000000000aa" Name="Chặn Minecraft" Description="" UserOrGroupSid="S-1-1-0" Action="Deny">
+                  <Conditions><FilePublisherCondition PublisherName="*" ProductName="Microsoft.MinecraftUWP" BinaryName="*"><BinaryVersionRange LowSection="*" HighSection="*" /></FilePublisherCondition></Conditions>
+                </FilePublisherRule>
+              </RuleCollection>
+            </AppLockerPolicy>
+            """;
+        var appx = Col(AppLockerXml.Merge(cu, new AppLockerOptions { ChildSid = Sid }), "Appx");
+        Assert.Equal(2, appx.Elements("FilePublisherRule").Count());
+        Assert.Contains(appx.Elements("FilePublisherRule"), r => (string?)r.Attribute("Name") == AppLockerXml.TenLuatAppx && (string?)r.Attribute("Action") == "Allow");
+        Assert.Contains(appx.Elements("FilePublisherRule"), r => (string?)r.Attribute("Name") == "Chặn Minecraft");
+    }
+
+    [Fact]
+    public void AppLocker_ChinhSachExeCuaQuanTri_KhongPhaiViecCuaAiiGrow()
+    {
+        // trường / công ty cố ý bật Exe + để Appx rỗng, không có luật AiiGrow ⇒ không tự «sửa»
+        var cu = """
+            <AppLockerPolicy Version="1">
+              <RuleCollection Type="Exe" EnforcementMode="Enabled">
+                <FilePathRule Id="00000000-0000-0000-0000-0000000000bb" Name="IT: Windows" Description="" UserOrGroupSid="S-1-1-0" Action="Allow">
+                  <Conditions><FilePathCondition Path="%WINDIR%\*" /></Conditions>
+                </FilePathRule>
+              </RuleCollection>
+            </AppLockerPolicy>
+            """;
+        Assert.False(AppLockerXml.ThieuAppx(cu));
+    }
+
+    [Fact]
     public void AppLocker_Go_TraAppxVeNotConfigured()
     {
         var go = AppLockerXml.RemoveOurs(AppLockerXml.Build(new AppLockerOptions { ChildSid = Sid }));

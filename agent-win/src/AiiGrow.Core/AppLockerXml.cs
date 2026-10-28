@@ -175,12 +175,12 @@ public static class AppLockerXml
     /// <summary>28/10 (Start menu đơ trên máy ThinkPad): bật Exe mà nhóm Appx RỖNG ⇒ Windows chặn MỌI gói Store với MỌI tài khoản — Start
     /// (StartMenuExperienceHost), Search (SearchHost), Action Center, Widgets, ô nhập (TextInputHost, gói MicrosoftWindows.Client.CBS) đều là gói ⇒
     /// bấm phím Windows không mở được gì. Nên mỗi lần bật Exe: nhóm Appx không có luật của người khác thì thêm luật mặc định của Windows «Everyone chạy
-    /// mọi gói có chữ ký» + bật nhóm Appx. Quản trị đã có luật Appx riêng ⇒ không đụng (nhóm đó đã được cấu hình, có luật cho phép của họ).
+    /// mọi gói có chữ ký» + bật nhóm Appx. Quản trị đã có luật Appx Allow riêng ⇒ không đụng; chỉ có luật Deny ⇒ vẫn thêm (Deny vẫn thắng).
     /// App Store bị chặn cho Con vẫn đóng bằng ProcessGuard / ChanAppThat. Gỡ (RemoveOurs) ⇒ nhóm Appx rỗng lại về NotConfigured.</summary>
     private static void GiuShellChay(XDocument doc)
     {
         var appx = Collection(doc, "Appx");
-        if (appx.Elements().Any()) return;   // StripOurs chạy trước ⇒ còn phần tử là luật của người khác
+        if (CoLuatChoPhep(appx)) return;   // quản trị đã có luật Allow riêng (của AiiGrow thì StripOurs đã bỏ / SuaAppx chỉ gọi khi thiếu)
         appx.Add(new XElement("FilePublisherRule",
             new XAttribute("Id", StableGuid(TenLuatAppx + "|S-1-1-0").ToString()),
             new XAttribute("Name", TenLuatAppx),
@@ -194,7 +194,7 @@ public static class AppLockerXml
         appx.SetAttributeValue("EnforcementMode", "Enabled");
     }
 
-    /// <summary>Chính sách đang chặn shell: Exe bật (Enabled, có luật) mà nhóm Appx không có luật nào ⇒ Start / Search / Action Center không mở được.
+    /// <summary>Chính sách đang chặn shell: Exe bật (Enabled, có luật) mà nhóm Appx không có luật Allow nào ⇒ Start / Search / Action Center không mở được.
     /// Bản 0.2.10 trở về trước để lại đúng trạng thái này trên máy (28/10).</summary>
     public static bool ThieuAppx(string? xml)
     {
@@ -204,9 +204,13 @@ public static class AppLockerXml
         var cs = d.Root?.Elements("RuleCollection").ToList() ?? new();
         var exe = cs.FirstOrDefault(c => (string?)c.Attribute("Type") == "Exe");
         var appx = cs.FirstOrDefault(c => (string?)c.Attribute("Type") == "Appx");
+        // chỉ máy có luật AiiGrow: chính sách Exe của quản trị (trường/công ty cố ý chặn Store) không phải việc của AiiGrow (review #170)
         return exe != null && (string?)exe.Attribute("EnforcementMode") == "Enabled" && exe.Elements().Any()
-            && (appx == null || !appx.Elements().Any());
+            && (appx == null || !CoLuatChoPhep(appx)) && ContainsOurs(xml);
     }
+
+    /// <summary>Nhóm Appx có ít nhất một luật Allow — chỉ có luật Deny thì Windows vẫn chặn mọi gói khác (Start, Search) khi Exe bật.</summary>
+    private static bool CoLuatChoPhep(XElement appx) => appx.Elements().Any(e => (string?)e.Attribute("Action") == "Allow");
 
     /// <summary>Thêm luật Appx «Everyone chạy mọi gói có chữ ký» vào chính sách sẵn có (không đụng luật nào khác) — chữa máy đã bị <see cref="ThieuAppx"/>.</summary>
     public static string SuaAppx(string xml)

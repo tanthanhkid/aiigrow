@@ -53,7 +53,12 @@ public sealed class AppLockerController
         if (!KhaDung) { Applied = false; return false; }   // Win Home: không áp, không gỡ, không log mỗi nhịp
         // 28/10: lần đầu sau khi dịch vụ khởi động (vd ngay sau khi tự cập nhật) — chữa máy bản cũ để lại Exe bật + Appx rỗng (Start đơ),
         // TRƯỚC khi áp/gỡ (áp/gỡ của bản này cũng tự sửa, nhưng khi đó không còn biết máy từng hỏng để báo «da-sua-appx»)
-        if (!_daKiemAppx) _daKiemAppx = KiemSuaAppx("khởi động") != null;
+        // đọc/ghi lỗi ⇒ thử lại sau 60 giây, tối đa 5 lần (không chạy PowerShell mỗi nhịp 5 giây — review #170)
+        if (!_daKiemAppx && Environment.TickCount64 >= _appxThuLaiLuc)
+        {
+            _daKiemAppx = KiemSuaAppx("khởi động") != null || ++_appxLoi >= AppLockerXml.DocLoiToiDa;
+            _appxThuLaiLuc = Environment.TickCount64 + 60_000;
+        }
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
         var ds = sids.Where(AppLockerXml.IsValidSid).ToList();
         var luatChan = chan is { Count: > 0 } ? ChanAppThat.LuatAppLocker(chan, Environment.GetFolderPath(Environment.SpecialFolder.Windows), ProcessGuard.DefaultSafeDirs(), BamAppLocker) : new List<LuatChanApp>();
@@ -72,15 +77,16 @@ public sealed class AppLockerController
         if (DateTimeOffset.UtcNow < _nextTry) return Applied;
 
         bool ok = want ? Apply(ds, list, td, wantApply, luatChan) : Remove();
-        if (ok && want) KiemSuaAppx("áp Chặn thật");   // kiểm lại chính sách thật sau khi áp: Exe bật thì Appx phải có luật cho phép
         if (ok) { _lastKey = key; Applied = want; }
         else _nextTry = DateTimeOffset.UtcNow.AddSeconds(60);
         return Applied;
     }
 
     private bool _daKiemAppx;
+    private int _appxLoi;
+    private long _appxThuLaiLuc;
 
-    /// <summary>Đọc chính sách AppLocker thật; Exe bật mà Appx rỗng ⇒ gộp luật Appx mặc định (Set-AppLockerPolicy -Merge), khởi động lại tiến trình
+    /// <summary>Đọc chính sách AppLocker thật; Exe bật mà Appx rỗng ⇒ ghi lại chính sách đó + luật Appx mặc định (Set-AppLockerPolicy ghi đè cả chính sách cục bộ bằng bản vừa đọc + luật mới), khởi động lại tiến trình
     /// Start / Search để Windows nạp lại, ghi log «da-sua-appx» + sự kiện da_sua_appx lên máy chủ. Trả null khi đọc lỗi (thử lại ở nhịp sau),
     /// false khi chính sách ổn, true khi vừa sửa.</summary>
     private bool? KiemSuaAppx(string luc)
@@ -153,6 +159,8 @@ public sealed class AppLockerController
             var opt = new AppLockerOptions { ChildSids = sids, AllowedApps = apps, TrinhDuyetTheoSid = trinhDuyet };
             var xml = chan is { Count: > 0 } ? AppLockerXml.MergeChanApp(cu, sids, chan, hoc ? opt : null) : AppLockerXml.Merge(cu, opt);
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
+            // mỗi lần áp «Chặn thật»: Exe bật thì Appx phải có luật cho phép (GiuShellChay) — kiểm trên chính bản sắp ghi, không đọc lại bằng PowerShell
+            if (AppLockerXml.ThieuAppx(xml)) { _log.LogError("da-sua-appx LỖI: chính sách sắp áp chặn Start/Search (thiếu luật Appx) — không áp"); return false; }
             File.WriteAllText(file, xml, new System.Text.UTF8Encoding(false));
             var set = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(file));
             if (!set.Ok) { _log.LogError("Set-AppLockerPolicy lỗi: {e}", set.Error); return false; }
