@@ -307,7 +307,7 @@ body.co-pn-gy #bang{right:432px}
 .au-rong{padding:24px 8px}
 @media (max-width:760px){.au-than{grid-template-columns:1fr}.au-ds{max-height:40vh}}
 /* Xoá màn (chủ quản) + bảng 🔗 Liên kết */
-.dau-khung .nut-lk-k,.dau-khung .nut-xoa-man,.dau-khung .nut-hong{min-height:26px;height:26px;padding:0 8px;border-radius:9px;font:700 12px Inter;flex:none;margin-left:6px}
+.dau-khung .nut-lk-k,.dau-khung .nut-xoa-man,.dau-khung .nut-hong,.dau-khung .nut-len,.dau-khung .nut-xuong,.dau-khung .nut-doi-ten{min-height:26px;height:26px;padding:0 8px;border-radius:9px;font:700 12px Inter;flex:none;margin-left:6px}
 .dau-khung .nut-lk-k{background:#eef0f7;color:#2d3a7a}
 .dau-khung .nut-xoa-man{color:var(--loi)}
 .dau-khung .nut-hong{background:#fdecea;color:#a3271b}
@@ -354,3 +354,15 @@ body.co-pn-gy #bang{right:432px}
 .dc-tay{display:flex;gap:8px;flex-wrap:wrap}
 .dc-tay select{flex:1 1 220px;min-height:36px;border-radius:10px;max-width:100%}
 .dc-cq{margin:0;padding:8px 10px;border-radius:10px;background:#fdf1dc;color:#7a4a00;font-weight:600}
+
+/* «+ Thêm màn» */
+.dau-khung .nut-len,.dau-khung .nut-xuong,.dau-khung .nut-doi-ten{background:#f1efe6;color:var(--chu2)}
+.dau-lan .nut-lan button[data-l="them"]{background:#e6f2ef;color:var(--ngocDam)}
+.dau-lan .nut-lan button[hidden]{display:none}
+.hop-them{width:min(560px,100%);max-height:min(90vh,820px);overflow:auto}
+.hop-them .them-cach{display:flex;flex-direction:column;gap:6px}
+.hop-them .them-cach label{display:flex;align-items:center;gap:8px;font-weight:600;margin:0}
+.hop-them .them-cach input{width:18px;height:18px;min-height:0;flex:none;margin:0;padding:0}
+.hop-them textarea{font:12.5px/1.45 ui-monospace,Menlo,monospace;resize:vertical;min-height:120px}
+.hop-them #them-co input{width:96px;flex:none}
+.hop-them [hidden]{display:none}

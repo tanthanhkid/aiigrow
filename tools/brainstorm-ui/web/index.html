@@ -161,6 +161,28 @@
   </div>
 </div>
 
+<div id="lop-them" class="lop" hidden>
+  <form id="hop-them" class="hop hop-them" autocomplete="off" role="dialog" aria-labelledby="them-tieu">
+    <div class="dau-bang"><b id="them-tieu">+ Thêm màn</b><button type="button" id="them-dong" class="nut-x" aria-label="Đóng">×</button></div>
+    <p id="them-ht" class="phu"></p>
+    <label for="them-ten">Tên màn</label>
+    <input id="them-ten" maxlength="80" placeholder="Ví dụ: Xác nhận gỡ thiết bị" spellcheck="false">
+    <label for="them-vi-tri">Vị trí</label>
+    <select id="them-vi-tri"></select>
+    <label>Nội dung</label>
+    <div class="them-cach" role="radiogroup" aria-label="Nội dung màn mới">
+      <label><input type="radio" name="them-cach" value="trong" checked> Khung trống (chỉ có tiêu đề)</label>
+      <label><input type="radio" name="them-cach" value="nhan-ban"> Nhân bản một màn có sẵn</label>
+      <label><input type="radio" name="them-cach" value="html"> Dán HTML</label>
+    </div>
+    <select id="them-tu" aria-label="Màn để nhân bản" hidden></select>
+    <textarea id="them-html" rows="7" placeholder="<!doctype html>…" spellcheck="false" aria-label="HTML của màn" hidden></textarea>
+    <div id="them-co" class="hang"><label for="them-w">Rộng</label><input id="them-w" type="number" min="200" max="4999"><label for="them-h">Cao</label><input id="them-h" type="number" min="200" max="19999"></div>
+    <p class="phu">Màn mới lưu ở kho chung — mọi người thấy ngay, không cần deploy. Sau đó dùng như màn gốc: Thay màn, biến thể, góp ý, 🔗 nối nút, dùng chung; ✎ đổi tên, ◀ ▶ đổi chỗ, 🗑 xoá trên đầu khung.</p>
+    <div class="hang ket"><span style="flex:1"></span><button type="button" id="them-huy">Huỷ</button><button type="submit" id="them-ok" class="nut-chinh">Thêm màn</button></div>
+  </form>
+</div>
+
 <div id="lop-dc" class="lop" hidden>
   <div class="hop hop-dc" role="dialog" aria-labelledby="dc-tieu">
     <div class="dau-bang"><b id="dc-tieu">🔗 Màn dùng chung giữa các luồng</b><button id="dc-dong" class="nut-x" aria-label="Đóng">×</button></div>

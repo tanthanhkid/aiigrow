@@ -10,7 +10,7 @@ export const TEN_LOAI = {
   'bien-the.xoa-vinh-vien': 'Xoá vĩnh viễn biến thể (dọn thùng rác)', 'bien-the.di-tru': 'Di trú biến thể từ trình duyệt', 'bien-the.khoi-phuc-lich-su': 'Khôi phục biến thể từ lịch sử',
   'phuong-an.tao': 'Tạo phương án', 'phuong-an.sua': 'Sửa phương án', 'phuong-an.xoa': 'Xoá phương án (vào thùng rác)', 'phuong-an.khoi-phuc': 'Khôi phục phương án từ thùng rác',
   'phuong-an.xoa-vinh-vien': 'Xoá vĩnh viễn phương án', 'phuong-an.di-tru': 'Di trú phương án từ trình duyệt', 'phuong-an.khoi-phuc-lich-su': 'Khôi phục phương án từ lịch sử',
-  'man.thay': 'Thay màn', 'man.khoi-phuc': 'Khôi phục phiên bản màn', 'man.de-xuat': 'Thay màn bằng đề xuất', 'man.khoi-phuc-lich-su': 'Khôi phục màn từ lịch sử', 'man.xoa': 'Xoá màn khỏi hành trình', 'man.khoi-phuc-xoa': 'Khôi phục màn đã xoá', 'man.lien-ket': 'Sửa liên kết màn',
+  'man.thay': 'Thay màn', 'man.khoi-phuc': 'Khôi phục phiên bản màn', 'man.de-xuat': 'Thay màn bằng đề xuất', 'man.khoi-phuc-lich-su': 'Khôi phục màn từ lịch sử', 'man.xoa': 'Xoá màn khỏi hành trình', 'man.khoi-phuc-xoa': 'Khôi phục màn đã xoá', 'man.lien-ket': 'Sửa liên kết màn', 'man.them': 'Thêm màn mới', 'man.doi-ten': 'Đổi tên màn thêm', 'man.doi-cho': 'Đổi chỗ màn thêm',
   'man.dung-chung': 'Cập nhật màn dùng chung', 'dung-chung.gop': 'Gộp màn dùng chung', 'dung-chung.tach': 'Tách màn khỏi nhóm dùng chung', 'dung-chung.lien-ket': 'Sửa liên kết riêng của màn dùng chung', 'dung-chung.lech': 'Màn dùng chung chưa lan được nội dung',
   'gop-y.tao': 'Góp ý mới', 'gop-y.tra-loi': 'Trả lời góp ý', 'gop-y.sua': 'Sửa góp ý', 'gop-y.xoa': 'Xoá góp ý', 'gop-y.trang-thai': 'Đổi trạng thái góp ý', 'gop-y.muc': 'Đổi mức góp ý',
   'gop-y.yc-bien-the': 'Yêu cầu biến thể', 'gop-y.khoi-phuc-lich-su': 'Khôi phục góp ý từ lịch sử',
@@ -108,6 +108,9 @@ export function ganLichSu(A) {
     const dt = e.dt || {};
     if (dt.l === 'k') return `${tenMan(dt.key)} · biến thể ${dt.id}`;
     if (dt.l === 'l') return `phương án ${dt.id}${dt.key ? ` · từ ${tenMan(dt.key)}` : ''}`;
+    if (e.loai === 'man.doi-ten') return `${tenHt(dt.ht)} · «${dt.tenCu || ''}» → «${dt.ten || ''}»`;
+    if (e.loai === 'man.doi-cho') return `${tenHt(dt.ht)} · ${tenMan(dt.key)}${dt.viTri ? ` → vị trí ${dt.viTri}` : ''}`;
+    if (e.loai === 'man.them') return `${tenHt(dt.ht)} · ${dt.ten || tenMan(dt.key)} · vị trí ${dt.viTri || '?'}${dt.cach ? ` · ${{ trong: 'khung trống', 'nhan-ban': 'nhân bản', html: 'dán HTML' }[dt.cach] || dt.cach}` : ''}${dt.tu ? ` từ ${tenMan(dt.tu)}` : ''}`;
     if (/^man\./.test(e.loai)) return `${tenMan(dt.key)} → v${dt.v}${dt.tu ? ` · theo ${tenMan(dt.tu)}` : ''}${dt.dungChung?.length ? ` · cùng cập nhật ${dt.dungChung.map(tenMan).join(', ')}` : ''}`;
     if (e.loai === 'dung-chung.gop') return `${(dt.ds || []).map(tenMan).join(' + ')} · gốc ${tenMan(dt.nguon)}`;
     if (e.loai === 'dung-chung.tach') return `${(dt.roi || []).map(tenMan).join(', ')} rời nhóm${dt.con?.length ? ` · còn ${dt.con.map(tenMan).join(', ')}` : ' · nhóm giải tán'}`;

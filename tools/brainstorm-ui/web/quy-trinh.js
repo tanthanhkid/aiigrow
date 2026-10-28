@@ -55,9 +55,34 @@ export function taoQuyTrinh(api) {
     }
     return { ...q, nut: q.nut.filter((x) => !bo.has(x.id)), noi };
   }
+  // màn «Thêm màn» (không có trong sơ đồ vẽ tay): chèn vào sơ đồ của hành trình chứa nó — cạnh không nhãn từ màn đứng trước gần nhất có trong sơ đồ
+  // và tới màn kế gần nhất; cạnh/nhãn sẵn có giữ nguyên (đúng nút data-toi thật).
+  function chenManThem(q) {
+    let nut = null, noi = null;
+    for (const ht of q.hanh || []) {
+      const l = timLan(ht); if (!l) continue;
+      const moi = l.buoc.filter((k) => MAN[k]?.them && !MAN[k].xoa && !(nut || q.nut).some((x) => x.man === k));
+      if (!moi.length) continue;
+      nut ||= q.nut.slice(); noi ||= q.noi.map((c) => c.slice());
+      const tim = (ds) => { for (const pk of ds) { const x = nut.find((n) => n.loai === 'man' && n.man === pk); if (x) return x; } return null; };
+      // lượt 1: đặt mọi nút màn thêm (lane theo màn trong sơ đồ gần nhất); lượt 2: nối cạnh không nhãn trước → màn thêm → kế (kể cả màn thêm liền nhau)
+      const dat = [];
+      for (const k of moi) {
+        const i = l.buoc.indexOf(k); const gan = tim(l.buoc.slice(0, i).reverse()) || tim(l.buoc.slice(i + 1)); if (!gan) continue;
+        const x = { id: `them:${k}`, loai: 'man', lan: gan.lan, ten: MAN[k].ten, man: k }; nut.push(x); dat.push([k, i, x]);
+      }
+      // KHÔNG chuyển cạnh/nhãn sẵn có: nút data-toi thật của màn trước vẫn đi thẳng tới màn kế theo mã (ke0) — màn thêm chỉ chen vào thứ tự
+      for (const [, i, x] of dat) {
+        const truoc = tim(l.buoc.slice(0, i).reverse()), sau = tim(l.buoc.slice(i + 1));
+        if (truoc && !noi.some(([a, b]) => a === truoc.id && b === x.id)) noi.push([truoc.id, x.id, '']);
+        if (sau && !noi.some(([a, b]) => a === x.id && b === sau.id)) noi.push([x.id, sau.id, '']);
+      }
+    }
+    return nut ? { ...q, nut, noi } : q;
+  }
   function quyTrinhCua(sec, lanCuaSec) {
     const bao = new Set(QT.flatMap((q) => q.hanh || []));
-    const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => boManXoa(q));
+    const kq = QT.filter((q) => q.sec.includes(sec)).map((q) => boManXoa(chenManThem(q)));
     for (const id of lanCuaSec) {
       if (bao.has(id)) continue;
       const q = tuChuoi(timLan(id)); if (q) kq.push(q);
@@ -73,7 +98,7 @@ export function taoQuyTrinh(api) {
     const nut = [{ id: 'bd', loai: 'bd', lan, ten: 'Bắt đầu' }, ...buoc.map(([k], i) => ({ id: `${i}:${k}`, loai: 'man', lan, ten: MAN[k].ten, man: k })), { id: 'kt', loai: 'kt', lan, ten: 'Xong' }];
     const noi = []; let truoc = 'bd', keTruoc = '';
     let jTruoc = -1;
-    buoc.forEach(([k, j], i) => { noi.push([truoc, `${i}:${k}`, keTruoc && jTruoc === j - 1 ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; jTruoc = j; }); // nhãn chỉ khi đúng bước kế (bước giữa bị xoá ⇒ không nhãn)
+    buoc.forEach(([k, j], i) => { noi.push([truoc, `${i}:${k}`, keTruoc && jTruoc === j - 1 && MAN[keTruoc].ke0 === k ? MAN[keTruoc].toi || '' : '']); truoc = `${i}:${k}`; keTruoc = k; jTruoc = j; }); // nhãn chỉ khi đúng bước kế theo mã (bước giữa bị xoá / màn thêm chen giữa ⇒ không nhãn)
     noi.push([truoc, 'kt', '']);
     return { id: `tu-${l.id}`, ten: `${l.ten} (tự sinh từ chuỗi màn)`, tuSinh: true, nut, noi };
   }
@@ -329,7 +354,7 @@ export function taoQuyTrinh(api) {
 
   // SVG (ảnh nhúng data URL) cho MỘT hành trình — ảnh chụp kèm link góp ý /r/: quy trình khai báo có hanh chứa id, không có thì tự sinh từ chuỗi màn
   async function svgHanhTrinh(htId) {
-    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => boManXoa(q));
+    let qs = QT.filter((q) => (q.hanh || []).includes(htId)).map((q) => boManXoa(chenManThem(q)));
     if (!qs.length) { const q = tuChuoi(timLan(htId)); qs = q ? [q] : []; }
     if (!qs.length) return '';
     const pools = []; let y = 0;
