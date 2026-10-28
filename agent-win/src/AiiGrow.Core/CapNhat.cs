@@ -190,11 +190,22 @@ public sealed class BanMoi
     [JsonPropertyName("version")] public string Version { get; set; } = "";
     [JsonPropertyName("url")] public string Url { get; set; } = "";
     [JsonPropertyName("sha256")] public string Sha256 { get; set; } = "";
+    /// <summary>0.2.12: chu kỳ hỏi bản mới (phút) do máy chủ đặt — <see cref="TuCapNhat.ChuKyKiem"/>.</summary>
+    [JsonPropertyName("chuKyKiemPhut")] public int? ChuKyKiemPhut { get; set; }
 }
 
 public static class TuCapNhat
 {
     public const string DuongManifest = "/api/agent/ban-moi";
+
+    /// <summary>Chu kỳ mặc định khi máy chủ không gửi chuKyKiemPhut (hoặc không đọc được manifest).</summary>
+    public static readonly TimeSpan ChuKyMacDinh = TimeSpan.FromHours(6);
+
+    /// <summary>Chu kỳ hỏi bản mới: chuKyKiemPhut của máy chủ kẹp [5, 1440] phút; không có ⇒ 6 giờ.</summary>
+    public static TimeSpan ChuKyKiem(int? phut) => phut is { } p ? TimeSpan.FromMinutes(Math.Clamp(p, 5, 1440)) : ChuKyMacDinh;
+
+    /// <summary>Lần kiểm kế tiếp theo GIỜ THẬT. Đồng hồ máy bị lùi (Con chỉnh giờ) ⇒ không để hẹn xa quá một chu kỳ tính từ bây giờ.</summary>
+    public static DateTimeOffset KeTiep(DateTimeOffset hen, DateTimeOffset bayGio, TimeSpan chuKy) => hen > bayGio + chuKy ? bayGio + chuKy : hen;
     /// <summary>Bộ cài nằm trên Vercel Blob của AiiGrow (ngoài tên miền máy chủ).</summary>
     public const string DuoiBlob = ".public.blob.vercel-storage.com";
 

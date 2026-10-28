@@ -5,7 +5,7 @@ using AiiGrow.Core;
 namespace AiiGrow.Service;
 
 /// <summary>
-/// TỰ CẬP NHẬT (Thanh 22/10: «từ phiên bản này trở đi, nó sẽ tự động download phiên bản mới»). Lúc khởi động (+2 phút) rồi mỗi 6 giờ:
+/// TỰ CẬP NHẬT (Thanh 22/10: «từ phiên bản này trở đi, nó sẽ tự động download phiên bản mới»). Lúc khởi động (+2 phút) rồi theo chu kỳ máy chủ đặt (chuKyKiemPhut, mặc định 6 giờ, tính theo giờ thật):
 /// GET /api/agent/ban-moi → bản mới hơn ⇒ tải AiiGrow-Setup.exe về ProgramData\AiiGrow\cap-nhat, KIỂM sha256 (sai ⇒ xoá, bỏ qua) rồi chạy
 /// «AiiGrow-Setup.exe --capnhat --im-lang» qua một tác vụ Task Scheduler (SYSTEM) tách rời — bộ cài sẽ dừng chính dịch vụ này.
 /// Bộ cài giữ nguyên config/token/AppLocker, lỗi thì tự khôi phục bản cũ. Một bản thử tối đa một lần mỗi 24 giờ.
@@ -13,7 +13,6 @@ namespace AiiGrow.Service;
 public sealed class UpdateWorker : BackgroundService
 {
     private const string TenTacVu = "AiiGrowCapNhat";
-    private static readonly TimeSpan Nhip = TimeSpan.FromHours(6);
     private readonly ConfigStore _store = new();
     private readonly ILogger<UpdateWorker> _log;
 
@@ -21,22 +20,33 @@ public sealed class UpdateWorker : BackgroundService
 
     private static string ThuMuc => Path.Combine(Paths.DataDir, "cap-nhat");
 
+    /// <remarks>0.2.12 (28/10, máy ThinkPad kẹt 0.2.5 suốt 4 ngày): KHÔNG chờ bằng Task.Delay(6 giờ) — đồng hồ hẹn giờ của .NET trên Windows
+    /// không chạy khi máy ngủ / ngủ đông (Fast Startup tắt máy cũng là ngủ đông, dịch vụ không khởi động lại), laptop cả ngày chỉ thức vài giờ
+    /// ⇒ mấy ngày không kiểm lần nào. Nay thức dậy mỗi phút, so GIỜ THẬT với lần hẹn; chu kỳ do máy chủ đặt (chuKyKiemPhut).</remarks>
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         _ = Task.Run(BatLaiTuKhoiDong);   // không chặn dịch vụ khởi động (sc.exe tối đa 30 giây/lệnh)
-        try { await Task.Delay(TimeSpan.FromMinutes(2), ct); } catch (OperationCanceledException) { return; }
+        var chuKy = TuCapNhat.ChuKyMacDinh;
+        var hen = DateTimeOffset.UtcNow.AddMinutes(2);
         while (!ct.IsCancellationRequested)
         {
-            try { await KiemMotLuot(ct); }
-            catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Tự cập nhật: {Loi}", e.Message); }
-            try { await Task.Delay(Nhip, ct); } catch (OperationCanceledException) { break; }
+            var bayGio = DateTimeOffset.UtcNow;
+            hen = TuCapNhat.KeTiep(hen, bayGio, chuKy);
+            if (bayGio >= hen)
+            {
+                try { chuKy = await KiemMotLuot(ct) ?? chuKy; }
+                catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Tự cập nhật: {Loi}", e.Message); }
+                hen = DateTimeOffset.UtcNow + chuKy;
+            }
+            try { await Task.Delay(TimeSpan.FromMinutes(1), ct); } catch (OperationCanceledException) { break; }
         }
     }
 
-    private async Task KiemMotLuot(CancellationToken ct)
+    /// <returns>Chu kỳ máy chủ đặt (null = chưa đọc được manifest).</returns>
+    private async Task<TimeSpan?> KiemMotLuot(CancellationToken ct)
     {
         var cfg = _store.Load();
-        if (cfg is not { Paired: true }) return;
+        if (cfg is not { Paired: true }) return null;
         var hienTai = TuCapNhat.BanHienTai();
 
         // KHÔNG gắn token máy: manifest công khai, còn tệp cài tải từ Vercel Blob (ngoài máy chủ AiiGrow) — gửi Bearer theo là lộ token máy cho bên thứ ba.
@@ -49,30 +59,37 @@ public sealed class UpdateWorker : BackgroundService
             var json = await http.GetStringAsync(server + TuCapNhat.DuongManifest, cts.Token);
             m = JsonSerializer.Deserialize<BanMoi>(json);
         }
+        var chuKy = TuCapNhat.ChuKyKiem(m?.ChuKyKiemPhut);
         var lyDo = TuCapNhat.KiemManifest(m, server, hienTai);
-        if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return; }
-        if (DaThuGanDay(m!.Version)) return;
+        if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return chuKy; }
+        if (DaThuGanDay(m!.Version)) return chuKy;
 
         Directory.CreateDirectory(ThuMuc);
         var tep = Path.Combine(ThuMuc, "AiiGrow-Setup-" + CapNhat.DocBan(m.Version)!.ToString(3) + ".exe");
         DonBoCaiCu(tep);
         var tam = tep + ".tai";
         _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
-        await using (var vao = await http.GetStreamAsync(m.Url, ct))
-        await using (var ra = File.Create(tam))
-            await vao.CopyToAsync(ra, ct);
+        // HttpClient.Timeout không phủ phần thân của GetStreamAsync ⇒ mạng treo giữa chừng là vòng kiểm đứng mãi: giới hạn cả lượt tải 30 phút
+        using (var hanTai = CancellationTokenSource.CreateLinkedTokenSource(ct))
+        {
+            hanTai.CancelAfter(TimeSpan.FromMinutes(30));
+            await using var vao = await http.GetStreamAsync(m.Url, hanTai.Token);
+            await using var ra = File.Create(tam);
+            await vao.CopyToAsync(ra, hanTai.Token);
+        }
 
         if (!TuCapNhat.KhopSha256(tam, m.Sha256))
         {
             try { File.Delete(tam); } catch { }
             _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy");
-            return;
+            return chuKy;
         }
         File.Move(tam, tep, true);
         // ghi «đã thử» SAU khi tải đúng: tải hỏng/đứt giữa chừng thì lượt 6 giờ sau tải lại, không phải chờ 24 giờ
         GhiDaThu(m.Version);
         ChayBoCai(tep);
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
+        return chuKy;
     }
 
     /// <summary>Chạy bộ cài bằng tác vụ SYSTEM tách rời: dịch vụ bị bộ cài dừng không kéo bộ cài chết theo.</summary>

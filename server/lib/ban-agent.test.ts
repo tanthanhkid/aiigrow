@@ -11,6 +11,8 @@ test("manifest bản mới: số bản, https trên tên miền máy chủ, sha2
   assert.match(u.pathname, /^\/tai\/AiiGrow-Setup-\d+\.\d+\.\d+\.exe$/, "khớp luật chuyển hướng trong next.config");
   assert.ok(u.pathname.includes(BAN_AGENT_WINDOWS.version), "tên tệp có số bản ⇒ sha256 không lệch khi tải bản khác lên");
   assert.match(BAN_AGENT_WINDOWS.sha256, /^[0-9a-f]{64}$/);
+  // agent kẹp [5, 1440]; dev 15, TRƯỚC GOLIVE về 360 (CHU_KY_KIEM_PHUT_WINDOWS trong ban-agent.ts)
+  assert.ok(Number.isInteger(BAN_AGENT_WINDOWS.chuKyKiemPhut) && BAN_AGENT_WINDOWS.chuKyKiemPhut >= 5 && BAN_AGENT_WINDOWS.chuKyKiemPhut <= 1440);
 });
 
 test("manifest bản Mac: số bản, https trên tên miền máy chủ, tên gói khớp số bản, sha256 64 hex", () => {
