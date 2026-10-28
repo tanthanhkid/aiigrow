@@ -11,12 +11,12 @@ import type { May } from "./gia-dinh.ts";
  *  TRƯỚC GOLIVE đổi về 360 (6 giờ) — chỉ sửa số này rồi deploy máy chủ, không phát lại agent. Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT_WINDOWS = 15;
 
-// 0.2.11 (28/10, sửa Start menu đơ — AppLocker thiếu luật Appx): exe từ CI agent-win run 40644506976 (job build goc, commit 3eb5ba9, PR #170); sha256 đo trên tệp tải về từ Release.
+// 0.2.12 (28/10, tự cập nhật theo giờ thật + chuKyKiemPhut; 0.2.11 sửa Start menu đơ): exe từ CI agent-win run 40648893556 (job build goc, commit ae9f0c1, PR #171); sha256 đo trên tệp tải về từ Release.
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT_WINDOWS,
-  version: "0.2.11",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.11.exe",
-  sha256: "a8822f15b74f1e3a6ef34431b65ed078018fc9f59bb8e3ec7374461c5342ea58",
+  version: "0.2.12",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.12.exe",
+  sha256: "f48532fa52ce0ba0a7aef1dfa610aa5bfc668caac3513ad82eb9fb468f2e2530",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
