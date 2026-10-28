@@ -26,18 +26,18 @@ public sealed class UpdateWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         _ = Task.Run(BatLaiTuKhoiDong);   // không chặn dịch vụ khởi động (sc.exe tối đa 30 giây/lệnh)
-        var hen = DateTimeOffset.UtcNow.AddMinutes(2);
+        var cho = TimeSpan.FromMinutes(2);
+        var hen = DateTimeOffset.UtcNow + cho;
         while (!ct.IsCancellationRequested)
         {
             var bayGio = DateTimeOffset.UtcNow;
-            hen = TuCapNhat.KeTiep(hen, bayGio, _chuKy);
+            hen = TuCapNhat.KeTiep(hen, bayGio, cho);   // chỉ sửa khi đồng hồ bị lùi: hẹn không xa quá đúng khoảng chờ đã định
             if (bayGio >= hen)
             {
-                TimeSpan cho;
                 try { cho = await KiemMotLuot(ct); }
                 // chỉ dừng khi dịch vụ dừng: hết hạn của HttpClient/CancelAfter cũng là OperationCanceledException — lọt ra là BackgroundService
                 // đổ và kéo cả dịch vụ (chặn app, lọc web) chết theo
-                catch (Exception e) when (!ct.IsCancellationRequested)
+                catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
                 {
                     // chưa đọc được manifest (mạng chưa lên sau khi thức, máy chủ lỗi): thử lại sớm, không đợi trọn chu kỳ — chỉ tốn một GET nhỏ
                     _log.LogWarning("Tự cập nhật: {Loi}", e.Message);
@@ -97,10 +97,9 @@ public sealed class UpdateWorker : BackgroundService
         if (!TuCapNhat.KhopSha256(tam, m.Sha256))
         {
             try { File.Delete(tam); } catch { }
-            // manifest/tệp lệch nhau thì tải lại cũng lệch: ghi «đã thử» ⇒ 24 giờ mới tải lại bản này (không đốt 182 MB mỗi chu kỳ)
-            GhiDaThu(m.Version);
-            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; bản {Ban} thử lại sau 24 giờ", m.Version);
-            return _chuKy;
+            // có thể chỉ thoáng qua (Wi-Fi khách sạn trả trang đăng nhập) hoặc máy chủ sắp sửa sha: thử lại sau ≥1 giờ, không đốt 182 MB mỗi chu kỳ
+            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiTai);
+            return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
         }
         File.Move(tam, tep, true);
         // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
