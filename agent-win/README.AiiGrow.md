@@ -97,7 +97,7 @@ Logic tách bằng interface (`IEnroller`, `IHeartbeatApi`, `ISystemUninstaller`
   Màu theo token `mobile/src/lib/mau.ts`. Màn khoá / màn chặn toàn màn hình không đổi.
 
 ## Giao diện «Clay gương» (24/10/2026)
-Phát hành ở bản **0.2.7** (25/10/2026); bản **0.2.8** (25/10) thêm rà giao diện, nút chữ dài, biểu đồ clay, cài xong là chặn luôn; bản **0.2.9** (25/10) thêm danh sách app đã cài thật (icon 96px) + chặn app Ba Mẹ chọn từ danh sách; bản **0.2.10** (25/10) sửa Chrome Con vào được trang bị chặn (khoá danh sách web rỗng ở HKLM đè luật của Con — gỡ khoá rỗng, không gỡ được thì không thả trình duyệt).
+Phát hành ở bản **0.2.7** (25/10/2026); bản **0.2.8** (25/10) thêm rà giao diện, nút chữ dài, biểu đồ clay, cài xong là chặn luôn; bản **0.2.9** (25/10) thêm danh sách app đã cài thật (icon 96px) + chặn app Ba Mẹ chọn từ danh sách; bản **0.2.10** (25/10) sửa Chrome Con vào được trang bị chặn (khoá danh sách web rỗng ở HKLM đè luật của Con — gỡ khoá rỗng, không gỡ được thì không thả trình duyệt). Bản **0.2.11** (28/10) sửa lỗi cài xong bấm phím Windows / Start bị đơ: bật AppLocker Exe luôn kèm luật Appx cho mọi gói có chữ ký (Start, Search là gói), tự chữa máy bản cũ lúc khởi động (log «da-sua-appx»), không bao giờ đóng gói shell «MicrosoftWindows.*».
 Khay, app to, màn chặn, màn khoá và bộ cài vẽ theo `docs/THIET-KE-CLAY.md` bằng GDI+ (`src/AiiGrow.Tray/Clay.cs`, bộ cài link cùng tệp):
 nút/thẻ bo lớn, bóng kép, men bóng; nhấn = bẹp rồi nảy lò xo + vệt men lướt; Windows tắt «Hiệu ứng hoạt hình» ⇒ không scale, không vệt.
 Icon minh hoạ = Fluent Emoji 3D của Microsoft (`microsoft/fluentui-emoji`, commit `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`, giấy phép MIT —
