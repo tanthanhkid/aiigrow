@@ -7,11 +7,11 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
-// 0.2.10: exe từ CI agent-win run 40175224402 (job build goc, cây merge 70ed4e8 = d4f5e46 + main 4c3a55c, tag phathanh-4-src, PR #132); sha256 đo trên tệp tải về từ Release.
+// 0.2.11 (28/10, sửa Start menu đơ — AppLocker thiếu luật Appx): exe từ CI agent-win run 40644506976 (job build goc, commit 3eb5ba9, PR #170); sha256 đo trên tệp tải về từ Release.
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.10",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.10.exe",
-  sha256: "59fee9caf335a1c1ced281d53b8886e9c8745b57d9a93970877e6aeb95775db3",
+  version: "0.2.11",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.11.exe",
+  sha256: "a8822f15b74f1e3a6ef34431b65ed078018fc9f59bb8e3ec7374461c5342ea58",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
