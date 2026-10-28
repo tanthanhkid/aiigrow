@@ -54,12 +54,16 @@ export function taoUngDung(O = {}) {
   // tệp chưa có ⇒ kho rỗng; tệp hỏng ⇒ ném lỗi (không bao giờ ghi đè bằng kho rỗng)
   function docMt() { let tho; try { tho = fs.readFileSync(TEP_MT(), 'utf8'); } catch (e) { if (e.code === 'ENOENT') return MT.KHO_RONG(); throw e; } return MT.chuanKho(JSON.parse(tho)); }
   // bản nhớ theo dấu tệp (mtime + cỡ): đường nóng (keyMan, laThem, MCP) không đọc + parse lại tệp mỗi lần. Chính máy chủ ghi ⇒ ghiMt xoá dấu.
-  const MT_NHO = { ky: null, kho: MT.KHO_RONG(), hong: false, ver: 0, luc: 0 };
+  const MT_NHO = { ky: null, tho: null, kho: MT.KHO_RONG(), hong: false, ver: 0, luc: 0 };
   function mtNho() {
     let ky = 'khong'; try { const s = fs.statSync(TEP_MT()); ky = `${s.mtimeMs}:${s.size}:${s.ino ?? ''}`; } catch { /* chưa có tệp */ }
-    if (ky !== MT_NHO.ky || Date.now() - MT_NHO.luc > 30000) { // + đọc lại mỗi 30 giây (sửa ngoài giữ nguyên mtime/cỡ)
-      MT_NHO.ky = ky; MT_NHO.ver++; MT_NHO.luc = Date.now();
-      try { MT_NHO.kho = docMt(); MT_NHO.hong = false; } catch { console.error('[man-them] man-them.json hỏng — bỏ qua màn thêm'); MT_NHO.kho = MT.KHO_RONG(); MT_NHO.hong = true; }
+    if (ky !== MT_NHO.ky || Date.now() - MT_NHO.luc > 30000) { // + đọc lại mỗi 30 giây (sửa ngoài giữ nguyên mtime/cỡ) — chỉ coi là đổi khi NỘI DUNG khác
+      MT_NHO.ky = ky; MT_NHO.luc = Date.now();
+      let tho = ''; try { tho = fs.readFileSync(TEP_MT(), 'utf8'); } catch { /* chưa có tệp */ }
+      if (tho !== MT_NHO.tho) {
+        MT_NHO.tho = tho; MT_NHO.ver++;
+        try { MT_NHO.kho = tho ? MT.chuanKho(JSON.parse(tho)) : MT.KHO_RONG(); MT_NHO.hong = false; } catch { console.error('[man-them] man-them.json hỏng — bỏ qua màn thêm'); MT_NHO.kho = MT.KHO_RONG(); MT_NHO.hong = true; }
+      }
     }
     return MT_NHO;
   }
@@ -621,7 +625,8 @@ export function taoUngDung(O = {}) {
         if (Object.keys(mt.man).length >= MT_TOI_DA) return json(res, 409, { loi: `Bàn đã có ${MT_TOI_DA} màn thêm` });
         const tt = thuTuCua(ht.id); const i = MT.chiSoChen(tt, t.sau ?? null);
         if (i < 0) return json(res, 400, { loi: 'Vị trí chèn không thuộc hành trình này' });
-        if (typeof t.html !== 'string' || !t.html.trim() || t.html.length > PB_CO) return json(res, 400, { loi: 'Thiếu HTML hoặc quá lớn' });
+        const cach0 = t.cach;
+        if (cach0 !== 'trong' && (typeof t.html !== 'string' || !t.html.trim() || t.html.length > PB_CO)) return json(res, 400, { loi: 'Thiếu HTML hoặc quá lớn' });
         const w = Math.round(Number(t.w)), h = Math.round(Number(t.h));
         if (!(w >= 200 && w < 5000 && h >= 200 && h < 20000)) return json(res, 400, { loi: 'Kích thước màn không hợp lệ (rộng 200–4999, cao 200–19999)' });
         const cach = ['trong', 'nhan-ban', 'html'].includes(t.cach) ? t.cach : 'html';
@@ -640,7 +645,7 @@ export function taoUngDung(O = {}) {
       const key = String(t.key || ''); const m = mt.man[key];
       if (!m) return json(res, 404, { loi: 'Không có màn thêm này — màn trong mã không đổi tên/đổi chỗ trên bàn' });
       const ht = htCua(m.ht); if (!ht) return json(res, 409, { loi: 'Hành trình của màn này không còn trong mã' });
-      const doi = []; const au = []; const ten0 = m.ten;
+      const doi = []; const au = [];
       if (t.ten != null && !ten) return json(res, 400, { loi: 'Cần tên màn' });
       let ttMoi = null; const tt0 = thuTuCua(ht.id);
       if ('sau' in t) { // kiểm vị trí TRƯỚC mọi thay đổi (sai ⇒ 400, không ghi gì, không audit)
@@ -655,7 +660,7 @@ export function taoUngDung(O = {}) {
         if (doi.includes('ten')) m.ten = ten;
         if (ttMoi) mt.thuTu[ht.id] = ttMoi;
         ghiMt(mt); audit.ghi(au); // ghi tệp xong mới audit (ghi lỗi ⇒ ném, không để audit sai)
-        if (doi.includes('ten')) sauKhoa = () => capNhatKhungTrong(key, ten0, ten, ai); // chạy SAU khi nhả khoá man-them (ghiPhienBan có thể chờ khoá dùng chung lâu)
+        if (doi.includes('ten')) sauKhoa = () => capNhatKhungTrong(key, ai); // chạy SAU khi nhả khoá man-them (ghiPhienBan có thể chờ khoá dùng chung lâu)
         baoManThem({ key, ht: ht.id, viec: doi.join(','), ten: ai.ten || '', tu: ai.phien || '' });
       }
       kq = { key, man: m, thuTu: thuTuCua(ht.id), doi };
@@ -663,13 +668,18 @@ export function taoUngDung(O = {}) {
     if (kq) return json(res, 200, kq); // trả lời sau khi khung trống đã cập nhật (nhả khoá man-them trước)
   }
   // đổi tên màn thêm mà bản đang dùng vẫn là «khung trống» của tên cũ ⇒ thêm phiên bản khung trống mang tên mới (tiêu đề trong khung, Play, /r/, ảnh MCP khớp tên)
-  async function capNhatKhungTrong(key, tenCu, tenMoi, ai) {
+  // đổi tên màn thêm mà bản đang dùng vẫn là «khung trống» ⇒ thêm phiên bản khung trống mang tên HIỆN TẠI trong kho (tiêu đề trong khung, Play, /r/, ảnh MCP
+  // khớp tên). Đọc tên lúc chạy nên hai lần đổi tên nhanh chạy lệch thứ tự vẫn ra tên cuối; bản người dùng đã thay (không phải khung trống) không bị đụng.
+  async function capNhatKhungTrong(key, ai) {
     try {
       if (nhomCua(docDc(), key)) return; // màn dùng chung: không lan tiêu đề của màn này sang màn khác
+      const ten = docMt().man[key]?.ten; if (!ten) return;
       const m = docManifest(key); const muc = m.ds.find((x) => x.v === m.hien); if (!muc?.tep || muc.xoa) return;
-      if (fs.readFileSync(path.join(thuMucPb(key), `v${muc.tep}.html`), 'utf8') !== MT.khungTrong(tenCu)) return;
-      const r = await ghiPhienBan(key, { html: MT.khungTrong(tenMoi), goc: m.hien, w: muc.w, h: muc.h, nhan: 'Đổi tên — cập nhật tiêu đề khung trống', nguon: 'them' }, null, ai, 'man.thay');
+      const html = fs.readFileSync(path.join(thuMucPb(key), `v${muc.tep}.html`), 'utf8');
+      if (!MT.laKhungTrong(html) || html === MT.khungTrong(ten)) return;
+      const r = await ghiPhienBan(key, { html: MT.khungTrong(ten), goc: m.hien, w: muc.w, h: muc.h, nhan: 'Đổi tên — cập nhật tiêu đề khung trống', nguon: 'them' }, null, ai, 'man.thay');
       if (r[0] === 200) baoDoi([key], ai?.ten || '');
+      else console.error('[man-them] chưa cập nhật được tiêu đề khung trống:', r[1]?.loi);
     } catch (e) { console.error('[man-them] không cập nhật được khung trống:', e.message); }
   }
   // khôi phục từ Lịch sử thay đổi: tên / thứ tự hành trình của màn thêm về trạng thái st ({ ten } | { ht, thuTu })
@@ -682,7 +692,7 @@ export function taoUngDung(O = {}) {
       let au = null;
       if (e.loai === 'man.doi-ten') {
         const ten = sachTen(st?.ten); if (!ten) return [400, { loi: 'Không có tên để khôi phục' }];
-        au = { loai: 'man.doi-ten', dt: { key: m.key, ht: m.ht, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten }, ghiChu: `Khôi phục từ ${nguon}` }; if (ten !== m.ten) sauKhoa = ((cu) => () => capNhatKhungTrong(m.key, cu, ten, ai))(m.ten); m.ten = ten;
+        au = { loai: 'man.doi-ten', dt: { key: m.key, ht: m.ht, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten }, ghiChu: `Khôi phục từ ${nguon}` }; if (ten !== m.ten) sauKhoa = () => capNhatKhungTrong(m.key, ai); m.ten = ten;
       } else {
         if (!Array.isArray(st?.thuTu) || st.ht !== m.ht) return [400, { loi: 'Không có thứ tự để khôi phục' }];
         await keyMan(); const ht = DS0.find((x) => x.id === m.ht); if (!ht) return [409, { loi: 'Hành trình không còn trong mã' }];

@@ -39,6 +39,12 @@ export function khungTrong(ten) {
 <body><div class="khung-trong"><h1>${thoat(ten)}</h1><p>Màn mới — chưa có nội dung</p></div></body></html>`;
 }
 
+// HTML có phải «khung trống» (tiêu đề bất kỳ) không — để đổi tên thì cập nhật tiêu đề trong khung, không đụng nội dung người dùng đã thay
+export function laKhungTrong(html) {
+  const m = /<h1>([^<]*)<\/h1>/.exec(String(html || ''));
+  return !!m && String(html).replace(m[0], '<h1></h1>') === khungTrong('');
+}
+
 // ghép màn thêm vào danh sách hành trình (kết quả taiHanhTrinh): trả bản sao, KHÔNG sửa ds.
 // Mỗi bước trong mã có thêm ke0 = key màn kế THEO MÃ (nút gắn theo nhãn bước «toi» luôn trỏ màn này, kể cả khi có màn thêm chen giữa);
 // màn thêm: { key, ten, w, h, html: khungTrong, them: true, toi: '' }.

@@ -19,7 +19,7 @@ import { heThong, loiNguoiDung, loiHanhTrinh, tachKetQua, tachHanhTrinh, HUONG }
 import { vanBanAssets } from './web/claude.js';
 import { taiHanhTrinh } from './web/hanh-trinh/index.js';
 import { goiYDungChung } from './web/dung-chung.js';
-import { ghepManThem, khungTrong } from './web/man-them.js';
+import { ghepManThem } from './web/man-them.js';
 
 const CHROME = process.env.BS_CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const RANH_DONG = 120000;            // Chrome rảnh bao lâu thì đóng
@@ -494,7 +494,7 @@ export function taoMcp(C) {
           than = { cach: 'nhan-ban', tu: a.nhan_ban_tu, html: hh.html, w: a.w || hh.w, h: a.h || hh.h };
         } else {
           const { MAN } = await taiMan(); const mau = MAN[l.buoc[0]] || {}; // kích thước mặc định: màn đầu của hành trình
-          than = { cach: a.html ? 'html' : 'trong', html: a.html ? await domGoi('lamSach', a.html) : khungTrong(a.ten), w: a.w || mau.w || 390, h: a.h || mau.h || 844 };
+          than = { cach: a.html ? 'html' : 'trong', html: a.html ? await domGoi('lamSach', a.html) : '', w: a.w || mau.w || 390, h: a.h || mau.h || 844 };
         }
         const r = await goiJ(req0, 'POST', '/api/man-them/them', { ht: l.id, sau: sauTu(a.vi_tri), ten: a.ten, ...than });
         return [chu({ key: r.key, ten: r.man.ten, hanhTrinh: l.id, viTri: r.thuTu.indexOf(r.key) + 1, thuTu: r.thuTu, w: r.man.w, h: r.man.h, dangDung: `v${r.manifest?.hien || 1}`,
