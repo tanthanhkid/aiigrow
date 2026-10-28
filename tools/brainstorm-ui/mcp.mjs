@@ -19,6 +19,7 @@ import { heThong, loiNguoiDung, loiHanhTrinh, tachKetQua, tachHanhTrinh, HUONG }
 import { vanBanAssets } from './web/claude.js';
 import { taiHanhTrinh } from './web/hanh-trinh/index.js';
 import { goiYDungChung } from './web/dung-chung.js';
+import { ghepManThem, khungTrong } from './web/man-them.js';
 
 const CHROME = process.env.BS_CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const RANH_DONG = 120000;            // Chrome rảnh bao lâu thì đóng
@@ -83,17 +84,19 @@ export function taoMcp(C) {
     return { ok: true, json: async () => JSON.parse(s), text: async () => s };
   });
   const gocCache = new Map();
-  let manP = null, manLuc = 0;
-  function taiMan() { // nạp lại sau 30 giây (web/that/ có thể được chụp lại khi máy chủ đang chạy); lần nạp thiếu tệp hành trình không được giữ
-    if (manP && Date.now() - manLuc > 30000) manP = null;
-    if (!manP) { manLuc = Date.now(); gocCache.clear(); manP = (async () => {
-      const { ds, loi } = await taiHanhTrinh(layWeb);
+  let manP = null, manLuc = 0, mtKy = '';
+  function taiMan() { // nạp lại sau 30 giây (web/that/ có thể được chụp lại khi máy chủ đang chạy) hoặc khi màn thêm đổi; lần nạp thiếu tệp hành trình không được giữ
+    const mt = C.manThem ? C.manThem() : { man: {}, thuTu: {} }; const ky = JSON.stringify(mt);
+    if (manP && (Date.now() - manLuc > 30000 || ky !== mtKy)) manP = null;
+    if (!manP) { manLuc = Date.now(); mtKy = ky; gocCache.clear(); manP = (async () => {
+      const { ds: ds0, loi } = await taiHanhTrinh(layWeb);
       void loi; // tệp hành trình lỗi: mô-đun ESM lỗi bị Node giữ — sửa xong phải khởi động lại máy chủ (như keyMan)
+      const ds = ghepManThem(ds0, mt); // + màn thêm trên bàn (them: true; ke = màn kế THEO MÃ — nút gắn theo nhãn bước)
       const LAN = [], MAN = {};
       for (const h of ds) {
         if (!KEY.test(h.id)) continue;
-        LAN.push({ id: h.id, vai: h.vai, nen: h.nen, ten: h.ten, mo: h.mo || '', buoc: h.buoc.map((b) => b.key), goc: true });
-        h.buoc.forEach((b, i) => { const ke = h.buoc[i + 1]; MAN[b.key] = { key: b.key, ten: b.ten, w: b.w, h: b.h, html: b.html, anh: b.anh || '', toi: b.toi || '', lan: h.id, buoc: i, ke: ke?.key || '' }; });
+        LAN.push({ id: h.id, vai: h.vai, nen: h.nen, ten: h.ten, mo: h.mo || '', buoc: h.buoc.map((b) => b.key), ma: h.buoc.filter((b) => !b.them).map((b) => b.key), goc: true });
+        h.buoc.forEach((b, i) => { MAN[b.key] = { key: b.key, ten: b.ten, w: b.w, h: b.h, html: b.html, anh: b.anh || '', toi: b.toi || '', lan: h.id, buoc: i, ke: b.ke0 || '', ...(b.them ? { them: true } : {}) }; });
       }
       return { LAN, MAN };
     })().catch((e) => { manP = null; throw e; }); }
@@ -336,7 +339,8 @@ export function taoMcp(C) {
     const s = new McpServer({ name: 'aiigrow-figma', version: '1.0.0' }, {
       instructions: 'Bàn brainstorm giao diện AiiGrow (hành trình → màn → biến thể). Đọc: ds_hanh_trinh, doc_man, anh_man, anh_hanh_trinh, ds_bien_the, doc_bien_the, ds_gop_y, doc_de_xuat, nhat_ky. '
         + 'Tạo biến thể 2 bước (máy chủ không gọi AI): ngu_canh_bien_the → bạn tự sinh HTML theo đúng system prompt + tin nhắn trả về → tao_bien_the (kèm html hoặc nguyên câu trả lời «Ý TƯỞNG…```html```»). Cả hành trình: ngu_canh_hanh_trinh → tao_phuong_an. '
-        + 'Liên kết giữa màn: ds_lien_ket, ds_lien_ket_hong, sua_lien_ket (tạo/đổi/gỡ). Xoá/khôi phục màn (chỉ chủ quản): xoa_man, khoi_phuc_man. '
+        + 'Liên kết giữa màn: ds_lien_ket, ds_lien_ket_hong, sua_lien_ket (tạo/đổi/gỡ). Xoá/khôi phục màn (chỉ chủ quản; màn thêm trên bàn thì ai thêm được cũng xoá được): xoa_man, khoi_phuc_man. '
+        + 'Thêm màn mới vào hành trình (trống / nhân bản / HTML — lưu ở kho, có ngay không cần deploy): them_man; đổi tên/đổi chỗ màn thêm: sua_man. '
         + 'Màn dùng chung (một nội dung cho nhiều luồng, liên kết riêng từng luồng): ds_dung_chung (nhóm + gợi ý gộp), gop_dung_chung, tach_dung_chung (chủ quản). '
         + 'Ghi (thay_man, khoi_phuc_phien_ban, sua_lien_ket, xoa_bien_the, chap_nhan_de_xuat…) cần quyền chủ quản như bàn web: 127.0.0.1 tự là chủ quản; qua tên miền cần mật khẩu MCP (Authorization: Bearer <maMcp>) và, cho thao tác của chủ quản, thêm header x-bs-chu-quan.',
     });
@@ -358,7 +362,7 @@ export function taoMcp(C) {
             if (muc?.tep) { try { html = (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(key)}/${muc.tep}`)).html; } catch { /* bỏ qua */ } }
             const toi = mf?.dc ? toiCuaLop(mf.dc.lop) : dataToi(html);
             const tuGan = mf?.dc ? !!mf.dc.lop?.tuDong : !toi.length && !/data-lk-sua/.test(html);
-            return { key, ten: m.ten, ...(muc?.xoa ? { daXoa: true } : {}), w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
+            return { key, ten: m.ten, ...(m.them ? { themTrenBan: true } : {}), ...(muc?.xoa ? { daXoa: true } : {}), w: muc?.w || m.w, h: muc?.h || m.h, phienBan: mf?.hien || 0, soPhienBan: (mf?.ds.length || 0) + 1, anhThat: m.anh ? `/ref/${m.anh}` : undefined,
               ...(mf?.dc ? { dungChung: { nhom: mf.dc.id, voi: mf.dc.ds.filter((k) => k !== key) } } : {}),
               dataToi: !tuGan ? toi : m.ke && m.toi ? [`${m.ke} (gắn theo nhãn «${m.toi}» khi hiển thị)`] : [],
               soBienThe: kho.khung.filter((f) => f.goc === key && !f.lan).length };
@@ -460,7 +464,7 @@ export function taoMcp(C) {
         return [chu({ key: a.key, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
       });
 
-    T('xoa_man', 'Xoá (mềm) một màn khỏi hành trình — CHỈ chủ quản (như nút 🗑 trên bàn web). Ghi thành phiên bản mới có cờ xoá (audit man.xoa), lịch sử giữ nguyên; Play, Quy trình, link góp ý /r/ bỏ qua màn này; các nút dẫn tới nó thành «liên kết hỏng» (trả về luôn — nối lại bằng sua_lien_ket). Khôi phục: khoi_phuc_man.',
+    T('xoa_man', 'Xoá (mềm) một màn khỏi hành trình — CHỈ chủ quản (như nút 🗑 trên bàn web); màn thêm trên bàn (them_man) thì ai thêm được cũng xoá được. Ghi thành phiên bản mới có cờ xoá (audit man.xoa), lịch sử giữ nguyên; Play, Quy trình, link góp ý /r/ bỏ qua màn này; các nút dẫn tới nó thành «liên kết hỏng» (trả về luôn — nối lại bằng sua_lien_ket). Khôi phục: khoi_phuc_man.',
       { key: z.string(), ly_do: z.string().optional() }, async (a) => {
         await timMan(a.key);
         const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { xoa: true, lyDo: a.ly_do || '' });
@@ -468,11 +472,39 @@ export function taoMcp(C) {
         return [chu({ key: a.key, daXoa: true, dangDung: `v${mf.hien}`, lienKetHong: hong })];
       });
 
-    T('khoi_phuc_man', 'Khôi phục một màn đã bị xoá khỏi hành trình — CHỈ chủ quản. Ghi thành phiên bản mới (audit man.khoi-phuc-xoa) dùng đúng HTML trước khi xoá; liên kết tới màn này hết hỏng.',
+    T('khoi_phuc_man', 'Khôi phục một màn đã bị xoá khỏi hành trình — CHỈ chủ quản (màn thêm trên bàn: như xoa_man). Ghi thành phiên bản mới (audit man.khoi-phuc-xoa) dùng đúng HTML trước khi xoá; liên kết tới màn này hết hỏng.',
       { key: z.string() }, async (a) => {
         await timMan(a.key);
         const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { khoiPhucXoa: true });
         return [chu({ key: a.key, daXoa: false, dangDung: `v${mf.hien}`, ...tomMf(mf) })];
+      });
+
+    // vi_tri: 'dau' | 'cuoi' (mặc định) | key màn đứng trước ⇒ «sau» của /api/man-them
+    const sauTu = (v) => (v == null || v === 'cuoi' ? null : v === 'dau' ? '' : String(v));
+    T('them_man', 'Thêm một màn MỚI vào hành trình (như nút «+ Thêm màn» trên bàn): lưu ở kho dữ liệu, mọi bàn thấy ngay (realtime), không cần deploy. Nội dung theo một trong ba cách: '
+      + 'khung trống (chỉ tiêu đề — mặc định), nhan_ban_tu = key màn có sẵn (chép bản hiện hành, kể cả nút data-toi), hoặc html (được làm sạch lamSach như biến thể). '
+      + 'Màn mới dùng được mọi thứ như màn gốc: thay_man, biến thể, góp ý, sua_lien_ket (nối data-toi tới/từ màn này), dùng chung, xoa_man. Bảng khoá (khoaBang) thì cần mã chủ quản.',
+      { hanh_trinh: z.string(), ten: z.string().min(1).max(80), vi_tri: z.string().optional().describe("'dau' | 'cuoi' (mặc định) | key màn mà màn mới đứng ngay sau"),
+        html: z.string().optional(), nhan_ban_tu: z.string().optional().describe('key màn có sẵn để nhân bản'), w: z.number().int().min(200).max(4999).optional(), h: z.number().int().min(200).max(19999).optional() }, async (a) => {
+        const l = await timHt(a.hanh_trinh);
+        if (a.html && a.nhan_ban_tu) throw LOI('Chọn MỘT trong html hoặc nhan_ban_tu');
+        let than;
+        if (a.nhan_ban_tu) {
+          const hh = await hienHanh(req0, a.nhan_ban_tu);
+          than = { cach: 'nhan-ban', tu: a.nhan_ban_tu, html: hh.html, w: a.w || hh.w, h: a.h || hh.h };
+        } else {
+          const { MAN } = await taiMan(); const mau = MAN[l.buoc[0]] || {}; // kích thước mặc định: màn đầu của hành trình
+          than = { cach: a.html ? 'html' : 'trong', html: a.html ? await domGoi('lamSach', a.html) : khungTrong(a.ten), w: a.w || mau.w || 390, h: a.h || mau.h || 844 };
+        }
+        const r = await goiJ(req0, 'POST', '/api/man-them/them', { ht: l.id, sau: sauTu(a.vi_tri), ten: a.ten, ...than });
+        return [chu({ key: r.key, ten: r.man.ten, hanhTrinh: l.id, viTri: r.thuTu.indexOf(r.key) + 1, thuTu: r.thuTu, w: r.man.w, h: r.man.h, dangDung: `v${r.manifest?.hien || 1}`,
+          goiY: 'Nối nút từ màn khác tới màn này: sua_lien_ket (key màn nguồn, toi = key màn mới). Xem: anh_man.' })];
+      });
+    T('sua_man', 'Đổi tên và/hoặc đổi chỗ một màn đã THÊM trên bàn (màn trong mã không đổi được). vi_tri: dau | cuoi | key màn mà màn này đứng ngay sau (cùng hành trình).',
+      { key: z.string(), ten: z.string().min(1).max(80).optional(), vi_tri: z.string().optional() }, async (a) => {
+        if (a.ten == null && a.vi_tri == null) throw LOI('Cần ten hoặc vi_tri');
+        const r = await goiJ(req0, 'POST', '/api/man-them/sua', { key: a.key, ...(a.ten != null ? { ten: a.ten } : {}), ...(a.vi_tri != null ? { sau: sauTu(a.vi_tri) } : {}) });
+        return [chu({ key: r.key, ten: r.man.ten, hanhTrinh: r.man.ht, viTri: r.thuTu.indexOf(r.key) + 1, thuTu: r.thuTu, daDoi: r.doi.length ? r.doi : 'không có gì đổi' })];
       });
 
     T('ds_lien_ket_hong', 'Liệt kê liên kết hỏng trên bàn: nút (data-toi) của các màn còn trong hành trình trỏ tới màn đã xoá / không còn — kèm phan_tu + chữ nút để sửa bằng sua_lien_ket.',
