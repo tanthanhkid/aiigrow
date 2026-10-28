@@ -2009,4 +2009,22 @@ DC = ganDungChung({ MAN, LAN_GOC, PB, timLan, coMan, daXoa, thoCua, toast, laChu
 napKho();
 GY.tai();
 laChuQuan();
-window.__bs = { GY, LS, DC, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { pbDaNap = true; qtDaVe = ''; veTatCa(); DC.tinhGoiY(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, xoaMan, moLienKet, moThemMan, apManThem, napManThem, doiChoMan, LAN_GOC, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động
+// ---------- ✦ Trợ lý AI (web/tro-ly.js): ngữ cảnh bàn cho agent + bay tới khung khi bấm tên màn trong chat ----------
+function denKhung(id) {
+  const f = timKhung(id) || st.khung.find((x) => x.loai === 'goc' && x.key === id);
+  if (!f) return false;
+  const sec = secCuaLan(lanCuaKhung(f));
+  if (sec && (sec !== st.sec || st.cheDo === 'qt')) doiSec(sec, { bay: false, cheDo: 'canvas' });
+  st.lanChon = null; st.chon.clear(); st.chon.add(f.id); veTatCa(false); vuaMan([f.id]);
+  return true;
+}
+function nguCanhTroLy() {
+  const s = SECTIONS.find((x) => x.id === st.sec);
+  const chon = [...st.chon].map(timKhung).filter(Boolean).slice(0, 8)
+    .map((f) => ({ id: f.id, loai: f.loai === 'goc' ? 'màn' : f.lan ? 'phương án' : 'biến thể', key: keyCua(f), ten: tenCua(f), hanhTrinh: lanCuaKhung(f)?.id || '' }));
+  const lan = (s?.lan || []).map(timLan).filter(Boolean).map((l) => ({ id: l.id, ten: l.ten, man: l.buoc.map((k) => `${k} «${MAN[k]?.ten || k}»`) }));
+  const lc = st.lanChon ? timLan(st.lanChon) : null;
+  return { section: s ? { id: s.id, ten: s.ten } : null, cheDo: st.cheDo === 'qt' ? 'Quy trình' : 'Canvas', dangChon: chon, hanhTrinhDangChon: lc ? { id: lc.id, ten: lc.ten || lc.y || '' } : null,
+    hanhTrinhTrongSection: lan, chuQuan: !!CQ.la, tenNguoi: rt?.ten() || '' };
+}
+window.__bs = { denKhung, nguCanhTroLy, GY, LS, DC, rt, khoXong: () => khoSan, napKho, moRac, daGui, luuLai, pbXong: taiPhienBan().then(() => { pbDaNap = true; qtDaVe = ''; veTatCa(); DC.tinhGoiY(); if (!$('#lop-play').hidden) vePlay(''); return true; }), st, MAN, PB, thayBangKhung, moLichSu, xoaKhung, xoaMan, moLienKet, moThemMan, apManThem, napManThem, doiChoMan, LAN_GOC, datBen, vuaMan, sinh, moPlay, diToi, veTatCa, caiDat, chonLan, doiSec, doiCheDo, qt, SECTIONS, dom, anhNho, Sua }; // để nghiệm thu tự động

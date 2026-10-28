@@ -119,7 +119,7 @@ export function ganLichSu(A) {
     if (/^link\./.test(e.loai)) return `${tenHt(dt.ht)} · /r/${String(dt.ma || '').slice(0, 8)}…`;
     return dt.duong || dt.tep || '';
   }
-  const aiChu = (ai = {}) => [ai.ten || '(không tên)', VAI[ai.vai] || ai.vai, ai.ma ? `/r/${ai.ma.slice(0, 8)}…` : '', ai.ip, ai.cong ? `cổng ${ai.cong}` : ''].filter(Boolean).join(' · ');
+  const aiChu = (ai = {}) => [ai.ten || '(không tên)', VAI[ai.vai] || ai.vai, ai.nguon === 'tro-ly-ai' ? `qua Trợ lý AI: «${ai.lenh || ''}»` : ai.nguon === 'mcp' ? 'qua MCP' : '', ai.ma ? `/r/${ai.ma.slice(0, 8)}…` : '', ai.ip, ai.cong ? `cổng ${ai.cong}` : ''].filter(Boolean).join(' · ');
   function veDs() {
     const ds = $('#au-ds'); ds.innerHTML = '';
     if (!D.ds.length) { ds.append(tao('p', 'phu', 'Không có sự kiện khớp bộ lọc.')); return; }

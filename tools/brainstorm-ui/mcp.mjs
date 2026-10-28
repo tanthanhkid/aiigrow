@@ -18,7 +18,8 @@ import { z } from 'zod';
 import { heThong, loiNguoiDung, loiHanhTrinh, tachKetQua, tachHanhTrinh, HUONG } from './web/prompt.js';
 import { vanBanAssets } from './web/claude.js';
 import { taiHanhTrinh } from './web/hanh-trinh/index.js';
-import { goiYDungChung } from './web/dung-chung.js';
+import { goiYDungChung, vanBan } from './web/dung-chung.js';
+import QUY_TRINH, { LAN_QT } from './web/hanh-trinh/quy-trinh.js';
 import { ghepManThem } from './web/man-them.js';
 
 const CHROME = process.env.BS_CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -55,6 +56,7 @@ export function taoMcp(C) {
     const h = { host, 'user-agent': String(req0.headers['user-agent'] || 'mcp').slice(0, 200), 'x-bs-phien': 'mcp', 'x-bs-nguoi': encodeURIComponent(tenNguoi(req0)) };
     for (const k of ['cf-connecting-ip', 'cf-ray', 'x-forwarded-for']) if (req0.headers[k]) h[k] = req0.headers[k];
     const ma = maChuQuan(req0); if (ma) h['x-bs-chu-quan'] = ma;
+    if (req0.headers['x-bs-tro-ly']) h['x-bs-tro-ly'] = String(req0.headers['x-bs-tro-ly']).slice(0, 1200); // câu lệnh gốc của Trợ lý AI (đã mã hoá URI) — audit ghi «qua Trợ lý AI»
     if (method !== 'GET') { // Host đã được kiểm ở cửa /mcp ⇒ Origin nội bộ = đúng Host đó (qua hopLeNguon như trang web)
       h['content-type'] = 'application/json';
       h.origin = laLoopbackHost(host) ? `http://127.0.0.1:${C.cong()}` : `https://${host}`;
@@ -522,33 +524,49 @@ export function taoMcp(C) {
           lienKet: ds.map((x) => ({ phan_tu: x.i, the: x.the, chu: x.chu, toi: x.toi || null, toiTen: x.toi ? MAN[x.toi]?.ten : undefined, hong: x.toi ? (!MAN[x.toi] || daXoaMf(pb[x.toi])) || undefined : undefined })) })];
       });
 
-    T('sua_lien_ket', 'Tạo / đổi / gỡ liên kết của nút trên một màn (màn nguồn key + phần tử → màn đích toi; toi="" hoặc null = gỡ). Chọn phần tử bằng phan_tu (từ ds_lien_ket / ds_lien_ket_hong), hoặc chu (chữ trên nút, phải khớp đúng một phần tử), hoặc toi_cu (mọi nút đang trỏ tới màn đó — vd. nối lại liên kết hỏng sau khi xoá màn). Lưu thành phiên bản mới của màn nguồn (audit man.lien-ket); Play, Quy trình, link /r/ và realtime dùng ngay. Quyền như Thay màn.',
-      { key: z.string(), toi: z.string().nullable(), phan_tu: z.number().int().min(0).optional(), chu: z.string().optional(), toi_cu: z.string().optional(), v: z.number().int().min(0).optional().describe('Phiên bản lúc lấy phan_tu (ds_lien_ket trả v) — lệch thì báo lỗi thay vì sửa nhầm phần tử') }, async (a) => {
-        const { MAN } = await taiMan();
+    // Sửa liên kết của MỘT màn nguồn theo nhiều thay đổi (mỗi thay đổi: chọn phần tử bằng phan_tu / chu / toi_cu → toi) — một phiên bản mới cho cả lô.
+    const chuanChu = (t) => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    async function apLienKet(key, ds0, vGoc) {
+      const { MAN } = await taiMan();
+      const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, key, null, pb);
+      if (vGoc != null && vGoc !== hh.v) throw LOI(`Màn ${key} đã sang v${hh.v} (bạn lấy phan_tu ở v${vGoc}) — gọi lại ds_lien_ket`);
+      if (daXoaMf(hh.mf)) throw LOI(`Màn ${key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
+      const ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
+      let html = hh.html; const daSua = [];
+      for (const a of ds0) {
         const toi = a.toi || '';
-        const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const hh = await hienHanh(req0, a.key, null, pb);
-        if (a.v != null && a.v !== hh.v) throw LOI(`Màn ${a.key} đã sang v${hh.v} (bạn lấy phan_tu ở v${a.v}) — gọi lại ds_lien_ket`);
-        if (a.phan_tu != null && a.v == null && a.chu == null) throw LOI('Chọn theo phan_tu cần kèm v (từ ds_lien_ket) hoặc chu để không sửa nhầm phần tử khi màn vừa đổi');
-        if (daXoaMf(hh.mf)) throw LOI(`Màn ${a.key} đang bị xoá khỏi hành trình — khoi_phuc_man trước`);
-        if (toi) { if (!MAN[toi]) throw LOI(`Không có màn đích «${toi}» — xem ds_hanh_trinh`); if (daXoaMf(pb[toi])) throw LOI(`Màn đích ${toi} đã bị xoá khỏi hành trình — chọn màn khác hoặc khoi_phuc_man`); }
-        const ds = JSON.parse(await domGoi('dsLienKet', hh.html, true));
-        const chuan = (t) => String(t || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (toi) { if (!MAN[toi]) throw LOI(`Không có màn đích «${toi}» — xem ds_hanh_trinh hoặc tim_man`); if (daXoaMf(pb[toi])) throw LOI(`Màn đích ${toi} đã bị xoá khỏi hành trình — chọn màn khác hoặc khoi_phuc_man`); }
+        if (a.phan_tu != null && vGoc == null && a.chu == null) throw LOI('Chọn theo phan_tu cần kèm v (từ ds_lien_ket) hoặc chu để không sửa nhầm phần tử khi màn vừa đổi');
         let chon;
-        if (a.phan_tu != null) { chon = ds.filter((x) => x.i === a.phan_tu); if (a.chu != null && chon[0] && chuan(chon[0].chu) !== chuan(a.chu)) throw LOI(`Phần tử ${a.phan_tu} có chữ «${chon[0].chu}», không phải «${a.chu}» — màn có thể vừa đổi, gọi lại ds_lien_ket`); }
-        else if (a.chu != null) { chon = ds.filter((x) => chuan(x.chu) === chuan(a.chu)); if (!chon.length) chon = ds.filter((x) => chuan(x.chu).includes(chuan(a.chu))); }
+        if (a.phan_tu != null) { chon = ds.filter((x) => x.i === a.phan_tu); if (a.chu != null && chon[0] && chuanChu(chon[0].chu) !== chuanChu(a.chu)) throw LOI(`Phần tử ${a.phan_tu} có chữ «${chon[0].chu}», không phải «${a.chu}» — màn có thể vừa đổi, gọi lại ds_lien_ket`); }
+        else if (a.chu != null) { chon = ds.filter((x) => chuanChu(x.chu) === chuanChu(a.chu)); if (!chon.length) chon = ds.filter((x) => chuanChu(x.chu).includes(chuanChu(a.chu))); }
         else if (a.toi_cu) chon = ds.filter((x) => x.toi === a.toi_cu);
         else throw LOI('Cần phan_tu, chu hoặc toi_cu để chọn nút');
-        if (!chon.length) throw LOI(`Không thấy phần tử phù hợp trên ${a.key} — xem ds_lien_ket (tat_ca=true)`);
-        if (a.toi_cu == null && chon.length > 1) throw LOI(`Có ${chon.length} phần tử khớp: ${chon.map((x) => `#${x.i} «${x.chu}»`).join(', ')} — chọn bằng phan_tu`);
-        let html = hh.html;
-        for (const x of chon) { html = await domGoi('datLienKet', html, x.i, toi, x.chu); if (!html) throw LOI(`Không đặt được liên kết cho phần tử #${x.i}`); }
-        const nhan = `Liên kết ${chon.map((x) => `«${x.chu || x.the}»`).join(', ')} ${toi ? `→ ${MAN[toi].ten}` : 'gỡ'} (MCP)`.slice(0, 120);
-        if (hh.mf.dc) { // màn dùng chung: chỉ đổi lớp liên kết riêng của luồng này (nội dung chung không đổi)
-          await goiJ(req0, 'POST', '/api/dung-chung/lien-ket', { key: a.key, lop: JSON.parse(await domGoi('layLop', html)), nhan });
-          return [chu({ key: a.key, dungChung: true, ghiChu: 'Đã đổi liên kết riêng của luồng này — các màn cùng nhóm giữ liên kết của chúng', daSua: chon.map((x) => ({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null })) })];
+        if (!chon.length) throw LOI(`Không thấy phần tử phù hợp${a.chu != null ? ` với chữ «${a.chu}»` : ''} trên ${key} — xem ds_lien_ket (tat_ca=true)`);
+        if (a.toi_cu == null && chon.length > 1) throw LOI(`Có ${chon.length} phần tử khớp «${a.chu ?? a.phan_tu}» trên ${key}: ${chon.map((x) => `#${x.i} «${x.chu}»`).join(', ')} — chọn bằng phan_tu (+ v)`);
+        for (const x of chon) { html = await domGoi('datLienKet', html, x.i, toi, x.chu); if (!html) throw LOI(`Không đặt được liên kết cho phần tử #${x.i}`); daSua.push({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null }); }
+      }
+      const nhan = `Liên kết ${daSua.map((x) => `«${x.chu}»`).join(', ')} ${daSua.length === 1 ? (daSua[0].sau ? `→ ${MAN[daSua[0].sau].ten}` : 'gỡ') : `(${daSua.length} nút)`} (MCP)`.slice(0, 120);
+      if (hh.mf.dc) { // màn dùng chung: chỉ đổi lớp liên kết riêng của luồng này (nội dung chung không đổi)
+        await goiJ(req0, 'POST', '/api/dung-chung/lien-ket', { key, lop: JSON.parse(await domGoi('layLop', html)), nhan });
+        return { key, dungChung: true, ghiChu: 'Đã đổi liên kết riêng của luồng này — các màn cùng nhóm giữ liên kết của chúng', daSua };
+      }
+      const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(key)}`, { html: await domGoi('lamSach', html), w: hh.w, h: hh.h, nhan, nguon: 'lien-ket', goc: hh.v });
+      return { key, dangDung: `v${mf.hien}`, daSua };
+    }
+    const lkSchema = { toi: z.string().nullable().describe('key màn đích; "" hoặc null = gỡ liên kết'), phan_tu: z.number().int().min(0).optional().describe('vị trí phần tử từ ds_lien_ket'), chu: z.string().optional().describe('chữ trên nút (khớp đúng một phần tử)'), toi_cu: z.string().optional().describe('mọi nút đang trỏ tới màn này') };
+    T('sua_lien_ket', 'Tạo / đổi / gỡ liên kết của nút trên một màn (màn nguồn key + phần tử → màn đích toi; toi="" hoặc null = gỡ). Chọn phần tử bằng phan_tu (từ ds_lien_ket / ds_lien_ket_hong), hoặc chu (chữ trên nút, phải khớp đúng một phần tử), hoặc toi_cu (mọi nút đang trỏ tới màn đó — vd. nối lại liên kết hỏng sau khi xoá màn). Lưu thành phiên bản mới của màn nguồn (audit man.lien-ket); Play, Quy trình, link /r/ và realtime dùng ngay. Quyền như Thay màn. Nhiều nút / nhiều màn một lần: sua_lien_ket_nhieu.',
+      { key: z.string(), ...lkSchema, v: z.number().int().min(0).optional().describe('Phiên bản lúc lấy phan_tu (ds_lien_ket trả v) — lệch thì báo lỗi thay vì sửa nhầm phần tử') },
+      async (a) => [chu(await apLienKet(a.key, [a], a.v))]);
+    T('sua_lien_ket_nhieu', 'Hàng loạt: tạo/đổi/gỡ nhiều liên kết một lần, có thể trên nhiều màn nguồn. Mỗi màn nguồn chỉ thành MỘT phiên bản mới cho mọi thay đổi của nó (audit man.lien-ket). Từng màn chạy độc lập: màn lỗi báo trong «loi», màn khác vẫn lưu.',
+      { thay_doi: z.array(z.object({ key: z.string().describe('màn nguồn'), ...lkSchema, v: z.number().int().min(0).optional() })).min(1).max(60) }, async (a) => {
+        const theoKey = new Map(); for (const x of a.thay_doi) { if (!theoKey.has(x.key)) theoKey.set(x.key, []); theoKey.get(x.key).push(x); }
+        const xong = [], loi = [];
+        for (const [key, ds] of theoKey) {
+          const vs = [...new Set(ds.map((x) => x.v).filter((x) => x != null))];
+          try { if (vs.length > 1) throw LOI(`Các thay đổi của ${key} mang nhiều v khác nhau (${vs.join(', ')})`); xong.push(await apLienKet(key, ds, vs[0])); } catch (e) { loi.push({ key, loi: e.message }); }
         }
-        const mf = await goiJ(req0, 'POST', `/api/phien-ban/${encodeURIComponent(a.key)}`, { html: await domGoi('lamSach', html), w: hh.w, h: hh.h, nhan, nguon: 'lien-ket', goc: hh.v });
-        return [chu({ key: a.key, dangDung: `v${mf.hien}`, daSua: chon.map((x) => ({ phan_tu: x.i, chu: x.chu, truoc: x.toi || null, sau: toi || null })) })];
+        return [chu({ xong, ...(loi.length ? { loi } : {}) })];
       });
 
     // ---------- màn dùng chung ----------
@@ -635,7 +653,7 @@ export function taoMcp(C) {
         return [chu({ ht: m.lan, ...g, ma: undefined })];
       });
 
-    T('tra_loi_gop_y', 'Chủ quản trả lời một góp ý.',
+    T('tra_loi_gop_y', 'Chủ quản trả lời một góp ý (câu trả lời hiện dưới góp ý trên bàn và trang /r/ của reviewer). Cần quyền chủ quản.',
       { hanh_trinh: z.string(), id: z.string(), noi: z.string(), ten: z.string().optional() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/gop-y/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/tl`, { noi: a.noi, ten: a.ten || tenNguoi(req0) }))]);
 
     T('doi_trang_thai_gop_y', 'Đổi trạng thái góp ý: «mo» (đang mở) hoặc «xong» (Đã xử lý).',
@@ -660,7 +678,7 @@ export function taoMcp(C) {
         return [chu({ deXuat: r.deXuat, dangDung: `v${r.manifest?.hien}` })];
       });
 
-    T('tu_choi_de_xuat', 'Từ chối một đề xuất (kèm lý do).',
+    T('tu_choi_de_xuat', 'Từ chối một đề xuất thay đổi đang Chờ duyệt (kèm lý do cho reviewer); thiết kế gốc giữ nguyên. Cần quyền chủ quản.',
       { hanh_trinh: z.string(), id: z.string(), ly_do: z.string().optional() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/de-xuat/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/tu`, { lyDo: a.ly_do || '' }))]);
 
     T('nhat_ky', 'Đọc nhật ký audit gần đây (mới nhất trước; nội dung HTML lớn rút gọn). Lọc theo loại (tiền tố, vd «man.», «bien-the.»), người, màn, hành trình, ngày. Cần quyền chủ quản.',
@@ -669,7 +687,7 @@ export function taoMcp(C) {
         for (const [k, v] of [['loai', a.loai], ['nguoi', a.nguoi], ['key', a.key], ['ht', a.hanh_trinh], ['tu', a.tu], ['den', a.den]]) if (v) q.set(k, v);
         const r = await goiJ(req0, 'GET', `/api/audit?${q}`);
         const gon = (o) => (o == null ? o : JSON.parse(JSON.stringify(o, (k, v) => (v && typeof v === 'object' && v.$blob ? `[HTML ${v.n || '?'} ký tự]` : typeof v === 'string' && v.length > 300 ? `${v.slice(0, 300)}…` : v))));
-        return [chu({ conNua: r.conNua, ds: r.ds.map((e) => ({ ngay: e.ngay, i: e.i, t: e.t, loai: e.loai, dt: e.dt, ai: { ten: e.ai?.ten, vai: e.ai?.vai, nguon: e.ai?.nguon, ma: e.ai?.ma }, ghiChu: e.ghiChu, truoc: gon(e.truoc), sau: gon(e.sau) })) })];
+        return [chu({ conNua: r.conNua, ds: r.ds.map((e) => ({ ngay: e.ngay, i: e.i, t: e.t, loai: e.loai, dt: e.dt, ai: { ten: e.ai?.ten, vai: e.ai?.vai, nguon: e.ai?.nguon, lenh: e.ai?.lenh, ma: e.ai?.ma }, ghiChu: e.ghiChu, truoc: gon(e.truoc), sau: gon(e.sau) })) })];
       });
 
     // ---------- tạo biến thể: bước 1 ngữ cảnh, bước 2 lưu ----------
@@ -695,25 +713,29 @@ export function taoMcp(C) {
         return ra;
       });
 
+    // lưu một biến thể do client sinh (dùng chung tao_bien_the / tao_nhieu_bien_the)
+    async function luuBienThe(a) {
+      let html = a.html, nhan = a.nhan;
+      if (!html && a.tra_loi) { const t = tachKetQua(a.tra_loi); if (t.html && !t.xong) throw LOI('Câu trả lời bị cắt (khối ```html chưa đóng) — sinh lại đủ rồi gửi'); html = t.html; nhan ||= t.nhan; }
+      if (!html || !html.trim()) throw LOI('Thiếu HTML (html hoặc tra_loi có khối ```html```)');
+      const ng = await nguonBienThe(req0, a.key, a.tu_bien_the);
+      const sach = await domGoi('lamSach', html);
+      const kho = await dsKho(req0);
+      const k = a.k || 1, n = Math.max(a.n || 1, k);
+      let dot = a.dot || Date.now().toString(36);
+      if (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) { if (a.dot) throw LOI(`Đợt ${a.dot} đã có biến thể k=${k} (bt-${a.dot}-${k}) — dùng k khác`); while (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) dot += 'm'; }
+      const f = { id: `bt-${dot}-${k}`, loai: 'bien', goc: ng.key, cha: ng.cha, dot, k, n, yTuong: a.y_tuong, w: ng.w, h: ng.h, html: sach, tt: 'xong', nhan: (nhan || `Biến thể ${k}`).slice(0, 200), model: (a.model || 'mcp').slice(0, 60), tSuaCu: 0 };
+      const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { khung: [f], lan: [] });
+      if (!r.khung?.length) throw LOI(`Máy chủ không nhận: ${(r.loi || []).join('; ') || `xung đột — ${f.id} đã có (đợt/k trùng), dùng k hoặc dot khác`}`);
+      const ra = [chu({ id: f.id, key: ng.key, cha: ng.cha, nhan: f.nhan, w: f.w, h: f.h, lamSachDoi: sach !== html, lienKet: await soLienKet(ng.html, sach) })];
+      if (a.anh !== false) { try { ra.push(anh(await chup(sach, f.w, f.h, 1))); } catch (e) { ra.push(chu(`(Đã lưu; chỉ chụp ảnh lỗi: ${e.message} — gọi doc_bien_the để xem ảnh)`)); } }
+      return ra;
+    }
     T('tao_bien_the', 'Bước 2: lưu một biến thể do bạn sinh vào kho biến thể chung (ai đang mở bàn thấy ngay). HTML được làm sạch bằng lamSach như web. Trả id, so khớp data-toi và ảnh render để tự kiểm.',
       { key: z.string().optional(), tu_bien_the: z.string().optional(), y_tuong: z.string(), html: z.string().optional(), tra_loi: z.string().optional().describe('Nguyên câu trả lời «Ý TƯỞNG: …» + ```html``` (thay cho html + nhan)'),
         nhan: z.string().optional(), k: z.number().int().min(1).max(6).optional(), n: z.number().int().min(1).max(6).optional(),
         dot: z.string().regex(/^[a-z0-9]{4,20}$/).optional().describe('Mã đợt (lấy từ ngu_canh_bien_the) — các biến thể k=1..n cùng đợt xếp chung một hàng như bàn web'), model: z.string().optional().describe('Model đã sinh (vd claude-opus-…)'), anh: z.boolean().optional() }, async (a) => {
-        let html = a.html, nhan = a.nhan;
-        if (!html && a.tra_loi) { const t = tachKetQua(a.tra_loi); if (t.html && !t.xong) throw LOI('Câu trả lời bị cắt (khối ```html chưa đóng) — sinh lại đủ rồi gửi'); html = t.html; nhan ||= t.nhan; }
-        if (!html || !html.trim()) throw LOI('Thiếu HTML (html hoặc tra_loi có khối ```html```)');
-        const ng = await nguonBienThe(req0, a.key, a.tu_bien_the);
-        const sach = await domGoi('lamSach', html);
-        const kho = await dsKho(req0);
-        const k = a.k || 1, n = Math.max(a.n || 1, k);
-        let dot = a.dot || Date.now().toString(36);
-        if (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) { if (a.dot) throw LOI(`Đợt ${a.dot} đã có biến thể k=${k} (bt-${a.dot}-${k}) — dùng k khác`); while (kho.khung.some((f) => f.id === `bt-${dot}-${k}`)) dot += 'm'; }
-        const f = { id: `bt-${dot}-${k}`, loai: 'bien', goc: ng.key, cha: ng.cha, dot, k, n, yTuong: a.y_tuong, w: ng.w, h: ng.h, html: sach, tt: 'xong', nhan: (nhan || `Biến thể ${k}`).slice(0, 200), model: (a.model || 'mcp').slice(0, 60), tSuaCu: 0 };
-        const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { khung: [f], lan: [] });
-        if (!r.khung?.length) throw LOI(`Máy chủ không nhận: ${(r.loi || []).join('; ') || `xung đột — ${f.id} đã có (đợt/k trùng), dùng k hoặc dot khác`}`);
-        const ra = [chu({ id: f.id, key: ng.key, cha: ng.cha, nhan: f.nhan, w: f.w, h: f.h, lamSachDoi: sach !== html, lienKet: await soLienKet(ng.html, sach) })];
-        if (a.anh !== false) { try { ra.push(anh(await chup(sach, f.w, f.h, 1))); } catch (e) { ra.push(chu(`(Đã lưu; chỉ chụp ảnh lỗi: ${e.message} — gọi doc_bien_the để xem ảnh)`)); } }
-        return ra;
+        return luuBienThe(a);
       });
 
     T('ngu_canh_hanh_trinh', 'Bước 1 tạo phương án cho CẢ hành trình: system prompt + tin nhắn người dùng (mọi màn, HTML, kích thước, hành động sang bước kế, ý + hướng) như bàn web, kèm góp ý đang mở và (tuỳ chọn) ảnh ghép hành trình. Sinh xong gọi tao_phuong_an.',
@@ -762,6 +784,221 @@ export function taoMcp(C) {
           catch (e) { ra.push(chu(`(Đã lưu; chỉ chụp ảnh lỗi: ${e.message} — gọi anh_hanh_trinh với phuong_an để xem)`)); }
         }
         return ra;
+      });
+
+    // ================= tool bổ sung (28/10): đủ mọi thao tác của bàn web cho Trợ lý AI / client MCP =================
+    // HTML hiện hành (thô, chưa dựng DOM) của mọi màn còn trong hành trình — đọc tệp song song tối đa 8
+    async function htmlMoiMan(pb, keys) {
+      const { MAN } = await taiMan(); const ra = new Map();
+      let con = 0; const cho = [];
+      const luot = async (fn) => { if (con >= 8) await new Promise((r) => cho.push(r)); con++; try { return await fn(); } finally { con--; cho.shift()?.(); } };
+      await Promise.all(keys.map((k) => luot(async () => {
+        const muc = pb[k]?.ds?.find((x) => x.v === pb[k].hien);
+        if (!muc?.tep) { ra.set(k, MAN[k].html); return; }
+        try { ra.set(k, (await goiJ(req0, 'GET', `/api/phien-ban/${encodeURIComponent(k)}/${muc.tep}`)).html); } catch { /* bỏ màn này */ }
+      })));
+      return ra;
+    }
+    const boDauMcp = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
+
+    T('quyen_cua_toi', 'Quyền của người đang gọi trên bàn: có phải chủ quản không, bảng có đang khoá (khoaBang) không, và những thao tác nào cần mã chủ quản. Gọi trước khi định làm thao tác chủ quản (xoá màn trong mã, gộp/tách dùng chung, góp ý, nhật ký…) để khỏi gọi hỏng.',
+      {}, async () => {
+        const t = await goiJ(req0, 'GET', '/api/review/toi');
+        return [chu({ ...t, chiChuQuan: ['xoa_man / khoi_phuc_man (màn trong mã)', 'gop_dung_chung', 'tach_dung_chung', 'ds_gop_y', 'tra_loi_gop_y', 'doi_trang_thai_gop_y', 'sua_gop_y', 'xoa_gop_y', 'doc_de_xuat', 'chap_nhan_de_xuat', 'tu_choi_de_xuat', 'ds_de_xuat', 'ds_link_gop_y', 'tao_link_gop_y', 'thu_hoi_link_gop_y', 'nhat_ky', 'xem_su_kien_nhat_ky', 'khoi_phuc_tu_nhat_ky'],
+          khiKhoaBang: t.khoaBang ? 'Bảng đang khoá: mọi thao tác ghi (thay màn, biến thể, liên kết, thêm màn…) cũng cần mã chủ quản.' : 'Bảng không khoá: cộng tác viên ghi được biến thể, Thay màn, liên kết, thêm/sửa màn thêm.' })];
+      });
+
+    T('tim_man', 'Tìm màn theo tên, key hoặc CHỮ hiển thị trong nội dung hiện hành (không phân biệt dấu/hoa thường). Dùng khi người dùng gọi màn bằng tên tự nhiên («màn Ví điểm», «nút Bắt đầu») để ra đúng key trước khi sửa.',
+      { tu_khoa: z.string().min(1).max(120), hanh_trinh: z.string().optional().describe('Chỉ tìm trong một hành trình (id)'), ca_da_xoa: z.boolean().optional().describe('Kèm màn đã xoá khỏi hành trình'), gioi: z.number().int().min(1).max(100).optional() }, async (a) => {
+        const { LAN, MAN } = await taiMan(); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        if (a.hanh_trinh) await timHt(a.hanh_trinh);
+        const keys = [...new Set(LAN.filter((l) => !a.hanh_trinh || l.id === a.hanh_trinh).flatMap((l) => l.buoc))].filter((k) => a.ca_da_xoa || !daXoaMf(pb[k]));
+        const html = await htmlMoiMan(pb, keys); const q = boDauMcp(a.tu_khoa).trim();
+        const tenHt = (id) => LAN.find((l) => l.id === id)?.ten || id;
+        const ra = [];
+        for (const k of keys) {
+          const m = MAN[k]; const ten = boDauMcp(m.ten); const vb = vanBan(html.get(k) || ''); const vbK = boDauMcp(vb);
+          let diem = 0, doan = '';
+          if (ten === q || k === a.tu_khoa) diem = 3; else if (ten.includes(q) || k.includes(q)) diem = 2;
+          const i = vbK.indexOf(q); if (i >= 0) { diem = Math.max(diem, 1); doan = vb.slice(Math.max(0, i - 40), i + q.length + 40); }
+          if (diem) ra.push({ key: k, ten: m.ten, hanhTrinh: m.lan, tenHanhTrinh: tenHt(m.lan), ...(m.them ? { themTrenBan: true } : {}), ...(daXoaMf(pb[k]) ? { daXoa: true } : {}), khop: diem === 3 ? 'đúng tên' : diem === 2 ? 'tên/key' : 'nội dung', ...(doan ? { doan: `…${doan}…` } : {}), diem });
+        }
+        ra.sort((x, y) => y.diem - x.diem || x.key.localeCompare(y.key));
+        return [chu(ra.length ? ra.slice(0, a.gioi || 30).map(({ diem, ...x }) => x) : `Không có màn nào khớp «${a.tu_khoa}» — xem ds_hanh_trinh`)];
+      });
+
+    T('lien_ket_man', 'Liên kết VÀO và RA của một màn: ra = các nút của màn này trỏ đi đâu (kèm nút chưa nối khi tat_ca); vao = mọi nút của màn khác (còn trong hành trình) đang trỏ tới màn này. Dùng trước khi xoá/thay/đổi chỗ màn để biết luồng nào bị ảnh hưởng.',
+      { key: z.string(), tat_ca: z.boolean().optional().describe('Kèm nút bấm được chưa nối ở phần «ra»') }, async (a) => {
+        const { LAN, MAN } = await taiMan(); await timMan(a.key);
+        const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const hh = await hienHanh(req0, a.key, null, pb);
+        const ra = JSON.parse(await domGoi('dsLienKet', hh.html, !!a.tat_ca)).map((x) => ({ phan_tu: x.i, chu: x.chu, toi: x.toi || null, toiTen: x.toi ? MAN[x.toi]?.ten : undefined, hong: x.toi ? (!MAN[x.toi] || daXoaMf(pb[x.toi])) || undefined : undefined }));
+        const keys = [...new Set(LAN.flatMap((l) => l.buoc))].filter((k) => k !== a.key && !daXoaMf(pb[k]));
+        const tho = await htmlMoiMan(pb, keys); const vao = [];
+        for (const k of keys) {
+          const m = MAN[k]; const mf = pb[k]; const h0 = tho.get(k) || '';
+          let toi = mf?.dc ? toiCuaLop(mf.dc.lop) : dataToi(h0);
+          if (!toi.length && (mf?.dc ? mf.dc.lop?.tuDong : !/data-lk-sua/.test(h0)) && m.ke && m.toi) toi = [m.ke];
+          if (!toi.includes(a.key)) continue;
+          const hk = await hienHanh(req0, k, null, pb);
+          const nut = JSON.parse(await domGoi('dsLienKet', hk.html, false)).filter((x) => x.toi === a.key);
+          if (nut.length) vao.push({ key: k, ten: m.ten, hanhTrinh: m.lan, v: hk.v, nut: nut.map((x) => ({ phan_tu: x.i, chu: x.chu })) });
+        }
+        return [chu({ key: a.key, ten: hh.m.ten, v: hh.v, ...(daXoaMf(hh.mf) ? { daXoa: true } : {}), ra, vao: vao.sort((x, y) => x.key.localeCompare(y.key)) })];
+      });
+
+    T('so_sanh_phien_ban', 'So hai phiên bản của một màn: chênh lệch chữ hiển thị (thêm/bớt) và diff HTML theo dòng (rút gọn). Mặc định so bản hiện hành với bản ngay trước nó. v=0 là bản trong mã.',
+      { key: z.string(), tu: z.number().int().min(0).optional().describe('Phiên bản cũ (mặc định: bản trước bản đang dùng)'), den: z.number().int().min(0).optional().describe('Phiên bản mới (mặc định: bản đang dùng)'), dong_toi_da: z.number().int().min(20).max(800).optional() }, async (a) => {
+        const pb = await goiJ(req0, 'GET', '/api/phien-ban'); const mf = pb[a.key] || { hien: 0, ds: [] };
+        const den = a.den ?? (mf.hien || 0);
+        const vs = [0, ...mf.ds.map((x) => x.v)].filter((v) => v < den);
+        const tu = a.tu ?? (vs.length ? vs[vs.length - 1] : 0);
+        if (tu === den) throw LOI(`Hai phiên bản trùng nhau (v${tu}) — đưa tu/den khác; lịch sử: doc_man chi_lich_su=true`);
+        const [A, B] = await Promise.all([hienHanh(req0, a.key, tu, pb), hienHanh(req0, a.key, den, pb)]);
+        const tach = (h) => String(h).replace(/>\s*</g, '>\n<').split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 2500);
+        const x = tach(A.html), y = tach(B.html); const n = x.length, m = y.length;
+        const L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+        for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+        const dong = []; let i = 0, j = 0;
+        while (i < n || j < m) { if (i < n && j < m && x[i] === y[j]) { i++; j++; } else if (j < m && (i >= n || L[i][j + 1] >= L[i + 1][j])) dong.push(`+ ${y[j++].slice(0, 240)}`); else dong.push(`- ${x[i++].slice(0, 240)}`); }
+        const toiDa = a.dong_toi_da || 200;
+        const tu1 = new Set(vanBan(A.html).split(' ')), tu2 = new Set(vanBan(B.html).split(' '));
+        return [chu({ key: a.key, tu: `v${tu}`, den: `v${den}`, kichThuoc: { tu: `${A.w}×${A.h}`, den: `${B.w}×${B.h}` }, dataToi: { tu: dataToi(A.html), den: dataToi(B.html) },
+          chuThem: [...tu2].filter((w) => w && !tu1.has(w)).slice(0, 80).join(' '), chuBot: [...tu1].filter((w) => w && !tu2.has(w)).slice(0, 80).join(' '),
+          soDongDoi: dong.length, ...(dong.length > toiDa ? { ghiChu: `Chỉ hiện ${toiDa}/${dong.length} dòng đầu` } : {}) }), chu(dong.slice(0, toiDa).join('\n') || '(HTML giống hệt)')];
+      });
+
+    T('ds_de_xuat', 'Liệt kê đề xuất thay đổi của reviewer theo trạng thái: cho (chờ duyệt, mặc định), chap (đã Accept), tu (đã từ chối) hoặc tat_ca. Cần quyền chủ quản. Đọc chi tiết + ảnh: doc_de_xuat.',
+      { hanh_trinh: z.string().optional(), key: z.string().optional(), tt: z.enum(['cho', 'chap', 'tu', 'tat_ca']).optional() }, async (a) => {
+        const r = await goiJ(req0, 'GET', '/api/review'); const tt = a.tt || 'cho'; const ra = [];
+        for (const [h, ds] of Object.entries(r.deXuat || {})) {
+          if (a.hanh_trinh && h !== a.hanh_trinh) continue;
+          for (const d of ds) if ((tt === 'tat_ca' || d.tt === tt) && (!a.key || d.key === a.key)) ra.push({ hanhTrinh: h, ...d });
+        }
+        return [chu(ra.length ? ra : `Không có đề xuất ${tt === 'tat_ca' ? '' : `ở trạng thái «${tt}»`}`.trim())];
+      });
+
+    T('ds_thung_rac', 'Liệt kê biến thể (l=k) và phương án hành trình (l=l) đang trong 🗑 Thùng rác (giữ 7 ngày, mới xoá trước). Khôi phục: khoi_phuc_bien_the.',
+      { key: z.string().optional().describe('Chỉ biến thể của màn này'), gioi: z.number().int().min(1).max(300).optional() }, async (a) => {
+        const r = await goiJ(req0, 'GET', '/api/bien-the/rac');
+        const ds = r.ds.filter((x) => !a.key || x.goc === a.key).slice(0, a.gioi || 60).map((x) => ({ l: x.l, id: x.id, goc: x.goc, lan: x.lan, nhan: x.nhan, yTuong: x.yTuong ? String(x.yTuong).slice(0, 200) : undefined, tXoa: x.tXoa ? new Date(x.tXoa).toISOString() : undefined, nguoiXoa: x.nguoiXoa, daDungDeThayMan: x.thay ? true : undefined }));
+        return [chu(ds.length ? { ds, tong: r.ds.length } : 'Thùng rác trống.')];
+      });
+
+    T('khoi_phuc_bien_the', 'Khôi phục biến thể và/hoặc phương án từ 🗑 Thùng rác về bàn (như nút «Khôi phục» trong Thùng rác). Biến thể đã dùng để Thay màn thì nằm trong phiên bản màn — dùng khoi_phuc_phien_ban thay vì cách này.',
+      { ids: z.array(z.string()).max(200).optional(), phuong_an: z.array(z.string()).max(200).optional() }, async (a) => {
+        if (!a.ids?.length && !a.phuong_an?.length) throw LOI('Cần ids (biến thể) hoặc phuong_an — xem ds_thung_rac');
+        const r = await goiJ(req0, 'POST', '/api/bien-the/khoi-phuc', { khung: a.ids || [], lan: a.phuong_an || [] });
+        const da = new Set([...r.khung.map((x) => x.id), ...r.lan.map((x) => x.id)]); const khong = [...(a.ids || []), ...(a.phuong_an || [])].filter((x) => !da.has(x));
+        return [chu({ daKhoiPhuc: [...da], ...(khong.length ? { khongKhoiPhucDuoc: khong, lyDo: 'không có trong thùng rác (hết 7 ngày / sai id / đã dùng để Thay màn)' } : {}) })];
+      });
+
+    T('don_bien_the', '«Dọn biến thể»: xoá mềm (vào thùng rác 7 ngày) MỌI biến thể màn lẻ — hoặc chỉ của một màn / một hành trình. Giữ biến thể ghim ★, phương án hành trình và biến thể đang chờ sinh. Trả danh sách id để khôi phục (khoi_phuc_bien_the).',
+      { key: z.string().optional(), hanh_trinh: z.string().optional() }, async (a) => {
+        const kho = await dsKho(req0);
+        const keysHt = a.hanh_trinh ? new Set((await timHt(a.hanh_trinh)).buoc) : null;
+        const ids = kho.khung.filter((f) => !f.lan && !f.ghim && f.tt !== 'dang' && (!a.key || f.goc === a.key) && (!keysHt || keysHt.has(f.goc))).map((f) => f.id);
+        if (!ids.length) return [chu('Không có biến thể màn lẻ nào để dọn.')];
+        const daXoa = { khung: [] };
+        for (let i = 0; i < ids.length; i += 150) { const r = await goiJ(req0, 'POST', '/api/bien-the/xoa', { khung: ids.slice(i, i + 150), lan: [] }); daXoa.khung.push(...r.khung); }
+        return [chu({ daXoa: daXoa.khung.length, ids: daXoa.khung, hoanTac: 'khoi_phuc_bien_the { ids }' })];
+      });
+
+    T('sua_bien_the', 'Sửa nội dung / nhãn của một biến thể ĐÃ có (như «Áp vào khung này» trong Chế độ Sửa) — không tạo biến thể mới, không đổi màn gốc. HTML qua lamSach. Trả ảnh render để tự kiểm.',
+      { id: z.string(), html: z.string().optional(), tra_loi: z.string().optional().describe('Hoặc nguyên câu trả lời «Ý TƯỞNG…```html```»'), nhan: z.string().max(200).optional(), anh: z.boolean().optional() }, async (a) => {
+        const f = await docKhung(req0, a.id);
+        if (f.tt === 'dang') throw LOI(`Biến thể ${a.id} đang sinh — đợi xong rồi sửa`);
+        let html = a.html, nhan = a.nhan;
+        if (!html && a.tra_loi) { const t = tachKetQua(a.tra_loi); if (t.html && !t.xong) throw LOI('Câu trả lời bị cắt (khối ```html chưa đóng)'); html = t.html; nhan ||= t.nhan; }
+        if (!html && nhan == null) throw LOI('Cần html (hoặc tra_loi) và/hoặc nhan');
+        const sach = html ? await domGoi('lamSach', html) : f.html;
+        const { htmlSua, htmlGocSua, b, ...meta } = f; // eslint-disable-line no-unused-vars
+        const moi = { ...meta, html: sach, nhan: (nhan ?? f.nhan ?? '').slice(0, 200), tt: 'xong', loi: '', tSuaCu: f.tSua || 0 };
+        const r = await goiJ(req0, 'POST', '/api/bien-the/ghi', { khung: [moi], lan: [] });
+        if (!r.khung?.length) throw LOI(r.xungDot?.khung?.length ? `Biến thể ${a.id} vừa được người khác sửa — đọc lại (doc_bien_the) rồi sửa` : `Máy chủ không nhận: ${(r.loi || []).join('; ') || 'không rõ'}`);
+        const ra = [chu({ id: a.id, goc: f.goc, nhan: moi.nhan, lamSachDoi: !!html && sach !== html, lienKet: html ? await soLienKet(f.html || '', sach) : undefined })];
+        if (a.anh !== false && sach) { try { ra.push(anh(await chup(sach, f.w, f.h, 1))); } catch (e) { ra.push(chu(`(Đã lưu; chụp ảnh lỗi: ${e.message})`)); } }
+        return ra;
+      });
+
+    T('tao_nhieu_bien_the', 'Hàng loạt bước 2: lưu nhiều biến thể của CÙNG một màn (hoặc cùng một biến thể nguồn) một lần — xếp chung một hàng như bàn web (k=1..n cùng đợt). Mỗi phần tử là html (+ nhan) hoặc tra_loi. Ngữ cảnh lấy bằng ngu_canh_bien_the với so_bien_the = số phần tử. Trả id từng biến thể + ảnh.',
+      { key: z.string().optional(), tu_bien_the: z.string().optional(), y_tuong: z.string(), dot: z.string().regex(/^[a-z0-9]{4,20}$/).optional(), model: z.string().optional(),
+        bien_the: z.array(z.object({ html: z.string().optional(), tra_loi: z.string().optional(), nhan: z.string().optional() })).min(1).max(6), anh: z.boolean().optional() }, async (a) => {
+        const n = a.bien_the.length; const dot = a.dot || Date.now().toString(36); const ra = [], loi = [];
+        for (let k = 1; k <= n; k++) {
+          try { ra.push(...await luuBienThe({ key: a.key, tu_bien_the: a.tu_bien_the, y_tuong: a.y_tuong, model: a.model, anh: a.anh, dot, k, n, ...a.bien_the[k - 1] })); } catch (e) { loi.push(`k=${k}: ${e.message}`); }
+        }
+        if (loi.length) ra.unshift(chu({ loi, ghiChu: 'Các biến thể khác vẫn đã lưu' }));
+        return ra;
+      });
+
+    T('ds_link_gop_y', 'Liệt kê link góp ý /r/ (mặc định chỉ link đang mở) kèm hành trình, phiên bản v, ghi chú, số màn. Cần quyền chủ quản.',
+      { hanh_trinh: z.string().optional(), ca_thu_hoi: z.boolean().optional() }, async (a) => {
+        const r = await goiJ(req0, 'GET', '/api/review');
+        const ds = r.chiaSe.filter((x) => (a.ca_thu_hoi || !x.thuHoi) && (!a.hanh_trinh || x.ht === a.hanh_trinh)).map((x) => ({ ma: x.ma, duong: `/r/${x.ma}`, ht: x.ht, htTen: x.htTen, v: x.v, ghiChu: x.ghiChu, soMan: x.soMan, t: x.t, thuHoi: x.thuHoi || undefined }));
+        return [chu(ds.length ? ds : 'Chưa có link góp ý nào.')];
+      });
+
+    T('tao_link_gop_y', '«💬 Chia sẻ để góp ý»: chụp đóng băng các màn (bản đang dùng, bỏ màn đã xoá) của một hành trình thành link /r/<mã> mới (v tăng dần). CHỈ chủ quản. Bản tạo qua MCP không kèm sơ đồ Quy trình (tạo trên bàn web nếu cần sơ đồ). Link cho người ngoài nhóm thì nhắc chủ quản bật khoaBang.',
+      { hanh_trinh: z.string(), ghi_chu: z.string().max(300).optional() }, async (a) => {
+        const l = await timHt(a.hanh_trinh); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const man = [];
+        for (const key of l.buoc) { if (daXoaMf(pb[key])) continue; const hh = await hienHanh(req0, key, null, pb); man.push({ key, ten: hh.m.ten, w: hh.w, h: hh.h, pb: hh.v, html: hh.html }); }
+        if (!man.length) throw LOI(`Hành trình ${l.id} không còn màn nào`);
+        const s = await goiJ(req0, 'POST', '/api/review/chia-se', { ht: l.id, man, ghiChu: a.ghi_chu || '', qt: '' });
+        return [chu({ ma: s.ma, duong: `/r/${s.ma}`, ht: s.ht, v: s.v, soMan: s.soMan, ghiChu: 'Gửi đường /r/<mã> trên cùng tên miền của bàn. Thu hồi: thu_hoi_link_gop_y.' })];
+      });
+
+    T('thu_hoi_link_gop_y', 'Thu hồi một link góp ý /r/ (người đang mở bị ngắt, link không vào được nữa; góp ý cũ giữ nguyên). CHỈ chủ quản.',
+      { ma: z.string().regex(/^[a-f0-9]{32}$/, 'ma là 32 ký tự hex (xem ds_link_gop_y)') }, async (a) => {
+        const s = await goiJ(req0, 'POST', `/api/review/chia-se/${a.ma}/thu-hoi`, {});
+        return [chu({ ma: s.ma, ht: s.ht, thuHoi: s.thuHoi })];
+      });
+
+    T('sua_gop_y', 'Chủ quản sửa nội dung và/hoặc đổi mức (loi = Lỗi, de-xuat = Đề xuất, cau-hoi = Câu hỏi) của một góp ý. Đổi trạng thái: doi_trang_thai_gop_y.',
+      { hanh_trinh: z.string(), id: z.string(), noi: z.string().min(1).max(2000).optional(), muc: z.enum(['loi', 'de-xuat', 'cau-hoi']).optional() }, async (a) => {
+        if (a.noi == null && !a.muc) throw LOI('Cần noi và/hoặc muc');
+        const u = (d) => `/api/review/gop-y/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/${d}`;
+        let r; if (a.noi != null) r = await goiJ(req0, 'POST', u('sua'), { noi: a.noi }); if (a.muc) r = await goiJ(req0, 'POST', u('muc'), { muc: a.muc });
+        return [chu(r)];
+      });
+
+    T('xoa_gop_y', 'Chủ quản xoá hẳn một góp ý (khác «Đã xử lý»: không còn trong danh sách). Audit gop-y.xoa giữ bản cũ — khôi phục được bằng khoi_phuc_tu_nhat_ky (ben=truoc).',
+      { hanh_trinh: z.string(), id: z.string() }, async (a) => [chu(await goiJ(req0, 'POST', `/api/review/gop-y/${encodeURIComponent(a.hanh_trinh)}/${encodeURIComponent(a.id)}/xoa`, {}))]);
+
+    T('gui_de_xuat', 'Gửi một ĐỀ XUẤT thay đổi (Chờ duyệt) cho một màn qua link góp ý /r/ — như reviewer bấm «Đề xuất áp dụng»: thiết kế gốc KHÔNG đổi, chủ quản duyệt bằng chap_nhan_de_xuat. Nội dung: html hoặc tu_bien_the (id biến thể). Mặc định link mới nhất đang mở của hành trình (người không phải chủ quản phải đưa ma_link).',
+      { key: z.string(), html: z.string().optional(), tu_bien_the: z.string().optional(), gop_y: z.string().optional().describe('id góp ý của màn này mà đề xuất trả lời'), nhan: z.string().max(120).optional(), ten: z.string().max(40).optional(), ma_link: z.string().optional() }, async (a) => {
+        const m = await timMan(a.key);
+        let html = a.html, w = m.w, h = m.h;
+        if (a.tu_bien_the) { const f = await docKhung(req0, a.tu_bien_the); if (f.goc !== a.key) throw LOI(`Biến thể ${a.tu_bien_the} thuộc màn ${f.goc}, không phải ${a.key}`); html = f.html; w = f.w; h = f.h; }
+        else { const hh = await hienHanh(req0, a.key); w = hh.w; h = hh.h; }
+        if (!html?.trim()) throw LOI('Cần html hoặc tu_bien_the');
+        let ma = a.ma_link;
+        if (!ma) { const r = await goiJ(req0, 'GET', '/api/review'); const ds = r.chiaSe.filter((x) => x.ht === m.lan && !x.thuHoi).sort((x, y) => y.v - x.v); if (!ds.length) throw LOI(`Hành trình ${m.lan} chưa có link góp ý đang mở — tao_link_gop_y trước`); ma = ds[0].ma; }
+        if (!/^[a-f0-9]{32}$/.test(ma)) throw LOI('ma_link sai dạng (32 ký tự hex)');
+        const d = await goiJ(req0, 'POST', `/api/review/r/${ma}/de-xuat`, { key: a.key, html: await domGoi('lamSach', html), w, h, gy: a.gop_y || null, ten: a.ten || tenNguoi(req0), nhan: a.nhan || 'Đề xuất qua MCP', model: '' });
+        return [chu({ ht: m.lan, id: d.id, key: d.key, tt: d.tt, ghiChu: 'Chờ chủ quản duyệt (chap_nhan_de_xuat / tu_choi_de_xuat)' })];
+      });
+
+    T('xem_su_kien_nhat_ky', 'Mở MỘT sự kiện audit (ngay + i lấy từ nhat_ky) với trạng thái trước ↔ sau đã dựng lại đủ (HTML lớn rút gọn tới 4000 ký tự). Cần quyền chủ quản.',
+      { ngay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'ngay dạng YYYY-MM-DD'), i: z.number().int().min(0) }, async (a) => {
+        const r = await goiJ(req0, 'GET', `/api/audit/mo?ngay=${a.ngay}&i=${a.i}`);
+        const gon = (o) => (o == null ? o : JSON.parse(JSON.stringify(o, (k, v) => (typeof v === 'string' && v.length > 4000 ? `${v.slice(0, 4000)}… [${v.length} ký tự]` : v))));
+        return [chu({ e: { ...r.e, truoc: undefined, sau: undefined }, truoc: gon(r.truoc), sau: gon(r.sau), loi: r.loi })];
+      });
+
+    T('khoi_phuc_tu_nhat_ky', '«Khôi phục trạng thái này» từ Lịch sử thay đổi: đưa biến thể / phương án / màn / góp ý / màn thêm (tên, chỗ) về trạng thái trước (ben=truoc) hoặc sau (ben=sau) của một sự kiện audit. Ghi thành sự kiện MỚI, lịch sử cũ giữ nguyên. Cần quyền chủ quản.',
+      { ngay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'ngay dạng YYYY-MM-DD'), i: z.number().int().min(0), ben: z.enum(['truoc', 'sau']) }, async (a) => [chu(await goiJ(req0, 'POST', '/api/audit/khoi-phuc', { ngay: a.ngay, i: a.i, ben: a.ben }))]);
+
+    T('doc_quy_trinh', 'Đọc sơ đồ Quy trình (kiểu BPMN: lane theo vai, sự kiện, gateway, việc hệ thống, việc có giao diện = màn) đã khai báo — để hiểu luồng nghiệp vụ trước khi thêm/xoá/nối màn. Màn đã xoá được đánh dấu. Ảnh sơ đồ: chỉ có trên bàn web (nút Quy trình).',
+      { id: z.string().optional().describe('id quy trình (qt-…); bỏ trống = liệt kê tất cả'), hanh_trinh: z.string().optional().describe('Chỉ quy trình bao hành trình này') }, async (a) => {
+        const { MAN } = await taiMan(); const pb = await goiJ(req0, 'GET', '/api/phien-ban');
+        const ds = QUY_TRINH.filter((q) => (!a.id || q.id === a.id) && (!a.hanh_trinh || (q.hanh || []).includes(a.hanh_trinh)));
+        if (!ds.length) throw LOI(a.id ? `Không có quy trình «${a.id}»` : `Hành trình ${a.hanh_trinh} chưa có quy trình khai báo — bàn web tự sinh một lane từ chuỗi màn (xem ds_hanh_trinh)`);
+        const lan = Object.fromEntries(LAN_QT.map((x) => [x.id, x.ten]));
+        return [chu(ds.map((q) => ({ id: q.id, ten: q.ten, hanhTrinh: q.hanh, lane: [...new Set(q.nut.map((n) => n.lan))].map((x) => lan[x] || x),
+          nut: q.nut.map((n) => ({ id: n.id, loai: n.loai, lane: lan[n.lan] || n.lan, ten: n.ten, ...(n.man ? { man: n.man, tenMan: MAN[n.man]?.ten, ...(!MAN[n.man] ? { khongCo: true } : daXoaMf(pb[n.man]) ? { daXoa: true } : {}) } : {}) })),
+          noi: (q.noi || []).map((c) => (c[2] ? `${c[0]} → ${c[1]} [${c[2]}]` : `${c[0]} → ${c[1]}`)) })))];
       });
 
     async function buocNguon(l, tuPa) {

@@ -5,6 +5,10 @@ import http from 'node:http';
 import fs from 'node:fs';
 import { ganRealtime, phatPhong, dsPhong, dongPhong } from './realtime.mjs';
 import { taoUngDung } from './ung-dung.mjs';
+import { canDung, dungTroLy } from './tro-ly/dung.mjs';
+
+// ✦ Trợ lý AI: bundle vòng agent (LangGraph.js) cho trình duyệt khi chưa có / cũ hơn tro-ly/agent.mjs — thiếu devDependencies thì bàn vẫn chạy, chỉ panel Trợ lý báo chưa dựng.
+if (canDung()) { try { await dungTroLy(); } catch (e) { console.warn(`! Chưa dựng được ✦ Trợ lý AI (${e.message.split('\n')[0]}) — chạy \`npm install\` rồi \`npm run dung-tro-ly\`.`); } }
 
 let cong = Number(process.env.PORT) || 5178;
 const app = taoUngDung({ cong: () => cong, phatPhong, dsPhong, dongPhong });
