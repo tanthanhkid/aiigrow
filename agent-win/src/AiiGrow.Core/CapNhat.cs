@@ -216,7 +216,7 @@ public static class TuCapNhat
     public static readonly TimeSpan ChuKyMacDinh = TimeSpan.FromHours(6);
 
     /// <summary>Chu kỳ hỏi bản mới: chuKyKiemPhut của máy chủ kẹp [5, 1440] phút; không có ⇒ 6 giờ.</summary>
-    public static TimeSpan ChuKyKiem(double? phut) => phut is { } p && double.IsFinite(p) ? TimeSpan.FromMinutes(Math.Clamp(Math.Round(p), 5, 1440)) : ChuKyMacDinh;
+    public static TimeSpan ChuKyKiem(double? phut) => phut is { } p && double.IsFinite(p) ? TimeSpan.FromMinutes(Math.Clamp(Math.Round(p, MidpointRounding.AwayFromZero), 5, 1440)) : ChuKyMacDinh;
 
     /// <summary>Lần kiểm kế tiếp theo GIỜ THẬT. Đồng hồ máy bị lùi (Con chỉnh giờ) ⇒ không để hẹn xa quá một chu kỳ tính từ bây giờ.</summary>
     public static DateTimeOffset KeTiep(DateTimeOffset hen, DateTimeOffset bayGio, TimeSpan chuKy) => hen > bayGio + chuKy ? bayGio + chuKy : hen;

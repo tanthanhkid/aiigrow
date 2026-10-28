@@ -41,7 +41,8 @@ public sealed class UpdateWorker : BackgroundService
                 {
                     // chưa đọc được manifest (mạng chưa lên sau khi thức, máy chủ lỗi): thử lại sớm, không đợi trọn chu kỳ — chỉ tốn một GET nhỏ
                     _log.LogWarning("Tự cập nhật: {Loi}", e.Message);
-                    cho = _chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest;
+                    // đã bắt đầu tải (lỗi ở bước sau: kiểm sha, đổi tên tệp bị khoá…) thì giãn như tải hỏng, không tải lại 182 MB mỗi chu kỳ
+                    cho = _dangTai ? (_chuKy > ThuLaiTai ? _chuKy : ThuLaiTai) : (_chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest);
                 }
                 catch (OperationCanceledException) { break; }
                 hen = DateTimeOffset.UtcNow + cho;
@@ -57,10 +58,16 @@ public sealed class UpdateWorker : BackgroundService
     private static readonly TimeSpan ThuLaiTai = TimeSpan.FromHours(1);
     /// <summary>Không nhận được byte nào trong ngần này ⇒ coi là mạng treo, bỏ lượt tải (không giới hạn tổng thời gian: mạng chậm vẫn tải xong).</summary>
     private static readonly TimeSpan HanDungTai = TimeSpan.FromMinutes(2);
+    /// <summary>Trần tổng một lượt tải (mạng nhỏ giọt vài byte mỗi phút không giữ vòng kiểm mãi).</summary>
+    private static readonly TimeSpan HanTongTai = TimeSpan.FromHours(3);
+    /// <summary>Tải xong mà sai sha256: tải lại sau ≥6 giờ (như nhịp cũ) — đủ để máy chủ sửa sha, không đốt 182 MB mỗi giờ.</summary>
+    private static readonly TimeSpan ThuLaiSaiSha = TimeSpan.FromHours(6);
+    private bool _dangTai;
 
     /// <returns>Thời gian chờ tới lượt kiểm sau.</returns>
     private async Task<TimeSpan> KiemMotLuot(CancellationToken ct)
     {
+        _dangTai = false;
         var cfg = _store.Load();
         if (cfg is not { Paired: true }) return ThuLaiManifest;   // vừa ghép máy thì lượt đầu tới sớm
         var hienTai = TuCapNhat.BanHienTai();
@@ -86,6 +93,7 @@ public sealed class UpdateWorker : BackgroundService
         DonBoCaiCu(tep);
         var tam = tep + ".tai";
         _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
+        _dangTai = true;
         try { await TaiVe(http, m.Url, tam, ct); }
         catch (Exception e) when (!ct.IsCancellationRequested)
         {
@@ -98,8 +106,8 @@ public sealed class UpdateWorker : BackgroundService
         {
             try { File.Delete(tam); } catch { }
             // có thể chỉ thoáng qua (Wi-Fi khách sạn trả trang đăng nhập) hoặc máy chủ sắp sửa sha: thử lại sau ≥1 giờ, không đốt 182 MB mỗi chu kỳ
-            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiTai);
-            return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
+            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiSaiSha);
+            return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
         }
         File.Move(tam, tep, true);
         // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
@@ -110,10 +118,12 @@ public sealed class UpdateWorker : BackgroundService
     }
 
     /// <summary>Tải về <paramref name="tam"/>; mỗi lần đọc phải nhận được dữ liệu trong <see cref="HanDungTai"/> (HttpClient.Timeout không phủ
-    /// phần thân của stream ⇒ trước đây mạng treo giữa chừng là vòng kiểm đứng mãi).</summary>
+    /// phần thân của stream ⇒ trước đây mạng treo giữa chừng là vòng kiểm đứng mãi); cả lượt tối đa <see cref="HanTongTai"/>.</summary>
     private static async Task TaiVe(HttpClient http, string url, string tam, CancellationToken ct)
     {
-        using var han = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using var tong = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        tong.CancelAfter(HanTongTai);
+        using var han = CancellationTokenSource.CreateLinkedTokenSource(tong.Token);
         han.CancelAfter(HanDungTai);
         using var res = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, han.Token);
         res.EnsureSuccessStatusCode();
@@ -173,7 +183,7 @@ public sealed class UpdateWorker : BackgroundService
         {
             if (!File.Exists(TepDaThu)) return false;
             var d = File.ReadAllText(TepDaThu).Split('|');
-            return d.Length == 2 && d[0] == ban && DateTimeOffset.TryParse(d[1], out var luc) && DateTimeOffset.UtcNow - luc < TimeSpan.FromHours(24);
+            return d.Length == 2 && d[0] == ban && DateTimeOffset.TryParse(d[1], out var luc) && DateTimeOffset.UtcNow - luc is var tuoi && tuoi >= TimeSpan.Zero && tuoi < TimeSpan.FromHours(24);   // đồng hồ bị lùi ⇒ coi như chưa thử
         }
         catch { return false; }
     }

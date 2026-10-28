@@ -271,6 +271,7 @@ public class TuCapNhatTests
     [InlineData(-3.0, 5)]
     [InlineData(4.0, 5)]
     [InlineData(7.6, 8)]
+    [InlineData(6.5, 7)]
     [InlineData(1440.0, 1440)]
     [InlineData(100000.0, 1440)]
     [InlineData(double.NaN, 360)]
