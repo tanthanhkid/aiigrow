@@ -772,10 +772,16 @@ final class CapNhatTests: XCTestCase {
     _ = await chay(b)
     cho = await b.choLaiGiay()
     XCTAssertEqual(cho, 900, "đang là bản mới nhất ⇒ chu kỳ máy chủ đặt")
+    HttpMock.dat { path, _ in
+      path == "api/agent/ban-moi" ? HttpMock.json(200, ["version": "0.1.1", "url": u, "sha256": sha256Hex(self.noiDung), "chuKyKiemPhut": 60]) : nil
+    }
+    _ = await chay(b)
+    cho = await b.choLaiGiay()
+    XCTAssertEqual(cho, 3600, "máy chủ đổi chu kỳ ⇒ theo ngay")
     HttpMock.dat { path, _ in path == "api/agent/ban-moi" ? .init(ma: 200, than: Data("null".utf8)) : nil }
     _ = await chay(b)
     cho = await b.choLaiGiay()
-    XCTAssertEqual(cho, 900, "manifest null giữ chu kỳ cũ")
+    XCTAssertEqual(cho, 3600, "manifest null giữ chu kỳ cũ (không rơi về 15 phút thử lại)")
   }
 
   func testIPCKhuHoiCapNhat() throws {

@@ -11,8 +11,6 @@ import type { May } from "./gia-dinh.ts";
  *  Giai đoạn dev: 15 (Thanh 28/10). TRƯỚC GOLIVE đổi về 360 (6 giờ) — chỉ sửa số này rồi deploy máy chủ, không phát lại agent.
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT = 15;
-/** Tên cũ (Windows) — giữ để không gãy chỗ khác. */
-export const CHU_KY_KIEM_PHUT_WINDOWS = CHU_KY_KIEM_PHUT;
 
 // 0.2.12 (28/10, tự cập nhật theo giờ thật + chuKyKiemPhut; 0.2.11 sửa Start menu đơ): exe từ CI agent-win run 40648893556 (job build goc, commit ae9f0c1, PR #171); sha256 đo trên tệp tải về từ Release.
 export const BAN_AGENT_WINDOWS = {

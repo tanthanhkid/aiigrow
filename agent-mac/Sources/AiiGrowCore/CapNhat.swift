@@ -307,10 +307,8 @@ public actor BoCapNhat {
       heThong.ghiLog("Cập nhật: không hỏi được bản mới (\(error)).")
       return ketThuc(.loi("Không kiểm tra được bản mới (mất mạng hoặc máy chủ trả sai); sẽ thử lại sau."))
     }
-    if let m = ban {   // `null` (chưa phát hành) giữ chu kỳ cũ
-      chuKy = LuatCapNhat.chuKyGiay(phut: m.chuKyKiemPhut)
-      choRieng = nil
-    }
+    if let m = ban { chuKy = LuatCapNhat.chuKyGiay(phut: m.chuKyKiemPhut) }   // `null` (chưa phát hành) giữ chu kỳ cũ
+    choRieng = nil
     if let m = ban, LuatCapNhat.tachBan(m.version) == nil {
       heThong.ghiLog("Cập nhật: TỪ CHỐI — bản «\(m.version)» trong manifest không đúng dạng x.y.z.")
       return ketThuc(.loi("Máy chủ báo bản «\(m.version)» sai dạng, không cập nhật."))
@@ -422,7 +420,7 @@ public actor BoCapNhat {
         boTai("tải trả mã \((resp as? HTTPURLResponse)?.statusCode ?? 0) (chuyển hướng ngoài danh sách cho phép cũng vào đây)", chu: "máy chủ phát hành trả lỗi"); return
       }
       let kich = (try? FileManager.default.attributesOfItem(atPath: tam.path)[.size] as? Int) ?? 0
-      guard kich > 0, kich <= toiDaByte else { bo("kích thước gói bất thường (\(kich) byte)"); return }
+      guard kich > 0, kich <= toiDaByte else { boTai("kích thước gói bất thường (\(kich) byte)"); return }
       let duong = tam.path
       guard let sha = await chayNgoaiActor({ LuatCapNhat.sha256Tep(duong) }) else { bo("không đọc được tệp tải", chu: "lỗi ghi đĩa"); return }
       guard sha == m.sha256 else { boVaDem("sha256 lệch (nhận \(sha.prefix(12))…, manifest \(m.sha256.prefix(12))…)"); return }
