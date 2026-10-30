@@ -17,6 +17,9 @@ export function PhienProvider({ children }: { children: ReactNode }) {
   const vao = useCallback(async (t: string, moi?: boolean) => {
     await bm.dat(t);
     setCo(true);
+    // Cửa một chiều (skill appllama — Navigation law 3): đăng nhập/đăng ký xong thì gỡ hết màn Chào/Số điện thoại/Mã khỏi ngăn xếp
+    // rồi thay bằng đích — vuốt lùi hay nút lùi Android không bao giờ quay lại màn Đăng nhập.
+    if (router.canDismiss()) router.dismissAll();
     router.replace(moi ? "/thiet-lap/ten-con" : "/");
   }, []);
   const ra = useCallback(async (o?: { daXoa?: boolean }) => {

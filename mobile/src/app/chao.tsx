@@ -1,48 +1,59 @@
-// bm-chao: lần đầu mở app — vòng giá trị 3 câu, bắt đầu bằng số điện thoại. (Đăng nhập Apple/Google: chờ khoá OAuth — KE-HOACH 5.)
-// Bản web: đây cũng là trang chủ aiigrow.aiilab.vn (/ — xem index.tsx); link nhỏ «Tải cho máy của Con» sang trang /tai (trang Next, tải hẳn trang).
+// bm-chao (biến thể appllama): cửa vào. Một hero (Rob — minh hoạ duy nhất của luồng), Large Title, 3 giá trị với SF Symbols,
+// MỘT nút chính; các lối phụ là nút chữ — mỗi ý một nhãn. Đăng nhập / Mã mời mở dạng modal (việc tự đứng, có Huỷ).
+// Bản web: đây cũng là trang chủ aiigrow.aiilab.vn (/ — xem index.tsx); link «Tải cho máy của Con» sang trang /tai.
 import { router } from "expo-router";
-import { Linking, Platform, Pressable, View } from "react-native";
+import { Linking, Platform, ScrollView, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Image } from "expo-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LINK_TAI } from "@/lib/api";
-import { Canh, Chu, M, Man, Nut, The, TickDong, useBaoKhiVe, useHoanTac } from "@/lib/ui";
+import { useBaoKhiVe, useHoanTac } from "@/lib/ui";
+import { C, Ch, NutChinh, NutChu, Sym } from "@/lib/ob";
+
+const GIA_TRI = [
+  { ic: "camera.fill", chu: "Con làm việc có ích, nộp ảnh — Ba Mẹ duyệt, điểm vào ví" },
+  { ic: "gift.fill", chu: "Điểm đổi phút chơi trò chơi, quà, phiếu quà AiiCafe" },
+  { ic: "hand.raised.fill", chu: "Ngoài quy tắc thì Con xin phép, Ba Mẹ duyệt trong vài giây" },
+] as const;
 
 export default function Chao() {
   const { bao, noi } = useHoanTac();
   useBaoKhiVe(bao);                     // «Đã xoá tài khoản…» sau khi xoá ở màn Gia đình
+  const ins = useSafeAreaInsets();
   return (
-    <Man noi={noi} day={
-      <>
-        <Nut chu="Bắt đầu bằng số điện thoại" ic="dt" rong bam={() => router.push("/dang-ky")} />
-        <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Chu co={13} mau={M.chu3}>Đã có tài khoản? <Chu kieu="rat" co={13} mau={M.chinhInk}>Đăng nhập</Chu></Chu>
-        </Pressable>
-        <Pressable onPress={() => router.push("/moi")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Chu co={13} mau={M.chu3}>Được Ba/Mẹ trong nhà mời? <Chu kieu="rat" co={13} mau={M.chinhInk}>Nhập mã mời</Chu></Chu>
-        </Pressable>
-        <Pressable onPress={moTai} accessibilityRole="link" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={13} mau={M.chinhInk}>Tải cho máy của Con →</Chu>
-        </Pressable>
-        {Platform.OS !== "web" ? (
-          // App native: điện thoại / máy tính bảng của Con dùng luôn app này cho màn Con (Nhiệm vụ, Nộp bài, Quà, Chơi bằng điểm)
-          <Pressable onPress={() => router.push("/tre")} accessibilityRole="button" accessibilityLabel="Máy của Con — mở màn của Con"
-            style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-            <Chu co={13} mau={M.chu3}>Đây là máy của Con? <Chu kieu="rat" co={13} mau={M.chinhInk}>Máy của Con</Chu></Chu>
-          </Pressable>
-        ) : null}
-      </>
-    }>
-      <Canh lv="rob-goc" tieu="Con lớn lên bằng yêu thương" loi="Và nhận quyền lợi bằng nỗ lực của chính mình." />
-      <The dem>
-        <View style={{ gap: 12 }}>
-          <TickDong chu="Con làm việc có ích → nộp ảnh → Ba Mẹ duyệt → điểm vào ví" />
-          <TickDong chu="Điểm đổi phút chơi trò chơi, quà, phiếu quà AiiCafe" />
-          <TickDong chu="Ngoài quy tắc thì Con xin phép, Ba Mẹ duyệt trong vài giây" />
+    <View style={{ flex: 1, backgroundColor: C.nen }}>
+      <StatusBar style="auto" />
+      <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingHorizontal: 24, paddingTop: ins.top + 8, paddingBottom: 16, gap: 28 }}>
+        <Image source={require("../../assets/linh-vat/rob-goc.webp")} style={{ width: 168, height: 168, alignSelf: "center" }} contentFit="contain"
+          accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+        <View style={{ gap: 8 }}>
+          <Ch k="largeTitle" style={{ textAlign: "center" }}>Con lớn lên bằng yêu thương</Ch>
+          <Ch k="body" mau={C.chu2} style={{ textAlign: "center" }}>Và nhận quyền lợi bằng nỗ lực của chính mình.</Ch>
         </View>
-      </The>
-    </Man>
+        <View style={{ gap: 20 }}>
+          {GIA_TRI.map((g) => (
+            <View key={g.ic} style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+              <View style={{ width: 32, alignItems: "center" }}><Sym ten={g.ic} co={26} /></View>
+              <Ch k="subhead" style={{ flex: 1 }}>{g.chu}</Ch>
+            </View>
+          ))}
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: 4 }}>
+          <NutChu nho chu="Nhập mã mời" bam={() => router.push("/moi")} />
+          {Platform.OS !== "web" ? <NutChu nho chu="Đây là máy của Con" bam={() => router.push("/tre")} /> : null}
+          <NutChu nho nhan="link" chu="Tải cho máy của Con" bam={moTai} />
+        </View>
+      </ScrollView>
+      <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: Math.max(ins.bottom, 16), gap: 4 }}>
+        <NutChinh chu="Bắt đầu bằng số điện thoại" bam={() => router.push("/dang-ky")} />
+        <NutChu chu="Tôi đã có tài khoản" bam={() => router.push("/dang-nhap")} />
+      </View>
+      {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: 140 }}>{noi}</View> : null}
+    </View>
   );
 }
 
-/** Web: cùng nguồn ⇒ sang /tai trong tab này (bản thử/preview vẫn đúng máy chủ). Điện thoại: mở trang tải công khai. */
+/** Web: cùng nguồn ⇒ sang /tai trong tab này. Điện thoại: mở trang tải công khai. */
 function moTai() {
   if (Platform.OS === "web" && globalThis.location) { globalThis.location.assign("/tai"); return; }
   Linking.openURL(LINK_TAI).catch(() => {});

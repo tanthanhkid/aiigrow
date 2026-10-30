@@ -1,27 +1,28 @@
-// bm-ob-may (bước 2/5): Con dùng máy nào — mỗi máy một cách bảo vệ.
+// bm-ob-may (bước 2/5) — biến thể appllama: Con dùng máy nào. Danh sách chọn một kiểu Cài đặt iOS (dấu ✓ bên phải, highlight khi nhấn,
+// haptic selection), không vẽ lại nút radio. Đây là gốc ngăn xếp sau khi tạo Con (không có nút lùi về form).
 import { useState } from "react";
 import { router } from "expo-router";
-import { View } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { datTl, layTl } from "@/lib/thiet-lap";
-import { BieuTron, Buoc, Canh, Man, Nut, OChon } from "@/lib/ui";
+import { haptic, Hang, Khung, Nhom, NutChinh, OIcon, TienDo, TieuDe } from "@/lib/ob";
 
 const MAY = [
-  { nen: "windows", ic: "may_tinh", mau: "xanh", tieu: "Laptop Windows", phu: "Bảo vệ toàn diện · chặn app, web, cài đặt" },
-  { nen: "ios", ic: "tablet", mau: "lam", tieu: "iPad / iPhone", phu: "Theo mức Apple cho phép · Screen Time" },
-  { nen: "android", ic: "dt", mau: "tim", tieu: "Điện thoại Android", phu: "Toàn diện khi cấp đủ quyền" },
-  { nen: "mac", ic: "laptop", mau: "cam", tieu: "MacBook / iMac", phu: "Cần cấp quyền bộ lọc nội dung" },
+  { nen: "windows", ic: "laptopcomputer", tieu: "Laptop Windows", phu: "Bảo vệ toàn diện · chặn app, web, cài đặt" },
+  { nen: "ios", ic: "ipad.and.iphone", tieu: "iPad / iPhone", phu: "Theo mức Apple cho phép · Screen Time" },
+  { nen: "android", ic: "smartphone", tieu: "Điện thoại Android", phu: "Toàn diện khi cấp đủ quyền" },
+  { nen: "mac", ic: "desktopcomputer", tieu: "MacBook / iMac", phu: "Cần cấp quyền bộ lọc nội dung" },
 ] as const;
 
 export default function ObMay() {
   const [nen, setNen] = useState<(typeof MAY)[number]["nen"]>("windows");
   const ten = layTl().tenCon ?? "Con";
   return (
-    <Man dau={<Buoc n={2} tong={5} nhan="Bước 2/5 · Thiết bị" />}
-      day={<Nut chu="Tiếp: ghép máy" rong bam={() => { datTl({ nen }); router.push("/thiet-lap/ghep"); }} />}>
-      <Canh lv="chi" thap tieu={`${ten} dùng máy nào?`} loi="Mỗi máy một cách bảo vệ — Rob dẫn từng bước." />
-      <View style={{ gap: 10 }}>
-        {MAY.map((m) => <OChon key={m.nen} chon={nen === m.nen} bam={() => setNen(m.nen)} trai={<BieuTron ic={m.ic} mau={m.mau} />} tieu={m.tieu} phu={m.phu} />)}
-      </View>
-    </Man>
+    <Khung dau={<TienDo n={2} tong={5} />} day={<NutChinh chu="Tiếp" bam={() => { datTl({ nen }); router.push("/thiet-lap/ghep"); }} />}>
+      <StatusBar style="auto" />
+      <TieuDe tieu={`${ten} dùng máy nào?`} loi="Mỗi máy một cách bảo vệ — Rob dẫn từng bước." />
+      <Nhom>
+        {MAY.map((m) => <Hang key={m.nen} chon={nen === m.nen} bam={() => { if (nen !== m.nen) haptic.chon(); setNen(m.nen); }} trai={<OIcon ten={m.ic} />} tieu={m.tieu} phu={m.phu} />)}
+      </Nhom>
+    </Khung>
   );
 }

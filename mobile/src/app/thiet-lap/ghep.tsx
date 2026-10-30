@@ -1,13 +1,14 @@
-// bm-ob-ghep (bước 3/5): CÁCH GHÉP DUY NHẤT (Thanh 22/10 bỏ QR) — một câu hướng dẫn + link /tai + mã 6 số to (hạn 15 phút);
-// app tự theo dõi máy đã nhận mã + mức bảo vệ (BRD 6.1 bước 4). Nền khác chưa có bản cài ⇒ «sắp có».
+// bm-ob-ghep (bước 3/5) — biến thể appllama: một câu hướng dẫn + link /tai + mã 6 số to (hạn 15 phút); app tự theo dõi máy đã nhận mã
+// + mức bảo vệ (BRD 6.1 bước 4). Push từ bước 2 (lùi được để đổi loại máy). Trạng thái: vòng quay native khi chờ, ✓ khi xong.
 import { useCallback, useEffect, useState } from "react";
 import { router } from "expo-router";
-import { Linking, Pressable, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { ActivityIndicator, Linking, View } from "react-native";
 import { bm, LINK_TAI, type ConChiTiet } from "@/lib/api";
-import { BONG } from "@/lib/clay";
 import { saoChep } from "@/lib/luu-tep";
 import { layTl } from "@/lib/thiet-lap";
-import { Bao, BaoLoi, Buoc, Chu, M, Man, Nut, The, TickDong, useHoanTac, useLam } from "@/lib/ui";
+import { useHoanTac, useLam } from "@/lib/ui";
+import { BO, C, Ch, GhiChu, haptic, Hang, Khung, LoiTaiCho, Nhom, NutChinh, NutChu, Sym, TienDo, TieuDe } from "@/lib/ob";
 
 const TEN_NEN = { windows: "laptop Windows", mac: "máy Mac", ios: "iPad / iPhone", android: "máy Android" } as const;
 const LINK_NGAN = LINK_TAI.replace(/^https:\/\//, "");
@@ -33,46 +34,48 @@ export default function ObGhep() {
     }, 3000);
     return () => clearInterval(t);
   }, [tl.conId]);
+  useEffect(() => { if (may) haptic.ok(); }, [!!may]);     // eslint-disable-line react-hooks/exhaustive-deps
   const ten = tl.tenCon ?? "Con";
+  const trangThai = (xong: boolean, dangCho: boolean) =>
+    xong ? <Sym ten="checkmark.circle.fill" co={22} /> : dangCho ? <ActivityIndicator /> : <Sym ten="circle.dashed" co={22} mau={C.chu3} />;
   return (
-    <Man noi={noi} dau={<Buoc n={3} tong={5} nhan="Bước 3/5 · Ghép máy" />} day={<><BaoLoi loi={loi} /><Nut chu="Tiếp: nhiệm vụ & quà" rong bam={() => router.push("/thiet-lap/mau")} /></>}>
+    <Khung noi={noi} dau={<TienDo n={3} tong={5} />} day={<NutChinh chu={may ? "Tiếp" : "Ghép sau, làm tiếp"} bam={() => router.push("/thiet-lap/mau")} />}>
+      <StatusBar style="auto" />
       {nen === "windows" ? (
-        <The dem>
-          <View style={{ alignItems: "center", gap: 14 }}>
-            <Chu kieu="rat" co={17} style={{ textAlign: "center" }}>{`Trên laptop của ${ten}: vào trang dưới, tải và chạy AiiGrow-Setup.exe rồi nhập mã này.`}</Chu>
-            <Pressable onPress={() => { Linking.openURL(LINK_TAI).catch(() => bao(`Chưa mở được — gõ ${LINK_NGAN} trên trình duyệt`)); }} accessibilityRole="link"
-              style={{ alignSelf: "stretch", borderRadius: 18, backgroundColor: "#fff", boxShadow: BONG.lom, paddingVertical: 12, paddingHorizontal: 14, alignItems: "center", minHeight: 48 }}>
-              <Chu kieu="rat" co={18} so mau={M.chinhInk}>{LINK_NGAN}</Chu>
-            </Pressable>
-            {/* 6 ô chia đều bề ngang (≤ 46 mỗi ô): cố định 44 thì ở máy 320pt hàng ô tràn khỏi thẻ */}
-            <View style={{ flexDirection: "row", gap: 6, alignSelf: "stretch", justifyContent: "center" }}>
-              {(ma ?? "      ").split("").map((c, i) => (
-                // ô mã = lòng chảo ấn lõm (docs/clay), không viền mảnh
-                <View key={i} style={{ flex: 1, maxWidth: 46, height: 62, borderRadius: 16, backgroundColor: "#fff", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
-                  <Chu kieu="rat" co={30} so>{c}</Chu>
-                </View>
-              ))}
+        <>
+          <TieuDe tieu={`Ghép laptop của ${ten}`} loi="Trên laptop của Con: vào trang dưới, tải và chạy AiiGrow-Setup.exe rồi nhập mã này." />
+          <Nhom chuThich={het ? `Mã hết hạn lúc ${het.toTimeString().slice(0, 5)}.` : "Đang tạo mã…"}>
+            <View style={{ paddingVertical: 20, paddingHorizontal: 16, gap: 16, alignItems: "center" }}>
+              <View accessible accessibilityLabel={ma ? `Mã ghép ${ma.split("").join(" ")}` : "Đang tạo mã"} style={{ flexDirection: "row", gap: 8, alignSelf: "stretch", justifyContent: "center" }}>
+                {(ma ?? "      ").split("").map((c, i) => (
+                  <View key={i} style={{ flex: 1, maxWidth: 46, height: 58, borderRadius: BO.o, borderCurve: "continuous", backgroundColor: C.lapNhat, alignItems: "center", justifyContent: "center" }}>
+                    <Ch k="title1" so selectable>{c}</Ch>
+                  </View>
+                ))}
+              </View>
+              <View style={{ flexDirection: "row", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                <NutChu nho ic="arrow.clockwise" chu="Tạo mã mới" bam={tao} />
+                <NutChu nho ic="doc.on.doc" chu="Chép link" bam={() => saoChep(LINK_TAI).then((ok) => { if (ok) { haptic.ok(); bao("Đã chép link — dán vào trình duyệt trên máy của Con"); } })} />
+              </View>
             </View>
-            <View style={{ flexDirection: "row", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-              <Chu co={13} mau={M.chu3}>{het ? `Hết hạn lúc ${het.toTimeString().slice(0, 5)}` : "Đang tạo mã…"}</Chu>
-              <Pressable onPress={tao} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Chu kieu="rat" co={13} mau={M.chinhInk}>Tạo mã mới</Chu></Pressable>
-              <Pressable onPress={() => saoChep(LINK_TAI).then((ok) => ok && bao("Đã chép link — dán vào trình duyệt trên máy của Con"))} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
-                <Chu kieu="rat" co={13} mau={M.chinhInk}>Chép link</Chu>
-              </Pressable>
-            </View>
-          </View>
-        </The>
+            <Hang trai={<Sym ten="safari" co={22} />} tieu={LINK_NGAN} phu="Mở trang tải trên máy này" phai={<Sym ten="arrow.up.right" co={15} mau={C.chu3} />}
+              bam={() => { Linking.openURL(LINK_TAI).catch(() => bao(`Chưa mở được — gõ ${LINK_NGAN} trên trình duyệt`)); }} />
+          </Nhom>
+        </>
       ) : (
-        <Bao loai="lam" ic="laptop" tieu={`Bản AiiGrow cho ${TEN_NEN[nen]} sắp có`} loi="Hiện có bản cho laptop Windows. Ba Mẹ có thể quay lại chọn laptop Windows để ghép trước." />
+        <>
+          <TieuDe tieu={`Bản cho ${TEN_NEN[nen]} sắp có`} loi="Hiện có bản cho laptop Windows. Ba Mẹ có thể quay lại chọn laptop Windows để ghép trước." />
+        </>
       )}
-      <The dem>
-        <TickDong chu="Máy đã nhận mã" trang={may ? "xong" : "cho"} phu={may ? may.ten : `Đang chờ ${TEN_NEN[nen]} của ${ten}…`} />
-        <TickDong chu="Cấp quyền bảo vệ" trang={!may ? "sau" : may.baoVe === "day_du" ? "xong" : "cho"}
+      <Nhom tieu="Tiến trình">
+        <Hang trai={trangThai(!!may, !may)} tieu="Máy đã nhận mã" phu={may ? may.ten : `Đang chờ ${TEN_NEN[nen]} của ${ten}…`} />
+        <Hang trai={trangThai(may?.baoVe === "day_du", !!may && may.baoVe !== "day_du")} tieu="Cấp quyền bảo vệ"
           phu={!may ? "Sau khi ghép xong" : may.baoVe === "day_du" ? "Bảo vệ đầy đủ" : "Bộ lọc web, chặn cài đặt, chống gỡ…"} />
-      </The>
+      </Nhom>
+      <LoiTaiCho loi={loi} />
       {nen === "windows" ? (
-        <Chu co={13.5} mau={M.chu2}>{`Cài xong là chặn luôn: app chưa xếp loại không mở được trên máy của ${ten}, ${ten} bấm «Xin phép» thì Ba Mẹ duyệt trong app. Trình duyệt vẫn dùng được, web lọc theo danh sách của Ba Mẹ. Muốn tạm chỉ theo dõi (không chặn) thì chọn «Chỉ theo dõi» ở thẻ máy.`}</Chu>
+        <GhiChu ic="lock.shield.fill" chu={`Cài xong là chặn luôn: app chưa xếp loại không mở được trên máy của ${ten}, ${ten} bấm «Xin phép» thì Ba Mẹ duyệt trong app. Trình duyệt vẫn dùng được, web lọc theo danh sách của Ba Mẹ. Muốn tạm chỉ theo dõi (không chặn) thì chọn «Chỉ theo dõi» ở thẻ máy.`} />
       ) : null}
-    </Man>
+    </Khung>
   );
 }
