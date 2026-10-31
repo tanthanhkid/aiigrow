@@ -225,9 +225,10 @@ public final class HeThongMac: HeThong {
 
   /// Lệnh sh của job cài (`caiGoi`).
   /// $1 gói · $2 nhãn · $3 dấu PID · $4 dấu đã gỡ · $5 plist daemon · $6 plist tray · $7 phien-gui.sh (uid phiên GUI, chung với pre/postinstall). Đọc kỹ ba nhánh:
-  /// - napLai: installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại bản cũ (trừ khi máy vừa bị gỡ).
-  ///   installer báo XONG mà daemon không nằm trong launchd (bootstrap của postinstall hỏng — `|| true` nuốt lỗi) cũng nạp lại: cập nhật không bao giờ
-  ///   để daemon đứng tới lần khởi động máy sau (agent-win PR #54 «cập nhật lỗi để dịch vụ đứng»).
+  /// - napLai: installer ≠ 0 ⇒ nạp lại daemon từ plist đang có (trừ khi máy vừa bị gỡ): installer hỏng SAU preinstall (postinstall không chạy ⇒ plist bản cũ),
+  ///   hoặc postinstall (0.1.7+) chạy trọn nhưng bootstrap hỏng 5 lần nên thoát mã 1 (plist bản mới). Hợp đồng: postinstall KHÔNG nạp được daemon ⇒ mã ≠ 0.
+  ///   Dự phòng: installer = 0 mà daemon không có trong launchd (postinstall đời cũ / bị sửa) cũng nạp lại — không để daemon đứng tới lần khởi động
+  ///   máy sau (agent-win PR #54 «cập nhật lỗi để dịch vụ đứng»).
   /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
   /// - Lượt trước đã xong (xoá gói + dấu PID) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không còn gói ⇒ tự gỡ nhãn, không cài/nạp lại.
