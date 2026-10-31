@@ -229,6 +229,15 @@ final class VaBugWinTests: XCTestCase {
     let log = (try? String(contentsOfFile: nk, encoding: .utf8)) ?? ""
     XCTAssertEqual(log.components(separatedBy: "bootstrap system").count - 1, 3, "thử lại tới khi daemon nạp được rồi thôi: \(log)")
     XCTAssertEqual(p.terminationStatus, 0)
+    // bootstrap hỏng cả 5 lần ⇒ mã 1 (job tự cập nhật của 0.1.6 chỉ nạp lại daemon khi installer ≠ 0)
+    try "#!/bin/bash\necho \"$@\" >> '\(nk)'\n[ \"$1\" = bootstrap ] && exit 5\n[ \"$1\" = print ] && exit 113\nexit 0\n".write(toFile: gia, atomically: true, encoding: .utf8)
+    let q = Process()
+    q.executableURL = URL(fileURLWithPath: "/bin/bash")
+    q.arguments = [goiDir + "/scripts/postinstall", "/Users/ba/Downloads/AiiGrow.pkg"]
+    q.environment = p.environment
+    q.standardOutput = FileHandle.nullDevice; q.standardError = FileHandle.nullDevice
+    try q.run(); q.waitUntilExit()
+    XCTAssertEqual(q.terminationStatus, 1, "daemon không nạp được ⇒ installer báo hỏng")
     let s = try String(contentsOfFile: goiDir + "/scripts/postinstall", encoding: .utf8)
     XCTAssertTrue(s.contains("unset AIIGROW_GOC AIIGROW_LAUNCHCTL AIIGROW_PKGUTIL AIIGROW_NGU"), "chạy bằng root không nhận biến thử")
   }

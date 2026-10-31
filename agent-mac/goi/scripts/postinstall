@@ -97,7 +97,7 @@ for lan in 1 2 3 4 5; do
   if "$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"; then NAP_DUOC=1; break; fi
   [ "$lan" -lt 5 ] && /bin/sleep "$NGU"
 done
-# 5 lần đều hỏng ⇒ báo lỗi (không tin `print`: có thể còn là bản cũ đang dỡ); tự cập nhật thì job capnhat kiểm lại và nạp lại.
+# 5 lần đều hỏng ⇒ báo lỗi + thoát mã 1 ở cuối (không tin `print`: có thể còn là bản cũ đang dỡ).
 [ "$NAP_DUOC" = 1 ] || echo "AiiGrow postinstall: KHÔNG nạp được daemon sau 5 lần bootstrap — khởi động lại máy hoặc cài lại gói." >&2
 
 # Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid) — cùng quy tắc phien-gui.sh với preinstall/job cập nhật/go-cai.sh.
@@ -107,4 +107,7 @@ for CON_UID in $(/bin/bash "$(/usr/bin/dirname "$0")/phien-gui.sh"); do
   "$LAUNCHCTL" bootstrap "gui/$CON_UID" "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist" || \
     "$LAUNCHCTL" asuser "$CON_UID" "$LAUNCHCTL" load "$GOC/Library/LaunchAgents/vn.aiilab.aiigrow.tray.plist" || true
 done
+# Daemon không nạp được ⇒ mã lỗi: installer báo hỏng (cài tay thấy ngay), job tự cập nhật của MỌI bản cũ (kể cả 0.1.6, chỉ napLai khi
+# installer ≠ 0) nạp lại daemon từ plist vừa chép — không để daemon đứng tới lần khởi động máy sau.
+[ "$NAP_DUOC" = 1 ] || exit 1
 exit 0
