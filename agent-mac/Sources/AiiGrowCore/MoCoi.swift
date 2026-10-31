@@ -17,14 +17,19 @@ public enum MoCoi {
   /// Trần mỗi lần cộng thời gian chạy: ngủ/treo giữa hai vòng không thổi phồng thời gian mất liên lạc.
   public static let tranMoiVongGiay: Double = 30
 
+  /// Lần từ chối GẦN NHẤT phải còn mới (≤ 2 giờ): một lần 401 lẻ rồi mất mạng 6 giờ không tính là «từ chối liên tục».
+  public static let tuChoiCuoiToiDaGiay: Double = 2 * 3600
+
   /// Máy chủ từ chối token. Đồng hồ lùi (mốc ở tương lai) ⇒ đếm lại từ bây giờ.
   public static func ghiTuChoi(_ c: inout CauHinhMay, now: Date) {
     if c.tuChoiTu.map({ $0 > now }) ?? true { c.tuChoiTu = now }
+    c.tuChoiCuoi = now
   }
 
   /// Đồng bộ thành công ⇒ hết mồ côi.
   public static func ghiThanhCong(_ c: inout CauHinhMay, now: Date) {
     c.tuChoiTu = nil
+    c.tuChoiCuoi = nil
     c.matLienLacChayGiay = 0
     c.lienLacCuoi = now
   }
@@ -36,8 +41,8 @@ public enum MoCoi {
   }
 
   public static func tuChoiLau(_ c: CauHinhMay, now: Date) -> Bool {
-    guard let t = c.tuChoiTu, now >= t else { return false }
-    return now.timeIntervalSince(t) >= nguongTuChoiGiay
+    guard let t = c.tuChoiTu, now >= t, let cuoi = c.tuChoiCuoi, now >= cuoi else { return false }
+    return now.timeIntervalSince(t) >= nguongTuChoiGiay && now.timeIntervalSince(cuoi) <= tuChoiCuoiToiDaGiay
   }
 
   /// Cần CẢ HAI: đồng hồ thật ≥ 14 ngày kể từ lần liên lạc cuối VÀ thời gian chạy cộng dồn ≥ 72 giờ.

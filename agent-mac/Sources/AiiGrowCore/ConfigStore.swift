@@ -24,6 +24,8 @@ public struct CauHinhMay: Codable, Equatable {
   public var lienLacCuoi: Date?
   /// Mốc đầu tiên máy chủ từ chối token liên tục (MoCoi.swift) — nil khi đồng bộ được.
   public var tuChoiTu: Date?
+  /// Lần máy chủ từ chối token gần nhất.
+  public var tuChoiCuoi: Date?
   /// Giây máy CHẠY (đồng hồ đơn điệu) kể từ lần đồng bộ được cuối — cùng lienLacCuoi quyết «mất liên lạc lâu» (MoCoi.swift).
   public var matLienLacChayGiay: Double = 0
   /// Danh sách app thật (DanhSachApp.swift): bam lần gửi được gần nhất + yeuCau «Làm mới» đã xử lý.
@@ -50,6 +52,7 @@ public struct CauHinhMay: Codable, Equatable {
     daDungGiayTuSync = g(.daDungGiayTuSync, 0); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
     tuChoiTu = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiTu)) ?? nil
+    tuChoiCuoi = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiCuoi)) ?? nil
     matLienLacChayGiay = g(.matLienLacChayGiay, 0)
     bamAppDaGui = (try? c.decodeIfPresent(String.self, forKey: .bamAppDaGui)) ?? nil
     yeuCauAppDaXuLy = (try? c.decodeIfPresent(String.self, forKey: .yeuCauAppDaXuLy)) ?? nil

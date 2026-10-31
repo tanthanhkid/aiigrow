@@ -19,8 +19,11 @@ final class VaBugWinTests: XCTestCase {
     MoCoi.ghiTuChoi(&c, now: t0)
     MoCoi.ghiTuChoi(&c, now: t0.addingTimeInterval(3600))
     XCTAssertEqual(c.tuChoiTu, t0, "từ chối liên tục giữ mốc ĐẦU")
+    MoCoi.ghiTuChoi(&c, now: t0.addingTimeInterval(5 * 3600))
     XCTAssertFalse(MoCoi.la(c, now: t0.addingTimeInterval(6 * 3600 - 1)))
     XCTAssertTrue(MoCoi.la(c, now: t0.addingTimeInterval(6 * 3600)), "từ chối token đủ 6 giờ ⇒ mồ côi")
+    var le = CauHinhMay(); MoCoi.ghiTuChoi(&le, now: t0)
+    XCTAssertFalse(MoCoi.la(le, now: t0.addingTimeInterval(6 * 3600)), "một lần 401 lẻ rồi mất mạng 6 giờ: chưa phải từ chối liên tục")
     MoCoi.ghiTuChoi(&c, now: t0.addingTimeInterval(-60))
     XCTAssertEqual(c.tuChoiTu, t0.addingTimeInterval(-60), "đồng hồ lùi ⇒ đếm lại từ bây giờ")
     MoCoi.ghiThanhCong(&c, now: t0)
@@ -70,9 +73,9 @@ final class VaBugWinTests: XCTestCase {
     dongHo.tien(5); _ = await b.apChinhSach()
     XCTAssertFalse(fake.daDongPhien.isEmpty, "còn khoá ⇒ đóng phiên Con")
 
-    dongHo.tien(6 * 3600)
+    for _ in 0..<6 { dongHo.tien(3600); _ = await b.motVong() }      // máy chủ vẫn từ chối mỗi lần đồng bộ suốt 6 giờ
     fake.daDongPhien = []; fake.tinHieuDaGui = []
-    _ = await b.motVong()
+    dongHo.tien(60); _ = await b.motVong()
     dongHo.tien(5); _ = await b.apChinhSach()
     XCTAssertNil(fake.tep[plist], "mồ côi: gỡ plist lọc web")
     XCTAssertFalse(String(decoding: fake.tep[tm + "/hosts"] ?? Data(), as: UTF8.self).contains("youtube.com"), "mồ côi: gỡ khối hosts")
@@ -89,6 +92,28 @@ final class VaBugWinTests: XCTestCase {
     dongHo.tien(120); _ = await b.motVong()
     XCTAssertNil(kho.doc()?.tuChoiTu)
     XCTAssertNotNil(fake.tep[plist], "hết mồ côi: lọc web lại")
+  }
+
+  /// Máy bị xoá khỏi gia đình rồi Ba Mẹ thêm lại: máy mồ côi do token bị từ chối phải ghép lại được bằng mã 6 số, không cần gỡ + cài lại.
+  func testMayMoCoiGhepLaiDuoc() async throws {
+    let tm = try thuMucTam(); defer { try? FileManager.default.removeItem(atPath: tm) }
+    let fake = HeThongGia(), dongHo = DongHoGia()
+    let kho = ConfigStore(duongDan: tm + "/config.json")
+    let pol = policyMau(mode: CheDo.khoa.rawValue, now: dongHo.thuc)
+    try kho.sua { $0.token = "cu"; $0.uidCon = 501; $0.taiKhoanCon = "be"; $0.policyCuoi = pol; $0.policyLuc = dongHo.thuc }
+    fake.uidTheoTen = ["be": 501, "ba": 502]; fake.admin = ["ba"]
+    let api = MayChuGia(); api.dongBoLoi = LoiApi(maHttp: 401, ma: "token_sai", chu: "token sai")
+    let b = BoMay(api: api, heThong: fake, kho: kho, tuyChon: TuyChonBoMay(duongDanHosts: tm + "/hosts", thuMucChinhSach: tm + "/Managed", tuCapNhat: false),
+                  dongHo: { dongHo.thuc }, donDieu: { dongHo.donDieu })
+    _ = await b.motVong()
+    if case .loi(let ma, _) = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502) { XCTAssertEqual(ma, "da_ghep", "chưa mồ côi: không ghép đè") }
+    else { XCTFail("phải từ chối ghép") }
+    for _ in 0..<6 { dongHo.tien(3600); _ = await b.motVong() }
+    if case let .trangThai(t) = await b.xuLyIPC(.trangThai, uidGoi: 502) { XCTAssertFalse(t.daGhep, "tray Ba Mẹ thấy «Ghép máy»") } else { XCTFail() }
+    let kq = await b.xuLyIPC(.ghep(ma: "123456", taiKhoanCon: "be"), uidGoi: 502)
+    guard case .ok = kq else { return XCTFail("ghép lại máy mồ côi: \(kq)") }
+    XCTAssertEqual(kho.doc()?.token, "tok1")
+    XCTAssertNil(kho.doc()?.tuChoiTu); XCTAssertNil(kho.doc()?.policyCuoi, "Policy của gia đình cũ bỏ")
   }
 
   func testMatMangKhongPhaiTokenSaiThi6GioVanChan() async throws {
