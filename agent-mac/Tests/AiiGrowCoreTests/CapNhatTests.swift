@@ -791,7 +791,7 @@ final class CapNhatTests: XCTestCase {
     XCTAssertEqual(try IPCMa.decoder.decode(TraLoi.self, from: t), .thongBao(chu: "x"))
   }
 
-  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.6") }
+  func testPhienBanHienTai() { XCTAssertEqual(PhienBan.hienTai, "0.1.7") }
 
   // MARK: chạy thử postinstall trên thư mục tạm (AIIGROW_GOC + launchctl giả; không đụng máy thật, không cần root)
 
@@ -815,7 +815,7 @@ final class CapNhatTests: XCTestCase {
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/bash")
     p.arguments = [BaoMatTests.goiDir + "/scripts/postinstall", goiTuDong ? cfg + "/cap-nhat/AiiGrow-0.1.2.pkg" : "/Users/ba/Downloads/AiiGrow.pkg"]
-    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "AIIGROW_PKGUTIL": gia, "PATH": "/usr/bin:/bin"].merging(dongLenh ? ["COMMAND_LINE_INSTALL": "1"] : [:]) { a, _ in a }
+    p.environment = ["AIIGROW_GOC": goc, "AIIGROW_LAUNCHCTL": gia, "AIIGROW_PKGUTIL": gia, "AIIGROW_NGU": "0", "PATH": "/usr/bin:/bin"].merging(dongLenh ? ["COMMAND_LINE_INSTALL": "1"] : [:]) { a, _ in a }
     p.standardOutput = FileHandle.nullDevice; p.standardError = FileHandle.nullDevice
     try p.run(); p.waitUntilExit()
     let log = (try? String(contentsOfFile: nhatKy, encoding: .utf8)) ?? ""

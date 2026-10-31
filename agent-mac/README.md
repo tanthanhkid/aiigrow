@@ -30,6 +30,13 @@ Daemon hỏi `GET /api/agent/ban-moi?platform=mac` lúc khởi động (+90 giâ
 (phải là «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)») + `spctl -a -t install`, rồi cài đè bằng `installer` chạy như job launchd `vn.aiilab.aiigrow.capnhat`
 (log `/Library/Logs/AiiGrow/capnhat.log`). Sai bước nào là xoá gói, ghi log, không cài. Không cài khi đang gỡ từ xa. Ghép máy được giữ (`config.json` không đụng).
 Nút: menu tray của phiên Ba Mẹ có «Kiểm tra cập nhật» (Con không thấy, daemon cũng từ chối uid Con). Chi tiết: `THIET-KE.md` mục 6.
+0.1.7+: installer báo xong mà daemon không nằm trong launchd (bootstrap của postinstall hỏng) ⇒ job tự nạp lại; postinstall thử bootstrap tới 5 lần.
+
+## Máy mồ côi tự thôi chặn (0.1.7+, như agent-win `MoCoi`)
+
+Máy chủ từ chối token liên tục ≥ 6 giờ (máy đã bị xoá khỏi gia đình mà lệnh gỡ không tới), hoặc không đồng bộ được ≥ 14 ngày VÀ máy đã chạy
+≥ 72 giờ trong khoảng đó ⇒ gỡ plist lọc web + khối hosts, không đóng app, không khoá; `status.moCoi = true`. Policy cuối giữ trên đĩa —
+đồng bộ lại được thì áp lại ngay (`Sources/AiiGrowCore/MoCoi.swift`). `go-cai.sh` (0.1.7+) gỡ cả hồ sơ DNS gia đình `vn.aiilab.aiigrow.dns.*`.
 
 ## Ký và notarize (bắt buộc khi phát hành, từ 0.1.0)
 

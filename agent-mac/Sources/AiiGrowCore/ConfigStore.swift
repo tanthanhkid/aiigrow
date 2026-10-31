@@ -22,6 +22,10 @@ public struct CauHinhMay: Codable, Equatable {
   /// Tài khoản đã bị hạ khỏi nhóm admin lúc ghép (để trả lại khi gỡ).
   public var daHaQuyen: [String] = []
   public var lienLacCuoi: Date?
+  /// Mốc đầu tiên máy chủ từ chối token liên tục (MoCoi.swift) — nil khi đồng bộ được.
+  public var tuChoiTu: Date?
+  /// Giây máy CHẠY (đồng hồ đơn điệu) kể từ lần đồng bộ được cuối — cùng lienLacCuoi quyết «mất liên lạc lâu» (MoCoi.swift).
+  public var matLienLacChayGiay: Double = 0
   /// Danh sách app thật (DanhSachApp.swift): bam lần gửi được gần nhất + yeuCau «Làm mới» đã xử lý.
   public var bamAppDaGui: String?
   public var yeuCauAppDaXuLy: String?
@@ -45,6 +49,8 @@ public struct CauHinhMay: Codable, Equatable {
     policyLuc = (try? c.decodeIfPresent(Date.self, forKey: .policyLuc)) ?? nil
     daDungGiayTuSync = g(.daDungGiayTuSync, 0); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
+    tuChoiTu = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiTu)) ?? nil
+    matLienLacChayGiay = g(.matLienLacChayGiay, 0)
     bamAppDaGui = (try? c.decodeIfPresent(String.self, forKey: .bamAppDaGui)) ?? nil
     yeuCauAppDaXuLy = (try? c.decodeIfPresent(String.self, forKey: .yeuCauAppDaXuLy)) ?? nil
     moTamOffline = (try? c.decodeIfPresent(MoTamOffline.self, forKey: .moTamOffline)) ?? nil

@@ -226,6 +226,8 @@ public final class HeThongMac: HeThong {
   /// Lệnh sh của job cài (`caiGoi`).
   /// $1 gói · $2 nhãn · $3 dấu PID · $4 dấu đã gỡ · $5 plist daemon · $6 plist tray · $7 phien-gui.sh (uid phiên GUI, chung với pre/postinstall). Đọc kỹ ba nhánh:
   /// - napLai: installer hỏng SAU preinstall (đã bootout daemon + tray mọi phiên) thì postinstall không chạy ⇒ tự nạp lại bản cũ (trừ khi máy vừa bị gỡ).
+  ///   installer báo XONG mà daemon không nằm trong launchd (bootstrap của postinstall hỏng — `|| true` nuốt lỗi) cũng nạp lại: cập nhật không bao giờ
+  ///   để daemon đứng tới lần khởi động máy sau (agent-win PR #54 «cập nhật lỗi để dịch vụ đứng»).
   /// - Job `launchctl submit` được launchd chạy LẠI nếu chết giữa chừng: thấy dấu PID của lượt trước (lượt thường xoá nó khi xong) ⇒ không cài lại,
   ///   nạp lại bản cũ, dọn, tự gỡ nhãn — không vòng cài vô hạn.
   /// - Lượt trước đã xong (xoá gói + dấu PID) mà `launchctl remove` hỏng ⇒ launchd chạy lại: không còn gói ⇒ tự gỡ nhãn, không cài/nạp lại.
@@ -241,7 +243,7 @@ public final class HeThongMac: HeThong {
     echo $$ > "$3"
     if [ -f "$DA_GO" ] ; then echo "máy đang được gỡ — không cài" ; /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit 0 ; fi
     /usr/sbin/installer -pkg "$1" -target / ; ma=$? ; echo "installer xong, mã $ma"
-    if [ $ma -ne 0 ] ; then napLai ; fi
+    if [ $ma -ne 0 ] ; then napLai ; elif ! /bin/launchctl print system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 ; then echo "cài xong mà daemon chưa nạp" ; napLai ; fi
     if [ -f "$DA_GO" ] ; then /usr/sbin/pkgutil --forget vn.aiilab.aiigrow.pkg ; fi
     /bin/rm -f "$1" "$3" ; /bin/launchctl remove "$2" ; exit $ma
     """

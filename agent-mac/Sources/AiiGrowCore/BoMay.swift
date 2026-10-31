@@ -49,6 +49,10 @@ public actor BoMay {
   /// HẠN CHÓT (đồng hồ đơn điệu) đóng phiên Con khi đang khoá; nil = không đang đếm. Còn lại = max(0, khoaLuc − donDieu()) tính tại lúc hỏi.
   private var khoaLuc: Double?
   private var daApHosts: String?
+  /// Lượt đồng bộ gần nhất lỗi (mọi loại) ⇒ vòng áp cộng thời gian chạy vào CauHinhMay.matLienLacChayGiay (MoCoi.swift).
+  private var dongBoLoi = false
+  /// Đã ghi log «mồ côi — thôi chặn» (ghi một lần mỗi lần vào/ra trạng thái).
+  private var daBaoMoCoi = false
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
               dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
@@ -202,6 +206,7 @@ public actor BoMay {
     var st = TrangThaiAgent(mode: policy?.mode ?? CheDo.tuDo.rawValue,
                             trayAlive: trayDangSong(), childSessionActive: con != nil,
                             offline: matMang, cheDo: cheDoHieuLuc(), phienKhac: laPhienKhac())
+    st.moCoi = MoCoi.la(cauHinh, now: dongHo())                 // máy chủ (gia-dinh.ts) không tính máy mồ côi là đang «Chặn thật»
     if conLaAdmin { st.conLaAdmin = true; st.quyen["haQuyenAdmin"] = false }   // quyen[…]=false ⇒ chiTietBaoVe của máy chủ liệt vào «còn thiếu» (mức Một phần)
     DemPhut.don(&cauHinh.demPhut)
     let dung = DemPhut.tong(cauHinh.demPhut)
@@ -227,6 +232,8 @@ public actor BoMay {
       }
       policy = kq.policy
       matMang = false
+      dongBoLoi = false
+      MoCoi.ghiThanhCong(&cauHinh, now: dongHo())                 // hết mồ côi (nếu đang) — vòng áp chạy lại bình thường
       syncLuc = donDieu() + Double(kq.nextCheckSec)
       cauHinh.policyCuoi = kq.policy
       cauHinh.policyLuc = dongHo()
@@ -235,18 +242,27 @@ public actor BoMay {
         $0.policyCuoi = kq.policy
         $0.policyLuc = self.dongHo()
         $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync
-        $0.lienLacCuoi = self.dongHo()
+        $0.lienLacCuoi = self.cauHinh.lienLacCuoi
+        $0.tuChoiTu = nil
+        $0.matLienLacChayGiay = 0
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
     } catch let e as LoiApi {
       matMang = e.laMang
+      dongBoLoi = true
       syncLuc = donDieu() + Double(policy?.nextCheckSec ?? 60)
-      if e.laTokenSai { heThong.ghiLog("Máy chủ báo token sai — có thể đã bị gỡ khỏi gia đình.") }
+      if e.laTokenSai {
+        let truoc = cauHinh.tuChoiTu
+        MoCoi.ghiTuChoi(&cauHinh, now: dongHo())
+        if cauHinh.tuChoiTu != truoc { let t = cauHinh.tuChoiTu; _ = try? kho.sua { $0.tuChoiTu = t } }
+        heThong.ghiLog("Máy chủ báo token sai — có thể đã bị gỡ khỏi gia đình; quá \(Int(MoCoi.gioNguong)) giờ liên tục thì AiiGrow tự thôi chặn.")
+      }
       else { heThong.ghiLog("Đồng bộ lỗi (\(e.chu)) — chạy theo Policy nhớ.") }
     } catch {
       matMang = true
+      dongBoLoi = true
       syncLuc = donDieu() + Double(policy?.nextCheckSec ?? 60)
     }
   }
@@ -262,7 +278,7 @@ public actor BoMay {
     let phien = heThong.phienConsole()
     let laCon = phien?.uid == cauHinh.uidCon
     let manKhoa = phien?.manKhoa ?? true
-    guard let p0 = policy else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
+    guard let p0 = policy, !MoCoi.la(cauHinh, now: dongHo()) else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
     let p = BoMay.gioiHanPhienOffline(p0, matMang: matMang, tu: cauHinh.policyLuc, now: dongHo())
     let hl = MoTamOffline.apDung(DanhGiaPolicy.tinh(p, now: dongHo(), daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo())
     var demNguoc: Int?
@@ -288,6 +304,26 @@ public actor BoMay {
       demGiayApp(troi: troi, now: now)
       demPhutBu(troi: troi, now: now)
       _ = try? kho.sua { $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync; $0.demPhut = self.cauHinh.demPhut; $0.phienBu = self.cauHinh.phienBu }
+    }
+    if dongBoLoi {                                          // mất liên lạc: cộng thời gian CHẠY (đơn điệu) — lưu mỗi phút, khởi động lại vẫn tính tiếp
+      let phutTruoc = Int(cauHinh.matLienLacChayGiay / 60)
+      MoCoi.congChay(&cauHinh, giay: troi)
+      if Int(cauHinh.matLienLacChayGiay / 60) != phutTruoc { let g = cauHinh.matLienLacChayGiay; _ = try? kho.sua { $0.matLienLacChayGiay = g } }
+    }
+    // Máy mồ côi (MoCoi.swift — máy chủ từ chối token ≥ 6 giờ / mất liên lạc ≥ 14 ngày + 72 giờ chạy): thôi chặn như agent-win — gỡ luật web +
+    // hosts, không đóng app, không khoá. Policy cuối giữ trên đĩa; đồng bộ lại được thì vòng sau áp lại bình thường.
+    if MoCoi.la(cauHinh, now: now) {
+      if !daBaoMoCoi {
+        daBaoMoCoi = true
+        heThong.ghiLog("Máy mồ côi (\(MoCoi.tuChoiLau(cauHinh, now: now) ? "máy chủ từ chối token quá \(Int(MoCoi.gioNguong)) giờ" : "mất liên lạc quá \(Int(MoCoi.ngayMatLienLac)) ngày")) — AiiGrow tạm thôi chặn.")
+      }
+      apHosts(web: nil)
+      apChinhSachTrinhDuyet(web: nil)
+      trinhDuyetCanDong = []; daGuiTerm = [:]; chanDaBao = []; khoaLuc = nil
+      return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
+    } else if daBaoMoCoi {
+      daBaoMoCoi = false
+      heThong.ghiLog("Hết mồ côi — áp chính sách trở lại.")
     }
 
     guard let p0 = policy else {

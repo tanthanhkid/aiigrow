@@ -3,7 +3,7 @@
 set -u
 # AIIGROW_GOC (mặc định rỗng = gốc /) và AIIGROW_LAUNCHCTL chỉ để thử logic phân nhánh trên thư mục tạm, không cần root.
 # Chạy bằng root (installer thật) thì bỏ qua hai biến thử — không để môi trường đổi lệnh/đường dẫn của script root.
-if [ "$(/usr/bin/id -u)" -eq 0 ]; then unset AIIGROW_GOC AIIGROW_LAUNCHCTL AIIGROW_PKGUTIL; fi
+if [ "$(/usr/bin/id -u)" -eq 0 ]; then unset AIIGROW_GOC AIIGROW_LAUNCHCTL AIIGROW_PKGUTIL AIIGROW_NGU; fi
 GOC="${AIIGROW_GOC:-}"
 LAUNCHCTL="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
 PKGUTIL="${AIIGROW_PKGUTIL:-/usr/sbin/pkgutil}"
@@ -83,7 +83,14 @@ done
 # nhãn trình gỡ từ xa còn sót: chỉ gỡ khi job đã xong (không có PID)
 "$LAUNCHCTL" list vn.aiilab.aiigrow.go 2>/dev/null | /usr/bin/grep -q '"PID"' || "$LAUNCHCTL" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true
 "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
-"$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" || true
+# bootstrap ngay sau bootout có lúc hỏng («Bootstrap failed: 5: Input/output error» khi launchd chưa dọn xong bản cũ) ⇒ thử lại tới 5 lần,
+# kiểm bằng `launchctl print` — không để cài/cập nhật xong mà daemon đứng tới lần khởi động máy sau (agent-win PR #54).
+NGU="${AIIGROW_NGU:-1}"
+for lan in 1 2 3 4 5; do
+  "$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" >/dev/null 2>&1
+  "$LAUNCHCTL" print system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 && break
+  [ "$lan" -lt 5 ] && /bin/sleep "$NGU"
+done
 "$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 
 # Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid) — cùng quy tắc phien-gui.sh với preinstall/job cập nhật/go-cai.sh.
