@@ -113,7 +113,8 @@ done
 
 # Chính sách trình duyệt daemon ghi: /Library/Managed Preferences/<tài khoản>/<bundleId>.plist (Chrome, Edge, Brave, Cốc Cốc).
 # Tệp có khoá dấu «AiiGrowManaged» là của AiiGrow: gỡ các khoá AiiGrow sở hữu; còn rỗng thì xoá tệp (khoá của người khác giữ nguyên).
-KHOA_TA="AiiGrowManaged URLBlocklist URLAllowlist IncognitoModeAvailability InPrivateModeAvailability AllowDeletingBrowserHistory BrowserGuestModeEnabled"
+# Phải khớp ChinhSachTrinhDuyet.khoaCuaTa (test testGoCaiGoDuKhoaCuaTa) — thiếu DnsOverHttpsMode thì gỡ xong Chrome của Con vẫn «do tổ chức quản lý».
+KHOA_TA="AiiGrowManaged URLBlocklist URLAllowlist IncognitoModeAvailability InPrivateModeAvailability AllowDeletingBrowserHistory BrowserGuestModeEnabled DnsOverHttpsMode"
 # Trả giá trị gốc của khoá $1 (cất ở AiiGrowGoc trong tệp $2) theo đúng kiểu; không có bản gốc ⇒ trả 1 (để xoá khoá).
 khoi_phuc() {
   local k="$1" f="$2" t v
@@ -141,6 +142,19 @@ for thumuc in "$MP"/*/; do
   done
 done
 /usr/bin/killall cfprefsd >/dev/null 2>&1 || true
+
+# Hồ sơ DNS gia đình (.mobileconfig «vn.aiilab.aiigrow.dns.<nhãn>», Ba Mẹ cài từ menu AiiGrow): gỡ cùng AiiGrow — để lại thì Mac vẫn
+# hỏi DNS lọc của gia đình sau khi máy đã rời gia đình (agent-win trả DNS cũ khi gỡ, PR #138). Chỉ gỡ hồ sơ mang tiền tố của AiiGrow.
+# `profiles list -all`: mỗi dòng «<_computerlevel|tên người dùng>[n] attribute: profileIdentifier: <id>» — hồ sơ mức người dùng phải gỡ kèm -user.
+/usr/bin/profiles list -all 2>/dev/null | /usr/bin/awk '/profileIdentifier: vn\.aiilab\.aiigrow\.dns\./ { split($1, a, "["); print a[1], $NF }' | /usr/bin/sort -u |
+while read -r ai id; do
+  case "$id" in vn.aiilab.aiigrow.dns.*) ;; *) continue ;; esac
+  case "$ai" in ''|*[!A-Za-z0-9._-]*) continue ;; esac
+  if [ "$ai" = _computerlevel ]; then /usr/bin/profiles remove -identifier "$id" -forced >/dev/null 2>&1
+  else /usr/bin/profiles remove -identifier "$id" -user "$ai" -forced >/dev/null 2>&1; fi \
+    && echo "Đã gỡ hồ sơ DNS $id ($ai)" || echo "Không gỡ được hồ sơ DNS $id ($ai) — gỡ tay trong Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Hồ sơ."
+done
+/usr/bin/dscacheutil -flushcache >/dev/null 2>&1 || true
 
 /bin/rm -f "$DAEMON_PLIST" "$TRAY_PLIST"
 /bin/rm -rf "/Applications/AiiGrow.app" "/Library/Application Support/AiiGrow" "/Library/Logs/AiiGrow"

@@ -49,6 +49,12 @@ public actor BoMay {
   /// HẠN CHÓT (đồng hồ đơn điệu) đóng phiên Con khi đang khoá; nil = không đang đếm. Còn lại = max(0, khoaLuc − donDieu()) tính tại lúc hỏi.
   private var khoaLuc: Double?
   private var daApHosts: String?
+  /// Lượt đồng bộ gần nhất lỗi (mọi loại) ⇒ vòng áp cộng thời gian chạy vào CauHinhMay.matLienLacChayGiay (MoCoi.swift).
+  private var dongBoLoi = false
+  /// Đã ghi log «mồ côi — thôi chặn» (ghi một lần mỗi lần vào/ra trạng thái).
+  private var daBaoMoCoi = false
+  /// Tăng mỗi lần ghép — lượt đồng bộ mang token cũ về muộn thì bỏ kết quả.
+  private var theHeGhep = 0
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
               dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
@@ -69,6 +75,9 @@ public actor BoMay {
   }
 
   public var daGhep: Bool { cauHinh.daGhep }
+  /// Máy chủ từ chối token ≥ 6 giờ (máy đã bị xoá khỏi gia đình) ⇒ coi như CHƯA ghép với tray / lệnh ghép: Ba Mẹ ghép lại bằng mã 6 số
+  /// mà không phải gỡ + cài lại (agent-win: 401 ⇒ khay báo cần ghép lại).
+  private var daGhepHieuLuc: Bool { cauHinh.daGhep && !MoCoi.tuChoiLau(cauHinh, now: dongHo()) }
   /// Tài khoản Con còn quyền admin (ghép chưa hạ được / ai đó nâng lại) — gửi lên máy chủ + hiện ở tray.
   public private(set) var conLaAdmin = false
 
@@ -76,7 +85,7 @@ public actor BoMay {
 
   /// Ghép máy lần đầu (lệnh IPC `ghep`, uid admin). Gọi máy chủ pair, lưu token + uid Con, hạ Con về Standard nếu đang admin (phải còn admin khác).
   public func ghep(ma: String, taiKhoanCon: String) async throws {
-    guard !cauHinh.daGhep else { throw LoiApi(ma: "da_ghep", chu: "Máy này đã được ghép rồi.") }
+    guard !daGhepHieuLuc else { throw LoiApi(ma: "da_ghep", chu: "Máy này đã được ghép rồi.") }
     guard !dangGhep else { throw LoiApi(ma: "dang_ghep", chu: "Đang ghép máy, vui lòng chờ.") }
     dangGhep = true                                   // đặt TRƯỚC await đầu tiên: actor reentrancy không cho gọi server hai lần
     defer { dangGhep = false }
@@ -105,6 +114,7 @@ public actor BoMay {
     }
     // Lưu token NGAY (mã ghép đã bị dùng): hạ quyền lỗi sau đó vẫn là máy đã ghép, chỉ cảnh báo.
     let cu = cauHinh.daHaQuyen
+    let ghepLai = cauHinh.daGhep                       // máy mồ côi (token bị từ chối) được ghép lại
     try kho.sua {
       $0.mayChu = kq.server ?? api_mayChu
       $0.deviceId = kq.deviceId
@@ -113,13 +123,20 @@ public actor BoMay {
       $0.taiKhoanCon = tk
       $0.uidCon = uidCon
       $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
+      MoCoi.ghiThanhCong(&$0, now: self.dongHo())       // ghép lại máy mồ côi: hết mồ côi, Policy cũ bỏ (chờ dong-bo của lần ghép mới)
+      if ghepLai {                                      // dữ liệu của gia đình cũ không mang sang lần ghép mới
+        $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0
+        $0.phienBu = nil; $0.moTamOffline = nil; $0.demPhut = [:]
+      }
     }
     heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
+    api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // TRƯỚC await kế: lượt đồng bộ chen vào mang token mới
+    theHeGhep += 1
+    if ghepLai { policy = nil; khoaLuc = nil; dongBoLoi = false; syncLuc = 0; choiNho = [:] }
     quenDanhSachApp()                                   // máy mới trên máy chủ ⇒ quét + gửi đủ ngay ở lần đồng bộ đầu
     // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
     if await !chayNgoaiActor({ ht.trinhGoDangChay() }) { heThong.xoaTep(DuongDan.daGo) }
-    api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
     conLaAdmin = canHa                                  // chỉ thành false khi hạ quyền xong
     if canHa {
@@ -202,6 +219,7 @@ public actor BoMay {
     var st = TrangThaiAgent(mode: policy?.mode ?? CheDo.tuDo.rawValue,
                             trayAlive: trayDangSong(), childSessionActive: con != nil,
                             offline: matMang, cheDo: cheDoHieuLuc(), phienKhac: laPhienKhac())
+    st.moCoi = MoCoi.la(cauHinh, now: dongHo())                 // cùng cheDo «giam-sat» + quyen.chanThat=false (cheDoHieuLuc) như agent-win
     if conLaAdmin { st.conLaAdmin = true; st.quyen["haQuyenAdmin"] = false }   // quyen[…]=false ⇒ chiTietBaoVe của máy chủ liệt vào «còn thiếu» (mức Một phần)
     DemPhut.don(&cauHinh.demPhut)
     let dung = DemPhut.tong(cauHinh.demPhut)
@@ -215,8 +233,10 @@ public actor BoMay {
         heThong.ghiLog("Gửi bù phút chơi bị từ chối: \(e.chu)")
       } catch {}
     }
+    let the = theHeGhep
     do {
       let kq = try await api.dongBo(trangThai: st, dung: dung, luc: dongHo())
+      guard the == theHeGhep else { return }                    // ghép lại trong lúc chờ: kết quả của token cũ, bỏ
       if BoMay.dauChoi(kq.policy) != policy.map(BoMay.dauChoi) { choiNho = [:] }   // bật/tắt đổi điểm, mục chơi, phiên, chế độ đổi ⇒ số phút nhớ bỏ đi
       if moTamDangMo() {                             // có mạng lại ⇒ kết thúc lượt mở offline, Ba Mẹ lại quyết bằng Policy online
         cauHinh.moTamOffline?.moDen = dongHo()
@@ -227,6 +247,9 @@ public actor BoMay {
       }
       policy = kq.policy
       matMang = false
+      dongBoLoi = false
+      let lucOk = dongHo()
+      MoCoi.ghiThanhCong(&cauHinh, now: lucOk)                    // hết mồ côi (nếu đang) — vòng áp chạy lại bình thường
       syncLuc = donDieu() + Double(kq.nextCheckSec)
       cauHinh.policyCuoi = kq.policy
       cauHinh.policyLuc = dongHo()
@@ -235,18 +258,27 @@ public actor BoMay {
         $0.policyCuoi = kq.policy
         $0.policyLuc = self.dongHo()
         $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync
-        $0.lienLacCuoi = self.dongHo()
+        MoCoi.ghiThanhCong(&$0, now: lucOk)
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
+    } catch _ where the != theHeGhep {
+      return                                                    // lỗi của token cũ (ghép lại trong lúc chờ) — không ghi vào lần ghép mới
     } catch let e as LoiApi {
       matMang = e.laMang
+      dongBoLoi = true
       syncLuc = donDieu() + Double(policy?.nextCheckSec ?? 60)
-      if e.laTokenSai { heThong.ghiLog("Máy chủ báo token sai — có thể đã bị gỡ khỏi gia đình.") }
+      if e.laTokenSai {
+        MoCoi.ghiTuChoi(&cauHinh, now: dongHo())
+        let t = cauHinh.tuChoiTu, cuoi = cauHinh.tuChoiCuoi
+        _ = try? kho.sua { $0.tuChoiTu = t; $0.tuChoiCuoi = cuoi }
+        heThong.ghiLog("Máy chủ báo token sai — có thể đã bị gỡ khỏi gia đình; quá \(Int(MoCoi.gioNguong)) giờ liên tục thì AiiGrow tự thôi chặn.")
+      }
       else { heThong.ghiLog("Đồng bộ lỗi (\(e.chu)) — chạy theo Policy nhớ.") }
     } catch {
       matMang = true
+      dongBoLoi = true
       syncLuc = donDieu() + Double(policy?.nextCheckSec ?? 60)
     }
   }
@@ -262,7 +294,7 @@ public actor BoMay {
     let phien = heThong.phienConsole()
     let laCon = phien?.uid == cauHinh.uidCon
     let manKhoa = phien?.manKhoa ?? true
-    guard let p0 = policy else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
+    guard let p0 = policy, !MoCoi.la(cauHinh, now: dongHo()) else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
     let p = BoMay.gioiHanPhienOffline(p0, matMang: matMang, tu: cauHinh.policyLuc, now: dongHo())
     let hl = MoTamOffline.apDung(DanhGiaPolicy.tinh(p, now: dongHo(), daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo())
     var demNguoc: Int?
@@ -288,6 +320,25 @@ public actor BoMay {
       demGiayApp(troi: troi, now: now)
       demPhutBu(troi: troi, now: now)
       _ = try? kho.sua { $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync; $0.demPhut = self.cauHinh.demPhut; $0.phienBu = self.cauHinh.phienBu }
+    }
+    if dongBoLoi {                                          // mất liên lạc: cộng thời gian CHẠY (đơn điệu) — lưu mỗi phút, khởi động lại vẫn tính tiếp
+      let phutTruoc = Int(cauHinh.matLienLacChayGiay / 60)
+      MoCoi.congChay(&cauHinh, giay: troi)
+      if Int(cauHinh.matLienLacChayGiay / 60) != phutTruoc { let g = cauHinh.matLienLacChayGiay; _ = try? kho.sua { $0.matLienLacChayGiay = g } }
+    }
+    // Máy mồ côi (MoCoi.swift — máy chủ từ chối token ≥ 6 giờ / mất liên lạc ≥ 14 ngày + 72 giờ chạy): thôi chặn như agent-win — gỡ luật web +
+    // hosts, không đóng app, không khoá. Policy cuối giữ trên đĩa; đồng bộ lại được thì vòng sau áp lại bình thường.
+    if MoCoi.la(cauHinh, now: now) {
+      if !daBaoMoCoi {                                    // dọn MỘT lần lúc vào mồ côi (và lần đầu sau khởi động daemon)
+        daBaoMoCoi = true
+        thaWebMoiTaiKhoan()
+        heThong.ghiLog("Máy mồ côi (\(MoCoi.tuChoiLau(cauHinh, now: now) ? "máy chủ từ chối token quá \(Int(MoCoi.gioNguong)) giờ" : "mất liên lạc quá \(Int(MoCoi.ngayMatLienLac)) ngày")) — AiiGrow tạm thôi chặn.")
+      }
+      trinhDuyetCanDong = []; daGuiTerm = [:]; chanDaBao = []; khoaLuc = nil
+      return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
+    } else if daBaoMoCoi {
+      daBaoMoCoi = false
+      heThong.ghiLog("Hết mồ côi — áp chính sách trở lại.")
     }
 
     guard let p0 = policy else {
@@ -478,7 +529,9 @@ public actor BoMay {
       adminGoi = false                                 // ping/appTienCanh/xin… không cần quyền admin — không chạy dscl
     }
     let laAdmin: (UInt32) -> Bool = { $0 == uidGoi && adminGoi }
-    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: cauHinh.daGhep, laAdmin: laAdmin)
+    let daGhepXet: Bool
+    if case .ghep = yc { daGhepXet = daGhepHieuLuc } else { daGhepXet = cauHinh.daGhep }     // chỉ lệnh ghép coi máy mồ côi (token bị từ chối) là chưa ghép
+    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: daGhepXet, laAdmin: laAdmin)
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:
@@ -822,10 +875,7 @@ public actor BoMay {
     // Dấu «máy đã gỡ» TRƯỚC await đầu tiên: installer tự cập nhật vừa giao xong mà postinstall chạy trong lúc chờ máy chủ thì không nạp lại daemon.
     try? heThong.ghiTep(DuongDan.daGo, Data("da-go\n".utf8), quyen: 0o600)
     policy = nil; khoaLuc = nil
-    apChinhSachTrinhDuyet(web: nil)
-    // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.
-    for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
-    apHosts(web: nil)
+    thaWebMoiTaiKhoan()
     for tk in cauHinh.daHaQuyen { heThong.ghiLog("[gỡ] trả lại quyền admin cho \(tk) do go-cai.sh thực hiện.") }
     // Báo máy chủ «đã gỡ xong» TRƯỚC khi xoá token (sau đó token không còn dùng được). Lỗi mạng thì bỏ qua — máy chủ chờ tối đa 7 ngày rồi cho xoá hẳn.
     do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
@@ -841,6 +891,13 @@ public actor BoMay {
     heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)
   }
 
+  /// Gỡ luật web của AiiGrow: plist trình duyệt ở MỌI thư mục tài khoản trong Managed Preferences (không chỉ Con) + khối hosts (tuGo, mồ côi).
+  private func thaWebMoiTaiKhoan() {
+    apChinhSachTrinhDuyet(web: nil)
+    for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
+    apHosts(web: nil)
+  }
+
   private func conDangDung() -> UInt32? {
     guard let phien = heThong.phienConsole(), phien.uid == cauHinh.uidCon, !phien.manKhoa else { return nil }
     return phien.uid
@@ -851,8 +908,9 @@ public actor BoMay {
     return phien.uid != uidCon && phien.uid >= 500
   }
   private func cheDoHieuLuc() -> String {
+    if MoCoi.la(cauHinh, now: dongHo()) { return CheDoAgent.giamSat }    // mồ côi ⇒ giám sát (agent-win CheDoHieuLuc.Chon(…, moCoi))
     // Chế độ Ba Mẹ chọn (Policy.cheDo) thắng chế độ cục bộ; chưa chọn ⇒ giữ cục bộ.
-    CheDoAgent.chuan(policy?.cheDo) ?? cauHinh.cheDo
+    return CheDoAgent.chuan(policy?.cheDo) ?? cauHinh.cheDo
   }
 
   // MARK: danh sách app thật + app bị Chặn (DanhSachApp.swift, QuetAppMac.swift)
@@ -1008,7 +1066,7 @@ public actor BoMay {
     if let hl, moTamDangMo(), !hl.khoa, che == .khoa || (che == .hoc && !hl.chiAppHoc) { che = hl.chiAppHoc ? .hoc : .tuDo }
     let chan = (p?.web ?? ChinhSachWeb()).chan
     var tt = TrangThai(
-      daGhep: cauHinh.daGhep, laPhienCon: laCon, tenCon: cauHinh.tenCon.isEmpty ? nil : cauHinh.tenCon,
+      daGhep: daGhepHieuLuc, laPhienCon: laCon, tenCon: cauHinh.tenCon.isEmpty ? nil : cauHinh.tenCon,
       cheDo: che, lyDoKhoa: LyDoKhoa.choTray(hl?.lyDoKhoa),
       conPhut: phutDung.map { Int($0.rounded(.down)) },
       moDen: hl?.moDen, khoaDen: nil, demNguocGiay: demNguoc,

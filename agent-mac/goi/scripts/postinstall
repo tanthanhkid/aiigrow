@@ -3,7 +3,7 @@
 set -u
 # AIIGROW_GOC (mặc định rỗng = gốc /) và AIIGROW_LAUNCHCTL chỉ để thử logic phân nhánh trên thư mục tạm, không cần root.
 # Chạy bằng root (installer thật) thì bỏ qua hai biến thử — không để môi trường đổi lệnh/đường dẫn của script root.
-if [ "$(/usr/bin/id -u)" -eq 0 ]; then unset AIIGROW_GOC AIIGROW_LAUNCHCTL AIIGROW_PKGUTIL; fi
+if [ "$(/usr/bin/id -u)" -eq 0 ]; then unset AIIGROW_GOC AIIGROW_LAUNCHCTL AIIGROW_PKGUTIL AIIGROW_NGU; fi
 GOC="${AIIGROW_GOC:-}"
 LAUNCHCTL="${AIIGROW_LAUNCHCTL:-/bin/launchctl}"
 PKGUTIL="${AIIGROW_PKGUTIL:-/usr/sbin/pkgutil}"
@@ -83,8 +83,22 @@ done
 # nhãn trình gỡ từ xa còn sót: chỉ gỡ khi job đã xong (không có PID)
 "$LAUNCHCTL" list vn.aiilab.aiigrow.go 2>/dev/null | /usr/bin/grep -q '"PID"' || "$LAUNCHCTL" remove vn.aiilab.aiigrow.go >/dev/null 2>&1 || true
 "$LAUNCHCTL" bootout system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
-"$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist" || true
-"$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
+# bootstrap ngay sau bootout có lúc hỏng («Bootstrap failed: 5: Input/output error» khi launchd chưa dọn xong bản cũ) ⇒ chờ bản cũ rời
+# launchd (tối đa 5 lượt) rồi thử bootstrap tới 5 lần — không để cài/cập nhật xong mà daemon đứng tới lần khởi động máy sau (agent-win PR #54).
+# Không dùng `print` làm bằng chứng ngay sau bootout: bản cũ đang dỡ vẫn «print» được.
+NGU="${AIIGROW_NGU:-1}"
+for lan in 1 2 3 4 5; do
+  "$LAUNCHCTL" print system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || break
+  /bin/sleep "$NGU"
+done
+"$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true     # dịch vụ bị disable thì bootstrap nào cũng hỏng
+NAP_DUOC=0
+for lan in 1 2 3 4 5; do
+  if "$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"; then NAP_DUOC=1; break; fi
+  [ "$lan" -lt 5 ] && /bin/sleep "$NGU"
+done
+# 5 lần đều hỏng ⇒ báo lỗi (không tin `print`: có thể còn là bản cũ đang dỡ); tự cập nhật thì job capnhat kiểm lại và nạp lại.
+[ "$NAP_DUOC" = 1 ] || echo "AiiGrow postinstall: KHÔNG nạp được daemon sau 5 lần bootstrap — khởi động lại máy hoặc cài lại gói." >&2
 
 # Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid) — cùng quy tắc phien-gui.sh với preinstall/job cập nhật/go-cai.sh.
 for CON_UID in $(/bin/bash "$(/usr/bin/dirname "$0")/phien-gui.sh"); do
