@@ -91,15 +91,15 @@ for lan in 1 2 3 4 5; do
   "$LAUNCHCTL" print system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || break
   /bin/sleep "$NGU"
 done
+"$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true     # dịch vụ bị disable thì bootstrap nào cũng hỏng
 NAP_DUOC=0
 for lan in 1 2 3 4 5; do
   if "$LAUNCHCTL" bootstrap system "$GOC/Library/LaunchDaemons/vn.aiilab.aiigrow.daemon.plist"; then NAP_DUOC=1; break; fi
-  # bootstrap báo lỗi nhưng dịch vụ đã nằm trong launchd (đã nạp sẵn) ⇒ coi là được
-  if "$LAUNCHCTL" print system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1; then NAP_DUOC=1; break; fi
   [ "$lan" -lt 5 ] && /bin/sleep "$NGU"
 done
+# 5 lần đều hỏng: sau ≥ 4 lượt chờ bản cũ đã rời hẳn — lúc này `print` thấy dịch vụ thì đó là bản đã nạp (bootstrap báo lỗi vì nạp sẵn)
+if [ "$NAP_DUOC" = 0 ] && "$LAUNCHCTL" print system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1; then NAP_DUOC=1; fi
 [ "$NAP_DUOC" = 1 ] || echo "AiiGrow postinstall: KHÔNG nạp được daemon sau 5 lần bootstrap — khởi động lại máy hoặc cài lại gói." >&2
-"$LAUNCHCTL" enable system/vn.aiilab.aiigrow.daemon >/dev/null 2>&1 || true
 
 # Tray vào MỌI phiên GUI đang có (preinstall bootout tray của mọi uid) — cùng quy tắc phien-gui.sh với preinstall/job cập nhật/go-cai.sh.
 for CON_UID in $(/bin/bash "$(/usr/bin/dirname "$0")/phien-gui.sh"); do

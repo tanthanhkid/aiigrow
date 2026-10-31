@@ -145,8 +145,14 @@ done
 
 # Hồ sơ DNS gia đình (.mobileconfig «vn.aiilab.aiigrow.dns.<nhãn>», Ba Mẹ cài từ menu AiiGrow): gỡ cùng AiiGrow — để lại thì Mac vẫn
 # hỏi DNS lọc của gia đình sau khi máy đã rời gia đình (agent-win trả DNS cũ khi gỡ, PR #138). Chỉ gỡ hồ sơ mang tiền tố của AiiGrow.
-for id in $(/usr/bin/profiles list -all 2>/dev/null | /usr/bin/grep -oE 'vn\.aiilab\.aiigrow\.dns\.[A-Za-z0-9_-]+' | /usr/bin/sort -u); do
-  /usr/bin/profiles remove -identifier "$id" -forced >/dev/null 2>&1 && echo "Đã gỡ hồ sơ DNS $id" || echo "Không gỡ được hồ sơ DNS $id — gỡ tay trong Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Hồ sơ."
+# `profiles list -all`: mỗi dòng «<_computerlevel|tên người dùng>[n] attribute: profileIdentifier: <id>» — hồ sơ mức người dùng phải gỡ kèm -user.
+/usr/bin/profiles list -all 2>/dev/null | /usr/bin/awk '/profileIdentifier: vn\.aiilab\.aiigrow\.dns\./ { split($1, a, "["); print a[1], $NF }' | /usr/bin/sort -u |
+while read -r ai id; do
+  case "$id" in vn.aiilab.aiigrow.dns.*) ;; *) continue ;; esac
+  case "$ai" in ''|*[!A-Za-z0-9._-]*) continue ;; esac
+  if [ "$ai" = _computerlevel ]; then /usr/bin/profiles remove -identifier "$id" -forced >/dev/null 2>&1
+  else /usr/bin/profiles remove -identifier "$id" -user "$ai" -forced >/dev/null 2>&1; fi \
+    && echo "Đã gỡ hồ sơ DNS $id ($ai)" || echo "Không gỡ được hồ sơ DNS $id ($ai) — gỡ tay trong Cài đặt hệ thống › Quyền riêng tư & Bảo mật › Hồ sơ."
 done
 /usr/bin/dscacheutil -flushcache >/dev/null 2>&1 || true
 

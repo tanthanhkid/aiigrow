@@ -53,6 +53,8 @@ public actor BoMay {
   private var dongBoLoi = false
   /// Đã ghi log «mồ côi — thôi chặn» (ghi một lần mỗi lần vào/ra trạng thái).
   private var daBaoMoCoi = false
+  /// Tăng mỗi lần ghép — lượt đồng bộ mang token cũ về muộn thì bỏ kết quả.
+  private var theHeGhep = 0
 
   public init(api: MayChuApi, heThong: HeThong, kho: ConfigStore, tuyChon: TuyChonBoMay = TuyChonBoMay(),
               dongHo: @escaping () -> Date = Date.init, donDieu: @escaping () -> Double = { Double(DispatchTime.now().uptimeNanoseconds) / 1e9 },
@@ -126,6 +128,7 @@ public actor BoMay {
     }
     heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
+    theHeGhep += 1
     if ghepLai { policy = nil; khoaLuc = nil; dongBoLoi = false; syncLuc = 0 }
     quenDanhSachApp()                                   // máy mới trên máy chủ ⇒ quét + gửi đủ ngay ở lần đồng bộ đầu
     // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
@@ -227,8 +230,10 @@ public actor BoMay {
         heThong.ghiLog("Gửi bù phút chơi bị từ chối: \(e.chu)")
       } catch {}
     }
+    let the = theHeGhep
     do {
       let kq = try await api.dongBo(trangThai: st, dung: dung, luc: dongHo())
+      guard the == theHeGhep else { return }                    // ghép lại trong lúc chờ: kết quả của token cũ, bỏ
       if BoMay.dauChoi(kq.policy) != policy.map(BoMay.dauChoi) { choiNho = [:] }   // bật/tắt đổi điểm, mục chơi, phiên, chế độ đổi ⇒ số phút nhớ bỏ đi
       if moTamDangMo() {                             // có mạng lại ⇒ kết thúc lượt mở offline, Ba Mẹ lại quyết bằng Policy online
         cauHinh.moTamOffline?.moDen = dongHo()
@@ -240,7 +245,8 @@ public actor BoMay {
       policy = kq.policy
       matMang = false
       dongBoLoi = false
-      MoCoi.ghiThanhCong(&cauHinh, now: dongHo())                 // hết mồ côi (nếu đang) — vòng áp chạy lại bình thường
+      let lucOk = dongHo()
+      MoCoi.ghiThanhCong(&cauHinh, now: lucOk)                    // hết mồ côi (nếu đang) — vòng áp chạy lại bình thường
       syncLuc = donDieu() + Double(kq.nextCheckSec)
       cauHinh.policyCuoi = kq.policy
       cauHinh.policyLuc = dongHo()
@@ -249,11 +255,13 @@ public actor BoMay {
         $0.policyCuoi = kq.policy
         $0.policyLuc = self.dongHo()
         $0.daDungGiayTuSync = self.cauHinh.daDungGiayTuSync
-        MoCoi.ghiThanhCong(&$0, now: self.cauHinh.lienLacCuoi ?? self.dongHo())
+        MoCoi.ghiThanhCong(&$0, now: lucOk)
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
+    } catch _ where the != theHeGhep {
+      return                                                    // lỗi của token cũ (ghép lại trong lúc chờ) — không ghi vào lần ghép mới
     } catch let e as LoiApi {
       matMang = e.laMang
       dongBoLoi = true
@@ -324,6 +332,7 @@ public actor BoMay {
       }
       apHosts(web: nil)
       apChinhSachTrinhDuyet(web: nil)
+      for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }   // như tuGo: mọi thư mục tài khoản
       trinhDuyetCanDong = []; daGuiTerm = [:]; chanDaBao = []; khoaLuc = nil
       return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
     } else if daBaoMoCoi {
@@ -519,7 +528,9 @@ public actor BoMay {
       adminGoi = false                                 // ping/appTienCanh/xin… không cần quyền admin — không chạy dscl
     }
     let laAdmin: (UInt32) -> Bool = { $0 == uidGoi && adminGoi }
-    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: daGhepHieuLuc, laAdmin: laAdmin)
+    let daGhepXet: Bool
+    if case .ghep = yc { daGhepXet = daGhepHieuLuc } else { daGhepXet = cauHinh.daGhep }     // chỉ lệnh ghép coi máy mồ côi (token bị từ chối) là chưa ghép
+    let quyen = QuyenIPC.kiem(yc, uidGoi: uidGoi, uidCon: cauHinh.uidCon, daGhep: daGhepXet, laAdmin: laAdmin)
     if case let .tuChoi(ma, chu) = quyen { return .loi(ma: ma, chu: chu) }
     switch yc {
     case .trangThai:

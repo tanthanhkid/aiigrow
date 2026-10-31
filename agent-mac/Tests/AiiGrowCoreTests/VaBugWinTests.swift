@@ -16,18 +16,26 @@ final class VaBugWinTests: XCTestCase {
     let t0 = Date(timeIntervalSince1970: 1_760_000_000)
     var c = CauHinhMay()
     XCTAssertFalse(MoCoi.la(c, now: t0), "máy mới chưa đồng bộ lần nào: không mồ côi")
+    let h = { (g: Double) in t0.addingTimeInterval(g * 3600) }
     MoCoi.ghiTuChoi(&c, now: t0)
-    MoCoi.ghiTuChoi(&c, now: t0.addingTimeInterval(3600))
+    MoCoi.ghiTuChoi(&c, now: h(1))
     XCTAssertEqual(c.tuChoiTu, t0, "từ chối liên tục giữ mốc ĐẦU")
-    MoCoi.ghiTuChoi(&c, now: t0.addingTimeInterval(5 * 3600))
-    XCTAssertFalse(MoCoi.la(c, now: t0.addingTimeInterval(6 * 3600 - 1)))
-    XCTAssertTrue(MoCoi.la(c, now: t0.addingTimeInterval(6 * 3600)), "từ chối token đủ 6 giờ ⇒ mồ côi")
+    for g in 2...5 { MoCoi.ghiTuChoi(&c, now: h(Double(g))) }       // máy chủ từ chối mỗi giờ
+    XCTAssertFalse(MoCoi.la(c, now: h(7)), "các lần từ chối mới trải 5 giờ")
+    MoCoi.ghiTuChoi(&c, now: h(6))
+    XCTAssertTrue(MoCoi.la(c, now: h(6)), "từ chối token trải đủ 6 giờ ⇒ mồ côi")
+    XCTAssertTrue(MoCoi.la(c, now: h(30)), "đã mồ côi thì giữ dù sau đó mất mạng / ngủ")
+    MoCoi.ghiTuChoi(&c, now: h(30))
+    XCTAssertEqual(c.tuChoiTu, t0, "đã mồ côi: lần từ chối sau khoảng trống không đếm lại")
     var le = CauHinhMay(); MoCoi.ghiTuChoi(&le, now: t0)
-    XCTAssertFalse(MoCoi.la(le, now: t0.addingTimeInterval(6 * 3600)), "một lần 401 lẻ rồi mất mạng 6 giờ: chưa phải từ chối liên tục")
-    MoCoi.ghiTuChoi(&c, now: t0.addingTimeInterval(-60))
-    XCTAssertEqual(c.tuChoiTu, t0.addingTimeInterval(-60), "đồng hồ lùi ⇒ đếm lại từ bây giờ")
+    XCTAssertFalse(MoCoi.la(le, now: h(6)), "một lần 401 lẻ rồi mất mạng 6 giờ: chưa phải từ chối liên tục")
+    MoCoi.ghiTuChoi(&le, now: h(9))
+    XCTAssertEqual(le.tuChoiTu, h(9), "hai lần từ chối cách > 2 giờ: đứt chuỗi, đếm lại")
+    XCTAssertFalse(MoCoi.la(le, now: h(9)))
+    var lui = CauHinhMay(); MoCoi.ghiTuChoi(&lui, now: t0); MoCoi.ghiTuChoi(&lui, now: t0.addingTimeInterval(-60))
+    XCTAssertEqual(lui.tuChoiTu, t0.addingTimeInterval(-60), "đồng hồ lùi ⇒ đếm lại từ bây giờ")
     MoCoi.ghiThanhCong(&c, now: t0)
-    XCTAssertNil(c.tuChoiTu); XCTAssertFalse(MoCoi.la(c, now: t0.addingTimeInterval(7 * 3600)))
+    XCTAssertNil(c.tuChoiTu); XCTAssertFalse(MoCoi.la(c, now: h(40)))
 
     // mất liên lạc: cần CẢ 14 ngày đồng hồ thật LẪN 72 giờ máy chạy
     let xa = t0.addingTimeInterval(15 * 86_400)
@@ -148,12 +156,17 @@ final class VaBugWinTests: XCTestCase {
     }
     XCTAssertTrue(s.contains("/usr/bin/profiles remove -identifier"), "gỡ hồ sơ DNS gia đình")
     XCTAssertTrue(s.contains("vn\\.aiilab\\.aiigrow\\.dns\\."), "chỉ hồ sơ mang tiền tố AiiGrow")
-    let ra = "_computerlevel[1] attribute: profileIdentifier: vn.aiilab.aiigrow.dns.Ab_9-x\n_computerlevel[2] attribute: profileIdentifier: com.other.dns\n"
+    // chạy đúng chương trình awk của go-cai.sh trên mẫu `profiles list -all` có cả hồ sơ mức máy lẫn mức người dùng
+    guard let r0 = s.range(of: "/usr/bin/awk '/profileIdentifier"), let k = s[r0.upperBound...].range(of: "'") else { return XCTFail("thiếu awk") }
+    let chuongTrinh = "/profileIdentifier" + String(s[r0.upperBound..<k.lowerBound])
+    let ra = "_computerlevel[1] attribute: profileIdentifier: vn.aiilab.aiigrow.dns.Ab_9-x\nbe[1] attribute: profileIdentifier: vn.aiilab.aiigrow.dns.CON\n_computerlevel[2] attribute: profileIdentifier: com.other.dns\n"
     let p = Process(), o = Pipe(), i = Pipe()
-    p.executableURL = URL(fileURLWithPath: "/usr/bin/grep"); p.arguments = ["-oE", "vn\\.aiilab\\.aiigrow\\.dns\\.[A-Za-z0-9_-]+"]
+    p.executableURL = URL(fileURLWithPath: "/usr/bin/awk"); p.arguments = [chuongTrinh]
     p.standardInput = i; p.standardOutput = o
     try p.run(); i.fileHandleForWriting.write(Data(ra.utf8)); i.fileHandleForWriting.closeFile(); p.waitUntilExit()
-    XCTAssertEqual(String(decoding: o.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self), "vn.aiilab.aiigrow.dns.Ab_9-x\n")
+    XCTAssertEqual(String(decoding: o.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self),
+                   "_computerlevel vn.aiilab.aiigrow.dns.Ab_9-x\nbe vn.aiilab.aiigrow.dns.CON\n")
+    XCTAssertTrue(s.contains("-user \"$ai\" -forced"), "hồ sơ mức người dùng gỡ kèm -user")
   }
 
   // MARK: cập nhật xong mà daemon không nạp ⇒ nạp lại (agent-win PR #54)
