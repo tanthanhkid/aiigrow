@@ -17,16 +17,11 @@ public enum MoCoi {
   /// Trần mỗi lần cộng thời gian chạy: ngủ/treo giữa hai vòng không thổi phồng thời gian mất liên lạc.
   public static let tranMoiVongGiay: Double = 30
 
-  /// «Liên tục»: hai lần từ chối cách nhau quá 2 giờ (mất mạng / ngủ ở giữa) là đứt chuỗi — đếm lại từ lần mới (khi chưa mồ côi).
-  public static let khoangDutChuoiGiay: Double = 2 * 3600
-
-  /// Máy chủ từ chối token. Mồ côi được tính khi CHÍNH các lần từ chối trải đủ 6 giờ (tuChoiCuoi − tuChoiTu): một lần 401 lẻ rồi mất mạng
-  /// không đủ; đã mồ côi thì GIỮ (mất mạng / ngủ sau đó không làm máy chặn lại) tới khi đồng bộ được hoặc ghép lại.
+  /// Máy chủ từ chối token. Mồ côi khi CHÍNH các lần từ chối trải đủ 6 giờ (tuChoiCuoi − tuChoiTu): một lần 401 lẻ rồi mất mạng không đủ,
+  /// nhưng máy hay ngủ (mỗi lần thức vài phút) vẫn gom được — chỉ đồng bộ thành công / ghép lại mới xoá mốc (như agent-win). Đã mồ côi thì GIỮ.
   public static func ghiTuChoi(_ c: inout CauHinhMay, now: Date) {
-    let daMoCoi = tuChoiLau(c, now: now)
-    if c.tuChoiTu.map({ $0 > now }) ?? true { c.tuChoiTu = now }                                   // chưa có / đồng hồ lùi
-    else if !daMoCoi, let cuoi = c.tuChoiCuoi, now.timeIntervalSince(cuoi) > khoangDutChuoiGiay { c.tuChoiTu = now }   // đứt chuỗi
-    c.tuChoiCuoi = now
+    if c.tuChoiTu == nil || (c.tuChoiTu! > now && !tuChoiLau(c, now: now)) { c.tuChoiTu = now }   // chưa có / đồng hồ lùi (khi chưa mồ côi)
+    if (c.tuChoiCuoi.map { now > $0 } ?? true) { c.tuChoiCuoi = now }                              // chỉ tiến, đồng hồ lùi không kéo lùi
   }
 
   /// Đồng bộ thành công ⇒ hết mồ côi.
@@ -44,7 +39,7 @@ public enum MoCoi {
   }
 
   public static func tuChoiLau(_ c: CauHinhMay, now: Date) -> Bool {
-    guard let t = c.tuChoiTu, let cuoi = c.tuChoiCuoi, now >= cuoi, cuoi >= t else { return false }
+    guard let t = c.tuChoiTu, let cuoi = c.tuChoiCuoi, cuoi >= t else { return false }      // không so với now: NTP lùi vài giây không làm mất mồ côi
     return cuoi.timeIntervalSince(t) >= nguongTuChoiGiay
   }
 

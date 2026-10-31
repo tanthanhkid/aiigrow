@@ -124,16 +124,19 @@ public actor BoMay {
       $0.uidCon = uidCon
       $0.daHaQuyen = cu                                // hợp với danh sách cũ (ghép lại sau gỡ từ xa không làm mất tài khoản cần trả quyền)
       MoCoi.ghiThanhCong(&$0, now: self.dongHo())       // ghép lại máy mồ côi: hết mồ côi, Policy cũ bỏ (chờ dong-bo của lần ghép mới)
-      if ghepLai { $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0 }
+      if ghepLai {                                      // dữ liệu của gia đình cũ không mang sang lần ghép mới
+        $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0
+        $0.phienBu = nil; $0.moTamOffline = nil; $0.demPhut = [:]
+      }
     }
     heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
+    api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // TRƯỚC await kế: lượt đồng bộ chen vào mang token mới
     theHeGhep += 1
-    if ghepLai { policy = nil; khoaLuc = nil; dongBoLoi = false; syncLuc = 0 }
+    if ghepLai { policy = nil; khoaLuc = nil; dongBoLoi = false; syncLuc = 0; choiNho = [:] }
     quenDanhSachApp()                                   // máy mới trên máy chủ ⇒ quét + gửi đủ ngay ở lần đồng bộ đầu
     // ghép lại sau khi gỡ: bỏ dấu «máy đã gỡ» để tự cập nhật chạy lại (không cần khởi động lại daemon) — trừ khi go-cai.sh vừa chạy trong lúc chờ máy chủ
     if await !chayNgoaiActor({ ht.trinhGoDangChay() }) { heThong.xoaTep(DuongDan.daGo) }
-    api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // dong-bo kế tiếp mang token mới, không cần khởi động lại daemon
     heThong.ghiLog("Đã ghép máy: deviceId=\(kq.deviceId) con=\(tk) uid=\(uidCon)")
     conLaAdmin = canHa                                  // chỉ thành false khi hạ quyền xong
     if canHa {
@@ -326,13 +329,11 @@ public actor BoMay {
     // Máy mồ côi (MoCoi.swift — máy chủ từ chối token ≥ 6 giờ / mất liên lạc ≥ 14 ngày + 72 giờ chạy): thôi chặn như agent-win — gỡ luật web +
     // hosts, không đóng app, không khoá. Policy cuối giữ trên đĩa; đồng bộ lại được thì vòng sau áp lại bình thường.
     if MoCoi.la(cauHinh, now: now) {
-      if !daBaoMoCoi {
+      if !daBaoMoCoi {                                    // dọn MỘT lần lúc vào mồ côi (và lần đầu sau khởi động daemon)
         daBaoMoCoi = true
+        thaWebMoiTaiKhoan()
         heThong.ghiLog("Máy mồ côi (\(MoCoi.tuChoiLau(cauHinh, now: now) ? "máy chủ từ chối token quá \(Int(MoCoi.gioNguong)) giờ" : "mất liên lạc quá \(Int(MoCoi.ngayMatLienLac)) ngày")) — AiiGrow tạm thôi chặn.")
       }
-      apHosts(web: nil)
-      apChinhSachTrinhDuyet(web: nil)
-      for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }   // như tuGo: mọi thư mục tài khoản
       trinhDuyetCanDong = []; daGuiTerm = [:]; chanDaBao = []; khoaLuc = nil
       return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
     } else if daBaoMoCoi {
@@ -874,10 +875,7 @@ public actor BoMay {
     // Dấu «máy đã gỡ» TRƯỚC await đầu tiên: installer tự cập nhật vừa giao xong mà postinstall chạy trong lúc chờ máy chủ thì không nạp lại daemon.
     try? heThong.ghiTep(DuongDan.daGo, Data("da-go\n".utf8), quyen: 0o600)
     policy = nil; khoaLuc = nil
-    apChinhSachTrinhDuyet(web: nil)
-    // Mọi thư mục tài khoản trong Managed Preferences (không chỉ Con): gỡ khoá của AiiGrow khỏi plist trình duyệt của ta.
-    for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
-    apHosts(web: nil)
+    thaWebMoiTaiKhoan()
     for tk in cauHinh.daHaQuyen { heThong.ghiLog("[gỡ] trả lại quyền admin cho \(tk) do go-cai.sh thực hiện.") }
     // Báo máy chủ «đã gỡ xong» TRƯỚC khi xoá token (sau đó token không còn dùng được). Lỗi mạng thì bỏ qua — máy chủ chờ tối đa 7 ngày rồi cho xoá hẳn.
     do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
@@ -891,6 +889,13 @@ public actor BoMay {
     heThong.ghiLog("Nhận lệnh gỡ từ xa — gỡ chính sách, đã thả hoàn toàn; chạy trình gỡ.")
     dangGo = false                                  // daGhep đã false ⇒ vòng áp tự thả; để ghép lại (không khởi động lại daemon) vẫn chạy được
     heThong.chayTrinhGo()                           // go-cai.sh: trả quyền admin, dọn plist/hosts, gỡ daemon + tray + app (không để daemon/tray mồ côi)
+  }
+
+  /// Gỡ luật web của AiiGrow: plist trình duyệt ở MỌI thư mục tài khoản trong Managed Preferences (không chỉ Con) + khối hosts (tuGo, mồ côi).
+  private func thaWebMoiTaiKhoan() {
+    apChinhSachTrinhDuyet(web: nil)
+    for tk in heThong.lietKeThuMuc(tuyChon.thuMucChinhSach) { apChinhSachTrinhDuyet(taiKhoan: tk, web: nil) }
+    apHosts(web: nil)
   }
 
   private func conDangDung() -> UInt32? {
