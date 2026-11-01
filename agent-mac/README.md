@@ -25,11 +25,18 @@ Kiểm gói không cần cài: `pkgutil --payload-files ra/AiiGrow-<BAN>.pkg`, `
 
 ## Tự cập nhật
 
-Daemon hỏi `GET /api/agent/ban-moi?platform=mac` lúc khởi động (+90 giây) rồi mỗi 6 giờ, ở Task riêng (không chặn vòng áp/đồng bộ). Bản máy chủ > bản đang chạy
+Daemon hỏi `GET /api/agent/ban-moi?platform=mac` lúc khởi động (+90 giây) rồi theo `chuKyKiemPhut` của manifest (0.1.6+: kẹp 5–1440 phút, thiếu ⇒ 6 giờ, theo giờ thật; lỗi manifest thử lại ≤15 phút, tải gói hỏng ≥1 giờ, trần tải 3 giờ; trước golive đổi `CHU_KY_KIEM_PHUT` về 360 — README gốc), ở Task riêng (không chặn vòng áp/đồng bộ). Bản máy chủ > bản đang chạy
 (so theo số x.y.z) thì: tải `.pkg` vào `/Library/Application Support/AiiGrow/cap-nhat` (root 0700), kiểm sha256 theo manifest, `pkgutil --check-signature`
 (phải là «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)») + `spctl -a -t install`, rồi cài đè bằng `installer` chạy như job launchd `vn.aiilab.aiigrow.capnhat`
 (log `/Library/Logs/AiiGrow/capnhat.log`). Sai bước nào là xoá gói, ghi log, không cài. Không cài khi đang gỡ từ xa. Ghép máy được giữ (`config.json` không đụng).
 Nút: menu tray của phiên Ba Mẹ có «Kiểm tra cập nhật» (Con không thấy, daemon cũng từ chối uid Con). Chi tiết: `THIET-KE.md` mục 6.
+0.1.7+: installer báo xong mà daemon không nằm trong launchd (bootstrap của postinstall hỏng) ⇒ job tự nạp lại; postinstall thử bootstrap tới 5 lần.
+
+## Máy mồ côi tự thôi chặn (0.1.7+, như agent-win `MoCoi`)
+
+Máy chủ từ chối token liên tục ≥ 6 giờ (máy đã bị xoá khỏi gia đình mà lệnh gỡ không tới), hoặc không đồng bộ được ≥ 14 ngày VÀ máy đã chạy
+≥ 72 giờ trong khoảng đó ⇒ gỡ plist lọc web + khối hosts, không đóng app, không khoá; `status.moCoi = true`. Policy cuối giữ trên đĩa —
+đồng bộ lại được thì áp lại ngay (`Sources/AiiGrowCore/MoCoi.swift`). `go-cai.sh` (0.1.7+) gỡ cả hồ sơ DNS gia đình `vn.aiilab.aiigrow.dns.*`.
 
 ## Ký và notarize (bắt buộc khi phát hành, từ 0.1.0)
 

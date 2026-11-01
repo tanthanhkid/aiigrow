@@ -70,7 +70,9 @@ public class TrinhDuyetLocTests
     public void AppLocker_KhongTruyenTrinhDuyet_NhuCu()
     {
         var a = AppLockerXml.Build(new AppLockerOptions { ChildSid = Con, AllowedApps = new[] { "winword.exe" } });
-        Assert.DoesNotContain("FilePublisherCondition", a);
+        // nhóm Exe không có luật nhà phát hành (nhóm Appx có luật «mọi gói có chữ ký» để Start/Search chạy — ShellWindowsTests)
+        var exe = System.Xml.Linq.XDocument.Parse(a).Root!.Elements("RuleCollection").First(c => (string?)c.Attribute("Type") == "Exe").ToString();
+        Assert.DoesNotContain("FilePublisherCondition", exe);
         Assert.DoesNotContain("Chrome", a);
     }
 

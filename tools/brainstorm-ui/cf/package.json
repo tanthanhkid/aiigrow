@@ -1,0 +1,15 @@
+{
+  "name": "aiigrow-brainstorm-cf",
+  "private": true,
+  "type": "module",
+  "description": "Bàn brainstorm AiiGrow trên Cloudflare (Worker + Durable Object + Browser Rendering) — lõi dùng chung ../ung-dung.mjs",
+  "scripts": {
+    "dung": "node dung.mjs",
+    "deploy": "node dung.mjs && wrangler deploy",
+    "kiem": "node dung.mjs && wrangler deploy --dry-run --outdir .wrangler-ra"
+  },
+  "devDependencies": {
+    "@cloudflare/puppeteer": "1.4.0",
+    "wrangler": "4.149.0"
+  }
+}

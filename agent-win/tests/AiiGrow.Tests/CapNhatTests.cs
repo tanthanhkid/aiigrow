@@ -261,4 +261,58 @@ public class TuCapNhatTests
         }
         finally { File.Delete(f); }
     }
+
+    // 0.2.12: chu kỳ hỏi bản mới do máy chủ đặt (chuKyKiemPhut), kẹp [5, 1440]; không có trường ⇒ 6 giờ như cũ.
+    [Theory]
+    [InlineData(null, 360)]
+    [InlineData(15.0, 15)]
+    [InlineData(360.0, 360)]
+    [InlineData(0.0, 5)]
+    [InlineData(-3.0, 5)]
+    [InlineData(4.0, 5)]
+    [InlineData(7.6, 8)]
+    [InlineData(6.5, 7)]
+    [InlineData(1440.0, 1440)]
+    [InlineData(100000.0, 1440)]
+    [InlineData(double.NaN, 360)]
+    public void ChuKyKiem_KepTrongKhoang(double? phut, int mongDoi) => Assert.Equal(TimeSpan.FromMinutes(mongDoi), TuCapNhat.ChuKyKiem(phut));
+
+    [Fact]
+    public void Manifest_DocChuKyKiemPhut()
+    {
+        var co = System.Text.Json.JsonSerializer.Deserialize<BanMoi>("""{"version":"0.2.12","url":"https://aiigrow.aiilab.vn/a.exe","sha256":"x","chuKyKiemPhut":15}""")!;
+        Assert.Equal(15, co.ChuKyKiemPhut);
+        var khong = System.Text.Json.JsonSerializer.Deserialize<BanMoi>("""{"version":"0.2.12","url":"https://aiigrow.aiilab.vn/a.exe","sha256":"x"}""")!;
+        Assert.Null(khong.ChuKyKiemPhut);
+        Assert.Equal(TimeSpan.FromHours(6), TuCapNhat.ChuKyKiem(khong.ChuKyKiemPhut));
+    }
+
+    // Máy chủ ghi sai kiểu (thập phân, chuỗi, rác) không được làm hỏng cả manifest — hỏng là agent không bao giờ thấy bản sửa.
+    [Theory]
+    [InlineData("7.5", 8)]
+    [InlineData("\"15\"", 15)]
+    [InlineData("\"abc\"", 360)]
+    [InlineData("null", 360)]
+    [InlineData("{}", 360)]
+    [InlineData("true", 360)]
+    public void Manifest_ChuKySaiKieu_VanDocDuoc(string giaTri, int mongDoi)
+    {
+        var m = System.Text.Json.JsonSerializer.Deserialize<BanMoi>("{\"version\":\"0.2.12\",\"url\":\"https://aiigrow.aiilab.vn/a.exe\",\"sha256\":\"x\",\"chuKyKiemPhut\":" + giaTri + "}")!;
+        Assert.Equal("0.2.12", m.Version);
+        Assert.Equal(TimeSpan.FromMinutes(mongDoi), TuCapNhat.ChuKyKiem(m.ChuKyKiemPhut));
+    }
+
+    // Hẹn theo giờ thật: máy ngủ qua giờ hẹn thì thức dậy là kiểm ngay; đồng hồ lùi (Con chỉnh giờ) không đẩy hẹn xa quá một chu kỳ.
+    [Fact]
+    public void KeTiep_GioThat()
+    {
+        var bayGio = new DateTimeOffset(2026, 10, 28, 8, 0, 0, TimeSpan.Zero);
+        var chuKy = TimeSpan.FromMinutes(15);
+        var henCu = bayGio.AddHours(-5);                                   // ngủ 5 giờ, đã quá hẹn
+        Assert.True(bayGio >= TuCapNhat.KeTiep(henCu, bayGio, chuKy));
+        var henGan = bayGio.AddMinutes(10);
+        Assert.Equal(henGan, TuCapNhat.KeTiep(henGan, bayGio, chuKy));
+        var henXa = bayGio.AddDays(3);                                     // đồng hồ bị lùi 3 ngày sau khi hẹn
+        Assert.Equal(bayGio + chuKy, TuCapNhat.KeTiep(henXa, bayGio, chuKy));
+    }
 }

@@ -73,7 +73,7 @@ if motVong {
       try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
     }
   }
-  // Tự cập nhật: Task riêng (không chặn vòng áp/đồng bộ); lịch ở LichCapNhat (+90 giây, rồi mỗi 6 giờ); cờ chống chạy chồng nằm trong BoCapNhat.
+  // Tự cập nhật: Task riêng (không chặn vòng áp/đồng bộ); lịch ở LichCapNhat (+90 giây, rồi theo chuKyKiemPhut của máy chủ, mặc định 6 giờ); cờ chống chạy chồng nằm trong BoCapNhat.
   // Chế độ --thu: tuyChon.tuCapNhat = false ⇒ kiemCapNhatDinhKy tự bỏ qua (một quy tắc duy nhất).
   Task {
     // Ngủ theo đồng hồ treo tường, từng bước 60 giây: Task.sleep đếm thời gian MÁY THỨC, MacBook ngủ nhiều thì «6 giờ» thành vài ngày.

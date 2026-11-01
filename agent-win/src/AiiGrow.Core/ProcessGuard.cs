@@ -60,10 +60,16 @@ public static class ProcessGuard
         "microsoft.yourphone", "microsoftwindows.client.webexperience", "microsoftwindows.crossdevice", "microsoft.windows.shellexperiencehost",
         // Win11 23H2/24H2: runtime Widgets, công cụ cắt màn hình (Win+Shift+S) — đóng thì Widgets / chụp màn hình hỏng và bắn màn «app bị chặn» lặp (review #75)
         "microsoft.widgetsplatformruntime", "microsoft.screensketch",
+        // 28/10 (Start đơ trên ThinkPad): gói giao diện shell — Windows 11 bản mới cập nhật chúng qua Store nên có thể nằm ở Program Files\WindowsApps
+        // thay vì Windows\SystemApps; đóng chúng thì phím Windows / Start / Search / Action Center / ô nhập không mở được
+        "microsoft.windows.startmenuexperiencehost", "microsoft.windows.search", "microsoft.lockapp",
+        "microsoft.windows.cloudexperiencehost", "microsoft.windows.contentdeliverymanager", "microsoft.aad.brokerplugin",
+        "microsoft.accountscontrol", "microsoft.ecapp", "microsoft.windows.apprep.chxapp",
     };
 
-    /// <summary>Gói Store hệ thống theo TIỀN TỐ (Windows App SDK: Microsoft.WindowsAppRuntime.1.5, …Singleton — PushNotificationsLongRunningTask).</summary>
-    public static readonly string[] TienToGoiStoreHeThong = { "microsoft.windowsappruntime" };
+    /// <summary>Gói Store hệ thống theo TIỀN TỐ (Windows App SDK: Microsoft.WindowsAppRuntime.1.5, …Singleton — PushNotificationsLongRunningTask). «MicrosoftWindows.» (KHÔNG phải «Microsoft.Windows…» như Máy tính / Terminal): tiền tố dành riêng cho thành phần của Windows — Client.CBS (Search,
+    /// TextInputHost, Action Center), Client.Core (Start Win11 24H2+), Client.WebExperience (Widgets), CrossDevice, Client.FileExp… (28/10).</summary>
+    public static readonly string[] TienToGoiStoreHeThong = { "microsoft.windowsappruntime", "microsoftwindows." };
 
     public static bool LaGoiStoreHeThong(string goi) =>
         GoiStoreHeThong.Contains(goi) || TienToGoiStoreHeThong.Any(t => goi.StartsWith(t, StringComparison.OrdinalIgnoreCase));

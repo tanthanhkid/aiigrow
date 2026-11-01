@@ -1,0 +1,144 @@
+/* AiiGrow — bộ Clay gương dùng cho bàn brainstorm. Lấy từ docs/clay/clay-a-goc-guong.css (chuẩn 24/10),
+   bỏ ràng buộc body 390px để dùng chung cho màn điện thoại (.dt) và màn máy tính (.desk). */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+:root{--nen:#ecebe7;--the:#f7f6f3;--lom:#e9e8e3;--chu:#0f1312;--chu2:#3a403d;--chu3:#565c59;
+--chinh:#0f6b5c;--chinhInk:#0a5246;--chinhSoft:#dcebe6;--nut:#1a1f1e;--diem:#f5b70a;--diemInk:#6e4300;--diemSoft:#fbecc0;
+--canh:#8a3c0c;--canhSoft:#f9e7d2;--loi:#b42318;--lam:#1d4ed8;--lamSoft:#e1e9fb;--timSoft:#e7e5f8;--xamSoft:#e4e3de;
+--clay:0 22px 30px -14px rgba(28,32,30,.38),0 6px 10px -5px rgba(28,32,30,.22),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -2px 0 rgba(255,255,255,.7),inset 0 -10px 16px -8px rgba(40,44,42,.14);
+--clayNho:0 12px 16px -8px rgba(28,32,30,.40),0 3px 5px -2px rgba(28,32,30,.24),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 -6px 10px -5px rgba(40,44,42,.16);
+--lomIn:inset 0 4px 8px rgba(40,44,42,.14),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow:hidden}
+body{font-family:Inter,system-ui,sans-serif;color:var(--chu);-webkit-font-smoothing:antialiased;background:var(--nen)}
+svg{width:20px;height:20px;flex:none}
+img{display:block}
+.ic{width:26px;height:26px;object-fit:contain;flex:none}
+/* ---- khung điện thoại 390×844 ---- */
+.dt{width:390px;height:844px;position:relative;overflow:hidden;background:radial-gradient(120% 50% at 20% 0,#e3ebe7 0,var(--nen) 70%)}
+.sb{height:47px;display:flex;align-items:center;justify-content:space-between;padding:0 28px 0 32px;font:600 16px Inter}
+.cuon{position:absolute;top:47px;left:0;right:0;bottom:92px;overflow:hidden;padding:2px 16px 30px;display:flex;flex-direction:column;gap:12px}
+.cuon>*{flex:none}
+.tieuLon{font:800 30px/34px Inter;letter-spacing:-.7px;margin:2px 4px 0}
+.lui{display:flex;align-items:center;gap:6px;min-height:44px;font:600 17px Inter;color:var(--chinhInk);padding:0 4px}
+.hang{display:flex;align-items:center;gap:12px}
+.tieu{display:flex;align-items:center;justify-content:space-between}
+.mot{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* ---- khung máy tính (app Con trên Windows/Mac) ---- */
+.desk{width:1100px;height:720px;position:relative;overflow:hidden;background:var(--nen);display:flex;gap:28px;padding:20px 28px 20px 20px}
+.desk .ben{width:300px;flex:none;background:var(--the);border-radius:36px;box-shadow:var(--clay);padding:20px 18px;display:flex;flex-direction:column;gap:8px}
+.desk .ben .rob{width:150px;height:150px;object-fit:contain;margin:0 auto}
+.desk .ben .ten-con{font:800 26px Inter;letter-spacing:-.4px;margin:4px 6px 0}
+.desk .ben .ket-noi{font:600 13.5px/18px Inter;color:var(--chinhInk);background:var(--chinhSoft);border-radius:14px;padding:8px 12px;margin:0 2px 6px}
+.desk .ben a{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px;border-radius:26px;font:700 17px Inter;color:var(--chu);text-decoration:none}
+.desk .ben a.dang{background:var(--chinhSoft);color:var(--chinhInk);box-shadow:var(--lomIn)}
+.desk .ben .chan{margin-top:auto;font:500 13.5px/19px Inter;color:var(--chu3);padding:0 8px}
+.desk .chinh{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;padding-top:28px;overflow:hidden}
+.desk .tieuLon{font:800 34px/40px Inter;margin:0 2px 8px}
+/* màn khoá toàn màn hình */
+.khoa{width:1100px;height:720px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;
+ background:radial-gradient(70% 55% at 50% 0,#2e5a50 0,#1a2a27 55%,#121615 100%)}
+.khoa .vien-khoa{width:104px;height:104px;border-radius:50%;background:var(--the);box-shadow:var(--clay);display:flex;align-items:center;justify-content:center}
+.khoa h1{font:800 34px/40px Inter;letter-spacing:-.5px;text-align:center}
+.khoa .phu{font:500 17px/24px Inter;color:#dfe7e4;text-align:center;max-width:620px}
+.khoa .the{width:590px;color:var(--chu)}
+.khoa .chan{font:500 13.5px Inter;color:#c9d3cf;margin-top:6px}
+/* hộp thoại nhỏ (xin thêm giờ) */
+.hop{width:560px;height:460px;position:relative;overflow:hidden;background:var(--nen);padding:28px 32px;display:flex;flex-direction:column;gap:18px}
+/* khối đất sét */
+.the,.o{background:var(--the);border-radius:32px;box-shadow:var(--clay)}
+.the{padding:16px}
+.desk .the{padding:22px 26px;border-radius:34px}
+/* nút kẹo dẻo */
+.nut{min-height:52px;border-radius:22px;border:0;color:#fff;font:700 16px Inter;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 20px;white-space:nowrap}
+.nut svg{width:18px;height:18px}
+.nut .ic{width:22px;height:22px}
+.nut.nho{min-height:44px;font-size:14.5px;border-radius:18px;padding:0 15px}
+.nut.vien{color:var(--chu)}
+.nut.rong{width:100%}
+/* icon trong viên clay tròn */
+.bt{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:var(--clayNho)}
+.bt .ic{width:26px;height:26px}
+.bt.lon{width:56px;height:56px}.bt.lon .ic{width:32px;height:32px}
+.bt.xanh{background-color:var(--chinhSoft);color:var(--chinhInk)}.bt.vang{background-color:var(--diemSoft);color:var(--diemInk)}
+.bt.cam{background-color:var(--canhSoft);color:var(--canh)}.bt.lam{background-color:var(--lamSoft);color:#1a44c0}.bt.tim{background-color:var(--timSoft);color:#4b3cc4}.bt.xam{background-color:var(--the);color:var(--chu2)}
+/* chip Con */
+.chip{display:flex;align-items:center;gap:7px;min-height:46px;padding:0 15px 0 7px;border-radius:99px;background:var(--the);font:700 14.5px Inter;color:var(--chu2);box-shadow:var(--clayNho);white-space:nowrap}
+.chip.dang{color:#fff}
+.chip.cong{padding:0;width:46px;justify-content:center}
+.chip.chon{padding:0 18px;justify-content:center;flex:1}
+.avt{width:32px;height:32px;border-radius:50%;color:#fff;font:700 13px Inter;display:flex;align-items:center;justify-content:center;flex:none}
+.s13{font-size:13px}.s15{font-size:15px}.s16{font-size:16px}.s20{font-size:20px}.b{font-weight:700}.m{font-weight:600}.c2{color:var(--chu2)}.c3{color:var(--chu3)}
+.so{font-variant-numeric:tabular-nums}
+.nhan-xanh{color:var(--chinhInk)}.nhan-cam{color:var(--canh)}.nhan-diem{color:var(--diemInk)}
+/* việc chờ: lòng chảo ấn lõm */
+.cho{padding:14px 12px 12px}
+.cho .dau{display:flex;align-items:center;gap:9px;padding:2px 6px 12px;font:700 18px Inter}
+.dem{min-width:28px;height:28px;border-radius:14px;color:#fff;font:700 13.5px Inter;display:inline-flex;align-items:center;justify-content:center;padding:0 7px}
+.viecs{display:flex;flex-direction:column;gap:8px}
+.viec{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:26px;background:var(--lom);box-shadow:var(--lomIn)}
+.viec .ten{font:700 15.5px/20px Inter}
+.viec .phu{font:500 13.5px/18px Inter;color:var(--chu3)}
+.viec .phu b{color:var(--diemInk);font-weight:700}
+.viec .nuts{display:flex;gap:8px}.viec .nuts .nut{flex:1}
+/* danh sách trong thẻ */
+.ds>.dong{display:flex;align-items:center;gap:12px;padding:12px 4px;min-height:56px}
+.ds>.dong+.dong{border-top:1px solid #e3e2dd}
+.ds .dong .chu{flex:1;min-width:0}
+.ds .dong .ten{font:700 16px/21px Inter}
+.ds .dong .phu{font:500 13.5px/18px Inter;color:var(--chu3);margin-top:2px}
+.huy{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:99px;font:700 13px Inter;white-space:nowrap;flex:none}
+.huy::before{content:'';width:8px;height:8px;border-radius:4px;background:currentColor}
+.huy.ok{background-color:var(--chinhSoft);color:var(--chinhInk)}.huy.lech{background-color:var(--canhSoft);color:var(--canh)}
+/* trạng thái + tiến độ */
+.cham{display:inline-block;width:9px;height:9px;border-radius:5px;background:var(--chinh);margin-right:7px;box-shadow:0 0 0 3px #d3e7e0}
+.tien{height:14px;border-radius:7px;background:var(--lom);box-shadow:var(--lomIn);padding:2px}
+.tien i{display:block;height:100%;border-radius:6px}
+/* bong bóng mascot */
+.canh-rob{position:relative;min-height:190px;border-radius:32px;background:linear-gradient(180deg,#e3efea,#d4e6df);box-shadow:var(--clay);padding:20px;overflow:visible}
+.canh-rob .bong{position:relative;z-index:1;width:62%;background:#fff;border-radius:26px;padding:16px 18px;box-shadow:var(--clayNho)}
+.canh-rob .bong .lon{font:800 24px/29px Inter;letter-spacing:-.4px}
+.canh-rob .bong .phu{font:500 14.5px/20px Inter;color:var(--chu2);margin-top:6px}
+.canh-rob img.rob{position:absolute;right:6px;bottom:-14px;width:150px;height:170px;object-fit:contain}
+/* biểu đồ cột */
+.cot{display:flex;align-items:flex-end;justify-content:space-between;height:140px;padding:0 4px}
+.cot .ngay{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cot .doi{display:flex;align-items:flex-end;gap:4px;height:118px}
+.cot .doi i{display:block;width:13px;border-radius:7px}
+.cot .doi i.h{background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 40%),var(--chinh)}
+.cot .doi i.g{background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0) 40%),#5b4fd6}
+.cot .ngay span{font:600 12.5px Inter;color:var(--chu3)}
+/* ô nhập */
+.nhap{min-height:52px;border-radius:20px;background:var(--lom);box-shadow:var(--lomIn);padding:14px 16px;font:500 15.5px/22px Inter;color:var(--chu3)}
+/* thanh tab */
+.tab{position:absolute;left:10px;right:10px;bottom:10px;height:76px;background:var(--the);border-radius:34px;display:flex;align-items:center;padding:0 6px}
+.tab a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:62px;border-radius:26px;font:600 11.5px Inter;color:var(--chu3);text-decoration:none;position:relative;min-width:0}
+.tab a span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+.tab a.dang{color:var(--chinhInk);background-color:var(--chinhSoft);box-shadow:var(--lomIn)}
+.tab svg{width:23px;height:23px}
+.tab .so-cho{position:absolute;top:5px;left:54%;color:#fff;font:700 11px Inter;min-width:19px;height:19px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+/* ===== Bề mặt GƯƠNG — men trắng sắc nửa trên, phản chiếu đáy ===== */
+.the,.o,.tab,.desk .ben{background-image:
+ radial-gradient(46% 18px at 50% 3px,rgba(255,255,255,1) 0,rgba(255,255,255,.95) 62%,rgba(255,255,255,0) 78%),
+ linear-gradient(180deg,#fefefd 0,rgba(254,254,253,0) 26%,rgba(40,44,42,.025) 60%,rgba(40,44,42,.07) 100%)}
+.nut.vien,.chip:not(.dang),.bt.xam{background-color:var(--the);box-shadow:var(--clayNho);background-image:linear-gradient(180deg,#fff 0,rgba(255,255,255,.85) 44%,rgba(232,231,226,0) 50%,rgba(40,44,42,.05) 100%)}
+.bt.xanh,.bt.vang,.bt.cam,.bt.lam,.bt.tim{background-image:
+ radial-gradient(60% 34% at 50% 18%,rgba(255,255,255,.95),rgba(255,255,255,0) 100%),
+ radial-gradient(50% 20% at 50% 92%,rgba(255,255,255,.5),rgba(255,255,255,0) 100%)}
+.nut:not(.vien):not(.ngoc),.chip.dang{background:
+ linear-gradient(180deg,rgba(255,255,255,.30) 0,rgba(255,255,255,.08) 24%,rgba(255,255,255,0) 26%),
+ radial-gradient(60% 40% at 50% 105%,rgba(120,140,135,.35),rgba(0,0,0,0) 100%),
+ linear-gradient(180deg,#2e3533,#121615);
+ box-shadow:0 12px 16px -6px rgba(15,19,18,.6),0 3px 5px -2px rgba(15,19,18,.35),inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 3px rgba(0,0,0,.4)}
+.nut.ngoc,.chip.ngoc{color:#fff;background:
+ linear-gradient(180deg,rgba(255,255,255,.34) 0,rgba(255,255,255,.08) 24%,rgba(255,255,255,0) 26%),
+ radial-gradient(60% 40% at 50% 105%,rgba(80,220,190,.4),rgba(0,0,0,0) 100%),
+ linear-gradient(180deg,#0f6b5c,#08463d);
+ box-shadow:0 12px 16px -6px rgba(10,82,70,.65),0 3px 5px -2px rgba(10,82,70,.35),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 3px rgba(0,30,25,.4)}
+.avt{background-image:linear-gradient(180deg,rgba(255,255,255,.38) 0,rgba(255,255,255,.1) 46%,rgba(255,255,255,0) 50%);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 3px rgba(0,0,0,.25),0 2px 4px -1px rgba(0,0,0,.25)}
+.dem,.tab .so-cho{background:linear-gradient(180deg,rgba(255,255,255,.4) 0,rgba(255,255,255,.12) 46%,rgba(255,255,255,0) 50%),linear-gradient(180deg,#c9301f,#9c1d12);box-shadow:0 5px 9px -4px rgba(165,31,20,.6)}
+.tien i{background:linear-gradient(180deg,rgba(255,255,255,.5) 0,rgba(255,255,255,.15) 45%,rgba(255,255,255,0) 50%),linear-gradient(180deg,#14826f,#09524a)}
+.huy{background-image:linear-gradient(180deg,rgba(255,255,255,.85) 0,rgba(255,255,255,.3) 46%,rgba(255,255,255,0) 52%);box-shadow:0 4px 8px -4px rgba(28,32,30,.3),inset 0 1px 0 #fff}
+.tab a.dang{background-image:linear-gradient(180deg,rgba(255,255,255,0) 60%,rgba(255,255,255,.55) 100%)}
+.tab{box-shadow:0 -6px 24px -12px rgba(28,32,30,.25),0 16px 26px -10px rgba(28,32,30,.38),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(40,44,42,.14)}
+.the.vang{background-color:#fbefc8;background-image:radial-gradient(46% 18px at 50% 3px,rgba(255,255,255,.95) 0,rgba(255,255,255,.8) 62%,rgba(255,255,255,0) 78%),linear-gradient(180deg,#fdf6df 0,#f7e3a6 100%)}

@@ -1,4 +1,4 @@
-// Bản agent Windows máy chủ đang phát — agent (UpdateWorker, 0.2.0+) hỏi GET /api/agent/ban-moi lúc khởi động + mỗi 6 giờ,
+// Bản agent Windows máy chủ đang phát — agent (UpdateWorker, 0.2.0+) hỏi GET /api/agent/ban-moi lúc khởi động + theo chuKyKiemPhut (dưới đây),
 // có bản mới hơn thì tải, KIỂM sha256 rồi tự cài đè (giữ config). Phát bản mới: build agent-win (exe của CI có ngay khi job build xong,
 // không chờ e2e: run của đúng commit (`gh run list -w agent-win -c <sha>`) → `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc` — xem đầu
 // .github/workflows/agent-win.yml; e2e của run đó đỏ ⇒ đừng merge manifest này) → `gh release create v<bản>` ở repo
@@ -7,22 +7,30 @@
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
 import type { May } from "./gia-dinh.ts";
 
-// 0.2.10: exe từ CI agent-win run 40175224402 (job build goc, cây merge 70ed4e8 = d4f5e46 + main 4c3a55c, tag phathanh-4-src, PR #132); sha256 đo trên tệp tải về từ Release.
+/** Chu kỳ agent hỏi bản mới, phút — DÙNG CHUNG Windows (0.2.12+) và Mac (0.1.6+); agent kẹp [5, 1440], không có trường ⇒ 6 giờ.
+ *  Giai đoạn dev: 15 (Thanh 28/10). TRƯỚC GOLIVE đổi về 360 (6 giờ) — chỉ sửa số này rồi deploy máy chủ, không phát lại agent.
+ *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
+export const CHU_KY_KIEM_PHUT = 15;
+
+// 0.2.12 (28/10, tự cập nhật theo giờ thật + chuKyKiemPhut; 0.2.11 sửa Start menu đơ): exe từ CI agent-win run 40648893556 (job build goc, commit ae9f0c1, PR #171); sha256 đo trên tệp tải về từ Release.
 export const BAN_AGENT_WINDOWS = {
-  version: "0.2.10",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.10.exe",
-  sha256: "59fee9caf335a1c1ced281d53b8886e9c8745b57d9a93970877e6aeb95775db3",
+  chuKyKiemPhut: CHU_KY_KIEM_PHUT,
+  version: "0.2.12",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.12.exe",
+  sha256: "f48532fa52ce0ba0a7aef1dfa610aa5bfc668caac3513ad82eb9fb468f2e2530",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
- *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
+ *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + theo chuKyKiemPhut từ 0.1.6, bản cũ hơn mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
-// 0.1.5: build-pkg.sh chạy trên Mac của Thanh từ commit 68d44f6 (tag phathanh-3-src) (PR #128), notarize Accepted.
+// 0.1.7 (31/10, vá lớp lỗi Windows: mồ côi tự thôi chặn, gỡ trả DNS, cập nhật không để daemon đứng): build-pkg.sh trên Mac của Thanh từ commit 562fabc
+// (PR #174 + #176), notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.7. (0.1.6: commit 5eb73e0, PR #172.)
 export const BAN_AGENT_MAC = {
-  version: "0.1.5",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.5.pkg",
-  sha256: "7b5a22e40eb3733ed84b6ecfdace4cb030b493d59b5f97e24d400ec679fecacd",
+  chuKyKiemPhut: CHU_KY_KIEM_PHUT,
+  version: "0.1.7",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.7.pkg",
+  sha256: "de8fb394846472a1f99b9f4d2b1e9a51ceb2e8ec03979a01fe346760aeeb673c",
 } as const;
 
 /** Bản app Con Android (agent-android, vn.aiilab.aiigrow.con, APK ký khoá phát hành aiigrow-con — chứng chỉ SHA-256 ED:65:…:C5:93).
