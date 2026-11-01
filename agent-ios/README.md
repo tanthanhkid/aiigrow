@@ -46,7 +46,7 @@ App group `group.vn.aiilab.aiigrow.con`; entitlement `com.apple.developer.family
 - **DNS gia đình**: «Dành cho Ba Mẹ › Cài lọc web gia đình» ⇒ `ho-so-dns` ⇒ app phục vụ `.mobileconfig` ở 127.0.0.1 vài phút ⇒ Safari tải ⇒
   Cài đặt › Đã tải về hồ sơ (iOS không cho app tự cài hồ sơ).
 - Lịch chỉ là chuông: mỗi lần chuông kêu extension gọi `TinhKhien.lucNay(kếHoạch, giờ)` — cùng hàm app dùng ⇒ không lệch.
-  Thứ tự thắng: Khoá ngay > giờ ngủ > thêm giờ > không tuân thủ > hết phút > ngoài khung.
+  Thứ tự thắng: mở bằng mã offline (Ba Mẹ đọc mã ⇒ gỡ mọi khoá tới hạn) > Khoá ngay > giờ ngủ > thêm giờ > phiên Chơi bằng điểm > không tuân thủ > hết phút > ngoài khung.
 
 ## Build / test (máy Mac)
 ```bash

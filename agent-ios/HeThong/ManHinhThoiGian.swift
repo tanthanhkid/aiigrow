@@ -108,9 +108,9 @@ public final class UyQuyenThat: HeThongUyQuyen {
 
 /// Dùng trong extension DeviceActivityMonitor (và app khi trở lại tiền cảnh): suy lại khiên từ kế hoạch đã lưu.
 public enum ApLai {
-  public static func lucNay(kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) {
+  public static func lucNay(kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date(), dungSai: TimeInterval = 0) {
     guard let kh = kho.doc(KeHoach.self, Khoa.keHoach) else { return }
-    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: DongBo.hanMoOffline(kho, now))
+    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: DongBo.hanMoOffline(kho, now), dungSai: dungSai)
     KhienThat().ap(k)
     kho.luu(k, Khoa.khienDangAp)
   }

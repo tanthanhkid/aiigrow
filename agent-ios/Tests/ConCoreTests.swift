@@ -345,6 +345,11 @@ final class ApiVaDongBoTests: XCTestCase {
     let k = TinhKhien.lucNay(kh, now: t0.addingTimeInterval(60), dung: nil)
     XCTAssertEqual(k.muc, .khong); XCTAssertEqual(k.dangChoiDiem, true)
     XCTAssertEqual(TinhKhien.lucNay(kh, now: t0.addingTimeInterval(31 * 60), dung: nil).lyDo, .ngoaiGio)
+    // iOS gọi intervalDidEnd sớm vài giây trước hạn ⇒ có dung sai thì coi như đã hết (khiên bật lại); không dung sai thì vẫn mở
+    let sapHet = kh.phienDiemDen!.addingTimeInterval(-20)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: sapHet, dung: nil).dangChoiDiem, true)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: sapHet, dung: nil, dungSai: LapKeHoach.dungSaiHetLich).lyDo, .ngoaiGio)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: sapHet, dung: nil, moOfflineDen: sapHet.addingTimeInterval(30), dungSai: LapKeHoach.dungSaiHetLich).lyDo, .ngoaiGio)
     // đồng bộ lại 20 phút sau, máy chủ vẫn báo conPhut 30 (không nhịp) ⇒ hạn KHÔNG dời
     let kh2 = LapKeHoach.tu(try nhipPhien("P1"), now: t0.addingTimeInterval(20 * 60), truoc: kh)
     XCTAssertEqual(kh2.phienDiemDen, kh.phienDiemDen)

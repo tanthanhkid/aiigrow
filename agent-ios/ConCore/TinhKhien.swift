@@ -70,19 +70,22 @@ public enum TinhKhien {
 
   /// `moOfflineDen`: hạn «mở tạm bằng mã offline» (MoTamOffline) — mã do chính Ba Mẹ đọc lúc máy mất mạng ⇒ gỡ mọi khoá tới hạn
   /// (như agent Windows MoTamOffline.ApDung: không để máy kẹt khoá khi không có mạng); web bị chặn vẫn chặn.
-  public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?, moOfflineDen: Date? = nil) -> KhienMuonCo {
-    if let den = moOfflineDen, den > now {
+  /// `dungSai`: giây coi như đã hết sớm — iOS có thể gọi intervalDidEnd hơi trước `den` (mốc làm tròn phút) ⇒ khi hết lịch gọi với dung sai
+  /// để cửa sổ đang kết thúc không còn được tính là mở.
+  public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?, moOfflineDen: Date? = nil, dungSai: TimeInterval = 0) -> KhienMuonCo {
+    let moc = now.addingTimeInterval(dungSai)
+    if let den = moOfflineDen, den > moc {
       return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangMoOffline: true)
     }
     let d = diaPhuong(now, tz: kh.tz)
-    let themGio = (kh.moDen.map { $0 > now }) ?? false
+    let themGio = (kh.moDen.map { $0 > moc }) ?? false
     let dong = { (m: MucKhien, l: LyDoKhien) in
       KhienMuonCo(muc: m, lyDo: l, webChan: kh.webChan + kh.webGiaiTri, chanCaiApp: kh.chanCaiApp, dangThemGio: false)
     }
     if kh.khoaNgay { return dong(.moiApp, .khoaNgay) }
     if let ngu = kh.ngu, ngu.chua(d.phut) { return dong(.moiApp, .ngu) }
     if themGio { return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: true) }
-    if let den = kh.phienDiemDen, den > now {
+    if let den = kh.phienDiemDen, den > moc {
       return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangChoiDiem: true)
     }
     if kh.khoaGiaiTri { return dong(.giaiTri, .khongTuanThu) }

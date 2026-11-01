@@ -66,6 +66,7 @@ public struct KeHoach: Codable, Equatable {
 }
 
 public enum LapKeHoach {
+  public static let dungSaiHetLich: TimeInterval = 60   // giây — intervalDidEnd có thể tới sớm hơn hạn
   public static let lichToiDa = 20          // DeviceActivityCenter giới hạn số activity theo dõi cùng lúc (~20)
   public static let webToiDa = 50           // WebContentSettings .specific tối đa 50 tên miền
   public static let khoangNganNhat = 15     // DeviceActivitySchedule tối thiểu 15 phút

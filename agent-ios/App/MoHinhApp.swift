@@ -145,7 +145,10 @@ final class MoHinhApp: ObservableObject {
       let q = p.map { "?phien=\($0)" } ?? ""       // base64url — đã an toàn trong URL
       let duoi = duong.isEmpty ? "" : "/\(duong)"
       let app = URL(string: "aiigrow://tre\(duoi)\(q)")!
-      let web = URL(string: "\(mayChu.absoluteString)/tre\(duoi)\(q)")!
+      // goc lưu có thể kèm «/» cuối ⇒ ghép theo đường, không nối chuỗi (tránh «//tre»)
+      var w = URLComponents(url: mayChu.appendingPathComponent("tre" + duoi), resolvingAgainstBaseURL: false)!
+      if let p { w.queryItems = [URLQueryItem(name: "phien", value: p)] }
+      let web = w.url!
       loi = nil
       if await UIApplication.shared.open(app) { return }
       await UIApplication.shared.open(web)

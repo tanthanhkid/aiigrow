@@ -12,8 +12,9 @@ final class MonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
-    // Lịch «thêm giờ» kết thúc đúng hạn: kế hoạch còn moDen cũ nhưng TinhKhien so moDen với giờ hiện tại ⇒ khiên tự bật lại.
-    ApLai.lucNay()
+    // Lịch «thêm giờ» / phiên điểm / mã offline kết thúc: TinhKhien so hạn với giờ hiện tại ⇒ khiên tự bật lại.
+    // iOS có thể gọi hơi trước hạn (mốc làm tròn phút) ⇒ dung sai 60 giây, kẻo cửa sổ vừa hết vẫn bị coi là mở và không còn mốc nào bật khiên.
+    ApLai.lucNay(dungSai: LapKeHoach.dungSaiHetLich)
   }
 
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {

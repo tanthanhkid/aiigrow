@@ -32,13 +32,17 @@ final class MayChuHoSo {
       l.stateUpdateHandler = { st in
         guard !xong else { return }
         switch st {
-        case .ready: xong = true; k.resume(returning: l.port?.rawValue ?? 0)
+        case .ready:
+          xong = true
+          if let c = l.port?.rawValue, c != 0 { k.resume(returning: c) } else { l.cancel(); k.resume(throwing: URLError(.cannotConnectToHost)) }
         case .failed(let e): xong = true; k.resume(throwing: e)
         case .cancelled: xong = true; k.resume(throwing: CancellationError())
         default: break
         }
       }
       l.start(queue: .global())
+      // kẹt ở .waiting (không bao giờ ready/failed) ⇒ sau 10 giây bỏ, kẻo nút «Tải hồ sơ» treo mãi
+      DispatchQueue.global().asyncAfter(deadline: .now() + 10) { if l.state != .ready { l.cancel() } }
     }
     nghe = l
     // Safari mở ⇒ app xuống nền: xin thêm ít thời gian chạy nền để kịp trả tệp
