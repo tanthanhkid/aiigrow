@@ -12,13 +12,28 @@ final class MonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
-    // Lịch «thêm giờ» kết thúc đúng hạn: kế hoạch còn moDen cũ nhưng TinhKhien so moDen với giờ hiện tại ⇒ khiên tự bật lại.
-    ApLai.lucNay()
+    // Lịch «thêm giờ» / phiên điểm / mã offline kết thúc: TinhKhien so hạn với giờ hiện tại ⇒ khiên tự bật lại.
+    // iOS có thể gọi hơi trước hạn (mốc làm tròn phút) ⇒ dung sai 60 giây, kẻo cửa sổ vừa hết vẫn bị coi là mở và không còn mốc nào bật khiên.
+    ApLai.lucNay(dungSai: LapKeHoach.dungSaiHetLich)
   }
 
   override func eventDidReachThreshold(_ event: DeviceActivityEvent.Name, activity: DeviceActivityName) {
     super.eventDidReachThreshold(event, activity: activity)
+    // «nhac5» = trần phút − 5: chỉ nhắc, không đổi khiên (đang mở bằng mã / phiên điểm / thêm giờ thì phút trần không phải giới hạn ⇒ bỏ)
+    if event.rawValue == "nhac5" {
+      if let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp), k.lyDo == .khong, !k.dangThemGio, k.dangChoiDiem != true, k.dangMoOffline != true {
+        ThongBao.nhacSapHet("tran")
+      }
+      return
+    }
     ApLai.ghiSuKien(event.rawValue)
     ApLai.lucNay()
+  }
+
+  // Lịch không lặp có warningTime (thêm giờ, phiên điểm, mở bằng mã): iOS gọi trước khi lịch kết thúc ⇒ nhắc «còn 5 phút».
+  override func intervalWillEndWarning(for activity: DeviceActivityName) {
+    super.intervalWillEndWarning(for: activity)
+    // chỉ nhắc khi hết lịch này máy thật sự khoá lại (thêm giờ hết nhưng phiên điểm / mã offline còn ⇒ im)
+    if ApLai.seKhoaSau(LapKeHoach.nhacTruoc + 1) { ThongBao.nhacSapHet(activity.rawValue) }
   }
 }

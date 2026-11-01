@@ -1,6 +1,6 @@
 // Logic THUẦN: kế hoạch + giờ hiện tại + phút đã dùng hôm nay ⇒ khiên cần có NGAY BÂY GIỜ.
 // App (lúc đồng bộ) và extension DeviceActivityMonitor (lúc chuông lịch kêu) đều gọi đúng hàm này ⇒ hai nơi không lệch nhau.
-// Thứ tự thắng: Khoá ngay > giờ ngủ > thêm giờ đã duyệt > không tuân thủ > hết trần phút > ngoài khung giờ chơi.
+// Thứ tự thắng: mở bằng mã offline > Khoá ngay > giờ ngủ > thêm giờ đã duyệt > phiên điểm > không tuân thủ > hết trần phút > ngoài khung.
 import Foundation
 
 public enum MucKhien: String, Codable { case khong, giaiTri = "giai_tri", moiApp = "moi_app" }
@@ -28,6 +28,10 @@ public struct KhienMuonCo: Codable, Equatable {
   public var webChan: [String]
   public var chanCaiApp: Bool
   public var dangThemGio: Bool
+  /// Đang trong phiên «Chơi bằng điểm» (lịch «phiendiem»). Khiên cũ trong kho không có ⇒ nil.
+  public var dangChoiDiem: Bool? = nil
+  /// Đang mở bằng mã offline Ba Mẹ đọc (MoTamOffline).
+  public var dangMoOffline: Bool? = nil
 }
 
 /// Phút giải trí đã dùng trong ngày (ghi bởi DeviceActivityMonitor khi chạm mốc «dung.N» / «tran»).
@@ -64,15 +68,26 @@ public enum TinhKhien {
     return ds.contains { $0.chua(d.phut) }
   }
 
-  public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> KhienMuonCo {
+  /// `moOfflineDen`: hạn «mở tạm bằng mã offline» (MoTamOffline) — mã do chính Ba Mẹ đọc lúc máy mất mạng ⇒ gỡ mọi khoá tới hạn
+  /// (như agent Windows MoTamOffline.ApDung: không để máy kẹt khoá khi không có mạng); web bị chặn vẫn chặn.
+  /// `dungSai`: giây coi như đã hết sớm — iOS có thể gọi intervalDidEnd hơi trước `den` (mốc làm tròn phút) ⇒ khi hết lịch gọi với dung sai
+  /// để cửa sổ đang kết thúc không còn được tính là mở.
+  public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?, moOfflineDen: Date? = nil, dungSai: TimeInterval = 0) -> KhienMuonCo {
+    let moc = now.addingTimeInterval(dungSai)
+    if let den = moOfflineDen, den > moc {
+      return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangMoOffline: true)
+    }
     let d = diaPhuong(now, tz: kh.tz)
-    let themGio = (kh.moDen.map { $0 > now }) ?? false
+    let themGio = (kh.moDen.map { $0 > moc }) ?? false
     let dong = { (m: MucKhien, l: LyDoKhien) in
       KhienMuonCo(muc: m, lyDo: l, webChan: kh.webChan + kh.webGiaiTri, chanCaiApp: kh.chanCaiApp, dangThemGio: false)
     }
     if kh.khoaNgay { return dong(.moiApp, .khoaNgay) }
     if let ngu = kh.ngu, ngu.chua(d.phut) { return dong(.moiApp, .ngu) }
     if themGio { return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: true) }
+    if let den = kh.phienDiemDen, den > moc {
+      return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangChoiDiem: true)
+    }
     if kh.khoaGiaiTri { return dong(.giaiTri, .khongTuanThu) }
     if phutConLai(kh, now: now, dung: dung) <= 0 { return dong(.giaiTri, .hetGio) }
     if !trongGioChoi(kh, now: now) { return dong(.giaiTri, .ngoaiGio) }

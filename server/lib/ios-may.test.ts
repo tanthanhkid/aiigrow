@@ -48,6 +48,13 @@ test("thêm giờ cho máy iOS ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; 
   const truoc = await nhip(r.token, ios());
   assert.equal(truoc.status, 200);
   assert.equal(truoc.body.grantEndsAt, null);
+  // mã mở offline cho iPhone/iPad (agent-ios MaOffline): nhịp mang bí mật; Ba Mẹ lấy được mã cùng số; vân khớp ⇒ không gửi lại
+  assert.match(String(truoc.body.maOfflineBiMat), /^[A-Za-z0-9_-]{20,}$/);
+  assert.ok((await import("./ma-offline.ts")).kiemMaOffline(truoc.body.maOfflineBiMat, (await tt.maOfflineChoMay(fam, may.id, bm, new Date())).ma));
+  const { vanBiMat } = await import("./nhip-may.ts");
+  const coVan = await xuLyMay(new Request("http://x/api/device/nhip", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${r.token}` },
+    body: JSON.stringify({ clientTime: new Date().toISOString(), appQuanLyBat: true, ios: ios(), maOfflineVan: vanBiMat(truoc.body.maOfflineBiMat) }) }), ["nhip"]);
+  assert.equal(((await coVan.json()) as any).maOfflineBiMat, undefined);
   const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "Để làm bài tập" }, T);
   await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, T);
   assert.ok((await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]))?.cua_so_den, "iOS phải có cửa sổ mở");
@@ -59,9 +66,9 @@ test("thêm giờ cho máy iOS ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; 
   assert.equal((await tt.dsTuanThu(fam, new Date())).find((x) => x.id === may.id)?.moDen, den.toISOString());
   await tt.huyMoKhanCap(fam, may.id, bm, new Date());
   assert.equal((await nhip(r.token, ios())).body.grantEndsAt, null);
-  // mã mở offline: iOS chưa có (Windows, Mac, Android có)
-  assert.equal((await tt.dsTuanThu(fam, new Date())).find((x) => x.id === may.id)?.coMaOffline, false, "cờ app Ba Mẹ theo cùng hàm");
-  await assert.rejects(tt.maOfflineChoMay(fam, may.id, bm, new Date()), (e: { ma?: string }) => e.ma === "sai_nen_tang");
+  // mã mở offline: iOS có (agent-ios MaOffline) như Windows, Mac, Android; TV / thiết bị mạng thì không
+  assert.ok(tt.coMaOffline("ios") && !tt.coMaOffline("tvos"));
+  assert.equal((await tt.dsTuanThu(fam, new Date())).find((x) => x.id === may.id)?.coMaOffline, true, "cờ app Ba Mẹ theo cùng hàm");
 });
 
 test("nhịp không có `ios` hoặc máy không phải iOS: không ghi status.ios (Android có grantEndsAt riêng)", async () => {

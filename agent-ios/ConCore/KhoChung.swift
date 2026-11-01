@@ -34,6 +34,25 @@ public enum Khoa {
   public static let chonHoc = "chon.hoc"
   public static let chonGiaiTri = "chon.giaiTri"
   public static let chonChan = "chon.chan"
+  public static let moTamOffline = "moTamOffline"
+  public static let suKienCho = "suKienCho"
+}
+
+/// Sự kiện agent (POST api/device/su-kien, server/lib/may-con.ts › SU_KIEN_MAY): `ma` một lần ⇒ gửi lại khi có mạng không ghi trùng.
+public struct SuKienMay: Codable, Equatable {
+  public var ma: String; public var loai: String; public var luc: String; public var chiTiet: [String: String]
+  public init(ma: String = UUID().uuidString, loai: String, luc: Date, chiTiet: [String: String] = [:]) {
+    self.ma = ma; self.loai = loai; self.luc = NgayISO.viet(luc); self.chiTiet = chiTiet
+  }
+}
+
+public extension KhoGiaTri {
+  /// Xếp một sự kiện vào hàng chờ (giữ tối đa 50 cái mới nhất).
+  func xepSuKien(_ e: SuKienMay) {
+    var ds = doc([SuKienMay].self, Khoa.suKienCho) ?? []
+    ds.append(e)
+    luu(Array(ds.suffix(50)), Khoa.suKienCho)
+  }
 }
 
 public extension KhoGiaTri {

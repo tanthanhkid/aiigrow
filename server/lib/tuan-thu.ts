@@ -313,8 +313,8 @@ export async function tinCayAdmin(fam: string, mayId: string, b: { ten?: unknown
 // ---------------------------------------------------------------- Mã mở offline (lib/ma-offline.ts): bí mật chung máy ↔ máy chủ
 import { BUOC_GIAY, DUNG_SAI, maOffline, taoBiMatOffline } from "./ma-offline.ts";
 
-/** Nền nhận bí mật mã offline: máy có tác tử (Windows, Mac — qua dong-bo) + Android (qua nhịp, nhip-may.ts). iOS chưa. */
-export const coMaOffline = (nen: string | null | undefined) => coTacTu(nen) || nen === "android";
+/** Nền nhận bí mật mã offline: máy có tác tử (Windows, Mac — qua dong-bo) + Android, iOS (qua nhịp, nhip-may.ts). */
+export const coMaOffline = (nen: string | null | undefined) => coTacTu(nen) || nen === "android" || nen === "ios";   // iOS: agent-ios MaOffline (nhịp mang bí mật)
 
 /** Lấy (hoặc tạo lần đầu) bí mật mã offline của một máy — dùng cả cho agent (theo deviceId) lẫn Ba Mẹ. */
 export async function biMatOfflineMay(deviceId: string): Promise<string | null> {
@@ -334,7 +334,7 @@ export async function biMatOfflineMay(deviceId: string): Promise<string | null> 
 /** Ba Mẹ xem mã mở offline của một máy (có kiểm chủ quyền + ghi nhật ký). */
 export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string, now = new Date(), phutMo = 60) {
   const m = await mayCua(fam, mayId);
-  if (!coMaOffline(m.platform)) throw new LoiNghiepVu("sai_nen_tang", "Mã mở offline chỉ dùng cho máy có tác tử AiiGrow (Windows, Mac, Android)", 400);
+  if (!coMaOffline(m.platform)) throw new LoiNghiepVu("sai_nen_tang", "Mã mở offline chỉ dùng cho máy có tác tử AiiGrow (Windows, Mac, Android, iPhone/iPad)", 400);
   const bm = await biMatOfflineMay(m.id);
   if (!bm) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   const ma = maOffline(bm, now);

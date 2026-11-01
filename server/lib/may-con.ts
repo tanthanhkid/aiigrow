@@ -74,7 +74,8 @@ export type Policy = {
   luat: { muc: string; loai: "hoc" | "giai_tri" | "chan"; nhom: string | null; giaPhanNghin: number | null }[];
   lich: ReturnType<typeof lichCua>; khoaNgay: boolean; soDu: number;
   /** đang mở tạm (yeu-cau.ts › dongY): khoá trở lại lúc này (ISO); hạn khoá hiện tại — agent đồng bộ đúng các mốc đó */ khoaLaiLuc?: string | null; khoaHetLuc?: string | null;
-  phien: { id: string; muc: string; conPhut: number } | null;
+  /** `may`: máy mở phiên (iPhone/iPad chỉ gỡ khiên cho phiên mở trên chính nó — agent-ios KeHoach). */
+  phien: { id: string; muc: string; conPhut: number; may?: string | null } | null;
   // M4 agent Windows — chỉ thêm: múi giờ gia đình (agent tự xét khung giờ / giờ ngủ khi mất mạng), ngưỡng lệch giờ, phiên tối đa.
   tz: string; lechGioPhut: number; phienToiDa: number;
   /** Web: true = «chỉ cho phép» (chặn mọi trang trừ trang được cho phép), false = «mở» (chỉ chặn trang Ba Mẹ chặn). tham số web_chi_cho_phep. */
@@ -98,7 +99,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai, nhom: l.loai === "giai_tri" ? l.nhom : null,
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
     lich: lichCua(c?.lich as never), khoaNgay: dangKhoa(c?.cau_hinh, now), khoaLaiLuc: moTamDen(c?.cau_hinh, now), khoaHetLuc: khoaDen(c?.cau_hinh, now), soDu: c ? await soDu(c.id) : 0,
-    phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)) } : null,
+    phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da, webChiChoPhep: ts.web_chi_cho_phep === 1,
   };
 }
