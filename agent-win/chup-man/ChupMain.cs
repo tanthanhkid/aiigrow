@@ -104,7 +104,7 @@ internal static class ChupMain
         await Mot("khoa-gio-ngu", () => ManKhoa("khoa-gio-ngu", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Ngu; })));
         await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; })));
         await Mot("khoa-mat-mang", () => ManKhoa("khoa-mat-mang", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.Offline = true; s.MinutesLeft = 0; })));
-        await Mot("khoa-het-gio", () => ManKhoa("khoa-het-gio", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = 0; })));
+        await Mot("khoa-het-gio", () => ManKhoa("khoa-het-gio", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = null; })));   // 0 ⇒ màn gọi LockWorkStation, khoá luôn máy chụp
         await Mot("ngoai-le-xin", () => ManHop("ngoai-le-xin", () => new NgoaiLeForm(TrangThai().AppDuocPhep)));
         await Mot("ngoai-le-cho", () => ManHop("ngoai-le-cho", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); DatTruong(f, "_lyDoGui", "Con chưa xong bài"); Goi(f, "VeCho"); return f; }));
         await Mot("ngoai-le-duoc", () => ManHop("ngoai-le-duoc", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); Goi(f, "VeDuoc"); return f; }));
