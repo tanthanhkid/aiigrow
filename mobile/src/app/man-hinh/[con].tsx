@@ -111,7 +111,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
               phu={`${MUC[x.muc].chu} · ${x.kieu === "web" ? `Trang web${ngay === null && x.soLan ? ` · ${x.soLan} lượt mở` : ""}` : "Ứng dụng"}`}
               trai={<ODau muc={x.muc} />}
               phai={<Chu kieu="rat" co={14} so>{gio(x.p)}</Chu>}
-              bam={x.kieu === "web" ? () => router.push(`/web/${con}`) : x.muc === "chua_xep" ? () => router.push("/app-web") : undefined} />
+              bam={x.kieu === "web" ? () => router.push(`/web/${con}`) : x.muc === "chua_xep" ? () => router.push(`/app-web?con=${con}`) : undefined} />
           ))}
         </Nhom>
       ) : <Chu co={14} mau={M.chu3}>Không có app hay trang nào khớp bộ lọc.</Chu>}
@@ -119,7 +119,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
 
       <Nhom>
         <Dong dau tieu="Chặn hoặc cho phép trang web" phu="Chọn từng trang, hoặc chỉ cho vào trang bạn duyệt" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
-        <Dong tieu="Chặn hoặc xếp loại ứng dụng" phu="Học tập, giải trí, chặn" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push("/app-web")} />
+        <Dong tieu="Chặn hoặc xếp loại ứng dụng" phu="Học tập, giải trí, chặn" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push(`/app-web?con=${con}`)} />
         <Dong tieu="Báo cáo tuần" phu="Học và giải trí theo ngày, xuất CSV cho Excel" trai={<BieuTron ic="cot" />} bam={() => router.push({ pathname: "/bao-cao", params: { con } })} />
       </Nhom>
       <Chu co={13} mau={M.chu3}>
