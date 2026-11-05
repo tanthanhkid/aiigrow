@@ -9,6 +9,7 @@ import { taoPolicy, type Policy } from "./may-con.ts";
 import type { May } from "./gia-dinh.ts";
 import type { NhomGiaiTri } from "./luat-app.ts";
 import { goiAndroidThat, mucAppThat } from "./app-may.ts";
+import { WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
 
 export type KieuMuc = "app" | "web";
 export type MucChung = { muc: string; kieu: KieuMuc; nhom?: NhomGiaiTri | null; giaPhanNghin?: number | null };
@@ -35,7 +36,9 @@ export type ChinhSachChung = {
     ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung;
     tranNgayPhut: number; tranTuanPhut: number; phienToiDaPhut: number; nghiGiuaPhut: number; tuDongDongPhut: number;
   };
-  ungDung: { heThong: string[]; hoc: MucChung[]; giaiTri: MucChung[]; chan: MucChung[]; chuaXep: "chan" };
+  /** chuaXep: app / web chưa xếp loại — «chan» (chế độ Chỉ app được phép: Con «Xin Ba Mẹ duyệt») | «cho_phep» (Mở hết). L4 thiết kế 05/11.
+   *  cheDoChan: chế độ chặn của Con · webLuonChan: tên miền luôn chặn ở mọi chế độ (người lớn, cờ bạc, bạo lực). */
+  ungDung: { heThong: string[]; hoc: MucChung[]; giaiTri: MucChung[]; chan: MucChung[]; chuaXep: "chan" | "cho_phep"; cheDoChan: CheDoChan; webLuonChan: string[] };
   phienDiem: { soDu: number; phien: Policy["phien"]; giaTheoNhom: Record<NhomGiaiTri, number> };
   khoaNgay: boolean;
   ngoaiLe: { phutThemHomNay: number; mucTamThoi: { muc: string; loai: string; het: string }[]; moKhanCapDen: string | null };
@@ -83,7 +86,9 @@ export function dungChinhSach(p: Policy, o: {
       hoc: p.luat.filter((l) => l.loai === "hoc").map(m),
       giaiTri: p.luat.filter((l) => l.loai === "giai_tri").map(m),
       chan: p.luat.filter((l) => l.loai === "chan").map(m),
-      chuaXep: "chan",
+      chuaXep: p.cheDoChan === "mo_het" ? "cho_phep" : "chan",
+      cheDoChan: p.cheDoChan ?? "chi_app_duoc_phep",
+      webLuonChan: p.webLuonChan ?? WEB_LUON_CHAN,
     },
     phienDiem: {
       soDu: p.soDu, phien: p.phien,

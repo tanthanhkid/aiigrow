@@ -560,3 +560,45 @@ export const SCHEMA_TV_TB = [
     primary key (child_id, ngay)
   )`,
 ];
+
+// ================================================================ S2 «gia đình + chặn» theo thiết kế chốt 05/11 (docs/KE-HOACH-KHOP-THIET-KE-0511.md L4–L8).
+// Chỉ thêm. lib/db.ts chạy khối này (sau SCHEMA_TV_TB) mỗi lần lược đồ đổi; mọi câu chạy lại được.
+// families.chu_id: người TẠO nhà — chỉ người này xoá được cả nhà (xoa-tai-khoan.ts). Không còn vai «Chủ gia đình» trên giao diện.
+// parents.vai (L6): ba_me (làm được hết) | trong_giup (xem, duyệt, khoá máy; không đổi cài đặt) | roi (đã rời / bị mời ra — giữ tên cho lịch sử).
+//   Dữ liệu cũ: chu + duyet ⇒ ba_me, xem ⇒ trong_giup (lib/quyen.ts vẫn hiểu giá trị cũ cho dòng ghi bởi bản cũ đang chạy song song lúc deploy).
+// loi_moi.vai giờ mang quyền (ba_me | trong_giup); loi_moi.dinh_danh: SĐT (0xxxxxxxxx) / email người được mời — đăng ký / đăng nhập khớp định
+//   danh thì tự thấy lời mời (lib/thanh-vien.ts › loiMoiChoToi). null = lời mời chỉ qua link (app cũ). gui_luc: lần gửi (lại) cuối.
+// children.che_do_chan (L4): mo_het | chi_app_duoc_phep. null = Con tạo trước 05/11 ⇒ coi như chi_app_duoc_phep cho APP (như trước), web theo
+//   tham số web_chi_cho_phep cũ; Ba Mẹ chọn một lần là có giá trị. Con mới: chi_app_duoc_phep.
+// pair_codes.platform = '' (và goi_cai.platform = '') ⇒ không gắn loại máy (L8: «trang tải tự nhận loại máy»). pair_codes / goi_cai.giong_may: «Cài giống máy trước» —
+//   lúc ghép chép cài đặt của Con dùng máy đó sang Con của máy mới (lib/ghep-may.ts › saoChepCaiDat).
+// app_theo_ten: app Ba Mẹ cho phép theo TÊN lúc thiết lập («Thêm app khác») khi chưa máy nào báo định danh thật — máy gửi danh sách app
+//   (POST /api/device/ung-dung) thì khớp tên ⇒ ghi luật app_rules thật, đặt khop_luc. tinh_gio: true = tính vào giờ chơi (giai_tri), false = hoc.
+export const SCHEMA_S2 = [
+  `alter table families add column if not exists chu_id text`,
+  `update families f set chu_id = (select p.id from parents p where p.family_id = f.id and p.vai = 'chu' order by p.created_at limit 1)
+     where f.chu_id is null and exists (select 1 from parents p where p.family_id = f.id and p.vai = 'chu')`,
+  `update parents set vai = case when vai = 'xem' then 'trong_giup' else 'ba_me' end where vai in ('chu', 'duyet', 'xem')`,
+  `update loi_moi set vai = case when vai = 'xem' then 'trong_giup' else 'ba_me' end where vai in ('duyet', 'xem')`,
+  `alter table loi_moi add column if not exists dinh_danh text`,
+  `alter table loi_moi add column if not exists gui_luc timestamptz`,
+  `create index if not exists loi_moi_dinh_danh on loi_moi(dinh_danh) where dinh_danh is not null and dung_luc is null and huy_luc is null`,
+  `alter table children add column if not exists che_do_chan text`,
+  `alter table pair_codes add column if not exists giong_may text`,
+  `alter table pair_codes add column if not exists nguoi text`,
+  `alter table goi_cai add column if not exists giong_may text`,
+  // một «phiên ghép» (lib/ghep-may.ts › taoPhienGhep) = mã 6 số + link bộ cài (gói cài không gắn loại máy); máy ghép bằng đường nào thì
+  // đường kia cũng hết dùng: pair_codes.goi_cai = băm token gói cài đi kèm, goi_cai.ma_ghep = mã 6 số đi kèm.
+  `alter table pair_codes add column if not exists goi_cai text`,
+  `alter table goi_cai add column if not exists ma_ghep text`,
+  `create table if not exists app_theo_ten (
+    child_id text not null references children(id) on delete cascade,
+    family_id text not null references families(id) on delete cascade,
+    ten text not null,
+    ten_khoa text not null,
+    tinh_gio boolean not null default true,
+    khop_luc timestamptz,
+    created_at timestamptz not null default now(),
+    primary key (child_id, ten_khoa)
+  )`,
+];

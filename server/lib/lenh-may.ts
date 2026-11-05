@@ -13,6 +13,7 @@ import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { huongDanCai, CACH_GO_TU_XA } from "./chuyen-doi.ts";
 import type { BaMe } from "./auth.ts";
+import { chiBaMe } from "./quyen.ts";
 
 // ---------------------------------------------------------------- gói cài
 export async function taoGoiCai(fam: string, b: { con?: unknown; nen?: unknown }, goc: string, nguoi?: string, now = new Date()) {
@@ -34,17 +35,22 @@ export async function taoGoiCai(fam: string, b: { con?: unknown; nen?: unknown }
 export async function doiGoiCai(token: string, nen: string, tenMay: string, now = new Date()) {
   await bangM4b();
   const h = sha(String(token ?? ""));
-  const g = await one<{ family_id: string; child_id: string | null; platform: string; expires_at: Date; used_at: Date | null }>(
-    `select family_id, child_id, platform, expires_at, used_at from goi_cai where token_hash = $1`, [h]);
+  const g = await one<{ family_id: string; child_id: string | null; platform: string; expires_at: Date; used_at: Date | null; giong_may: string | null; ma_ghep: string | null }>(
+    `select family_id, child_id, platform, expires_at, used_at, giong_may, ma_ghep from goi_cai where token_hash = $1`, [h]);
   if (!g) throw new LoiNghiepVu("ma_sai", "Gói cài không hợp lệ — tải lại gói mới từ app Ba Mẹ", 404);
   if (g.used_at) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
   if (new Date(g.expires_at) < now) throw new LoiNghiepVu("ma_het_han", "Gói cài đã hết hạn — tải gói mới từ app Ba Mẹ", 410);
-  if (g.platform !== nen) throw new LoiNghiepVu("sai_nen_tang", "Gói cài này dành cho loại máy khác", 409);
+  // gói cài của «phiên ghép» (lib/ghep-may.ts) không gắn loại máy ('') ⇒ nhận loại máy bộ cài báo
+  if (g.platform === "" ? !(NEN_TANG as readonly string[]).includes(nen) : g.platform !== nen)
+    throw new LoiNghiepVu("sai_nen_tang", g.platform ? "Gói cài này dành cho loại máy khác" : "Loại máy không hợp lệ", 409);
   // nhận gói nguyên tử (một câu update có điều kiện) ⇒ hai lần đổi song song chỉ một lần thắng
   const nhan = await q(`update goi_cai set used_at = $2 where token_hash = $1 and used_at is null and expires_at > $2 returning token_hash`, [h, now]);
   if (!nhan.length) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
-  const kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen), nen, tenMay);
+  const kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay);
   await q(`update goi_cai set device_id = $2 where token_hash = $1`, [h, kq.deviceId]);
+  // mã 6 số của cùng «phiên ghép» hết dùng; app Ba Mẹ đang chờ thấy «đã ghép» qua mã đó (ghep-may.ts › trangThaiGhep)
+  if (g.ma_ghep) await q(`update pair_codes set used_at = coalesce(used_at, now()), device_id = coalesce(device_id, $3) where code = $1 and goi_cai = $2`,
+    [g.ma_ghep, h, kq.deviceId]);
   const c = g.child_id ? await one<{ ten: string }>(`select ten from children where id = $1`, [g.child_id]) : undefined;
   return { ...kq, ...(c ? { childName: c.ten } : {}) };
 }
@@ -52,10 +58,10 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
 // ---------------------------------------------------------------- lệnh gỡ từ xa
 type MayDb = May & { token_hash: string };
 
-/** Chủ gia đình + nhập lại đúng mật khẩu (gỡ = bỏ bảo vệ ⇒ cùng mức bảo vệ cho go-tu-xa và «Gỡ máy này»). */
+/** Ba Mẹ (quyền ba_me) + nhập lại đúng mật khẩu (gỡ = bỏ bảo vệ ⇒ cùng mức bảo vệ cho go-tu-xa và «Gỡ máy này»). */
 async function xacThucChu(bm: BaMe, mayId: string, matKhau: unknown, viec = "gỡ được AiiGrow từ xa") {
   await bangM4b();
-  if (bm.vai !== "chu") throw new LoiNghiepVu("chi_chu", `Chỉ chủ gia đình mới ${viec}`, 403);
+  chiBaMe(bm, viec.replace(/ được/, ""));      // L6: mọi «Ba Mẹ» (không còn «Chủ gia đình»); Người trông giúp không gỡ máy
   const m = await one<MayDb>(`select * from devices where id = $1 and family_id = $2`, [mayId, bm.family_id]);
   if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
@@ -134,14 +140,18 @@ export const cheDoBaMeChon = (m: MayCheDo): CheDo | null => (m.che_do_ba_me ? (m
 export const cheDoMayBao = (m: Pick<May, "status">): CheDo | null => (laCheDo(m.status?.cheDo) ? m.status.cheDo : null);
 /** Chế độ hiển thị: lựa chọn của Ba Mẹ nếu có, không thì chế độ máy báo; null = chưa biết (không đoán «giám sát» cho máy cài sẵn «chặn»). */
 export const cheDoCua = (m: MayCheDo): CheDo | null => cheDoBaMeChon(m) ?? cheDoMayBao(m);
-/** Giá trị gửi agent trong dong-bo.windows.cheDo: đang gỡ ⇒ luôn giam-sat; Ba Mẹ chưa chọn ⇒ không gửi (agent giữ chế độ đang chạy). */
-export const cheDoGuiMay = (m: MayCheDo, dangGo: boolean): CheDo | undefined => (dangGo ? "giam-sat" : cheDoBaMeChon(m) ?? undefined);
+/** Giá trị gửi agent trong dong-bo.windows.cheDo: đang gỡ ⇒ luôn giam-sat (gỡ hỏng giữa chừng cũng không còn chặn); còn lại LUÔN «chan»
+ *  (thiết kế 05/11: bỏ «Giám sát / Chặn thật» khỏi màn Ba Mẹ — máy luôn chặn thật; mức chặn theo Con: Mở hết / Chỉ app được phép, lib/chan-co-ban.ts).
+ *  Máy cũ Ba Mẹ từng để «Giám sát» cũng chuyển sang chặn ở lần đồng bộ kế. `m` giữ trong chữ ký cho nơi gọi cũ. */
+export const cheDoGuiMay = (_m: MayCheDo, dangGo: boolean): CheDo | undefined => (dangGo ? "giam-sat" : "chan");
 
 /** POST may/:id/che-do {cheDo} — máy đổi ở lần đồng bộ tới (≤ 1 phút khi có mạng). Ghi nhật ký + báo các Ba Mẹ khác. */
 export async function datCheDo(fam: string, mayId: string, b: { cheDo?: unknown }, nguoi: string, now = new Date()) {
   await bangM4b();
   const sang = String(b.cheDo ?? "") as CheDo;
   if (!laCheDo(sang)) throw new LoiNghiepVu("che_do_sai", "Chọn Giám sát hoặc Chặn thật");
+  // Thiết kế 05/11: máy luôn chặn thật — không còn «Giám sát». Mức chặn đổi ở hồ sơ Con (POST con/:id/che-do-chan: Mở hết / Chỉ app được phép).
+  if (sang === "giam-sat") throw new LoiNghiepVu("che_do_bo", "Máy luôn chặn thật. Muốn con dùng thoải mái hơn: hồ sơ con › Chặn app › «Mở hết»", 409);
   const m = await one<May>(`select * from devices where id = $1 and family_id = $2`, [mayId, fam]);
   if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   const tu = cheDoCua(m);

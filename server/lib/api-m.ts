@@ -1,5 +1,5 @@
 // API app Ba Mẹ: /api/m/<đường> — Bearer = phiên Ba Mẹ. Hợp đồng: docs/API.md. Mọi ID Con / nhiệm vụ / yêu cầu đều kiểm thuộc gia đình
-// của người gọi (lib/* trả «không thấy» như không tồn tại). Vai «xem» (Chỉ xem, FR-01.04) chỉ GET.
+// của người gọi (lib/* trả «không thấy» như không tồn tại). Quyền (L6, lib/quyen.ts): «Người trông giúp» GET hết, POST chỉ xem / duyệt / khoá máy.
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
 import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
@@ -34,6 +34,14 @@ import * as gt from "./api-gia-dinh.ts";
 import * as hta from "./ho-tro-admin.ts";
 import { ghiKiemToan } from "./admin.ts";
 import { xoaTaiKhoan } from "./xoa-tai-khoan.ts";
+// S2 thiết kế 05/11 (L4–L8): quyền 2 mức, chế độ chặn theo Con, thiết lập lần đầu, phiên ghép máy
+import { baMeTuToken } from "./auth.ts";
+import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
+import { loiMoiChoToi } from "./thanh-vien.ts";
+import { datAppChoPhep, datCheDoChan, luoiApp, TEN_CHE_DO_CHAN, WEB_CAM } from "./che-do-chan.ts";
+import { cheDoChanCua } from "./chan-co-ban.ts";
+import { thietLapLanDau, tomTatThietLap } from "./thiet-lap.ts";
+import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -42,7 +50,9 @@ async function chiTietCon(bm: BaMe, id: string) {
   const may = await q<gd.May>(`select * from devices where child_id = $1 or (dung_chung and family_id = $2) order by created_at`, [id, bm.family_id]);
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [bm.family_id]))!;
   return {
-    id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: true, khoaNgay: khoaGoc(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh), moTamDen: moTamDen(c.cau_hinh),
+    // coPin: luôn false (L5 bỏ PIN hồ sơ Con) — giữ khoá cho app bản cũ. cheDoChan: L4.
+    id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: false,
+    cheDoChan: cheDoChanCua((c as { che_do_chan?: unknown }).che_do_chan), khoaNgay: khoaGoc(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh), moTamDen: moTamDen(c.cau_hinh),
     lich: lichCua(c.lich as never), thamSo: thamSo(f.cau_hinh, c.cau_hinh), ...(await tomTatVi(c.id)),
     may: may.map((m) => ({ id: m.id, ten: m.name, nen: m.platform, dungChung: m.dung_chung, baoVe: gd.mucBaoVe(m), baoVeThieu: gd.chiTietBaoVe(m).thieu, baoVeCau: gd.chiTietBaoVe(m).cau,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null,
@@ -56,8 +66,13 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     const d = p.join("/");
     // ---- không cần đăng nhập
     if (d === "otp" && post) { const b = await docJson(req); return json(await guiOtp(b.dinhDanh, b.mucDich === "quen_mk" ? "quen_mk" : "dang_ky")); }
-    if (d === "dang-ky" && post) return json({ token: await taoPhien(await dangKy(await docJson(req))), moi: true });
-    if (d === "dang-nhap" && post) { const b = await docJson(req); return json({ token: await taoPhien(await dangNhap(b.dinhDanh, b.matKhau)) }); }
+    // L6/L7: đăng ký / đăng nhập trả kèm lời mời đang chờ gửi tới đúng SĐT / email này ⇒ app rẽ nhánh «Vào nhà cùng …» (không tạo Con)
+    if ((d === "dang-ky" || d === "dang-nhap") && post) {
+      const b = await docJson(req);
+      const token = await taoPhien(d === "dang-ky" ? await dangKy(b) : await dangNhap(b.dinhDanh, b.matKhau));
+      const toi = await baMeTuToken(token);
+      return json({ token, ...(d === "dang-ky" ? { moi: true } : {}), loiMoi: toi ? await loiMoiChoToi(toi) : [] });
+    }
     if (d === "quen-mat-khau" && post) { const b = await docJson(req); await datLaiMatKhau(b.dinhDanh, b.ma, b.matKhauMoi); return json({ ok: true }); }
     { const r = await gt.xuLyMoiCongKhai(req, p); if (r) return r; }          // lời mời thành viên (không cần đăng nhập)
     // ---- cần đăng nhập
@@ -66,10 +81,13 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     { const r = await gt.xuLyThongBao(req, bm, p); if (r) return r; }       // thông báo riêng từng Ba Mẹ (cả vai Chỉ xem)
     // Xoá tài khoản (Apple 5.1.1(v)): mọi vai, kể cả Chỉ xem — lib/xoa-tai-khoan.ts
     if (d === "xoa-tai-khoan" && post) return json(await xoaTaiKhoan(bm, await docJson(req)));
-    if (post && bm.vai === "xem" && d !== "dang-xuat") throw new LoiNghiepVu("chi_xem", "Tài khoản của Ba/Mẹ đang ở quyền Chỉ xem", 403);
+    // L6: Người trông giúp — POST chỉ các việc xem / duyệt / khoá máy (lib/quyen.ts › trongGiupDuoc); còn lại là đổi cài đặt.
+    if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
+      throw new LoiNghiepVu("chi_xem", "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ nhé", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
-    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: bm.vai }, laAdmin: hta.laQuanTri(bm.id) });
+    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm) },
+      laAdmin: hta.laQuanTri(bm.id) });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 
     if (d === "gia-dinh" && get) {
@@ -86,6 +104,10 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (!sau && get) return json(await chiTietCon(bm, id));
       await gd.conCua(fam, id);
       if (sau === "sua" && post) { await gd.suaCon(fam, id, b, bm.id); return json({ ok: true }); }
+      // L4: chế độ chặn theo Con (Mở hết / Chỉ app được phép) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
+      if (sau === "che-do-chan" && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
+      if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
+      if (sau === "thiet-lap" && get) return json(await tomTatThietLap(fam, id));
       if (sau === "lich" && post) {
         const l = lichCua(b as never);
         await q(`update children set lich = $2::text::jsonb where id = $1`, [id, JSON.stringify(l)]);
@@ -121,7 +143,15 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
         return json({ ok: true });
       }
     }
-    if (d === "ma-ghep" && post) return json({ ma: await gd.taoMaGhep(fam, b.con ? s(b.con, 40) : null, s(b.nen, 20)) });
+    // L8: mã 6 số hạn 10 phút; `nen` bỏ trống = không gắn loại máy. Đường đủ (mã + link bộ cài + QR + chia sẻ): POST ghep-may.
+    if (d === "ma-ghep" && post) return json({ ma: await gd.taoMaGhep(fam, b.con ? s(b.con, 40) : null, s(b.nen, 20), { nguoi: bm.id }), hanPhut: gd.MA_GHEP_PHUT });
+    if (d === "ghep-may" && post) return json(await taoPhienGhep(fam, b, process.env.AIIGROW_APP_URL || new URL(req.url).origin, bm.id));
+    if (p[0] === "ghep-may" && p[1] && p.length === 2 && get) return json(await trangThaiGhep(fam, p[1]));
+    // L7: thiết lập lần đầu (tên Con + giờ chơi + giờ ngủ + chế độ chặn + app) · lưới app gợi ý · nhóm web luôn chặn
+    if (d === "thiet-lap" && post) return json(await thietLapLanDau(fam, b, bm.id));
+    if (d === "app-goi-y" && get) return json(await luoiApp(fam, new URL(req.url).searchParams.get("con")));
+    if (d === "luon-chan" && get) return json({ nhom: Object.entries(WEB_CAM).map(([ma, n]) => ({ ma, ten: n.ten, soTrang: n.mien.length })),
+      cheDo: Object.entries(TEN_CHE_DO_CHAN).map(([ma, ten]) => ({ ma, ten })) });
     // «Gỡ máy này» an toàn: chủ gia đình + mật khẩu; máy đã đồng bộ ⇒ lệnh gỡ (xoá khi agent báo xong) — lib/lenh-may.ts › goMayAnToan
     if (p[0] === "may" && p[2] === "go" && !p[3] && post) return json(await goMayAnToan(bm, p[1], b));
     // M4b
@@ -137,14 +167,11 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "doi-ten" && post) return json(await gd.doiTenMay(fam, p[1], b.ten, bm.id));
       if (sau === "gan-con" && post) return json(await gd.ganConMay(fam, p[1], b.con, bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
-      if (sau === "ma-offline" && get) {
-        // Lấy mã = cấp quyền mở máy ⇒ chặn vai Chỉ xem (như các thao tác điều khiển POST ở trên).
-        if (bm.vai === "xem") throw new LoiNghiepVu("chi_xem", "Tài khoản của Ba/Mẹ đang ở quyền Chỉ xem", 403);
-        return json(await tt.maOfflineChoMay(fam, p[1], bm.id));
-      }
+      // L6: Người trông giúp được duyệt lời xin (mở máy) ⇒ cũng được đọc mã mở offline cho Con lúc máy mất mạng
+      if (sau === "ma-offline" && get) return json(await tt.maOfflineChoMay(fam, p[1], bm.id));
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
-      // Giám sát / Chặn thật do Ba Mẹ chọn từ xa (vai Chỉ xem đã bị chặn ở trên cùng mọi POST)
+      // Thiết kế 05/11: máy luôn chặn thật — chỉ còn nhận «chan» (giam-sat ⇒ 409 che_do_bo); mức chặn đổi ở con/:id/che-do-chan
       if (sau === "che-do" && post) return json(await datCheDo(fam, p[1], b, bm.id));
       // Danh sách app ĐÃ CÀI THẬT trên máy (agent gửi) — Ba Mẹ xếp / chặn đúng app của máy (lib/app-may.ts)
       if (sau === "ung-dung" && get) return json(await am.dsAppMay(fam, p[1]));
@@ -314,8 +341,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       await q(`insert into ho_tro(id, family_id, tu, nguoi, noi_dung) values ($1,$2,'ba_me',$3,$4)`, [newId(), fam, bm.id, nd]);
       return json({ ok: true });
     }
-    if (d === "thanh-vien" && get)
-      return json({ ds: await q(`select id, ten, vai, dinh_danh from parents where family_id = $1 order by created_at`, [fam]) });
+    if (d === "thanh-vien" && get)       // (đường này đã do api-gia-dinh.ts trả trước; giữ phòng khi thứ tự đổi)
+      return json({ ds: await q(`select id, ten, vai, dinh_danh from parents where family_id = $1 and vai <> 'roi' order by created_at`, [fam]) });
     if (d === "canh-bao" && get) return json({ ds: await dsCanhBao(fam) });
     if (p[0] === "canh-bao" && p[2] === "doc" && post) { await q(`update alerts set da_doc = true where id = $1 and family_id = $2`, [p[1], fam]); return json({ ok: true }); }
     if (d === "nhat-ky" && get) return json({ ds: await dsSuKien(fam, new URL(req.url).searchParams.get("con")) });

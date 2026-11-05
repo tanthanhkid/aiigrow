@@ -14,15 +14,17 @@ import type { May } from "./gia-dinh.ts";
 // M4 agent Windows (phiên web cho khung Kid, sự kiện, bù phút offline, gỡ có mật khẩu Ba Mẹ)
 import { newId, tx, type Q } from "./db.ts";
 import { chuanDinhDanh, dungMatKhau, sha, taoToken } from "./auth.ts";
+import { quyenTuVai } from "./quyen.ts";
 import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
+import { cheDoChanCua, WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
 
 export type DongBoVao = {
   status?: Record<string, unknown>;
   clientTime?: string | number;
   usage?: { muc: string; phut: number; day?: string }[];
-  conDangDung?: string | null;               // máy dùng chung: Con đang đăng nhập bằng PIN
+  conDangDung?: string | null;               // máy dùng chung: Con đang dùng (chọn tên — không còn PIN)
 };
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -78,15 +80,21 @@ export type Policy = {
   phien: { id: string; muc: string; conPhut: number; may?: string | null } | null;
   // M4 agent Windows — chỉ thêm: múi giờ gia đình (agent tự xét khung giờ / giờ ngủ khi mất mạng), ngưỡng lệch giờ, phiên tối đa.
   tz: string; lechGioPhut: number; phienToiDa: number;
-  /** Web: true = «chỉ cho phép» (chặn mọi trang trừ trang được cho phép), false = «mở» (chỉ chặn trang Ba Mẹ chặn). tham số web_chi_cho_phep. */
+  /** Web: true = «chỉ cho phép» (chặn mọi trang trừ trang được cho phép), false = «mở» (chỉ chặn trang Ba Mẹ chặn). tham số web_chi_cho_phep;
+   *  Con đã có chế độ chặn rõ (L4): chi_app_duoc_phep ⇒ true, mo_het ⇒ false. */
   webChiChoPhep?: boolean;
+  /** L4 (thiết kế 05/11): chế độ chặn của Con — chi_app_duoc_phep (mặc định) | mo_het. Máy dùng chung chưa chọn Con ⇒ chi_app_duoc_phep. */
+  cheDoChan?: CheDoChan;
+  /** L4: tên miền LUÔN chặn ở mọi chế độ (web người lớn, cờ bạc, bạo lực) — agent chặn kể cả tên miền con. */
+  webLuonChan?: string[];
 };
 
 export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: boolean }, now = new Date()): Promise<Policy> {
   const f = (await one<{ cau_hinh: Record<string, unknown>; tz: string }>(`select cau_hinh, tz from families where id = $1`, [may.family_id]))!;
-  const c = con ? await one<{ id: string; ten: string; nhom: string; cau_hinh: Record<string, unknown>; lich: Record<string, unknown> }>(
-    `select id, ten, nhom, cau_hinh, lich from children where id = $1`, [con]) : undefined;
+  const c = con ? await one<{ id: string; ten: string; nhom: string; cau_hinh: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(
+    `select id, ten, nhom, cau_hinh, lich, che_do_chan from children where id = $1`, [con]) : undefined;
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
+  const cheDoChan = cheDoChanCua(c?.che_do_chan);
   const luat = c ? (await dsLuat(may.family_id)).filter((l) => !l.child_id || l.child_id === c.id) : [];
   // luật riêng của Con đè luật gia đình cùng mục
   const theoMuc = new Map<string, (typeof luat)[number]>();
@@ -100,7 +108,10 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
     lich: lichCua(c?.lich as never), khoaNgay: dangKhoa(c?.cau_hinh, now), khoaLaiLuc: moTamDen(c?.cau_hinh, now), khoaHetLuc: khoaDen(c?.cau_hinh, now), soDu: c ? await soDu(c.id) : 0,
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
-    tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da, webChiChoPhep: ts.web_chi_cho_phep === 1,
+    tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
+    // Con đã có chế độ rõ (Con mới / Ba Mẹ đã chọn) ⇒ web theo chế độ; Con cũ (null) ⇒ tham số web_chi_cho_phep như trước
+    webChiChoPhep: c?.che_do_chan ? cheDoChan === "chi_app_duoc_phep" : ts.web_chi_cho_phep === 1,
+    cheDoChan, webLuonChan: WEB_LUON_CHAN,
   };
 }
 
@@ -288,7 +299,8 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   if (s?.khoa_den && new Date(s.khoa_den) > new Date()) throw new LoiNghiepVu("tam_khoa", "Nhập sai nhiều lần — đợi 15 phút", 429);
   const bm = await one<{ id: string; pass_hash: string | null; vai: string }>(
     `select id, pass_hash, vai from parents where family_id = $1 and dinh_danh = $2`, [may.family_id, chuanDinhDanh(dinhDanh) ?? ""]);
-  const dung = !!bm?.pass_hash && bm.vai !== "xem" && (await dungMatKhau(String(matKhau ?? ""), bm.pass_hash));
+  // Người trông giúp (L6) không gỡ máy được — chỉ Ba Mẹ
+  const dung = !!bm?.pass_hash && quyenTuVai(bm.vai) === "ba_me" && (await dungMatKhau(String(matKhau ?? ""), bm.pass_hash));
   if (!dung) {
     await q(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1,
              khoa_den = case when pin_sai.so_lan + 1 >= 5 then now() + interval '15 minutes' else null end`, [khoa]);

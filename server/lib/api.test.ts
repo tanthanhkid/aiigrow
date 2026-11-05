@@ -91,7 +91,7 @@ test("cách ly: Ba Mẹ nhà khác không xem/duyệt được Con nhà này; to
   assert.equal((await m(`con/${conA}`, { tok: a })).status, 200, "Chỉ xem vẫn xem được");
 });
 
-test("máy dùng chung: Con chọn hồ sơ + PIN rồi mới mở phiên / gửi yêu cầu; Con nhà khác không vào được", async () => {
+test("máy dùng chung (L5 không PIN): Con chọn tên rồi mới mở phiên / gửi yêu cầu; Con nhà khác không vào được", async () => {
   const bm = await dangKy("0911000004", "Ba Tú");
   const an = (await m("con", { tok: bm, body: { ten: "An", pin: "1111" } })).body.id;
   await m("con", { tok: bm, body: { ten: "Bin", pin: "2222" } });
@@ -99,12 +99,17 @@ test("máy dùng chung: Con chọn hồ sơ + PIN rồi mới mở phiên / gử
   assert.equal((await dv("ho-so", { tok: may, body: {} })).body.con.length, 2);
   assert.equal((await dv("dong-bo", { tok: may, body: {} })).body.canChonCon, true);
   assert.equal((await dv("yeu-cau", { tok: may, body: { loai: "them_gio", phut: 15, lyDo: "x" } })).body.error, "chua_chon_con");
-  assert.equal((await dv("pin", { tok: may, body: { con: an, pin: "0000" } })).status, 401);
-  const pc = (await dv("pin", { tok: may, body: { con: an, pin: "1111" } })).body.phienCon;
+  // PIN cũ (agent bản trước) bỏ qua — chọn tên là vào; đường mới chon-con
+  assert.equal((await dv("pin", { tok: may, body: { con: an, pin: "0000" } })).status, 200);
+  const pc = (await dv("chon-con", { tok: may, body: { con: an } })).body.phienCon;
   const pol = await dv("dong-bo", { tok: may, body: {}, hdr: { "x-phien-con": pc } });
   assert.equal(pol.body.con.ten, "An");
   assert.equal((await dv("yeu-cau", { tok: may, body: { loai: "mo_web", giaTri: "scratch.mit.edu", lyDo: "Để làm bài tập" }, hdr: { "x-phien-con": pc } })).status, 200);
-  assert.equal((await k("yeu-cau", { tok: pc })).body.ds.length, 1, "web Con / màn Con dùng phiên PIN");
+  assert.equal((await k("yeu-cau", { tok: pc })).body.ds.length, 1, "web Con / màn Con dùng phiên chọn tên");
+  // Con nhà khác: chọn tên không thuộc nhà ⇒ không thấy
+  const bm2 = await dangKy("0911000014", "Ba Khác");
+  const la = (await m("con", { tok: bm2, body: { ten: "Lạ" } })).body.id;
+  assert.equal((await dv("chon-con", { tok: may, body: { con: la } })).status, 404);
 });
 
 test("báo cáo tuần có chú giải đời thường; bảng quy tắc công khai cho Con không lộ cấu hình nội bộ", async () => {

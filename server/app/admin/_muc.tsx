@@ -5,7 +5,7 @@ import { api, hienMa, luc, ngay, NhanPhieu, so, Tai, tien, Tieu, TT_PHIEU, useTa
 import { I3d } from "../_clay/Icon";
 
 const LOAI_GD: Record<string, string> = { nap: "Nạp quỹ", phat_hanh: "Phát hành phiếu", hoan: "Hoàn quỹ" };
-const VAI_BM: Record<string, string> = { chu: "Chủ gia đình", duyet: "Được duyệt", xem: "Chỉ xem" };
+const VAI_BM: Record<string, string> = { ba_me: "Ba Mẹ", trong_giup: "Người trông giúp", chu: "Ba Mẹ", duyet: "Ba Mẹ", xem: "Người trông giúp", roi: "Đã rời nhà" };
 
 // ---------------------------------------------------------------- tổng quan
 type TQ = { soGiaDinh: number; soCon: number; soMay: number; quyDangGiu: number; napThang: number; dungThang: number; hoTroChoTraLoi: number;

@@ -88,7 +88,9 @@ export async function dangKy(b: { dinhDanh?: unknown; ma?: unknown; ten?: unknow
       throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — chọn Đăng nhập", 409);
     const fam = newId(), id = newId();
     await t(`insert into families(id, ten) values ($1, $2)`, [fam, `Nhà ${ten}`]);
-    await t(`insert into parents(id, family_id, dinh_danh, ten, vai, pass_hash) values ($1, $2, $3, $4, 'chu', $5)`, [id, fam, d, ten, bam]);
+    // L6 (thiết kế 05/11): người đăng ký là «Ba Mẹ» và là người tạo nhà (families.chu_id) — không còn vai «Chủ gia đình»
+    await t(`insert into parents(id, family_id, dinh_danh, ten, vai, pass_hash) values ($1, $2, $3, $4, 'ba_me', $5)`, [id, fam, d, ten, bam]);
+    await t(`update families set chu_id = $2 where id = $1`, [fam, id]);
     return id;
   });
   if (!kq) throw new LoiNghiepVu("otp_sai", "Mã chưa đúng");
@@ -129,7 +131,9 @@ export async function datLaiMatKhau(dinhDanh: unknown, ma: unknown, mkMoi: unkno
   if (!dung) throw new LoiNghiepVu("otp_sai", "Mã chưa đúng");
 }
 
-export type BaMe = { id: string; family_id: string; dinh_danh: string; ten: string; vai: "chu" | "duyet" | "xem" };
+/** vai: ba_me | trong_giup (L6) — giá trị cũ chu | duyet | xem còn gặp ở dòng ghi trước 05/11 (lib/quyen.ts hiểu cả hai).
+ *  la_chu: người tạo nhà (families.chu_id) — chỉ có khi đọc từ phiên (baMeTuToken). */
+export type BaMe = { id: string; family_id: string; dinh_danh: string; ten: string; vai: "ba_me" | "trong_giup" | "chu" | "duyet" | "xem"; la_chu?: boolean };
 
 export async function taoPhien(parentId: string, ngay = PHIEN_NGAY) {
   const t = taoToken();
@@ -138,7 +142,9 @@ export async function taoPhien(parentId: string, ngay = PHIEN_NGAY) {
 }
 
 export const baMeTuToken = async (t: string) =>
-  (await one<BaMe>(`select p.id, p.family_id, p.dinh_danh, p.ten, p.vai from sessions s join parents p on p.id = s.parent_id
+  (await one<BaMe>(`select p.id, p.family_id, p.dinh_danh, p.ten, p.vai,
+                      coalesce(f.chu_id = p.id, p.vai = 'chu') as la_chu
+                    from sessions s join parents p on p.id = s.parent_id join families f on f.id = p.family_id
                     where s.id = $1 and s.expires_at > now()`, [sha(t)])) ?? null;
 
 export const xoaPhien = (t: string) => q(`delete from sessions where id = $1`, [sha(t)]);

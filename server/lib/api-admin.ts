@@ -45,8 +45,8 @@ async function dsGiaDinh(tim: string) {
   const t = `%${tim.toLowerCase()}%`;
   return q(`select f.id, f.ten, f.quy_voucher, f.created_at,
               (select count(*) from children c where c.family_id = f.id)::int as so_con,
-              (select p.ten from parents p where p.family_id = f.id and p.vai = 'chu' order by p.created_at limit 1) as chu,
-              (select p.dinh_danh from parents p where p.family_id = f.id and p.vai = 'chu' order by p.created_at limit 1) as dinh_danh
+              (select p.ten from parents p where p.family_id = f.id and (p.id = f.chu_id or (f.chu_id is null and p.vai = 'chu')) order by p.created_at limit 1) as chu,
+              (select p.dinh_danh from parents p where p.family_id = f.id and (p.id = f.chu_id or (f.chu_id is null and p.vai = 'chu')) order by p.created_at limit 1) as dinh_danh
             from families f
             where $1 = '%%' or lower(f.ten) like $1 or exists (select 1 from parents p where p.family_id = f.id and (lower(p.dinh_danh) like $1 or lower(p.ten) like $1))
             order by f.created_at desc limit 200`, [t]);

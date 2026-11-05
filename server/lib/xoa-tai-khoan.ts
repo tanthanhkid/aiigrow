@@ -6,7 +6,7 @@
 //  • Ba Mẹ KHÔNG phải chủ ⇒ xoá tài khoản mình theo cách «mời ra» (thanh-vien.ts › moiRa): vai «roi», bỏ SĐT/email (định danh đổi thành
 //    «xoa:<id>», đăng ký lại được), bỏ mật khẩu, xoá mọi phiên + thiết lập thông báo + tin mình viết (chat hỗ trợ, lời khen gửi Con).
 //    Chỉ giữ TÊN gọi (và id) trong lịch sử «ai duyệt / ai làm» của gia đình.
-//  • CHỦ gia đình còn người lớn khác (vai duyet/xem) ⇒ 409 con_thanh_vien: mời họ ra trước (Gia đình › Thành viên), không xoá gì.
+//  • CHỦ gia đình (người tạo nhà — families.chu_id, L6) còn người lớn khác ⇒ 409 con_thanh_vien: mời họ ra trước (Gia đình › Thành viên), không xoá gì.
 //  • CHỦ gia đình còn MÁY đã ghép (devices, hoặc thiết bị lọc mạng dns_thiet_bi: TV, console, hồ sơ DNS) ⇒ 409 con_may: gỡ từng máy trước (Máy › Gỡ máy này — lệnh gỡ an toàn, lib/lenh-may.ts). Lý do: xoá gia đình
 //    làm token máy mất hiệu lực nên lệnh «go» không tới được agent nữa; agent-win tự thôi chặn sau 6 giờ token_sai nhưng agent-mac thì không,
 //    và gỡ tại máy Mac cần mật khẩu Ba Mẹ qua máy chủ ⇒ máy Con bị chặn mãi. Máy chưa đồng bộ / mất liên lạc > 7 ngày «Xoá hẳn» được ngay.
@@ -45,9 +45,12 @@ async function kiemMatKhau(bm: BaMe, mk: unknown, now = Date.now()) {
 
 /** Lý do chưa xoá được (chủ còn người lớn khác / còn máy) — ném 409; null = xoá được. Chạy cả trong tx (t) lẫn khi app hỏi trước. */
 async function kiemChan(t: Q, bm: BaMe) {
-  const toi = (await t<{ vai: string; ten: string; dinh_danh: string }>(`select vai, ten, dinh_danh from parents where id = $1 and vai <> 'roi'`, [bm.id]))[0];
+  // L6: «chủ» = người tạo nhà (families.chu_id; dòng cũ chưa có chu_id ⇒ vai «chu»)
+  const toi = (await t<{ vai: string; ten: string; dinh_danh: string; la_chu: boolean }>(
+    `select p.vai, p.ten, p.dinh_danh, coalesce(f.chu_id = p.id, p.vai = 'chu') as la_chu from parents p join families f on f.id = p.family_id
+      where p.id = $1 and p.vai <> 'roi'`, [bm.id]))[0];
   if (!toi) throw new LoiNghiepVu("khong_thay", "Tài khoản đã được xoá", 404);
-  if (toi.vai !== "chu") return toi;
+  if (!toi.la_chu) return toi;
   const khac = await t<{ ten: string }>(`select ten from parents where family_id = $1 and id <> $2 and vai <> 'roi' order by created_at`, [bm.family_id, bm.id]);
   if (khac.length) throw new LoiNghiepVu("con_thanh_vien",
     `Gia đình còn ${khac.map((x) => x.ten).join(", ")}. Hãy mời họ ra khỏi gia đình (Gia đình › Thành viên) rồi mới xoá tài khoản Chủ gia đình.`, 409);
@@ -67,7 +70,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     // khoá dòng gia đình ⇒ không chạy song song với nhận lời mời / ghép máy / xoá lần hai
     await t(`select id from families where id = $1 for update`, [bm.family_id]);
     const toi = await kiemChan(t, bm);
-    if (toi.vai !== "chu") {
+    if (!toi.la_chu) {
       await t(`update parents set vai = 'roi', dinh_danh = 'xoa:' || id, pass_hash = null, sai_lien = 0, khoa_den = null where id = $1`, [bm.id]);
       await t(`delete from sessions where parent_id = $1`, [bm.id]);
       await t(`delete from ba_me_tb where parent_id = $1`, [bm.id]);

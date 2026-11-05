@@ -6,11 +6,12 @@ import { lichCua } from "../cau-hinh.ts";
 export async function taoNha(ten = "Lan", tz = "Asia/Ho_Chi_Minh") {
   const fam = newId(), bm = newId();
   await q(`insert into families(id, ten, tz) values ($1, $2, $3)`, [fam, `Nhà ${ten}`, tz]);
-  await q(`insert into parents(id, family_id, dinh_danh, ten, vai) values ($1, $2, $3, $4, 'chu')`, [bm, fam, `${bm}@vidu.vn`, ten]);
+  await q(`insert into parents(id, family_id, dinh_danh, ten, vai) values ($1, $2, $3, $4, 'ba_me')`, [bm, fam, `${bm}@vidu.vn`, ten]);
+  await q(`update families set chu_id = $2 where id = $1`, [fam, bm]);
   return { fam, bm };
 }
 
-export async function taoBaMe(fam: string, ten = "Ba", vai = "duyet") {
+export async function taoBaMe(fam: string, ten = "Ba", vai = "ba_me") {
   const id = newId();
   await q(`insert into parents(id, family_id, dinh_danh, ten, vai) values ($1, $2, $3, $4, $5)`, [id, fam, `${id}@vidu.vn`, ten, vai]);
   return id;

@@ -41,14 +41,12 @@ async function nha() {
   return { bm, ken, bill, may };
 }
 
-test("máy dùng chung: chọn hồ sơ + PIN → phiên Con; PIN sai báo rõ; đổi người xoá phiên", async () => {
+test("máy dùng chung (L5): chọn tên → phiên Con, không PIN; đổi người xoá phiên", async () => {
   const { ken, bill, may } = await nha();
   const hs = (await dv("ho-so", { tok: may, body: {} })).body.con;
   assert.deepEqual(hs.map((x: any) => x.ten), ["Ken", "Bill"]);
-  const sai = await dv("pin", { tok: may, body: { con: ken, pin: "0000" } });
-  assert.equal(sai.status, 401);
-  assert.equal(sai.body.message, "Mã PIN chưa đúng");
-  const tok = (await dv("pin", { tok: may, body: { con: ken, pin: "1234" } })).body.phienCon as string;
+  assert.equal((await dv("chon-con", { tok: may, body: { con: "khong-co" } })).status, 404);
+  const tok = (await dv("chon-con", { tok: may, body: { con: ken } })).body.phienCon as string;
   const toi = (await k("toi", { tok })).body;
   assert.equal(toi.con.ten, "Ken");
   assert.equal(toi.con.nhom, "nhi");
