@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=375">
+<title>AiiGrow · Bật thông báo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2;display:flex;flex-direction:column}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.app>*{position:relative}
+.sb{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 30px;font-weight:700;font-size:15px}
+.buoc{flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;height:48px}
+.lui{flex:none;width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#f7f6f3;box-shadow:0 6px 10px -6px rgba(28,32,30,.3),0 2px 3px -1px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -5px 8px -4px rgba(40,44,42,.16)}
+.vach{flex:1;display:flex;gap:5px}
+.vach i{flex:1;height:8px;border-radius:4px;background:#0f6b5c}
+.buoc b{font-size:13px;color:#565c59;white-space:nowrap}
+.canh{position:relative;flex:none;height:150px;margin:6px 16px 0}
+.rob{position:absolute;left:-8px;bottom:-4px;width:120px;height:150px;object-fit:contain;object-position:left bottom;filter:drop-shadow(0 12px 12px rgba(28,32,30,.16))}
+.bong{position:absolute;left:104px;right:0;top:8px;padding:14px 16px;border-radius:26px 26px 26px 8px;background:#fff;
+ box-shadow:0 14px 22px -14px rgba(28,32,30,.3),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(40,44,42,.12)}
+.bong h1{font-size:19px;line-height:24px;font-weight:800;letter-spacing:-.3px}
+.bong p{font-size:13.5px;line-height:19px;color:#3a403d;margin-top:4px}
+.tb{margin:14px 16px 0;display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:24px;background:#fff;
+ box-shadow:0 12px 18px -12px rgba(28,32,30,.28),0 3px 6px -4px rgba(28,32,30,.14)}
+.tb .ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(#17846f,#0a5246)}
+.tb .ic img{width:24px;height:24px}
+.tb .c{flex:1;min-width:0}
+.tb .h{display:flex;justify-content:space-between;font-size:12px;line-height:16px;color:#565c59;font-weight:600}
+.tb b{display:block;font-size:14.5px;line-height:20px;font-weight:700;margin-top:2px}
+.hai{display:flex;gap:8px;margin-top:8px}
+.hai i{font-style:normal;flex:1;height:32px;border-radius:16px;display:grid;place-items:center;font-size:13px;font-weight:700;white-space:nowrap}
+.hai .ok{background:#0f6b5c;color:#fff}
+.hai .no{background:#ecebe7;color:#3a403d}
+.mau{margin:3px 0 0 2px;font-size:11.5px;color:#8a8f8c;text-align:center}
+.nhan{margin:16px 20px 8px;font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#565c59}
+.the{margin:0 16px;background:#f7f6f3;border-radius:26px;padding:4px 14px;
+ box-shadow:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12)}
+.dong{display:flex;align-items:center;gap:12px;min-height:56px}
+.dong+.dong{box-shadow:inset 0 1px 0 rgba(40,44,42,.07)}
+.dong .t{flex:1;min-width:0}
+.dong .t b{display:block;font-size:15px;line-height:20px;font-weight:700}
+.dong .t s{display:block;text-decoration:none;font-size:12.5px;line-height:17px;color:#565c59}
+.cong{width:50px;height:30px;border-radius:15px;flex:none;position:relative;background:#0f6b5c;cursor:pointer}
+.cong:after{content:"";position:absolute;right:3px;top:3px;width:24px;height:24px;border-radius:12px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.cong.tat{background:#ddddd8}.cong.tat:after{right:auto;left:3px}
+.day{margin-top:auto;padding:10px 16px 18px;display:flex;flex-direction:column;gap:2px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:56px;border-radius:28px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;cursor:pointer;
+ background:linear-gradient(#13806d,#0a5246);box-shadow:0 12px 18px -8px rgba(10,82,70,.55),inset 0 1px 0 rgba(255,255,255,.35)}
+.sau{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:14px;font-weight:600;color:#565c59;white-space:nowrap;cursor:pointer}
+.sau b{color:#3a403d;font-weight:700;margin-right:4px}
+</style></head>
+<body>
+<div class="app">
+  <div class="sb"><span>08:58</span><span>●●● ▮</span></div>
+  <div class="buoc">
+    <div class="lui" role="button" aria-label="Quay lại" data-toi="bm1-ob-gio"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="#0f1312" d="M15.7 4.3a1.6 1.6 0 0 1 0 2.3L10.3 12l5.4 5.4a1.6 1.6 0 1 1-2.3 2.3l-6.5-6.6a1.6 1.6 0 0 1 0-2.2l6.5-6.6a1.6 1.6 0 0 1 2.3 0z"></path></svg></div>
+    <div class="vach"><i></i><i></i><i></i><i></i></div>
+    <b>Bước cuối · Thông báo</b>
+  </div>
+  <div class="canh">
+    <img class="rob" src="/assets/rob/chi.webp" alt="">
+    <div class="bong">
+      <h1>Rob báo ngay khi Bảo Anh cần Ba Mẹ</h1>
+      <p>Duyệt luôn trên thông báo, không cần mở app.</p>
+    </div>
+  </div>
+  <div class="tb">
+    <div class="ic"><img src="/assets/icon3d/dong_ho_cat.webp" alt=""></div>
+    <div class="c">
+      <div class="h"><span>AiiGrow</span><span>20:15</span></div>
+      <b>Bảo Anh xin thêm 15 phút</b>
+      <div class="hai"><i class="ok">Cho 15 phút</i><i class="no">Không</i></div>
+    </div>
+  </div>
+  <p class="mau">Thông báo mẫu</p>
+  <div class="nhan">Báo cho Ba Mẹ khi</div>
+  <div class="the">
+    <div class="dong"><div class="t"><b>Con xin phép</b><s>Xin thêm giờ, xin mở app hay web mới</s></div><div class="cong"></div></div>
+    <div class="dong"><div class="t"><b>Con báo xong nhiệm vụ</b><s>Nghe, xem rồi duyệt để cộng điểm</s></div><div class="cong"></div></div>
+    <div class="dong"><div class="t"><b>Máy của con có vấn đề</b><s>Máy mất bảo vệ, lâu không báo về</s></div><div class="cong"></div></div>
+  </div>
+  <div class="day">
+    <div class="nut" role="button" aria-label="Bật thông báo" data-toi="bm1-ob-xong">Bật thông báo</div>
+    <div class="sau" role="button" aria-label="Để sau" data-toi="bm1-ob-xong"><b>Để sau</b>· bật lại trong Cài đặt</div>
+  </div>
+</div>
+</body></html>

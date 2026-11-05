@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:400px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;top:44px;height:48px;display:flex;align-items:center}
+.lui{width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.san{position:absolute;left:16px;right:16px;top:96px;height:120px;border-radius:34px;background:linear-gradient(#d6e9e2,#eef4f1);box-shadow:var(--clay);overflow:hidden}
+.nha{position:absolute;left:0;right:0;top:16px;display:flex;justify-content:center;align-items:center}
+.nha span{width:56px;height:56px;margin:0 -6px;border-radius:50%;display:grid;place-items:center;border:4px solid #eef4f1;font-size:22px;font-weight:800;color:#fff}
+.l{background:#e98aa6}.b{background:#f08a3c}.m{background:#5b7fd6}
+.nha .moi{background:#fff;border:3px dashed #0f6b5c;color:#0f6b5c;font-size:30px;margin-left:6px}
+.san p{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:14px;font-weight:700;color:#0a5246}
+h1{position:absolute;left:20px;top:240px;font-size:26px;font-weight:800;letter-spacing:-.5px}
+.nd{position:absolute;left:16px;right:16px;top:292px}
+.cach{display:flex;gap:4px;padding:4px;border-radius:24px;background:#e6e5e1;box-shadow:var(--lom)}
+.cach span{flex:1;height:40px;border-radius:20px;display:grid;place-items:center;font-size:14.5px;font-weight:800;color:#565c59}
+.cach .on{background:#f7f6f3;color:#0f1312;box-shadow:var(--clay)}
+.lom{margin-top:12px;display:flex;align-items:center;height:60px;padding:0 20px;border-radius:30px;background:#e6e5e1;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 21px Inter,sans-serif;color:#0f1312;letter-spacing:.3px}
+.goi{display:flex;justify-content:flex-end}
+.goi span{min-height:36px;padding:0 6px;display:flex;align-items:center;font-size:14px;font-weight:800;color:#0a5246}
+.day{position:absolute;left:16px;right:16px;bottom:22px;display:flex;flex-direction:column;gap:6px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.lk{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:13.5px;font-weight:700;color:#565c59;white-space:nowrap}
+.lk b{margin-left:4px;color:#0a5246}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>
+<div class="san"><div class="nha"><span class="l">L</span><span class="b">B</span><span class="m">M</span><span class="moi">+</span></div><p>Bạn cùng trông Bảo Anh, Bảo Minh</p></div>
+<h1>Mời người nhà</h1>
+<div class="nd">
+<div class="cach" role="tablist" aria-label="Mời bằng"><span class="on" role="tab" aria-selected="true" tabindex="0">Số điện thoại</span><span role="tab" aria-selected="false" tabindex="0">Email</span></div>
+<div class="lom"><input type="tel" inputmode="tel" aria-label="Số điện thoại người được mời" value="0909 876 543"></div>
+<div class="goi"><span role="button" tabindex="0">Chọn từ danh bạ ›</span></div>
+</div>
+<div class="day">
+<span class="nut" role="button" tabindex="0">Gửi lời mời cho Ba Tuấn</span>
+<span class="lk" role="button" tabindex="0">Ba Tuấn chưa có app?<b>Xem cách gửi link</b></span>
+</div>
+</div></body></html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:360px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:96px;padding:44px 16px 0 8px;display:flex;align-items:center;justify-content:space-between;z-index:5;background:linear-gradient(#e3efeb 80%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.buoc{display:flex;gap:8px}.buoc i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e6e5e1;box-shadow:var(--lom)}.buoc i img{width:20px;height:20px;opacity:.45}.buoc i.on{background:#dcebe6;box-shadow:0 0 0 2.5px #0f6b5c,var(--clay)}.buoc i.on img,.buoc i.xong img{opacity:1}
+.cuon{position:absolute;left:0;right:0;top:96px;bottom:86px;overflow-y:auto;padding:0 16px 40px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.h{margin:4px 0 0;font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
+.che{display:inline-flex;align-items:center;gap:8px;margin-top:10px;height:40px;padding:0 14px 0 8px;border-radius:20px;background:#dcebe6;font-size:13.5px;font-weight:800;color:#0a5246;white-space:nowrap}
+.che img{width:24px;height:24px}.che small{font-size:12.5px;font-weight:700;color:#3a403d}
+.tim{display:flex;align-items:center;gap:10px;margin-top:12px}
+.lom{flex:1;display:flex;align-items:center;height:52px;padding:0 18px;border-radius:26px;background:#e6e5e1;box-shadow:var(--lom);font-size:15px;font-weight:600;color:#8a908d;white-space:nowrap}
+.cong{flex:none;height:52px;padding:0 14px 0 10px;display:flex;align-items:center;gap:6px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay);font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.cong img{width:26px;height:26px}
+.tuoi{display:flex;align-items:center;gap:8px;margin:14px 4px 10px;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}.tuoi img{width:22px;height:22px}
+.luoi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 4px;padding:14px 4px 10px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.ap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.ap .ic{position:relative;width:60px;height:60px;border-radius:20px;display:grid;place-items:center;box-shadow:var(--nho)}
+.ap .ic img{width:38px;height:38px}
+.ap p{height:30px;max-width:80px;font-size:12px;font-weight:700;line-height:15px;text-align:center}
+.ap .ic i{position:absolute;right:-5px;bottom:-5px;width:22px;height:22px;border-radius:50%;background:#0f6b5c;box-shadow:0 0 0 2.5px #f7f6f3}
+.ap .ic i::after{content:"";position:absolute;left:8px;top:4px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.ap.tat .ic{filter:grayscale(1);opacity:.45}.ap.tat .ic i{background:#2e3533}.ap.tat p{color:#565c59}
+.ap.tat .ic i::after{left:6px;top:10px;width:10px;height:0;border-width:2.5px 0 0 0;transform:none}
+.ap.moi .ic{background:#ecebe7;box-shadow:var(--lom);border:2px dashed #9fb8b0}
+.ap.moi .ic span{font-size:30px;font-weight:700;color:#0a5246;line-height:1}
+.ap.moi p{color:#0a5246;font-weight:800}
+.yt{background:#e62117}.rb{background:#2b2f33}.mc{background:#d9efc9}.aii{background:#dcebe6}.tu{background:#fbecc0}.gg{background:#fff}.ve{background:#f9e7d2}.lich{background:#e6e5e1}.tt{background:#111}.zl2{background:#0068ff}.web{background:#e6e5e1}
+.zl{color:#fff;font-size:15px;font-weight:800}
+.bt{width:48px;height:48px;border-radius:24px;flex:none;display:grid;place-items:center;background:#dcebe6;box-shadow:var(--nho)}.bt img{width:30px;height:30px}
+.xin{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px 12px 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay);font-size:14.5px;line-height:20px;font-weight:700}
+.sau{margin:12px 6px 0;font-size:13px;font-weight:600;color:#565c59}.sau b{color:#0a5246}
+.day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 16px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:6}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;display:flex;align-items:center;justify-content:center;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+</style></head>
+<body><div class="app">
+<div class="top">
+<div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-ob-gio"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div>
+<div class="buoc" aria-label="Bước 3 trên 4"><i class="xong"><img src="/assets/icon3d/tick.webp" alt=""></i><i class="xong"><img src="/assets/icon3d/tick.webp" alt=""></i><i class="on"><img src="/assets/icon3d/khien.webp" alt=""></i><i><img src="/assets/icon3d/may_tinh.webp" alt=""></i></div>
+</div>
+<div class="cuon">
+<h1 class="h">Con được dùng app nào?</h1>
+<span class="che" role="button" tabindex="0" data-toi="bm1-ob-gio"><img src="/assets/icon3d/khoa.webp" alt="">Chỉ app được phép<small>· đổi ở Giờ chơi</small></span>
+<div class="tim"><div class="lom" role="button" tabindex="0" aria-label="Tìm app" data-toi="them-at57ypdc">Tìm hoặc gõ tên app</div><span class="cong" role="button" tabindex="0" data-toi="them-at57ypdc"><img src="/assets/icon3d/cong.webp" alt="">Thêm app</span></div>
+<p class="tuoi"><img src="/assets/icon3d/lap_lanh.webp" alt="">Rob chọn sẵn 4 app hợp tuổi 9 · bấm để đổi</p>
+<div class="luoi">
+<div class="ap" role="switch" aria-checked="true"><span class="ic yt"><svg viewBox="0 0 24 24" width="26" height="26"><path fill="#fff" d="M9 7.5v9l7.5-4.5z"></path></svg><i></i></span><p>YouTube Kids</p></div>
+<div class="ap" role="switch" aria-checked="true"><span class="ic rb"><svg viewBox="0 0 24 24" width="28" height="28"><path fill="#fff" d="M6.2 2 22 6.2 17.8 22 2 17.8zM10.4 9.1l-1.3 4.8 4.8 1.3 1.3-4.8z"></path></svg><i></i></span><p>Roblox</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic mc"><svg viewBox="0 0 8 8" width="28" height="28" shape-rendering="crispEdges"><path fill="#6cc04a" d="M0 0h8v3H0z"></path><path fill="#8b5a2b" d="M0 3h8v5H0z"></path><path fill="#4e9a2f" d="M1 1h2v1H1zM5 0h2v1H5zM3 2h1v2H3zM6 2h1v2H6z"></path><path fill="#6b4220" d="M2 5h1v1H2zM5 4h1v1H5zM4 6h1v1H4z"></path></svg><i></i></span><p>Minecraft</p></div>
+<div class="ap" role="switch" aria-checked="true"><span class="ic aii"><img src="/assets/rob/hoc.webp" alt=""><i></i></span><p>Học với AiiRob</p></div>
+<div class="ap" role="switch" aria-checked="true"><span class="ic tu"><img src="/assets/icon3d/sach.webp" alt=""><i></i></span><p>Từ điển</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic gg"><svg viewBox="0 0 48 48" width="28" height="28"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.730 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg><i></i></span><p>Google</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic ve"><img src="/assets/icon3d/but.webp" alt=""><i></i></span><p>Vẽ</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic lich"><img src="/assets/icon3d/lich.webp" alt=""><i></i></span><p>Lịch</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic tt"><svg viewBox="0 0 24 24" width="26" height="26"><path fill="#fff" d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9.1a7.3 7.3 0 0 0 4.3 1.4V7.4a4.3 4.3 0 0 1-3.2-1.6z"></path></svg><i></i></span><p>TikTok</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic zl2"><b class="zl">Zalo</b><i></i></span><p>Zalo</p></div>
+<div class="ap tat" role="switch" aria-checked="false"><span class="ic yt"><svg viewBox="0 0 24 24" width="26" height="26"><path fill="#fff" d="M9 7.5v9l7.5-4.5z"></path></svg><i></i></span><p>YouTube</p></div>
+<div class="ap moi" role="button" tabindex="0" data-toi="them-at57ypdc"><span class="ic"><span>+</span></span><p>Thêm app khác</p></div>
+</div>
+<div class="xin"><span class="bt"><img src="/assets/icon3d/gui.webp" alt=""></span><span>App mới con tải sẽ xin Ba Mẹ duyệt</span></div>
+<p class="sau">Sau này đổi ở <b>Trang chủ › App &amp; web</b></p>
+</div>
+<div class="day"><button class="nut" type="button" data-toi="bm1-ob-ghep"><span>Cho Bảo Anh dùng 4 app này</span></button></div>
+</div></body></html>

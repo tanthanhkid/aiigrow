@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#fdf1d3,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#fdf1d3 75%,rgba(253,241,211,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:106px;overflow-y:auto;padding:4px 16px 30px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.dau{display:flex;align-items:center;gap:12px}
+.dau .ic{flex:none;width:64px;height:64px;border-radius:22px;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--clay)}.dau .ic img{width:42px;height:42px}
+.lom{flex:1;display:flex;align-items:center;height:58px;padding:0 20px;border-radius:29px;background:#e6e5e1;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 19px Inter,sans-serif;color:#0f1312}
+.nhan{margin:18px 6px 8px;font-size:14px;font-weight:700;color:#3a403d}
+.chon{display:flex;gap:8px;flex-wrap:wrap}
+.chon span{min-width:60px;height:46px;padding:0 16px;border-radius:23px;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--clay);font-size:15px;font-weight:800;color:#3a403d;white-space:nowrap}
+.chon .on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.ds{margin-top:18px;padding:4px 14px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;min-height:68px}
+.dong p{flex:1;min-width:0;font-size:15.5px;font-weight:800}.dong p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.gat{flex:none;position:relative;width:52px;height:32px;border-radius:16px;background:#0f6b5c;box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
+.gat::after{content:"";position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.xoa{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;height:52px;border-radius:26px;background:#fbe3e0;box-shadow:var(--clay);font-size:15.5px;font-weight:800;color:#b3261e}
+.xoa img{width:22px;height:22px}
+.day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 30px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:4}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:24px;height:24px}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-e91jg28j"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Sửa việc</h1></div>
+<div class="cuon">
+<div class="dau"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><div class="lom"><input type="text" aria-label="Tên việc" value="Dọn phòng"></div></div>
+<p class="nhan">Con nhận bao nhiêu sao?</p>
+<div class="chon"><span>5</span><span class="on">10</span><span>20</span><span>30</span></div>
+<p class="nhan">Làm khi nào?</p>
+<div class="chon"><span class="on">Mỗi ngày</span><span>Thứ 2 – Thứ 6</span><span>Cuối tuần</span></div>
+<p class="nhan">Con báo xong bằng</p>
+<div class="chon"><span class="on">Chụp ảnh</span><span>Ghi âm</span><span>Bấm «Xong»</span></div>
+<div class="ds"><div class="dong"><p>Ba Mẹ xem rồi mới cộng sao<small>Tắt thì con báo xong là nhận sao</small></p><span class="gat" role="switch" aria-checked="true" tabindex="0"></span></div></div>
+<p class="nhan">Áp cho</p>
+<div class="chon"><span class="on">Bảo Anh</span><span>Bảo Minh</span></div>
+<div class="xoa" role="button" tabindex="0" data-toi="them-4axhvgpl"><img src="/assets/icon3d/x.webp" alt="">Xoá việc này</div>
+</div>
+<div class="day"><span class="nut" role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/tick.webp" alt="">Lưu việc «Dọn phòng»</span></div>
+</div></body></html>

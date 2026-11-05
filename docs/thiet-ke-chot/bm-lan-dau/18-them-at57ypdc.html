@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;right:16px;top:44px;height:48px;display:flex;align-items:center;gap:2px;z-index:5}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.nd{position:absolute;left:16px;right:16px;top:104px}
+.lom{display:flex;align-items:center;height:56px;padding:0 20px;border-radius:28px;background:#fff;box-shadow:0 0 0 2.5px #0f6b5c,var(--lom)}
+.lom b{font-size:19px;font-weight:700;border-right:2px solid #0f6b5c;padding-right:2px}
+.lom em{margin-left:auto;font-style:normal;font-size:13px;font-weight:700;color:#8a908d}
+.muc{margin:16px 6px 8px;font-size:14px;font-weight:800;color:#3a403d}
+.ds{padding:4px 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;min-height:66px}
+.dong+.dong{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;box-shadow:var(--nho);font-size:20px;font-weight:800;color:#fff}
+.dong p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap}
+.dong p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.r{flex:none;width:26px;height:26px;border-radius:50%;background:#ecebe7;box-shadow:var(--lom)}
+.dong.chon .r{background:#fff;box-shadow:inset 0 0 0 7px #0f6b5c}
+.ghi{display:flex;align-items:center;gap:8px;margin:10px 6px 0;font-size:12.5px;font-weight:600;color:#565c59}.ghi img{width:20px;height:20px}
+.the{margin-top:16px;padding:14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.tt{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:800;color:#3a403d;white-space:nowrap}.tt img{width:28px;height:28px}
+.ch{display:flex;gap:4px;margin-top:12px;padding:5px;border-radius:24px;background:#ebebe7;box-shadow:var(--lom)}
+.ch div{flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;border-radius:19px;font-weight:800;font-size:14.5px;color:#3a403d;white-space:nowrap}
+.ch div.on{color:#0a5246;background:#fff;box-shadow:0 0 0 2px #0f6b5c,var(--nho)}
+.goi{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:20px;background:#dcebe6;font-size:13px;line-height:18px;font-weight:700;color:#0a5246}
+.goi img{flex:none;width:38px;height:auto}
+.day{position:absolute;left:16px;right:16px;bottom:18px;display:flex;flex-direction:column;gap:2px;z-index:3}
+.nut{position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;display:flex;align-items:center;justify-content:center;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+.lk{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#3a403d}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-mdujxlg2"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm app cho Bảo Anh</h1></div>
+<div class="nd">
+<div class="lom" role="textbox" aria-label="Gõ tên app"><b>Duolingo</b><em>3 kết quả</em></div>
+<p class="muc">Chọn đúng app</p>
+<div class="ds" role="radiogroup">
+<div class="dong chon" role="radio" aria-checked="true" tabindex="0"><span class="ic" style="background:#58cc02">D</span><p>Duolingo ABC<small>Học đọc tiếng Anh · 3–8 tuổi</small></p><span class="r"></span></div>
+<div class="dong" role="radio" aria-checked="false" tabindex="0"><span class="ic" style="background:#46a302">D</span><p>Duolingo<small>Học ngoại ngữ</small></p><span class="r"></span></div>
+<div class="dong" role="radio" aria-checked="false" tabindex="0"><span class="ic" style="background:#1cb0f6">D</span><p>Duolingo Math<small>Học toán</small></p><span class="r"></span></div>
+</div>
+<p class="ghi"><img src="/assets/icon3d/dau_hoi.webp" alt="">Không thấy? Gõ đúng tên app trên máy con.</p>
+<div class="the">
+<p class="tt"><img src="/assets/icon3d/dongho.webp" alt="">Có tính vào giờ chơi?</p>
+<div class="ch" role="radiogroup"><div role="radio" aria-checked="false" tabindex="0">Tính vào giờ chơi</div><div class="on" role="radio" aria-checked="true" tabindex="0">Không tính giờ</div></div>
+<div class="goi"><img src="/assets/rob/chi.webp" alt="">App học, Rob gợi ý không tính giờ.</div>
+</div>
+</div>
+<div class="day"><button class="nut" type="button" data-toi="them-mdujxlg2"><span>Cho Bảo Anh dùng Duolingo ABC</span></button><div class="lk" role="button" tabindex="0" data-toi="them-mdujxlg2">Thôi, không thêm</div></div>
+</div></body></html>

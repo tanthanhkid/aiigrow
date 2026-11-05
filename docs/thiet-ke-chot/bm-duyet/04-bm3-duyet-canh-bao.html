@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AiiGrow — Cảnh báo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+:root{--c:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -2px 0 rgba(255,255,255,.7),inset 0 -10px 16px -8px rgba(40,44,42,.12);
+--n:0 6px 10px -6px rgba(28,32,30,.26),0 2px 3px -1px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);
+--lom:inset 0 4px 8px rgba(40,44,42,.13),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.dt{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2;display:flex;flex-direction:column}
+.dt:before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e6ece9,#f4f4f2)}
+.sb{position:relative;flex:none;height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 8px;font-weight:700;font-size:15px}
+.dau{position:relative;flex:none;display:flex;align-items:center;height:48px;padding:0 10px}
+.lui{display:flex;align-items:center;gap:2px;min-height:44px;padding:0 6px;color:#0a5246;font-weight:700;font-size:16px;white-space:nowrap}
+.lui svg{width:20px;height:20px;fill:#0a5246}
+.dau h1{flex:1;text-align:center;font-size:17px;font-weight:700;padding-right:110px;white-space:nowrap}
+.cuon{position:relative;flex:1;overflow-y:auto;overflow-x:hidden;padding:2px 16px 24px}
+.nhan{margin:14px 6px 8px;font-size:13px;font-weight:700;color:#565c59;text-transform:uppercase;letter-spacing:.4px}
+.nhan:first-child{margin-top:4px}
+.the{position:relative;background:#f7f6f3;border-radius:28px;padding:14px 16px;box-shadow:var(--c);margin-bottom:10px}
+.the:before{content:"";position:absolute;inset:0;border-radius:28px;pointer-events:none;background:radial-gradient(46% 16px at 50% 3px,#fff,rgba(255,255,255,0) 78%)}
+.the>*{position:relative}
+.cam{background:#f9e7d2}
+.cam:before{display:none}
+.dong{display:flex;align-items:center;gap:12px}
+.bt{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--n)}
+.bt img{width:26px;height:26px}
+.g{flex:1;min-width:0}
+.g b{display:block;font-size:15.5px;line-height:21px;font-weight:800}
+.g span{display:block;font-size:13px;line-height:18px;color:#565c59}
+.cam .g span{color:#6b3209}
+.sua{flex:none;min-height:44px;padding:0 16px;border-radius:18px;display:flex;align-items:center;background:#fff;color:#8a3c0c;font-weight:800;font-size:14px;box-shadow:var(--n)}
+.mui{flex:none;width:18px;height:18px;fill:#8a8f8c}
+.tag{display:inline-block;margin-top:6px;padding:2px 9px;border-radius:10px;background:#dcebe6;color:#0a5246;font-size:12px;font-weight:700}
+.goi h3{font-size:16px;line-height:22px;font-weight:800}
+.goi p{margin-top:4px;font-size:13.5px;line-height:19px;color:#3a403d}
+.hai{display:flex;gap:8px;margin-top:12px}
+.hai div{flex:1;min-height:44px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;white-space:nowrap;background:#fff;box-shadow:var(--n)}
+.hai .chinh{color:#fff;background:linear-gradient(#2e3533,#121615);box-shadow:0 8px 14px -8px rgba(15,19,18,.5),inset 0 1px 0 rgba(255,255,255,.4),inset 0 -3px 5px rgba(0,0,0,.4)}
+.hai .bo{flex:.6;color:#565c59}
+.rieng{display:flex;gap:10px;align-items:flex-start;margin:6px 6px 0;font-size:12.5px;line-height:18px;color:#565c59}
+.rieng svg{flex:none;width:16px;height:16px;margin-top:1px;fill:#0f6b5c}
+</style></head>
+<body>
+<div class="dt">
+  <div class="sb"><span>19:36</span><span>●●● 5G</span></div>
+  <div class="dau">
+    <div class="lui" role="button" tabindex="0" aria-label="Chờ duyệt" data-toi="bm3-duyet-cho-duyet"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg>Chờ duyệt</div>
+    <h1>Cảnh báo</h1>
+  </div>
+  <div class="cuon">
+    <div class="nhan">Ba Mẹ cần sửa · 1</div>
+    <div class="the cam">
+      <div class="dong">
+        <div class="bt"><img src="/assets/icon3d/dt.webp" alt=""></div>
+        <div class="g"><b>iPad chưa được bảo vệ đủ</b><span>Chưa báo về từ 20:45 hôm qua</span></div>
+        <div class="sua" role="button" tabindex="0" data-toi="bm2-may-m2">Sửa</div>
+      </div>
+    </div>
+
+    <div class="nhan">AiiGrow đã tự xử lý · 1</div>
+    <div class="the" role="button" tabindex="0" data-toi="bm3-duyet-canh-bao-chi-tiet">
+      <div class="dong">
+        <div class="bt"><img src="/assets/icon3d/dong_ho_cat.webp" alt=""></div>
+        <div class="g"><b>Giờ trên Laptop bị đổi</b><span>Sáng nay 06:59 · lệch 61 phút</span><i class="tag">Đã khoá trò chơi</i></div>
+        <svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg>
+      </div>
+    </div>
+
+    <div class="nhan">Rob gợi ý · Ba Mẹ chọn</div>
+    <div class="the goi">
+      <h3>Tuần này Bảo Anh xin thêm giờ 3 lần</h3>
+      <p>Giao thêm nhiệm vụ để con tự kiếm điểm, rồi đổi điểm lấy phút chơi.</p>
+      <div class="hai"><div class="chinh" role="button" tabindex="0" data-toi="bm3-nv-giao">Giao nhiệm vụ</div><div class="bo" role="button" tabindex="0">Bỏ qua</div></div>
+    </div>
+    <div class="the goi">
+      <h3>Cho con tự đổi điểm khi hết giờ</h3>
+      <p>Tối đa 30 điểm = 30 phút mỗi ngày, không cần hỏi Ba Mẹ. Mọi lần đổi vẫn hiện trong Báo cáo.</p>
+      <div class="hai"><div class="chinh" role="button" tabindex="0">Bật</div><div class="bo" role="button" tabindex="0">Bỏ qua</div></div>
+    </div>
+    <div class="rieng"><svg viewBox="0 0 256 256"><path d="M128 16 40 48v64c0 58 37 104 88 128 51-24 88-70 88-128V48Z"></path></svg><p>AiiGrow chỉ biết giờ máy và app đang mở, không đọc tin nhắn hay nội dung trang web.</p></div>
+  </div>
+</div>
+</body></html>

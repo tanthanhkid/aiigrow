@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#fdf1d3,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 20px 0;display:flex;align-items:center;z-index:4;background:linear-gradient(#fdf1d3 70%,rgba(253,241,211,0))}
+.top h1{font-size:28px;font-weight:800;letter-spacing:-.6px}
+.cuon{position:absolute;left:0;right:0;top:92px;bottom:150px;overflow-y:auto;padding:6px 16px 24px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.con{display:flex;gap:8px}
+.con span{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 6px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:15px;font-weight:700;white-space:nowrap}
+.con i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;color:#fff;background:#f08a3c}
+.con i.m{background:#5b7fd6}
+.con span.on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.35)}
+.vi{position:relative;margin-top:14px;height:150px;padding:18px;border-radius:32px;background:linear-gradient(#ffe39a,#fbecc0);box-shadow:var(--clay);overflow:hidden}
+.vi small{display:block;font-size:14px;font-weight:700;color:#6e4300}
+.vi strong{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:46px;line-height:52px;font-weight:800;letter-spacing:-1px}
+.vi strong img{width:44px;height:44px}
+.vi strong em{font-style:normal;font-size:20px;letter-spacing:0}
+.vi p{margin-top:8px;display:inline-flex;padding:6px 12px;border-radius:14px;background:#fff;font-size:13px;font-weight:800;color:#6e4300}
+.vi .rob{position:absolute;right:-6px;bottom:-20px;width:120px;height:auto}
+.muc{display:flex;align-items:center;justify-content:space-between;margin:22px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.muc span{min-height:32px;display:flex;align-items:center;font-size:13.5px;color:#0a5246}
+.muc em{font-style:normal;margin-left:6px;padding:2px 8px;border-radius:10px;background:#e2660f;color:#fff;font-size:12px}
+.the{padding:6px 10px 10px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.viec{display:flex;align-items:center;gap:12px;height:58px;padding:0 4px}
+.viec+.viec{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.viec p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viec p small{display:block;font-size:12px;font-weight:600;color:#565c59}
+.diem{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:12.5px;font-weight:800;white-space:nowrap}
+.diem img{width:16px;height:16px}
+.anh{position:relative;flex:none;width:44px;height:44px;border-radius:12px;overflow:hidden}
+.anh.phong{background:linear-gradient(#f6e7cf 0 58%,#dcbb8e 58%)}
+.anh.phong::before{content:"";position:absolute;left:5px;bottom:7px;width:24px;height:10px;border-radius:4px;background:#7fb3d5}
+.anh.phong::after{content:"";position:absolute;left:6px;top:6px;width:12px;height:10px;border-radius:3px;background:#bfe3f2;border:2px solid #fff}
+.anh.am{background:linear-gradient(135deg,#d6e9e2,#eef4f1);display:grid;place-items:center}
+.anh.am svg{width:22px;height:22px;fill:#0f6b5c}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:27px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:22px;height:22px}
+.the .nut{margin-top:6px}
+.qua{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 10px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.qua .ic{width:52px;height:52px;border-radius:18px;background:#fbecc0}.qua .ic img{width:34px;height:34px}
+.qua p{flex:1;min-width:0;font-size:15.5px;font-weight:800}.qua p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.trao{flex:none;height:40px;padding:0 16px;border-radius:20px;display:grid;place-items:center;background:#0f6b5c;color:#fff;font-size:14px;font-weight:800;box-shadow:0 8px 12px -8px rgba(10,82,70,.6)}
+.bo{display:flex;align-items:center;gap:8px;margin:0 4px 6px;font-size:12.5px;font-weight:800;color:#0a5246}
+.bo span{padding:4px 10px;border-radius:12px;background:#dcebe6}
+.day{position:absolute;left:0;right:0;bottom:84px;padding:10px 16px;background:#f4f4f2;z-index:4;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25)}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 8px 24px;display:flex;background:#f7f6f3;box-shadow:0 -1px 0 #e4e3df;z-index:5}
+.tab div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:700;color:#565c59}
+.tab img{width:26px;height:26px;opacity:.5}
+.tab .on{color:#0a5246;font-weight:800}.tab .on img{opacity:1}
+</style></head>
+<body data-lk-sua=""><div class="app">
+<div class="top"><h1>Nhiệm vụ</h1></div>
+<div class="cuon">
+<div class="con"><span class="on" role="button" tabindex="0"><i>B</i>Bảo Anh</span><span role="button" tabindex="0" data-toi="them-e44cwmvu"><i class="m">M</i>Bảo Minh</span></div>
+<div class="vi" role="button" tabindex="0" data-toi="them-1akngbxb"><small>Bảo Anh đang có</small><strong><img src="/assets/icon3d/sao.webp" alt="">30 <em>sao</em></strong><p>Đổi được 30 phút chơi ›</p><img class="rob" src="/assets/rob/xong.webp" alt=""></div>
+<p class="muc"><span style="color:#3a403d;font-size:15px">Chờ Ba Mẹ duyệt<em>2</em></span></p>
+<div class="the">
+<div class="viec" role="button" tabindex="0" data-toi="them-qwuifjry"><span class="anh phong"></span><p>Dọn phòng<small>2 ảnh · nộp lúc 18:40</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-d40e3495"><span class="anh am"><svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"></path></svg></span><p>Đọc sách 20 phút<small>Ghi âm 20:14 · nộp lúc 17:15</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<span class="nut" role="button" tabindex="0" data-toi="them-nl1nwszs"><img src="/assets/icon3d/sao.webp" alt="">Xem bằng chứng, duyệt 2 việc</span>
+</div>
+<p class="muc">Con đã đổi quà, chờ trao<span role="button" tabindex="0" data-toi="them-473f52w6">Quà ›</span></p>
+<div class="qua"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Đi ăn kem<small>Con đổi 50 sao · hôm qua</small></p><span class="trao" role="button" tabindex="0" data-toi="them-5otw85h4">Trao quà</span></div>
+<p class="muc">Việc mỗi ngày · 5 việc<span role="button" tabindex="0" data-toi="them-1jii7k19">Đổi bộ ›</span></p>
+<div class="the">
+<p class="bo"><span>Bộ Tự lập</span>Bấm một việc để sửa</p>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>Mỗi ngày · chụp ảnh</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/tick.webp" alt=""></span><p>Tự đánh răng<small>Sáng và tối</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>Mỗi ngày · ghi âm</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/mu.webp" alt=""></span><p>Tự xếp cặp<small>Thứ 2 – Thứ 6 · chụp ảnh</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><p>Học 1 bài với AiiRob<small>Tự chấm · không cần duyệt</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">20 sao</span></div>
+</div>
+</div>
+<div class="day"><span class="nut" role="button" tabindex="0" data-toi="them-1jii7k19"><img src="/assets/icon3d/sao.webp" alt="">Giao thêm việc cho Bảo Anh</span></div>
+<nav class="tab">
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
+<div class="on" role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Nhiệm vụ</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+</nav>
+</div></body></html>

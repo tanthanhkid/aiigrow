@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>:root{--f:'Segoe UI','Helvetica Neue',Arial,sans-serif}*{box-sizing:border-box;margin:0;padding:0}html,body{background:transparent;overflow:hidden}body{font-family:var(--f);color:#0f1312;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.w{position:relative;overflow:hidden;background:#ecebe7;border:1px solid #3c3c3c}
+.tb{position:absolute;left:0;right:0;top:0;height:30px;background:#f3f3f3;font:400 12px/16px var(--f);color:#1a1a1a}
+.tb .ico{position:absolute;left:7px;top:7px;width:16px;height:16px;border-radius:3px;background:#2f6f63;object-fit:cover}
+.tb .ten{position:absolute;left:30px;top:7px;white-space:nowrap}
+.tb .lui{position:absolute;left:0;top:0;width:30px;height:30px;display:grid;place-items:center;font:700 18px/1 var(--f);color:#0a5246;cursor:pointer}
+.tb .lui+.ico{left:30px}.tb .lui~.ten{left:53px}
+.tb .dong{position:absolute;right:0;top:0;width:46px;height:30px;cursor:pointer}
+.ct{position:absolute;left:0;right:0;top:30px;bottom:0;padding:18px 24px 18px;display:flex;flex-direction:column;gap:12px}
+.dau{display:flex;align-items:center;gap:12px}
+.bt{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#fff,#e6e5e1);box-shadow:0 6px 10px -6px rgba(28,32,30,.3),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14)}
+.bt img{width:34px;height:34px}.bt.ngoc{background:radial-gradient(circle at 50% 30%,#f2f8f6,#cfe5dd)}.bt.cam{background:radial-gradient(circle at 50% 30%,#fdf4ea,#f5dcc0)}.bt.vang{background:radial-gradient(circle at 50% 30%,#fff8e0,#fbe3a0)}
+.bt.nho{width:40px;height:40px}.bt.nho img{width:24px;height:24px}
+.h{font:700 20px/26px var(--f)}.p{font:400 14.5px/20px var(--f);color:#3a403d}.s{font:400 13px/18px var(--f);color:#565c59}
+.the{border-radius:24px;background:linear-gradient(180deg,#fff 0,#f7f6f3 30px,#f7f6f3 60%,#ebeae7 100%);box-shadow:0 2px 0 rgba(190,190,185,.75),0 6px 10px rgba(60,60,50,.16),inset 0 1.5px 0 #fff;padding:12px 14px;display:flex;align-items:center;gap:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:15px;background:#dcebe6;font:700 13px/1 var(--f);color:#0a5246;white-space:nowrap}
+.chip img{width:18px;height:18px}.chip.vang{background:#fbecc0;color:#6e4300}.chip.cam{background:#f9e7d2;color:#8a3c0c}.chip.xam{background:#e3e2de;color:#3a403d}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.nut{flex:none;height:48px;border:0;border-radius:24px;display:flex;align-items:center;justify-content:center;gap:8px;font:700 16px/1 var(--f);white-space:nowrap;cursor:pointer;position:relative;overflow:hidden;width:100%}
+.nut span{position:relative}.nut img{position:relative;width:22px;height:22px}
+.nut.chinh{color:#fff;background:linear-gradient(180deg,#1c7d6c 0,#0f6b5c 50%,#0a5246 100%);box-shadow:0 10px 16px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -6px 10px -4px rgba(0,0,0,.35)}
+.nut.chinh::before{content:'';position:absolute;left:8px;right:8px;top:3px;height:45%;border-radius:20px 20px 30px 30px;background:linear-gradient(rgba(255,255,255,.3),rgba(255,255,255,.04))}
+.nut.phu{color:#0f1312;background:linear-gradient(#fff,#f7f6f3 40%,#ebeae7);box-shadow:0 2px 0 rgba(190,190,185,.8),0 4px 6px rgba(60,60,50,.16),inset 0 1.5px 0 #fff}
+.rob{display:flex;align-items:center;gap:10px}.rob img{flex:none;width:84px;height:84px;object-fit:contain}
+.bong{position:relative;flex:1;border-radius:20px;background:#f7f6f3;padding:10px 14px;font:600 14px/19px var(--f);color:#0f1312;box-shadow:0 2px 0 rgba(190,190,185,.75),0 6px 10px rgba(60,60,50,.14),inset 0 1.5px 0 #fff}
+.bong::before{content:'';position:absolute;left:-7px;top:50%;margin-top:-7px;border:7px solid transparent;border-left:0;border-right-color:#f7f6f3}
+.bong small{display:block;margin-top:3px;font:400 12.5px/16px var(--f);color:#565c59}
+.lom{height:44px;border-radius:20px;background:#e9e8e3;box-shadow:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95);display:flex;align-items:center;padding:0 16px;font:400 14px/20px var(--f);color:#0f1312;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cho{display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8890c}
+.thu{display:flex;align-items:center;gap:6px;margin-top:auto}
+.thu b{font:700 10.5px/14px var(--f);color:#b45309;letter-spacing:.3px;white-space:nowrap}
+.demo{flex:1;height:30px;border-radius:15px;border:1.5px dashed #e8890c;background:#fff4e5;color:#b45309;font:600 12.5px/27px var(--f);text-align:center;cursor:pointer;white-space:nowrap}
+.lk{font:700 14px/20px var(--f);color:#0a5246;text-align:center;cursor:pointer;white-space:nowrap}
+.mini{flex:none;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font:800 11px/1 var(--f)}
+</style></head><body data-lk-sua=""><div class="w" style="width:428px;height:402px"><div class="tb"><span class="lui" data-toi="them-zxuekzer">‹</span><img class="ico" src="/assets/win/mascot/rob-goc.png" alt=""><span class="ten">AiiGrow · Xin thêm giờ</span><svg class="dong" viewBox="0 0 46 30" data-toi="cmt-hom-nay"><path d="M18.2 10.2l9.6 9.6M27.8 10.2l-9.6 9.6" stroke="#1a1a1a" stroke-width="1.05"></path></svg></div><div class="ct"><div class="dau"><div class="bt ngoc"><img src="/assets/icon3d/dongho.webp" alt=""></div><div><div class="h">Xin Ba Mẹ thêm giờ</div><div class="s">Chọn số phút con muốn xin</div></div></div><div class="chips"><span class="chip xam" style="height:40px;padding:0 18px;font-size:14px">10 phút</span><span class="chip" style="height:40px;padding:0 18px;font-size:14px;background:#0f6b5c;color:#fff">20 phút</span><span class="chip xam" style="height:40px;padding:0 18px;font-size:14px">30 phút</span></div><div class="lom">Con đang xây dở nhà với bạn</div><button class="nut chinh" data-toi="them-luui7gvq"><img src="/assets/icon3d/tin.webp" alt=""><span>Xin Ba Mẹ thêm 20 phút</span></button><div class="lk" data-toi="them-a7sh10qs">Hoặc đổi 20 sao lấy 20 phút ›</div></div></div></body></html>

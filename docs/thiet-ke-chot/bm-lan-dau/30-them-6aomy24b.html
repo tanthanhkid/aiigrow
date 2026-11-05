@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:400px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;right:8px;top:44px;height:48px;display:flex;align-items:center;justify-content:space-between;z-index:3}
+.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.hoi{min-height:44px;padding:0 10px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#0a5246}
+.buoc{position:absolute;left:50%;top:65px;transform:translateX(-50%);display:flex;gap:6px;z-index:3}
+.buoc i{width:28px;height:6px;border-radius:3px;background:#0f6b5c}
+.san{position:absolute;left:16px;right:16px;top:100px;height:200px;border-radius:36px;background:linear-gradient(#d6e9e2,#eef4f1);box-shadow:var(--clay);overflow:hidden}
+.san::before{content:"";position:absolute;left:14px;right:14px;top:3px;height:60px;border-radius:34px 34px 80px 80px;background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,0));z-index:1}
+.san .rob{position:absolute;right:0;bottom:-16px;width:160px;height:auto;z-index:2}
+.bong{position:absolute;left:18px;top:30px;max-width:170px;padding:11px 16px;border-radius:22px;background:#fff;font-size:15px;line-height:20px;font-weight:700;z-index:3;box-shadow:0 6px 10px -6px rgba(28,32,30,.26),inset 0 -6px 10px -5px rgba(40,44,42,.12)}
+.bong::after{content:"";position:absolute;right:-6px;top:50%;margin-top:-7px;width:14px;height:14px;background:#fff;border-radius:3px;transform:rotate(45deg)}
+.mo{position:absolute;left:28px;bottom:22px;width:58px;height:58px;z-index:3;transform:rotate(-8deg)}
+.chu{position:absolute;left:16px;right:16px;top:320px;text-align:center}
+.chu h1{font-size:28px;line-height:34px;font-weight:800;letter-spacing:-.6px}
+.nd{position:absolute;left:16px;right:16px;top:378px}
+.nhan{margin:0 6px 8px;font-size:14px;font-weight:700}
+.nhan.sau{margin-top:18px}
+.lom{display:flex;align-items:center;gap:8px;height:58px;padding:0 7px 0 20px;border-radius:29px;background:#e6e5e1;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 20px Inter,sans-serif;color:#0f1312;letter-spacing:4px}
+.mat{flex:none;width:44px;height:44px;display:grid;place-items:center}.mat svg{width:22px;height:22px;fill:#565c59}
+.goi{margin:6px 0 0 6px;font-size:12.5px;font-weight:700;color:#565c59}
+.goi.ok{color:#0a5246}
+.day{position:absolute;left:16px;right:16px;bottom:22px}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+</style></head>
+<body data-lk-sua=""><div class="app">
+<div class="top">
+<div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-2g3zpiie"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div>
+<div class="hoi" role="button" tabindex="0" data-toi="them-zxu4yvp3">Cần giúp?</div>
+</div>
+<div class="buoc" aria-label="Bước 2 trên 2"><i></i><i></i></div>
+<div class="san"><div class="bong">Mã đúng rồi! Chọn mật khẩu mới nhé.</div><img class="mo" src="/assets/icon3d/mo_khoa.webp" alt=""><img class="rob" src="/assets/rob/xong.webp" alt=""></div>
+<div class="chu"><h1>Đặt mật khẩu mới</h1></div>
+<div class="nd">
+<div class="nhan">Mật khẩu mới</div>
+<div class="lom"><input type="password" aria-label="Mật khẩu mới" value="matkhau26"><span class="mat" role="button" tabindex="0" aria-label="Hiện mật khẩu"><svg viewBox="0 0 256 256"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"></path></svg></span></div>
+<p class="goi">Ít nhất 8 ký tự</p>
+<div class="nhan sau">Nhập lại mật khẩu mới</div>
+<div class="lom"><input type="password" aria-label="Nhập lại mật khẩu mới" value="matkhau26"><span class="mat" role="button" tabindex="0" aria-label="Hiện mật khẩu"><svg viewBox="0 0 256 256"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"></path></svg></span></div>
+<p class="goi ok">✓ Đã khớp</p>
+</div>
+<div class="day"><button class="nut" type="button" data-toi="bm2-trang-chu"><span>Lưu mật khẩu và vào app</span></button></div>
+</div></body></html>

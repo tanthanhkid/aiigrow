@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#fdf1d3,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:150px;overflow-y:auto;padding:4px 16px 24px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.mat{display:flex;align-items:center;gap:12px;padding:16px;border-radius:28px;background:#fdeedd;box-shadow:var(--clay)}
+.mat .ic{flex:none;width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:#f9dcc0;box-shadow:var(--lom)}.mat .ic img{width:36px;height:36px;opacity:.75}
+.mat p{flex:1;font-size:17px;font-weight:800;line-height:22px;color:#a14b00}
+.mat p small{display:block;margin-top:2px;font-size:13.5px;font-weight:600;line-height:19px;color:#6e3a00}
+.muc{margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.the{padding:4px 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;height:64px}
+.dong+.dong{border-top:1.5px solid #ecebe7}
+.ic2{flex:none;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic2 img{width:28px;height:28px}
+.dong p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap}.dong p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.cho{flex:none;display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:12px;background:#ecebe7;color:#3a403d;font-size:12px;font-weight:800;white-space:nowrap}
+.cho i{width:8px;height:8px;border-radius:4px;background:#e2a33c}
+.goi{display:flex;align-items:center;gap:10px;margin-top:16px;padding:12px 14px;border-radius:22px;background:#dcebe6;font-size:13.5px;font-weight:700;color:#0a5246;line-height:19px}
+.goi img{flex:none;width:44px;height:auto}
+.day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 26px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:4;display:flex;flex-direction:column;gap:4px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:24px;height:24px}
+.lk{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:15px;font-weight:800;color:#0a5246}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-nl1nwszs"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Bảo Anh nộp việc</h1></div>
+<div class="cuon">
+<div class="mat"><span class="ic"><img src="/assets/icon3d/wifi.webp" alt=""></span><p>Điện thoại đang mất mạng<small>Lựa chọn của bạn vẫn được giữ, có mạng là tự gửi.</small></p></div>
+<p class="muc">Đã duyệt, chờ gửi</p>
+<div class="the">
+<div class="dong"><span class="ic2"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>+10 sao · kèm lời khen</small></p><span class="cho"><i></i>Chờ mạng</span></div>
+<div class="dong"><span class="ic2"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>+10 sao · kèm lời khen</small></p><span class="cho"><i></i>Chờ mạng</span></div>
+</div>
+<div class="goi"><img src="/assets/rob/chi.webp" alt="">Bảo Anh sẽ nhận 20 sao ngay khi gửi xong. Bạn không cần duyệt lại.</div>
+</div>
+<div class="day">
+<span class="nut" role="button" tabindex="0" data-toi="them-zj9gmh7t"><img src="/assets/icon3d/wifi.webp" alt="">Thử gửi lại ngay</span>
+<span class="lk" role="button" tabindex="0" data-toi="bm2-trang-chu">Để tự gửi, về Trang chủ</span>
+</div>
+</div></body></html>
