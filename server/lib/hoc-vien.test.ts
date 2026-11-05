@@ -49,7 +49,7 @@ test("khay học viên: giao việc ⇒ thấy việc + thông báo ⇒ nhận v
   // thông báo: việc giao riêng + việc mở cho cả nhà; hỏi lại với mốc `bay` ⇒ máy chủ lùi 5 phút nên trả lại đúng các dòng cũ (khay lọc trùng theo id)
   const tin = (await goi(tok, `hoc-vien/tin?sau=${encodeURIComponent(mo)}`)).body;
   assert.deepEqual(tin.ds.map((x: any) => x.loai).sort(), ["giao_nhiem_vu", "nhiem_vu_moi"]);
-  assert.ok(tin.ds.every((x: any) => x.noi.includes("điểm")));
+  assert.ok(tin.ds.every((x: any) => x.noi.includes("sao")), "05/11: chữ «sao» thay «điểm»");
   const sauNua = (await goi(tok, `hoc-vien/tin?sau=${encodeURIComponent(tin.bay)}`)).body;
   assert.deepEqual(sauNua.ds.map((x: any) => x.id).sort(), tin.ds.map((x: any) => x.id).sort());
   const xa = (await goi(tok, `hoc-vien/tin?sau=${encodeURIComponent(new Date(Date.now() + 3_600_000).toISOString())}`)).body;

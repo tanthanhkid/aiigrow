@@ -487,6 +487,25 @@ export const SCHEMA_M4B = [
   `alter table devices add column if not exists app_bam text`,
   `alter table devices add column if not exists app_luc timestamptz`,
   `alter table devices add column if not exists app_yeu_cau timestamptz`,
+  // ---- Thiết kế chốt 05/11 (S1 sao-gio-choi, lib/quy-gio.ts) — chỉ thêm.
+  // grants.nguon: phút cộng vào QUỸ hôm nay đến từ đâu — xin (Ba Mẹ duyệt lời xin thêm giờ) | doi_sao (Con tự đổi sao) | ba_me (Ba Mẹ
+  //   bấm «Cho thêm giờ») | ngoai_le (mở ngoại lệ lúc giờ ngủ / Ba Mẹ khoá / giờ học — KHÔNG cộng vào quỹ). null = grant cũ (trước 05/11).
+  // grants.muc: ngoại lệ chỉ mở 1 app (null = cả máy). grants.den: hạn ngoại lệ. grants.nguoi: Ba Mẹ đã cho (null = Con tự đổi sao).
+  `alter table grants add column if not exists nguon text`,
+  `alter table grants add column if not exists muc text`,
+  `alter table grants add column if not exists den timestamptz`,
+  `alter table grants add column if not exists nguoi text`,
+  `create index if not exists grants_con_ngay on grants(child_id, ngay)`,
+  // tasks (L9): hinh = mã hình/emoji của việc · lap_lai = mot_lan | hang_ngay | ngay_thuong | cuoi_tuan | thu:1,3,5 (0 = CN) ·
+  //   gio_nhac = «HH:MM» nhắc Con (null = không nhắc) · bo = mã bộ nhiệm vụ đã giao (tu_lap, viec_nha, hoc_tap, khoe_manh — lib/bo-nhiem-vu.ts).
+  `alter table tasks add column if not exists hinh text`,
+  `alter table tasks add column if not exists lap_lai text`,
+  `alter table tasks add column if not exists gio_nhac text`,
+  `alter table tasks add column if not exists bo text`,
+  // submissions.loi_nhan: lời Ba Mẹ nhắn khi «Nhờ làm lại» (trạng thái mới lam_lai) — ly_do giữ chip «Vì sao».
+  `alter table submissions add column if not exists loi_nhan text`,
+  // redemptions.phut: số phút của quà «Thêm N phút chơi» chốt LÚC ĐỔI (Ba Mẹ sửa / xoá quà sau đó không đổi phần Con đã đổi).
+  `alter table redemptions add column if not exists phut int`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

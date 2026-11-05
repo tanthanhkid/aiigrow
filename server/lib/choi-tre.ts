@@ -27,7 +27,9 @@ export async function troChoi(c: ConTre) {
   const ds = (await dsLuat(c.family_id)).filter((x) => x.loai === "giai_tri" && (x.child_id === "" || x.child_id === c.id));
   const theoMuc = new Map<string, (typeof ds)[number]>();
   for (const x of ds) if (!theoMuc.has(x.muc) || x.child_id) theoMuc.set(x.muc, x);     // luật riêng của Con thắng luật gia đình
-  return [...theoMuc.values()].map((x) => ({ muc: x.muc, ten: x.ten, nhom: x.nhom, giaPhut: (gia[x.nhom] ?? ts.gia_khac) / 1000 }));
+  // 05/11: không còn giá theo nhóm — mọi trò chơi dùng chung quỹ phút (giaPhut giữ trường, luôn 0)
+  void gia;
+  return [...theoMuc.values()].map((x) => ({ muc: x.muc, ten: x.ten, nhom: x.nhom, giaPhut: 0 }));
 }
 
 /** Khung giờ chơi hôm nay: đang trong khung ⇒ giờ kết thúc; ngoài khung ⇒ lần mở kế tiếp (hôm nay hoặc ngày mai). */
@@ -61,7 +63,7 @@ export async function nhaTre(c: ConTre, now = new Date()) {
     mucTieu: mt ? { id: mt.id, ten: mt.ten, diem: mt.diem, conThieu: mt.conThieu } : null,
     nhiemVuMo: nv.filter((x) => x.trang_thai_con === "san_sang" || x.trang_thai_con === "dang_lam" || x.trang_thai_con === "can_bo_sung").length,
     canBoSung: nv.filter((x) => x.trang_thai_con === "can_bo_sung").map((x) => ({ id: x.id, ten: x.ten, luot: x.luot_dang })),
-    phutChoi: tran.daChoi, tranNgay: ts.tran_ngay + tran.thuong, conPhut: tran.conPhut,   // trần tuần cũng chặn như xetMoPhien; một lần đọc
+    phutChoi: tran.daChoi, tranNgay: tran.quy.tongPhut, conPhut: tran.conPhut, quy: tran.quy, sao: vi.soDu,   // 05/11: quỹ giờ chơi (lib/quy-gio.ts)
     khung: khungHomNay(lichCua(cc.lich as never), g.thu, g.phut), gioNgu: trongKhung(g.phut, lichCua(cc.lich as never).ngu),
     nghiDen: nghi ? new Date(nghi.nghi_den).toISOString() : null,
     phien: dang ? { id: dang.id, muc: dang.muc, conPhut: Math.max(0, Math.ceil(dang.toi_da_phut - dang.phut_dung)) } : null,

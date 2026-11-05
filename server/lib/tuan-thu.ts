@@ -285,6 +285,8 @@ export async function huyMoKhanCap(fam: string, mayId: string, nguoi: string, no
   const dong = coCuaSoThemGio(m.platform) && m.child_id
     ? (await q(`update grants g set cua_so_den = $2
         where g.child_id = $1 and g.cua_so_den > $2 and ${SQL_NHOM_CUA_SO} = $3 returning g.id`, [m.child_id, now, nhomCuaSo(m.platform)])).length : 0;
+  // …và đóng ngoại lệ đang mở của Con (05/11, lib/quy-gio.ts › ngoaiLeDangMo đọc grants.den — cả máy lẫn từng app)
+  if (m.child_id) await q(`update grants set den = $2 where child_id = $1 and nguon = 'ngoai_le' and den > $2`, [m.child_id, now]);
   // …và huỷ «mở tạm» (yeu-cau.ts › dongY) để «Khoá ngay» của Ba Mẹ có hiệu lực lại ngay — không thì máy chỉ về luật thường tới hết mốc
   const huyMoTam = coCuaSoThemGio(m.platform) && m.child_id
     ? (await q(`update children set cau_hinh = cau_hinh - 'khoa_mo_tam_den' where id = $1 and cau_hinh->>'khoa_mo_tam_den' is not null returning id`, [m.child_id])).length > 0 : false;

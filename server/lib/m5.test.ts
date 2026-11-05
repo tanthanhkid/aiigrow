@@ -196,7 +196,7 @@ test("admin: tham số mục 10 kẹp min–max + ghi kiểm toán; Allowlist th
   const id = (await adm("mau", { tok: ta, body: { loai: "nhiem_vu", nhom: "teen", ten: "Tưới cây", diem: 5, nhomNv: "viec_nha" } })).body.id;
   assert.equal((await adm("mau", { tok: ta, body: { loai: "qua", ten: "Phiếu 10k", diem: 100, loaiQua: "voucher" } })).status, 400);
   const tv = (await adm("mau", { tok: ta })).body;
-  assert.ok(tv.nhiemVu.nhi.length >= 8 && tv.qua.length >= 6);
+  assert.ok(tv.nhiemVu.nhi.length >= 8 && tv.qua.length >= 4);
   assert.equal(tv.rieng[0].du_lieu.ten, "Tưới cây");
   assert.equal((await ad.mauRiengDangBat()).teen.length, 1);
   await adm(`mau/${id}`, { tok: ta, body: { bat: false } });

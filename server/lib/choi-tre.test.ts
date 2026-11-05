@@ -66,7 +66,8 @@ test("Nhà: số dư, mục tiêu còn thiếu, nhiệm vụ mở, phút chơi c
   assert.equal(n.soDu, 45);
   assert.ok(n.nhiemVuMo >= 3);
   assert.ok(n.mucTieu && n.mucTieu.conThieu === n.mucTieu.diem - 45);
-  assert.equal(n.conPhut, 90);
+  assert.equal(n.conPhut, n.quy.quyNgayPhut, "05/11: phút còn = quỹ hôm nay (chưa chơi)");
+  assert.equal(n.sao, 45);
   assert.equal(n.phien, null);
   // nộp ≤ 3 chạm: Bắt đầu → Xong, chụp ảnh → chụp (gửi luôn)
   const chen = (await k("nhiem-vu", { tok })).body.ds.find((x: any) => x.bang_chung === "anh" && !x.phut_toi_thieu);
@@ -75,39 +76,38 @@ test("Nhà: số dư, mục tiêu còn thiếu, nhiệm vụ mở, phút chơi c
   assert.equal((await k("nha", { tok })).body.diemChoDuyet, chen.diem);
 });
 
-test("dùng điểm để chơi: xét → mở → nhịp trừ điểm → dừng sớm giữ điểm, nghỉ giữa phiên; ngoài khung báo giờ mở lại", async () => {
+test("05/11 chơi bằng quỹ: xét → mở → nhịp không trừ sao → dừng sớm, không bắt nghỉ; không còn khung giờ chơi", async () => {
   const { bm, ken, may } = await nha();
   await m("luat", { tok: bm, body: { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" } });
   await m(`con/${ken}/diem`, { tok: bm, body: { delta: 45, lyDo: "Thưởng" } });
   const tok = (await dv("pin", { tok: may, body: { con: ken, pin: "1234" } })).body.phienCon as string;
   const ds = (await k("tro-choi", { tok })).body.ds;
-  assert.deepEqual(ds, [{ muc: "roblox.exe", ten: "Roblox", nhom: "game", giaPhut: 1 }]);
+  assert.deepEqual(ds, [{ muc: "roblox.exe", ten: "Roblox", nhom: "game", giaPhut: 0 }]);
   const con = (await one<{ id: string; family_id: string }>(`select id, family_id from children where id = $1`, [ken]))!;
   const ct = { ...con, device_id: null };
   const ngoai = await tre.xetTre(ct, "roblox.exe", T15);
-  assert.equal(ngoai.duoc, false);
-  assert.equal(ngoai.lyDo, "ngoai_khung");
-  assert.equal(ngoai.cau, "Bây giờ chưa phải giờ chơi");
+  assert.equal(ngoai.duoc, true, "không còn khung giờ chơi — quỹ là giới hạn");
   const x = await tre.xetTre(ct, "roblox.exe", T18);
   assert.equal(x.duoc, true);
-  assert.equal(x.phutToiDa, 30);
+  assert.equal(x.phutToiDa, 60);
   assert.equal(x.soDu, 45);
   const p = await tre.moTre(ct, "roblox.exe", T18);
   const nh = await tre.nhipTre(ct, p.id, true, new Date(T18.getTime() + 60_000));
   assert.equal(nh.trangThai, "chay");
-  assert.equal(nh.soDu, 44);
+  assert.equal(nh.soDu, 45);
   assert.equal(nh.muc, "roblox.exe");
   const nh2 = await tre.nhipTre(ct, p.id, true, new Date(T18.getTime() + 120_000));
-  assert.equal(nh2.conPhut, 28);
+  assert.equal(nh2.conPhut, 58);
   const d = await tre.dungTre(ct, p.id, new Date(T18.getTime() + 150_000));
-  assert.equal(d.soDu, 42);               // 2,5 phút ⇒ làm tròn lên 3 điểm
-  assert.ok(d.nghiDen && new Date(d.nghiDen).getTime() === T18.getTime() + 150_000 + 60 * 60_000);
+  assert.equal(d.soDu, 45);
+  assert.equal(d.nghiDen, null);
   const lai = await tre.xetTre(ct, "roblox.exe", new Date(T18.getTime() + 10 * 60_000));
-  assert.equal(lai.lyDo, "dang_nghi");
+  assert.equal(lai.duoc, true);
   const n = await tre.nhaTre(ct, new Date(T18.getTime() + 10 * 60_000));
   assert.equal(n.khung.dang, true);
   assert.equal(n.khung.den, "20:00");
-  assert.ok(n.nghiDen);
+  assert.equal(n.nghiDen, null);
+  assert.ok(n.quy.daDung >= 2.5);
   const n15 = await tre.nhaTre(ct, T15);
   assert.equal(n15.khung.moLai, "17:00");
 });

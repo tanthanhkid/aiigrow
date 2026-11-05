@@ -8,10 +8,14 @@
 //     «Chỉ app học» ở lần đồng bộ kế, khay hiện đồng hồ «đang được bố mẹ thêm giờ». Khoá ngay / giờ ngủ vẫn thắng. Hết hạn ⇒ máy chủ trả lại «hoc».
 //   • nextCheckSec ngắn lại khi đang có phiên / đang mở (và đúng lúc hết hạn mở) để thay đổi của Ba Mẹ tới máy Con trong ≤ 30 giây.
 //   • minutesLeft để trống: hết phiên chơi thì máy chủ đóng phiên, lần đồng bộ sau app giải trí rời danh sách (không khoá cả máy).
+// TỪ 05/11 (thiết kế chốt, lib/quy-gio.ts): QUỸ phút chơi dùng chung — còn quỹ (và không giờ ngủ / giờ học / khoá) ⇒ MỌI app Giải trí Ba Mẹ
+// cho phép vào allowedApps (không cần phiên điểm); hết quỹ ⇒ rời danh sách. `quyConPhut` + `appTinhGio` cho agent mới tự đếm lùi (cả khi mất
+// mạng); agent cũ không đọc 2 trường này ⇒ máy chủ bỏ app khi quỹ hết ở lần đồng bộ kế (≤ 60 giây khi còn ≤ 10 phút). Ngoại lệ Ba Mẹ mở
+// (`ngoaiLe`): cả máy ⇒ tu_do tới hạn, thắng giờ ngủ / khoá; một app ⇒ chỉ thêm app đó (lúc ngủ / khoá: chỉ app đó + app hệ thống).
 // Agent khởi động ở GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do);
 // máy Windows/Mac riêng của Con ghép từ 25/10 có sẵn lựa chọn «chan» (gia-dinh.ts › cheDoMayMoi) ⇒ chặn thật từ lần đồng bộ đầu.
 import { kieuMuc } from "./chinh-sach.ts";
-import { gioDiaPhuong, laCuoiTuan, phutCua, trongKhung } from "./gio.ts";
+import { gioDiaPhuong, phutCua, trongKhung } from "./gio.ts";
 import type { Policy } from "./may-con.ts";
 import { nhipToiKhoaLai } from "./cau-hinh.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
@@ -44,6 +48,22 @@ export type PolicyWindows = {
   /** Số phút tối đa được chơi tiếp khi mất mạng = min(phút còn lại của phiên, phút mua được bằng số dư + phút thưởng còn lại theo giá phiên,
    *  phút tới hết khung giờ / tới giờ ngủ — phutToiHetLich). */
   playOfflineMinutes?: number;
+  // ---- 05/11 quỹ giờ chơi (lib/quy-gio.ts) — agent mới đọc; agent cũ bỏ qua
+  /** Phút chơi còn lại hôm nay (mọi app Giải trí dùng chung). Agent đếm lùi khi app trong `appTinhGio` (hoặc trình duyệt đang mở trang Giải trí) ở
+   *  tiền cảnh + màn hình mở; về 0 ⇒ bỏ các app đó khỏi allowedApps tới lần đồng bộ kế. Không gửi = máy dùng chung chưa chọn Con. */
+  quyConPhut?: number;
+  /** Quỹ của hôm nay (đã cộng thêm giờ / đổi sao) — khay hiện «Đã chơi X / Y phút». */
+  quyTongPhut?: number;
+  quyDaDung?: number;
+  /** App Giải trí đang được thả nhờ quỹ (đã nằm trong allowedApps) — app tính giờ. Rỗng khi hết quỹ / giờ ngủ / giờ học / khoá. */
+  appTinhGio?: string[];
+  /** Giờ ngủ, giờ học (null = không đặt) — agent tự xét khi mất mạng. */
+  gioNgu?: { tu: string; den: string };
+  gioHoc?: { tu: string; den: string; thu: number[] } | null;
+  /** Đang giờ học (chỉ app Học + hệ thống). */
+  dangGioHoc?: boolean;
+  /** Ngoại lệ đang mở cho máy này: `app` null = cả máy (mode tu_do, grantEndsAt = hạn). Hết hạn ⇒ agent tự khoá lại như cũ. */
+  ngoaiLe?: { den: string; app: string | null }[];
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
@@ -78,15 +98,29 @@ export function phutChoiOffline(conPhut: number, soDu: number, conThuong: number
   return Math.max(0, Math.min(Math.max(0, conPhut), muaDuoc + Math.max(0, Math.floor(conThuong))));
 }
 
-/** Phút còn lại tới khi PHẢI dừng theo lịch lúc `p.serverTime`: hết khung giờ chơi đang ở trong (ngoài khung ⇒ 0), và không quá giờ ngủ
- *  (đang trong giờ ngủ ⇒ 0). Agent mất mạng không tự xét lịch cho phiên đã mở nên ngưỡng offline phải chứa sẵn mốc này. */
+/** Phút còn lại tới khi PHẢI dừng theo lịch lúc `p.serverTime`: tới giờ ngủ (đang ngủ ⇒ 0) và tới giờ học hôm nay (đang học ⇒ 0).
+ *  05/11: khung giờ chơi không còn chặn (quỹ phút thay). Agent mất mạng không tự xét lịch cho phiên đã mở nên ngưỡng offline phải chứa sẵn mốc này. */
 export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): number {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
-  const k = (laCuoiTuan(g.thu) ? p.lich.cuoiTuan : p.lich.ngayThuong).find((x) => trongKhung(g.phut, x));   // như phien.ts › conTrongKhung
-  const khung = k ? ((phutCua(k.den) - g.phut + 1440) % 1440) || 1440 : 0;
-  if (!p.lich?.ngu) return khung;
-  if (trongKhung(g.phut, p.lich.ngu)) return 0;
-  return Math.min(khung, ((phutCua(p.lich.ngu.tu) - g.phut + 1440) % 1440) || 1440);
+  let ra = 1440;
+  if (p.lich?.ngu) {
+    if (trongKhung(g.phut, p.lich.ngu)) return 0;
+    ra = ((phutCua(p.lich.ngu.tu) - g.phut + 1440) % 1440) || 1440;
+  }
+  const h = p.lich?.hoc;
+  if (h && h.thu.includes(g.thu)) {
+    if (trongKhung(g.phut, h)) return 0;
+    if (phutCua(h.tu) > g.phut) ra = Math.min(ra, phutCua(h.tu) - g.phut);
+  }
+  return ra;
+}
+
+/** Ngoại lệ trang web (05/11): mở đúng các tên miền Ba Mẹ cho; lúc giờ ngủ / khoá (chỉ có ngoại lệ) ⇒ «chỉ cho phép» để trình duyệt được thả
+ *  không mở được trang khác ngoài danh sách cho phép + trang ngoại lệ. */
+function moWebNgoaiLe(w: ChinhSachWeb, ds: string[], chiNgoaiLe: boolean): ChinhSachWeb {
+  if (!ds.length) return w;
+  const bo = (m: string) => ds.some((d) => m === d || m.endsWith("." + d) || d.endsWith("." + m));
+  return { ...w, ...(chiNgoaiLe ? { cheDo: "chi_cho_phep" as const } : {}), chan: w.chan.filter((m) => !bo(m)), cho: [...new Set([...w.cho, ...ds])].sort() };
 }
 
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {
@@ -101,24 +135,47 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const hoc = p.luat.filter((l) => l.loai === "hoc" && laApp(l.muc)).map((l) => chuan(l.muc));
   const choi = p.phien && laApp(p.phien.muc) && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri")
     ? [chuan(p.phien.muc)] : [];
-  const khoa = p.khoaNgay || ngu;
   const now = new Date(p.serverTime);
-  const dangMo = !khoa && !!mo.moDen && mo.moDen.getTime() > now.getTime();
+  // Ngoại lệ (05/11) của nhóm máy tính: cả máy / từng app, còn hạn
+  const nl = (p.ngoaiLe ?? []).filter((x) => (x.nhom ?? "may_tinh") === "may_tinh" && Date.parse(x.den) > now.getTime());
+  const nlCaMay = nl.filter((x) => !x.muc).sort((a, b) => Date.parse(b.den) - Date.parse(a.den))[0];
+  const nlApp = [...new Set(nl.filter((x) => x.muc && laApp(x.muc)).map((x) => chuan(x.muc!)))];
+  // ngoại lệ một TRANG WEB (giaTri là tên miền): thả trình duyệt lọc được + mở đúng tên miền đó trong chính sách web
+  const nlWeb = [...new Set(nl.filter((x) => x.muc && !laApp(x.muc) && kieuMuc(x.muc.toLowerCase()) === "web").map((x) => x.muc!.toLowerCase()))];
+  const khoaGoc = p.khoaNgay || ngu;
+  const khoa = khoaGoc && !nlCaMay && !nlApp.length && !nlWeb.length;
+  const dangMo = !khoaGoc && !!mo.moDen && mo.moDen.getTime() > now.getTime();
+  const dangHoc = !!p.quy?.dangHoc;
   // L4: Con ở «Mở hết» ⇒ mode tu_do (agent gỡ AppLocker «chỉ app được phép», không grantEndsAt); app Ba Mẹ «Chặn» (blockedApps) + web luôn chặn vẫn chặn.
-  const moHet = !khoa && p.cheDoChan === "mo_het";
+  // Giờ học (05/11) thắng «Mở hết»: chỉ app Học. Quỹ vẫn gửi (quyConPhut / appTinhGio) — agent mới tự đóng app Giải trí khi hết quỹ.
+  const moHet = !khoaGoc && !dangHoc && p.cheDoChan === "mo_het";
+  // Quỹ (05/11): còn phút, không ngủ / khoá / giờ học / giờ máy sai ⇒ thả mọi app Giải trí
+  const quyMo = !!p.quy && p.quy.conPhut > 0 && !khoaGoc && !dangHoc && !p.gioMaySai;
+  const appQuy = quyMo ? [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && laApp(l.muc)).map((l) => chuan(l.muc)))] : [];
+  const den = nlCaMay ? new Date(Math.max(Date.parse(nlCaMay.den), dangMo ? mo.moDen!.getTime() : 0)) : dangMo ? mo.moDen! : null;
+  const heThong = p.allowlistHeThong.filter(laApp).map(chuan);
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
   const phienWeb = p.phien && kieuMuc(p.phien.muc.toLowerCase()) === "web" && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
   return {
     serverTime: p.serverTime, childName: p.con?.ten ?? "",
-    mode: khoa ? "khoa" : dangMo || moHet ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
-    allowedApps: [...new Set([...p.allowlistHeThong.filter(laApp).map(chuan), ...hoc, ...choi, ...(phienWeb ? trinhDuyet : [])])],
+    mode: nlCaMay ? "tu_do" : khoa ? "khoa" : dangMo || moHet ? "tu_do" : "hoc", locked: khoa,
+    lockReason: khoa ? (p.khoaNgay ? "khoa" : "ngu") : null,
+    // giờ ngủ / khoá mà chỉ có ngoại lệ từng app ⇒ chỉ app hệ thống + app ngoại lệ (không mở app Học / Giải trí khác)
+    allowedApps: khoaGoc && !nlCaMay ? [...new Set([...heThong, ...nlApp, ...(nlWeb.length ? trinhDuyet : [])])]
+      : [...new Set([...heThong, ...hoc, ...(dangHoc ? [] : choi), ...(phienWeb && !dangHoc ? trinhDuyet : []), ...appQuy, ...nlApp, ...(nlWeb.length ? trinhDuyet : [])])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null,
-    nextCheckSec: nhipToiKhoaLai(nhipDongBo({ coPhien: !!p.phien, moDen: dangMo ? mo.moDen : null, now, conThuong: mo.conThuong }), [p.khoaLaiLuc, p.khoaHetLuc], now),
+    // 05/11: `conThuong` (= quỹ còn) KHÔNG làm nhịp dày cả ngày — chỉ phiên / đang mở / quỹ sắp hết (≤ 10 phút) mới 30–60 giây
+    nextCheckSec: nhipToiKhoaLai(Math.min(nhipDongBo({ coPhien: !!p.phien, moDen: den, now }),
+      quyMo && p.quy!.conPhut <= 10 ? 60 : Infinity), [p.khoaLaiLuc, p.khoaHetLuc, ...nl.map((x) => x.den)], now),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
-    ...(dangMo ? { grantEndsAt: mo.moDen!.toISOString() } : {}),
-    // Đang «mở» có hạn ⇒ trang Giải trí cũng mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
-    web: chinhSachWebCho(p, { moGiaiTri: dangMo || moHet, moCoHan: dangMo, appThat: mo.appThat }),
+    ...(den ? { grantEndsAt: den.toISOString() } : {}),
+    // Đang «mở» có hạn / còn quỹ ⇒ trang Giải trí mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
+    web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || moHet || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
+    ...(p.quy ? { quyConPhut: quyMo ? p.quy.conPhut : 0, quyTongPhut: p.quy.ngayPhut + p.quy.themPhut, quyDaDung: p.quy.daDung, appTinhGio: appQuy,
+      dangGioHoc: dangHoc } : {}),
+    gioNgu: p.lich.ngu, gioHoc: p.lich.hoc ?? null,
+    ...(nl.length ? { ngoaiLe: nl.map((x) => ({ den: x.den, app: x.muc ? (laApp(x.muc) ? chuan(x.muc) : x.muc.toLowerCase()) : null })) } : {}),
     playChoices: [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && (laApp(l.muc) || kieuMuc(l.muc.toLowerCase()) === "web")).map((l) => (laApp(l.muc) ? chuan(l.muc) : l.muc.toLowerCase())))].sort().slice(0, 40),   // 40: đủ mọi mục Giải trí thường gặp (khay cuộn); agent chỉ nhận mục trong danh sách này
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),

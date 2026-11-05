@@ -37,7 +37,7 @@ test("next.config: /.well-known/... và /cai/... không bị rewrite fallback nu
   assert.ok(![...rw.beforeFiles, ...rw.afterFiles].some((r) => /cai|well-known/.test(r.source)));
 });
 
-test("thêm giờ cho máy iOS ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; máy iOS vẫn KHÔNG phải «có tác tử»; Khoá lại ngay đóng cửa sổ", async () => {
+test("ngoại lệ cả máy cho iOS (05/11; thêm giờ thì vào quỹ) ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; iOS KHÔNG phải «có tác tử»; Khoá lại ngay đóng cửa sổ", async () => {
   assert.ok(cd.coCuaSoThemGio("ios") && cd.coCuaSoThemGio("mac") && cd.coCuaSoThemGio("android") && !cd.coCuaSoThemGio("tvos"));
   assert.equal(cd.coTacTu("android"), false);
   assert.equal(cd.coTacTu("ios"), false);
@@ -55,8 +55,8 @@ test("thêm giờ cho máy iOS ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; 
   const coVan = await xuLyMay(new Request("http://x/api/device/nhip", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${r.token}` },
     body: JSON.stringify({ clientTime: new Date().toISOString(), appQuanLyBat: true, ios: ios(), maOfflineVan: vanBiMat(truoc.body.maOfflineBiMat) }) }), ["nhip"]);
   assert.equal(((await coVan.json()) as any).maOfflineBiMat, undefined);
-  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "Để làm bài tập" }, T);
-  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, T);
+  const a = await yc.guiYeuCau(con, may.id, { loai: "ngoai_le", phamVi: "ca_may", phut: 30, lyDo: "Để làm bài tập" }, T);
+  await yc.dongY(fam, a.id, bm, { phut: 30 }, T);
   assert.ok((await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]))?.cua_so_den, "iOS phải có cửa sổ mở");
   const den = new Date(Date.now() + 30 * 60000);
   await q(`update grants set cua_so_den = $2 where request_id = $1`, [a.id, den]);
@@ -123,15 +123,15 @@ test("QR Device Owner Android: component + APK của tác tử máy Con, giữ C
     `https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-${(await import("./ban-agent.ts")).BAN_CON_ANDROID.version}/AiiGrow-Con-android.apk`);
 });
 
-test("máy Android: duyệt thêm giờ ⇒ cua_so_den + nhịp trả grantEndsAt/moDen + bí mật mã offline", async () => {
+test("máy Android: ngoại lệ cả máy ⇒ cua_so_den + nhịp trả grantEndsAt/moDen + bí mật mã offline", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "An" });
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Android của An");
   const may = (await g.mayTuToken(r.token))!;
   assert.equal((await nhipAnd(r.token, {})).body.grantEndsAt, null);
   await q(`update devices set status = coalesce(status, '{}'::jsonb) || '{"android": {}}'::jsonb where id = $1`, [may.id]);   // tác tử mới đã gửi nhịp
-  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 120, lyDo: "Để làm bài tập" }, T);
-  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 120 }, T);
+  const a = await yc.guiYeuCau(con, may.id, { loai: "ngoai_le", phut: 60, lyDo: "Để làm bài tập" }, T);
+  await yc.dongY(fam, a.id, bm, { phut: 60 }, T);
   assert.ok((await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]))?.cua_so_den);
   const den = new Date(Date.now() + 45 * 60000);
   await q(`update grants set cua_so_den = $2 where request_id = $1`, [a.id, den]);

@@ -44,6 +44,11 @@ export type ChinhSachChung = {
   ngoaiLe: { phutThemHomNay: number; mucTamThoi: { muc: string; loai: string; het: string }[]; moKhanCapDen: string | null };
   gioMaySai: boolean;
   tuanThu: TuanThu;
+  /** Thiết kế 05/11 (lib/quy-gio.ts): quỹ phút chơi hôm nay (mọi app Giải trí dùng chung) + giờ học + ngoại lệ đang mở — tác tử
+   *  Android / iOS (K1) đọc thay cho phienDiem. null = máy dùng chung chưa chọn Con. */
+  quy: Policy["quy"] | null;
+  gioHoc: Policy["lich"]["hoc"];
+  ngoaiLeMo: NonNullable<Policy["ngoaiLe"]>;
   /** Tổng hợp: giải trí có được mở không + vì sao (khoá ngay / giờ máy sai / không tuân thủ). Không có «chế độ cục bộ». */
   hieuLuc: { giaiTriDuocMo: boolean; lyDo: ("khoa_ngay" | "gio_may_sai" | "khong_tuan_thu")[] };
 };
@@ -102,6 +107,7 @@ export function dungChinhSach(p: Policy, o: {
     },
     gioMaySai: p.gioMaySai,
     tuanThu: o.tuanThu,
+    quy: p.quy ?? null, gioHoc: p.lich.hoc ?? null, ngoaiLeMo: p.ngoaiLe ?? [],
     hieuLuc: { giaiTriDuocMo: lyDo.length === 0, lyDo },
   };
 }
@@ -114,7 +120,7 @@ export async function chinhSachChung(may: May, con: string | null, tuanThu: Tuan
   const c = con ? await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]) : undefined;
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
   const ngay = gioDiaPhuong(now, f.tz).ngay;
-  const phutThem = con ? (await one<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2`, [con, ngay]))!.p : 0;
+  const phutThem = con ? (await one<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and coalesce(nguon, '') <> 'ngoai_le'`, [con, ngay]))!.p : 0;
   const mucTamThoi = con ? await q<{ muc: string; loai: string; het: Date }>(
     `select muc, loai, het from app_rules where family_id = $1 and child_id in ('', $2) and het is not null and het > $3 order by het`,
     [may.family_id, con, now]) : [];

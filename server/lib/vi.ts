@@ -5,7 +5,7 @@ import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiNgoaiLe } from "./ngoai-le.ts";
 
-export type LoaiDiem = "nhiem_vu" | "phien" | "doi_qua" | "hoan" | "tay" | "chao_mung" | "voucher" | "ngoai_le";
+export type LoaiDiem = "nhiem_vu" | "phien" | "doi_qua" | "hoan" | "tay" | "chao_mung" | "voucher" | "ngoai_le" | "doi_gio";
 
 export const soDu = async (con: string, t: Q = q) =>
   ((await t<{ d: number }>(`select coalesce(sum(delta), 0)::int as d from points where child_id = $1`, [con]))[0].d);
@@ -50,7 +50,8 @@ export async function tomTatVi(con: string) {
             coalesce((select sum(delta) from points where child_id = $1 and delta > 0 and loai not in ('hoan')), 0)::int as kiem,
             coalesce((select sum(t.diem) from submissions s join tasks t on t.id = s.task_id
                       where s.child_id = $1 and s.trang_thai = 'cho_duyet'), 0)::int as cho`, [con]))!;
-  return { soDu: r.du, diemChoDuyet: r.cho, tongKiem: r.kiem, capDo: capDo(r.kiem) };
+  // `sao` (thiết kế 05/11): sao = điểm cũ, 1 điểm = 1 sao — trả song song `soDu` một bản rồi bỏ
+  return { soDu: r.du, sao: r.du, diemChoDuyet: r.cho, saoChoDuyet: r.cho, tongKiem: r.kiem, capDo: capDo(r.kiem) };
 }
 
 /** Cấp độ theo tổng điểm kiếm được trọn đời: cấp n cần 100·n·(n+1)/2 điểm (100, 300, 600, 1000…). */

@@ -79,8 +79,9 @@ test("Ba Mẹ cho phép / chặn / mặc định từng trang; thống kê phả
   assert.equal((await goiBm(`con/${con}/web`, lạ.tokBm)).status, 404);
 });
 
-test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải trí chỉ mở khi có phiên điểm; chỉ-cho-phép bật bằng web_chi_cho_phep", async () => {
+test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải trí chỉ mở khi còn quỹ / có phiên / đang mở; chỉ-cho-phép bật bằng web_chi_cho_phep", async () => {
   const { tok, con, tokBm } = await nha();
+  await goiBm(`con/${con}/cau-hinh`, tokBm, { quy_ngay_thuong: 0, quy_cuoi_tuan: 0 });     // hết quỹ ⇒ trang Giải trí bị chặn
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "gamek.vn", trangThai: "chan" });
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "khanacademy.org", trangThai: "cho_phep" });
   await goiBm("luat", tokBm, { con, muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan" });
@@ -98,6 +99,9 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   assert.deepEqual(rieng(co.web.chan), ["gamek.vn"]);
   assert.ok(co.web.cho.includes("youtube.com"));
   assert.equal(co.web.choKhiMo, undefined, "mở nhờ phiên điểm ⇒ không phải choKhiMo");
+  // 05/11: còn quỹ (ngoài giờ ngủ) ⇒ trang Giải trí mở, không cần phiên
+  const quy = chinhSachWindows({ ...db, serverTime: "2026-10-22T03:00:00.000Z", quy: { ...db.quy, conPhut: 20, dangNgu: false, dangHoc: false } });
+  assert.ok(quy.web.cho.includes("youtube.com") && !quy.web.chan.includes("youtube.com"));
   // đang «mở» có hạn ⇒ youtube.com mở nhờ cửa sổ ⇒ có trong choKhiMo (agent chặn lại khi hết hạn lúc mất mạng)
   // giờ cố định 10:00 (VN): ngoài giờ ngủ thì «mở» mới có hiệu lực — không phụ thuộc lúc chạy test
   const trua = "2026-10-22T03:00:00.000Z";

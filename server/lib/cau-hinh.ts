@@ -48,15 +48,28 @@ export const THAM_SO = {
   dns_vuot_gio_nguong: s(20, 1, 1000),
   // Web trên máy Windows (lib/web.ts): 0 = mở (mọi trang mở được, trừ trang Ba Mẹ chặn) · 1 = chỉ cho phép (chỉ trang Ba Mẹ cho phép + danh sách hệ thống).
   web_chi_cho_phep: s(0, 0, 1),
+  // Thiết kế chốt 05/11 (L1–L3, lib/quy-gio.ts): QUỸ phút chơi mỗi ngày dùng chung cho mọi app giải trí (thay giá điểm/phút + trần
+  // ngày/tuần + khung giờ chơi). Sao = điểm cũ (1 điểm = 1 sao). Con đổi sao ⇒ phút cộng vào quỹ hôm nay.
+  quy_ngay_thuong: s(60, 0, 600),          // phút chơi mỗi ngày thường (T2–T6)
+  quy_cuoi_tuan: s(90, 0, 720),            // phút chơi mỗi ngày T7, CN
+  phut_10_sao: s(10, 1, 60),               // 10 sao đổi được bao nhiêu phút chơi (mặc định 10 sao = 10 phút)
+  doi_sao_bat: s(1, 0, 1),                 // 1 = Con tự đổi sao lấy giờ («Cho con tự đổi sao»)
+  doi_sao_toi_da_ngay: s(30, 0, 480),      // phút tối đa Con tự đổi mỗi ngày
+  cho_xin_them_gio: s(1, 0, 1),            // 1 = hết giờ Con được «Xin Ba Mẹ thêm giờ»
+  ngoai_le_toi_da_phut: s(60, 5, 240),     // một lần mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / giờ học) dài tối đa
 } satisfies Record<string, So>;
 
 export type TenThamSo = keyof typeof THAM_SO;
 export type ThamSo = Record<TenThamSo, number>;
 
-export const LICH_MAC_DINH: { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung } = {
+/** Giờ học (thiết kế 05/11): trong khung này máy chỉ mở app Học, app giải trí tạm khoá. `thu`: 0 = CN … 6 = T7. */
+export type GioHoc = Khung & { thu: number[] };
+/** ngayThuong / cuoiTuan: khung giờ chơi CŨ — từ 05/11 không còn chặn (quỹ phút thay), giữ để app/agent cũ đọc được. */
+export const LICH_MAC_DINH: { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung; hoc?: GioHoc | null } = {
   ngayThuong: [{ tu: "17:00", den: "20:00" }],
   cuoiTuan: [{ tu: "09:00", den: "21:00" }],
   ngu: { tu: "21:00", den: "06:30" },
+  hoc: null,
 };
 export type Lich = typeof LICH_MAC_DINH;
 
@@ -95,7 +108,15 @@ export function lichCua(l: Partial<Lich> | null | undefined): Lich {
     ngayThuong: l?.ngayThuong ? sachKhung(l.ngayThuong) : LICH_MAC_DINH.ngayThuong,
     cuoiTuan: l?.cuoiTuan ? sachKhung(l.cuoiTuan) : LICH_MAC_DINH.cuoiTuan,
     ngu,
+    hoc: sachGioHoc(l?.hoc),
   };
+}
+
+function sachGioHoc(h: unknown): GioHoc | null {
+  const x = h as Partial<GioHoc> | null | undefined;
+  if (!x || !GIO.test(String(x.tu)) || !GIO.test(String(x.den)) || x.tu === x.den) return null;
+  const thu = [...new Set((Array.isArray(x.thu) ? x.thu : [1, 2, 3, 4, 5]).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))].sort();
+  return thu.length ? { tu: x.tu!, den: x.den!, thu } : null;
 }
 
 export const NHOM_GIA: Record<string, TenThamSo> = {

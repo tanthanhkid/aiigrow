@@ -35,14 +35,14 @@ test("ghép máy platform «mac» lưu đúng; mã ghép của nền khác bị 
   await assert.rejects(g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "windows", "X"), (e: { ma?: string }) => e.ma === "sai_nen_tang");
 });
 
-test("thêm giờ cho lời xin từ máy Mac ⇒ cua_so_den, hanMoCuaMay, dong-bo nhận mode tu_do + grantEndsAt; Khoá lại ngay đóng cửa sổ", async () => {
+test("ngoại lệ cả máy cho máy Mac ⇒ cua_so_den, hanMoCuaMay, dong-bo nhận mode tu_do + grantEndsAt; Khoá lại ngay đóng cửa sổ", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Phi" });
   await luonChoiDuoc(con, [T]);   // dong-bo dùng đồng hồ thật: giờ ngủ mặc định 21:00–06:30 khoá máy (mode «khoa») dù đang có thêm giờ
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "mac", "Mac của Phi");
   const may = (await g.mayTuToken(r.token))!;
-  const a = await yc.guiYeuCau(con, may.id, { loai: "them_gio", phut: 30, lyDo: "Để làm bài tập" }, T);
-  await yc.dongY(fam, a.id, bm, { truDiem: false, phut: 30 }, T);
+  const a = await yc.guiYeuCau(con, may.id, { loai: "ngoai_le", phut: 30, lyDo: "Để làm bài tập" }, T);
+  await yc.dongY(fam, a.id, bm, { phut: 30 }, T);
   const g1 = await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]);
   assert.ok(g1?.cua_so_den, "máy Mac phải có cửa sổ mở");
   const den = new Date(Date.now() + 30 * 60000);
