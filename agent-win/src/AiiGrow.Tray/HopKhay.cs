@@ -38,6 +38,19 @@ internal abstract class HopKhayCoBan : Form
     protected void Xong() => Flow.ResumeLayout(true);
 }
 
+/// <summary>Hộp báo một dòng (icon 3D + tiêu đề + câu phụ + nút Đóng) — dùng trên màn khoá thay bóng báo (bị ẩn khi màn khoá toàn màn hình).</summary>
+internal sealed class HopThongBao : HopKhayCoBan
+{
+    public HopThongBao(string icon, string tieu, string phu) : base("AiiGrow", UI.Px(340))
+    {
+        Flow.Controls.Add(KhoiCon.Dau(icon, icon == "tick" ? KhoiCon.Mau.Ngoc : KhoiCon.Mau.Cam, tieu, phu, W));
+        var ok = KhoiCon.Nut(ManKhoaView.VeManKhoa, false, W, "khoa");
+        ok.Click += (_, _) => Close();
+        Flow.Controls.Add(ok);
+        CancelButton = ok;
+    }
+}
+
 /// <summary>Nhắc «Còn 5 phút chơi» góc phải dưới (con-het-gio 05, 400×236): đổi 10 sao lấy 10 phút / xin Ba Mẹ thêm giờ. Tự tắt sau 30 giây.</summary>
 internal sealed class NhacGioForm : HopKhayCoBan
 {

@@ -11,6 +11,8 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>App lạ đã tự gửi lời xin duyệt trong phiên khay — Con mở lại liên tục không gửi lặp (máy chủ cũng gộp lời xin chờ).</summary>
     private readonly HashSet<string> _daXin = new(StringComparer.OrdinalIgnoreCase);
     private NhacGioForm? _nhac;
+    private int _soTuGui;               // số app lạ khay đã TỰ gửi lời xin hôm nay (không tính lời xin Con tự bấm)
+    private DateOnly _ngayTuGui;
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 3000 };
     private AppForm? _app;
     private LockForm? _lock;
@@ -278,9 +280,22 @@ internal sealed class TrayContext : ApplicationContext
                         using var h = HopDaLuu.Hop(ManKhoaView.DaLuuThemGio, "Xin thêm 20 phút chơi", int.TryParse(r.Message, out var n) ? n : 1);
                         h.ShowDialog(_lock);
                     }
-                    // mạng vừa có lại ⇒ lời xin đã tới Ba Mẹ: chỉ báo, KHÔNG mở thêm hộp xin (không thành hai lời xin)
-                    else if (r.Ok) Toast(6000, "Đã gửi Ba Mẹ", "Con xin thêm 20 phút chơi. Ba Mẹ trả lời là con biết ngay.", ToolTipIcon.Info, MucApp.HomNay);
-                    else Toast(6000, "Chưa gửi được", r.Error ?? "Con thử lại sau nhé.", ToolTipIcon.Warning, MucApp.HomNay);
+                    else
+                    {
+                        // mạng vừa có lại ⇒ lời xin đã tới máy chủ: báo kết quả bằng hộp trên màn khoá (bóng báo bị ẩn khi màn khoá toàn màn hình),
+                        // KHÔNG mở thêm hộp xin (không thành hai lời xin)
+                        var kq = r.Ok ? TrayView.XinGio(r.Status) : (TrayView.KetQuaXin?)null;
+                        var (icon, tieu, phu) = kq switch
+                        {
+                            TrayView.KetQuaXin.Duoc => ("tick", "Ba Mẹ đã cho thêm giờ", "Máy mở lại sau ít giây."),
+                            TrayView.KetQuaXin.TuChoi => ("khien", "Ba Mẹ chưa cho lúc này", "Con nhắn Ba Mẹ nếu cần nhé."),
+                            TrayView.KetQuaXin.Cho => ("gui", "Đã gửi Ba Mẹ", "Con xin thêm 20 phút chơi. Ba Mẹ trả lời là máy mở ngay."),
+                            null => ("canh_bao", "Chưa gửi được", r.Error ?? "Con thử lại sau nhé."),
+                            _ => ("canh_bao", "Lời xin đã hết hạn", "Con gửi lại nhé."),
+                        };
+                        using var h = new HopThongBao(icon, tieu, phu);
+                        h.ShowDialog(_lock);
+                    }
                     break;
                 }
                 case ManKhoaView.DoiSao:
@@ -406,8 +421,11 @@ internal sealed class TrayContext : ApplicationContext
         // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         var id = _state.BlockedAppId;
-        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep,
-            daXin: id != null && (_daXin.Contains(id) || _daXin.Count >= ManChanView.TuGuiToiDa));
+        var homNay = DateOnly.FromDateTime(DateTime.Now);
+        if (homNay != _ngayTuGui) { _ngayTuGui = homNay; _soTuGui = 0; }
+        var daXin = id != null && (_daXin.Contains(id) || _soTuGui >= ManChanView.TuGuiToiDa);
+        if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;
+        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin);
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
         _blocked.DaXin += x => _daXin.Add(x);

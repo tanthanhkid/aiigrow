@@ -99,6 +99,7 @@ internal sealed class BlockedForm : Form
         _flow.SuspendLayout();
         foreach (Control c in _flow.Controls.Cast<Control>().ToList()) { _flow.Controls.Remove(c); if (c != _msg) c.Dispose(); }
         _msg.Text = "";
+        _msg.ForeColor = UI.Error;
         switch (b)
         {
             case Buoc.ChuaMo:

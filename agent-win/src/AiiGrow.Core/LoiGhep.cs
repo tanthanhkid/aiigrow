@@ -32,7 +32,7 @@ public static class LoiGhep
                 }
                 return a.LaLoiDuongTruyen ? LoaiLoiGhep.MatMang : LoaiLoiGhep.Khac;   // thân lạ / thiếu token / gói hỏng: hiện lỗi thật, không bảo kiểm Wi-Fi
             }
-            if (x is HttpRequestException or TaskCanceledException or TimeoutException or System.Net.Sockets.SocketException) return LoaiLoiGhep.MatMang;
+            if (x is HttpRequestException or TaskCanceledException or TimeoutException or System.Net.Sockets.SocketException or IOException) return LoaiLoiGhep.MatMang;
         }
         return LoaiLoiGhep.Khac;
     }

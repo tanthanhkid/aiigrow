@@ -194,7 +194,7 @@ public sealed class PipeServer : BackgroundService
                         if (res.KetQua != "cho") _rt.RequestSyncSoon();
                         return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
                     }
-                    catch (ApiException e) when (e.IsNetwork)
+                    catch (ApiException e) when (e.LaLoiDuongTruyen)
                     {
                         return LuuChoMang(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = muc, Ten = req.AppName, Phut = NgoaiLeView.Kep(req.Minutes), LyDo = lyDo, Luc = now });
                     }
@@ -209,7 +209,7 @@ public sealed class PipeServer : BackgroundService
                     if (res.KetQua != "cho") _rt.RequestSyncSoon();
                     return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
                 }
-                catch (ApiException e) when (e.IsNetwork && kind == LoaiXin.ThemGio)
+                catch (ApiException e) when (e.LaLoiDuongTruyen && kind == LoaiXin.ThemGio)
                 {
                     return LuuChoMang(new LoiXinCho { Loai = LoaiXin.ThemGio, Muc = req.AppId, Ten = req.AppName, Phut = minutes, LyDo = req.Note, Luc = now });
                 }
@@ -236,7 +236,7 @@ public sealed class PipeServer : BackgroundService
                 {
                     return new PipeResponse { Ok = true, Status = "web_cam", Message = e.Message };
                 }
-                catch (ApiException e) when (e.IsNetwork)
+                catch (ApiException e) when (e.LaLoiDuongTruyen)
                 {
                     return LuuChoMang(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = muc, Ten = req.AppName, LyDo = req.Note, Luc = now });
                 }

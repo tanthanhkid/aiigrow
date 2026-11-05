@@ -47,6 +47,7 @@ public sealed class HangXinCho
         string? loi = null;
         foreach (var x in Items.ToList())
         {
+            if (x.Luc > now) x.Luc = now;   // đồng hồ máy bị lùi ⇒ tính từ bây giờ, không giữ mãi
             if (now - x.Luc > HetHan) { xong.Add(x.Ma); continue; }
             var kq = await gui(x);
             if (kq == KetQuaGuiXin.LoiMang)
