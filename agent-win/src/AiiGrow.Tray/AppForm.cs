@@ -660,7 +660,7 @@ internal sealed class AppForm : Form
             b.Click += async (_, _) => await LamViecAsync(v, b);
             phai.Add(b);
         }
-        phai.Add(KhoiApp.ChipSao($"+{v.Sao} sao"));
+        if (v.Sao > 0) phai.Add(KhoiApp.ChipSao($"+{v.Sao} sao"));
         var phu = v.Nhom == "lam_lai" && !string.IsNullOrWhiteSpace(v.LoiNhan) ? "Ba Mẹ: «" + v.LoiNhan + "»" : v.Phu;
         return KhoiApp.Dong(_cw, v.Icon, v.Ten, phu, v.Nhom == "lam_lai" ? Clay.Canh : null, phai.ToArray());
     }
