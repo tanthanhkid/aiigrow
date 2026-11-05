@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
-import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, M, Man, MAU_CON, Nhan, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, Man, MAU_CON, Nhan, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
 import { ma0, noiTen, type XemMoi } from "@/lib/moi";
 import { KHOI } from "@/lib/clay";
 
@@ -53,7 +53,7 @@ export default function VaoNha() {
         <Rob ten="chi" co={170} />
       </View>
       <TieuDe chu={`${ai} mời bạn vào nhà`} phu={con.length ? `Cùng trông ${noiTen(con, true)}` : x.tenGiaDinh} giua />
-      <View style={{ alignItems: "center" }}><Nhan chu={x.tenQuyen ? `Quyền ${x.tenQuyen}` : con.length ? `Bạn cùng trông ${noiTen(con)}` : "Người trong nhà"} /></View>
+      <View style={{ alignItems: "center" }}><Nhan chu={con.length ? `Bạn cùng trông ${noiTen(con)}` : x.tenQuyen ? `Quyền ${x.tenQuyen}` : "Người trong nhà"} /></View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         {viec.map(([ic, chu]) => (
           <The key={chu} style={{ flex: 1, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 8 }}>

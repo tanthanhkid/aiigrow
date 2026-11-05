@@ -66,9 +66,9 @@ export const CanGiup = () => (
 );
 
 /** Tiêu đề lớn của màn (thiết kế: 26–28px, đậm). */
-export const TieuDe = ({ chu, phu, giua }: { chu: string; phu?: string; giua?: boolean }) => (
+export const TieuDe = ({ chu, phu, giua, co = 27 }: { chu: string; phu?: string; giua?: boolean; co?: number }) => (
   <View style={{ gap: 4, alignItems: giua ? "center" : undefined }}>
-    <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 27, lineHeight: 32, letterSpacing: -0.5, color: M.chu, textAlign: giua ? "center" : undefined }}>{chu}</Text>
+    <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: co, lineHeight: Math.round(co * 1.18), letterSpacing: -0.5, color: M.chu, textAlign: giua ? "center" : undefined }}>{chu}</Text>
     {phu ? <Chu co={15} mau={M.chu2} style={giua ? { textAlign: "center" } : undefined}>{phu}</Chu> : null}
   </View>
 );
@@ -79,12 +79,12 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150 }: { lv: LinhVat; tieu: s
     <View style={{ borderRadius: BO_CLAY.the, backgroundColor: "#dcebe6", minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
       {ic ? <View style={{ position: "absolute", left: 14, bottom: 12 }}><Icon3D ten={ic} co={44} /></View> : null}
-      <View style={{ maxWidth: "58%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
+      <View style={{ maxWidth: "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
         <Chu kieu="rat" co={16}>{tieu}</Chu>
         {loi ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 2 }}>{loi}</Chu> : null}
       </View>
-      <View pointerEvents="none" style={{ position: "absolute", right: 4, bottom: 0, top: 4, width: "44%", alignItems: "flex-end", justifyContent: "flex-end" }}>
-        <Rob ten={lv} co={cao - 6} />
+      <View pointerEvents="none" style={{ position: "absolute", right: 4, bottom: 0, top: 4, width: "36%", alignItems: "flex-end", justifyContent: "flex-end" }}>
+        <Rob ten={lv} co={Math.min(cao - 6, 130)} />
       </View>
     </View>
   );
@@ -210,11 +210,11 @@ export function HangChiaSe({ chiaSe, bao }: { chiaSe: ChiaSe; bao: (chu: string)
       bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); }) },
   ];
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 4 }} accessibilityLabel="Chia sẻ link ghép máy">
+    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 2, marginHorizontal: -8 }} accessibilityLabel="Chia sẻ link ghép máy">
       {muc.map((m) => (
         <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten} style={{ flex: 1, alignItems: "center", gap: 6, minHeight: 44 }}>
           <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
-          <Chu kieu="dam" co={11.5} style={{ textAlign: "center" }} dong={2}>{m.ten}</Chu>
+          <Text numberOfLines={2} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
         </Pressable>
       ))}
     </View>

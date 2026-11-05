@@ -18,11 +18,16 @@ export default function GhepThemMay() {
   });
   const [con, setCon] = useState<string | null>(conVao ? String(conVao) : null);
   const [giong, setGiong] = useState(true);
-  const [tt, setTt] = useState<TomTat | null>(null);
+  const [tom, setTom] = useState<{ may: string; v: TomTat } | null>(null);
   const c = d?.con.find((x) => x.id === con) ?? d?.con[0] ?? null;
   // «Máy trước» = máy của chính Con này; Con chưa có máy ⇒ máy gần nhất trong nhà (chép cấu hình sang Con mới)
   const truoc = d ? d.may.find((m) => m.con === c?.id && !m.dungChung) ?? d.may.find((m) => !m.dungChung && m.con) ?? null : null;
-  useEffect(() => { setTt(null); if (truoc?.con) tomTat(truoc.con).then(setTt, () => {}); }, [truoc?.id, truoc?.con]);
+  useEffect(() => {
+    let bo = false;
+    if (truoc?.con) tomTat(truoc.con).then((v) => { if (!bo) setTom({ may: truoc.id, v }); }, () => {});
+    return () => { bo = true; };
+  }, [truoc?.id, truoc?.con]);
+  const tt = tom && tom.may === truoc?.id ? tom.v : null;
   if (!d) return <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const chuTruoc = truoc ? `${truoc.ten}${truoc.con !== c?.id ? "" : ` của ${c?.ten ?? ""}`}` : "";
   const lay = () => c && router.push({ pathname: "/thiet-lap/ghep", params: { con: c.id, nguon: "them", moi: "1", ...(giong && truoc ? { giong: truoc.id } : {}) } });

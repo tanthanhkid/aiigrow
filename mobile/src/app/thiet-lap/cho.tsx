@@ -30,9 +30,9 @@ export default function ChoMayCon() {
   }, [ma, sangXong]);
   useEffect(() => {
     if (!ma) return;
-    hoi().catch((e) => setLoi(e?.message ?? null));
+    const t0 = setTimeout(() => { hoi().catch((e) => setLoi(e?.message ?? null)); }, 0);
     const t = setInterval(() => { hoi().then(() => setLoi(null), () => {}); }, 3000);
-    return () => clearInterval(t);
+    return () => { clearTimeout(t0); clearInterval(t); };
   }, [ma, hoi]);
   useEffect(() => { const t = setInterval(() => setCon0(het ? Math.round((het - Date.now()) / 1000) : 600), 1000); return () => clearInterval(t); }, [het]);
   const hetHan = con0 <= 0;

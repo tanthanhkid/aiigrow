@@ -40,7 +40,7 @@ export default function DaGhep() {
             <Icon ten="tick" mau="#fff" co={28} />
           </View>
         </View>
-        <TieuDe chu={`Đã ghép máy của ${ten}!`} giua />
+        <TieuDe chu={`Đã ghép máy của ${ten}!`} giua co={22} />
         <Chu kieu="rat" co={14} mau={M.chinhInk}>Máy mới đã được bảo vệ</Chu>
       </View>
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Máy chạy sẵn</Chu>
