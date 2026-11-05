@@ -26,7 +26,7 @@ public enum YeuCauTray: Codable, Equatable {
   case ping
   /// tray đời cũ gửi — daemon coi như `ping`, bỏ nội dung
   case appTienCanh(bundleId: String, ten: String)
-  /// Con xin thêm giờ (30/60/120 phút)
+  /// Con xin thêm giờ (chip 10/20/30 phút — Thanh chốt 05/11; máy chủ nhận 5–240)
   case xinThem(phut: Int, loiNhan: String?)
   /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet)
   case xinMo(muc: String, loai: String, loiNhan: String?)

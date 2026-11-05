@@ -590,7 +590,7 @@ KichBan 'KB5' 'Khoá ngay rồi mở lại' {
 # Để Con ở «Mở hết» cho KB7a/KB8/KB7b (gần nhất với «Giám sát» cũ: không luật AppLocker AiiGrow); KB9 tự bật lại «Chỉ app được phép».
 KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật quản trị, web cấm vẫn chặn' {
   foreach ($k in $KhoaWeb.Values) { New-Item -Path "$k\URLBlocklist" -Force | Out-Null; New-ItemProperty -Path "$k\URLBlocklist" -Name '1' -Value $WebQuanTri -PropertyType String -Force | Out-Null }   # đặt lại mục IT gỡ tạm ở KB4.12
-  if (-not $Chung.MayId) { Bo 'KB6' 'Mở hết' 'chưa có máy'; return }
+  if (-not $Chung.MayId -or -not $Chung.ConId) { Bo 'KB6' 'Mở hết' 'chưa có máy / chưa có Con'; return }
   # «Giám sát» đã bỏ ⇒ máy chủ phải từ chối rõ (409 che_do_bo), không âm thầm đổi. Api ghi «lỗi <mã HTTP>: <thân>» vào thông điệp.
   $ma409 = $null; $nhan = $false
   try { [void](Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe); $nhan = $true } catch { $ma409 = $_.Exception.Message }

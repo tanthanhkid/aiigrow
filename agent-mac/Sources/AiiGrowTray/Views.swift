@@ -22,6 +22,7 @@ struct XinThemView: View {
         Text(ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ bao lâu?" : "Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
       }
       ChipClay(ds: (ngoaiLe ? TrayLogic.luaChonNgoaiLe : TrayLogic.luaChonPhut).map { ($0, TrayLogic.nhanLuaChonPhut($0)) }, chon: $phut)
+        .onAppear { phut = ngoaiLe ? 30 : TrayLogic.luaChonPhut[0] }   // xin thêm giờ mặc định 10 (chip đầu) như mọi nền
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
         .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44)

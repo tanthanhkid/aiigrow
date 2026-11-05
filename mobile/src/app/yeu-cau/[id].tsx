@@ -35,7 +35,7 @@ export default function XuLyYeuCau() {
   const sao = y.sao ?? y.soDu;
   const toiDaNl = gc?.ngoaiLeToiDaPhut ?? 60;
   // ngoại lệ: kẹp theo «tối đa ngoại lệ» Ba Mẹ đặt — máy chủ dong-y chỉ kiểm 5–240 (review PR #183)
-  const p0 = phut ?? y.phut ?? 15, p = y.loai === "ngoai_le" || y.loai === "ngoai_gio" ? Math.min(p0, toiDaNl) : p0;
+  const p0 = phut ?? y.phut ?? (laThemGio(y) ? 10 : 15), p = y.loai === "ngoai_le" || y.loai === "ngoai_gio" ? Math.min(p0, toiDaNl) : p0;
   const tyLe = gc?.phut10Sao ?? 10;
   const saoCan = Math.ceil((p * 10) / tyLe);
   const daXuLy = y.trang_thai !== "cho";

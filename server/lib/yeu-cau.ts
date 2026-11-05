@@ -18,7 +18,7 @@ import { boiCanhCon, lyDoKhongThemGio, phutChoSao, quyHomNay, saoChoPhut } from 
 export const LOAI_YC = ["them_gio", "mo_web", "cai_app", "ngoai_le", "ngoai_gio", "khac"] as const;
 export type LoaiYc = (typeof LOAI_YC)[number];
 export const LY_DO_NHANH = ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan", "Con làm xong việc rồi"];
-const PHUT_THEM = [10, 20, 30];   // chip «Xin Ba Mẹ thêm giờ» (Thanh chốt 05/11, mọi nền) — máy chủ nhận 5–240
+const PHUT_THEM = [10, 20, 30];   // chip «Xin Ba Mẹ thêm giờ» (Thanh chốt 05/11, mọi nền) — chỉ để gợi ý trong câu lỗi; máy chủ nhận 5–240
 
 type Yc = { id: string; child_id: string; device_id: string | null; loai: LoaiYc; phut: number | null; gia_tri: string | null; ly_do: string;
   trang_thai: string; het_han: Date; created_at: Date; pham_vi: string | null };
@@ -36,7 +36,7 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
   // 05/11: lý do / lời nhắn không bắt buộc (L3 xin thêm giờ, L4 xin mở app / web lạ)
   const phut0 = ["them_gio", "ngoai_le", "ngoai_gio"].includes(loai) ? Math.round(Number(b.phut)) : null;
   let phutKep: number | null = null;
-  if (phut0 !== null && !(phut0 >= 5 && phut0 <= 240)) throw new LoiNghiepVu("phut_sai", "Số phút xin thêm phải từ 5 đến 240 (thường 10, 20 hoặc 30 phút)");
+  if (phut0 !== null && !(phut0 >= 5 && phut0 <= 240)) throw new LoiNghiepVu("phut_sai", `Số phút xin thêm phải từ 5 đến 240 (thường ${PHUT_THEM.join(", ")} phút)`);
   // ngoại lệ: một app (giaTri = app) hoặc cả máy. «ngoai_gio» cũ = ngoại lệ cả máy.
   // chỉ «app» khi app gửi rõ phamVi (app cũ gửi ngoai_le kèm giaTri tự do ⇒ cả máy)
   const phamVi = loai === "ngoai_le" ? (b.phamVi === "app" ? "app" : "ca_may") : loai === "ngoai_gio" ? "ca_may" : null;

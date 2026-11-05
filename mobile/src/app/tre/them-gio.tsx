@@ -49,7 +49,8 @@ export default function ThemGio() {
   const coXin = q.choXinThem;
   const dang: Cach | null = cach ?? (coSao ? "sao" : coXin ? "xin" : null);
   const dsPhut = dang === "xin" ? PHUT_XIN : PHUT_SAO;
-  const phut = dsPhut.includes(phutChon) ? phutChon : dsPhut[0];   // đổi Dùng sao ⇄ Xin Ba Mẹ ⇒ về chip đầu của bộ mới
+  const phut = dsPhut.includes(phutChon) ? phutChon : dsPhut[0];
+  const doiCach = (x: Cach) => { setCach(x); setPhut((x === "xin" ? PHUT_XIN : PHUT_SAO)[0]); };   // đổi Dùng sao ⇄ Xin Ba Mẹ ⇒ về chip đầu của bộ mới
   const can = saoChoPhut(q, phut);
   const thieu = Math.max(0, can - d.sao);
   const quaToiDa = phut > q.doiSao.conDoiDuoc;
@@ -89,7 +90,7 @@ export default function ThemGio() {
       ) : (
         <>
           {coSao && coXin ? (
-            <ChonMot ds={[{ gia: "sao" as Cach, chu: "Dùng sao" }, { gia: "xin" as Cach, chu: "Xin Ba Mẹ" }]} gia={dang} doi={setCach} />
+            <ChonMot ds={[{ gia: "sao" as Cach, chu: "Dùng sao" }, { gia: "xin" as Cach, chu: "Xin Ba Mẹ" }]} gia={dang} doi={doiCach} />
           ) : null}
           <View>
             <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{dang === "sao" ? "Con đổi bao nhiêu phút?" : "Con xin thêm bao lâu?"}</Chu>
@@ -108,8 +109,8 @@ export default function ThemGio() {
           ) : (
             <ONhap nhan="Nhắn Ba Mẹ (không bắt buộc)" value={nhan} onChangeText={setNhan} maxLength={100} placeholder="vd con làm nốt bài với bạn ạ" />
           )}
-          {dang === "sao" && coXin ? <Nut chu="Hoặc xin Ba Mẹ thêm giờ ›" loai="ma" rong bam={() => setCach("xin")} /> : null}
-          {dang === "xin" && coSao ? <Nut chu="Hoặc đổi sao lấy giờ ›" loai="ma" rong bam={() => setCach("sao")} /> : null}
+          {dang === "sao" && coXin ? <Nut chu="Hoặc xin Ba Mẹ thêm giờ ›" loai="ma" rong bam={() => doiCach("xin")} /> : null}
+          {dang === "xin" && coSao ? <Nut chu="Hoặc đổi sao lấy giờ ›" loai="ma" rong bam={() => doiCach("sao")} /> : null}
         </>
       )}
     </ManTre>
