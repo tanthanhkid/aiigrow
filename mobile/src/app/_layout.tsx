@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
 import { Stack } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { M } from "@/lib/mau";
 import { PhienProvider } from "@/lib/phien";
 import { useNapPhongChu } from "@/lib/phong-chu";
+
+// Bản web: popup đăng nhập Google / Facebook quay về /oauthredirect (lib/dang-nhap-mxh.tsx) ⇒ báo kết quả cho cửa sổ app rồi tự đóng.
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Goc() {
   // Bản web không dùng service worker: máy nào còn service worker cũ của tên miền (cache bản cũ ⇒ màn trắng sau deploy) thì gỡ + xoá cache.

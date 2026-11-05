@@ -267,6 +267,7 @@ export async function moiRa(bm: BaMe, id: string) {
   await tx(async (t) => {
     await t(`update parents set vai = 'roi', dinh_danh = dinh_danh || '#roi:' || id, pass_hash = null where id = $1`, [id]);
     await t(`delete from sessions where parent_id = $1`, [id]);
+    await t(`delete from ba_me_mxh where parent_id = $1`, [id]);     // vào lại bằng Google / Facebook không quay về nhà vừa mời ra
     await ghiSuKien(bm.family_id, "moi_ra", { ten: p.ten }, { nguoi: bm.id }, t);
   });
 }

@@ -73,6 +73,16 @@ async function dungOtp(t: Q, d: string, ma: unknown, mucDich: string) {
   return true;
 }
 
+/** Tạo nhà mới + Ba Mẹ là người tạo nhà (trong giao dịch `t`). `bam` null = tài khoản Google / Facebook (dang-nhap-mxh.ts). → id Ba Mẹ. */
+export async function taoNha(t: Q, d: string, ten: string, bam: string | null) {
+  const fam = newId(), id = newId();
+  await t(`insert into families(id, ten) values ($1, $2)`, [fam, `Nhà ${ten}`]);
+  // L6 (thiết kế 05/11): người đăng ký là «Ba Mẹ» và là người tạo nhà (families.chu_id) — không còn vai «Chủ gia đình»
+  await t(`insert into parents(id, family_id, dinh_danh, ten, vai, pass_hash) values ($1, $2, $3, $4, 'ba_me', $5)`, [id, fam, d, ten, bam]);
+  await t(`update families set chu_id = $2 where id = $1`, [fam, id]);
+  return id;
+}
+
 /** Đăng ký: OTP đúng ⇒ tạo gia đình + Ba Mẹ là Chủ gia đình. → id Ba Mẹ. */
 export async function dangKy(b: { dinhDanh?: unknown; ma?: unknown; ten?: unknown; matKhau?: unknown }) {
   const d = chuanDinhDanh(b.dinhDanh);
@@ -86,12 +96,7 @@ export async function dangKy(b: { dinhDanh?: unknown; ma?: unknown; ten?: unknow
     if (!(await dungOtp(t, d, b.ma, "dang_ky"))) return null;          // lần sai vẫn được ghi (không rollback)
     if ((await t(`select 1 from parents where dinh_danh = $1`, [d])).length)
       throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — chọn Đăng nhập", 409);
-    const fam = newId(), id = newId();
-    await t(`insert into families(id, ten) values ($1, $2)`, [fam, `Nhà ${ten}`]);
-    // L6 (thiết kế 05/11): người đăng ký là «Ba Mẹ» và là người tạo nhà (families.chu_id) — không còn vai «Chủ gia đình»
-    await t(`insert into parents(id, family_id, dinh_danh, ten, vai, pass_hash) values ($1, $2, $3, $4, 'ba_me', $5)`, [id, fam, d, ten, bam]);
-    await t(`update families set chu_id = $2 where id = $1`, [fam, id]);
-    return id;
+    return taoNha(t, d, ten, bam);
   });
   if (!kq) throw new LoiNghiepVu("otp_sai", "Mã chưa đúng");
   return kq;
@@ -133,7 +138,8 @@ export async function datLaiMatKhau(dinhDanh: unknown, ma: unknown, mkMoi: unkno
 
 /** vai: ba_me | trong_giup (L6) — giá trị cũ chu | duyet | xem còn gặp ở dòng ghi trước 05/11 (lib/quyen.ts hiểu cả hai).
  *  la_chu: người tạo nhà (families.chu_id) — chỉ có khi đọc từ phiên (baMeTuToken). */
-export type BaMe = { id: string; family_id: string; dinh_danh: string; ten: string; vai: "ba_me" | "trong_giup" | "chu" | "duyet" | "xem"; la_chu?: boolean };
+export type BaMe = { id: string; family_id: string; dinh_danh: string; ten: string; vai: "ba_me" | "trong_giup" | "chu" | "duyet" | "xem"; la_chu?: boolean;
+  /** false = tài khoản Google / Facebook chưa đặt mật khẩu (chỉ có khi đọc từ phiên). */ co_mat_khau?: boolean };
 
 export async function taoPhien(parentId: string, ngay = PHIEN_NGAY) {
   const t = taoToken();
@@ -143,7 +149,7 @@ export async function taoPhien(parentId: string, ngay = PHIEN_NGAY) {
 
 export const baMeTuToken = async (t: string) =>
   (await one<BaMe>(`select p.id, p.family_id, p.dinh_danh, p.ten, p.vai,
-                      coalesce(f.chu_id = p.id, p.vai = 'chu') as la_chu
+                      coalesce(f.chu_id = p.id, p.vai = 'chu') as la_chu, p.pass_hash is not null as co_mat_khau
                     from sessions s join parents p on p.id = s.parent_id join families f on f.id = p.family_id
                     where s.id = $1 and s.expires_at > now()`, [sha(t)])) ?? null;
 

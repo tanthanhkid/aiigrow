@@ -1,6 +1,7 @@
-// bm1-chao «Tạo tài khoản Ba Mẹ» (thiết kế chốt 04/11): Rob chào + 3 cách — Google, Facebook (chưa có OAuth ⇒ báo «sắp có»), Số điện thoại.
+// bm1-chao «Tạo tài khoản Ba Mẹ» (thiết kế chốt 04/11): Rob chào + 3 cách — Google, Facebook (lib/dang-nhap-mxh.tsx — chưa bật thì ẩn), Số điện thoại.
 import { router } from "expo-router";
-import { ChonCachTaoTk, DauMan, KhoiRob } from "@/lib/lan-dau";
+import { DauMan, KhoiRob } from "@/lib/lan-dau";
+import { ChonCachTaoTk } from "@/lib/dang-nhap-mxh";
 import { Man, useHoanTac } from "@/lib/ui";
 
 export default function TaoTaiKhoan() {

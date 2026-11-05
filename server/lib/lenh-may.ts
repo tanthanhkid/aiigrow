@@ -4,6 +4,7 @@
 //     {token, nen, tenMay}` — tái dùng ghepMay (mã 6 số tạm tạo từ token) nên mọi kiểm tra / sự kiện ghép giữ nguyên một chỗ.
 // (b) Gỡ từ xa: chủ gia đình xác thực lại bằng mật khẩu ⇒ máy chủ ghi lệnh «go» ⇒ agent lấy lệnh qua nhịp / dong-bo (`lenh: [{id, loai}]`)
 //     ⇒ `POST /api/device/lenh/:id/xong` ⇒ máy chuyển «đã gỡ» (xoá khỏi gia đình, hết cảnh báo mất nhịp). Báo xong lần hai ⇒ ok, không ghi đôi.
+import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { newId, one, q } from "./db.ts";
 import { dungMatKhau, sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -75,6 +76,7 @@ async function xacThucChu(bm: BaMe, mayId: string, matKhau: unknown, viec = "g�
   const m = await one<MayDb>(`select * from devices where id = $1 and family_id = $2`, [mayId, bm.family_id]);
   if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
+  chuaCoMatKhau(p);
   if (!p?.pass_hash || !(await dungMatKhau(String(matKhau ?? ""), p.pass_hash))) {
     await ghiSuKien(bm.family_id, "lenh_go_sai_mat_khau", {}, { con: m.child_id, may: m.id, nguoi: bm.id });
     throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);

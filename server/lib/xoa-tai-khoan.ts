@@ -18,6 +18,7 @@
 //    (Thanh chốt 24/10), ghi thêm MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch; dòng đó là mốc tính 90 ngày,
 //    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
+import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -34,11 +35,12 @@ export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number 
 /** Nhập lại mật khẩu — bộ đếm riêng theo khung 15 phút cố định (như ghepMay): giữ chỗ lượt thử TRƯỚC khi kiểm (một upsert nguyên tử)
  *  ⇒ gửi song song cũng chỉ ≤ 5 lượt được kiểm mỗi khung; gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Đúng ⇒ xoá bộ đếm. */
 async function kiemMatKhau(bm: BaMe, mk: unknown, now = Date.now()) {
+  const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
+  chuaCoMatKhau(p);                  // tài khoản Google / Facebook chưa đặt mật khẩu ⇒ 409, không tính vào lượt sai
   const khoa = `xoa_tk:${bm.id}:${Math.floor(now / (XOA_KHOA_PHUT * 60_000))}`;
   const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > XOA_SAI_TOI_DA) throw new LoiNghiepVu("tam_khoa", `Nhập sai mật khẩu nhiều lần — thử lại sau ${XOA_KHOA_PHUT} phút`, 429);
-  const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
   if (!p?.pass_hash || !(await dungMatKhau(String(mk ?? ""), p.pass_hash))) throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);
   await q(`delete from pin_sai where khoa like $1`, [`xoa_tk:${bm.id}:%`]);
 }
@@ -73,6 +75,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     if (!toi.la_chu) {
       await t(`update parents set vai = 'roi', dinh_danh = 'xoa:' || id, pass_hash = null, sai_lien = 0, khoa_den = null where id = $1`, [bm.id]);
       await t(`delete from sessions where parent_id = $1`, [bm.id]);
+      await t(`delete from ba_me_mxh where parent_id = $1`, [bm.id]);   // vào lại bằng Google / Facebook ⇒ tài khoản mới, không về dòng đã xoá
       await t(`delete from ba_me_tb where parent_id = $1`, [bm.id]);
       await t(`delete from ho_tro where family_id = $1 and tu = 'ba_me' and nguoi = $2`, [bm.family_id, bm.id]);
       await t(`delete from messages where family_id = $1 and parent_id = $2`, [bm.family_id, bm.id]);

@@ -598,6 +598,10 @@ export const SCHEMA_TV_TB = [
 // app_theo_ten: app Ba Mẹ cho phép theo TÊN lúc thiết lập («Thêm app khác») khi chưa máy nào báo định danh thật — máy gửi danh sách app
 //   (POST /api/device/ung-dung) thì khớp tên ⇒ ghi luật app_rules thật, đặt khop_luc. tinh_gio: true = tính vào giờ chơi (giai_tri), false = hoc.
 export const SCHEMA_S2 = [
+  // Đăng nhập Google / Facebook (lib/dang-nhap-mxh.ts): (nguồn, mã người dùng của nhà cung cấp) ⇒ Ba Mẹ. Không gắn theo email vào tài khoản sẵn có.
+  `create table if not exists ba_me_mxh (nguon text not null, sub text not null, parent_id text not null references parents(id) on delete cascade,
+     created_at timestamptz not null default now(), primary key (nguon, sub))`,
+  `create index if not exists ba_me_mxh_parent on ba_me_mxh(parent_id)`,
   `alter table families add column if not exists chu_id text`,
   `update families f set chu_id = (select p.id from parents p where p.family_id = f.id and p.vai = 'chu' order by p.created_at limit 1)
      where f.chu_id is null and exists (select 1 from parents p where p.family_id = f.id and p.vai = 'chu')`,

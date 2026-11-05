@@ -32,6 +32,7 @@ export default function CaiDat() {
   const khac = d.tv.ds.filter((x) => !x.laToi);
   const laChu = d.toi.baMe.laChuNha ?? d.toi.baMe.vai === "chu", chuConNguoi = laChu && khac.length > 0;
   const laBaMe = (d.toi.baMe.quyen ?? (d.toi.baMe.vai === "xem" ? "trong_giup" : "ba_me")) === "ba_me";
+  const khongMk = d.toi.baMe.coMatKhau === false;
   const dongXoa = () => { setMoXoa(false); setMk(""); setLoi(null); };
   const laChan = (e: unknown): e is LoiApi => e instanceof LoiApi && (e.ma === "con_may" || e.ma === "con_thanh_vien");
   // hỏi máy chủ trước (không cần mật khẩu) ⇒ bị chặn thì hiện hướng dẫn ngay, không bắt nhập mật khẩu vô ích
@@ -202,9 +203,12 @@ export default function CaiDat() {
                 </>
               )}
             </View>
-            <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
-            <BaoLoi loi={loiXoa} />
-            <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+            {/* tài khoản vào bằng Google / Facebook chưa có mật khẩu ⇒ đặt mật khẩu trước (xác minh lại bằng Google / Facebook — app/dat-mat-khau.tsx) */}
+            {khongMk ? <Nut chu="Đặt mật khẩu để xác nhận" loai="vien" rong bam={() => { dongXoa(); router.push("/dat-mat-khau"); }} /> : <>
+              <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
+              <BaoLoi loi={loiXoa} />
+              <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+            </>}
             <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="ma" rong bam={dongXoa} /></View>
           </>
         )}
