@@ -20,7 +20,7 @@ type DsMay = { may: { id: string; ten: string; nen: string; dungChung: boolean; 
 type LuatCu = { con: string; muc: string; ten: string; loai: string; nhom: string; het: string | null } | null;
 
 const TT: Record<TrangThai, { chu: string; nhan: "ok" | "lam" | "diem" | "loi" | "xam" | "canh" }> = {
-  he_thong: { chu: "Hệ thống", nhan: "xam" }, cho_phep: { chu: "Không tính giờ", nhan: "ok" }, hoc: { chu: "Không tính giờ", nhan: "ok" },
+  he_thong: { chu: "Hệ thống", nhan: "xam" }, cho_phep: { chu: "Cho phép", nhan: "ok" }, hoc: { chu: "Không tính giờ", nhan: "ok" },
   giai_tri: { chu: "Tính vào giờ chơi", nhan: "diem" }, chan: { chu: "Không cho dùng", nhan: "loi" }, chua_xep: { chu: "Chưa xếp", nhan: "canh" },
 };
 const NGUON: Record<string, string> = {

@@ -224,7 +224,10 @@ export function icCuaApp(ten: string): TenIcon {
 export type LuatApp = { child_id: string | null; muc: string; ten: string; loai: "hoc" | "giai_tri" | "chan"; nhom: string | null };
 /** Như máy chủ (chinh-sach.ts › kieuMuc): tệp .exe/.app và bundle / gói dạng com.x.y là app; còn lại có đuôi tên miền là web. */
 const BUNDLE = /^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i;
-export const laWeb = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|app)$/i.test(muc) && !BUNDLE.test(muc);
+/** Đuôi tên miền hay gặp — mục có dấu chấm mà đuôi không phải tên miền (microsoft.minecraftuwp, ru.keepcoder.telegram, edu.mit.scratch.scratch3) là gói app. */
+const DUOI_WEB = new Set(["com", "vn", "org", "net", "edu", "gov", "io", "tv", "me", "co", "app", "dev", "info", "biz", "uk", "us", "jp", "de", "kr", "cn", "ru", "fr", "ai", "gg", "ly", "to", "xyz", "online", "site", "fm"]);
+export const laWeb = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|app)$/i.test(muc) && !BUNDLE.test(muc)
+  && DUOI_WEB.has(muc.split(".").pop()!.toLowerCase());
 /** Một app có thể có nhiều định danh (roblox.exe, robloxplayerbeta.exe, com.roblox.client…) cùng tên ⇒ gom theo tên hiện. */
 export const khoaTen = (l: Pick<LuatApp, "ten" | "muc">) => (l.ten || l.muc).trim().toLowerCase();
 export const gomTheoTen = (ds: LuatApp[]) => {

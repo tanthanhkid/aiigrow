@@ -38,8 +38,13 @@ export default function MotApp() {
   const ghi = async (loai: LuatApp["loai"]) => {
     const dsCon = caNha ? [""] : chon;
     const kq: { con: string; muc: string; truoc: LuatTruoc }[] = [];
-    await Promise.all(dsCon.flatMap((id) => mucCua(id).map((muc) => bm.goi<{ truoc: LuatTruoc }>("luat", { con: id || undefined, muc, ten, loai, nhom: hienTai?.nhom ?? undefined })
+    const ra = await Promise.allSettled(dsCon.flatMap((id) => mucCua(id).map((muc) => bm.goi<{ truoc: LuatTruoc }>("luat", { con: id || undefined, muc, ten, loai, nhom: hienTai?.nhom ?? undefined })
       .then((r) => { kq.push({ con: id, muc, truoc: r.truoc }); }))));
+    const hong = ra.find((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (hong) {      // một phần ghi hỏng ⇒ trả các phần đã ghi về như cũ rồi báo lỗi — không để app bị chặn / cho dở dang
+      await Promise.allSettled(kq.map((k) => hoanLuat(k.con || undefined, k.muc, k.truoc, loai)));
+      throw hong.reason;
+    }
     return kq;
   };
   const luu = () => lam(async () => { await ghi(tinhGio ? "giai_tri" : "hoc"); ve(); });

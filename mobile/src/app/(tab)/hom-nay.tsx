@@ -130,7 +130,7 @@ const BangCon = memo(function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiL
     { tieu: "Trang web", ic: "web", mau: "lam", di: `/web/${c.id}`,
       phu: !web.d ? "Chặn hoặc cho phép từng trang" : web.d.cheDoWeb === "chi_cho_phep" ? "Chỉ vào trang đã duyệt"
         : chanWeb!.length ? `Đang chặn ${chanWeb!.length} trang · ${chanWeb!.slice(0, 2).map((l) => l.tenMien.replace(/\.(com|vn|net|org)$/, "")).join(", ")}` : "Chưa chặn trang nào" },
-    { tieu: "Ứng dụng", ic: "luoi", mau: "tim", di: "/app-web", nhan: chuaXep ? `${chuaXep} mới` : undefined,
+    { tieu: "Ứng dụng", ic: "luoi", mau: "tim", di: `/app-web?con=${c.id}`, nhan: chuaXep ? `${chuaXep} mới` : undefined,
       phu: chanApp === null ? "Học tập, giải trí, chặn" : `${chanApp ? `${chanApp} bị chặn` : "Chưa chặn app nào"}${chuaXep ? ` · ${chuaXep} chưa xếp` : ""}` },
     { tieu: "Giờ dùng máy", ic: "dongho", mau: "cam", di: `/gio/${c.id}`,
       phu: lich ? `${c.tranNgay} phút/ngày · ngủ ${lich.ngu.tu}` : `${c.tranNgay} phút/ngày` },

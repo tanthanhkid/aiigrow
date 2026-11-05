@@ -2,7 +2,7 @@
 // «Báo ngay» (con xin · con nộp bài · máy mất bảo vệ & cảnh báo nội dung xấu — Luôn bật), «Để biết» (đổi sao lấy quà · việc người lớn khác làm ·
 // người nhà vào / rời nhà), «Giờ yên lặng» (không rung, cảnh báo vẫn báo ngay; chạm để đổi giờ). Ghi GET/POST thong-bao/cai-dat {yenLang, tat[]}.
 // Nhóm `canh_bao` luôn bật (không gửi vào `tat`). «Con sắp hết giờ chơi», «Báo cáo tuần» của thiết kế chưa có nhóm ở máy chủ — chưa hiện.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { MucTieu, NhanLuon, OIcon } from "@/lib/ui-bm3";
@@ -29,6 +29,12 @@ export default function CaiDatThongBao() {
   const [mo, setMo] = useState(false);
   const [tu, setTu] = useState("22:00");
   const [den, setDen] = useState("06:00");
+  // «Cảnh báo» giờ luôn bật: tài khoản cũ từng tắt nhóm canh_bao ⇒ gỡ khỏi `tat` một lần khi mở màn
+  const coTatCanhBao = !!d?.tat.includes("canh_bao");
+  useEffect(() => {
+    if (!coTatCanhBao || !d) return;
+    bm.goi<CaiDat>("thong-bao/cai-dat", { yenLang: d.yenLang, tat: d.tat.filter((x) => x !== "canh_bao") }).then(setD, () => {});
+  }, [coTatCanhBao]);     // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return <Man lui={{ chu: "" }} tieu="Thông báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const luu = (moi: Partial<CaiDat>, chu: string) => lam(async () => {
     const tat = (moi.tat ?? d.tat).filter((x) => x !== "canh_bao");

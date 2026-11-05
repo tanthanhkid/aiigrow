@@ -35,7 +35,7 @@ export default function WebCon() {
     await bm.goi(`con/${con}/web/trang`, { muc: l.tenMien, trangThai, caNha });
     await tai();
     const lai: Record<TrangThaiWeb, "cho_phep" | "chan" | "mac_dinh"> = { cho_phep: "cho_phep", chan: "chan", giai_tri: "cho_phep", he_thong: "mac_dinh", chua_xep: "mac_dinh" };
-    bao(trangThai === "chan" ? `Đã chặn ${l.tenMien}` : `Đã cho phép ${l.tenMien}`, () => {
+    bao(`${trangThai === "chan" ? "Đã chặn" : "Đã cho phép"} ${l.tenMien}${caNha ? " cho cả nhà" : ""}`, () => {
       (l.trangThai === "giai_tri" ? bm.goi("luat", { con: caNha ? undefined : con, muc: l.tenMien, loai: "giai_tri" }) : bm.goi(`con/${con}/web/trang`, { muc: l.tenMien, trangThai: lai[l.trangThai], caNha }))
         .then(() => tai(), () => tai());
     });

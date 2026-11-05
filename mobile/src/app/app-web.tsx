@@ -46,7 +46,6 @@ export default function AppWeb() {
   const may = cd?.may ?? [];
 
   const doiCheDo = (v: CheDoChan) => lam(async () => {
-    if (v === cheDo) return;
     await bm.goi(`con/${con.id}/che-do-chan`, { cheDo: v });
     await ct.tai();
     bao(v === "mo_het" ? `${con.ten} mở được mọi app (trừ web người lớn)` : `${con.ten} chỉ dùng app được phép`);
