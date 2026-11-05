@@ -27,7 +27,7 @@ export default function DatMatKhau() {
       <OLom nhan="Mật khẩu mới (ít nhất 8 ký tự)" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
       <OLom nhan="Nhập lại mật khẩu" matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" textContentType="newPassword"
         ghi={mk2 && !khop ? (mk.length < 8 ? "Cần ít nhất 8 ký tự" : "Hai lần nhập chưa khớp") : undefined} />
-      {!co.google && !co.facebook ? <Bao loai="canh" tieu="Chưa xác minh được" loi="Đăng nhập Google / Facebook đang tắt — thử lại sau." /> : (
+      {!co.san ? null : !co.google && !co.facebook ? <Bao loai="canh" tieu="Chưa xác minh được" loi="Đăng nhập Google / Facebook đang tắt — thử lại sau." /> : (
         <View style={{ gap: 10, opacity: khop ? 1 : 0.5 }} pointerEvents={khop ? "auto" : "none"}>
           <TieuDe chu="Xác nhận bằng" co={17} />
           {co.google ? <NutMxhThat loai="google" bao={bao} khiCo={luu} /> : null}
