@@ -132,8 +132,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
         </View>
         <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
           {khoa ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-            : <Nut chu="Khoá máy con" ic="khoa" loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />}
-          <Nut chu="Cho thêm giờ" ic="dongho" bam={() => setBang("gio")} />
+            : <Nut chu="Khoá máy con" ic="khoa" nho loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />}
+          <Nut chu="Cho thêm giờ" ic="dongho" nho bam={() => setBang("gio")} />
         </View>
         <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />
       </The>
