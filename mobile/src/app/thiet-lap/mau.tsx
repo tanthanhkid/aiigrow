@@ -1,37 +1,93 @@
-// bm-ob-mau (bước 4/5): mẫu nhiệm vụ + phần thưởng theo tuổi (Phụ lục C) — chỉnh điểm sau ở «Điểm & quà».
+// bm1-ob-mau «Giao việc cho X» (bước 2/4, thiết kế chốt 04/11, L9): chọn bộ việc (GET nhiem-vu/bo — Tự lập, Phụ việc nhà, Học tập, Khoẻ mạnh),
+// mỗi việc một dòng (hình, lặp lại, số sao, bỏ / giữ tick), «Thêm việc riêng», tổng «Đủ N việc ⭐ X sao → đổi X phút chơi» (10 sao = 10 phút).
+// «Giao N việc cho X» ⇒ POST nhiem-vu/bo {bo, con, chon} ⇒ Giờ chơi.
+import { useState } from "react";
 import { router } from "expo-router";
+import { Pressable, ScrollView, View } from "react-native";
 import { bm } from "@/lib/api";
+import { BONG } from "@/lib/clay";
+import { DauMan, LienKet, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
 import { layTl } from "@/lib/thiet-lap";
-import { BaoLoi, BieuTron, Buoc, Canh, Dong, Man, Nhan, Nhom, NhomTieu, Nut, useLam } from "@/lib/ui";
+import { BaoLoi, ChoTai, Chu, Icon, Icon3D, M, Man, Nhan, Nut, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
-const NV = {
-  nhi: [["sach", "xanh", "Đọc 1 cuốn truyện 30 trang", "Ảnh bìa + trang cuối, kể lại 3 câu", 10], ["chen", "lam", "Rửa chén sau bữa ăn", "Ảnh bồn rửa · tối đa 3 lần/ngày", 10],
-    ["mu", "tim", "Học 1 bài với AiiRob đạt", "Tự động cộng khi đạt ≥ 80%", 20], ["chay", "cam", "Nhảy dây 10 phút", "Ảnh · 1 lần/ngày", 5]],
-  teen: [["sach", "xanh", "Đọc sách 50 trang", "Ảnh bìa + trang cuối + tóm tắt", 10], ["chen", "lam", "Rửa chén sau bữa ăn", "Ảnh bồn rửa · tối đa 3 lần/ngày", 10],
-    ["mu", "tim", "Học 1 bài với AiiRob đạt", "Tự động cộng khi đạt ≥ 80%", 20], ["chay", "cam", "Chạy bộ / đạp xe 30 phút", "Ảnh · 1 lần/ngày", 10]],
-} as const;
+type ViecBo = { ten: string; moTa: string; sao: number; tuCham: boolean; lapLai: string; hinh: string; nhan: string | null };
+type BoViec = { ma: string; ten: string; tuoi: string; soViec: number; saoToiDaNgay: number; viec: ViecBo[] };
+
+/** Hình của bộ / việc (máy chủ trả tên hình) ⇒ icon 3D có trong app. */
+const HINH: Record<string, TenIcon> = { choi: "lau", ban_chai: "coc", sach: "sach", cap: "mu", cay: "nha", bat: "chen", ao: "nha", rac: "nha", ban_an: "chen",
+  ban_hoc: "lau", vo: "but", but: "but", the_tu: "sach", day: "chay", the_duc: "chay", rau: "coc", ngu: "trang_ngu" };
+const IC_BO: Record<string, TenIcon> = { tu_lap: "nha", viec_nha: "lau", hoc_tap: "sach", khoe_manh: "chay" };
+const LAP: Record<string, string> = { hang_ngay: "Mỗi ngày", ngay_thuong: "Thứ 2 – Thứ 6", cuoi_tuan: "Cuối tuần", mot_lan: "Một lần" };
 
 export default function ObMau() {
   const tl = layTl();
-  const nhom = tl.nhom ?? "nhi";
+  const ten = tl.tenCon ?? "con";
+  const { d, loi: loiTai, matMang, tai } = useTai(() => bm.goi<{ ds: BoViec[] }>("nhiem-vu/bo"));
+  const [bo, setBo] = useState(0);
+  const [bo2, setBo2] = useState<Record<string, boolean>>({});          // «<bộ>|<tên>» ⇒ bỏ tick (mặc định giữ cả bộ)
   const { lam, loi, dangChay } = useLam();
-  const dung = () => lam(async () => {
-    await bm.goi("nhiem-vu/mau", { nhom });
-    await bm.goi("qua/mau", {});
+  const dsBo = d?.ds ?? [];
+  const b = dsBo[bo];
+  const chon = b ? b.viec.filter((v) => !bo2[`${b.ma}|${v.ten}`]) : [];
+  const tong = chon.reduce((s, v) => s + v.sao, 0);
+  const giao = () => lam(async () => {
+    if (!tl.conId) throw new Error("Chưa biết giao việc cho con nào — quay lại bước hồ sơ con.");
+    await bm.goi("nhiem-vu/bo", { bo: b!.ma, con: tl.conId, chon: chon.map((v) => v.ten) });
     router.push("/thiet-lap/gio");
   });
+  const dau = <DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc dang={1} />} />;
+  if (!b) {
+    return (
+      <Man dau={dau} day={d ? <Nut chu="Sang Giờ chơi" rong bam={() => router.push("/thiet-lap/gio")} /> : undefined}>
+        <TieuDe chu={`Giao việc cho ${ten}`} />
+        {d ? <Chu co={14.5} mau={M.chu2}>Chưa có bộ việc nào — giao việc sau ở tab Nhiệm vụ.</Chu> : <ChoTai loi={loiTai} matMang={matMang} tai={tai} />}
+      </Man>
+    );
+  }
   return (
-    <Man dau={<Buoc n={4} tong={5} nhan="Bước 4/5 · Nhiệm vụ & quà" />} day={<><BaoLoi loi={loi} /><Nut chu="Dùng mẫu này" rong dangChay={dangChay} bam={dung} /></>}>
-      <Canh lv="so-tay" thap tieu={nhom === "nhi" ? "Mẫu cho Con tiểu học" : "Mẫu cho Con tuổi teen"} loi={`${nhom === "nhi" ? 8 : 9} nhiệm vụ + 6 phần thưởng. Chỉnh điểm sau cũng được.`} />
-      <NhomTieu chu="Nhiệm vụ" />
-      <Nhom>
-        {NV[nhom].map(([ic, mau, t, p, d], i) => <Dong key={t} dau={i === 0} tieu={t} phu={p} trai={<BieuTron ic={ic} mau={mau} />} phai={<Nhan loai="diem" chu={`+${d}`} />} />)}
-      </Nhom>
-      <NhomTieu chu="Phần thưởng" />
-      <Nhom>
-        <Dong dau tieu="1 phút chơi trò chơi" phu="Trong khung giờ, tối đa 30 phút/phiên" trai={<BieuTron ic="game" mau="vang" />} phai={<Nhan loai="xam" chu="1 điểm" />} />
-        <Dong tieu="Phiếu quà AiiCafe 50.000đ" phu="Dùng tại quầy AiiCafe, hạn 60 ngày" trai={<BieuTron ic="coc" mau="cam" />} phai={<Nhan loai="xam" chu="500 điểm" />} />
-      </Nhom>
+    <Man dau={dau}
+      day={<><BaoLoi loi={loi} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 }}>
+          <Chu kieu="dam" co={13.5} mau={M.chu2}>{`Đủ ${chon.length} việc`}</Chu>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Nhan loai="diem" ic="sao" chu={`${tong} sao`} /><Chu co={13.5} mau={M.chu2}>→ đổi</Chu><Nhan chu={`${tong} phút chơi`} />
+          </View>
+        </View>
+        <Nut chu={chon.length ? `Giao ${chon.length} việc cho ${ten}` : "Để sau, sang Giờ chơi"} rong dangChay={dangChay} bam={chon.length ? giao : () => router.push("/thiet-lap/gio")} /></>}>
+      <TieuDe chu={`Giao việc cho ${ten}`} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4, paddingRight: 8 }}>
+        {dsBo.map((x, i) => (
+          <Pressable key={x.ma} onPress={() => setBo(i)} accessibilityRole="tab" accessibilityState={{ selected: i === bo }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 46, paddingHorizontal: 14, borderRadius: 23,
+              backgroundColor: i === bo ? M.chinh : M.the, boxShadow: i === bo ? BONG.ngoc : BONG.nho }}>
+            <Icon3D ten={IC_BO[x.ma] ?? "sao"} co={22} /><Chu kieu="rat" co={15} mau={i === bo ? "#fff" : M.chu}>{x.ten}</Chu>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+        <Nhan loai="xam" chu={`Hợp ${b.tuoi}`} />
+        <Nhan loai="xam" chu={`~${Math.max(15, chon.length * 6)} phút/ngày`} />
+        <Nhan loai="ok" chu="Rob gợi ý" />
+      </View>
+      <The sat>
+        {b.viec.map((v, i) => {
+          const k = `${b.ma}|${v.ten}`, co = !bo2[k];
+          return (
+            <Pressable key={k} onPress={() => setBo2((x) => ({ ...x, [k]: co }))} accessibilityRole="checkbox" accessibilityState={{ checked: co }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 64, borderTopWidth: i ? 1 : 0, borderTopColor: "#efefec" }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#f1f0ec", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+                {v.hinh === "rob" ? <Rob ten="hoc" co={40} /> : <Icon3D ten={HINH[v.hinh] ?? "sao"} co={30} />}
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={15.5}>{v.ten}</Chu><Chu co={13} mau={M.chu3}>{v.nhan ?? LAP[v.lapLai] ?? ""}</Chu></View>
+              <Nhan loai="diem" ic="sao" chu={`${v.sao} sao`} />
+              <View style={{ width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: co ? M.chinh : "#e6e5e1", boxShadow: co ? BONG.ngoc : BONG.lom }}>
+                {co ? <Icon ten="tick" mau="#fff" co={16} /> : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </The>
+      <LienKet chu="+ Thêm việc riêng" bam={() => router.push({ pathname: "/giao-nv", params: tl.conId ? { con: tl.conId } : {} })} />
     </Man>
   );
 }

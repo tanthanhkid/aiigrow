@@ -1,49 +1,48 @@
-// bm-chao: lần đầu mở app — vòng giá trị 3 câu, bắt đầu bằng số điện thoại. (Đăng nhập Apple/Google: chờ khoá OAuth — KE-HOACH 5.)
-// Bản web: đây cũng là trang chủ aiigrow.aiilab.vn (/ — xem index.tsx); link nhỏ «Tải cho máy của Con» sang trang /tai (trang Next, tải hẳn trang).
+// bm1-welcome (thiết kế chốt 04/11): ảnh / đoạn intro AiiGrow phủ kín màn, một nút ngọc «Bắt đầu cho con nhà mình» (⇒ Tạo tài khoản Ba Mẹ),
+// hai liên kết «Tôi đã có tài khoản» · «Tôi được mời vào nhà» (nhánh người được mời, không tạo Con).
+// Bản web: đây cũng là trang chủ aiigrow.aiilab.vn (/ — index.tsx). App gốc chạy trên máy của Con vào /tre qua index.tsx (máy đã ghép).
 import { router } from "expo-router";
-import { Linking, Platform, Pressable, View } from "react-native";
-import { LINK_TAI } from "@/lib/api";
-import { Canh, Chu, M, Man, Nut, The, TickDong, useBaoKhiVe, useHoanTac } from "@/lib/ui";
+import { Platform, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { NenChao } from "@/lib/anh-chao";
+import { BONG, BO_CLAY, MEN } from "@/lib/clay";
+import { F, LopMen, M, NhanMen, useBaoKhiVe, useHoanTac } from "@/lib/ui";
 
 export default function Chao() {
   const { bao, noi } = useHoanTac();
   useBaoKhiVe(bao);                     // «Đã xoá tài khoản…» sau khi xoá ở màn Gia đình
   return (
-    <Man noi={noi} day={
-      <>
-        <Nut chu="Bắt đầu bằng số điện thoại" ic="dt" rong bam={() => router.push("/dang-ky")} />
-        <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Chu co={13} mau={M.chu3}>Đã có tài khoản? <Chu kieu="rat" co={13} mau={M.chinhInk}>Đăng nhập</Chu></Chu>
-        </Pressable>
-        <Pressable onPress={() => router.push("/moi")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Chu co={13} mau={M.chu3}>Được Ba/Mẹ trong nhà mời? <Chu kieu="rat" co={13} mau={M.chinhInk}>Nhập mã mời</Chu></Chu>
-        </Pressable>
-        <Pressable onPress={moTai} accessibilityRole="link" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={13} mau={M.chinhInk}>Tải cho máy của Con →</Chu>
-        </Pressable>
-        {Platform.OS !== "web" ? (
-          // App native: điện thoại / máy tính bảng của Con dùng luôn app này cho màn Con (Nhiệm vụ, Nộp bài, Quà, Chơi bằng điểm)
-          <Pressable onPress={() => router.push("/tre")} accessibilityRole="button" accessibilityLabel="Máy của Con — mở màn của Con"
-            style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-            <Chu co={13} mau={M.chu3}>Đây là máy của Con? <Chu kieu="rat" co={13} mau={M.chinhInk}>Máy của Con</Chu></Chu>
-          </Pressable>
-        ) : null}
-      </>
-    }>
-      <Canh lv="rob-goc" tieu="Con lớn lên bằng yêu thương" loi="Và nhận quyền lợi bằng nỗ lực của chính mình." />
-      <The dem>
-        <View style={{ gap: 12 }}>
-          <TickDong chu="Con làm việc có ích → nộp ảnh → Ba Mẹ duyệt → điểm vào ví" />
-          <TickDong chu="Điểm đổi phút chơi trò chơi, quà, phiếu quà AiiCafe" />
-          <TickDong chu="Ngoài quy tắc thì Con xin phép, Ba Mẹ duyệt trong vài giây" />
+    <View style={{ flex: 1, backgroundColor: "#f3f3ef", overflow: "hidden" }}>
+      <NenChao />
+      <SafeAreaView style={{ flex: 1, justifyContent: "flex-end" }} edges={["top", "bottom", "left", "right"]}>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6 }}>
+          <NhanMen onPress={() => router.push("/tao-tai-khoan")} accessibilityRole="button" muc="nut" men={MEN.ngoc}
+            style={{ minHeight: 58, borderRadius: BO_CLAY.nut, backgroundColor: M.chinh, boxShadow: BONG.ngoc, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 }}>
+            <LopMen men={MEN.ngoc} bo={BO_CLAY.nut} />
+            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 17, color: "#fff" }}>Bắt đầu cho con nhà mình</Text>
+          </NhanMen>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <LkChao chu="Tôi đã có tài khoản" bam={() => router.push("/dang-nhap")} canh="flex-end" />
+            <View style={{ width: 20, alignItems: "center" }}><View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#a3a8a5" }} /></View>
+            <LkChao chu="Tôi được mời vào nhà" bam={() => router.push("/moi")} canh="flex-start" />
+          </View>
+          {Platform.OS === "web" ? (
+            // trang chủ web: lối sang trang tải bộ cài cho máy của con (thiết kế không vẽ — giữ chữ nhỏ)
+            <LkChao chu="Tải AiiGrow cho máy của con" bam={() => globalThis.location?.assign("/tai")} canh="center" />
+          ) : null}
+          {Platform.OS !== "web" ? (
+            // App gốc cũng là app của Con trên điện thoại / máy tính bảng chưa ghép (thiết kế không vẽ — giữ lối vào màn Con, chữ nhỏ)
+            <LkChao chu="Đây là máy của con? Mở màn của con" bam={() => router.push("/tre")} canh="center" />
+          ) : null}
         </View>
-      </The>
-    </Man>
+      </SafeAreaView>
+      {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: 140 }}>{noi}</View> : null}
+    </View>
   );
 }
 
-/** Web: cùng nguồn ⇒ sang /tai trong tab này (bản thử/preview vẫn đúng máy chủ). Điện thoại: mở trang tải công khai. */
-function moTai() {
-  if (Platform.OS === "web" && globalThis.location) { globalThis.location.assign("/tai"); return; }
-  Linking.openURL(LINK_TAI).catch(() => {});
-}
+const LkChao = ({ chu, bam, canh }: { chu: string; bam: () => void; canh: "flex-end" | "flex-start" | "center" }) => (
+  <Pressable onPress={bam} accessibilityRole="link" style={{ flex: 1, minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: canh }}>
+    <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 14, color: M.chinhInk, textDecorationLine: "underline" }}>{chu}</Text>
+  </Pressable>
+);
