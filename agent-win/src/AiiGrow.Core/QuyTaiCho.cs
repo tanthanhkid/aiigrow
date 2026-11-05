@@ -12,8 +12,18 @@ namespace AiiGrow.Core;
 public static class QuyTaiCho
 {
     /// <summary>Phút quỹ còn lại sau khi trừ phần đã đếm tại máy; null = máy chủ không gửi quỹ (máy chủ cũ / chưa chọn Con).</summary>
-    public static double? ConPhut(Policy p, double daDemGiay)
-        => p.QuyConPhut is double q ? Math.Max(0, q - Math.Max(0, daDemGiay) / 60.0) : null;
+    /// <param name="now">Có ⇒ xét qua nửa đêm: Policy của hôm trước (mất mạng qua đêm) thì quỹ hôm nay lấy lại <see cref="Policy.QuyTongPhut"/>
+    /// trừ phần đã chơi từ nửa đêm (<paramref name="giayHomNay"/>) — không giữ số còn lại của hôm qua.</param>
+    public static double? ConPhut(Policy p, double daDemGiay, DateTimeOffset? now = null, double giayHomNay = 0)
+    {
+        if (p.QuyConPhut is not double q) return null;
+        if (now is { } n && NgayMoi(p, n)) return Math.Max(0, (p.QuyTongPhut ?? q) - Math.Max(0, giayHomNay) / 60.0);
+        return Math.Max(0, q - Math.Max(0, daDemGiay) / 60.0);
+    }
+
+    /// <summary>Policy tính cho một ngày trước ngày hiện tại của máy (mất mạng qua nửa đêm).</summary>
+    public static bool NgayMoi(Policy p, DateTimeOffset now)
+        => p.ServerTime is { } st && now.ToLocalTime().Date > st.ToLocalTime().Date;
 
     /// <summary>App này có trừ quỹ khi ở tiền cảnh không.</summary>
     public static bool TinhGio(Policy? p, string? appId)
@@ -46,7 +56,8 @@ public static class QuyTaiCho
     /// <summary>Policy để THỰC THI lúc <paramref name="now"/>: đã trừ app hết quỹ / ngoại lệ hết hạn, khoá lại khi cần.</summary>
     /// <param name="daDemGiay">Giây đã chơi app tính giờ tại máy từ lúc nhận Policy.</param>
     /// <param name="offline">Đang mất mạng ⇒ tự xét giờ ngủ / giờ học theo đồng hồ máy (có mạng thì máy chủ xét, tránh lệch giờ máy).</param>
-    public static Policy ApDung(Policy p, double daDemGiay, DateTimeOffset now, bool offline)
+    /// <param name="giayHomNay">Giây đã chơi app tính giờ từ nửa đêm hôm nay (xét khi Policy là của hôm trước).</param>
+    public static Policy ApDung(Policy p, double daDemGiay, DateTimeOffset now, bool offline, double giayHomNay = 0)
     {
         bool coQuy = p.QuyConPhut.HasValue, coNl = p.NgoaiLe.Count > 0;
         bool coLich = offline && (p.GioNgu != null || p.GioHoc != null);
@@ -57,7 +68,7 @@ public static class QuyTaiCho
         bool locked = p.Locked;
         string? lyDo = p.LockReason;
 
-        if (ConPhut(p, daDemGiay) is <= 0) bo.UnionWith(p.AppTinhGio);
+        if (ConPhut(p, daDemGiay, now, giayHomNay) is <= 0) bo.UnionWith(p.AppTinhGio);
         var nlCon = p.NgoaiLe.Where(n => n.Den > now).ToList();
         foreach (var n in p.NgoaiLe.Where(n => n.Den <= now && n.App != null)) bo.Add(n.App!);
         bool nlCaMay = nlCon.Any(n => n.App == null);
@@ -67,6 +78,13 @@ public static class QuyTaiCho
         {
             locked = true;
             lyDo = p.KhoaKhiHetNgoaiLe;
+        }
+
+        // Mất mạng mà khoá «ngu» lúc đồng bộ đã qua giờ ngủ theo đồng hồ máy (sáng hôm sau) ⇒ mở lại «chỉ app được phép» (danh sách lúc ngủ — app hệ thống),
+        // không khoá cả buổi sáng tới khi có mạng.
+        if (offline && locked && lyDo == LockReasons.Ngu && p.GioNgu != null && !TrongKhung(p.GioNgu, local))
+        {
+            locked = false; lyDo = null;
         }
 
         if (offline && !nlCaMay)
@@ -83,10 +101,14 @@ public static class QuyTaiCho
         if (bo.Count == 0 && locked == p.Locked && lyDo == p.LockReason) return p;
         var q = p.SaoNong();
         q.AllowedApps = p.AllowedApps.Where(a => !bo.Contains(a)).ToList();
+        // «Mở hết» (mode tu_do không hạn): không có danh sách được phép để thu lại ⇒ đóng app chơi hết quỹ bằng danh sách chặn (ChanAppThat — mọi mode)
+        if (bo.Count > 0 && p.Mode == Modes.TuDo && p.GrantEndsAt == null)
+            q.BlockedApps = p.BlockedApps.Concat(bo.Where(a => a.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)).Select(a => new AppBiChan { Muc = a.ToLowerInvariant() })).ToList();
         q.AppTinhGio = p.AppTinhGio.Where(a => !bo.Contains(a)).ToList();
         q.Locked = locked;
         q.LockReason = locked ? lyDo ?? LockReasons.Khoa : null;
         if (locked && q.Mode == Modes.TuDo) { q.Mode = Modes.Khoa; q.GrantEndsAt = null; }
+        if (!locked && p.Locked && q.Mode == Modes.Khoa) q.Mode = Modes.Hoc;
         return q;
     }
 }

@@ -48,7 +48,9 @@ internal sealed class AppForm : Form
     private HvCuaHang? _ch;
     private HvViQua? _viQua;
     private HvTinDs? _tin;
+    /// <summary>Đang gửi một việc Con bấm (nhận việc, trả lời) — tách khỏi lượt tải nền <see cref="_dangTai"/> để bấm không bị nuốt im lặng.</summary>
     private bool _busy;
+    private bool _dangTai;
     /// <summary>Sao &amp; quà đang ở «Quà của con» (con-ngay-thuong 16).</summary>
     private bool _xemQuaCuaCon;
     /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
@@ -272,6 +274,7 @@ internal sealed class AppForm : Form
         _muc = muc;
         if (muc == MucApp.TinNhan && TinMoi > 0) { TinMoi = 0; TinDaXem?.Invoke(); }
         Render();
+        if (muc == MucApp.PhanQua) _ = RefreshAsync();   // quà / quà đã trao tải khi mở mục
         _content.AutoScrollPosition = Point.Empty;
     }
 
@@ -284,8 +287,8 @@ internal sealed class AppForm : Form
 
     public async Task RefreshAsync()
     {
-        if (_busy) return;
-        _busy = true;
+        if (_dangTai) return;
+        _dangTai = true;
         try
         {
             var (tq, loi) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan");
@@ -300,17 +303,21 @@ internal sealed class AppForm : Form
             _loiTai = null;
             Render();
             ApplyKetNoiUi();
-            var (tc, _) = await HvApi.GetAsync<HvNvDs>("hoc-vien/nhiem-vu?tuCham=1");
+            // bốn lượt sau chạy song song (dịch vụ nhận nhiều kết nối pipe); quà chỉ tải khi Con ở / đã mở «Sao & quà»
+            var tcT = HvApi.GetAsync<HvNvDs>("hoc-vien/nhiem-vu?tuCham=1");
+            var tinT = HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
+            var quaCan = _muc == MucApp.PhanQua || _ch == null;
+            var chT = quaCan ? HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang") : null;
+            var vqT = quaCan ? HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua") : null;
+            var (tc, _) = await tcT;
             if (tc != null) _tuCham = tc.Ds.Where(x => x.TuCham).ToList();
-            var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
-            if (ch != null) _ch = ch;
-            var (vq, _) = await HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua");
-            if (vq != null) _viQua = vq;
-            var (tin, _) = await HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
+            var (tin, _) = await tinT;
             if (tin != null) _tin = tin;
+            if (chT != null && (await chT).Data is { } ch) _ch = ch;
+            if (vqT != null && (await vqT).Data is { } vq) _viQua = vq;
             if (!IsDisposed) Render();
         }
-        finally { _busy = false; }
+        finally { _dangTai = false; }
     }
 
     // =========================================================== hộp

@@ -39,7 +39,7 @@ internal sealed class NopBaiForm : HopKhayCoBan
         Text = "AiiGrow · " + TieuCuaSo();
         _note.PlaceholderText = nv.BangChung is "van_ban" or "viet" ? "Con viết vài câu kể lại nhé" : "Viết cho Ba Mẹ (nếu cần)";
         _dongHo.Tick += (_, _) => { if (_gio != null && _ghi.DangGhi) { _gio.Text = DongHo(_ghi.DaGhi); if (_ghi.DaGhi >= GhiAm.ToiDa) DungGhi(); } };
-        FormClosed += (_, _) => { _dongHo.Dispose(); _ghi.Dispose(); if (_note.Parent == null) _note.Dispose(); };
+        FormClosed += (_, _) => { _dongHo.Dispose(); _ghi.Dispose(); _goiY.Dispose(); if (_note.Parent == null) _note.Dispose(); };
         Ve();
     }
 
@@ -50,9 +50,12 @@ internal sealed class NopBaiForm : HopKhayCoBan
 
     private static string DongHo(TimeSpan t) => $"{(int)t.TotalMinutes:00}:{t.Seconds:00}";
 
+    private readonly ToolTip _goiY = new();
+
     private void Xoa()
     {
         _note.Parent?.Controls.Remove(_note);
+        foreach (var pb in Flow.Controls.OfType<FlowLayoutPanel>().SelectMany(h => h.Controls.OfType<PictureBox>())) { pb.Image?.Dispose(); pb.Image = null; }
         XoaHet();
     }
 
@@ -131,10 +134,15 @@ internal sealed class NopBaiForm : HopKhayCoBan
                 Size = new Size(o, UI.Px(100)), SizeMode = PictureBoxSizeMode.Zoom, BackColor = Clay.Lom, Margin = new Padding(0, 0, UI.Px(12), 0),
                 Cursor = Cursors.Hand,
             };
-            using (var ms = new MemoryStream(_anh[i])) pb.Image = new Bitmap(Image.FromStream(ms));
+            using (var ms = new MemoryStream(_anh[i]))
+            using (var goc = Image.FromStream(ms))
+            {
+                var (w, h) = AnhBangChung.Fit(goc.Width, goc.Height, UI.Px(200));   // ảnh nhỏ cho ô xem trước, không giữ bản 1280 px
+                pb.Image = new Bitmap(goc, w, h);
+            }
             var chiSo = i;
             pb.Click += (_, _) => { _anh.RemoveAt(chiSo); Ve(); };   // bấm ảnh = bỏ ảnh đó
-            new ToolTip().SetToolTip(pb, "Bấm để bỏ ảnh này");
+            _goiY.SetToolTip(pb, "Bấm để bỏ ảnh này");
             hang.Controls.Add(pb);
         }
         if (_anh.Count < AnhToiDa)
@@ -303,7 +311,19 @@ internal sealed class NopBaiForm : HopKhayCoBan
         try { _ghiAm = ok && File.Exists(tep) ? File.ReadAllBytes(tep) : null; } catch { _ghiAm = null; }
         Ve();
         if (_ghiAm == null) Bao("Chưa lưu được ghi âm. Con ghi lại nhé.", true);
-        else if (_ghiAm.Length > GhiAm.ByteToiDa) { _ghiAm = null; Ve(); Bao("Ghi âm dài quá. Con ghi ngắn hơn nhé.", true); }
+        else if (_ghiAm.Length > GhiAm.ByteToiDa)
+        {
+            // máy ghi bỏ qua định dạng nhỏ ⇒ giữ phần đầu cho vừa trần 2 MB, không bỏ cả bản ghi Con vừa đọc
+            var cat = WavCat.CatToi(_ghiAm, GhiAm.ByteToiDa);
+            if (cat == null) { _ghiAm = null; Ve(); Bao("Ghi âm dài quá. Con ghi ngắn hơn nhé.", true); }
+            else
+            {
+                _doDai = TimeSpan.FromTicks((long)(_doDai.Ticks * (cat.Length / (double)_ghiAm.Length)));
+                _ghiAm = cat;
+                Ve();
+                Bao($"Ghi âm hơi dài — AiiGrow giữ {DongHo(_doDai)} đầu cho Ba Mẹ nghe.", false);
+            }
+        }
     }
 
     private void NgheLai()

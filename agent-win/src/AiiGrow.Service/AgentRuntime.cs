@@ -34,6 +34,9 @@ public sealed class AgentRuntime
     /// <summary>05/11: giây Con đã chơi app tính giờ (Policy.AppTinhGio) tại máy kể từ Policy đang giữ — QuyTaiCho trừ vào quỹ (cả lúc mất mạng).</summary>
     private double _quyGiay;
     private double _quyChoGhi;
+    /// <summary>Giây chơi app tính giờ từ nửa đêm (ngày <see cref="_quyNgay"/>) — quỹ ngày mới khi mất mạng qua đêm (QuyTaiCho.NgayMoi).</summary>
+    private double _quyGiayNgay;
+    private DateTime _quyNgay;
 
     public ConfigStore Store { get; } = new();
     public AgentConfig? Config { get; private set; }
@@ -55,6 +58,8 @@ public sealed class AgentRuntime
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
     public BaiChoMang BaiCho { get; } = new(BaiChoMang.ThuMucMacDinh);
     public volatile int SoBaiCho = -1;
+
+    private int DemBaiCho() { try { return BaiCho.Dem(); } catch { return 0; } }
 
     private (IReadOnlyDictionary<string, IReadOnlyList<string>> Ds, long Tick) _trinhDuyet = (new Dictionary<string, IReadOnlyList<string>>(), long.MinValue);
     /// <summary>Kết quả hơn 3 phút không được WebGuardWorker làm mới (worker kẹt) ⇒ coi như chưa lọc được: thôi thả trình duyệt (an toàn trước).</summary>
@@ -254,7 +259,9 @@ public sealed class AgentRuntime
 
     /// <summary>Policy đã áp phiên chơi offline + quỹ / ngoại lệ / lịch tại máy (QuyTaiCho). Gọi trong khoá.</summary>
     private Policy? ThucThi(DateTimeOffset now)
-        => _policy == null ? null : QuyTaiCho.ApDung(PhienOffline.ApDung(_policy, _phienOffline), _quyGiay, now, _offline);
+        => _policy == null ? null : QuyTaiCho.ApDung(PhienOffline.ApDung(_policy, _phienOffline), _quyGiay, now, _offline, GiayHomNay(now));
+
+    private double GiayHomNay(DateTimeOffset now) => _quyNgay == now.ToLocalTime().Date ? _quyGiayNgay : 0;
 
     /// <summary>0.2.4 (BRD 4.4 / 6.7): mỗi vòng thực thi — «đang chơi thật» (<see cref="TienCanhChoi"/>), cộng giây vào status.playSeconds
     /// (lúc có mạng) + số giây đã chơi theo Policy, đếm phút chơi khi mất mạng (đồng hồ đơn điệu), lưu khi cần.</summary>
@@ -432,6 +439,9 @@ public sealed class AgentRuntime
             {
                 _quyGiay += seconds;
                 _quyChoGhi += seconds;
+                var ngay = now.ToLocalTime().Date;
+                if (ngay != _quyNgay) { _quyNgay = ngay; _quyGiayNgay = 0; }
+                _quyGiayNgay += seconds;
                 if (_quyChoGhi >= 60) LuuQuy();
             }
         }
@@ -497,7 +507,7 @@ public sealed class AgentRuntime
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
                 OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
                 XinChoMang = Config?.XinCho.Items.Count ?? 0,
-                BaiChoMang = Math.Max(0, SoBaiCho),
+                BaiChoMang = Math.Max(0, SoBaiCho < 0 ? (SoBaiCho = DemBaiCho()) : SoBaiCho),
             };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);
@@ -520,11 +530,12 @@ public sealed class AgentRuntime
             s.Sao = _policy.Sao;
             s.MoLaiLuc = ManKhoaView.GioGon(_policy.GioNgu?.Den);
             // 05/11: quỹ giờ chơi đã trừ phần đếm tại máy (app Con «Giờ chơi còn lại», màn khoá «đã chơi đủ X phút»)
-            s.QuyConPhut = QuyTaiCho.ConPhut(_policy, _quyGiay);
+            s.QuyConPhut = QuyTaiCho.ConPhut(_policy, _quyGiay, now, GiayHomNay(now));
             s.QuyTongPhut = _policy.QuyTongPhut;
             s.QuyDaDung = _policy.QuyDaDung is double dd ? dd + _quyGiay / 60.0 : null;
             s.QuyPhut = _policy.QuyTongPhut is double tp ? (int)Math.Round(tp) : null;
-            s.DangGioHoc = _policy.DangGioHoc || (_offline && QuyTaiCho.TrongGioHoc(_policy.GioHoc, now.ToLocalTime().DateTime));
+            // mất mạng: đồng hồ máy quyết (cờ của lần đồng bộ cuối có thể đã cũ — giờ học đã hết)
+            s.DangGioHoc = _offline ? QuyTaiCho.TrongGioHoc(_policy.GioHoc, now.ToLocalTime().DateTime) : _policy.DangGioHoc;
             s.NgoaiLeDen = _policy.NgoaiLe.Where(n => n.App == null && n.Den > now).Select(n => (DateTimeOffset?)n.Den).Max();
             s.NguLuc = _policy.GioNgu?.Tu;
             s.DungTheoApp = Usage.DungHomNay(now);

@@ -214,7 +214,7 @@ internal static class ChupMain
     private static async Task ManApp(string ten, MucApp muc, TrayState s, bool coDuLieu, KetNoiInfo? kn = null, string? loiTai = null, bool quaCuaCon = false)
     {
         var f = new AppForm();
-        DatTruong(f, "_busy", true);   // chặn RefreshAsync (gọi dịch vụ qua named pipe) — dữ liệu mẫu đặt thẳng vào trường
+        DatTruong(f, "_dangTai", true);   // chặn RefreshAsync (gọi dịch vụ qua named pipe) — dữ liệu mẫu đặt thẳng vào trường
         if (coDuLieu)
         {
             DatTruong(f, "_tq", TongQuan());

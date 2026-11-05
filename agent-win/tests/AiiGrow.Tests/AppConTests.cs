@@ -271,4 +271,47 @@ public class AppConTests
         }
         finally { try { Directory.Delete(dir, true); } catch { } }
     }
+
+    [Fact]
+    public void Quy_QuaNuaDem_MoHet_KhoaNguCu()
+    {
+        // Policy đồng bộ 20:00 hôm qua (còn 5 phút) — mất mạng qua đêm ⇒ hôm nay quỹ lại 60 phút trừ phần chơi từ nửa đêm
+        var p = Goc(x => x.ServerTime = Luc(20, 0, ngay: 4));
+        Assert.Equal(18, QuyTaiCho.ConPhut(p, 0)!.Value, 3);
+        Assert.Equal(50, QuyTaiCho.ConPhut(p, 99999, Luc(9, 0), giayHomNay: 600)!.Value, 3);
+        Assert.True(QuyTaiCho.NgayMoi(p, Luc(0, 1)));
+        // «Mở hết» (tu_do không hạn) hết quỹ ⇒ app chơi vào danh sách chặn
+        var mh = Goc(x => { x.Mode = Modes.TuDo; x.ServerTime = Luc(19, 0); });
+        var het = QuyTaiCho.ApDung(mh, 18 * 60, Luc(19, 30), offline: false);
+        Assert.Contains(het.BlockedApps, a => a.Muc == "roblox.exe");
+        Assert.Empty(mh.BlockedApps);
+        // khoá «ngu» lúc đồng bộ đêm qua, mất mạng tới 7:00 sáng ⇒ mở lại (chỉ app được phép), không khoá cả buổi sáng
+        var ngu = Goc(x => { x.Locked = true; x.LockReason = LockReasons.Ngu; x.Mode = Modes.Khoa; });
+        var sang = QuyTaiCho.ApDung(ngu, 0, Luc(7, 0), offline: true);
+        Assert.False(sang.Locked);
+        Assert.Equal(Modes.Hoc, sang.Mode);
+        Assert.True(QuyTaiCho.ApDung(ngu, 0, Luc(7, 0), offline: false).Locked, "có mạng: máy chủ quyết");
+    }
+
+    [Fact]
+    public void WavCat_GiuPhanDau()
+    {
+        byte[] Wav(int data)
+        {
+            var b = new byte[44 + data];
+            System.Text.Encoding.ASCII.GetBytes("RIFF").CopyTo(b, 0); BitConverter.GetBytes(b.Length - 8).CopyTo(b, 4);
+            System.Text.Encoding.ASCII.GetBytes("WAVEfmt ").CopyTo(b, 8); BitConverter.GetBytes(16).CopyTo(b, 16);
+            BitConverter.GetBytes((ushort)1).CopyTo(b, 20); BitConverter.GetBytes((ushort)1).CopyTo(b, 22);
+            BitConverter.GetBytes(11025).CopyTo(b, 24); BitConverter.GetBytes(22050).CopyTo(b, 28); BitConverter.GetBytes((ushort)2).CopyTo(b, 32);
+            System.Text.Encoding.ASCII.GetBytes("data").CopyTo(b, 36); BitConverter.GetBytes(data).CopyTo(b, 40);
+            return b;
+        }
+        var nho = Wav(100);
+        Assert.Same(nho, WavCat.CatToi(nho, 1000));
+        var cat = WavCat.CatToi(Wav(5000), 1001)!;
+        Assert.Equal(44 + 956, cat.Length);   // căn theo khối 2 byte
+        Assert.Equal(956, BitConverter.ToInt32(cat, 40));
+        Assert.Equal(cat.Length - 8, BitConverter.ToInt32(cat, 4));
+        Assert.Null(WavCat.CatToi(new byte[5000], 1000));
+    }
 }

@@ -300,8 +300,8 @@ internal sealed class TrayContext : ApplicationContext
         var h = new KetQuaHop("Quà").Dau("qua", KhoiCon.Mau.Vang, "Ba Mẹ đã trao quà!", kq.Ten);
         if (kq.Phut is int p)
         {
-            var con = _state.QuyConPhut ?? tq?.Quy?.ConPhut;
-            h.Chip($"+{p} phút", false, con is double c ? $"{AppConView.Phut(c)} → {AppConView.Phut(c + p)}" : null);
+            // tổng quan vừa tải SAU khi Ba Mẹ trao ⇒ quỹ đã gồm phút thưởng (không cộng thêm lần nữa)
+            h.Chip($"+{p} phút", false, tq?.Quy is { } qy ? "Giờ chơi còn " + AppConView.Phut(qy.ConPhut) : null);
             _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });   // quỹ tăng ⇒ app chơi được thả ngay
         }
         if (tq != null) h.Dong(tq.SoSao > 0 ? $"Còn {AppConView.Sao(tq.SoSao)}" : "Còn 0 sao · làm nhiệm vụ để có thêm", false, Clay.DiemInk);
@@ -312,11 +312,12 @@ internal sealed class TrayContext : ApplicationContext
     private KetQuaHop HopThemGio(KetQuaTin kq, HvTongQuan? tq)
     {
         _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
-        var con = (_state.QuyConPhut ?? tq?.Quy?.ConPhut ?? 0) + (kq.Phut ?? 0);
+        // tổng quan vừa tải SAU khi Ba Mẹ cho ⇒ quỹ đã gồm phút thêm
+        var con = tq?.Quy?.ConPhut;
         return new KetQuaHop("Ba Mẹ trả lời")
             .Dau("phao_hoa", KhoiCon.Mau.Ngoc, "Ba Mẹ cho thêm giờ!", null)
-            .Chip($"+{kq.Phut} phút", false, "Giờ chơi còn " + AppConView.Phut(con))
-            .Nut($"Chơi tiếp {AppConView.Phut(con)}", true, "game", null);
+            .Chip($"+{kq.Phut} phút", false, con is double c ? "Giờ chơi còn " + AppConView.Phut(c) : null)
+            .Nut(con is double c2 ? $"Chơi tiếp {AppConView.Phut(c2)}" : "Chơi tiếp", true, "game", null);
     }
 
     private CapNhatKhayForm? _capNhat;

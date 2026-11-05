@@ -86,3 +86,38 @@ public sealed class BaiChoMang
         return daGui;
     }
 }
+
+/// <summary>Cắt tệp WAV PCM cho vừa trần máy chủ (ghi âm ≤ 2 MB): giữ phần đầu, căn theo khối mẫu, sửa lại cỡ RIFF / data.
+/// Máy ghi bỏ qua định dạng nhỏ (8 kHz) thì Con vẫn nộp được phần đầu bài đọc thay vì mất cả bản ghi.</summary>
+public static class WavCat
+{
+    /// <summary>Trả tệp đã cắt (cùng mảng nếu đã vừa); null = không phải WAV đọc được.</summary>
+    public static byte[]? CatToi(byte[] wav, int toiDa)
+    {
+        if (wav.Length <= toiDa) return wav;
+        if (wav.Length < 12 || !Chu(wav, 0, "RIFF") || !Chu(wav, 8, "WAVE")) return null;
+        int pos = 12, khoi = 1;
+        while (pos + 8 <= wav.Length)
+        {
+            var ten = System.Text.Encoding.ASCII.GetString(wav, pos, 4);
+            var co = BitConverter.ToInt32(wav, pos + 4);
+            if (ten == "fmt " && pos + 8 + 14 <= wav.Length) khoi = Math.Max(1, (int)BitConverter.ToUInt16(wav, pos + 8 + 12));
+            if (ten == "data")
+            {
+                var dau = pos + 8;
+                var giu = Math.Max(0, (toiDa - dau) / khoi * khoi);
+                if (giu <= 0) return null;
+                var ra = new byte[dau + giu];
+                Array.Copy(wav, ra, ra.Length);
+                BitConverter.GetBytes(giu).CopyTo(ra, pos + 4);
+                BitConverter.GetBytes(ra.Length - 8).CopyTo(ra, 4);
+                return ra;
+            }
+            if (co < 0) return null;
+            pos += 8 + co + (co & 1);
+        }
+        return null;
+    }
+
+    private static bool Chu(byte[] b, int i, string s) => System.Text.Encoding.ASCII.GetString(b, i, 4) == s;
+}
