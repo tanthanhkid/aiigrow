@@ -20,7 +20,12 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import vn.aiilab.aiigrow.maycon.logic.PHUT_NGOAI_LE
+import vn.aiilab.aiigrow.maycon.logic.PHUT_SAO
 import vn.aiilab.aiigrow.maycon.logic.PHUT_XIN
+import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
+import vn.aiilab.aiigrow.maycon.logic.saoCan
+import vn.aiilab.aiigrow.maycon.logic.thanXinNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.chuanMaGhep
 import vn.aiilab.aiigrow.maycon.logic.appChoiDiem
@@ -86,8 +91,8 @@ class ManChinh : Activity() {
         // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
         val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
         val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
-        // danh sách trò đổi điểm theo luật mới nhất (luật tới sau khi ghép / Ba Mẹ thêm trò ⇒ dựng lại thẻ)
-        val appDiem = if (k.daGhep) cacAppDiem(k).joinToString(",") else ""
+        // 05/11: giờ ngủ / Ba Mẹ khoá ⇒ thẻ xin đổi thành «Xin Ba Mẹ mở ngoại lệ» (dựng lại thẻ khi đổi)
+        val appDiem = if (k.daGhep) (HienThi.doc(k.hienThi)?.trangThai?.let(::chiNgoaiLe) ?: false).toString() else ""
         if (daVe != kieu + quyen + appDiem) {
             daVe = kieu + quyen + appDiem
             goc.removeAllViews()
@@ -143,7 +148,7 @@ class ManChinh : Activity() {
     // ------------------------------------------------------------ đã ghép
     private fun dungManDaGhep() {
         val t = G.the(this, G.XANH)
-        t.addView(G.dauKhoi(this, R.drawable.fl_mat_troi, "Giờ giải trí còn lại hôm nay", Clay.CHINH_SOFT, 15f, 0xEEFFFFFF.toInt()))
+        t.addView(G.dauKhoi(this, R.drawable.fl_mat_troi, "Giờ chơi còn lại hôm nay", Clay.CHINH_SOFT, 15f, 0xEEFFFFFF.toInt()))
         tPhut = G.chu(this, "—", 48f, G.TRANG, true).apply { fontFeatureSettings = "tnum"; pivotX = 0f }
         tCau = G.chu(this, "", 16f, G.TRANG)
         tMoLai = G.chu(this, "", 14f, 0xDDFFFFFF.toInt())
@@ -152,16 +157,20 @@ class ManChinh : Activity() {
         dungTheViec()
 
         val x = G.the(this)
-        x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, "Xin Ba Mẹ thêm giờ", Clay.DIEM_SOFT))
+        val laNl = HienThi.doc(Kho(this).hienThi)?.trangThai?.let(::chiNgoaiLe) ?: false
+        val dsPhut = if (laNl) PHUT_NGOAI_LE else PHUT_XIN
+        if (phutChon !in dsPhut) phutChon = 30
+        x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, if (laNl) "Xin Ba Mẹ mở ngoại lệ" else "Xin Ba Mẹ thêm giờ", Clay.DIEM_SOFT))
+        if (laNl) x.addView(G.chu(this, "Giờ ngủ / Ba Mẹ đang khoá: không thêm giờ được, con xin Ba Mẹ mở máy một lúc nhé.", 15f, G.CHU_PHU))
         // không canh theo baseline: nút có cỡ chữ khác nhau sẽ bị đẩy lệch dọc
         val hang = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
-        nutPhut = PHUT_XIN.map { p ->
-            G.nut(this, if (p == 120) "2 giờ" else "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == p) } }.apply {
+        nutPhut = dsPhut.map { p ->
+            G.nut(this, if (p == 120) "2 giờ" else "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, dsPhut[i] == p) } }.apply {
                 // ba nút chung một hàng (~47dp chữ ở máy 360dp): một dòng, chữ tự thu 12–16sp thay vì rớt «phút» xuống dòng / bị cắt
                 maxLines = 1
                 val cach = G.dp(this@ManChinh, 3)   // chia đều khe giữa hai nút, không dồn lề phải
                 layoutParams = LinearLayout.LayoutParams(0, layoutParams.height.takeIf { it > 0 } ?: minHeight, 1f).apply {
-                    marginStart = if (p == PHUT_XIN.first()) 0 else cach; marginEnd = if (p == PHUT_XIN.last()) 0 else cach; topMargin = G.dp(this@ManChinh, 6) }
+                    marginStart = if (p == dsPhut.first()) 0 else cach; marginEnd = if (p == dsPhut.last()) 0 else cach; topMargin = G.dp(this@ManChinh, 6) }
             }
         }
         nutPhut.forEach(hang::addView)
@@ -174,7 +183,7 @@ class ManChinh : Activity() {
             val co = (16 downTo 12).firstOrNull { c -> nutPhut.all { n -> android.graphics.Paint(n.paint).apply { textSize = c * sp }.measureText(n.text.toString()) <= rong } } ?: 12
             hang.post { nutPhut.forEach { it.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, co.toFloat()) } }
         }
-        nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, PHUT_XIN[i] == phutChon) }
+        nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, dsPhut[i] == phutChon) }
         x.addView(hang)
         val loi = EditText(this).apply {
             hint = "Lời nhắn cho Ba Mẹ (không bắt buộc)"; filters = arrayOf(InputFilter.LengthFilter(100)); minHeight = G.dp(this@ManChinh, 56)
@@ -188,13 +197,14 @@ class ManChinh : Activity() {
         val bao = G.dongBao(this, Clay.CHINH_INK)
         tXin = G.dongBao(this, Clay.CHINH_INK)
         x.addView(G.nut(this, "Gửi Ba Mẹ") {
-            val than = thanXinThemGio(phutChon, loi.text.toString().replace(Regex("\\s*\n\\s*"), " "))  // ô nhiều dòng: lý do gửi Ba Mẹ vẫn một dòng
+            val nhan = loi.text.toString().replace(Regex("\\s*\n\\s*"), " ")
+            val than = if (laNl) thanXinNgoaiLe(phutChon, nhan) else thanXinThemGio(phutChon, nhan)  // ô nhiều dòng: lý do gửi Ba Mẹ vẫn một dòng
             bao.text = "Đang gửi…"
             Thread { val s = DichVuNhip.xinThemGio(this, than); runOnUiThread { bao.text = s; loi.setText(""); capNhatXin(Kho(this)) } }.start()
         })
         x.addView(bao)
         x.addView(tXin)
-        dungDoiDiem(x)
+        if (!laNl) dungSao(x)
         goc.addView(x)
 
         val d = G.the(this)
@@ -248,10 +258,10 @@ class ManChinh : Activity() {
             })
         }
         v.addView(hang("Nhiệm vụ" to "nhiem-vu", "Nộp bài" to "nhiem-vu"))
-        v.addView(hang("Phần quà" to "cua-hang", "Ví quà" to "vi-qua"))
-        v.addView(G.nut(this, "Chơi bằng điểm", ngoc = true) {
+        v.addView(hang("Đổi quà" to "cua-hang", "Quà của con" to "vi-qua"))
+        v.addView(G.nut(this, "Dùng sao thêm giờ", ngoc = true) {
             val d = theDiem
-            if (d != null) (goc.parent as? ScrollView)?.smoothScrollTo(0, (d.parent as View).top + d.top) else ManTre.mo(this, "choi")
+            if (d != null) (goc.parent as? ScrollView)?.smoothScrollTo(0, (d.parent as View).top + d.top) else ManTre.mo(this, "nha")
         })
         v.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, "Lời nhắn của Ba Mẹ", Clay.DIEM_SOFT, 17f).apply { setPadding(0, G.dp(this@ManChinh, 12), 0, 0) })
         dsNhan = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -270,13 +280,13 @@ class ManChinh : Activity() {
         val tv = tViec ?: return
         if (o == null) { tv.text = if (k.cheDoThu) "Chế độ thử: không gọi máy chủ." else "Đang lấy nhiệm vụ…"; return }
         val nv = o.optJSONArray("nhiemVu") ?: org.json.JSONArray()
-        tv.text = "Con có ${o.optInt("soDu")} điểm · ${if (nv.length() == 0) "chưa có nhiệm vụ mới" else "${nv.length()} nhiệm vụ đang chờ con"}"
+        tv.text = "Con có ${o.optInt("sao", o.optInt("soDu"))} sao · ${if (nv.length() == 0) "chưa có nhiệm vụ mới" else "${nv.length()} nhiệm vụ đang chờ con"}"
         dsNv?.removeAllViews()
         for (i in 0 until minOf(3, nv.length())) {
             val x = nv.optJSONObject(i) ?: continue
             val id = x.optString("id")
             val canBoSung = x.optString("trangThai") == "can_bo_sung"
-            dsNv?.addView(G.chu(this, "• ${x.optString("ten")} · ${x.optInt("diem")} điểm" + if (canBoSung) " · Ba Mẹ nhờ bổ sung" else "", 16f, G.CHU).apply {
+            dsNv?.addView(G.chu(this, "• ${x.optString("ten")} · +${x.optInt("sao", x.optInt("diem"))} sao" + if (canBoSung) " · Ba Mẹ nhờ làm lại" else "", 16f, G.CHU).apply {
                 maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; minHeight = G.dp(this@ManChinh, 44); gravity = Gravity.CENTER_VERTICAL
                 isClickable = true; contentDescription = "Mở nhiệm vụ ${x.optString("ten")}"
                 setOnClickListener { ManTre.mo(this@ManChinh, "nv/$id") }
@@ -303,57 +313,30 @@ class ManChinh : Activity() {
         }
     }
 
-    /** Đổi điểm lấy thời gian ngay trong thẻ xin giờ (phien/xet ⇒ xác nhận ⇒ phien/mo), như RequestForm.cs «Đổi điểm lấy thời gian». */
-    private fun dungDoiDiem(x: LinearLayout) {
+    /** 05/11 «Dùng sao thêm giờ» ngay trong thẻ xin giờ: đổi sao lấy 15 / 30 / 60 phút cộng vào quỹ hôm nay (hoc-vien/doi-sao — máy chủ
+     *  kiểm số sao, trần đổi mỗi ngày, giờ ngủ). Không còn chơi theo từng app bằng điểm. */
+    private fun dungSao(x: LinearLayout) {
         val k = Kho(this)
-        val apps = cacAppDiem(k)
         val d = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, G.dp(this@ManChinh, 14), 0, 0) }
         theDiem = d
-        d.addView(G.chu(this, "Hoặc đổi điểm lấy thời gian", 17f, G.CHU, true))
-        tPhien = G.dongBao(this, Clay.CHINH_INK)
-        nutDungPhien = G.nut(this, "Dừng chơi bằng điểm", phu = true) { b ->
-            b.isEnabled = false
-            Thread { val loi = HocVien.dung(this); runOnUiThread { b.isEnabled = true; tPhien?.text = loi ?: "Đã dừng. Điểm còn lại giữ nguyên."; capNhatXin(Kho(this)) } }.start()
-        }.apply { visibility = View.GONE }
-        if (apps.isEmpty()) {
-            d.addView(G.chu(this, "Chưa có trò chơi nào Ba Mẹ cho đổi điểm trên máy này.", 15f, G.CHU_PHU))
-        } else {
-            d.addView(G.chu(this, "Chọn trò con muốn chơi:", 15f, G.CHU_PHU))
-            var chon = apps.first()
-            val bao = G.dongBao(this, Clay.CHINH_INK)
-            var daXet: String? = null   // app vừa xét được (nút «Bắt đầu» mở đúng app đó)
-            val nutBatDau = G.nut(this, "Bắt đầu chơi bằng điểm", ngoc = true) { b ->
-                val muc = daXet ?: return@nut
-                b.isEnabled = false; bao.text = "Đang mở…"
+        val tq = try { k.hvTongQuan?.let { org.json.JSONObject(it) } } catch (_: Exception) { null }
+        val sao = tq?.let { it.optInt("sao", it.optInt("soDu")) }
+        val ty = tq?.optJSONObject("quy")?.optJSONObject("tyLe")
+        val phut10 = ty?.let { (it.optInt("phut", 10) * 10 / it.optInt("sao", 10).coerceAtLeast(1)).coerceAtLeast(1) } ?: 10
+        d.addView(G.chu(this, "Hoặc dùng sao thêm giờ chơi", 17f, G.CHU, true))
+        d.addView(G.chu(this, "10 sao = $phut10 phút" + (sao?.let { " · con đang có $it sao" } ?: ""), 15f, G.CHU_PHU))
+        val bao = G.dongBao(this, Clay.CHINH_INK)
+        for (p in PHUT_SAO) {
+            val can = saoCan(p, phut10)
+            d.addView(G.nut(this, "+$p phút · $can sao", phu = true) { b ->
+                b.isEnabled = false; bao.text = "Đang đổi sao…"
                 Thread {
-                    val loi = HocVien.mo(this, muc)
-                    runOnUiThread { b.isEnabled = true; if (loi == null) b.visibility = View.GONE; bao.text = loi ?: "Được rồi! Con chơi vui nhé."; capNhatXin(Kho(this)) }
+                    val loi = HocVien.doiSao(this, p)
+                    runOnUiThread { b.isEnabled = true; bao.text = loi ?: "Đã đổi! +$p phút chơi hôm nay." }
                 }.start()
-            }.apply { visibility = View.GONE }
-            val nutApp = apps.map { g -> G.nut(this, DoPhut.tenApp(this, g), phu = true) { } }
-            nutApp.forEachIndexed { i, b ->
-                b.maxLines = 1
-                b.setOnClickListener { chon = apps[i]; daXet = null; nutBatDau.visibility = View.GONE; bao.text = ""; nutApp.forEachIndexed { j, n -> G.chonTrongNhom(this, n, j == i) } }
-                G.chonTrongNhom(this, b, i == 0)
-                d.addView(b)
-            }
-            d.addView(G.nut(this, "Đổi điểm") { b ->
-                b.isEnabled = false; bao.text = "Đang xem con đổi được bao lâu…"; nutBatDau.visibility = View.GONE
-                val muc = chon; val ten = DoPhut.tenApp(this, muc)
-                Thread {
-                    val kq = HocVien.xet(this, muc)
-                    runOnUiThread {
-                        b.isEnabled = true
-                        if (chon != muc) return@runOnUiThread   // Con đã chọn app khác trong lúc chờ ⇒ bỏ kết quả cũ
-                        daXet = if (kq.duoc) muc else null
-                        bao.text = if (kq.duoc) cauXetDuoc(kq, ten) else kq.cau
-                        nutBatDau.visibility = if (kq.duoc) View.VISIBLE else View.GONE
-                    }
-                }.start()
-            })
-            d.addView(bao); d.addView(nutBatDau)
+            }.apply { isEnabled = sao == null || sao >= can })
         }
-        d.addView(tPhien); d.addView(nutDungPhien)
+        d.addView(bao)
         x.addView(d)
         capNhatXin(k)
     }

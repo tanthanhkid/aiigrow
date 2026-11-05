@@ -13,6 +13,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
+import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.mmss
 import java.time.Instant
 import java.time.ZoneId
@@ -113,10 +114,11 @@ object GiaoDien {
     fun gio(ms: Long): String = DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()))
 
     fun tieuDeKhoa(t: String) = when (t) {
-        TrangThai.KHOA_NGAY.name -> "Máy đang khoá"
+        TrangThai.KHOA_NGAY.name -> "Ba Mẹ đang khoá máy"
         TrangThai.GIO_NGU.name -> "Đến giờ ngủ rồi"
-        TrangThai.HET_GIO.name -> "Hết giờ giải trí"
+        TrangThai.HET_GIO.name -> "Hết giờ chơi hôm nay"
         TrangThai.NGOAI_KHUNG.name -> "Chưa tới giờ chơi"
+        TrangThai.GIO_HOC.name -> "Đang giờ học"
         else -> "AiiGrow"
     }
 
@@ -134,12 +136,16 @@ object GiaoDien {
         chanApp -> R.drawable.fl_khoa
         t == TrangThai.GIO_NGU.name -> R.drawable.fl_trang
         t == TrangThai.HET_GIO.name -> R.drawable.fl_dong_ho_cat
-        t == TrangThai.NGOAI_KHUNG.name -> R.drawable.fl_dong_ho
+        t == TrangThai.NGOAI_KHUNG.name || t == TrangThai.GIO_HOC.name -> R.drawable.fl_dong_ho
         else -> R.drawable.fl_khoa
     }
 
     /** Nội dung màn khoá / màn chặn dùng chung cho ManKhoa (activity) và TroNang (lớp phủ trợ năng). */
-    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> String)? = null) {
+    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> String)? = null,
+                      /** 05/11: app chưa được Ba Mẹ cho phép ⇒ «Xin Ba Mẹ duyệt» gửi thẳng (api/device/xin-duyet), không mở màn xin giờ. */
+                      val onDuyet: ((String) -> Unit)? = null) {
+        /** Gói app đang hiện trên màn chặn mà Con xin duyệt được (null = màn khoá / hết giờ). */
+        private var goiDuyet: String? = null
         private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(c, 22), dp(c, 24), dp(c, 22), dp(c, 24)) }
         /** Gốc cuộn được: máy nhỏ / cỡ chữ lớn thì nút «Xin Ba Mẹ thêm giờ» vẫn kéo tới được, không rơi khỏi đáy màn. Tràn viền (targetSdk 35):
          *  chừa thanh trạng thái / thanh điều hướng bằng insets thật thay vì đoán 48dp. */
@@ -159,7 +165,7 @@ object GiaoDien {
         val cau = chu(c, "", 18f, Clay.CHU2).apply { gravity = Gravity.CENTER }
         val ghi = chu(c, "Máy này do Ba Mẹ quản lý bằng AiiGrow.", 14f, CHU_PHU).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 20), 0, 0) }
         // nút chừa lề bóng 4dp, thẻ 6dp ⇒ lùi nút 2dp mỗi bên để mép khối nút thẳng mép khối thẻ
-        val nutXin = nut(c, "Xin Ba Mẹ thêm giờ", ngoc = true) { onXin() }.apply { (layoutParams as LinearLayout.LayoutParams).apply { topMargin = dp(c, 16); marginStart = dp(c, 2); marginEnd = dp(c, 2) } }
+        val nutXin = nut(c, "Xin Ba Mẹ thêm giờ", ngoc = true) { val g = goiDuyet; val f = onDuyet; if (g != null && f != null) f(g) else onXin() }.apply { (layoutParams as LinearLayout.LayoutParams).apply { topMargin = dp(c, 16); marginStart = dp(c, 2); marginEnd = dp(c, 2) } }
         val nutVe = onVe?.let { f -> nut(c, "Về màn hình chính", phu = true) { f() }.apply { (layoutParams as LinearLayout.LayoutParams).apply { marginStart = dp(c, 2); marginEnd = dp(c, 2) } } }
         private var hinhDangHien = 0
 
@@ -197,12 +203,25 @@ object GiaoDien {
 
         fun ve(ht: HienThi, goiChan: String? = null) {
             val chanApp = goiChan != null && !ht.dangKhoaThat
+            val duyet = chanApp && goiChan in ht.goiChuaXep
+            val goiMoi = if (duyet) goiChan else null
+            nutXin.text = when {
+                duyet -> "Xin Ba Mẹ duyệt"
+                chiNgoaiLe(ht.trangThai) -> "Xin Ba Mẹ mở ngoại lệ"
+                ht.trangThai == TrangThai.HET_GIO.name -> "Thêm giờ chơi"
+                else -> "Xin Ba Mẹ thêm giờ"
+            }
             if (chanApp) {
                 tieuDe.text = "Ứng dụng này đang bị chặn"
                 dem.text = DoPhut.tenApp(c, goiChan!!)
                 dem.textSize = 26f
-                cau.text = "Ba Mẹ chưa cho dùng ứng dụng này lúc này. Con có thể xin Ba Mẹ nhé."
+                // giữ câu «Đã gửi Ba Mẹ…» khi vẽ lại cùng app (vẽ mỗi giây)
+                if (goiMoi == null || goiMoi != goiDuyet) cau.text = if (duyet) "App này chưa được Ba Mẹ cho phép. Con xin Ba Mẹ duyệt nhé."
+                    else if (ht.trangThai == TrangThai.HET_GIO.name) "Hôm nay con đã chơi hết giờ. Con dùng sao hoặc xin Ba Mẹ thêm giờ nhé."
+                    else "Ba Mẹ chưa cho dùng ứng dụng này lúc này. Con có thể xin Ba Mẹ nhé."
+                goiDuyet = goiMoi
             } else {
+                goiDuyet = null
                 tieuDe.text = tieuDeKhoa(ht.trangThai)
                 dem.text = dongDemNguoc(ht); dem.textSize = if (ht.demNguoc > 0) 44f else 24f
                 cau.text = ht.cauCon

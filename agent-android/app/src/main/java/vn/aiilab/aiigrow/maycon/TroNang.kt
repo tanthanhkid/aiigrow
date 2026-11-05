@@ -52,6 +52,7 @@ class TroNang : AccessibilityService() {
             onXin = { an(); startActivity(Intent(this, ManChinh::class.java).putExtra("xin", true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) },
             onVe = { an(); performGlobalAction(GLOBAL_ACTION_HOME) },
             onMa = { MoMaOffline.thu(this, it) },
+            onDuyet = { g -> Thread { val s = DichVuNhip.xinDuyet(this, g, DoPhut.tenApp(this, g)); h.post { phu?.cau?.text = s } }.start() },
         ).also {
             phu = it
             val lp = WindowManager.LayoutParams(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,

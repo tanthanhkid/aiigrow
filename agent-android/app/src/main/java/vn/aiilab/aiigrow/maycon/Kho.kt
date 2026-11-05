@@ -88,13 +88,16 @@ data class HienThi(
     val trangThai: String, val conPhut: Int, val cauCon: String, val moLaiLuc: Long, val khoaCaMay: Boolean,
     val demNguoc: Int, val dangKhoaThat: Boolean, val goiChan: Set<String>, val dungTop: List<Pair<String, Int>>, val capNhat: Long,
     val deviceOwner: Boolean, val tenCon: String?,
+    /** 05/11: app tạm dừng vì chưa được Ba Mẹ cho phép ⇒ màn chặn «Xin Ba Mẹ duyệt». */
+    val goiChuaXep: Set<String> = emptySet(),
 ) {
     fun json(): String = JSONObject()
         .put("trangThai", trangThai).put("conPhut", conPhut).put("cauCon", cauCon).put("moLaiLuc", moLaiLuc)
         .put("khoaCaMay", khoaCaMay).put("demNguoc", demNguoc).put("dangKhoaThat", dangKhoaThat)
         .put("goiChan", JSONArray(goiChan.toList()))
         .put("dungTop", JSONArray(dungTop.map { JSONObject().put("goi", it.first).put("phut", it.second) }))
-        .put("capNhat", capNhat).put("deviceOwner", deviceOwner).put("tenCon", tenCon ?: "").toString()
+        .put("capNhat", capNhat).put("deviceOwner", deviceOwner).put("tenCon", tenCon ?: "")
+        .put("goiChuaXep", JSONArray(goiChuaXep.toList())).toString()
 
     companion object {
         fun doc(s: String?): HienThi? = try {
@@ -106,13 +109,14 @@ data class HienThi(
                     o.optInt("demNguoc"), o.optBoolean("dangKhoaThat"), (0 until gc.length()).map { gc.optString(it) }.toSet(),
                     (0 until dt.length()).mapNotNull { dt.optJSONObject(it)?.let { x -> x.optString("goi") to x.optInt("phut") } },
                     o.optLong("capNhat"), o.optBoolean("deviceOwner"), o.optString("tenCon").ifBlank { null },
+                    (o.optJSONArray("goiChuaXep") ?: JSONArray()).let { a -> (0 until a.length()).map { a.optString(it) }.toSet() },
                 )
             }
         } catch (_: Exception) { null }
 
         fun tu(qd: QuyetDinh, demNguoc: Int, dungTop: List<Pair<String, Int>>, now: Long, deviceOwner: Boolean, tenCon: String?) = HienThi(
             qd.trangThai.name, qd.conPhut, qd.cauCon, qd.moLaiLuc?.toEpochMilli() ?: 0, qd.khoaCaMay, demNguoc,
-            demNguoc == 0 && vn.aiilab.aiigrow.maycon.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon,
+            demNguoc == 0 && vn.aiilab.aiigrow.maycon.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon, qd.goiChuaXep,
         )
     }
 }

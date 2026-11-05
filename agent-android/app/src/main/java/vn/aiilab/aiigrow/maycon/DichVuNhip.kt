@@ -316,7 +316,18 @@ class DichVuNhip : Service() {
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
         }
 
-        /** Xin thêm giờ (luồng nền). Trả câu báo cho Con. */
+        /** «Xin Ba Mẹ duyệt» app đang bị chặn vì chưa được cho phép (luồng nền). Trả câu báo cho Con. */
+        fun xinDuyet(ctx: Context, goi: String, ten: String?): String {
+            val k = Kho(ctx)
+            if (k.cheDoThu) return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé."
+            return try {
+                val than = JSONObject().put("muc", goi); ten?.takeIf { it.isNotBlank() && it != goi }?.let { than.put("ten", it) }
+                MayChu(k.mayChu, k.token).xinDuyet(than)
+                "Đã gửi Ba Mẹ. Ba Mẹ đồng ý là con mở được ngay."
+            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Chưa gửi được — máy đang mất mạng." }
+        }
+
+        /** Xin thêm giờ / xin mở ngoại lệ (luồng nền). Trả câu báo cho Con. */
         fun xinThemGio(ctx: Context, than: JSONObject): String {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }

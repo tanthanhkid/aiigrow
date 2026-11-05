@@ -38,6 +38,8 @@ class MayChu(private val goc: String, private val token: String?) {
     fun ghepGoi(than: JSONObject) = goi("ghep-goi", than)
     fun nhip(than: JSONObject) = goi("nhip", than)
     fun xinThemGio(than: JSONObject) = goi("yeu-cau", than)
+    /** 05/11: Con «Xin Ba Mẹ duyệt» app lạ (máy chủ tự xếp app / web; lời xin trùng trả lại lời xin cũ). */
+    fun xinDuyet(than: JSONObject) = goi("xin-duyet", than)
     fun hoSoDns() = goi("ho-so-dns")
     fun xongLenh(id: String) = goi("lenh/$id/xong", JSONObject())
     /** Nhật ký agent (server/lib/log-may.ts) và sự kiện (`ma` một lần — server/lib/may-con.ts › nhanSuKien): thân { ds: [...] }. */

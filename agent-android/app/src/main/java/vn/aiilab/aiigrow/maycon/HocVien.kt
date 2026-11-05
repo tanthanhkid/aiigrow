@@ -162,6 +162,14 @@ object HocVien {
         catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa dừng được — máy đang mất mạng." }
     }
 
+    /** 05/11 «Dùng sao» (hoc-vien/doi-sao {phut}) ⇒ null nếu được (nạp lại tổng quan + áp quỹ mới ngay), câu lỗi nếu không. */
+    fun doiSao(ctx: Context, phut: Int): String? {
+        val k = Kho(ctx)
+        if (k.cheDoThu || k.token == null) return CAU_THU
+        return try { may(k).goi("hoc-vien/doi-sao", JSONObject().put("phut", phut)); napTongQuan(ctx); DichVuNhip.lamMoi(ctx); null }
+        catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa đổi được — máy đang mất mạng." }
+    }
+
     /** Con trả lời lời nhắn của Ba Mẹ (hoc-vien/loi-khen/:id/phan-hoi) ⇒ null nếu được, câu lỗi nếu không. */
     fun traLoi(ctx: Context, id: String, noi: String): String? {
         val k = Kho(ctx)
