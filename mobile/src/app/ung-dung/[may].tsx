@@ -144,7 +144,7 @@ export default function UngDungMay() {
     return (
       <Man lui={{ chu: "" }} tieu={`App trên ${d.may.ten}${p ? ` của ${tenCon}` : ""}`} noi={noi} tai={tai} vongTai
         day={p?.xem ? undefined : <Nut chu={`Thêm app cho ${tenCon}`} rong bam={() => router.push({ pathname: "/ung-dung/them", params: { may, con: conId } })} />}>
-        <TheCheDoNgan cheDo={p?.ct.cheDoChan ?? "chi_app_duoc_phep"} doi={p?.xem ? undefined : () => router.push(`/app-web?con=${conId}`)} />
+        {p ? <TheCheDoNgan cheDo={p.ct.cheDoChan ?? "chi_app_duoc_phep"} doi={p.xem ? undefined : () => router.push(`/app-web?con=${conId}`)} /> : null}
         {p?.xin.map((y) => <HangVang key={y.id} tieu={tieuXin(y)} phu={phuXin(y)} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />)}
         <MucTieu chu={`Được dùng · ${duoc.length} app${p?.ngan ? ` · ${p.ngan.phutChoi}/${p.ngan.tranNgay} phút giờ chơi` : ""}`} />
         <Nhom>

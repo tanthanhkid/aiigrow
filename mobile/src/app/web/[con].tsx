@@ -23,15 +23,20 @@ export default function WebCon() {
   const { lam, loi: loiLam } = useLam();
   const { bao, noi } = useHoanTac();
   if (!d) return <Man lui={{ chu: "" }} tieu="Trang web"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const duoc = d.w.luat.filter((l) => l.trangThai === "cho_phep" || l.trangThai === "giai_tri");
-  const chan = d.w.luat.filter((l) => l.trangThai === "chan");
+  // một tên miền có thể có luật cả nhà lẫn luật riêng của con ⇒ luật riêng của con thắng (như máy chủ áp), mỗi tên miền một dòng
+  const hieuLuc = new Map<string, LuatWeb>();
+  for (const l of d.w.luat) if (l.nguon === "gia_dinh") hieuLuc.set(l.tenMien, l);
+  for (const l of d.w.luat) if (l.nguon === "con") hieuLuc.set(l.tenMien, l);
+  const ds = [...hieuLuc.values()];
+  const duoc = ds.filter((l) => l.trangThai === "cho_phep" || l.trangThai === "giai_tri");
+  const chan = ds.filter((l) => l.trangThai === "chan");
   const dat = (l: LuatWeb, trangThai: "cho_phep" | "chan") => lam(async () => {
     const caNha = l.nguon === "gia_dinh";
     await bm.goi(`con/${con}/web/trang`, { muc: l.tenMien, trangThai, caNha });
     await tai();
     const lai: Record<TrangThaiWeb, "cho_phep" | "chan" | "mac_dinh"> = { cho_phep: "cho_phep", chan: "chan", giai_tri: "cho_phep", he_thong: "mac_dinh", chua_xep: "mac_dinh" };
     bao(trangThai === "chan" ? `Đã chặn ${l.tenMien}` : `Đã cho phép ${l.tenMien}`, () => {
-      (l.trangThai === "giai_tri" ? bm.goi("luat", { con, muc: l.tenMien, loai: "giai_tri" }) : bm.goi(`con/${con}/web/trang`, { muc: l.tenMien, trangThai: lai[l.trangThai], caNha }))
+      (l.trangThai === "giai_tri" ? bm.goi("luat", { con: caNha ? undefined : con, muc: l.tenMien, loai: "giai_tri" }) : bm.goi(`con/${con}/web/trang`, { muc: l.tenMien, trangThai: lai[l.trangThai], caNha }))
         .then(() => tai(), () => tai());
     });
   });

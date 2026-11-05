@@ -27,14 +27,16 @@ export default function AppWeb() {
   const { lam, loi: loiLam } = useLam();
   const { bao, noi } = useHoanTac();
   useEffect(() => {
-    if (ts.xep && conId) router.replace({ pathname: "/ung-dung/app", params: { con: conId, muc: ts.xep, ten: ts.ten ?? ts.xep } });
-  }, [ts.xep, ts.ten, conId]);
+    // app mới của cả nhà (không kèm con) ⇒ luật cả nhà, như luồng xếp loại cũ
+    if (ts.xep && conId) router.replace({ pathname: "/ung-dung/app", params: { con: conId, muc: ts.xep, ten: ts.ten ?? ts.xep, ...(ts.con ? {} : { caNha: "1" }) } });
+  }, [ts.xep, ts.ten, ts.con, conId]);
 
   if (!d) return <Man lui={{ chu: "" }} tieu="App & web"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const con = d.g.con.find((c) => c.id === conId);
   if (!con) return <Man lui={{ chu: "" }} tieu="App & web"><ChoTai loi="Chưa có hồ sơ con nào — thêm con ở tab Cả nhà." tai={tai} /></Man>;
   const cd = ct.d?.id === con.id ? ct.d : null;
-  const cheDo: CheDoChan = cd?.cheDoChan ?? "chi_app_duoc_phep";
+  // chưa tải xong chi tiết con ⇒ chưa biết chế độ: không chọn ô nào, không cho bấm (tránh bấm trùng chế độ đoán sai rồi bị bỏ qua)
+  const cheDo: CheDoChan | null = cd ? cd.cheDoChan ?? "chi_app_duoc_phep" : null;
   const luat = luatCuaCon(d.luat, con.id).filter((l) => !laWeb(l.muc));
   const duocDung = luat.filter((l) => l.loai !== "chan");
   const daChan = luat.filter((l) => l.loai === "chan");
@@ -59,7 +61,7 @@ export default function AppWeb() {
   return (
     <Man lui={{ chu: "" }} tieu={`App & web của ${con.ten}`} noi={noi} tai={tai} vongTai>
       {d.g.con.length > 1 ? <ChonMot ds={d.g.con.map((c) => ({ gia: c.id, chu: c.ten }))} gia={con.id} doi={setChonCon} /> : null}
-      <TheCheDo cheDo={cheDo} doi={d.xem ? undefined : doiCheDo} />
+      <TheCheDo cheDo={cheDo} doi={d.xem || !cd ? undefined : doiCheDo} />
       <BaoLoi loi={loiLam} />
       {xin.map((y) => <HangVang key={y.id} tieu={tieuXin(y)} phu={phuXin(y)} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />)}
 

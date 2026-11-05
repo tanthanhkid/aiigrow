@@ -29,16 +29,15 @@ function TinAiiGrow({ noiDung, luc }: { noiDung: string; luc: string }) {
 }
 
 export default function HoTro() {
-  const { d, loi, matMang, tai } = useTai(async () => {
-    const [ht, toi] = await Promise.all([bm.goi<{ tin: Tin[] }>("ho-tro"), bm.goi<{ baMe: { ten: string } }>("toi").catch(() => null)]);
-    return { tin: ht.tin, ten: toi?.baMe.ten ?? "Ba Mẹ" };
-  });
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<{ tin: Tin[] }>("ho-tro"));
+  const tenToi = useTai(() => bm.goi<{ baMe: { ten: string } }>("toi")).d?.baMe.ten ?? "Ba Mẹ";   // một lần, không theo vòng tải 10 giây
   const [nd, setNd] = useState("");
   const [faq, setFaq] = useState(false);
   const [mo, setMo] = useState<number | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   useEffect(() => { const t = setInterval(tai, 10_000); return () => clearInterval(t); }, [tai]);
-  const gui = (chu = nd) => lam(async () => { await bm.goi("ho-tro", { noiDung: chu }); setNd(""); await tai(); });
+  // gợi ý nhanh gửi riêng câu của nó — không xoá bản nháp Ba Mẹ đang gõ
+  const gui = (chu?: string) => lam(async () => { await bm.goi("ho-tro", { noiDung: chu ?? nd }); if (chu === undefined) setNd(""); await tai(); });
   const dauTien = d?.tin[0]?.created_at;
   return (
     <Man lui={{ chu: "" }} tieu="AiiGrow hỗ trợ" phai={<NutVien chu="Hay gặp ›" bam={() => setFaq(true)} />} cuonCuoi day={
@@ -58,7 +57,7 @@ export default function HoTro() {
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : (
         <>
           <Chu kieu="dam" co={12} mau={M.chu3} style={{ textAlign: "center" }}>{(() => { const t = dauTien ? new Date(dauTien) : new Date(); return `${t.toDateString() === new Date().toDateString() ? "Hôm nay " : ""}${gioPhut(t)}`; })()}</Chu>
-          <TinAiiGrow noiDung={`Chào ${d.ten}! Mình là AiiGrow. ${d.ten} cần giúp gì ạ?`} luc="" />
+          <TinAiiGrow noiDung={`Chào ${tenToi}! Mình là AiiGrow. ${tenToi} cần giúp gì ạ?`} luc="" />
           {d.tin.map((t) => t.tu === "aiilab" ? <TinAiiGrow key={t.id} noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />
             : <BongChat key={t.id} toi noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />)}
           {!d.tin.length ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Người thật của AiiGrow trả lời, thường trong 5 phút.</Chu> : null}

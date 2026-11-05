@@ -10,7 +10,8 @@ import { ManKetQua, MucTieu, OIcon, icCuaApp, luatCuaCon, veHoac, type LuatApp }
 import { BaoLoi, ChoTai, Chips, Chu, CongTac, Dong, M, Man, NhanMen, Nhom, Nut, useLam, useTai } from "@/lib/ui";
 
 export default function MotApp() {
-  const ts = useLocalSearchParams<{ con: string; muc: string; ten?: string }>();
+  const ts = useLocalSearchParams<{ con: string; muc: string; ten?: string; caNha?: string }>();
+  const caNha = ts.caNha === "1";        // app mới chưa xếp của cả nhà (thẻ «app mới» Trang chủ) ⇒ luật cả nhà, không gắn một con
   const { d, loi, matMang, tai } = useTai(async () => {
     const [g, luat, xem] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: LuatApp[] }>("luat"), laChiXem()]);
     return { g, luat: luat.ds, xem };
@@ -32,17 +33,19 @@ export default function MotApp() {
   const tenCon = (id: string) => d.g.con.find((c) => c.id === id)?.ten ?? "";
   const ic = icCuaApp(`${ten} ${ts.muc}`);
 
-  const ghi = (loai: LuatApp["loai"]) => Promise.all(chon.map((id) => bm.goi("luat", { con: id, muc: ts.muc, ten, loai, nhom: hienTai?.nhom ?? undefined })));
+  const ghi = (loai: LuatApp["loai"]) => (caNha ? bm.goi("luat", { muc: ts.muc, ten, loai, nhom: hienTai?.nhom ?? undefined })
+    : Promise.all(chon.map((id) => bm.goi("luat", { con: id, muc: ts.muc, ten, loai, nhom: hienTai?.nhom ?? undefined }))));
   const luu = () => lam(async () => { await ghi(tinhGio ? "giai_tri" : "hoc"); ve(); });
   const chan = () => lam(async () => {
-    const truoc = chon.map((id) => ({ con: id, l: luatCua(id) }));
+    const truoc = caNha ? [{ con: "", l: d.luat.find((l) => !l.child_id && l.muc === ts.muc) ?? null }] : chon.map((id) => ({ con: id, l: luatCua(id) }));
     await ghi("chan");
     setDaChan({ truoc, luc: new Date() });
   });
   const hoanTac = () => hoan.lam(async () => {
     for (const t of daChan!.truoc) {
-      if (t.l && t.l.child_id === t.con) await bm.goi("luat", { con: t.con, muc: ts.muc, ten: t.l.ten, loai: t.l.loai, nhom: t.l.nhom ?? undefined });
-      else await bm.goi("luat/xoa", { con: t.con, muc: ts.muc, neuLoai: "chan" });
+      const con = t.con || undefined;
+      if (t.l && (t.l.child_id ?? "") === t.con) await bm.goi("luat", { con, muc: ts.muc, ten: t.l.ten, loai: t.l.loai, nhom: t.l.nhom ?? undefined });
+      else await bm.goi("luat/xoa", { con, muc: ts.muc, neuLoai: "chan" });
     }
     setDaChan(null);
     await tai();
@@ -51,14 +54,14 @@ export default function MotApp() {
   if (daChan) {
     const gio = `${String(daChan.luc.getHours()).padStart(2, "0")}:${String(daChan.luc.getMinutes()).padStart(2, "0")}`;
     return (
-      <ManKetQua tieu={`Đã chặn ${ten}`} ic="khoa" tin={`${daChan.truoc.map((t) => tenCon(t.con)).join(", ")} không mở được ${ten}`} phu={`Trên mọi máy · từ lúc ${gio}`}
-        nut={{ chu: "Xong, về App & web", bam: ve }} hoan={{ chu: `Hoàn tác, cho dùng lại ${ten}`, bam: hoanTac, dangChay: hoan.dangChay }} />
+      <ManKetQua tieu={`Đã chặn ${ten}`} ic="khoa" tin={`${caNha ? "Các con" : daChan.truoc.map((t) => tenCon(t.con)).join(", ")} không mở được ${ten}`} phu={`Trên mọi máy · từ lúc ${gio}`}
+        nut={{ chu: "Xong, về App & web", bam: ve }} loi={hoan.loi} hoan={{ chu: `Hoàn tác, cho dùng lại ${ten}`, bam: hoanTac, dangChay: hoan.dangChay }} />
     );
   }
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={ten} day={d.xem ? undefined : <>
       <BaoLoi loi={loiLam} />
-      <Nut chu={`Lưu cho ${ten} của ${chon.length > 1 ? `${chon.length} con` : tenCon(chon[0])}`} rong dangChay={dangChay} tat={!chon.length} bam={luu} />
+      <Nut chu={`Lưu cho ${ten} của ${caNha ? "cả nhà" : chon.length > 1 ? `${chon.length} con` : tenCon(chon[0])}`} rong dangChay={dangChay} tat={!chon.length} bam={luu} />
       <NhanMen onPress={chan} disabled={dangChay || !chon.length} accessibilityRole="button" muc="nut" sang
         style={{ minHeight: 50, borderRadius: 24, backgroundColor: M.canhSoft, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
         <Chu kieu="rat" co={15} mau={M.canh}>Không cho dùng app này</Chu>
@@ -73,7 +76,7 @@ export default function MotApp() {
         <Dong dau tieu="Tính vào giờ chơi" phu={`Tổng hôm nay ${con.phutChoi}/${con.tranNgay} phút`} trai={<OIcon ic="dongho" />}
           phai={d.xem ? undefined : <CongTac bat={tinhGio} nhan="Tính vào giờ chơi" doi={setTinh} />} />
       </Nhom>
-      {d.g.con.length > 1 ? (
+      {d.g.con.length > 1 && !caNha ? (
         <>
           <MucTieu chu="Áp cho" />
           <Chips ds={d.g.con.map((c) => ({ gia: c.id, chu: c.ten }))} chon={chon}

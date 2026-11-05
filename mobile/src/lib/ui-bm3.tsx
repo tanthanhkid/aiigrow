@@ -6,7 +6,7 @@ import { Image, Pressable, View } from "react-native";
 import { router } from "expo-router";
 import type { YeuCau } from "./api";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
-import { Chu, Icon, Icon3D, LopMen, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
+import { Bao, Chu, Icon, Icon3D, LopMen, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Tiêu đề một mục (.muc): chữ thường đậm 15, phải là liên kết nhỏ (vd «Xem từng app ›»). */
 export function MucTieu({ chu, phai }: { chu: string; phai?: { chu: string; bam: () => void } }) {
@@ -61,7 +61,7 @@ const CHE: Record<CheDoChan, { ic: TenIcon; tieu: string; phu: string }> = {
   chi_app_duoc_phep: { ic: "khoa", tieu: "Chỉ app được phép", phu: "App mới phải xin Ba Mẹ" },
 };
 /** Hai ô chế độ chặn (.che) — ô đang chọn viền ngọc 3. `doi` trống ⇒ chỉ hiện (Người trông giúp). */
-export function TheCheDo({ cheDo, doi, tat }: { cheDo: CheDoChan; doi?: (v: CheDoChan) => void; tat?: boolean }) {
+export function TheCheDo({ cheDo, doi, tat }: { cheDo: CheDoChan | null; doi?: (v: CheDoChan) => void; tat?: boolean }) {
   return (
     <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
       {(["mo_het", "chi_app_duoc_phep"] as const).map((k) => {
@@ -154,11 +154,12 @@ export function RobNoi({ lv = "hoc", co = 76, children }: { lv?: LinhVat; co?: n
 }
 
 /** Màn kết quả (Đã chặn Roblox / Đã không cho mở YouTube / Đã mời…): Rob lớn, tiêu đề, thẻ tin, nút về + Hoàn tác. */
-export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui }: {
-  lv?: LinhVat; tieu: string; ic: TenIcon; tin: string; phu?: string; nut: { chu: string; bam: () => void }; hoan?: { chu: string; bam: () => void; dangChay?: boolean }; lui?: () => void;
+export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui, loi }: {
+  loi?: string | null; lv?: LinhVat; tieu: string; ic: TenIcon; tin: string; phu?: string; nut: { chu: string; bam: () => void }; hoan?: { chu: string; bam: () => void; dangChay?: boolean }; lui?: () => void;
 }) {
   return (
     <Man lui={{ chu: "", bam: lui ?? nut.bam }} day={<>
+      {loi ? <Bao loai="loi" tieu={loi} ic="canh_bao" /> : null}
       <Nut chu={nut.chu} rong bam={nut.bam} />
       {hoan ? <Nut chu={hoan.chu} loai="vien" rong dangChay={hoan.dangChay} bam={hoan.bam} /> : null}
     </>}>
