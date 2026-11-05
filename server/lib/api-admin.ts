@@ -48,7 +48,8 @@ async function dsGiaDinh(tim: string) {
               (select p.ten from parents p where p.family_id = f.id and (p.id = f.chu_id or (f.chu_id is null and p.vai = 'chu')) order by p.created_at limit 1) as chu,
               (select p.dinh_danh from parents p where p.family_id = f.id and (p.id = f.chu_id or (f.chu_id is null and p.vai = 'chu')) order by p.created_at limit 1) as dinh_danh
             from families f
-            where $1 = '%%' or lower(f.ten) like $1 or exists (select 1 from parents p where p.family_id = f.id and (lower(p.dinh_danh) like $1 or lower(p.ten) like $1))
+            where $1 = '%%' or lower(f.ten) like $1 or exists (select 1 from parents p where p.family_id = f.id and (lower(p.dinh_danh) like $1 or lower(p.ten) like $1
+              or exists (select 1 from ba_me_mxh m where m.parent_id = p.id and m.email like $1)))
             order by f.created_at desc limit 200`, [t]);
 }
 

@@ -2,7 +2,7 @@
 // của người gọi (lib/* trả «không thấy» như không tồn tại). Quyền (L6, lib/quyen.ts): «Người trông giúp» GET hết, POST chỉ xem / duyệt / khoá máy.
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
-import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, hienDinhDanh, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
+import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, hienDinhDanh, TIEN_TO_FB, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { lichCua, sachCauHinh, thamSo, khoaGoc, khoaDen, moTamDen } from "./cau-hinh.ts";
@@ -102,7 +102,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
     { const r = await xuLyMSao(bm, req, p, b); if (r) return r; }           // 05/11: sao, quỹ giờ chơi, bộ nhiệm vụ, làm lại, trao quà
-    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: hienDinhDanh(bm.dinh_danh), vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm),
+    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: hienDinhDanh(bm.dinh_danh), laFacebook: bm.dinh_danh.startsWith(TIEN_TO_FB), vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm),
       coMatKhau: bm.co_mat_khau !== false },
       laAdmin: hta.laQuanTri(bm.id) });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }

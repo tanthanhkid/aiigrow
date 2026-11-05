@@ -326,12 +326,14 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   // Ba Mẹ vào bằng Google / Facebook chưa đặt mật khẩu ⇒ chỉ đường đặt mật khẩu, không tính là thử gỡ sai (dang-nhap-mxh.ts)
   if (baMe.length && baMe.every((x) => !x.pass_hash)) chuaCoMatKhau(baMe[0]);
   // Người trông giúp (L6) không gỡ máy được — chỉ Ba Mẹ
-  let bm: { id: string } | undefined;
-  for (const x of baMe) if (x.pass_hash && await dungMatKhau(String(matKhau ?? ""), x.pass_hash)) { bm = x; break; }
+  let bm: { id: string } | undefined, thu = 0;
+  for (const x of baMe) if (x.pass_hash) { thu++; if (await dungMatKhau(String(matKhau ?? ""), x.pass_hash)) { bm = x; break; } }
   const dung = !!bm;
   if (!dung) {
-    await q(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1,
-             khoa_den = case when pin_sai.so_lan + 1 >= 5 then now() + interval '15 minutes' else null end`, [khoa]);
+    // mỗi mật khẩu đã thử là một lượt (gõ «facebook» khớp nhiều người không nhân số lần dò lên)
+    const n = Math.max(thu, 1);
+    await q(`insert into pin_sai(khoa, so_lan) values ($1, $2) on conflict (khoa) do update set so_lan = pin_sai.so_lan + $2,
+             khoa_den = case when pin_sai.so_lan + $2 >= 5 then now() + interval '15 minutes' else null end`, [khoa, n]);
     await ghiSuKien(may.family_id, "may_thu_go", { ketQua: "sai_mat_khau" }, { con: may.child_id, may: may.id });
     await canhBao(may.family_id, "may_thu_go", "nghiem_trong", `Có người thử gỡ AiiGrow trên ${may.name} (sai mật khẩu Ba Mẹ)`,
       { con: may.child_id, may: may.id, khoa: `may_thu_go:${may.id}:${new Date().toISOString().slice(0, 13)}` });

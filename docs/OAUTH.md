@@ -109,8 +109,10 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
   cũ (phiên, nhà, Con giữ nguyên); ai trong số đó đã đặt mật khẩu thì không đăng nhập «email + mật khẩu» bằng email Facebook được nữa.
 - Gỡ trên máy Con (`goCoMatKhau`): Ba Mẹ tạo bằng Facebook gõ email Facebook của mình (Facebook không có email: gõ `facebook`) + mật khẩu —
   chỉ chọn Ba Mẹ trong CHÍNH gia đình của máy đó, nhiều người khớp thì thử mật khẩu từng người; mật khẩu vẫn phải đúng.
-- Tài khoản tạo bằng Facebook không có SĐT / email cho «Quên mật khẩu» ⇒ `POST dat-mat-khau` đặt được cả khi ĐÃ có mật khẩu (đặt lại),
-  miễn xác minh lại đúng Facebook đã gắn; đặt lại thì đăng xuất mọi máy. Tài khoản khác vẫn 409 `da_co_mat_khau`.
+- Tài khoản tạo bằng Facebook không có SĐT / email cho «Quên mật khẩu»; `dat-mat-khau` chỉ đặt LẦN ĐẦU (đã có ⇒ 409 — phiên + Facebook SSO
+  một chạm không đủ để ghi đè mật khẩu bảo vệ gỡ máy / xoá tài khoản). Quên mật khẩu ⇒ nhờ hỗ trợ AiiGrow. Chưa làm luồng tự khôi phục.
+- Gắn MXH sai mật khẩu dùng chung bộ đếm khoá với đăng nhập (5 lần liền ⇒ khoá 15 phút). Gỡ trên máy Con: mỗi mật khẩu đã thử tính một lượt.
+- `GET toi` / danh sách thành viên trả thêm `laFacebook: true` cho tài khoản tạo bằng Facebook; quản trị tìm được theo email Facebook.
 - Gỡ máy / xoá tài khoản / gỡ trên máy Con cần mật khẩu ⇒ tài khoản chưa có mật khẩu nhận 409 `chua_co_mat_khau`, app mở màn «Đặt mật khẩu»
   (`/dat-mat-khau`): nhập mật khẩu mới rồi xác nhận lại bằng Google/Facebook (`POST dat-mat-khau`).
 - Lời mời theo email (**đã chốt 05/11, hướng an toàn**):

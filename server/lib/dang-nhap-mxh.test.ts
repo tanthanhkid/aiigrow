@@ -206,6 +206,7 @@ test("gắn Facebook vào tài khoản có sẵn: chỉ khi đang đăng nhập 
   // phiên thôi chưa đủ: người cầm máy không gắn được Facebook của mình nếu không biết mật khẩu
   const khongMk = await goi("lien-ket/facebook", { tok, body: { accessToken: "fb-gan" } });
   assert.equal(khongMk.status, 401); assert.equal(khongMk.body.error, "sai_mat_khau");
+  assert.equal((await one<{ sai_lien: number }>(`select sai_lien from parents where id = $1`, [id]))!.sai_lien, 1);   // chung bộ đếm khoá đăng nhập
   const lk = await goi("lien-ket/facebook", { tok, body: { accessToken: "fb-gan", matKhau: "matkhau123" } });
   assert.equal(lk.status, 200, JSON.stringify(lk.body));
   assert.equal((await goi("lien-ket/facebook", { tok, body: { accessToken: "fb-gan", matKhau: "matkhau123" } })).status, 200);       // gắn lại: không đổi gì
@@ -264,16 +265,14 @@ test("gỡ trên máy Con: Ba Mẹ tạo bằng Facebook gõ email Facebook + m�
   const may = { id: "may-go-thu", family_id: fam, child_id: null, name: "Máy thử" } as any;
   await assert.rejects(goCoMatKhau(may, "go.may@gmail.com", "sai-mat-khau"), (e: any) => e.ma === "sai_mat_khau");
   assert.deepEqual(await goCoMatKhau(may, "go.may@gmail.com", "matkhau123"), { ok: true });
-  // Facebook không có email: gõ «facebook»; quên mật khẩu ⇒ đặt lại bằng cách xác minh lại đúng Facebook đó
+  // Facebook không có email: gõ «facebook»
   FB["fb-go-2"] = { app: FB_ID, user: "901", name: "Mẹ Không Email" };
   const v2 = await goi("dang-nhap/facebook", { body: { accessToken: "fb-go-2" } });
   assert.equal((await goi("dat-mat-khau", { tok: v2.body.token, body: { matKhauMoi: "matkhau123", accessToken: "fb-go-2" } })).status, 200);
-  const sai = await goi("dat-mat-khau", { tok: v2.body.token, body: { matKhauMoi: "matkhau456", accessToken: "fb-go" } });
-  assert.equal(sai.status, 403);                                              // Facebook khác không đặt lại được
-  const lai = await goi("dat-mat-khau", { tok: v2.body.token, body: { matKhauMoi: "matkhau456", accessToken: "fb-go-2" } });
-  assert.equal(lai.status, 200, JSON.stringify(lai.body));                   // đặt LẠI (đã có mật khẩu) — tài khoản fb: không có «Quên mật khẩu»
+  // đã có mật khẩu: phiên + Facebook (SSO một chạm) không ghi đè được mật khẩu
+  assert.equal((await goi("dat-mat-khau", { tok: v2.body.token, body: { matKhauMoi: "matkhau456", accessToken: "fb-go-2" } })).status, 409);
   const fam2 = (await one<{ family_id: string }>(`select family_id from parents where dinh_danh = 'fb:901'`))!.family_id;
-  assert.deepEqual(await goCoMatKhau({ ...may, id: "may-go-2", family_id: fam2 }, "Facebook", "matkhau456"), { ok: true });
+  assert.deepEqual(await goCoMatKhau({ ...may, id: "may-go-2", family_id: fam2 }, "Facebook", "matkhau123"), { ok: true });
   // gia đình khác: email đó không chọn được ai
   const famKhac = (await one<{ family_id: string }>(`select family_id from parents where family_id <> $1 and vai <> 'roi' limit 1`, [fam]))!.family_id;
   await assert.rejects(goCoMatKhau({ ...may, id: "may-go-khac", family_id: famKhac }, "go.may@gmail.com", "matkhau123"), (e: any) => e.ma === "sai_mat_khau");
