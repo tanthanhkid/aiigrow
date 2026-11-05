@@ -128,4 +128,5 @@ test("05/11: ngoại lệ trong lúc khoá / giờ ngủ ⇒ khoaKhiHetNgoaiLe �
   assert.equal(ngu.khoaKhiHetNgoaiLe, "ngu");
   // không khoá: ngoại lệ chỉ thêm app, hết hạn thì về luật thường
   assert.equal(chinhSachWindows(goc({ ngoaiLe: nl })).khoaKhiHetNgoaiLe, undefined);
+  assert.equal(chinhSachWindows(goc()).sao, 40);   // khay: «con có 40 sao»
 });
