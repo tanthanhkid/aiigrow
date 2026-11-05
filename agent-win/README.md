@@ -37,6 +37,19 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   hạ xuống Users, bắt buộc còn một quản trị viên khác), nhập mã 6 số. Đồng thời đặt thông báo trước khi đăng nhập
   (`LegalNoticeCaption/Text`). Gỡ: `AiiGrow.Setup.exe --uninstall`.
 
+## Màn Con theo thiết kế chốt 05/11 (`docs/thiet-ke-chot/con-cai-win|con-bi-chan|con-het-gio|con-mat-mang`)
+
+- Bộ cài (`SetupForm`): 5 bước Chào → Đồng ý → Tài khoản → Ghép máy (6 ô số, mã 10 phút) → Cài → Xong; lỗi mã sai / hết hạn / mất mạng mỗi loại một màn.
+  Bộ cài mang gói ghép (tên tệp `AiiGrow-Setup.enroll-<gói>.exe` / trailer / `--enroll=`) mà không `--silent` ⇒ vẫn chọn tài khoản, bước Ghép tự ghép (`ghep-goi`).
+- Màn chặn (`BlockedForm`): app lạ ⇒ khay TỰ gửi `POST /api/device/xin-duyet` → «Đã gửi Ba Mẹ duyệt» → chờ → được / chưa cho; app Ba Mẹ đặt «Chặn» ⇒ chỉ nút
+  «Xin Ba Mẹ mở …» + «Về Hôm nay». Web cờ bạc / người lớn (409 `web_cam`) ⇒ «Trang này luôn bị chặn». Không dùng sao / điểm để mở app.
+- Màn khoá (`LockForm`): đếm ngược «Sắp hết giờ chơi» → «Hết giờ chơi hôm nay» (đổi 10 sao lấy 10 phút / xin Ba Mẹ thêm giờ / ngoại lệ / nhắn / Ba Mẹ dùng máy);
+  giờ ngủ và Ba Mẹ khoá chỉ «Xin Ba Mẹ mở ngoại lệ» (`NgoaiLeForm`: 1 app học hoặc cả máy, 5–120 phút, `yeu-cau loai ngoai_le`). Nút đổi sao / thêm giờ mở hộp
+  «Thêm giờ chơi» của W1 (`RequestForm`).
+- Mất mạng: vẫn tính giờ, vẫn chặn; lời xin (thêm giờ / ngoại lệ / xin duyệt) lưu ở `config.XinCho`, lần đồng bộ được kế tiếp dịch vụ tự gửi (4xx ⇒ bỏ).
+  Menu khay: ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật (`PipeCmd.KiemCapNhat` / `CapNhatNgay`) · Hỏi AiiGrow… (khi lỗi).
+- Policy đọc thêm (S1 gửi khi có): `windows.sao`, `windows.quyPhut`, `windows.moLaiLuc` («HH:mm»). Chưa có ⇒ màn không ghi số.
+
 ## Build
 
 Cần .NET 8 SDK. Trên Windows:
