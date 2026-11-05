@@ -30,7 +30,8 @@ export default function XinPhep() {
   const nha = useTaiTre("nha", () => kid.goi<NhaTreSao>("nha"));
   const n = nha.d;
   const khoa = lyDoKhoa(n?.quy);
-  const doiDuoc = !!n?.quy && !khoa && n.quy.doiSao.bat && (n.sao ?? n.soDu) > 0;
+  const doiDuoc = !!n?.quy && !khoa && n.quy.doiSao.bat && n.quy.doiSao.conDoiDuoc > 0 && (n.sao ?? n.soDu) >= Math.ceil(n.quy.tyLe.sao * 15 / Math.max(1, n.quy.tyLe.phut));
+  const khongXin = n?.quy?.choXinThem === false;     // Ba Mẹ tắt xin thêm giờ ⇒ không hiện nút xin (máy chủ trả khong_cho_xin)
   const { dangChay, loi, lam, setLoi } = useLam();
   const cho = yc.d?.ds.filter((x) => x.trang_thai === "cho").length ?? 0;
   const nhanh = (yc.d?.lyDoNhanh ?? ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan"]).slice(0, 3);
@@ -73,7 +74,7 @@ export default function XinPhep() {
   }
   return (
     <ManTre tab="xin-phep" lui={p.tu === "chan-web" ? { chu: "Quay lại", ve: `/tre/chan-web?url=${encodeURIComponent(p.gia ?? "")}` } : undefined}
-      day={loai === "them_gio" && khoa ? undefined : <><BaoLoi loi={loi} /><Nut chu={loai === "them_gio" ? `Xin Ba Mẹ thêm ${phut} phút` : loai === "khac" ? "Gửi cho Ba Mẹ" : `Xin Ba Mẹ mở ${gia.trim() || (loai === "mo_web" ? "trang này" : "app này")}`} ic="gui" rong bam={gui} dangChay={dangChay} /></>}>
+      day={loai === "them_gio" && (khoa || khongXin) ? undefined : <><BaoLoi loi={loi} /><Nut chu={loai === "them_gio" ? `Xin Ba Mẹ thêm ${phut} phút` : loai === "khac" ? "Gửi cho Ba Mẹ" : `Xin Ba Mẹ mở ${gia.trim() || (loai === "mo_web" ? "trang này" : "app này")}`} ic="gui" rong bam={gui} dangChay={dangChay} /></>}>
       <Canh lv="chi" tieu={TIEU[loai]} loi={`Rob gửi Ba Mẹ ngay, Ba Mẹ trả lời là ${ten} biết liền.`} thap />
       {!coSan ? (
         <ChonMot ds={[{ gia: "them_gio" as Loai, chu: "Thêm giờ" }, { gia: "cai_app" as Loai, chu: "Mở app" }, { gia: "mo_web" as Loai, chu: "Mở trang web" }]}

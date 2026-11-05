@@ -122,7 +122,8 @@ export async function nopBangChung(luot: string, anh: AnhNop[], ghiChu?: string)
 }
 
 /** Định danh trông như app thật (tệp .exe/.app, gói / bundle a.b.c) ⇒ xin-duyet hiểu là app; tên trần («Minecraft») máy chủ hiểu là tên miền. */
-export const laMaApp = (muc: string) => /\.(exe|app)$/i.test(muc) || /^[a-z0-9_-]+(\.[a-z0-9_-]+){2,}$/i.test(muc) && !/\.(com|vn|net|org|edu|io)$/i.test(muc);
+// khớp server/lib/chinh-sach.ts › kieuMuc (BUNDLE + .exe/.app) — lệch thì máy chủ xếp nhầm lời xin thành web
+export const laMaApp = (muc: string) => /\.(exe|app)$/i.test(muc) || /^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i.test(muc);
 
 /** Nộp bài (05/11): ảnh / ghi âm (audio/*, ≤ 2 MB) / viết kể lại / bấm «Xong» (không kèm gì). Mất mạng ⇒ xếp hàng như ảnh. */
 export async function nopBai(luot: string, b: { anh?: AnhNop[]; ghiChu?: string; ghiAm?: AnhNop }): Promise<{ trang_thai: string; daXepHang?: boolean }> {
@@ -149,7 +150,8 @@ export async function guiHangCho(): Promise<number> {
       await kid.goi(`luot/${v.luot}/nop`, { anh: v.anh, ghiChu: v.ghiChu, ...(v.ghiAm ? { ghiAm: v.ghiAm } : {}) });
     } catch (e) {
       // mất mạng / hết phiên Con / máy chủ trục trặc ⇒ giữ bài, lần sau gửi tiếp; lỗi nghiệp vụ (đã nộp, hết hạn…) mới bỏ khỏi hàng
-      if (e instanceof LoiApi && (e.ma === "mat_mang" || e.status === 401 || e.status >= 500)) break;
+      if (e instanceof LoiApi && (e.ma === "mat_mang" || e.status === 401)) break;
+      if (e instanceof LoiApi && e.status >= 500) continue;     // máy chủ trục trặc: giữ bài này, thử bài sau (không chặn cả hàng)
     }
     hang = napHang().filter((x) => x !== v);
     luuHang();

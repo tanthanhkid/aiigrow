@@ -47,7 +47,7 @@ export default function Chup() {
   if (d && d.bang_chung === "van_ban") return <KeLai ten={d.ten} gui={(t) => gui([], t)} dangChay={dangChay} loi={loi} />;
   if (d && d.bang_chung === "ghi_am") {
     return coGhiAm()
-      ? <GhiAm ten={d.ten} gui={(a, t) => gui([], t, a)} dangChay={dangChay} loi={loi} />
+      ? <GhiAm ten={d.ten} gui={(a, t) => gui([], t, a)} dangChay={dangChay} loi={loi} viet={(t) => gui([], t)} />
       : <KeLai ten={d.ten} goiY="Máy này chưa ghi âm được — viết vài câu kể lại cho Ba Mẹ nhé!" gui={(t) => gui([], t)} dangChay={dangChay} loi={loi} />;
   }
   return <Camera tieu={d ? `Chụp rõ “${d.ten}” nhé!` : "Chụp rõ việc đã làm nhé!"} ma={luot} gui={(a) => gui([a])} dangChay={dangChay} loi={loi} xoaLoi={() => setLoi(null)} />;
@@ -59,7 +59,8 @@ const coGhiAm = () => Platform.OS === "web" && typeof (globalThis as { MediaReco
 const GHI_TOI_DA_GIAY = 90;
 
 /** Ghi âm bằng micro của trình duyệt: Ghi → Dừng → nghe lại → Gửi (kèm vài chữ nếu muốn). Base64 ≤ 2 MB (máy chủ: ghi_am_qua_lon). */
-function GhiAm({ ten, gui, dangChay, loi }: { ten: string; gui: (a: AnhNop, ghiChu?: string) => void; dangChay: boolean; loi: string | null }) {
+function GhiAm({ ten, gui, dangChay, loi, viet }: { ten: string; gui: (a: AnhNop, ghiChu?: string) => void; dangChay: boolean; loi: string | null; viet: (t: string) => void }) {
+  const [thayViet, setThayViet] = useState(false);
   const [trang, setTrang] = useState<"cho" | "ghi" | "xong">("cho");
   const [giay, setGiay] = useState(0);
   const [bai, setBai] = useState<{ a: AnhNop; url: string } | null>(null);
@@ -105,10 +106,12 @@ function GhiAm({ ten, gui, dangChay, loi }: { ten: string; gui: (a: AnhNop, ghiC
       setNhac("Chưa mở được micro — cho phép trình duyệt dùng micro rồi thử lại nhé");
     }
   };
+  // không có / bị chặn micro ⇒ viết kể lại thay (máy chủ nhận vì không gửi ghiAmDuoc)
+  if (thayViet) return <KeLai ten={ten} goiY="Viết vài câu kể lại cho Ba Mẹ nhé!" gui={viet} dangChay={dangChay} loi={loi} />;
   const day = trang === "ghi" ? <Nut chu={`Dừng (${giay}s)`} ic="x" rong loai="vien" bam={() => rec.current?.stop()} />
     : trang === "xong" && bai ? <><Nut chu="Gửi cho Ba Mẹ" ic="gui" rong bam={() => gui(bai.a, t.trim() || undefined)} dangChay={dangChay} />
       <Nut chu="Ghi lại" loai="ma" rong bam={() => { setBai(null); setTrang("cho"); }} /></>
-      : <Nut chu="Bắt đầu ghi âm" ic="tin" rong bam={batDau} />;
+      : <><Nut chu="Bắt đầu ghi âm" ic="tin" rong bam={batDau} />{nhac ? <Nut chu="Viết kể lại thay" ic="but" loai="ma" rong bam={() => setThayViet(true)} /> : null}</>;
   return (
     <ManTre lui={{ chu: "Quay lại" }} day={<><BaoLoi loi={nhac ?? loi} />{day}</>}>
       <Canh lv="chi" mau="vang" tieu={ten} loi={trang === "ghi" ? "Rob đang nghe… nói xong bấm Dừng nhé!" : "Ghi âm kể lại cho Ba Mẹ nghe nhé!"} thap />
