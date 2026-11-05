@@ -49,7 +49,14 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
 - Mất mạng: vẫn tính giờ, vẫn chặn; lời xin (thêm giờ / ngoại lệ / xin duyệt) lưu ở `config.XinCho`, lần đồng bộ được kế tiếp dịch vụ tự gửi (4xx ⇒ bỏ).
   Menu khay: ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật (`PipeCmd.KiemCapNhat` / `CapNhatNgay`) · Hỏi AiiGrow… (khi lỗi).
 - Policy (S1, `server/lib/agent-windows.ts`): `quyTongPhut` ⇒ «Đã chơi 60 / 60 phút», `gioNgu.den` ⇒ «Máy mở lại lúc 6:30»; ngoại lệ gửi `yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri, phut ≤ 60}`.
-  Số sao chưa có trong `dong-bo.windows` (`windows.sao` đọc sẵn) ⇒ màn khoá / nhắc 5 phút chưa ghi «Con có N sao».
+  `windows.sao` (số sao) có từ W1 ⇒ màn khoá / nhắc 5 phút ghi «Con có N sao».
+- App Con (`AppForm`, W1 — `con-ngay-thuong`, `con-xin`): Hôm nay (giờ chơi còn lại theo quỹ, thanh đã chơi, ví sao, nhiệm vụ, tin Ba Mẹ), Nhiệm vụ
+  (làm lại → chờ duyệt → chưa làm; «Mở Học với AiiRob»), Sao &amp; quà (đổi sao lấy phút, đổi quà gửi Ba Mẹ, «Quà của con»), Tin nhắn (trả lời nhanh / tự nhắn).
+  Hộp «Thêm giờ chơi» (`RequestForm`): Dùng sao (`hoc-vien/doi-sao`) / Xin Ba Mẹ (`yeu-cau them_gio`) + màn kết quả. Nộp bài (`NopBaiForm`): ảnh ≤ 3,
+  ghi âm (MCI, WAV 8 kHz ≤ 4 phút ≈ ≤ 2 MB), viết, bấm Xong. Ba Mẹ duyệt / nhờ làm lại / trao quà / cho thêm giờ ⇒ khay bật màn kết quả (`KetQuaHop`).
+- Quỹ tại máy (`QuyTaiCho`): dịch vụ đếm giây khi app trong `windows.appTinhGio` ở tiền cảnh (lưu `config.QuyDem`), hết quỹ ⇒ bỏ app chơi khỏi danh sách
+  được phép ngay (không chờ máy chủ, cả khi mất mạng); ngoại lệ hết hạn ⇒ khoá lại theo `windows.khoaKhiHetNgoaiLe`; mất mạng ⇒ tự xét giờ ngủ / giờ học theo
+  đồng hồ máy. Bài nộp lúc mất mạng lưu ở `ProgramData\AiiGrow\bai-cho` (mỗi bài một tệp), có mạng tự gửi (`BaiChoMang`, 12 giờ / 3 lần lỗi / 4xx bỏ).
 
 ## Build
 
