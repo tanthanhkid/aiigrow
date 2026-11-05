@@ -14,6 +14,8 @@
     <EmbeddedResource Include="Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
     <!-- Icon Fluent Emoji 3D (microsoft/fluentui-emoji, MIT — Assets/fluent/LICENSE-fluentui-emoji.txt), 128 px, nhúng vào exe: không tải CDN lúc chạy. -->
     <EmbeddedResource Include="Assets\fluent\*.png" LogicalName="fluent.%(Filename)%(Extension)" />
+    <!-- Icon 3D của thiết kế chốt 05/11 (Fluent Emoji 3D, MIT — Assets/icon3d/NGUON.md, cùng bộ với app Ba Mẹ), 112 px PNG. -->
+    <EmbeddedResource Include="Assets\icon3d\*.png" LogicalName="icon3d.%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />

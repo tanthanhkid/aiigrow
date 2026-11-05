@@ -18,6 +18,10 @@
   <ItemGroup>
     <!-- Chất liệu «Clay gương» dùng chung với khay (namespace AiiGrow.ClayUi, không phụ thuộc lớp nào của Tray). -->
     <Compile Include="..\AiiGrow.Tray\Clay.cs" Link="Clay.cs" />
+    <Compile Include="..\AiiGrow.Tray\Anh3D.cs" Link="Anh3D.cs" />
+    <!-- icon 3D + Rob của thiết kế chốt 05/11 (cùng tệp với khay) -->
+    <EmbeddedResource Include="..\AiiGrow.Tray\Assets\icon3d\*.png" LogicalName="icon3d.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\AiiGrow.Tray\Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
     <!-- icon cửa sổ bộ cài nạp đủ cỡ (16 nét ở thanh tiêu đề, 32 ở taskbar) -->
     <EmbeddedResource Include="..\AiiGrow.Tray\Assets\aiigrow-khay.ico" LogicalName="aiigrow.ico" />
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />

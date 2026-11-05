@@ -26,6 +26,7 @@
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\aiigrow-khay-mat-ket-noi.ico" LogicalName="aiigrow-khay-mat-ket-noi.ico" />
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\fluent\*.png" LogicalName="fluent.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\icon3d\*.png" LogicalName="icon3d.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\aiigrow-khay.ico" LogicalName="aiigrow.ico" />
   </ItemGroup>
 
