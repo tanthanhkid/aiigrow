@@ -18,7 +18,7 @@
 //    (Thanh chốt 24/10), ghi thêm MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch; dòng đó là mốc tính 90 ngày,
 //    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
-import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
+import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -80,7 +80,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
       await t(`delete from ho_tro where family_id = $1 and tu = 'ba_me' and nguoi = $2`, [bm.family_id, bm.id]);
       await t(`delete from messages where family_id = $1 and parent_id = $2`, [bm.family_id, bm.id]);
       await t(`delete from otp where dinh_danh = $1`, [toi.dinh_danh]);
-      await t(`delete from pin_sai where khoa like $1`, [`xoa_tk:${bm.id}:%`]);
+      await t(`delete from pin_sai where khoa like $1 or khoa like $2`, [`xoa_tk:${bm.id}:%`, `dat_mk_tk:${bm.id}:%`]);
       await ghiSuKien(bm.family_id, "thanh_vien_xoa_tai_khoan", { ten: toi.ten }, { nguoi: bm.id }, t);
       return { xoa: "tai_khoan" };
     }
@@ -94,7 +94,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     await t(`delete from may_log where family_id = $1`, [bm.family_id]);
     // người đã «mời ra» có định danh «<gốc>#roi:<id>» ⇒ lấy phần gốc
     await t(`delete from otp where dinh_danh in (select split_part(dinh_danh, '#roi:', 1) from parents where family_id = $1)`, [bm.family_id]);
-    await t(`delete from pin_sai where split_part(khoa, ':', 1) = 'xoa_tk' and split_part(khoa, ':', 2) in (select id from parents where family_id = $1)`, [bm.family_id]);
+    await t(`delete from pin_sai where split_part(khoa, ':', 1) in ('xoa_tk', 'dat_mk_tk') and split_part(khoa, ':', 2) in (select id from parents where family_id = $1)`, [bm.family_id]);
     await t(`delete from families where id = $1`, [bm.family_id]);
     await ghiKiemToan(null, "xoa_gia_dinh", { soCon: con.length }, bm.family_id, t);
     return { xoa: "gia_dinh", soCon: con.length };
@@ -129,7 +129,9 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     returning (select updated_at from cu) as cu`, [now]);
   if (!duoc.length) return null;
   try {
-    return await donKiemToanGiaDinhDaXoa(now);
+    const n = await donKiemToanGiaDinhDaXoa(now);
+    await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
+    return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
       [now, duoc[0].cu]).catch(() => {});

@@ -301,7 +301,7 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 | `GET moi/:ma` (không đăng nhập) | xem trước → `{tenGiaDinh, nguoiMoi, quyen, tenQuyen, tenGoi, tenCon[], het, vai(cũ), tenVai}` |
 | `POST moi/dang-ky {ma, dinhDanh, otp, ten, matKhau}` (không đăng nhập) | tạo tài khoản bằng link → `{token}` |
 | `POST dang-ky` / `POST dang-nhap` | trả thêm `loiMoi[]` = lời mời đang chờ gửi tới đúng SĐT / email này ⇒ app rẽ nhánh «Vào nhà cùng …» (không tạo Con) |
-| `GET moi/cho-toi` | lời mời đang chờ cho SĐT / email của người đang đăng nhập → `{ds[{id, tenGiaDinh, nguoiMoi, quyen, tenQuyen, tenGoi, tenCon[], het}]}` |
+| `GET moi/cho-toi` | lời mời đang chờ cho SĐT / email của người đang đăng nhập → `{ds[{id, tenGiaDinh, nguoiMoi, quyen, tenQuyen, tenGoi, tenCon[], het}], chiQuaLink}`. `chiQuaLink: true` = tài khoản Facebook (email chưa chắc đã xác minh): `ds` luôn rỗng, chỉ nhận qua link mời (`moi/nhan {ma}`; `{id}` ⇒ 403 `can_link_moi`) |
 | `POST moi/nhan {id}` hoặc `{ma}` | «Vào nhà» một lệnh: `id` (lời mời gửi tới đúng định danh của mình) hoặc `ma` (token link) → `{quyen, vai}`. Tài khoản phải còn trống (chưa Con / máy / người lớn khác) — `gia_dinh_co_du_lieu` 409 |
 
 ### Đăng nhập Google / Facebook (05/11 — `lib/dang-nhap-mxh.ts`, cách tạo app OAuth + env: `docs/OAUTH.md`)
@@ -314,8 +314,9 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 
 Danh tính = (nguồn, mã người dùng Google/Facebook) — bảng `ba_me_mxh`. Lần đầu: email chưa có tài khoản ⇒ tạo nhà mới, Ba Mẹ là người tạo nhà,
 không mật khẩu (`moi: true`); email ĐÃ có tài khoản (mật khẩu, hoặc nhà cung cấp kia) ⇒ 409 `mxh_da_co_tai_khoan` (không tự gắn theo email — chống
-chiếm trước). `loiMoi[]` như `dang-nhap`: email khớp `loi_moi.dinh_danh` ⇒ thấy lời mời. Lỗi: `mxh_chua_bat` 503 · `mxh_sai` 401 ·
-`mxh_khong_email` 400 · `mxh_mang` 502.
+chiếm trước). `loiMoi[]` như `dang-nhap`: email khớp `loi_moi.dinh_danh` ⇒ thấy lời mời — chỉ Google (email_verified); Facebook luôn `[]`
+(chỉ nhận qua link mời). Lỗi: `mxh_chua_bat` 503 · `mxh_sai` 401 · `mxh_khong_email` 400 · `mxh_mang` 502 · `qua_nhieu_lan` 429 (30 lượt hỏng / IP,
+10 lượt / tài khoản MXH mỗi 15 phút; `dat-mat-khau` 5 / Ba Mẹ + 10 / IP). `quen-mat-khau` cho tài khoản chưa từng có mật khẩu ⇒ 409 `chua_co_mat_khau`.
 `GET toi` › `baMe.coMatKhau` (false = tài khoản Google/Facebook chưa đặt mật khẩu). Gỡ máy / xoá tài khoản khi chưa có mật khẩu ⇒ 409
 `chua_co_mat_khau`. `POST dat-mat-khau {matKhauMoi, idToken | accessToken}` (đăng nhập; xác minh lại bằng đúng tài khoản Google/Facebook đã gắn)
 ⇒ `{ok}`; lỗi `mk_ngan` · `mxh_khong_khop` 403 · `da_co_mat_khau` 409.

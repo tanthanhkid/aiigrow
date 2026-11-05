@@ -45,13 +45,15 @@ const cheDoThu = () => process.env.AIIGROW_OTP_THU === "1" || process.env.NODE_E
 export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk") {
   const d = chuanDinhDanh(dinhDanh);
   if (!d) throw new LoiNghiepVu("dinh_danh_sai", "Nhập số điện thoại (10 số) hoặc email");
-  const co = await one(`select 1 from parents where dinh_danh = $1`, [d]);
+  const co = await one<{ co_mk: boolean }>(`select pass_hash is not null as co_mk from parents where dinh_danh = $1`, [d]);
   if (mucDich === "dang_ky" && co) throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — chọn Đăng nhập", 409);
   // Mã thử trả thẳng trong phản hồi: với quên mật khẩu, ai biết số/email cũng chiếm được tài khoản ⇒ prod chặn tới khi có kênh SMS/mail thật.
   // Chặn TRƯỚC khi xét có tài khoản: cùng một câu trả lời cho mọi số/email (không dò được số nào có tài khoản).
   if (mucDich === "quen_mk" && process.env.NODE_ENV === "production")
     throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
-  if (mucDich === "quen_mk" && !co) return { guiDen: d };          // không lộ số/email nào có tài khoản
+  // không lộ số/email nào có tài khoản. Tài khoản Google / Facebook chưa từng có mật khẩu: không phát mã (quên mật khẩu không đặt được
+  // mật khẩu cho nó — phải xác minh lại bằng đúng tài khoản MXH, POST dat-mat-khau), trả y như không có tài khoản.
+  if (mucDich === "quen_mk" && (!co || !co.co_mk)) return { guiDen: d };
   if (!cheDoThu()) throw new LoiNghiepVu("otp_chua_mo", "Chưa gửi được mã xác thực — AiiLab đang mở kênh gửi mã", 503);
   const ma = String(randomInt(0, 1_000_000)).padStart(6, "0");
   await q(`insert into otp(dinh_danh, ma_hash, muc_dich, het) values ($1, $2, $3, now() + make_interval(mins => $4))
@@ -128,11 +130,19 @@ export async function datLaiMatKhau(dinhDanh: unknown, ma: unknown, mkMoi: unkno
   if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
   const bam = await bamMatKhau(mk);
   const dung = await tx(async (t) => {
-    if (!(await dungOtp(t, d, ma, "quen_mk"))) return false;
-    const p = (await t<{ id: string }>(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null where dinh_danh = $1 returning id`, [d, bam]))[0];
+    if (!(await dungOtp(t, d, ma, "quen_mk"))) return false as const;
+    // Tài khoản chưa từng có mật khẩu (vào bằng Google / Facebook) ⇒ không đặt bằng OTP (mã có thể đã phát trước khi tài khoản đổi chủ
+    // email, hoặc từ chế độ thử) — đăng nhập bằng đúng Google / Facebook rồi «Đặt mật khẩu» (dang-nhap-mxh.ts › datMatKhauMxh).
+    const cu = (await t<{ co_mk: boolean }>(`select pass_hash is not null as co_mk from parents where dinh_danh = $1`, [d]))[0];
+    // trả dấu hiệu rồi ném NGOÀI giao dịch: mã đã bị xoá (dungOtp) phải được ghi hẳn — ném trong tx thì rollback, mã còn dùng lại được
+    if (cu && !cu.co_mk) return "chua_co_mk" as const;
+    const p = (await t<{ id: string }>(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null
+                                        where dinh_danh = $1 and pass_hash is not null returning id`, [d, bam]))[0];
     if (p) await t(`delete from sessions where parent_id = $1`, [p.id]);
-    return true;
+    return true as const;
   });
+  if (dung === "chua_co_mk")
+    throw new LoiNghiepVu("chua_co_mat_khau", "Tài khoản này vào bằng Google / Facebook — đăng nhập bằng đó rồi chọn «Đặt mật khẩu» nhé", 409);
   if (!dung) throw new LoiNghiepVu("otp_sai", "Mã chưa đúng");
 }
 

@@ -6,6 +6,7 @@
 //                        GET thong-bao · POST thong-bao/doc · GET/POST thong-bao/cai-dat
 // Thông báo là của RIÊNG từng người ⇒ Người trông giúp vẫn đánh dấu đã đọc / đặt giờ yên lặng được (đi trước chặn quyền của api-m).
 import { docJson, json } from "./api.ts";
+import { q } from "./db.ts";
 import { taoPhien, type BaMe } from "./auth.ts";
 import { laChuNha, quyenCua, vaiCu } from "./quyen.ts";
 import * as tv from "./thanh-vien.ts";
@@ -45,7 +46,7 @@ export async function xuLyThongBao(req: Request, bm: BaMe, p: string[]): Promise
 export async function xuLyThanhVien(req: Request, bm: BaMe, p: string[], b: Record<string, any>): Promise<Response | null> {
   const get = req.method === "GET", post = req.method === "POST";
   if (p[0] === "moi" && p[1] === "nhan" && p.length === 2 && post) return json(await tv.nhanLoiMoi(bm, b.id ? { id: b.id } : { ma: b.ma }));
-  if (p[0] === "moi" && p[1] === "cho-toi" && p.length === 2 && get) return json({ ds: await tv.loiMoiChoToi(bm) });
+  if (p[0] === "moi" && p[1] === "cho-toi" && p.length === 2 && get) return json({ ds: await tv.loiMoiChoToi(bm), chiQuaLink: await tv.emailChuaXacMinh(q, bm.id) });   // Facebook: chỉ nhận qua link
   // FR-03.06 đóng băng chuỗi ngày · FR-06.02 xuất CSV báo cáo tuần
   if (p[0] === "con" && p[1] && p.length >= 3) {
     const sau = p.slice(2).join("/");

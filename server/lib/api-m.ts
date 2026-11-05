@@ -79,7 +79,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     // Đăng nhập Google / Facebook (lib/dang-nhap-mxh.ts, docs/OAUTH.md): app hỏi trước nút nào bật; trả như đăng nhập thường + `moi` khi vừa tạo nhà
     if (d === "cau-hinh-dang-nhap" && get) return json(cauHinhMxh());
     if ((d === "dang-nhap/google" || d === "dang-nhap/facebook") && post) {
-      const { id, moi } = await dangNhapMxh(p[1] as "google" | "facebook", await docJson(req));
+      const { id, moi } = await dangNhapMxh(p[1] as "google" | "facebook", await docJson(req), gd.nguonGoi(req.headers));
       const token = await taoPhien(id);
       const toi = await baMeTuToken(token);
       return json({ token, ...(moi ? { moi: true } : {}), loiMoi: toi ? await loiMoiChoToi(toi) : [] });
@@ -91,7 +91,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (!bm) return loi("chua_dang_nhap", "Phiên đăng nhập đã hết — đăng nhập lại nhé", 401);
     { const r = await gt.xuLyThongBao(req, bm, p); if (r) return r; }       // thông báo riêng từng Ba Mẹ (cả vai Chỉ xem)
     // Xoá tài khoản (Apple 5.1.1(v)): mọi vai, kể cả Chỉ xem — lib/xoa-tai-khoan.ts
-    if (d === "dat-mat-khau" && post) { await datMatKhauMxh(bm, await docJson(req)); return json({ ok: true }); }   // tài khoản Google / Facebook đặt mật khẩu lần đầu
+    if (d === "dat-mat-khau" && post) { await datMatKhauMxh(bm, await docJson(req), gd.nguonGoi(req.headers)); return json({ ok: true }); }   // tài khoản Google / Facebook đặt mật khẩu lần đầu
     if (d === "xoa-tai-khoan" && post) return json(await xoaTaiKhoan(bm, await docJson(req)));
     // L6: Người trông giúp — POST chỉ các việc xem / duyệt / khoá máy (lib/quyen.ts › trongGiupDuoc); còn lại là đổi cài đặt.
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))

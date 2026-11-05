@@ -6,7 +6,7 @@
 // Tài khoản nhận lời mời phải còn TRỐNG (chưa Con, máy, người lớn khác) — chuyển sang nhà mời, nhà trống cũ bị xoá.
 // Người tạo nhà (families.chu_id) không bị đổi quyền / mời ra. Mời ra = vai «roi» (giữ tên cho lịch sử «ai duyệt»), xoá mọi phiên.
 import { randomInt } from "node:crypto";
-import { newId, one, q, tx } from "./db.ts";
+import { newId, one, q, tx, type Q } from "./db.ts";
 import { bamMatKhau, chuanDinhDanh, kiemOtp, sha, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -165,9 +165,16 @@ export async function xemLoiMoi(maVao: unknown) {
     tenVai: TEN_QUYEN[quyen], tenGoi: m.ten_goi, tenCon: await tenCacCon(m.family_id), het: new Date(m.het).toISOString() };
 }
 
+/** Tài khoản vào bằng Facebook: email lấy từ Graph KHÔNG chắc đã xác minh (ai cũng tạo được Facebook mang email người khác) ⇒ không khớp
+ *  lời mời theo email, chỉ nhận qua link mời (token `ma`). Google chỉ cho vào khi `email_verified` (dang-nhap-mxh.ts) nên khớp được. */
+export async function emailChuaXacMinh(t: Q, parentId: string) {
+  return (await t(`select 1 from ba_me_mxh where parent_id = $1 and nguon = 'facebook' limit 1`, [parentId])).length > 0;
+}
+
 /** Lời mời đang chờ gửi tới đúng SĐT / email của người đang đăng nhập (đăng ký / đăng nhập xong là thấy — L6). */
 export async function loiMoiChoToi(bm: BaMe) {
   await bangTvTb();
+  if (await emailChuaXacMinh(q, bm.id)) return [];
   const ds = await q<LoiMoi & { ten_gia_dinh: string; ten_nguoi_moi: string | null }>(
     `select l.*, f.ten as ten_gia_dinh, p.ten as ten_nguoi_moi from loi_moi l join families f on f.id = l.family_id
        left join parents p on p.id = l.nguoi
@@ -216,6 +223,8 @@ export async function nhanLoiMoi(bm: BaMe, vao: unknown) {
   const b = (vao && typeof vao === "object" ? vao : { ma: vao }) as { ma?: unknown; id?: unknown };
   const theoId = b.id !== undefined && b.id !== null && String(b.id) !== "";
   return tx(async (t) => {
+    if (theoId && await emailChuaXacMinh(t, bm.id))
+      throw new LoiNghiepVu("can_link_moi", "Tài khoản Facebook nhận lời mời bằng link mời — nhờ người mời gửi link nhé", 403);
     const m = theoId
       ? (await t<LoiMoi>(`select * from loi_moi where id = $1 and dinh_danh = $2 for update`, [String(b.id), bm.dinh_danh]))[0]
       : (await t<LoiMoi>(`select * from loi_moi where ma_hash = $1 for update`, [sha(chuanMa(b.ma))]))[0];

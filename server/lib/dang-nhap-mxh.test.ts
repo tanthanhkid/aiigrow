@@ -8,12 +8,16 @@ delete process.env.DATABASE_URL;
 delete process.env.GOOGLE_CLIENT_IDS; delete process.env.FACEBOOK_APP_ID; delete process.env.FACEBOOK_APP_SECRET;
 const { xuLyM } = await import("./api-m.ts");
 const mxh = await import("./dang-nhap-mxh.ts");
-const { one } = await import("./db.ts");
+const { one, q } = await import("./db.ts");
+const { sha } = await import("./auth.ts");
 
-const goi = async (duong: string, o: { tok?: string; body?: unknown } = {}) => {
+// mỗi lời gọi một IP riêng (trừ khi test chỉ định) — không để giới hạn theo IP làm lệch các test khác
+let soIp = 0;
+const goi = async (duong: string, o: { tok?: string; body?: unknown; ip?: string } = {}) => {
   const req = new Request(`http://x/api/m/${duong}`, {
     method: o.body === undefined ? "GET" : "POST",
-    headers: { "content-type": "application/json", ...(o.tok ? { authorization: `Bearer ${o.tok}` } : {}) },
+    headers: { "content-type": "application/json", "x-real-ip": o.ip ?? `10.0.${Math.floor(++soIp / 250)}.${soIp % 250}`,
+      ...(o.tok ? { authorization: `Bearer ${o.tok}` } : {}) },
     body: o.body === undefined ? undefined : JSON.stringify(o.body),
   });
   const r = await xuLyM(req, duong.split("/"));
@@ -39,6 +43,7 @@ const FB: Record<string, { app: string; user: string; email?: string; name: stri
   "fb-tot": { app: FB_ID, user: "77", email: "Hung@Vidu.VN", name: "Anh Hùng" },
   "fb-khong-email": { app: FB_ID, user: "78", name: "Không Email" },
   "fb-app-khac": { app: "111", user: "79", email: "x@vidu.vn", name: "X" },
+  "fb-moi": { app: FB_ID, user: "80", email: "fb.moi@vidu.vn", name: "Cô Út" },
 };
 let soLanJwks = 0;
 const fetchThat = globalThis.fetch;
@@ -187,4 +192,88 @@ test("người bị mời ra vào lại bằng Google ⇒ không quay về nhà 
   const lai = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "ba.minh@gmail.com", sub: "g20" }) } });
   assert.equal(lai.status, 200, JSON.stringify(lai.body)); assert.equal(lai.body.moi, true);
   assert.notEqual((await goi("toi", { tok: lai.body.token })).body.baMe.id, id);
+});
+
+test("Facebook KHÔNG khớp lời mời theo email (email chưa chắc đã xác minh) — chỉ nhận qua link mời", async () => {
+  process.env.FACEBOOK_APP_ID = FB_ID; process.env.FACEBOOK_APP_SECRET = FB_BI;
+  const otp = await goi("otp", { body: { dinhDanh: "0907000003" } });
+  const chu = (await goi("dang-ky", { body: { dinhDanh: "0907000003", ma: otp.body.ma, ten: "Mẹ Thu", matKhau: "matkhau123" } })).body.token;
+  const moi = await goi("thanh-vien/moi", { tok: chu, body: { dinhDanh: "fb.moi@vidu.vn", quyen: "ba_me" } });
+  assert.equal(moi.status, 200, JSON.stringify(moi.body));
+  const v = await goi("dang-nhap/facebook", { body: { accessToken: "fb-moi" } });
+  assert.equal(v.status, 200, JSON.stringify(v.body));
+  assert.deepEqual(v.body.loiMoi, []);                                         // không lộ lời mời theo email
+  assert.deepEqual((await goi("moi/cho-toi", { tok: v.body.token })).body, { ds: [], chiQuaLink: true });
+  const theoId = await goi("moi/nhan", { tok: v.body.token, body: { id: moi.body.id } });
+  assert.equal(theoId.status, 403); assert.equal(theoId.body.error, "can_link_moi");
+  // bấm link mời (token `ma`) ⇒ nhận được
+  const theoLink = await goi("moi/nhan", { tok: v.body.token, body: { ma: moi.body.ma } });
+  assert.equal(theoLink.status, 200, JSON.stringify(theoLink.body));
+});
+
+test("giới hạn lượt: đăng nhập MXH theo IP (30/15 phút) và theo tài khoản (10/15 phút)", async () => {
+  process.env.GOOGLE_CLIENT_IDS = WEB;
+  for (let i = 1; i <= mxh.TRAN.dangNhapIp; i++)
+    assert.equal((await goi("dang-nhap/google", { ip: "7.7.7.7", body: { idToken: "rac" } })).status, 401, `lượt ${i}`);
+  const qua = await goi("dang-nhap/google", { ip: "7.7.7.7", body: { idToken: jwt({ email: "luot.tk@gmail.com", sub: "g50" }) } });
+  assert.equal(qua.status, 429); assert.equal(qua.body.error, "qua_nhieu_lan");
+  assert.equal((await goi("dang-nhap/google", { ip: "7.7.7.8", body: { idToken: jwt({ email: "luot.tk@gmail.com", sub: "g50" }) } })).status, 200);   // IP khác vẫn vào (lượt 1 của tài khoản g50)
+  // theo tài khoản: đổi IP liên tục vẫn bị chặn sau 10 lượt (đã dùng 1 lượt ở trên)
+  for (let i = 2; i <= mxh.TRAN.dangNhapTk; i++) assert.equal((await goi("dang-nhap/google", { body: { idToken: jwt({ email: "luot.tk@gmail.com", sub: "g50" }) } })).status, 200);
+  const tk = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "luot.tk@gmail.com", sub: "g50" }) } });
+  assert.equal(tk.status, 429); assert.equal(tk.body.error, "qua_nhieu_lan");
+  // khung 15 phút sau ⇒ mở lại
+  assert.equal((await mxh.dangNhapMxh("google", { idToken: jwt({ email: "luot.tk@gmail.com", sub: "g50" }) }, "7.7.7.7", Date.now() + 15 * 60_000)).moi, false);
+});
+
+test("giới hạn lượt: dat-mat-khau theo tài khoản (5/15 phút) và theo IP (10/15 phút)", async () => {
+  process.env.GOOGLE_CLIENT_IDS = WEB;
+  const tok = (await goi("dang-nhap/google", { body: { idToken: jwt({ email: "gioi.han@gmail.com", sub: "g30" }) } })).body.token;
+  for (let i = 1; i <= mxh.TRAN.datMkTk; i++)
+    assert.equal((await goi("dat-mat-khau", { tok, body: { matKhauMoi: "matkhau123", idToken: "rac" } })).status, 401, `lượt ${i}`);
+  const qua = await goi("dat-mat-khau", { tok, body: { matKhauMoi: "matkhau123", idToken: jwt({ email: "gioi.han@gmail.com", sub: "g30" }) } });
+  assert.equal(qua.status, 429); assert.equal(qua.body.error, "qua_nhieu_lan");
+  // theo IP: nhiều tài khoản từ cùng một IP
+  const bm = (id: string) => ({ id, family_id: "x", dinh_danh: "x", ten: "x", vai: "ba_me" }) as const;
+  for (let i = 1; i <= mxh.TRAN.datMkIp; i++)
+    await assert.rejects(mxh.datMatKhauMxh(bm(`gia-${i}`), { matKhauMoi: "matkhau123", idToken: "rac" }, "8.8.8.8"), { ma: "mxh_sai" });
+  await assert.rejects(mxh.datMatKhauMxh(bm("gia-moi"), { matKhauMoi: "matkhau123", idToken: "rac" }, "8.8.8.8"), { ma: "qua_nhieu_lan" });
+});
+
+test("quên mật khẩu không đặt được mật khẩu cho tài khoản Google / Facebook chưa từng có mật khẩu", async () => {
+  process.env.GOOGLE_CLIENT_IDS = WEB;
+  await goi("dang-nhap/google", { body: { idToken: jwt({ email: "chi.mxh@gmail.com", sub: "g40" }) } });
+  // không phát mã (trả y như số/email không có tài khoản)
+  const otp = await goi("otp", { body: { dinhDanh: "chi.mxh@gmail.com", mucDich: "quen_mk" } });
+  assert.equal(otp.status, 200); assert.equal(otp.body.ma, undefined);
+  // mã quen_mk lọt vào bằng đường nào đó (phát trước khi tài khoản đổi, chế độ thử…) ⇒ vẫn từ chối, mật khẩu vẫn trống
+  await q(`insert into otp(dinh_danh, ma_hash, muc_dich, het) values ($1, $2, 'quen_mk', now() + interval '10 minutes')
+           on conflict (dinh_danh) do update set ma_hash = excluded.ma_hash, muc_dich = excluded.muc_dich, het = excluded.het, so_lan = 0`,
+    ["chi.mxh@gmail.com", sha("chi.mxh@gmail.com:123456")]);
+  const r = await goi("quen-mat-khau", { body: { dinhDanh: "chi.mxh@gmail.com", ma: "123456", matKhauMoi: "matkhau123" } });
+  assert.equal(r.status, 409); assert.equal(r.body.error, "chua_co_mat_khau");
+  assert.equal((await one<{ pass_hash: string | null }>(`select pass_hash from parents where dinh_danh = 'chi.mxh@gmail.com'`))!.pass_hash, null);
+  // mã đã bị tiêu (không rollback) ⇒ đặt mật khẩu bằng MXH xong, dùng lại mã cũ cũng không chiếm được
+  const tokMxh = (await goi("dang-nhap/google", { body: { idToken: jwt({ email: "chi.mxh@gmail.com", sub: "g40" }) } })).body.token;
+  assert.equal((await goi("dat-mat-khau", { tok: tokMxh, body: { matKhauMoi: "matkhau123", idToken: jwt({ email: "chi.mxh@gmail.com", sub: "g40" }) } })).status, 200);
+  const lai = await goi("quen-mat-khau", { body: { dinhDanh: "chi.mxh@gmail.com", ma: "123456", matKhauMoi: "chiem12345" } });
+  assert.equal(lai.status, 400); assert.equal(lai.body.error, "otp_het_han");
+  // tài khoản có mật khẩu: quên mật khẩu vẫn chạy như cũ
+  const o2 = await goi("otp", { body: { dinhDanh: "0907000004" } });
+  await goi("dang-ky", { body: { dinhDanh: "0907000004", ma: o2.body.ma, ten: "Ba Tư", matKhau: "matkhau123" } });
+  const o3 = await goi("otp", { body: { dinhDanh: "0907000004", mucDich: "quen_mk" } });
+  assert.match(o3.body.ma, /^\d{6}$/);
+  assert.equal((await goi("quen-mat-khau", { body: { dinhDanh: "0907000004", ma: o3.body.ma, matKhauMoi: "matkhau999" } })).status, 200);
+});
+
+test("giới hạn lượt: đăng nhập đúng trả lại lượt IP (nhiều người chung NAT); cron dọn khung cũ", async () => {
+  process.env.GOOGLE_CLIENT_IDS = WEB;
+  const k = Math.floor(Date.now() / (mxh.KHUNG_PHUT * 60_000));
+  for (let i = 0; i < mxh.TRAN.dangNhapIp + 5; i++) {
+    const r = await goi("dang-nhap/google", { ip: "5.5.5.5", body: { idToken: jwt({ email: `nat${i}@gmail.com`, sub: `nat${i}` }) } });
+    assert.equal(r.status, 200, `người ${i}: ${JSON.stringify(r.body)}`);
+  }
+  assert.ok(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]));
+  assert.ok(await mxh.donBoDemMxh((k + 2) * mxh.KHUNG_PHUT * 60_000) > 0);    // cron hằng ngày
+  assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]), undefined);
 });

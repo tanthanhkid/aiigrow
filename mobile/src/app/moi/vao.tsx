@@ -14,11 +14,11 @@ export default function VaoNha() {
   const { ma } = useLocalSearchParams<{ ma?: string }>();
   const m = ma0(ma);
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [cho, toi, g] = await Promise.all([bm.goi<{ ds: LoiMoiToi[] }>("moi/cho-toi"), bm.goi<{ baMe: { dinhDanh?: string; dinh_danh?: string } }>("toi"),
+    const [cho, toi, g] = await Promise.all([bm.goi<{ ds: LoiMoiToi[]; chiQuaLink?: boolean }>("moi/cho-toi"), bm.goi<{ baMe: { dinhDanh?: string; dinh_danh?: string } }>("toi"),
       bm.goi<{ con: unknown[] }>("gia-dinh").catch(() => ({ con: [] }))]);
     // mở từ link mời ⇒ đúng lời mời của link đó, không lấy lời mời khác gửi tới số này
     let x: (LoiMoiToi & { quaLink?: boolean }) | null = m ? { ...(await bm.goi<XemMoi>(`moi/${encodeURIComponent(m)}`)), id: "", quaLink: true } : cho.ds[0] ?? null;
-    return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "", coNha: g.con.length > 0 };
+    return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "", coNha: g.con.length > 0, chiQuaLink: !!cho.chiQuaLink };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man dau={<DauMan ve="/" />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -26,7 +26,10 @@ export default function VaoNha() {
   if (!x) {
     return (
       <Man dau={<DauMan ve="/" />} day={<><Nut chu="Tải lại" loai="vien" rong bam={tai} /><Nut chu="Tạo nhà mới cho con mình" rong bam={() => router.replace("/thiet-lap/ten-con")} /></>}>
-        <CanhGiua lv="cho" tieu="Chưa thấy lời mời" loi={`Nhờ người nhà mời đúng số ${d.dinhDanh} trong app AiiGrow (Cả nhà › Mời người nhà), rồi bấm Tải lại.`} />
+        {/* tài khoản Facebook: máy chủ không khớp lời mời theo email (email Facebook chưa chắc đã xác minh) ⇒ chỉ nhận qua link mời */}
+        <CanhGiua lv="cho" tieu="Chưa thấy lời mời" loi={d.chiQuaLink
+          ? "Tài khoản Facebook nhận lời mời bằng link: nhờ người nhà gửi link mời (Cả nhà › Mời người nhà) rồi mở link đó trên máy này."
+          : `Nhờ người nhà mời đúng ${d.dinhDanh.includes("@") ? "email" : "số"} ${d.dinhDanh} trong app AiiGrow (Cả nhà › Mời người nhà), rồi bấm Tải lại.`} />
       </Man>
     );
   }
