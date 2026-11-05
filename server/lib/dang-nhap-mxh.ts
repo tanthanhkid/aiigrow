@@ -5,8 +5,11 @@
 // Danh tính = (nguồn, mã người dùng của Google/Facebook) trong bảng ba_me_mxh. Lần đầu: email chưa có tài khoản ⇒ tạo nhà mới + Ba Mẹ là người
 // tạo nhà (L7), không mật khẩu. Email ĐÃ có tài khoản (đăng ký SĐT/email + mật khẩu, hoặc vào bằng nhà cung cấp kia) ⇒ 409, KHÔNG tự gắn:
 // email đăng ký bằng OTP chưa chắc của chủ thật (OTP thử trả mã thẳng) và email Facebook không chắc đã xác minh ⇒ gắn theo email = chiếm trước
-// được tài khoản. Lời mời gửi tới đúng email này hiện qua `loiMoiChoToi` như đăng nhập thường. Tài khoản không mật khẩu đặt mật khẩu bằng
+// được tài khoản. Tài khoản không mật khẩu đặt mật khẩu bằng
 // `dat-mat-khau` (xác minh lại bằng Google/Facebook) — gỡ máy, xoá tài khoản, gỡ trên máy Con đều cần mật khẩu.
+// Lời mời theo email (loiMoiChoToi / moi/nhan {id}): Google khớp được (chỉ nhận id_token có email_verified); tài khoản Facebook KHÔNG khớp
+// (Graph không cam kết email đã xác minh) — chỉ nhận lời mời qua link (token `ma`). Chặn ở lib/thanh-vien.ts.
+// Giới hạn lượt (bảng pin_sai, khung 15 phút cố định như ghép máy): đăng nhập MXH theo IP + theo tài khoản MXH; dat-mat-khau theo IP + theo Ba Mẹ.
 // Thiếu env ⇒ 503 `mxh_chua_bat` (app đọc `GET cau-hinh-dang-nhap` để ẩn nút).
 // Mạng gọi qua globalThis.fetch — test thay bằng JWKS / Graph giả (dang-nhap-mxh.test.ts).
 import { createHmac, createPublicKey, verify, type JsonWebKey } from "node:crypto";
@@ -151,9 +154,26 @@ export async function vaoBangMxh(dt: DanhTinh): Promise<{ id: string; moi: boole
   }
 }
 
-/** POST dang-nhap/google {idToken} | dang-nhap/facebook {accessToken} ⇒ {id, moi}. */
-export async function dangNhapMxh(nguon: NguonMxh, b: Record<string, unknown>) {
-  return vaoBangMxh(await xacMinh(nguon, b));
+// ---------------------------------------------------------------- giới hạn lượt
+
+export const KHUNG_PHUT = 15;
+/** Trần mỗi khung 15 phút. IP rộng hơn tài khoản (nhiều người chung NAT / wifi quán). */
+export const TRAN = { dangNhapIp: 30, dangNhapTk: 10, datMkIp: 10, datMkTk: 5 } as const;
+const khung = (now: number) => Math.floor(now / (KHUNG_PHUT * 60_000));
+/** Giữ chỗ một lượt TRƯỚC khi làm (một upsert nguyên tử — gửi song song cũng chỉ ≤ `tran` lượt lọt); quá trần ⇒ 429 tới hết khung. */
+async function giuLuot(khoa: string, tran: number) {
+  const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
+    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
+  if (s.so_lan > tran) throw new LoiNghiepVu("qua_nhieu_lan", `Thử nhiều lần quá — đợi ${KHUNG_PHUT} phút rồi thử lại nhé`, 429);
+}
+
+/** POST dang-nhap/google {idToken} | dang-nhap/facebook {accessToken} ⇒ {id, moi}. `ip` = nguồn gọi (gia-dinh.ts › nguonGoi).
+ *  Đếm theo IP trước khi gọi Google / Facebook (chặn dội token rác), rồi theo tài khoản MXH sau khi xác minh. */
+export async function dangNhapMxh(nguon: NguonMxh, b: Record<string, unknown>, ip = "?", now = Date.now()) {
+  await giuLuot(`mxh_ip:${ip}:${khung(now)}`, TRAN.dangNhapIp);
+  const dt = await xacMinh(nguon, b);
+  await giuLuot(`mxh_tk:${dt.nguon}:${dt.sub}:${khung(now)}`, TRAN.dangNhapTk);
+  return vaoBangMxh(dt);
 }
 
 /** Gỡ máy / xoá tài khoản cần mật khẩu: tài khoản Google / Facebook chưa có ⇒ 409 rõ ràng để app mở «Đặt mật khẩu». */
@@ -163,15 +183,18 @@ export function chuaCoMatKhau(p: { pass_hash: string | null } | undefined) {
 
 /** POST dat-mat-khau {matKhauMoi, idToken | accessToken}: tài khoản Google / Facebook đặt mật khẩu LẦN ĐẦU. Phiên thôi chưa đủ — phải
  *  xác minh lại bằng đúng tài khoản Google / Facebook đã gắn (người cầm máy đang mở app không tự đặt được mật khẩu để gỡ máy / xoá nhà). */
-export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>) {
+export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "?", now = Date.now()) {
   const mk = String(b.matKhauMoi ?? "");
   if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
   if (p?.pass_hash) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
+  await giuLuot(`dat_mk_ip:${ip}:${khung(now)}`, TRAN.datMkIp);
+  await giuLuot(`dat_mk_tk:${bm.id}:${khung(now)}`, TRAN.datMkTk);
   const dt = await xacMinh(b.idToken ? "google" : "facebook", b);
   if ((await theoMxh(dt))?.id !== bm.id) throw new LoiNghiepVu("mxh_khong_khop", `Tài khoản ${TEN_NGUON[dt.nguon]} này không phải tài khoản đang đăng nhập`, 403);
   const bam = await bamMatKhau(mk);
   // chỉ đặt khi vẫn chưa có (hai yêu cầu cùng lúc không ghi đè nhau)
   const r = await q(`update parents set pass_hash = $2 where id = $1 and pass_hash is null returning id`, [bm.id, bam]);
   if (!r.length) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
+  await q(`delete from pin_sai where khoa like $1`, [`dat_mk_tk:${bm.id}:%`]);
 }

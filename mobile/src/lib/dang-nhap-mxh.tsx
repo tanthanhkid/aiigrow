@@ -1,6 +1,6 @@
 // Đăng nhập / tạo tài khoản bằng Google, Facebook (thiết kế chốt 04–05/11, màn Chào / Đăng ký / Đăng nhập) — expo-auth-session.
 //   · Google: lấy id_token (web: popup, luồng id_token; iOS / Android: trình duyệt hệ thống + đổi mã lấy token, redirect
-//     `vn.aiilab.aiigrow:/oauthredirect`) ⇒ POST dang-nhap/google.
+//     `vn.aiilab.aiigrow:/oauthredirect`) ⇒ POST dang-nhap/google. Đổi mã do app tự làm (doi-ma-google.ts) — thư viện tự đổi thì nuốt lỗi.
 //   · Facebook: lấy access token (redirect native `fb<APP_ID>://authorize`) ⇒ POST dang-nhap/facebook.
 // Client id là giá trị CÔNG KHAI, gắn lúc dựng app bằng EXPO_PUBLIC_* (docs/OAUTH.md). Nút chỉ hiện khi app có client id cho nền tảng đang chạy
 // VÀ máy chủ báo bật (GET cau-hinh-dang-nhap — thiếu env phía máy chủ thì ẩn, không để Ba Mẹ bấm vào lỗi 503).
@@ -10,8 +10,9 @@ import { useEffect, useRef, useState } from "react";
 import { Platform, View } from "react-native";
 import * as Google from "expo-auth-session/providers/google";
 import * as Facebook from "expo-auth-session/providers/facebook";
-import type { AuthSessionResult } from "expo-auth-session";
+import { exchangeCodeAsync, type AuthSessionResult } from "expo-auth-session";
 import { bm } from "./api";
+import { layIdTokenGoogle } from "./doi-ma-google";
 import { usePhien } from "./phien";
 import { DieuKhoan, NutMxh, NutSdt, TieuDe } from "./lan-dau";
 
@@ -72,7 +73,12 @@ export function NutMxhThat(p: { loai: LoaiMxh; to?: boolean; bao: (chu: string) 
   return p.loai === "google" ? <NutGoogle {...p} /> : <NutFacebook {...p} />;
 }
 
-function useXuLy(loai: LoaiMxh, res: AuthSessionResult | null, bao: (chu: string) => void, khiCo: (t: TokenMxh) => Promise<void>) {
+/** Kết quả «success» của hook (params + authentication). */
+type KqXong = { params: Record<string, string>; authentication: { idToken?: string; accessToken?: string } | null };
+
+/** `layToken`: kết quả «success» ⇒ token gửi máy chủ (Google native: đổi mã ở đây). Ném lỗi có câu báo ⇒ hiện đúng câu đó cho Ba Mẹ. */
+function useXuLy(loai: LoaiMxh, res: AuthSessionResult | null, bao: (chu: string) => void, khiCo: (t: TokenMxh) => Promise<void>,
+  layToken: (r: KqXong) => Promise<string | undefined>) {
   const dang = useRef(false);          // đang gửi máy chủ ⇒ bấm lại không mở cửa sổ mới (ref: không cần vẽ lại)
   const daXuLy = useRef<AuthSessionResult | null>(null);
   useEffect(() => {
@@ -80,10 +86,12 @@ function useXuLy(loai: LoaiMxh, res: AuthSessionResult | null, bao: (chu: string
     daXuLy.current = res;
     if (res.type === "cancel" || res.type === "dismiss" || res.type === "opened" || res.type === "locked") return;   // Ba Mẹ tự đóng cửa sổ — không báo lỗi
     if (res.type !== "success") { bao(LOI_HUY); return; }
-    const tk = loai === "google" ? res.params.id_token || res.authentication?.idToken : res.params.access_token || res.authentication?.accessToken;
-    if (!tk) { bao(LOI_HUY); return; }
     dang.current = true;
-    khiCo(loai === "google" ? { idToken: tk } : { accessToken: tk })
+    layToken(res)
+      .then((tk) => {
+        if (!tk) { bao(LOI_HUY); return; }
+        return khiCo(loai === "google" ? { idToken: tk } : { accessToken: tk });
+      })
       .catch((e) => bao(e instanceof Error && e.message ? e.message : LOI_HUY))
       .finally(() => { dang.current = false; });
   }, [res]);          // eslint-disable-line react-hooks/exhaustive-deps
@@ -92,16 +100,20 @@ function useXuLy(loai: LoaiMxh, res: AuthSessionResult | null, bao: (chu: string
 
 type PNut = { to?: boolean; bao: (chu: string) => void; khiCo: (t: TokenMxh) => Promise<void> };
 function NutGoogle({ to, bao, khiCo }: PNut) {
+  // shouldAutoExchangeCode: false — thư viện tự đổi mã thì lỗi bị nuốt (nút đứng im); app tự đổi để báo lỗi rõ (doi-ma-google.ts)
   const [req, res, moCua] = Google.useIdTokenAuthRequest({
     webClientId: GOOGLE.web, iosClientId: GOOGLE.ios, androidClientId: GOOGLE.android, selectAccount: true, redirectUri: veWeb(),
+    shouldAutoExchangeCode: false,
   });
-  const { dang } = useXuLy("google", res, bao, khiCo);
+  const { dang } = useXuLy("google", res, bao, khiCo, (r) => layIdTokenGoogle(r, (code) => exchangeCodeAsync({
+    clientId: googleMayNay ?? "", redirectUri: req?.redirectUri ?? "", code, extraParams: { code_verifier: req?.codeVerifier ?? "" },
+  }, Google.discovery)));
   return <NutMxh loai="google" to={to} bam={() => { if (req && !dang.current) moCua().catch(() => bao(LOI_HUY)); }} />;
 }
 
 function NutFacebook({ to, bao, khiCo }: PNut) {
   const [req, res, moCua] = Facebook.useAuthRequest({ clientId: FB_APP_ID, scopes: ["public_profile", "email"], redirectUri: veWeb() });
-  const { dang } = useXuLy("facebook", res, bao, khiCo);
+  const { dang } = useXuLy("facebook", res, bao, khiCo, async (r) => r.params.access_token || r.authentication?.accessToken);
   return <NutMxh loai="facebook" to={to} bam={() => { if (req && !dang.current) moCua().catch(() => bao(LOI_HUY)); }} />;
 }
 

@@ -90,8 +90,19 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
   cũ. Không tự gắn theo email: email đăng ký bằng OTP thử chưa chắc là của chủ thật, email Facebook không chắc đã xác minh.
 - Gỡ máy / xoá tài khoản / gỡ trên máy Con cần mật khẩu ⇒ tài khoản chưa có mật khẩu nhận 409 `chua_co_mat_khau`, app mở màn «Đặt mật khẩu»
   (`/dat-mat-khau`): nhập mật khẩu mới rồi xác nhận lại bằng Google/Facebook (`POST dat-mat-khau`).
-- Người được mời (`loi_moi.dinh_danh` = email) vào bằng Google/Facebook cùng email ⇒ `loiMoi[]` có lời mời ⇒ màn Lời mời (`/moi/vao`).
-  **Rủi ro còn mở (cần Thanh chốt):** Graph không cam kết email Facebook đã xác minh. Ai tạo Facebook mang email người được mời
-  (chưa xác minh) thì thấy VÀ nhận được lời mời đó (`moi/nhan {id}`). Muốn chặn: không khớp lời mời theo email cho tài khoản Facebook
-  (người được mời bấm link mời — đường `ma` vẫn chạy), hoặc chỉ khớp lời mời gửi bằng SĐT.
+- Lời mời theo email (**đã chốt 05/11, hướng an toàn**):
+  - **Google**: chỉ nhận `id_token` có `email_verified = true` (không thì 400 `mxh_khong_email`) ⇒ tài khoản Google luôn mang email đã
+    xác minh ⇒ khớp lời mời theo email như đăng nhập thường: `loiMoi[]` có lời mời ⇒ màn Lời mời (`/moi/vao`), `moi/nhan {id}` nhận được.
+  - **Facebook**: Graph không cam kết email đã xác minh ⇒ **KHÔNG khớp lời mời theo email**: `loiMoi[]` và `GET moi/cho-toi` trả rỗng,
+    `moi/nhan {id}` ⇒ 403 `can_link_moi`. Người được mời vào bằng Facebook chỉ nhận lời mời qua **link mời** (`moi/nhan {ma}`, token trong link).
+    (lib/thanh-vien.ts › `emailChuaXacMinh`.)
+- Quên mật khẩu (OTP) **không** đặt mật khẩu cho tài khoản chưa từng có mật khẩu (vào bằng Google/Facebook): `otp {mucDich: quen_mk}` không
+  phát mã (trả y như số/email không có tài khoản — không lộ), `quen-mat-khau` ⇒ 409 `chua_co_mat_khau`. Muốn có mật khẩu: đăng nhập bằng
+  đúng Google/Facebook đó rồi «Đặt mật khẩu» (`POST dat-mat-khau`, xác minh lại bằng chính tài khoản MXH đã gắn).
+- Giới hạn lượt (bảng `pin_sai`, khung 15 phút cố định như ghép máy; quá trần ⇒ 429 `qua_nhieu_lan`):
+  - `POST dang-nhap/google|facebook`: 30 lượt / IP (đếm trước khi gọi Google/Facebook), 10 lượt / tài khoản MXH (nguồn + `sub`, sau xác minh).
+  - `POST dat-mat-khau`: 10 lượt / IP, 5 lượt / Ba Mẹ; đặt được thì xoá bộ đếm của Ba Mẹ đó.
+  - IP = `x-real-ip` (Vercel đặt) rồi `x-forwarded-for`, IPv6 gộp /64 (gia-dinh.ts › `nguonGoi`).
+- App (iOS/Android): Google trả `code`, app tự đổi mã lấy `id_token` (`shouldAutoExchangeCode: false`, mobile/src/lib/doi-ma-google.ts) —
+  đổi lỗi / quá 20 giây / không có `id_token` ⇒ hiện câu báo rõ, không đứng im.
 - Người bị mời ra (`moi-ra`) hoặc xoá tài khoản ⇒ xoá liên kết `ba_me_mxh`; vào lại bằng Google/Facebook là tài khoản mới.
