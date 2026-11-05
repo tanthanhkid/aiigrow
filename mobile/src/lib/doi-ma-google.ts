@@ -29,6 +29,7 @@ export async function layIdTokenGoogle(res: KetQuaGoogle, doi: (code: string) =>
     if (!kq?.idToken) throw new Error("khong_co_id_token");
     return kq.idToken;
   } catch (e) {
+    console.warn("[dang-nhap-mxh] đổi mã Google lỗi:", e instanceof Error ? e.message : e);   // nguyên nhân thật cho log / Sentry
     throw new LoiDoiMa(e);
   } finally {
     if (hen) clearTimeout(hen);

@@ -26,7 +26,8 @@ export default function VaoNha() {
   if (!x) {
     return (
       <Man dau={<DauMan ve="/" />} day={<><Nut chu="Tải lại" loai="vien" rong bam={tai} /><Nut chu="Tạo nhà mới cho con mình" rong bam={() => router.replace("/thiet-lap/ten-con")} /></>}>
-        <CanhGiua lv="cho" tieu="Chưa thấy lời mời" loi={`Nhờ người nhà mời đúng số ${d.dinhDanh} trong app AiiGrow (Cả nhà › Mời người nhà), rồi bấm Tải lại.`} />
+        {/* tài khoản Facebook không nhận lời mời theo email (máy chủ không khớp — email Facebook chưa chắc đã xác minh) ⇒ nhắc dùng link mời */}
+        <CanhGiua lv="cho" tieu="Chưa thấy lời mời" loi={`Nhờ người nhà mời đúng số ${d.dinhDanh} trong app AiiGrow (Cả nhà › Mời người nhà), rồi bấm Tải lại. Vào bằng Facebook thì mở link mời người nhà gửi.`} />
       </Man>
     );
   }

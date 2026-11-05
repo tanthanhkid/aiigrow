@@ -80,7 +80,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
       await t(`delete from ho_tro where family_id = $1 and tu = 'ba_me' and nguoi = $2`, [bm.family_id, bm.id]);
       await t(`delete from messages where family_id = $1 and parent_id = $2`, [bm.family_id, bm.id]);
       await t(`delete from otp where dinh_danh = $1`, [toi.dinh_danh]);
-      await t(`delete from pin_sai where khoa like $1`, [`xoa_tk:${bm.id}:%`]);
+      await t(`delete from pin_sai where khoa like $1 or khoa like $2`, [`xoa_tk:${bm.id}:%`, `dat_mk_tk:${bm.id}:%`]);
       await ghiSuKien(bm.family_id, "thanh_vien_xoa_tai_khoan", { ten: toi.ten }, { nguoi: bm.id }, t);
       return { xoa: "tai_khoan" };
     }
@@ -94,7 +94,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     await t(`delete from may_log where family_id = $1`, [bm.family_id]);
     // người đã «mời ra» có định danh «<gốc>#roi:<id>» ⇒ lấy phần gốc
     await t(`delete from otp where dinh_danh in (select split_part(dinh_danh, '#roi:', 1) from parents where family_id = $1)`, [bm.family_id]);
-    await t(`delete from pin_sai where split_part(khoa, ':', 1) = 'xoa_tk' and split_part(khoa, ':', 2) in (select id from parents where family_id = $1)`, [bm.family_id]);
+    await t(`delete from pin_sai where split_part(khoa, ':', 1) in ('xoa_tk', 'dat_mk_tk') and split_part(khoa, ':', 2) in (select id from parents where family_id = $1)`, [bm.family_id]);
     await t(`delete from families where id = $1`, [bm.family_id]);
     await ghiKiemToan(null, "xoa_gia_dinh", { soCon: con.length }, bm.family_id, t);
     return { xoa: "gia_dinh", soCon: con.length };

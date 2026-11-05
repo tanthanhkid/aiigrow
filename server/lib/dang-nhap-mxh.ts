@@ -9,7 +9,8 @@
 // `dat-mat-khau` (xác minh lại bằng Google/Facebook) — gỡ máy, xoá tài khoản, gỡ trên máy Con đều cần mật khẩu.
 // Lời mời theo email (loiMoiChoToi / moi/nhan {id}): Google khớp được (chỉ nhận id_token có email_verified); tài khoản Facebook KHÔNG khớp
 // (Graph không cam kết email đã xác minh) — chỉ nhận lời mời qua link (token `ma`). Chặn ở lib/thanh-vien.ts.
-// Giới hạn lượt (bảng pin_sai, khung 15 phút cố định như ghép máy): đăng nhập MXH theo IP + theo tài khoản MXH; dat-mat-khau theo IP + theo Ba Mẹ.
+// Giới hạn lượt (bảng pin_sai, khung 15 phút cố định như ghép máy): đăng nhập MXH theo IP (chỉ lượt hỏng) + theo tài khoản MXH;
+// dat-mat-khau theo Ba Mẹ + theo IP. Bộ đếm khung cũ tự dọn.
 // Thiếu env ⇒ 503 `mxh_chua_bat` (app đọc `GET cau-hinh-dang-nhap` để ẩn nút).
 // Mạng gọi qua globalThis.fetch — test thay bằng JWKS / Graph giả (dang-nhap-mxh.test.ts).
 import { createHmac, createPublicKey, verify, type JsonWebKey } from "node:crypto";
@@ -160,18 +161,32 @@ export const KHUNG_PHUT = 15;
 /** Trần mỗi khung 15 phút. IP rộng hơn tài khoản (nhiều người chung NAT / wifi quán). */
 export const TRAN = { dangNhapIp: 30, dangNhapTk: 10, datMkIp: 10, datMkTk: 5 } as const;
 const khung = (now: number) => Math.floor(now / (KHUNG_PHUT * 60_000));
+const TIEN_TO = ["mxh_ip", "mxh_tk", "dat_mk_ip", "dat_mk_tk"];
+let donKhung = -1;
+/** Dọn bộ đếm của các khung đã qua (mỗi tiến trình một lần mỗi khung) — không để pin_sai phình mãi theo IP / tài khoản. */
+async function donKhungCu(k: number) {
+  if (donKhung === k) return;
+  donKhung = k;
+  await q(`delete from pin_sai where split_part(khoa, ':', 1) = any($1::text[]) and split_part(khoa, ':', -1) not in ($2, $3)`,
+    [TIEN_TO, String(k), String(k - 1)]).catch(() => undefined);
+}
+const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
 /** Giữ chỗ một lượt TRƯỚC khi làm (một upsert nguyên tử — gửi song song cũng chỉ ≤ `tran` lượt lọt); quá trần ⇒ 429 tới hết khung. */
 async function giuLuot(khoa: string, tran: number) {
+  await donKhungCu(Number(khoa.slice(khoa.lastIndexOf(":") + 1)));
   const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > tran) throw new LoiNghiepVu("qua_nhieu_lan", `Thử nhiều lần quá — đợi ${KHUNG_PHUT} phút rồi thử lại nhé`, 429);
 }
 
 /** POST dang-nhap/google {idToken} | dang-nhap/facebook {accessToken} ⇒ {id, moi}. `ip` = nguồn gọi (gia-dinh.ts › nguonGoi).
- *  Đếm theo IP trước khi gọi Google / Facebook (chặn dội token rác), rồi theo tài khoản MXH sau khi xác minh. */
+ *  Đếm theo IP trước khi gọi Google / Facebook (chặn dội token rác) — xác minh được thì TRẢ lượt IP (như ghép máy: chỉ lượt hỏng bị tính,
+ *  nhiều người chung NAT / wifi quán vẫn vào được); rồi theo tài khoản MXH sau khi xác minh. */
 export async function dangNhapMxh(nguon: NguonMxh, b: Record<string, unknown>, ip = "?", now = Date.now()) {
-  await giuLuot(`mxh_ip:${ip}:${khung(now)}`, TRAN.dangNhapIp);
+  const khoaIp = `mxh_ip:${ip}:${khung(now)}`;
+  await giuLuot(khoaIp, TRAN.dangNhapIp);
   const dt = await xacMinh(nguon, b);
+  await traLuot(khoaIp);
   await giuLuot(`mxh_tk:${dt.nguon}:${dt.sub}:${khung(now)}`, TRAN.dangNhapTk);
   return vaoBangMxh(dt);
 }
@@ -188,8 +203,9 @@ export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "
   if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
   if (p?.pass_hash) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
-  await giuLuot(`dat_mk_ip:${ip}:${khung(now)}`, TRAN.datMkIp);
+  // tài khoản trước: phiên đã hết lượt riêng thì không đốt tiếp lượt IP của người khác chung mạng
   await giuLuot(`dat_mk_tk:${bm.id}:${khung(now)}`, TRAN.datMkTk);
+  await giuLuot(`dat_mk_ip:${ip}:${khung(now)}`, TRAN.datMkIp);
   const dt = await xacMinh(b.idToken ? "google" : "facebook", b);
   if ((await theoMxh(dt))?.id !== bm.id) throw new LoiNghiepVu("mxh_khong_khop", `Tài khoản ${TEN_NGUON[dt.nguon]} này không phải tài khoản đang đăng nhập`, 403);
   const bam = await bamMatKhau(mk);

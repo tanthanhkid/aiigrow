@@ -130,17 +130,19 @@ export async function datLaiMatKhau(dinhDanh: unknown, ma: unknown, mkMoi: unkno
   if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
   const bam = await bamMatKhau(mk);
   const dung = await tx(async (t) => {
-    if (!(await dungOtp(t, d, ma, "quen_mk"))) return false;
+    if (!(await dungOtp(t, d, ma, "quen_mk"))) return false as const;
     // Tài khoản chưa từng có mật khẩu (vào bằng Google / Facebook) ⇒ không đặt bằng OTP (mã có thể đã phát trước khi tài khoản đổi chủ
     // email, hoặc từ chế độ thử) — đăng nhập bằng đúng Google / Facebook rồi «Đặt mật khẩu» (dang-nhap-mxh.ts › datMatKhauMxh).
     const cu = (await t<{ co_mk: boolean }>(`select pass_hash is not null as co_mk from parents where dinh_danh = $1`, [d]))[0];
-    if (cu && !cu.co_mk)
-      throw new LoiNghiepVu("chua_co_mat_khau", "Tài khoản này vào bằng Google / Facebook — đăng nhập bằng đó rồi chọn «Đặt mật khẩu» nhé", 409);
+    // trả dấu hiệu rồi ném NGOÀI giao dịch: mã đã bị xoá (dungOtp) phải được ghi hẳn — ném trong tx thì rollback, mã còn dùng lại được
+    if (cu && !cu.co_mk) return "chua_co_mk" as const;
     const p = (await t<{ id: string }>(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null
                                         where dinh_danh = $1 and pass_hash is not null returning id`, [d, bam]))[0];
     if (p) await t(`delete from sessions where parent_id = $1`, [p.id]);
-    return true;
+    return true as const;
   });
+  if (dung === "chua_co_mk")
+    throw new LoiNghiepVu("chua_co_mat_khau", "Tài khoản này vào bằng Google / Facebook — đăng nhập bằng đó rồi chọn «Đặt mật khẩu» nhé", 409);
   if (!dung) throw new LoiNghiepVu("otp_sai", "Mã chưa đúng");
 }
 

@@ -253,10 +253,27 @@ test("quên mật khẩu không đặt được mật khẩu cho tài khoản Go
   const r = await goi("quen-mat-khau", { body: { dinhDanh: "chi.mxh@gmail.com", ma: "123456", matKhauMoi: "matkhau123" } });
   assert.equal(r.status, 409); assert.equal(r.body.error, "chua_co_mat_khau");
   assert.equal((await one<{ pass_hash: string | null }>(`select pass_hash from parents where dinh_danh = 'chi.mxh@gmail.com'`))!.pass_hash, null);
+  // mã đã bị tiêu (không rollback) ⇒ đặt mật khẩu bằng MXH xong, dùng lại mã cũ cũng không chiếm được
+  const tokMxh = (await goi("dang-nhap/google", { body: { idToken: jwt({ email: "chi.mxh@gmail.com", sub: "g40" }) } })).body.token;
+  assert.equal((await goi("dat-mat-khau", { tok: tokMxh, body: { matKhauMoi: "matkhau123", idToken: jwt({ email: "chi.mxh@gmail.com", sub: "g40" }) } })).status, 200);
+  const lai = await goi("quen-mat-khau", { body: { dinhDanh: "chi.mxh@gmail.com", ma: "123456", matKhauMoi: "chiem12345" } });
+  assert.equal(lai.status, 400); assert.equal(lai.body.error, "otp_het_han");
   // tài khoản có mật khẩu: quên mật khẩu vẫn chạy như cũ
   const o2 = await goi("otp", { body: { dinhDanh: "0907000004" } });
   await goi("dang-ky", { body: { dinhDanh: "0907000004", ma: o2.body.ma, ten: "Ba Tư", matKhau: "matkhau123" } });
   const o3 = await goi("otp", { body: { dinhDanh: "0907000004", mucDich: "quen_mk" } });
   assert.match(o3.body.ma, /^\d{6}$/);
   assert.equal((await goi("quen-mat-khau", { body: { dinhDanh: "0907000004", ma: o3.body.ma, matKhauMoi: "matkhau999" } })).status, 200);
+});
+
+test("giới hạn lượt: đăng nhập đúng trả lại lượt IP (nhiều người chung NAT); khung cũ tự dọn", async () => {
+  process.env.GOOGLE_CLIENT_IDS = WEB;
+  for (let i = 0; i < mxh.TRAN.dangNhapIp + 5; i++) {
+    const r = await goi("dang-nhap/google", { ip: "5.5.5.5", body: { idToken: jwt({ email: `nat${i}@gmail.com`, sub: `nat${i}` }) } });
+    assert.equal(r.status, 200, `người ${i}: ${JSON.stringify(r.body)}`);
+  }
+  const k = Math.floor(Date.now() / (mxh.KHUNG_PHUT * 60_000));
+  assert.ok(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]));
+  await mxh.dangNhapMxh("google", { idToken: jwt({ email: "nat0@gmail.com", sub: "nat0" }) }, "5.5.5.5", Date.now() + 2 * mxh.KHUNG_PHUT * 60_000);
+  assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]), undefined);
 });
