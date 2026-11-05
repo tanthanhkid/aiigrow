@@ -48,7 +48,15 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   if (!nhan.length) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
   // giữ luôn mã 6 số của cùng «phiên ghép» TRƯỚC khi ghép ⇒ không máy thứ hai ghép bằng mã trong lúc này (device_id điền sau)
   if (g.ma_ghep) await q(`update pair_codes set used_at = coalesce(used_at, $3) where code = $1 and goi_cai = $2`, [g.ma_ghep, h, now]);
-  const kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay);
+  let kq: Awaited<ReturnType<typeof ghepMayGd>>;
+  try {
+    kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay);
+  } catch (e) {
+    // ghép hỏng ⇒ trả lại link + mã cùng phiên (không để «Đang chờ» treo mãi, không đốt cả hai đường)
+    await q(`update goi_cai set used_at = null where token_hash = $1 and device_id is null`, [h]);
+    if (g.ma_ghep) await q(`update pair_codes set used_at = null where code = $1 and goi_cai = $2 and device_id is null`, [g.ma_ghep, h]);
+    throw e;
+  }
   await q(`update goi_cai set device_id = $2 where token_hash = $1`, [h, kq.deviceId]);
   // mã 6 số của cùng «phiên ghép» hết dùng; app Ba Mẹ đang chờ thấy «đã ghép» qua mã đó (ghep-may.ts › trangThaiGhep)
   if (g.ma_ghep) await q(`update pair_codes set device_id = coalesce(device_id, $3) where code = $1 and goi_cai = $2`,
@@ -146,8 +154,9 @@ export const cheDoCua = (m: MayCheDo): CheDo | null => cheDoBaMeChon(m) ?? cheDo
  *  (thiết kế 05/11: bỏ «Giám sát / Chặn thật» khỏi màn Ba Mẹ — máy luôn chặn thật; mức chặn theo Con: Mở hết / Chỉ app được phép, lib/chan-co-ban.ts).
  *  Máy cũ Ba Mẹ từng để «Giám sát» cũng chuyển sang chặn ở lần đồng bộ kế. `m` giữ trong chữ ký cho nơi gọi cũ. */
 export const cheDoGuiMay = (m: MayCheDo, dangGo: boolean, coCon = true): CheDo | undefined =>
-  dangGo ? "giam-sat" : coCon ? "chan" : cheDoBaMeChon(m) ?? undefined;
-// coCon = false: máy dùng chung CHƯA chọn Con ⇒ không ép chặn (luật rỗng sẽ khoá nhầm cả nhà) — giữ lựa chọn cũ của Ba Mẹ nếu có.
+  dangGo ? "giam-sat" : coCon ? "chan" : cheDoBaMeChon(m) ?? "giam-sat";
+// coCon = false: máy dùng chung CHƯA chọn Con (hoặc phiên Con đã hết) ⇒ không chặn (luật rỗng sẽ khoá nhầm cả nhà) — gửi rõ «giam-sat» để agent
+// đang chặn từ phiên Con trước thả ra; Ba Mẹ từng chọn «chan» cho máy đó thì giữ.
 
 /** POST may/:id/che-do {cheDo} — máy đổi ở lần đồng bộ tới (≤ 1 phút khi có mạng). Ghi nhật ký + báo các Ba Mẹ khác. */
 export async function datCheDo(fam: string, mayId: string, b: { cheDo?: unknown }, nguoi: string, now = new Date()) {

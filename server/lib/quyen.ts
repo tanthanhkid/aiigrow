@@ -44,7 +44,8 @@ export function chiBaMe(bm: { vai: string }, viec = "đổi cài đặt") {
 export function trongGiupDuoc(p: string[]): boolean {
   const d = p.join("/");
   if (["dang-xuat", "xoa-tai-khoan", "duyet-hang-loat", "moi/nhan", "thanh-vien/roi-nha"].includes(d)) return true;
-  if (p[0] === "thong-bao") return true;
+  if (p[0] === "thong-bao" || d === "ho-tro") return true;                                           // thông báo riêng · nhắn hỗ trợ
+  if (p[0] === "canh-bao" && p[1] && p[2] === "doc" && p.length === 3) return true;                    // đánh dấu cảnh báo đã đọc
   if (p[0] === "con" && p[1] && p.length === 3 && ["khoa", "loi-khen"].includes(p[2])) return true;   // khoá / mở lại máy · khen khi duyệt
   if (p[0] === "luot" && p[1] && p.length === 3 && ["duyet", "tu-choi", "hoan-tac"].includes(p[2])) return true;
   if (p[0] === "yeu-cau" && p[1] && p.length === 3 && ["dong-y", "tu-choi"].includes(p[2])) return true;

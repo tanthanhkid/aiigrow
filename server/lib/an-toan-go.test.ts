@@ -162,9 +162,12 @@ test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10); máy dùng chun
     { che_do: "giam-sat", che_do_ba_me: false });
   // máy dùng chung chưa chọn Con: không ép chặn (luật rỗng sẽ khoá nhầm cả nhà); Con chọn tên ⇒ «chan»
   const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC phòng khách");
-  assert.equal((await dv("dong-bo", { tok: chung.token, body: {} })).body.windows.cheDo, undefined);
+  assert.equal((await dv("dong-bo", { tok: chung.token, body: {} })).body.windows.cheDo, "giam-sat");
   const pc = (await dv("chon-con", { tok: chung.token, body: { con } })).body.phienCon;
   assert.equal((await dv("dong-bo", { tok: chung.token, body: {}, hdr: { "x-phien-con": pc } })).body.windows.cheDo, "chan");
+  // phiên Con hết ⇒ thả ra (gửi rõ giam-sat, không để agent kẹt «chan» với luật rỗng)
+  await q(`delete from kid_sessions where device_id = $1`, [chung.deviceId]);
+  assert.equal((await dv("dong-bo", { tok: chung.token, body: {}, hdr: { "x-phien-con": pc } })).body.windows.cheDo, "giam-sat");
 });
 
 test("chế độ thật do agent báo: app thấy chế độ máy báo (cheDoMay) bên cạnh lựa chọn; giá trị lạ bỏ qua", async () => {

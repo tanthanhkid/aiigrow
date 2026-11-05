@@ -111,7 +111,9 @@ export const MA_GHEP_PHUT = 10;
 export async function taoMaGhep(fam: string, con: string | null, platform: string, o: { giongMay?: string | null; nguoi?: string | null; goiCai?: string | null } = {}) {
   if (platform !== "" && !(NEN_TANG as readonly string[]).includes(platform)) throw new LoiNghiepVu("nen_tang_sai", "Chọn loại thiết bị");
   if (con) await conCua(fam, con);
-  await q(`delete from pair_codes where expires_at < now() - interval '1 day'`);
+  // mã của «phiên ghép» còn link bộ cài sống (48 giờ) thì giữ — màn «Đang chờ» tra trạng thái theo mã
+  await q(`delete from pair_codes p where p.expires_at < now() - interval '1 day'
+             and not exists (select 1 from goi_cai g where g.token_hash = p.goi_cai and g.expires_at > now())`);
   for (let i = 0; i < 20; i++) {
     const code = String(Math.floor(Math.random() * 1e6)).padStart(6, "0");
     const r = await q(`insert into pair_codes(code, family_id, child_id, platform, expires_at, giong_may, nguoi, goi_cai)

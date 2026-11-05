@@ -87,11 +87,13 @@ export async function taoLoiMoi(bm: BaMe, b: { vai?: unknown; quyen?: unknown; t
     if (!dinhDanh) throw new LoiNghiepVu("dinh_danh_sai", "Nhập số điện thoại (10 số) hoặc email của người được mời");
     if (await one(`select 1 from parents where family_id = $1 and dinh_danh = $2 and vai <> 'roi'`, [bm.family_id, dinhDanh]))
       throw new LoiNghiepVu("da_trong_nha", "Người này đã ở trong nhà rồi", 409);
-    await q(`update loi_moi set huy_luc = now() where family_id = $1 and dinh_danh = $2 and dung_luc is null and huy_luc is null`, [bm.family_id, dinhDanh]);
   }
   const { ds, loiMoi } = await dsThanhVien(bm.family_id);
   if (ds.length >= THANH_VIEN_TOI_DA) throw new LoiNghiepVu("du_thanh_vien", `Gia đình đã đủ ${THANH_VIEN_TOI_DA} người lớn`, 409);
-  if (loiMoi.length >= MOI_CHO_TOI_DA) throw new LoiNghiepVu("qua_nhieu_loi_moi", `Đang có ${MOI_CHO_TOI_DA} lời mời chờ — huỷ bớt rồi mời tiếp`, 409);
+  // lời mời chờ cho đúng định danh này sẽ được thay ⇒ không tính vào trần; huỷ nó CHỈ sau khi qua mọi kiểm tra
+  if (loiMoi.filter((x) => !dinhDanh || x.dinh_danh !== dinhDanh).length >= MOI_CHO_TOI_DA)
+    throw new LoiNghiepVu("qua_nhieu_loi_moi", `Đang có ${MOI_CHO_TOI_DA} lời mời chờ — huỷ bớt rồi mời tiếp`, 409);
+  if (dinhDanh) await q(`update loi_moi set huy_luc = now() where family_id = $1 and dinh_danh = $2 and dung_luc is null and huy_luc is null`, [bm.family_id, dinhDanh]);
   for (let i = 0; i < 10; i++) {
     const ma = taoMa(), id = newId();
     const r = await q<{ het: Date }>(`insert into loi_moi(id, family_id, ma_hash, vai, ten_goi, nguoi, het, dinh_danh, gui_luc)
@@ -109,6 +111,10 @@ export async function taoLoiMoi(bm: BaMe, b: { vai?: unknown; quyen?: unknown; t
 export async function guiLaiLoiMoi(bm: BaMe, id: string, goc: string) {
   chiBaMe(bm, "mời người nhà");
   await bangTvTb();
+  // gửi lại lời mời đã quá hạn = thêm một lời mời sống ⇒ vẫn theo trần lời mời chờ
+  const { loiMoi } = await dsThanhVien(bm.family_id);
+  if (!loiMoi.some((x) => x.id === id) && loiMoi.length >= MOI_CHO_TOI_DA)
+    throw new LoiNghiepVu("qua_nhieu_loi_moi", `Đang có ${MOI_CHO_TOI_DA} lời mời chờ — huỷ bớt rồi gửi lại`, 409);
   for (let i = 0; i < 10; i++) {
     const ma = taoMa();
     try {
