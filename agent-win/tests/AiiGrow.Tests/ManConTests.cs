@@ -80,6 +80,14 @@ public class ManConTests
         Assert.Equal("Chúc Bảo Anh ngủ ngon!", ManKhoaView.For(LockReasons.Ngu, null, "Bảo Anh", null, null, null, false, false).Phu2);
     }
 
+    [Theory]
+    [InlineData("06:30", "6:30")]
+    [InlineData("21:30", "21:30")]
+    [InlineData("00:30", "00:30")]
+    [InlineData(null, null)]
+    [InlineData(" ", null)]
+    public void ManKhoa_GioGon(string? vao, string? ra) => Assert.Equal(ra, ManKhoaView.GioGon(vao));
+
     [Fact]
     public void ManKhoa_MatMang_VanGiuLuat_LoiXinLuuLai()
     {
@@ -97,6 +105,7 @@ public class ManConTests
         Assert.Equal(10, NgoaiLeView.Giam(15));
         Assert.Equal(NgoaiLeView.PhutMin, NgoaiLeView.Giam(NgoaiLeView.PhutMin));
         Assert.Equal(NgoaiLeView.PhutMax, NgoaiLeView.Tang(NgoaiLeView.PhutMax));
+        Assert.Equal(60, NgoaiLeView.PhutMax);   // mặc định máy chủ ngoai_le_toi_da_phut
         Assert.Equal("Gửi Ba Mẹ: mở 15 phút", NgoaiLeView.NutGui(15));
         var ds = NgoaiLeView.LuaChon(new[] { "hocvoiairob.exe", "tudien.exe", "khac.exe" });
         Assert.Equal(3, ds.Count);                                   // tối đa 2 app + «Cả máy»

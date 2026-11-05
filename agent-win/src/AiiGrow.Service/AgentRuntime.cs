@@ -484,8 +484,8 @@ public sealed class AgentRuntime
             s.BlockedBoiBaMe = _blockedBoiBaMe;
             s.AppDuocPhep = _policy.LearningApps.ToList();
             s.Sao = _policy.Sao;
-            s.QuyPhut = _policy.QuyPhut;
-            s.MoLaiLuc = _policy.MoLaiLuc;
+            s.QuyPhut = _policy.QuyTongPhut;
+            s.MoLaiLuc = ManKhoaView.GioGon(_policy.GioNgu?.Den);
             s.DungTheoApp = Usage.DungHomNay(now);
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));

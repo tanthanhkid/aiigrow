@@ -48,7 +48,8 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   «Thêm giờ chơi» của W1 (`RequestForm`).
 - Mất mạng: vẫn tính giờ, vẫn chặn; lời xin (thêm giờ / ngoại lệ / xin duyệt) lưu ở `config.XinCho`, lần đồng bộ được kế tiếp dịch vụ tự gửi (4xx ⇒ bỏ).
   Menu khay: ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật (`PipeCmd.KiemCapNhat` / `CapNhatNgay`) · Hỏi AiiGrow… (khi lỗi).
-- Policy đọc thêm (S1 gửi khi có): `windows.sao`, `windows.quyPhut`, `windows.moLaiLuc` («HH:mm»). Chưa có ⇒ màn không ghi số.
+- Policy (S1, `server/lib/agent-windows.ts`): `quyTongPhut` ⇒ «Đã chơi 60 / 60 phút», `gioNgu.den` ⇒ «Máy mở lại lúc 6:30»; ngoại lệ gửi `yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri, phut ≤ 60}`.
+  Số sao chưa có trong `dong-bo.windows` (`windows.sao` đọc sẵn) ⇒ màn khoá / nhắc 5 phút chưa ghi «Con có N sao».
 
 ## Build
 

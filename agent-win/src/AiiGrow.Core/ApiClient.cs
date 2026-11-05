@@ -91,9 +91,13 @@ public sealed class ApiClient : IDisposable
     public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
 
-    /// <summary>Thiết kế 05/11 (L3): xin mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / hết giờ) — POST yeu-cau {loai: ngoai_le, phut, giaTri: app | ca_may, lyDo}.</summary>
+    /// <summary>Thiết kế 05/11 (L3, docs/API.md mục S1): xin mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / hết giờ) —
+    /// POST yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri: &lt;app khi phamVi app&gt;, phut, lyDo}.</summary>
     public Task<RequestResult> CreateNgoaiLeAsync(int phut, string muc, string lyDo, CancellationToken ct = default)
-        => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = LoaiXin.NgoaiLe, phut = NgoaiLeView.Kep(phut), giaTri = muc, lyDo }, ct);
+    {
+        var caMay = muc == NgoaiLeView.CaMay;
+        return PostAsync<RequestResult>("api/device/yeu-cau", new { loai = LoaiXin.NgoaiLe, phamVi = caMay ? "ca_may" : "app", giaTri = caMay ? null : muc, phut = NgoaiLeView.Kep(phut), lyDo }, ct);
+    }
 
     /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)

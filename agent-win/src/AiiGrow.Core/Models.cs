@@ -83,12 +83,19 @@ public sealed class Policy
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
     public List<AppBiChan> BlockedApps { get; set; } = new();
-    /// <summary>Thiết kế 05/11 (L1, phần máy chủ của S1): số sao hiện có của Con; null = máy chủ chưa gửi.</summary>
+    /// <summary>Thiết kế 05/11 (L1): số sao hiện có của Con — dong-bo.windows CHƯA gửi (sao nằm ở hoc-vien/tong-quan); null ⇒ màn không ghi số.</summary>
     public int? Sao { get; set; }
-    /// <summary>Thiết kế 05/11 (L2, S1): quỹ phút chơi hôm nay (ngày thường / cuối tuần + sao đã đổi); null = chưa có.</summary>
-    public int? QuyPhut { get; set; }
-    /// <summary>Thiết kế 05/11 (S1): giờ hết giờ ngủ «HH:mm» (màn «Đến giờ ngủ rồi · Máy mở lại lúc …»); null = chưa có.</summary>
-    public string? MoLaiLuc { get; set; }
+    /// <summary>05/11 (S1, server/lib/agent-windows.ts): quỹ phút chơi hôm nay (đã cộng thêm giờ / đổi sao) — «Đã chơi X / Y phút».</summary>
+    public int? QuyTongPhut { get; set; }
+    /// <summary>05/11 (S1): giờ ngủ {tu, den} «HH:mm» — màn «Đến giờ ngủ rồi · Máy mở lại lúc &lt;den&gt; sáng mai».</summary>
+    public KhungGio? GioNgu { get; set; }
+}
+
+/// <summary>Khung giờ «HH:mm» → «HH:mm» (dong-bo.windows.gioNgu).</summary>
+public sealed class KhungGio
+{
+    public string Tu { get; set; } = "";
+    public string Den { get; set; } = "";
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);

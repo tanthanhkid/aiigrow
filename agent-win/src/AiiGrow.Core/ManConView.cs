@@ -135,6 +135,14 @@ public static class ManKhoaView
         }
     }
 
+    /// <summary>«06:30» ⇒ «6:30» (cách thiết kế ghi giờ); «00:30» giữ; trống ⇒ null.</summary>
+    public static string? GioGon(string? hhmm)
+    {
+        var t = hhmm?.Trim();
+        if (string.IsNullOrEmpty(t)) return null;
+        return t.Length == 5 && t[0] == '0' && t[1] != '0' ? t[1..] : t;
+    }
+
     private static string MoLai(string? luc) => luc is { Length: > 0 } ? $"Máy mở lại lúc {luc} sáng mai." : "Máy mở lại sáng mai.";
 
     // Mất mạng (con-mat-mang 02–04)
@@ -154,7 +162,8 @@ public static class ManKhoaView
 public static class NgoaiLeView
 {
     public const string CaMay = "ca_may";
-    public const int PhutMacDinh = 15, PhutMin = 5, PhutMax = 120, Buoc = 5;
+    /// <summary>Tối đa 60 = mặc định máy chủ <c>ngoai_le_toi_da_phut</c> (S1); máy chủ vẫn kẹp theo cấu hình Ba Mẹ.</summary>
+    public const int PhutMacDinh = 15, PhutMin = 5, PhutMax = 60, Buoc = 5;
     public static readonly string[] LyDoNhanh = { "Con chưa xong bài", "Mai nộp cô" };
     public const string TuViet = "Tự viết…";
 
