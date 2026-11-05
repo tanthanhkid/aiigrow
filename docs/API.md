@@ -413,6 +413,7 @@ iPhone / Android — `hanMoCuaMay`, như mở khẩn cấp) và **thắng giờ 
 | `GET cua-hang` · `POST doi/:quaId` | ẩn / chặn phiếu AiiCafe (`voucher_ngung` 409). Quà thêm `sao`, `choTraoTu` (lúc đổi, đang chờ Ba Mẹ trao) |
 | `GET vi-qua` | thêm `daTrao[]` («Quà của con» đã trao) |
 | `hoc-vien/tong-quan` | thêm `sao, saoChoDuyet, quy {conPhut, daDung, tongPhut, quyNgayPhut, themPhut, dangNgu, dangHoc, khoa, gioNgu, gioHoc, tyLe, doiSao, choXinThem}`; việc thêm `sao, hinh, lapLai, gioNhac, lamLai, loiNhan` |
+| `hoc-vien/vi-qua` (chỉ khay) | `{daTrao[{id, ten, loai, diem, xu_ly_luc}], voucher[], phieu[]}` — «Quà của con» trên khay Windows (W1). `tong-quan` › `nhiemVu[]` thêm `bo` (mã bộ: tu_lap…) |
 | `hoc-vien/tin` | loại mới `lam_lai_nhiem_vu` («Ba Mẹ nhờ con làm lại»), `them_gio` («Ba Mẹ cho thêm giờ»); `xac_nhan_qua` = «Ba Mẹ đã trao quà!» (+N phút); chữ «điểm» ⇒ «sao» |
 
 Quyền (L6 của S2): **Người trông giúp** gọi được `luot/:id/lam-lai`, `con/:id/them-gio`, `them-gio/:id/hoan-tac`, `phieu/:id/trao` (xem / duyệt / trao); `con/:id/gio-choi` (POST), `nhiem-vu/bo` (POST), `qua` (POST) là đổi cài đặt ⇒ chỉ Ba Mẹ (`lib/quyen.ts` › `trongGiupDuoc`).
@@ -426,6 +427,7 @@ Quyền (L6 của S2): **Người trông giúp** gọi được `luot/:id/lam-la
   trang Giải trí mở trong trình duyệt; hết quỹ ⇒ rời danh sách. Trường mới: `quyConPhut` (0 khi không được chơi), `quyTongPhut`, `quyDaDung`,
   `appTinhGio[]` (app đang được thả nhờ quỹ — agent mới đếm lùi `quyConPhut` khi chúng ở tiền cảnh, cả lúc mất mạng), `gioNgu`, `gioHoc`, `dangGioHoc`,
   `ngoaiLe: [{den, app | null}]`. Ngoại lệ cả máy ⇒ `mode: tu_do` + `grantEndsAt` (thắng giờ ngủ / khoá); ngoại lệ một app ⇒ `locked: false`, `mode: hoc`,
-  `allowedApps` = app hệ thống + app đó. `nextCheckSec` ≤ 60 khi quỹ còn ≤ 10 phút. `playOfflineMinutes` = min(quỹ còn, tới giờ ngủ / giờ học).
+  `allowedApps` = app hệ thống + app đó. `khoaKhiHetNgoaiLe: "khoa" | "ngu"` khi ngoại lệ mở lúc máy đang bị khoá (Ba Mẹ khoá / giờ ngủ) ⇒ agent
+  tự khoá lại đúng lý do khi MỌI ngoại lệ hết hạn (cả lúc mất mạng — agent-win `QuyTaiCho`). `nextCheckSec` ≤ 60 khi quỹ còn ≤ 10 phút. `playOfflineMinutes` = min(quỹ còn, tới giờ ngủ / giờ học).
 - **Agent cũ** (không đọc `quyConPhut`): vẫn chạy — app Giải trí vào/ra `allowedApps` theo quỹ ở mỗi lần đồng bộ (trễ ≤ 1–2 phút); mất mạng thì
   agent cũ không tự đếm quỹ (giữ danh sách cuối tới khi có mạng). Khay cũ «Chơi bằng điểm» vẫn mở phiên (giá 0, giới hạn theo quỹ).
