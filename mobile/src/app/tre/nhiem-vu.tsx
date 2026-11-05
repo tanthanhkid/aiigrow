@@ -1,9 +1,10 @@
-// con-nhiem-vu «Làm gì để có điểm» (BRD 6.2): chọn một việc, làm xong chụp ảnh là xong. Đủ lượt hôm nay ⇒ mờ, mai làm tiếp.
+// con-nhiem-vu «Nhiệm vụ hôm nay» (BRD 6.2, thiết kế 05/11 con-ngay-thuong): chọn một việc, làm xong nộp
+// ảnh / ghi âm / viết kể lại / bấm «Xong»; «Học với AiiRob» thì AiiRob tự chấm. Ba Mẹ nhờ làm lại ⇒ lên đầu danh sách. Đủ lượt hôm nay ⇒ mờ, mai làm tiếp.
 import { router } from "expo-router";
 import { View } from "react-native";
 import { BangMang, Canh, CanhGiua, ChoTai, Nhan, Nut } from "@/lib/ui";
 import { DiemTren, ManTre, TheNv, phuNv, useTaiTre, useTre } from "@/lib/ui-tre";
-import { kid, type NhaTre, type NvTre } from "@/lib/api-tre";
+import { kid, type NhaTre, type NvTre, type NvTreSao } from "@/lib/api-tre";
 import { NHOM_NV } from "@/lib/api";
 
 const THU_TU: Record<NvTre["trang_thai_con"], number> = { can_bo_sung: 0, dang_lam: 1, san_sang: 2, du_hom_nay: 3, du_tuan: 4, da_xong: 5 };
@@ -11,7 +12,7 @@ const THU_TU: Record<NvTre["trang_thai_con"], number> = { can_bo_sung: 0, dang_l
 export default function NhiemVu() {
   const { ten } = useTre();
   const { d, loi, matMang, tai, cu } = useTaiTre("nhiem-vu", async () => ({
-    nha: await kid.goi<NhaTre>("nha"), ds: (await kid.goi<{ ds: NvTre[] }>("nhiem-vu")).ds,
+    nha: await kid.goi<NhaTre>("nha"), ds: (await kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1")).ds,
   }));
   if (!d) return <ManTre tab="nhiem-vu"><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
   if (!d.ds.length) {
@@ -29,7 +30,7 @@ export default function NhiemVu() {
     <ManTre tab="nhiem-vu" tai={tai} vongTai>
       <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
       {matMang || cu ? <BangMang chu="Mất mạng — vẫn làm và chụp được, ảnh tự gửi khi có mạng." /> : null}
-      <Canh lv="so-tay" tieu="Hôm nay làm gì nào?" loi="Chọn một việc, làm xong chụp ảnh là xong!" thap />
+      <Canh lv="so-tay" tieu="Hôm nay làm gì nào?" loi="Chọn một việc, làm xong nộp bài là có sao!" thap />
       <View style={{ gap: 10 }}>
         {ds.map((x) => {
           const n = NHOM_NV[x.nhom] ?? NHOM_NV.khac;
@@ -37,9 +38,10 @@ export default function NhiemVu() {
           const bam = het ? undefined : x.trang_thai_con === "can_bo_sung" ? () => router.push(`/tre/chup-lai/${x.luot_dang}?nv=${x.id}`)
             : x.trang_thai_con === "dang_lam" ? () => router.push(`/tre/dang/${x.luot_dang}?nv=${x.id}`) : () => router.push(`/tre/nv/${x.id}`);
           return (
-            <TheNv key={x.id} ic={n.ic} mau={n.mau} tieu={x.ten} phu={phuNv(x)} diem={x.diem} het={het} bam={bam}
-              nhan={x.trang_thai_con === "can_bo_sung" ? <Nhan chu="Chụp lại" loai="canh" ic="camera" />
-                : x.dang_cho ? <Nhan chu={`${x.dang_cho} ảnh chờ Ba Mẹ duyệt`} loai="lam" /> : undefined} />
+            <TheNv key={x.id} ic={n.ic} mau={n.mau} tieu={x.ten} phu={phuNv(x)} diem={x.sao ?? x.diem} het={het} bam={bam}
+              nhan={x.trang_thai_con === "can_bo_sung" ? <Nhan chu="Làm lại" loai="canh" ic="camera" />
+                : x.dang_cho ? <Nhan chu={`${x.dang_cho} bài chờ Ba Mẹ duyệt`} loai="lam" />
+                  : x.tu_cham || x.bang_chung === "tu_dong" ? <Nhan chu="AiiRob tự chấm" loai="lam" /> : undefined} />
           );
         })}
       </View>

@@ -1,4 +1,4 @@
-// con-duoc-duyet «Được duyệt — ăn mừng»: +10 điểm, lời khen của Ba Mẹ, Con gửi lại một biểu cảm (phản hồi lời khen). Hiện một lần mỗi lượt.
+// con-duoc-duyet «Được duyệt — ăn mừng»: +10 sao, lời khen của Ba Mẹ, Con gửi lại một biểu cảm (phản hồi lời khen). Hiện một lần mỗi lượt.
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
@@ -27,7 +27,7 @@ export default function DuocDuyet() {
   return (
     <ManTre tab="nha">
       <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
-      <CanhGiua lv="xong" tieu={`+${diem} điểm!`} loi={d.l?.loi_khen ? `Ba Mẹ nhắn: “${d.l.loi_khen}”` : `Ba Mẹ đã duyệt “${d.l?.ten ?? "nhiệm vụ"}”`}>
+      <CanhGiua lv="xong" tieu={`+${diem} sao!`} loi={d.l?.loi_khen ? `Ba Mẹ nhắn: “${d.l.loi_khen}”` : `Ba Mẹ đã duyệt “${d.l?.ten ?? "nhiệm vụ"}”`}>
         <Nut chu="Cảm ơn Ba Mẹ ♥" loai="vang" bam={camOn} />
         {d.khen && !d.khen.phan_hoi ? (
           <View style={{ flexDirection: "row", gap: 8, justifyContent: "center" }} accessibilityRole="radiogroup" accessibilityLabel="Gửi biểu cảm cho Ba Mẹ">

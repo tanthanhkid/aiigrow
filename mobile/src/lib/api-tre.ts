@@ -1,4 +1,5 @@
-// Client màn Con: /api/kid/* (phiên PIN của Con, dùng `kid` của api.ts) + vài lệnh thiết bị /api/device/* (ghép máy, chọn hồ sơ, PIN).
+// Client màn Con: /api/kid/* (phiên Con, dùng `kid` của api.ts) + vài lệnh thiết bị /api/device/* (ghép máy, chọn tên trên máy dùng chung).
+// 05/11 (thiết kế chốt): «sao» thay «điểm» (số vẫn là cột diem), quỹ giờ chơi mỗi ngày, đổi sao lấy phút, xin ngoại lệ, không PIN.
 // Hàng chờ nộp bằng chứng khi mất mạng: ảnh nằm trên máy, tự gửi lại khi có mạng (con-cho-duyet «mất mạng»).
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
@@ -59,12 +60,32 @@ export type NvTre = { id: string; ten: string; mo_ta: string; nhom: string; diem
   toi_da_tuan: number | null; phut_toi_thieu: number; trang_thai_con: "san_sang" | "dang_lam" | "can_bo_sung" | "du_hom_nay" | "du_tuan" | "da_xong";
   luot_dang: string | null; hom_nay: number; dang_cho: number };
 export type LuotTre = { id: string; trang_thai: string; diem: number | null; ly_do: string | null; loi_khen: string | null; nop_luc: string | null; ten: string };
-export type QuaTre = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem"; diem: number; menh_gia: number | null; chi_cuoi_tuan: boolean;
+export type QuaTre = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem" | "phut"; diem: number; menh_gia: number | null; chi_cuoi_tuan: boolean;
   toi_da_thang: number | null; du: boolean; conThieu: number };
-export type ViQua = { voucher: { ma: string; menh_gia: number; trang_thai: string; het_han: string; dung_luc: string | null }[];
+export type ViQua = { daTrao?: QuaDaTrao[]; voucher: { ma: string; menh_gia: number; trang_thai: string; het_han: string; dung_luc: string | null }[];
   phieu: { id: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: string }[] };
 export type YcTre = { id: string; loai: "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac"; phut: number | null; gia_tri: string | null;
-  ly_do: string; trang_thai: string; created_at: string; xu_ly_luc?: string | null; ly_do_tu_choi?: string | null; het_han: string };
+  ly_do: string; trang_thai: string; created_at: string; xu_ly_luc?: string | null; ly_do_tu_choi?: string | null; het_han: string; pham_vi?: "ca_may" | "app" | null };
+/** Quỹ giờ chơi hôm nay (server/lib/quy-gio.ts › quyHomNay) — mọi app Giải trí Ba Mẹ cho phép dùng chung; app Học không tính. */
+export type QuyTre = { ngay: string; cuoiTuan: boolean; quyNgayPhut: number; themPhut: number; doiSaoPhut: number; daDung: number; conPhut: number; tongPhut: number;
+  dangNgu: boolean; dangHoc: boolean; khoa: boolean; gioNgu: { tu: string; den: string }; gioHoc: { tu: string; den: string; thu: number[] } | null;
+  phutToiNgu: number; phutToiHoc: number | null; tyLe: { sao: number; phut: number }; doiSao: { bat: boolean; toiDaNgay: number; conDoiDuoc: number }; choXinThem: boolean };
+/** GET /api/kid/quy */
+export type QuyCon = { quy: QuyTre; sao: number; phutDoiDuoc: number; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[];
+  yeuCauCho: { id: string; loai: string; phut: number | null; gia_tri: string | null; pham_vi: string | null; ly_do: string; created_at: string }[] };
+/** Nhà của Con kèm quỹ (05/11: `nha` trả thêm `quy`, `sao`). App bản cũ của máy chủ không có ⇒ undefined. */
+export type NhaTreSao = NhaTre & { quy?: QuyTre; sao?: number };
+/** Vì sao lúc này không thêm giờ được (giống quy-gio.ts › lyDoKhongThemGio) — chỉ xin Ba Mẹ mở ngoại lệ. */
+export function lyDoKhoa(q: Pick<QuyTre, "khoa" | "dangNgu" | "dangHoc"> | undefined | null): "ba_me_khoa" | "gio_ngu" | "gio_hoc" | null {
+  if (!q) return null;
+  return q.khoa ? "ba_me_khoa" : q.dangNgu ? "gio_ngu" : q.dangHoc ? "gio_hoc" : null;
+}
+/** Số sao cần cho `phut` phút (làm tròn lên, như máy chủ). */
+export const saoChoPhut = (q: Pick<QuyTre, "tyLe">, phut: number) => Math.ceil((phut * q.tyLe.sao) / Math.max(1, q.tyLe.phut));
+/** Quà đã Ba Mẹ trao (GET vi-qua › daTrao). */
+export type QuaDaTrao = { id: string; ten: string; loai: string; diem: number; xu_ly_luc: string };
+/** Việc của Con, trường mới 05/11 (GET nhiem-vu?tuCham=1). */
+export type NvTreSao = NvTre & { sao?: number; lam_lai?: boolean; loi_nhan?: string | null; ly_do?: string | null; tu_cham?: boolean; hinh?: string | null };
 export type TroChoi = { muc: string; ten: string; nhom: string; giaPhut: number };
 export type XetChoi = { duoc: boolean; lyDo?: string; cau: string | null; phutToiDa?: number; giaPhanNghin?: number; soDu?: number; nghiDen?: string };
 export type NhipChoi = { trangThai: "chay" | "tam" | "ket_thuc"; phutDung: number; conPhut: number; diemTru: number; soDu: number; canhBao: 5 | 1 | null;
@@ -85,7 +106,7 @@ export function tenMuc(muc: string, ten?: string) {
 
 // ------------------------------------------------------------------ hàng chờ nộp bằng chứng khi mất mạng
 export type AnhNop = { mime: string; base64: string };
-type ViecCho = { luot: string; anh: AnhNop[]; ghiChu?: string };
+type ViecCho = { luot: string; anh: AnhNop[]; ghiChu?: string; ghiAm?: AnhNop };
 const KHOA_HANG = "aiig_tre_hang";
 let hang: ViecCho[] | null = null;
 const napHang = () => {
@@ -97,12 +118,22 @@ const luuHang = () => { if (Platform.OS === "web") try { globalThis.localStorage
 
 /** Nộp bằng chứng; mất mạng ⇒ xếp hàng chờ trên máy (trả `daXepHang`), tự gửi khi có mạng. */
 export async function nopBangChung(luot: string, anh: AnhNop[], ghiChu?: string): Promise<{ trang_thai: string; daXepHang?: boolean }> {
+  return nopBai(luot, { anh, ghiChu });
+}
+
+/** Định danh trông như app thật (tệp .exe/.app, gói / bundle a.b.c) ⇒ xin-duyet hiểu là app; tên trần («Minecraft») máy chủ hiểu là tên miền. */
+// khớp server/lib/chinh-sach.ts › kieuMuc (BUNDLE + .exe/.app) — lệch thì máy chủ xếp nhầm lời xin thành web
+export const laMaApp = (muc: string) => /\.(exe|app)$/i.test(muc) || /^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i.test(muc);
+
+/** Nộp bài (05/11): ảnh / ghi âm (audio/*, ≤ 2 MB) / viết kể lại / bấm «Xong» (không kèm gì). Mất mạng ⇒ xếp hàng như ảnh. */
+export async function nopBai(luot: string, b: { anh?: AnhNop[]; ghiChu?: string; ghiAm?: AnhNop }): Promise<{ trang_thai: string; daXepHang?: boolean }> {
+  const anh = b.anh ?? [];
   try {
-    return await kid.goi<{ trang_thai: string }>(`luot/${luot}/nop`, { anh, ghiChu });
+    return await kid.goi<{ trang_thai: string }>(`luot/${luot}/nop`, { anh, ghiChu: b.ghiChu, ...(b.ghiAm ? { ghiAm: b.ghiAm } : {}) });
   } catch (e) {
     if (!(e instanceof LoiApi) || e.ma !== "mat_mang") throw e;
     const h = napHang().filter((x) => x.luot !== luot);
-    h.push({ luot, anh, ghiChu });
+    h.push({ luot, anh, ghiChu: b.ghiChu, ...(b.ghiAm ? { ghiAm: b.ghiAm } : {}) });
     hang = h;
     luuHang();
     return { trang_thai: "cho_gui", daXepHang: true };
@@ -116,9 +147,11 @@ export async function guiHangCho(): Promise<number> {
   const h = napHang();
   for (const v of [...h]) {
     try {
-      await kid.goi(`luot/${v.luot}/nop`, { anh: v.anh, ghiChu: v.ghiChu });
+      await kid.goi(`luot/${v.luot}/nop`, { anh: v.anh, ghiChu: v.ghiChu, ...(v.ghiAm ? { ghiAm: v.ghiAm } : {}) });
     } catch (e) {
-      if (e instanceof LoiApi && e.ma === "mat_mang") break;
+      // mất mạng / hết phiên Con / máy chủ trục trặc ⇒ giữ bài, lần sau gửi tiếp; lỗi nghiệp vụ (đã nộp, hết hạn…) mới bỏ khỏi hàng
+      if (e instanceof LoiApi && (e.ma === "mat_mang" || e.status === 401)) break;
+      if (e instanceof LoiApi && e.status >= 500) continue;     // máy chủ trục trặc: giữ bài này, thử bài sau (không chặn cả hàng)
     }
     hang = napHang().filter((x) => x !== v);
     luuHang();

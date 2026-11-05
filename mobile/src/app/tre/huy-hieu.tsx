@@ -1,4 +1,4 @@
-// con-huy-hieu «Huy hiệu & cấp độ» (FR-03.06): cấp theo tổng điểm trọn đời (không phải số dư); huy hiệu không quy ra điểm. Chưa đạt ⇒ mờ.
+// con-huy-hieu «Huy hiệu & cấp độ» (FR-03.06): cấp theo tổng sao trọn đời (không phải số dư); huy hiệu không quy ra sao. Chưa đạt ⇒ mờ.
 import { View } from "react-native";
 import { Canh, ChoTai, M, Tien, type LinhVat } from "@/lib/ui";
 import { GhiChu, ManTre, QuaO, ngayCua, useTaiTre } from "@/lib/ui-tre";
@@ -19,7 +19,7 @@ export default function HuyHieu() {
   const ti = diemCapSau > truoc ? (d.tongKiem - truoc) / (diemCapSau - truoc) : 0;
   return (
     <ManTre lui={{ chu: "Nhà", ve: "/tre/nha" }}>
-      <Canh lv="sao" mau="vang" tieu={`Cấp ${cap} · ${tenCap(cap)}`} loi={`Còn ${conThieu} điểm nữa lên cấp ${cap + 1} “${tenCap(cap + 1)}”!`}>
+      <Canh lv="sao" mau="vang" tieu={`Cấp ${cap} · ${tenCap(cap)}`} loi={`Còn ${conThieu} sao nữa lên cấp ${cap + 1} “${tenCap(cap + 1)}”!`}>
         <View style={{ alignSelf: "stretch", marginTop: 2 }}><Tien ti={ti} /></View>
       </Canh>
       {d.chuoiNgay ? <GhiChu giua>{`Chuỗi ${d.chuoiNgay} ngày liền có nhiệm vụ được duyệt`}</GhiChu> : null}
