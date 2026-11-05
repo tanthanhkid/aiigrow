@@ -10,7 +10,7 @@
 // Lời mời theo email (loiMoiChoToi / moi/nhan {id}): Google khớp được (chỉ nhận id_token có email_verified); tài khoản Facebook KHÔNG khớp
 // (Graph không cam kết email đã xác minh) — chỉ nhận lời mời qua link (token `ma`). Chặn ở lib/thanh-vien.ts.
 // Giới hạn lượt (bảng pin_sai, khung 15 phút cố định như ghép máy): đăng nhập MXH theo IP (chỉ lượt hỏng) + theo tài khoản MXH;
-// dat-mat-khau theo Ba Mẹ + theo IP. Bộ đếm khung cũ tự dọn.
+// dat-mat-khau theo Ba Mẹ + theo IP. Bộ đếm khung cũ dọn trong cron hằng ngày (donBoDemMxh).
 // Thiếu env ⇒ 503 `mxh_chua_bat` (app đọc `GET cau-hinh-dang-nhap` để ẩn nút).
 // Mạng gọi qua globalThis.fetch — test thay bằng JWKS / Graph giả (dang-nhap-mxh.test.ts).
 import { createHmac, createPublicKey, verify, type JsonWebKey } from "node:crypto";
@@ -162,19 +162,16 @@ export const KHUNG_PHUT = 15;
 export const TRAN = { dangNhapIp: 30, dangNhapTk: 10, datMkIp: 10, datMkTk: 5 } as const;
 const khung = (now: number) => Math.floor(now / (KHUNG_PHUT * 60_000));
 const TIEN_TO = ["mxh_ip", "mxh_tk", "dat_mk_ip", "dat_mk_tk"];
-let donKhung = -1;
-/** Dọn bộ đếm của các khung đã qua (mỗi tiến trình một lần mỗi khung) — không để pin_sai phình mãi theo IP / tài khoản. */
-function donKhungCu(k: number) {
-  if (donKhung === k) return;
-  donKhung = k;
-  // không chờ (không làm chậm đăng nhập); lỗi chỉ ghi log — khung sau dọn lại
-  void q(`delete from pin_sai where split_part(khoa, ':', 1) = any($1::text[]) and split_part(khoa, ':', -1) not in ($2, $3)`,
-    [TIEN_TO, String(k), String(k - 1)]).catch((e) => console.warn("[dang-nhap-mxh] dọn pin_sai lỗi:", e instanceof Error ? e.message : e));
+/** Xoá bộ đếm của các khung đã qua — chạy trong cron hằng ngày (/api/cron/don-kiem-toan), không trên đường đăng nhập. → số dòng xoá. */
+export async function donBoDemMxh(now = Date.now()) {
+  const k = khung(now);
+  return (await q(`delete from pin_sai where split_part(khoa, ':', 1) = any($1::text[]) and split_part(khoa, ':', -1) not in ($2, $3) returning 1`,
+    [TIEN_TO, String(k), String(k - 1)])).length;
 }
-const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
+// trả lượt không được làm hỏng lỗi gốc ⇒ nuốt lỗi DB ở đây
+const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]).catch(() => undefined);
 /** Giữ chỗ một lượt TRƯỚC khi làm (một upsert nguyên tử — gửi song song cũng chỉ ≤ `tran` lượt lọt); quá trần ⇒ 429 tới hết khung. */
 async function giuLuot(khoa: string, k: number, tran: number) {
-  donKhungCu(k);
   khoa = `${khoa}:${k}`;
   const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
@@ -190,8 +187,8 @@ export async function dangNhapMxh(nguon: NguonMxh, b: Record<string, unknown>, i
   const khoaIp = await giuLuot(`mxh_ip:${ip}`, k, TRAN.dangNhapIp);
   let dt: DanhTinh;
   try { dt = await xacMinh(nguon, b); } catch (e) {
-    // chỉ token hỏng (mxh_sai) bị tính; lỗi mạng / chưa bật / không email ⇒ trả lượt (như ghép máy)
-    if (!(e instanceof LoiNghiepVu && e.ma === "mxh_sai")) await traLuot(khoaIp);
+    // chỉ «chưa bật» (không gọi ra ngoài) được trả lượt; token hỏng, không email, lỗi mạng đều đã tốn lời gọi Google / Facebook ⇒ tính
+    if (e instanceof LoiNghiepVu && e.ma === "mxh_chua_bat") await traLuot(khoaIp);
     throw e;
   }
   // trả lượt IP chỉ SAU khi qua trần tài khoản — không thì xen token đúng (đã hết lượt) với token rác sẽ giữ bộ đếm IP ở 0

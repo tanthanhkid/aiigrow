@@ -266,7 +266,7 @@ test("quên mật khẩu không đặt được mật khẩu cho tài khoản Go
   assert.equal((await goi("quen-mat-khau", { body: { dinhDanh: "0907000004", ma: o3.body.ma, matKhauMoi: "matkhau999" } })).status, 200);
 });
 
-test("giới hạn lượt: đăng nhập đúng trả lại lượt IP (nhiều người chung NAT); khung cũ tự dọn", async () => {
+test("giới hạn lượt: đăng nhập đúng trả lại lượt IP (nhiều người chung NAT); cron dọn khung cũ", async () => {
   process.env.GOOGLE_CLIENT_IDS = WEB;
   const k = Math.floor(Date.now() / (mxh.KHUNG_PHUT * 60_000));
   for (let i = 0; i < mxh.TRAN.dangNhapIp + 5; i++) {
@@ -274,7 +274,6 @@ test("giới hạn lượt: đăng nhập đúng trả lại lượt IP (nhiều
     assert.equal(r.status, 200, `người ${i}: ${JSON.stringify(r.body)}`);
   }
   assert.ok(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]));
-  await mxh.dangNhapMxh("google", { idToken: jwt({ email: "nat0@gmail.com", sub: "nat0" }) }, "5.5.5.5", (k + 2) * mxh.KHUNG_PHUT * 60_000);
-  await new Promise((r) => setTimeout(r, 50));                                  // dọn chạy nền
+  assert.ok(await mxh.donBoDemMxh((k + 2) * mxh.KHUNG_PHUT * 60_000) > 0);    // cron hằng ngày
   assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]), undefined);
 });

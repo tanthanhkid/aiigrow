@@ -18,7 +18,7 @@
 //    (Thanh chốt 24/10), ghi thêm MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch; dòng đó là mốc tính 90 ngày,
 //    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
-import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
+import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -129,7 +129,9 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     returning (select updated_at from cu) as cu`, [now]);
   if (!duoc.length) return null;
   try {
-    return await donKiemToanGiaDinhDaXoa(now);
+    const n = await donKiemToanGiaDinhDaXoa(now);
+    await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
+    return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
       [now, duoc[0].cu]).catch(() => {});

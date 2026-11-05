@@ -100,7 +100,8 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
   phát mã (trả y như số/email không có tài khoản — không lộ), `quen-mat-khau` ⇒ 409 `chua_co_mat_khau`. Muốn có mật khẩu: đăng nhập bằng
   đúng Google/Facebook đó rồi «Đặt mật khẩu» (`POST dat-mat-khau`, xác minh lại bằng chính tài khoản MXH đã gắn).
 - Giới hạn lượt (bảng `pin_sai`, khung 15 phút cố định như ghép máy; quá trần ⇒ 429 `qua_nhieu_lan`):
-  - `POST dang-nhap/google|facebook`: 30 lượt / IP (đếm trước khi gọi Google/Facebook), 10 lượt / tài khoản MXH (nguồn + `sub`, sau xác minh).
+  - `POST dang-nhap/google|facebook`: 30 lượt / IP (đếm trước khi gọi Google/Facebook; vào được thì trả lượt — chỉ lượt hỏng bị tính),
+    10 lượt / tài khoản MXH (nguồn + `sub`, sau xác minh). Bộ đếm khung cũ dọn trong cron hằng ngày `/api/cron/don-kiem-toan`.
   - `POST dat-mat-khau`: 10 lượt / IP, 5 lượt / Ba Mẹ; đặt được thì xoá bộ đếm của Ba Mẹ đó.
   - IP = `x-real-ip` (Vercel đặt) rồi `x-forwarded-for`, IPv6 gộp /64 (gia-dinh.ts › `nguonGoi`).
 - App (iOS/Android): Google trả `code`, app tự đổi mã lấy `id_token` (`shouldAutoExchangeCode: false`, mobile/src/lib/doi-ma-google.ts) —
