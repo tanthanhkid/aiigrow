@@ -152,4 +152,12 @@ public final class DongBo {
     kho.luu(yc, Khoa.yeuCauDangCho)
     return yc
   }
+
+  /// 05/11: giờ ngủ / Ba Mẹ khoá ⇒ xin mở ngoại lệ cả máy (theo dõi trạng thái như lời xin thêm giờ).
+  public func xinNgoaiLe(phut: Int, loiNhan: String, now: Date = Date()) async throws -> YeuCauDangCho {
+    let r = try await api.xinNgoaiLe(phut: phut, loiNhan: loiNhan)
+    let yc = YeuCauDangCho(id: r.id, phut: phut, loiNhan: loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho")
+    kho.luu(yc, Khoa.yeuCauDangCho)
+    return yc
+  }
 }

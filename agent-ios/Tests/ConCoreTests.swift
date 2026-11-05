@@ -486,7 +486,8 @@ final class QuyGioTests: XCTestCase {
   }
 
   func testWebLuonChanVaMayChuCu() throws {
-    let d = nhipMau(them05: quy).replacingOccurrences(of: Data(#""chuaXep":"chan"}"#.utf8), with: Data(#""chuaXep":"chan","cheDoChan":"chi_app_duoc_phep","webLuonChan":["pornhub.com"]}"#.utf8))
+    let d = Data(String(decoding: nhipMau(them05: quy), as: UTF8.self)
+      .replacingOccurrences(of: #""chuaXep":"chan"}"#, with: #""chuaXep":"chan","cheDoChan":"chi_app_duoc_phep","webLuonChan":["pornhub.com"]}"#).utf8)
     let kh = LapKeHoach.tu(try doc(d), now: vn(26, 10))
     XCTAssertTrue(kh.webChan.contains("pornhub.com"))
     // máy chủ cũ (không quy) ⇒ luật cũ: khung giờ chơi vẫn chặn
