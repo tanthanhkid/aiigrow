@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { BAN_AGENT_MAC, BAN_AGENT_WINDOWS } from "@/lib/ban-agent.ts";
 import { heDieuHanh } from "@/lib/he-dieu-hanh.ts";
-import { oMa, thamSoTai, type NenTai } from "@/lib/trang-tai.ts";
+import { linkTaiWindowsGhep, oMa, thamSoTai, type NenTai } from "@/lib/trang-tai.ts";
 import { F3, I3d, Ph, type Ten3d } from "../_clay/Icon";
 
 const LINK_APK = "/tai/aiigrow.apk";
@@ -52,7 +52,9 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
   const iosKhongLink = t.nen === "ios" && !t.moApp;
   const nen: NenTai = iosKhongLink ? "windows" : t.nen;
   const may = MAY[nen];
-  const link = nen === "ios" ? t.moApp! : may.link;
+  // Windows mở từ link Ba Mẹ gửi ⇒ bộ cài mang gói ghép trong tên tệp (tự ghép); máy khác / không có link ⇒ tệp thường + mã 6 số
+  const tuGhep = nen === "windows" && !!t.g;
+  const link = nen === "ios" ? t.moApp! : tuGhep ? linkTaiWindowsGhep(t.g) : may.link;
   const khac = (["windows", "mac", "android"] as const).filter((x) => x !== nen);
   return (
     <div className="ag">
@@ -87,8 +89,9 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
           <li>
             <span className="so">3</span><F3 ten="shield" co={40} className="hinh" />
             <div>
-              <b className="t">{nen === "ios" ? "Ba Mẹ duyệt Screen Time bằng Apple ID (một lần)" : nen === "mac" ? "Cửa sổ Ghép máy tự mở: nhập mã" : "Nhập mã ghép máy"}</b>
+              <b className="t">{nen === "ios" ? "Ba Mẹ duyệt Screen Time bằng Apple ID (một lần)" : tuGhep ? "Bộ cài tự ghép máy vào gia đình" : nen === "mac" ? "Cửa sổ Ghép máy tự mở: nhập mã" : "Nhập mã ghép máy"}</b>
               {nen === "ios" ? <small>{t.ma ? "Không mở được app? Nhập mã ghép máy dưới đây trong app AiiGrow Con." : "Không mở được app? Nhờ Ba Mẹ đọc mã 6 số trong app Ba Mẹ."}</small>
+                : tuGhep ? <small>Không cần gõ mã. Bộ cài báo link hết hạn thì gõ mã dưới đây (mã dùng 10 phút).</small>
                 : t.ma ? <small>Mã dưới đây — dùng được 10 phút.</small>
                   : <small>Lấy mã 6 số trong app Ba Mẹ: <b>Máy của con › Ghép thêm máy</b>.</small>}
             </div>

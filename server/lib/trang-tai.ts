@@ -26,3 +26,11 @@ export function thamSoTai(q: Record<string, string | string[] | undefined>, os: 
 
 /** «482017» ⇒ ["4","8","2","0","1","7"] — ô mã to trên trang. */
 export const oMa = (ma: string) => (ma.length === 6 ? ma.split("") : []);
+
+/** Gói ghép nhúng tên tệp bộ cài Windows — khớp agent-win `EnrollmentPackage.Encode` / `EnrollmentReader.FromFileName`:
+ *  base64url(JSON {server, token}) ⇒ tệp `AiiGrow-Setup.enroll-<gói>.exe`; bộ cài (SetupForm, W2) đọc tên tệp ⇒ bước Ghép tự ghép (`ghep-goi`). */
+export const goiGhep = (server: string, token: string) =>
+  Buffer.from(JSON.stringify({ server: server.replace(/\/+$/, ""), token })).toString("base64url");
+export const tenTepWindows = (goi: string) => `AiiGrow-Setup.enroll-${goi}.exe`;
+/** Đường tải bộ cài Windows mang gói ghép (route app/tai/ghep/[g]). */
+export const linkTaiWindowsGhep = (g: string) => `/tai/ghep/${encodeURIComponent(g)}`;
