@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm } from "@/lib/api";
+import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { CanGiup, CanhRob, DauMan, demNguoc, OLom, OLomTran, TieuDe } from "@/lib/lan-dau";
 import { Bao, BaoLoi, Chu, Icon, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
@@ -20,13 +20,17 @@ export default function QuenMatKhau() {
   const [mk2, setMk2] = useState("");
   const [con, setCon] = useState(0);
   const { vao } = usePhien();
-  const { lam, loi, dangChay } = useLam();
+  const { lam, loi, dangChay, setLoi } = useLam();
   useEffect(() => { const t = setInterval(() => setCon((x) => Math.max(0, x - 1)), 1000); return () => clearInterval(t); }, []);
   const guiMa = () => lam(async () => { setGui(await bm.goi<{ guiDen: string; ma?: string }>("otp", { dinhDanh: dd, mucDich: "quen_mk" })); setCon(60); });
   const khop = mk.length >= 8 && mk === mk2;
   const luu = () => lam(async () => {
     const dinhDanh = gui?.guiDen ?? dd;
-    await bm.goi("quen-mat-khau", { dinhDanh, ma, matKhauMoi: mk });
+    try { await bm.goi("quen-mat-khau", { dinhDanh, ma, matKhauMoi: mk }); } catch (e) {
+      // mã sai / hết hạn: quay lại bước nhập mã (mật khẩu mới vẫn giữ trong ô)
+      if (e instanceof LoiApi && /^otp/.test(e.ma)) { setBuoc2(false); setMa(""); setTimeout(() => setLoi(e.message), 0); return; }
+      throw e;
+    }
     // mật khẩu đã đổi (mã đã dùng): đăng nhập trượt thì sang màn Đăng nhập, không bắt nhập lại mã
     const r = await bm.goi<{ token: string }>("dang-nhap", { dinhDanh, matKhau: mk }).catch(() => null);
     if (r) await vao(r.token); else router.replace({ pathname: "/dang-nhap", params: { dd: dinhDanh } });
@@ -35,7 +39,7 @@ export default function QuenMatKhau() {
     return (
       <Man dau={<DauMan bamLui={() => setBuoc2(false)} phai={<CanGiup />} />}
         day={<><BaoLoi loi={loi} /><Nut chu="Lưu mật khẩu và vào app" rong dangChay={dangChay} tat={!khop} bam={luu} /></>}>
-        <CanhRob lv="xong" ic="mo_khoa" tieu="Mã đúng rồi! Chọn mật khẩu mới nhé." cao={150} />
+        <CanhRob lv="xong" ic="mo_khoa" tieu="Gần xong rồi! Chọn mật khẩu mới nhé." cao={150} />
         <TieuDe chu="Đặt mật khẩu mới" giua />
         <OLom nhan="Mật khẩu mới" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
         <OLom nhan="Nhập lại mật khẩu mới" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" />

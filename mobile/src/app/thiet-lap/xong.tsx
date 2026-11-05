@@ -1,19 +1,25 @@
 // bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt: chế độ chặn + số app, giờ chơi + giờ ngủ, số việc mỗi ngày;
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet, type NhiemVu } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { tomTat } from "@/lib/ghep-may";
 import { gioGon, LienKet, TieuDe } from "@/lib/lan-dau";
-import { layTl, xoaTl } from "@/lib/thiet-lap";
+import { datTl, layTl, xoaTl } from "@/lib/thiet-lap";
 import { Avt, Chu, Icon, Icon3D, M, MAU_CON, Man, Nut, Rob, The, useTai, XuongTai, type TenIcon } from "@/lib/ui";
 
 export default function ObXong() {
   const p = useLocalSearchParams<{ con?: string }>();
   const con = String(p.con ?? layTl().conId ?? "");
+  // Con khác đã lưu trong lượt này («Thêm con khác») còn chưa giao việc / giờ chơi / ghép máy ⇒ mời làm tiếp
+  const [conLai] = useState(() => (layTl().daLuu ?? []).filter((x) => x.id !== con));
   useEffect(() => { xoaTl(); }, []);                // Lần đầu đã xong: lần «Thêm Con» sau bắt đầu form trống
+  const tiepCon = (x: (typeof conLai)[number]) => {
+    datTl({ conId: x.id, tenCon: x.ten, mau: x.mau, namSinh: x.namSinh, daLuu: conLai });
+    router.push("/thiet-lap/mau");
+  };
   const { d } = useTai(async () => {
     if (!con) return null;
     const [t, c, nv] = await Promise.all([tomTat(con), bm.goi<ConChiTiet>(`con/${con}`), bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")]);
@@ -44,6 +50,7 @@ export default function ObXong() {
           {dong("sao", `${d.soViec} việc mỗi ngày`)}
         </The>
       ) : null}
+      {conLai.map((x) => <Nut key={x.id} chu={`Thiết lập tiếp cho ${x.ten}`} loai="vien" rong bam={() => tiepCon(x)} />)}
       {coMay ? (
         <View style={{ borderRadius: 26, backgroundColor: "#fff1c9", padding: 14, gap: 10, ...KHOI.the }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="chuong" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Con xin gì, điện thoại Ba Mẹ sẽ báo</Chu></View>

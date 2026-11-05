@@ -21,7 +21,11 @@ const ghi = () => { try { kho()?.setItem(KHOA, JSON.stringify(nho)); } catch { /
 export async function layMaGhep(con: string | null, giongMay: string | null, moi = false): Promise<KqGhep> {
   const k = `${con ?? ""}|${giongMay ?? ""}`;
   const cu = nho[k];
-  if (!moi && cu && Date.parse(cu.het) - Date.now() > 60_000) return cu;
+  if (!moi && cu && Date.parse(cu.het) - Date.now() > 60_000) {
+    // mã đã dùng (máy đã ghép) hoặc của phiên / gia đình khác (đổi tài khoản trên cùng thẻ) ⇒ lấy mã mới
+    const g = await xemGhep(cu.ma).catch(() => null);
+    if (g && !g.daGhep && !g.hetHan && g.conGiay > 60) return cu;
+  }
   const r = await bm.goi<KqGhep>("ghep-may", { ...(con ? { con } : {}), ...(giongMay ? { giongMay } : {}) });
   nho = { ...nho, [k]: r };
   ghi();
@@ -50,8 +54,9 @@ export const coMa = (a: AppChon): a is { ma: string; ten: string } => "ma" in a;
 
 /** Gửi toàn bộ lựa chọn Giờ chơi + Chọn app cho Con đang thiết lập. */
 export async function luuThietLap() {
+  if (!layTl().conId) throw new Error("Chưa biết thiết lập cho con nào — quay lại bước hồ sơ con.");
+  if (!layTl().apps && (layTl().cheDoChan ?? "chi_app_duoc_phep") === "chi_app_duoc_phep") await napAppGoiY(layTl().conId!);
   const tl = layTl();
-  if (!tl.conId) throw new Error("Chưa biết thiết lập cho con nào — quay lại bước hồ sơ con.");
   const quy = tl.quy ?? QUY_MAC_DINH;
   await bm.goi("thiet-lap", {
     con: { id: tl.conId, ten: tl.tenCon },

@@ -45,8 +45,8 @@ export default function VaoNha() {
         <LienKet chu={d.coNha ? "Ở lại nhà mình" : "Không phải tôi"} bam={() => router.replace(d.coNha ? "/" : "/thiet-lap/ten-con")} /></>}>
       <View style={{ height: 250, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
         <View style={{ position: "absolute", top: 16, flexDirection: "row", gap: 4 }}>
-          {[ai, ...con, "Tôi"].slice(0, 5).map((t, i) => (
-            <View key={t + i} style={{ borderRadius: 30, padding: 3, backgroundColor: i === Math.min(con.length + 1, 4) ? "#f5c94a" : "transparent" }}>
+          {[ai, ...con.slice(0, 3), "Tôi"].map((t, i, ds) => (
+            <View key={t + i} style={{ borderRadius: 30, padding: 3, backgroundColor: i === ds.length - 1 ? "#f5c94a" : "transparent" }}>
               <Avt ten={t === "Tôi" ? "T" : t} mau={MAU_CON[i % MAU_CON.length]} co={50} />
             </View>
           ))}

@@ -26,6 +26,10 @@ export default function Chao() {
             <View style={{ width: 20, alignItems: "center" }}><View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#a3a8a5" }} /></View>
             <LkChao chu="Tôi được mời vào nhà" bam={() => router.push("/moi")} canh="flex-start" />
           </View>
+          {Platform.OS === "web" ? (
+            // trang chủ web: lối sang trang tải bộ cài cho máy của con (thiết kế không vẽ — giữ chữ nhỏ)
+            <LkChao chu="Tải AiiGrow cho máy của con" bam={() => globalThis.location?.assign("/tai")} canh="center" />
+          ) : null}
           {Platform.OS !== "web" ? (
             // App gốc cũng là app của Con trên điện thoại / máy tính bảng chưa ghép (thiết kế không vẽ — giữ lối vào màn Con, chữ nhỏ)
             <LkChao chu="Đây là máy của con? Mở màn của con" bam={() => router.push("/tre")} canh="center" />

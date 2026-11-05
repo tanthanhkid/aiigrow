@@ -16,7 +16,7 @@ const NEN_O: Record<TuanThuMay["nen"], string> = { windows: "#dce9fb", mac: "#e9
 
 /** Máy đang được bảo vệ đủ (mức bảo vệ máy chủ tính + còn liên lạc, không lệch chuẩn). */
 const dangMo = (m: TuanThuMay) => { const den = m.moKhanCapDen ?? m.moDen ?? null; return !!den && Date.parse(den) > Date.now(); };
-const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && m.baoVe !== "chua" && !dangMo(m) && !m.dangGo;
+const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && !dangMo(m) && !m.dangGo;     // «chua» = máy không báo quyền, Ba Mẹ không sửa được ⇒ không báo đỏ
 function cauTrangThai(m: TuanThuMay) {
   if (m.dangGo) return "Đang gỡ AiiGrow khỏi máy này";
   if (m.moKhanCapDen && Date.parse(m.moKhanCapDen) > Date.now()) return `Đang mở khẩn cấp tới ${gioPhut(m.moKhanCapDen)}`;
