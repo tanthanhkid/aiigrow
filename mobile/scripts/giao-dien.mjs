@@ -54,10 +54,12 @@ export const DO = String.raw`(() => {
     const el = n.parentElement, cs = getComputedStyle(el), chu = n.textContent.trim().slice(0,50);
     const co = parseFloat(cs.fontSize), dam = +cs.fontWeight >= 700, lon = co >= 24 || (co >= 18.66 && dam);
     // 1. tương phản (lượt đã cuộn hết chỉ xét ảnh nổi đè chữ)
-    const [bg, anh] = nen(el); const fg = tron(mau(cs.color), bg);
-    if (cuoi) { /* bỏ */ } else if (anh) { const r = dongCua(n)[0]; if (r) DO_TAY.push({ chu, mau: mau(cs.color).slice(0,3), can: lon?3:4.5, r: [r.left, r.top, r.width, r.height].map(Math.round), el: ten(el), nen: anh }); }
+    // chữ trong SVG (<text>) tô bằng `fill`, không bằng `color` — đọc đúng màu thật của nó (trước đây lấy color ⇒ báo sai chữ trắng thành đen)
+    const mauChu = el instanceof SVGElement && /^rgb/.test(cs.fill) ? cs.fill : cs.color;
+    const [bg, anh] = nen(el); const fg = tron(mau(mauChu), bg);
+    if (cuoi) { /* bỏ */ } else if (anh) { const r = dongCua(n)[0]; if (r) DO_TAY.push({ chu, mau: mau(mauChu).slice(0,3), can: lon?3:4.5, r: [r.left, r.top, r.width, r.height].map(Math.round), el: ten(el), nen: anh }); }
     else { const ti = (Math.max(lum(fg),lum(bg))+.05)/(Math.min(lum(fg),lum(bg))+.05);
-      if (ti < (lon ? 3 : 4.5) && !daBao.has('tp'+chu)) { daBao.add('tp'+chu); L.push({luat:'TUONG-PHAN', chu, el:ten(el), ti:+ti.toFixed(2), can: lon?3:4.5, mau: cs.color, nen: 'rgb('+bg.slice(0,3).map(Math.round)+')'}); } }
+      if (ti < (lon ? 3 : 4.5) && !daBao.has('tp'+chu)) { daBao.add('tp'+chu); L.push({luat:'TUONG-PHAN', chu, el:ten(el), ti:+ti.toFixed(2), can: lon?3:4.5, mau: mauChu, nen: 'rgb('+bg.slice(0,3).map(Math.round)+')'}); } }
     // 2. nút rớt dòng — «nhãn nút» = phần tử bấm được chỉ có MỘT dòng chữ nhãn (Nut, chip, tab). Thẻ / hàng danh sách bấm được có nhiều
     // chữ (tiêu đề + dòng phụ) là list item theo Material 3, được xuống dòng — không xét.
     const nut = el.closest('button,a,[role=button],[role=tab],[role=link],[role=checkbox],[role=switch],[role=radio]');

@@ -39,7 +39,7 @@ export default function HoSoCon() {
   const ngu = d.gio?.gioNgu ?? c.lich.ngu;
   const bo = d.nv?.find((x) => x.bo)?.bo;
   return (
-    <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={tai} noi={noi}>
+    <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <ChipCon ds={d.g.con} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
       <The dem style={{ gap: 14 }}>

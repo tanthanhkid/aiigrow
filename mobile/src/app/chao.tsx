@@ -6,11 +6,10 @@ import { Platform, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { NenChao } from "@/lib/anh-chao";
 import { BONG, BO_CLAY, MEN } from "@/lib/clay";
-import { F, LopMen, M, NhanMen, useBaoKhiVe, useHoanTac } from "@/lib/ui";
+import { F, LopMen, M, NhanMen, useHoanTac } from "@/lib/ui";
 
 export default function Chao() {
   const { bao, noi } = useHoanTac();
-  useBaoKhiVe(bao);                     // «Đã xoá tài khoản…» sau khi xoá ở màn Gia đình
   return (
     <View style={{ flex: 1, backgroundColor: "#f3f3ef", overflow: "hidden" }}>
       <NenChao>

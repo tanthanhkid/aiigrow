@@ -49,7 +49,7 @@ export async function ghiNgoaiLe(fam: string, con: string, nguoi: string | null,
   const ten = (await t<{ ten: string }>(`select ten from children where id = $1`, [con]))[0]?.ten ?? "Con";
   if (r.tuan > m.ts.ngoai_le_manh_tuan)
     await canhBao(fam, "ngoai_le_manh", "chu_y", `Tuần này ${ten} đã được ${r.tuan} ngoại lệ. Gợi ý: giao thêm nhiệm vụ để con tự kiếm sao đổi giờ chơi.`,
-      { con, khoa: `ngoai_le_manh:${m.maTuan}:${con}`, chiTiet: { tuan: r.tuan, goi_y: ["tang_diem_nhiem_vu", "giam_gia_phut"] } }, t);
+      { con, khoa: `ngoai_le_manh:${m.maTuan}:${con}`, chiTiet: { tuan: r.tuan, goi_y: ["giao_them_nhiem_vu", "cho_doi_sao"] } }, t);
   else if (r.tuan > m.ts.ngoai_le_mem_tuan || r.thang > m.ts.ngoai_le_mem_thang)
     await canhBao(fam, "ngoai_le_mem", "thong_tin", `Tuần này Ba Mẹ đã cho ${ten} ${r.tuan} ngoại lệ — con có thể mất động lực kiếm sao.`,
       { con, khoa: `ngoai_le_mem:${m.maTuan}:${con}`, chiTiet: { tuan: r.tuan, thang: r.thang } }, t);

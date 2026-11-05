@@ -123,7 +123,7 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
       const hoan = kq && "truoc" in kq
         ? () => { (kq.truoc ? bm.goi("luat", { ...kq.truoc, neuLoai: loai[0] }) : bm.goi("luat/xoa", { muc: kq.muc, neuLoai: loai[0] })).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); }
         : undefined;
-      bao(loai[0] === "chan" ? `Đã chặn ${x.ten ?? x.muc}` : `Cho dùng ${x.ten ?? x.muc}, không tính giờ`, hoan);
+      bao(loai[0] === "chan" ? `Đã chặn ${x.ten ?? x.muc}` : `Cho dùng ${x.ten ?? x.muc}, ${loai[0] === "hoc" ? "không tính giờ" : "tính vào giờ chơi"}`, hoan);
       tai();
     });
   return (

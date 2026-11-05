@@ -21,6 +21,8 @@ import {
   Avt, BaoLoi, CanhGiua, ChoTai, Chu, Icon, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
+// Rob ở thẻ đầu: cỡ + lệch phải (âm = ló ra ngoài thẻ). Chữ chừa = phần Rob nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
+const ROB_CO = 124, ROB_PHAI = -6, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 
@@ -124,15 +126,15 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
     <>
       {/* 1. con đang làm gì + còn bao nhiêu phút */}
       <The style={{ backgroundColor: M.chinhSoft, minHeight: 230, overflow: "visible" }}>
-        <View style={{ position: "absolute", right: -6, bottom: 64 }} pointerEvents="none"><Rob ten={khoa ? "nghi" : q?.dangNgu ? "ngu" : "rob-goc"} co={124} /></View>
+        <View style={{ position: "absolute", right: ROB_PHAI, bottom: 64 }} pointerEvents="none"><Rob ten={khoa ? "nghi" : q?.dangNgu ? "ngu" : "rob-goc"} co={ROB_CO} /></View>
         <Pressable onPress={() => router.push((mayDang ? `/may/${mayDang.id}` : `/may?con=${conId}`) as never)} accessibilityRole="button"
           style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 38, paddingLeft: 6, paddingRight: 12, borderRadius: 19, backgroundColor: M.the, maxWidth: "70%" }}>
           <Icon ten={mayDang ? IC_MAY[mayDang.nen] : "laptop"} co={20} mau={M.chu2} />
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{dongDang}</Chu>
           <Icon ten="phai" co={14} mau={M.chu3} />
         </Pressable>
-        {/* chừa đúng bề ngang Rob (124 px, lệch phải −6) — maxWidth % ở khổ 320 / tên dài vẫn chồng chữ lên Rob (cổng DE-ANH) */}
-        <View style={{ marginTop: 18, marginRight: 112 }}>
+        {/* chừa đúng phần Rob chiếm trong thẻ — maxWidth % ở khổ 320 / tên dài vẫn chồng chữ lên Rob (cổng DE-ANH) */}
+        <View style={{ marginTop: 18, marginRight: CHUA_ROB }}>
           <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
           <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>
             <Chu kieu="dam" co={14} mau={M.chinhInk}>{`${phuGio} ›`}</Chu>

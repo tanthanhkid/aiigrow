@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { Image } from "expo-image";
 import { ICON_3D, type Ten3D } from "./icon-3d";
-import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View, type TextInputProps } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, useWindowDimensions, View, type TextInputProps } from "react-native";
 import { router } from "expo-router";
 import { SvgXml } from "react-native-svg";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
@@ -175,7 +175,7 @@ export const linkNgan = (lienKet: string) => lienKet.replace(/^https?:\/\//, "")
 export const demNguoc = (giay: number) => `${Math.floor(Math.max(0, giay) / 60)}:${String(Math.max(0, giay) % 60).padStart(2, "0")}`;
 
 type ChiaSe = { tieuDe: string; noiDung: string; lienKet: string };
-const ZALO = `<svg viewBox="0 0 48 48"><text x="24" y="30" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="15" fill="#fff" style="color:#fff">Zalo</text></svg>`;
+const ZALO = `<svg viewBox="0 0 48 48"><text x="24" y="30" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="15" fill="#fff">Zalo</text></svg>`;
 const TIN = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.7 6.2L5 21l4-2.2c1 .3 2 .4 3 .4 5.5 0 10-3.6 10-8.1S17.5 3 12 3z"/></svg>`;
 const MES = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.5C6.6 2.5 2.5 6.4 2.5 11.4c0 2.7 1.2 5 3.1 6.6V21l2.9-1.6c1.1.3 2.3.5 3.5.5 5.4 0 9.5-3.9 9.5-8.9S17.4 2.5 12 2.5zm1 11.8-2.4-2.6-4.7 2.6 5.2-5.5 2.5 2.6 4.6-2.6z"/></svg>`;
 
@@ -209,8 +209,10 @@ export function HangChiaSe({ chiaSe, bao }: { chiaSe: ChiaSe; bao: (chu: string)
       bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); }) },
   ];
   // Khổ hẹp (< 60 px mỗi ô — máy 320–360 px): 3 ô một hàng, «Messenger» không gãy 2 dòng; khổ rộng: một hàng 5 ô như bảng chia sẻ iPhone.
+  // trước lần đo đầu: ước theo bề ngang cửa sổ (lề màn + thẻ ≈ 64 px) ⇒ khung đầu tiên đã đúng kiểu, không nháy từ 1 hàng sang 3 + 2
+  const cuaSo = useWindowDimensions().width;
   const [rong, setRong] = useState(0);
-  const hep = rong > 0 && rong / muc.length < 60;
+  const hep = (rong || cuaSo - 64) / muc.length < 60;
   return (
     <View onLayout={(e) => setRong(e.nativeEvent.layout.width)} style={{ flexDirection: "row", flexWrap: hep ? "wrap" : "nowrap", justifyContent: hep ? "center" : "space-between", rowGap: 12 }}
       accessibilityLabel="Chia sẻ link ghép máy">
