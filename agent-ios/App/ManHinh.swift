@@ -129,7 +129,8 @@ struct ManChinh: View {
     guard let k = m.khien else { return ("Đang tải luật của Ba Mẹ…", "fl_dong_ho_cat", Clay.chu3) }
     let gio = { (d: Date?) in d?.formatted(date: .omitted, time: .shortened) ?? "" }
     if k.dangMoOffline == true { return ("Đang mở bằng mã của Ba Mẹ, tới \(gio(m.moOfflineDen))", "fl_ma_so", Clay.chinhInk) }
-    if k.dangChoiDiem == true { return ("Đang chơi bằng điểm, tới \(gio(m.keHoach?.phienDiemDen))", "fl_qua", Clay.chinhInk) }
+    if k.dangNgoaiLe == true, let den = m.keHoach?.ngoaiLeDen { return ("Ba Mẹ mở ngoại lệ, tới \(gio(den))", "fl_qua", Clay.chinhInk) }
+    if k.dangChoiDiem == true { return ("Đang chơi, tới \(gio(m.keHoach?.phienDiemDen))", "fl_qua", Clay.chinhInk) }
     if k.dangThemGio, let den = m.keHoach?.moDen { return ("Đang dùng giờ Ba Mẹ thêm, tới \(den.formatted(date: .omitted, time: .shortened))", "fl_qua", Clay.chinhInk) }
     switch k.lyDo {
     case .khong: return ("Đang trong giờ chơi", "fl_mat_troi", Clay.chinhInk)
@@ -282,7 +283,7 @@ struct ManXinThem: View {
   let goiY = ["Con làm xong bài tập rồi ạ", "Con đang chơi dở với bạn", "Con xem nốt video học"]
 
   var nutPhut: some View {
-    ForEach([30, 60, 120], id: \.self) { p in
+    ForEach(m.chiNgoaiLe ? [15, 30, 60] : [30, 60, 120], id: \.self) { p in
       Button { withAnimation(Clay.bat) { phut = p } } label: { Text(p == 120 ? "2 giờ" : "\(p) phút").lineLimit(1).fixedSize() }
         .buttonStyle(NutClay(kieu: phut == p ? .ngoc : .vien, cao: 56))
         .accessibilityAddTraits(phut == p ? .isSelected : [])
@@ -293,13 +294,14 @@ struct ManXinThem: View {
     NavigationView {
       ScrollView {
         VStack(alignment: .leading, spacing: 18) {
-          // Đổi điểm lấy thời gian (như RequestForm Windows): chơi ngay bằng điểm ở màn Con, không chờ Ba Mẹ duyệt
-          Button { dong(); Task { await m.moManCon("choi") } } label: {
+          // 05/11 «Dùng sao»: đổi sao lấy phút cộng vào giờ chơi hôm nay (màn Con › Thêm giờ). Giờ ngủ / khoá thì không thêm giờ được.
+          if !m.chiNgoaiLe {
+          Button { dong(); Task { await m.moManCon("nha") } } label: {
             HStack(spacing: 12) {
               IconClay(ten: "fl_qua", nen: Clay.canhSoft)
               VStack(alignment: .leading, spacing: 2) {
-                Text("Đổi điểm lấy giờ chơi").font(.headline).foregroundColor(Clay.chu)
-                Text("Có điểm thì chơi ngay, không cần chờ Ba Mẹ").font(.subheadline).foregroundColor(Clay.chu3)
+                Text("Dùng sao thêm giờ chơi").font(.headline).foregroundColor(Clay.chu)
+                Text("10 sao = \(m.keHoach?.phut10Sao ?? 10) phút, cộng ngay vào giờ chơi hôm nay").font(.subheadline).foregroundColor(Clay.chu3)
               }
               Spacer(minLength: 0)
               Image(systemName: "chevron.right").foregroundColor(Clay.chu3)
@@ -308,14 +310,15 @@ struct ManXinThem: View {
             .khoiClay(bo: 28, dem: 16)
           }
           .buttonStyle(.plain)
-          Text("Hoặc xin Ba Mẹ thêm bao lâu?").font(.headline)
+          }
+          Text(m.chiNgoaiLe ? "Xin Ba Mẹ mở ngoại lệ bao lâu?" : "Hoặc xin Ba Mẹ thêm bao lâu?").font(.headline)
           // ba nút một hàng; cỡ chữ lớn không vừa thì xếp dọc (không cắt thành «30 p…»)
           ViewThatFits(in: .horizontal) {
             HStack(spacing: 12) { nutPhut }
             VStack(spacing: 12) { nutPhut }
           }
           Text("Lời nhắn cho Ba Mẹ").font(.headline)
-          TextField("Vì sao con cần thêm giờ?", text: $loiNhan)
+          TextField("Nhắn Ba Mẹ (không bắt buộc)", text: $loiNhan)
             .padding(.horizontal, 16).frame(minHeight: 56)
             .background(NenClay(kieu: .lom, bo: 22))
           ScrollView(.horizontal, showsIndicators: false) {
@@ -331,19 +334,19 @@ struct ManXinThem: View {
           }
           if let l = m.loi { Text(l).foregroundColor(Clay.loi).font(.callout) }
           Button {
-            Task { daGui = await m.xinThem(phut: phut, loiNhan: loiNhan) }
+            Task { daGui = m.chiNgoaiLe ? await m.xinNgoaiLe(phut: phut, loiNhan: loiNhan) : await m.xinThem(phut: phut, loiNhan: loiNhan) }
           } label: {
             if m.dangBan { ProgressView().tint(.white) } else { Text(daGui ? "Gửi lại" : "Gửi cho Ba Mẹ") }
           }
           .buttonStyle(NutChinh()).disabled(m.dangBan)
-          Text("Ba Mẹ đồng ý thì máy mở thêm giờ ở lần cập nhật kế tiếp (khi con mở app).")
+          Text("Ba Mẹ đồng ý thì máy mở ở lần cập nhật kế tiếp (khi con mở app).")
             .font(.footnote).foregroundColor(Clay.chu3)
           DongQuanLy()
         }
         .padding(20)
       }
       .background(Clay.nenMan)
-      .navigationTitle("Xin thêm giờ")
+      .navigationTitle(m.chiNgoaiLe ? "Xin mở ngoại lệ" : "Xin thêm giờ")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
     }

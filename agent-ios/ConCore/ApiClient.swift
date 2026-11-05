@@ -123,6 +123,14 @@ public final class ApiClient {
                          KetQuaYeuCau.self)
   }
 
+  /// 05/11: giờ ngủ / Ba Mẹ khoá ⇒ «Xin Ba Mẹ mở ngoại lệ» cả máy (lời nhắn không bắt buộc).
+  public func xinNgoaiLe(phut: Int, loiNhan: String) async throws -> KetQuaYeuCau {
+    let ly = loiNhan.trimmingCharacters(in: .whitespacesAndNewlines)
+    var b: [String: Any] = ["loai": "ngoai_le", "phamVi": "ca_may", "phut": max(5, min(240, phut))]
+    if !ly.isEmpty { b["lyDo"] = String(ly.prefix(100)) }
+    return try await goi("POST", "api/device/yeu-cau", Self.json(b), KetQuaYeuCau.self)
+  }
+
   public func trangThaiYeuCau(_ id: String) async throws -> TrangThaiYeuCau {
     try await goi("GET", "api/device/yeu-cau/\(id)", nil, TrangThaiYeuCau.self)
   }

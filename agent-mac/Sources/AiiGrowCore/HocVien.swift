@@ -96,6 +96,52 @@ public struct HvCapDo: Equatable {
   }
 }
 
+/// `quy` của hoc-vien/tong-quan (05/11): phút còn / tổng, tỷ lệ «10 sao = X phút», đổi sao còn được bao nhiêu phút hôm nay.
+public struct HvQuy: Equatable {
+  public var conPhut = 0, tongPhut = 0, daDung = 0
+  /// Số phút 10 sao đổi được (`tyLe.phut`, mặc định 10).
+  public var phut10Sao = 10
+  public var doiSaoBat = true
+  public var doiSaoConDuoc: Int?
+  public var choXinThem = true
+  public var dangNgu = false, dangHoc = false, khoa = false
+  public init() {}
+  init(_ o: [String: Any]) {
+    conPhut = JsonMem.so(o["conPhut"]) ?? 0; tongPhut = JsonMem.so(o["tongPhut"]) ?? 0; daDung = JsonMem.so(o["daDung"]) ?? 0
+    if let t = o["tyLe"] as? [String: Any], let p = JsonMem.so(t["phut"]), p > 0 {
+      let sao = max(1, JsonMem.so(t["sao"]) ?? 10)
+      phut10Sao = max(1, Int((Double(p) * 10 / Double(sao)).rounded()))
+    }
+    if let d = o["doiSao"] as? [String: Any] {
+      if d["bat"] != nil { doiSaoBat = JsonMem.dung(d["bat"]) }
+      doiSaoConDuoc = JsonMem.so(d["conDoiDuoc"])
+    }
+    if o["choXinThem"] != nil { choXinThem = JsonMem.dung(o["choXinThem"]) }
+    dangNgu = JsonMem.dung(o["dangNgu"]); dangHoc = JsonMem.dung(o["dangHoc"]); khoa = JsonMem.dung(o["khoa"])
+  }
+}
+
+/// «Dùng sao» thêm giờ chơi (05/11, thiết kế con-het-gio / con-xin): 15 / 30 / 60 phút; máy chủ (hoc-vien/doi-sao) quyết và trừ sao.
+public enum DungSao {
+  public static let luaChon = [15, 30, 60]
+  /// Số sao cần cho `phut` phút với tỷ lệ «10 sao = phut10Sao phút» (làm tròn lên).
+  public static func saoCan(phut: Int, phut10Sao: Int) -> Int { Int((Double(phut) * 10 / Double(max(1, phut10Sao))).rounded(.up)) }
+  public static func than(phut: Int) -> String { "{\"phut\":\(phut)}" }
+  /// Câu sau khi bấm: (câu, thành công?).
+  public static func ketQua(_ t: TraLoi, phut: Int) -> (chu: String, duoc: Bool) {
+    switch t {
+    case let .duLieu(json):
+      let o = JsonMem.doc(Data(json.utf8))
+      let p = JsonMem.so(o?["phut"]) ?? phut
+      return ("Đã đổi! +\(p) phút chơi hôm nay.", true)
+    case let .loi(ma, chu):
+      if ma == "duong_sai" { return ("Dịch vụ AiiGrow trên máy là bản cũ — nhờ Ba Mẹ cập nhật nhé.", false) }
+      return (chu, false)
+    default: return ("Chưa đổi được. Con thử lại nhé.", false)
+    }
+  }
+}
+
 /// GET hoc-vien/tong-quan.
 public struct HvTongQuan: Equatable {
   public var tenCon = ""
@@ -105,6 +151,8 @@ public struct HvTongQuan: Equatable {
   public var gan: [HvLuot] = []
   public var loiKhen: [HvLoiKhen] = []
   public var phieuCho: [HvPhieu] = []
+  /// Quỹ giờ chơi hôm nay (05/11) — nil = máy chủ cũ.
+  public var quy: HvQuy?
   public init() {}
   public static func doc(_ raw: Data) -> HvTongQuan? {
     guard let o = JsonMem.doc(raw), o["nhiemVu"] != nil || o["soDu"] != nil else { return nil }
@@ -116,6 +164,7 @@ public struct HvTongQuan: Equatable {
     t.gan = JsonMem.ds(o["gan"]).map(HvLuot.init)
     t.loiKhen = JsonMem.ds(o["loiKhen"]).map(HvLoiKhen.init)
     t.phieuCho = JsonMem.ds(o["phieuCho"]).map(HvPhieu.init)
+    if let q = o["quy"] as? [String: Any] { t.quy = HvQuy(q) }
     return t
   }
 }
@@ -274,9 +323,9 @@ public enum HocVienView {
   /// Số việc Con còn làm được (sẵn sàng / đang làm / cần bổ sung).
   public static func soViecMo(_ t: HvTongQuan) -> Int { t.nhiemVu.filter { ["san_sang", "dang_lam", "can_bo_sung"].contains($0.trangThai) }.count }
 
-  public static func capText(_ c: HvCapDo) -> String { c.conThieu > 0 ? "Cấp \(c.cap) · còn \(c.conThieu) điểm lên cấp" : "Cấp \(c.cap)" }
+  public static func capText(_ c: HvCapDo) -> String { c.conThieu > 0 ? "Cấp \(c.cap) · còn \(c.conThieu) sao lên cấp" : "Cấp \(c.cap)" }
 
-  public static func quaTrangThai(_ q: HvQua) -> String { q.du ? "Đủ điểm" : "Còn thiếu \(q.conThieu) điểm" }
+  public static func quaTrangThai(_ q: HvQua) -> String { q.du ? "Đủ sao" : "Còn thiếu \(q.conThieu) sao" }
 
   public static func doiThongBao(_ r: HvDoiKq, tenQua: String) -> String {
     switch r.trangThai {
@@ -287,7 +336,7 @@ public enum HocVienView {
   }
 
   public static func nopThongBao(_ r: HvNopKq) -> String {
-    if r.trangThai == "duoc_duyet" { return "Xong rồi! Điểm đã được cộng." }
+    if r.trangThai == "duoc_duyet" { return "Xong rồi! Sao đã được cộng." }
     return r.nghiTrung ? "Đã nộp. Ảnh này giống ảnh con từng nộp, Ba Mẹ sẽ xem kỹ nhé." : "Đã nộp cho Ba Mẹ. Chờ Ba Mẹ duyệt nhé!"
   }
 
@@ -409,7 +458,8 @@ public enum HocVienPaths {
     let s = p.dropFirst(goc.count).split(separator: "/", omittingEmptySubsequences: false).map(String.init)
     if s.contains(where: { $0.isEmpty || !$0.allSatisfy { ($0.isASCII && ($0.isLetter || $0.isNumber)) || $0 == "-" || $0 == "_" } }) { return false }
     switch (m, s.count) {
-    case ("GET", 1): return ["tong-quan", "tin", "cua-hang"].contains(s[0]) && (query.isEmpty || (s[0] == "tin" && query.hasPrefix("sau=")))
+    case ("GET", 1): return ["tong-quan", "tin", "cua-hang", "quy"].contains(s[0]) && (query.isEmpty || (s[0] == "tin" && query.hasPrefix("sau=")))
+    case ("POST", 1): return s[0] == "doi-sao"                                   // 05/11: «Dùng sao» đổi sao lấy phút chơi
     case ("POST", 2): return s[0] == "doi"
     case ("POST", 3): return (s[0] == "nhiem-vu" && s[2] == "bat-dau") || (s[0] == "luot" && s[2] == "nop") || (s[0] == "loi-khen" && s[2] == "phan-hoi")
     default: return false

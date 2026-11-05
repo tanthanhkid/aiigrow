@@ -97,7 +97,7 @@ final class ChupClayTests: XCTestCase {
     }
     chup(NopBaiView(nv: app.tq!.nhiemVu[0], app: app), "mac-nop-bai", dir: dir)
     let cm = ChoiModel(goi: { _ in .loi(ma: "thu", chu: "") }); cm.phut = ["com.roblox.roblox": 25]
-    chup(ChoiBangDiemView(ds: ["com.roblox.roblox", "youtube.com", "Minecraft.app"], m: cm, tuHoi: false), "mac-choi-bang-diem", dir: dir)
+    chup(ChoiBangDiemView(phut10Sao: 10, sao: 30, m: cm), "mac-choi-bang-diem", dir: dir)
     chup(ChanAppView(ten: "Roblox", lyDo: "chi_app_hoc", coChoi: true, m: ChoiModel(goi: { _ in .loi(ma: "", chu: "") }), muc: "com.roblox.roblox"), "mac-chan-app", dir: dir)
     chup(XinThemCuaSo(tray: tray, xin: XinModel(), moChoi: {}), "mac-xin-them-doi-diem", dir: dir)
     chup(GhepMayView(taiKhoan: ["bi", "na"], coGoiCai: true, dongLai: {}), "mac-ghep-mot-cham", dir: dir)

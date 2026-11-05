@@ -23,6 +23,10 @@ final class XinModel: ObservableObject {
   func xinThem(phut: Int, loiNhan: String) {
     gui(.xinThem(phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
+  /// Giờ ngủ / Ba Mẹ khoá: xin mở ngoại lệ cả máy `phut` phút.
+  func xinNgoaiLe(phut: Int, loiNhan: String) {
+    gui(.xinNgoaiLe(phamVi: "ca_may", app: nil, phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
+  }
   func xinMo(muc: String, loai: String, loiNhan: String) {
     gui(.xinMo(muc: muc, loai: loai, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }

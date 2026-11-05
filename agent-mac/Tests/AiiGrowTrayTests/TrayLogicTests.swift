@@ -64,8 +64,8 @@ final class TrayLogicTests: XCTestCase {
       XCTAssertFalse(TrayLogic.goiYKhoa(ly).isEmpty)
     }
     XCTAssertEqual(TrayLogic.tieuDeKhoa("het_gio"), "Hết giờ dùng máy hôm nay")
-    XCTAssertEqual(TrayLogic.tieuDeKhoa("gio_ngu"), "Đến giờ nghỉ rồi")
-    XCTAssertEqual(TrayLogic.tieuDeKhoa(nil), "Máy đang được Ba Mẹ khoá")
+    XCTAssertEqual(TrayLogic.tieuDeKhoa("gio_ngu"), "Đến giờ ngủ rồi")
+    XCTAssertEqual(TrayLogic.tieuDeKhoa(nil), "Ba Mẹ đang khoá máy")
     XCTAssertEqual(TrayLogic.tieuDeKhoa("xyz"), TrayLogic.tieuDeKhoa(nil))
     XCTAssertEqual(TrayLogic.goiYKhoa("xyz"), TrayLogic.goiYKhoa(nil))
     XCTAssertNotEqual(TrayLogic.goiYKhoa("het_gio"), TrayLogic.goiYKhoa("gio_ngu"))
@@ -110,7 +110,7 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertEqual(TrayLogic.dongTrangThai(tt(cheDo: .khoa), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Đang khoá")
     XCTAssertEqual(TrayLogic.dongTrangThai(tt(conPhut: 15), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Còn 15 phút hôm nay")
     XCTAssertEqual(TrayLogic.dongTrangThai(tt(moDen: t0.addingTimeInterval(600)), matKetNoi: false, nhanLuc: t0, bayGio: t0),
-                   "Còn 10 phút (Ba Mẹ đã thêm giờ)")
+                   "Còn 10 phút (Ba Mẹ mở ngoại lệ)")
     XCTAssertEqual(TrayLogic.dongTrangThai(tt(), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Không giới hạn giờ hôm nay")
   }
 

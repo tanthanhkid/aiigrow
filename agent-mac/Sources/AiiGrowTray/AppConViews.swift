@@ -110,7 +110,7 @@ struct AppConView: View {
     .frame(minWidth: 880, minHeight: 600)
     .nenClay()
     .alert(item: $quaHoi) { q in
-      Alert(title: Text("Đổi «\(q.ten)» với \(q.diem) điểm nhé?"), primaryButton: .default(Text("Đổi quà")) {
+      Alert(title: Text("Đổi «\(q.ten)» với \(q.diem) sao nhé? Quà sẽ gửi Ba Mẹ trao cho con."), primaryButton: .default(Text("Đổi quà")) {
         Task { await app.doiQua(q, dsChoi: dsChoi) }
       }, secondaryButton: .cancel(Text("Để sau")))
     }
@@ -120,7 +120,7 @@ struct AppConView: View {
     switch app.muc {
     case .homNay: return "Hôm nay"
     case .nhiemVu: return "Nhiệm vụ của con"
-    case .phanQua: return "Phần quà & điểm"
+    case .phanQua: return "Sao & quà"
     case .tinNhan: return "Tin nhắn"
     }
   }
@@ -162,7 +162,7 @@ struct AppConView: View {
   }
 
   static let dsMuc: [(MucApp, String, String)] = [
-    (.homNay, "Hôm nay", "alarm_clock"), (.nhiemVu, "Nhiệm vụ", "memo"), (.phanQua, "Phần quà & điểm", "wrapped_gift"), (.tinNhan, "Tin nhắn", "speech_balloon"),
+    (.homNay, "Hôm nay", "alarm_clock"), (.nhiemVu, "Nhiệm vụ", "memo"), (.phanQua, "Sao & quà", "wrapped_gift"), (.tinNhan, "Tin nhắn", "speech_balloon"),
   ]
 
   /// (chữ, tốt?) cho viên trạng thái.
@@ -222,8 +222,8 @@ struct AppConView: View {
       TimelineView(.periodic(from: .now, by: 1)) { ctx in
         let g = TrayLogic.giayConLai(t, nhanLuc: tray.nhanLuc, bayGio: ctx.date)
         TheCon {
-          Chu("Thời gian dùng máy còn lại", co: 14, mau: ClayMau.chu3, dong: 1)
-          Text(t.cheDo == .khoa ? "Đang khoá" : (g.map { TrayLogic.dongHo($0) } ?? "Không giới hạn"))
+          Chu(t.quyConPhut != nil ? "Giờ chơi còn lại hôm nay" : "Thời gian dùng máy còn lại", co: 14, mau: ClayMau.chu3, dong: 1)
+          Text(t.cheDo == .khoa ? "Đang khoá" : (TrayLogic.dongQuy(t) ?? g.map { TrayLogic.dongHo($0) } ?? "Không giới hạn"))
             .font(.system(size: 44, weight: .bold, design: .rounded)).monospacedDigit().foregroundColor(ClayMau.ngocInk)
             .lineLimit(1).truncationMode(.tail)
           Chu(TrayLogic.dongTrangThai(t, matKetNoi: false, nhanLuc: tray.nhanLuc, bayGio: ctx.date), co: 14, mau: ClayMau.chu3, dong: 2)
@@ -234,15 +234,10 @@ struct AppConView: View {
       HStack(spacing: 14) {
         NutIcon(chu: "Xin thêm thời gian", icon: "hourglass_not_done", kieu: .thanChi, rong: 250, lam: moXin)
         if ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: dsChoi) {
-          NutIcon(chu: "Chơi bằng điểm", icon: "video_game", kieu: .sang, rong: 250, lam: moChoi)
+          NutIcon(chu: "Dùng sao thêm giờ", icon: "star", kieu: .sang, rong: 250, lam: moChoi)
         }
       }
       .padding(.vertical, 2)
-      if ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: dsChoi),
-         let p = app.phutChoi, p > 0, let muc = app.phutChoiCua {
-        // số phút tính theo MỤC (máy chủ định giá theo nhóm) ⇒ nói rõ là của mục nào
-        Chu("Điểm hiện có đổi được khoảng \(p) phút chơi \(HocVienView.tenMucChoi(muc)).", co: 13, mau: ClayMau.chu3, dong: 2)
-      }
     } else {
       TheCon(nen: ClayMau.canhSoft) {
         Chu(ketNoi.0, co: 16, dam: .bold, mau: ClayMau.loi)
@@ -271,8 +266,8 @@ struct AppConView: View {
         Chu("Việc của con", co: 17, dam: .bold, dong: 1)
         if let tq = app.tq {
           let n = HocVienView.soViecMo(tq)
-          Chu(n > 0 ? "Con có \(n) việc đang chờ. Làm xong để tích điểm nhé!" : "Hôm nay con đã làm hết việc rồi. Giỏi lắm!", co: 14)
-          Chu("\(tq.soDu) điểm  ·  \(HocVienView.capText(tq.capDo))", co: 14, dam: .bold, mau: ClayMau.diemInk, dong: 1)
+          Chu(n > 0 ? "Con có \(n) việc đang chờ. Làm xong để nhận sao nhé!" : "Hôm nay con đã làm hết việc rồi. Giỏi lắm!", co: 14)
+          Chu("\(tq.soDu) sao  ·  \(HocVienView.capText(tq.capDo))", co: 14, dam: .bold, mau: ClayMau.diemInk, dong: 1)
         } else if let l = app.loiTai {
           Chu(l, co: 14, mau: ClayMau.loi)
         } else {
@@ -313,7 +308,7 @@ struct AppConView: View {
     TheCon(nen: v.trangThai == "can_bo_sung" ? ClayMau.canhSoft : ClayMau.the) {
       HStack(alignment: .firstTextBaseline, spacing: 10) {
         Chu(v.ten, co: 17, dam: .bold, dong: 2)
-        Text("+\(v.diem) điểm").font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
+        Text("+\(v.diem) sao").font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
           .padding(.horizontal, 10).padding(.vertical, 4).background(Capsule().fill(ClayMau.diemSoft)).fixedSize()
       }
       if !v.moTa.isEmpty { Chu(v.moTa, co: 14, mau: ClayMau.chu3) }
@@ -338,7 +333,7 @@ struct AppConView: View {
 
   private func theLuot(_ g: HvLuot) -> some View {
     TheCon {
-      Chu(g.ten + (g.trangThai == "duoc_duyet" && g.diem != nil ? "   ·   +\(g.diem!) điểm" : ""), co: 15, dam: .bold, dong: 2)
+      Chu(g.ten + (g.trangThai == "duoc_duyet" && g.diem != nil ? "   ·   +\(g.diem!) sao" : ""), co: 15, dam: .bold, dong: 2)
       Chu(HocVienView.trangThaiText(g.trangThai) + ((g.lyDo ?? "").isEmpty ? "" : " · " + g.lyDo!), co: 13,
           mau: g.trangThai == "tu_choi" ? ClayMau.loi : ClayMau.chu3)
       if let k = g.loiKhen, !k.isEmpty { Chu("Ba Mẹ: " + k, co: 14, mau: ClayMau.ngocInk) }
@@ -355,16 +350,16 @@ struct AppConView: View {
         HStack(spacing: 14) {
           VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 56)
           VStack(alignment: .leading, spacing: 2) {
-            Chu("Điểm của con", co: 14, mau: ClayMau.diemInk, dong: 1)
-            Text("\(tq.soDu) điểm").font(.system(size: 36, weight: .bold, design: .rounded)).foregroundColor(ClayMau.diemInk).lineLimit(1)
+            Chu("Sao của con", co: 14, mau: ClayMau.diemInk, dong: 1)
+            Text("\(tq.soDu) sao").font(.system(size: 36, weight: .bold, design: .rounded)).foregroundColor(ClayMau.diemInk).lineLimit(1)
           }
         }
-        Chu(HocVienView.capText(tq.capDo) + (tq.diemChoDuyet > 0 ? " · \(tq.diemChoDuyet) điểm đang chờ Ba Mẹ duyệt" : ""), co: 14, mau: ClayMau.diemInk, dong: 2)
+        Chu(HocVienView.capText(tq.capDo) + (tq.diemChoDuyet > 0 ? " · \(tq.diemChoDuyet) sao đang chờ Ba Mẹ duyệt" : ""), co: 14, mau: ClayMau.diemInk, dong: 2)
       }
       .vaoLanLuot(0)
       ForEach(tq.phieuCho, id: \.id) { p in
         TheCon {
-          Chu("\(p.ten)   ·   \(p.diem) điểm", co: 15, dam: .bold, dong: 2)
+          Chu("\(p.ten)   ·   \(p.diem) sao · chờ Ba Mẹ trao", co: 15, dam: .bold, dong: 2)
           Chu("Đã đổi, đang chờ Ba Mẹ trao quà cho con.", co: 13, mau: ClayMau.chu3, dong: 2)
         }
       }
@@ -374,7 +369,7 @@ struct AppConView: View {
           TheCon {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
               Chu(q.ten, co: 17, dam: .bold, dong: 2)
-              Text("\(q.diem) điểm").font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
+              Text("\(q.diem) sao").font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
                 .padding(.horizontal, 10).padding(.vertical, 4).background(Capsule().fill(ClayMau.diemSoft)).fixedSize()
             }
             Chu(HocVienView.quaTrangThai(q) + (q.chiCuoiTuan ? " · chỉ đổi vào cuối tuần" : ""), co: 13, dam: .semibold,
@@ -385,7 +380,7 @@ struct AppConView: View {
           .vaoLanLuot(min(i + 1, 6))
         }
       } else {
-        Chu(app.ch == nil ? "Chưa tải được danh sách quà." : "Ba Mẹ chưa đặt phần quà nào. Con cứ làm nhiệm vụ để tích điểm nhé!", co: 15, mau: ClayMau.chu3)
+        Chu(app.ch == nil ? "Chưa tải được danh sách quà." : "Ba Mẹ chưa đặt phần quà nào. Con cứ làm nhiệm vụ để nhận sao nhé!", co: 15, mau: ClayMau.chu3)
       }
     }
   }
@@ -498,7 +493,7 @@ struct NopBaiView: View {
   }
 }
 
-// MARK: - Chơi bằng điểm
+// MARK: - Dùng sao thêm giờ chơi (05/11 — thay «Chơi bằng điểm»: mọi app Giải trí dùng chung quỹ phút, sao đổi lấy phút cộng vào quỹ)
 
 @MainActor
 final class ChoiModel: ObservableObject {
@@ -521,6 +516,15 @@ final class ChoiModel: ObservableObject {
     }
   }
 
+  /// «Dùng sao»: hoc-vien/doi-sao {phut} — máy chủ kiểm số sao, trần đổi/ngày, giờ ngủ; trừ sao + cộng phút vào quỹ hôm nay.
+  func doiSao(_ phut: Int) async {
+    guard !dangGui else { return }
+    dangGui = true; loi = false; thongBao = "Đang đổi sao…"
+    let (chu, duoc) = DungSao.ketQua(await goi(.hocVien(method: "POST", path: "hoc-vien/doi-sao", than: DungSao.than(phut: phut))), phut: phut)
+    dangGui = false
+    thongBao = chu; loi = !duoc; xong = duoc
+  }
+
   func choi(_ m: String) async {
     guard !dangGui else { return }
     dangGui = true; loi = false; thongBao = "Đang hỏi máy chủ…"
@@ -530,39 +534,35 @@ final class ChoiModel: ObservableObject {
   }
 }
 
+/// Cửa sổ «Dùng sao thêm giờ chơi» — cùng khung cửa sổ «Chơi bằng điểm» cũ (420 rộng, thẻ Clay), mỗi nút một mức 15 / 30 / 60 phút.
 struct ChoiBangDiemView: View {
-  let ds: [String]
+  /// Tỷ lệ «10 sao = X phút» (hoc-vien/tong-quan › quy.tyLe); nil = chưa biết (1 sao = 1 phút).
+  var phut10Sao: Int = 10
+  /// Số sao con đang có (nil = chưa tải).
+  var sao: Int? = nil
   @ObservedObject var m: ChoiModel
   var dong: () -> Void = {}
-  var tuHoi = true
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack(spacing: 12) {
-        VienClay(ten: "video_game", duPhong: "gamecontroller.fill", nen: ClayMau.diemSoft, co: 48)
-        Chu("Chơi bằng điểm", co: 20, dam: .bold, dong: 1)
+        VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.diemSoft, co: 48)
+        Chu("Dùng sao thêm giờ chơi", co: 20, dam: .bold, dong: 1)
       }
-      if ds.isEmpty {
-        Chu("Ba Mẹ chưa chọn app giải trí nào cho con đổi điểm. Con xin Ba Mẹ nhé.", co: 14, mau: ClayMau.chu3)
-      } else {
-        Chu("Mỗi app đổi điểm lấy số phút khác nhau — con xem số phút ở từng nút.", co: 13, mau: ClayMau.chu3)
-        ScrollView {
-          VStack(spacing: 12) {
-            ForEach(ds, id: \.self) { muc in
-              Button(ChoiBangDiem.nhanNut(muc, phut: m.phut[muc])) { Task { await m.choi(muc) } }
-                .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(m.dangGui || m.xong)
-            }
-          }
-          .padding(.horizontal, 2).padding(.vertical, 6).padding(.bottom, 10)
+      Chu("10 sao = \(phut10Sao) phút" + (sao.map { " · con đang có \($0) sao" } ?? ""), co: 13, mau: ClayMau.chu3)
+      VStack(spacing: 12) {
+        ForEach(DungSao.luaChon, id: \.self) { p in
+          let can = DungSao.saoCan(phut: p, phut10Sao: phut10Sao)
+          Button("+\(p) phút · \(can) sao") { Task { await m.doiSao(p) } }
+            .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(m.dangGui || m.xong || (sao.map { $0 < can } ?? false))
         }
-        .frame(maxHeight: CGFloat(min(ds.count, 6)) * 58 + 16)
       }
+      .padding(.horizontal, 2).padding(.vertical, 6)
       Button("Đóng", action: dong).buttonStyle(NutClayStyle(kieu: .sang)).keyboardShortcut(.cancelAction)
       if !m.thongBao.isEmpty { Chu(m.thongBao, co: 14, dam: .semibold, mau: m.loi ? ClayMau.loi : ClayMau.ngocInk) }
     }
     .padding(18).clayThe().vaoLanLuot(0)
     .padding(22).padding(.bottom, 12).frame(width: 420).nenClay()
-    .task { if tuHoi { await m.hoiPhut(ds) } }
   }
 }
 
@@ -571,16 +571,21 @@ struct ChoiBangDiemView: View {
 struct ChanAppView: View {
   let ten: String
   let lyDo: String?
+  /// Hết giờ chơi + còn sao ⇒ nút «Dùng sao thêm giờ».
   let coChoi: Bool
   @ObservedObject var m: ChoiModel
   var muc: String
   var xinPhep: () -> Void = {}
   var dong: () -> Void = {}
+  /// Mở cửa sổ «Dùng sao thêm giờ chơi».
+  var dungSao: () -> Void = {}
 
   static func lyDoText(_ s: String?) -> String {
     switch s {
     case "ba_me_chan": return "Ba Mẹ đã chặn app này trên máy."
-    case "chi_app_hoc": return "Bây giờ chỉ mở được các app học Ba Mẹ cho phép."
+    case QuyGio.lyDoHetGio: return "Hôm nay con đã chơi hết giờ rồi."
+    case QuyGio.lyDoGioHoc: return "Đang giờ học. Bây giờ chỉ mở được app học."
+    case "chi_app_hoc": return "App này chưa được Ba Mẹ cho phép. Con xin Ba Mẹ duyệt nhé."
     case "trinh_duyet": return "Trình duyệt này chưa lọc web được. Con dùng trình duyệt Ba Mẹ cho phép nhé."
     default: return "Chưa được Ba Mẹ cho mở."
     }
@@ -594,10 +599,12 @@ struct ChanAppView: View {
       }
       Chu(ChanAppView.lyDoText(lyDo), co: 14, mau: ClayMau.chu3)
       if coChoi {
-        NutIcon(chu: "Dùng điểm để chơi", icon: "star", kieu: .thanChi, rong: nil) { Task { await m.choi(muc) } }
-          .disabled(m.dangGui || m.xong)
+        NutIcon(chu: "Dùng sao thêm giờ", icon: "star", kieu: .thanChi, rong: nil, lam: dungSao)
       }
-      NutIcon(chu: "Xin phép Ba Mẹ", icon: "speech_balloon", kieu: coChoi ? .sang : .thanChi, rong: nil, lam: xinPhep)
+      if lyDo != "ba_me_chan" {
+        NutIcon(chu: lyDo == QuyGio.lyDoHetGio ? "Xin Ba Mẹ thêm giờ" : lyDo == QuyGio.lyDoGioHoc ? "Xin Ba Mẹ mở ngoại lệ" : "Xin Ba Mẹ duyệt", icon: "speech_balloon",
+                kieu: coChoi ? .sang : .thanChi, rong: nil, lam: xinPhep)
+      }
       Button("Đóng", action: dong).buttonStyle(NutClayStyle(kieu: .sang)).keyboardShortcut(.cancelAction)
       if !m.thongBao.isEmpty { Chu(m.thongBao, co: 14, dam: .semibold, mau: m.loi ? ClayMau.loi : ClayMau.ngocInk) }
     }

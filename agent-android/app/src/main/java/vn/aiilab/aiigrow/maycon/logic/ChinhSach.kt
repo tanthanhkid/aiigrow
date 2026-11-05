@@ -25,6 +25,15 @@ data class MucTamThoi(val muc: String, val loai: String, val het: Instant?)
 data class Phien(val id: String, val muc: String, val conPhut: Int)
 data class Lenh(val id: String, val loai: String)
 
+/** Quỹ phút chơi hôm nay (thiết kế 05/11, server/lib/quy-gio.ts): mọi app Giải trí dùng chung; `daDung` = phút đã dùng (mọi máy). */
+data class Quy(val ngayPhut: Int, val themPhut: Int, val daDung: Int, val conPhut: Int, val dangHoc: Boolean, val phut10Sao: Int = 10) {
+    val tongPhut get() = ngayPhut + themPhut
+}
+/** Giờ học: chỉ app Học (thu 0 = CN). */
+data class GioHoc(val tu: String, val den: String, val thu: List<Int>) { val khung get() = Khung(tu, den) }
+/** Ngoại lệ Ba Mẹ mở: `muc` null = cả máy; `nhom` = nhóm máy (may_tinh | ios | android). */
+data class NgoaiLeMo(val den: Instant, val muc: String?, val nhom: String)
+
 data class ChinhSach(
     val tz: String = "Asia/Ho_Chi_Minh",
     val tenCon: String? = null,
@@ -44,6 +53,14 @@ data class ChinhSach(
     val lyDo: List<String> = emptyList(),
     val phien: Phien? = null,
     val cauTuanThuCon: List<String> = emptyList(),
+    // ---- 05/11 (máy chủ cũ không gửi ⇒ null / mặc định ⇒ chạy luật cũ)
+    val quy: Quy? = null,
+    val gioHoc: GioHoc? = null,
+    val ngoaiLeMo: List<NgoaiLeMo> = emptyList(),
+    /** Chế độ «Mở hết»: app chưa xếp được dùng (ungDung.chuaXep = cho_phep). Mặc định «Chỉ app được phép» ⇒ chặn + Con xin Ba Mẹ duyệt. */
+    val chuaXepChoPhep: Boolean = false,
+    /** Web luôn chặn (người lớn, cờ bạc, bạo lực) — chặn ở mọi chế độ. */
+    val webLuonChan: List<String> = emptyList(),
 )
 
 /** Phản hồi nhịp đã đọc. `grantEndsAt`: hạn «thêm giờ được duyệt» — xem CAN-SERVER.md (nhịp Android chưa trả trường này). */
@@ -120,6 +137,26 @@ fun docChinhSach(o: JSONObject): ChinhSach {
         lyDo = hl.optJSONArray("lyDo").chuoiDs(),
         phien = ph?.let { Phien(it.optString("id"), it.optString("muc"), it.optInt("conPhut", 0)) },
         cauTuanThuCon = cauCon,
+        quy = o.optJSONObject("quy")?.let { q ->
+            val ty = q.optJSONObject("tyLe")
+            val sao = ty?.optInt("sao", 10)?.takeIf { it > 0 } ?: 10
+            Quy(q.optInt("ngayPhut", 0), q.optInt("themPhut", 0), q.optInt("daDung", 0), q.optInt("conPhut", 0), q.optBoolean("dangHoc", false),
+                ((ty?.optInt("phut", 10) ?: 10) * 10 / sao).coerceAtLeast(1))
+        },
+        gioHoc = o.optJSONObject("gioHoc")?.let { h ->
+            val t = h.optJSONArray("thu") ?: JSONArray()
+            GioHoc(h.optString("tu", "00:00"), h.optString("den", "00:00"), (0 until t.length()).map { t.optInt(it) })
+        },
+        ngoaiLeMo = buildList {
+            val a = o.optJSONArray("ngoaiLeMo") ?: JSONArray()
+            for (i in 0 until a.length()) {
+                val x = a.optJSONObject(i) ?: continue
+                val den = thoiDiem(x.chuoi("den")) ?: continue
+                add(NgoaiLeMo(den, x.chuoi("muc")?.takeIf { it.isNotBlank() }, x.optString("nhom", "")))
+            }
+        },
+        chuaXepChoPhep = u.optString("chuaXep") == "cho_phep",
+        webLuonChan = u.optJSONArray("webLuonChan").chuoiDs(),
     )
 }
 
@@ -150,5 +187,5 @@ private val GOI = Regex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$")
 fun laGoiAndroid(m: String): Boolean =
     GOI.matches(m) && !m.endsWith(".exe") && !(m.endsWith(".app") && m.count { it == '.' } < 2)
 
-/** Tên miền web bị chặn (cho cấu hình quản lý Chrome URLBlocklist). */
-fun webChan(cs: ChinhSach): List<String> = cs.chan.filter { it.kieu == "web" }.map { it.muc }
+/** Tên miền web bị chặn (cho cấu hình quản lý Chrome URLBlocklist) — gồm web luôn chặn (05/11). */
+fun webChan(cs: ChinhSach): List<String> = (cs.chan.filter { it.kieu == "web" }.map { it.muc } + cs.webLuonChan).distinct()

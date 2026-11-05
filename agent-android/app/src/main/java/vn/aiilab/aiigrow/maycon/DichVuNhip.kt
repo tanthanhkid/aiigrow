@@ -29,6 +29,7 @@ import vn.aiilab.aiigrow.maycon.logic.tieuDeNhac
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.demNguocConLai
 import vn.aiilab.aiigrow.maycon.logic.docPhanHoiNhip
+import vn.aiilab.aiigrow.maycon.logic.gioDiaPhuong
 import vn.aiilab.aiigrow.maycon.logic.goiAndroid
 import vn.aiilab.aiigrow.maycon.logic.laKhoa
 import vn.aiilab.aiigrow.maycon.logic.phutGiaiTri
@@ -132,7 +133,7 @@ class DichVuNhip : Service() {
         val daCai = DoPhut.daCai(this)
         val phutGT = phutGiaiTri(dung, goiAndroid(cs.giaiTri))
         val qd = quyetDinh(cs, now, phutGT, daCai, ph.grantEndsAt, moOff,
-            if (laDo) trinhDuyet else emptySet())
+            if (laDo) trinhDuyet else emptySet(), k.phutLucNhip.takeIf { it >= 0 }, k.ngayNhip)
 
         // đếm ngược 60 giây trước khi khoá thật (Con kịp lưu bài / chào bạn)
         if (laKhoa(qd.trangThai)) {
@@ -154,7 +155,8 @@ class DichVuNhip : Service() {
         // (phút chơi trong lúc thêm giờ vẫn tính vào trần ngày ⇒ cộng phút còn tới hạn vào phút đã dùng; giờ ngủ tới trước hạn thì khoá sớm hơn)
         val sauHan = if (qd.trangThai == TrangThai.DUOC_THEM_GIO) qd.moLaiLuc?.let { mo ->
             val toiHanPhut = java.time.Duration.between(now, mo).toMinutes().toInt().coerceAtLeast(0)
-            quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet())
+            quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet(),
+                k.phutLucNhip.takeIf { it >= 0 }, k.ngayNhip)
         } else null
         val nguToi = if (moOff == null) giayToiNgu(cs, now) else null   // mã offline gỡ cả giờ ngủ
         nhacTruocKhoa(k, giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay)
@@ -189,6 +191,13 @@ class DichVuNhip : Service() {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
             k.lanNhipThanhCong = System.currentTimeMillis()
+            try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
+                val csMoi = docPhanHoiNhip(r.toString()).chinhSach
+                k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
+                // ngày theo ĐỒNG HỒ MÁY CHỦ (như `now` của vòng thực thi) — đồng hồ máy lệch không làm lệch ngày
+                val st = r.optString("serverTime").takeIf { it.isNotBlank() }?.let { Instant.parse(it) } ?: Instant.now()
+                k.ngayNhip = gioDiaPhuong(st, csMoi.tz).zdt.toLocalDate().toString()
+            } catch (_: Exception) {}
             r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
             MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)
@@ -316,7 +325,18 @@ class DichVuNhip : Service() {
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
         }
 
-        /** Xin thêm giờ (luồng nền). Trả câu báo cho Con. */
+        /** «Xin Ba Mẹ duyệt» app đang bị chặn vì chưa được cho phép (luồng nền). Trả câu báo cho Con. */
+        fun xinDuyet(ctx: Context, goi: String, ten: String?): String {
+            val k = Kho(ctx)
+            if (k.cheDoThu) return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé."
+            return try {
+                val than = JSONObject().put("muc", goi); ten?.takeIf { it.isNotBlank() && it != goi }?.let { than.put("ten", it) }
+                MayChu(k.mayChu, k.token).xinDuyet(than)
+                "Đã gửi Ba Mẹ. Ba Mẹ đồng ý là con mở được ngay."
+            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Chưa gửi được — máy đang mất mạng." }
+        }
+
+        /** Xin thêm giờ / xin mở ngoại lệ (luồng nền). Trả câu báo cho Con. */
         fun xinThemGio(ctx: Context, than: JSONObject): String {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }

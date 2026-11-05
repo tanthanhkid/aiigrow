@@ -23,7 +23,8 @@ class ManKhoa : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (android.os.Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(false); setTurnScreenOn(false) }
         v = GiaoDien.ManKhoaView(this, onXin = { startActivity(Intent(this, ManChinh::class.java).putExtra("xin", true)) }, onVe = { veNha() },
-            onMa = { MoMaOffline.thu(this, it) })
+            onMa = { MoMaOffline.thu(this, it) },
+            onDuyet = { g -> Thread { val s = DichVuNhip.xinDuyet(this, g, DoPhut.tenApp(this, g)); runOnUiThread { v.cau.text = s } }.start() })
         setContentView(v.goc)
     }
 
@@ -65,6 +66,6 @@ class ManKhoa : Activity() {
 
     companion object {
         @Volatile var dangMo: ManKhoa? = null
-        val KHOA = setOf(TrangThai.KHOA_NGAY.name, TrangThai.GIO_NGU.name, TrangThai.HET_GIO.name, TrangThai.NGOAI_KHUNG.name)
+        val KHOA = setOf(TrangThai.KHOA_NGAY.name, TrangThai.GIO_NGU.name, TrangThai.HET_GIO.name, TrangThai.NGOAI_KHUNG.name, TrangThai.GIO_HOC.name)
     }
 }

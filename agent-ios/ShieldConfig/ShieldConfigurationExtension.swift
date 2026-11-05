@@ -23,8 +23,9 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     case .hetGio: tieuDe = "Hết giờ chơi hôm nay rồi"
     default: tieuDe = "Tạm nghỉ chút nhé"
     }
-    let phu = (ten.map { "\($0) đang tạm khoá. " } ?? "") + lyDo.cauChoCon + "\nCon có thể xin Ba Mẹ thêm giờ."
-    let coXin = lyDo != .ngu && lyDo != .khoaNgay
+    // 05/11: giờ ngủ / Ba Mẹ khoá ⇒ không thêm giờ được, chỉ «Xin Ba Mẹ mở ngoại lệ»; giờ học ⇒ chỉ app học
+    let phu = (ten.map { "\($0) đang tạm khoá. " } ?? "") + lyDo.cauChoCon
+    let coXin = true
     let hinh: (String, UIColor)
     switch lyDo {
     case .ngu: hinh = ("fl_trang", UIColor(red: 0xe7 / 255, green: 0xe5 / 255, blue: 0xf8 / 255, alpha: 1))
@@ -38,7 +39,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
       icon: VienClay.anh(hinh.0, nen: hinh.1),
       title: .init(text: tieuDe, color: Self.chu),
       subtitle: .init(text: phu, color: Self.chu3),
-      primaryButtonLabel: .init(text: coXin ? "Xin thêm giờ" : "Đã hiểu", color: .white),
+      primaryButtonLabel: .init(text: !coXin ? "Đã hiểu" : lyDo.chiNgoaiLe ? "Xin Ba Mẹ mở ngoại lệ" : "Thêm giờ chơi", color: .white),
       primaryButtonBackgroundColor: Self.ngoc,
       secondaryButtonLabel: coXin ? .init(text: "Để sau", color: Self.ngocInk) : nil)
   }

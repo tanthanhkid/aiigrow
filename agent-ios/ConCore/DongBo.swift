@@ -53,7 +53,7 @@ public final class DongBo {
 
   func nhipGui(now: Date, nguon: String) -> NhipGui {
     let kh = kho.doc(KeHoach.self, Khoa.keHoach)
-    let dung = kh.map { TinhKhien.phutDaDung($0, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) } ?? 0
+    let dung = kh.map { TinhKhien.phutDoTaiCho($0, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) } ?? 0
     let lan = kho.doc(Date.self, Khoa.lanDongBo)
     let sl = chon.dem()
     let uq = uyQuyen.trangThai
@@ -83,7 +83,8 @@ public final class DongBo {
       kho.luu(mt, Khoa.moTamOffline)
       kho.xepSuKien(SuKienMay(loai: "het_ma_offline", luc: now, chiTiet: ["ket_thuc": "co_mang", "conPhut": String(con)]))
     }
-    let kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    var kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    if kh.daDungMayChu != nil { kh.dungTaiChoLucDongBo = TinhKhien.phutDoTaiCho(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) }
     kho.luu(kh, Khoa.keHoach)
     kho.luu(now, Khoa.lanDongBo)
     try? lich.theoDoi(kh.lich)       // không theo dõi được (chưa có quyền) vẫn áp khiên tức thời
@@ -148,6 +149,14 @@ public final class DongBo {
 
   public func xinThemGio(phut: Int, loiNhan: String, now: Date = Date()) async throws -> YeuCauDangCho {
     let r = try await api.xinThemGio(phut: phut, loiNhan: loiNhan)
+    let yc = YeuCauDangCho(id: r.id, phut: phut, loiNhan: loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho")
+    kho.luu(yc, Khoa.yeuCauDangCho)
+    return yc
+  }
+
+  /// 05/11: giờ ngủ / Ba Mẹ khoá ⇒ xin mở ngoại lệ cả máy (theo dõi trạng thái như lời xin thêm giờ).
+  public func xinNgoaiLe(phut: Int, loiNhan: String, now: Date = Date()) async throws -> YeuCauDangCho {
+    let r = try await api.xinNgoaiLe(phut: phut, loiNhan: loiNhan)
     let yc = YeuCauDangCho(id: r.id, phut: phut, loiNhan: loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho")
     kho.luu(yc, Khoa.yeuCauDangCho)
     return yc

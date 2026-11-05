@@ -28,8 +28,10 @@ public enum YeuCauTray: Codable, Equatable {
   case appTienCanh(bundleId: String, ten: String)
   /// Con xin thêm giờ (30/60/120 phút)
   case xinThem(phut: Int, loiNhan: String?)
-  /// Con xin mở một trang web / app đang bị chặn
+  /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet)
   case xinMo(muc: String, loai: String, loiNhan: String?)
+  /// Giờ ngủ / Ba Mẹ khoá (05/11): «Xin Ba Mẹ mở ngoại lệ» — `phamVi` ca_may | app (`app` = bundle id), `phut` có hạn.
+  case xinNgoaiLe(phamVi: String, app: String?, phut: Int, loiNhan: String?)
   /// Ba Mẹ (admin) ghép máy lần đầu: mã 6 số trong app + tên tài khoản macOS của Con (short name)
   case ghep(ma: String, taiKhoanCon: String)
   /// Ba Mẹ (admin) bấm «Kiểm tra cập nhật»: daemon hỏi manifest ngay; có bản mới thì tải + cài nền. Trả `.thongBao`.
@@ -82,6 +84,9 @@ public struct TrangThai: Codable, Equatable {
   public var nhapMaOffline: Bool?
   /// Phút đã dùng hôm nay theo app (bundle id, nhiều nhất trước) — mục Hôm nay của app Con. Chỉ cho phiên Con.
   public var homNayTheoApp: [MucDung]?
+  /// Quỹ giờ chơi hôm nay (05/11): phút còn (đếm lùi tại chỗ khi app tính giờ ở tiền cảnh) / tổng quỹ. nil = máy chủ cũ. Chỉ cho phiên Con.
+  public var quyConPhut: Int?
+  public var quyTongPhut: Int?
   /// Máy chưa ghép nhưng có token gói cài một chạm ⇒ cửa sổ Ghép chỉ hỏi tài khoản của Con, không hỏi mã 6 số. Chỉ cho phiên Ba Mẹ.
   public var coGoiCai: Bool?
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,

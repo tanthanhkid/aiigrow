@@ -27,16 +27,16 @@ public enum TrayLogic {
   public static func tieuDeKhoa(_ lyDo: String?) -> String {
     switch lyDo {
     case "het_gio": return "Hết giờ dùng máy hôm nay"
-    case "gio_ngu": return "Đến giờ nghỉ rồi"
-    default: return "Máy đang được Ba Mẹ khoá"
+    case "gio_ngu": return "Đến giờ ngủ rồi"
+    default: return "Ba Mẹ đang khoá máy"
     }
   }
 
   public static func goiYKhoa(_ lyDo: String?) -> String {
     switch lyDo {
     case "het_gio": return "Con lưu bài đang làm nhé. Con có thể xin Ba Mẹ thêm thời gian."
-    case "gio_ngu": return "Máy sẽ mở lại khi hết giờ nghỉ. Cần gấp thì xin Ba Mẹ nhé."
-    default: return "Con có thể nhắn xin Ba Mẹ mở máy."
+    case "gio_ngu": return "Máy mở lại khi hết giờ ngủ. Cần gấp thì con xin Ba Mẹ mở ngoại lệ nhé."
+    default: return "Mở lại là máy báo con ngay. Cần gấp thì con xin Ba Mẹ mở ngoại lệ nhé."
     }
   }
 
@@ -54,6 +54,20 @@ public enum TrayLogic {
     return nil
   }
 
+  /// Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được, chỉ «Xin Ba Mẹ mở ngoại lệ». Hết giờ ⇒ xin thêm giờ / dùng sao.
+  public static func chiNgoaiLe(_ lyDo: String?) -> Bool {
+    guard let l = lyDo else { return false }
+    return l != "het_gio"
+  }
+  /// Mức ngoại lệ con xin (phút, ≤ `ngoai_le_toi_da_phut` mặc định 60 của máy chủ).
+  public static let luaChonNgoaiLe = [15, 30, 60]
+
+  /// Quỹ giờ chơi hôm nay: «18 phút» (nil = máy chủ cũ / đang được Ba Mẹ mở có hạn ⇒ dùng đồng hồ cũ).
+  public static func dongQuy(_ t: TrangThai) -> String? {
+    guard let c = t.quyConPhut, t.moDen == nil else { return nil }
+    return c >= 60 ? "\(c / 60) giờ \(c % 60) phút" : "\(c) phút"
+  }
+
   /// Chữ cạnh biểu tượng trên thanh menu.
   public static func tieuDeThanh(_ t: TrangThai?, matKetNoi: Bool, nhanLuc: Date, bayGio: Date) -> String {
     if matKetNoi || t == nil { return "" }
@@ -62,6 +76,7 @@ public enum TrayLogic {
     if !t.laPhienCon { return "" }
     if t.cheDo == .khoa { return "Đang khoá" }
     if let g = giayConLai(t, nhanLuc: nhanLuc, bayGio: bayGio) { return "Còn \(Int((g / 60).rounded(.up))) phút" }
+    if let c = t.quyConPhut { return "Còn \(c) phút" }
     return ""
   }
 
@@ -76,8 +91,9 @@ public enum TrayLogic {
     if t.cheDo == .khoa { return "Đang khoá" }
     if let g = giayConLai(t, nhanLuc: nhanLuc, bayGio: bayGio) {
       let moThem = (t.moDen ?? .distantPast) > bayGio
-      return "Còn \(Int((g / 60).rounded(.up))) phút" + (moThem ? " (Ba Mẹ đã thêm giờ)" : " hôm nay")
+      return "Còn \(Int((g / 60).rounded(.up))) phút" + (moThem ? " (Ba Mẹ mở ngoại lệ)" : " hôm nay")
     }
+    if let c = t.quyConPhut { return "Còn \(c) phút chơi hôm nay" + (t.quyTongPhut.map { " (\(max(0, $0 - c))/\($0))" } ?? "") }
     return "Không giới hạn giờ hôm nay"
   }
 
@@ -148,7 +164,7 @@ public enum TrayLogic {
   public static let luaChonPhut = [30, 60, 120]
 
   public static func tenMucNguoiDung(_ cheDo: CheDo) -> String {
-    switch cheDo { case .tuDo: return "Tự do"; case .hoc: return "Chỉ app học"; case .khoa: return "Đang khoá" }
+    switch cheDo { case .tuDo: return "Mở hết"; case .hoc: return "Chỉ app được phép"; case .khoa: return "Đang khoá" }
   }
 
   // MARK: tài khoản trên máy

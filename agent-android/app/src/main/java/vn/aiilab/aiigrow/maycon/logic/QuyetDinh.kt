@@ -16,6 +16,7 @@ enum class TrangThai {
     KHONG_TUAN_THU,   // máy lệch chuẩn (giờ sai, quyền bị tắt…) ⇒ khoá giải trí
     GIO_NGU,          // giờ ngủ ⇒ khoá cả máy
     KHOA_NGAY,        // Ba Mẹ bấm «Khoá ngay» ⇒ khoá cả máy
+    GIO_HOC,          // 05/11: giờ học ⇒ chỉ app Học (giải trí tạm dừng)
 }
 
 data class GoiCai(val goi: String, val heThong: Boolean)
@@ -31,6 +32,8 @@ data class QuyetDinh(
     /** Lúc mở lại (nếu biết): hết giờ ngủ / đầu khung kế tiếp / hết thêm giờ. */
     val moLaiLuc: Instant?,
     val cauCon: String,
+    /** App bị tạm dừng vì CHƯA được Ba Mẹ cho phép (chế độ «Chỉ app được phép») — màn chặn hiện «Xin Ba Mẹ duyệt». */
+    val goiChuaXep: Set<String> = emptySet(),
 )
 
 /** Gói không bao giờ chặn: chính AiiGrow Con, app Ba Mẹ, trình cài / Cài đặt / điện thoại khẩn cấp. */
@@ -83,6 +86,10 @@ fun quyetDinh(
     /** Trình duyệt trên máy (trừ Chrome — lọc được bằng URLBlocklist). Chỉ Device Owner truyền vào: trình duyệt không lọc được bị tạm dừng
      *  trừ khi Ba Mẹ đã tự xếp nó (như agent-win chặn Firefox / Opera ở Chặn thật — TrinhDuyetLoc.cs). */
     trinhDuyet: Set<String> = emptySet(),
+    /** 05/11: phút giải trí đo tại chỗ lúc nhịp gần nhất thành công + ngày (yyyy-MM-dd, tz gia đình) của nhịp đó — để phút dùng sau nhịp
+     *  cộng thêm vào `quy.daDung` của máy chủ (đã gồm máy khác) khi mất mạng; khác ngày ⇒ quỹ hôm qua không còn đúng. */
+    phutLucNhip: Int? = null,
+    ngayNhip: String? = null,
 ): QuyetDinh {
     val g = gioDiaPhuong(now, cs.tz)
     // Máy chủ hạ chữ thường `muc` (danh sách app thật, server/lib/app-may.ts) mà package Android phân biệt hoa thường
@@ -98,7 +105,9 @@ fun quyetDinh(
     // chua_xep = «chan» (server): app người dùng tự cài chưa được Ba Mẹ xếp ⇒ tạm dừng. App hệ thống không tính.
     // trình duyệt không lọc được: chặn ở MỌI trạng thái (kể cả thêm giờ / mở bằng mã — lúc đó Con đang có giờ tự do, càng cần lọc web)
     val khongLoc = trinhDuyetKhongLoc(trinhDuyet, daXep)
-    val chuaXep = daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet() + khongLoc
+    // 05/11 «Mở hết» (chuaXep = cho_phep): app chưa xếp được dùng — chỉ trình duyệt không lọc web được vẫn chặn
+    val chuaXepThat = if (cs.quy != null && cs.chuaXepChoPhep) emptySet() else daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet()
+    val chuaXep = chuaXepThat + khongLoc
     val coThe = { s: Set<String> -> (s - GOI_LUON_CHO) }
 
     val khung = if (g.cuoiTuan) cs.cuoiTuan else cs.ngayThuong
@@ -109,7 +118,10 @@ fun quyetDinh(
     val mo = listOfNotNull(grantEndsAt, cs.moKhanCapDen).filter { it.isAfter(now) }.maxOrNull()
 
     fun kq(t: TrangThai, goi: Set<String>, ca: Boolean, phut: Int, moLai: Instant?, cau: String) =
-        QuyetDinh(t, coThe(goi), ca, phut.coerceAtLeast(0), moLai, cau)
+        QuyetDinh(t, coThe(goi), ca, phut.coerceAtLeast(0), moLai, cau, coThe(goi).intersect(chuaXepThat))
+
+    if (cs.quy != null) return quyetDinhQuy(cs, cs.quy, now, g, phutGiaiTriHomNay, grantEndsAt, moOfflineDen, chan, giaiTri, chuaXep, khongLoc,
+        theoMay(goiAndroid(cs.hoc)), ::theoMay, ::kq, trongNgu, phutLucNhip, ngayNhip)
 
     // Mã mở offline của Ba Mẹ thắng mọi khoá (máy mất mạng, đây là đường duy nhất để mở) — chỉ app Ba Mẹ chặn hẳn vẫn chặn.
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
@@ -132,6 +144,59 @@ fun quyetDinh(
     }
     if (conPhut <= 0) return kq(TrangThai.HET_GIO, chan + giaiTri + chuaXep, false, 0, dauKhungKe(g, khung), "Hết giờ giải trí hôm nay rồi. App học vẫn dùng được.")
     return kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Con còn $conPhut phút giải trí hôm nay.")
+}
+
+/**
+ * Luật 05/11 (máy chủ mới gửi `quy`): QUỸ phút chơi ngày thay trần + khung giờ chơi; giờ học chỉ app Học; ngoại lệ Ba Mẹ mở (cả máy thắng giờ
+ * ngủ / khoá, một app chỉ mở app đó). Phút còn = quỹ − max(phút máy chủ đã tính, phút giải trí đo tại chỗ) ⇒ mất mạng vẫn đếm lùi.
+ */
+private fun quyetDinhQuy(
+    cs: ChinhSach, q: Quy, now: Instant, g: GioDiaPhuong, phutGiaiTriHomNay: Int, grantEndsAt: Instant?, moOfflineDen: Instant?,
+    chan: Set<String>, giaiTri: Set<String>, chuaXep: Set<String>, khongLoc: Set<String>, hoc: Set<String>,
+    theoMay: (Collection<String>) -> Set<String>,
+    kq: (TrangThai, Set<String>, Boolean, Int, Instant?, String) -> QuyetDinh, trongNgu: Boolean,
+    phutLucNhip: Int?, ngayNhip: String?,
+): QuyetDinh {
+    val cungNgay = ngayNhip == null || ngayNhip == g.zdt.toLocalDate().toString()
+    val nl = cs.ngoaiLeMo.filter { it.den.isAfter(now) && (it.nhom.isBlank() || it.nhom == "android") }
+    val nlCaMay = nl.filter { it.muc == null }.maxOfOrNull { it.den }
+    val nlApp = theoMay(nl.mapNotNull { it.muc })
+    // máy chủ đã tính tới lúc nhịp (mọi máy) + phút đo tại chỗ SAU nhịp; sang ngày mới mà chưa nhịp được ⇒ quỹ ngày, chỉ trừ phút đo tại chỗ
+    val daDung = if (!cungNgay) phutGiaiTriHomNay
+        else maxOf(phutGiaiTriHomNay, q.daDung + (phutGiaiTriHomNay - (phutLucNhip ?: phutGiaiTriHomNay)).coerceAtLeast(0))
+    val conPhut = ((if (cungNgay) q.tongPhut else q.ngayPhut) - daDung).coerceAtLeast(0)
+    if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
+        val p = Duration.between(now, moOfflineDen).toMinutes().toInt() + 1
+        return kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, moOfflineDen, "Ba Mẹ đã mở máy bằng mã.")
+    }
+    // ngoại lệ cả máy (và mở khẩn cấp) thắng giờ ngủ / khoá
+    val mo = listOfNotNull(nlCaMay, grantEndsAt, cs.moKhanCapDen).filter { it.isAfter(now) }.maxOrNull()
+    if (mo != null && (nlCaMay != null || !(cs.khoaNgay || trongNgu))) {
+        val p = Duration.between(now, mo).toMinutes().toInt() + 1
+        return kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, mo, "Ba Mẹ đã mở ngoại lệ cho con.")
+    }
+    val tatCa = chan + giaiTri + chuaXep + hoc
+    if (cs.khoaNgay || trongNgu) {
+        val t = if (cs.khoaNgay) TrangThai.KHOA_NGAY else TrangThai.GIO_NGU
+        val moLai = if (cs.khoaNgay) null else cs.ngu?.let { hetNgu(g, it) }
+        val cau = if (cs.khoaNgay) "Ba Mẹ đang khoá máy. Cần gấp thì con xin Ba Mẹ mở ngoại lệ nhé." else "Đến giờ ngủ rồi. Chúc con ngủ ngon!"
+        // ngoại lệ một app: chỉ app đó (+ app luôn cho) — không khoá cả máy
+        return if (nlApp.isNotEmpty()) kq(t, truGoi(tatCa, nlApp), false, 0, moLai, "Ba Mẹ cho con dùng riêng app được mở ngoại lệ.")
+        else kq(t, tatCa, true, 0, moLai, cau)
+    }
+    if (!cs.giaiTriDuocMo || "khong_tuan_thu" in cs.lyDo || "gio_may_sai" in cs.lyDo) {
+        val cau = cs.cauTuanThuCon.firstOrNull() ?: "Máy đang tạm khoá giải trí. Con nhờ Ba Mẹ kiểm tra giúp nhé."
+        return kq(TrangThai.KHONG_TUAN_THU, truGoi(chan + giaiTri + chuaXep, nlApp), false, 0, null, cau)
+    }
+    val h = cs.gioHoc
+    // có lịch học ⇒ tự xét theo giờ (cờ dangHoc của máy chủ có thể đã cũ khi mất mạng); không có lịch ⇒ tin cờ máy chủ cùng ngày
+    if (if (h != null) g.zdt.dayOfWeek.value % 7 in h.thu && trongKhung(g.phut, h.khung) else q.dangHoc && cungNgay) {
+        val het = h?.let { g.zdt.withSecond(0).withNano(0).plusMinutes(((it.khung.denPhut - g.phut + 1440) % 1440).toLong()).toInstant() }
+        return kq(TrangThai.GIO_HOC, truGoi(chan + giaiTri + chuaXep, nlApp), false, conPhut, het, "Đang giờ học. App học vẫn dùng được.")
+    }
+    if (conPhut <= 0) return kq(TrangThai.HET_GIO, truGoi(chan + giaiTri + chuaXep, nlApp), false, 0, null,
+        "Hết giờ chơi hôm nay rồi. Con dùng sao hoặc xin Ba Mẹ thêm giờ nhé.")
+    return kq(TrangThai.BINH_THUONG, truGoi(chan + chuaXep, nlApp), false, conPhut, null, "Con còn $conPhut phút chơi hôm nay.")
 }
 
 /** Giây tới đầu giờ ngủ kế tiếp (null nếu không đặt giờ ngủ). */
@@ -161,6 +226,9 @@ const val DEM_NGUOC_GIAY = 60
 fun demNguocConLai(batDau: Instant, now: Instant, tong: Int = DEM_NGUOC_GIAY): Int =
     (tong - Duration.between(batDau, now).seconds).coerceIn(0, tong.toLong()).toInt()
 
-fun laKhoa(t: TrangThai) = t == TrangThai.KHOA_NGAY || t == TrangThai.GIO_NGU || t == TrangThai.HET_GIO || t == TrangThai.NGOAI_KHUNG
+fun laKhoa(t: TrangThai) = t == TrangThai.KHOA_NGAY || t == TrangThai.GIO_NGU || t == TrangThai.HET_GIO || t == TrangThai.NGOAI_KHUNG || t == TrangThai.GIO_HOC
+
+/** Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được — Con chỉ «Xin Ba Mẹ mở ngoại lệ». */
+fun chiNgoaiLe(t: String) = t == TrangThai.GIO_NGU.name || t == TrangThai.KHOA_NGAY.name || t == TrangThai.GIO_HOC.name
 
 fun mmss(giay: Int): String = "%d:%02d".format(giay.coerceAtLeast(0) / 60, giay.coerceAtLeast(0) % 60)

@@ -147,7 +147,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       muc("Xin thêm thời gian…", #selector(moXin))
       muc("Xin mở trang hoặc app…", #selector(moXinMo))
       if let t, ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? []) {
-        muc("Chơi bằng điểm…", #selector(moChoi))   // menu KHÔNG hiện số điểm — chỉ hiện khi được phép
+        muc("Dùng sao thêm giờ chơi…", #selector(moChoi))   // menu KHÔNG hiện số sao — chỉ hiện khi được phép
       }
       m.addItem(.separator())
     }
@@ -168,13 +168,16 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   // MARK: hành động menu
 
   @objc func moXin() { hien(&cuaSoXin, "AiiGrow · Xin thêm thời gian", XinThemCuaSo(tray: model, xin: xin, moChoi: { [weak self] in self?.cuaSoXin?.close(); self?.moChoi() })) }
+  /// Giờ học: chỉ xin mở ngoại lệ (cả máy, có hạn).
+  func moXinNgoaiLe() { cuaSoXin?.close(); cuaSoXin = nil; hien(&cuaSoXin, "AiiGrow · Xin mở ngoại lệ", XinThemCuaSo(tray: model, xin: xin, ngoaiLe: true)) }
   @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở trang hoặc app", XinMoView(tray: model, xin: xin)) }
   @objc func moAppCon() { moApp(nil) }
   @objc func moChoi() {
     if let w = cuaSoChoi { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }   // đã mở: chỉ đưa lên trước
     let ds = model.tt?.dsChoi ?? []
     let m = ChoiModel()
-    hienCuaSo(&cuaSoChoi, "AiiGrow · Chơi bằng điểm", ChoiBangDiemView(ds: ds, m: m, dong: { [weak self] in self?.cuaSoChoi?.close() }))
+    hienCuaSo(&cuaSoChoi, "AiiGrow · Dùng sao thêm giờ", ChoiBangDiemView(phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10, sao: appCon.tq?.soDu, m: m,
+                                                                           dong: { [weak self] in self?.cuaSoChoi?.close() }))
     // xong ⇒ đóng sau 1,5 giây, hỏi lại số phút cho trang Hôm nay
     Task { @MainActor [weak self] in
       for _ in 0..<600 { if m.xong || self?.cuaSoChoi == nil { break }; try? await Task.sleep(nanoseconds: 500_000_000) }
@@ -277,13 +280,15 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     defer { chanSeqDaThay = seq }
     guard let cu = chanSeqDaThay, seq != cu, seq > 0, manKhoa.isEmpty, let ten = t.chanTen else { return }   // != : daemon khởi động lại đếm từ 0
     let muc = t.chanApp ?? ""
-    let coChoi = t.chanLyDo == "chi_app_hoc"
-      && ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? [], muc: muc)
+    // 05/11: không dùng sao để MỞ app — chỉ khi app bị đóng vì hết giờ chơi mới có «Dùng sao thêm giờ»; app chưa được phép ⇒ «Xin Ba Mẹ duyệt»
+    let hetGio = t.chanLyDo == QuyGio.lyDoHetGio, gioHoc = t.chanLyDo == QuyGio.lyDoGioHoc
+    let coChoi = hetGio && ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: [])
     let m = ChoiModel()
     cuaSoChan?.close()
     let v = ChanAppView(ten: ten, lyDo: t.chanLyDo, coChoi: coChoi, m: m, muc: muc,
-                        xinPhep: { [weak self] in self?.cuaSoChan?.close(); self?.moXinMoApp(ten) },
-                        dong: { [weak self] in self?.cuaSoChan?.close() })
+                        xinPhep: { [weak self] in self?.cuaSoChan?.close(); if hetGio { self?.moXin() } else if gioHoc { self?.moXinNgoaiLe() } else { self?.moXinMoApp(ten) } },
+                        dong: { [weak self] in self?.cuaSoChan?.close() },
+                        dungSao: { [weak self] in self?.cuaSoChan?.close(); self?.moChoi() })
     let p = NSPanel(contentViewController: NSHostingController(rootView: v))
     p.styleMask = [.titled, .closable, .utilityWindow]; p.title = "AiiGrow"
     p.level = .floating; p.isReleasedWhenClosed = false
