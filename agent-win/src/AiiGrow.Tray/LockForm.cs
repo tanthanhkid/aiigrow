@@ -26,6 +26,9 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     private bool _locking;
     private OfflineCodePanel? _code;
     private DateTimeOffset? _matMangTu;
+    /// <summary>Màn thấp (1366×768 / 1024×768 ở 150%): thẻ thiết kế cao hơn chỗ trống ⇒ dựng bản gọn (Rob nhỏ, chữ / nút nhỏ hơn) thay vì cuộn.</summary>
+    private bool _gon;
+    private ManKhoa? _m;
 
     /// <summary>Con bấm một nút trên màn khoá (mã <see cref="ManKhoaView"/>: doi_sao, xin_them_gio, xin_ngoai_le, nhan_ba_me). «Ba Mẹ dùng máy» màn tự xử lý (Win+L).</summary>
     public event Action<string>? Bam;
@@ -121,10 +124,24 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
         var giuMa = _code?.MaDangGo;   // Ba Mẹ đang đọc mã cho Con gõ mà thẻ dựng lại ⇒ không mất số đã gõ
         _code = null;
+        _m = m;
+        _gon = false;
         _khoi = m.MatMang ? DungMatMang(m) : DungThuong(m);
-        if (_code != null && !string.IsNullOrEmpty(giuMa)) _code.MaDangGo = giuMa;
         _center.Controls.Add(_khoi);
         _center.ResumeLayout(true);
+        if (!m.MatMang && _center.ClientSize.Height > 0 && _khoi.Height > _center.ClientSize.Height - UI.Px(16))
+        {
+            // không vừa ⇒ dựng lại bản gọn (cuộn trên màn khoá dễ lộ nền đen + giấu nút dưới cùng)
+            _center.SuspendLayout();
+            _center.Controls.Remove(_khoi);
+            if (_count.Parent != null) _count.Parent.Controls.Remove(_count);
+            _khoi.Dispose();
+            _gon = true;
+            _khoi = DungThuong(m);
+            _center.Controls.Add(_khoi);
+            _center.ResumeLayout(true);
+        }
+        if (_code != null && !string.IsNullOrEmpty(giuMa)) _code.MaDangGo = giuMa;
         GiuaKhoi();
         DatGocChu();
     }
@@ -154,18 +171,21 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     private Control DungThuong(ManKhoa m)
     {
         var the = TheMoi(UI.Px(600) + VeThe.LeBong.Horizontal, true);
+        if (_gon) the.Padding = VeThe.Pad(UI.Px(40), UI.Px(18), UI.Px(40), UI.Px(14));
         int w = (int)the.Tag!;
-        var rob = KhoiThietKe.Rob(m.Rob, 170);
+        if (_gon) w = UI.Px(600) + VeThe.LeBong.Horizontal - the.Padding.Horizontal;
+        var rob = KhoiThietKe.Rob(m.Rob, _gon ? 80 : 170);
         rob.Margin = new Padding((w - rob.Width) / 2, 0, 0, 0);
         the.Controls.Add(rob);
-        var td = Chu(m.Tieu, 33f, true, UI.Ink, w, true); td.Margin = new Padding(0, UI.Px(14), 0, 0);
+        var td = Chu(m.Tieu, _gon ? 22f : 33f, true, UI.Ink, w, true); td.Margin = new Padding(0, UI.Px(_gon ? 4 : 14), 0, 0);
         the.Controls.Add(td);
-        var ph = Chu(m.Phu, 17f, false, UI.Muted, w, true); ph.Margin = new Padding(0, UI.Px(6), 0, 0);
+        var ph = Chu(m.Phu, _gon ? 13f : 17f, false, UI.Muted, w, true); ph.Margin = new Padding(0, UI.Px(6), 0, 0);
         the.Controls.Add(ph);
-        if (m.Phu2 != null) { var p2 = Chu(m.Phu2, 17f, false, UI.Muted, w, true); p2.Margin = new Padding(0, UI.Px(2), 0, 0); the.Controls.Add(p2); }
+        if (m.Phu2 != null) { var p2 = Chu(m.Phu2, _gon ? 13f : 17f, false, UI.Muted, w, true); p2.Margin = new Padding(0, UI.Px(2), 0, 0); the.Controls.Add(p2); }
         if (m.DemNguoc)
         {
-            _count.AutoSize = false; _count.Width = w; _count.Height = UI.Px(112); _count.TextAlign = ContentAlignment.MiddleCenter;
+            _count.Font = UI.F(_gon ? 44f : 78f, FontStyle.Bold);
+            _count.AutoSize = false; _count.Width = w; _count.Height = UI.Px(_gon ? 64 : 112); _count.TextAlign = ContentAlignment.MiddleCenter;
             _count.Margin = new Padding(0, UI.Px(8), 0, 0);
             the.Controls.Add(_count);
         }
@@ -174,7 +194,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
             var sao = new ChipClay(m.SaoDong, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(13.5f, FontStyle.Bold) };
             sao.Height = UI.Px(40);
             sao.Width = TextRenderer.MeasureText(m.SaoDong, sao.Font).Width + UI.Px(56);
-            sao.Margin = new Padding((w - sao.Width) / 2, UI.Px(14), 0, 0);
+            sao.Margin = new Padding((w - sao.Width) / 2, UI.Px(_gon ? 6 : 14), 0, 0);
             the.Controls.Add(sao);
         }
         // Hai nút lớn (cao 64, chữ 22px) rồi hàng liên kết chữ.
@@ -183,8 +203,8 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         for (int i = 0; i < lon.Count; i++)
         {
             var n = lon[i];
-            var b = KhoiCon.Nut(n.Chu, i == 0, w, n.Icon, 64, 16.5f);
-            b.Margin = new Padding(0, UI.Px(i == 0 ? 28 : 16), 0, 0);
+            var b = KhoiCon.Nut(n.Chu, i == 0, w, n.Icon, _gon ? 48 : 64, _gon ? 13f : 16.5f);
+            b.Margin = new Padding(0, UI.Px(_gon ? (i == 0 ? 10 : 6) : (i == 0 ? 28 : 16)), 0, 0);
             b.Click += (_, _) => Bam?.Invoke(n.Ma);
             the.Controls.Add(b);
         }
@@ -202,7 +222,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         foreach (var n in ds)
         {
             var mau = n.Ma == ManKhoaView.BaMeDungMay ? Clay.Chu2 : Color.FromArgb(0x19, 0x65, 0x59);
-            var lk = KhoiCon.LienKet(n.Chu, n.Icon, () => BamNut(n.Ma), 15f, mau);
+            var lk = KhoiCon.LienKet(n.Chu, n.Icon, () => BamNut(n.Ma), _gon ? 11.5f : 15f, mau);
             lk.Margin = new Padding(UI.Px(20), 0, UI.Px(20), 0);
             hang.Controls.Add(lk);
         }
