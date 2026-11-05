@@ -16,7 +16,8 @@ export const TEN_QUYEN: Record<string, string> = {
 /** vai lưu trong DB (mới hoặc cũ) ⇒ quyền. «roi» (đã rời nhà) ⇒ null. */
 export function quyenTuVai(vai: string | null | undefined): Quyen | null {
   if (vai === "roi" || !vai) return null;
-  return vai === "trong_giup" || vai === "xem" ? "trong_giup" : "ba_me";
+  // đóng an toàn: chỉ giá trị đã biết mới là Ba Mẹ; giá trị lạ ⇒ Người trông giúp
+  return vai === "ba_me" || vai === "chu" || vai === "duyet" ? "ba_me" : "trong_giup";
 }
 
 export const quyenCua = (bm: { vai: string }): Quyen => quyenTuVai(bm.vai) ?? "trong_giup";

@@ -62,7 +62,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const lenh = await lenhCho(may);
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
       // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
-      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"));
+      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!con);
       // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
       const moDen = coTacTu(may.platform) ? await hanMoCuaMay(may, con) : null;
       const conThuong = coTacTu(may.platform) && con ? await thuongConLai(con) : 0;

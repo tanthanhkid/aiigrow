@@ -75,12 +75,16 @@ export async function taoPhienGhep(fam: string, b: { con?: unknown; giongMay?: u
 
 /** GET /api/m/ghep-may/:ma — màn «Đang chờ máy của con»: đã ghép chưa (bằng mã hoặc bằng link), máy nào, mã còn bao lâu. */
 export async function trangThaiGhep(fam: string, ma: string, now = new Date()) {
-  const r = await one<{ used_at: Date | null; device_id: string | null; expires_at: Date; child_id: string | null }>(
-    `select used_at, device_id, expires_at, child_id from pair_codes where code = $1 and family_id = $2`, [String(ma ?? "").trim(), fam]);
+  const r = await one<{ used_at: Date | null; device_id: string | null; expires_at: Date; child_id: string | null; link_den: Date | null }>(
+    `select p.used_at, p.device_id, p.expires_at, p.child_id,
+            (select g.expires_at from goi_cai g where g.token_hash = p.goi_cai and g.used_at is null) as link_den
+       from pair_codes p where p.code = $1 and p.family_id = $2`, [String(ma ?? "").trim(), fam]);
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy mã ghép này — lấy mã mới nhé", 404);
   const may = r.device_id ? await one<{ id: string; name: string; platform: string; che_do: string }>(
     `select id, name, platform, che_do from devices where id = $1`, [r.device_id]) : undefined;
   const conGiay = Math.max(0, Math.round((new Date(r.expires_at).getTime() - now.getTime()) / 1000));
-  return { daGhep: !!r.used_at, hetHan: !r.used_at && conGiay === 0, conGiay, con: r.child_id,
+  // mã 6 số hết 10 phút nhưng link cùng phiên còn hạn ⇒ chưa «hết hạn» (máy mở link muộn vẫn tự ghép, màn «Đang chờ» tiếp tục hỏi)
+  const linkConHan = !!r.link_den && new Date(r.link_den).getTime() > now.getTime();
+  return { daGhep: !!r.used_at && !!r.device_id, hetHan: !r.used_at && conGiay === 0 && !linkConHan, conGiay, maHetHan: conGiay === 0, linkConHan, con: r.child_id,
     may: may ? { id: may.id, ten: may.name, nen: may.platform } : null };
 }

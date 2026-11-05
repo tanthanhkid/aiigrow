@@ -30,16 +30,16 @@ function lenhGoTayTrongAgent(): string {
 }
 
 type Kq = { status: number; body: any };
-async function goi(f: typeof xuLyMay, goc: string, duong: string, o: { tok?: string; body?: unknown } = {}): Promise<Kq> {
+async function goi(f: typeof xuLyMay, goc: string, duong: string, o: { tok?: string; body?: unknown; hdr?: Record<string, string> } = {}): Promise<Kq> {
   const req = new Request(`http://app.test/api/${goc}/${duong}`, {
     method: o.body === undefined ? "GET" : "POST",
-    headers: { "content-type": "application/json", ...(o.tok ? { authorization: `Bearer ${o.tok}` } : {}) },
+    headers: { "content-type": "application/json", ...(o.tok ? { authorization: `Bearer ${o.tok}` } : {}), ...(o.hdr ?? {}) },
     body: o.body === undefined ? undefined : JSON.stringify(o.body),
   });
   const r = await f(req, duong.split("/"));
   return { status: r.status, body: await r.json() };
 }
-const dv = (d: string, o?: { tok?: string; body?: unknown }) => goi(xuLyMay, "device", d, o);
+const dv = (d: string, o?: { tok?: string; body?: unknown; hdr?: Record<string, string> }) => goi(xuLyMay, "device", d, o);
 const m = (d: string, o?: { tok?: string; body?: unknown }) => goi(xuLyM, "m", d, o);
 
 async function nha(ten = "Lan") {
@@ -147,7 +147,7 @@ test("xoá hẳn: máy chưa đồng bộ lần nào ⇒ cần xoaHan; đang g�
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'go_may' and chi_tiet->>'cach' = 'xoa_han'`, [fam])).length, 2);
 });
 
-test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10; 05/11 cả máy dùng chung): đồng bộ đầu đã gửi cheDo chan; điện thoại không có chế độ", async () => {
+test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10); máy dùng chung chỉ khi đã chọn Con: đồng bộ đầu đã gửi cheDo chan; điện thoại không có chế độ", async () => {
   const { fam, con, bmTok } = await nha();
   const may = await ghep(fam, con);
   assert.equal((await dv("dong-bo", { tok: may.token, body: { status: { agent: "windows", cheDo: "giam-sat" } } })).body.windows.cheDo, "chan");
@@ -160,8 +160,11 @@ test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10; 05/11 cả máy 
   const dt = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Điện thoại của Ken");
   assert.deepEqual((await q<{ che_do: string; che_do_ba_me: boolean }>(`select che_do, che_do_ba_me from devices where id = $1`, [dt.deviceId]))[0],
     { che_do: "giam-sat", che_do_ba_me: false });
+  // máy dùng chung chưa chọn Con: không ép chặn (luật rỗng sẽ khoá nhầm cả nhà); Con chọn tên ⇒ «chan»
   const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC phòng khách");
-  assert.equal((await dv("dong-bo", { tok: chung.token, body: {} })).body.windows.cheDo, "chan");
+  assert.equal((await dv("dong-bo", { tok: chung.token, body: {} })).body.windows.cheDo, undefined);
+  const pc = (await dv("chon-con", { tok: chung.token, body: { con } })).body.phienCon;
+  assert.equal((await dv("dong-bo", { tok: chung.token, body: {}, hdr: { "x-phien-con": pc } })).body.windows.cheDo, "chan");
 });
 
 test("chế độ thật do agent báo: app thấy chế độ máy báo (cheDoMay) bên cạnh lựa chọn; giá trị lạ bỏ qua", async () => {

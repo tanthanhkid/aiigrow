@@ -43,14 +43,14 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   const body = {
     con: { ten: "Bảo Anh", namSinh: new Date().getFullYear() - 9, avatar: "cam" },
     gioChoi: { ngayThuong: 60, cuoiTuan: 90 }, ngu: { tu: "21:30", den: "06:30" }, cheDoChan: "chi_app_duoc_phep",
-    apps: [{ ma: "roblox" }, { ma: "aiirob" }, { ma: "youtube_kids", tinhGio: false }, { ten: "Duolingo ABC", tinhGio: false }],
+    apps: [{ ma: "roblox" }, { ma: "aiirob" }, { ma: "youtube_kids", tinhGio: false }, { ten: "Duolingo ABC", tinhGio: false }, { ten: "抖音" }],
   };
   const r = await m("thiet-lap", { tok: bm, body });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const con = r.body.conId;
   assert.deepEqual([r.body.ten, r.body.cheDoChan, r.body.gioChoi, r.body.ngu], ["Bảo Anh", "chi_app_duoc_phep", { ngayThuong: 60, cuoiTuan: 90 }, { tu: "21:30", den: "06:30" }]);
-  assert.deepEqual(r.body.app.choKhop, ["Duolingo ABC"]);
-  assert.equal(r.body.soApp, 3, "Roblox + YouTube Kids (AiiRob là mục hệ thống, luôn mở) + Duolingo ABC chờ khớp");
+  assert.deepEqual(r.body.app.choKhop, ["Duolingo ABC", "抖音"]);
+  assert.equal(r.body.soApp, 4, "Roblox + YouTube Kids (AiiRob là mục hệ thống, luôn mở) + Duolingo ABC chờ khớp");
   const luat = await q<{ muc: string; loai: string; nhom: string }>(`select muc, loai, nhom from app_rules where child_id = $1 order by muc`, [con]);
   assert.ok(luat.some((l) => l.muc === "robloxplayerbeta.exe" && l.loai === "giai_tri" && l.nhom === "game"));
   assert.ok(luat.some((l) => l.muc === "com.roblox.client" && l.loai === "giai_tri"));
@@ -67,6 +67,8 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal((await m(`con/${con}`, { tok: bm })).body.coPin, false);
   // dữ liệu sai
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "X" }, gioChoi: { ngayThuong: 999 } } })).body.error, "phut_sai");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Y" }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
+  assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "lỗi dữ liệu không để lại Con");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, ngu: { tu: "25:00", den: "06:00" } } })).body.error, "gio_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, cheDoChan: "tu_do" } })).body.error, "che_do_chan_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
@@ -108,7 +110,9 @@ test("L8 phiên ghép: mã 6 số 10 phút + link bộ cài (không gắn loại
   // mã hết hạn ⇒ «Đang chờ» báo hết hạn
   await q(`update pair_codes set expires_at = now() - interval '1 second' where code = $1`, [pg3.ma]);
   tt = (await m(`ghep-may/${pg3.ma}`, { tok: bm })).body;
-  assert.deepEqual([tt.daGhep, tt.hetHan, tt.conGiay], [false, true, 0]);
+  assert.deepEqual([tt.daGhep, tt.hetHan, tt.maHetHan, tt.linkConHan, tt.conGiay], [false, false, true, true, 0], "mã hết nhưng link còn ⇒ còn chờ");
+  await q(`update goi_cai set expires_at = now() - interval '1 second' where ma_ghep = $1`, [pg3.ma]);
+  assert.equal((await m(`ghep-may/${pg3.ma}`, { tok: bm })).body.hetHan, true);
   // đường cũ ma-ghep vẫn chạy, hạn 10 phút
   assert.equal((await m("ma-ghep", { tok: bm, body: { con, nen: "windows" } })).body.hanPhut, 10);
 });

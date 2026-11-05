@@ -50,7 +50,12 @@ export const APP_GOI_Y: AppGoiY[] = [
 ];
 
 /** Bỏ dấu, chữ thường, chỉ chữ + số — so tên app người gõ với tên app máy báo. */
-export const khoaTen = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/[^a-z0-9]/g, "");
+export const khoaTen = (s: unknown) => {
+  const t = String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
+  // tên không có chữ Latin / số (抖音, emoji) ⇒ giữ nguyên ký tự, chỉ bỏ khoảng trắng — không để thành "" rồi khớp mọi app
+  return t.replace(/[^a-z0-9]/g, "") || t.normalize("NFC").replace(/\s+/g, "");
+};
+const laHeThong = (muc: string, he = allowlistHieuLuc()) => khoaSo(chuanMuc(muc)).some((k) => he.includes(k));
 
 /** GET /api/m/app-goi-y?con=… — lưới app; `chon` = Rob chọn sẵn theo nhóm tuổi của Con (nhi / teen). */
 export async function luoiApp(fam: string, con?: string | null) {
@@ -67,6 +72,7 @@ export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi
   if (!Array.isArray(ds)) throw new LoiNghiepVu("thieu_app", "Gửi danh sách app");
   const daDat: { ten: string; muc: string[] }[] = [], choKhop: string[] = [];
   const he = allowlistHieuLuc();
+  let that: { muc: string; ten: string }[] | null = null;      // app thật máy của Con — đọc một lần
   for (const x of (ds as AppVao[]).slice(0, 60)) {
     const ma = x?.ma ? String(x.ma) : "", ten = String(x?.ten ?? "").trim().slice(0, 60);
     const goi = APP_GOI_Y.find((a) => (ma && a.ma === ma) || (!ma && ten && khoaTen(a.ten) === khoaTen(ten)));
@@ -81,9 +87,10 @@ export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi
       continue;
     }
     // «Thêm app khác»: app thật máy của Con đã báo có tên khớp ⇒ ghi luật ngay
-    const that = await t<{ muc: string; ten: string }>(
+    if (!khoaTen(ten)) continue;
+    that ??= await t<{ muc: string; ten: string }>(
       `select distinct a.muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and (d.child_id = $2 or d.dung_chung)`, [fam, con]);
-    const khop = that.filter((a) => khoaTen(a.ten) === khoaTen(ten));
+    const khop = that.filter((a) => khoaTen(a.ten) === khoaTen(ten) && !laHeThong(a.muc, he));    // mục hệ thống luôn mở sẵn
     for (const a of khop) await datLuat(fam, { con, muc: a.muc, ten: a.ten, loai, nhom }, t);
     await t(`insert into app_theo_ten(child_id, family_id, ten, ten_khoa, tinh_gio, khop_luc) values ($1,$2,$3,$4,$5,$6)
              on conflict (child_id, ten_khoa) do update set ten = excluded.ten, tinh_gio = excluded.tinh_gio, khop_luc = coalesce(excluded.khop_luc, app_theo_ten.khop_luc)`,
@@ -103,7 +110,7 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
   const app = await q<{ muc: string; ten: string }>(`select muc, ten from app_may where device_id = $1`, [may.id]);
   let n = 0;
   for (const c of cho) {
-    const khop = app.filter((a) => khoaTen(a.ten) === c.ten_khoa);
+    const khop = app.filter((a) => khoaTen(a.ten) === c.ten_khoa && !laHeThong(a.muc));
     if (!khop.length) continue;
     await tx(async (t) => {
       for (const a of khop) {

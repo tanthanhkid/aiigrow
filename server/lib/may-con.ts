@@ -18,7 +18,7 @@ import { quyenTuVai } from "./quyen.ts";
 import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
-import { cheDoChanCua, WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
+import { cheDoChanCua, laWebCam, WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
 
 export type DongBoVao = {
   status?: Record<string, unknown>;
@@ -95,7 +95,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     `select id, ten, nhom, cau_hinh, lich, che_do_chan from children where id = $1`, [con]) : undefined;
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
   const cheDoChan = cheDoChanCua(c?.che_do_chan);
-  const luat = c ? (await dsLuat(may.family_id)).filter((l) => !l.child_id || l.child_id === c.id) : [];
+  // web luôn chặn (L4) không bao giờ là luật cho phép — kể cả luật cũ ghi trước 05/11
+  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id) && (l.loai === "chan" || !laWebCam(l.muc))) : [];
   // luật riêng của Con đè luật gia đình cùng mục
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);

@@ -46,10 +46,12 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   // nhận gói nguyên tử (một câu update có điều kiện) ⇒ hai lần đổi song song chỉ một lần thắng
   const nhan = await q(`update goi_cai set used_at = $2 where token_hash = $1 and used_at is null and expires_at > $2 returning token_hash`, [h, now]);
   if (!nhan.length) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
+  // giữ luôn mã 6 số của cùng «phiên ghép» TRƯỚC khi ghép ⇒ không máy thứ hai ghép bằng mã trong lúc này (device_id điền sau)
+  if (g.ma_ghep) await q(`update pair_codes set used_at = coalesce(used_at, $3) where code = $1 and goi_cai = $2`, [g.ma_ghep, h, now]);
   const kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay);
   await q(`update goi_cai set device_id = $2 where token_hash = $1`, [h, kq.deviceId]);
   // mã 6 số của cùng «phiên ghép» hết dùng; app Ba Mẹ đang chờ thấy «đã ghép» qua mã đó (ghep-may.ts › trangThaiGhep)
-  if (g.ma_ghep) await q(`update pair_codes set used_at = coalesce(used_at, now()), device_id = coalesce(device_id, $3) where code = $1 and goi_cai = $2`,
+  if (g.ma_ghep) await q(`update pair_codes set device_id = coalesce(device_id, $3) where code = $1 and goi_cai = $2`,
     [g.ma_ghep, h, kq.deviceId]);
   const c = g.child_id ? await one<{ ten: string }>(`select ten from children where id = $1`, [g.child_id]) : undefined;
   return { ...kq, ...(c ? { childName: c.ten } : {}) };
@@ -143,7 +145,9 @@ export const cheDoCua = (m: MayCheDo): CheDo | null => cheDoBaMeChon(m) ?? cheDo
 /** Giá trị gửi agent trong dong-bo.windows.cheDo: đang gỡ ⇒ luôn giam-sat (gỡ hỏng giữa chừng cũng không còn chặn); còn lại LUÔN «chan»
  *  (thiết kế 05/11: bỏ «Giám sát / Chặn thật» khỏi màn Ba Mẹ — máy luôn chặn thật; mức chặn theo Con: Mở hết / Chỉ app được phép, lib/chan-co-ban.ts).
  *  Máy cũ Ba Mẹ từng để «Giám sát» cũng chuyển sang chặn ở lần đồng bộ kế. `m` giữ trong chữ ký cho nơi gọi cũ. */
-export const cheDoGuiMay = (_m: MayCheDo, dangGo: boolean): CheDo | undefined => (dangGo ? "giam-sat" : "chan");
+export const cheDoGuiMay = (m: MayCheDo, dangGo: boolean, coCon = true): CheDo | undefined =>
+  dangGo ? "giam-sat" : coCon ? "chan" : cheDoBaMeChon(m) ?? undefined;
+// coCon = false: máy dùng chung CHƯA chọn Con ⇒ không ép chặn (luật rỗng sẽ khoá nhầm cả nhà) — giữ lựa chọn cũ của Ba Mẹ nếu có.
 
 /** POST may/:id/che-do {cheDo} — máy đổi ở lần đồng bộ tới (≤ 1 phút khi có mạng). Ghi nhật ký + báo các Ba Mẹ khác. */
 export async function datCheDo(fam: string, mayId: string, b: { cheDo?: unknown }, nguoi: string, now = new Date()) {

@@ -155,9 +155,9 @@ export function nguonGoi(h: Headers) {
   return du.slice(0, 4).map((x) => x.replace(/^0+(?=.)/, "")).join(":");
 }
 
-/** Chế độ máy mới ghép: máy Windows/Mac ⇒ «chan» ngay (thiết kế 05/11: máy luôn chặn thật — kể cả máy dùng chung). Nền khác (điện thoại)
- *  không có chế độ ⇒ null (để cột như cũ). `conId` giữ trong chữ ký cho nơi gọi cũ. */
-export const cheDoMayMoi = (nen: string, _conId?: string | null): "chan" | null => (coTacTu(nen) ? "chan" : null);
+/** Chế độ máy mới ghép: máy Windows/Mac RIÊNG của một Con ⇒ «chan» ngay. Máy dùng chung chưa gán Con ⇒ null (chặn với luật rỗng sẽ khoá nhầm
+ *  cả nhà); khi Con chọn tên trên máy, máy chủ gửi «chan» (lenh-may.ts › cheDoGuiMay). Nền khác (điện thoại) ⇒ null. */
+export const cheDoMayMoi = (nen: string, conId: string | null): "chan" | null => (coTacTu(nen) && conId ? "chan" : null);
 
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
 export function ghepMayGd(code: string, platform: string, tenMay: string) {
@@ -172,6 +172,9 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     // mã không gắn loại máy ('') ⇒ nhận loại máy agent báo (phải là loại hợp lệ)
     if (m.platform === "" ? !(NEN_TANG as readonly string[]).includes(platform) : m.platform !== platform)
       throw new LoiNghiepVu("sai_nen_tang", m.platform ? `Mã này dành cho ${TEN_NEN_TANG[m.platform]}` : "Loại máy không hợp lệ", 409);
+    // mã đi kèm link bộ cài: link đã được dùng (máy khác đang / đã ghép bằng link) ⇒ mã cũng hết dùng — giành link trong cùng giao dịch
+    if (m.goi_cai && !(await t(`update goi_cai set used_at = now() where token_hash = $1 and used_at is null returning token_hash`, [m.goi_cai])).length)
+      throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
     const id = newId(), token = taoToken();
     const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform as NenTang];
     // Máy MỚI có tác tử (Windows/Mac) vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»; thiết kế 05/11: máy luôn chặn thật,
@@ -182,7 +185,7 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
       [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id, cheDo ?? "giam-sat", !!cheDo]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
     // link bộ cài đi kèm mã này (cùng một lần «Ghép máy») hết dùng — máy đã ghép bằng mã
-    if (m.goi_cai) await t(`update goi_cai set used_at = coalesce(used_at, now()), device_id = coalesce(device_id, $2) where token_hash = $1`, [m.goi_cai, id]);
+    if (m.goi_cai) await t(`update goi_cai set device_id = coalesce(device_id, $2) where token_hash = $1`, [m.goi_cai, id]);
     await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu, ...(cheDo ? { cheDo } : {}) }, { con: m.child_id, may: id }, t);
     // «Cài giống máy trước» (L8): chép cài đặt của Con dùng máy đó sang Con của máy mới (cùng Con thì luật đã dùng chung, không cần chép)
     if (m.giong_may) await saoChepCaiDat(t, m.family_id, m.giong_may, m.child_id, id);
