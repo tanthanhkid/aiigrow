@@ -11,7 +11,7 @@ import { Bao, BaoLoi, Chu, Icon, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 import { BONG } from "@/lib/clay";
 
 export default function QuenMatKhau() {
-  const { dd: ddVao } = useLocalSearchParams<{ dd?: string }>();
+  const { dd: ddVao, moi } = useLocalSearchParams<{ dd?: string; moi?: string }>();
   const [dd, setDd] = useState(String(ddVao ?? ""));
   const [gui, setGui] = useState<{ guiDen: string; ma?: string } | null>(null);
   const [ma, setMa] = useState("");
@@ -33,7 +33,7 @@ export default function QuenMatKhau() {
     }
     // mật khẩu đã đổi (mã đã dùng): đăng nhập trượt thì sang màn Đăng nhập, không bắt nhập lại mã
     const r = await bm.goi<{ token: string }>("dang-nhap", { dinhDanh, matKhau: mk }).catch(() => null);
-    if (r) await vao(r.token); else router.replace({ pathname: "/dang-nhap", params: { dd: dinhDanh } });
+    if (r) await vao(r.token, false, moi ? (moi === "1" ? "/moi/vao" : `/moi/vao?ma=${encodeURIComponent(moi)}`) : undefined); else router.replace({ pathname: "/dang-nhap", params: { dd: dinhDanh } });
   });
   if (buoc2) {
     return (

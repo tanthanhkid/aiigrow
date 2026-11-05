@@ -24,6 +24,10 @@ export default function GhepMay() {
   const ten = c?.ten ?? "con";
   const lay = useCallback((moi: boolean) => lam(async () => setKq(await layMaGhep(con, p.giong ? String(p.giong) : null, moi))), [lam, con, p.giong]);
   useEffect(() => { lay(p.moi === "1"); }, [lay, p.moi]);
+  // quay lại màn (từ «Đang chờ», hoặc để lâu): mã sắp / đã hết hạn ⇒ lấy mã khác (layMaGhep tự dùng lại mã còn chờ)
+  useFocusEffect(useCallback(() => {
+    if (kq && Date.parse(kq.het) - Date.now() <= 60_000) lay(false);
+  }, [kq, lay]));
   const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon } }), [kq, con, nguon]);
   // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép». CHỈ khi màn đang hiện: đã sang «Đang chờ» thì màn đó lo.
   useFocusEffect(useCallback(() => {

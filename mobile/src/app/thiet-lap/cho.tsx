@@ -28,12 +28,13 @@ export default function ChoMayCon() {
     if (g.daGhep) { sangXong(g.may?.id, g.con); return true; }
     setHet(Date.now() + g.conGiay * 1000);
     setLinkCon(!!g.linkConHan);
+    if (g.hetHan) throw new Error("het_han");          // mã + link đều hết ⇒ ngừng hỏi
     return false;
   }, [ma, sangXong]);
   useEffect(() => {
     if (!ma) return;
-    const t0 = setTimeout(() => { hoi().catch((e) => setLoi(e?.message ?? null)); }, 0);
-    const t = setInterval(() => { hoi().then(() => setLoi(null), () => {}); }, 3000);
+    const t0 = setTimeout(() => { hoi().catch((e) => { if (e?.message !== "het_han") { setLoi(e?.message ?? null); setHet(Date.now()); } }); }, 0);
+    const t = setInterval(() => { hoi().then(() => setLoi(null), (e) => { if (e?.message === "het_han") clearInterval(t); }); }, 3000);
     return () => { clearTimeout(t0); clearInterval(t); };
   }, [ma, hoi]);
   useEffect(() => { const t = setInterval(() => setCon0(het ? Math.round((het - Date.now()) / 1000) : 600), 1000); return () => clearInterval(t); }, [het]);

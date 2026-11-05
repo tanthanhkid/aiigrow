@@ -16,8 +16,8 @@ export default function VaoNha() {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [cho, toi, g] = await Promise.all([bm.goi<{ ds: LoiMoiToi[] }>("moi/cho-toi"), bm.goi<{ baMe: { dinhDanh?: string; dinh_danh?: string } }>("toi"),
       bm.goi<{ con: unknown[] }>("gia-dinh").catch(() => ({ con: [] }))]);
-    let x: (LoiMoiToi & { quaLink?: boolean }) | null = cho.ds[0] ?? null;
-    if (!x && m) x = { ...(await bm.goi<XemMoi>(`moi/${encodeURIComponent(m)}`)), id: "", quaLink: true };
+    // mở từ link mời ⇒ đúng lời mời của link đó, không lấy lời mời khác gửi tới số này
+    let x: (LoiMoiToi & { quaLink?: boolean }) | null = m ? { ...(await bm.goi<XemMoi>(`moi/${encodeURIComponent(m)}`)), id: "", quaLink: true } : cho.ds[0] ?? null;
     return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "", coNha: g.con.length > 0 };
   });
   const { lam, loi: loiLam, dangChay } = useLam();

@@ -16,6 +16,7 @@ const NEN_O: Record<TuanThuMay["nen"], string> = { windows: "#dce9fb", mac: "#e9
 
 /** Máy đang được bảo vệ đủ (mức bảo vệ máy chủ tính + còn liên lạc, không lệch chuẩn). */
 const dangMo = (m: TuanThuMay) => { const den = m.moKhanCapDen ?? m.moDen ?? null; return !!den && Date.parse(den) > Date.now(); };
+const trungTinh = (m: TuanThuMay) => (m.trangThai === "tat_may" || m.trangThai === "chua_co_nhip") && !m.dangGo && !dangMo(m);
 const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && !dangMo(m) && !m.dangGo;     // «chua» = máy không báo quyền, Ba Mẹ không sửa được ⇒ không báo đỏ
 function cauTrangThai(m: TuanThuMay) {
   if (m.dangGo) return "Đang gỡ AiiGrow khỏi máy này";
@@ -41,7 +42,7 @@ export default function MayCuaCon() {
   if (!d) return <Man dau={<DauMan ve="/hom-nay" />}><TieuDe chu={tieu} /><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const c = d.c;
   // chưa bảo vệ lên trước (việc Ba Mẹ cần làm)
-  const ds = [...d.ds].sort((a, b) => Number(dangBaoVe(a)) - Number(dangBaoVe(b)));
+  const ds = [...d.ds].sort((a, b) => Number(dangBaoVe(a) || trungTinh(a)) - Number(dangBaoVe(b) || trungTinh(b)));
   return (
     <Man noi={noi} tai={tai} dau={<DauMan ve="/hom-nay" />}
       day={<>
@@ -54,7 +55,7 @@ export default function MayCuaCon() {
       </>}>
       <TieuDe chu={tieu} phu={ds.length ? undefined : "Chưa có máy nào — ghép bằng mã 6 số, chưa tới 2 phút."} />
       {ds.map((m) => {
-        const ok = dangBaoVe(m);
+        const ok = dangBaoVe(m), tt = trungTinh(m);
         return (
           <Pressable key={m.id} onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${ok ? "đang bảo vệ" : "chưa bảo vệ"}`}>
             <View style={{ flexDirection: "row", gap: 14, padding: 12, borderRadius: 28, backgroundColor: "#fff", ...KHOI.the }}>
@@ -65,12 +66,12 @@ export default function MayCuaCon() {
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 6, justifyContent: "center" }}>
                 <Chu kieu="rat" co={19} dong={1}>{m.ten}</Chu>
-                <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: ok ? M.chinhSoft : M.canhSoft }}>
-                  {ok ? <Icon ten="tick" mau={M.chinhInk} co={13} /> : <Chu kieu="rat" co={12.5} mau={M.canh}>!</Chu>}
-                  <Chu kieu="rat" co={12.5} mau={ok ? M.chinhInk : M.canh}>{ok ? "Đang bảo vệ" : dangMo(m) ? "Đang mở" : "Chưa bảo vệ"}</Chu>
+                <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: ok ? M.chinhSoft : tt ? M.xamSoft : M.canhSoft }}>
+                  {ok ? <Icon ten="tick" mau={M.chinhInk} co={13} /> : tt ? null : <Chu kieu="rat" co={12.5} mau={M.canh}>!</Chu>}
+                  <Chu kieu="rat" co={12.5} mau={ok ? M.chinhInk : tt ? M.chu2 : M.canh}>{ok ? "Đang bảo vệ" : tt ? (m.trangThai === "tat_may" ? "Đang tắt" : "Chưa có báo cáo") : dangMo(m) ? "Đang mở" : "Chưa bảo vệ"}</Chu>
                 </View>
                 <Chu co={13} mau={M.chu2}>{cauTrangThai(m)}{m.dungChung ? " · máy dùng chung" : ""}</Chu>
-                <Chu kieu="rat" co={13.5} mau={ok ? M.chinhInk : M.canh}>{ok ? "Xem máy ›" : `Sửa ${m.ten} ›`}</Chu>
+                <Chu kieu="rat" co={13.5} mau={ok || tt ? M.chinhInk : M.canh}>{ok || tt ? "Xem máy ›" : `Sửa ${m.ten} ›`}</Chu>
               </View>
             </View>
           </Pressable>

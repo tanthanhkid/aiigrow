@@ -29,7 +29,8 @@ export default function GhepThemMay() {
   }, [truoc?.id, truoc?.con]);
   const tt = tom && tom.may === truoc?.id ? tom.v : null;
   if (!d) return <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const chuTruoc = truoc ? `${truoc.ten}${truoc.con !== c?.id ? "" : ` của ${c?.ten ?? ""}`}` : "";
+  const chuMay = truoc ? d.con.find((x) => x.id === truoc.con)?.ten : undefined;
+  const chuTruoc = truoc ? `${truoc.ten}${chuMay ? ` của ${chuMay}` : ""}` : "";
   const lay = () => c && router.push({ pathname: "/thiet-lap/ghep", params: { con: c.id, nguon: "them", moi: "1", ...(giong && truoc ? { giong: truoc.id } : {}) } });
   const chip = (ic: TenIcon, chu: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, backgroundColor: "#f1f0ec" }}>
