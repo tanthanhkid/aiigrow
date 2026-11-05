@@ -427,9 +427,18 @@ public sealed class AgentRuntime
         lock (_gate) return (_fgId, _fgName, (now - _fgAt).TotalSeconds < 20);
     }
 
-    public void RecordBlocked(string appId, string appName)
+    /// <param name="boiBaMe">App bị đóng vì Ba Mẹ đặt «Chặn» (blockedApps); false = app lạ ngoài danh sách được phép (khay tự gửi lời xin duyệt).</param>
+    public void RecordBlocked(string appId, string appName, bool boiBaMe = false)
     {
-        lock (_gate) { _blockedSeq++; _blockedId = appId; _blockedName = appName; }
+        lock (_gate) { _blockedSeq++; _blockedId = appId; _blockedName = appName; _blockedBoiBaMe = boiBaMe; }
+    }
+
+    private bool _blockedBoiBaMe;
+
+    /// <summary>Nạp bản cấu hình vừa ghi (pipe lưu lời xin chờ mạng) để vòng chính không đọc lại tệp.</summary>
+    public void NapLaiConfig(AgentConfig c)
+    {
+        lock (_gate) { Config = c; _cfgStamp = Store.LastWriteUtc; }
     }
 
     public void SetLock(bool locked, string? reason, DateTimeOffset now, bool sessionActive)
@@ -455,6 +464,7 @@ public sealed class AgentRuntime
             {
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
                 OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
+                XinChoMang = Config?.XinCho.Items.Count ?? 0,
             };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);
@@ -471,6 +481,11 @@ public sealed class AgentRuntime
             s.BlockedSeq = _blockedSeq;
             s.BlockedAppId = _blockedId;
             s.BlockedAppName = _blockedName;
+            s.BlockedBoiBaMe = _blockedBoiBaMe;
+            s.AppDuocPhep = _policy.LearningApps.ToList();
+            s.Sao = _policy.Sao;
+            s.QuyPhut = _policy.QuyPhut;
+            s.MoLaiLuc = _policy.MoLaiLuc;
             s.DungTheoApp = Usage.DungHomNay(now);
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));

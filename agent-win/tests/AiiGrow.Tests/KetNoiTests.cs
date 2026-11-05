@@ -16,8 +16,8 @@ public class KetNoiTests
     {
         var k = KetNoiView.Chon(false, null);
         Assert.Equal(KetNoi.DichVuKhongChay, k.Loai);
-        Assert.Equal("Dịch vụ AiiGrow không chạy", k.Dong);
-        Assert.Equal("AiiGrow · Dịch vụ AiiGrow không chạy", k.Tooltip);
+        Assert.Equal("AiiGrow đang lỗi", k.Dong);
+        Assert.Equal("AiiGrow · AiiGrow đang lỗi", k.Tooltip);
         Assert.False(k.DungIconKetNoi);
         Assert.True(k.Bao);
     }
@@ -34,8 +34,9 @@ public class KetNoiTests
         s.OfflineSince = Now.AddMinutes(-12);
         var k = KetNoiView.Chon(true, s);
         Assert.Equal(KetNoi.MatKetNoi, k.Loai);
-        Assert.Equal($"KHÔNG kết nối máy chủ từ {Hm(Now.AddMinutes(-12))} — kiểm tra Wi-Fi", k.Dong);
-        Assert.Equal("AiiGrow · " + k.Dong, k.Tooltip);
+        Assert.Equal($"Mất mạng · {Hm(Now.AddMinutes(-12))}", k.Dong);
+        Assert.Equal("AiiGrow · " + k.Dong + " — máy vẫn tính giờ", k.Tooltip);
+        Assert.Contains("vẫn tính giờ", k.Huong);
         Assert.False(k.DungIconKetNoi);
     }
 
@@ -44,7 +45,7 @@ public class KetNoiTests
     {
         var s = Ok();
         s.Offline = true;
-        Assert.Equal("KHÔNG kết nối máy chủ — kiểm tra Wi-Fi", KetNoiView.Chon(true, s).Dong);
+        Assert.Equal("Mất mạng", KetNoiView.Chon(true, s).Dong);
     }
 
     [Theory]
@@ -110,7 +111,7 @@ public class KetNoiTests
     public void Tooltip_DichVuKhongChay_KhongDungTrangThaiCu()
     {
         var k = KetNoiView.Chon(false, null);
-        Assert.Equal("AiiGrow · Dịch vụ AiiGrow không chạy", KetNoiView.Tooltip(k, null, Now, Now));
+        Assert.Equal("AiiGrow · AiiGrow đang lỗi", KetNoiView.Tooltip(k, null, Now, Now));
     }
 
     [Fact]

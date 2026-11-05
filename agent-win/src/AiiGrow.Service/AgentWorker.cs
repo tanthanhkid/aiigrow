@@ -184,6 +184,7 @@ public sealed class AgentWorker : BackgroundService
             }, status, usage, ct);
             _rt.SetPolicy(policy, raw);
             _rt.DaGuiGiayChoi(status);
+            await GuiXinChoMang(api, ct);
             return DateTimeOffset.Now.AddSeconds(policy.NextCheckSec);
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -198,6 +199,39 @@ public sealed class AgentWorker : BackgroundService
             else _log.LogWarning("Sync lỗi, chạy theo policy cuối: {m}", e.Message);
             return DateTimeOffset.Now.AddSeconds(30);
         }
+    }
+
+    /// <summary>05/11 (L11): có mạng lại ⇒ gửi các lời xin Con bấm lúc mất mạng (thêm giờ, ngoại lệ, xin duyệt app / web). Lỗi mạng ⇒ giữ lần sau;
+    /// máy chủ từ chối (4xx) ⇒ bỏ. Không làm hỏng lượt đồng bộ vừa xong.</summary>
+    private async Task GuiXinChoMang(ApiClient api, CancellationToken ct)
+    {
+        var cfg = _rt.Config;
+        if (cfg == null || cfg.XinCho.Items.Count == 0) return;
+        try
+        {
+            var hang = new HangXinCho { Items = cfg.XinCho.Items.ToList() };
+            var xong = await hang.GuiAsync(async x =>
+            {
+                try
+                {
+                    if (x.Loai == LoaiXin.XinDuyet) await api.XinDuyetAsync(x.Muc ?? "", x.Ten, x.LyDo, ct);
+                    else if (x.Loai == LoaiXin.NgoaiLe) await api.CreateNgoaiLeAsync(x.Phut, x.Muc ?? NgoaiLeView.CaMay, NgoaiLeView.LyDo(x.LyDo, null), ct);
+                    else await api.CreateRequestAsync(LoaiXin.ThemGio, x.Phut, x.Muc, x.Ten, x.LyDo, ct);
+                    _log.LogInformation("Có mạng: đã gửi lời xin {loai} {muc} lưu lúc {luc}", x.Loai, x.Muc, x.Luc);
+                    return KetQuaGuiXin.DaGui;
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    var kq = HangXinCho.PhanLoai(e);
+                    if (kq == KetQuaGuiXin.Bo) _log.LogWarning("Bỏ lời xin chờ mạng {loai} {muc}: máy chủ từ chối ({m})", x.Loai, x.Muc, e.Message);
+                    return kq;
+                }
+            });
+            if (xong.Count == 0) return;
+            var moi = _rt.Store.Update(c => c.XinCho.Items.RemoveAll(i => xong.Contains(i.Ma)));
+            if (moi != null) _rt.NapLaiConfig(moi);
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Gửi lời xin chờ mạng lỗi: {m}", e.Message); }
     }
 
     /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.
@@ -238,7 +272,7 @@ public sealed class AgentWorker : BackgroundService
             if (apThat)
             {
                 _log.LogInformation("Đóng app Ba Mẹ đã Chặn: {exe} (luật {muc})", exe, muc);
-                _rt.RecordBlocked(exe, exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe);
+                _rt.RecordBlocked(exe, exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe, boiBaMe: true);
             }
             else if (ghi) _log.LogInformation("GIÁM SÁT: sẽ chặn app Ba Mẹ đã Chặn: {exe} (luật {muc}) — chưa đóng thật (CheDo=giam-sat)", exe, muc);
         }

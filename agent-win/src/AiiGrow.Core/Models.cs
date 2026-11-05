@@ -83,6 +83,12 @@ public sealed class Policy
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
     public List<AppBiChan> BlockedApps { get; set; } = new();
+    /// <summary>Thiết kế 05/11 (L1, phần máy chủ của S1): số sao hiện có của Con; null = máy chủ chưa gửi.</summary>
+    public int? Sao { get; set; }
+    /// <summary>Thiết kế 05/11 (L2, S1): quỹ phút chơi hôm nay (ngày thường / cuối tuần + sao đã đổi); null = chưa có.</summary>
+    public int? QuyPhut { get; set; }
+    /// <summary>Thiết kế 05/11 (S1): giờ hết giờ ngủ «HH:mm» (màn «Đến giờ ngủ rồi · Máy mở lại lúc …»); null = chưa có.</summary>
+    public string? MoLaiLuc { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -243,6 +249,8 @@ public sealed class AgentConfig
     public DanhSachAppDaGui? DanhSachApp { get; set; }
     /// <summary>25/10: DNS gia đình trình cài đã đặt (IP resolver + mẫu DoH + DNS cũ của card) — gỡ cài trả lại (DnsGiaDinh.cs). null = chưa đặt.</summary>
     public DnsGiaDinhDaDat? DnsGiaDinh { get; set; }
+    /// <summary>05/11 (L11): lời xin Con gửi lúc mất mạng — có mạng (đồng bộ được) dịch vụ tự gửi (<see cref="HangXinCho"/>).</summary>
+    public HangXinCho XinCho { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

@@ -27,6 +27,14 @@ public static class PipeCmd
     /// <summary>0.2.6: Rob hỏi «đổi được bao nhiêu phút» — dịch vụ gọi phien/xet cho <see cref="PipeRequest.AppId"/> (hoặc mục Giải trí đầu tiên) và trả số phút ở
     /// <see cref="PipeResponse.PlayMinutes"/> (không trả số điểm).</summary>
     public const string PlayInfo = "play-info";
+    /// <summary>Thiết kế 05/11: «Xin Ba Mẹ mở …» app / web lạ (<see cref="PipeRequest.AppId"/> = mục, <see cref="PipeRequest.AppName"/> = tên, Note = lời nhắn).
+    /// Trả <see cref="PipeResponse.Status"/>: cho | duoc | tu_choi | web_cam (web luôn chặn) | cho_mang (mất mạng — đã lưu, có mạng tự gửi).</summary>
+    public const string XinDuyet = "xin-duyet";
+    /// <summary>«Kiểm tra cập nhật» từ khay: dịch vụ hỏi manifest máy chủ ⇒ <see cref="PipeResponse.Message"/> = bản mới (null = đã mới nhất),
+    /// <see cref="PipeResponse.Status"/> = bản đang chạy.</summary>
+    public const string KiemCapNhat = "kiem-cap-nhat";
+    /// <summary>«Cập nhật để sửa lỗi»: dịch vụ chạy lượt tự cập nhật ngay (tải, kiểm sha256, chạy bộ cài --capnhat --im-lang).</summary>
+    public const string CapNhatNgay = "cap-nhat-ngay";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -67,6 +75,18 @@ public sealed class TrayState
     public bool PhienCon { get; set; } = true;
     /// <summary>25/10: phút đã dùng HÔM NAY theo app (dịch vụ đếm — <see cref="UsageTracker.DungHomNay"/>), nhiều nhất trước. Thẻ «Đã dùng hôm nay» ở app to.</summary>
     public List<DungApp> DungTheoApp { get; set; } = new();
+    /// <summary>05/11: app vừa bị đóng là app Ba Mẹ ĐẶT «Chặn» (blockedApps) — màn chặn chỉ hiện nút xin; false = app lạ ⇒ khay tự gửi lời xin duyệt.</summary>
+    public bool BlockedBoiBaMe { get; set; }
+    /// <summary>05/11: app học Ba Mẹ cho phép (Policy.LearningApps, chữ thường .exe) — màn chặn «Con đang dùng được N app», chọn app khi xin ngoại lệ.</summary>
+    public List<string> AppDuocPhep { get; set; } = new();
+    /// <summary>05/11 (L11): số lời xin Con gửi lúc mất mạng còn chờ có mạng để gửi.</summary>
+    public int XinChoMang { get; set; }
+    /// <summary>05/11 (L1): số sao của Con (dong-bo.windows.sao — S1). null = máy chủ chưa gửi ⇒ khay không ghi số.</summary>
+    public int? Sao { get; set; }
+    /// <summary>05/11 (L2): quỹ phút chơi hôm nay (dong-bo.windows.quyPhut — S1). null = chưa có.</summary>
+    public int? QuyPhut { get; set; }
+    /// <summary>05/11: giờ máy mở lại sau giờ ngủ «HH:mm» (dong-bo.windows.moLaiLuc — S1). null = chưa có.</summary>
+    public string? MoLaiLuc { get; set; }
 }
 
 public sealed class PipeRequest

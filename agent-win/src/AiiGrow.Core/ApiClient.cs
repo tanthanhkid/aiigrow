@@ -83,6 +83,15 @@ public sealed class ApiClient : IDisposable
     public Task<RequestResult> CreateOpenRequestAsync(string loai, string muc, string? note, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = loai == LoaiXin.MoWeb ? LoaiXin.MoWeb : LoaiXin.CaiApp, giaTri = muc, lyDo = XinMoView.LyDo(note, muc) }, ct);
 
+    /// <summary>Thiết kế 05/11 (L4): «Xin Ba Mẹ duyệt» app / web lạ — POST /api/device/xin-duyet {muc, ten?, lyDo?} → {id, trang_thai, daCo, loai, muc}.
+    /// Máy chủ tự nhận app / web; web luôn chặn ⇒ ApiException Code «web_cam» (409). Lý do không bắt buộc.</summary>
+    public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
+
+    /// <summary>Thiết kế 05/11 (L3): xin mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / hết giờ) — POST yeu-cau {loai: ngoai_le, phut, giaTri: app | ca_may, lyDo}.</summary>
+    public Task<RequestResult> CreateNgoaiLeAsync(int phut, string muc, string lyDo, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = LoaiXin.NgoaiLe, phut = NgoaiLeView.Kep(phut), giaTri = muc, lyDo }, ct);
+
     /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)
         => PostAsync<PlayCheck>("api/device/phien/xet", new { muc }, ct);
