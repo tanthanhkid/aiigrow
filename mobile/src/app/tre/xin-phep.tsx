@@ -38,7 +38,7 @@ export default function XinPhep() {
   const giaCoSan = !!p.gia && loai === coSan;
   const thieuGia = loai !== "them_gio" && !gia.trim();
   const gui = () => (thieuGia ? setLoi(loai === "mo_web" ? "Ghi trang web con muốn mở nhé" : loai === "cai_app" ? "Ghi tên app nhé" : "Ghi điều con muốn xin nhé")
-    : loai === "khac" && !lyDoGui ? setLoi("Viết vài chữ để Ba Mẹ hiểu nhé") : lam(async () => {
+    : lam(async () => {
     try {
       // app / web lạ: «Xin Ba Mẹ duyệt» (đã xin rồi ⇒ máy chủ trả lại lời xin đang chờ, không tạo trùng)
       const r = loai === "mo_web" || loai === "cai_app"

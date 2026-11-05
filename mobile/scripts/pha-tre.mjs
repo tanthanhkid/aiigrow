@@ -1,4 +1,4 @@
-// «Cố tình phá» + cổng giao diện cho MÀN CON (AiiGrow Kid, /tre/…) — chép khung scripts/pha.mjs: bản WEB EXPORT trong một Chrome headless
+// «Cố tình phá» + cổng giao diện cho MÀN CON (AiiGrow Kid, /tre/…) — luật thiết kế 05/11: sao, quỹ giờ chơi, Thêm giờ, ngoại lệ, không PIN — chép khung scripts/pha.mjs: bản WEB EXPORT trong một Chrome headless
 // RIÊNG (hồ sơ tạm), chặn MỌI lời gọi /api (kid + device) bằng CDP Fetch và trả dữ liệu giả. Không gọi máy chủ thật.
 //
 //   EXPO_PUBLIC_API=http://localhost:8193 npx expo export --platform web --output-dir <thư mục>
@@ -35,21 +35,29 @@ const capDo = { cap: 4, diemCapSau: 1000, conThieu: 160 };
 const toi = (o = {}) => ({ con: { id: "c1", ten: KEN, nhom: "nhi", avatar: "rob", daChao: true, ...o }, soDu: 45, diemChoDuyet: 0, tongKiem: 840, capDo,
   phutChoi: 45, tranNgay: 90, nhiemVuCho: 0, yeuCauCho: 1, nhiemVuXong: 2, homNayConDa: [],
   loiKhen: [{ id: "k1", noi_dung: "Giỏi lắm!", phan_hoi: null, created_at: luc(20) }] });
-const nha = (o = {}) => ({ soDu: 45, diemChoDuyet: 0, tongKiem: 840, capDo, chuoiNgay: 6, mucTieu: { id: "q1", ten: "Phiếu quà AiiCafe 50.000đ", diem: 500, conThieu: 455 },
+// quỹ giờ chơi hôm nay (server/lib/quy-gio.ts › quyHomNay): còn 18 / 60 phút, 10 sao = 10 phút
+const quy = (o = {}) => ({ ngay: "2026-11-05", cuoiTuan: false, quyNgayPhut: 60, themPhut: 0, doiSaoPhut: 0, daDung: 42, conPhut: 18, tongPhut: 60,
+  dangNgu: false, dangHoc: false, khoa: false, gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: null, phutToiNgu: 120, phutToiHoc: null,
+  tyLe: { sao: 10, phut: 10 }, doiSao: { bat: true, toiDaNgay: 30, conDoiDuoc: 30 }, choXinThem: true, ...o });
+const nha = (o = {}) => ({ soDu: 45, sao: 45, diemChoDuyet: 0, tongKiem: 840, capDo, chuoiNgay: 6, mucTieu: { id: "q3", ten: "Bộ Lego xếp hình thành phố", diem: 500, conThieu: 455 },
   nhiemVuMo: 5, canBoSung: [], phutChoi: 45, tranNgay: 90, conPhut: 45, khung: { dang: true, den: "20:00", moLai: null, moMai: false }, gioNgu: false,
-  nghiDen: null, phien: null, phienToiDa: 30, nghiGiua: 60, ...o });
+  nghiDen: null, phien: null, phienToiDa: 30, nghiGiua: 60, quy: quy(), ...o });
 const nv = (id, ten, nhom, diem, o = {}) => ({ id, ten, mo_ta: "", nhom, diem, bang_chung: "anh", kieu: "thuong", toi_da_ngay: null, toi_da_tuan: null,
   phut_toi_thieu: 0, trang_thai_con: "san_sang", luot_dang: null, hom_nay: 0, dang_cho: 0, ...o });
 const DS_NV = [nv("t0", "Rửa chén sau bữa ăn", "viec_nha", 10, { toi_da_ngay: 3, hom_nay: 2 }), nv("t1", "Đọc sách 50 trang", "doc_sach", 10, { phut_toi_thieu: 20 }),
-  nv("t2", "Học 1 bài tiếng Anh cùng chị", "hoc_tap", 20, { dang_cho: 1 }), nv("t3", "Lau sàn nhà", "viec_nha", 10, { toi_da_ngay: 1, hom_nay: 1, trang_thai_con: "du_hom_nay" })];
+  nv("t2", "Học 1 bài tiếng Anh cùng chị", "hoc_tap", 20, { dang_cho: 1 }), nv("t3", "Lau sàn nhà", "viec_nha", 10, { toi_da_ngay: 1, hom_nay: 1, trang_thai_con: "du_hom_nay" }),
+  nv("t4", "Tự xếp chăn gối", "ky_nang", 5, { bang_chung: "xong" }), nv("t5", "Đọc to 1 trang truyện", "doc_sach", 10, { bang_chung: "ghi_am" }),
+  nv("t6", "Học 1 bài với AiiRob", "hoc_tap", 20, { bang_chung: "tu_dong", tu_cham: true })];
 const yc = (id, loai, o = {}) => ({ id, child_id: "c1", loai, phut: null, gia_tri: null, ly_do: "Để làm bài tập", trang_thai: "cho", created_at: luc(25), xu_ly_luc: null,
   ly_do_tu_choi: null, het_han: luc(-1400), ...o });
 const coBan = {
   "GET toi": toi(), "GET nha": nha(), "POST chao": { diemChaoMung: 10 }, "POST dang-xuat": { ok: true },
-  "POST ho-so": { con: [{ id: "c1", ten: KEN, avatar: "rob" }, { id: "c2", ten: BILL, avatar: "rob" }] }, "POST pin": { phienCon: "tok-con" },
+  "POST ho-so": { con: [{ id: "c1", ten: KEN, avatar: "rob" }, { id: "c2", ten: BILL, avatar: "rob" }] }, "POST chon-con": { phienCon: "tok-con" },
+  "GET quy": { quy: quy(), sao: 45, phutDoiDuoc: 30, ngoaiLe: [], yeuCauCho: [] }, "POST doi-sao": { id: "g1", phut: 15, sao: 15, soDu: 30, conPhut: 33 },
+  "POST xin-duyet": { id: "y8", trang_thai: "cho", daCo: false, loai: "cai_app", muc: "youtube" },
   "POST ghep": { deviceId: "d1", token: "tok-may", dungChung: true },
   "GET nhiem-vu": { ds: DS_NV }, "POST nhiem-vu/t0/bat-dau": { luot: "l9" }, "POST luot/l9/nop": { trang_thai: "cho_duyet", nghi_trung: false },
-  "POST luot/l2/nop": { trang_thai: "cho_duyet", nghi_trung: false },
+  "POST luot/l2/nop": { trang_thai: "cho_duyet", nghi_trung: false }, "POST nhiem-vu/t4/bat-dau": { luot: "l8" }, "POST luot/l8/nop": { trang_thai: "cho_duyet" },
   "GET luot": { ds: [{ id: "l1", trang_thai: "duoc_duyet", diem: 10, ly_do: null, loi_khen: "Giỏi lắm!", nop_luc: luc(30), ten: "Rửa chén sau bữa ăn" },
     { id: "l2", trang_thai: "can_bo_sung", diem: null, ly_do: "ảnh hơi mờ một chút", loi_khen: null, nop_luc: luc(90), ten: "Rửa chén sau bữa ăn" }] },
   "POST loi-khen/k1/phan-hoi": { ok: true },
@@ -62,17 +70,16 @@ const coBan = {
     yc("y3", "cai_app", { gia_tri: "Minecraft", trang_thai: "tu_choi", ly_do_tu_choi: "Cuối tuần nói chuyện nhé", xu_ly_luc: luc(300) })],
     lyDoNhanh: ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan", "Con làm xong việc rồi"] },
   "POST yeu-cau": { id: "y9", trang_thai: "cho" }, "POST yeu-cau/y2/huy": { ok: true },
-  "GET cua-hang": { soDu: 520, qua: [
-    { id: "q1", ten: "Phiếu quà AiiCafe 50.000đ", loai: "voucher", diem: 500, menh_gia: 50000, chi_cuoi_tuan: false, toi_da_thang: null, du: true, conThieu: 0 },
+  "GET cua-hang": { soDu: 520, sao: 520, qua: [
+    { id: "q1", ten: "Đi ăn kem", loai: "qua", diem: 50, menh_gia: null, chi_cuoi_tuan: false, toi_da_thang: null, du: true, conThieu: 0 },
     { id: "q2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, menh_gia: null, chi_cuoi_tuan: true, toi_da_thang: null, du: true, conThieu: 0 },
     { id: "q3", ten: "Bộ Lego xếp hình thành phố", loai: "qua", diem: 800, menh_gia: null, chi_cuoi_tuan: false, toi_da_thang: null, du: false, conThieu: 280 }] },
-  "POST doi/q1": { phieu: "r1", trang_thai: "da_phat_hanh", voucher: { ma: "AGK7Q2M91XZ", het_han: luc(-86400) }, quyConLai: 100000 },
-  "GET vi-qua": { voucher: [{ ma: "AGK7Q2M91XZ", menh_gia: 50000, trang_thai: "da_phat_hanh", het_han: luc(-60 * 1440), dung_luc: null },
-    { ma: "AG2B8C4D6EF", menh_gia: 20000, trang_thai: "da_dung", het_han: luc(-30 * 1440), dung_luc: luc(16 * 1440) }],
+  "POST doi/q1": { phieu: "r1", trangThai: "cho_trao" },
+  "GET vi-qua": { voucher: [], daTrao: [{ id: "r3", ten: "Đi ăn kem", loai: "qua", diem: 50, xu_ly_luc: luc(2 * 1440) }],
     phieu: [{ id: "r2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, trang_thai: "giu", created_at: luc(9 * 1440) }] },
   "GET quy-tac": { lich: { ngayThuong: [{ tu: "17:00", den: "20:00" }], cuoiTuan: [{ tu: "09:00", den: "21:00" }], ngu: { tu: "21:00", den: "06:30" } },
-    tranNgay: 90, tranTuan: 420, phienToiDa: 30, nghiGiua: 60, giaPhut: { game: 1, video_ngan: 2, mxh: 2, phim_gd: 0.5 },
-    nhiemVu: DS_NV.map((x) => ({ ten: x.ten, diem: x.diem })), qua: [{ ten: "Phiếu quà AiiCafe 50.000đ", diem: 500 }, { ten: "Đi xem phim cuối tuần", diem: 300 }] },
+    tranNgay: 60, tranTuan: 420, phienToiDa: 30, nghiGiua: 60, giaPhut: { game: 0, video_ngan: 0, mxh: 0, phim_gd: 0 }, quyNgayThuong: 60, quyCuoiTuan: 90, phut10Sao: 10,
+    nhiemVu: DS_NV.map((x) => ({ ten: x.ten, diem: x.diem })), qua: [{ ten: "Đi ăn kem", diem: 50 }, { ten: "Đi xem phim cuối tuần", diem: 300 }] },
   "GET thanh-tich": { chuoiNgay: 6, soDu: 45, tongKiem: 840, capDo, huyHieu: [
     { ma: "khoi_dau", ten: "Khởi đầu", mo_ta: "Nhiệm vụ đầu tiên được Ba Mẹ duyệt", dat: true, datLuc: luc(20000) },
     { ma: "mot_sach", ten: "Mọt sách", mo_ta: "5 lần đọc sách được duyệt", dat: true, datLuc: luc(6000) },
@@ -131,7 +138,7 @@ const chu = () => js("document.body.innerText");
 /** Mở `duong` với phiên Con (token) + máy đã ghép; `daXem` = các lượt đã ăn mừng (mặc định l1 — Nhà không tự mở màn ăn mừng). */
 const di = async (duong, o = {}) => {
   const { con = "tok-con", mayTok = "tok-may", daXem = ["l1"] } = o;
-  await goi("Page.navigate", { url: `${GOC}/tre/pin` });
+  await goi("Page.navigate", { url: `${GOC}/tre/chon-ten` });
   await sleep(300);
   await js(`(() => { localStorage.clear(); ${con ? `localStorage.setItem("aiig_con", ${JSON.stringify(con)});` : ""}
     ${mayTok ? `localStorage.setItem("aiig_may", ${JSON.stringify(mayTok)});` : ""} localStorage.setItem("aiig_tre_da_xem", ${JSON.stringify(JSON.stringify(daXem))}); })()`);
@@ -187,41 +194,46 @@ if (process.argv.includes("--giao-dien")) {
   const { chayCong } = await import("./giao-dien.mjs");
   const M = (ten, duong, cho, tc = {}) => ({ ten, duong, cho, ...tc });
   const teen = { "GET toi": toi({ ten: BILL, nhom: "teen", id: "c2" }) };
+  const ngu = { "GET nha": nha({ quy: quy({ dangNgu: true, conPhut: 0 }) }), "GET quy": { quy: quy({ dangNgu: true }), sao: 45, phutDoiDuoc: 0, ngoaiLe: [], yeuCauCho: [] } };
+  const hetGio = { "GET nha": nha({ quy: quy({ conPhut: 0, daDung: 60 }) }), "GET quy": { quy: quy({ conPhut: 0, daDung: 60 }), sao: 45, phutDoiDuoc: 30, ngoaiLe: [], yeuCauCho: [] } };
   const dsMan = [
-    M("con-pin", "/tre/pin", "Ai đang dùng máy?", { con: null }),
-    M("con-pin (PIN sai)", "/tre/pin", "PIN chưa đúng", { con: null, kb: { "POST pin": { status: 401, body: { error: "pin_sai", message: "Mã PIN chưa đúng" } } },
-      sau: async () => { await bam(KEN); await go("PIN của Con", "1111"); } }),
-    M("con-pin (ghép máy)", "/tre/pin", "Ghép máy với AiiGrow", { con: null, mayTok: null }),
-    M("con-chao", "/tre/chao", "Nhận 10 điểm"),
-    M("con-trang", "/tre/nha", `${KEN} có 45 điểm`),
+    M("con-chon-ten", "/tre/chon-ten", "Ai đang dùng máy?", { con: null }),
+    M("con-chon-ten (ghép máy)", "/tre/chon-ten", "Ghép máy với AiiGrow", { con: null, mayTok: null }),
+    M("con-chao", "/tre/chao", "Nhận 10 sao"),
+    M("con-trang", "/tre/nha", "Giờ chơi còn 18 phút"),
+    M("con-trang (giờ ngủ)", "/tre/nha", "Đến giờ ngủ rồi", { kb: ngu }),
     M("con-trang (teen)", "/tre/nha", "Giải trí hôm nay", { kb: teen }),
     M("con-trang (mất mạng)", "/tre/nha", "Đang chờ mạng", { matMang: true }),
+    M("con-them-gio (dùng sao)", "/tre/them-gio", "Đổi 15 sao lấy 15 phút"),
+    M("con-them-gio (hết giờ)", "/tre/them-gio", "Hết giờ chơi hôm nay", { kb: hetGio }),
+    M("con-them-gio (chưa đủ sao)", "/tre/them-gio", "Làm nhiệm vụ lấy thêm sao", { kb: { "GET quy": { quy: quy(), sao: 5, phutDoiDuoc: 5, ngoaiLe: [], yeuCauCho: [] } } }),
+    M("con-gio-ngu", "/tre/gio-ngu?ly=gio_ngu", "Xin Ba Mẹ mở ngoại lệ", { kb: ngu }),
+    M("con-ngoai-le", "/tre/ngoai-le?ly=gio_ngu", "không trừ giờ chơi"),
     M("con-nhiem-vu", "/tre/nhiem-vu", "Hôm nay làm gì nào?"),
     M("con-nhiem-vu (trống)", "/tre/nhiem-vu", "Chưa có nhiệm vụ nào", { kb: { "GET nhiem-vu": { ds: [] } } }),
     M("con-nv-chi-tiet", "/tre/nv/t0", "Hôm nay đã làm 2/3 lần"),
+    M("con-nv-chi-tiet (AiiRob)", "/tre/nv/t6", "Mở app Học với AiiRob"),
     M("con-nv-dang", "/tre/dang/l9?nv=t1", "đang đọc sách"),
     M("con-chup", "/tre/chup/l9?nv=t0", "Rob giữ ảnh này cho Ba Mẹ xem"),
-    M("con-cho-duyet", "/tre/cho-duyet?diem=10", "Đã gửi cho Ba Mẹ rồi!"),
+    M("con-ghi-am", "/tre/chup/l9?nv=t5", "Ghi âm kể lại cho Ba Mẹ"),
+    M("con-cho-duyet", "/tre/cho-duyet?diem=10", "Đã nộp bài · chờ Ba Mẹ"),
     M("con-cho-duyet (mất mạng)", "/tre/cho-duyet?diem=10&xep=1", "hàng chờ trên máy"),
-    M("con-duoc-duyet", "/tre/duoc-duyet/l1", "+10 điểm!"),
-    M("con-chup-lai", "/tre/chup-lai/l2?nv=t0", "không mất điểm nào"),
-    M("con-bat-dau-choi", "/tre/choi", "Chơi Roblox?"),
-    M("con-phien", "/tre/phien/p1?muc=roblox.exe", "Còn 5 phút nữa nhé!"),
-    M("con-het-phien", `/tre/het-phien?nghiDen=${encodeURIComponent(luc(-60))}`, "Nghỉ 60 phút nhé!"),
-    M("con-gio-ngu", "/tre/gio-ngu?ly=dat_tran_ngay", "Hết giờ chơi hôm nay rồi"),
+    M("con-duoc-duyet", "/tre/duoc-duyet/l1", "+10 sao!"),
+    M("con-chup-lai", "/tre/chup-lai/l2?nv=t0", "không mất sao nào"),
+    M("con-chan-app", "/tre/chan-app?muc=youtube&ten=YouTube", "Xin Ba Mẹ mở YouTube"),
     M("con-chan-web", "/tre/chan-web?url=scratch.mit.edu", "Trang này Rob chưa biết"),
     M("con-chan-web (teen)", "/tre/chan-web?url=scratch.mit.edu", "Quy tắc: trang web mới", { kb: teen }),
     M("con-xin-phep", "/tre/xin-phep?loai=mo_web&gia=scratch.mit.edu&tu=chan-web", "Xin mở trang web"),
-    M("con-xin-phep (thêm giờ)", "/tre/xin-phep", "Đổi điểm lấy giờ chơi"),
+    M("con-xin-phep (thêm giờ)", "/tre/xin-phep", "Dùng sao lấy giờ chơi"),
     M("con-xin-phep (đủ 3)", "/tre/xin-phep", "đã có 3 yêu cầu đang chờ", { kb: { "GET yeu-cau": { ds: [yc("a", "them_gio", { phut: 15 }), yc("b", "them_gio", { phut: 30 }), yc("c", "mo_web", { gia_tri: "abc.vn" })], lyDoNhanh: [] } } }),
     M("con-yeu-cau", "/tre/yeu-cau", "Ba Mẹ đồng ý rồi!"),
     M("con-yeu-cau (trống)", "/tre/yeu-cau", "chưa xin gì cả", { kb: { "GET yeu-cau": { ds: [], lyDoNhanh: [] } } }),
     M("con-gio-may", "/tre/gio-may?lech=61", "Đồng hồ máy lệch 61 phút", { kb: teen }),
-    M("con-cua-hang", "/tre/cua-hang", "đổi gì nào?"),
-    M("con-cua-hang (trống)", "/tre/cua-hang", "Cửa hàng đang trống", { kb: { "GET cua-hang": { soDu: 45, qua: [] }, "GET tro-choi": { ds: [] } } }),
-    M("con-doi-voucher", "/tre/doi/q1", "Đổi 500 điểm"),
-    M("con-vi-qua", "/tre/vi-qua", "Dùng trước"),
-    M("con-vi-qua (trống)", "/tre/vi-qua", "Ví quà còn trống", { kb: { "GET vi-qua": { voucher: [], phieu: [] } } }),
+    M("con-cua-hang", "/tre/cua-hang", "Đổi sao lấy giờ chơi hoặc quà"),
+    M("con-cua-hang (trống)", "/tre/cua-hang", "Chưa có quà nào", { kb: { "GET cua-hang": { soDu: 45, qua: [] }, "GET nha": nha({ quy: quy({ doiSao: { bat: false, toiDaNgay: 30, conDoiDuoc: 30 } }) }) } }),
+    M("con-doi-qua", "/tre/doi/q1", "Đổi 50 sao"),
+    M("con-vi-qua", "/tre/vi-qua", "Đã trao"),
+    M("con-vi-qua (trống)", "/tre/vi-qua", "chưa có quà nào", { kb: { "GET vi-qua": { voucher: [], phieu: [], daTrao: [] } } }),
     M("con-quy-tac", "/tre/quy-tac", "Ai cũng thấy giống nhau"),
     M("con-quy-tac (teen)", "/tre/quy-tac", "Học 1 bài tiếng Anh cùng chị", { kb: teen }),
     M("con-huy-hieu", "/tre/huy-hieu", "Cấp 4 · Mầm xanh"),
@@ -253,41 +265,85 @@ const xet = async (dk, ten) => { kq.push([dk, ten]); console.log(`${dk ? "đạt
 const kichBan = async (ten, fn) => { if (process.env.PHA_CHI && !ten.includes(process.env.PHA_CHI)) return; console.log(`\n# ${ten}`); kb = { ...coBan }; matMang = false; nhatKy.length = 0; cham = 0; try { await fn(); } catch (e) { await xet(false, `${ten}: lỗi ${e}`); } };
 const coGoi = (d, dk = () => true) => nhatKy.some((x) => x.d === d && !x.matMang && dk(x.body ?? {}));
 
-await kichBan("Chọn hồ sơ + PIN → vào Nhà (máy dùng chung)", async () => {
-  await di("/tre/pin", { con: null });
-  await xet(await doi("Ai đang dùng máy?"), "màn chọn hồ sơ");
+await kichBan("Chọn tên (không PIN) → vào Nhà (máy dùng chung)", async () => {
+  await di("/tre/chon-ten", { con: null });
+  await xet(await doi("Ai đang dùng máy?"), "màn chọn tên");
   await xet(await doi(BILL), "hiện mọi hồ sơ trên máy");
+  await xet(!(await chu()).includes("PIN"), "không còn nhắc PIN");
   await bam(KEN);
-  await go("PIN của Con", "1234");
-  await xet(await doi(`${KEN} có 45 điểm`, 9000), "gõ đủ 4 số ⇒ tự vào Nhà");
-  await xet(coGoi("pin", (b) => b.con === "c1" && b.pin === "1234"), "gửi đúng hồ sơ + PIN");
-  await xet(await doi("Còn 455 điểm nữa là đổi được Phiếu quà AiiCafe 50.000đ!"), "thanh «còn thiếu X điểm để đổi Y»");
+  await xet(await doi("Giờ chơi còn 18 phút", 9000), "chạm tên ⇒ vào Nhà");
+  await xet(coGoi("chon-con", (b) => b.con === "c1" && b.pin === undefined), "gửi chon-con đúng hồ sơ, không PIN");
+  await xet(await doi("45 sao"), "sao luôn ở trên cùng");
+  await xet(!(await chu()).includes("điểm"), "không còn chữ «điểm» ở Nhà");
+});
+
+await kichBan("Đường cũ /tre/pin ⇒ chọn tên", async () => {
+  await di("/tre/pin", { con: null });
+  await xet(await doi("Ai đang dùng máy?", 9000), "chuyển sang chọn tên");
 });
 
 await kichBan("Agent Windows mở khung Kid với ?phien= ⇒ vào thẳng Nhà, phiên xoá khỏi URL", async () => {
   await di("/tre?phien=tok-q", { con: null });
-  await xet(await doi(`${KEN} có 45 điểm`, 9000), "vào thẳng Nhà, không hỏi PIN");
+  await xet(await doi("Giờ chơi còn 18 phút", 9000), "vào thẳng Nhà");
   await xet((await js("localStorage.getItem(\"aiig_con\")")) === "tok-q", "giữ phiên Con từ query");
   await xet(!(await js("location.href")).includes("phien="), "phiên không còn trên URL");
 });
 
-await kichBan("PIN sai ⇒ báo rõ, nhập lại", async () => {
-  kb["POST pin"] = { status: 401, body: { error: "pin_sai", message: "Mã PIN chưa đúng" } };
-  await di("/tre/pin", { con: null });
-  await doi("Ai đang dùng máy?");
-  await bam(KEN);
-  await go("PIN của Con", "9999");
-  await xet(await doi("PIN chưa đúng", 9000), "cảnh PIN chưa đúng");
-  await xet(await doi("Quên PIN thì nhờ Ba Mẹ đặt lại"), "nói cách khắc phục");
-  await bam("Nhập lại");
-  await xet(await doi("Ai đang dùng máy?"), "Nhập lại ⇒ về chọn hồ sơ");
+await kichBan("Thêm giờ: Dùng sao 30 phút → đã đổi, cộng vào giờ chơi", async () => {
+  kb["POST doi-sao"] = { id: "g1", phut: 30, sao: 30, soDu: 15, conPhut: 48 };
+  await di("/tre/nha");
+  await doi("Giờ chơi còn 18 phút");
+  await bam("Giờ chơi còn 18 phút");
+  await xet(await doi("Đổi 15 sao lấy 15 phút"), "màn Thêm giờ, mặc định Dùng sao 15 phút");
+  await bam("30 phút");
+  await xet(await doi("Còn 15 sao · giờ chơi thành"), "nói rõ sao còn lại + giờ chơi mới");
+  await bam("Đổi 30 sao lấy 30 phút");
+  await xet(coGoi("doi-sao", (b) => b.phut === 30), "gọi doi-sao 30 phút");
+  await xet(await doi("Đã đổi: +30 phút chơi"), "báo đã đổi");
+  await xet(await doi("Giờ chơi còn 48 phút"), "giờ chơi mới");
+});
+
+await kichBan("Thêm giờ: Xin Ba Mẹ 60 phút + lời nhắn", async () => {
+  await di("/tre/them-gio");
+  await doi("Dùng sao");
+  await bam("Xin Ba Mẹ");
+  await bam("60 phút");
+  await go("Nhắn Ba Mẹ (không bắt buộc)", "con làm nốt bài với bạn ạ");
+  await bam("Xin Ba Mẹ thêm 60 phút");
+  await xet(coGoi("yeu-cau", (b) => b.loai === "them_gio" && b.phut === 60 && b.lyDo === "con làm nốt bài với bạn ạ"), "gửi them_gio 60 phút + lời nhắn");
+  await xet(await doi("Thêm 15 phút chơi"), "sang danh sách yêu cầu");
+});
+
+await kichBan("Chưa đủ sao ⇒ không đổi được, gợi ý làm nhiệm vụ", async () => {
+  kb["GET quy"] = { quy: quy(), sao: 5, phutDoiDuoc: 5, ngoaiLe: [], yeuCauCho: [] };
+  await di("/tre/them-gio");
+  await xet(await doi("còn thiếu 10 sao"), "nói rõ còn thiếu bao nhiêu sao");
+  await xet(await doi("Làm nhiệm vụ lấy thêm sao"), "nút làm nhiệm vụ");
+});
+
+await kichBan("Giờ ngủ ⇒ không thêm giờ, chỉ xin ngoại lệ (cả máy / một app)", async () => {
+  kb["GET nha"] = nha({ quy: quy({ dangNgu: true, conPhut: 0 }) });
+  kb["GET quy"] = { quy: quy({ dangNgu: true }), sao: 45, phutDoiDuoc: 0, ngoaiLe: [], yeuCauCho: [] };
+  await di("/tre/them-gio");
+  await xet(await doi("Đến giờ ngủ rồi", 9000), "Thêm giờ lúc giờ ngủ ⇒ màn giờ ngủ");
+  await xet(await doi("Máy mở lại lúc 06:30"), "nói giờ mở lại");
+  await xet(!(await chu()).includes("Đổi 15 sao"), "không cho đổi sao");
+  await bam("Xin Ba Mẹ mở ngoại lệ");
+  await xet(await doi("không trừ giờ chơi"), "form ngoại lệ");
+  await bam("Một app");
+  await go("App nào?", "Từ điển");
+  await bam("30 phút");
+  await bam("Xin Ba Mẹ mở Từ điển 30 phút");
+  await xet(coGoi("yeu-cau", (b) => b.loai === "ngoai_le" && b.phamVi === "app" && b.giaTri === "Từ điển" && b.phut === 30), "gửi ngoại lệ một app 30 phút");
 });
 
 await kichBan("Nhận nhiệm vụ → chụp bằng chứng (web: camera trình duyệt) → chờ duyệt, nộp ≤ 3 chạm", async () => {
   await di("/tre/nhiem-vu");
   await doi("Hôm nay làm gì nào?");
+  await xet(coGoi("nhiem-vu"), "tải nhiệm vụ (kèm việc AiiRob tự chấm)");
   await bam("Rửa chén sau bữa ăn");
   await xet(await doi("Hôm nay đã làm 2/3 lần"), "chi tiết nhiệm vụ");
+  await xet(await doi("+10 sao"), "số sao của việc");
   cham = 0;
   await bam("Bắt đầu");
   await xet(coGoi("nhiem-vu/t0/bat-dau"), "Bắt đầu ⇒ máy chủ mở lượt");
@@ -296,127 +352,108 @@ await kichBan("Nhận nhiệm vụ → chụp bằng chứng (web: camera trình
   await bam("Xong, chụp ảnh");
   await xet(await doi("Rob giữ ảnh này cho Ba Mẹ xem"), "camera mở ngay trong app");
   await xet(await chupAnh(), "bấm chụp ⇒ mở camera / chọn ảnh của trình duyệt");
-  await xet(await doi("Đã gửi cho Ba Mẹ rồi!", 9000), "gửi xong ⇒ chờ Ba Mẹ duyệt");
+  await xet(await doi("Đã nộp bài · chờ Ba Mẹ", 9000), "gửi xong ⇒ chờ Ba Mẹ duyệt");
   await xet(coGoi("luot/l9/nop", (b) => b.anh?.[0]?.mime === "image/jpeg" && b.anh[0].base64.length > 10), "ảnh JPEG đã nén gửi kèm lượt");
   await xet(cham <= 3, `nộp từ lúc bắt đầu: ${cham} chạm (≤ 3)`);
   await xet(cham - tu <= 2, `sau khi làm xong: ${cham - tu} chạm`);
 });
 
-await kichBan("Mất mạng lúc nộp ⇒ ảnh vào hàng chờ trên máy, có mạng lại tự gửi", async () => {
+await kichBan("Việc «bấm Xong» ⇒ nộp không cần bằng chứng", async () => {
+  await di("/tre/nv/t4");
+  await doi("Bấm «Xong»");
+  await bam("Bắt đầu");
+  await bam("Xong rồi!");
+  await xet(coGoi("luot/l8/nop", (b) => Array.isArray(b.anh) && !b.anh.length && !b.ghiAm), "nộp không kèm ảnh / ghi âm");
+  await xet(await doi("Đã nộp bài · chờ Ba Mẹ", 9000), "chờ Ba Mẹ duyệt");
+});
+
+await kichBan("Mất mạng lúc nộp ⇒ bài vào hàng chờ trên máy, có mạng lại tự gửi", async () => {
   await di("/tre/chup/l9?nv=t0");
   await doi("Rob giữ ảnh này cho Ba Mẹ xem");
   await sleep(800);
   matMang = true;
   await chupAnh();
-  await xet(await doi("hàng chờ trên máy", 9000), "báo ảnh nằm trong hàng chờ, không cần chụp lại");
+  await xet(await doi("hàng chờ trên máy", 9000), "báo bài nằm trong hàng chờ, không cần làm lại");
   matMang = false;
   let gui = false;
   for (let t = 0; t < 30 && !gui; t++) { await sleep(500); gui = coGoi("luot/l9/nop"); }
-  await xet(gui, "có mạng lại ⇒ tự gửi ảnh cho Ba Mẹ");
+  await xet(gui, "có mạng lại ⇒ tự gửi bài cho Ba Mẹ");
   await sleep(1200);
   await xet(!(await chu()).includes("hàng chờ trên máy"), "gửi xong ⇒ hết băng mất mạng");
 });
 
-await kichBan("Dùng điểm để chơi → đang chơi (còn 5 phút) → dừng sớm ⇒ nghỉ giữa phiên", async () => {
-  await di("/tre/nha");
-  await doi(`${KEN} có 45 điểm`);
-  await xet(await doi("45 phút còn lại hôm nay · tới 20:00"), "Nhà nói rõ phút chơi còn lại");
-  await bam("Chơi trò chơi");
-  await xet(await doi("Chơi Roblox?"), "hỏi trước khi trừ điểm");
-  await xet(await doi("Chơi tối đa 30 phút"), "nói rõ phút tối đa + giá");
-  await bam("Bắt đầu chơi");
-  await xet(coGoi("phien/mo", (b) => b.muc === "roblox.exe"), "mở phiên đúng trò chơi");
-  await xet(await doi("Còn 5 phút nữa nhé!"), "băng báo còn 5 phút");
-  await xet(coGoi("phien/nhip", (b) => b.id === "p1"), "gửi nhịp đang dùng");
-  await xet(await doi("Dừng bây giờ thì giữ được 5 điểm"), "nói rõ dừng sớm giữ bao nhiêu điểm");
-  await bam("Dừng");
-  await xet(coGoi("phien/dung", (b) => b.id === "p1"), "dừng sớm gọi máy chủ");
-  await xet(await doi("Nghỉ 60 phút nhé!"), "hết phiên ⇒ nghỉ giữa phiên");
+await kichBan("App lạ ⇒ Xin Ba Mẹ duyệt (một chạm, lời nhắn không bắt buộc)", async () => {
+  await di("/tre/chan-app?muc=youtube&ten=YouTube");
+  await doi("YouTube chưa được mở");
+  cham = 0;
+  await bam("Xin Ba Mẹ mở YouTube");
+  await xet(coGoi("xin-duyet", (b) => b.muc === "youtube" && b.lyDo === ""), "gửi xin-duyet, không bắt lý do");
+  await xet(cham <= 1, `xin duyệt: ${cham} chạm`);
+  await xet(await doi("Ba Mẹ đồng ý rồi!"), "sang danh sách yêu cầu");
 });
 
-await kichBan("Hết thời gian ⇒ máy chủ kết thúc phiên ⇒ tự sang màn nghỉ", async () => {
-  kb["POST phien/nhip"] = { trangThai: "ket_thuc", phutDung: 30, conPhut: 0, diemTru: 30, soDu: 15, canhBao: null, lyDoKet: "het_thoi_gian", nghiDen: luc(-60), muc: "roblox.exe", toiDaPhut: 30, giaPhanNghin: 1000 };
-  await di("/tre/phien/p1?muc=roblox.exe");
-  await xet(await doi("Nghỉ 60 phút nhé!"), "hết giờ ⇒ màn nghỉ");
-  await xet(await doi("Trò chơi mở lại lúc"), "nói giờ mở lại");
-});
-
-await kichBan("Xin phép thêm giờ từ màn nghỉ → Ba Mẹ thấy trong Chờ duyệt", async () => {
-  await di(`/tre/het-phien?nghiDen=${encodeURIComponent(luc(-60))}`);
-  await doi("Nghỉ 60 phút nhé!");
-  await bam("Xin thêm giờ");
-  await xet(await doi("Xin thêm giờ chơi"), "mở form thêm giờ");
-  await bam("30 phút");
-  await bam("Bạn rủ chơi");
-  await bam("Gửi cho Ba Mẹ");
-  await xet(coGoi("yeu-cau", (b) => b.loai === "them_gio" && b.phut === 30 && b.lyDo === "Bạn rủ chơi"), "gửi đúng: thêm 30 phút + lý do");
-  await xet(await doi("Thêm 15 phút chơi"), "sang danh sách yêu cầu kèm trạng thái");
-  await xet(await doi("Cuối tuần nói chuyện nhé"), "thấy lời Ba Mẹ khi chưa được");
-});
-
-await kichBan("Màn chặn web ⇒ xin phép ≤ 2 chạm (link điền sẵn)", async () => {
+await kichBan("Màn chặn web ⇒ xin Ba Mẹ duyệt ≤ 2 chạm (link điền sẵn); web cấm ⇒ báo luôn chặn", async () => {
   await di("/tre/chan-web?url=scratch.mit.edu");
   await doi("Trang này Rob chưa biết");
   cham = 0;
-  await bam("Xin phép Ba Mẹ");
+  await bam("Xin Ba Mẹ duyệt");
   await xet(await doi("Xin mở trang web"), "form đã điền sẵn");
-  await bam("Gửi cho Ba Mẹ");
-  await xet(coGoi("yeu-cau", (b) => b.loai === "mo_web" && b.giaTri === "scratch.mit.edu" && b.lyDo), "gửi mở web kèm lý do mặc định");
-  await xet(cham <= 2, `xin phép: ${cham} chạm (≤ 2)`);
+  await bam("Xin Ba Mẹ mở scratch.mit.edu");
+  await xet(coGoi("xin-duyet", (b) => b.muc === "scratch.mit.edu"), "gửi xin-duyet đúng trang");
+  await xet(cham <= 2, `xin duyệt: ${cham} chạm (≤ 2)`);
+  kb["POST xin-duyet"] = { status: 409, body: { error: "web_cam", message: "Trang này luôn bị chặn để an toàn cho con" } };
+  await di("/tre/xin-phep?loai=mo_web&gia=xxx.com");
+  await doi("Xin mở trang web");
+  await bam("Xin Ba Mẹ mở xxx.com");
+  await xet(await doi("Trang này luôn bị chặn"), "web cấm ⇒ báo luôn chặn");
 });
 
-await kichBan("Đổi phiếu quà → ví quà có mã QR", async () => {
+await kichBan("Đổi quà bằng sao → Đã gửi Ba Mẹ → quà chờ trao / đã trao (không phiếu AiiCafe)", async () => {
   await di("/tre/cua-hang");
-  await doi("đổi gì nào?");
-  await xet(await doi("Còn thiếu 280"), "món chưa đủ điểm nói rõ còn thiếu");
-  await bam("Phiếu quà AiiCafe 50.000đ");
-  await xet(await doi("Đổi 500 điểm"), "màn xác nhận đổi");
-  await xet(await doi("20 điểm"), "nói rõ điểm còn lại");
-  await bam("Đổi 500 điểm");
+  await doi("Đổi sao lấy giờ chơi hoặc quà");
+  await xet(await doi("Còn thiếu 280 sao"), "món chưa đủ sao nói rõ còn thiếu");
+  await xet(!(await chu()).includes("AiiCafe"), "không còn phiếu AiiCafe");
+  await bam("Đi ăn kem");
+  await xet(await doi("Đổi 50 sao"), "màn xác nhận đổi");
+  await bam("Đổi 50 sao");
   await xet(coGoi("doi/q1"), "gọi máy chủ đổi");
-  await xet(await doi("Dùng trước"), "sang ví quà");
-  await xet(await js(`!!document.querySelector('[aria-label="Mã QR AGK7Q2M91XZ"] svg')`), "phiếu quà có mã QR thật");
-});
-
-await kichBan("Quỹ phiếu quà của nhà thiếu ⇒ điểm giữ nguyên, nói rõ", async () => {
-  kb["POST doi/q1"] = { status: 409, body: { error: "quy_thieu", message: "Quỹ phiếu quà của nhà mình chưa đủ — nhờ Ba Mẹ nạp thêm nhé" } };
-  await di("/tre/doi/q1");
-  await doi("Đổi 500 điểm");
-  await bam("Đổi 500 điểm");
-  await xet(await doi("Đợi Ba Mẹ nạp quỹ nhé"), "cảnh quỹ thiếu");
+  await xet(await doi("Đã gửi Ba Mẹ!"), "báo đã gửi Ba Mẹ");
+  await bam("Xem quà của Ngọc Bảo Anh");
+  await xet(await doi("Chờ trao"), "quà chờ trao");
+  await xet(await doi("Đã trao"), "quà đã trao");
 });
 
 await kichBan("Được duyệt ⇒ Nhà mở màn ăn mừng một lần, Con gửi lại biểu cảm", async () => {
   await di("/tre/nha", { daXem: [] });
-  await xet(await doi("+10 điểm!", 9000), "màn ăn mừng");
+  await xet(await doi("+10 sao!", 9000), "màn ăn mừng");
   await xet(await doi("Ba Mẹ nhắn: “Giỏi lắm!”"), "kèm lời khen");
   await bam("💪");
   await bam("Cảm ơn Ba Mẹ ♥");
   await xet(coGoi("loi-khen/k1/phan-hoi", (b) => b.phanHoi === "💪"), "gửi biểu cảm cho Ba Mẹ");
-  await xet(await doi(`${KEN} có 45 điểm`), "về Nhà");
+  await xet(await doi("Giờ chơi còn 18 phút"), "về Nhà");
   await sleep(1500);
-  await xet(!(await chu()).includes("+10 điểm!"), "không mở lại màn ăn mừng lần hai");
+  await xet(!(await chu()).includes("+10 sao!"), "không mở lại màn ăn mừng lần hai");
 });
 
-await kichBan("Mất mạng ở Nhà ⇒ vẫn thấy điểm đã có + băng mất mạng; mở lần đầu mất mạng ⇒ Rob chờ, có mạng tự tải", async () => {
+await kichBan("Mất mạng ở Nhà ⇒ vẫn thấy sao + băng mất mạng; mở lần đầu mất mạng ⇒ Rob chờ, có mạng tự tải", async () => {
   await di("/tre/nha");
-  await doi(`${KEN} có 45 điểm`);
+  await doi("Giờ chơi còn 18 phút");
   matMang = true;
   await bam("Nhiệm vụ");
   await sleep(800);
   await bam("Nhà");
-  await xet(await doi("vẫn chơi được bằng 45 điểm đã có"), "điểm đã có vẫn hiện khi mất mạng");
+  await xet(await doi("giờ chơi vẫn tính trên máy"), "sao đã có vẫn hiện khi mất mạng");
   matMang = true;
   await di("/tre/nha");
   await xet(await doi("Đang chờ mạng"), "lần đầu mất mạng ⇒ Rob chờ mạng, không màn trắng");
   matMang = false;
-  await xet(await doi(`${KEN} có 45 điểm`, 9000), "có mạng lại tự tải (≤ 5 giây)");
+  await xet(await doi("Giờ chơi còn 18 phút", 9000), "có mạng lại tự tải (≤ 5 giây)");
 });
 
-await kichBan("Hết phiên PIN (401) ⇒ về chọn hồ sơ", async () => {
-  kb["GET nha"] = { status: 401, body: { error: "chua_dang_nhap", message: "Nhập mã PIN để vào nhé" } };
+await kichBan("Hết phiên Con (401) ⇒ về chọn tên", async () => {
+  kb["GET nha"] = { status: 401, body: { error: "chua_dang_nhap", message: "Chọn tên để vào nhé" } };
   await di("/tre/nha");
-  await xet(await doi("Ai đang dùng máy?", 9000), "về màn chọn hồ sơ");
+  await xet(await doi("Ai đang dùng máy?", 9000), "về màn chọn tên");
 });
 
 ws.close();
