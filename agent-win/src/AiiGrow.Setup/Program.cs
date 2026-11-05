@@ -31,8 +31,10 @@ internal static class Program
             }
         }
 
-        // CÀI MỘT CHẠM: token máy chủ nhúng sẵn trong bộ cài (tham số / biến môi trường / đuôi tệp / tên tệp) ⇒ cài thẳng, không nhập gì.
-        if (EnrollmentReader.TryRead(args, out var pkg))
+        // Gói ghép nhúng sẵn trong bộ cài (tham số / biến môi trường / đuôi tệp / tên tệp — link Ba Mẹ gửi, L8 thiết kế 05/11):
+        // --silent ⇒ CÀI MỘT CHẠM như cũ (không giao diện); có giao diện ⇒ trình cài vẫn chọn tài khoản của con, bước Ghép máy tự ghép bằng gói (không gõ mã).
+        var coGoi = EnrollmentReader.TryRead(args, out var pkg);
+        if (coGoi && silent)
             return OneTouch(pkg, silent);
 
         if (silent)
@@ -41,8 +43,8 @@ internal static class Program
             return 2;
         }
 
-        // Không có token nhúng ⇒ luồng cài có giao diện (chọn tài khoản, mã 6 số).
-        Application.Run(new SetupForm());
+        // Luồng cài có giao diện (chọn tài khoản; ghép bằng gói nếu có, không thì mã 6 số).
+        Application.Run(new SetupForm(coGoi ? pkg : null));
         return 0;
     }
 

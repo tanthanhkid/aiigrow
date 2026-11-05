@@ -5,63 +5,55 @@ using AiiGrow.Core;
 namespace AiiGrow.Setup;
 
 /// <summary>
-/// Trình cài từng bước kiểu cài game (Thanh 22/10: «một file install duy nhất … mở lên rồi hướng dẫn người ta làm từ từ»):
-/// Chào → Điều khoản ngắn → Tài khoản của Con → Ghép máy (một ô mã 6 số — cách ghép duy nhất, Thanh 22/10 bỏ QR) → Cài (thanh tiến độ) → Xong.
-/// Nút Quay lại / Tiếp ở chân, thanh tiến độ các bước ở đầu. Lời viết cho Ba Mẹ không rành máy (không «Quản trị viên», «Standard»).
+/// Bộ cài theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-cai-win, 12 màn): Ba Mẹ chạy trên máy của con, mỗi màn một việc, câu ngắn nói với Ba Mẹ,
+/// icon 3D + Rob thay chữ, nút chính nói rõ kết quả. Khung 723×672 (theo DPI). Luồng: 1 Chào → 2 Đồng ý → 3 Tài khoản (có sẵn / tạo mới /
+/// «chỉ 1 tài khoản quản trị») → 4 Ghép máy (mã 6 số hạn 10 phút — dự phòng; mở từ link Ba Mẹ gửi thì tự ghép) → 5 Cài (lỗi: mã sai / mã hết hạn /
+/// mất mạng) → Xong. Toạ độ trong mã = toạ độ px của HTML thiết kế (đã trừ thanh tiêu đề 30px), nhân DPI qua Clay.Si.
 /// </summary>
 internal sealed class SetupForm : Form
 {
-    // Token màu «Clay gương» (docs/THIET-KE-CLAY.md, Clay.cs dùng chung với khay): chữ trắng trên Chinh 6,4:1; Chu2 trên Nen ≥ 8:1.
+    // Token màu «Clay gương» (CapNhatSetup.cs dùng chung — giữ tên).
     internal static readonly Color Chinh = Clay.Ngoc;
     internal static readonly Color ChinhSoft = Clay.NgocSoft;
     internal static readonly Color Chu = Clay.Chu;
     internal static readonly Color Chu2 = Clay.Chu2;
-    internal static readonly Color Vien = Color.FromArgb(0xd9, 0xe2, 0xdf);
-    internal static readonly Color Loi = Color.FromArgb(0xb4, 0x23, 0x18);
+    internal static readonly Color Loi = Clay.Loi;
     internal static readonly Color Nen = Clay.Nen;
     private const string MayChuMacDinh = "https://aiigrow.aiilab.vn";
     private const int TongBuoc = 5;
-    /// <summary>Bề rộng cột nội dung — theo DPI (Clay.Si): trước đây 640 px cố định ⇒ ở 150% chữ / nút xuống dòng, phải cuộn.</summary>
-    private static int Rong => Clay.Si(640);
     private static int S(int v) => Clay.Si(v);
 
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool LockWorkStation();
 
-    private readonly Label _buocChu = new() { AutoSize = true, Font = new Font("Segoe UI", 10f, FontStyle.Bold), ForeColor = Chinh, Location = new Point(S(32), S(18)) };
-    private readonly ProgressBar _buocThanh = new() { Location = new Point(S(32), S(44)), Size = new Size(Rong, S(6)), Minimum = 0, Maximum = TongBuoc, Style = ProgressBarStyle.Continuous };
-    private readonly FlowLayoutPanel _body = new()
-    {
-        Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-        Padding = new Padding(S(32), S(8), S(24), S(10)), AutoScroll = true, BackColor = Nen,
-    };
-    private readonly Panel _dau = new() { Dock = DockStyle.Top, Height = S(60), BackColor = Nen };
-    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = Clay.Si(44) + VeNut.LeBong.Vertical + S(26), BackColor = Clay.The };
+    private readonly NenCai _body = new() { Dock = DockStyle.Fill };
+    private readonly Panel _chan = new() { Dock = DockStyle.Bottom, Height = S(76), BackColor = Clay.The };
     private List<LocalAccount> _accounts = new();
     private LocalAccount? _child;
     private bool _dongY;
-    private string _server = (Environment.GetEnvironmentVariable("AIIGROW_SERVER") is { Length: > 0 } e ? e : ReadServerFile()) is { Length: > 0 } s ? s : MayChuMacDinh;
+    private readonly string _server = (Environment.GetEnvironmentVariable("AIIGROW_SERVER") is { Length: > 0 } e ? e : ReadServerFile()) is { Length: > 0 } s ? s : MayChuMacDinh;
+    /// <summary>Gói ghép nhúng trong bộ cài (mở từ link Ba Mẹ gửi — L8) ⇒ bước 4 tự ghép, không gõ mã. null = ghép bằng mã 6 số.</summary>
+    private readonly EnrollmentPackage? _goi;
+    /// <summary>Ba Mẹ bấm «Gõ mã 6 số thay vì link» ⇒ bỏ gói, ghép bằng mã.</summary>
+    private bool _dungMa;
     private bool _dangCai;
 
-    public SetupForm()
+    public SetupForm(EnrollmentPackage? goi = null)
     {
-
-        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
+        Clay.KhongMnemonic(this);
+        _goi = goi is { Valid: true } ? goi : null;
         Text = "Cài AiiGrow";
-        // logo chuẩn trên thanh tiêu đề + taskbar: .ico nhiều cỡ nhúng trong exe (Icon(stream) tự chọn cỡ hợp màn)
         using (var ic = typeof(SetupForm).Assembly.GetManifestResourceStream("aiigrow.ico")) if (ic != null) Icon = new Icon(ic);
         Font = new Font("Segoe UI", 11f);
-        ClientSize = new Size(Rong + S(64) + SystemInformation.VerticalScrollBarWidth, S(640));   // chừa thanh cuộn dọc ⇒ thẻ rộng Rong không bị cắt / cuộn ngang
-        var wa = Screen.PrimaryScreen!.WorkingArea;   // màn nhỏ / 150%+: không cao hơn vùng làm việc
+        ClientSize = new Size(S(721), S(640));
+        var wa = Screen.PrimaryScreen!.WorkingArea;   // màn nhỏ / 150%+: không cao hơn vùng làm việc (thân cuộn được)
         if (Height > wa.Height) Height = wa.Height;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Nen;
-        _dau.Controls.Add(_buocChu);
-        _dau.Controls.Add(_buocThanh);
-        _chan.Paint += (_, e) => e.Graphics.DrawLine(new Pen(Vien), 0, 0, _chan.Width, 0);
+        _body.AutoScroll = true;
+        _chan.Paint += (_, e) => { using var p = new Pen(Color.FromArgb(0xe0, 0xdf, 0xda)); e.Graphics.DrawLine(p, 0, 0, _chan.Width, 0); };
         Controls.Add(_body);
-        Controls.Add(_dau);
         Controls.Add(_chan);
         BuocChao();
     }
@@ -76,145 +68,344 @@ internal sealed class SetupForm : Form
         catch { return ""; }
     }
 
-    // ---------------------------------------------------------------- khung chung
+    private bool DungGoi => _goi != null && !_dungMa;
+    private string TenCon => _child?.Name is { Length: > 0 } n ? n : "con";
 
-    private Label T(string text, float pt = 11f, bool bold = false, Color? c = null, int rong = 0)
-        => new()
-        {
-            Text = text, AutoSize = true, MaximumSize = new Size(rong > 0 ? rong : Rong, 0),
-            Font = new Font("Segoe UI", pt, bold ? FontStyle.Bold : FontStyle.Regular),
-            ForeColor = c ?? Chu, Margin = new Padding(0, 0, 0, S(12)), BackColor = Color.Transparent,
-        };
+    // ================================================================ khung + khối dựng (toạ độ thiết kế)
 
-    private static Button B(string text, bool chinh = true, int w = 200)
+    /// <summary>Nền thân: màu Nen + (màn Xong) dải ngọc nhạt phía trên + thanh 5 bước. Là IVeNenRieng để chữ / thẻ trong suốt thấy đúng nền.</summary>
+    private sealed class NenCai : Panel, IVeNenRieng
     {
-        // Nút Clay (kẹo bọc đường / đất sét sứ), cao = thân 44 (theo DPI) + lề bóng.
-        var b = new ClayButton
+        public int Buoc;           // 1..5; 6 = Xong (đủ 5 viên)
+        public string ChuBuoc = "";
+        public bool DaiNgoc;
+        public NenCai()
         {
-            Text = text, Width = S(w), Height = Clay.Si(44) + VeNut.LeBong.Vertical,   // w theo px 96 dpi
-            Font = new Font("Segoe UI", 11.5f, FontStyle.Bold),
-            BackColor = chinh ? Chinh : Clay.The, ForeColor = chinh ? Color.White : Chu,
-        };
-        return b;
-    }
-
-    /// <summary>Sang một bước: tiêu đề + thanh tiến độ; chân có «Quay lại» (nếu có <paramref name="lui"/>) và nút chính.</summary>
-    private void Man(int buoc, string ten, string tieu, Action? lui = null)
-    {
-        _body.Controls.Clear();
-        _chan.Controls.Clear();
-        _buocChu.Text = $"Bước {buoc}/{TongBuoc} · {ten}";
-        _buocThanh.Value = buoc;
-        _body.Controls.Add(T(tieu, 19f, true));
-        if (lui != null)
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            BackColor = Clay.Nen;
+        }
+        protected override void OnPaintBackground(PaintEventArgs e) => VeNenRieng(e.Graphics, true);
+        public void VeNenRieng(Graphics g, bool ngoaiCung)
         {
-            var b = B("Quay lại", false, 130);
-            b.Location = new Point(S(32), S(15));
-            b.Click += (_, _) => lui();
-            _chan.Controls.Add(b);
+            g.Clear(Clay.Nen);
+            var oy = AutoScrollPosition.Y;
+            if (DaiNgoc)
+            {
+                var r = new Rectangle(0, oy, Width, S(380));
+                using var lg = new LinearGradientBrush(r, Clay.NgocSoft, Clay.Nen, 90f);
+                g.FillRectangle(lg, r);
+            }
+            Clay.ChatLuong(g);
+            float x = S(36), y = oy + S(14);
+            for (int i = 1; i <= TongBuoc; i++)
+            {
+                using var path = Clay.Bo(new RectangleF(x, y, S(36), S(8)), Clay.S(4));
+                using var b = new SolidBrush(i <= Buoc ? Clay.Ngoc : Color.FromArgb(0xdc, 0xdb, 0xd6));
+                g.FillPath(b, path);
+                x += S(42);
+            }
+            TextRenderer.DrawText(g, ChuBuoc, new Font("Segoe UI", 10f, FontStyle.Bold), new Point((int)x + S(2), (int)y - S(5)), Clay.NgocInk, Color.Transparent);
         }
     }
 
-    private Button Tiep(string chu, Action bam, int w = 220)
+    /// <summary>Control tự vẽ trên nền thật của cha (thẻ Clay) — chip, điện thoại mẫu, dấu tick, thanh tiến độ.</summary>
+    private abstract class VeTay : Control
     {
-        var b = B(chu, true, w);
-        b.Location = new Point(_chan.Width - b.Width - S(32), S(15));
-        b.Anchor = AnchorStyles.Right | AnchorStyles.Top;
+        private readonly NenCache _nen;
+        protected VeTay()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer
+                     | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
+            BackColor = Color.Transparent;
+            TabStop = false;
+            _nen = new NenCache(this, InvokePaintBackground, InvokePaint);
+        }
+        protected override void OnPaintBackground(PaintEventArgs e) => _nen.Ve(e);
+        protected override void OnPaint(PaintEventArgs e) { Clay.ChatLuong(e.Graphics); Ve(e.Graphics); }
+        protected abstract void Ve(Graphics g);
+        protected override void Dispose(bool disposing) { if (disposing) _nen.Dispose(); base.Dispose(disposing); }
+    }
+
+    /// <summary>Viên chữ bo tròn (chip «Mã dùng được 10 phút», «AiiGrow có / không»).</summary>
+    private sealed class Chip : VeTay
+    {
+        public Color Nen2 = Clay.NgocSoft, Mau = Clay.NgocInk;
+        public Image? Hinh;
+        public string Chu = "";
+        protected override void Ve(Graphics g)
+        {
+            using (var p = Clay.Bo(new RectangleF(0, 0, Width - 1, Height - 1), Height / 2f))
+            using (var b = new SolidBrush(Nen2)) g.FillPath(b, p);
+            int x = S(14);
+            if (Hinh != null) { g.DrawImage(Hinh, x, (Height - S(20)) / 2, S(20), S(20)); x += S(26); }
+            TextRenderer.DrawText(g, Chu, new Font("Segoe UI", 10f, FontStyle.Bold), new Rectangle(x, 0, Width - x, Height), Mau,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        }
+        public void CoTheoChu()
+        {
+            using var f = new Font("Segoe UI", 10f, FontStyle.Bold);
+            Width = S(14) + (Hinh != null ? S(26) : 0) + TextRenderer.MeasureText(Chu, f, Size.Empty, TextFormatFlags.NoPadding).Width + S(16);
+        }
+    }
+
+    /// <summary>Điện thoại Ba Mẹ minh hoạ (màn Ghép máy): AiiGrow › Ghép máy hiện mã 6 số, «Dùng được 10 phút».</summary>
+    private sealed class DienThoai : VeTay
+    {
+        protected override void Ve(Graphics g)
+        {
+            var vo = new RectangleF(0, 0, S(140), S(236));
+            using (var p = Clay.Bo(vo, Clay.S(26))) using (var b = new SolidBrush(Color.FromArgb(0x1b, 0x1f, 0x1e))) g.FillPath(b, p);
+            var man = new RectangleF(S(6), S(6), S(128), S(224));
+            using (var p = Clay.Bo(man, Clay.S(21)))
+            using (var b = new LinearGradientBrush(man, Color.FromArgb(0xe3, 0xef, 0xeb), Color.FromArgb(0xf4, 0xf4, 0xf2), 90f)) g.FillPath(b, p);
+            using (var p = Clay.Bo(new RectangleF(S(52), S(13), S(36), S(8)), Clay.S(4))) using (var b = new SolidBrush(Color.FromArgb(0x1b, 0x1f, 0x1e))) g.FillPath(b, p);
+            if (Anh3D.Rob("cho") is { } rob)
+            {
+                var k = S(60) / (float)Math.Max(rob.Width, rob.Height);
+                g.DrawImage(rob, S(70) - rob.Width * k / 2, S(32), rob.Width * k, rob.Height * k);
+            }
+            var o = new Rectangle(S(6), 0, S(128), 0);
+            void Giua(string t, int y, int h, float pt, FontStyle st, Color c) =>
+                TextRenderer.DrawText(g, t, new Font("Segoe UI", pt, st), new Rectangle(o.X, y, o.Width, h), c, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            Giua("Mã ghép máy", S(104), S(16), 8.25f, FontStyle.Bold, Clay.Chu2);
+            Giua("• • •  • • •", S(122), S(28), 15f, FontStyle.Bold, Clay.Chu);   // minh hoạ — mã thật nằm trên điện thoại của Ba Mẹ
+            var chip = new RectangleF(S(20), S(162), S(100), S(24));
+            using (var p = Clay.Bo(chip, Clay.S(12))) using (var b = new SolidBrush(Clay.NgocSoft)) g.FillPath(b, p);
+            TextRenderer.DrawText(g, "Dùng được 10 phút", new Font("Segoe UI", 7.75f, FontStyle.Bold), Rectangle.Round(chip), Clay.NgocInk,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+    }
+
+    /// <summary>Dấu trạng thái một dòng ở màn Đang cài: 0 chưa, 1 đang làm, 2 xong.</summary>
+    private sealed class DauTick : VeTay
+    {
+        private int _tt;
+        public int TrangThai { get => _tt; set { _tt = value; Invalidate(); } }
+        protected override void Ve(Graphics g)
+        {
+            var r = new RectangleF(Clay.S(1), Clay.S(1), Width - Clay.S(2), Height - Clay.S(2));
+            if (_tt == 2)
+            {
+                using (var b = new SolidBrush(Clay.Ngoc)) g.FillEllipse(b, r);
+                using var pen = new Pen(Color.White, Clay.S(2.5f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+                g.DrawLines(pen, new[] { new PointF(r.X + r.Width * .27f, r.Y + r.Height * .52f), new PointF(r.X + r.Width * .44f, r.Y + r.Height * .68f), new PointF(r.X + r.Width * .74f, r.Y + r.Height * .35f) });
+            }
+            else if (_tt == 1)
+            {
+                using (var b = new SolidBrush(Clay.NgocSoft)) g.FillEllipse(b, r);
+                using var pen = new Pen(Clay.Ngoc, Clay.S(2.5f));
+                g.DrawArc(pen, RectangleF.Inflate(r, -Clay.S(3), -Clay.S(3)), -90, 250);
+            }
+            else using (var b = new SolidBrush(Color.FromArgb(0xdc, 0xdb, 0xd6))) g.FillEllipse(b, r);
+        }
+    }
+
+    /// <summary>Thanh tiến độ lòng chảo (màn Đang cài).</summary>
+    private sealed class ThanhTienDo : VeTay
+    {
+        private float _p;
+        public float PhanTram { get => _p; set { _p = Math.Clamp(value, 0, 1); Invalidate(); } }
+        protected override void Ve(Graphics g)
+        {
+            var r = new RectangleF(0, 0, Width - 1, Height - 1);
+            using (var p = Clay.Bo(r, Height / 2f)) using (var b = new SolidBrush(Clay.Lom)) g.FillPath(b, p);
+            if (_p <= 0) return;
+            var f = new RectangleF(0, 0, Math.Max(Height, (Width - 1) * _p), Height - 1);
+            using var pf = Clay.Bo(f, Height / 2f);
+            using var lg = new LinearGradientBrush(f, Color.FromArgb(0x1c, 0x7d, 0x6c), Clay.NgocInk, 90f);
+            g.FillPath(lg, pf);
+        }
+    }
+
+    /// <summary>Gốc toạ độ thiết kế của một cha: thân màn = (0, 30) (thanh tiêu đề HTML); thẻ = (x, y) thiết kế của nó (lưu ở Tag).</summary>
+    private static Point ToaDo(Control cha, int x, int y)
+    {
+        var g = cha.Tag is Point p ? p : new Point(0, 30);
+        var lb = cha is ClayCard ? VeThe.LeBong : Padding.Empty;
+        return new Point(S(x - g.X) + lb.Left, S(y - g.Y) + lb.Top);
+    }
+
+    private enum Kieu { H, H28, H30, P, S, B }
+
+    /// <summary>Chữ đặt tại toạ độ thiết kế (x, y) — kiểu h 26px đậm / p 15px / s 13,5px / b 16px đậm như CSS thiết kế.</summary>
+    private Label X(Control cha, int x, int y, string text, Kieu k, int rong = 0, Color? mau = null, bool dam = false)
+    {
+        var (pt, st, c) = k switch
+        {
+            Kieu.H => (19.5f, FontStyle.Bold, Chu),
+            Kieu.H28 => (21f, FontStyle.Bold, Chu),
+            Kieu.H30 => (22.5f, FontStyle.Bold, Chu),
+            Kieu.P => (11.25f, FontStyle.Regular, Chu2),
+            Kieu.S => (10f, FontStyle.Regular, Clay.Chu3),
+            _ => (12f, FontStyle.Bold, Chu),
+        };
+        var l = new Label
+        {
+            Text = text, AutoSize = true, UseMnemonic = false, BackColor = Color.Transparent, ForeColor = mau ?? c,
+            Font = new Font("Segoe UI", pt, dam ? FontStyle.Bold : st), Location = ToaDo(cha, x, y),
+            MaximumSize = new Size(rong > 0 ? S(rong) : S(700 - x), 0),
+        };
+        cha.Controls.Add(l);
+        return l;
+    }
+
+    /// <summary>Thẻ Clay tại toạ độ thiết kế; <paramref name="chon"/> = thẻ đang chọn (nền ngọc nhạt + viền ngọc 2,5).</summary>
+    private ClayCard The(int x, int y, int w, int h, bool chon = false, Color? nen = null, Action? bam = null, Control? cha = null)
+    {
+        var lb = VeThe.LeBong;
+        cha ??= _body;
+        var p = ToaDo(cha, x, y);
+        var c = new ClayCard
+        {
+            BoGoc = Clay.S(28), BackColor = nen ?? (chon ? Clay.NgocSoft : Clay.The), Tag = new Point(x, y),
+            Location = new Point(p.X - lb.Left, p.Y - lb.Top), Size = new Size(S(w) + lb.Horizontal, S(h) + lb.Vertical),
+        };
+        if (chon)
+            c.Paint += (_, e) =>
+            {
+                Clay.ChatLuong(e.Graphics);
+                var r = new RectangleF(lb.Left + Clay.S(1.25f), lb.Top + Clay.S(1.25f), S(w) - Clay.S(2.5f), S(h) - Clay.S(2.5f));
+                using var path = Clay.Bo(r, Clay.S(27));
+                using var pen = new Pen(Chinh, Clay.S(2.5f));
+                e.Graphics.DrawPath(pen, path);
+            };
+        if (bam != null) BamDuoc(c, bam);
+        cha.Controls.Add(c);
+        return c;
+    }
+
+    /// <summary>Cả thẻ (và mọi con trong nó, thêm sau cũng vậy) bấm được.</summary>
+    private static void BamDuoc(Control c, Action bam)
+    {
+        c.Cursor = Cursors.Hand;
+        c.Click += (_, _) => bam();
+        c.ControlAdded += (_, e) => { if (e.Control is not TextBox and not ButtonBase) BamDuoc(e.Control!, bam); };
+        foreach (Control con in c.Controls) if (con is not TextBox and not ButtonBase) BamDuoc(con, bam);
+    }
+
+    /// <summary>Viên icon 3D (bt 56 / nho 44) tại toạ độ thiết kế; <paramref name="mau"/>: «ngoc» | «cam» | null (sứ).</summary>
+    private static ClayIcon Vien(Control cha, int x, int y, string icon, int co = 56, string? mau = null)
+    {
+        // ClayIcon vẽ viên tròn đường kính (cạnh − 12px) ⇒ control rộng hơn viên 12px, lệch −6/−4 cho khớp vị trí thiết kế.
+        var v = new ClayIcon
+        {
+            Size = new Size(S(co + 12), S(co + 12)), Hinh = Anh3D.Icon(icon),
+            MauVien = mau == "ngoc" ? Clay.NgocSoft : mau == "cam" ? Clay.CanhSoft : Clay.The,
+        };
+        var p = ToaDo(cha, x, y);
+        v.Location = new Point(p.X - S(6), p.Y - S(4));
+        cha.Controls.Add(v);
+        return v;
+    }
+
+    private void Rob(string ten, int x, int y, int w, int h)
+        => _body.Controls.Add(new HinhRob { Hinh = Anh3D.Rob(ten), Location = ToaDo(_body, x, y), Size = new Size(S(w), S(h)) });
+
+    private Label Lien(Control cha, int x, int y, string text, Action bam, Color? mau = null)
+    {
+        var l = X(cha, x, y, text, Kieu.S, 0, mau ?? Clay.Canh, dam: true);
+        l.Cursor = Cursors.Hand;
+        l.Click += (_, _) => bam();
+        return l;
+    }
+
+    private static ClayButton Nut(string text, bool chinh, int w)
+    {
+        var lb = VeNut.LeBong;
+        return new ClayButton
+        {
+            Text = text, Size = new Size(S(w) + lb.Horizontal, S(48) + lb.Vertical), Font = new Font("Segoe UI", 12f, FontStyle.Bold),
+            BackColor = chinh ? Chinh : Clay.The, ForeColor = chinh ? Color.White : Chu,
+        };
+    }
+
+    /// <summary>Nút ở chân (cao 48, đỉnh 14) tại x thiết kế.</summary>
+    private ClayButton NutChan(string text, int x, int w, bool chinh, Action bam)
+    {
+        var b = Nut(text, chinh, w);
+        var lb = VeNut.LeBong;
+        b.Location = new Point(S(x) - lb.Left, S(14) - lb.Top);
         b.Click += (_, _) => bam();
         _chan.Controls.Add(b);
         return b;
     }
 
-    /// <summary>Dòng có dấu tick đầu (giống TickDong của app).</summary>
-    private Label Tick(string chu, bool xong = true) => T((xong ? "✔   " : "○   ") + chu, 11f, false, xong ? Chu : Chu2);
+    /// <summary>Nút chính: lề phải 34px như thiết kế (left = 687 − w).</summary>
+    private ClayButton NutChinh(string text, int w, Action bam) => NutChan(text, 687 - w, w, true, bam);
+    private ClayButton NutLui(Action bam, string text = "Quay lại") => NutChan(text, 36, 132, false, bam);
 
-    /// <summary>Thẻ lựa chọn lớn: tiêu đề đậm + câu «Chọn cái này nếu…»; viền xanh khi được chọn.</summary>
-    private sealed class The : Panel, IVeNenRieng
+    /// <summary>Sang một màn: xoá thân + chân, đặt thanh bước.</summary>
+    private void Man(int buoc, string ten, bool daiNgoc = false)
     {
-        public bool Chon { get => _chon; set { _chon = value; BackColor = value ? ChinhSoft : Clay.The; Invalidate(true); } }
-        private bool _chon;
-        public The() { DoubleBuffered = true; BackColor = Clay.The; Cursor = Cursors.Hand; Padding = new Padding(S(18), S(16), S(18), S(16)); }
-        /// <summary>Lề bóng Clay theo DPI (VeThe.LeBong) — nội dung đặt lệch vào trong lề này.</summary>
-        public static Padding Le => VeThe.LeBong;
-        /// <summary>Thẻ Clay: thân đất sét có bóng kép; được chọn ⇒ nền ngọc nhạt + viền ngọc 2,5 (không chỉ dựa vào màu: viền dày hơn hẳn).</summary>
-        protected override void OnPaintBackground(PaintEventArgs e)
-        {
-            e.Graphics.Clear(Parent?.BackColor ?? Nen);
-            VeNenRieng(e.Graphics, false);
-        }
-
-        public void VeNenRieng(Graphics g, bool ngoaiCung)
-        {
-            if (ngoaiCung) g.Clear(Parent?.BackColor ?? Nen);
-            var le = Le;
-            var r = new RectangleF(le.Left, le.Top, Width - le.Horizontal, Height - le.Vertical);
-            if (r.Width < 4 || r.Height < 4) return;
-            var k = Clay.S(20);
-            VeThe.Ve(this, g, k, false);   // bóng kép + thân, lề bóng theo DPI (BackColor = ngọc nhạt khi chọn)
-            if (_chon)
-            {
-                using var path = Clay.Bo(RectangleF.Inflate(r, -Clay.S(1.5f), -Clay.S(1.5f)), k - Clay.S(1.5f));
-                using var pen = new Pen(Chinh, Clay.S(2.5f));
-                g.DrawPath(pen, path);
-            }
-        }
+        _body.SuspendLayout();
+        foreach (Control c in _body.Controls.Cast<Control>().ToList()) { _body.Controls.Remove(c); c.Dispose(); }
+        foreach (Control c in _chan.Controls.Cast<Control>().ToList()) { _chan.Controls.Remove(c); c.Dispose(); }
+        _body.AutoScrollPosition = Point.Empty;
+        _body.Buoc = buoc;
+        _body.ChuBuoc = buoc > TongBuoc ? ten : $"Bước {buoc}/{TongBuoc} · {ten}";
+        _body.DaiNgoc = daiNgoc;
+        _body.ResumeLayout();
+        _body.Invalidate();
     }
 
-    private The TheChon(string tieu, string khi, Action bam)
-    {
-        var the = new The { Width = Rong, Margin = new Padding(0, 0, 0, S(10)) };
-        var le = The.Le;
-        var rongChu = Rong - the.Padding.Horizontal - S(4) - le.Horizontal;
-        var t1 = T(tieu, 12.5f, true, Chu, rongChu); t1.Location = new Point(the.Padding.Left + le.Left, the.Padding.Top + le.Top); t1.Margin = Padding.Empty;
-        var t2 = T(khi, 10.5f, false, Chu2, rongChu); t2.Location = new Point(t1.Left, t1.Top + t1.PreferredHeight + S(4)); t2.Margin = Padding.Empty;
-        the.Controls.Add(t1); the.Controls.Add(t2);
-        the.Height = t2.Top + t2.PreferredHeight + the.Padding.Bottom + le.Bottom;   // + lề bóng Clay (theo DPI)
-        foreach (Control c in new Control[] { the, t1, t2 }) c.Click += (_, _) => bam();
-        return the;
-    }
-
-    // ---------------------------------------------------------------- 1. Chào
+    // ================================================================ 1. Chào
 
     private void BuocChao()
     {
-        Man(1, "Chào Ba Mẹ", "Cài AiiGrow lên máy của Con");
-        _body.Controls.Add(T("Mất khoảng 2 phút. AiiGrow hướng dẫn từng bước, Ba Mẹ chỉ cần bấm Tiếp."));
-        _body.Controls.Add(Tick("Ba Mẹ đặt giờ chơi, giờ học, giờ ngủ ngay trên điện thoại"));
-        _body.Controls.Add(Tick("Con làm việc tốt → được điểm → đổi phút chơi trò chơi, phiếu quà"));
-        _body.Controls.Add(Tick("Con luôn thấy biểu tượng AiiGrow ở góc màn hình — không có gì giấu Con"));
-        _body.Controls.Add(T("Chuẩn bị: điện thoại có app AiiGrow (vào aiigrow.aiilab.vn nếu chưa có) để lấy mã ghép máy 6 số.", 10.5f, false, Chu2));
+        Man(1, "Chào");
+        Rob("chi", 24, 96, 240, 320);
+        X(_body, 282, 100, "Cài AiiGrow lên\n" + (_child != null ? "máy của " + _child.Name : "máy tính của con"), Kieu.H28);
+        X(_body, 282, 180, "Khoảng 2 phút · Ba Mẹ chỉ cần bấm theo", Kieu.P);
+        Vien(_body, 282, 232, "lich", mau: "ngoc"); X(_body, 354, 238, "Ba Mẹ đặt giờ chơi", Kieu.B); X(_body, 354, 262, "ngay trên điện thoại", Kieu.S);
+        Vien(_body, 282, 306, "sao", mau: "ngoc"); X(_body, 354, 312, "Làm việc tốt, nhận sao", Kieu.B); X(_body, 354, 336, "10 sao = 10 phút chơi", Kieu.S);
+        Vien(_body, 282, 380, "mat", mau: "ngoc"); X(_body, 354, 386, "Con luôn thấy AiiGrow", Kieu.B); X(_body, 354, 410, "Không có gì giấu con", Kieu.S);
         if (Installer.IsAdmin())
-            Tiep("Bắt đầu", BuocDieuKhoan);
+            NutChinh("Bắt đầu cài", 220, BuocDieuKhoan);
         else
         {
-            _body.Controls.Add(T("Bộ cài chưa có quyền cài đặt. Đóng cửa sổ này, bấm chuột phải vào AiiGrow-Setup.exe → «Run as administrator» (Chạy với tư cách quản trị viên), rồi gõ mật khẩu máy của Ba Mẹ.",
-                11f, true, Loi));
-            Tiep("Đóng", Close, 140);
+            // Bộ cài cần quyền quản trị (manifest đã xin; chạy kiểu khác thì báo cách mở lại).
+            X(_body, 282, 460, "Bộ cài chưa có quyền cài đặt. Đóng cửa sổ này, bấm chuột phải vào AiiGrow-Setup.exe › «Run as administrator», rồi gõ mật khẩu máy của Ba Mẹ.",
+                Kieu.S, 405, Loi, dam: true);
+            NutChinh("Đóng", 160, Close);
         }
     }
 
-    // ---------------------------------------------------------------- 2. Điều khoản ngắn
+    // ================================================================ 2. Đồng ý
 
     private void BuocDieuKhoan()
     {
-        Man(2, "Điều khoản", "Trước khi cài, Ba Mẹ đọc nhanh", BuocChao);
-        _body.Controls.Add(Tick("AiiGrow ghi tên app, trang web và số phút Con dùng máy để Ba Mẹ xem. Chỉ gia đình mình xem được."));
-        _body.Controls.Add(Tick("Không chụp màn hình, không đọc tin nhắn, không ghi bàn phím của Con."));
-        _body.Controls.Add(Tick("Cài xong là chặn luôn: app chưa được Ba Mẹ xếp loại không mở được, Con bấm «Xin phép Ba Mẹ» để Ba Mẹ duyệt. Ba Mẹ chuyển «Chỉ theo dõi» (không chặn) bất cứ lúc nào, ngay trong app."));
-        _body.Controls.Add(Tick("Gỡ được bất cứ lúc nào: Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt, cần mật khẩu máy của Ba Mẹ."));
-        var co = new CheckBox
+        Man(2, "Đồng ý");
+        X(_body, 36, 72, "AiiGrow làm gì trên máy này?", Kieu.H);
+        var co = The(36, 128, 315, 262);
+        ChipTai(co, 56, 146, "AiiGrow có", Clay.NgocSoft, Clay.NgocInk, "tick");
+        foreach (var (y, icon, chu) in new[] { (196, "dong_ho_cat", "Đếm phút con dùng app, web"), (260, "khoa", "Chỉ mở app Ba Mẹ cho phép"), (324, "chuong", "Báo khi con xin app mới") })
+        { Vien(co, 56, y, icon, 44, "ngoc"); X(co, 112, y + 11, chu, Kieu.B, 230); }
+        var khong = The(372, 128, 315, 262);
+        ChipTai(khong, 392, 146, "AiiGrow không", Clay.CanhSoft, Clay.Canh, "x");
+        foreach (var (y, icon, chu) in new[] { (196, "camera", "Không chụp màn hình"), (260, "tin", "Không đọc tin nhắn"), (324, "x", "Không ghi phím con gõ") })
+        { Vien(khong, 392, y, icon, 44, "cam"); X(khong, 448, y + 11, chu, Kieu.B, 230); }
+        X(_body, 38, 410, "Gỡ AiiGrow lúc nào cũng được, cần mật khẩu máy của Ba Mẹ.", Kieu.P);
+        var cb = new CheckBox
         {
-            Text = "Tôi là Ba/Mẹ (hoặc người giám hộ) của Con và đồng ý cài AiiGrow lên máy này",
-            AutoSize = true, MaximumSize = new Size(Rong, 0), Font = new Font("Segoe UI", 11f, FontStyle.Bold), ForeColor = Chu,
-            Checked = _dongY, Margin = new Padding(0, S(8), 0, S(8)),
+            Text = "Tôi là người lớn trong nhà và đồng ý cài AiiGrow", AutoSize = true, UseMnemonic = false, Checked = _dongY,
+            Font = new Font("Segoe UI", 12f, FontStyle.Bold), ForeColor = Chu, BackColor = Color.Transparent, Location = ToaDo(_body, 36, 460),
         };
-        _body.Controls.Add(co);
-        var tiep = Tiep("Tiếp", BuocTaiKhoan);
+        _body.Controls.Add(cb);
+        NutLui(BuocChao);
+        var tiep = NutChinh("Đồng ý, chọn tài khoản", 260, BuocTaiKhoan);
         tiep.Enabled = _dongY;
-        co.CheckedChanged += (_, _) => { _dongY = co.Checked; tiep.Enabled = co.Checked; };
+        cb.CheckedChanged += (_, _) => { _dongY = cb.Checked; tiep.Enabled = cb.Checked; };
     }
 
-    // ---------------------------------------------------------------- 3. Tài khoản của Con
+    private Chip ChipTai(Control cha, int x, int y, string chu, Color nen, Color mau, string? icon = null)
+    {
+        var c = new Chip { Chu = chu, Nen2 = nen, Mau = mau, Hinh = icon == null ? null : Anh3D.Icon(icon), Height = S(32), Location = ToaDo(cha, x, y) };
+        c.CoTheoChu();
+        cha.Controls.Add(c);
+        return c;
+    }
+
+    // ================================================================ 3. Tài khoản của con
 
     private static string? SidDangDung()
     {
@@ -223,80 +414,145 @@ internal sealed class SetupForm : Form
 
     private async void BuocTaiKhoan()
     {
-        Man(3, "Tài khoản của Con", "Con mở máy bằng tài khoản nào?", BuocDieuKhoan);
-        _body.Controls.Add(T("Đang đọc các tài khoản trên máy…"));
+        Man(3, "Tài khoản");
+        X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+        X(_body, 38, 112, "Đang đọc các tài khoản trên máy…", Kieu.P);
         try { _accounts = await Task.Run(Accounts.List); }
         catch (Exception e)
         {
-            Man(3, "Tài khoản của Con", "Con mở máy bằng tài khoản nào?", BuocDieuKhoan);
-            _body.Controls.Add(T("Chưa đọc được các tài khoản trên máy: " + e.Message, 11f, false, Loi));
-            Tiep("Thử lại", BuocTaiKhoan, 140);
+            Man(3, "Tài khoản");
+            X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+            X(_body, 38, 112, "Chưa đọc được các tài khoản trên máy: " + e.Message, Kieu.P, 650, Loi);
+            NutLui(BuocDieuKhoan);
+            NutChinh("Thử lại", 160, BuocTaiKhoan);
             return;
         }
         var toi = SidDangDung();
-        var coSan = _accounts.Where(a => !a.IsAdmin && a.Sid != toi).ToList();
-        // Gợi ý mặc định: máy đã có tài khoản giới hạn (không phải tài khoản đang dùng) ⇒ chắc là của Con; không thì tạo mới.
-        HienTaiKhoan(coSan.Count > 0 ? 1 : 2);
+        // Gợi ý: máy đã có tài khoản giới hạn (không phải tài khoản đang dùng) ⇒ chắc là của con; không thì tạo mới.
+        HienTaiKhoan(_accounts.Any(a => !a.IsAdmin && a.Sid != toi) ? 1 : 2);
     }
 
-    /// <summary>Hai lựa chọn dạng thẻ lớn; <paramref name="cach"/> 1 = Con đã có tài khoản riêng, 2 = tạo mới.</summary>
+    /// <summary><paramref name="cach"/> 1 = con đã có tài khoản riêng (danh sách), 2 = tạo tài khoản mới.</summary>
     private void HienTaiKhoan(int cach)
     {
-        Man(3, "Tài khoản của Con", "Con mở máy bằng tài khoản nào?", BuocDieuKhoan);
-        _body.Controls.Add(T("Tài khoản Windows là tên đăng nhập khi mở máy. Con nên có tài khoản riêng để AiiGrow quản lý giờ chơi của Con mà không ảnh hưởng tài khoản của Ba Mẹ."));
-        var t1 = TheChon("Con đã có tài khoản riêng trên máy này",
-            "Chọn cái này nếu khi mở máy, Con bấm vào tên của Con (khác tên của Ba Mẹ) để vào.", () => HienTaiKhoan(1));
-        var t2 = TheChon("Máy chưa có tài khoản riêng cho Con",
-            "Chọn cái này nếu cả nhà dùng chung một tài khoản, hoặc Con đang dùng tài khoản của Ba Mẹ. AiiGrow tạo tài khoản mới cho Con, tài khoản của Ba Mẹ giữ nguyên.",
-            () => HienTaiKhoan(2));
-        t1.Chon = cach == 1; t2.Chon = cach == 2;
-        _body.Controls.Add(t1);
-        _body.Controls.Add(t2);
-        _body.Controls.Add(T("Không chắc? Chọn «Máy chưa có tài khoản riêng cho Con» — an toàn nhất.", 10.5f, false, Chu2));
         if (cach == 1) ChonCoSan(); else TaoMoi();
     }
 
     private void ChonCoSan()
     {
+        Man(3, "Tài khoản");
         var toi = SidDangDung();
-        _body.Controls.Add(T("Chọn tài khoản của Con:", 11f, true));
-        _body.Controls.Add(T("Tài khoản của Con phải là loại giới hạn: Con không tự tắt hay gỡ AiiGrow, không chỉnh giờ máy được. Nếu Con đang dùng loại toàn quyền, AiiGrow đổi sang giới hạn — gỡ AiiGrow thì trả lại như cũ.",
-            10.5f, false, Chu2));
-        _child = null;
-        var tiep = Tiep("Tiếp", () => { if (_child != null) KiemTaiKhoan(_child); });
-        tiep.Enabled = false;
-        foreach (var a in _accounts)
+        X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+        X(_body, 38, 112, "Tài khoản của con sẽ là loại giới hạn: con không tự gỡ AiiGrow được.", Kieu.P);
+        // Tài khoản đang dùng (người cài — Ba Mẹ) lên cuối, mờ, không chọn được.
+        var ds = _accounts.OrderBy(a => a.Sid == toi).ThenBy(a => a.IsAdmin).ToList();
+        var cao = 96 + Math.Max(1, ds.Count) * 52 + 14;
+        var the = The(36, 152, 651, cao, chon: true);
+        Vien(the, 56, 170, "nguoi", mau: "ngoc");
+        X(the, 128, 176, "Con đã có tài khoản riêng", Kieu.B);
+        X(the, 128, 200, "Tên con bấm vào khi mở máy", Kieu.S);
+        if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid))) _child = null;
+        ClayButton? tiep = null;
+        var hang = new List<(ClayCard The, LocalAccount Tk)>();
+        void VeChon()
         {
-            var loai = a.IsAdmin ? "Toàn quyền — kiểu tài khoản của Ba Mẹ" : "Giới hạn — kiểu tài khoản của Con";
-            var rb = new RadioButton
+            foreach (var (h, a) in hang)
             {
-                AutoSize = true, MaximumSize = new Size(Rong, 0), Margin = new Padding(S(4), 0, 0, S(10)), Font = new Font("Segoe UI", 12f), ForeColor = Chu,
-                Text = a.Name + (a.Sid == toi ? "  (bạn đang dùng)" : "") + "\n" + loai,
-            };
-            rb.CheckedChanged += (_, _) => { if (rb.Checked) { _child = a; tiep.Enabled = true; } };
-            _body.Controls.Add(rb);
+                var chon = _child?.Sid == a.Sid;
+                h.Lom = !chon;
+                h.BackColor = chon ? Color.White : Clay.Lom;
+                h.VeLaiNen();
+            }
+            if (tiep != null)
+            {
+                tiep.Enabled = _child != null;
+                tiep.Text = _child != null ? "Dùng tài khoản " + _child.Name : "Chọn tài khoản của con";
+            }
         }
+        if (ds.Count == 0) X(the, 58, 252, "Máy chưa có tài khoản nào khác. Chọn «tạo tài khoản mới» bên dưới.", Kieu.S, 600);
+        for (int i = 0; i < ds.Count; i++)
+        {
+            var a = ds[i];
+            var la = a.Sid == toi;
+            var y = 248 + i * 52;
+            var lb = VeThe.LeBong;
+            var p = ToaDo(the, 56, y);
+            var h = new ClayCard
+            {
+                Lom = true, BoGoc = Clay.S(20), BackColor = Clay.Lom, Tag = new Point(56, y),
+                Location = new Point(p.X - lb.Left, p.Y - lb.Top), Size = new Size(S(611) + lb.Horizontal, S(40) + lb.Vertical),
+            };
+            the.Controls.Add(h);
+            var cham = new Label { AutoSize = false, Size = new Size(S(18), S(18)), Location = ToaDo(h, 72, y + 11), BackColor = Color.Transparent };
+            cham.Paint += (_, e) =>
+            {
+                Clay.ChatLuong(e.Graphics);
+                var r = new RectangleF(Clay.S(1), Clay.S(1), cham.Width - Clay.S(2), cham.Height - Clay.S(2));
+                var chon = _child?.Sid == a.Sid;
+                using (var b = new SolidBrush(Color.White)) e.Graphics.FillEllipse(b, r);
+                using var pen = new Pen(chon ? Chinh : Color.FromArgb(0xa9, 0xac, 0xa9), chon ? Clay.S(5) : Clay.S(2));
+                e.Graphics.DrawEllipse(pen, RectangleF.Inflate(r, -pen.Width / 2, -pen.Width / 2));
+            };
+            h.Controls.Add(cham);
+            var ten = X(h, 102, y + 10, a.Name, Kieu.B, 0, la ? Clay.Chu3 : Chu);
+            var phu = la ? "bạn đang dùng · toàn quyền, không chọn cho con"
+                : a.IsAdmin ? "toàn quyền · sẽ đổi sang loại giới hạn" : "sẽ là loại giới hạn";
+            X(h, 102 + (int)Math.Ceiling(ten.PreferredWidth / Clay.Scale) + 14, y + 11, phu, Kieu.S, 0, la ? Clay.Chu3 : Clay.NgocInk);
+            if (!la)
+            {
+                BamDuoc(h, () => { _child = a; VeChon(); foreach (var (hh, _) in hang) hh.Invalidate(true); });
+                hang.Add((h, a));
+            }
+        }
+        var yTao = 152 + cao + 20;
+        var tao = The(36, yTao, 651, 90, bam: () => TaoMoi());
+        Vien(tao, 56, yTao + 17, "cong");
+        X(tao, 128, yTao + 23, "Chưa có, tạo tài khoản mới cho con", Kieu.B);
+        X(tao, 128, yTao + 47, "Không chắc thì chọn cái này, an toàn nhất", Kieu.S);
+        NutLui(BuocDieuKhoan);
+        tiep = NutChinh("Chọn tài khoản của con", 250, () => { if (_child != null) KiemTaiKhoan(_child); });
+        VeChon();
     }
 
     private void TaoMoi()
     {
-        _body.Controls.Add(T("Tên đăng nhập của Con — gõ không dấu, không khoảng trắng, ví dụ: bin", 11f, true));
-        var ten = new TextBox { Font = new Font("Segoe UI", 13f), MaxLength = 20 };
-        _body.Controls.Add(ONhapClay.Boc(ten, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));   // lòng chảo Clay thân ≥44; lề bóng dưới (~12) là khoảng cách tới dòng sau
-        _body.Controls.Add(T("Mật khẩu Con gõ khi mở máy — ít nhất 4 ký tự. Ba Mẹ ghi lại giúp Con nhớ.", 11f, true));
-        var mk = new TextBox { Font = new Font("Segoe UI", 13f), UseSystemPasswordChar = true };
-        _body.Controls.Add(ONhapClay.Boc(mk, Math.Min(Clay.Si(320), Rong - VeThe.LeBong.Horizontal)));
-        var loi = T("", 11f, true, Loi);
-        _body.Controls.Add(loi);
-        _body.Controls.Add(T("Tài khoản mới là loại giới hạn: Con không tự tắt hay gỡ AiiGrow được.", 10.5f, false, Chu2));
-        Button? tiep = null;
-        tiep = Tiep("Tạo tài khoản", async () =>
+        Man(3, "Tài khoản");
+        X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+        var co = The(36, 122, 651, 72, bam: () => ChonCoSan());
+        Vien(co, 56, 136, "nguoi", 44);
+        X(co, 116, 147, "Con đã có tài khoản riêng", Kieu.B);
+        var the = The(36, 212, 651, 300, chon: true);
+        Vien(the, 56, 230, "cong", mau: "ngoc");
+        X(the, 128, 236, "Tạo tài khoản mới cho con", Kieu.B);
+        X(the, 128, 260, "Tài khoản của Ba Mẹ giữ nguyên", Kieu.S);
+        X(the, 58, 304, "Tên đăng nhập", Kieu.S, 0, Chu2, dam: true);
+        X(the, 372, 304, "Mật khẩu khi mở máy", Kieu.S, 0, Chu2, dam: true);
+        var ten = new TextBox { Font = new Font("Segoe UI", 12.75f), MaxLength = 20 };
+        var mk = new TextBox { Font = new Font("Segoe UI", 12.75f), UseSystemPasswordChar = true };
+        foreach (var (o, x, w) in new[] { (ten, 56, 296), (mk, 370, 297) })
+        {
+            var vo = ONhapClay.Boc(o, S(w));
+            var p = ToaDo(the, x, 326);
+            vo.Location = new Point(p.X - VeThe.LeBong.Left, p.Y - VeThe.LeBong.Top);
+            the.Controls.Add(vo);
+        }
+        var goiY = X(the, 58, 388, "Gõ không dấu · mật khẩu ít nhất 4 ký tự, Ba Mẹ ghi lại giúp con.", Kieu.S, 600);
+        // Dải cam: máy chỉ có một tài khoản (toàn quyền) và đang là của con ⇒ màn giải thích.
+        var dai = The(56, 426, 611, 64, nen: Clay.CanhSoft, bam: () => ManChiMotAdmin(), cha: the);
+        dai.BoGoc = Clay.S(20);
+        Vien(dai, 66, 436, "canh_bao", 44, "cam");
+        X(dai, 124, 447, "Máy chỉ có 1 tài khoản, đang là của con? ›", Kieu.B, 0, Clay.Canh);
+        NutLui(() => ChonCoSan());
+        ClayButton? tiep = null;
+        void DoiNhan() { if (tiep != null) tiep.Text = Accounts.IsValidName(ten.Text.Trim()) ? "Tạo tài khoản " + ten.Text.Trim() : "Tạo tài khoản"; }
+        tiep = NutChinh("Tạo tài khoản", 250, async () =>
         {
             var n = ten.Text.Trim();
-            if (!Accounts.IsValidName(n)) { loi.Text = "Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: bin"; return; }
-            if (_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) { loi.Text = $"Máy đã có tài khoản «{n}». Đặt tên khác, hoặc chọn «Con đã có tài khoản riêng»."; return; }
-            if (mk.Text.Length < 4) { loi.Text = "Mật khẩu cần ít nhất 4 ký tự."; return; }
-            tiep!.Enabled = false; loi.Text = "";
+            void Loi_(string c) { goiY.Text = c; goiY.ForeColor = Loi; goiY.Font = new Font("Segoe UI", 10f, FontStyle.Bold); }
+            if (!Accounts.IsValidName(n)) { Loi_("Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: baoanh"); return; }
+            if (_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) { Loi_($"Máy đã có tài khoản «{n}». Đặt tên khác, hoặc chọn «Con đã có tài khoản riêng»."); return; }
+            if (mk.Text.Length < 4) { Loi_("Mật khẩu cần ít nhất 4 ký tự."); return; }
+            tiep!.Enabled = false;
             try
             {
                 var pw = mk.Text;
@@ -304,120 +560,332 @@ internal sealed class SetupForm : Form
                 _child = new LocalAccount(n, sid, false);
                 BuocGhep();
             }
-            catch (Exception e) { loi.Text = "Chưa tạo được tài khoản: " + e.Message; tiep.Enabled = true; }
+            catch (Exception e) { Loi_("Chưa tạo được tài khoản: " + e.Message); tiep.Enabled = true; }
         });
+        ten.TextChanged += (_, _) => DoiNhan();
+        ten.Focus();
     }
 
-    /// <summary>Con chọn tài khoản toàn quyền: máy còn tài khoản toàn quyền khác ⇒ xác nhận rồi đi tiếp; không còn ⇒ giải thích từng bước.</summary>
+    /// <summary>Chọn tài khoản toàn quyền cho con: máy còn tài khoản toàn quyền khác ⇒ hỏi lại rồi đi tiếp; không còn ⇒ màn «Máy cần thêm tài khoản cho Ba Mẹ».</summary>
     private void KiemTaiKhoan(LocalAccount con)
     {
         if (!con.IsAdmin) { BuocGhep(); return; }
         var khac = _accounts.Count(a => a.IsAdmin && a.Sid != con.Sid);
         if (khac > 0)
         {
-            if (MessageBox.Show($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự tắt được AiiGrow. Gỡ AiiGrow thì trả lại như cũ.",
-                    "AiiGrow", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            if (MessageBox.Show($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được. Gỡ AiiGrow thì trả lại như cũ.",
+                    "Cài AiiGrow", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 BuocGhep();
             return;
         }
-        Man(3, "Tài khoản của Con", "Máy cần một tài khoản riêng của Ba Mẹ", () => HienTaiKhoan(1));
-        _body.Controls.Add(T($"Máy này chỉ có MỘT tài khoản toàn quyền, chính là «{con.Name}». Nếu đổi nó thành giới hạn, máy không còn ai cài đặt hay gỡ AiiGrow được nữa — nên AiiGrow không đổi."));
-        _body.Controls.Add(T("Cách dễ nhất (khuyên dùng):", 12f, true));
-        _body.Controls.Add(T("Bấm «Quay lại» → chọn «Máy chưa có tài khoản riêng cho Con» → AiiGrow tạo tài khoản mới cho Con. Tài khoản «" + con.Name + "» giữ làm tài khoản của Ba Mẹ."));
-        _body.Controls.Add(T("Nếu muốn Con giữ tài khoản «" + con.Name + "», tạo trước một tài khoản toàn quyền cho Ba Mẹ:", 12f, true));
-        foreach (var (i, b) in new[]
-                 {
-                     "Bấm nút Start (logo Windows) → Settings (Cài đặt, hình bánh răng).",
-                     "Chọn Accounts (Tài khoản) → Other users (Người dùng khác) → Add account (Thêm tài khoản).",
-                     "Bấm «I don't have this person's sign-in information», rồi «Add a user without a Microsoft account».",
-                     "Đặt tên cho Ba Mẹ (vd: bame) và mật khẩu → Next.",
-                     "Bấm vào tài khoản vừa tạo → Change account type (Đổi loại tài khoản) → chọn Administrator → OK.",
-                     "Chạy lại AiiGrow-Setup.exe, đến bước này chọn «" + con.Name + "» cho Con.",
-                 }.Select((b, i) => (i + 1, b)))
-            _body.Controls.Add(T($"{i}.  {b}", 11f, false, Chu));
-        Tiep("Quay lại chọn", () => HienTaiKhoan(2), 200);
+        ManChiMotAdmin(con);
     }
 
-    // ---------------------------------------------------------------- 4. Ghép máy
+    /// <summary>Máy chỉ có MỘT tài khoản toàn quyền (thường là tài khoản con đang dùng) ⇒ không hạ được; khuyên tạo tài khoản mới cho con.</summary>
+    private void ManChiMotAdmin(LocalAccount? con = null)
+    {
+        Man(3, "Tài khoản");
+        var ten = con?.Name ?? (_accounts.Where(a => a.IsAdmin).ToList() is { Count: 1 } mot ? mot[0].Name
+            : _accounts.FirstOrDefault(a => a.Sid == SidDangDung())?.Name ?? "tài khoản đang dùng");
+        Rob("trong-loi", 24, 96, 210, 290);
+        X(_body, 252, 84, "Máy cần thêm tài khoản\ncho Ba Mẹ", Kieu.H);
+        X(_body, 252, 160, $"Máy chỉ có 1 tài khoản toàn quyền là «{ten}». Đổi nó sang giới hạn thì không ai gỡ hay chỉnh AiiGrow được nữa.", Kieu.P, 430);
+        var the = The(252, 244, 435, 116, chon: true);
+        Vien(the, 272, 262, "lap_lanh", mau: "ngoc");
+        X(the, 344, 268, "Cách dễ nhất", Kieu.B);
+        X(the, 344, 292, "Tạo tài khoản mới cho con.", Kieu.S, 330);
+        X(the, 344, 310, $"«{ten}» giữ làm tài khoản của Ba Mẹ.", Kieu.S, 330);
+        X(_body, 254, 384, $"Muốn giữ «{ten}» cho con: tạo trước 1 tài khoản toàn quyền cho Ba Mẹ trong Cài đặt Windows › Tài khoản, rồi chạy lại bộ cài.", Kieu.S, 430);
+        NutLui(() => ChonCoSan());
+        NutChinh("Tạo tài khoản mới cho con", 300, TaoMoi);
+    }
 
-    /// <summary>Mã 6 số Ba Mẹ lấy trong app (bước «Ghép máy» khi đăng ký, hoặc Hồ sơ Con › Ghép thêm máy) — cách ghép duy nhất.</summary>
+    // ================================================================ 4. Ghép máy
+
+    /// <summary>Ô mã 6 ô số (lòng chảo 52×64): gõ / dán «482 017» tự dàn đủ 6 ô; Backspace ở ô trống lùi về ô trước.</summary>
+    private sealed class OMa6 : Panel
+    {
+        private readonly TextBox[] _o = new TextBox[6];
+        private bool _dang;
+        public event Action? Doi;
+        public OMa6()
+        {
+            BackColor = Color.Transparent;
+            var lb = VeThe.LeBong;
+            for (int i = 0; i < 6; i++)
+            {
+                var o = new TextBox { Font = new Font("Segoe UI", 21f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, MaxLength = 7 };
+                var vo = ONhapClay.Boc(o, S(52));
+                vo.Location = new Point(S(i * 60), 0);
+                Controls.Add(vo);
+                _o[i] = o;
+                var k = i;
+                o.KeyPress += (_, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
+                o.KeyDown += (_, e) => { if (e.KeyCode == Keys.Back && o.TextLength == 0 && k > 0) { _o[k - 1].Text = ""; _o[k - 1].Focus(); e.SuppressKeyPress = true; } };
+                o.TextChanged += (_, _) => GoVao(k);
+                if (i == 5) { Width = vo.Right; Height = vo.Height; }
+            }
+        }
+        private void GoVao(int k)
+        {
+            if (_dang) return;
+            var t = LoiGhep.ChuanMa(_o[k].Text);
+            if (t.Length > 1) { Ma = Ma[..k] + t; return; }   // dán / gõ nhanh ⇒ dàn sang các ô sau
+            _dang = true;
+            if (_o[k].Text != t) _o[k].Text = t;
+            _dang = false;
+            if (t.Length == 1 && k < 5) _o[k + 1].Focus();
+            Doi?.Invoke();
+        }
+        public string Ma
+        {
+            get => string.Concat(_o.Select(o => LoiGhep.ChuanMa(o.Text)));
+            set
+            {
+                var m = LoiGhep.ChuanMa(value);
+                _dang = true;
+                for (int i = 0; i < 6; i++) _o[i].Text = i < m.Length ? m[i].ToString() : "";
+                _dang = false;
+                _o[Math.Min(m.Length, 5)].Focus();
+                Doi?.Invoke();
+            }
+        }
+        public bool Sai { set { foreach (var o in _o) o.ForeColor = value ? Clay.Loi : Clay.Chu; } }
+        public void VaoO() => _o[Math.Min(Ma.Length, 5)].Focus();
+    }
+
+    /// <summary>Khung chung bước 4: tiêu đề + thẻ điện thoại Ba Mẹ minh hoạ bên trái.</summary>
+    private void KhungGhep(string tieu)
+    {
+        Man(4, "Ghép máy");
+        X(_body, 36, 72, tieu, Kieu.H);
+        var dt = The(36, 126, 256, 340);
+        var ve = new DienThoai { Size = new Size(S(141), S(237)), Location = ToaDo(dt, 94, 146) };
+        dt.Controls.Add(ve);
+        var a = X(dt, 36, 396, "Điện thoại Ba Mẹ", Kieu.B);
+        var b = X(dt, 36, 420, "AiiGrow › Ghép máy", Kieu.S);
+        foreach (var l in new[] { a, b }) { l.AutoSize = false; l.Size = new Size(S(256), l.PreferredHeight); l.TextAlign = ContentAlignment.TopCenter; }
+    }
+
+    /// <summary>Bước 4. Có gói từ link Ba Mẹ gửi ⇒ tự ghép (một nút); không ⇒ gõ mã 6 số (hạn 10 phút).</summary>
     private void BuocGhep()
     {
         var child = _child!;
-        Man(4, "Ghép máy", $"Nhập mã ghép máy cho {child.Name}", BuocTaiKhoan);   // quay lại: đọc lại danh sách (tài khoản vừa tạo hiện trong đó)
-        _body.Controls.Add(T("Trên điện thoại của Ba Mẹ, mở app AiiGrow → bước «Ghép máy» (hoặc Hồ sơ Con › Ghép thêm máy). App hiện mã 6 số — gõ vào ô dưới. Mã hết hạn sau 15 phút."));
-        var ma = new TextBox
+        if (DungGoi)
         {
-            MaxLength = 6, Font = new Font("Segoe UI", 26f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center,
-        };
-        _body.Controls.Add(ONhapClay.Boc(ma, Math.Min(Clay.Si(260), Rong - VeThe.LeBong.Horizontal), new Padding(0, S(4), 0, 0)));   // lòng chảo Clay như các ô khác
-        var loi = T("", 11f, true, Loi);
-        _body.Controls.Add(loi);
-        Tiep("Ghép và cài đặt", () =>
+            KhungGhep("Máy tự ghép bằng link Ba Mẹ gửi");
+            Vien(_body, 318, 146, "lap", mau: "ngoc");
+            X(_body, 390, 152, "Bộ cài này mở từ link Ba Mẹ gửi", Kieu.B, 300);
+            X(_body, 390, 176, "Không cần gõ mã. Bấm «Ghép và cài» là xong.", Kieu.S, 300);
+            ChipTai(_body, 316, 236, "Ghép vào nhà trong app Ba Mẹ", Clay.NgocSoft, Clay.NgocInk, "tick");
+            X(_body, 318, 290, $"Tài khoản {child.Name} sẽ là loại giới hạn.", Kieu.P, 370);
+            var theLink = The(316, 372, 371, 94);
+            Vien(theLink, 334, 397, "dong_ho_cat", 44, "ngoc");
+            X(theLink, 392, 394, "Link hết hạn hoặc lỗi?", Kieu.B, 280);
+            Lien(theLink, 392, 420, "Gõ mã 6 số thay vì link ›", () => { _dungMa = true; BuocGhep(); }, Clay.NgocInk);
+            NutLui(() => ChonCoSan());
+            NutChinh("Ghép và cài", 240, () => BuocCai(new InstallOptions { Server = _goi!.Server, Package = _goi, Child = child }));
+            return;
+        }
+        KhungGhep("Gõ mã 6 số trên điện thoại Ba Mẹ");
+        X(_body, 318, 146, "Mã ghép", Kieu.B);
+        var o = new OMa6 { Location = ToaDo(_body, 316, 176) };
+        o.Location = new Point(o.Left - VeThe.LeBong.Left, o.Top - VeThe.LeBong.Top);
+        _body.Controls.Add(o);
+        var chip = ChipTai(_body, 316, 262, "Mã dùng được 10 phút", Clay.NgocSoft, Clay.NgocInk, "dong_ho_cat");
+        var loi = X(_body, 346, 264, "", Kieu.B, 340, Loi);
+        loi.Visible = false;
+        X(_body, 318, 310, "Ghép xong, máy vào nhà mình trong app Ba Mẹ.", Kieu.P, 370);
+        var the = The(316, 372, 371, 94);
+        Vien(the, 334, 397, "lap", 44, "ngoc");
+        X(the, 392, 394, "Mở bộ cài từ link Ba Mẹ gửi?", Kieu.B, 280);
+        X(the, 392, 420, "Máy tự ghép, không cần gõ mã.", Kieu.S, 280);
+        if (_goi != null) Lien(_body, 318, 338, "Dùng link Ba Mẹ gửi ›", () => { _dungMa = false; BuocGhep(); }, Clay.NgocInk);
+        NutLui(() => ChonCoSan());
+        void Gui()
         {
-            var m = ma.Text.Trim();
-            if (m.Length != 6 || !m.All(char.IsDigit)) { loi.Text = "Mã ghép gồm đúng 6 chữ số."; return; }
-            BuocCai(new InstallOptions { Server = _server, Code = m, Child = child });
-        });
-        ma.Focus();
+            if (LoiGhep.CauThieu(o.Ma) is { } thieu)
+            {
+                chip.Visible = false; loi.Visible = true; loi.Text = "⚠  " + thieu;
+                o.VaoO();
+                return;
+            }
+            BuocCai(new InstallOptions { Server = _server, Code = o.Ma, Child = child });
+        }
+        NutChinh("Ghép vào nhà", 240, Gui);
+        o.Doi += () => { if (loi.Visible) { loi.Visible = false; chip.Visible = true; } };
+        o.VaoO();
     }
 
-    // ---------------------------------------------------------------- 5. Cài + Xong
+    /// <summary>Máy chủ báo mã không đúng (404 ma_sai) — chưa cài gì.</summary>
+    private void ManMaSai(InstallOptions o)
+    {
+        KhungGhep("Gõ mã 6 số trên điện thoại Ba Mẹ");
+        X(_body, 318, 146, "Mã ghép", Kieu.B);
+        var oma = new OMa6 { Location = ToaDo(_body, 316, 176) };
+        oma.Location = new Point(oma.Left - VeThe.LeBong.Left, oma.Top - VeThe.LeBong.Top);
+        _body.Controls.Add(oma);
+        oma.Ma = o.Code;
+        oma.Sai = true;
+        oma.Enabled = false;
+        Vien(_body, 312, 256, "canh_bao", 24);
+        X(_body, 346, 264, "Mã chưa đúng. Xem lại 6 số nhé.", Kieu.B, 340, Loi);
+        X(_body, 318, 310, "So từng số với mã trên điện thoại Ba Mẹ.", Kieu.P, 370);
+        var the = The(316, 372, 371, 94);
+        Vien(the, 334, 397, "dong_ho_cat", 44, "ngoc");
+        X(the, 392, 394, "Xin Ba Mẹ mã mới trên điện thoại", Kieu.B, 280);
+        X(the, 392, 420, "AiiGrow › Ghép máy › Lấy mã mới", Kieu.S, 280);
+        NutChinh("Gõ lại mã", 220, () => { _dungMa = true; BuocGhep(); });
+    }
 
-    private static readonly string[] StepLabels = { "Ghép máy với điện thoại của Ba Mẹ", "Tài khoản {0} là loại giới hạn", "Cài dịch vụ AiiGrow", "Biểu tượng AiiGrow + lời chào khi mở máy" };
+    // ================================================================ 5. Cài + lỗi + Xong
 
     private async void BuocCai(InstallOptions o)
     {
         var child = o.Child;
-        Man(5, "Cài đặt", "Đang cài AiiGrow…");
-        var thanh = new ProgressBar { Width = Rong, Height = S(14), Maximum = StepLabels.Length, Style = ProgressBarStyle.Continuous, Margin = new Padding(0, S(4), 0, S(16)) };
+        Man(5, "Cài");
+        Rob("cho", 24, 96, 220, 300);
+        X(_body, 270, 90, "Đang cài AiiGrow…", Kieu.H);
+        X(_body, 270, 130, "Còn khoảng 1 phút · đừng tắt máy nhé", Kieu.P);
+        var thanh = new ThanhTienDo { Size = new Size(S(417), S(18)), Location = ToaDo(_body, 270, 174), PhanTram = 0.04f };
         _body.Controls.Add(thanh);
-        var labels = StepLabels.Select(l => string.Format(l, child.Name)).ToArray();
-        var ticks = labels.Select(l => Tick(l, false)).ToArray();
-        foreach (var t in ticks) { t.Margin = new Padding(0, 0, 0, S(6)); _body.Controls.Add(t); }
-        var status = T("Đừng tắt máy trong lúc cài.", 11f, true, Chinh);
-        _body.Controls.Add(status);
+        var chu = new[] { "Ghép vào nhà", $"Tài khoản {child.Name}: loại giới hạn", "Đang cài AiiGrow", "Gắn AiiGrow cạnh đồng hồ" };
+        var dau = new DauTick[4];
+        var dong = new Label[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var y = 222 + i * 46;
+            dau[i] = new DauTick { Size = new Size(S(26), S(26)), Location = ToaDo(_body, 270, y), TrangThai = i == 0 ? 1 : 0 };
+            _body.Controls.Add(dau[i]);
+            dong[i] = X(_body, 308, y + 2, chu[i], Kieu.P, 380, i == 0 ? Clay.NgocInk : Clay.Chu3, dam: i == 0);
+        }
+        var chan = new Label { AutoSize = true, Text = "Cài xong, AiiGrow tự sang bước cuối.", Font = new Font("Segoe UI", 11.25f), ForeColor = Chu2, Location = new Point(S(36), S(27)), BackColor = Color.Transparent };
+        _chan.Controls.Add(chan);
+        void Buoc(int i)
+        {
+            dau[i].TrangThai = 2;
+            dong[i].ForeColor = Chu; dong[i].Font = new Font("Segoe UI", 11.25f);
+            if (i == 0) dong[0].Text = "Đã ghép vào nhà" + (string.IsNullOrWhiteSpace(o.Pair?.ChildName) ? "" : " · hồ sơ " + o.Pair!.ChildName);
+            if (i == 2) dong[2].Text = "Đã cài AiiGrow";
+            if (i + 1 < 4) { dau[i + 1].TrangThai = 1; dong[i + 1].ForeColor = Clay.NgocInk; dong[i + 1].Font = new Font("Segoe UI", 11.25f, FontStyle.Bold); }
+            thanh.PhanTram = (i + 1) / 4f;
+        }
         _dangCai = true;
         try
         {
-            await Installer.RunAsync(o, (i, _) => BeginInvoke(() => { ticks[i].Text = "✔   " + labels[i]; ticks[i].ForeColor = Chu; thanh.Value = i + 1; }));
+            await Installer.RunAsync(o, (i, _) => BeginInvoke(() => { if (!IsDisposed) Buoc(i); }));
             _dangCai = false;
-            BuocXong(child);
+            if (IsDisposed) return;
+            BuocXong(child, o.Pair?.ChildName);
         }
         catch (Exception e)
         {
             _dangCai = false;
-            status.ForeColor = Loi;
-            status.Text = "Chưa cài được: " + e.Message;
-            var b = B("Quay lại", false, 130);
-            b.Location = new Point(S(32), S(15));
-            b.Click += (_, _) => BuocGhep();
-            _chan.Controls.Add(b);
-            Tiep("Thử lại", () => BuocCai(o), 140);
+            if (IsDisposed) return;
+            Program.WriteLog("Cài lỗi: " + e.Message);
+            switch (LoiGhep.Phan(e, daGhep: o.Pair != null))
+            {
+                case LoaiLoiGhep.MaSai when o.Package == null: ManMaSai(o); break;
+                case LoaiLoiGhep.MaSai:
+                case LoaiLoiGhep.HetHan: ManHetHan(o); break;
+                case LoaiLoiGhep.MatMang: ManMatMang(o); break;
+                default: ManLoiKhac(o, e.Message); break;
+            }
         }
     }
 
-    private void BuocXong(LocalAccount child)
+    /// <summary>Mã 6 số quá 10 phút / đã dùng (410 ma_het_han, 409 ma_da_dung), hoặc link Ba Mẹ gửi hết hạn — chưa cài gì.</summary>
+    private void ManHetHan(InstallOptions o)
     {
-        Man(5, "Xong", "Xong rồi! AiiGrow đã ở trên máy");
-        _buocThanh.Value = TongBuoc;
-        _body.Controls.Add(Tick("Máy đã ghép với điện thoại của Ba Mẹ — xem ngay trong app AiiGrow"));
-        _body.Controls.Add(Tick($"Tài khoản {child.Name} của Con là loại giới hạn"));
-        _body.Controls.Add(Tick("Biểu tượng AiiGrow nằm ở góc phải thanh tác vụ và trong menu Start"));
-        _body.Controls.Add(T($"Bước cuối: chuyển sang tài khoản của {child.Name} (máy chỉ khoá màn hình, không đăng xuất — việc đang mở của bạn vẫn giữ nguyên). Muốn gỡ: Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt.", 11f, false, Chu2));
-        var sau = B("Để sau", false, 130);
-        sau.Location = new Point(S(32), S(15));
-        sau.Click += (_, _) => Close();
-        _chan.Controls.Add(sau);
-        // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở (DX-029). Ở màn khoá chọn tài khoản của Con.
-        Tiep("Chuyển sang tài khoản Con", () => LockWorkStation(), 260);
+        Man(5, "Cài");
+        Rob("trong-loi", 24, 96, 220, 300);
+        var link = o.Package != null;
+        X(_body, 270, 90, link ? "Link ghép đã hết hạn" : "Mã ghép đã hết hạn", Kieu.H);
+        X(_body, 270, 134, link
+            ? "Link Ba Mẹ gửi đã hết hạn hoặc đã dùng. Trên điện thoại Ba Mẹ, bấm «Ghép máy» để lấy mã mới rồi gõ ở đây."
+            : $"Mã {LoiGhep.Hien(o.Code)} chỉ dùng được 10 phút. Trên điện thoại Ba Mẹ, bấm «Lấy mã mới» rồi gõ lại.", Kieu.P, 417);
+        var the = The(270, 218, 417, 96);
+        Vien(the, 290, 238, "dong_ho_cat", mau: "cam");
+        X(the, 362, 244, "Chưa cài gì lên máy", Kieu.B, 310);
+        X(the, 362, 268, $"Tài khoản {o.Child.Name} vẫn giữ nguyên", Kieu.S, 310);
+        NutLui(() => { _dungMa = true; BuocGhep(); });
+        NutChinh("Gõ mã mới", 230, () => { _dungMa = true; BuocGhep(); });
+    }
+
+    /// <summary>Không tới được máy chủ. Đã ghép rồi (lỗi ở bước sau) ⇒ «Thử lại» dùng lại kết quả ghép (InstallOptions.Pair), không ghép lần hai.</summary>
+    private void ManMatMang(InstallOptions o)
+    {
+        Man(5, "Cài");
+        Rob("trong-loi", 24, 96, 220, 300);
+        X(_body, 270, 90, "Máy chưa vào được mạng", Kieu.H);
+        X(_body, 270, 134, "Bật lại Wi-Fi rồi bấm «Thử lại». Phần đã cài vẫn được giữ.", Kieu.P, 417);
+        var wifi = The(270, 204, 417, 96);
+        Vien(wifi, 290, 224, "wifi", mau: "ngoc");
+        X(wifi, 362, 230, "Kiểm Wi-Fi", Kieu.B, 310);
+        X(wifi, 362, 254, "Bấm Wi-Fi cạnh đồng hồ › chọn mạng nhà", Kieu.S, 310);
+        var the = The(270, 316, 417, 96);
+        if (o.Pair != null)
+        {
+            Vien(the, 290, 336, "tick", mau: "cam");
+            X(the, 362, 342, "Đã ghép vào nhà", Kieu.B, 310);
+            X(the, 362, 366, "Không cần gõ lại mã", Kieu.S, 310);
+        }
+        else
+        {
+            Vien(the, 290, 336, "dong_ho_cat", mau: "cam");
+            X(the, 362, 342, "Chưa ghép, chưa cài gì", Kieu.B, 310);
+            X(the, 362, 366, o.Package != null ? "Có mạng là máy tự ghép" : "Mã còn hạn thì không cần gõ lại", Kieu.S, 310);
+        }
+        NutChinh("Thử lại", 220, () => BuocCai(o));
+    }
+
+    /// <summary>Lỗi khác (sai loại máy, chưa cài được dịch vụ…): nói câu lỗi, cho Thử lại / Quay lại.</summary>
+    private void ManLoiKhac(InstallOptions o, string cau)
+    {
+        Man(5, "Cài");
+        Rob("trong-loi", 24, 96, 220, 300);
+        X(_body, 270, 90, "Chưa cài xong", Kieu.H);
+        X(_body, 270, 134, cau, Kieu.P, 417);
+        var the = The(270, 248, 417, 96);
+        Vien(the, 290, 268, "dau_hoi", mau: "cam");
+        X(the, 362, 274, "Thử lại một lần nữa", Kieu.B, 310);
+        X(the, 362, 298, "Vẫn lỗi? Tải lại bộ cài ở aiigrow.aiilab.vn/tai", Kieu.S, 310);
+        NutLui(BuocGhep);
+        NutChinh("Thử lại", 220, () => BuocCai(o));
+    }
+
+    private void BuocXong(LocalAccount child, string? tenHoSo = null)
+    {
+        Man(6, "Xong", daiNgoc: true);
+        var ten = string.IsNullOrWhiteSpace(tenHoSo) ? child.Name : tenHoSo!;
+        Rob("xong", 24, 84, 250, 330);
+        var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
+        _body.Controls.Add(ph);
+        X(_body, 290, 80, "Máy đã sẵn sàng,\n" + ten + "!", Kieu.H30, 400);
+        X(_body, 290, 164, "AiiGrow ở cạnh đồng hồ, góc phải màn hình.", Kieu.P, 400);
+        foreach (var (y, icon, tieu, phu) in new[]
+                 {
+                     (206, "lich", "Giờ chơi mỗi ngày do Ba Mẹ đặt", "Đổi ngay trên điện thoại Ba Mẹ"),
+                     (284, "sao", "Làm việc tốt, nhận sao", "10 sao = 10 phút chơi"),
+                     (362, "khoa", "Chỉ mở app Ba Mẹ cho phép", "App mới thì bấm xin Ba Mẹ"),
+                 })
+        {
+            var the = The(290, y, 397, 68);
+            Vien(the, 302, y + 6, icon, mau: "ngoc");
+            X(the, 374, y + 12, tieu, Kieu.B, 300);
+            X(the, 374, y + 36, phu, Kieu.S, 300);
+        }
+        X(_body, 36, 556, $"Máy chuyển sang tài khoản {child.Name}. Việc Ba Mẹ đang mở vẫn giữ nguyên.", Kieu.S, 650);
+        NutLui(Close, "Để sau");
+        // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Ở màn khoá chọn tài khoản của con.
+        NutChinh("Vào máy của " + ten, 250, () => LockWorkStation());
     }
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         if (_dangCai && e.CloseReason == CloseReason.UserClosing)
         {
-            MessageBox.Show("AiiGrow đang cài, đợi chút nhé — xong sẽ báo.", "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("AiiGrow đang cài, đợi chút nhé — xong sẽ báo.", "Cài AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Information);
             e.Cancel = true;
             return;
         }

@@ -123,6 +123,7 @@ internal static class ChupMain
         await Mot("khay-menu", ManMenuKhay);
         // Bóng báo khay («Còn 5 phút»…): runner Windows Server không hiện thông báo (đã thử, ảnh chỉ có màn nền) ⇒ không chụp được ở đây.
 
+        // Bộ cài theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-cai-win): mỗi màn gọi thẳng hàm dựng màn (không đụng máy thật).
         await Mot("cai-1-chao", () => ManCai("cai-1-chao", _ => { }));
         await Mot("cai-2-dieu-khoan", () => ManCai("cai-2-dieu-khoan", f =>
         {
@@ -132,8 +133,8 @@ internal static class ChupMain
         await Mot("cai-3-chon-tai-khoan", () => ManCai("cai-3-chon-tai-khoan", f =>
         {
             DatTruong(f, "_accounts", TaiKhoanMau());
+            DatTruong(f, "_child", ConMau());
             Goi(f, "HienTaiKhoan", 1);
-            foreach (var r in TatCa(f).OfType<RadioButton>()) if (r.Text.StartsWith("minhkhoi", StringComparison.Ordinal)) r.Checked = true;
         }));
         await Mot("cai-3-tao-tai-khoan", () => ManCai("cai-3-tao-tai-khoan", f =>
         {
@@ -153,17 +154,33 @@ internal static class ChupMain
         {
             DatTruong(f, "_child", ConMau());
             Goi(f, "BuocGhep");
-            TatCa(f).OfType<TextBox>().First().Text = "482915";
+            TatCa(f).OfType<TextBox>().First().Text = "482915";   // ô đầu nhận 6 số ⇒ tự dàn đủ 6 ô
         }));
-        await Mot("cai-4-ma-ghep-sai", () => ManCai("cai-4-ma-ghep-sai", f =>
+        await Mot("cai-4-ma-ghep-thieu-so", () => ManCai("cai-4-ma-ghep-thieu-so", f =>
         {
             DatTruong(f, "_child", ConMau());
             Goi(f, "BuocGhep");
             TatCa(f).OfType<TextBox>().First().Text = "48291";
-            TatCa(f).OfType<Button>().First(b => b.Text == "Ghép và cài đặt").PerformClick();
+            TatCa(f).OfType<Button>().First(b => b.Text == "Ghép vào nhà").PerformClick();
         }));
+        await Mot("cai-4-ma-sai-may-chu", () => ManCai("cai-4-ma-sai-may-chu", f =>
+        {
+            DatTruong(f, "_child", ConMau());
+            Goi(f, "ManMaSai", new InstallOptions { Server = "http://127.0.0.1:9", Code = "482916", Child = ConMau() });
+        }));
+        await Mot("cai-4-link-tu-ghep", () => ManCai("cai-4-link-tu-ghep", f =>
+        {
+            DatTruong(f, "_child", ConMau());
+            Goi(f, "BuocGhep");
+        }, () => new SetupForm(new EnrollmentPackage { Server = "http://127.0.0.1:9", Token = "goi-mau" })));
         await Mot("cai-5-dang-cai", ManDangCai);
-        await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau())));
+        await Mot("cai-5-mat-mang", () => ManCai("cai-5-mat-mang", f =>
+            Goi(f, "ManMatMang", new InstallOptions
+            {
+                Server = "http://127.0.0.1:9", Code = "482915", Child = ConMau(),
+                Pair = new PairResult { DeviceId = "may1", Token = "t", ChildName = "Minh Khôi" },
+            })));
+        await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi")));
         await Mot("cap-nhat", () => ManHop("cap-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.CapNhat, new Version(0, 2, 9), new Version(0, 2, 10)))));
         await Mot("cap-nhat-da-moi-nhat", () => ManHop("cap-nhat-da-moi-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.DaMoiNhat, new Version(0, 2, 10), new Version(0, 2, 10)))));
     }
@@ -267,9 +284,9 @@ internal static class ChupMain
         ctx.Dispose();
     }
 
-    private static async Task ManCai(string ten, Action<SetupForm> buoc)
+    private static async Task ManCai(string ten, Action<SetupForm> buoc, Func<SetupForm>? tao = null)
     {
-        var f = new SetupForm();
+        var f = tao?.Invoke() ?? new SetupForm();
         f.StartPosition = FormStartPosition.Manual;
         f.Location = new Point(40, 40);
         try
@@ -283,7 +300,7 @@ internal static class ChupMain
         finally { f.Dispose(); }
     }
 
-    /// <summary>Bước «Cài»: máy chủ giả trên 127.0.0.1 nhận lời ghép nhưng chưa trả lời (chụp «Đang cài…»), rồi trả lỗi 410 «mã hết hạn» như máy chủ thật
+    /// <summary>Bước «Cài»: máy chủ giả trên 127.0.0.1 nhận lời ghép nhưng chưa trả lời (chụp «Đang cài…»), rồi trả lỗi 410 «mã hết hạn» như máy chủ thật (màn «Mã ghép đã hết hạn»)
     /// (server/lib/gia-dinh.ts) ⇒ Installer.RunAsync dừng ở bước ghép, TRƯỚC khi ghi cấu hình / hạ quyền / cài dịch vụ.</summary>
     private static async Task ManDangCai()
     {
@@ -318,7 +335,7 @@ internal static class ChupMain
                 st.Flush();
                 await Cho(1500);
             }
-            Chup(f, "cai-5-loi-ghep");
+            Chup(f, "cai-5-ma-het-han");   // 410 ma_het_han ⇒ màn «Mã ghép đã hết hạn»
         }
         finally { nghe.Stop(); }
     }

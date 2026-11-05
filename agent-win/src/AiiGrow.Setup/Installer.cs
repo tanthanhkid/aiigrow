@@ -11,6 +11,8 @@ internal sealed class InstallOptions
     public LocalAccount Child { get; set; } = new("", "", false);
     /// <summary>Kết quả ghép lần trước: «Thử lại» sau lỗi cài dịch vụ dùng lại, không ghép lần hai (mã đã dùng ⇒ 409, thêm máy ma).</summary>
     public PairResult? Pair { get; set; }
+    /// <summary>Gói ghép nhúng trong bộ cài mở từ link Ba Mẹ gửi (L8 — POST /api/device/ghep-goi): có thì ghép bằng gói, bỏ qua <see cref="Code"/>.</summary>
+    public EnrollmentPackage? Package { get; set; }
 }
 
 internal static class Installer
@@ -45,7 +47,7 @@ internal static class Installer
     /// <summary>Luồng cài có chọn tài khoản (giao diện 3 bước) — ghép bằng mã 6 số.</summary>
     public static async Task RunAsync(InstallOptions o, Action<int, string?> step)
     {
-        var pair = o.Pair ??= await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
+        var pair = o.Pair ??= await GhepAsync(o);
         var store = new ConfigStore();
         // Cài lại đè lên máy đã hạ quyền: GỘP DaHaQuyen cũ (Con lúc này đã là tài khoản thường ⇒ không ghi lại được).
         CaiLai.GhiGiuQuyen(store, new AgentConfig
@@ -75,6 +77,14 @@ internal static class Installer
         SetTrayAndNotice();
         Program.WriteLog(await Task.Run(() => DatDnsGiaDinhAsync()));   // PowerShell chạy nền, không đứng giao diện cài
         step(3, null);
+    }
+
+    /// <summary>Ghép máy: gói từ link Ba Mẹ gửi (tự ghép) hoặc mã 6 số (dự phòng). Cùng kết quả PairResult cho phần cài phía sau.</summary>
+    private static async Task<PairResult> GhepAsync(InstallOptions o)
+    {
+        if (o.Package is not { Valid: true } goi) return await ApiClient.PairAsync(o.Server, o.Code, Environment.MachineName);
+        var r = await new EnrollClient().EnrollAsync(goi, Environment.MachineName);
+        return new PairResult { DeviceId = r.DeviceId, Token = r.Token, ChildName = r.ChildName, DungChung = r.DungChung, Server = ApiClient.NormalizeServer(goi.Server) };
     }
 
     /// <summary>DNS gia đình (BANG-TINH-NANG-OS mục 10): hồ sơ DoH từ máy chủ ⇒ đặt cho card mạng (Windows 11). Không chặn việc cài: lỗi / chưa hỗ trợ chỉ trả câu log.</summary>
