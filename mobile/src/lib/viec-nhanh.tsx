@@ -77,7 +77,8 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
 
 /** «+ Thêm máy» cho Con đang xem. */
 /** MỘT đường «thêm máy cho Con»: ghi sẵn Con vào luồng thiết lập rồi mở bước ghép máy (Trang chủ, Hồ sơ Con, màn máy dùng chung). */
-export const themMay = (c: { id: string; ten: string; nhom: "nhi" | "teen" }) => { datTl({ conId: c.id, tenCon: c.ten, nhom: c.nhom }); router.push("/thiet-lap/may"); };
+// «Ghép thêm máy» (thiết kế 05/11, L8): màn «Máy mới của ai?» + «Cài giống máy trước» — không chọn loại máy nữa (bỏ /thiet-lap/may)
+export const themMay = (c: { id: string; ten: string; nhom: "nhi" | "teen" }) => { datTl({ conId: c.id, tenCon: c.ten, nhom: c.nhom }); router.push({ pathname: "/may/them", params: { con: c.id } }); };
 export const NutThemMay = (c: { id: string; ten: string; nhom: "nhi" | "teen" }) => (
   <Nut chu="Thêm máy" ic="cong" nho loai="vien" rong bam={() => themMay(c)} />
 );

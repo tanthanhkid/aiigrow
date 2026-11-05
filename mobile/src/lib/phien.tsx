@@ -4,7 +4,8 @@ import { router } from "expo-router";
 import { bm } from "./api";
 
 /** ra({ daXoa: true }): tài khoản vừa bị xoá trên máy chủ (phiên đã mất) ⇒ không gọi dang-xuat, chỉ xoá token trên máy. */
-type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean) => Promise<void>; ra: (o?: { daXoa?: boolean }) => Promise<void> };
+/** vao(token, moi?, den?): `den` = đường vào sau khi có phiên (thiết kế 05/11: nhánh được mời ⇒ /moi/vao); không có ⇒ như cũ. */
+type Phien = { san: boolean; co: boolean; vao: (token: string, moi?: boolean, den?: string) => Promise<void>; ra: (o?: { daXoa?: boolean }) => Promise<void> };
 const Ctx = createContext<Phien>({ san: false, co: false, vao: async () => {}, ra: async () => {} });
 
 export function PhienProvider({ children }: { children: ReactNode }) {
@@ -14,10 +15,10 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     bm.nap().then((t) => { setCo(!!t); setSan(true); });   // nap không ném: đọc khoá máy lỗi ⇒ null (api.ts › kho.doc)
     bm.onHetPhien(() => { setCo(false); router.replace("/chao"); });
   }, []);
-  const vao = useCallback(async (t: string, moi?: boolean) => {
+  const vao = useCallback(async (t: string, moi?: boolean, den?: string) => {
     await bm.dat(t);
     setCo(true);
-    router.replace(moi ? "/thiet-lap/ten-con" : "/");
+    router.replace((den ?? (moi ? "/thiet-lap/ten-con" : "/")) as never);
   }, []);
   const ra = useCallback(async (o?: { daXoa?: boolean }) => {
     if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
