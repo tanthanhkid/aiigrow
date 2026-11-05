@@ -46,7 +46,7 @@ export default function DangKy() {
           <Chu kieu="rat" co={21} style={{ textAlign: "center" }}>Số này đã có tài khoản</Chu>
           <Chu co={14.5} mau={M.chu2} style={{ textAlign: "center" }}>Đăng nhập để vào lại nhà mình nhé.</Chu>
         </View>
-        <Nut chu="Đăng nhập bằng số này" rong bam={() => { setDaCo(false); router.push({ pathname: "/dang-nhap", params: { dd: sdt } }); }} />
+        <Nut chu="Đăng nhập bằng số này" rong bam={() => { setDaCo(false); router.push({ pathname: "/dang-nhap", params: { dd: sdt, ...(moi || duocMoi ? { moi: moi ? String(moi) : "1" } : {}) } }); }} />
         <Nut chu="Quên mật khẩu" loai="vien" rong bam={() => { setDaCo(false); router.push({ pathname: "/quen-mat-khau", params: { dd: sdt } }); }} />
         <LienKet chu="Dùng số khác" gach bam={() => { setDaCo(false); setSdt(""); }} />
       </BangTruot>

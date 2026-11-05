@@ -2,7 +2,7 @@
 // 1) nhập số đã đăng ký, «Gửi mã» (POST otp {mucDich: quen_mk}) · 2) nhập mã 6 số ⇒ «Xác nhận mã» ⇒ đặt mật khẩu mới + nhập lại ⇒
 // POST quen-mat-khau {dinhDanh, ma, matKhauMoi} rồi đăng nhập luôn («Lưu mật khẩu và vào app»).
 import { useEffect, useState } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
@@ -27,8 +27,9 @@ export default function QuenMatKhau() {
   const luu = () => lam(async () => {
     const dinhDanh = gui?.guiDen ?? dd;
     await bm.goi("quen-mat-khau", { dinhDanh, ma, matKhauMoi: mk });
-    const r = await bm.goi<{ token: string }>("dang-nhap", { dinhDanh, matKhau: mk });
-    await vao(r.token);
+    // mật khẩu đã đổi (mã đã dùng): đăng nhập trượt thì sang màn Đăng nhập, không bắt nhập lại mã
+    const r = await bm.goi<{ token: string }>("dang-nhap", { dinhDanh, matKhau: mk }).catch(() => null);
+    if (r) await vao(r.token); else router.replace({ pathname: "/dang-nhap", params: { dd: dinhDanh } });
   });
   if (buoc2) {
     return (

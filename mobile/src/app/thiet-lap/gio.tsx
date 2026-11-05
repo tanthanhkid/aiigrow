@@ -117,7 +117,7 @@ export default function ObGio() {
             </Pressable>
           ))}
         </View>
-        {suaNgu ? <BanhXeGio key={suaNgu} gio={ngu[suaNgu]} doi={(g) => setNgu((x) => (suaNgu ? { ...x, [suaNgu]: g } : x))} /> : null}
+        {suaNgu ? <BanhXeGio key={suaNgu} gio={ngu[suaNgu]} doi={(g) => { if (!suaNgu) return; const moi = { ...ngu, [suaNgu]: g }; setNgu(moi); if (moi.tu !== moi.den) doi({ ngu: moi }); }} /> : null}
         <Nut chu={`Lưu giờ ngủ ${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} rong tat={ngu.tu === ngu.den} bam={() => { doi({ ngu }); setSuaNgu(null); }} />
       </BangTruot>
     </Man>

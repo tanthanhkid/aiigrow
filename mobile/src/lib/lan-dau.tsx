@@ -298,12 +298,16 @@ export function BanhXe({ ds, gia, doi, nhan }: { ds: string[]; gia: string; doi:
   const ref = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const i = Math.max(0, ds.indexOf(gia));
   useEffect(() => { ref.current?.scrollTo({ y: i * CAO_O, animated: false }); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (hen.current) clearTimeout(hen.current); }, []);
   const chot = (y: number) => { const k = Math.min(ds.length - 1, Math.max(0, Math.round(y / CAO_O))); if (ds[k] !== gia) doi(ds[k]); };
+  // chốt khi cuộn đã dừng 150 ms (sau quán tính trên máy thật; web không có sự kiện quán tính)
+  const khiCuon = (y: number) => { if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => chot(y), 150); };
   return (
     <View style={{ height: CAO_O * 5, width: 76 }} accessibilityLabel={nhan}>
       <ScrollView ref={ref} showsVerticalScrollIndicator={false} snapToInterval={CAO_O} decelerationRate="fast" nestedScrollEnabled
         contentContainerStyle={{ paddingVertical: CAO_O * 2 }} scrollEventThrottle={32}
-        onMomentumScrollEnd={(e) => chot(e.nativeEvent.contentOffset.y)} onScrollEndDrag={(e) => chot(e.nativeEvent.contentOffset.y)}>
+        onScroll={(e) => khiCuon(e.nativeEvent.contentOffset.y)}>
         {ds.map((x) => (
           <Pressable key={x} onPress={() => { doi(x); ref.current?.scrollTo({ y: ds.indexOf(x) * CAO_O, animated: true }); }} accessibilityRole="button" accessibilityLabel={`${nhan} ${x}`}
             style={{ height: CAO_O, alignItems: "center", justifyContent: "center" }}>
@@ -324,9 +328,9 @@ export function BanhXeGio({ gio, doi }: { gio: string; doi: (g: string) => void 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: CAO_O * 2, height: CAO_O, borderRadius: 14, backgroundColor: "#e3efeb" }} />
-      <BanhXe key={`h${gio}`} ds={gioDs} gia={h} doi={(x) => doi(`${x}:${mm}`)} nhan="Giờ" />
+      <BanhXe ds={gioDs} gia={h} doi={(x) => doi(`${x}:${mm}`)} nhan="Giờ" />
       <Chu kieu="rat" co={24}>:</Chu>
-      <BanhXe key={`m${gio}`} ds={phutDs} gia={mm} doi={(x) => doi(`${h}:${x}`)} nhan="Phút" />
+      <BanhXe ds={phutDs} gia={mm} doi={(x) => doi(`${h}:${x}`)} nhan="Phút" />
     </View>
   );
 }

@@ -3,7 +3,7 @@
 // Link mang sẵn mã gia đình (…/tai?g=…&ma=…) ⇒ trang tải tự ghép; mã 6 số là dự phòng. Không chọn loại máy (trang tải tự nhận).
 // Tham số: con, giong (= «Cài giống máy trước»: id máy), nguon = lan-dau | them, moi = 1 (bắt buộc lấy mã mới).
 import { useCallback, useEffect, useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { KHOI, MEN } from "@/lib/clay";
 import { layMaGhep, xemGhep, type KqGhep } from "@/lib/ghep-may";
@@ -25,8 +25,8 @@ export default function GhepMay() {
   const lay = useCallback((moi: boolean) => lam(async () => setKq(await layMaGhep(con, p.giong ? String(p.giong) : null, moi))), [lam, con, p.giong]);
   useEffect(() => { lay(p.moi === "1"); }, [lay, p.moi]);
   const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon } }), [kq, con, nguon]);
-  // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép»
-  useEffect(() => {
+  // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép». CHỈ khi màn đang hiện: đã sang «Đang chờ» thì màn đó lo.
+  useFocusEffect(useCallback(() => {
     if (!kq) return;
     const t = setInterval(async () => {
       try {
@@ -35,7 +35,7 @@ export default function GhepMay() {
       } catch { /* thử lại nhịp sau */ }
     }, 4000);
     return () => clearInterval(t);
-  }, [kq, con, nguon]);
+  }, [kq, con, nguon]));
   const deSau = () => (nguon === "lan-dau" ? router.replace({ pathname: "/thiet-lap/xong", params: { con: con ?? "" } }) : router.canGoBack() ? router.back() : router.replace("/may"));
   return (
     <Man noi={noi} dau={<DauMan tieu={`Ghép máy của ${ten}`} ve={nguon === "them" ? "/may" : "/thiet-lap/gio"} phai={<NutHoi />} />}

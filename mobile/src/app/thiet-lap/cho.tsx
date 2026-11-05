@@ -17,6 +17,7 @@ export default function ChoMayCon() {
   const [het, setHet] = useState<number | null>(kq ? Date.parse(kq.het) : null);
   const [con0, setCon0] = useState(() => (kq ? Math.round((Date.parse(kq.het) - Date.now()) / 1000) : 600));
   const [loi, setLoi] = useState<string | null>(null);
+  const [linkCon, setLinkCon] = useState(false);          // mã 6 số hết hạn nhưng link đã gửi vẫn tự ghép được (48 giờ)
   const { bao, noi } = useHoanTac();
   const { d: c } = useTai(() => (con ? bm.goi<ConChiTiet>(`con/${con}`) : Promise.resolve(null)));
   const ten = c?.ten ?? "con";
@@ -26,6 +27,7 @@ export default function ChoMayCon() {
     const g = await xemGhep(ma);
     if (g.daGhep) { sangXong(g.may?.id, g.con); return true; }
     setHet(Date.now() + g.conGiay * 1000);
+    setLinkCon(!!g.linkConHan);
     return false;
   }, [ma, sangXong]);
   useEffect(() => {
@@ -35,7 +37,8 @@ export default function ChoMayCon() {
     return () => { clearTimeout(t0); clearInterval(t); };
   }, [ma, hoi]);
   useEffect(() => { const t = setInterval(() => setCon0(het ? Math.round((het - Date.now()) / 1000) : 600), 1000); return () => clearInterval(t); }, [het]);
-  const hetHan = con0 <= 0;
+  const maHet = con0 <= 0;
+  const hetHan = maHet && !linkCon;
   const maHien = kq?.maHien ?? hienMa(ma);
   const layMoi = () => router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, moi: "1", ...(kq?.giongMay ? { giong: kq.giongMay } : {}) } });
   const guiLai = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon } }));
@@ -54,7 +57,7 @@ export default function ChoMayCon() {
             <Icon3D ten="dau_hoi" co={20} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Cần giúp?</Chu>
           </Pressable>
         </View>
-        {nguon === "them" && !hetHan ? <LienKet chu="Mã hết hạn rồi? Lấy mã mới" bam={layMoi} /> : null}
+        {(nguon === "them" || maHet) && !hetHan ? <LienKet chu="Mã hết hạn rồi? Lấy mã mới" bam={layMoi} /> : null}
       </>}>
       <TieuDe chu={hetHan ? "Mã đã hết hạn" : nguon === "them" ? `Chờ máy mới của ${ten}` : `Đang chờ máy của ${ten}`} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 }}>
@@ -62,12 +65,12 @@ export default function ChoMayCon() {
           <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: hetHan ? M.huy : "#f59e0b" }} />
           <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{hetHan ? "Mã ghép đã hết hạn" : `${may[0].toUpperCase()}${may.slice(1)} chưa nhập mã`}</Chu>
         </View>
-        <Chu kieu="dam" co={13} mau={M.chu2} so>{hetHan ? "0:00" : `Mã còn ${demNguoc(con0)}`}</Chu>
+        <Chu kieu="dam" co={13} mau={M.chu2} so>{hetHan ? "0:00" : maHet ? "Link còn dùng được" : `Mã còn ${demNguoc(con0)}`}</Chu>
       </View>
       <CanhRob lv="cho" tieu={hetHan ? "Mã chỉ dùng được 10 phút. Lấy mã mới là xong!" : `Trên ${nguon === "them" ? "máy mới" : "máy của con"}, làm 3 bước này nhé!`} cao={160} />
       <BuocMayCon n={1} ic="tin" tieu="Mở link vừa gửi" phu={kq ? linkNgan(kq.lienKet) : "aiigrow.aiilab.vn/tai"} />
       <BuocMayCon n={2} ic="tai" tieu="Cài AiiGrow" phu="Trang tải tự nhận loại máy" />
-      <BuocMayCon n={3} ic="khoa" tieu={<Chu kieu="rat" co={15.5}>Nhập mã <Chu kieu="rat" co={15.5} mau={M.chinhInk} so style={hetHan ? { textDecorationLine: "line-through" } : undefined}>{maHien}</Chu></Chu>} phu="Hoặc quét QR" />
+      <BuocMayCon n={3} ic="khoa" tieu={<Chu kieu="rat" co={15.5}>Nhập mã <Chu kieu="rat" co={15.5} mau={M.chinhInk} so style={maHet ? { textDecorationLine: "line-through" } : undefined}>{maHien}</Chu></Chu>} phu={maHet && linkCon ? "Mã hết hạn — mở link vừa gửi là tự ghép" : "Hoặc quét QR"} />
     </Man>
   );
 }

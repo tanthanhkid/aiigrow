@@ -21,7 +21,7 @@ export default function ObCon() {
   const [mau, setMau] = useState(sua ? tl0.mau ?? 0 : (tl0.daLuu?.length ?? 0) % MAU_HO_SO.length);
   const [conId, setConId] = useState<string | undefined>(sua ? tl0.conId : undefined);
   const daLuu = (tl0.daLuu ?? []).filter((c) => c.id !== conId);
-  const { lam, loi, dangChay } = useLam();
+  const { lam, loi, dangChay, setLoi } = useLam();
   const namSo = /^\d{4}$/.test(nam) ? Number(nam) : null;
   const tuoi = cauTuoi(namSo);
   const tenGon = ten.trim();
@@ -46,8 +46,12 @@ export default function ObCon() {
   return (
     <Man dau={<DauMan ve="/" phai={<ThanhBuoc dang={0} />} />}
       day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo)} bam={tiep} />
-        {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => { datTl({ conId: conDau.id, tenCon: conDau.ten }); router.push("/thiet-lap/mau"); }} />
-          : <LienKet chu="+ Thêm con khác" bam={() => (tenGon ? themCon() : undefined)} />}</>}>
+        {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => lam(async () => {
+          if (tenGon) { const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
+          datTl({ conId: conDau.id, tenCon: conDau.ten, apps: undefined, cheDoChan: undefined, quy: undefined, ngu: undefined });
+          router.push("/thiet-lap/mau");
+        })} />
+          : <LienKet chu="+ Thêm con khác" bam={() => (tenGon ? themCon() : setLoi("Nhập tên con này trước, rồi thêm con khác."))} />}</>}>
       <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={30} />
         <View style={{ gap: 10, alignItems: "flex-start" }}>

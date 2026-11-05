@@ -36,7 +36,14 @@ export default function ObMau() {
     router.push("/thiet-lap/gio");
   });
   const dau = <DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc dang={1} />} />;
-  if (!b) return <Man dau={dau}><TieuDe chu={`Giao việc cho ${ten}`} /><ChoTai loi={loiTai} matMang={matMang} tai={tai} /></Man>;
+  if (!b) {
+    return (
+      <Man dau={dau} day={d ? <Nut chu="Sang Giờ chơi" rong bam={() => router.push("/thiet-lap/gio")} /> : undefined}>
+        <TieuDe chu={`Giao việc cho ${ten}`} />
+        {d ? <Chu co={14.5} mau={M.chu2}>Chưa có bộ việc nào — giao việc sau ở tab Nhiệm vụ.</Chu> : <ChoTai loi={loiTai} matMang={matMang} tai={tai} />}
+      </Man>
+    );
+  }
   return (
     <Man dau={dau}
       day={<><BaoLoi loi={loi} />

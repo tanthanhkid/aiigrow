@@ -10,7 +10,7 @@ import { DauMan, LienKet, OApp, TieuDe } from "@/lib/lan-dau";
 import { datTl, layTl } from "@/lib/thiet-lap";
 import { Chu, F, Icon3D, M, Man, Nut, Rob, The } from "@/lib/ui";
 
-const bo = (t: string) => t.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").toLowerCase().trim();
+const bo = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").trim();
 
 export default function ThemApp() {
   const tl = layTl();

@@ -88,7 +88,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
             <span className="so">3</span><F3 ten="shield" co={40} className="hinh" />
             <div>
               <b className="t">{nen === "ios" ? "Ba Mẹ duyệt Screen Time bằng Apple ID (một lần)" : nen === "mac" ? "Cửa sổ Ghép máy tự mở: nhập mã" : "Nhập mã ghép máy"}</b>
-              {nen === "ios" ? <small>Không mở được app? Nhập mã ghép máy dưới đây trong app AiiGrow Con.</small>
+              {nen === "ios" ? <small>{t.ma ? "Không mở được app? Nhập mã ghép máy dưới đây trong app AiiGrow Con." : "Không mở được app? Nhờ Ba Mẹ đọc mã 6 số trong app Ba Mẹ."}</small>
                 : t.ma ? <small>Mã dưới đây — dùng được 10 phút.</small>
                   : <small>Lấy mã 6 số trong app Ba Mẹ: <b>Máy của con › Ghép thêm máy</b>.</small>}
             </div>

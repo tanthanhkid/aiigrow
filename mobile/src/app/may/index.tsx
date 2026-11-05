@@ -9,15 +9,18 @@ import { bm, type ConChiTiet, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 import { BangKhoa } from "@/lib/khoa-may";
 import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
-import { ChoTai, Chu, Icon, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai, type TenIcon } from "@/lib/ui";
+import { ChoTai, Chu, gioPhut, Icon, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai, type TenIcon } from "@/lib/ui";
 
 const IC: Record<TuanThuMay["nen"], TenIcon> = { windows: "laptop", mac: "laptop", ios: "tablet", android: "dt" };
 const NEN_O: Record<TuanThuMay["nen"], string> = { windows: "#dce9fb", mac: "#e9e1fb", ios: "#fde3c8", android: "#d9f1e6" };
 
 /** Máy đang được bảo vệ đủ (mức bảo vệ máy chủ tính + còn liên lạc, không lệch chuẩn). */
-const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && m.baoVe !== "chua";
+const dangMo = (m: TuanThuMay) => { const den = m.moKhanCapDen ?? m.moDen ?? null; return !!den && Date.parse(den) > Date.now(); };
+const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && m.baoVe !== "chua" && !dangMo(m) && !m.dangGo;
 function cauTrangThai(m: TuanThuMay) {
   if (m.dangGo) return "Đang gỡ AiiGrow khỏi máy này";
+  if (m.moKhanCapDen && Date.parse(m.moKhanCapDen) > Date.now()) return `Đang mở khẩn cấp tới ${gioPhut(m.moKhanCapDen)}`;
+  if (m.moDen && Date.parse(m.moDen) > Date.now()) return `Đang mở tới ${gioPhut(m.moDen)}`;
   if (m.trangThai === "ngoai_vong" || m.trangThai === "tat_may" || m.trangThai === "chua_co_nhip")
     return m.lanCuoi ? `Không bị tính giờ\ntừ ${truoc(m.lanCuoi)}` : "Chưa nhận được tin từ máy";
   if (m.trangThai === "lech_chuan") return m.vanDe[0]?.cauBaMe ?? "Máy đang lệch chuẩn";
@@ -64,7 +67,7 @@ export default function MayCuaCon() {
                 <Chu kieu="rat" co={19} dong={1}>{m.ten}</Chu>
                 <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: ok ? M.chinhSoft : M.canhSoft }}>
                   {ok ? <Icon ten="tick" mau={M.chinhInk} co={13} /> : <Chu kieu="rat" co={12.5} mau={M.canh}>!</Chu>}
-                  <Chu kieu="rat" co={12.5} mau={ok ? M.chinhInk : M.canh}>{ok ? "Đang bảo vệ" : "Chưa bảo vệ"}</Chu>
+                  <Chu kieu="rat" co={12.5} mau={ok ? M.chinhInk : M.canh}>{ok ? "Đang bảo vệ" : dangMo(m) ? "Đang mở" : "Chưa bảo vệ"}</Chu>
                 </View>
                 <Chu co={13} mau={M.chu2}>{cauTrangThai(m)}{m.dungChung ? " · máy dùng chung" : ""}</Chu>
                 <Chu kieu="rat" co={13.5} mau={ok ? M.chinhInk : M.canh}>{ok ? "Xem máy ›" : `Sửa ${m.ten} ›`}</Chu>

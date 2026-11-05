@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
-import { Avt, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, Man, MAU_CON, Nhan, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
+import { Avt, Bao, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, Man, MAU_CON, Nhan, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
 import { ma0, noiTen, type XemMoi } from "@/lib/moi";
 import { KHOI } from "@/lib/clay";
 
@@ -14,10 +14,11 @@ export default function VaoNha() {
   const { ma } = useLocalSearchParams<{ ma?: string }>();
   const m = ma0(ma);
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [cho, toi] = await Promise.all([bm.goi<{ ds: LoiMoiToi[] }>("moi/cho-toi"), bm.goi<{ baMe: { dinhDanh?: string; dinh_danh?: string } }>("toi")]);
+    const [cho, toi, g] = await Promise.all([bm.goi<{ ds: LoiMoiToi[] }>("moi/cho-toi"), bm.goi<{ baMe: { dinhDanh?: string; dinh_danh?: string } }>("toi"),
+      bm.goi<{ con: unknown[] }>("gia-dinh").catch(() => ({ con: [] }))]);
     let x: (LoiMoiToi & { quaLink?: boolean }) | null = cho.ds[0] ?? null;
     if (!x && m) x = { ...(await bm.goi<XemMoi>(`moi/${encodeURIComponent(m)}`)), id: "", quaLink: true };
-    return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "" };
+    return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "", coNha: g.con.length > 0 };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man dau={<DauMan ve="/" />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -41,7 +42,7 @@ export default function VaoNha() {
   return (
     <Man dau={<DauMan ve="/" khongLui />}
       day={<><BaoLoi loi={loiLam} /><Nut chu={`Vào nhà cùng ${ai}`} rong dangChay={dangChay} bam={vao} />
-        <LienKet chu="Không phải tôi" bam={() => router.replace("/thiet-lap/ten-con")} /></>}>
+        <LienKet chu={d.coNha ? "Ở lại nhà mình" : "Không phải tôi"} bam={() => router.replace(d.coNha ? "/" : "/thiet-lap/ten-con")} /></>}>
       <View style={{ height: 250, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
         <View style={{ position: "absolute", top: 16, flexDirection: "row", gap: 4 }}>
           {[ai, ...con, "Tôi"].slice(0, 5).map((t, i) => (
@@ -54,6 +55,7 @@ export default function VaoNha() {
       </View>
       <TieuDe chu={`${ai} mời bạn vào nhà`} phu={con.length ? `Cùng trông ${noiTen(con, true)}` : x.tenGiaDinh} giua />
       <View style={{ alignItems: "center" }}><Nhan chu={con.length ? `Bạn cùng trông ${noiTen(con)}` : x.tenQuyen ? `Quyền ${x.tenQuyen}` : "Người trong nhà"} /></View>
+      {d.coNha ? <Bao tieu="Tài khoản này đã có nhà riêng" loi="Chỉ vào nhà khác được khi tài khoản chưa có con, máy hay người nhà nào. Muốn vào nhà này: đăng xuất rồi tạo tài khoản bằng số khác." /> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         {viec.map(([ic, chu]) => (
           <The key={chu} style={{ flex: 1, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 8 }}>
