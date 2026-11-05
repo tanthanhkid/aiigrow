@@ -70,7 +70,24 @@ public struct ChinhSach: Codable {
     public var ngayThuong: [Khung]; public var cuoiTuan: [Khung]; public var ngu: Khung
     public var tranNgayPhut: Int; public var tranTuanPhut: Int
   }
-  public struct UngDung: Codable { public var hoc: [MucChung]; public var giaiTri: [MucChung]; public var chan: [MucChung] }
+  public struct UngDung: Codable {
+    public var hoc: [MucChung]; public var giaiTri: [MucChung]; public var chan: [MucChung]
+    /// 05/11 (máy chủ mới): chế độ chặn của Con — chi_app_duoc_phep | mo_het; web luôn chặn (người lớn, cờ bạc, bạo lực).
+    public var cheDoChan: String? = nil
+    public var webLuonChan: [String]? = nil
+  }
+  /// 05/11: quỹ phút chơi hôm nay (server/lib/quy-gio.ts) — mọi app Giải trí dùng chung; `daDung` = phút đã dùng (mọi máy).
+  public struct Quy: Codable, Equatable {
+    public var ngayPhut: Int; public var themPhut: Int; public var daDung: Int; public var conPhut: Int
+    public var dangHoc: Bool?
+    public init(ngayPhut: Int, themPhut: Int, daDung: Int, conPhut: Int, dangHoc: Bool? = nil) {
+      self.ngayPhut = ngayPhut; self.themPhut = themPhut; self.daDung = daDung; self.conPhut = conPhut; self.dangHoc = dangHoc
+    }
+  }
+  /// Giờ học (chỉ app Học): `thu` 0 = CN … 6 = T7.
+  public struct GioHoc: Codable, Equatable { public var tu: String; public var den: String; public var thu: [Int] }
+  /// Ngoại lệ Ba Mẹ mở: `muc` nil = cả máy; `nhom` = nhóm máy (may_tinh | ios | android).
+  public struct NgoaiLeMo: Codable, Equatable { public var den: String; public var muc: String?; public var nhom: String? }
   public struct NgoaiLe: Codable { public var phutThemHomNay: Int; public var moKhanCapDen: String? }
   public struct HieuLuc: Codable { public var giaiTriDuocMo: Bool; public var lyDo: [String] }
   /// Phiên «Chơi bằng điểm» đang chạy (server/lib/chinh-sach.ts › phienDiem.phien): Con mở trên app AiiGrow (màn Con /tre/choi) hay máy khác.
@@ -94,6 +111,10 @@ public struct ChinhSach: Codable {
   public var hieuLuc: HieuLuc
   /// Máy chủ cũ không gửi ⇒ nil (không có phiên điểm).
   public var phienDiem: PhienDiem?
+  // ---- 05/11 — máy chủ cũ không gửi ⇒ nil ⇒ chạy luật cũ (trần + khung giờ chơi)
+  public var quy: Quy?
+  public var gioHoc: GioHoc?
+  public var ngoaiLeMo: [NgoaiLeMo]?
 }
 
 public struct MucNenTang: Codable {

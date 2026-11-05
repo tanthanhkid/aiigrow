@@ -6,17 +6,18 @@ import Foundation
 public enum MucKhien: String, Codable { case khong, giaiTri = "giai_tri", moiApp = "moi_app" }
 
 public enum LyDoKhien: String, Codable {
-  case khong, khoaNgay = "khoa_ngay", ngu, khongTuanThu = "khong_tuan_thu", hetGio = "het_gio", ngoaiGio = "ngoai_gio"
+  case khong, khoaNgay = "khoa_ngay", ngu, khongTuanThu = "khong_tuan_thu", hetGio = "het_gio", ngoaiGio = "ngoai_gio", gioHoc = "gio_hoc"
 
   /// Câu cho Con — hiện trên màn chặn (ShieldConfiguration) và màn chính.
   public var cauChoCon: String {
     switch self {
     case .khong: return "Con đang trong giờ chơi."
-    case .khoaNgay: return "Ba Mẹ vừa tạm khoá máy. Con nghỉ một chút nhé."
+    case .khoaNgay: return "Ba Mẹ đang khoá máy. Cần gấp thì con xin Ba Mẹ mở ngoại lệ nhé."
     case .ngu: return "Đến giờ ngủ rồi. Mai mình chơi tiếp nhé!"
     case .khongTuanThu: return "Máy cần kiểm lại cài đặt. Con nhờ Ba Mẹ xem giúp nhé."
-    case .hetGio: return "Hôm nay con dùng hết giờ giải trí rồi."
+    case .hetGio: return "Hôm nay con chơi hết giờ rồi. Con dùng sao hoặc xin Ba Mẹ thêm giờ nhé."
     case .ngoaiGio: return "Bây giờ chưa phải giờ chơi."
+    case .gioHoc: return "Đang giờ học. App học vẫn dùng được."
     }
   }
 }
@@ -32,6 +33,13 @@ public struct KhienMuonCo: Codable, Equatable {
   public var dangChoiDiem: Bool? = nil
   /// Đang mở bằng mã offline Ba Mẹ đọc (MoTamOffline).
   public var dangMoOffline: Bool? = nil
+  /// Đang trong ngoại lệ cả máy Ba Mẹ mở (05/11).
+  public var dangNgoaiLe: Bool? = nil
+}
+
+extension LyDoKhien {
+  /// Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được — Con chỉ «Xin Ba Mẹ mở ngoại lệ».
+  public var chiNgoaiLe: Bool { self == .ngu || self == .khoaNgay }
 }
 
 /// Phút giải trí đã dùng trong ngày (ghi bởi DeviceActivityMonitor khi chạm mốc «dung.N» / «tran»).
@@ -53,9 +61,18 @@ public enum TinhKhien {
   }
 
   public static func phutDaDung(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int {
-    guard let dung, dung.ngay == diaPhuong(now, tz: kh.tz).ngay else { return 0 }
+    let ngay = diaPhuong(now, tz: kh.tz).ngay
+    // 05/11: máy chủ cộng phút mọi máy của Con (quỹ dùng chung) ⇒ lấy lớn hơn của phút đo tại chỗ và phút máy chủ (cùng ngày)
+    let mayChu = kh.ngayDaDung == ngay ? (kh.daDungMayChu ?? 0) : 0
+    guard let dung, dung.ngay == ngay else { return mayChu }
     // «tran» ghi phut = trần lúc đó ⇒ Ba Mẹ thêm phút (trần tăng) thì Con có lại phần chênh, không kẹt ở «hết giờ».
-    return dung.phut
+    return max(dung.phut, mayChu)
+  }
+
+  public static func trongGioHoc(_ kh: KeHoach, now: Date) -> Bool {
+    guard let h = kh.hoc, let thu = kh.hocThu else { return false }
+    let d = diaPhuong(now, tz: kh.tz)
+    return thu.contains(d.thu) && h.chua(d.phut)
   }
 
   public static func phutConLai(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int {
@@ -82,6 +99,10 @@ public enum TinhKhien {
     let dong = { (m: MucKhien, l: LyDoKhien) in
       KhienMuonCo(muc: m, lyDo: l, webChan: kh.webChan + kh.webGiaiTri, chanCaiApp: kh.chanCaiApp, dangThemGio: false)
     }
+    // ngoại lệ cả máy Ba Mẹ mở (05/11) thắng giờ ngủ / khoá
+    if let den = kh.ngoaiLeDen, den > moc {
+      return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: true, dangNgoaiLe: true)
+    }
     if kh.khoaNgay { return dong(.moiApp, .khoaNgay) }
     if let ngu = kh.ngu, ngu.chua(d.phut) { return dong(.moiApp, .ngu) }
     if themGio { return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: true) }
@@ -89,6 +110,7 @@ public enum TinhKhien {
       return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangChoiDiem: true)
     }
     if kh.khoaGiaiTri { return dong(.giaiTri, .khongTuanThu) }
+    if trongGioHoc(kh, now: now) { return dong(.giaiTri, .gioHoc) }
     if phutConLai(kh, now: now, dung: dung) <= 0 { return dong(.giaiTri, .hetGio) }
     if !trongGioChoi(kh, now: now) { return dong(.giaiTri, .ngoaiGio) }
     return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false)

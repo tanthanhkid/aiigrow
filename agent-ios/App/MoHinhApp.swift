@@ -132,6 +132,17 @@ final class MoHinhApp: ObservableObject {
     catch { loi = error.localizedDescription; return false }
   }
 
+  /// Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được — chỉ xin mở ngoại lệ cả máy.
+  var chiNgoaiLe: Bool { khien?.lyDo.chiNgoaiLe == true }
+  func xinNgoaiLe(phut: Int, loiNhan: String) async -> Bool {
+    if demo != nil {
+      yeuCau = YeuCauDangCho(id: "demo", phut: phut, loiNhan: loiNhan, guiLuc: Date(), trangThai: "cho"); return true
+    }
+    dangBan = true; defer { dangBan = false }
+    do { yeuCau = try await dongBo().xinNgoaiLe(phut: phut, loiNhan: loiNhan); loi = nil; return true }
+    catch { loi = error.localizedDescription; return false }
+  }
+
   // MARK: màn Con trong app AiiGrow (nhiệm vụ, nộp bài, quà, tin nhắn, chơi bằng điểm)
   /// Lấy phiên Con 12 giờ (POST api/device/phien-web) rồi mở app AiiGrow ở `aiigrow://tre[/duong]?phien=…`; chưa cài app ⇒ mở bản web.
   func moManCon(_ duong: String = "") async {

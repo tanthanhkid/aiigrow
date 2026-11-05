@@ -6,7 +6,8 @@ import XCTest
 func nhipMau(khoaNgay: Bool = false, giaiTriDuocMo: Bool = true, ngayThuong: String = #"[{"tu":"17:00","den":"19:00"}]"#,
              cuoiTuan: String = #"[{"tu":"09:00","den":"11:00"},{"tu":"15:00","den":"20:00"}]"#,
              ngu: String = #"{"tu":"21:30","den":"06:30"}"#, tran: Int = 90, phutThem: Int = 0, moKhanCap: String = "null",
-             grant: String? = nil, lenh: String = "[]", webChan: String = #"["https://www.tiktok.com/abc","roblox.com"]"#) -> Data {
+             grant: String? = nil, lenh: String = "[]", webChan: String = #"["https://www.tiktok.com/abc","roblox.com"]"#,
+             them05: String = "") -> Data {
   let g = grant.map { #","grantEndsAt":"\#($0)""# } ?? ""
   return """
   {"serverTime":"2026-10-24T10:00:00.000Z","tuanThu":{},
@@ -17,7 +18,7 @@ func nhipMau(khoaNgay: Bool = false, giaiTriDuocMo: Bool = true, ngayThuong: Str
      "ungDung":{"heThong":["com.apple.mobilephone"],"hoc":[{"muc":"khanacademy.org","kieu":"web"}],
                 "giaiTri":[{"muc":"youtube.com","kieu":"web","nhom":"video_ngan","giaPhanNghin":1000}],"chan":[{"muc":"tiktok.com","kieu":"web"}],"chuaXep":"chan"},
      "phienDiem":{"soDu":0,"phien":null,"giaTheoNhom":{}},"khoaNgay":\(khoaNgay),
-     "ngoaiLe":{"phutThemHomNay":\(phutThem),"mucTamThoi":[],"moKhanCapDen":\(moKhanCap)},"gioMaySai":false,"tuanThu":{},
+     "ngoaiLe":{"phutThemHomNay":\(phutThem),"mucTamThoi":[],"moKhanCapDen":\(moKhanCap)},"gioMaySai":false,"tuanThu":{},\(them05)
      "hieuLuc":{"giaiTriDuocMo":\(giaiTriDuocMo),"lyDo":\(giaiTriDuocMo ? "[]" : #"["khong_tuan_thu"]"#)}},
    "nenTang":{"nen":"ios","ten":"iPhone/iPad","coChe":[],"nhipGiay":3600,"khongLamDuoc":[],"viecCho":[],"muc":[
      {"khaNang":"khung_gio","mucDo":"du","coChe":"x","cauHinh":{"lichMo":{"ngayThuong":\(ngayThuong),"cuoiTuan":\(cuoiTuan)},"tz":"Asia/Ho_Chi_Minh"}},
@@ -443,5 +444,58 @@ final class ApiVaDongBoTests: XCTestCase {
     let yc = try await dongBo().xinThemGio(phut: 30, loiNhan: " ")
     XCTAssertEqual(vc.than(0)["lyDo"] as? String, "Con xin thêm 30 phút")
     XCTAssertTrue(yc.xong)
+  }
+}
+
+
+/// Luật 05/11 trên iPhone/iPad: quỹ phút thay trần + khung giờ chơi, giờ học, ngoại lệ cả máy thắng giờ ngủ, web luôn chặn.
+final class QuyGioTests: XCTestCase {
+  let quy = #""quy":{"ngayPhut":60,"themPhut":15,"daDung":40,"conPhut":35,"dangHoc":false},"#
+
+  func testQuyThayTranVaKhungGio() throws {
+    let kh = LapKeHoach.tu(try doc(nhipMau(them05: quy)), now: vn(26, 10))
+    XCTAssertEqual(kh.tranPhut, 75)
+    XCTAssertTrue(kh.lich.filter { $0.ten.hasPrefix("mo.") }.isEmpty, "quỹ: không còn lịch khung giờ chơi")
+    // 10:00 thứ Hai — ngoài khung chơi cũ 17–19 nhưng quỹ còn ⇒ mở
+    let k = TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil)
+    XCTAssertEqual(k.lyDo, .khong)
+    XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(26, 10), dung: nil), 35, "máy chủ đã tính 40 phút (mọi máy)")
+    XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 70, tranHet: false)), 5, "đo tại chỗ lớn hơn ⇒ dùng số đo")
+    XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(27, 10), dung: nil), 75, "sang ngày: phút máy chủ của hôm qua không tính")
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 75, tranHet: true)).lyDo, .hetGio)
+  }
+
+  func testGioHocChiAppHoc() throws {
+    let kh = LapKeHoach.tu(try doc(nhipMau(them05: quy + #""gioHoc":{"tu":"14:00","den":"16:00","thu":[1,2,3,4,5]},"#)), now: vn(26, 10))
+    XCTAssertEqual(kh.hocThu, [2, 3, 4, 5, 6])
+    XCTAssertEqual(kh.lich.filter { $0.ten.hasPrefix("hoc.") }.count, 5)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 15), dung: nil).lyDo, .gioHoc)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(25, 15), dung: nil).lyDo, .khong, "Chủ nhật không có giờ học")
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 15), dung: nil).muc, .giaiTri)
+  }
+
+  func testNgoaiLeCaMayThangGioNgu() throws {
+    let nl = #""ngoaiLeMo":[{"id":"a","den":"2026-10-26T16:00:00.000Z","muc":null,"nhom":"ios"},{"id":"b","den":"2026-10-26T16:30:00.000Z","muc":null,"nhom":"may_tinh"}],"#
+    let kh = LapKeHoach.tu(try doc(nhipMau(them05: quy + nl)), now: vn(26, 22))
+    XCTAssertEqual(kh.ngoaiLeDen, vn(26, 23), "chỉ ngoại lệ của nhóm iPhone/iPad")
+    XCTAssertTrue(kh.lich.contains { $0.ten == "ngoaile" })
+    let k = TinhKhien.lucNay(kh, now: vn(26, 22), dung: nil)
+    XCTAssertEqual(k.muc, .khong); XCTAssertEqual(k.dangNgoaiLe, true)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 23, 1), dung: nil).lyDo, .ngu, "hết hạn ⇒ khoá lại")
+    XCTAssertTrue(LyDoKhien.ngu.chiNgoaiLe); XCTAssertTrue(LyDoKhien.khoaNgay.chiNgoaiLe); XCTAssertFalse(LyDoKhien.hetGio.chiNgoaiLe)
+  }
+
+  func testWebLuonChanVaMayChuCu() throws {
+    let d = nhipMau(them05: quy).replacingOccurrences(of: Data(#""chuaXep":"chan"}"#.utf8), with: Data(#""chuaXep":"chan","cheDoChan":"chi_app_duoc_phep","webLuonChan":["pornhub.com"]}"#.utf8))
+    let kh = LapKeHoach.tu(try doc(d), now: vn(26, 10))
+    XCTAssertTrue(kh.webChan.contains("pornhub.com"))
+    // máy chủ cũ (không quy) ⇒ luật cũ: khung giờ chơi vẫn chặn
+    let cu = LapKeHoach.tu(try doc(nhipMau()), now: vn(26, 10))
+    XCTAssertNil(cu.daDungMayChu)
+    XCTAssertEqual(TinhKhien.lucNay(cu, now: vn(26, 10), dung: nil).lyDo, .ngoaiGio)
+    // kế hoạch cũ lưu trong kho (không có trường mới) vẫn đọc được
+    var o = try JSONSerialization.jsonObject(with: JSONEncoder().encode(cu)) as! [String: Any]
+    o.removeValue(forKey: "daDungMayChu"); o.removeValue(forKey: "hoc")
+    XCTAssertNoThrow(try JSONDecoder().decode(KeHoach.self, from: JSONSerialization.data(withJSONObject: o)))
   }
 }

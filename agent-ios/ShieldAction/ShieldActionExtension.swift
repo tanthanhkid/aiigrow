@@ -8,12 +8,13 @@ import ConCore
 final class ShieldActionExtension: ShieldActionDelegate {
   func xu(_ action: ShieldAction, _ xong: @escaping (ShieldActionResponse) -> Void) {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
-    let coXin = k.map { $0.lyDo != .ngu && $0.lyDo != .khoaNgay } ?? true
+    let coXin = k.map { $0.lyDo != .gioHoc } ?? true
     guard action == .primaryButtonPressed, coXin else { xong(.close); return }
     KhoUserDefaults().luu(Date(), Khoa.xinTuManChan)
     let n = UNMutableNotificationContent()
-    n.title = "Xin Ba Mẹ thêm giờ"
-    n.body = "Chạm vào đây để chọn số phút và gửi lời nhắn cho Ba Mẹ."
+    let ngoaiLe = k?.lyDo.chiNgoaiLe == true
+    n.title = ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ" : "Thêm giờ chơi"
+    n.body = ngoaiLe ? "Chạm vào đây để chọn bao lâu và nhắn Ba Mẹ." : "Chạm vào đây để dùng sao hoặc xin Ba Mẹ thêm giờ."
     n.userInfo = ["mo": "xin-them-gio"]
     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "xin-them-gio", content: n, trigger: nil)) { _ in xong(.close) }
   }

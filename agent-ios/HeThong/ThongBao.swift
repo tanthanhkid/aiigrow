@@ -13,7 +13,7 @@ public enum ThongBao {
     let n = UNMutableNotificationContent()
     switch loai {
     case "phiendiem":
-      n.title = "Còn \(phut) phút chơi bằng điểm"
+      n.title = "Còn \(phut) phút chơi"
       n.body = "Lưu trò chơi dần nhé. Hết phiên, app giải trí sẽ tạm khoá lại."
     case "themgio":
       n.title = "Còn \(phut) phút Ba Mẹ cho thêm"
@@ -22,7 +22,7 @@ public enum ThongBao {
       n.title = "Còn \(phut) phút mở bằng mã của Ba Mẹ"
       n.body = "Con chuẩn bị dừng nhé."
     default:
-      n.title = "Còn \(phut) phút giải trí hôm nay"
+      n.title = "Còn \(phut) phút chơi hôm nay"
       n.body = "Lưu trò chơi dần nhé. Hết giờ, app giải trí sẽ tạm khoá."
     }
     n.sound = .default

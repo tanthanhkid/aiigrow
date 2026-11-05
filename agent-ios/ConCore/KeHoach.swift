@@ -52,6 +52,15 @@ public struct KeHoach: Codable, Equatable {
   /// Phiên điểm app đã thấy + hạn gỡ khiên của nó (neo từ lần đầu thấy). Kế hoạch cũ trong kho không có ⇒ nil.
   public var phienDiem: ChinhSach.PhienDang?
   public var phienDiemDen: Date?
+  // ---- 05/11 (kế hoạch cũ trong kho không có ⇒ nil)
+  /// Phút giải trí máy chủ đã tính hôm nay (mọi máy của Con) — phút còn = trần − max(đo tại chỗ, số này).
+  public var daDungMayChu: Int? = nil
+  public var ngayDaDung: String? = nil
+  /// Giờ học (chỉ app Học) + thứ kiểu Apple (1 = CN … 7 = T7).
+  public var hoc: Khung? = nil
+  public var hocThu: [Int]? = nil
+  /// Ngoại lệ cả máy Ba Mẹ mở tới lúc này — thắng giờ ngủ / Ba Mẹ khoá.
+  public var ngoaiLeDen: Date? = nil
 
   public init(tz: String, moNgayThuong: [Khung], moCuoiTuan: [Khung], ngu: Khung?, tranPhut: Int, buocPhut: Int,
               webChan: [String], webGiaiTri: [String], khoaNgay: Bool, khoaGiaiTri: Bool, lyDoKhoa: [String], moDen: Date?,
@@ -62,6 +71,14 @@ public struct KeHoach: Codable, Equatable {
     self.khoaGiaiTri = khoaGiaiTri; self.lyDoKhoa = lyDoKhoa; self.moDen = moDen; self.chanCaiApp = chanCaiApp; self.lich = lich
     self.canhBao = canhBao; self.serverTime = serverTime; self.tenCon = tenCon; self.dungChung = dungChung
     self.phienDiem = phienDiem; self.phienDiemDen = phienDiemDen
+  }
+}
+
+extension KeHoach {
+  func voi(daDung: Int?, ngay: String?, hoc: Khung?, hocThu: [Int]?, ngoaiLeDen: Date?) -> KeHoach {
+    var k = self
+    k.daDungMayChu = daDung; k.ngayDaDung = ngay; k.hoc = hoc; k.hocThu = hocThu; k.ngoaiLeDen = ngoaiLeDen
+    return k
   }
 }
 
@@ -100,18 +117,21 @@ public enum LapKeHoach {
 
     let kg = nt.cauHinh("khung_gio")
     let lm = kg["lichMo"]
-    let moNT = lm?["ngayThuong"]?.dsKhung ?? cs.gioChoi.ngayThuong
-    let moCT = lm?["cuoiTuan"]?.dsKhung ?? cs.gioChoi.cuoiTuan
+    let moNT0 = lm?["ngayThuong"]?.dsKhung ?? cs.gioChoi.ngayThuong
+    let moCT0 = lm?["cuoiTuan"]?.dsKhung ?? cs.gioChoi.cuoiTuan
     let tz = kg["tz"]?.chuoi ?? cs.tz
     let nguK = nt.cauHinh("gio_ngu")["ngu"]?.khung ?? cs.gioChoi.ngu
     let ngu: Khung? = nguK.tuPhut == nguK.denPhut ? nil : nguK
 
     let tranNgay = nt.cauHinh("tran_thoi_gian")["tranNgayPhut"]?.so.map { Int($0) } ?? cs.gioChoi.tranNgayPhut
-    let tran = max(0, tranNgay + max(0, cs.ngoaiLe.phutThemHomNay))
+    // 05/11: có quỹ ⇒ trần = quỹ ngày + phút cộng thêm hôm nay (đổi sao / Ba Mẹ cho / quà); khung giờ chơi không còn chặn
+    let tran = cs.quy.map { max(0, $0.ngayPhut + $0.themPhut) } ?? max(0, tranNgay + max(0, cs.ngoaiLe.phutThemHomNay))
+    let caNgay = [Khung(tu: "00:00", den: "24:00")]
+    let moNT = cs.quy == nil ? moNT0 : caNgay, moCT = cs.quy == nil ? moCT0 : caNgay
 
     let cw = nt.cauHinh("chan_web")
     let webCs = { (ds: [MucChung]) in ds.filter { $0.kieu == "web" }.map(\.muc) }
-    var webChan = chuanTenMien(cw["webDomainsChan"]?.dsChuoi ?? webCs(cs.ungDung.chan))
+    var webChan = chuanTenMien((cw["webDomainsChan"]?.dsChuoi ?? webCs(cs.ungDung.chan)) + (cs.ungDung.webLuonChan ?? []))
     var webGT = chuanTenMien(cw["giaiTriCanPhien"]?.dsChuoi ?? webCs(cs.ungDung.giaiTri)).filter { !webChan.contains($0) }
     if webChan.count > webToiDa { canhBao.append("Chỉ chặn được \(webToiDa) trang web đầu tiên (giới hạn của iOS)"); webChan = Array(webChan.prefix(webToiDa)) }
     if webChan.count + webGT.count > webToiDa { webGT = Array(webGT.prefix(webToiDa - webChan.count)) }
@@ -123,6 +143,10 @@ public enum LapKeHoach {
 
     let moDen = [NgayISO.doc(n.grantEndsAt), NgayISO.doc(n.moDen), NgayISO.doc(cs.ngoaiLe.moKhanCapDen)]
       .compactMap { $0 }.filter { $0 > now }.max()
+    // ngoại lệ CẢ MÁY cho nhóm iPhone/iPad (một app thì iOS không biết app nào — token mờ — bỏ qua)
+    let ngoaiLeDen = (cs.ngoaiLeMo ?? []).filter { $0.muc == nil && ($0.nhom ?? "ios") == "ios" }.compactMap { NgayISO.doc($0.den) }.filter { $0 > now }.max()
+    let hoc: Khung? = cs.gioHoc.map { Khung(tu: $0.tu, den: $0.den) }.flatMap { $0.tuPhut == $0.denPhut ? nil : $0 }
+    let hocThu = cs.gioHoc.map { $0.thu.filter { (0...6).contains($0) }.map { $0 + 1 } }
 
     let buoc = buocDo(tran)
     var lich: [MucLich] = []
@@ -137,6 +161,11 @@ public enum LapKeHoach {
     lich.append(MucLich(ten: "ngay", batDau: 0, ketThuc: 1439, thu: nil, lap: true, suKien: sk))
     // 3. thêm giờ đã duyệt — một lịch không lặp kết thúc ĐÚNG lúc hết hạn (bắt đầu lùi lại cho đủ 15 phút)
     if let moDen { lich.append(lichMotLan("themgio", den: moDen, now: now)) }
+    if let ngoaiLeDen { lich.append(lichMotLan("ngoaile", den: ngoaiLeDen, now: now)) }
+    // 3a. giờ học: chuông lúc vào / ra (cùng giờ mọi ngày có học ⇒ một lịch theo từng thứ)
+    if let hoc, let hocThu, doDai(hoc.tuPhut, hoc.denPhut) >= khoangNganNhat {
+      for thu in hocThu.sorted() { lich.append(MucLich(ten: "hoc.t\(thu)", batDau: hoc.tuPhut, ketThuc: min(hoc.denPhut, 1439), thu: thu, lap: true, suKien: [])) }
+    }
     // 3b. phiên Chơi bằng điểm mở trên CHÍNH máy này (`may` = id máy; phiên mở ở máy / trình duyệt khác không gỡ khiên iPhone)
     //     — như thêm giờ: lịch không lặp đúng hạn phiên (đã neo; hết hạn rồi thì giữ mốc để không mở lại)
     let phien = cs.phienDiem?.phien.flatMap { p in p.may == cs.may.id ? p : nil }
@@ -149,7 +178,9 @@ public enum LapKeHoach {
       guard b - a >= khoangNganNhat else { return }
       mo.append(MucLich(ten: ten, batDau: a, ketThuc: min(b, 1439), thu: thu, lap: true, suKien: []))
     }
-    if moNT == moCT {
+    if cs.quy != nil {
+      // quỹ phút: không còn khung giờ chơi ⇒ không cần lịch «mo.*»
+    } else if moNT == moCT {
       for (i, k) in moNT.enumerated() { them(k, nil, "mo.\(i)") }
     } else {
       for thu in [2, 3, 4, 5, 6] { for (i, k) in moNT.enumerated() { them(k, thu, "mo.t\(thu).\(i)") } }
@@ -167,6 +198,7 @@ public enum LapKeHoach {
                    moDen: moDen, chanCaiApp: true, lich: lich, canhBao: canhBao,
                    serverTime: NgayISO.doc(n.serverTime) ?? now, tenCon: cs.con?.ten, dungChung: cs.may.dungChung,
                    phienDiem: phienDen == nil ? nil : phien, phienDiemDen: phienDen)
+      .voi(daDung: cs.quy?.daDung, ngay: cs.quy == nil ? nil : TinhKhien.diaPhuong(now, tz: tz).ngay, hoc: hoc, hocThu: hocThu, ngoaiLeDen: ngoaiLeDen)
   }
 
   /// Bước đo phút: 5 phút, nới ra để không quá ~40 sự kiện.
