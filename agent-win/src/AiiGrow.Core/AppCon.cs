@@ -320,8 +320,7 @@ public static class AppConView
         int? phut = SoPhutRe.Match(noi) is { Success: true } p && int.TryParse(p.Groups[1].Value, out var np) ? np : null;
         switch (t.Loai)
         {
-            case "duyet_nhiem_vu":
-            case "tu_duyet_nhiem_vu":
+            case "duyet_nhiem_vu":   // tu_duyet_nhiem_vu: khay đã báo «Xong rồi! +N sao» lúc nộp — không bật lại «Ba Mẹ duyệt rồi!»
                 return ten == null ? null : new KetQuaTin("duyet", ten, sao, null, null);
             case "lam_lai_nhiem_vu":
             case "can_bo_sung":

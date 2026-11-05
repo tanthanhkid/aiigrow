@@ -105,10 +105,11 @@ public class AppConTests
         Assert.DoesNotContain("scratch.exe", hetApp.AllowedApps);
 
         // ngoại lệ một app lúc không khoá: hết hạn chỉ bỏ app đó
-        var thuong = Goc(x => x.NgoaiLe = new() { new NgoaiLeMay { Den = now.AddMinutes(-1), App = "minecraft.exe" } });
+        var thuong = Goc(x => { x.AllowedApps.Add("capcut.exe"); x.NgoaiLe = new() { new NgoaiLeMay { Den = now.AddMinutes(-1), App = "capcut.exe" }, new NgoaiLeMay { Den = now.AddMinutes(-1), App = "minecraft.exe" } }; });
         var t = QuyTaiCho.ApDung(thuong, 0, now, offline: false);
         Assert.False(t.Locked);
-        Assert.DoesNotContain("minecraft.exe", t.AllowedApps);
+        Assert.DoesNotContain("capcut.exe", t.AllowedApps);
+        Assert.Contains("minecraft.exe", t.AllowedApps);   // app chơi còn quỹ: hết ngoại lệ vẫn chơi được bằng quỹ
     }
 
     [Theory]

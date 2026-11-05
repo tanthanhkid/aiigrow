@@ -69,7 +69,7 @@ internal sealed class RequestForm : HopKhayCoBan
         if (IsDisposed) return;
         if (r != null) { _quy = r.Quy; _sao = r.Sao; _loiTai = null; }
         else _loiTai = loi;
-        _phutDoi = Math.Clamp(_phutDoi, AppConView.BuocDoi, Math.Max(AppConView.BuocDoi, _quy?.DoiSao.ConDoiDuoc ?? 30));
+        _phutDoi = Math.Clamp(_phutDoi, PhutMin, Math.Max(PhutMin, _quy?.DoiSao.ConDoiDuoc ?? 30));
         VeTab();
     }
 
@@ -119,6 +119,9 @@ internal sealed class RequestForm : HopKhayCoBan
     }
 
     private double ConPhut => _quy?.ConPhut ?? 0;
+
+    /// <summary>Nhỏ nhất đổi được: 5 phút, hoặc ít hơn khi hôm nay chỉ còn đổi được 1–4 phút.</summary>
+    private int PhutMin => Math.Clamp(_quy?.DoiSao.ConDoiDuoc ?? AppConView.BuocDoi, 1, AppConView.BuocDoi);
 
     // ---------------------------------------------------------------- Xin Ba Mẹ (con-xin 02)
 
@@ -269,7 +272,7 @@ internal sealed class RequestForm : HopKhayCoBan
             Flow.Controls.Add(KhoiCon.LienKet("Xin Ba Mẹ thêm giờ ›", "dong_ho_cat", () => { _tabSao = false; VeTab(); }));
             return;
         }
-        var toiDa = Math.Max(AppConView.BuocDoi, _quy?.DoiSao.ConDoiDuoc ?? 60);
+        var toiDa = Math.Max(PhutMin, _quy?.DoiSao.ConDoiDuoc ?? 60);
         if (_quy is { DoiSao.ConDoiDuoc: <= 0 })
         {
             Flow.Controls.Add(UI.Text($"Hôm nay con đã đổi đủ {_quy.DoiSao.ToiDaNgay} phút rồi.", 11f, true, Clay.Canh, W));
@@ -289,9 +292,9 @@ internal sealed class RequestForm : HopKhayCoBan
         var so = UI.Text(AppConView.Phut(_phutDoi), 18f, true, UI.Ink, W); so.Margin = Padding.Empty;
         var tru2 = UI.Text($"trừ {AppConView.SaoChoPhut(_phutDoi, tyLe)} sao", 10f, false, UI.Muted, W); tru2.Margin = Padding.Empty;
         giua.Controls.Add(so); giua.Controls.Add(tru2);
-        tru.Enabled = _phutDoi > AppConView.BuocDoi;
+        tru.Enabled = _phutDoi > PhutMin;
         cong.Enabled = _phutDoi < toiDa;
-        tru.Click += (_, _) => { _phutDoi = Math.Max(AppConView.BuocDoi, _phutDoi - AppConView.BuocDoi); VeTab(); };
+        tru.Click += (_, _) => { _phutDoi = Math.Max(PhutMin, _phutDoi - AppConView.BuocDoi); VeTab(); };
         cong.Click += (_, _) => { _phutDoi = Math.Min(toiDa, _phutDoi + AppConView.BuocDoi); VeTab(); };
         buoc.Controls.Add(tru, 0, 0); buoc.Controls.Add(giua, 1, 0); buoc.Controls.Add(cong, 2, 0);
         Flow.Controls.Add(buoc);
@@ -358,7 +361,7 @@ internal sealed class RequestForm : HopKhayCoBan
         lam.Click += (_, _) => { Sau = SauNhiemVu; Close(); };
         Flow.Controls.Add(lam);
         var it = KhoiCon.Nut("Chọn ít phút hơn", false, W, "tru");
-        it.Click += (_, _) => { _phutDoi = Math.Max(AppConView.BuocDoi, AppConView.PhutDoiToiDa(_sao, _quy) / AppConView.BuocDoi * AppConView.BuocDoi); VeTab(); };
+        it.Click += (_, _) => { var md = AppConView.PhutDoiToiDa(_sao, _quy); _phutDoi = Math.Max(PhutMin, md >= AppConView.BuocDoi ? md / AppConView.BuocDoi * AppConView.BuocDoi : md); VeTab(); };
         Flow.Controls.Add(it);
         Flow.Controls.Add(KhoiCon.LienKet("Xin Ba Mẹ thêm giờ ›", "dong_ho_cat", () => { _tabSao = false; VeTab(); }));
         Xong();

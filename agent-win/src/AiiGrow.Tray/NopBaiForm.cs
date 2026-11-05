@@ -349,7 +349,7 @@ internal sealed class NopBaiForm : HopKhayCoBan
         var note = _note.Text.Trim();
         var canViet = _nv.BangChung is "van_ban" or "viet" || (_nv.BangChung == "ghi_am" && _theViet);
         if (canViet && note.Length < 3) { Bao("Con viết vài câu rồi nộp nhé.", true); return; }
-        if (_nv.BangChung == "anh" && _anh.Count == 0) { Bao("Con chọn ít nhất một ảnh rồi nộp nhé.", true); return; }
+        if (_nv.BangChung == "anh" && _anh.Count == 0 && !(_nv.TrangThai == "can_bo_sung" && !_nv.LamLai && note.Length >= 3)) { Bao("Con chọn ít nhất một ảnh rồi nộp nhé.", true); return; }
         if (_nv.BangChung == "ghi_am" && !_theViet && _ghiAm == null && note.Length < 3) { Bao("Con ghi âm (hoặc chuyển sang «Viết») rồi nộp nhé.", true); return; }
         if (string.IsNullOrEmpty(_nv.Luot)) { Bao("Chưa nhận được việc. Con thử lại nhé.", true); return; }
         _busy = true;

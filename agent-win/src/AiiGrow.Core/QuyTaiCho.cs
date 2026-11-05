@@ -71,10 +71,12 @@ public static class QuyTaiCho
         bool locked = p.Locked;
         string? lyDo = p.LockReason;
 
-        if (ConPhut(p, daDemGiay, now, giayHomNay) is <= 0) { bo.UnionWith(p.AppTinhGio); boQuy.UnionWith(p.AppTinhGio); }
+        var conQuy = ConPhut(p, daDemGiay, now, giayHomNay);
+        if (conQuy is <= 0) { bo.UnionWith(p.AppTinhGio); boQuy.UnionWith(p.AppTinhGio); }
         var nlCon = p.NgoaiLe.Where(n => n.Den > now).ToList();
         // ngoại lệ một app hết hạn ⇒ thu app đó — trừ app vốn được phép (app học) khi máy không bị khoá
-        foreach (var n in p.NgoaiLe.Where(n => n.Den <= now && n.App != null && (p.KhoaKhiHetNgoaiLe != null || !p.LearningApps.Contains(n.App!, StringComparer.OrdinalIgnoreCase)))) bo.Add(n.App!);
+        foreach (var n in p.NgoaiLe.Where(n => n.Den <= now && n.App != null && (p.KhoaKhiHetNgoaiLe != null || !(p.LearningApps.Contains(n.App!, StringComparer.OrdinalIgnoreCase)
+                     || (conQuy is > 0 && p.AppTinhGio.Contains(n.App!, StringComparer.OrdinalIgnoreCase)))))) bo.Add(n.App!);
         bool nlCaMay = nlCon.Any(n => n.App == null);
 
         // Mọi ngoại lệ đã hết hạn mà lúc đồng bộ máy đang bị khoá (Ba Mẹ khoá / giờ ngủ) ⇒ khoá lại như cũ.

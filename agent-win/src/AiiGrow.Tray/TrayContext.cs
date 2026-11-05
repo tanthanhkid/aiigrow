@@ -250,13 +250,17 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private KetQuaHop? _ketQua;
+    private bool _dangMoKetQua;
 
     /// <summary>Màn kết quả Ba Mẹ trả lời (một hộp một lúc). Số sao trước / sau và lời khen đọc từ tổng quan mới nhất.</summary>
     private async Task HienKetQuaAsync(KetQuaTin kq)
     {
-        if (_ketQua is { IsDisposed: false }) return;
-        var (tq, _) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan");
-        if (_state.Locked) return;
+        if (_ketQua is { IsDisposed: false } || _dangMoKetQua) return;
+        _dangMoKetQua = true;   // giữ chỗ qua lượt await — hai lượt tin gần nhau không mở hai hộp
+        HvTongQuan? tq;
+        try { (tq, _) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan"); }
+        finally { _dangMoKetQua = false; }
+        if (_state.Locked || _ketQua is { IsDisposed: false }) return;
         var h = kq.Loai switch
         {
             "duyet" => HopDuyet(kq, tq),
