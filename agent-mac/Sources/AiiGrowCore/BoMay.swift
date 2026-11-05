@@ -405,6 +405,7 @@ public actor BoMay {
   /// App vừa bị bỏ vì hết quỹ hôm nay (QuyGio.apDung) — màn «… chưa được mở» hiện «Dùng sao» / «Xin Ba Mẹ thêm giờ».
   private var appHetQuy: Set<String> = []
   private var appGioHoc: Set<String> = []
+  private var dangChayNho: (luc: Double, gt: Bool)?
 
   /// Policy sau phiên offline + quỹ / ngoại lệ / lịch tại chỗ (QuyGio.swift).
   private func policyHieuLucQuy(_ p0: Policy, now: Date) -> (policy: Policy, hetQuy: Set<String>, gioHoc: Set<String>) {
@@ -421,8 +422,15 @@ public actor BoMay {
     let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
     let dangChay: Bool = {
       guard tc == nil, let u = cauHinh.uidCon else { return false }
+      if let n = dangChayNho, donDieu() - n.luc < 10 { return n.gt }        // quét tiến trình tối đa 10 giây một lần khi lsappinfo hỏng
       let ds = QuyGio.dsTinhGio(p)
-      return heThong.tienTrinh(cuaUid: u).contains { t in [t.bundleId, t.bundleIdGan].contains { $0.map { ds.contains($0.lowercased()) } ?? false } }
+      let ten = { (a: String?) in a.map { (($0 as NSString).lastPathComponent).lowercased() } }
+      let gt = heThong.tienTrinh(cuaUid: u).contains { t in
+        [t.bundleId?.lowercased(), t.bundleIdGan?.lowercased(), ten(t.duongDanApp), ten(t.duongDanApp).map { ($0 as NSString).deletingPathExtension }]
+          .contains { $0.map(ds.contains) ?? false }
+      }
+      dangChayNho = (donDieu(), gt)
+      return gt
     }()
     if QuyGio.laAppTinhGio(p, tienCanh: tc, coAppTinhGioDangChay: dangChay) { cauHinh.quyGiayTuSync += troi }
   }
@@ -688,7 +696,7 @@ public actor BoMay {
     do {
       let d = try await api.hocVien(method: method, path: path, than: than.map { Data($0.utf8) })
       if path == "hoc-vien/doi-sao" { dongBoSom() }      // quỹ mới (đã đổi sao) tới ngay, không chờ nextCheckSec
-      if method.uppercased() == "POST" { choiNho = [:] }     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
+      if method.uppercased() == "POST" { choiNho = [:] }     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
       return .duLieu(json: String(decoding: d, as: UTF8.self))
     } catch let e as LoiApi {
       return .loi(ma: e.ma ?? "hoc_vien_loi", chu: BoMay.cauLoiCon(e))

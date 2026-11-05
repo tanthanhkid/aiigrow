@@ -81,6 +81,8 @@ final class QuyGioTests: XCTestCase {
   func testQuyConPhutBiCheKhiKhongDuocChoi() {
     // máy chủ gửi quyConPhut 0 vì giờ ngủ / học nhưng quỹ thật còn 20 (60 − 40) ⇒ không phải «hết giờ»
     var p = pol(quy: 0); p.quyTongPhut = 60; p.quyDaDung = 40
+    XCTAssertTrue(QuyGio.hetQuy(p, quyGiay: 0), "không rõ lý do che (vd giờ máy sai) ⇒ giữ 0")
+    p.dangGioHoc = true
     XCTAssertFalse(QuyGio.hetQuy(p, quyGiay: 0))
     XCTAssertEqual(QuyGio.conPhut(p, quyGiay: 600), 10)
     p.quyDaDung = 60

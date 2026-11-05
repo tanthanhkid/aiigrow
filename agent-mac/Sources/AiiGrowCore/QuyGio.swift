@@ -68,7 +68,8 @@ public enum QuyGio {
   /// không biết quỹ ngày mới (Policy Mac không mang quỹ gốc, tổng có cả phút cộng thêm hôm qua) ⇒ giữ phần còn lại của hôm qua (bảo thủ).
   static func quyGoc(_ p: Policy, ngayMoi: Bool) -> Int? {
     guard let q = p.quyConPhut else { return nil }
-    if let t = p.quyTongPhut, let d = p.quyDaDung { return max(0, t - d) }
+    // chỉ «mở mặt nạ» khi biết lý do che là giờ học / khoá; giờ máy sai (Mac không biết) thì giữ 0 như máy chủ muốn
+    if q == 0, p.dangGioHoc || p.locked || p.mode == CheDo.khoa.rawValue, let t = p.quyTongPhut, let d = p.quyDaDung { return max(0, t - d) }
     return q
   }
 
