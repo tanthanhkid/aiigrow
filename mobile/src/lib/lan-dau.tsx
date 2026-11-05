@@ -1,6 +1,6 @@
 // Thành phần dùng chung cho hành trình «Lần đầu dùng» + «Ghép thêm máy» của Ba Mẹ (thiết kế chốt 04/11 — docs/thiet-ke-chot/bm-lan-dau,
-// bm-ghep-may). Chỉ dựng lại các mảnh thiết kế có mà kit chưa có: thanh 4 bước bằng icon, nút đăng nhập Google/Facebook (chưa có OAuth ⇒
-// «sắp có»), ô mật khẩu có mắt, mã ghép 6 số to, hàng chia sẻ link (Zalo / Tin nhắn / Messenger / Sao chép / Khác), 3 bước trên máy Con,
+// bm-ghep-may). Chỉ dựng lại các mảnh thiết kế có mà kit chưa có: thanh 4 bước bằng icon, nút đăng nhập Google/Facebook (hình — nối OAuth ở
+// dang-nhap-mxh.tsx), ô mật khẩu có mắt, mã ghép 6 số to, hàng chia sẻ link (Zalo / Tin nhắn / Messenger / Sao chép / Khác), 3 bước trên máy Con,
 // ô icon app trong lưới, bánh xe chọn giờ. Màu / bóng / men lấy token Clay (mau.ts, clay.ts) — không chép CSS thô của HTML thiết kế.
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { Image } from "expo-image";
@@ -90,17 +90,16 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150 }: { lv: LinhVat; tieu: s
   );
 }
 
-// ---------------------------------------------------------------- tài khoản: Google / Facebook (chưa có), ô mật khẩu
+// ---------------------------------------------------------------- tài khoản: Google / Facebook, ô mật khẩu
 
 const G_SVG = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
 const FB_SVG = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1877F2"/><path fill="#fff" d="M13.4 19.5v-6.2h2.1l.3-2.5h-2.4V9.3c0-.7.2-1.2 1.2-1.2h1.3V5.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3v1.8H8.7v2.5h2.1v6.2z"/></svg>`;
 
-/** Đăng nhập Google / Facebook: máy chủ chưa có app OAuth (docs/API.md › S2) ⇒ nút vẫn hiện đúng thiết kế, bấm thì báo «sắp có». */
-export const MXH_SAP_CO = "Đăng nhập bằng Google / Facebook sắp có — Ba Mẹ dùng số điện thoại trước nhé.";
+/** Nút Google / Facebook (chỉ phần hình) — nối OAuth ở lib/dang-nhap-mxh.tsx › NutMxhThat. */
 export function NutMxh({ loai, bam, to }: { loai: "google" | "facebook"; bam: () => void; to?: boolean }) {
   const ten = loai === "google" ? "Google" : "Facebook";
   return (
-    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${to ? "Tiếp tục với " : ""}${ten} (sắp có)`} muc="nut" sang={!to} men={to ? MEN.toi : MEN.sang}
+    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`Tiếp tục với ${ten}`} muc="nut" sang={!to} men={to ? MEN.toi : MEN.sang}
       style={[{ flexGrow: 1, flexBasis: 0, minHeight: to ? 56 : 52, borderRadius: BO_CLAY.nut, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 14 },
         to ? { backgroundColor: M.nut, boxShadow: BONG.toi, alignSelf: "stretch" } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
       <View style={to ? { width: 26, height: 26, borderRadius: 13, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" } : undefined}>
@@ -337,23 +336,6 @@ export function BanhXeGio({ gio, doi }: { gio: string; doi: (g: string) => void 
 
 /** «06:30» ⇒ «6:30» như thiết kế. */
 export const gioGon = (g: string) => g.replace(/^0(\d):/, "$1:");
-
-// ---------------------------------------------------------------- chọn cách tạo tài khoản (bm1-chao + nhánh được mời)
-
-/** Phần dưới màn «Tạo tài khoản» / «Vào nhà cùng …»: tiêu đề, một câu, Google (to), Facebook + Số điện thoại, điều khoản. */
-export function ChonCachTaoTk({ tieu, loi, sdt, bao }: { tieu: string; loi: string; sdt: () => void; bao: (chu: string) => void }) {
-  return (
-    <View style={{ gap: 14 }}>
-      <TieuDe chu={tieu} phu={loi} giua />
-      <NutMxh loai="google" to bam={() => bao(MXH_SAP_CO)} />
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <NutMxh loai="facebook" bam={() => bao(MXH_SAP_CO)} />
-        <NutSdt bam={sdt} />
-      </View>
-      <DieuKhoan />
-    </View>
-  );
-}
 
 /** Khối minh hoạ lớn đầu màn: nền ngọc nhạt bo tròn, Rob to giữa, bong bóng thoại góc trên trái (tuỳ chọn), `tren` = thẻ nổi phía trên. */
 export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhVat; thoai?: string; tren?: ReactNode; cao?: number }) {

@@ -33,13 +33,17 @@ export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number 
 
 /** Nhập lại mật khẩu — bộ đếm riêng theo khung 15 phút cố định (như ghepMay): giữ chỗ lượt thử TRƯỚC khi kiểm (một upsert nguyên tử)
  *  ⇒ gửi song song cũng chỉ ≤ 5 lượt được kiểm mỗi khung; gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Đúng ⇒ xoá bộ đếm. */
-async function kiemMatKhau(bm: BaMe, mk: unknown, now = Date.now()) {
+async function kiemMatKhau(bm: BaMe, mk: unknown, xacNhan?: unknown, now = Date.now()) {
   const khoa = `xoa_tk:${bm.id}:${Math.floor(now / (XOA_KHOA_PHUT * 60_000))}`;
   const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > XOA_SAI_TOI_DA) throw new LoiNghiepVu("tam_khoa", `Nhập sai mật khẩu nhiều lần — thử lại sau ${XOA_KHOA_PHUT} phút`, 429);
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
-  if (!p?.pass_hash || !(await dungMatKhau(String(mk ?? ""), p.pass_hash))) throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);
+  // Tài khoản vào bằng Google / Facebook (dang-nhap-mxh.ts) không có mật khẩu ⇒ xác nhận bằng gõ chữ «XOA» (phiên Bearer đã là bằng chứng)
+  if (p && !p.pass_hash) {
+    if (String(xacNhan ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase() !== "XOA")
+      throw new LoiNghiepVu("sai_xac_nhan", "Gõ chữ XOA để xác nhận", 400);
+  } else if (!p?.pass_hash || !(await dungMatKhau(String(mk ?? ""), p.pass_hash))) throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);
   await q(`delete from pin_sai where khoa like $1`, [`xoa_tk:${bm.id}:%`]);
 }
 
@@ -61,11 +65,11 @@ async function kiemChan(t: Q, bm: BaMe) {
   return toi;
 }
 
-export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: unknown }): Promise<KetQuaXoa | { duoc: true }> {
+export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: unknown; xacNhan?: unknown }): Promise<KetQuaXoa | { duoc: true }> {
   // bảng tạo lười phải có trước giao dịch (PGlite một kết nối: không chạy DDL qua q() khi đang trong tx)
   await bangM4b(); await bangTvTb(); await bangMang(); await bangLog(); await damBaoBang();
   if (b.kiemTra === true) { await kiemChan(q, bm); return { duoc: true }; }
-  await kiemMatKhau(bm, b.matKhau);
+  await kiemMatKhau(bm, b.matKhau, b.xacNhan);
   return tx(async (t: Q): Promise<KetQuaXoa> => {
     // khoá dòng gia đình ⇒ không chạy song song với nhận lời mời / ghép máy / xoá lần hai
     await t(`select id from families where id = $1 for update`, [bm.family_id]);

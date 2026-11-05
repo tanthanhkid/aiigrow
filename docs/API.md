@@ -304,7 +304,17 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 | `GET moi/cho-toi` | lời mời đang chờ cho SĐT / email của người đang đăng nhập → `{ds[{id, tenGiaDinh, nguoiMoi, quyen, tenQuyen, tenGoi, tenCon[], het}]}` |
 | `POST moi/nhan {id}` hoặc `{ma}` | «Vào nhà» một lệnh: `id` (lời mời gửi tới đúng định danh của mình) hoặc `ma` (token link) → `{quyen, vai}`. Tài khoản phải còn trống (chưa Con / máy / người lớn khác) — `gia_dinh_co_du_lieu` 409 |
 
-Đăng nhập Google / Facebook: **chưa có** ở máy chủ (cần app OAuth — chờ Thanh); khi có, chỉ cần định danh (email) khớp `loi_moi.dinh_danh` là `moi/cho-toi` thấy lời mời.
+### Đăng nhập Google / Facebook (05/11 — `lib/dang-nhap-mxh.ts`, cách tạo app OAuth + env: `docs/OAUTH.md`)
+
+| Đường (không cần đăng nhập) | Ý |
+|---|---|
+| `GET cau-hinh-dang-nhap` | `{google: bool, facebook: bool}` — app ẩn nút nào `false` (thiếu env `GOOGLE_CLIENT_IDS` / `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET`) |
+| `POST dang-nhap/google {idToken}` | id_token Google (kiểm chữ ký JWKS, `iss`, `aud` ∈ `GOOGLE_CLIENT_IDS`, hạn, `email_verified`) → `{token, moi?, loiMoi[]}` |
+| `POST dang-nhap/facebook {accessToken}` | access token Facebook (Graph `debug_token` đúng app, `/me` lấy email) → `{token, moi?, loiMoi[]}` |
+
+Tìm Ba Mẹ theo email (chữ thường); chưa có ⇒ tạo nhà mới, Ba Mẹ là người tạo nhà, không mật khẩu (`moi: true`). `loiMoi[]` như `dang-nhap`:
+email khớp `loi_moi.dinh_danh` ⇒ thấy lời mời. Lỗi: `mxh_chua_bat` 503 · `mxh_sai` 401 · `mxh_khong_email` 400 · `mxh_mang` 502.
+`GET toi` › `baMe.coMatKhau` (false = tài khoản Google/Facebook) ⇒ `POST xoa-tai-khoan {xacNhan: "XOA"}` thay cho `{matKhau}` (sai ⇒ 400 `sai_xac_nhan`).
 
 ### Chặn app 2 chế độ (L4)
 

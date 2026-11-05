@@ -32,6 +32,7 @@ export default function CaiDat() {
   const khac = d.tv.ds.filter((x) => !x.laToi);
   const laChu = d.toi.baMe.laChuNha ?? d.toi.baMe.vai === "chu", chuConNguoi = laChu && khac.length > 0;
   const laBaMe = (d.toi.baMe.quyen ?? (d.toi.baMe.vai === "xem" ? "trong_giup" : "ba_me")) === "ba_me";
+  const khongMk = d.toi.baMe.coMatKhau === false;
   const dongXoa = () => { setMoXoa(false); setMk(""); setLoi(null); };
   const laChan = (e: unknown): e is LoiApi => e instanceof LoiApi && (e.ma === "con_may" || e.ma === "con_thanh_vien");
   // hỏi máy chủ trước (không cần mật khẩu) ⇒ bị chặn thì hiện hướng dẫn ngay, không bắt nhập mật khẩu vô ích
@@ -52,7 +53,7 @@ export default function CaiDat() {
   const xoa = () => lam(async () => {
     let r: { xoa: "tai_khoan" | "gia_dinh" };
     try {
-      r = await bm.goi("xoa-tai-khoan", { matKhau: mk });
+      r = await bm.goi("xoa-tai-khoan", khongMk ? { xacNhan: mk } : { matKhau: mk });
     } catch (e) {
       // Không đảo được: mất mạng lúc chờ phản hồi thì KHÔNG nói «chưa có gì thay đổi» — máy chủ có thể đã xoá xong.
       if (e instanceof LoiApi && e.ma === "mat_mang") throw new LoiApi("mat_mang_xoa", "Mất kết nối giữa chừng — chưa rõ tài khoản đã xoá xong chưa. Có mạng lại thì bấm «Xoá vĩnh viễn» lần nữa: nếu app đưa về màn chào là đã xoá.", 0);
@@ -202,7 +203,9 @@ export default function CaiDat() {
                 </>
               )}
             </View>
-            <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
+            {/* tài khoản vào bằng Google / Facebook không có mật khẩu ⇒ gõ chữ XOA (server/lib/xoa-tai-khoan.ts) */}
+            {khongMk ? <ONhap nhan="Gõ chữ XOA để xác nhận" value={mk} onChangeText={setMk} autoCapitalize="characters" autoCorrect={false} placeholder="XOA" />
+              : <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />}
             <BaoLoi loi={loiXoa} />
             <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
             <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="ma" rong bam={dongXoa} /></View>

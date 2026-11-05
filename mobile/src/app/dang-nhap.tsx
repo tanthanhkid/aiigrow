@@ -1,12 +1,13 @@
 // bm1-dang-nhap (thiết kế chốt 04/11): «Chào Ba Mẹ! Đăng nhập để xem con đang làm gì.» — SĐT + mật khẩu (mắt), «Quên mật khẩu?»,
-// «Đăng nhập vào nhà mình», hoặc Google / Facebook (chưa có OAuth ⇒ «sắp có»). «Cần giúp?» ⇒ chat AiiLab.
+// «Đăng nhập vào nhà mình», hoặc Google / Facebook (lib/dang-nhap-mxh.tsx — chưa bật thì ẩn cả hàng «hoặc»). «Cần giúp?» ⇒ chat AiiLab.
 // Sai 5 lần liền máy chủ tạm khoá 15 phút. Có lời mời chờ cho số này (loiMoi) + nhà còn trống ⇒ màn Lời mời (/moi/vao).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { CanGiup, CanhRob, DauMan, LienKet, MXH_SAP_CO, NutMxh, OLom } from "@/lib/lan-dau";
+import { CanGiup, CanhRob, DauMan, LienKet, OLom } from "@/lib/lan-dau";
+import { NutMxhThat, useCoMxh } from "@/lib/dang-nhap-mxh";
 import { BaoLoi, Chu, M, Man, Nut, useHoanTac, useLam } from "@/lib/ui";
 
 export default function DangNhap() {
@@ -16,6 +17,8 @@ export default function DangNhap() {
   const { vao } = usePhien();
   const { bao, noi } = useHoanTac();
   const { lam, loi, dangChay } = useLam();
+  const co = useCoMxh();
+  const nc = moi ? { moi } : {};
   const di = () => lam(async () => {
     const r = await bm.goi<{ token: string; loiMoi?: unknown[] }>("dang-nhap", { dinhDanh: dd, matKhau: mk });
     if (!r.loiMoi?.length && !moi) { await vao(r.token); return; }
@@ -34,13 +37,15 @@ export default function DangNhap() {
       </View>
       <BaoLoi loi={loi} />
       <Nut chu="Đăng nhập vào nhà mình" rong dangChay={dangChay} tat={!dd || !mk} bam={di} />
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 }}>
-        <View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} /><Chu co={13} mau={M.chu3}>hoặc</Chu><View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10 }}>
-        <NutMxh loai="google" bam={() => bao(MXH_SAP_CO)} />
-        <NutMxh loai="facebook" bam={() => bao(MXH_SAP_CO)} />
-      </View>
+      {co.google || co.facebook ? <>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} /><Chu co={13} mau={M.chu3}>hoặc</Chu><View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} />
+        </View>
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          {co.google ? <NutMxhThat loai="google" bao={bao} nc={nc} /> : null}
+          {co.facebook ? <NutMxhThat loai="facebook" bao={bao} nc={nc} /> : null}
+        </View>
+      </> : null}
     </Man>
   );
 }
