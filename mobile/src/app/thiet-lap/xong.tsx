@@ -52,7 +52,7 @@ export default function ObXong() {
       ) : null}
       {conLai.map((x) => <Nut key={x.id} chu={`Thiết lập tiếp cho ${x.ten}`} loai="vien" rong bam={() => tiepCon(x)} />)}
       {coMay ? (
-        <View style={{ borderRadius: 26, backgroundColor: "#fff1c9", padding: 14, gap: 10, ...KHOI.the }}>
+        <View style={{ borderRadius: 26, backgroundColor: "#fff1c9", padding: 16, gap: 10, ...KHOI.the }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="chuong" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Con xin gì, điện thoại Ba Mẹ sẽ báo</Chu></View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderRadius: 18, padding: 10, ...KHOI.nho }}>
             <Avt ten={ten} mau={MAU_CON[0]} co={34} />
@@ -62,7 +62,7 @@ export default function ObXong() {
           </View>
         </View>
       ) : (
-        <View style={{ borderRadius: 26, backgroundColor: "#fff1c9", padding: 14, gap: 10, ...KHOI.the }}>
+        <View style={{ borderRadius: 26, backgroundColor: "#fff1c9", padding: 16, gap: 10, ...KHOI.the }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="may_tinh" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Chưa có máy nào</Chu></View>
           <Chu co={13.5} mau={M.chu2}>{`Rob chỉ trông được khi máy của ${ten} đã ghép`}</Chu>
           <Nut chu={`Ghép máy cho ${ten}`} loai="ngoc" rong bam={() => router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } })} />

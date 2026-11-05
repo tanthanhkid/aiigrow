@@ -54,12 +54,13 @@ export default function ObCon() {
           : <LienKet chu="+ Thêm con khác" bam={() => (tenGon ? themCon() : setLoi("Nhập tên con này trước, rồi thêm con khác."))} />}</>}>
       <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={30} />
-        <View style={{ gap: 10, alignItems: "flex-start" }}>
+        {/* cột trái ≤ 44%: tên dài xuống dòng trước khi chạm Rob bên phải (cổng DE-ANH) */}
+        <View style={{ gap: 10, alignItems: "flex-start", maxWidth: "44%" }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: dam, alignItems: "center", justifyContent: "center", borderWidth: 4, borderColor: "#fff", boxShadow: BONG.nho }}>
-            <Chu kieu="rat" co={38} mau="#fff">{(tenGon.split(/\s+/).pop() ?? "").charAt(0).toUpperCase() || "?"}</Chu>
+            <Chu kieu="rat" co={38} mau={M.chu}>{(tenGon.split(/\s+/).pop() ?? "").charAt(0).toUpperCase() || "?"}</Chu>
           </View>
           <Chu kieu="rat" co={22}>{tenGon || "Con nhà mình"}</Chu>
-          {tuoi ? <View style={{ backgroundColor: dam, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3 }}><Chu kieu="rat" co={12} mau="#fff">{tuoi}</Chu></View> : null}
+          {tuoi ? <View style={{ backgroundColor: dam, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3 }}><Chu kieu="rat" co={12} mau={M.chu}>{tuoi}</Chu></View> : null}
         </View>
         <View pointerEvents="none" style={{ position: "absolute", right: 6, bottom: 0, top: 6, width: "48%", alignItems: "flex-end", justifyContent: "flex-end" }}><Rob ten="chi" co={150} /></View>
       </View>

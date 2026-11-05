@@ -96,7 +96,7 @@ export default function MoiNguoiNha() {
         <Chu kieu="dam" co={13.5} mau={M.chu3}>{`${ten.trim() || "Người nhà"} chưa có app? `}<Chu kieu="rat" co={13.5} mau={hop ? M.chinhInk : M.chu3}>Gửi link mời</Chu></Chu>
       </Pressable>
     </>}>
-      <View style={{ alignItems: "center", gap: 10, paddingVertical: 18, borderRadius: 30, backgroundColor: M.chinhSoft, ...KHOI.the }}>
+      <View style={{ alignItems: "center", gap: 10, paddingVertical: 18, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.chinhSoft, ...KHOI.the }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 3).map((t, i) => (
             <View key={i} style={{ width: 54, height: 54, borderRadius: 27, marginLeft: i ? -10 : 0, borderWidth: 3, borderColor: M.nen, backgroundColor: MAU_CON[(i + 2) % MAU_CON.length],
@@ -108,7 +108,7 @@ export default function MoiNguoiNha() {
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
         </View>
-        <Chu kieu="rat" co={14} mau={M.chinhInk}>{`Bạn cùng trông ${tenCon}`}</Chu>
+        <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ textAlign: "center" }}>{`Bạn cùng trông ${tenCon}`}</Chu>
       </View>
       <Chu kieu="rat" co={26} style={{ letterSpacing: -0.5, marginHorizontal: 4, marginTop: 4 }}>Mời người nhà</Chu>
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
@@ -133,7 +133,7 @@ export default function MoiNguoiNha() {
       <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
         {(["ba_me", "trong_giup"] as const).map((q) => (
           <NhanMen key={q} onPress={() => setQuyen(q)} accessibilityRole="radio" accessibilityState={{ checked: quyen === q }} accessibilityLabel={`${TEN_QUYEN[q]}, ${MO_TA_QUYEN[q]}`}
-            muc="khoi" sang style={[{ flex: 1, minWidth: 0, padding: 12, gap: 4, borderRadius: 24, backgroundColor: M.the, ...KHOI.the },
+            muc="khoi" sang style={[{ flex: 1, minWidth: 0, paddingVertical: 12, paddingHorizontal: 16, gap: 4, borderRadius: 24, backgroundColor: M.the, ...KHOI.the },
               quyen === q && { boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.the}` }]}>
             <Icon3D ten={IC_QUYEN[q]} co={30} />
             <Chu kieu="rat" co={14.5}>{TEN_QUYEN[q]}</Chu>

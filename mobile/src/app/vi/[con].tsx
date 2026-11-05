@@ -77,7 +77,7 @@ export default function ViSao() {
       <The>
         {d.vi.lichSu.length ? d.vi.lichSu.slice(0, 40).map((x, i) => (
           <HangViec key={i} dau={i === 0} ic={x.delta > 0 ? "sao" : x.loai === "doi_qua" ? "qua" : "dongho"} mau={x.delta > 0 ? "vang" : "xam"}
-            tieu={x.ly_do} phu={`${ngay(x.created_at)} · ${gioPhut(x.created_at)}${x.nguoi ? ` · ${x.nguoi}` : ""}`}
+            tieu={x.ly_do} phu={`${ngay(x.created_at)} · ${gioPhut(x.created_at)}${x.ten_nguoi ? ` · ${x.ten_nguoi}` : ""}`}
             phai={<Chu kieu="rat" so mau={x.delta > 0 ? M.chinh : M.chu}>{`${x.delta > 0 ? "+" : "−"}${Math.abs(x.delta)}`}</Chu>} />
         )) : <Chu co={14} mau={M.chu2}>{`Ví của ${d.ten} còn trống — sao đầu tiên đến khi con làm xong việc đầu tiên.`}</Chu>}
       </The>

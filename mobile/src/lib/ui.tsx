@@ -675,6 +675,9 @@ export function useHoanTac() {
     setTb({ chu, hoan });
     hen.current = setTimeout(() => { hen.current = null; setTb(null); }, HOAN_TAC_MS);
   }, []);
+  // màn nào có toast thì cũng nhận câu «báo khi quay về» (baoKhiVe) — trước đây chỉ vài màn gọi useBaoKhiVe ⇒ «Đã lưu hồ sơ», «Đã giao N việc»,
+  // «Đã lưu giờ chơi»… mất khi quay về Hồ sơ con / Hôm nay
+  useBaoKhiVe(bao);
   const guiCham = useCallback((chu: string, lam: () => void, huy?: () => void) => {
     if (hen.current) clearTimeout(hen.current);
     cho.current = lam;
@@ -728,7 +731,7 @@ const s = StyleSheet.create({
   dau: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 2, minHeight: 48 },
   lui: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44, paddingHorizontal: 6 },
   tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 30, lineHeight: 34, fontFamily: F.rat, color: M.chu, letterSpacing: -0.6 },
-  bongChat: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, maxWidth: "78%" },
+  bongChat: { paddingVertical: 10, paddingLeft: 16, paddingRight: 18, borderRadius: 22, maxWidth: "78%" },   // phải 18: web bẻ dòng giữ dấu cách cuối dòng (~4 px) trong khung chữ ⇒ chữ vẫn cách mép ≥ 12
   hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },
   day: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24, gap: 8, backgroundColor: M.nen },
   canh: { position: "relative", borderRadius: BO_CLAY.the, padding: 18, marginBottom: 26, flexDirection: "row", alignItems: "center", boxShadow: BONG.the },

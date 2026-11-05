@@ -175,7 +175,7 @@ export const linkNgan = (lienKet: string) => lienKet.replace(/^https?:\/\//, "")
 export const demNguoc = (giay: number) => `${Math.floor(Math.max(0, giay) / 60)}:${String(Math.max(0, giay) % 60).padStart(2, "0")}`;
 
 type ChiaSe = { tieuDe: string; noiDung: string; lienKet: string };
-const ZALO = `<svg viewBox="0 0 48 48"><text x="24" y="30" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="15" fill="#fff">Zalo</text></svg>`;
+const ZALO = `<svg viewBox="0 0 48 48"><text x="24" y="30" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="15" fill="#fff" style="color:#fff">Zalo</text></svg>`;
 const TIN = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.7 6.2L5 21l4-2.2c1 .3 2 .4 3 .4 5.5 0 10-3.6 10-8.1S17.5 3 12 3z"/></svg>`;
 const MES = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.5C6.6 2.5 2.5 6.4 2.5 11.4c0 2.7 1.2 5 3.1 6.6V21l2.9-1.6c1.1.3 2.3.5 3.5.5 5.4 0 9.5-3.9 9.5-8.9S17.4 2.5 12 2.5zm1 11.8-2.4-2.6-4.7 2.6 5.2-5.5 2.5 2.6 4.6-2.6z"/></svg>`;
 
@@ -204,16 +204,20 @@ export function HangChiaSe({ chiaSe, bao }: { chiaSe: ChiaSe; bao: (chu: string)
         if (Platform.OS === "web") { chep(chiaSe.noiDung, "Đã chép link — mở Messenger, dán gửi sang máy của con"); return; }
         Linking.openURL(`fb-messenger://share/?link=${encodeURIComponent(chiaSe.lienKet)}`).catch(() => chiaSeHeThong(chiaSe));
       } },
-    { ten: "Sao chép link", nen: M.the, ve: <Icon3D ten="lap" co={28} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
+    { ten: "Chép link", nen: M.the, ve: <Icon3D ten="lap" co={28} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
     { ten: "Khác…", nen: M.the, ve: <View style={{ flexDirection: "row", gap: 4 }}>{[0, 1, 2].map((i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: M.chu2 }} />)}</View>,
       bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); }) },
   ];
+  // Khổ hẹp (< 60 px mỗi ô — máy 320–360 px): 3 ô một hàng, «Messenger» không gãy 2 dòng; khổ rộng: một hàng 5 ô như bảng chia sẻ iPhone.
+  const [rong, setRong] = useState(0);
+  const hep = rong > 0 && rong / muc.length < 60;
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 2, marginHorizontal: -8 }} accessibilityLabel="Chia sẻ link ghép máy">
+    <View onLayout={(e) => setRong(e.nativeEvent.layout.width)} style={{ flexDirection: "row", flexWrap: hep ? "wrap" : "nowrap", justifyContent: hep ? "center" : "space-between", rowGap: 12 }}
+      accessibilityLabel="Chia sẻ link ghép máy">
       {muc.map((m) => (
-        <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten} style={{ flex: 1, alignItems: "center", gap: 6, minHeight: 44 }}>
+        <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten} style={[{ alignItems: "center", gap: 6, minHeight: 44 }, hep ? { width: "33.33%" } : { flex: 1 }]}>
           <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
-          <Text numberOfLines={2} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
+          <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
         </Pressable>
       ))}
     </View>
@@ -339,16 +343,24 @@ export const gioGon = (g: string) => g.replace(/^0(\d):/, "$1:");
 
 /** Khối minh hoạ lớn đầu màn: nền ngọc nhạt bo tròn, Rob to giữa, bong bóng thoại góc trên trái (tuỳ chọn), `tren` = thẻ nổi phía trên. */
 export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhVat; thoai?: string; tren?: ReactNode; cao?: number }) {
+  // Bong bóng thoại / thẻ phía trên nằm TRONG dòng chảy, Rob lấp phần còn lại bên dưới — không chồng lên hình (cổng DE-ANH): đo chiều cao
+  // khối trên rồi thu Rob cho vừa (thẻ lời mời có tên con dài ở 320px cao tới 4–5 dòng).
+  const [hTren, setHTren] = useState(thoai || tren ? 72 : 0);
+  const coRob = Math.max(110, cao - 30 - (thoai || tren ? hTren + 12 : 0));
   return (
-    <View style={{ height: cao, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
+    <View style={{ minHeight: cao, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={34} />
-      <Rob ten={lv} co={cao - 30} />
-      {thoai ? (
-        <View style={{ position: "absolute", left: 16, top: 16, maxWidth: "62%", backgroundColor: "#fff", borderRadius: 20, paddingVertical: 10, paddingHorizontal: 14, boxShadow: BONG.nho }}>
-          <Chu kieu="rat" co={14}>{thoai}</Chu>
+      {thoai || tren ? (
+        <View onLayout={(e) => setHTren(Math.ceil(e.nativeEvent.layout.height))} style={{ alignSelf: "stretch", paddingHorizontal: 12, paddingTop: 12 }}>
+          {thoai ? (
+            <View style={{ alignSelf: "flex-start", marginLeft: 4, marginTop: 4, maxWidth: "80%", backgroundColor: "#fff", borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16, boxShadow: BONG.nho }}>
+              <Chu kieu="rat" co={14}>{thoai}</Chu>
+            </View>
+          ) : null}
+          {tren}
         </View>
       ) : null}
-      {tren ? <View style={{ position: "absolute", left: 12, right: 12, top: 12 }}>{tren}</View> : null}
+      <View style={{ flex: 1, justifyContent: "flex-end" }}><Rob ten={lv} co={coRob} /></View>
     </View>
   );
 }

@@ -106,7 +106,8 @@ export function TheDangChoi({ p, tai, bao, xem }: { p: PhienDang; tai: () => voi
 }
 
 type LuatCu = { con: string; muc: string; ten: string; loai: string; nhom: string; het: string | null };
-const LOAI_XEP = [["hoc", "Học tập"], ["giai_tri", "Giải trí"], ["chan", "Chặn"]] as const;
+// chữ theo thiết kế 05/11 (bm-ung-dung): «Không tính giờ» / «Tính vào giờ chơi» / «Không cho dùng» — không còn «Học tập / Giải trí / Chặn thật»
+const LOAI_XEP = [["hoc", "Không tính giờ"], ["giai_tri", "Tính giờ chơi"], ["chan", "Không cho"]] as const;
 
 /** App mới Con vừa dùng mà chưa xếp loại: 3 nút xếp ngay (luật cả nhà, như màn Ứng dụng). */
 export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai: () => void; bao: Bao; toiDa?: number; xem?: boolean }) {
@@ -122,7 +123,7 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
       const hoan = kq && "truoc" in kq
         ? () => { (kq.truoc ? bm.goi("luat", { ...kq.truoc, neuLoai: loai[0] }) : bm.goi("luat/xoa", { muc: kq.muc, neuLoai: loai[0] })).then(tai, (e) => { baoLoiHoan(bao, e); tai(); }); }
         : undefined;
-      bao(`Đã xếp ${x.ten ?? x.muc} vào ${loai[1]}`, hoan);
+      bao(loai[0] === "chan" ? `Đã chặn ${x.ten ?? x.muc}` : `Cho dùng ${x.ten ?? x.muc}, không tính giờ`, hoan);
       tai();
     });
   return (
@@ -130,8 +131,8 @@ export function AppMoi({ ds, tai, bao, toiDa = 3, xem }: { ds: AppChuaXep[]; tai
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <BieuTron ic="luoi" mau="tim" />
         <View style={{ flex: 1 }}>
-          <Chu kieu="rat" co={15.5}>{`${ds.length} app mới chờ xếp loại`}</Chu>
-          <Chu co={13} mau={M.chu3}>Trên máy các Con · chưa xếp thì không mở được khi Chặn thật.</Chu>
+          <Chu kieu="rat" co={15.5}>{`${ds.length} app mới chờ Ba Mẹ cho dùng`}</Chu>
+          <Chu co={13} mau={M.chu3}>Trên máy các con · app chưa cho dùng thì con phải xin Ba Mẹ.</Chu>
         </View>
       </View>
       {ds.slice(0, toiDa).map((x) => (

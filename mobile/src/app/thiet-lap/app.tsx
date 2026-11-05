@@ -47,7 +47,7 @@ export default function ChonApp() {
         <Anh3D ten="lap_lanh" co={22} />
         <Chu kieu="rat" co={14} mau={M.chinhInk}>{`Rob chọn sẵn ${soRob} app hợp tuổi${tuoi ? ` ${tuoi}` : ""} · bấm để đổi`}</Chu>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12, paddingVertical: 14, paddingHorizontal: 4, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
         {(luoi ?? []).map((a) => <OApp key={a.ma} ma={a.ma} ten={a.ten} chon={apps.some((x) => coMa(x) && x.ma === a.ma)} bam={() => bat(a)} />)}
         {rieng.map((a) => <OApp key={`r-${a.ten}`} ten={a.ten} chon bam={() => doi(apps.filter((x) => x !== a))} nhanDoc={`${a.ten} — bấm để bỏ`} />)}
         <OThemApp bam={() => router.push("/thiet-lap/them-app")} />

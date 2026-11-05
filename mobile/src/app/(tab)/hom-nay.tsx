@@ -131,7 +131,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{dongDang}</Chu>
           <Icon ten="phai" co={14} mau={M.chu3} />
         </Pressable>
-        <View style={{ marginTop: 18, maxWidth: "64%" }}>
+        {/* chừa đúng bề ngang Rob (124 px, lệch phải −6) — maxWidth % ở khổ 320 / tên dài vẫn chồng chữ lên Rob (cổng DE-ANH) */}
+        <View style={{ marginTop: 18, marginRight: 112 }}>
           <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
           <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>
             <Chu kieu="dam" co={14} mau={M.chinhInk}>{`${phuGio} ›`}</Chu>

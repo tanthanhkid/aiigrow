@@ -13,7 +13,7 @@ export default function Chao() {
   useBaoKhiVe(bao);                     // «Đã xoá tài khoản…» sau khi xoá ở màn Gia đình
   return (
     <View style={{ flex: 1, backgroundColor: "#f3f3ef", overflow: "hidden" }}>
-      <NenChao />
+      <NenChao>
       <SafeAreaView style={{ flex: 1, justifyContent: "flex-end" }} edges={["top", "bottom", "left", "right"]}>
         <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6 }}>
           <NhanMen onPress={() => router.push("/tao-tai-khoan")} accessibilityRole="button" muc="nut" men={MEN.ngoc}
@@ -36,6 +36,7 @@ export default function Chao() {
           ) : null}
         </View>
       </SafeAreaView>
+      </NenChao>
       {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: 140 }}>{noi}</View> : null}
     </View>
   );

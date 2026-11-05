@@ -106,7 +106,7 @@ const TheLuot = memo(function TheLuot({ x, nhieuCon }: { x: LuotChoMoi; nhieuCon
   const mo = () => router.push(`/duyet/${x.id}` as never);
   return (
     <NhanMen onPress={mo} accessibilityRole="button" accessibilityLabel={`${x.ten}, ${ghiAm ? "nghe ghi âm" : "xem ảnh"} để duyệt`} muc="khoi" sang
-      style={[{ padding: 10, borderRadius: 30, backgroundColor: M.the, gap: 10 }, KHOI.the]}>
+      style={[{ padding: 16, borderRadius: 30, backgroundColor: M.the, gap: 10 }, KHOI.the]}>
       <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
         <ThuNho x={x} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>

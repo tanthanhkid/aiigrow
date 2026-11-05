@@ -47,9 +47,10 @@ export default function DaGhep() {
       <View style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 26, backgroundColor: "#ebeae6", boxShadow: BONG.lom }} accessibilityRole="radiogroup">
         {([["mo_het", "Mở hết"], ["chi_app_duoc_phep", "Chỉ app được phép"]] as const).map(([v, t]) => {
           const c = (cho ?? d?.cheDoChan) === v;
+          // ô «Chỉ app được phép» rộng hơn (có icon + chữ dài) để nhãn một dòng ở máy 320 px
           return (
             <Pressable key={v} onPress={() => doiCheDo(v)} accessibilityRole="radio" accessibilityState={{ checked: c }}
-              style={{ flex: 1, minHeight: 50, borderRadius: 21, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", ...(c ? { backgroundColor: "#fff", ...KHOI.nho } : {}) }}>
+              style={{ flex: v === "chi_app_duoc_phep" ? 1.6 : 1, minHeight: 50, borderRadius: 21, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", ...(c ? { backgroundColor: "#fff", ...KHOI.nho } : {}) }}>
               {v === "chi_app_duoc_phep" ? <Icon3D ten="khoa" co={20} /> : null}
               <Chu kieu="rat" co={14.5} mau={c ? M.chinhInk : M.chu2}>{t}</Chu>
             </Pressable>
