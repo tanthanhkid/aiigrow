@@ -73,6 +73,8 @@ public sealed class UpdateWorker : BackgroundService
         var json = await http.GetStringAsync(server + TuCapNhat.DuongManifest, ct);
         var m = JsonSerializer.Deserialize<BanMoi>(json);
         if (m == null || TuCapNhat.KiemManifest(m, server, TuCapNhat.BanHienTai()) != null) return null;
+        // bản đã thử cài trong 24 giờ (lỗi) thì lượt cập nhật ngay cũng bỏ qua (DaThuGanDay) ⇒ đừng mời Con bấm cập nhật vô ích
+        if (DaThuGanDay(m.Version)) return null;
         return CapNhat.DocBan(m.Version)?.ToString(3);
     }
     private static readonly TimeSpan ThuLaiManifest = TimeSpan.FromMinutes(15);

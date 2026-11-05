@@ -30,7 +30,7 @@ public static class LoiGhep
                     if (a.Code == "ma_sai" || (a.Code == null && a.StatusCode == 404)) return LoaiLoiGhep.MaSai;
                     if (a.Code is "ma_het_han" or "ma_da_dung" || (a.Code == null && a.StatusCode == 410)) return LoaiLoiGhep.HetHan;
                 }
-                return a.IsNetwork ? LoaiLoiGhep.MatMang : LoaiLoiGhep.Khac;
+                return a.LaLoiDuongTruyen ? LoaiLoiGhep.MatMang : LoaiLoiGhep.Khac;   // thân lạ / thiếu token / gói hỏng: hiện lỗi thật, không bảo kiểm Wi-Fi
             }
             if (x is HttpRequestException or TaskCanceledException or TimeoutException or System.Net.Sockets.SocketException) return LoaiLoiGhep.MatMang;
         }

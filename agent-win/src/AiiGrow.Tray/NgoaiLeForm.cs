@@ -157,6 +157,7 @@ internal sealed class NgoaiLeForm : Form
         var kq = TrayView.XinGio(r.Status);
         if (kq == TrayView.KetQuaXin.Duoc) { VeDuoc(); return; }
         if (kq == TrayView.KetQuaXin.TuChoi) { VeChuaCho(); return; }
+        if (kq == TrayView.KetQuaXin.HetHan) { HetHan(); return; }
         _id = r.Id;
         VeCho();
         if (!string.IsNullOrEmpty(_id)) _poll.Start();
@@ -172,7 +173,17 @@ internal sealed class NgoaiLeForm : Form
         var kq = TrayView.XinGio(r.Status);
         if (kq == TrayView.KetQuaXin.Cho) return;
         _poll.Stop();
-        if (kq == TrayView.KetQuaXin.Duoc) VeDuoc(); else VeChuaCho();
+        if (kq == TrayView.KetQuaXin.HetHan) HetHan();
+        else if (kq == TrayView.KetQuaXin.Duoc) VeDuoc(); else VeChuaCho();
+    }
+
+    /// <summary>Hết hạn / bị huỷ khi Ba Mẹ chưa trả lời ⇒ không nói «chưa cho»: về màn hỏi để Con gửi lại.</summary>
+    private void HetHan()
+    {
+        _id = null;
+        VeHoi();
+        _msg.ForeColor = UI.Warn;
+        _msg.Text = XinMoView.ThongBao(TrayView.KetQuaXin.HetHan, "");
     }
 
     private void VeCho()

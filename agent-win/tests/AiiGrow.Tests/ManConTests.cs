@@ -132,14 +132,32 @@ public class ManConTests
         h.Them(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = "ca_may", Phut = 15 });
         Assert.Equal(3, h.Items.Count);
 
+        foreach (var x in h.Items) x.Luc = DateTimeOffset.Now;
         int goi = 0;
-        var xong = await h.GuiAsync(x => Task.FromResult(++goi switch { 1 => KetQuaGuiXin.DaGui, 2 => KetQuaGuiXin.LoiMang, _ => KetQuaGuiXin.DaGui }));
+        var (xong, loi) = await h.GuiAsync(x => Task.FromResult(++goi switch { 1 => KetQuaGuiXin.DaGui, 2 => KetQuaGuiXin.LoiMang, _ => KetQuaGuiXin.DaGui }), DateTimeOffset.Now);
         Assert.Single(xong);                    // lời xin thứ 2 lỗi mạng ⇒ dừng, giữ lại 2 lời xin sau
         Assert.Equal(2, h.Items.Count);
         Assert.Equal(LoaiXin.ThemGio, h.Items[0].Loai);
+        Assert.Equal(h.Items[0].Ma, loi);
+        Assert.Equal(1, h.Items[0].LanLoi);
 
-        xong = await h.GuiAsync(x => Task.FromResult(KetQuaGuiXin.Bo));   // máy chủ từ chối ⇒ bỏ hết, không gửi lại
+        (xong, _) = await h.GuiAsync(x => Task.FromResult(KetQuaGuiXin.Bo), DateTimeOffset.Now);   // máy chủ từ chối ⇒ bỏ hết, không gửi lại
         Assert.Equal(2, xong.Count);
+        Assert.Empty(h.Items);
+    }
+
+    [Fact]
+    public async Task HangXinCho_QuaHan_Bo_LoiMangQuaBaLan_Bo()
+    {
+        var h = new HangXinCho();
+        var now = DateTimeOffset.Now;
+        h.Them(new LoiXinCho { Loai = LoaiXin.ThemGio, Phut = 20, Luc = now.AddDays(-3) });   // mất mạng 3 ngày ⇒ không gửi nữa
+        h.Them(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = "ca_may", Phut = 15, Luc = now, LanLoi = HangXinCho.ThuToiDa - 1 });
+        int goi = 0;
+        var (xong, loi) = await h.GuiAsync(x => { goi++; return Task.FromResult(KetQuaGuiXin.LoiMang); }, now);
+        Assert.Equal(1, goi);                    // lời xin quá hạn không gửi
+        Assert.Equal(2, xong.Count);             // quá hạn + lỗi lần thứ 3 ⇒ bỏ
+        Assert.Null(loi);
         Assert.Empty(h.Items);
     }
 
@@ -150,7 +168,9 @@ public class ManConTests
         for (int i = 0; i < HangXinCho.ToiDa + 5; i++) h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = $"app{i}.exe" });
         Assert.Equal(HangXinCho.ToiDa, h.Items.Count);
         Assert.Equal("app5.exe", h.Items[0].Muc);
-        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("mạng")));
+        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("mạng", null, new HttpRequestException("x"))));
+        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("hết giờ", null, new TimeoutException())));
+        Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("Máy chủ trả dữ liệu rỗng")));          // lỗi của client: gửi lại cũng hỏng
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("5xx", 503)));
         Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("nhiều", 429, code: "qua_nhieu_cho")));
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new TaskCanceledException()));

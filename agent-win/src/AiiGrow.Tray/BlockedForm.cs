@@ -235,6 +235,7 @@ internal sealed class BlockedForm : Form
         var kq = TrayView.XinGio(r.Status);
         if (kq == TrayView.KetQuaXin.Duoc) { Ve(Buoc.Duoc); return; }
         if (kq is TrayView.KetQuaXin.TuChoi) { Ve(Buoc.ChuaCho); return; }
+        if (kq is TrayView.KetQuaXin.HetHan) { HetHan(); return; }
         Ve(Buoc.DaGui);
         if (!string.IsNullOrEmpty(_id)) _poll.Start();
     }
@@ -249,7 +250,17 @@ internal sealed class BlockedForm : Form
         var kq = TrayView.XinGio(r.Status);
         if (kq == TrayView.KetQuaXin.Cho) return;
         _poll.Stop();
+        if (kq == TrayView.KetQuaXin.HetHan) { HetHan(); return; }
         Ve(kq == TrayView.KetQuaXin.Duoc ? Buoc.Duoc : Buoc.ChuaCho);
+    }
+
+    /// <summary>Lời xin hết hạn / bị huỷ mà Ba Mẹ chưa trả lời ⇒ KHÔNG nói «Ba Mẹ chưa cho»: về màn chặn, Con gửi lại được.</summary>
+    private void HetHan()
+    {
+        _id = null;
+        Ve(Buoc.ChuaMo);
+        _msg.ForeColor = UI.Warn;
+        _msg.Text = XinMoView.ThongBao(TrayView.KetQuaXin.HetHan, _ten);
     }
 
     /// <summary>«Mở …» sau khi Ba Mẹ cho: web ⇒ mở trang trong trình duyệt mặc định; app ⇒ thử chạy theo tên (App Paths). Không được thì thôi (Con mở lại như thường).</summary>

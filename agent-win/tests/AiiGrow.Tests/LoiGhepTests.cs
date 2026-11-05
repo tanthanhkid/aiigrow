@@ -21,6 +21,10 @@ public class LoiGhepTests
     {
         Assert.Equal(LoaiLoiGhep.MatMang, LoiGhep.Phan(new ApiException("Không kết nối được máy chủ", null, new HttpRequestException("refused"))));
         Assert.Equal(LoaiLoiGhep.MatMang, LoiGhep.Phan(new HttpRequestException("dns")));
+        Assert.Equal(LoaiLoiGhep.MatMang, LoiGhep.Phan(new ApiException("Máy chủ không trả lời kịp", null, new TimeoutException())));
+        // lỗi không mã của chính client (thân lạ, thiếu token, gói hỏng) ⇒ không bảo «kiểm Wi-Fi»
+        Assert.Equal(LoaiLoiGhep.Khac, LoiGhep.Phan(new ApiException("Máy chủ không trả token")));
+        Assert.Equal(LoaiLoiGhep.Khac, LoiGhep.Phan(new ApiException("Máy chủ trả dữ liệu không đúng định dạng", null, new System.Text.Json.JsonException())));
         Assert.Equal(LoaiLoiGhep.MatMang, LoiGhep.Phan(new InvalidOperationException("bọc", new TaskCanceledException())));
     }
 

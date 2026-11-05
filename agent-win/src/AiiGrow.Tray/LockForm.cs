@@ -25,6 +25,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     private bool _allowClose;
     private bool _locking;
     private OfflineCodePanel? _code;
+    private DateTimeOffset? _matMangTu;
 
     /// <summary>Con bấm một nút trên màn khoá (mã <see cref="ManKhoaView"/>: doi_sao, xin_them_gio, xin_ngoai_le, nhan_ba_me). «Ba Mẹ dùng máy» màn tự xử lý (Win+L).</summary>
     public event Action<string>? Bam;
@@ -93,6 +94,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     public void Apply(TrayState s)
     {
         bool dem = s.LockGraceLeftSec is > 0;
+        _matMangTu = s.OfflineSince;
         var m = ManKhoaView.For(s.LockReason, s.LockGraceLeftSec, s.ChildName, s.Sao, s.QuyPhut, s.MoLaiLuc, s.CanExchangePoints,
             s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason));
         var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma)), s.ChildName);
@@ -117,8 +119,10 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     {
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
+        var giuMa = _code?.MaDangGo;   // Ba Mẹ đang đọc mã cho Con gõ mà thẻ dựng lại ⇒ không mất số đã gõ
         _code = null;
         _khoi = m.MatMang ? DungMatMang(m) : DungThuong(m);
+        if (_code != null && !string.IsNullOrEmpty(giuMa)) _code.MaDangGo = giuMa;
         _center.Controls.Add(_khoi);
         _center.ResumeLayout(true);
         GiuaKhoi();
@@ -233,7 +237,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         var dau = KhoiCon.Hang();
         var dia = new ClayIcon { Size = new Size(UI.Px(96), UI.Px(96)), MauVien = Clay.The, Hinh = Anh3D.Icon("khoa"), Margin = Padding.Empty };
         dau.Controls.Add(dia);
-        var chip = new ChipClay(ManKhoaView.MatMangChip(DateTimeOffset.Now), Clay.CanhSoft, Clay.Canh) { Font = UI.F(12f, FontStyle.Bold) };
+        var chip = new ChipClay(ManKhoaView.MatMangChip((_matMangTu ?? DateTimeOffset.Now).ToLocalTime()), Clay.CanhSoft, Clay.Canh) { Font = UI.F(12f, FontStyle.Bold) };
         chip.Height = UI.Px(36);
         chip.Width = TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(34);
         chip.Margin = new Padding(Math.Max(0, w - dia.Width - chip.Width), UI.Px(30), 0, 0);

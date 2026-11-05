@@ -210,7 +210,7 @@ public sealed class AgentWorker : BackgroundService
         try
         {
             var hang = new HangXinCho { Items = cfg.XinCho.Items.ToList() };
-            var xong = await hang.GuiAsync(async x =>
+            var (xong, loiThem) = await hang.GuiAsync(async x =>
             {
                 try
                 {
@@ -226,9 +226,13 @@ public sealed class AgentWorker : BackgroundService
                     if (kq == KetQuaGuiXin.Bo) _log.LogWarning("Bỏ lời xin chờ mạng {loai} {muc}: máy chủ từ chối ({m})", x.Loai, x.Muc, e.Message);
                     return kq;
                 }
+            }, DateTimeOffset.Now);
+            if (xong.Count == 0 && loiThem == null) return;
+            var moi = _rt.Store.Update(c =>
+            {
+                c.XinCho.Items.RemoveAll(i => xong.Contains(i.Ma));
+                foreach (var i in c.XinCho.Items) if (i.Ma == loiThem) i.LanLoi++;
             });
-            if (xong.Count == 0) return;
-            var moi = _rt.Store.Update(c => c.XinCho.Items.RemoveAll(i => xong.Contains(i.Ma)));
             if (moi != null) _rt.NapLaiConfig(moi);
         }
         catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Gửi lời xin chờ mạng lỗi: {m}", e.Message); }
@@ -255,7 +259,9 @@ public sealed class AgentWorker : BackgroundService
             if (apThat) _log.LogInformation("Đóng app ngoài danh sách: {exe}", exe);
             else if (ghiGiamSat) _log.LogInformation("GIÁM SÁT: sẽ đóng app ngoài danh sách: {exe} — chưa đóng thật (CheDo=giam-sat)", exe);
             var bare = exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? exe[..^4] : exe;
-            if (apThat) _rt.RecordBlocked(exe, bare);   // giám sát: app không bị đóng ⇒ không hiện màn «app bị chặn»
+            // giám sát: app không bị đóng ⇒ không hiện màn «app bị chặn». App Ba Mẹ đã xếp (Giải trí — playChoices) bị đóng vì ngoài phiên / giờ học:
+            // KHÔNG phải app lạ ⇒ khay không tự gửi lời xin duyệt (05/11 L4 chỉ áp cho app lạ), chỉ có nút xin.
+            if (apThat) _rt.RecordBlocked(exe, bare, boiBaMe: p.PlayChoices.Contains(exe, StringComparer.OrdinalIgnoreCase));
         }
     }
 

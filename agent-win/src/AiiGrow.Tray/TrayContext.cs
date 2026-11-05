@@ -278,7 +278,9 @@ internal sealed class TrayContext : ApplicationContext
                         using var h = HopDaLuu.Hop(ManKhoaView.DaLuuThemGio, "Xin thêm 20 phút chơi", int.TryParse(r.Message, out var n) ? n : 1);
                         h.ShowDialog(_lock);
                     }
-                    else OpenRequest(_lock);   // mạng vừa có lại ⇒ hộp xin như thường
+                    // mạng vừa có lại ⇒ lời xin đã tới Ba Mẹ: chỉ báo, KHÔNG mở thêm hộp xin (không thành hai lời xin)
+                    else if (r.Ok) Toast(6000, "Đã gửi Ba Mẹ", "Con xin thêm 20 phút chơi. Ba Mẹ trả lời là con biết ngay.", ToolTipIcon.Info, MucApp.HomNay);
+                    else Toast(6000, "Chưa gửi được", r.Error ?? "Con thử lại sau nhé.", ToolTipIcon.Warning, MucApp.HomNay);
                     break;
                 }
                 case ManKhoaView.DoiSao:
@@ -405,7 +407,7 @@ internal sealed class TrayContext : ApplicationContext
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         var id = _state.BlockedAppId;
         _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep,
-            daXin: id != null && _daXin.Contains(id));
+            daXin: id != null && (_daXin.Contains(id) || _daXin.Count >= ManChanView.TuGuiToiDa));
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
         _blocked.DaXin += x => _daXin.Add(x);

@@ -14,6 +14,9 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     private readonly Label _msg;
     private bool _busy;
 
+    /// <summary>Mã Con đang gõ dở — màn khoá dựng lại thẻ thì giữ nguyên.</summary>
+    public string MaDangGo { get => _box.Text; set => _box.Text = value; }
+
     /// <summary>Gọi khi mã đúng (máy đã mở) — màn chặn tự đóng.</summary>
     public event Action? Unlocked;
 

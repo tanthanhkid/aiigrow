@@ -12,6 +12,8 @@ public static class ManChanView
     public static string NutXin(string ten) => "Xin Ba Mẹ mở " + ten;
     public const string VeHomNay = "Về Hôm nay";
     public const string Dong = "Đóng";
+    /// <summary>Tối đa số app lạ khay tự gửi lời xin trong một phiên khay — quá thì chỉ hiện nút (không tiêu hết hạn mức lời xin của Con).</summary>
+    public const int TuGuiToiDa = 5;
 
     /// <summary>App lạ (không phải app Ba Mẹ đã đặt «Chặn») ⇒ AiiGrow TỰ gửi lời xin Ba Mẹ duyệt (L4: «app mới tự gửi xin → chờ → kết quả»).
     /// App Ba Mẹ đã chặn ⇒ chỉ hiện nút «Xin Ba Mẹ mở …» (Con tự quyết có xin không). Công cụ Windows, app không rõ tên, mất mạng ⇒ không tự gửi.

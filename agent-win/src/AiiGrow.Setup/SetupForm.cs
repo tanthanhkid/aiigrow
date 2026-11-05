@@ -710,7 +710,7 @@ internal sealed class SetupForm : Form
                 o.VaoO();
                 return;
             }
-            BuocCai(new InstallOptions { Server = _server, Code = o.Ma, Child = child });
+            BuocCai(new InstallOptions { Server = _goi?.Server ?? _server, Code = o.Ma, Child = child });   // mở từ link Ba Mẹ gửi ⇒ mã 6 số thuộc đúng máy chủ trong gói
         }
         NutChinh("Ghép vào nhà", 240, Gui);
         o.Doi += () => { if (loi.Visible) { loi.Visible = false; chip.Visible = true; } };

@@ -17,6 +17,9 @@ public sealed class ApiException : Exception
     public bool IsUnauthorized => StatusCode is 401 or 403;
     /// <summary>Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline, giữ hàng đợi.</summary>
     public bool IsNetwork => StatusCode is null or >= 500;
+    /// <summary>Lỗi ĐƯỜNG TRUYỀN thật (không tới được / hết giờ / máy chủ 5xx) — khác <see cref="IsNetwork"/> ở chỗ không tính lỗi không mã của chính client
+    /// (thân trả về không đọc được, thiếu token, gói cài thiếu máy chủ…): những lỗi đó thử lại cũng hỏng như cũ.</summary>
+    public bool LaLoiDuongTruyen => StatusCode >= 500 || (StatusCode == null && InnerException is HttpRequestException or TimeoutException or IOException);
     /// <summary>Máy chủ KHẲNG ĐỊNH máy đã bị gỡ khỏi gia đình (401 token_sai). CHỈ loại này mới tính vào mốc mồ côi 6 giờ —
     /// 403 lạ (tường lửa / CDN) không tính, để không thôi chặn nhầm khi Con tự dựng được một phản hồi 403.</summary>
     public bool LaTokenSai => StatusCode == 401 && Code is "token_sai" or "device_unknown";
@@ -172,7 +175,7 @@ public sealed class ApiClient : IDisposable
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new ApiException("Máy chủ không trả lời kịp");
+            throw new ApiException("Máy chủ không trả lời kịp", null, new TimeoutException());
         }
         catch (HttpRequestException e)
         {
