@@ -4,7 +4,7 @@ name: agent-win
 #   unit  — dotnet test (gồm test chỉ chạy được trên Windows: DPAPI…)
 #   build — bộ cài một tệp ở ba số bản: bản đang phát (Directory.Build.props) + hai bản cao hơn để thử cập nhật
 #   e2e   — máy chủ Next cục bộ (PGlite) + agent-win/e2e/chay.ps1: cài im lặng, đồng bộ, Chặn thật (AppLocker + web), khoá,
-#           Giám sát, cập nhật đè, giả lỗi, tự cập nhật, gỡ. Xem agent-win/e2e/README.md.
+#           «Mở hết» (Giám sát đã bỏ 05/11 ⇒ 409), cập nhật đè, giả lỗi, tự cập nhật, gỡ. Xem agent-win/e2e/README.md.
 #
 # LẤY EXE SỚM (không chờ e2e ~6 phút): mỗi job build tải exe lên artifact `setup-<bản>` ngay khi build xong (upload-artifact@v4 — tải được
 # ngay cả khi run còn chạy). Bản phát hành là `setup-goc` (số bản trong Directory.Build.props):

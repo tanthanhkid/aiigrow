@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   bao giờ tải bản phát hành thật trên Blob trong lúc thử. KB7b mới đặt manifest bản `9.9.9`.
 - **https://127.0.0.1:3443**: phục vụ bộ cài `9.9.9` bằng chứng chỉ tự ký, đưa vào `LocalMachine\Root` — agent chỉ nhận URL https cùng host máy chủ.
 - **Luật «quản trị» giả** đặt trước khi cài: luật AppLocker `QuanTri E2E: …` (AuditOnly, Allow Everyone — vô hại) và mục `1` trong
-  `URLBlocklist` Chrome/Edge. Kiểm AiiGrow không xoá chúng ở KB6 và KB9.
+  `URLBlocklist` Chrome/Edge. Kiểm AiiGrow không xoá chúng ở KB6 («Mở hết») và KB9.
 - **Gắn tài khoản Con vào config (KB4.8)**: bộ cài một chạm không ghi `ChildUser/ChildSid` (xem KB4.7). Harness dừng dịch vụ, giải DPAPI
   `config.json`, điền `aiicon` + SID như luồng cài có giao diện (`Installer.RunAsync`) sẽ ghi, rồi chạy lại — để vẫn kiểm được đường AppLocker thật.
 - **Giả lỗi (KB8)**: một tiến trình giữ `AiiGrow.Tray.exe` ở chế độ chỉ đọc, không chia sẻ ghi/xoá (như phần mềm diệt virus đang quét) ⇒ không ghi đè, không đổi tên được.
@@ -40,7 +40,9 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   AppLocker có Deny cho SID Con theo đường dẫn exe, thư mục cài và băm AppLocker (`Get-AppLockerFileInformation`). Chạy app đó dưới phiên Con: BỎ (11.8).
 - **AppLocker được ÁP (có luật, Exe Enabled, AppIDSvc chạy)**; quyết định cho từng exe kiểm bằng `Test-AppLockerPolicy -User aiicon` (KB4.12–4.14:
   Chrome/Edge được chạy khi luật web đã áp — «chặn theo lọc», «chrome.exe» giả + Firefox vẫn bị chặn). KB4.17 mở Chrome headless THẬT bằng
-  tài khoản Con (`Start-Process -Credential`, không cần phiên đăng nhập): example.org vào được, example.com (Ba Mẹ chặn) thì không. Harness gỡ
+  tài khoản Con (`Start-Process -Credential`, không cần phiên đăng nhập): example.org (Ba Mẹ CHO PHÉP rõ — Con mới ở «Chỉ app được phép» ⇒ web chặn `*`
+  trừ trang được phép, thiết kế 05/11) vào được, example.com (Ba Mẹ chặn) thì không. KB6 (thay «Về Giám sát» — `che-do giam-sat` nay 409 `che_do_bo`):
+  Con sang «Mở hết» ⇒ agent mode `tu_do`, gỡ luật AppLocker AiiGrow, web không còn `*` nhưng trang chặn + web cấm (4.4c, 6.3) vẫn chặn; KB9 bật lại «Chỉ app được phép». Harness gỡ
   tạm MỤC «1» của IT nhưng để lại khoá `URLBlocklist` RỖNG ở HKLM — Chrome coi khoá rỗng là chính sách máy «danh sách trống», thắng hive Con
   (gốc lỗi 4.17 ở 0.2.9): agent phải gỡ khoá rỗng (hoặc tính là «HKLM đè», không thả trình duyệt) — 4.12 kiểm khoá đã gỡ. Server 2022
   có AppLocker; máy gia đình Windows Home có thể không — xem `docs/KHA-THI.md`.
