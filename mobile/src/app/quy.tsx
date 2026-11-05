@@ -15,7 +15,7 @@ const GOI_Y = [{ ten: "Đi ăn kem", diem: 50 }, { ten: "Xem phim cả nhà", di
 function OQua({ ic, ten, sao, tag, bam }: { ic: TenIcon; ten: string; sao: string; tag?: string; bam?: () => void }) {
   return (
     <NhanMen onPress={bam} disabled={!bam} accessibilityRole="button" accessibilityLabel={`${ten}, ${sao}`} muc="khoi" sang
-      style={{ width: "47.5%", flexGrow: 1, minHeight: 168, padding: 14, borderRadius: 26, backgroundColor: M.the, gap: 10, ...KHOI.the }}>
+      style={{ width: "47.5%", minHeight: 168, padding: 14, borderRadius: 26, backgroundColor: M.the, gap: 10, ...KHOI.the }}>
       {tag ? <View style={{ position: "absolute", right: 12, top: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: M.chinhSoft }}>
         <Chu kieu="rat" co={11} mau={M.chinhInk}>{tag}</Chu></View> : null}
       <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: M.diemSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={42} /></View>
@@ -49,17 +49,17 @@ export default function QuaDoiSao() {
   });
   const cat = () => lam(async () => { if (sua && sua !== "moi") await bm.goi(`qua/${sua.id}`, { bat: false }); setSua(null); await tai(); });
   return (
-    <Man lui={{ chu: "", bam: ve }} tieu="Quà con đổi bằng sao" day={<Nut chu={d.ds.length ? `Lưu ${d.ds.length} món quà` : "Xong"} rong bam={ve} />}>
+    <Man lui={{ chu: "", bam: ve }} tieu="Quà con đổi bằng sao" day={<Nut chu={`Lưu ${d.ds.length + 1} món quà`} rong bam={ve} />}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
         <Rob ten="chi" co={44} />
         <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>Con thấy các quà này trên máy, đủ sao thì tự đổi. Ba Mẹ trao quà ngoài đời.</Chu>
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" }}>
         <OQua ic="dongho" ten="Thêm phút chơi" sao="1 sao = 1 phút" tag="Có sẵn" />
         {d.ds.map((q) => <OQua key={q.id} ic={icQua(q)} ten={q.ten} sao={`${q.diem} sao`} bam={d.xem ? undefined : () => mo(q)} />)}
         {d.xem ? null : (
           <NhanMen onPress={() => mo("moi")} accessibilityRole="button" accessibilityLabel="Thêm quà" muc="khoi" sang
-            style={{ width: "47.5%", flexGrow: 1, minHeight: 168, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
+            style={{ width: "47.5%", minHeight: 168, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
             <Icon ten="cong" mau={M.chinhInk} co={30} />
             <Chu kieu="rat" co={15} mau={M.chinhInk}>Thêm quà</Chu>
           </NhanMen>

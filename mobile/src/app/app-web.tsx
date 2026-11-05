@@ -3,7 +3,7 @@
 // (web người lớn, cờ bạc — không tắt được; app Ba Mẹ đã chặn). Không còn «Giám sát / Chặn thật», không «Học tập / Giải trí — trừ điểm»:
 // app được dùng chỉ khác nhau ở «Tính vào giờ chơi» hay «Không tính giờ». Luật lấy từ GET luat (luật riêng Con + luật cả nhà).
 // Tương thích: `?xep=<muc>&ten=` (thẻ «app mới» ở Trang chủ) ⇒ mở thẳng màn một app.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type ConChiTiet, type GiaDinh, type YeuCau } from "@/lib/api";
@@ -20,8 +20,10 @@ export default function AppWeb() {
     return { g, luat: luat.ds, yc: cd.yeuCau, xem };
   });
   const conId = chonCon ?? d?.g.con[0]?.id;
-  const ct = useTai(() => (conId ? bm.goi<ConChiTiet & { cheDoChan?: CheDoChan }>(`con/${conId}`) : Promise.resolve(null)));
-  useEffect(() => { if (conId) ct.tai(); }, [conId]);       // eslint-disable-line react-hooks/exhaustive-deps
+  const conRef = useRef(conId);
+  const ct = useTai(() => (conRef.current ? bm.goi<ConChiTiet & { cheDoChan?: CheDoChan }>(`con/${conRef.current}`) : Promise.resolve(null)));
+  // useTai giữ hàm tải của lần dựng đầu ⇒ hàm tải đọc con qua ref; đổi con thì cập nhật ref rồi tải lại
+  useEffect(() => { conRef.current = conId; if (conId) ct.tai(); }, [conId]);       // eslint-disable-line react-hooks/exhaustive-deps
   const { lam, loi: loiLam } = useLam();
   const { bao, noi } = useHoanTac();
   useEffect(() => {

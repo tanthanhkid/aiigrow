@@ -71,6 +71,11 @@ export function TheCheDo({ cheDo, doi, tat }: { cheDo: CheDoChan; doi?: (v: CheD
             accessibilityLabel={`${CHE[k].tieu}, ${CHE[k].phu}`} muc="khoi" sang men={MEN.the}
             style={[{ flex: 1, minWidth: 0, gap: 6, padding: 14, borderRadius: 26, backgroundColor: M.the, ...KHOI.the },
               on && { boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.the}` }]}>
+            {on ? (
+              <View style={{ position: "absolute", right: 10, top: 10, width: 26, height: 26, borderRadius: 13, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
+                <Icon ten="tick" mau="#fff" co={15} />
+              </View>
+            ) : null}
             <Icon3D ten={CHE[k].ic} co={36} />
             <Chu kieu="rat" co={15}>{CHE[k].tieu}</Chu>
             <Chu kieu="dam" co={12} mau={M.chu3}>{CHE[k].phu}</Chu>
@@ -106,7 +111,7 @@ export function OChonApp({ ten, ic, anh, tinhGio, chon, bam }: { ten: string; ic
   return (
     <NhanMen onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: chon }} accessibilityLabel={`${ten}, ${tinhGio ? "tính vào giờ chơi" : "không tính giờ"}`}
       muc="khoi" sang men={MEN.the}
-      style={[{ width: "31.5%", flexGrow: 1, alignItems: "center", paddingTop: 14, paddingBottom: 12, paddingHorizontal: 4, borderRadius: 26, backgroundColor: M.the, gap: 8, ...KHOI.the },
+      style={[{ width: "31%", alignItems: "center", paddingTop: 14, paddingBottom: 12, paddingHorizontal: 4, borderRadius: 26, backgroundColor: M.the, gap: 8, ...KHOI.the },
         chon && { boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.the}` }]}>
       {chon ? (
         <View style={{ position: "absolute", right: 8, top: 8, width: 24, height: 24, borderRadius: 12, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>

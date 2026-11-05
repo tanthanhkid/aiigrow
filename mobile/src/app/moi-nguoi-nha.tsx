@@ -35,7 +35,13 @@ export default function MoiNguoiNha() {
     const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
     setKq(r);
   });
-  const chiaSe = () => kq && Share.share({ title: kq.chiaSe.tieuDe, message: kq.chiaSe.noiDung }).catch(() => {});
+  const chiaSe = (r: KqMoi | null = kq) => r && Share.share({ title: r.chiaSe.tieuDe, message: r.chiaSe.noiDung }).catch(() => {});
+  // «<tên> chưa có app? Xem cách gửi link»: gửi lời mời rồi mở luôn hàng chia sẻ (Zalo, Tin nhắn…) với link mời
+  const guiLink = () => lam(async () => {
+    const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
+    setKq(r);
+    chiaSe(r);
+  });
   const huy = () => lam(async () => {
     if (kq) await bm.goi(`thanh-vien/moi/${kq.id}/huy`, {});
     ve();
@@ -46,7 +52,7 @@ export default function MoiNguoiNha() {
     return (
       <Man day={<>
         <Nut chu="Xong, về Cả nhà" rong bam={ve} />
-        <Nut chu={`Gửi link cho ${ai} qua Zalo, tin nhắn`} loai="vien" ic="gui" rong bam={chiaSe} />
+        <Nut chu="Gửi link qua Zalo, tin nhắn" loai="vien" ic="gui" rong bam={() => chiaSe()} />
         <Pressable onPress={huy} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
           <Chu kieu="rat" co={14.5} mau={M.chu3}>Huỷ lời mời</Chu>
         </Pressable>
@@ -62,14 +68,14 @@ export default function MoiNguoiNha() {
           <Chu co={15} mau={M.chu2} style={{ marginTop: 6, textAlign: "center" }}>{`${ai} mở AiiGrow bằng ${kq.dinhDanh ?? "SĐT / email này"} là thấy lời mời, bấm một nút là vào nhà — không cần nhập mã gì cả.`}</Chu>
         </View>
         <Chu kieu="rat" co={13.5} mau={M.chu3} style={{ marginTop: 6, marginHorizontal: 6 }}>{`Điện thoại ${ai} sẽ hiện:`}</Chu>
-        <View style={{ padding: 14, borderRadius: 22, backgroundColor: "#fff", gap: 4, ...KHOI.the }} accessible accessibilityLabel={`Thông báo mẫu: ${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}>
+        <View style={{ padding: 14, borderRadius: 22, backgroundColor: M.chu, gap: 4, boxShadow: BONG.toi }} accessible accessibilityLabel={`Thông báo mẫu: ${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten="nha" co={18} /></View>
-            <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ flex: 1 }}>AiiGrow</Chu>
-            <Chu co={12} mau={M.chu3}>bây giờ</Chu>
+            <Chu kieu="dam" co={12.5} mau="#d9dedc" style={{ flex: 1 }}>AiiGrow</Chu>
+            <Chu co={12} mau="#d9dedc">bây giờ</Chu>
           </View>
-          <Chu kieu="rat" co={15}>{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
-          <Chu co={13.5} mau={M.chu2}>{`Cùng trông ${tenCon}. Bấm để vào.`}</Chu>
+          <Chu kieu="rat" co={15} mau="#fff">{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
+          <Chu co={13.5} mau="#eef1f0">{`Cùng trông ${tenCon}. Bấm để vào.`}</Chu>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: M.diem }} />
@@ -84,8 +90,11 @@ export default function MoiNguoiNha() {
     <Man lui={{ chu: "", bam: ve }} day={<>
       <BaoLoi loi={loi} />
       <Nut chu={goi ? `Gửi lời mời cho ${goi}` : "Gửi lời mời"} rong dangChay={dangChay} tat={!hop} bam={gui} />
+      <Pressable onPress={guiLink} disabled={!hop || dangChay} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+        <Chu kieu="dam" co={13.5} mau={M.chu3}>{`${ten.trim() || "Người nhà"} chưa có app? `}<Chu kieu="rat" co={13.5} mau={hop ? M.chinhInk : M.chu3}>Gửi link mời</Chu></Chu>
+      </Pressable>
     </>}>
-      <View style={{ alignItems: "center", gap: 10, paddingTop: 4 }}>
+      <View style={{ alignItems: "center", gap: 10, paddingVertical: 18, borderRadius: 30, backgroundColor: M.chinhSoft, ...KHOI.the }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 3).map((t, i) => (
             <View key={i} style={{ width: 54, height: 54, borderRadius: 27, marginLeft: i ? -10 : 0, borderWidth: 3, borderColor: M.nen, backgroundColor: MAU_CON[(i + 2) % MAU_CON.length],
@@ -97,9 +106,9 @@ export default function MoiNguoiNha() {
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
         </View>
-        <Chu kieu="dam" co={14} mau={M.chu2}>{`Bạn cùng trông ${tenCon}`}</Chu>
-        <Chu kieu="rat" co={28} style={{ letterSpacing: -0.5 }}>Mời người nhà</Chu>
+        <Chu kieu="rat" co={14} mau={M.chinhInk}>{`Bạn cùng trông ${tenCon}`}</Chu>
       </View>
+      <Chu kieu="rat" co={26} style={{ letterSpacing: -0.5, marginHorizontal: 4, marginTop: 4 }}>Mời người nhà</Chu>
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
         {(["sdt", "email"] as const).map((k) => (
           <NhanMen key={k} onPress={() => { setCach(k); setDd(""); }} accessibilityRole="tab" accessibilityState={{ selected: cach === k }} muc="chip" sang

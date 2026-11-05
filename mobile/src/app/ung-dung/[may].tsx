@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, View } from "react-native";
 import { bm, laChiXem, type ConChiTiet, type GiaDinh, type ThongKeWeb, type YeuCau } from "@/lib/api";
-import { HangVang, MucTieu, NhanGio, OIcon, TheCheDoNgan, phuXin, tieuXin, type CheDoChan } from "@/lib/ui-bm3";
+import { HangVang, MucTieu, NhanGio, OIcon, TheCheDoNgan, icCuaApp, phuXin, tieuXin, type CheDoChan } from "@/lib/ui-bm3";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, MAU_CON, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -54,7 +54,9 @@ export default function UngDungMay() {
   const { d, loi, matMang, tai } = useTai(() => bm.goi<DsMay>(`may/${may}/ung-dung`));
   // phần đầu màn: con dùng máy (chế độ chặn, quỹ giờ chơi hôm nay, lời xin đang chờ, số trang web được phép)
   const conId = d?.may.con ?? null;
+  const conRef = useRef(conId);
   const ph = useTai(async () => {
+    const conId = conRef.current;
     if (!conId) return null;
     const [ct, g, cd, web, xem] = await Promise.all([
       bm.goi<ConChiTiet & { cheDoChan?: CheDoChan }>(`con/${conId}`), bm.goi<GiaDinh>("gia-dinh"),
@@ -63,7 +65,8 @@ export default function UngDungMay() {
     return { ct, ngan: g.con.find((c) => c.id === conId), xin: cd.yeuCau.filter((y) => y.child_id === conId && (y.loai === "cai_app" || y.loai === "mo_web")),
       soWeb: web ? web.luat.filter((l) => l.trangThai === "cho_phep" || l.trangThai === "giai_tri").length : null, xem };
   });
-  useEffect(() => { if (conId) ph.tai(); }, [conId]);      // eslint-disable-line react-hooks/exhaustive-deps
+  // useTai giữ hàm tải của lần dựng đầu ⇒ hàm tải đọc con qua ref; đổi con thì cập nhật ref rồi tải lại
+  useEffect(() => { conRef.current = conId; if (conId) ph.tai(); }, [conId]);      // eslint-disable-line react-hooks/exhaustive-deps
   const [tatCa, setTatCa] = useState(false);
   const [tim, setTim] = useState("");
   const [loc, setLoc] = useState<Loc>("tat_ca");
@@ -146,7 +149,7 @@ export default function UngDungMay() {
         <MucTieu chu={`Được dùng · ${duoc.length} app${p?.ngan ? ` · ${p.ngan.phutChoi}/${p.ngan.tranNgay} phút giờ chơi` : ""}`} />
         <Nhom>
           {duoc.map((a, i) => (
-            <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={a.theoCaNha ? "Luật cả nhà" : a.nhaPhatHanh ?? undefined} trai={<OIcon ic="luoi" anh={a.icon} />}
+            <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={a.theoCaNha ? "Luật cả nhà" : a.nhaPhatHanh ?? undefined} trai={<OIcon ic={icCuaApp(`${a.ten} ${a.muc}`)} anh={a.icon} />}
               phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}><NhanGio tinh={a.trangThai === "giai_tri"} /><Icon ten="phai" mau="#b3b5b1" co={18} /></View>}
               bam={() => router.push({ pathname: "/ung-dung/app", params: { con: conId, muc: a.muc, ten: a.ten } })} />
           ))}

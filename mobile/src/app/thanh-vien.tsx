@@ -63,8 +63,8 @@ export default function ThanhVien() {
       </View>
       <MucTieu chu={`${x.laToi ? "Bạn" : x.ten} trong nhà`} />
       <Nhom>
-        <Dong dau tieu={x.dinh_danh.includes("@") ? "Email" : "Số điện thoại"} phu={x.dinh_danh || "Chưa có"} trai={<OIcon ic={x.dinh_danh.includes("@") ? "tin" : "dt"} />} />
-        <Dong tieu="Quyền" phu={`${TEN_QUYEN[x.quyen]} · ${MO_TA_QUYEN[x.quyen]}`} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
+        <Dong dau tieu={x.dinh_danh.includes("@") ? "Email" : "Số điện thoại"} phu={x.dinh_danh ? x.dinh_danh.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : "Chưa có"} trai={<OIcon ic={x.dinh_danh.includes("@") ? "tin" : "dt"} />} />
+        <Dong tieu="Quyền" phu={TEN_QUYEN[x.quyen]} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
         <Dong tieu="Cùng trông" phu={d.con.length ? d.con.join(", ") : "Chưa có con nào"} trai={<OIcon ic="nguoi" />} />
       </Nhom>
 

@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { IC_QUYEN, KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
-import { HangVang, MucTieu, OIcon } from "@/lib/ui-bm3";
+import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauMay } from "@/lib/viec-nhanh";
 import { BONG, KHOI } from "@/lib/clay";
 import {
@@ -75,6 +75,13 @@ export default function CaiDat() {
     await tai();
     bao(`Đã huỷ lời mời ${tenMoi(m)}`);
   });
+  const dongNguoi = (x: (typeof d.tv.ds)[number], i: number) => (
+    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? `Bạn · ${TEN_QUYEN[x.quyen]}` : TEN_QUYEN[x.quyen]}
+      trai={<Avt ten={x.ten} mau={MAU_CON[(i + 2) % MAU_CON.length]} />}
+      phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }} accessibilityLabel={TEN_QUYEN[x.quyen]}>
+        <Icon3D ten={IC_QUYEN[x.quyen]} co={22} />{x.laToi && x.laChuNha ? null : <Icon ten="phai" mau="#b3b5b1" co={18} />}</View>}
+      bam={x.laToi && x.laChuNha ? undefined : () => router.push({ pathname: "/thanh-vien", params: { id: x.id } })} />
+  );
   const may = d.may ?? [];
   const canSua = may.filter((m) => mauMay(m) !== "xanh").length;
   const tenMay = [...new Set(may.map((m) => (m.ten && m.ten.length <= 14 ? m.ten : TEN_NEN[m.nen])))].join(", ");
@@ -102,22 +109,36 @@ export default function CaiDat() {
 
       <MucTieu chu="Người lớn trông con" />
       <Nhom>
-        {d.tv.ds.map((x, i) => (
-          <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? `Bạn · ${TEN_QUYEN[x.quyen]}` : TEN_QUYEN[x.quyen]}
-            trai={<Avt ten={x.ten} mau={MAU_CON[(i + 2) % MAU_CON.length]} />}
-            phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }} accessibilityLabel={TEN_QUYEN[x.quyen]}>
-              <Icon3D ten={IC_QUYEN[x.quyen]} co={22} />{x.laToi && x.laChuNha ? null : <Icon ten="phai" mau="#b3b5b1" co={18} />}</View>}
-            bam={x.laToi && x.laChuNha ? undefined : () => router.push({ pathname: "/thanh-vien", params: { id: x.id } })} />
+        {d.tv.ds.slice(0, 1).map((x, i) => dongNguoi(x, i))}
+        {/* lời mời đang chờ nằm ngay trong danh sách (hàng vàng «Đang chờ nhận lời mời · Gửi lại») */}
+        {d.tv.loiMoi.map((m) => (
+          <NhanMen key={m.id} onPress={laBaMe ? () => setMoiMo(m) : undefined} disabled={!laBaMe} accessibilityRole="button" accessibilityLabel={`${tenMoi(m)}, đang chờ nhận lời mời`} muc="khoi"
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 10, paddingLeft: 10, paddingRight: 8, borderRadius: 20, backgroundColor: M.diemSoft }}>
+            <Avt ten={tenMoi(m)} mau="#8f9894" />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.diemInk} dong={1}>Đang chờ nhận lời mời</Chu>
+            </View>
+            {laBaMe ? (
+              <NhanMen onPress={() => guiLai(m)} disabled={moi.dangChay} accessibilityRole="button" accessibilityLabel={`Gửi lại lời mời cho ${tenMoi(m)}`} muc="chip" sang
+                style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: "#fff", justifyContent: "center", ...KHOI.nho }}>
+                <Chu kieu="rat" co={13.5} mau={M.diemInk}>Gửi lại</Chu>
+              </NhanMen>
+            ) : null}
+          </NhanMen>
         ))}
+        {d.tv.ds.slice(1).map((x, i) => dongNguoi(x, i + 1))}
         {laBaMe ? (
-          <Dong tieu="Mời người nhà" trai={<View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
-            <Icon ten="cong" mau={M.chinhInk} co={20} /></View>} bam={() => router.push("/moi-nguoi-nha")} />
+          <NhanMen onPress={() => router.push("/moi-nguoi-nha")} accessibilityRole="button" muc="khoi" sang
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, margin: 10, marginTop: 6, padding: 10, borderRadius: 22, backgroundColor: M.the, ...KHOI.the }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+              <Icon ten="cong" mau={M.chinhInk} co={20} />
+            </View>
+            <Chu kieu="rat" co={16} mau={M.chinhInk} style={{ flex: 1 }}>Mời người nhà</Chu>
+            <Icon ten="phai" mau={M.chinhInk} co={18} />
+          </NhanMen>
         ) : null}
       </Nhom>
-      {d.tv.loiMoi.map((m) => (
-        <HangVang key={m.id} ic={IC_QUYEN[m.quyen]} tieu={tenMoi(m)} phu={`Đang chờ nhận lời mời · ${TEN_QUYEN[m.quyen]}`}
-          nut="Gửi lại" bam={laBaMe ? () => setMoiMo(m) : undefined} bamNut={laBaMe ? () => guiLai(m) : undefined} />
-      ))}
       <BaoLoi loi={moi.loi} />
 
       <MucTieu chu="Máy của con" />

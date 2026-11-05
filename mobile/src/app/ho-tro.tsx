@@ -57,7 +57,7 @@ export default function HoTro() {
     }>
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : (
         <>
-          <Chu kieu="dam" co={12} mau={M.chu3} style={{ textAlign: "center" }}>{dauTien ? gioPhut(dauTien) : `Hôm nay ${gioPhut(new Date())}`}</Chu>
+          <Chu kieu="dam" co={12} mau={M.chu3} style={{ textAlign: "center" }}>{(() => { const t = dauTien ? new Date(dauTien) : new Date(); return `${t.toDateString() === new Date().toDateString() ? "Hôm nay " : ""}${gioPhut(t)}`; })()}</Chu>
           <TinAiiGrow noiDung={`Chào ${d.ten}! Mình là AiiGrow. ${d.ten} cần giúp gì ạ?`} luc="" />
           {d.tin.map((t) => t.tu === "aiilab" ? <TinAiiGrow key={t.id} noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />
             : <BongChat key={t.id} toi noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />)}

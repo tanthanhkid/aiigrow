@@ -11,7 +11,7 @@ import { BaoLoi, ChoTai, Chu, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/u
 
 type GoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };
 type AppMay = { khoa: string; muc: string; ten: string; icon: string | null; trangThai: string };
-type O = { k: string; ten: string; ic: ReturnType<typeof icCuaApp>; anh?: string | null; tinhGio: boolean; ma?: string; khoa?: string; goiYChon?: boolean };
+type O = { k: string; ten: string; ic: ReturnType<typeof icCuaApp>; anh?: string | null; tinhGio: boolean; ma?: string; khoa?: string; goiYChon?: boolean; coGoiY?: boolean };
 const KHONG_TINH = /scratch|zoom|teams|meet|word|excel|powerpoint|office|sách|sach|book|từ điển|dict|khan|aiirob|học|hoc|edu/i;
 const chuan = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 
@@ -36,14 +36,14 @@ export default function ThemApp() {
     if (thatMay.length) {
       return thatMay.map((a) => {
         const g = gy.get(chuan(a.ten));
-        return { k: a.khoa, ten: a.ten, ic: icCuaApp(`${a.ten} ${a.muc}`), anh: a.icon, khoa: a.khoa, tinhGio: g ? g.tinhGio : !KHONG_TINH.test(`${a.ten} ${a.muc}`), goiYChon: !!g };
-      }).sort((x, y) => Number(!!y.goiYChon) - Number(!!x.goiYChon) || x.ten.localeCompare(y.ten, "vi"));
+        return { k: a.khoa, ten: a.ten, ic: icCuaApp(`${a.ten} ${a.muc}`), anh: a.icon, khoa: a.khoa, tinhGio: g ? g.tinhGio : !KHONG_TINH.test(`${a.ten} ${a.muc}`), goiYChon: !!g?.chon, coGoiY: !!g };
+      }).sort((x, y) => Number(!!y.goiYChon) - Number(!!x.goiYChon) || Number(!!y.coGoiY) - Number(!!x.coGoiY) || x.ten.localeCompare(y.ten, "vi"));
     }
     return d.gy.map((g) => ({ k: g.ma, ten: g.ten, ic: icCuaApp(g.ten), ma: g.ma, tinhGio: g.tinhGio, goiYChon: g.chon }));
   }, [d]);
 
   if (!d) return <Man lui={{ chu: "" }} tieu="Thêm app"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const daChon = chon ?? (o.some((x) => x.ma) ? o.filter((x) => x.goiYChon).map((x) => x.k) : []);
+  const daChon = chon ?? o.filter((x) => x.goiYChon).map((x) => x.k);   // Rob chọn sẵn theo tuổi (app-goi-y `chon`)
   const q = chuan(tim);
   const hien = q ? o.filter((x) => chuan(x.ten).includes(q)) : o;
   const doi = (k: string) => setChon(daChon.includes(k) ? daChon.filter((x) => x !== k) : [...daChon, k]);
