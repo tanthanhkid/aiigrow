@@ -25,6 +25,12 @@ public struct KhungGio: Codable, Equatable, Sendable {
   }
 }
 
+/// Phần tử mảng đọc khoan dung: hỏng ⇒ nil, không làm hỏng cả mảng.
+struct KhoanDung<T: Decodable>: Decodable {
+  let v: T?
+  init(from decoder: Decoder) throws { v = try? T(from: decoder) }
+}
+
 /// Ngoại lệ Ba Mẹ mở: `app` nil = cả máy.
 public struct NgoaiLeMo: Codable, Equatable, Sendable {
   public var den: Date

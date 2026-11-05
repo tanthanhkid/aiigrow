@@ -51,7 +51,7 @@ final class HocVienTests: XCTestCase {
     v.bangChung = "van_ban"; XCTAssertEqual(HocVienView.kiemNop(v, ghiChu: " a ", coAnh: false), "Con viết vài câu rồi nộp nhé.")
     XCTAssertEqual(HocVienView.capText(HvCapDo()), "Cấp 1")
     XCTAssertEqual(HocVienView.doiThongBao(HvDoiKq(trangThai: "da_phat_hanh", maPhieu: "AB12"), tenQua: "Kem"), "Đã đổi «Kem». Mã phiếu: AB12")
-    XCTAssertEqual(HocVienView.nopThongBao(HvNopKq(trangThai: "duoc_duyet")), "Xong rồi! Điểm đã được cộng.")
+    XCTAssertEqual(HocVienView.nopThongBao(HvNopKq(trangThai: "duoc_duyet")), "Xong rồi! Sao đã được cộng.")
     XCTAssertEqual(HocVienView.tenMucChoi("com.roblox.roblox"), "Roblox")
     XCTAssertEqual(HocVienView.tenMucChoi("youtube.com"), "youtube.com")
     XCTAssertEqual(HocVienView.tenMucChoi("Minecraft.app"), "Minecraft")

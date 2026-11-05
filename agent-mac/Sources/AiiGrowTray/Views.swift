@@ -8,8 +8,10 @@ import AiiGrowCore
 struct XinThemView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
-  /// «Đổi điểm lấy giờ chơi» (agent-win RequestForm khi được đổi điểm) — nil = không hiện (vd trên màn khoá).
+  /// «Dùng sao thêm giờ chơi» (05/11, thay «đổi điểm») — nil = không hiện (vd trên màn khoá).
   var moChoi: (() -> Void)? = nil
+  /// Giờ ngủ / Ba Mẹ khoá: không thêm giờ được — chỉ «Xin Ba Mẹ mở ngoại lệ» cả máy, có hạn (thiết kế con-het-gio 08, 10).
+  var ngoaiLe = false
   @State private var phut = 30
   @State private var loiNhan = ""
 
@@ -17,18 +19,20 @@ struct XinThemView: View {
     VStack(alignment: .leading, spacing: 12) {
       HStack(spacing: 12) {
         VienClay(ten: "hourglass_not_done", duPhong: "hourglass", nen: ClayMau.diemSoft, co: 44)
-        Text("Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
+        Text(ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ bao lâu?" : "Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
       }
-      ChipClay(ds: TrayLogic.luaChonPhut.map { ($0, TrayLogic.nhanLuaChonPhut($0)) }, chon: $phut)
+      ChipClay(ds: (ngoaiLe ? TrayLogic.luaChonNgoaiLe : TrayLogic.luaChonPhut).map { ($0, TrayLogic.nhanLuaChonPhut($0)) }, chon: $phut)
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
         .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44)
         .foregroundColor(ClayMau.chu).clayLom()
-      Button("Xin Ba Mẹ") { xin.xinThem(phut: phut, loiNhan: loiNhan) }
+      Button(ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ" : "Xin Ba Mẹ") {
+        if ngoaiLe { xin.xinNgoaiLe(phut: phut, loiNhan: loiNhan) } else { xin.xinThem(phut: phut, loiNhan: loiNhan) }
+      }
         .buttonStyle(NutClayStyle(kieu: .thanChi)).disabled(xin.dangGui)
-      if let moChoi, let t = tray.tt, ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? []) {
+      if !ngoaiLe, let moChoi, let t = tray.tt, ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? []) {
         Button(action: moChoi) {
-          HStack(spacing: 8) { HinhFluent(ten: "star", duPhong: "star.fill", co: 22); Text("Hoặc đổi điểm lấy giờ chơi").lineLimit(1) }
+          HStack(spacing: 8) { HinhFluent(ten: "star", duPhong: "star.fill", co: 22); Text("Hoặc dùng sao thêm giờ chơi").lineLimit(1) }
         }
         .buttonStyle(NutClayStyle(kieu: .sang))
       }
@@ -238,7 +242,7 @@ struct ManKhoaView: View {
           .environment(\.colorScheme, .light)
           .vaoLanLuot(1)
       }
-      XinThemView(tray: tray, xin: xin)
+      XinThemView(tray: tray, xin: xin, ngoaiLe: TrayLogic.chiNgoaiLe(tray.tt?.lyDoKhoa))
         .padding(20)
         .clayThe(bo: 32)
         .environment(\.colorScheme, .light)

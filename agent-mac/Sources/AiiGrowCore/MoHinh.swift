@@ -163,7 +163,7 @@ public struct Policy: Codable, Equatable {
     gioNgu = (try? c.decodeIfPresent(KhungGio.self, forKey: .gioNgu)) ?? nil
     gioHoc = (try? c.decodeIfPresent(KhungGio.self, forKey: .gioHoc)) ?? nil
     dangGioHoc = ((try? c.decodeIfPresent(Bool.self, forKey: .dangGioHoc)) ?? nil) ?? false
-    ngoaiLe = (((try? c.decodeIfPresent([NgoaiLeMo?].self, forKey: .ngoaiLe)) ?? nil) ?? []).compactMap { $0 }
+    ngoaiLe = (((try? c.decodeIfPresent([KhoanDung<NgoaiLeMo>].self, forKey: .ngoaiLe)) ?? nil) ?? []).compactMap(\.v)
   }
 
   public func encode(to encoder: Encoder) throws {
