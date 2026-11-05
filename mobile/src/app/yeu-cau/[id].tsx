@@ -1,105 +1,104 @@
-// Xử lý yêu cầu của Con (FR-05.02):
-//  • mở web / cài app (bm-yeu-cau-web): xếp vào Học tập (miễn phí) / Giải trí (trừ điểm), phạm vi Lần này / Hôm nay / Luôn luôn
-//  • thêm giờ (bm-them-gio): «Trừ điểm» hoặc «Ngoại lệ — không trừ»; vượt ngưỡng ngoại lệ thì cảnh báo mềm/mạnh TRƯỚC khi xác nhận
+// Trả lời MỘT lời xin của Con (thiết kế chốt 05/11; bố cục bm-duyet 06 «Con xin thêm giờ», 07 «App mới con vừa tải» — chữ «sao»):
+//  • thêm giờ: «Ba Mẹ tặng thêm» (không trừ sao, chỉ hôm nay) hoặc «Trừ sao của con» (10 sao = N phút, ví a → b), chọn phút, lời nhắn ngắn
+//    (không bắt buộc — gửi kèm lời trả lời qua `loi-khen` của Con) ⇒ dong-y {phut, truDiem}
+//  • ngoại lệ (giờ ngủ / Ba Mẹ khoá / giờ học): «Không trừ giờ chơi, không trừ sao», phạm vi cả máy hoặc một app, chọn phút ≤ tối đa ⇒ dong-y {phut}
+//  • app / web lạ: «Cho, dùng thoải mái» (Học, luôn) · «Cho, trừ giờ chơi» (Giải trí, luôn) · «Không cho»
+// Xử lý xong ⇒ /yeu-cau/xong (lib/hom-nay-xin › denXong).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, tieuYc, type YeuCau } from "@/lib/api";
-import { LY_DO_YC } from "@/lib/viec-cho";
+import { bm } from "@/lib/api";
+import { type ConCt, type GioChoi, type YeuCauMoi } from "@/lib/hang-ngay";
+import { choAppWeb, denXong, khongChoXin, laAppWeb, laThemGio, mucXin, tenMayXin, tieuXin } from "@/lib/hom-nay-xin";
 import {
-  Bao, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, gioPhut, HaiNut, M, Man, Nut, OChon, ONhap, BangTruot, baoKhiVe, useLam, useTai,
+  Bao, BaoLoi, BieuTron, Canh, Chips, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, OChon, ONhap, useLam, useTai,
 } from "@/lib/ui";
 
-type ChiTiet = YeuCau & { trang_thai: string; soDu: number; giaPhut: number;
-  xemTruoc: { mucCanhBao: "khong" | "mem" | "manh"; soTuan: number; cau: string | null }; ngoaiLeTheoNguoi: { ten: string; n: number }[] };
+type ChiTiet = YeuCauMoi & { trang_thai: string; sao?: number; soDu: number; phutDoiDuoc?: number };
+const NHAN = ["Hôm nay đủ rồi con nhé", "Chơi xong nhớ đi tắm", "Làm bài xong Ba Mẹ cho thêm"];
 
 export default function XuLyYeuCau() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<ChiTiet>(`yeu-cau/${id}`));
-  const [phanLoai, setPhanLoai] = useState<"hoc" | "giai_tri">("hoc");
-  const [phamVi, setPhamVi] = useState<"lan_nay" | "hom_nay" | "vinh_vien">("vinh_vien");
-  const [truDiem, setTruDiem] = useState<boolean | null>(null);
-  const [phut, setPhut] = useState<number | null>(null);
-  const [tuChoi, setTuChoi] = useState(false);
-  const [lyDo, setLyDo] = useState(LY_DO_YC[0]);
-  const { lam, loi: loiLam, dangChay } = useLam();
-  if (!d) return <Man lui={{ chu: "Chờ duyệt" }} tieu="Yêu cầu"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const web = d.loai === "mo_web" || d.loai === "cai_app";
-  const p = phut ?? d.phut ?? 15;
-  const diemCan = Math.ceil(p * d.giaPhut);
-  const coTheTru = d.loai === "them_gio" && d.soDu >= diemCan;
-  const tru = truDiem ?? false;          // thiết kế bm-them-gio: mặc định «Ngoại lệ» để cảnh báo ngoại lệ hiện TRƯỚC khi xác nhận
-  const daXuLy = d.trang_thai !== "cho";
-  const dongY = (tru = truDiem ?? false) => lam(async () => {
-    await bm.goi(`yeu-cau/${id}/dong-y`, web ? { phanLoai, phamVi } : { truDiem: tru, phut: p });
-    baoKhiVe(web ? `Đã đồng ý cho ${d.ten_con} mở ${d.gia_tri}` : tru ? `Đã cho ${d.ten_con} thêm ${p} phút, trừ ${diemCan} điểm` : `Đã cho ${d.ten_con} thêm ${p} phút (ngoại lệ)`);
-    router.back();
-  }, { hangDoi: true });
-  const guiTuChoi = () => lam(async () => {
-    await bm.goi(`yeu-cau/${id}/tu-choi`, { lyDo });
-    baoKhiVe(`Đã trả lời ${d.ten_con}: ${lyDo}`);
-    router.back();
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const y = await bm.goi<ChiTiet>(`yeu-cau/${id}`);
+    const [ct, gc] = await Promise.all([bm.goi<ConCt>(`con/${y.child_id}`).catch(() => null), bm.goi<GioChoi>(`con/${y.child_id}/gio-choi`).catch(() => null)]);
+    return { y, ct, gc };
   });
-  const theo = d.ngoaiLeTheoNguoi.map((x) => `${x.ten} ${x.n}`).join(", ");
+  const [tru, setTru] = useState(false);
+  const [phut, setPhut] = useState<number | null>(null);
+  const [nhan, setNhan] = useState<string | null>(null);
+  const [tuViet, setTuViet] = useState("");
+  const { lam, loi: loiLam, dangChay } = useLam();
+  if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Lời xin của con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const { y, gc } = d;
+  const ten = y.ten_con, may = tenMayXin(y, d.ct?.may);
+  const sao = y.sao ?? y.soDu;
+  const p = phut ?? y.phut ?? 15;
+  const tyLe = gc?.phut10Sao ?? 10;
+  const saoCan = Math.ceil((p * 10) / tyLe);
+  const toiDaNl = gc?.ngoaiLeToiDaPhut ?? 60;
+  const daXuLy = y.trang_thai !== "cho";
+  const loiNhan = nhan === "tu_viet" ? tuViet.trim() : nhan;
+  const guiNhan = async () => { if (loiNhan) await bm.goi(`con/${y.child_id}/loi-khen`, { noiDung: loiNhan }).catch(() => {}); };
+  const cho = (soPhut: number) => lam(async () => {
+    const r = await bm.goi<{ grantId?: string }>(`yeu-cau/${id}/dong-y`, laThemGio(y) ? { phut: soPhut, truDiem: tru } : { phut: soPhut });
+    await guiNhan();
+    denXong(laThemGio(y) ? { kieu: "them_gio", ten, con: y.child_id, phut: soPhut, may, grant: r.grantId }
+      : { kieu: "ngoai_le", ten, con: y.child_id, phut: soPhut, muc: mucXin(y), may });
+  }, { hangDoi: true });
+  const khong = () => lam(async () => { const k = await khongChoXin(y, may, loiNhan || undefined); denXong(k); });
+  const appWeb = (tinhGio: boolean) => lam(async () => denXong(await choAppWeb(y, may, tinhGio)), { hangDoi: true });
+
+  const nutDay = daXuLy ? <Nut chu="Quay lại" rong bam={() => router.back()} /> : laAppWeb(y) ? (
+    <>
+      <BaoLoi loi={loiLam} />
+      <Nut chu="Cho, dùng thoải mái" ic="tick" rong dangChay={dangChay} bam={() => appWeb(false)} />
+      <Nut chu="Cho, trừ giờ chơi" loai="vien" rong bam={() => appWeb(true)} />
+      <Nut chu="Không cho" loai="huy" rong bam={khong} />
+    </>
+  ) : (
+    <>
+      <BaoLoi loi={loiLam} />
+      <Nut chu={laThemGio(y) && tru ? `Cho ${p} phút · trừ ${saoCan} sao` : `Cho ${p} phút`} rong dangChay={dangChay} tat={laThemGio(y) && tru && sao < saoCan} bam={() => cho(p)} />
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {p !== 15 ? <Nut chu="Cho 15 phút" loai="vien" bam={() => cho(15)} tat={laThemGio(y) && tru && sao < Math.ceil(150 / tyLe)} /> : null}
+        <Nut chu="Không cho" loai="huy" bam={khong} />
+      </View>
+    </>
+  );
+
   return (
-    <Man lui={{ chu: "Chờ duyệt" }} tieu={`Yêu cầu của ${d.ten_con}`} day={daXuLy ? <Nut chu="Về hộp chờ duyệt" rong bam={() => router.back()} /> : (
-      <>
-        <BaoLoi loi={loiLam} />
-        <Nut rong dangChay={dangChay} bam={() => dongY()}
-          chu={web ? "Đồng ý · mở trong 10 giây" : tru ? `Đồng ý · trừ ${diemCan} điểm` : `Vẫn cho · ngoại lệ ${p} phút`} />
-        {/* thiết kế bm-them-gio: nút viền «Đổi sang trừ N điểm» — đồng ý luôn nhưng trừ điểm (không tính ngoại lệ) */}
-        {!web && !tru && coTheTru ? (
-          <HaiNut>
-            <Nut chu={`Đổi sang trừ ${diemCan} điểm`} loai="vien" bam={() => dongY(true)} />
-            <Nut chu="Từ chối" loai="huy" bam={() => setTuChoi(true)} />
-          </HaiNut>
-        ) : <Nut chu="Từ chối, kèm lý do" loai="huy" rong bam={() => setTuChoi(true)} />}
-      </>
-    )}>
-      <Canh lv={web ? "nghi" : "cho"} thap tieu={`${d.ten_con} ${tieuYc(d).toLowerCase()}`} loi={`“${d.ly_do}” · gửi lúc ${gioPhut(d.created_at)}.`} />
-      {daXuLy ? <Bao loai="lam" ic="tick" tieu="Yêu cầu này đã được xử lý" loi="Có thể người khác trong nhà đã trả lời trước." /> : web ? (
+    <Man lui={{ chu: "Quay lại" }} tieu={laAppWeb(y) ? "Con xin mở" : laThemGio(y) ? "Con xin thêm giờ" : "Con xin mở ngoại lệ"} day={nutDay}>
+      <Canh lv={laAppWeb(y) ? "nghi" : "cho"} thap tieu={`${ten} xin ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}`}
+        loi={`${y.ly_do?.trim() ? `Con nói: «${y.ly_do.trim()}» · ` : ""}${gioPhut(y.created_at)}${may ? ` · ${may}` : ""}`} />
+      {daXuLy ? <Bao loai="lam" ic="tick" tieu="Lời xin này đã được trả lời" loi="Có thể người khác trong nhà đã trả lời trước." /> : laAppWeb(y) ? (
+        <Bao loai="lam" ic="dau_hoi" tieu={`${y.gia_tri} chưa có trong app được phép`}
+          loi="«Dùng thoải mái» = không tính giờ (hợp app học). «Trừ giờ chơi» = dùng trong quỹ phút chơi mỗi ngày." />
+      ) : laThemGio(y) ? (
         <>
-          <View>
-            <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>Xếp vào</Chu>
-            <View style={{ gap: 8 }}>
-              <OChon chon={phanLoai === "hoc"} bam={() => setPhanLoai("hoc")} trai={<BieuTron ic="mu" />} tieu="Học tập — miễn phí" phu="Không trừ điểm, dùng cả giờ học" />
-              <OChon chon={phanLoai === "giai_tri"} bam={() => setPhanLoai("giai_tri")} trai={<BieuTron ic="game" mau="vang" />} tieu={`Giải trí — ${d.giaPhut} điểm/phút`} phu="Chỉ trong giờ chơi" />
-            </View>
+          {gc ? <Chu co={14.5} mau={M.chu2}>{`Hôm nay đã chơi ${gc.homNay.daDung}/${gc.homNay.tongPhut} phút, còn ${gc.homNay.conPhut} phút.`}</Chu> : null}
+          <Chu kieu="rat" co={15}>Cho thêm theo cách nào</Chu>
+          <View style={{ gap: 8 }}>
+            <OChon chon={!tru} bam={() => setTru(false)} trai={<BieuTron ic="qua" mau="xanh" />} tieu="Ba Mẹ tặng thêm" phu="Không trừ sao · chỉ tính hôm nay" />
+            <OChon chon={tru} bam={() => setTru(true)} trai={<BieuTron ic="sao" mau="vang" />} tieu="Trừ sao của con"
+              phu={sao >= saoCan ? `10 sao = ${tyLe} phút · ví ${sao} → ${sao - saoCan} sao` : `Cần ${saoCan} sao — con có ${sao} sao`} />
           </View>
-          <View>
-            <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>Cho phép</Chu>
-            <ChonMot ds={[{ gia: "lan_nay", chu: "Lần này" }, { gia: "hom_nay", chu: "Hôm nay" }, { gia: "vinh_vien", chu: "Luôn luôn" }]} gia={phamVi} doi={setPhamVi} />
-          </View>
-          {phamVi !== "vinh_vien" && d.xemTruoc.cau ? <Bao tieu={`Đây là ngoại lệ thứ ${d.xemTruoc.soTuan} tuần này`} loi={d.xemTruoc.cau} /> : null}
+          <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={[15, 30, 60].includes(p) ? p : (y.phut ?? 15)} doi={setPhut} />
         </>
       ) : (
         <>
-          <View style={{ gap: 8 }}>
-            {d.loai === "them_gio" ? (
-              <OChon chon={tru} bam={() => setTruDiem(true)} trai={<BieuTron ic="xu" mau="vang" />} tieu={`Trừ ${diemCan} điểm của ${d.ten_con}`}
-                phu={coTheTru ? `${d.ten_con} còn ${d.soDu} → ${d.soDu - diemCan} điểm · không tính ngoại lệ` : `${d.ten_con} chỉ còn ${d.soDu} điểm — chưa đủ`} />
-            ) : null}
-            <OChon chon={!tru} bam={() => setTruDiem(false)} trai={<BieuTron ic="qua" mau="cam" />} tieu="Ngoại lệ — không trừ điểm" phu="Ghi nhận là ngoại lệ" />
-          </View>
-          {!tru && d.xemTruoc.mucCanhBao !== "khong" ? (
-            <Bao tieu={`Ngoại lệ thứ ${d.xemTruoc.soTuan} tuần này của ${d.ten_con}`} loi={`${theo ? `Các lần trước: ${theo}. ` : ""}${d.xemTruoc.mucCanhBao === "manh" ? d.xemTruoc.cau : "Thử «Trừ điểm» lần này?"}`} />
-          ) : null}
-          <View>
-            <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>Thời lượng</Chu>
-            <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={p} doi={setPhut} />
-          </View>
+          <Bao loai="ok" ic="tick" tieu="Không trừ giờ chơi, không trừ sao" loi={`Mở ${mucXin(y)} tới khi hết số phút này, rồi máy tự khoá lại.`} />
+          <ChonMot ds={[15, 30, 60].filter((x) => x <= toiDaNl).map((x) => ({ gia: x, chu: `${x} phút` }))} gia={Math.min(p, toiDaNl)} doi={setPhut} />
         </>
       )}
-      <BangTruot mo={tuChoi} dong={() => setTuChoi(false)} tieu={`Vì sao chưa cho ${d.ten_con}?`}>
-        <View style={{ gap: 8 }}>
-          {LY_DO_YC.map((x) =>
-            <OChon key={x} chon={lyDo === x} bam={() => setLyDo(x)} tieu={x} />)}
+      {!daXuLy && !laAppWeb(y) ? (
+        <View style={{ gap: 6 }}>
+          <Chu kieu="rat" co={15}>{`Nhắn ${ten} · không bắt buộc`}</Chu>
+          <Chips ds={[...NHAN.map((x) => ({ gia: x, chu: x })), { gia: "tu_viet", chu: "Tự viết…" }]} chon={nhan ? [nhan] : []} doi={(v) => setNhan(v === nhan ? null : v)} />
+          {nhan === "tu_viet" ? <ONhap nhan="Lời nhắn của Ba Mẹ" value={tuViet} onChangeText={setTuViet} maxLength={160} /> : null}
+          <Chu co={13} mau={M.chu3}>Lời nhắn hiện trên máy con cùng câu trả lời.</Chu>
         </View>
-        <ONhap nhan="Hoặc tự viết" value={lyDo} onChangeText={setLyDo} maxLength={120} />
-        <Chu co={13} mau={M.chu3}>{`${d.ten_con} thấy lý do và gợi ý làm nhiệm vụ — không có thông báo tiêu cực đột ngột.`}</Chu>
-        <BaoLoi loi={loiLam} />
-        <Nut chu={`Gửi cho ${d.ten_con}`} rong dangChay={dangChay} tat={!lyDo.trim()} bam={guiTuChoi} />
-      </BangTruot>
+      ) : null}
     </Man>
   );
 }

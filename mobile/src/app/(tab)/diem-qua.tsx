@@ -1,112 +1,159 @@
-// «Điểm & quà»: hai thẻ Nhiệm vụ (bm-nhiem-vu) / Phần thưởng (bm-qua) + quỹ phiếu quà AiiCafe. Chạm nhiệm vụ để bật/tắt hoặc sửa điểm.
-import { useState } from "react";
+// Tab «Nhiệm vụ» (thiết kế chốt 05/11 bm-hang-ngay/36, trống 37): chip đổi Con → ví sao (đổi được bao nhiêu phút) → việc chờ Ba Mẹ duyệt
+// (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4) → việc mỗi ngày theo bộ
+// (bấm một việc để sửa) → «Giao thêm việc». Người trông giúp: duyệt + trao quà được; giao / sửa việc ẩn (đổi cài đặt — quyen.ts).
+import { useMemo, useState } from "react";
 import { router } from "expo-router";
-import { View } from "react-native";
-import { bm, NHOM_NV, type NhiemVu } from "@/lib/api";
+import { Pressable, View } from "react-native";
+import { bm } from "@/lib/api";
+import { KHOI } from "@/lib/clay";
 import {
-  BangTruot, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, CongTac, Dong, Man, Nhan, Nhom, Nut, ONhap, tien, useBaoKhiVe, useHoanTac, useLam, useTai,
+  BangTruot, BaoLoi, BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, The, useBaoKhiVe, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
-import { KHOA_TAB, napDiemQua, type PhieuDoi } from "@/lib/tab-ba-me";
+import { cachBao, cauLapLai, ChipCon, HangViec, hinhNv, SaoVien, TieuMuc, tuoiCua, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
+import { KHOA_NV_TAB, napNvTab, TEN_BO, viecCuaCon } from "@/lib/nv-tab";
 
-const tanSuat = (x: NhiemVu) => [x.bang_chung === "tu_dong" ? "Tự động · không cần duyệt" : x.bang_chung === "anh" ? "Ảnh" : "Viết vài câu",
-  x.toi_da_ngay ? `tối đa ${x.toi_da_ngay} lần/ngày` : x.toi_da_tuan ? `${x.toi_da_tuan} lần/tuần` : "", x.kieu === "thu_thach" ? "thử thách" : ""].filter(Boolean).join(" · ");
-type Phieu = PhieuDoi;
-const IC_QUA = { voucher: ["coc", "cam"], qua: ["qua", "lam"], dac_quyen: ["ban", "tim"], tiet_kiem: ["xu", "vang"] } as const;
+/** «hôm nay 18:40» / «hôm qua» / «3/11». */
+const khiNao = (iso: string) => {
+  const t = new Date(iso), h = new Date();
+  if (t.toDateString() === h.toDateString()) return `hôm nay ${gioPhut(t)}`;
+  h.setDate(h.getDate() - 1);
+  return t.toDateString() === h.toDateString() ? "hôm qua" : `${t.getDate()}/${t.getMonth() + 1}`;
+};
+/** «2 ảnh · nộp lúc 18:40» / «Ghi âm · nộp lúc 17:15». */
+const phuLuot = (x: LuotChoMoi) => {
+  const bc = x.so_ghi_am ? "Ghi âm" : x.so_anh ? `${x.so_anh} ảnh` : x.bang_chung === "xong" ? "Bấm «Xong»" : x.ghi_chu ? "Con viết" : "";
+  return [bc, `nộp lúc ${gioPhut(x.nop_luc)}`].filter(Boolean).join(" · ");
+};
 
-export default function DiemQua() {
-  const [the, setThe] = useState<"nv" | "qua">("nv");
-  const { d, loi, matMang, tai } = useTai(napDiemQua, KHOA_TAB.diemQua);
-  const [sua, setSua] = useState<NhiemVu | null>(null);
-  const [huy, setHuy] = useState<Phieu | null>(null);
-  const [diem, setDiem] = useState("");
-  const { lam, loi: loiLam, dangChay } = useLam();
+export default function TabNhiemVu() {
+  const { d, loi, matMang, tai } = useTai(napNvTab, KHOA_NV_TAB);
+  const [chon, setChon] = useState<string | null>(null);
+  const [trao, setTrao] = useState<PhieuCho | null>(null);
+  const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
   useBaoKhiVe(bao);
-  if (!d) return <Man tieuLon="Nhiệm vụ & quà" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const nv = d.nv.filter((x) => x.bang_chung !== "tu_dong" || x.bat);
-  const xuLy = (x: Phieu, viec: "xac-nhan" | "huy") => lam(async () => {
-    await bm.goi(`phieu/${x.id}/${viec}`, {}); bao(viec === "huy" ? `Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${x.ten_con}` : `Đã trao «${x.ten}» cho ${x.ten_con}`); await tai();
+  const c = d ? d.g.con.find((x) => x.id === chon) ?? d.g.con[0] : undefined;
+  const cua = useMemo(() => {
+    if (!d || !c) return null;
+    const viec = viecCuaCon(d.nv, c.id);
+    const bo = viec.find((x) => x.bo)?.bo ?? null;
+    return {
+      viec, bo,
+      cho: d.cd.nhiemVu.filter((x) => x.child_id === c.id),
+      phieu: (d.cd.phieu ?? []).filter((x) => x.child_id === c.id),
+    };
+  }, [d, c]);
+  if (!d) return <Man tieuLon="Nhiệm vụ" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!c || !cua) {
+    return (
+      <Man tieuLon="Nhiệm vụ" chat>
+        <The><Chu mau={M.chu2}>Chưa có hồ sơ con nào. Thêm con ở «Cả nhà» để giao việc.</Chu></The>
+      </Man>
+    );
+  }
+  const baMe = d.quyen === "ba_me";
+  const sao = (c as { sao?: number }).sao ?? c.soDu;
+  const traoQua = (p: PhieuCho) => lam(async () => {
+    await bm.goi(`phieu/${p.id}/trao`, {});
+    setTrao(null);
+    bao(`Đã trao «${p.ten}» — Rob đã báo ${p.ten_con}`);
+    await tai();
   });
-  const luu = (x: NhiemVu, them: Partial<NhiemVu>) => lam(async () => { await bm.goi(`nhiem-vu/${x.id}`, them); await tai(); });
   return (
-    <Man tieuLon="Nhiệm vụ & quà" chat noi={noi} day={the === "nv" ? <Nut chu="Giao nhiệm vụ mới" ic="cong" rong bam={() => router.push("/giao-nv")} /> : undefined}>
-      {d.phieu.length ? (
+    <Man tieuLon="Nhiệm vụ" chat tai={tai} vongTai noi={noi}>
+      <ChipCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} />
+
+      <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}`}
+        style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 28, backgroundColor: M.diemSoft }, KHOI.the]}>
+        <BieuTron ic="sao" mau="vang" lon />
+        <View style={{ flex: 1 }}>
+          <Chu kieu="rat" co={17} mau={M.diemInk}>{`${c.ten} đang có ${sao} sao`}</Chu>
+          <Chu co={13.5} mau={M.diemInk}>{c.phutDoiDuoc !== undefined ? `Đổi được ${c.phutDoiDuoc} phút chơi` : "Xem ví sao"}</Chu>
+        </View>
+        <Icon ten="phai" mau={M.diemInk} co={18} />
+      </Pressable>
+
+      {cua.cho.length ? (
         <>
-          <Canh lv="so-tay" thap tieu={`Phiếu chờ trao (${d.phieu.length})`} loi="Con đã đổi điểm, chờ Ba Mẹ trao quà. Huỷ thì hoàn điểm cho Con." />
-          <Nhom>
-            {d.phieu.map((x, i) => (
-              // nút Đã trao / Huỷ xuống hàng dưới tên phiếu: để cùng hàng thì chữ bị bóp và «Huỷ» tràn khỏi thẻ ở máy 375pt
-              <View key={x.id}>
-                <Dong dau={i === 0} tieu={`${x.ten_con} · ${x.ten}`} phu={`${x.diem} điểm`} trai={<BieuTron ic={IC_QUA[x.loai]?.[0] ?? "qua"} mau={IC_QUA[x.loai]?.[1] ?? "lam"} />}
-                  phai={d.xem ? <Nhan loai="xam" chu="Chờ trao" /> : undefined} />
-                {d.xem ? null : <View style={{ flexDirection: "row", gap: 8, paddingLeft: 72, paddingRight: 16, paddingBottom: 14 }}>{/* thẳng cột chữ của Dong: 16 + viên 44 + 12 */}
-                  <Nut chu="Đã trao" nho dangChay={dangChay} bam={() => xuLy(x, "xac-nhan")} />
-                  <Nut chu="Huỷ" loai="vien" nho dangChay={dangChay} bam={() => setHuy(x)} />
-                </View>}
-              </View>
-            ))}
-          </Nhom>
+          <TieuMuc chu="Chờ Ba Mẹ duyệt" so={cua.cho.length} />
+          <The>
+            {cua.cho.map((x, i) => {
+              const [ic, mau] = hinhNv(x);
+              return <HangViec key={x.id} dau={i === 0} ic={x.so_ghi_am ? "tin" : ic} mau={mau} tieu={x.ten} phu={phuLuot(x)}
+                phai={<SaoVien n={x.sao ?? x.diem} nho />} bam={() => router.push(`/duyet/${x.id}` as never)} nhanDoc={`Xem bằng chứng ${x.ten}`} />;
+            })}
+            <View style={{ marginTop: 10 }}>
+              <Nut chu={`Xem bằng chứng, duyệt ${cua.cho.length} việc`} ic="tick" rong bam={() => router.push(`/duyet?con=${c.id}` as never)} />
+            </View>
+          </The>
         </>
       ) : null}
-      <ChonMot ds={[{ gia: "nv" as const, chu: `Nhiệm vụ (${nv.length})` }, { gia: "qua" as const, chu: `Phần thưởng (${d.qua.length})` }]} gia={the} doi={setThe} />
-      {the === "nv" ? (nv.length ? (
+
+      {cua.phieu.length ? (
         <>
-          <Canh lv="so-tay" thap tieu="Nhiệm vụ của nhà mình" loi="Chạm một nhiệm vụ để sửa điểm hoặc tạm tắt." />
-          <Nhom>
-            {nv.map((x, i) => (
-              <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={tanSuat(x)} trai={<BieuTron ic={(NHOM_NV[x.nhom] ?? NHOM_NV.khac).ic} mau={(NHOM_NV[x.nhom] ?? NHOM_NV.khac).mau} />}
-                phai={x.bat ? <Nhan loai="diem" chu={`+${x.diem}`} /> : <Nhan loai="xam" chu="Đang tắt" />} bam={() => { setSua(x); setDiem(String(x.diem)); }} />
+          <TieuMuc chu="Con đã đổi quà, chờ trao" phai={{ chu: "Quà ›", bam: () => router.push("/vi/qua" as never) }} />
+          <The>
+            {cua.phieu.map((p, i) => (
+              <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Con đổi ${p.diem} sao · ${khiNao(p.created_at)}`}
+                phai={<View><Nut chu="Trao quà" nho bam={() => { setLoi(null); setTrao(p); }} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>} />
             ))}
-          </Nhom>
+          </The>
+        </>
+      ) : null}
+
+      {cua.viec.length ? (
+        <>
+          <TieuMuc chu={`Việc mỗi ngày · ${cua.viec.length} việc`} phai={baMe ? { chu: "Đổi bộ ›", bam: () => router.push(`/giao-nv?con=${c.id}` as never) } : undefined} />
+          <The>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
+              <Chu kieu="rat" co={15}>{cua.bo ? `Bộ ${TEN_BO[cua.bo] ?? cua.bo}` : "Việc riêng của nhà"}</Chu>
+              {baMe ? <Chu co={13} mau={M.chu3}>Bấm một việc để sửa</Chu> : null}
+            </View>
+            {cua.viec.map((x, i) => {
+              const [ic, mau] = hinhNv(x);
+              const tu = x.bang_chung === "tu_dong";
+              return <HangViec key={x.id} dau={i === 0} ic={ic} mau={mau} tieu={x.ten}
+                phu={tu ? "Tự chấm · không cần duyệt" : `${cauLapLai(x.lap_lai)} · ${cachBao(x.bang_chung)}${x.tu_duyet ? " · tự cộng sao" : ""}`}
+                phai={<SaoVien n={x.diem} nho />} bam={baMe ? () => router.push(`/giao-nv/sua?id=${x.id}` as never) : undefined} />;
+            })}
+          </The>
+          {baMe ? <Nut chu={`Giao thêm việc cho ${c.ten}`} ic="cong" loai="vien" rong bam={() => router.push(`/giao-nv?con=${c.id}` as never)} /> : null}
         </>
       ) : (
-        <CanhGiua lv="canh-trong" tieu="Chưa có nhiệm vụ nào" loi="Chọn mẫu theo tuổi, có sẵn 8–10 nhiệm vụ.">
-          <Nut chu="Dùng mẫu nhiệm vụ" bam={() => lam(async () => { await bm.goi("nhiem-vu/mau", { nhom: "nhi" }); await tai(); })} />
-        </CanhGiua>
-      )) : (
-        <>
-          <View style={{ borderRadius: 26, backgroundColor: "#4e2e15", padding: 18, gap: 4 }}>
-            <Chu kieu="dam" co={13} mau="#ebebe7">Quỹ phiếu quà AiiCafe</Chu>
-            <Chu kieu="rat" co={26} mau="#fff" so>{tien(d.quy.soDu)}</Chu>
-            <Chu co={14} mau="#ebebe7">{d.quy.soDu >= 50_000 ? `Đủ cho ${Math.floor(d.quy.soDu / 50_000)} phiếu quà 50k` : "Chưa đủ cho một phiếu quà 50k — nạp thêm để Con đổi được"}</Chu>
-            <View style={{ marginTop: 10, alignSelf: "flex-start" }}><Nut chu="Nạp thêm" loai="vang" nho bam={() => router.push("/quy")} /></View>
-          </View>
-          {d.qua.length ? (
-            <Nhom>
-              <Dong dau tieu="1 phút chơi trò chơi" phu="Video ngắn 2 điểm/phút · tự trừ khi chơi" trai={<BieuTron ic="game" mau="vang" />} phai={<Nhan loai="xam" chu="1 điểm" />} />
-              {d.qua.map((x) => (
-                <Dong key={x.id} tieu={x.ten} phu={[x.loai === "voucher" ? "Hạn 60 ngày · dùng 1 lần" : "", x.chi_cuoi_tuan ? "Chỉ thứ 7, CN" : "",
-                  x.toi_da_thang ? `Tối đa ${x.toi_da_thang} lần/tháng` : "", x.ton_kho !== null ? `Còn ${x.ton_kho}` : ""].filter(Boolean).join(" · ") || "Ba Mẹ xác nhận khi trao"}
-                  trai={<BieuTron ic={IC_QUA[x.loai][0]} mau={IC_QUA[x.loai][1]} />} phai={<Nhan loai="xam" chu={`${x.diem}`} />} />
-              ))}
-            </Nhom>
-          ) : (
-            <CanhGiua lv="canh-trong" tieu="Chưa có phần thưởng" loi="Thêm phiếu quà AiiCafe hoặc đặc quyền để Con có mục tiêu.">
-              <Nut chu="Dùng mẫu phần thưởng" bam={() => lam(async () => { await bm.goi("qua/mau", {}); await tai(); })} />
-            </CanhGiua>
-          )}
-        </>
+        <ViecTrong con={c.id} ten={c.ten} baMe={baMe} />
       )}
-      <BaoLoi loi={!sua && !huy ? loiLam : null} />
-      {huy ? (
-        <BangTruot mo dong={() => setHuy(null)} tieu={`Huỷ «${huy.ten}»?`}>
-          <Chu>{`${huy.ten_con} được hoàn ${huy.diem} điểm. Không hoàn tác được.`}</Chu>
+
+      <BangTruot mo={!!trao} dong={() => setTrao(null)} tieu={trao ? `Đã trao «${trao.ten}» cho ${trao.ten_con} chưa?` : ""}>
+        {trao ? <>
+          <Chu co={14.5} mau={M.chu2}>{`Con đã đổi ${trao.diem} sao ${khiNao(trao.created_at)}.`}</Chu>
+          <Chu co={14.5} mau={M.chu2}>Bấm «Đã trao» thì Rob báo con và chúc mừng con.</Chu>
           <BaoLoi loi={loiLam} />
-          <Nut chu="Huỷ phiếu, hoàn điểm" loai="huy" rong dangChay={dangChay} bam={async () => { if (await xuLy(huy, "huy")) setHuy(null); }} />
-          <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="ma" rong bam={() => setHuy(null)} /></View>
-        </BangTruot>
-      ) : null}
-      {sua ? (
-        <BangTruot mo dong={() => setSua(null)} tieu={sua.ten}>
-          <ONhap nhan="Điểm thưởng" value={diem} onChangeText={(t) => setDiem(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" />
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <Chu kieu="rat" style={{ flex: 1 }}>Đang bật cho Con</Chu>
-            <CongTac nhan="Bật nhiệm vụ" bat={sua.bat} doi={(v) => setSua({ ...sua, bat: v })} />
-          </View>
-          <BaoLoi loi={loiLam} />
-          <Nut chu="Lưu" rong dangChay={dangChay} tat={!(Number(diem) >= 1)} bam={async () => { if (await luu(sua, { diem: Number(diem), bat: sua.bat })) { setSua(null); bao("Đã lưu nhiệm vụ"); } }} />
-        </BangTruot>
-      ) : null}
+          <Nut chu="Đã trao, báo cho con" ic="qua" rong dangChay={dangChay} bam={() => traoQua(trao)} />
+          <Nut chu="Chưa, để cuối tuần" loai="ma" rong bam={() => setTrao(null)} />
+        </> : null}
+      </BangTruot>
     </Man>
+  );
+}
+
+/** Con chưa có việc nào (37): hai lối — chọn bộ có sẵn / tự đặt một việc. */
+function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean }) {
+  const ct = useTai(() => bm.goi<{ namSinh: number | null }>(`con/${con}`).catch(() => null));
+  const t = tuoiCua(ct.d?.namSinh);
+  return (
+    <The>
+      <View style={{ alignItems: "center", gap: 6, paddingVertical: 6 }}>
+        <BieuTron ic="sao" mau="vang" lon />
+        <Chu kieu="rat" co={18} style={{ textAlign: "center" }}>{`${ten} chưa có việc nào`}</Chu>
+        <Chu co={14} mau={M.chu2} style={{ textAlign: "center" }}>Giao vài việc nhỏ. Con làm xong nhận sao, đổi ra phút chơi.</Chu>
+      </View>
+      {baMe ? (
+        <View style={{ marginTop: 8 }}>
+          <HangViec dau ic="luoi" mau="tim" tieu="Chọn bộ việc có sẵn" phu={t ? `Rob gợi ý hợp với ${t} tuổi` : "Rob gợi ý hợp với tuổi của con"}
+            bam={() => router.push(`/giao-nv?con=${con}` as never)} />
+          <HangViec ic="but" mau="xanh" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv/tu-dat?con=${con}` as never)} />
+        </View>
+      ) : <Chu co={13} mau={M.chu3} style={{ marginTop: 8, textAlign: "center" }}>Nhờ Ba Mẹ giao việc cho con.</Chu>}
+    </The>
   );
 }

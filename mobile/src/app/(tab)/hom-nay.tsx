@@ -1,244 +1,233 @@
-// bm-trang «Trang chủ» (FR-06.01) — bảng điều khiển theo từng Con. Bố cục 02 «Việc chờ lên đầu» (Thanh 24/10): việc chờ Ba Mẹ ngay dưới chip
-// Con, Duyệt / Từ chối tại chỗ (lib/viec-cho); rồi thẻ trạng thái gọn + «Khoá máy» (có hạn giờ),
-// lưới tính năng (Trang web · Ứng dụng · Giờ dùng máy · Thời gian màn hình · Máy · Nhiệm vụ) — mỗi ô một màn, ghi luôn tình trạng hiện tại
-// để Ba Mẹ biết mà không phải mở; 3 điều để khen, cảnh báo cần xem. Việc hằng ngày đều ở đây, «Gia đình» chỉ còn việc ít đụng.
-import { memo, useCallback, useMemo, useRef, useState, type RefObject } from "react";
+// «Hôm nay» — Trang chủ Ba Mẹ (thiết kế chốt 05/11, bm-hang-ngay/01-bm2-trang-chu; luật L12 docs/KE-HOACH-KHOP-THIET-KE-0511.md): xếp theo MỨC GẤP
+//  1. Con đang làm gì + còn bao nhiêu phút (quỹ hôm nay — con/:id/quy) · «Khoá máy con» / «Cho thêm giờ» là bảng trượt ngay trên thẻ (lib/hang-ngay)
+//  2. Con đang xin (quyết ngay: «Không cho» / «Cho N phút» — lib/hom-nay-xin) → «Tất cả ›» /yeu-cau?con=
+//  3. Cần Ba Mẹ để ý: máy chưa được bảo vệ đủ (→ /may/<id>), cảnh báo chưa đọc (→ /canh-bao/<id>)
+//  4. Nhiệm vụ hôm nay: việc chờ duyệt mở THẲNG màn bằng chứng /duyet/<lượt>; «Xem bằng chứng, duyệt N việc» → /duyet?con=
+//  5. Hôm nay con dùng (top 3 app — con/:id/man-hinh) · Cài cho con (→ Hồ sơ) · Con khác.
+// Người trông giúp vẫn khoá máy / cho thêm giờ / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
+import { memo, useMemo, useState } from "react";
 import { router } from "expo-router";
-import { Dimensions, Pressable, View } from "react-native";
-import Animated, { useReducedMotion } from "react-native-reanimated";
-import { BONG, KHOI, MEN } from "@/lib/clay";
-import { LopAnMung, Vao, khoaSap, useBat, useGiat, type AnMungRef } from "@/lib/chuyen-dong";
-import { bm, laChiXem, type AppChuaXep, type CanhBao, type ConChiTiet, type ConNgan, type GiaDinh, type LuotCho, type PhienDang, type ThongKeWeb, type TuanThuMay, type YeuCau } from "@/lib/api";
-import { TheViecCho, type AnMung, type Phieu, type ViecCho } from "@/lib/viec-cho";
-import { AppMoi, NutThemMay, TheDangChoi, TheMay } from "@/lib/viec-nhanh";
+import { Pressable, View } from "react-native";
+import { bm, type CanhBao, type GiaDinh, type ManHinhTuan, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { ChuongTb } from "@/lib/chuong-tb";
-import { BangKhoa, cauKhoa, cauMoTam, conHan, moLaiMay } from "@/lib/khoa-may";
+import { moLaiMay } from "@/lib/khoa-may";
 import {
-  Avt, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, Chu, Dong, Icon, M, MAU_CON, Man, Nhan, NhanMen, Nhom, Nut, The, Tien, truoc, useHoanTac, useLam, useTai,
-  type MauBt, type TenIcon,
+  BangKhoaMay, BangThemGio, ChipCon, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, mauCon, SaoVien, TieuMuc,
+  type ChoDuyetMoi, type ConCt, type NhiemVuMoi, type QuyCon,
+} from "@/lib/hang-ngay";
+import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
+import {
+  Avt, BaoLoi, CanhGiua, ChoTai, Chu, Icon, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
-type Luat = { chuaXep: AppChuaXep[]; ds: { child_id: string; loai: string }[] };
-type ChoDuyet = { nhiemVu: LuotCho[]; yeuCau: YeuCau[]; phieu?: Phieu[] };
+const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 
-export default function TrangChu() {
+export default function HomNay() {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [g, cb, luat, choi, tt, toi, cd] = await Promise.all([
-      bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: CanhBao[] }>("canh-bao"), bm.goi<Luat>("luat").catch(() => null),
-      bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),            // máy chủ cũ chưa có ⇒ không hiện thẻ «Đang chơi»
-      // thẻ máy: chế độ + bảo vệ từ MỘT nguồn (tuan-thu), tải MỘT lần cho cả nhà (đổi Con không gọi lại); lỗi ⇒ ẩn thẻ, không chặn cả trang
-      bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),  // nhẹ: không quét mất nhịp (màn Máy làm)
-      laChiXem(),                                                            // quyền Chỉ xem ⇒ ẩn nút việc nhanh (máy chủ trả 403 chi_xem)
-      bm.goi<ChoDuyet>("cho-duyet").catch(() => null),                       // việc chờ duyệt tại chỗ; lỗi ⇒ thẻ tóm tắt số đếm như cũ
+    const [g, cd, cb, choi, tt, nv] = await Promise.all([
+      bm.goi<GiaDinh>("gia-dinh"), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: CanhBao[] }>("canh-bao").catch(() => null),
+      bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),
+      bm.goi<{ ds: NhiemVuMoi[] }>("nhiem-vu").catch(() => null),
     ]);
-    return { g, cb: cb.ds.filter((x) => !x.da_doc), luat, choi: choi?.ds ?? [], tt: tt?.ds ?? [], xem: toi, cd };
+    return { g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], nv: nv?.ds ?? [] };
   });
-  const [chon, setChon] = useState(0);
+  const [chon, setChon] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
-  // ăn mừng duyệt: confetti tại nút Duyệt, «+N» bay theo đường cong vào ô Nhiệm vụ (ví), ví nảy khi tới
-  const lop = useRef<AnMungRef>(null);
-  const vi = useRef<React.ComponentRef<typeof View>>(null);
-  const { st: stVi, bat: batVi } = useBat();
-  const dich = useCallback(() => new Promise<{ x: number; y: number } | null>((ok) => {
-    if (!vi.current) return ok(null);
-    // ô Nhiệm vụ (ví) phải đang thấy trên màn; khuất thì «+N» chỉ bay lên tại chỗ
-    vi.current.measureInWindow((x, y, w, h) => ok(w && y >= 0 && y + h <= Dimensions.get("window").height ? { x: x + 34, y: y + h / 2 - 8 } : null));
-  }), []);
-  const anMung: AnMung = useCallback((n, tu) => lop.current?.ban(tu, n), []);
-  const i = d ? Math.min(chon, d.g.con.length - 1) : 0;
-  // phần dữ liệu của Con đang xem — tính lại CHỈ khi dữ liệu / Con đổi: bảng của Con (BangCon, memo) không vẽ lại mỗi lần toast
-  // «Hoàn tác» hiện / tắt hay vòng quay tải lại bật / tắt
-  const cua = useMemo(() => {
-    const c = d?.g.con[i];
-    if (!d || !c) return null;
-    return {
-      c, canhBao: d.cb.filter((x) => !x.child_id || x.child_id === c.id), choi: d.choi.filter((p) => p.con === c.id),
-      mayTt: d.tt.filter((m) => m.con === c.id || m.dungChung),
-      viec: d.cd ? [...d.cd.nhiemVu.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "nv", x })),
-        ...d.cd.yeuCau.filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "yc", x })),
-        ...(d.cd.phieu ?? []).filter((x) => x.child_id === c.id).map((x): ViecCho => ({ k: "qua", x }))] : null,
-    };
-  }, [d, i]);
-  // gốc cây giống lúc đã tải (View > Man) để chuông không bị gắn lại khi dữ liệu về (gọi thong-bao hai lần, mất mốc «tăng thì rung»)
-  if (!d) return <View style={{ flex: 1 }}><Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
+  const dau = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 4, marginTop: 4 }}>
+      <Chu kieu="rat" co={28} style={{ letterSpacing: -0.6 }}>Hôm nay</Chu>
+      <Chu kieu="dam" co={14} mau={M.chu2} style={{ flex: 1, paddingTop: 6 }}>{ngayHomNay()}</Chu>
+      <ChuongTb />
+    </View>
+  );
+  if (!d) return <View style={{ flex: 1 }}><Man>{dau}<ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
   if (!d.g.con.length) {
     return (
       <View style={{ flex: 1 }}>
-      <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />}>
-        <CanhGiua lv="canh-trong" tieu="Chưa có Con nào" loi="Thêm hồ sơ Con đầu tiên để bắt đầu.">
-          <Nut chu="Thêm Con" ic="cong" bam={() => router.push("/thiet-lap/ten-con")} />
-        </CanhGiua>
-      </Man>
+        <Man>{dau}
+          <CanhGiua lv="canh-trong" tieu="Chưa có con nào" loi="Thêm hồ sơ con đầu tiên để bắt đầu.">
+            <Nut chu="Thêm con" ic="cong" bam={() => router.push("/thiet-lap/ten-con" as never)} />
+          </CanhGiua>
+        </Man>
       </View>
     );
   }
+  const c = d.g.con.find((x) => x.id === chon) ?? d.g.con[0];
   return (
     <View style={{ flex: 1 }}>
-    <Man tieuLon="Trang chủ" chat phaiTieu={<ChuongTb />} tai={tai} vongTai noi={noi}>
-      <Vao thu={0}>
-        <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap", alignItems: "center" }} accessibilityRole="tablist">
-        {d.g.con.map((x, k) => (
-          // chip Con: kẹo dẻo — đang chọn than chì tráng men, còn lại viên sáng
-          <NhanMen key={x.id} onPress={() => setChon(k)} accessibilityRole="tab" accessibilityState={{ selected: k === i }} muc="chip" sang={k !== i} men={k === i ? MEN.toi : MEN.sang}
-            style={[{ flexDirection: "row", alignItems: "center", gap: 7, minHeight: 46, paddingLeft: 7, paddingRight: 15, borderRadius: 99, maxWidth: "100%", flexShrink: 1 },
-              k === i ? { backgroundColor: M.nut, boxShadow: BONG.toi } : { backgroundColor: M.the, ...KHOI.nho }]}>
-            <Avt ten={x.ten} mau={MAU_CON[k % MAU_CON.length]} co={32} />
-            <Chu kieu="rat" co={14.5} mau={k === i ? "#fff" : M.chu2} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
-          </NhanMen>
-        ))}
-        <NhanMen onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm Con" muc="chip" sang men={MEN.sang}
-          style={[{ minHeight: 46, minWidth: 46, borderRadius: 23, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
-          <Icon ten="cong" mau={M.chu2} co={22} />
-        </NhanMen>
-        </View>
-      </Vao>
-      {cua ? <BangCon key={cua.c.id} {...cua} anMung={anMung} vi={vi} stVi={stVi} luat={d.luat} xem={d.xem} taiLai={tai} bao={bao} /> : null}
-    </Man>
-    <LopAnMung ref={lop} dich={dich} toi={batVi} />
+      <Man tai={tai} vongTai noi={noi}>
+        {dau}
+        {d.g.con.length > 1 ? <ChipCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} /> : null}
+        <BangCon key={c.id} conId={c.id} d={d} taiLai={tai} bao={bao} doiCon={(id) => setChon(id)} />
+      </Man>
     </View>
   );
 }
 
-type StyleVi = ReturnType<typeof useBat>["st"];
-const BangCon = memo(function BangCon({ c, canhBao, luat, choi, mayTt, xem, taiLai, bao, viec, anMung, vi, stVi }: {
-  c: ConNgan; canhBao: CanhBao[]; luat: Luat | null; choi: PhienDang[]; mayTt: TuanThuMay[]; xem: boolean; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void;
-  viec: ViecCho[] | null; anMung: AnMung; vi: RefObject<React.ComponentRef<typeof View> | null>; stVi: StyleVi;
-}) {
-  const giam = useReducedMotion();
-  const { st: stGiat, giat } = useGiat();
-  const [vuaKhoa, setVuaKhoa] = useState(false);   // ổ khoá chỉ «đóng sập» khi vừa khoá trên màn này, không phải mỗi lần mở màn
-  const ct = useTai(() => bm.goi<ConChiTiet>(`con/${c.id}`));
-  const web = useTai(() => bm.goi<ThongKeWeb>(`con/${c.id}/web?ngay=1`).catch(() => null));
-  const [khoa, setKhoa] = useState(false);
-  const { lam, dangChay } = useLam();
-  const may = ct.d?.may ?? [];
-  const dangDung = may.find((m) => m.truc);
-  // màn không tự tải lại: hạn khoá đã qua thì coi như đã mở, khớp server (cau-hinh.ts › khoaGoc). Đang mở tạm vẫn là «khoá» ⇒ moTam
-  const khoaNgay = !!ct.d?.khoaNgay && conHan(ct.d.khoaDen);
-  const moTam = khoaNgay ? cauMoTam(ct.d?.moTamDen, ct.d?.khoaDen) : null;
-  const cho = c.nhiemVuCho + c.yeuCauCho + (c.phieuCho ?? 0);
-  const conGiay = c.conPhut ?? Math.max(0, c.tranNgay - c.phutChoi);   // máy chủ tính theo trần ngày lẫn tuần + thêm giờ; máy chủ cũ không gửi
-  const tai = () => { ct.tai(); taiLai(); };
-  const moLai = () => lam(async () => { await moLaiMay(c.id, c.ten, bao, tai); tai(); });
+type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; nv: NhiemVuMoi[] };
 
-  // dòng trạng thái của từng ô — chỉ hiện số khi đã tải được, không đoán
-  const chanWeb = web.d ? web.d.luat.filter((l) => l.trangThai === "chan") : null;
-  const chanApp = luat ? luat.ds.filter((l) => l.loai === "chan" && (!l.child_id || l.child_id === c.id)).length : null;
-  const chuaXep = luat?.chuaXep.length ?? 0;
-  const lich = ct.d?.lich;
-  const o: { tieu: string; phu: string; ic: TenIcon; mau: MauBt; di: string; nhan?: string }[] = [
-    { tieu: "Trang web", ic: "web", mau: "lam", di: `/web/${c.id}`,
-      phu: !web.d ? "Chặn hoặc cho phép từng trang" : web.d.cheDoWeb === "chi_cho_phep" ? "Chỉ vào trang đã duyệt"
-        : chanWeb!.length ? `Đang chặn ${chanWeb!.length} trang · ${chanWeb!.slice(0, 2).map((l) => l.tenMien.replace(/\.(com|vn|net|org)$/, "")).join(", ")}` : "Chưa chặn trang nào" },
-    { tieu: "Ứng dụng", ic: "luoi", mau: "tim", di: `/app-web?con=${c.id}`, nhan: chuaXep ? `${chuaXep} mới` : undefined,
-      phu: chanApp === null ? "Học tập, giải trí, chặn" : `${chanApp ? `${chanApp} bị chặn` : "Chưa chặn app nào"}${chuaXep ? ` · ${chuaXep} chưa xếp` : ""}` },
-    { tieu: "Giờ dùng máy", ic: "dongho", mau: "cam", di: `/gio/${c.id}`,
-      phu: lich ? `${c.tranNgay} phút/ngày · ngủ ${lich.ngu.tu}` : `${c.tranNgay} phút/ngày` },
-    { tieu: "Thời gian màn hình", ic: "cot", mau: "xanh", di: `/man-hinh/${c.id}`,
-      phu: web.d ? `Web hôm nay ${Math.round(web.d.homNay.giay / 60)} phút · giải trí ${c.phutChoi} phút` : `Giải trí hôm nay ${c.phutChoi} phút` },
-    { tieu: "Máy tính & điện thoại", ic: "may_tinh", mau: "xam", di: may.length === 1 ? `/may/${may[0].id}` : `/may?con=${c.id}`,
-      phu: !ct.d ? "Chặn thật, mở khẩn cấp" : !may.length ? "Chưa ghép máy nào" : `${may.length} máy · ${may.filter((m) => m.truc).length} đang mở` },
-    { tieu: "Nhiệm vụ", ic: "sao", mau: "vang", di: "/diem-qua",
-      phu: `Ví ${c.soDu} điểm${c.phutDoiDuoc !== undefined ? ` (đổi ≈ ${c.phutDoiDuoc} phút chơi)` : ""}${c.nhiemVuCho ? ` · ${c.nhiemVuCho} chờ duyệt` : ""}` },
-  ];
+const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
+  conId: string; d: DuLieu; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void; doiCon: (id: string) => void;
+}) {
+  const c = d.g.con.find((x) => x.id === conId)!;
+  const thu = d.g.con.indexOf(c);
+  const ct = useTai(() => bm.goi<ConCt>(`con/${conId}`));
+  const qy = useTai(() => bm.goi<QuyCon>(`con/${conId}/quy`));
+  const mh = useTai(() => bm.goi<ManHinhTuan>(`con/${conId}/man-hinh?lui=0`).catch(() => null));
+  const [bang, setBang] = useState<"khoa" | "gio" | null>(null);
+  const { lam, loi, dangChay } = useLam();
+  const tai = () => { ct.tai(); qy.tai(); taiLai(); };
+
+  const may = ct.d?.may ?? [];
+  const choi = d.choi.find((p) => p.con === conId);
+  const dangMo = may.find((m) => m.truc);
+  const q = qy.d?.quy;
+  const sao = qy.d?.sao ?? c.soDu;
+  const phutDoi = q && q.doiSao.bat ? Math.min(Math.floor((sao * q.tyLe.phut) / 10), q.doiSao.conDoiDuoc) : 0;
+  const khoa = !!ct.d?.khoaNgay || !!q?.khoa;
+  const conPhut = q?.conPhut ?? c.conPhut ?? 0, tongPhut = q?.tongPhut ?? c.tranNgay;
+
+  const xin = (d.cd?.yeuCau ?? []).filter((y) => y.child_id === conId);
+  const nopCho = (d.cd?.nhiemVu ?? []).filter((x) => x.child_id === conId);
+  const canDeY = d.tt.filter((m) => (m.con === conId || m.dungChung) && m.baoVe && m.baoVe !== "day_du" && !m.dangGo);
+  const canhBao = d.cb.filter((x) => !x.child_id || x.child_id === conId).slice(0, 2);
+  const viec = d.nv.filter((v) => v.bat && (!v.giao_cho || v.giao_cho === conId));
+  const daXong = new Set(c.homNayConDa);
+  const soLam = viec.filter((v) => daXong.has(v.ten) || nopCho.some((x) => x.ten === v.ten)).length;
+  // top 3 app hôm nay (giây → phút) từ thời gian màn hình tuần này
+  const top = useMemo(() => {
+    const m = mh.d;
+    if (!m) return [];
+    const i = m.theoNgay.findIndex((x) => x.ngay === m.homNay);
+    if (i < 0) return [];
+    return m.ds.map((x) => ({ ten: x.ten, kieu: x.kieu, muc: x.muc, phut: Math.round((x.theoNgay[i] ?? 0) / 60) })).filter((x) => x.phut > 0)
+      .sort((a, b) => b.phut - a.phut).slice(0, 3);
+  }, [mh.d]);
+
+  // dòng trạng thái lớn của thẻ đầu
+  const tieuLon = khoa ? `Máy của ${c.ten} đang khoá` : q?.dangNgu ? `${c.ten} đang giờ ngủ` : q?.dangHoc ? `${c.ten} đang giờ học`
+    : conPhut ? `${c.ten} còn chơi ${conPhut} phút` : `${c.ten} hết giờ chơi hôm nay`;
+  const dongDang = choi ? `Đang chơi ${choi.tenApp}${choi.may ? ` · ${choi.may}` : ""}` : dangMo ? `${dangMo.ten} đang mở` : may.length ? "Máy đang tắt" : "Chưa ghép máy";
+  const mayDang = choi?.may ? may.find((m) => m.ten === choi.may) ?? dangMo : dangMo;
+  const phuGio = khoa ? "Máy hiện màn khoá tới khi Ba Mẹ mở" : q?.dangNgu ? `Máy mở lại lúc ${gioGon(q.gioNgu.den)}`
+    : q?.dangHoc && q.gioHoc ? `Chỉ mở app học tới ${gioGon(q.gioHoc.den)}` : `trong ${tongPhut} phút hôm nay`;
 
   return (
     <>
-      <Vao thu={1}>
-      {viec ? <TheViecCho ds={viec} ten={c.ten} xem={xem} tai={tai} bao={bao} anMung={anMung} /> : (
-        <NhanMen onPress={() => router.push("/cho-duyet")} accessibilityRole="button" muc="khoi" sang men={MEN.the}
-          style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, minHeight: 44, borderRadius: 28, backgroundColor: cho ? "#fff8f6" : M.the, borderWidth: cho ? 1.5 : 0, borderColor: "#f3c8bf" }, KHOI.the]}>
-          <BieuTron ic="chuong" mau={cho ? "do" : "xanh"} />
-          <View style={{ flex: 1 }}>
-            <Chu kieu="rat" co={16}>{cho ? `${cho} việc chờ Ba Mẹ` : "Không có việc nào chờ"}</Chu>
-            <Chu co={13.5} mau={M.chu3}>{cho ? `${c.nhiemVuCho} nhiệm vụ · ${c.yeuCauCho} yêu cầu${c.phieuCho ? ` · ${c.phieuCho} quà` : ""}` : "Khi Con nộp hay xin phép, Rob báo Ba Mẹ ngay"}</Chu>
-          </View>
-          <Icon ten="phai" mau={M.chu3} />
-        </NhanMen>
-      )}
-      </Vao>
-
-      <Vao thu={2}><Animated.View style={stGiat}><The dem>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          {khoaNgay ? <Animated.View key={moTam ? "mo" : "khoa"} entering={vuaKhoa ? khoaSap(giam) : undefined}><BieuTron ic={moTam ? "dongho" : "khoa"} mau={moTam ? "cam" : "do"} /></Animated.View> : null}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            {khoaNgay ? (
-              <>
-                <Chu kieu="dam" co={13} mau={moTam ? M.chu2 : M.loi}>{moTam ? `${c.ten} · ${moTam}` : `${c.ten} · máy đang khoá`}</Chu>
-                <Chu kieu="rat" co={20}>{cauKhoa(ct.d?.khoaDen)}</Chu>
-              </>
-            ) : (
-              <>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dangDung ? M.chinh : M.chu3 }} />
-                  <Chu kieu="dam" co={13} mau={M.chu3} dong={1} style={{ flexShrink: 1 }}>
-                    {!ct.d ? c.ten : dangDung ? `${dangDung.ten} · đang mở` : may.length ? `Máy offline · ${truoc(may[0].lanCuoi) || "chưa đồng bộ"}` : "Chưa ghép máy"}
-                  </Chu>
-                </View>
-                <Chu kieu="rat" co={20} so>{conGiay ? `Còn ${conGiay} phút` : "Hết giờ giải trí"}</Chu>
-              </>
-            )}
-          </View>
-          <View>
-            {khoaNgay ? <Nut chu="Mở lại" ic="mo_khoa" nho dangChay={dangChay} bam={moLai} nhanDoc={`Mở lại máy của ${c.ten}`} />
-              : <Nut chu="Khoá máy" ic="khoa" ic3d nho loai="vien" tat={!ct.d} bam={() => setKhoa(true)} nhanDoc={`Khoá máy của ${c.ten} ngay`} />}
-          </View>
+      {/* 1. con đang làm gì + còn bao nhiêu phút */}
+      <The style={{ backgroundColor: M.chinhSoft, minHeight: 230, overflow: "visible" }}>
+        <View style={{ position: "absolute", right: -6, bottom: 64 }} pointerEvents="none"><Rob ten={khoa ? "nghi" : q?.dangNgu ? "ngu" : "rob-goc"} co={124} /></View>
+        <Pressable onPress={() => router.push((mayDang ? `/may/${mayDang.id}` : `/may?con=${conId}`) as never)} accessibilityRole="button"
+          style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 38, paddingLeft: 6, paddingRight: 12, borderRadius: 19, backgroundColor: M.the, maxWidth: "70%" }}>
+          <Icon ten={mayDang ? IC_MAY[mayDang.nen] : "laptop"} co={20} mau={M.chu2} />
+          <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{dongDang}</Chu>
+          <Icon ten="phai" co={14} mau={M.chu3} />
+        </Pressable>
+        <View style={{ marginTop: 18, maxWidth: "64%" }}>
+          <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
+          <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>
+            <Chu kieu="dam" co={14} mau={M.chinhInk}>{`${phuGio} ›`}</Chu>
+          </Pressable>
         </View>
-        {khoaNgay ? null : (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 12 }}>
-            <View style={{ flex: 1 }}><Tien ti={c.phutChoi + conGiay ? Math.min(1, c.phutChoi / (c.phutChoi + conGiay)) : 0} mau={M.chinh} /></View>
-            <Chu kieu="dam" co={13} mau={M.chu3} so>{`${c.phutChoi}/${c.phutChoi + conGiay} phút giải trí`}</Chu>
-          </View>
-        )}
-        {ct.loi ? <View style={{ marginTop: 10, gap: 8 }}><BaoLoi loi={ct.loi} /><Nut chu="Thử lại" loai="vien" nho bam={ct.tai} /></View> : null}
-      </The></Animated.View></Vao>
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+          {khoa ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+            : <Nut chu="Khoá máy con" ic="khoa" loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />}
+          <Nut chu="Cho thêm giờ" ic="dongho" bam={() => setBang("gio")} />
+        </View>
+        <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />
+      </The>
 
-      <AppMoi ds={luat?.chuaXep ?? []} tai={tai} bao={bao} xem={xem} />
-      {choi.map((p) => <TheDangChoi key={p.id} p={p} tai={tai} bao={bao} xem={xem} />)}
-
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 11 }}>
-        {o.map((x, k) => (
-          // hai cột: ba cột ở máy 375pt chỉ còn ~95pt mỗi ô ⇒ chữ ba dòng, nhãn «mới» đè viên icon (TestFlight build 6)
-          <Vao key={x.tieu} thu={3 + k} style={{ flexBasis: "40%", flexGrow: 1 }}>
-            {x.di === "/diem-qua" ? <Animated.View ref={vi} style={[{ flexGrow: 1 }, stVi]}><OTinhNang {...x} /></Animated.View> : <OTinhNang {...x} />}
-          </Vao>
-        ))}
-      </View>
-
-      {xem ? null : <Vao thu={9}><Nut chu="Giao nhiệm vụ" ic="cong" rong bam={() => router.push(`/giao-nv?con=${c.id}`)} nhanDoc={`Giao nhiệm vụ cho ${c.ten}`} /></Vao>}
-
-      {canhBao.length ? (
-        <Nhom>
-          <Dong dau tieu={`${canhBao.length} cảnh báo cần xem`} phu={canhBao[0].noi_dung} trai={<BieuTron ic="canh_bao" mau="cam" />} bam={() => router.push("/canh-bao")} />
-        </Nhom>
+      {/* 2. con đang xin */}
+      {xin.length ? (
+        <>
+          <TieuMuc chu={`${c.ten} đang xin`} so={xin.length} phai={{ chu: "Tất cả ›", bam: () => router.push(`/yeu-cau?con=${conId}` as never) }} />
+          <The>{xin.slice(0, 2).map((y, k) => <TheXin key={y.id} y={y} may={tenMayXin(y, may)} lam={(fn) => lam(fn)} dang={dangChay} bo={k > 0} />)}</The>
+        </>
       ) : null}
 
-      {mayTt.map((m) => <TheMay key={m.id} m={m} tai={tai} bao={bao} xem={xem} />)}
-      {xem ? null : <NutThemMay id={c.id} ten={c.ten} nhom={c.nhom} />}
+      {/* 3. cần Ba Mẹ để ý */}
+      {canDeY.length || canhBao.length ? (
+        <>
+          <TieuMuc chu="Cần Ba Mẹ để ý" />
+          <The>
+            {canDeY.map((m, k) => (
+              <HangViec key={m.id} dau={k === 0} ic={IC_MAY[m.nen]} mau="cam" tieu={`${m.ten} chưa được bảo vệ`} phu={m.baoVeCau ?? "Con có thể tự tắt AiiGrow"}
+                phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Sửa ›</Chu>} bam={() => router.push(`/may/${m.id}` as never)} />
+            ))}
+            {canhBao.map((x, k) => (
+              <HangViec key={x.id} dau={!canDeY.length && k === 0} ic="canh_bao" mau={x.muc === "nghiem_trong" ? "do" : "cam"} tieu={x.noi_dung}
+                phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Xem ›</Chu>} bam={() => router.push(`/canh-bao/${x.id}` as never)} />
+            ))}
+          </The>
+        </>
+      ) : null}
 
-      <Canh lv="sao" thap tieu={`Hôm nay ${c.ten} đã…`} loi={c.homNayConDa.length ? c.homNayConDa.join(" · ") : "Chưa có nhiệm vụ nào được duyệt hôm nay."}>
-        <Pressable onPress={() => router.push(`/loi-khen/${c.id}`)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
-          <Nhan chu="Gửi lời khen" ic="tim" />
-        </Pressable>
-      </Canh>
+      {/* 4. nhiệm vụ hôm nay */}
+      <TieuMuc chu={viec.length ? `Nhiệm vụ hôm nay · ${soLam}/${viec.length} việc` : "Nhiệm vụ hôm nay"} phai={{ chu: "Tất cả ›", bam: () => router.push("/diem-qua" as never) }} />
+      <The>
+        {!viec.length ? <HangViec dau ic="cong" mau="xanh" tieu={`Giao việc cho ${c.ten}`} phu="Làm xong nhận sao, đổi ra phút chơi" bam={() => router.push(`/giao-nv?con=${conId}` as never)} /> : null}
+        {viec.slice(0, 6).map((v, k) => {
+          const luot = nopCho.find((x) => x.ten === v.ten);
+          const [ic, mau] = hinhNv(v);
+          return luot ? (
+            <HangViec key={v.id} dau={k === 0} ic={ic} mau={mau} tieu={v.ten} phu={luot.so_ghi_am ? "Nộp ghi âm" : luot.so_anh ? `Nộp ${luot.so_anh} ảnh` : "Đã báo xong"}
+              phai={<Nhan chu="Chờ duyệt" loai="canh" />} bam={() => router.push(`/duyet/${luot.id}` as never)} nhanDoc={`Xem bằng chứng ${v.ten}`} />
+          ) : (
+            <HangViec key={v.id} dau={k === 0} ic={ic} mau={mau} tieu={v.ten}
+              phai={daXong.has(v.ten) ? <SaoVien n={v.diem} dau nho /> : <Nhan chu="Chưa làm" loai="xam" />} bam={() => router.push("/diem-qua" as never)} />
+          );
+        })}
+        {nopCho.length ? (
+          <View style={{ marginTop: 8 }}>
+            <Nut chu={`Xem bằng chứng, duyệt ${nopCho.length} việc`} rong ic="tick" bam={() => router.push(`/duyet?con=${conId}` as never)} />
+          </View>
+        ) : null}
+      </The>
 
-      <BangKhoa mo={khoa} dong={() => setKhoa(false)} con={c.id} ten={c.ten}
-        xong={(chu, hoan) => { giat(); setVuaKhoa(true); bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
+      {/* 5. hôm nay con dùng */}
+      {top.length ? (
+        <>
+          <TieuMuc chu={`Hôm nay ${c.ten} dùng`} phai={{ chu: "Xem hết ›", bam: () => router.push(`/man-hinh/${conId}` as never) }} />
+          <Pressable onPress={() => router.push(`/man-hinh/${conId}` as never)} accessibilityRole="button" style={{ flexDirection: "row", gap: 10 }}>
+            {top.map((x) => (
+              <The key={x.ten} style={{ flex: 1, alignItems: "center", gap: 2, padding: 12 }}>
+                <Chu kieu="rat" co={22} so>{`${x.phut}′`}</Chu>
+                <Chu co={13} mau={M.chu2} dong={1}>{x.ten}</Chu>
+              </The>
+            ))}
+          </Pressable>
+        </>
+      ) : null}
+
+      {/* 6. cài cho con */}
+      <TieuMuc chu={`Cài cho ${c.ten}`} />
+      <The>
+        <HangViec dau trai={<Avt ten={c.ten} mau={mauCon(c.avatar, thu)} />} tieu={`Hồ sơ ${c.ten}`} phu="Giờ chơi · máy · app & web" bam={() => router.push(`/ho-so/${conId}` as never)} />
+      </The>
+
+      {/* 7. con khác */}
+      {d.g.con.length > 1 ? (
+        <>
+          <TieuMuc chu="Con khác" />
+          <The>
+            {d.g.con.filter((x) => x.id !== conId).map((x, k) => {
+              const xinX = (d.cd?.yeuCau ?? []).filter((y) => y.child_id === x.id).length;
+              return (
+                <HangViec key={x.id} dau={k === 0} trai={<Avt ten={x.ten} mau={mauCon(x.avatar, d.g.con.indexOf(x))} />} tieu={x.ten}
+                  phu={xinX ? `Đang xin ${xinX} việc` : "Không xin gì"}
+                  phai={<View style={{ alignItems: "flex-end" }}><Chu kieu="rat" co={18} so>{`${x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi)} phút`}</Chu><Chu co={12} mau={M.chu3}>còn</Chu></View>}
+                  bam={() => doiCon(x.id)} />
+              );
+            })}
+          </The>
+        </>
+      ) : null}
+
+      <BangKhoaMay mo={bang === "khoa"} dong={() => setBang(null)} con={conId} ten={c.ten} may={may}
+        xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
+      <BangThemGio mo={bang === "gio"} dong={() => setBang(null)} con={conId} ten={c.ten} sao={sao} phutDoiDuoc={phutDoi}
+        xong={(chu, grant) => { bao(chu, () => { hoanTacThemGio(grant).then(tai, () => { bao("Đã quá 60 giây — không hoàn tác được"); tai(); }); }); tai(); }} />
     </>
   );
 });
-
-/** Một ô tính năng trên trang chủ: icon, tên, tình trạng hiện tại; chạm là sang màn của tính năng đó. */
-function OTinhNang({ tieu, phu, ic, mau, di, nhan }: { tieu: string; phu: string; ic: TenIcon; mau: MauBt; di: string; nhan?: string }) {
-  return (
-    <NhanMen onPress={() => router.push(di as never)} accessibilityRole="button" accessibilityLabel={`${tieu}. ${phu}`} muc="khoi" sang men={MEN.the}
-      style={[{ flexGrow: 1, minHeight: 116, padding: 16, gap: 6, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <BieuTron ic={ic} mau={mau} />
-        {nhan ? <Nhan chu={nhan} loai="canh" /> : null}
-      </View>
-      <Chu kieu="rat" co={15}>{tieu}</Chu>
-      <Chu co={13} mau={M.chu2} dong={3}>{phu}</Chu>
-    </NhanMen>
-  );
-}

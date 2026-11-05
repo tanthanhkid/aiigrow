@@ -1,12 +1,13 @@
-// bm-man-hinh: thời gian màn hình của Con theo tuần (kiểu Screen Time) — app + trang web gộp theo mục (Học tập, Trò chơi, Video…),
-// biểu đồ chồng theo ngày, chạm một ngày / một mục để lọc danh sách app & trang. Số liệu từ server/lib/man-hinh.ts; chỉ tên app/tên miền
-// + thời lượng, không ghi nội dung. Mục chỉ để thống kê — muốn chặn / cho phép thì sang màn Trang web hoặc Ứng dụng; «Báo cáo tuần» (học / giải trí, xuất CSV) ở cuối.
+// «<Con> dùng máy» (thiết kế chốt 05/11, bm-hang-ngay/35): chọn «Hôm nay» / «Cả tuần». Hôm nay = quỹ giờ chơi đã dùng / tổng (GET con/:id/quy),
+// theo app (cột hôm nay của GET con/:id/man-hinh — app Học «Không tính»), theo máy (GET con/:id › may), nút «Đổi giờ chơi».
+// Cả tuần = thời gian màn hình theo tuần (kiểu Screen Time) giữ như cũ: biểu đồ chồng theo mục, chạm ngày / mục để lọc; chỉ tên app/tên miền + thời lượng.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ManHinhTuan, type MucMH } from "@/lib/api";
 import { BieuTron, CanhGiua, ChoTai, ChonMot, Chu, Dong, Icon, M, Man, Nhom, NhomTieu, Nut, The, type TenIcon, useTai } from "@/lib/ui";
 import { CotClay, ThanhClay } from "@/lib/bieu-do";
+import { HangViec, IC_MAY, type ConCt, type QuyCon } from "@/lib/hang-ngay";
 
 const MUC: Record<MucMH, { chu: string; mau: string; ic: TenIcon }> = {
   hoc: { chu: "Học tập", mau: M.chinh, ic: "mu" },
@@ -28,12 +29,73 @@ const TUAN = [{ gia: 0, chu: "Tuần này" }, { gia: 1, chu: "Tuần trước" }
 
 export default function ManHinhCon() {
   const { con } = useLocalSearchParams<{ con: string }>();
+  const [xem, setXem] = useState<"hom_nay" | "tuan">("hom_nay");
   const [lui, setLui] = useState(0);
+  const ct = useTai(() => bm.goi<ConCt>(`con/${con}`));
+  const ten = ct.d?.ten ?? "Con";
   return (
-    <Man lui={{ chu: "Trang chủ" }} tieu="Thời gian màn hình">
-      <ChonMot ds={TUAN} gia={lui} doi={setLui} />
-      <Tuan key={lui} con={con} lui={lui} />
+    <Man lui={{ chu: "Quay lại" }} tieu={`${ten} dùng máy`}>
+      <ChonMot ds={[{ gia: "hom_nay" as const, chu: "Hôm nay" }, { gia: "tuan" as const, chu: "Cả tuần" }]} gia={xem} doi={setXem} />
+      {xem === "hom_nay" ? <HomNay con={con} ct={ct.d} /> : (
+        <>
+          <ChonMot ds={TUAN} gia={lui} doi={setLui} />
+          <Tuan key={lui} con={con} lui={lui} />
+        </>
+      )}
     </Man>
+  );
+}
+
+/** Hôm nay: quỹ đã dùng + theo app + theo máy (bm-hang-ngay/35). */
+function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const [q, mh] = await Promise.all([bm.goi<QuyCon>(`con/${con}/quy`).catch(() => null), bm.goi<ManHinhTuan>(`con/${con}/man-hinh?lui=0`)]);
+    return { q, mh };
+  });
+  if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
+  const qy = d.q?.quy;
+  const i = d.mh.theoNgay.findIndex((x) => x.ngay === d.mh.homNay);
+  const app = i < 0 ? [] : d.mh.ds.map((x) => ({ ...x, p: x.theoNgay[i] ?? 0 })).filter((x) => x.p >= 30).sort((a, b) => b.p - a.p).slice(0, 8);
+  const may = ct?.may ?? [];
+  return (
+    <>
+      <Pressable onPress={() => router.push(`/gio/${con}` as never)} accessibilityRole="button">
+        <The dem style={{ gap: 8 }}>
+          <Chu kieu="dam" co={13.5} mau={M.chu3}>Đã chơi hôm nay</Chu>
+          {qy ? (
+            <>
+              <Chu kieu="rat" co={28} so>{`${qy.daDung} phút `}<Chu kieu="dam" co={16} mau={M.chu3}>{`/ ${qy.tongPhut} phút`}</Chu></Chu>
+              <ThanhClay ti={qy.tongPhut ? Math.min(1, qy.daDung / qy.tongPhut) : 0} mau={qy.conPhut ? M.chinh : M.huy} />
+              <Chu co={13.5} mau={M.chu2}>{`Còn ${qy.conPhut} phút · app học không bị tính`}</Chu>
+            </>
+          ) : <Chu co={14} mau={M.chu2}>Chưa đọc được quỹ giờ chơi.</Chu>}
+        </The>
+      </Pressable>
+
+      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Theo app</Chu>
+      {app.length ? (
+        <The dem style={{ paddingVertical: 4 }}>
+          {app.map((x, k) => (
+            <HangViec key={`${x.kieu}:${x.id}`} dau={k === 0} trai={<ODau muc={x.muc} />} tieu={x.ten}
+              phu={x.muc === "hoc" ? "Không tính giờ" : x.kieu === "web" ? "Trang web" : MUC[x.muc].chu}
+              phai={<Chu kieu="rat" co={14} so mau={x.muc === "hoc" ? M.chu3 : M.chu}>{gio(x.p)}</Chu>} />
+          ))}
+        </The>
+      ) : <Chu co={14} mau={M.chu3} style={{ marginHorizontal: 4 }}>Hôm nay con chưa dùng app nào.</Chu>}
+
+      {may.length ? (
+        <>
+          <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Theo máy</Chu>
+          <The dem style={{ paddingVertical: 4 }}>
+            {may.map((m, k) => (
+              <HangViec key={m.id} dau={k === 0} ic={IC_MAY[m.nen]} mau={m.baoVe === "day_du" ? "xam" : "cam"} tieu={m.ten}
+                phu={m.baoVe !== "day_du" ? "Cần sửa · chưa được bảo vệ đủ" : m.truc ? "Đang mở" : "Đang tắt"} bam={() => router.push(`/may/${m.id}` as never)} />
+            ))}
+          </The>
+        </>
+      ) : null}
+      <Nut chu={`Đổi giờ chơi của ${ct?.ten ?? "con"}`} loai="vien" rong bam={() => router.push(`/gio/${con}` as never)} />
+    </>
   );
 }
 

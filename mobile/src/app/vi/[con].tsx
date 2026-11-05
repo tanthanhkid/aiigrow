@@ -1,86 +1,96 @@
-// bm-vi: ví điểm của Con (FR-03.05) — số dư (Con và Ba Mẹ thấy cùng một số), chờ duyệt, cấp độ, chuỗi ngày, kiếm/tiêu tuần, lịch sử;
-// «± Điều chỉnh» tay phải kèm lý do (tính vào ngoại lệ). «Giữ chuỗi ngày» = đóng băng streak 1 lần/tuần (FR-03.06).
+// «Ví sao của <Con>» (thiết kế chốt 05/11 bm-hang-ngay/40, L1 L10): số sao lớn = bao nhiêu phút chơi, tuần này kiếm bao nhiêu sao, tỷ lệ đổi
+// (10 sao = X phút, con tự đổi trên máy), quà con đổi bằng sao (chờ Ba Mẹ trao / còn thiếu bao nhiêu), «Sao vào, sao ra» (lịch sử ví).
+// Giữ «± Điều chỉnh» tay của bản cũ (thiết kế không nói ⇒ giữ hành vi cũ) — chỉ Ba Mẹ, kèm lý do.
 import { useState } from "react";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm, type Diem } from "@/lib/api";
-import {
-  BangTruot, BaoLoi, BieuTron, Canh, CanhGiua, ChoTai, ChonMot, Chu, Dong, gioPhut, Luoi2, M, Man, Nhan, Nhom, NhomTieu, Nut, ONhap, OSo,
-  useHoanTac, useLam, useTai, type TenIcon, type MauBt,
-} from "@/lib/ui";
+import { bm, type Diem, type Qua } from "@/lib/api";
+import { KHOI } from "@/lib/clay";
+import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, ONhap, The, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { HangViec, quyenToi, SaoVien, TieuMuc, type ChoDuyetMoi, type QuyCon } from "@/lib/hang-ngay";
 
-type Vi = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number }; lichSu: Diem[] };
-type TT = { chuoiNgay: number; dongBang?: { ngay: string | null; duocDung: boolean; daDung: string[] } };
-const ngayNgan = (n: string) => n.split("-").reverse().slice(0, 2).join("/");
-const IC: Record<string, [TenIcon, MauBt]> = { nhiem_vu: ["sao", "xanh"], phien: ["game", "vang"], doi_qua: ["qua", "cam"], voucher: ["coc", "cam"],
-  hoan: ["tro_lai", "lam"], tay: ["but", "tim"], chao_mung: ["cuoi", "vang"], ngoai_le: ["qua", "cam"] };
+type Vi = { soDu: number; sao?: number; lichSu: Diem[] };
+/** «Hôm nay» / «Hôm qua» / «3/11». */
+const ngay = (iso: string) => {
+  const t = new Date(iso), h = new Date();
+  if (t.toDateString() === h.toDateString()) return "Hôm nay";
+  h.setDate(h.getDate() - 1);
+  return t.toDateString() === h.toDateString() ? "Hôm qua" : `${t.getDate()}/${t.getMonth() + 1}`;
+};
 
-export default function ViCon() {
+export default function ViSao() {
   const { con } = useLocalSearchParams<{ con: string }>();
-  const { d, loi, matMang, tai } = useTai(async () => ({
-    bay: Date.now(), vi: await bm.goi<Vi>(`con/${con}/vi`), tt: await bm.goi<TT>(`con/${con}/thanh-tich`), c: await bm.goi<{ ten: string }>(`con/${con}`),
-  }));
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const [vi, c, quy, qua, cd, quyen] = await Promise.all([
+      bm.goi<Vi>(`con/${con}/vi`), bm.goi<{ ten: string }>(`con/${con}`), bm.goi<QuyCon>(`con/${con}/quy`).catch(() => null),
+      bm.goi<{ ds: Qua[] }>("qua"), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), quyenToi(),
+    ]);
+    return { bay: Date.now(), vi, ten: c.ten, quy, qua: qua.ds.filter((x) => x.bat && x.loai !== "voucher"), phieu: (cd?.phieu ?? []).filter((p) => p.child_id === con),
+      baMe: quyen === "ba_me" };
+  });
   const [mo, setMo] = useState(false);
-  const [giu, setGiu] = useState(false);
   const [dau, setDau] = useState<1 | -1>(1);
   const [so, setSo] = useState("10");
   const [lyDo, setLyDo] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Ví điểm"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const tuan = d.vi.lichSu.filter((x) => d.bay - new Date(x.created_at).getTime() < 7 * 86_400_000);
-  const kiem = tuan.filter((x) => x.delta > 0).reduce((a, x) => a + x.delta, 0), tieu = tuan.filter((x) => x.delta < 0).reduce((a, x) => a + x.delta, 0);
+  if (!d) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Ví sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const sao = d.vi.sao ?? d.vi.soDu;
+  const tyLe = d.quy?.quy.tyLe.phut ?? 10;
+  const phut = Math.floor((Math.max(0, sao) * tyLe) / 10);
+  const kiem = d.vi.lichSu.filter((x) => x.delta > 0 && x.loai !== "hoan" && d.bay - new Date(x.created_at).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
+  const tuDoi = d.quy?.quy.doiSao.bat !== false;
   const luu = () => lam(async () => {
     await bm.goi(`con/${con}/diem`, { delta: dau * Number(so), lyDo });
     setMo(false);
-    bao(`Đã ${dau > 0 ? "cộng" : "trừ"} ${so} điểm cho ${d.c.ten}`);
+    bao(`Đã ${dau > 0 ? "cộng" : "trừ"} ${so} sao cho ${d.ten}`);
     setLyDo("");
     await tai();
   });
   return (
-    <Man lui={{ chu: "Trang chủ" }} tieu={`Ví của ${d.c.ten}`} noi={noi}
-      phai={<Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable>}>
-      <Canh lv="canh-diem" mau="vang" tieu={`${d.c.ten} có ${d.vi.soDu} điểm`} loi={`${d.vi.diemChoDuyet} điểm đang chờ duyệt · cấp ${d.vi.capDo.cap}.`}>
-        {d.tt.chuoiNgay ? <Nhan loai="diem" ic="lua" chu={`Chuỗi ${d.tt.chuoiNgay} ngày`} /> : null}
-      </Canh>
-      <Luoi2>
-        <OSo nho="Tuần này kiếm" so={`+${kiem}`} />
-        <OSo nho="Tuần này tiêu" so={`${tieu ? "−" : ""}${Math.abs(tieu)}`} />
-      </Luoi2>
-      {d.tt.dongBang?.ngay ? (
-        <Nhom>
-          <Dong dau tieu="Giữ chuỗi ngày" trai={<BieuTron ic="lua" mau="vang" />}
-            phu={d.tt.dongBang.duocDung ? `Con nghỉ ${ngayNgan(d.tt.dongBang.ngay)} vẫn không đứt chuỗi · 1 lần mỗi tuần` : "Tuần này đã giữ chuỗi một lần rồi"}
-            phai={d.tt.dongBang.duocDung ? <Nhan chu="Giữ" /> : <Nhan chu="Đã dùng" loai="xam" />}
-            bam={d.tt.dongBang.duocDung ? () => setGiu(true) : undefined} />
-        </Nhom>
-      ) : null}
-      <NhomTieu chu="Lịch sử" />
-      {d.vi.lichSu.length ? (
-        <Nhom>
-          {d.vi.lichSu.slice(0, 40).map((x, i) => {
-            const [ic, mau] = IC[x.loai] ?? ["xu", "vang"];
-            return <Dong key={i} dau={i === 0} tieu={x.ly_do} phu={gioPhut(x.created_at)} trai={<BieuTron ic={ic} mau={mau} />}
-              phai={<Chu kieu="rat" so mau={x.delta > 0 ? M.chinh : M.chu}>{`${x.delta > 0 ? "+" : "−"}${Math.abs(x.delta)}`}</Chu>} />;
-          })}
-        </Nhom>
-      ) : <CanhGiua lv="canh-trong" tieu={`Ví của ${d.c.ten} còn trống`} loi="Điểm đầu tiên đến khi Con làm nhiệm vụ đầu tiên." />}
-      <BangTruot mo={giu} dong={() => setGiu(false)} tieu={`Giữ chuỗi ngày của ${d.c.ten}?`}>
-        <Chu mau={M.chu2}>{`Ngày ${ngayNgan(d.tt.dongBang?.ngay ?? "")} không có nhiệm vụ nào cũng không làm đứt chuỗi ${d.tt.chuoiNgay} ngày. Mỗi tuần giữ được một lần; không cộng điểm.`}</Chu>
-        <BaoLoi loi={loiLam} />
-        <Nut chu="Giữ chuỗi ngày" ic="lua" rong dangChay={dangChay} bam={() => lam(async () => {
-          await bm.goi(`con/${con}/dong-bang-chuoi`, {}); setGiu(false); bao(`Đã giữ chuỗi ngày của ${d.c.ten}`); await tai();
-        })} />
-      </BangTruot>
-      <BangTruot mo={mo} dong={() => setMo(false)} tieu={`Điều chỉnh điểm của ${d.c.ten}`}>
-        <ChonMot ds={[{ gia: 1 as const, chu: "Cộng điểm" }, { gia: -1 as const, chu: "Trừ điểm" }]} gia={dau} doi={setDau} />
+    <Man lui={{ chu: "Nhiệm vụ" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
+      phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
+      <View style={[{ alignItems: "center", gap: 4, padding: 20, borderRadius: 30, backgroundColor: M.diemSoft }, KHOI.the]}>
+        <Icon3D ten="sao" co={56} mau={M.diemInk} />
+        <Chu kieu="rat" co={40} mau={M.diemInk} so>{`${sao} sao`}</Chu>
+        <Chu kieu="dam" co={15} mau={M.diemInk}>{`= ${phut} phút chơi`}</Chu>
+        <Chu co={13.5} mau={M.diemInk}>{`Tuần này kiếm ${kiem} sao`}</Chu>
+      </View>
+      <Chu co={14} mau={M.chu2} style={{ marginHorizontal: 4 }}>
+        {tuDoi ? `10 sao đổi được ${tyLe} phút chơi. Con tự đổi trên máy, không cần xin Ba Mẹ.` : `10 sao = ${tyLe} phút chơi. Con tự đổi sao đang tắt — bật ở «Giờ chơi».`}
+      </Chu>
+
+      <TieuMuc chu="Con đổi sao lấy quà" phai={{ chu: d.baMe ? "Sửa quà ›" : "Quà ›", bam: () => router.push("/vi/qua" as never) }} />
+      <The>
+        {d.phieu.map((p, i) => (
+          <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu="Đã đổi · chờ Ba Mẹ trao" phai={<SaoVien n={p.diem} nho />}
+            bam={() => router.push("/diem-qua" as never)} />
+        ))}
+        {d.qua.filter((q) => !d.phieu.some((p) => p.ten === q.ten)).map((q, i) => (
+          <HangViec key={q.id} dau={!d.phieu.length && i === 0} ic="qua" mau={sao >= q.diem ? "xanh" : "xam"} tieu={q.ten}
+            phu={sao >= q.diem ? "Đủ sao · con tự đổi trên máy" : `Cần ${q.diem} sao · còn thiếu ${q.diem - sao}`} phai={<SaoVien n={q.diem} nho />} />
+        ))}
+        {!d.phieu.length && !d.qua.length ? <Chu co={14} mau={M.chu2}>Chưa có quà nào. Thêm quà để con có mục tiêu.</Chu> : null}
+      </The>
+
+      <TieuMuc chu="Sao vào, sao ra" />
+      <The>
+        {d.vi.lichSu.length ? d.vi.lichSu.slice(0, 40).map((x, i) => (
+          <HangViec key={i} dau={i === 0} ic={x.delta > 0 ? "sao" : x.loai === "doi_qua" ? "qua" : "dongho"} mau={x.delta > 0 ? "vang" : "xam"}
+            tieu={x.ly_do} phu={`${ngay(x.created_at)} · ${gioPhut(x.created_at)}${x.nguoi ? ` · ${x.nguoi}` : ""}`}
+            phai={<Chu kieu="rat" so mau={x.delta > 0 ? M.chinh : M.chu}>{`${x.delta > 0 ? "+" : "−"}${Math.abs(x.delta)}`}</Chu>} />
+        )) : <Chu co={14} mau={M.chu2}>{`Ví của ${d.ten} còn trống — sao đầu tiên đến khi con làm xong việc đầu tiên.`}</Chu>}
+      </The>
+
+      <BangTruot mo={mo} dong={() => setMo(false)} tieu={`Điều chỉnh sao của ${d.ten}`}>
+        <ChonMot ds={[{ gia: 1 as const, chu: "Cộng sao" }, { gia: -1 as const, chu: "Trừ sao" }]} gia={dau} doi={setDau} />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ width: 120 }}><ONhap nhan="Số điểm" value={so} onChangeText={(t) => setSo(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" /></View>
+          <View style={{ width: 120 }}><ONhap nhan="Số sao" value={so} onChangeText={(t) => setSo(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" /></View>
           <View style={{ flex: 1 }}><ONhap nhan="Lý do" value={lyDo} onChangeText={setLyDo} placeholder={dau > 0 ? "Thưởng sinh nhật" : "Nói dối"} maxLength={120} /></View>
         </View>
-        <Chu co={13} mau={M.chu3}>Mọi điều chỉnh tay được ghi nhật ký và tính vào thống kê ngoại lệ.</Chu>
+        <Chu co={13} mau={M.chu3}>Mọi điều chỉnh tay được ghi lại trong ví và báo cáo.</Chu>
         <BaoLoi loi={loiLam} />
-        <Nut chu={`${dau > 0 ? "Cộng" : "Trừ"} ${so || 0} điểm`} rong dangChay={dangChay} tat={!lyDo.trim() || !(Number(so) >= 1)} bam={luu} />
+        <Nut chu={`${dau > 0 ? "Cộng" : "Trừ"} ${so || 0} sao`} rong dangChay={dangChay} tat={!lyDo.trim() || !(Number(so) >= 1)} bam={luu} />
       </BangTruot>
     </Man>
   );
