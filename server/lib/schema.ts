@@ -607,6 +607,8 @@ export const SCHEMA_S2 = [
   // Chuyển dữ liệu: tài khoản Facebook tạo trước đó mang email Facebook làm dinh_danh ⇒ email sang ba_me_mxh.email, dinh_danh = fb:<id>.
   `alter table ba_me_mxh add column if not exists email text`,
   `alter table ba_me_mxh add column if not exists lien_ket boolean not null default false`,
+  // mỗi Ba Mẹ gắn tối đa một tài khoản mỗi nguồn (lien-ket/* gửi song song không gắn được hai)
+  `create unique index if not exists ba_me_mxh_mot_nguon on ba_me_mxh(parent_id, nguon)`,
   `update ba_me_mxh m set email = p.dinh_danh from parents p
      where p.id = m.parent_id and m.nguon = 'facebook' and not m.lien_ket and m.email is null and p.dinh_danh like '%@%'`,
   `update parents p set dinh_danh = 'fb:' || m.sub from ba_me_mxh m

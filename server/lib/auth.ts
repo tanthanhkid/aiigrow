@@ -39,8 +39,10 @@ export function chuanDinhDanh(s: unknown): string | null {
   return /^0\d{9}$/.test(so) ? so : null;
 }
 
-/** Định danh để HIỆN (app, danh sách thành viên): tài khoản tạo bằng Facebook mang `fb:<id>` (dang-nhap-mxh.ts) ⇒ «Facebook». */
-export const hienDinhDanh = (d: string) => (d.startsWith("fb:") ? "Facebook" : d);
+/** Tiền tố định danh của tài khoản tạo bằng Facebook (`fb:<id Facebook>` — dang-nhap-mxh.ts). chuanDinhDanh không nhận được nó. */
+export const TIEN_TO_FB = "fb:";
+/** Định danh để HIỆN (app, danh sách thành viên): tài khoản tạo bằng Facebook ⇒ «Facebook». */
+export const hienDinhDanh = (d: string) => (d.startsWith(TIEN_TO_FB) ? "Facebook" : d);
 
 const cheDoThu = () => process.env.AIIGROW_OTP_THU === "1" || process.env.NODE_ENV !== "production";
 

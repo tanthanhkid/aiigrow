@@ -359,7 +359,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       return json({ ok: true });
     }
     if (d === "thanh-vien" && get)       // (đường này đã do api-gia-dinh.ts trả trước; giữ phòng khi thứ tự đổi)
-      return json({ ds: await q(`select id, ten, vai, dinh_danh from parents where family_id = $1 and vai <> 'roi' order by created_at`, [fam]) });
+      return json({ ds: (await q<{ dinh_danh: string }>(`select id, ten, vai, dinh_danh from parents where family_id = $1 and vai <> 'roi' order by created_at`, [fam]))
+        .map((x) => ({ ...x, dinh_danh: hienDinhDanh(x.dinh_danh) })) });
     if (d === "canh-bao" && get) return json({ ds: await dsCanhBao(fam) });
     if (p[0] === "canh-bao" && p[2] === "doc" && post) { await q(`update alerts set da_doc = true where id = $1 and family_id = $2`, [p[1], fam]); return json({ ok: true }); }
     if (d === "nhat-ky" && get) return json({ ds: await dsSuKien(fam, new URL(req.url).searchParams.get("con")) });

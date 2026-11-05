@@ -97,15 +97,20 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
     Không đăng nhập bằng mật khẩu qua `fb:<id>` được (`dang-nhap` chỉ nhận SĐT / email) — vào bằng nút Facebook.
   - Bấm Facebook mà đã có tài khoản SĐT/email ⇒ ra tài khoản MỚI (không gắn theo email). Muốn dùng nút Facebook cho tài khoản sẵn có:
     đăng nhập tài khoản đó rồi gắn (dưới).
-- **Gắn Google / Facebook vào tài khoản có sẵn** chỉ khi ĐANG đăng nhập tài khoản đó: `POST lien-ket/facebook {accessToken}` |
-  `lien-ket/google {idToken}` (dòng `ba_me_mxh.lien_ket = true`). Định danh của tài khoản giữ nguyên. Tài khoản MXH đã gắn chỗ khác (kể cả
+- **Gắn Google / Facebook vào tài khoản có sẵn** chỉ khi ĐANG đăng nhập tài khoản đó VÀ nhập đúng mật khẩu hiện tại (phiên thôi chưa đủ —
+  người cầm máy không gắn được Facebook của mình): `POST lien-ket/facebook {accessToken, matKhau}` | `lien-ket/google {idToken, matKhau}`
+  (dòng `ba_me_mxh.lien_ket = true`; mỗi tài khoản tối đa một dòng mỗi nguồn — chỉ mục `ba_me_mxh_mot_nguon`). Chưa có mật khẩu ⇒ 409
+  `chua_co_mat_khau`, sai ⇒ 401 `sai_mat_khau`. Định danh của tài khoản giữ nguyên. Tài khoản MXH đã gắn chỗ khác (kể cả
   tài khoản tự tạo lúc bấm nút trước đó — xoá tài khoản kia trước) ⇒ 409 `mxh_da_gan`; tài khoản đã gắn một tài khoản cùng nguồn khác ⇒ 409
   `mxh_da_gan_khac`. Giới hạn 5 lượt / Ba Mẹ + 10 / IP mỗi 15 phút.
 - **Chuyển dữ liệu** (`schema.ts` › `SCHEMA_S2`, chạy lại vô hại): tài khoản Facebook tạo trước bản vá (dòng `ba_me_mxh` nguồn facebook, không
-  `lien_ket`) mang email Facebook làm định danh ⇒ email sang `ba_me_mxh.email`, định danh đổi thành `fb:<id>`. Họ vẫn vào bằng nút Facebook như
+  `lien_ket`) mang email Facebook làm định danh ⇒ email sang `ba_me_mxh.email`, định danh đổi thành `fb:<id>`. Cron hằng ngày
+  (`donBoDemMxh` › `chuyenFbCu`) chạy lại câu này — dọn tài khoản do bản cũ còn chạy song song lúc deploy tạo ra. Họ vẫn vào bằng nút Facebook như
   cũ (phiên, nhà, Con giữ nguyên); ai trong số đó đã đặt mật khẩu thì không đăng nhập «email + mật khẩu» bằng email Facebook được nữa.
-- Gỡ trên máy Con (`goCoMatKhau`): Ba Mẹ tạo bằng Facebook gõ email Facebook của mình + mật khẩu — chỉ chọn người trong CHÍNH gia đình của
-  máy đó, mật khẩu vẫn phải đúng.
+- Gỡ trên máy Con (`goCoMatKhau`): Ba Mẹ tạo bằng Facebook gõ email Facebook của mình (Facebook không có email: gõ `facebook`) + mật khẩu —
+  chỉ chọn Ba Mẹ trong CHÍNH gia đình của máy đó, nhiều người khớp thì thử mật khẩu từng người; mật khẩu vẫn phải đúng.
+- Tài khoản tạo bằng Facebook không có SĐT / email cho «Quên mật khẩu» ⇒ `POST dat-mat-khau` đặt được cả khi ĐÃ có mật khẩu (đặt lại),
+  miễn xác minh lại đúng Facebook đã gắn; đặt lại thì đăng xuất mọi máy. Tài khoản khác vẫn 409 `da_co_mat_khau`.
 - Gỡ máy / xoá tài khoản / gỡ trên máy Con cần mật khẩu ⇒ tài khoản chưa có mật khẩu nhận 409 `chua_co_mat_khau`, app mở màn «Đặt mật khẩu»
   (`/dat-mat-khau`): nhập mật khẩu mới rồi xác nhận lại bằng Google/Facebook (`POST dat-mat-khau`).
 - Lời mời theo email (**đã chốt 05/11, hướng an toàn**):

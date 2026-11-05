@@ -14,7 +14,7 @@ import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import type { May } from "./gia-dinh.ts";
 // M4 agent Windows (phiên web cho khung Kid, sự kiện, bù phút offline, gỡ có mật khẩu Ba Mẹ)
 import { newId, tx, type Q } from "./db.ts";
-import { chuanDinhDanh, dungMatKhau, sha, taoToken } from "./auth.ts";
+import { chuanDinhDanh, dungMatKhau, sha, taoToken, TIEN_TO_FB } from "./auth.ts";
 import { quyenTuVai } from "./quyen.ts";
 import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
@@ -314,16 +314,21 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   const khoa = `go:${may.id}`;
   const s = await one<{ so_lan: number; khoa_den: Date | null }>(`select so_lan, khoa_den from pin_sai where khoa = $1`, [khoa]);
   if (s?.khoa_den && new Date(s.khoa_den) > new Date()) throw new LoiNghiepVu("tam_khoa", "Nhập sai nhiều lần — đợi 15 phút", 429);
-  // Ba Mẹ tạo tài khoản bằng Facebook mang định danh fb:<id> ⇒ gõ email Facebook của mình cũng được — chỉ chọn người TRONG gia đình
-  // này, mật khẩu vẫn phải đúng (email không giữ chỗ tài khoản nào: dang-nhap-mxh.ts)
-  const bm = await one<{ id: string; pass_hash: string | null; vai: string }>(
-    `select id, pass_hash, vai from parents p where family_id = $1 and (dinh_danh = $2 or (dinh_danh like 'fb:%'
-       and exists (select 1 from ba_me_mxh m where m.parent_id = p.id and m.nguon = 'facebook' and m.email = $2)))
-     order by (dinh_danh = $2) desc, created_at limit 1`, [may.family_id, chuanDinhDanh(dinhDanh) ?? ""]);
+  // Ba Mẹ tạo tài khoản bằng Facebook mang định danh fb:<id> ⇒ gõ email Facebook của mình (không có email thì gõ «facebook») cũng được —
+  // chỉ chọn người TRONG gia đình của máy này, mật khẩu vẫn phải đúng (email Facebook không giữ chỗ tài khoản nào: dang-nhap-mxh.ts).
+  // Nhiều người khớp (vd hai tài khoản Facebook cùng email chưa xác minh) ⇒ thử mật khẩu với từng Ba Mẹ có mật khẩu.
+  const go = String(dinhDanh ?? "").trim().toLowerCase(), d = chuanDinhDanh(go) ?? "";
+  const ds = await q<{ id: string; pass_hash: string | null; vai: string }>(
+    `select id, pass_hash, vai from parents p where family_id = $1 and vai <> 'roi' and (dinh_danh = $2 or (dinh_danh like $3 and exists (
+       select 1 from ba_me_mxh m where m.parent_id = p.id and m.nguon = 'facebook' and (m.email = $2 or ($4 and m.email is null)))))
+     order by (dinh_danh = $2) desc, created_at limit 10`, [may.family_id, d, `${TIEN_TO_FB}%`, go === "facebook"]);
+  const baMe = ds.filter((x) => quyenTuVai(x.vai) === "ba_me");
   // Ba Mẹ vào bằng Google / Facebook chưa đặt mật khẩu ⇒ chỉ đường đặt mật khẩu, không tính là thử gỡ sai (dang-nhap-mxh.ts)
-  if (bm && !bm.pass_hash && quyenTuVai(bm.vai) === "ba_me") chuaCoMatKhau(bm);
+  if (baMe.length && baMe.every((x) => !x.pass_hash)) chuaCoMatKhau(baMe[0]);
   // Người trông giúp (L6) không gỡ máy được — chỉ Ba Mẹ
-  const dung = !!bm?.pass_hash && quyenTuVai(bm.vai) === "ba_me" && (await dungMatKhau(String(matKhau ?? ""), bm.pass_hash));
+  let bm: { id: string } | undefined;
+  for (const x of baMe) if (x.pass_hash && await dungMatKhau(String(matKhau ?? ""), x.pass_hash)) { bm = x; break; }
+  const dung = !!bm;
   if (!dung) {
     await q(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1,
              khoa_den = case when pin_sai.so_lan + 1 >= 5 then now() + interval '15 minutes' else null end`, [khoa]);
