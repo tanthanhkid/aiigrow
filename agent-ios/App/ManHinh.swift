@@ -283,7 +283,7 @@ struct ManXinThem: View {
   let goiY = ["Con làm xong bài tập rồi ạ", "Con đang chơi dở với bạn", "Con xem nốt video học"]
 
   var nutPhut: some View {
-    ForEach(m.chiNgoaiLe ? [15, 30, 60] : [30, 60, 120], id: \.self) { p in
+    ForEach(m.chiNgoaiLe ? [15, 30, 60] : [10, 20, 30], id: \.self)   // xin thêm giờ 10/20/30 (Thanh chốt 05/11, mọi nền) { p in
       Button { withAnimation(Clay.bat) { phut = p } } label: { Text(p == 120 ? "2 giờ" : "\(p) phút").lineLimit(1).fixedSize() }
         .buttonStyle(NutClay(kieu: phut == p ? .ngoc : .vien, cao: 56))
         .accessibilityAddTraits(phut == p ? .isSelected : [])

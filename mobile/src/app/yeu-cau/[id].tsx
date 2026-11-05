@@ -84,7 +84,8 @@ export default function XuLyYeuCau() {
             <OChon chon={tru} bam={() => setTru(true)} trai={<BieuTron ic="sao" mau="vang" />} tieu="Trừ sao của con"
               phu={sao >= saoCan ? `10 sao = ${tyLe} phút · ví ${sao} → ${sao - saoCan} sao` : `Cần ${saoCan} sao — con có ${sao} sao`} />
           </View>
-          <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={[15, 30, 60].includes(p) ? p : (y.phut ?? 15)} doi={setPhut} />
+          {/* chip xin thêm giờ 10/20/30 (Thanh chốt 05/11, mọi nền); lời xin cũ số phút khác vẫn có chip của nó */}
+          <ChonMot ds={[...new Set([10, 20, 30, ...(y.phut ? [y.phut] : [])])].sort((x, z) => x - z).map((x) => ({ gia: x, chu: `${x} phút` }))} gia={p} doi={setPhut} />
         </>
       ) : (
         <>
