@@ -20,7 +20,7 @@ export default function XinPhep() {
   const coSan = (["them_gio", "mo_web", "cai_app", "khac"] as string[]).includes(p.loai ?? "") ? (p.loai as Loai) : null;
   const [loai, setLoai] = useState<Loai>(coSan ?? "them_gio");
   const [gia, setGia] = useState(p.gia ?? "");
-  const [phut, setPhut] = useState(10);
+  const [phut, setPhut] = useState(10);   // chip xin thêm giờ 10/20/30 (Thanh chốt 05/11, như Windows)
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [webCam, setWebCam] = useState(false);
   const [tuViet, setTuViet] = useState("");
@@ -94,7 +94,7 @@ export default function XinPhep() {
           ) : null}
           <View>
             <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{doiDuoc ? "Hoặc xin Ba Mẹ thêm bao lâu?" : "Thêm bao lâu?"}</Chu>
-            <ChonMot ds={[10, 20, 30].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />   {/* Thanh chốt 05/11: 10/20/30 như Windows */}
+            <ChonMot ds={[10, 20, 30].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
           </View>
         </View>
       ) : giaCoSan ? (

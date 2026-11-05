@@ -595,8 +595,9 @@ KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật qu
   $ma409 = $null; $nhan = $false
   try { [void](Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe); $nhan = $true } catch { $ma409 = $_.Exception.Message }
   if ($nhan) { try { [void](Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'chan' } $Chung.TokenBaMe) } catch { } }   # máy chủ lỡ nhận ⇒ trả về chặn ngay
-  Dat '6.0' 'Máy chủ từ chối «Giám sát» (409 che_do_bo — máy luôn chặn thật)' (-not $nhan -and ([string]$ma409 -match 'che_do_bo|lỗi 409')) "nhận=$nhan · $ma409"
-  $cd = Api POST "/api/m/con/$($Chung.ConId)/che-do-chan" @{ cheDo = 'mo_het' } $Chung.TokenBaMe
+  Dat '6.0' 'Máy chủ từ chối «Giám sát» (409 che_do_bo — máy luôn chặn thật)' (-not $nhan -and ([string]$ma409 -match 'che_do_bo')) "nhận=$nhan · $ma409"
+  $cd = $null
+  try { $cd = Api POST "/api/m/con/$($Chung.ConId)/che-do-chan" @{ cheDo = 'mo_het' } $Chung.TokenBaMe } catch { Dat '6.1' 'Mở hết ⇒ agent mode tu_do + AppLocker không còn luật AiiGrow' $false "đổi «Mở hết» lỗi: $($_.Exception.Message)"; return }
   DongBoNgay
   $tuDo = Cho { (TrangThai).mode -eq 'tu_do' } 60 3
   $het = Cho { @(LuatAiiGrow (AppLocker)).Count -eq 0 } 120 5

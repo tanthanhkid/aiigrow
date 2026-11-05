@@ -277,7 +277,7 @@ struct ManChinh: View {
 struct ManXinThem: View {
   @EnvironmentObject var m: MoHinhApp
   @Environment(\.dismiss) var dong
-  @State var phut = 30
+  @State var phut = 10   // xin thêm giờ mặc định 10 (chip đầu, Thanh chốt 05/11)
   @State var loiNhan = ""
   @State var daGui = false
   let goiY = ["Con làm xong bài tập rồi ạ", "Con đang chơi dở với bạn", "Con xem nốt video học"]
@@ -349,7 +349,9 @@ struct ManXinThem: View {
       .background(Clay.nenMan)
       .navigationTitle(m.chiNgoaiLe ? "Xin mở ngoại lệ" : "Xin thêm giờ")
       .navigationBarTitleDisplayMode(.inline)
-      .onAppear { phut = m.chiNgoaiLe ? 30 : 10 }   // chip đầu của xin thêm giờ (10) như mọi nền
+      // chiNgoaiLe đổi sống (chính sách mới khi sheet đang mở) ⇒ giữ phut nằm trong bộ chip đang hiện; mở lại không xoá lựa chọn hợp lệ
+      .onAppear { if !(m.chiNgoaiLe ? [15, 30, 60] : [10, 20, 30]).contains(phut) { phut = m.chiNgoaiLe ? 30 : 10 } }
+      .onChange(of: m.chiNgoaiLe) { nl in phut = nl ? 30 : 10 }
       .toolbar { ToolbarItem(placement: .cancellationAction) { NutDong { dong() } } }
     }
     .navigationViewStyle(.stack)
