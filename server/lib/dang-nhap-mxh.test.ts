@@ -203,7 +203,7 @@ test("Facebook KHÔNG khớp lời mời theo email (email chưa chắc đã xá
   const v = await goi("dang-nhap/facebook", { body: { accessToken: "fb-moi" } });
   assert.equal(v.status, 200, JSON.stringify(v.body));
   assert.deepEqual(v.body.loiMoi, []);                                         // không lộ lời mời theo email
-  assert.deepEqual((await goi("moi/cho-toi", { tok: v.body.token })).body.ds, []);
+  assert.deepEqual((await goi("moi/cho-toi", { tok: v.body.token })).body, { ds: [], chiQuaLink: true });
   const theoId = await goi("moi/nhan", { tok: v.body.token, body: { id: moi.body.id } });
   assert.equal(theoId.status, 403); assert.equal(theoId.body.error, "can_link_moi");
   // bấm link mời (token `ma`) ⇒ nhận được
@@ -268,12 +268,13 @@ test("quên mật khẩu không đặt được mật khẩu cho tài khoản Go
 
 test("giới hạn lượt: đăng nhập đúng trả lại lượt IP (nhiều người chung NAT); khung cũ tự dọn", async () => {
   process.env.GOOGLE_CLIENT_IDS = WEB;
+  const k = Math.floor(Date.now() / (mxh.KHUNG_PHUT * 60_000));
   for (let i = 0; i < mxh.TRAN.dangNhapIp + 5; i++) {
     const r = await goi("dang-nhap/google", { ip: "5.5.5.5", body: { idToken: jwt({ email: `nat${i}@gmail.com`, sub: `nat${i}` }) } });
     assert.equal(r.status, 200, `người ${i}: ${JSON.stringify(r.body)}`);
   }
-  const k = Math.floor(Date.now() / (mxh.KHUNG_PHUT * 60_000));
   assert.ok(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]));
-  await mxh.dangNhapMxh("google", { idToken: jwt({ email: "nat0@gmail.com", sub: "nat0" }) }, "5.5.5.5", Date.now() + 2 * mxh.KHUNG_PHUT * 60_000);
+  await mxh.dangNhapMxh("google", { idToken: jwt({ email: "nat0@gmail.com", sub: "nat0" }) }, "5.5.5.5", (k + 2) * mxh.KHUNG_PHUT * 60_000);
+  await new Promise((r) => setTimeout(r, 50));                                  // dọn chạy nền
   assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`mxh_tk:google:nat0:${k}`]), undefined);
 });

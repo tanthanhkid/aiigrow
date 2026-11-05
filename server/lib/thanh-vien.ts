@@ -167,7 +167,7 @@ export async function xemLoiMoi(maVao: unknown) {
 
 /** Tài khoản vào bằng Facebook: email lấy từ Graph KHÔNG chắc đã xác minh (ai cũng tạo được Facebook mang email người khác) ⇒ không khớp
  *  lời mời theo email, chỉ nhận qua link mời (token `ma`). Google chỉ cho vào khi `email_verified` (dang-nhap-mxh.ts) nên khớp được. */
-async function emailChuaXacMinh(t: Q, parentId: string) {
+export async function emailChuaXacMinh(t: Q, parentId: string) {
   return (await t(`select 1 from ba_me_mxh where parent_id = $1 and nguon = 'facebook' limit 1`, [parentId])).length > 0;
 }
 

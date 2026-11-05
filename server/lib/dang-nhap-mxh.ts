@@ -164,30 +164,39 @@ const khung = (now: number) => Math.floor(now / (KHUNG_PHUT * 60_000));
 const TIEN_TO = ["mxh_ip", "mxh_tk", "dat_mk_ip", "dat_mk_tk"];
 let donKhung = -1;
 /** Dọn bộ đếm của các khung đã qua (mỗi tiến trình một lần mỗi khung) — không để pin_sai phình mãi theo IP / tài khoản. */
-async function donKhungCu(k: number) {
+function donKhungCu(k: number) {
   if (donKhung === k) return;
   donKhung = k;
-  await q(`delete from pin_sai where split_part(khoa, ':', 1) = any($1::text[]) and split_part(khoa, ':', -1) not in ($2, $3)`,
-    [TIEN_TO, String(k), String(k - 1)]).catch(() => undefined);
+  // không chờ (không làm chậm đăng nhập); lỗi chỉ ghi log — khung sau dọn lại
+  void q(`delete from pin_sai where split_part(khoa, ':', 1) = any($1::text[]) and split_part(khoa, ':', -1) not in ($2, $3)`,
+    [TIEN_TO, String(k), String(k - 1)]).catch((e) => console.warn("[dang-nhap-mxh] dọn pin_sai lỗi:", e instanceof Error ? e.message : e));
 }
 const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
 /** Giữ chỗ một lượt TRƯỚC khi làm (một upsert nguyên tử — gửi song song cũng chỉ ≤ `tran` lượt lọt); quá trần ⇒ 429 tới hết khung. */
-async function giuLuot(khoa: string, tran: number) {
-  await donKhungCu(Number(khoa.slice(khoa.lastIndexOf(":") + 1)));
+async function giuLuot(khoa: string, k: number, tran: number) {
+  donKhungCu(k);
+  khoa = `${khoa}:${k}`;
   const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > tran) throw new LoiNghiepVu("qua_nhieu_lan", `Thử nhiều lần quá — đợi ${KHUNG_PHUT} phút rồi thử lại nhé`, 429);
+  return khoa;
 }
 
 /** POST dang-nhap/google {idToken} | dang-nhap/facebook {accessToken} ⇒ {id, moi}. `ip` = nguồn gọi (gia-dinh.ts › nguonGoi).
  *  Đếm theo IP trước khi gọi Google / Facebook (chặn dội token rác) — xác minh được thì TRẢ lượt IP (như ghép máy: chỉ lượt hỏng bị tính,
  *  nhiều người chung NAT / wifi quán vẫn vào được); rồi theo tài khoản MXH sau khi xác minh. */
 export async function dangNhapMxh(nguon: NguonMxh, b: Record<string, unknown>, ip = "?", now = Date.now()) {
-  const khoaIp = `mxh_ip:${ip}:${khung(now)}`;
-  await giuLuot(khoaIp, TRAN.dangNhapIp);
-  const dt = await xacMinh(nguon, b);
+  const k = khung(now);
+  const khoaIp = await giuLuot(`mxh_ip:${ip}`, k, TRAN.dangNhapIp);
+  let dt: DanhTinh;
+  try { dt = await xacMinh(nguon, b); } catch (e) {
+    // chỉ token hỏng (mxh_sai) bị tính; lỗi mạng / chưa bật / không email ⇒ trả lượt (như ghép máy)
+    if (!(e instanceof LoiNghiepVu && e.ma === "mxh_sai")) await traLuot(khoaIp);
+    throw e;
+  }
+  // trả lượt IP chỉ SAU khi qua trần tài khoản — không thì xen token đúng (đã hết lượt) với token rác sẽ giữ bộ đếm IP ở 0
+  await giuLuot(`mxh_tk:${dt.nguon}:${dt.sub}`, k, TRAN.dangNhapTk);
   await traLuot(khoaIp);
-  await giuLuot(`mxh_tk:${dt.nguon}:${dt.sub}:${khung(now)}`, TRAN.dangNhapTk);
   return vaoBangMxh(dt);
 }
 
@@ -204,8 +213,8 @@ export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
   if (p?.pass_hash) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
   // tài khoản trước: phiên đã hết lượt riêng thì không đốt tiếp lượt IP của người khác chung mạng
-  await giuLuot(`dat_mk_tk:${bm.id}:${khung(now)}`, TRAN.datMkTk);
-  await giuLuot(`dat_mk_ip:${ip}:${khung(now)}`, TRAN.datMkIp);
+  await giuLuot(`dat_mk_tk:${bm.id}`, khung(now), TRAN.datMkTk);
+  await giuLuot(`dat_mk_ip:${ip}`, khung(now), TRAN.datMkIp);
   const dt = await xacMinh(b.idToken ? "google" : "facebook", b);
   if ((await theoMxh(dt))?.id !== bm.id) throw new LoiNghiepVu("mxh_khong_khop", `Tài khoản ${TEN_NGUON[dt.nguon]} này không phải tài khoản đang đăng nhập`, 403);
   const bam = await bamMatKhau(mk);
