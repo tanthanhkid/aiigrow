@@ -117,6 +117,9 @@ public sealed class QuyDaDem
 {
     public DateTimeOffset PolicyAt { get; set; }
     public double Giay { get; set; }
+    /// <summary>Ngày (giờ máy) của <see cref="GiayNgay"/> — giây chơi từ nửa đêm, để quỹ ngày mới khi mất mạng qua đêm không về đầy sau khởi động lại.</summary>
+    public DateTime Ngay { get; set; }
+    public double GiayNgay { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);

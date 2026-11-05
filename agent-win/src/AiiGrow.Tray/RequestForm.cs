@@ -27,9 +27,13 @@ internal sealed class RequestForm : HopKhayCoBan
     private bool _busy;
     private Label? _msg;
 
+    /// <summary>Số hộp đang mở — khay không bật thêm màn «Ba Mẹ cho thêm giờ» khi hộp này đang tự báo kết quả.</summary>
+    public static int DangMo;
+
     /// <summary>Việc Con chọn làm tiếp sau khi đóng hộp: <see cref="SauXinMo"/> | <see cref="SauNhan"/> | <see cref="SauNhiemVu"/> | null.</summary>
     public string? Sau { get; private set; }
 
+    /// <param name="appId">Giữ cho chữ ký cũ (màn chặn cũ); hộp mới không xin theo app — xin mở app đi qua «Xin mở app ›».</param>
     /// <param name="canExchange">Cờ cũ của dịch vụ (đổi điểm) — thẻ «Dùng sao» vẫn hiện, máy chủ quyết (doiSao.bat).</param>
     /// <param name="dungSao">Mở sẵn thẻ «Dùng sao» (nút «Đổi 10 sao lấy 10 phút»).</param>
     public RequestForm(bool canExchange, string? appId = null, string? appName = null, bool dungSao = false) : base("AiiGrow · Thêm giờ chơi", UI.Px(425))
@@ -37,7 +41,8 @@ internal sealed class RequestForm : HopKhayCoBan
         _canExchange = canExchange;
         _tabSao = dungSao;
         _poll.Tick += async (_, _) => await PollAsync();
-        FormClosed += (_, _) => { _poll.Dispose(); if (_note.Parent == null) _note.Dispose(); };
+        Interlocked.Increment(ref DangMo);
+        FormClosed += (_, _) => { Interlocked.Decrement(ref DangMo); _poll.Dispose(); if (_note.Parent == null) _note.Dispose(); };
         Shown += async (_, _) => await TaiAsync();
         VeDangTai();
     }

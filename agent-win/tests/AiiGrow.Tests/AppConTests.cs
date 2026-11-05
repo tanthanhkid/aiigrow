@@ -314,4 +314,16 @@ public class AppConTests
         Assert.Equal(cat.Length - 8, BitConverter.ToInt32(cat, 4));
         Assert.Null(WavCat.CatToi(new byte[5000], 1000));
     }
+
+    [Fact]
+    public void NgoaiLeHetHan_AppVonDuocPhep_GiuNguyen_KhayChetVanTruQuy()
+    {
+        var now = Luc(19, 0);
+        var p = Goc(x => { x.Mode = Modes.TuDo; x.NgoaiLe = new() { new NgoaiLeMay { Den = now.AddMinutes(-1), App = "scratch.exe" } }; });
+        var q = QuyTaiCho.ApDung(p, 0, now, offline: true);
+        Assert.Contains("scratch.exe", q.AllowedApps);
+        Assert.Empty(q.BlockedApps);
+        Assert.True(QuyTaiCho.TinhGio(p, UsageTracker.KhongRo));
+        Assert.False(QuyTaiCho.TinhGio(Goc(x => x.AppTinhGio = new()), UsageTracker.KhongRo));
+    }
 }

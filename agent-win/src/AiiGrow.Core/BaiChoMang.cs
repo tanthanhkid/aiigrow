@@ -51,7 +51,14 @@ public sealed class BaiChoMang
     public int Dem() => Directory.Exists(_dir) ? Directory.GetFiles(_dir, "*.json").Length : 0;
 
     /// <summary>Lưu một bài; trả số bài đang chờ.</summary>
+    private static readonly object Khoa = new();
+
     public int Them(string path, string body, DateTimeOffset now)
+    {
+        lock (Khoa) return ThemTrongKhoa(path, body, now);
+    }
+
+    private int ThemTrongKhoa(string path, string body, DateTimeOffset now)
     {
         Directory.CreateDirectory(_dir);
         var ds = DanhSach();
@@ -77,7 +84,8 @@ public sealed class BaiChoMang
             {
                 b.LanLoi++;
                 if (b.LanLoi >= HangXinCho.ThuToiDa) { Xoa(b.Ma); continue; }
-                try { File.WriteAllText(Tep(b.Ma), JsonSerializer.Serialize(b, Json.Options)); } catch (IOException) { }
+                // Con vừa nộp lại cùng lượt trong lúc gửi (Them đã xoá bản này) ⇒ không ghi lại bản cũ
+                lock (Khoa) { if (File.Exists(Tep(b.Ma))) try { File.WriteAllText(Tep(b.Ma), JsonSerializer.Serialize(b, Json.Options)); } catch (IOException) { } }
                 break;
             }
             if (kq == KetQuaGuiXin.DaGui) daGui++;

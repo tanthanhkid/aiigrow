@@ -305,10 +305,11 @@ internal sealed class NopBaiForm : HopKhayCoBan
     private void DungGhi()
     {
         _dongHo.Stop();
-        var tep = Path.Combine(Path.GetTempPath(), "aiigrow-ghi-am.wav");
+        var tep = Path.Combine(Path.GetTempPath(), $"aiigrow-ghi-am-{Guid.NewGuid():N}.wav");
         _doDai = _ghi.DaGhi;
         var ok = _ghi.Dung(tep);
         try { _ghiAm = ok && File.Exists(tep) ? File.ReadAllBytes(tep) : null; } catch { _ghiAm = null; }
+        finally { try { File.Delete(tep); } catch { } }   // không để giọng Con nằm lại trong thư mục tạm
         Ve();
         if (_ghiAm == null) Bao("Chưa lưu được ghi âm. Con ghi lại nhé.", true);
         else if (_ghiAm.Length > GhiAm.ByteToiDa)

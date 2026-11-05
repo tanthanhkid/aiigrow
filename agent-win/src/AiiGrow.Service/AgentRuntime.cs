@@ -100,6 +100,7 @@ public sealed class AgentRuntime
             _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, DateTimeOffset.UtcNow));
             // quỹ đã đếm cho đúng Policy đang giữ (dịch vụ khởi động lại lúc mất mạng vẫn trừ đúng)
             if (Config?.QuyDem is { } qd && _policy != null && qd.PolicyAt == _policyAt && qd.Giay > _quyGiay) _quyGiay = qd.Giay;
+            if (Config?.QuyDem is { } qn && qn.Ngay != default && (_quyNgay == default || qn.Ngay == _quyNgay) && qn.GiayNgay > _quyGiayNgay) { _quyNgay = qn.Ngay; _quyGiayNgay = qn.GiayNgay; }
             // nạp lại khi worker khác ghi cấu hình: bản trong bộ nhớ có thể mới hơn bản trên đĩa (đĩa ghi 30 giây/lần)
             _phienOffline = PhienOffline.Chon(_phienOffline, Config?.PhienOffline);
             if (Config?.DaChoi is { } dc && (dc.PhienId != _daChoi.PhienId || dc.Giay > _daChoi.Giay)
@@ -234,7 +235,7 @@ public sealed class AgentRuntime
                     c.LastPolicyJson = raw;
                     c.LastPolicyAt = at;
                     c.DaChoi = null;
-                    c.QuyDem = null;
+                    c.QuyDem = _quyNgay == default ? null : new QuyDaDem { PolicyAt = at, Ngay = _quyNgay, GiayNgay = _quyGiayNgay };   // giữ giây chơi từ nửa đêm
                     // Đồng bộ được ⇒ hết mồ côi + ghi mốc liên lạc (fail-open 14 ngày tính từ đây). Ba Mẹ đã chọn chế độ ⇒ giá trị máy chủ thắng, lưu lại cho lúc mất mạng.
                     MoCoi.GhiThanhCong(c, at);
                     if (p.CheDo != null) c.CheDo = p.CheDo;
@@ -451,7 +452,7 @@ public sealed class AgentRuntime
     private void LuuQuy()
     {
         _quyChoGhi = 0;
-        var qd = new QuyDaDem { PolicyAt = _policyAt, Giay = _quyGiay };
+        var qd = new QuyDaDem { PolicyAt = _policyAt, Giay = _quyGiay, Ngay = _quyNgay, GiayNgay = _quyGiayNgay };
         AgentConfig? moi = null;
         try { moi = Store.Update(c => c.QuyDem = qd); } catch { }
         if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
@@ -532,7 +533,7 @@ public sealed class AgentRuntime
             // 05/11: quỹ giờ chơi đã trừ phần đếm tại máy (app Con «Giờ chơi còn lại», màn khoá «đã chơi đủ X phút»)
             s.QuyConPhut = QuyTaiCho.ConPhut(_policy, _quyGiay, now, GiayHomNay(now));
             s.QuyTongPhut = _policy.QuyTongPhut;
-            s.QuyDaDung = _policy.QuyDaDung is double dd ? dd + _quyGiay / 60.0 : null;
+            s.QuyDaDung = QuyTaiCho.NgayMoi(_policy, now) ? GiayHomNay(now) / 60.0 : _policy.QuyDaDung is double dd ? dd + _quyGiay / 60.0 : null;
             s.QuyPhut = _policy.QuyTongPhut is double tp ? (int)Math.Round(tp) : null;
             // mất mạng: đồng hồ máy quyết (cờ của lần đồng bộ cuối có thể đã cũ — giờ học đã hết)
             s.DangGioHoc = _offline ? QuyTaiCho.TrongGioHoc(_policy.GioHoc, now.ToLocalTime().DateTime) : _policy.DangGioHoc;

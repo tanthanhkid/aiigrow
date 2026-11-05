@@ -50,7 +50,7 @@ internal sealed class AppForm : Form
     private HvTinDs? _tin;
     /// <summary>Đang gửi một việc Con bấm (nhận việc, trả lời) — tách khỏi lượt tải nền <see cref="_dangTai"/> để bấm không bị nuốt im lặng.</summary>
     private bool _busy;
-    private bool _dangTai;
+    private bool _dangTai, _taiLai;
     /// <summary>Sao &amp; quà đang ở «Quà của con» (con-ngay-thuong 16).</summary>
     private bool _xemQuaCuaCon;
     /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
@@ -287,7 +287,7 @@ internal sealed class AppForm : Form
 
     public async Task RefreshAsync()
     {
-        if (_dangTai) return;
+        if (_dangTai) { _taiLai = true; return; }   // đang tải ⇒ tải lại một lượt nữa ngay sau (không nuốt lượt sau khi nộp bài / đổi quà)
         _dangTai = true;
         try
         {
@@ -317,7 +317,11 @@ internal sealed class AppForm : Form
             if (vqT != null && (await vqT).Data is { } vq) _viQua = vq;
             if (!IsDisposed) Render();
         }
-        finally { _dangTai = false; }
+        finally
+        {
+            _dangTai = false;
+            if (_taiLai && !IsDisposed) { _taiLai = false; _ = RefreshAsync(); }
+        }
     }
 
     // =========================================================== hộp

@@ -185,7 +185,7 @@ public sealed class AgentWorker : BackgroundService
             _rt.SetPolicy(policy, raw);
             _rt.DaGuiGiayChoi(status);
             await GuiXinChoMang(api, ct);
-            await GuiBaiChoMang(api, ct);
+            GuiBaiNen(cfg, ct);
             return DateTimeOffset.Now.AddSeconds(policy.NextCheckSec);
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -237,6 +237,20 @@ public sealed class AgentWorker : BackgroundService
             if (moi != null) _rt.NapLaiConfig(moi);
         }
         catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Gửi lời xin chờ mạng lỗi: {m}", e.Message); }
+    }
+
+    private int _dangGuiBai;
+
+    /// <summary>Gửi bài chờ mạng ở tác vụ RIÊNG (bài có ảnh / ghi âm vài MB) — vòng thực thi (khoá, đóng app) không phải chờ tải lên.</summary>
+    private void GuiBaiNen(AgentConfig cfg, CancellationToken ct)
+    {
+        if (_rt.SoBaiCho == 0 || Interlocked.Exchange(ref _dangGuiBai, 1) == 1) return;
+        _ = Task.Run(async () =>
+        {
+            try { using var api = new ApiClient(cfg.Server, cfg.Token); await GuiBaiChoMang(api, ct); }
+            catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Gửi bài chờ mạng lỗi: {m}", e.Message); }
+            finally { Interlocked.Exchange(ref _dangGuiBai, 0); }
+        }, ct);
     }
 
     /// <summary>05/11 (L11): có mạng lại ⇒ gửi bài Con nộp lúc mất mạng (BaiChoMang: 12 giờ / 3 lần lỗi / 4xx bỏ — cùng luật hàng lời xin).</summary>

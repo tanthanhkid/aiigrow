@@ -222,7 +222,7 @@ internal sealed class TrayContext : ApplicationContext
                 if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
                     OpenApp(MucApp.NhiemVu, tuBat: true);
                 // 05/11: Ba Mẹ duyệt / nhờ làm lại / trao quà / cho thêm giờ ⇒ màn kết quả (con-ngay-thuong 09/11/12/26) — không khi máy khoá / Con đang toàn màn hình
-                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh())
+                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh() && !(kq.Loai == "them_gio" && RequestForm.DangMo > 0))
                     _ = HienKetQuaAsync(kq);
             }
             PushApp();

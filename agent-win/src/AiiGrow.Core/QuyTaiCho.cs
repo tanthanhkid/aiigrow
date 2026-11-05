@@ -26,8 +26,10 @@ public static class QuyTaiCho
         => p.ServerTime is { } st && now.ToLocalTime().Date > st.ToLocalTime().Date;
 
     /// <summary>App này có trừ quỹ khi ở tiền cảnh không.</summary>
+    /// <remarks>Khay chết / không báo (<see cref="UsageTracker.KhongRo"/>) mà đang có app tính giờ ⇒ vẫn trừ quỹ (an toàn trước): tắt khay không dừng được đồng hồ.</remarks>
     public static bool TinhGio(Policy? p, string? appId)
-        => p != null && !string.IsNullOrEmpty(appId) && p.AppTinhGio.Contains(appId, StringComparer.OrdinalIgnoreCase);
+        => p != null && !string.IsNullOrEmpty(appId) && p.AppTinhGio.Count > 0
+           && (appId == UsageTracker.KhongRo || p.AppTinhGio.Contains(appId, StringComparer.OrdinalIgnoreCase));
 
     /// <summary>«HH:mm» → phút trong ngày; sai ⇒ null.</summary>
     public static int? PhutCua(string? hhmm)
@@ -65,12 +67,14 @@ public static class QuyTaiCho
 
         var local = now.ToLocalTime().DateTime;
         var bo = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var boQuy = new HashSet<string>(StringComparer.OrdinalIgnoreCase);   // app chơi hết quỹ (riêng: «Mở hết» đóng bằng danh sách chặn)
         bool locked = p.Locked;
         string? lyDo = p.LockReason;
 
-        if (ConPhut(p, daDemGiay, now, giayHomNay) is <= 0) bo.UnionWith(p.AppTinhGio);
+        if (ConPhut(p, daDemGiay, now, giayHomNay) is <= 0) { bo.UnionWith(p.AppTinhGio); boQuy.UnionWith(p.AppTinhGio); }
         var nlCon = p.NgoaiLe.Where(n => n.Den > now).ToList();
-        foreach (var n in p.NgoaiLe.Where(n => n.Den <= now && n.App != null)) bo.Add(n.App!);
+        // ngoại lệ một app hết hạn ⇒ thu app đó — trừ app vốn được phép (app học) khi máy không bị khoá
+        foreach (var n in p.NgoaiLe.Where(n => n.Den <= now && n.App != null && (p.KhoaKhiHetNgoaiLe != null || !p.LearningApps.Contains(n.App!, StringComparer.OrdinalIgnoreCase)))) bo.Add(n.App!);
         bool nlCaMay = nlCon.Any(n => n.App == null);
 
         // Mọi ngoại lệ đã hết hạn mà lúc đồng bộ máy đang bị khoá (Ba Mẹ khoá / giờ ngủ) ⇒ khoá lại như cũ.
@@ -96,14 +100,14 @@ public static class QuyTaiCho
             }
             if (TrongGioHoc(p.GioHoc, local)) bo.UnionWith(p.AppTinhGio);
         }
-        foreach (var n in nlCon.Where(n => n.App != null)) bo.Remove(n.App!);   // ngoại lệ còn hạn thắng
+        foreach (var n in nlCon.Where(n => n.App != null)) { bo.Remove(n.App!); boQuy.Remove(n.App!); }   // ngoại lệ còn hạn thắng
 
         if (bo.Count == 0 && locked == p.Locked && lyDo == p.LockReason) return p;
         var q = p.SaoNong();
         q.AllowedApps = p.AllowedApps.Where(a => !bo.Contains(a)).ToList();
         // «Mở hết» (mode tu_do không hạn): không có danh sách được phép để thu lại ⇒ đóng app chơi hết quỹ bằng danh sách chặn (ChanAppThat — mọi mode)
-        if (bo.Count > 0 && p.Mode == Modes.TuDo && p.GrantEndsAt == null)
-            q.BlockedApps = p.BlockedApps.Concat(bo.Where(a => a.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)).Select(a => new AppBiChan { Muc = a.ToLowerInvariant() })).ToList();
+        if (boQuy.Count > 0 && p.Mode == Modes.TuDo && p.GrantEndsAt == null)
+            q.BlockedApps = p.BlockedApps.Concat(boQuy.Where(a => a.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)).Select(a => new AppBiChan { Muc = a.ToLowerInvariant() })).ToList();
         q.AppTinhGio = p.AppTinhGio.Where(a => !bo.Contains(a)).ToList();
         q.Locked = locked;
         q.LockReason = locked ? lyDo ?? LockReasons.Khoa : null;
