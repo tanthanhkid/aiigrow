@@ -27,6 +27,16 @@ public sealed class HvNhiemVu
     public bool GiaoRieng { get; set; }
     /// <summary>Lý do Ba Mẹ nhờ bổ sung (chỉ khi <c>can_bo_sung</c>).</summary>
     public string? LyDo { get; set; }
+    // ---- 05/11 (S1): sao = điểm; hình (mã icon), lặp lại, giờ nhắc; «Nhờ làm lại» (trangThai vẫn can_bo_sung cho khay cũ) + lời nhắn; bộ nhiệm vụ
+    public int? Sao { get; set; }
+    public string? Hinh { get; set; }
+    public string? LapLai { get; set; }
+    public string? GioNhac { get; set; }
+    public bool LamLai { get; set; }
+    public string? LoiNhan { get; set; }
+    public string? Bo { get; set; }
+    /// <summary>Số sao của việc (máy chủ mới gửi <c>sao</c>; cũ chỉ <c>diem</c>).</summary>
+    public int SoSao => Sao ?? Diem;
 }
 
 public sealed class HvLuot
@@ -54,6 +64,8 @@ public sealed class HvPhieu
     public string Id { get; set; } = "";
     public string Ten { get; set; } = "";
     public int Diem { get; set; }
+    /// <summary>Lúc Con đổi (05/11 — «Đã đổi hôm qua · chờ Ba Mẹ trao»).</summary>
+    public DateTimeOffset? Luc { get; set; }
 }
 
 public sealed class HvCapDo
@@ -81,6 +93,12 @@ public sealed class HvTongQuan
     public List<HvLuot> Gan { get; set; } = new();
     public List<HvLoiKhen> LoiKhen { get; set; } = new();
     public List<HvPhieu> PhieuCho { get; set; } = new();
+    // ---- 05/11 (S1): sao + quỹ giờ chơi hôm nay
+    public int? Sao { get; set; }
+    public int? SaoChoDuyet { get; set; }
+    public HvQuy? Quy { get; set; }
+    public int SoSao => Sao ?? SoDu;
+    public int SoSaoChoDuyet => SaoChoDuyet ?? DiemChoDuyet;
 }
 
 public sealed class HvQua
@@ -92,12 +110,18 @@ public sealed class HvQua
     public bool Du { get; set; }
     public int ConThieu { get; set; }
     public bool ChiCuoiTuan { get; set; }
+    // ---- 05/11: sao, quà «Thêm N phút chơi» (loai phut), đang chờ Ba Mẹ trao từ lúc nào
+    public int? Sao { get; set; }
+    public int? Phut { get; set; }
+    public DateTimeOffset? ChoTraoTu { get; set; }
+    public int SoSao => Sao ?? Diem;
 }
 
 /// <summary>GET hoc-vien/cua-hang.</summary>
 public sealed class HvCuaHang
 {
     public int SoDu { get; set; }
+    public int? Sao { get; set; }
     public List<HvQua> Qua { get; set; } = new();
 }
 
@@ -341,7 +365,9 @@ public static class HocVienPaths
         if (s.Any(x => x.Length == 0 || !x.All(c => char.IsLetterOrDigit(c) || c is '-' or '_'))) return false;
         return (m, s.Length) switch
         {
-            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang",
+            // 05/11: quy (quỹ giờ chơi + sao), nhiem-vu?tuCham=1 (kèm việc AiiRob tự chấm), vi-qua (quà đã trao) · doi-sao (đổi sao lấy phút)
+            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang" or "quy" or "nhiem-vu" or "vi-qua",
+            ("POST", 1) => s[0] == "doi-sao",
             ("POST", 2) => s[0] == "doi",
             ("POST", 3) => (s[0] == "nhiem-vu" && s[2] == "bat-dau") || (s[0] == "luot" && s[2] == "nop") || (s[0] == "loi-khen" && s[2] == "phan-hoi"),
             _ => false,

@@ -40,6 +40,12 @@ public static class PolicyParser
         p.PlayChoices = CleanList(p.PlayChoices);
         p.LearningApps = CleanList(p.LearningApps);
         p.BlockedApps = ChanAppThat.Chuan(p.BlockedApps);
+        // 05/11 quỹ giờ chơi + ngoại lệ (QuyTaiCho)
+        p.AppTinhGio = CleanList(p.AppTinhGio);
+        p.NgoaiLe = (p.NgoaiLe ?? new()).Where(n => n != null)
+            .Select(n => new NgoaiLeMay { Den = n.Den, App = string.IsNullOrWhiteSpace(n.App) ? null : n.App.Trim().ToLowerInvariant() }).ToList();
+        if (p.QuyConPhut is double qc) p.QuyConPhut = double.IsFinite(qc) ? Math.Clamp(qc, 0, 24 * 60) : 0;
+        p.KhoaKhiHetNgoaiLe = string.IsNullOrWhiteSpace(p.KhoaKhiHetNgoaiLe) ? null : p.KhoaKhiHetNgoaiLe.Trim().ToLowerInvariant();
         if (p.NextCheckSec <= 0) p.NextCheckSec = 30;
         p.NextCheckSec = Math.Clamp(p.NextCheckSec, 10, 600);
         if (p.MinutesLeft is < 0) p.MinutesLeft = 0;

@@ -145,6 +145,7 @@ internal sealed class TrayContext : ApplicationContext
             _app.TinDaXem += () => _tinMoi = 0;
             _app.RetryClicked += () => _ = RetryAsync();
             _app.XinMoClicked += () => OpenXinMo();
+            _app.HoiAiiGrowClicked += () => OpenHoiAiiGrow();
         }
         if (tuToast) _tinMoi = 0;
         _app.TopMost = tuManKhoa;
@@ -220,6 +221,9 @@ internal sealed class TrayContext : ApplicationContext
                 // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (đang khoá ⇒ chờ mở khoá; app đang hiện / Con đang toàn màn hình / vừa bật ⇒ chỉ bóng báo)
                 if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
                     OpenApp(MucApp.NhiemVu, tuBat: true);
+                // 05/11: Ba Mẹ duyệt / nhờ làm lại / trao quà / cho thêm giờ ⇒ màn kết quả (con-ngay-thuong 09/11/12/26) — không khi máy khoá / Con đang toàn màn hình
+                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh() && !(kq.Loai == "them_gio" && RequestForm.DangMo > 0))
+                    _ = HienKetQuaAsync(kq);
             }
             PushApp();
         }
@@ -228,10 +232,96 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>Hộp «Thêm giờ chơi» (W1 — RequestForm: xin Ba Mẹ thêm giờ / đổi sao lấy phút). Màn khoá gọi với chủ là màn khoá.</summary>
-    private void OpenRequest(IWin32Window? chu = null)
+    private void OpenRequest(IWin32Window? chu = null, bool dungSao = false)
     {
-        using var f = new RequestForm(_state.CanExchangePoints);
-        if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
+        string? sau;
+        using (var f = new RequestForm(_state.CanExchangePoints, dungSao: dungSao))
+        {
+            if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
+            sau = f.Sau;
+        }
+        var tuKhoa = chu != null && _state.Locked;
+        switch (sau)
+        {
+            case RequestForm.SauXinMo: OpenXinMo(); break;
+            case RequestForm.SauNhan: OpenApp(MucApp.TinNhan, tuManKhoa: tuKhoa); break;
+            case RequestForm.SauNhiemVu: OpenApp(MucApp.NhiemVu, tuManKhoa: tuKhoa); break;
+        }
+    }
+
+    private KetQuaHop? _ketQua;
+    private bool _dangMoKetQua;
+
+    /// <summary>Màn kết quả Ba Mẹ trả lời (một hộp một lúc). Số sao trước / sau và lời khen đọc từ tổng quan mới nhất.</summary>
+    private async Task HienKetQuaAsync(KetQuaTin kq)
+    {
+        if (_ketQua is { IsDisposed: false } || _dangMoKetQua) return;
+        _dangMoKetQua = true;   // giữ chỗ qua lượt await — hai lượt tin gần nhau không mở hai hộp
+        HvTongQuan? tq;
+        try { (tq, _) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan"); }
+        finally { _dangMoKetQua = false; }
+        if (_state.Locked || _ketQua is { IsDisposed: false }) return;
+        var h = kq.Loai switch
+        {
+            "duyet" => HopDuyet(kq, tq),
+            "lam_lai" => HopLamLai(kq, tq),
+            "trao_qua" => HopTraoQua(kq, tq),
+            _ => HopThemGio(kq, tq),
+        };
+        _ketQua = h;
+        h.FormClosed += (_, _) => { h.Dispose(); if (_ketQua == h) _ketQua = null; };
+        h.Show();
+    }
+
+    private KetQuaHop HopDuyet(KetQuaTin kq, HvTongQuan? tq)
+    {
+        var sao = tq?.SoSao;
+        var them = kq.Sao ?? 0;
+        var khen = tq?.Gan.FirstOrDefault(g => g.TrangThai == "duoc_duyet" && g.Ten == kq.Ten)?.LoiKhen;
+        return new KetQuaHop("Nhiệm vụ")
+            .Dau("phao_hoa", KhoiCon.Mau.Vang, "Ba Mẹ duyệt rồi!", kq.Ten)
+            .Chip($"+{them} sao", true, sao is int s ? $"{s - them} → {s} sao" : null)
+            .Loi("Ba Mẹ", khen)
+            .Nut("Xem sao & đổi quà", true, "sao", () => OpenApp(MucApp.PhanQua))
+            .Nut("Làm việc tiếp theo", false, "tick", () => OpenApp(MucApp.NhiemVu));
+    }
+
+    private KetQuaHop HopLamLai(KetQuaTin kq, HvTongQuan? tq)
+    {
+        var nv = tq?.NhiemVu.FirstOrDefault(v => v.Ten == kq.Ten);
+        var ghiAm = nv?.BangChung == "ghi_am";
+        var anh = nv == null || nv.BangChung is "anh" or "video";
+        return new KetQuaHop("Nhiệm vụ")
+            .Dau("tro_lai", KhoiCon.Mau.Cam, anh ? "Ba Mẹ nhờ chụp lại ảnh" : "Ba Mẹ nhờ con làm lại", kq.Ten)
+            .Loi("Ba Mẹ", kq.LoiNhan ?? nv?.LoiNhan ?? nv?.LyDo)
+            .Chip($"+{nv?.SoSao ?? 0} sao", true, anh ? "Chưa cộng sao · chụp lại để nhận" : ghiAm ? "Chưa cộng sao · ghi lại để nhận" : "Chưa cộng sao · làm lại để nhận")
+            .Nut(anh ? "Chụp lại ảnh cho Ba Mẹ" : ghiAm ? "Ghi âm lại cho Ba Mẹ" : "Làm lại cho Ba Mẹ", true, anh ? "camera" : ghiAm ? "tai" : "tick", () => OpenApp(MucApp.NhiemVu))
+            .LienKet("Để sau", null, null);
+    }
+
+    private KetQuaHop HopTraoQua(KetQuaTin kq, HvTongQuan? tq)
+    {
+        var h = new KetQuaHop("Quà").Dau("qua", KhoiCon.Mau.Vang, "Ba Mẹ đã trao quà!", kq.Ten);
+        if (kq.Phut is int p)
+        {
+            // tổng quan vừa tải SAU khi Ba Mẹ trao ⇒ quỹ đã gồm phút thưởng (không cộng thêm lần nữa)
+            h.Chip($"+{p} phút", false, tq?.Quy is { } qy ? "Giờ chơi còn " + AppConView.Phut(qy.ConPhut) : null);
+            _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });   // quỹ tăng ⇒ app chơi được thả ngay
+        }
+        if (tq != null) h.Dong(tq.SoSao > 0 ? $"Còn {AppConView.Sao(tq.SoSao)}" : "Còn 0 sao · làm nhiệm vụ để có thêm", false, Clay.DiemInk);
+        return h.Nut(kq.Phut is int pp ? "Chơi tiếp" : "Tuyệt quá!", true, "game", null)
+            .LienKet("Xem quà của con", "qua", () => OpenApp(MucApp.PhanQua));
+    }
+
+    private KetQuaHop HopThemGio(KetQuaTin kq, HvTongQuan? tq)
+    {
+        _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
+        // tổng quan vừa tải SAU khi Ba Mẹ cho ⇒ quỹ đã gồm phút thêm
+        var con = tq?.Quy?.ConPhut;
+        return new KetQuaHop("Ba Mẹ trả lời")
+            .Dau("phao_hoa", KhoiCon.Mau.Ngoc, "Ba Mẹ cho thêm giờ!", null)
+            .Chip($"+{kq.Phut} phút", false, con is double c ? "Giờ chơi còn " + AppConView.Phut(c) : null)
+            .Nut(con is double c2 ? $"Chơi tiếp {AppConView.Phut(c2)}" : "Chơi tiếp", true, "game", null);
     }
 
     private CapNhatKhayForm? _capNhat;
@@ -299,6 +389,8 @@ internal sealed class TrayContext : ApplicationContext
                     break;
                 }
                 case ManKhoaView.DoiSao:
+                    OpenRequest(_lock, dungSao: true);
+                    break;
                 case ManKhoaView.XinThemGio:
                     OpenRequest(_lock);
                     break;
@@ -459,7 +551,7 @@ internal sealed class TrayContext : ApplicationContext
             {
                 if (_nhac is { IsDisposed: false }) _nhac.Close();
                 _nhac = new NhacGioForm(_state.Sao, _state.CanExchangePoints);
-                _nhac.DoiSao += () => OpenRequest();
+                _nhac.DoiSao += () => OpenRequest(dungSao: true);
                 _nhac.XinThemGio += () => OpenRequest();
                 _nhac.FormClosed += (_, _) => { _nhac?.Dispose(); _nhac = null; };
                 _nhac.Show();

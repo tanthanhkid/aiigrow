@@ -36,7 +36,7 @@ export async function tongQuan(con: string) {
       id: x.id, ten: x.ten, moTa: x.mo_ta, nhom: x.nhom, diem: x.diem, bangChung: x.bang_chung, kieu: x.kieu, han: x.han ? new Date(x.han).toISOString() : null,
       phutToiThieu: x.phut_toi_thieu, trangThai: x.trang_thai_con, luot: x.luot_dang, homNay: x.hom_nay, dangCho: x.dang_cho,
       giaoRieng: !!x.giao_cho, lyDo: x.trang_thai_con === "can_bo_sung" ? (x.ly_do ?? lyDo.get(x.id) ?? null) : null,
-      sao: x.diem, hinh: x.hinh ?? null, lapLai: x.lap_lai ?? null, gioNhac: x.gio_nhac ?? null, lamLai: x.lam_lai, loiNhan: x.loi_nhan,
+      sao: x.diem, hinh: x.hinh ?? null, lapLai: x.lap_lai ?? null, gioNhac: x.gio_nhac ?? null, lamLai: x.lam_lai, loiNhan: x.loi_nhan, bo: x.bo ?? null,
     })),
     gan: (await q<{ id: string; ten: string; trang_thai: string; diem: number | null; ly_do: string | null; loi_khen: string | null; luc: Date }>(
       `select s.id, t.ten, s.trang_thai, s.diem, s.ly_do, s.loi_khen, coalesce(s.duyet_luc, s.nop_luc, s.created_at) as luc

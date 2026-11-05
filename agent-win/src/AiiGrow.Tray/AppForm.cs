@@ -4,10 +4,15 @@ using AiiGrow.Core;
 namespace AiiGrow.Tray;
 
 /// <summary>
-/// Ứng dụng AiiGrow của Con — cửa sổ to thật (không phải popup cạnh khay): thanh bên trái (mascot Rob, tên Con, trạng thái kết nối, mục điều hướng)
-/// và vùng nội dung bên phải cho 4 mục: Hôm nay (giờ còn lại, xin thêm giờ), Nhiệm vụ, Phần quà &amp; điểm, Tin nhắn.
-/// Hiện trên taskbar như app thường, chỉnh được cỡ, một bản duy nhất (khay chỉ đưa lên trước). Đóng cửa sổ = ẩn (khay vẫn chạy).
-/// Mọi quyết định (nhận việc, duyệt, đổi quà, cho thêm giờ) do máy chủ; form chỉ hiện và gửi qua dịch vụ (named pipe).
+/// App AiiGrow của Con trên Windows — giống thiết kế đã chốt 05/11 (docs/thiet-ke-chot/con-ngay-thuong, con-xin; khung 1002×712):
+/// thanh bên (Rob, tên Con, trạng thái kết nối, 4 mục Hôm nay · Nhiệm vụ · Sao &amp; quà · Tin nhắn, «Ba Mẹ dùng máy»), vùng phải:
+///   • Hôm nay: giờ chơi còn lại (quỹ phút ngày, thanh đã chơi, app tính giờ) + «Xin Ba Mẹ thêm giờ»; ví sao + «Đổi 10 sao lấy 10 phút»;
+///     nhiệm vụ hôm nay; tin mới nhất của Ba Mẹ. Mất mạng / AiiGrow lỗi: thẻ trấn an + nút sửa (con-mat-mang 01, 07, 08).
+///   • Nhiệm vụ: Ba Mẹ nhờ làm lại → Chờ Ba Mẹ duyệt → Chưa làm (Nộp ảnh / ghi âm / viết / Xong · Mở Học với AiiRob).
+///   • Sao &amp; quà: ví sao, đổi sao lấy phút, đổi quà gửi Ba Mẹ (chờ trao / đã trao) — không còn phiếu AiiCafe / QR.
+///   • Tin nhắn: tin của Ba Mẹ + Con trả lời nhanh / tự nhắn; thông báo.
+/// Chỉ dùng «sao» (10 sao = 10 phút), không «điểm», không «Chế độ: Tự do», không chơi theo từng app bằng điểm, không PIN.
+/// Mọi quyết định do máy chủ; form chỉ hiện và gửi qua dịch vụ (named pipe → api/device/hoc-vien/…). Đóng cửa sổ = ẩn (khay vẫn chạy).
 /// </summary>
 internal sealed class AppForm : Form
 {
@@ -18,20 +23,18 @@ internal sealed class AppForm : Form
     private readonly Label _name = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent };
     private readonly Label _pill = new() { AutoSize = true };
     private readonly Dictionary<MucApp, ClayButton> _nav = new();
+    private readonly Dictionary<MucApp, Label> _dem = new();
 
     // ---- vùng chính
-    private readonly Panel _banner = new() { Dock = DockStyle.Top, Visible = false, BackColor = UI.ErrorSoft };
-    private readonly Label _bannerHead = new() { AutoSize = false, ForeColor = UI.Error };
-    private readonly Label _bannerHint = new() { AutoSize = false, ForeColor = UI.Error };
-    private readonly Button _bannerBtn = new ClayButton();
-    private readonly Label _title = new() { Dock = DockStyle.Top, ForeColor = UI.Ink, TextAlign = ContentAlignment.BottomLeft };
-    private readonly Label _msg = new() { Dock = DockStyle.Top, TextAlign = ContentAlignment.MiddleLeft };
+    private readonly Label _title = new() { Dock = DockStyle.Top, ForeColor = UI.Ink, TextAlign = ContentAlignment.BottomLeft, UseMnemonic = false };
+    private readonly Label _sub = new() { Dock = DockStyle.Top, ForeColor = UI.Muted, TextAlign = ContentAlignment.TopLeft, UseMnemonic = false };
+    private readonly Label _msg = new() { Dock = DockStyle.Bottom, TextAlign = ContentAlignment.MiddleLeft, UseMnemonic = false, Visible = false };
     private readonly FlowLayoutPanel _content = new()
     {
         Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = UI.Paper,
     };
 
-    private readonly System.Windows.Forms.Timer _tick = new() { Interval = 1000 };
+    private readonly System.Windows.Forms.Timer _tick = new() { Interval = 15_000 };
     private readonly System.Windows.Forms.Timer _resizeTimer = new() { Interval = 200 };
     private readonly System.Windows.Forms.Timer _auto = new() { Interval = 60_000 };
 
@@ -41,33 +44,39 @@ internal sealed class AppForm : Form
     private DateTimeOffset _at = DateTimeOffset.Now;
     private KetNoiInfo _kn = KetNoiView.Chon(false, null);
     private HvTongQuan? _tq;
-    private int? _phutChoi;   // «≈ X phút chơi» đổi được từ điểm (dịch vụ → phien/xet); null = chưa biết
-    private string? _phutChoiCua;   // mục (PlayChoices[0]) mà _phutChoi thuộc về — mục đầu đổi thì số cũ bỏ đi, hỏi lại (giá theo nhóm khác nhau)
+    private List<HvNvDong>? _tuCham;
     private HvCuaHang? _ch;
+    private HvViQua? _viQua;
     private HvTinDs? _tin;
+    /// <summary>Đang gửi một việc Con bấm (nhận việc, trả lời) — tách khỏi lượt tải nền <see cref="_dangTai"/> để bấm không bị nuốt im lặng.</summary>
     private bool _busy;
+    private bool _dangTai, _taiLai;
+    /// <summary>Sao &amp; quà đang ở «Quà của con» (con-ngay-thuong 16).</summary>
+    private bool _xemQuaCuaCon;
     /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
     private string? _loiTai;
-    private int _cw, _tw, _lastW;
+    private int _cw, _lastW;
     private string _sig = "";
-    private Label? _bigLbl, _capLbl;
-    private Control? _dungCard;      // thẻ «Đã dùng hôm nay» — thay tại chỗ khi số phút đổi (không vẽ lại cả trang mỗi phút)
-    private string _dungSig = "";
+    // số trên Hôm nay cập nhật tại chỗ (không vẽ lại cả trang mỗi lần dịch vụ báo)
+    private Label? _lblConPhut, _lblDaChoi, _lblApp;
+    private ThanhTienDo? _thanh;
+    private readonly TextBox _nhan = new() { Font = UI.F(11.5f), MaxLength = AppConView.TraLoiToiDa, ForeColor = UI.Ink, PlaceholderText = "Con tự nhắn Ba Mẹ…" };
 
-    /// <summary>Con bấm «Xin mở trang hoặc app» (khay mở cửa sổ dùng chung).</summary>
+    /// <summary>Con bấm «Xin mở app» (khay mở cửa sổ dùng chung).</summary>
     public event Action? XinMoClicked;
-    /// <summary>Con bấm «Thử kết nối lại» (khay gọi dịch vụ đồng bộ ngay).</summary>
+    /// <summary>Con bấm «Thử kết nối lại» / «Bật lại AiiGrow» (khay gọi dịch vụ đồng bộ ngay).</summary>
     public event Action? RetryClicked;
     /// <summary>Con đã mở mục Tin nhắn (khay xoá số tin mới).</summary>
     public event Action? TinDaXem;
+    /// <summary>«Hỏi AiiGrow cách sửa» / «Có mạng mà vẫn lỗi?» (khay mở hộp Hỏi AiiGrow — con-mat-mang 10).</summary>
+    public event Action? HoiAiiGrowClicked;
 
     /// <summary>Số tin mới chưa đọc (khay đặt).</summary>
     public int TinMoi { get; set; }
 
     public AppForm()
     {
-
-        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
+        AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Sao & quà) hiện đúng, không thành phím tắt
         Text = "AiiGrow";
         Icon = UI.AppIcon();
         StartPosition = FormStartPosition.CenterScreen;
@@ -77,35 +86,34 @@ internal sealed class AppForm : Form
         Padding = new Padding(Px(10), Px(10), 0, Px(4));   // thanh bên là phiến Clay nổi, chừa chỗ cho bóng
         ClientSize = new Size(Px(1000), Px(680));
         MinimumSize = new Size(Px(880), Px(600));
-        // Không vượt quá màn hình nhỏ (laptop 1366×768).
-        var wa = Screen.PrimaryScreen!.WorkingArea;
+        var wa = Screen.PrimaryScreen!.WorkingArea;   // không vượt màn hình nhỏ (laptop 1366×768)
         if (Width > wa.Width || Height > wa.Height) Size = new Size(Math.Min(Width, wa.Width), Math.Min(Height, wa.Height));
 
-        // Vùng chính (thêm trước thanh bên để Dock.Fill chiếm phần còn lại)
         var main = new Panel { Dock = DockStyle.Fill, BackColor = UI.Paper };
         _title.Font = UI.F(22f, FontStyle.Bold);
-        _title.Height = Px(78);
-        _title.Padding = new Padding(Px(28), 0, 0, Px(6));
-        _msg.Font = UI.F(12f, FontStyle.Bold);
+        _title.Height = Px(62);
+        _title.Padding = new Padding(Px(30), 0, 0, Px(2));
+        _sub.Font = UI.F(11f);
+        _sub.Height = Px(30);
+        _sub.Padding = new Padding(Px(32), Px(2), 0, 0);
+        _msg.Font = UI.F(11f, FontStyle.Bold);
         _msg.Height = Px(30);
-        _msg.Padding = new Padding(Px(28), 0, 0, 0);
-        _content.Padding = new Padding(Px(28), Px(8), Px(28), Px(16));
-        BuildBanner();
+        _msg.Padding = new Padding(Px(30), 0, 0, 0);
+        _content.Padding = new Padding(Px(26), Px(4), Px(20), Px(16));
         main.Controls.Add(_content);
         main.Controls.Add(_msg);
+        main.Controls.Add(_sub);
         main.Controls.Add(_title);
-        main.Controls.Add(_banner);
         Controls.Add(main);
         Controls.Add(BuildSide());
 
-        _tick.Tick += (_, _) => TickClock();
+        _tick.Tick += (_, _) => { if (Visible && _muc == MucApp.HomNay) CapNhatSo(); };
         _tick.Start();
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); if (CalcWidth() != _lastW) Render(); };
         Resize += (_, _) => { _resizeTimer.Stop(); _resizeTimer.Start(); };
         _auto.Tick += async (_, _) => { if (Visible && WindowState != FormWindowState.Minimized) await RefreshAsync(); };
         _auto.Start();
 
-        // Đóng cửa sổ chỉ ẩn đi (khay vẫn chạy); mở lại thì tải mới.
         FormClosing += (_, e) => { if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); } };
         VisibleChanged += async (_, _) => { if (Visible) await RefreshAsync(); };
 
@@ -115,15 +123,14 @@ internal sealed class AppForm : Form
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { _tick.Dispose(); _resizeTimer.Dispose(); _auto.Dispose(); }
+        if (disposing) { _tick.Dispose(); _resizeTimer.Dispose(); _auto.Dispose(); if (_nhan.Parent == null) _nhan.Dispose(); }
         base.Dispose(disposing);
     }
 
-    // =========================================================== bố cục
+    // =========================================================== thanh bên
 
     private Control BuildSide()
     {
-        // Thanh bên = phiến đất sét sáng nổi (Clay gương); mục đang chọn là lòng chảo ấn lõm ngọc nhạt như thanh tab của app.
         var side = new ClayCard
         {
             Dock = DockStyle.Left, Width = Px(272) + VeThe.LeBong.Horizontal, BoGoc = Px(32), BackColor = UI.Card,
@@ -131,117 +138,98 @@ internal sealed class AppForm : Form
         };
         var inner = Px(272) - Px(32);
 
-        var foot = new Label
-        {
-            Dock = DockStyle.Bottom, Height = Px(64), ForeColor = UI.Muted, BackColor = Color.Transparent,
-            Font = UI.F(10f), Text = "Máy này do Ba Mẹ quản lý bằng AiiGrow", Padding = new Padding(Px(12), Px(8), Px(12), 0),
-        };
+        // «Ba Mẹ dùng máy» ở chân thanh bên (con-ngay-thuong 01 → 18)
+        var chan = new Panel { Dock = DockStyle.Bottom, Height = Px(60), BackColor = Color.Transparent, Padding = new Padding(Px(12), Px(4), 0, 0) };
+        var bm = KhoiCon.LienKet("Ba Mẹ dùng máy", "khoa", () => { using var h = new BaMeDungMayHop(); h.ShowDialog(this); }, 12f, Clay.Chu2);
+        chan.Controls.Add(bm);
 
         var flow = new FlowLayoutPanel
         {
             Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, BackColor = Color.Transparent,
-            Padding = new Padding(Px(12), Px(12), Px(12), 0), AutoScroll = false,
+            Padding = new Padding(Px(12), Px(8), Px(12), 0), AutoScroll = false,
         };
-        _mascot.Size = new Size(inner, Px(210));
-        _mascot.Margin = new Padding(0, 0, 0, Px(6));
+        _mascot.Size = new Size(inner, Px(200));
+        _mascot.Margin = new Padding(0, 0, 0, Px(4));
         _name.Font = UI.F(17f, FontStyle.Bold);
         _name.MaximumSize = new Size(inner, 0);
-        _name.Margin = new Padding(0, 0, 0, Px(8));
+        _name.Margin = new Padding(Px(4), 0, 0, Px(8));
         _pill.Font = UI.F(10.5f, FontStyle.Bold);
         _pill.MaximumSize = new Size(inner, 0);
-        _pill.Padding = new Padding(Px(10), Px(6), Px(10), Px(6));
-        _pill.Margin = new Padding(0, 0, 0, Px(18));
+        _pill.Padding = new Padding(Px(12), Px(8), Px(12), Px(8));
+        _pill.Margin = new Padding(0, 0, 0, Px(14));
         flow.Controls.Add(_mascot);
         flow.Controls.Add(_name);
         flow.Controls.Add(_pill);
 
-        foreach (var (muc, text, icon) in new[] { (MucApp.HomNay, "Hôm nay", "alarm_clock"), (MucApp.NhiemVu, "Nhiệm vụ", "memo"), (MucApp.PhanQua, "Phần quà & điểm", "wrapped_gift"), (MucApp.TinNhan, "Tin nhắn", "speech_balloon") })
+        foreach (var (muc, text, icon) in new[] { (MucApp.HomNay, "Hôm nay", "dongho"), (MucApp.NhiemVu, "Nhiệm vụ", "tick"), (MucApp.PhanQua, "Sao & quà", "sao"), (MucApp.TinNhan, "Tin nhắn", "tin") })
         {
             var b = new ClayButton
             {
-                Text = text, Width = inner, Height = Px(56), TextAlign = ContentAlignment.MiddleLeft, Image = UI.Fluent(icon),
+                Text = text, Width = inner, Height = Px(52), TextAlign = ContentAlignment.MiddleLeft, Image = Anh3D.Icon(icon),
+                ImageAlign = ContentAlignment.MiddleLeft, TextImageRelation = TextImageRelation.ImageBeforeText,
                 Font = UI.F(13f, FontStyle.Bold), UseMnemonic = false,
-                Padding = new Padding(Px(4), 0, 0, 0), Margin = new Padding(0, 0, 0, Px(4)), Tag = text, BoGoc = Px(22),
+                Padding = new Padding(Px(8), 0, 0, 0), Margin = new Padding(0, 0, 0, Px(6)), Tag = text, BoGoc = Px(24),
             };
+            // số đỏ cam bên phải (thiết kế «.nav i»): việc còn làm / tin mới
+            var dem = new Label
+            {
+                AutoSize = false, Size = new Size(Px(28), Px(24)), TextAlign = ContentAlignment.MiddleCenter, Font = UI.F(9.5f, FontStyle.Bold),
+                ForeColor = Color.White, BackColor = Color.FromArgb(0xe2, 0x66, 0x0f), Visible = false, UseMnemonic = false,
+            };
+            dem.Location = new Point(b.Width - dem.Width - Px(18), (b.Height - VeNut.LeBong.Vertical - dem.Height) / 2);
+            b.Controls.Add(dem);
             var m = muc;
             b.Click += (_, _) => Select(m);
+            dem.Click += (_, _) => Select(m);
             _nav[muc] = b;
+            _dem[muc] = dem;
             flow.Controls.Add(b);
         }
         side.Controls.Add(flow);
-        side.Controls.Add(foot);
+        side.Controls.Add(chan);
         UpdateNav();
         return side;
     }
 
-    private void BuildBanner()
-    {
-        _banner.Height = Px(84);
-        _bannerBtn.Text = "Thử kết nối lại";
-        _bannerBtn.Dock = DockStyle.Right;
-        _bannerBtn.Width = Px(210);
-        _bannerBtn.FlatStyle = FlatStyle.Flat;
-        _bannerBtn.Font = UI.F(12f, FontStyle.Bold);
-        _bannerBtn.BackColor = UI.Error; _bannerBtn.ForeColor = Color.White; _bannerBtn.UseVisualStyleBackColor = false;
-        _bannerBtn.FlatAppearance.BorderSize = 0;
-        _bannerBtn.Cursor = Cursors.Hand;
-        _bannerBtn.Click += (_, _) => { _bannerBtn.Enabled = false; RetryClicked?.Invoke(); };
-        _bannerHead.Font = UI.F(13f, FontStyle.Bold);
-        _bannerHead.Dock = DockStyle.Top; _bannerHead.Height = Px(34);
-        _bannerHead.TextAlign = ContentAlignment.BottomLeft;
-        _bannerHint.Font = UI.F(10.5f);
-        _bannerHint.Dock = DockStyle.Fill;
-        var text = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Px(28), 0, Px(12), 0), BackColor = UI.ErrorSoft };
-        text.Controls.Add(_bannerHint);
-        text.Controls.Add(_bannerHead);
-        _banner.Controls.Add(text);
-        _banner.Controls.Add(_bannerBtn);
-    }
-
     private int CalcWidth()
-        => Math.Clamp(_content.ClientSize.Width - _content.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth, Px(480), Px(860));
+        => Math.Clamp(_content.ClientSize.Width - _content.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth, Px(480), Px(800));
 
-    private void ComputeWidths()
-    {
-        _cw = _lastW = CalcWidth();
-        _tw = _cw - LeNgangThe * 2 - Px(6) - VeThe.LeBong.Horizontal;   // bề rộng chữ trong thẻ, theo đúng lề ngang của Card()
-    }
+    private void ComputeWidths() => _cw = _lastW = CalcWidth();
 
     // =========================================================== nạp trạng thái từ khay
 
-    /// <summary>Khay đưa trạng thái dịch vụ + kết quả chọn kết nối (mỗi ~3 giây). Chỉ vẽ lại nội dung khi có thay đổi đáng kể.</summary>
+    /// <summary>Khay đưa trạng thái dịch vụ + kết nối (mỗi ~3 giây). Vẽ lại khi đổi đáng kể; số phút thì cập nhật tại chỗ.</summary>
     public void Apply(TrayState? s, DateTimeOffset receivedAt, KetNoiInfo kn)
     {
         if (s != null) { _s = s; _at = receivedAt; }
         _kn = kn;
-        var dau = _s.PlayChoices.FirstOrDefault();
-        if (_phutChoiCua != null && !string.Equals(_phutChoiCua, dau, StringComparison.OrdinalIgnoreCase))
-        {
-            _phutChoi = null; _phutChoiCua = null;
-            if (dau != null && Visible) _ = LamMoiPhutChoiAsync();
-        }
         ApplyKetNoiUi();
-        var sig = $"{kn.Loai}|{kn.Dong}|{_phutChoi}|{string.Join(',', _s.PlayChoices)}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.CanExchangePoints}|{_s.Mode}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.DungTheoApp.Count > 0}";
+        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.QuyConPhut.HasValue}|{_s.NgoaiLeDen}|{_s.DangGioHoc}|{_s.GrantEndsAt}|{(_s.QuyConPhut ?? 1) <= 0}|{_s.BaiChoMang}";
         if (sig != _sig) { _sig = sig; Render(); }
-        else CapNhatDungHomNay();
+        else CapNhatSo();
     }
 
     private void ApplyKetNoiUi()
     {
-        _pill.Text = "● " + _kn.Dong;
-        _pill.BackColor = _kn.DungIconKetNoi ? UI.GreenSoft : UI.ErrorSoft;
-        _pill.ForeColor = _kn.DungIconKetNoi ? UI.GreenDark : UI.Error;
-        _banner.Visible = _kn.Bao;
-        _bannerHead.Text = _kn.Dong;
-        _bannerHint.Text = _kn.Huong;
-        _bannerBtn.Visible = _kn.Loai != KetNoi.ChuaGhep;
-        _bannerBtn.Enabled = true;
-        var ten = !string.IsNullOrWhiteSpace(_tq?.Con.Ten) ? _tq!.Con.Ten : _s.ChildName;
+        var gio = DateTime.Now.ToString("HH:mm");
+        _pill.Text = _kn.Loai switch
+        {
+            KetNoi.DaKetNoi => "● Đã kết nối · " + gio,
+            KetNoi.MatKetNoi => "● Mất mạng · giờ vẫn chạy",
+            _ => "● " + _kn.Dong,
+        };
+        _pill.BackColor = _kn.DungIconKetNoi ? UI.GreenSoft : _kn.Loai == KetNoi.MatKetNoi ? Clay.CanhSoft : UI.ErrorSoft;
+        _pill.ForeColor = _kn.DungIconKetNoi ? UI.GreenDark : _kn.Loai == KetNoi.MatKetNoi ? Clay.Canh : UI.Error;
+        var ten = TenCon();
         _name.Text = string.IsNullOrWhiteSpace(ten) ? "AiiGrow" : ten;
         SetMascot();
     }
 
-    private bool XongHet() => _tq is { NhiemVu.Count: > 0 } t && HocVienView.SoViecMo(t) == 0;
+    private string TenCon() => !string.IsNullOrWhiteSpace(_tq?.Con.Ten) ? _tq!.Con.Ten : _s.ChildName;
+
+    private List<ViecCon> Viec() => _tq == null ? new() : AppConView.DanhSach(_tq, _tuCham);
+
+    private bool XongHet() => _tq != null && Viec().All(v => v.Nhom == "cho_duyet");
 
     private void SetMascot() => _mascot.Image = UI.Mascot(MascotView.Chon(_muc, _kn.Loai, XongHet()));
 
@@ -250,8 +238,10 @@ internal sealed class AppForm : Form
         foreach (var (muc, b) in _nav)
         {
             var sel = muc == _muc;
-            var n = muc switch { MucApp.NhiemVu when _tq != null => HocVienView.SoViecMo(_tq), MucApp.TinNhan => TinMoi, _ => 0 };
-            b.Text = (string)b.Tag! + (n > 0 ? $"   ({n})" : "");
+            var n = muc switch { MucApp.NhiemVu => Viec().Count(v => v.Nhom is "chua_lam" or "lam_lai" or "tu_cham"), MucApp.TinNhan => TinMoi, _ => 0 };
+            var d = _dem[muc];
+            d.Text = n > 9 ? "9+" : n.ToString();
+            d.Visible = n > 0 && !sel;
             b.Kieu = sel ? KieuClay.Lom : KieuClay.Phang;
             b.BackColor = sel ? UI.GreenSoft : UI.Card;
             b.ForeColor = sel ? UI.GreenDark : UI.Ink;
@@ -260,8 +250,8 @@ internal sealed class AppForm : Form
 
     // =========================================================== mở / chuyển mục
 
-    /// <summary>Mở app to (nếu đang ẩn/thu nhỏ) và đưa lên trước; <paramref name="muc"/> khác null thì chuyển tới mục đó. <paramref name="noiLen"/> = khay tự bật: Windows chặn tiến trình nền giành tiêu điểm
-    /// (Activate chỉ nháy nút taskbar) ⇒ bật TopMost rồi tắt ngay để cửa sổ nằm trên cùng mà không ghim mãi.</summary>
+    /// <summary>Mở app (nếu đang ẩn/thu nhỏ) và đưa lên trước; <paramref name="muc"/> khác null thì chuyển tới mục đó. <paramref name="noiLen"/> = khay tự bật:
+    /// Windows chặn tiến trình nền giành tiêu điểm ⇒ bật TopMost rồi tắt ngay để cửa sổ nằm trên cùng mà không ghim mãi.</summary>
     public void ShowFront(MucApp? muc = null, bool noiLen = false)
     {
         if (muc != null) Select(muc.Value);
@@ -269,8 +259,6 @@ internal sealed class AppForm : Form
         if (!Visible) Show(); else _ = RefreshAsync();
         if (moMoi)
         {
-            // Mở mới: tiêu điểm vào mục điều hướng (không phải nút đầu trong vùng nội dung — WinForms cuộn tới control có tiêu điểm ⇒ ở 150% app mở
-            // đã cuộn xuống, đồng hồ to bị cắt) rồi về đầu trang.
             if (_nav.TryGetValue(_muc, out var nut)) ActiveControl = nut;
             _content.AutoScrollPosition = Point.Empty;
         }
@@ -282,10 +270,11 @@ internal sealed class AppForm : Form
 
     private void Select(MucApp muc)
     {
+        if (muc != MucApp.PhanQua || _muc != MucApp.PhanQua) _xemQuaCuaCon = false;
         _muc = muc;
         if (muc == MucApp.TinNhan && TinMoi > 0) { TinMoi = 0; TinDaXem?.Invoke(); }
-        _sig = "";
         Render();
+        if (muc == MucApp.PhanQua) _ = RefreshAsync();   // quà / quà đã trao tải khi mở mục
         _content.AutoScrollPosition = Point.Empty;
     }
 
@@ -293,20 +282,20 @@ internal sealed class AppForm : Form
     {
         _msg.ForeColor = error ? UI.Error : UI.Green;
         _msg.Text = s;
+        _msg.Visible = s.Length > 0;
     }
 
     public async Task RefreshAsync()
     {
-        if (_busy) return;
-        _busy = true;
+        if (_dangTai) { _taiLai = true; return; }   // đang tải ⇒ tải lại một lượt nữa ngay sau (không nuốt lượt sau khi nộp bài / đổi quà)
+        _dangTai = true;
         try
         {
-            Say("Đang tải…", false);
             var (tq, loi) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan");
+            if (IsDisposed) return;
             if (tq == null)
             {
                 _loiTai = string.IsNullOrWhiteSpace(loi) ? "Chưa tải được. Con thử lại nhé." : loi;
-                Say(_loiTai, true);
                 Render();
                 return;
             }
@@ -314,47 +303,45 @@ internal sealed class AppForm : Form
             _loiTai = null;
             Render();
             ApplyKetNoiUi();
-            Say("", false);
-            var phut = LamMoiPhutChoiAsync();   // song song với cửa hàng / tin, không bắt hai mục đó chờ phien/xet
-
-            var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
-            _ch = ch;
-            var (tin, _) = await HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
+            // bốn lượt sau chạy song song (dịch vụ nhận nhiều kết nối pipe); quà chỉ tải khi Con ở / đã mở «Sao & quà»
+            var tcT = HvApi.GetAsync<HvNvDs>("hoc-vien/nhiem-vu?tuCham=1");
+            var tinT = HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
+            var quaCan = _muc == MucApp.PhanQua || _ch == null;
+            var chT = quaCan ? HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang") : null;
+            var vqT = quaCan ? HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua") : null;
+            var (tc, _) = await tcT;
+            if (tc != null) _tuCham = tc.Ds.Where(x => x.TuCham).ToList();
+            var (tin, _) = await tinT;
             if (tin != null) _tin = tin;
-            await phut;
-            Render();
+            if (chT != null && (await chT).Data is { } ch) _ch = ch;
+            if (vqT != null && (await vqT).Data is { } vq) _viQua = vq;
+            if (!IsDisposed) Render();
         }
-        finally { _busy = false; }
-    }
-
-    private async Task LamMoiPhutChoiAsync()
-    {
-        if (_s.PlayChoices.Count == 0) { _phutChoi = null; _phutChoiCua = null; return; }
-        var muc = _s.PlayChoices[0];
-        try
+        finally
         {
-            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.PlayInfo, AppId = muc });
-            var moi = r.Ok ? r.PlayMinutes : null;
-            if (IsDisposed || !string.Equals(_s.PlayChoices.FirstOrDefault(), muc, StringComparison.OrdinalIgnoreCase)) return;   // mục đầu đã đổi giữa chừng
-            _phutChoiCua = muc;
-            if (moi != _phutChoi) { _phutChoi = moi; Render(); }
+            _dangTai = false;
+            if (_taiLai && !IsDisposed) { _taiLai = false; _ = RefreshAsync(); }
         }
-        catch { /* không có số phút thì chỉ hiện điểm */ }
     }
 
-    private void MoChoiBangDiem()
-    {
-        using var f = new ChoiBangDiemForm(_s.PlayChoices);
-        f.ShowDialog(this);
-        _ = LamMoiPhutChoiAsync();
-    }
+    // =========================================================== hộp
 
-    private void TickClock()
+    /// <summary>Hộp «Thêm giờ chơi» (Dùng sao / Xin Ba Mẹ) rồi đi tiếp theo lựa chọn của Con.</summary>
+    private void MoThemGio(bool dungSao)
     {
-        if (_bigLbl == null || !Visible) return;
-        var d = TrayView.Describe(_s, _at, DateTimeOffset.Now);
-        _bigLbl.Text = d.Big;
-        if (_capLbl != null) { _capLbl.Text = d.Caption; _capLbl.Visible = d.Caption.Length > 0; }
+        string? sau;
+        using (var f = new RequestForm(_s.CanExchangePoints, dungSao: dungSao))
+        {
+            f.ShowDialog(this);
+            sau = f.Sau;
+        }
+        switch (sau)
+        {
+            case RequestForm.SauXinMo: XinMoClicked?.Invoke(); break;
+            case RequestForm.SauNhan: Select(MucApp.TinNhan); break;
+            case RequestForm.SauNhiemVu: Select(MucApp.NhiemVu); break;
+        }
+        _ = RefreshAsync();
     }
 
     // =========================================================== vẽ nội dung
@@ -363,426 +350,535 @@ internal sealed class AppForm : Form
     {
         ComputeWidths();
         _content.SuspendLayout();
+        _nhan.Parent?.Controls.Remove(_nhan);
         foreach (var c in _content.Controls.Cast<Control>().ToList()) { _content.Controls.Remove(c); c.Dispose(); }
-        _bigLbl = _capLbl = null;
-        _dungCard = null;
+        _lblConPhut = _lblDaChoi = _lblApp = null;
+        _thanh = null;
         switch (_muc)
         {
-            case MucApp.HomNay: _title.Text = "Hôm nay"; RenderHomNay(); break;
-            case MucApp.NhiemVu: _title.Text = "Nhiệm vụ của con"; RenderViec(); break;
-            case MucApp.PhanQua: _title.Text = "Phần quà & điểm"; RenderQua(); break;
-            default: _title.Text = "Tin nhắn"; RenderTinNhan(); break;
+            case MucApp.HomNay: RenderHomNay(); break;
+            case MucApp.NhiemVu: RenderViec(); break;
+            case MucApp.PhanQua: if (_xemQuaCuaCon) RenderQuaCuaCon(); else RenderQua(); break;
+            default: RenderTinNhan(); break;
         }
         _content.ResumeLayout(true);
         UpdateNav();
         SetMascot();
     }
 
-    private Label T(string text, float pt = 12f, bool bold = false, Color? color = null, bool wide = false)
+    private Label T(string text, float pt = 12f, bool bold = false, Color? color = null, int w = 0)
     {
-        var l = UI.Text(text, pt, bold, color, wide ? _cw : _tw);
+        var l = UI.Text(text, pt, bold, color, w > 0 ? w : _cw);
         return l;
     }
 
-    private Button Btn(string text, bool primary, int width = 260, string? icon = null)
+    private int Trong(int rong) => KhoiApp.TrongThe(rong);
+
+    private ClayFlow TheDay(bool vang = false)
     {
-        var b = UI.Btn(text, primary, Px(width), icon);
-        b.Height = Px(56);   // thân 50 + lề bóng
-        b.Font = UI.F(12f, FontStyle.Bold);
-        b.UseMnemonic = false;
-        b.Margin = new Padding(0, 0, Px(10), Px(8));
-        return b;
+        var t = KhoiApp.The(_cw, vang);
+        t.Margin = new Padding(0, 0, 0, Px(8));
+        return t;
     }
 
-    /// <summary>Lề ngang trong thẻ Clay (≥16) — dùng chung cho Card() và bề rộng chữ _tw.</summary>
-    private static int LeNgangThe => Px(18);
-
-    /// <summary>Thẻ Clay: bo 28, bóng kép, dải men sáng mép trên (lề bóng nằm trong Padding).</summary>
-    private FlowLayoutPanel Card(Color? bg = null) => new ClayFlow
+    private FlowLayoutPanel HangNgang()
     {
-        AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
-        Width = _cw, MinimumSize = new Size(_cw, 0), MaximumSize = new Size(_cw, 0),
-        BackColor = bg ?? UI.Card, BoGoc = Px(28),
-        Padding = VeThe.Pad(LeNgangThe, Px(16), LeNgangThe, Px(10)), Margin = new Padding(0, 0, 0, Px(4)),   // lề trong ≥16 (đáy: 10 + lề dưới 8 của dòng cuối)
-    };
-
-    private FlowLayoutPanel Row(int width) => new()
-    {
-        AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, Width = width, MaximumSize = new Size(width, 0),
-        Margin = new Padding(0), BackColor = Color.Transparent,
-    };
-
-    private void OpenRequest()
-    {
-        using var f = new RequestForm(_s.CanExchangePoints);
-        f.ShowDialog(this);
+        var h = KhoiCon.Hang();
+        h.Margin = Padding.Empty;
+        return h;
     }
 
-    /// <summary>«Xin mở trang hoặc app»: khay giữ MỘT cửa sổ cho cả menu khay / app to / màn chặn (không gửi trùng lời xin).</summary>
-    private void OpenXinMo() => XinMoClicked?.Invoke();
+    // ---------------------------------------------------------------- Hôm nay (con-ngay-thuong 01, con-mat-mang 01/07/08)
 
-    // ---------------------------------------------------------------- Hôm nay
+    private double? ConPhutHienTai()
+    {
+        if (_s.QuyConPhut is double q) return q;
+        if (_tq?.Quy is { } tq) return tq.ConPhut;
+        var d = TrayView.Describe(_s, _at, DateTimeOffset.Now);
+        return d.RemainingSec is double r ? r / 60.0 : null;
+    }
+
+    private (double DaDung, double Tong)? QuyHienTai()
+    {
+        if (_s.QuyTongPhut is double t) return (_s.QuyDaDung ?? Math.Max(0, t - (_s.QuyConPhut ?? 0)), t);
+        if (_tq?.Quy is { } q) return (q.DaDung, q.TongPhut);
+        return null;
+    }
 
     private void RenderHomNay()
     {
-        var ten = !string.IsNullOrWhiteSpace(_tq?.Con.Ten) ? _tq!.Con.Ten : _s.ChildName;
-        _content.Controls.Add(T(string.IsNullOrWhiteSpace(ten) ? "Xin chào!" : $"Chào {ten}!", 20f, true, null, true));
+        _title.Text = AppConView.Chao(TenCon());
+        _sub.Text = AppConView.NgayGio(DateTime.Now);
 
-        if (_kn.Loai is KetNoi.DichVuKhongChay or KetNoi.ChuaGhep)
+        if (_kn.Loai is KetNoi.DichVuKhongChay) { VeTrucTrac(); return; }
+        if (_kn.Loai is KetNoi.ChuaGhep)
         {
-            var c = Card(UI.ErrorSoft);
-            c.Controls.Add(T(_kn.Dong, 15f, true, UI.Error));
-            c.Controls.Add(T(_kn.Huong, 12f, false, UI.Error));
+            var c = TheDay();
+            c.Controls.Add(KhoiCon.Dau("canh_bao", KhoiCon.Mau.Cam, _kn.Dong, _kn.Huong, Trong(_cw)));
             _content.Controls.Add(c);
-        }
-        else
-        {
-            var d = TrayView.Describe(_s, _at, DateTimeOffset.Now);
-            var c = Card();
-            c.Controls.Add(T("Thời gian dùng máy còn lại", 12.5f, false, UI.Muted));
-            _bigLbl = T(d.Big, 44f, true, UI.Green);
-            c.Controls.Add(_bigLbl);
-            _capLbl = T(d.Caption, 12.5f, false, UI.Muted);
-            _capLbl.Visible = d.Caption.Length > 0;
-            c.Controls.Add(_capLbl);
-            c.Controls.Add(T("Chế độ: " + TrayView.ModeLabel(_s.Mode), 12f, true, UI.GreenDark));
-            if (_s.MoOfflineDen is { } den)
-                c.Controls.Add(T($"Đang mở tạm bằng mã của Ba Mẹ, đến {den.ToLocalTime():HH:mm}.", 12f, false, UI.Warn));
-            _content.Controls.Add(c);
-
-            var row = Row(_cw);
-            var ask = Btn("Xin thêm thời gian", true, 270, "hourglass_not_done");
-            ask.Click += (_, _) => OpenRequest();
-            row.Controls.Add(ask);
-            if (_s.CanExchangePoints)   // chỉ cờ; không hiện số điểm ở nút này
-            {
-                var ex = Btn("Đổi điểm lấy thời gian", false, 270, "star");
-                ex.Click += (_, _) => OpenRequest();
-                row.Controls.Add(ex);
-            }
-            var xinMo = Btn("Xin mở trang hoặc app", false, 270, "globe_with_meridians");
-            xinMo.Click += (_, _) => OpenXinMo();
-            row.Controls.Add(xinMo);
-            _content.Controls.Add(row);
-
-            // BUG-006: luôn có nút «Chơi bằng điểm» khi đã ghép gia đình, kèm số phút đổi được — trừ khi Ba Mẹ tắt đổi điểm hoặc khoá máy (cùng luật màn chặn)
-            if (_s.Paired && !_s.MoCoi && BlockScreenView.CanUsePoints(_s.Locked ? _s.LockReason : null, _s.CanExchangePoints, offline: _s.Offline))
-            {
-                var pr = Row(_cw);
-                var choi = Btn("Chơi bằng điểm", false, 270, "video_game");
-                choi.Click += (_, _) => MoChoiBangDiem();
-                pr.Controls.Add(choi);
-                _content.Controls.Add(pr);
-                if (_phutChoi is > 0)
-                    // số phút tính theo MỤC (máy chủ định giá theo nhóm) ⇒ nói rõ là của mục nào
-                    _content.Controls.Add(T($"Điểm hiện có đổi được khoảng {_phutChoi} phút chơi {TrayView.FriendlyAppName(_s.PlayChoices.FirstOrDefault(), null)}.", 12f, false, UI.Muted, true));
-            }
-
-            // Đã dùng hôm nay theo app (dịch vụ đếm theo app tiền cảnh — cùng số gửi máy chủ). Chưa có app nào ≥1 phút thì không hiện thẻ.
-            if (_s.DungTheoApp.Count > 0) { _dungCard = DungHomNayCard(); _content.Controls.Add(_dungCard); }
-
-            // #70 §1: Ba Mẹ cần máy ⇒ chuyển người dùng (khoá phiên), không đăng xuất, không trừ điểm.
-            var bm = Card();
-            bm.Controls.Add(T("Ba Mẹ cần máy? Bấm nút này hoặc Win+L", 12f, false, UI.Muted));
-            var nutBm = Btn("Ba Mẹ dùng máy", false, 270, "key");
-            nutBm.Click += (_, _) => UI.NhuongMayChoBaMe();
-            bm.Controls.Add(nutBm);
-            _content.Controls.Add(bm);
-        }
-
-        if (_s.Paired && !_s.MoCoi)
-        {
-            var c = Card();
-            c.Controls.Add(T("Việc của con", 14f, true));
-            if (_tq == null && _loiTai != null)
-            {
-                c.Controls.Add(T(_loiTai, 12f, false, UI.Error));
-                c.Controls.Add(NutThuLai());
-            }
-            else if (_tq == null) c.Controls.Add(T("Đang tải…", 12f, false, UI.Muted));
-            else
-            {
-                var n = HocVienView.SoViecMo(_tq);
-                c.Controls.Add(T(n > 0 ? $"Con có {n} việc đang chờ. Làm xong để tích điểm nhé!" : "Hôm nay con đã làm hết việc rồi. Giỏi lắm!", 12.5f, false));
-                c.Controls.Add(T($"{_tq.SoDu} điểm  ·  {HocVienView.CapText(_tq.CapDo)}", 12.5f, true, UI.PointInk));
-            }
-            var row = Row(_tw);
-            var go = Btn("Xem nhiệm vụ", false, 210, "memo");
-            go.Height = Px(50);
-            go.Click += (_, _) => Select(MucApp.NhiemVu);
-            row.Controls.Add(go);
-            if (TinMoi > 0)
-            {
-                var tin = Btn($"Đọc tin nhắn ({TinMoi})", false, 210, "speech_balloon");
-                tin.Height = Px(50);
-                tin.Click += (_, _) => Select(MucApp.TinNhan);
-                row.Controls.Add(tin);
-            }
-            c.Controls.Add(row);
-            _content.Controls.Add(c);
-        }
-    }
-
-    private static string DungSig(TrayState s) => string.Join(',', s.DungTheoApp.Select(x => x.AppId + ":" + x.Phut));
-
-    /// <summary>Số phút theo app đổi (mỗi phút) ⇒ chỉ thay thẻ «Đã dùng hôm nay» tại đúng vị trí, giữ cuộn + tiêu điểm của trang.</summary>
-    private void CapNhatDungHomNay()
-    {
-        if (_dungCard == null || _dungCard.IsDisposed || _muc != MucApp.HomNay || DungSig(_s) == _dungSig) return;
-        var i = _content.Controls.GetChildIndex(_dungCard);
-        var moi = DungHomNayCard();
-        _content.SuspendLayout();
-        _content.Controls.Add(moi);
-        _content.Controls.SetChildIndex(moi, i);
-        _content.Controls.Remove(_dungCard);
-        _dungCard.Dispose();
-        _dungCard = moi;
-        _content.ResumeLayout(true);
-    }
-
-    private Control DungHomNayCard()
-    {
-        _dungSig = DungSig(_s);
-        var c = Card();
-        var dau = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(4)) };
-        dau.Controls.Add(new ClayIcon { Size = new Size(Px(44), Px(44)), MauVien = UI.GreenSoft, Hinh = UI.Fluent("bar_chart"), Margin = new Padding(0, 0, Px(10), 0) });
-        var tieu = T($"Đã dùng hôm nay · {DungAppView.ThoiLuong(DungAppView.Tong(_s.DungTheoApp))}", 14f, true);
-        tieu.MaximumSize = new Size(_tw - Px(60), 0);
-        tieu.Margin = new Padding(0, Px(10), 0, 0);
-        dau.Controls.Add(tieu);
-        c.Controls.Add(dau);
-        foreach (var x in _s.DungTheoApp)
-        {
-            // tên app dài ⇒ cắt «…» trong một dòng (không co chữ), số phút luôn đủ ở bên phải
-            var dong = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = _tw, Height = Px(30), BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(2)) };
-            dong.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            dong.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            dong.Controls.Add(new Label { Text = x.Ten, AutoSize = false, AutoEllipsis = true, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = UI.F(12f), ForeColor = UI.Ink, BackColor = Color.Transparent, UseMnemonic = false }, 0, 0);
-            dong.Controls.Add(new Label { Text = DungAppView.ThoiLuong(x.Phut), AutoSize = true, Anchor = AnchorStyles.Right, Font = UI.F(12f, FontStyle.Bold), ForeColor = UI.GreenDark, BackColor = Color.Transparent, Margin = new Padding(Px(8), Px(5), 0, 0) }, 1, 0);
-            c.Controls.Add(dong);
-        }
-        return c;
-    }
-
-    // ---------------------------------------------------------------- Nhiệm vụ
-
-    private void RenderViec()
-    {
-        if (VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có nhiệm vụ.", "Đang tải nhiệm vụ…")) return;
-        var ds = HocVienView.SapXep(_tq.NhiemVu);
-        if (ds.Count == 0) _content.Controls.Add(T("Chưa có nhiệm vụ nào. Khi Ba Mẹ giao việc, con sẽ thấy ở đây và nhận thông báo.", 12.5f, false, UI.Muted, true));
-        foreach (var v in ds) _content.Controls.Add(ViecCard(v));
-
-        var cho = _tq.Gan.Where(g => g.TrangThai is "cho_duyet" or "tu_choi" or "duoc_duyet").Take(8).ToList();
-        if (cho.Count > 0)
-        {
-            _content.Controls.Add(T("Gần đây", 15f, true, null, true));
-            foreach (var g in cho) _content.Controls.Add(LuotCard(g));
-        }
-    }
-
-    private Control ViecCard(HvNhiemVu v)
-    {
-        var card = Card();
-        card.Controls.Add(T($"{v.Ten}   ·   +{v.Diem} điểm", 14f, true));
-        if (!string.IsNullOrWhiteSpace(v.MoTa)) card.Controls.Add(T(v.MoTa, 12f, false, UI.Muted));
-        var han = HocVienView.HanText(v.Han, DateTimeOffset.Now);
-        var dong = new List<string> { HocVienView.TrangThaiText(v.TrangThai) };
-        if (han != null) dong.Add(han);
-        if (v.DangCho > 0) dong.Add($"{v.DangCho} bài chờ duyệt");
-        if (v.GiaoRieng) dong.Add("Ba Mẹ giao riêng");
-        card.Controls.Add(T(string.Join("  ·  ", dong), 11.5f, false, v.TrangThai == "can_bo_sung" ? UI.Warn : UI.Muted));
-        if (v.TrangThai == "can_bo_sung" && !string.IsNullOrWhiteSpace(v.LyDo))
-            card.Controls.Add(T("Ba Mẹ nhắn: " + v.LyDo, 12f, true, UI.Warn));
-        if (v.PhutToiThieu > 0 && v.TrangThai is "san_sang" or "dang_lam")
-            card.Controls.Add(T($"Làm ít nhất {v.PhutToiThieu} phút rồi mới nộp được.", 11.5f, false, UI.Muted));
-        var nut = HocVienView.NutText(v);
-        if (nut != null)
-        {
-            var b = Btn(nut, v.TrangThai == "san_sang", 220);
-            b.Height = Px(50);
-            b.Click += async (_, _) => await ViecAsync(v, b);
-            card.Controls.Add(b);
-        }
-        return card;
-    }
-
-    private Control LuotCard(HvLuot g)
-    {
-        var card = Card();
-        var diem = g.TrangThai == "duoc_duyet" && g.Diem.HasValue ? $"   ·   +{g.Diem} điểm" : "";
-        card.Controls.Add(T(g.Ten + diem, 13f, true));
-        var s = HocVienView.TrangThaiText(g.TrangThai);
-        if (!string.IsNullOrWhiteSpace(g.LyDo)) s += " · " + g.LyDo;
-        card.Controls.Add(T(s, 11.5f, false, g.TrangThai == "tu_choi" ? UI.Error : UI.Muted));
-        if (!string.IsNullOrWhiteSpace(g.LoiKhen)) card.Controls.Add(T("Ba Mẹ: " + g.LoiKhen, 12f, false, UI.GreenDark));
-        return card;
-    }
-
-    private async Task ViecAsync(HvNhiemVu v, Button b)
-    {
-        if (_busy) return;
-        if (v.TrangThai == "san_sang")
-        {
-            b.Enabled = false;
-            _busy = true;
-            Say("Đang nhận việc…", false);
-            var (kq, loi) = await HvApi.PostAsync<HvBatDauKq>($"hoc-vien/nhiem-vu/{v.Id}/bat-dau");
-            _busy = false;
-            if (kq == null) { Say(loi ?? "Chưa nhận được việc. Con thử lại nhé.", true); b.Enabled = true; return; }
-            await RefreshAsync();
-            Say($"Con đã nhận «{v.Ten}». Làm xong thì bấm Nộp bài nhé!", false);
             return;
         }
-        if (string.IsNullOrEmpty(v.Luot)) { Say("Con bấm Nhận việc trước nhé.", true); return; }
-        using var f = new NopBaiForm(v);
-        if (f.ShowDialog(this) == DialogResult.OK)
+        if (_kn.Loai == KetNoi.MatKetNoi || _s.MoOfflineDen != null) VeMatMang();
+
+        // Giờ chơi còn lại
+        var gio = TheDay();
+        var r = Trong(_cw);
+        var dau = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = Px(92), BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(8)) };
+        dau.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        dau.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var trai = HangNgang();
+        trai.Controls.Add(KhoiApp.Vien("dong_ho_cat"));
+        var cot = KhoiCon.Cot();
+        var nhan = T(_s.DangGioHoc ? "Đang giờ học · chỉ app học" : "Giờ chơi còn lại", 12.5f, false, UI.Muted, r / 2); nhan.Margin = new Padding(0, Px(2), 0, 0);
+        cot.Controls.Add(nhan);
+        _lblConPhut = T("", 40f, true, UI.Green, r); _lblConPhut.Margin = Padding.Empty;
+        cot.Controls.Add(_lblConPhut);
+        trai.Controls.Add(cot);
+        dau.Controls.Add(trai, 0, 0);
+        var xin = KhoiApp.NutGon("Xin Ba Mẹ thêm giờ", false, "gui", 46, 12f);
+        xin.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        xin.Click += (_, _) => MoThemGio(false);
+        dau.Controls.Add(xin, 1, 0);
+        gio.Controls.Add(dau);
+        _thanh = new ThanhTienDo { Width = r, Margin = new Padding(0, 0, 0, Px(10)) };
+        gio.Controls.Add(_thanh);
+        _lblDaChoi = T("", 12f, true, Clay.Chu2, r);
+        gio.Controls.Add(_lblDaChoi);
+        _lblApp = T("", 11f, false, UI.Muted, r);
+        gio.Controls.Add(_lblApp);
+        if (_s.NgoaiLeDen is { } den) gio.Controls.Add(KhoiCon.DongIcon("mo_khoa", $"Ba Mẹ mở cả máy đến {den.ToLocalTime():HH:mm}", r));
+        _content.Controls.Add(gio);
+        CapNhatSo();
+
+        // Sao của con · Nhiệm vụ hôm nay (hai thẻ ngang)
+        var nua = (_cw - Px(10)) / 2;
+        var hai = HangNgang();
+        hai.Margin = new Padding(0, 0, 0, Px(8));
+        var sao = KhoiApp.The(nua, vang: true);
+        sao.Margin = new Padding(0, 0, Px(10), 0);
+        var rn = KhoiApp.TrongThe(nua);
+        var soSao = _tq?.SoSao;
+        sao.Controls.Add(KhoiApp.DauThe("sao", "Sao của con", soSao is int ss ? AppConView.Sao(ss) : "…", Clay.DiemInk, 22f, rn, Clay.DiemInk, Clay.DiemSoft));
+        sao.Controls.Add(T(AppConView.TyLe(_tq?.Quy?.TyLe), 10.5f, false, Clay.DiemInk, rn));
+        if (_tq?.Quy?.DoiSao.Bat != false)
         {
-            await RefreshAsync();
-            if (f.Ket != null) Say(HocVienView.NopThongBao(f.Ket), false);
+            var doi = KhoiCon.Nut(AppConView.NutDoiSao(_tq?.Quy?.TyLe), false, rn, "dongho", 44, 11f);
+            doi.Click += (_, _) => MoThemGio(true);
+            sao.Controls.Add(doi);
         }
-    }
-
-    // ---------------------------------------------------------------- Phần quà & điểm
-
-    private void RenderQua()
-    {
-        if (VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có phần quà.", "Đang tải…")) return;
-        // Điểm: màu vàng CHỈ dành cho điểm (mau.ts) — chữ diemInk trên nền diemSoft 7,4:1.
-        var pts = Card(UI.PointSoft);
-        pts.Controls.Add(new ClayIcon { Size = new Size(Px(60), Px(60)), MauVien = UI.Card, Hinh = UI.Fluent("star"), Margin = new Padding(0, 0, 0, Px(2)) });
-        pts.Controls.Add(T("Điểm của con", 12.5f, false, UI.PointInk));
-        pts.Controls.Add(T($"{_tq.SoDu} điểm", 36f, true, UI.PointInk));
-        pts.Controls.Add(T(HocVienView.CapText(_tq.CapDo) + (_tq.DiemChoDuyet > 0 ? $" · {_tq.DiemChoDuyet} điểm đang chờ Ba Mẹ duyệt" : ""), 12f, false, UI.PointInk));
-        _content.Controls.Add(pts);
-
-        foreach (var p in _tq.PhieuCho)
+        hai.Controls.Add(sao);
+        var nv = KhoiApp.The(nua);
+        nv.Margin = Padding.Empty;
+        if (_tq == null)
         {
-            var c = Card();
-            c.Controls.Add(T($"{p.Ten}   ·   {p.Diem} điểm", 13f, true));
-            c.Controls.Add(T("Đã đổi, đang chờ Ba Mẹ trao quà cho con.", 11.5f, false, UI.Muted));
-            _content.Controls.Add(c);
+            nv.Controls.Add(KhoiApp.DauThe("tick", "Nhiệm vụ hôm nay", _loiTai != null ? "Chưa tải được" : "Đang tải…", UI.Ink, 16f, rn));
+            if (_loiTai != null) nv.Controls.Add(NutTaiLai("Tải lại", rn));
         }
-        if (_ch == null || _ch.Qua.Count == 0)
-            _content.Controls.Add(T(_ch == null ? "Chưa tải được danh sách quà." : "Ba Mẹ chưa đặt phần quà nào. Con cứ làm nhiệm vụ để tích điểm nhé!", 12.5f, false, UI.Muted, true));
         else
         {
-            _content.Controls.Add(T("Quà con có thể đổi", 15f, true, null, true));
-            foreach (var q in _ch.Qua) _content.Controls.Add(QuaCard(q));
+            var ds = Viec();
+            nv.Controls.Add(KhoiApp.DauThe("tick", "Nhiệm vụ hôm nay", $"{ds.Count} việc", UI.Ink, 22f, rn));
+            nv.Controls.Add(T(AppConView.TomTatViec(ds), 10.5f, true, ds.Any(x => x.Nhom != "cho_duyet") ? Clay.Canh : Clay.NgocInk, rn));
+            var xem = KhoiCon.Nut(ds.Count > 0 ? $"Xem {ds.Count} nhiệm vụ" : "Xem nhiệm vụ", true, rn, "tick", 44, 11f);
+            xem.Click += (_, _) => Select(MucApp.NhiemVu);
+            nv.Controls.Add(xem);
         }
-    }
+        hai.Controls.Add(nv);
+        // hai thẻ cao bằng nhau
+        hai.Layout += (_, _) => { var h = Math.Max(sao.PreferredSize.Height, nv.PreferredSize.Height); sao.MinimumSize = new Size(nua, h); nv.MinimumSize = new Size(nua, h); };
+        _content.Controls.Add(hai);
 
-    private Control QuaCard(HvQua q)
-    {
-        var card = Card();
-        card.Controls.Add(T($"{q.Ten}   ·   {q.Diem} điểm", 14f, true));
-        var s = HocVienView.QuaTrangThai(q) + (q.ChiCuoiTuan ? " · chỉ đổi vào cuối tuần" : "");
-        card.Controls.Add(T(s, 11.5f, true, q.Du ? UI.GreenDark : UI.Muted));
-        var b = Btn("Đổi quà", q.Du, 220, "wrapped_gift");
-        b.Height = Px(50);
-        b.Enabled = q.Du;
-        b.Click += async (_, _) => await DoiAsync(q, b);
-        card.Controls.Add(b);
-        return card;
-    }
-
-    private async Task DoiAsync(HvQua q, Button b)
-    {
-        if (_busy) return;
-        if (MessageBox.Show(this, $"Đổi «{q.Ten}» với {q.Diem} điểm nhé?", "AiiGrow", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-        b.Enabled = false;
-        _busy = true;
-        Say("Đang đổi quà…", false);
-        var (kq, loi) = await HvApi.PostAsync<HvDoiKq>($"hoc-vien/doi/{q.Id}");
-        _busy = false;
-        if (kq == null) { Say(loi ?? "Chưa đổi được. Con thử lại nhé.", true); b.Enabled = true; return; }
-        await RefreshAsync();
-        Say(HocVienView.DoiThongBao(kq, q.Ten), false);
-    }
-
-    // ---------------------------------------------------------------- Tin nhắn
-
-    /// <summary>Mục chưa có dữ liệu học viên: chưa ghép / đang tải / LỖI (lý do + «Thử lại»). true = đã vẽ, mục dừng ở đây.</summary>
-    private bool VeChuaCoDuLieu(string chuaGhep, string dangTai)
-    {
-        switch (HocVienView.TrangThaiTai(_s.Paired, _tq != null, _loiTai))
+        // Tin mới nhất của Ba Mẹ
+        var tin = _tq?.LoiKhen.OrderByDescending(l => l.Luc ?? DateTimeOffset.MinValue).FirstOrDefault();
+        if (tin != null)
         {
-            case TaiHocVien.Xong: return false;
-            case TaiHocVien.ChuaGhep: _content.Controls.Add(T(chuaGhep, 12.5f, false, UI.Muted, true)); return true;
-            case TaiHocVien.DangTai: _content.Controls.Add(T(dangTai, 12.5f, false, UI.Muted, true)); return true;
-            default:
-                var c = Card(UI.ErrorSoft);
-                c.Controls.Add(T("Chưa tải được", 14f, true, UI.Error));
-                c.Controls.Add(T(_loiTai!, 12f, false, UI.Error));
-                c.Controls.Add(NutThuLai());
-                _content.Controls.Add(c);
-                return true;
+            var t = TheDay();
+            var bang = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = Px(60), BackColor = Color.Transparent, Margin = Padding.Empty };
+            bang.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            bang.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            var ht = HangNgang();
+            ht.Controls.Add(KhoiApp.Vien("tin"));
+            var ct = KhoiCon.Cot();
+            var a = T("Ba Mẹ" + (tin.Luc is { } l ? " · " + l.ToLocalTime().ToString("HH:mm") : ""), 12f, true, UI.Ink, r - Px(240)); a.Margin = new Padding(0, Px(4), 0, Px(2));
+            var b = new Label { Text = "«" + tin.NoiDung + "»", AutoSize = false, AutoEllipsis = true, Width = r - Px(240), Height = Px(24), Font = UI.F(11.5f), ForeColor = Clay.Chu2, BackColor = Color.Transparent, UseMnemonic = false };
+            ct.Controls.Add(a); ct.Controls.Add(b);
+            ht.Controls.Add(ct);
+            bang.Controls.Add(ht, 0, 0);
+            var doc = KhoiApp.NutGon("Đọc tin", false, null, 44, 11.5f);
+            doc.Anchor = AnchorStyles.Right;
+            doc.Click += (_, _) => Select(MucApp.TinNhan);
+            bang.Controls.Add(doc, 1, 0);
+            t.Controls.Add(bang);
+            _content.Controls.Add(t);
+        }
+
+        if (_kn.Loai == KetNoi.MatKetNoi)
+        {
+            var chu = _s.MoOfflineDen != null ? "Hết giờ mở máy khoá lại" : "Vẫn «Chỉ app được phép»";
+            if (_s.NguLuc != null) chu += " · ngủ lúc " + _s.NguLuc;
+            var f = HangNgang();
+            f.Controls.Add(T(chu, 10.5f, false, UI.Muted, _cw - Px(140)));
+            f.Controls.Add(KhoiCon.LienKet("App khác? ›", null, () => XinMoClicked?.Invoke()));
+            _content.Controls.Add(f);
         }
     }
 
-    private Button NutThuLai()
+    /// <summary>Số phút / thanh / dòng app trên thẻ Giờ chơi — cập nhật tại chỗ.</summary>
+    private void CapNhatSo()
     {
-        var b = Btn("Thử lại", true, 180);
-        b.Click += async (_, _) => { b.Enabled = false; await RefreshAsync(); };
+        if (_lblConPhut == null || _lblConPhut.IsDisposed) return;
+        var con = ConPhutHienTai();
+        _lblConPhut.Text = con is double c ? AppConView.Phut(c) : "—";
+        _lblConPhut.ForeColor = con is <= 0 ? Clay.Canh : UI.Green;
+        var q = QuyHienTai();
+        if (_thanh != null) { _thanh.Visible = q != null; if (q is { } qq) _thanh.TiLe = AppConView.TiLe(qq.DaDung, qq.Tong); }
+        if (_lblDaChoi != null)
+        {
+            var phu = _kn.Loai == KetNoi.MatKetNoi ? (_s.MoOfflineDen != null ? " · thêm giờ bằng mã của Ba Mẹ" : " · mất mạng vẫn tính") : "";
+            _lblDaChoi.Text = q is { } x ? AppConView.DaChoi(x.DaDung, x.Tong) + phu : "";
+            _lblDaChoi.Visible = q != null;
+        }
+        if (_lblApp != null)
+        {
+            _lblApp.Text = AppConView.DungTheoApp(_s.DungTheoApp, _s.AppDuocPhep);
+            _lblApp.Visible = _lblApp.Text.Length > 0;
+        }
+    }
+
+    /// <summary>con-mat-mang 01 / 07: thẻ trấn an khi mất mạng (hoặc đang mở máy bằng mã của Ba Mẹ).</summary>
+    private void VeMatMang()
+    {
+        var c = TheDay();
+        var r = Trong(_cw);
+        if (_s.MoOfflineDen is { } den)
+            c.Controls.Add(KhoiCon.Dau("mo_khoa", KhoiCon.Mau.Ngoc, "Ba Mẹ đã mở máy bằng mã", $"Đến {den.ToLocalTime():HH:mm}. Luật khác vẫn giữ.", r));
+        else
+            c.Controls.Add(KhoiCon.Dau("wifi", KhoiCon.Mau.Cam, "Mất mạng rồi, không sao đâu!", "Máy vẫn tính giờ và giữ luật như cũ.", r));
+        var h = HangNgang();
+        var thu = KhoiApp.NutGon("Thử kết nối lại", true, "wifi");
+        thu.Margin = new Padding(0, 0, Px(12), 0);
+        thu.Click += (_, _) => { thu.Enabled = false; RetryClicked?.Invoke(); };
+        h.Controls.Add(thu);
+        if (_s.MoOfflineDen == null) h.Controls.Add(KhoiCon.LienKet("Có mạng mà vẫn lỗi? ›", null, () => HoiAiiGrowClicked?.Invoke()));
+        c.Controls.Add(h);
+        if (_s.BaiChoMang > 0) c.Controls.Add(KhoiCon.DongIcon("gui", $"Bài chờ gửi: {_s.BaiChoMang} · có mạng là tự gửi", r));
+        _content.Controls.Add(c);
+    }
+
+    /// <summary>con-mat-mang 08: AiiGrow (dịch vụ) không trả lời — máy vẫn giữ luật cũ; Bật lại · Gọi Ba Mẹ giúp · Hỏi AiiGrow cách sửa.</summary>
+    private void VeTrucTrac()
+    {
+        var c = TheDay();
+        var r = Trong(_cw);
+        c.Controls.Add(KhoiCon.Dau("canh_bao", KhoiCon.Mau.Cam, "AiiGrow bị trục trặc", "Không sao, máy vẫn giữ luật cũ.", r));
+        var con = ConPhutHienTai();
+        c.Controls.Add(T((con is double p ? $"Còn {AppConView.Phut(p)} chơi · " : "") + "vẫn chặn app lạ.", 11.5f, true, Clay.Chu2, r));
+        var bat = KhoiCon.Nut("Bật lại AiiGrow", true, r, "banhrang");
+        bat.Click += (_, _) => { bat.Enabled = false; RetryClicked?.Invoke(); };
+        c.Controls.Add(bat);
+        _content.Controls.Add(c);
+        _content.Controls.Add(T("Vẫn lỗi? Nhờ người lớn giúp nhé ↓", 11.5f, true, Clay.Chu2));
+        var nua = (_cw - Px(10)) / 2;
+        var hai = HangNgang();
+        hai.Margin = new Padding(0, 0, 0, Px(8));
+        foreach (var (icon, tieu, phu, nut, bam) in new (string, string, string, string, Action)[]
+        {
+            ("nguoi", "Ba Mẹ", "Gọi giúp", "Gọi Ba Mẹ giúp", () => Select(MucApp.TinNhan)),
+            ("dau_hoi", "AiiGrow", "Tự tìm lỗi", "Hỏi AiiGrow cách sửa", () => HoiAiiGrowClicked?.Invoke()),
+        })
+        {
+            var t = KhoiApp.The(nua);
+            t.Margin = new Padding(0, 0, Px(10), 0);
+            var rn = KhoiApp.TrongThe(nua);
+            t.Controls.Add(KhoiApp.DauThe(icon, phu, tieu, UI.Ink, 15f, rn));
+            var b = KhoiCon.Nut(nut, false, rn, null, 44, 11f);
+            b.Click += (_, _) => bam();
+            t.Controls.Add(b);
+            hai.Controls.Add(t);
+        }
+        _content.Controls.Add(hai);
+        _content.Controls.Add(T("Đừng tắt máy giữa chừng nhé. Bài đang làm vẫn được lưu.", 10.5f, false, UI.Muted));
+    }
+
+    private Button NutTaiLai(string chu, int rong)
+    {
+        var b = KhoiCon.Nut(chu, true, rong, "tro_lai", 44, 11f);
+        b.Click += async (_, _) => { b.Enabled = false; RetryClicked?.Invoke(); await RefreshAsync(); };
         return b;
     }
 
-    private void RenderTinNhan()
+    // ---------------------------------------------------------------- Nhiệm vụ (con-ngay-thuong 02 / 03)
+
+    private void RenderViec()
     {
-        var tq = _tq;
-        if (tq != null && tq.LoiKhen.Count > 0)
+        _title.Text = "Nhiệm vụ của con";
+        if (_tq == null)
         {
-            _content.Controls.Add(T("Ba Mẹ nhắn con", 15f, true, null, true));
-            foreach (var l in tq.LoiKhen) _content.Controls.Add(LoiKhenCard(l));
+            _sub.Text = "";
+            if (!_s.Paired) { _content.Controls.Add(T("Máy chưa ghép với Ba Mẹ nên chưa có nhiệm vụ.", 12.5f, false, UI.Muted)); return; }
+            if (_loiTai == null) { _content.Controls.Add(T("Đang tải nhiệm vụ…", 12.5f, false, UI.Muted)); return; }
+            // con-ngay-thuong 02: chưa tải được (mất mạng) — giờ chơi vẫn chạy
+            var c = TheDay();
+            var r = Trong(_cw);
+            var matMang = _kn.Loai == KetNoi.MatKetNoi;
+            c.Controls.Add(KhoiCon.Dau("wifi", KhoiCon.Mau.Cam, "Chưa tải được nhiệm vụ",
+                matMang ? "Máy đang mất mạng. Con xem Wi-Fi rồi bấm tải lại nhé." : _loiTai, r));
+            c.Controls.Add(NutTaiLai("Tải lại nhiệm vụ", r));
+            _content.Controls.Add(c);
+            var con = ConPhutHienTai();
+            if (con is double p) _content.Controls.Add(T($"Giờ chơi vẫn chạy như bình thường · còn {AppConView.Phut(p)}", 11f, false, UI.Muted));
+            return;
         }
-        if (_tin != null && _tin.Ds.Count > 0)
+        var ds = Viec();
+        _sub.Text = AppConView.BoViec(_tq.NhiemVu.Select(v => v.Bo).Concat(_tuCham?.Select(t => t.Bo) ?? Array.Empty<string?>()), ds.Count);
+        if (ds.Count == 0)
         {
-            _content.Controls.Add(T("Thông báo gần đây", 15f, true, null, true));
-            foreach (var x in _tin.Ds.Take(20))
-            {
-                var c = Card();
-                c.Controls.Add(T(x.Tieu, 13f, true));
-                if (!string.IsNullOrWhiteSpace(x.Noi)) c.Controls.Add(T(x.Noi, 12f, false, UI.Muted));
-                if (x.Luc != null) c.Controls.Add(T(x.Luc.Value.ToLocalTime().ToString("HH:mm dd/MM"), 11f, false, UI.Muted));
-                _content.Controls.Add(c);
-            }
+            var c = TheDay();
+            c.Controls.Add(KhoiCon.Dau("phao_hoa", KhoiCon.Mau.Ngoc, "Chưa có nhiệm vụ nào", "Ba Mẹ giao việc là con thấy ở đây ngay.", Trong(_cw)));
+            _content.Controls.Add(c);
         }
-        if (_content.Controls.Count == 0 && !VeChuaCoDuLieu("Máy chưa ghép với Ba Mẹ nên chưa có tin nhắn.", "Đang tải…"))
-            _content.Controls.Add(T("Chưa có tin nhắn nào.", 12.5f, false, UI.Muted, true));
+        void Muc(string nhom, string nhan)
+        {
+            var mot = ds.Where(v => v.Nhom == nhom || (nhom == "chua_lam" && v.Nhom == "tu_cham")).ToList();
+            if (mot.Count == 0) return;
+            _content.Controls.Add(KhoiApp.NhanMuc($"{nhan} ({mot.Count})", _cw));
+            foreach (var v in mot) _content.Controls.Add(DongViec(v));
+        }
+        Muc("lam_lai", "Ba Mẹ nhờ làm lại");
+        Muc("cho_duyet", "Chờ Ba Mẹ duyệt");
+        Muc("chua_lam", "Chưa làm");
+
+        var chan = TheDay(vang: true);
+        var rc = Trong(_cw);
+        chan.Controls.Add(KhoiApp.DauThe("sao", "Ba Mẹ duyệt xong là sao vào ví ngay", AppConView.ChanNhiemVu(_tq.SoSao, _tq.SoSaoChoDuyet), Clay.DiemInk, 12.5f, rc, Clay.DiemInk, Clay.DiemSoft));
+        _content.Controls.Add(chan);
     }
 
-    private Control LoiKhenCard(HvLoiKhen l)
+    private Control DongViec(ViecCon v)
     {
-        var card = Card();
-        card.Controls.Add(T("Ba Mẹ: " + l.NoiDung, 13f, true, UI.GreenDark));
-        if (!string.IsNullOrWhiteSpace(l.PhanHoi))
+        var phai = new List<Control>();
+        if (v.Nhom == "cho_duyet") phai.Add(KhoiApp.ChipCho("Chờ duyệt"));
+        else if (v.Nut != null)
         {
-            card.Controls.Add(T("Con: " + l.PhanHoi, 12f, false));
-            return card;
+            var b = KhoiApp.NutGon(v.Nut, true, v.Nhom == "tu_cham" ? "may_tinh" : v.NhiemVu?.BangChung == "ghi_am" ? "tai" : v.NhiemVu?.BangChung == "xong" ? "tick" : "camera", 40, 10.5f);
+            b.Click += async (_, _) => await LamViecAsync(v, b);
+            phai.Add(b);
         }
-        var row = Row(_tw);
-        foreach (var s in new[] { "Con cảm ơn ạ", "Con sẽ cố gắng", "Con yêu Ba Mẹ" })
+        if (v.Sao > 0) phai.Add(KhoiApp.ChipSao($"+{v.Sao} sao"));
+        var phu = v.Nhom == "lam_lai" && !string.IsNullOrWhiteSpace(v.LoiNhan) ? "Ba Mẹ: «" + v.LoiNhan + "»" : v.Phu;
+        return KhoiApp.Dong(_cw, v.Icon, v.Ten, phu, v.Nhom == "lam_lai" ? Clay.Canh : null, phai.ToArray());
+    }
+
+    /// <summary>Bấm nút của một việc: AiiRob ⇒ mở trang học; còn lại ⇒ nhận việc (nếu chưa) rồi mở hộp nộp bài.</summary>
+    private async Task LamViecAsync(ViecCon v, Button b)
+    {
+        if (v.Nhom == "tu_cham")
         {
-            var b = Btn(s, false, 180);
-            b.Height = Px(50);
-            b.Font = UI.F(11f, FontStyle.Bold);
-            var ch = s;
-            b.Click += async (_, _) => await TraLoiAsync(l, ch);
-            row.Controls.Add(b);
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppConView.AiiRobUrl) { UseShellExecute = true }); }
+            catch { Say("Chưa mở được AiiRob. Con nhờ Ba Mẹ giúp nhé.", true); }
+            return;
         }
-        card.Controls.Add(row);
-        return card;
+        var nv = v.NhiemVu;
+        if (nv == null || _busy) return;
+        if (string.IsNullOrEmpty(nv.Luot))
+        {
+            b.Enabled = false;
+            _busy = true;
+            var (kq, loi) = await HvApi.PostAsync<HvBatDauKq>($"hoc-vien/nhiem-vu/{nv.Id}/bat-dau");
+            _busy = false;
+            if (IsDisposed) return;
+            b.Enabled = true;
+            if (kq == null || string.IsNullOrEmpty(kq.Luot)) { Say(loi ?? "Chưa nhận được việc. Con thử lại nhé.", true); return; }
+            nv.Luot = kq.Luot;
+        }
+        Say("", false);
+        using var f = new NopBaiForm(nv);
+        var kqNop = f.ShowDialog(this);
+        if (kqNop == DialogResult.OK || f.Ket != null) await RefreshAsync();
+    }
+
+    // ---------------------------------------------------------------- Sao & quà (con-ngay-thuong 15 / 16)
+
+    private void RenderQua()
+    {
+        _title.Text = "Sao & quà";
+        _sub.Text = "";
+        if (_tq == null)
+        {
+            _content.Controls.Add(T(!_s.Paired ? "Máy chưa ghép với Ba Mẹ." : _loiTai ?? "Đang tải…", 12.5f, false, _loiTai != null ? UI.Error : UI.Muted));
+            if (_loiTai != null) _content.Controls.Add(NutTaiLai("Tải lại", Px(240)));
+            return;
+        }
+        var sao = _tq.SoSao;
+        var vi = TheDay(vang: true);
+        var r = Trong(_cw);
+        var bang = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = Px(104), BackColor = Color.Transparent, Margin = Padding.Empty };
+        bang.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        bang.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+        var trai = KhoiCon.Cot();
+        trai.Controls.Add(KhoiApp.DauThe("sao", "Con đang có", AppConView.Sao(sao), Clay.DiemInk, 24f, r / 2, Clay.DiemInk, Clay.DiemSoft));
+        if (_tq.SoSaoChoDuyet > 0) trai.Controls.Add(T($"+{_tq.SoSaoChoDuyet} sao chờ Ba Mẹ duyệt", 10.5f, true, Clay.DiemInk, r / 2));
+        bang.Controls.Add(trai, 0, 0);
+        var phai = KhoiCon.Cot();
+        phai.Anchor = AnchorStyles.Right;
+        phai.Controls.Add(T(AppConView.TyLe(_tq.Quy?.TyLe), 11f, true, Clay.DiemInk, r / 2));
+        if (_tq.Quy?.DoiSao.Bat != false)
+        {
+            var doi = KhoiApp.NutGon(AppConView.NutDoiSao(_tq.Quy?.TyLe), false, "dongho", 44, 11f);
+            doi.Margin = Padding.Empty;
+            doi.Click += (_, _) => MoThemGio(true);
+            phai.Controls.Add(doi);
+        }
+        bang.Controls.Add(phai, 1, 0);
+        vi.Controls.Add(bang);
+        _content.Controls.Add(vi);
+
+        var dau = HangNgang();
+        dau.Margin = new Padding(0, Px(6), 0, Px(4));
+        var lb = KhoiApp.NhanMuc("Đổi quà", Px(200)); lb.Margin = new Padding(Px(4), Px(12), Px(20), 0);
+        dau.Controls.Add(lb);
+        dau.Controls.Add(KhoiCon.LienKet("Quà của con ›", "qua", () => { _xemQuaCuaCon = true; Render(); }));
+        _content.Controls.Add(dau);
+
+        var now = DateTimeOffset.Now;
+        var qua = _ch?.Qua ?? new List<HvQua>();
+        if (_ch == null) _content.Controls.Add(T("Đang tải danh sách quà…", 12f, false, UI.Muted));
+        else if (qua.Count == 0) _content.Controls.Add(T("Ba Mẹ chưa đặt quà nào. Con làm nhiệm vụ để có sao nhé!", 12f, false, UI.Muted));
+        // quà đang chờ trao lên trước, rồi quà đủ sao, rồi theo số sao
+        foreach (var q in qua.OrderBy(q => q.ChoTraoTu == null).ThenBy(q => q.SoSao > sao).ThenBy(q => q.SoSao))
+        {
+            var (chu, du, choTrao) = AppConView.TrangThaiQua(q, sao, now);
+            var ph = new List<Control>();
+            if (du)
+            {
+                var b = KhoiApp.NutGon($"Đổi {q.SoSao} sao", true, "qua", 40, 10.5f);
+                var qq = q;
+                b.Click += (_, _) => MoDoiQua(qq, sao);
+                ph.Add(b);
+            }
+            else ph.Add(KhoiApp.ChipSao(AppConView.Sao(q.SoSao)));
+            _content.Controls.Add(KhoiApp.Dong(_cw, AppConView.IconQua(q), q.Ten, chu, choTrao ? Clay.Canh : du ? Clay.NgocInk : null, ph.ToArray()));
+        }
+    }
+
+    private void MoDoiQua(HvQua q, int sao)
+    {
+        using var h = new DoiQuaHop(q, sao);
+        var lam = false;
+        h.LamThemSao += () => lam = true;
+        h.ShowDialog(this);
+        if (lam) Select(MucApp.NhiemVu);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>con-ngay-thuong 16 «Quà của con»: chờ Ba Mẹ trao + đã nhận.</summary>
+    private void RenderQuaCuaCon()
+    {
+        _title.Text = "Quà của con";
+        _sub.Text = "";
+        _content.Controls.Add(KhoiCon.LienKet("‹ Đổi thêm quà", null, () => { _xemQuaCuaCon = false; Render(); }));
+        var now = DateTimeOffset.Now;
+        var cho = _tq?.PhieuCho ?? new List<HvPhieu>();
+        _content.Controls.Add(KhoiApp.NhanMuc("Chờ Ba Mẹ trao", _cw));
+        if (cho.Count == 0) _content.Controls.Add(T("Chưa có quà nào đang chờ.", 11.5f, false, UI.Muted));
+        foreach (var p in cho)
+            _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, $"Đổi {p.Diem} sao" + (p.Luc is { } l ? " · " + AppConView.LucNgan(l, now) : ""), null, KhoiApp.ChipCho("Chờ trao")));
+        var da = _viQua?.DaTrao ?? new List<HvQuaDaTrao>();
+        _content.Controls.Add(KhoiApp.NhanMuc("Đã nhận", _cw));
+        if (da.Count == 0) _content.Controls.Add(T(_viQua == null ? "Đang tải…" : "Ba Mẹ trao quà là con thấy ở đây.", 11.5f, false, UI.Muted));
+        foreach (var d in da)
+            _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", d.Ten, $"{d.Diem} sao" + (d.XuLyLuc is { } x ? " · Ba Mẹ trao " + x.ToLocalTime().ToString("dd/MM") : ""), null, KhoiApp.ChipNgoc("Đã nhận")));
+    }
+
+    // ---------------------------------------------------------------- Tin nhắn (con-ngay-thuong 17)
+
+    private void RenderTinNhan()
+    {
+        _title.Text = "Tin nhắn";
+        _sub.Text = "";
+        var tq = _tq;
+        if (tq == null && _tin == null)
+        {
+            _content.Controls.Add(T(!_s.Paired ? "Máy chưa ghép với Ba Mẹ nên chưa có tin nhắn." : _loiTai ?? "Đang tải…", 12.5f, false, _loiTai != null ? UI.Error : UI.Muted));
+            return;
+        }
+        var the = TheDay();
+        var r = Trong(_cw);
+        var ds = (tq?.LoiKhen ?? new List<HvLoiKhen>()).OrderBy(l => l.Luc ?? DateTimeOffset.MinValue).ToList();
+        if (ds.Count == 0) the.Controls.Add(T("Ba Mẹ nhắn là con thấy ở đây.", 11.5f, false, UI.Muted, r));
+        foreach (var l in ds)
+        {
+            the.Controls.Add(Bong("Ba Mẹ" + (l.Luc is { } lc ? " · " + lc.ToLocalTime().ToString("HH:mm") : ""), l.NoiDung, false, r));
+            if (!string.IsNullOrWhiteSpace(l.PhanHoi)) the.Controls.Add(Bong("Con", l.PhanHoi!, true, r));
+        }
+        var cho = tq == null ? null : AppConView.TinChoTraLoi(tq.LoiKhen);
+        if (cho != null)
+        {
+            var chips = new List<Control>();
+            foreach (var s in AppConView.TraLoiNhanh)
+            {
+                var b = KhoiApp.NutGon(s, false, null, 40, 10.5f);
+                b.Margin = new Padding(0, 0, Px(8), 0);
+                var ch = s;
+                b.Click += async (_, _) => await TraLoiAsync(cho, ch);
+                chips.Add(b);
+            }
+            the.Controls.Add(KhoiCon.Chips(r, chips.ToArray()));
+            var hang = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = ONhapClay.Than(_nhan) + VeThe.LeBong.Vertical, BackColor = Color.Transparent, Margin = Padding.Empty };
+            hang.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            hang.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            hang.Controls.Add(ONhapClay.Boc(_nhan, r - Px(120)), 0, 0);
+            var gui = KhoiApp.NutGon("Gửi", true, "gui", 44, 11.5f);
+            gui.Click += async (_, _) => { if (_nhan.Text.Trim().Length > 0) await TraLoiAsync(cho, _nhan.Text); };
+            hang.Controls.Add(gui, 1, 0);
+            the.Controls.Add(hang);
+        }
+        _content.Controls.Add(the);
+
+        if (_tin is { Ds.Count: > 0 })
+        {
+            _content.Controls.Add(KhoiApp.NhanMuc("Thông báo", _cw));
+            var now = DateTimeOffset.Now;
+            foreach (var x in _tin.Ds.Take(15))
+            {
+                var icon = x.Loai switch { "xac_nhan_qua" or "huy_qua" => "qua", "them_gio" => "dongho", "loi_khen" => "tin", "huy_hieu" => "sao", _ => "tick" };
+                var chu = string.IsNullOrWhiteSpace(x.Noi) ? x.Tieu : $"{x.Tieu} · {x.Noi}";
+                _content.Controls.Add(KhoiApp.Dong(_cw, icon, chu, x.Luc is { } l ? AppConView.LucNgan(l, now) : "", null));
+            }
+        }
+    }
+
+    /// <summary>Bong bóng tin: Ba Mẹ bên trái (thẻ sứ), Con bên phải (ngọc nhạt).</summary>
+    private Control Bong(string ai, string noi, bool con, int r)
+    {
+        var w = Math.Min(r - Px(60), Math.Max(Px(200), TextRenderer.MeasureText(noi, UI.F(11.5f)).Width + Px(40)));
+        var b = new ClayFlow
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            BackColor = con ? Clay.NgocSoft : Clay.The, BoGoc = Px(20), MinimumSize = new Size(w, 0), MaximumSize = new Size(w, 0),
+            Padding = VeThe.Pad(Px(14), Px(8), Px(14), Px(4)),
+            Margin = new Padding(con ? r - w : 0, 0, 0, Px(4)),
+        };
+        var rw = w - b.Padding.Horizontal;
+        var a = T(ai, 9.5f, true, con ? Clay.NgocInk : UI.Muted, rw); a.Margin = new Padding(0, 0, 0, Px(2));
+        b.Controls.Add(a);
+        b.Controls.Add(T(noi, 11.5f, false, UI.Ink, rw));
+        return b;
     }
 
     private async Task TraLoiAsync(HvLoiKhen l, string noi)
     {
         if (_busy) return;
+        var t = AppConView.CatTraLoi(noi);
+        if (t.Length == 0) return;
         _busy = true;
         Say("Đang gửi…", false);
-        var (kq, loi) = await HvApi.PostAsync<HvDongY>($"hoc-vien/loi-khen/{l.Id}/phan-hoi", new { phanHoi = noi });
+        var (kq, loi) = await HvApi.PostAsync<HvDongY>($"hoc-vien/loi-khen/{l.Id}/phan-hoi", new { phanHoi = t });
         _busy = false;
+        if (IsDisposed) return;
         if (kq == null) { Say(loi ?? "Chưa gửi được. Con thử lại nhé.", true); return; }
+        _nhan.Text = "";
+        Say("Đã nhắn Ba Mẹ.", false);
         await RefreshAsync();
-        Say("Đã nhắn lại Ba Mẹ.", false);
     }
 }

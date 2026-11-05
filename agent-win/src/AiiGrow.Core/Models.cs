@@ -83,19 +83,43 @@ public sealed class Policy
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
     public List<AppBiChan> BlockedApps { get; set; } = new();
-    /// <summary>Thiết kế 05/11 (L1): số sao hiện có của Con — dong-bo.windows CHƯA gửi (sao nằm ở hoc-vien/tong-quan); null ⇒ màn không ghi số.</summary>
+    /// <summary>Thiết kế 05/11 (L1): số sao hiện có của Con (dong-bo.windows.sao, = số dư điểm); null = máy chủ cũ ⇒ màn không ghi số.</summary>
     public int? Sao { get; set; }
-    /// <summary>05/11 (S1, server/lib/agent-windows.ts): quỹ phút chơi hôm nay (đã cộng thêm giờ / đổi sao) — «Đã chơi X / Y phút».</summary>
-    public int? QuyTongPhut { get; set; }
-    /// <summary>05/11 (S1): giờ ngủ {tu, den} «HH:mm» — màn «Đến giờ ngủ rồi · Máy mở lại lúc &lt;den&gt; sáng mai».</summary>
+    // ---- 05/11 quỹ giờ chơi (server/lib/agent-windows.ts — S1): agent đếm quỹ TẠI MÁY, kể cả lúc mất mạng (QuyTaiCho.cs)
+    /// <summary>Phút chơi còn lại hôm nay lúc máy chủ tính (0 = không được chơi); null = máy chủ cũ / máy dùng chung chưa chọn Con.</summary>
+    public double? QuyConPhut { get; set; }
+    /// <summary>Quỹ hôm nay (đã cộng thêm giờ / đổi sao) — «Đã chơi X / Y phút».</summary>
+    public double? QuyTongPhut { get; set; }
+    public double? QuyDaDung { get; set; }
+    /// <summary>App Giải trí đang được thả nhờ quỹ (đã trong AllowedApps, chữ thường .exe) — app tính giờ: ở tiền cảnh thì trừ quỹ.</summary>
+    public List<string> AppTinhGio { get; set; } = new();
     public KhungGio? GioNgu { get; set; }
+    public KhungGio? GioHoc { get; set; }
+    public bool DangGioHoc { get; set; }
+    /// <summary>Ngoại lệ Ba Mẹ mở cho máy này: App null = cả máy. Hết hạn ⇒ agent tự khoá lại như cũ (cả khi mất mạng).</summary>
+    public List<NgoaiLeMay> NgoaiLe { get; set; } = new();
+    /// <summary>Ngoại lệ đang mở trong lúc Ba Mẹ khoá / giờ ngủ: hết ngoại lệ thì khoá lại với lý do này («khoa» | «ngu»); null = không khoá.</summary>
+    public string? KhoaKhiHetNgoaiLe { get; set; }
+
+    /// <summary>Bản sao nông (QuyTaiCho thay danh sách mới ở bản sao, không sửa Policy đang giữ).</summary>
+    public Policy SaoNong() => (Policy)MemberwiseClone();
 }
 
-/// <summary>Khung giờ «HH:mm» → «HH:mm» (dong-bo.windows.gioNgu).</summary>
-public sealed class KhungGio
+/// <summary>Một ngoại lệ đang mở (dong-bo.windows.ngoaiLe): tới <see cref="Den"/>; <see cref="App"/> null = cả máy, có giá trị = .exe hoặc tên miền.</summary>
+public sealed class NgoaiLeMay
 {
-    public string Tu { get; set; } = "";
-    public string Den { get; set; } = "";
+    public DateTimeOffset Den { get; set; }
+    public string? App { get; set; }
+}
+
+/// <summary>Số giây Con đã chơi app tính giờ tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn giữ).</summary>
+public sealed class QuyDaDem
+{
+    public DateTimeOffset PolicyAt { get; set; }
+    public double Giay { get; set; }
+    /// <summary>Ngày (giờ máy) của <see cref="GiayNgay"/> — giây chơi từ nửa đêm, để quỹ ngày mới khi mất mạng qua đêm không về đầy sau khởi động lại.</summary>
+    public DateTime Ngay { get; set; }
+    public double GiayNgay { get; set; }
 }
 
 public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
@@ -258,6 +282,8 @@ public sealed class AgentConfig
     public DnsGiaDinhDaDat? DnsGiaDinh { get; set; }
     /// <summary>05/11 (L11): lời xin Con gửi lúc mất mạng — có mạng (đồng bộ được) dịch vụ tự gửi (<see cref="HangXinCho"/>).</summary>
     public HangXinCho XinCho { get; set; } = new();
+    /// <summary>05/11: giây đã chơi app tính giờ từ Policy cuối (QuyTaiCho) — mất mạng + khởi động lại vẫn trừ đúng quỹ.</summary>
+    public QuyDaDem? QuyDem { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

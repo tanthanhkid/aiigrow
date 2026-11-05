@@ -87,6 +87,18 @@ public sealed class TrayState
     public int? QuyPhut { get; set; }
     /// <summary>05/11: giờ máy mở lại sau giờ ngủ «HH:mm» (dong-bo.windows.moLaiLuc — S1). null = chưa có.</summary>
     public string? MoLaiLuc { get; set; }
+    /// <summary>05/11: phút chơi còn lại hôm nay, đã trừ phần đếm tại máy (QuyTaiCho) — «Giờ chơi còn lại 18 phút». null = máy chủ cũ.</summary>
+    public double? QuyConPhut { get; set; }
+    public double? QuyTongPhut { get; set; }
+    /// <summary>Đã chơi hôm nay (máy chủ + phần đếm tại máy).</summary>
+    public double? QuyDaDung { get; set; }
+    public bool DangGioHoc { get; set; }
+    /// <summary>Ngoại lệ cả máy đang mở tới lúc này (null = không).</summary>
+    public DateTimeOffset? NgoaiLeDen { get; set; }
+    /// <summary>Giờ ngủ «HH:mm» bắt đầu (dòng «ngủ lúc 21:30»). null = chưa đặt.</summary>
+    public string? NguLuc { get; set; }
+    /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
+    public int BaiChoMang { get; set; }
 }
 
 public sealed class PipeRequest

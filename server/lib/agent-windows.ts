@@ -65,6 +65,11 @@ export type PolicyWindows = {
   dangGioHoc?: boolean;
   /** Ngoại lệ đang mở cho máy này: `app` null = cả máy (mode tu_do, grantEndsAt = hạn). Hết hạn ⇒ agent tự khoá lại như cũ. */
   ngoaiLe?: { den: string; app: string | null }[];
+  /** Có ngoại lệ trong lúc máy đang bị khoá (Ba Mẹ khoá ⇒ "khoa", giờ ngủ ⇒ "ngu"): mọi ngoại lệ hết hạn thì agent khoá lại với lý do này
+   *  — kể cả khi mất mạng (agent-win QuyTaiCho). Không có ⇒ hết ngoại lệ thì về luật thường. */
+  khoaKhiHetNgoaiLe?: "khoa" | "ngu";
+  /** Số sao hiện có của Con (05/11, = số dư điểm) — chỉ khi đã biết Con. */
+  sao?: number;
 };
 
 const exe = (s: string) => s.toLowerCase().endsWith(".exe");
@@ -173,6 +178,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     nextCheckSec: nhipToiKhoaLai(Math.min(nhipDongBo({ coPhien: !!p.phien, moDen: den, now }),
       quyMo && p.quy!.conPhut <= 10 ? 60 : Infinity), [p.khoaLaiLuc, p.khoaHetLuc, ...nl.map((x) => x.den)], now),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
+    // 05/11: số sao của Con (= số dư điểm) — màn khoá / nhắc 5 phút của khay «con có 30 sao» (agent-win Policy.Sao)
+    ...(p.con ? { sao: p.soDu } : {}),
     ...(den ? { grantEndsAt: den.toISOString() } : {}),
     // Đang «mở» có hạn / còn quỹ ⇒ trang Giải trí mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
     web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || (moHet && (!p.quy || p.quy.conPhut > 0)) || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
@@ -180,6 +187,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
       dangGioHoc: dangHoc } : {}),
     gioNgu: p.lich.ngu, gioHoc: p.lich.hoc ?? null,
     ...(nl.length ? { ngoaiLe: nl.map((x) => ({ den: x.den, app: x.muc ? (laApp(x.muc) ? chuan(x.muc) : x.muc.toLowerCase()) : null })) } : {}),
+    ...(nl.length && khoaGoc ? { khoaKhiHetNgoaiLe: p.khoaNgay ? "khoa" as const : "ngu" as const } : {}),
     playChoices: [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && (laApp(l.muc) || kieuMuc(l.muc.toLowerCase()) === "web")).map((l) => (laApp(l.muc) ? chuan(l.muc) : l.muc.toLowerCase())))].sort().slice(0, 40),   // 40: đủ mọi mục Giải trí thường gặp (khay cuộn); agent chỉ nhận mục trong danh sách này
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
