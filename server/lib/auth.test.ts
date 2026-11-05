@@ -15,14 +15,15 @@ test("chuẩn hoá số điện thoại / email", () => {
   for (const s of ["", "123", "091234567", "lan@", null]) assert.equal(a.chuanDinhDanh(s), null, String(s));
 });
 
-test("đăng ký: OTP đúng ⇒ gia đình mới, Ba Mẹ là Chủ gia đình; OTP sai / dùng lại bị chặn", async () => {
+test("đăng ký: OTP đúng ⇒ gia đình mới, Ba Mẹ là người tạo nhà; OTP sai / dùng lại bị chặn", async () => {
   const { ma } = await a.guiOtp("0901000001", "dang_ky");
   assert.match(ma!, /^\d{6}$/);
   await loi(a.dangKy({ dinhDanh: "0901000001", ma: "000000" === ma ? "111111" : "000000", ten: "Lan", matKhau: "matkhau123" }), "otp_sai");
   await loi(a.dangKy({ dinhDanh: "0901000001", ma, ten: "Lan", matKhau: "ngan" }), "mk_ngan");
   const id = await a.dangKy({ dinhDanh: "+84 901 000 001", ma, ten: "Chị Lan", matKhau: "matkhau123" });
   const p = (await one<{ vai: string; family_id: string }>(`select vai, family_id from parents where id = $1`, [id]))!;
-  assert.equal(p.vai, "chu");
+  assert.equal(p.vai, "ba_me");                                   // L6: quyền Ba Mẹ + người tạo nhà (families.chu_id)
+  assert.equal((await one<{ chu_id: string }>(`select chu_id from families where id = $1`, [p.family_id]))!.chu_id, id);
   assert.equal((await one<{ ten: string }>(`select ten from families where id = $1`, [p.family_id]))!.ten, "Nhà Chị Lan");
   await loi(a.dangKy({ dinhDanh: "0901000001", ma, ten: "Lan", matKhau: "matkhau123" }), "otp_het_han");      // mã đã dùng
   await loi(a.guiOtp("0901000001", "dang_ky"), "da_co_tai_khoan");

@@ -12,6 +12,9 @@ const { taoPhien } = await import("./auth.ts");
 const { chinhSachWindows } = await import("./agent-windows.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 const { gioDiaPhuong } = await import("./gio.ts");
+const { q } = await import("./db.ts");
+const { laWebCam } = await import("./chan-co-ban.ts");
+const { luonChoiDuoc } = await import("./test-fixtures/nha.ts");
 
 const HOM = gioDiaPhuong(new Date(), "Asia/Ho_Chi_Minh").ngay;
 
@@ -54,7 +57,7 @@ test("agent gửi lịch sử web: lưu tổng theo ngày, gửi lại không c�
   assert.equal(tk.theoNgay.length, 7);
   assert.equal(tk.theoNgay.at(-1).ngay, HOM);
   assert.equal(tk.top[0].trangThai, "chua_xep");
-  assert.equal(tk.cheDoWeb, "mo");
+  assert.equal(tk.cheDoWeb, "chi_cho_phep", "Con mới «Chỉ app được phép» (L4) ⇒ web chỉ cho phép");
   assert.equal(tk.mayLoc.length, 1);
 });
 
@@ -82,13 +85,17 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "khanacademy.org", trangThai: "cho_phep" });
   await goiBm("luat", tokBm, { con, muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan" });
   const db = (await goiMay("dong-bo", tok, {})).body;
-  assert.equal(db.windows.web.cheDo, "mo");
-  assert.deepEqual(db.windows.web.chan, ["gamek.vn", "youtube.com"]);
+  // L4: Con mới «Chỉ app được phép» ⇒ web chỉ cho phép; web luôn chặn (người lớn / cờ bạc / bạo lực) có trong chan ở mọi chế độ
+  assert.equal(db.windows.web.cheDo, "chi_cho_phep");
+  assert.equal(db.cheDoChan, "chi_app_duoc_phep");
+  const rieng = (ds: string[]) => ds.filter((m) => !laWebCam(m));
+  assert.deepEqual(rieng(db.windows.web.chan), ["gamek.vn", "youtube.com"]);
+  assert.ok(db.windows.web.chan.includes("xnxx.com"));
   assert.ok(db.windows.web.cho.includes("khanacademy.org") && db.windows.web.cho.includes("classroom.google.com"));
   assert.ok(!db.windows.web.cho.includes("explorer.exe"), "chỉ tên miền, không .exe");
   // phiên điểm đang chạy cho youtube.com ⇒ youtube.com chuyển sang danh sách mở
   const co = chinhSachWindows({ ...db, phien: { id: "p", muc: "youtube.com", conPhut: 10 } });
-  assert.deepEqual(co.web.chan, ["gamek.vn"]);
+  assert.deepEqual(rieng(co.web.chan), ["gamek.vn"]);
   assert.ok(co.web.cho.includes("youtube.com"));
   assert.equal(co.web.choKhiMo, undefined, "mở nhờ phiên điểm ⇒ không phải choKhiMo");
   // đang «mở» có hạn ⇒ youtube.com mở nhờ cửa sổ ⇒ có trong choKhiMo (agent chặn lại khi hết hạn lúc mất mạng)
@@ -97,6 +104,18 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   const mo = chinhSachWindows({ ...db, serverTime: trua }, undefined, undefined, { moDen: new Date(new Date(trua).getTime() + 30 * 60000) });
   assert.ok(mo.web.cho.includes("youtube.com"));
   assert.deepEqual(mo.web.choKhiMo, ["youtube.com"]);
+  assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");
+  // Ba Mẹ chọn «Mở hết» ⇒ web mở (chỉ chặn trang Ba Mẹ chặn + web luôn chặn), trang Giải trí mở
+  assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" })).status, 200);
+  await luonChoiDuoc(con);                                           // route dùng đồng hồ thật — tránh giờ ngủ
+  const mh = (await goiMay("dong-bo", tok, {})).body;
+  assert.equal(mh.windows.web.cheDo, "mo");
+  assert.equal(mh.windows.mode, "tu_do");
+  assert.deepEqual(rieng(mh.windows.web.chan), ["gamek.vn"]);
+  assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "mo");
+  // Con cũ (che_do_chan null) ⇒ vẫn theo tham số web_chi_cho_phep như trước
+  await q(`update children set che_do_chan = null where id = $1`, [con]);
+  assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "mo");
   await goiBm(`con/${con}/cau-hinh`, tokBm, { web_chi_cho_phep: 1 });
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "chi_cho_phep");
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");

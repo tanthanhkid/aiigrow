@@ -3,7 +3,7 @@
 Mọi lỗi trả `{ "error": "<mã>", "message": "<câu cho người dùng, tiếng Việt>" }` kèm HTTP status. JSON vào/ra, `cache-control: no-store`.
 Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next chỉ chuyển tiếp) — test: `server/lib/api.test.ts`.
 
-## App Ba Mẹ — `/api/m/*` (Bearer = token phiên Ba Mẹ; vai `xem` chỉ GET)
+## App Ba Mẹ — `/api/m/*` (Bearer = token phiên Ba Mẹ; quyền «Người trông giúp» POST chỉ xem / duyệt / khoá máy — xem mục «S2 thiết kế 05/11»)
 
 | Nhóm | Đường |
 |---|---|
@@ -19,7 +19,7 @@ Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next
 | Phân loại | `GET luat` → luật gia đình + Allowlist hệ thống · `POST luat {con?, muc, ten?, loai: hoc\|giai_tri\|chan, nhom?}` |
 | Theo dõi | `GET canh-bao` · `POST canh-bao/:id/doc` · `GET nhat-ky?con=` |
 
-## Màn Con — `/api/kid/*` (Bearer = phiên PIN của Con, hoặc token thiết bị riêng của Con)
+## Màn Con — `/api/kid/*` (Bearer = phiên Con (chọn tên trên máy dùng chung — không PIN từ 05/11), hoặc token thiết bị riêng của Con)
 
 `GET toi` (Con, ví, hôm nay, lời khen) · `POST chao` (điểm chào mừng một lần) · `GET nhiem-vu` · `POST nhiem-vu/:id/bat-dau` → `{luot}` ·
 `POST luot/:id/nop {anh: [{mime, base64}], ghiChu?}` · `GET luot` · `GET cua-hang` · `POST doi/:quaId` · `GET vi-qua` · `GET lich-su` ·
@@ -32,7 +32,7 @@ Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next
 |---|---|
 | `POST ghep {ma, nen, tenMay}` | → `{deviceId, token, dungChung}` (không cần Bearer) |
 | `POST dong-bo {status?, clientTime?, usage?: [{muc, phut, day?}]}` | → Policy: `serverTime`, `gioMaySai`, `con`, `canChonCon`, `allowlistHeThong`, `luat[]` (mục, loại, nhóm, giá phần nghìn điểm/phút), `lich`, `khoaNgay`, `soDu`, `phien` |
-| `POST ho-so` / `POST pin {con, pin}` | máy dùng chung: danh sách hồ sơ / đăng nhập PIN → `{phienCon}`, gửi kèm header `X-Phien-Con` ở các lệnh sau |
+| `POST ho-so` / `POST chon-con {con}` (bí danh cũ `POST pin {con, pin}` — pin bỏ qua) | máy dùng chung: danh sách hồ sơ / Con chọn tên (không PIN, thiết kế 05/11) → `{phienCon}`, gửi kèm header `X-Phien-Con` ở các lệnh sau |
 | `POST phien/xet {muc}` | xét trước «Dùng điểm để chơi?» → `{duoc, lyDo?, cau?, phutToiDa, giaPhanNghin, soDu}` |
 | `POST phien/mo {muc}` · `POST phien/nhip {id, dangDung}` · `POST phien/dung {id}` | phiên giải trí; nhịp mỗi phút → `{trangThai, conPhut, canhBao: 5\|1\|null, lyDoKet?, nghiDen?}` |
 | `POST yeu-cau {loai, phut?, giaTri?, lyDo}` | gửi từ màn chặn |
@@ -209,6 +209,8 @@ Tham số mới: `dns_mat_truy_van_phut` 180 (30–1440) · `dns_vuot_gio_nguong
 
 ## Thành viên gia đình + thông báo trong app (FR-01.04, FR-08.01 — chỉ thêm)
 
+> **Phần thành viên dưới đây đã được thay bởi thiết kế 05/11** — xem mục «S2 thiết kế chốt 05/11» cuối tệp (2 quyền, mời bằng SĐT / email, link). Phần thông báo giữ nguyên.
+
 Xử lý: `server/lib/thanh-vien.ts`, `thong-bao.ts`, router `api-gia-dinh.ts` (api-m chuyển tiếp). Test: `thanh-vien.test.ts`.
 
 | Đường | Ý |
@@ -272,3 +274,72 @@ Thanh: *"danh sách ứng dụng load trực tiếp từ máy thực tế để 
   `khong_thay_app`). Máy riêng ⇒ luật riêng của Con; máy dùng chung ⇒ luật cả nhà. «Cho phép» = `loai hoc` + `nhom cho_phep` (thời gian màn hình tính Tiện ích).
   Hoàn tác: `luat` với `truoc` / `luat/xoa` khi `truoc` null.
 - `POST may/:id/ung-dung/lam-moi` → `{yeuCauLuc}`.
+
+## S2 thiết kế chốt 05/11 — gia đình 2 quyền, chặn 2 chế độ, bỏ PIN, lần đầu, ghép máy (L4–L8, `docs/KE-HOACH-KHOP-THIET-KE-0511.md`)
+
+Xử lý: `server/lib/quyen.ts`, `thanh-vien.ts`, `chan-co-ban.ts`, `che-do-chan.ts`, `thiet-lap.ts`, `ghep-may.ts`. Test: `s2-gia-dinh-chan.test.ts`, `thanh-vien.test.ts`, `agent-windows.test.ts`.
+Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy cho app / agent bản trước; chỗ đổi nghĩa ghi rõ dưới.
+
+### Quyền (L6)
+
+- `parents.vai`: **`ba_me`** (làm được hết) · **`trong_giup`** (Người trông giúp) · `roi`. Dữ liệu cũ đã đổi: `chu`, `duyet` ⇒ `ba_me`; `xem` ⇒ `trong_giup`. Người tạo nhà: `families.chu_id` (chỉ người này xoá được cả nhà; không ai đổi quyền / mời ra người này).
+- `GET toi` → `baMe {id, ten, dinhDanh, quyen, laChuNha, vai}` — `vai` là giá trị **kiểu cũ** cho app bản trước (`chu` = người tạo nhà, `duyet` = Ba Mẹ khác, `xem` = Người trông giúp).
+- Người trông giúp: mọi `GET`; `POST` chỉ: `con/:id/khoa`, `con/:id/loi-khen`, `luot/:id/duyet|tu-choi|hoan-tac`, `duyet-hang-loat`, `yeu-cau/:id/dong-y|tu-choi`, `phieu/:id/xac-nhan|huy`, `phien/:id/dung`, `thong-bao/*`, `moi/nhan`, `thanh-vien/roi-nha`, `dang-xuat`, `xoa-tai-khoan` (danh sách: `quyen.ts` › `trongGiupDuoc` — đường POST mới thuộc loại «xem / duyệt / khoá máy» phải thêm vào đây). Còn lại ⇒ 403 `chi_xem`. `GET may/:id/ma-offline` mở cho cả Người trông giúp.
+- Gỡ máy (`may/:id/go`, `go-tu-xa`) và gỡ tại máy bằng mật khẩu: mọi **Ba Mẹ** (trước: chỉ Chủ).
+
+### Mời người nhà (L6) — bỏ mã gõ tay
+
+| Đường | Ý |
+|---|---|
+| `POST thanh-vien/moi {dinhDanh, quyen: ba_me\|trong_giup, tenGoi?}` | Ba Mẹ mời bằng SĐT / email → `{id, ma, lienKet, quyen, vai, tenGoi, dinhDanh, het, chiaSe{tieuDe, noiDung, lienKet}}`. `ma` = token 16 ký tự trong link (trả MỘT lần, lưu băm, hạn 72 giờ). Mời lại đúng SĐT / email ⇒ huỷ lời mời cũ. Lỗi: `dinh_danh_sai` · `da_trong_nha` 409 · `quyen_sai` · `qua_nhieu_loi_moi` 409 (5) · `du_thanh_vien` 409 (8). App cũ gửi `{vai: duyet\|xem}` không định danh vẫn được (lời mời chỉ qua link). Máy chủ chưa gửi SMS / email — app chia sẻ `chiaSe` qua Zalo / Tin nhắn / Messenger / Sao chép |
+| `GET thanh-vien` | `{ds[{id, ten, quyen, tenQuyen, laChuNha, vai(cũ), dinh_danh, laToi}], loiMoi[{id, quyen, vai(cũ), tenGoi, dinhDanh, het, guiLuc}] (đang chờ, còn hạn), toi{id, quyen, vai, laChuNha}, hanGio}` |
+| `POST thanh-vien/moi/:id/gui-lai` | «Gửi lại»: link MỚI (link cũ chết), hạn thêm 72 giờ — kể cả lời mời đã quá hạn; đã nhận / đã huỷ ⇒ 404 |
+| `POST thanh-vien/moi/:id/huy` | huỷ |
+| `POST thanh-vien/:id/quyen {quyen}` (bí danh `/vai {vai}`) | đổi quyền → `{quyen, vai}`. Lỗi `khong_doi_chu` 409 (người tạo nhà), `khong_tu_doi` 409 |
+| `POST thanh-vien/:id/moi-ra` | mời ra (vai `roi`, xoá phiên). Không mời ra người tạo nhà |
+| `POST thanh-vien/roi-nha` | «Rời nhà?»: người không phải người tạo nhà rời đi, giữ tài khoản — sang một nhà trống mới của mình. Người tạo nhà ⇒ 409 `chu_khong_roi` (dùng xoá tài khoản) |
+| `GET moi/:ma` (không đăng nhập) | xem trước → `{tenGiaDinh, nguoiMoi, quyen, tenQuyen, tenGoi, tenCon[], het, vai(cũ), tenVai}` |
+| `POST moi/dang-ky {ma, dinhDanh, otp, ten, matKhau}` (không đăng nhập) | tạo tài khoản bằng link → `{token}` |
+| `POST dang-ky` / `POST dang-nhap` | trả thêm `loiMoi[]` = lời mời đang chờ gửi tới đúng SĐT / email này ⇒ app rẽ nhánh «Vào nhà cùng …» (không tạo Con) |
+| `GET moi/cho-toi` | lời mời đang chờ cho SĐT / email của người đang đăng nhập → `{ds[{id, tenGiaDinh, nguoiMoi, quyen, tenQuyen, tenGoi, tenCon[], het}]}` |
+| `POST moi/nhan {id}` hoặc `{ma}` | «Vào nhà» một lệnh: `id` (lời mời gửi tới đúng định danh của mình) hoặc `ma` (token link) → `{quyen, vai}`. Tài khoản phải còn trống (chưa Con / máy / người lớn khác) — `gia_dinh_co_du_lieu` 409 |
+
+Đăng nhập Google / Facebook: **chưa có** ở máy chủ (cần app OAuth — chờ Thanh); khi có, chỉ cần định danh (email) khớp `loi_moi.dinh_danh` là `moi/cho-toi` thấy lời mời.
+
+### Chặn app 2 chế độ (L4)
+
+| Đường | Ý |
+|---|---|
+| `GET con/:id` | thêm `cheDoChan: chi_app_duoc_phep\|mo_het`; `coPin` luôn `false` |
+| `POST con/:id/che-do-chan {cheDo}` | Ba Mẹ đổi chế độ → `{cheDoChan, ten}`. Lỗi `che_do_chan_sai` |
+| `POST con/:id/app-cho-phep {apps: [{ma} \| {ten, tinhGio?}]}` | cho Con dùng thêm app (không bỏ app cũ). `ma` = app trong lưới ⇒ luật cho MỌI định danh (exe / bundle / gói / tên miền). `{ten}` («Thêm app khác») ⇒ khớp tên với app thật máy của Con đã báo; chưa thấy thì chờ (`app_theo_ten`) và tự khớp khi máy gửi `POST /api/device/ung-dung`. `tinhGio`: true ⇒ `giai_tri` (tính vào giờ chơi), false ⇒ `hoc`. → `{daDat[{ten, muc[]}], choKhop[ten]}` |
+| `GET app-goi-y?con=` | lưới app → `{ds[{ma, ten, tinhGio, chon}]}` (`chon` = Rob chọn sẵn theo nhóm tuổi) |
+| `GET luon-chan` | `{nhom[{ma: nguoi_lon\|co_bac\|bao_luc, ten, soTrang}], cheDo[{ma, ten}]}` |
+| `POST luat` | web luôn chặn với `loai` ≠ `chan` ⇒ 409 `web_cam` |
+| `POST may/:id/che-do {cheDo}` | chỉ còn `chan`; `giam-sat` ⇒ 409 `che_do_bo` |
+
+Agent: `POST /api/device/xin-duyet {muc, ten?, lyDo?}` và `POST /api/kid/xin-duyet` (cùng thân) — Con «Xin Ba Mẹ mở …» app / web lạ ⇒ yêu cầu `cai_app` (app) / `mo_web` (web) chờ duyệt → `{id, trang_thai: "cho", daCo, loai, muc}`; đã có lời xin chờ cho đúng mục ⇒ trả lời xin đó (`daCo: true`); web luôn chặn ⇒ 409 `web_cam`. `POST yeu-cau` loại `mo_web` / `cai_app`: `lyDo` không bắt buộc nữa. Ba Mẹ duyệt như cũ (`yeu-cau/:id/dong-y {phanLoai, phamVi}`) — không trừ điểm.
+
+Policy (`POST /api/device/dong-bo`): thêm `cheDoChan`, `webLuonChan[]` (tên miền luôn chặn, gồm tên miền con); `webChiChoPhep` = (Con có chế độ rõ ⇒ `cheDoChan === chi_app_duoc_phep`; Con cũ `che_do_chan` null ⇒ tham số `web_chi_cho_phep` như trước).
+`windows` (Windows + Mac): `cheDo` **luôn `chan`** (trừ máy đang có lệnh gỡ ⇒ `giam-sat`); Con «Mở hết» ⇒ `mode: tu_do` không `grantEndsAt` (khoá ngay / giờ ngủ vẫn `khoa`), `web.cheDo: mo`, trang Giải trí mở; `web.chan` luôn chứa `webLuonChan`, `web.cho` không bao giờ chứa chúng; `blockedApps` vẫn áp.
+Chính sách chung (`chinh-sach.ts`, Android / iOS / DNS): `ungDung.cheDoChan`, `ungDung.webLuonChan`, `ungDung.chuaXep: chan\|cho_phep` (Mở hết ⇒ `cho_phep`).
+
+### Bỏ PIN hồ sơ Con (L5)
+
+`POST con` / `con/:id/sua`: `pin` bỏ qua (không lưu, không lỗi). Agent: `POST /api/device/chon-con {con}` (bí danh `pin`, `pin` bỏ qua) → `{phienCon}`. Máy riêng của Con chỉ chọn được chính Con đó.
+
+### Thiết lập lần đầu (L7)
+
+`POST thiet-lap {con: {id?, ten, namSinh?, avatar?}, gioChoi?: {ngayThuong, cuoiTuan}, ngu?: {tu: "HH:MM", den: "HH:MM"}, cheDoChan?, apps?: [...]}` — một lệnh cho màn tên Con + Giờ chơi + Chọn app. Gửi lại với `con.id` ⇒ sửa, không tạo Con thứ hai. → `{conId, ten, cheDoChan, gioChoi{ngayThuong, cuoiTuan}, ngu{tu, den}, soApp, app{daDat, choKhop}}`. `GET con/:id/thiet-lap` → cùng tóm tắt (màn «Đã ghép máy» / «Xong rồi»).
+**Quỹ giờ chơi** lưu ở `children.cau_hinh`: `quy_phut_ngay_thuong`, `quy_phut_cuoi_tuan` (phút / ngày, 0–480) — phần tính quỹ là việc nhánh S1 (L2); S1 đổi tên khoá thì đổi ở `thiet-lap.ts` › `datQuyGio` + `ghep-may.ts` (chép cấu hình chép nguyên `cau_hinh`). Giờ ngủ ghi `children.lich.ngu`.
+Lỗi: `phut_sai`, `gio_sai`, `che_do_chan_sai`, `app_sai`. Nhánh «Tôi được mời vào nhà» không gọi đường này (xem `moi/cho-toi`, `moi/nhan`).
+
+### Ghép máy (L8)
+
+| Đường | Ý |
+|---|---|
+| `POST ghep-may {con?, giongMay?, nen?}` | một lần «Ghép máy» → `{ma, maHien: "482 017", het, hanPhut: 10, conGiay, lienKet, qr, tokenGoi, hetGoi, con, giongMay, chiaSe{tieuDe, noiDung, lienKet}}`. `nen` bỏ trống (mặc định) = không gắn loại máy. `lienKet` = `<gốc>/tai?g=<tokenGoi>&ma=<ma>`: trang tải tự nhận loại máy, trao `g` cho bộ cài ⇒ bộ cài gọi `POST /api/device/ghep-goi {token: g, nen, tenMay}` là tự ghép (hạn `goi_cai_gio`, mặc định 48 giờ); mã 6 số là dự phòng (`POST /api/device/ghep {ma, nen, tenMay}`). Máy ghép bằng đường nào thì đường kia hết dùng. `giongMay` = id máy trong nhà ⇒ «Cài giống máy trước»: lúc ghép chép chế độ chặn, giờ ngủ + khung giờ, cấu hình (quỹ phút…), luật app/web lâu dài, app chờ khớp tên của Con dùng máy đó sang Con của máy mới (cùng Con thì không cần chép; luật riêng sẵn có của Con đích giữ) |
+| `GET ghep-may/:ma` | màn «Đang chờ máy của con» → `{daGhep, hetHan, conGiay, con, may{id, ten, nen}\|null}` |
+| `POST ma-ghep {con?, nen?}` | đường cũ: `{ma, hanPhut: 10}`; `nen` trống ⇒ không gắn loại máy |
+
+Máy Windows / Mac mới ghép ⇒ `che_do = chan` ngay (kể cả máy dùng chung).

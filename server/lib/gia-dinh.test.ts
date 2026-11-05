@@ -12,14 +12,18 @@ const { taoNha } = await import("./test-fixtures/nha.ts");
 
 const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 
-test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, PIN 4–6 số, nhiều Con mỗi gia đình", async () => {
+test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi gia đình; PIN (app cũ gửi) bỏ qua; Con mới «Chỉ app được phép»", async () => {
   const { fam } = await taoNha();
   const nam = new Date().getFullYear();
   const ken = await g.taoCon(fam, { ten: "Ken", namSinh: nam - 9, pin: "1234" });
   const bill = await g.taoCon(fam, { ten: "Bill", namSinh: nam - 13 });
   const ds = await g.dsCon(fam);
   assert.deepEqual(ds.map((c) => [c.ten, c.nhom]), [["Ken", "nhi"], ["Bill", "teen"]]);
-  await loi(g.taoCon(fam, { ten: "X", pin: "12" }), "pin_sai_dang");
+  // L5: PIN bỏ qua, không lưu
+  const x = await g.taoCon(fam, { ten: "X", pin: "12" });
+  assert.equal((await q<{ pin_hash: string | null; che_do_chan: string }>(`select pin_hash, che_do_chan from children where id = $1`, [ken]))[0].pin_hash, null);
+  assert.equal((await q<{ che_do_chan: string }>(`select che_do_chan from children where id = $1`, [x]))[0].che_do_chan, "chi_app_duoc_phep");
+  await g.suaCon(fam, x, { pin: "9" });
   await loi(g.taoCon(fam, { ten: "" }), "thieu_ten");
   await g.suaCon(fam, bill, { nhom: "nhi", avatar: "rob-sao" });
   assert.equal((await g.conCua(fam, bill)).nhom, "nhi");
@@ -62,6 +66,9 @@ test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn;
   const ma = await g.taoMaGhep(fam, con, "windows");
   assert.match(ma, /^\d{6}$/);
   await loi(g.ghepMay(ma, "android", "Máy lạ"), "sai_nen_tang");
+  // L8: hạn 10 phút
+  const han = (await q<{ p: number }>(`select extract(epoch from expires_at - now())::int as p from pair_codes where code = $1`, [ma]))[0].p;
+  assert.ok(han > 9 * 60 && han <= 10 * 60, String(han));
   const r = await g.ghepMay(ma, "windows", "Laptop của Na");
   assert.equal(r.dungChung, false);
   await loi(g.ghepMay(ma, "windows", "Laptop 2"), "ma_da_dung");
@@ -76,11 +83,11 @@ test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn;
   assert.equal(gs.muc, "mot_phan");
   assert.deepEqual(gs.thieu.map((x) => x.ma), ["chanThat"]);
   assert.match(gs.thieu[0].cach, /Chặn thật/);
-  // máy mới ghép: Ba Mẹ (mặc định) đã chọn Chặn thật ⇒ «đang chờ máy nhận», không bảo Ba Mẹ đi bật; Ba Mẹ chủ ý Chỉ theo dõi ⇒ nói là lựa chọn của Ba Mẹ
+  // thiết kế 05/11: máy luôn chặn thật ⇒ mọi máy chưa chặn đều «đang chờ máy nhận», không bảo Ba Mẹ đi bật
   assert.deepEqual([m.che_do, m.che_do_ba_me], ["chan", true]);
   assert.match(g.chiTietBaoVe({ ...m, status: thô }).thieu[0].cach, /Máy đang chuyển sang Chặn thật — máy đổi ở lần đồng bộ tới/);
-  assert.match(g.chiTietBaoVe({ ...m, che_do: "giam-sat", status: thô }).thieu[0].cach, /Ba Mẹ đang để máy Chỉ theo dõi/);
-  assert.match(g.chiTietBaoVe({ ...m, che_do_ba_me: false, status: thô }).thieu[0].cach, /Muốn chặn: mở app Ba Mẹ/);
+  assert.match(g.chiTietBaoVe({ ...m, che_do: "giam-sat", status: thô }).thieu[0].cach, /Máy đang chuyển sang Chặn thật/);
+  assert.match(g.chiTietBaoVe({ ...m, che_do_ba_me: false, status: thô }).thieu[0].cach, /Máy đang chuyển sang Chặn thật/);
   assert.equal(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true } }).muc, "day_du");
   const gc = "Win Home: chặn bằng cách đóng app";
   assert.match(g.chiTietBaoVe({ ...m, status: { ...thô, cheDo: "chan", appLockerApplied: true, ghiChuBaoVe: gc } }).cau, /Win Home/);
@@ -99,25 +106,22 @@ test("ghép máy: mã 6 số dùng một lần, đúng nền tảng, còn hạn;
   assert.equal(await g.mayTuToken(r.token), undefined);
 });
 
-test("máy dùng chung: Con chọn hồ sơ bằng PIN; sai 5 lần ⇒ tạm khoá; đặt lại PIN ⇒ phiên cũ chết; Con nhà khác không vào được", async () => {
+test("máy dùng chung (L5): Con chọn TÊN (không PIN) ⇒ phiên Con; Con nhà khác không vào được; máy riêng chỉ của chính Con", async () => {
   const { fam } = await taoNha();
-  const a = await g.taoCon(fam, { ten: "An", pin: "1111" });
-  const b = await g.taoCon(fam, { ten: "Bin", pin: "2222" });
+  const a = await g.taoCon(fam, { ten: "An" });
+  const b = await g.taoCon(fam, { ten: "Bin" });
   const r = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "Máy chung");
   assert.equal(r.dungChung, true);
   const may = (await g.mayTuToken(r.token))!;
-  const tok = await g.dangNhapPin(may, a, "1111");
+  const tok = await g.chonCon(may, a);
   assert.equal((await g.conTuPhien(tok))!.ten, "An");
-  for (let i = 0; i < 5; i++) await loi(g.dangNhapPin(may, b, "0000"), "pin_sai");
-  await loi(g.dangNhapPin(may, b, "2222"), "pin_tam_khoa");
-  await g.suaCon(fam, a, { pin: "3333" });
-  assert.equal(await g.conTuPhien(tok), undefined, "đặt lại PIN ⇒ đăng xuất Con");
+  const tokB = await g.dangNhapPin(may, b, "sai-cung-duoc");          // tên cũ — PIN bỏ qua
+  assert.equal((await g.conTuPhien(tokB))!.ten, "Bin");
   const nha2 = await taoNha("Hoa");
-  const la = await g.taoCon(nha2.fam, { ten: "Lạ", pin: "1111" });
-  await loi(g.dangNhapPin(may, la, "1111"), "khong_thay");
-  // máy riêng của An: Bin không đăng nhập được trên máy đó
+  const la = await g.taoCon(nha2.fam, { ten: "Lạ" });
+  await loi(g.chonCon(may, la), "khong_thay");
   const rieng = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, a, "windows"), "windows", "Laptop An")).token))!;
-  await loi(g.dangNhapPin(rieng, b, "2222"), "khong_thay");
+  await loi(g.chonCon(rieng, b), "khong_thay");
 });
 
 test("ví điểm: không âm, trừ song song không vượt số dư; điều chỉnh tay cần lý do và tính là ngoại lệ", async () => {

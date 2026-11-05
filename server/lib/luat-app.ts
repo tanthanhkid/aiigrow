@@ -3,6 +3,7 @@
 import { q, one, type Q } from "./db.ts";
 import { heThong } from "./he-thong.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { laWebCam } from "./chan-co-ban.ts";
 
 export type LoaiMuc = "hoc" | "giai_tri" | "chan";
 export type NhomGiaiTri = "game" | "video_ngan" | "mxh" | "phim_gd" | "khac";
@@ -71,6 +72,8 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   if (khoaSo(muc).some((k) => allowlistHieuLuc().includes(k))) throw new LoiNghiepVu("he_thong", "Mục này thuộc danh sách hệ thống, luôn được dùng", 409);
   const loai = ["hoc", "giai_tri", "chan"].includes(String(b.loai)) ? String(b.loai) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn Học tập, Giải trí hoặc Chặn");
+  // L4: web người lớn / cờ bạc / bạo lực luôn chặn — không ai cho phép được (lib/chan-co-ban.ts)
+  if (loai !== "chan" && laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này thuộc nhóm luôn chặn (người lớn, cờ bạc, bạo lực) — không mở được", 409);
   // «Cho phép» (màn Ứng dụng trên máy): luật hoc + nhóm cho_phep — dùng mọi lúc, không trừ điểm; thống kê màn hình tính Tiện ích (man-hinh.ts › xepMuc)
   const nhom = loai === "hoc" && b.nhom === "cho_phep" ? "cho_phep" : (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
   const con = b.con ?? "";

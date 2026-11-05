@@ -1,4 +1,4 @@
-// API màn Con: /api/kid/<đường>. Bearer = phiên Con (đăng nhập PIN trên máy dùng chung / web Con) HOẶC token của thiết bị riêng của Con.
+// API màn Con: /api/kid/<đường>. Bearer = phiên Con (chọn tên trên máy dùng chung — L5 không PIN) HOẶC token của thiết bị riêng của Con.
 // Con chỉ thấy dữ liệu của chính mình; không thấy cấu hình nội bộ của Ba Mẹ, chỉ bảng quy tắc công khai (FR-06.05).
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { bearer } from "./auth.ts";
@@ -13,6 +13,7 @@ import { lichSu } from "./vi.ts";
 import { chaoMung, thanhTich } from "./thanh-tich.ts";
 import { homNay } from "./bao-cao.ts";
 import * as tre from "./choi-tre.ts";
+import { xinDuyet } from "./che-do-chan.ts";
 
 export async function conGoi(req: Request): Promise<(Con & { device_id: string | null }) | null> {
   const t = bearer(req);
@@ -28,7 +29,7 @@ export async function conGoi(req: Request): Promise<(Con & { device_id: string |
 export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
   try {
     const c = await conGoi(req);
-    if (!c) return loi("chua_dang_nhap", "Nhập mã PIN để vào nhé", 401);
+    if (!c) return loi("chua_dang_nhap", "Chọn tên con để vào nhé", 401);
     const get = req.method === "GET", post = req.method === "POST", d = p.join("/");
     const b = post ? await docJson(req) : {};
     if (d === "toi" && get) {
@@ -54,6 +55,8 @@ export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
       return json({ ...r, trang_thai: tuDong ? "dong_y" : r.trang_thai });
     }
     if (p[0] === "yeu-cau" && p[2] === "huy" && post) { await yc.huyYeuCau(c.id, p[1]); return json({ ok: true }); }
+    // L4: «Xin Ba Mẹ duyệt» app / web lạ (lý do không bắt buộc)
+    if (d === "xin-duyet" && post) return json(await xinDuyet(c.id, c.device_id, b));
     if (d === "quy-tac" && get) {
       const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [c.family_id]))!;
       const ts = thamSo(f.cau_hinh, c.cau_hinh);

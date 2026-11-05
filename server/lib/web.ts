@@ -14,6 +14,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { cheDoCua } from "./lenh-may.ts";
 import type { May } from "./gia-dinh.ts";
 import type { Policy } from "./may-con.ts";
+import { laWebCam, WEB_LUON_CHAN } from "./chan-co-ban.ts";
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
 const TEN_MIEN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
@@ -90,8 +91,10 @@ export async function thongKeWeb(fam: string, con: string, soNgay = 7, now = new
     `select child_id, muc, loai from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3) order by muc`, [fam, con, now]))
     .filter((r) => kieuMuc(r.muc) === "web" && !appThat.has(r.muc.toLowerCase()))
     .map((r) => ({ tenMien: r.muc, trangThai: doiLoai(r.loai), nguon: r.child_id ? "con" as const : "gia_dinh" as const }));
-  const c = (await q<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))[0];
-  const chiChoPhep = Number(c?.cau_hinh?.web_chi_cho_phep ?? f?.cau_hinh?.web_chi_cho_phep ?? 0) === 1;
+  const c = (await q<{ cau_hinh: Record<string, unknown>; che_do_chan: string | null }>(`select cau_hinh, che_do_chan from children where id = $1`, [con]))[0];
+  // L4: Con có chế độ chặn rõ ⇒ web theo chế độ (như may-con.ts › taoPolicy); Con cũ ⇒ tham số web_chi_cho_phep
+  const chiChoPhep = c?.che_do_chan ? c.che_do_chan === "chi_app_duoc_phep"
+    : Number(c?.cau_hinh?.web_chi_cho_phep ?? f?.cau_hinh?.web_chi_cho_phep ?? 0) === 1;
   const ngayDs = [...theoNgayMap.entries()].map(([ngay, v]) => ({ ngay, ...v }));
   const homNay = theoNgayMap.get(hom) ?? { giay: 0, soLan: 0, soTrang: 0 };
   const may = await q<{ id: string; name: string; platform: string; last_seen: Date | null; che_do: string; che_do_ba_me: boolean; status: Record<string, unknown> | null }>(
@@ -134,7 +137,9 @@ export type ChinhSachWeb = {
 
 /** Hàm THUẦN: Policy ⇒ chính sách web cho agent. Giải trí (giai_tri) bị chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó. */
 /** `appThat`: mục app thật máy gửi (lib/app-may.ts) — gói Store «microsoft.minecraftuwp», bundle «ru.keepcoder.telegram» không phải tên miền. */
-export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep">, o: { moGiaiTri?: boolean; appThat?: Set<string> } = {}): ChinhSachWeb {
+/** `moGiaiTri`: mở trang Giải trí (cửa sổ «mở» có hạn, hoặc Con ở chế độ «Mở hết» — L4); `choKhiMo` chỉ khi mở NHỜ cửa sổ có hạn (`moCoHan`, mặc định = moGiaiTri).
+ *  Web luôn chặn (người lớn / cờ bạc / bạo lực — lib/chan-co-ban.ts) vào `chan` ở MỌI chế độ và không bao giờ nằm trong `cho`. */
+export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep">, o: { moGiaiTri?: boolean; moCoHan?: boolean; appThat?: Set<string> } = {}): ChinhSachWeb {
   const web = p.luat.filter((l) => kieuMuc(l.muc) === "web" && !o.appThat?.has(l.muc.toLowerCase()));
   const phien = p.phien?.muc?.toLowerCase() ?? "";
   // moGiaiTri: Ba Mẹ đang «mở» có hạn (mở khẩn cấp / thêm giờ — agent-windows.ts) ⇒ mọi trang Giải trí mở, trang «chan» vẫn chặn.
@@ -144,7 +149,8 @@ export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "p
     ...web.filter((l) => l.loai === "hoc" || (l.loai === "giai_tri" && mo(l.muc))).map((l) => l.muc.toLowerCase())];
   // choKhiMo: trang Giải trí chỉ mở NHỜ cửa sổ «mở» có hạn ⇒ agent tự chặn lại khi grantEndsAt qua mà máy đang mất mạng
   const theoPhien = (m: string) => phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));
-  const choKhiMo = o.moGiaiTri ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
-  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chan)].sort(), cho: [...new Set(cho)].sort(),
+  const choKhiMo = (o.moCoHan ?? o.moGiaiTri) ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
+  const chanHet = [...chan, ...WEB_LUON_CHAN];
+  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chanHet)].sort(), cho: [...new Set(cho)].filter((m) => !laWebCam(m)).sort(),
     ...(choKhiMo.length ? { choKhiMo: [...new Set(choKhiMo)].sort() } : {}) };
 }

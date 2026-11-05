@@ -1,10 +1,12 @@
-// Gia đình, hồ sơ Con, thiết bị (FR-01.02, FR-01.03). Ghép máy chép cách làm của AiiControl (mã 6 số 15 phút, dùng một lần, khoá dòng
-// mã trong giao dịch, token máy chỉ lưu băm). Thêm: máy dùng chung chọn Con bằng PIN, phiên Con (kid_sessions), mức bảo vệ.
+// Gia đình, hồ sơ Con, thiết bị (FR-01.02, FR-01.03). Ghép máy chép cách làm của AiiControl (mã 6 số, dùng một lần, khoá dòng
+// mã trong giao dịch, token máy chỉ lưu băm). Thiết kế chốt 05/11: mã hạn 10 phút (L8), không gắn loại máy; BỎ PIN hồ sơ Con (L5) —
+// máy riêng dùng token máy, máy dùng chung đổi người bằng chọn tên (phiên Con kid_sessions). Mức bảo vệ.
 import { coTacTu } from "./chuyen-doi.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
-import { bamMatKhau, dungMatKhau, sha, taoToken } from "./auth.ts";
+import { sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
+import { saoChepCaiDat } from "./ghep-may.ts";
 
 export const NEN_TANG = ["windows", "mac", "ios", "android"] as const;
 export type NenTang = (typeof NEN_TANG)[number];
@@ -28,7 +30,6 @@ export function nhomTheoTuoi(namSinh: number | null, nam = new Date().getFullYea
   return namSinh && nam - namSinh >= 11 ? "teen" : "nhi";
 }
 
-const PIN = /^\d{4,6}$/;
 const TEN_CON_TOI_DA = 30, TEN_MAY_TOI_DA = 80;   // 80 = đúng giới hạn tên máy lúc ghép (ghepMayGd)
 
 /** Chuẩn hoá tên người nhập: NFC, bỏ khoảng trắng đầu/cuối, gộp khoảng trắng liên tiếp. Độ dài tính SAU bước này. */
@@ -56,13 +57,13 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   const ten = tenConHopLe(b.ten);
   const nam = Number(b.namSinh) || null;
   if (nam && (nam < new Date().getFullYear() - 18 || nam > new Date().getFullYear() - 3)) throw new LoiNghiepVu("nam_sinh_sai", "Năm sinh chưa đúng");
-  const pin = b.pin === undefined || b.pin === null || b.pin === "" ? null : String(b.pin);
-  if (pin !== null && !PIN.test(pin)) throw new LoiNghiepVu("pin_sai_dang", "Mã PIN của Con gồm 4–6 chữ số");
+  // L5: bỏ PIN hồ sơ Con — app bản cũ còn gửi `pin` thì bỏ qua (không lưu, không bắt).
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
   const id = newId();
   // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
-  await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, pin_hash) values ($1,$2,$3,$4,$5,$6,$7)`,
-    [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin ? await bamMatKhau(pin) : null]);
+  // L4: Con mới chạy «Chỉ app được phép» (chi_app_duoc_phep) — đặt rõ để web cũng theo chế độ (Con cũ null ⇒ web theo tham số cũ).
+  await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan) values ($1,$2,$3,$4,$5,$6,'chi_app_duoc_phep')`,
+    [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom]);
   await ghiSuKien(fam, "tao_con", { ten, nhom }, { con: id, nguoi });
   return id;
 }
@@ -97,25 +98,27 @@ export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar
   }
   if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
   if (b.nhom === "nhi" || b.nhom === "teen") await q(`update children set nhom = $2 where id = $1`, [id, b.nhom]);
-  if (b.pin !== undefined) {
-    if (!PIN.test(String(b.pin))) throw new LoiNghiepVu("pin_sai_dang", "Mã PIN của Con gồm 4–6 chữ số");
-    await q(`update children set pin_hash = $2 where id = $1`, [id, await bamMatKhau(String(b.pin))]);
-    await q(`delete from kid_sessions where child_id = $1`, [id]);          // đặt lại PIN ⇒ đăng xuất Con ở mọi máy
-    await ghiSuKien(fam, "dat_lai_pin", {}, { con: id, nguoi });
-  }
+  // L5: `pin` (app bản cũ) bỏ qua — không còn PIN hồ sơ Con. Dữ liệu pin_hash cũ giữ nguyên, không dùng.
 }
 
 // ---------------------------------------------------------------- ghép máy (FR-01.03)
 
-/** Mã 6 số, hạn 15 phút. `con` null = máy dùng chung (chọn Con bằng PIN khi mở máy). */
-export async function taoMaGhep(fam: string, con: string | null, platform: string) {
-  if (!(NEN_TANG as readonly string[]).includes(platform)) throw new LoiNghiepVu("nen_tang_sai", "Chọn loại thiết bị");
+/** Hạn mã ghép 6 số (thiết kế 05/11 L8: «Mã dùng được 10 phút»; trước là 15). */
+export const MA_GHEP_PHUT = 10;
+
+/** Mã 6 số, hạn MA_GHEP_PHUT phút. `con` null = máy dùng chung (đổi người bằng chọn tên). `platform` '' = không gắn loại máy (máy nào nhập
+ *  cũng ghép, loại máy lấy theo máy báo). `o.giongMay`: «Cài giống máy trước» — chép cài đặt lúc ghép. `o.goiCai`: băm token link bộ cài đi kèm. */
+export async function taoMaGhep(fam: string, con: string | null, platform: string, o: { giongMay?: string | null; nguoi?: string | null; goiCai?: string | null } = {}) {
+  if (platform !== "" && !(NEN_TANG as readonly string[]).includes(platform)) throw new LoiNghiepVu("nen_tang_sai", "Chọn loại thiết bị");
   if (con) await conCua(fam, con);
-  await q(`delete from pair_codes where expires_at < now() - interval '1 day'`);
+  // mã của «phiên ghép» còn link bộ cài sống (48 giờ) thì giữ — màn «Đang chờ» tra trạng thái theo mã
+  await q(`delete from pair_codes p where p.expires_at < now() - interval '1 day'
+             and not exists (select 1 from goi_cai g where g.token_hash = p.goi_cai and g.expires_at > now())`);
   for (let i = 0; i < 20; i++) {
     const code = String(Math.floor(Math.random() * 1e6)).padStart(6, "0");
-    const r = await q(`insert into pair_codes(code, family_id, child_id, platform, expires_at) values ($1,$2,$3,$4, now() + interval '15 minutes')
-                       on conflict (code) do nothing returning code`, [code, fam, con, platform]);
+    const r = await q(`insert into pair_codes(code, family_id, child_id, platform, expires_at, giong_may, nguoi, goi_cai)
+                       values ($1,$2,$3,$4, now() + make_interval(mins => $5), $6, $7, $8)
+                       on conflict (code) do nothing returning code`, [code, fam, con, platform, MA_GHEP_PHUT, o.giongMay ?? null, o.nguoi ?? null, o.goiCai ?? null]);
     if (r.length) return code;
   }
   throw new Error("Không tạo được mã ghép");
@@ -123,7 +126,7 @@ export async function taoMaGhep(fam: string, con: string | null, platform: strin
 
 const GHEP_SAI_TOI_DA = 10;
 
-const GHEP_KHUNG_MS = 15 * 60_000;
+const GHEP_KHUNG_MS = 15 * 60_000;           // khung đếm lượt SAI (chống dò mã) — khác hạn mã (MA_GHEP_PHUT)
 const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
 
 /** Ghép máy bằng mã 6 số. Mỗi `nguon` (IP gọi) được tối đa 10 lần sai trong một khung 15 phút, quá ⇒ khoá tới hết khung — chặn dò mã
@@ -154,30 +157,40 @@ export function nguonGoi(h: Headers) {
   return du.slice(0, 4).map((x) => x.replace(/^0+(?=.)/, "")).join(":");
 }
 
-/** Chế độ máy mới ghép: máy Windows/Mac RIÊNG của một Con ⇒ «chan» ngay. Máy dùng chung (chưa gán Con) ⇒ null: Ba Mẹ chưa xem ai dùng máy,
- *  chặn ngay dễ khoá nhầm cả nhà — giữ như cũ, Ba Mẹ chọn trên app. Nền khác (điện thoại) không có chế độ ⇒ null (để cột như cũ). */
+/** Chế độ máy mới ghép: máy Windows/Mac RIÊNG của một Con ⇒ «chan» ngay. Máy dùng chung chưa gán Con ⇒ null (chặn với luật rỗng sẽ khoá nhầm
+ *  cả nhà); khi Con chọn tên trên máy, máy chủ gửi «chan» (lenh-may.ts › cheDoGuiMay). Nền khác (điện thoại) ⇒ null. */
 export const cheDoMayMoi = (nen: string, conId: string | null): "chan" | null => (coTacTu(nen) && conId ? "chan" : null);
 
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
 export function ghepMayGd(code: string, platform: string, tenMay: string) {
   return tx(async (t) => {
-    const m = (await t<{ family_id: string; child_id: string | null; platform: NenTang; expires_at: Date; used_at: Date | null }>(
-      `select family_id, child_id, platform, expires_at, used_at from pair_codes where code = $1 for update`, [String(code ?? "").trim()]))[0];
+    code = String(code ?? "").trim();
+    const m = (await t<{ family_id: string; child_id: string | null; platform: NenTang | ""; expires_at: Date; used_at: Date | null;
+      giong_may: string | null; goi_cai: string | null }>(
+      `select family_id, child_id, platform, expires_at, used_at, giong_may, goi_cai from pair_codes where code = $1 for update`, [code]))[0];
     if (!m) throw new LoiNghiepVu("ma_sai", "Mã ghép không đúng", 404);
     if (m.used_at) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
     if (new Date(m.expires_at) < new Date()) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
-    if (m.platform !== platform) throw new LoiNghiepVu("sai_nen_tang", `Mã này dành cho ${TEN_NEN_TANG[m.platform]}`, 409);
+    // mã không gắn loại máy ('') ⇒ nhận loại máy agent báo (phải là loại hợp lệ)
+    if (m.platform === "" ? !(NEN_TANG as readonly string[]).includes(platform) : m.platform !== platform)
+      throw new LoiNghiepVu("sai_nen_tang", m.platform ? `Mã này dành cho ${TEN_NEN_TANG[m.platform]}` : "Loại máy không hợp lệ", 409);
+    // mã đi kèm link bộ cài: link đã được dùng (máy khác đang / đã ghép bằng link) ⇒ mã cũng hết dùng — giành link trong cùng giao dịch
+    if (m.goi_cai && !(await t(`update goi_cai set used_at = now() where token_hash = $1 and used_at is null returning token_hash`, [m.goi_cai])).length)
+      throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
     const id = newId(), token = taoToken();
-    const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform];
-    // Máy MỚI có tác tử (Windows/Mac) của một Con vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»): ghi sẵn lựa chọn
-    // che_do = chan + che_do_ba_me ⇒ lần đồng bộ đầu máy chủ gửi cheDo «chan», agent (Win/Mac) đổi ngay — không cần ra bản agent mới.
-    // Máy đã ghép từ trước giữ nguyên (cột vẫn mặc định giam-sat / chưa chọn). Ba Mẹ vẫn chuyển «Chỉ theo dõi» được trên app.
+    const tenLuu = [...chuanHoaTen(tenMay)].slice(0, TEN_MAY_TOI_DA).join("") || TEN_NEN_TANG[platform as NenTang];
+    // Máy MỚI có tác tử (Windows/Mac) vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»; thiết kế 05/11: máy luôn chặn thật,
+    // kể cả máy dùng chung): ghi sẵn che_do = chan + che_do_ba_me ⇒ lần đồng bộ đầu agent (Win/Mac) đổi ngay. Máy cũ: lenh-may.ts › cheDoGuiMay luôn gửi «chan».
     const cheDo = cheDoMayMoi(platform, m.child_id);
     await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen, che_do, che_do_ba_me)
              values ($1,$2,$3,$4,$5,$6,$7, now(), $8, $9)`,
       [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id, cheDo ?? "giam-sat", !!cheDo]);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
+    // link bộ cài đi kèm mã này (cùng một lần «Ghép máy») hết dùng — máy đã ghép bằng mã
+    if (m.goi_cai) await t(`update goi_cai set device_id = coalesce(device_id, $2) where token_hash = $1`, [m.goi_cai, id]);
     await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu, ...(cheDo ? { cheDo } : {}) }, { con: m.child_id, may: id }, t);
+    // «Cài giống máy trước» (L8): chép cài đặt của Con dùng máy đó sang Con của máy mới (cùng Con thì luật đã dùng chung, không cần chép)
+    if (m.giong_may) await saoChepCaiDat(t, m.family_id, m.giong_may, m.child_id, id);
     // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
     // (bộ cài 0.2.0/0.2.1 đọc vào string không-null — gửi null là rủi ro).
     const ten = m.child_id ? (await t<{ ten: string }>(`select ten from children where id = $1`, [m.child_id]))[0]?.ten : undefined;
@@ -238,7 +251,7 @@ export type ThieuQuyen = { ma: string; ten: string; cach: string };
 const MO_TA_QUYEN: Record<string, { ten: string; cach: string }> = {
   dichVu: { ten: "Dịch vụ AiiGrow chạy nền", cach: "Cài lại AiiGrow trên máy Con: bấm phải vào trình cài › «Run as administrator» (cần quyền quản trị một lần)." },
   khay: { ten: "Khay AiiGrow trên màn hình Con", cach: "Đăng nhập đúng tài khoản Windows của Con; nếu vẫn không thấy biểu tượng AiiGrow ở góc phải dưới, khởi động lại máy." },
-  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy đang Chỉ theo dõi (ghi lại, chưa chặn). Muốn chặn: mở app Ba Mẹ › chọn máy › «Chặn thật»." },
+  chanThat: { ten: "Chế độ Chặn thật", cach: "Máy chưa chặn. AiiGrow luôn chặn thật — máy đổi ở lần đồng bộ tới (≤ 3 phút khi có mạng); lâu vẫn chưa đổi: cập nhật AiiGrow trên máy Con lên bản mới nhất." },
   appLocker: { ten: "Khoá app «Chỉ app học» (AppLocker)", cach: "Windows chưa áp được luật chặn app: cần Windows Pro/Enterprise/Education và dịch vụ AiiGrow chạy bằng quyền quản trị — cài lại bằng «Run as administrator»." },
   dich_vu: { ten: "Dịch vụ AiiGrow", cach: "Cài lại AiiGrow bằng quyền quản trị." },
   haQuyenAdmin: { ten: "Tài khoản Mac của Con vẫn là quản trị (admin)", cach: "Con có thể tự gỡ AiiGrow. Trên Mac: Cài đặt hệ thống › Người dùng & Nhóm › tài khoản của Con › tắt «Cho phép người dùng quản trị máy tính này» (cần một tài khoản quản trị khác của Ba Mẹ)." },
@@ -269,8 +282,8 @@ export function chiTietBaoVe(may: Pick<May, "status" | "last_seen"> & Pick<Parti
   if (!may.last_seen) return { muc: "chua", thieu: [], cau: "Máy chưa kết nối lần nào — kiểm tra AiiGrow đã cài xong trên máy Con và máy có mạng." };
   const qy = quyenCuaMay(may);
   if (!qy) return { muc: "chua", thieu: [], cau: "Máy chưa báo quyền bảo vệ — cập nhật AiiGrow trên máy Con lên bản mới nhất." };
-  // máy mồ côi tự thôi chặn (moCoi) không «đang chuyển» gì ⇒ dùng câu chung
-  const chon = may.che_do_ba_me && may.status?.moCoi !== true ? (may.che_do === "chan" ? "chan" : "giam-sat") : null;
+  // máy mồ côi tự thôi chặn (moCoi) không «đang chuyển» gì ⇒ dùng câu chung. Thiết kế 05/11: máy chủ luôn gửi «chan» (lenh-may.ts › cheDoGuiMay)
+  const chon = may.status?.moCoi !== true ? "chan" as const : null;
   const thieu = Object.entries(qy).filter(([, v]) => v !== true).map(([ma]) => ({ ma, ten: MO_TA_QUYEN[ma]?.ten ?? ma,
     cach: (ma === "chanThat" && chon ? CACH_CHAN_THAT[chon] : MO_TA_QUYEN[ma]?.cach) ?? "Cài lại AiiGrow bằng quyền quản trị rồi thử lại." }));
   // agent-win 0.2.6 gửi ghiChuBaoVe («Win Home: chặn bằng cách đóng app», «Chrome: IT đặt danh sách web cho cả máy…») — nối vào câu ở MỌI mức, Ba Mẹ thấy cả khi còn thiếu quyền
@@ -282,28 +295,22 @@ export function chiTietBaoVe(may: Pick<May, "status" | "last_seen"> & Pick<Parti
 /** Mức bảo vệ (FR-01.03): đủ quyền ⇒ Đầy đủ, thiếu một phần ⇒ Một phần, chưa kết nối / chưa báo ⇒ Chưa bảo vệ. */
 export const mucBaoVe = (may: Pick<May, "status" | "last_seen">): MucBaoVe => chiTietBaoVe(may).muc;
 
-// ---------------------------------------------------------------- PIN của Con trên máy dùng chung / web Con
+// ---------------------------------------------------------------- đổi người trên máy dùng chung (L5: không PIN)
 
-const PIN_SAI_TOI_DA = 5;
-
-/** Con nhập PIN trên máy `may` (dùng chung, hoặc máy riêng của chính Con). Sai 5 lần ⇒ khoá 5 phút. → token phiên Con (12 giờ). */
-export async function dangNhapPin(may: May, con: string, pin: string) {
-  const c = await one<{ id: string; family_id: string; pin_hash: string | null }>(`select id, family_id, pin_hash from children where id = $1`, [con]);
+/** Con chọn TÊN mình trên máy `may` (dùng chung, hoặc máy riêng của chính Con) ⇒ token phiên Con (12 giờ). Không còn PIN (thiết kế 05/11):
+ *  máy đã ghép (token máy) là đủ tin — máy dùng chung đổi người bằng chọn tên. Tham số `_pin` (agent / app bản cũ còn gửi) bỏ qua. */
+export async function chonCon(may: May, con: string) {
+  const c = await one<{ id: string; family_id: string }>(`select id, family_id from children where id = $1`, [con]);
   if (!c || c.family_id !== may.family_id || (may.child_id && may.child_id !== c.id))
     throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
-  const khoa = `${may.id}:${c.id}`;
-  const s = await one<{ so_lan: number; khoa_den: Date | null }>(`select so_lan, khoa_den from pin_sai where khoa = $1`, [khoa]);
-  if (s?.khoa_den && new Date(s.khoa_den) > new Date()) throw new LoiNghiepVu("pin_tam_khoa", "Nhập sai nhiều lần — đợi 5 phút hoặc nhờ Ba Mẹ", 429);
-  if (!c.pin_hash || !(await dungMatKhau(String(pin ?? ""), c.pin_hash))) {
-    await q(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1,
-             khoa_den = case when pin_sai.so_lan + 1 >= $2 then now() + interval '5 minutes' else null end`, [khoa, PIN_SAI_TOI_DA]);
-    throw new LoiNghiepVu("pin_sai", c.pin_hash ? "Mã PIN chưa đúng" : "Ba Mẹ chưa đặt mã PIN cho Con", 401);
-  }
-  await q(`delete from pin_sai where khoa = $1`, [khoa]);
   const t = taoToken();
   await q(`insert into kid_sessions(id, child_id, device_id, expires_at) values ($1,$2,$3, now() + interval '12 hours')`, [sha(t), c.id, may.id]);
+  await ghiSuKien(may.family_id, "doi_nguoi_may", {}, { con: c.id, may: may.id });
   return t;
 }
+
+/** Tên cũ: «đăng nhập PIN» — giờ là chọn tên (PIN bỏ qua). Giữ cho agent / đường /api/device/pin bản cũ. */
+export const dangNhapPin = (may: May, con: string, _pin?: string) => chonCon(may, con);
 
 export const conTuPhien = (token: string) =>
   one<Con & { device_id: string | null }>(`select c.*, k.device_id from kid_sessions k join children c on c.id = k.child_id

@@ -27,7 +27,8 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
   const loai = (LOAI_YC as readonly string[]).includes(String(b.loai)) ? (b.loai as LoaiYc) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn điều con muốn xin");
   const lyDo = String(b.lyDo ?? "").trim().slice(0, 100);
-  if (!lyDo) throw new LoiNghiepVu("thieu_ly_do", "Chọn hoặc ghi lý do ngắn để Ba Mẹ hiểu nhé");
+  // L4 (thiết kế 05/11): xin mở app / web lạ — lý do không bắt buộc
+  if (!lyDo && loai !== "mo_web" && loai !== "cai_app") throw new LoiNghiepVu("thieu_ly_do", "Chọn hoặc ghi lý do ngắn để Ba Mẹ hiểu nhé");
   const phut = ["them_gio", "ngoai_le", "ngoai_gio"].includes(loai) ? Math.round(Number(b.phut)) : null;
   if (phut !== null && !(phut >= 5 && phut <= 240)) throw new LoiNghiepVu("phut_sai", "Số phút xin thêm phải từ 5 đến 240 (thường 30, 60 hoặc 120 phút)");
   const giaTri = loai === "mo_web" || loai === "cai_app" ? chuanMuc(b.giaTri) : String(b.giaTri ?? "").trim().slice(0, 200) || null;

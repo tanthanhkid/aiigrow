@@ -104,11 +104,13 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const khoa = p.khoaNgay || ngu;
   const now = new Date(p.serverTime);
   const dangMo = !khoa && !!mo.moDen && mo.moDen.getTime() > now.getTime();
+  // L4: Con ở «Mở hết» ⇒ mode tu_do (agent gỡ AppLocker «chỉ app được phép», không grantEndsAt); app Ba Mẹ «Chặn» (blockedApps) + web luôn chặn vẫn chặn.
+  const moHet = !khoa && p.cheDoChan === "mo_het";
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
   const phienWeb = p.phien && kieuMuc(p.phien.muc.toLowerCase()) === "web" && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
   return {
     serverTime: p.serverTime, childName: p.con?.ten ?? "",
-    mode: khoa ? "khoa" : dangMo ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
+    mode: khoa ? "khoa" : dangMo || moHet ? "tu_do" : "hoc", locked: khoa, lockReason: p.khoaNgay ? "khoa" : ngu ? "ngu" : null,
     allowedApps: [...new Set([...p.allowlistHeThong.filter(laApp).map(chuan), ...hoc, ...choi, ...(phienWeb ? trinhDuyet : [])])],
     learningApps: [...new Set(hoc)],
     minutesLeft: null,
@@ -116,7 +118,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
     ...(dangMo ? { grantEndsAt: mo.moDen!.toISOString() } : {}),
     // Đang «mở» có hạn ⇒ trang Giải trí cũng mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
-    web: chinhSachWebCho(p, { moGiaiTri: dangMo, appThat: mo.appThat }),
+    web: chinhSachWebCho(p, { moGiaiTri: dangMo || moHet, moCoHan: dangMo, appThat: mo.appThat }),
     playChoices: [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && (laApp(l.muc) || kieuMuc(l.muc.toLowerCase()) === "web")).map((l) => (laApp(l.muc) ? chuan(l.muc) : l.muc.toLowerCase())))].sort().slice(0, 40),   // 40: đủ mọi mục Giải trí thường gặp (khay cuộn); agent chỉ nhận mục trong danh sách này
     ...(cheDo ? { cheDo } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
