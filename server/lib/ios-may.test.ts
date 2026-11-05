@@ -169,13 +169,13 @@ test("nhịp Android lưu status.android (phút dùng theo app + quyền); devic
   assert.equal((await g.mayTuToken(i.token))!.status.android, undefined);
 });
 
-test("xin thêm giờ 30/60/120 đều hợp lệ; ngoài 5–240 báo câu lỗi đúng (không còn «15, 30 hoặc 60»)", async () => {
+test("xin thêm giờ 10/20/30 (chip 05/11) và 60/120 đều hợp lệ; ngoài 5–240 báo câu lỗi đúng", async () => {
   const { fam } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Vu" });
-  for (const p of [30, 60, 120]) {
+  for (const p of [10, 20, 30, 60, 120]) {
     const a = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: p, lyDo: "Để làm bài tập" }, new Date(T.getTime() + p * 1000));
     assert.ok(a.id);
     await q(`update requests set trang_thai = 'het_han' where id = $1`, [a.id]);
   }
-  await assert.rejects(yc.guiYeuCau(con, null, { loai: "them_gio", phut: 300, lyDo: "x" }, T), (e: { ma?: string; message?: string }) => e.ma === "phut_sai" && /5 đến 240.*30, 60 hoặc 120/.test(String(e.message)));
+  await assert.rejects(yc.guiYeuCau(con, null, { loai: "them_gio", phut: 300, lyDo: "x" }, T), (e: { ma?: string; message?: string }) => e.ma === "phut_sai" && /5 đến 240.*10, 20, 30/.test(String(e.message)));
 });

@@ -12,7 +12,7 @@ struct XinThemView: View {
   var moChoi: (() -> Void)? = nil
   /// Giờ ngủ / Ba Mẹ khoá: không thêm giờ được — chỉ «Xin Ba Mẹ mở ngoại lệ» cả máy, có hạn (thiết kế con-het-gio 08, 10).
   var ngoaiLe = false
-  @State private var phut = 30
+  @State private var phut = TrayLogic.luaChonPhut[0]   // xin thêm giờ mặc định 10 (chip đầu, Thanh chốt 05/11)
   @State private var loiNhan = ""
 
   var body: some View {
@@ -22,6 +22,9 @@ struct XinThemView: View {
         Text(ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ bao lâu?" : "Con muốn thêm bao lâu?").font(.system(size: 17, weight: .bold))
       }
       ChipClay(ds: (ngoaiLe ? TrayLogic.luaChonNgoaiLe : TrayLogic.luaChonPhut).map { ($0, TrayLogic.nhanLuaChonPhut($0)) }, chon: $phut)
+        // ngoaiLe đổi sống (hết giờ ⇄ giờ ngủ / khoá) ⇒ giữ phut nằm trong bộ chip đang hiện
+        .onAppear { if !(ngoaiLe ? TrayLogic.luaChonNgoaiLe : TrayLogic.luaChonPhut).contains(phut) { phut = ngoaiLe ? 30 : TrayLogic.luaChonPhut[0] } }
+        .onChange(of: ngoaiLe) { nl in phut = nl ? 30 : TrayLogic.luaChonPhut[0] }
       Text("Nhắn Ba Mẹ (không bắt buộc)").font(.system(size: 12, weight: .medium)).foregroundColor(ClayMau.chu3)
       TextField("Ví dụ: con cần làm nốt bài tập", text: $loiNhan)
         .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44)

@@ -35,7 +35,8 @@ export default function XuLyYeuCau() {
   const sao = y.sao ?? y.soDu;
   const toiDaNl = gc?.ngoaiLeToiDaPhut ?? 60;
   // ngoại lệ: kẹp theo «tối đa ngoại lệ» Ba Mẹ đặt — máy chủ dong-y chỉ kiểm 5–240 (review PR #183)
-  const p0 = phut ?? y.phut ?? 15, p = y.loai === "ngoai_le" || y.loai === "ngoai_gio" ? Math.min(p0, toiDaNl) : p0;
+  const nhanh = laThemGio(y) ? 10 : 15;
+  const p0 = phut ?? y.phut ?? nhanh, p = y.loai === "ngoai_le" || y.loai === "ngoai_gio" ? Math.min(p0, toiDaNl) : p0;
   const tyLe = gc?.phut10Sao ?? 10;
   const saoCan = Math.ceil((p * 10) / tyLe);
   const daXuLy = y.trang_thai !== "cho";
@@ -62,7 +63,8 @@ export default function XuLyYeuCau() {
       <BaoLoi loi={loiLam} />
       <Nut chu={laThemGio(y) && tru ? `Cho ${p} phút · trừ ${saoCan} sao` : `Cho ${p} phút`} rong dangChay={dangChay} tat={laThemGio(y) && tru && sao < saoCan} bam={() => cho(p)} />
       <View style={{ flexDirection: "row", gap: 8 }}>
-        {p !== 15 && (laThemGio(y) || toiDaNl >= 15) ? <Nut chu="Cho 15 phút" loai="vien" dangChay={dangChay} bam={() => cho(15)} tat={laThemGio(y) && tru && sao < Math.ceil(150 / tyLe)} /> : null}
+        {/* nút nhanh: xin thêm giờ = chip đầu 10 phút (Thanh chốt 05/11); ngoại lệ giữ 15 phút */}
+        {p !== nhanh && (laThemGio(y) || toiDaNl >= nhanh) ? <Nut chu={`Cho ${nhanh} phút`} loai="vien" dangChay={dangChay} bam={() => cho(nhanh)} tat={laThemGio(y) && tru && sao < Math.ceil(nhanh * 10 / tyLe)} /> : null}
         <Nut chu="Không cho" loai="huy" bam={khong} />
       </View>
     </>
@@ -84,7 +86,8 @@ export default function XuLyYeuCau() {
             <OChon chon={tru} bam={() => setTru(true)} trai={<BieuTron ic="sao" mau="vang" />} tieu="Trừ sao của con"
               phu={sao >= saoCan ? `10 sao = ${tyLe} phút · ví ${sao} → ${sao - saoCan} sao` : `Cần ${saoCan} sao — con có ${sao} sao`} />
           </View>
-          <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={[15, 30, 60].includes(p) ? p : (y.phut ?? 15)} doi={setPhut} />
+          {/* chip xin thêm giờ 10/20/30 (Thanh chốt 05/11, mọi nền); lời xin cũ số phút khác vẫn có chip của nó */}
+          <ChonMot ds={[...new Set([10, 20, 30, ...(y.phut ? [y.phut] : [])])].sort((x, z) => x - z).map((x) => ({ gia: x, chu: `${x} phút` }))} gia={p} doi={setPhut} />
         </>
       ) : (
         <>

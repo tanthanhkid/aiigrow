@@ -55,11 +55,12 @@ fun thanGhep(ma: String, tenMay: String): JSONObject =
 fun thanGhepToken(token: String, tenMay: String): JSONObject =
     JSONObject().put("token", token).put("nen", "android").put("tenMay", tenMay.take(80))
 
-val PHUT_XIN = listOf(30, 60, 120)
+/** Chip «Xin Ba Mẹ thêm giờ» — Thanh chốt 05/11: 10 / 20 / 30 phút như thiết kế Windows (con-xin/01), mọi nền. */
+val PHUT_XIN = listOf(10, 20, 30)
 
 /** Lời xin thêm giờ (POST /api/device/yeu-cau). Máy chủ bắt buộc lyDo ⇒ trống thì dùng câu mặc định. */
 fun thanXinThemGio(phut: Int, loiNhan: String): JSONObject {
-    require(phut in PHUT_XIN) { "phut phải là 30, 60 hoặc 120" }
+    require(phut in PHUT_XIN) { "phut phải là 10, 20 hoặc 30" }
     val ly = loiNhan.trim().take(100).ifEmpty { "Con xin thêm $phut phút" }
     return JSONObject().put("loai", "them_gio").put("phut", phut).put("lyDo", ly)
 }

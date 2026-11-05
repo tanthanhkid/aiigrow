@@ -38,7 +38,7 @@ import vn.aiilab.aiigrow.maycon.GiaoDien as G
 class ManChinh : Activity() {
     private val h = Handler(Looper.getMainLooper())
     private lateinit var goc: LinearLayout
-    private var phutChon = 30
+    private var phutChon = PHUT_XIN.first()
     private var dangGhep = false
     private lateinit var tPhut: TextView
     private lateinit var tCau: TextView
@@ -159,13 +159,13 @@ class ManChinh : Activity() {
         val x = G.the(this)
         val laNl = HienThi.doc(Kho(this).hienThi)?.trangThai?.let(::chiNgoaiLe) ?: false
         val dsPhut = if (laNl) PHUT_NGOAI_LE else PHUT_XIN
-        if (phutChon !in dsPhut) phutChon = 30
+        if (phutChon !in dsPhut) phutChon = if (laNl) 30 else dsPhut.first()   // xin thêm giờ mặc định 10 (chip đầu)
         x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, if (laNl) "Xin Ba Mẹ mở ngoại lệ" else "Xin Ba Mẹ thêm giờ", Clay.DIEM_SOFT))
         if (laNl) x.addView(G.chu(this, "Giờ ngủ / Ba Mẹ đang khoá: không thêm giờ được, con xin Ba Mẹ mở máy một lúc nhé.", 15f, G.CHU_PHU))
         // không canh theo baseline: nút có cỡ chữ khác nhau sẽ bị đẩy lệch dọc
         val hang = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
         nutPhut = dsPhut.map { p ->
-            G.nut(this, if (p == 120) "2 giờ" else "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, dsPhut[i] == p) } }.apply {
+            G.nut(this, "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, dsPhut[i] == p) } }.apply {
                 // ba nút chung một hàng (~47dp chữ ở máy 360dp): một dòng, chữ tự thu 12–16sp thay vì rớt «phút» xuống dòng / bị cắt
                 maxLines = 1
                 val cach = G.dp(this@ManChinh, 3)   // chia đều khe giữa hai nút, không dồn lề phải

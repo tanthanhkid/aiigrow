@@ -134,10 +134,10 @@ class LogicTest {
         assertNull(chuanMaGhep("12345"))
         assertNull(chuanMaGhep("12a456"))
         assertEquals("android", thanGhep("123456", "Pixel").getString("nen"))
-        val x = thanXinThemGio(60, "  ")
-        assertEquals("them_gio", x.getString("loai")); assertEquals(60, x.getInt("phut")); assertEquals("Con xin thêm 60 phút", x.getString("lyDo"))
-        assertEquals("cho con xem nốt", thanXinThemGio(120, "cho con xem nốt").getString("lyDo"))
-        try { thanXinThemGio(45, ""); throw AssertionError("phải lỗi") } catch (_: IllegalArgumentException) {}
+        val x = thanXinThemGio(20, "  ")
+        assertEquals("them_gio", x.getString("loai")); assertEquals(20, x.getInt("phut")); assertEquals("Con xin thêm 20 phút", x.getString("lyDo"))
+        assertEquals("cho con xem nốt", thanXinThemGio(30, "cho con xem nốt").getString("lyDo"))
+        try { thanXinThemGio(60, ""); throw AssertionError("phải lỗi") } catch (_: IllegalArgumentException) {}
         val n = thanNhip("t", "0.1.0", false, true, true, false, true, 0, mapOf("a" to 3, "b" to 0))
         assertTrue(n.getBoolean("appQuanLyBat"))
         assertEquals(1, n.getJSONObject("phutDungHomNay").length())

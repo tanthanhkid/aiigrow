@@ -1,6 +1,6 @@
 // «Thêm giờ chơi» (thiết kế 05/11 con-xin, con-het-gio — L2/L3): còn bao nhiêu phút trong quỹ hôm nay, rồi hai cách:
 //   • Dùng sao 15 / 30 / 60 phút (10 sao = 10 phút, Ba Mẹ đặt tỷ lệ) — đổi ngay, cộng vào quỹ hôm nay (POST /api/kid/doi-sao);
-//   • Xin Ba Mẹ 15 / 30 / 60 phút + lời nhắn không bắt buộc (POST /api/kid/yeu-cau {loai: them_gio}).
+//   • Xin Ba Mẹ 10 / 20 / 30 phút (Thanh chốt 05/11 theo thiết kế Windows con-xin/01) + lời nhắn không bắt buộc (POST /api/kid/yeu-cau {loai: them_gio}).
 // Giờ ngủ / Ba Mẹ khoá / giờ học ⇒ không thêm giờ được, chuyển sang màn chỉ «Xin Ba Mẹ mở ngoại lệ». Mất mạng ⇒ chưa đổi, không trừ sao.
 import { useEffect, useState } from "react";
 import { Redirect, router } from "expo-router";
@@ -10,7 +10,8 @@ import { DiemTren, ManTre, useTaiTre, useTre } from "@/lib/ui-tre";
 import { kid, lyDoKhoa, saoChoPhut, type QuyCon } from "@/lib/api-tre";
 import { LoiApi } from "@/lib/api";
 
-const PHUT = [15, 30, 60];
+const PHUT_SAO = [15, 30, 60];
+const PHUT_XIN = [10, 20, 30];   // Thanh chốt 05/11: chip xin thêm giờ như thiết kế Windows (con-xin/01)
 type Cach = "sao" | "xin";
 const LUI = { chu: "Hôm nay", ve: "/tre/nha" };
 
@@ -25,11 +26,11 @@ export default function ThemGio() {
   const { ten } = useTre();
   const { d, loi, matMang, tai } = useTaiTre("quy", () => kid.goi<QuyCon>("quy"));
   const [cach, setCach] = useState<Cach | null>(null);
-  const [phut, setPhut] = useState(15);
+  const [phutChon, setPhut] = useState(15);
   const [nhan, setNhan] = useState("");
   const [daDoi, setDaDoi] = useState<{ phut: number; sao: number; conPhut: number } | null>(null);
   const { dangChay, loi: loiLam, lam, setLoi } = useLam();
-  useEffect(() => { setLoi(null); }, [cach, phut, setLoi]);
+  useEffect(() => { setLoi(null); }, [cach, phutChon, setLoi]);
   if (!d) return <ManTre lui={LUI}><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
   const q = d.quy;
   const ly = lyDoKhoa(q);
@@ -47,6 +48,9 @@ export default function ThemGio() {
   const coSao = q.doiSao.bat;
   const coXin = q.choXinThem;
   const dang: Cach | null = cach ?? (coSao ? "sao" : coXin ? "xin" : null);
+  const dsPhut = dang === "xin" ? PHUT_XIN : PHUT_SAO;
+  const phut = dsPhut.includes(phutChon) ? phutChon : dsPhut[0];
+  const doiCach = (x: Cach) => { setCach(x); setPhut((x === "xin" ? PHUT_XIN : PHUT_SAO)[0]); };   // đổi Dùng sao ⇄ Xin Ba Mẹ ⇒ về chip đầu của bộ mới
   const can = saoChoPhut(q, phut);
   const thieu = Math.max(0, can - d.sao);
   const quaToiDa = phut > q.doiSao.conDoiDuoc;
@@ -86,11 +90,11 @@ export default function ThemGio() {
       ) : (
         <>
           {coSao && coXin ? (
-            <ChonMot ds={[{ gia: "sao" as Cach, chu: "Dùng sao" }, { gia: "xin" as Cach, chu: "Xin Ba Mẹ" }]} gia={dang} doi={setCach} />
+            <ChonMot ds={[{ gia: "sao" as Cach, chu: "Dùng sao" }, { gia: "xin" as Cach, chu: "Xin Ba Mẹ" }]} gia={dang} doi={doiCach} />
           ) : null}
           <View>
             <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{dang === "sao" ? "Con đổi bao nhiêu phút?" : "Con xin thêm bao lâu?"}</Chu>
-            <ChonMot ds={PHUT.map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
+            <ChonMot ds={dsPhut.map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
           </View>
           {dang === "sao" ? (
             <The dem style={{ gap: 8 }}>
@@ -105,8 +109,8 @@ export default function ThemGio() {
           ) : (
             <ONhap nhan="Nhắn Ba Mẹ (không bắt buộc)" value={nhan} onChangeText={setNhan} maxLength={100} placeholder="vd con làm nốt bài với bạn ạ" />
           )}
-          {dang === "sao" && coXin ? <Nut chu="Hoặc xin Ba Mẹ thêm giờ ›" loai="ma" rong bam={() => setCach("xin")} /> : null}
-          {dang === "xin" && coSao ? <Nut chu="Hoặc đổi sao lấy giờ ›" loai="ma" rong bam={() => setCach("sao")} /> : null}
+          {dang === "sao" && coXin ? <Nut chu="Hoặc xin Ba Mẹ thêm giờ ›" loai="ma" rong bam={() => doiCach("xin")} /> : null}
+          {dang === "xin" && coSao ? <Nut chu="Hoặc đổi sao lấy giờ ›" loai="ma" rong bam={() => doiCach("sao")} /> : null}
         </>
       )}
     </ManTre>

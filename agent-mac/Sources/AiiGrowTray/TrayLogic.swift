@@ -161,7 +161,8 @@ public enum TrayLogic {
   public static func nhanLuaChonPhut(_ p: Int) -> String {
     p % 60 == 0 ? "\(p / 60) giờ" : "\(p) phút"
   }
-  public static let luaChonPhut = [30, 60, 120]
+  /// Chip «Xin Ba Mẹ thêm giờ» — Thanh chốt 05/11: 10 / 20 / 30 phút như thiết kế Windows (con-xin/01), mọi nền.
+  public static let luaChonPhut = [10, 20, 30]
 
   public static func tenMucNguoiDung(_ cheDo: CheDo) -> String {
     switch cheDo { case .tuDo: return "Mở hết"; case .hoc: return "Chỉ app được phép"; case .khoa: return "Đang khoá" }

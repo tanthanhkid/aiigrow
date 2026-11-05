@@ -303,14 +303,14 @@ await kichBan("Thêm giờ: Dùng sao 30 phút → đã đổi, cộng vào gi�
   await xet(await doi("Giờ chơi còn 48 phút"), "giờ chơi mới");
 });
 
-await kichBan("Thêm giờ: Xin Ba Mẹ 60 phút + lời nhắn", async () => {
+await kichBan("Thêm giờ: Xin Ba Mẹ 20 phút + lời nhắn", async () => {   // chip xin 10/20/30 (Thanh chốt 05/11)
   await di("/tre/them-gio");
   await doi("Dùng sao");
   await bam("Xin Ba Mẹ");
-  await bam("60 phút");
+  await bam("20 phút");
   await go("Nhắn Ba Mẹ (không bắt buộc)", "con làm nốt bài với bạn ạ");
-  await bam("Xin Ba Mẹ thêm 60 phút");
-  await xet(coGoi("yeu-cau", (b) => b.loai === "them_gio" && b.phut === 60 && b.lyDo === "con làm nốt bài với bạn ạ"), "gửi them_gio 60 phút + lời nhắn");
+  await bam("Xin Ba Mẹ thêm 20 phút");
+  await xet(coGoi("yeu-cau", (b) => b.loai === "them_gio" && b.phut === 20 && b.lyDo === "con làm nốt bài với bạn ạ"), "gửi them_gio 20 phút + lời nhắn");
   await xet(await doi("Thêm 15 phút chơi"), "sang danh sách yêu cầu");
 });
 
