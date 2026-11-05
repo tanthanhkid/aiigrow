@@ -56,6 +56,15 @@ class QuyGioTest {
         assertFalse("vn.olm.app" in het.goiChan)
     }
 
+    @Test fun matMangCongPhutSauNhipVaoDaDungMayChu() {
+        // máy chủ: 40 phút (30 ở PC), lúc nhịp máy này đo 10; mất mạng chơi thêm 30 (đo 40) ⇒ đã dùng 70 ⇒ hết quỹ 60
+        val c = cs.copy(quy = Quy(60, 0, 40, 20, false))
+        assertEquals(TrangThai.HET_GIO, quyetDinh(c, vn("10:00"), 40, daCai, null, phutLucNhip = 10, ngayNhip = "2026-10-21").trangThai)
+        assertEquals(10, quyetDinh(c, vn("10:00"), 20, daCai, null, phutLucNhip = 10, ngayNhip = "2026-10-21").conPhut)
+        // sang ngày mới chưa nhịp được: quỹ ngày (không cộng thêm hôm qua), chỉ trừ phút đo hôm nay
+        assertEquals(55, quyetDinh(c.copy(quy = Quy(60, 30, 90, 0, true)), vn("10:00", "2026-10-22"), 5, daCai, null, phutLucNhip = 80, ngayNhip = "2026-10-21").conPhut)
+    }
+
     @Test fun moHetChoAppChuaXep() {
         val q = quyetDinh(cs.copy(chuaXepChoPhep = true), vn("10:00"), 0, daCai, null)
         assertFalse("com.la.game" in q.goiChan)

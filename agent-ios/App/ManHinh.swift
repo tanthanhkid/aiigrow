@@ -301,7 +301,7 @@ struct ManXinThem: View {
               IconClay(ten: "fl_qua", nen: Clay.canhSoft)
               VStack(alignment: .leading, spacing: 2) {
                 Text("Dùng sao thêm giờ chơi").font(.headline).foregroundColor(Clay.chu)
-                Text("10 sao = 10 phút, cộng ngay vào giờ chơi hôm nay").font(.subheadline).foregroundColor(Clay.chu3)
+                Text("10 sao = \(m.keHoach?.phut10Sao ?? 10) phút, cộng ngay vào giờ chơi hôm nay").font(.subheadline).foregroundColor(Clay.chu3)
               }
               Spacer(minLength: 0)
               Image(systemName: "chevron.right").foregroundColor(Clay.chu3)

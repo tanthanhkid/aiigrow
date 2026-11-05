@@ -86,6 +86,10 @@ fun quyetDinh(
     /** Trình duyệt trên máy (trừ Chrome — lọc được bằng URLBlocklist). Chỉ Device Owner truyền vào: trình duyệt không lọc được bị tạm dừng
      *  trừ khi Ba Mẹ đã tự xếp nó (như agent-win chặn Firefox / Opera ở Chặn thật — TrinhDuyetLoc.cs). */
     trinhDuyet: Set<String> = emptySet(),
+    /** 05/11: phút giải trí đo tại chỗ lúc nhịp gần nhất thành công + ngày (yyyy-MM-dd, tz gia đình) của nhịp đó — để phút dùng sau nhịp
+     *  cộng thêm vào `quy.daDung` của máy chủ (đã gồm máy khác) khi mất mạng; khác ngày ⇒ quỹ hôm qua không còn đúng. */
+    phutLucNhip: Int? = null,
+    ngayNhip: String? = null,
 ): QuyetDinh {
     val g = gioDiaPhuong(now, cs.tz)
     // Máy chủ hạ chữ thường `muc` (danh sách app thật, server/lib/app-may.ts) mà package Android phân biệt hoa thường
@@ -117,7 +121,7 @@ fun quyetDinh(
         QuyetDinh(t, coThe(goi), ca, phut.coerceAtLeast(0), moLai, cau, coThe(goi).intersect(chuaXepThat))
 
     if (cs.quy != null) return quyetDinhQuy(cs, cs.quy, now, g, phutGiaiTriHomNay, grantEndsAt, moOfflineDen, chan, giaiTri, chuaXep, khongLoc,
-        theoMay(goiAndroid(cs.hoc)), ::theoMay, ::kq, trongNgu)
+        theoMay(goiAndroid(cs.hoc)), ::theoMay, ::kq, trongNgu, phutLucNhip, ngayNhip)
 
     // Mã mở offline của Ba Mẹ thắng mọi khoá (máy mất mạng, đây là đường duy nhất để mở) — chỉ app Ba Mẹ chặn hẳn vẫn chặn.
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
@@ -151,11 +155,16 @@ private fun quyetDinhQuy(
     chan: Set<String>, giaiTri: Set<String>, chuaXep: Set<String>, khongLoc: Set<String>, hoc: Set<String>,
     theoMay: (Collection<String>) -> Set<String>,
     kq: (TrangThai, Set<String>, Boolean, Int, Instant?, String) -> QuyetDinh, trongNgu: Boolean,
+    phutLucNhip: Int?, ngayNhip: String?,
 ): QuyetDinh {
+    val cungNgay = ngayNhip == null || ngayNhip == g.zdt.toLocalDate().toString()
     val nl = cs.ngoaiLeMo.filter { it.den.isAfter(now) && (it.nhom.isBlank() || it.nhom == "android") }
     val nlCaMay = nl.filter { it.muc == null }.maxOfOrNull { it.den }
     val nlApp = theoMay(nl.mapNotNull { it.muc })
-    val conPhut = (q.tongPhut - maxOf(q.daDung, phutGiaiTriHomNay)).coerceAtLeast(0)
+    // máy chủ đã tính tới lúc nhịp (mọi máy) + phút đo tại chỗ SAU nhịp; sang ngày mới mà chưa nhịp được ⇒ quỹ ngày, chỉ trừ phút đo tại chỗ
+    val daDung = if (!cungNgay) phutGiaiTriHomNay
+        else maxOf(phutGiaiTriHomNay, q.daDung + (phutGiaiTriHomNay - (phutLucNhip ?: phutGiaiTriHomNay)).coerceAtLeast(0))
+    val conPhut = ((if (cungNgay) q.tongPhut else q.ngayPhut) - daDung).coerceAtLeast(0)
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
         val p = Duration.between(now, moOfflineDen).toMinutes().toInt() + 1
         return kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, moOfflineDen, "Ba Mẹ đã mở máy bằng mã.")
@@ -180,7 +189,8 @@ private fun quyetDinhQuy(
         return kq(TrangThai.KHONG_TUAN_THU, truGoi(chan + giaiTri + chuaXep, nlApp), false, 0, null, cau)
     }
     val h = cs.gioHoc
-    if (q.dangHoc || (h != null && g.zdt.dayOfWeek.value % 7 in h.thu && trongKhung(g.phut, h.khung))) {
+    // có lịch học ⇒ tự xét theo giờ (cờ dangHoc của máy chủ có thể đã cũ khi mất mạng); không có lịch ⇒ tin cờ máy chủ cùng ngày
+    if (if (h != null) g.zdt.dayOfWeek.value % 7 in h.thu && trongKhung(g.phut, h.khung) else q.dangHoc && cungNgay) {
         val het = h?.let { g.zdt.withSecond(0).withNano(0).plusMinutes(((it.khung.denPhut - g.phut + 1440) % 1440).toLong()).toInstant() }
         return kq(TrangThai.GIO_HOC, truGoi(chan + giaiTri + chuaXep, nlApp), false, conPhut, het, "Đang giờ học. App học vẫn dùng được.")
     }
@@ -219,6 +229,6 @@ fun demNguocConLai(batDau: Instant, now: Instant, tong: Int = DEM_NGUOC_GIAY): I
 fun laKhoa(t: TrangThai) = t == TrangThai.KHOA_NGAY || t == TrangThai.GIO_NGU || t == TrangThai.HET_GIO || t == TrangThai.NGOAI_KHUNG || t == TrangThai.GIO_HOC
 
 /** Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được — Con chỉ «Xin Ba Mẹ mở ngoại lệ». */
-fun chiNgoaiLe(t: String) = t == TrangThai.GIO_NGU.name || t == TrangThai.KHOA_NGAY.name
+fun chiNgoaiLe(t: String) = t == TrangThai.GIO_NGU.name || t == TrangThai.KHOA_NGAY.name || t == TrangThai.GIO_HOC.name
 
 fun mmss(giay: Int): String = "%d:%02d".format(giay.coerceAtLeast(0) / 60, giay.coerceAtLeast(0) % 60)

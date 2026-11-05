@@ -80,6 +80,9 @@ public struct ChinhSach: Codable {
   public struct Quy: Codable, Equatable {
     public var ngayPhut: Int; public var themPhut: Int; public var daDung: Int; public var conPhut: Int
     public var dangHoc: Bool?
+    /// «10 sao = X phút»: `{sao: 10, phut: X}`.
+    public var tyLe: TyLe?
+    public struct TyLe: Codable, Equatable { public var sao: Int; public var phut: Int }
     public init(ngayPhut: Int, themPhut: Int, daDung: Int, conPhut: Int, dangHoc: Bool? = nil) {
       self.ngayPhut = ngayPhut; self.themPhut = themPhut; self.daDung = daDung; self.conPhut = conPhut; self.dangHoc = dangHoc
     }

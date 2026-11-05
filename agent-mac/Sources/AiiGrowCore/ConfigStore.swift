@@ -19,6 +19,8 @@ public struct CauHinhMay: Codable, Equatable {
   public var daDungGiayTuSync: Double = 0
   /// Giây app tính giờ (Policy.appTinhGio) ở tiền cảnh kể từ lần đồng bộ được — đếm lùi quỹ tại chỗ, cả lúc mất mạng (QuyGio.swift).
   public var quyGiayTuSync: Double = 0
+  /// Ngày (giờ máy) của quyGiayTuSync — sang ngày khi mất mạng thì đếm lại từ 0.
+  public var quyNgay: String?
   /// Phút dùng theo app đã đếm (giữ ~3 ngày) — gửi TỔNG mỗi lần đồng bộ (máy chủ ghi greatest).
   public var demPhut: [String: Double] = [:]
   /// Tài khoản đã bị hạ khỏi nhóm admin lúc ghép (để trả lại khi gỡ).
@@ -51,7 +53,7 @@ public struct CauHinhMay: Codable, Equatable {
     cheDo = CheDoAgent.chuan(g(.cheDo, "")) ?? CheDoAgent.giamSat
     policyCuoi = (try? c.decodeIfPresent(Policy.self, forKey: .policyCuoi)) ?? nil
     policyLuc = (try? c.decodeIfPresent(Date.self, forKey: .policyLuc)) ?? nil
-    daDungGiayTuSync = g(.daDungGiayTuSync, 0); quyGiayTuSync = g(.quyGiayTuSync, 0); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
+    daDungGiayTuSync = g(.daDungGiayTuSync, 0); quyGiayTuSync = g(.quyGiayTuSync, 0); quyNgay = (try? c.decodeIfPresent(String.self, forKey: .quyNgay)) ?? nil; demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
     tuChoiTu = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiTu)) ?? nil
     tuChoiCuoi = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiCuoi)) ?? nil

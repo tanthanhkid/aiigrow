@@ -61,7 +61,31 @@ final class QuyGioTests: XCTestCase {
     XCTAssertTrue(r.policy.blockedApps.isEmpty, "chế độ «Chỉ app được phép» đã đóng app ngoài danh sách — không cần chặn thêm")
     XCTAssertTrue(QuyGio.laAppTinhGio(p, tienCanh: "com.Roblox.Roblox"))
     XCTAssertFalse(QuyGio.laAppTinhGio(p, tienCanh: "com.apple.textedit"))
-    XCTAssertFalse(QuyGio.laAppTinhGio(p, tienCanh: nil))
+
+  }
+
+  /// Hết quỹ, máy chủ đã đồng bộ: gửi quyConPhut 0 + appTinhGio rỗng ⇒ vẫn đóng app Giải trí (lấy từ playChoices) ở «Mở hết».
+  func testHetQuySauDongBoMayChuGuiAppTinhGioRong() {
+    var p = pol(mode: "tu_do", quy: 0, appTinhGio: [])
+    p.playChoices = ["com.roblox.roblox", "youtube.com"]
+    let r = QuyGio.apDung(p, quyGiay: 0, now: gocNgay, matMang: false)
+    XCTAssertEqual(Set(r.policy.blockedApps.map(\.muc)), ["com.roblox.roblox", "youtube.com"])
+    XCTAssertEqual(r.hetQuy, ["com.roblox.roblox", "youtube.com"], "lý do het_gio cho màn chặn")
+    // giờ học (máy chủ nói) ⇒ lý do gio_hoc, không phải het_gio
+    p.mode = "hoc"; p.dangGioHoc = true
+    let h = QuyGio.apDung(p, quyGiay: 0, now: gocNgay, matMang: false)
+    XCTAssertTrue(h.hetQuy.isEmpty); XCTAssertEqual(h.gioHoc, ["com.roblox.roblox", "youtube.com"])
+    // mất mạng, lịch học đã qua ⇒ cờ cũ không còn giữ
+    p.gioHoc = KhungGio(tu: "08:00", den: "09:00", thu: [0, 1, 2, 3, 4, 5, 6]); p.quyConPhut = 20
+    XCTAssertFalse(QuyGio.apDung(p, quyGiay: 0, now: gocNgay, matMang: true).policy.dangGioHoc)
+  }
+
+  func testSangNgayMoiDungTongQuy() {
+    var p = pol(quy: 0); p.quyTongPhut = 60
+    XCTAssertTrue(QuyGio.hetQuy(p, quyGiay: 0))
+    XCTAssertFalse(QuyGio.hetQuy(p, quyGiay: 0, ngayMoi: true), "Policy hôm qua: hôm nay quỹ đầy lại")
+    XCTAssertEqual(QuyGio.conPhut(p, quyGiay: 600, ngayMoi: true), 50)
+    XCTAssertTrue(QuyGio.laAppTinhGio(p, tienCanh: nil), "không kiểm được tiền cảnh ⇒ vẫn tính giờ")
   }
 
   func testMoHetHetQuyThiDongAppTinhGio() {

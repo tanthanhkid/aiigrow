@@ -55,28 +55,43 @@ public struct NgoaiLeMo: Codable, Equatable, Sendable {
 /// Lý do đóng app thêm cho tray (TrangThai.chanLyDo): «het_gio» = hết quỹ hôm nay ⇒ Dùng sao / Xin Ba Mẹ.
 public enum QuyGio {
   public static let lyDoHetGio = "het_gio"
+  public static let lyDoGioHoc = "gio_hoc"
+
+  /// App tính giờ: `appTinhGio` khi máy chủ đang thả nhờ quỹ; hết quỹ / giờ học máy chủ gửi `appTinhGio` rỗng ⇒ dùng `playChoices`
+  /// (mọi mục Giải trí Ba Mẹ đã xếp) để vẫn biết app nào phải đóng (nhất là ở «Mở hết»).
+  public static func dsTinhGio(_ p: Policy) -> Set<String> {
+    Set((p.appTinhGio.isEmpty ? p.playChoices : p.appTinhGio).map { $0.lowercased() })
+  }
+
+  /// Quỹ lúc đồng bộ; `ngayMoi` (Policy của hôm trước — mất mạng qua nửa đêm) ⇒ tổng quỹ (không còn trừ phần đã dùng hôm qua).
+  static func quyGoc(_ p: Policy, ngayMoi: Bool) -> Int? {
+    guard let q = p.quyConPhut else { return nil }
+    return ngayMoi ? (p.quyTongPhut ?? q) : q
+  }
 
   /// Phút quỹ còn tại chỗ = quỹ lúc đồng bộ − giây app tính giờ đã chạy từ đó (làm tròn xuống). nil = Policy không mang quỹ.
-  public static func conPhut(_ p: Policy, quyGiay: Double) -> Int? {
-    guard let q = p.quyConPhut else { return nil }
+  public static func conPhut(_ p: Policy, quyGiay: Double, ngayMoi: Bool = false) -> Int? {
+    guard let q = quyGoc(p, ngayMoi: ngayMoi) else { return nil }
     return max(0, Int(((Double(q) * 60 - quyGiay) / 60).rounded(.down)))
   }
 
-  /// Còn giây quỹ không (giữ dạng giây để không tắt sớm 59 giây).
-  public static func hetQuy(_ p: Policy, quyGiay: Double) -> Bool {
-    guard let q = p.quyConPhut, !p.appTinhGio.isEmpty else { return false }
+  /// Hết quỹ chưa (giữ dạng giây để không tắt sớm 59 giây).
+  public static func hetQuy(_ p: Policy, quyGiay: Double, ngayMoi: Bool = false) -> Bool {
+    guard let q = quyGoc(p, ngayMoi: ngayMoi), !dsTinhGio(p).isEmpty else { return false }
     return Double(q) * 60 - quyGiay <= 0
   }
 
-  /// App tiền cảnh có phải app tính giờ (so bundle id / tên .app, không phân biệt hoa thường).
+  /// App tiền cảnh có phải app tính giờ (so bundle id / tên .app, không phân biệt hoa thường). Không kiểm được app tiền cảnh ⇒ vẫn tính
+  /// (như TienCanh.chon / ChoiBangDiem.dangChoi: lsappinfo lỗi không thành giờ chơi miễn phí).
   public static func laAppTinhGio(_ p: Policy, tienCanh: String?) -> Bool {
-    guard let t = tienCanh?.lowercased(), !t.isEmpty, t != DemPhut.khongRo else { return false }
-    return p.appTinhGio.contains { $0 == t || $0 == t + ".app" }
+    guard let t = tienCanh?.lowercased(), !t.isEmpty, t != DemPhut.khongRo else { return true }
+    return dsTinhGio(p).contains { $0 == t || $0 == t + ".app" }
   }
 
   /// Policy hiệu lực sau khi áp quỹ / ngoại lệ / lịch tại chỗ. `matMang` = đang chạy theo Policy nhớ (xét giờ ngủ / giờ học bằng đồng hồ máy).
-  /// Trả kèm danh sách app bị bỏ vì hết quỹ (để ghi lý do «het_gio»).
-  public static func apDung(_ p: Policy, quyGiay: Double, now: Date, matMang: Bool, lich: Calendar = .current) -> (policy: Policy, hetQuy: Set<String>) {
+  /// Trả kèm app bị bỏ vì hết quỹ (lý do «het_gio») và vì giờ học («gio_hoc»).
+  public static func apDung(_ p: Policy, quyGiay: Double, now: Date, matMang: Bool, ngayMoi: Bool = false, lich: Calendar = .current)
+    -> (policy: Policy, hetQuy: Set<String>, gioHoc: Set<String>) {
     var q = p
     let caMay = (p.grantEndsAt.map { $0 > now } ?? false) && p.ngoaiLe.contains { $0.app == nil && $0.den > now }
     // 1) ngoại lệ một app hết hạn ⇒ bỏ app đó (trừ khi app cũng thuộc app Học)
@@ -84,24 +99,26 @@ public enum QuyGio {
     let conHan = Set(p.ngoaiLe.filter { $0.den > now }.compactMap(\.app))
     let hetHan = Set(p.ngoaiLe.filter { $0.den <= now }.compactMap(\.app)).subtracting(conHan).subtracting(hoc)
     if !hetHan.isEmpty { q.allowedApps.removeAll { hetHan.contains($0.lowercased()) } }
-    // 2) mất mạng ⇒ tự xét giờ ngủ / giờ học (máy chủ không nói được nữa). Ngoại lệ cả máy còn hạn thắng.
+    // 2) mất mạng ⇒ tự xét giờ ngủ / giờ học (máy chủ không nói được nữa; cờ dangGioHoc lúc đồng bộ có thể đã cũ). Ngoại lệ cả máy còn hạn thắng.
     if matMang, !caMay {
       let c = lich.dateComponents([.hour, .minute, .weekday], from: now)
       let phut = (c.hour ?? 0) * 60 + (c.minute ?? 0), thu = ((c.weekday ?? 1) - 1)
+      if let h = p.gioHoc { q.dangGioHoc = h.chua(phutNgay: phut, thuNay: thu) } else if ngayMoi { q.dangGioHoc = false }
       if let n = p.gioNgu, n.chua(phutNgay: phut, thuNay: thu), !q.locked {
         q.mode = CheDo.khoa.rawValue; q.locked = true; q.lockReason = LyDoKhoa.ngu
         q.allowedApps = q.allowedApps.filter { conHan.contains($0.lowercased()) }      // chỉ app ngoại lệ còn hạn (+ app hệ thống daemon tự thêm)
         q.grantEndsAt = nil
-      } else if let h = p.gioHoc, h.chua(phutNgay: phut, thuNay: thu) {
-        q.dangGioHoc = true
-        if q.mode == CheDo.tuDo.rawValue, !(q.grantEndsAt.map { $0 > now } ?? false) { q.mode = CheDo.hoc.rawValue }
+      } else if q.dangGioHoc, q.mode == CheDo.tuDo.rawValue, !(q.grantEndsAt.map { $0 > now } ?? false) {
+        q.mode = CheDo.hoc.rawValue
       }
       // giờ ngủ / học đã qua lúc mất mạng: không tự mở thêm (máy chủ quyết khi có mạng lại)
     }
     // 3) quỹ: hết (hoặc giờ học) ⇒ bỏ app tính giờ khỏi danh sách; «Mở hết» (tu_do) thì đóng hẳn chúng
+    let tinhGio = dsTinhGio(p)
+    let het = hetQuy(p, quyGiay: quyGiay, ngayMoi: ngayMoi)
     var bo = Set<String>()
-    if !caMay, !p.appTinhGio.isEmpty, hetQuy(p, quyGiay: quyGiay) || q.dangGioHoc {
-      bo = Set(p.appTinhGio).subtracting(conHan).subtracting(hoc)
+    if !caMay, !tinhGio.isEmpty, p.quyConPhut != nil, het || q.dangGioHoc {
+      bo = tinhGio.subtracting(conHan).subtracting(hoc)
       q.allowedApps.removeAll { bo.contains($0.lowercased()) }
       if q.mode == CheDo.tuDo.rawValue {
         let da = Set(q.blockedApps.map(\.muc))
@@ -109,6 +126,6 @@ public enum QuyGio {
       }
       q.appTinhGio = []
     }
-    return (q, hetQuy(p, quyGiay: quyGiay) ? bo : [])
+    return (q, q.dangGioHoc ? [] : (het ? bo : []), q.dangGioHoc ? bo : [])
   }
 }

@@ -50,9 +50,11 @@ struct XinThemCuaSo: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
   var moChoi: (() -> Void)? = nil
+  /// Giờ học (05/11): không thêm giờ được — chỉ xin mở ngoại lệ.
+  var ngoaiLe = false
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
-      XinThemView(tray: tray, xin: xin, moChoi: moChoi)
+      XinThemView(tray: tray, xin: xin, moChoi: moChoi, ngoaiLe: ngoaiLe)
         .padding(18).clayThe().vaoLanLuot(0)
       HStack(spacing: 6) {
         HinhFluent(ten: "seedling", duPhong: "leaf.fill", co: 16)

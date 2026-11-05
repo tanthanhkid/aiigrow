@@ -19,6 +19,9 @@ class Kho(ctx: Context) {
     /** Token gói cài nhúng trong QR Device Owner (PROVISIONING_ADMIN_EXTRAS_BUNDLE) — đổi lấy token máy bằng ghep-goi. */
     var tokenGoiCai: String? get() = p.getString("tokenGoiCai", null); set(v) = p.edit().putString("tokenGoiCai", v).apply()
     var phanHoi: String? get() = p.getString("phanHoi", null); set(v) = p.edit().putString("phanHoi", v).apply()
+    /** 05/11: phút giải trí đo tại chỗ lúc nhịp thành công gần nhất (-1 = chưa có) + ngày của nhịp (tz gia đình) — QuyetDinh.kt › quyetDinhQuy. */
+    var phutLucNhip: Int get() = p.getInt("phutLucNhip", -1); set(v) = p.edit().putInt("phutLucNhip", v).apply()
+    var ngayNhip: String? get() = p.getString("ngayNhip", null); set(v) = p.edit().putString("ngayNhip", v).apply()
     var lechGioMs: Long get() = p.getLong("lechGioMs", 0); set(v) = p.edit().putLong("lechGioMs", v).apply()
     var lanNhipThanhCong: Long get() = p.getLong("lanNhip", 0); set(v) = p.edit().putLong("lanNhip", v).apply()
     var khoaTu: Long get() = p.getLong("khoaTu", 0); set(v) = p.edit().putLong("khoaTu", v).apply()

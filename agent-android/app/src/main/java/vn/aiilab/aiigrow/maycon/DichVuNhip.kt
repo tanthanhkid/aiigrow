@@ -29,6 +29,7 @@ import vn.aiilab.aiigrow.maycon.logic.tieuDeNhac
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.demNguocConLai
 import vn.aiilab.aiigrow.maycon.logic.docPhanHoiNhip
+import vn.aiilab.aiigrow.maycon.logic.gioDiaPhuong
 import vn.aiilab.aiigrow.maycon.logic.goiAndroid
 import vn.aiilab.aiigrow.maycon.logic.laKhoa
 import vn.aiilab.aiigrow.maycon.logic.phutGiaiTri
@@ -132,7 +133,7 @@ class DichVuNhip : Service() {
         val daCai = DoPhut.daCai(this)
         val phutGT = phutGiaiTri(dung, goiAndroid(cs.giaiTri))
         val qd = quyetDinh(cs, now, phutGT, daCai, ph.grantEndsAt, moOff,
-            if (laDo) trinhDuyet else emptySet())
+            if (laDo) trinhDuyet else emptySet(), k.phutLucNhip.takeIf { it >= 0 }, k.ngayNhip)
 
         // đếm ngược 60 giây trước khi khoá thật (Con kịp lưu bài / chào bạn)
         if (laKhoa(qd.trangThai)) {
@@ -189,6 +190,11 @@ class DichVuNhip : Service() {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
             k.lanNhipThanhCong = System.currentTimeMillis()
+            try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
+                val csMoi = docPhanHoiNhip(r.toString()).chinhSach
+                k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
+                k.ngayNhip = gioDiaPhuong(Instant.now(), csMoi.tz).zdt.toLocalDate().toString()
+            } catch (_: Exception) {}
             r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
             MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)

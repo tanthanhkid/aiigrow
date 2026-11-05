@@ -8,8 +8,7 @@ import ConCore
 final class ShieldActionExtension: ShieldActionDelegate {
   func xu(_ action: ShieldAction, _ xong: @escaping (ShieldActionResponse) -> Void) {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
-    let coXin = k.map { $0.lyDo != .gioHoc } ?? true
-    guard action == .primaryButtonPressed, coXin else { xong(.close); return }
+    guard action == .primaryButtonPressed else { xong(.close); return }
     KhoUserDefaults().luu(Date(), Khoa.xinTuManChan)
     let n = UNMutableNotificationContent()
     let ngoaiLe = k?.lyDo.chiNgoaiLe == true

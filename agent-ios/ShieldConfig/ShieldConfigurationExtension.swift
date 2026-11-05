@@ -25,7 +25,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     }
     // 05/11: giờ ngủ / Ba Mẹ khoá ⇒ không thêm giờ được, chỉ «Xin Ba Mẹ mở ngoại lệ»; giờ học ⇒ chỉ app học
     let phu = (ten.map { "\($0) đang tạm khoá. " } ?? "") + lyDo.cauChoCon
-    let coXin = lyDo != .gioHoc
+    let coXin = true
     let hinh: (String, UIColor)
     switch lyDo {
     case .ngu: hinh = ("fl_trang", UIColor(red: 0xe7 / 255, green: 0xe5 / 255, blue: 0xf8 / 255, alpha: 1))

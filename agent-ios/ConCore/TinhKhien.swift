@@ -39,7 +39,7 @@ public struct KhienMuonCo: Codable, Equatable {
 
 extension LyDoKhien {
   /// Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được — Con chỉ «Xin Ba Mẹ mở ngoại lệ».
-  public var chiNgoaiLe: Bool { self == .ngu || self == .khoaNgay }
+  public var chiNgoaiLe: Bool { self == .ngu || self == .khoaNgay || self == .gioHoc }
 }
 
 /// Phút giải trí đã dùng trong ngày (ghi bởi DeviceActivityMonitor khi chạm mốc «dung.N» / «tran»).
@@ -62,11 +62,17 @@ public enum TinhKhien {
 
   public static func phutDaDung(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int {
     let ngay = diaPhuong(now, tz: kh.tz).ngay
-    // 05/11: máy chủ cộng phút mọi máy của Con (quỹ dùng chung) ⇒ lấy lớn hơn của phút đo tại chỗ và phút máy chủ (cùng ngày)
-    let mayChu = kh.ngayDaDung == ngay ? (kh.daDungMayChu ?? 0) : 0
-    guard let dung, dung.ngay == ngay else { return mayChu }
+    let taiCho = (dung?.ngay == ngay) ? dung!.phut : 0
+    // 05/11: máy chủ đã cộng phút mọi máy của Con tới lúc đồng bộ (quỹ dùng chung) ⇒ + phút đo tại chỗ SAU lúc đó
+    guard kh.ngayDaDung == ngay, let mayChu = kh.daDungMayChu else { return taiCho }
     // «tran» ghi phut = trần lúc đó ⇒ Ba Mẹ thêm phút (trần tăng) thì Con có lại phần chênh, không kẹt ở «hết giờ».
-    return max(dung.phut, mayChu)
+    return max(taiCho, mayChu + max(0, taiCho - (kh.dungTaiChoLucDongBo ?? taiCho)))
+  }
+
+  /// Phút đo tại chỗ hôm nay (DeviceActivity) — gửi máy chủ, và làm mốc `dungTaiChoLucDongBo`.
+  public static func phutDoTaiCho(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int {
+    guard let dung, dung.ngay == diaPhuong(now, tz: kh.tz).ngay else { return 0 }
+    return dung.phut
   }
 
   public static func trongGioHoc(_ kh: KeHoach, now: Date) -> Bool {

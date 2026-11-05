@@ -450,17 +450,20 @@ final class ApiVaDongBoTests: XCTestCase {
 
 /// Luật 05/11 trên iPhone/iPad: quỹ phút thay trần + khung giờ chơi, giờ học, ngoại lệ cả máy thắng giờ ngủ, web luôn chặn.
 final class QuyGioTests: XCTestCase {
-  let quy = #""quy":{"ngayPhut":60,"themPhut":15,"daDung":40,"conPhut":35,"dangHoc":false},"#
+  let quy = #""quy":{"ngayPhut":60,"themPhut":15,"daDung":40,"conPhut":35,"dangHoc":false,"tyLe":{"sao":10,"phut":20}},"#
 
   func testQuyThayTranVaKhungGio() throws {
     let kh = LapKeHoach.tu(try doc(nhipMau(them05: quy)), now: vn(26, 10))
-    XCTAssertEqual(kh.tranPhut, 75)
+    XCTAssertEqual(kh.tranPhut, 75); XCTAssertEqual(kh.phut10Sao, 20)
     XCTAssertTrue(kh.lich.filter { $0.ten.hasPrefix("mo.") }.isEmpty, "quỹ: không còn lịch khung giờ chơi")
     // 10:00 thứ Hai — ngoài khung chơi cũ 17–19 nhưng quỹ còn ⇒ mở
     let k = TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil)
     XCTAssertEqual(k.lyDo, .khong)
     XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(26, 10), dung: nil), 35, "máy chủ đã tính 40 phút (mọi máy)")
     XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 70, tranHet: false)), 5, "đo tại chỗ lớn hơn ⇒ dùng số đo")
+    // PC dùng 30 trong 40 của máy chủ; lúc đồng bộ iPhone đo 10, sau đó chơi thêm 30 (đo 40) ⇒ đã dùng 70 ⇒ còn 5
+    var k2 = kh; k2.dungTaiChoLucDongBo = 10
+    XCTAssertEqual(TinhKhien.phutConLai(k2, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 40, tranHet: false)), 5)
     XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(27, 10), dung: nil), 75, "sang ngày: phút máy chủ của hôm qua không tính")
     XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 75, tranHet: true)).lyDo, .hetGio)
   }
@@ -482,7 +485,7 @@ final class QuyGioTests: XCTestCase {
     let k = TinhKhien.lucNay(kh, now: vn(26, 22), dung: nil)
     XCTAssertEqual(k.muc, .khong); XCTAssertEqual(k.dangNgoaiLe, true)
     XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 23, 1), dung: nil).lyDo, .ngu, "hết hạn ⇒ khoá lại")
-    XCTAssertTrue(LyDoKhien.ngu.chiNgoaiLe); XCTAssertTrue(LyDoKhien.khoaNgay.chiNgoaiLe); XCTAssertFalse(LyDoKhien.hetGio.chiNgoaiLe)
+    XCTAssertTrue(LyDoKhien.ngu.chiNgoaiLe); XCTAssertTrue(LyDoKhien.gioHoc.chiNgoaiLe); XCTAssertFalse(LyDoKhien.hetGio.chiNgoaiLe)
   }
 
   func testWebLuonChanVaMayChuCu() throws {

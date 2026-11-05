@@ -348,8 +348,8 @@ public actor BoMay {
     guard let p0 = policy else {
       return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
     }
-    let (p, hetQuy) = policyHieuLucQuy(p0, now: now)
-    appHetQuy = hetQuy
+    let (p, hetQuy, gioHoc) = policyHieuLucQuy(p0, now: now)
+    appHetQuy = hetQuy; appGioHoc = gioHoc
     let hl = MoTamOffline.apDung(DanhGiaPolicy.tinh(p, now: now, daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo())
     let chan = cheDoHieuLuc() == CheDoAgent.chan
 
@@ -404,15 +404,26 @@ public actor BoMay {
 
   /// App vừa bị bỏ vì hết quỹ hôm nay (QuyGio.apDung) — màn «… chưa được mở» hiện «Dùng sao» / «Xin Ba Mẹ thêm giờ».
   private var appHetQuy: Set<String> = []
+  private var appGioHoc: Set<String> = []
 
   /// Policy sau phiên offline + quỹ / ngoại lệ / lịch tại chỗ (QuyGio.swift).
-  private func policyHieuLucQuy(_ p0: Policy, now: Date) -> (policy: Policy, hetQuy: Set<String>) {
-    QuyGio.apDung(BoMay.gioiHanPhienOffline(p0, matMang: matMang, tu: cauHinh.policyLuc, now: now), quyGiay: cauHinh.quyGiayTuSync, now: now, matMang: matMang)
+  private func policyHieuLucQuy(_ p0: Policy, now: Date) -> (policy: Policy, hetQuy: Set<String>, gioHoc: Set<String>) {
+    QuyGio.apDung(BoMay.gioiHanPhienOffline(p0, matMang: matMang, tu: cauHinh.policyLuc, now: now), quyGiay: cauHinh.quyGiayTuSync, now: now,
+                  matMang: matMang, ngayMoi: ngayMoi(now))
   }
+
+  /// Policy nhớ là của hôm trước (mất mạng qua nửa đêm) ⇒ quỹ hôm qua không còn đúng.
+  private func ngayMoi(_ now: Date) -> Bool { cauHinh.policyLuc.map { DemPhut.ngay($0) != DemPhut.ngay(now) } ?? false }
 
   /// Đếm lùi quỹ: chỉ khi app tính giờ (Policy.appTinhGio) ở tiền cảnh — app Học / hệ thống không tốn quỹ. Cả lúc mất mạng.
   private func demQuy(troi: Double) {
-    guard let p = policy, p.quyConPhut != nil, !p.appTinhGio.isEmpty else { return }
+    guard let p = policy, p.quyConPhut != nil, !QuyGio.dsTinhGio(p).isEmpty else { return }
+    // sang ngày (mất mạng qua nửa đêm): giây đã đếm của hôm qua bỏ đi — quỹ hôm nay tính lại từ tổng quỹ (QuyGio.quyGoc)
+    let homNay = DemPhut.ngay(dongHo())
+    if cauHinh.quyNgay != homNay {
+      if cauHinh.quyNgay != nil, ngayMoi(dongHo()) { cauHinh.quyGiayTuSync = 0 }
+      cauHinh.quyNgay = homNay; let n = homNay; _ = try? kho.sua { $0.quyNgay = n }
+    }
     let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
     if QuyGio.laAppTinhGio(p, tienCanh: tc) { cauHinh.quyGiayTuSync += troi }
   }
@@ -677,7 +688,8 @@ public actor BoMay {
     if let than, than.utf8.count > 600_000 { return .loi(ma: "qua_lon", chu: "Ảnh quá lớn. Con chọn ảnh khác nhé.") }
     do {
       let d = try await api.hocVien(method: method, path: path, than: than.map { Data($0.utf8) })
-      if method.uppercased() == "POST" { choiNho = [:] }     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
+      if method.uppercased() == "POST" { choiNho = [:] }
+      if path == "hoc-vien/doi-sao" { dongBoSom() }      // quỹ mới (đã đổi sao) tới ngay, không chờ nextCheckSec     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
       return .duLieu(json: String(decoding: d, as: UTF8.self))
     } catch let e as LoiApi {
       return .loi(ma: e.ma ?? "hoc_vien_loi", chu: BoMay.cauLoiCon(e))
@@ -1084,7 +1096,7 @@ public actor BoMay {
     chanSeq += 1
     themSuKien("chan_app", ["app": khoa, "ten": ten])
     // lý do: Ba Mẹ «Chặn» app · giờ chỉ app học · còn lại = trình duyệt chưa lọc web được (đóng vì luật web, không đổi điểm được)
-    let lyDo = appHetQuy.contains(bundle) ? QuyGio.lyDoHetGio : baMeChan.contains(t.pid) ? "ba_me_chan" : (chiAppHoc ? "chi_app_hoc" : "trinh_duyet")
+    let lyDo = appHetQuy.contains(bundle) ? QuyGio.lyDoHetGio : appGioHoc.contains(bundle) ? QuyGio.lyDoGioHoc : baMeChan.contains(t.pid) ? "ba_me_chan" : (chiAppHoc ? "chi_app_hoc" : "trinh_duyet")
     chanCuoi = (khoa, ten, lyDo, donDieu())
   }
 
@@ -1102,7 +1114,7 @@ public actor BoMay {
       matMang: matMang, trangChan: cheDoHieuLuc() == CheDoAgent.chan ? chan : [], canhBaoAdmin: canhBaoAdmin)
     if laCon {                                         // phần riêng của Con (danh sách chơi, app vừa chặn) chỉ cho phiên Con
       tt.dsChoi = p?.playChoices ?? []
-      if let p, let c = QuyGio.conPhut(p, quyGiay: cauHinh.quyGiayTuSync) { tt.quyConPhut = c; tt.quyTongPhut = p.quyTongPhut }
+      if let p, let c = QuyGio.conPhut(p, quyGiay: cauHinh.quyGiayTuSync, ngayMoi: ngayMoi(dongHo())) { tt.quyConPhut = c; tt.quyTongPhut = p.quyTongPhut }
       if moTamDangMo() { tt.moOfflineDen = cauHinh.moTamOffline?.moDen }
       tt.nhapMaOffline = p.flatMap { pp in hl.map { choNhapMaOffline(pp, $0) } } ?? false
       let homNay = DemPhut.ngay(dongHo()) + "|"

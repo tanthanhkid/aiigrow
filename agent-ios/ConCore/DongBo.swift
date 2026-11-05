@@ -53,7 +53,7 @@ public final class DongBo {
 
   func nhipGui(now: Date, nguon: String) -> NhipGui {
     let kh = kho.doc(KeHoach.self, Khoa.keHoach)
-    let dung = kh.map { TinhKhien.phutDaDung($0, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) } ?? 0
+    let dung = kh.map { TinhKhien.phutDoTaiCho($0, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) } ?? 0
     let lan = kho.doc(Date.self, Khoa.lanDongBo)
     let sl = chon.dem()
     let uq = uyQuyen.trangThai
@@ -83,7 +83,8 @@ public final class DongBo {
       kho.luu(mt, Khoa.moTamOffline)
       kho.xepSuKien(SuKienMay(loai: "het_ma_offline", luc: now, chiTiet: ["ket_thuc": "co_mang", "conPhut": String(con)]))
     }
-    let kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    var kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    if kh.daDungMayChu != nil { kh.dungTaiChoLucDongBo = TinhKhien.phutDoTaiCho(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) }
     kho.luu(kh, Khoa.keHoach)
     kho.luu(now, Khoa.lanDongBo)
     try? lich.theoDoi(kh.lich)       // không theo dõi được (chưa có quyền) vẫn áp khiên tức thời

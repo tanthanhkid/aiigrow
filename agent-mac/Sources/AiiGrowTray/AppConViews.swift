@@ -584,6 +584,7 @@ struct ChanAppView: View {
     switch s {
     case "ba_me_chan": return "Ba Mẹ đã chặn app này trên máy."
     case QuyGio.lyDoHetGio: return "Hôm nay con đã chơi hết giờ rồi."
+    case QuyGio.lyDoGioHoc: return "Đang giờ học. Bây giờ chỉ mở được app học."
     case "chi_app_hoc": return "App này chưa được Ba Mẹ cho phép. Con xin Ba Mẹ duyệt nhé."
     case "trinh_duyet": return "Trình duyệt này chưa lọc web được. Con dùng trình duyệt Ba Mẹ cho phép nhé."
     default: return "Chưa được Ba Mẹ cho mở."
@@ -601,7 +602,7 @@ struct ChanAppView: View {
         NutIcon(chu: "Dùng sao thêm giờ", icon: "star", kieu: .thanChi, rong: nil, lam: dungSao)
       }
       if lyDo != "ba_me_chan" {
-        NutIcon(chu: lyDo == QuyGio.lyDoHetGio ? "Xin Ba Mẹ thêm giờ" : "Xin Ba Mẹ duyệt", icon: "speech_balloon",
+        NutIcon(chu: lyDo == QuyGio.lyDoHetGio ? "Xin Ba Mẹ thêm giờ" : lyDo == QuyGio.lyDoGioHoc ? "Xin Ba Mẹ mở ngoại lệ" : "Xin Ba Mẹ duyệt", icon: "speech_balloon",
                 kieu: coChoi ? .sang : .thanChi, rong: nil, lam: xinPhep)
       }
       Button("Đóng", action: dong).buttonStyle(NutClayStyle(kieu: .sang)).keyboardShortcut(.cancelAction)
