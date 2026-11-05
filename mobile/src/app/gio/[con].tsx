@@ -1,58 +1,93 @@
-// bm-gio «Giờ dùng máy» (mở từ Trang chủ): Khoá máy ngay có hạn giờ / Mở lại (FR-02.04, hiệu lực ở lần đồng bộ kế), khung ngày thường / cuối tuần / giờ ngủ,
-// phiên tối đa + nghỉ, trần mỗi ngày (tính gộp mọi máy, FR-02.05).
+// bm2-gio «Giờ chơi của <Con>» (thiết kế chốt 05/11, bm-hang-ngay/12 — L2): quỹ phút ngày thường (ô số + chip 30/60/90), tỷ lệ sao đổi phút,
+// giờ máy tự khoá (giờ ngủ, giờ học — màn riêng), ngày nghỉ T7–CN, «Khi hết giờ» (cho xin thêm giờ, cho tự đổi sao). Lưu = POST con/:id/gio-choi.
+// Khoá máy / Cho thêm giờ nằm ở Hôm nay. Người trông giúp: chỉ xem (máy chủ trả 403 khi lưu).
 import { useState } from "react";
-import { useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
-import { bm, type ConChiTiet, type Khung } from "@/lib/api";
-import { SuaKhung } from "@/lib/sua-gio";
-import { BangKhoa, cauKhoa, cauMoTam, conHan, moLaiMay } from "@/lib/khoa-may";
-import { BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, gioPhut, HaiNut, Man, Nhom, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { router, useLocalSearchParams } from "expo-router";
+import { TextInput, View } from "react-native";
+import { bm, type ConChiTiet } from "@/lib/api";
+import { BONG, KHOI } from "@/lib/clay";
+import { CAU_TRONG_GIUP, cauThu, gioGon, HangViec, quyenToi, type GioChoi } from "@/lib/hang-ngay";
+import { BaoLoi, baoKhiVe, ChoTai, Chu, ChonMot, CongTac, F, Icon3D, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
 
-type Sua = "ngayThuong" | "cuoiTuan" | "ngu";
-
-export default function GioChoi() {
-  const { con } = useLocalSearchParams<{ con: string }>();
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet>(`con/${con}`));
-  const [sua, setSua] = useState<Sua | null>(null);
-  const [moKhoa, setMoKhoa] = useState(false);
-  const { lam, loi: loiLam, dangChay } = useLam();
-  const { bao, noi } = useHoanTac();
-  if (!d) return <Man lui={{ chu: "Trang chủ" }} tieu="Giờ dùng máy"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const k = (x: Sua): Khung => (x === "ngu" ? d.lich.ngu : d.lich[x][0] ?? { tu: "17:00", den: "20:00" });
-  const luuLich = (x: Sua, v: Khung) => lam(async () => {
-    await bm.goi(`con/${con}/lich`, x === "ngu" ? { ...d.lich, ngu: v } : { ...d.lich, [x]: [v] });
-    bao("Đã lưu — máy của Con nhận ở lần đồng bộ kế");
-    await tai();
-  }, { hangDoi: true });
-  const cauHinh = (them: Record<string, number>) => lam(async () => { await bm.goi(`con/${con}/cau-hinh`, them); await tai(); }, { hangDoi: true });
-  const moLai = () => lam(async () => { await moLaiMay(con, d.ten, bao, tai); await tai(); }, { hangDoi: true });
-  const dangKhoa = d.khoaNgay && conHan(d.khoaDen);
-  const moTam = dangKhoa ? cauMoTam(d.moTamDen, d.khoaDen) : null;
+/** Ô nhập số phút (thiết kế: ô lõm «60» + chữ «phút»). */
+function OPhut({ gia, doi, nhan, tat }: { gia: string; doi: (v: string) => void; nhan: string; tat?: boolean }) {
   return (
-    <Man lui={{ chu: "Trang chủ" }} tieu="Giờ dùng máy" noi={noi}>
-      <Canh lv={dangKhoa && !moTam ? "nghi" : "cho"} thap tieu={moTam ? `Máy của ${d.ten}: ${moTam}` : dangKhoa ? `Máy của ${d.ten}: ${cauKhoa(d.khoaDen).toLowerCase()}` : `${d.ten} dùng máy theo lịch`}
-        loi={moTam ? `Ba Mẹ đã cho thêm giờ lúc máy đang khoá. ${d.khoaDen ? `Khoá tự hết lúc ${gioPhut(d.khoaDen)}.` : "Khoá giữ tới khi Ba Mẹ mở lại."}` : dangKhoa ? `Mọi trò chơi đóng ở lần đồng bộ kế. Máy Windows ở chế độ «Chặn thật» khoá hẳn (cả ứng dụng học) ${d.khoaDen ? `tới ${gioPhut(d.khoaDen)}, rồi tự mở` : "tới khi Ba Mẹ mở lại"}.` : `Trần ${d.thamSo.tran_ngay} phút mỗi ngày, tính gộp mọi máy.`} />
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <TextInput value={gia} onChangeText={(t) => doi(t.replace(/\D/g, "").slice(0, 3))} keyboardType="number-pad" editable={!tat} accessibilityLabel={nhan}
+        style={{ width: 76, minHeight: 48, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, boxShadow: BONG.lom, textAlign: "center",
+          fontFamily: F.rat, fontSize: 22, color: M.chu }} />
+      <Chu kieu="dam" co={15} mau={M.chu2}>phút</Chu>
+    </View>
+  );
+}
+
+export default function GioChoiCon() {
+  const { con } = useLocalSearchParams<{ con: string }>();
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const [g, c, q] = await Promise.all([bm.goi<GioChoi>(`con/${con}/gio-choi`), bm.goi<ConChiTiet>(`con/${con}`), quyenToi()]);
+    return { g, ten: c.ten, trongGiup: q === "trong_giup" };
+  });
+  const [thuong, setThuong] = useState<string | null>(null);
+  const [cuoi, setCuoi] = useState<string | null>(null);
+  const [xin, setXin] = useState<boolean | null>(null);
+  const [doiSao, setDoiSao] = useState<boolean | null>(null);
+  const { lam, loi: loiLam, dangChay } = useLam();
+  if (!d) return <Man lui={{ chu: "Hồ sơ con" }} tieu="Giờ chơi"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const g = d.g;
+  const t = thuong ?? String(g.quyNgayThuong), cn = cuoi ?? String(g.quyCuoiTuan);
+  const x = xin ?? g.choXinThemGio, ds = doiSao ?? g.doiSaoBat;
+  const xem = d.trongGiup;
+  const luu = () => lam(async () => {
+    await bm.goi(`con/${con}/gio-choi`, { quyNgayThuong: t, quyCuoiTuan: cn, choXinThemGio: x, doiSaoBat: ds });
+    baoKhiVe(`Đã lưu giờ chơi cho ${d.ten} — máy nhận ở lần đồng bộ kế`);
+    router.back();
+  }, { hangDoi: true });
+  return (
+    <Man lui={{ chu: "Hồ sơ con" }} tieu={`Giờ chơi của ${d.ten}`} tai={tai} day={xem ? <Chu co={13.5} mau={M.chu3}>{CAU_TRONG_GIUP}</Chu> : <>
       <BaoLoi loi={loiLam} />
-      <HaiNut>
-        {dangKhoa ? <Nut chu="Mở lại máy" ic="mo_khoa" dangChay={dangChay} bam={moLai} />
-          : <Nut chu="Khoá máy ngay" ic="khoa" loai="huy" bam={() => setMoKhoa(true)} />}
-      </HaiNut>
-      <Nhom>
-        <Dong dau tieu="Ngày thường" phu={`${k("ngayThuong").tu} – ${k("ngayThuong").den}`} trai={<BieuTron ic="dongho" />} bam={() => setSua("ngayThuong")} />
-        <Dong tieu="Cuối tuần" phu={`${k("cuoiTuan").tu} – ${k("cuoiTuan").den}`} trai={<BieuTron ic="lich" />} bam={() => setSua("cuoiTuan")} />
-        <Dong tieu="Giờ ngủ" phu={`${d.lich.ngu.tu} – ${d.lich.ngu.den} · khoá mọi trò chơi`} trai={<BieuTron ic="trang_ngu" mau="tim" />} bam={() => setSua("ngu")} />
-      </Nhom>
-      <View style={{ gap: 6 }}>
-        <Chu kieu="rat" co={14}>{`Mỗi phiên tối đa · sau phiên nghỉ ${d.thamSo.nghi_giua} phút`}</Chu>
-        <ChonMot ds={[20, 30, 45, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={d.thamSo.phien_toi_da} doi={(v) => cauHinh({ phien_toi_da: v })} />
+      <Nut chu={`Lưu giờ chơi cho ${d.ten}`} rong dangChay={dangChay} tat={!t || !cn} bam={luu} />
+    </>}>
+      <The dem style={{ gap: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Chu kieu="rat" co={16} style={{ flex: 1 }}>Ngày thường được chơi</Chu>
+          <OPhut gia={t} doi={setThuong} nhan="Phút chơi ngày thường" tat={xem} />
+        </View>
+        {xem ? null : <ChonMot ds={[30, 60, 90].map((p) => ({ gia: String(p), chu: String(p) }))} gia={t} doi={setThuong} />}
+        <Chu co={13.5} mau={M.chu3}>Hết giờ, máy tự khoá app chơi. App học không tính giờ.</Chu>
+      </The>
+
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 26, backgroundColor: M.diemSoft }, KHOI.vien]}>
+        <Icon3D ten="sao" co={34} mau={M.diemInk} />
+        <View style={{ flex: 1 }}>
+          <Chu kieu="rat" co={18} mau={M.diemInk}>{`10 sao = ${g.phut10Sao} phút`}</Chu>
+          <Chu co={13.5} mau={M.diemInk}>Làm nhiệm vụ được sao, đổi ra phút chơi</Chu>
+        </View>
       </View>
-      <View style={{ gap: 6 }}>
-        <Chu kieu="rat" co={14}>Trần mỗi ngày · tính gộp mọi máy</Chu>
-        <ChonMot ds={[60, 90, 120, 180].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={d.thamSo.tran_ngay} doi={(v) => cauHinh({ tran_ngay: v })} />
-      </View>
-      <BangKhoa mo={moKhoa} dong={() => setMoKhoa(false)} con={con} ten={d.ten} xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
-      {sua ? <SuaKhung mo tieu={sua === "ngu" ? "Giờ ngủ" : sua === "ngayThuong" ? "Giờ chơi ngày thường" : "Giờ chơi cuối tuần"} khung={k(sua)} dong={() => setSua(null)}
-        luu={(v) => luuLich(sua, v)} /> : null}
+
+      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Giờ máy tự khoá</Chu>
+      <The dem style={{ paddingVertical: 4 }}>
+        <HangViec dau ic="trang_ngu" mau="tim" tieu="Giờ ngủ" phu={`${gioGon(g.gioNgu.tu)} – ${gioGon(g.gioNgu.den)} · mỗi ngày`}
+          bam={() => router.push(`/gio/ngu?con=${con}` as never)} />
+        <HangViec ic="mu" mau="xanh" tieu="Giờ học, chỉ mở app học" phu={g.gioHoc ? `${gioGon(g.gioHoc.tu)} – ${gioGon(g.gioHoc.den)} · ${cauThu(g.gioHoc.thu)}` : "Chưa đặt"}
+          bam={() => router.push(`/gio/hoc?con=${con}` as never)} />
+      </The>
+
+      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Ngày nghỉ</Chu>
+      <The dem style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <View style={{ flex: 1 }}>
+          <Chu kieu="rat" co={15.5}>Thứ 7, Chủ nhật chơi</Chu>
+          <Chu co={13.5} mau={M.chu3}>{Number(cn) > Number(t) ? "Nhiều hơn ngày thường" : Number(cn) < Number(t) ? "Ít hơn ngày thường" : "Bằng ngày thường"}</Chu>
+        </View>
+        <OPhut gia={cn} doi={setCuoi} nhan="Phút chơi Thứ 7, Chủ nhật" tat={xem} />
+      </The>
+
+      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Khi hết giờ</Chu>
+      <The dem style={{ paddingVertical: 4 }}>
+        <HangViec dau ic="tin" mau="cam" tieu="Cho con xin thêm giờ" phu="Điện thoại Ba Mẹ sẽ báo"
+          phai={<CongTac bat={x} doi={(v) => !xem && setXin(v)} nhan="Cho con xin thêm giờ" />} />
+        <HangViec ic="sao" mau="vang" tieu="Cho con tự đổi sao" phu={`Tối đa ${g.doiSaoToiDaNgay} phút mỗi ngày`}
+          phai={<CongTac bat={ds} doi={(v) => !xem && setDoiSao(v)} nhan="Cho con tự đổi sao" />} />
+      </The>
     </Man>
   );
 }

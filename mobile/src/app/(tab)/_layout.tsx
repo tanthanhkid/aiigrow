@@ -1,5 +1,5 @@
-// Thanh điều hướng Ba Mẹ (kit.tab_bm): bốn mục — Trang chủ (bảng điều khiển) · Chờ duyệt · Nhiệm vụ & quà · Gia đình. «Báo cáo» không còn là tab
-// (route thường /bao-cao, mở từ Thời gian màn hình); số đỏ ở Chờ duyệt = nhiệm vụ + yêu cầu đang chờ của mọi Con.
+// Thanh điều hướng Ba Mẹ (thiết kế chốt 05/11 bm-hang-ngay): bốn mục — Hôm nay · Nhiệm vụ · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
+// tab (/cho-duyet, mở từ Thông báo / Hôm nay) nhưng không có nút trên thanh; số đỏ ở Nhiệm vụ = nhiệm vụ + quà đang chờ, ở Hôm nay = lời xin của mọi Con.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
@@ -7,8 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { bm } from "@/lib/api";
 import { F, Icon, LopMen, M, NhanMen, napTruoc, type TenIcon } from "@/lib/ui";
-import { KHOA_TAB, napChoDuyet, napDiemQua } from "@/lib/tab-ba-me";
 import { KHOA_CA_NHA, napCaNha } from "@/lib/ca-nha";
+import { KHOA_NV_TAB, napNvTab } from "@/lib/nv-tab";
 import { BONG, MEN } from "@/lib/clay";
 import { useBat, useKhiTang } from "@/lib/chuyen-dong";
 import Animated, { useReducedMotion } from "react-native-reanimated";
@@ -42,7 +42,7 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
 }
 
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
-  "hom-nay": { ic: "nha", chu: "Trang chủ" }, "cho-duyet": { ic: "chuong", chu: "Chờ duyệt" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ & quà" },
+  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, "bao-cao": { ic: "cot", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
   "cai-dat": { ic: "nguoi", chu: "Cả nhà" },
 };
 
@@ -50,13 +50,15 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
   const ins = useSafeAreaInsets();
   const [nap, setSo] = useState<number | null>(null);
   const so = nap ?? 0;
+  // lời xin của con (thêm giờ, ngoại lệ, app/web) hiện ở Hôm nay ⇒ số đỏ riêng trên tab Hôm nay (review PR #183)
+  const [soXin, setSoXin] = useState(0);
   const { st: stSo, bat } = useBat();
   useKhiTang(nap, bat);
   const ten = state.routes.map((r) => r.name).join("|");
   const dsTab = useMemo(() => ten.split("|"), [ten]);
   useChuyenTab(dsTab, state.index, !!useReducedMotion());
   useEffect(() => {
-    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => setSo(r.nhiemVu.length + r.yeuCau.length + (r.phieu?.length ?? 0))).catch(() => {});
+    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => { setSo(r.nhiemVu.length + (r.phieu?.length ?? 0)); setSoXin(r.yeuCau.length); }).catch(() => {});
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt
   return (
     <View style={{ backgroundColor: M.nen, paddingHorizontal: 10, paddingTop: 6, paddingBottom: Math.max(ins.bottom - 6, 10) }}>
@@ -70,15 +72,15 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
         const dang = state.index === i;
         return (
           <NhanMen key={r.key} onPress={() => navigateToTab(r.key)} accessibilityRole="tab" accessibilityState={{ selected: dang }} muc="chip" sang men={dang ? MEN.day : undefined}
-            accessibilityLabel={r.name === "cho-duyet" && so ? `${m.chu}, ${so} việc` : m.chu}
+            accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : r.name === "hom-nay" && soXin ? `${m.chu}, ${soXin} lời xin` : m.chu}
             style={[{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 58, minWidth: 0, borderRadius: 26 },
               dang && { backgroundColor: M.chinhSoft, boxShadow: BONG.lom }]}>
             <Icon ten={m.ic} co={24} mau={dang ? M.chinhInk : M.chu3} />
             <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11.5, color: dang ? M.chinhInk : M.chu3 }}>{m.chu}</Text>
-            {r.name === "cho-duyet" && so ? (
+            {(r.name === "diem-qua" ? so : r.name === "hom-nay" ? soXin : 0) ? (
               <Animated.View style={[{ position: "absolute", top: 3, left: "56%", backgroundColor: M.huy, minWidth: 19, height: 19, borderRadius: 10, paddingHorizontal: 5,
                 alignItems: "center", justifyContent: "center", boxShadow: BONG.do }, stSo]}>
-                <Text style={{ fontFamily: F.rat, fontSize: 11, color: "#fff" }}>{so}</Text>
+                <Text style={{ fontFamily: F.rat, fontSize: 11, color: "#fff" }}>{r.name === "diem-qua" ? so : soXin}</Text>
               </Animated.View>
             ) : null}
           </NhanMen>
@@ -94,7 +96,7 @@ export default function TabLayout() {
   const giam = useReducedMotion();
   // Nạp trước dữ liệu ba tab còn lại khi Trang chủ đã lên: mở tab lần đầu là có nội dung ngay, trượt vào không chớp khung xương.
   useEffect(() => {
-    const t = setTimeout(() => { napTruoc(KHOA_TAB.choDuyet, napChoDuyet); napTruoc(KHOA_TAB.diemQua, napDiemQua); napTruoc(KHOA_CA_NHA, napCaNha); }, 1200);
+    const t = setTimeout(() => { napTruoc(KHOA_NV_TAB, napNvTab); napTruoc(KHOA_CA_NHA, napCaNha); }, 1200);
     return () => clearTimeout(t);
   }, []);
   return (
@@ -114,6 +116,7 @@ export default function TabLayout() {
       <Tabs.Screen name="hom-nay" />
       <Tabs.Screen name="cho-duyet" />
       <Tabs.Screen name="diem-qua" />
+      <Tabs.Screen name="bao-cao" />
       <Tabs.Screen name="cai-dat" />
     </Tabs>
   );
