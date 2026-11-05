@@ -322,6 +322,20 @@ public sealed class PipeServer : BackgroundService
                     var data = await api.RawAsync(method, "api/device/" + req.Path, req.Body, ct);
                     return new PipeResponse { Ok = true, Data = data };
                 }
+                catch (ApiException e) when (e.LaLoiDuongTruyen && BaiChoMang.LaNop(req.Method, req.Path))
+                {
+                    // 05/11 (L11): nộp bài lúc mất mạng ⇒ lưu bài, có mạng dịch vụ tự gửi (AgentWorker › GuiBaiChoMang)
+                    try
+                    {
+                        _rt.SoBaiCho = _rt.BaiCho.Them(req.Path!, req.Body ?? "{}", now);
+                        _log.LogInformation("Mất mạng: đã lưu bài nộp {p} chờ có mạng ({n} bài)", req.Path, _rt.SoBaiCho);
+                        return new PipeResponse { Ok = true, Status = "cho_mang", Data = "{\"trangThai\":\"cho_mang\"}" };
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        return new PipeResponse { Ok = false, Error = "Chưa có mạng, con thử lại sau nhé." };
+                    }
+                }
                 catch (ApiException e)
                 {
                     var cau = e.IsNetwork ? "Chưa có mạng, con thử lại sau nhé." : e.Message;

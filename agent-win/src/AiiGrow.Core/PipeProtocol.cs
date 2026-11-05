@@ -97,6 +97,8 @@ public sealed class TrayState
     public DateTimeOffset? NgoaiLeDen { get; set; }
     /// <summary>Giờ ngủ «HH:mm» bắt đầu (dòng «ngủ lúc 21:30»). null = chưa đặt.</summary>
     public string? NguLuc { get; set; }
+    /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
+    public int BaiChoMang { get; set; }
 }
 
 public sealed class PipeRequest

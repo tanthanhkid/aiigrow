@@ -52,6 +52,9 @@ public sealed class AgentRuntime
     public int WebRev => Volatile.Read(ref _webRev);
     public void WebDaDoi() => Interlocked.Increment(ref _webRev);
     public int ChildSessionId { get; set; } = -1;
+    /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
+    public BaiChoMang BaiCho { get; } = new(BaiChoMang.ThuMucMacDinh);
+    public volatile int SoBaiCho = -1;
 
     private (IReadOnlyDictionary<string, IReadOnlyList<string>> Ds, long Tick) _trinhDuyet = (new Dictionary<string, IReadOnlyList<string>>(), long.MinValue);
     /// <summary>Kết quả hơn 3 phút không được WebGuardWorker làm mới (worker kẹt) ⇒ coi như chưa lọc được: thôi thả trình duyệt (an toàn trước).</summary>
@@ -494,6 +497,7 @@ public sealed class AgentRuntime
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
                 OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
                 XinChoMang = Config?.XinCho.Items.Count ?? 0,
+                BaiChoMang = Math.Max(0, SoBaiCho),
             };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);

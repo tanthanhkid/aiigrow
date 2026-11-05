@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -219,7 +218,7 @@ public static class AppConView
         return dau == null ? Hoa(GoiYNop(v.BangChung)) : $"{dau} · {GoiYNop(v.BangChung)}";
     }
 
-    private static string Hoa(string s) => s.Length == 0 ? s : char.ToUpper(s[0], CultureInfo.GetCultureInfo("vi-VN")) + s[1..];
+    private static string Hoa(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
     private static string BangChungGan(string? bangChung) => bangChung switch
     {

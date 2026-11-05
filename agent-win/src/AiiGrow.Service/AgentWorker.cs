@@ -185,6 +185,7 @@ public sealed class AgentWorker : BackgroundService
             _rt.SetPolicy(policy, raw);
             _rt.DaGuiGiayChoi(status);
             await GuiXinChoMang(api, ct);
+            await GuiBaiChoMang(api, ct);
             return DateTimeOffset.Now.AddSeconds(policy.NextCheckSec);
         }
         catch (Exception e) when (e is not OperationCanceledException)
@@ -236,6 +237,33 @@ public sealed class AgentWorker : BackgroundService
             if (moi != null) _rt.NapLaiConfig(moi);
         }
         catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Gửi lời xin chờ mạng lỗi: {m}", e.Message); }
+    }
+
+    /// <summary>05/11 (L11): có mạng lại ⇒ gửi bài Con nộp lúc mất mạng (BaiChoMang: 12 giờ / 3 lần lỗi / 4xx bỏ — cùng luật hàng lời xin).</summary>
+    private async Task GuiBaiChoMang(ApiClient api, CancellationToken ct)
+    {
+        try
+        {
+            if (_rt.SoBaiCho < 0) _rt.SoBaiCho = _rt.BaiCho.Dem();
+            if (_rt.SoBaiCho == 0) return;
+            var n = await _rt.BaiCho.GuiAsync(async b =>
+            {
+                try
+                {
+                    await api.RawAsync(HttpMethod.Post, "api/device/" + b.Path, b.Body, ct);
+                    return KetQuaGuiXin.DaGui;
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    var kq = HangXinCho.PhanLoai(e);
+                    if (kq == KetQuaGuiXin.Bo) _log.LogWarning("Bỏ bài nộp chờ mạng {p}: máy chủ từ chối ({m})", b.Path, e.Message);
+                    return kq;
+                }
+            }, DateTimeOffset.Now);
+            if (n > 0) _log.LogInformation("Có mạng: đã gửi {n} bài nộp lúc mất mạng", n);
+            _rt.SoBaiCho = _rt.BaiCho.Dem();
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Gửi bài chờ mạng lỗi: {m}", e.Message); }
     }
 
     /// <summary>Dự phòng khi AppLocker chưa áp hoặc app đã chạy sẵn: đóng tiến trình ngoài danh sách trong phiên con.

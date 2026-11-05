@@ -202,7 +202,7 @@ internal sealed class AppForm : Form
         if (s != null) { _s = s; _at = receivedAt; }
         _kn = kn;
         ApplyKetNoiUi();
-        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.QuyConPhut.HasValue}|{_s.NgoaiLeDen}|{_s.DangGioHoc}|{_s.GrantEndsAt}|{(_s.QuyConPhut ?? 1) <= 0}";
+        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.QuyConPhut.HasValue}|{_s.NgoaiLeDen}|{_s.DangGioHoc}|{_s.GrantEndsAt}|{(_s.QuyConPhut ?? 1) <= 0}|{_s.BaiChoMang}";
         if (sig != _sig) { _sig = sig; Render(); }
         else CapNhatSo();
     }
@@ -550,6 +550,7 @@ internal sealed class AppForm : Form
         h.Controls.Add(thu);
         if (_s.MoOfflineDen == null) h.Controls.Add(KhoiCon.LienKet("Có mạng mà vẫn lỗi? ›", null, () => HoiAiiGrowClicked?.Invoke()));
         c.Controls.Add(h);
+        if (_s.BaiChoMang > 0) c.Controls.Add(KhoiCon.DongIcon("gui", $"Bài chờ gửi: {_s.BaiChoMang} · có mạng là tự gửi", r));
         _content.Controls.Add(c);
     }
 

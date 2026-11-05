@@ -241,4 +241,34 @@ public class AppConTests
     [InlineData("POST", "hoc-vien/quy", false)]
     [InlineData("POST", "hoc-vien/doi-sao?phut=10", false)]
     public void HocVienPaths_DuongMoi(string method, string path, bool mong) => Assert.Equal(mong, HocVienPaths.Allowed(method, path));
+
+    [Fact]
+    public async Task BaiChoMang_LuuGuiBo()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "aiigrow-bai-cho-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var h = new BaiChoMang(dir);
+            var now = new DateTimeOffset(2026, 11, 5, 19, 0, 0, VN);
+            Assert.True(BaiChoMang.LaNop("POST", "hoc-vien/luot/l1/nop"));
+            Assert.False(BaiChoMang.LaNop("GET", "hoc-vien/luot/l1/nop"));
+            Assert.False(BaiChoMang.LaNop("POST", "hoc-vien/doi/q1"));
+            Assert.Equal(1, h.Them("hoc-vien/luot/l1/nop", "{\"ghiChu\":\"a\"}", now));
+            Assert.Equal(1, h.Them("hoc-vien/luot/l1/nop", "{\"ghiChu\":\"b\"}", now.AddMinutes(1)));   // cùng lượt ⇒ thay bài cũ
+            Assert.Equal(2, h.Them("hoc-vien/luot/l2/nop", "{}", now.AddMinutes(2)));
+            Assert.Contains("\"b\"", h.DanhSach()[0].Body);
+            // lỗi mạng ⇒ dừng, giữ cả hai; lần thứ 3 thì bỏ bài đó
+            for (var i = 0; i < 2; i++) Assert.Equal(0, await h.GuiAsync(_ => Task.FromResult(KetQuaGuiXin.LoiMang), now.AddMinutes(5)));
+            Assert.Equal(2, h.Dem());
+            Assert.Equal(1, await h.GuiAsync(b => Task.FromResult(b.Path.Contains("l1") ? KetQuaGuiXin.LoiMang : KetQuaGuiXin.DaGui), now.AddMinutes(6)));
+            Assert.Equal(0, h.Dem());
+            // quá 12 giờ ⇒ bỏ không gửi
+            h.Them("hoc-vien/luot/l3/nop", "{}", now);
+            var goi = 0;
+            await h.GuiAsync(_ => { goi++; return Task.FromResult(KetQuaGuiXin.DaGui); }, now.AddHours(13));
+            Assert.Equal(0, goi);
+            Assert.Equal(0, h.Dem());
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
 }

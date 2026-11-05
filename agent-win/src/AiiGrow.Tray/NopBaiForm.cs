@@ -352,15 +352,17 @@ internal sealed class NopBaiForm : HopKhayCoBan
         Xoa();
         Text = "AiiGrow · Nhiệm vụ";
         var tuDuyet = kq.TrangThai == "duoc_duyet";
-        Flow.Controls.Add(KhoiCon.Dau(tuDuyet ? "phao_hoa" : "gui", tuDuyet ? KhoiCon.Mau.Vang : KhoiCon.Mau.Ngoc,
-            tuDuyet ? "Xong rồi!" : "Đã nộp cho Ba Mẹ", tuDuyet ? "Sao đã vào ví của con" : "Chờ Ba Mẹ xem…", W));
+        var choMang = kq.TrangThai == "cho_mang";   // mất mạng: dịch vụ đã lưu bài, có mạng tự gửi (L11)
+        Flow.Controls.Add(KhoiCon.Dau(tuDuyet ? "phao_hoa" : choMang ? "wifi" : "gui", tuDuyet ? KhoiCon.Mau.Vang : choMang ? KhoiCon.Mau.Cam : KhoiCon.Mau.Ngoc,
+            tuDuyet ? "Xong rồi!" : choMang ? "Đã lưu bài của con" : "Đã nộp cho Ba Mẹ",
+            tuDuyet ? "Sao đã vào ví của con" : choMang ? "Có mạng là AiiGrow gửi Ba Mẹ ngay. Không cần nộp lại đâu." : "Chờ Ba Mẹ xem…", W));
         var phu = _nv.BangChung switch
         {
             "ghi_am" => _ghiAm != null && !_theViet ? "ghi âm " + DongHo(_doDai) : "bài viết",
             "van_ban" or "viet" => "bài viết", "xong" => "đã bấm Xong", _ => $"{_anh.Count} ảnh",
         };
         Flow.Controls.Add(KhoiApp.Dong(W + VeThe.LeBong.Horizontal, AppConView.IconViec(_nv.Hinh, _nv.BangChung, _nv.Ten), _nv.Ten, phu, null,
-            tuDuyet ? KhoiApp.ChipSao($"+{_nv.SoSao} sao") : KhoiApp.ChipCho("Chờ duyệt")));
+            tuDuyet ? KhoiApp.ChipSao($"+{_nv.SoSao} sao") : KhoiApp.ChipCho(choMang ? "Chờ có mạng" : "Chờ duyệt")));
         if (kq.NghiTrung) Flow.Controls.Add(UI.Text("Ảnh này giống ảnh con từng nộp, Ba Mẹ sẽ xem kỹ nhé.", 10.5f, true, Clay.Canh, W));
         var ve = KhoiCon.Nut("Về danh sách nhiệm vụ", true, W, "tick");
         ve.Click += (_, _) => { DialogResult = DialogResult.OK; Close(); };
