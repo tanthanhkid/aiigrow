@@ -87,7 +87,9 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc }: {
       ) : (
         <HaiNut>
           <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
-          <Nut chu={`Cho ${y.phut ?? 15} phút`} nho dangChay={dang} bam={() => xong(() => choXin(y, may))} />
+          {/* ngoại lệ xin quá «tối đa ngoại lệ» mặc định (60) ⇒ mở màn chi tiết để Ba Mẹ chọn số phút trong giới hạn (máy chủ không kẹp — review PR #183) */}
+          {!laThemGio(y) && (y.phut ?? 15) > 60 ? <Nut chu="Xem rồi cho" nho bam={() => router.push(`/yeu-cau/${y.id}` as never)} />
+            : <Nut chu={`Cho ${y.phut ?? 15} phút`} nho dangChay={dang} bam={() => xong(() => choXin(y, may))} />}
         </HaiNut>
       )}
     </View>

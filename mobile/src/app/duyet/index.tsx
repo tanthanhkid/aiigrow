@@ -24,9 +24,13 @@ export default function DuyetDs() {
     const cd = await bm.goi<ChoDuyetMoi>("cho-duyet");
     const ds = cd.nhiemVu.filter((x) => !con || x.child_id === con);
     const conId = con ?? ds[0]?.child_id;
-    const vi = conId ? await bm.goi<{ soDu: number; sao?: number }>(`con/${conId}/vi`).catch(() => null) : null;
-    const ten = ds[0]?.ten_con ?? (conId ? (await bm.goi<{ ten: string }>(`con/${conId}`).catch(() => null))?.ten : undefined);
-    const quy = conId ? await bm.goi<{ quy: { tyLe: { sao: number; phut: number } } }>(`con/${conId}/quy`).catch(() => null) : null;
+    // ba lời gọi độc lập ⇒ song song (review PR #183)
+    const [vi, ct, quy] = await Promise.all([
+      conId ? bm.goi<{ soDu: number; sao?: number }>(`con/${conId}/vi`).catch(() => null) : null,
+      conId && !ds[0] ? bm.goi<{ ten: string }>(`con/${conId}`).catch(() => null) : null,
+      conId ? bm.goi<{ quy: { tyLe: { sao: number; phut: number } } }>(`con/${conId}/quy`).catch(() => null) : null,
+    ]);
+    const ten = ds[0]?.ten_con ?? ct?.ten;
     return { ds, conId, ten: ten ?? "Con", sao: vi ? (vi.sao ?? vi.soDu) : null, tyLe: quy?.quy.tyLe ?? { sao: 10, phut: 10 } };
   });
   const { lam, loi: loiLam, dangChay } = useLam();

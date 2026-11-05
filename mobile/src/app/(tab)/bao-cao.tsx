@@ -26,6 +26,9 @@ export default function TabBaoCao() {
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"), "tab:bao-cao");
   const { con: conVao } = useLocalSearchParams<{ con?: string }>();
   const [chon, setChon] = useState<string | null>(null);
+  // tab giữ trạng thái giữa các lần mở ⇒ mở từ màn của một Con (?con=) thì Con đó thắng lựa chọn chip cũ (review PR #183)
+  const [vaoCu, setVaoCu] = useState(conVao);
+  if (conVao !== vaoCu) { setVaoCu(conVao); setChon(null); }
   const con = chon ?? (conVao && g.d?.con.some((c) => c.id === conVao) ? conVao : g.d?.con[0]?.id) ?? null;
   if (!g.d) return <View style={{ flex: 1 }}><Man tieuLon="Báo cáo" chat><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
   if (!g.d.con.length) return <View style={{ flex: 1 }}><Man tieuLon="Báo cáo" chat><CanhGiua lv="canh-trong" tieu="Chưa có con nào" loi="Thêm hồ sơ con để có báo cáo tuần." /></Man></View>;
@@ -57,7 +60,9 @@ function BaoCaoCon({ id }: { id: string }) {
   const max = Math.max(60, ...ngay.map((x) => Math.max(x.phut, quyNgay(x.ngay) ?? 0)));
   // sao tuần này: cộng các lần nhận sao (delta > 0, trừ hoàn) từ đầu tuần của báo cáo; phút đã đổi = các lần «Đổi N sao lấy P phút chơi»
   const dau = ngay[0]?.ngay;
-  const trongTuan = (d.vi?.lichSu ?? []).filter((x) => dau && x.created_at.slice(0, 10) >= dau);
+  // so theo NGÀY ĐỊA PHƯƠNG (created_at là UTC: 00:00–06:59 thứ Hai giờ VN vẫn là Chủ nhật UTC). Ví chỉ trả ≤100 dòng gần nhất ⇒ nhà giao dịch nhiều có thể đếm thiếu.
+  const ngayDp = (iso: string) => { const t = new Date(iso); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
+  const trongTuan = (d.vi?.lichSu ?? []).filter((x) => dau && ngayDp(x.created_at) >= dau);
   const saoTuan = trongTuan.filter((x) => x.delta > 0 && x.loai !== "hoan").reduce((a, x) => a + x.delta, 0);
   const phutDoi = trongTuan.filter((x) => x.loai === "doi_gio").reduce((a, x) => a + Number(/lấy (\d+) phút/.exec(x.ly_do)?.[1] ?? 0), 0);
   const dung = nay.dungNhieu?.length ? nay.dungNhieu.slice(0, 3) : nay.top.slice(0, 3).map((x) => ({ ...x, loai: "giai_tri", lech: null }));

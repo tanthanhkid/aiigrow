@@ -92,7 +92,11 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
   const nopCho = (d.cd?.nhiemVu ?? []).filter((x) => x.child_id === conId);
   const canDeY = d.tt.filter((m) => (m.con === conId || m.dungChung) && m.baoVe && m.baoVe !== "day_du" && !m.dangGo);
   const canhBao = d.cb.filter((x) => !x.child_id || x.child_id === conId).slice(0, 2);
-  const viec = d.nv.filter((v) => v.bat && (!v.giao_cho || v.giao_cho === conId));
+  // chỉ việc có lịch HÔM NAY (như máy chủ nvCuaCon): «Tự xếp cặp» T2–T6 không hiện thứ 7 (review PR #183)
+  const thuNay = new Date().getDay();
+  const homNayCo = (l?: string | null) => !l || l === "hang_ngay" || l === "mot_lan" || (l === "ngay_thuong" ? thuNay >= 1 && thuNay <= 5 : l === "cuoi_tuan" ? thuNay === 0 || thuNay === 6
+    : l.startsWith("thu:") ? l.slice(4).split(",").map(Number).includes(thuNay) : true);
+  const viec = d.nv.filter((v) => v.bat && (!v.giao_cho || v.giao_cho === conId) && homNayCo(v.lap_lai));
   const daXong = new Set(c.homNayConDa);
   const soLam = viec.filter((v) => daXong.has(v.ten) || nopCho.some((x) => x.ten === v.ten)).length;
   // top 3 app hôm nay (giây → phút) từ thời gian màn hình tuần này

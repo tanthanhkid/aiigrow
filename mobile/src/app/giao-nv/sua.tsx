@@ -21,12 +21,18 @@ export default function SuaViec() {
   if (!d) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Sửa việc"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const v = d.v;
   if (!v) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Sửa việc"><Bao loai="lam" ic="tick" tieu="Việc này không còn nữa" loi="Có thể người khác trong nhà đã xoá." /></Man>;
-  const form: FormViec = f ?? { ten: v.ten, hinh: v.hinh ?? "choi", sao: v.diem, lapLai: v.lap_lai ?? ((v as { kieu?: string }).kieu === "mot_lan" ? "mot_lan" : "hang_ngay"),
+  const goc: FormViec = { ten: v.ten, hinh: v.hinh ?? "choi", sao: v.diem, lapLai: v.lap_lai ?? ((v as { kieu?: string }).kieu === "mot_lan" ? "mot_lan" : "hang_ngay"),
     gioNhac: v.gio_nhac ?? "", bangChung: v.bang_chung === "tu_dong" ? "xong" : v.bang_chung, duyet: !v.tu_duyet, giaoCho: v.giao_cho ? [v.giao_cho] : [] };
+  const form = f ?? goc;
   const tenCon = v.giao_cho ? d.con.find((c) => c.id === v.giao_cho)?.ten ?? "Con" : "Các con";
   const conLai = v.bo ? d.ds.filter((x) => x.bat && x.bo === v.bo && x.id !== v.id && x.giao_cho === v.giao_cho).length : null;
   const luu = () => lam(async () => {
-    await bm.goi(`nhiem-vu/${v.id}`, { ...thanViec(form), giao_cho: form.giaoCho[0] ?? null });
+    // chỉ gửi trường Ba Mẹ ĐÃ đổi: suaNv ghép lên bản cũ ⇒ giữ nguyên toi_da_ngay, nhom, hình trống, việc AiiRob tự chấm (review PR #183).
+    // «Áp cho» không sửa được (suaNv không ghi giao_cho) nên màn sửa không hiện mục đó.
+    const moi = thanViec(form), cu = thanViec(goc), than: Record<string, unknown> = {};
+    for (const k of ["ten", "hinh", "diem", "lap_lai", "gio_nhac", "bang_chung", "tu_duyet"] as const) if (moi[k] !== cu[k]) than[k] = moi[k];
+    if (than.lap_lai === "mot_lan") than.toi_da_ngay = null;
+    if (Object.keys(than).length) await bm.goi(`nhiem-vu/${v.id}`, than);
     baoKhiVe(`Đã lưu việc «${form.ten.trim()}»`);
     router.back();
   });
@@ -41,7 +47,7 @@ export default function SuaViec() {
       day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${form.ten.trim() || v.ten}»`} rong dangChay={dangChay} tat={!tenHopLe(form.ten)} bam={luu} /></> : undefined}>
       {d.baMe ? (
         <>
-          <NhapViec f={form} doi={setF} con={d.con} motCon goiY={false} />
+          <NhapViec f={form} doi={setF} con={[]} goiY={false} />
           <Nut chu="Xoá việc này" loai="huy" rong bam={() => setXoa(true)} />
         </>
       ) : <Bao loai="lam" ic="khoa" tieu={v.ten} loi={CAU_TRONG_GIUP} />}
