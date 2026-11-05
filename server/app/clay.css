@@ -228,3 +228,14 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .nut.nho,.ag .the-tai .nut{padding-top:8px;padding-bottom:8px}
 /* nút nhỏ trong hàng (Đăng xuất, Tìm mã…) không bị bóp gãy chữ — thiếu chỗ thì hàng tự xuống dòng */
 .ag .nut.nho{flex-shrink:0}
+/* /tai (thiết kế bm1-web-*, 05/11): 3 bước bằng hình — số tròn ngọc + icon 3D + chữ; ô mã ghép 6 số to */
+.ag ol.buoc-hinh{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.ag ol.buoc-hinh>li{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:24px;background:var(--lom);box-shadow:var(--lomIn);min-height:72px}
+.ag ol.buoc-hinh .so{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--chinh);color:#fff;font-weight:800;font-size:15px}
+.ag ol.buoc-hinh .hinh{flex:none;width:40px;height:40px}
+.ag ol.buoc-hinh .t{display:block;font-size:15.5px;line-height:1.4}
+.ag ol.buoc-hinh small{display:block;margin-top:2px;font-size:13px;line-height:1.45;color:var(--chu3)}
+.ag .ma-ghep{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 16px}
+.ag .ma-ghep .o-ma{display:flex;gap:8px;justify-content:center}
+.ag .ma-ghep .o-ma span{width:46px;height:58px;border-radius:18px;display:grid;place-items:center;background:var(--lom);box-shadow:var(--lomIn);font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
+@media (max-width:380px){.ag .ma-ghep .o-ma{gap:5px}.ag .ma-ghep .o-ma span{width:40px;height:52px;font-size:24px}}
