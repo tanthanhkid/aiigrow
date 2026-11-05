@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, View } from "react-native";
 import { bm, laChiXem, type ConChiTiet, type GiaDinh, type ThongKeWeb, type YeuCau } from "@/lib/api";
-import { HangVang, MucTieu, NhanGio, OIcon, TheCheDoNgan, icCuaApp, phuXin, tieuXin, type CheDoChan } from "@/lib/ui-bm3";
+import { HangVang, MucTieu, NhanGio, OIcon, TheCheDoNgan, gioChoi, icCuaApp, napQuyCon, phuXin, tieuXin, type CheDoChan } from "@/lib/ui-bm3";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, MAU_CON, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -62,7 +62,8 @@ export default function UngDungMay() {
       bm.goi<ConChiTiet & { cheDoChan?: CheDoChan }>(`con/${conId}`), bm.goi<GiaDinh>("gia-dinh"),
       bm.goi<{ yeuCau: YeuCau[] }>("cho-duyet").catch(() => ({ yeuCau: [] as YeuCau[] })), bm.goi<ThongKeWeb>(`con/${conId}/web?ngay=1`).catch(() => null), laChiXem(),
     ]);
-    return { ct, ngan: g.con.find((c) => c.id === conId), xin: cd.yeuCau.filter((y) => y.child_id === conId && (y.loai === "cai_app" || y.loai === "mo_web")),
+    const quy = await napQuyCon(conId);
+    return { ct, quy, ngan: g.con.find((c) => c.id === conId), xin: cd.yeuCau.filter((y) => y.child_id === conId && (y.loai === "cai_app" || y.loai === "mo_web")),
       soWeb: web ? web.luat.filter((l) => l.trangThai === "cho_phep" || l.trangThai === "giai_tri").length : null, xem };
   });
   // useTai giữ hàm tải của lần dựng đầu ⇒ hàm tải đọc con qua ref; đổi con thì cập nhật ref rồi tải lại
@@ -146,7 +147,7 @@ export default function UngDungMay() {
         day={p?.xem ? undefined : <Nut chu={`Thêm app cho ${tenCon}`} rong bam={() => router.push({ pathname: "/ung-dung/them", params: { may, con: conId } })} />}>
         {p ? <TheCheDoNgan cheDo={p.ct.cheDoChan ?? "chi_app_duoc_phep"} doi={p.xem ? undefined : () => router.push(`/app-web?con=${conId}`)} /> : null}
         {p?.xin.map((y) => <HangVang key={y.id} tieu={tieuXin(y)} phu={phuXin(y)} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />)}
-        <MucTieu chu={`Được dùng · ${duoc.length} app${p?.ngan ? ` · ${p.ngan.phutChoi}/${p.ngan.tranNgay} phút giờ chơi` : ""}`} />
+        <MucTieu chu={`Được dùng · ${duoc.length} app${p?.ngan ? ` · ${gioChoi(p.ngan, p.quy).da}/${gioChoi(p.ngan, p.quy).tong} phút giờ chơi` : ""}`} />
         <Nhom>
           {duoc.map((a, i) => (
             <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={a.theoCaNha ? "Luật cả nhà" : a.nhaPhatHanh ?? undefined} trai={<OIcon ic={icCuaApp(`${a.ten} ${a.muc}`)} anh={a.icon} />}

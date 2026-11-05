@@ -95,7 +95,7 @@ export default function CaiDat() {
             style={{ width: "31%", flexGrow: 1, maxWidth: 160, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
             <Avt ten={c.ten} mau={MAU_CON[i % MAU_CON.length]} co={52} />
             <Chu kieu="rat" co={14.5} dong={1}>{c.ten}</Chu>
-            <Chu kieu="dam" co={12} mau={M.chu3}>{`${c.soDu} sao`}</Chu>
+            <Chu kieu="dam" co={12} mau={M.chu3}>{`${(c as { sao?: number }).sao ?? c.soDu} sao`}</Chu>
           </NhanMen>
         ))}
         {laBaMe ? (

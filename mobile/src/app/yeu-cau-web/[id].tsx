@@ -6,7 +6,7 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type GiaDinh, type YeuCau } from "@/lib/api";
-import { ManKetQua, NutQuyet, OIcon, RobNoi, hoanLuat, icCuaApp, lucNgan, veHoac, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
+import { ManKetQua, NutQuyet, gioChoi, napQuyCon, OIcon, RobNoi, hoanLuat, icCuaApp, lucNgan, veHoac, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
 import { BaoLoi, ChoTai, Chu, M, Man, gioPhut, useLam, useTai } from "@/lib/ui";
 
@@ -18,7 +18,7 @@ export default function YeuCauWeb() {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [cd, g, xem] = await Promise.all([bm.goi<{ yeuCau: YeuCau[] }>("cho-duyet"), bm.goi<GiaDinh>("gia-dinh"), laChiXem()]);
     const y = cd.yeuCau.find((x) => x.id === id) ?? null;
-    return { y, con: y ? g.con.find((c) => c.id === y.child_id) ?? null : null, xem };
+    return { y, con: y ? g.con.find((c) => c.id === y.child_id) ?? null : null, xem, quy: y ? await napQuyCon(y.child_id) : null };
   });
   const [kq, setKq] = useState<(KetQua & { y: YeuCau }) | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -42,7 +42,7 @@ export default function YeuCauWeb() {
   if (!d) return <Man lui={{ chu: "" }} tieu="Con xin mở"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.y) return <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở"><ChoTai loi="Lời xin này đã được trả lời (hoặc đã hết hạn)." tai={ve} /></Man>;
   const y = d.y, ten = y.gia_tri ?? "app mới", tenCon = d.con?.ten ?? y.ten_con;
-  const con = d.con, con_lai = con ? Math.max(0, con.tranNgay - con.phutChoi) : null;
+  const con = d.con, gc = con ? gioChoi(con, d.quy) : null, con_lai = gc ? gc.con : null;
   const dongY = (loai: "cho" | "hom_nay") => lam(async () => {
     const cu = (await bm.goi<{ ds: LuatApp[] }>("luat").catch(() => null))?.ds.find((l) => l.child_id === y.child_id && l.muc === y.gia_tri);
     const truoc: LuatTruoc = cu ? { con: y.child_id, muc: cu.muc, ten: cu.ten, loai: cu.loai, nhom: cu.nhom, het: (cu as LuatApp & { het?: string | null }).het ?? null } : null;
@@ -69,14 +69,14 @@ export default function YeuCauWeb() {
       {(
         <View style={{ gap: 10 }}>
           <NutQuyet loai="x" ic="tick" chu={con_lai !== null ? `Cho mở, tính vào ${con_lai} phút còn lại` : "Cho mở, tính vào giờ chơi"}
-            phu={con ? `Hôm nay đã chơi ${con.phutChoi}/${con.tranNgay} phút` : undefined} dangChay={dangChay} bam={() => dongY("cho")} />
+            phu={gc ? `Hôm nay đã chơi ${gc.da}/${gc.tong} phút` : undefined} dangChay={dangChay} bam={() => dongY("cho")} />
           <NutQuyet loai="c" ic="dong_ho_cat" chu="Cho dùng hôm nay, không tính giờ" phu={con_lai !== null ? `Không trừ vào ${con_lai} phút còn lại` : undefined}
             dangChay={dangChay} bam={() => dongY("hom_nay")} />
           <NutQuyet loai="d" ic="x" chu="Không cho" phu={`Báo cho ${tenCon} ngay`} dangChay={dangChay} bam={khong} />
         </View>
       )}
       <BaoLoi loi={loiLam} />
-      {con ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center" }}>{`Hôm nay ${tenCon} đã chơi ${con.phutChoi}/${con.tranNgay} phút`}</Chu> : null}
+      {gc ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center" }}>{`Hôm nay ${tenCon} đã chơi ${gc.da}/${gc.tong} phút`}</Chu> : null}
     </Man>
   );
 }

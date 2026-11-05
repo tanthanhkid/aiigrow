@@ -3,9 +3,9 @@
 // Ghi ngay: POST qua {ten, diem, loai: qua} · POST qua/:id {ten, diem, bat}. Phiếu quà (voucher) cũ không hiện ở đây (bảng giữ nguyên).
 import { useState } from "react";
 import { View } from "react-native";
-import { bm, laChiXem, type Qua } from "@/lib/api";
+import { bm, laChiXem, type GiaDinh, type Qua } from "@/lib/api";
 import { KHOI, BONG } from "@/lib/clay";
-import { veHoac } from "@/lib/ui-bm3";
+import { napQuyCon, veHoac } from "@/lib/ui-bm3";
 import { router } from "expo-router";
 import { BangTruot, BaoLoi, ChoTai, Chips, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, Nut, ONhap, Rob, tien, type TenIcon, useLam, useTai } from "@/lib/ui";
 
@@ -31,7 +31,10 @@ function OQua({ ic, ten, sao, tag, bam }: { ic: TenIcon; ten: string; sao: strin
 export default function QuaDoiSao() {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [q, xem, quy] = await Promise.all([bm.goi<{ ds: Qua[] }>("qua"), laChiXem(), bm.goi<{ soDu: number }>("quy").catch(() => null)]);
-    return { ds: q.ds.filter((x) => x.loai !== "voucher" && x.bat), xem, quyVoucher: quy?.soDu ?? 0 };
+    // tỉ lệ đổi sao → phút (S1 `phut_10_sao`, mặc định 10 sao = 10 phút) lấy từ quỹ của con đầu tiên
+    const g = await bm.goi<GiaDinh>("gia-dinh").catch(() => null);
+    const tyLe = g?.con[0] ? (await napQuyCon(g.con[0].id))?.tyLe ?? null : null;
+    return { ds: q.ds.filter((x) => x.loai !== "voucher" && x.bat), xem, quyVoucher: quy?.soDu ?? 0, tyLe };
   });
   const [sua, setSua] = useState<Qua | "moi" | null>(null);
   const [ten, setTen] = useState("");
@@ -56,7 +59,7 @@ export default function QuaDoiSao() {
         <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>Con thấy các quà này trên máy, đủ sao thì tự đổi. Ba Mẹ trao quà ngoài đời.</Chu>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, justifyContent: "space-between" }}>
-        <OQua ic="dongho" ten="Thêm phút chơi" sao="1 sao = 1 phút" tag="Có sẵn" />
+        <OQua ic="dongho" ten="Thêm phút chơi" sao={d.tyLe ? `${d.tyLe.sao} sao = ${d.tyLe.phut} phút` : "10 sao = 10 phút"} tag="Có sẵn" />
         {d.ds.map((q) => <OQua key={q.id} ic={icQua(q)} ten={q.ten} sao={`${q.diem} sao`} bam={d.xem ? undefined : () => mo(q)} />)}
         {d.xem ? null : (
           <NhanMen onPress={() => mo("moi")} accessibilityRole="button" accessibilityLabel="Thêm quà" muc="khoi" sang

@@ -6,15 +6,15 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type GiaDinh } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
-import { ManKetQua, MucTieu, OIcon, hoanLuat, icCuaApp, khoaTen, luatCuaCon, veHoac, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
+import { ManKetQua, MucTieu, OIcon, gioChoi, napQuyCon, hoanLuat, icCuaApp, khoaTen, luatCuaCon, veHoac, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
 import { BaoLoi, ChoTai, Chips, gioPhut, Chu, CongTac, Dong, M, Man, NhanMen, Nhom, Nut, useLam, useTai } from "@/lib/ui";
 
 export default function MotApp() {
   const ts = useLocalSearchParams<{ con: string; muc: string; ten?: string; caNha?: string }>();
   const caNha = ts.caNha === "1";        // app mới chưa xếp của cả nhà (thẻ «app mới» Trang chủ) ⇒ luật cả nhà, không gắn một con
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [g, luat, xem] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: LuatApp[] }>("luat"), laChiXem()]);
-    return { g, luat: luat.ds, xem };
+    const [g, luat, xem, quy] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: LuatApp[] }>("luat"), laChiXem(), ts.con ? napQuyCon(ts.con) : Promise.resolve(null)]);
+    return { g, luat: luat.ds, xem, quy };
   });
   const [tinh, setTinh] = useState<boolean | null>(null);
   const [apCho, setApCho] = useState<string[] | null>(null);
@@ -80,7 +80,7 @@ export default function MotApp() {
         <Chu kieu="dam" co={13} mau={M.chu3}>{!hienTai ? `${con.ten} chưa được dùng` : hienTai.loai === "chan" ? `Đang chặn với ${con.ten}` : `${con.ten} đang được dùng`}</Chu>
       </View>
       <Nhom>
-        <Dong dau tieu="Tính vào giờ chơi" phu={`Tổng hôm nay ${con.phutChoi}/${con.tranNgay} phút`} trai={<OIcon ic="dongho" />}
+        <Dong dau tieu="Tính vào giờ chơi" phu={`Tổng hôm nay ${gioChoi(con, con.id === ts.con ? d.quy : null).da}/${gioChoi(con, con.id === ts.con ? d.quy : null).tong} phút`} trai={<OIcon ic="dongho" />}
           phai={d.xem ? undefined : <CongTac bat={tinhGio} nhan="Tính vào giờ chơi" doi={setTinh} />} />
       </Nhom>
       {d.g.con.length > 1 && !caNha ? (

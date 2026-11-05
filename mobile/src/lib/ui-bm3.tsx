@@ -284,3 +284,11 @@ export function NutVien({ chu, bam }: { chu: string; bam: () => void }) {
     </NhanMen>
   );
 }
+
+// ---------------------------------------------------------------- quỹ giờ chơi hôm nay (S1: GET con/:id/quy — L2)
+
+export type QuyCon = { daDung: number; tongPhut: number; conPhut: number; tyLe?: { sao: number; phut: number } };
+/** Quỹ giờ chơi hôm nay của một con; máy chủ cũ (chưa có S1) ⇒ null, dùng phút chơi / trần ngày của `gia-dinh`. */
+export const napQuyCon = (id: string) => bm.goi<{ quy: QuyCon }>(`con/${id}/quy`).then((r) => r.quy, () => null);
+export const gioChoi = (c: { phutChoi: number; tranNgay: number }, q: QuyCon | null | undefined) =>
+  q ? { da: q.daDung, tong: q.tongPhut, con: q.conPhut } : { da: c.phutChoi, tong: c.tranNgay, con: Math.max(0, c.tranNgay - c.phutChoi) };
