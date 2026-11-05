@@ -206,7 +206,7 @@ test("gắn Facebook vào tài khoản có sẵn: chỉ khi đang đăng nhập 
   // phiên thôi chưa đủ: người cầm máy không gắn được Facebook của mình nếu không biết mật khẩu
   const khongMk = await goi("lien-ket/facebook", { tok, body: { accessToken: "fb-gan" } });
   assert.equal(khongMk.status, 401); assert.equal(khongMk.body.error, "sai_mat_khau");
-  assert.equal((await one<{ sai_lien: number }>(`select sai_lien from parents where id = $1`, [id]))!.sai_lien, 1);   // chung bộ đếm khoá đăng nhập
+  assert.equal((await one<{ sai_lien: number }>(`select sai_lien from parents where id = $1`, [id]))!.sai_lien, 0);   // không đụng khoá đăng nhập
   const lk = await goi("lien-ket/facebook", { tok, body: { accessToken: "fb-gan", matKhau: "matkhau123" } });
   assert.equal(lk.status, 200, JSON.stringify(lk.body));
   assert.equal((await goi("lien-ket/facebook", { tok, body: { accessToken: "fb-gan", matKhau: "matkhau123" } })).status, 200);       // gắn lại: không đổi gì
@@ -239,6 +239,9 @@ test("chuyển dữ liệu: tài khoản Facebook cũ mang email ⇒ định dan
   const id = await tx(async (t) => {
     const id = await taoNha(t, "cu.fb@gmail.com", "Ba Cũ", null);
     await t(`insert into ba_me_mxh(nguon, sub, parent_id) values ('facebook', '321', $1)`, [id]);
+    // tài khoản email gắn thêm Facebook (lien_ket) — không được đổi định danh
+    const g = await taoNha(t, "gan.them@gmail.com", "Gắn thêm", null);
+    await t(`insert into ba_me_mxh(nguon, sub, parent_id, lien_ket) values ('facebook', '322', $1, true)`, [g]);
     return id;
   });
   FB["fb-cu"] = { app: FB_ID, user: "321", email: "cu.fb@gmail.com", name: "Ba Cũ" };
@@ -249,7 +252,7 @@ test("chuyển dữ liệu: tài khoản Facebook cũ mang email ⇒ định dan
   const v = await goi("dang-nhap/facebook", { body: { accessToken: "fb-cu" } });
   assert.equal((await goi("toi", { tok: v.body.token })).body.baMe.id, id);
   // tài khoản gắn thêm (lien_ket) không bị đổi định danh
-  assert.equal((await one<{ dinh_danh: string }>(`select dinh_danh from parents where dinh_danh = 'me.gan@gmail.com'`))!.dinh_danh, "me.gan@gmail.com");
+  assert.equal((await one<{ dinh_danh: string }>(`select dinh_danh from parents where dinh_danh = 'gan.them@gmail.com'`))!.dinh_danh, "gan.them@gmail.com");
   const otp = await goi("otp", { body: { dinhDanh: "cu.fb@gmail.com" } });
   assert.equal((await goi("dang-ky", { body: { dinhDanh: "cu.fb@gmail.com", ma: otp.body.ma, ten: "Chủ Thật", matKhau: "matkhau123" } })).status, 200);
 });

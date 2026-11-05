@@ -20,7 +20,7 @@ import { createHmac, createPublicKey, verify, type JsonWebKey } from "node:crypt
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { SQL_CHUYEN_FB } from "./schema.ts";
-import { bamMatKhau, chuanDinhDanh, dungMatKhau, ghiSaiMatKhau, taoNha, TIEN_TO_FB, type BaMe } from "./auth.ts";
+import { bamMatKhau, chuanDinhDanh, dungMatKhau, taoNha, TIEN_TO_FB, type BaMe } from "./auth.ts";
 
 const JWKS_GOOGLE = "https://www.googleapis.com/oauth2/v3/certs";
 const ISS_GOOGLE = new Set(["accounts.google.com", "https://accounts.google.com"]);
@@ -224,8 +224,9 @@ export function chuaCoMatKhau(p: { pass_hash: string | null } | undefined) {
 export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "?", now = Date.now()) {
   const mk = String(b.matKhauMoi ?? "");
   if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
-  const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
-  if (p?.pass_hash) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
+  const p = await one<{ pass_hash: string | null; dinh_danh: string }>(`select pass_hash, dinh_danh from parents where id = $1`, [bm.id]);
+  if (p?.pass_hash) throw new LoiNghiepVu("da_co_mat_khau", p.dinh_danh.startsWith(TIEN_TO_FB)
+    ? "Tài khoản đã có mật khẩu — tài khoản Facebook quên mật khẩu thì nhờ hỗ trợ AiiGrow" : "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
   // tài khoản trước: phiên đã hết lượt riêng thì không đốt tiếp lượt IP của người khác chung mạng
   await giuLuot(`dat_mk_tk:${bm.id}`, khung(now), TRAN.datMkTk);
   await giuLuot(`dat_mk_ip:${ip}`, khung(now), TRAN.datMkIp);
@@ -247,15 +248,12 @@ export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "
 export async function lienKetMxh(bm: BaMe, nguon: NguonMxh, b: Record<string, unknown>, ip = "?", now = Date.now()) {
   await giuLuot(`lien_ket_tk:${bm.id}`, khung(now), TRAN.lienKetTk);
   await giuLuot(`lien_ket_ip:${ip}`, khung(now), TRAN.lienKetIp);
-  const p = await one<{ pass_hash: string | null; khoa_den: Date | null }>(`select pass_hash, khoa_den from parents where id = $1`, [bm.id]);
+  // bộ đếm RIÊNG (lien_ket_tk ở trên, mọi lượt đều tính — như xoa-tai-khoan.ts › kiemMatKhau), không đụng khoá đăng nhập: người cầm máy
+  // gõ sai không khoá được Ba Mẹ khỏi đăng nhập, và cũng không dò mật khẩu quá 5 lượt / 15 phút
+  const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1 and vai <> 'roi'`, [bm.id]);
+  if (!p) throw new LoiNghiepVu("chua_dang_nhap", "Phiên đăng nhập đã hết — đăng nhập lại nhé", 401);
   chuaCoMatKhau(p);
-  // chung bộ đếm sai mật khẩu với đăng nhập (auth.ts › dangNhap): sai 5 lần liền ⇒ khoá 15 phút — không thành chỗ dò mật khẩu
-  if (p!.khoa_den && new Date(p!.khoa_den) > new Date()) throw new LoiNghiepVu("tam_khoa", "Sai mật khẩu nhiều lần — thử lại sau 15 phút", 429);
-  if (!(await dungMatKhau(String(b.matKhau ?? ""), p!.pass_hash!))) {
-    await ghiSaiMatKhau(bm.id);
-    throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);
-  }
-  await q(`update parents set sai_lien = 0, khoa_den = null where id = $1`, [bm.id]);
+  if (!(await dungMatKhau(String(b.matKhau ?? ""), p.pass_hash!))) throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu chưa đúng", 401);
   const dt = await xacMinh(nguon, b);
   const ten = TEN_NGUON[nguon];
   const r = await q(`insert into ba_me_mxh(nguon, sub, parent_id, email, lien_ket) values ($1, $2, $3, $4, true) on conflict do nothing returning 1`,

@@ -311,7 +311,7 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 | `GET cau-hinh-dang-nhap` | `{google: bool, facebook: bool}` — app ẩn nút nào `false` (thiếu env `GOOGLE_CLIENT_IDS` / `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET`) |
 | `POST dang-nhap/google {idToken}` | id_token Google (kiểm chữ ký JWKS, `iss`, `aud` ∈ `GOOGLE_CLIENT_IDS`, hạn, `email_verified`) → `{token, moi?, loiMoi[]}` |
 | `POST dang-nhap/facebook {accessToken}` | access token Facebook (Graph `debug_token` đúng app, `/me` lấy id + email tham khảo) → `{token, moi?, loiMoi[]}` |
-| `POST lien-ket/google {idToken, matKhau}` · `POST lien-ket/facebook {accessToken, matKhau}` | (đăng nhập + mật khẩu hiện tại) gắn tài khoản Google / Facebook vào CHÍNH tài khoản đang đăng nhập → `{ok, nguon}`; lỗi `chua_co_mat_khau` 409 · `sai_mat_khau` 401 (chung bộ đếm khoá đăng nhập) · `tam_khoa` 429 · `mxh_da_gan` 409 (đã gắn tài khoản khác) · `mxh_da_gan_khac` 409 (tài khoản này đã gắn một cái cùng nguồn) · `qua_nhieu_lan` 429 (5 / Ba Mẹ + 10 / IP mỗi 15 phút) |
+| `POST lien-ket/google {idToken, matKhau}` · `POST lien-ket/facebook {accessToken, matKhau}` | (đăng nhập + mật khẩu hiện tại) gắn tài khoản Google / Facebook vào CHÍNH tài khoản đang đăng nhập → `{ok, nguon}`; lỗi `chua_co_mat_khau` 409 · `sai_mat_khau` 401 · `mxh_da_gan` 409 (đã gắn tài khoản khác) · `mxh_da_gan_khac` 409 (tài khoản này đã gắn một cái cùng nguồn) · `qua_nhieu_lan` 429 (5 / Ba Mẹ + 10 / IP mỗi 15 phút) |
 
 Danh tính = (nguồn, mã người dùng Google/Facebook) — bảng `ba_me_mxh`. Lần đầu ⇒ tạo nhà mới, Ba Mẹ là người tạo nhà, không mật khẩu
 (`moi: true`). Google: định danh = email (đã xác minh); email ĐÃ có tài khoản ⇒ 409 `mxh_da_co_tai_khoan` (không tự gắn theo email — chống

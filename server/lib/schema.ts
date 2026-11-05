@@ -616,6 +616,7 @@ export const SCHEMA_S2 = [
   `alter table ba_me_mxh add column if not exists email text`,
   `alter table ba_me_mxh add column if not exists lien_ket boolean not null default false`,
   // mỗi Ba Mẹ gắn tối đa một tài khoản mỗi nguồn (lien-ket/* gửi song song không gắn được hai)
+  `delete from ba_me_mxh a using ba_me_mxh b where a.parent_id = b.parent_id and a.nguon = b.nguon and a.sub > b.sub`,   // phòng dữ liệu tay
   `create unique index if not exists ba_me_mxh_mot_nguon on ba_me_mxh(parent_id, nguon)`,
   ...SQL_CHUYEN_FB,
   `alter table families add column if not exists chu_id text`,

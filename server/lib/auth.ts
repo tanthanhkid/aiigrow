@@ -110,10 +110,6 @@ export async function dangKy(b: { dinhDanh?: unknown; ma?: unknown; ten?: unknow
   return kq;
 }
 
-/** Một lần sai mật khẩu của Ba Mẹ (đăng nhập, gắn MXH): sai SAI_KHOA lần liền ⇒ khoá KHOA_PHUT phút. */
-export const ghiSaiMatKhau = (id: string) => q(`update parents set sai_lien = sai_lien + 1,
-  khoa_den = case when sai_lien + 1 >= $2 then now() + make_interval(mins => $3) else null end where id = $1`, [id, SAI_KHOA, KHOA_PHUT]);
-
 /** Đăng nhập → id Ba Mẹ. Sai 5 lần liền ⇒ khoá 15 phút. Không lộ số/email nào có tài khoản. */
 export async function dangNhap(dinhDanh: unknown, mk: unknown) {
   const d = chuanDinhDanh(dinhDanh);
@@ -123,7 +119,9 @@ export async function dangNhap(dinhDanh: unknown, mk: unknown) {
     throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút, hoặc bấm «Quên mật khẩu» để đặt lại bằng mã OTP`, 429);
   const dung = p?.pass_hash ? await dungMatKhau(String(mk ?? ""), p.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
   if (!p || !dung) {
-    if (p) await ghiSaiMatKhau(p.id);
+    if (p) await q(`update parents set sai_lien = sai_lien + 1,
+                      khoa_den = case when sai_lien + 1 >= $2 then now() + make_interval(mins => $3) else null end where id = $1`,
+      [p.id, SAI_KHOA, KHOA_PHUT]);
     throw new LoiNghiepVu("sai_dang_nhap", "Số điện thoại/email hoặc mật khẩu chưa đúng", 401);
   }
   await q(`update parents set sai_lien = 0, khoa_den = null where id = $1`, [p.id]);
