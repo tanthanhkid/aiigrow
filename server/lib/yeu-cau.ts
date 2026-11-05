@@ -38,7 +38,8 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
   let phutKep: number | null = null;
   if (phut0 !== null && !(phut0 >= 5 && phut0 <= 240)) throw new LoiNghiepVu("phut_sai", "Số phút xin thêm phải từ 5 đến 240 (thường 30, 60 hoặc 120 phút)");
   // ngoại lệ: một app (giaTri = app) hoặc cả máy. «ngoai_gio» cũ = ngoại lệ cả máy.
-  const phamVi = loai === "ngoai_le" ? (b.phamVi === "app" || (b.phamVi === undefined && b.giaTri) ? "app" : "ca_may") : loai === "ngoai_gio" ? "ca_may" : null;
+  // chỉ «app» khi app gửi rõ phamVi (app cũ gửi ngoai_le kèm giaTri tự do ⇒ cả máy)
+  const phamVi = loai === "ngoai_le" ? (b.phamVi === "app" ? "app" : "ca_may") : loai === "ngoai_gio" ? "ca_may" : null;
   const giaTri = loai === "mo_web" || loai === "cai_app" || phamVi === "app" ? chuanMuc(b.giaTri) : String(b.giaTri ?? "").trim().slice(0, 200) || null;
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
   if (phamVi === "app" && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", "Chọn app con cần mở");
@@ -46,9 +47,9 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
     const fam = await khoaCon(t, con);
     if (loai === "them_gio" || phamVi) {
       const bc = await boiCanhCon(con, t);
-      // app cũ gửi «ngoai_gio» 120 phút ⇒ kẹp về tối đa; ngoại lệ mới vượt ⇒ báo
+      // app cũ (ngoai_gio / ngoai_le không phamVi) gửi 120 phút ⇒ kẹp về tối đa; app mới vượt ⇒ báo
       if (phamVi && phut0! > bc.ts.ngoai_le_toi_da_phut) {
-        if (loai !== "ngoai_gio") throw new LoiNghiepVu("phut_sai", `Mở ngoại lệ tối đa ${bc.ts.ngoai_le_toi_da_phut} phút`);
+        if (b.phamVi !== undefined) throw new LoiNghiepVu("phut_sai", `Mở ngoại lệ tối đa ${bc.ts.ngoai_le_toi_da_phut} phút`);
         phutKep = bc.ts.ngoai_le_toi_da_phut;
       }
       if (loai === "them_gio") {

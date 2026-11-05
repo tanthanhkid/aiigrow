@@ -175,7 +175,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
     ...(den ? { grantEndsAt: den.toISOString() } : {}),
     // Đang «mở» có hạn / còn quỹ ⇒ trang Giải trí mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
-    web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || moHet || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
+    web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || (moHet && (!p.quy || p.quy.conPhut > 0)) || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
     ...(p.quy ? { quyConPhut: quyMo ? p.quy.conPhut : 0, quyTongPhut: p.quy.ngayPhut + p.quy.themPhut, quyDaDung: p.quy.daDung, appTinhGio: appQuy,
       dangGioHoc: dangHoc } : {}),
     gioNgu: p.lich.ngu, gioHoc: p.lich.hoc ?? null,

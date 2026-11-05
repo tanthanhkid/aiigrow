@@ -62,7 +62,7 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
     const [quy, du, nl, cho] = await Promise.all([qg.quyHomNay(con), soDu(con), qg.ngoaiLeDangMo(con),
       q(`select id, loai, phut, gia_tri, pham_vi, ly_do, created_at from requests where child_id = $1 and trang_thai = 'cho'
                and loai in ('them_gio', 'ngoai_le', 'ngoai_gio') and het_han > now() order by created_at desc`, [con])]);
-    return json({ quy, sao: du, phutDoiDuoc: Math.min(qg.phutChoSao({ phut_10_sao: quy.tyLe.phut }, du), quy.doiSao.conDoiDuoc), ngoaiLe: nl, yeuCauCho: cho });
+    return json({ quy, sao: du, phutDoiDuoc: quy.doiSao.bat ? Math.min(qg.phutChoSao({ phut_10_sao: quy.tyLe.phut }, du), quy.doiSao.conDoiDuoc) : 0, ngoaiLe: nl, yeuCauCho: cho });
   }
   if (d === "doi-sao" && post) return json(await qg.doiSaoLayGio(con, b.phut, mayId));
   if (d === "nhiem-vu" && get && new URL(req.url).searchParams.get("tuCham") === "1") return json({ ds: await nv.nvCuaCon(con, new Date(), { kemTuCham: true }) });

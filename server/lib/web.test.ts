@@ -115,7 +115,7 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   const mh = (await goiMay("dong-bo", tok, {})).body;
   assert.equal(mh.windows.web.cheDo, "mo");
   assert.equal(mh.windows.mode, "tu_do");
-  assert.deepEqual(rieng(mh.windows.web.chan), ["gamek.vn"]);
+  assert.deepEqual(rieng(mh.windows.web.chan), ["gamek.vn", "youtube.com"], "«Mở hết» nhưng hết quỹ (đặt 0 ở đầu test) ⇒ trang Giải trí vẫn chặn (S1)");
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "mo");
   // Con cũ (che_do_chan null) ⇒ vẫn theo tham số web_chi_cho_phep như trước
   await q(`update children set che_do_chan = null where id = $1`, [con]);

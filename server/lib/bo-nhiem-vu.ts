@@ -58,14 +58,14 @@ export async function giaoBo(fam: string, b: { bo?: unknown; con?: unknown; chon
   const bo = BO_NHIEM_VU.find((x) => x.ma === b.bo);
   if (!bo) throw new LoiNghiepVu("bo_sai", "Chọn một bộ nhiệm vụ");
   const con = b.con ? String(b.con) : null;
-  const chon = Array.isArray(b.chon) && b.chon.length ? new Set(b.chon.map(String)) : null;
+  const chon = Array.isArray(b.chon) ? new Set(b.chon.map(String)) : null;      // [] = bỏ tick hết ⇒ không giao gì
   const co = await q<{ ten: string; giao_cho: string | null; bang_chung: string }>(`select ten, giao_cho, bang_chung from tasks where family_id = $1 and bat`, [fam]);
   const coAiiRob = co.some((x) => x.bang_chung === "tu_dong");
   const ids: string[] = [];
   for (const v of bo.viec) {
     if (chon && !chon.has(v.ten)) continue;
     if (v.bang_chung === "tu_dong" && coAiiRob) continue;
-    if (co.some((x) => x.ten === v.ten && (x.giao_cho === con || x.giao_cho === null))) continue;
+    if (co.some((x) => x.ten === v.ten && (con === null || x.giao_cho === con || x.giao_cho === null))) continue;
     ids.push(await taoNv(fam, { ...v, giao_cho: v.bang_chung === "tu_dong" ? null : con, bo: bo.ma }, nguoi, q, true));
   }
   return { taoMoi: ids.length, ids };
