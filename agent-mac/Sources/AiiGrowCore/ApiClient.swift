@@ -51,6 +51,10 @@ public protocol MayChuApi: AnyObject {
   func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws
   /// GET api/device/ho-so-dns — JSON nguyên văn.
   func hoSoDns() async throws -> Data
+  /// POST api/device/xin-duyet {muc, ten?, lyDo?} — Con «Xin Ba Mẹ duyệt» app / web lạ (05/11, lý do không bắt buộc).
+  func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau
+  /// POST api/device/yeu-cau {loai: ngoai_le, phamVi: ca_may|app, giaTri?, phut, lyDo?} — giờ ngủ / Ba Mẹ khoá: «Xin Ba Mẹ mở ngoại lệ».
+  func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau
 }
 
 /// Kết quả phien/xet. KHÔNG mang số điểm sang tray — chỉ «được / không», câu nhắc, số phút.
@@ -83,6 +87,12 @@ public extension MayChuApi {
   func ghepGoi(token: String, tenMay: String) async throws -> KetQuaGhep { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ ghép một chạm") }
   func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws {}
   func hoSoDns() async throws -> Data { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa có hồ sơ DNS") }
+  func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau {
+    try await taoYeuCau(loai: "cai_app", phut: nil, giaTri: muc, lyDo: lyDo ?? "")
+  }
+  func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau {
+    try await taoYeuCau(loai: "ngoai_le", phut: phut, giaTri: app, lyDo: lyDo ?? "")
+  }
 }
 
 public final class ApiClient: MayChuApi {
@@ -172,6 +182,28 @@ public final class ApiClient: MayChuApi {
     if let phut { body["phut"] = min(max(phut, 5), 240) }
     if let giaTri { body["giaTri"] = giaTri }
     let d = try await gui("POST", "api/device/yeu-cau", body)
+    guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let id = ApiClient.chuoi(o["id"]) else {
+      throw LoiApi(chu: "Máy chủ trả dữ liệu không đúng định dạng")
+    }
+    let st = (o["status"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (o["trang_thai"] as? String ?? "cho")
+    return KetQuaYeuCau(id: id, trangThai: st)
+  }
+
+  public func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau {
+    var body: [String: Any] = ["muc": muc]
+    if let ten, !ten.isEmpty { body["ten"] = ten }
+    if let lyDo, !lyDo.isEmpty { body["lyDo"] = lyDo }
+    return try ApiClient.tachYeuCau(try await gui("POST", "api/device/xin-duyet", body))
+  }
+
+  public func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau {
+    var body: [String: Any] = ["loai": "ngoai_le", "phamVi": phamVi == "app" ? "app" : "ca_may", "phut": min(max(phut, 5), 240)]
+    if let app, !app.isEmpty, phamVi == "app" { body["giaTri"] = app }
+    if let lyDo, !lyDo.isEmpty { body["lyDo"] = lyDo }
+    return try ApiClient.tachYeuCau(try await gui("POST", "api/device/yeu-cau", body))
+  }
+
+  static func tachYeuCau(_ d: Data) throws -> KetQuaYeuCau {
     guard let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let id = ApiClient.chuoi(o["id"]) else {
       throw LoiApi(chu: "Máy chủ trả dữ liệu không đúng định dạng")
     }

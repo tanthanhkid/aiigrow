@@ -113,6 +113,18 @@ public struct Policy: Codable, Equatable {
   public var playOfflineMinutes: Int?
   /// Bí mật chung của mã mở offline (server/lib/ma-offline.ts) — CHỈ nằm trong cấu hình root 0600, không bao giờ sang tray.
   public var maOfflineBiMat: String?
+  // ---- 05/11 quỹ giờ chơi (server/lib/agent-windows.ts) — máy chủ cũ không gửi ⇒ nil / rỗng, tác tử chạy như trước
+  /// Phút chơi còn lại hôm nay lúc đồng bộ (0 = hết / không được chơi). nil = máy chủ cũ hoặc máy dùng chung chưa chọn Con.
+  public var quyConPhut: Int?
+  public var quyTongPhut: Int?
+  public var quyDaDung: Int?
+  /// App Giải trí đang được thả nhờ quỹ — đếm lùi khi ở tiền cảnh (cả lúc mất mạng), quỹ về 0 ⇒ đóng.
+  public var appTinhGio: [String] = []
+  public var gioNgu: KhungGio?
+  public var gioHoc: KhungGio?
+  public var dangGioHoc: Bool = false
+  /// Ngoại lệ Ba Mẹ mở: `app` nil = cả máy.
+  public var ngoaiLe: [NgoaiLeMo] = []
 
   public init() {}
 
@@ -141,6 +153,17 @@ public struct Policy: Codable, Equatable {
     playWeb = ((try? c.decodeIfPresent(Bool.self, forKey: .playWeb)) ?? nil) ?? false
     if let d = (try? c.decodeIfPresent(Double.self, forKey: .playOfflineMinutes)) ?? nil, d.isFinite { playOfflineMinutes = max(0, Int(d.rounded(.down))) }
     maOfflineBiMat = s(.maOfflineBiMat).flatMap { $0.isEmpty ? nil : $0 }
+    func so(_ k: CodingKeys) -> Int? {
+      guard let d = (try? c.decodeIfPresent(Double.self, forKey: k)) ?? nil, d.isFinite else { return nil }
+      return max(0, Int(d.rounded(.down)))
+    }
+    quyConPhut = so(.quyConPhut); quyTongPhut = so(.quyTongPhut); quyDaDung = so(.quyDaDung)
+    appTinhGio = (((try? c.decodeIfPresent([String].self, forKey: .appTinhGio)) ?? nil) ?? [])
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty }
+    gioNgu = (try? c.decodeIfPresent(KhungGio.self, forKey: .gioNgu)) ?? nil
+    gioHoc = (try? c.decodeIfPresent(KhungGio.self, forKey: .gioHoc)) ?? nil
+    dangGioHoc = ((try? c.decodeIfPresent(Bool.self, forKey: .dangGioHoc)) ?? nil) ?? false
+    ngoaiLe = (((try? c.decodeIfPresent([NgoaiLeMo?].self, forKey: .ngoaiLe)) ?? nil) ?? []).compactMap { $0 }
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -165,10 +188,19 @@ public struct Policy: Codable, Equatable {
     try c.encodeIfPresent(playApp, forKey: .playApp)
     if playWeb { try c.encode(playWeb, forKey: .playWeb) }
     try c.encodeIfPresent(playOfflineMinutes, forKey: .playOfflineMinutes)
+    try c.encodeIfPresent(quyConPhut, forKey: .quyConPhut)
+    try c.encodeIfPresent(quyTongPhut, forKey: .quyTongPhut)
+    try c.encodeIfPresent(quyDaDung, forKey: .quyDaDung)
+    if !appTinhGio.isEmpty { try c.encode(appTinhGio, forKey: .appTinhGio) }
+    try c.encodeIfPresent(gioNgu, forKey: .gioNgu)
+    try c.encodeIfPresent(gioHoc, forKey: .gioHoc)
+    if dangGioHoc { try c.encode(dangGioHoc, forKey: .dangGioHoc) }
+    if !ngoaiLe.isEmpty { try c.encode(ngoaiLe, forKey: .ngoaiLe) }
   }
 
   enum CodingKeys: String, CodingKey {
     case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes, maOfflineBiMat
+    case quyConPhut, quyTongPhut, quyDaDung, appTinhGio, gioNgu, gioHoc, dangGioHoc, ngoaiLe
   }
 }
 
