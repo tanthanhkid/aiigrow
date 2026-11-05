@@ -82,7 +82,7 @@ type CanhBaoRow = { id: string; child_id: string | null; loai: string; muc: MucT
 
 const YC: Record<string, (c: Record<string, any>) => string> = {
   them_gio: (c) => `xin thêm ${c.phut ?? ""} phút`.replace("  ", " "), mo_web: (c) => `xin mở ${c.gia_tri ?? "một trang web"}`,
-  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: (c) => `xin chơi ${c.phut ?? ""} phút ngoại lệ`.replace("  ", " "),
+  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: (c) => `xin ngoại lệ ${c.phut ?? ""} phút${c.gia_tri ? ` cho ${c.gia_tri}` : ""}`.replace("  ", " "),
   ngoai_gio: (c) => `xin chơi ngoài giờ ${c.phut ?? ""} phút`.replace("  ", " "), khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
 };
 const tien = (n: number) => `${Math.round(n).toLocaleString("en-US").replace(/,/g, ".")}đ`;

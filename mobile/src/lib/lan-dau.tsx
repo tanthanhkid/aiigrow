@@ -210,9 +210,10 @@ export function HangChiaSe({ chiaSe, bao }: { chiaSe: ChiaSe; bao: (chu: string)
   ];
   // Khổ hẹp (< 60 px mỗi ô — máy 320–360 px): 3 ô một hàng, «Messenger» không gãy 2 dòng; khổ rộng: một hàng 5 ô như bảng chia sẻ iPhone.
   // trước lần đo đầu: ước theo bề ngang cửa sổ (lề màn + thẻ ≈ 64 px) ⇒ khung đầu tiên đã đúng kiểu, không nháy từ 1 hàng sang 3 + 2
-  const cuaSo = useWindowDimensions().width;
+  const { width: cuaSo, fontScale: cuaSoCo } = useWindowDimensions();
   const [rong, setRong] = useState(0);
-  const hep = (rong || cuaSo - 64) / muc.length < 60;
+  // ngưỡng nhân cỡ chữ hệ thống (Dynamic Type / font scale): chữ to hơn thì cần ô rộng hơn mới giữ «Messenger» một dòng
+  const hep = (rong || cuaSo - 64) / muc.length < 60 * Math.max(1, cuaSoCo);
   return (
     <View onLayout={(e) => setRong(e.nativeEvent.layout.width)} style={{ flexDirection: "row", flexWrap: hep ? "wrap" : "nowrap", justifyContent: hep ? "center" : "space-between", rowGap: 12 }}
       accessibilityLabel="Chia sẻ link ghép máy">

@@ -54,7 +54,7 @@ export const DO = String.raw`(() => {
     const el = n.parentElement, cs = getComputedStyle(el), chu = n.textContent.trim().slice(0,50);
     const co = parseFloat(cs.fontSize), dam = +cs.fontWeight >= 700, lon = co >= 24 || (co >= 18.66 && dam);
     // 1. tương phản (lượt đã cuộn hết chỉ xét ảnh nổi đè chữ)
-    // chữ trong SVG (<text>) tô bằng `fill`, không bằng `color` — đọc đúng màu thật của nó (trước đây lấy color ⇒ báo sai chữ trắng thành đen)
+    // chữ trong SVG (<text>) tô bằng fill, không bằng color — đọc đúng màu thật của nó (trước đây lấy color ⇒ báo sai chữ trắng thành đen)
     const mauChu = el instanceof SVGElement && /^rgb/.test(cs.fill) ? cs.fill : cs.color;
     const [bg, anh] = nen(el); const fg = tron(mau(mauChu), bg);
     if (cuoi) { /* bỏ */ } else if (anh) { const r = dongCua(n)[0]; if (r) DO_TAY.push({ chu, mau: mau(mauChu).slice(0,3), can: lon?3:4.5, r: [r.left, r.top, r.width, r.height].map(Math.round), el: ten(el), nen: anh }); }

@@ -727,6 +727,7 @@ await kichBan("Mời người nhà bằng số điện thoại, quyền Người
   await bam("Mời người nhà");
   xet(await doi("Cho làm gì"), "mở màn Mời người nhà");
   await bam("Gửi lời mời");
+  await sleep(600);   // lời gọi (nếu nút còn bấm được) tới nhật ký sau vài chục ms — chờ rồi mới kết luận «không gọi»
   xet(!nhatKy.some((x) => x.d === "thanh-vien/moi"), "chưa có SĐT ⇒ nút tắt, không gọi máy chủ");
   await go("Số điện thoại người được mời", "0909 876 543");
   await go("Gọi là gì trong nhà", "Bà ngoại");
@@ -805,7 +806,8 @@ await kichBan("Ví sao: số sao = phút chơi, quà đủ / thiếu sao, Ba M�
 
 // ---------------------------------------------------------------- nhóm B: Hôm nay · App & web · máy · hồ sơ (thiết kế chốt 05/11)
 /** Chữ cũ không được sót trên màn Ba Mẹ (L1 sao thay điểm, L4 bỏ Giám sát / Chặn thật, L5 bỏ PIN, L10 bỏ phiếu AiiCafe). */
-const CHU_CU = [/\bđiểm\b/i, /Chặn thật/, /Giám sát/, /\bPIN\b/, /[Vv]oucher/, /phiếu quà/i, /AiiCafe/];
+// «điểm»: \b của regex không cờ u chỉ hiểu chữ ASCII (đ không phải «chữ») ⇒ /\bđiểm\b/ không bao giờ khớp — dùng ranh giới Unicode
+const CHU_CU = [/(^|[^\p{L}])điểm(?![\p{L}])/iu, /Chặn thật/, /Giám sát/, /\bPIN\b/, /[Vv]oucher/, /phiếu quà/i, /AiiCafe/];
 const chuCu = async () => { const t = (await chu()) ?? ""; return CHU_CU.filter((r) => r.test(t)).map(String); };
 const nhanNut = (l) => `[aria-label="${l}"]`;
 /** Như bam() nhưng bấm phần tử THẤY ĐƯỢC ĐẦU TIÊN có đúng chữ (vd «Không cho» của thẻ lời xin đầu, không phải thẻ app mới bên dưới). */
@@ -829,7 +831,7 @@ await kichBan("Hồ sơ Con ⇒ App được dùng ⇒ Trang web ⇒ tắt công
   xet(await doi("Đã chặn facebook.com"), "báo đã chặn");
   await bam("Hoàn tác");
   xet(await choGoi((x) => x.d === "con/c1/web/trang" && x.body?.muc === "facebook.com" && x.body?.trangThai === "cho_phep" && x.body?.caNha === false), "Hoàn tác ⇒ cho phép lại đúng như cũ");
-  xet(!(await chuCu()).length, `không còn chữ cũ (${(await chuCu()).join(", ")})`);
+  { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
 });
 
 await kichBan("Trang web ⇒ mở trang Ba Mẹ chặn cả nhà (tiktok.com) ⇒ gỡ luật cả nhà, báo «cho cả nhà», Hoàn tác chặn lại cả nhà", async () => {
@@ -877,6 +879,7 @@ await kichBan("Hôm nay (bố cục 05/11): con đang xin ⇒ «Cho 15 phút» m
   nhatKy.length = 0;
   await bam("Xem rồi cho");
   xet(await doi("YouTube"), "ngoại lệ ⇒ mở màn chi tiết (kẹp theo tối đa ngoại lệ), không cho mù");
+  await sleep(600);
   xet(!nhatKy.some((x) => x.d === "yeu-cau/y3/dong-y"), "chưa gửi đồng ý ngoại lệ khi chưa xem");
   await di("/hom-nay");
   await doi("Khoá máy con");
@@ -910,9 +913,9 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
     if (await js(`[...document.querySelectorAll("div,span")].some((e) => e.innerText?.trim().startsWith(${JSON.stringify(DAU[t])}) && e.children.length <= 1 && (() => { const b = e.getBoundingClientRect();
       return b.width > 0 && b.left >= 0 && b.right <= innerWidth + 1 && b.top < innerHeight && b.bottom > 0 && document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2) !== null && e.contains(document.elementFromPoint(b.x + b.width / 2, Math.min(b.y + b.height / 2, innerHeight - 1))); })())`)) return true;
     await goi("Input.dispatchMouseEvent", { type: "mouseWheel", x: 195, y: 420, deltaX: 0, deltaY: 400 }); await sleep(150); } return false; };
-  let du = true; const sai = [];
-  for (let r = 0; r < 3; r++) for (const t of ["Nhiệm vụ", "Báo cáo", "Cả nhà", "Hôm nay"]) { await bamChon(tab(t)); const ok = await dangMo(t); if (!ok) sai.push(`${r}:${t}`); du = ok && du; await sleep(300); }
-  xet(du, `mỗi lần bấm tab đều mở đúng tab (12 lần)${sai.length ? ` — sai ${sai.join(" ")}` : ""}`);
+  let du = true; const saiTab = [];
+  for (let r = 0; r < 3; r++) for (const t of ["Nhiệm vụ", "Báo cáo", "Cả nhà", "Hôm nay"]) { await bamChon(tab(t)); const ok = await dangMo(t); if (!ok) saiTab.push(`${r}:${t}`); du = ok && du; await sleep(300); }
+  xet(du, `mỗi lần bấm tab đều mở đúng tab (12 lần)${saiTab.length ? ` — sai ${saiTab.join(" ")}` : ""}`);
   await js(`document.querySelectorAll("div").forEach((e) => { if (e.scrollTop) e.scrollTop = 0; })`); await sleep(200);
   // bấm: điểm giữa chip «Bill» phải là chính nó (không bị màn tab khác trong suốt đè lên) và bấm thì đổi Con
   const chip = `() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText?.trim().endsWith(${JSON.stringify(BILL)}) && e.getBoundingClientRect().width > 0)`;
@@ -968,7 +971,7 @@ await kichBan("Hôm nay: thẻ «còn chơi X phút» (quỹ) + «Cho thêm gi�
   xet(await doi(`${KEN} còn chơi 18 phút`), "thẻ đầu: «<Con> còn chơi N phút» theo quỹ hôm nay");
   xet((await chu()).includes("trong 60 phút hôm nay"), "ghi tổng quỹ hôm nay");
   xet((await chu()).includes("Đang chơi Roblox"), "dòng con đang làm gì (app đang chơi)");
-  xet(!(await chuCu()).length, `không còn chữ cũ (${(await chuCu()).join(", ")})`);
+  { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
   await bam("Cho thêm giờ");
   xet(await doi(`Cho ${KEN} thêm giờ`), "mở bảng «Cho <Con> thêm giờ»");
   xet(await doi("tự đổi được 30 phút"), "nhắc số sao con tự đổi được (145 sao, tối đa 30 phút/ngày)");
@@ -1017,7 +1020,7 @@ await kichBan("App & web: 2 chế độ «Mở hết» / «Chỉ app được ph
   await di("/app-web?con=c1");
   xet(await doi(`App & web của ${KEN}`), "mở App & web của Con");
   xet(await coChon('[role="radio"][aria-checked="true"][aria-label^="Chỉ app được phép"]'), "chế độ hiện tại «Chỉ app được phép» được chọn");
-  xet(!(await chuCu()).length, `không còn «Giám sát / Chặn thật» (${(await chuCu()).join(", ")})`);
+  { const cu = await chuCu(); xet(!cu.length, `không còn «Giám sát / Chặn thật» (${cu.join(", ")})`); }
   nhatKy.length = 0;
   await bamChon('[role="radio"][aria-label^="Mở hết"]');
   xet(await choGoi((x) => x.d === "con/c1/che-do-chan" && x.body?.cheDo === "mo_het"), "đổi chế độ gửi con/:id/che-do-chan");

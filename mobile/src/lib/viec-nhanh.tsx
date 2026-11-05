@@ -106,7 +106,7 @@ export function TheDangChoi({ p, tai, bao, xem }: { p: PhienDang; tai: () => voi
 }
 
 type LuatCu = { con: string; muc: string; ten: string; loai: string; nhom: string; het: string | null };
-// chữ theo thiết kế 05/11 (bm-ung-dung): «Không tính giờ» / «Tính vào giờ chơi» / «Không cho dùng» — không còn «Học tập / Giải trí / Chặn thật»
+// chữ nút theo ý thiết kế 05/11 (bm-ung-dung «Không tính giờ / Tính vào giờ chơi / Không cho dùng»), rút gọn cho vừa 3 nút một hàng — không còn «Học tập / Giải trí / Chặn thật»
 const LOAI_XEP = [["hoc", "Không tính giờ"], ["giai_tri", "Tính giờ chơi"], ["chan", "Không cho"]] as const;
 
 /** App mới Con vừa dùng mà chưa xếp loại: 3 nút xếp ngay (luật cả nhà, như màn Ứng dụng). */
