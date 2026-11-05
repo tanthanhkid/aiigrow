@@ -11,7 +11,9 @@ import { BONG, KHOI } from "@/lib/clay";
 import { BaoLoi, Chu, F, Icon, Icon3D, M, MAU_CON, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
 
 type KqMoi = { id: string; tenGoi: string | null; dinhDanh: string | null; quyen: Quyen; chiaSe: { tieuDe: string; noiDung: string; lienKet: string } };
-const SDT = /^(\+?84|0)\d{9,10}$/;
+/** như máy chủ (auth.ts › chuanDinhDanh): bỏ cách / chấm / gạch / ngoặc, +84 / 84 → 0, đúng 10 số */
+const chuanSdt = (t: string) => { let s = t.replace(/[\s.\-()]/g, ""); if (s.startsWith("+84")) s = "0" + s.slice(3); else if (/^84\d{9}$/.test(s)) s = "0" + s.slice(2); return s; };
+const SDT = /^0\d{9}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export default function MoiNguoiNha() {
@@ -26,7 +28,7 @@ export default function MoiNguoiNha() {
   const [kq, setKq] = useState<KqMoi | null>(null);
   const { lam, loi, dangChay } = useLam();
   const ve = () => veHoac("/cai-dat");
-  const sach = cach === "sdt" ? dd.replace(/[\s.-]/g, "") : dd.trim();
+  const sach = cach === "sdt" ? chuanSdt(dd) : dd.trim();
   const hop = cach === "sdt" ? SDT.test(sach) : EMAIL.test(sach);
   const goi = ten.trim() || (hop ? sach : "");
   const tenCon = d?.con.length ? d.con.join(", ") : "các con";

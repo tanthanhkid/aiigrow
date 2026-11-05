@@ -6,7 +6,8 @@ import { View } from "react-native";
 import { bm, laChiXem, type Qua } from "@/lib/api";
 import { KHOI, BONG } from "@/lib/clay";
 import { veHoac } from "@/lib/ui-bm3";
-import { BangTruot, BaoLoi, ChoTai, Chips, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, ONhap, Rob, type TenIcon, useLam, useTai } from "@/lib/ui";
+import { router } from "expo-router";
+import { BangTruot, BaoLoi, ChoTai, Chips, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, Nut, ONhap, Rob, tien, type TenIcon, useLam, useTai } from "@/lib/ui";
 
 const IC: Record<Qua["loai"], TenIcon> = { qua: "game", dac_quyen: "lich", tiet_kiem: "xu", voucher: "coc" };
 const icQua = (q: Pick<Qua, "ten" | "loai">): TenIcon => (/kem|ăn|an |pizza|bánh|banh/i.test(q.ten) ? "coc" : /phim|đi chơi|di choi/i.test(q.ten) ? "lich" : IC[q.loai]);
@@ -29,8 +30,8 @@ function OQua({ ic, ten, sao, tag, bam }: { ic: TenIcon; ten: string; sao: strin
 
 export default function QuaDoiSao() {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [q, xem] = await Promise.all([bm.goi<{ ds: Qua[] }>("qua"), laChiXem()]);
-    return { ds: q.ds.filter((x) => x.loai !== "voucher" && x.bat), xem };
+    const [q, xem, quy] = await Promise.all([bm.goi<{ ds: Qua[] }>("qua"), laChiXem(), bm.goi<{ soDu: number }>("quy").catch(() => null)]);
+    return { ds: q.ds.filter((x) => x.loai !== "voucher" && x.bat), xem, quyVoucher: quy?.soDu ?? 0 };
   });
   const [sua, setSua] = useState<Qua | "moi" | null>(null);
   const [ten, setTen] = useState("");
@@ -65,6 +66,11 @@ export default function QuaDoiSao() {
           </NhanMen>
         )}
       </View>
+      {d.quyVoucher > 0 ? (
+        // phiếu quà AiiCafe đã nạp trước vẫn dùng ở quầy (KE-HOACH câu mở 3), không phát mới — chỉ báo số dư + chỗ hỏi
+        <Nhom><Dong dau tieu={`Quỹ phiếu quà AiiCafe còn ${tien(d.quyVoucher)}`} phu="Dùng ở quầy AiiCafe · cần nạp hay hoàn thì nhắn AiiGrow" trai={<Icon3D ten="coc" co={32} />}
+          bam={() => router.push("/ho-tro")} /></Nhom>
+      ) : null}
       <BangTruot mo={!!sua} dong={() => setSua(null)} tieu={sua === "moi" ? "Thêm quà" : "Sửa quà"}>
         {sua === "moi" ? <Chips ds={GOI_Y.map((g) => ({ gia: g.ten, chu: `${g.ten} · ${g.diem} sao` }))} chon={[ten]}
           doi={(v) => { const g = GOI_Y.find((x) => x.ten === v)!; setTen(g.ten); setSao(String(g.diem)); }} /> : null}

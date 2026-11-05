@@ -5,19 +5,20 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { bm, type GiaDinh, type YeuCau } from "@/lib/api";
-import { ManKetQua, NutQuyet, OIcon, RobNoi, icCuaApp, lucNgan, veHoac } from "@/lib/ui-bm3";
+import { bm, laChiXem, type GiaDinh, type YeuCau } from "@/lib/api";
+import { ManKetQua, NutQuyet, OIcon, RobNoi, hoanLuat, icCuaApp, lucNgan, veHoac, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
-import { BaoLoi, ChoTai, Chu, M, Man, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, ChoTai, Chu, M, Man, gioPhut, useLam, useTai } from "@/lib/ui";
 
-type KetQua = { loai: "cho" | "hom_nay" | "khong"; luc: Date };
+/** `truoc`: luật riêng của con cho mục này TRƯỚC khi duyệt (duyệt ghi đè nó) — Hoàn tác đặt lại đúng luật này. */
+type KetQua = { loai: "cho" | "hom_nay" | "khong"; luc: Date; truoc?: LuatTruoc };
 
 export default function YeuCauWeb() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [cd, g] = await Promise.all([bm.goi<{ yeuCau: YeuCau[] }>("cho-duyet"), bm.goi<GiaDinh>("gia-dinh")]);
+    const [cd, g, xem] = await Promise.all([bm.goi<{ yeuCau: YeuCau[] }>("cho-duyet"), bm.goi<GiaDinh>("gia-dinh"), laChiXem()]);
     const y = cd.yeuCau.find((x) => x.id === id) ?? null;
-    return { y, con: y ? g.con.find((c) => c.id === y.child_id) ?? null : null };
+    return { y, con: y ? g.con.find((c) => c.id === y.child_id) ?? null : null, xem };
   });
   const [kq, setKq] = useState<(KetQua & { y: YeuCau }) | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -25,15 +26,15 @@ export default function YeuCauWeb() {
   const ve = () => veHoac("/app-web");
   if (kq) {
     const y = kq.y, ten = y.gia_tri ?? "app", tenCon = d?.con?.ten ?? y.ten_con;
-    const gio = `${String(kq.luc.getHours()).padStart(2, "0")}:${String(kq.luc.getMinutes()).padStart(2, "0")}`;
+    const gio = gioPhut(kq.luc);
     if (kq.loai === "khong") {
       return <ManKetQua tieu={`Đã không cho mở ${ten}`} ic="gui" tin={`Đã báo cho ${tenCon}`} phu={`«Ba Mẹ chưa cho mở lúc này» · ${gio}`} nut={{ chu: "Xong, về App & web", bam: ve }} />;
     }
     return (
       <ManKetQua tieu={`Đã cho ${tenCon} mở ${ten}`} ic="tin" tin={`Đã báo cho ${tenCon}`}
         phu={kq.loai === "cho" ? `Tính vào giờ chơi · từ ${gio}` : `Hôm nay, không tính giờ · từ ${gio}`} nut={{ chu: "Xong, về App & web", bam: ve }} loi={hoan.loi}
-        hoan={{ chu: "Hoàn tác", dangChay: hoan.dangChay, bam: () => hoan.lam(async () => {
-          await bm.goi("luat/xoa", { con: y.child_id, muc: y.gia_tri, neuLoai: kq.loai === "cho" ? "giai_tri" : "hoc" });
+        hoan={d?.xem || !y.gia_tri ? undefined : { chu: "Hoàn tác", dangChay: hoan.dangChay, bam: () => hoan.lam(async () => {
+          await hoanLuat(y.child_id, y.gia_tri!, kq.truoc ?? null, kq.loai === "cho" ? "giai_tri" : "hoc");
           ve();
         }) }} />
     );
@@ -43,8 +44,10 @@ export default function YeuCauWeb() {
   const y = d.y, ten = y.gia_tri ?? "app mới", tenCon = d.con?.ten ?? y.ten_con;
   const con = d.con, con_lai = con ? Math.max(0, con.tranNgay - con.phutChoi) : null;
   const dongY = (loai: "cho" | "hom_nay") => lam(async () => {
+    const cu = (await bm.goi<{ ds: LuatApp[] }>("luat").catch(() => null))?.ds.find((l) => l.child_id === y.child_id && l.muc === y.gia_tri);
+    const truoc: LuatTruoc = cu ? { con: y.child_id, muc: cu.muc, ten: cu.ten, loai: cu.loai, nhom: cu.nhom, het: (cu as LuatApp & { het?: string | null }).het ?? null } : null;
     await bm.goi(`yeu-cau/${y.id}/dong-y`, loai === "cho" ? { phanLoai: "giai_tri", phamVi: "vinh_vien" } : { phanLoai: "hoc", phamVi: "hom_nay" });
-    setKq({ loai, luc: new Date(), y });
+    setKq({ loai, luc: new Date(), y, truoc });
   });
   const khong = () => lam(async () => {
     await bm.goi(`yeu-cau/${y.id}/tu-choi`, { lyDo: "Ba Mẹ chưa cho mở lúc này" });

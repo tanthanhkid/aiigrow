@@ -12,7 +12,9 @@ import { BaoLoi, ChoTai, Chu, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/u
 type GoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };
 type AppMay = { khoa: string; muc: string; ten: string; icon: string | null; trangThai: string };
 type O = { k: string; ten: string; ic: ReturnType<typeof icCuaApp>; anh?: string | null; tinhGio: boolean; ma?: string; khoa?: string; goiYChon?: boolean; coGoiY?: boolean };
-const KHONG_TINH = /scratch|zoom|teams|meet|word|excel|powerpoint|office|sách|sach|book|từ điển|dict|khan|aiirob|học|hoc|edu/i;
+// đoán «không tính giờ» khi lưới gợi ý không có app này: so TỪ trọn vẹn (không so chuỗi con — «book» khớp nhầm Facebook)
+const KHONG_TINH = new Set(["scratch", "zoom", "teams", "meet", "word", "excel", "powerpoint", "onenote", "office", "sách", "sach", "ebook", "kindle", "dictionary", "từ", "điển", "khanacademy", "khan", "aiirob", "học", "hoc", "edu", "classroom", "duolingo", "geogebra"]);
+const khongTinh = (t: string) => t.toLowerCase().split(/[^\p{L}\p{N}]+/u).some((w) => KHONG_TINH.has(w));
 const chuan = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
 
 export default function ThemApp() {
@@ -36,7 +38,7 @@ export default function ThemApp() {
     if (thatMay.length) {
       return thatMay.map((a) => {
         const g = gy.get(chuan(a.ten));
-        return { k: a.khoa, ten: a.ten, ic: icCuaApp(`${a.ten} ${a.muc}`), anh: a.icon, khoa: a.khoa, tinhGio: g ? g.tinhGio : !KHONG_TINH.test(`${a.ten} ${a.muc}`), goiYChon: !!g?.chon, coGoiY: !!g };
+        return { k: a.khoa, ten: a.ten, ic: icCuaApp(`${a.ten} ${a.muc}`), anh: a.icon, khoa: a.khoa, tinhGio: g ? g.tinhGio : !khongTinh(`${a.ten} ${a.muc}`), goiYChon: !!g?.chon, coGoiY: !!g };
       }).sort((x, y) => Number(!!y.goiYChon) - Number(!!x.goiYChon) || Number(!!y.coGoiY) - Number(!!x.coGoiY) || x.ten.localeCompare(y.ten, "vi"));
     }
     return d.gy.map((g) => ({ k: g.ma, ten: g.ten, ic: icCuaApp(g.ten), ma: g.ma, tinhGio: g.tinhGio, goiYChon: g.chon }));

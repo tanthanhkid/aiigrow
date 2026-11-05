@@ -6,8 +6,8 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type GiaDinh } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
-import { ManKetQua, MucTieu, OIcon, icCuaApp, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
-import { BaoLoi, ChoTai, Chips, Chu, CongTac, Dong, M, Man, NhanMen, Nhom, Nut, useLam, useTai } from "@/lib/ui";
+import { ManKetQua, MucTieu, OIcon, hoanLuat, icCuaApp, khoaTen, luatCuaCon, veHoac, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
+import { BaoLoi, ChoTai, Chips, gioPhut, Chu, CongTac, Dong, M, Man, NhanMen, Nhom, Nut, useLam, useTai } from "@/lib/ui";
 
 export default function MotApp() {
   const ts = useLocalSearchParams<{ con: string; muc: string; ten?: string; caNha?: string }>();
@@ -18,7 +18,7 @@ export default function MotApp() {
   });
   const [tinh, setTinh] = useState<boolean | null>(null);
   const [apCho, setApCho] = useState<string[] | null>(null);
-  const [daChan, setDaChan] = useState<{ truoc: { con: string; l: LuatApp | null }[]; luc: Date } | null>(null);
+  const [daChan, setDaChan] = useState<{ truoc: { con: string; muc: string; truoc: LuatTruoc }[]; luc: Date } | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   const hoan = useLam();
   const ten = ts.ten || ts.muc;
@@ -33,28 +33,30 @@ export default function MotApp() {
   const tenCon = (id: string) => d.g.con.find((c) => c.id === id)?.ten ?? "";
   const ic = icCuaApp(`${ten} ${ts.muc}`);
 
-  const ghi = (loai: LuatApp["loai"]) => (caNha ? bm.goi("luat", { muc: ts.muc, ten, loai, nhom: hienTai?.nhom ?? undefined })
-    : Promise.all(chon.map((id) => bm.goi("luat", { con: id, muc: ts.muc, ten, loai, nhom: hienTai?.nhom ?? undefined }))));
+  // mọi định danh cùng tên của app (roblox.exe, robloxplayerbeta.exe, com.roblox.client…) + đúng mục được mở
+  const mucCua = (id: string) => [...new Set([ts.muc, ...d.luat.filter((l) => (caNha ? !l.child_id : l.child_id === id || !l.child_id) && khoaTen(l) === khoaTen({ ten, muc: ts.muc })).map((l) => l.muc)])];
+  const ghi = async (loai: LuatApp["loai"]) => {
+    const dsCon = caNha ? [""] : chon;
+    const kq: { con: string; muc: string; truoc: LuatTruoc }[] = [];
+    await Promise.all(dsCon.flatMap((id) => mucCua(id).map((muc) => bm.goi<{ truoc: LuatTruoc }>("luat", { con: id || undefined, muc, ten, loai, nhom: hienTai?.nhom ?? undefined })
+      .then((r) => { kq.push({ con: id, muc, truoc: r.truoc }); }))));
+    return kq;
+  };
   const luu = () => lam(async () => { await ghi(tinhGio ? "giai_tri" : "hoc"); ve(); });
   const chan = () => lam(async () => {
-    const truoc = caNha ? [{ con: "", l: d.luat.find((l) => !l.child_id && l.muc === ts.muc) ?? null }] : chon.map((id) => ({ con: id, l: luatCua(id) }));
-    await ghi("chan");
+    const truoc = await ghi("chan");
     setDaChan({ truoc, luc: new Date() });
   });
   const hoanTac = () => hoan.lam(async () => {
-    for (const t of daChan!.truoc) {
-      const con = t.con || undefined;
-      if (t.l && (t.l.child_id ?? "") === t.con) await bm.goi("luat", { con, muc: ts.muc, ten: t.l.ten, loai: t.l.loai, nhom: t.l.nhom ?? undefined });
-      else await bm.goi("luat/xoa", { con, muc: ts.muc, neuLoai: "chan" });
-    }
+    await Promise.all(daChan!.truoc.map((t) => hoanLuat(t.con || undefined, t.muc, t.truoc, "chan")));
     setDaChan(null);
     await tai();
   });
 
   if (daChan) {
-    const gio = `${String(daChan.luc.getHours()).padStart(2, "0")}:${String(daChan.luc.getMinutes()).padStart(2, "0")}`;
+    const gio = gioPhut(daChan.luc);
     return (
-      <ManKetQua tieu={`Đã chặn ${ten}`} ic="khoa" tin={`${caNha ? "Các con" : daChan.truoc.map((t) => tenCon(t.con)).join(", ")} không mở được ${ten}`} phu={`Trên mọi máy · từ lúc ${gio}`}
+      <ManKetQua tieu={`Đã chặn ${ten}`} ic="khoa" tin={`${caNha ? "Các con" : [...new Set(daChan.truoc.map((t) => tenCon(t.con)))].join(", ")} không mở được ${ten}`} phu={`Trên mọi máy · từ lúc ${gio}`}
         nut={{ chu: "Xong, về App & web", bam: ve }} loi={hoan.loi} hoan={{ chu: `Hoàn tác, cho dùng lại ${ten}`, bam: hoanTac, dangChay: hoan.dangChay }} />
     );
   }

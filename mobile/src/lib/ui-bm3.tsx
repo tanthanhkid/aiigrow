@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import { Image, Pressable, View } from "react-native";
 import { router } from "expo-router";
-import type { YeuCau } from "./api";
+import { bm, type YeuCau } from "./api";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
 import { Bao, Chu, Icon, Icon3D, LopMen, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
 
@@ -222,7 +222,22 @@ export function icCuaApp(ten: string): TenIcon {
 // ---------------------------------------------------------------- luật app / lời xin (GET luat, GET cho-duyet)
 
 export type LuatApp = { child_id: string | null; muc: string; ten: string; loai: "hoc" | "giai_tri" | "chan"; nhom: string | null };
-export const laWeb = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|app)$/i.test(muc);
+/** Như máy chủ (chinh-sach.ts › kieuMuc): tệp .exe/.app và bundle / gói dạng com.x.y là app; còn lại có đuôi tên miền là web. */
+const BUNDLE = /^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i;
+export const laWeb = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|app)$/i.test(muc) && !BUNDLE.test(muc);
+/** Một app có thể có nhiều định danh (roblox.exe, robloxplayerbeta.exe, com.roblox.client…) cùng tên ⇒ gom theo tên hiện. */
+export const khoaTen = (l: Pick<LuatApp, "ten" | "muc">) => (l.ten || l.muc).trim().toLowerCase();
+export const gomTheoTen = (ds: LuatApp[]) => {
+  const m = new Map<string, LuatApp[]>();
+  for (const l of ds) { const k = khoaTen(l); m.set(k, [...(m.get(k) ?? []), l]); }
+  return [...m.values()];
+};
+/** Luật trước khi đặt (POST luat trả `truoc` — luật riêng đúng phạm vi đó, null = chưa có). */
+export type LuatTruoc = { con: string; muc: string; ten: string; loai: string; nhom: string | null; het: string | null } | null;
+/** Hoàn tác một lần đặt luật: có luật cũ ⇒ đặt lại đúng luật cũ (giữ hạn), không ⇒ xoá luật vừa tạo; `neuLoai` = chỉ khi luật vẫn là loại vừa đặt. */
+export const hoanLuat = (con: string | undefined, muc: string, truoc: LuatTruoc, neuLoai: string) =>
+  truoc ? bm.goi("luat", { con, muc: truoc.muc, ten: truoc.ten, loai: truoc.loai, nhom: truoc.nhom ?? undefined, het: truoc.het ?? undefined, neuLoai })
+    : bm.goi("luat/xoa", { con, muc, neuLoai });
 /** Luật hiệu lực cho một Con: luật riêng của Con thắng luật cả nhà cùng mục. */
 export const luatCuaCon = (ds: LuatApp[], con: string) => {
   const m = new Map<string, LuatApp>();

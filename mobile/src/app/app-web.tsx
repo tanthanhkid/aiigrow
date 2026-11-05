@@ -7,8 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type ConChiTiet, type GiaDinh, type YeuCau } from "@/lib/api";
-import { HangVang, MucTieu, NhanGio, NhanLuon, OIcon, TheCheDo, icCuaApp, luatCuaCon, laWeb, phuXin, tieuXin, type CheDoChan, type LuatApp } from "@/lib/ui-bm3";
-import { BaoLoi, ChoTai, ChonMot, CongTac, Dong, Man, Nhom, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { HangVang, MucTieu, NhanGio, NhanLuon, OIcon, TheCheDo, gomTheoTen, hoanLuat, icCuaApp, khoaTen, luatCuaCon, laWeb, phuXin, tieuXin, type CheDoChan, type LuatApp, type LuatTruoc } from "@/lib/ui-bm3";
+import { BaoLoi, ChoTai, ChonMot, CongTac, Dong, Man, Nhom, cauLoi, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 export default function AppWeb() {
   const ts = useLocalSearchParams<{ con?: string; xep?: string; ten?: string }>();
@@ -38,8 +38,10 @@ export default function AppWeb() {
   // chưa tải xong chi tiết con ⇒ chưa biết chế độ: không chọn ô nào, không cho bấm (tránh bấm trùng chế độ đoán sai rồi bị bỏ qua)
   const cheDo: CheDoChan | null = cd ? cd.cheDoChan ?? "chi_app_duoc_phep" : null;
   const luat = luatCuaCon(d.luat, con.id).filter((l) => !laWeb(l.muc));
-  const duocDung = luat.filter((l) => l.loai !== "chan");
-  const daChan = luat.filter((l) => l.loai === "chan");
+  // mỗi app một dòng dù có nhiều định danh; app có định danh nào bị chặn thì nằm ở «Luôn chặn»
+  const nhomApp = gomTheoTen(luat);
+  const duocDung = nhomApp.filter((g) => g.every((l) => l.loai !== "chan")).map((g) => g[0]);
+  const daChan = nhomApp.filter((g) => g.some((l) => l.loai === "chan")).map((g) => g.find((l) => l.loai === "chan")!);
   const xin = d.yc.filter((y) => y.child_id === con.id && (y.loai === "cai_app" || y.loai === "mo_web"));
   const may = cd?.may ?? [];
 
@@ -49,11 +51,14 @@ export default function AppWeb() {
     await ct.tai();
     bao(v === "mo_het" ? `${con.ten} mở được mọi app (trừ web người lớn)` : `${con.ten} chỉ dùng app được phép`);
   });
+  // đặt cho MỌI định danh cùng tên của app (chặn Roblox = chặn cả roblox.exe, robloxplayerbeta.exe, com.roblox.client…)
   const datLoai = (l: LuatApp, loai: LuatApp["loai"]) => lam(async () => {
-    await bm.goi("luat", { con: con.id, muc: l.muc, ten: l.ten, loai, nhom: l.nhom ?? undefined });
+    const ds = luat.filter((x) => khoaTen(x) === khoaTen(l));
+    const kq = await Promise.all(ds.map((x) => bm.goi<{ truoc: LuatTruoc }>("luat", { con: con.id, muc: x.muc, ten: x.ten, loai, nhom: x.nhom ?? undefined })
+      .then((r) => ({ muc: x.muc, truoc: r.truoc }))));
     await tai();
     bao(loai === "chan" ? `Đã chặn ${l.ten}` : `${con.ten} dùng lại được ${l.ten}`,
-      () => { bm.goi("luat", { con: con.id, muc: l.muc, ten: l.ten, loai: l.loai, nhom: l.nhom ?? undefined }).then(() => tai(), () => tai()); });
+      () => { Promise.all(kq.map((k) => hoanLuat(con.id, k.muc, k.truoc, loai))).then(() => tai(), (e) => { tai(); bao(`Chưa hoàn tác được: ${cauLoi(e)}`); }); });
   });
   const moApp = (l: LuatApp) => router.push({ pathname: "/ung-dung/app", params: { con: con.id, muc: l.muc, ten: l.ten } });
   const xemTungApp = () => (may.length === 1 ? router.push({ pathname: "/ung-dung/[may]", params: { may: may[0].id } }) : router.push(`/may?con=${con.id}`));
