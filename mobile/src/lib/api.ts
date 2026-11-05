@@ -45,7 +45,7 @@ function khach(tienTo: "m" | "kid", khoa: string) {
     }
     const j = await r.json().catch(() => ({}));
     // 401 = hết phiên ⇒ đăng xuất. TRỪ xác thực lại mật khẩu ngay trong app (gỡ từ xa) — đó là mật khẩu sai, không phải hết phiên.
-    if (r.status === 401 && token && j.error !== "sai_mat_khau" && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong) && !duong.startsWith("dang-nhap/")) {
+    if (r.status === 401 && token && j.error !== "sai_mat_khau" && !["dang-nhap", "dang-ky", "otp", "quen-mat-khau"].includes(duong) && !duong.startsWith("dang-nhap/") && duong !== "dat-mat-khau") {
       token = null;
       xoaTl();
       doi();

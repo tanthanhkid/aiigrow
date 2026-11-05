@@ -105,6 +105,7 @@ test("Google: chữ ký sai / aud lạ / iss lạ / hết hạn / email chưa x�
   await thu(jwt({ exp: Math.floor(Date.now() / 1000) - 600 }), "mxh_sai", 401);
   await thu(jwt({ email_verified: false }), "mxh_khong_email", 400);
   await thu(jwt({}, { kid: "khong-co" }), "mxh_sai", 401);
+  await thu(jwt({ aud: [WEB, "khac.apps.googleusercontent.com"], azp: "khac.apps.googleusercontent.com" }), "mxh_sai", 401);   // nhiều aud ⇒ azp phải là của mình
   await thu("khong.phai.jwt", "mxh_sai", 401);
   await thu("", "mxh_sai", 401);
   // sửa payload sau khi ký (đổi email) ⇒ chữ ký không khớp
@@ -172,4 +173,18 @@ test("tài khoản không mật khẩu: gỡ máy / xoá cần mật khẩu ⇒ 
   // vào lại bằng Google ⇒ tài khoản mới tinh
   const lai = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "xoa.thu@gmail.com", sub: "g11" }) } });
   assert.equal(lai.status, 200); assert.equal(lai.body.moi, true);
+});
+
+test("người bị mời ra vào lại bằng Google ⇒ không quay về nhà cũ", async () => {
+  process.env.GOOGLE_CLIENT_IDS = WEB;
+  const otp = await goi("otp", { body: { dinhDanh: "0907000002" } });
+  const chu = (await goi("dang-ky", { body: { dinhDanh: "0907000002", ma: otp.body.ma, ten: "Mẹ Mai", matKhau: "matkhau123" } })).body.token;
+  await goi("thanh-vien/moi", { tok: chu, body: { dinhDanh: "ba.minh@gmail.com", quyen: "ba_me" } });
+  const v = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "ba.minh@gmail.com", sub: "g20" }) } });
+  assert.equal((await goi("moi/nhan", { tok: v.body.token, body: { id: v.body.loiMoi[0].id } })).status, 200);
+  const id = (await goi("toi", { tok: v.body.token })).body.baMe.id;
+  assert.equal((await goi(`thanh-vien/${id}/moi-ra`, { tok: chu, body: {} })).status, 200);
+  const lai = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "ba.minh@gmail.com", sub: "g20" }) } });
+  assert.equal(lai.status, 200, JSON.stringify(lai.body)); assert.equal(lai.body.moi, true);
+  assert.notEqual((await goi("toi", { tok: lai.body.token })).body.baMe.id, id);
 });

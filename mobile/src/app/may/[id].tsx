@@ -25,7 +25,8 @@ const GIO_MO_COI = 6;
 export default function AnToanMay() {
   const { id, mo: moSan } = useLocalSearchParams<{ id: string; mo?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const quyen = await quyenToi();
+    // coMk: tài khoản Google / Facebook chưa đặt mật khẩu ⇒ gỡ máy dẫn sang «Đặt mật khẩu» thay vì ô mật khẩu (app/dat-mat-khau.tsx)
+    const [quyen, coMk] = await Promise.all([quyenToi(), bm.goi<{ baMe: { coMatKhau?: boolean } }>("toi").then((t) => t.baMe.coMatKhau !== false, () => true)]);
     // Máy đã gỡ xong (agent báo đã gỡ / đã xoá hẳn) ⇒ không còn trong gia đình
     const m = await bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`).catch((e) => { if (e instanceof LoiApi && e.ma === "khong_thay") return null; throw e; });
     // máy Windows «dùng chung» ⇒ cần danh sách Con để gán (POST may/:id/gan-con)
@@ -34,7 +35,7 @@ export default function AnToanMay() {
     const [ct, cd] = await Promise.all([m?.con ? bm.goi<ConCt>(`con/${m.con}`).catch(() => null) : null, bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null)]);
     const xem = quyen === "trong_giup";
     return { m, con: m?.dungChung && m.nen === "windows" ? g.con : [], ct, xin: m?.con ? cd?.yeuCau.filter((y) => y.child_id === m.con) ?? [] : [],
-      chu: !xem, xem };
+      chu: !xem, xem, coMk };
   });
   const [mo, setMo] = useState<"khan" | "go" | "xoa" | "offline" | "tai_may" | "ten" | "sua" | "khoa" | null>(null);
   const [phut, setPhut] = useState(30);
@@ -228,10 +229,10 @@ export default function AnToanMay() {
         </View>
         <Chu co={13} mau={M.chu3}>Máy tự gỡ sạch AiiGrow ở lần đồng bộ tới (máy tắt / mất mạng thì chờ tới khi có mạng). Nhập lại mật khẩu để chắc là Ba Mẹ.</Chu>
         <View style={{ marginTop: 12 }}>
-          <ONhap nhan="Mật khẩu của bạn" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
+          {d.coMk ? <ONhap nhan="Mật khẩu của bạn" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" /> : <Chu co={13} mau={M.chu3}>Tài khoản vào bằng Google / Facebook chưa có mật khẩu — đặt mật khẩu trước để gỡ máy.</Chu>}
         </View>
         <BaoLoi loi={loiLam} />
-        <Nut chu={`Gỡ ${ngan} khỏi AiiGrow`} loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(false)} />
+        {d.coMk ? <Nut chu={`Gỡ ${ngan} khỏi AiiGrow`} loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(false)} /> : <Nut chu="Đặt mật khẩu để gỡ máy" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} />}
         <View style={{ marginTop: 8 }}><Nut chu="Giữ máy này" loai="ma" rong bam={dong} /></View>
       </BangTruot>
 
@@ -242,10 +243,10 @@ export default function AnToanMay() {
             : "Máy này chưa đồng bộ lần nào nên không nhận được lệnh gỡ. Xoá hẳn thì máy rời danh sách ngay. Nếu đã lỡ cài AiiGrow trên máy đó, hãy gỡ tại máy (xem «Gỡ tại máy»)."}
         </Chu>
         <View style={{ marginTop: 12 }}>
-          <ONhap nhan="Mật khẩu của bạn" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
+          {d.coMk ? <ONhap nhan="Mật khẩu của bạn" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" /> : <Chu co={13} mau={M.chu3}>Tài khoản vào bằng Google / Facebook chưa có mật khẩu — đặt mật khẩu trước để gỡ máy.</Chu>}
         </View>
         <BaoLoi loi={loiLam} />
-        <Nut chu="Xoá hẳn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(true)} />
+        {d.coMk ? <Nut chu="Xoá hẳn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(true)} /> : <Nut chu="Đặt mật khẩu để gỡ máy" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} />}
         <View style={{ marginTop: 8 }}><Nut chu="Xem cách gỡ tại máy" loai="vien" rong bam={() => { dong(); setMo("tai_may"); }} /></View>
         <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="ma" rong bam={dong} /></View>
       </BangTruot>

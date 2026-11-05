@@ -91,4 +91,7 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
 - Gỡ máy / xoá tài khoản / gỡ trên máy Con cần mật khẩu ⇒ tài khoản chưa có mật khẩu nhận 409 `chua_co_mat_khau`, app mở màn «Đặt mật khẩu»
   (`/dat-mat-khau`): nhập mật khẩu mới rồi xác nhận lại bằng Google/Facebook (`POST dat-mat-khau`).
 - Người được mời (`loi_moi.dinh_danh` = email) vào bằng Google/Facebook cùng email ⇒ `loiMoi[]` có lời mời ⇒ màn Lời mời (`/moi/vao`).
-  Rủi ro còn lại: Facebook trả email chưa xác minh thì người đó thấy lời mời gửi tới email ấy — Meta chỉ trả email chính của hồ sơ; chấp nhận.
+  **Rủi ro còn mở (cần Thanh chốt):** Graph không cam kết email Facebook đã xác minh. Ai tạo Facebook mang email người được mời
+  (chưa xác minh) thì thấy VÀ nhận được lời mời đó (`moi/nhan {id}`). Muốn chặn: không khớp lời mời theo email cho tài khoản Facebook
+  (người được mời bấm link mời — đường `ma` vẫn chạy), hoặc chỉ khớp lời mời gửi bằng SĐT.
+- Người bị mời ra (`moi-ra`) hoặc xoá tài khoản ⇒ xoá liên kết `ba_me_mxh`; vào lại bằng Google/Facebook là tài khoản mới.

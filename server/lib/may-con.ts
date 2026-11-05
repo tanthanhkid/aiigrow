@@ -2,6 +2,7 @@
 // Giờ thật luôn là giờ MÁY CHỦ (`serverTime`); agent gửi `clientTime` để máy chủ đo lệch — lệch quá `lech_gio_phut` ⇒ Policy khoá phần
 // giải trí (`gioMaySai`) và báo Ba Mẹ một lần mỗi ngày. Nhãn ngày phút dùng tin theo giờ máy chủ (cách AiiControl #38: «hôm nay theo đồng hồ
 // máy» quy về hôm nay thật; ngày tương lai ⇒ hôm nay; cũ hơn 35 ngày bỏ).
+import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, khoaDen, khoaGoc, lichCua, moTamDen, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
@@ -315,6 +316,8 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   if (s?.khoa_den && new Date(s.khoa_den) > new Date()) throw new LoiNghiepVu("tam_khoa", "Nhập sai nhiều lần — đợi 15 phút", 429);
   const bm = await one<{ id: string; pass_hash: string | null; vai: string }>(
     `select id, pass_hash, vai from parents where family_id = $1 and dinh_danh = $2`, [may.family_id, chuanDinhDanh(dinhDanh) ?? ""]);
+  // Ba Mẹ vào bằng Google / Facebook chưa đặt mật khẩu ⇒ chỉ đường đặt mật khẩu, không tính là thử gỡ sai (dang-nhap-mxh.ts)
+  if (bm && !bm.pass_hash && quyenTuVai(bm.vai) === "ba_me") chuaCoMatKhau(bm);
   // Người trông giúp (L6) không gỡ máy được — chỉ Ba Mẹ
   const dung = !!bm?.pass_hash && quyenTuVai(bm.vai) === "ba_me" && (await dungMatKhau(String(matKhau ?? ""), bm.pass_hash));
   if (!dung) {

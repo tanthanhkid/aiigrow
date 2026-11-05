@@ -45,14 +45,17 @@ async function layJson(url: string, ten: string): Promise<{ ok: boolean; status:
 // ---------------------------------------------------------------- Google
 
 let jwks: { keys: (JsonWebKey & { kid?: string })[]; het: number } | null = null;
+let taiLuc = 0;                                     // lần tải JWKS gần nhất — kid lạ chỉ được tải lại tối đa 1 lần / phút (endpoint công khai)
 /** Xoá bộ nhớ JWKS (test). */
-export const _xoaJwks = () => { jwks = null; };
+export const _xoaJwks = () => { jwks = null; taiLuc = 0; };
 
 async function khoaGoogle(kid: string) {
   const tim = () => jwks && jwks.het > Date.now() ? jwks.keys.find((k) => k.kid === kid) : undefined;
   let k = tim();
   if (k) return k;
-  // chưa có / hết hạn / kid lạ (Google xoay khoá) ⇒ tải lại một lần
+  // chưa có / hết hạn / kid lạ (Google xoay khoá) ⇒ tải lại một lần — kid lạ mà bộ nhớ còn hạn và vừa tải < 60 giây thì thôi
+  if (jwks && jwks.het > Date.now() && Date.now() - taiLuc < 60_000) throw sai("Google");
+  taiLuc = Date.now();
   const { ok, j, cacheControl } = await layJson(JWKS_GOOGLE, "Google");
   if (!ok || !Array.isArray(j?.keys)) throw loiMang("Google");
   const maxAge = Number(/max-age=(\d+)/.exec(cacheControl ?? "")?.[1] ?? 3600);
@@ -80,6 +83,8 @@ export async function xacMinhGoogle(idToken: unknown): Promise<DanhTinh> {
   const bay = Math.floor(Date.now() / 1000);
   const aud = Array.isArray(tai.aud) ? tai.aud : [tai.aud];
   if (!ISS_GOOGLE.has(tai.iss) || !aud.some((a: unknown) => ds.includes(String(a)))) throw sai("Google");
+  // OIDC: nhiều aud ⇒ azp (bên được cấp token) phải là client của mình
+  if ((aud.length > 1 || tai.azp !== undefined) && !ds.includes(String(tai.azp ?? ""))) throw sai("Google");
   if (typeof tai.exp !== "number" || tai.exp + LECH_GIAY < bay || (typeof tai.iat === "number" && tai.iat - LECH_GIAY > bay)) throw sai("Google");
   if (tai.email_verified !== true && tai.email_verified !== "true") throw new LoiNghiepVu("mxh_khong_email", "Email Google này chưa xác minh — dùng số điện thoại / email nhé", 400);
   if (!tai.sub) throw sai("Google");
@@ -113,7 +118,7 @@ const TEN_MAC_DINH = "Ba Mẹ";
 const TEN_NGUON: Record<NguonMxh, string> = { google: "Google", facebook: "Facebook" };
 const xacMinh = (nguon: NguonMxh, b: Record<string, unknown>) => (nguon === "google" ? xacMinhGoogle(b.idToken) : xacMinhFacebook(b.accessToken));
 const theoMxh = (dt: DanhTinh) => one<{ id: string }>(
-  `select p.id from ba_me_mxh m join parents p on p.id = m.parent_id where m.nguon = $1 and m.sub = $2`, [dt.nguon, dt.sub]);
+  `select p.id from ba_me_mxh m join parents p on p.id = m.parent_id where m.nguon = $1 and m.sub = $2 and p.vai <> 'roi'`, [dt.nguon, dt.sub]);
 
 /** Danh tính đã xác minh ⇒ {id, moi}. `moi` = vừa tạo nhà (app đưa vào Lần đầu, hoặc màn Lời mời nếu có lời mời chờ). */
 export async function vaoBangMxh(dt: DanhTinh): Promise<{ id: string; moi: boolean }> {

@@ -29,15 +29,16 @@ export type LoaiMxh = "google" | "facebook";
 /** Thân gửi máy chủ: {idToken} (Google) hoặc {accessToken} (Facebook). */
 export type TokenMxh = { idToken: string } | { accessToken: string };
 type CauHinh = { google: boolean; facebook: boolean };
-let nhoCauHinh: Promise<CauHinh> | null = null;
-/** Nút nào hiện được: máy chủ bật + app có client id. Lỗi mạng ⇒ coi như tắt (vẫn còn đăng nhập bằng SĐT), lần mở màn sau hỏi lại. */
+let nhoCauHinh: { p: Promise<CauHinh>; luc: number } | null = null;
+/** Nút nào hiện được: máy chủ bật + app có client id. Nhớ 60 giây (máy chủ vừa bật env thì lần mở màn sau thấy ngay); lỗi mạng ⇒ coi như tắt. */
 export function useCoMxh(): CauHinh {
   const [ch, setCh] = useState<CauHinh>({ google: false, facebook: false });
   useEffect(() => {
     if (!googleMayNay && !FB_APP_ID) return;
-    nhoCauHinh ??= bm.goi<CauHinh>("cau-hinh-dang-nhap").catch(() => { nhoCauHinh = null; return { google: false, facebook: false }; });
+    if (!nhoCauHinh || Date.now() - nhoCauHinh.luc > 60_000)
+      nhoCauHinh = { luc: Date.now(), p: bm.goi<CauHinh>("cau-hinh-dang-nhap").catch(() => { nhoCauHinh = null; return { google: false, facebook: false }; }) };
     let song = true;
-    nhoCauHinh.then((r) => song && setCh({ google: !!r.google && !!googleMayNay, facebook: !!r.facebook && !!FB_APP_ID }));
+    nhoCauHinh.p.then((r) => song && setCh({ google: !!r.google && !!googleMayNay, facebook: !!r.facebook && !!FB_APP_ID }));
     return () => { song = false; };
   }, []);
   return ch;
