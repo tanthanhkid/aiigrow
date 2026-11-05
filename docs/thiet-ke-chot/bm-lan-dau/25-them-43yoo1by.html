@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;top:44px;height:48px;display:flex;align-items:center;z-index:5}
+.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.san{position:absolute;left:16px;right:16px;top:96px;height:250px;border-radius:36px;background:radial-gradient(90% 70% at 50% 30%,#e9f4f0,#cfe5dd);box-shadow:var(--clay);overflow:hidden;text-align:center}
+.san .rob{position:absolute;left:50%;margin-left:-80px;top:8px;width:160px}
+.san .tk{position:absolute;left:50%;margin-left:40px;top:18px;width:56px;height:56px}
+.san h1{position:absolute;left:0;right:0;bottom:34px;font-size:23px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.san p{position:absolute;left:0;right:0;bottom:12px;font-size:14px;font-weight:700;color:#0a5246}
+.m{position:absolute;left:16px;right:16px;top:362px}.m small{display:block;margin:0 6px 8px;font-size:13px;font-weight:700;color:#565c59}
+.ch{display:flex;gap:4px;padding:5px;border-radius:24px;background:#ebebe7;box-shadow:var(--lom)}
+.ch div{flex:1;min-height:52px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:19px;font-weight:800;font-size:15px;color:#3a403d;white-space:nowrap}.ch div img{width:22px;height:22px}.ch div.on{color:#0a5246;background:#fff;box-shadow:var(--nho)}
+.tom{display:flex;gap:8px;margin-top:12px}
+.tom span{flex:1;height:64px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:16px;font-weight:800;white-space:nowrap}
+.tom span small{margin:0;font-size:12px;font-weight:700;color:#565c59}
+.tu{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px 12px 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay);font-size:15px;line-height:21px;font-weight:700}
+.bt{width:48px;height:48px;border-radius:24px;flex:none;display:grid;place-items:center;background:#dcebe6;box-shadow:var(--nho)}.bt img{width:30px;height:30px}
+.day{position:absolute;left:0;right:0;bottom:0;padding:14px 16px 16px;display:flex;flex-direction:column;gap:4px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:6}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;display:flex;align-items:center;justify-content:center;gap:10px;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span,.nut img{position:relative}.nut img{width:24px;height:24px}
+.lk{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#0a5246;white-space:nowrap}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>
+<div class="san"><img class="rob" src="/assets/rob/xong.webp" alt=""><img class="tk" src="/assets/icon3d/tick.webp" alt=""><h1>Đã ghép máy của Bảo Anh!</h1><p>Máy mới đã được bảo vệ</p></div>
+<div class="m"><small>Máy chạy sẵn</small><div class="ch"><div>Mở hết</div><div class="on"><img src="/assets/icon3d/khoa.webp" alt="">Chỉ app được phép</div></div>
+<div class="tom"><span>60 phút<small>mỗi ngày</small></span><span>4 app<small>được phép</small></span><span>21:30<small>máy đi ngủ</small></span></div>
+<div class="tu"><span class="bt"><img src="/assets/icon3d/gui.webp" alt=""></span><span>App mới con tải sẽ xin Ba Mẹ duyệt</span></div></div>
+<div class="day"><span class="nut" role="button" tabindex="0"><img src="/assets/icon3d/tick.webp" alt=""><span>Xong rồi</span></span><span class="lk" role="button" tabindex="0">+ Ghép thêm máy khác</span></div>
+</div></body></html>

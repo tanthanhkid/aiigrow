@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#f8e6d4,#f4f4f2)}
+.top{position:absolute;left:8px;right:8px;top:44px;height:48px;display:flex;align-items:center}
+.lui{width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.san{position:absolute;left:16px;right:16px;top:96px;height:270px;border-radius:36px;background:linear-gradient(#f9dcc0,#fdeedd);box-shadow:var(--clay);overflow:hidden}
+.san .may{position:absolute;left:24px;top:60px;width:130px;height:130px}
+.dau{position:absolute;left:118px;top:48px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#e2660f;color:#fff;font-size:28px;font-weight:800;box-shadow:0 6px 10px -4px rgba(161,75,0,.6),inset 0 1.5px 0 rgba(255,255,255,.4)}
+.rob{position:absolute;right:-10px;bottom:-24px;width:160px;height:auto}
+.bong{position:absolute;right:20px;top:20px;padding:10px 14px;border-radius:20px;background:#fff;font-size:14px;line-height:19px;font-weight:700;box-shadow:0 6px 10px -6px rgba(28,32,30,.26)}
+.san .cap{position:absolute;left:22px;bottom:20px;padding:6px 12px;border-radius:14px;background:#fff;color:#a14b00;font-size:13px;font-weight:800;white-space:nowrap}
+.chu{position:absolute;left:16px;right:16px;top:388px;text-align:center}
+.chu h1{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.5px}
+.chu p{margin-top:6px;font-size:15px;line-height:21px;color:#3a403d}
+.vi{position:absolute;left:16px;right:16px;top:486px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.vi div{height:96px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:700;color:#3a403d;text-align:center;line-height:16px}
+.vi img{width:34px;height:34px}
+.day{position:absolute;left:16px;right:16px;bottom:22px;display:flex;flex-direction:column;gap:6px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.lk{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:15px;font-weight:700;color:#3a403d}
+.phu2{position:absolute;left:16px;right:16px;top:598px;display:flex;gap:10px}.phu2 span{flex:1;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;gap:6px;background:#f7f6f3;box-shadow:var(--clay);font-size:14.5px;font-weight:800;color:#0a5246}.phu2 img{width:22px;height:22px}.phu2 .do{color:#b3261e}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-may-ds"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>
+<div class="san"><img class="may" src="/assets/icon3d/tablet.webp" alt=""><span class="dau">!</span><div class="bong">iPad chưa có<br>mật mã!</div><img class="rob" src="/assets/rob/so-tay.webp" alt=""><span class="cap">Hôm nay 12 phút · vẫn tính giờ</span></div>
+<div class="chu"><h1>iPad chưa được bảo vệ</h1><p>Rob vẫn tính giờ, nhưng chưa đặt mật mã<br>Thời gian sử dụng nên con tự tắt được.</p></div>
+<div class="vi">
+<div><img src="/assets/icon3d/mo_khoa.webp" alt="">Con tự tắt<br>được Rob</div>
+<div><img src="/assets/icon3d/game.webp" alt="">App lạ<br>có thể mở</div>
+<div><img src="/assets/icon3d/trang_ngu.webp" alt="">Giờ ngủ<br>dễ bị bỏ qua</div>
+</div>
+<div class="phu2"><span role="button" tabindex="0" data-toi="them-4e4o5c72"><img src="/assets/icon3d/but.webp" alt="">Đổi tên máy</span><span class="do" role="button" tabindex="0" data-toi="them-18q14mik">Gỡ máy này</span></div>
+<div class="day">
+<span class="nut" role="button" tabindex="0" data-toi="them-slv33bgc">Sửa iPad trong 3 bước</span>
+<span class="lk" role="button" tabindex="0" data-toi="bm2-trang-chu">Để sau</span>
+</div>
+</div></body></html>

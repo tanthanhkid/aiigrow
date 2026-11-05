@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#fdf1d3,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 20px 0;display:flex;align-items:center;z-index:4}
+.top h1{font-size:28px;font-weight:800;letter-spacing:-.6px}
+.cuon{position:absolute;left:0;right:0;top:92px;bottom:84px;overflow-y:auto;padding:6px 16px 24px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.con{display:flex;gap:8px}
+.con span{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 6px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:15px;font-weight:700;white-space:nowrap}
+.con i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:800;color:#fff;background:#f08a3c}
+.con i.m{background:#5b7fd6}
+.con span.on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.35)}
+.rong{text-align:center;margin-top:18px}
+.rong img{width:170px;height:auto}
+.rong h2{margin-top:6px;font-size:24px;line-height:30px;font-weight:800;letter-spacing:-.5px}
+.rong p{margin:6px 16px 0;font-size:15px;line-height:21px;font-weight:600;color:#3a403d}
+.chon{display:flex;align-items:center;gap:12px;margin-top:14px;padding:14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.chon:first-of-type{margin-top:22px}
+.chon .ic{flex:none;width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:#fbecc0;box-shadow:var(--lom)}.chon .ic img{width:36px;height:36px}
+.chon .ic.x{background:#dcebe6}
+.chon p{flex:1;min-width:0;font-size:16.5px;font-weight:800;line-height:22px}
+.chon p small{display:block;font-size:13px;font-weight:600;color:#565c59}
+.chon b{flex:none;font-size:20px;font-weight:800;color:#0a5246}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 8px 24px;display:flex;background:#f7f6f3;box-shadow:0 -1px 0 #e4e3df;z-index:5}
+.tab div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:700;color:#565c59}
+.tab img{width:26px;height:26px;opacity:.5}
+.tab .on{color:#0a5246;font-weight:800}.tab .on img{opacity:1}
+</style></head>
+<body><div class="app">
+<div class="top"><h1>Nhiệm vụ</h1></div>
+<div class="cuon">
+<div class="con"><span role="button" tabindex="0" data-toi="them-e91jg28j"><i>B</i>Bảo Anh</span><span class="on" role="button" tabindex="0"><i class="m">M</i>Bảo Minh</span></div>
+<div class="rong"><img src="/assets/rob/chi.webp" alt=""><h2>Bảo Minh chưa có việc nào</h2><p>Giao vài việc nhỏ. Con làm xong nhận sao, đổi ra phút chơi.</p></div>
+<div class="chon" role="button" tabindex="0" data-toi="them-1jii7k19"><span class="ic"><img src="/assets/icon3d/qua.webp" alt=""></span><p>Chọn bộ việc có sẵn<small>Rob gợi ý hợp với 6 tuổi</small></p><b>›</b></div>
+<div class="chon" role="button" tabindex="0" data-toi="them-0qial10f"><span class="ic x"><img src="/assets/icon3d/but.webp" alt=""></span><p>Tự đặt một việc<small>Tên việc, số sao, ngày làm</small></p><b>›</b></div>
+</div>
+<nav class="tab">
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
+<div class="on" role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Nhiệm vụ</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+</nav>
+</div></body></html>

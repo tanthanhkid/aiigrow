@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),0 2px 3px -1px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 4px 8px rgba(40,44,42,.13),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+body{font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.man{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.nen{position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3ece8,#f4f4f2)}
+.sb{position:absolute;left:0;right:0;top:0;height:44px;padding:0 26px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:15px}
+.lui{position:absolute;left:10px;top:44px;height:44px;display:flex;align-items:center;gap:2px;padding:0 8px 0 6px;color:#0a5246;font-weight:700;font-size:16px;cursor:pointer}
+.lui svg{width:20px;height:20px;fill:#0a5246}
+.ruot{position:absolute;left:16px;right:16px;top:86px}
+.hero{display:flex;align-items:center;gap:10px}
+.hero img{width:52px;height:60px;object-fit:contain;flex:none}
+.hero h1{font-size:21px;line-height:26px;font-weight:800;letter-spacing:-.3px}
+.hero p{margin-top:2px;font-size:12.5px;line-height:17px;color:#565c59}
+.the{margin-top:8px;background:#f7f6f3;border-radius:22px;padding:10px 14px 12px;box-shadow:var(--clay)}
+.so{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#565c59;text-transform:uppercase;letter-spacing:.4px}
+.so em{font-style:normal;width:20px;height:20px;border-radius:10px;background:#0a5246;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px}
+.o{margin-top:7px;height:44px;border-radius:15px;background:#ecebe7;box-shadow:var(--lom);display:flex;align-items:center;padding:0 14px;gap:10px;font-size:16px;font-weight:700}
+.o span{flex:1;letter-spacing:2px}
+.o .t,.o .g{font-size:13px;font-weight:700;color:#0a5246;letter-spacing:0;white-space:nowrap}
+.o .g{cursor:pointer}
+.o .ph{flex:1;font-size:14.5px;font-weight:600;color:#8a8f8c;letter-spacing:0}
+.goi{margin-top:5px;font-size:12px;line-height:16px;color:#565c59}
+.moi{margin-top:7px;padding:10px 12px;border-radius:18px;background:#dcebe6}
+.moi .h{display:flex;align-items:center;gap:10px}
+.moi .bt{flex:none;width:38px;height:38px;border-radius:19px;background:#f7f6f3;display:flex;align-items:center;justify-content:center;box-shadow:var(--nho)}
+.moi .bt img{width:24px;height:24px}
+.moi b{display:block;font-size:14.5px;line-height:19px}
+.moi p{font-size:12px;line-height:16px;color:#2f5f55}
+.ban{margin-top:8px;display:flex;align-items:center;gap:8px;min-height:40px;padding:0 6px 0 12px;border-radius:14px;background:#f7f6f3;box-shadow:var(--nho);font-size:14px}
+.ban span{flex:1;color:#565c59}
+.ban span b{display:inline;color:#0f1312;font-size:14px}
+.ban i{font-style:normal;min-height:32px;padding:0 10px;display:flex;align-items:center;border-radius:10px;color:#0a5246;font-weight:700;font-size:13px;cursor:pointer}
+.hai{display:flex;gap:8px;margin-top:7px}
+.hai .o{margin-top:0}
+.vung{flex:none;width:64px;justify-content:center;font-size:15px}
+.cach{display:flex;gap:4px;padding:3px;border-radius:15px;background:#ebebe7;box-shadow:var(--lom);margin-top:7px}
+.cach div{flex:1;min-height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#3a403d;cursor:pointer}
+.cach .on{background:#fff;color:#0a5246;box-shadow:var(--nho)}
+.chan{position:absolute;left:0;right:0;bottom:0;padding:8px 16px 16px;background:#f4f4f2}
+.nut{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:22px;color:#fff;font-weight:800;font-size:16.5px;background:linear-gradient(#13806d,#0a5246);box-shadow:0 8px 12px -5px rgba(10,82,70,.45),inset 0 1px 0 rgba(255,255,255,.4);cursor:pointer}
+.chan small{display:block;text-align:center;margin-top:5px;font-size:12px;line-height:16px;color:#565c59}
+.chan a{display:block;text-align:center;min-height:32px;line-height:32px;font-size:13.5px;font-weight:700;color:#0a5246;cursor:pointer}
+</style></head>
+<body>
+<div class="man">
+  <div class="nen"></div>
+  <div class="sb">19:30<span>●●● ▮</span></div>
+  <div class="lui" role="button" data-toi="bm1-chao"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg>Quay lại</div>
+
+  <div class="ruot">
+    <div class="hero">
+      <img src="/assets/rob/chi.webp" alt="">
+      <div><h1>Vào nhà bằng mã mời</h1><p>Mã có trong lời mời người nhà gửi. Bấm link trong lời mời thì mã tự điền.</p></div>
+    </div>
+
+    <div class="the">
+      <div class="so"><em>1</em>Mã mời</div>
+      <div class="o"><span>LAN-482</span><b class="t">✓ Đúng mã</b></div>
+      <div class="moi">
+        <div class="h">
+          <div class="bt"><img src="/assets/icon3d/nha.webp" alt=""></div>
+          <div><b>Mẹ Lan mời bạn vào nhà</b><p>Cùng trông Bảo Anh, Bảo Minh, quyền như Mẹ Lan</p></div>
+        </div>
+        <div class="ban"><span>Bạn là: <b>Ba Hùng</b> · Ba</span><i role="button">Sửa</i></div>
+      </div>
+    </div>
+
+    <div class="the">
+      <div class="so"><em>2</em>Tài khoản của bạn</div>
+      <div class="hai"><div class="o vung">+84</div><div class="o" style="flex:1"><span style="letter-spacing:1px">0912 345 678</span></div></div>
+      <div class="cach"><div class="on">Nhận mã qua Zalo</div><div>Qua SMS</div></div>
+      <div class="o"><span>4 8 2 _ _ _</span><b class="g">Gửi lại · 45s</b></div>
+      <div class="o"><span class="ph">Đặt mật khẩu (ít nhất 6 ký tự)</span><b class="g">Hiện</b></div>
+      <div class="goi">Lần sau đăng nhập bằng số điện thoại + mật khẩu này. Số đã có tài khoản AiiGrow thì không cần đặt mật khẩu mới.</div>
+    </div>
+  </div>
+
+  <div class="chan">
+    <div class="nut" role="button" data-toi="bm2-trang-chu">Vào nhà Mẹ Lan</div>
+    <small>Vào thẳng Hôm nay, thấy sẵn các con, máy và nhiệm vụ.</small>
+    <a data-toi="bm2-ho-tro">Không có mã? Chat với AiiLab</a>
+  </div>
+</div>
+</body></html>

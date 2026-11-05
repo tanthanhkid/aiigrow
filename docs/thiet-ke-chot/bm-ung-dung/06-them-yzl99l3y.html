@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:21px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 120px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.rob{display:flex;align-items:center;gap:10px}.rob img{flex:none;width:76px;height:76px;object-fit:contain}
+.bong{flex:1;padding:12px 14px;border-radius:22px;background:#fff;box-shadow:var(--clay);font-size:14px;font-weight:700;line-height:19px}
+.bar{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:10px 16px 26px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 30%)}
+.nut{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:24px;color:#fff;font-size:16px;font-weight:800;white-space:nowrap;background:linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.05) 46%,rgba(255,255,255,0) 50%),linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -8px rgba(18,22,21,.5),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -4px 6px rgba(0,0,0,.35)}
+.gc{margin:14px 6px 0;text-align:center;font-size:12.5px;font-weight:600;color:#565c59}
+.inp{margin-top:14px;min-height:56px;padding:0 18px;display:flex;align-items:center;border-radius:22px;background:#ecebe7;box-shadow:var(--lom);font-size:16px;font-weight:700;color:#0f1312}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.chip{min-height:44px;padding:0 16px;border-radius:22px;display:flex;align-items:center;font-size:14px;font-weight:800;background:#f7f6f3;color:#3a403d;box-shadow:var(--clay)}
+.chip.on{background:#0f6b5c;color:#fff}
+.muc{margin:20px 6px 0;font-size:15px;font-weight:800;color:#3a403d}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-web"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm trang web cho Bảo Anh</h1></div>
+<div class="cuon">
+<div class="rob"><img src="/assets/rob/hoc.webp" alt=""><div class="bong">Gõ địa chỉ trang web Ba Mẹ muốn cho phép.</div></div>
+<div class="inp">vuihoc.vn</div>
+<p class="muc">Hoặc chọn nhanh</p>
+<div class="chips"><span class="chip" role="button" tabindex="0">khanacademy.org</span><span class="chip" role="button" tabindex="0">scratch.mit.edu</span><span class="chip" role="button" tabindex="0">youtube.com</span></div>
+<p class="muc">Trang này tính thế nào?</p>
+<div class="chips"><span class="chip on" role="button" tabindex="0">Không tính giờ</span><span class="chip" role="button" tabindex="0">Tính vào giờ chơi</span></div>
+<p class="gc">Web người lớn, cờ bạc, bạo lực luôn bị chặn.</p>
+</div>
+<div class="bar"><div class="nut" role="button" tabindex="0" data-toi="bm2-web">Cho phép trang này</div></div>
+</div></body></html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:5;background:linear-gradient(#e3efeb 78%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:96px;overflow-y:auto;padding:0 16px 40px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.the{margin-top:12px;padding:14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.the:first-child{margin-top:2px}
+.tt{display:flex;align-items:center;gap:8px;margin:0 2px 10px;font-size:15px;font-weight:800;color:#3a403d;white-space:nowrap}
+.tt em{margin-left:auto;font-style:normal;font-size:12px;font-weight:700;color:#8a908d}
+.lom{display:flex;align-items:center;height:54px;padding:0 18px;border-radius:27px;background:#e6e5e1;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 19px Inter,sans-serif;color:#0f1312}
+.lom small{flex:none;font-size:14px;font-weight:700;color:#565c59}
+.goi{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.goi span{flex:none;height:34px;padding:0 10px;border-radius:17px;display:grid;place-items:center;background:#fff;box-shadow:var(--nho);font-size:13px;font-weight:700;color:#3a403d;white-space:nowrap}
+.goi span.chon{background:#dcebe6;color:#0a5246;box-shadow:0 0 0 2px #0f6b5c}
+.icv{display:flex;gap:8px;margin-top:12px}
+.icv span{flex:1;height:46px;border-radius:16px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}
+.icv span img{width:28px;height:28px}
+.icv span.chon{background:#dcebe6;box-shadow:0 0 0 2.5px #0f6b5c,var(--nho)}
+.con{display:flex;gap:10px}
+.con span{flex:1;height:56px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:22px;background:#fff;box-shadow:var(--nho);font-size:15px;font-weight:800;white-space:nowrap}
+.con span i{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:15px;font-weight:800;color:#fff}
+.con span b{margin-left:auto;width:24px;height:24px;border-radius:8px;background:#ecebe7;box-shadow:var(--lom)}
+.con span.chon{background:#dcebe6;box-shadow:0 0 0 2.5px #0f6b5c}
+.con span.chon b{background:#0f6b5c;box-shadow:none;position:relative}
+.con span.chon b::after{content:"";position:absolute;left:8px;top:4px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.saohang{display:flex;gap:8px;align-items:center}
+.saohang .lom{width:112px;flex:none;padding:0 14px}
+.saohang .lom input{width:44px;font-size:21px}
+.chip{flex:1;display:flex;gap:6px}
+.chip span{flex:1;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;gap:4px;background:#fff;box-shadow:var(--nho);font-size:15px;font-weight:800;color:#3a403d}
+.chip span.chon{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.35)}
+.doi{display:flex;align-items:center;gap:6px;margin:10px 4px 0;font-size:13px;font-weight:700;color:#3a403d}
+.doi b{padding:3px 9px;border-radius:12px;background:#fbecc0;color:#6e4300;font-weight:800}
+.doi b.p{background:#dcebe6;color:#0a5246}
+.seg{display:flex;gap:4px;padding:4px;border-radius:24px;background:#ebebe7;box-shadow:var(--lom)}
+.seg div{flex:1;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:20px;font-size:14px;font-weight:800;color:#3a403d;white-space:nowrap;text-align:center}
+.seg div.on{color:#0a5246;background:#fff;box-shadow:var(--nho)}
+.thu{display:flex;gap:5px;margin-top:10px}
+.thu span{flex:1;height:40px;border-radius:14px;display:grid;place-items:center;background:#ebebe7;box-shadow:var(--lom);font-size:13px;font-weight:800;color:#565c59}
+.thu span.chon{background:#dcebe6;color:#0a5246;box-shadow:0 0 0 2px #0f6b5c}
+.nhac{display:flex;align-items:center;gap:12px}
+.nhac .ic{flex:none;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.nhac .ic img{width:28px;height:28px}
+.nhac p{flex:1;font-size:15px;font-weight:800}.nhac p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.gio{flex:none;height:44px;padding:0 14px;border-radius:16px;display:grid;place-items:center;background:#fff;box-shadow:0 0 0 2px #0f6b5c,var(--nho);font-size:18px;font-weight:800;color:#0a5246}
+.cach{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cach span{height:88px;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#fff;box-shadow:var(--nho);font-size:13px;line-height:16px;font-weight:800;color:#3a403d;text-align:center}
+.cach span img,.cach span svg{width:32px;height:32px}
+.cach span.chon{background:#dcebe6;color:#0a5246;box-shadow:0 0 0 2.5px #0f6b5c}
+.duyet{display:flex;flex-direction:column;gap:8px}
+.duyet>span{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 12px;border-radius:22px;background:#fff;box-shadow:var(--nho);font-size:14.5px;font-weight:800}
+.duyet p small{display:block;font-size:12px;font-weight:600;color:#565c59}
+.duyet i{flex:none;width:22px;height:22px;border-radius:50%;background:#ecebe7;box-shadow:var(--lom)}
+.duyet>span.chon{background:#dcebe6;color:#0a5246;box-shadow:0 0 0 2.5px #0f6b5c}
+.duyet>span.chon i{background:#fff;box-shadow:inset 0 0 0 6px #0f6b5c}
+.duyet img{flex:none;width:30px;height:30px}
+.day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 22px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:6}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;display:flex;align-items:center;justify-content:center;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-ob-mau"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm việc riêng</h1></div>
+<div class="cuon">
+
+<div class="the">
+<p class="tt">Việc gì?</p>
+<div class="lom"><input type="text" aria-label="Tên việc" value="Tưới cây"></div>
+<div class="goi" aria-label="Gợi ý nhanh"><span class="chon" role="button" tabindex="0">Tưới cây</span><span role="button" tabindex="0">Rửa bát</span><span role="button" tabindex="0">Gấp quần áo</span><span role="button" tabindex="0">Đổ rác</span></div>
+<div class="icv" aria-label="Chọn hình cho việc"><span class="chon" role="button" tabindex="0"><img src="/assets/icon3d/nha.webp" alt="Việc nhà"></span><span role="button" tabindex="0"><img src="/assets/icon3d/lau.webp" alt="Dọn dẹp"></span><span role="button" tabindex="0"><img src="/assets/icon3d/chen.webp" alt="Rửa bát"></span><span role="button" tabindex="0"><img src="/assets/icon3d/sach.webp" alt="Học"></span><span role="button" tabindex="0"><img src="/assets/icon3d/chay.webp" alt="Vận động"></span><span role="button" tabindex="0"><img src="/assets/icon3d/but.webp" alt="Sáng tạo"></span></div>
+</div>
+
+<div class="the">
+<p class="tt">Giao cho<em>Chọn được cả hai</em></p>
+<div class="con"><span class="chon" role="checkbox" aria-checked="true" tabindex="0"><i style="background:#f5a957">B</i>Bảo Anh<b></b></span><span role="checkbox" aria-checked="false" tabindex="0"><i style="background:#6aa9e0">M</i>Bảo Minh<b></b></span></div>
+</div>
+
+<div class="the">
+<p class="tt"><img src="/assets/icon3d/sao.webp" alt="" style="width:22px;height:22px">Làm xong được</p>
+<div class="saohang"><div class="lom"><input type="text" inputmode="numeric" aria-label="Số sao" value="10"><small>sao</small></div><div class="chip"><span role="button" tabindex="0">5</span><span class="chon" role="button" tabindex="0">10</span><span role="button" tabindex="0">20</span></div></div>
+<p class="doi"><b>10 sao</b>= <b class="p">10 phút chơi</b></p>
+</div>
+
+<div class="the">
+<p class="tt"><img src="/assets/icon3d/lich.webp" alt="" style="width:22px;height:22px">Lặp lại</p>
+<div class="seg" role="radiogroup"><div role="radio" aria-checked="false">Một lần</div><div role="radio" aria-checked="false">Hằng ngày</div><div class="on" role="radio" aria-checked="true">Chọn thứ</div></div>
+<div class="thu" aria-label="Ngày lặp"><span class="chon">T2</span><span class="chon">T3</span><span class="chon">T4</span><span class="chon">T5</span><span class="chon">T6</span><span>T7</span><span>CN</span></div>
+</div>
+
+<div class="the">
+<div class="nhac"><span class="ic"><img src="/assets/icon3d/chuong.webp" alt=""></span><p>Nhắc con<small>Không bắt buộc</small></p><span class="gio" role="button" tabindex="0" aria-label="Giờ nhắc">17:30</span></div>
+</div>
+
+<div class="the">
+<p class="tt">Con báo xong bằng</p>
+<div class="cach" role="radiogroup">
+<span role="radio" aria-checked="false" tabindex="0"><img src="/assets/icon3d/tick.webp" alt="">Bấm «Xong»</span>
+<span class="chon" role="radio" aria-checked="true" tabindex="0"><img src="/assets/icon3d/camera.webp" alt="">Chụp ảnh</span>
+<span role="radio" aria-checked="false" tabindex="0"><svg viewBox="0 0 256 256"><path fill="#0f6b5c" d="M128,176a48,48,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48,48,0,0,0,128,176Z"></path><path fill="#565c59" d="M200,116a12,12,0,0,0-12,12,60,60,0,0,1-120,0,12,12,0,0,0-24,0,84.1,84.1,0,0,0,72,83.13V232a12,12,0,0,0,24,0V211.13A84.1,84.1,0,0,0,212,128,12,12,0,0,0,200,116Z"></path></svg>Ghi âm / video</span>
+</div>
+</div>
+
+<div class="the">
+<p class="tt">Cộng sao thế nào?</p>
+<div class="duyet" role="radiogroup">
+<span class="chon" role="radio" aria-checked="true" tabindex="0"><i></i><p style="flex:1">Ba Mẹ xem rồi duyệt<small>Duyệt xong mới cộng sao</small></p><img src="/assets/icon3d/khien.webp" alt=""></span>
+<span role="radio" aria-checked="false" tabindex="0"><i></i><p style="flex:1">Tự cộng sao<small>Con báo xong là có sao</small></p><img src="/assets/icon3d/tia.webp" alt=""></span>
+</div>
+</div>
+
+</div>
+<div class="day"><button class="nut" type="button" data-toi="bm1-ob-mau"><span>Thêm việc cho Bảo Anh</span></button></div>
+</div></body></html>

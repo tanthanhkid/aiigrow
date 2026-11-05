@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;right:16px;top:44px;height:48px;display:flex;align-items:center;justify-content:space-between;z-index:3}
+.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.buoc{display:flex;gap:8px}.buoc i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e6e5e1;box-shadow:var(--lom)}.buoc i img{width:20px;height:20px;opacity:.45}.buoc i.on{background:#dcebe6;box-shadow:0 0 0 2.5px #0f6b5c,var(--clay)}.buoc i.on img{opacity:1}
+.the{position:absolute;left:16px;right:16px;top:100px;height:196px;border-radius:34px;background:linear-gradient(135deg,#ffe9cc,#f9cf9a);box-shadow:var(--clay);overflow:hidden}
+.the::before{content:"";position:absolute;left:16px;right:16px;top:3px;height:56px;border-radius:32px 32px 80px 80px;background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0))}
+.the .rob{position:absolute;right:-10px;bottom:-14px;width:150px;height:auto}
+.avt{position:absolute;left:20px;top:24px;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:#f5a957;box-shadow:0 0 0 4px rgba(255,255,255,.85),0 10px 16px -8px rgba(110,67,0,.45);font-size:36px;font-weight:800;color:#fff}
+.cam{position:absolute;left:84px;top:84px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 6px 10px -6px rgba(28,32,30,.4)}.cam svg{width:18px;height:18px;fill:#6e4300}
+.ten{position:absolute;left:22px;bottom:24px}
+.ten b{display:block;font-size:26px;line-height:30px;font-weight:800;letter-spacing:-.5px;color:#3d2600}
+.ten span{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:12px;background:rgba(255,255,255,.7);font-size:13px;font-weight:800;color:#6e4300}
+.nd{position:absolute;left:16px;right:16px;top:316px}
+.nhan{margin:0 0 8px 6px;font-size:14px;font-weight:700}
+.nhan.sau{margin-top:20px}
+.lom{display:flex;align-items:center;height:58px;padding:0 20px;border-radius:29px;background:#e6e5e1;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 20px Inter,sans-serif;color:#0f1312}
+.lom .tuoi{flex:none;padding:6px 12px;border-radius:14px;background:#dcebe6;color:#0a5246;font-size:13.5px;font-weight:800;white-space:nowrap}
+.mau{display:flex;gap:14px;align-items:center;padding-left:4px}
+.mau i{width:44px;height:44px;border-radius:50%;box-shadow:0 6px 10px -6px rgba(28,32,30,.4),inset 0 2px 0 rgba(255,255,255,.5)}
+.mau i.chon{box-shadow:0 0 0 3px #f4f4f2,0 0 0 6px #0f6b5c}
+.day{position:absolute;left:16px;right:16px;bottom:18px;display:flex;flex-direction:column;gap:2px;z-index:3}
+.nut{position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+.lk{min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.lk svg{width:18px;height:18px;fill:#0a5246}
+</style></head>
+<body><div class="app">
+<div class="top">
+<div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-otp"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div>
+<div class="buoc" aria-label="Bước 1 trên 4: Con"><i class="on"><img src="/assets/icon3d/nguoi.webp" alt=""></i><i><img src="/assets/icon3d/sao.webp" alt=""></i><i><img src="/assets/icon3d/dongho.webp" alt=""></i><i><img src="/assets/icon3d/may_tinh.webp" alt=""></i></div>
+</div>
+<div class="the" aria-label="Xem trước hồ sơ của con">
+<div class="avt">B</div>
+<div class="cam" role="button" tabindex="0" aria-label="Thêm ảnh của con"><svg viewBox="0 0 256 256"><path d="M208,52H182.42L170,33.34A12,12,0,0,0,160,28H96a12,12,0,0,0-10,5.34L73.57,52H48A28,28,0,0,0,20,80V192a28,28,0,0,0,28,28H208a28,28,0,0,0,28-28V80A28,28,0,0,0,208,52ZM128,180a44,44,0,1,1,44-44A44.05,44.05,0,0,1,128,180Z"></path></svg></div>
+<div class="ten"><b>Bảo Anh</b><span>9 tuổi · khoảng lớp 4</span></div>
+<img class="rob" src="/assets/rob/chi.webp" alt="">
+</div>
+<div class="nd">
+<div class="nhan">Tên gọi ở nhà</div>
+<div class="lom"><input aria-label="Tên gọi ở nhà của con" value="Bảo Anh"></div>
+<div class="nhan sau">Năm sinh</div>
+<div class="lom"><input aria-label="Năm sinh của con" inputmode="numeric" maxlength="4" placeholder="VD: 2017" value="2017"></div>
+<div class="nhan sau">Màu của con</div>
+<div class="mau" aria-label="Chọn màu để nhận ra con"><i class="chon" style="background:#f5a957"></i><i style="background:#6fa8e8"></i><i style="background:#e98bab"></i><i style="background:#5cb98f"></i><i style="background:#a58be0"></i></div>
+</div>
+<div class="day">
+<button class="nut" type="button" data-toi="bm1-ob-mau"><span>Lưu hồ sơ Bảo Anh</span></button>
+<div class="lk" role="button" tabindex="0" data-toi="them-4sujddkb"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg>Thêm con khác</div>
+</div>
+</div></body></html>

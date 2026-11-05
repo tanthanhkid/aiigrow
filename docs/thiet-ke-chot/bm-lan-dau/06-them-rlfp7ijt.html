@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AiiGrow — Ba hay Mẹ</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:'Inter',system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e6ece9,#f4f4f2)}
+.tien{position:absolute;left:16px;right:16px;top:58px;display:flex;gap:8px}
+.buoc{flex:1;min-width:0}
+.thanh{height:8px;border-radius:8px;background:#dcdbd6;box-shadow:inset 0 2px 3px rgba(40,44,42,.22),inset 0 -1px 0 rgba(255,255,255,.9)}
+.buoc.xong .thanh,.buoc.dang .thanh{background:linear-gradient(#17846f,#0a5246);box-shadow:0 2px 4px -1px rgba(10,82,70,.45),inset 0 1.5px 0 rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.2)}
+.buoc small{display:block;margin-top:6px;font-size:12px;line-height:16px;font-weight:600;color:#565c59;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.buoc.dang small{color:#0a5246;font-weight:800}
+.noidung{position:absolute;left:16px;right:16px;top:106px}
+.hero{position:relative;height:116px;border-radius:30px;background:#e3efeb;box-shadow:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -2px 0 rgba(255,255,255,.7),inset 0 -10px 16px -8px rgba(40,44,42,.12)}
+.hero::before{content:"";position:absolute;inset:0;border-radius:30px;pointer-events:none;background:radial-gradient(60% 34% at 50% 18%,rgba(255,255,255,.95),rgba(255,255,255,0))}
+.bong{position:absolute;left:16px;top:14px;width:208px;background:#fff;border-radius:24px;padding:10px 16px;z-index:3;box-shadow:0 6px 10px -6px rgba(28,32,30,.26),0 2px 3px -1px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14)}
+.bong::after{content:"";position:absolute;right:-6px;top:50%;margin-top:-8px;width:16px;height:16px;background:#fff;border-radius:3px;transform:rotate(45deg)}
+.bong h1{font-size:18px;line-height:23px;font-weight:800;letter-spacing:-.3px}
+.bong p{margin-top:3px;font-size:13px;line-height:18px;color:#3a403d}
+.rob{position:absolute;right:4px;bottom:-12px;width:108px;height:auto;z-index:2}
+.nhan{margin-top:20px;margin-bottom:8px;font-size:14px;font-weight:700;line-height:20px}
+.luoi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.o{position:relative;display:flex;align-items:center;gap:10px;min-height:64px;padding:10px 12px;border-radius:24px;background:#f7f6f3;box-shadow:0 10px 16px -10px rgba(28,32,30,.3),0 3px 6px -4px rgba(28,32,30,.16),inset 0 1.5px 0 #fff,inset 0 -6px 10px -6px rgba(40,44,42,.16)}
+.o.on{background:#dcebe6;box-shadow:0 12px 18px -10px rgba(10,82,70,.4),inset 0 1.5px 0 rgba(255,255,255,.95),inset 0 -6px 10px -6px rgba(10,82,70,.22)}
+.o i{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:20px;background:#fff;box-shadow:0 5px 8px -5px rgba(28,32,30,.3),inset 0 1.5px 0 #fff,inset 0 -4px 6px -3px rgba(40,44,42,.16)}
+.o b{font-size:16px;font-weight:700;white-space:nowrap}
+.o.on b{color:#0a5246;font-weight:800}
+.lom{display:flex;align-items:center;height:56px;padding:0 16px;border-radius:26px;background:#e6e5e1;box-shadow:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+.lom input{flex:1;min-width:0;height:52px;border:0;outline:0;background:transparent;font-family:inherit;font-size:19px;font-weight:700;color:#0f1312}
+.ghi{margin-top:8px;font-size:13px;line-height:19px;color:#3a403d;padding:0 4px}
+.ghi b{color:#0a5246;font-weight:800}
+.day{position:absolute;left:0;right:0;bottom:0;padding:8px 16px 24px;background:#f4f4f2}
+.nut{position:relative;overflow:hidden;width:100%;height:56px;border-radius:30px;border:0;font-family:inherit;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04));pointer-events:none}
+.nut span{position:relative}</style></head><body><div class="app"><div class="tien" aria-label="Bước 3 trên 3">
+<div class="buoc xong"><div class="thanh"></div><small>1 · Số và mật khẩu</small></div>
+<div class="buoc xong"><div class="thanh"></div><small>2 · Xác nhận số</small></div>
+<div class="buoc dang"><div class="thanh"></div><small>3 · Ba hay Mẹ</small></div></div>
+<div class="noidung">
+<div class="hero"><div class="bong"><h1>Ba Mẹ là ai của Con?</h1><p>Để Con thấy đúng ai đang duyệt việc.</p></div><img class="rob" src="/assets/rob/rob-goc.webp" alt=""></div>
+<div class="nhan">Tôi là</div>
+<div class="luoi" role="radiogroup" aria-label="Tôi là">
+<div class="o" role="radio" aria-checked="false" tabindex="0"><i>👨</i><b>Ba</b></div>
+<div class="o on" role="radio" aria-checked="true" tabindex="0"><i>👩</i><b>Mẹ</b></div>
+<div class="o" role="radio" aria-checked="false" tabindex="0"><i>👵</i><b>Ông / Bà</b></div>
+<div class="o" role="radio" aria-checked="false" tabindex="0"><i>🙂</i><b>Người khác</b></div></div>
+<div class="nhan">Con gọi Ba Mẹ là</div>
+<div class="lom"><input aria-label="Tên gọi" value="Mẹ Lan"></div>
+<p class="ghi">Con sẽ thấy: «<b>Mẹ Lan</b> đã duyệt nhiệm vụ của con».</p>
+<p class="ghi">Ba hoặc Mẹ còn lại mời vào sau ở <b>Cài đặt › Gia đình</b>.</p>
+</div>
+<div class="day"><button class="nut" type="button" aria-label="Tiếp: hồ sơ Con" data-toi="bm1-ob-ten-con"><span>Tiếp: hồ sơ Con</span></button></div></div></body></html>

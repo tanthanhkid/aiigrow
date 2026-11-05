@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 120px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.rob{display:flex;align-items:center;gap:10px}.rob img{flex:none;width:76px;height:76px;object-fit:contain}
+.bong{flex:1;padding:12px 14px;border-radius:22px;background:#fff;box-shadow:var(--clay);font-size:14px;font-weight:700;line-height:19px}
+.luoi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.o{position:relative;display:flex;flex-direction:column;align-items:center;padding:14px 4px 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay);text-align:center}
+.o.on{box-shadow:0 0 0 3px #0f6b5c,var(--clay)}
+.o .ic{width:56px;height:56px;border-radius:20px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.o .ic img{width:38px;height:38px}
+.o b{margin-top:8px;font-size:13.5px;font-weight:800;line-height:17px}
+.o small{margin-top:4px;padding:2px 8px;border-radius:9px;background:#fbecc0;color:#6e4300;font-size:11px;font-weight:800}
+.o small.k{background:#dcebe6;color:#0a5246}
+.o .tk{position:absolute;right:8px;top:8px;width:24px;height:24px;border-radius:12px;background:#0f6b5c;color:#fff;font-size:14px;font-weight:800;display:grid;place-items:center}
+.bar{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:10px 16px 26px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 30%)}
+.nut{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:24px;color:#fff;font-size:16px;font-weight:800;white-space:nowrap;background:linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.05) 46%,rgba(255,255,255,0) 50%),linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -8px rgba(18,22,21,.5),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -4px 6px rgba(0,0,0,.35)}
+.gc{margin:14px 6px 0;text-align:center;font-size:12.5px;font-weight:600;color:#565c59}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-ung-dung-may"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm app cho Bảo Anh</h1></div>
+<div class="cuon">
+<div class="rob"><img src="/assets/rob/hoc.webp" alt=""><div class="bong">Chọn app trên Laptop mà Bảo Anh được dùng.</div></div>
+<div class="luoi">
+<div class="o on" role="button" tabindex="0"><span class="tk">✓</span><span class="ic"><img src="/assets/icon3d/but.webp" alt=""></span><b>Scratch</b><small class="k">Không tính giờ</small></div>
+<div class="o on" role="button" tabindex="0"><span class="tk">✓</span><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><b>Minecraft</b><small>Tính vào giờ chơi</small></div>
+<div class="o" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><b>Zoom</b><small class="k">Không tính giờ</small></div>
+<div class="o" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/web.webp" alt=""></span><b>Chrome</b><small>Tính vào giờ chơi</small></div>
+<div class="o" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><b>Sách điện tử</b><small class="k">Không tính giờ</small></div>
+<div class="o" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/tin.webp" alt=""></span><b>Zalo</b><small>Tính vào giờ chơi</small></div>
+</div>
+<p class="gc">App còn lại trên máy vẫn bị khoá. Con muốn thêm sẽ xin Ba Mẹ.</p>
+</div>
+<div class="bar"><div class="nut" role="button" tabindex="0" data-toi="bm2-ung-dung-may">Cho Bảo Anh dùng 2 app</div></div>
+</div></body></html>

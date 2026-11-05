@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#fdf1d3,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#fdf1d3 75%,rgba(253,241,211,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.dem{flex:none;padding:5px 11px;border-radius:13px;background:#e2660f;color:#fff;font-size:13px;font-weight:800}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:106px;overflow-y:auto;padding:4px 16px 24px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.goi{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:22px;background:#dcebe6;font-size:14px;font-weight:700;color:#0a5246;line-height:19px}
+.goi img{flex:none;width:44px;height:auto}
+.the{margin-top:14px;padding:10px;border-radius:30px;background:#f7f6f3;box-shadow:var(--clay)}
+.tren{display:flex;gap:12px;align-items:center}
+.nho{position:relative;flex:none;width:104px;height:104px;border-radius:22px;overflow:hidden}
+.nho div{position:absolute}
+.phong{background:linear-gradient(#f6e7cf 0 60%,#dcbb8e 60%)}
+.p1{left:10px;top:12px;width:30px;height:26px;border-radius:5px;background:#bfe3f2;border:3px solid #fff}
+.p2{left:8px;bottom:14px;width:56px;height:22px;border-radius:7px;background:#7fb3d5}
+.p3{left:22px;bottom:32px;width:20px;height:9px;border-radius:5px;background:#fff}
+.p4{right:10px;bottom:30px;width:34px;height:5px;border-radius:2px;background:#a87444}
+.p5{right:16px;bottom:35px;width:16px;height:5px;border-radius:2px;background:#d2453b}
+.so{right:6px;top:6px;padding:2px 7px;border-radius:9px;background:rgba(15,19,18,.62);color:#fff;font-size:11px;font-weight:800}
+.am{background:linear-gradient(135deg,#d6e9e2,#eef4f1);display:flex;align-items:center;justify-content:center;gap:3px;padding:0 12px}
+.am i{position:static;flex:1;border-radius:2px;background:#0f6b5c}
+.play{left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(#2e3533,#121615);box-shadow:0 8px 12px -6px rgba(18,22,21,.6)}
+.play svg{width:16px;height:16px;fill:#fff;margin-left:2px}
+.tg{left:6px;bottom:6px;padding:2px 7px;border-radius:9px;background:rgba(255,255,255,.92);font-size:11px;font-weight:800;color:#3a403d}
+.chu{flex:1;min-width:0}
+.chu p{font-size:17px;font-weight:800;line-height:22px}
+.chu small{display:block;margin-top:2px;font-size:13px;font-weight:600;color:#565c59;line-height:18px}
+.sao{display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:4px 10px 4px 6px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:13px;font-weight:800}.sao img{width:16px;height:16px}
+.xem{margin-top:10px;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center;gap:6px;background:#ecebe7;box-shadow:var(--lom);font-size:15px;font-weight:800;color:#0a5246}
+.day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 30px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:4}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:24px;height:24px}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-e91jg28j"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Bảo Anh nộp việc</h1><span class="dem">2 chờ duyệt</span></div>
+<div class="cuon">
+<div class="goi"><img src="/assets/rob/chi.webp" alt="">Xem ảnh, nghe ghi âm con nộp. Thấy ổn thì duyệt, con nhận sao.</div>
+<div class="the" role="button" tabindex="0" data-toi="them-qwuifjry">
+<div class="tren">
+<div class="nho phong"><div class="p1"></div><div class="p2"></div><div class="p3"></div><div class="p4"></div><div class="p5"></div><div class="so">2 ảnh</div></div>
+<div class="chu"><p>Dọn phòng</p><small>Ảnh trước &amp; sau<br>Nộp lúc 18:40</small><span class="sao"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+</div>
+<div class="xem">Xem ảnh để duyệt ›</div>
+</div>
+<div class="the" role="button" tabindex="0" data-toi="them-d40e3495">
+<div class="tren">
+<div class="nho am"><i style="height:30%"></i><i style="height:60%"></i><i style="height:85%"></i><i style="height:45%"></i><i style="height:70%"></i><i style="height:35%"></i><i style="height:80%"></i><i style="height:50%"></i><i style="height:25%"></i><div class="play"><svg viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z"></path></svg></div><div class="tg">20:14</div></div>
+<div class="chu"><p>Đọc sách 20 phút</p><small>Ghi âm con đọc<br>Nộp lúc 17:15</small><span class="sao"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+</div>
+<div class="xem">Nghe ghi âm để duyệt ›</div>
+</div>
+</div>
+<div class="day"><span class="nut" role="button" tabindex="0" data-toi="them-zj9gmh7t"><img src="/assets/icon3d/sao.webp" alt="">Duyệt cả 2 · Bảo Anh nhận 20 sao</span></div>
+</div></body></html>

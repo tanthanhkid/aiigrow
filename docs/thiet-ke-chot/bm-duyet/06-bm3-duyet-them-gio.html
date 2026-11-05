@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AiiGrow — Con xin thêm giờ</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+:root{--c:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -2px 0 rgba(255,255,255,.7),inset 0 -10px 16px -8px rgba(40,44,42,.12);
+--n:0 6px 10px -6px rgba(28,32,30,.26),0 2px 3px -1px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);
+--lom:inset 0 4px 8px rgba(40,44,42,.13),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.dt{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2;display:flex;flex-direction:column}
+.dt:before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e6ece9,#f4f4f2)}
+.sb{position:relative;flex:none;height:50px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 8px;font-weight:700;font-size:15px}
+.dau{position:relative;flex:none;display:flex;align-items:center;height:48px;padding:0 10px}
+.lui{display:flex;align-items:center;gap:2px;min-height:44px;padding:0 6px;color:#0a5246;font-weight:700;font-size:16px;white-space:nowrap}
+.lui svg{width:20px;height:20px;fill:#0a5246}
+.dau h1{flex:1;text-align:center;font-size:17px;font-weight:700;padding-right:100px;white-space:nowrap}
+.cuon{position:relative;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 16px 20px}
+.hero{position:relative;min-height:150px;border-radius:30px;background:#e3efeb;padding:16px;box-shadow:var(--c);margin-bottom:28px}
+.hero:before{content:"";position:absolute;inset:0;border-radius:30px;pointer-events:none;background:radial-gradient(60% 34% at 50% 18%,rgba(255,255,255,.95),rgba(255,255,255,0))}
+.bong{position:relative;z-index:3;width:218px;background:#fff;border-radius:24px;padding:14px 16px;box-shadow:var(--n)}
+.bong:after{content:"";position:absolute;right:-6px;top:50%;margin-top:-8px;width:16px;height:16px;background:#fff;border-radius:3px;transform:rotate(45deg)}
+.bong h2{font-size:17px;line-height:23px;font-weight:700;color:#3a403d}
+.bong h2 span{display:block;font-size:22px;line-height:28px;font-weight:800;letter-spacing:-.3px;color:#0a5246;white-space:nowrap}
+.ly{margin-top:8px;padding:8px 10px;border-radius:14px;background:#ecebe7;box-shadow:var(--lom);font-size:13.5px;line-height:19px;color:#3a403d}
+.ly b{color:#0f1312}
+.bong small{display:block;margin-top:6px;font-size:12.5px;color:#565c59}
+.rob{position:absolute;right:-2px;bottom:-30px;width:130px;height:130px;object-fit:contain;z-index:2}
+.cho{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:20px;background:#f9e7d2;box-shadow:var(--n)}
+.cho img{flex:none;width:24px;height:24px}
+.cho p{font-size:13.5px;line-height:19px;color:#6b3209}
+.cho b{color:#8a3c0c}
+.nhan{margin:18px 6px 8px;font-size:13px;font-weight:700;color:#565c59;text-transform:uppercase;letter-spacing:.4px}
+.nhan small{text-transform:none;letter-spacing:0;font-weight:600;font-size:12.5px;color:#8a8f8c}
+.chon{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:22px;background:#fff;box-shadow:var(--n);margin-bottom:8px}
+.chon .bt{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#f4f4f2;box-shadow:var(--lom)}
+.chon .bt img{width:24px;height:24px}
+.chon .g{flex:1;min-width:0}
+.chon b{display:block;font-size:15.5px;line-height:22px}
+.chon em{display:block;font-style:normal;font-size:13px;line-height:18px;color:#565c59}
+.radio{flex:none;width:24px;height:24px;border-radius:12px;background:#e6e5e1;box-shadow:var(--lom)}
+.chon.on{background:#eef5f2;box-shadow:0 0 0 2px #0f6b5c,var(--n)}
+.chon.on .radio{background:linear-gradient(#0f6b5c,#08463d);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -2px 3px rgba(0,30,25,.4);display:grid;place-items:center}
+.chon.on .radio:after{content:"";width:9px;height:9px;border-radius:5px;background:#fff}
+.goi1{margin:4px 6px 0;font-size:12.5px;line-height:18px;color:#565c59}
+.loi{display:flex;flex-wrap:wrap;gap:8px}
+.loi div{min-height:40px;padding:0 14px;border-radius:20px;display:flex;align-items:center;font-size:13.5px;font-weight:700;white-space:nowrap;background:#ecebe7;color:#3a403d;box-shadow:var(--lom);cursor:pointer}
+.loi .viet{background:#fff;color:#0a5246;box-shadow:var(--n)}
+.day{position:relative;flex:none;padding:10px 16px 18px;background:#f4f4f2;box-shadow:0 -8px 16px -12px rgba(28,32,30,.25)}
+.nut{position:relative;flex:1;display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:24px;font-weight:800;font-size:16px;white-space:nowrap;color:#fff;overflow:hidden;
+background:linear-gradient(#2e3533,#121615);box-shadow:0 10px 16px -8px rgba(15,19,18,.5),inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 5px rgba(0,0,0,.4)}
+.nut:before{content:"";position:absolute;left:8px;right:8px;top:3px;height:45%;border-radius:22px 22px 30px 30px;background:linear-gradient(rgba(255,255,255,.26),rgba(255,255,255,.03))}
+.nut span{position:relative}
+.nut.vien{background:#fff;color:#0f1312;box-shadow:var(--n);min-height:50px;font-size:15px}
+.nut.vien:before{background:linear-gradient(rgba(255,255,255,.9),rgba(255,255,255,0))}
+.nut.khong{color:#b42318}
+.hai{display:flex;gap:10px;margin-top:10px}
+.goi{margin-top:8px;text-align:center;font-size:12.5px;line-height:17px;color:#565c59}
+</style></head>
+<body>
+<div class="dt">
+  <div class="sb"><span>19:33</span><span>●●● 5G</span></div>
+  <div class="dau">
+    <div class="lui" role="button" tabindex="0" aria-label="Chờ duyệt" data-toi="bm3-duyet-cho-duyet"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg>Chờ duyệt</div>
+    <h1>Con xin thêm giờ</h1>
+  </div>
+  <div class="cuon">
+    <div class="hero">
+      <div class="bong">
+        <h2>Bảo Anh xin thêm<span>30 phút chơi</span></h2>
+        <div class="ly">Con nói: <b>«Con đang xây dở nhà với bạn»</b></div>
+        <small>19:27 · Laptop · đang chơi Roblox</small>
+      </div>
+      <img class="rob" src="/assets/rob/cho.webp" alt="">
+    </div>
+    <div class="cho">
+      <img src="/assets/icon3d/dong_ho_cat.webp" alt="">
+      <p>Hôm nay đã chơi <b>72/90 phút</b>, còn 18 phút. Không cho thì hết giờ lúc 19:50.</p>
+    </div>
+    <div class="nhan">Cho thêm theo cách nào</div>
+    <div class="chon on" role="radio" tabindex="0" aria-checked="true">
+      <div class="bt"><img src="/assets/icon3d/tick.webp" alt=""></div>
+      <div class="g"><b>Ba Mẹ tặng thêm</b><em>Không trừ điểm · chỉ tính hôm nay</em></div>
+      <div class="radio"></div>
+    </div>
+    <div class="chon" role="radio" tabindex="0" aria-checked="false">
+      <div class="bt"><img src="/assets/icon3d/sach.webp" alt=""></div>
+      <div class="g"><b>Trừ điểm của con</b><em>1 điểm = 1 phút · ví 145 → 115 điểm</em></div>
+      <div class="radio"></div>
+    </div>
+    <p class="goi1">Tuần này Ba Mẹ đã tặng thêm 2 lần, tổng 45 phút.</p>
+
+    <div class="nhan">Nhắn Bảo Anh <small>· không bắt buộc</small></div>
+    <div class="loi" role="group" aria-label="Lời nhắn có sẵn">
+      <div role="button" tabindex="0">Hôm nay đủ rồi con nhé</div>
+      <div role="button" tabindex="0">Chơi xong nhớ đi tắm</div>
+      <div role="button" tabindex="0">Làm bài xong Mẹ cho thêm</div>
+      <div class="viet" role="button" tabindex="0">Tự viết…</div>
+    </div>
+  </div>
+  <div class="day">
+    <div class="nut" role="button" tabindex="0" data-toi="them-tvslfil9"><span>Cho 30 phút</span></div>
+    <div class="hai">
+      <div class="nut vien" role="button" tabindex="0" data-toi="bm3-duyet-cho-duyet"><span>Cho 15 phút</span></div>
+      <div class="nut vien khong" role="button" tabindex="0" data-toi="bm3-duyet-cho-duyet"><span>Không cho</span></div>
+    </div>
+    <p class="goi">Lời nhắn hiện trên máy con cùng câu trả lời</p>
+  </div>
+</div>
+</body></html>

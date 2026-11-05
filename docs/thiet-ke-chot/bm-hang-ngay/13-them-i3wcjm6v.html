@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#e2e4f1,#f4f4f2)}
+.top{position:absolute;left:8px;right:8px;top:44px;height:48px;display:flex;align-items:center}
+.lui{width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.san{position:absolute;left:16px;right:16px;top:96px;height:180px;border-radius:36px;background:linear-gradient(#2d3a5c,#4a5a85);box-shadow:var(--clay);overflow:hidden}
+.san .trang{position:absolute;left:28px;top:34px;width:84px;height:84px}
+.san .rob{position:absolute;right:0;bottom:-30px;width:150px;height:auto}
+.san h1{position:absolute;left:24px;bottom:20px;font-size:26px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.gio{position:absolute;left:16px;right:16px;top:296px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gio div{height:128px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.gio img{width:34px;height:34px}
+.gio small{font-size:13px;font-weight:700;color:#565c59}
+.gio b{font-size:34px;font-weight:800;letter-spacing:-.5px}
+.nhan{position:absolute;left:24px;top:446px;font-size:14px;font-weight:800;color:#3a403d}
+.ngay{position:absolute;left:16px;right:16px;top:474px;display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.ngay span{height:46px;border-radius:16px;display:grid;place-items:center;background:#0f6b5c;color:#fff;font-size:14px;font-weight:800;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -4px 8px -3px rgba(0,0,0,.25)}
+.day{position:absolute;left:16px;right:16px;bottom:22px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-gio"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>
+<div class="san"><img class="trang" src="/assets/icon3d/trang_ngu.webp" alt=""><img class="rob" src="/assets/rob/cho.webp" alt=""><h1>Giờ ngủ của Bảo Anh</h1></div>
+<div class="gio">
+<div><img src="/assets/icon3d/khoa.webp" alt=""><small>Máy khoá lúc</small><b>21:30</b></div>
+<div><img src="/assets/icon3d/mo_khoa.webp" alt=""><small>Mở lại lúc</small><b>6:30</b></div>
+</div>
+<p class="nhan">Áp cho các ngày</p>
+<div class="ngay"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>
+<div class="day"><span class="nut" role="button" tabindex="0" data-toi="bm2-gio">Lưu giờ ngủ 21:30 – 6:30</span></div>
+</div></body></html>

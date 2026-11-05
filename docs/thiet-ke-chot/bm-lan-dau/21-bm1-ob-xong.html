@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:360px;background:radial-gradient(110% 80% at 50% 25%,#d6ece4,#f4f4f2 75%)}
+.hero{position:absolute;left:0;right:0;top:48px;height:200px}
+.rob{position:absolute;left:50%;top:0;width:176px;margin-left:-88px;height:auto}
+.dau{position:absolute;left:50%;top:132px;margin-left:44px;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#0f6b5c;box-shadow:0 0 0 5px #f4f4f2,0 10px 16px -8px rgba(10,82,70,.6)}
+.dau svg{width:30px;height:30px;fill:#fff}
+.chu{position:absolute;left:16px;right:16px;top:254px;text-align:center}
+.chu h1{font-size:28px;line-height:34px;font-weight:800;letter-spacing:-.6px}
+.chu p{margin-top:4px;font-size:15px;font-weight:600;color:#3a403d}
+.ds{position:absolute;left:16px;right:16px;top:334px;padding:6px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.r{display:flex;align-items:center;gap:12px;height:54px;padding:0 10px 0 8px}
+.r+.r{border-top:1.5px solid #ecebe7}
+.r .ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.r .ic img{width:24px;height:24px}
+.r p{flex:1;font-size:15px;font-weight:800;white-space:nowrap}
+.r .v{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#0f6b5c}.r .v svg{width:13px;height:13px;fill:#fff}
+.tu{position:absolute;left:16px;right:16px;top:530px;padding:14px;border-radius:28px;background:#fbecc0;box-shadow:0 14px 22px -14px rgba(110,67,0,.35),inset 0 1.5px 0 rgba(255,255,255,.7),inset 0 -8px 14px -8px rgba(110,67,0,.18)}
+.tu .t{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#6e4300}
+.tu .t img{width:24px;height:24px}
+.bao{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 10px 10px 12px;border-radius:20px;background:#fff;box-shadow:0 6px 10px -6px rgba(110,67,0,.3)}
+.bao .av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#f5a957;color:#fff;font-size:15px;font-weight:800}
+.bao p{flex:1;font-size:13.5px;font-weight:700;line-height:17px;white-space:nowrap}
+.bao b{flex:none;padding:7px 11px;border-radius:14px;font-size:13px;font-weight:800}
+.bao .k{background:#ecebe7;color:#3a403d}.bao .c{background:#0f6b5c;color:#fff}
+.day{position:absolute;left:16px;right:16px;bottom:14px;display:flex;flex-direction:column;gap:2px}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+.lk{min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.lk svg{width:16px;height:16px;fill:#0a5246}
+</style></head>
+<body><div class="app">
+<div class="hero"><img class="rob" src="/assets/rob/xong.webp" alt=""><span class="dau"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="chu"><h1>Xong rồi!</h1><p>Rob bắt đầu trông Laptop của Bảo Anh.</p></div>
+<div class="ds" aria-label="Những gì đã cài cho Bảo Anh">
+<div class="r"><span class="ic"><img src="/assets/icon3d/khien.webp" alt=""></span><p>Chỉ app được phép · 4 app</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="r"><span class="ic"><img src="/assets/icon3d/dongho.webp" alt=""></span><p>Chơi 60 phút · ngủ 21:30</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="r"><span class="ic"><img src="/assets/icon3d/sao.webp" alt=""></span><p>5 việc mỗi ngày</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+</div>
+<div class="tu" aria-label="Từ giờ khi con xin, điện thoại Ba Mẹ sẽ báo">
+<p class="t"><img src="/assets/icon3d/chuong.webp" alt="">Con xin gì, điện thoại Ba Mẹ sẽ báo</p>
+<div class="bao"><span class="av">B</span><p>Bảo Anh xin mở<br>YouTube 30 phút</p><b class="k">Không</b><b class="c">Cho</b></div>
+</div>
+<div class="day">
+<button class="nut" type="button" data-toi="bm2-trang-chu"><span>Vào trang của Bảo Anh</span></button>
+<div class="lk" role="button" tabindex="0" data-toi="them-o76iq8p5"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg>Ghép thêm máy cho Bảo Anh</div>
+</div>
+</div></body></html>
