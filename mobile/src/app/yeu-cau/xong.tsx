@@ -35,7 +35,7 @@ export default function XongYeuCau() {
   } else {
     tieu = "Đã không cho lần này";
     loiChu = `${p.ten} vẫn đổi sao ra phút được nếu muốn.`;
-    dong = [`${baoMay}: «Ba Mẹ chưa cho lúc này»`];
+    dong = [`${baoMay}: «${p.muc || "Ba Mẹ chưa cho lúc này"}»`];
   }
   return (
     <ManKetQua lv={p.kieu === "khong" ? "nghi" : "xong"} tieu={tieu} loi={loiChu} dong={dong} chinh={{ chu: "Về Hôm nay", bam: veHomNay }} phu={hoan}>

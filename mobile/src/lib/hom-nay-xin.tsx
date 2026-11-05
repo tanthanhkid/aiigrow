@@ -53,8 +53,9 @@ export async function choAppWeb(y: YeuCauMoi, may: string | null, tinhGio: boole
   return { kieu: "mo", ten: y.ten_con, con: y.child_id, muc: y.gia_tri ?? "", may, phut: tinhGio ? 1 : undefined };
 }
 export async function khongChoXin(y: YeuCauMoi, may: string | null, lyDo = LY_DO_KHONG): Promise<KetQua> {
-  await bm.goi(`yeu-cau/${y.id}/tu-choi`, { lyDo });
-  return { kieu: "khong", ten: y.ten_con, con: y.child_id, may };
+  const ly = lyDo.trim().slice(0, 120) || LY_DO_KHONG;
+  await bm.goi(`yeu-cau/${y.id}/tu-choi`, { lyDo: ly });
+  return { kieu: "khong", ten: y.ten_con, con: y.child_id, may, muc: ly };
 }
 
 /** Thẻ một lời xin: tiêu đề · «Lúc 19:20 · trên Laptop» · lời con · hàng nút. `lam` bọc thao tác (useLam của màn). */

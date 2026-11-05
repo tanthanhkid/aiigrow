@@ -1,5 +1,5 @@
 // Thanh điều hướng Ba Mẹ (thiết kế chốt 05/11 bm-hang-ngay): bốn mục — Hôm nay · Nhiệm vụ · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
-// tab (/cho-duyet, mở từ Thông báo / Hôm nay) nhưng không có nút trên thanh; số đỏ ở Nhiệm vụ = nhiệm vụ + yêu cầu + quà đang chờ của mọi Con.
+// tab (/cho-duyet, mở từ Thông báo / Hôm nay) nhưng không có nút trên thanh; số đỏ ở Nhiệm vụ = nhiệm vụ + quà đang chờ, ở Hôm nay = lời xin của mọi Con.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
@@ -50,13 +50,15 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
   const ins = useSafeAreaInsets();
   const [nap, setSo] = useState<number | null>(null);
   const so = nap ?? 0;
+  // lời xin của con (thêm giờ, ngoại lệ, app/web) hiện ở Hôm nay ⇒ số đỏ riêng trên tab Hôm nay (review PR #183)
+  const [soXin, setSoXin] = useState(0);
   const { st: stSo, bat } = useBat();
   useKhiTang(nap, bat);
   const ten = state.routes.map((r) => r.name).join("|");
   const dsTab = useMemo(() => ten.split("|"), [ten]);
   useChuyenTab(dsTab, state.index, !!useReducedMotion());
   useEffect(() => {
-    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => setSo(r.nhiemVu.length + (r.phieu?.length ?? 0))).catch(() => {});
+    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => { setSo(r.nhiemVu.length + (r.phieu?.length ?? 0)); setSoXin(r.yeuCau.length); }).catch(() => {});
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt
   return (
     <View style={{ backgroundColor: M.nen, paddingHorizontal: 10, paddingTop: 6, paddingBottom: Math.max(ins.bottom - 6, 10) }}>
@@ -70,15 +72,15 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
         const dang = state.index === i;
         return (
           <NhanMen key={r.key} onPress={() => navigateToTab(r.key)} accessibilityRole="tab" accessibilityState={{ selected: dang }} muc="chip" sang men={dang ? MEN.day : undefined}
-            accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : m.chu}
+            accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : r.name === "hom-nay" && soXin ? `${m.chu}, ${soXin} lời xin` : m.chu}
             style={[{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 58, minWidth: 0, borderRadius: 26 },
               dang && { backgroundColor: M.chinhSoft, boxShadow: BONG.lom }]}>
             <Icon ten={m.ic} co={24} mau={dang ? M.chinhInk : M.chu3} />
             <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11.5, color: dang ? M.chinhInk : M.chu3 }}>{m.chu}</Text>
-            {r.name === "diem-qua" && so ? (
+            {(r.name === "diem-qua" ? so : r.name === "hom-nay" ? soXin : 0) ? (
               <Animated.View style={[{ position: "absolute", top: 3, left: "56%", backgroundColor: M.huy, minWidth: 19, height: 19, borderRadius: 10, paddingHorizontal: 5,
                 alignItems: "center", justifyContent: "center", boxShadow: BONG.do }, stSo]}>
-                <Text style={{ fontFamily: F.rat, fontSize: 11, color: "#fff" }}>{so}</Text>
+                <Text style={{ fontFamily: F.rat, fontSize: 11, color: "#fff" }}>{r.name === "diem-qua" ? so : soXin}</Text>
               </Animated.View>
             ) : null}
           </NhanMen>

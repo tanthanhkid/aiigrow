@@ -26,7 +26,7 @@ export default function SuaHoSo() {
   const namNay = new Date().getFullYear();
   const namDung = !namG || (Number.isInteger(namSo) && namSo >= namNay - 25 && namSo <= namNay);
   const luu = () => lam(async () => {
-    await bm.goi(`con/${id}/sua`, { ten: chuanHoaTen(tenG), ...(namG ? { namSinh: namSo } : {}), ...(mauG !== null ? { avatar: `mau-${mauG}` } : {}) });
+    await bm.goi(`con/${id}/sua`, { ten: chuanHoaTen(tenG), ...(mauG !== null ? { avatar: `mau-${mauG}` } : {}) });
     baoKhiVe(`Đã lưu hồ sơ ${chuanHoaTen(tenG)}`);
     router.back();
   });
@@ -39,8 +39,9 @@ export default function SuaHoSo() {
         <Avt ten={tenG || d.ten} mau={mauG !== null ? mauCon(`mau-${mauG}`) : mauCon(d.avatar)} co={88} />
       </View>
       <ONhap nhan="Tên gọi" value={tenG} onChangeText={setTen} autoCapitalize="words" maxLength={30} />
-      <ONhap nhan="Năm sinh" value={namG} onChangeText={(t) => setNam(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="2017"
-        loi={namDung ? null : `Năm sinh từ ${namNay - 25} tới ${namNay}`} />
+      {/* máy chủ (gia-dinh.ts › suaCon) chưa lưu năm sinh khi sửa ⇒ ô chỉ đọc, không báo «đã lưu» sai (review PR #183 — câu mở) */}
+      <ONhap nhan="Năm sinh" value={namG} editable={false} placeholder="Chưa có" />
+      <Chu co={13} mau={M.chu3}>Đổi năm sinh: nhắn AiiGrow trong «Hỏi AiiGrow».</Chu>
       <View style={{ gap: 8 }}>
         <Chu kieu="rat" co={14}>Màu của con</Chu>
         <View style={{ flexDirection: "row", gap: 12 }} accessibilityRole="radiogroup">

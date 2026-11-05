@@ -55,7 +55,8 @@ export default function SuaQua() {
       </View>
       <View style={{ gap: 8 }}>
         <Chu kieu="rat" co={15}>Con đổi được mấy lần?</Chu>
-        <Chips ds={[{ gia: 0, chu: "Không giới hạn" }, { gia: 1, chu: "Tối đa 1 lần mỗi tháng" }]} chon={[gh ? 1 : 0]} doi={(x) => setGioiHan(x ? 1 : null)} />
+        <Chips ds={[{ gia: 0, chu: "Không giới hạn" }, { gia: 1, chu: "Tối đa 1 lần mỗi tháng" }, ...(gh && gh > 1 ? [{ gia: gh, chu: `Tối đa ${gh} lần mỗi tháng` }] : [])]}
+          chon={[gh ?? 0]} doi={(x) => setGioiHan(x || null)} />
       </View>
       <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá quà ${q?.ten ?? ""}?`}>
         <Chu co={14.5} mau={M.chu2}>Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất.</Chu>

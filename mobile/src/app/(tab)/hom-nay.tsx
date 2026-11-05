@@ -6,12 +6,13 @@
 //  5. Hôm nay con dùng (top 3 app — con/:id/man-hinh) · Cài cho con (→ Hồ sơ) · Con khác.
 // Người trông giúp vẫn khoá máy / cho thêm giờ / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
 import { memo, useMemo, useState } from "react";
+import { AppMoi } from "@/lib/viec-nhanh";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm, type CanhBao, type GiaDinh, type ManHinhTuan, type PhienDang, type TuanThuMay } from "@/lib/api";
+import { bm, type AppChuaXep, type CanhBao, type GiaDinh, type ManHinhTuan, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
-import {
+import { quyenToi,
   BangKhoaMay, BangThemGio, ChipCon, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, mauCon, SaoVien, TieuMuc,
   type ChoDuyetMoi, type ConCt, type NhiemVuMoi, type QuyCon,
 } from "@/lib/hang-ngay";
@@ -25,12 +26,14 @@ const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t
 
 export default function HomNay() {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [g, cd, cb, choi, tt, nv] = await Promise.all([
+    const [g, cd, cb, choi, tt, nv, luat, quyen] = await Promise.all([
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: CanhBao[] }>("canh-bao").catch(() => null),
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),
       bm.goi<{ ds: NhiemVuMoi[] }>("nhiem-vu").catch(() => null),
+      // app mới chưa xếp loại cũng là việc chờ Ba Mẹ (issue #70 §2.3 — review PR #183: không để mất khi bỏ thẻ cũ)
+      bm.goi<{ chuaXep: AppChuaXep[] }>("luat").catch(() => null), quyenToi(),
     ]);
-    return { g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], nv: nv?.ds ?? [] };
+    return { g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], nv: nv?.ds ?? [], appMoi: luat?.chuaXep ?? [], xem: quyen === "trong_giup" };
   });
   const [chon, setChon] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
@@ -65,7 +68,7 @@ export default function HomNay() {
   );
 }
 
-type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; nv: NhiemVuMoi[] };
+type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; nv: NhiemVuMoi[]; appMoi: AppChuaXep[]; xem: boolean };
 
 const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
   conId: string; d: DuLieu; taiLai: () => void; bao: (chu: string, hoan?: () => void) => void; doiCon: (id: string) => void;
@@ -166,6 +169,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
           </The>
         </>
       ) : null}
+
+      <AppMoi ds={d.appMoi} tai={tai} bao={bao} xem={d.xem} />
 
       {/* 4. nhiệm vụ hôm nay */}
       <TieuMuc chu={viec.length ? `Nhiệm vụ hôm nay · ${soLam}/${viec.length} việc` : "Nhiệm vụ hôm nay"} phai={{ chu: "Tất cả ›", bam: () => router.push("/diem-qua" as never) }} />
