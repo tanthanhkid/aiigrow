@@ -23,12 +23,10 @@ export async function troChoi(c: ConTre) {
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [c.family_id]))!;
   const cc = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [c.id]))!;
   const ts = thamSo(f.cau_hinh, cc.cau_hinh);
-  const gia: Record<string, number> = { game: ts.gia_game, video_ngan: ts.gia_video_ngan, mxh: ts.gia_mxh, phim_gd: ts.gia_phim_gd, khac: ts.gia_khac };
   const ds = (await dsLuat(c.family_id)).filter((x) => x.loai === "giai_tri" && (x.child_id === "" || x.child_id === c.id));
   const theoMuc = new Map<string, (typeof ds)[number]>();
   for (const x of ds) if (!theoMuc.has(x.muc) || x.child_id) theoMuc.set(x.muc, x);     // luật riêng của Con thắng luật gia đình
   // 05/11: không còn giá theo nhóm — mọi trò chơi dùng chung quỹ phút (giaPhut giữ trường, luôn 0)
-  void gia;
   return [...theoMuc.values()].map((x) => ({ muc: x.muc, ten: x.ten, nhom: x.nhom, giaPhut: 0 }));
 }
 

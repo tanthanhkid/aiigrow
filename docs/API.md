@@ -375,7 +375,7 @@ choXinThem}`. «Hôm nay: còn 18 phút (42/60)» = `conPhut` (`daDung` / `tongP
 **Hết giờ / ngoại lệ (L3).** Hết quỹ: Con «Dùng sao» (`doi-sao`) hoặc «Xin Ba Mẹ thêm giờ» (`yeu-cau {loai: them_gio, phut, lyDo?}` — lời nhắn
 không bắt buộc; Ba Mẹ tắt `cho_xin_them_gio` ⇒ 409 `khong_cho_xin`). Ba Mẹ cho ⇒ phút cộng vào QUỸ hôm nay (mọi máy) — **không còn cửa sổ mở tự do**
 (`cua_so_den`) cho thêm giờ. Giờ ngủ / Ba Mẹ khoá / giờ học: `them_gio` và `doi-sao` ⇒ 409 (`chi_ngoai_le` / `khong_them_gio`); Con chỉ xin
-`yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri?: <app khi phamVi app>, phut ≤ ngoai_le_toi_da_phut, lyDo?}` («Không trừ giờ chơi, không trừ sao»).
+`yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri?: <app khi phamVi app>, phut ≤ ngoai_le_toi_da_phut, lyDo?}` (`ngoai_gio` của app cũ vượt tối đa ⇒ kẹp, không lỗi; ngoại lệ gửi được cả khi chỉ hết giờ — «Không trừ giờ chơi») («Không trừ giờ chơi, không trừ sao»).
 Ba Mẹ đồng ý (`yeu-cau/:id/dong-y {phut?}`) ⇒ `grants.nguon = ngoai_le` tới hạn: **cả máy** = cửa sổ cho nhóm máy của lời xin (máy tính /
 iPhone / Android — `hanMoCuaMay`, như mở khẩn cấp) và **thắng giờ ngủ / khoá** trên agent; Ba Mẹ đang «Khoá ngay» thì gỡ khoá tạm tới hạn (như cũ);
 **một app** = chỉ app đó + app hệ thống (cả lúc ngủ / khoá). Ngoại lệ không cộng vào quỹ. `requests.pham_vi` của ngoại lệ = `ca_may` | `app`.
@@ -409,7 +409,7 @@ iPhone / Android — `hanMoCuaMay`, như mở khẩn cấp) và **thắng giờ 
 | `GET quy` | `{quy, sao, phutDoiDuoc, ngoaiLe[], yeuCauCho: [{id, loai, phut, gia_tri, pham_vi, ly_do, created_at}]}` (lời xin thêm giờ / ngoại lệ đang chờ) |
 | `POST doi-sao {phut}` | «Đổi 10 sao lấy 10 phút» ⇒ `{id, phut, sao, soDu, conPhut}`. Lỗi 409: `khong_du_sao` («còn thiếu X sao») · `vuot_toi_da_doi` · `khong_cho_doi` (Ba Mẹ tắt) · `khong_them_gio` (giờ ngủ / khoá / giờ học) |
 | `GET nhiem-vu?tuCham=1` | như `nhiem-vu` + việc AiiRob tự chấm (`tu_cham: true` — nút «Mở Học với AiiRob»). Mỗi việc thêm `sao, lam_lai, ly_do, loi_nhan, tu_cham, hinh, lap_lai, gio_nhac`; việc ngoài ngày lặp lại (vd «Tự xếp cặp» T2–T6) không hiện. `lam_lai` hiện `trang_thai_con: can_bo_sung` (khay cũ hiểu) + `lam_lai: true` |
-| `POST luot/:id/nop {anh?, ghiChu?, ghiAm?: {mime: audio/*, base64}}` | ghi âm ≤ 2 MB (`ghi_am_sai`, `ghi_am_qua_lon` 413); việc `ghi_am` thiếu ⇒ `thieu_ghi_am`; việc `xong` không cần bằng chứng; nộp từ `lam_lai` phải kèm bằng chứng mới |
+| `POST luot/:id/nop {anh?, ghiChu?, ghiAm?: {mime: audio/*, base64}}` | ghi âm ≤ 2 MB (`ghi_am_sai`, `ghi_am_qua_lon` 413); việc `ghi_am` thiếu ghi âm ⇒ `thieu_ghi_am` CHỈ khi app gửi `ghiAmDuoc: true` (khay Windows/Mac chưa ghi âm được ⇒ nộp không kèm vẫn được, Ba Mẹ duyệt); việc `xong` không cần bằng chứng; nộp từ `lam_lai` phải kèm bằng chứng mới |
 | `GET cua-hang` · `POST doi/:quaId` | ẩn / chặn phiếu AiiCafe (`voucher_ngung` 409). Quà thêm `sao`, `choTraoTu` (lúc đổi, đang chờ Ba Mẹ trao) |
 | `GET vi-qua` | thêm `daTrao[]` («Quà của con» đã trao) |
 | `hoc-vien/tong-quan` | thêm `sao, saoChoDuyet, quy {conPhut, daDung, tongPhut, quyNgayPhut, themPhut, dangNgu, dangHoc, khoa, gioNgu, gioHoc, tyLe, doiSao, choXinThem}`; việc thêm `sao, hinh, lapLai, gioNhac, lamLai, loiNhan` |

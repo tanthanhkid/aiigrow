@@ -59,15 +59,15 @@ export async function xuLyMSao(bm: { id: string; family_id: string }, req: Reque
 export async function xuLyConSao(con: string, mayId: string | null, req: Request, p: string[], b: Record<string, unknown>, o: { khay?: boolean } = {}): Promise<Response | null> {
   const get = req.method === "GET", post = req.method === "POST", d = p.join("/");
   if (d === "quy" && get) {
-    const [quy, du, nl, cho] = [await qg.quyHomNay(con), await soDu(con), await qg.ngoaiLeDangMo(con),
-      await q(`select id, loai, phut, gia_tri, pham_vi, ly_do, created_at from requests where child_id = $1 and trang_thai = 'cho'
-               and loai in ('them_gio', 'ngoai_le', 'ngoai_gio') and het_han > now() order by created_at desc`, [con])];
+    const [quy, du, nl, cho] = await Promise.all([qg.quyHomNay(con), soDu(con), qg.ngoaiLeDangMo(con),
+      q(`select id, loai, phut, gia_tri, pham_vi, ly_do, created_at from requests where child_id = $1 and trang_thai = 'cho'
+               and loai in ('them_gio', 'ngoai_le', 'ngoai_gio') and het_han > now() order by created_at desc`, [con])]);
     return json({ quy, sao: du, phutDoiDuoc: Math.min(qg.phutChoSao({ phut_10_sao: quy.tyLe.phut }, du), quy.doiSao.conDoiDuoc), ngoaiLe: nl, yeuCauCho: cho });
   }
   if (d === "doi-sao" && post) return json(await qg.doiSaoLayGio(con, b.phut, mayId));
   if (d === "nhiem-vu" && get && new URL(req.url).searchParams.get("tuCham") === "1") return json({ ds: await nv.nvCuaCon(con, new Date(), { kemTuCham: true }) });
   if (p[0] === "luot" && p[2] === "nop" && post && !o.khay)
-    return json(await nv.nop(con, p[1], { anh: b.anh as nv.AnhNop[], ghiChu: b.ghiChu, ghiAm: b.ghiAm as nv.AnhNop | undefined }));
+    return json(await nv.nop(con, p[1], { anh: b.anh as nv.AnhNop[], ghiChu: b.ghiChu, ghiAm: b.ghiAm as nv.AnhNop | undefined, batBuocGhiAm: b.ghiAmDuoc === true }));
   if (d === "cua-hang" && get && !o.khay) return json(await pt.cuaHang(con, { anVoucher: pt.NGUNG_VOUCHER }));
   if (p[0] === "doi" && p[1] && post && !o.khay) return json(await pt.doiQua(con, p[1], new Date(), { ngungVoucher: pt.NGUNG_VOUCHER }));
   return null;

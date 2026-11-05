@@ -506,6 +506,10 @@ export const SCHEMA_M4B = [
   `alter table submissions add column if not exists loi_nhan text`,
   // redemptions.phut: số phút của quà «Thêm N phút chơi» chốt LÚC ĐỔI (Ba Mẹ sửa / xoá quà sau đó không đổi phần Con đã đổi).
   `alter table redemptions add column if not exists phut int`,
+  // khoá quỹ của «Thiết lập lần đầu» (S2) đổi tên sang tham số mục 10 mà quỹ đọc — chuyển dữ liệu cũ (chạy lại vô hại)
+  `update children set cau_hinh = (cau_hinh - 'quy_phut_ngay_thuong' - 'quy_phut_cuoi_tuan')
+     || jsonb_strip_nulls(jsonb_build_object('quy_ngay_thuong', cau_hinh->'quy_phut_ngay_thuong', 'quy_cuoi_tuan', cau_hinh->'quy_phut_cuoi_tuan'))
+   where cau_hinh ? 'quy_phut_ngay_thuong' or cau_hinh ? 'quy_phut_cuoi_tuan'`,
 ];
 
 // ================================================================ M4b kiểm soát MẠNG (chỉ thêm). Tạo lười trong lib/dns-gia-dinh.ts.

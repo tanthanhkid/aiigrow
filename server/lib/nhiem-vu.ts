@@ -161,7 +161,6 @@ export async function nvCuaCon(con: string, now = new Date(), o: { kemTuCham?: b
   const thu = gioDiaPhuong(now, tzg).thu;
   const ds = (await q<Nv>(`select * from tasks where family_id = $1 and bat and (giao_cho is null or giao_cho = $2)
                           and (han is null or han > now()) and ($3 or bang_chung <> 'tu_dong') order by created_at`, [c.family_id, con, o.kemTuCham === true]))
-    .filter((nv) => lapHomNay(nv.lap_lai, thu));
   const ra: NvCuaCon[] = [];
   for (const nv of ds) {
     const d = await demLuot(q, con, nv.id, tzg, now);
@@ -169,6 +168,8 @@ export async function nvCuaCon(con: string, now = new Date(), o: { kemTuCham?: b
     const dang = await one<{ id: string; trang_thai: string; ly_do: string | null; loi_nhan: string | null }>(
       `select id, trang_thai, ly_do, loi_nhan from submissions where child_id = $1 and task_id = $2 and trang_thai in ('dang_lam', 'can_bo_sung', 'lam_lai')
        order by created_at desc limit 1`, [con, nv.id]);
+    // ngoài ngày lặp lại ⇒ ẩn, TRỪ khi Con còn lượt dở (đang làm / bổ sung / làm lại) — không để việc kẹt tới ngày lặp kế
+    if (!dang && !lapHomNay(nv.lap_lai, thu)) continue;
     const cho = (await one<{ n: number }>(`select count(*)::int as n from submissions where child_id = $1 and task_id = $2 and trang_thai = 'cho_duyet'`, [con, nv.id]))!.n;
     let tt: NvCuaCon["trang_thai_con"] = "san_sang";
     if (nv.kieu === "mot_lan" && d.tong > 0) tt = "da_xong";
@@ -209,7 +210,7 @@ export type AnhNop = { mime?: string; base64?: string };
 
 /** Con nộp bằng chứng (từ «Đang làm», «Cần bổ sung» hoặc «Làm lại»). Tự duyệt nếu nhiệm vụ bật tự duyệt. → {trang_thai, nghi_trung}.
  *  05/11: `ghiAm` = một bản ghi âm (audio/*, ≤ 2 MB) cho việc «ghi_am» (vd Đọc sách); «xong» không cần bằng chứng. */
-export async function nop(con: string, subId: string, b: { anh?: AnhNop[]; ghiChu?: unknown; ghiAm?: AnhNop | null }, now = new Date()) {
+export async function nop(con: string, subId: string, b: { anh?: AnhNop[]; ghiChu?: unknown; ghiAm?: AnhNop | null; batBuocGhiAm?: boolean }, now = new Date()) {
   const anh = (Array.isArray(b.anh) ? b.anh : []).slice(0, 3).map((a) => {
     const mime = /^image\/(jpeg|png|webp)$/.test(String(a?.mime)) ? String(a.mime) : null;
     const buf = Buffer.from(String(a?.base64 ?? ""), "base64");
@@ -239,7 +240,8 @@ export async function nop(con: string, subId: string, b: { anh?: AnhNop[]; ghiCh
     // «Làm lại» (05/11): Ba Mẹ nhờ làm lại ⇒ phải nộp bằng chứng MỚI như lần đầu
     const lanDau = s.trang_thai === "dang_lam" || s.trang_thai === "lam_lai";
     if (nv.bang_chung === "anh" && !coAnh && lanDau) throw new LoiNghiepVu("thieu_anh", "Chụp ảnh bằng chứng rồi nộp nhé");
-    if (nv.bang_chung === "ghi_am" && !coGhiAm && lanDau) throw new LoiNghiepVu("thieu_ghi_am", "Ghi âm rồi nộp nhé");
+    // khay Windows/Mac chưa ghi âm được ⇒ chỉ app Con mới (gửi batBuocGhiAm) bắt buộc; khay nộp không kèm ghi âm vẫn được, Ba Mẹ duyệt
+    if (nv.bang_chung === "ghi_am" && !coGhiAm && lanDau && b.batBuocGhiAm) throw new LoiNghiepVu("thieu_ghi_am", "Ghi âm rồi nộp nhé");
     if (nv.bang_chung === "van_ban" && ghiChu.length < 3) throw new LoiNghiepVu("thieu_chu", "Viết vài câu kể lại rồi nộp nhé");
     // «Làm lại»: bằng chứng phải MỚI — nộp lại đúng tệp đã nộp cho lượt này ⇒ từ chối
     if (s.trang_thai === "lam_lai") for (const a of anh)

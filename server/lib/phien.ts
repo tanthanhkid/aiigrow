@@ -128,7 +128,8 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       const them = o.phut !== undefined ? Math.min(NHIP_TOI_DA_PHUT, Math.round(Math.min(Math.max(0, o.phut), troi) * 100) / 100)
         : Math.min(NHIP_TOI_DA_PHUT, Math.round(troi * 10) / 10);
       const g = gioDiaPhuong(now, b.tz);
-      const dungThuong = Math.min(them, await conThuongHomNay(t, con, g.ngay, b.tz));      // phút Ba Mẹ cho thêm dùng trước, không trừ điểm
+      // giá 0 (mọi phiên từ 05/11) ⇒ không cần tính «thưởng»; chỉ phiên mở trước 05/11 còn giá
+      const dungThuong = p.gia_phan_nghin > 0 ? Math.min(them, await conThuongHomNay(t, con, g.ngay, b.tz)) : 0;      // phút Ba Mẹ cho thêm dùng trước, không trừ điểm
       const tinhTien = them - dungThuong;
       phutThuong += dungThuong;
       phutDung = Math.round((phutDung + them) * 100) / 100;

@@ -13,7 +13,7 @@ import { ghiDiem, khoaCon } from "./vi.ts";
 import { chuanMuc, datLuat } from "./luat-app.ts";
 import { ghiNgoaiLe, xemTruoc } from "./ngoai-le.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
-import { boiCanhCon, lyDoKhongThemGio, quyHomNay, saoChoPhut } from "./quy-gio.ts";
+import { boiCanhCon, lyDoKhongThemGio, phutChoSao, quyHomNay, saoChoPhut } from "./quy-gio.ts";
 
 export const LOAI_YC = ["them_gio", "mo_web", "cai_app", "ngoai_le", "ngoai_gio", "khac"] as const;
 export type LoaiYc = (typeof LOAI_YC)[number];
@@ -34,8 +34,9 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
   // 05/11: lời nhắn / lý do không bắt buộc (con-xin, con-bi-chan)
   const lyDo = String(b.lyDo ?? "").trim().slice(0, 100);
   // 05/11: lý do / lời nhắn không bắt buộc (L3 xin thêm giờ, L4 xin mở app / web lạ)
-  const phut = ["them_gio", "ngoai_le", "ngoai_gio"].includes(loai) ? Math.round(Number(b.phut)) : null;
-  if (phut !== null && !(phut >= 5 && phut <= 240)) throw new LoiNghiepVu("phut_sai", "Số phút xin thêm phải từ 5 đến 240 (thường 30, 60 hoặc 120 phút)");
+  const phut0 = ["them_gio", "ngoai_le", "ngoai_gio"].includes(loai) ? Math.round(Number(b.phut)) : null;
+  let phutKep: number | null = null;
+  if (phut0 !== null && !(phut0 >= 5 && phut0 <= 240)) throw new LoiNghiepVu("phut_sai", "Số phút xin thêm phải từ 5 đến 240 (thường 30, 60 hoặc 120 phút)");
   // ngoại lệ: một app (giaTri = app) hoặc cả máy. «ngoai_gio» cũ = ngoại lệ cả máy.
   const phamVi = loai === "ngoai_le" ? (b.phamVi === "app" || (b.phamVi === undefined && b.giaTri) ? "app" : "ca_may") : loai === "ngoai_gio" ? "ca_may" : null;
   const giaTri = loai === "mo_web" || loai === "cai_app" || phamVi === "app" ? chuanMuc(b.giaTri) : String(b.giaTri ?? "").trim().slice(0, 200) || null;
@@ -45,7 +46,11 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
     const fam = await khoaCon(t, con);
     if (loai === "them_gio" || phamVi) {
       const bc = await boiCanhCon(con, t);
-      if (phamVi && phut! > bc.ts.ngoai_le_toi_da_phut) throw new LoiNghiepVu("phut_sai", `Mở ngoại lệ tối đa ${bc.ts.ngoai_le_toi_da_phut} phút`);
+      // app cũ gửi «ngoai_gio» 120 phút ⇒ kẹp về tối đa; ngoại lệ mới vượt ⇒ báo
+      if (phamVi && phut0! > bc.ts.ngoai_le_toi_da_phut) {
+        if (loai !== "ngoai_gio") throw new LoiNghiepVu("phut_sai", `Mở ngoại lệ tối đa ${bc.ts.ngoai_le_toi_da_phut} phút`);
+        phutKep = bc.ts.ngoai_le_toi_da_phut;
+      }
       if (loai === "them_gio") {
         if (bc.ts.cho_xin_them_gio !== 1) throw new LoiNghiepVu("khong_cho_xin", "Ba Mẹ chưa bật xin thêm giờ — con đổi sao lấy giờ nhé", 409);
         const chan = lyDoKhongThemGio(await quyHomNay(con, now, t, bc));
@@ -64,8 +69,8 @@ export async function guiYeuCau(con: string, mayId: string | null, b: { loai?: u
     const gio = loai === "mo_web" || loai === "cai_app" ? ts.yc_het_ngay_cai * 24 : ts.yc_het_gio_them;
     const id = newId();
     await t(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, ly_do, het_han, created_at, pham_vi) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [id, con, mayId, loai, phut, giaTri, lyDo, new Date(now.getTime() + gio * 3600_000), now, phamVi]);
-    await ghiSuKien(fam, "gui_yeu_cau", { loai, phut, gia_tri: giaTri, ...(phamVi ? { pham_vi: phamVi } : {}) }, { con, may: mayId }, t);
+      [id, con, mayId, loai, phutKep ?? phut0, giaTri, lyDo, new Date(now.getTime() + gio * 3600_000), now, phamVi]);
+    await ghiSuKien(fam, "gui_yeu_cau", { loai, phut: phutKep ?? phut0, gia_tri: giaTri, ...(phamVi ? { pham_vi: phamVi } : {}) }, { con, may: mayId }, t);
     return { id, trang_thai: "cho" };
   });
 }
@@ -211,7 +216,9 @@ export async function chiTietYc(fam: string, id: string) {
     `select p.ten, count(*)::int as n from exceptions e join parents p on p.id = e.parent_id where e.child_id = $1 and e.created_at > now() - interval '7 days'
      group by p.ten order by n desc`, [r.child_id]);
   const du = await soDu(r.child_id);
-  // 05/11: «Con có 30 sao, tự đổi được 30 phút nếu Ba Mẹ không cho» (bm-hang-ngay «Con xin dùng») · `giaPhut` cũ giữ cho app cũ
-  const { phutChoSao } = await import("./quy-gio.ts");
-  return { ...r, soDu: du, sao: du, phutDoiDuoc: phutChoSao(ts, du), giaPhut: ts.gia_khac / 1000, xemTruoc: xt, ngoaiLeTheoNguoi: theo };
+  // 05/11: «Con có 30 sao, tự đổi được 30 phút nếu Ba Mẹ không cho» — theo tham số của chính Con (tỷ lệ, bật/tắt, phần còn đổi được hôm nay) · `giaPhut` cũ giữ cho app cũ
+  const bc = await boiCanhCon(r.child_id);
+  const qy = await quyHomNay(r.child_id, new Date(), q, bc);
+  const phutDoiDuoc = qy.doiSao.bat ? Math.min(phutChoSao(bc.ts, du), qy.doiSao.conDoiDuoc) : 0;
+  return { ...r, soDu: du, sao: du, phutDoiDuoc, giaPhut: ts.gia_khac / 1000, xemTruoc: xt, ngoaiLeTheoNguoi: theo };
 }

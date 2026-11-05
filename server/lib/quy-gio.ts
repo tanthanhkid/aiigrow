@@ -8,7 +8,7 @@
 //     không trừ sao) — grants.nguon = ngoai_le (lib/yeu-cau.ts › dongY).
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, lichCua, thamSo, type GioHoc, type Lich, type ThamSo } from "./cau-hinh.ts";
+import { dangKhoa, lichCua, sachCauHinh, thamSo, type GioHoc, type Lich, type ThamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
 import { ghiDiem, khoaCon, soDu } from "./vi.ts";
 import { khoaSo } from "./luat-app.ts";
@@ -185,7 +185,8 @@ export async function hoanTacThemGio(fam: string, grantId: string, nguoi: string
     if (g.request_id) {
       // duyệt lời xin rồi hoàn tác ⇒ trả lại đúng trạng thái trước khi duyệt: hoàn sao đã trừ («Trừ sao»), bỏ mở tạm lúc khoá, bỏ lượt đếm ngoại lệ,
       // lời xin về «chờ» để Ba Mẹ trả lời lại (duyệt lại thì trừ lại đúng một lần)
-      const tru = (await t<{ s: number }>(`select coalesce(-sum(delta), 0)::int as s from points where child_id = $1 and ref = $2 and loai = 'doi_gio'`,
+      // phần đã trừ RÒNG cho lời xin này (trừ đi các lần hoàn trước) — duyệt / hoàn tác nhiều lần không hoàn dư
+      const tru = (await t<{ s: number }>(`select coalesce(-sum(delta), 0)::int as s from points where child_id = $1 and ref = $2 and loai in ('doi_gio', 'hoan')`,
         [g.child_id, g.request_id]))[0].s;
       if (tru > 0) await ghiDiem(t, g.child_id, tru, "hoan", `Hoàn ${tru} sao (hoàn tác thêm giờ)`, { ref: g.request_id, nguoi });
       const moTam = (await t(`select 1 from events where child_id = $1 and loai = 'mo_tam' and chi_tiet->>'yeu_cau' = $2`, [g.child_id, g.request_id])).length;
@@ -224,7 +225,6 @@ export async function datGioChoi(fam: string, con: string, b: Record<string, unk
   so("quy_ngay_thuong", b.quyNgayThuong); so("quy_cuoi_tuan", b.quyCuoiTuan); so("phut_10_sao", b.phut10Sao);
   so("doi_sao_toi_da_ngay", b.doiSaoToiDaNgay); so("ngoai_le_toi_da_phut", b.ngoaiLeToiDaPhut);
   bat("doi_sao_bat", b.doiSaoBat); bat("cho_xin_them_gio", b.choXinThemGio);
-  const { sachCauHinh } = await import("./cau-hinh.ts");
   const moi = sachCauHinh(cfg);
   const lich: Record<string, unknown> = {};
   const ngu = b.gioNgu as Khung | undefined;

@@ -222,7 +222,7 @@ test("bằng chứng ghi âm / bấm Xong; Ba Mẹ «Nhờ làm lại» (lam_lai
   const danhRang = (await m(tokBm, "nhiem-vu", { ten: "Tự đánh răng", diem: 10, bang_chung: "xong" })).body.id;
   const ghiAm = { mime: "audio/mp4", base64: Buffer.from("am-thanh-gia-1").toString("base64") };
   let luot = (await k(tokMay, `nhiem-vu/${docSach}/bat-dau`, {})).body.luot;
-  assert.equal((await k(tokMay, `luot/${luot}/nop`, {})).body.error, "thieu_ghi_am");
+  assert.equal((await k(tokMay, `luot/${luot}/nop`, { ghiAmDuoc: true })).body.error, "thieu_ghi_am", "app Con ghi âm được ⇒ bắt buộc");
   assert.equal((await k(tokMay, `luot/${luot}/nop`, { ghiAm: { mime: "audio/x-midi", base64: "AA==" } })).body.error, "ghi_am_sai");
   assert.equal((await k(tokMay, `luot/${luot}/nop`, { ghiAm })).body.trang_thai, "cho_duyet");
   const luot2 = (await k(tokMay, `nhiem-vu/${danhRang}/bat-dau`, {})).body.luot;
@@ -240,7 +240,7 @@ test("bằng chứng ghi âm / bấm Xong; Ba Mẹ «Nhờ làm lại» (lam_lai
   const tq = (await dv(tokMay, "hoc-vien/tong-quan")).body.nhiemVu.find((x: any) => x.id === docSach);
   assert.deepEqual([tq.trangThai, tq.lamLai, tq.loiNhan], ["can_bo_sung", true, "Con đọc to hơn một chút nhé!"]);
   assert.ok((await dv(tokMay, "hoc-vien/tin")).body.ds.some((x: any) => x.loai === "lam_lai_nhiem_vu"));
-  assert.equal((await k(tokMay, `luot/${luot}/nop`, {})).body.error, "thieu_ghi_am", "làm lại phải nộp ghi âm mới");
+  assert.equal((await k(tokMay, `luot/${luot}/nop`, { ghiAmDuoc: true })).body.error, "thieu_ghi_am", "làm lại phải nộp ghi âm mới");
   assert.equal((await k(tokMay, `luot/${luot}/nop`, { ghiAm: { mime: "audio/mp4", base64: Buffer.from("am-thanh-gia-2").toString("base64") } })).body.trang_thai, "cho_duyet");
   assert.equal((await m(tokBm, `luot/${luot}/lam-lai`, {})).body.trangThai, "lam_lai", "lý do không bắt buộc");
   await k(tokMay, `luot/${luot}/nop`, { ghiAm: { mime: "audio/webm", base64: Buffer.from("am-thanh-gia-3").toString("base64") } });
@@ -306,6 +306,11 @@ test("rà PR: hoàn tác thêm giờ hoàn sao đã trừ; Khoá lại ngay / Kh
   assert.equal(await v.soDu(con), 40, "hoàn 30 sao");
   await yc.dongY(fam, r.id, bm, { truDiem: true, phut: 30 }, sau(t, 1));
   assert.equal(await v.soDu(con), 10);
+  const g2 = (await one<{ id: string }>(`select id from grants where request_id = $1`, [r.id]))!.id;
+  await qg.hoanTacThemGio(fam, g2, bm, sau(t, 1.5));
+  assert.equal(await v.soDu(con), 40, "duyệt / hoàn tác hai lần không hoàn dư");
+  await yc.dongY(fam, r.id, bm, { truDiem: true, phut: 30 }, sau(t, 2));
+  assert.equal(await v.soDu(con), 10);
   // Khoá lại ngay (trên máy) đóng ngoại lệ một app; Ba Mẹ «Khoá ngay» đóng ngoại lệ cả máy
   const T2 = VN("2026-10-21T21:30:00");
   const n1 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "tudien.exe", phut: 30 }, T2);
@@ -338,6 +343,18 @@ test("rà PR: hoàn tác thêm giờ hoàn sao đã trừ; Khoá lại ngay / Kh
   await nv.nhoLamLai(fam, luot, bm, {});
   await loi(nv.nop(con, luot, { anh: [anhGia("phong-1")] }), "bang_chung_cu");
   assert.equal((await nv.nop(con, luot, { anh: [anhGia("phong-2")] })).trang_thai, "cho_duyet");
+  // khay (không ghi âm được) nộp việc ghi âm không kèm tệp vẫn được; việc ngoài ngày lặp lại mà còn lượt «làm lại» vẫn hiện
+  const doc = await nv.taoNv(fam, { ten: "Đọc to", diem: 5, bang_chung: "ghi_am", lap_lai: "ngay_thuong" });
+  const ld = await nv.batDau(con, doc);
+  assert.equal((await dv(tokMay, `hoc-vien/luot/${ld}/nop`, {})).body.trangThai, "cho_duyet");
+  await nv.nhoLamLai(fam, ld, bm, {});
+  assert.ok((await nv.nvCuaCon(con, VN("2026-10-24T10:00:00"))).some((x) => x.id === doc && x.lam_lai), "thứ Bảy vẫn thấy việc phải làm lại");
+  // ngoại lệ web: tên miền con không gỡ chặn tên miền cha
+  const n4 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "m.example.com", phut: 15 }, sau(T2, 40));
+  await la.datLuat(fam, { muc: "example.com", loai: "chan" });
+  await yc.dongY(fam, n4.id, bm, {}, sau(T2, 40));
+  const w4 = aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: false }, sau(T2, 41)));
+  assert.ok(w4.web.chan.includes("example.com") && w4.web.cho.includes("m.example.com"));
   // «Một lần» rồi sửa lặp lại ⇒ không còn một lần
   const motLan = await nv.taoNv(fam, { ten: "Gói quà", diem: 5, lap_lai: "mot_lan" });
   await nv.suaNv(fam, motLan, { lap_lai: "hang_ngay" });
