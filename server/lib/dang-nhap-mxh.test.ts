@@ -142,22 +142,34 @@ test("lời mời: người được mời vào bằng Google với đúng email
   assert.ok(tv.body.ds.some((x: { ten: string }) => x.ten === "Ba Huy"));
 });
 
-test("tài khoản email + OTP có sẵn ⇒ Google cùng email vào đúng tài khoản đó (không tạo nhà thứ hai)", async () => {
+test("email đã có tài khoản (mật khẩu, hoặc nhà cung cấp kia) ⇒ 409, không tự gắn theo email (chống chiếm trước tài khoản)", async () => {
   process.env.GOOGLE_CLIENT_IDS = WEB;
   const otp = await goi("otp", { body: { dinhDanh: "hoa@gmail.com" } });
-  const dk = await goi("dang-ky", { body: { dinhDanh: "hoa@gmail.com", ma: otp.body.ma, ten: "Chị Hoa", matKhau: "matkhau123" } });
-  const id = (await goi("toi", { tok: dk.body.token })).body.baMe.id;
+  await goi("dang-ky", { body: { dinhDanh: "hoa@gmail.com", ma: otp.body.ma, ten: "Chị Hoa", matKhau: "matkhau123" } });
   const r = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "HOA@gmail.com", sub: "g10" }) } });
-  assert.equal(r.status, 200); assert.equal(r.body.moi, undefined);
-  const toi = (await goi("toi", { tok: r.body.token })).body.baMe;
-  assert.equal(toi.id, id); assert.equal(toi.coMatKhau, true);
+  assert.equal(r.status, 409); assert.equal(r.body.error, "mxh_da_co_tai_khoan"); assert.match(r.body.message, /mật khẩu/);
+  // hung@vidu.vn đã vào bằng Facebook ⇒ Google cùng email bị từ chối, chỉ đường dùng Facebook
+  const g = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "hung@vidu.vn", sub: "g12" }) } });
+  assert.equal(g.status, 409); assert.match(g.body.message, /Facebook/);
 });
 
-test("xoá tài khoản không mật khẩu: gõ XOA để xác nhận", async () => {
+test("tài khoản không mật khẩu: gỡ máy / xoá cần mật khẩu ⇒ 409 chua_co_mat_khau; đặt mật khẩu phải xác minh lại đúng tài khoản Google", async () => {
   process.env.GOOGLE_CLIENT_IDS = WEB;
   const r = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "xoa.thu@gmail.com", sub: "g11" }) } });
-  const sai = await goi("xoa-tai-khoan", { tok: r.body.token, body: { xacNhan: "khong" } });
-  assert.equal(sai.status, 400); assert.equal(sai.body.error, "sai_xac_nhan");
-  const ok = await goi("xoa-tai-khoan", { tok: r.body.token, body: { xacNhan: "xoá" } });
-  assert.equal(ok.status, 200, JSON.stringify(ok.body)); assert.equal(ok.body.xoa, "gia_dinh");
+  const tok = r.body.token;
+  const x = await goi("xoa-tai-khoan", { tok, body: { matKhau: "gi-cung-duoc" } });
+  assert.equal(x.status, 409); assert.equal(x.body.error, "chua_co_mat_khau");
+  assert.equal((await goi("dat-mat-khau", { tok, body: { matKhauMoi: "ngan", idToken: jwt({ sub: "g11" }) } })).body.error, "mk_ngan");
+  const khac = await goi("dat-mat-khau", { tok, body: { matKhauMoi: "matkhau123", idToken: jwt({ email: "lan@gmail.com", sub: "g1" }) } });
+  assert.equal(khac.status, 403); assert.equal(khac.body.error, "mxh_khong_khop");
+  assert.equal((await goi("dat-mat-khau", { tok, body: { matKhauMoi: "matkhau123" } })).status, 401);          // không gửi token xác minh lại
+  const ok = await goi("dat-mat-khau", { tok, body: { matKhauMoi: "matkhau123", idToken: jwt({ email: "xoa.thu@gmail.com", sub: "g11" }) } });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.equal((await goi("toi", { tok })).body.baMe.coMatKhau, true);
+  assert.equal((await goi("dat-mat-khau", { tok, body: { matKhauMoi: "matkhau456", idToken: jwt({ email: "xoa.thu@gmail.com", sub: "g11" }) } })).status, 409);
+  const xoa = await goi("xoa-tai-khoan", { tok, body: { matKhau: "matkhau123" } });
+  assert.equal(xoa.status, 200, JSON.stringify(xoa.body)); assert.equal(xoa.body.xoa, "gia_dinh");
+  // vào lại bằng Google ⇒ tài khoản mới tinh
+  const lai = await goi("dang-nhap/google", { body: { idToken: jwt({ email: "xoa.thu@gmail.com", sub: "g11" }) } });
+  assert.equal(lai.status, 200); assert.equal(lai.body.moi, true);
 });

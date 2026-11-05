@@ -18,6 +18,7 @@
 //    (Thanh chốt 24/10), ghi thêm MỘT dòng «xoa_gia_dinh» chỉ có id gia đình + số Con — cùng giao dịch; dòng đó là mốc tính 90 ngày,
 //    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
+import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -39,6 +40,7 @@ async function kiemMatKhau(bm: BaMe, mk: unknown, xacNhan?: unknown, now = Date.
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > XOA_SAI_TOI_DA) throw new LoiNghiepVu("tam_khoa", `Nhập sai mật khẩu nhiều lần — thử lại sau ${XOA_KHOA_PHUT} phút`, 429);
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
+  chuaCoMatKhau(p);
   // Tài khoản vào bằng Google / Facebook (dang-nhap-mxh.ts) không có mật khẩu ⇒ xác nhận bằng gõ chữ «XOA» (phiên Bearer đã là bằng chứng)
   if (p && !p.pass_hash) {
     if (String(xacNhan ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toUpperCase() !== "XOA")
@@ -77,6 +79,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     if (!toi.la_chu) {
       await t(`update parents set vai = 'roi', dinh_danh = 'xoa:' || id, pass_hash = null, sai_lien = 0, khoa_den = null where id = $1`, [bm.id]);
       await t(`delete from sessions where parent_id = $1`, [bm.id]);
+      await t(`delete from ba_me_mxh where parent_id = $1`, [bm.id]);   // vào lại bằng Google / Facebook ⇒ tài khoản mới, không về dòng đã xoá
       await t(`delete from ba_me_tb where parent_id = $1`, [bm.id]);
       await t(`delete from ho_tro where family_id = $1 and tu = 'ba_me' and nguoi = $2`, [bm.family_id, bm.id]);
       await t(`delete from messages where family_id = $1 and parent_id = $2`, [bm.family_id, bm.id]);

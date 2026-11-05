@@ -312,9 +312,13 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 | `POST dang-nhap/google {idToken}` | id_token Google (kiểm chữ ký JWKS, `iss`, `aud` ∈ `GOOGLE_CLIENT_IDS`, hạn, `email_verified`) → `{token, moi?, loiMoi[]}` |
 | `POST dang-nhap/facebook {accessToken}` | access token Facebook (Graph `debug_token` đúng app, `/me` lấy email) → `{token, moi?, loiMoi[]}` |
 
-Tìm Ba Mẹ theo email (chữ thường); chưa có ⇒ tạo nhà mới, Ba Mẹ là người tạo nhà, không mật khẩu (`moi: true`). `loiMoi[]` như `dang-nhap`:
-email khớp `loi_moi.dinh_danh` ⇒ thấy lời mời. Lỗi: `mxh_chua_bat` 503 · `mxh_sai` 401 · `mxh_khong_email` 400 · `mxh_mang` 502.
-`GET toi` › `baMe.coMatKhau` (false = tài khoản Google/Facebook) ⇒ `POST xoa-tai-khoan {xacNhan: "XOA"}` thay cho `{matKhau}` (sai ⇒ 400 `sai_xac_nhan`).
+Danh tính = (nguồn, mã người dùng Google/Facebook) — bảng `ba_me_mxh`. Lần đầu: email chưa có tài khoản ⇒ tạo nhà mới, Ba Mẹ là người tạo nhà,
+không mật khẩu (`moi: true`); email ĐÃ có tài khoản (mật khẩu, hoặc nhà cung cấp kia) ⇒ 409 `mxh_da_co_tai_khoan` (không tự gắn theo email — chống
+chiếm trước). `loiMoi[]` như `dang-nhap`: email khớp `loi_moi.dinh_danh` ⇒ thấy lời mời. Lỗi: `mxh_chua_bat` 503 · `mxh_sai` 401 ·
+`mxh_khong_email` 400 · `mxh_mang` 502.
+`GET toi` › `baMe.coMatKhau` (false = tài khoản Google/Facebook chưa đặt mật khẩu). Gỡ máy / xoá tài khoản khi chưa có mật khẩu ⇒ 409
+`chua_co_mat_khau`. `POST dat-mat-khau {matKhauMoi, idToken | accessToken}` (đăng nhập; xác minh lại bằng đúng tài khoản Google/Facebook đã gắn)
+⇒ `{ok}`; lỗi `mk_ngan` · `mxh_khong_khop` 403 · `da_co_mat_khau` 409.
 
 ### Chặn app 2 chế độ (L4)
 

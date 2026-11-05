@@ -2,14 +2,17 @@
 //   · Google: app gửi id_token (JWT RS256) ⇒ kiểm chữ ký bằng JWKS của Google, `iss`, `aud` ∈ GOOGLE_CLIENT_IDS (web, iOS, Android — dấu phẩy),
 //     hạn, `email_verified`.
 //   · Facebook: app gửi access token ⇒ Graph `debug_token` (khoá app = FACEBOOK_APP_ID|FACEBOOK_APP_SECRET) phải hợp lệ, đúng app ⇒ `/me` lấy email.
-// Danh tính = email (chữ thường). Có tài khoản cùng email (đăng ký bằng email + OTP trước đó, hoặc lần trước đăng nhập MXH) ⇒ vào tài khoản đó;
-// chưa có ⇒ tạo nhà mới + Ba Mẹ là người tạo nhà (L7: chỉ phụ huynh đăng ký), không mật khẩu. Lời mời gửi tới đúng email này hiện qua
-// `loiMoiChoToi` như đăng nhập thường. Thiếu env ⇒ 503 `mxh_chua_bat` (app đọc `GET cau-hinh-dang-nhap` để ẩn nút).
+// Danh tính = (nguồn, mã người dùng của Google/Facebook) trong bảng ba_me_mxh. Lần đầu: email chưa có tài khoản ⇒ tạo nhà mới + Ba Mẹ là người
+// tạo nhà (L7), không mật khẩu. Email ĐÃ có tài khoản (đăng ký SĐT/email + mật khẩu, hoặc vào bằng nhà cung cấp kia) ⇒ 409, KHÔNG tự gắn:
+// email đăng ký bằng OTP chưa chắc của chủ thật (OTP thử trả mã thẳng) và email Facebook không chắc đã xác minh ⇒ gắn theo email = chiếm trước
+// được tài khoản. Lời mời gửi tới đúng email này hiện qua `loiMoiChoToi` như đăng nhập thường. Tài khoản không mật khẩu đặt mật khẩu bằng
+// `dat-mat-khau` (xác minh lại bằng Google/Facebook) — gỡ máy, xoá tài khoản, gỡ trên máy Con đều cần mật khẩu.
+// Thiếu env ⇒ 503 `mxh_chua_bat` (app đọc `GET cau-hinh-dang-nhap` để ẩn nút).
 // Mạng gọi qua globalThis.fetch — test thay bằng JWKS / Graph giả (dang-nhap-mxh.test.ts).
 import { createHmac, createPublicKey, verify, type JsonWebKey } from "node:crypto";
-import { one, tx, newId } from "./db.ts";
+import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { chuanDinhDanh } from "./auth.ts";
+import { bamMatKhau, chuanDinhDanh, taoNha, type BaMe } from "./auth.ts";
 
 const JWKS_GOOGLE = "https://www.googleapis.com/oauth2/v3/certs";
 const ISS_GOOGLE = new Set(["accounts.google.com", "https://accounts.google.com"]);
@@ -17,7 +20,7 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 const LECH_GIAY = 60;                                  // lệch đồng hồ cho phép khi kiểm exp / iat
 
 export type NguonMxh = "google" | "facebook";
-type DanhTinh = { email: string; ten: string };
+type DanhTinh = { nguon: NguonMxh; sub: string; email: string; ten: string };
 
 const dsClientGoogle = () => (process.env.GOOGLE_CLIENT_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const fbApp = () => {
@@ -79,7 +82,8 @@ export async function xacMinhGoogle(idToken: unknown): Promise<DanhTinh> {
   if (!ISS_GOOGLE.has(tai.iss) || !aud.some((a: unknown) => ds.includes(String(a)))) throw sai("Google");
   if (typeof tai.exp !== "number" || tai.exp + LECH_GIAY < bay || (typeof tai.iat === "number" && tai.iat - LECH_GIAY > bay)) throw sai("Google");
   if (tai.email_verified !== true && tai.email_verified !== "true") throw new LoiNghiepVu("mxh_khong_email", "Email Google này chưa xác minh — dùng số điện thoại / email nhé", 400);
-  return { email: String(tai.email ?? ""), ten: String(tai.name ?? tai.given_name ?? "") };
+  if (!tai.sub) throw sai("Google");
+  return { nguon: "google", sub: String(tai.sub), email: String(tai.email ?? ""), ten: String(tai.name ?? tai.given_name ?? "") };
 }
 
 // ---------------------------------------------------------------- Facebook
@@ -98,41 +102,71 @@ export async function xacMinhFacebook(accessToken: unknown): Promise<DanhTinh> {
   const proof = createHmac("sha256", app.bi).update(tk).digest("hex");
   const me = await layJson(`${GRAPH}/me?fields=id,name,email&access_token=${encodeURIComponent(tk)}&appsecret_proof=${proof}`, "Facebook");
   if (!me.ok) throw me.status >= 500 ? loiMang("Facebook") : sai("Facebook");
-  if (String(me.j?.id ?? "") !== String(d.user_id ?? "")) throw sai("Facebook");
+  if (!me.j?.id || String(me.j.id) !== String(d.user_id ?? "")) throw sai("Facebook");
   if (!me.j?.email) throw new LoiNghiepVu("mxh_khong_email", "Tài khoản Facebook này không có email (hoặc chưa cho AiiGrow xem email) — dùng số điện thoại nhé", 400);
-  return { email: String(me.j.email), ten: String(me.j.name ?? "") };
+  return { nguon: "facebook", sub: String(me.j.id), email: String(me.j.email), ten: String(me.j.name ?? "") };
 }
 
-// ---------------------------------------------------------------- tìm / tạo Ba Mẹ theo email
+// ---------------------------------------------------------------- tìm / tạo Ba Mẹ
 
 const TEN_MAC_DINH = "Ba Mẹ";
+const TEN_NGUON: Record<NguonMxh, string> = { google: "Google", facebook: "Facebook" };
+const xacMinh = (nguon: NguonMxh, b: Record<string, unknown>) => (nguon === "google" ? xacMinhGoogle(b.idToken) : xacMinhFacebook(b.accessToken));
+const theoMxh = (dt: DanhTinh) => one<{ id: string }>(
+  `select p.id from ba_me_mxh m join parents p on p.id = m.parent_id where m.nguon = $1 and m.sub = $2`, [dt.nguon, dt.sub]);
 
 /** Danh tính đã xác minh ⇒ {id, moi}. `moi` = vừa tạo nhà (app đưa vào Lần đầu, hoặc màn Lời mời nếu có lời mời chờ). */
 export async function vaoBangMxh(dt: DanhTinh): Promise<{ id: string; moi: boolean }> {
+  const da = await theoMxh(dt);
+  if (da) return { id: da.id, moi: false };
   const d = chuanDinhDanh(dt.email);
   if (!d || !d.includes("@")) throw new LoiNghiepVu("mxh_khong_email", "Tài khoản này không có email hợp lệ — dùng số điện thoại nhé", 400);
-  const co = await one<{ id: string }>(`select id from parents where dinh_danh = $1`, [d]);
-  if (co) return { id: co.id, moi: false };
+  const trung = async () => {
+    const p = await one<{ id: string; co_mk: boolean; nguon: string | null }>(
+      `select p.id, p.pass_hash is not null as co_mk, (select nguon from ba_me_mxh where parent_id = p.id limit 1) as nguon from parents p where p.dinh_danh = $1`, [d]);
+    if (!p) return;
+    const cach = p.co_mk ? "email + mật khẩu" : p.nguon === "google" || p.nguon === "facebook" ? TEN_NGUON[p.nguon] : "cách đã dùng lần trước";
+    throw new LoiNghiepVu("mxh_da_co_tai_khoan", `Email ${d} đã có tài khoản AiiGrow — đăng nhập bằng ${cach} nhé`, 409);
+  };
+  await trung();
   const ten = (dt.ten.normalize("NFC").trim().replace(/\s+/g, " ") || TEN_MAC_DINH).slice(0, 40);
   try {
     const id = await tx(async (t) => {
-      const fam = newId(), id = newId();
-      await t(`insert into families(id, ten) values ($1, $2)`, [fam, `Nhà ${ten}`]);
-      // như dangKy (auth.ts): người đăng ký là «Ba Mẹ» + người tạo nhà; pass_hash null (đặt mật khẩu sau bằng «Quên mật khẩu» nếu muốn)
-      await t(`insert into parents(id, family_id, dinh_danh, ten, vai, pass_hash) values ($1, $2, $3, $4, 'ba_me', null)`, [id, fam, d, ten]);
-      await t(`update families set chu_id = $2 where id = $1`, [fam, id]);
+      const id = await taoNha(t, d, ten, null);
+      await t(`insert into ba_me_mxh(nguon, sub, parent_id) values ($1, $2, $3)`, [dt.nguon, dt.sub, id]);
       return id;
     });
     return { id, moi: true };
   } catch (e) {
-    // bấm hai lần / hai máy cùng lúc: lần kia vừa tạo xong (dinh_danh unique) ⇒ dùng tài khoản đó
-    const lai = await one<{ id: string }>(`select id from parents where dinh_danh = $1`, [d]);
+    // bấm hai lần / hai máy cùng lúc: lần kia vừa tạo xong (khoá chính nguồn+sub, dinh_danh unique) ⇒ dùng đúng tài khoản đó
+    const lai = await theoMxh(dt);
     if (lai) return { id: lai.id, moi: false };
+    await trung();
     throw e;
   }
 }
 
 /** POST dang-nhap/google {idToken} | dang-nhap/facebook {accessToken} ⇒ {id, moi}. */
 export async function dangNhapMxh(nguon: NguonMxh, b: Record<string, unknown>) {
-  return vaoBangMxh(nguon === "google" ? await xacMinhGoogle(b.idToken) : await xacMinhFacebook(b.accessToken));
+  return vaoBangMxh(await xacMinh(nguon, b));
+}
+
+/** Gỡ máy / xoá tài khoản cần mật khẩu: tài khoản Google / Facebook chưa có ⇒ 409 rõ ràng để app mở «Đặt mật khẩu». */
+export function chuaCoMatKhau(p: { pass_hash: string | null } | undefined) {
+  if (p && !p.pass_hash) throw new LoiNghiepVu("chua_co_mat_khau", "Tài khoản vào bằng Google / Facebook chưa có mật khẩu — đặt mật khẩu trước (Cả nhà › Đặt mật khẩu)", 409);
+}
+
+/** POST dat-mat-khau {matKhauMoi, idToken | accessToken}: tài khoản Google / Facebook đặt mật khẩu LẦN ĐẦU. Phiên thôi chưa đủ — phải
+ *  xác minh lại bằng đúng tài khoản Google / Facebook đã gắn (người cầm máy đang mở app không tự đặt được mật khẩu để gỡ máy / xoá nhà). */
+export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>) {
+  const mk = String(b.matKhauMoi ?? "");
+  if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
+  const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
+  if (p?.pass_hash) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
+  const dt = await xacMinh(b.idToken ? "google" : "facebook", b);
+  if ((await theoMxh(dt))?.id !== bm.id) throw new LoiNghiepVu("mxh_khong_khop", `Tài khoản ${TEN_NGUON[dt.nguon]} này không phải tài khoản đang đăng nhập`, 403);
+  const bam = await bamMatKhau(mk);
+  // chỉ đặt khi vẫn chưa có (hai yêu cầu cùng lúc không ghi đè nhau)
+  const r = await q(`update parents set pass_hash = $2 where id = $1 and pass_hash is null returning id`, [bm.id, bam]);
+  if (!r.length) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
 }

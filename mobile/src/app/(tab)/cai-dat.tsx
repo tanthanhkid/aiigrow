@@ -53,7 +53,7 @@ export default function CaiDat() {
   const xoa = () => lam(async () => {
     let r: { xoa: "tai_khoan" | "gia_dinh" };
     try {
-      r = await bm.goi("xoa-tai-khoan", khongMk ? { xacNhan: mk } : { matKhau: mk });
+      r = await bm.goi("xoa-tai-khoan", { matKhau: mk });
     } catch (e) {
       // Không đảo được: mất mạng lúc chờ phản hồi thì KHÔNG nói «chưa có gì thay đổi» — máy chủ có thể đã xoá xong.
       if (e instanceof LoiApi && e.ma === "mat_mang") throw new LoiApi("mat_mang_xoa", "Mất kết nối giữa chừng — chưa rõ tài khoản đã xoá xong chưa. Có mạng lại thì bấm «Xoá vĩnh viễn» lần nữa: nếu app đưa về màn chào là đã xoá.", 0);
@@ -203,11 +203,12 @@ export default function CaiDat() {
                 </>
               )}
             </View>
-            {/* tài khoản vào bằng Google / Facebook không có mật khẩu ⇒ gõ chữ XOA (server/lib/xoa-tai-khoan.ts) */}
-            {khongMk ? <ONhap nhan="Gõ chữ XOA để xác nhận" value={mk} onChangeText={setMk} autoCapitalize="characters" autoCorrect={false} placeholder="XOA" />
-              : <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />}
-            <BaoLoi loi={loiXoa} />
-            <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+            {/* tài khoản vào bằng Google / Facebook chưa có mật khẩu ⇒ đặt mật khẩu trước (xác minh lại bằng Google / Facebook — app/dat-mat-khau.tsx) */}
+            {khongMk ? <Nut chu="Đặt mật khẩu để xác nhận" loai="vien" rong bam={() => { dongXoa(); router.push("/dat-mat-khau"); }} /> : <>
+              <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
+              <BaoLoi loi={loiXoa} />
+              <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+            </>}
             <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="ma" rong bam={dongXoa} /></View>
           </>
         )}

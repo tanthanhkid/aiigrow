@@ -84,6 +84,8 @@ export default function AnToanMay() {
     } catch (e) {
       // Máy chưa đồng bộ lần nào ⇒ không nhận được lệnh gỡ ⇒ hỏi lại: xoá hẳn khỏi danh sách
       if (e instanceof LoiApi && e.ma === "can_xoa_han") { setLoi(null); setMo("xoa"); return; }
+      // tài khoản Google / Facebook chưa có mật khẩu ⇒ sang «Đặt mật khẩu» (xác minh lại bằng Google / Facebook)
+      if (e instanceof LoiApi && e.ma === "chua_co_mat_khau") { setLoi(null); dong(); router.push("/dat-mat-khau"); return; }
       throw e;
     }
   });

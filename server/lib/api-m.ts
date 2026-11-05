@@ -34,7 +34,7 @@ import * as gt from "./api-gia-dinh.ts";
 import * as hta from "./ho-tro-admin.ts";
 import { ghiKiemToan } from "./admin.ts";
 import { xoaTaiKhoan } from "./xoa-tai-khoan.ts";
-import { cauHinhMxh, dangNhapMxh } from "./dang-nhap-mxh.ts";
+import { cauHinhMxh, dangNhapMxh, datMatKhauMxh } from "./dang-nhap-mxh.ts";
 // S2 thiết kế 05/11 (L4–L8): quyền 2 mức, chế độ chặn theo Con, thiết lập lần đầu, phiên ghép máy
 import { baMeTuToken } from "./auth.ts";
 import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
@@ -91,6 +91,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (!bm) return loi("chua_dang_nhap", "Phiên đăng nhập đã hết — đăng nhập lại nhé", 401);
     { const r = await gt.xuLyThongBao(req, bm, p); if (r) return r; }       // thông báo riêng từng Ba Mẹ (cả vai Chỉ xem)
     // Xoá tài khoản (Apple 5.1.1(v)): mọi vai, kể cả Chỉ xem — lib/xoa-tai-khoan.ts
+    if (d === "dat-mat-khau" && post) { await datMatKhauMxh(bm, await docJson(req)); return json({ ok: true }); }   // tài khoản Google / Facebook đặt mật khẩu lần đầu
     if (d === "xoa-tai-khoan" && post) return json(await xoaTaiKhoan(bm, await docJson(req)));
     // L6: Người trông giúp — POST chỉ các việc xem / duyệt / khoá máy (lib/quyen.ts › trongGiupDuoc); còn lại là đổi cài đặt.
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
@@ -99,7 +100,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
     { const r = await xuLyMSao(bm, req, p, b); if (r) return r; }           // 05/11: sao, quỹ giờ chơi, bộ nhiệm vụ, làm lại, trao quà
     if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm),
-      coMatKhau: !!(await one<{ c: boolean }>(`select pass_hash is not null as c from parents where id = $1`, [bm.id]))?.c },
+      coMatKhau: bm.co_mat_khau !== false },
       laAdmin: hta.laQuanTri(bm.id) });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }
 

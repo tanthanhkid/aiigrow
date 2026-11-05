@@ -83,9 +83,12 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
 
 ## 4. Hành vi tài khoản
 
-- Danh tính = email chữ thường. Đã có tài khoản cùng email (đăng ký email + OTP, hoặc lần trước vào bằng Google/Facebook) ⇒ vào đúng tài khoản đó.
-  Google bắt buộc `email_verified`; Facebook không trả email (đăng ký Facebook bằng SĐT, hoặc bỏ chọn quyền email) ⇒ 400 `mxh_khong_email`, app
-  báo dùng số điện thoại.
-- Chưa có ⇒ tạo nhà mới, người vào là Ba Mẹ + người tạo nhà (L7), tên lấy từ Google/Facebook, **không mật khẩu** (`GET toi` › `coMatKhau: false`).
-  Xoá tài khoản loại này: gõ chữ `XOA` thay cho mật khẩu (`POST xoa-tai-khoan {xacNhan: "XOA"}`).
+- Danh tính = (nguồn, `sub` Google / `id` Facebook) trong bảng `ba_me_mxh`; lần sau vào bằng đúng tài khoản đó ⇒ đúng Ba Mẹ đó.
+- Lần đầu: email (chữ thường) chưa có tài khoản ⇒ tạo nhà mới, người vào là Ba Mẹ + người tạo nhà (L7), tên lấy từ Google/Facebook,
+  **không mật khẩu** (`GET toi` › `coMatKhau: false`). Google bắt buộc `email_verified`; Facebook không trả email ⇒ 400 `mxh_khong_email`.
+- Email ĐÃ có tài khoản (đăng ký SĐT/email + mật khẩu, hoặc đã vào bằng nhà cung cấp kia) ⇒ 409 `mxh_da_co_tai_khoan`, chỉ cách đăng nhập
+  cũ. Không tự gắn theo email: email đăng ký bằng OTP thử chưa chắc là của chủ thật, email Facebook không chắc đã xác minh.
+- Gỡ máy / xoá tài khoản / gỡ trên máy Con cần mật khẩu ⇒ tài khoản chưa có mật khẩu nhận 409 `chua_co_mat_khau`, app mở màn «Đặt mật khẩu»
+  (`/dat-mat-khau`): nhập mật khẩu mới rồi xác nhận lại bằng Google/Facebook (`POST dat-mat-khau`).
 - Người được mời (`loi_moi.dinh_danh` = email) vào bằng Google/Facebook cùng email ⇒ `loiMoi[]` có lời mời ⇒ màn Lời mời (`/moi/vao`).
+  Rủi ro còn lại: Facebook trả email chưa xác minh thì người đó thấy lời mời gửi tới email ấy — Meta chỉ trả email chính của hồ sơ; chấp nhận.
