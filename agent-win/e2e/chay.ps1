@@ -30,6 +30,7 @@ $DataDir = Join-Path $env:ProgramData 'AiiGrow'
 $InstallDir = Join-Path $env:ProgramFiles 'AiiGrow'
 $TenCon = 'aiicon'
 $TenMienChan = 'chan-thu-e2e.vn'
+$WebCam = 'pornhub.com'   # một tên miền thuộc nhóm web luôn chặn (server lib/chan-co-ban.ts › WEB_CAM)
 $WebQuanTri = 'quan-tri-gia.example.com'
 $KQ = New-Object System.Collections.ArrayList
 $TienTrinh = @()
@@ -395,6 +396,9 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $webOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { if (-not (@(MucAiiGrow $k 'URLBlocklist') | Where-Object { $_.GiaTri -like "*$TenMienChan*" })) { $all = $false } }; $all } 90 5
   $chiTiet = ($KhoaWebCon.GetEnumerator() | ForEach-Object { "$($_.Key): " + ((@(MucAiiGrow $_.Value 'URLBlocklist') | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';') }) -join ' · '
   Dat '4.4' "URLBlocklist Chrome + Edge có $TenMienChan" $webOk $chiTiet
+  # 4.4c — thiết kế 05/11 (L4): web người lớn / cờ bạc / bạo lực LUÔN chặn ở mọi chế độ (server lib/chan-co-ban.ts › WEB_LUON_CHAN)
+  $camOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { if (-not (@(MucAiiGrow $k 'URLBlocklist') | Where-Object { $_.GiaTri -eq $WebCam })) { $all = $false } }; $all } 60 5
+  Dat '4.4c' "Web cấm luôn chặn ($WebCam) có trong URLBlocklist Chrome + Edge" $camOk "mục $WebCam: $([bool]$camOk)"
   $hklmCu = @(); foreach ($k in $KhoaWeb.Values) { $hklmCu += MucAiiGrow $k 'URLBlocklist' }
   Dat '4.4b' 'HKLM không còn luật AiiGrow (luật cũ 90001 đã gỡ — luật chỉ ở hive Con)' ($hklmCu.Count -eq 0) ("còn {0} mục HKLM: {1}" -f $hklmCu.Count, (($hklmCu | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';'))
   $co = CoWebCon
@@ -476,11 +480,13 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $cc = CoWebCon
   Dat '4.16' 'Tắt DoH + InPrivate/ẩn danh (Chrome + Edge, hive Con)' ($cc.DnsOverHttpsMode -eq 'off' -and $co.DnsOverHttpsMode -eq 'off' -and $co.InPrivateModeAvailability -eq 1 -and $cc.IncognitoModeAvailability -eq 1) "Chrome DoH=$($cc.DnsOverHttpsMode) Incognito=$($cc.IncognitoModeAvailability) · Edge DoH=$($co.DnsOverHttpsMode) InPrivate=$($co.InPrivateModeAvailability)"
 
-  # 4.17 — mở Chrome THẬT bằng tài khoản Con: trang không chặn (example.org) vào được, trang Ba Mẹ chặn (example.com) thì không
+  # 4.17 — mở Chrome THẬT bằng tài khoản Con: trang Ba Mẹ cho phép (example.org) vào được, trang Ba Mẹ chặn (example.com) thì không.
+  # Thiết kế 05/11 (L4): Con mới ở «Chỉ app được phép» ⇒ web chặn mọi trang trừ trang được phép (URLBlocklist «*») ⇒ example.org phải được CHO PHÉP rõ.
   if (-not (Test-Path $ChromeExe) -or -not $Chung.MkCon) { Bo '4.17' 'Chrome của Con: trang chặn không vào được' 'không có Chrome / mật khẩu Con'; return }
+  [void](Api POST "/api/m/con/$($Chung.ConId)/web/trang" @{ muc = 'example.org'; trangThai = 'cho_phep' } $Chung.TokenBaMe)
   [void](Api POST "/api/m/con/$($Chung.ConId)/web/trang" @{ muc = 'example.com'; trangThai = 'chan' } $Chung.TokenBaMe)
   DongBoNgay
-  $coMuc = Cho { @(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist') | Where-Object { $_.GiaTri -eq 'example.com' } } 120 5
+  $coMuc = Cho { (@(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist') | Where-Object { $_.GiaTri -eq 'example.com' }) -and (@(MucAiiGrow $KhoaWebCon.Chrome 'URLAllowlist') | Where-Object { $_.GiaTri -eq 'example.org' }) } 120 5
   $cred = New-Object System.Management.Automation.PSCredential($TenCon, $Chung.MkCon)
   # Chạy $exe bằng tài khoản Con (Start-Process -Credential -LoadUserProfile ⇒ HKCU của tiến trình = hive của Con)
   function ChayBangCon($exe, $ts, $nhan) {
@@ -515,8 +521,8 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $loiChan = ($chan.Dom -match 'BLOCKED_BY_ADMINISTRATOR') -or ($chan.Loi -match 'ERR_BLOCKED_BY_ADMINISTRATOR')
   $biChan = ($chan.Dom -notmatch 'Example Domain') -and $loiChan
   $ddChan = [string]($chan.Dom -replace '\s+', ' ')
-  $ct = "mục example.com trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$($chan.Dom -match 'Example Domain'), ERR_BLOCKED=$loiChan $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
-  Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang thường vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
+  $ct = "mục example.com (chặn) + example.org (cho phép) trong hive: $([bool]$coMuc) · example.org (mở): mã $($mo.Ma), $($mo.Dom.Length) ký tự, «Example Domain»=$vaoDuoc $($mo.Ngoai) · example.com (chặn): mã $($chan.Ma), $($chan.Dom.Length) ký tự, «Example Domain»=$($chan.Dom -match 'Example Domain'), ERR_BLOCKED=$loiChan $($chan.Ngoai) · đầu DOM chặn: $($ddChan.Substring(0, [Math]::Min(160, $ddChan.Length))) · stderr: $(($chan.Loi + ' ' + $mo.Loi).Substring(0, [Math]::Min(300, ($chan.Loi + ' ' + $mo.Loi).Length)))"
+  Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang Ba Mẹ cho phép vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 
 # ------------------------------------------------------------------ KB11 — Ba Mẹ chặn app lấy từ DANH SÁCH APP THẬT của máy (25/10)
@@ -577,19 +583,27 @@ KichBan 'KB5' 'Khoá ngay rồi mở lại' {
   Bo '5.3' 'Màn khoá / ngắt phiên Con' 'runner không có phiên đăng nhập của Con và không có khay (xem README)'
 }
 
-# ------------------------------------------------------------------ KB6 — về Giám sát
-KichBan 'KB6' 'Về Giám sát: gỡ luật AiiGrow, giữ luật quản trị' {
+# ------------------------------------------------------------------ KB6 — «Mở hết» (thiết kế 05/11, L4)
+# Máy luôn chặn thật (POST may/:id/che-do {giam-sat} ⇒ 409 che_do_bo). Mức chặn đổi theo CON: «Mở hết» ⇒ mode tu_do (không grantEndsAt)
+# ⇒ agent gỡ luật AppLocker «chỉ app được phép» của AiiGrow, giữ luật quản trị; web về «mở» (không «*») nhưng trang Ba Mẹ chặn + web cấm VẪN chặn.
+KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật quản trị, web cấm vẫn chặn' {
   foreach ($k in $KhoaWeb.Values) { New-Item -Path "$k\URLBlocklist" -Force | Out-Null; New-ItemProperty -Path "$k\URLBlocklist" -Name '1' -Value $WebQuanTri -PropertyType String -Force | Out-Null }   # đặt lại mục IT gỡ tạm ở KB4.12
-  if (-not $Chung.MayId) { Bo 'KB6' 'Về Giám sát' 'chưa có máy'; return }
-  $cd = Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe
+  if (-not $Chung.MayId) { Bo 'KB6' 'Mở hết' 'chưa có máy'; return }
+  # «Giám sát» đã bỏ ⇒ máy chủ phải từ chối rõ (409 che_do_bo), không âm thầm đổi
+  $ma409 = $null
+  try { [void](Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'giam-sat' } $Chung.TokenBaMe) } catch { $ma409 = $_.Exception.Message }
+  Dat '6.0' 'Máy chủ từ chối «Giám sát» (409 che_do_bo — máy luôn chặn thật)' ([string]$ma409 -match 'che_do_bo') "$ma409"
+  $cd = Api POST "/api/m/con/$($Chung.ConId)/che-do-chan" @{ cheDo = 'mo_het' } $Chung.TokenBaMe
   DongBoNgay
-  [void](Cho { (TrangThai).cheDo -eq 'giam-sat' } 60 3)
+  [void](Cho { (TrangThai).mode -eq 'tu_do' } 60 3)
   $het = Cho { @(LuatAiiGrow (AppLocker)).Count -eq 0 } 120 5
-  Dat '6.1' 'AppLocker không còn luật AiiGrow' $het "còn $(@(LuatAiiGrow (AppLocker)).Count) luật (cheDo agent $((TrangThai).cheDo))"
+  Dat '6.1' 'Mở hết ⇒ AppLocker không còn luật AiiGrow' $het "cheDoChan $($cd.cheDoChan) · còn $(@(LuatAiiGrow (AppLocker)).Count) luật (mode agent $((TrangThai).mode), cheDo $((TrangThai).cheDo))"
   Dat '6.2' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
-  $webHet = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { if (@(MucAiiGrow $k 'URLBlocklist').Count) { $all = $false } }; $all } 90 5
-  Dat '6.3' 'Chính sách web của AiiGrow được gỡ' $webHet (@(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist' | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';')
+  $webMo = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $m = @(MucAiiGrow $k 'URLBlocklist'); if (@($m | Where-Object { $_.GiaTri -eq '*' }).Count -or -not @($m | Where-Object { $_.GiaTri -eq $WebCam }).Count -or -not @($m | Where-Object { $_.GiaTri -eq 'example.com' }).Count) { $all = $false } }; $all } 90 5
+  Dat '6.3' "Web về «mở» (không «*»), trang Ba Mẹ chặn + web cấm ($WebCam) vẫn chặn" $webMo ((@(MucAiiGrow $KhoaWebCon.Chrome 'URLBlocklist') | Select-Object -First 6 | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';')
   $it = MucIT; Dat '6.4' 'Mục web «IT» vẫn còn' $it.Ok $it.ChiTiet
+  # trả về «Chỉ app được phép» để KB9 có luật AiiGrow cho bộ gỡ dọn
+  try { [void](Api POST "/api/m/con/$($Chung.ConId)/che-do-chan" @{ cheDo = 'chi_app_duoc_phep' } $Chung.TokenBaMe) } catch { Log "trả chế độ chặn lỗi: $($_.Exception.Message)" }
 }
 
 # ------------------------------------------------------------------ KB7a — cập nhật đè bằng tay
