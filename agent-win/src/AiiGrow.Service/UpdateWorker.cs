@@ -47,12 +47,36 @@ public sealed class UpdateWorker : BackgroundService
                 catch (OperationCanceledException) { break; }
                 hen = DateTimeOffset.UtcNow + cho;
             }
-            try { await Task.Delay(TimeSpan.FromMinutes(1), ct); } catch (OperationCanceledException) { break; }
+            try { await Danh.WaitAsync(TimeSpan.FromMinutes(1), ct); } catch (OperationCanceledException) { break; }
+            if (Interlocked.Exchange(ref _kiemNgay, 0) == 1) hen = DateTimeOffset.UtcNow;   // bản đã thử trong 24 giờ vẫn bỏ qua (DaThuGanDay) — không lặp cài lỗi
         }
     }
 
     /// <summary>Chu kỳ máy chủ đặt lần gần nhất đọc được manifest (mặc định 6 giờ).</summary>
     private TimeSpan _chuKy = TuCapNhat.ChuKyMacDinh;
+
+    // 05/11: khay «Kiểm tra cập nhật › Cập nhật để sửa lỗi» (PipeCmd.CapNhatNgay) ⇒ chạy lượt kiểm + tải + cài ngay, không chờ chu kỳ.
+    private static readonly SemaphoreSlim Danh = new(0, 1);
+    private static int _kiemNgay;
+
+    public static void KiemNgay()
+    {
+        Interlocked.Exchange(ref _kiemNgay, 1);
+        try { if (Danh.CurrentCount == 0) Danh.Release(); } catch (SemaphoreFullException) { }
+    }
+
+    /// <summary>Hỏi manifest máy chủ: có bản mới hơn bản đang chạy (và hợp lệ để tự cập nhật) ⇒ trả số bản «0.2.10»; không ⇒ null.</summary>
+    public static async Task<string?> KiemBanMoiAsync(string serverCfg, CancellationToken ct)
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        var server = ApiClient.NormalizeServer(serverCfg);
+        var json = await http.GetStringAsync(server + TuCapNhat.DuongManifest, ct);
+        var m = JsonSerializer.Deserialize<BanMoi>(json);
+        if (m == null || TuCapNhat.KiemManifest(m, server, TuCapNhat.BanHienTai()) != null) return null;
+        // bản đã thử cài trong 24 giờ (lỗi) thì lượt cập nhật ngay cũng bỏ qua (DaThuGanDay) ⇒ đừng mời Con bấm cập nhật vô ích
+        if (DaThuGanDay(m.Version)) return null;
+        return CapNhat.DocBan(m.Version)?.ToString(3);
+    }
     private static readonly TimeSpan ThuLaiManifest = TimeSpan.FromMinutes(15);
     /// <summary>Tải bộ cài (~182 MB) hỏng/đứt: chờ ít nhất 1 giờ mới tải lại — chu kỳ 15 phút không được biến thành vòng tải liên tục.</summary>
     private static readonly TimeSpan ThuLaiTai = TimeSpan.FromHours(1);

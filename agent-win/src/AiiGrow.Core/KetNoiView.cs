@@ -28,7 +28,8 @@ public sealed record KetNoiInfo(KetNoi Loai, string Tooltip, string Dong, string
 /// </summary>
 public static class KetNoiView
 {
-    public const string DichVuKhongChayDong = "Dịch vụ AiiGrow không chạy";
+    // Chữ theo thiết kế chốt 05/11 (con-mat-mang 01, 08, 21): câu ngắn trấn an — mất mạng / AiiGrow lỗi vẫn tính giờ, vẫn chặn.
+    public const string DichVuKhongChayDong = "AiiGrow đang lỗi";
     public const string ChuaGhepDong = "Máy chưa ghép — mở AiiGrow-Setup để ghép lại";
 
     /// <param name="dichVuTraLoi">Lần gọi named pipe gần nhất tới dịch vụ có trả lời không.</param>
@@ -37,7 +38,7 @@ public static class KetNoiView
     {
         if (!dichVuTraLoi || s == null)
             return new KetNoiInfo(KetNoi.DichVuKhongChay, "AiiGrow · " + DichVuKhongChayDong, DichVuKhongChayDong,
-                "Khởi động lại máy. Nếu vẫn vậy, nhờ Ba Mẹ kiểm tra AiiGrow.");
+                "AiiGrow bị trục trặc. Không sao, máy vẫn giữ luật cũ.");
 
         if (!s.Paired || s.MoCoi || s.TokenRejected)
             return new KetNoiInfo(KetNoi.ChuaGhep, "AiiGrow · " + ChuaGhepDong, ChuaGhepDong,
@@ -45,14 +46,14 @@ public static class KetNoiView
 
         if (s.Offline)
         {
-            var tu = s.OfflineSince is { } t ? " từ " + t.ToLocalTime().ToString("HH:mm") : "";
-            var dong = $"KHÔNG kết nối máy chủ{tu} — kiểm tra Wi-Fi";
-            return new KetNoiInfo(KetNoi.MatKetNoi, "AiiGrow · " + dong, dong,
-                "Kiểm tra Wi-Fi hoặc dây mạng, rồi bấm Thử kết nối lại. Máy vẫn chạy theo giờ đã lưu.");
+            var tu = s.OfflineSince is { } t ? " · " + t.ToLocalTime().ToString("HH:mm") : "";
+            var dong = "Mất mạng" + tu;
+            return new KetNoiInfo(KetNoi.MatKetNoi, "AiiGrow · " + dong + " — máy vẫn tính giờ", dong,
+                "Mất mạng rồi, không sao đâu! Máy vẫn tính giờ và giữ luật như cũ.");
         }
 
         var luc = s.LastSyncAt is { } l ? " · đồng bộ lúc " + l.ToLocalTime().ToString("HH:mm") : "";
-        return new KetNoiInfo(KetNoi.DaKetNoi, "AiiGrow · Đã kết nối" + luc, "Đã kết nối" + luc, "");
+        return new KetNoiInfo(KetNoi.DaKetNoi, "AiiGrow · Đã kết nối" + luc, "Đã kết nối", "");
     }
 
     /// <summary>Chữ tooltip khay (NotifyIcon.Text, tối đa 127 ký tự): câu trạng thái, thêm dòng «còn N phút» khi đã kết nối và có giới hạn giờ.</summary>

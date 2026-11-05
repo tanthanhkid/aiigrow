@@ -90,14 +90,29 @@ internal static class ChupMain
         await Mot("app-nhiem-vu-loi-tai", () => ManApp("app-nhiem-vu-loi-tai", MucApp.NhiemVu, TrangThai(), false,
             loiTai: "Không kết nối được máy chủ. Con kiểm tra Wi-Fi rồi bấm Thử lại nhé."));
 
-        await Mot("chan-app", () => ManChan("chan-app", "robloxplayerbeta.exe", "Roblox", LockReasons.ChuaPhanLoai, true, false));
-        await Mot("chan-app-het-diem", () => ManChan("chan-app-het-diem", "minecraft.exe", "Minecraft Launcher", LockReasons.HetDiem, true, false));
-        await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "robloxplayerbeta.exe", "Roblox", LockReasons.ChuaPhanLoai, true, true));
+        // Thiết kế chốt 05/11 (docs/thiet-ke-chot/con-bi-chan, con-mat-mang 12/14): app Ba Mẹ chặn → nút xin; app lạ → tự gửi → chờ → kết quả.
+        await Mot("chan-app", () => ManChan("chan-app", "youtube.exe", "YouTube", null));
+        await Mot("chan-da-gui", () => ManChan("chan-da-gui", "capcut.exe", "CapCut", "DaGui", tuGui: true));
+        await Mot("chan-ba-me-cho", () => ManChan("chan-ba-me-cho", "capcut.exe", "CapCut", "Duoc"));
+        await Mot("chan-ba-me-chua-cho", () => ManChan("chan-ba-me-chua-cho", "capcut.exe", "CapCut", "ChuaCho"));
+        await Mot("chan-web-cam", () => ManChan("chan-web-cam", "y8-casino.com", "y8-casino.com", "WebCam", web: true));
+        await Mot("chan-web-da-gui", () => ManChan("chan-web-da-gui", "y8.com", "y8.com", "DaGui", web: true));
+        await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
+        await Mot("chan-da-luu-cho-mang", () => ManChan("chan-da-luu-cho-mang", "capcut.exe", "CapCut", "DaLuu"));
 
         await Mot("khoa-het-gio-dem-nguoc", () => ManKhoa("khoa-het-gio-dem-nguoc", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = 45; })));
         await Mot("khoa-gio-ngu", () => ManKhoa("khoa-gio-ngu", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Ngu; })));
         await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; })));
         await Mot("khoa-mat-mang", () => ManKhoa("khoa-mat-mang", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.Offline = true; s.MinutesLeft = 0; })));
+        await Mot("khoa-het-gio", () => ManKhoa("khoa-het-gio", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = null; })));   // 0 ⇒ màn gọi LockWorkStation, khoá luôn máy chụp
+        await Mot("ngoai-le-xin", () => ManHop("ngoai-le-xin", () => new NgoaiLeForm(TrangThai().AppDuocPhep)));
+        await Mot("ngoai-le-cho", () => ManHop("ngoai-le-cho", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); DatTruong(f, "_lyDoGui", "Con chưa xong bài"); Goi(f, "VeCho"); return f; }));
+        await Mot("ngoai-le-duoc", () => ManHop("ngoai-le-duoc", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); Goi(f, "VeDuoc"); return f; }));
+        await Mot("ngoai-le-chua-cho", () => ManHop("ngoai-le-chua-cho", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); Goi(f, "VeChuaCho"); return f; }));
+        await Mot("nhac-5-phut", () => ManHop("nhac-5-phut", () => new NhacGioForm(30, true)));
+        await Mot("hoi-aiigrow", () => ManHop("hoi-aiigrow", () => new HoiAiiGrowForm()));
+        await Mot("cap-nhat-khay-co-ban-moi", () => ManHop("cap-nhat-khay-co-ban-moi", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeCoBanMoi", "0.2.10"); return f; }));
+        await Mot("cap-nhat-khay-moi-nhat", () => ManHop("cap-nhat-khay-moi-nhat", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeMoiNhat", "0.2.10"); return f; }));
 
         await Mot("xin-them-gio", () => ManHop("xin-them-gio", () =>
         {
@@ -123,6 +138,7 @@ internal static class ChupMain
         await Mot("khay-menu", ManMenuKhay);
         // Bóng báo khay («Còn 5 phút»…): runner Windows Server không hiện thông báo (đã thử, ảnh chỉ có màn nền) ⇒ không chụp được ở đây.
 
+        // Bộ cài theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-cai-win): mỗi màn gọi thẳng hàm dựng màn (không đụng máy thật).
         await Mot("cai-1-chao", () => ManCai("cai-1-chao", _ => { }));
         await Mot("cai-2-dieu-khoan", () => ManCai("cai-2-dieu-khoan", f =>
         {
@@ -132,8 +148,8 @@ internal static class ChupMain
         await Mot("cai-3-chon-tai-khoan", () => ManCai("cai-3-chon-tai-khoan", f =>
         {
             DatTruong(f, "_accounts", TaiKhoanMau());
+            DatTruong(f, "_child", ConMau());
             Goi(f, "HienTaiKhoan", 1);
-            foreach (var r in TatCa(f).OfType<RadioButton>()) if (r.Text.StartsWith("minhkhoi", StringComparison.Ordinal)) r.Checked = true;
         }));
         await Mot("cai-3-tao-tai-khoan", () => ManCai("cai-3-tao-tai-khoan", f =>
         {
@@ -153,17 +169,33 @@ internal static class ChupMain
         {
             DatTruong(f, "_child", ConMau());
             Goi(f, "BuocGhep");
-            TatCa(f).OfType<TextBox>().First().Text = "482915";
+            TatCa(f).OfType<TextBox>().First().Text = "482915";   // ô đầu nhận 6 số ⇒ tự dàn đủ 6 ô
         }));
-        await Mot("cai-4-ma-ghep-sai", () => ManCai("cai-4-ma-ghep-sai", f =>
+        await Mot("cai-4-ma-ghep-thieu-so", () => ManCai("cai-4-ma-ghep-thieu-so", f =>
         {
             DatTruong(f, "_child", ConMau());
             Goi(f, "BuocGhep");
             TatCa(f).OfType<TextBox>().First().Text = "48291";
-            TatCa(f).OfType<Button>().First(b => b.Text == "Ghép và cài đặt").PerformClick();
+            TatCa(f).OfType<Button>().First(b => b.Text == "Ghép vào nhà").PerformClick();
         }));
+        await Mot("cai-4-ma-sai-may-chu", () => ManCai("cai-4-ma-sai-may-chu", f =>
+        {
+            DatTruong(f, "_child", ConMau());
+            Goi(f, "ManMaSai", new InstallOptions { Server = "http://127.0.0.1:9", Code = "482916", Child = ConMau() });
+        }));
+        await Mot("cai-4-link-tu-ghep", () => ManCai("cai-4-link-tu-ghep", f =>
+        {
+            DatTruong(f, "_child", ConMau());
+            Goi(f, "BuocGhep");
+        }, () => new SetupForm(new EnrollmentPackage { Server = "http://127.0.0.1:9", Token = "goi-mau" })));
         await Mot("cai-5-dang-cai", ManDangCai);
-        await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau())));
+        await Mot("cai-5-mat-mang", () => ManCai("cai-5-mat-mang", f =>
+            Goi(f, "ManMatMang", new InstallOptions
+            {
+                Server = "http://127.0.0.1:9", Code = "482915", Child = ConMau(),
+                Pair = new PairResult { DeviceId = "may1", Token = "t", ChildName = "Minh Khôi" },
+            })));
+        await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi")));
         await Mot("cap-nhat", () => ManHop("cap-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.CapNhat, new Version(0, 2, 9), new Version(0, 2, 10)))));
         await Mot("cap-nhat-da-moi-nhat", () => ManHop("cap-nhat-da-moi-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.DaMoiNhat, new Version(0, 2, 10), new Version(0, 2, 10)))));
     }
@@ -192,9 +224,17 @@ internal static class ChupMain
         f.Dispose();
     }
 
-    private static async Task ManChan(string ten, string appId, string appName, string lyDo, bool doiDiem, bool matMang)
+    /// <summary>Hộp chặn ở một bước (tên enum BlockedForm.Buoc; null = bước đầu của app Ba Mẹ chặn). Không gửi gì: dựng thẳng bước bằng phản chiếu.</summary>
+    private static async Task ManChan(string ten, string appId, string appName, string? buoc, bool tuGui = false, bool web = false)
     {
-        var f = new BlockedForm(appId, appName, lyDo, doiDiem, matMang);
+        var f = new BlockedForm(appId, appName, boiBaMe: true, offline: buoc == "MatMang", TrangThai().AppDuocPhep, web);
+        if (tuGui) DatTruong(f, "_tuGui", true);
+        DatTruong(f, "_choMang", 2);
+        if (buoc != null && buoc != "MatMang")
+        {
+            var kieu = typeof(BlockedForm).GetNestedType("Buoc", Moi)!;
+            Goi(f, "Ve", Enum.Parse(kieu, buoc));
+        }
         try
         {
             f.Show();
@@ -206,7 +246,7 @@ internal static class ChupMain
 
     private static async Task ManKhoa(string ten, TrayState s)
     {
-        var f = new LockForm(s.CanExchangePoints);
+        var f = new LockForm();
         f.WindowState = FormWindowState.Normal;   // phóng to theo «màn giả định», không theo màn runner
         DatCuaSo(f, _man, laClient: false);
         try
@@ -217,6 +257,14 @@ internal static class ChupMain
             Chup(f, ten);
         }
         finally { f.CloseForReal(); f.Dispose(); }   // lỗi giữa chừng: màn khoá TopMost không được ở lại che các ảnh sau
+    }
+
+    /// <summary>Hộp cập nhật: bỏ lượt hỏi dịch vụ (không có ở máy chụp), dựng thẳng một bước.</summary>
+    private static void DatXong(Form f, string buoc, string ban)
+    {
+        Goi(f, "XoaHet");
+        Goi(f, buoc, ban);
+        Goi(f, "Xong");
     }
 
     private static async Task ManHop(string ten, Func<Form> tao)
@@ -267,9 +315,9 @@ internal static class ChupMain
         ctx.Dispose();
     }
 
-    private static async Task ManCai(string ten, Action<SetupForm> buoc)
+    private static async Task ManCai(string ten, Action<SetupForm> buoc, Func<SetupForm>? tao = null)
     {
-        var f = new SetupForm();
+        var f = tao?.Invoke() ?? new SetupForm();
         f.StartPosition = FormStartPosition.Manual;
         f.Location = new Point(40, 40);
         try
@@ -283,7 +331,7 @@ internal static class ChupMain
         finally { f.Dispose(); }
     }
 
-    /// <summary>Bước «Cài»: máy chủ giả trên 127.0.0.1 nhận lời ghép nhưng chưa trả lời (chụp «Đang cài…»), rồi trả lỗi 410 «mã hết hạn» như máy chủ thật
+    /// <summary>Bước «Cài»: máy chủ giả trên 127.0.0.1 nhận lời ghép nhưng chưa trả lời (chụp «Đang cài…»), rồi trả lỗi 410 «mã hết hạn» như máy chủ thật (màn «Mã ghép đã hết hạn»)
     /// (server/lib/gia-dinh.ts) ⇒ Installer.RunAsync dừng ở bước ghép, TRƯỚC khi ghi cấu hình / hạ quyền / cài dịch vụ.</summary>
     private static async Task ManDangCai()
     {
@@ -318,7 +366,7 @@ internal static class ChupMain
                 st.Flush();
                 await Cho(1500);
             }
-            Chup(f, "cai-5-loi-ghep");
+            Chup(f, "cai-5-ma-het-han");   // 410 ma_het_han ⇒ màn «Mã ghép đã hết hạn»
         }
         finally { nghe.Stop(); }
     }
@@ -332,6 +380,9 @@ internal static class ChupMain
             Paired = true, ChildName = "Minh Khôi", Mode = Modes.TuDo, MinutesLeft = 47.5, CanExchangePoints = true,
             LastSyncAt = DateTimeOffset.Now.AddMinutes(-1), CheDo = CheDoAgent.Chan,
             PlayChoices = new List<string> { "robloxplayerbeta.exe", "minecraft.exe", "youtube.com" },
+            // thiết kế chốt 05/11: con mẫu có 30 sao, quỹ 60 phút, ngủ 21:30 → mở lại 6:30, 4 app được phép
+            Sao = 30, QuyPhut = 60, MoLaiLuc = "6:30",
+            AppDuocPhep = new List<string> { "hocvoiairob.exe", "tudien.exe", "robloxplayerbeta.exe", "youtubekids.exe" },
         };
         sua?.Invoke(s);
         return s;

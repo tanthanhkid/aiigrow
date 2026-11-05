@@ -17,6 +17,9 @@ public sealed class ApiException : Exception
     public bool IsUnauthorized => StatusCode is 401 or 403;
     /// <summary>Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline, giữ hàng đợi.</summary>
     public bool IsNetwork => StatusCode is null or >= 500;
+    /// <summary>Lỗi ĐƯỜNG TRUYỀN thật (không tới được / hết giờ / máy chủ 5xx) — khác <see cref="IsNetwork"/> ở chỗ không tính lỗi không mã của chính client
+    /// (thân trả về không đọc được, thiếu token, gói cài thiếu máy chủ…): những lỗi đó thử lại cũng hỏng như cũ.</summary>
+    public bool LaLoiDuongTruyen => StatusCode >= 500 || (StatusCode == null && InnerException is HttpRequestException or TimeoutException or IOException);
     /// <summary>Máy chủ KHẲNG ĐỊNH máy đã bị gỡ khỏi gia đình (401 token_sai). CHỈ loại này mới tính vào mốc mồ côi 6 giờ —
     /// 403 lạ (tường lửa / CDN) không tính, để không thôi chặn nhầm khi Con tự dựng được một phản hồi 403.</summary>
     public bool LaTokenSai => StatusCode == 401 && Code is "token_sai" or "device_unknown";
@@ -82,6 +85,19 @@ public sealed class ApiClient : IDisposable
     /// <summary>«Xin mở trang hoặc app» (POST yeu-cau {loai: mo_web | cai_app, giaTri, lyDo}). Ba Mẹ đồng ý ⇒ máy chủ đặt luật cho mục đó (lib/yeu-cau.ts).</summary>
     public Task<RequestResult> CreateOpenRequestAsync(string loai, string muc, string? note, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = loai == LoaiXin.MoWeb ? LoaiXin.MoWeb : LoaiXin.CaiApp, giaTri = muc, lyDo = XinMoView.LyDo(note, muc) }, ct);
+
+    /// <summary>Thiết kế 05/11 (L4): «Xin Ba Mẹ duyệt» app / web lạ — POST /api/device/xin-duyet {muc, ten?, lyDo?} → {id, trang_thai, daCo, loai, muc}.
+    /// Máy chủ tự nhận app / web; web luôn chặn ⇒ ApiException Code «web_cam» (409). Lý do không bắt buộc.</summary>
+    public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
+
+    /// <summary>Thiết kế 05/11 (L3, docs/API.md mục S1): xin mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / hết giờ) —
+    /// POST yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri: &lt;app khi phamVi app&gt;, phut, lyDo}.</summary>
+    public Task<RequestResult> CreateNgoaiLeAsync(int phut, string muc, string lyDo, CancellationToken ct = default)
+    {
+        var caMay = muc == NgoaiLeView.CaMay;
+        return PostAsync<RequestResult>("api/device/yeu-cau", new { loai = LoaiXin.NgoaiLe, phamVi = caMay ? "ca_may" : "app", giaTri = caMay ? null : muc, phut = NgoaiLeView.Kep(phut), lyDo }, ct);
+    }
 
     /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)
@@ -163,7 +179,7 @@ public sealed class ApiClient : IDisposable
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new ApiException("Máy chủ không trả lời kịp");
+            throw new ApiException("Máy chủ không trả lời kịp", null, new TimeoutException());
         }
         catch (HttpRequestException e)
         {

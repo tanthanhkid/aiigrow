@@ -74,7 +74,7 @@ public sealed class PipeServer : BackgroundService
                     var req = string.IsNullOrEmpty(line) ? null : JsonSerializer.Deserialize<PipeRequest>(line, Json.Options);
                     var h = pipe.SafePipeHandle.DangerousGetHandle();
                     var clientSession = SessionHelper.PipeClientSession(h);
-                    bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo || (req?.Cmd == PipeCmd.Request && LoaiXin.LaXinMo(req.Kind))) && _laKhayThat(h);
+                    bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo or PipeCmd.XinDuyet || (req?.Cmd == PipeCmd.Request && (LoaiXin.LaXinMo(req.Kind) || req.Kind == LoaiXin.NgoaiLe))) && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
@@ -90,6 +90,16 @@ public sealed class PipeServer : BackgroundService
             }
             catch (OperationCanceledException) { }
         }
+    }
+
+    /// <summary>05/11 (L11): mất mạng ⇒ lưu lời xin vào config, lần đồng bộ được kế tiếp dịch vụ tự gửi (AgentWorker › GuiXinChoMang).</summary>
+    private PipeResponse LuuChoMang(LoiXinCho x)
+    {
+        int n = 0;
+        try { var moi = _rt.Store.Update(c => c.XinCho.Them(x)) ?? throw new IOException("không ghi được cấu hình"); n = moi.XinCho.Items.Count; _rt.NapLaiConfig(moi); }
+        catch (Exception e) { _log.LogWarning("Không lưu được lời xin chờ mạng: {m}", e.Message); return new PipeResponse { Ok = false, Error = "Chưa có mạng, con thử lại sau nhé." }; }
+        _log.LogInformation("Mất mạng: đã lưu lời xin {loai} {muc} chờ có mạng ({n})", x.Loai, x.Muc, n);
+        return new PipeResponse { Ok = true, Status = "cho_mang", Id = x.Ma, Message = n.ToString() };
     }
 
     /// <summary>Trạng thái cho khay của phiên <paramref name="phienGoi"/> + cờ «phiên này có phải của Con không» (khay phiên Ba Mẹ tự thoát — BUG-007).</summary>
@@ -170,8 +180,28 @@ public sealed class PipeServer : BackgroundService
                     }
                     catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
                 }
+                // 05/11 (L3): xin mở ngoại lệ — một app hoặc cả máy, có hạn phút; mất mạng ⇒ lưu, có mạng tự gửi (L11).
+                if (req.Kind == LoaiXin.NgoaiLe)
+                {
+                    // như «xin mở»: chỉ khay đã cài — tiến trình lạ trong phiên Con không gửi được lời xin mở cả máy bằng token máy (review #75)
+                    if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được gửi lời xin này" };
+                    var muc = string.IsNullOrWhiteSpace(req.AppId) ? NgoaiLeView.CaMay : req.AppId!.Trim();
+                    var lyDo = NgoaiLeView.LyDo(req.Note, null);
+                    try
+                    {
+                        using var api = new ApiClient(cfg.Server, cfg.Token);
+                        var res = await api.CreateNgoaiLeAsync(req.Minutes, muc, lyDo, ct);
+                        if (res.KetQua != "cho") _rt.RequestSyncSoon();
+                        return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
+                    }
+                    catch (ApiException e) when (e.LaLoiDuongTruyen)
+                    {
+                        return LuuChoMang(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = muc, Ten = req.AppName, Phut = NgoaiLeView.Kep(req.Minutes), LyDo = lyDo, Luc = now });
+                    }
+                    catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+                }
                 var kind = req.Kind == LoaiXin.DoiDiem ? LoaiXin.DoiDiem : LoaiXin.ThemGio;
-                int minutes = req.Minutes is 30 or 60 or 120 ? req.Minutes : 30;
+                int minutes = req.Minutes is >= 5 and <= 240 ? req.Minutes : 30;
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
@@ -179,8 +209,60 @@ public sealed class PipeServer : BackgroundService
                     if (res.KetQua != "cho") _rt.RequestSyncSoon();
                     return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
                 }
+                catch (ApiException e) when (e.LaLoiDuongTruyen && kind == LoaiXin.ThemGio)
+                {
+                    return LuuChoMang(new LoiXinCho { Loai = LoaiXin.ThemGio, Muc = req.AppId, Ten = req.AppName, Phut = minutes, LyDo = req.Note, Luc = now });
+                }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
+
+            case PipeCmd.XinDuyet:
+            {
+                // 05/11 (L4): «Xin Ba Mẹ duyệt» app / web lạ (màn chặn tự gửi, hoặc Con bấm). Như «xin mở»: chỉ khay đã cài, chỉ phiên Con / màn hình.
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được gửi lời xin" };
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được gửi lời xin này" };
+                var cfg = _rt.Config;
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với Ba Mẹ" };
+                var muc = XinMoView.ChuanMuc(req.AppId);
+                if (muc == null) return new PipeResponse { Ok = false, Error = "Con ghi địa chỉ trang hoặc tên app nhé." };
+                try
+                {
+                    using var api = new ApiClient(cfg.Server, cfg.Token);
+                    var res = await api.XinDuyetAsync(muc, req.AppName, req.Note, ct);
+                    if (res.KetQua is not ("cho" or "")) _rt.RequestSyncSoon();
+                    return new PipeResponse { Ok = true, Id = res.Id, Status = string.IsNullOrEmpty(res.KetQua) ? "cho" : res.KetQua };
+                }
+                catch (ApiException e) when (e.Code == "web_cam")
+                {
+                    return new PipeResponse { Ok = true, Status = "web_cam", Message = e.Message };
+                }
+                catch (ApiException e) when (e.LaLoiDuongTruyen)
+                {
+                    return LuuChoMang(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = muc, Ten = req.AppName, LyDo = req.Note, Luc = now });
+                }
+                catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+            }
+
+            case PipeCmd.KiemCapNhat:
+            {
+                var cfg = _rt.Config;
+                var ban = TuCapNhat.BanHienTai().ToString(3);
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Status = ban, Error = "Máy chưa ghép với Ba Mẹ" };
+                try
+                {
+                    var moi = await UpdateWorker.KiemBanMoiAsync(cfg.Server, ct);
+                    return new PipeResponse { Ok = true, Status = ban, Message = moi };
+                }
+                catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
+                {
+                    return new PipeResponse { Ok = false, Status = ban, Error = e.Message };
+                }
+            }
+
+            case PipeCmd.CapNhatNgay:
+                // Không cần quyền gì thêm: dịch vụ chỉ cài đúng bản manifest máy chủ ký sha256 (như lượt tự cập nhật định kỳ).
+                UpdateWorker.KiemNgay();
+                return new PipeResponse { Ok = true };
 
             case PipeCmd.Play:
             {

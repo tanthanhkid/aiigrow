@@ -41,7 +41,7 @@ internal static class DeviceHttp
         if (body != null) req.Content = JsonContent.Create(body, body.GetType(), null, Json.Options);
         HttpResponseMessage resp;
         try { resp = await http.SendAsync(req, ct); }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ApiException("Máy chủ không trả lời kịp"); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ApiException("Máy chủ không trả lời kịp", null, new TimeoutException()); }
         catch (HttpRequestException e) { throw new ApiException("Không kết nối được máy chủ: " + e.Message, null, e); }
         using (resp)
         {

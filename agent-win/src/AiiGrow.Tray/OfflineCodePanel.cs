@@ -14,29 +14,38 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     private readonly Label _msg;
     private bool _busy;
 
+    /// <summary>Mã Con đang gõ dở — màn khoá dựng lại thẻ thì giữ nguyên.</summary>
+    public string MaDangGo { get => _box.Text; set { _box.Text = value; _box.Focus(); _box.SelectionStart = _box.TextLength; } }
+
     /// <summary>Gọi khi mã đúng (máy đã mở) — màn chặn tự đóng.</summary>
     public event Action? Unlocked;
 
-    public OfflineCodePanel(int width, Color? textColor = null, Color? mutedColor = null)
+    /// <param name="nhan">Câu mời (thiết kế 05/11: «Ba Mẹ ở cạnh con?» / «Ba Mẹ ở cạnh? Nhờ đọc mã 6 số»).</param>
+    /// <param name="phu">Dòng phụ dưới câu mời (màn khoá: «Nhờ Ba Mẹ đọc mã 6 số trong app AiiGrow.»).</param>
+    /// <param name="nut">Chữ nút (màn khoá: «Mở máy bằng mã của Ba Mẹ»; màn chặn: «Mở app»). Nút rộng hết ô, dưới ô nhập.</param>
+    public OfflineCodePanel(int width, Color? textColor = null, Color? mutedColor = null, string? nhan = null, string? phu = null, string? nut = null, float ptNut = 11.5f)
     {
         FlowDirection = FlowDirection.TopDown; WrapContents = false; AutoSize = true;
         BackColor = Color.Transparent;   // nằm trên thẻ Clay của màn khoá / màn chặn
         Margin = new Padding(0, 8, 0, 0);
-        Controls.Add(UI.Text(BlockScreenView.OfflineCodeLabel, 11f, true, textColor, width));
+        var moi = UI.Text(nhan ?? BlockScreenView.OfflineCodeLabel, 11f, true, textColor, width);
+        moi.Margin = new Padding(0, 0, 0, UI.Px(2));
+        Controls.Add(moi);
+        if (phu != null) Controls.Add(UI.Text(phu, 10.5f, false, mutedColor ?? UI.Muted, width));
 
-        var row = new FlowLayoutPanel { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, Margin = new Padding(0, 4, 0, 0), BackColor = Color.Transparent };
-        // Ô nhập lòng chảo Clay thân ≥44 (trước: TextBox viền mảnh trắng cao ~32px, lệch nút «Mở»).
-        _box = new TextBox { MaxLength = 6, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "6 số", ForeColor = UI.Ink };
+        // Ô nhập lòng chảo Clay thân ≥44, rộng hết ô; chấm «• • • • • •» như thiết kế. Nút ở dưới, rộng hết ô.
+        _box = new TextBox { MaxLength = 6, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "• • • • • •", ForeColor = UI.Ink };
         _box.KeyPress += (_, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
         _box.KeyDown += async (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await SendAsync(); } };
-        var o = ONhapClay.Boc(_box, UI.Px(150));
-        _go = UI.Btn("Mở", true, UI.Px(96), "key");
-        _go.Height = ONhapClay.Than(_box) + VeNut.LeBong.Vertical;   // thân nút cao bằng thân ô nhập (khớp cả mép dưới)
-        _go.Margin = new Padding(UI.Px(8), Math.Max(0, VeThe.LeBong.Top - VeNut.LeBong.Top), 0, 0);   // thân nút ngang thân ô nhập
+        var o = ONhapClay.Boc(_box, width - VeThe.LeBong.Horizontal);
+        Controls.Add(o);
+        _go = UI.Btn(nut ?? "Mở", true, width);
+        _go.Image = Anh3D.Icon("mo_khoa");
+        _go.Font = UI.F(ptNut, FontStyle.Bold);
+        _go.Height = UI.Px(48) + VeNut.LeBong.Vertical;
+        _go.Margin = new Padding(0, UI.Px(4), 0, 0);
         _go.Click += async (_, _) => await SendAsync();
-        row.Controls.Add(o);
-        row.Controls.Add(_go);
-        Controls.Add(row);
+        Controls.Add(_go);
 
         _msg = UI.Text("", 10.5f, false, mutedColor ?? UI.Muted, width);
         Controls.Add(_msg);
