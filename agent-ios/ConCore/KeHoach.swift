@@ -60,6 +60,8 @@ public struct KeHoach: Codable, Equatable {
   public var dungTaiChoLucDongBo: Int? = nil
   /// «10 sao = X phút» (màn Dùng sao).
   public var phut10Sao: Int? = nil
+  /// Quỹ NGÀY (không gồm phút cộng thêm) — mất mạng qua nửa đêm thì hôm nay chỉ có chừng này.
+  public var quyNgayPhut: Int? = nil
   /// Giờ học (chỉ app Học) + thứ kiểu Apple (1 = CN … 7 = T7).
   public var hoc: Khung? = nil
   public var hocThu: [Int]? = nil
@@ -79,8 +81,9 @@ public struct KeHoach: Codable, Equatable {
 }
 
 extension KeHoach {
-  func voi(daDung: Int?, ngay: String?, hoc: Khung?, hocThu: [Int]?, ngoaiLeDen: Date?, phut10Sao: Int?) -> KeHoach {
+  func voi(daDung: Int?, ngay: String?, hoc: Khung?, hocThu: [Int]?, ngoaiLeDen: Date?, phut10Sao: Int?, quyNgay: Int?) -> KeHoach {
     var k = self
+    k.quyNgayPhut = quyNgay
     k.daDungMayChu = daDung; k.ngayDaDung = ngay; k.hoc = hoc; k.hocThu = hocThu; k.ngoaiLeDen = ngoaiLeDen; k.phut10Sao = phut10Sao
     return k
   }
@@ -203,7 +206,7 @@ public enum LapKeHoach {
                    serverTime: NgayISO.doc(n.serverTime) ?? now, tenCon: cs.con?.ten, dungChung: cs.may.dungChung,
                    phienDiem: phienDen == nil ? nil : phien, phienDiemDen: phienDen)
       .voi(daDung: cs.quy?.daDung, ngay: cs.quy == nil ? nil : TinhKhien.diaPhuong(now, tz: tz).ngay, hoc: hoc, hocThu: hocThu, ngoaiLeDen: ngoaiLeDen,
-           phut10Sao: cs.quy?.tyLe.map { max(1, $0.phut * 10 / max(1, $0.sao)) })
+           phut10Sao: cs.quy?.tyLe.map { max(1, $0.phut * 10 / max(1, $0.sao)) }, quyNgay: cs.quy?.ngayPhut)
   }
 
   /// Bước đo phút: 5 phút, nới ra để không quá ~40 sự kiện.

@@ -63,10 +63,13 @@ public enum QuyGio {
     Set((p.appTinhGio.isEmpty ? p.playChoices : p.appTinhGio).map { $0.lowercased() })
   }
 
-  /// Quỹ lúc đồng bộ; `ngayMoi` (Policy của hôm trước — mất mạng qua nửa đêm) ⇒ tổng quỹ (không còn trừ phần đã dùng hôm qua).
+  /// Quỹ còn lúc đồng bộ. Máy chủ đặt `quyConPhut` = 0 cả khi «không được chơi» vì lý do khác (giờ học, giờ ngủ, khoá, giờ máy sai) ⇒ tính
+  /// lại từ `quyTongPhut − quyDaDung` khi có, để «hết giờ» chỉ là hết quỹ thật. `ngayMoi` (Policy của hôm trước, mất mạng qua nửa đêm):
+  /// không biết quỹ ngày mới (Policy Mac không mang quỹ gốc, tổng có cả phút cộng thêm hôm qua) ⇒ giữ phần còn lại của hôm qua (bảo thủ).
   static func quyGoc(_ p: Policy, ngayMoi: Bool) -> Int? {
     guard let q = p.quyConPhut else { return nil }
-    return ngayMoi ? (p.quyTongPhut ?? q) : q
+    if let t = p.quyTongPhut, let d = p.quyDaDung { return max(0, t - d) }
+    return q
   }
 
   /// Phút quỹ còn tại chỗ = quỹ lúc đồng bộ − giây app tính giờ đã chạy từ đó (làm tròn xuống). nil = Policy không mang quỹ.
@@ -81,10 +84,11 @@ public enum QuyGio {
     return Double(q) * 60 - quyGiay <= 0
   }
 
-  /// App tiền cảnh có phải app tính giờ (so bundle id / tên .app, không phân biệt hoa thường). Không kiểm được app tiền cảnh ⇒ vẫn tính
-  /// (như TienCanh.chon / ChoiBangDiem.dangChoi: lsappinfo lỗi không thành giờ chơi miễn phí).
-  public static func laAppTinhGio(_ p: Policy, tienCanh: String?) -> Bool {
-    guard let t = tienCanh?.lowercased(), !t.isEmpty, t != DemPhut.khongRo else { return true }
+  /// App tiền cảnh có phải app tính giờ (so bundle id / tên .app, không phân biệt hoa thường). Không kiểm được app tiền cảnh
+  /// (`tienCanh` nil / «khong-ro») ⇒ tính khi `coAppTinhGioDangChay` (một app tính giờ đang chạy): lsappinfo lỗi không thành giờ chơi
+  /// miễn phí, mà Con đang ở app Học cũng không bị trừ oan.
+  public static func laAppTinhGio(_ p: Policy, tienCanh: String?, coAppTinhGioDangChay: Bool = false) -> Bool {
+    guard let t = tienCanh?.lowercased(), !t.isEmpty, t != DemPhut.khongRo else { return coAppTinhGioDangChay }
     return dsTinhGio(p).contains { $0 == t || $0 == t + ".app" }
   }
 
@@ -103,7 +107,8 @@ public enum QuyGio {
     if matMang, !caMay {
       let c = lich.dateComponents([.hour, .minute, .weekday], from: now)
       let phut = (c.hour ?? 0) * 60 + (c.minute ?? 0), thu = ((c.weekday ?? 1) - 1)
-      if let h = p.gioHoc { q.dangGioHoc = h.chua(phutNgay: phut, thuNay: thu) } else if ngayMoi { q.dangGioHoc = false }
+      // chỉ BẬT giờ học theo đồng hồ máy (múi giờ Mac có thể khác gia đình) — không tự tắt cờ máy chủ đã gửi
+      if let h = p.gioHoc, h.chua(phutNgay: phut, thuNay: thu) { q.dangGioHoc = true }
       if let n = p.gioNgu, n.chua(phutNgay: phut, thuNay: thu), !q.locked {
         q.mode = CheDo.khoa.rawValue; q.locked = true; q.lockReason = LyDoKhoa.ngu
         q.allowedApps = q.allowedApps.filter { conHan.contains($0.lowercased()) }      // chỉ app ngoại lệ còn hạn (+ app hệ thống daemon tự thêm)

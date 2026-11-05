@@ -155,7 +155,8 @@ class DichVuNhip : Service() {
         // (phút chơi trong lúc thêm giờ vẫn tính vào trần ngày ⇒ cộng phút còn tới hạn vào phút đã dùng; giờ ngủ tới trước hạn thì khoá sớm hơn)
         val sauHan = if (qd.trangThai == TrangThai.DUOC_THEM_GIO) qd.moLaiLuc?.let { mo ->
             val toiHanPhut = java.time.Duration.between(now, mo).toMinutes().toInt().coerceAtLeast(0)
-            quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet())
+            quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet(),
+                k.phutLucNhip.takeIf { it >= 0 }, k.ngayNhip)
         } else null
         val nguToi = if (moOff == null) giayToiNgu(cs, now) else null   // mã offline gỡ cả giờ ngủ
         nhacTruocKhoa(k, giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay)
@@ -193,7 +194,9 @@ class DichVuNhip : Service() {
             try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
                 val csMoi = docPhanHoiNhip(r.toString()).chinhSach
                 k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
-                k.ngayNhip = gioDiaPhuong(Instant.now(), csMoi.tz).zdt.toLocalDate().toString()
+                // ngày theo ĐỒNG HỒ MÁY CHỦ (như `now` của vòng thực thi) — đồng hồ máy lệch không làm lệch ngày
+                val st = r.optString("serverTime").takeIf { it.isNotBlank() }?.let { Instant.parse(it) } ?: Instant.now()
+                k.ngayNhip = gioDiaPhuong(st, csMoi.tz).zdt.toLocalDate().toString()
             } catch (_: Exception) {}
             r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }

@@ -75,17 +75,18 @@ final class QuyGioTests: XCTestCase {
     p.mode = "hoc"; p.dangGioHoc = true
     let h = QuyGio.apDung(p, quyGiay: 0, now: gocNgay, matMang: false)
     XCTAssertTrue(h.hetQuy.isEmpty); XCTAssertEqual(h.gioHoc, ["com.roblox.roblox", "youtube.com"])
-    // mất mạng, lịch học đã qua ⇒ cờ cũ không còn giữ
-    p.gioHoc = KhungGio(tu: "08:00", den: "09:00", thu: [0, 1, 2, 3, 4, 5, 6]); p.quyConPhut = 20
-    XCTAssertFalse(QuyGio.apDung(p, quyGiay: 0, now: gocNgay, matMang: true).policy.dangGioHoc)
+
   }
 
-  func testSangNgayMoiDungTongQuy() {
-    var p = pol(quy: 0); p.quyTongPhut = 60
+  func testQuyConPhutBiCheKhiKhongDuocChoi() {
+    // máy chủ gửi quyConPhut 0 vì giờ ngủ / học nhưng quỹ thật còn 20 (60 − 40) ⇒ không phải «hết giờ»
+    var p = pol(quy: 0); p.quyTongPhut = 60; p.quyDaDung = 40
+    XCTAssertFalse(QuyGio.hetQuy(p, quyGiay: 0))
+    XCTAssertEqual(QuyGio.conPhut(p, quyGiay: 600), 10)
+    p.quyDaDung = 60
     XCTAssertTrue(QuyGio.hetQuy(p, quyGiay: 0))
-    XCTAssertFalse(QuyGio.hetQuy(p, quyGiay: 0, ngayMoi: true), "Policy hôm qua: hôm nay quỹ đầy lại")
-    XCTAssertEqual(QuyGio.conPhut(p, quyGiay: 600, ngayMoi: true), 50)
-    XCTAssertTrue(QuyGio.laAppTinhGio(p, tienCanh: nil), "không kiểm được tiền cảnh ⇒ vẫn tính giờ")
+    XCTAssertFalse(QuyGio.laAppTinhGio(p, tienCanh: nil), "không kiểm được tiền cảnh, không có game chạy ⇒ không trừ")
+    XCTAssertTrue(QuyGio.laAppTinhGio(p, tienCanh: nil, coAppTinhGioDangChay: true))
   }
 
   func testMoHetHetQuyThiDongAppTinhGio() {

@@ -418,14 +418,13 @@ public actor BoMay {
   /// Đếm lùi quỹ: chỉ khi app tính giờ (Policy.appTinhGio) ở tiền cảnh — app Học / hệ thống không tốn quỹ. Cả lúc mất mạng.
   private func demQuy(troi: Double) {
     guard let p = policy, p.quyConPhut != nil, !QuyGio.dsTinhGio(p).isEmpty else { return }
-    // sang ngày (mất mạng qua nửa đêm): giây đã đếm của hôm qua bỏ đi — quỹ hôm nay tính lại từ tổng quỹ (QuyGio.quyGoc)
-    let homNay = DemPhut.ngay(dongHo())
-    if cauHinh.quyNgay != homNay {
-      if cauHinh.quyNgay != nil, ngayMoi(dongHo()) { cauHinh.quyGiayTuSync = 0 }
-      cauHinh.quyNgay = homNay; let n = homNay; _ = try? kho.sua { $0.quyNgay = n }
-    }
     let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
-    if QuyGio.laAppTinhGio(p, tienCanh: tc) { cauHinh.quyGiayTuSync += troi }
+    let dangChay: Bool = {
+      guard tc == nil, let u = cauHinh.uidCon else { return false }
+      let ds = QuyGio.dsTinhGio(p)
+      return heThong.tienTrinh(cuaUid: u).contains { t in [t.bundleId, t.bundleIdGan].contains { $0.map { ds.contains($0.lowercased()) } ?? false } }
+    }()
+    if QuyGio.laAppTinhGio(p, tienCanh: tc, coAppTinhGioDangChay: dangChay) { cauHinh.quyGiayTuSync += troi }
   }
 
   private func demGiayApp(troi: Double, now: Date) {
@@ -688,8 +687,8 @@ public actor BoMay {
     if let than, than.utf8.count > 600_000 { return .loi(ma: "qua_lon", chu: "Ảnh quá lớn. Con chọn ảnh khác nhé.") }
     do {
       let d = try await api.hocVien(method: method, path: path, than: than.map { Data($0.utf8) })
-      if method.uppercased() == "POST" { choiNho = [:] }
-      if path == "hoc-vien/doi-sao" { dongBoSom() }      // quỹ mới (đã đổi sao) tới ngay, không chờ nextCheckSec     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
+      if path == "hoc-vien/doi-sao" { dongBoSom() }      // quỹ mới (đã đổi sao) tới ngay, không chờ nextCheckSec
+      if method.uppercased() == "POST" { choiNho = [:] }     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng     // đổi quà / nộp bài tự duyệt ⇒ số dư đổi ⇒ số phút nhớ không còn đúng
       return .duLieu(json: String(decoding: d, as: UTF8.self))
     } catch let e as LoiApi {
       return .loi(ma: e.ma ?? "hoc_vien_loi", chu: BoMay.cauLoiCon(e))

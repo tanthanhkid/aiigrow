@@ -464,7 +464,7 @@ final class QuyGioTests: XCTestCase {
     // PC dùng 30 trong 40 của máy chủ; lúc đồng bộ iPhone đo 10, sau đó chơi thêm 30 (đo 40) ⇒ đã dùng 70 ⇒ còn 5
     var k2 = kh; k2.dungTaiChoLucDongBo = 10
     XCTAssertEqual(TinhKhien.phutConLai(k2, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 40, tranHet: false)), 5)
-    XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(27, 10), dung: nil), 75, "sang ngày: phút máy chủ của hôm qua không tính")
+    XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(27, 10), dung: nil), 60, "sang ngày: quỹ ngày, không phút máy chủ / phút thêm của hôm qua")
     XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 75, tranHet: true)).lyDo, .hetGio)
   }
 

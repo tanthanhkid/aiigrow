@@ -82,7 +82,9 @@ public enum TinhKhien {
   }
 
   public static func phutConLai(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int {
-    max(0, kh.tranPhut - phutDaDung(kh, now: now, dung: dung))
+    // quỹ của ngày đồng bộ; sang ngày (chưa đồng bộ lại) ⇒ quỹ ngày, không gồm phút cộng thêm hôm qua
+    let tran = (kh.ngayDaDung != nil && kh.ngayDaDung != diaPhuong(now, tz: kh.tz).ngay) ? (kh.quyNgayPhut ?? kh.tranPhut) : kh.tranPhut
+    return max(0, tran - phutDaDung(kh, now: now, dung: dung))
   }
 
   public static func trongGioChoi(_ kh: KeHoach, now: Date) -> Bool {
