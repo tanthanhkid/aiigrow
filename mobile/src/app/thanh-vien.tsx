@@ -24,7 +24,7 @@ export default function ThanhVien() {
   const x = d.tv.ds[i];
   const ve = () => veHoac("/cai-dat");
   if (!x) return <Man lui={{ chu: "Cả nhà" }}><ChoTai loi="Người này không còn trong nhà." tai={ve} /></Man>;
-  const dd = x.dinh_danh ?? "", email = dd.includes("@");
+  const dd = x.dinh_danh ?? "", email = dd.includes("@"), fb = !!x.laFacebook;    // tài khoản tạo bằng Facebook (định danh riêng — máy chủ trả dinh_danh «Facebook»)
   const toiBaMe = d.tv.toi.quyen === "ba_me";
   const doiDuoc = toiBaMe && !x.laChuNha && !x.laToi;
   const roiDuoc = x.laToi ? !x.laChuNha : doiDuoc;
@@ -64,7 +64,7 @@ export default function ThanhVien() {
       </View>
       <MucTieu chu={`${x.laToi ? "Bạn" : x.ten} trong nhà`} />
       <Nhom>
-        <Dong dau tieu={email ? "Email" : "Số điện thoại"} phu={dd ? dd.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : "Chưa có"} trai={<OIcon ic={email ? "tin" : "dt"} />} />
+        <Dong dau tieu={fb ? "Đăng nhập bằng" : email ? "Email" : "Số điện thoại"} phu={dd ? dd.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : "Chưa có"} trai={<OIcon ic={email || fb ? "tin" : "dt"} />} />
         <Dong tieu="Quyền" phu={TEN_QUYEN[x.quyen]} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
         <Dong tieu="Cùng trông" phu={d.con.length ? d.con.join(", ") : "Chưa có con nào"} trai={<OIcon ic="nguoi" />} />
       </Nhom>

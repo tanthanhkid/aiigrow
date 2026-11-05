@@ -597,11 +597,28 @@ export const SCHEMA_TV_TB = [
 //   lúc ghép chép cài đặt của Con dùng máy đó sang Con của máy mới (lib/ghep-may.ts › saoChepCaiDat).
 // app_theo_ten: app Ba Mẹ cho phép theo TÊN lúc thiết lập («Thêm app khác») khi chưa máy nào báo định danh thật — máy gửi danh sách app
 //   (POST /api/device/ung-dung) thì khớp tên ⇒ ghi luật app_rules thật, đặt khop_luc. tinh_gio: true = tính vào giờ chơi (giai_tri), false = hoc.
+/** Tài khoản tạo bằng Facebook còn mang email làm định danh ⇒ email sang ba_me_mxh.email, định danh = fb:<id> (TIEN_TO_FB, auth.ts).
+ *  Chạy trong SCHEMA_S2 và cron hằng ngày (dang-nhap-mxh.ts › chuyenFbCu — dọn tài khoản bản cũ tạo lúc deploy). Chạy lại vô hại. */
+export const SQL_CHUYEN_FB = [
+  `update ba_me_mxh m set email = p.dinh_danh from parents p
+     where p.id = m.parent_id and m.nguon = 'facebook' and not m.lien_ket and m.email is null and p.dinh_danh like '%@%'`,
+  `update parents p set dinh_danh = 'fb:' || m.sub from ba_me_mxh m
+     where m.parent_id = p.id and m.nguon = 'facebook' and not m.lien_ket and p.dinh_danh not like 'fb:%' and p.vai <> 'roi'`,
+];
 export const SCHEMA_S2 = [
   // Đăng nhập Google / Facebook (lib/dang-nhap-mxh.ts): (nguồn, mã người dùng của nhà cung cấp) ⇒ Ba Mẹ. Không gắn theo email vào tài khoản sẵn có.
   `create table if not exists ba_me_mxh (nguon text not null, sub text not null, parent_id text not null references parents(id) on delete cascade,
      created_at timestamptz not null default now(), primary key (nguon, sub))`,
   `create index if not exists ba_me_mxh_parent on ba_me_mxh(parent_id)`,
+  // Tài khoản tạo bằng Facebook: định danh riêng `fb:<id Facebook>` — email Facebook (chưa chắc đã xác minh) chỉ lưu tham khảo ở
+  // ba_me_mxh.email, không giữ chỗ email của ai. lien_ket = gắn vào tài khoản có sẵn khi đang đăng nhập (POST lien-ket/:nguon).
+  // Chuyển dữ liệu: tài khoản Facebook tạo trước đó mang email Facebook làm dinh_danh ⇒ email sang ba_me_mxh.email, dinh_danh = fb:<id>.
+  `alter table ba_me_mxh add column if not exists email text`,
+  `alter table ba_me_mxh add column if not exists lien_ket boolean not null default false`,
+  // mỗi Ba Mẹ gắn tối đa một tài khoản mỗi nguồn (lien-ket/* gửi song song không gắn được hai)
+  `delete from ba_me_mxh a using ba_me_mxh b where a.parent_id = b.parent_id and a.nguon = b.nguon and a.sub > b.sub`,   // phòng dữ liệu tay
+  `create unique index if not exists ba_me_mxh_mot_nguon on ba_me_mxh(parent_id, nguon)`,
+  ...SQL_CHUYEN_FB,
   `alter table families add column if not exists chu_id text`,
   `update families f set chu_id = (select p.id from parents p where p.family_id = f.id and p.vai = 'chu' order by p.created_at limit 1)
      where f.chu_id is null and exists (select 1 from parents p where p.family_id = f.id and p.vai = 'chu')`,
