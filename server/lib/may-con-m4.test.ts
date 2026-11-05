@@ -42,13 +42,15 @@ async function nha(diem: number) {
   return { fam, bm, con, token: ghep.token, may };
 }
 
-test("Policy cho agent: thêm tz, lechGioPhut, phienToiDa; Fun list kèm giá phần nghìn điểm/phút; trường cũ giữ nguyên", async () => {
+test("Policy cho agent: thêm tz, lechGioPhut, phienToiDa; Fun list kèm giá (05/11: luôn 0) ; quỹ giờ chơi; trường cũ giữ nguyên", async () => {
   const { token } = await nha(0);
   const p = (await dv("dong-bo", { tok: token, body: { clientTime: new Date().toISOString() } })).body;
   assert.equal(p.tz, "Asia/Ho_Chi_Minh");
   assert.equal(p.lechGioPhut, 10);
   assert.equal(p.phienToiDa, 30);
-  assert.deepEqual(p.luat.find((l: any) => l.muc === "roblox.exe"), { muc: "roblox.exe", loai: "giai_tri", nhom: "game", giaPhanNghin: 1000 });
+  assert.deepEqual(p.luat.find((l: any) => l.muc === "roblox.exe"), { muc: "roblox.exe", loai: "giai_tri", nhom: "game", giaPhanNghin: 0 });
+  assert.ok(p.quy && typeof p.quy.conPhut === "number" && p.quy.tyLe.phut === 10, "Policy mang quỹ phút chơi hôm nay");
+  assert.deepEqual(p.ngoaiLe, []);
   assert.equal(p.luat.find((l: any) => l.muc === "scratch.exe").giaPhanNghin, null);
   for (const k of ["serverTime", "nextCheckSec", "gioMaySai", "con", "canChonCon", "allowlistHeThong", "lich", "khoaNgay", "soDu", "phien"]) assert.ok(k in p, k);
 });
@@ -83,34 +85,36 @@ test("sự kiện mã offline: mở ⇒ báo thông tin; có mạng lại kết 
   assert.equal(ev?.chi_tiet.ket_thuc, "co_mang");
 });
 
-test("bù phút offline: trừ đúng phút đã chơi, không vượt thời gian thật đã trôi, gửi lại không trừ đôi", async () => {
+test("bù phút offline: tính đúng phút đã chơi vào quỹ (không trừ sao), không vượt thời gian thật đã trôi, gửi lại không tính đôi", async () => {
   const { con, may } = await nha(50);
   const t0 = VN("2026-10-21T17:00:00");
   const p = await ph.moPhien(con, may.id, "roblox.exe", {}, t0);
   for (let i = 1; i <= 5; i++) await ph.nhip(con, p.id, true, sau(t0, i));        // 5 phút online
-  assert.equal(await v.soDu(con), 45);
+  const phut = async () => (await one<{ p: number }>(`select phut_dung as p from play_sessions where id = $1`, [p.id]))!.p;
+  assert.equal(await phut(), 5);
   // mất mạng 10 phút, Con chơi tiếp rồi agent tự đóng; có mạng lại gửi bù — khai 60 phút nhưng thời gian thật chỉ 10
   const b = await mc.buPhien(may, con, { ma: "bu-1", id: p.id, phut: 60, ketThuc: true }, sau(t0, 15));
   assert.equal(b.phut, 10);
-  assert.equal(b.diemTru, 10);
-  assert.equal(b.soDu, 35);
+  assert.equal(b.diemTru, 0);
+  assert.equal(b.soDu, 50);
+  assert.equal(await phut(), 15);
   const lai = await mc.buPhien(may, con, { ma: "bu-1", id: p.id, phut: 60, ketThuc: true }, sau(t0, 16));
   assert.equal(lai.lapLai, true);
-  assert.equal(await v.soDu(con), 35, "gửi lại cùng mã: không trừ đôi");
+  assert.equal(await phut(), 15, "gửi lại cùng mã: không tính đôi");
   assert.equal((await one<{ trang_thai: string }>(`select trang_thai from play_sessions where id = $1`, [p.id]))!.trang_thai, "ket_thuc");
 });
 
-test("bù phút offline: phiên mở khi mất mạng ⇒ máy chủ ghi phiên + trừ điểm; mục không phải giải trí không trừ; ví không âm", async () => {
+test("bù phút offline: phiên mở khi mất mạng ⇒ máy chủ ghi phiên (phút vào quỹ, không trừ sao); mục không phải giải trí không ghi", async () => {
   const { con, may } = await nha(4);
   const now = VN("2026-10-21T18:00:00");
   const b = await mc.buPhien(may, con, { ma: "off-1", muc: "Roblox.exe", phut: 3, batDau: sau(now, -3).toISOString() }, now);
-  assert.equal(b.diemTru, 3);
+  assert.equal(b.diemTru, 0);
   const s = await one<{ trang_thai: string; phut_dung: number; device_id: string }>(`select trang_thai, phut_dung, device_id from play_sessions where id = $1`, [b.phien]);
   assert.deepEqual([s!.trang_thai, s!.phut_dung, s!.device_id], ["ket_thuc", 3, may.id]);
   assert.equal((await mc.buPhien(may, con, { ma: "off-2", muc: "scratch.exe", phut: 20 }, now)).diemTru, 0);
   const am = await mc.buPhien(may, con, { ma: "off-3", muc: "roblox.exe", phut: 10 }, sau(now, 30));
-  assert.equal(am.diemTru, 1, "chỉ còn 1 điểm ⇒ trừ 1, không âm");
-  assert.equal(await v.soDu(con), 0);
+  assert.equal(am.diemTru, 0);
+  assert.equal(await v.soDu(con), 4, "sao giữ nguyên");
 });
 
 test("gỡ agent: cần mật khẩu AiiGrow của Ba Mẹ cùng gia đình; sai ⇒ từ chối + cảnh báo; đúng ⇒ thiết bị bị gỡ, token hết hiệu lực", async () => {

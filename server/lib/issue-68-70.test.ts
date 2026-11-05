@@ -116,28 +116,29 @@ test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của 
   void fam;
 });
 
-test("«≈ X phút chơi» không vượt phút còn lại theo trần ngày (+ thưởng hôm nay − đã chơi)", async () => {
+test("05/11 «≈ X phút chơi»: conPhut = quỹ hôm nay (+ thêm giờ − đã chơi); phutDoiDuoc = sao đổi được (10 sao = 10 phút, ≤ tối đa đổi/ngày)", async () => {
   const { fam, con, tok } = await nha();
   const { gioDiaPhuong } = await import("./gio.ts");
   await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,30,'thuong','thử')`, [newId(), con]);
-  await q(`update families set cau_hinh = cau_hinh || '{"tran_ngay": 50}'::jsonb where id = $1`, [fam]);
+  await q(`update families set cau_hinh = cau_hinh || '{"quy_ngay_thuong": 50, "quy_cuoi_tuan": 50}'::jsonb where id = $1`, [fam]);
   const tz = (await q<{ tz: string }>(`select tz from families where id = $1`, [fam]))[0]!.tz;
   await q(`insert into grants(id, child_id, phut, ngay) values ($1, $2, 3, $3)`, [newId(), con, gioDiaPhuong(new Date(), tz).ngay]);
   const ph = newId();
   await q(`insert into play_sessions(id, child_id, muc, nhom, gia_phan_nghin, toi_da_phut, phut_dung, trang_thai) values ($1,$2,'roblox.exe','game',1000,60,35,'ket_thuc')`, [ph, con]);
   const lay = async () => (await m("gia-dinh", { tok })).body.con[0];
   let c = await lay();
-  assert.deepEqual([c.soDu, c.conPhut, c.phutDoiDuoc], [30, 18, 15],
-    "30 điểm đổi 30 phút nhưng hôm nay chỉ còn 50 + 3 − 35 = 18 phút, 3 phút thêm giờ tiêu trước ⇒ điểm mua 15");
-  assert.deepEqual([c.phutChoi, c.tranNgay], [35, 50], "tranNgay vẫn là cài đặt phút/ngày");
-  await q(`update families set cau_hinh = cau_hinh || '{"tran_tuan": 45}'::jsonb where id = $1`, [fam]);
+  assert.deepEqual([c.soDu, c.sao, c.conPhut, c.phutDoiDuoc], [30, 30, 18, 30], "quỹ 50 + 3 − 35 = 18; 30 sao đổi được 30 phút (tối đa 30/ngày)");
+  assert.deepEqual([c.phutChoi, c.tranNgay], [35, 53], "tranNgay = quỹ hôm nay (50 + 3)");
+  await q(`update families set cau_hinh = cau_hinh || '{"doi_sao_toi_da_ngay": 10}'::jsonb where id = $1`, [fam]);
   c = await lay();
-  assert.deepEqual([c.conPhut, c.phutDoiDuoc], [13, 10], "trần tuần (45 + 3 − 35) cũng chặn, như xetMoPhien");
+  assert.equal(c.phutDoiDuoc, 10, "không quá phần Con còn được tự đổi hôm nay");
   const { nhaTre } = await import("./choi-tre.ts");
-  assert.equal((await nhaTre({ id: con, family_id: fam } as never)).conPhut, 13, "trang «Nhà» của Con cùng trần tuần");
+  assert.equal((await nhaTre({ id: con, family_id: fam } as never)).conPhut, 18, "trang «Nhà» của Con cùng quỹ");
   await q(`update play_sessions set phut_dung = 70 where id = $1`, [ph]);
   c = await lay();
-  assert.equal(c.phutDoiDuoc, 0, "đã chơi quá trần ⇒ 0, không âm");
+  assert.equal(c.conPhut, 0, "đã chơi quá quỹ ⇒ 0, không âm");
+  await q(`update families set cau_hinh = cau_hinh || '{"doi_sao_bat": 0}'::jsonb where id = $1`, [fam]);
+  assert.equal((await lay()).phutDoiDuoc, 0, "Ba Mẹ tắt đổi sao ⇒ 0");
 });
 
 test("Xếp / hoàn tác app: giữ khoá tư vấn theo (nhà, Con, mục) TRƯỚC khi đọc luật cũ — `for update` không khoá dòng chưa tồn tại", async () => {

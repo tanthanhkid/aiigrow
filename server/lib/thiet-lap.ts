@@ -3,7 +3,7 @@
 // Nhánh «Tôi được mời vào nhà» KHÔNG gọi API này (không tạo Con) — đi lib/thanh-vien.ts (moi/cho-toi, moi/nhan).
 // POST /api/m/thiet-lap gom một lần: tạo (hoặc sửa, khi gửi lại `con.id`) hồ sơ Con + quỹ giờ chơi + giờ ngủ + chế độ chặn + app được phép.
 // Quỹ giờ chơi (L2) do nhánh S1 làm phần tính; ở đây chỉ LƯU vào children.cau_hinh theo khoá rõ ràng:
-//   quy_phut_ngay_thuong, quy_phut_cuoi_tuan (phút / ngày, 0–480) — docs/API.md › «Thiết lập lần đầu».
+//   quy_ngay_thuong, quy_cuoi_tuan (phút / ngày, 0–480) — docs/API.md › «Thiết lập lần đầu».
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -25,8 +25,8 @@ const phutHopLe = (v: unknown, ten: string) => {
 /** Lưu quỹ giờ chơi mỗi ngày (ngày thường / T7–CN) vào cấu hình Con. */
 export async function datQuyGio(con: string, b: { ngayThuong?: unknown; cuoiTuan?: unknown }) {
   const moi: Record<string, number> = {};
-  if (b.ngayThuong !== undefined) moi.quy_phut_ngay_thuong = phutHopLe(b.ngayThuong, "ngày thường");
-  if (b.cuoiTuan !== undefined) moi.quy_phut_cuoi_tuan = phutHopLe(b.cuoiTuan, "cuối tuần");
+  if (b.ngayThuong !== undefined) moi.quy_ngay_thuong = phutHopLe(b.ngayThuong, "ngày thường");
+  if (b.cuoiTuan !== undefined) moi.quy_cuoi_tuan = phutHopLe(b.cuoiTuan, "cuối tuần");
   if (Object.keys(moi).length) await q(`update children set cau_hinh = cau_hinh || $2::text::jsonb where id = $1`, [con, JSON.stringify(moi)]);
   return moi;
 }
@@ -82,6 +82,6 @@ export async function tomTatThietLap(fam: string, conId: string, app?: { daDat: 
     [fam, conId]))!.n + (await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1 and khop_luc is null`, [conId]))!.n;
   const num = (v: unknown) => (typeof v === "number" ? v : null);
   return { conId, ten: c.ten, cheDoChan: cheDoChanCua(c.che_do_chan),
-    gioChoi: { ngayThuong: num(c.cau_hinh.quy_phut_ngay_thuong), cuoiTuan: num(c.cau_hinh.quy_phut_cuoi_tuan) },
+    gioChoi: { ngayThuong: num(c.cau_hinh.quy_ngay_thuong), cuoiTuan: num(c.cau_hinh.quy_cuoi_tuan) },
     ngu: lichCua(c.lich as never).ngu, soApp, ...(app ? { app } : {}) };
 }

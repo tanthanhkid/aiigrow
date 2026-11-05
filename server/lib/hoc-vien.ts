@@ -8,6 +8,7 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { nop, nvCuaCon, type AnhNop } from "./nhiem-vu.ts";
 import { cuaHang, doiQua } from "./phan-thuong.ts";
 import { tomTatVi } from "./vi.ts";
+import { quyHomNay } from "./quy-gio.ts";
 
 export type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
 
@@ -23,13 +24,19 @@ export async function tongQuan(con: string) {
   const boSung = await q<{ task_id: string; ly_do: string | null }>(
     `select distinct on (task_id) task_id, ly_do from submissions where child_id = $1 and trang_thai = 'can_bo_sung' order by task_id, created_at desc`, [con]);
   const lyDo = new Map(boSung.map((x) => [x.task_id, x.ly_do]));
+  const qy = await quyHomNay(con);
   return {
     con: { id: c.id, ten: c.ten },
     soDu: vi.soDu, tongKiem: vi.tongKiem, capDo: vi.capDo, diemChoDuyet: vi.diemChoDuyet,
+    // 05/11: sao (= điểm) + quỹ giờ chơi hôm nay (lib/quy-gio.ts) cho khay mới «Hôm nay»: «Giờ chơi còn lại 18 phút · Đã chơi 42 / 60»
+    sao: vi.soDu, saoChoDuyet: vi.diemChoDuyet,
+    quy: { conPhut: qy.conPhut, daDung: qy.daDung, tongPhut: qy.tongPhut, quyNgayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, dangNgu: qy.dangNgu,
+      dangHoc: qy.dangHoc, khoa: qy.khoa, gioNgu: qy.gioNgu, gioHoc: qy.gioHoc, tyLe: qy.tyLe, doiSao: qy.doiSao, choXinThem: qy.choXinThem },
     nhiemVu: ds.map((x) => ({
       id: x.id, ten: x.ten, moTa: x.mo_ta, nhom: x.nhom, diem: x.diem, bangChung: x.bang_chung, kieu: x.kieu, han: x.han ? new Date(x.han).toISOString() : null,
       phutToiThieu: x.phut_toi_thieu, trangThai: x.trang_thai_con, luot: x.luot_dang, homNay: x.hom_nay, dangCho: x.dang_cho,
-      giaoRieng: !!x.giao_cho, lyDo: x.trang_thai_con === "can_bo_sung" ? (lyDo.get(x.id) ?? null) : null,
+      giaoRieng: !!x.giao_cho, lyDo: x.trang_thai_con === "can_bo_sung" ? (x.ly_do ?? lyDo.get(x.id) ?? null) : null,
+      sao: x.diem, hinh: x.hinh ?? null, lapLai: x.lap_lai ?? null, gioNhac: x.gio_nhac ?? null, lamLai: x.lam_lai, loiNhan: x.loi_nhan,
     })),
     gan: (await q<{ id: string; ten: string; trang_thai: string; diem: number | null; ly_do: string | null; loi_khen: string | null; luc: Date }>(
       `select s.id, t.ten, s.trang_thai, s.diem, s.ly_do, s.loi_khen, coalesce(s.duyet_luc, s.nop_luc, s.created_at) as luc
@@ -57,7 +64,8 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   const tu = sau && Number.isFinite(sau.getTime()) ? new Date(sau.getTime() - LUI_PHUT * 60_000) : new Date(Date.now() - SO_NGAY_TIN * 86_400_000);
   const ev = await q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date }>(
     `select id, loai, chi_tiet, created_at from events where child_id = $1 and created_at > $2
-     and loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu')
+     and loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
+                  'lam_lai_nhiem_vu', 'them_gio')
      order by created_at desc limit 50`, [con, tu]);
   const moi = await q<{ id: string; ten: string; diem: number; created_at: Date }>(
     `select id, ten, diem, created_at from tasks where family_id = $1 and bat and giao_cho is null and bang_chung <> 'tu_dong' and created_at > $2
@@ -69,18 +77,20 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
     const luc = new Date(e.created_at).toISOString();
     const them = (tieu: string, noi: string) => ra.push({ id: e.id, loai: e.loai, tieu, noi, luc });
     switch (e.loai) {
-      case "giao_nhiem_vu": them("Nhiệm vụ mới từ Ba Mẹ", `«${s(d.ten)}» · ${s(d.diem)} điểm`); break;
-      case "duyet_nhiem_vu": them("Ba Mẹ đã duyệt", `«${s(d.ten)}» · +${s(d.diem)} điểm`); break;
-      case "tu_duyet_nhiem_vu": them("Con được cộng điểm", `«${s(d.ten)}» · +${s(d.diem)} điểm`); break;
+      case "giao_nhiem_vu": them("Nhiệm vụ mới từ Ba Mẹ", `«${s(d.ten)}» · ${s(d.diem)} sao`); break;
+      case "duyet_nhiem_vu": them("Ba Mẹ đã duyệt", `«${s(d.ten)}» · +${s(d.diem)} sao`); break;
+      case "tu_duyet_nhiem_vu": them("Con được cộng sao", `«${s(d.ten)}» · +${s(d.diem)} sao`); break;
+      case "lam_lai_nhiem_vu": them("Ba Mẹ nhờ con làm lại", `«${s(d.ten)}»${d.loi_nhan ? ` · ${s(d.loi_nhan)}` : d.ly_do ? ` · ${s(d.ly_do)}` : ""}`); break;
+      case "them_gio": them("Ba Mẹ cho thêm giờ", `+${s(d.phut)} phút chơi hôm nay`); break;
       case "tu_choi_nhiem_vu": them("Ba Mẹ chưa nhận bài", `«${s(d.ten)}» · ${s(d.ly_do)}`); break;
       case "can_bo_sung": them("Ba Mẹ nhờ bổ sung", `«${s(d.ten)}» · ${s(d.ly_do)}`); break;
       case "loi_khen": them("Lời nhắn từ Ba Mẹ", s(d.noi_dung)); break;
-      case "xac_nhan_qua": them("Quà đã sẵn sàng", s(d.ten)); break;
-      case "huy_qua": them("Phiếu quà đã huỷ", `«${s(d.ten)}» · hoàn ${s(d.hoan)} điểm`); break;
+      case "xac_nhan_qua": them("Ba Mẹ đã trao quà!", d.phut ? `${s(d.ten)} · +${s(d.phut)} phút` : s(d.ten)); break;
+      case "huy_qua": them("Phiếu quà đã huỷ", `«${s(d.ten)}» · hoàn ${s(d.hoan)} sao`); break;
       case "huy_hieu": them("Huy hiệu mới", s(d.ten ?? d.ma)); break;
     }
   }
-  for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} điểm`, luc: new Date(t.created_at).toISOString() });
+  for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} sao`, luc: new Date(t.created_at).toISOString() });
   ra.sort((a, b) => (a.luc < b.luc ? 1 : -1));
   return { ds: ra, bay: new Date().toISOString() };
 }
@@ -98,21 +108,22 @@ const s2 = (v: unknown) => String(v ?? "").trim().slice(0, 60);
 
 /** Cửa hàng cho khay: chỉ các trường khay cần (camelCase), kèm «đủ điểm» / «còn thiếu». */
 export async function cuaHangKhay(con: string) {
-  const r = await cuaHang(con);
+  const r = await cuaHang(con, { anVoucher: true });
   return {
-    soDu: r.soDu,
-    qua: r.qua.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, diem: x.diem, menhGia: x.menh_gia, chiCuoiTuan: x.chi_cuoi_tuan, du: x.du, conThieu: x.conThieu })),
+    soDu: r.soDu, sao: r.soDu,
+    qua: r.qua.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, diem: x.diem, sao: x.diem, phut: x.phut ?? null, menhGia: x.menh_gia, chiCuoiTuan: x.chi_cuoi_tuan,
+      du: x.du, conThieu: x.conThieu, choTraoTu: x.choTraoTu })),
   };
 }
 
 /** Kết quả đổi quà cho khay: `trangThai` = cho_trao | cho_xac_nhan | da_phat_hanh; voucher (nếu có) kèm mã. */
 export async function doiQuaKhay(con: string, quaId: string) {
-  const r = await doiQua(con, quaId);
+  const r = await doiQua(con, quaId, new Date(), { ngungVoucher: true });
   return { phieu: r.phieu, trangThai: r.trang_thai, voucher: r.voucher ? { ma: r.voucher.ma, hetHan: iso(r.voucher.het_han) } : null };
 }
 
 /** Nộp bài cho khay: `trangThai` = cho_duyet | duoc_duyet (nhiệm vụ tự duyệt). */
-export async function nopKhay(con: string, luot: string, b: { anh?: AnhNop[]; ghiChu?: unknown }) {
+export async function nopKhay(con: string, luot: string, b: { anh?: AnhNop[]; ghiChu?: unknown; ghiAm?: AnhNop | null }) {
   const r = await nop(con, luot, b);
   return { trangThai: r.trang_thai, nghiTrung: r.nghi_trung };
 }

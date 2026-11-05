@@ -331,7 +331,7 @@ Chính sách chung (`chinh-sach.ts`, Android / iOS / DNS): `ungDung.cheDoChan`, 
 ### Thiết lập lần đầu (L7)
 
 `POST thiet-lap {con: {id?, ten, namSinh?, avatar?}, gioChoi?: {ngayThuong, cuoiTuan}, ngu?: {tu: "HH:MM", den: "HH:MM"}, cheDoChan?, apps?: [...]}` — một lệnh cho màn tên Con + Giờ chơi + Chọn app. Gửi lại với `con.id` ⇒ sửa, không tạo Con thứ hai. → `{conId, ten, cheDoChan, gioChoi{ngayThuong, cuoiTuan}, ngu{tu, den}, soApp, app{daDat, choKhop}}`. `GET con/:id/thiet-lap` → cùng tóm tắt (màn «Đã ghép máy» / «Xong rồi»).
-**Quỹ giờ chơi** lưu ở `children.cau_hinh`: `quy_phut_ngay_thuong`, `quy_phut_cuoi_tuan` (phút / ngày, 0–480) — phần tính quỹ là việc nhánh S1 (L2); S1 đổi tên khoá thì đổi ở `thiet-lap.ts` › `datQuyGio` + `ghep-may.ts` (chép cấu hình chép nguyên `cau_hinh`). Giờ ngủ ghi `children.lich.ngu`.
+**Quỹ giờ chơi** lưu ở `children.cau_hinh`: `quy_ngay_thuong`, `quy_cuoi_tuan` (phút / ngày, 0–480 ở thiết lập; tham số mục 10 — S1 tính quỹ, xem mục «Thiết kế chốt 05/11 — sao, quỹ giờ chơi»). `ghep-may.ts` chép nguyên `cau_hinh`. Giờ ngủ ghi `children.lich.ngu`.
 Lỗi: `phut_sai`, `gio_sai`, `che_do_chan_sai`, `app_sai`. Nhánh «Tôi được mời vào nhà» không gọi đường này (xem `moi/cho-toi`, `moi/nhan`).
 
 ### Ghép máy (L8)
@@ -343,3 +343,89 @@ Lỗi: `phut_sai`, `gio_sai`, `che_do_chan_sai`, `app_sai`. Nhánh «Tôi đư�
 | `POST ma-ghep {con?, nen?}` | đường cũ: `{ma, hanPhut: 10}`; `nen` trống ⇒ không gắn loại máy |
 
 Máy Windows / Mac mới ghép ⇒ `che_do = chan` ngay (kể cả máy dùng chung).
+
+## Thiết kế chốt 05/11 — sao, quỹ giờ chơi, ngoại lệ, nhiệm vụ theo bộ, quà trao tay (S1, chỉ thêm)
+
+Xử lý: `server/lib/quy-gio.ts` (quỹ + đổi sao + cài đặt giờ chơi), `bo-nhiem-vu.ts`, `api-sao.ts` (router các đường mới — api-m / api-con /
+api-may gọi trước đường cũ), sửa `phien.ts`, `yeu-cau.ts`, `nhiem-vu.ts`, `phan-thuong.ts`, `agent-windows.ts`. Test: `sao-gio-choi.test.ts`.
+Luật: `docs/KE-HOACH-KHOP-THIET-KE-0511.md` L1 L2 L3 L9 L10 — thiết kế thắng BRD / CHOT-BRD khi khác.
+
+**Sao (L1).** Sao = điểm cũ (cột `diem`, bảng `points` giữ tên; 1 điểm = 1 sao). Trả thêm `sao` song song `soDu` / `diem` (một bản rồi bỏ):
+`tomTatVi` (+`sao`, `saoChoDuyet` — có trong `GET con/:id`, `con/:id/vi`, `gia-dinh` › `con[]`, `kid/toi`), `kid/nha` (`sao`),
+`hoc-vien/tong-quan` (`sao`, `saoChoDuyet`, mỗi việc `sao`), `cua-hang` (`sao`, mỗi quà `sao`), `cho-duyet` › `nhiemVu[].sao`,
+`luot/:id/duyet` (`sao`, `soSao`). Lý do điểm mới `points.loai = doi_gio` (đổi sao lấy giờ / «trừ sao» khi Ba Mẹ duyệt thêm giờ).
+
+**Quỹ giờ chơi (L2).** Mỗi ngày Con có QUỸ phút chơi; MỌI app/web Giải trí Ba Mẹ cho phép dùng chung quỹ; app Học («Từ điển») không tính.
+Phút đã dùng = tổng các máy, mỗi máy lấy lớn hơn của (phút phiên chơi cũ) và (usage app `giai_tri` + giây `web_nhat_ky` của tên miền Giải trí).
+Quỹ hôm nay = quỹ ngày (`quy_ngay_thuong` 60 · `quy_cuoi_tuan` 90) + phút cộng thêm hôm nay (`grants.nguon`: `xin` Ba Mẹ duyệt lời xin ·
+`doi_sao` Con đổi sao · `ba_me` Ba Mẹ bấm «Cho thêm giờ» · `qua` Ba Mẹ trao quà phút). Giờ ngủ (`lich.ngu`) + **giờ học** (mới:
+`lich.hoc = {tu, den, thu: [0..6]}` — chỉ app Học) khoá giải trí. **Bỏ**: giá điểm/phút theo nhóm (`giaPhanNghin` luôn 0, phiên không trừ sao),
+trần ngày/tuần (`tran_ngay`, `tran_tuan` không còn chặn), khung giờ chơi (`lich.ngayThuong/cuoiTuan` không còn chặn — giữ để app cũ đọc),
+nghỉ giữa hai phiên (Con tự dừng không bị bắt nghỉ). Phiên (`phien/*`) vẫn chạy cho agent / khay cũ: tối đa = quỹ còn (tới giờ ngủ / giờ học),
+phiên tự dài ra khi quỹ tăng giữa chừng, hết quỹ ⇒ `lyDoKet: het_thoi_gian`; `phien/xet` lý do mới `het_gio`, `gio_hoc`.
+
+Tham số mới (cau-hinh, kẹp min–max; Ba Mẹ đặt cho từng Con qua `con/:id/gio-choi` hoặc `con/:id/cau-hinh`):
+`quy_ngay_thuong` 60 (0–600) · `quy_cuoi_tuan` 90 (0–720) · `phut_10_sao` 10 (1–60: 10 sao đổi được X phút) · `doi_sao_bat` 1 (0/1) ·
+`doi_sao_toi_da_ngay` 30 (0–480 phút) · `cho_xin_them_gio` 1 (0/1) · `ngoai_le_toi_da_phut` 60 (5–240).
+
+Đối tượng `quy` (trả ở nhiều đường): `{ngay, cuoiTuan, quyNgayPhut, themPhut, doiSaoPhut, daDung, conPhut, tongPhut, dangNgu, dangHoc, khoa,
+gioNgu: {tu, den}, gioHoc: {tu, den, thu[]} | null, phutToiNgu, phutToiHoc | null, tyLe: {sao: 10, phut}, doiSao: {bat, toiDaNgay, conDoiDuoc},
+choXinThem}`. «Hôm nay: còn 18 phút (42/60)» = `conPhut` (`daDung` / `tongPhut`).
+
+**Hết giờ / ngoại lệ (L3).** Hết quỹ: Con «Dùng sao» (`doi-sao`) hoặc «Xin Ba Mẹ thêm giờ» (`yeu-cau {loai: them_gio, phut, lyDo?}` — lời nhắn
+không bắt buộc; Ba Mẹ tắt `cho_xin_them_gio` ⇒ 409 `khong_cho_xin`). Ba Mẹ cho ⇒ phút cộng vào QUỸ hôm nay (mọi máy) — **không còn cửa sổ mở tự do**
+(`cua_so_den`) cho thêm giờ. Giờ ngủ / Ba Mẹ khoá / giờ học: `them_gio` và `doi-sao` ⇒ 409 (`chi_ngoai_le` / `khong_them_gio`); Con chỉ xin
+`yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri?: <app khi phamVi app>, phut ≤ ngoai_le_toi_da_phut, lyDo?}` (`ngoai_gio` của app cũ vượt tối đa ⇒ kẹp, không lỗi; ngoại lệ gửi được cả khi chỉ hết giờ — «Không trừ giờ chơi») («Không trừ giờ chơi, không trừ sao»).
+Ba Mẹ đồng ý (`yeu-cau/:id/dong-y {phut?}`) ⇒ `grants.nguon = ngoai_le` tới hạn: **cả máy** = cửa sổ cho nhóm máy của lời xin (máy tính /
+iPhone / Android — `hanMoCuaMay`, như mở khẩn cấp) và **thắng giờ ngủ / khoá** trên agent; Ba Mẹ đang «Khoá ngay» thì gỡ khoá tạm tới hạn (như cũ);
+**một app** = chỉ app đó + app hệ thống (cả lúc ngủ / khoá). Ngoại lệ không cộng vào quỹ. `requests.pham_vi` của ngoại lệ = `ca_may` | `app`.
+`dong-y` trả thêm `grantId` (Hoàn tác thêm giờ). `yeu-cau/:id` (Ba Mẹ) trả thêm `sao`, `phutDoiDuoc` («Con có 30 sao, tự đổi được 30 phút»).
+«Trừ sao» khi duyệt thêm giờ (`truDiem: true`) tính theo tỷ lệ sao (`phut_10_sao`), không còn theo `gia_khac`.
+
+### App Ba Mẹ — `/api/m/*`
+
+| Đường | Ý |
+|---|---|
+| `GET con/:id/gio-choi` | «Giờ chơi của <Con>» (bm2-gio) ⇒ `{quyNgayThuong, quyCuoiTuan, phut10Sao, doiSaoBat, doiSaoToiDaNgay, choXinThemGio, ngoaiLeToiDaPhut, gioNgu, gioHoc, homNay: quy}` |
+| `POST con/:id/gio-choi {quyNgayThuong?, quyCuoiTuan?, phut10Sao?, doiSaoBat?, doiSaoToiDaNgay?, choXinThemGio?, ngoaiLeToiDaPhut?, gioNgu?: {tu, den}, gioHoc?: {tu, den, thu[]} \| null}` | chỉ khoá gửi lên; số kẹp min–max; giờ sai ⇒ 400 `gio_sai`; ghi nhật ký `doi_gio_choi` ⇒ như GET |
+| `GET con/:id/quy` | `{quy, sao, ngoaiLe: [{id, den, muc \| null, nhom}]}` — thẻ «Bảo Anh còn chơi 18 phút trong 60 phút hôm nay» |
+| `POST con/:id/them-gio {phut: 5–240}` | Ba Mẹ «Cho thêm giờ» (15 / 30 / 60) — chỉ hôm nay ⇒ `{id, phut, quy}`; nhật ký `them_gio` (khay Con nhận tin «Ba Mẹ cho thêm giờ») |
+| `POST them-gio/:id/hoan-tac` | «Hoàn tác» trong 60 giây, đúng người cho (cả grant duyệt lời xin — lời xin về «chờ»). Quá hạn ⇒ 409 `het_hoan_tac` |
+| `GET nhiem-vu/bo` | bộ nhiệm vụ (Tự lập, Phụ việc nhà, Học tập, Khoẻ mạnh) ⇒ `{ds: [{ma, ten, tuoi, soViec, saoToiDaNgay, viec: [{ten, moTa, sao, bangChung, tuCham, lapLai, hinh, nhan, toiDaNgay}]}]}` |
+| `POST nhiem-vu/bo {bo, con?, chon?: [tên việc giữ tick]}` | «Giao N việc cho <Con>» ⇒ `{taoMoi, ids}`; việc trùng tên đã có / việc AiiRob tự chấm đã có thì bỏ qua. 400 `bo_sai` |
+| `POST nhiem-vu {…, hinh?, lap_lai?, gio_nhac?, giao_cho?: id \| id[]}` | «Thêm việc riêng»: `giao_cho` mảng ⇒ một việc mỗi Con ⇒ `{id, ids}`. `lap_lai`: `mot_lan \| hang_ngay \| ngay_thuong \| cuoi_tuan \| thu:1,3,5` (0 = CN; sai ⇒ 400 `lap_lai_sai`) · `gio_nhac` «HH:MM» (sai ⇒ `gio_nhac_sai`) · `hinh` mã hình ≤ 40 ký tự · `bang_chung`: `anh \| ghi_am \| xong` (bấm «Xong») `\| viet` (= `van_ban`) `\| tu_cham` (= `tu_dong`, AiiRob) · `tu_duyet` = «Tự cộng sao». Cũng nhận ở `POST nhiem-vu/:id` |
+| `POST luot/:id/lam-lai {lyDo?, loiNhan?}` | «Nhờ làm lại» ⇒ `{trangThai: "lam_lai"}`; Con chưa nhận sao, phải nộp bằng chứng MỚI rồi Ba Mẹ duyệt tiếp. Nhật ký `lam_lai_nhiem_vu` |
+| `GET luot/:id/bang-chung` | `{ds: [{id, mime, loai: anh \| ghi_am, base64, chupLuc}]}` (đường cũ `luot/:id/anh` vẫn trả mọi tệp) |
+| `POST duyet-hang-loat {ids[], loiKhen?}` | «Duyệt cả 2 · +20 sao» ⇒ `{daDuyet, sao}` (cùng lời khen cho mọi lượt) |
+| `GET cho-duyet` | `nhiemVu[]` thêm `sao, bang_chung, hinh, so_ghi_am` |
+| `POST phieu/:id/trao` | Ba Mẹ «Đã trao, báo cho con» (= `phieu/:id/xac-nhan`) ⇒ `{ok, trangThai: "da_trao", phut?}` — quà «Thêm N phút chơi» cộng N phút vào quỹ hôm nay |
+| `POST qua {ten, loai: qua \| dac_quyen \| tiet_kiem \| phut, diem, phut? (loai phut, 5–240)}` | `loai: voucher` ⇒ 400 `voucher_ngung`. Mẫu `qua/mau` mới: Thêm 30 phút chơi (30), Đi ăn kem (50), Xem phim cả nhà (40), Đồ chơi nhỏ (100) |
+| `GET quy` | **410 `da_bo`** — quỹ phiếu AiiCafe ngừng (05/11). Voucher cũ còn hạn vẫn quét ở quầy (`/api/quay`), Admin vẫn đối soát |
+
+### Màn Con — `/api/kid/*` và khay `/api/device/hoc-vien/*` (cùng đường)
+
+| Đường | Ý |
+|---|---|
+| `GET quy` | `{quy, sao, phutDoiDuoc, ngoaiLe[], yeuCauCho: [{id, loai, phut, gia_tri, pham_vi, ly_do, created_at}]}` (lời xin thêm giờ / ngoại lệ đang chờ) |
+| `POST doi-sao {phut}` | «Đổi 10 sao lấy 10 phút» ⇒ `{id, phut, sao, soDu, conPhut}`. Lỗi 409: `khong_du_sao` («còn thiếu X sao») · `vuot_toi_da_doi` · `khong_cho_doi` (Ba Mẹ tắt) · `khong_them_gio` (giờ ngủ / khoá / giờ học) |
+| `GET nhiem-vu?tuCham=1` | như `nhiem-vu` + việc AiiRob tự chấm (`tu_cham: true` — nút «Mở Học với AiiRob»). Mỗi việc thêm `sao, lam_lai, ly_do, loi_nhan, tu_cham, hinh, lap_lai, gio_nhac`; việc ngoài ngày lặp lại (vd «Tự xếp cặp» T2–T6) không hiện. `lam_lai` hiện `trang_thai_con: can_bo_sung` (khay cũ hiểu) + `lam_lai: true` |
+| `POST luot/:id/nop {anh?, ghiChu?, ghiAm?: {mime: audio/*, base64}}` | ghi âm ≤ 2 MB (`ghi_am_sai`, `ghi_am_qua_lon` 413); việc `ghi_am` thiếu ghi âm ⇒ `thieu_ghi_am` CHỈ khi app gửi `ghiAmDuoc: true` (khay Windows/Mac chưa ghi âm được ⇒ nộp không kèm vẫn được, Ba Mẹ duyệt); việc `xong` không cần bằng chứng; nộp từ `lam_lai` phải kèm bằng chứng mới |
+| `GET cua-hang` · `POST doi/:quaId` | ẩn / chặn phiếu AiiCafe (`voucher_ngung` 409). Quà thêm `sao`, `choTraoTu` (lúc đổi, đang chờ Ba Mẹ trao) |
+| `GET vi-qua` | thêm `daTrao[]` («Quà của con» đã trao) |
+| `hoc-vien/tong-quan` | thêm `sao, saoChoDuyet, quy {conPhut, daDung, tongPhut, quyNgayPhut, themPhut, dangNgu, dangHoc, khoa, gioNgu, gioHoc, tyLe, doiSao, choXinThem}`; việc thêm `sao, hinh, lapLai, gioNhac, lamLai, loiNhan` |
+| `hoc-vien/tin` | loại mới `lam_lai_nhiem_vu` («Ba Mẹ nhờ con làm lại»), `them_gio` («Ba Mẹ cho thêm giờ»); `xac_nhan_qua` = «Ba Mẹ đã trao quà!» (+N phút); chữ «điểm» ⇒ «sao» |
+
+Quyền (L6 của S2): **Người trông giúp** gọi được `luot/:id/lam-lai`, `con/:id/them-gio`, `them-gio/:id/hoan-tac`, `phieu/:id/trao` (xem / duyệt / trao); `con/:id/gio-choi` (POST), `nhiem-vu/bo` (POST), `qua` (POST) là đổi cài đặt ⇒ chỉ Ba Mẹ (`lib/quyen.ts` › `trongGiupDuoc`).
+
+### Agent — Policy (`dong-bo`, `nhip`)
+
+- Policy gốc thêm `quy: {ngayPhut, themPhut, daDung, conPhut, dangNgu, dangHoc, phutToiNgu, phutToiHoc, tyLe} | null` (null = máy dùng chung chưa
+  chọn Con), `ngoaiLe: [{id, den, muc | null, nhom}]`, `lich.hoc`. `luat[].giaPhanNghin` của mục Giải trí = 0. Chính sách chung (`nhip` › `chinhSach`)
+  thêm `quy`, `gioHoc`, `ngoaiLeMo` (Android / iOS đọc thay `phienDiem`).
+- `dong-bo.windows` (Windows + Mac): **còn quỹ, không ngủ / khoá / giờ học / giờ máy sai ⇒ MỌI app Giải trí vào `allowedApps`** (không cần phiên),
+  trang Giải trí mở trong trình duyệt; hết quỹ ⇒ rời danh sách. Trường mới: `quyConPhut` (0 khi không được chơi), `quyTongPhut`, `quyDaDung`,
+  `appTinhGio[]` (app đang được thả nhờ quỹ — agent mới đếm lùi `quyConPhut` khi chúng ở tiền cảnh, cả lúc mất mạng), `gioNgu`, `gioHoc`, `dangGioHoc`,
+  `ngoaiLe: [{den, app | null}]`. Ngoại lệ cả máy ⇒ `mode: tu_do` + `grantEndsAt` (thắng giờ ngủ / khoá); ngoại lệ một app ⇒ `locked: false`, `mode: hoc`,
+  `allowedApps` = app hệ thống + app đó. `nextCheckSec` ≤ 60 khi quỹ còn ≤ 10 phút. `playOfflineMinutes` = min(quỹ còn, tới giờ ngủ / giờ học).
+- **Agent cũ** (không đọc `quyConPhut`): vẫn chạy — app Giải trí vào/ra `allowedApps` theo quỹ ở mỗi lần đồng bộ (trễ ≤ 1–2 phút); mất mạng thì
+  agent cũ không tự đếm quỹ (giữ danh sách cuối tới khi có mạng). Khay cũ «Chơi bằng điểm» vẫn mở phiên (giá 0, giới hạn theo quỹ).

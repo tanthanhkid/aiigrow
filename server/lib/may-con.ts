@@ -19,6 +19,7 @@ import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
 import { cheDoChanCua, laWebCam, WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
+import { ngoaiLeDangMo, quyHomNay, type NgoaiLeMo } from "./quy-gio.ts";
 
 export type DongBoVao = {
   status?: Record<string, unknown>;
@@ -87,6 +88,12 @@ export type Policy = {
   cheDoChan?: CheDoChan;
   /** L4: tên miền LUÔN chặn ở mọi chế độ (web người lớn, cờ bạc, bạo lực) — agent chặn kể cả tên miền con. */
   webLuonChan?: string[];
+  /** Thiết kế 05/11 (lib/quy-gio.ts): QUỸ phút chơi hôm nay — mọi app Giải trí dùng chung. null = máy dùng chung chưa chọn Con.
+   *  conPhut = phút còn chơi được · daDung = phút Giải trí đã dùng (mọi máy) · dangHoc = giờ học (chỉ app Học) · phutToiNgu / phutToiHoc = phút tới mốc. */
+  quy?: { ngayPhut: number; themPhut: number; daDung: number; conPhut: number; dangNgu: boolean; dangHoc: boolean; phutToiNgu: number;
+    phutToiHoc: number | null; tyLe: { sao: 10; phut: number } } | null;
+  /** Ngoại lệ Ba Mẹ đang mở (giờ ngủ / khoá / giờ học): `muc` null = cả máy; `nhom` = nhóm máy được mở (may_tinh | ios | android). */
+  ngoaiLe?: NgoaiLeMo[];
 };
 
 export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: boolean }, now = new Date()): Promise<Policy> {
@@ -101,6 +108,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
   const ph = c ? await phienDang(c.id) : undefined;
+  const qy = c ? await quyHomNay(c.id, now) : null;
   return {
     serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now)], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
@@ -113,6 +121,9 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     // Con đã có chế độ rõ (Con mới / Ba Mẹ đã chọn) ⇒ web theo chế độ; Con cũ (null) ⇒ tham số web_chi_cho_phep như trước
     webChiChoPhep: c?.che_do_chan ? cheDoChan === "chi_app_duoc_phep" : ts.web_chi_cho_phep === 1,
     cheDoChan, webLuonChan: WEB_LUON_CHAN,
+    quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
+      phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
+    ngoaiLe: c ? await ngoaiLeDangMo(c.id, now) : [],
   };
 }
 
@@ -134,6 +145,9 @@ export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: s
                        else (cau_hinh - 'khoa_den' - 'khoa_mo_tam_den') || jsonb_strip_nulls(jsonb_build_object('khoa_ngay', true, 'khoa_den', $4::text)) end
                      where id = $1 and family_id = $2 returning id, cau_hinh as c`, [con, fam, khoa, den?.toISOString() ?? null, khoa && hoanTac]);
   if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+  // khoá mới (không phải Hoàn tác) ⇒ đóng luôn ngoại lệ đang mở (05/11) — như mở tạm bị xoá ở trên
+  if (khoa && !hoanTac) await q(`update grants set den = $2, cua_so_den = case when cua_so_den > $2 then $2 else cua_so_den end
+                                 where child_id = $1 and nguon = 'ngoai_le' and den > $2`, [con, now]);
   // Hoàn tác: ghi đúng khoá đã khôi phục; hạn đã qua thì không có gì để khoá lại ⇒ không ghi «Khoá máy» giả
   const c = (r[0] as { c: Record<string, unknown> }).c;
   if (khoa && hoanTac && !khoaGoc(c, now)) return;
@@ -224,7 +238,8 @@ export async function nhanSuKien(may: May, con: string | null, ds: SuKienVao[]) 
 export type BuVao = { ma?: unknown; id?: unknown; muc?: unknown; phut?: unknown; batDau?: unknown; ketThuc?: unknown };
 
 const thuongCon = async (t: Q, con: string, ngay: string, tz: string) => {
-  const cho = (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null`, [con, ngay]))[0].p;
+  const cho = (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null
+    and coalesce(nguon, '') <> 'ngoai_le'`, [con, ngay]))[0].p;
   const da = (await t<{ p: number }>(`select coalesce(sum(phut_thuong), 0)::real as p from play_sessions where child_id = $1 and bat_dau >= $2`,
     [con, dauNgayUtc(ngay, tz)]))[0].p;
   return Math.max(0, cho - da);

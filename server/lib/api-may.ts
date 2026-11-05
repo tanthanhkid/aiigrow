@@ -12,7 +12,7 @@ import { khopAppTheoTen, xinDuyet } from "./che-do-chan.ts";
 import { dongBo } from "./may-con.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, nhanSuKien, taoPhienWeb } from "./may-con.ts";
-import { dungPhien, moPhien, nhip, thuongConLai, xetMoPhien, lyDoChu } from "./phien.ts";
+import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
 import { conChoBu, ghepPhienMayChung, laAgentMoi, moRongPhienMay, nhipPhienWindows, type TrangThaiNhip } from "./phien-windows.ts";
 import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
@@ -25,6 +25,7 @@ import { cheDoGuiMay, daGoTaiMay, doiGoiCai, lenhCho, xongLenh } from "./lenh-ma
 import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
 import { nhanLichSuWeb } from "./web.ts";
 import { appChanCuaMay, mucAppThat, nhanDanhSachApp, tinHieuDanhSachApp } from "./app-may.ts";
+import { xuLyConSao } from "./api-sao.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -65,7 +66,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!con);
       // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
       const moDen = coTacTu(may.platform) ? await hanMoCuaMay(may, con) : null;
-      const conThuong = coTacTu(may.platform) && con ? await thuongConLai(con) : 0;
+      const conThuong = coTacTu(may.platform) && con ? pol.quy?.conPhut ?? 0 : 0;   // 05/11: = quỹ còn (Policy đã tính, không tính lại)
       // play* chỉ cho máy sở hữu phiên. Máy dùng chung + agent 0.2.4: phiên mở trên máy ⇒ ghép phần phiên vào Policy chung (chỉ cho «windows»).
       const ghep = coTacTu(may.platform) && !con && laAgentMoi(b.status as TrangThaiNhip | undefined) ? await ghepPhienMayChung(may, pol) : null;
       const moPhienMay = coTacTu(may.platform) && con ? await moRongPhienMay(may, con) : null;
@@ -112,10 +113,11 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // Khay của học viên (agent-win Tray): nhận việc, làm + nộp, xem điểm/quà, thông báo — cổng mỏng trên các hàm của màn Con (lib/hoc-vien.ts).
     if (p[0] === "hoc-vien") {
       const get = req.method === "GET", post = req.method === "POST", r = p.slice(1).join("/");
+      { const kq = await xuLyConSao(con, may.id, req, p.slice(1), b, { khay: true }); if (kq) return kq; }   // 05/11: quy, doi-sao, nhiem-vu?tuCham=1
       if (r === "tong-quan" && get) return json(await hocVien.tongQuan(con));
       if (r === "tin" && get) { const s = new URL(req.url).searchParams.get("sau"); return json(await hocVien.tinCho(con, s ? new Date(s) : null)); }
       if (p[1] === "nhiem-vu" && p[3] === "bat-dau" && post) return json({ luot: await nv.batDau(con, p[2]) });
-      if (p[1] === "luot" && p[3] === "nop" && post) return json(await hocVien.nopKhay(con, p[2], { anh: b.anh, ghiChu: b.ghiChu }));
+      if (p[1] === "luot" && p[3] === "nop" && post) return json(await hocVien.nopKhay(con, p[2], { anh: b.anh, ghiChu: b.ghiChu, ghiAm: b.ghiAm }));
       if (r === "cua-hang" && get) return json(await hocVien.cuaHangKhay(con));
       if (p[1] === "doi" && p[2] && post) return json(await hocVien.doiQuaKhay(con, p[2]));
       if (p[1] === "loi-khen" && p[3] === "phan-hoi" && post) return json(await hocVien.phanHoiLoiKhen(con, p[2], b.phanHoi));

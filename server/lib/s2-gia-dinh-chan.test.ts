@@ -57,7 +57,7 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.ok(luat.some((l) => l.muc === "youtubekids.com" && l.loai === "hoc"), "tinhGio false ⇒ không tính giờ (hoc)");
   assert.ok(!luat.some((l) => l.muc === "aiirob.aiilab.vn"));
   const c = (await q<{ cau_hinh: any; lich: any }>(`select cau_hinh, lich from children where id = $1`, [con]))[0];
-  assert.deepEqual([c.cau_hinh.quy_phut_ngay_thuong, c.cau_hinh.quy_phut_cuoi_tuan, c.lich.ngu], [60, 90, { tu: "21:30", den: "06:30" }]);
+  assert.deepEqual([c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan, c.lich.ngu], [60, 90, { tu: "21:30", den: "06:30" }]);
   // gửi lại (mất phản hồi) với con.id ⇒ sửa, không tạo Con thứ hai
   const lai = await m("thiet-lap", { tok: bm, body: { ...body, con: { id: con, ten: "Bảo Anh" }, cheDoChan: "mo_het" } });
   assert.equal(lai.body.conId, con);
@@ -131,7 +131,7 @@ test("L8 «Cài giống máy trước»: máy mới của Con khác nhận chế
   assert.equal(pgM.giongMay, mayA.deviceId);
   await dv("ghep-goi", { body: { token: pgM.tokenGoi, nen: "windows", tenMay: "PC của Bảo Minh" } });
   const c = (await q<{ che_do_chan: string; lich: any; cau_hinh: any }>(`select che_do_chan, lich, cau_hinh from children where id = $1`, [minh]))[0];
-  assert.deepEqual([c.che_do_chan, c.lich.ngu, c.cau_hinh.quy_phut_ngay_thuong, c.cau_hinh.quy_phut_cuoi_tuan], ["mo_het", { tu: "21:30", den: "06:30" }, 60, 120]);
+  assert.deepEqual([c.che_do_chan, c.lich.ngu, c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan], ["mo_het", { tu: "21:30", den: "06:30" }, 60, 120]);
   const luat = await q<{ muc: string; loai: string }>(`select muc, loai from app_rules where child_id = $1`, [minh]);
   assert.ok(luat.some((l) => l.muc === "minecraft.exe" && l.loai === "giai_tri"));
   assert.equal(luat.find((l) => l.muc === "tiktok.com")!.loai, "hoc", "luật riêng của Con đích giữ nguyên");
