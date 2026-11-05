@@ -116,3 +116,16 @@ test("L4 web luôn chặn: tên miền con cũng chặn; không bao giờ nằm 
   const w = chinhSachWindows(goc({ allowlistHeThong: ["pornhub.com"], cheDoChan: "mo_het" }));
   assert.ok(!w.web.cho.includes("pornhub.com") && w.web.chan.includes("pornhub.com"));
 });
+
+test("05/11: ngoại lệ trong lúc khoá / giờ ngủ ⇒ khoaKhiHetNgoaiLe để agent tự khoá lại khi ngoại lệ hết hạn (cả lúc mất mạng)", () => {
+  const den = "2026-10-21T10:30:00.000Z";
+  const nl = [{ id: "g1", den, muc: null, nhom: "may_tinh" }] as Policy["ngoaiLe"];
+  const khoa = chinhSachWindows(goc({ khoaNgay: true, ngoaiLe: nl }));
+  assert.equal(khoa.mode, "tu_do");
+  assert.equal(khoa.khoaKhiHetNgoaiLe, "khoa");
+  const ngu = chinhSachWindows(goc({ serverTime: "2026-10-21T15:00:00.000Z", ngoaiLe: [{ id: "g2", den: "2026-10-21T15:20:00.000Z", muc: "scratch.exe", nhom: "may_tinh" }] as Policy["ngoaiLe"] }));
+  assert.equal(ngu.locked, false);
+  assert.equal(ngu.khoaKhiHetNgoaiLe, "ngu");
+  // không khoá: ngoại lệ chỉ thêm app, hết hạn thì về luật thường
+  assert.equal(chinhSachWindows(goc({ ngoaiLe: nl })).khoaKhiHetNgoaiLe, undefined);
+});

@@ -65,6 +65,8 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
     return json({ quy, sao: du, phutDoiDuoc: quy.doiSao.bat ? Math.min(qg.phutChoSao({ phut_10_sao: quy.tyLe.phut }, du), quy.doiSao.conDoiDuoc) : 0, ngoaiLe: nl, yeuCauCho: cho });
   }
   if (d === "doi-sao" && post) return json(await qg.doiSaoLayGio(con, b.phut, mayId));
+  // khay Windows (05/11 «Quà của con»): quà Ba Mẹ đã trao — màn Con web có sẵn `kid/vi-qua` ở api-con
+  if (d === "vi-qua" && get && o.khay) return json(await pt.viQua(con));
   if (d === "nhiem-vu" && get && new URL(req.url).searchParams.get("tuCham") === "1") return json({ ds: await nv.nvCuaCon(con, new Date(), { kemTuCham: true }) });
   if (p[0] === "luot" && p[2] === "nop" && post && !o.khay)
     return json(await nv.nop(con, p[1], { anh: b.anh as nv.AnhNop[], ghiChu: b.ghiChu, ghiAm: b.ghiAm as nv.AnhNop | undefined, batBuocGhiAm: b.ghiAmDuoc === true }));
