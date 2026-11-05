@@ -1,0 +1,85 @@
+// Một app (thiết kế chốt bm-ung-dung/03 «Roblox» → 04 «Đã chặn Roblox»): «Tính vào giờ chơi» bật / tắt, «Áp cho» các con, «Lưu cho <app> của <con>»,
+// «Không cho dùng app này» ⇒ màn kết quả có «Hoàn tác». Ghi bằng POST luat {con, muc, ten, loai: giai_tri | hoc | chan} cho từng con được chọn.
+// Không có «Tối đa mỗi ngày» theo app: mọi app được phép dùng chung quỹ giờ chơi của ngày (L2 — bỏ giới hạn / trừ điểm theo từng app).
+import { useState } from "react";
+import { View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { bm, laChiXem, type GiaDinh } from "@/lib/api";
+import { KHOI } from "@/lib/clay";
+import { ManKetQua, MucTieu, OIcon, icCuaApp, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
+import { BaoLoi, ChoTai, Chips, Chu, CongTac, Dong, M, Man, NhanMen, Nhom, Nut, useLam, useTai } from "@/lib/ui";
+
+export default function MotApp() {
+  const ts = useLocalSearchParams<{ con: string; muc: string; ten?: string }>();
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const [g, luat, xem] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: LuatApp[] }>("luat"), laChiXem()]);
+    return { g, luat: luat.ds, xem };
+  });
+  const [tinh, setTinh] = useState<boolean | null>(null);
+  const [apCho, setApCho] = useState<string[] | null>(null);
+  const [daChan, setDaChan] = useState<{ truoc: { con: string; l: LuatApp | null }[]; luc: Date } | null>(null);
+  const { lam, loi: loiLam, dangChay } = useLam();
+  const hoan = useLam();
+  const ten = ts.ten || ts.muc;
+  const ve = () => veHoac(`/app-web?con=${ts.con}`);
+  if (!d) return <Man lui={{ chu: "" }} tieu={ten}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const con = d.g.con.find((c) => c.id === ts.con) ?? d.g.con[0];
+  if (!con) return <Man lui={{ chu: "" }} tieu={ten}><ChoTai loi="Chưa có hồ sơ con nào." tai={tai} /></Man>;
+  const luatCua = (id: string) => luatCuaCon(d.luat, id).find((l) => l.muc === ts.muc) ?? null;
+  const hienTai = luatCua(con.id);
+  const tinhGio = tinh ?? hienTai?.loai !== "hoc";
+  const chon = apCho ?? [con.id];
+  const tenCon = (id: string) => d.g.con.find((c) => c.id === id)?.ten ?? "";
+  const ic = icCuaApp(`${ten} ${ts.muc}`);
+
+  const ghi = (loai: LuatApp["loai"]) => Promise.all(chon.map((id) => bm.goi("luat", { con: id, muc: ts.muc, ten, loai, nhom: hienTai?.nhom ?? undefined })));
+  const luu = () => lam(async () => { await ghi(tinhGio ? "giai_tri" : "hoc"); ve(); });
+  const chan = () => lam(async () => {
+    const truoc = chon.map((id) => ({ con: id, l: luatCua(id) }));
+    await ghi("chan");
+    setDaChan({ truoc, luc: new Date() });
+  });
+  const hoanTac = () => hoan.lam(async () => {
+    for (const t of daChan!.truoc) {
+      if (t.l && t.l.child_id === t.con) await bm.goi("luat", { con: t.con, muc: ts.muc, ten: t.l.ten, loai: t.l.loai, nhom: t.l.nhom ?? undefined });
+      else await bm.goi("luat/xoa", { con: t.con, muc: ts.muc, neuLoai: "chan" });
+    }
+    setDaChan(null);
+    await tai();
+  });
+
+  if (daChan) {
+    const gio = `${String(daChan.luc.getHours()).padStart(2, "0")}:${String(daChan.luc.getMinutes()).padStart(2, "0")}`;
+    return (
+      <ManKetQua tieu={`Đã chặn ${ten}`} ic="khoa" tin={`${daChan.truoc.map((t) => tenCon(t.con)).join(", ")} không mở được ${ten}`} phu={`Trên mọi máy · từ lúc ${gio}`}
+        nut={{ chu: "Xong, về App & web", bam: ve }} hoan={{ chu: `Hoàn tác, cho dùng lại ${ten}`, bam: hoanTac, dangChay: hoan.dangChay }} />
+    );
+  }
+  return (
+    <Man lui={{ chu: "", bam: ve }} tieu={ten} day={d.xem ? undefined : <>
+      <BaoLoi loi={loiLam} />
+      <Nut chu={`Lưu cho ${ten} của ${chon.length > 1 ? `${chon.length} con` : tenCon(chon[0])}`} rong dangChay={dangChay} tat={!chon.length} bam={luu} />
+      <NhanMen onPress={chan} disabled={dangChay || !chon.length} accessibilityRole="button" muc="nut" sang
+        style={{ minHeight: 50, borderRadius: 24, backgroundColor: M.canhSoft, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+        <Chu kieu="rat" co={15} mau={M.canh}>Không cho dùng app này</Chu>
+      </NhanMen>
+    </>}>
+      <View style={{ alignItems: "center", paddingTop: 6, gap: 4 }}>
+        <View style={{ width: 84, height: 84, borderRadius: 28, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.the }}><OIcon ic={ic} co={64} nen={M.the} /></View>
+        <Chu kieu="rat" co={22} style={{ marginTop: 6 }}>{ten}</Chu>
+        <Chu kieu="dam" co={13} mau={M.chu3}>{!hienTai ? `${con.ten} chưa được dùng` : hienTai.loai === "chan" ? `Đang chặn với ${con.ten}` : `${con.ten} đang được dùng`}</Chu>
+      </View>
+      <Nhom>
+        <Dong dau tieu="Tính vào giờ chơi" phu={`Tổng hôm nay ${con.phutChoi}/${con.tranNgay} phút`} trai={<OIcon ic="dongho" />}
+          phai={d.xem ? undefined : <CongTac bat={tinhGio} nhan="Tính vào giờ chơi" doi={setTinh} />} />
+      </Nhom>
+      {d.g.con.length > 1 ? (
+        <>
+          <MucTieu chu="Áp cho" />
+          <Chips ds={d.g.con.map((c) => ({ gia: c.id, chu: c.ten }))} chon={chon}
+            doi={(id) => setApCho(chon.includes(id) ? chon.filter((x) => x !== id) : [...chon, id])} />
+        </>
+      ) : null}
+    </Man>
+  );
+}

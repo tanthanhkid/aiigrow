@@ -1,107 +1,85 @@
-// Thành viên gia đình (FR-01.04): Chủ gia đình mời Ba, Ông Bà với quyền Phê duyệt hoặc Chỉ xem; lời mời qua link / mã / QR, hết hạn sau
-// 72 giờ, dùng một lần. Chủ đổi quyền, mời ra, huỷ lời mời. Thành viên khác chỉ xem danh sách.
+// bm2-thanh-vien (thiết kế chốt bm-cai-dat/12): một người lớn trong nhà — ảnh chữ, tên, «<tên> trong nhà» (SĐT / email, quyền, cùng trông các con),
+// «Xong, về Cả nhà» + «Mời <tên> rời nhà». 2 quyền (S2): Ba Mẹ đổi được quyền người khác (trừ người tạo nhà, trừ chính mình).
+// Không có `id` (thông báo cũ trỏ /thanh-vien) ⇒ về tab Cả nhà — danh sách người lớn + lời mời nằm ở đó.
 import { useState } from "react";
-import { Share, View } from "react-native";
-import { bm } from "@/lib/api";
-import { MaQr } from "@/lib/qr";
-import {
-  Avt, Bao, BangTruot, BaoLoi, BieuTron, Canh, ChoTai, ChonMot, Chu, Dong, gioPhut, M, MAU_CON, Man, Nhan, Nhom, NhomTieu, Nut, ONhap, The,
-  useHoanTac, useLam, useTai,
-} from "@/lib/ui";
-
-type Vai = "chu" | "duyet" | "xem";
-type TV = { id: string; ten: string; vai: Vai; dinh_danh: string; laToi: boolean };
-type Moi = { id: string; vai: "duyet" | "xem"; tenGoi: string; het: string };
-type DsTv = { ds: TV[]; loiMoi: Moi[]; toi: { id: string; vai: Vai }; hanGio: number };
-type MoiMoi = { id: string; ma: string; lienKet: string; vai: "duyet" | "xem"; tenGoi: string; het: string };
-
-const VAI: Record<Vai, string> = { chu: "Chủ gia đình", duyet: "Phê duyệt", xem: "Chỉ xem" };
-const MO_TA = { duyet: "Duyệt nhiệm vụ, yêu cầu, đổi cấu hình như Ba Mẹ", xem: "Xem tình hình, nhận thông báo; không duyệt, không đổi gì" } as const;
-const CHON_VAI = [{ gia: "duyet" as const, chu: "Phê duyệt" }, { gia: "xem" as const, chu: "Chỉ xem" }];
+import { Pressable, View } from "react-native";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { bm, type GiaDinh } from "@/lib/api";
+import { IC_QUYEN, MO_TA_QUYEN, TEN_QUYEN, chuDau, type DsThanhVien, type Quyen } from "@/lib/ca-nha";
+import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
+import { KHOI } from "@/lib/clay";
+import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, MAU_CON, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
 
 export default function ThanhVien() {
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<DsTv>("thanh-vien"));
-  const { lam, loi: loiLam, dangChay, setLoi } = useLam();
-  const { bao, noi } = useHoanTac();
-  const [mo, setMo] = useState<null | "moi" | { tv: TV } | { moi: Moi }>(null);
-  const [vai, setVai] = useState<"duyet" | "xem">("duyet");
-  const [tenGoi, setTenGoi] = useState("");
-  const [vuaTao, setVuaTao] = useState<MoiMoi | null>(null);
-  const dong = () => { setMo(null); setLoi(null); };
-  if (!d) return <Man lui={{ chu: "Gia đình" }} tieu="Thành viên"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const laChu = d.toi.vai === "chu";
-  const taoMoi = () => lam(async () => {
-    const r = await bm.goi<MoiMoi>("thanh-vien/moi", { vai, tenGoi: tenGoi.trim() });
-    setVuaTao(r); setMo(null); setTenGoi(""); await tai();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const [tv, g] = await Promise.all([bm.goi<DsThanhVien>("thanh-vien"), bm.goi<GiaDinh>("gia-dinh")]);
+    return { tv, con: g.con.map((c) => c.ten) };
   });
-  const chiaSe = (r: MoiMoi) => Share.share({ message: `Mời ${r.tenGoi || "Ba/Mẹ"} vào gia đình trên AiiGrow (quyền ${VAI[r.vai]}). Mở link: ${r.lienKet} — hoặc nhập mã ${r.ma}. Mã hết hạn sau ${d.hanGio} giờ.` })
-    .catch(() => {});
+  const { lam, loi: loiLam, dangChay, setLoi } = useLam();
+  const [mo, setMo] = useState<null | "quyen" | "roi">(null);
+  if (!id) return <Redirect href="/cai-dat" />;
+  if (!d) return <Man lui={{ chu: "Cả nhà" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const i = d.tv.ds.findIndex((x) => x.id === id);
+  const x = d.tv.ds[i];
+  const ve = () => veHoac("/cai-dat");
+  if (!x) return <Man lui={{ chu: "Cả nhà" }}><ChoTai loi="Người này không còn trong nhà." tai={ve} /></Man>;
+  const toiBaMe = d.tv.toi.quyen === "ba_me";
+  const doiDuoc = toiBaMe && !x.laChuNha && !x.laToi;
+  const roiDuoc = x.laToi ? !x.laChuNha : doiDuoc;
+  const dong = () => { setMo(null); setLoi(null); };
+  const doiQuyen = (q: Quyen) => lam(async () => {
+    if (q === x.quyen) { dong(); return; }
+    await bm.goi(`thanh-vien/${x.id}/quyen`, { quyen: q });
+    dong();
+    await tai();
+  });
+  const roi = () => lam(async () => {
+    if (x.laToi) {
+      await bm.goi("thanh-vien/roi-nha", {});
+      baoKhiVe("Bạn đã rời nhà");
+      router.replace("/hom-nay");
+      return;
+    }
+    await bm.goi(`thanh-vien/${x.id}/moi-ra`, {});
+    baoKhiVe(`${x.ten} đã rời nhà`);
+    ve();
+  });
   return (
-    <Man lui={{ chu: "Gia đình" }} tieu="Thành viên" noi={noi}
-      day={laChu ? <Nut chu="Mời thành viên" ic="cong" rong bam={() => { setVuaTao(null); setMo("moi"); }} /> : undefined}>
-      <Canh lv="canh-cac-con" thap tieu="Cả nhà cùng đồng hành" loi={laChu ? "Mời Ba, Ông Bà duyệt cùng hoặc chỉ xem tình hình. Mọi lần duyệt đều ghi rõ ai duyệt." : "Chủ gia đình mời và đổi quyền thành viên."} />
-      {vuaTao ? (
-        <The dem style={{ gap: 12, alignItems: "center" }}>
-          <Chu kieu="rat" co={17}>{`Lời mời ${vuaTao.tenGoi ? `cho ${vuaTao.tenGoi} ` : ""}· ${VAI[vuaTao.vai]}`}</Chu>
-          <MaQr noiDung={vuaTao.lienKet} co={180} />
-          <Chu kieu="rat" co={26} so style={{ letterSpacing: 2 }}>{vuaTao.ma}</Chu>
-          <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`Người được mời quét QR, mở link hoặc nhập mã ở màn «Có mã mời». Hết hạn ${gioPhut(vuaTao.het)}, dùng một lần.`}</Chu>
-          <Nut chu="Gửi lời mời" ic="gui" rong bam={() => chiaSe(vuaTao)} />
-        </The>
+    <Man lui={{ chu: "", bam: ve }} day={<>
+      <Nut chu="Xong, về Cả nhà" rong bam={ve} />
+      {roiDuoc ? (
+        <Pressable onPress={() => setMo("roi")} accessibilityRole="button" style={{ minHeight: 48, alignItems: "center", justifyContent: "center" }}>
+          <Chu kieu="rat" co={15} mau={M.loi}>{x.laToi ? "Rời nhà" : `Mời ${x.ten} rời nhà`}</Chu>
+        </Pressable>
       ) : null}
-      <NhomTieu chu={`Người lớn (${d.ds.length})`} />
-      <Nhom>
-        {d.ds.map((x, i) => (
-          <Dong key={x.id} dau={i === 0} tieu={x.laToi ? `${x.ten} (Ba/Mẹ)` : x.ten} phu={x.vai === "chu" ? x.dinh_danh : MO_TA[x.vai]}
-            trai={<Avt ten={x.ten} mau={MAU_CON[(i + 2) % MAU_CON.length]} />}
-            phai={<Nhan chu={VAI[x.vai]} loai={x.vai === "chu" ? "ok" : x.vai === "duyet" ? "lam" : "xam"} />}
-            bam={laChu && x.vai !== "chu" ? () => { setMo({ tv: x }); } : undefined} />
-        ))}
-      </Nhom>
-      {d.loiMoi.length ? (
-        <View style={{ gap: 12 }}>
-          <NhomTieu chu="Lời mời đang chờ" />
-          <Nhom>
-            {d.loiMoi.map((x, i) => (
-              <Dong key={x.id} dau={i === 0} tieu={x.tenGoi || "Lời mời chưa đặt tên"} phu={`${VAI[x.vai]} · hết hạn ${gioPhut(x.het)}`}
-                trai={<BieuTron ic="gui" mau="vang" />} phai={laChu ? <Nhan chu="Huỷ" loai="xam" /> : undefined}
-                bam={laChu ? () => setMo({ moi: x }) : undefined} />
-            ))}
-          </Nhom>
+    </>}>
+      <View style={{ alignItems: "center", gap: 6, paddingTop: 8 }}>
+        <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: MAU_CON[(i + 2) % MAU_CON.length], alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+          <Chu kieu="rat" co={40} mau="#fff">{chuDau(x.ten)}</Chu>
         </View>
-      ) : null}
-      {!laChu ? <Bao loai="lam" ic="khien" tieu={`Quyền của Ba/Mẹ: ${VAI[d.toi.vai]}`} loi={d.toi.vai === "xem" ? MO_TA.xem : MO_TA.duyet} /> : null}
+        <Chu kieu="rat" co={26} style={{ letterSpacing: -0.4, textAlign: "center" }}>{x.ten}</Chu>
+        <Chu kieu="dam" co={14} mau={M.chu3}>{x.laChuNha ? "Người tạo nhà" : x.laToi ? "Bạn" : "Đã vào nhà"}</Chu>
+      </View>
+      <MucTieu chu={`${x.laToi ? "Bạn" : x.ten} trong nhà`} />
+      <Nhom>
+        <Dong dau tieu={x.dinh_danh.includes("@") ? "Email" : "Số điện thoại"} phu={x.dinh_danh || "Chưa có"} trai={<OIcon ic={x.dinh_danh.includes("@") ? "tin" : "dt"} />} />
+        <Dong tieu="Quyền" phu={`${TEN_QUYEN[x.quyen]} · ${MO_TA_QUYEN[x.quyen]}`} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
+        <Dong tieu="Cùng trông" phu={d.con.length ? d.con.join(", ") : "Chưa có con nào"} trai={<OIcon ic="nguoi" />} />
+      </Nhom>
 
-      <BangTruot mo={mo === "moi"} dong={dong} tieu="Mời thành viên">
-        <ONhap nhan="Gọi là gì trong nhà?" value={tenGoi} onChangeText={setTenGoi} placeholder="Ba Huy, Bà nội…" maxLength={30} />
-        <Chu kieu="rat" co={14}>Quyền</Chu>
-        <ChonMot ds={CHON_VAI} gia={vai} doi={setVai} />
-        <Chu co={13} mau={M.chu3}>{MO_TA[vai]}. Lời mời hết hạn sau {d.hanGio} giờ.</Chu>
+      <BangTruot mo={mo === "quyen"} dong={dong} tieu={`Quyền của ${x.ten}`}>
+        {(["ba_me", "trong_giup"] as const).map((q) => (
+          <OChon key={q} chon={x.quyen === q} bam={() => doiQuyen(q)} trai={<Icon3D ten={IC_QUYEN[q]} co={32} />} tieu={TEN_QUYEN[q]} phu={MO_TA_QUYEN[q]} />
+        ))}
         <BaoLoi loi={loiLam} />
-        <Nut chu="Tạo lời mời" rong dangChay={dangChay} bam={taoMoi} />
       </BangTruot>
-      {mo && typeof mo === "object" && "tv" in mo ? (
-        <BangTruot mo dong={dong} tieu={mo.tv.ten}>
-          <Chu kieu="rat" co={14}>Quyền</Chu>
-          <ChonMot ds={CHON_VAI} gia={mo.tv.vai === "xem" ? "xem" : "duyet"} doi={(v) => lam(async () => {
-            await bm.goi(`thanh-vien/${mo.tv.id}/vai`, { vai: v }); dong(); bao(`${mo.tv.ten}: ${VAI[v]}`); await tai();
-          })} />
-          <Chu co={13} mau={M.chu3}>{MO_TA[mo.tv.vai === "xem" ? "xem" : "duyet"]}.</Chu>
-          <BaoLoi loi={loiLam} />
-          <Nut chu={`Mời ${mo.tv.ten} ra khỏi gia đình`} loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
-            await bm.goi(`thanh-vien/${mo.tv.id}/moi-ra`, {}); dong(); bao(`${mo.tv.ten} không còn trong gia đình`); await tai();
-          })} />
-        </BangTruot>
-      ) : null}
-      {mo && typeof mo === "object" && "moi" in mo ? (
-        <BangTruot mo dong={dong} tieu="Huỷ lời mời này?">
-          <Chu mau={M.chu2}>{`Mã mời ${mo.moi.tenGoi ? `cho ${mo.moi.tenGoi} ` : ""}sẽ không dùng được nữa. Muốn mời lại thì tạo lời mời mới.`}</Chu>
-          <BaoLoi loi={loiLam} />
-          <Nut chu="Huỷ lời mời" loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
-            await bm.goi(`thanh-vien/moi/${mo.moi.id}/huy`, {}); dong(); bao("Đã huỷ lời mời"); setVuaTao(null); await tai();
-          })} />
-        </BangTruot>
-      ) : null}
+      <BangTruot mo={mo === "roi"} dong={dong} tieu={x.laToi ? "Rời nhà?" : `Mời ${x.ten} rời nhà?`}>
+        <Chu mau={M.chu2}>{x.laToi ? "Bạn không xem, không duyệt việc của các con nữa. Tài khoản của bạn vẫn giữ." : `${x.ten} không xem, không duyệt việc của các con nữa. Muốn vào lại thì mời lần nữa.`}</Chu>
+        <BaoLoi loi={loiLam} />
+        <Nut chu={x.laToi ? "Rời nhà" : `Mời ${x.ten} rời nhà`} loai="huy" rong dangChay={dangChay} bam={roi} />
+        <Nut chu="Để sau" loai="ma" rong bam={dong} />
+      </BangTruot>
     </Man>
   );
 }

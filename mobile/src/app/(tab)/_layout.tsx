@@ -42,7 +42,7 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
 
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
   "hom-nay": { ic: "nha", chu: "Trang chủ" }, "cho-duyet": { ic: "chuong", chu: "Chờ duyệt" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ & quà" },
-  "cai-dat": { ic: "nguoi", chu: "Gia đình" },
+  "cai-dat": { ic: "nguoi", chu: "Cả nhà" },
 };
 
 function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
