@@ -13,7 +13,7 @@ import type { May } from "./gia-dinh.ts";
 export const CHU_KY_KIEM_PHUT = 15;
 
 // 0.2.13 (05/11, khớp thiết kế đã chốt 05/11: bộ cài mới, màn chặn/khoá, app Con, quỹ phút tại máy, 2 chế độ chặn — PR #180 #184 #187 #188): exe từ CI
-// agent-win run 41965898883 (job build goc, PR #190 head 3a43ca0 trên main 87be9d6), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.13.
+// agent-win run 41965898883 (job build goc, PR #190 head 3a43ca0 = tag phathanh-0511-src, trên main 87be9d6), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.13.
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
@@ -26,7 +26,7 @@ export const BAN_AGENT_WINDOWS = {
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + theo chuKyKiemPhut từ 0.1.6, bản cũ hơn mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
-// 0.1.8 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN — PR #185): build-pkg.sh trên Mac của Thanh từ commit 3a43ca0 (PR #190, trên main 87be9d6),
+// 0.1.8 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN — PR #185): build-pkg.sh trên Mac của Thanh từ commit 3a43ca0 (tag phathanh-0511-src, PR #190, trên main 87be9d6),
 // notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.8. (0.1.7: commit 562fabc, PR #174 + #176.)
 export const BAN_AGENT_MAC = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
@@ -42,7 +42,7 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
-// 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (PR #190);
+// 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (tag phathanh-0511-src, PR #190);
 // sha256 đo trên tệp tải về từ Release con-android-0.2.4. (0.2.3: commit 68d44f6, PR #128.)
 export const BAN_CON_ANDROID = {
   version: "0.2.4",
