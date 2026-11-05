@@ -54,7 +54,7 @@ const coBan = {
   "GET toi": toi(), "GET nha": nha(), "POST chao": { diemChaoMung: 10 }, "POST dang-xuat": { ok: true },
   "POST ho-so": { con: [{ id: "c1", ten: KEN, avatar: "rob" }, { id: "c2", ten: BILL, avatar: "rob" }] }, "POST chon-con": { phienCon: "tok-con" },
   "GET quy": { quy: quy(), sao: 45, phutDoiDuoc: 30, ngoaiLe: [], yeuCauCho: [] }, "POST doi-sao": { id: "g1", phut: 15, sao: 15, soDu: 30, conPhut: 33 },
-  "POST xin-duyet": { id: "y8", trang_thai: "cho", daCo: false, loai: "cai_app", muc: "youtube" },
+  "POST xin-duyet": { id: "y8", trang_thai: "cho", daCo: false, loai: "cai_app", muc: "com.google.android.youtube" },
   "POST ghep": { deviceId: "d1", token: "tok-may", dungChung: true },
   "GET nhiem-vu": { ds: DS_NV }, "POST nhiem-vu/t0/bat-dau": { luot: "l9" }, "POST luot/l9/nop": { trang_thai: "cho_duyet", nghi_trung: false },
   "POST luot/l2/nop": { trang_thai: "cho_duyet", nghi_trung: false }, "POST nhiem-vu/t4/bat-dau": { luot: "l8" }, "POST luot/l8/nop": { trang_thai: "cho_duyet" },
@@ -220,7 +220,7 @@ if (process.argv.includes("--giao-dien")) {
     M("con-cho-duyet (mất mạng)", "/tre/cho-duyet?diem=10&xep=1", "hàng chờ trên máy"),
     M("con-duoc-duyet", "/tre/duoc-duyet/l1", "+10 sao!"),
     M("con-chup-lai", "/tre/chup-lai/l2?nv=t0", "không mất sao nào"),
-    M("con-chan-app", "/tre/chan-app?muc=youtube&ten=YouTube", "Xin Ba Mẹ mở YouTube"),
+    M("con-chan-app", "/tre/chan-app?muc=com.google.android.youtube&ten=YouTube", "Xin Ba Mẹ mở YouTube"),
     M("con-chan-web", "/tre/chan-web?url=scratch.mit.edu", "Trang này Rob chưa biết"),
     M("con-chan-web (teen)", "/tre/chan-web?url=scratch.mit.edu", "Quy tắc: trang web mới", { kb: teen }),
     M("con-xin-phep", "/tre/xin-phep?loai=mo_web&gia=scratch.mit.edu&tu=chan-web", "Xin mở trang web"),
@@ -383,11 +383,11 @@ await kichBan("Mất mạng lúc nộp ⇒ bài vào hàng chờ trên máy, có
 });
 
 await kichBan("App lạ ⇒ Xin Ba Mẹ duyệt (một chạm, lời nhắn không bắt buộc)", async () => {
-  await di("/tre/chan-app?muc=youtube&ten=YouTube");
+  await di("/tre/chan-app?muc=com.google.android.youtube&ten=YouTube");
   await doi("YouTube chưa được mở");
   cham = 0;
   await bam("Xin Ba Mẹ mở YouTube");
-  await xet(coGoi("xin-duyet", (b) => b.muc === "youtube" && b.lyDo === ""), "gửi xin-duyet, không bắt lý do");
+  await xet(coGoi("xin-duyet", (b) => b.muc === "com.google.android.youtube" && b.lyDo === ""), "gửi xin-duyet, không bắt lý do");
   await xet(cham <= 1, `xin duyệt: ${cham} chạm`);
   await xet(await doi("Ba Mẹ đồng ý rồi!"), "sang danh sách yêu cầu");
 });

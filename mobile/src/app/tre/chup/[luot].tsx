@@ -74,15 +74,17 @@ function GhiAm({ ten, gui, dangChay, loi }: { ten: string; gui: (a: AnhNop, ghiC
   }, [trang]);
   const batDau = async () => {
     setNhac(null);
+    let luong: MediaStream | null = null;
     try {
-      const luong = await globalThis.navigator.mediaDevices.getUserMedia({ audio: true });
+      luong = await globalThis.navigator.mediaDevices.getUserMedia({ audio: true });
+      const ls = luong;
       const MR = (globalThis as unknown as { MediaRecorder: new (s: MediaStream) => { start: () => void; stop: () => void; state: string; mimeType: string;
         ondataavailable: ((e: { data: Blob }) => void) | null; onstop: (() => void) | null } }).MediaRecorder;
-      const r = new MR(luong);
+      const r = new MR(ls);
       const manh: Blob[] = [];
       r.ondataavailable = (e) => { if (e.data.size) manh.push(e.data); };
       r.onstop = () => {
-        luong.getTracks().forEach((x) => x.stop());
+        ls.getTracks().forEach((x) => x.stop());
         const mime = (r.mimeType || "audio/webm").split(";")[0];
         const blob = new Blob(manh, { type: mime });
         const doc = new FileReader();
@@ -99,6 +101,7 @@ function GhiAm({ ten, gui, dangChay, loi }: { ten: string; gui: (a: AnhNop, ghiC
       r.start();
       setTrang("ghi");
     } catch {
+      luong?.getTracks().forEach((x) => x.stop());     // micro đã mở mà MediaRecorder hỏng ⇒ tắt micro, không để đèn ghi âm sáng
       setNhac("Chưa mở được micro — cho phép trình duyệt dùng micro rồi thử lại nhé");
     }
   };

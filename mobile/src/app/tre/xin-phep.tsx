@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { Bao, BaoLoi, Canh, CanhGiua, ChonMot, Chu, Icon, M, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 import { ChipMot, ManTre, OLon, useTaiTre, useTre } from "@/lib/ui-tre";
-import { kid, lyDoKhoa, type NhaTreSao, type YcTre } from "@/lib/api-tre";
+import { kid, laMaApp, lyDoKhoa, type NhaTreSao, type YcTre } from "@/lib/api-tre";
 import { LoiApi } from "@/lib/api";
 
 type Loai = "them_gio" | "mo_web" | "cai_app" | "khac";
@@ -40,15 +40,16 @@ export default function XinPhep() {
   const gui = () => (thieuGia ? setLoi(loai === "mo_web" ? "Ghi trang web con muốn mở nhé" : loai === "cai_app" ? "Ghi tên app nhé" : "Ghi điều con muốn xin nhé")
     : lam(async () => {
     try {
-      // app / web lạ: «Xin Ba Mẹ duyệt» (đã xin rồi ⇒ máy chủ trả lại lời xin đang chờ, không tạo trùng)
-      const r = loai === "mo_web" || loai === "cai_app"
+      // web lạ / mã app thật: «Xin Ba Mẹ duyệt» (đã xin rồi ⇒ máy chủ trả lại lời xin đang chờ). Tên app gõ tay («Minecraft») ⇒ yeu-cau cai_app
+      // (xin-duyet sẽ hiểu tên trần là tên miền).
+      const r = loai === "mo_web" || (loai === "cai_app" && laMaApp(gia.trim()))
         ? await kid.goi<{ id: string }>("xin-duyet", { muc: gia.trim(), ten: gia.trim(), lyDo: lyDoGui })
         : await kid.goi<{ id: string }>("yeu-cau", { loai, lyDo: lyDoGui, ...(loai === "them_gio" ? { phut } : { giaTri: gia.trim() }) });
       router.replace(`/tre/yeu-cau?moi=${r.id}`);
     } catch (e) {
       if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDay(true); return; }
       if (e instanceof LoiApi && e.ma === "web_cam") { setWebCam(true); return; }
-      if (e instanceof LoiApi && e.ma === "chi_ngoai_le") { router.replace("/tre/ngoai-le"); return; }
+      if (e instanceof LoiApi && e.ma === "chi_ngoai_le") { router.replace(`/tre/ngoai-le${khoa ? `?ly=${khoa}` : ""}`); return; }
       throw e;
     }
   }, { hangDoi: true }));

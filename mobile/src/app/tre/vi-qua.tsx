@@ -12,7 +12,7 @@ export default function ViQuaTre() {
     return { vi, nha };
   });
   if (!d) return <ManTre tab="cua-hang"><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
-  const cho = d.vi.phieu.filter((p) => p.loai !== "voucher");
+  const cho = d.vi.phieu;
   const daTrao = d.vi.daTrao ?? [];
   const phieuCu = d.vi.voucher.filter((v) => v.trang_thai === "da_phat_hanh");
   if (!cho.length && !daTrao.length && !phieuCu.length) {
@@ -33,7 +33,7 @@ export default function ViQuaTre() {
           <NhomTieu chu="Đã gửi Ba Mẹ · chờ trao" />
           <Nhom>
             {cho.map((p, i) => (
-              <Dong key={p.id} dau={i === 0} tieu={p.ten} phu={`Đổi ${ngayCua(p.created_at).slice(0, 5)} · ${p.diem} sao`}
+              <Dong key={p.id} dau={i === 0} tieu={p.ten} phu={`${p.loai === "voucher" ? "Phiếu cũ · chờ Ba Mẹ xác nhận" : "Đổi"} ${ngayCua(p.created_at).slice(0, 5)} · ${p.diem} sao`}
                 trai={<BieuTron ic="qua" mau="lam" />} phai={<Nhan chu="Chờ trao" loai="canh" />} />
             ))}
           </Nhom>
