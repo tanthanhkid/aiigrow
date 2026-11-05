@@ -39,7 +39,8 @@ export default function ChanApp() {
       </ManTre>
     );
   }
-  const ds = (duoc.d?.ds ?? []).map((x) => tenMuc(x.muc, x.ten));
+  // một app có nhiều định danh (exe / bundle / gói / tên miền) ⇒ gộp theo tên, không lặp «Minecraft, Minecraft…»
+  const ds = [...new Set((duoc.d?.ds ?? []).map((x) => tenMuc(x.muc, x.ten)))];
   return (
     <ManTre>
       <CanhGiua lv="chi" tieu={`${tenApp} chưa được mở`} loi="Máy chỉ mở app Ba Mẹ cho phép.">
