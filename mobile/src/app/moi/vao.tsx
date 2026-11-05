@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
-import { Avt, Bao, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, Man, MAU_CON, Nhan, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
+import { Avt, Bao, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, Man, M, MAU_CON, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
 import { ma0, noiTen, type XemMoi } from "@/lib/moi";
 import { KHOI } from "@/lib/clay";
 
@@ -57,7 +57,12 @@ export default function VaoNha() {
         <Rob ten="chi" co={170} />
       </View>
       <TieuDe chu={`${ai} mời bạn vào nhà`} phu={con.length ? `Cùng trông ${noiTen(con, true)}` : x.tenGiaDinh} giua />
-      <View style={{ alignItems: "center" }}><Nhan chu={con.length ? `Bạn cùng trông ${noiTen(con)}` : x.tenQuyen ? `Quyền ${x.tenQuyen}` : "Người trong nhà"} /></View>
+      {/* nhãn viên tự làm (không dùng Nhan): chữ cách mép viên ≥ 14 — viên rộng có bóng ngoài được tính là thẻ clay (cổng LE-THE) */}
+      <View style={{ alignItems: "center" }}>
+        <View style={{ maxWidth: "100%", paddingHorizontal: 14, paddingVertical: 4, borderRadius: 99, backgroundColor: M.chinhSoft, ...KHOI.nho }}>
+          <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>{con.length ? `Bạn cùng trông ${noiTen(con)}` : x.tenQuyen ? `Quyền ${x.tenQuyen}` : "Người trong nhà"}</Chu>
+        </View>
+      </View>
       {d.coNha ? <Bao tieu="Tài khoản này đã có nhà riêng" loi="Chỉ vào nhà khác được khi tài khoản chưa có con, máy hay người nhà nào. Muốn vào nhà này: đăng xuất rồi tạo tài khoản bằng số khác." /> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         {viec.map(([ic, chu]) => (

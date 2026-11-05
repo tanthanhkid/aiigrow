@@ -67,9 +67,9 @@ export function TheCheDo({ cheDo, doi, tat }: { cheDo: CheDoChan | null; doi?: (
       {(["mo_het", "chi_app_duoc_phep"] as const).map((k) => {
         const on = cheDo === k;
         return (
-          <NhanMen key={k} onPress={() => doi?.(k)} disabled={!doi || tat} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: !doi }}
+          <NhanMen key={k} onPress={() => doi?.(k)} disabled={!doi || tat} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: !doi }} aria-checked={on}
             accessibilityLabel={`${CHE[k].tieu}, ${CHE[k].phu}`} muc="khoi" sang men={MEN.the}
-            style={[{ flex: 1, minWidth: 0, gap: 6, padding: 14, borderRadius: 26, backgroundColor: M.the, ...KHOI.the },
+            style={[{ flex: 1, minWidth: 0, gap: 6, padding: 16, borderRadius: 26, backgroundColor: M.the, ...KHOI.the },
               on && { boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.the}` }]}>
             {on ? (
               <View style={{ position: "absolute", right: 10, top: 10, width: 26, height: 26, borderRadius: 13, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
@@ -89,7 +89,7 @@ export function TheCheDo({ cheDo, doi, tat }: { cheDo: CheDoChan | null; doi?: (
 /** Một thẻ chế độ (màn «App trên Laptop»): icon + chế độ đang chạy + nút «Đổi chế độ». */
 export function TheCheDoNgan({ cheDo, doi }: { cheDo: CheDoChan; doi?: () => void }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 26, backgroundColor: M.the,
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 26, backgroundColor: M.the,
       boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.the}` }}>
       <LopMen men={MEN.the} bo={26} />
       <Icon3D ten={CHE[cheDo].ic} co={40} />

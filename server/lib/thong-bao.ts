@@ -82,7 +82,7 @@ type CanhBaoRow = { id: string; child_id: string | null; loai: string; muc: MucT
 
 const YC: Record<string, (c: Record<string, any>) => string> = {
   them_gio: (c) => `xin thêm ${c.phut ?? ""} phút`.replace("  ", " "), mo_web: (c) => `xin mở ${c.gia_tri ?? "một trang web"}`,
-  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: (c) => `xin chơi ${c.phut ?? ""} phút dù chưa đủ điểm`.replace("  ", " "),
+  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: (c) => `xin ngoại lệ ${c.phut ?? ""} phút${c.gia_tri ? ` cho ${c.gia_tri}` : ""}`.replace("  ", " "),
   ngoai_gio: (c) => `xin chơi ngoài giờ ${c.phut ?? ""} phút`.replace("  ", " "), khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
 };
 const tien = (n: number) => `${Math.round(n).toLocaleString("en-US").replace(/,/g, ".")}đ`;
@@ -97,18 +97,18 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
     case "bat_dau_nhiem_vu": return g("nhiem_vu", `${con} đã nhận «${c.ten ?? "nhiệm vụ"}»`, "Đang làm, nộp xong sẽ báo Ba Mẹ", veCon);
     case "phan_hoi_con": return g("nhiem_vu", `${con} nhắn lại Ba Mẹ`, `«${String(c.noi_dung ?? "").slice(0, 80)}»`, veCon);
     case "gui_yeu_cau": return g("yeu_cau", `${con} ${(YC[c.loai] ?? YC.khac)(c)}`, "Đồng ý hoặc từ chối trong Chờ duyệt", "/cho-duyet");
-    case "doi_qua": return g("qua", `${con} đổi «${c.ten ?? "phần thưởng"}»`, `${c.diem ?? 0} điểm${c.cho_xac_nhan ? " · chờ Ba Mẹ trao quà" : ""}`, "/diem-qua");
+    case "doi_qua": return g("qua", `${con} đổi «${c.ten ?? "phần thưởng"}»`, `${c.diem ?? 0} sao${c.cho_xac_nhan ? " · chờ Ba Mẹ trao quà" : ""}`, "/diem-qua");
     case "dung_voucher": return g("qua", `Phiếu quà ${tien(Number(c.menh_gia ?? 0))} đã dùng ở AiiCafe`, c.ma ? `Mã ${c.ma}` : "Quầy đã quét", "/quy");
     case "nap_quy": return g("qua", `Quỹ phiếu quà +${tien(Number(c.so_tien ?? 0))}`, e.nguoi ? `${ai} ghi nạp` : "AiiLab đã ghi nhận khoản nạp", "/quy");
     case "huy_hieu": return g("thanh_tich", `${con} nhận huy hiệu ${c.ten ?? ""}`.trim(), "Khen Con một câu nhé", e.child_id ? `/vi/${e.child_id}` : "/hom-nay");
-    case "tu_duyet_nhiem_vu": return g("thanh_tich", `${con} xong «${c.ten ?? "nhiệm vụ"}»`, `+${c.diem ?? 0} điểm, tự duyệt`, e.child_id ? `/vi/${e.child_id}` : "/hom-nay");
-    case "duyet_nhiem_vu": return g("ba_me_khac", `${ai} đã duyệt «${c.ten ?? "nhiệm vụ"}» của ${con}`, `+${c.diem ?? 0} điểm`, e.child_id ? `/vi/${e.child_id}` : "/hom-nay");
+    case "tu_duyet_nhiem_vu": return g("thanh_tich", `${con} xong «${c.ten ?? "nhiệm vụ"}»`, `+${c.diem ?? 0} sao, tự duyệt`, e.child_id ? `/vi/${e.child_id}` : "/hom-nay");
+    case "duyet_nhiem_vu": return g("ba_me_khac", `${ai} đã duyệt «${c.ten ?? "nhiệm vụ"}» của ${con}`, `+${c.diem ?? 0} sao`, e.child_id ? `/vi/${e.child_id}` : "/hom-nay");
     case "tu_choi_nhiem_vu": return g("ba_me_khac", `${ai} chưa duyệt «${c.ten ?? "nhiệm vụ"}» của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", "/hom-nay");
     case "can_bo_sung": return g("ba_me_khac", `${ai} nhờ ${con} chụp lại «${c.ten ?? "nhiệm vụ"}»`, c.ly_do ? `Lý do: ${c.ly_do}` : "Con được nộp lại", "/hom-nay");
-    case "dong_y_yeu_cau": return g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, c.ngoai_le ? "Ngoại lệ — không trừ điểm" : "Theo quy tắc gia đình", veCon);
+    case "dong_y_yeu_cau": return g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, c.ngoai_le ? "Ngoại lệ — không trừ sao" : "Theo quy tắc gia đình", veCon);
     case "tu_choi_yeu_cau": return g("ba_me_khac", `${ai} đã từ chối yêu cầu của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", veCon);
-    case "xac_nhan_qua": return g("ba_me_khac", `${ai} đã trao «${c.ten ?? "quà"}» cho ${con}`, "Phiếu quà đã xong", "/diem-qua");
-    case "huy_qua": return g("ba_me_khac", `${ai} đã huỷ một phiếu quà của ${con}`, "Điểm đã hoàn lại cho Con", "/diem-qua");
+    case "xac_nhan_qua": return g("ba_me_khac", `${ai} đã trao «${c.ten ?? "quà"}» cho ${con}`, "Đã trao quà cho con", "/diem-qua");
+    case "huy_qua": return g("ba_me_khac", `${ai} đã huỷ một quà của ${con}`, "Sao đã hoàn lại cho Con", "/diem-qua");
     case "mo_khan_cap": return g("ba_me_khac", `${ai} mở khẩn cấp máy của ${con} ${c.phut ?? ""} phút`.replace("  ", " "), c.lyDo ? `Lý do: ${c.lyDo}` : "Hết hạn tự khoá lại", veCon, "chu_y");
     case "lenh_go": return g("ba_me_khac", `${ai} đã ra lệnh gỡ một máy khỏi gia đình`, "Máy gỡ xong sẽ biến khỏi danh sách", veCon, "chu_y");
     case "loi_khen": return g("ba_me_khac", `${ai} đã khen ${con}`, `«${String(c.noi_dung ?? "").slice(0, 80)}»`, veCon);

@@ -26,9 +26,13 @@ export default function DuocMoi() {
     <Man noi={noi} dau={<DauMan ve="/chao" />}
       day={<><ChonCachTaoTk tieu={ai ? `Vào nhà cùng ${ai}` : "Vào nhà cùng người nhà"} loi="Chọn một cách để tạo tài khoản, chưa tới 1 phút." sdt={sdt} bao={bao} nc={m ? { moi: m } : { duocMoi: true }} />
         <LienKet chu="Tôi đã có tài khoản" bam={() => router.push({ pathname: "/dang-nhap", params: { moi: m || "1" } })} /></>}>
-      <KhoiRob lv="chi" cao={350} tren={d ? <TheLoiMoi x={d} /> : (
-        <The><Chu kieu="rat" co={15}>Được người nhà mời?</Chu><Chu co={13} mau={M.chu3}>Tạo tài khoản bằng đúng số điện thoại người nhà đã mời — lời mời sẽ tự hiện.</Chu></The>
-      )} />
+      {d ? <KhoiRob lv="chi" cao={350} tren={<TheLoiMoi x={d} />} /> : (
+        <>
+          {/* thẻ chữ ĐỨNG TRÊN khối Rob (không đè lên hình): câu 2–3 dòng ở 320px sẽ chồng lên đầu Rob (cổng DE-ANH) */}
+          <The><Chu kieu="rat" co={15}>Được người nhà mời?</Chu><Chu co={13} mau={M.chu3}>Tạo tài khoản bằng đúng số điện thoại người nhà đã mời — lời mời sẽ tự hiện.</Chu></The>
+          <KhoiRob lv="chi" cao={260} />
+        </>
+      )}
     </Man>
   );
 }

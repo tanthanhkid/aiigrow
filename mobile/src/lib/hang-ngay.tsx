@@ -239,7 +239,7 @@ export function BangThemGio({ mo, dong, con, ten, sao, phutDoiDuoc, xong }: {
       <Chu co={14.5} mau={M.chu2}>Chỉ tính cho hôm nay.</Chu>
       <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
       {sao ? (
-        <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 20, backgroundColor: M.diemSoft }, KHOI.vien]}>
+        <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, padding: 16, borderRadius: 20, backgroundColor: M.diemSoft }, KHOI.vien]}>
           <Icon3D ten="sao" co={24} mau={M.diemInk} />
           <Chu co={14} mau={M.diemInk} style={{ flex: 1 }}>{phutDoiDuoc ? `Con đang có ${sao} sao, tự đổi được ${phutDoiDuoc} phút chơi mà không cần xin.` : `Con đang có ${sao} sao.`}</Chu>
         </View>

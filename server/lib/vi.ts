@@ -63,5 +63,7 @@ export function capDo(tongKiem: number) {
 }
 
 export const lichSu = (con: string, gioiHan = 100) =>
-  q<{ delta: number; loai: LoaiDiem; ly_do: string; nguoi: string | null; created_at: Date }>(
-    `select delta, loai, ly_do, nguoi, created_at from points where child_id = $1 order by created_at desc, seq desc limit $2`, [con, gioiHan]);
+  // ten_nguoi: tên Ba Mẹ để app hiện «Hôm nay · 11:12 · Mẹ Lan» (nguoi là id — giữ cho chỗ gọi cũ); người đã rời / xoá ⇒ null
+  q<{ delta: number; loai: LoaiDiem; ly_do: string; nguoi: string | null; ten_nguoi: string | null; created_at: Date }>(
+    `select p.delta, p.loai, p.ly_do, p.nguoi, pa.ten as ten_nguoi, p.created_at from points p left join parents pa on pa.id = p.nguoi
+      where p.child_id = $1 order by p.created_at desc, p.seq desc limit $2`, [con, gioiHan]);

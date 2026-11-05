@@ -93,7 +93,7 @@ export default function CaiDat() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {d.g.con.map((c, i) => (
           <NhanMen key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`} muc="khoi" sang
-            style={{ width: "31%", flexGrow: 1, maxWidth: 160, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
+            style={{ width: "31%", flexGrow: 1, maxWidth: 160, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
             <Avt ten={c.ten} mau={MAU_CON[i % MAU_CON.length]} co={52} />
             <Chu kieu="rat" co={14.5} dong={1}>{c.ten}</Chu>
             <Chu kieu="dam" co={12} mau={M.chu3}>{`${(c as { sao?: number }).sao ?? c.soDu} sao`}</Chu>
@@ -114,7 +114,7 @@ export default function CaiDat() {
         {/* lời mời đang chờ nằm ngay trong danh sách (hàng vàng «Đang chờ nhận lời mời · Gửi lại») */}
         {d.tv.loiMoi.map((m) => (
           <NhanMen key={m.id} onPress={laBaMe ? () => setMoiMo(m) : undefined} disabled={!laBaMe} accessibilityRole="button" accessibilityLabel={`${tenMoi(m)}, đang chờ nhận lời mời`} muc="khoi"
-            style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 10, paddingLeft: 10, paddingRight: 8, borderRadius: 20, backgroundColor: M.diemSoft }}>
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 10, paddingLeft: 10, paddingRight: 10, borderRadius: 20, backgroundColor: M.diemSoft }}>
             <Avt ten={tenMoi(m)} mau="#8f9894" />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
@@ -194,7 +194,8 @@ export default function CaiDat() {
                   <TickDong trang="x" chu={`Hồ sơ ${d.g.con.length ? `${d.g.con.length} Con` : "các Con"}, nhiệm vụ, ảnh bằng chứng, sao, quà và luật`} />
                   {d.g.quyVoucher > 0 ? <TickDong trang="x" chu={`Quỹ phiếu quà AiiCafe còn ${tien(d.g.quyVoucher)} và các phiếu chưa dùng`} phu="Muốn hoàn tiền thì chat với AiiLab TRƯỚC khi xoá" /> : null}
                   <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
-                  <Chu mau={M.chu2}>Nhật ký giao dịch quỹ và phiếu quà được AiiLab giữ tối đa 90 ngày để xử lý khiếu nại, sau đó xoá hẳn.</Chu>
+                  {/* câu lưu giữ luôn hiện (nhà đã tiêu hết quỹ vẫn có nhật ký cũ); phiếu AiiCafe ngừng phát (L10) ⇒ không gọi tên phiếu quà */}
+                  <Chu mau={M.chu2}>Nhật ký giao dịch cũ (nếu có) được AiiLab giữ tối đa 90 ngày để xử lý khiếu nại, sau đó xoá hẳn.</Chu>
                 </>
               ) : (
                 <>

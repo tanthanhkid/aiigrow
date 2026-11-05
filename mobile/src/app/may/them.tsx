@@ -39,7 +39,7 @@ export default function GhepThemMay() {
   );
   const oChon = (chon: boolean, bam: () => void, trai: ReactNode, tieu: string, phu: string, duoi?: ReactNode) => (
     <Pressable onPress={bam} accessibilityRole="radio" accessibilityState={{ checked: chon }}
-      style={{ borderRadius: 24, backgroundColor: "#fff", padding: 14, gap: 10, ...KHOI.nho, ...(chon ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, backgroundColor: "#f3faf7" } : {}) }}>
+      style={{ borderRadius: 24, backgroundColor: "#fff", padding: 16, gap: 10, ...KHOI.nho, ...(chon ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, backgroundColor: "#f3faf7" } : {}) }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", ...(chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }) }}>
           {chon ? <Icon ten="tick" mau="#fff" co={15} /> : null}

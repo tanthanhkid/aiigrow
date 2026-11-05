@@ -3,7 +3,7 @@
 import { router } from "expo-router";
 import { Pressable } from "react-native";
 import { bm, type Qua } from "@/lib/api";
-import { BaoLoi, ChoTai, Chu, M, Man, Nut, The, useBaoKhiVe, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, ChoTai, Chu, M, Man, Nut, The, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { CAU_TRONG_GIUP, HangViec, quyenToi, SaoVien } from "@/lib/hang-ngay";
 
 export default function QuaDoiSao() {
@@ -13,7 +13,6 @@ export default function QuaDoiSao() {
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  useBaoKhiVe(bao);
   if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Quà con đổi bằng sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   return (
     <Man lui={{ chu: "Quay lại" }} tieu="Quà con đổi bằng sao" noi={noi} tai={tai}

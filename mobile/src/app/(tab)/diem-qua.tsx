@@ -7,7 +7,7 @@ import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import {
-  BangTruot, BaoLoi, BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, The, useBaoKhiVe, useHoanTac, useLam, useTai,
+  BangTruot, BaoLoi, BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, The, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 import { cachBao, cauLapLai, ChipCon, HangViec, hinhNv, SaoVien, TieuMuc, tuoiCua, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, TEN_BO, viecCuaCon } from "@/lib/nv-tab";
@@ -31,7 +31,6 @@ export default function TabNhiemVu() {
   const [trao, setTrao] = useState<PhieuCho | null>(null);
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
-  useBaoKhiVe(bao);
   const c = d ? d.g.con.find((x) => x.id === chon) ?? d.g.con[0] : undefined;
   const cua = useMemo(() => {
     if (!d || !c) return null;

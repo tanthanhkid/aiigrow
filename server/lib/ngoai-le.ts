@@ -32,10 +32,10 @@ export async function xemTruoc(fam: string, con: string, tenCon: string, now = n
   const tuan = d.tuan + 1, thang = d.thang + 1;
   if (tuan > d.ts.ngoai_le_manh_tuan)
     return { mucCanhBao: "manh", soTuan: tuan, soThang: thang,
-      cau: `Đây là lần ngoại lệ thứ ${tuan} trong tuần cho ${tenCon}. Thử tăng điểm nhiệm vụ hoặc giảm giá phần thưởng thay vì cho thêm ngoại lệ.` };
+      cau: `Đây là lần ngoại lệ thứ ${tuan} trong tuần cho ${tenCon}. Thử giao thêm nhiệm vụ để con tự kiếm sao đổi giờ chơi thay vì cho thêm ngoại lệ.` };
   if (tuan > d.ts.ngoai_le_mem_tuan || thang > d.ts.ngoai_le_mem_thang)
     return { mucCanhBao: "mem", soTuan: tuan, soThang: thang,
-      cau: `Tuần này Ba Mẹ đã cho ngoại lệ ${tuan} lần — ${tenCon} có thể mất động lực tích điểm.` };
+      cau: `Tuần này Ba Mẹ đã cho ngoại lệ ${tuan} lần — ${tenCon} có thể mất động lực kiếm sao.` };
   return { mucCanhBao: "khong", soTuan: tuan, soThang: thang, cau: null };
 }
 
@@ -48,10 +48,10 @@ export async function ghiNgoaiLe(fam: string, con: string, nguoi: string | null,
      from exceptions where family_id = $1 and child_id = $2`, [fam, con, m.dauTuan, m.dauThang]))[0];
   const ten = (await t<{ ten: string }>(`select ten from children where id = $1`, [con]))[0]?.ten ?? "Con";
   if (r.tuan > m.ts.ngoai_le_manh_tuan)
-    await canhBao(fam, "ngoai_le_manh", "chu_y", `Tuần này ${ten} đã được ${r.tuan} ngoại lệ. Gợi ý: tăng điểm nhiệm vụ hoặc giảm giá phần thưởng.`,
-      { con, khoa: `ngoai_le_manh:${m.maTuan}:${con}`, chiTiet: { tuan: r.tuan, goi_y: ["tang_diem_nhiem_vu", "giam_gia_phut"] } }, t);
+    await canhBao(fam, "ngoai_le_manh", "chu_y", `Tuần này ${ten} đã được ${r.tuan} ngoại lệ. Gợi ý: giao thêm nhiệm vụ để con tự kiếm sao đổi giờ chơi.`,
+      { con, khoa: `ngoai_le_manh:${m.maTuan}:${con}`, chiTiet: { tuan: r.tuan, goi_y: ["giao_them_nhiem_vu", "cho_doi_sao"] } }, t);
   else if (r.tuan > m.ts.ngoai_le_mem_tuan || r.thang > m.ts.ngoai_le_mem_thang)
-    await canhBao(fam, "ngoai_le_mem", "thong_tin", `Tuần này Ba Mẹ đã cho ${ten} ${r.tuan} ngoại lệ — con có thể mất động lực tích điểm.`,
+    await canhBao(fam, "ngoai_le_mem", "thong_tin", `Tuần này Ba Mẹ đã cho ${ten} ${r.tuan} ngoại lệ — con có thể mất động lực kiếm sao.`,
       { con, khoa: `ngoai_le_mem:${m.maTuan}:${con}`, chiTiet: { tuan: r.tuan, thang: r.thang } }, t);
   const theo = await t<{ parent_id: string; n: number }>(
     `select parent_id, count(*)::int as n from exceptions where family_id = $1 and parent_id is not null and created_at >= $2 group by parent_id order by n desc`,

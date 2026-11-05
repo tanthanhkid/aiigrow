@@ -8,7 +8,8 @@ import { bm, type GiaDinh } from "@/lib/api";
 import {
   CAU_TRONG_GIUP, ChipCon, gioGon, HangViec, mauCon, quyenToi, SaoVien, tuoiCua, cauThu, type ConCt, type GioChoi, type GioHoc, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
-import { Avt, BangTruot, ChoTai, Chu, M, Man, NhanMen, Nut, The, TickDong, useTai } from "@/lib/ui";
+import { Avt, BangTruot, ChoTai, Chu, M, Man, NhanMen, Nut, The, TickDong, useHoanTac, useTai } from "@/lib/ui";
+import { saoChep } from "@/lib/luu-tep";
 import { KHOI, MEN } from "@/lib/clay";
 
 export default function HoSoCon() {
@@ -21,6 +22,10 @@ export default function HoSoCon() {
     ]);
     return { con, g, gio, nv: nv?.ds.filter((x) => x.bat && (!x.giao_cho || x.giao_cho === id)) ?? null, trongGiup: quyen === "trong_giup" };
   });
+  // M6: mã liên kết AiiRob «<family_id>.<child_id>» — thiết kế 05/11 không nói ⇒ giữ (không có mã thì Ba Mẹ không nối được AiiRob).
+  // Tải riêng: lỗi thì chỉ ẩn mục này, không hỏng cả màn.
+  const lk = useTai(() => bm.goi<{ ma: string }>(`con/${id}/lien-ket-aiirob`));
+  const { bao, noi } = useHoanTac();
   const [xoa, setXoa] = useState(false);
   if (!d) return <Man lui={{ chu: "Cả nhà" }} tieu="Hồ sơ con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const c = d.con;
@@ -34,7 +39,7 @@ export default function HoSoCon() {
   const ngu = d.gio?.gioNgu ?? c.lich.ngu;
   const bo = d.nv?.find((x) => x.bo)?.bo;
   return (
-    <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={tai}>
+    <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <ChipCon ds={d.g.con} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
       <The dem style={{ gap: 14 }}>
@@ -78,6 +83,14 @@ export default function HoSoCon() {
           phu={d.nv ? `${bo ? `${bo === "tu_lap" ? "Tự lập" : bo === "viec_nha" ? "Phụ việc nhà" : bo === "hoc_tap" ? "Học tập" : bo === "khoe_manh" ? "Khoẻ mạnh" : bo} · ` : ""}${d.nv.length} việc` : `${sao} sao`}
           bam={() => router.push("/diem-qua")} />
       </The>
+
+      {lk.d ? (
+        <The dem style={{ gap: 10 }}>
+          <HangViec dau ic="sach" mau="xanh" tieu="Liên kết AiiRob" phu={`Dán mã này vào AiiRob để bài học đạt tự cộng sao cho ${c.ten}`} />
+          <Chu kieu="rat" co={14} so mau={M.chu2} style={{ marginHorizontal: 4 }}>{lk.d.ma}</Chu>
+          <Nut chu="Sao chép mã" nho loai="vien" rong bam={() => saoChep(lk.d!.ma).then((ok) => ok && bao("Đã sao chép mã — dán vào AiiRob"))} />
+        </The>
+      ) : null}
 
       <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>{`Về ${c.ten}`}</Chu>
       {d.trongGiup ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : (

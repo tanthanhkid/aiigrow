@@ -107,14 +107,14 @@ export type Qua = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quye
   toi_da_thang: number | null; chi_cuoi_tuan: boolean; bat: boolean };
 export type CanhBao = { id: string; child_id: string | null; loai: string; muc: "thong_tin" | "chu_y" | "nghiem_trong"; noi_dung: string;
   chi_tiet: Record<string, unknown>; da_doc: boolean; created_at: string };
-export type Diem = { delta: number; loai: string; ly_do: string; nguoi: string | null; created_at: string };
+export type Diem = { delta: number; loai: string; ly_do: string; nguoi: string | null; /** tên Ba Mẹ (máy chủ cũ không gửi) */ ten_nguoi?: string | null; created_at: string };
 
 export const LOAI_YC: Record<YeuCau["loai"], string> = {
   them_gio: "Thêm giờ", mo_web: "Mở web", cai_app: "Cài app", ngoai_le: "Ngoại lệ", ngoai_gio: "Ngoài giờ", khac: "Khác",
 };
 export const tieuYc = (y: Pick<YeuCau, "loai" | "phut" | "gia_tri">) =>
   y.loai === "them_gio" ? `Xin thêm ${y.phut} phút` : y.loai === "mo_web" ? `Xin mở ${y.gia_tri}` : y.loai === "cai_app" ? `Xin cài ${y.gia_tri}`
-    : y.loai === "ngoai_le" ? `Xin chơi ${y.phut} phút dù chưa đủ điểm` : y.loai === "ngoai_gio" ? `Xin chơi ngoài giờ ${y.phut} phút` : y.gia_tri ?? "Yêu cầu khác";
+    : y.loai === "ngoai_le" ? `Xin ngoại lệ ${y.phut} phút${y.gia_tri ? ` cho ${y.gia_tri}` : ""}` : y.loai === "ngoai_gio" ? `Xin chơi ngoài giờ ${y.phut} phút` : y.gia_tri ?? "Yêu cầu khác";
 
 export const NHOM_NV: Record<string, { chu: string; ic: "sach" | "chen" | "mu" | "chay" | "sao" | "tia"; mau: "xanh" | "lam" | "tim" | "cam" | "vang" }> = {
   doc_sach: { chu: "Đọc sách", ic: "sach", mau: "xanh" }, viec_nha: { chu: "Việc nhà", ic: "chen", mau: "lam" }, hoc_tap: { chu: "Học tập", ic: "mu", mau: "tim" },
