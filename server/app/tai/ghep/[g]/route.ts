@@ -7,7 +7,7 @@ import { goiGhep, tenTepWindows } from "@/lib/trang-tai.ts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;            // ~182 MB qua mạng nhà chậm (≥ 0,7 MB/s)
+export const maxDuration = 300;            // ~186 MB qua mạng nhà chậm (≥ 0,7 MB/s)
 
 const NGUON = `https://github.com/tanthanhkid/aiigrow-tai/releases/download/v${BAN_AGENT_WINDOWS.version}/AiiGrow-Setup-${BAN_AGENT_WINDOWS.version}.exe`;
 

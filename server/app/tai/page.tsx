@@ -17,7 +17,7 @@ const LINK_APK_CON = "/tai/aiigrow-con.apk";
 
 const MAY: Record<NenTai, { ten: string; ic: Ten3d; mau: "lam" | "xam" | "xanh" | "tim"; nut: string; link: string; tep: string }> = {
   windows: { ten: "Máy Windows của con", ic: "desktop-computer", mau: "lam", nut: "Tải AiiGrow cho Windows", link: BAN_AGENT_WINDOWS.url,
-    tep: `AiiGrow-Setup.exe · bản ${BAN_AGENT_WINDOWS.version} · ~182 MB · Windows 10/11` },
+    tep: `AiiGrow-Setup.exe · bản ${BAN_AGENT_WINDOWS.version} · ~186 MB · Windows 10/11` },
   mac: { ten: "Máy Mac của con", ic: "laptop", mau: "xam", nut: "Tải AiiGrow cho máy Mac", link: BAN_AGENT_MAC.url,
     tep: `AiiGrow-${BAN_AGENT_MAC.version}.pkg · macOS 13 trở lên` },
   android: { ten: "Điện thoại Android của con", ic: "mobile-phone", mau: "xanh", nut: "Tải AiiGrow Con", link: LINK_APK_CON,
