@@ -2,7 +2,7 @@
 // của người gọi (lib/* trả «không thấy» như không tồn tại). Quyền (L6, lib/quyen.ts): «Người trông giúp» GET hết, POST chỉ xem / duyệt / khoá máy.
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
-import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
+import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, hienDinhDanh, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { lichCua, sachCauHinh, thamSo, khoaGoc, khoaDen, moTamDen } from "./cau-hinh.ts";
@@ -34,7 +34,7 @@ import * as gt from "./api-gia-dinh.ts";
 import * as hta from "./ho-tro-admin.ts";
 import { ghiKiemToan } from "./admin.ts";
 import { xoaTaiKhoan } from "./xoa-tai-khoan.ts";
-import { cauHinhMxh, dangNhapMxh, datMatKhauMxh } from "./dang-nhap-mxh.ts";
+import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, lienKetMxh } from "./dang-nhap-mxh.ts";
 // S2 thiết kế 05/11 (L4–L8): quyền 2 mức, chế độ chặn theo Con, thiết lập lần đầu, phiên ghép máy
 import { baMeTuToken } from "./auth.ts";
 import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
@@ -92,6 +92,9 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     { const r = await gt.xuLyThongBao(req, bm, p); if (r) return r; }       // thông báo riêng từng Ba Mẹ (cả vai Chỉ xem)
     // Xoá tài khoản (Apple 5.1.1(v)): mọi vai, kể cả Chỉ xem — lib/xoa-tai-khoan.ts
     if (d === "dat-mat-khau" && post) { await datMatKhauMxh(bm, await docJson(req), gd.nguonGoi(req.headers)); return json({ ok: true }); }   // tài khoản Google / Facebook đặt mật khẩu lần đầu
+    // Gắn Google / Facebook vào CHÍNH tài khoản đang đăng nhập (không gắn theo email) — dang-nhap-mxh.ts › lienKetMxh
+    if ((d === "lien-ket/google" || d === "lien-ket/facebook") && post)
+      return json(await lienKetMxh(bm, p[1] as "google" | "facebook", await docJson(req), gd.nguonGoi(req.headers)));
     if (d === "xoa-tai-khoan" && post) return json(await xoaTaiKhoan(bm, await docJson(req)));
     // L6: Người trông giúp — POST chỉ các việc xem / duyệt / khoá máy (lib/quyen.ts › trongGiupDuoc); còn lại là đổi cài đặt.
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
@@ -99,7 +102,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
     { const r = await xuLyMSao(bm, req, p, b); if (r) return r; }           // 05/11: sao, quỹ giờ chơi, bộ nhiệm vụ, làm lại, trao quà
-    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: bm.dinh_danh, vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm),
+    if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: hienDinhDanh(bm.dinh_danh), vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm),
       coMatKhau: bm.co_mat_khau !== false },
       laAdmin: hta.laQuanTri(bm.id) });
     if (d === "dang-xuat" && post) { await xoaPhien(bearer(req)!); return json({ ok: true }); }

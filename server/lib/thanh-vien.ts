@@ -7,7 +7,7 @@
 // Người tạo nhà (families.chu_id) không bị đổi quyền / mời ra. Mời ra = vai «roi» (giữ tên cho lịch sử «ai duyệt»), xoá mọi phiên.
 import { randomInt } from "node:crypto";
 import { newId, one, q, tx, type Q } from "./db.ts";
-import { bamMatKhau, chuanDinhDanh, kiemOtp, sha, type BaMe } from "./auth.ts";
+import { bamMatKhau, chuanDinhDanh, hienDinhDanh, kiemOtp, sha, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { damBaoBang, ghiKiemToan } from "./admin.ts";
@@ -61,7 +61,7 @@ export async function dsThanhVien(fam: string) {
 
 /** Dòng thành viên cho API: `quyen` (mới) + `vai` kiểu cũ (app bản trước) + `laChuNha`. */
 export const tvRa = (x: DongTv, toi: string) => ({ id: x.id, ten: x.ten, quyen: quyenTuVai(x.vai) ?? "trong_giup", tenQuyen: TEN_QUYEN[quyenTuVai(x.vai) ?? "trong_giup"],
-  vai: vaiCu({ vai: x.vai, la_chu: x.la_chu }), laChuNha: x.la_chu, dinh_danh: x.dinh_danh, laToi: x.id === toi });
+  vai: vaiCu({ vai: x.vai, la_chu: x.la_chu }), laChuNha: x.la_chu, dinh_danh: hienDinhDanh(x.dinh_danh), laToi: x.id === toi });
 export const moiRaApi = (x: DongMoi) => ({ id: x.id, quyen: quyenTuVai(x.vai) ?? "trong_giup", vai: quyenTuVai(x.vai) === "trong_giup" ? "xem" : "duyet",
   tenGoi: x.ten_goi, dinhDanh: x.dinh_danh, het: new Date(x.het).toISOString(), guiLuc: new Date(x.gui_luc ?? x.created_at).toISOString() });
 
@@ -165,10 +165,11 @@ export async function xemLoiMoi(maVao: unknown) {
     tenVai: TEN_QUYEN[quyen], tenGoi: m.ten_goi, tenCon: await tenCacCon(m.family_id), het: new Date(m.het).toISOString() };
 }
 
-/** Tài khoản vào bằng Facebook: email lấy từ Graph KHÔNG chắc đã xác minh (ai cũng tạo được Facebook mang email người khác) ⇒ không khớp
- *  lời mời theo email, chỉ nhận qua link mời (token `ma`). Google chỉ cho vào khi `email_verified` (dang-nhap-mxh.ts) nên khớp được. */
+/** Tài khoản TẠO bằng Facebook (định danh `fb:<id>` — email Facebook không chắc đã xác minh nên không dùng làm định danh, dang-nhap-mxh.ts)
+ *  ⇒ không có SĐT / email để khớp lời mời theo định danh, chỉ nhận qua link mời (token `ma`). Tài khoản SĐT / email chỉ GẮN thêm Facebook
+ *  (lien-ket/facebook) vẫn khớp theo định danh của chính nó. Google chỉ cho vào khi `email_verified` nên khớp được. */
 export async function emailChuaXacMinh(t: Q, parentId: string) {
-  return (await t(`select 1 from ba_me_mxh where parent_id = $1 and nguon = 'facebook' limit 1`, [parentId])).length > 0;
+  return (await t(`select 1 from parents where id = $1 and dinh_danh like 'fb:%'`, [parentId])).length > 0;
 }
 
 /** Lời mời đang chờ gửi tới đúng SĐT / email của người đang đăng nhập (đăng ký / đăng nhập xong là thấy — L6). */

@@ -39,6 +39,9 @@ export function chuanDinhDanh(s: unknown): string | null {
   return /^0\d{9}$/.test(so) ? so : null;
 }
 
+/** Định danh để HIỆN (app, danh sách thành viên): tài khoản tạo bằng Facebook mang `fb:<id>` (dang-nhap-mxh.ts) ⇒ «Facebook». */
+export const hienDinhDanh = (d: string) => (d.startsWith("fb:") ? "Facebook" : d);
+
 const cheDoThu = () => process.env.AIIGROW_OTP_THU === "1" || process.env.NODE_ENV !== "production";
 
 /** Gửi mã 6 số (hạn 10 phút). → {guiDen, ma?} — `ma` chỉ có ở chế độ thử. */

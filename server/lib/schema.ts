@@ -602,6 +602,15 @@ export const SCHEMA_S2 = [
   `create table if not exists ba_me_mxh (nguon text not null, sub text not null, parent_id text not null references parents(id) on delete cascade,
      created_at timestamptz not null default now(), primary key (nguon, sub))`,
   `create index if not exists ba_me_mxh_parent on ba_me_mxh(parent_id)`,
+  // Tài khoản tạo bằng Facebook: định danh riêng `fb:<id Facebook>` — email Facebook (chưa chắc đã xác minh) chỉ lưu tham khảo ở
+  // ba_me_mxh.email, không giữ chỗ email của ai. lien_ket = gắn vào tài khoản có sẵn khi đang đăng nhập (POST lien-ket/:nguon).
+  // Chuyển dữ liệu: tài khoản Facebook tạo trước đó mang email Facebook làm dinh_danh ⇒ email sang ba_me_mxh.email, dinh_danh = fb:<id>.
+  `alter table ba_me_mxh add column if not exists email text`,
+  `alter table ba_me_mxh add column if not exists lien_ket boolean not null default false`,
+  `update ba_me_mxh m set email = p.dinh_danh from parents p
+     where p.id = m.parent_id and m.nguon = 'facebook' and not m.lien_ket and m.email is null and p.dinh_danh like '%@%'`,
+  `update parents p set dinh_danh = 'fb:' || m.sub from ba_me_mxh m
+     where m.parent_id = p.id and m.nguon = 'facebook' and not m.lien_ket and p.dinh_danh not like 'fb:%' and p.vai <> 'roi'`,
   `alter table families add column if not exists chu_id text`,
   `update families f set chu_id = (select p.id from parents p where p.family_id = f.id and p.vai = 'chu' order by p.created_at limit 1)
      where f.chu_id is null and exists (select 1 from parents p where p.family_id = f.id and p.vai = 'chu')`,

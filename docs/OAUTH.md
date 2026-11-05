@@ -4,8 +4,9 @@ Mã: máy chủ `server/lib/dang-nhap-mxh.ts` (test `dang-nhap-mxh.test.ts`), ap
 `mobile/src/app/oauthredirect.tsx`, scheme native `mobile/app.config.ts`. Hợp đồng API: `docs/API.md` › «Đăng nhập Google / Facebook».
 
 Luồng: app mở cửa sổ đăng nhập của Google / Facebook (`expo-auth-session`) ⇒ nhận **id_token** (Google) hoặc **access token** (Facebook) ⇒
-gửi máy chủ ⇒ máy chủ tự xác minh (JWKS Google; Graph `debug_token` của Facebook) ⇒ tìm / tạo Ba Mẹ theo **email** ⇒ trả phiên như đăng nhập
-thường. Lời mời người nhà gửi tới đúng email đó tự hiện (`loiMoi[]`). Thiếu env ⇒ nút tự ẩn, endpoint trả 503 `mxh_chua_bat`.
+gửi máy chủ ⇒ máy chủ tự xác minh (JWKS Google; Graph `debug_token` của Facebook) ⇒ tìm / tạo Ba Mẹ theo **mã người dùng** của Google /
+Facebook ⇒ trả phiên như đăng nhập thường. Google: lời mời người nhà gửi tới đúng email đó tự hiện (`loiMoi[]`). Facebook: định danh riêng
+`fb:<id>`, email Facebook chỉ lưu tham khảo (mục 4). Thiếu env ⇒ nút tự ẩn, endpoint trả 503 `mxh_chua_bat`.
 
 Các giá trị cố định của app (tra từ repo):
 
@@ -84,18 +85,35 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
 ## 4. Hành vi tài khoản
 
 - Danh tính = (nguồn, `sub` Google / `id` Facebook) trong bảng `ba_me_mxh`; lần sau vào bằng đúng tài khoản đó ⇒ đúng Ba Mẹ đó.
-- Lần đầu: email (chữ thường) chưa có tài khoản ⇒ tạo nhà mới, người vào là Ba Mẹ + người tạo nhà (L7), tên lấy từ Google/Facebook,
-  **không mật khẩu** (`GET toi` › `coMatKhau: false`). Google bắt buộc `email_verified`; Facebook không trả email ⇒ 400 `mxh_khong_email`.
-- Email ĐÃ có tài khoản (đăng ký SĐT/email + mật khẩu, hoặc đã vào bằng nhà cung cấp kia) ⇒ 409 `mxh_da_co_tai_khoan`, chỉ cách đăng nhập
-  cũ. Không tự gắn theo email: email đăng ký bằng OTP thử chưa chắc là của chủ thật, email Facebook không chắc đã xác minh.
+- Lần đầu (tài khoản MXH chưa gắn ai) ⇒ tạo nhà mới, người vào là Ba Mẹ + người tạo nhà (L7), tên lấy từ Google/Facebook,
+  **không mật khẩu** (`GET toi` › `coMatKhau: false`).
+  - **Google**: bắt buộc `email_verified`; định danh (`parents.dinh_danh`) = email chữ thường. Email ĐÃ có tài khoản (đăng ký SĐT/email +
+    mật khẩu, hoặc Google khác) ⇒ 409 `mxh_da_co_tai_khoan`, chỉ cách đăng nhập cũ — không tự gắn theo email (email đăng ký bằng OTP thử chưa
+    chắc là của chủ thật).
+  - **Facebook** (vá 05/11): Graph không cam kết email đã xác minh — ai cũng tạo được Facebook mang email người khác. Nên tài khoản tạo bằng
+    Facebook có định danh **riêng `fb:<id Facebook>`**; email Facebook (nếu có) chỉ lưu tham khảo ở `ba_me_mxh.email`, **không** dùng để
+    khớp / khoá tài khoản ⇒ không giữ chỗ email của ai: chủ thật vẫn đăng ký email đó (OTP) hoặc vào bằng Google bình thường, hai tài khoản
+    tách biệt. Facebook không trả email vẫn vào được. App hiện định danh là «Facebook» (`GET toi` › `dinhDanh`, danh sách thành viên).
+    Không đăng nhập bằng mật khẩu qua `fb:<id>` được (`dang-nhap` chỉ nhận SĐT / email) — vào bằng nút Facebook.
+  - Bấm Facebook mà đã có tài khoản SĐT/email ⇒ ra tài khoản MỚI (không gắn theo email). Muốn dùng nút Facebook cho tài khoản sẵn có:
+    đăng nhập tài khoản đó rồi gắn (dưới).
+- **Gắn Google / Facebook vào tài khoản có sẵn** chỉ khi ĐANG đăng nhập tài khoản đó: `POST lien-ket/facebook {accessToken}` |
+  `lien-ket/google {idToken}` (dòng `ba_me_mxh.lien_ket = true`). Định danh của tài khoản giữ nguyên. Tài khoản MXH đã gắn chỗ khác (kể cả
+  tài khoản tự tạo lúc bấm nút trước đó — xoá tài khoản kia trước) ⇒ 409 `mxh_da_gan`; tài khoản đã gắn một tài khoản cùng nguồn khác ⇒ 409
+  `mxh_da_gan_khac`. Giới hạn 5 lượt / Ba Mẹ + 10 / IP mỗi 15 phút.
+- **Chuyển dữ liệu** (`schema.ts` › `SCHEMA_S2`, chạy lại vô hại): tài khoản Facebook tạo trước bản vá (dòng `ba_me_mxh` nguồn facebook, không
+  `lien_ket`) mang email Facebook làm định danh ⇒ email sang `ba_me_mxh.email`, định danh đổi thành `fb:<id>`. Họ vẫn vào bằng nút Facebook như
+  cũ (phiên, nhà, Con giữ nguyên); ai trong số đó đã đặt mật khẩu thì không đăng nhập «email + mật khẩu» bằng email Facebook được nữa.
+- Gỡ trên máy Con (`goCoMatKhau`): Ba Mẹ tạo bằng Facebook gõ email Facebook của mình + mật khẩu — chỉ chọn người trong CHÍNH gia đình của
+  máy đó, mật khẩu vẫn phải đúng.
 - Gỡ máy / xoá tài khoản / gỡ trên máy Con cần mật khẩu ⇒ tài khoản chưa có mật khẩu nhận 409 `chua_co_mat_khau`, app mở màn «Đặt mật khẩu»
   (`/dat-mat-khau`): nhập mật khẩu mới rồi xác nhận lại bằng Google/Facebook (`POST dat-mat-khau`).
 - Lời mời theo email (**đã chốt 05/11, hướng an toàn**):
   - **Google**: chỉ nhận `id_token` có `email_verified = true` (không thì 400 `mxh_khong_email`) ⇒ tài khoản Google luôn mang email đã
     xác minh ⇒ khớp lời mời theo email như đăng nhập thường: `loiMoi[]` có lời mời ⇒ màn Lời mời (`/moi/vao`), `moi/nhan {id}` nhận được.
-  - **Facebook**: Graph không cam kết email đã xác minh ⇒ **KHÔNG khớp lời mời theo email**: `loiMoi[]` và `GET moi/cho-toi` trả rỗng,
-    `moi/nhan {id}` ⇒ 403 `can_link_moi`. Người được mời vào bằng Facebook chỉ nhận lời mời qua **link mời** (`moi/nhan {ma}`, token trong link).
-    (lib/thanh-vien.ts › `emailChuaXacMinh`.)
+  - **Tài khoản tạo bằng Facebook** (định danh `fb:<id>`): **KHÔNG khớp lời mời theo email**: `loiMoi[]` và `GET moi/cho-toi` trả rỗng
+    (`chiQuaLink: true`), `moi/nhan {id}` ⇒ 403 `can_link_moi`. Chỉ nhận lời mời qua **link mời** (`moi/nhan {ma}`, token trong link).
+    Tài khoản SĐT/email chỉ GẮN thêm Facebook vẫn khớp lời mời theo định danh của chính nó. (lib/thanh-vien.ts › `emailChuaXacMinh`.)
 - Quên mật khẩu (OTP) **không** đặt mật khẩu cho tài khoản chưa từng có mật khẩu (vào bằng Google/Facebook): `otp {mucDich: quen_mk}` không
   phát mã (trả y như số/email không có tài khoản — không lộ), `quen-mat-khau` ⇒ 409 `chua_co_mat_khau`. Muốn có mật khẩu: đăng nhập bằng
   đúng Google/Facebook đó rồi «Đặt mật khẩu» (`POST dat-mat-khau`, xác minh lại bằng chính tài khoản MXH đã gắn).

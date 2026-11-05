@@ -314,8 +314,12 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   const khoa = `go:${may.id}`;
   const s = await one<{ so_lan: number; khoa_den: Date | null }>(`select so_lan, khoa_den from pin_sai where khoa = $1`, [khoa]);
   if (s?.khoa_den && new Date(s.khoa_den) > new Date()) throw new LoiNghiepVu("tam_khoa", "Nhập sai nhiều lần — đợi 15 phút", 429);
+  // Ba Mẹ tạo tài khoản bằng Facebook mang định danh fb:<id> ⇒ gõ email Facebook của mình cũng được — chỉ chọn người TRONG gia đình
+  // này, mật khẩu vẫn phải đúng (email không giữ chỗ tài khoản nào: dang-nhap-mxh.ts)
   const bm = await one<{ id: string; pass_hash: string | null; vai: string }>(
-    `select id, pass_hash, vai from parents where family_id = $1 and dinh_danh = $2`, [may.family_id, chuanDinhDanh(dinhDanh) ?? ""]);
+    `select id, pass_hash, vai from parents p where family_id = $1 and (dinh_danh = $2 or (dinh_danh like 'fb:%'
+       and exists (select 1 from ba_me_mxh m where m.parent_id = p.id and m.nguon = 'facebook' and m.email = $2)))
+     order by (dinh_danh = $2) desc, created_at limit 1`, [may.family_id, chuanDinhDanh(dinhDanh) ?? ""]);
   // Ba Mẹ vào bằng Google / Facebook chưa đặt mật khẩu ⇒ chỉ đường đặt mật khẩu, không tính là thử gỡ sai (dang-nhap-mxh.ts)
   if (bm && !bm.pass_hash && quyenTuVai(bm.vai) === "ba_me") chuaCoMatKhau(bm);
   // Người trông giúp (L6) không gỡ máy được — chỉ Ba Mẹ
