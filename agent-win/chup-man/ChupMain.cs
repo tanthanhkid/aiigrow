@@ -90,14 +90,29 @@ internal static class ChupMain
         await Mot("app-nhiem-vu-loi-tai", () => ManApp("app-nhiem-vu-loi-tai", MucApp.NhiemVu, TrangThai(), false,
             loiTai: "Không kết nối được máy chủ. Con kiểm tra Wi-Fi rồi bấm Thử lại nhé."));
 
-        await Mot("chan-app", () => ManChan("chan-app", "robloxplayerbeta.exe", "Roblox", LockReasons.ChuaPhanLoai, true, false));
-        await Mot("chan-app-het-diem", () => ManChan("chan-app-het-diem", "minecraft.exe", "Minecraft Launcher", LockReasons.HetDiem, true, false));
-        await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "robloxplayerbeta.exe", "Roblox", LockReasons.ChuaPhanLoai, true, true));
+        // Thiết kế chốt 05/11 (docs/thiet-ke-chot/con-bi-chan, con-mat-mang 12/14): app Ba Mẹ chặn → nút xin; app lạ → tự gửi → chờ → kết quả.
+        await Mot("chan-app", () => ManChan("chan-app", "youtube.exe", "YouTube", null));
+        await Mot("chan-da-gui", () => ManChan("chan-da-gui", "capcut.exe", "CapCut", "DaGui", tuGui: true));
+        await Mot("chan-ba-me-cho", () => ManChan("chan-ba-me-cho", "capcut.exe", "CapCut", "Duoc"));
+        await Mot("chan-ba-me-chua-cho", () => ManChan("chan-ba-me-chua-cho", "capcut.exe", "CapCut", "ChuaCho"));
+        await Mot("chan-web-cam", () => ManChan("chan-web-cam", "y8-casino.com", "y8-casino.com", "WebCam", web: true));
+        await Mot("chan-web-da-gui", () => ManChan("chan-web-da-gui", "y8.com", "y8.com", "DaGui", web: true));
+        await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
+        await Mot("chan-da-luu-cho-mang", () => ManChan("chan-da-luu-cho-mang", "capcut.exe", "CapCut", "DaLuu"));
 
         await Mot("khoa-het-gio-dem-nguoc", () => ManKhoa("khoa-het-gio-dem-nguoc", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = 45; })));
         await Mot("khoa-gio-ngu", () => ManKhoa("khoa-gio-ngu", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Ngu; })));
         await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; })));
         await Mot("khoa-mat-mang", () => ManKhoa("khoa-mat-mang", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.Offline = true; s.MinutesLeft = 0; })));
+        await Mot("khoa-het-gio", () => ManKhoa("khoa-het-gio", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = 0; })));
+        await Mot("ngoai-le-xin", () => ManHop("ngoai-le-xin", () => new NgoaiLeForm(TrangThai().AppDuocPhep)));
+        await Mot("ngoai-le-cho", () => ManHop("ngoai-le-cho", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); DatTruong(f, "_lyDoGui", "Con chưa xong bài"); Goi(f, "VeCho"); return f; }));
+        await Mot("ngoai-le-duoc", () => ManHop("ngoai-le-duoc", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); Goi(f, "VeDuoc"); return f; }));
+        await Mot("ngoai-le-chua-cho", () => ManHop("ngoai-le-chua-cho", () => { var f = new NgoaiLeForm(TrangThai().AppDuocPhep); Goi(f, "VeChuaCho"); return f; }));
+        await Mot("nhac-5-phut", () => ManHop("nhac-5-phut", () => new NhacGioForm(30, true)));
+        await Mot("hoi-aiigrow", () => ManHop("hoi-aiigrow", () => new HoiAiiGrowForm()));
+        await Mot("cap-nhat-khay-co-ban-moi", () => ManHop("cap-nhat-khay-co-ban-moi", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeCoBanMoi", "0.2.10"); return f; }));
+        await Mot("cap-nhat-khay-moi-nhat", () => ManHop("cap-nhat-khay-moi-nhat", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeMoiNhat", "0.2.10"); return f; }));
 
         await Mot("xin-them-gio", () => ManHop("xin-them-gio", () =>
         {
@@ -209,9 +224,17 @@ internal static class ChupMain
         f.Dispose();
     }
 
-    private static async Task ManChan(string ten, string appId, string appName, string lyDo, bool doiDiem, bool matMang)
+    /// <summary>Hộp chặn ở một bước (tên enum BlockedForm.Buoc; null = bước đầu của app Ba Mẹ chặn). Không gửi gì: dựng thẳng bước bằng phản chiếu.</summary>
+    private static async Task ManChan(string ten, string appId, string appName, string? buoc, bool tuGui = false, bool web = false)
     {
-        var f = new BlockedForm(appId, appName, lyDo, doiDiem, matMang);
+        var f = new BlockedForm(appId, appName, boiBaMe: true, offline: buoc == "MatMang", TrangThai().AppDuocPhep, web);
+        if (tuGui) DatTruong(f, "_tuGui", true);
+        DatTruong(f, "_choMang", 2);
+        if (buoc != null && buoc != "MatMang")
+        {
+            var kieu = typeof(BlockedForm).GetNestedType("Buoc", Moi)!;
+            Goi(f, "Ve", Enum.Parse(kieu, buoc));
+        }
         try
         {
             f.Show();
@@ -223,7 +246,7 @@ internal static class ChupMain
 
     private static async Task ManKhoa(string ten, TrayState s)
     {
-        var f = new LockForm(s.CanExchangePoints);
+        var f = new LockForm();
         f.WindowState = FormWindowState.Normal;   // phóng to theo «màn giả định», không theo màn runner
         DatCuaSo(f, _man, laClient: false);
         try
@@ -234,6 +257,14 @@ internal static class ChupMain
             Chup(f, ten);
         }
         finally { f.CloseForReal(); f.Dispose(); }   // lỗi giữa chừng: màn khoá TopMost không được ở lại che các ảnh sau
+    }
+
+    /// <summary>Hộp cập nhật: bỏ lượt hỏi dịch vụ (không có ở máy chụp), dựng thẳng một bước.</summary>
+    private static void DatXong(Form f, string buoc, string ban)
+    {
+        Goi(f, "XoaHet");
+        Goi(f, buoc, ban);
+        Goi(f, "Xong");
     }
 
     private static async Task ManHop(string ten, Func<Form> tao)
@@ -349,6 +380,9 @@ internal static class ChupMain
             Paired = true, ChildName = "Minh Khôi", Mode = Modes.TuDo, MinutesLeft = 47.5, CanExchangePoints = true,
             LastSyncAt = DateTimeOffset.Now.AddMinutes(-1), CheDo = CheDoAgent.Chan,
             PlayChoices = new List<string> { "robloxplayerbeta.exe", "minecraft.exe", "youtube.com" },
+            // thiết kế chốt 05/11: con mẫu có 30 sao, quỹ 60 phút, ngủ 21:30 → mở lại 6:30, 4 app được phép
+            Sao = 30, QuyPhut = 60, MoLaiLuc = "6:30",
+            AppDuocPhep = new List<string> { "hocvoiairob.exe", "tudien.exe", "robloxplayerbeta.exe", "youtubekids.exe" },
         };
         sua?.Invoke(s);
         return s;

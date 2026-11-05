@@ -14,11 +14,14 @@ internal sealed class XinMoForm : Form
     private readonly ClayIcon _icon = new() { MauVien = Clay.LamSoft };
     private readonly TextBox _muc = new() { Font = UI.F(12f), MaxLength = XinMoView.MucToiDa, ForeColor = UI.Ink };
     private readonly TextBox _note = new() { Font = UI.F(11f), MaxLength = XinMoView.LoiNhanToiDa, ForeColor = UI.Ink, PlaceholderText = "Con cần mở để làm gì?" };
-    private readonly Button _send = UI.Btn("Xin Ba Mẹ", true, UI.Px(380), "speech_balloon");
+    private readonly Button _send = UI.Btn("Xin Ba Mẹ duyệt", true, UI.Px(380), "speech_balloon");
     private readonly Label _msg = UI.Text("", 11f, true, UI.Green, UI.Px(380));
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private string? _pendingId, _tenCho;
     private bool _busy;
+
+    /// <summary>05/11: gửi xong (máy chủ nhận / web cấm / lưu chờ mạng) ⇒ khay mở hộp kết quả theo thiết kế (BlockedForm.SauKhiGui) rồi hộp này đóng.</summary>
+    public event Action<string, bool, PipeResponse>? DaGui;
 
     /// <param name="loai"><see cref="LoaiXin.MoWeb"/> hoặc <see cref="LoaiXin.CaiApp"/>.</param>
     /// <param name="muc">Điền sẵn (màn chặn: định danh app vừa bị đóng, ví dụ roblox.exe — Ba Mẹ duyệt là đúng app đó).</param>
@@ -118,9 +121,10 @@ internal sealed class XinMoForm : Form
         CapNhatNut();
         _msg.ForeColor = UI.Green;
         _msg.Text = "Đang gửi…";
+        // 05/11 (L4): «Xin Ba Mẹ duyệt» qua xin-duyet — máy chủ tự xếp app / web, web cờ bạc / người lớn ⇒ web_cam; mất mạng ⇒ lưu, có mạng tự gửi.
         var res = await PipeClient.CallAsync(new PipeRequest
         {
-            Cmd = PipeCmd.Request, Kind = Loai, AppId = muc, AppName = muc,
+            Cmd = PipeCmd.XinDuyet, AppId = muc, AppName = muc,
             Note = string.IsNullOrWhiteSpace(_note.Text) ? null : _note.Text.Trim(),
         });
         _busy = false;
@@ -133,6 +137,7 @@ internal sealed class XinMoForm : Form
             return;
         }
         _tenCho = muc;
+        if (DaGui != null) { DaGui(muc, Loai == LoaiXin.MoWeb, res); Close(); return; }
         var kq = TrayView.XinGio(res.Status);
         _msg.Text = XinMoView.ThongBao(kq, muc);
         if (kq == TrayView.KetQuaXin.Cho && !string.IsNullOrEmpty(res.Id)) { _pendingId = res.Id; _poll.Start(); }

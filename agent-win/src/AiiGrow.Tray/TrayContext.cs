@@ -1,3 +1,4 @@
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Tray;
@@ -5,7 +6,11 @@ namespace AiiGrow.Tray;
 internal sealed class TrayContext : ApplicationContext
 {
     private readonly NotifyIcon _ni;
-    private readonly ToolStripMenuItem _statusItem, _retryItem;
+    private readonly ToolStripMenuItem _statusItem, _retryItem, _hoiItem;
+    private const string ChuDongBo = "Đồng bộ ngay";
+    /// <summary>App lạ đã tự gửi lời xin duyệt trong phiên khay — Con mở lại liên tục không gửi lặp (máy chủ cũng gộp lời xin chờ).</summary>
+    private readonly HashSet<string> _daXin = new(StringComparer.OrdinalIgnoreCase);
+    private NhacGioForm? _nhac;
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 3000 };
     private AppForm? _app;
     private LockForm? _lock;
@@ -39,16 +44,19 @@ internal sealed class TrayContext : ApplicationContext
     {
         // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
         var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
-        _statusItem = new ToolStripMenuItem(_kn.Dong) { Enabled = false };
-        _retryItem = new ToolStripMenuItem("Thử kết nối lại", UI.Fluent("link"), async (_, _) => await RetryAsync());
+        // Thiết kế chốt 05/11 (con-mat-mang 21): ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật · dòng chân.
+        // «Hỏi AiiGrow…» chỉ hiện khi mất mạng / AiiGrow lỗi (con-mat-mang 08–10).
+        _statusItem = new ToolStripMenuItem("● " + _kn.Dong) { Enabled = false };
+        _retryItem = new ToolStripMenuItem(ChuDongBo, Anh3D.Icon("lap"), async (_, _) => await RetryAsync());
+        _hoiItem = new ToolStripMenuItem("Hỏi AiiGrow…", Anh3D.Icon("dau_hoi"), (_, _) => OpenHoiAiiGrow()) { Visible = false };
         menu.Items.Add(_statusItem);
         menu.Items.Add(_retryItem);
+        menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", Anh3D.Icon("nha"), (_, _) => OpenApp(MucApp.HomNay)));
+        menu.Items.Add("Xin Ba Mẹ thêm giờ…", Anh3D.Icon("gui"), (_, _) => OpenRequest());
+        menu.Items.Add("Kiểm tra cập nhật", Anh3D.Icon("tai"), (_, _) => OpenCapNhat());
+        menu.Items.Add(_hoiItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", UI.Fluent("seedling"), (_, _) => OpenApp(MucApp.HomNay)));
-        menu.Items.Add("Xin thêm thời gian", UI.Fluent("hourglass_not_done"), (_, _) => OpenRequest());
-        menu.Items.Add("Xin mở trang hoặc app…", UI.Fluent("globe_with_meridians"), (_, _) => OpenXinMo());
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(new ToolStripMenuItem("Máy này do bố mẹ quản lý bằng AiiGrow") { Enabled = false });
+        menu.Items.Add(new ToolStripMenuItem("Máy này do Ba Mẹ quản lý bằng AiiGrow") { Enabled = false });
 
         _ni = new NotifyIcon
         {
@@ -82,7 +90,7 @@ internal sealed class TrayContext : ApplicationContext
         if (!_ni.Visible) _ni.Visible = true;
         if (!coLoiChao || _daLoiChao) return;
         _daLoiChao = true;
-        Toast(5000, "AiiGrow đang bật", "Bố mẹ đặt giờ dùng máy. Nhấn đúp vào biểu tượng AiiGrow để xem giờ, nhận nhiệm vụ và xem phần quà.", ToolTipIcon.Info, MucApp.HomNay);
+        Toast(5000, "AiiGrow đang bật", "Ba Mẹ đặt giờ dùng máy. Bấm vào AiiGrow cạnh đồng hồ để xem giờ chơi, nhiệm vụ và sao của con.", ToolTipIcon.Info, MucApp.HomNay);
         BaoCapNhat.NeuVuaCapNhat(_ni);   // #33: «đã cập nhật lên bản X» (một lần mỗi tài khoản)
     }
 
@@ -125,9 +133,10 @@ internal sealed class TrayContext : ApplicationContext
 
     /// <summary>Mở app to (một bản duy nhất; đã mở thì đưa lên trước). <paramref name="tuToast"/> = bấm từ bóng báo ⇒ coi như đã xem tin mới.
     /// <paramref name="tuBat"/> = khay tự bật (nhiệm vụ mới), không do Con bấm ⇒ ép cửa sổ nổi lên trên cùng.</summary>
-    private void OpenApp(MucApp muc, bool tuToast = false, bool tuBat = false)
+    /// <param name="tuManKhoa">Con bấm «Nhắn Ba Mẹ» trên màn khoá ⇒ mở app to NỔI TRÊN màn khoá (chỉ để nhắn tin).</param>
+    private void OpenApp(MucApp muc, bool tuToast = false, bool tuBat = false, bool tuManKhoa = false)
     {
-        if (_state.Locked) { Toast(4000, "Máy đang khoá", "Khi máy mở lại, con xem nhiệm vụ và phần quà nhé.", ToolTipIcon.Info, MucApp.HomNay); return; }
+        if (_state.Locked && !tuManKhoa) { Toast(4000, "Máy đang khoá", "Khi máy mở lại, con xem nhiệm vụ và sao nhé.", ToolTipIcon.Info, MucApp.HomNay); return; }
         if (_app == null || _app.IsDisposed)
         {
             _app = new AppForm();
@@ -136,8 +145,9 @@ internal sealed class TrayContext : ApplicationContext
             _app.XinMoClicked += () => OpenXinMo();
         }
         if (tuToast) _tinMoi = 0;
+        _app.TopMost = tuManKhoa;
         PushApp();
-        _app.ShowFront(muc, tuBat);
+        _app.ShowFront(muc, tuBat || tuManKhoa);
     }
 
     private void PushApp()
@@ -156,7 +166,8 @@ internal sealed class TrayContext : ApplicationContext
             _ni.Icon = UI.TrayIcon(info.DungIconKetNoi);
         }
         _ni.Text = KetNoiView.Tooltip(info, stateFresh ? _state : null, _at, DateTimeOffset.Now);
-        _statusItem.Text = info.Dong;
+        _statusItem.Text = "● " + info.Dong;
+        _hoiItem.Visible = !info.DungIconKetNoi;
         PushApp();
     }
 
@@ -166,7 +177,7 @@ internal sealed class TrayContext : ApplicationContext
         if (_retrying) return;
         _retrying = true;
         _retryItem.Enabled = false;
-        _retryItem.Text = "Đang thử…";
+        _retryItem.Text = "Đang đồng bộ…";
         try
         {
             await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
@@ -182,7 +193,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             _retrying = false;
             _retryItem.Enabled = true;
-            _retryItem.Text = "Thử kết nối lại";
+            _retryItem.Text = ChuDongBo;
             PushApp();
         }
     }
@@ -214,10 +225,79 @@ internal sealed class TrayContext : ApplicationContext
         finally { _hvPolling = false; }
     }
 
-    private void OpenRequest()
+    /// <summary>Hộp «Thêm giờ chơi» (W1 — RequestForm: xin Ba Mẹ thêm giờ / đổi sao lấy phút). Màn khoá gọi với chủ là màn khoá.</summary>
+    private void OpenRequest(IWin32Window? chu = null)
     {
         using var f = new RequestForm(_state.CanExchangePoints);
-        f.ShowDialog();
+        if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
+    }
+
+    private CapNhatKhayForm? _capNhat;
+
+    /// <summary>«Kiểm tra cập nhật» (một cửa sổ một lúc).</summary>
+    internal void OpenCapNhat()
+    {
+        if (_capNhat is { IsDisposed: false }) { _capNhat.Activate(); return; }
+        _capNhat = new CapNhatKhayForm();
+        _capNhat.VeHomNay += () => OpenApp(MucApp.HomNay);
+        _capNhat.FormClosed += (_, _) => { _capNhat?.Dispose(); _capNhat = null; };
+        _capNhat.Show();
+    }
+
+    /// <summary>«Hỏi AiiGrow» — tự tìm lỗi (con-mat-mang 10). Điểm nối cho app to (W1: nút «Hỏi AiiGrow cách sửa» ở Hôm nay khi AiiGrow lỗi).</summary>
+    internal void OpenHoiAiiGrow()
+    {
+        var f = new HoiAiiGrowForm();
+        f.Chon += ma =>
+        {
+            switch (ma)
+            {
+                case "thu_lai": case "bat_lai": _ = RetryAsync(); break;
+                case "cap_nhat": OpenCapNhat(); break;
+                case "ma_mo": Toast(10000, "Máy bị khoá?", HoiAiiGrowView.MaMoCau, ToolTipIcon.Info, MucApp.HomNay); break;
+                default: OpenApp(MucApp.TinNhan, tuManKhoa: _state.Locked); break;
+            }
+        };
+        f.FormClosed += (_, _) => f.Dispose();
+        f.Show();
+    }
+
+    /// <summary>Nút trên màn khoá (<see cref="ManKhoaView"/>): đổi sao / xin thêm giờ ⇒ hộp «Thêm giờ chơi» (W1); mất mạng ⇒ lưu lời xin 20 phút, có mạng tự gửi;
+    /// ngoại lệ ⇒ <see cref="NgoaiLeForm"/>; nhắn ⇒ app to mục Tin nhắn nổi trên màn khoá.</summary>
+    private async void XuLyNutKhoa(string ma)
+    {
+        try
+        {
+            switch (ma)
+            {
+                case ManKhoaView.XinThemGio when _state.Offline:
+                {
+                    var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Request, Kind = LoaiXin.ThemGio, Minutes = 20, Note = "Con xin thêm 20 phút chơi" });
+                    if (r.Ok && r.Status == "cho_mang")
+                    {
+                        using var h = HopDaLuu.Hop(ManKhoaView.DaLuuThemGio, "Xin thêm 20 phút chơi", int.TryParse(r.Message, out var n) ? n : 1);
+                        h.ShowDialog(_lock);
+                    }
+                    else OpenRequest(_lock);   // mạng vừa có lại ⇒ hộp xin như thường
+                    break;
+                }
+                case ManKhoaView.DoiSao:
+                case ManKhoaView.XinThemGio:
+                    OpenRequest(_lock);
+                    break;
+                case ManKhoaView.XinNgoaiLe:
+                {
+                    using var f = new NgoaiLeForm(_state.AppDuocPhep);
+                    f.NhanBaMe += () => OpenApp(MucApp.TinNhan, tuManKhoa: true);
+                    f.ShowDialog(_lock);
+                    break;
+                }
+                case ManKhoaView.NhanBaMe:
+                    OpenApp(MucApp.TinNhan, tuManKhoa: true);
+                    break;
+            }
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
     }
 
     private XinMoForm? _xinMo;
@@ -228,6 +308,13 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_xinMo is { IsDisposed: false }) { if (muc != null) _xinMo.DienSan(loai, muc); _xinMo.Activate(); return; }
         _xinMo = new XinMoForm(loai, muc);
+        _xinMo.DaGui += (m, web, r) =>
+        {
+            var b = BlockedForm.SauKhiGui(m, m, web, r);
+            b.VeHomNay += () => OpenApp(MucApp.HomNay);
+            b.NhanBaMe += () => OpenApp(MucApp.TinNhan);
+            b.Show();
+        };
         _xinMo.FormClosed += (_, _) => { _xinMo?.Dispose(); _xinMo = null; };
         _xinMo.Show();
     }
@@ -293,6 +380,7 @@ internal sealed class TrayContext : ApplicationContext
             if (_lock == null || _lock.IsDisposed)
             {
                 _lock = new LockForm(_state.CanExchangePoints);
+                _lock.Bam += XuLyNutKhoa;
                 _lock.Show();
             }
             _lock.Apply(_state);
@@ -303,6 +391,7 @@ internal sealed class TrayContext : ApplicationContext
             _lock.Dispose();
             _lock = null;
             _warned5 = _warned1 = false;
+            if (_app is { IsDisposed: false }) _app.TopMost = false;
             if (_bat.MoKhoa(AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now)) OpenApp(MucApp.NhiemVu, tuBat: true);
         }
     }
@@ -312,12 +401,14 @@ internal sealed class TrayContext : ApplicationContext
         if (_seenBlocked < 0) { _seenBlocked = _state.BlockedSeq; return; }
         if (_state.BlockedSeq == _seenBlocked || _state.Locked) return;
         _seenBlocked = _state.BlockedSeq;
-        // App bị đóng vì chưa nằm trong danh sách Ba Mẹ cho phép ⇒ mặc định "chưa phân loại"; nếu dịch vụ có lý do rõ thì dùng lý do đó.
-        var reason = string.IsNullOrEmpty(_state.LockReason) ? LockReasons.ChuaPhanLoai : _state.LockReason;
         // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
-        _blocked = new BlockedForm(_state.BlockedAppId, _state.BlockedAppName, reason, _state.CanExchangePoints, _state.Offline);
-        _blocked.XinMoApp += id => OpenXinMo(LoaiXin.CaiApp, id);
+        var id = _state.BlockedAppId;
+        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep,
+            daXin: id != null && _daXin.Contains(id));
+        _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
+        _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
+        _blocked.DaXin += x => _daXin.Add(x);
         _blocked.Show();
     }
 
@@ -343,7 +434,17 @@ internal sealed class TrayContext : ApplicationContext
         if (r <= 300 && r > 240 && !_warned5)
         {
             _warned5 = true;
-            Toast(6000, "Còn 5 phút", "Lưu bài đang làm nhé. Cần thêm giờ thì bấm Xin thêm thời gian.", ToolTipIcon.Warning, MucApp.HomNay);
+            // Thiết kế 05/11 (con-het-gio 05): hộp nhỏ góc phải dưới, không cướp phím — đổi sao / xin Ba Mẹ thêm giờ.
+            try
+            {
+                if (_nhac is { IsDisposed: false }) _nhac.Close();
+                _nhac = new NhacGioForm(_state.Sao, _state.CanExchangePoints);
+                _nhac.DoiSao += () => OpenRequest();
+                _nhac.XinThemGio += () => OpenRequest();
+                _nhac.FormClosed += (_, _) => { _nhac?.Dispose(); _nhac = null; };
+                _nhac.Show();
+            }
+            catch { Toast(6000, NhacGioView.Tieu, NhacGioView.Phu(_state.Sao), ToolTipIcon.Warning, MucApp.HomNay); }
         }
         else if (r <= 60 && r > 0 && !_warned1)
         {
