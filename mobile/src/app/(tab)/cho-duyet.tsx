@@ -30,6 +30,8 @@ export default function ChoDuyet() {
   const { bao, noi } = useHoanTac();
   if (!d) return <Man tieuLon="Chờ duyệt" lui={{ chu: "Hôm nay", ve: "/hom-nay" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
 
+  // Con đang chọn đã hết việc (chip biến mất) ⇒ về «Cả nhà», không kẹt ở màn trống (review PR #183)
+  if (chon !== "ca" && ![...d.yeuCau, ...d.nhiemVu, ...(d.phieu ?? [])].some((x) => x.child_id === chon)) setChon("ca");
   const theo = <T extends { child_id: string | null }>(a: T[]) => (chon === "ca" ? a : a.filter((x) => x.child_id === chon));
   const yc = theo(d.yeuCau), nv = theo(d.nhiemVu), qua = theo(d.phieu ?? []), tuDong = theo(d.tuDong ?? []);
   const canDeY = d.may.filter((m) => m.baoVe && m.baoVe !== "day_du" && !m.dangGo && (chon === "ca" || m.con === chon || m.dungChung));

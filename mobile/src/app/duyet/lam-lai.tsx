@@ -11,8 +11,8 @@ type Luot = { id: string; child_id: string; ten_con: string; ten: string; nhom: 
 
 const VI_SAO_ANH = ["Còn bừa một chỗ", "Ảnh mờ, chụp lại", "Chưa làm xong"];
 const VI_SAO_AM = ["Nghe chưa rõ", "Chưa đủ 20 phút", "Nhầm bài"];
-const NHAN_ANH = "Con cất nốt đồ trên bàn học nhé!";
-const NHAN_AM = "Con đọc to hơn một chút nhé!";
+const NHAN_ANH = "Con làm lại rồi chụp ảnh mới cho Ba Mẹ nhé!";
+const NHAN_AM = "Con ghi âm lại giúp Ba Mẹ nhé!";
 
 /** «dọn» / «đọc» / «làm» — động từ theo việc. */
 const dongTu = (ten: string) => (/^dọn/i.test(ten) ? "dọn" : /đọc/i.test(ten) ? "đọc" : "làm");
@@ -49,6 +49,11 @@ export default function NhoLamLai() {
       <BaoLoi loi={loiLam} />
       <Nut chu={`Gửi lời nhắn cho ${l.ten_con}`} ic="gui" rong dangChay={dangChay} tat={l.trang_thai !== "cho_duyet"} bam={gui} />
       <Nut chu={d.ghiAm ? "Thôi, quay lại nghe ghi âm" : "Thôi, quay lại xem ảnh"} loai="ma" rong bam={() => router.back()} />
+      {/* bài nộp không đúng việc / nộp trùng ⇒ đóng hẳn, không cộng sao (luot/:id/tu-choi, boSung false) — review PR #183 */}
+      <Nut chu="Không đúng việc · không tính lần này" loai="huy" rong tat={l.trang_thai !== "cho_duyet"} dangChay={dangChay} bam={() => lam(async () => {
+        await bm.goi(`luot/${id}/tu-choi`, { lyDo: viSao ?? "Không đúng nhiệm vụ", boSung: false });
+        router.replace((`/duyet?con=${l.child_id}`) as never);
+      })} />
     </>}>
       <Canh lv="nghi" thap tieu={`Nhờ ${l.ten_con} ${dongTu(l.ten)} lại`}
         loi={`Con chưa nhận sao, nộp ${d.ghiAm ? "ghi âm" : "ảnh"} mới thì Ba Mẹ duyệt tiếp`} />

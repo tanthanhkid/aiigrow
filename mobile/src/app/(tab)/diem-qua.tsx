@@ -130,6 +130,10 @@ export default function TabNhiemVu() {
           <BaoLoi loi={loiLam} />
           <Nut chu="Đã trao, báo cho con" ic="qua" rong dangChay={dangChay} bam={() => traoQua(trao)} />
           <Nut chu="Chưa, để cuối tuần" loai="ma" rong bam={() => setTrao(null)} />
+          {/* quà không trao được (hết hàng…) ⇒ huỷ, máy chủ trả lại sao cho con (phieu/:id/huy) — review PR #183 */}
+          <Nut chu={`Không trao được · trả ${trao.diem} sao cho con`} loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
+            await bm.goi(`phieu/${trao.id}/huy`, {}); setTrao(null); tai();
+          })} />
         </> : null}
       </BangTruot>
     </Man>

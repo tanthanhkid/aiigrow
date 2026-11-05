@@ -46,9 +46,9 @@ export default function XuLyYeuCau() {
     await guiNhan();
     denXong(laThemGio(y) ? { kieu: "them_gio", ten, con: y.child_id, phut: soPhut, may, grant: r.grantId }
       : { kieu: "ngoai_le", ten, con: y.child_id, phut: soPhut, muc: mucXin(y), may });
-  }, { hangDoi: true });
+  });
   const khong = () => lam(async () => { const k = await khongChoXin(y, may, loiNhan || undefined); denXong(k); });
-  const appWeb = (tinhGio: boolean) => lam(async () => denXong(await choAppWeb(y, may, tinhGio)), { hangDoi: true });
+  const appWeb = (tinhGio: boolean) => lam(async () => denXong(await choAppWeb(y, may, tinhGio)));
 
   const nutDay = daXuLy ? <Nut chu="Quay lại" rong bam={() => router.back()} /> : laAppWeb(y) ? (
     <>
@@ -62,7 +62,7 @@ export default function XuLyYeuCau() {
       <BaoLoi loi={loiLam} />
       <Nut chu={laThemGio(y) && tru ? `Cho ${p} phút · trừ ${saoCan} sao` : `Cho ${p} phút`} rong dangChay={dangChay} tat={laThemGio(y) && tru && sao < saoCan} bam={() => cho(p)} />
       <View style={{ flexDirection: "row", gap: 8 }}>
-        {p !== 15 ? <Nut chu="Cho 15 phút" loai="vien" bam={() => cho(15)} tat={laThemGio(y) && tru && sao < Math.ceil(150 / tyLe)} /> : null}
+        {p !== 15 && (laThemGio(y) || toiDaNl >= 15) ? <Nut chu="Cho 15 phút" loai="vien" dangChay={dangChay} bam={() => cho(15)} tat={laThemGio(y) && tru && sao < Math.ceil(150 / tyLe)} /> : null}
         <Nut chu="Không cho" loai="huy" bam={khong} />
       </View>
     </>

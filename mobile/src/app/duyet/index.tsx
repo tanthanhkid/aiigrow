@@ -23,7 +23,8 @@ export default function DuyetDs() {
   const { d, loi, matMang, tai } = useTai(async () => {
     const cd = await bm.goi<ChoDuyetMoi>("cho-duyet");
     const ds = cd.nhiemVu.filter((x) => !con || x.child_id === con);
-    const conId = con ?? ds[0]?.child_id;
+    // không ?con= mà nhiều Con cùng chờ ⇒ không lấy ví / tên của Con đầu (sai cho cả hai — review PR #183)
+    const conId = con ?? (new Set(ds.map((x) => x.child_id)).size === 1 ? ds[0]?.child_id : undefined);
     // ba lời gọi độc lập ⇒ song song (review PR #183)
     const [vi, ct, quy] = await Promise.all([
       conId ? bm.goi<{ soDu: number; sao?: number }>(`con/${conId}/vi`).catch(() => null) : null,
