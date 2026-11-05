@@ -1,5 +1,6 @@
-// Thành phần riêng của màn Con (AiiGrow Kid — kit.py man_con + tinh/app.css): thanh điều hướng 4 mục icon to, điểm luôn ở trên cùng,
-// ô lớn (.o-lon), thẻ nhiệm vụ (.nv), ô quà (.qua-o), vòng đồng hồ (.vong), ô PIN, vé phiếu quà (.ve-cafe), khung màn Nhí/Teen.
+// Thành phần riêng của màn Con (AiiGrow Kid — kit.py man_con + tinh/app.css): thanh điều hướng 4 mục icon to, sao luôn ở trên cùng,
+// ô lớn (.o-lon), thẻ nhiệm vụ (.nv), ô quà (.qua-o), vòng đồng hồ (.vong), khung màn Nhí/Teen. 05/11: «sao» thay «điểm», không PIN
+// (máy dùng chung: Con chạm tên mình — /tre/chon-ten). `OPin` còn giữ cho mã cũ, màn Con không dùng nữa.
 // Dựng trên ui.tsx (không đổi gì ở đó). Nhí: nền vàng nhạt, chữ to, ≤ 3 lựa chọn mỗi màn; Teen: nền xanh lam xám, gọn, thêm thống kê.
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, Text, TextInput, View, type ViewStyle } from "react-native";
@@ -7,7 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useGlobalSearchParams } from "expo-router";
 import { VongClay } from "./bieu-do";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BieuTron, Chu, DiemPill, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
+import { BieuTron, Chu, F, Icon, Icon3D, LopMen, M, Man, NhanMen, Rob, useTai, type LinhVat, type MauBt, type TenIcon } from "./ui";
 import { BONG, KHOI, MEN } from "./clay";
 import { kid, may, type NhomTre, type NvTre, type ToiTre } from "./api-tre";
 import { GOC } from "./api";
@@ -59,7 +60,7 @@ export function TreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       await may.nap();
-      // agent Windows mở khung Kid ở <server>/app/tre?phien=<phiên Con>: nhận phiên PIN từ query rồi xoá khỏi URL
+      // agent Windows mở khung Kid ở <server>/app/tre?phien=<phiên Con>: nhận phiên Con từ query rồi xoá khỏi URL
       const qPhien = Platform.OS === "web" ? new URLSearchParams(globalThis.location?.search ?? "").get("phien") : null;
       if (qPhien) {
         await kid.dat(qPhien);
@@ -76,7 +77,7 @@ export function TreProvider({ children }: { children: ReactNode }) {
       if (t) await nap();
       setSan(true);
     })();
-    kid.onHetPhien(() => { setCo(false); setToi(null); router.replace("/tre/pin"); });
+    kid.onHetPhien(() => { setCo(false); setToi(null); router.replace("/tre/chon-ten"); });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- nạp một lần lúc dựng; link tới sau do effect phía trên nhận
   }, [nap]);
   const vao = useCallback(async (t: string) => {
@@ -97,7 +98,7 @@ export function TreProvider({ children }: { children: ReactNode }) {
     await kid.dat(null);
     setCo(false);
     setToi(null);
-    router.replace("/tre/pin");
+    router.replace("/tre/chon-ten");
   }, []);
   return (
     <Ctx.Provider value={{ san, co, daChao: toi?.daChao ?? true, ten: toi?.ten ?? "", nhom: toi?.nhom ?? "nhi", id: toi?.id ?? "", nap, vao, ra }}>{children}</Ctx.Provider>
@@ -110,7 +111,7 @@ export const useTre = () => useContext(Ctx);
 export type TabTre = "nha" | "nhiem-vu" | "cua-hang" | "xin-phep";
 const MUC_TAB: { ma: TabTre; ic: TenIcon; chu: string }[] = [
   { ma: "nha", ic: "nha", chu: "Nhà" }, { ma: "nhiem-vu", ic: "sao", chu: "Nhiệm vụ" },
-  { ma: "cua-hang", ic: "qua", chu: "Cửa hàng" }, { ma: "xin-phep", ic: "tin", chu: "Xin phép" },
+  { ma: "cua-hang", ic: "qua", chu: "Sao & quà" }, { ma: "xin-phep", ic: "tin", chu: "Xin phép" },
 ];
 
 /** Thanh điều hướng của Con (kit.tab_con): bốn mục, icon 28, chữ 13 — đúng 3 câu hỏi của Con + một chỗ xin phép Ba Mẹ. */
@@ -148,13 +149,23 @@ export function ManTre({ tab, children, ...p }: Omit<React.ComponentProps<typeof
   );
 }
 
-// ---------------------------------------------------------------- điểm trên cùng, ô lớn, thẻ nhiệm vụ, ô quà
+// ---------------------------------------------------------------- sao trên cùng, ô lớn, thẻ nhiệm vụ, ô quà
 
-/** Điểm luôn ở trên cùng (BRD 8.2) + chuỗi ngày (chạm ⇒ Huy hiệu). */
+/** Viên «N sao» (như DiemPill của ui.tsx, chữ «sao» — thiết kế 05/11). */
+export const SaoPill = ({ n }: { n: number }) => (
+  <View accessibilityLabel={`${n} sao`} style={[{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.diemSoft, borderRadius: 99, paddingLeft: 5,
+    paddingRight: 13, paddingVertical: 4, alignSelf: "flex-start" }, KHOI.vien]}>
+    <LopMen men={MEN.vien} bo={99} />
+    <Icon3D ten="sao" co={24} />
+    <Chu kieu="rat" co={15} mau={M.diemInk} so>{`${n} sao`}</Chu>
+  </View>
+);
+
+/** Sao luôn ở trên cùng (BRD 8.2) + chuỗi ngày (chạm ⇒ Huy hiệu). Tên giữ «DiemTren» cho các màn đang gọi. */
 export function DiemTren({ n, chuoi }: { n: number; chuoi?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-      <DiemPill n={n} />
+      <SaoPill n={n} />
       {chuoi ? (
         <Pressable onPress={() => router.push("/tre/huy-hieu")} accessibilityRole="button" accessibilityLabel={`Chuỗi ${chuoi} ngày — xem huy hiệu`}
           style={{ minHeight: 44, justifyContent: "center" }}>
@@ -201,7 +212,7 @@ export function TheNv({ ic, mau, tieu, phu, diem, het, bam, nhan }: { ic: TenIco
     </View>
   );
   if (!bam) return <View accessibilityLabel={`${tieu}. ${phu}`}>{nd}</View>;
-  return <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, cộng ${diem} điểm. ${phu}`} muc="khoi" sang style={{ borderRadius: 28 }}>{nd}</NhanMen>;
+  return <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, cộng ${diem} sao. ${phu}`} muc="khoi" sang style={{ borderRadius: 28 }}>{nd}</NhanMen>;
 }
 
 /** Ô quà / huy hiệu (.qua-o): hình Rob trên nền màu, tên, nhãn giá, dòng thiếu. */
@@ -346,16 +357,22 @@ export function NenChoi({ children }: { children: ReactNode }) {
 
 // ---------------------------------------------------------------- nhiệm vụ: dòng phụ theo trạng thái, giờ bắt đầu lượt (đồng hồ chạy trên máy)
 
+/** Cách nộp bài theo `bang_chung` (05/11: ảnh / ghi âm / viết / bấm Xong / AiiRob tự chấm). */
+export const CACH_NOP: Record<string, string> = {
+  anh: "Làm xong chụp ảnh gửi Ba Mẹ", video: "Làm xong chụp ảnh gửi Ba Mẹ", ghi_am: "Làm xong ghi âm gửi Ba Mẹ", van_ban: "Làm xong viết kể lại cho Ba Mẹ",
+  xong: "Làm xong bấm «Xong»", tu_dong: "Học với AiiRob — AiiRob tự chấm",
+};
+
 export function phuNv(x: NvTre) {
   switch (x.trang_thai_con) {
     case "dang_lam": return "Đang làm — chạm để làm tiếp";
-    case "can_bo_sung": return "Ba Mẹ nhờ chụp lại";
+    case "can_bo_sung": return (x as { loi_nhan?: string | null }).loi_nhan ? `Ba Mẹ nhờ làm lại: “${(x as { loi_nhan?: string }).loi_nhan}”` : "Ba Mẹ nhờ con làm lại";
     case "du_hom_nay": return "Hôm nay đã đủ, mai làm tiếp";
     case "du_tuan": return "Tuần này đã đủ, tuần sau làm tiếp";
     default:
       if (x.toi_da_ngay) return `Còn ${Math.max(0, x.toi_da_ngay - x.hom_nay)} lần hôm nay`;
       if (x.phut_toi_thieu) return `Làm ít nhất ${x.phut_toi_thieu} phút`;
-      return x.mo_ta || (x.bang_chung === "van_ban" ? "Làm xong kể lại cho Ba Mẹ" : "Làm xong chụp ảnh gửi Ba Mẹ");
+      return x.mo_ta || CACH_NOP[x.bang_chung] || "Làm xong chụp ảnh gửi Ba Mẹ";
   }
 }
 

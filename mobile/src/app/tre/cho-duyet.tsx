@@ -1,4 +1,4 @@
-// con-cho-duyet «Đã nộp — chờ Ba Mẹ»: Ba Mẹ duyệt xong là có điểm; trong lúc chờ làm việc khác cũng được.
+// con-cho-duyet «Đã nộp — chờ Ba Mẹ»: Ba Mẹ duyệt xong là có sao; trong lúc chờ làm việc khác cũng được.
 // Mất mạng lúc nộp ⇒ ảnh nằm trong hàng chờ trên máy, tự gửi khi có mạng (thử lại mỗi 5 giây) — Con không cần chụp lại.
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
@@ -20,9 +20,9 @@ export default function ChoDuyet() {
   return (
     <ManTre tab="nhiem-vu">
       {d ? <DiemTren n={d.soDu} chuoi={d.chuoiNgay} /> : null}
-      {cho ? <BangMang chu={`Mất mạng — ảnh nằm trong hàng chờ trên máy, tự gửi cho Ba Mẹ khi có mạng. ${ten} không cần chụp lại.`} /> : null}
-      <CanhGiua lv="cho" tieu={cho ? "Rob giữ ảnh cho Ba Mẹ rồi!" : "Đã gửi cho Ba Mẹ rồi!"}
-        loi={`Ba Mẹ duyệt xong là ${ten} có ${diem ? `+${diem}` : "thêm"} điểm. Trong lúc chờ, làm việc khác cũng được.`}>
+      {cho ? <BangMang chu={`Mất mạng — bài nộp nằm trong hàng chờ trên máy, tự gửi cho Ba Mẹ khi có mạng. ${ten} không cần làm lại.`} /> : null}
+      <CanhGiua lv="cho" tieu={cho ? "Rob giữ bài cho Ba Mẹ rồi!" : "Đã nộp bài · chờ Ba Mẹ"}
+        loi={`Ba Mẹ duyệt xong là ${ten} có ${diem ? `+${diem}` : "thêm"} sao. Trong lúc chờ, làm việc khác cũng được.`}>
         <Nut chu="Làm nhiệm vụ khác" loai="vien" bam={() => router.replace("/tre/nhiem-vu")} />
       </CanhGiua>
     </ManTre>

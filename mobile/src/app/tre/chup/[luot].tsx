@@ -1,14 +1,15 @@
 // con-chup «Chụp bằng chứng» (FR-03.02): camera mở ngay trong app, không chọn từ thư viện; ảnh gắn giờ + mã lượt. Nộp ≤ 3 chạm: bấm nút
 // chụp là gửi luôn. Web: nút chụp mở camera của trình duyệt (capture) — máy tính không có camera thì chọn tệp. Mất mạng ⇒ ảnh xếp hàng chờ trên máy.
-// Nhiệm vụ «kể lại» (văn bản): ô viết vài câu thay cho camera.
-import { useEffect, useRef, useState } from "react";
+// Nhiệm vụ «kể lại» (văn bản): ô viết vài câu thay cho camera. 05/11 «ghi âm»: web ghi bằng micro của trình duyệt (MediaRecorder, ≤ 90 giây,
+// gửi `ghiAm {mime: audio/*, base64}`); app native chưa có thư viện ghi âm ⇒ viết vài câu kể lại (máy chủ nhận, Ba Mẹ vẫn duyệt).
+import React, { useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BaoLoi, Canh, Chu, F, M, Nut, ONhap, Rob, cauLoi, useLam } from "@/lib/ui";
 import { ManTre, useTaiTre, gioCua } from "@/lib/ui-tre";
-import { kid, nopBangChung, type AnhNop, type NvTre } from "@/lib/api-tre";
+import { kid, nopBai, type AnhNop, type NvTreSao } from "@/lib/api-tre";
 
 const ANH_TOI_DA = 300 * 1024;
 
@@ -36,23 +37,94 @@ function nenAnhWeb(f: File): Promise<AnhNop> {
 
 export default function Chup() {
   const { luot, nv } = useLocalSearchParams<{ luot: string; nv?: string }>();
-  const { d } = useTaiTre(`nv-${nv}`, async () => (await kid.goi<{ ds: NvTre[] }>("nhiem-vu")).ds.find((x) => x.id === nv) ?? null);
+  const { d } = useTaiTre(`nv-${nv}`, async () => (await kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1")).ds.find((x) => x.id === nv) ?? null);
   const { dangChay, loi, lam, setLoi } = useLam();
-  const gui = (anh: AnhNop[], ghiChu?: string) => lam(async () => {
-    const r = await nopBangChung(luot, anh, ghiChu);
-    const q = new URLSearchParams({ diem: String(d?.diem ?? ""), ...(r.daXepHang ? { xep: "1" } : {}) }).toString();
+  const gui = (anh: AnhNop[], ghiChu?: string, ghiAm?: AnhNop) => lam(async () => {
+    const r = await nopBai(luot, { anh, ghiChu, ghiAm });
+    const q = new URLSearchParams({ diem: String(d?.sao ?? d?.diem ?? ""), ...(r.daXepHang ? { xep: "1" } : {}) }).toString();
     router.replace(r.trang_thai === "duoc_duyet" ? `/tre/duoc-duyet/${luot}` : `/tre/cho-duyet?${q}`);
   });
   if (d && d.bang_chung === "van_ban") return <KeLai ten={d.ten} gui={(t) => gui([], t)} dangChay={dangChay} loi={loi} />;
+  if (d && d.bang_chung === "ghi_am") {
+    return coGhiAm()
+      ? <GhiAm ten={d.ten} gui={(a, t) => gui([], t, a)} dangChay={dangChay} loi={loi} />
+      : <KeLai ten={d.ten} goiY="Máy này chưa ghi âm được — viết vài câu kể lại cho Ba Mẹ nhé!" gui={(t) => gui([], t)} dangChay={dangChay} loi={loi} />;
+  }
   return <Camera tieu={d ? `Chụp rõ “${d.ten}” nhé!` : "Chụp rõ việc đã làm nhé!"} ma={luot} gui={(a) => gui([a])} dangChay={dangChay} loi={loi} xoaLoi={() => setLoi(null)} />;
 }
 
-function KeLai({ ten, gui, dangChay, loi }: { ten: string; gui: (t: string) => void; dangChay: boolean; loi: string | null }) {
+/** Web có micro (MediaRecorder) ⇒ ghi âm được; app native / trình duyệt cũ ⇒ không. */
+const coGhiAm = () => Platform.OS === "web" && typeof (globalThis as { MediaRecorder?: unknown }).MediaRecorder === "function"
+  && !!globalThis.navigator?.mediaDevices?.getUserMedia;
+const GHI_TOI_DA_GIAY = 90;
+
+/** Ghi âm bằng micro của trình duyệt: Ghi → Dừng → nghe lại → Gửi (kèm vài chữ nếu muốn). Base64 ≤ 2 MB (máy chủ: ghi_am_qua_lon). */
+function GhiAm({ ten, gui, dangChay, loi }: { ten: string; gui: (a: AnhNop, ghiChu?: string) => void; dangChay: boolean; loi: string | null }) {
+  const [trang, setTrang] = useState<"cho" | "ghi" | "xong">("cho");
+  const [giay, setGiay] = useState(0);
+  const [bai, setBai] = useState<{ a: AnhNop; url: string } | null>(null);
+  const [nhac, setNhac] = useState<string | null>(null);
+  const [t, setT] = useState("");
+  const rec = useRef<{ stop: () => void } | null>(null);
+  useEffect(() => () => { rec.current?.stop(); if (bai) URL.revokeObjectURL(bai.url); }, [bai]);
+  useEffect(() => {
+    if (trang !== "ghi") return;
+    const h = setInterval(() => setGiay((g) => { if (g + 1 >= GHI_TOI_DA_GIAY) rec.current?.stop(); return g + 1; }), 1000);
+    return () => clearInterval(h);
+  }, [trang]);
+  const batDau = async () => {
+    setNhac(null);
+    try {
+      const luong = await globalThis.navigator.mediaDevices.getUserMedia({ audio: true });
+      const MR = (globalThis as unknown as { MediaRecorder: new (s: MediaStream) => { start: () => void; stop: () => void; state: string; mimeType: string;
+        ondataavailable: ((e: { data: Blob }) => void) | null; onstop: (() => void) | null } }).MediaRecorder;
+      const r = new MR(luong);
+      const manh: Blob[] = [];
+      r.ondataavailable = (e) => { if (e.data.size) manh.push(e.data); };
+      r.onstop = () => {
+        luong.getTracks().forEach((x) => x.stop());
+        const mime = (r.mimeType || "audio/webm").split(";")[0];
+        const blob = new Blob(manh, { type: mime });
+        const doc = new FileReader();
+        doc.onload = () => {
+          const b64 = String(doc.result ?? "").split(",")[1] ?? "";
+          if (b64.length * 0.75 > 2 * 1024 * 1024) { setNhac("Bài ghi dài quá — ghi ngắn lại nhé"); setTrang("cho"); return; }
+          setBai({ a: { mime: mime.startsWith("audio/") ? mime : "audio/webm", base64: b64 }, url: URL.createObjectURL(blob) });
+          setTrang("xong");
+        };
+        doc.readAsDataURL(blob);
+      };
+      rec.current = { stop: () => { if (r.state === "recording") r.stop(); } };
+      setGiay(0);
+      r.start();
+      setTrang("ghi");
+    } catch {
+      setNhac("Chưa mở được micro — cho phép trình duyệt dùng micro rồi thử lại nhé");
+    }
+  };
+  const day = trang === "ghi" ? <Nut chu={`Dừng (${giay}s)`} ic="x" rong loai="vien" bam={() => rec.current?.stop()} />
+    : trang === "xong" && bai ? <><Nut chu="Gửi cho Ba Mẹ" ic="gui" rong bam={() => gui(bai.a, t.trim() || undefined)} dangChay={dangChay} />
+      <Nut chu="Ghi lại" loai="ma" rong bam={() => { setBai(null); setTrang("cho"); }} /></>
+      : <Nut chu="Bắt đầu ghi âm" ic="tin" rong bam={batDau} />;
+  return (
+    <ManTre lui={{ chu: "Quay lại" }} day={<><BaoLoi loi={nhac ?? loi} />{day}</>}>
+      <Canh lv="chi" mau="vang" tieu={ten} loi={trang === "ghi" ? "Rob đang nghe… nói xong bấm Dừng nhé!" : "Ghi âm kể lại cho Ba Mẹ nghe nhé!"} thap />
+      {trang === "xong" && bai ? (
+        <View style={{ gap: 10 }}>
+          {Platform.OS === "web" ? React.createElement("audio", { src: bai.url, controls: true, style: { width: "100%" } }) : null}
+          <ONhap nhan="Viết thêm (không bắt buộc)" value={t} onChangeText={setT} maxLength={200} />
+        </View>
+      ) : null}
+    </ManTre>
+  );
+}
+
+function KeLai({ ten, gui, dangChay, loi, goiY }: { ten: string; gui: (t: string) => void; dangChay: boolean; loi: string | null; goiY?: string }) {
   const [t, setT] = useState("");
   const [nhac, setNhac] = useState<string | null>(null);
   return (
     <ManTre lui={{ chu: "Quay lại" }} day={<><BaoLoi loi={nhac ?? loi} /><Nut chu="Gửi cho Ba Mẹ" ic="gui" rong bam={() => (t.trim().length < 3 ? setNhac("Viết vài câu kể lại rồi gửi nhé") : (setNhac(null), gui(t)))} dangChay={dangChay} /></>}>
-      <Canh lv="chi" mau="vang" tieu={ten} loi="Kể lại vài câu cho Ba Mẹ nghe nhé!" thap />
+      <Canh lv="chi" mau="vang" tieu={ten} loi={goiY ?? "Kể lại vài câu cho Ba Mẹ nghe nhé!"} thap />
       <ONhap nhan="Con đã làm gì?" value={t} onChangeText={setT} multiline style={{ minHeight: 120, textAlignVertical: "top", paddingTop: 12 }} />
     </ManTre>
   );

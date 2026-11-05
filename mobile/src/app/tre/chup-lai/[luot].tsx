@@ -1,24 +1,29 @@
-// con-chup-lai «Cần chụp lại» (từ chối nhẹ): nói lý do của Ba Mẹ, Con không mất điểm nào, một nút Chụp lại.
+// con-chup-lai «Ba Mẹ nhờ làm lại» (thiết kế 05/11 con-ngay-thuong «Ba Mẹ nhờ bổ sung bài» — L9): lời nhắn / lý do của Ba Mẹ, Con không mất sao
+// nào, một nút nộp lại bằng chứng MỚI (ảnh / ghi âm / viết — theo cách nộp của việc). Ba Mẹ duyệt xong mới có sao.
 import { router, useLocalSearchParams } from "expo-router";
 import { CanhGiua, ChoTai, Nut } from "@/lib/ui";
 import { DiemTren, ManTre, useTaiTre, useTre } from "@/lib/ui-tre";
-import { kid, type LuotTre, type NhaTre } from "@/lib/api-tre";
+import { kid, type LuotTre, type NhaTre, type NvTreSao } from "@/lib/api-tre";
 
 export default function ChupLai() {
   const { luot, nv } = useLocalSearchParams<{ luot: string; nv?: string }>();
   const { ten } = useTre();
   const { d, loi, matMang, tai } = useTaiTre(`lai-${luot}`, async () => {
-    const [nha, ls] = await Promise.all([kid.goi<NhaTre>("nha"), kid.goi<{ ds: LuotTre[] }>("luot")]);
-    return { nha, l: ls.ds.find((x) => x.id === luot) ?? null };
+    const [nha, ls, ds] = await Promise.all([kid.goi<NhaTre>("nha"), kid.goi<{ ds: LuotTre[] }>("luot"),
+      kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1").catch(() => ({ ds: [] as NvTreSao[] }))]);
+    return { nha, l: ls.ds.find((x) => x.id === luot) ?? null, v: ds.ds.find((x) => x.id === nv) ?? null };
   });
   if (!d) return <ManTre tab="nhiem-vu"><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
-  const lyDo = d.l?.ly_do?.trim();
+  const loiNhan = d.v?.loi_nhan?.trim() || d.l?.ly_do?.trim() || d.v?.ly_do?.trim();
+  const bc = d.v?.bang_chung;
+  const [chu, ic] = bc === "van_ban" ? ["Viết lại", "but"] as const : bc === "ghi_am" ? ["Ghi âm lại", "tin"] as const : ["Chụp lại", "camera"] as const;
   return (
     <ManTre tab="nhiem-vu">
       <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
-      <CanhGiua lv="trong-loi" tieu={lyDo ? `${lyDo.charAt(0).toUpperCase()}${lyDo.slice(1)}` : "Ảnh cần chụp lại một chút"}
-        loi={`Ba Mẹ muốn thấy rõ hơn${d.l?.ten ? ` “${d.l.ten}”` : ""}. Chụp lại là được — ${ten} không mất điểm nào!`}>
-        <Nut chu="Chụp lại" ic="camera" bam={() => router.push(`/tre/chup/${luot}?nv=${nv ?? ""}`)} />
+      <CanhGiua lv="trong-loi" tieu="Ba Mẹ nhờ con làm lại"
+        loi={`${loiNhan ? `Ba Mẹ nhắn: “${loiNhan}”. ` : ""}${d.l?.ten ? `Làm lại “${d.l.ten}” rồi nộp bài mới nhé` : "Làm lại rồi nộp bài mới nhé"} — ${ten} không mất sao nào!`}>
+        <Nut chu={chu} ic={ic} bam={() => router.push(`/tre/chup/${luot}?nv=${nv ?? ""}`)} />
+        <Nut chu="Để sau" loai="ma" bam={() => router.replace("/tre/nhiem-vu")} />
       </CanhGiua>
     </ManTre>
   );

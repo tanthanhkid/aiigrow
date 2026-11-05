@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { BangMang, Canh, ChoTai, Nut } from "@/lib/ui";
+import { BangMang, BaoLoi, Canh, ChoTai, Nut, useLam } from "@/lib/ui";
 import { GhiChu, ManTre, Vong, batDauLuc, docTo, useTaiTre, useTre } from "@/lib/ui-tre";
-import { kid, type NvTre } from "@/lib/api-tre";
+import { kid, nopBai, type NvTreSao } from "@/lib/api-tre";
 import { LoiApi } from "@/lib/api";
 
 const hai = (n: number) => String(Math.floor(n)).padStart(2, "0");
@@ -14,26 +14,35 @@ export default function DangLam() {
   const { luot, nv } = useLocalSearchParams<{ luot: string; nv?: string }>();
   const { ten } = useTre();
   const { d, loi, matMang, tai, cu } = useTaiTre(`nv-${nv}`, async () => {
-    const x = (await kid.goi<{ ds: NvTre[] }>("nhiem-vu")).ds.find((n) => n.id === nv);
+    const x = (await kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1")).ds.find((n) => n.id === nv);
     if (!x) throw new LoiApi("khong_thay", "Nhiệm vụ này không còn nữa — chọn việc khác nhé.", 404);
     return x;
   });
   const [bay, setBay] = useState(() => new Date().getTime());
   const [dau] = useState(() => batDauLuc(luot));
   useEffect(() => { const t = setInterval(() => setBay(new Date().getTime()), 1000); return () => clearInterval(t); }, []);
+  const { dangChay, loi: loiNop, lam } = useLam();
   if (!d) return <ManTre><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
   const giay = Math.max(0, (bay - dau) / 1000);
   const toiThieu = d.phut_toi_thieu * 60;
   const conGiay = Math.max(0, toiThieu - giay);
   const chu = toiThieu && conGiay > 0 ? `${hai(conGiay / 60)}:${hai(conGiay % 60)}` : `${hai(giay / 60)}:${hai(giay % 60)}`;
   const ti = toiThieu ? giay / toiThieu : Math.min(1, giay / 900);
-  const anh = d.bang_chung !== "van_ban";
+  // 05/11: nộp theo cách Ba Mẹ chọn — ảnh, ghi âm, viết kể lại (màn chup) hoặc chỉ bấm «Xong» (nộp luôn, không kèm gì)
+  const bc = d.bang_chung;
+  const [chuNut, ic] = bc === "van_ban" ? ["Xong, kể lại", "but"] as const : bc === "ghi_am" ? ["Xong, ghi âm", "tin"] as const
+    : bc === "xong" ? ["Xong rồi!", "tick"] as const : ["Xong, chụp ảnh", "camera"] as const;
+  const xong = () => lam(async () => {
+    const r = await nopBai(luot, {});
+    router.replace(r.trang_thai === "duoc_duyet" ? `/tre/duoc-duyet/${luot}` : `/tre/cho-duyet?${new URLSearchParams({ diem: String(d.sao ?? d.diem), ...(r.daXepHang ? { xep: "1" } : {}) })}`);
+  });
   return (
     <ManTre day={
       <>
         {conGiay > 0 ? <GhiChu giua>{`Làm thêm ${Math.ceil(conGiay / 60)} phút nữa là nộp được nhé`}</GhiChu> : null}
-        <Nut chu={anh ? "Xong, chụp ảnh" : "Xong, kể lại"} ic={anh ? "camera" : "but"} rong loai={conGiay > 0 ? "vien" : "chinh"}
-          bam={() => (conGiay > 0 ? docTo(`Làm thêm ${Math.ceil(conGiay / 60)} phút nữa nhé`) : router.push(`/tre/chup/${luot}?nv=${d.id}`))} />
+        <BaoLoi loi={loiNop} />
+        <Nut chu={chuNut} ic={ic} rong loai={conGiay > 0 ? "vien" : "chinh"} dangChay={dangChay}
+          bam={() => (conGiay > 0 ? docTo(`Làm thêm ${Math.ceil(conGiay / 60)} phút nữa nhé`) : bc === "xong" ? xong() : router.push(`/tre/chup/${luot}?nv=${d.id}`))} />
         <Nut chu="Để sau" loai="ma" rong bam={() => router.replace("/tre/nhiem-vu")} />
       </>
     }>
