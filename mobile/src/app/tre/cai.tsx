@@ -1,51 +1,54 @@
-// con-win-cai «Chặn file cài đặt» (Teen · Windows, FR-02.03): tệp .exe/.msi lạ không chạy; nói rõ quy tắc, xin phép kèm sẵn tên tệp + lý do.
+// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Chỉ app được phép · Minecraft cần Ba Mẹ cho phép»,
+// «Con muốn cài để làm gì?» (chip «Học xây nhà» / «Chơi với bạn» + tự viết — không bắt buộc), «Nếu được cho phép: tính vào giờ chơi · còn N phút»,
+// «Gửi Ba Mẹ xin cài Minecraft» / «Thôi, để sau». Agent mở `/tre/cai?tep=MinecraftInstaller.exe` hoặc `?ten=Minecraft`.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { View, useWindowDimensions } from "react-native";
-import { BaoLoi, Chu, M, Nhan, Nut, ONhap, Rob, useLam } from "@/lib/ui";
-import { ChipMot, ManTre } from "@/lib/ui-tre";
-import { kid } from "@/lib/api-tre";
+import { TextInput, View } from "react-native";
+import { kid, type QuyCon } from "@/lib/api-tre";
+import { D, FD } from "@/lib/diu";
+import { useLam } from "@/lib/ui";
+import { ChuD, IcO, LoiD, ManD, NutD, PillD, TheD, TieuD } from "@/lib/ui-diu";
+import { useTaiTre } from "@/lib/ui-tre";
 
-const LY_DO = ["Để học lập trình", "Bạn rủ chơi"];
-const TU_VIET = "__tu_viet";
-
+const LY_DO = ["Học xây nhà", "Chơi với bạn"];
 /** MinecraftInstaller.exe → Minecraft */
-const tenApp = (tep: string) => tep.replace(/\.(exe|msi)$/i, "").replace(/(setup|installer|install|launcher)$/i, "").replace(/[-_.]+$/, "") || tep;
+const tenApp = (tep: string) => tep.replace(/\.(exe|msi|apk)$/i, "").replace(/(setup|installer|install|launcher)$/i, "").replace(/[-_.]+$/, "") || tep;
 
-export default function ChanCai() {
+export default function XinCai() {
   const p = useLocalSearchParams<{ tep?: string; ten?: string }>();
-  const tep = p.tep || "Tệp cài đặt";
-  const ten = p.ten || tenApp(tep);
-  const { width } = useWindowDimensions();
-  const rong = width >= 760;
+  const ten = p.ten || tenApp(p.tep || "App mới");
+  const quy = useTaiTre("quy", () => kid.goi<QuyCon>("quy"));
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");
   const { dangChay, loi, lam } = useLam();
-  // 05/11: lời nhắn không bắt buộc (con-bi-chan «Xin Ba Mẹ duyệt»)
-  const lyDoGui = lyDo === TU_VIET ? tuViet.trim() : lyDo ?? "";
   const xin = () => lam(async () => {
-    await kid.goi("yeu-cau", { loai: "cai_app", giaTri: ten, lyDo: lyDoGui });
+    await kid.goi("yeu-cau", { loai: "cai_app", giaTri: ten, lyDo: [lyDo, tuViet.trim()].filter(Boolean).join(" · ") });
     router.replace("/tre/yeu-cau");
   }, { hangDoi: true });
+  const conPhut = quy.d?.quy.conPhut;
   return (
-    <ManTre>
-      <View style={{ flexDirection: rong ? "row" : "column", alignItems: "center", gap: rong ? 40 : 12, paddingVertical: rong ? 40 : 8, maxWidth: 980, alignSelf: "center" }}>
-        <Rob ten="chi" co={rong ? 320 : 180} />
-        <View style={{ flex: rong ? 1 : undefined, gap: 8, alignSelf: "stretch" }}>
-          <Nhan chu="Quy tắc: cài phần mềm mới cần Ba Mẹ duyệt" loai="xam" />
-          <Chu kieu="rat" co={rong ? 34 : 26} style={{ letterSpacing: -0.6 }}>{`${tep} chưa được cài`}</Chu>
-          <Chu co={rong ? 18 : 16} mau={M.chu2}>Xin Ba Mẹ duyệt (lời nhắn không bắt buộc). Ba Mẹ duyệt thì bấm lại là cài được.</Chu>
-          <View style={{ gap: 8, marginTop: 10, maxWidth: 460 }}>
-            <ChipMot nhan="Nhắn Ba Mẹ" ds={[...LY_DO.map((x) => ({ gia: x, chu: x })), { gia: TU_VIET, chu: "Tự viết…" }]} gia={lyDo} doi={(v) => setLyDo(v === lyDo ? null : v)} />
-            {lyDo === TU_VIET ? <ONhap nhan="Lời nhắn của bạn" value={tuViet} onChangeText={setTuViet} maxLength={100} autoFocus /> : null}
-            <BaoLoi loi={loi} />
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-              <Nut chu={`Xin Ba Mẹ cài ${ten}`} bam={xin} dangChay={dangChay} />
-              <Nut chu="Huỷ" loai="ma" bam={() => (router.canGoBack() ? router.back() : router.replace("/tre/nha"))} />
-            </View>
-          </View>
+    <ManD lui={true} day={<><LoiD loi={loi} /><NutD chu={`Gửi Ba Mẹ xin cài ${ten}`} ic="gui" bam={xin} dangChay={dangChay} />
+      <NutD chu="Thôi, để sau" loai="chu" bam={() => (router.canGoBack() ? router.back() : router.replace("/tre/nha"))} /></>}>
+      <View style={{ alignSelf: "flex-start" }}><PillD chu="Chỉ app được phép" ic="khien" /></View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <IcO ic="game" co={64} />
+        <View style={{ flex: 1 }}>
+          <TieuD chu={`${ten} cần`} nho />
+          <TieuD chu="Ba Mẹ cho phép" nho />
         </View>
       </View>
-    </ManTre>
+      <ChuD kieu="den" co={15}>Con muốn cài để làm gì?</ChuD>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {LY_DO.map((x) => <NutD key={x} chu={x} nho loai={lyDo === x ? "chinh" : "phu"} style={{ flex: 1 }} bam={() => setLyDo(lyDo === x ? null : x)} />)}
+      </View>
+      <TheD mong>
+        <TextInput value={tuViet} onChangeText={setTuViet} maxLength={120} multiline accessibilityLabel="Con viết thêm" placeholder="vd Con xây mô hình trường mình, cô giáo giao."
+          placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 48, padding: 0, textAlignVertical: "top" }} />
+      </TheD>
+      <TheD mong>
+        <ChuD kieu="rat" co={13} mau={D.chu2}>Nếu được cho phép</ChuD>
+        <ChuD kieu="rat" co={15}>{`Tính vào giờ chơi${conPhut != null ? ` · còn ${conPhut} phút` : ""}`}</ChuD>
+      </TheD>
+    </ManD>
   );
 }

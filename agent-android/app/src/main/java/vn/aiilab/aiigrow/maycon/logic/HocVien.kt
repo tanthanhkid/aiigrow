@@ -64,7 +64,7 @@ data class KetXet(val duoc: Boolean, val phutToiDa: Int, val soDu: Int, val cau:
 fun docXet(o: JSONObject): KetXet = KetXet(o.optBoolean("duoc"), o.optInt("phutToiDa"), o.optInt("soDu"),
     o.optString("cau").takeIf { it.isNotBlank() && it != "null" } ?: if (o.optBoolean("duoc")) "" else "Chưa đổi được lúc này.")
 
-fun cauXetDuoc(x: KetXet, tenApp: String): String = "Đổi điểm để chơi $tenApp tối đa ${x.phutToiDa} phút (con có ${x.soDu} điểm). Điểm trừ theo phút chơi thật."
+fun cauXetDuoc(x: KetXet, tenApp: String): String = "Đổi sao để chơi $tenApp tối đa ${x.phutToiDa} phút (con có ${x.soDu} sao). Sao trừ theo phút chơi thật."
 
 /** Phiên điểm đang do máy này mở: kết thúc (máy chủ báo ket_thuc / không thấy) ⇒ thôi nhịp. */
 fun phienKetThuc(o: JSONObject): Boolean = o.optString("trangThai") == "ket_thuc"

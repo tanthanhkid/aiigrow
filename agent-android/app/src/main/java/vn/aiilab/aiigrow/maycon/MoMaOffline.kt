@@ -9,7 +9,7 @@ import vn.aiilab.aiigrow.maycon.logic.matMang
 
 /**
  * Con gõ mã mở offline Ba Mẹ đọc (giống agent-win AgentRuntime.TryMaOffline): kiểm ngay trên máy bằng bí mật đã nhớ, không cần máy chủ.
- * Đúng ⇒ mở 60 phút + sự kiện «mo_ma_offline»; sai 5 lần trong 10 phút ⇒ chờ + sự kiện «sai_ma_offline». Có mạng lại ⇒ DichVuNhip kết thúc lượt mở.
+ * Đúng ⇒ mở đúng số phút mã mang (60 / 30 / 15 — 06/11 L19, logic/MaOffline.kt › kiemPhut) + sự kiện «mo_ma_offline»; sai 5 lần trong 10 phút ⇒ chờ + sự kiện «sai_ma_offline». Có mạng lại ⇒ DichVuNhip kết thúc lượt mở.
  */
 object MoMaOffline {
     private val khoa = Any()
@@ -25,7 +25,10 @@ object MoMaOffline {
     /** Máy rời gia đình / ghép lại ⇒ quên bí mật + lượt mở cũ (mã của gia đình cũ không mở được máy nữa). */
     fun quen(k: Kho) = synchronized(khoa) { k.maOfflineBiMat = null; k.moTamOffline = null }
 
-    fun thu(ctx: Context, ma: String): String = synchronized(khoa) {
+    fun thu(ctx: Context, ma: String): String = thuMa(ctx, ma).third
+
+    /** Như `thu` nhưng trả cả kết quả + lúc hết mở (màn «Ba Mẹ nhập mã» lúc mất mạng dùng hạn này cho «Ba Mẹ đang dùng»). */
+    fun thuMa(ctx: Context, ma: String): Triple<KetQuaMoOffline, Long?, String> = synchronized(khoa) {
         val k = Kho(ctx)
         val now = System.currentTimeMillis()
         val (kq, st) = MoTamOffline.doc(k.moTamOffline).thu(k.maOfflineBiMat, ma, now, lechMs = if (k.cheDoThu) 0 else k.lechGioMs)
@@ -41,7 +44,7 @@ object MoMaOffline {
                 NhatKy.suKien(ctx, "sai_ma_offline", mapOf("may" to tenMay, "soLan" to MoTamOffline.SAI_TOI_DA, "phut" to MoTamOffline.CUA_SO_SAI_PHUT))
         }
         NhatKy.tin("AiiGrowMaOffline", "gõ mã offline: $kq")
-        cauMoOffline(kq, st, now) { GiaoDien.gio(it) }
+        Triple(kq, st.moDen.takeIf { kq == KetQuaMoOffline.DA_MO }, cauMoOffline(kq, st, now) { GiaoDien.gio(it) })
     }
 
     /** Nhịp máy chủ thành công ⇒ kết thúc lượt mở đang chạy (như agent-win MoTamOffline.KetThucKhiCoMang) + sự kiện «het_ma_offline». */

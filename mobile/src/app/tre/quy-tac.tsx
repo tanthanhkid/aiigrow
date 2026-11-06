@@ -1,44 +1,49 @@
-// con-quy-tac «Bảng quy tắc của nhà mình» (BRD 8.1, FR-06.05, thiết kế 05/11): giờ chơi mỗi ngày (một quỹ cho mọi app), 10 sao = N phút,
-// giờ ngủ — công khai một chỗ, ai cũng thấy giống nhau. Con không thấy cấu hình nội bộ của Ba Mẹ. Teen: thêm nhiệm vụ → sao, quà → sao.
-import { BieuTron, Canh, ChoTai, Dong, Nhan, Nhom, NhomTieu } from "@/lib/ui";
-import { ManTre, useTaiTre, useTre } from "@/lib/ui-tre";
-import { kid, type QuyTac } from "@/lib/api-tre";
+// «Quy tắc nhà mình» bản «Dịu» (con-dt-khac 01 cdt-quy-tac, PIN 06/11): chip «Bảo Anh ▾»; giờ chơi 60 phút / cuối tuần 90; 10 sao = 10 phút
+// (làm nhiệm vụ để có sao); giờ học (chỉ mở app học); giờ ngủ (máy nghỉ); «Chỉ app được phép · app mới xin Ba Mẹ»; «Vào máy bằng tên + PIN ·
+// Giờ chơi tính riêng cho con». «Con hiểu rồi». Công khai — ai cũng thấy giống nhau (BRD 8.1, FR-06.05).
+import { router } from "expo-router";
+import { View } from "react-native";
+import { kid, type NhaTreSao, type QuyTac } from "@/lib/api-tre";
+import { D } from "@/lib/diu";
+import { ChoD, ChuD, IcO, ManD, NutD, TheD } from "@/lib/ui-diu";
+import { ChipBe } from "@/lib/man-con";
+import { useTaiTre } from "@/lib/ui-tre";
 
-/** 05/11: quy-tac trả thêm quỹ ngày thường / cuối tuần + tỷ lệ sao (máy chủ cũ không có ⇒ dùng tranNgay, 10 sao = 10 phút). */
 type QuyTacSao = QuyTac & { quyNgayThuong?: number; quyCuoiTuan?: number; phut10Sao?: number };
 
-
 export default function QuyTacNha() {
-  const { nhom } = useTre();
-  const { d, loi, matMang, tai } = useTaiTre("quy-tac", () => kid.goi<QuyTacSao>("quy-tac"));
-  if (!d) return <ManTre lui={{ chu: "Nhà", ve: "/tre/nha" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
+  const { d, loi, matMang, tai } = useTaiTre("quy-tac", async () => {
+    const [qt, nha] = await Promise.all([kid.goi<QuyTacSao>("quy-tac"), kid.goi<NhaTreSao>("nha").catch(() => null)]);
+    return { qt, nha };
+  });
+  if (!d) return <ManD lui="/tre/nha"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
+  const { qt } = d;
+  const hoc = d.nha?.quy?.gioHoc;
+  const dong: [Parameters<typeof IcO>[0]["ic"], string, string][] = [
+    ["dongho", `Giờ chơi ${qt.quyNgayThuong ?? qt.tranNgay} phút`, `Cuối tuần ${qt.quyCuoiTuan ?? qt.quyNgayThuong ?? qt.tranNgay} phút`],
+    ["sao", `10 sao = ${qt.phut10Sao ?? 10} phút`, "Làm nhiệm vụ để có sao"],
+    ...(hoc ? [["sach", `Giờ học ${hoc.tu} – ${hoc.den}`, "Chỉ mở app học"] as [Parameters<typeof IcO>[0]["ic"], string, string]] : []),
+    ["trang_ngu", `Giờ ngủ ${qt.lich.ngu.tu} – ${qt.lich.ngu.den}`, "Máy nghỉ"],
+    ["khien", "Chỉ app được phép", "App mới xin Ba Mẹ"],
+    ["nguoi", "Vào máy bằng tên + PIN", "Giờ chơi tính riêng cho con"],
+  ];
   return (
-    <ManTre lui={{ chu: "Nhà", ve: "/tre/nha" }}>
-      <Canh lv="so-tay" mau="vang" tieu="Quy tắc nhà mình" loi="Ai cũng thấy giống nhau — công bằng!" thap />
-      <Nhom>
-        <Dong dau tieu="Giờ chơi mỗi ngày" phu={`Ngày thường ${d.quyNgayThuong ?? d.tranNgay} phút · cuối tuần ${d.quyCuoiTuan ?? d.quyNgayThuong ?? d.tranNgay} phút`}
-          trai={<BieuTron ic="dongho" />} />
-        <Dong tieu="Mọi app chơi dùng chung" phu="App học không tính giờ" trai={<BieuTron ic="game" mau="vang" />} />
-        <Dong tieu="Sao đổi giờ chơi" phu={`10 sao = ${d.phut10Sao ?? 10} phút, cộng vào giờ chơi hôm nay`} trai={<BieuTron ic="sao" mau="vang" />} />
-        <Dong tieu="App và web mới" phu="Xin Ba Mẹ duyệt — không dùng sao để mở" trai={<BieuTron ic="tin" mau="tim" />} />
-        <Dong tieu="Giờ ngủ" phu={`${d.lich.ngu.tu}–${d.lich.ngu.den} · máy nghỉ, chỉ xin Ba Mẹ mở ngoại lệ`} trai={<BieuTron ic="trang_ngu" mau="tim" />} />
-      </Nhom>
-      {nhom === "teen" ? (
-        <>
-          {d.nhiemVu.length ? (
-            <>
-              <NhomTieu chu="Nhiệm vụ → sao" />
-              <Nhom>{d.nhiemVu.map((x, i) => <Dong key={`${x.ten}${i}`} dau={i === 0} tieu={x.ten} phai={<Nhan chu={`+${x.diem}`} loai="diem" />} />)}</Nhom>
-            </>
-          ) : null}
-          {d.qua.length ? (
-            <>
-              <NhomTieu chu="Quà → sao" />
-              <Nhom>{d.qua.map((x, i) => <Dong key={`${x.ten}${i}`} dau={i === 0} tieu={x.ten} phai={<Nhan chu={`${x.diem} sao`} loai="xam" />} />)}</Nhom>
-            </>
-          ) : null}
-        </>
-      ) : null}
-    </ManTre>
+    <ManD lui="/tre/nha" phai={<ChipBe />} day={<NutD chu="Con hiểu rồi" bam={() => router.replace("/tre/nha")} />}>
+      <View>
+        <ChuD kieu="den" co={26}>Quy tắc</ChuD>
+        <ChuD kieu="den" co={26} mau={D.xanhD}>nhà mình</ChuD>
+      </View>
+      <TheD style={{ gap: 0, paddingVertical: 6 }}>
+        {dong.map(([ic, a, b], i) => (
+          <View key={a} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: D.vien }}>
+            <IcO ic={ic} co={44} />
+            <View style={{ flex: 1 }}>
+              <ChuD kieu="rat" co={16}>{a}</ChuD>
+              <ChuD co={13.5} mau={D.chu2}>{b}</ChuD>
+            </View>
+          </View>
+        ))}
+      </TheD>
+    </ManD>
   );
 }

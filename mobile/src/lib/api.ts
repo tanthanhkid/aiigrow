@@ -18,7 +18,8 @@ const kho = (khoa: string) => ({
 });
 
 export class LoiApi extends Error {
-  constructor(public ma: string, msg: string, public status: number) { super(msg); }
+  /** `them`: trường phụ máy chủ trả cạnh {error, message} (S3 06/11: `conLan`, `choGiay`, `khoaDen` của PIN / mã Ba Mẹ). */
+  constructor(public ma: string, msg: string, public status: number, public them?: Record<string, unknown>) { super(msg); }
 }
 
 function khach(tienTo: "m" | "kid", khoa: string) {
@@ -52,7 +53,7 @@ function khach(tienTo: "m" | "kid", khoa: string) {
       await k.xoa();
       hetPhien?.();
     }
-    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status);
+    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status, j);
     return j as T;
   }
   return {

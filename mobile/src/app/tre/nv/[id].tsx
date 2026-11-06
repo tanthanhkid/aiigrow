@@ -1,13 +1,20 @@
-// con-nv-chi-tiet: tên việc + sao, 3 bước bằng hình, «Hôm nay đã làm 2/3 lần». Bắt đầu ⇒ đồng hồ nhiệm vụ.
-// 05/11: nộp ảnh / ghi âm / viết kể lại / bấm «Xong»; «Học với AiiRob» — AiiRob tự chấm, không có nút Bắt đầu.
+// «Chi tiết nhiệm vụ» bản «Dịu» (con-dt-ngay 04 cdt-nv-chi-tiet): tên việc + «+10 sao», dòng phụ, «Ba Mẹ muốn xem» (cách nộp: ảnh / ghi âm /
+// viết / bấm Xong), «Bắt đầu <việc>» / «Để sau». «Học với AiiRob» — AiiRob tự chấm, không có nút Bắt đầu.
 import { router, useLocalSearchParams } from "expo-router";
-import { BaoLoi, Canh, ChoTai, Nhan, Nut, The, TickDong, useLam } from "@/lib/ui";
-import { GhiChu, ManTre, batDauLuc, useTaiTre } from "@/lib/ui-tre";
+import { View } from "react-native";
+import { LoiApi, NHOM_NV } from "@/lib/api";
 import { kid, type NvTreSao } from "@/lib/api-tre";
-import { LoiApi } from "@/lib/api";
+import { D } from "@/lib/diu";
+import { useLam } from "@/lib/ui";
+import { ChoD, ChuD, DongD, IcO, LoiD, ManD, NutD, SaoD, TieuD } from "@/lib/ui-diu";
+import { batDauLuc, useTaiTre } from "@/lib/ui-tre";
 
 const thuong = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
-const LUI = { chu: "Nhiệm vụ", ve: "/tre/nhiem-vu" };
+const XEM: Record<string, [Parameters<typeof IcO>[0]["ic"], string, string]> = {
+  anh: ["camera", "Ảnh việc đã làm", "Chụp rõ, đủ sáng"], video: ["camera", "Ảnh việc đã làm", "Chụp rõ, đủ sáng"],
+  ghi_am: ["tin", "Bản ghi âm", "Kể lại hoặc đọc to cho Ba Mẹ nghe"], van_ban: ["but", "Vài câu kể lại", "Con viết 2 câu là đủ"],
+  xong: ["tick", "Bấm «Xong»", "Không cần ảnh"],
+};
 
 export default function ChiTietNv() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,38 +24,36 @@ export default function ChiTietNv() {
     return x;
   });
   const { dangChay, loi: loiLam, lam } = useLam();
-  if (!d) return <ManTre lui={LUI}><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
-  const bc = d.bang_chung;
-  const tuCham = d.tu_cham || bc === "tu_dong";
-  const buocNop = bc === "van_ban" ? "Viết vài câu kể lại" : bc === "ghi_am" ? "Ghi âm gửi Ba Mẹ" : bc === "xong" ? "Bấm «Xong»" : "Chụp 1 ảnh việc đã làm";
-  const loiNop = bc === "van_ban" ? "Làm xong, kể lại vài câu cho Ba Mẹ nhé!" : bc === "ghi_am" ? "Làm xong, ghi âm gửi Ba Mẹ nghe nhé!"
-    : bc === "xong" ? "Làm xong bấm «Xong» là được!" : "Làm xong, chụp 1 ảnh gửi Ba Mẹ nhé!";
-  if (tuCham) {
-    return (
-      <ManTre lui={LUI}>
-        <Canh lv="hoc" mau="vang" tieu={d.ten} loi={d.mo_ta || "Học xong một bài với AiiRob — đạt là AiiRob tự cộng sao."}>
-          <Nhan chu={`+${d.sao ?? d.diem} sao`} loai="diem" />
-        </Canh>
-        <GhiChu giua>Mở app Học với AiiRob để học. Không cần nộp bài ở đây.</GhiChu>
-      </ManTre>
-    );
-  }
+  if (!d) return <ManD lui="/tre/nhiem-vu"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
+  const tuCham = d.tu_cham || d.bang_chung === "tu_dong";
+  const ic = NHOM_NV[d.nhom]?.ic ?? NHOM_NV.khac.ic;
   const batDau = () => lam(async () => {
     const r = await kid.goi<{ luot: string }>(`nhiem-vu/${d.id}/bat-dau`, {});
     batDauLuc(r.luot);
     router.replace(`/tre/dang/${r.luot}?nv=${d.id}`);
   });
+  const xem = XEM[d.bang_chung] ?? XEM.anh;
+  const phu = [d.phut_toi_thieu ? `Làm ít nhất ${d.phut_toi_thieu} phút` : null, d.toi_da_ngay ? `Hôm nay đã làm ${d.hom_nay}/${d.toi_da_ngay} lần` : null]
+    .filter(Boolean).join(" · ");
   return (
-    <ManTre lui={LUI} day={<><BaoLoi loi={loiLam} /><Nut chu="Bắt đầu" ic="tia" rong bam={batDau} dangChay={dangChay} /></>}>
-      <Canh lv="chi" mau="vang" tieu={d.ten} loi={d.mo_ta || loiNop}>
-        <Nhan chu={`+${d.sao ?? d.diem} sao`} loai="diem" />
-      </Canh>
-      <The dem>
-        <TickDong chu="Bấm “Bắt đầu”" />
-        <TickDong chu={d.phut_toi_thieu ? `Làm ít nhất ${d.phut_toi_thieu} phút` : `Đi ${thuong(d.ten)}`} trang="sau" />
-        <TickDong chu={buocNop} trang="sau" />
-      </The>
-      {d.toi_da_ngay ? <GhiChu giua>{`Hôm nay đã làm ${d.hom_nay}/${d.toi_da_ngay} lần`}</GhiChu> : null}
-    </ManTre>
+    <ManD lui="/tre/nhiem-vu" day={tuCham ? undefined : <><LoiD loi={loiLam} /><NutD chu={`Bắt đầu ${thuong(d.ten)}`} bam={batDau} dangChay={dangChay} />
+      <NutD chu="Để sau" loai="chu" bam={() => router.replace("/tre/nhiem-vu")} /></>}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <IcO ic={ic} co={72} />
+        <View style={{ flex: 1, gap: 6 }}>
+          <TieuD chu={d.ten} nho />
+          <SaoD chu={`+${d.sao ?? d.diem} sao`} />
+        </View>
+      </View>
+      {d.mo_ta || phu ? <ChuD co={15} mau={D.chu2}>{[d.mo_ta, phu].filter(Boolean).join(" · ")}</ChuD> : null}
+      {tuCham ? (
+        <DongD ic="mu" tieu="Học với AiiRob" phu="Mở app AiiRob để học — đạt là AiiRob tự cộng sao. Không cần nộp ở đây." />
+      ) : (
+        <>
+          <ChuD kieu="den" co={15} style={{ marginTop: 4 }}>Ba Mẹ muốn xem</ChuD>
+          <DongD ic={xem[0]} tieu={xem[1]} phu={xem[2]} />
+        </>
+      )}
+    </ManD>
   );
 }

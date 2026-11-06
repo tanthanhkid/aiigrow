@@ -37,5 +37,6 @@ fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long, giayToiNgu: In
     else -> null
 }
 
-fun tieuDeNhac(moc: Int) = if (moc == 5) "Còn 5 phút" else "Còn 1 phút"
-fun noiDungNhac(moc: Int) = if (moc == 5) "Lưu bài đang làm nhé. Cần thêm giờ thì mở AiiGrow để xin Ba Mẹ." else "Máy sắp khoá. Lưu bài ngay nhé."
+// 06/11 bản «Dịu» (docs/thiet-ke-chot/con-dt-gio/04-cdt-nhac-5-phut.html): «Còn 5 phút chơi · Lưu bài đang chơi nhé.» — thêm giờ bằng sao hoặc xin Ba Mẹ.
+fun tieuDeNhac(moc: Int) = if (moc == 5) "Còn 5 phút chơi" else "Còn 1 phút chơi"
+fun noiDungNhac(moc: Int) = if (moc == 5) "Lưu bài đang chơi nhé. Muốn chơi thêm thì đổi sao lấy giờ hoặc xin Ba Mẹ." else "Máy sắp khoá. Lưu bài ngay nhé."

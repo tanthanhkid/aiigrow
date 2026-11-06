@@ -61,6 +61,17 @@ class Kho(ctx: Context) {
     /** Phiên điểm máy này biết là đã hết (luật nhớ còn `phienDiem.phien` cũ khi nhịp máy lỗi ⇒ bỏ qua). */
     var phienHet: String? get() = p.getString("phienHet", null); set(v) = p.edit().putString("phienHet", v).apply()
     var phienId: String? get() = p.getString("phienId", null); set(v) = p.edit().putString("phienId", v).apply()
+    /** L13 PIN theo bé (logic/PinBe.kt): hồ sơ `ho-so` gần nhất (JSON gốc — có `vanPin` để kiểm PIN khi mất mạng) + lúc lấy,
+     *  người dùng nhớ gần nhất (nhịp / hành động tại máy, NguoiDung.json), hạn «Ba Mẹ dùng» mở bằng mã lúc mất mạng (epoch ms),
+     *  bộ đếm sai PIN tại máy (DemPin.json), việc tại máy chưa báo máy chủ (ViecCho.json), lúc đổi người dùng tại máy gần nhất. */
+    var hoSo: String? get() = p.getString("hoSo", null); set(v) = p.edit().putString("hoSo", v).apply()
+    var lanHoSo: Long get() = p.getLong("lanHoSo", 0); set(v) = p.edit().putLong("lanHoSo", v).apply()
+    var nguoiDung: String? get() = p.getString("nguoiDung", null); set(v) = p.edit().putString("nguoiDung", v).apply()
+    var baMeDen: Long get() = p.getLong("baMeDen", 0); set(v) = p.edit().putLong("baMeDen", v).apply()
+    var demPin: String? get() = p.getString("demPin", null); set(v) = p.edit().putString("demPin", v).apply()
+    var viecCho: String? get() = p.getString("viecCho", null); set(v) = p.edit().putString("viecCho", v).apply()
+    var lanDoiNguoi: Long get() = p.getLong("lanDoiNguoi", 0); set(v) = p.edit().putLong("lanDoiNguoi", v).apply()
+
     /** Ảnh chụp trạng thái cho giao diện (màn chính, màn khoá, trợ năng) — dịch vụ ghi mỗi nhịp. */
     var hienThi: String? get() = p.getString("hienThi", null); set(v) = p.edit().putString("hienThi", v).apply()
 
@@ -95,6 +106,8 @@ data class HienThi(
     val deviceOwner: Boolean, val tenCon: String?,
     /** 05/11: app tạm dừng vì chưa được Ba Mẹ cho phép ⇒ màn chặn «Xin Ba Mẹ duyệt». */
     val goiChuaXep: Set<String> = emptySet(),
+    /** 06/11 L13: cổng PIN (logic/PinBe.kt › Cong.name) — CHON_TEN ⇒ màn khoá hiện chọn tên + PIN; BA_ME ⇒ «Ba Mẹ đang dùng máy» tới `baMeDen`. */
+    val cong: String = "MO", val baMeDen: Long = 0,
 ) {
     fun json(): String = JSONObject()
         .put("trangThai", trangThai).put("conPhut", conPhut).put("cauCon", cauCon).put("moLaiLuc", moLaiLuc)
@@ -102,7 +115,7 @@ data class HienThi(
         .put("goiChan", JSONArray(goiChan.toList()))
         .put("dungTop", JSONArray(dungTop.map { JSONObject().put("goi", it.first).put("phut", it.second) }))
         .put("capNhat", capNhat).put("deviceOwner", deviceOwner).put("tenCon", tenCon ?: "")
-        .put("goiChuaXep", JSONArray(goiChuaXep.toList())).toString()
+        .put("goiChuaXep", JSONArray(goiChuaXep.toList())).put("cong", cong).put("baMeDen", baMeDen).toString()
 
     companion object {
         fun doc(s: String?): HienThi? = try {
@@ -115,6 +128,7 @@ data class HienThi(
                     (0 until dt.length()).mapNotNull { dt.optJSONObject(it)?.let { x -> x.optString("goi") to x.optInt("phut") } },
                     o.optLong("capNhat"), o.optBoolean("deviceOwner"), o.optString("tenCon").ifBlank { null },
                     (o.optJSONArray("goiChuaXep") ?: JSONArray()).let { a -> (0 until a.length()).map { a.optString(it) }.toSet() },
+                    o.optString("cong", "MO").ifBlank { "MO" }, o.optLong("baMeDen"),
                 )
             }
         } catch (_: Exception) { null }
