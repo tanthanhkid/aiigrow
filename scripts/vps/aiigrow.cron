@@ -1,3 +1,4 @@
 # /etc/cron.d/aiigrow trên VPS — thay "crons" của server/vercel.json (0 19 * * * UTC = 02:00 giờ VN). Máy VPS chạy giờ +07.
 SHELL=/bin/bash
-0 2 * * * root curl -fsS -m 120 -H "Authorization: Bearer $(grep '^CRON_SECRET=' /etc/aiigrow/aiigrow.env | cut -d= -f2-)" http://127.0.0.1:3320/api/cron/don-kiem-toan >> /var/log/aiigrow-cron.log 2>&1
+CRON_TZ=Asia/Ho_Chi_Minh
+0 2 * * * root curl -fsS -m 120 -H "Authorization: Bearer $(grep '^CRON_SECRET=' /etc/aiigrow/aiigrow.env | cut -d= -f2- | tr -d '"\r')" http://127.0.0.1:3320/api/cron/don-kiem-toan >> /var/log/aiigrow-cron.log 2>&1
