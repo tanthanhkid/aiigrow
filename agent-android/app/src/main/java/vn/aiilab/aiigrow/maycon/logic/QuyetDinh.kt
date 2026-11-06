@@ -105,8 +105,9 @@ fun quyetDinh(
     // chua_xep = «chan» (server): app người dùng tự cài chưa được Ba Mẹ xếp ⇒ tạm dừng. App hệ thống không tính.
     // trình duyệt không lọc được: chặn ở MỌI trạng thái (kể cả thêm giờ / mở bằng mã — lúc đó Con đang có giờ tự do, càng cần lọc web)
     val khongLoc = trinhDuyetKhongLoc(trinhDuyet, daXep)
-    // 05/11 «Mở hết» (chuaXep = cho_phep): app chưa xếp được dùng — chỉ trình duyệt không lọc web được vẫn chặn
-    val chuaXepThat = if (cs.quy != null && cs.chuaXepChoPhep) emptySet() else daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet()
+    // 05/11 «Mở hết» (chuaXep = cho_phep): app chưa xếp được dùng — chỉ trình duyệt không lọc web được vẫn chặn.
+    // 06/11 (B1): không còn buộc phải có `quy` — máy chủ gửi cho_phep là Ba Mẹ đã chọn «Mở hết», luật cũ (không quỹ) cũng phải theo.
+    val chuaXepThat = if (cs.chuaXepChoPhep) emptySet() else daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet()
     val chuaXep = chuaXepThat + khongLoc
     val coThe = { s: Set<String> -> (s - GOI_LUON_CHO) }
 

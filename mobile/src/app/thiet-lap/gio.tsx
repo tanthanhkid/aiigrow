@@ -7,7 +7,7 @@ import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { coMa, cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
+import { coMa, cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH, tomTat } from "@/lib/ghep-may";
 import { BanhXeGio, DauMan, gioGon, OApp, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
 import { datTl, layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Man, Nut, Rob, The, useLam } from "@/lib/ui";
@@ -26,6 +26,8 @@ export default function ObGio() {
     const t = layTl();
     setApps(t.apps);
     if (t.conId && !t.apps) napAppGoiY(t.conId).then(() => setApps(layTl().apps)).catch(() => {});
+    // 06/11 (B1): Con đã có chế độ chặn ở máy chủ (đi lại Lần đầu cho Con cũ) ⇒ hiện đúng chế độ đó, không mặc định «Chỉ app được phép»
+    if (t.conId && !t.cheDoChan) tomTat(t.conId).then((x) => { if (!layTl().cheDoChan && x.cheDoChan) { setCheDo(x.cheDoChan); datTl({ cheDoChan: x.cheDoChan }); } }).catch(() => {});
   }, []));
   const doi = (x: Parameters<typeof datTl>[0]) => datTl(x);
   const luu = () => lam(async () => {

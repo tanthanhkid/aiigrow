@@ -25,6 +25,18 @@ fun docBanMoi(s: String, choPhepHttp: Boolean = false): BanMoi? = try {
 /** Có bản mới hơn bản đang chạy — so versionCode (Android chỉ cho cài đè bản versionCode ≥; bằng nhau thì không cần). */
 fun canCapNhat(b: BanMoi?, versionCodeHienTai: Long): Boolean = b != null && b.versionCode > versionCodeHienTai
 
+/** Khoảng tối thiểu giữa hai lần TỰ hỏi cài (hộp xác nhận của Android) — Con bấm Huỷ / bỏ qua thì 6 giờ sau mới hỏi lại. */
+const val HOI_LAI_MS = 6 * 3600_000L
+
+/**
+ * 06/11 (B2): có được mở hộp «cài bản mới» lượt này không. Ba Mẹ bấm «Cập nhật ngay» (`epHoi`) ⇒ luôn được; không thì đã hỏi trong 6 giờ qua
+ * (hộp còn treo / Con bấm Huỷ / bỏ qua) ⇒ không hỏi. ÁP CHO CẢ Device Owner: cài im lặng mà hệ thống vẫn đòi xác nhận (PENDING_USER_ACTION) thì
+ * trước đây mỗi lần app mở lại (đóng hộp ⇒ màn chính onResume ⇒ kiểm lại) lại bật hộp mới ⇒ «popup cập nhật» lặp khoảng mỗi phút.
+ * `lanHoiCai` ở tương lai (đồng hồ máy bị chỉnh lùi) ⇒ coi như chưa hỏi.
+ */
+fun nenHoiCai(epHoi: Boolean, now: Long, lanHoiCai: Long): Boolean =
+    epHoi || lanHoiCai <= 0 || now - lanHoiCai !in 0 until HOI_LAI_MS
+
 /** host (thường) của URL https — http chỉ nhận khi `choPhepHttp`. Có user-info / không có host ⇒ null. */
 private fun host(u: String, choPhepHttp: Boolean = false): String? = try {
     URI(u).let { if ((it.scheme == "https" || (choPhepHttp && it.scheme == "http")) && it.rawUserInfo == null) it.host?.lowercase() else null }

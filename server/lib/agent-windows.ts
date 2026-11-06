@@ -160,7 +160,11 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const moHet = !khoaGoc && !dangHoc && p.cheDoChan === "mo_het";
   // Quỹ (05/11): còn phút, không ngủ / khoá / giờ học / giờ máy sai ⇒ thả mọi app Giải trí
   const quyMo = !!p.quy && p.quy.conPhut > 0 && !khoaGoc && !dangHoc && !p.gioMaySai;
-  const appQuy = quyMo ? [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && laApp(l.muc)).map((l) => chuan(l.muc)))] : [];
+  const appGiaiTri = [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && laApp(l.muc)).map((l) => chuan(l.muc)))];
+  const appQuy = quyMo ? appGiaiTri : [];
+  // «Mở hết» mà quỹ đã hết (06/11, B1): mode vẫn tu_do (app chưa xếp vẫn mở) nhưng app Giải trí phải đóng — gửi chúng trong appTinhGio,
+  // quyConPhut = 0 ⇒ agent (Windows QuyTaiCho / Mac QuyGio) đưa chúng vào danh sách chặn của mode tu_do. Trước đây appTinhGio rỗng ⇒ hết giờ vẫn chơi.
+  const appTinhGio = quyMo ? appQuy : moHet && p.quy ? appGiaiTri : [];
   const den = nlCaMay ? new Date(Math.max(Date.parse(nlCaMay.den), dangMo ? mo.moDen!.getTime() : 0)) : dangMo ? mo.moDen! : null;
   const heThong = p.allowlistHeThong.filter(laApp).map(chuan);
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
@@ -183,7 +187,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(den ? { grantEndsAt: den.toISOString() } : {}),
     // Đang «mở» có hạn / còn quỹ ⇒ trang Giải trí mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
     web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || (moHet && (!p.quy || p.quy.conPhut > 0)) || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
-    ...(p.quy ? { quyConPhut: quyMo ? p.quy.conPhut : 0, quyTongPhut: p.quy.ngayPhut + p.quy.themPhut, quyDaDung: p.quy.daDung, appTinhGio: appQuy,
+    ...(p.quy ? { quyConPhut: quyMo ? p.quy.conPhut : 0, quyTongPhut: p.quy.ngayPhut + p.quy.themPhut, quyDaDung: p.quy.daDung, appTinhGio,
       dangGioHoc: dangHoc } : {}),
     gioNgu: p.lich.ngu, gioHoc: p.lich.hoc ?? null,
     ...(nl.length ? { ngoaiLe: nl.map((x) => ({ den: x.den, app: x.muc ? (laApp(x.muc) ? chuan(x.muc) : x.muc.toLowerCase()) : null })) } : {}),

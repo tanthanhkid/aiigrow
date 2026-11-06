@@ -17,6 +17,9 @@ export const ALLOWLIST_HE_THONG: string[] = [
   "aiigrow.kid.exe", "aiigrow.tray.exe",
   // gõ tiếng Việt + hỗ trợ từ xa của AiiLab (Thanh 22/10): không bị đóng khi Chặn thật
   "unikey.exe", "tvnserver.exe", "tailscale-ipn.exe",
+  // hộp thông báo Windows Update (06/11, B2): Win 11 24H2 đặt ở C:\Windows\UUS\<arch>\ — agent ≤ 0.2.13 không miễn thư mục đó nên đóng nó mỗi lần
+  // Windows bật lại ⇒ «popup cập nhật» + màn «app bị chặn» lặp. agent mới miễn theo thư mục (ProcessGuard ThuMucConHeThong «UUS»).
+  "monotificationux.exe", "musnotification.exe", "musnotificationux.exe", "musnotifyicon.exe",
   // macOS
   "com.apple.finder", "com.apple.systempreferences", "com.apple.calculator", "com.apple.notes", "com.apple.preview", "com.apple.photos",
   "com.microsoft.word", "com.microsoft.excel", "com.microsoft.powerpoint", "com.apple.iwork.pages", "com.apple.iwork.numbers", "com.apple.iwork.keynote",

@@ -1,7 +1,7 @@
 // Ghép máy (L8, docs/API.md › «Ghép máy»): một nội dung cho cả Lần đầu và Ghép thêm máy. Giữ kết quả `POST ghep-may` trong bộ nhớ
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
 import { bm } from "./api";
-import { datTl, layTl, type AppChon } from "./thiet-lap";
+import { datTl, layTl, thanThietLap, type AppChon } from "./thiet-lap";
 
 export type KqGhep = {
   ma: string; maHien: string; het: string; hanPhut: number; conGiay: number; lienKet: string; qr: string; tokenGoi: string; hetGoi: string;
@@ -57,13 +57,6 @@ export async function luuThietLap() {
   if (!layTl().conId) throw new Error("Chưa biết thiết lập cho con nào — quay lại bước hồ sơ con.");
   if (!layTl().apps && (layTl().cheDoChan ?? "chi_app_duoc_phep") === "chi_app_duoc_phep") await napAppGoiY(layTl().conId!);
   const tl = layTl();
-  const quy = tl.quy ?? QUY_MAC_DINH;
-  await bm.goi("thiet-lap", {
-    con: { id: tl.conId, ten: tl.tenCon },
-    gioChoi: { ngayThuong: quy, cuoiTuan: cuoiTuanCua(quy) },
-    ngu: tl.ngu ?? NGU_MAC_DINH,
-    cheDoChan: tl.cheDoChan ?? "chi_app_duoc_phep",
-    ...(tl.apps ? { apps: tl.apps.map((a) => (coMa(a) ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio })) } : {}),
-  });
+  await bm.goi("thiet-lap", thanThietLap(tl, { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH }));
   return tl.conId;
 }

@@ -71,6 +71,28 @@ class QuyGioTest {
         assertTrue("app Ba Mẹ chặn vẫn chặn", "com.android.chrome" in q.goiChan)
     }
 
+    @Test fun moHetVanKhoaKhiHetGioNguVaKhoaNgay() {
+        // 06/11 (B1): «Mở hết» = không chặn app lạ; hết giờ ⇒ app Giải trí vẫn dừng; giờ ngủ / Ba Mẹ khoá ⇒ khoá cả máy
+        val m = cs.copy(chuaXepChoPhep = true)
+        val het = quyetDinh(m, vn("10:00"), 60, daCai, null)
+        assertEquals(TrangThai.HET_GIO, het.trangThai)
+        assertTrue("com.google.android.youtube" in het.goiChan); assertFalse("com.la.game" in het.goiChan)
+        val ngu = quyetDinh(m, vn("22:00"), 0, daCai, null)
+        assertEquals(TrangThai.GIO_NGU, ngu.trangThai); assertTrue(ngu.khoaCaMay)
+        val khoa = quyetDinh(m.copy(khoaNgay = true), vn("10:00"), 0, daCai, null)
+        assertEquals(TrangThai.KHOA_NGAY, khoa.trangThai); assertTrue(khoa.khoaCaMay)
+        assertTrue("không hiện «Xin Ba Mẹ duyệt» cho app lạ ở Mở hết", het.goiChuaXep.isEmpty())
+    }
+
+    @Test fun moHetKhongCanQuy() {
+        // máy chủ gửi cho_phep mà không kèm `quy` (luật cũ) ⇒ vẫn là «Mở hết», không khoá app lạ như «Chỉ app được phép»
+        val q = quyetDinh(cs.copy(quy = null, chuaXepChoPhep = true), vn("18:00"), 0, daCai, null)
+        assertFalse("com.la.game" in q.goiChan)
+        assertTrue(q.goiChuaXep.isEmpty())
+        // «Chỉ app được phép» (mặc định) vẫn chặn app lạ
+        assertTrue("com.la.game" in quyetDinh(cs.copy(quy = null), vn("18:00"), 0, daCai, null).goiChan)
+    }
+
     @Test fun gioHocChiAppHoc() {
         val c = cs.copy(gioHoc = GioHoc("09:00", "11:00", listOf(3)))
         val q = quyetDinh(c, vn("10:00"), 0, daCai, null)

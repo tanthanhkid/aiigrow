@@ -30,6 +30,7 @@ import vn.aiilab.aiigrow.maycon.logic.chuyenHuongHopLe
 import vn.aiilab.aiigrow.maycon.logic.docBanMoi
 import vn.aiilab.aiigrow.maycon.logic.khopSha256
 import vn.aiilab.aiigrow.maycon.logic.loiApk
+import vn.aiilab.aiigrow.maycon.logic.nenHoiCai
 import vn.aiilab.aiigrow.maycon.logic.urlDauHopLe
 import vn.aiilab.aiigrow.maycon.logic.vanTayChungChi
 import java.io.File
@@ -81,7 +82,6 @@ object CapNhat {
     private const val BAO_QUYEN_MS = 24 * 3600_000L   // thông báo «bật quyền cập nhật» tối đa mỗi ngày
     private const val NGHI_HONG_MS = 24 * 3600_000L   // sha256 / chữ ký / cài hỏng ⇒ không thử lại bản đó trong 24 giờ
     private const val NGHI_TAI_MS = 3600_000L          // mất mạng giữa chừng ⇒ 1 giờ
-    private const val HOI_LAI_MS = 6 * 3600_000L   // không phải Device Owner: hộp xác nhận tự bật lại tối đa mỗi 6 giờ (Con bấm Huỷ thì thôi tới lượt sau)
     private val choPhepHttp get() = BuildConfig.CHO_PHEP_HTTP   // chỉ bản debug: thử với máy chủ localhost (http://10.0.2.2:…)
     private val khoa = java.util.concurrent.atomic.AtomicBoolean(false)
 
@@ -121,8 +121,9 @@ object CapNhat {
             }
             return KetQua.CHO_QUYEN
         }
-        // không phải Device Owner: đã hỏi trong 6 giờ qua (Con bấm Huỷ / chưa trả lời) ⇒ chờ Ba Mẹ bấm «Cập nhật ngay» hoặc lượt sau
-        if (!laDo && !epHoi && now - k.lanHoiCai in 0 until HOI_LAI_MS) return KetQua.CHO_QUYEN
+        // đã hỏi / đã gửi cài trong 6 giờ qua (hộp còn treo, Con bấm Huỷ, Device Owner mà hệ thống vẫn đòi xác nhận) ⇒ không mở hộp mới:
+        // chờ Ba Mẹ bấm «Cập nhật ngay» hoặc lượt sau (06/11 B2 — trước đây Device Owner không bị chặn ⇒ hộp bật lại mỗi lần app mở)
+        if (!nenHoiCai(epHoi, now, k.lanHoiCai)) return KetQua.CHO_QUYEN
 
         val tep = File(thuMuc(ctx), "aiigrow-con-${b.versionCode}.apk")
         thuMuc(ctx).listFiles()?.filter { it != tep }?.forEach { it.delete() }
@@ -245,7 +246,7 @@ object CapNhat {
                 val co = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                 NhatKy.tin(TAG, "cài ${b.version} (versionCode ${b.versionCode}) — ${if (laDo) "Device Owner, im lặng" else "chờ xác nhận"}")
                 s.commit(PendingIntent.getBroadcast(ctx, id, nhan, co).intentSender)
-                if (!laDo) k.lanHoiCai = System.currentTimeMillis()   // chỉ khi commit xong (hộp xác nhận thật sự hiện)
+                k.lanHoiCai = System.currentTimeMillis()   // commit xong (cả Device Owner): lượt tự kiểm kế không mở phiên/hộp mới trong 6 giờ
                 k.hoanTu = 0
             }
             return true
@@ -286,10 +287,11 @@ class NhanKetQuaCai : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 @Suppress("DEPRECATION") val xn: Intent = (if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
                     else i.getParcelableExtra(Intent.EXTRA_INTENT)) ?: return
+                Kho(c).lanHoiCai = System.currentTimeMillis()   // hộp xác nhận vừa hiện ⇒ 6 giờ không tự hỏi lại
                 CapNhat.thongBao(c, null, "Có bản AiiGrow mới $ban", "Chạm để cập nhật AiiGrow (Ba Mẹ quản lý máy này).", Intent(xn))
                 try { c.startActivity(xn.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { Log.i("AiiGrowCapNhat", "chưa mở được hộp xác nhận từ nền — chờ chạm thông báo") }
             }
-            PackageInstaller.STATUS_SUCCESS -> { CapNhat.xoaTep(c); CapNhat.huyThongBao(c); Kho(c).banMoiCho = null }
+            PackageInstaller.STATUS_SUCCESS -> { CapNhat.xoaTep(c); CapNhat.huyThongBao(c); Kho(c).let { it.banMoiCho = null; it.lanHoiCai = 0 } }
             // Con / Ba Mẹ bấm Huỷ: giữ tệp đã kiểm (không tải lại), thẻ «Cập nhật ngay» còn; tự hỏi lại sau 6 giờ
             PackageInstaller.STATUS_FAILURE_ABORTED -> Log.i("AiiGrowCapNhat", "huỷ cài $ban — giữ tệp, hỏi lại sau")
             else -> {

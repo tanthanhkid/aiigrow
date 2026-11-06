@@ -14,6 +14,17 @@ class CapNhatTest {
     private fun manifest(vc: Any = 4, url: String = "$mc/tai/AiiGrow-Con-0.2.2.apk", s: String = sha) =
         """{"version":"0.2.2","versionCode":$vc,"url":"$url","sha256":"$s"}"""
 
+    @Test fun khongHoiLaiTrong6Gio() {
+        // 06/11 (B2): popup cập nhật lặp mỗi phút — chỉ hỏi lại sau ≥ 6 giờ; Ba Mẹ bấm «Cập nhật ngay» thì hỏi ngay
+        val now = 1_800_000_000_000L
+        assertTrue("chưa hỏi lần nào", nenHoiCai(false, now, 0))
+        assertFalse("vừa hỏi 1 phút trước", nenHoiCai(false, now, now - 60_000))
+        assertFalse("5 giờ 59 phút", nenHoiCai(false, now, now - HOI_LAI_MS + 60_000))
+        assertTrue("đủ 6 giờ", nenHoiCai(false, now, now - HOI_LAI_MS))
+        assertTrue("Ba Mẹ bấm Cập nhật ngay", nenHoiCai(true, now, now - 60_000))
+        assertTrue("đồng hồ bị chỉnh lùi (mốc hỏi ở tương lai) ⇒ không kẹt", nenHoiCai(false, now, now + 3_600_000))
+    }
+
     @Test fun docManifest() {
         val b = docBanMoi(manifest())
         assertEquals(BanMoi("0.2.2", 4, "$mc/tai/AiiGrow-Con-0.2.2.apk", sha), b)
