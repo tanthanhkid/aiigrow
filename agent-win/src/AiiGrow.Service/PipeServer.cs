@@ -19,7 +19,10 @@ public sealed class PipeServer : BackgroundService
     private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi phần ảnh hưởng đổi điểm (bật/tắt, chế độ, phiên chơi, mục) ⇒ bỏ hết. Policy KHÔNG mang số điểm / giá ⇒ điểm đổi trên máy chủ chỉ hiện sau hạn nhớ (60 / 15 giây)
 
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
-    public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; }
+    public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; _nd = new NguoiDungMay(rt, log); }
+
+    /// <summary>06/11 (L13): chọn tên + PIN, quên PIN, Ba Mẹ nhập mã, đổi bé / khoá lại.</summary>
+    private readonly NguoiDungMay _nd;
 
     /// <summary>Mặc định: exe của tiến trình khách (GetNamedPipeClientProcessId) = AiiGrow.Tray.exe (hoặc bản cũ «.cu-…» lúc cập nhật) cùng
     /// thư mục với dịch vụ. Dịch vụ chạy ngoài thư mục cài (bản dev) ⇒ không kiểm (<see cref="KhayThat.LaBanDev"/>).</summary>
@@ -74,7 +77,9 @@ public sealed class PipeServer : BackgroundService
                     var req = string.IsNullOrEmpty(line) ? null : JsonSerializer.Deserialize<PipeRequest>(line, Json.Options);
                     var h = pipe.SafePipeHandle.DangerousGetHandle();
                     var clientSession = SessionHelper.PipeClientSession(h);
-                    bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo or PipeCmd.XinDuyet || (req?.Cmd == PipeCmd.Request && (LoaiXin.LaXinMo(req.Kind) || req.Kind == LoaiXin.NgoaiLe))) && _laKhayThat(h);
+                    bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo or PipeCmd.XinDuyet
+                                     or PipeCmd.HoSo or PipeCmd.DangNhapBe or PipeCmd.QuenPin or PipeCmd.BaMeMo or PipeCmd.DangXuat or PipeCmd.KhoaLai
+                                 || (req?.Cmd == PipeCmd.Request && (LoaiXin.LaXinMo(req.Kind) || req.Kind == LoaiXin.NgoaiLe))) && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
@@ -349,6 +354,23 @@ public sealed class PipeServer : BackgroundService
                 var (ok, cau) = _rt.TryMaOffline(req.Code ?? req.Note, now);
                 _log.LogInformation("Mã mở offline: {kq}", ok ? "mở" : cau);
                 return new PipeResponse { Ok = ok, Message = cau, Error = ok ? null : cau, State = _rt.BuildState(now) };
+            }
+
+            // 06/11 (L13): máy dùng chung — chỉ khay đã cài, ở phiên Con / phiên trước màn hình (màn khoá chọn tên nằm trong phiên Con)
+            case PipeCmd.HoSo or PipeCmd.DangNhapBe or PipeCmd.QuenPin or PipeCmd.BaMeMo or PipeCmd.DangXuat or PipeCmd.KhoaLai:
+            {
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy làm được" };
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con làm được" };
+                var r = req.Cmd switch
+                {
+                    PipeCmd.HoSo => await _nd.HoSoAsync(ct),
+                    PipeCmd.DangNhapBe => await _nd.DangNhapBeAsync(req.Id, req.Code, ct),
+                    PipeCmd.QuenPin => await _nd.QuenPinAsync(req.Id, ct),
+                    PipeCmd.BaMeMo => await _nd.BaMeMoAsync(req.Code, ct),
+                    _ => _nd.Roi(khoaLai: req.Cmd == PipeCmd.KhoaLai),
+                };
+                r.State = TrangThaiChoPhien(DateTimeOffset.Now, clientSession);
+                return r;
             }
 
             default:

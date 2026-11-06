@@ -52,8 +52,9 @@ public sealed class MoTamOffline
         return (int)Math.Max(1, Math.Ceiling((oldest.AddMinutes(CuaSoSaiPhut) - now).TotalSeconds));
     }
 
-    /// <summary>Con gõ mã Ba Mẹ đọc. Thành công ⇒ mở tới now + phut.</summary>
-    public KetQuaMoOffline TryUnlock(string? secret, string? code, DateTimeOffset now, int phut = PhutMoMacDinh)
+    /// <summary>Con gõ mã Ba Mẹ đọc. Thành công ⇒ mở tới now + số phút NẰM TRONG MÃ (06/11: biến thể 60 / 30 / 15 phút — <see cref="MaOffline.KiemPhut"/>).
+    /// <paramref name="phut"/> khác null ⇒ ép số phút (bỏ qua số phút của mã).</summary>
+    public KetQuaMoOffline TryUnlock(string? secret, string? code, DateTimeOffset now, int? phut = null)
     {
         if (string.IsNullOrEmpty(secret)) return KetQuaMoOffline.ChuaCoBiMat;
         if (WaitSeconds(now) > 0) return KetQuaMoOffline.ChoThuLai;
@@ -64,15 +65,15 @@ public sealed class MoTamOffline
         if (trungMaCu)
             return IsUnlocked(now) ? KetQuaMoOffline.DangMo : KetQuaMoOffline.DaDung;
 
-        if (!MaOffline.Kiem(secret, sach, now))
+        if (MaOffline.KiemPhut(secret, sach, now) is not int phutMa)
         {
             WrongAt.Add(now);
             return KetQuaMoOffline.Sai;
         }
 
-        phut = Math.Clamp(phut, 5, 120);
+        var p = Math.Clamp(phut ?? phutMa, 5, 120);
         UnlockFrom = now;
-        UnlockUntil = now.AddMinutes(phut);
+        UnlockUntil = now.AddMinutes(p);
         LastCode = sach;
         LastCodeAt = now;
         WrongAt.Clear();

@@ -469,6 +469,8 @@ public static class WebGuard
         var moCoi = MoCoi.La(cfg, now);
         if (moCoi || !CheDoHieuLuc.LaChan(CheDoHieuLuc.Chon(null, cfg.CheDo, moCoi))) return null;
         if (cfg.MoTamOffline?.IsUnlocked(now) == true) return null;
+        // 06/11 (L13): Ba Mẹ mở máy bằng mã lúc mất mạng ⇒ gỡ luật web như mã mở tạm (có mạng: máy chủ đã gửi luật web mở cho Ba Mẹ)
+        if (cfg.DangNhap is { BaMeOffline: true } d && DangNhapView.BaMeDangDung(d, now)) return null;
         return WebPolicy.Parse(cfg.LastPolicyJson)?.HetMo(now);
     }
 

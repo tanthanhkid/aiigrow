@@ -11,7 +11,8 @@ namespace AiiGrow.Tray;
 ///   • Nhiệm vụ: Ba Mẹ nhờ làm lại → Chờ Ba Mẹ duyệt → Chưa làm (Nộp ảnh / ghi âm / viết / Xong · Mở Học với AiiRob).
 ///   • Sao &amp; quà: ví sao, đổi sao lấy phút, đổi quà gửi Ba Mẹ (chờ trao / đã trao) — không còn phiếu AiiCafe / QR.
 ///   • Tin nhắn: tin của Ba Mẹ + Con trả lời nhanh / tự nhắn; thông báo.
-/// Chỉ dùng «sao» (10 sao = 10 phút), không «điểm», không «Chế độ: Tự do», không chơi theo từng app bằng điểm, không PIN.
+/// Chỉ dùng «sao» (10 sao = 10 phút), không «điểm», không «Chế độ: Tự do», không chơi theo từng app bằng điểm.
+/// 06/11 (L13): thanh bên có viên chữ của bé đang đăng nhập + «Đổi bé / Đăng xuất» + «Ba Mẹ dùng máy» (→ Ba Mẹ nhập mã); Sao &amp; quà theo bảng giá (L14).
 /// Mọi quyết định do máy chủ; form chỉ hiện và gửi qua dịch vụ (named pipe → api/device/hoc-vien/…). Đóng cửa sổ = ẩn (khay vẫn chạy).
 /// </summary>
 internal sealed class AppForm : Form
@@ -21,6 +22,7 @@ internal sealed class AppForm : Form
     // ---- thanh bên
     private readonly PictureBox _mascot = new() { SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent };
     private readonly Label _name = new() { AutoSize = true, ForeColor = UI.Ink, BackColor = Color.Transparent };
+    private readonly VienTen _avt = new();
     private readonly Label _pill = new() { AutoSize = true };
     private readonly Dictionary<MucApp, ClayButton> _nav = new();
     private readonly Dictionary<MucApp, Label> _dem = new();
@@ -70,6 +72,10 @@ internal sealed class AppForm : Form
     public event Action? TinDaXem;
     /// <summary>«Hỏi AiiGrow cách sửa» / «Có mạng mà vẫn lỗi?» (khay mở hộp Hỏi AiiGrow — con-mat-mang 10).</summary>
     public event Action? HoiAiiGrowClicked;
+    /// <summary>06/11 (L13): «Đổi bé / Đăng xuất» ở thanh bên (con-ngay-thuong 09 → 08).</summary>
+    public event Action? DoiBeClicked;
+    /// <summary>06/11 (L13): «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã (con-ngay-thuong 06).</summary>
+    public event Action? BaMeDungClicked;
 
     /// <summary>Số tin mới chưa đọc (khay đặt).</summary>
     public int TinMoi { get; set; }
@@ -138,9 +144,14 @@ internal sealed class AppForm : Form
         };
         var inner = Px(272) - Px(32);
 
-        // «Ba Mẹ dùng máy» ở chân thanh bên (con-ngay-thuong 01 → 18)
-        var chan = new Panel { Dock = DockStyle.Bottom, Height = Px(60), BackColor = Color.Transparent, Padding = new Padding(Px(12), Px(4), 0, 0) };
-        var bm = KhoiCon.LienKet("Ba Mẹ dùng máy", "khoa", () => { using var h = new BaMeDungMayHop(); h.ShowDialog(this); }, 12f, Clay.Chu2);
+        // 06/11 (con-ngay-thuong 09): chân thanh bên «Đổi bé / Đăng xuất» + «Ba Mẹ dùng máy» thu nhỏ (→ Ba Mẹ nhập mã)
+        var chan = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = Px(100), BackColor = Color.Transparent, Padding = new Padding(Px(12), 0, 0, 0),
+            FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        var doi = KhoiCon.LienKet("Đổi bé / Đăng xuất", "nguoi", () => DoiBeClicked?.Invoke(), 12f, Clay.NgocInk);
+        doi.Margin = Padding.Empty;
+        chan.Controls.Add(doi);
+        var bm = KhoiCon.LienKet("Ba Mẹ dùng máy", "khoa", () => BaMeDungClicked?.Invoke(), 10.5f, Clay.Chu2);
+        bm.Margin = Padding.Empty;
         chan.Controls.Add(bm);
 
         var flow = new FlowLayoutPanel
@@ -158,7 +169,16 @@ internal sealed class AppForm : Form
         _pill.Padding = new Padding(Px(12), Px(8), Px(12), Px(8));
         _pill.Margin = new Padding(0, 0, 0, Px(14));
         flow.Controls.Add(_mascot);
-        flow.Controls.Add(_name);
+        // viên chữ cái của bé đang đăng nhập cạnh tên (con-ngay-thuong 09 «.avt»)
+        var hangTen = KhoiCon.Hang();
+        hangTen.Margin = new Padding(Px(4), 0, 0, Px(8));
+        _avt.Size = new Size(Px(34), Px(34));
+        _avt.Margin = new Padding(0, Px(2), Px(8), 0);
+        _name.Margin = Padding.Empty;
+        _name.MaximumSize = new Size(inner - Px(50), 0);
+        hangTen.Controls.Add(_avt);
+        hangTen.Controls.Add(_name);
+        flow.Controls.Add(hangTen);
         flow.Controls.Add(_pill);
 
         foreach (var (muc, text, icon) in new[] { (MucApp.HomNay, "Hôm nay", "dongho"), (MucApp.NhiemVu, "Nhiệm vụ", "tick"), (MucApp.PhanQua, "Sao & quà", "sao"), (MucApp.TinNhan, "Tin nhắn", "tin") })
@@ -222,6 +242,9 @@ internal sealed class AppForm : Form
         _pill.ForeColor = _kn.DungIconKetNoi ? UI.GreenDark : _kn.Loai == KetNoi.MatKetNoi ? Clay.Canh : UI.Error;
         var ten = TenCon();
         _name.Text = string.IsNullOrWhiteSpace(ten) ? "AiiGrow" : ten;
+        _avt.Chu = DangNhapView.ChuDau(string.IsNullOrWhiteSpace(ten) ? "?" : ten);
+        _avt.Visible = !string.IsNullOrWhiteSpace(ten);
+        _avt.Invalidate();
         SetMascot();
     }
 
@@ -734,31 +757,56 @@ internal sealed class AppForm : Form
         _content.Controls.Add(vi);
 
         var dau = HangNgang();
-        dau.Margin = new Padding(0, Px(6), 0, Px(4));
+        dau.Margin = new Padding(0, Px(6), 0, 0);
         var lb = KhoiApp.NhanMuc("Đổi quà", Px(200)); lb.Margin = new Padding(Px(4), Px(12), Px(20), 0);
         dau.Controls.Add(lb);
         dau.Controls.Add(KhoiCon.LienKet("Quà của con ›", "qua", () => { _xemQuaCuaCon = true; Render(); }));
         _content.Controls.Add(dau);
+        // 06/11 (L14 — con-ngay-thuong 23): quà = bảng giá sao; con chọn ⇒ sao bị GIỮ, Ba Mẹ trao mới trừ hẳn
+        var luat = T("Con chọn quà → Ba Mẹ trao → mới trừ sao", 10.5f, false, UI.Muted);
+        luat.Margin = new Padding(Px(4), 0, 0, Px(6));
+        _content.Controls.Add(luat);
 
-        var now = DateTimeOffset.Now;
+        // «Đang chờ Ba Mẹ trao»: phiếu đang giữ sao
+        var cho = _tq.PhieuCho;
+        if (cho.Count > 0)
+        {
+            _content.Controls.Add(KhoiApp.NhanMuc("Đang chờ Ba Mẹ trao", _cw));
+            foreach (var p in cho)
+                _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Diem), Clay.Canh, KhoiApp.ChipSao(AppConView.Sao(p.Diem))));
+        }
+
         var qua = _ch?.Qua ?? new List<HvQua>();
+        _content.Controls.Add(KhoiApp.NhanMuc("Quà con đổi được", _cw));
         if (_ch == null) _content.Controls.Add(T("Đang tải danh sách quà…", 12f, false, UI.Muted));
         else if (qua.Count == 0) _content.Controls.Add(T("Ba Mẹ chưa đặt quà nào. Con làm nhiệm vụ để có sao nhé!", 12f, false, UI.Muted));
-        // quà đang chờ trao lên trước, rồi quà đủ sao, rồi theo số sao
-        foreach (var q in qua.OrderBy(q => q.ChoTraoTu == null).ThenBy(q => q.SoSao > sao).ThenBy(q => q.SoSao))
+        // bảng giá: rẻ trước (như màn thiết kế); bấm dòng nào cũng mở hộp đổi (chưa đủ sao ⇒ hộp nói còn thiếu bao nhiêu)
+        foreach (var q in qua.OrderBy(q => q.SoSao))
         {
-            var (chu, du, choTrao) = AppConView.TrangThaiQua(q, sao, now);
+            var (chu, du) = AppConView.TrangThaiDoi(q, sao);
+            var nhan = AppConView.NhanQua(q);
             var ph = new List<Control>();
+            var qq = q;
             if (du)
             {
                 var b = KhoiApp.NutGon($"Đổi {q.SoSao} sao", true, "qua", 40, 10.5f);
-                var qq = q;
                 b.Click += (_, _) => MoDoiQua(qq, sao);
                 ph.Add(b);
             }
             else ph.Add(KhoiApp.ChipSao(AppConView.Sao(q.SoSao)));
-            _content.Controls.Add(KhoiApp.Dong(_cw, AppConView.IconQua(q), q.Ten, chu, choTrao ? Clay.Canh : du ? Clay.NgocInk : null, ph.ToArray()));
+            var dong = KhoiApp.Dong(_cw, AppConView.IconQua(q), nhan != null ? $"{q.Ten}  ·  {nhan}" : q.Ten, chu, du ? Clay.NgocInk : null, ph.ToArray());
+            BamCaDong(dong, () => MoDoiQua(qq, sao));
+            _content.Controls.Add(dong);
         }
+    }
+
+    /// <summary>Bấm vào đâu trên dòng quà cũng mở hộp đổi (trừ nút riêng của dòng).</summary>
+    private static void BamCaDong(Control c, Action bam)
+    {
+        if (c is ButtonBase) return;
+        c.Cursor = Cursors.Hand;
+        c.Click += (_, _) => bam();
+        foreach (Control con in c.Controls) BamCaDong(con, bam);
     }
 
     private void MoDoiQua(HvQua q, int sao)
@@ -782,10 +830,14 @@ internal sealed class AppForm : Form
         _content.Controls.Add(KhoiApp.NhanMuc("Chờ Ba Mẹ trao", _cw));
         if (cho.Count == 0) _content.Controls.Add(T("Chưa có quà nào đang chờ.", 11.5f, false, UI.Muted));
         foreach (var p in cho)
-            _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, $"Đổi {p.Diem} sao" + (p.Luc is { } l ? " · " + AppConView.LucNgan(l, now) : ""), null, KhoiApp.ChipCho("Chờ trao")));
-        var da = _viQua?.DaTrao ?? new List<HvQuaDaTrao>();
+            _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Diem, ngan: true), null, KhoiApp.ChipCho("Chờ trao")));
+        // 06/11 (L14 — con-ngay-thuong 24): voucher AiiCafe Ba Mẹ đã trao — mã (= QR quầy quét) + hạn, «Còn 49 ngày»
+        var vc = (_viQua?.Voucher ?? new List<HvVoucherVi>()).Where(v => v.DungDuoc).ToList();
+        var da = (_viQua?.DaTrao ?? new List<HvQuaDaTrao>()).Where(d => d.Loai != "voucher" || vc.Count == 0).ToList();
         _content.Controls.Add(KhoiApp.NhanMuc("Đã nhận", _cw));
-        if (da.Count == 0) _content.Controls.Add(T(_viQua == null ? "Đang tải…" : "Ba Mẹ trao quà là con thấy ở đây.", 11.5f, false, UI.Muted));
+        if (da.Count == 0 && vc.Count == 0) _content.Controls.Add(T(_viQua == null ? "Đang tải…" : "Ba Mẹ trao quà là con thấy ở đây.", 11.5f, false, UI.Muted));
+        foreach (var v in vc)
+            _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", AppConView.TenVoucher(v), AppConView.PhuVoucher(v), Clay.NgocInk, KhoiApp.ChipNgoc($"Còn {v.ConNgay} ngày")));
         foreach (var d in da)
             _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", d.Ten, $"{d.Diem} sao" + (d.XuLyLuc is { } x ? " · Ba Mẹ trao " + x.ToLocalTime().ToString("dd/MM") : ""), null, KhoiApp.ChipNgoc("Đã nhận")));
     }

@@ -415,13 +415,13 @@ internal sealed class SetupForm : Form
     private async void BuocTaiKhoan()
     {
         Man(3, "Tài khoản");
-        X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+        X(_body, 36, 72, "Các con mở máy bằng tài khoản nào?", Kieu.H);
         X(_body, 38, 112, "Đang đọc các tài khoản trên máy…", Kieu.P);
         try { _accounts = await Task.Run(Accounts.List); }
         catch (Exception e)
         {
             Man(3, "Tài khoản");
-            X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+            X(_body, 36, 72, "Các con mở máy bằng tài khoản nào?", Kieu.H);
             X(_body, 38, 112, "Chưa đọc được các tài khoản trên máy: " + e.Message, Kieu.P, 650, Loi);
             NutLui(BuocDieuKhoan);
             NutChinh("Thử lại", 160, BuocTaiKhoan);
@@ -442,15 +442,16 @@ internal sealed class SetupForm : Form
     {
         Man(3, "Tài khoản");
         var toi = SidDangDung();
-        X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
-        X(_body, 38, 112, "Tài khoản của con sẽ là loại giới hạn: con không tự gỡ AiiGrow được.", Kieu.P);
+        X(_body, 36, 72, "Các con mở máy bằng tài khoản nào?", Kieu.H);
+        // 06/11 (L13 — con-cai-win 03): MỘT tài khoản Windows giới hạn dùng chung, AiiGrow nhận từng bé bằng tên + PIN
+        X(_body, 38, 112, "Các con dùng chung 1 tài khoản giới hạn. AiiGrow nhận từng bé bằng tên + PIN.", Kieu.P);
         // Tài khoản đang dùng (người cài — Ba Mẹ) lên cuối, mờ, không chọn được.
         var ds = _accounts.OrderBy(a => a.Sid == toi).ThenBy(a => a.IsAdmin).ToList();
         var cao = 96 + Math.Max(1, ds.Count) * 52 + 14;
         var the = The(36, 152, 651, cao, chon: true);
         Vien(the, 56, 170, "nguoi", mau: "ngoc");
-        X(the, 128, 176, "Con đã có tài khoản riêng", Kieu.B);
-        X(the, 128, 200, "Tên con bấm vào khi mở máy", Kieu.S);
+        X(the, 128, 176, "Các con đã có tài khoản chung", Kieu.B);
+        X(the, 128, 200, "Không cần mỗi bé một tài khoản Windows", Kieu.S);
         if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid))) _child = null;
         ClayButton? tiep = null;
         var hang = new List<(ClayCard The, LocalAccount Tk)>();
@@ -466,7 +467,7 @@ internal sealed class SetupForm : Form
             if (tiep != null)
             {
                 tiep.Enabled = _child != null;
-                tiep.Text = _child != null ? "Dùng tài khoản " + _child.Name : "Chọn tài khoản của con";
+                tiep.Text = _child != null ? "Dùng tài khoản " + _child.Name : "Chọn tài khoản chung";
             }
         }
         if (ds.Count == 0) X(the, 58, 252, "Máy chưa có tài khoản nào khác. Chọn «tạo tài khoản mới» bên dưới.", Kieu.S, 600);
@@ -507,55 +508,55 @@ internal sealed class SetupForm : Form
         var yTao = 152 + cao + 20;
         var tao = The(36, yTao, 651, 90, bam: () => TaoMoi());
         Vien(tao, 56, yTao + 17, "cong");
-        X(tao, 128, yTao + 23, "Chưa có, tạo tài khoản mới cho con", Kieu.B);
+        X(tao, 128, yTao + 23, "Chưa có, tạo 1 tài khoản chung cho các con", Kieu.B);
         X(tao, 128, yTao + 47, "Không chắc thì chọn cái này, an toàn nhất", Kieu.S);
         NutLui(BuocDieuKhoan);
-        tiep = NutChinh("Chọn tài khoản của con", 250, () => { if (_child != null) KiemTaiKhoan(_child); });
+        tiep = NutChinh("Chọn tài khoản chung", 250, () => { if (_child != null) KiemTaiKhoan(_child); });
         VeChon();
     }
 
     private void TaoMoi()
     {
         Man(3, "Tài khoản");
-        X(_body, 36, 72, "Con mở máy bằng tài khoản nào?", Kieu.H);
+        X(_body, 36, 72, "Các con mở máy bằng tài khoản nào?", Kieu.H);
         var co = The(36, 122, 651, 72, bam: () => ChonCoSan());
         Vien(co, 56, 136, "nguoi", 44);
-        X(co, 116, 147, "Con đã có tài khoản riêng", Kieu.B);
+        X(co, 116, 147, "Các con đã có tài khoản chung", Kieu.B);
         var the = The(36, 212, 651, 300, chon: true);
         Vien(the, 56, 230, "cong", mau: "ngoc");
-        X(the, 128, 236, "Tạo tài khoản mới cho con", Kieu.B);
-        X(the, 128, 260, "Tài khoản của Ba Mẹ giữ nguyên", Kieu.S);
+        // 06/11 (L13 — con-cai-win 04): 1 tài khoản chung «con», không mật khẩu Windows (các bé vào bằng tên + PIN của AiiGrow)
+        X(the, 128, 236, "Tạo 1 tài khoản chung cho các con", Kieu.B);
+        X(the, 128, 260, "Tài khoản của Ba Mẹ giữ nguyên · các bé vào bằng tên + PIN", Kieu.S);
         X(the, 58, 304, "Tên đăng nhập", Kieu.S, 0, Chu2, dam: true);
-        X(the, 372, 304, "Mật khẩu khi mở máy", Kieu.S, 0, Chu2, dam: true);
-        var ten = new TextBox { Font = new Font("Segoe UI", 12.75f), MaxLength = 20 };
-        var mk = new TextBox { Font = new Font("Segoe UI", 12.75f), UseSystemPasswordChar = true };
-        foreach (var (o, x, w) in new[] { (ten, 56, 296), (mk, 370, 297) })
+        X(the, 372, 304, "Đăng nhập Windows", Kieu.S, 0, Chu2, dam: true);
+        var ten = new TextBox { Font = new Font("Segoe UI", 12.75f), MaxLength = 20, Text = TenTaiKhoanChung() };
+        var tu = new TextBox { Font = new Font("Segoe UI", 12.75f), Text = "Tự vào, không mật khẩu", ReadOnly = true, TabStop = false };
+        foreach (var (o, x, w) in new[] { (ten, 56, 296), (tu, 370, 297) })
         {
             var vo = ONhapClay.Boc(o, S(w));
             var p = ToaDo(the, x, 326);
             vo.Location = new Point(p.X - VeThe.LeBong.Left, p.Y - VeThe.LeBong.Top);
             the.Controls.Add(vo);
         }
-        var goiY = X(the, 58, 388, "Gõ không dấu · mật khẩu ít nhất 4 ký tự, Ba Mẹ ghi lại giúp con.", Kieu.S, 600);
-        // Dải cam: máy chỉ có một tài khoản (toàn quyền) và đang là của con ⇒ màn giải thích.
+        var goiY = X(the, 58, 388, "Mở máy là vào thẳng tài khoản Con · không hỏi mật khẩu Windows.", Kieu.S, 600);
+        // Dải cam: máy chỉ có một tài khoản (toàn quyền) và đang là của các con ⇒ màn giải thích.
         var dai = The(56, 426, 611, 64, nen: Clay.CanhSoft, bam: () => ManChiMotAdmin(), cha: the);
         dai.BoGoc = Clay.S(20);
         Vien(dai, 66, 436, "canh_bao", 44, "cam");
-        X(dai, 124, 447, "Máy chỉ có 1 tài khoản, đang là của con? ›", Kieu.B, 0, Clay.Canh);
+        X(dai, 124, 447, "Máy chỉ có 1 tài khoản, đang là của các con? ›", Kieu.B, 0, Clay.Canh);
         NutLui(() => ChonCoSan());
         ClayButton? tiep = null;
-        void DoiNhan() { if (tiep != null) tiep.Text = Accounts.IsValidName(ten.Text.Trim()) ? "Tạo tài khoản " + ten.Text.Trim() : "Tạo tài khoản"; }
+        void DoiNhan() { if (tiep != null) tiep.Text = Accounts.IsValidName(ten.Text.Trim()) ? "Tạo tài khoản " + TenHien(ten.Text.Trim()) : "Tạo tài khoản"; }
         tiep = NutChinh("Tạo tài khoản", 250, async () =>
         {
             var n = ten.Text.Trim();
             void Loi_(string c) { goiY.Text = c; goiY.ForeColor = Loi; goiY.Font = new Font("Segoe UI", 10f, FontStyle.Bold); }
-            if (!Accounts.IsValidName(n)) { Loi_("Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: baoanh"); return; }
-            if (_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) { Loi_($"Máy đã có tài khoản «{n}». Đặt tên khác, hoặc chọn «Con đã có tài khoản riêng»."); return; }
-            if (mk.Text.Length < 4) { Loi_("Mật khẩu cần ít nhất 4 ký tự."); return; }
+            if (!Accounts.IsValidName(n)) { Loi_("Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: con"); return; }
+            if (_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) { Loi_($"Máy đã có tài khoản «{n}». Đặt tên khác, hoặc chọn «Các con đã có tài khoản chung»."); return; }
             tiep!.Enabled = false;
             try
             {
-                var pw = mk.Text;
+                var pw = "";   // không mật khẩu Windows: các bé chọn tên + PIN trên màn khoá AiiGrow
                 var sid = await Task.Run(() => Accounts.CreateStandard(n, pw));
                 _child = new LocalAccount(n, sid, false);
                 BuocGhep();
@@ -563,6 +564,7 @@ internal sealed class SetupForm : Form
             catch (Exception e) { Loi_("Chưa tạo được tài khoản: " + e.Message); tiep.Enabled = true; }
         });
         ten.TextChanged += (_, _) => DoiNhan();
+        DoiNhan();
         ten.Focus();
     }
 
@@ -593,11 +595,11 @@ internal sealed class SetupForm : Form
         var the = The(252, 244, 435, 116, chon: true);
         Vien(the, 272, 262, "lap_lanh", mau: "ngoc");
         X(the, 344, 268, "Cách dễ nhất", Kieu.B);
-        X(the, 344, 292, "Tạo tài khoản mới cho con.", Kieu.S, 330);
+        X(the, 344, 292, "Tạo 1 tài khoản chung mới cho các con.", Kieu.S, 330);
         X(the, 344, 310, $"«{ten}» giữ làm tài khoản của Ba Mẹ.", Kieu.S, 330);
         X(_body, 254, 384, $"Muốn giữ «{ten}» cho con: tạo trước 1 tài khoản toàn quyền cho Ba Mẹ trong Cài đặt Windows › Tài khoản, rồi chạy lại bộ cài.", Kieu.S, 430);
         NutLui(() => ChonCoSan());
-        NutChinh("Tạo tài khoản mới cho con", 300, TaoMoi);
+        NutChinh("Tạo tài khoản chung cho các con", 300, TaoMoi);
     }
 
     // ================================================================ 4. Ghép máy
@@ -856,17 +858,17 @@ internal sealed class SetupForm : Form
 
     private void BuocXong(LocalAccount child, string? tenHoSo = null)
     {
+        // 06/11 (L13 — con-cai-win 12): máy dùng chung cho cả nhà — cài xong máy chuyển sang tài khoản Con và khoá lại, các bé chọn tên + PIN
         Man(6, "Xong", daiNgoc: true);
-        var ten = string.IsNullOrWhiteSpace(tenHoSo) ? child.Name : tenHoSo!;
         Rob("xong", 24, 84, 250, 330);
         var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
         _body.Controls.Add(ph);
-        X(_body, 290, 80, "Máy đã sẵn sàng,\n" + ten + "!", Kieu.H30, 400);
-        X(_body, 290, 164, "AiiGrow ở cạnh đồng hồ, góc phải màn hình.", Kieu.P, 400);
+        X(_body, 290, 80, "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
+        X(_body, 290, 164, "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
         foreach (var (y, icon, tieu, phu) in new[]
                  {
-                     (206, "lich", "Giờ chơi mỗi ngày do Ba Mẹ đặt", "Đổi ngay trên điện thoại Ba Mẹ"),
-                     (284, "sao", "Làm việc tốt, nhận sao", "10 sao = 10 phút chơi"),
+                     (206, "dongho", "Giờ chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
+                     (284, "nguoi", string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, "PIN do Ba Mẹ đặt trong app"),
                      (362, "khoa", "Chỉ mở app Ba Mẹ cho phép", "App mới thì bấm xin Ba Mẹ"),
                  })
         {
@@ -875,11 +877,25 @@ internal sealed class SetupForm : Form
             X(the, 374, y + 12, tieu, Kieu.B, 300);
             X(the, 374, y + 36, phu, Kieu.S, 300);
         }
-        X(_body, 36, 556, $"Máy chuyển sang tài khoản {child.Name}. Việc Ba Mẹ đang mở vẫn giữ nguyên.", Kieu.S, 650);
+        X(_body, 36, 556, $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
         NutLui(Close, "Để sau");
-        // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Ở màn khoá chọn tài khoản của con.
-        NutChinh("Vào máy của " + ten, 250, () => LockWorkStation());
+        // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Vào tài khoản Con ⇒ AiiGrow hiện «Ai đang dùng máy?».
+        NutChinh("Mở màn chọn tên", 250, () => LockWorkStation());
     }
+
+    /// <summary>Tên gợi ý cho tài khoản chung: «con» (đã có thì «con2», «con3»…).</summary>
+    private string TenTaiKhoanChung()
+    {
+        for (int i = 1; i < 50; i++)
+        {
+            var n = i == 1 ? "con" : "con" + i;
+            if (!_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) return n;
+        }
+        return "con";
+    }
+
+    /// <summary>«con» ⇒ «Con» (cách thiết kế gọi tài khoản chung).</summary>
+    private static string TenHien(string n) => n.Length > 0 ? char.ToUpperInvariant(n[0]) + n[1..] : n;
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {

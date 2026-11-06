@@ -11,13 +11,17 @@ internal static class Accounts
     public static List<LocalAccount> List() => TaiKhoanCon.DocMay();
 
     /// <summary>Tạo tài khoản Standard mới (mật khẩu truyền qua biến môi trường, không lên dòng lệnh). Trả SID.</summary>
+    /// <param name="password">Rỗng ⇒ tài khoản KHÔNG mật khẩu (06/11 L13: tài khoản chung của các bé — AiiGrow nhận bé bằng tên + PIN trên màn khoá).</param>
     public static string CreateStandard(string name, string password)
     {
         if (!IsValidName(name)) throw new ArgumentException("Tên tài khoản chỉ gồm chữ, số, dấu . _ - (tối đa 20 ký tự)");
         var q = Shell.PsQuote(name);
+        var tao = string.IsNullOrEmpty(password)
+            ? $"New-LocalUser -Name {q} -NoPassword -AccountNeverExpires | Out-Null; Set-LocalUser -Name {q} -PasswordNeverExpires $true -ErrorAction SilentlyContinue; "
+            : "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
+              $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; ";
         var r = Shell.PowerShell(
-            "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
-            $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; " +
+            tao +
             $"try {{ Add-LocalGroupMember -SID S-1-5-32-545 -Member {q} }} catch {{}}; " +
             $"(Get-LocalUser -Name {q}).SID.Value",
             60000, new Dictionary<string, string> { ["AIIG_PW"] = password });

@@ -11,10 +11,13 @@ public sealed class AgentWorker : BackgroundService
     // Cài một chạm (cấu hình không có tài khoản Con): danh sách tài khoản máy, đọc lại mỗi 10 phút
     private List<LocalAccount>? _taiKhoan;          // null = chưa đọc được lần nào ⇒ KHÔNG đổi AppLocker (đọc lỗi ≠ máy không có Con)
     private long _docTaiKhoanLuc = long.MinValue, _docLaiSauMs;
+    /// <summary>06/11 (L13): ai đang dùng máy — báo máy chủ trước / sau lượt dong-bo.</summary>
+    private readonly NguoiDungMay _nd;
 
     public AgentWorker(ILogger<AgentWorker> log, AgentRuntime rt, AppLockerController locker, IProcessControl? procs = null)
     {
         _log = log; _rt = rt; _locker = locker; _procs = procs ?? new WindowsProcessControl();
+        _nd = new NguoiDungMay(rt, log);
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -128,7 +131,8 @@ public sealed class AgentWorker : BackgroundService
                             EnforceAllowList(sess.SessionId, p, apThat, td);
                         }
                         // 25/10: app Ba Mẹ đặt «Chặn» (định danh thật của máy) — MỌI mode kể cả tu_do; giám sát chỉ ghi log (ChanAppThat.cs)
-                        if (sess != null && p.BlockedApps.Count > 0) EnforceChanApp(sess.SessionId, p, apThat);
+                        // 06/11 (L13): Ba Mẹ đang dùng máy (mở bằng mã) ⇒ không đóng app nào
+                        if (sess != null && p.BlockedApps.Count > 0 && !DangNhapView.BaMeDangDung(cfg.DangNhap, DateTimeOffset.Now)) EnforceChanApp(sess.SessionId, p, apThat);
 
                         _rt.SetLock(eff.Locked, eff.LockReason, now, active);
                         if (eff.Locked && active && _rt.LockGraceExpired(now) && (now - lastDisconnect).TotalSeconds > 30)
@@ -159,6 +163,8 @@ public sealed class AgentWorker : BackgroundService
     {
         var eff = _rt.Evaluate(now);
         if (!sessionActive || eff == null || eff.Locked || elapsed <= 0) return;
+        // 06/11 (L13): chỉ tính giờ khi có bé đăng nhập — Ba Mẹ dùng máy (mã) không trừ giờ của con
+        if (_rt.NguoiDung(now) != LoaiNguoiDung.Con) return;
         var (id, name, fresh) = _rt.GetForeground(now);
         // Tray báo không có cửa sổ tiền cảnh (màn hình đã khoá): không tính giờ.
         if (fresh && string.IsNullOrEmpty(id)) return;
@@ -172,6 +178,9 @@ public sealed class AgentWorker : BackgroundService
         try
         {
             using var api = new ApiClient(cfg.Server, cfg.Token);
+            // 06/11 (L13): bé vào máy lúc mất mạng ⇒ báo máy chủ TRƯỚC dong-bo (Policy, quỹ, sao trả về là của bé này)
+            await _nd.TruocDongBoAsync(api, ct);
+            var guiLuc = DateTimeOffset.Now;
             // 0.2.4: có phút chơi khi mất mạng chưa gửi ⇒ gửi phien/bu TRƯỚC dong-bo (máy chủ đo thời gian thật từ nhịp cuối).
             var doan = _rt.DoanCanBu();
             var status = _rt.BuildStatus(active);
@@ -184,6 +193,9 @@ public sealed class AgentWorker : BackgroundService
             }, status, usage, ct);
             _rt.SetPolicy(policy, raw);
             _rt.DaGuiGiayChoi(status);
+            // 06/11 (L13): «ai đang dùng máy» của máy chủ (bé hết phiên 12 giờ ⇒ về màn chọn tên), đăng xuất còn treo, danh sách bé cho lúc mất mạng
+            try { await _nd.SauDongBoAsync(api, raw, guiLuc, ct); }
+            catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning("Cập nhật ai đang dùng máy lỗi: {m}", e.Message); }
             await GuiXinChoMang(api, ct);
             GuiBaiNen(cfg, ct);
             return DateTimeOffset.Now.AddSeconds(policy.NextCheckSec);

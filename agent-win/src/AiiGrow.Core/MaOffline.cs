@@ -46,4 +46,20 @@ public static class MaOffline
         }
         return ok;
     }
+
+    /// <summary>06/11 (L13, L19 — server/lib/ma-offline.ts › kiemMaOfflinePhut): số phút mở nằm TRONG mã — 60 phút = bí mật gốc (mã cũ),
+    /// 30 / 15 phút = bí mật «&lt;bí mật&gt;|30» / «&lt;bí mật&gt;|15». Thử 60 → 30 → 15, khớp biến thể nào ⇒ số phút của biến thể đó; không khớp ⇒ null.</summary>
+    public static readonly int[] PhutMo = { 60, 30, 15 };
+
+    public static int? KiemPhut(string? secret, string? ma, DateTimeOffset now)
+    {
+        if (string.IsNullOrEmpty(secret)) return null;
+        int? ra = null;
+        foreach (var p in PhutMo)
+            if (Kiem(p == 60 ? secret : secret + "|" + p, ma, now) && ra == null) ra = p;   // thử hết biến thể (không thoát sớm)
+        return ra;
+    }
+
+    /// <summary>Mã cho Ba Mẹ xem kèm số phút (test / đối chiếu với máy chủ).</summary>
+    public static string MaPhut(string secret, int phut, DateTimeOffset now) => Ma(phut == 60 ? secret : secret + "|" + phut, now);
 }

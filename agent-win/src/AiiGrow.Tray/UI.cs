@@ -125,7 +125,6 @@ internal static class UI
 
     /// <summary>«Ba Mẹ dùng máy» (#70 §1): chuyển người dùng — khoá phiên (Win+L), KHÔNG đăng xuất, phiên của Con giữ nguyên. Phiên chơi đang chạy tạm dừng,
     /// không trừ điểm: dịch vụ chỉ đếm khi phiên Con mở khoá và app chơi ở nền trước (TienCanhChoi).</summary>
-    public static void NhuongMayChoBaMe() => LockWorkStation();
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
 

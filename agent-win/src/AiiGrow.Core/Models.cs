@@ -48,6 +48,8 @@ public static class LockReasons
     public const string HetDiem = "het_diem";
     /// <summary>Màn chặn giải trí: app chưa được Ba Mẹ phân loại nên chưa cho mở.</summary>
     public const string ChuaPhanLoai = "chua_phan_loai";
+    /// <summary>06/11 (L13): máy chưa có ai đăng nhập ⇒ màn «Ai đang dùng máy?» (chọn tên + PIN). Không đếm ngược, không ngắt phiên Windows.</summary>
+    public const string ChonTen = "chon_ten";
 }
 
 /// <summary>Policy do máy chủ tính sẵn (PLAN.md mục 3). Tác tử chỉ áp và nhớ bản cuối.</summary>
@@ -284,6 +286,8 @@ public sealed class AgentConfig
     public HangXinCho XinCho { get; set; } = new();
     /// <summary>05/11: giây đã chơi app tính giờ từ Policy cuối (QuyTaiCho) — mất mạng + khởi động lại vẫn trừ đúng quỹ.</summary>
     public QuyDaDem? QuyDem { get; set; }
+    /// <summary>06/11 (L13): ai đang dùng máy — bé (chọn tên + PIN) / Ba Mẹ (mã mở máy) / chưa ai (màn chọn tên). Thiếu (cấu hình cũ) ⇒ chưa ai.</summary>
+    public DangNhapMay DangNhap { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

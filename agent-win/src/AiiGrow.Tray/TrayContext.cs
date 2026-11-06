@@ -6,7 +6,7 @@ namespace AiiGrow.Tray;
 internal sealed class TrayContext : ApplicationContext
 {
     private readonly NotifyIcon _ni;
-    private readonly ToolStripMenuItem _statusItem, _retryItem, _hoiItem;
+    private readonly ToolStripMenuItem _statusItem, _retryItem, _hoiItem, _doiBeItem, _khoaLaiItem;
     private const string ChuDongBo = "Đồng bộ ngay";
     /// <summary>App lạ đã tự gửi lời xin duyệt trong phiên khay — Con mở lại liên tục không gửi lặp (máy chủ cũng gộp lời xin chờ).</summary>
     private readonly HashSet<string> _daXin = new(StringComparer.OrdinalIgnoreCase);
@@ -57,6 +57,11 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add("Xin Ba Mẹ thêm giờ…", Anh3D.Icon("gui"), (_, _) => OpenRequest());
         menu.Items.Add("Kiểm tra cập nhật", Anh3D.Icon("tai"), (_, _) => OpenCapNhat());
         menu.Items.Add(_hoiItem);
+        // 06/11 (L13): máy dùng chung — «Đổi bé / Đăng xuất» khi bé đang dùng, «Khoá lại» khi Ba Mẹ đang dùng
+        _doiBeItem = new ToolStripMenuItem("Đổi bé / Đăng xuất…", Anh3D.Icon("nguoi"), (_, _) => MoDoiBe()) { Visible = false };
+        _khoaLaiItem = new ToolStripMenuItem("Khoá lại (Ba Mẹ xong việc)", Anh3D.Icon("khoa"), async (_, _) => await RoiMayAsync(khoaLai: true)) { Visible = false };
+        menu.Items.Add(_doiBeItem);
+        menu.Items.Add(_khoaLaiItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Máy này do Ba Mẹ quản lý bằng AiiGrow") { Enabled = false });
 
@@ -139,6 +144,8 @@ internal sealed class TrayContext : ApplicationContext
     private void OpenApp(MucApp muc, bool tuToast = false, bool tuBat = false, bool tuManKhoa = false)
     {
         if (_state.Locked && !tuManKhoa) { Toast(4000, "Máy đang khoá", "Khi máy mở lại, con xem nhiệm vụ và sao nhé.", ToolTipIcon.Info, MucApp.HomNay); return; }
+        // 06/11 (L13): Ba Mẹ đang dùng máy ⇒ app của Con không có bé nào để hiện
+        if (_state.NguoiDung == LoaiNguoiDung.BaMe) { Toast(5000, "Ba Mẹ đang dùng máy", "Không trừ giờ của con. Xong việc Ba Mẹ bấm «Khoá lại».", ToolTipIcon.Info, MucApp.HomNay); return; }
         if (_app == null || _app.IsDisposed)
         {
             _app = new AppForm();
@@ -146,6 +153,8 @@ internal sealed class TrayContext : ApplicationContext
             _app.RetryClicked += () => _ = RetryAsync();
             _app.XinMoClicked += () => OpenXinMo();
             _app.HoiAiiGrowClicked += () => OpenHoiAiiGrow();
+            _app.DoiBeClicked += () => MoDoiBe();
+            _app.BaMeDungClicked += () => MoBaMeMa();
         }
         if (tuToast) _tinMoi = 0;
         _app.TopMost = tuManKhoa;
@@ -204,7 +213,7 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>Hỏi tin mới của Con (nhiệm vụ mới, Ba Mẹ duyệt / từ chối / nhắn, quà đã trao) → bóng báo trên khay. Lỗi mạng thì lặng lẽ thử lại lần sau.</summary>
     private async Task HocVienTickAsync()
     {
-        if (_hvPolling || !_state.Paired || _state.MoCoi) return;
+        if (_hvPolling || !_state.Paired || _state.MoCoi || _state.NguoiDung != LoaiNguoiDung.Con) return;   // 06/11: chưa có bé đăng nhập ⇒ không có tin của ai
         _hvPolling = true;
         try
         {
@@ -404,6 +413,9 @@ internal sealed class TrayContext : ApplicationContext
                 case ManKhoaView.NhanBaMe:
                     OpenApp(MucApp.TinNhan, tuManKhoa: true);
                     break;
+                case ManKhoaView.DoiBe:
+                    await RoiMayAsync(khoaLai: false);
+                    break;
             }
         }
         catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
@@ -447,11 +459,30 @@ internal sealed class TrayContext : ApplicationContext
             }
             _pipeFail = 0;
             _daBietPhien = true;
-            if (!res.State.PhienCon) { AnVoiPhienKhac(); return; }
+            ApDungTrangThai(res.State);
+        }
+        catch (Exception e)
+        {
+            System.Diagnostics.Debug.WriteLine(e);
+        }
+        finally { _polling = false; }
+    }
+
+    private string? _beId;
+    private string _nguoiDung = LoaiNguoiDung.Con;
+
+    /// <summary>Áp trạng thái dịch vụ (lượt hỏi 3 giây, hoặc kết quả ngay sau khi bé vào / Ba Mẹ mở / đăng xuất).</summary>
+    private void ApDungTrangThai(TrayState st)
+    {
+        try
+        {
+            if (!st.PhienCon) { AnVoiPhienKhac(); return; }
             HienLaiNeuDaAn();
             Chao(true);
-            _state = res.State;
+            _state = st;
             _at = DateTimeOffset.Now;
+            DoiNguoi();
+            HandleBaMe();
             SetKetNoi(KetNoiView.Chon(true, _state), true);
             if (_state.MoCoi && !_warnedMoCoi)
             {
@@ -467,7 +498,91 @@ internal sealed class TrayContext : ApplicationContext
         {
             System.Diagnostics.Debug.WriteLine(e);
         }
-        finally { _polling = false; }
+    }
+
+    /// <summary>06/11 (L13): bé khác vào máy / đăng xuất ⇒ tin, nhiệm vụ, sao của bé trước không còn hiện (app to tải lại cho bé mới).</summary>
+    private void DoiNguoi()
+    {
+        var id = _state.NguoiDung == LoaiNguoiDung.Con ? _state.BeId : null;
+        var doi = id != _beId || _state.NguoiDung != _nguoiDung;
+        _doiBeItem.Visible = _state.NguoiDung == LoaiNguoiDung.Con && _state.Paired;
+        _khoaLaiItem.Visible = _state.NguoiDung == LoaiNguoiDung.BaMe;
+        if (!doi) return;
+        var lanDau = _nguoiDung == LoaiNguoiDung.Con && _beId == null;
+        _beId = id;
+        _nguoiDung = _state.NguoiDung;
+        if (lanDau && id == null && _state.NguoiDung == LoaiNguoiDung.Con) return;
+        _tin.DatLai();
+        _tinMoi = 0;
+        if (_app is { IsDisposed: false }) { _app.Hide(); _app.Dispose(); }
+        _app = null;
+        if (_ketQua is { IsDisposed: false }) _ketQua.Close();
+        if (_nhac is { IsDisposed: false }) _nhac.Close();
+        _warned5 = _warned1 = false;
+        if (id != null) _ = HocVienTickAsync();
+    }
+
+    private BaMeDungForm? _baMeForm;
+    private BaMeVienForm? _baMeVien;
+    private bool _baMeAn;
+
+    /// <summary>«Ba Mẹ đang dùng máy» (con-ngay-thuong 07): hộp nổi góc phải dưới + viên trên đầu màn hình; hết hạn / Khoá lại ⇒ đóng.</summary>
+    private void HandleBaMe()
+    {
+        if (_state.NguoiDung == LoaiNguoiDung.BaMe && _state.BaMeDen is { } den && !_state.MoCoi)
+        {
+            if (_baMeVien is not { IsDisposed: false }) { _baMeVien = new BaMeVienForm(); _baMeVien.Show(); }
+            if (!_baMeAn)
+            {
+                if (_baMeForm is not { IsDisposed: false })
+                {
+                    _baMeForm = new BaMeDungForm();
+                    _baMeForm.KhoaLai += () => _ = RoiMayAsync(khoaLai: true);
+                    _baMeForm.FormClosing += (_, e) => { if (e.CloseReason == CloseReason.UserClosing) _baMeAn = true; };
+                    _baMeForm.Show();
+                }
+                _baMeForm.Den(den);
+            }
+            return;
+        }
+        _baMeAn = false;
+        if (_baMeForm is { IsDisposed: false }) { _baMeForm.Close(); _baMeForm.Dispose(); }
+        _baMeForm = null;
+        if (_baMeVien is { IsDisposed: false }) { _baMeVien.Close(); _baMeVien.Dispose(); }
+        _baMeVien = null;
+    }
+
+    /// <summary>«Đổi bé / Đăng xuất» (thanh bên app, menu khay) — hộp xác nhận con-ngay-thuong 08.</summary>
+    private async void MoDoiBe()
+    {
+        try
+        {
+            bool? chon;
+            using (var h = new DoiBeHop(_state.BeTen ?? _state.ChildName, _state.MayRieng))
+            {
+                if (_app is { IsDisposed: false, Visible: true }) h.ShowDialog(_app); else h.ShowDialog();
+                chon = h.Chon;
+            }
+            if (chon == null) return;
+            await RoiMayAsync(khoaLai: false);
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+    }
+
+    /// <summary>«Ba Mẹ dùng máy» từ app của Con ⇒ Ba Mẹ nhập mã (con-ngay-thuong 06).</summary>
+    private void MoBaMeMa()
+    {
+        using var h = new BaMeMaHop();
+        if (_app is { IsDisposed: false, Visible: true }) h.ShowDialog(_app); else h.ShowDialog();
+        if (h.KetQua?.State is { } st) ApDungTrangThai(st);
+    }
+
+    /// <summary>Đăng xuất (bé) / Khoá lại (Ba Mẹ) ⇒ máy về «Ai đang dùng máy?».</summary>
+    private async Task RoiMayAsync(bool khoaLai)
+    {
+        var r = await PipeClient.CallAsync(new PipeRequest { Cmd = khoaLai ? PipeCmd.KhoaLai : PipeCmd.DangXuat });
+        if (r.State != null) ApDungTrangThai(r.State);
+        else if (!r.Ok) Toast(5000, "Chưa làm được", r.Error ?? "Con thử lại nhé.", ToolTipIcon.Warning, MucApp.HomNay);
     }
 
     /// <summary>Luật web trong hive của Con vừa đổi/gỡ (dịch vụ tăng WebRev): làm mới chính sách trình duyệt trong phiên này + nhắc mở lại trình duyệt nếu luật mới chưa áp.</summary>
@@ -490,6 +605,11 @@ internal sealed class TrayContext : ApplicationContext
             {
                 _lock = new LockForm(_state.CanExchangePoints);
                 _lock.Bam += XuLyNutKhoa;
+                _lock.DaVao += r =>
+                {
+                    if (r.State != null) ApDungTrangThai(r.State);
+                    if (r.Status == "can_dat_pin") Toast(8000, "Ba Mẹ chưa đặt PIN cho con", ManChonTenView.ChuaDatPin, ToolTipIcon.Info, MucApp.HomNay);
+                };
                 _lock.Show();
             }
             _lock.Apply(_state);
@@ -567,7 +687,7 @@ internal sealed class TrayContext : ApplicationContext
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { _timer.Dispose(); _hvTimer.Dispose(); _app?.Dispose(); _ni.Visible = false; _ni.Dispose(); }
+        if (disposing) { _timer.Dispose(); _hvTimer.Dispose(); _app?.Dispose(); _baMeForm?.Dispose(); _baMeVien?.Dispose(); _ni.Visible = false; _ni.Dispose(); }
         base.Dispose(disposing);
     }
 }

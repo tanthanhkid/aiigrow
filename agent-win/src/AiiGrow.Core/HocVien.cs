@@ -114,6 +114,12 @@ public sealed class HvQua
     public int? Sao { get; set; }
     public int? Phut { get; set; }
     public DateTimeOffset? ChoTraoTu { get; set; }
+    // ---- 06/11 (L14 — quà bảng giá): dòng phụ, hình, voucher AiiCafe (mệnh giá), điều kiện
+    public int? MenhGia { get; set; }
+    public string? MoTa { get; set; }
+    public string? Hinh { get; set; }
+    public int? ToiDaThang { get; set; }
+    public int? TonKho { get; set; }
     public int SoSao => Sao ?? Diem;
 }
 
@@ -122,6 +128,8 @@ public sealed class HvCuaHang
 {
     public int SoDu { get; set; }
     public int? Sao { get; set; }
+    /// <summary>06/11 (L14): sao đang giữ chờ Ba Mẹ trao.</summary>
+    public int SaoGiu { get; set; }
     public List<HvQua> Qua { get; set; } = new();
 }
 
@@ -328,6 +336,12 @@ public sealed class TinTracker
     public bool DaCoLanDau { get; private set; }
     /// <summary>Mốc <c>sau</c> cho lần hỏi kế (= <c>bay</c> máy chủ trả; null ⇒ hỏi 7 ngày gần nhất).</summary>
     public DateTimeOffset? Moc { get; private set; }
+
+    /// <summary>06/11 (L13): đổi bé trên máy dùng chung ⇒ quên tin đã thấy của bé trước; lần hỏi kế là «lần đầu» của bé mới (không bật bóng báo tin cũ).</summary>
+    public void DatLai()
+    {
+        _seen.Clear(); _order.Clear(); Moc = null; DaCoLanDau = false;
+    }
 
     /// <summary>Nhận kết quả một lần hỏi → danh sách tin mới nên báo (rỗng ở lần đầu).</summary>
     public List<HvTin> Nhan(HvTinDs r)
