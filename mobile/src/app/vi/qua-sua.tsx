@@ -144,6 +144,7 @@ export default function SuaQua() {
         </The>
       </View>
 
+      {!d.con.length ? <Chu kieu="dam" co={13.5} mau={M.loi}>Thêm hồ sơ con trước (Cả nhà › Thêm con), rồi đặt quà cho con.</Chu> : null}
       {d.con.length ? (
         <View style={{ gap: 8 }}>
           <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Áp cho</Chu>

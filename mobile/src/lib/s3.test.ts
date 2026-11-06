@@ -66,7 +66,9 @@ test("quà: sao mỗi ngày + câu «N ngày đổi được»", () => {
     { diem: 30, bat: true, giao_cho: "c2", lap_lai: "hang_ngay" }, { diem: 30, bat: false, giao_cho: null, lap_lai: "hang_ngay" },
     { diem: 30, bat: true, giao_cho: null, lap_lai: "cuoi_tuan" }, { diem: 30, bat: true, giao_cho: null, lap_lai: "ngay_thuong" },
   ];
+  // 10 + 20 (mỗi ngày) + 30·2/7 (cuối tuần) + 30·5/7 (ngày thường) = 60 trung bình
   assert.equal(saoMoiNgay(nv, "c1"), 60);
+  assert.equal(saoMoiNgay([{ diem: 14, bat: true, giao_cho: null, lap_lai: "thu:6,0" }, { diem: 50, bat: true, giao_cho: null, lap_lai: "mot_lan" }], "c1"), 4);
   assert.equal(cauNgayDoi("Bảo Anh", 100, 60), "Bảo Anh làm đủ việc được khoảng 60 sao/ngày → 2 ngày đổi được.");
   assert.equal(cauNgayDoi("Bảo Anh", 50, 60), "Bảo Anh làm đủ việc được khoảng 60 sao/ngày → 1 ngày là đổi được.");
   assert.equal(cauNgayDoi("Bảo Anh", 50, 0), null);
@@ -116,8 +118,9 @@ test("mã mở máy: chỉ báo sự kiện mở bằng mã MỚI hơn lúc mở
   assert.deepEqual(suKienMoMa(ds, tu), { luc: "2026-11-06T12:05:00Z", coMangLuc: "2026-11-06T12:40:00Z", phut: 30 });
   assert.deepEqual(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:41:00Z" }], tu),
     { luc: "2026-11-06T12:41:00Z", coMangLuc: "2026-11-06T12:41:00Z", phut: null });
-  // điện thoại chạy nhanh 1 phút so với máy chủ: sự kiện vẫn được nhận
-  assert.ok(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:29:10Z" }], tu));
+  // điện thoại chạy nhanh 20 giây so với máy chủ: sự kiện vẫn được nhận; sự kiện cũ hơn 30 giây (đã xem lần trước) thì không
+  assert.ok(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:29:40Z" }], tu));
+  assert.equal(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:29:00Z" }], tu), null);
 });
 
 test("chuông: soChuong thắng chuaDoc (máy chủ cũ chỉ có chuaDoc)", () => {

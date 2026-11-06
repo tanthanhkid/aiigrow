@@ -64,6 +64,10 @@ export default function ChoDuyet() {
     <ChonMot ds={[{ gia: "ca", chu: `Cả nhà ${tatCa}` }, ...[...tenCon].map(([id, ten]) => ({ gia: id, chu: `${ten} ${dem(id)}` }))]} gia={chon} doi={setChon} />
   ) : null;
 
+  // Bảng trao quà (Modal) đứng NGOÀI hai nhánh, cùng vị trí ⇒ trao quà cuối là voucher thì danh sách rỗng nhưng bảng QR + mã không bị dựng lại / mất
+  const bang = <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />;
+  return <>{noiDung()}{bang}</>;
+  function noiDung() {
   if (!tong) {
     return (
       <Man tieuLon="Chờ duyệt" lui={{ chu: "Hôm nay", ve: "/hom-nay" }} tai={tai} vongTai noi={noi}>
@@ -72,8 +76,6 @@ export default function ChoDuyet() {
           <Nut chu="Giao một nhiệm vụ" ic="cong" bam={() => router.push("/giao-nv" as never)} />
         </CanhGiua>
         {tuDong.length ? <DaXuLy ds={tuDong} /> : null}
-        {/* quà cuối vừa trao là voucher ⇒ danh sách rỗng nhưng bảng QR + mã vẫn phải còn */}
-        <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />
       </Man>
     );
   }
@@ -129,9 +131,9 @@ export default function ChoDuyet() {
       ) : null}
 
       {tuDong.length ? <DaXuLy ds={tuDong} /> : null}
-      <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />
     </Man>
   );
+  }
 }
 
 function DaXuLy({ ds }: { ds: NonNullable<ChoDuyetMoi["tuDong"]> }) {

@@ -87,9 +87,11 @@ export function phuQua(q: Pick<QuaS3, "moTa" | "chiCuoiTuan" | "tonKho" | "toiDa
 export const buocGia = (sao: number, huong: 1 | -1) => Math.min(100_000, Math.max(10, Math.round((sao + huong * 10) / 10) * 10));
 
 /** Sao con làm được mỗi ngày nếu đủ việc (việc bật, giao cho con hoặc cả nhà, lặp hằng ngày / ngày thường / chưa ghi lặp). */
+/** Số ngày trong tuần việc có lịch (trung bình theo tuần): mỗi ngày 7, ngày thường 5, cuối tuần 2, «thu:1,3» = số thứ; một lần ⇒ 0. */
+const soNgayTuan = (l: string | null | undefined) => (!l || l === "hang_ngay" ? 7 : l === "ngay_thuong" ? 5 : l === "cuoi_tuan" ? 2
+  : l.startsWith("thu:") ? new Set(l.slice(4).split(",").filter((x) => /^[0-6]$/.test(x.trim()))).size : 0);
 export function saoMoiNgay(nv: { diem: number; bat: boolean; giao_cho: string | null; lap_lai?: string | null }[], con: string) {
-  return nv.filter((v) => v.bat && (!v.giao_cho || v.giao_cho === con) && (!v.lap_lai || v.lap_lai === "hang_ngay" || v.lap_lai === "ngay_thuong"))
-    .reduce((s, v) => s + v.diem, 0);
+  return Math.round(nv.filter((v) => v.bat && (!v.giao_cho || v.giao_cho === con)).reduce((s, v) => s + (v.diem * soNgayTuan(v.lap_lai)) / 7, 0));
 }
 /** «Bảo Anh làm đủ việc được khoảng 60 sao/ngày → 2 ngày đổi được.» — null khi con chưa có việc. */
 export function cauNgayDoi(ten: string, gia: number, saoNgay: number) {
@@ -143,7 +145,7 @@ export const loiGuiMa = (ma: string, phut: number, ten: string | null, may: stri
 
 /** Sự kiện «máy mở bằng mã offline» mới hơn `tu` (lúc Ba Mẹ mở màn mã) — để hiện bảng «Bảo Anh đã mở máy bằng mã» (them-s8nltlaa). */
 /** Đồng hồ điện thoại có thể lệch máy chủ ⇒ nhận cả sự kiện tới trước lúc mở màn tối đa chừng này. */
-export const LECH_DONG_HO_MS = 120_000;
+export const LECH_DONG_HO_MS = 30_000;
 export function suKienMoMa(ds: { loai: string; chi_tiet: Record<string, unknown>; created_at: string }[], tu: number) {
   const x = ds.filter((s) => s.loai === "may_mo_ma_offline" && Date.parse(s.created_at) > tu - LECH_DONG_HO_MS)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];

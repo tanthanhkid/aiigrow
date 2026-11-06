@@ -100,7 +100,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
   const xin = (d.cd?.yeuCau ?? []).filter((y) => y.child_id === conId);
   const nopCho = (d.cd?.nhiemVu ?? []).filter((x) => x.child_id === conId);
   const canDeY = d.tt.filter((m) => (m.con === conId || m.dungChung) && m.baoVe && m.baoVe !== "day_du" && !m.dangGo);
-  const canhBao = d.cb.filter((x) => !x.child_id || x.child_id === conId).slice(0, 2);
+  // cảnh báo «quên PIN» đã hiện ở dòng quenPin (can-de-y) ⇒ không lặp
+  const canhBao = d.cb.filter((x) => (!x.child_id || x.child_id === conId) && x.loai !== "quen_pin").slice(0, 2);
   // S3 06/11 (them-1mnk3mjz): máy con mất mạng hôm nay ⇒ chip «Máy mất mạng · Laptop ›» + nút «Lấy mã mở máy»; bé quên PIN ⇒ dòng Cần Ba Mẹ để ý
   const matMang = c.matMang?.[0] ?? null;
   const quenPin = d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId);
