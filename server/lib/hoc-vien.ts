@@ -108,18 +108,19 @@ const s2 = (v: unknown) => String(v ?? "").trim().slice(0, 60);
 
 /** Cửa hàng cho khay: chỉ các trường khay cần (camelCase), kèm «đủ điểm» / «còn thiếu». */
 export async function cuaHangKhay(con: string) {
-  const r = await cuaHang(con, { anVoucher: true });
+  // 06/11 (L14): voucher AiiCafe hiện lại (giữ sao chờ Ba Mẹ trao ⇒ mã QR + hạn); thêm dòng phụ, hình, điều kiện, sao đang giữ
+  const r = await cuaHang(con);
   return {
-    soDu: r.soDu, sao: r.soDu,
+    soDu: r.soDu, sao: r.soDu, saoGiu: r.saoGiu,
     qua: r.qua.map((x) => ({ id: x.id, ten: x.ten, loai: x.loai, diem: x.diem, sao: x.diem, phut: x.phut ?? null, menhGia: x.menh_gia, chiCuoiTuan: x.chi_cuoi_tuan,
-      du: x.du, conThieu: x.conThieu, choTraoTu: x.choTraoTu })),
+      du: x.du, conThieu: x.conThieu, choTraoTu: x.choTraoTu, moTa: x.moTa, hinh: x.hinh, toiDaThang: x.toi_da_thang, tonKho: x.ton_kho })),
   };
 }
 
 /** Kết quả đổi quà cho khay: `trangThai` = cho_trao | cho_xac_nhan | da_phat_hanh; voucher (nếu có) kèm mã. */
 export async function doiQuaKhay(con: string, quaId: string) {
-  const r = await doiQua(con, quaId, new Date(), { ngungVoucher: true });
-  return { phieu: r.phieu, trangThai: r.trang_thai, voucher: r.voucher ? { ma: r.voucher.ma, hetHan: iso(r.voucher.het_han) } : null };
+  const r = await doiQua(con, quaId, new Date(), { voucherTraoTay: true });
+  return { phieu: r.phieu, trangThai: r.trang_thai, saoGiu: r.saoGiu, voucher: r.voucher ? { ma: r.voucher.ma, hetHan: iso(r.voucher.het_han) } : null };
 }
 
 /** Nộp bài cho khay: `trangThai` = cho_duyet | duoc_duyet (nhiệm vụ tự duyệt). */

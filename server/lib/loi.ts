@@ -3,6 +3,8 @@
 export class LoiNghiepVu extends Error {
   ma: string;
   status: number;
+  /** trường phụ trả kèm {error, message} (vd PIN sai: conLan, choGiay — lib/pin-be.ts › LoiPin) */
+  them?: Record<string, unknown>;
   constructor(ma: string, msg: string, status = 400) {
     super(msg);
     this.ma = ma;

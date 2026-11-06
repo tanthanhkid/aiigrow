@@ -19,7 +19,7 @@ Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next
 | Phân loại | `GET luat` → luật gia đình + Allowlist hệ thống · `POST luat {con?, muc, ten?, loai: hoc\|giai_tri\|chan, nhom?}` |
 | Theo dõi | `GET canh-bao` · `POST canh-bao/:id/doc` · `GET nhat-ky?con=` |
 
-## Màn Con — `/api/kid/*` (Bearer = phiên Con (chọn tên trên máy dùng chung — không PIN từ 05/11), hoặc token thiết bị riêng của Con)
+## Màn Con — `/api/kid/*` (Bearer = phiên Con (chọn tên + PIN trên máy dùng chung — PIN theo bé từ 06/11, xem mục «S3»), hoặc token thiết bị riêng của Con)
 
 `GET toi` (Con, ví, hôm nay, lời khen) · `POST chao` (điểm chào mừng một lần) · `GET nhiem-vu` · `POST nhiem-vu/:id/bat-dau` → `{luot}` ·
 `POST luot/:id/nop {anh: [{mime, base64}], ghiChu?}` · `GET luot` · `GET cua-hang` · `POST doi/:quaId` · `GET vi-qua` · `GET lich-su` ·
@@ -32,7 +32,7 @@ Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next
 |---|---|
 | `POST ghep {ma, nen, tenMay}` | → `{deviceId, token, dungChung}` (không cần Bearer) |
 | `POST dong-bo {status?, clientTime?, usage?: [{muc, phut, day?}]}` | → Policy: `serverTime`, `gioMaySai`, `con`, `canChonCon`, `allowlistHeThong`, `luat[]` (mục, loại, nhóm, giá phần nghìn điểm/phút), `lich`, `khoaNgay`, `soDu`, `phien` |
-| `POST ho-so` / `POST chon-con {con}` (bí danh cũ `POST pin {con, pin}` — pin bỏ qua) | máy dùng chung: danh sách hồ sơ / Con chọn tên (không PIN, thiết kế 05/11) → `{phienCon}`, gửi kèm header `X-Phien-Con` ở các lệnh sau |
+| `POST ho-so` / `POST chon-con {con}` (bí danh cũ `POST pin {con, pin}` — pin bỏ qua) | máy dùng chung: danh sách hồ sơ / Con chọn tên (agent cũ, không PIN) → `{phienCon}`, gửi kèm header `X-Phien-Con` ở các lệnh sau. **06/11: agent mới dùng `POST dang-nhap-be {con, pin}` (PIN theo bé) — mục «S3»** |
 | `POST phien/xet {muc}` | xét trước «Dùng điểm để chơi?» → `{duoc, lyDo?, cau?, phutToiDa, giaPhanNghin, soDu}` |
 | `POST phien/mo {muc}` · `POST phien/nhip {id, dangDung}` · `POST phien/dung {id}` | phiên giải trí; nhịp mỗi phút → `{trangThai, conPhut, canhBao: 5\|1\|null, lyDoKet?, nghiDen?}` |
 | `POST yeu-cau {loai, phut?, giaTri?, lyDo}` | gửi từ màn chặn |
@@ -342,7 +342,7 @@ Policy (`POST /api/device/dong-bo`): thêm `cheDoChan`, `webLuonChan[]` (tên mi
 `windows` (Windows + Mac): `cheDo` **luôn `chan`** (trừ máy đang có lệnh gỡ ⇒ `giam-sat`); Con «Mở hết» ⇒ `mode: tu_do` không `grantEndsAt` (khoá ngay / giờ ngủ vẫn `khoa`), `web.cheDo: mo`, trang Giải trí mở; `web.chan` luôn chứa `webLuonChan`, `web.cho` không bao giờ chứa chúng; `blockedApps` vẫn áp.
 Chính sách chung (`chinh-sach.ts`, Android / iOS / DNS): `ungDung.cheDoChan`, `ungDung.webLuonChan`, `ungDung.chuaXep: chan\|cho_phep` (Mở hết ⇒ `cho_phep`).
 
-### Bỏ PIN hồ sơ Con (L5)
+### Bỏ PIN hồ sơ Con (L5) — **ĐÃ ĐẢO 06/11 (L13, mục «S3» cuối tệp): PIN theo bé quay lại**
 
 `POST con` / `con/:id/sua`: `pin` bỏ qua (không lưu, không lỗi). Agent: `POST /api/device/chon-con {con}` (bí danh `pin`, `pin` bỏ qua) → `{phienCon}`. Máy riêng của Con chỉ chọn được chính Con đó.
 
@@ -449,3 +449,149 @@ Quyền (L6 của S2): **Người trông giúp** gọi được `luot/:id/lam-la
   tự khoá lại đúng lý do khi MỌI ngoại lệ hết hạn (cả lúc mất mạng — agent-win `QuyTaiCho`). `nextCheckSec` ≤ 60 khi quỹ còn ≤ 10 phút. `playOfflineMinutes` = min(quỹ còn, tới giờ ngủ / giờ học).
 - **Agent cũ** (không đọc `quyConPhut`): vẫn chạy — app Giải trí vào/ra `allowedApps` theo quỹ ở mỗi lần đồng bộ (trễ ≤ 1–2 phút); mất mạng thì
   agent cũ không tự đếm quỹ (giữ danh sách cuối tới khi có mạng). Khay cũ «Chơi bằng điểm» vẫn mở phiên (giá 0, giới hạn theo quỹ).
+
+## S3 thiết kế chốt 06/11 — PIN theo bé, quà bảng giá, mã mở máy, chuông (L13 L14 L19, `docs/KE-HOACH-KHOP-THIET-KE-0611.md`)
+
+Xử lý: `server/lib/pin-be.ts` (PIN, máy dùng chung, Ba Mẹ dùng máy), `qua-bang-gia.ts` (quà mặc định, thư viện, xoá hoàn sao), `can-de-y.ts`
+(mất mạng + chuông), `api-s3.ts` (router — api-m / api-con / api-may gọi TRƯỚC đường cũ), sửa `phan-thuong.ts` (voucher trao tay, «Áp cho»),
+`ma-offline.ts` (mã mang số phút), `api-may.ts` (bé đang đăng nhập, Ba Mẹ dùng máy). Test: `s3-pin-qua.test.ts`.
+Lược đồ: `SCHEMA_S3` (cuối `schema.ts`): `children.pin_ma, pin_dat_luc` · `devices.con_dang_dung, dang_nhap_luc, ba_me_den, ba_me_tu` ·
+`rewards.mo_ta, hinh, ap_cho, mau` · `families.qua_seed_luc` · `vouchers.trao_tay`. Lỗi có trường phụ trả cạnh `{error, message}` (vd `conLan`, `choGiay`).
+
+### PIN theo bé (L13 — đảo L5)
+
+PIN = đúng 4 chữ số (`pin_sai_dang` 400). Lưu thẳng (Ba Mẹ «Hiện» lại được); chống dò bằng bộ đếm máy chủ: sai 5 lần ⇒ chờ 15 giây (theo máy + bé).
+Bé **chưa có PIN** ⇒ chạm tên vào thẳng (`canDatPin: true` — máy nhắc Ba Mẹ đặt). Máy chỉ gán 1 bé vẫn hỏi PIN khi mở khoá.
+
+**App Ba Mẹ `/api/m/*`**
+
+| Đường | Ý |
+|---|---|
+| `POST con {ten, …, pin?: "4821"}` | «Thêm con» đặt PIN luôn (bỏ trống = chưa có PIN). Cũng nhận ở `con/:id/sua {pin}` |
+| `GET con/:id/pin` | màn «PIN của Bảo Anh» → `{coPin: true, pin: "4821", pinDatLuc: "2026-11-06T12:30:00.000Z", ten: "Bảo Anh"}` (mọi quyền xem được) |
+| `POST con/:id/pin {pin: "4821" \| null}` | «Lưu PIN mới» (chỉ Ba Mẹ; Người trông giúp 403) → `{coPin, pinDatLuc, ten}`. `null` = bỏ PIN. Xoá bộ đếm sai + mục «quên PIN» đang chờ |
+| `GET con/:id` | `coPin` thật (trước luôn false) + `pinDatLuc`; `may[]` thêm `dangDung` (id bé đang đăng nhập máy dùng chung), `baMeDungDen` (ISO \| null), `matMang` (bool) |
+| `GET may/:id/nguoi-dung` | ai đang dùng máy → `{dangDung: {id, ten, avatar, tu} \| null, baMeDung: {den, tu} \| null, mayRieng, con: [{id, ten, avatar, coPin, khoaDen?, choGiay?}]}` |
+
+**Agent `/api/device/*`** (Bearer = token máy; máy dùng chung Windows / Mac / điện thoại)
+
+| Đường | Ý |
+|---|---|
+| `GET\|POST ho-so` (bí danh `nguoi-dung`) | «Ai đang dùng máy?» → ví dụ dưới. `vanPin` = HMAC-SHA256(khoá = bí mật mã offline của máy `maOfflineBiMat`, chuỗi `"<id bé>:<PIN>"`) hex — agent nhớ để tự kiểm PIN khi MẤT MẠNG (tự đếm 5 lần / 15 giây). `khoaDen`/`choGiay` khi bé đang bị chờ |
+| `POST dang-nhap-be {con, pin?}` | chạm tên + PIN → `{phienCon, con: {id, ten, avatar}, coPin, canDatPin?}`; máy ghi «bé đang dùng» (`devices.con_dang_dung`). Lỗi: `pin_sai` 401 `{conLan: 4…1}` («Chưa đúng · còn 3 lần thử») · `pin_tam_khoa` 429 `{choGiay: 15, khoaDen}` (lần sai thứ 5, và mọi lần thử trong 15 giây) · `can_pin` 400 (bé có PIN mà không gửi) · `khong_thay` 404 (bé nhà khác / máy riêng của bé khác) |
+| `POST quen-pin {con}` | «Báo Ba Mẹ giúp con» → `{daGui: true, lapLai}` (`lapLai: true` = đã báo, chưa xử lý — không báo trùng). Ba Mẹ thấy mục `quen_pin` trong «Cần Ba Mẹ để ý»; đặt PIN mới ⇒ mục tự xong |
+| `POST ba-me-mo {ma}` | «Ba Mẹ nhập mã»: mã mở máy 6 số của CHÍNH máy này (cùng mã `GET /api/m/may/:id/ma-offline`) → `{baMeDung: {den, tu}, phut}` — «Ba Mẹ đang dùng máy» trong số phút mã mang (15 / 30 / 60). Bé đang dùng bị đăng xuất. **Mỗi mã một lượt** (Con thấy mã Ba Mẹ gõ cũng không dùng lại được sau «Khoá lại»). Lỗi `ma_sai` 401 `{conLan}` · `ma_tam_khoa` 429 `{choGiay}` (sai 5 lần ⇒ chờ 10 phút) · `ma_da_dung` 409 |
+| `POST dang-xuat` · `POST khoa-lai` | «Đổi bé / Đăng xuất» của bé, «Khoá lại» của Ba Mẹ → `{ok: true, khoa: true}`: bỏ bé đang dùng + xoá phiên Con của máy + hết «Ba Mẹ dùng» ⇒ máy về màn chọn tên |
+| `POST chon-con {con}` · `POST pin {con, pin}` | agent CŨ — vẫn chạy y như trước, KHÔNG kiểm PIN (tương thích, theo yêu cầu giữ agent đang chạy); KHÔNG ghi «bé đang dùng» (agent cũ không header = không bé nào). Khi mọi agent đã lên bản có PIN thì khoá đường này cho bé có PIN |
+
+```json
+// GET /api/device/ho-so
+{ "con": [ { "id": "c1", "ten": "Bảo Anh", "avatar": "rob", "coPin": true, "vanPin": "9f2c…" },
+           { "id": "c2", "ten": "Bảo Minh", "avatar": "rob", "coPin": false, "khoaDen": "2026-11-06T12:40:15.000Z", "choGiay": 11 } ],
+  "mayRieng": false, "dangDung": { "id": "c1", "ten": "Bảo Anh", "avatar": "rob", "tu": "2026-11-06T12:30:00.000Z" },
+  "baMeDung": null, "pinSaiToiDa": 5, "pinChoGiay": 15 }
+```
+
+Lượt sai cũ hơn 15 phút không cộng dồn. Mã «Ba Mẹ nhập mã» chính là mã mở máy khi mất mạng (đúng thiết kế) — Ba Mẹ đọc mã cho Con lúc mất mạng thì mã đó cũng mở được chế độ Ba Mẹ trong hạn của nó (≤ 15 phút). Lượt thử PIN / mã được GIỮ CHỖ trước khi so (một upsert nguyên tử) ⇒ gửi song song cũng chỉ 5 lượt được so mỗi đợt.
+`vanPin` dùng chung khoá với `maOfflineBiMat` — ai đọc được bí mật của máy vốn đã tự tính được mã mở máy, nên vân PIN không mở thêm lỗ nào; đổi lại máy kiểm được PIN khi mất mạng.
+
+**Giờ, sao, nhiệm vụ, phiên tính theo bé đang đăng nhập.** Thứ tự xác định bé của một lệnh: máy riêng ⇒ chủ máy · header `X-Phien-Con` ·
+không header ⇒ `devices.con_dang_dung` (chỉ khi phiên Con của bé đó trên máy còn hạn 12 giờ; đăng xuất / hết hạn ⇒ máy thả ra như trước).
+⇒ `dong-bo`, `nhip`, `hoc-vien/*`, `yeu-cau`, `xin-duyet`, `phien/*` không cần header vẫn đúng bé.
+
+`dong-bo` và `nhip` trả thêm `nguoiDung`: `{loai: "con", con: {id, ten, coPin}}` | `{loai: "ba_me", den}` | `{loai: "chua"}` (máy dùng chung chưa ai vào ⇒ màn chọn tên).
+**Ba Mẹ đang dùng máy** (`baMeDung: {den}` ở gốc): không bé nào (kể cả máy riêng — `hoc-vien/*`, `phien/*` ⇒ 409 `chua_chon_con`), không tính giờ con (máy chủ bỏ `usage`, nhịp phiên, web theo Con); `dong-bo.windows`: `mode: "tu_do"`,
+`locked: false`, `grantEndsAt = den` (thắng giờ ngủ / Ba Mẹ khoá — Ba Mẹ mở bằng mã), không `quyConPhut`, `appTinhGio: []`, web mở Giải trí (web luôn
+chặn vẫn chặn); `nhip`: `grantEndsAt` / `moDen` = max(cửa sổ cũ, `den`). Hết `den` ⇒ máy về màn chọn tên (agent tự khoá, không chờ mạng).
+
+### Mã mở máy theo từng máy (L19)
+
+`GET /api/m/may/:id/ma-offline?phut=15|30|60` (mặc định 60; giá trị khác ⇒ 60) — màn «Mã mở máy cho Bảo Anh» (them-rz77kk45):
+
+```json
+{ "ma": "731594", "maHien": "731 594", "phutMo": 30, "chonPhut": [15, 30, 60], "doiSauGiay": 212, "conGiay": 512, "hieuLucPhut": 15,
+  "may": { "id": "d1", "ten": "Laptop", "nen": "windows" } }
+```
+
+Số phút nằm TRONG mã (agent kiểm offline, không cần máy chủ): TOTP RFC 6238 HMAC-SHA1, bước 300 giây, 6 số, dung sai ±1 bước;
+**60 phút** = bí mật gốc (y hệt mã cũ — agent cũ hiểu, mở 60 phút); **30 / 15 phút** = bí mật `"<bí mật>|30"` / `"<bí mật>|15"`. Agent mới thử 60 → 30 → 15,
+mở đúng số phút của biến thể khớp (`lib/ma-offline.ts` › `kiemMaOfflinePhut`). Bí mật cấp qua `dong-bo.windows.maOfflineBiMat` (Windows/Mac) và
+`nhip.maOfflineBiMat` (Android/iOS, gửi khi `maOfflineVan` lệch) như cũ. Cùng mã gõ ở màn «Ba Mẹ nhập mã» (có mạng ⇒ `POST /api/device/ba-me-mo`;
+mất mạng ⇒ agent tự kiểm rồi gửi sự kiện `mo_ma_offline` khi có mạng lại). Mọi máy có tác tử (Windows, Mac, Android, iPhone/iPad).
+
+### Máy con mất mạng + chuông (L19)
+
+**Mất mạng hôm nay** = máy Windows / Mac / Android đã liên lạc trong hôm nay (giờ nhà) mà im lặng > 10 phút, không phải tắt / ngủ sạch (agent báo
+`nguon: sap_tat|sap_ngu`). iPhone/iPad không tính (không chạy nền liên tục). Máy dùng chung tính cho bé đang dùng.
+
+| Đường | Ý |
+|---|---|
+| `GET gia-dinh` | thêm `soChuong` (số trên chuông) và mỗi `con[]`: `coPin`, `matMang: [{mayId, ten, nen, tu, phut}]` (dòng «Máy mất mạng · Laptop ›» + nút «Lấy mã mở máy») |
+| `GET may-mat-mang` | `{ds: [{mayId, ten, nen, conId, tenCon, tu, phut}]}` |
+| `GET can-de-y` | «Cần Ba Mẹ để ý» → `{ds: [...], soChuong}` — `soChuong` = `ds.length` (đúng số mục, không đếm «Để biết») |
+| `GET thong-bao` | như cũ + `canDeY` (= `can-de-y.ds`) + `soChuong`. Các dòng cũ (`ds`) là phần «Để biết» |
+
+Mục `can-de-y.ds[]`: `{id, loai, tieu, phu, luc, con, may?, so, nut, den}` — xếp theo loại rồi mới trước:
+`mat_mang` («Laptop của Bảo Anh mất mạng» · «19:30 · Con cần mã để mở máy» · nút «Lấy mã» → `/may/<id>/ma-offline`) · `quen_pin` («Bảo Anh quên PIN vào máy» →
+`/ho-so/<con>/pin`) · `canh_bao` (cảnh báo chú ý / nghiêm trọng chưa đọc 7 ngày: «Cảnh báo: Bảo Anh mở trang bị chặn» → `/canh-bao/<id>`) ·
+`con_xin` (gộp theo Con: «Bảo Anh xin 2 việc», `so: 2` → `/cho-duyet`) · `nop_bai` (gộp theo Con: «Bảo Anh nộp bài 2 việc» → `/cho-duyet`) ·
+`chua_bao_ve` («iPad chưa được bảo vệ» · việc thiếu đầu tiên → `/may/<id>`). Đọc cảnh báo (`canh-bao/:id/doc`) / xử lý việc ⇒ mục tự hết.
+
+```json
+{ "ds": [ { "id": "mat_mang:d1", "loai": "mat_mang", "tieu": "Laptop của Bảo Anh mất mạng", "phu": "19:30 · Con cần mã để mở máy",
+            "luc": "2026-11-06T12:30:00.000Z", "con": "c1", "may": "d1", "so": 1, "nut": "Lấy mã", "den": "/may/d1/ma-offline" },
+          { "id": "con_xin:c1", "loai": "con_xin", "tieu": "Bảo Anh xin 2 việc", "phu": "Mở youtube.com · thêm 20 phút",
+            "luc": "2026-11-06T12:20:00.000Z", "con": "c1", "so": 2, "nut": "Trả lời", "den": "/cho-duyet" } ],
+  "soChuong": 2 }
+```
+
+### Quà = bảng giá sao (L14 — đảo L10 phần voucher)
+
+**7 quà mặc định** (đúng tên + sao trong màn `them-s416tfdj` / `them-473f52w6`), gieo MỘT lần khi nhà tạo Con mà chưa có quà nào
+(`families.qua_seed_luc`; Ba Mẹ xoá hết thì không gieo lại): Chọn món bữa tối 50 (`bua_toi`) · Đi ăn kem 100 (`an_kem`) · AiiCafe 20k 200 (`aiicafe_20k`,
+voucher 20.000đ) · Đồ chơi nhỏ 200 (`do_choi_nho`) · Đi xem phim 300 (`xem_phim`, chỉ cuối tuần) · AiiCafe 50k 500 (`aiicafe_50k`) · Bộ Lego 800 (`lego`, còn 1 bộ).
+«Thêm 30 phút» **không phải quà** — là nút đổi sao lấy phút (`POST /api/kid/doi-sao`, L2). Quà `loai: phut` cũ vẫn chạy cho dữ liệu cũ.
+
+**Giữ / trao / huỷ.** Con đổi ⇒ sao bị GIỮ (ghi trừ tạm, phiếu `giu`) — ví trả `saoGiu` («Con đang có 0 sao · Đang giữ 50 sao»: `tomTatVi`, `GET con/:id/vi`,
+`gia-dinh.con[]`, `kid/toi`, `cua-hang`). Ba Mẹ «Đã trao» (`POST phieu/:id/trao` → `{trangThai, saoTru, voucher?}`) = trừ hẳn; «Huỷ & hoàn sao» (`phieu/:id/huy`) = hoàn;
+**quà bị xoá ⇒ hoàn mọi phiếu đang giữ**.
+
+**Voucher AiiCafe bật lại** (trao tay, KHÔNG cần quỹ phiếu): Con đổi ⇒ `cho_trao`, chưa có mã; Ba Mẹ trao ⇒ phát mã: `voucher: {ma, qr, hetHan, menhGia}` —
+`qr` = chuỗi mã hoá vào QR (= mã phiếu; quầy `/quay` quét / gõ như cũ), hạn = lúc trao + `voucher_han_ngay` (**60 ngày** — đúng chữ «Voucher QR · 60 ngày» trong màn;
+tham số mục 10, 30–365). `GET /api/kid/vi-qua` › `voucher[]`: chỉ phiếu đã phát, thêm `qr`, `conNgay` («Còn 49 ngày»), `ten`. Huỷ phiếu đang giữ ⇒ voucher `thu_hoi`.
+
+**Điều kiện** (màn «Sửa quà»): chỉ cuối tuần (`chiCuoiTuan` ⇒ 409 `chi_cuoi_tuan`), tối đa X lần / tháng (`toiDaThang` ⇒ 409 `du_thang`), số lượng có sẵn
+(`tonKho`, hết ⇒ ẩn khỏi cửa hàng, 409 `het_hang`), «Ba Mẹ xác nhận khi trao» (`canXacNhan`), **«Áp cho»** từng Con (`apCho: [id Con] | null` = mọi Con — quà
+áp cho Con khác thì không hiện ở cửa hàng, đổi ⇒ 404).
+
+| Đường (`/api/m/*`) | Ý |
+|---|---|
+| `GET qua?con=` | danh sách quà (`con` ⇒ chỉ quà áp cho Con đó) → `{ds: [quà]}` (ví dụ dưới; giữ cả khoá snake_case cũ) |
+| `POST qua {ten, loai: qua\|dac_quyen\|voucher\|tiet_kiem, sao, menhGia? (voucher ≥ 1000), moTa?, hinh?, chiCuoiTuan?, toiDaThang?, tonKho?, canXacNhan?, apCho?}` | «Tự đặt quà riêng» → `{id}` (nhận cả `diem`, `menh_gia`… kiểu cũ). Voucher không còn `voucher_ngung` |
+| `POST qua/:id {…cùng khoá, chỉ khoá gửi lên}` | «Lưu quà» → `{ok, qua}`. `apCho` có id lạ ⇒ 404 |
+| `POST qua/:id/xoa` | «Xoá quà này» → `{ok, hoanPhieu, hoanSao}` |
+| `GET qua/mac-dinh` | 7 quà Rob chọn sẵn cho bước «Chọn quà» → `{ds: [{ma, ten, moTa, hinh, sao, loai, menhGia, chiCuoiTuan, tonKho, daCo}]}` |
+| `POST qua/mac-dinh {chon?: [ma]}` | «Lưu 7 quà, sang giờ chơi»: tạo quà được tick còn thiếu, bỏ quà mặc định bị bỏ tick (chưa ai đổi) → như `GET qua`. Thiếu `chon` = cả 7. Mã lạ ⇒ 400 `mau_sai` |
+| `POST qua/mau` | (app cũ) thêm quà mặc định còn thiếu → `{taoMoi, ds}` |
+| `GET qua/thu-vien?con=` | «Thêm quà từ thư viện», 5 nhóm → ví dụ dưới; `daCo` = nhà (hoặc Con) đã có quà cùng mã / cùng tên |
+| `POST qua/thu-vien {mau: [ma], con?}` | «Thêm N quà cho Bảo Anh» → `{taoMoi, ids}` (mẫu đã có bỏ qua; `con` ⇒ áp cho riêng Con đó). Mã lạ ⇒ 400 `mau_sai` |
+| `GET phieu/:id` | màn «Trao quà cho con» → `{id, con: {id, ten}, ten, loai, sao, trangThai, dangGiu, doiLuc, voucher: {menhGia, trangThai, ma?, qr?, hetHan?} \| null}` |
+
+```json
+// một phần tử GET /api/m/qua › ds
+{ "id": "r1", "ten": "AiiCafe 20k", "loai": "voucher", "sao": 200, "diem": 200, "moTa": "Voucher QR · 60 ngày", "hinh": "aiicafe",
+  "menhGia": 20000, "tonKho": null, "toiDaThang": null, "chiCuoiTuan": false, "canXacNhan": false, "apCho": null, "mau": "aiicafe_20k",
+  "dangGiu": 1, "laVoucher": true, "bat": true }
+// GET /api/m/qua/thu-vien
+{ "nhom": [ { "ma": "thoi_gian", "ten": "Thời gian chơi", "phu": "giá gợi ý",
+              "ds": [ { "ma": "thuc_them_30", "ten": "Thức thêm 30 phút", "moTa": "Tối thứ 7", "hinh": "dong_ho", "sao": 100, "loai": "dac_quyen",
+                        "menhGia": null, "chiCuoiTuan": false, "tonKho": null, "canXacNhan": false, "daCo": false } ] },
+            { "ma": "voucher", "ten": "Voucher AiiCafe", "phu": "mã QR · 60 ngày", "ds": [ "AiiCafe 20k 200 · 50k 500 · 100k 1.000 (Ba Mẹ duyệt khi con đổi)" ] },
+            { "ma": "qua_vat_ly", "ten": "Quà vật lý", "phu": "Ba Mẹ mua", "ds": [ "Sách mới con chọn 150 · Đồ chơi nhỏ 200 · Bộ Lego 800" ] },
+            { "ma": "dac_quyen", "ten": "Đặc quyền", "phu": "trải nghiệm cả nhà", "ds": [ "Chọn món bữa tối 50 · Đi ăn kem 100 · Đi xem phim cuối tuần 300 · Ngủ nướng Chủ nhật 80" ] },
+            { "ma": "tiet_kiem", "ten": "Tiết kiệm", "phu": "sao thành tiền heo đất", "ds": [ "Bỏ heo đất 10.000đ 100 · Góp quỹ mua xe đạp 300" ] } ] }
+```
+
+**Màn Con** `/api/kid/cua-hang` và khay `/api/device/hoc-vien/cua-hang`: voucher hiện lại; mỗi quà thêm `moTa, hinh, menhGia, chiCuoiTuan, toiDaThang, tonKho`;
+gốc thêm `saoGiu`. `POST /api/kid/doi/:id` → `{phieu, trang_thai: "cho_trao", saoGiu, …}` (voucher cũng `cho_trao`); khay `hoc-vien/doi/:id` → `{phieu, trangThai, saoGiu, voucher: null}`.
+Quyền: mọi `POST qua*`, `con/:id/pin` = đổi cài đặt ⇒ chỉ Ba Mẹ; `phieu/:id/trao|huy` Người trông giúp làm được (như S1).

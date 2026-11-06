@@ -14,11 +14,15 @@ import { ghiSuKien } from "./nhat-ky.ts";
 // TỪ 05/11 (thiết kế chốt L10): quà đổi bằng sao ⇒ «Đã gửi Ba Mẹ» (phiếu giu = chờ trao) ⇒ Ba Mẹ bấm «Đã trao» (da_trao). Quà «Thêm N phút
 // chơi» (loai phut) trao xong ⇒ N phút cộng vào QUỸ hôm nay (lib/quy-gio.ts). Phiếu AiiCafe + quỹ: NGỪNG PHÁT — API Ba Mẹ / Con không tạo,
 // không đổi, không hiện voucher nữa (`ngungVoucher`); bảng + hàm giữ nguyên để voucher cũ còn hạn vẫn quét ở quầy và Admin đối soát.
+// 06/11 (L14 đảo L10 phần voucher): voucher AiiCafe BẬT LẠI theo kiểu trao tay (giữ sao ⇒ Ba Mẹ trao ⇒ mã QR + hạn) — đường mới ở lib/api-s3.ts
+// (gọi trước api-sao.ts), không cần quỹ phiếu. Cờ này chỉ còn cho đường cũ của api-sao (không còn tới được với API Ba Mẹ / Con / khay).
 export const NGUNG_VOUCHER = true;
 export const LOAI_QUA = ["voucher", "qua", "dac_quyen", "tiet_kiem", "phut"] as const;
 
 export type Qua = { id: string; family_id: string; ten: string; loai: string; diem: number; menh_gia: number | null; ton_kho: number | null;
-  toi_da_thang: number | null; chi_cuoi_tuan: boolean; can_xac_nhan: boolean; bat: boolean };
+  toi_da_thang: number | null; chi_cuoi_tuan: boolean; can_xac_nhan: boolean; bat: boolean;
+  /** 06/11 (L14, SCHEMA_S3): dòng phụ, mã hình, áp cho Con nào (null = mọi Con), mã quà mẫu (lib/qua-bang-gia.ts) */
+  mo_ta?: string | null; hinh?: string | null; ap_cho?: string[] | null; mau?: string | null };
 
 /** Mẫu quà (bm-hang-ngay «Quà con đổi bằng sao», 05/11). */
 export const MAU_QUA = [
@@ -39,17 +43,22 @@ function kiemQua(b: Record<string, unknown>) {
   const phut = loai === "phut" ? Math.round(Number(b.phut)) : null;
   if (loai === "phut" && !(phut! >= 5 && phut! <= 240)) throw new LoiNghiepVu("phut_sai", "Quà phút chơi cần số phút (5–240)");
   const so = (v: unknown) => (v === null || v === undefined || v === "" ? null : Math.max(0, Math.round(Number(v)) || 0));
+  // 06/11 (L14): dòng phụ, hình, áp cho (mảng id Con — đã kiểm thuộc nhà ở lib/qua-bang-gia.ts; null = mọi Con), mã mẫu
+  const chu = (v: unknown, n: number) => (v === null || v === undefined || String(v).trim() === "" ? null : String(v).trim().slice(0, n));
+  const ap = Array.isArray(b.ap_cho) && b.ap_cho.length ? [...new Set(b.ap_cho.map(String))].slice(0, 20) : null;
   return { ten, loai, diem, menh_gia: menh, phut, ton_kho: so(b.ton_kho), toi_da_thang: so(b.toi_da_thang),
-    chi_cuoi_tuan: b.chi_cuoi_tuan === true, can_xac_nhan: b.can_xac_nhan === true };
+    chi_cuoi_tuan: b.chi_cuoi_tuan === true, can_xac_nhan: b.can_xac_nhan === true, mo_ta: chu(b.mo_ta, 80), hinh: chu(b.hinh, 40), ap_cho: ap, mau: chu(b.mau, 40) };
 }
 
 /** `o.ngungVoucher` (API Ba Mẹ từ 05/11): không tạo phiếu AiiCafe mới. */
-export async function taoQua(fam: string, b: Record<string, unknown>, o: { ngungVoucher?: boolean } = {}) {
+export async function taoQua(fam: string, b: Record<string, unknown>, o: { ngungVoucher?: boolean; t?: Q } = {}) {
   const v = kiemQua(b);
   if (o.ngungVoucher && v.loai === "voucher") throw new LoiNghiepVu("voucher_ngung", "Phiếu quà AiiCafe đã ngừng — tạo quà Ba Mẹ trao tay nhé", 400);
   const id = newId();
-  await q(`insert into rewards(id, family_id, ten, loai, diem, menh_gia, ton_kho, toi_da_thang, chi_cuoi_tuan, can_xac_nhan, phut) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-    [id, fam, v.ten, v.loai, v.diem, v.menh_gia, v.ton_kho, v.toi_da_thang, v.chi_cuoi_tuan, v.can_xac_nhan, v.phut]);
+  await (o.t ?? q)(`insert into rewards(id, family_id, ten, loai, diem, menh_gia, ton_kho, toi_da_thang, chi_cuoi_tuan, can_xac_nhan, phut, mo_ta, hinh, ap_cho, mau)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::text::jsonb,$15)`,
+    [id, fam, v.ten, v.loai, v.diem, v.menh_gia, v.ton_kho, v.toi_da_thang, v.chi_cuoi_tuan, v.can_xac_nhan, v.phut, v.mo_ta, v.hinh,
+      v.ap_cho ? JSON.stringify(v.ap_cho) : null, v.mau]);
   return id;
 }
 
@@ -64,8 +73,10 @@ export async function suaQua(fam: string, id: string, b: Record<string, unknown>
   const cu = await one<Qua>(`select * from rewards where id = $1 and family_id = $2`, [id, fam]);
   if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);
   const v = kiemQua({ ...cu, ...b });
-  await q(`update rewards set ten=$2, diem=$3, menh_gia=$4, ton_kho=$5, toi_da_thang=$6, chi_cuoi_tuan=$7, can_xac_nhan=$8, bat=$9, phut=$10 where id = $1`,
-    [id, v.ten, v.diem, v.menh_gia, v.ton_kho, v.toi_da_thang, v.chi_cuoi_tuan, v.can_xac_nhan, b.bat === undefined ? cu.bat : b.bat === true, v.phut]);
+  await q(`update rewards set ten=$2, diem=$3, menh_gia=$4, ton_kho=$5, toi_da_thang=$6, chi_cuoi_tuan=$7, can_xac_nhan=$8, bat=$9, phut=$10,
+             mo_ta=$11, hinh=$12, ap_cho=$13::text::jsonb, loai=$14 where id = $1`,
+    [id, v.ten, v.diem, v.menh_gia, v.ton_kho, v.toi_da_thang, v.chi_cuoi_tuan, v.can_xac_nhan, b.bat === undefined ? cu.bat : b.bat === true, v.phut,
+      v.mo_ta, v.hinh, v.ap_cho ? JSON.stringify(v.ap_cho) : null, v.loai]);
 }
 
 async function soLanThang(t: Q, con: string, qua: string, tz: string, now: Date) {
@@ -79,13 +90,17 @@ export async function cuaHang(con: string, o: { anVoucher?: boolean } = {}) {
   const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   const du = await soDu(con);
-  const ds = (await q<Qua & { phut: number | null }>(`select * from rewards where family_id = $1 and bat and (ton_kho is null or ton_kho > 0) order by diem`, [c.family_id]))
+  // 06/11: quà «Áp cho» Con khác thì không hiện (ap_cho null = mọi Con)
+  const ds = (await q<Qua & { phut: number | null }>(`select * from rewards where family_id = $1 and bat and (ton_kho is null or ton_kho > 0)
+      and (ap_cho is null or ap_cho ? $2) order by diem`, [c.family_id, con]))
     .filter((x) => !(o.anVoucher && x.loai === "voucher"));
   // phiếu đang chờ Ba Mẹ trao của từng quà — «Đã đổi hôm qua · chờ Ba Mẹ trao»
   const cho = await q<{ reward_id: string; created_at: Date }>(`select reward_id, max(created_at) as created_at from redemptions
     where child_id = $1 and trang_thai = 'giu' and reward_id is not null group by reward_id`, [con]);
   const choTheo = new Map(cho.map((x) => [x.reward_id, new Date(x.created_at).toISOString()]));
-  return { soDu: du, sao: du, qua: ds.map((x) => ({ ...x, sao: x.diem, du: du >= x.diem, conThieu: Math.max(0, x.diem - du), choTraoTu: choTheo.get(x.id) ?? null })) };
+  const saoGiu = (await q<{ n: number }>(`select coalesce(sum(diem), 0)::int as n from redemptions where child_id = $1 and trang_thai = 'giu'`, [con]))[0].n;
+  return { soDu: du, sao: du, saoGiu, qua: ds.map((x) => ({ ...x, sao: x.diem, du: du >= x.diem, conThieu: Math.max(0, x.diem - du), choTraoTu: choTheo.get(x.id) ?? null,
+    moTa: x.mo_ta ?? null, hinh: x.hinh ?? null, menhGia: x.menh_gia, chiCuoiTuan: x.chi_cuoi_tuan, toiDaThang: x.toi_da_thang, tonKho: x.ton_kho })) };
 }
 
 function maVoucher() {
@@ -93,12 +108,13 @@ function maVoucher() {
   return "AG" + Array.from({ length: 10 }, () => CHU[randomInt(0, CHU.length)]).join("");
 }
 
-/** Con đổi một phần thưởng. → { phieu, trang_thai, voucher? }. `o.ngungVoucher` (API Con / khay từ 05/11): phiếu AiiCafe không đổi được nữa. */
-export async function doiQua(con: string, quaId: string, now = new Date(), o: { ngungVoucher?: boolean } = {}) {
+/** Con đổi một phần thưởng. → { phieu, trang_thai, voucher? }. `o.ngungVoucher` (API Con / khay từ 05/11): phiếu AiiCafe không đổi được nữa.
+ *  `o.voucherTraoTay` (06/11, L14): voucher AiiCafe cũng GIỮ sao chờ Ba Mẹ trao như mọi quà — không cần quỹ phiếu; trao ⇒ phát mã QR + hạn. */
+export async function doiQua(con: string, quaId: string, now = new Date(), o: { ngungVoucher?: boolean; voucherTraoTay?: boolean } = {}) {
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
     const x = (await t<Qua & { phut: number | null }>(`select * from rewards where id = $1 and family_id = $2 and bat for update`, [quaId, fam]))[0];
-    if (!x) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);
+    if (!x || (x.ap_cho && !x.ap_cho.includes(con))) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);
     if (o.ngungVoucher && x.loai === "voucher") throw new LoiNghiepVu("voucher_ngung", "Phiếu quà AiiCafe đã ngừng — con chọn quà khác nhé", 409);
     const f = (await t<{ tz: string; cau_hinh: Record<string, unknown>; quy_voucher: number }>(
       `select tz, cau_hinh, quy_voucher from families where id = $1 for update`, [fam]))[0];
@@ -108,7 +124,7 @@ export async function doiQua(con: string, quaId: string, now = new Date(), o: { 
       throw new LoiNghiepVu("du_thang", `Tháng này con đã đổi đủ ${x.toi_da_thang} lần`, 409);
     const ts = thamSo(f.cau_hinh);
     const laVoucher = x.loai === "voucher";
-    const canXacNhan = x.can_xac_nhan || (laVoucher && x.menh_gia! >= ts.voucher_xac_nhan_tu);
+    const canXacNhan = x.can_xac_nhan || (laVoucher && (o.voucherTraoTay || x.menh_gia! >= ts.voucher_xac_nhan_tu));
     if (laVoucher && !canXacNhan && f.quy_voucher < x.menh_gia!)
       throw new LoiNghiepVu("quy_thieu", "Quỹ phiếu quà của nhà mình chưa đủ — nhờ Ba Mẹ nạp thêm nhé", 409);
     await ghiDiem(t, con, -x.diem, laVoucher ? "voucher" : "doi_qua", `Đổi ${x.ten}`, { ref: x.id });
@@ -121,8 +137,8 @@ export async function doiQua(con: string, quaId: string, now = new Date(), o: { 
     if (laVoucher) {
       const ma = maVoucher();
       const het = new Date(now.getTime() + ts.voucher_han_ngay * 86_400_000);
-      await t(`insert into vouchers(id, ma, family_id, child_id, redemption_id, menh_gia, diem, trang_thai, het_han) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [newId(), ma, fam, con, phieu, x.menh_gia, x.diem, canXacNhan ? "cho_xac_nhan" : "da_phat_hanh", het]);
+      await t(`insert into vouchers(id, ma, family_id, child_id, redemption_id, menh_gia, diem, trang_thai, het_han, trao_tay) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [newId(), ma, fam, con, phieu, x.menh_gia, x.diem, canXacNhan ? "cho_xac_nhan" : "da_phat_hanh", het, !!o.voucherTraoTay]);
       if (!canXacNhan) {
         await t(`update families set quy_voucher = quy_voucher - $2 where id = $1`, [fam, x.menh_gia]);
         await t(`insert into quy_gd(id, family_id, so_tien, loai, ghi_chu, ref) values ($1,$2,$3,'phat_hanh',$4,$5)`, [newId(), fam, -x.menh_gia!, x.ten, ma]);
@@ -130,7 +146,9 @@ export async function doiQua(con: string, quaId: string, now = new Date(), o: { 
       }
     }
     await ghiSuKien(fam, "doi_qua", { ten: x.ten, diem: x.diem, cho_xac_nhan: canXacNhan }, { con }, t);
-    return { phieu, trang_thai: canXacNhan ? "cho_xac_nhan" : laVoucher ? "da_phat_hanh" : "cho_trao", voucher,
+    // saoGiu = TỔNG sao Con đang giữ (mọi phiếu chờ trao, gồm phiếu này) — khớp ví (tomTatVi)
+    const saoGiu = (await t<{ n: number }>(`select coalesce(sum(diem), 0)::int as n from redemptions where child_id = $1 and trang_thai = 'giu'`, [con]))[0].n;
+    return { phieu, trang_thai: o.voucherTraoTay && laVoucher ? "cho_trao" : canXacNhan ? "cho_xac_nhan" : laVoucher ? "da_phat_hanh" : "cho_trao", voucher, saoGiu,
       quyConLai: laVoucher && !canXacNhan ? f.quy_voucher - x.menh_gia! : f.quy_voucher };
   });
 }
@@ -156,7 +174,15 @@ export async function xacNhanPhieu(fam: string, phieu: string, nguoi: string, no
       if (phut) await t(`insert into grants(id, child_id, phut, ngoai_le, ngay, nguon, nguoi, created_at) values ($1,$2,$3,false,$4,'qua',$5,$6)`,
         [newId(), p.child_id, phut, gioDiaPhuong(now, tz).ngay, nguoi, now]);
     }
-    if (p.loai === "voucher") {
+    let voucher: { ma: string; qr: string; hetHan: string; menhGia: number } | undefined;
+    const vt = p.loai === "voucher" ? (await t<{ ma: string; menh_gia: number; trao_tay: boolean }>(`select ma, menh_gia, trao_tay from vouchers where redemption_id = $1`, [p.id]))[0] : undefined;
+    if (vt?.trao_tay) {
+      // 06/11: Ba Mẹ trao ⇒ phát mã QR (= mã phiếu, quầy quét) + hạn tính từ lúc trao; không đụng quỹ phiếu (đã ngừng)
+      const f = (await t<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [fam]))[0];
+      const het = new Date(now.getTime() + thamSo(f.cau_hinh).voucher_han_ngay * 86_400_000);
+      await t(`update vouchers set trang_thai = 'da_phat_hanh', het_han = $2 where redemption_id = $1`, [p.id, het]);
+      voucher = { ma: vt.ma, qr: vt.ma, hetHan: het.toISOString(), menhGia: vt.menh_gia };
+    } else if (p.loai === "voucher") {
       const f = (await t<{ quy_voucher: number }>(`select quy_voucher from families where id = $1 for update`, [fam]))[0];
       const v = (await t<{ ma: string; menh_gia: number }>(`select ma, menh_gia from vouchers where redemption_id = $1`, [p.id]))[0];
       if (f.quy_voucher < v.menh_gia) throw new LoiNghiepVu("quy_thieu", "Quỹ phiếu quà chưa đủ — nạp thêm tại AiiCafe rồi xác nhận lại", 409);
@@ -165,8 +191,8 @@ export async function xacNhanPhieu(fam: string, phieu: string, nguoi: string, no
       await t(`insert into quy_gd(id, family_id, so_tien, loai, ghi_chu, ref, nguoi) values ($1,$2,$3,'phat_hanh',$4,$5,$6)`, [newId(), fam, -v.menh_gia, p.ten, v.ma, nguoi]);
     }
     await t(`update redemptions set trang_thai = $2, xu_ly_boi = $3, xu_ly_luc = now() where id = $1`, [p.id, p.loai === "voucher" ? "xong" : "da_trao", nguoi]);
-    await ghiSuKien(fam, "xac_nhan_qua", { ten: p.ten, ...(phut ? { phut } : {}) }, { con: p.child_id, nguoi }, t);
-    return { trangThai: p.loai === "voucher" ? "xong" : "da_trao", ...(phut ? { phut } : {}) };
+    await ghiSuKien(fam, "xac_nhan_qua", { ten: p.ten, ...(phut ? { phut } : {}), ...(voucher ? { voucher: true } : {}) }, { con: p.child_id, nguoi }, t);
+    return { trangThai: p.loai === "voucher" ? "xong" : "da_trao", ...(phut ? { phut } : {}), ...(voucher ? { voucher } : {}), saoTru: p.diem };
   });
 }
 
@@ -234,8 +260,12 @@ export async function viQua(con: string) {
   return {
     daTrao: await q<{ id: string; ten: string; loai: string; diem: number; xu_ly_luc: Date }>(
       `select id, ten, loai, diem, xu_ly_luc from redemptions where child_id = $1 and trang_thai = 'da_trao' order by xu_ly_luc desc limit 20`, [con]),
-    voucher: await q<{ ma: string; menh_gia: number; trang_thai: string; het_han: Date; dung_luc: Date | null }>(
-      `select ma, menh_gia, trang_thai, het_han, dung_luc from vouchers where child_id = $1 order by created_at desc limit 50`, [con]),
+    // 06/11: chỉ voucher đã phát (đã trao) mới có mã; mỗi voucher thêm `qr` (= mã, quầy quét) + `conNgay` («Còn 49 ngày»)
+    voucher: (await q<{ ma: string; menh_gia: number; trang_thai: string; het_han: Date; dung_luc: Date | null; ten: string | null }>(
+      `select v.ma, v.menh_gia, v.trang_thai, v.het_han, v.dung_luc, r.ten from vouchers v left join redemptions r on r.id = v.redemption_id
+        where v.child_id = $1 and v.trang_thai <> 'cho_xac_nhan' and v.trang_thai <> 'thu_hoi' order by v.created_at desc limit 50`, [con]))
+      .map((v) => ({ ...v, qr: v.trang_thai === "da_phat_hanh" ? v.ma : null,
+        conNgay: v.trang_thai === "da_phat_hanh" ? Math.max(0, Math.ceil((new Date(v.het_han).getTime() - Date.now()) / 86_400_000)) : 0 })),
     phieu: await q<{ id: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: Date }>(
       `select id, ten, loai, diem, trang_thai, created_at from redemptions where child_id = $1 and trang_thai = 'giu' order by created_at desc`, [con]),
   };

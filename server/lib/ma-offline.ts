@@ -36,3 +36,20 @@ export function kiemMaOffline(secret: string, ma: string, now = new Date(), buoc
   }
   return false;
 }
+
+// ---------------------------------------------------------------- 06/11 (L13, L19): Ba Mẹ chọn «Mở máy trong 15 / 30 / 60 phút»
+// Số phút nằm TRONG mã: 60 phút = mã gốc ở trên (agent cũ vẫn hiểu, mở 60 phút); 15 / 30 phút = TOTP cùng bước với bí mật «<bí mật>|<phút>».
+// Agent mới thử lần lượt 60 → 30 → 15 và mở đúng số phút của biến thể khớp. Cùng mã gõ ở màn «Ba Mẹ nhập mã» (máy dùng chung) ⇒ «Ba Mẹ
+// đang dùng máy» trong đúng số phút đó (lib/pin-be.ts › baMeMoMay).
+export const PHUT_MO = [60, 30, 15] as const;
+export type PhutMo = (typeof PHUT_MO)[number];
+const biMatPhut = (secret: string, phut: PhutMo) => (phut === 60 ? secret : `${secret}|${phut}`);
+
+/** Mã cho Ba Mẹ xem, kèm số phút mở. */
+export const maOfflinePhut = (secret: string, phut: PhutMo, now = new Date()) => maOffline(biMatPhut(secret, phut), now);
+
+/** Kiểm mã có số phút: khớp biến thể nào ⇒ số phút của biến thể đó; không khớp ⇒ null. */
+export function kiemMaOfflinePhut(secret: string, ma: string, now = new Date()): PhutMo | null {
+  for (const p of PHUT_MO) if (kiemMaOffline(biMatPhut(secret, p), ma, now)) return p;
+  return null;
+}
