@@ -15,6 +15,8 @@ export const TEN_NEN_TANG: Record<NenTang, string> = { windows: "Windows", mac: 
 export type Con = {
   id: string; family_id: string; ten: string; nam_sinh: number | null; avatar: string; nhom: "nhi" | "teen";
   cau_hinh: Record<string, unknown>; lich: Record<string, unknown>; chao_luc: Date | null; created_at: Date;
+  /** 06/11 L13 (SCHEMA_S3): PIN 4 số vào máy dùng chung (null = chưa có) + lúc đặt. */
+  pin_ma?: string | null; pin_dat_luc?: Date | null;
 };
 export type May = {
   id: string; child_id: string | null; family_id: string; platform: NenTang; name: string; dung_chung: boolean;
@@ -23,6 +25,8 @@ export type May = {
   che_do?: string;
   /** true = Ba Mẹ đã chọn chế độ trên app (máy chủ gửi che_do cho agent); false = chưa chọn ⇒ hiển thị chế độ agent báo (status.cheDo). */
   che_do_ba_me?: boolean;
+  /** 06/11 L13 (SCHEMA_S3): bé đang đăng nhập trên máy dùng chung · «Ba Mẹ đang dùng máy» tới lúc này (lib/pin-be.ts). */
+  con_dang_dung?: string | null; dang_nhap_luc?: Date | null; ba_me_den?: Date | null; ba_me_tu?: Date | null;
 };
 
 /** Nhí (6–10) / Teen (11–16) đề xuất theo tuổi (FR-01.02); không rõ tuổi ⇒ Nhí. */
@@ -57,14 +61,17 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   const ten = tenConHopLe(b.ten);
   const nam = Number(b.namSinh) || null;
   if (nam && (nam < new Date().getFullYear() - 18 || nam > new Date().getFullYear() - 3)) throw new LoiNghiepVu("nam_sinh_sai", "Năm sinh chưa đúng");
-  // L5: bỏ PIN hồ sơ Con — app bản cũ còn gửi `pin` thì bỏ qua (không lưu, không bắt).
+  // 06/11 L13 (đảo L5): PIN 4 số Ba Mẹ đặt ở «Thêm con» (không bắt buộc — bé chưa có PIN thì chọn tên vào thẳng)
+  const pin = pinVao(b.pin);
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
   const id = newId();
   // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
   // L4: Con mới chạy «Chỉ app được phép» (chi_app_duoc_phep) — đặt rõ để web cũng theo chế độ (Con cũ null ⇒ web theo tham số cũ).
-  await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan) values ($1,$2,$3,$4,$5,$6,'chi_app_duoc_phep')`,
-    [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom]);
-  await ghiSuKien(fam, "tao_con", { ten, nhom }, { con: id, nguoi });
+  await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
+            values ($1,$2,$3,$4,$5,$6,'chi_app_duoc_phep',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin, pin ? new Date() : null]);
+  await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}) }, { con: id, nguoi });
+  // 06/11 L14: nhà chưa có quà ⇒ gieo 7 quà mặc định một lần (lib/qua-bang-gia.ts). Lỗi gieo không làm hỏng việc tạo Con.
+  try { await (await import("./qua-bang-gia.ts")).gieoQuaMacDinh(fam); } catch (e) { console.error("gieo quà mặc định lỗi", e); }
   return id;
 }
 
@@ -98,7 +105,16 @@ export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar
   }
   if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
   if (b.nhom === "nhi" || b.nhom === "teen") await q(`update children set nhom = $2 where id = $1`, [id, b.nhom]);
-  // L5: `pin` (app bản cũ) bỏ qua — không còn PIN hồ sơ Con. Dữ liệu pin_hash cũ giữ nguyên, không dùng.
+  // 06/11 L13: đặt lại PIN cũng nhận ở đây (đường riêng: POST con/:id/pin — lib/pin-be.ts › datPin, kèm xoá bộ đếm sai + báo quên PIN)
+  if (b.pin !== undefined && b.pin !== "") await (await import("./pin-be.ts")).datPin(fam, id, b.pin, nguoi);
+}
+
+/** PIN lúc tạo Con: bỏ trống ⇒ null; có thì đúng 4 chữ số. */
+function pinVao(v: unknown): string | null {
+  if (v === undefined || v === null || v === "") return null;
+  const s = String(v).trim();
+  if (!/^\d{4}$/.test(s)) throw new LoiNghiepVu("pin_sai_dang", "PIN gồm đúng 4 chữ số");
+  return s;
 }
 
 // ---------------------------------------------------------------- ghép máy (FR-01.03)

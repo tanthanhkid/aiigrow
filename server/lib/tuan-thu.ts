@@ -314,7 +314,7 @@ export async function tinCayAdmin(fam: string, mayId: string, b: { ten?: unknown
 }
 
 // ---------------------------------------------------------------- Mã mở offline (lib/ma-offline.ts): bí mật chung máy ↔ máy chủ
-import { BUOC_GIAY, DUNG_SAI, maOffline, taoBiMatOffline } from "./ma-offline.ts";
+import { BUOC_GIAY, DUNG_SAI, maOfflinePhut, PHUT_MO, taoBiMatOffline, type PhutMo } from "./ma-offline.ts";
 
 /** Nền nhận bí mật mã offline: máy có tác tử (Windows, Mac — qua dong-bo) + Android, iOS (qua nhịp, nhip-may.ts). */
 export const coMaOffline = (nen: string | null | undefined) => coTacTu(nen) || nen === "android" || nen === "ios";   // iOS: agent-ios MaOffline (nhịp mang bí mật)
@@ -335,13 +335,18 @@ export async function biMatOfflineMay(deviceId: string): Promise<string | null> 
 }
 
 /** Ba Mẹ xem mã mở offline của một máy (có kiểm chủ quyền + ghi nhật ký). */
-export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string, now = new Date(), phutMo = 60) {
+/** 06/11 (L19): `phutMo` = «Mở máy trong 15 / 30 / 60 phút» (mã mang sẵn số phút — lib/ma-offline.ts › maOfflinePhut); giá trị khác ⇒ 60.
+ *  Trả thêm `maHien` («731 594»), `doiSauGiay` (tới lúc mã đổi bước), `matMang` (máy đang mất mạng theo lib/can-de-y.ts). */
+export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string, now = new Date(), phutMo: unknown = 60) {
   const m = await mayCua(fam, mayId);
   if (!coMaOffline(m.platform)) throw new LoiNghiepVu("sai_nen_tang", "Mã mở offline chỉ dùng cho máy có tác tử AiiGrow (Windows, Mac, Android, iPhone/iPad)", 400);
   const bm = await biMatOfflineMay(m.id);
   if (!bm) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
-  const ma = maOffline(bm, now);
-  const conGiay = BUOC_GIAY * (DUNG_SAI + 1) - Math.floor((now.getTime() / 1000) % BUOC_GIAY);
-  await ghiSuKien(fam, "xem_ma_offline", {}, { con: m.child_id, may: m.id, nguoi });
-  return { ma, conGiay, hieuLucPhut: Math.round((BUOC_GIAY * (2 * DUNG_SAI + 1)) / 60), phutMo };
+  const phut: PhutMo = (PHUT_MO as readonly number[]).includes(Number(phutMo)) ? Number(phutMo) as PhutMo : 60;
+  const ma = maOfflinePhut(bm, phut, now);
+  const doiSauGiay = BUOC_GIAY - Math.floor((now.getTime() / 1000) % BUOC_GIAY);
+  const conGiay = BUOC_GIAY * DUNG_SAI + doiSauGiay;
+  await ghiSuKien(fam, "xem_ma_offline", { phut }, { con: m.child_id, may: m.id, nguoi });
+  return { ma, maHien: `${ma.slice(0, 3)} ${ma.slice(3)}`, conGiay, doiSauGiay, hieuLucPhut: Math.round((BUOC_GIAY * (2 * DUNG_SAI + 1)) / 60),
+    phutMo: phut, chonPhut: [15, 30, 60], may: { id: m.id, ten: m.name, nen: m.platform } };
 }

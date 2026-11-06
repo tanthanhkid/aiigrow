@@ -16,7 +16,8 @@ export async function docJson(req: Request): Promise<Record<string, any>> {
 }
 
 export function batLoi(e: unknown) {
-  if (e instanceof LoiNghiepVu) return loi(e.ma, e.message, e.status);
+  // lỗi kèm trường phụ (vd PIN sai: `conLan`, `choGiay` — lib/pin-be.ts › LoiPin) ⇒ trả thêm cạnh {error, message}
+  if (e instanceof LoiNghiepVu) return e.them ? json({ ...e.them, error: e.ma, message: e.message }, e.status) : loi(e.ma, e.message, e.status);
   console.error(e);
   baoLoiHeThong(e);
   return loi("loi_may_chu", "AiiGrow đang gặp sự cố khi làm việc này. Thử lại sau ít phút; nếu lặp lại, nhắn AiiLab ở mục Hỗ trợ.", 500);

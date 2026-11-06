@@ -648,3 +648,29 @@ export const SCHEMA_S2 = [
     primary key (child_id, ten_khoa)
   )`,
 ];
+
+// ================================================================ S3 «PIN theo bé + quà bảng giá + mã mở máy» — thiết kế chốt 06/11
+// (docs/KE-HOACH-KHOP-THIET-KE-0611.md L13 L14 L19). Chỉ thêm; lib/db.ts chạy khối này sau SCHEMA_S2. Mọi câu chạy lại được.
+// children.pin_ma (L13, đảo L5): PIN 4 số Ba Mẹ đặt để bé vào máy dùng chung. Lưu thẳng vì Ba Mẹ cần «Hiện» lại PIN (màn them-z2fyhohj) —
+//   băm 4 số cũng dò lại được tức thì nên không thêm an toàn; chặn dò bằng bộ đếm phía máy chủ (pin_sai: 5 lần sai ⇒ chờ 15 giây).
+//   null = bé chưa có PIN ⇒ chọn tên vào thẳng. pin_dat_luc: «Đặt lần cuối 06/11». children.pin_hash (cũ) không dùng.
+// devices.con_dang_dung: bé đang đăng nhập trên máy (máy dùng chung) — nhịp / đồng bộ không kèm X-Phien-Con vẫn tính giờ, sao, chính sách theo bé này.
+//   dang_nhap_luc: lúc bé vào. ba_me_den: «Ba Mẹ đang dùng máy» (mở bằng mã mở máy) tới lúc này — không tính giờ con; null = không.
+// rewards (L14): mo_ta (dòng phụ «Con chọn, Ba Mẹ nấu»), hinh (mã hình), ap_cho (jsonb mảng id Con; null = mọi Con), mau (mã quà mặc định /
+//   thư viện mẫu, lib/qua-bang-gia.ts). families.qua_seed_luc: đã gieo 7 quà mặc định (gieo MỘT lần — Ba Mẹ xoá hết thì không gieo lại).
+// vouchers.trao_tay: voucher AiiCafe kiểu 06/11 — Con đổi ⇒ giữ sao + voucher «cho_xac_nhan»; Ba Mẹ trao ⇒ «da_phat_hanh», hạn tính từ lúc trao
+//   (tham số voucher_han_ngay, mặc định 60 như màn), KHÔNG trừ quỹ phiếu quà (quỹ đã ngừng 05/11).
+export const SCHEMA_S3 = [
+  `alter table children add column if not exists pin_ma text`,
+  `alter table children add column if not exists pin_dat_luc timestamptz`,
+  `alter table devices add column if not exists con_dang_dung text`,
+  `alter table devices add column if not exists dang_nhap_luc timestamptz`,
+  `alter table devices add column if not exists ba_me_den timestamptz`,
+  `alter table devices add column if not exists ba_me_tu timestamptz`,
+  `alter table rewards add column if not exists mo_ta text`,
+  `alter table rewards add column if not exists hinh text`,
+  `alter table rewards add column if not exists ap_cho jsonb`,
+  `alter table rewards add column if not exists mau text`,
+  `alter table families add column if not exists qua_seed_luc timestamptz`,
+  `alter table vouchers add column if not exists trao_tay boolean not null default false`,
+];

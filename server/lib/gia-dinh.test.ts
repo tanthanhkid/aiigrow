@@ -12,18 +12,21 @@ const { taoNha } = await import("./test-fixtures/nha.ts");
 
 const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 
-test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi gia đình; PIN (app cũ gửi) bỏ qua; Con mới «Chỉ app được phép»", async () => {
+test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi gia đình; PIN 4 số lưu (06/11 L13); Con mới «Chỉ app được phép»", async () => {
   const { fam } = await taoNha();
   const nam = new Date().getFullYear();
   const ken = await g.taoCon(fam, { ten: "Ken", namSinh: nam - 9, pin: "1234" });
   const bill = await g.taoCon(fam, { ten: "Bill", namSinh: nam - 13 });
   const ds = await g.dsCon(fam);
   assert.deepEqual(ds.map((c) => [c.ten, c.nhom]), [["Ken", "nhi"], ["Bill", "teen"]]);
-  // L5: PIN bỏ qua, không lưu
-  const x = await g.taoCon(fam, { ten: "X", pin: "12" });
-  assert.equal((await q<{ pin_hash: string | null; che_do_chan: string }>(`select pin_hash, che_do_chan from children where id = $1`, [ken]))[0].pin_hash, null);
-  assert.equal((await q<{ che_do_chan: string }>(`select che_do_chan from children where id = $1`, [x]))[0].che_do_chan, "chi_app_duoc_phep");
-  await g.suaCon(fam, x, { pin: "9" });
+  // 06/11 L13 (đảo L5): PIN 4 số lưu (pin_ma); sai dạng ⇒ pin_sai_dang; không gửi ⇒ chưa có PIN
+  await loi(g.taoCon(fam, { ten: "X", pin: "12" }), "pin_sai_dang");
+  const x = await g.taoCon(fam, { ten: "X" });
+  assert.equal((await q<{ pin_ma: string | null }>(`select pin_ma from children where id = $1`, [ken]))[0].pin_ma, "1234");
+  assert.equal((await q<{ pin_ma: string | null; che_do_chan: string }>(`select pin_ma, che_do_chan from children where id = $1`, [x]))[0].che_do_chan, "chi_app_duoc_phep");
+  await loi(g.suaCon(fam, x, { pin: "9" }), "pin_sai_dang");
+  await g.suaCon(fam, x, { pin: "0912" });
+  assert.equal((await q<{ pin_ma: string | null }>(`select pin_ma from children where id = $1`, [x]))[0].pin_ma, "0912");
   await loi(g.taoCon(fam, { ten: "" }), "thieu_ten");
   await g.suaCon(fam, bill, { nhom: "nhi", avatar: "rob-sao" });
   assert.equal((await g.conCua(fam, bill)).nhom, "nhi");

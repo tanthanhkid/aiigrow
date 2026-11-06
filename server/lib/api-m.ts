@@ -45,6 +45,10 @@ import { thietLapLanDau, tomTatThietLap } from "./thiet-lap.ts";
 import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";
 // Thiết kế chốt 05/11 (S1): sao, quỹ giờ chơi, nhiệm vụ theo bộ, làm lại, quà trao tay — lib/api-sao.ts
 import { xuLyMSao } from "./api-sao.ts";
+// S3 thiết kế 06/11 (L13 L14 L19): PIN theo bé, quà bảng giá, mã mở máy, chuông «Cần Ba Mẹ để ý» — lib/api-s3.ts
+import { xuLyMS3 } from "./api-s3.ts";
+import { canDeY, mayMatMang } from "./can-de-y.ts";
+import { baMeDen } from "./pin-be.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -52,14 +56,19 @@ async function chiTietCon(bm: BaMe, id: string) {
   const c = await gd.conCua(bm.family_id, id);
   const may = await q<gd.May>(`select * from devices where child_id = $1 or (dung_chung and family_id = $2) order by created_at`, [id, bm.family_id]);
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [bm.family_id]))!;
+  const matMang = new Set((await mayMatMang(bm.family_id)).map((x) => x.mayId));
   return {
-    // coPin: luôn false (L5 bỏ PIN hồ sơ Con) — giữ khoá cho app bản cũ. cheDoChan: L4.
-    id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: false,
+    // coPin + pinDatLuc: 06/11 L13 (PIN theo bé — đảo L5); xem PIN ở GET con/:id/pin. cheDoChan: L4.
+    id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: !!c.pin_ma,
+    pinDatLuc: c.pin_dat_luc ? new Date(c.pin_dat_luc).toISOString() : null,
     cheDoChan: cheDoChanCua((c as { che_do_chan?: unknown }).che_do_chan), khoaNgay: khoaGoc(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh), moTamDen: moTamDen(c.cau_hinh),
     lich: lichCua(c.lich as never), thamSo: thamSo(f.cau_hinh, c.cau_hinh), ...(await tomTatVi(c.id)),
     may: may.map((m) => ({ id: m.id, ten: m.name, nen: m.platform, dungChung: m.dung_chung, baoVe: gd.mucBaoVe(m), baoVeThieu: gd.chiTietBaoVe(m).thieu, baoVeCau: gd.chiTietBaoVe(m).cau,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null,
-      truc: !!m.last_seen && Date.now() - new Date(m.last_seen).getTime() < 3 * 60_000, lechGiay: m.status?.lechGiay ?? null })),
+      truc: !!m.last_seen && Date.now() - new Date(m.last_seen).getTime() < 3 * 60_000, lechGiay: m.status?.lechGiay ?? null,
+      // 06/11 (L13, L19): ai đang dùng máy dùng chung · Ba Mẹ đang dùng tới · máy mất mạng hôm nay
+      dangDung: m.con_dang_dung ?? null, baMeDungDen: baMeDen(m)?.toISOString() ?? null,
+      matMang: matMang.has(m.id) })),
   };
 }
 
@@ -101,6 +110,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       throw new LoiNghiepVu("chi_xem", "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ nhé", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
+    { const r = await xuLyMS3(bm, req, p, b); if (r) return r; }            // 06/11: PIN theo bé, quà bảng giá, chuông
     { const r = await xuLyMSao(bm, req, p, b); if (r) return r; }           // 05/11: sao, quỹ giờ chơi, bộ nhiệm vụ, làm lại, trao quà
     if (d === "toi" && get) return json({ baMe: { id: bm.id, ten: bm.ten, dinhDanh: hienDinhDanh(bm.dinh_danh), laFacebook: bm.dinh_danh.startsWith(TIEN_TO_FB), vai: vaiCu(bm), quyen: quyenCua(bm), laChuNha: laChuNha(bm),
       coMatKhau: bm.co_mat_khau !== false },
@@ -109,11 +119,15 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
 
     if (d === "gia-dinh" && get) {
       // song song: mỗi câu SQL là một vòng mạng tới DB
-      const [con, f, cho, ycCho, cb, phieuCho] = await Promise.all([gd.dsCon(fam),
-        one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true), pt.dsPhieuCho(fam)]);
+      const [con, f, cho, ycCho, cb, phieuCho, cdy, mm] = await Promise.all([gd.dsCon(fam),
+        one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true), pt.dsPhieuCho(fam),
+        canDeY(fam), mayMatMang(fam)]);
+      // 06/11 (L19): soChuong = số mục «Cần Ba Mẹ để ý» (lib/can-de-y.ts) · con[].matMang = máy của Con mất mạng hôm nay (dòng «Máy mất mạng · Laptop»)
       return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length + phieuCho.length,
-        canhBao: cb.length,
-        con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id)) }))) });
+        canhBao: cb.length, soChuong: cdy.soChuong,
+        con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id)),
+          coPin: !!c.pin_ma,
+          matMang: mm.filter((x) => x.conId === c.id).map((x) => ({ mayId: x.mayId, ten: x.ten, nen: x.nen, tu: x.tu, phut: x.phut })) }))) });
     }
     if (d === "con" && post) return json({ id: await gd.taoCon(fam, b, bm.id) });
     if (p[0] === "con" && p[1]) {
@@ -185,7 +199,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "gan-con" && post) return json(await gd.ganConMay(fam, p[1], b.con, bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       // L6: Người trông giúp được duyệt lời xin (mở máy) ⇒ cũng được đọc mã mở offline cho Con lúc máy mất mạng
-      if (sau === "ma-offline" && get) return json(await tt.maOfflineChoMay(fam, p[1], bm.id));
+      if (sau === "ma-offline" && get) return json(await tt.maOfflineChoMay(fam, p[1], bm.id, new Date(), new URL(req.url).searchParams.get("phut") ?? 60));
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
       // Thiết kế 05/11: máy luôn chặn thật — chỉ còn nhận «chan» (giam-sat ⇒ 409 che_do_bo); mức chặn đổi ở con/:id/che-do-chan

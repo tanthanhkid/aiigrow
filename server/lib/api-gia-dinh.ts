@@ -12,6 +12,7 @@ import { laChuNha, quyenCua, vaiCu } from "./quyen.ts";
 import * as tv from "./thanh-vien.ts";
 import * as tb from "./thong-bao.ts";
 import { conCua } from "./gia-dinh.ts";
+import { canDeY } from "./can-de-y.ts";
 import { dongBangChuoi } from "./dong-bang.ts";
 import { xuatCsvBaoCao } from "./xuat-csv.ts";
 
@@ -30,7 +31,8 @@ export async function xuLyMoiCongKhai(req: Request, p: string[]): Promise<Respon
 export async function xuLyThongBao(req: Request, bm: BaMe, p: string[]): Promise<Response | null> {
   if (p[0] !== "thong-bao") return null;
   const d = p.join("/"), get = req.method === "GET", post = req.method === "POST";
-  if (d === "thong-bao" && get) return json(await tb.dsThongBao(bm));
+  // 06/11 (L19): thêm `canDeY[]` + `soChuong` (= số mục «Cần Ba Mẹ để ý» — số trên chuông), lib/can-de-y.ts
+  if (d === "thong-bao" && get) { const [tb0, c] = await Promise.all([tb.dsThongBao(bm), canDeY(bm.family_id)]); return json({ ...tb0, canDeY: c.ds, soChuong: c.soChuong }); }
   if (d === "thong-bao/doc" && post) {
     const b = await docJson(req);
     const den = b.den ? new Date(String(b.den)) : new Date();

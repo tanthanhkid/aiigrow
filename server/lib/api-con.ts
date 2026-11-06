@@ -15,6 +15,7 @@ import { homNay } from "./bao-cao.ts";
 import * as tre from "./choi-tre.ts";
 import { xinDuyet } from "./che-do-chan.ts";
 import { xuLyConSao } from "./api-sao.ts";
+import { xuLyConS3 } from "./api-s3.ts";
 
 export async function conGoi(req: Request): Promise<(Con & { device_id: string | null }) | null> {
   const t = bearer(req);
@@ -33,6 +34,7 @@ export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
     if (!c) return loi("chua_dang_nhap", "Chọn tên con để vào nhé", 401);
     const get = req.method === "GET", post = req.method === "POST", d = p.join("/");
     const b = post ? await docJson(req) : {};
+    { const r = await xuLyConS3(c.id, req, p); if (r) return r; }                     // 06/11: quà bảng giá + voucher trao tay
     { const r = await xuLyConSao(c.id, c.device_id, req, p, b); if (r) return r; }   // 05/11: quỹ giờ chơi, đổi sao, ghi âm, quà
     if (d === "toi" && get) {
       const loiKhen = await q(`select id, noi_dung, phan_hoi, created_at from messages where child_id = $1 order by created_at desc limit 5`, [c.id]);

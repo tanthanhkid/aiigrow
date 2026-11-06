@@ -252,25 +252,17 @@ test("bằng chứng ghi âm / bấm Xong; Ba Mẹ «Nhờ làm lại» (lam_lai
   void fam; void anhGia;
 });
 
-test("quà đổi bằng sao: chờ trao ⇒ Ba Mẹ «Đã trao» (quà phút ⇒ +phút vào quỹ); voucher AiiCafe ngừng phát; quỹ phiếu ẩn", async () => {
+test("quà đổi bằng sao: chờ trao ⇒ Ba Mẹ «Đã trao» (quà phút cũ ⇒ +phút vào quỹ); quỹ phiếu ẩn (voucher bật lại 06/11 — s3-pin-qua.test.ts)", async () => {
   const { fam, con, tokBm, tokMay } = await nha(100);
   await luonChoiDuoc(con);
-  assert.equal((await m(tokBm, "qua/mau", {})).body.taoMoi, 4);
-  const ds = (await m(tokBm, "qua")).body.ds;
-  assert.deepEqual(ds.map((x: any) => x.ten).sort(), ["Thêm 30 phút chơi", "Xem phim cả nhà", "Đi ăn kem", "Đồ chơi nhỏ"].sort());
-  assert.equal((await m(tokBm, "qua", { ten: "Phiếu 50k", loai: "voucher", diem: 500, menh_gia: 50000 })).body.error, "voucher_ngung");
+  // 06/11 (L14): nhà có Con ⇒ đã gieo 7 quà mặc định; «Mẫu» cũ chỉ thêm quà mặc định còn thiếu
+  assert.equal((await m(tokBm, "qua/mau", {})).body.taoMoi, 0);
   assert.equal((await m(tokBm, "qua", { ten: "Thêm 15 phút", loai: "phut", diem: 15 })).body.error, "phut_sai");
   assert.equal((await m(tokBm, "quy")).status, 410);
-  // voucher cũ (tạo trực tiếp) không hiện ở cửa hàng, không đổi được qua API
+  // quà phút (dữ liệu cũ — 06/11 «Thêm 30 phút» là nút đổi sao, không còn là quà mẫu) vẫn chạy
   const { taoQua } = await import("./phan-thuong.ts");
-  const vc = await taoQua(fam, { ten: "Phiếu AiiCafe cũ", loai: "voucher", diem: 20, menh_gia: 20_000 });
-  assert.ok(!(await k(tokMay, "cua-hang")).body.qua.some((x: any) => x.id === vc));
-  assert.ok(!(await dv(tokMay, "hoc-vien/cua-hang")).body.qua.some((x: any) => x.id === vc));
-  assert.equal((await k(tokMay, `doi/${vc}`, {})).body.error, "voucher_ngung");
-  assert.equal((await dv(tokMay, `hoc-vien/doi/${vc}`, {})).body.error, "voucher_ngung");
-  // đổi «Thêm 30 phút chơi» ⇒ chờ trao ⇒ trao ⇒ +30 phút
-  const phut = ds.find((x: any) => x.loai === "phut");
-  const kem = ds.find((x: any) => x.ten === "Đi ăn kem");
+  const phut = { id: await taoQua(fam, { ten: "Thêm 30 phút chơi", loai: "phut", diem: 30, phut: 30 }) };
+  const kem = { id: await taoQua(fam, { ten: "Đi ăn kem", loai: "dac_quyen", diem: 50 }) };
   const d1 = (await k(tokMay, `doi/${phut.id}`, {})).body;
   assert.equal(d1.trang_thai, "cho_trao");
   const ch = (await k(tokMay, "cua-hang")).body;
