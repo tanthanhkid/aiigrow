@@ -14,6 +14,8 @@ final class ShieldActionExtension: ShieldActionDelegate {
     let ngoaiLe = k?.lyDo.chiNgoaiLe == true
     if k?.lyDo == .chuaVao {
       n.title = "Máy đang khoá"; n.body = "Chạm vào đây để mở AiiGrow Con, chạm tên con rồi nhập PIN."
+    } else if k?.lyDo == .khong {
+      n.title = "Xin Ba Mẹ mở app"; n.body = "Chạm vào đây để gõ tên app và nhắn Ba Mẹ."
     } else {
       n.title = ngoaiLe ? "Xin Ba Mẹ mở máy" : "Thêm giờ chơi"
       n.body = ngoaiLe ? "Chạm vào đây để chọn bao lâu và nhắn Ba Mẹ." : "Chạm vào đây để đổi sao hoặc xin Ba Mẹ thêm giờ."

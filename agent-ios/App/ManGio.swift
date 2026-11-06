@@ -19,7 +19,7 @@ struct ManDoiSao: View {
     KhungMan {
       if let r = ketQua { daDoi(r) } else { chon }
     }
-    .onAppear { phut = m.phut10Sao }
+    .onAppear { phut = max(buoc, min(m.phut10Sao, toiDa / buoc * buoc)) }
   }
 
   var chon: some View {
@@ -52,12 +52,14 @@ struct ManDoiSao: View {
         Button { Task { await doi() } } label: {
           if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Đổi \(saoCan) sao lấy \(phut) phút") } icon: { Anh(ten: "ic_sao", co: 26) } }
         }
-        .buttonStyle(NutDiu()).disabled(m.dangBan || m.matMang)
+        .buttonStyle(NutDiu()).disabled(m.dangBan || m.matMang || phut > toiDa)
+        if toiDa < buoc { Text("Hôm nay con đã đổi đủ phút rồi.").font(Diu.t2).foregroundColor(Diu.chu3) }
         Button("Làm nhiệm vụ kiếm thêm sao ›") { m.tab = .nhiemVu; dong() }.buttonStyle(NutDiu(kieu: .lk))
       } else {
         Button { m.tab = .nhiemVu; dong() } label: { Label { Text("Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
         if m.soSao >= 10 {
-          Button { phut = m.soSao / 10 * m.phut10Sao } label: { Text("Đổi \(m.soSao / 10 * 10) sao lấy \(m.soSao / 10 * m.phut10Sao) phút") }.buttonStyle(NutDiu(kieu: .phu))
+          let p = max(buoc, min(m.soSao / 10 * m.phut10Sao, toiDa / buoc * buoc))
+          Button { phut = p } label: { Text("Đổi \(Int((Double(p) * 10 / Double(max(1, m.phut10Sao))).rounded(.up))) sao lấy \(p) phút") }.buttonStyle(NutDiu(kieu: .phu))
         }
         Button("Xin Ba Mẹ thêm giờ ›") { m.manPhu = .xinThem }.buttonStyle(NutDiu(kieu: .lk))
       }

@@ -92,6 +92,8 @@ public final class DongBo {
     }
     ghiPhien(tra.nguoiDung, now: now)
     var kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    let conCuoi = kho.doc(String.self, Khoa.conCuoi)
+    if let id = tra.chinhSach.con?.id, conCuoi != nil, conCuoi != id { kh.daDungMayChu = nil; kh.ngayDaDung = nil }   // chính sách của bé khác (phản hồi cũ)
     if let den = kho.doc(PhienMay.self, Khoa.phienMay)?.baMeDen, den > now { kh.lich = LapKeHoach.themLich(kh.lich, LapKeHoach.lichMotLan("bame", den: den, now: now)) }
     if kh.daDungMayChu != nil { kh.dungTaiChoLucDongBo = TinhKhien.phutDoTaiCho(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) }
     kho.luu(kh, Khoa.keHoach)
@@ -107,6 +109,11 @@ public final class DongBo {
   /// tới khi bé nhập lại PIN (thiết kế: «Đăng xuất thì máy khoá lại. Vào lại bằng tên + PIN.»).
   func ghiPhien(_ n: NguoiDungMay?, now: Date) {
     let cu = kho.doc(PhienMay.self, Khoa.phienMay)
+    // tại máy vừa đổi người SAU lúc gửi nhip, hoặc còn việc chờ phát lại ⇒ phản hồi này đã cũ, giữ trạng thái tại máy
+    if let cu, cu.luc > now { return }
+    if let v = (khoCho ?? kho).doc([ViecChoMang].self, Khoa.viecChoMang), !v.isEmpty { return }
+    // Ba Mẹ mở bằng mã lúc mất mạng: máy chủ không biết ⇒ giữ tới hạn
+    if let cu, cu.offline == true, cu.baMeDangDung(now), n?.loai != "ba_me" { return }
     guard let moi = PhienMay.tu(n, now: now) else {
       // máy chủ chưa có PIN theo bé (chưa deploy S3 / quay lui) ⇒ không giữ khoá «chưa ai vào» mà không ai mở được
       if cu?.loai == .chua { kho.ghi(nil, Khoa.phienMay) }
@@ -115,10 +122,7 @@ public final class DongBo {
     let mayRieng = kho.doc(HoSoMay.self, Khoa.hoSoMay)?.mayRieng ?? (kho.doc(ThongTinMay.self, Khoa.thongTinMay).map { !$0.dungChung } ?? false)
     // máy riêng: máy chủ luôn báo chủ máy ⇒ khoá tại máy (đăng xuất / Ba Mẹ dùng đã hết) giữ tới khi bé nhập lại PIN
     if let cu, cu.khoa(now), moi.loai == .con, mayRieng { if cu.loai != .chua { kho.luu(PhienMay(loai: .chua, luc: now), Khoa.phienMay) }; return }
-    if moi.loai == .con, let id = moi.conId, kho.doc(String.self, Khoa.conCuoi) != id {
-      kho.luu(id, Khoa.conCuoi); kho.ghi(nil, Khoa.nhatKyDung)      // bé khác ⇒ phút đo tại máy của bé trước không tính
-    }
-    kho.luu(moi, Khoa.phienMay)
+    VaoMay.luuPhien(moi, kho: kho)       // bé khác ⇒ phút đo tại máy + phút máy chủ của bé trước không tính
   }
 
   /// Lời xin thêm giờ lưu lúc mất mạng ⇒ gửi khi có mạng.

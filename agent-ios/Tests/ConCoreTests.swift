@@ -738,3 +738,25 @@ final class PinBeRaTests: XCTestCase {
     XCTAssertEqual(khien.lan.last?.lyDo, .chuaVao)
   }
 }
+
+final class PinBeRa2Tests: XCTestCase {
+  var vc = VanChuyenGia(), kho = KhoBoNho()
+  func db() -> DongBo { DongBo(api: ApiClient(goc: URL(string: "https://may.chu")!, token: "tk", vanChuyen: vc), kho: kho, khien: KhienGia(), lich: LichGia(),
+                               uyQuyen: UyQuyenGia(), chon: ChonGia(), xoaToken: {}) }
+  func nhip(_ nd: String) -> Data {
+    Data(String(decoding: nhipMau(), as: UTF8.self).replacingOccurrences(of: #""lenh":[]"#, with: #""lenh":[],"nguoiDung":\#(nd)"#).utf8)
+  }
+  func testBaMeMoOfflineGiuToiHanKhiCoMang() async throws {
+    var p = PhienMay(loai: .baMe, baMeDen: vn(26, 11), luc: vn(26, 9)); p.offline = true
+    kho.luu(p, Khoa.phienMay)
+    vc.tra["POST /api/device/nhip"] = (nhip(#"{"loai":"chua"}"#), 200)
+    _ = try await db().chay(now: vn(26, 10))
+    XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .baMe)
+  }
+  func testPhanHoiCuKhongDeTrangThaiTaiMay() async throws {
+    kho.luu(PhienMay(loai: .chua, luc: vn(26, 10, 1)), Khoa.phienMay)      // đăng xuất SAU lúc gửi nhip
+    vc.tra["POST /api/device/nhip"] = (nhip(#"{"loai":"con","con":{"id":"c1","ten":"Bin"}}"#), 200)
+    _ = try await db().chay(now: vn(26, 10))
+    XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .chua)
+  }
+}

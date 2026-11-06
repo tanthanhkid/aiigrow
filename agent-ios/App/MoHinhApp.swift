@@ -207,6 +207,7 @@ final class MoHinhApp: ObservableObject {
     var kh = kho.doc(KeHoach.self, Khoa.keHoach)
     if let den = kho.doc(PhienMay.self, Khoa.phienMay)?.baMeDen, den > Date(), kh != nil {
       kh!.lich = LapKeHoach.themLich(kh!.lich, LapKeHoach.lichMotLan("bame", den: den, now: Date()))
+      kho.luu(kh, Khoa.keHoach)        // lưu cùng lịch «bame» — lượt theoDoi sau từ kế hoạch đã lưu không xoá mất chuông khoá lại
       try? LichThat(chon: luaChon).theoDoi(kh!.lich)
     }
     dongBo().apLucNay()

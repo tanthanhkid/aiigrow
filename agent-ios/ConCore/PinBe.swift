@@ -54,6 +54,8 @@ public struct PhienMay: Codable, Equatable {
   public var ten: String?
   public var baMeDen: Date?
   public var luc: Date
+  /// Mở tại máy lúc mất mạng (máy chủ không biết) — Ba Mẹ mở bằng mã offline giữ tới hạn dù máy chủ báo khác.
+  public var offline: Bool? = nil
   public init(loai: Loai, conId: String? = nil, ten: String? = nil, baMeDen: Date? = nil, luc: Date) {
     self.loai = loai; self.conId = conId; self.ten = ten; self.baMeDen = baMeDen; self.luc = luc
   }
@@ -179,7 +181,9 @@ public final class VaoMay {
   }
 
   /// Đổi bé đang dùng ⇒ phút đo tại máy (theo máy, không theo bé) và phút máy chủ của bé trước không được tính cho bé sau.
-  func datPhien(_ p: PhienMay) {
+  func datPhien(_ p: PhienMay) { Self.luuPhien(p, kho: kho) }
+  /// Ghi «ai đang dùng máy» (dùng chung VaoMay + DongBo).
+  public static func luuPhien(_ p: PhienMay, kho: KhoGiaTri) {
     if p.loai == .con, let id = p.conId, kho.doc(String.self, Khoa.conCuoi) != id {
       kho.luu(id, Khoa.conCuoi)
       kho.ghi(nil, Khoa.nhatKyDung)
@@ -255,7 +259,8 @@ public final class VaoMay {
       switch kq {
       case .daMo:
         let den = mt.moDen ?? now
-        datPhien(PhienMay(loai: .baMe, baMeDen: den, luc: now))
+        var p = PhienMay(loai: .baMe, baMeDen: den, luc: now); p.offline = true
+        datPhien(p)
         kho.xepSuKien(SuKienMay(loai: "mo_ma_offline", luc: now, chiTiet: ["den": NgayISO.viet(den), "phut": String(mt.phutMo ?? 60), "ba_me": "1"]))
         return .mo(den: den, phut: mt.phutMo ?? 60, offline: true)
       case .dangMo, .daDung: return .daDung
@@ -274,8 +279,11 @@ public final class VaoMay {
 
   /// «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ). Máy về màn chọn tên ngay, kể cả khi mất mạng.
   public func roiMay(baMe: Bool = false, now: Date = Date()) async {
+    let laBaMe = phien?.loai == .baMe
     datPhien(PhienMay(loai: .chua, luc: now))
-    if var mt = kho.doc(MoTamOffline.self, Khoa.moTamOffline), mt.dangMo(now) {   // Ba Mẹ mở bằng mã lúc mất mạng ⇒ «Khoá lại» kết thúc lượt mở
+    kho.ghi(nil, Khoa.xinChoMang)       // lời xin lưu lúc mất mạng là của bé vừa rời máy — không gửi nhầm tên bé sau
+    // Ba Mẹ mở bằng mã lúc mất mạng ⇒ «Khoá lại» kết thúc lượt mở (lượt mở của bé thì giữ — mã đã dùng, không nhập lại được)
+    if laBaMe, var mt = kho.doc(MoTamOffline.self, Khoa.moTamOffline), mt.dangMo(now) {
       mt.moDen = now; kho.luu(mt, Khoa.moTamOffline)
     }
     do { try await api.roiMay(baMe: baMe); khoCho.luu(nil as [ViecChoMang]?, Khoa.viecChoMang) }
@@ -290,8 +298,8 @@ public final class VaoMay {
       else if let con = v.con { _ = try await api.dangNhapBe(con: con, pin: v.pin) }
       khoCho.luu(nil as [ViecChoMang]?, Khoa.viecChoMang)
     } catch LoiApi.mang {
-    } catch let e as LoiApi where e.tamThoi {
-      // 5xx / dữ liệu lạ: máy chủ trục trặc — giữ hàng chờ, thử lại lượt sau
+    } catch let e as LoiApi where e.tamThoi || e.ma == "pin_tam_khoa" {
+      // 5xx / dữ liệu lạ / máy chủ đang bắt chờ: giữ hàng chờ, thử lại lượt sau (PIN đã đúng tại máy)
     } catch {
       khoCho.luu(nil as [ViecChoMang]?, Khoa.viecChoMang)
       if v.loai == "dang_nhap" { datPhien(PhienMay(loai: .chua, luc: now)) }
