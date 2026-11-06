@@ -1,0 +1,12 @@
+#!/bin/bash
+# Sao lưu DB AiiGrow (Postgres cục bộ trên VPS, thay Neon từ 06/11/2026) — giữ 14 bản. /etc/cron.d/aiigrow gọi 02:30 mỗi ngày.
+# Cài: cp scripts/vps/aiigrow-sao-luu /usr/local/bin/ && chmod 700. Dùng peer auth của user postgres ⇒ không cần mật khẩu, không lộ trên `ps`.
+# Bản sao lưu nằm cùng máy với CSDL — muốn an toàn khi mất VPS thì kéo /var/backups/aiigrow về nơi khác.
+set -euo pipefail; umask 077
+D=/var/backups/aiigrow; F=$D/aiigrow-$(date +%Y%m%d-%H%M).sql.gz; mkdir -p $D
+trap 'rm -f "$F.tam"' EXIT
+rm -f $D/*.tam
+sudo -u postgres pg_dump --no-owner --no-privileges aiigrow | gzip > "$F.tam"
+mv "$F.tam" "$F"
+ls -1t $D/aiigrow-*.sql.gz | tail -n +15 | xargs -r rm -f
+echo "$(date "+%F %T") ok $(ls -1 $D/aiigrow-*.sql.gz | wc -l) bản"

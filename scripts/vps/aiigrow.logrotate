@@ -1,0 +1,11 @@
+# /etc/logrotate.d/aiigrow trên VPS — log pm2 aiigrow + cron (copytruncate: pm2 giữ nguyên tệp đang mở)
+/root/.pm2/logs/aiigrow-*.log /var/log/aiigrow-cron.log /var/log/aiigrow-sao-luu.log {
+    daily
+    rotate 7
+    maxsize 20M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}
