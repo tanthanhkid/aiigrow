@@ -33,7 +33,7 @@ export default function ObCon() {
   const tiep = () => lam(async () => {
     const { r, ds } = await luu();
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
-      apps: undefined, cheDoChan: undefined, quy: undefined, ngu: undefined });
+      apps: undefined, cheDoChan: undefined, quy: undefined, cuoiTuan: undefined, ngu: undefined });
     router.push("/thiet-lap/mau");
   });
   const themCon = () => lam(async () => {
@@ -48,7 +48,7 @@ export default function ObCon() {
       day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo)} bam={tiep} />
         {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => lam(async () => {
           if (tenGon) { const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
-          datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, cheDoChan: undefined, quy: undefined, ngu: undefined });
+          datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, cheDoChan: undefined, quy: undefined, cuoiTuan: undefined, ngu: undefined });
           router.push("/thiet-lap/mau");
         })} />
           : <LienKet chu="+ Thêm con khác" bam={() => (tenGon ? themCon() : setLoi("Nhập tên con này trước, rồi thêm con khác."))} />}</>}>

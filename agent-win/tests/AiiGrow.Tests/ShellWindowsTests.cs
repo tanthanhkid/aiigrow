@@ -46,6 +46,29 @@ public class ShellWindowsTests
         Assert.False(ProcessGuard.ShouldClose(path, rong, rong, Safe, Win));
     }
 
+    /// <summary>06/11 (B2, máy Nghi): hộp thông báo Windows Update của Win 11 24H2 nằm ở Windows\UUS\&lt;arch&gt;\ — trước đây bị «Đóng app ngoài
+    /// danh sách: monotificationux.exe» rồi Windows bật lại ⇒ popup cập nhật + màn chặn lặp. Thư mục Windows mà tài khoản chuẩn ghi được vẫn KHÔNG miễn.</summary>
+    [Theory]
+    [InlineData(@"C:\Windows\UUS\amd64\MoNotificationUx.exe")]
+    [InlineData(@"C:\Windows\UUS\arm64\MoNotificationUx.exe")]
+    [InlineData(@"C:\Windows\UUS\Packages\Preview\amd64\MoUsoCoreWorker.exe")]
+    public void ProcessGuard_KhongDongHopCapNhatWindows(string path)
+    {
+        var rong = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Assert.False(ProcessGuard.ShouldClose(path, rong, rong, Safe, Win));
+        var fake = new FakeProcessControl(new RunningProc(1, path));
+        Assert.Empty(ProcessEnforcer.Enforce(fake, 1, Array.Empty<string>(), Safe, winDir: Win));
+    }
+
+    [Fact]
+    public void ProcessGuard_UUSGiaThiVanDong()
+    {
+        var rong = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // «C:\Windows\Temp\UUS\game.exe» / «C:\WindowsUUS\game.exe» không phải thư mục UUS của Windows
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Windows\Temp\UUS\game.exe", rong, rong, Safe, Win));
+        Assert.True(ProcessGuard.ShouldClose(@"C:\WindowsUUS\game.exe", rong, rong, Safe, Win));
+    }
+
     [Theory, MemberData(nameof(TienTrinhShell))]
     public void ProcessEnforcer_KhongDongShell(string path)
     {
