@@ -26,3 +26,19 @@ test("tên tệp bộ cài Windows mang gói ghép đúng định dạng agent-w
   assert.match(goi, /^[A-Za-z0-9_-]+$/);
   assert.equal(tenTepWindows(goi), `AiiGrow-Setup.enroll-${goi}.exe`);
 });
+
+test("màn của trang /tai: máy cũ, chọn hệ khác (?os=), Đang tải / Tải bị dừng", () => {
+  const cu = "Mozilla/5.0 (Windows NT 6.3; Win64; x64) Chrome/109.0";
+  const a = thamSoTai({}, "windows", cu);
+  assert.equal(a.man, "cu");
+  assert.equal(a.tenCu, "Windows 8.1");
+  assert.equal(thamSoTai({ cu: "1" }, "windows").man, "cu");
+  // Ba Mẹ chọn tay hệ khác ⇒ không còn báo máy cũ, nền theo lựa chọn
+  const b = thamSoTai({ os: "mac" }, "windows", cu);
+  assert.deepEqual([b.man, b.nen, b.chon], ["chinh", "mac", true]);
+  assert.equal(thamSoTai({ os: "linux" }, "android").nen, "android");     // ?os lạ ⇒ theo máy đang mở
+  assert.equal(thamSoTai({ tt: "dang-tai" }, "mac").man, "dang-tai");
+  assert.equal(thamSoTai({ tt: "dung" }, "mac").man, "dung");
+  assert.equal(thamSoTai({ tt: "bậy" }, "mac").man, "chinh");
+  assert.equal(thamSoTai({}, "android", cu).man, "chinh");               // điện thoại không bị coi là máy cũ
+});

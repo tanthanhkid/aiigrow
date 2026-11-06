@@ -1,122 +1,130 @@
-// Trang tải công khai /tai (thiết kế bm1-web-* + L8, 05/11): MỘT nút tải đúng máy đang mở trang, 3 bước bằng hình, mã 6 số dự phòng.
-// Link «Ghép máy» trong app Ba Mẹ là /tai?g=<token gói cài>&ma=<mã 6 số> (lib/ghep-may.ts): trang hiện sẵn mã ở bước 3 (gõ vào bộ cài);
-// iPhone/iPad mở link ⇒ nút «Mở app AiiGrow Con» mang token (tự ghép, không gõ mã). Không có ?g ⇒ hướng dẫn lấy mã trong app Ba Mẹ.
-// Nhận diện máy theo User-Agent (Thanh 24/10: mở bằng MacBook vẫn thấy nút Windows). Giao diện Clay gương (docs/THIET-KE-CLAY.md).
+// Trang tải công khai /tai — 8 màn thiết kế docs/thiet-ke-chot/web-tai/ (L18, 06/11): tự nhận hệ điều hành theo User-Agent, MỘT nút tải đúng bộ cài
+// (Windows .exe · Mac .pkg · Android .apk · iPhone/iPad mở app), «Đang tải», «Tải bị dừng», «Máy quá cũ», hình mở file, «Không phải X?» chọn hệ khác (?os=).
+// Link «Ghép máy» trong app Ba Mẹ là /tai?g=<token gói cài>&ma=<mã 6 số> (lib/ghep-may.ts): Windows ⇒ bộ cài mang sẵn gói (tự ghép, route tai/ghep/[g]);
+// iPhone/iPad ⇒ nút mở thẳng app AiiGrow Con kèm token; mã 6 số hiện ở bước 3 làm dự phòng. Giao diện Clay (docs/THIET-KE-CLAY.md).
 export const metadata = { title: "Tải AiiGrow — AiiGrow", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-import type { ReactNode } from "react";
 import { headers } from "next/headers";
-import { BAN_AGENT_MAC, BAN_AGENT_WINDOWS } from "@/lib/ban-agent.ts";
+import { BAN_AGENT_MAC, BAN_AGENT_WINDOWS, BAN_CON_ANDROID } from "@/lib/ban-agent.ts";
 import { heDieuHanh } from "@/lib/he-dieu-hanh.ts";
-import { linkTaiWindowsGhep, oMa, thamSoTai, type NenTai } from "@/lib/trang-tai.ts";
-import { F3, I3d, Ph, type Ten3d } from "../_clay/Icon";
+import { linkTaiWindowsGhep, thamSoTai, type NenTai } from "@/lib/trang-tai.ts";
+import { F3, I3d, Ph } from "../_clay/Icon";
+import { OMaNho, TheBuoc } from "./Hinh";
+import SaoChep from "./SaoChep";
+import TaiMay from "./TaiMay";
 
 const LINK_APK = "/tai/aiigrow.apk";
 const LINK_APK_CON = "/tai/aiigrow-con.apk";
-
-const MAY: Record<NenTai, { ten: string; ic: Ten3d; mau: "lam" | "xam" | "xanh" | "tim"; nut: string; link: string; tep: string }> = {
-  windows: { ten: "Máy Windows của con", ic: "desktop-computer", mau: "lam", nut: "Tải AiiGrow cho Windows", link: BAN_AGENT_WINDOWS.url,
-    tep: `AiiGrow-Setup.exe · bản ${BAN_AGENT_WINDOWS.version} · ~186 MB · Windows 10/11` },
-  mac: { ten: "Máy Mac của con", ic: "laptop", mau: "xam", nut: "Tải AiiGrow cho máy Mac", link: BAN_AGENT_MAC.url,
-    tep: `AiiGrow-${BAN_AGENT_MAC.version}.pkg · macOS 13 trở lên` },
-  android: { ten: "Điện thoại Android của con", ic: "mobile-phone", mau: "xanh", nut: "Tải AiiGrow Con", link: LINK_APK_CON,
-    tep: "AiiGrow-Con-android.apk · cài trên điện thoại của con" },
-  ios: { ten: "iPhone / iPad của con", ic: "mobile-phone", mau: "tim", nut: "Mở app AiiGrow Con", link: "", tep: "" },
-};
-
-/** 2 bước đầu theo máy (bước 3 luôn là ghép máy). */
-const BUOC: Record<NenTai, [Ten3d, ReactNode, ReactNode?][]> = {
-  windows: [
-    ["inbox-tray", <>Mở tệp <b>AiiGrow-Setup.exe</b> vừa tải</>, <>Hiện «Windows protected your PC»: bấm <b>More info → Run anyway</b>.</>],
-    ["key", <>Bấm <b>Yes</b> khi Windows hỏi quyền</>, <>Máy đã cài AiiGrow: bộ cài cập nhật đè, giữ nguyên ghép máy.</>],
-  ],
-  mac: [
-    ["inbox-tray", <>Mở tệp <b>.pkg</b> bằng tài khoản quản trị của Ba Mẹ</>, <>Máy Mac cần một tài khoản riêng cho con.</>],
-    ["key", <>Bấm <b>Tiếp tục</b>, nhập mật khẩu quản trị</>, <>macOS báo «Đã thêm mục nền» là bình thường — đừng tắt.</>],
-  ],
-  android: [
-    ["inbox-tray", <>Mở tệp <b>AiiGrow-Con.apk</b> vừa tải</>, <>Android hỏi thì cho phép «Cài ứng dụng không rõ nguồn gốc».</>],
-    ["key", <>Mở app <b>AiiGrow Con</b>, cấp các quyền app xin</>, <>Quyền giúp AiiGrow tính giờ và chặn app lạ.</>],
-  ],
-  ios: [
-    ["inbox-tray", <>Cài app <b>AiiGrow Con</b> trên máy của con</>, <>Đang thử qua TestFlight — nhắn AiiLab để nhận lời mời.</>],
-    ["key", <>Quay lại trang này, bấm <b>Mở app AiiGrow Con</b></>, <>Máy mở thẳng app và tự ghép, không cần nhập mã.</>],
-  ],
-};
+const TEN: Record<NenTai, string> = { windows: "Windows", mac: "Mac", android: "Android", ios: "iPhone / iPad" };
 
 export default async function TrangTai({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const h = await headers();
-  const t = thamSoTai(await searchParams, heDieuHanh(h.get("user-agent") ?? "", h.get("sec-ch-ua-platform") ?? ""));
-  // iPhone/iPad không qua link ghép: chưa có bản máy Con tải tay ⇒ nút chính là Windows như trước, kèm lời báo
-  const iosKhongLink = t.nen === "ios" && !t.moApp;
-  const nen: NenTai = iosKhongLink ? "windows" : t.nen;
-  const may = MAY[nen];
-  // Windows mở từ link Ba Mẹ gửi ⇒ bộ cài mang gói ghép trong tên tệp (tự ghép); máy khác / không có link ⇒ tệp thường + mã 6 số
-  const tuGhep = nen === "windows" && !!t.g;
-  const link = nen === "ios" ? t.moApp! : tuGhep ? linkTaiWindowsGhep(t.g) : may.link;
-  const khac = (["windows", "mac", "android"] as const).filter((x) => x !== nen);
-  return (
-    <div className="ag">
-      <main className="trang vao">
-        <header className="dau-trang">
-          <img className="logo" src="/logo.png" alt="AiiGrow" width={76} height={76} />
-          <h1>{t.g ? "Cài AiiGrow cho máy của con" : "Tải AiiGrow cho máy của con"}</h1>
-          {t.g ? <p className="phu-de">Ba Mẹ vừa gửi link này để ghép máy vào gia đình. Làm 3 bước là xong.</p> : null}
-        </header>
+  const ua = h.get("user-agent") ?? "";
+  const q = await searchParams;
+  const t = thamSoTai(q, heDieuHanh(ua, h.get("sec-ch-ua-platform") ?? ""), ua);
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "aiigrow.aiilab.vn";
+  const giao = (h.get("x-forwarded-proto") ?? "https").split(",")[0];
+  const duoi = t.g ? `?g=${encodeURIComponent(t.g)}${t.ma ? `&ma=${t.ma}` : ""}` : "";    // link chia sẻ mang sẵn mã gia đình ⇒ máy kia tự ghép
+  const linkChia = `${giao}://${host}/tai${duoi}`;
+  const hrefHe = (x: NenTai) => `/tai?os=${x}${duoi ? `&${duoi.slice(1)}` : ""}`;
+  const khacCua = (nen: NenTai) => (["windows", "mac", "android", "ios"] as const).filter((x) => x !== nen);
 
-        {iosKhongLink ? (
-          <div className="bao canh-b">
-            <I3d ten="mobile-phone" mau="vang" />
-            <div>Bạn đang mở trang bằng iPhone. Trên iPhone, AiiGrow là app của Ba Mẹ (đang thử qua TestFlight — nhắn AiiLab để nhận lời mời).
-              Máy của con cài được trên Windows, máy Mac và điện thoại Android: mở trang này trên máy đó.</div>
-          </div>
-        ) : null}
-
-        <section className="the the-tai">
-          <div className="dau-tai"><I3d ten={may.ic} mau={may.mau} co={56} /><h2>{may.ten}</h2></div>
-          <a className="nut" href={link}><Ph ten="download-simple" co={22} />{may.nut}</a>
-          {may.tep ? <p className="ghi-tep">{may.tep}</p> : null}
-        </section>
-
-        <ol className="buoc-hinh">
-          {BUOC[nen].map(([ic, chu, phu], i) => (
-            <li key={i}>
-              <span className="so">{i + 1}</span><F3 ten={ic} co={40} className="hinh" />
-              <div><b className="t">{chu}</b>{phu ? <small>{phu}</small> : null}</div>
-            </li>
-          ))}
-          <li>
-            <span className="so">3</span><F3 ten="shield" co={40} className="hinh" />
-            <div>
-              <b className="t">{nen === "ios" ? "Ba Mẹ duyệt Screen Time bằng Apple ID (một lần)" : tuGhep ? "Bộ cài tự ghép máy vào gia đình" : nen === "mac" ? "Cửa sổ Ghép máy tự mở: nhập mã" : "Nhập mã ghép máy"}</b>
-              {nen === "ios" ? <small>{t.ma ? "Không mở được app? Nhập mã ghép máy dưới đây trong app AiiGrow Con." : "Không mở được app? Nhờ Ba Mẹ đọc mã 6 số trong app Ba Mẹ."}</small>
-                : tuGhep ? <small>Không cần gõ mã. Bộ cài báo link hết hạn thì gõ mã dưới đây (mã dùng 10 phút).</small>
-                : t.ma ? <small>Mã dưới đây — dùng được 10 phút.</small>
-                  : <small>Lấy mã 6 số trong app Ba Mẹ: <b>Máy của con › Ghép thêm máy</b>.</small>}
-            </div>
-          </li>
-        </ol>
-
-        {t.ma ? (
-          <section className="the ma-ghep" aria-label={`Mã ghép máy ${t.ma}`}>
-            <p className="nhan-o">Mã ghép máy</p>
-            <div className="o-ma">{oMa(t.ma).map((c, i) => <span key={i}>{c}</span>)}</div>
-            <p className="ghi-tep">Mã hết hạn sau 10 phút. Hết hạn thì nhờ Ba Mẹ bấm «Lấy mã mới» trong app.</p>
-          </section>
-        ) : null}
-
-        <div className="bao ok-b">
-          <I3d ten="key" mau="xanh" />
-          <div>Cài xong là máy được bảo vệ ngay: chỉ app Ba Mẹ cho phép mới mở được, hết giờ chơi hay tới giờ ngủ thì máy khoá. App lạ con muốn dùng thì <b>xin Ba Mẹ duyệt</b>.</div>
-        </div>
-
-        <p className="duong-phu">
-          Máy khác: {khac.map((x, i) => <span key={x}>{i ? " · " : ""}<a href={MAY[x].link}>{x === "windows" ? "Windows (.exe)" : x === "mac" ? "Mac (.pkg)" : "Android (.apk)"}</a></span>)}
-          {" · "}App Ba Mẹ cho Android: <a href={LINK_APK}>aiigrow.apk</a>
-        </p>
-        <a className="nut vien nho nut-lui" href="/"><Ph ten="arrow-left" co={18} />Về app AiiGrow</a>
-      </main>
+  const Dau = ({ may }: { may?: string }) => (
+    <div className="tai-dau">
+      <img className="logo" src="/logo.png" alt="" width={44} height={44} /><b>AiiGrow</b>
+      {may ? <span className="chip tai-may">{may}</span> : null}
     </div>
+  );
+  const DuongKhac = ({ nen }: { nen: NenTai }) => (
+    <p className="tai-khac">Không phải {TEN[nen]}? {khacCua(nen).map((x, i) => <span key={x}>{i ? " · " : ""}<a href={hrefHe(x)}>{TEN[x]}</a></span>)}</p>
+  );
+  const MayKhac = () => (
+    <section className="the tai-the-may">
+      <div className="dau-tai"><I3d ten="desktop-computer" mau="lam" co={48} /><div><h2>Cài cho máy tính?</h2><p className="ghi-chu">Mở link này trên máy tính của con</p></div></div>
+      <SaoChep url={linkChia} hien={`${host}/tai`} />
+    </section>
+  );
+
+  // ---- Máy quá cũ (02) ----
+  if (t.man === "cu") {
+    return (
+      <div className="ag"><main className="trang vao tai-trang">
+        <Dau may={`Máy này: ${t.tenCu}`} />
+        <header className="dau-trang">
+          <h1>Máy này cũ quá, AiiGrow chưa chạy được</h1>
+          <p className="phu-de">AiiGrow cần một trong hai: <b>Windows 10 trở lên</b> hoặc <b>macOS 13 trở lên</b>.</p>
+        </header>
+        <div className="bao canh-b"><I3d ten="eyes" mau="vang" /><div>Mình chưa vào được máy này. Ba Mẹ chọn 1 trong 2 cách bên dưới nhé.</div></div>
+        <MayKhac />
+        <section className="the tai-the-may">
+          <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={48} /><div><h2>Cài cho điện thoại của con</h2><p className="ghi-chu">Điện thoại hoặc máy tính bảng của con</p></div></div>
+          <div className="hai-nut"><a className="nut vien" href={hrefHe("android")}>Android</a><a className="nut vien" href={hrefHe("ios")}>iPhone / iPad</a></div>
+        </section>
+        <p className="ghi-chu tai-giua">Cài xong trên máy khác, máy đó tự báo về điện thoại Ba Mẹ.</p>
+      </main></div>
+    );
+  }
+
+  // ---- Android (06) ----
+  if (t.nen === "android") {
+    return (
+      <div className="ag"><main className="trang vao tai-trang">
+        <Dau may="Android" />
+        <header className="dau-trang"><h1>Đây là điện thoại Android.</h1><p className="phu-de">Bộ cài máy tính không chạy ở đây.</p></header>
+        <section className="the the-tai">
+          <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={48} /><div><h2>Cài cho điện thoại này</h2><p className="ghi-chu">Khi đây là máy của con</p></div></div>
+          <a className="nut ngoc rong tai-nut-lon" href={LINK_APK_CON}><Ph ten="download-simple" co={22} />Tải AiiGrow Con cho Android</a>
+          <p className="ghi-tep">AiiGrow-Con-{BAN_CON_ANDROID.version}.apk · cài trên điện thoại của con</p>
+        </section>
+        <ol className="tai-cac-buoc">
+          <TheBuoc so={1} ten="Tải" phu="Bấm nút xanh ở trên" hinh={<div className="tai-hop"><b className="tai-t">Đang tải xuống</b><div className="tai-vach"><i /></div></div>} />
+          <TheBuoc so={2} ten="Bấm «Cho phép»" phu="Android hỏi một lần" hinh={<div className="tai-hop"><b className="tai-t">AiiGrow Con</b><small className="tai-ph">Cho phép cài ứng dụng từ nguồn này?</small><div className="tai-nut2"><span className="tai-mn">Huỷ</span><span className="tai-mn ok">Cho phép</span></div></div>} />
+          <TheBuoc so={3} ten="Nhập mã 6 số" phu="Mã dùng được 10 phút" hinh={<OMaNho ma={t.ma} />} />
+        </ol>
+        <MayKhac />
+        <p className="duong-phu">Đây là máy của Ba Mẹ? <a href={LINK_APK}>Cài app Ba Mẹ</a> thay vì app Con.</p>
+        <DuongKhac nen="android" />
+      </main></div>
+    );
+  }
+
+  // ---- iPhone / iPad (07) ----
+  if (t.nen === "ios") {
+    return (
+      <div className="ag"><main className="trang vao tai-trang">
+        <Dau may="iPhone / iPad" />
+        <header className="dau-trang"><h1>Đây là iPhone / iPad.</h1><p className="phu-de">Không cần tải file, mình dẫn từng bước.</p></header>
+        <section className="the the-tai">
+          <div className="dau-tai"><I3d ten="mobile-phone" mau="tim" co={48} /><div><h2>Cài cho máy này</h2><p className="ghi-chu">Khi đây là máy của con</p></div></div>
+          {t.moApp
+            ? <a className="nut ngoc rong tai-nut-lon" href={t.moApp}><Ph ten="download-simple" co={22} />Mở trang cài cho iPhone</a>
+            : <p className="ghi-chu">Nhờ Ba Mẹ gửi link «Ghép máy» trong app Ba Mẹ, mở link đó trên máy này để cài. Đang thử qua TestFlight, nhắn AiiLab để nhận lời mời.</p>}
+        </section>
+        <ol className="tai-cac-buoc">
+          <TheBuoc so={1} ten="Cài app AiiGrow Con" phu="Từ App Store" hinh={<F3 ten="inbox-tray" co={64} />} />
+          <TheBuoc so={2} ten="Cài hồ sơ" phu="Bấm «Cho phép» rồi «Cài đặt»" hinh={<F3 ten="scroll" co={64} />} />
+          <TheBuoc so={3} ten="Cho phép Thời gian sử dụng" phu="Ba Mẹ xác nhận một lần" hinh={<F3 ten="shield" co={64} />} />
+        </ol>
+        <MayKhac />
+        <DuongKhac nen="ios" />
+      </main></div>
+    );
+  }
+
+  // ---- Windows / Mac: Chính · Đang tải · Tải bị dừng (01, 03, 04, 05) ----
+  const mac = t.nen === "mac";
+  const tuGhep = !mac && !!t.g;
+  const link = tuGhep ? linkTaiWindowsGhep(t.g) : mac ? BAN_AGENT_MAC.url : BAN_AGENT_WINDOWS.url;
+  const tep = mac ? `Bản ${BAN_AGENT_MAC.version} · macOS 13 trở lên` : `Bản ${BAN_AGENT_WINDOWS.version} · Windows 10/11`;
+  const khac = (mac ? (["windows", "android", "ios"] as const) : (["mac", "android", "ios"] as const)).map((x) => ({ nen: x, ten: TEN[x], href: hrefHe(x) }));
+  return (
+    <div className="ag"><main className="trang vao tai-trang">
+      <Dau may={`Máy này: ${mac ? "Mac" : "Windows"}`} />
+      <TaiMay nen={mac ? "mac" : "windows"} link={link} nut={mac ? "Tải bộ cài cho Mac" : "Tải bộ cài cho Windows"} tep={tep} ma={t.ma} tuGhep={tuGhep}
+        dau={t.man === "dang-tai" ? "tai" : t.man === "dung" ? "dung" : "cho"} khac={khac} />
+      <div className="tai-chan"><I3d ten="shield" mau="xanh" co={40} /><span>Cài xong, máy của con tự báo về điện thoại Ba Mẹ.</span></div>
+      <p className="duong-phu"><a href="/">Về app AiiGrow</a></p>
+    </main></div>
   );
 }

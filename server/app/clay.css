@@ -239,3 +239,47 @@ body{color:var(--chu);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-
 .ag .ma-ghep .o-ma{display:flex;gap:8px;justify-content:center}
 .ag .ma-ghep .o-ma span{width:46px;height:58px;border-radius:18px;display:grid;place-items:center;background:var(--lom);box-shadow:var(--lomIn);font-size:28px;font-weight:800;font-variant-numeric:tabular-nums}
 @media (max-width:380px){.ag .ma-ghep .o-ma{gap:5px}.ag .ma-ghep .o-ma span{width:40px;height:52px;font-size:24px}}
+
+/* /tai (thiết kế web-tai, 06/11): đầu trang, thẻ bước có hình, hộp thoại thu nhỏ, thanh tải. Chỉ dùng token Clay ở trên. */
+.ag .tai-trang{max-width:760px}
+.ag .tai-dau{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ag .tai-dau .logo{width:44px;height:44px;border-radius:14px;box-shadow:var(--clayNho);object-fit:cover}
+.ag .tai-dau b{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.ag .tai-may{margin-left:auto;min-height:40px;color:var(--chinh-ink);cursor:default}
+.ag .tai-nut-lon{min-height:72px;font-size:19px;border-radius:28px}
+.ag .tai-khac{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;font-size:14.5px;font-weight:700;color:var(--chu2)}
+.ag .tai-khac a{font-weight:700}
+.ag .tai-khac a.chip{color:var(--chu2);text-decoration:none}
+.ag .tai-giua{text-align:center}
+.ag .tai-tieu-de{font-size:18px;font-weight:800;margin-top:6px}
+.ag .tai-cac-buoc{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,1fr);gap:22px 16px}
+.ag .tai-buoc{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:30px 14px 18px}
+.ag .tai-buoc h3{font-size:16.5px;font-weight:800;line-height:1.25}
+.ag .tai-buoc p{font-size:13.5px;margin-top:4px;color:var(--chu3);line-height:1.35}
+.ag .tai-so{position:absolute;left:14px;top:-16px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--keo-ngoc);box-shadow:var(--bong-ngoc);color:#fff;font-weight:800;font-size:17px}
+.ag .tai-lo{width:100%;min-height:150px;border-radius:24px;background:var(--lom);box-shadow:var(--lomIn);display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden}
+.ag .tai-hop{width:100%;max-width:230px;background:#fff;border-radius:16px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:8px;box-shadow:var(--clayNho)}
+.ag .tai-t{font-size:13px;font-weight:800;line-height:1.3}
+.ag .tai-ph{font-size:12px;font-weight:700;color:var(--chu3)}
+.ag .tai-tep{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;font-weight:800}
+.ag .tai-tep small{display:block;font-size:11.5px;font-weight:600;color:var(--chu3)}
+.ag .tai-nut2{display:flex;gap:8px}
+.ag .tai-mn{flex:1;display:grid;place-items:center;min-height:34px;padding:0 10px;border-radius:10px;background:var(--xam-soft);color:var(--chu2);font-size:13px;font-weight:800;white-space:nowrap}
+.ag .tai-mn.ok{background:var(--keo-ngoc);box-shadow:var(--bong-ngoc);color:#fff}
+.ag .tai-ma{display:flex;gap:5px;justify-content:center;width:100%}
+.ag .tai-ma i{flex:1;max-width:34px;height:44px;border-radius:12px;background:#fff;box-shadow:var(--clayNho);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:19px}
+.ag .tai-vach{height:10px;border-radius:99px;background:var(--lom);box-shadow:var(--lomIn);overflow:hidden;width:100%}
+.ag .tai-vach i{display:block;height:100%;width:40%;border-radius:99px;background:var(--keo-ngoc);animation:tai-chay 1.4s var(--men) infinite alternate}
+.ag .tai-vach.dung i{animation:none;width:64%;background:var(--keo-toi)}
+@keyframes tai-chay{from{transform:translateX(-10%)}to{transform:translateX(150%)}}
+@media (prefers-reduced-motion:reduce){.ag .tai-vach i{animation:none;width:64%}}
+.ag .tai-the-tai{display:flex;flex-direction:column;gap:10px;padding:20px}
+.ag .tai-the-loi{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:22px 20px}
+.ag .tai-the-loi h1{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.ag .tai-the-may{display:flex;flex-direction:column;gap:12px;padding:18px}
+.ag .tai-the-may .dau-tai{display:flex;align-items:center;gap:12px}
+.ag .tai-the-may h2{font-size:17px;font-weight:800}
+.ag .tai-chep{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.ag .tai-chep code{overflow-wrap:anywhere}
+.ag .tai-chan{display:flex;align-items:center;gap:12px;font-size:14.5px;font-weight:600;color:var(--chu3)}
+@media (max-width:620px){.ag .tai-cac-buoc{grid-template-columns:1fr}.ag .tai-lo{min-height:120px}.ag .tai-may{margin-left:0}}
