@@ -123,6 +123,10 @@ test("B1 06/11 «Mở hết» + quỹ: còn quỹ ⇒ tu_do, Giải trí tính g
   // đang có cửa sổ mở có hạn (đổi sao / Ba Mẹ duyệt) ⇒ không gửi app Giải trí để chặn (agent Mac chặn cả khi cửa sổ còn hạn)
   const mo = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(0) }), undefined, "chan", { moDen: new Date(Date.parse("2026-10-21T10:15:00.000Z")) });
   assert.deepEqual([mo.mode, mo.appTinhGio], ["tu_do", []]);
+  // phiên chơi Con đã trả sao ⇒ không đóng app đang chơi
+  const ph = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(0), phien: { id: "p1", muc: "roblox.exe", conPhut: 15 } }), undefined, "chan");
+  assert.deepEqual([ph.mode, ph.appTinhGio], ["tu_do", []]);
+  assert.ok(ph.allowedApps.includes("roblox.exe"));
   // giờ máy sai: Giải trí đóng cả app lẫn web (không nửa vời)
   const sai = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(30), gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
   assert.deepEqual([sai.mode, sai.quyConPhut, sai.appTinhGio], ["tu_do", 0, ["roblox.exe"]]);

@@ -5,9 +5,8 @@ import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { luuThietLap, napAppGoiY, type AppGoiY } from "@/lib/ghep-may";
-import { coMa } from "@/lib/thiet-lap";
 import { Anh3D, DauMan, OApp, OThemApp, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
-import { datTl, layTl, type AppChon } from "@/lib/thiet-lap";
+import { coMa, datTl, layTl, type AppChon } from "@/lib/thiet-lap";
 import { BaoLoi, Chu, Icon3D, M, Man, Nut, The, useLam } from "@/lib/ui";
 
 export default function ChonApp() {

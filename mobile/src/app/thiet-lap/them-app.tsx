@@ -6,9 +6,8 @@ import { router } from "expo-router";
 import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { napAppGoiY, type AppGoiY } from "@/lib/ghep-may";
-import { coMa } from "@/lib/thiet-lap";
 import { DauMan, LienKet, OApp, TieuDe } from "@/lib/lan-dau";
-import { datTl, layTl } from "@/lib/thiet-lap";
+import { coMa, datTl, layTl } from "@/lib/thiet-lap";
 import { Chu, F, Icon3D, M, Man, Nut, Rob, The } from "@/lib/ui";
 
 const bo = (t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").trim();

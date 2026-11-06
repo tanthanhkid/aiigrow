@@ -3,11 +3,11 @@
 //   · Giờ chơi mỗi ngày: chip 30 / 60 / 90 phút, cuối tuần +30 (L2 — quỹ phút, hết giờ máy tự khoá);
 //   · Giờ ngủ: hai ô giờ, bấm mở bánh xe (them-hijzsz0z).
 // «Lưu và ghép máy của X» ⇒ POST thiet-lap (một lần) ⇒ Ghép máy.
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH, tomTat } from "@/lib/ghep-may";
+import { cuoiTuanCua, luuThietLap, napAppGoiY, napCaiDatCon, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
 import { BanhXeGio, DauMan, gioGon, OApp, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
 import { coMa, datTl, layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Man, Nut, Rob, The, useLam } from "@/lib/ui";
@@ -20,25 +20,13 @@ export default function ObGio() {
   const [ngu, setNgu] = useState(tl.ngu ?? NGU_MAC_DINH);
   const [apps, setApps] = useState(tl.apps);
   const [suaNgu, setSuaNgu] = useState<"tu" | "den" | null>(null);
-  const daNap = useRef<{ con: string; p: Promise<void> } | null>(null);
-  // Nạp một lần mỗi Con; «Lưu» chờ lượt nạp này xong — chưa biết cài đặt thật thì KHÔNG lưu đè mặc định (lỗi ⇒ báo, Ba Mẹ thử lại)
-  const napCaiDat = () => {
-    const t = layTl();
-    if (!t.conId || (t.cheDoChan && t.quy != null && t.ngu)) return Promise.resolve();
-    if (daNap.current?.con === t.conId) return daNap.current.p;
-    const con = t.conId;
-    const p = tomTat(con).then((x) => {
-      const n = layTl();
-      if (n.conId !== con) return;
-      if (!n.cheDoChan && x.cheDoChan) { setCheDo(x.cheDoChan); datTl({ cheDoChan: x.cheDoChan }); }
-      if (n.quy == null && x.gioChoi.ngayThuong != null) {
-        setQuy(x.gioChoi.ngayThuong); datTl({ quy: x.gioChoi.ngayThuong, ...(x.gioChoi.cuoiTuan != null ? { cuoiTuan: x.gioChoi.cuoiTuan } : {}) });
-      }
-      if (!n.ngu && x.ngu?.tu && x.ngu?.den) { setNgu(x.ngu); datTl({ ngu: x.ngu }); }
-    }).catch((e) => { daNap.current = null; throw e; });
-    daNap.current = { con, p };
-    return p;
-  };
+  // nạp cài đặt thật của Con (lib/ghep-may › napCaiDatCon) rồi hiện lên màn — mục Ba Mẹ đã chọn giữ nguyên
+  const napCaiDat = () => napCaiDatCon().then(() => {
+    const n = layTl();
+    if (n.cheDoChan) setCheDo(n.cheDoChan);
+    if (n.quy != null) setQuy(n.quy);
+    if (n.ngu) setNgu(n.ngu);
+  });
   const { lam, loi, dangChay } = useLam();
   // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Rob (app-goi-y)
   useFocusEffect(useCallback(() => {
@@ -50,7 +38,6 @@ export default function ObGio() {
   }, []));
   const doi = (x: Parameters<typeof datTl>[0]) => datTl(x);
   const luu = () => lam(async () => {
-    await napCaiDat();
     const con = await luuThietLap();
     router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
   }, { hangDoi: true });
@@ -108,7 +95,7 @@ export default function ObGio() {
             style={{ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center", justifyContent: "center",
               backgroundColor: quy === p ? "#fff" : "#ebeae6", boxShadow: quy === p ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.lom }}>
             <Chu kieu="rat" co={16}>{`${p} phút`}</Chu>
-            <Chu co={11.5} mau={M.chu3}>{`T7, CN: ${cuoiTuanCua(p)} phút`}</Chu>
+            <Chu co={11.5} mau={M.chu3}>{`T7, CN: ${p === quy && layTl().quy === p && layTl().cuoiTuan != null ? layTl().cuoiTuan : cuoiTuanCua(p)} phút`}</Chu>
           </Pressable>
         ))}
       </View>

@@ -107,7 +107,8 @@ fun quyetDinh(
     val khongLoc = trinhDuyetKhongLoc(trinhDuyet, daXep)
     // 05/11 «Mở hết» (chuaXep = cho_phep): app chưa xếp được dùng — chỉ trình duyệt không lọc web được vẫn chặn.
     // 06/11 (B1): không còn buộc phải có `quy` — máy chủ gửi cho_phep là Ba Mẹ đã chọn «Mở hết», luật cũ (không quỹ) cũng phải theo.
-    val chuaXepThat = if (cs.chuaXepChoPhep) emptySet() else daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet()
+    val chuaXepDayDu = daCai.filter { !it.heThong && it.goi !in daXep }.map { it.goi }.toSet()
+    val chuaXepThat = if (cs.chuaXepChoPhep) emptySet() else chuaXepDayDu
     val chuaXep = chuaXepThat + khongLoc
     val coThe = { s: Set<String> -> (s - GOI_LUON_CHO) }
 
@@ -138,7 +139,8 @@ fun quyetDinh(
     }
     if (!cs.giaiTriDuocMo || "khong_tuan_thu" in cs.lyDo || "gio_may_sai" in cs.lyDo) {
         val cau = cs.cauTuanThuCon.firstOrNull() ?: "Máy đang tạm khoá giải trí. Con nhờ Ba Mẹ kiểm tra giúp nhé."
-        return kq(TrangThai.KHONG_TUAN_THU, chan + giaiTri + chuaXep, false, 0, null, cau)
+        // luật cũ (không quỹ): máy lệch chuẩn thì app lạ vẫn dừng kể cả «Mở hết» — như trước 06/11
+        return kq(TrangThai.KHONG_TUAN_THU, chan + giaiTri + chuaXep + chuaXepDayDu, false, 0, null, cau)
     }
     if (conKhung == 0 && cs.phien == null) {
         return kq(TrangThai.NGOAI_KHUNG, chan + giaiTri + chuaXep, false, 0, dauKhungKe(g, khung), "Bây giờ chưa phải giờ chơi. App học vẫn dùng được.")

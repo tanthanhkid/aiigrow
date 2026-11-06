@@ -36,7 +36,7 @@ class Kho(ctx: Context) {
     var goiDaTamDung: Set<String> get() = p.getStringSet("goiDaTamDung", emptySet()) ?: emptySet(); set(v) = p.edit().putStringSet("goiDaTamDung", v).apply()
     /** Bản mới đã tải + kiểm xong, đang chờ cài (chờ quyền «Cài ứng dụng không rõ nguồn» / chờ hết khoá) — màn chính hiện thẻ cập nhật. */
     var banMoiCho: String? get() = p.getString("banMoiCho", null); set(v) = p.edit().putString("banMoiCho", v).apply()
-    /** Lần cuối mở hộp xác nhận cài (đường không Device Owner) — tự hỏi lại tối đa mỗi 6 giờ. */
+    /** Lần cuối hộp xác nhận cài hiện (không Device Owner: lúc commit; Device Owner: khi hệ thống vẫn đòi xác nhận) — cùng bản tự hỏi lại tối đa mỗi 6 giờ (06/11 B2). */
     var lanHoiCai: Long get() = p.getLong("lanHoiCai", 0); set(v) = p.edit().putLong("lanHoiCai", v).apply()
     /** versionCode của lần hỏi / gửi cài gần nhất (`lanHoiCai`) — manifest có bản mới hơn thì không chờ 6 giờ. */
     var banHoiCai: Long get() = p.getLong("banHoiCai", 0); set(v) = p.edit().putLong("banHoiCai", v).apply()

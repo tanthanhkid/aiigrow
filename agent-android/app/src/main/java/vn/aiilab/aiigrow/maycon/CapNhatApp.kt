@@ -241,12 +241,12 @@ object CapNhat {
                 tep.inputStream().use { i -> s.openWrite("aiigrow-con.apk", 0, tep.length()).use { o -> i.copyTo(o); s.fsync(o) } }
                 // xét khoá lần nữa ngay trước commit: cài đè khởi động lại app giữa lúc khoá / đếm ngược
                 if (dangKhoa(k)) { s.abandon(); NhatKy.tin(TAG, "vừa vào khoá — hoãn cài ${b.version} 30 phút"); chayNgay(ctx, 30); return false }
-                val nhan = Intent(ctx, NhanKetQuaCai::class.java).setPackage(ctx.packageName).putExtra("ban", b.version).putExtra("sha", b.sha256)
+                val nhan = Intent(ctx, NhanKetQuaCai::class.java).setPackage(ctx.packageName).putExtra("ban", b.version).putExtra("sha", b.sha256).putExtra("vc", b.versionCode)
                 // FLAG_MUTABLE bắt buộc: hệ thống điền EXTRA_STATUS / EXTRA_INTENT vào intent kết quả
                 val co = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                 NhatKy.tin(TAG, "cài ${b.version} (versionCode ${b.versionCode}) — ${if (laDo) "Device Owner, im lặng" else "chờ xác nhận"}")
                 s.commit(PendingIntent.getBroadcast(ctx, id, nhan, co).intentSender)
-                k.lanHoiCai = System.currentTimeMillis(); k.banHoiCai = b.versionCode   // commit xong (cả Device Owner): lượt tự kiểm kế không mở phiên/hộp mới trong 6 giờ
+                if (!laDo) { k.lanHoiCai = System.currentTimeMillis(); k.banHoiCai = b.versionCode }   // hộp xác nhận hiện ⇒ 6 giờ không hỏi lại (DO: chỉ khi hệ thống đòi xác nhận — xem NhanKetQuaCai)
                 k.hoanTu = 0
             }
             return true
@@ -287,7 +287,7 @@ class NhanKetQuaCai : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 @Suppress("DEPRECATION") val xn: Intent = (if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
                     else i.getParcelableExtra(Intent.EXTRA_INTENT)) ?: return
-                Kho(c).lanHoiCai = System.currentTimeMillis()   // hộp xác nhận vừa hiện ⇒ 6 giờ không tự hỏi lại
+                Kho(c).let { it.lanHoiCai = System.currentTimeMillis(); it.banHoiCai = i.getLongExtra("vc", 0) }   // hộp xác nhận vừa hiện (cả Device Owner) ⇒ 6 giờ không tự hỏi lại bản này
                 CapNhat.thongBao(c, null, "Có bản AiiGrow mới $ban", "Chạm để cập nhật AiiGrow (Ba Mẹ quản lý máy này).", Intent(xn))
                 try { c.startActivity(xn.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { Log.i("AiiGrowCapNhat", "chưa mở được hộp xác nhận từ nền — chờ chạm thông báo") }
             }

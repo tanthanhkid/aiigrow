@@ -164,8 +164,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const appQuy = quyMo ? appGiaiTri : [];   // vào allowedApps
   // «Mở hết» mà quỹ đã hết (06/11, B1): mode vẫn tu_do (app chưa xếp vẫn mở) nhưng app Giải trí phải đóng — gửi chúng trong appTinhGio,
   // quyConPhut = 0 ⇒ agent (Windows QuyTaiCho / Mac QuyGio) đưa chúng vào danh sách chặn của mode tu_do. Trước đây appTinhGio rỗng ⇒ hết giờ vẫn chơi.
-  // Đang có cửa sổ mở có hạn / ngoại lệ cả máy ⇒ không gửi (agent Mac sẽ chặn cả lúc Con đang dùng giờ vừa đổi sao).
-  const appTinhGio = quyMo || (moHet && p.quy && !dangMo && !nlCaMay) ? appGiaiTri : [];
+  // Đang có cửa sổ mở có hạn / ngoại lệ cả máy / phiên chơi đã trả sao ⇒ không gửi (agent Mac sẽ chặn cả lúc Con đang dùng giờ vừa đổi sao).
+  const appTinhGio = quyMo || (moHet && p.quy && !dangMo && !nlCaMay && !p.phien) ? appGiaiTri : [];
   const den = nlCaMay ? new Date(Math.max(Date.parse(nlCaMay.den), dangMo ? mo.moDen!.getTime() : 0)) : dangMo ? mo.moDen! : null;
   const heThong = p.allowlistHeThong.filter(laApp).map(chuan);
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
