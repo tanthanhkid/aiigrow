@@ -363,14 +363,22 @@ public sealed class AgentRuntime
         {
             var p = ThucThi(now);
             if (p == null) return null;
-            return DangNhapView.ApDung(MoTamOffline.ApDung(PolicyEvaluator.Evaluate(p, now, _usedSeconds), MoTamDangMo(now)), Config?.DangNhap, now);
+            var eff = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(p, now, _usedSeconds), MoTamDangMo(now));
+            return DangNhapCoHieuLuc(now) ? DangNhapView.ApDung(eff, Config?.DangNhap, now) : eff;
         }
     }
 
     // ================================================================ 06/11 (L13): ai đang dùng máy (chọn tên + PIN, Ba Mẹ nhập mã)
 
     /// <summary>con | ba_me | chua lúc <paramref name="now"/>.</summary>
-    public string NguoiDung(DateTimeOffset now) { lock (_gate) return DangNhapView.HienTai(Config?.DangNhap, now); }
+    public string NguoiDung(DateTimeOffset now) { lock (_gate) return DangNhapCoHieuLuc(now) ? DangNhapView.HienTai(Config?.DangNhap, now) : LoaiNguoiDung.Con; }
+
+    /// <summary>Chọn tên + PIN chỉ áp khi máy CHẶN THẬT: giám sát / máy mồ côi không khoá màn nào (ChoKhayGiamSat) ⇒ coi như bé đang dùng
+    /// (vẫn đếm giờ, khay vẫn có tin) — không thì máy kẹt «chưa ai» mãi mà không có màn chọn tên. Gọi trong khoá.</summary>
+    private bool DangNhapCoHieuLuc(DateTimeOffset now) => AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo) && !MoCoi.La(Config, now);
+
+    /// <summary>Lần hỏi ho-so gần nhất (chỉ trong bộ nhớ — không ghi cấu hình mỗi lần hỏi).</summary>
+    public DateTimeOffset? HoSoHoiLuc { get; set; }
 
     /// <summary>Bản sao trạng thái đăng nhập (đọc ngoài khoá).</summary>
     public DangNhapMay DangNhap()
@@ -395,7 +403,9 @@ public sealed class AgentRuntime
             if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
             else if (Config != null) { Config.DangNhap ??= new DangNhapMay(); doi = f(Config.DangNhap); }
             var sau = Config?.DangNhap is { } d1 ? (d1.Loai, d1.ConId) : (LoaiNguoiDung.Chua, null);
-            if (sau != truoc) { _quyGiay = 0; _quyChoGhi = 0; _quyGiayNgay = 0; _usedSeconds = 0; _lockStartedAt = null; }
+            // KHÔNG đặt lại quỹ đếm tại máy khi đổi người: lúc mất mạng Policy đang giữ vẫn là bản cũ ⇒ đăng xuất / vào lại không được thêm giờ;
+            // có mạng, lượt đồng bộ ngay sau (RequestSyncSoon) mang Policy + quỹ của bé mới và đặt lại bộ đếm (SetPolicy).
+            if (sau != truoc) _lockStartedAt = null;
             return doi;
         }
     }
@@ -475,7 +485,7 @@ public sealed class AgentRuntime
             }
             Config = moi;
             _cfgStamp = Store.LastWriteUtc;
-            if (choBaMe && kq == KetQuaMoOffline.DaMo) { _quyGiay = 0; _quyChoGhi = 0; _quyGiayNgay = 0; _usedSeconds = 0; _lockStartedAt = null; }
+            if (choBaMe && kq == KetQuaMoOffline.DaMo) _lockStartedAt = null;
             return (kq == KetQuaMoOffline.DaMo || (kq == KetQuaMoOffline.DangMo && !choBaMe), cau);
         }
     }
@@ -566,11 +576,13 @@ public sealed class AgentRuntime
             bool moTam = MoTamDangMo(now);
             var tt = ThucThi(now)!;
             var dn = Config?.DangNhap;
-            var eff = DangNhapView.ApDung(MoTamOffline.ApDung(PolicyEvaluator.Evaluate(tt, now, _usedSeconds), moTam), dn, now);
+            var coDn = DangNhapCoHieuLuc(now);
+            var eff0 = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(tt, now, _usedSeconds), moTam);
+            var eff = coDn ? DangNhapView.ApDung(eff0, dn, now) : eff0;
             if (moTam) s.MoOfflineDen = Config!.MoTamOffline.UnlockUntil;
             s.ChildName = string.IsNullOrEmpty(_policy.ChildName) ? (Config?.ChildName ?? "") : _policy.ChildName;
             // 06/11 (L13): ai đang dùng máy — tên trên màn là bé đang đăng nhập (Policy có thể còn của lượt đồng bộ trước)
-            s.NguoiDung = DangNhapView.HienTai(dn, now);
+            s.NguoiDung = coDn ? DangNhapView.HienTai(dn, now) : LoaiNguoiDung.Con;
             s.MayRieng = dn?.HoSo?.MayRieng ?? Config?.DungChung == false;
             if (s.NguoiDung == LoaiNguoiDung.Con) { s.BeId = dn!.ConId; s.BeTen = dn.TenCon; if (!string.IsNullOrWhiteSpace(dn.TenCon)) s.ChildName = dn.TenCon!; }
             else if (s.NguoiDung == LoaiNguoiDung.BaMe) s.BaMeDen = dn!.BaMeDen;

@@ -49,10 +49,18 @@ public sealed class NguoiDungMay
         }
     }
 
+    /// <summary>Lưu danh sách bé — chỉ ghi cấu hình (DPAPI) khi danh sách đổi; lúc hỏi giữ trong bộ nhớ.</summary>
     private void LuuHoSo(HoSoMay hs)
     {
         var luc = DateTimeOffset.Now;
-        _rt.CapNhatDangNhap(d => { d.HoSo = hs; d.HoSoLuc = luc; return true; });
+        _rt.HoSoHoiLuc = luc;
+        var moi = JsonSerializer.Serialize(hs, Json.Options);
+        _rt.CapNhatDangNhap(d =>
+        {
+            if (d.HoSo != null && JsonSerializer.Serialize(d.HoSo, Json.Options) == moi) return false;
+            d.HoSo = hs; d.HoSoLuc = luc;
+            return true;
+        });
     }
 
     /// <summary>Bé chạm tên + PIN. Có mạng ⇒ máy chủ kiểm (đếm sai 5 lần / 15 giây ở máy chủ); mất mạng ⇒ máy tự kiểm bằng vân PIN đã lưu.</summary>
@@ -148,7 +156,8 @@ public sealed class NguoiDungMay
         {
             var (ok, cau) = _rt.TryMaOffline(sach, now, choBaMe: true);
             _log.LogInformation("Mất mạng: Ba Mẹ nhập mã tại máy — {kq}", ok ? "mở" : cau);
-            return ok ? new PipeResponse { Ok = true, Status = "ok", Message = cau } : Loi("ma_sai", cau);
+            // câu của máy (sai / mã đã dùng / đang chờ vì sai nhiều / máy chưa có bí mật) hiện nguyên văn
+            return ok ? new PipeResponse { Ok = true, Status = "ok", Message = cau } : Loi("ma_offline", cau);
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
@@ -200,6 +209,8 @@ public sealed class NguoiDungMay
             viec = v;
             return doi;
         });
+        // vừa có bé vào lúc lượt đồng bộ đang chạy ⇒ thôi báo (dang-xuat lúc này sẽ đá bé mới khỏi máy chủ)
+        if (viec == ViecSauDongBo.BaoRoi && _rt.DangNhap() is { } dn && dn.Loai == LoaiNguoiDung.Con && !dn.CanBaoRoi) viec = ViecSauDongBo.KhongCo;
         if (viec == ViecSauDongBo.BaoRoi)
         {
             try
@@ -210,7 +221,7 @@ public sealed class NguoiDungMay
             }
             catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Báo đăng xuất lỗi, để lần sau: {m}", e.Message); }
         }
-        if (DangNhapView.CanHoiHoSo(_rt.DangNhap(), now))
+        if (DangNhapView.CanHoiHoSo(_rt.DangNhap(), now, _rt.HoSoHoiLuc))
         {
             try { LuuHoSo(await api.HoSoAsync(ct)); }
             catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Làm mới danh sách bé lỗi: {m}", e.Message); }

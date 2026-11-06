@@ -320,6 +320,9 @@ public static class AppConView
     public static string PhuVoucher(HvVoucherVi v) =>
         $"Mã {v.Ma} · đưa mã QR ở quầy" + (v.HetHan is { } h ? " · hạn " + h.ToLocalTime().ToString("dd/MM") : "");
 
+    /// <summary>Voucher không còn dùng được: «Đã dùng» / «Hết hạn».</summary>
+    public static string TrangThaiVoucher(HvVoucherVi v) => v.TrangThai == "da_dung" ? "Đã dùng" : "Hết hạn";
+
     public static string TenVoucher(HvVoucherVi v) =>
         !string.IsNullOrWhiteSpace(v.Ten) ? (v.Ten!.StartsWith("Voucher", StringComparison.OrdinalIgnoreCase) ? v.Ten! : "Voucher " + v.Ten) : $"Voucher AiiCafe {v.MenhGia / 1000}k";
 

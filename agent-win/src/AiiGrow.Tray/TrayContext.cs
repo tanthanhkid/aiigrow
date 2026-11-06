@@ -545,9 +545,10 @@ internal sealed class TrayContext : ApplicationContext
             }
             return;
         }
-        _baMeAn = false;
+        // Close() bằng mã cũng báo UserClosing ⇒ đóng TRƯỚC rồi mới xoá cờ «Ba Mẹ đã thu nhỏ» (lần Ba Mẹ mở máy sau hộp hiện lại)
         if (_baMeForm is { IsDisposed: false }) { _baMeForm.Close(); _baMeForm.Dispose(); }
         _baMeForm = null;
+        _baMeAn = false;
         if (_baMeVien is { IsDisposed: false }) { _baMeVien.Close(); _baMeVien.Dispose(); }
         _baMeVien = null;
     }

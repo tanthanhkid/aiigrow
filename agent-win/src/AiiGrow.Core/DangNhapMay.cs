@@ -270,7 +270,8 @@ public static class DangNhapView
                     return (false, ViecSauDongBo.KhongCo);
                 }
                 // máy đã đăng xuất / Ba Mẹ dùng bằng mã lúc mất mạng mà máy chủ còn ghi bé ⇒ báo lại (máy dùng chung)
-                return (false, tai == LoaiNguoiDung.Chua && !mayRieng ? ViecSauDongBo.BaoRoi : ViecSauDongBo.KhongCo);
+                var lech = tai == LoaiNguoiDung.Chua || tai == LoaiNguoiDung.BaMe && d.BaMeOffline;
+                return (false, lech && !mayRieng ? ViecSauDongBo.BaoRoi : ViecSauDongBo.KhongCo);
             default:
                 return (false, ViecSauDongBo.KhongCo);
         }
@@ -316,9 +317,10 @@ public static class DangNhapView
         return KetQuaPinOffline.Sai;
     }
 
-    /// <summary>Cần hỏi lại ho-so: chưa có danh sách, đang ở màn chọn tên mà danh sách cũ hơn 2 phút, hoặc cũ hơn 30 phút.</summary>
-    public static bool CanHoiHoSo(DangNhapMay d, DateTimeOffset now)
-        => d.HoSo == null || d.HoSoLuc is not { } l || now - l > TimeSpan.FromMinutes(HienTai(d, now) == LoaiNguoiDung.Chua ? 2 : 30) || l > now.AddMinutes(1);
+    /// <summary>Cần hỏi lại ho-so: chưa có danh sách, đang ở màn chọn tên mà lần hỏi trước cũ hơn 2 phút, hoặc cũ hơn 30 phút.
+    /// <paramref name="hoiLuc"/> = lần hỏi gần nhất trong bộ nhớ dịch vụ (null ⇒ theo lúc danh sách được lưu).</summary>
+    public static bool CanHoiHoSo(DangNhapMay d, DateTimeOffset now, DateTimeOffset? hoiLuc = null)
+        => d.HoSo == null || (hoiLuc ?? d.HoSoLuc) is not { } l || now - l > TimeSpan.FromMinutes(HienTai(d, now) == LoaiNguoiDung.Chua ? 2 : 30) || l > now.AddMinutes(1);
 
     // ------------------------------------------------------------------ chữ trên màn
 

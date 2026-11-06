@@ -17,7 +17,9 @@ internal static class Accounts
         if (!IsValidName(name)) throw new ArgumentException("Tên tài khoản chỉ gồm chữ, số, dấu . _ - (tối đa 20 ký tự)");
         var q = Shell.PsQuote(name);
         var tao = string.IsNullOrEmpty(password)
-            ? $"New-LocalUser -Name {q} -NoPassword -AccountNeverExpires | Out-Null; Set-LocalUser -Name {q} -PasswordNeverExpires $true -ErrorAction SilentlyContinue; "
+            // -NoPassword có thể để cờ «phải đổi mật khẩu lần đầu» ⇒ tắt hẳn bằng net user (không yêu cầu mật khẩu, không bắt đổi lúc đăng nhập)
+            ? $"New-LocalUser -Name {q} -NoPassword -AccountNeverExpires | Out-Null; " +
+              $"& net.exe user {q} /passwordreq:no /logonpasswordchg:no | Out-Null; if ($LASTEXITCODE -ne 0) {{ throw 'net user /passwordreq:no lỗi ' + $LASTEXITCODE }}; "
             : "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
               $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; ";
         var r = Shell.PowerShell(

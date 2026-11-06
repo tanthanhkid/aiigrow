@@ -171,6 +171,11 @@ public class DangNhapMayTests
         Assert.Equal(ViecSauDongBo.BaoRoi, DangNhapView.NhanTuMayChu(new DangNhapMay(), nd, Moc, mayRieng: false, Moc).Viec);
         // máy riêng: máy chủ luôn ghi chủ máy, máy khoá chờ PIN là chuyện của máy
         Assert.Equal(ViecSauDongBo.KhongCo, DangNhapView.NhanTuMayChu(new DangNhapMay(), nd, Moc, mayRieng: true, Moc).Viec);
+        // Ba Mẹ mở bằng mã lúc mất mạng mà máy chủ còn ghi bé ⇒ cũng báo lại
+        var d = new DangNhapMay();
+        DangNhapView.VaoBaMe(d, Moc.AddMinutes(30), offline: true, Moc);
+        Assert.Equal(ViecSauDongBo.BaoRoi, DangNhapView.NhanTuMayChu(d, nd, Moc.AddMinutes(1), mayRieng: false, Moc.AddMinutes(1)).Viec);
+        Assert.True(DangNhapView.BaMeDangDung(d, Moc.AddMinutes(1)));
     }
 
     [Fact]
@@ -250,6 +255,7 @@ public class DangNhapMayTests
         DangNhapView.VaoCon(d, "c1", "Bảo Anh", null, Moc);
         Assert.False(DangNhapView.CanHoiHoSo(d, Moc.AddMinutes(10)));        // bé đang dùng: 30 phút
         Assert.True(DangNhapView.CanHoiHoSo(d, Moc.AddMinutes(31)));
+        Assert.False(DangNhapView.CanHoiHoSo(d, Moc.AddMinutes(31), hoiLuc: Moc.AddMinutes(30)));   // lần hỏi trong bộ nhớ (danh sách không đổi ⇒ không ghi lại)
     }
 
     [Fact]
