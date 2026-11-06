@@ -1,0 +1,8 @@
+#!/bin/bash
+# Sao lưu DB AiiGrow (Postgres cục bộ trên VPS, thay Neon từ 06/11/2026) — giữ 14 bản. /etc/cron.d/aiigrow gọi 02:30 mỗi ngày.
+set -euo pipefail; umask 077
+D=/var/backups/aiigrow; F=$D/aiigrow-$(date +%Y%m%d-%H%M).sql.gz; mkdir -p $D
+pg_dump "$(cat /etc/aiigrow/db-local.url)" --no-owner --no-privileges | gzip > $F.tam
+mv $F.tam $F
+ls -1t $D/aiigrow-*.sql.gz | tail -n +15 | xargs -r rm -f
+echo "$(date "+%F %T") ok $(ls -1 $D/aiigrow-*.sql.gz | wc -l) bản"

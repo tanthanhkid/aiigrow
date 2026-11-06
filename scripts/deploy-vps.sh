@@ -9,6 +9,8 @@
 #   /opt/aiigrow/releases/<sha>-<giờ>/   bản đã đẩy (giữ 3 bản gần nhất), /opt/aiigrow/current → bản đang chạy
 #   /etc/aiigrow/aiigrow.env       biến môi trường (root, chmod 600; KHÔNG nằm trong git) — node --env-file đọc lúc khởi động
 #   pm2 «aiigrow» (cổng 3320, 127.0.0.1) · nginx /etc/nginx/sites-enabled/aiigrow.conf · cron /etc/cron.d/aiigrow (thay crons của vercel.json)
+#   CSDL: Postgres 16 cục bộ (127.0.0.1:5432, db/role aiigrow; thay Neon us-east-1 từ 06/11 — mỗi câu SQL ~250 ms từ VN làm API 5–12 s)
+#   sao lưu 02:30 /var/backups/aiigrow (scripts/vps/aiigrow-sao-luu) · logrotate scripts/vps/aiigrow.logrotate · tệp mẫu: scripts/vps/
 # Quay lại bản cũ trên VPS (pm2 reload KHÔNG đổi bản — pm2 giữ đường thật của server.js):
 #   B=/opt/aiigrow/releases/<bản>; ln -sfn "$B" /opt/aiigrow/current; pm2 delete aiigrow; PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$B/server.js" \
 #     --name aiigrow --cwd "$B" --node-args="--env-file=/etc/aiigrow/aiigrow.env --max-old-space-size=384" --max-memory-restart 450M; pm2 save
@@ -52,7 +54,8 @@ BAN="$SHA-$(date +%Y%m%d%H%M%S)"   # tên bản luôn mới ⇒ không bao giờ
 echo "== Đẩy lên $VPS:/opt/aiigrow/releases/$BAN"
 # một kết nối dùng chung (ControlMaster): sshd VPS chặn khi mở nhiều kết nối liền nhau
 SSH=(ssh -o ConnectTimeout=30 -o ControlMaster=auto -o "ControlPath=$HOME/.ssh/cm-%r@%h:%p" -o ControlPersist=10m "$VPS")
-"${SSH[@]}" "mkdir -p /opt/aiigrow/releases && test -f /etc/aiigrow/aiigrow.env" || { echo "Thiếu /etc/aiigrow/aiigrow.env trên VPS"; exit 1; }
+# 755: nginx (www-data) đọc thẳng tệp tĩnh /_expo, /assets, /_next/static từ current/ (scripts/vps/aiigrow.nginx.conf)
+"${SSH[@]}" "mkdir -p /opt/aiigrow/releases && chmod 755 /opt/aiigrow /opt/aiigrow/releases && test -f /etc/aiigrow/aiigrow.env" || { echo "Thiếu /etc/aiigrow/aiigrow.env trên VPS"; exit 1; }
 # tar qua ssh (rsync của macOS là openrsync, lỗi cờ vẫn thoát 0 — memory macos-openrsync-nuot-rsync); tar giữ symlink node_modules/.pnpm
 COPYFILE_DISABLE=1 tar czf - --no-xattrs --no-mac-metadata -C "$GOI" . | "${SSH[@]}" "mkdir /opt/aiigrow/releases/$BAN.tam && tar xzf - -C /opt/aiigrow/releases/$BAN.tam && mv /opt/aiigrow/releases/$BAN.tam /opt/aiigrow/releases/$BAN"
 "${SSH[@]}" "test -f /opt/aiigrow/releases/$BAN/server.js" || { echo "Đẩy lỗi: thiếu server.js trên VPS"; exit 1; }
@@ -62,7 +65,7 @@ BAN=$1; cd /opt/aiigrow
 CU="$(readlink current || true)"   # bản đang chạy (để quay lại nếu bản mới hỏng)
 chay() {   # chay <thư mục bản>: delete + start (pm2 reload không đổi được bản, xem đầu tệp). PORT/HOSTNAME đặt ở đây ⇒ luôn chỉ nghe 127.0.0.1:3320
   pm2 delete aiigrow >/dev/null 2>&1 || true
-  PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$1/server.js" --name aiigrow --cwd "$1" \
+  AIIGROW_BAN="$(basename "$1" | cut -d- -f1)" PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$1/server.js" --name aiigrow --cwd "$1" \
     --node-args="--env-file=/etc/aiigrow/aiigrow.env --max-old-space-size=384" --max-memory-restart 450M >/dev/null
 }
 # /api/suc-khoe chạy `select 1` ⇒ bản thiếu/sai DATABASE_URL không qua được cổng
