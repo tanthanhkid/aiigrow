@@ -30,5 +30,5 @@ export function tenMayCu(ua: string): string {
     return t[`${w[1]}.${w[2]}`] ?? "Windows";
   }
   const m = /Mac OS X 10[_.](\d+)/i.exec(ua);
-  return m ? `macOS 10.${m[1]}` : "máy này";
+  return m ? `macOS 10.${m[1]}` : "Windows";
 }

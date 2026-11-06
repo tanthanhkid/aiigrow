@@ -23,11 +23,11 @@ export default async function TrangCai({ params }: { params: Promise<{ token: st
         </ol>
         {token ? (
           <section className="the the-tai">
-            <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={56} /><h2>Mở AiiGrow Con, nhập mã</h2></div>
+            <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={56} /><h2>Máy của con đã cài app?</h2></div>
             <a className="nut" href={lienKetApp(token)}>Mở app AiiGrow Con</a>
             <p className="ghi-tep">
               Mã gói cài: <code className="ma-token">{token}</code>
-              <br />Mã 6 số trên điện thoại Ba Mẹ · dùng được 10 phút. Mở từ link này thì máy tự ghép, không cần gõ mã; hết hạn thì nhờ Ba Mẹ tạo gói mới trong app Ba Mẹ.
+              <br />Mở AiiGrow Con từ nút trên thì máy tự ghép, không cần gõ mã. Link hết hạn thì nhờ Ba Mẹ tạo gói mới (mã 6 số trên điện thoại Ba Mẹ dùng được 10 phút).
             </p>
           </section>
         ) : null}

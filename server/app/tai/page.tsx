@@ -23,10 +23,11 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
   const ua = h.get("user-agent") ?? "";
   const q = await searchParams;
   const t = thamSoTai(q, heDieuHanh(ua, h.get("sec-ch-ua-platform") ?? ""), ua);
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "aiigrow.aiilab.vn";
-  const giao = (h.get("x-forwarded-proto") ?? "https").split(",")[0];
+  // gốc link chia sẻ: AIIGROW_APP_URL nếu cấu hình (cùng nguồn với tai/ghep), không tin header client gửi lên (link mang token gói cài)
+  const goc = (process.env.AIIGROW_APP_URL || "https://aiigrow.aiilab.vn").replace(/\/+$/, "");
+  const host = goc.replace(/^https?:\/\//, "");
   const duoi = t.g ? `?g=${encodeURIComponent(t.g)}${t.ma ? `&ma=${t.ma}` : ""}` : "";    // link chia sẻ mang sẵn mã gia đình ⇒ máy kia tự ghép
-  const linkChia = `${giao}://${host}/tai${duoi}`;
+  const linkChia = `${goc}/tai${duoi}`;
   const hrefHe = (x: NenTai) => `/tai?os=${x}${duoi ? `&${duoi.slice(1)}` : ""}`;
   const khacCua = (nen: NenTai) => (["windows", "mac", "android", "ios"] as const).filter((x) => x !== nen);
 
@@ -121,7 +122,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
   return (
     <div className="ag"><main className="trang vao tai-trang">
       <Dau may={`Máy này: ${mac ? "Mac" : "Windows"}`} />
-      <TaiMay nen={mac ? "mac" : "windows"} link={link} nut={mac ? "Tải bộ cài cho Mac" : "Tải bộ cài cho Windows"} tep={tep} ma={t.ma} tuGhep={tuGhep}
+      <TaiMay duPhong={`/tai/du-phong?os=${t.nen}${duoi ? `&${duoi.slice(1)}` : ""}`} nen={mac ? "mac" : "windows"} link={link} nut={mac ? "Tải bộ cài cho Mac" : "Tải bộ cài cho Windows"} tep={tep} ma={t.ma} tuGhep={tuGhep}
         dau={t.man === "dang-tai" ? "tai" : t.man === "dung" ? "dung" : "cho"} khac={khac} />
       <div className="tai-chan"><I3d ten="shield" mau="xanh" co={40} /><span>Cài xong, máy của con tự báo về điện thoại Ba Mẹ.</span></div>
       <p className="duong-phu"><a href="/">Về app AiiGrow</a></p>

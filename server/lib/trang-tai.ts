@@ -32,7 +32,7 @@ export function thamSoTai(q: Record<string, string | string[] | undefined>, os: 
   const chonOs = NEN_HOP_LE.find((x) => x === mot(q.os));
   const nen: NenTai = chonOs ?? (os === "khac" ? "windows" : os);
   // máy cũ chỉ báo khi tự nhận (không chọn tay) và là máy tính; ?cu=1 chạy thử màn «Máy quá cũ»
-  const cu = !chonOs && (mot(q.cu) === "1" || ((nen === "windows" || nen === "mac") && mayQuaCu(ua)));
+  const cu = !chonOs && (nen === "windows" || nen === "mac") && (mot(q.cu) === "1" || mayQuaCu(ua));
   const tt = mot(q.tt);
   const man: ManTai = cu ? "cu" : tt === "dang-tai" || tt === "dung" ? tt : "chinh";
   return { g, ma: ma.length === 6 ? ma : "", nen, moApp: nen === "ios" && g ? lienKetApp(g) : null, man, tenCu: cu ? tenMayCu(ua) : "", chon: !!chonOs };

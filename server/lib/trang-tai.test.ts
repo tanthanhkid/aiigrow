@@ -42,3 +42,9 @@ test("màn của trang /tai: máy cũ, chọn hệ khác (?os=), Đang tải / T
   assert.equal(thamSoTai({ tt: "bậy" }, "mac").man, "chinh");
   assert.equal(thamSoTai({}, "android", cu).man, "chinh");               // điện thoại không bị coi là máy cũ
 });
+
+test("?cu=1 chỉ áp cho máy tính; điện thoại không bị coi là máy cũ", () => {
+  assert.equal(thamSoTai({ cu: "1" }, "android").man, "chinh");
+  assert.equal(thamSoTai({ cu: "1" }, "ios").man, "chinh");
+  assert.equal(thamSoTai({ cu: "1" }, "mac").man, "cu");
+});
