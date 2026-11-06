@@ -12,7 +12,7 @@
 #   CSDL: Postgres 16 cục bộ (127.0.0.1:5432, db/role aiigrow; thay Neon us-east-1 từ 06/11 — mỗi câu SQL ~250 ms từ VN làm API 5–12 s)
 #   sao lưu 02:30 /var/backups/aiigrow (scripts/vps/aiigrow-sao-luu) · logrotate scripts/vps/aiigrow.logrotate · tệp mẫu: scripts/vps/
 # Quay lại bản cũ trên VPS (pm2 reload KHÔNG đổi bản — pm2 giữ đường thật của server.js):
-#   B=/opt/aiigrow/releases/<bản>; ln -sfn "$B" /opt/aiigrow/current; pm2 delete aiigrow; PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$B/server.js" \
+#   B=/opt/aiigrow/releases/<bản>; ln -sfn "$B" /opt/aiigrow/current; pm2 delete aiigrow; AIIGROW_BAN="$(cat $B/BAN)" PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$B/server.js" \
 #     --name aiigrow --cwd "$B" --node-args="--env-file=/etc/aiigrow/aiigrow.env --max-old-space-size=384" --max-memory-restart 450M; pm2 save
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -65,7 +65,7 @@ BAN=$1; cd /opt/aiigrow
 CU="$(readlink current || true)"   # bản đang chạy (để quay lại nếu bản mới hỏng)
 chay() {   # chay <thư mục bản>: delete + start (pm2 reload không đổi được bản, xem đầu tệp). PORT/HOSTNAME đặt ở đây ⇒ luôn chỉ nghe 127.0.0.1:3320
   pm2 delete aiigrow >/dev/null 2>&1 || true
-  AIIGROW_BAN="$(basename "$1" | cut -d- -f1)" PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$1/server.js" --name aiigrow --cwd "$1" \
+  AIIGROW_BAN="$(cat "$1/BAN")" PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$1/server.js" --name aiigrow --cwd "$1" \
     --node-args="--env-file=/etc/aiigrow/aiigrow.env --max-old-space-size=384" --max-memory-restart 450M >/dev/null
 }
 # /api/suc-khoe chạy `select 1` ⇒ bản thiếu/sai DATABASE_URL không qua được cổng
