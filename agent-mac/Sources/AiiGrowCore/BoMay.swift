@@ -273,7 +273,8 @@ public actor BoMay {
         MoCoi.ghiThanhCong(&$0, now: lucOk)
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
-      if kq.nguoiDung != nil, cauHinh.hoSoMay == nil, cauHinh.daGhep { _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi bé, PIN lúc mất mạng)
+      // danh sách bé + vân PIN: lấy sớm và làm mới ≥ 30 phút một lần (PIN / bí mật đổi thì kiểm PIN lúc mất mạng vẫn đúng)
+      if kq.nguoiDung != nil, cauHinh.daGhep, cauHinh.hoSoMay == nil || donDieu() - hoSoLuc > 1800 { hoSoLuc = donDieu(); _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi bé, PIN lúc mất mạng)
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
     } catch _ where the != theHeGhep {
@@ -652,6 +653,7 @@ public actor BoMay {
   /// (PIN không ghi đĩa); daemon khởi động lại thì máy chủ thấy «chưa ai vào» ⇒ màn chọn tên, bé nhập lại.
   /// Mọi lệnh loại này (dang-nhap-be / dang-xuat / khoa-lai) thay nhau ⇒ chỉ cần MỘT lệnh chờ (lệnh sau đè lệnh trước).
   private var lenhCho: (path: String, than: [String: Any], id: UUID)?
+  private var hoSoLuc: Double = -1_000_000
   private func datLenhCho(_ path: String, _ than: [String: Any]) { lenhCho = (path, than, UUID()) }
 
   private func nguoiDungHieuLuc() -> NguoiDungMay? { cauHinh.phienMay?.hieuLuc(now: dongHo()) }
@@ -789,7 +791,8 @@ public actor BoMay {
       let kq = st.thuMo(biMat: policy?.maOfflineBiMat, ma: sach, now: now)
       let cau = st.cau(kq, now: now)
       cauHinh.moTamOffline = st; _ = try? kho.sua { $0.moTamOffline = st }
-      guard kq == .daMo else {
+      if kq == .chuaCoBiMat { return .loi(ma: "chua_co_bi_mat", chu: cau) }
+      guard kq == .daMo || kq == .dangMo else {
         let ketQua = kq == .choThuLai ? "ma_tam_khoa" : kq == .daDung ? "ma_da_dung" : "ma_sai"
         return .pin(ketQua: ketQua, conLan: kq == .sai ? max(0, MoTamOffline.saiToiDa - st.saiLuc.count) : nil,
                     choGiay: kq == .choThuLai ? st.choGiay(now) : nil, chu: cau)

@@ -84,6 +84,7 @@ final class PinBeTests: XCTestCase {
     let (q1, h1) = PhienMay.apDung(p, hl, .chua, now: t)
     XCTAssertTrue(q1.allowedApps.isEmpty); XCTAssertTrue(h1.chiAppHoc); XCTAssertFalse(h1.khoa, "màn chọn tên không đếm ngược đăng xuất")
     var k = p; k.mode = "khoa"; k.locked = true
+    XCTAssertTrue(PhienMay.apDung(k, DanhGiaPolicy.tinh(k, now: t, daDungGiay: 0), .chua, now: t).1.khoa, "giờ ngủ/khoá vẫn khoá khi chưa ai vào")
     let (q2, h2) = PhienMay.apDung(k, DanhGiaPolicy.tinh(k, now: t, daDungGiay: 0), .baMe(den: t.addingTimeInterval(60)), now: t)
     XCTAssertFalse(h2.khoa); XCTAssertFalse(h2.chiAppHoc); XCTAssertTrue(q2.blockedApps.isEmpty)
     XCTAssertTrue(PhienMay.tinhGioCon(nil)); XCTAssertTrue(PhienMay.tinhGioCon(.con(id: "c", ten: "")))
