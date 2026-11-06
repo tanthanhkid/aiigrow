@@ -1,55 +1,62 @@
 // Màn chặn của AiiGrow: câu tiếng Việt thân thiện theo lý do (đọc từ app group) + nút «Xin thêm giờ».
-// Ngôn ngữ «Clay gương» trong giới hạn của Apple: ShieldConfiguration chỉ nhận màu nền, một ảnh icon, màu chữ và màu nút (không bo góc,
-// bóng hay chuyển động). Nên: nền đất sét #ecebe7, icon = viên clay tráng men vẽ sẵn thành ảnh (Fluent 3D bên trong), nút ngọc lục bảo.
+// Bản «Dịu» (06/11) trong giới hạn của Apple: ShieldConfiguration chỉ nhận màu nền, một ảnh icon, màu chữ và màu nút (không bo góc,
+// bóng hay chuyển động). Nên: nền kem #fbf8f2, icon Fluent 3D trong viên tròn kem, nút xanh lá đặc, chữ khớp màn con-dt-gio / con-dt-chan.
 import ManagedSettings
 import ManagedSettingsUI
 import UIKit
 import ConCore
 
 final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
-  static let ngoc = UIColor(red: 0x0f / 255, green: 0x6b / 255, blue: 0x5c / 255, alpha: 1)
-  static let ngocInk = UIColor(red: 0x0a / 255, green: 0x52 / 255, blue: 0x46 / 255, alpha: 1)
-  static let nen = UIColor(red: 0xec / 255, green: 0xeb / 255, blue: 0xe7 / 255, alpha: 1)
-  static let chu = UIColor(red: 0x0f / 255, green: 0x13 / 255, blue: 0x12 / 255, alpha: 1)
-  static let chu3 = UIColor(red: 0x56 / 255, green: 0x5c / 255, blue: 0x59 / 255, alpha: 1)
+  // bản «Dịu» 06/11 (docs/thiet-ke-chot/con-dt-gio, con-dt-chan): nền kem, MỘT màu nhấn xanh lá, chữ than
+  static let xanh = UIColor(red: 0x2f / 255, green: 0x9e / 255, blue: 0x5f / 255, alpha: 1)
+  static let xanhDam = UIColor(red: 0x1f / 255, green: 0x6e / 255, blue: 0x42 / 255, alpha: 1)
+  static let nen = UIColor(red: 0xfb / 255, green: 0xf8 / 255, blue: 0xf2 / 255, alpha: 1)
+  static let chu = UIColor(red: 0x1f / 255, green: 0x2a / 255, blue: 0x37 / 255, alpha: 1)
+  static let chu2 = UIColor(red: 0x5f / 255, green: 0x6b / 255, blue: 0x7a / 255, alpha: 1)
+  static let nenIcon = UIColor(red: 0xf6 / 255, green: 0xf3 / 255, blue: 0xec / 255, alpha: 1)
 
-  func cauHinh(ten: String?) -> ShieldConfiguration {
+  /// `web`: màn chặn trang web (cdt-chan-web) — chữ khác màn chặn app.
+  func cauHinh(ten: String?, web: Bool = false) -> ShieldConfiguration {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
     let lyDo = k?.lyDo ?? .ngoaiGio
-    let tieuDe: String
+    let tieuDe: String, phu: String, nut: String
     switch lyDo {
-    case .ngu: tieuDe = "Chúc con ngủ ngon 🌙"
-    case .khoaNgay: tieuDe = "Mình nghỉ một chút nhé"
-    case .hetGio: tieuDe = "Hết giờ chơi hôm nay rồi"
-    default: tieuDe = "Tạm nghỉ chút nhé"
+    case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Cần gấp thì xin Ba Mẹ mở nhé."; nut = "Xin Ba Mẹ mở máy"
+    case .khoaNgay: tieuDe = "Ba Mẹ đang khoá máy"; phu = "Đọc sách hoặc ra ngoài chơi nhé!"; nut = "Xin Ba Mẹ mở máy"
+    case .hetGio: tieuDe = "Hết giờ chơi rồi"; phu = "Con đổi sao lấy phút hoặc xin Ba Mẹ thêm giờ nhé."; nut = "Thêm giờ chơi"
+    case .gioHoc: tieuDe = "Giờ học rồi!"; phu = "Chỉ mở app học. Học xong được chơi tiếp."; nut = "Xin Ba Mẹ mở app khác"
+    case .chuaVao: tieuDe = "Máy đang khoá"; phu = "Mở AiiGrow Con, chạm tên con rồi nhập PIN nhé."; nut = "Mở AiiGrow Con"
+    case .khong:
+      // khiên lúc không khoá giờ = app / trang Ba Mẹ chặn (them-4e5fwl16 · cdt-chan-web)
+      tieuDe = web ? "Trang này chưa mở" : "\(ten ?? "App này") chưa mở"
+      phu = web ? "Ba Mẹ chưa cho phép trang này. Con xin thử nhé!" : "Ba Mẹ chưa cho phép app này."
+      nut = "Xin Ba Mẹ mở"
+    default: tieuDe = "Tạm nghỉ chút nhé"; phu = lyDo.cauChoCon; nut = "Thêm giờ chơi"
     }
-    // 05/11: giờ ngủ / Ba Mẹ khoá ⇒ không thêm giờ được, chỉ «Xin Ba Mẹ mở ngoại lệ»; giờ học ⇒ chỉ app học
-    let phu = (ten.map { "\($0) đang tạm khoá. " } ?? "") + lyDo.cauChoCon
-    let coXin = true
-    let hinh: (String, UIColor)
+    let hinh: String
     switch lyDo {
-    case .ngu: hinh = ("fl_trang", UIColor(red: 0xe7 / 255, green: 0xe5 / 255, blue: 0xf8 / 255, alpha: 1))
-    case .khoaNgay: hinh = ("fl_khoa", UIColor(red: 0xfb / 255, green: 0xec / 255, blue: 0xc0 / 255, alpha: 1))
-    case .hetGio: hinh = ("fl_dong_ho_cat", UIColor(red: 0xf9 / 255, green: 0xe7 / 255, blue: 0xd2 / 255, alpha: 1))
-    default: hinh = ("fl_dong_ho", UIColor(red: 0xdc / 255, green: 0xeb / 255, blue: 0xe6 / 255, alpha: 1))
+    case .ngu: hinh = "fl_trang"
+    case .khoaNgay, .chuaVao, .khong: hinh = "fl_khoa"
+    case .hetGio: hinh = "fl_dong_ho_cat"
+    default: hinh = "fl_dong_ho"
     }
     return ShieldConfiguration(
       backgroundBlurStyle: nil,
       backgroundColor: Self.nen,
-      icon: VienClay.anh(hinh.0, nen: hinh.1),
+      icon: VienClay.anh(hinh, nen: Self.nenIcon),
       title: .init(text: tieuDe, color: Self.chu),
-      subtitle: .init(text: phu, color: Self.chu3),
-      primaryButtonLabel: .init(text: !coXin ? "Đã hiểu" : lyDo.chiNgoaiLe ? "Xin Ba Mẹ mở ngoại lệ" : "Thêm giờ chơi", color: .white),
-      primaryButtonBackgroundColor: Self.ngoc,
-      secondaryButtonLabel: coXin ? .init(text: "Để sau", color: Self.ngocInk) : nil)
+      subtitle: .init(text: (web && lyDo != .khong ? (ten.map { "\($0) · " } ?? "") : "") + phu, color: Self.chu2),
+      primaryButtonLabel: .init(text: nut, color: .white),
+      primaryButtonBackgroundColor: Self.xanh,
+      secondaryButtonLabel: .init(text: "Về trang chính", color: Self.xanhDam))
   }
 
   override func configuration(shielding application: Application) -> ShieldConfiguration { cauHinh(ten: application.localizedDisplayName) }
   override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
     cauHinh(ten: application.localizedDisplayName)
   }
-  override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration { cauHinh(ten: webDomain.domain) }
-  override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration { cauHinh(ten: webDomain.domain) }
+  override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration { cauHinh(ten: webDomain.domain, web: true) }
+  override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration { cauHinh(ten: webDomain.domain, web: true) }
 }
 
 /// Viên clay tròn tráng men (bóng kép, men trắng nửa trên, phản chiếu đáy) với icon Fluent 3D ở giữa — vẽ thành một UIImage

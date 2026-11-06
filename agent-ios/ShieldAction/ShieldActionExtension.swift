@@ -12,8 +12,12 @@ final class ShieldActionExtension: ShieldActionDelegate {
     KhoUserDefaults().luu(Date(), Khoa.xinTuManChan)
     let n = UNMutableNotificationContent()
     let ngoaiLe = k?.lyDo.chiNgoaiLe == true
-    n.title = ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ" : "Thêm giờ chơi"
-    n.body = ngoaiLe ? "Chạm vào đây để chọn bao lâu và nhắn Ba Mẹ." : "Chạm vào đây để dùng sao hoặc xin Ba Mẹ thêm giờ."
+    if k?.lyDo == .chuaVao {
+      n.title = "Máy đang khoá"; n.body = "Chạm vào đây để mở AiiGrow Con, chạm tên con rồi nhập PIN."
+    } else {
+      n.title = ngoaiLe ? "Xin Ba Mẹ mở máy" : "Thêm giờ chơi"
+      n.body = ngoaiLe ? "Chạm vào đây để chọn bao lâu và nhắn Ba Mẹ." : "Chạm vào đây để đổi sao hoặc xin Ba Mẹ thêm giờ."
+    }
     n.userInfo = ["mo": "xin-them-gio"]
     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "xin-them-gio", content: n, trigger: nil)) { _ in xong(.close) }
   }

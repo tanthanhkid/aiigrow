@@ -33,6 +33,17 @@ public enum MaOffline {
     totp(biMat, Int64(floor(now.timeIntervalSince1970)) / Int64(buocGiay), soChuSo)
   }
 
+  /// 06/11 (L19): số phút nằm TRONG mã — 60 phút = bí mật gốc, 30 / 15 phút = bí mật «<bí mật>|30» / «<bí mật>|15»
+  /// (server/lib/ma-offline.ts › kiemMaOfflinePhut). Thử 60 → 30 → 15; khớp ⇒ số phút, không ⇒ nil.
+  public static let phutMo = [60, 30, 15]
+  public static func biMatPhut(_ biMat: String, _ phut: Int) -> String { phut == 60 ? biMat : "\(biMat)|\(phut)" }
+  public static func kiemPhut(_ biMat: String?, _ ma: String?, now: Date) -> Int? {
+    guard let biMat, !biMat.isEmpty else { return nil }
+    var khop: Int?
+    for p in phutMo where kiem(biMatPhut(biMat, p), ma, now: now) { khop = khop ?? p }   // so hết các biến thể (không thoát sớm)
+    return khop
+  }
+
   /// Máy tự kiểm mã Ba Mẹ đọc: khớp bước hiện tại hoặc trong dung sai. So hết các bước (không thoát sớm).
   public static func kiem(_ biMat: String?, _ ma: String?, now: Date, buocGiay: Int = buocGiay, soChuSo: Int = soChuSo, dungSai: Int = dungSai) -> Bool {
     guard let biMat, !biMat.isEmpty else { return false }
@@ -67,6 +78,8 @@ public struct MoTamOffline: Codable, Equatable {
   public var saiLuc: [Date] = []
   /// Giờ muộn nhất máy từng thấy trong lượt mở (app + chuông lịch ghi lại) — đồng hồ bị lùi về trước mốc này ⇒ coi như hết mở.
   public var thayMuonNhat: Date?
+  /// Số phút của lượt mở gần nhất (theo biến thể mã 60 / 30 / 15).
+  public var phutMo: Int?
   public init() {}
 
   /// Đang mở? Đồng hồ bị lùi (về trước lúc mở, hoặc về trước lần đã thấy) ⇒ coi như không mở (không kéo dài / hồi sinh bằng cách chỉnh giờ).
@@ -93,8 +106,8 @@ public struct MoTamOffline: Codable, Equatable {
     return max(1, Int(ceil(cuNhat.addingTimeInterval(TimeInterval(Self.cuaSoSaiPhut * 60)).timeIntervalSince(now))))
   }
 
-  /// Con gõ mã Ba Mẹ đọc. Đúng ⇒ mở tới now + phut.
-  public mutating func thuMo(biMat: String?, ma: String?, now: Date, phut: Int = phutMoMacDinh) -> KetQuaMoOffline {
+  /// Con gõ mã Ba Mẹ đọc. Đúng ⇒ mở tới now + số phút mã mang (60 / 30 / 15 — `phut` ép số khác, chỉ dùng trong test).
+  public mutating func thuMo(biMat: String?, ma: String?, now: Date, phut: Int? = nil) -> KetQuaMoOffline {
     guard let biMat, !biMat.isEmpty else { return .chuaCoBiMat }
     if giayCho(now) > 0 { return .choThuLai }
     let sach = (ma ?? "").filter(\.isNumber)
@@ -103,8 +116,9 @@ public struct MoTamOffline: Codable, Equatable {
     if let cu = maCuoi, let luc = maCuoiLuc, sach == cu, now.timeIntervalSince(luc) < Self.nhoMaDaDung, now >= luc.addingTimeInterval(-60) {
       return dangMo(now) ? .dangMo : .daDung
     }
-    guard MaOffline.kiem(biMat, sach, now: now) else { saiLuc.append(now); return .sai }
-    let p = min(120, max(5, phut))
+    guard let phutMa = MaOffline.kiemPhut(biMat, sach, now: now) else { saiLuc.append(now); return .sai }
+    let p = min(120, max(5, phut ?? phutMa))
+    phutMo = p
     moTu = now; moDen = now.addingTimeInterval(TimeInterval(p * 60)); thayMuonNhat = max(thayMuonNhat ?? now, now)
     maCuoi = sach; maCuoiLuc = now; saiLuc = []
     return .daMo

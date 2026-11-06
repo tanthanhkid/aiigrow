@@ -503,3 +503,178 @@ final class QuyGioTests: XCTestCase {
     XCTAssertNoThrow(try JSONDecoder().decode(KeHoach.self, from: JSONSerialization.data(withJSONObject: o)))
   }
 }
+
+// MARK: 06/11 — PIN theo bé, mã mở máy 60/30/15, «Mở hết», hằng ngày (docs/API.md mục «S3»)
+final class PinBeTests: XCTestCase {
+  let quy = #""quy":{"ngayPhut":60,"themPhut":0,"daDung":10,"conPhut":50,"dangHoc":false,"tyLe":{"sao":10,"phut":10}},"#
+  let bm = "aiigrow-thu-ma-offline", t = Date(timeIntervalSince1970: 1_700_000_000)
+  var vc = VanChuyenGia(), kho = KhoBoNho()
+  func api() -> ApiClient { ApiClient(goc: URL(string: "https://may.chu")!, token: "tk", vanChuyen: vc) }
+  func vao() -> VaoMay { VaoMay(api: api(), kho: kho, biMat: { [bm] in bm }) }
+  func json(_ s: String) -> Data { s.data(using: .utf8)! }
+
+  func testMaMoMayBienThePhutCungSoMayChu() {
+    // vector tính bằng server/lib/ma-offline.ts (maOfflinePhut) cùng bí mật + mốc
+    XCTAssertEqual(MaOffline.ma(MaOffline.biMatPhut(bm, 30), now: t), "861847")
+    XCTAssertEqual(MaOffline.kiemPhut(bm, "703799", now: t), 60)
+    XCTAssertEqual(MaOffline.kiemPhut(bm, "861 847", now: t), 30)
+    XCTAssertEqual(MaOffline.kiemPhut(bm, "516324", now: t.addingTimeInterval(300)), 15)
+    XCTAssertNil(MaOffline.kiemPhut(bm, "123456", now: t))
+    var mt = MoTamOffline()
+    XCTAssertEqual(mt.thuMo(biMat: bm, ma: "861847", now: t), .daMo)
+    XCTAssertEqual(mt.phutMo, 30); XCTAssertEqual(mt.moDen, t.addingTimeInterval(30 * 60), "mã 30 phút mở đúng 30 phút")
+  }
+
+  func testVanPinCungSoMayChu() {
+    XCTAssertEqual(PinOffline.van(biMat: bm, con: "c1", pin: "4821"), "565987f95f0fedc06f1e2b7ed4a3f3e0be2278355d5f6d64463b57617be36b3b")
+    let be = BeTrenMay(id: "c1", ten: "Bảo Anh", coPin: true, vanPin: "565987F95F0FEDC06F1E2B7ED4A3F3E0BE2278355D5F6D64463B57617BE36B3B")
+    XCTAssertTrue(PinOffline.kiem(biMat: bm, be: be, pin: "4821"))
+    XCTAssertFalse(PinOffline.kiem(biMat: bm, be: be, pin: "4820"))
+    XCTAssertFalse(PinOffline.kiem(biMat: nil, be: be, pin: "4821"))
+  }
+
+  func testDemSaiNamLanCho15Giay() {
+    var d = DemSai()
+    XCTAssertEqual((1...4).map { _ in d.ghiSai(t, toiDa: 5, choGiay: 15) }, [4, 3, 2, 1])
+    XCTAssertEqual(d.ghiSai(t, toiDa: 5, choGiay: 15), 0)
+    XCTAssertEqual(d.giayCho(t.addingTimeInterval(4)), 11)
+    XCTAssertEqual(d.giayCho(t.addingTimeInterval(15)), 0)
+    XCTAssertEqual(d.ghiSai(t.addingTimeInterval(16), toiDa: 5, choGiay: 15), 4, "hết chờ ⇒ đếm lại")
+    XCTAssertEqual(d.ghiSai(t.addingTimeInterval(16 + 16 * 60), toiDa: 5, choGiay: 15), 4, "sai cũ hơn 15 phút không cộng dồn")
+  }
+
+  func testDangNhapCoMangSaiVaTamKhoa() async {
+    let be = BeTrenMay(id: "c1", ten: "Bảo Anh", coPin: true)
+    vc.tra["POST /api/device/dang-nhap-be"] = (json(#"{"error":"pin_sai","message":"Chưa đúng · còn 3 lần thử","conLan":3}"#), 401)
+    let r1 = await vao().dangNhap(be, pin: "1111")
+    XCTAssertEqual(r1, .sai(conLan: 3))
+    XCTAssertEqual(vc.than(0)["pin"] as? String, "1111"); XCTAssertEqual(vc.than(0)["con"] as? String, "c1")
+    vc.tra["POST /api/device/dang-nhap-be"] = (json(#"{"error":"pin_tam_khoa","message":"Sai 5 lần","choGiay":15}"#), 429)
+    let r2 = await vao().dangNhap(be, pin: "1111")
+    XCTAssertEqual(r2, .tamKhoa(choGiay: 15))
+    vc.tra["POST /api/device/dang-nhap-be"] = (json(#"{"phienCon":"p","con":{"id":"c1","ten":"Bảo Anh"},"coPin":true}"#), 200)
+    guard case .vao(let p, let can, let off) = await vao().dangNhap(be, pin: "4821") else { return XCTFail() }
+    XCTAssertEqual(p.loai, .con); XCTAssertEqual(p.conId, "c1"); XCTAssertFalse(can); XCTAssertFalse(off)
+    XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .con)
+  }
+
+  func testDangNhapMatMangKiemVanPinRoiPhatLai() async {
+    let be = BeTrenMay(id: "c1", ten: "Bảo Anh", coPin: true, vanPin: PinOffline.van(biMat: bm, con: "c1", pin: "4821"))
+    var h = HoSoMay(con: [be], mayRieng: false); h.pinSaiToiDa = 5
+    kho.luu(h, Khoa.hoSoMay)
+    // không có tuyến nào ⇒ VanChuyenGia ném lỗi mạng
+    for i in 1...4 { let r = await vao().dangNhap(be, pin: "0000"); XCTAssertEqual(r, .sai(conLan: 5 - i)) }
+    let r5 = await vao().dangNhap(be, pin: "0000")
+    XCTAssertEqual(r5, .tamKhoa(choGiay: 15))
+    let r6 = await vao().dangNhap(be, pin: "4821")
+    if case .tamKhoa = r6 {} else { XCTFail("đang chờ 15 giây thì PIN đúng cũng chưa nhận") }
+    let r7 = await vao().dangNhap(be, pin: "4821", now: Date().addingTimeInterval(16))
+    guard case .vao(_, _, let off) = r7 else { return XCTFail("\(r7)") }
+    XCTAssertTrue(off)
+    XCTAssertEqual(kho.doc([ViecChoMang].self, Khoa.viecChoMang)?.first?.loai, "dang_nhap")
+    // có mạng lại ⇒ phát lại đăng nhập trước nhip, xoá hàng chờ
+    vc.tra["POST /api/device/dang-nhap-be"] = (json(#"{"phienCon":"p","con":{"id":"c1","ten":"Bảo Anh"},"coPin":true}"#), 200)
+    await vao().phatLai()
+    XCTAssertEqual(vc.da.last?.url?.path, "/api/device/dang-nhap-be")
+    XCTAssertEqual(vc.than(vc.da.count - 1)["pin"] as? String, "4821")
+    XCTAssertNil(kho.doc([ViecChoMang].self, Khoa.viecChoMang))
+  }
+
+  func testBeChuaCoPinVaoThang() async {
+    vc.tra["POST /api/device/dang-nhap-be"] = (json(#"{"phienCon":"p","con":{"id":"c2","ten":"Bảo Minh"},"coPin":false,"canDatPin":true}"#), 200)
+    guard case .vao(_, let can, _) = await vao().dangNhap(BeTrenMay(id: "c2", ten: "Bảo Minh", coPin: false), pin: nil) else { return XCTFail() }
+    XCTAssertTrue(can)
+    XCTAssertNil(vc.than(0)["pin"])
+  }
+
+  func testBaMeNhapMaCoMangVaMatMang() async {
+    vc.tra["POST /api/device/ba-me-mo"] = (json(#"{"baMeDung":{"den":"2023-11-14T22:43:20.000Z","tu":"2023-11-14T22:13:20.000Z"},"phut":30}"#), 200)
+    let r = await vao().baMeMo("861 847", now: t)
+    XCTAssertEqual(r, .mo(den: t.addingTimeInterval(30 * 60), phut: 30, offline: false))
+    XCTAssertEqual(vc.than(0)["ma"] as? String, "861847")
+    vc.tra["POST /api/device/ba-me-mo"] = (json(#"{"error":"ma_da_dung","message":"Mã này đã dùng rồi"}"#), 409)
+    let r2 = await vao().baMeMo("861847", now: t)
+    XCTAssertEqual(r2, .daDung)
+    // mất mạng ⇒ kiểm TOTP tại máy, mở đúng số phút của biến thể
+    vc.tra = [:]
+    let r3 = await vao().baMeMo("516324", now: t)
+    XCTAssertEqual(r3, .mo(den: t.addingTimeInterval(15 * 60), phut: 15, offline: true))
+    XCTAssertTrue(kho.doc(PhienMay.self, Khoa.phienMay)!.baMeDangDung(t.addingTimeInterval(60)))
+    let r4 = await vao().baMeMo("516324", now: t.addingTimeInterval(30))
+    XCTAssertEqual(r4, .daDung, "mỗi mã một lượt")
+  }
+
+  func testKhienTheoPhienMay() throws {
+    let kh = LapKeHoach.tu(try doc(nhipMau(them05: quy)), now: vn(26, 10))
+    let now = vn(26, 10)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: now, dung: nil).lyDo, .khong, "không biết phiên (app / máy chủ cũ) ⇒ không khoá theo PIN")
+    let chua = PhienMay(loai: .chua, luc: now)
+    let k = TinhKhien.lucNay(kh, now: now, dung: nil, phien: chua)
+    XCTAssertEqual(k.muc, .moiApp); XCTAssertEqual(k.lyDo, .chuaVao)
+    let bame = PhienMay(loai: .baMe, baMeDen: now.addingTimeInterval(900), luc: now)
+    var kk = kh; kk.khoaNgay = true
+    XCTAssertEqual(TinhKhien.lucNay(kk, now: now, dung: nil, phien: bame).dangBaMe, true, "Ba Mẹ dùng thắng Ba Mẹ khoá / giờ ngủ")
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: now.addingTimeInterval(901), dung: nil, phien: bame).lyDo, .chuaVao, "hết giờ Ba Mẹ ⇒ máy tự khoá")
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: now, dung: nil, phien: PhienMay(loai: .con, conId: "c1", luc: now)).lyDo, .khong)
+  }
+
+  func testDongBoGhiNguoiDungVaLichBaMe() async throws {
+    let khien = KhienGia(), lich = LichGia()
+    let den = "2026-10-26T03:30:00.000Z"   // 10:30 giờ VN
+    let d = Data(String(decoding: nhipMau(them05: quy), as: UTF8.self).replacingOccurrences(of: #""lenh":[]"#, with: #""lenh":[],"nguoiDung":{"loai":"ba_me","den":"\#(den)"}"#).utf8)
+    vc.tra["POST /api/device/nhip"] = (d, 200)
+    let db = DongBo(api: api(), kho: kho, khien: khien, lich: lich, uyQuyen: UyQuyenGia(), chon: ChonGia(), xoaToken: {})
+    _ = try await db.chay(now: vn(26, 10))
+    XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .baMe)
+    XCTAssertEqual(khien.lan.last?.dangBaMe, true)
+    XCTAssertEqual(lich.lich.first { $0.ten == "bame" }?.ketThucLuc, NgayISO.doc(den), "chuông lúc hết giờ Ba Mẹ để máy tự khoá")
+    // máy chủ báo chưa ai vào ⇒ khoá mọi app
+    vc.tra["POST /api/device/nhip"] = (Data(String(decoding: d, as: UTF8.self).replacingOccurrences(of: #"{"loai":"ba_me","den":"\#(den)"}"#, with: #"{"loai":"chua"}"#).utf8), 200)
+    _ = try await db.chay(now: vn(26, 10, 5))
+    XCTAssertEqual(khien.lan.last?.lyDo, .chuaVao)
+    // máy RIÊNG vừa đăng xuất tại máy: máy chủ vẫn báo «con» ⇒ giữ khoá tới khi bé nhập lại PIN
+    kho.luu(HoSoMay(con: [], mayRieng: true), Khoa.hoSoMay)
+    vc.tra["POST /api/device/nhip"] = (Data(String(decoding: d, as: UTF8.self).replacingOccurrences(of: #"{"loai":"ba_me","den":"\#(den)"}"#, with: #"{"loai":"con","con":{"id":"c1","ten":"Bin"}}"#).utf8), 200)
+    _ = try await db.chay(now: vn(26, 10, 6))
+    XCTAssertEqual(khien.lan.last?.lyDo, .chuaVao)
+  }
+
+  /// B1 (Nghi 06/11): «Mở hết» — iOS không chặn app theo danh sách (chỉ khiên app Giải trí khi hết quỹ / giờ ngủ / khoá) ⇒ còn quỹ thì mở,
+  /// web chỉ chặn danh sách chặn + web luôn chặn; hết quỹ / giờ ngủ / Ba Mẹ khoá vẫn chặn.
+  func testMoHetKhongKhoaApp() throws {
+    let d = Data(String(decoding: nhipMau(webChan: #"["pornhub.com"]"#, them05: quy), as: UTF8.self)
+      .replacingOccurrences(of: #""chuaXep":"chan"}"#, with: #""chuaXep":"cho_phep","cheDoChan":"mo_het","webLuonChan":["pornhub.com"]}"#).utf8)
+    let kh = LapKeHoach.tu(try doc(d), now: vn(26, 10))
+    let k = TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil)
+    XCTAssertEqual(k.muc, .khong); XCTAssertEqual(k.webChan, ["pornhub.com"])
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 22), dung: nil).lyDo, .ngu)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 60, tranHet: true)).lyDo, .hetGio)
+  }
+
+  func testGiaiMaTongQuanCuaHangVaDoiSao() async throws {
+    vc.tra["GET /api/device/hoc-vien/tong-quan"] = (json(#"""
+    {"con":{"id":"c1","ten":"Bảo Anh"},"soDu":30,"sao":30,"saoChoDuyet":10,"tongKiem":90,"capDo":{},
+     "quy":{"conPhut":18,"daDung":42,"tongPhut":60,"quyNgayPhut":60,"themPhut":0,"dangNgu":false,"dangHoc":false,"khoa":false,
+            "gioNgu":{"tu":"21:30","den":"06:30"},"gioHoc":{"tu":"17:00","den":"18:00","thu":[1,2,3,4,5]},"tyLe":{"sao":10,"phut":10},
+            "doiSao":{"bat":true,"toiDaNgay":30,"conDoiDuoc":30},"choXinThem":true},
+     "nhiemVu":[{"id":"t1","ten":"Dọn phòng","moTa":"2 ảnh","diem":10,"sao":10,"bangChung":"anh","kieu":"hang_ngay","han":null,"phutToiThieu":0,
+                 "trangThai":"san_sang","luot":null,"dangCho":false,"giaoRieng":true,"lyDo":null,"hinh":null,"lapLai":"hang_ngay","gioNhac":"20:00","lamLai":false,"loiNhan":null,"bo":"tu_lap"},
+                {"id":"t2","ten":"Đọc sách 20 phút","diem":10,"bangChung":"ghi_am","trangThai":"dang_lam","luot":"l2","dangCho":true}],
+     "gan":[],"loiKhen":[{"id":"m1","noiDung":"Phòng con gọn ghê!","phanHoi":null,"luc":"2026-11-06T13:05:00.000Z"}],
+     "phieuCho":[{"id":"r1","ten":"Đi ăn kem","diem":100,"luc":"2026-11-06T13:00:00.000Z"}]}
+    """#), 200)
+    let tq = try await api().tongQuan()
+    XCTAssertEqual(tq.soSao, 30); XCTAssertEqual(tq.quy?.conPhut, 18); XCTAssertEqual(tq.quy?.phut10Sao, 10)
+    XCTAssertEqual(tq.nhiemVu.map(\.cachNop), ["anh", "ghi_am"]); XCTAssertTrue(tq.nhiemVu[1].choDuyet); XCTAssertEqual(tq.saoGiu, 100)
+    vc.tra["GET /api/device/hoc-vien/cua-hang"] = (json(#"{"soDu":40,"sao":40,"saoGiu":50,"qua":[{"id":"q1","ten":"Chọn món bữa tối","loai":"dac_quyen","diem":50,"sao":50,"phut":null,"menhGia":null,"chiCuoiTuan":false,"du":false,"conThieu":10,"choTraoTu":null,"moTa":"Ba Mẹ nấu món con chọn","hinh":"bua_toi","toiDaThang":null,"tonKho":null},{"id":"q2","ten":"AiiCafe 20k","loai":"voucher","diem":200,"menhGia":20000,"du":false,"conThieu":160}]}"#), 200)
+    let ch = try await api().cuaHang()
+    XCTAssertEqual(ch.qua.first?.conThieu, 10); XCTAssertTrue(ch.qua[1].laVoucher); XCTAssertEqual(ch.saoGiu, 50)
+    vc.tra["POST /api/device/hoc-vien/doi-sao"] = (json(#"{"id":"g1","phut":10,"sao":10,"soDu":20,"conPhut":28}"#), 200)
+    let ds = try await api().doiSao(phut: 10)
+    XCTAssertEqual(ds.conPhut, 28); XCTAssertEqual(vc.than(vc.da.count - 1)["phut"] as? Int, 10)
+    vc.tra["POST /api/device/hoc-vien/luot/l2/nop"] = (json(#"{"trangThai":"cho_duyet","nghiTrung":false}"#), 200)
+    let tt = try await api().nop(luot: "l2", anh: [], ghiAm: TepNop(mime: "audio/mp4", duLieu: Data([1, 2, 3])), ghiChu: nil)
+    XCTAssertEqual(tt, "cho_duyet")
+    XCTAssertEqual((vc.than(vc.da.count - 1)["ghiAm"] as? [String: Any])?["base64"] as? String, "AQID")
+  }
+}

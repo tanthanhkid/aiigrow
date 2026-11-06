@@ -26,15 +26,22 @@ public enum LoiApi: Error, Equatable, LocalizedError {
   case mayChu(ma: String, cau: String, http: Int)
   case mang(String)
   case giaiMa
+  /// Lỗi máy chủ kèm trường phụ (S3: `conLan`, `choGiay`) — chỉ các lệnh PIN / mã Ba Mẹ ném loại này.
+  case chiTiet(ma: String, cau: String, http: Int, conLan: Int?, choGiay: Int?)
 
   public var errorDescription: String? {
     switch self {
     case .mayChu(_, let cau, _): return cau
+    case .chiTiet(_, let cau, _, _, _): return cau
     case .mang: return "Chưa kết nối được máy chủ AiiGrow. Con kiểm tra Wi-Fi hoặc 4G rồi thử lại nhé."
     case .giaiMa: return "Máy chủ trả về dữ liệu lạ. Thử lại sau ít phút nhé."
     }
   }
   public var chuaGhep: Bool { if case .mayChu(_, _, 401) = self { return true }; return false }
+  /// Mã lỗi máy chủ (nil = mất mạng / dữ liệu lạ).
+  public var ma: String? {
+    switch self { case .mayChu(let m, _, _), .chiTiet(let m, _, _, _, _): return m; default: return nil }
+  }
 }
 
 public struct KetQuaGhep: Codable, Equatable {
@@ -98,6 +105,18 @@ public final class ApiClient {
       let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
       throw LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)",
                           cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.", http: ma)
+    }
+    do { return try JSONDecoder().decode(T.self, from: d) } catch { throw LoiApi.giaiMa }
+  }
+
+  /// Như `goi` nhưng lỗi máy chủ ⇒ `.chiTiet` (đọc thêm `conLan`, `choGiay`).
+  func goiChiTiet<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
+    let (d, ma): (Data, Int)
+    do { (d, ma) = try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
+    guard (200..<300).contains(ma) else {
+      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+      throw LoiApi.chiTiet(ma: o?["error"] as? String ?? "http_\(ma)", cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.",
+                           http: ma, conLan: (o?["conLan"] as? NSNumber)?.intValue, choGiay: (o?["choGiay"] as? NSNumber)?.intValue)
     }
     do { return try JSONDecoder().decode(T.self, from: d) } catch { throw LoiApi.giaiMa }
   }
