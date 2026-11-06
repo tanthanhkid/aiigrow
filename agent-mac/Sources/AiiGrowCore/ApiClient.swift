@@ -10,7 +10,12 @@ public struct LoiApi: Error, Equatable, CustomStringConvertible {
   /// Mã lỗi máy chủ (`error`), vd «token_sai», «ma_sai».
   public var ma: String?
   public var chu: String
-  public init(maHttp: Int? = nil, ma: String? = nil, chu: String) { self.maHttp = maHttp; self.ma = ma; self.chu = chu }
+  /// Trường phụ cạnh `{error, message}` (S3 06/11): «còn N lần thử», «chờ N giây».
+  public var conLan: Int?
+  public var choGiay: Int?
+  public init(maHttp: Int? = nil, ma: String? = nil, chu: String, conLan: Int? = nil, choGiay: Int? = nil) {
+    self.maHttp = maHttp; self.ma = ma; self.chu = chu; self.conLan = conLan; self.choGiay = choGiay
+  }
   public var description: String { chu }
   /// Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline theo Policy nhớ.
   public var laMang: Bool { maHttp == nil || maHttp! >= 500 }
@@ -55,6 +60,15 @@ public protocol MayChuApi: AnyObject {
   func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau
   /// POST api/device/yeu-cau {loai: ngoai_le, phamVi: ca_may|app, giaTri?, phut, lyDo?} — giờ ngủ / Ba Mẹ khoá: «Xin Ba Mẹ mở ngoại lệ».
   func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau
+  /// Máy dùng chung — PIN theo bé (L13, docs/API.md «S3»): `GET ho-so` · `POST dang-nhap-be {con, pin}` · `POST quen-pin {con}` ·
+  /// `POST ba-me-mo {ma}` · `POST dang-xuat` · `POST khoa-lai`. Chỉ các đường trong `DuongMayChung`.
+  func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data
+}
+
+/// Đường máy dùng chung daemon được gọi (không cho đi đường tuỳ ý).
+public enum DuongMayChung {
+  public static let ds: Set<String> = ["GET ho-so", "POST dang-nhap-be", "POST quen-pin", "POST ba-me-mo", "POST dang-xuat", "POST khoa-lai"]
+  public static func duoc(_ method: String, _ path: String) -> Bool { ds.contains(method.uppercased() + " " + path) }
 }
 
 /// Kết quả phien/xet. KHÔNG mang số điểm sang tray — chỉ «được / không», câu nhắc, số phút.
@@ -92,6 +106,9 @@ public extension MayChuApi {
   }
   func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau {
     try await taoYeuCau(loai: "ngoai_le", phut: phut, giaTri: app, lyDo: lyDo ?? "")
+  }
+  func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data {
+    throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ PIN theo bé")
   }
 }
 
@@ -139,6 +156,11 @@ public final class ApiClient: MayChuApi {
 
   public func hoSoDns() async throws -> Data { try await gui("GET", "api/device/ho-so-dns", nil) }
 
+  public func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data {
+    guard DuongMayChung.duoc(method, path) else { throw LoiApi(ma: "duong_sai", chu: "Đường không hỗ trợ.") }
+    return try await gui(method.uppercased(), "api/device/" + path, method.uppercased() == "POST" ? (than ?? [:]) : nil)
+  }
+
   public func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep {
     try ApiClient.tachGhep(try await gui("POST", "api/device/ghep", ["ma": ma.trimmingCharacters(in: .whitespaces), "nen": "mac", "tenMay": tenMay]), mayChu: mayChu)
   }
@@ -167,14 +189,18 @@ public final class ApiClient: MayChuApi {
     var next = p.nextCheckSec
     var lenh: [LenhMay] = []
     var dsApp: TinHieuDanhSachApp?
+    var nguoiDung: NguoiDungMay?
     if let o = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] {
       if let n = o["nextCheckSec"] as? Int, n > 0 { next = n }
       for l in o["lenh"] as? [[String: Any]] ?? [] {
         if let id = chuoi(l["id"]), let loai = l["loai"] as? String, !id.isEmpty, !loai.isEmpty { lenh.append(LenhMay(id: id, loai: loai)) }
       }
       dsApp = TinHieuDanhSachApp.tach(o)
+      nguoiDung = NguoiDungMay.doc(o["nguoiDung"])
     }
-    return KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh, danhSachApp: dsApp)
+    var kq = KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh, danhSachApp: dsApp)
+    kq.nguoiDung = nguoiDung
+    return kq
   }
 
   public func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async throws -> KetQuaYeuCau {
@@ -292,7 +318,8 @@ public final class ApiClient: MayChuApi {
     guard (200..<300).contains(ma) else {
       let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
       let loi = o?["error"] as? String, cau = o?["message"] as? String
-      throw LoiApi(maHttp: ma, ma: loi, chu: cau ?? loi ?? "Máy chủ báo lỗi \(ma)")
+      throw LoiApi(maHttp: ma, ma: loi, chu: cau ?? loi ?? "Máy chủ báo lỗi \(ma)",
+                   conLan: (o?["conLan"] as? NSNumber)?.intValue, choGiay: (o?["choGiay"] as? NSNumber)?.intValue)
     }
     return data
   }

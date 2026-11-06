@@ -98,7 +98,11 @@ public enum QuyGio {
   public static func apDung(_ p: Policy, quyGiay: Double, now: Date, matMang: Bool, ngayMoi: Bool = false, lich: Calendar = .current)
     -> (policy: Policy, hetQuy: Set<String>, gioHoc: Set<String>) {
     var q = p
-    let caMay = (p.grantEndsAt.map { $0 > now } ?? false) && p.ngoaiLe.contains { $0.app == nil && $0.den > now }
+    let moCoHan = p.grantEndsAt.map { $0 > now } ?? false
+    let caMay = moCoHan && p.ngoaiLe.contains { $0.app == nil && $0.den > now }
+    // Cửa sổ «thêm giờ» Ba Mẹ vừa duyệt (06/11, lỗi B gửi C1): máy chủ gửi mode tu_do + grantEndsAt, quyConPhut 0, appTinhGio rỗng ⇒ trước
+    // đây dsTinhGio rơi về playChoices + hết quỹ ⇒ app Giải trí vẫn bị đóng trong lúc Ba Mẹ đã cho. Còn cửa sổ ⇒ hết quỹ không đóng gì.
+    let thaQuy = moCoHan && p.mode != CheDo.khoa.rawValue && !p.locked
     // 1) ngoại lệ một app hết hạn ⇒ bỏ app đó (trừ khi app cũng thuộc app Học)
     let hoc = Set(p.learningApps.map { $0.lowercased() })
     let conHan = Set(p.ngoaiLe.filter { $0.den > now }.compactMap(\.app))
@@ -121,7 +125,7 @@ public enum QuyGio {
     }
     // 3) quỹ: hết (hoặc giờ học) ⇒ bỏ app tính giờ khỏi danh sách; «Mở hết» (tu_do) thì đóng hẳn chúng
     let tinhGio = dsTinhGio(p)
-    let het = hetQuy(p, quyGiay: quyGiay, ngayMoi: ngayMoi)
+    let het = !thaQuy && hetQuy(p, quyGiay: quyGiay, ngayMoi: ngayMoi)
     var bo = Set<String>()
     if !caMay, !tinhGio.isEmpty, p.quyConPhut != nil, het || q.dangGioHoc {
       bo = tinhGio.subtracting(conHan).subtracting(hoc)

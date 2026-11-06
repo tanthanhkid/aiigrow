@@ -41,6 +41,21 @@ public enum MaOffline {
   }
 }
 
+extension MaOffline {
+  /// 06/11 (docs/API.md «Mã mở máy theo từng máy»): Ba Mẹ chọn mở 15 / 30 / 60 phút — số phút nằm TRONG mã: 60 = bí mật gốc (mã cũ),
+  /// 30 / 15 = bí mật «<bí mật>|30» / «<bí mật>|15». Thử 60 → 30 → 15 như `server/lib/ma-offline.ts › kiemMaOfflinePhut`.
+  public static let phutMo = [60, 30, 15]
+  public static func biMat(_ goc: String, phut: Int) -> String { phut == 60 ? goc : "\(goc)|\(phut)" }
+  public static func ma(_ goc: String, phut: Int, luc: Date) -> String { ma(biMat(goc, phut: phut), luc: luc) }
+  /// Số phút của biến thể khớp; nil = sai.
+  public static func kiemPhut(_ goc: String?, _ ma: String?, luc: Date) -> Int? {
+    guard let goc, !goc.isEmpty else { return nil }
+    var khop: Int?
+    for p in phutMo where kiem(biMat(goc, phut: p), ma, luc: luc) { khop = khop ?? p }   // so hết (không thoát sớm)
+    return khop
+  }
+}
+
 public enum KetQuaMoOffline: Equatable { case daMo, dangMo, sai, daDung, choThuLai, chuaCoBiMat }
 
 /// Trạng thái «mở tạm bằng mã offline» — lưu trong cấu hình (daemon khởi động lại vẫn giữ). Đồng hồ bị lùi về trước lúc mở ⇒ coi như không mở.
@@ -71,15 +86,16 @@ public struct MoTamOffline: Codable, Equatable {
     return max(1, Int(ceil(cuNhat.addingTimeInterval(MoTamOffline.cuaSoSaiGiay).timeIntervalSince(now))))
   }
 
-  public mutating func thuMo(biMat: String?, ma: String?, now: Date, phut: Int = MoTamOffline.phutMoMacDinh) -> KetQuaMoOffline {
+  /// `phut` nil ⇒ số phút theo biến thể mã (60 / 30 / 15).
+  public mutating func thuMo(biMat: String?, ma: String?, now: Date, phut: Int? = nil) -> KetQuaMoOffline {
     guard let biMat, !biMat.isEmpty else { return .chuaCoBiMat }
     if choGiay(now) > 0 { return .choThuLai }
     let sach = (ma ?? "").filter { $0.isASCII && $0.isNumber }
     if let c = maCuoi, let l = maCuoiLuc, sach == c, now.timeIntervalSince(l) < MoTamOffline.nhoMaDaDung, now >= l.addingTimeInterval(-60) {
       return dangMo(now) ? .dangMo : .daDung
     }
-    guard MaOffline.kiem(biMat, sach, luc: now) else { saiLuc.append(now); return .sai }
-    let p = min(max(phut, 5), 120)
+    guard let khop = MaOffline.kiemPhut(biMat, sach, luc: now) else { saiLuc.append(now); return .sai }
+    let p = min(max(phut ?? khop, 5), 120)
     moTu = now; moDen = now.addingTimeInterval(TimeInterval(p * 60))
     maCuoi = sach; maCuoiLuc = now; saiLuc = []
     return .daMo

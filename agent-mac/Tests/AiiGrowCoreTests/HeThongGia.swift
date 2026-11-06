@@ -142,6 +142,16 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
     lanYeuCau.append((loai, phut, giaTri, lyDo)); return yeuCauTraVe
   }
   func trangThaiYeuCau(id: String) async throws -> String { "cho" }
+  /// Máy dùng chung (PIN theo bé): trả theo «METHOD path»; thiếu ⇒ lỗi mạng. `matMang` ⇒ mọi lời gọi lỗi mạng.
+  @Khoa var mayChungTra: [String: Result<Data, LoiApi>] = [:]
+  @Khoa var lanMayChung: [(String, [String: Any]?)] = []
+  @Khoa var matMang = false
+  func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data {
+    lanMayChung.append((method + " " + path, than))
+    if matMang { throw LoiApi(chu: "mất mạng") }
+    guard let r = mayChungTra[method + " " + path] else { throw LoiApi(chu: "mất mạng") }
+    return try r.get()
+  }
 }
 
 /// Đồng hồ điều khiển được cho test.

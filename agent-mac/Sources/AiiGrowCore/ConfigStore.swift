@@ -39,6 +39,12 @@ public struct CauHinhMay: Codable, Equatable {
   public var moTamOffline: MoTamOffline?
   /// Sự kiện chờ gửi (NhatKyMay.swift) — lưu đĩa, xoá khi máy chủ nhận.
   public var hangDoiSuKien: [SuKienMay] = []
+  /// L13 (06/11): «Ai đang dùng máy?» lần lấy được gần nhất (kèm vân PIN để kiểm PIN lúc mất mạng — KHÔNG gửi tray).
+  public var hoSoMay: HoSoMay?
+  /// Ai đang dùng máy (máy chủ + ghi đè cục bộ lúc mất mạng) — PinBe.swift.
+  public var phienMay: PhienMay?
+  /// Đếm sai PIN tại máy (chỉ dùng lúc mất mạng; có mạng máy chủ đếm).
+  public var saiPin: BoDemSaiPin?
 
   public init() {}
   public var daGhep: Bool { !token.isEmpty }
@@ -61,6 +67,9 @@ public struct CauHinhMay: Codable, Equatable {
     moTamOffline = (try? c.decodeIfPresent(MoTamOffline.self, forKey: .moTamOffline)) ?? nil
     hangDoiSuKien = g(.hangDoiSuKien, [])
     phienBu = (try? c.decodeIfPresent(PhienBu.self, forKey: .phienBu)) ?? nil
+    hoSoMay = (try? c.decodeIfPresent(HoSoMay.self, forKey: .hoSoMay)) ?? nil
+    phienMay = (try? c.decodeIfPresent(PhienMay.self, forKey: .phienMay)) ?? nil
+    saiPin = (try? c.decodeIfPresent(BoDemSaiPin.self, forKey: .saiPin)) ?? nil
   }
 }
 
