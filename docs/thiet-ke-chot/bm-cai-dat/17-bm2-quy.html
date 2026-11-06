@@ -3,7 +3,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
 .app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
 .app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#fdf1d3,#f4f4f2)}
 .top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#fdf1d3 75%,rgba(253,241,211,0))}
@@ -11,31 +11,43 @@ html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-famil
 .top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .cuon{position:absolute;left:0;right:0;top:100px;bottom:106px;overflow-y:auto;padding:4px 16px 24px;scrollbar-width:none}
 .cuon::-webkit-scrollbar{display:none}
-.goi{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:20px;background:#dcebe6;font-size:13.5px;font-weight:700;color:#0a5246;line-height:19px}
+.con{display:flex;gap:8px}
+.con span{display:flex;align-items:center;gap:6px;height:44px;padding:0 16px 0 6px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:14.5px;font-weight:800;color:#3a403d;white-space:nowrap}
+.con span i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;background:#ecebe7;color:#3a403d}
+.con .on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.con .on i{background:#dcebe6;color:#0a5246}
+.goi{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 14px;border-radius:20px;background:#dcebe6;font-size:13.5px;font-weight:700;color:#0a5246;line-height:19px}
 .goi img{flex:none;width:40px;height:auto}
-.luoi{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-.qua{position:relative;height:168px;padding:14px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
-.qua .h{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:#fbecc0}.qua .h img{width:42px;height:42px}
-.qua p{margin-top:10px;font-size:15px;font-weight:800;line-height:19px}
-.qua b{position:absolute;left:14px;bottom:14px;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:12.5px;font-weight:800}
-.qua b img{width:16px;height:16px}
-.qua i{position:absolute;right:12px;top:12px;font-style:normal;padding:3px 8px;border-radius:10px;background:#dcebe6;color:#0a5246;font-size:11px;font-weight:800}
-.qua.moi{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:#ecebe7;box-shadow:var(--lom);font-size:15px;font-weight:800;color:#0a5246}
-.qua.moi span{font-size:34px;line-height:34px}
+.ds{margin-top:14px;padding:4px 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;min-height:72px}
+.dong+.dong{border-top:1.5px solid #ecebe7}
+.dong .h{flex:none;width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:#fbecc0;box-shadow:inset 0 1.5px 0 #fff,inset 0 -4px 8px -4px rgba(110,67,0,.25)}.dong .h img{width:32px;height:32px}
+.dong p{flex:1;min-width:0;font-size:15.5px;font-weight:800;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dong p small{display:block;margin-top:3px;font-size:12.5px;font-weight:700;color:#565c59}
+.dong p small em{font-style:normal;padding:2px 7px;border-radius:8px;background:#dcebe6;color:#0a5246}
+.dong b{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:13px;font-weight:800;white-space:nowrap}
+.dong b img{width:16px;height:16px}
+.mui{flex:none;width:16px;height:16px;fill:#8a908d}
+.them{display:flex;align-items:center;justify-content:center;gap:8px;height:56px;margin-top:12px;border-radius:28px;background:#ecebe7;box-shadow:var(--lom);font-size:15.5px;font-weight:800;color:#0a5246}
+.them span{font-size:24px;line-height:24px}
 .day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 30px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:4}
 .nut{display:flex;align-items:center;justify-content:center;height:58px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
 </style></head>
 <body><div class="app">
-<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Quà con đổi bằng sao</h1></div>
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Danh sách quà</h1></div>
 <div class="cuon">
-<div class="goi"><img src="/assets/rob/chi.webp" alt="">Con thấy các quà này trên máy, đủ sao thì tự đổi. Ba Mẹ trao quà ngoài đời.</div>
-<div class="luoi">
-<div class="qua" role="button" tabindex="0"><i>Có sẵn</i><span class="h"><img src="/assets/icon3d/dongho.webp" alt=""></span><p>Thêm 30 phút chơi</p><b><img src="/assets/icon3d/sao.webp" alt="">30 sao</b></div>
-<div class="qua" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Đi ăn kem</p><b><img src="/assets/icon3d/sao.webp" alt="">50 sao</b></div>
-<div class="qua" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/lich.webp" alt=""></span><p>Xem phim cả nhà</p><b><img src="/assets/icon3d/sao.webp" alt="">40 sao</b></div>
-<div class="qua" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/game.webp" alt=""></span><p>Đồ chơi nhỏ</p><b><img src="/assets/icon3d/sao.webp" alt="">100 sao</b></div>
-<div class="qua moi" role="button" tabindex="0"><span>+</span>Thêm quà</div>
+<div class="con" aria-label="Quà của con nào"><span class="on"><i>BA</i>Bảo Anh</span><span><i>BM</i>Bảo Minh</span></div>
+<div class="goi"><img src="/assets/rob/chi.webp" alt="">Con chọn quà → sao được giữ lại. Ba Mẹ trao xong mới trừ sao.</div>
+<div class="ds">
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/chen.webp" alt=""></span><p>Chọn món bữa tối<small>Con chọn, Ba Mẹ nấu</small></p><b><img src="/assets/icon3d/sao.webp" alt="">50 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Đi ăn kem<small><em>Ba Mẹ trao</em></small></p><b><img src="/assets/icon3d/sao.webp" alt="">100 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/the_qua.webp" alt=""></span><p>AiiCafe 20k<small>Voucher QR · 60 ngày</small></p><b><img src="/assets/icon3d/sao.webp" alt="">200 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/game.webp" alt=""></span><p>Đồ chơi nhỏ<small>Ba Mẹ chọn mua</small></p><b><img src="/assets/icon3d/sao.webp" alt="">200 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/lich.webp" alt=""></span><p>Đi xem phim<small><em>Chỉ cuối tuần</em></small></p><b><img src="/assets/icon3d/sao.webp" alt="">300 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/the_qua.webp" alt=""></span><p>AiiCafe 50k<small>Voucher QR · 60 ngày</small></p><b><img src="/assets/icon3d/sao.webp" alt="">500 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0"><span class="h"><img src="/assets/icon3d/qua.webp" alt=""></span><p>Bộ Lego<small><em>Còn 1 bộ</em></small></p><b><img src="/assets/icon3d/sao.webp" alt="">800 sao</b><svg class="mui" viewBox="0 0 256 256"><path d="M184.49,136.49l-80,80a12,12,0,0,1-17-17L159,128,87.51,56.49a12,12,0,1,1,17-17l80,80A12,12,0,0,1,184.49,136.49Z"></path></svg></div>
 </div>
+<div class="them" role="button" tabindex="0"><span>+</span>Thêm quà</div>
 </div>
-<div class="day"><span class="nut" role="button" tabindex="0">Lưu 4 món quà</span></div>
+<div class="day"><span class="nut" role="button" tabindex="0">Lưu 7 quà cho Bảo Anh</span></div>
 </div></body></html>
