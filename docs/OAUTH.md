@@ -56,11 +56,11 @@ Một project (vd «AiiGrow»), **APIs & Services**:
    (Native quay về bằng `fb<APP_ID>://authorize` — scheme đã khai trong `app.config.ts`, không phải điền ở đây.)
 4. **Permissions**: `public_profile` + `email` (cả hai là quyền mặc định, KHÔNG cần App Review).
 5. Chuyển app sang **Live** (cần Privacy Policy URL + Data deletion ở bước 2). Development mode thì chỉ admin / tester của app đăng nhập được.
-6. Ghi lại **App ID** và **App Secret** (App settings › Basic). App Secret là bí mật — chỉ đặt vào Vercel (bên dưới), không commit.
+6. Ghi lại **App ID** và **App Secret** (App settings › Basic). App Secret là bí mật — chỉ đặt vào biến môi trường máy chủ (bên dưới), không commit; bản gốc ở Keychain «AiiRob Facebook App».
 
 ## 3. Biến môi trường
 
-Máy chủ (Vercel project `aiigrow`, môi trường **Production**; thiếu biến nào thì nút tương ứng tự ẩn):
+Máy chủ (từ 06/11/2026: tệp `/etc/aiigrow/aiigrow.env` trên VPS `trinity-crm`, sửa xong `pm2 restart aiigrow --update-env`; trước đó là Vercel project `aiigrow` Production. Thiếu biến nào thì nút tương ứng tự ẩn):
 
 | Tên | Giá trị |
 |---|---|
@@ -72,10 +72,10 @@ App (giá trị CÔNG KHAI, gắn lúc dựng bundle — `EXPO_PUBLIC_*`):
 
 | Tên | Giá trị | Đặt ở đâu |
 |---|---|---|
-| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | client Web | Vercel Production (bản web dựng trên Vercel: `server/scripts/build-app.mjs`) |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | client Web | `mobile/.env.local` của máy dựng (bản web dựng trên Mac bởi `scripts/deploy-vps.sh` → `server/scripts/build-app.mjs`) |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | client iOS | `mobile/.env.local` trên máy dựng (`testflight.sh`) |
 | `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | client Android | `mobile/.env.local` trên máy dựng (`phat-hanh-apk.sh`) |
-| `EXPO_PUBLIC_FACEBOOK_APP_ID` | App ID Facebook | cả Vercel Production lẫn `mobile/.env.local` (native còn cần nó lúc prebuild để có scheme `fb<id>`) |
+| `EXPO_PUBLIC_FACEBOOK_APP_ID` | App ID Facebook | `mobile/.env.local` (bản web dựng trên Mac; native còn cần nó lúc prebuild để có scheme `fb<id>`) |
 
 `mobile/.env.local` bị `.gitignore` bỏ qua; Expo CLI tự nạp khi `expo prebuild` / dựng bundle. Đặt đủ 4 dòng trên ở checkout chính
 `~/OFFLINE_FILES/Code/aiigrow/mobile/.env.local` (worktree mới thì chép sang). Đổi `EXPO_PUBLIC_*` ⇒ phải dựng lại (web: deploy; iOS / Android: bản mới).
@@ -128,7 +128,7 @@ Kiểm sau khi đặt: `curl https://aiigrow.aiilab.vn/api/m/cau-hinh-dang-nhap`
   - `POST dang-nhap/google|facebook`: 30 lượt / IP (đếm trước khi gọi Google/Facebook; vào được thì trả lượt — chỉ lượt hỏng bị tính),
     10 lượt / tài khoản MXH (nguồn + `sub`, sau xác minh). Bộ đếm khung cũ dọn trong cron hằng ngày `/api/cron/don-kiem-toan`.
   - `POST dat-mat-khau`: 10 lượt / IP, 5 lượt / Ba Mẹ; đặt được thì xoá bộ đếm của Ba Mẹ đó.
-  - IP = `x-real-ip` (Vercel đặt) rồi `x-forwarded-for`, IPv6 gộp /64 (gia-dinh.ts › `nguonGoi`).
+  - IP = `x-real-ip` (nginx VPS đặt = `$remote_addr`; trước là Vercel) rồi `x-forwarded-for`, IPv6 gộp /64 (gia-dinh.ts › `nguonGoi`).
 - App (iOS/Android): Google trả `code`, app tự đổi mã lấy `id_token` (`shouldAutoExchangeCode: false`, mobile/src/lib/doi-ma-google.ts) —
   đổi lỗi / quá 20 giây / không có `id_token` ⇒ hiện câu báo rõ, không đứng im.
 - Người bị mời ra (`moi-ra`) hoặc xoá tài khoản ⇒ xoá liên kết `ba_me_mxh`; vào lại bằng Google/Facebook là tài khoản mới.

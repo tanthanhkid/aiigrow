@@ -24,12 +24,19 @@ bash mobile/scripts/phat-hanh-apk.sh --thu  # chỉ build + kiểm, không đăn
 versionCode = số commit (luôn tăng), versionName = `<version package.json>+<sha>`. Ký bằng `debug.keystore` của template Expo như bản 0.1.0
 (script dừng nếu chứng chỉ khác bản 0.1.0, vì khác khoá thì không cài đè được). Mỗi lần đăng thêm một release prerelease riêng `android-<versionName>-<versionCode>`.
 
-## Đưa lên prod theo lô (24/10)
+## Đưa lên prod theo lô (24/10) — máy chủ chạy trên VPS từ 06/11
 
-Merge vào `main` **không** tự deploy (`server/vercel.json` → `git.deploymentEnabled: false`). Làm xong một lô tính năng thì chạy
-`scripts/deploy-prod.sh` trên bản sạch của `origin/main`: test máy chủ + tsc + bản web chạy trên localhost (`pha.mjs` luồng + cổng giao diện),
-đạt mới `vercel deploy --prod`. Chỉ kiểm, không deploy: `scripts/deploy-prod.sh --chi-kiem`. Bản phát hành agent (manifest `server/lib/ban-agent.ts`)
-chỉ tới máy Con sau lần deploy này.
+**Từ 06/11/2026 prod `aiigrow.aiilab.vn` chạy trên VPS của Thanh, không còn Vercel** (team Vercel Hobby bị chặn mềm vì vượt fair-use CPU).
+VPS: `ssh trinity-crm` (1 vCPU, 2 GB) — nginx `/etc/nginx/sites-enabled/aiigrow.conf` (TLS certbot) → pm2 `aiigrow` ở `127.0.0.1:3320`;
+mã ở `/opt/aiigrow/releases/<sha>` (`current` trỏ bản đang chạy, giữ 3 bản); biến môi trường ở `/etc/aiigrow/aiigrow.env` (root, chmod 600, có `AIIGROW_APP_URL=https://aiigrow.aiilab.vn` + `AIIGROW_BAT_BUOC_DB=1` ⇒ thiếu `DATABASE_URL` thì báo lỗi chứ không lặng lẽ dùng PGlite;
+không nằm trong git); cron dọn kiểm toán ở `/etc/cron.d/aiigrow` (thay `crons` của `server/vercel.json`). CSDL vẫn là Neon.
+
+Merge vào `main` **không** tự deploy. Làm xong một lô tính năng thì chạy `scripts/deploy-prod.sh --chi-kiem` trên bản sạch của `origin/main`
+(test máy chủ + tsc + bản web chạy trên localhost: `pha.mjs` luồng + cổng giao diện), đạt rồi `scripts/deploy-vps.sh`: dựng trên Mac
+(`AIIGROW_STANDALONE=1` ⇒ `output: "standalone"`), đẩy bằng tar qua ssh, pm2 chạy lại, tự kiểm `/api/m/cau-hinh-dang-nhap`.
+**Không `next build` trên VPS** (máy nhỏ, từng OOM). Quay lui: trên VPS `pm2 delete aiigrow` rồi start lại `releases/<sha cũ>/server.js`
+(lệnh đầy đủ trong script). `scripts/deploy-prod.sh` không flag vẫn deploy Vercel — chỉ dùng lại khi chuyển về Vercel.
+Bản phát hành agent (manifest `server/lib/ban-agent.ts`) chỉ tới máy Con sau lần deploy này.
 
 **Trước golive — đổi chu kỳ tự cập nhật về 6 giờ.** Agent Windows 0.2.12+ và agent Mac 0.1.6+ hỏi bản mới theo `chuKyKiemPhut` trong manifest
 (một hằng chung `CHU_KY_KIEM_PHUT` ở `server/lib/ban-agent.ts` cho cả hai, agent kẹp [5, 1440] phút, không có trường ⇒ 6 giờ). Giai đoạn dev đặt **15**;
