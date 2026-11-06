@@ -45,13 +45,15 @@ export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo
 }
 
 export async function tomTatVi(con: string) {
-  const r = (await one<{ du: number; kiem: number; cho: number }>(
+  const r = (await one<{ du: number; kiem: number; cho: number; giu: number }>(
     `select coalesce((select sum(delta) from points where child_id = $1), 0)::int as du,
             coalesce((select sum(delta) from points where child_id = $1 and delta > 0 and loai not in ('hoan')), 0)::int as kiem,
             coalesce((select sum(t.diem) from submissions s join tasks t on t.id = s.task_id
-                      where s.child_id = $1 and s.trang_thai = 'cho_duyet'), 0)::int as cho`, [con]))!;
+                      where s.child_id = $1 and s.trang_thai = 'cho_duyet'), 0)::int as cho,
+            coalesce((select sum(diem) from redemptions where child_id = $1 and trang_thai = 'giu'), 0)::int as giu`, [con]))!;
   // `sao` (thiết kế 05/11): sao = điểm cũ, 1 điểm = 1 sao — trả song song `soDu` một bản rồi bỏ
-  return { soDu: r.du, sao: r.du, diemChoDuyet: r.cho, saoChoDuyet: r.cho, tongKiem: r.kiem, capDo: capDo(r.kiem) };
+  // saoGiu (06/11, L14): sao đang GIỮ cho quà chờ Ba Mẹ trao (đã ghi trừ tạm khỏi `sao`; Ba Mẹ huỷ ⇒ hoàn) — «Đang giữ 50 sao cho quà chờ trao»
+  return { soDu: r.du, sao: r.du, diemChoDuyet: r.cho, saoChoDuyet: r.cho, saoGiu: r.giu, tongKiem: r.kiem, capDo: capDo(r.kiem) };
 }
 
 /** Cấp độ theo tổng điểm kiếm được trọn đời: cấp n cần 100·n·(n+1)/2 điểm (100, 300, 600, 1000…). */

@@ -7,7 +7,7 @@ import { chinhSachWindows } from "./agent-windows.ts";
 import { bearer } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { one } from "./db.ts";
-import { chonCon, conTuPhien, ghepMay, mayTuToken, nguonGoi } from "./gia-dinh.ts";
+import { conTuPhien, ghepMay, mayTuToken, nguonGoi } from "./gia-dinh.ts";
 import { khopAppTheoTen, xinDuyet } from "./che-do-chan.ts";
 import { dongBo } from "./may-con.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
@@ -17,7 +17,6 @@ import { conChoBu, ghepPhienMayChung, laAgentMoi, moRongPhienMay, nhipPhienWindo
 import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
 import * as nv from "./nhiem-vu.ts";
-import { dsCon } from "./gia-dinh.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
 import { nhipMay } from "./nhip-may.ts";
 import { khoaTuanThu } from "./tuan-thu.ts";
@@ -26,6 +25,10 @@ import { hoSoDns, thietBiChoMay } from "./dns-gia-dinh.ts";
 import { nhanLichSuWeb } from "./web.ts";
 import { appChanCuaMay, mucAppThat, nhanDanhSachApp, tinHieuDanhSachApp } from "./app-may.ts";
 import { xuLyConSao } from "./api-sao.ts";
+// S3 thiết kế 06/11 (L13): PIN theo bé, Ba Mẹ dùng máy, bé đang đăng nhập trên máy dùng chung
+import { xuLyMayS3 } from "./api-s3.ts";
+import { baMeDen, nguoiDungMay } from "./pin-be.ts";
+import { chinhSachWebCho } from "./web.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -42,10 +45,18 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     const may = await (async () => { const t = bearer(req); return t ? mayTuToken(t) : undefined; })();
     if (!may) return loi("token_sai", "Thiết bị chưa ghép hoặc đã bị gỡ khỏi gia đình", 401);
     const b = await docJson(req);
-    // Con đang dùng: máy riêng ⇒ chủ máy; máy dùng chung ⇒ phiên Con (chọn tên — L5 không PIN) gửi kèm header X-Phien-Con
+    // Con đang dùng: máy riêng ⇒ chủ máy; máy dùng chung ⇒ phiên Con (chọn tên + PIN) gửi kèm header X-Phien-Con, không kèm ⇒ bé đang đăng nhập
+    // trên máy (06/11 L13: devices.con_dang_dung — giờ, sao, nhiệm vụ, chính sách tính theo bé này). «Ba Mẹ đang dùng máy» ⇒ không bé nào.
     const phienCon = req.headers.get("x-phien-con");
     const k = phienCon ? await conTuPhien(phienCon) : undefined;
-    const con = may.child_id ?? (k && k.family_id === may.family_id ? k.id : null);
+    const bmDen = baMeDen(may);
+    // «bé đang dùng» chỉ còn hiệu lực khi phiên Con của bé trên máy này còn hạn (12 giờ) — hết phiên / đăng xuất ⇒ máy thả ra như trước
+    const dangDung = !may.child_id && !bmDen && !(k && k.family_id === may.family_id) && may.con_dang_dung
+      && await one(`select 1 from kid_sessions k join children c on c.id = k.child_id where k.device_id = $1 and k.child_id = $2 and c.family_id = $3
+                    and k.expires_at > now() limit 1`, [may.id, may.con_dang_dung, may.family_id]) ? may.con_dang_dung : null;
+    // Ba Mẹ đang dùng ⇒ KHÔNG bé nào (kể cả máy riêng): nhịp, sự kiện, phiên, khay không tính cho con
+    const con = bmDen ? null : may.child_id ?? (k && k.family_id === may.family_id ? k.id : null) ?? dangDung;
+    { const r = await xuLyMayS3(may, req, p, b); if (r) return r; }
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
@@ -53,7 +64,9 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       // 0.2.4: tính đúng `status.playSeconds` agent đếm (app chơi ở nền trước, màn hình mở); máy dùng chung lấy Con từ phiên mở trên máy (lib/phien-windows.ts).
       // Mac: dong-bo không nhịp phiên — daemon Mac (agent-mac BoMay.vongNhipChoi) gửi phien/nhip 30 giây/lần cho playSessionId, «đang dùng» theo app tiền cảnh;
       // trang khay / app Con nhịp thêm cũng không tính đôi (nhip() chỉ cộng thời gian trôi từ nhip_cuoi).
-      if (may.platform === "windows") try {
+      // Ba Mẹ đang dùng máy (L13): không tính giờ con — bỏ nhịp phiên + phút dùng agent gửi trong lúc đó
+      if (bmDen) b.usage = [];
+      if (may.platform === "windows" && !bmDen) try {
         await nhipPhienWindows(may, con, b.status as TrangThaiNhip | undefined);
       } catch (e) { console.error("dong-bo: nhịp phiên Windows lỗi", e); }
       const pol = await dongBo(may, { ...b, conDangDung: con });
@@ -63,7 +76,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const lenh = await lenhCho(may);
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
       // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
-      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!con);
+      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!(con ?? (bmDen ? may.child_id : null)));   // máy riêng lúc Ba Mẹ dùng giữ «chan»
       // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
       const moDen = coTacTu(may.platform) ? await hanMoCuaMay(may, con) : null;
       const conThuong = coTacTu(may.platform) && con ? pol.quy?.conPhut ?? 0 : 0;   // 05/11: = quỹ còn (Policy đã tính, không tính lại)
@@ -78,21 +91,36 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
         { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, appThat, appNen, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
       if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay
       if (coTacTu(may.platform)) windows.blockedApps = blockedApps;
-      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows, ...(danhSachApp ? { danhSachApp } : {}) });
+      // L13: «Ba Mẹ đang dùng máy» ⇒ máy mở hết tới hạn (thắng giờ ngủ / khoá — Ba Mẹ mở bằng mã), không đếm quỹ của con
+      if (bmDen) {
+        Object.assign(windows, { mode: "tu_do", locked: false, lockReason: null, grantEndsAt: bmDen.toISOString(), appTinhGio: [],
+          web: chinhSachWebCho(pol, { moGiaiTri: true, moCoHan: true, appThat }),
+          nextCheckSec: Math.max(10, Math.min(windows.nextCheckSec, Math.ceil((bmDen.getTime() - Date.now()) / 1000) + 2)) });
+        delete windows.quyConPhut; delete windows.khoaKhiHetNgoaiLe;
+      }
+      const nguoiDung = await nguoiDungMay(may, con);
+      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
+        ...(danhSachApp ? { danhSachApp } : {}) });
     }
-    if (d === "nhip") return json(await nhipMay(may, con, b));
+    if (d === "nhip") {
+      // L13: nhịp trả chính sách của bé đang đăng nhập (`con`) + ai đang dùng máy; Ba Mẹ dùng ⇒ `baMeDung` + grantEndsAt tới hạn (máy mở hết)
+      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), nguoiDung: await nguoiDungMay(may, con) };
+      if (bmDen) {
+        const den = [r.grantEndsAt, bmDen.toISOString()].filter((x): x is string => typeof x === "string").sort().pop()!;
+        Object.assign(r, { baMeDung: { den: bmDen.toISOString() }, grantEndsAt: den, moDen: den });
+      }
+      return json(r);
+    }
     // Ba Mẹ gỡ ngay tại máy (Cài đặt › Ứng dụng / Setup --uninstall): bộ gỡ báo về trước khi xoá token ⇒ máy rời gia đình như gỡ từ xa
     if (d === "da-go" && req.method === "POST") return json(await daGoTaiMay(may));
     // M4b mạng: trình cài một chạm lấy hồ sơ DNS gia đình của chính máy (mobileconfig / Private DNS / DoH Windows) để tự cài
     if (d === "ho-so-dns") return json(await hoSoDns(await thietBiChoMay(may)));
-    if (d === "ho-so") return json({ con: (await dsCon(may.family_id)).filter((c) => !may.child_id || c.id === may.child_id).map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar })) });
-    // L5: máy dùng chung đổi người bằng CHỌN TÊN (không PIN). «pin» là tên cũ (agent bản trước gửi kèm pin — bỏ qua).
-    if (d === "chon-con" || d === "pin") return json({ phienCon: await chonCon(may, String(b.con ?? "")) });
+    // ho-so, chon-con / pin (agent cũ, không PIN), dang-nhap-be (PIN): lib/api-s3.ts › xuLyMayS3 ở trên
     // M4: sự kiện agent (gửi bù được, `ma` một lần) · gỡ agent bằng mật khẩu Ba Mẹ
     if (d === "su-kien") return json({ nhan: await nhanSuKien(may, con, b.ds) });
     if (d === "log" && req.method === "POST") return json(await nhanLog(may, b.ds));
     // Giám sát web: agent gửi TỔNG theo (ngày, tên miền) đọc từ lịch sử trình duyệt của Con — chỉ tên miền + đếm (lib/web.ts)
-    if (d === "web/lich-su" && req.method === "POST") return json(await nhanLichSuWeb(may, con, b.ds));
+    if (d === "web/lich-su" && req.method === "POST") return json(await nhanLichSuWeb(may, bmDen ? null : con, b.ds));
     // Danh sách app đã cài THẬT trên máy (đủ / phần đổi) — Ba Mẹ chọn từ đây để xếp / chặn (lib/app-may.ts). Không cần chọn Con.
     if (d === "ung-dung" && req.method === "POST") {
       const kq = await nhanDanhSachApp(may, b);
