@@ -32,7 +32,7 @@ export default function ObCon() {
   const tenGon = ten.trim();
   const loiPin = kiemPin(pin, pin2, namSo);
   // chỉ báo lỗi khi Ba Mẹ đã gõ xong ô nhập lại (hoặc PIN chưa đủ mà đã sang ô nhập lại) — không mắng lúc đang gõ
-  const hienLoiPin = loiPin && (pin2.length === 4 || (pin.length > 0 && pin.length < 4 && pin2.length > 0) || (pin.length === 4 && loiPin.startsWith("Đừng")));
+  const hienLoiPin = !!loiPin && pin.length > 0 && (pin.length === 4 || pin2.length > 0);   // nút Lưu tắt thì luôn có câu nói vì sao
   const luu = async () => {
     const r = await bm.goi<KqThietLap>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, namSinh: namSo, avatar: `mau-${mau}` } });
     // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai

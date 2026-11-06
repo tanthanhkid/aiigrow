@@ -104,7 +104,10 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
   const canhBao = d.cb.filter((x) => (!x.child_id || x.child_id === conId) && x.loai !== "quen_pin").slice(0, 2);
   // S3 06/11 (them-1mnk3mjz): máy con mất mạng hôm nay ⇒ chip «Máy mất mạng · Laptop ›» + nút «Lấy mã mở máy»; bé quên PIN ⇒ dòng Cần Ba Mẹ để ý
   const matMang = c.matMang?.[0] ?? null;
-  const quenPin = d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId);
+  // từ can-de-y; lời gọi đó lỗi ⇒ dựng lại từ cảnh báo loai quen_pin (đã có trong d.cb) để không mất dòng
+  const quenPin: MucCanDeY[] = d.cdy.some((x) => x.loai === "quen_pin") ? d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId)
+    : d.cb.filter((x) => x.loai === "quen_pin" && x.child_id === conId).slice(0, 1)
+      .map((x) => ({ id: x.id, loai: "quen_pin", tieu: x.noi_dung, phu: "Đặt PIN mới cho con", luc: x.created_at, con: conId, so: 1, nut: "Đặt PIN", den: `/ho-so/${conId}/pin` }));
   // chỉ việc có lịch HÔM NAY (như máy chủ nvCuaCon): «Tự xếp cặp» T2–T6 không hiện thứ 7 (review PR #183)
   const thuNay = new Date().getDay();
   const homNayCo = (l?: string | null) => !l || l === "hang_ngay" || l === "mot_lan" || (l === "ngay_thuong" ? thuNay >= 1 && thuNay <= 5 : l === "cuoi_tuan" ? thuNay === 0 || thuNay === 6

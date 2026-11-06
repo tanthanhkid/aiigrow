@@ -42,7 +42,8 @@ export default function PinCuaCon() {
         <View style={{ position: "absolute", right: 14, top: 12 }}><Anh3D ten="khoa" co={30} /></View>
       </The>
 
-      {d.p.coPin ? (
+      {/* Người trông giúp không xem PIN của bé (chỉ Ba Mẹ đặt / xem) */}
+      {d.p.coPin && !d.xem ? (
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 }}>
             <Chu kieu="rat" co={15}>PIN đang dùng</Chu>
@@ -52,7 +53,7 @@ export default function PinCuaCon() {
           </View>
           <OPin gia={d.p.pin ?? "••••"} an={!hien} nhan={hien && d.p.pin ? `PIN ${d.p.pin.split("").join(" ")}` : "PIN đang ẩn"} />
         </View>
-      ) : (
+      ) : d.xem ? null : (
         <Chu co={14} mau={M.chu2} style={{ marginHorizontal: 4 }}>{`${ten} chưa có PIN — trên máy dùng chung, chạm tên là vào thẳng. Đặt PIN để chỉ ${ten} vào được.`}</Chu>
       )}
 

@@ -23,8 +23,10 @@ const KIEU: Record<Nhom, { ic: TenIcon; nen?: string; lam?: string }> = {
 };
 /** icon của mục «Cần Ba Mẹ để ý» theo loại (can-de-y.ts) */
 const IC_CAN: Record<string, TenIcon> = { mat_mang: "wifi", quen_pin: "mo_khoa", canh_bao: "khien", con_xin: "web", nop_bai: "sao", chua_bao_ve: "tablet" };
-/** Dòng mà «Cần Ba Mẹ để ý» của máy chủ đã gom (con xin / nộp bài mới, cảnh báo chú ý trở lên) ⇒ không lặp ở «Để biết». */
-const daGom = (x: ThongBao) => (x.moi && (x.nhom === "yeu_cau" || x.nhom === "nhiem_vu")) || (x.nhom === "canh_bao" && x.muc !== "thong_tin");
+/** Dòng «moi» mà «Cần Ba Mẹ để ý» của máy chủ ĐANG có mục cùng loại cho cùng Con (con xin / nộp bài / cảnh báo) ⇒ không lặp ở «Để biết».
+ *  Dòng khác (con nhắn lại, lời xin Ba/Mẹ kia đã trả lời, cảnh báo đã đọc) vẫn ở «Để biết». */
+const LOAI_GOM: Partial<Record<Nhom, string>> = { yeu_cau: "con_xin", nhiem_vu: "nop_bai", canh_bao: "canh_bao" };
+const daGom = (x: ThongBao, gom: MucCanDeY[]) => x.moi && !!LOAI_GOM[x.nhom] && gom.some((g) => g.loai === LOAI_GOM[x.nhom] && (!x.con || g.con === x.con));
 const canDeY = (x: ThongBao) => x.muc === "nghiem_trong" || (x.moi && (x.nhom === "canh_bao" || x.nhom === "yeu_cau" || x.nhom === "nhiem_vu"));
 
 const ngayCua = (s: string) => {
@@ -50,7 +52,7 @@ export default function DsThongBaoMan() {
   }
   // máy chủ mới gom «Cần Ba Mẹ để ý» (mất mạng, quên PIN, cảnh báo, con xin, nộp bài, máy chưa bảo vệ) ⇒ dùng nguyên; «Để biết» = các dòng còn lại
   const mayChu = d.canDeY;
-  const can = mayChu ? [] : d.ds.filter(canDeY), biet = d.ds.filter((x) => !(mayChu ? daGom(x) : canDeY(x)));
+  const can = mayChu ? [] : d.ds.filter(canDeY), biet = d.ds.filter((x) => !(mayChu ? daGom(x, mayChu) : canDeY(x)));
   const the = (x: ThongBao, deY: boolean) => {
     const k = KIEU[x.nhom];
     return (

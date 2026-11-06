@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm } from "@/lib/api";
+import { bm, type GiaDinh } from "@/lib/api";
 import { BONG } from "@/lib/clay";
 import { DauMan, TieuDe } from "@/lib/lan-dau";
 import { cauLuuQuaLanDau, icQua, phuQua, type MauQua } from "@/lib/s3";
@@ -15,7 +15,10 @@ import { GiaSao, OHinhQua, ThanhBuoc5 } from "@/lib/ui-s3";
 export default function ObQua() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
-  const { d, loi: loiTai, matMang, tai } = useTai(() => bm.goi<{ ds: MauQua[] }>("qua/mac-dinh"));
+  const { d, loi: loiTai, matMang, tai } = useTai(async () => {
+    const [m, g] = await Promise.all([bm.goi<{ ds: MauQua[] }>("qua/mac-dinh"), bm.goi<GiaDinh>("gia-dinh").catch(() => null)]);
+    return { ds: m.ds, nhieuCon: (g?.con.length ?? 1) > 1 };
+  });
   const [bo, setBo] = useState<Record<string, boolean> | null>(null);          // mã ⇒ true = bỏ tick (null = theo dữ liệu máy chủ)
   const { lam, loi, dangChay } = useLam();
   const ds = d?.ds ?? [];
@@ -23,7 +26,9 @@ export default function ObQua() {
   const boTick = bo ?? Object.fromEntries(ds.map((m) => [m.ma, coSan && !m.daCo]));
   const chon = ds.filter((m) => !boTick[m.ma]);
   const luu = () => lam(async () => {
-    await bm.goi("qua/mac-dinh", { chon: chon.map((m) => m.ma) });
+    // quà mặc định dùng chung cả nhà: nhà đã có con khác ⇒ bỏ tick KHÔNG xoá quà anh chị em đang dùng (chỉ thêm món được tick còn thiếu)
+    const giu = d!.nhieuCon ? ds.filter((m) => m.daCo).map((m) => m.ma) : [];
+    await bm.goi("qua/mac-dinh", { chon: [...new Set([...chon.map((m) => m.ma), ...giu])] });
     router.push("/thiet-lap/gio");
   });
   const dau = <DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />;

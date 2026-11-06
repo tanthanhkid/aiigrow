@@ -1,7 +1,7 @@
 // them-rz77kk45 «Mã mở máy cho Bảo Anh» + them-s8nltlaa «Bảo Anh đã mở máy bằng mã» (thiết kế chốt 06/11, L19). Chip «Laptop · mất mạng», 6 số to,
 // «Máy không cần mạng vẫn nhập được», «Mã đổi sau N phút», «Mở máy trong 15 / 30 / 60 phút» (số phút nằm trong mã — máy tự kiểm khi offline),
 // «Gửi mã cho con» (chia sẻ Zalo / Tin nhắn…), «Sao chép mã». GET may/:id/ma-offline?phut= (docs/API.md «S3»).
-// Khi máy có mạng lại và báo đã mở bằng mã (sự kiện may_mo_ma_offline sau lúc mở màn) ⇒ bảng «đã mở máy bằng mã» (kiểm mỗi 15 giây khi màn đang mở).
+// Khi máy có mạng lại và báo đã mở bằng mã (sự kiện may_mo_ma_offline sau lúc mở màn) ⇒ bảng «đã mở máy bằng mã» (kiểm mỗi 30 giây khi màn đang mở).
 // Đây cũng là `den` của mục «máy mất mạng» trong «Cần Ba Mẹ để ý».
 import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -54,7 +54,7 @@ export default function MaMoMay() {
       const x = suKienMoMa(m.suKien, moLuc);
       if (x) { setDaMo(x); setDaBao(true); thongTin.tai(); }
     }, () => {});
-    const t = setInterval(kiem, 15_000);
+    const t = setInterval(kiem, 30_000);
     return () => clearInterval(t);
   }, [id, daBao, moLuc]));    // eslint-disable-line react-hooks/exhaustive-deps -- thongTin.tai ổn định (useCallback trong useTai)
   const tt = thongTin.d;
