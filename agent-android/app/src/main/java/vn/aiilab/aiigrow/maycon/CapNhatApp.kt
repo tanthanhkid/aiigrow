@@ -101,7 +101,7 @@ object CapNhat {
         val b = try { layManifest(mayChu) } catch (e: Exception) { NhatKy.tin(TAG, "không lấy được manifest: ${e.message}"); return KetQua.LOI }
         if (!canCapNhat(b, BuildConfig.VERSION_CODE.toLong())) {
             thuMuc(ctx).listFiles()?.forEach { it.delete() }   // bản đã cài xong / manifest lùi bản ⇒ dọn tệp cũ
-            k.banMoiCho = null; k.hoanTu = 0; huyThongBao(ctx)
+            k.banMoiCho = null; k.hoanTu = 0; k.lanHoiCai = 0; huyThongBao(ctx)   // đã mới nhất ⇒ bản sau (hotfix) hỏi/cài ngay
             return KetQua.KHONG_CO
         }
         b!!

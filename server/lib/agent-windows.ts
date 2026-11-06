@@ -164,7 +164,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   const appQuy = quyMo ? appGiaiTri : [];
   // «Mở hết» mà quỹ đã hết (06/11, B1): mode vẫn tu_do (app chưa xếp vẫn mở) nhưng app Giải trí phải đóng — gửi chúng trong appTinhGio,
   // quyConPhut = 0 ⇒ agent (Windows QuyTaiCho / Mac QuyGio) đưa chúng vào danh sách chặn của mode tu_do. Trước đây appTinhGio rỗng ⇒ hết giờ vẫn chơi.
-  const appTinhGio = quyMo ? appQuy : moHet && p.quy ? appGiaiTri : [];
+  // Đang có cửa sổ mở có hạn / ngoại lệ cả máy ⇒ không gửi (agent Mac sẽ chặn cả lúc Con đang dùng giờ vừa đổi sao).
+  const appTinhGio = quyMo ? appQuy : moHet && p.quy && !dangMo && !nlCaMay ? appGiaiTri : [];
   const den = nlCaMay ? new Date(Math.max(Date.parse(nlCaMay.den), dangMo ? mo.moDen!.getTime() : 0)) : dangMo ? mo.moDen! : null;
   const heThong = p.allowlistHeThong.filter(laApp).map(chuan);
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
@@ -186,7 +187,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(p.con ? { sao: p.soDu } : {}),
     ...(den ? { grantEndsAt: den.toISOString() } : {}),
     // Đang «mở» có hạn / còn quỹ ⇒ trang Giải trí mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
-    web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || (moHet && (!p.quy || p.quy.conPhut > 0)) || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
+    web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || (moHet && !p.gioMaySai && (!p.quy || p.quy.conPhut > 0)) || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
     ...(p.quy ? { quyConPhut: quyMo ? p.quy.conPhut : 0, quyTongPhut: p.quy.ngayPhut + p.quy.themPhut, quyDaDung: p.quy.daDung, appTinhGio,
       dangGioHoc: dangHoc } : {}),
     gioNgu: p.lich.ngu, gioHoc: p.lich.hoc ?? null,

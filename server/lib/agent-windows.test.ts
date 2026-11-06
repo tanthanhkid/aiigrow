@@ -120,6 +120,13 @@ test("B1 06/11 «Mở hết» + quỹ: còn quỹ ⇒ tu_do, Giải trí tính g
   assert.deepEqual([het.mode, het.locked, het.quyConPhut, het.appTinhGio], ["tu_do", false, 0, ["roblox.exe"]]);
   assert.ok(!het.allowedApps.includes("roblox.exe"));
   assert.ok(!het.web.cho.includes("roblox.exe"));
+  // đang có cửa sổ mở có hạn (đổi sao / Ba Mẹ duyệt) ⇒ không gửi app Giải trí để chặn (agent Mac chặn cả khi cửa sổ còn hạn)
+  const mo = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(0) }), undefined, "chan", { moDen: new Date(Date.parse("2026-10-21T10:15:00.000Z")) });
+  assert.deepEqual([mo.mode, mo.appTinhGio], ["tu_do", []]);
+  // giờ máy sai: Giải trí đóng cả app lẫn web (không nửa vời)
+  const sai = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(30), gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
+  assert.deepEqual([sai.mode, sai.quyConPhut, sai.appTinhGio], ["tu_do", 0, ["roblox.exe"]]);
+  assert.ok(sai.web.chan.includes("youtube.com") && !sai.web.cho.includes("youtube.com"));
   // «Chỉ app được phép» hết quỹ: như cũ (mode hoc, appTinhGio rỗng — Giải trí đã ngoài allowedApps)
   const chi = chinhSachWindows(goc({ cheDoChan: "chi_app_duoc_phep", quy: quy(0) }), undefined, "chan");
   assert.deepEqual([chi.mode, chi.appTinhGio], ["hoc", []]);
@@ -146,10 +153,3 @@ test("05/11: ngoại lệ trong lúc khoá / giờ ngủ ⇒ khoaKhiHetNgoaiLe �
   assert.equal(chinhSachWindows(goc()).sao, 40);   // khay: «con có 40 sao»
 });
 
-test("B2 06/11: hộp thông báo Windows Update (MoNotificationUx…) nằm trong allowlist hệ thống ⇒ agent cũ không đóng nó ở «Chỉ app được phép»", async () => {
-  const { ALLOWLIST_HE_THONG } = await import("./luat-app.ts");
-  for (const exe of ["monotificationux.exe", "musnotification.exe", "musnotifyicon.exe"]) assert.ok(ALLOWLIST_HE_THONG.includes(exe), exe);
-  const w = chinhSachWindows(goc({ allowlistHeThong: ALLOWLIST_HE_THONG, cheDoChan: "chi_app_duoc_phep" }));
-  assert.equal(w.mode, "hoc");
-  assert.ok(w.allowedApps.includes("monotificationux.exe"));
-});

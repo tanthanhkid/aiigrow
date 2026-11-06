@@ -21,6 +21,9 @@ export const xoaTl = () => { tl = {}; try { kho()?.removeItem(KHOA); } catch { /
 /** Thân POST thiet-lap (Lần đầu, màn Giờ chơi) — hàm thuần. 06/11 (B1): chế độ chặn CHỈ gửi khi Ba Mẹ đã chọn / màn đã nạp chế độ thật của Con;
  *  trước đây thiếu thì gửi «chi_app_duoc_phep» ⇒ đi lại Lần đầu cho Con đang «Mở hết» là lặng lẽ đổi về «Chỉ app được phép» (máy Con khoá lại).
  *  Con mới tạo đã có «chi_app_duoc_phep» sẵn ở máy chủ (gia-dinh.ts › taoCon) nên bỏ trống vẫn đúng mặc định. */
+/** App trong lưới (có `ma`) hay app thêm theo tên. */
+export const coMa = (a: AppChon): a is { ma: string; ten: string } => "ma" in a;
+
 export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) => number; ngu: { tu: string; den: string } }) {
   const quy = t.quy ?? mac.quy;
   return {
@@ -28,6 +31,6 @@ export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) =>
     gioChoi: { ngayThuong: quy, cuoiTuan: mac.cuoiTuan(quy) },
     ngu: t.ngu ?? mac.ngu,
     ...(t.cheDoChan ? { cheDoChan: t.cheDoChan } : {}),
-    ...(t.apps ? { apps: t.apps.map((a) => ("ma" in a ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio })) } : {}),
+    ...(t.apps ? { apps: t.apps.map((a) => (coMa(a) ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio })) } : {}),
   };
 }

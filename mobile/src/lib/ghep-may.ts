@@ -1,7 +1,7 @@
 // Ghép máy (L8, docs/API.md › «Ghép máy»): một nội dung cho cả Lần đầu và Ghép thêm máy. Giữ kết quả `POST ghep-may` trong bộ nhớ
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
 import { bm } from "./api";
-import { datTl, layTl, thanThietLap, type AppChon } from "./thiet-lap";
+import { coMa, datTl, layTl, thanThietLap } from "./thiet-lap";
 
 export type KqGhep = {
   ma: string; maHien: string; het: string; hanPhut: number; conGiay: number; lienKet: string; qr: string; tokenGoi: string; hetGoi: string;
@@ -50,7 +50,7 @@ export async function napAppGoiY(con: string) {
   if (!layTl().apps) datTl({ apps: r.ds.filter((a) => a.chon).map((a) => ({ ma: a.ma, ten: a.ten })) });
   return r.ds;
 }
-export const coMa = (a: AppChon): a is { ma: string; ten: string } => "ma" in a;
+export { coMa };
 
 /** Gửi toàn bộ lựa chọn Giờ chơi + Chọn app cho Con đang thiết lập. */
 export async function luuThietLap() {

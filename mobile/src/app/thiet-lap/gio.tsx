@@ -3,7 +3,7 @@
 //   · Giờ chơi mỗi ngày: chip 30 / 60 / 90 phút, cuối tuần +30 (L2 — quỹ phút, hết giờ máy tự khoá);
 //   · Giờ ngủ: hai ô giờ, bấm mở bánh xe (them-hijzsz0z).
 // «Lưu và ghép máy của X» ⇒ POST thiet-lap (một lần) ⇒ Ghép máy.
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
@@ -20,17 +20,28 @@ export default function ObGio() {
   const [ngu, setNgu] = useState(tl.ngu ?? NGU_MAC_DINH);
   const [apps, setApps] = useState(tl.apps);
   const [suaNgu, setSuaNgu] = useState<"tu" | "den" | null>(null);
+  const daNap = useRef<string | null>(null);
   const { lam, loi, dangChay } = useLam();
   // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Rob (app-goi-y)
   useFocusEffect(useCallback(() => {
     const t = layTl();
     setApps(t.apps);
     if (t.conId && !t.apps) napAppGoiY(t.conId).then(() => setApps(layTl().apps)).catch(() => {});
-    // 06/11 (B1): Con đã có chế độ chặn ở máy chủ (đi lại Lần đầu cho Con cũ) ⇒ hiện đúng chế độ đó, không mặc định «Chỉ app được phép»
-    if (t.conId && !t.cheDoChan) tomTat(t.conId).then((x) => { if (!layTl().cheDoChan && x.cheDoChan) { setCheDo(x.cheDoChan); datTl({ cheDoChan: x.cheDoChan }); } }).catch(() => {});
+    // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng chế độ chặn / quỹ / giờ ngủ đang có, không mặc định đè lên (nạp một lần mỗi Con)
+    if (t.conId && daNap.current !== t.conId && (!t.cheDoChan || t.quy == null || !t.ngu)) {
+      daNap.current = t.conId;
+      tomTat(t.conId).then((x) => {
+        const n = layTl();
+        if (n.conId !== x.conId) return;
+        if (!n.cheDoChan && x.cheDoChan) { setCheDo(x.cheDoChan); datTl({ cheDoChan: x.cheDoChan }); }
+        if (n.quy == null && x.gioChoi.ngayThuong != null) { setQuy(x.gioChoi.ngayThuong); datTl({ quy: x.gioChoi.ngayThuong }); }
+        if (!n.ngu && x.ngu?.tu && x.ngu?.den) { setNgu(x.ngu); datTl({ ngu: x.ngu }); }
+      }).catch(() => {});
+    }
   }, []));
   const doi = (x: Parameters<typeof datTl>[0]) => datTl(x);
   const luu = () => lam(async () => {
+    datTl({ cheDoChan: cheDo });   // lưu đúng chế độ đang hiện trên màn (kể cả khi nạp chế độ thật của Con chưa xong / lỗi)
     const con = await luuThietLap();
     router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
   }, { hangDoi: true });
