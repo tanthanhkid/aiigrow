@@ -342,3 +342,68 @@ test("L14 điều kiện quà: chỉ cuối tuần, tối đa X lần / tháng, 
   await pt.doiQua(anh, kem.id, new Date(), { voucherTraoTay: true });
   await loi(pt.doiQua(anh, kem.id, new Date(), { voucherTraoTay: true }), "du_thang");
 });
+
+// ================================================================ vá lệch #201 (M5)
+
+test("M5 thư viện theo Con: mẫu đang áp riêng cho Con khác ⇒ áp thêm cho Con đang chọn (không còn «Đã thêm 0 quà»); quà đã cất ⇒ bật lại", async () => {
+  const { tokBm, anh, minh, rieng } = await nha();
+  const choMinh = (await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"], con: minh })).body;
+  assert.equal(choMinh.taoMoi, 1);
+  const sach = choMinh.ids[0];
+  // thư viện của Bảo Anh: sách chưa «có»
+  const tvAnh = (await m(tokBm, `qua/thu-vien?con=${anh}`)).body.nhom.flatMap((x: any) => x.ds);
+  assert.equal(tvAnh.find((x: any) => x.ma === "sach_moi").daCo, false);
+  const choAnh = (await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"], con: anh })).body;
+  assert.deepEqual([choAnh.taoMoi, choAnh.ids], [1, [sach]], "một quà, áp thêm Bảo Anh — không nhân bản");
+  assert.deepEqual((await one<{ ap_cho: string[] }>(`select ap_cho from rewards where id = $1`, [sach]))!.ap_cho.sort(), [anh, minh].sort());
+  assert.ok((await m(tokBm, `qua?con=${anh}`)).body.ds.some((x: any) => x.id === sach));
+  assert.ok((await dv(rieng.tok, "hoc-vien/cua-hang")).body.qua.some((x: any) => x.id === sach), "Bảo Anh đổi được");
+  // thêm lại lần nữa ⇒ 0 (đã có thật)
+  assert.equal((await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"], con: anh })).body.taoMoi, 0);
+  // quà mặc định đã cất ⇒ thêm từ thư viện bật lại
+  const kem = (await m(tokBm, "qua")).body.ds.find((x: any) => x.mau === "an_kem");
+  await m(tokBm, `qua/${kem.id}`, { bat: false });
+  const lai = (await m(tokBm, "qua/thu-vien", { mau: ["an_kem"], con: anh })).body;
+  assert.deepEqual([lai.taoMoi, lai.ids], [1, [kem.id]]);
+  assert.equal((await one<{ bat: boolean }>(`select bat from rewards where id = $1`, [kem.id]))!.bat, true);
+});
+
+test("M5 «Dùng 7 quà Rob gợi ý» bật lại quà mặc định đã cất; có `con` ⇒ quà áp riêng Con khác được áp thêm Con này", async () => {
+  const { tokBm, anh, minh } = await nha();
+  const ds = (await m(tokBm, "qua")).body.ds;
+  for (const x of ds) await m(tokBm, `qua/${x.id}`, { bat: false });
+  const lego = ds.find((x: any) => x.mau === "lego");
+  await m(tokBm, `qua/${lego.id}`, { apCho: [minh] });
+  assert.equal((await m(tokBm, "qua/mac-dinh")).body.ds.some((x: any) => x.daCo), false, "quà đã cất ⇒ chưa «có»");
+  const sau = (await m(tokBm, "qua/mac-dinh", { con: anh })).body.ds;
+  assert.equal(sau.length, 7);
+  assert.ok(sau.every((x: any) => x.bat), "cả 7 bật lại");
+  assert.equal((await m(tokBm, "qua")).body.ds.length, 7, "không tạo trùng");
+  assert.deepEqual((await one<{ ap_cho: string[] }>(`select ap_cho from rewards where id = $1`, [lego.id]))!.ap_cho.sort(), [anh, minh].sort());
+});
+
+test("M5 màn Mã mở máy: đường nhẹ mo-bang-ma?sau= chỉ trả sự kiện mở bằng mã mới; xem lại cùng mã không ghi xem_ma_offline trùng", async () => {
+  const { fam, tokBm, anh, rieng } = await nha();
+  const { ghiSuKien } = await import("./nhat-ky.ts");
+  const dem = async () => (await q(`select 1 from events where device_id = $1 and loai = 'xem_ma_offline'`, [rieng.id])).length;
+  const a = (await m(tokBm, `may/${rieng.id}/ma-offline?phut=30`)).body;
+  const b = (await m(tokBm, `may/${rieng.id}/ma-offline?phut=30`)).body;
+  assert.equal(a.ma, b.ma);
+  assert.equal(await dem(), 1, "cùng mã ⇒ một dòng");
+  await m(tokBm, `may/${rieng.id}/ma-offline?phut=15`);
+  await m(tokBm, `may/${rieng.id}/ma-offline?phut=30`);
+  assert.equal(await dem(), 2, "15 phút là mã khác ⇒ thêm một dòng; quay lại 30 không ghi lại");
+  const moLuc = new Date(Date.now() - 1000).toISOString();
+  assert.deepEqual((await m(tokBm, `may/${rieng.id}/mo-bang-ma?sau=${encodeURIComponent(moLuc)}`)).body.suKien, []);
+  await ghiSuKien(fam, "may_mo_ma_offline", { phut: 30, luc: moLuc }, { con: anh, may: rieng.id });
+  await ghiSuKien(fam, "may_sai_ma_offline", {}, { con: anh, may: rieng.id });
+  const r = (await m(tokBm, `may/${rieng.id}/mo-bang-ma?sau=${encodeURIComponent(moLuc)}`)).body;
+  assert.equal(r.suKien.length, 1);
+  assert.deepEqual([r.suKien[0].loai, r.suKien[0].chi_tiet.phut], ["may_mo_ma_offline", 30]);
+  assert.ok(r.bayGio);
+  // sau = mili giây sau sự kiện ⇒ rỗng; máy nhà khác ⇒ 404
+  assert.deepEqual((await m(tokBm, `may/${rieng.id}/mo-bang-ma?sau=${Date.now() + 60_000}`)).body.suKien, []);
+  const khac = await taoPhien((await taoNha()).bm);
+  assert.equal((await m(khac, `may/${rieng.id}/mo-bang-ma`)).status, 404);
+  assert.equal(await dem(), 2, "đường nhẹ không ghi gì");
+});

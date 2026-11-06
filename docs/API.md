@@ -12,7 +12,7 @@ Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next
 | Con | `POST con {ten, namSinh?, pin?, avatar?, nhom?}` · `GET con/:id` (ví, cấp độ, lịch, tham số, thiết bị + mức bảo vệ + lệch giờ) · `POST con/:id/sua` · `POST con/:id/lich {ngayThuong[], cuoiTuan[], ngu}` · `POST con/:id/cau-hinh` · `POST con/:id/khoa {khoa}` (Khoá ngay / Mở lại) · `POST con/:id/diem {delta, lyDo}` · `GET con/:id/vi` (`lichSu[]` có `nguoi` = id Ba Mẹ và `ten_nguoi` = tên để hiện) · `GET con/:id/bao-cao` · `GET con/:id/thanh-tich` · `POST con/:id/loi-khen {noiDung}` |
 | Thiết bị | `POST ma-ghep {con?, nen}` → `{ma}` (con trống = máy dùng chung) · `POST may/:id/go {matKhau, xoaHan?}` (gỡ an toàn — xem mục «An toàn & gỡ cài đặt») |
 | Nhiệm vụ | `GET/POST nhiem-vu` · `POST nhiem-vu/mau {nhom: nhi\|teen}` · `POST nhiem-vu/:id` (sửa, bật/tắt) |
-| Chờ duyệt | `GET cho-duyet` → `{nhiemVu[], yeuCau[], phieu[] (quà Con đổi đang chờ trao/xác nhận: `POST phieu/:id/xac-nhan` · `POST phieu/:id/huy`), tuDong[]}` · `GET luot/:id/anh` · `POST luot/:id/duyet {diem?, loiKhen?}` · `POST luot/:id/tu-choi {lyDo, boSung?}` · `POST duyet-hang-loat {ids[]}` |
+| Chờ duyệt | `GET cho-duyet` → `{nhiemVu[], yeuCau[], phieu[] (quà Con đổi đang chờ trao/xác nhận, kèm `hinh` của quà — null khi quà đã xoá: `POST phieu/:id/xac-nhan` · `POST phieu/:id/huy`), tuDong[]}` · `GET luot/:id/anh` · `POST luot/:id/duyet {diem?, loiKhen?}` · `POST luot/:id/tu-choi {lyDo, boSung?}` · `POST duyet-hang-loat {ids[]}` |
 | Quản trị trong app | `GET toi` có thêm `laAdmin` (`parents.id` nằm trong env `AIIGROW_ADMIN_ID`, cách nhau dấu phẩy; không so email/SĐT; không đặt env ⇒ không ai là admin; lấy id bằng `GET toi` → `baMe.id`) · `GET admin/ho-tro` → `{ds[{family_id, ten, tu, noi_dung, created_at, chua_tra_loi}]}` · `GET admin/ho-tro/:fam` → `{ten, tin[]}` · `POST admin/ho-tro/:fam {noiDung}`. Ba Mẹ thường gọi ⇒ 403 `khong_du_quyen` |
 | Yêu cầu | `GET yeu-cau/:id/xem-truoc` → cảnh báo ngoại lệ trước khi xác nhận · `POST yeu-cau/:id/dong-y {truDiem?, phut?, phanLoai?, nhom?, phamVi?}` · `POST yeu-cau/:id/tu-choi {lyDo}` |
 | Phần thưởng | `GET/POST qua` · `POST qua/mau` · `POST qua/:id` · `GET phieu` (chờ trao / chờ xác nhận) · `POST phieu/:id/xac-nhan` · `POST phieu/:id/huy` · `GET quy` |
@@ -519,6 +519,11 @@ mở đúng số phút của biến thể khớp (`lib/ma-offline.ts` › `kiemM
 `nhip.maOfflineBiMat` (Android/iOS, gửi khi `maOfflineVan` lệch) như cũ. Cùng mã gõ ở màn «Ba Mẹ nhập mã» (có mạng ⇒ `POST /api/device/ba-me-mo`;
 mất mạng ⇒ agent tự kiểm rồi gửi sự kiện `mo_ma_offline` khi có mạng lại). Mọi máy có tác tử (Windows, Mac, Android, iPhone/iPad).
 
+Nhật ký `xem_ma_offline` ghi MỘT dòng mỗi (Ba Mẹ, số phút, bước mã 300 giây) — màn tải lại cùng mã (đổi 15/30/60 qua lại, quay lại màn) không ghi trùng
+(`chi_tiet: {phut, buoc}`). **`GET /api/m/may/:id/mo-bang-ma?sau=<ISO | mili giây>`** (đường nhẹ, không ghi gì) — màn mã dò «đã mở máy bằng mã»
+(them-s8nltlaa) mỗi 30 giây thay cho cả `may/:id/tuan-thu`: → `{suKien: [{loai: "may_mo_ma_offline", chi_tiet: {phut, luc?}, created_at}], bayGio}` —
+chỉ sự kiện máy chủ nhận SAU `sau` (thiếu/sai ⇒ 10 phút trước), mới trước, tối đa 20; cùng dạng phần tử `suKien` của tuan-thu. Máy nhà khác ⇒ 404.
+
 ### Máy con mất mạng + chuông (L19)
 
 **Mất mạng hôm nay** = máy Windows / Mac / Android đã liên lạc trong hôm nay (giờ nhà) mà im lặng > 10 phút, không phải tắt / ngủ sạch (agent báo
@@ -571,11 +576,11 @@ tham số mục 10, 30–365). `GET /api/kid/vi-qua` › `voucher[]`: chỉ phi�
 | `POST qua/:id {…cùng khoá, chỉ khoá gửi lên}` | «Lưu quà» → `{ok, qua}`. `apCho` có id lạ ⇒ 404 |
 | `POST qua/:id/xoa` | «Xoá quà này» → `{ok, hoanPhieu, hoanSao}` |
 | `GET qua/mac-dinh` | 7 quà Rob chọn sẵn cho bước «Chọn quà» → `{ds: [{ma, ten, moTa, hinh, sao, loai, menhGia, chiCuoiTuan, tonKho, daCo}]}` |
-| `POST qua/mac-dinh {chon?: [ma]}` | «Lưu 7 quà, sang giờ chơi»: tạo quà được tick còn thiếu, bỏ quà mặc định bị bỏ tick (chưa ai đổi) → như `GET qua`. Thiếu `chon` = cả 7. Mã lạ ⇒ 400 `mau_sai` |
+| `POST qua/mac-dinh {chon?: [ma], con?}` | «Lưu 7 quà, sang giờ chơi» / «Dùng 7 quà Rob gợi ý»: tạo quà được tick còn thiếu, **bật lại quà mặc định đã cất** (`bat=false`), bỏ quà mặc định bị bỏ tick (chưa ai đổi) → như `GET qua` (`con` ⇒ lọc theo Con; quà mặc định đang áp riêng cho Con khác ⇒ áp thêm Con này). Thiếu `chon` = cả 7. Mã lạ ⇒ 400 `mau_sai`. `GET qua/mac-dinh` › `daCo` chỉ tính quà đang bật |
 | `POST qua/mau` | (app cũ) thêm quà mặc định còn thiếu → `{taoMoi, ds}` |
 | `GET qua/thu-vien?con=` | «Thêm quà từ thư viện», 5 nhóm → ví dụ dưới; `daCo` = nhà (hoặc Con) đã có quà cùng mã / cùng tên |
-| `POST qua/thu-vien {mau: [ma], con?}` | «Thêm N quà cho Bảo Anh» → `{taoMoi, ids}` (mẫu đã có bỏ qua; `con` ⇒ áp cho riêng Con đó). Mã lạ ⇒ 400 `mau_sai` |
-| `GET phieu/:id` | màn «Trao quà cho con» → `{id, con: {id, ten}, ten, loai, sao, trangThai, dangGiu, doiLuc, voucher: {menhGia, trangThai, ma?, qr?, hetHan?} \| null}` |
+| `POST qua/thu-vien {mau: [ma], con?}` | «Thêm N quà cho Bảo Anh» → `{taoMoi, ids}` (`con` ⇒ áp cho riêng Con đó). Mẫu đã có (cùng mã) áp cho Con này / mọi Con ⇒ bỏ qua (đang cất ⇒ bật lại, có tính); **đang áp riêng cho Con khác ⇒ áp thêm Con này vào quà đó** (một quà, `apCho` nhiều Con — không nhân bản). `taoMoi` = số quà Con có thêm, `ids` = các quà đó. Mã lạ ⇒ 400 `mau_sai` |
+| `GET phieu/:id` | màn «Trao quà cho con» → `{id, con: {id, ten}, ten, loai, hinh, sao, trangThai, dangGiu, doiLuc, voucher: {menhGia, trangThai, ma?, qr?, hetHan?} \| null}` |
 
 ```json
 // một phần tử GET /api/m/qua › ds

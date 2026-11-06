@@ -111,16 +111,29 @@ const apChoVao = async (fam: string, v: unknown): Promise<string[] | null> => {
   return ds;
 };
 
-/** «Thêm N quà» từ thư viện (`mau[]` = mã mẫu). Mẫu đã có (cùng mã) ⇒ bỏ qua; `con` ⇒ áp cho riêng Con đó. */
+/** «Thêm N quà» từ thư viện (`mau[]` = mã mẫu). `con` ⇒ áp cho riêng Con đó.
+ *  Mẫu đã có (cùng mã): đã áp cho Con này / cho mọi Con ⇒ bỏ qua (đang cất thì bật lại); đang áp RIÊNG cho Con khác ⇒ áp thêm Con này vào
+ *  quà đó («Áp cho» nhiều Con — một quà, không nhân bản) — trước đây bỏ qua nên Ba Mẹ thấy «+» mà nhận «Đã thêm 0 quà» (lệch #201).
+ *  `taoMoi` = số quà Con (hoặc cả nhà) có thêm; `ids` = các quà đó (mới tạo hoặc vừa áp thêm). */
 export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unknown }, nguoi: string) {
   const ma = [...new Set((Array.isArray(b.mau) ? b.mau : [b.mau]).map(String))].filter(Boolean);
   if (!ma.length || ma.some((x) => !theoMa.has(x))) throw new LoiNghiepVu("mau_sai", "Chọn quà trong thư viện");
   const ap = await apChoVao(fam, b.con);
-  const co = new Set((await q<{ mau: string }>(`select mau from rewards where family_id = $1 and mau is not null`, [fam])).map((x) => x.mau));
+  const co = await q<{ id: string; mau: string; ap_cho: string[] | null; bat: boolean }>(
+    `select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, ma]);
   const ids: string[] = [];
   for (const m of ma) {
-    if (co.has(m)) continue;
-    ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: ap }));
+    const cung = co.filter((x) => x.mau === m);
+    if (!cung.length) { ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: ap })); continue; }
+    const apDung = ap ? cung.find((x) => !x.ap_cho || x.ap_cho.includes(ap[0])) : cung.find((x) => !x.ap_cho) ?? cung[0];
+    if (apDung) {
+      if (!apDung.bat) { await q(`update rewards set bat = true where id = $1`, [apDung.id]); ids.push(apDung.id); }
+      continue;
+    }
+    // chỉ còn quà cùng mẫu áp riêng cho Con khác ⇒ áp thêm Con này
+    const x = cung[0];
+    await q(`update rewards set ap_cho = $2::text::jsonb, bat = true where id = $1`, [x.id, JSON.stringify([...new Set([...(x.ap_cho ?? []), ...ap!])])]);
+    ids.push(x.id);
   }
   if (ids.length) await ghiSuKien(fam, "them_qua", { so: ids.length, mau: ma }, { con: ap?.[0] ?? null, nguoi });
   return { taoMoi: ids.length, ids };
@@ -132,10 +145,19 @@ export async function luuQuaMacDinh(fam: string, b: { chon?: unknown; con?: unkn
   const chon = b.chon === undefined ? QUA_MAC_DINH.map((m) => m.ma) : [...new Set((Array.isArray(b.chon) ? b.chon : []).map(String))];
   if (chon.some((x) => !QUA_MAC_DINH.some((m) => m.ma === x))) throw new LoiNghiepVu("mau_sai", "Chọn trong 7 quà Rob gợi ý");
   await q(`update families set qua_seed_luc = coalesce(qua_seed_luc, now()) where id = $1`, [fam]);
-  const co = await q<{ id: string; mau: string }>(`select id, mau from rewards where family_id = $1 and mau = any($2::text[])`, [fam, QUA_MAC_DINH.map((m) => m.ma)]);
+  const con = b.con ? (await apChoVao(fam, b.con))![0] : null;
+  const co = await q<{ id: string; mau: string; ap_cho: string[] | null; bat: boolean }>(
+    `select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, QUA_MAC_DINH.map((m) => m.ma)]);
   for (const m of QUA_MAC_DINH) {
-    const r = co.find((x) => x.mau === m.ma);
+    const cung = co.filter((x) => x.mau === m.ma);
+    // quà cùng mẫu áp cho Con đang chọn (hoặc mọi Con) — có `con` thì ưu tiên quà đó, không thì quà đầu
+    const r = cung.find((x) => !x.ap_cho || (con !== null && x.ap_cho.includes(con))) ?? cung[0];
     if (chon.includes(m.ma) && !r) await pt.taoQua(fam, { ...m, mau: m.ma });
+    // «Dùng 7 quà Rob gợi ý»: quà mặc định đã cất (bat=false) ⇒ bật lại; đang áp riêng cho Con khác ⇒ áp thêm Con đang chọn (lệch #201)
+    if (chon.includes(m.ma) && r) {
+      const apMoi = con && r.ap_cho && !r.ap_cho.includes(con) ? [...r.ap_cho, con] : null;
+      if (!r.bat || apMoi) await q(`update rewards set bat = true, ap_cho = coalesce($2::text::jsonb, ap_cho) where id = $1`, [r.id, apMoi ? JSON.stringify(apMoi) : null]);
+    }
     if (!chon.includes(m.ma) && r && !(await one(`select 1 from redemptions where reward_id = $1 limit 1`, [r.id]))) await q(`delete from rewards where id = $1`, [r.id]);
   }
   await ghiSuKien(fam, "chon_qua", { chon }, { nguoi });
@@ -182,11 +204,11 @@ export async function xoaQua(fam: string, id: string, nguoi: string) {
 /** Màn «Trao quà cho con» — một phiếu đang giữ (tên, sao, lúc đổi, Con). */
 export async function chiTietPhieu(fam: string, id: string) {
   const p = await one<{ id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: Date;
-    reward_id: string | null }>(`select r.id, r.child_id, c.ten as ten_con, r.ten, r.loai, r.diem, r.trang_thai, r.created_at, r.reward_id
-      from redemptions r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2`, [id, fam]);
+    reward_id: string | null; hinh: string | null }>(`select r.id, r.child_id, c.ten as ten_con, r.ten, r.loai, r.diem, r.trang_thai, r.created_at, r.reward_id, w.hinh
+      from redemptions r join children c on c.id = r.child_id left join rewards w on w.id = r.reward_id where r.id = $1 and c.family_id = $2`, [id, fam]);
   if (!p) throw new LoiNghiepVu("khong_thay", "Không thấy phiếu quà", 404);
   const v = await one<{ ma: string; trang_thai: string; het_han: Date; menh_gia: number }>(`select ma, trang_thai, het_han, menh_gia from vouchers where redemption_id = $1`, [id]);
-  return { id: p.id, con: { id: p.child_id, ten: p.ten_con }, ten: p.ten, loai: p.loai, sao: p.diem, trangThai: p.trang_thai,
+  return { id: p.id, con: { id: p.child_id, ten: p.ten_con }, ten: p.ten, loai: p.loai, hinh: p.hinh ?? null, sao: p.diem, trangThai: p.trang_thai,
     dangGiu: p.trang_thai === "giu", doiLuc: new Date(p.created_at).toISOString(),
     voucher: v ? { menhGia: v.menh_gia, trangThai: v.trang_thai, ...(v.trang_thai === "da_phat_hanh" || v.trang_thai === "da_dung" ? { ma: v.ma, qr: v.ma, hetHan: new Date(v.het_han).toISOString() } : {}) } : null };
 }

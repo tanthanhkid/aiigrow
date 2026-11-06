@@ -34,7 +34,7 @@ export async function xuLyMS3(bm: { id: string; family_id: string }, req: Reques
     if (d === "qua" && get) return json(await qb.dsQua(fam, tham(req, "con")));
     if (d === "qua" && post) return json({ id: await qb.taoQuaRieng(fam, b) });
     if (d === "qua/mac-dinh" && get) {
-      const co = new Set((await q<{ mau: string }>(`select mau from rewards where family_id = $1 and mau is not null`, [fam])).map((x) => x.mau));
+      const co = new Set((await q<{ mau: string }>(`select mau from rewards where family_id = $1 and mau is not null and bat`, [fam])).map((x) => x.mau));   // quà đã cất ⇒ chưa «có»
       return json({ ds: qb.QUA_MAC_DINH.map((m) => ({ ma: m.ma, ten: m.ten, moTa: m.mo_ta ?? null, hinh: m.hinh ?? null, sao: m.diem, loai: m.loai,
         menhGia: m.menh_gia ?? null, chiCuoiTuan: !!m.chi_cuoi_tuan, tonKho: m.ton_kho ?? null, daCo: co.has(m.ma) })) });
     }

@@ -519,14 +519,16 @@ function NutChat() {
 }
 
 /** Bảng trượt từ đáy (kit .phu + .bang-truot): nền phía sau tối mờ, bấm nền để đóng. */
-export function BangTruot({ mo, dong, tieu, children }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode }) {
+export function BangTruot({ mo, dong, tieu, children, dauBang, giua }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+  /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean }) {
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Pressable style={{ flex: 1, backgroundColor: "rgba(16,35,31,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
       <View style={s.bangTruot}>
         <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "#d4d5d1", alignSelf: "center" }} />
-        <Chu kieu="rat" co={21} style={{ marginTop: 4, letterSpacing: -0.3 }}>{tieu}</Chu>
+        {dauBang}
+        <Chu kieu="rat" co={21} style={[{ marginTop: 4, letterSpacing: -0.3 }, giua && { textAlign: "center" }]}>{tieu}</Chu>
         {children}
       </View>
       </KeyboardAvoidingView>

@@ -204,6 +204,8 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       // L6: Người trông giúp được duyệt lời xin (mở máy) ⇒ cũng được đọc mã mở offline cho Con lúc máy mất mạng
       if (sau === "ma-offline" && get) return json(await tt.maOfflineChoMay(fam, p[1], bm.id, new Date(), new URL(req.url).searchParams.get("phut") ?? 60));
+      // màn mã dò «đã mở bằng mã» — đường nhẹ, chỉ sự kiện mới sau `sau` (docs/API.md «S3» › Mã mở máy)
+      if (sau === "mo-bang-ma" && get) return json(await tt.moBangMaSau(fam, p[1], new URL(req.url).searchParams.get("sau")));
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
       if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
       // Thiết kế 05/11: máy luôn chặn thật — chỉ còn nhận «chan» (giam-sat ⇒ 409 che_do_bo); mức chặn đổi ở con/:id/che-do-chan
@@ -274,7 +276,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (p[0] === "phieu" && p[1] && p[2] === "xac-nhan" && post) return json({ ok: true, ...(await pt.xacNhanPhieu(fam, p[1], bm.id)) });   // 06/11: kèm voucher {ma, qr, hetHan}
     if (p[0] === "phieu" && p[1] && p[2] === "huy" && post) { await pt.huyPhieu(fam, p[1], bm.id); return json({ ok: true }); }
     if (d === "phieu" && get)
-      return json({ ds: await q(`select r.*, c.ten as ten_con from redemptions r join children c on c.id = r.child_id where c.family_id = $1 and r.trang_thai = 'giu' order by r.created_at`, [fam]) });
+      return json({ ds: await q(`select r.*, c.ten as ten_con, w.hinh from redemptions r join children c on c.id = r.child_id left join rewards w on w.id = r.reward_id where c.family_id = $1 and r.trang_thai = 'giu' order by r.created_at`, [fam]) });
     if (d === "quy" && get)
       return json({ soDu: (await one<{ quy_voucher: number }>(`select quy_voucher from families where id = $1`, [fam]))!.quy_voucher,
         giaoDich: await q(`select so_tien, loai, ghi_chu, created_at from quy_gd where family_id = $1 order by created_at desc limit 50`, [fam]) });
