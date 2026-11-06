@@ -13,21 +13,21 @@ export default async function TrangCai({ params }: { params: Promise<{ token: st
       <main className="trang vao">
         <header className="dau-trang">
           <img className="logo" src="/logo.png" alt="AiiGrow" width={88} height={88} />
-          <h1>Cài AiiGrow Con cho iPhone/iPad</h1>
-          <p className="phu-de">Đây là link ghép máy của Con vào gia đình. Làm theo 3 bước:</p>
+          <h1>Cài cho iPhone / iPad: 3 bước là xong!</h1>
+          <p className="phu-de">Làm trên máy của con.</p>
         </header>
         <ol className="buoc">
-          <li>Trên máy của Con, cài app <b>AiiGrow Con</b> từ App Store.</li>
-          <li>Quay lại link này (hoặc quét lại mã QR) — máy sẽ mở thẳng app và tự ghép, không cần nhập mã.</li>
-          <li>Ba Mẹ duyệt quyền Screen Time bằng Apple ID của Ba Mẹ (một lần).</li>
+          <li><b>Cài app AiiGrow Con</b> từ App Store.</li>
+          <li><b>Cài hồ sơ:</b> bấm «Cho phép» rồi «Cài đặt».</li>
+          <li><b>Cho phép Thời gian sử dụng:</b> Ba Mẹ xác nhận một lần.</li>
         </ol>
         {token ? (
           <section className="the the-tai">
-            <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={56} /><h2>Máy của Con đã cài app?</h2></div>
+            <div className="dau-tai"><I3d ten="mobile-phone" mau="xanh" co={56} /><h2>Máy của con đã cài app?</h2></div>
             <a className="nut" href={lienKetApp(token)}>Mở app AiiGrow Con</a>
             <p className="ghi-tep">
               Mã gói cài: <code className="ma-token">{token}</code>
-              <br />Mã dùng được một lần và có hạn; hết hạn thì nhờ Ba Mẹ tạo gói mới trong app Ba Mẹ.
+              <br />Mở AiiGrow Con từ nút trên thì máy tự ghép, không cần gõ mã. Link hết hạn thì nhờ Ba Mẹ tạo gói mới (mã 6 số trên điện thoại Ba Mẹ dùng được 10 phút).
             </p>
           </section>
         ) : null}
