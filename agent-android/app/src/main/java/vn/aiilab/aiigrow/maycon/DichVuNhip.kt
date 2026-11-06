@@ -129,8 +129,10 @@ class DichVuNhip : Service() {
         val lech = if (k.cheDoThu) 0 else k.lechGioMs
         // mở tạm bằng mã offline (đồng hồ máy) ⇒ quy về đồng hồ máy chủ như `now`
         // L13: «Ba Mẹ đang dùng máy» (máy chủ hoặc mã gõ lúc mất mạng) ⇒ mở hết tới hạn như mã offline (thắng giờ ngủ / khoá); hết hạn ⇒ chọn tên
-        val cong = PinMay.cong(k, nowMay)
-        val baMe = if (cong == Cong.BA_ME) PinMay.baMeDen(k, nowMay) else 0L
+        //     mọi hạn trong PinMay đã ở GIỜ MÁY (hạn máy chủ trừ lechGioMs khi nhận) ⇒ cộng `lech` đúng MỘT lần như mã offline. Đọc Kho một lần / vòng.
+        val anhCong = PinMay.anh(k, nowMay)
+        val cong = anhCong.cong
+        val baMe = if (cong == Cong.BA_ME) anhCong.baMeDen else 0L
         val moOff = listOfNotNull(MoTamOffline.doc(k.moTamOffline).takeIf { it.dangMo(nowMay) }?.moDen, baMe.takeIf { it > 0 }).maxOrNull()
             ?.let { Instant.ofEpochMilli(it + lech) }
         val laDo = QuanTri.laDeviceOwner(this)
@@ -158,7 +160,7 @@ class DichVuNhip : Service() {
         if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))   // mỗi vòng ⇒ chỉ logcat
 
         val top = dung.entries.sortedByDescending { it.value }.map { it.key to (it.value / 60_000).toInt() }.filter { it.second > 0 }.take(5)
-        val ht = HienThi.tu(qd, demNguoc, top, nowMay, QuanTri.laDeviceOwner(this), PinMay.tenDangDung(k) ?: cs.tenCon ?: k.tenCon)
+        val ht = HienThi.tu(qd, demNguoc, top, nowMay, QuanTri.laDeviceOwner(this), anhCong.tenDangDung ?: cs.tenCon ?: k.tenCon)
             .copy(goiChan = goiChan, cong = cong.name, baMeDen = baMe)
         k.hienThi = ht.json()
         capNhatThongBao(ht)

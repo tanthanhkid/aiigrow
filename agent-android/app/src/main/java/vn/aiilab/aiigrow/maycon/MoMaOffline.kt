@@ -25,9 +25,7 @@ object MoMaOffline {
     /** Máy rời gia đình / ghép lại ⇒ quên bí mật + lượt mở cũ (mã của gia đình cũ không mở được máy nữa). */
     fun quen(k: Kho) = synchronized(khoa) { k.maOfflineBiMat = null; k.moTamOffline = null }
 
-    fun thu(ctx: Context, ma: String): String = thuMa(ctx, ma).third
-
-    /** Như `thu` nhưng trả cả kết quả + lúc hết mở (màn «Ba Mẹ nhập mã» lúc mất mạng dùng hạn này cho «Ba Mẹ đang dùng»). */
+    /** Con / Ba Mẹ gõ mã: trả kết quả + lúc hết mở (giờ máy — «Ba Mẹ nhập mã» lúc mất mạng dùng hạn này) + câu cho Con. */
     fun thuMa(ctx: Context, ma: String): Triple<KetQuaMoOffline, Long?, String> = synchronized(khoa) {
         val k = Kho(ctx)
         val now = System.currentTimeMillis()

@@ -118,7 +118,6 @@ data class MoTamOffline(
     }.toString()
 
     companion object {
-        const val PHUT_MO = 60
         const val SAI_TOI_DA = 5
         const val CUA_SO_SAI_PHUT = 10
         /** Một mã còn nhận tối đa (2·dung sai + 1) bước ⇒ nhớ mã đã dùng lâu hơn một bước cho chắc. */

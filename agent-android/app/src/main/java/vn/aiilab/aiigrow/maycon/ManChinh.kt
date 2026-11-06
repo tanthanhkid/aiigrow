@@ -90,8 +90,9 @@ class ManChinh : Activity() {
         // 05/11: giờ ngủ / Ba Mẹ khoá ⇒ thẻ xin đổi thành «Xin Ba Mẹ mở ngoại lệ» (dựng lại thẻ khi đổi)
         val appDiem = if (k.daGhep) (HienThi.doc(k.hienThi)?.trangThai?.let(::chiNgoaiLe) ?: false).toString() else ""
         // 06/11 L13: cổng PIN (bé đang dùng / Ba Mẹ dùng) đổi ⇒ dựng lại (chip tên, màn Ba Mẹ)
-        val cong = if (k.daGhep) PinMay.cong(k) else Cong.MO
-        val nguoi = cong.name + (PinMay.tenDangDung(k) ?: "")
+        val anhCong = PinMay.anh(k)   // đọc Kho một lần mỗi lần vẽ
+        val cong = if (k.daGhep) anhCong.cong else Cong.MO
+        val nguoi = cong.name + (anhCong.tenDangDung ?: "")
         // máy ở cổng chọn tên (vd vừa «Đăng xuất») ⇒ sang màn khoá chọn tên + PIN (đường không reset: lớp phủ không che app AiiGrow)
         if (cong == Cong.CHON_TEN && HienThi.doc(k.hienThi)?.cong == Cong.CHON_TEN.name && ManKhoa.dangMo == null) {
             startActivity(Intent(this, ManKhoa::class.java)); return
@@ -110,7 +111,7 @@ class ManChinh : Activity() {
             minhBach()
         }
         tBaMe?.let { t ->
-            val den = PinMay.baMeDen(k)
+            val den = anhCong.baMeDen
             t.text = if (den > 0) "Tới ${G.gio(den)} · còn ${G.mmssDai(((den - System.currentTimeMillis()) / 1000).toInt())}" else "Hết giờ Ba Mẹ dùng — máy khoá lại."
         }
         if (k.daGhep && cong != Cong.BA_ME) capNhatSo(k)
@@ -197,7 +198,9 @@ class ManChinh : Activity() {
     private lateinit var vongGio: Diu.VongGio
     private lateinit var tDaChoi: TextView
     private var oSao: LinearLayout? = null
-    private var saoDaVe = -2
+    /** Sao đang hiện ở chip (null = chưa có tổng quan) + cờ phải vẽ lại — không dựng lại chip mỗi 2 giây. */
+    private var saoDaVe: Int? = null
+    private var saoCanVe = true
 
     private fun dungManDaGhep() {
         // thẻ giờ chơi: vòng + «Còn 18 phút chơi · chơi còn lại · đã chơi 42/60» + sao + «Đổi sao lấy giờ chơi»
@@ -220,7 +223,7 @@ class ManChinh : Activity() {
         val laNl0 = HienThi.doc(Kho(this).hienThi)?.trangThai?.let(::chiNgoaiLe) ?: false
         if (!laNl0) t.addView(Diu.nut(this, "Đổi sao lấy giờ chơi") { moDoiSao() })
         goc.addView(t)
-        saoDaVe = -2
+        saoCanVe = true
         dungTheViec()
 
         val x = G.the(this)
@@ -292,7 +295,7 @@ class ManChinh : Activity() {
         }
         tMoLai.visibility = if (tMoLai.text.isEmpty()) View.GONE else View.VISIBLE
         val sao = saoHienCo(k)
-        if (sao != saoDaVe) { saoDaVe = sao ?: -1; oSao?.removeAllViews(); if (sao != null) oSao?.addView(Diu.chipSao(this, sao)) }
+        if (saoCanVe || sao != saoDaVe) { saoCanVe = false; saoDaVe = sao; oSao?.removeAllViews(); if (sao != null) oSao?.addView(Diu.chipSao(this, sao)) }
         dsDung.removeAllViews()
         if (ht.dungTop.isEmpty()) dsDung.addView(G.chu(this, "Chưa dùng app nào.", 15f, G.CHU_PHU))
         for ((goi, p) in ht.dungTop) {
@@ -306,7 +309,15 @@ class ManChinh : Activity() {
         }
     }
 
-    private fun saoHienCo(k: Kho): Int? = try { k.hvTongQuan?.let { org.json.JSONObject(it) }?.let { it.optInt("sao", it.optInt("soDu")) } } catch (_: Exception) { null }
+    /** Số sao từ tổng quan — parse lại chỉ khi chuỗi tổng quan đổi. */
+    private var saoTheo: Pair<String?, Int?>? = null
+    private fun saoHienCo(k: Kho): Int? {
+        val s = k.hvTongQuan
+        saoTheo?.let { if (it.first == s) return it.second }
+        val v = try { s?.let { org.json.JSONObject(it) }?.let { it.optInt("sao", it.optInt("soDu")) } } catch (_: Exception) { null }
+        saoTheo = s to v
+        return v
+    }
 
     /** Số phút cho 10 sao (tỷ lệ nhà) — tổng quan hoặc chính sách nhịp; mặc định 10. */
     private fun phut10Sao(k: Kho): Int {
@@ -478,7 +489,7 @@ class ManChinh : Activity() {
             })
             dsNhan?.addView(bao)
         }
-        saoDaVe = -2   // sao có thể đổi theo tổng quan mới
+        saoCanVe = true   // sao có thể đổi theo tổng quan mới
     }
 
     private fun chinhSach(k: Kho) = try { (if (k.cheDoThu) k.tepThu.readText() else k.phanHoi)?.let { docPhanHoiNhip(it).chinhSach } } catch (_: Exception) { null }

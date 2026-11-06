@@ -13,6 +13,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import vn.aiilab.aiigrow.maycon.logic.Cong
+import vn.aiilab.aiigrow.maycon.logic.KetQuaMoOffline
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.mmss
@@ -114,7 +115,7 @@ object GiaoDien {
      * theo `con-dt-chan/04..07` (6 ô + bàn phím to, «Mã chưa đúng», «Mã hết hạn rồi», «Máy mở rồi!»). Máy ở cổng PIN (chọn tên) ⇒ hiện ManPin.
      * Giờ ngủ ⇒ nền tối dịu. Bàn phím tự vẽ ⇒ lớp phủ trợ năng không cần bàn phím hệ thống.
      */
-    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> String)? = null,
+    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> Triple<KetQuaMoOffline, Long?, String>)? = null,
                       /** 05/11: app chưa được Ba Mẹ cho phép ⇒ «Xin Ba Mẹ duyệt» gửi thẳng (api/device/xin-duyet), không mở màn xin giờ. */
                       val onDuyet: ((String) -> Unit)? = null) {
         private val h = Handler(Looper.getMainLooper())
@@ -151,6 +152,8 @@ object GiaoDien {
         private var maBaMe = false
         private var maGo = ""
         private var dangGui = false
+        /** Vừa mở bằng mã offline ⇒ giữ thẻ «Máy mở rồi!» thay vì ẩn khi ô mã hết cần. */
+        private var daMoBangMa = false
         private val oMa = Diu.OMa(c)
         private val tieuMa = Diu.chu(c, "", 20f, CHU, true).apply { gravity = Gravity.CENTER }
         private val phuMa = Diu.chu(c, "", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 4), 0, 0) }
@@ -178,7 +181,7 @@ object GiaoDien {
         }
 
         private fun moNhapMa(baMe: Boolean) {
-            maBaMe = baMe; maGo = ""; baoMa.visibility = View.GONE
+            maBaMe = baMe; maGo = ""; daMoBangMa = false; baoMa.visibility = View.GONE
             tieuMa.text = if (baMe) "Ba Mẹ nhập mã" else "Mất mạng"
             phuMa.text = if (baMe) "Mở app AiiGrow của Ba Mẹ → Mã mở máy" else "Ba Mẹ ở cạnh con? Nhờ Ba Mẹ đọc mã 6 số trong AiiGrow."
             theMa.visibility = View.VISIBLE; veMa(false)
@@ -192,8 +195,9 @@ object GiaoDien {
             val ma = maGo
             if (!maBaMe) {
                 val f = onMa ?: return
-                val s = f(ma)
-                val dung = s.startsWith("Đã mở") || s.startsWith("Máy đang mở")
+                val (kq, _, s) = f(ma)
+                val dung = kq == KetQuaMoOffline.DA_MO || kq == KetQuaMoOffline.DANG_MO
+                daMoBangMa = dung
                 baoMa.text = if (dung) "Máy mở rồi! $s" else s
                 baoMa.setTextColor(if (dung) Diu.XANH_DAM else Diu.LOI_DAM); baoMa.visibility = View.VISIBLE
                 maGo = ""; veMa(!dung)
@@ -215,7 +219,7 @@ object GiaoDien {
         fun hienMa(hien: Boolean) {
             val v = if (hien && onMa != null) View.VISIBLE else View.GONE
             if (linkMa.visibility != v) linkMa.visibility = v
-            if (!hien && !maBaMe && theMa.visibility == View.VISIBLE && baoMa.currentTextColor != Diu.XANH_DAM) theMa.visibility = View.GONE
+            if (!hien && !maBaMe && theMa.visibility == View.VISIBLE && !daMoBangMa) theMa.visibility = View.GONE
         }
 
         private var demToi = false

@@ -40,14 +40,17 @@ data class HoSoMay(
     fun be(id: String?) = con.firstOrNull { it.id == id }
 }
 
-/** Đọc `GET /api/device/ho-so`. `khoaDen` lấy ISO; thiếu thì suy từ `choGiay` + giờ nhận. */
-fun docHoSo(o: JSONObject, nowMs: Long): HoSoMay {
+/** Đọc `GET /api/device/ho-so`. `khoaDen` lấy ISO; thiếu thì suy từ `choGiay` + `nhanLuc` = LÚC NHẬN phản hồi (không phải lúc đọc lại —
+ *  đọc lại từ Kho mỗi giây mà cộng `now` thì hạn chờ trôi theo, không bao giờ hết). */
+fun docHoSo(o: JSONObject, nhanLuc: Long): HoSoMay {
+    val nowMs = nhanLuc
     val a = o.optJSONArray("con") ?: JSONArray()
     val ds = (0 until a.length()).mapNotNull { i ->
         val c = a.optJSONObject(i) ?: return@mapNotNull null
         val id = c.chuoi("id") ?: return@mapNotNull null
         BeHoSo(id, c.chuoi("ten") ?: "", c.chuoi("avatar"), c.optBoolean("coPin"), c.chuoi("vanPin"),
-            iso(c.chuoi("khoaDen")) ?: c.optInt("choGiay", 0).takeIf { it > 0 }?.let { nowMs + it * 1000L })
+            // ưu tiên choGiay (không phụ thuộc đồng hồ máy lệch máy chủ); thiếu thì ISO
+            c.optInt("choGiay", 0).takeIf { it > 0 }?.let { nowMs + it * 1000L } ?: iso(c.chuoi("khoaDen")))
     }
     return HoSoMay(ds, o.optBoolean("mayRieng"), o.optJSONObject("dangDung")?.chuoi("id"), iso(o.optJSONObject("baMeDung")?.chuoi("den")),
         o.optInt("pinSaiToiDa", PIN_SAI_TOI_DA).coerceIn(1, 20), o.optInt("pinChoGiay", PIN_CHO_GIAY).coerceIn(1, 3600))
@@ -103,7 +106,8 @@ fun xetCong(nd: NguoiDung?, hs: HoSoMay?, baMeDenCucBo: Long, now: Long): Cong {
 sealed class KetQuaPin {
     object Dung : KetQuaPin()
     data class Sai(val conLan: Int) : KetQuaPin()
-    data class TamKhoa(val choGiay: Int) : KetQuaPin()
+    /** `toiDa` = số lần sai trước khi chờ (ho-so › pinSaiToiDa) — chỉ để nói «Sai 5 lần rồi». */
+    data class TamKhoa(val choGiay: Int, val toiDa: Int = PIN_SAI_TOI_DA) : KetQuaPin()
     /** Mất mạng mà máy chưa nhớ vân PIN của bé (chưa từng lấy hồ sơ) ⇒ không tự kiểm được. */
     object CanMang : KetQuaPin()
 }
@@ -112,7 +116,7 @@ sealed class KetQuaPin {
 fun cauPin(kq: KetQuaPin): String = when (kq) {
     KetQuaPin.Dung -> ""
     is KetQuaPin.Sai -> "Chưa đúng · còn ${kq.conLan} lần thử"
-    is KetQuaPin.TamKhoa -> "Sai $PIN_SAI_TOI_DA lần rồi"
+    is KetQuaPin.TamKhoa -> "Sai ${kq.toiDa} lần rồi"
     KetQuaPin.CanMang -> "Máy cần nối mạng một lần để nhận PIN của con."
 }
 
@@ -122,10 +126,10 @@ data class DemPin(val sai: Map<String, List<Long>> = emptyMap(), val khoaDen: Ma
 
     /** Ghi một lượt thử (đúng / sai). Đang chờ ⇒ TamKhoa, không so. Sai lần thứ `toiDa` ⇒ chờ `cho` giây, đếm lại từ đầu. */
     fun thu(conId: String, dung: Boolean, now: Long, toiDa: Int = PIN_SAI_TOI_DA, cho: Int = PIN_CHO_GIAY): Pair<KetQuaPin, DemPin> {
-        choGiay(conId, now).let { if (it > 0) return KetQuaPin.TamKhoa(it) to this }
+        choGiay(conId, now).let { if (it > 0) return KetQuaPin.TamKhoa(it, toiDa) to this }
         if (dung) return KetQuaPin.Dung to copy(sai = sai - conId, khoaDen = khoaDen - conId)
         val ds = (sai[conId] ?: emptyList()).filter { it > now - PIN_SAI_CUA_SO_MS && it <= now + 60_000 } + now
-        if (ds.size >= toiDa) return KetQuaPin.TamKhoa(cho) to copy(sai = sai - conId, khoaDen = khoaDen + (conId to now + cho * 1000L))
+        if (ds.size >= toiDa) return KetQuaPin.TamKhoa(cho, toiDa) to copy(sai = sai - conId, khoaDen = khoaDen + (conId to now + cho * 1000L))
         return KetQuaPin.Sai(toiDa - ds.size) to copy(sai = sai + (conId to ds))
     }
 
@@ -150,7 +154,7 @@ data class DemPin(val sai: Map<String, List<Long>> = emptyMap(), val khoaDen: Ma
 /** Kiểm PIN tại máy khi MẤT MẠNG: bé không có PIN ⇒ đúng; có PIN mà chưa nhớ vân / bí mật ⇒ CanMang. So vân không lộ thời gian. */
 fun thuPinOffline(dem: DemPin, biMat: String?, be: BeHoSo, pin: String, now: Long, toiDa: Int = PIN_SAI_TOI_DA, cho: Int = PIN_CHO_GIAY): Pair<KetQuaPin, DemPin> {
     if (!be.coPin) return KetQuaPin.Dung to dem
-    dem.choGiay(be.id, now).let { if (it > 0) return KetQuaPin.TamKhoa(it) to dem }
+    dem.choGiay(be.id, now).let { if (it > 0) return KetQuaPin.TamKhoa(it, toiDa) to dem }
     val van = be.vanPin
     if (biMat.isNullOrEmpty() || van.isNullOrEmpty()) return KetQuaPin.CanMang to dem
     val p = chuanPin(pin)
@@ -159,9 +163,9 @@ fun thuPinOffline(dem: DemPin, biMat: String?, be: BeHoSo, pin: String, now: Lon
 }
 
 /** Lỗi máy chủ của `dang-nhap-be` → kết quả cho màn PIN (null = lỗi khác: khong_thay, can_pin…). */
-fun docLoiPin(ma: String, than: JSONObject): KetQuaPin? = when (ma) {
+fun docLoiPin(ma: String, than: JSONObject, toiDa: Int = PIN_SAI_TOI_DA): KetQuaPin? = when (ma) {
     "pin_sai" -> KetQuaPin.Sai(than.optInt("conLan", 0).coerceAtLeast(0))
-    "pin_tam_khoa" -> KetQuaPin.TamKhoa(than.optInt("choGiay", PIN_CHO_GIAY).coerceAtLeast(1))
+    "pin_tam_khoa" -> KetQuaPin.TamKhoa(than.optInt("choGiay", PIN_CHO_GIAY).coerceAtLeast(1), toiDa)
     else -> null
 }
 
@@ -174,6 +178,20 @@ data class ViecCho(val loai: String, val conId: String? = null, val pin: String?
             catch (_: Exception) { null }
     }
 }
+
+/** Gửi bù ViecCho gặp lỗi máy chủ `http`: chỉ BỎ việc khi máy chủ từ chối nghiệp vụ (4xx, trừ 408 / 429 = thử lại sau);
+ *  5xx / 502 / lỗi mạng ⇒ GIỮ để thử lại (bỏ «roi» thì máy chủ còn ghi bé đang dùng ⇒ nhịp sau mở máy không PIN). */
+fun boViecCho(http: Int): Boolean = http in 400..499 && http != 408 && http != 429
+
+/** Bé / Ba Mẹ rời máy (Đổi bé / Đăng xuất / Khoá lại): việc chờ cuối cùng LUÔN là «roi» — «vao» đang chờ bị thay
+ *  (gửi dang-nhap-be sau dang-xuat sẽ mở lại máy cho bé đã đăng xuất). */
+fun viecSauRoi(@Suppress("UNUSED_PARAMETER") cu: ViecCho?, now: Long): ViecCho = ViecCho("roi", luc = now)
+
+/** Sau khi gửi xong `daGui`: việc đang chờ còn đúng là việc đó thì xoá; trong lúc gửi đã có việc mới (vd bé vừa đăng xuất) thì giữ việc mới. */
+fun viecConLai(hienTai: ViecCho?, daGui: ViecCho): ViecCho? = if (hienTai == daGui) null else hienTai
+
+/** Hạn «Ba Mẹ dùng» máy chủ gửi (giờ máy chủ) → giờ máy (`lechMs` = giờ máy chủ − giờ máy). Mọi so sánh cổng dùng giờ máy. */
+fun denTheoGioMay(denMayChu: Long?, lechMs: Long): Long? = denMayChu?.let { it - lechMs }
 
 /** Đếm ngược «0:15 giây» / «Ba Mẹ dùng tới 20:10 · còn 12:30». */
 fun demGiay(giay: Int): String = "%d:%02d".format(maxOf(0, giay) / 60, maxOf(0, giay) % 60)

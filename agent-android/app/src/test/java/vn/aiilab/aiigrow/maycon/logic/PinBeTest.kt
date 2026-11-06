@@ -81,6 +81,35 @@ class PinBeTest {
         assertEquals("máy riêng, bé chưa có PIN ⇒ không hỏi", Cong.CON, xetCong(con, rieng.copy(con = listOf(BeHoSo("c1", "Bảo Anh", null, false, null, null))), 0, t))
     }
 
+    // review lượt 1 (#205): 2) chỉ bỏ việc chờ khi máy chủ từ chối nghiệp vụ; 3) rời máy thay «vao» đang chờ bằng «roi»; 5) hạn chờ theo lúc nhận
+    @Test fun viecCho_boChiKhi4xx() {
+        assertTrue(boViecCho(400)); assertTrue(boViecCho(401)); assertTrue(boViecCho(404)); assertTrue(boViecCho(409))
+        assertTrue("5xx giữ để thử lại", !boViecCho(500)); assertTrue(!boViecCho(502)); assertTrue(!boViecCho(503))
+        assertTrue("429 / 408 = thử lại sau", !boViecCho(429)); assertTrue(!boViecCho(408))
+    }
+
+    @Test fun viecCho_roiThayVao_guiXongKhongXoaViecMoi() {
+        val vao = ViecCho("vao", "c1", "4821", t)
+        val roi = viecSauRoi(vao, t + 1000)
+        assertEquals("roi", roi.loai); assertNull("không còn PIN / bé để gửi dang-nhap-be sau dang-xuat", roi.conId); assertNull(roi.pin)
+        assertEquals("roi", viecSauRoi(null, t).loai)
+        assertNull("gửi xong đúng việc đang chờ ⇒ xoá", viecConLai(vao, vao))
+        assertEquals("trong lúc gửi «vao» bé đã đăng xuất ⇒ giữ «roi»", roi, viecConLai(roi, vao))
+        assertNull(viecConLai(null, vao))
+    }
+
+    @Test fun hoSo_hanChoTheoLucNhan_khongTroiKhiDocLai() {
+        val o = JSONObject(hoSoJson)
+        val nhan = t
+        val a = docHoSo(o, nhan).be("c2")!!.khoaDen
+        val b = docHoSo(o, nhan).be("c2")!!.khoaDen   // đọc lại sau đó (vd 20 giây) với CÙNG mốc nhận
+        assertEquals(nhan + 11_000, a); assertEquals(a, b)
+        assertTrue("20 giây sau đã hết chờ", (b ?: 0) < nhan + 20_000)
+        assertEquals("hạn Ba Mẹ đổi sang giờ máy", 1_000L, denTheoGioMay(61_000L, 60_000L))
+        assertNull(denTheoGioMay(null, 5))
+        assertEquals("Sai 3 lần rồi", cauPin(KetQuaPin.TamKhoa(15, 3)))
+    }
+
     @Test fun viecCho_json() {
         val v = ViecCho("vao", "c1", "4821", t)
         assertEquals(v, ViecCho.doc(v.json()))

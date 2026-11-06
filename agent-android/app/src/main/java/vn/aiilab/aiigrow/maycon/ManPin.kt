@@ -49,7 +49,11 @@ class ManPin(val c: Context) {
         // máy riêng một bé ⇒ thẳng màn PIN
         if (buoc == Buoc.CHON_TEN && hs != null && hs.mayRieng && hs.con.size == 1 && hs.con[0].coPin) { be = hs.con[0]; buoc = Buoc.PIN }
         if (buoc == Buoc.CHO && choDen <= now) { buoc = Buoc.PIN; loi = null; go = "" }
-        val khoa = "$buoc|${be?.id}|$go|$loi|${k.hoSo?.hashCode()}|$dangGui|${if (buoc == Buoc.CHO) (choDen - now) / 1000 else 0}"
+        // màn chọn tên có bé đang phải chờ ⇒ khoá vẽ gồm số giây để nhãn «chờ Ns» đếm lùi
+        val dem = DemPin.doc(k.demPin)
+        val coCho = buoc == Buoc.CHON_TEN && hs?.con?.any { b -> choGiay(b, dem, now) > 0 } == true
+        val khoa = "$buoc|${be?.id}|$go|$loi|${k.hoSo?.hashCode()}|${k.demPin?.hashCode()}|$dangGui|" +
+            "${if (buoc == Buoc.CHO) (choDen - now) / 1000 else 0}|${if (coCho) now / 1000 else 0}"
         if (khoa == veLanCuoi) return
         veLanCuoi = khoa
         goc.removeAllViews()
@@ -61,6 +65,10 @@ class ManPin(val c: Context) {
             Buoc.BA_ME -> veBaMe()
         }
     }
+
+    /** Giây bé còn phải chờ: bộ đếm tại máy hoặc hạn máy chủ báo trong hồ sơ (tính theo lúc nhận hồ sơ). */
+    private fun choGiay(b: BeHoSo, dem: DemPin, now: Long) =
+        maxOf(dem.choGiay(b.id, now), ((b.khoaDen ?: 0) - now).let { if (it > 0) ((it + 999) / 1000).toInt() else 0 })
 
     private fun thuTu(id: String?) = PinMay.hoSo(Kho(c))?.con?.indexOfFirst { it.id == id }?.coerceAtLeast(0) ?: 0
 
@@ -83,7 +91,7 @@ class ManPin(val c: Context) {
                 addView(Diu.vongTen(c, b.chuDau, i, 56))
                 addView(Diu.chu(c, b.ten, 22f, Diu.CHU, true).apply {
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) } })
-                val cho = maxOf(DemPin.doc(Kho(c).demPin).choGiay(b.id, now), ((b.khoaDen ?: 0) - now).let { if (it > 0) ((it + 999) / 1000).toInt() else 0 })
+                val cho = choGiay(b, DemPin.doc(Kho(c).demPin), now)
                 if (cho > 0) addView(Diu.chu(c, "chờ ${cho}s", 14f, Diu.CHU3))
                 isClickable = true; isFocusable = true; minimumHeight = dp(80); contentDescription = "Con là ${b.ten}"
                 setOnClickListener { chonBe(b) }
@@ -96,7 +104,7 @@ class ManPin(val c: Context) {
     private fun chonBe(b: BeHoSo) {
         be = b; go = ""; loi = null
         val now = System.currentTimeMillis()
-        val cho = DemPin.doc(Kho(c).demPin).choGiay(b.id, now)
+        val cho = choGiay(b, DemPin.doc(Kho(c).demPin), now)
         if (cho > 0) { choDen = now + cho * 1000L; buoc = Buoc.CHO; ve(); return }
         if (!b.coPin) { buoc = Buoc.PIN; vao(b, null); return }   // chưa có PIN ⇒ vào thẳng
         buoc = Buoc.PIN; ve()
@@ -147,7 +155,7 @@ class ManPin(val c: Context) {
         val b = be ?: return
         goc.addView(Diu.vongTen(c, b.chuDau, thuTu(b.id), 96).apply { (layoutParams as LinearLayout.LayoutParams).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(28) } })
         goc.addView(chu(b.ten, 22f, dac = true))
-        goc.addView(chu("Sai 5 lần rồi", 24f, dac = true).apply { setPadding(0, dp(16), 0, 0) })
+        goc.addView(chu("Sai ${PinMay.hoSo(Kho(c))?.pinSaiToiDa ?: 5} lần rồi", 24f, dac = true).apply { setPadding(0, dp(16), 0, 0) })
         goc.addView(chu("Hít thở chậm nào. Chờ một chút rồi thử lại nhé.", 16f, Diu.CHU2))
         val giay = ((choDen - now + 999) / 1000).toInt()
         goc.addView(chu("${demGiay(giay)} giây", 40f, Diu.XANH_DAM, dac = true).apply { setPadding(0, dp(18), 0, dp(10)); fontFeatureSettings = "tnum" })
