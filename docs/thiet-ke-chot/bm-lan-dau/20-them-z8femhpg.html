@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:360px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;right:16px;top:44px;height:48px;display:flex;align-items:center;justify-content:space-between;z-index:5}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.buoc{display:flex;gap:8px}.buoc i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e6e5e1;box-shadow:var(--lom)}.buoc i img{width:20px;height:20px;opacity:.45}.buoc i.on{background:#fbecc0;box-shadow:0 0 0 2.5px #0f6b5c,var(--clay)}.buoc i.on img,.buoc i.xong img{opacity:1}
+.h{position:absolute;left:16px;right:16px;top:100px;font-size:23px;line-height:32px;font-weight:800;letter-spacing:-.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt2{position:absolute;left:18px;right:18px;top:138px;height:28px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.tt2 i{width:9px;height:9px;border-radius:50%;background:#0f6b5c;box-shadow:0 0 0 4px #dcebe6}
+.tt2 em{margin-left:auto;font-style:normal;font-size:12.5px;font-weight:700;color:#565c59}
+.san{position:absolute;left:16px;right:16px;top:176px;height:164px;border-radius:34px;background:radial-gradient(90% 70% at 50% 40%,#e9f4f0,#cfe5dd);box-shadow:var(--clay);overflow:hidden}
+.san::before{content:"";position:absolute;left:14px;right:14px;top:3px;height:50px;border-radius:32px 32px 80px 80px;background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,0))}
+.san .rob{position:absolute;left:10px;bottom:-8px;width:140px}
+.san .bong{position:absolute;right:14px;top:34px;width:172px;padding:11px 14px;border-radius:20px;background:#fff;font-size:14.5px;line-height:20px;font-weight:700;box-shadow:0 6px 10px -6px rgba(28,32,30,.26)}
+.bc{position:absolute;left:16px;right:16px;top:356px;display:flex;flex-direction:column;gap:10px}
+.bc>div{display:flex;align-items:center;gap:12px;height:74px;padding:0 14px 0 12px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.so{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#0f6b5c;color:#fff;font-size:14px;font-weight:800}
+.bt{width:50px;height:50px;border-radius:18px;flex:none;display:grid;place-items:center;background:#dcebe6;box-shadow:var(--nho)}.bt img{width:30px;height:30px}
+.bc p{flex:1;min-width:0;font-size:15.5px;line-height:20px;font-weight:800;white-space:nowrap}.bc p small{display:block;font-size:13px;font-weight:600;color:#565c59}
+.bc p b{letter-spacing:2px;color:#0a5246}
+.day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 12px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:6}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;display:flex;align-items:center;justify-content:center;gap:10px;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span,.nut img{position:relative}.nut img{width:24px;height:24px}
+.hang{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+.lk{min-height:44px;display:flex;align-items:center;gap:6px;padding:0 6px;font-size:15px;font-weight:800;color:#0a5246;white-space:nowrap}
+.lk img{width:22px;height:22px}.lk.xam{color:#565c59;font-weight:700}
+</style></head>
+<body data-lk-sua=""><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-ob-ghep"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><div class="buoc" aria-label="Bước 5 trên 5: Máy"><i class="xong"><img src="/assets/icon3d/tick.webp" alt=""></i><i class="xong"><img src="/assets/icon3d/sao.webp" alt=""></i><i class="xong"><img src="/assets/icon3d/qua.webp" alt=""></i><i class="xong"><img src="/assets/icon3d/dongho.webp" alt=""></i><i class="on"><img src="/assets/icon3d/may_tinh.webp" alt=""></i></div></div>
+<h1 class="h">Đang chờ máy của Bảo Anh</h1>
+<div class="tt2" role="status"><i></i>Máy con chưa nhập mã<em>Mã còn 9:42</em></div>
+<div class="san"><img class="rob" src="/assets/rob/cho.webp" alt=""><div class="bong">Trên máy của con, làm 3 bước này nhé!</div></div>
+<div class="bc" aria-label="3 bước trên máy của con">
+<div><span class="so">1</span><span class="bt"><img src="/assets/icon3d/tin.webp" alt=""></span><p>Mở link vừa gửi<small>aiigrow.vn/tai</small></p></div>
+<div><span class="so">2</span><span class="bt"><img src="/assets/icon3d/tai.webp" alt=""></span><p>Cài AiiGrow<small>Trang tải tự nhận loại máy</small></p></div>
+<div><span class="so">3</span><span class="bt"><img src="/assets/icon3d/khoa.webp" alt=""></span><p>Nhập mã <b>482 017</b><small>Hoặc quét QR</small></p></div>
+</div>
+<div class="day"><button class="nut" type="button" data-toi="them-pxgipoxg"><img src="/assets/icon3d/tick.webp" alt=""><span>Máy con đã nhập mã</span></button>
+<div class="hang"><span class="lk" role="button" tabindex="0" data-toi="bm1-ob-ghep"><img src="/assets/icon3d/gui.webp" alt="">Gửi lại link</span><span class="lk xam" role="button" tabindex="0" data-toi="them-zxu4yvp3"><img src="/assets/icon3d/dau_hoi.webp" alt="">Cần giúp?</span></div></div>
+</div></body></html>

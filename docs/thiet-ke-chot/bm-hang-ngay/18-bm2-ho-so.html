@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#fbe7d6,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:96px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:6px;z-index:4;background:linear-gradient(#fbe7d6 72%,rgba(251,231,214,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.doi{display:flex;gap:8px;margin:0 2px 14px}
+.doi span{display:flex;align-items:center;gap:8px;height:40px;padding:0 16px 0 6px;border-radius:20px;background:#f7f6f3;box-shadow:var(--clay);font-size:14px;font-weight:800;color:#3a403d;white-space:nowrap}
+.doi i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800;color:#fff;background:#5b7fd6}
+.doi .on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.doi .on i{background:#f08a3c}
+.cuon{position:absolute;left:0;right:0;top:96px;bottom:84px;overflow-y:auto;padding:6px 16px 32px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.hs{position:relative;padding:18px 16px 16px;border-radius:34px;background:linear-gradient(#ffb67a,#f08a3c);box-shadow:var(--clay);overflow:hidden}
+.dau{display:flex;align-items:center;gap:14px}
+.av{flex:none;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#f08a3c;font-size:34px;font-weight:800;box-shadow:0 8px 14px -8px rgba(120,50,0,.6)}
+.ten{flex:1;min-width:0}
+.ten b{display:block;font-size:26px;font-weight:800;color:#fff;letter-spacing:-.5px;white-space:nowrap}
+.ten small{display:block;margin-top:2px;font-size:15px;font-weight:700;color:#fff5ec}
+.sao{flex:none;align-self:flex-start;display:flex;align-items:center;gap:4px;padding:6px 10px 6px 6px;border-radius:16px;background:#fff;color:#6e4300;font-size:14px;font-weight:800;box-shadow:0 6px 10px -7px rgba(110,67,0,.6)}
+.sao img{width:22px;height:22px}
+.nay{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 12px 12px 14px;border-radius:24px;background:rgba(255,255,255,.92);box-shadow:inset 0 1.5px 0 #fff}
+.nay .so{flex:1;min-width:0}
+.nay p{font-size:13px;font-weight:700;color:#565c59}
+.nay p b{font-size:22px;font-weight:800;color:#0f1312;letter-spacing:-.3px}
+.vach{margin-top:6px;height:10px;border-radius:5px;background:#ecebe7;box-shadow:var(--lom);overflow:hidden}
+.vach i{display:block;width:70%;height:100%;border-radius:5px;background:linear-gradient(#ffb67a,#f08a3c)}
+.nay .may{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding-left:12px;border-left:1.5px solid #ecebe7;font-size:12.5px;font-weight:800;color:#3a403d}
+.nay .may img{width:30px;height:30px}
+.mui{flex:none;width:18px;height:18px;fill:#8a908d}
+.muc{margin:22px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.ds{padding:4px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;min-height:64px}
+.dong+.dong{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:28px;height:28px}
+.dong p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap}
+.gt{flex:none;text-align:right;font-size:14px;line-height:18px;font-weight:700;color:#3a403d;white-space:nowrap}
+.gt small{display:block;font-size:12.5px;font-weight:700;color:#565c59}
+.gt em{display:block;font-style:normal;font-size:12.5px;font-weight:800;color:#a14b00}
+.gt.lk{color:#0a5246;font-weight:800}
+.xoa{display:flex;align-items:center;justify-content:center;margin-top:20px;min-height:44px;font-size:14px;font-weight:700;color:#b3261e}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 8px 24px;display:flex;background:#f7f6f3;box-shadow:0 -1px 0 #e4e3df;z-index:5}
+.tab div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11.5px;font-weight:700;color:#565c59}
+.tab img{width:26px;height:26px;opacity:.5}
+.tab .on{color:#0a5246;font-weight:800}.tab .on img{opacity:1}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-h60stad7"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Hồ sơ con</h1></div>
+<div class="cuon">
+<div class="doi"><span class="on"><i>B</i>Bảo Anh</span><span role="button" tabindex="0" data-toi="bm2-ho-so"><i>M</i>Bảo Minh</span></div>
+<div class="hs">
+<div class="dau"><div class="av">B</div><div class="ten"><b>Bảo Anh</b><small>9 tuổi</small></div><span class="sao" role="button" tabindex="0" data-toi="them-1akngbxb"><img src="/assets/icon3d/sao.webp" alt="">30 sao</span></div>
+<div class="nay" role="button" tabindex="0" data-toi="them-c95l1cwc">
+<div class="so"><p>Hôm nay đã chơi <b>42</b> / 60 phút</p><div class="vach"><i></i></div></div>
+<div class="may"><img src="/assets/icon3d/laptop.webp" alt="">2 máy</div>
+</div>
+</div>
+<p class="muc">Cài đặt của Bảo Anh</p>
+<div class="ds">
+<div class="dong" role="button" tabindex="0" data-toi="bm2-gio"><span class="ic"><img src="/assets/icon3d/dongho.webp" alt=""></span><p>Giờ chơi</p><span class="gt">60 / 90 phút</span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0" data-toi="them-i3wcjm6v"><span class="ic"><img src="/assets/icon3d/trang_ngu.webp" alt=""></span><p>Giờ ngủ</p><span class="gt">21:30 – 6:30</span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0" data-toi="them-3ima20g6"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Giờ học</p><span class="gt">17:00 – 18:00</span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0" data-toi="them-8h2msmht"><span class="ic"><img src="/assets/icon3d/khoa.webp" alt=""></span><p>App được dùng</p><span class="gt">4 app<small>Chỉ app được phép</small></span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0" data-toi="bm2-may-ds"><span class="ic"><img src="/assets/icon3d/laptop.webp" alt=""></span><p>Máy của Bảo Anh</p><span class="gt">2 máy<em>iPad cần sửa</em></span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0" data-toi="them-e91jg28j"><span class="ic"><img src="/assets/icon3d/sao.webp" alt=""></span><p>Nhiệm vụ &amp; sao</p><span class="gt">Tự lập · 5 việc</span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+</div>
+<p class="muc">Về Bảo Anh</p>
+<div class="ds">
+<div class="dong" role="button" tabindex="0" data-toi="them-vnl5rmnz"><span class="ic"><img src="/assets/icon3d/but.webp" alt=""></span><p>Sửa tên, tuổi, ảnh</p><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="dong" role="button" tabindex="0" data-toi="them-z2fyhohj"><span class="ic"><img src="/assets/icon3d/mo_khoa.webp" alt=""></span><p>PIN vào máy</p><span class="gt lk">Đặt lại</span><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+</div>
+<div class="xoa" role="button" tabindex="0" data-toi="them-canktzlq">Xoá hồ sơ Bảo Anh</div>
+</div>
+<nav class="tab">
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
+<div role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Nhiệm vụ</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
+<div class="on" role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+</nav>
+</div></body></html>
