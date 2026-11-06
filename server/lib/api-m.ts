@@ -271,7 +271,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (d === "qua" && post) return json({ id: await pt.taoQua(fam, b) });
     if (d === "qua/mau" && post) return json({ taoMoi: await pt.apDungMauQua(fam) });
     if (p[0] === "qua" && p[1] && p.length === 2 && post) { await pt.suaQua(fam, p[1], b); return json({ ok: true }); }
-    if (p[0] === "phieu" && p[1] && p[2] === "xac-nhan" && post) { await pt.xacNhanPhieu(fam, p[1], bm.id); return json({ ok: true }); }
+    if (p[0] === "phieu" && p[1] && p[2] === "xac-nhan" && post) return json({ ok: true, ...(await pt.xacNhanPhieu(fam, p[1], bm.id)) });   // 06/11: kèm voucher {ma, qr, hetHan}
     if (p[0] === "phieu" && p[1] && p[2] === "huy" && post) { await pt.huyPhieu(fam, p[1], bm.id); return json({ ok: true }); }
     if (d === "phieu" && get)
       return json({ ds: await q(`select r.*, c.ten as ten_con from redemptions r join children c on c.id = r.child_id where c.family_id = $1 and r.trang_thai = 'giu' order by r.created_at`, [fam]) });

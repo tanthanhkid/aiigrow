@@ -92,11 +92,13 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
 /** Giữ chỗ MỘT lượt thử TRƯỚC khi so (một upsert nguyên tử — như gia-dinh.ts › ghepMay): gửi song song cũng chỉ `toiDa` lượt được so.
  *  Hết hạn chờ ⇒ đếm lại từ 1. → `{den}` (đang phải chờ — không so) hoặc `{lan}` (lượt thứ mấy trong đợt). */
 async function giuLuot(khoa: string, toiDa: number, now: Date): Promise<{ den: Date } | { lan: number }> {
-  const r = (await q<{ so_lan: number; khoa_den: Date | null }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
+  // đợt mới khi: hạn chờ đã qua, hoặc lần thử cuối cũ hơn 15 phút (sai lẻ tẻ nhiều ngày không cộng dồn)
+  const r = (await q<{ so_lan: number; khoa_den: Date | null }>(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 1, $2)
     on conflict (khoa) do update set
-      so_lan = case when pin_sai.khoa_den is not null and pin_sai.khoa_den <= $2 then 1 else pin_sai.so_lan + 1 end,
-      khoa_den = case when pin_sai.khoa_den is not null and pin_sai.khoa_den <= $2 then null else pin_sai.khoa_den end
-    returning so_lan, khoa_den`, [khoa, now]))[0];
+      so_lan = case when (pin_sai.khoa_den is not null and pin_sai.khoa_den <= $2) or coalesce(pin_sai.cap_nhat, $2) < $3 then 1 else pin_sai.so_lan + 1 end,
+      khoa_den = case when (pin_sai.khoa_den is not null and pin_sai.khoa_den <= $2) or coalesce(pin_sai.cap_nhat, $2) < $3 then null else pin_sai.khoa_den end,
+      cap_nhat = $2
+    returning so_lan, khoa_den`, [khoa, now, new Date(now.getTime() - 15 * 60_000)]))[0];
   if (r.khoa_den && new Date(r.khoa_den).getTime() > now.getTime()) return { den: new Date(r.khoa_den) };
   if (r.so_lan > toiDa) return { den: new Date(now.getTime() + 1000) };     // lượt song song vượt đợt — lượt thứ toiDa đang đặt hạn chờ
   return { lan: r.so_lan };
@@ -146,10 +148,6 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
   return { phienCon: t, con: { id: c.id, ten: c.ten, avatar: c.avatar }, coPin: !!c.pin_ma, ...(c.pin_ma ? {} : { canDatPin: true }) };
 }
 
-/** Agent cũ (chọn tên không PIN — gia-dinh.ts › chonCon): ghi thêm «bé đang dùng» để Ba Mẹ thấy và nhịp không header vẫn đúng bé. */
-export const ghiConDangDung = (mayId: string, con: string, now = new Date()) =>
-  q(`update devices set con_dang_dung = $2, dang_nhap_luc = $3 where id = $1`, [mayId, con, now]);
-
 /** «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ đang dùng) ⇒ máy về màn chọn tên: bỏ bé đang dùng, xoá phiên Con của máy, hết «Ba Mẹ dùng». */
 export async function roiMay(may: MayS3, now = new Date()) {
   const ai = may.con_dang_dung ?? null, baMe = !!baMeDen(may, now);
@@ -189,12 +187,12 @@ export async function baMeMoMay(may: MayS3, ma: unknown, now = new Date()) {
     if (!conLan) throw tamKhoa(new Date(now.getTime() + MA_BA_ME_CHO_PHUT * 60_000));
     throw new LoiPin("ma_sai", `Mã chưa đúng · còn ${conLan} lần thử`, 401, { conLan });
   }
-  await q(`delete from pin_sai where khoa = $1`, [khoa]);
   // mỗi mã MỘT lượt (như agent-win MoTamOffline): Con thấy mã Ba Mẹ gõ thì không dùng lại được sau «Khoá lại». Giữ dấu 20 phút > hiệu lực mã (≤ 15 phút).
+  await q(`delete from pin_sai where khoa like $1 and khoa_den < $2`, [`bmdung:${may.id}:%`, now]);    // dọn dấu mã đã hết hạn của máy
   const daDung = await q(`insert into pin_sai(khoa, so_lan, khoa_den) values ($1, 1, $2) on conflict (khoa) do update
-      set so_lan = pin_sai.so_lan + 1 where pin_sai.khoa_den <= $3 returning khoa`, [`bmdung:${may.id}:${sach}`, new Date(now.getTime() + 20 * 60_000), now]);
-  if (!daDung.length) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới", 409);
-  await q(`update pin_sai set khoa_den = $2, so_lan = 1 where khoa = $1`, [`bmdung:${may.id}:${sach}`, new Date(now.getTime() + 20 * 60_000)]);
+      set so_lan = 1, khoa_den = excluded.khoa_den where pin_sai.khoa_den <= $3 returning khoa`, [`bmdung:${may.id}:${sach}`, new Date(now.getTime() + 20 * 60_000), now]);
+  if (!daDung.length) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới", 409);   // không xoá bộ đếm sai
+  await q(`delete from pin_sai where khoa = $1`, [khoa]);
   const het = new Date(now.getTime() + phut * 60_000);
   await q(`update devices set ba_me_den = $2, ba_me_tu = $3, con_dang_dung = null, dang_nhap_luc = null where id = $1`, [may.id, het, now]);
   await q(`delete from kid_sessions where device_id = $1`, [may.id]);

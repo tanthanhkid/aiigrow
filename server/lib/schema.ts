@@ -673,4 +673,6 @@ export const SCHEMA_S3 = [
   `alter table rewards add column if not exists mau text`,
   `alter table families add column if not exists qua_seed_luc timestamptz`,
   `alter table vouchers add column if not exists trao_tay boolean not null default false`,
+  // pin_sai.cap_nhat: lần thử cuối — lượt sai cũ hơn 15 phút không cộng dồn (lib/pin-be.ts › giuLuot)
+  `alter table pin_sai add column if not exists cap_nhat timestamptz`,
 ];

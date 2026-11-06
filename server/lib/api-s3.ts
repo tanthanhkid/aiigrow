@@ -70,11 +70,8 @@ export async function xuLyMayS3(may: May, req: Request, p: string[], b: Record<s
   if (d === "quen-pin" && post) return json(await pin.quenPin(may, String(b.con ?? "")));
   if (d === "ba-me-mo" && post) return json(await pin.baMeMoMay(may, b.ma));
   if ((d === "dang-xuat" || d === "khoa-lai") && post) return json(await pin.roiMay(may));
-  // Agent cũ: chọn tên không PIN (L5 05/11) — vẫn chạy; ghi thêm «bé đang dùng» cho app Ba Mẹ + nhịp không kèm header
-  if (d === "chon-con" || d === "pin") {
-    const phienCon = await chonCon(may, String(b.con ?? ""));
-    await pin.ghiConDangDung(may.id, String(b.con ?? ""));
-    return json({ phienCon });
-  }
+  // Agent cũ: chọn tên không PIN (L5 05/11) — vẫn chạy y như trước: KHÔNG ghi «bé đang dùng» (agent cũ gửi không header nghĩa là
+  // «không bé nào», và không có đường đăng xuất) — chỉ dang-nhap-be mới ghi
+  if (d === "chon-con" || d === "pin") return json({ phienCon: await chonCon(may, String(b.con ?? "")) });
   return null;
 }

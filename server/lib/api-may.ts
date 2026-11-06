@@ -51,7 +51,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     const k = phienCon ? await conTuPhien(phienCon) : undefined;
     const bmDen = baMeDen(may);
     // «bé đang dùng» chỉ còn hiệu lực khi phiên Con của bé trên máy này còn hạn (12 giờ) — hết phiên / đăng xuất ⇒ máy thả ra như trước
-    const dangDung = !may.child_id && !bmDen && may.con_dang_dung
+    const dangDung = !may.child_id && !bmDen && !(k && k.family_id === may.family_id) && may.con_dang_dung
       && await one(`select 1 from kid_sessions k join children c on c.id = k.child_id where k.device_id = $1 and k.child_id = $2 and c.family_id = $3
                     and k.expires_at > now() limit 1`, [may.id, may.con_dang_dung, may.family_id]) ? may.con_dang_dung : null;
     // Ba Mẹ đang dùng ⇒ KHÔNG bé nào (kể cả máy riêng): nhịp, sự kiện, phiên, khay không tính cho con

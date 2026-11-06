@@ -113,10 +113,12 @@ test("L13 máy riêng vẫn hỏi PIN; agent cũ chọn tên (chon-con) vẫn ch
   assert.equal((await dv(rieng.tok, "dang-nhap-be", { con: minh })).status, 404);
   assert.equal((await dv(rieng.tok, "dang-nhap-be", { con: anh, pin: "1111" })).body.error, "pin_sai");
   assert.ok((await dv(rieng.tok, "dang-nhap-be", { con: anh, pin: "4821" })).body.phienCon);
-  // agent cũ: chon-con / pin không PIN ⇒ vẫn ra phiên, máy ghi bé đang dùng
+  // agent cũ: chon-con / pin không PIN ⇒ vẫn ra phiên như trước; không header ⇒ không bé nào (nghĩa cũ)
   const pc = (await dv(chung.tok, "pin", { con: anh, pin: "bỏ qua" })).body.phienCon;
   assert.ok(pc);
   assert.equal((await dv(chung.tok, "dong-bo", {}, { "x-phien-con": pc })).body.con.id, anh);
+  assert.equal((await dv(chung.tok, "dong-bo", {})).body.con, null);
+  await dv(chung.tok, "dang-nhap-be", { con: anh, pin: "4821" });
   assert.equal((await m(tokBm, `con/${anh}`)).body.may.find((x: any) => x.id === chung.id).dangDung, anh);
   // Quên PIN
   const qp = (await dv(chung.tok, "quen-pin", { con: anh })).body;
@@ -161,13 +163,14 @@ test("L13 Ba Mẹ nhập mã mở máy ⇒ «Ba Mẹ đang dùng máy» theo s�
   assert.deepEqual([dr.windows.mode, dr.windows.locked], ["tu_do", false]);
   // Khoá lại; mã đã dùng không dùng lại được (Con thấy mã Ba Mẹ gõ)
   await dv(chung.tok, "khoa-lai", {});
+  await dv(chung.tok, "ba-me-mo", { ma: "000000" });
   assert.deepEqual([(await dv(chung.tok, "ba-me-mo", { ma: ma30.ma })).status, (await dv(chung.tok, "ba-me-mo", { ma: ma30.ma })).body.error], [409, "ma_da_dung"]);
+  assert.equal((await dv(chung.tok, "ba-me-mo", { ma: "000000" })).body.conLan, 1, "gõ lại mã đã dùng không xoá bộ đếm sai");
   assert.equal((await dv(rieng.tok, "nhip", {})).body.nguoiDung.loai, "ba_me", "máy riêng lúc Ba Mẹ dùng: không bé nào");
   const sau = (await dv(chung.tok, "dong-bo", {})).body;
   assert.equal(sau.nguoiDung.loai, "chua");
   assert.ok(!sau.baMeDung);
-  // sai 5 lần ⇒ chờ
-  for (let i = 0; i < 4; i++) await dv(chung.tok, "ba-me-mo", { ma: "111111" });
+  // lượt sai thứ 5 (2 lần sai + 2 lượt mã đã dùng ở trên) ⇒ chờ
   assert.equal((await dv(chung.tok, "ba-me-mo", { ma: "111111" })).body.error, "ma_tam_khoa");
 });
 
