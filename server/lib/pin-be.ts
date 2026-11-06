@@ -89,20 +89,31 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
   };
 }
 
-async function demSai(khoa: string, toiDa: number, choGiay: number, now: Date) {
-  const r = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
-    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
-  if (r.so_lan >= toiDa) {
-    await q(`update pin_sai set so_lan = 0, khoa_den = $2 where khoa = $1`, [khoa, new Date(now.getTime() + choGiay * 1000)]);
-    return { khoa: true, conLan: 0 };
-  }
-  return { khoa: false, conLan: toiDa - r.so_lan };
+/** Giữ chỗ MỘT lượt thử TRƯỚC khi so (một upsert nguyên tử — như gia-dinh.ts › ghepMay): gửi song song cũng chỉ `toiDa` lượt được so.
+ *  Hết hạn chờ ⇒ đếm lại từ 1. → `{den}` (đang phải chờ — không so) hoặc `{lan}` (lượt thứ mấy trong đợt). */
+async function giuLuot(khoa: string, toiDa: number, now: Date): Promise<{ den: Date } | { lan: number }> {
+  const r = (await q<{ so_lan: number; khoa_den: Date | null }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
+    on conflict (khoa) do update set
+      so_lan = case when pin_sai.khoa_den is not null and pin_sai.khoa_den <= $2 then 1 else pin_sai.so_lan + 1 end,
+      khoa_den = case when pin_sai.khoa_den is not null and pin_sai.khoa_den <= $2 then null else pin_sai.khoa_den end
+    returning so_lan, khoa_den`, [khoa, now]))[0];
+  if (r.khoa_den && new Date(r.khoa_den).getTime() > now.getTime()) return { den: new Date(r.khoa_den) };
+  if (r.so_lan > toiDa) return { den: new Date(now.getTime() + 1000) };     // lượt song song vượt đợt — lượt thứ toiDa đang đặt hạn chờ
+  return { lan: r.so_lan };
+}
+
+/** Lượt `lan` sai: đủ `toiDa` ⇒ đặt hạn chờ. → còn bao nhiêu lần thử. */
+async function ghiSai(khoa: string, lan: number, toiDa: number, choGiay: number, now: Date) {
+  if (lan >= toiDa) await q(`update pin_sai set khoa_den = $2 where khoa = $1`, [khoa, new Date(now.getTime() + choGiay * 1000)]);
+  return Math.max(0, toiDa - lan);
 }
 
 async function dangKhoa(khoa: string, now: Date) {
   const r = await one<{ khoa_den: Date | null }>(`select khoa_den from pin_sai where khoa = $1`, [khoa]);
   return r?.khoa_den && new Date(r.khoa_den).getTime() > now.getTime() ? new Date(r.khoa_den) : null;
 }
+
+const choThu = (den: Date, now: Date) => Math.max(1, Math.ceil((den.getTime() - now.getTime()) / 1000));
 
 const bang = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
@@ -114,17 +125,17 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
     throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
   const khoa = `pin:${may.id}:${c.id}`;
   if (c.pin_ma) {
-    const den = await dangKhoa(khoa, now);
-    if (den) { const g = Math.ceil((den.getTime() - now.getTime()) / 1000);
-      throw new LoiPin("pin_tam_khoa", `Sai ${PIN_SAI_TOI_DA} lần rồi — chờ ${g} giây rồi thử lại nhé`, 429, { choGiay: g, khoaDen: den.toISOString() }); }
+    const tamKhoa = (den: Date) => new LoiPin("pin_tam_khoa", `Sai ${PIN_SAI_TOI_DA} lần rồi — chờ ${choThu(den, now)} giây rồi thử lại nhé`, 429,
+      { choGiay: choThu(den, now), khoaDen: den.toISOString() });
     const vao = String(pin ?? "").trim();
-    if (!vao) throw new LoiPin("can_pin", "Nhập PIN 4 số nhé", 400, { coPin: true });
+    if (!vao) { const den = await dangKhoa(khoa, now); if (den) throw tamKhoa(den); throw new LoiPin("can_pin", "Nhập PIN 4 số nhé", 400, { coPin: true }); }
+    const g = await giuLuot(khoa, PIN_SAI_TOI_DA, now);
+    if ("den" in g) throw tamKhoa(g.den);
     if (!bang(vao, c.pin_ma)) {
-      const s = await demSai(khoa, PIN_SAI_TOI_DA, PIN_CHO_GIAY, now);
-      await ghiSuKien(may.family_id, "sai_pin", { conLan: s.conLan }, { con: c.id, may: may.id });
-      if (s.khoa) throw new LoiPin("pin_tam_khoa", `Sai ${PIN_SAI_TOI_DA} lần rồi — chờ ${PIN_CHO_GIAY} giây rồi thử lại nhé`, 429,
-        { choGiay: PIN_CHO_GIAY, khoaDen: new Date(now.getTime() + PIN_CHO_GIAY * 1000).toISOString() });
-      throw new LoiPin("pin_sai", `Chưa đúng · còn ${s.conLan} lần thử`, 401, { conLan: s.conLan });
+      const conLan = await ghiSai(khoa, g.lan, PIN_SAI_TOI_DA, PIN_CHO_GIAY, now);
+      await ghiSuKien(may.family_id, "sai_pin", { conLan }, { con: c.id, may: may.id });
+      if (!conLan) throw tamKhoa(new Date(now.getTime() + PIN_CHO_GIAY * 1000));
+      throw new LoiPin("pin_sai", `Chưa đúng · còn ${conLan} lần thử`, 401, { conLan });
     }
     await q(`delete from pin_sai where khoa = $1`, [khoa]);
   }
@@ -152,7 +163,9 @@ export async function roiMay(may: MayS3, now = new Date()) {
 export async function quenPin(may: MayS3, conId: string) {
   const c = await one<{ id: string; family_id: string; ten: string }>(`select id, family_id, ten from children where id = $1`, [conId]);
   if (!c || c.family_id !== may.family_id || (may.child_id && may.child_id !== c.id)) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
-  const co = await one(`select 1 from alerts where family_id = $1 and child_id = $2 and loai = 'quen_pin' and not da_doc`, [c.family_id, c.id]);
+  // cùng cửa sổ 7 ngày với «Cần Ba Mẹ để ý» (can-de-y.ts) — báo cũ hơn không còn hiện ⇒ không được chặn báo mới
+  const co = await one(`select 1 from alerts where family_id = $1 and child_id = $2 and loai = 'quen_pin' and not da_doc
+                          and created_at > now() - interval '7 days'`, [c.family_id, c.id]);
   if (!co) {
     await canhBao(c.family_id, "quen_pin", "chu_y", `${c.ten} quên PIN vào máy — đặt PIN mới trong hồ sơ con`, { con: c.id, may: may.id, chiTiet: { may: may.name } });
     await ghiSuKien(c.family_id, "quen_pin", { may: may.name }, { con: c.id, may: may.id });
@@ -164,17 +177,24 @@ export async function quenPin(may: MayS3, conId: string) {
  *  Sai 5 lần ⇒ chờ 10 phút (theo máy). Không tính giờ con trong lúc đó (api-may.ts bỏ usage / nhịp phiên). */
 export async function baMeMoMay(may: MayS3, ma: unknown, now = new Date()) {
   const khoa = `bmma:${may.id}`;
-  const den = await dangKhoa(khoa, now);
-  if (den) throw new LoiPin("ma_tam_khoa", "Nhập sai mã nhiều lần — đợi một lúc rồi thử lại", 429, { choGiay: Math.ceil((den.getTime() - now.getTime()) / 1000) });
+  const tamKhoa = (den: Date) => new LoiPin("ma_tam_khoa", "Nhập sai mã nhiều lần — đợi một lúc rồi thử lại", 429, { choGiay: choThu(den, now) });
+  const g = await giuLuot(khoa, MA_BA_ME_SAI_TOI_DA, now);
+  if ("den" in g) throw tamKhoa(g.den);
   const bm = await biMatOfflineMay(may.id);
-  const phut = bm ? kiemMaOfflinePhut(bm, String(ma ?? ""), now) : null;
+  const sach = String(ma ?? "").replace(/\D/g, "");
+  const phut = bm ? kiemMaOfflinePhut(bm, sach, now) : null;
   if (!phut) {
-    const s = await demSai(khoa, MA_BA_ME_SAI_TOI_DA, MA_BA_ME_CHO_PHUT * 60, now);
-    await ghiSuKien(may.family_id, "sai_ma_ba_me", { conLan: s.conLan }, { may: may.id });
-    if (s.khoa) throw new LoiPin("ma_tam_khoa", "Nhập sai mã nhiều lần — đợi một lúc rồi thử lại", 429, { choGiay: MA_BA_ME_CHO_PHUT * 60 });
-    throw new LoiPin("ma_sai", `Mã chưa đúng · còn ${s.conLan} lần thử`, 401, { conLan: s.conLan });
+    const conLan = await ghiSai(khoa, g.lan, MA_BA_ME_SAI_TOI_DA, MA_BA_ME_CHO_PHUT * 60, now);
+    await ghiSuKien(may.family_id, "sai_ma_ba_me", { conLan }, { may: may.id });
+    if (!conLan) throw tamKhoa(new Date(now.getTime() + MA_BA_ME_CHO_PHUT * 60_000));
+    throw new LoiPin("ma_sai", `Mã chưa đúng · còn ${conLan} lần thử`, 401, { conLan });
   }
   await q(`delete from pin_sai where khoa = $1`, [khoa]);
+  // mỗi mã MỘT lượt (như agent-win MoTamOffline): Con thấy mã Ba Mẹ gõ thì không dùng lại được sau «Khoá lại». Giữ dấu 20 phút > hiệu lực mã (≤ 15 phút).
+  const daDung = await q(`insert into pin_sai(khoa, so_lan, khoa_den) values ($1, 1, $2) on conflict (khoa) do update
+      set so_lan = pin_sai.so_lan + 1 where pin_sai.khoa_den <= $3 returning khoa`, [`bmdung:${may.id}:${sach}`, new Date(now.getTime() + 20 * 60_000), now]);
+  if (!daDung.length) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới", 409);
+  await q(`update pin_sai set khoa_den = $2, so_lan = 1 where khoa = $1`, [`bmdung:${may.id}:${sach}`, new Date(now.getTime() + 20 * 60_000)]);
   const het = new Date(now.getTime() + phut * 60_000);
   await q(`update devices set ba_me_den = $2, ba_me_tu = $3, con_dang_dung = null, dang_nhap_luc = null where id = $1`, [may.id, het, now]);
   await q(`delete from kid_sessions where device_id = $1`, [may.id]);

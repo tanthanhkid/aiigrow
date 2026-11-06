@@ -159,8 +159,10 @@ test("L13 Ba Mẹ nhập mã mở máy ⇒ «Ba Mẹ đang dùng máy» theo s�
   assert.equal((await dv(rieng.tok, "ba-me-mo", { ma: ma15 })).body.phut, 15);
   const dr = (await dv(rieng.tok, "dong-bo", {})).body;
   assert.deepEqual([dr.windows.mode, dr.windows.locked], ["tu_do", false]);
-  // Khoá lại
+  // Khoá lại; mã đã dùng không dùng lại được (Con thấy mã Ba Mẹ gõ)
   await dv(chung.tok, "khoa-lai", {});
+  assert.deepEqual([(await dv(chung.tok, "ba-me-mo", { ma: ma30.ma })).status, (await dv(chung.tok, "ba-me-mo", { ma: ma30.ma })).body.error], [409, "ma_da_dung"]);
+  assert.equal((await dv(rieng.tok, "nhip", {})).body.nguoiDung.loai, "ba_me", "máy riêng lúc Ba Mẹ dùng: không bé nào");
   const sau = (await dv(chung.tok, "dong-bo", {})).body;
   assert.equal(sau.nguoiDung.loai, "chua");
   assert.ok(!sau.baMeDung);
@@ -261,6 +263,14 @@ test("L14 thư viện 5 loại + «Đã có»; thêm từ thư viện; quà áp 
   assert.equal((await m(tokBm, `qua/${id}`, { apCho: ["khong-co"] })).status, 404);
 });
 
+test("L13 khoá PIN chịu được gửi song song: 20 lượt cùng lúc chỉ 5 lượt được so", async () => {
+  const { anh, chung } = await nha();
+  const ds = await Promise.all(Array.from({ length: 20 }, (_, i) => dv(chung.tok, "dang-nhap-be", { con: anh, pin: String(1000 + i) })));
+  assert.equal(ds.filter((r) => r.status === 401).length, 4);
+  assert.equal(ds.filter((r) => r.status === 429).length, 16);
+  assert.equal((await dv(chung.tok, "dang-nhap-be", { con: anh, pin: "4821" })).status, 429, "đúng PIN cũng chờ");
+});
+
 test("L14 đổi quà ⇒ sao GIỮ chờ trao; Ba Mẹ trao (trừ hẳn) / huỷ (hoàn); xoá quà ⇒ hoàn mọi phiếu đang giữ", async () => {
   const { fam, bm, tokBm, anh, rieng } = await nha();
   await v.dieuChinhTay(fam, anh, 400, "Sao thử", bm);
@@ -277,6 +287,7 @@ test("L14 đổi quà ⇒ sao GIỮ chờ trao; Ba Mẹ trao (trừ hẳn) / hu�
   assert.deepEqual([(await v.tomTatVi(anh)).sao, (await v.tomTatVi(anh)).saoGiu], [350, 0]);
   // huỷ ⇒ hoàn
   const d2 = (await k(rieng.tok, `doi/${kem.id}`, {})).body;
+  assert.equal(d2.saoGiu, 100, "tổng sao đang giữ");
   await m(tokBm, `phieu/${d2.phieu}/huy`, {});
   assert.equal(await v.soDu(anh), 350);
   // xoá quà ⇒ hoàn sao phiếu đang giữ, «Sao con đã có không bị mất»

@@ -54,7 +54,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     const dangDung = !may.child_id && !bmDen && may.con_dang_dung
       && await one(`select 1 from kid_sessions k join children c on c.id = k.child_id where k.device_id = $1 and k.child_id = $2 and c.family_id = $3
                     and k.expires_at > now() limit 1`, [may.id, may.con_dang_dung, may.family_id]) ? may.con_dang_dung : null;
-    const con = may.child_id ?? (k && k.family_id === may.family_id ? k.id : null) ?? dangDung;
+    // Ba Mẹ đang dùng ⇒ KHÔNG bé nào (kể cả máy riêng): nhịp, sự kiện, phiên, khay không tính cho con
+    const con = bmDen ? null : may.child_id ?? (k && k.family_id === may.family_id ? k.id : null) ?? dangDung;
     { const r = await xuLyMayS3(may, req, p, b); if (r) return r; }
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
@@ -75,7 +76,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const lenh = await lenhCho(may);
       // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
       // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
-      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!con);
+      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!(con ?? (bmDen ? may.child_id : null)));   // máy riêng lúc Ba Mẹ dùng giữ «chan»
       // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
       const moDen = coTacTu(may.platform) ? await hanMoCuaMay(may, con) : null;
       const conThuong = coTacTu(may.platform) && con ? pol.quy?.conPhut ?? 0 : 0;   // 05/11: = quỹ còn (Policy đã tính, không tính lại)

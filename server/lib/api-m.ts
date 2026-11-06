@@ -57,6 +57,9 @@ async function chiTietCon(bm: BaMe, id: string) {
   const may = await q<gd.May>(`select * from devices where child_id = $1 or (dung_chung and family_id = $2) order by created_at`, [id, bm.family_id]);
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [bm.family_id]))!;
   const matMang = new Set((await mayMatMang(bm.family_id)).map((x) => x.mayId));
+  // «bé đang dùng» chỉ khi phiên Con của bé trên máy còn hạn (như api-may.ts / pin-be.ts › hoSoMay)
+  const conPhien = new Set((await q<{ d: string }>(`select distinct k.device_id || ':' || k.child_id as d from kid_sessions k
+      where k.device_id = any($1::text[]) and k.expires_at > now()`, [may.map((m) => m.id)])).map((x) => x.d));
   return {
     // coPin + pinDatLuc: 06/11 L13 (PIN theo bé — đảo L5); xem PIN ở GET con/:id/pin. cheDoChan: L4.
     id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: !!c.pin_ma,
@@ -67,7 +70,7 @@ async function chiTietCon(bm: BaMe, id: string) {
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null,
       truc: !!m.last_seen && Date.now() - new Date(m.last_seen).getTime() < 3 * 60_000, lechGiay: m.status?.lechGiay ?? null,
       // 06/11 (L13, L19): ai đang dùng máy dùng chung · Ba Mẹ đang dùng tới · máy mất mạng hôm nay
-      dangDung: m.con_dang_dung ?? null, baMeDungDen: baMeDen(m)?.toISOString() ?? null,
+      dangDung: m.con_dang_dung && conPhien.has(`${m.id}:${m.con_dang_dung}`) ? m.con_dang_dung : null, baMeDungDen: baMeDen(m)?.toISOString() ?? null,
       matMang: matMang.has(m.id) })),
   };
 }
@@ -119,9 +122,10 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
 
     if (d === "gia-dinh" && get) {
       // song song: mỗi câu SQL là một vòng mạng tới DB
-      const [con, f, cho, ycCho, cb, phieuCho, cdy, mm] = await Promise.all([gd.dsCon(fam),
+      const [con, f, cho, ycCho, cb, phieuCho, mm] = await Promise.all([gd.dsCon(fam),
         one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true), pt.dsPhieuCho(fam),
-        canDeY(fam), mayMatMang(fam)]);
+        mayMatMang(fam)]);
+      const cdy = await canDeY(fam, new Date(), { yc: ycCho, nv: cho, mm });
       // 06/11 (L19): soChuong = số mục «Cần Ba Mẹ để ý» (lib/can-de-y.ts) · con[].matMang = máy của Con mất mạng hôm nay (dòng «Máy mất mạng · Laptop»)
       return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length + phieuCho.length,
         canhBao: cb.length, soChuong: cdy.soChuong,

@@ -480,9 +480,9 @@ Bé **chưa có PIN** ⇒ chạm tên vào thẳng (`canDatPin: true` — máy n
 | `GET\|POST ho-so` (bí danh `nguoi-dung`) | «Ai đang dùng máy?» → ví dụ dưới. `vanPin` = HMAC-SHA256(khoá = bí mật mã offline của máy `maOfflineBiMat`, chuỗi `"<id bé>:<PIN>"`) hex — agent nhớ để tự kiểm PIN khi MẤT MẠNG (tự đếm 5 lần / 15 giây). `khoaDen`/`choGiay` khi bé đang bị chờ |
 | `POST dang-nhap-be {con, pin?}` | chạm tên + PIN → `{phienCon, con: {id, ten, avatar}, coPin, canDatPin?}`; máy ghi «bé đang dùng» (`devices.con_dang_dung`). Lỗi: `pin_sai` 401 `{conLan: 4…1}` («Chưa đúng · còn 3 lần thử») · `pin_tam_khoa` 429 `{choGiay: 15, khoaDen}` (lần sai thứ 5, và mọi lần thử trong 15 giây) · `can_pin` 400 (bé có PIN mà không gửi) · `khong_thay` 404 (bé nhà khác / máy riêng của bé khác) |
 | `POST quen-pin {con}` | «Báo Ba Mẹ giúp con» → `{daGui: true, lapLai}` (`lapLai: true` = đã báo, chưa xử lý — không báo trùng). Ba Mẹ thấy mục `quen_pin` trong «Cần Ba Mẹ để ý»; đặt PIN mới ⇒ mục tự xong |
-| `POST ba-me-mo {ma}` | «Ba Mẹ nhập mã»: mã mở máy 6 số của CHÍNH máy này (cùng mã `GET /api/m/may/:id/ma-offline`) → `{baMeDung: {den, tu}, phut}` — «Ba Mẹ đang dùng máy» trong số phút mã mang (15 / 30 / 60). Bé đang dùng bị đăng xuất. Lỗi `ma_sai` 401 `{conLan}` · `ma_tam_khoa` 429 `{choGiay}` (sai 5 lần ⇒ chờ 10 phút) |
+| `POST ba-me-mo {ma}` | «Ba Mẹ nhập mã»: mã mở máy 6 số của CHÍNH máy này (cùng mã `GET /api/m/may/:id/ma-offline`) → `{baMeDung: {den, tu}, phut}` — «Ba Mẹ đang dùng máy» trong số phút mã mang (15 / 30 / 60). Bé đang dùng bị đăng xuất. **Mỗi mã một lượt** (Con thấy mã Ba Mẹ gõ cũng không dùng lại được sau «Khoá lại»). Lỗi `ma_sai` 401 `{conLan}` · `ma_tam_khoa` 429 `{choGiay}` (sai 5 lần ⇒ chờ 10 phút) · `ma_da_dung` 409 |
 | `POST dang-xuat` · `POST khoa-lai` | «Đổi bé / Đăng xuất» của bé, «Khoá lại» của Ba Mẹ → `{ok: true, khoa: true}`: bỏ bé đang dùng + xoá phiên Con của máy + hết «Ba Mẹ dùng» ⇒ máy về màn chọn tên |
-| `POST chon-con {con}` · `POST pin {con, pin}` | agent CŨ — vẫn chạy, KHÔNG kiểm PIN (tương thích); ghi thêm «bé đang dùng» |
+| `POST chon-con {con}` · `POST pin {con, pin}` | agent CŨ — vẫn chạy, KHÔNG kiểm PIN (tương thích, theo yêu cầu giữ agent đang chạy); ghi thêm «bé đang dùng». Khi mọi agent đã lên bản có PIN thì khoá đường này cho bé có PIN |
 
 ```json
 // GET /api/device/ho-so
@@ -492,12 +492,15 @@ Bé **chưa có PIN** ⇒ chạm tên vào thẳng (`canDatPin: true` — máy n
   "baMeDung": null, "pinSaiToiDa": 5, "pinChoGiay": 15 }
 ```
 
+Lượt thử PIN / mã được GIỮ CHỖ trước khi so (một upsert nguyên tử) ⇒ gửi song song cũng chỉ 5 lượt được so mỗi đợt.
+`vanPin` dùng chung khoá với `maOfflineBiMat` — ai đọc được bí mật của máy vốn đã tự tính được mã mở máy, nên vân PIN không mở thêm lỗ nào; đổi lại máy kiểm được PIN khi mất mạng.
+
 **Giờ, sao, nhiệm vụ, phiên tính theo bé đang đăng nhập.** Thứ tự xác định bé của một lệnh: máy riêng ⇒ chủ máy · header `X-Phien-Con` ·
 không header ⇒ `devices.con_dang_dung` (chỉ khi phiên Con của bé đó trên máy còn hạn 12 giờ; đăng xuất / hết hạn ⇒ máy thả ra như trước).
 ⇒ `dong-bo`, `nhip`, `hoc-vien/*`, `yeu-cau`, `xin-duyet`, `phien/*` không cần header vẫn đúng bé.
 
 `dong-bo` và `nhip` trả thêm `nguoiDung`: `{loai: "con", con: {id, ten, coPin}}` | `{loai: "ba_me", den}` | `{loai: "chua"}` (máy dùng chung chưa ai vào ⇒ màn chọn tên).
-**Ba Mẹ đang dùng máy** (`baMeDung: {den}` ở gốc): không tính giờ con (máy chủ bỏ `usage`, nhịp phiên, web theo Con); `dong-bo.windows`: `mode: "tu_do"`,
+**Ba Mẹ đang dùng máy** (`baMeDung: {den}` ở gốc): không bé nào (kể cả máy riêng — `hoc-vien/*`, `phien/*` ⇒ 409 `chua_chon_con`), không tính giờ con (máy chủ bỏ `usage`, nhịp phiên, web theo Con); `dong-bo.windows`: `mode: "tu_do"`,
 `locked: false`, `grantEndsAt = den` (thắng giờ ngủ / Ba Mẹ khoá — Ba Mẹ mở bằng mã), không `quyConPhut`, `appTinhGio: []`, web mở Giải trí (web luôn
 chặn vẫn chặn); `nhip`: `grantEndsAt` / `moDen` = max(cửa sổ cũ, `den`). Hết `den` ⇒ máy về màn chọn tên (agent tự khoá, không chờ mạng).
 

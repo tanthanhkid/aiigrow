@@ -146,7 +146,9 @@ export async function doiQua(con: string, quaId: string, now = new Date(), o: { 
       }
     }
     await ghiSuKien(fam, "doi_qua", { ten: x.ten, diem: x.diem, cho_xac_nhan: canXacNhan }, { con }, t);
-    return { phieu, trang_thai: o.voucherTraoTay && laVoucher ? "cho_trao" : canXacNhan ? "cho_xac_nhan" : laVoucher ? "da_phat_hanh" : "cho_trao", voucher, saoGiu: x.diem,
+    // saoGiu = TỔNG sao Con đang giữ (mọi phiếu chờ trao, gồm phiếu này) — khớp ví (tomTatVi)
+    const saoGiu = (await t<{ n: number }>(`select coalesce(sum(diem), 0)::int as n from redemptions where child_id = $1 and trang_thai = 'giu'`, [con]))[0].n;
+    return { phieu, trang_thai: o.voucherTraoTay && laVoucher ? "cho_trao" : canXacNhan ? "cho_xac_nhan" : laVoucher ? "da_phat_hanh" : "cho_trao", voucher, saoGiu,
       quyConLai: laVoucher && !canXacNhan ? f.quy_voucher - x.menh_gia! : f.quy_voucher };
   });
 }
