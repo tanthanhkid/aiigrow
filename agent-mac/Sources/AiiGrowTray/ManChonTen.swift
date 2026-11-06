@@ -58,6 +58,9 @@ final class ChonTenModel: ObservableObject {
     case let .pin(kq, conLan, cho, chu):
       if kq == "ok" { cau = nil; xong(); return }
       pin.lamLai()
+      if kq == "can_pin", p == nil {                       // Ba Mẹ vừa đặt PIN cho bé (danh sách cũ ghi chưa có) ⇒ sang bước PIN
+        var b2 = b; b2.coPin = true; buoc = .pin(b2); cau = nil; await tai(); return
+      }
       if let cho, cho > 0 { choDen = Date().addingTimeInterval(TimeInterval(cho)); choDenBe[b.id] = choDen; cau = nil }
       else { cau = ManMac.cauPin(kq, conLan: conLan) ?? chu; cauLoi = true }
     case let .loi(_, chu): pin.lamLai(); cau = chu; cauLoi = true

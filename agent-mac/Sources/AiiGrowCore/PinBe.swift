@@ -148,6 +148,8 @@ public struct PhienMay: Codable, Equatable, Sendable {
   /// Ghi đè cục bộ (có hiệu lực tới khi máy chủ trả lại khối `nguoiDung` MỚI hơn lúc ghi).
   public var cucBo: NguoiDungMay?
   public var cucBoLuc: Date?
+  /// Ghi đè «Ba Mẹ dùng» do mã mở offline (máy chủ không biết) — chỉ loại này được giữ tới hạn khi máy chủ nói khác.
+  public var baMeOffline = false
   public init() {}
 
   /// nil = máy chủ cũ / máy riêng chưa gửi khối ⇒ chạy như trước (không màn chọn tên).
@@ -163,8 +165,8 @@ public struct PhienMay: Codable, Equatable, Sendable {
   public mutating func nhanMayChu(_ n: NguoiDungMay?, guiLuc: Date, now: Date, daGuiHet: Bool = true) {
     guard let n else { return }
     mayChu = n
-    if case let .baMe(den)? = cucBo, let den, den > now, n.loai != "ba_me" { return }
-    if daGuiHet, let l = cucBoLuc, guiLuc >= l { cucBo = nil; cucBoLuc = nil }
+    if baMeOffline, case let .baMe(den)? = cucBo, let den, den > now, n.loai != "ba_me" { return }
+    if daGuiHet, let l = cucBoLuc, guiLuc >= l { cucBo = nil; cucBoLuc = nil; baMeOffline = false }
   }
 
   /// Giờ / quỹ của con chỉ tính khi một bé đang dùng (hoặc máy chủ cũ không nói gì).
@@ -189,5 +191,5 @@ public struct PhienMay: Codable, Equatable, Sendable {
     return (q, h)
   }
 
-  public mutating func datCucBo(_ n: NguoiDungMay, now: Date) { cucBo = n; cucBoLuc = now }
+  public mutating func datCucBo(_ n: NguoiDungMay, now: Date, baMeOffline: Bool = false) { cucBo = n; cucBoLuc = now; self.baMeOffline = baMeOffline }
 }

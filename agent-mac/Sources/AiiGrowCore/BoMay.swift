@@ -130,6 +130,7 @@ public actor BoMay {
       }
       $0.hoSoMay = nil; $0.phienMay = nil; $0.saiPin = nil      // bé, vân PIN, ai đang dùng: luôn của lần ghép này
     }
+    lenhCho = nil                                     // lệnh máy dùng chung (có PIN) của lần ghép cũ không gửi bằng token mới
     heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // TRƯỚC await kế: lượt đồng bộ chen vào mang token mới
@@ -252,7 +253,7 @@ public actor BoMay {
       policy = kq.policy
       if kq.nguoiDung != nil {
         var pm = cauHinh.phienMay ?? PhienMay()
-        pm.nhanMayChu(kq.nguoiDung, guiLuc: guiLuc, now: dongHo(), daGuiHet: choGuiMayChung.isEmpty)
+        pm.nhanMayChu(kq.nguoiDung, guiLuc: guiLuc, now: dongHo(), daGuiHet: lenhCho == nil)
         if pm != cauHinh.phienMay { cauHinh.phienMay = pm; _ = try? kho.sua { $0.phienMay = pm } }
       }
       matMang = false
@@ -272,6 +273,7 @@ public actor BoMay {
         MoCoi.ghiThanhCong(&$0, now: lucOk)
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
+      if kq.nguoiDung != nil, cauHinh.hoSoMay == nil, cauHinh.daGhep { _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi bé, PIN lúc mất mạng)
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
     } catch _ where the != theHeGhep {
@@ -648,13 +650,15 @@ public actor BoMay {
 
   /// Lệnh máy dùng chung làm lúc mất mạng (đăng nhập bé bằng vân PIN, Đổi bé, Khoá lại) — gửi lại TRƯỚC lần đồng bộ kế. Chỉ trong bộ nhớ
   /// (PIN không ghi đĩa); daemon khởi động lại thì máy chủ thấy «chưa ai vào» ⇒ màn chọn tên, bé nhập lại.
-  private var choGuiMayChung: [(path: String, than: [String: Any])] = []
+  /// Mọi lệnh loại này (dang-nhap-be / dang-xuat / khoa-lai) thay nhau ⇒ chỉ cần MỘT lệnh chờ (lệnh sau đè lệnh trước).
+  private var lenhCho: (path: String, than: [String: Any], id: UUID)?
+  private func datLenhCho(_ path: String, _ than: [String: Any]) { lenhCho = (path, than, UUID()) }
 
   private func nguoiDungHieuLuc() -> NguoiDungMay? { cauHinh.phienMay?.hieuLuc(now: dongHo()) }
 
-  private func datCucBo(_ n: NguoiDungMay) {
+  private func datCucBo(_ n: NguoiDungMay, baMeOffline: Bool = false) {
     var pm = cauHinh.phienMay ?? PhienMay()
-    pm.datCucBo(n, now: dongHo())
+    pm.datCucBo(n, now: dongHo(), baMeOffline: baMeOffline)
     cauHinh.phienMay = pm
     _ = try? kho.sua { $0.phienMay = pm }
   }
@@ -662,18 +666,17 @@ public actor BoMay {
   private func datMayChu(_ n: NguoiDungMay) {
     var pm = cauHinh.phienMay ?? PhienMay()
     // máy chủ vừa nhận lệnh: ghi như ghi đè CÓ MỐC giờ — lượt dong-bo đang bay (gửi trước lệnh) về muộn không đè được
-    pm.mayChu = n; pm.cucBo = n; pm.cucBoLuc = dongHo()
+    pm.mayChu = n; pm.cucBo = n; pm.cucBoLuc = dongHo(); pm.baMeOffline = false
     cauHinh.phienMay = pm
     _ = try? kho.sua { $0.phienMay = pm }
   }
 
   private func guiLaiMayChung() async {
-    while let v = choGuiMayChung.first {
-      do { _ = try await api.mayChung("POST", v.path, v.than) }
-      catch let e as LoiApi where e.laMang { return }
-      catch { heThong.ghiLog("Gửi lại \(v.path) bị từ chối: \(error)") }
-      choGuiMayChung.removeFirst()
-    }
+    guard let v = lenhCho else { return }
+    do { _ = try await api.mayChung("POST", v.path, v.than) }
+    catch let e as LoiApi where e.laMang { return }
+    catch { heThong.ghiLog("Gửi lại \(v.path) bị từ chối: \(error)") }
+    if lenhCho?.id == v.id { lenhCho = nil }         // trong lúc chờ mạng có lệnh mới (Đổi bé…) thì giữ lệnh mới
   }
 
   private func hoSoMay() async -> TraLoi {
@@ -746,8 +749,7 @@ public actor BoMay {
     }
     sai.xoa(con: con)
     datCucBo(.con(id: con, ten: be.ten))
-    choGuiMayChung.removeAll { $0.path == "dang-nhap-be" || $0.path == "dang-xuat" || $0.path == "khoa-lai" }
-    choGuiMayChung.append(("dang-nhap-be", be.coPin ? ["con": con, "pin": pin] : ["con": con]))
+    datLenhCho("dang-nhap-be", be.coPin ? ["con": con, "pin": pin] : ["con": con])
     heThong.ghiLog("Mất mạng — \(be.ten) vào máy bằng PIN kiểm tại máy.")
     return .pin(ketQua: "ok", conLan: nil, choGiay: nil, chu: be.ten)
   }
@@ -792,10 +794,9 @@ public actor BoMay {
         return .pin(ketQua: ketQua, conLan: kq == .sai ? max(0, MoTamOffline.saiToiDa - st.saiLuc.count) : nil,
                     choGiay: kq == .choThuLai ? st.choGiay(now) : nil, chu: cau)
       }
-      datCucBo(.baMe(den: st.moDen))
+      datCucBo(.baMe(den: st.moDen), baMeOffline: true)
       // máy chủ còn ghi bé cũ đang dùng: có mạng lại thì thả bé đó ra (hết lượt Ba Mẹ ⇒ màn chọn tên, không vào lại phiên bé không PIN)
-      choGuiMayChung.removeAll { $0.path == "dang-nhap-be" || $0.path == "dang-xuat" || $0.path == "khoa-lai" }
-      choGuiMayChung.append(("khoa-lai", [:]))
+      datLenhCho("khoa-lai", [:])
       themSuKien("mo_ma_offline", ["den": NgayGio.viet(st.moDen ?? now), "baMe": "1"])
       heThong.ghiLog("Mất mạng — Ba Mẹ mở máy bằng mã tới \(NgayGio.viet(st.moDen ?? now)).")
       return .thongBao(chu: "Ba Mẹ đang dùng máy")
@@ -809,11 +810,14 @@ public actor BoMay {
       cauHinh.moTamOffline?.moDen = dongHo()
       let m = cauHinh.moTamOffline; _ = try? kho.sua { $0.moTamOffline = m }
     }
+    if !matMang, !dangDongBo {                         // gửi giờ đã dùng của bé đang ra TRƯỚC (không thì phút cuối tính cho bé sau / mất)
+      dangDongBo = true; await dongBo(); dangDongBo = false
+    }
     datCucBo(.chua)
-    choGuiMayChung.removeAll { $0.path == "dang-nhap-be" || $0.path == "dang-xuat" || $0.path == "khoa-lai" }
-    do { _ = try await api.mayChung("POST", path, [:]); datMayChu(.chua); dongBoSom() }
-    catch let e as LoiApi where !e.laMang { heThong.ghiLog("\(path) bị từ chối: \(e.chu)") }
-    catch { choGuiMayChung.append((path, [:])) }
+    let id = UUID(); lenhCho = (path, [:], id)
+    do { _ = try await api.mayChung("POST", path, [:]); if lenhCho?.id == id { lenhCho = nil }; datMayChu(.chua); dongBoSom() }
+    catch let e as LoiApi where !e.laMang { if lenhCho?.id == id { lenhCho = nil }; heThong.ghiLog("\(path) bị từ chối: \(e.chu)") }
+    catch {}
     return .ok(id: nil)
   }
 
@@ -1126,7 +1130,7 @@ public actor BoMay {
     do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
     // Thả hoàn toàn: xoá token + Policy (cả trong bộ nhớ lẫn đĩa) ⇒ các vòng sau coi như chưa ghép, không áp lại plist/hosts/đóng app.
     _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0; $0.hoSoMay = nil; $0.phienMay = nil; $0.saiPin = nil }
-    choGuiMayChung = []
+    lenhCho = nil
     quenDanhSachApp()
     cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
     api.datPhien(mayChu: cauHinh.mayChu, token: "")

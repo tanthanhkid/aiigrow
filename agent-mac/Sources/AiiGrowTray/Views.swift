@@ -21,17 +21,17 @@ struct XinThemView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      if xin.daGui {
+      if xin.daGui, xin.phutDaXin != nil {
         HStack(spacing: 12) {
           VienClay(ten: "speech_balloon", duPhong: "paperplane.fill", nen: ClayMau.ngocSoft, co: 48)
           VStack(alignment: .leading, spacing: 2) {
             Text("Đã gửi Ba Mẹ!").font(.system(size: 20, weight: .bold))
-            Text(ngoaiLe ? "Con xin mở \(phut) phút" : "Con xin thêm \(phut) phút").font(.system(size: 14)).foregroundColor(ClayMau.chu3)
+            Text(ngoaiLe ? "Con xin mở \(xin.phutDaXin ?? phut) phút" : "Con xin thêm \(xin.phutDaXin ?? phut) phút").font(.system(size: 14)).foregroundColor(ClayMau.chu3)
           }
         }
         Text(TrayLogic.dongYeuCau(tray.tt?.yeuCauCho ?? []) ?? "Đang chờ Ba Mẹ · Ba Mẹ trả lời là máy báo con ngay.")
           .font(.system(size: 14, weight: .semibold)).foregroundColor(ClayMau.ngocInk).fixedSize(horizontal: false, vertical: true)
-        Button("‹ Sửa lời xin") { xin.daGui = false; xin.thongBao = "" }.buttonStyle(.plain)
+        Button("‹ Sửa lời xin") { xin.moi() }.buttonStyle(.plain)
           .font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2)
       } else {
         Text(ngoaiLe ? "Xin mở ngoại lệ" : "Xin Ba Mẹ thêm giờ").font(.system(size: 20, weight: .bold))
@@ -370,9 +370,12 @@ struct GhepMayView: View {
 struct ManKhoaView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
-  /// Sao con đang có + tỷ lệ (app Con đã tải) — nil = chưa biết (ẩn thẻ sao).
+  /// Sao con đang có + tỷ lệ (app Con đã tải) — nil = chưa biết (ẩn thẻ sao). `app` (nếu có) thắng: số sao cập nhật sống.
   var sao: Int? = nil
   var phut10Sao: Int = 10
+  @ObservedObject var app: AppConModel = AppConModel(goi: { _ in .loi(ma: "", chu: "") })
+  private var saoHien: Int? { app.tq?.soDu ?? sao }
+  private var tyLe: Int { app.tq?.quy?.phut10Sao ?? phut10Sao }
   var doiBe: () -> Void = {}
   var baMeMoMay: () -> Void = {}
   enum Khoi: Equatable { case khong, xin, doiSao, ma }
@@ -422,27 +425,27 @@ struct ManKhoaView: View {
 
   @ViewBuilder private func nutHanhDong(ngoaiLe: Bool) -> some View {
     let t = tray.tt
-    if !ngoaiLe, let sao, t?.matMang != true {
+    if !ngoaiLe, let sao = saoHien, t?.matMang != true {
       HStack(spacing: 14) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 54)
         VStack(alignment: .leading, spacing: 2) {
           Text("Con có \(sao) sao").font(.system(size: 21, weight: .bold)).foregroundColor(ClayMau.diemInk)
-          Text("10 sao = \(phut10Sao) phút chơi").font(.system(size: 13)).foregroundColor(ClayMau.diemInk)
+          Text("10 sao = \(tyLe) phút chơi").font(.system(size: 13)).foregroundColor(ClayMau.diemInk)
         }
         Spacer()
         Button { withAnimation(ClayMotion.bat) { khoi = khoi == .doiSao ? .khong : .doiSao } } label: {
-          HStack(spacing: 6) { HinhFluent(ten: "star", duPhong: "star.fill", co: 20); Text("Đổi 10 sao") }
+          HStack(spacing: 6) { HinhFluent(ten: "star", duPhong: "star.fill", co: 20); Text("Đổi \(DungSao.saoCan(phut: 10, phut10Sao: tyLe)) sao") }
         }
-        .buttonStyle(NutClayStyle(kieu: .ngoc, bo: 24, cao: 52)).frame(width: 220).disabled(sao < DungSao.saoCan(phut: 10, phut10Sao: phut10Sao))
+        .buttonStyle(NutClayStyle(kieu: .ngoc, bo: 24, cao: 52)).frame(width: 220).disabled(sao < DungSao.saoCan(phut: 10, phut10Sao: tyLe))
       }
       .padding(18).clayThe(bo: 30, nen: ClayMau.diemSoft)
     }
     HStack(spacing: 14) {
-      Button { withAnimation(ClayMotion.bat) { khoi = khoi == .xin ? .khong : .xin } } label: {
+      Button { xin.moi(); withAnimation(ClayMotion.bat) { khoi = khoi == .xin ? .khong : .xin } } label: {
         HStack(spacing: 8) { HinhFluent(ten: "hourglass_not_done", duPhong: "hourglass", co: 22); Text(ngoaiLe ? "Xin Ba Mẹ mở ngoại lệ" : "Xin Ba Mẹ thêm giờ") }
       }
       .buttonStyle(NutClayStyle(kieu: .sang, bo: 26, cao: 54))
-      Button { withAnimation(ClayMotion.bat) { khoi = .xin } } label: {
+      Button { xin.moi(); withAnimation(ClayMotion.bat) { khoi = .xin } } label: {
         HStack(spacing: 8) { HinhFluent(ten: "speech_balloon", duPhong: "bubble.left.fill", co: 22); Text("Nhắn Ba Mẹ") }
       }
       .buttonStyle(NutClayStyle(kieu: .sang, bo: 26, cao: 54))
@@ -451,7 +454,7 @@ struct ManKhoaView: View {
     case .xin:
       XinThemView(tray: tray, xin: xin, ngoaiLe: ngoaiLe).padding(20).clayThe(bo: 28).vaoLanLuot(0)
     case .doiSao:
-      DoiSaoView(sao: sao ?? 0, phut10Sao: phut10Sao, m: choi, conPhut: t?.quyConPhut ?? 0, dong: { khoi = .khong })
+      DoiSaoView(sao: saoHien ?? 0, phut10Sao: tyLe, m: choi, conPhut: t?.quyConPhut ?? 0, dong: { khoi = .khong })
         .padding(20).clayThe(bo: 28).vaoLanLuot(0)
     case .ma:
       MaOfflineView().padding(20).clayThe(bo: 28).vaoLanLuot(0)

@@ -114,7 +114,10 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   func hoi() {
     Task {
       do {
-        if case .trangThai(let t) = try await IPCClient.guiAsync(.trangThai) { model.capNhat(t) } else { model.matNoi() }
+        if case .trangThai(let t) = try await IPCClient.guiAsync(.trangThai) {
+          if t.beId != model.tt?.beId { doiBeXong(moi: t) }
+          model.capNhat(t)
+        } else { model.matNoi() }
       } catch { model.matNoi() }
       veLai()
       xetAppVuaChan()
@@ -186,6 +189,13 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     hien(&cuaSoXin, "AiiGrow · Xin thêm giờ", XinThemCuaSo(tray: model, xin: xin, moChoi: { [weak self] in self?.cuaSoXin?.close(); self?.moChoi() },
                                                           moXinApp: { [weak self] in self?.cuaSoXin?.close(); self?.moXinMo() }))
   }
+  /// Bé đang dùng đổi (vào / ra): bỏ dữ liệu của bé trước (sao, nhiệm vụ, tin, lời xin) — không hiện số của bé khác.
+  func doiBeXong(moi t: TrangThai) {
+    appCon.tq = nil; appCon.ch = nil; appCon.tin = nil; appCon.tinMoi = 0; appCon.phutChoi = nil
+    tinTheo = TinTracker(); xin.moi(); nhac = NhacGio()
+    if t.nguoiDung == "con" { Task { await appCon.lamMoi(dsChoi: t.dsChoi ?? []) } }   // màn khoá / nhắc giờ cần số sao của bé mới
+  }
+
   /// «Đổi bé / Đăng xuất»: daemon bỏ bé đang dùng ⇒ máy về màn chọn tên.
   @objc func doiBe() {
     cuaSoApp?.close()
@@ -248,6 +258,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       var v = AppConView(app: appCon, tray: model, moXin: { [weak self] in self?.moXin() }, moChoi: { [weak self] in self?.moChoi() },
                          moNop: { [weak self] nv in self?.moNop(nv) })
       v.doiBe = { [weak self] in self?.doiBe() }
+      if let id = model.tt?.beId, let h = chonTen.hoSo { v.chuCai = ManMac.chuCai(h.con)[id] }
       if model.tt?.nguoiDung != nil { v.nhuongMay = { [weak self] in self?.moBaMeMa() } }
       let w = NSWindow(contentViewController: NSHostingController(rootView: v))
       w.title = "AiiGrow"
@@ -413,7 +424,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   func hien<V: View>(_ giu: inout NSWindow?, _ tieuDe: String, _ v: V) {
     if let w = giu { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
-    xin.thongBao = ""
+    xin.moi()
     let w = NSWindow(contentViewController: NSHostingController(rootView: v))
     w.title = tieuDe; w.styleMask = [.titled, .closable]; w.isReleasedWhenClosed = false; w.delegate = self
     w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
@@ -492,7 +503,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // màn chọn tên chỉ cần trên màn chính; màn phụ để trống (không hai bàn phím PIN)
         w.contentView = i == 0 ? NSHostingView(rootView: ManChonTenView(m: chonTen)) : NSHostingView(rootView: NenManSang(chan: "") { EmptyView() })
       } else {
-        w.contentView = NSHostingView(rootView: ManKhoaView(tray: model, xin: xin, sao: appCon.tq?.soDu, phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10,
+        w.contentView = NSHostingView(rootView: ManKhoaView(tray: model, xin: xin, sao: appCon.tq?.soDu, phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10, app: appCon,
                                                            doiBe: { [weak self] in self?.doiBe() }, baMeMoMay: { [weak self] in self?.moBaMeMa() }))
       }
       w.setFrame(s.frame, display: true)
@@ -514,7 +525,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   func hienNhac(_ phut: Int) {
     cuaSoNhac?.close()
     let p = NSPanel(contentViewController: NSHostingController(rootView: NhacView(phut: phut, sao: appCon.tq?.soDu,
-      doiSao: (appCon.tq?.soDu ?? 0) >= 10 ? { [weak self] in self?.cuaSoNhac?.close(); self?.moChoi() } : nil,
+      doiSao: (appCon.tq?.soDu ?? 0) >= DungSao.saoCan(phut: 10, phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10) ? { [weak self] in self?.cuaSoNhac?.close(); self?.moChoi() } : nil,
       xinThem: { [weak self] in self?.cuaSoNhac?.close(); self?.moXin() })))
     p.styleMask = [.titled, .closable, .utilityWindow]; p.title = "AiiGrow"
     p.level = .floating; p.isReleasedWhenClosed = false

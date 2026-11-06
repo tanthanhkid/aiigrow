@@ -66,7 +66,7 @@ final class PinBeTests: XCTestCase {
     let t = Date(timeIntervalSince1970: 1_800_000_000)
     var pm = PhienMay()
     pm.nhanMayChu(.con(id: "c1", ten: "A"), guiLuc: t, now: t)
-    pm.datCucBo(.baMe(den: t.addingTimeInterval(600)), now: t.addingTimeInterval(1))
+    pm.datCucBo(.baMe(den: t.addingTimeInterval(600)), now: t.addingTimeInterval(1), baMeOffline: true)
     pm.nhanMayChu(.chua, guiLuc: t.addingTimeInterval(2), now: t.addingTimeInterval(2))
     XCTAssertEqual(pm.hieuLuc(now: t.addingTimeInterval(3)), .baMe(den: t.addingTimeInterval(600)), "Ba Mẹ mở offline giữ tới hạn")
     XCTAssertEqual(pm.hieuLuc(now: t.addingTimeInterval(601)), .chua, "hết hạn Ba Mẹ ⇒ màn chọn tên, không chờ mạng")

@@ -19,12 +19,18 @@ final class XinModel: ObservableObject {
   @Published var thongBao = ""
   @Published var dangGui = false
   @Published var daGui = false
+  /// Số phút của lời xin vừa gửi (màn «Đã gửi Ba Mẹ! Con xin thêm N phút»).
+  @Published var phutDaXin: Int?
+  /// Mở form mới (cửa sổ mới, đổi bé): bỏ trạng thái «đã gửi» của lời xin trước.
+  func moi() { daGui = false; thongBao = ""; phutDaXin = nil }
 
   func xinThem(phut: Int, loiNhan: String) {
+    phutDaXin = phut
     gui(.xinThem(phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
   /// Giờ ngủ / Ba Mẹ khoá: xin mở ngoại lệ cả máy `phut` phút.
   func xinNgoaiLe(phut: Int, loiNhan: String) {
+    phutDaXin = phut
     gui(.xinNgoaiLe(phamVi: "ca_may", app: nil, phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
   func xinMo(muc: String, loai: String, loiNhan: String) {

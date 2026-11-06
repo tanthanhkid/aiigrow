@@ -80,6 +80,9 @@ struct AppConView: View {
   var nhuongMay: () -> Void = { NhuongMay.khoaManHinh() }
   /// «Đổi bé / Đăng xuất» (máy dùng chung, L13) — máy về màn chọn tên.
   var doiBe: () -> Void = {}
+  /// Chữ trên ảnh bé (ManMac.chuCai — giống màn chọn tên); nil = chữ đầu tên.
+  var chuCai: String? = nil
+  private var chuAnh: String { chuCai ?? String(tenCon.split(separator: " ").first?.first ?? "?").uppercased() }
   @State private var quaHoi: HvQua?
   @State private var hoiDoiBe = false
   @State private var quaCuaCon = false
@@ -139,7 +142,7 @@ struct AppConView: View {
     VStack(alignment: .leading, spacing: 10) {
       RobView(ten: MascotView.chon(app.muc, daNoi: daNoi, xongHetViec: xongHet), cao: 170)
       HStack(spacing: 10) {
-        if !tenCon.isEmpty { AvatarBe(chu: String(tenCon.split(separator: " ").first?.first ?? "?").uppercased(), co: 30) }
+        if !tenCon.isEmpty { AvatarBe(chu: chuAnh, co: 30) }
         Text(tenCon.isEmpty ? "AiiGrow" : tenCon).font(.system(size: 20, weight: .bold)).lineLimit(1).truncationMode(.tail)
       }
       let (dongKn, tot) = ketNoi
@@ -283,8 +286,9 @@ struct AppConView: View {
             }
           }
           Chu("10 sao = \(app.tq?.quy?.phut10Sao ?? 10) phút chơi", co: 13, mau: ClayMau.diemInk, dong: 1)
-          NutIcon(chu: "Đổi 10 sao lấy 10 phút", icon: "star", kieu: .sang, rong: nil, lam: moChoi)
-            .disabled(app.tq.map { $0.soDu < 10 } ?? true || t.matMang)
+          let can10 = DungSao.saoCan(phut: 10, phut10Sao: app.tq?.quy?.phut10Sao ?? 10)
+          NutIcon(chu: "Đổi \(can10) sao lấy 10 phút", icon: "star", kieu: .sang, rong: nil, lam: moChoi)
+            .disabled(app.tq.map { $0.soDu < can10 } ?? true || t.matMang)
         }
         .frame(minWidth: 0, idealWidth: 260, maxWidth: .infinity)
         TheCon {
@@ -334,7 +338,7 @@ struct AppConView: View {
   /// 17 «Đổi bé / Đăng xuất».
   private var doiBeSheet: some View {
     VStack(spacing: 14) {
-      AvatarBe(chu: String(tenCon.split(separator: " ").first?.first ?? "?").uppercased(), co: 64)
+      AvatarBe(chu: chuAnh, co: 64)
       Text(tenCon).font(.system(size: 20, weight: .bold))
       Text("● Đang dùng máy này").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
       HStack(spacing: 12) {
@@ -426,7 +430,8 @@ struct AppConView: View {
           Spacer(minLength: 8)
           VStack(alignment: .leading, spacing: 8) {
             Chu("10 sao = \(tq.quy?.phut10Sao ?? 10) phút chơi", co: 13, dam: .bold, mau: ClayMau.diemInk, dong: 1)
-            NutIcon(chu: "Đổi 10 sao lấy 10 phút", icon: "star", kieu: .sang, rong: 250, lam: moChoi).disabled(tq.soDu < 10 || tt?.matMang == true)
+            let can10 = DungSao.saoCan(phut: 10, phut10Sao: tq.quy?.phut10Sao ?? 10)
+            NutIcon(chu: "Đổi \(can10) sao lấy 10 phút", icon: "star", kieu: .sang, rong: 250, lam: moChoi).disabled(tq.soDu < can10 || tt?.matMang == true)
           }
           .frame(width: 260)
         }
