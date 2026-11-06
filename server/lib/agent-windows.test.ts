@@ -127,6 +127,10 @@ test("B1 06/11 «Mở hết» + quỹ: còn quỹ ⇒ tu_do, Giải trí tính g
   const sai = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(30), gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
   assert.deepEqual([sai.mode, sai.quyConPhut, sai.appTinhGio], ["tu_do", 0, ["roblox.exe"]]);
   assert.ok(sai.web.chan.includes("youtube.com") && !sai.web.cho.includes("youtube.com"));
+  // luật cũ (không quỹ): giờ máy sai không đóng nửa vời — app lẫn web Giải trí giữ như «Mở hết» cũ
+  const cu = chinhSachWindows(goc({ cheDoChan: "mo_het", gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
+  assert.deepEqual([cu.mode, cu.appTinhGio], ["tu_do", undefined]);
+  assert.ok(cu.web.cho.includes("youtube.com"));
   // «Chỉ app được phép» hết quỹ: như cũ (mode hoc, appTinhGio rỗng — Giải trí đã ngoài allowedApps)
   const chi = chinhSachWindows(goc({ cheDoChan: "chi_app_duoc_phep", quy: quy(0) }), undefined, "chan");
   assert.deepEqual([chi.mode, chi.appTinhGio], ["hoc", []]);

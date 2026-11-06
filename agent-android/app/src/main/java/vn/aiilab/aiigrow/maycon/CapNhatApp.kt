@@ -123,7 +123,7 @@ object CapNhat {
         }
         // đã hỏi / đã gửi cài trong 6 giờ qua (hộp còn treo, Con bấm Huỷ, Device Owner mà hệ thống vẫn đòi xác nhận) ⇒ không mở hộp mới:
         // chờ Ba Mẹ bấm «Cập nhật ngay» hoặc lượt sau (06/11 B2 — trước đây Device Owner không bị chặn ⇒ hộp bật lại mỗi lần app mở)
-        if (!nenHoiCai(epHoi, now, k.lanHoiCai)) return KetQua.CHO_QUYEN
+        if (!nenHoiCai(epHoi, now, k.lanHoiCai, k.banHoiCai, b.versionCode)) return KetQua.CHO_QUYEN
 
         val tep = File(thuMuc(ctx), "aiigrow-con-${b.versionCode}.apk")
         thuMuc(ctx).listFiles()?.filter { it != tep }?.forEach { it.delete() }
@@ -246,7 +246,7 @@ object CapNhat {
                 val co = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
                 NhatKy.tin(TAG, "cài ${b.version} (versionCode ${b.versionCode}) — ${if (laDo) "Device Owner, im lặng" else "chờ xác nhận"}")
                 s.commit(PendingIntent.getBroadcast(ctx, id, nhan, co).intentSender)
-                k.lanHoiCai = System.currentTimeMillis()   // commit xong (cả Device Owner): lượt tự kiểm kế không mở phiên/hộp mới trong 6 giờ
+                k.lanHoiCai = System.currentTimeMillis(); k.banHoiCai = b.versionCode   // commit xong (cả Device Owner): lượt tự kiểm kế không mở phiên/hộp mới trong 6 giờ
                 k.hoanTu = 0
             }
             return true

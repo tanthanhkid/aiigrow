@@ -38,6 +38,8 @@ class Kho(ctx: Context) {
     var banMoiCho: String? get() = p.getString("banMoiCho", null); set(v) = p.edit().putString("banMoiCho", v).apply()
     /** Lần cuối mở hộp xác nhận cài (đường không Device Owner) — tự hỏi lại tối đa mỗi 6 giờ. */
     var lanHoiCai: Long get() = p.getLong("lanHoiCai", 0); set(v) = p.edit().putLong("lanHoiCai", v).apply()
+    /** versionCode của lần hỏi / gửi cài gần nhất (`lanHoiCai`) — manifest có bản mới hơn thì không chờ 6 giờ. */
+    var banHoiCai: Long get() = p.getLong("banHoiCai", 0); set(v) = p.edit().putLong("banHoiCai", v).apply()
     /** Cập nhật: thông báo «bật quyền» lần cuối; sha256 bản vừa hỏng + thời điểm được thử lại; lúc bắt đầu hoãn vì khoá (≤ 12 giờ). */
     var lanBaoQuyen: Long get() = p.getLong("lanBaoQuyen", 0); set(v) = p.edit().putLong("lanBaoQuyen", v).apply()
     var shaLoi: String? get() = p.getString("shaLoi", null); set(v) = p.edit().putString("shaLoi", v).apply()

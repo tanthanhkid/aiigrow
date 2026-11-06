@@ -23,6 +23,8 @@ class CapNhatTest {
         assertTrue("đủ 6 giờ", nenHoiCai(false, now, now - HOI_LAI_MS))
         assertTrue("Ba Mẹ bấm Cập nhật ngay", nenHoiCai(true, now, now - 60_000))
         assertTrue("đồng hồ bị chỉnh lùi (mốc hỏi ở tương lai) ⇒ không kẹt", nenHoiCai(false, now, now + 3_600_000))
+        assertFalse("cùng bản đã hỏi 1 phút trước", nenHoiCai(false, now, now - 60_000, banDaHoi = 7, banMoi = 7))
+        assertTrue("hotfix bản mới hơn ⇒ hỏi ngay", nenHoiCai(false, now, now - 60_000, banDaHoi = 7, banMoi = 8))
     }
 
     @Test fun docManifest() {

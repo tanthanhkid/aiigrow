@@ -2,6 +2,7 @@
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
 import { bm } from "./api";
 import { coMa, datTl, layTl, thanThietLap } from "./thiet-lap";
+export { coMa };   // tương thích: nơi sở hữu là thiet-lap.ts
 
 export type KqGhep = {
   ma: string; maHien: string; het: string; hanPhut: number; conGiay: number; lienKet: string; qr: string; tokenGoi: string; hetGoi: string;
@@ -50,7 +51,6 @@ export async function napAppGoiY(con: string) {
   if (!layTl().apps) datTl({ apps: r.ds.filter((a) => a.chon).map((a) => ({ ma: a.ma, ten: a.ten })) });
   return r.ds;
 }
-export { coMa };
 
 /** Gửi toàn bộ lựa chọn Giờ chơi + Chọn app cho Con đang thiết lập. */
 export async function luuThietLap() {

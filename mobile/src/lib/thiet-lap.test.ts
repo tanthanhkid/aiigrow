@@ -18,3 +18,8 @@ test("Ba Mẹ đã chọn «Mở hết» ⇒ gửi đúng mo_het; app theo mã /
   assert.deepEqual(b.gioChoi, { ngayThuong: 30, cuoiTuan: 60 });
   assert.deepEqual(b.apps, [{ ma: "roblox" }, { ten: "Sách", tinhGio: false }]);
 });
+
+test("quỹ cuối tuần đã nạp từ máy chủ được giữ; Ba Mẹ chọn quỹ khác (cuoiTuan xoá) ⇒ tính lại +30", () => {
+  assert.deepEqual(thanThietLap({ conId: "c1", quy: 30, cuoiTuan: 120 }, MAC).gioChoi, { ngayThuong: 30, cuoiTuan: 120 });
+  assert.deepEqual(thanThietLap({ conId: "c1", quy: 90, cuoiTuan: undefined }, MAC).gioChoi, { ngayThuong: 90, cuoiTuan: 120 });
+});

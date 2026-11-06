@@ -32,10 +32,11 @@ const val HOI_LAI_MS = 6 * 3600_000L
  * 06/11 (B2): có được mở hộp «cài bản mới» lượt này không. Ba Mẹ bấm «Cập nhật ngay» (`epHoi`) ⇒ luôn được; không thì đã hỏi trong 6 giờ qua
  * (hộp còn treo / Con bấm Huỷ / bỏ qua) ⇒ không hỏi. ÁP CHO CẢ Device Owner: cài im lặng mà hệ thống vẫn đòi xác nhận (PENDING_USER_ACTION) thì
  * trước đây mỗi lần app mở lại (đóng hộp ⇒ màn chính onResume ⇒ kiểm lại) lại bật hộp mới ⇒ «popup cập nhật» lặp khoảng mỗi phút.
- * `lanHoiCai` ở tương lai (đồng hồ máy bị chỉnh lùi) ⇒ coi như chưa hỏi.
+ * `lanHoiCai` ở tương lai (đồng hồ máy bị chỉnh lùi) ⇒ coi như chưa hỏi. Mốc gắn với versionCode đã hỏi (`banDaHoi`): manifest ra bản MỚI HƠN
+ * (hotfix) ⇒ hỏi / cài ngay, không chờ hết 6 giờ của bản trước.
  */
-fun nenHoiCai(epHoi: Boolean, now: Long, lanHoiCai: Long): Boolean =
-    epHoi || lanHoiCai <= 0 || now - lanHoiCai !in 0 until HOI_LAI_MS
+fun nenHoiCai(epHoi: Boolean, now: Long, lanHoiCai: Long, banDaHoi: Long = 0, banMoi: Long = 0): Boolean =
+    epHoi || lanHoiCai <= 0 || banMoi > banDaHoi || now - lanHoiCai !in 0 until HOI_LAI_MS
 
 /** host (thường) của URL https — http chỉ nhận khi `choPhepHttp`. Có user-info / không có host ⇒ null. */
 private fun host(u: String, choPhepHttp: Boolean = false): String? = try {

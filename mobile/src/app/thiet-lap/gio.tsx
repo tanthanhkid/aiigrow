@@ -7,9 +7,9 @@ import { useCallback, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { coMa, cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH, tomTat } from "@/lib/ghep-may";
+import { cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH, tomTat } from "@/lib/ghep-may";
 import { BanhXeGio, DauMan, gioGon, OApp, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
-import { datTl, layTl } from "@/lib/thiet-lap";
+import { coMa, datTl, layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Man, Nut, Rob, The, useLam } from "@/lib/ui";
 
 export default function ObGio() {
@@ -20,28 +20,37 @@ export default function ObGio() {
   const [ngu, setNgu] = useState(tl.ngu ?? NGU_MAC_DINH);
   const [apps, setApps] = useState(tl.apps);
   const [suaNgu, setSuaNgu] = useState<"tu" | "den" | null>(null);
-  const daNap = useRef<string | null>(null);
+  const daNap = useRef<{ con: string; p: Promise<void> } | null>(null);
+  // Nạp một lần mỗi Con; «Lưu» chờ lượt nạp này xong — chưa biết cài đặt thật thì KHÔNG lưu đè mặc định (lỗi ⇒ báo, Ba Mẹ thử lại)
+  const napCaiDat = () => {
+    const t = layTl();
+    if (!t.conId || (t.cheDoChan && t.quy != null && t.ngu)) return Promise.resolve();
+    if (daNap.current?.con === t.conId) return daNap.current.p;
+    const con = t.conId;
+    const p = tomTat(con).then((x) => {
+      const n = layTl();
+      if (n.conId !== con) return;
+      if (!n.cheDoChan && x.cheDoChan) { setCheDo(x.cheDoChan); datTl({ cheDoChan: x.cheDoChan }); }
+      if (n.quy == null && x.gioChoi.ngayThuong != null) {
+        setQuy(x.gioChoi.ngayThuong); datTl({ quy: x.gioChoi.ngayThuong, ...(x.gioChoi.cuoiTuan != null ? { cuoiTuan: x.gioChoi.cuoiTuan } : {}) });
+      }
+      if (!n.ngu && x.ngu?.tu && x.ngu?.den) { setNgu(x.ngu); datTl({ ngu: x.ngu }); }
+    }).catch((e) => { daNap.current = null; throw e; });
+    daNap.current = { con, p };
+    return p;
+  };
   const { lam, loi, dangChay } = useLam();
   // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Rob (app-goi-y)
   useFocusEffect(useCallback(() => {
     const t = layTl();
     setApps(t.apps);
     if (t.conId && !t.apps) napAppGoiY(t.conId).then(() => setApps(layTl().apps)).catch(() => {});
-    // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng chế độ chặn / quỹ / giờ ngủ đang có, không mặc định đè lên (nạp một lần mỗi Con)
-    if (t.conId && daNap.current !== t.conId && (!t.cheDoChan || t.quy == null || !t.ngu)) {
-      daNap.current = t.conId;
-      tomTat(t.conId).then((x) => {
-        const n = layTl();
-        if (n.conId !== x.conId) return;
-        if (!n.cheDoChan && x.cheDoChan) { setCheDo(x.cheDoChan); datTl({ cheDoChan: x.cheDoChan }); }
-        if (n.quy == null && x.gioChoi.ngayThuong != null) { setQuy(x.gioChoi.ngayThuong); datTl({ quy: x.gioChoi.ngayThuong }); }
-        if (!n.ngu && x.ngu?.tu && x.ngu?.den) { setNgu(x.ngu); datTl({ ngu: x.ngu }); }
-      }).catch(() => {});
-    }
+    // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng chế độ chặn / quỹ / giờ ngủ đang có (lỗi thì lần mở màn sau nạp lại)
+    napCaiDat().catch(() => {});
   }, []));
   const doi = (x: Parameters<typeof datTl>[0]) => datTl(x);
   const luu = () => lam(async () => {
-    datTl({ cheDoChan: cheDo });   // lưu đúng chế độ đang hiện trên màn (kể cả khi nạp chế độ thật của Con chưa xong / lỗi)
+    await napCaiDat();
     const con = await luuThietLap();
     router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
   }, { hangDoi: true });
@@ -95,7 +104,7 @@ export default function ObGio() {
       </View>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
         {QUY_CHIP.map((p) => (
-          <Pressable key={p} onPress={() => { setQuy(p); doi({ quy: p }); }} accessibilityRole="radio" accessibilityState={{ checked: quy === p }}
+          <Pressable key={p} onPress={() => { setQuy(p); doi({ quy: p, cuoiTuan: undefined }); }} accessibilityRole="radio" accessibilityState={{ checked: quy === p }}
             style={{ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center", justifyContent: "center",
               backgroundColor: quy === p ? "#fff" : "#ebeae6", boxShadow: quy === p ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.lom }}>
             <Chu kieu="rat" co={16}>{`${p} phút`}</Chu>
