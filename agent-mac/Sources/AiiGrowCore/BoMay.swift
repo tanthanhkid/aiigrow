@@ -635,7 +635,7 @@ public actor BoMay {
         if let cb = canhBaoAdmin { return .canhBao(id: cauHinh.deviceId, chu: cb) }
         return .ok(id: cauHinh.deviceId)
       }
-      catch let e as LoiApi { return .loi(ma: e.ma ?? "ghep_loi", chu: e.chu) }
+      catch let e as LoiApi { return .loi(ma: e.ma ?? (e.laMang && e.maHttp == nil ? "mat_mang" : "ghep_loi"), chu: e.chu) }
       catch { return .loi(ma: "ghep_loi", chu: "\(error)") }
     }
   }
@@ -1320,6 +1320,7 @@ public actor BoMay {
         k.hasPrefix(homNay) && giay >= 60 && !k.hasSuffix("|" + DemPhut.khongRo) ? MucDung(muc: String(k.dropFirst(homNay.count)), phut: Int(giay / 60), day: String(homNay.dropLast())) : nil
       }.sorted { $0.phut != $1.phut ? $0.phut > $1.phut : $0.muc < $1.muc }
       tt.chanSeq = chanSeq
+      tt.gioNgu = p?.gioNgu; tt.gioHoc = p?.gioHoc
       if let nd = nguoiDungHieuLuc() {
         tt.nguoiDung = nd.loai
         if case let .con(id, ten) = nd { tt.beId = id; tt.beTen = ten.isEmpty ? cauHinh.hoSoMay?.con.first { $0.id == id }?.ten : ten }

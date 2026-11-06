@@ -108,6 +108,9 @@ public struct TrangThai: Codable, Equatable {
   public var baMeDungDen: Date?
   /// Máy chỉ gán một bé.
   public var mayRieng: Bool?
+  /// Khung giờ ngủ / giờ học (màn khoá ghi «Giờ ngủ 21:30 – 6:30», «mở lại tất cả lúc 18:00»). Chỉ cho phiên Con.
+  public var gioNgu: KhungGio?
+  public var gioHoc: KhungGio?
   /// Máy chưa ghép nhưng có token gói cài một chạm ⇒ cửa sổ Ghép chỉ hỏi tài khoản của Con, không hỏi mã 6 số. Chỉ cho phiên Ba Mẹ.
   public var coGoiCai: Bool?
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,

@@ -35,6 +35,12 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   /// `chanSeq` daemon trả lần trước — tăng ⇒ vừa đóng một app MỚI ⇒ hiện màn «… chưa được mở». nil = chưa nhận lần nào (không báo app cũ).
   var chanSeqDaThay: Int?
   var dangKhoaTruoc = false
+  // 06/11 PIN theo bé (L13): màn chọn tên che máy khi chưa bé nào vào; «Ba Mẹ nhập mã» mở được từ màn khoá / app.
+  let chonTen = ChonTenModel()
+  var epBaMeMa = false
+  enum LoaiManToan: Equatable { case khong, chonTen, khoa }
+  var loaiManHien: LoaiManToan = .khong
+  var cuaSoBaMe: NSPanel?
 
   func applicationDidFinishLaunching(_ n: Notification) {
     item = NSStatusItem.systemStatusItem
@@ -42,6 +48,11 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     item.button?.imagePosition = .imageLeading
     NotificationCenter.default.addObserver(self, selector: #selector(manHinhDoi),
       name: NSApplication.didChangeScreenParametersNotification, object: nil)
+    chonTen.xong = { [weak self] in self?.epBaMeMa = false; self?.hoi() }
+    chonTen.khiVeDau = { [weak self] in
+      guard let self, self.epBaMeMa else { return }
+      self.epBaMeMa = false; self.capNhatManKhoa()
+    }
     veLai()
     hoi()
     timerHoi = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in Task { @MainActor in self?.hoi() } }
@@ -94,7 +105,9 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   }
 
   /// Phiên này là của Con, đã ghép, daemon trả lời ⇒ app của Con dùng được.
-  var laConDaGhep: Bool { !model.matKetNoi && model.tt?.laPhienCon == true && model.tt?.daGhep == true }
+  var laConDaGhep: Bool {
+    !model.matKetNoi && model.tt?.laPhienCon == true && model.tt?.daGhep == true && !["chua", "ba_me"].contains(model.tt?.nguoiDung ?? "")
+  }
 
   // MARK: hỏi daemon
 
@@ -113,7 +126,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   func nhip() {
     guard let t = model.tt, !model.matKetNoi else { return }
     let g = TrayLogic.giayConLai(t, nhanLuc: model.nhanLuc, bayGio: Date())
-    if t.laPhienCon, t.cheDo != .khoa, let m = nhac.xet(giayConLai: g) { hienNhac(m) }
+    if t.laPhienCon, t.cheDo != .khoa, t.nguoiDung != "chua", t.nguoiDung != "ba_me", let m = nhac.xet(giayConLai: g) { hienNhac(m) }
     item.button?.title = " " + TrayLogic.tieuDeThanh(t, matKetNoi: false, nhanLuc: model.nhanLuc, bayGio: Date())
   }
 
@@ -127,6 +140,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     item.button?.toolTip = [TrayLogic.dongCanhBaoAdmin(t), TrayLogic.dongTrangThai(t, matKetNoi: model.matKetNoi, nhanLuc: model.nhanLuc, bayGio: bay)].compactMap { $0 }.joined(separator: "\n")
     item.menu = dungMenu(bay: bay)
     capNhatManKhoa()
+    capNhatBaMe()
     capNhatGhep()
   }
 
@@ -140,10 +154,11 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     if let y = TrayLogic.dongYeuCau(t?.yeuCauCho ?? []) { dong(y) }
     if let t, t.matMang, !model.matKetNoi { dong("Đang chạy theo giờ đã lưu (mất mạng)") }
     m.addItem(.separator())
-    if !model.matKetNoi, t?.laPhienCon == true {
+    if !model.matKetNoi, t?.laPhienCon == true, laConDaGhep || t?.daGhep != true {
       if t?.daGhep == true {
         muc(appCon.tinMoi > 0 ? "Mở AiiGrow của Con (\(appCon.tinMoi) tin mới)…" : "Mở AiiGrow của Con…", #selector(moAppCon))
       }
+      if t?.nguoiDung == "con", t?.mayRieng != true { muc("Đổi bé / Đăng xuất", #selector(doiBe)) }
       muc("Xin thêm thời gian…", #selector(moXin))
       muc("Xin mở trang hoặc app…", #selector(moXinMo))
       if let t, ChoiBangDiem.hienNut(duocDoiDiem: t.duocDoiDiem, lyDoKhoa: t.lyDoKhoa, matMang: t.matMang, dsChoi: t.dsChoi ?? []) {
@@ -167,7 +182,38 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   // MARK: hành động menu
 
-  @objc func moXin() { hien(&cuaSoXin, "AiiGrow · Xin thêm thời gian", XinThemCuaSo(tray: model, xin: xin, moChoi: { [weak self] in self?.cuaSoXin?.close(); self?.moChoi() })) }
+  @objc func moXin() {
+    hien(&cuaSoXin, "AiiGrow · Xin thêm giờ", XinThemCuaSo(tray: model, xin: xin, moChoi: { [weak self] in self?.cuaSoXin?.close(); self?.moChoi() },
+                                                          moXinApp: { [weak self] in self?.cuaSoXin?.close(); self?.moXinMo() }))
+  }
+  /// «Đổi bé / Đăng xuất»: daemon bỏ bé đang dùng ⇒ máy về màn chọn tên.
+  @objc func doiBe() {
+    cuaSoApp?.close()
+    Task { _ = try? await IPCClient.guiAsync(.dangXuat, giay: 25); hoi() }
+  }
+  /// «Ba Mẹ mở máy ›» (màn khoá, app Con): màn «Ba Mẹ nhập mã» toàn màn hình.
+  func moBaMeMa() {
+    cuaSoApp?.close()
+    chonTen.cau = nil; chonTen.ma = ""; chonTen.buoc = .baMeMa
+    epBaMeMa = true
+    capNhatManKhoa()
+  }
+  /// «Khoá lại» của Ba Mẹ.
+  func khoaLai() {
+    cuaSoBaMe?.close(); cuaSoBaMe = nil
+    Task { _ = try? await IPCClient.guiAsync(.khoaLai, giay: 25); hoi() }
+  }
+  func capNhatBaMe() {
+    let can = !model.matKetNoi && ManMac.baMeDangDung(model.tt, bayGio: Date())
+    if !can { cuaSoBaMe?.close(); cuaSoBaMe = nil; return }
+    guard cuaSoBaMe == nil else { return }
+    let p = NSPanel(contentViewController: NSHostingController(rootView: BaMeDangDungView(den: model.tt?.baMeDungDen, khoaLai: { [weak self] in self?.khoaLai() })))
+    p.styleMask = [.titled, .nonactivatingPanel, .utilityWindow]; p.title = "AiiGrow · Ba Mẹ"
+    p.level = .floating; p.isReleasedWhenClosed = false
+    if let s = NSScreen.main { p.setFrameOrigin(NSPoint(x: s.visibleFrame.maxX - p.frame.width - 16, y: s.visibleFrame.maxY - p.frame.height - 16)) }
+    p.orderFrontRegardless()
+    cuaSoBaMe = p
+  }
   /// Giờ học: chỉ xin mở ngoại lệ (cả máy, có hạn).
   func moXinNgoaiLe() { cuaSoXin?.close(); cuaSoXin = nil; hien(&cuaSoXin, "AiiGrow · Xin mở ngoại lệ", XinThemCuaSo(tray: model, xin: xin, ngoaiLe: true)) }
   @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở trang hoặc app", XinMoView(tray: model, xin: xin)) }
@@ -176,8 +222,11 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     if let w = cuaSoChoi { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }   // đã mở: chỉ đưa lên trước
     let ds = model.tt?.dsChoi ?? []
     let m = ChoiModel()
-    hienCuaSo(&cuaSoChoi, "AiiGrow · Dùng sao thêm giờ", ChoiBangDiemView(phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10, sao: appCon.tq?.soDu, m: m,
-                                                                           dong: { [weak self] in self?.cuaSoChoi?.close() }))
+    hienCuaSo(&cuaSoChoi, "AiiGrow · Đổi sao lấy giờ", ChoiBangDiemView(phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10, sao: appCon.tq?.soDu, m: m,
+                                                                        conPhut: model.tt?.quyConPhut ?? appCon.tq?.quy?.conPhut ?? 0,
+                                                                        xinThem: { [weak self] in self?.cuaSoChoi?.close(); self?.moXin() },
+                                                                        lamNhiemVu: { [weak self] in self?.cuaSoChoi?.close(); self?.moApp(.nhiemVu) },
+                                                                        dong: { [weak self] in self?.cuaSoChoi?.close() }))
     // xong ⇒ đóng sau 1,5 giây, hỏi lại số phút cho trang Hôm nay
     Task { @MainActor [weak self] in
       for _ in 0..<600 { if m.xong || self?.cuaSoChoi == nil { break }; try? await Task.sleep(nanoseconds: 500_000_000) }
@@ -196,10 +245,12 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     if let w = cuaSoApp {
       w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     } else {
-      let v = AppConView(app: appCon, tray: model, moXin: { [weak self] in self?.moXin() }, moChoi: { [weak self] in self?.moChoi() },
+      var v = AppConView(app: appCon, tray: model, moXin: { [weak self] in self?.moXin() }, moChoi: { [weak self] in self?.moChoi() },
                          moNop: { [weak self] nv in self?.moNop(nv) })
+      v.doiBe = { [weak self] in self?.doiBe() }
+      if model.tt?.nguoiDung != nil { v.nhuongMay = { [weak self] in self?.moBaMeMa() } }
       let w = NSWindow(contentViewController: NSHostingController(rootView: v))
-      w.title = "AiiGrow của Con"
+      w.title = "AiiGrow"
       w.styleMask = [.titled, .closable, .miniaturizable, .resizable]
       w.isReleasedWhenClosed = false
       w.setContentSize(NSSize(width: 1000, height: 680))
@@ -417,22 +468,33 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   // MARK: màn khoá toàn màn hình
 
-  @objc func manHinhDoi() { if !manKhoa.isEmpty { datLaiManKhoa() } }
+  @objc func manHinhDoi() { if !manKhoa.isEmpty, loaiManHien != .khong { datLaiManKhoa() } }
 
   func capNhatManKhoa() {
-    let can = TrayLogic.chonMan(model.matKetNoi ? nil : model.tt) != .khong
-    if can && manKhoa.isEmpty { datLaiManKhoa() }
-    if !can && !manKhoa.isEmpty { goManKhoa() }
+    let t = model.matKetNoi ? nil : model.tt
+    let loai: LoaiManToan = (ManMac.canChonTen(t) || (epBaMeMa && t?.laPhienCon == true)) ? .chonTen
+      : (TrayLogic.chonMan(t) != .khong && t?.nguoiDung != "ba_me" ? .khoa : .khong)
+    if loai == .chonTen, loaiManHien != .chonTen, !epBaMeMa { chonTen.veDauLang() }
+    if loai != loaiManHien || (loai != .khong && manKhoa.isEmpty) {
+      loaiManHien = loai
+      if loai == .khong { goManKhoa() } else { datLaiManKhoa() }
+    }
   }
 
   func datLaiManKhoa() {
     manKhoa.forEach { $0.orderOut(nil) }
-    manKhoa = NSScreen.screens.map { s in
+    manKhoa = NSScreen.screens.enumerated().map { i, s in
       let w = CuaSoKhongDong(contentRect: s.frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: s)
       w.level = .screenSaver
       w.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-      w.isOpaque = true; w.backgroundColor = .black; w.hasShadow = false; w.isReleasedWhenClosed = false
-      w.contentView = NSHostingView(rootView: ManKhoaView(tray: model, xin: xin))
+      w.isOpaque = true; w.backgroundColor = NSColor(red: 0.925, green: 0.922, blue: 0.906, alpha: 1); w.hasShadow = false; w.isReleasedWhenClosed = false
+      if loaiManHien == .chonTen {
+        // màn chọn tên chỉ cần trên màn chính; màn phụ để trống (không hai bàn phím PIN)
+        w.contentView = i == 0 ? NSHostingView(rootView: ManChonTenView(m: chonTen)) : NSHostingView(rootView: NenManSang(chan: "") { EmptyView() })
+      } else {
+        w.contentView = NSHostingView(rootView: ManKhoaView(tray: model, xin: xin, sao: appCon.tq?.soDu, phut10Sao: appCon.tq?.quy?.phut10Sao ?? 10,
+                                                           doiBe: { [weak self] in self?.doiBe() }, baMeMoMay: { [weak self] in self?.moBaMeMa() }))
+      }
       w.setFrame(s.frame, display: true)
       w.makeKeyAndOrderFront(nil)
       return w
@@ -451,8 +513,10 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   func hienNhac(_ phut: Int) {
     cuaSoNhac?.close()
-    let p = NSPanel(contentViewController: NSHostingController(rootView: NhacView(phut: phut)))
-    p.styleMask = [.titled, .nonactivatingPanel, .utilityWindow]; p.title = "AiiGrow"
+    let p = NSPanel(contentViewController: NSHostingController(rootView: NhacView(phut: phut, sao: appCon.tq?.soDu,
+      doiSao: (appCon.tq?.soDu ?? 0) >= 10 ? { [weak self] in self?.cuaSoNhac?.close(); self?.moChoi() } : nil,
+      xinThem: { [weak self] in self?.cuaSoNhac?.close(); self?.moXin() })))
+    p.styleMask = [.titled, .closable, .utilityWindow]; p.title = "AiiGrow"
     p.level = .floating; p.isReleasedWhenClosed = false
     if let s = NSScreen.main {
       p.setFrameOrigin(NSPoint(x: s.visibleFrame.maxX - p.frame.width - 16, y: s.visibleFrame.maxY - p.frame.height - 16))
