@@ -68,11 +68,11 @@ function NhapPin({ con, i }: { con: string; i: number }) {
       <ManD lui="/tre/chon-ten" day={<NutD chu="Quên PIN? Nhờ Ba Mẹ" loai="chu" bam={() => setQuen(true)} />}>
         {dau}
         <View style={{ alignItems: "center", gap: 6, paddingTop: 8 }}>
-          <TieuD chu="Sai 5 lần rồi" nho giua />
+          <TieuD chu={`Sai ${hs.d.pinSaiToiDa ?? 5} lần rồi`} nho giua />
           <ChuD co={15} mau={D.chu2} giua>{"Hít thở chậm nào.\nChờ một chút rồi thử lại nhé."}</ChuD>
         </View>
         <View style={{ alignItems: "center", paddingTop: 10 }}>
-          <VongD ti={cho / 15} so={mmss(cho)} don="giây" co={150} />
+          <VongD ti={cho / Math.max(cho, hs.d.pinChoGiay ?? 15)} so={mmss(cho)} don="giây" co={150} />
         </View>
       </ManD>
     );

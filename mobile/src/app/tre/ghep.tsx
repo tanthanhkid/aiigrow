@@ -30,7 +30,10 @@ export default function Ghep() {
   const [mocMa, setMocMa] = useState<number | null>(null);
   const conGiay = useDemNguoc(mocMa);
 
+  const dangGui = useRef(false);      // chặn gửi trùng (gõ số thứ 6 + bấm nút cùng lúc)
   const ghep = async (b: { ma?: string; goi?: string }) => {
+    if (dangGui.current) return;
+    dangGui.current = true;
     setDangChay(true); setLoi(null);
     try {
       const r = b.ma
@@ -45,14 +48,15 @@ export default function Ghep() {
       if (k === "sai") setConLan((n) => Math.max(1, n - 1));
       if (k === "khac") setLoi(e instanceof LoiApi ? e.message : "Chưa ghép được — thử lại nhé.");
       else setBuoc(k);
-    } finally { setDangChay(false); }
+    } finally { dangGui.current = false; setDangChay(false); }
   };
   const moNhap = () => { setMa(""); setMocMa((m) => m ?? Date.now() + MA_PHUT * 60_000); setBuoc("nhap"); };
-  const go = (k: string) => setMa((m) => {
-    const v = (m + k).slice(0, 6);
-    if (v.length === 6 && !dangChay) setTimeout(() => ghep({ ma: v }), 120);
-    return v;
-  });
+  const go = (k: string) => {
+    if (ma.length >= 6) return;
+    const v = ma + k;
+    setMa(v);
+    if (v.length === 6) ghep({ ma: v });
+  };
 
   switch (buoc) {
     case "chao":
