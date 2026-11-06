@@ -41,6 +41,8 @@ public enum Khoa {
   public static let hoSoMay = "hoSoMay"
   public static let demSai = "demSai"
   public static let viecChoMang = "viecChoMang"
+  /// Bé đăng nhập gần nhất — đổi bé thì xoá nhật ký phút tại máy.
+  public static let conCuoi = "conCuoi"
   /// Lời xin thêm giờ lưu lúc mất mạng — gửi khi có mạng (màn «Đã lưu lời xin»).
   public static let xinChoMang = "xinChoMang"
 }

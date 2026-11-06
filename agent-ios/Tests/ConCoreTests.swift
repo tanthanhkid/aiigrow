@@ -678,3 +678,63 @@ final class PinBeTests: XCTestCase {
     XCTAssertEqual((vc.than(vc.da.count - 1)["ghiAm"] as? [String: Any])?["base64"] as? String, "AQID")
   }
 }
+
+// MARK: lượt rà 1 (PR #202)
+final class PinBeRaTests: XCTestCase {
+  let bm = "aiigrow-thu-ma-offline", t = Date(timeIntervalSince1970: 1_700_000_000)
+  var vc = VanChuyenGia(), kho = KhoBoNho(), khoCho = KhoBoNho()
+  func vao() -> VaoMay { VaoMay(api: ApiClient(goc: URL(string: "https://may.chu")!, token: "tk", vanChuyen: vc), kho: kho, khoCho: khoCho, biMat: { [bm] in bm }) }
+  func json(_ s: String) -> Data { s.data(using: .utf8)! }
+
+  func testDangXuatCoMangXoaDangNhapCho() async {
+    khoCho.luu([ViecChoMang(loai: "dang_nhap", con: "c1", pin: "4821", luc: t)], Khoa.viecChoMang)
+    XCTAssertNil(kho.doc([ViecChoMang].self, Khoa.viecChoMang), "PIN chờ không nằm trong app group")
+    vc.tra["POST /api/device/dang-xuat"] = (json(#"{"ok":true,"khoa":true}"#), 200)
+    await vao().roiMay()
+    XCTAssertNil(khoCho.doc([ViecChoMang].self, Khoa.viecChoMang), "đăng xuất online ⇒ không phát lại đăng nhập cũ")
+    XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .chua)
+  }
+
+  func testPhatLaiGiuHangChoKhiLoi5xx() async {
+    khoCho.luu([ViecChoMang(loai: "dang_xuat", luc: t)], Khoa.viecChoMang)
+    vc.tra["POST /api/device/dang-xuat"] = (json(#"{"error":"loi","message":"x"}"#), 503)
+    await vao().phatLai()
+    XCTAssertNotNil(khoCho.doc([ViecChoMang].self, Khoa.viecChoMang))
+    vc.tra["POST /api/device/dang-xuat"] = (json(#"{"ok":true}"#), 200)
+    await vao().phatLai()
+    XCTAssertNil(khoCho.doc([ViecChoMang].self, Khoa.viecChoMang))
+  }
+
+  func testDoiBeXoaNhatKyPhutTaiMay() async {
+    kho.luu("c1", Khoa.conCuoi)
+    kho.luu(NhatKyDung(ngay: "2023-11-15", phut: 60, tranHet: true), Khoa.nhatKyDung)
+    vc.tra["POST /api/device/dang-nhap-be"] = (json(#"{"phienCon":"p","con":{"id":"c2","ten":"Bảo Minh"},"coPin":false}"#), 200)
+    _ = await vao().dangNhap(BeTrenMay(id: "c2", ten: "Bảo Minh", coPin: false), pin: nil)
+    XCTAssertNil(kho.doc(NhatKyDung.self, Khoa.nhatKyDung))
+  }
+
+  func testBaMeNhapSai5LanMatMangThiCho() async {
+    for _ in 1...4 { _ = await vao().baMeMo("000000", now: t) }
+    let r = await vao().baMeMo("000000", now: t)
+    if case .tamKhoa = r {} else { XCTFail("\(r)") }
+    XCTAssertEqual(kho.doc([SuKienMay].self, Khoa.suKienCho)?.last?.loai, "sai_ma_offline")
+  }
+
+  func testMayChuCuBoKhoaChuaVaoVaMayRiengGiuKhoa() async throws {
+    let khien = KhienGia()
+    let db = DongBo(api: ApiClient(goc: URL(string: "https://may.chu")!, token: "tk", vanChuyen: vc), kho: kho, khien: khien, lich: LichGia(),
+                    uyQuyen: UyQuyenGia(), chon: ChonGia(), xoaToken: {})
+    kho.luu(PhienMay(loai: .chua, luc: vn(26, 9)), Khoa.phienMay)
+    vc.tra["POST /api/device/nhip"] = (nhipMau(), 200)      // máy chủ cũ: không nguoiDung
+    _ = try await db.chay(now: vn(26, 10))
+    XCTAssertNil(kho.doc(PhienMay.self, Khoa.phienMay)); XCTAssertNotEqual(khien.lan.last?.lyDo, .chuaVao)
+    // máy riêng: Ba Mẹ dùng đã hết hạn ⇒ máy chủ báo chủ máy nhưng máy vẫn khoá chờ PIN
+    kho.luu(ThongTinMay(deviceId: "m1", tenCon: "Bin", dungChung: false), Khoa.thongTinMay)
+    kho.luu(PhienMay(loai: .baMe, baMeDen: vn(26, 10, 1), luc: vn(26, 9)), Khoa.phienMay)
+    let d = Data(String(decoding: nhipMau(), as: UTF8.self).replacingOccurrences(of: #""lenh":[]"#, with: #""lenh":[],"nguoiDung":{"loai":"con","con":{"id":"c1","ten":"Bin"}}"#).utf8)
+    vc.tra["POST /api/device/nhip"] = (d, 200)
+    _ = try await db.chay(now: vn(26, 10, 5))
+    XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .chua)
+    XCTAssertEqual(khien.lan.last?.lyDo, .chuaVao)
+  }
+}

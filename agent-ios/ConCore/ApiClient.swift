@@ -38,6 +38,13 @@ public enum LoiApi: Error, Equatable, LocalizedError {
     }
   }
   public var chuaGhep: Bool { if case .mayChu(_, _, 401) = self { return true }; return false }
+  /// Lỗi tạm (mất mạng, 5xx, dữ liệu lạ) — việc chờ nên giữ lại thử sau, không coi là máy chủ từ chối.
+  public var tamThoi: Bool {
+    switch self {
+    case .mang, .giaiMa: return true
+    case .mayChu(_, _, let h), .chiTiet(_, _, let h, _, _): return h >= 500 || h == 0
+    }
+  }
   /// Mã lỗi máy chủ (nil = mất mạng / dữ liệu lạ).
   public var ma: String? {
     switch self { case .mayChu(let m, _, _), .chiTiet(let m, _, _, _, _): return m; default: return nil }

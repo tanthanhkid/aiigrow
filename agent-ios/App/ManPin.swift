@@ -76,7 +76,7 @@ struct ManMayKhoa: View {
 
   func chon(_ be: BeTrenMay) {
     thongBao = nil; pin = ""; conLan = nil
-    if let g = be.choGiay, g > 0 { buoc = .cho(be, Date().addingTimeInterval(TimeInterval(g))); return }
+    if let den = NgayISO.doc(be.khoaDen), den > Date() { buoc = .cho(be, den); return }
     if be.coPin { buoc = .pin(be); return }
     Task {   // bé chưa có PIN ⇒ vào thẳng (máy nhắc Ba Mẹ đặt)
       if case .loi(let c) = await m.dangNhap(be, pin: nil) { thongBao = c }

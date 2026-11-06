@@ -127,6 +127,8 @@ public enum ApLai {
 
   public static func ghiSuKien(_ ten: String, kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) {
     guard let kh = kho.doc(KeHoach.self, Khoa.keHoach) else { return }
+    // Ba Mẹ đang dùng / chưa bé nào vào: không tính giờ con
+    if let p = kho.doc(PhienMay.self, Khoa.phienMay), p.loai != .con { return }
     kho.luu(TinhKhien.ghiSuKien(ten, cu: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), kh: kh, now: now), Khoa.nhatKyDung)
   }
 }

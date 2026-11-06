@@ -43,6 +43,8 @@ public final class DongBo {
   /// Đọc / nhớ bí mật mã mở offline (app: Keychain). nil = bỏ qua.
   let docBiMatOffline: (() -> String?)?
   let luuBiMatOffline: ((String) -> Void)?
+  /// Kho hàng chờ có PIN (app: Keychain) — xem VaoMay.khoCho.
+  public var khoCho: KhoGiaTri?
 
   public init(api: ApiClient, kho: KhoGiaTri, khien: HeThongKhien, lich: HeThongLich, uyQuyen: HeThongUyQuyen,
               chon: NguonLuaChon, xoaToken: @escaping () -> Void,
@@ -69,7 +71,7 @@ public final class DongBo {
   public func chay(now: Date = Date(), nguon: String = "bat") async throws -> KetQuaDongBo {
     // 06/11: đăng nhập / đăng xuất làm lúc mất mạng ⇒ báo máy chủ TRƯỚC nhip (nhip trả «ai đang dùng» đã đúng)
     let bm = docBiMatOffline
-    await VaoMay(api: api, kho: kho, biMat: { bm?() }).phatLai(now: now)
+    await VaoMay(api: api, kho: kho, khoCho: khoCho, biMat: { bm?() }).phatLai(now: now)
     await guiXinChoMang()
     let tra = try await api.nhip(nhipGui(now: now, nguon: nguon))
     // Lệnh «go» (gỡ từ xa): thu hồi quyền, gỡ khiên + lịch, báo xong, quên token. iOS không cho app tự xoá ⇒ màn hướng dẫn xoá biểu tượng.
@@ -104,9 +106,18 @@ public final class DongBo {
   /// Ai đang dùng máy theo máy chủ. Máy RIÊNG của bé vừa «Đăng xuất» tại máy: máy chủ vẫn coi chủ máy đang dùng ⇒ giữ khoá tại máy
   /// tới khi bé nhập lại PIN (thiết kế: «Đăng xuất thì máy khoá lại. Vào lại bằng tên + PIN.»).
   func ghiPhien(_ n: NguoiDungMay?, now: Date) {
-    guard let moi = PhienMay.tu(n, now: now) else { return }
     let cu = kho.doc(PhienMay.self, Khoa.phienMay)
-    if cu?.loai == .chua, moi.loai == .con, kho.doc(HoSoMay.self, Khoa.hoSoMay)?.mayRieng == true { return }
+    guard let moi = PhienMay.tu(n, now: now) else {
+      // máy chủ chưa có PIN theo bé (chưa deploy S3 / quay lui) ⇒ không giữ khoá «chưa ai vào» mà không ai mở được
+      if cu?.loai == .chua { kho.ghi(nil, Khoa.phienMay) }
+      return
+    }
+    let mayRieng = kho.doc(HoSoMay.self, Khoa.hoSoMay)?.mayRieng ?? (kho.doc(ThongTinMay.self, Khoa.thongTinMay).map { !$0.dungChung } ?? false)
+    // máy riêng: máy chủ luôn báo chủ máy ⇒ khoá tại máy (đăng xuất / Ba Mẹ dùng đã hết) giữ tới khi bé nhập lại PIN
+    if let cu, cu.khoa(now), moi.loai == .con, mayRieng { if cu.loai != .chua { kho.luu(PhienMay(loai: .chua, luc: now), Khoa.phienMay) }; return }
+    if moi.loai == .con, let id = moi.conId, kho.doc(String.self, Khoa.conCuoi) != id {
+      kho.luu(id, Khoa.conCuoi); kho.ghi(nil, Khoa.nhatKyDung)      // bé khác ⇒ phút đo tại máy của bé trước không tính
+    }
     kho.luu(moi, Khoa.phienMay)
   }
 
@@ -117,7 +128,7 @@ public final class DongBo {
       let r = x.trangThai == "ngoai_le" ? try await api.xinNgoaiLe(phut: x.phut, loiNhan: x.loiNhan) : try await api.xinThemGio(phut: x.phut, loiNhan: x.loiNhan)
       kho.luu(YeuCauDangCho(id: r.id, phut: x.phut, loiNhan: x.loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho"), Khoa.yeuCauDangCho)
       kho.ghi(nil, Khoa.xinChoMang)
-    } catch LoiApi.mang {
+    } catch let e as LoiApi where e.tamThoi || e.ma == "chua_chon_con" {
     } catch { kho.ghi(nil, Khoa.xinChoMang) }
   }
 

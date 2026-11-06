@@ -19,6 +19,8 @@ struct BaiCho: Codable, Equatable, Identifiable {
   var ghiAm: TepNop?
   var ghiChu: String?
   var luc: Date
+  /// Bé nộp — chỉ gửi lại khi chính bé đó đang dùng máy (máy chủ xét lượt theo bé).
+  var con: String?
 }
 
 @MainActor
@@ -74,11 +76,13 @@ final class MoHinhApp: ObservableObject {
   var api: ApiClient { ApiClient(goc: mayChu, token: KhoBiMat.doc()) }
 
   func dongBo() -> DongBo {
-    DongBo(api: api, kho: kho, khien: KhienThat(chon: luaChon), lich: LichThat(chon: luaChon),
+    let d = DongBo(api: api, kho: kho, khien: KhienThat(chon: luaChon), lich: LichThat(chon: luaChon),
            uyQuyen: uq, chon: luaChon, xoaToken: { KhoBiMat.ghi(nil) },
            docBiMatOffline: { KhoBiMat.docBiMatOffline() }, luuBiMatOffline: { KhoBiMat.ghiBiMatOffline($0) })
+    d.khoCho = KhoKeychain()
+    return d
   }
-  func vaoMay() -> VaoMay { VaoMay(api: api, kho: kho, biMat: { KhoBiMat.docBiMatOffline() }) }
+  func vaoMay() -> VaoMay { VaoMay(api: api, kho: kho, khoCho: demo == nil ? KhoKeychain() : nil, biMat: { KhoBiMat.docBiMatOffline() }) }
 
   func napTuKho(now: Date = Date()) {
     keHoach = kho.doc(KeHoach.self, Khoa.keHoach)
@@ -298,7 +302,7 @@ final class MoHinhApp: ObservableObject {
   /// Nộp bài. Mất mạng ⇒ lưu ở máy (→ "luu"); lỗi khác ⇒ nil (đọc `loi`).
   func nop(luot: String, ten: String, anh: [Data], ghiAm: Data?, viet: String?) async -> String? {
     let bai = BaiCho(luot: luot, ten: ten, anh: anh.map { TepNop(mime: "image/jpeg", duLieu: $0) },
-                     ghiAm: ghiAm.map { TepNop(mime: "audio/mp4", duLieu: $0) }, ghiChu: viet, luc: Date())
+                     ghiAm: ghiAm.map { TepNop(mime: "audio/mp4", duLieu: $0) }, ghiChu: viet, luc: Date(), con: phien?.conId)
     if demo != nil { return "cho_duyet" }
     dangBan = true; defer { dangBan = false }
     do {
@@ -312,9 +316,9 @@ final class MoHinhApp: ObservableObject {
 
   func guiBaiCho() async {
     guard !baiCho.isEmpty else { return }
-    for b in baiCho {
+    for b in baiCho where b.con == nil || b.con == phien?.conId {
       do { _ = try await api.nop(luot: b.luot, anh: b.anh, ghiAm: b.ghiAm, ghiChu: b.ghiChu); baiCho.removeAll { $0.luot == b.luot } }
-      catch LoiApi.mang { break }
+      catch let e as LoiApi where e.tamThoi || e.ma == "chua_chon_con" { break }
       catch { baiCho.removeAll { $0.luot == b.luot } }      // máy chủ từ chối (đã nộp / hết hạn) — bỏ, không kẹt hàng chờ
     }
     Self.ghiBaiCho(baiCho)
