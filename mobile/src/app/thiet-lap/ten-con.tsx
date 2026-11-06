@@ -1,12 +1,15 @@
-// bm1-ob-ten-con (bước 1/4, thiết kế chốt 04/11): thẻ hồ sơ (chữ cái + màu + «9 tuổi · khoảng lớp 4»), tên gọi ở nhà, năm sinh, màu của con.
+// bm1-ob-ten-con (bước 1/5, thiết kế chốt 04/11 + PIN 06/11 L13): thẻ hồ sơ (chữ cái + màu + «9 tuổi · khoảng lớp 4»), tên gọi ở nhà, năm sinh, màu của con.
 // «Lưu hồ sơ X» ⇒ POST thiet-lap {con} (tạo Con; gửi lại có con.id ⇒ sửa, không tạo trùng) ⇒ Giao việc. «Thêm con khác» (them-4sujddkb):
-// lưu Con này rồi điền Con tiếp theo; màn Con thứ hai có «Xong, giao việc cho <Con đầu> trước». Bỏ PIN (L5), bỏ chọn nhóm Nhí/Teen (máy chủ tự tính theo tuổi).
+// lưu Con này rồi điền Con tiếp theo; màn Con thứ hai có «Xong, giao việc cho <Con đầu> trước». Bỏ chọn nhóm Nhí/Teen (máy chủ tự tính theo tuổi).
+// PIN 06/11 (đảo L5): «Mã PIN vào máy · 4 số» + «Nhập lại PIN» — bỏ trống = chưa đặt (máy hỏi Ba Mẹ đặt sau); có PIN ⇒ POST con/:id/pin sau khi lưu hồ sơ.
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
-import { BONG, KHOI, MEN } from "@/lib/clay";
-import { cauTuoi, DauMan, LienKet, MAU_HO_SO, OLom, ThanhBuoc } from "@/lib/lan-dau";
+import { BO_CLAY, BONG, KHOI, MEN } from "@/lib/clay";
+import { Anh3D, cauTuoi, DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
+import { kiemPin } from "@/lib/s3";
+import { OPin, ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
 import { BaoLoi, Chu, chuTren, Icon, LopMen, M, Man, Nut, Rob, useLam } from "@/lib/ui";
 
@@ -20,13 +23,19 @@ export default function ObCon() {
   const [nam, setNam] = useState(sua && tl0.namSinh ? String(tl0.namSinh) : "");
   const [mau, setMau] = useState(sua ? tl0.mau ?? 0 : (tl0.daLuu?.length ?? 0) % MAU_HO_SO.length);
   const [conId, setConId] = useState<string | undefined>(sua ? tl0.conId : undefined);
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
   const daLuu = (tl0.daLuu ?? []).filter((c) => c.id !== conId);
   const { lam, loi, dangChay, setLoi } = useLam();
   const namSo = /^\d{4}$/.test(nam) ? Number(nam) : null;
   const tuoi = cauTuoi(namSo);
   const tenGon = ten.trim();
+  const loiPin = kiemPin(pin, pin2, namSo);
+  // chỉ báo lỗi khi Ba Mẹ đã gõ xong ô nhập lại (hoặc PIN chưa đủ mà đã sang ô nhập lại) — không mắng lúc đang gõ
+  const hienLoiPin = loiPin && (pin2.length === 4 || (pin.length > 0 && pin.length < 4 && pin2.length > 0) || (pin.length === 4 && loiPin.startsWith("Đừng")));
   const luu = async () => {
     const r = await bm.goi<KqThietLap>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, namSinh: namSo, avatar: `mau-${mau}` } });
+    if (pin) await bm.goi(`con/${r.conId}/pin`, { pin });
     const ds = [...(layTl().daLuu ?? []).filter((c) => c.id !== r.conId), { id: r.conId, ten: r.ten, mau, namSinh: namSo }];
     return { r, ds };
   };
@@ -39,19 +48,19 @@ export default function ObCon() {
   const themCon = () => lam(async () => {
     const { ds } = await luu();
     datTl({ daLuu: ds, conId: undefined });
-    setTen(""); setNam(""); setConId(undefined); setMau(ds.length % MAU_HO_SO.length);
+    setTen(""); setNam(""); setConId(undefined); setPin(""); setPin2(""); setMau(ds.length % MAU_HO_SO.length);
   });
   const conDau = daLuu[0];
   const [dam, nhat] = MAU_HO_SO[mau];
   return (
-    <Man dau={<DauMan ve="/" phai={<ThanhBuoc dang={0} />} />}
-      day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo)} bam={tiep} />
+    <Man dau={<DauMan ve="/" phai={<ThanhBuoc5 dang={0} />} />}
+      day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || !!loiPin} bam={tiep} />
         {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => lam(async () => {
-          if (tenGon) { const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
+          if (tenGon) { if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
           datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, cheDoChan: undefined, quy: undefined, ngu: undefined });
           router.push("/thiet-lap/mau");
         })} />
-          : <LienKet chu="+ Thêm con khác" bam={() => (tenGon ? themCon() : setLoi("Nhập tên con này trước, rồi thêm con khác."))} />}</>}>
+          : <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />}</>}>
       <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={30} />
         {/* cột trái ≤ 44%: tên dài xuống dòng trước khi chạm Rob bên phải (cổng DE-ANH) */}
@@ -78,6 +87,18 @@ export default function ObCon() {
             </Pressable>
           ))}
         </View>
+      </View>
+      {/* PIN vào máy (06/11): bé chạm tên + PIN để vào máy dùng chung */}
+      <View style={{ gap: 10, padding: 16, borderRadius: BO_CLAY.the, backgroundColor: M.the, ...KHOI.the }} accessibilityLabel={`Mã PIN vào máy của ${tenGon || "con"}`}>
+        <LopMen men={MEN.the} bo={BO_CLAY.the} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Anh3D ten="khoa" co={22} /><Chu kieu="rat" co={15} style={{ flex: 1 }}>Mã PIN vào máy</Chu><Chu kieu="dam" co={13} mau={M.chu3}>4 số</Chu>
+        </View>
+        <OPin gia={pin} doi={setPin} nhan="Đặt PIN 4 số" />
+        <Chu co={13} mau={M.chu2}><Chu kieu="rat" co={13}>Bé dùng PIN này để vào máy</Chu> · không dùng ngày sinh</Chu>
+        <Chu kieu="rat" co={14} style={{ marginTop: 4 }}>Nhập lại PIN</Chu>
+        <OPin gia={pin2} doi={setPin2} an nhan="Nhập lại PIN" />
+        {hienLoiPin ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
       </View>
     </Man>
   );

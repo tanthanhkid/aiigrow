@@ -5,7 +5,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { kqTheoMa, xemGhep } from "@/lib/ghep-may";
-import { BuocMayCon, CanhRob, DauMan, demNguoc, hienMa, LienKet, linkNgan, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
+import { BuocMayCon, CanhRob, DauMan, demNguoc, hienMa, LienKet, linkNgan, TieuDe } from "@/lib/lan-dau";
+import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { BaoLoi, Chu, Icon3D, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
 
 export default function ChoMayCon() {
@@ -47,7 +48,7 @@ export default function ChoMayCon() {
   const daNhap = () => hoi().then((ok) => { if (!ok) bao(`Máy ${nguon === "them" ? "mới" : "của con"} chưa nhập mã — làm 3 bước trên máy đó nhé`); }, (e) => setLoi(e?.message ?? null));
   const may = nguon === "them" ? "máy mới" : "máy con";
   return (
-    <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" ? <ThanhBuoc dang={3} /> : undefined} />}
+    <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" ? <ThanhBuoc5 dang={4} /> : undefined} />}
       day={<>
         <BaoLoi loi={loi} />
         {hetHan ? <Nut chu={`Lấy mã mới cho ${ten}`} ic="khoa" rong bam={layMoi} /> : <Nut chu={nguon === "them" ? "Máy mới đã nhập mã" : "Máy con đã nhập mã"} ic="tick" rong bam={daNhap} />}

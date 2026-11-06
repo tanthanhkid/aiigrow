@@ -1,5 +1,5 @@
 // Tab «Nhiệm vụ» (thiết kế chốt 05/11 bm-hang-ngay/36, trống 37): chip đổi Con → ví sao (đổi được bao nhiêu phút) → việc chờ Ba Mẹ duyệt
-// (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4) → việc mỗi ngày theo bộ
+// (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — 06/11: sao GIỮ, trao mới trừ, huỷ hoàn; lib/trao-qua) → việc mỗi ngày theo bộ
 // (bấm một việc để sửa) → «Giao thêm việc». Người trông giúp: duyệt + trao quà được; giao / sửa việc ẩn (đổi cài đặt — quyen.ts).
 import { useMemo, useState } from "react";
 import { router } from "expo-router";
@@ -7,10 +7,11 @@ import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import {
-  BangTruot, BaoLoi, BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, The, useHoanTac, useLam, useTai,
+  BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, The, useHoanTac, useTai,
 } from "@/lib/ui";
 import { cachBao, cauLapLai, ChipCon, HangViec, hinhNv, SaoVien, TieuMuc, tuoiCua, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, TEN_BO, viecCuaCon } from "@/lib/nv-tab";
+import { BangTraoQua } from "@/lib/trao-qua";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
 const khiNao = (iso: string) => {
@@ -29,7 +30,6 @@ export default function TabNhiemVu() {
   const { d, loi, matMang, tai } = useTai(napNvTab, KHOA_NV_TAB);
   const [chon, setChon] = useState<string | null>(null);
   const [trao, setTrao] = useState<PhieuCho | null>(null);
-  const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
   const c = d ? d.g.con.find((x) => x.id === chon) ?? d.g.con[0] : undefined;
   const cua = useMemo(() => {
@@ -52,12 +52,6 @@ export default function TabNhiemVu() {
   }
   const baMe = d.quyen === "ba_me";
   const sao = (c as { sao?: number }).sao ?? c.soDu;
-  const traoQua = (p: PhieuCho) => lam(async () => {
-    await bm.goi(`phieu/${p.id}/trao`, {});
-    setTrao(null);
-    bao(`Đã trao «${p.ten}» — Rob đã báo ${p.ten_con}`);
-    await tai();
-  });
   return (
     <Man tieuLon="Nhiệm vụ" chat tai={tai} vongTai noi={noi}>
       <ChipCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} />
@@ -93,8 +87,8 @@ export default function TabNhiemVu() {
           <TieuMuc chu="Con đã đổi quà, chờ trao" phai={{ chu: "Quà ›", bam: () => router.push("/vi/qua" as never) }} />
           <The>
             {cua.phieu.map((p, i) => (
-              <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Con đổi ${p.diem} sao · ${khiNao(p.created_at)}`}
-                phai={<View><Nut chu="Trao quà" nho bam={() => { setLoi(null); setTrao(p); }} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>} />
+              <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Đang giữ ${p.diem} sao · ${khiNao(p.created_at)}`}
+                phai={<View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>} />
             ))}
           </The>
         </>
@@ -122,19 +116,7 @@ export default function TabNhiemVu() {
         <ViecTrong con={c.id} ten={c.ten} baMe={baMe} />
       )}
 
-      <BangTruot mo={!!trao} dong={() => setTrao(null)} tieu={trao ? `Đã trao «${trao.ten}» cho ${trao.ten_con} chưa?` : ""}>
-        {trao ? <>
-          <Chu co={14.5} mau={M.chu2}>{`Con đã đổi ${trao.diem} sao ${khiNao(trao.created_at)}.`}</Chu>
-          <Chu co={14.5} mau={M.chu2}>Bấm «Đã trao» thì Rob báo con và chúc mừng con.</Chu>
-          <BaoLoi loi={loiLam} />
-          <Nut chu="Đã trao, báo cho con" ic="qua" rong dangChay={dangChay} bam={() => traoQua(trao)} />
-          <Nut chu="Chưa, để cuối tuần" loai="ma" rong bam={() => setTrao(null)} />
-          {/* quà không trao được (hết hàng…) ⇒ huỷ, máy chủ trả lại sao cho con (phieu/:id/huy) — review PR #183 */}
-          <Nut chu={`Không trao được · trả ${trao.diem} sao cho con`} loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
-            await bm.goi(`phieu/${trao.id}/huy`, {}); setTrao(null); tai();
-          })} />
-        </> : null}
-      </BangTruot>
+      <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />
     </Man>
   );
 }

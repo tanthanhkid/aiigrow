@@ -8,7 +8,8 @@ import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { coMa, cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
-import { BanhXeGio, DauMan, gioGon, OApp, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
+import { BanhXeGio, DauMan, gioGon, OApp, TieuDe } from "@/lib/lan-dau";
+import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Man, Nut, Rob, The, useLam } from "@/lib/ui";
 
@@ -35,7 +36,7 @@ export default function ObGio() {
   const chiApp = cheDo === "chi_app_duoc_phep";
   const soApp = apps?.length ?? 0;
   return (
-    <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc dang={2} />} />}
+    <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
       day={<><BaoLoi loi={loi} /><Nut chu={`Lưu và ghép máy của ${ten}`} rong dangChay={dangChay} bam={luu} /></>}>
       <TieuDe chu={`${ten} được dùng app nào?`} phu={chiApp ? "Ngoài các app này, máy của con sẽ bị chặn." : "Mọi app đều mở, chỉ tính vào giờ chơi."} />
       <View style={{ borderRadius: 30, backgroundColor: "#f7faf8", padding: 12, gap: 12, boxShadow: `0px 0px 0px 2px ${M.chinh}, ${BONG.the}` }}>

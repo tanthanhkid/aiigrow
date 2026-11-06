@@ -2,7 +2,7 @@
 // thẻ trạng thái «✓ Rob đang trông máy này» / «! <máy> chưa được bảo vệ» + hậu quả, «Chỉ app Ba Mẹ cho phép», lời xin đang chờ của con, Đổi tên / Gỡ máy,
 // «Sửa <máy> trong 3 bước», «Khoá mọi máy của <Con> ngay». Mục «An toàn & sự cố» giữ các tính năng an toàn cũ: mở khẩn cấp, mã mở khi mất mạng,
 // gán con cho máy dùng chung, gỡ từ xa (nhập lại mật khẩu — máy chỉ rời danh sách khi agent báo đã gỡ), gỡ tại máy, nhật ký.
-// Bỏ «Giám sát / Chặn thật» (L4: máy luôn chặn thật). Người trông giúp: xem, khoá máy, xem mã mất mạng; không đổi tên / gỡ.
+// 06/11 (L19): hàng «Mã mở máy khi mất mạng» ⇒ màn them-rz77kk45 (/may/<id>/ma-offline). Bỏ «Giám sát / Chặn thật» (L4: máy luôn chặn thật). Người trông giúp: xem, khoá máy, xem mã mất mạng; không đổi tên / gỡ.
 import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
@@ -129,6 +129,8 @@ export default function AnToanMay() {
           phu="Xem app & web con được dùng" bam={() => router.push((m.con ? `/app-web?con=${m.con}` : "/app-web") as never)} />
         {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — chặn hoặc cho phép"
           bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
+        {coMaOff(m) ? <HangViec ic="mo_khoa" mau="xanh" tieu="Mã mở máy khi mất mạng" phu={d.ct?.may.find((x) => x.id === id)?.matMang ? "Máy đang mất mạng · lấy mã cho con" : "Mã 6 số, máy không cần mạng"}
+          bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id } })} /> : null}
         {d.xin.slice(0, 2).map((y) => (
           <HangViec key={y.id} ic="tin" mau="cam" tieu={`Con ${tieuYc(y).charAt(0).toLowerCase()}${tieuYc(y).slice(1)}`} phu={`Lúc ${gioPhut(y.created_at)}`}
             bam={() => router.push(`/yeu-cau/${y.id}` as never)} />
