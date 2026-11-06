@@ -142,12 +142,16 @@ export const loiGuiMa = (ma: string, phut: number, ten: string | null, may: stri
   `Mã mở ${may ?? "máy"}${ten ? ` cho ${ten}` : ""}: ${ma.replace(/^(\d{3})(\d{3})$/, "$1 $2")} — mở được ${phut} phút. Máy không cần mạng vẫn nhập được.`;
 
 /** Sự kiện «máy mở bằng mã offline» mới hơn `tu` (lúc Ba Mẹ mở màn mã) — để hiện bảng «Bảo Anh đã mở máy bằng mã» (them-s8nltlaa). */
+/** Đồng hồ điện thoại có thể lệch máy chủ ⇒ nhận cả sự kiện tới trước lúc mở màn tối đa chừng này. */
+export const LECH_DONG_HO_MS = 120_000;
 export function suKienMoMa(ds: { loai: string; chi_tiet: Record<string, unknown>; created_at: string }[], tu: number) {
-  const x = ds.filter((s) => s.loai === "may_mo_ma_offline" && Date.parse(s.created_at) > tu)
+  const x = ds.filter((s) => s.loai === "may_mo_ma_offline" && Date.parse(s.created_at) > tu - LECH_DONG_HO_MS)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
   if (!x) return null;
   const phut = Number(x.chi_tiet?.phut);
-  return { luc: x.created_at, phut: Number.isFinite(phut) && phut > 0 ? phut : null };
+  // lúc CON mở máy (máy ghi khi offline, `chi_tiet.luc`); máy cũ không ghi ⇒ lúc máy chủ nhận
+  const luc = typeof x.chi_tiet?.luc === "string" && !Number.isNaN(Date.parse(x.chi_tiet.luc)) ? x.chi_tiet.luc : x.created_at;
+  return { luc, coMangLuc: x.created_at, phut: Number.isFinite(phut) && phut > 0 ? phut : null };
 }
 
 // ---------------------------------------------------------------- chuông + «Cần Ba Mẹ để ý»

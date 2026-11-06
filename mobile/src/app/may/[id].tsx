@@ -1,15 +1,15 @@
 // Chi tiết một máy của con (thiết kế chốt 05/11, bm-hang-ngay/05 tuân thủ · 08 lệch chuẩn · 06/09 đổi tên · 07/10 gỡ · 11 hướng dẫn sửa):
 // thẻ trạng thái «✓ Rob đang trông máy này» / «! <máy> chưa được bảo vệ» + hậu quả, «Chỉ app Ba Mẹ cho phép», lời xin đang chờ của con, Đổi tên / Gỡ máy,
-// «Sửa <máy> trong 3 bước», «Khoá mọi máy của <Con> ngay». Mục «An toàn & sự cố» giữ các tính năng an toàn cũ: mở khẩn cấp, mã mở khi mất mạng,
+// «Sửa <máy> trong 3 bước», «Khoá mọi máy của <Con> ngay». Mục «An toàn & sự cố» giữ các tính năng an toàn cũ: mở khẩn cấp,
 // gán con cho máy dùng chung, gỡ từ xa (nhập lại mật khẩu — máy chỉ rời danh sách khi agent báo đã gỡ), gỡ tại máy, nhật ký.
 // 06/11 (L19): hàng «Mã mở máy khi mất mạng» ⇒ màn them-rz77kk45 (/may/<id>/ma-offline). Bỏ «Giám sát / Chặn thật» (L4: máy luôn chặn thật). Người trông giúp: xem, khoá máy, xem mã mất mạng; không đổi tên / gỡ.
-import { useCallback, useEffect, useState } from "react";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
+import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, tieuYc, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type MaOffline, type SuKienTuanThu } from "@/lib/api";
+import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, tieuYc, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type SuKienTuanThu } from "@/lib/api";
 import { BangKhoaMay, HangViec, IC_MAY, quyenToi, type ChoDuyetMoi, type ConCt } from "@/lib/hang-ngay";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, cauLoi, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, M, Man, Nhom, NhomTieu, Nut, ONhap, The, TickDong, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, M, Man, Nhom, NhomTieu, Nut, ONhap, The, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 const PHUT = [15, 30, 60, 120];
@@ -37,27 +37,14 @@ export default function AnToanMay() {
     return { m, con: m?.dungChung && m.nen === "windows" ? g.con : [], ct, xin: m?.con ? cd?.yeuCau.filter((y) => y.child_id === m.con) ?? [] : [],
       chu: !xem, xem, coMk };
   });
-  const [mo, setMo] = useState<"khan" | "go" | "xoa" | "offline" | "tai_may" | "ten" | "sua" | "khoa" | null>(null);
+  const [mo, setMo] = useState<"khan" | "go" | "xoa" | "tai_may" | "ten" | "sua" | "khoa" | null>(null);
   const [phut, setPhut] = useState(30);
   const [lyDo, setLyDo] = useState("");
   const [mk, setMk] = useState("");
   const [tenMoi, setTenMoi] = useState("");
-  const [maOff, setMaOff] = useState<MaOffline | null>(null);
-  const [taiMa, setTaiMa] = useState(false);
-  const [lanMa, setLanMa] = useState(0);              // mỗi lần bấm xem mã = một lượt tải mới (bấm lại khi đang tải vẫn lấy mã mới nhất)
-  const [loiMa, setLoiMa] = useState<string | null>(null);
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { bao, noi } = useHoanTac();
-  const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); setTaiMa(false); };   // đóng bảng khi đang tải mã ⇒ huỷ lượt tải
-  // Mở bảng mã mất mạng = bật cờ tải; effect bên dưới gọi máy chủ (một chỗ cho nút bấm, «Thử lại», «Lấy mã mới» và ?mo=offline).
-  const xemMaOffline = () => { setMo("offline"); setMaOff(null); setLoiMa(null); setTaiMa(true); setLanMa((n) => n + 1); };
-  useEffect(() => {
-    if (!lanMa || !taiMa) return;                    // bảng đã đóng / đã tải xong ⇒ đổi id không tự tạo mã mới
-    let bo = false;
-    bm.goi<MaOffline>(`may/${id}/ma-offline`).then((v) => { if (!bo) setMaOff(v); }, (e) => { if (!bo) setLoiMa(cauLoi(e)); })
-      .finally(() => { if (!bo) setTaiMa(false); });
-    return () => { bo = true; };
-  }, [lanMa, id]);   // eslint-disable-line react-hooks/exhaustive-deps -- taiMa chỉ là điều kiện chặn, không phải lý do tải lại
+  const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); };
   // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
   // Chỉ đổi state ⇒ chỉnh ngay lúc render (mẫu «điều chỉnh state khi dữ liệu đổi» của React), không setState trong effect; mở MỘT lần khi dữ liệu máy về.
   const [daMoSan, setDaMoSan] = useState(false);
@@ -66,7 +53,6 @@ export default function AnToanMay() {
     // đang mở khẩn cấp / đang gỡ ⇒ không mở bảng (màn này cũng ẩn nút đó): khỏi tạo/kéo dài mở khẩn cấp thứ hai
     const dangKhan = !!d.m.moKhanCapDen && new Date(d.m.moKhanCapDen) > new Date();
     if (moSan === "khan" && !d.xem && !dangKhan && !d.m.dangGo) setMo("khan");
-    else if (moSan === "offline" && coMaOff(d.m) && !d.xem) xemMaOffline();
   }
   const dangGo = !!d?.m?.dangGo;
   // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong — chỉ khi màn đang hiện
@@ -90,6 +76,8 @@ export default function AnToanMay() {
       throw e;
     }
   });
+  // «Mã mở khi mất mạng» (06/11): một màn duy nhất them-rz77kk45 (/may/<id>/ma-offline, chọn 15/30/60 phút) — lối cũ ?mo=offline chuyển sang đó; bảng trượt cũ đã bỏ.
+  if (moSan === "offline") return <Redirect href={{ pathname: "/may/[id]/ma-offline", params: { id } }} />;
   if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Máy"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.m) return (
     <Man lui={{ chu: "Quay lại" }} tieu="Máy">
@@ -160,14 +148,11 @@ export default function AnToanMay() {
         </Bao>
       ) : null}
 
-      <Nhom>
-        {!khanCap ? (
+      {!khanCap ? (
+        <Nhom>
           <Dong dau tieu="Mở khẩn cấp" phu="Tạm mở giải trí có hạn giờ khi Con đang cần (vẫn giữ giờ ngủ, khoá ngày)" trai={<BieuTron ic="mo_khoa" mau="vang" />} bam={() => setMo("khan")} />
-        ) : null}
-        {coMaOff(m) ? (
-          <Dong dau={!!khanCap} tieu="Mã mở khi mất mạng" phu="Máy mất mạng mà cần mở gấp — đọc mã này cho Con gõ vào máy" trai={<BieuTron ic="khoa" mau="lam" />} bam={xemMaOffline} />
-        ) : null}
-      </Nhom>
+        </Nhom>
+      ) : null}
 
       {m.dangGo ? (
         <Bao loai="lam" ic="dong_ho_cat" tieu="Đang chờ máy nhận lệnh gỡ…"
@@ -270,23 +255,6 @@ export default function AnToanMay() {
         <View style={{ marginTop: 12 }}><Nut chu="Đã hiểu" loai="vien" rong bam={dong} /></View>
       </BangTruot>
 
-      <BangTruot mo={mo === "offline"} dong={dong} tieu={`Mã mở ${m.ten} khi mất mạng`}>
-        <Chu mau={M.chu2}>Khi máy của Con mất mạng mà cần mở gấp: đọc mã dưới đây cho Con gõ vào màn hình khoá. Máy tự kiểm mã, không cần mạng.</Chu>
-        {taiMa ? (
-          <Chu kieu="rat" co={40} style={{ marginTop: 16, textAlign: "center", letterSpacing: 6 }}>• • • • • •</Chu>
-        ) : loiMa ? (
-          <View style={{ marginTop: 12 }}><BaoLoi loi={loiMa} /><Nut chu="Thử lại" loai="vien" rong bam={xemMaOffline} /></View>
-        ) : maOff ? (
-          <>
-            <Chu kieu="rat" co={44} mau={M.chinh} style={{ marginTop: 16, textAlign: "center", letterSpacing: 10 }}>{maOff.ma}</Chu>
-            <Chu co={13.5} mau={M.chu3} style={{ textAlign: "center", marginTop: 8 }}>Mã mới mỗi vài phút · mở máy khoảng {maOff.phutMo} phút</Chu>
-            <View style={{ marginTop: 12 }}>
-              <Bao loai="canh" ic="canh_bao" tieu="Chỉ đọc cho Con khi bạn đồng ý mở" loi="Mã này mở tạm giải trí trên máy đó. Đừng để Con tự xem." />
-            </View>
-            <Nut chu="Lấy mã mới" loai="vien" rong bam={xemMaOffline} />
-          </>
-        ) : null}
-      </BangTruot>
       <BangTruot mo={mo === "sua"} dong={dong} tieu={`Sửa trên ${ngan} của con`}>
         <Chu mau={M.chu2}>{`Cầm ${ngan} lên, làm theo ${m.baoVeThieu?.length ?? 0} bước:`}</Chu>
         <View style={{ gap: 10 }}>

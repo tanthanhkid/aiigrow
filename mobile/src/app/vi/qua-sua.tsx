@@ -63,7 +63,8 @@ export default function SuaQua() {
   }
   const moiCon = d.con.map((c) => c.id);
   const t = ten ?? q?.ten ?? "";
-  const h = hinh === undefined ? q?.hinh ?? "kem" : hinh;
+  // quà cũ chưa có hình (cột mới) ⇒ giữ null, icon vẫn đoán theo tên; chỉ gửi hình khi Ba Mẹ chọn. Quà mới mặc định «kem».
+  const h = hinh === undefined ? (q ? q.hinh : "kem") : hinh;
   const s = sao ?? q?.sao ?? 100;
   const ct = cuoiTuan ?? q?.chiCuoiTuan ?? false;
   const td = toiDa === undefined ? q?.toiDaThang ?? null : toiDa;
@@ -75,6 +76,7 @@ export default function SuaQua() {
   const ghi = conXem ? cauNgayDoi(conXem.ten, s, saoMoiNgay(d.nv, conXem.id)) : null;
   const ok = t.trim().length > 0 && ap.length > 0;
   const hinhDs = [...new Set([...(h ? [h] : []), ...HINH_CHON])];
+  const icHienTai = icQua({ hinh: h, loai: q?.loai ?? "qua", ten: t });
   const luu = () => lam(async () => {
     const than = thanSuaQua({ ten: t, sao: s, hinh: h, chiCuoiTuan: ct, toiDa: td, tonKho: tk, canXacNhan: xn, apCho: ap, moiCon }, !q);
     if (q) await bm.goi(`qua/${q.id}`, than);
@@ -100,7 +102,7 @@ export default function SuaQua() {
         <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Hình quà</Chu>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }} accessibilityRole="radiogroup">
           {hinhDs.map((x) => {
-            const on = x === h;
+            const on = h ? x === h : icQua({ hinh: x, loai: "qua" }) === icHienTai;
             return (
               <NhanMen key={x} onPress={() => setHinh(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${x}`} muc="chip" sang={!on}
                 style={[{ width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: on ? "#eef5f2" : M.the },

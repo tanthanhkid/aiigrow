@@ -29,14 +29,14 @@ export default function MaMoMay() {
   const [het, setHet] = useState(0);                 // lúc mã hiện tại đổi (ms)
   const [bayGio, setBayGio] = useState(() => Date.now());
   const [lan, setLan] = useState(0);
-  const [daMo, setDaMo] = useState<{ luc: string; phut: number | null } | null>(null);
+  const [daMo, setDaMo] = useState<{ luc: string; coMangLuc: string; phut: number | null } | null>(null);
   const [daBao, setDaBao] = useState(false);
   const { bao, noi } = useHoanTac();
   // tải mã theo số phút đang chọn; hết hạn bước mã (doiSauGiay) ⇒ tải mã mới
   useEffect(() => {
     let bo = false;
     bm.goi<MaOfflineS3>(`may/${id}/ma-offline?phut=${phut}`).then((v) => { if (!bo) { setLoiMa(null); setMa(v); setHet(Date.now() + (v.doiSauGiay ?? v.conGiay) * 1000); } },
-      (e) => { if (!bo) setLoiMa(cauLoi(e)); });
+      (e) => { if (!bo) { setMa(null); setLoiMa(cauLoi(e)); } });   // lỗi ⇒ bỏ mã cũ (đã/sắp hết hạn), hiện «Thử lại» — không để Ba Mẹ gửi mã hết hạn
     return () => { bo = true; };
   }, [id, phut, lan]);
   useFocusEffect(useCallback(() => {
@@ -95,7 +95,7 @@ export default function MaMoMay() {
         {(ma?.chonPhut ?? [...PHUT_MO]).map((p) => {
           const on = p === phut;
           return (
-            <Pressable key={p} onPress={() => setPhut(p)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${p} phút`}
+            <Pressable key={p} onPress={() => { if (p !== phut) { setMa(null); setPhut(p); } }} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${p} phút`}
               style={[{ flex: 1, minHeight: 72, borderRadius: 22, alignItems: "center", justifyContent: "center" },
                 on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
               <Chu kieu="rat" co={24} so mau={on ? "#fff" : M.chu}>{String(p)}</Chu>
@@ -117,7 +117,7 @@ export default function MaMoMay() {
               <Chu kieu="rat" co={15}>{`${ngan}${tenCon ? ` của ${tenCon}` : ""}`}</Chu>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.chinh }} />
-                <Chu co={13} mau={M.chinhInk}>{`Có mạng lại · ${gioPhut(m.lanCuoi ?? daMo.luc)}`}</Chu>
+                <Chu co={13} mau={M.chinhInk}>{`Có mạng lại · ${gioPhut(daMo.coMangLuc)}`}</Chu>
               </View>
             </View>
           </View>

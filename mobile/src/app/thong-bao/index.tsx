@@ -48,7 +48,7 @@ export default function DsThongBaoMan() {
   }
   // máy chủ mới gom «Cần Ba Mẹ để ý» (mất mạng, quên PIN, cảnh báo, con xin, nộp bài, máy chưa bảo vệ) ⇒ dùng nguyên; «Để biết» = các dòng còn lại
   const mayChu = d.canDeY;
-  const can = mayChu ? [] : d.ds.filter(canDeY), biet = d.ds.filter((x) => !canDeY(x));
+  const can = mayChu ? [] : d.ds.filter(canDeY), biet = mayChu ? d.ds : d.ds.filter((x) => !canDeY(x));
   const the = (x: ThongBao, deY: boolean) => {
     const k = KIEU[x.nhom];
     return (

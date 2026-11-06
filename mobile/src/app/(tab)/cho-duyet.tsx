@@ -72,6 +72,8 @@ export default function ChoDuyet() {
           <Nut chu="Giao một nhiệm vụ" ic="cong" bam={() => router.push("/giao-nv" as never)} />
         </CanhGiua>
         {tuDong.length ? <DaXuLy ds={tuDong} /> : null}
+        {/* quà cuối vừa trao là voucher ⇒ danh sách rỗng nhưng bảng QR + mã vẫn phải còn */}
+        <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />
       </Man>
     );
   }

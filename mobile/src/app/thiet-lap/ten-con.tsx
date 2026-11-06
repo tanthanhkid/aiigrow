@@ -35,6 +35,8 @@ export default function ObCon() {
   const hienLoiPin = loiPin && (pin2.length === 4 || (pin.length > 0 && pin.length < 4 && pin2.length > 0) || (pin.length === 4 && loiPin.startsWith("Đừng")));
   const luu = async () => {
     const r = await bm.goi<KqThietLap>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, namSinh: namSo, avatar: `mau-${mau}` } });
+    // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai
+    setConId(r.conId);
     if (pin) await bm.goi(`con/${r.conId}/pin`, { pin });
     const ds = [...(layTl().daLuu ?? []).filter((c) => c.id !== r.conId), { id: r.conId, ten: r.ten, mau, namSinh: namSo }];
     return { r, ds };

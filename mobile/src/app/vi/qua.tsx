@@ -9,7 +9,7 @@ import { bm, type GiaDinh } from "@/lib/api";
 import { CAU_TRONG_GIUP, ChipCon, quyenToi } from "@/lib/hang-ngay";
 import { type QuaS3 } from "@/lib/s3";
 import { veHoac } from "@/lib/ui-bm3";
-import { BaoLoi, ChoTai, Chu, Icon, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, Nut, Rob, The, tien, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { DongQua } from "@/lib/ui-s3";
 import { KHOI, MEN } from "@/lib/clay";
 
@@ -18,18 +18,18 @@ export default function DanhSachQua() {
   const [chon, setChon] = useState<string | null>(conSan ?? null);
   const g = useTai(async () => {
     const [gd, quyen] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), quyenToi()]);
-    return { con: gd.con, baMe: quyen === "ba_me" };
+    return { con: gd.con, baMe: quyen === "ba_me", quyVoucher: gd.quyVoucher ?? 0 };
   });
   if (!g.d) return <Man lui={{ chu: "", bam: ve }} tieu={TIEU}><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
   const c = g.d.con.find((x) => x.id === chon) ?? g.d.con[0];
   // một khối theo Con (key) ⇒ đổi chip Con là tải lại đúng danh sách quà áp cho Con đó
-  return <DsQuaCon key={c?.id ?? "-"} c={c} dsCon={g.d.con} baMe={g.d.baMe} doiCon={setChon} taiG={g.tai} />;
+  return <DsQuaCon key={c?.id ?? "-"} c={c} dsCon={g.d.con} baMe={g.d.baMe} quyVoucher={g.d.quyVoucher} doiCon={setChon} taiG={g.tai} />;
 }
 
 const TIEU = "Danh sách quà";
 const ve = () => veHoac("/cai-dat");
 
-function DsQuaCon({ c, dsCon, baMe, doiCon, taiG }: { c: GiaDinh["con"][number] | undefined; dsCon: GiaDinh["con"]; baMe: boolean; doiCon: (id: string) => void; taiG: () => unknown }) {
+function DsQuaCon({ c, dsCon, baMe, quyVoucher, doiCon, taiG }: { c: GiaDinh["con"][number] | undefined; dsCon: GiaDinh["con"]; baMe: boolean; quyVoucher: number; doiCon: (id: string) => void; taiG: () => unknown }) {
   const conId = c?.id ?? null;
   const q = useTai(() => bm.goi<{ ds: QuaS3[] }>(conId ? `qua?con=${encodeURIComponent(conId)}` : "qua"));
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -58,6 +58,11 @@ function DsQuaCon({ c, dsCon, baMe, doiCon, taiG }: { c: GiaDinh["con"][number] 
           <Icon ten="cong" co={20} mau={M.chinhInk} /><Chu kieu="rat" co={15.5} mau={M.chinhInk}>Thêm quà</Chu>
         </NhanMen>
       ) : <Chu co={13} mau={M.chu3}>{CAU_TRONG_GIUP}</Chu>}
+      {quyVoucher > 0 ? (
+        // quỹ phiếu AiiCafe nạp trước 06/11 vẫn dùng ở quầy (KE-HOACH 0511 câu mở 3) — báo số dư + chỗ hỏi nạp / hoàn
+        <Nhom><Dong dau tieu={`Quỹ phiếu quà AiiCafe còn ${tien(quyVoucher)}`} phu="Dùng ở quầy AiiCafe · cần nạp hay hoàn thì nhắn AiiGrow" trai={<Icon3D ten="coc" co={32} />}
+          bam={() => router.push("/ho-tro")} /></Nhom>
+      ) : null}
     </Man>
   );
 }

@@ -106,14 +106,18 @@ test("mã mở máy: tách số, câu đổi sau, lời gửi", () => {
 
 test("mã mở máy: chỉ báo sự kiện mở bằng mã MỚI hơn lúc mở màn", () => {
   const tu = Date.parse("2026-11-06T12:30:00Z");
-  const ds = [
+  const ds: { loai: string; chi_tiet: Record<string, unknown>; created_at: string }[] = [
     { loai: "may_mo_ma_offline", chi_tiet: { phut: "60" }, created_at: "2026-11-06T12:00:00Z" },
     { loai: "doi_ten_may", chi_tiet: {}, created_at: "2026-11-06T12:45:00Z" },
   ];
   assert.equal(suKienMoMa(ds, tu), null);
-  ds.push({ loai: "may_mo_ma_offline", chi_tiet: { phut: "30" }, created_at: "2026-11-06T12:40:00Z" });
-  assert.deepEqual(suKienMoMa(ds, tu), { luc: "2026-11-06T12:40:00Z", phut: 30 });
-  assert.deepEqual(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:41:00Z" }], tu), { luc: "2026-11-06T12:41:00Z", phut: null });
+  ds.push({ loai: "may_mo_ma_offline", chi_tiet: { phut: "30", luc: "2026-11-06T12:05:00Z" }, created_at: "2026-11-06T12:40:00Z" });
+  // lúc con mở (chi_tiet.luc) khác lúc máy có mạng lại (created_at)
+  assert.deepEqual(suKienMoMa(ds, tu), { luc: "2026-11-06T12:05:00Z", coMangLuc: "2026-11-06T12:40:00Z", phut: 30 });
+  assert.deepEqual(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:41:00Z" }], tu),
+    { luc: "2026-11-06T12:41:00Z", coMangLuc: "2026-11-06T12:41:00Z", phut: null });
+  // điện thoại chạy nhanh 1 phút so với máy chủ: sự kiện vẫn được nhận
+  assert.ok(suKienMoMa([{ loai: "may_mo_ma_offline", chi_tiet: {}, created_at: "2026-11-06T12:29:10Z" }], tu));
 });
 
 test("chuông: soChuong thắng chuaDoc (máy chủ cũ chỉ có chuaDoc)", () => {
