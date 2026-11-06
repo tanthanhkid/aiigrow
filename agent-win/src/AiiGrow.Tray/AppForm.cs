@@ -514,7 +514,7 @@ internal sealed class AppForm : Form
 
         if (_kn.Loai == KetNoi.MatKetNoi)
         {
-            var chu = _s.MoOfflineDen != null ? "Hết giờ mở máy khoá lại" : "Vẫn «Chỉ app được phép»";
+            var chu = _s.MoOfflineDen != null ? "Hết giờ mở máy khoá lại" : "Vẫn theo luật Ba Mẹ đặt";   // 06/11 B1: không ghi cứng «Chỉ app được phép» (Con có thể đang «Mở hết»)
             if (_s.NguLuc != null) chu += " · ngủ lúc " + _s.NguLuc;
             var f = HangNgang();
             f.Controls.Add(T(chu, 10.5f, false, UI.Muted, _cw - Px(140)));

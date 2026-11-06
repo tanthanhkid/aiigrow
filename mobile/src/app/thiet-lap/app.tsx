@@ -4,10 +4,10 @@ import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { coMa, luuThietLap, napAppGoiY, type AppGoiY } from "@/lib/ghep-may";
+import { luuThietLap, napAppGoiY, type AppGoiY } from "@/lib/ghep-may";
 import { Anh3D, DauMan, OApp, OThemApp, TieuDe } from "@/lib/lan-dau";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { datTl, layTl, type AppChon } from "@/lib/thiet-lap";
+import { coMa, datTl, layTl, type AppChon } from "@/lib/thiet-lap";
 import { BaoLoi, Chu, Icon3D, M, Man, Nut, The, useLam } from "@/lib/ui";
 
 export default function ChonApp() {

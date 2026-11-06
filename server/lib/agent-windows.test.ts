@@ -110,6 +110,36 @@ test("L4 «Mở hết»: mode tu_do (không grantEndsAt), web mở + trang Giả
   assert.equal(chinhSachWindows(goc({ luat, cheDoChan: "mo_het", serverTime: "2026-10-21T15:00:00.000Z" })).mode, "khoa");
 });
 
+test("B1 06/11 «Mở hết» + quỹ: còn quỹ ⇒ tu_do, Giải trí tính giờ; HẾT quỹ ⇒ vẫn tu_do (app chưa xếp mở) nhưng Giải trí nằm trong appTinhGio với quyConPhut 0 để agent đóng", () => {
+  const quy = (conPhut: number): Policy["quy"] => ({ ngayPhut: 60, themPhut: 0, daDung: 60 - conPhut, conPhut, dangNgu: false, dangHoc: false, phutToiNgu: 600,
+    phutToiHoc: null, tyLe: { sao: 10, phut: 10 } });
+  const con = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(25) }), undefined, "chan");
+  assert.deepEqual([con.mode, con.quyConPhut, con.appTinhGio], ["tu_do", 25, ["roblox.exe"]]);
+  assert.ok(con.allowedApps.includes("roblox.exe"));
+  const het = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(0) }), undefined, "chan");
+  assert.deepEqual([het.mode, het.locked, het.quyConPhut, het.appTinhGio], ["tu_do", false, 0, ["roblox.exe"]]);
+  assert.ok(!het.allowedApps.includes("roblox.exe"));
+  assert.ok(!het.web.cho.includes("roblox.exe"));
+  // đang có cửa sổ mở có hạn (đổi sao / Ba Mẹ duyệt) ⇒ không gửi app Giải trí để chặn (agent Mac chặn cả khi cửa sổ còn hạn)
+  const mo = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(0) }), undefined, "chan", { moDen: new Date(Date.parse("2026-10-21T10:15:00.000Z")) });
+  assert.deepEqual([mo.mode, mo.appTinhGio], ["tu_do", []]);
+  // phiên chơi Con đã trả sao ⇒ không đóng app đang chơi
+  const ph = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(0), phien: { id: "p1", muc: "roblox.exe", conPhut: 15 } }), undefined, "chan");
+  assert.deepEqual([ph.mode, ph.appTinhGio], ["tu_do", []]);
+  assert.ok(ph.allowedApps.includes("roblox.exe"));
+  // giờ máy sai: Giải trí đóng cả app lẫn web (không nửa vời)
+  const sai = chinhSachWindows(goc({ cheDoChan: "mo_het", quy: quy(30), gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
+  assert.deepEqual([sai.mode, sai.quyConPhut, sai.appTinhGio], ["tu_do", 0, ["roblox.exe"]]);
+  assert.ok(sai.web.chan.includes("youtube.com") && !sai.web.cho.includes("youtube.com"));
+  // luật cũ (không quỹ): giờ máy sai không đóng nửa vời — app lẫn web Giải trí giữ như «Mở hết» cũ
+  const cu = chinhSachWindows(goc({ cheDoChan: "mo_het", gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
+  assert.deepEqual([cu.mode, cu.appTinhGio], ["tu_do", undefined]);
+  assert.ok(cu.web.cho.includes("youtube.com"));
+  // «Chỉ app được phép» hết quỹ: như cũ (mode hoc, appTinhGio rỗng — Giải trí đã ngoài allowedApps)
+  const chi = chinhSachWindows(goc({ cheDoChan: "chi_app_duoc_phep", quy: quy(0) }), undefined, "chan");
+  assert.deepEqual([chi.mode, chi.appTinhGio], ["hoc", []]);
+});
+
 test("L4 web luôn chặn: tên miền con cũng chặn; không bao giờ nằm trong danh sách mở", () => {
   assert.ok(laWebCam("m.pornhub.com") && laWebCam("www.bet365.com") && laWebCam("kaotic.com"));
   assert.ok(!laWebCam("khanacademy.org") && !laWebCam("pornhub.exe") && !laWebCam(""));
@@ -130,3 +160,4 @@ test("05/11: ngoại lệ trong lúc khoá / giờ ngủ ⇒ khoaKhiHetNgoaiLe �
   assert.equal(chinhSachWindows(goc({ ngoaiLe: nl })).khoaKhiHetNgoaiLe, undefined);
   assert.equal(chinhSachWindows(goc()).sao, 40);   // khay: «con có 40 sao»
 });
+

@@ -443,7 +443,7 @@ Quyền (L6 của S2): **Người trông giúp** gọi được `luot/:id/lam-la
   thêm `quy`, `gioHoc`, `ngoaiLeMo` (Android / iOS đọc thay `phienDiem`).
 - `dong-bo.windows` (Windows + Mac): **còn quỹ, không ngủ / khoá / giờ học / giờ máy sai ⇒ MỌI app Giải trí vào `allowedApps`** (không cần phiên),
   trang Giải trí mở trong trình duyệt; hết quỹ ⇒ rời danh sách. Trường mới: `quyConPhut` (0 khi không được chơi), `quyTongPhut`, `quyDaDung`,
-  `appTinhGio[]` (app đang được thả nhờ quỹ — agent mới đếm lùi `quyConPhut` khi chúng ở tiền cảnh, cả lúc mất mạng), `gioNgu`, `gioHoc`, `dangGioHoc`,
+  `appTinhGio[]` (app đang được thả nhờ quỹ — agent mới đếm lùi `quyConPhut` khi chúng ở tiền cảnh, cả lúc mất mạng; «Mở hết» mà hết quỹ ⇒ vẫn gửi app Giải trí với `quyConPhut` 0 để agent đóng chúng trong mode `tu_do` — 06/11), `gioNgu`, `gioHoc`, `dangGioHoc`,
   `ngoaiLe: [{den, app | null}]`. Ngoại lệ cả máy ⇒ `mode: tu_do` + `grantEndsAt` (thắng giờ ngủ / khoá); ngoại lệ một app ⇒ `locked: false`, `mode: hoc`,
   `allowedApps` = app hệ thống + app đó. `khoaKhiHetNgoaiLe: "khoa" | "ngu"` khi ngoại lệ mở lúc máy đang bị khoá (Ba Mẹ khoá / giờ ngủ) ⇒ agent
   tự khoá lại đúng lý do khi MỌI ngoại lệ hết hạn (cả lúc mất mạng — agent-win `QuyTaiCho`). `nextCheckSec` ≤ 60 khi quỹ còn ≤ 10 phút. `playOfflineMinutes` = min(quỹ còn, tới giờ ngủ / giờ học).

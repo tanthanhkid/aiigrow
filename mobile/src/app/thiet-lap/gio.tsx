@@ -7,10 +7,10 @@ import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { coMa, cuoiTuanCua, luuThietLap, napAppGoiY, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
+import { cuoiTuanCua, luuThietLap, napAppGoiY, napCaiDatCon, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
 import { BanhXeGio, DauMan, gioGon, OApp, TieuDe } from "@/lib/lan-dau";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { datTl, layTl } from "@/lib/thiet-lap";
+import { coMa, datTl, layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Man, Nut, Rob, The, useLam } from "@/lib/ui";
 
 export default function ObGio() {
@@ -21,12 +21,21 @@ export default function ObGio() {
   const [ngu, setNgu] = useState(tl.ngu ?? NGU_MAC_DINH);
   const [apps, setApps] = useState(tl.apps);
   const [suaNgu, setSuaNgu] = useState<"tu" | "den" | null>(null);
+  // nạp cài đặt thật của Con (lib/ghep-may › napCaiDatCon) rồi hiện lên màn — mục Ba Mẹ đã chọn giữ nguyên
+  const napCaiDat = () => napCaiDatCon().then(() => {
+    const n = layTl();
+    if (n.cheDoChan) setCheDo(n.cheDoChan);
+    if (n.quy != null) setQuy(n.quy);
+    if (n.ngu) setNgu(n.ngu);
+  });
   const { lam, loi, dangChay } = useLam();
   // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Rob (app-goi-y)
   useFocusEffect(useCallback(() => {
     const t = layTl();
     setApps(t.apps);
     if (t.conId && !t.apps) napAppGoiY(t.conId).then(() => setApps(layTl().apps)).catch(() => {});
+    // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng chế độ chặn / quỹ / giờ ngủ đang có (lỗi thì lần mở màn sau nạp lại)
+    napCaiDat().catch(() => {});
   }, []));
   const doi = (x: Parameters<typeof datTl>[0]) => datTl(x);
   const luu = () => lam(async () => {
@@ -83,11 +92,11 @@ export default function ObGio() {
       </View>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
         {QUY_CHIP.map((p) => (
-          <Pressable key={p} onPress={() => { setQuy(p); doi({ quy: p }); }} accessibilityRole="radio" accessibilityState={{ checked: quy === p }}
+          <Pressable key={p} onPress={() => { setQuy(p); doi({ quy: p, cuoiTuan: undefined }); }} accessibilityRole="radio" accessibilityState={{ checked: quy === p }}
             style={{ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center", justifyContent: "center",
               backgroundColor: quy === p ? "#fff" : "#ebeae6", boxShadow: quy === p ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.lom }}>
             <Chu kieu="rat" co={16}>{`${p} phút`}</Chu>
-            <Chu co={11.5} mau={M.chu3}>{`T7, CN: ${cuoiTuanCua(p)} phút`}</Chu>
+            <Chu co={11.5} mau={M.chu3}>{`T7, CN: ${p === quy && layTl().quy === p && layTl().cuoiTuan != null ? layTl().cuoiTuan : cuoiTuanCua(p)} phút`}</Chu>
           </Pressable>
         ))}
       </View>

@@ -90,6 +90,9 @@ public static class ProcessGuard
         @"System32\Speech_OneCore", @"SysWOW64\Speech_OneCore", @"System32\Speech", @"SysWOW64\Speech", @"System32\wbem", @"SysWOW64\wbem",
         // SSO tài khoản Windows của Chrome/Edge, Windows Security, Task Flow UI, ClickOnce (dfsvc) — đóng thì hỏng tính năng + popup lặp (review #75)
         "BrowserCore", @"System32\SecurityHealth", "ShellComponents", "ShellExperiences", "Microsoft.NET",
+        // 06/11 (B2, máy Nghi): Win 11 24H2 «Unified Update Stack» — hộp thông báo Windows Update MoNotificationUx.exe, MoUsoCoreWorker… nằm ở
+        // Windows\UUS\<arch>\ (chỉ TrustedInstaller ghi được). Không miễn ⇒ mỗi lần Windows bật hộp «cập nhật» là bị đóng + màn «app bị chặn» lặp.
+        "UUS",
     };
 
     /// <summary>WebView2 runtime cài cho cả máy: «&lt;ổ&gt;:\Program Files[ (x86)]\Microsoft\EdgeWebView\» (chỉ quản trị ghi được).</summary>
