@@ -175,10 +175,16 @@ public struct HvQua: Equatable, Identifiable {
   public var du = false
   public var conThieu = 0
   public var chiCuoiTuan = false
+  /// 06/11 (L14 bảng giá sao): dòng phụ («Voucher QR · 60 ngày»), mã hình, đang chờ trao từ lúc, tồn kho.
+  public var moTa = "", hinh = ""
+  public var choTraoTu: Date?
+  public var tonKho: Int?
   public init() {}
   init(_ o: [String: Any]) {
     id = JsonMem.chuoi(o["id"]) ?? ""; ten = o["ten"] as? String ?? ""; loai = o["loai"] as? String ?? "qua"
-    diem = JsonMem.so(o["diem"]) ?? 0; du = JsonMem.dung(o["du"]); conThieu = JsonMem.so(o["conThieu"]) ?? 0; chiCuoiTuan = JsonMem.dung(o["chiCuoiTuan"])
+    diem = JsonMem.so(o["sao"]) ?? JsonMem.so(o["diem"]) ?? 0; du = JsonMem.dung(o["du"]); conThieu = JsonMem.so(o["conThieu"]) ?? 0; chiCuoiTuan = JsonMem.dung(o["chiCuoiTuan"])
+    moTa = o["moTa"] as? String ?? ""; hinh = o["hinh"] as? String ?? ""
+    choTraoTu = NgayGio.doc(o["choTraoTu"] as? String); tonKho = JsonMem.so(o["tonKho"])
   }
 }
 
@@ -186,10 +192,13 @@ public struct HvQua: Equatable, Identifiable {
 public struct HvCuaHang: Equatable {
   public var soDu = 0
   public var qua: [HvQua] = []
+  /// Sao đang bị giữ chờ Ba Mẹ trao (L14).
+  public var saoGiu = 0
   public init() {}
   public static func doc(_ raw: Data) -> HvCuaHang? {
     guard let o = JsonMem.doc(raw), o["qua"] != nil else { return nil }
     var c = HvCuaHang(); c.soDu = JsonMem.so(o["soDu"]) ?? 0; c.qua = JsonMem.ds(o["qua"]).map(HvQua.init)
+    c.saoGiu = JsonMem.so(o["saoGiu"]) ?? 0
     return c
   }
 }

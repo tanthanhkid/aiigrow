@@ -19,12 +19,18 @@ final class XinModel: ObservableObject {
   @Published var thongBao = ""
   @Published var dangGui = false
   @Published var daGui = false
+  /// Số phút của lời xin vừa gửi (màn «Đã gửi Ba Mẹ! Con xin thêm N phút»).
+  @Published var phutDaXin: Int?
+  /// Mở form mới (cửa sổ mới, đổi bé): bỏ trạng thái «đã gửi» của lời xin trước.
+  func moi() { daGui = false; thongBao = ""; phutDaXin = nil }
 
   func xinThem(phut: Int, loiNhan: String) {
+    phutDaXin = phut
     gui(.xinThem(phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
   /// Giờ ngủ / Ba Mẹ khoá: xin mở ngoại lệ cả máy `phut` phút.
   func xinNgoaiLe(phut: Int, loiNhan: String) {
+    phutDaXin = phut
     gui(.xinNgoaiLe(phamVi: "ca_may", app: nil, phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
   func xinMo(muc: String, loai: String, loiNhan: String) {
@@ -41,7 +47,7 @@ final class XinModel: ObservableObject {
         case .ok, .canhBao: daGui = true; thongBao = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…"
         case .loi(_, let chu): daGui = false; thongBao = chu
         case .thongBao(let chu): daGui = true; thongBao = chu
-        case .trangThai, .duLieu, .choi: daGui = true; thongBao = "Đã gửi cho Ba Mẹ."
+        case .trangThai, .duLieu, .choi, .pin: daGui = true; thongBao = "Đã gửi cho Ba Mẹ."
         }
       } catch {
         daGui = false; thongBao = "Chưa gửi được. AiiGrow đang khởi động lại, con thử lại sau nhé."

@@ -97,6 +97,24 @@ final class QuyGioTests: XCTestCase {
     XCTAssertEqual(r.policy.blockedApps.map(\.muc), ["com.roblox.roblox"], "«Mở hết» hết quỹ ⇒ đóng app Giải trí như app Ba Mẹ chặn")
   }
 
+  /// Lỗi 06/11: Ba Mẹ duyệt «thêm giờ» ⇒ máy chủ gửi tu_do + grantEndsAt, quyConPhut 0, appTinhGio rỗng — app Giải trí phải MỞ trong cửa sổ.
+  func testCuaSoThemGioDuyetKhongDongAppGiaiTri() {
+    var p = pol(mode: "tu_do", quy: 0, appTinhGio: [])
+    p.playChoices = ["com.roblox.roblox"]; p.allowedApps = ["com.apple.textedit", "com.roblox.roblox"]
+    p.grantEndsAt = gocNgay.addingTimeInterval(20 * 60)
+    for mat in [false, true] {
+      let r = QuyGio.apDung(p, quyGiay: 0, now: gocNgay, matMang: mat)
+      XCTAssertTrue(r.policy.blockedApps.isEmpty, "trong cửa sổ thêm giờ không chặn app Giải trí (mất mạng=\(mat))")
+      XCTAssertTrue(r.policy.allowedApps.contains("com.roblox.roblox")); XCTAssertTrue(r.hetQuy.isEmpty)
+    }
+    // hết cửa sổ (chưa đồng bộ lại) ⇒ hết quỹ đóng lại như cũ
+    let sau = QuyGio.apDung(p, quyGiay: 0, now: gocNgay.addingTimeInterval(21 * 60), matMang: true)
+    XCTAssertEqual(sau.policy.blockedApps.map(\.muc), ["com.roblox.roblox"])
+    // Ba Mẹ khoá máy thì cửa sổ cũ không thả quỹ
+    var k = p; k.locked = true; k.mode = "khoa"
+    XCTAssertFalse(QuyGio.apDung(k, quyGiay: 0, now: gocNgay, matMang: false).policy.allowedApps.contains("com.roblox.roblox"))
+  }
+
   func testNgoaiLeCaMayThangHetQuy() {
     var p = pol(mode: "tu_do", quy: 0)
     p.grantEndsAt = gocNgay.addingTimeInterval(1800); p.ngoaiLe = [NgoaiLeMo(den: gocNgay.addingTimeInterval(1800), app: nil)]

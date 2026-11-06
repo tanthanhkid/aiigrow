@@ -32,6 +32,17 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - Hồ sơ DNS gia đình: menu Ba Mẹ «Cài hồ sơ DNS gia đình…» ⇒ IPC `hoSoDns` ⇒ lưu .mobileconfig vào Tải về và mở.
 - Tray: icon thanh menu = Rob; Hôm nay theo app (`homNayTheoApp`); «Ba Mẹ dùng máy» (khoá màn hình); «Hoặc đổi điểm lấy giờ chơi» trong Xin thêm giờ; tin mới qua UNUserNotification (trong AiiGrow.app).
 
+### 3d. Mac của cả nhà — PIN theo bé (06/11, L13, `docs/thiet-ke-chot/con-cai-mac` 60 màn)
+- Một tài khoản macOS giới hạn cho các bé (tài khoản chọn lúc ghép); AiiGrow nhận từng bé bằng **tên + PIN 4 số**. Máy chủ gửi `nguoiDung`
+  (`chua` | `con` | `ba_me`) trong dong-bo ⇒ `PhienMay` (`PinBe.swift`). `chua` ⇒ tray che máy bằng màn «Ai đang dùng máy?» (`ManChonTen.swift`),
+  daemon chỉ cho app hệ thống, KHÔNG đếm ngược đăng xuất, không tính giờ con. `ba_me` ⇒ mở hết tới hạn, bảng «Ba Mẹ đang dùng máy · Khoá lại».
+- IPC (chỉ uid Con): `hoSo` (không vân PIN), `dangNhapBe`, `quenPin`, `baMeMo`, `dangXuat`, `khoaLai` ⇒ `api/device/{ho-so, dang-nhap-be, quen-pin,
+  ba-me-mo, dang-xuat, khoa-lai}`. Lỗi PIN/mã trả `.pin(ketQua, conLan, choGiay, chu)`.
+- Mất mạng: PIN kiểm bằng vân PIN đã nhớ (HMAC-SHA256 khoá = `maOfflineBiMat`), đếm sai 5 lần / 15 giây tại máy; mã «Ba Mẹ nhập mã» kiểm
+  biến thể 60 / 30 / 15 phút (`MaOffline.kiemPhut`), một mã một lượt; lượt đăng nhập / Đổi bé gửi lại máy chủ khi có mạng.
+- Giao diện theo màn: chọn tên, PIN, sai 5 lần, Quên PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng (10–16); app Con thanh bên «Đổi bé / Đăng xuất» (17–19);
+  Sao & quà bảng giá + đổi quà giữ sao (23–25); đổi sao lấy giờ (49–51); màn khoá sáng hết giờ / giờ ngủ / mất mạng (32–39, 58); ghép máy 03–09.
+
 ## 4. Ghép máy
 Ba Mẹ cài `.pkg` (mật khẩu quản trị một lần) ⇒ tray trong phiên admin thấy `daGhep=false` ⇒ cửa sổ «Ghép máy»: chọn tài khoản Con
 (liệt kê user thường trên máy) + mã 6 số ⇒ `ghep` ⇒ daemon gọi server pair (platform `mac`), lưu token, **hạ tài khoản Con về Standard**

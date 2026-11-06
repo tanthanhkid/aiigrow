@@ -10,6 +10,10 @@ THU=1 BAN=0.1.8 ./build-pkg.sh        # thử không ký: ra agent-mac/ra/AiiGro
 THU=1 ARCH=native BAN=0.1.8 ./build-pkg.sh   # chỉ kiến trúc máy này (nhanh hơn)
 ```
 
+**.dmg cho trang tải (06/11, thiết kế `con-cai-mac` 01–02):** sau `build-pkg.sh`, `THU=1 BAN=0.1.9 ./build-dmg.sh` (thử) hoặc
+`BAN=0.1.9 KY_APP="Developer ID Application: TAN THANH TRAN (ADUL7HT969)" NOTARY=1 ./build-dmg.sh` (phát hành) ⇒ `ra/AiiGrow-<BAN>.dmg` chứa
+`AiiGrow.pkg` + lối tắt Applications + «Cách cài.txt». `.pkg` vẫn là gói chính (daemon root + tự cập nhật chỉ nhận .pkg ký Installer).
+
 Gói chứa `/Applications/AiiGrow.app` (tray `AiiGrowTray` là CFBundleExecutable, `aiigrow-daemon` nằm cùng `Contents/MacOS`) và hai plist
 trong `Contents/Resources`; `postinstall` chép chúng ra `/Library/LaunchDaemons` + `/Library/LaunchAgents`.
 Kiểm gói không cần cài: `pkgutil --payload-files ra/AiiGrow-<BAN>.pkg`, `pkgutil --expand ra/AiiGrow-<BAN>.pkg /tmp/x`.

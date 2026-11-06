@@ -157,7 +157,8 @@ public enum QuyenIPC {
     switch y {
     case .trangThai:
       return .duoc                                                                       // ai cũng hỏi được; phần riêng của Con chỉ trả cho uid Con
-    case .ping, .appTienCanh, .xinThem, .xinMo, .xinNgoaiLe, .hocVien, .choi, .choiThu, .maOffline:     // app của Con: chỉ uid Con (token máy không cho tài khoản khác dùng)
+    case .ping, .appTienCanh, .xinThem, .xinMo, .xinNgoaiLe, .hocVien, .choi, .choiThu, .maOffline,
+         .hoSo, .dangNhapBe, .quenPin, .baMeMo, .dangXuat, .khoaLai:     // app của Con: chỉ uid Con (token máy không cho tài khoản khác dùng)
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
       return .duoc
     case .hoSoDns:

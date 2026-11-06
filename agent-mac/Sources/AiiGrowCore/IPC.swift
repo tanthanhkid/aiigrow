@@ -47,6 +47,19 @@ public enum YeuCauTray: Codable, Equatable {
   case maOffline(ma: String)
   /// Ba Mẹ (admin) lấy hồ sơ DNS gia đình (GET api/device/ho-so-dns) ⇒ `.duLieu(json)` có `apple.mobileconfig` + `apple.tep`.
   case hoSoDns
+  // ---- 06/11 PIN theo bé (L13, PinBe.swift) — chỉ từ uid tài khoản Con (màn chọn tên chạy trong phiên đó)
+  /// «Ai đang dùng máy?» ⇒ `.duLieu(json HoSoMay)` (KHÔNG có vân PIN). Mất mạng ⇒ bản nhớ.
+  case hoSo
+  /// Chạm tên + PIN ⇒ `.pin(ketQua: "ok", …)` | `.pin("pin_sai", conLan)` | `.pin("pin_tam_khoa", choGiay)` | `.loi`.
+  case dangNhapBe(con: String, pin: String?)
+  /// «Báo Ba Mẹ giúp con» ⇒ `.thongBao` | `.loi`.
+  case quenPin(con: String)
+  /// «Ba Mẹ nhập mã» (mã mở máy 6 số) ⇒ `.thongBao` (Ba Mẹ đang dùng máy) | `.pin("ma_sai", conLan)` | `.pin("ma_tam_khoa", choGiay)` | `.loi`.
+  case baMeMo(ma: String)
+  /// «Đổi bé / Đăng xuất» của bé ⇒ máy về màn chọn tên.
+  case dangXuat
+  /// «Khoá lại» khi Ba Mẹ dùng xong ⇒ máy về màn chọn tên.
+  case khoaLai
 }
 
 /// Chế độ máy đang áp — cùng nghĩa với `mode` của server (tu_do / hoc / khoa).
@@ -87,6 +100,17 @@ public struct TrangThai: Codable, Equatable {
   /// Quỹ giờ chơi hôm nay (05/11): phút còn (đếm lùi tại chỗ khi app tính giờ ở tiền cảnh) / tổng quỹ. nil = máy chủ cũ. Chỉ cho phiên Con.
   public var quyConPhut: Int?
   public var quyTongPhut: Int?
+  /// 06/11 PIN theo bé: «chua» (máy khoá ⇒ màn chọn tên) | «con» | «ba_me». nil = máy chủ / daemon cũ (không màn chọn tên). Chỉ cho phiên Con.
+  public var nguoiDung: String?
+  public var beId: String?
+  public var beTen: String?
+  /// «Ba Mẹ đang dùng máy» tới lúc này.
+  public var baMeDungDen: Date?
+  /// Máy chỉ gán một bé.
+  public var mayRieng: Bool?
+  /// Khung giờ ngủ / giờ học (màn khoá ghi «Giờ ngủ 21:30 – 6:30», «mở lại tất cả lúc 18:00»). Chỉ cho phiên Con.
+  public var gioNgu: KhungGio?
+  public var gioHoc: KhungGio?
   /// Máy chưa ghép nhưng có token gói cài một chạm ⇒ cửa sổ Ghép chỉ hỏi tài khoản của Con, không hỏi mã 6 số. Chỉ cho phiên Ba Mẹ.
   public var coGoiCai: Bool?
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
@@ -117,6 +141,8 @@ public enum TraLoi: Codable, Equatable {
   case duLieu(json: String)
   /// Lệnh `choi` / `choiThu`: «duoc» | «tu_choi» | «mo» | «khong_co_muc»…; `phut` = số phút chơi (làm tròn xuống); `chu` = câu máy chủ soạn.
   case choi(trangThai: String, phut: Int?, chu: String?)
+  /// Lệnh PIN / mã Ba Mẹ: «ok» | «pin_sai» | «pin_tam_khoa» | «ma_sai» | «ma_tam_khoa» | «ma_da_dung»…
+  case pin(ketQua: String, conLan: Int?, choGiay: Int?, chu: String)
 }
 
 public enum IPCMa {

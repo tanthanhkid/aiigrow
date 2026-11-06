@@ -128,7 +128,9 @@ public actor BoMay {
         $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0
         $0.phienBu = nil; $0.moTamOffline = nil; $0.demPhut = [:]
       }
+      $0.hoSoMay = nil; $0.phienMay = nil; $0.saiPin = nil      // bé, vân PIN, ai đang dùng: luôn của lần ghép này
     }
+    lenhCho = nil                                     // lệnh máy dùng chung (có PIN) của lần ghép cũ không gửi bằng token mới
     heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
     api.datPhien(mayChu: cauHinh.mayChu, token: cauHinh.token)       // TRƯỚC await kế: lượt đồng bộ chen vào mang token mới
@@ -214,6 +216,8 @@ public actor BoMay {
   }
 
   private func dongBo() async {
+    await guiLaiMayChung()
+    let guiLuc = dongHo()
     let con = conDangDung()
     if let u = cauHinh.uidCon { conLaAdmin = heThong.laAdmin(uid: u) }       // đọc lại mỗi lần đồng bộ: ai nâng Con lên admin cũng bị báo
     var st = TrangThaiAgent(mode: policy?.mode ?? CheDo.tuDo.rawValue,
@@ -247,6 +251,11 @@ public actor BoMay {
         themSuKien("het_ma_offline", ["ket_thuc": "co_mang"])
       }
       policy = kq.policy
+      if kq.nguoiDung != nil {
+        var pm = cauHinh.phienMay ?? PhienMay()
+        pm.nhanMayChu(kq.nguoiDung, guiLuc: guiLuc, now: dongHo(), daGuiHet: lenhCho == nil)
+        if pm != cauHinh.phienMay { cauHinh.phienMay = pm; _ = try? kho.sua { $0.phienMay = pm } }
+      }
       matMang = false
       dongBoLoi = false
       let lucOk = dongHo()
@@ -264,6 +273,8 @@ public actor BoMay {
         MoCoi.ghiThanhCong(&$0, now: lucOk)
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
+      // danh sách bé + vân PIN: lấy sớm và làm mới ≥ 30 phút một lần (PIN / bí mật đổi thì kiểm PIN lúc mất mạng vẫn đúng)
+      if kq.nguoiDung != nil, cauHinh.daGhep, cauHinh.hoSoMay == nil || donDieu() - hoSoLuc > 1800 { hoSoLuc = donDieu(); _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi bé, PIN lúc mất mạng)
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
     } catch _ where the != theHeGhep {
@@ -298,8 +309,10 @@ public actor BoMay {
     let laCon = phien?.uid == cauHinh.uidCon
     let manKhoa = phien?.manKhoa ?? true
     guard let p0 = policy, !MoCoi.la(cauHinh, now: dongHo()) else { return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil) }
-    let p = policyHieuLucQuy(p0, now: dongHo()).policy
-    let hl = MoTamOffline.apDung(DanhGiaPolicy.tinh(p, now: dongHo(), daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo())
+    let now = dongHo()
+    let pQuy = policyHieuLucQuy(p0, now: now).policy
+    let (p, hl) = PhienMay.apDung(pQuy, MoTamOffline.apDung(DanhGiaPolicy.tinh(pQuy, now: now, daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo()),
+                                  nguoiDungHieuLuc(), now: now)
     var demNguoc: Int?
     if hl.khoa, laCon, !manKhoa {
       demNguoc = Int(((khoaLuc ?? donDieu() + Double(tuyChon.demNguocKhoaGiay)) - donDieu()).clamped0.rounded(.up))
@@ -318,7 +331,7 @@ public actor BoMay {
     let gio = donDieu()
     let troi = max(0, min(gio - apTruoc, tuyChon.vongGiay * 4))     // trần mỗi vòng: ngủ/treo không dồn một cục
     apTruoc = gio
-    if laCon, !manKhoa {
+    if laCon, !manKhoa, PhienMay.tinhGioCon(nguoiDungHieuLuc()) {    // màn chọn tên / Ba Mẹ dùng máy: không tính giờ con
       cauHinh.daDungGiayTuSync += troi
       demGiayApp(troi: troi, now: now)
       demPhutBu(troi: troi, now: now)
@@ -348,9 +361,10 @@ public actor BoMay {
     guard let p0 = policy else {
       return trangThai(p: nil, hl: nil, laCon: laCon, phutDung: nil)
     }
-    let (p, hetQuy, gioHoc) = policyHieuLucQuy(p0, now: now)
+    let (pQuy, hetQuy, gioHoc) = policyHieuLucQuy(p0, now: now)
     appHetQuy = hetQuy; appGioHoc = gioHoc
-    let hl = MoTamOffline.apDung(DanhGiaPolicy.tinh(p, now: now, daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo())
+    let (p, hl) = PhienMay.apDung(pQuy, MoTamOffline.apDung(DanhGiaPolicy.tinh(pQuy, now: now, daDungGiay: cauHinh.daDungGiayTuSync), dangMo: moTamDangMo()),
+                                  nguoiDungHieuLuc(), now: now)
     let chan = cheDoHieuLuc() == CheDoAgent.chan
 
     // Web TRƯỚC: plist chính sách trình duyệt (theo tài khoản Con) + khối hosts cho Safari. Giám sát ⇒ gỡ hết.
@@ -371,7 +385,10 @@ public actor BoMay {
         nho[app + "|" + bundle] = v
         return v
       }
-      var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
+      // màn chọn tên (chưa bé nào vào): kể cả trình duyệt đã lọc cũng đóng — không dựa vào lớp che của tray
+      let chuaAi = nguoiDungHieuLuc() == .chua
+      var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep,
+                                     trinhDuyet: chuaAi ? [] : trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
       can += BoMay.safariKhongLocDuoc(ds, uidCon: uidCon, p: p, now: now, chiAppHoc: hl.chiAppHoc, daCo: Set(can.map(\.pid)))
       let biChan = appBiChanCanDong(ds, uidCon: uidCon, p: p, chan: true, daCo: Set(can.map(\.pid)))     // app Ba Mẹ «Chặn»: MỌI mode
       // trình duyệt chỉ bị đóng MỘT lần để nạp luật lọc mới (trinhDuyetCanDong) — Con mở lại được ngay ⇒ không hiện màn «chưa được mở»
@@ -603,6 +620,18 @@ public actor BoMay {
       return await choiThu(muc: muc)
     case let .maOffline(ma):
       return thuMaOffline(ma)
+    case .hoSo:
+      return await hoSoMay()
+    case let .dangNhapBe(con, pin):
+      return await dangNhapBe(con: con, pin: pin)
+    case let .quenPin(con):
+      return await quenPin(con: con)
+    case let .baMeMo(ma):
+      return await baMeMo(ma: ma)
+    case .dangXuat:
+      return await roiMay(path: "dang-xuat")
+    case .khoaLai:
+      return await roiMay(path: "khoa-lai")
     case .hoSoDns:
       do { return .duLieu(json: String(decoding: try await api.hoSoDns(), as: UTF8.self)) }
       catch let e as LoiApi { return .loi(ma: e.ma ?? "dns_loi", chu: e.chu) }
@@ -613,9 +642,186 @@ public actor BoMay {
         if let cb = canhBaoAdmin { return .canhBao(id: cauHinh.deviceId, chu: cb) }
         return .ok(id: cauHinh.deviceId)
       }
-      catch let e as LoiApi { return .loi(ma: e.ma ?? "ghep_loi", chu: e.chu) }
+      catch let e as LoiApi { return .loi(ma: e.ma ?? (e.laMang && e.maHttp == nil ? "mat_mang" : "ghep_loi"), chu: e.chu) }
       catch { return .loi(ma: "ghep_loi", chu: "\(error)") }
     }
+  }
+
+  // MARK: máy dùng chung — PIN theo bé (L13, PinBe.swift, docs/API.md «S3»)
+
+  /// Lệnh máy dùng chung làm lúc mất mạng (đăng nhập bé bằng vân PIN, Đổi bé, Khoá lại) — gửi lại TRƯỚC lần đồng bộ kế. Chỉ trong bộ nhớ
+  /// (PIN không ghi đĩa); daemon khởi động lại thì máy chủ thấy «chưa ai vào» ⇒ màn chọn tên, bé nhập lại.
+  /// Mọi lệnh loại này (dang-nhap-be / dang-xuat / khoa-lai) thay nhau ⇒ chỉ cần MỘT lệnh chờ (lệnh sau đè lệnh trước).
+  private var lenhCho: (path: String, than: [String: Any], id: UUID)?
+  private var hoSoLuc: Double = -1_000_000
+  private func datLenhCho(_ path: String, _ than: [String: Any]) { lenhCho = (path, than, UUID()) }
+
+  private func nguoiDungHieuLuc() -> NguoiDungMay? { cauHinh.phienMay?.hieuLuc(now: dongHo()) }
+
+  private func datCucBo(_ n: NguoiDungMay, baMeOffline: Bool = false) {
+    var pm = cauHinh.phienMay ?? PhienMay()
+    pm.datCucBo(n, now: dongHo(), baMeOffline: baMeOffline)
+    cauHinh.phienMay = pm
+    _ = try? kho.sua { $0.phienMay = pm }
+  }
+
+  private func datMayChu(_ n: NguoiDungMay) {
+    var pm = cauHinh.phienMay ?? PhienMay()
+    // máy chủ vừa nhận lệnh: ghi như ghi đè CÓ MỐC giờ — lượt dong-bo đang bay (gửi trước lệnh) về muộn không đè được
+    pm.mayChu = n; pm.cucBo = n; pm.cucBoLuc = dongHo(); pm.baMeOffline = false
+    cauHinh.phienMay = pm
+    _ = try? kho.sua { $0.phienMay = pm }
+  }
+
+  private func guiLaiMayChung() async {
+    guard let v = lenhCho else { return }
+    do { _ = try await api.mayChung("POST", v.path, v.than) }
+    catch let e as LoiApi where e.laMang { return }
+    catch { heThong.ghiLog("Gửi lại \(v.path) bị từ chối: \(error)") }
+    if lenhCho?.id == v.id { lenhCho = nil }         // trong lúc chờ mạng có lệnh mới (Đổi bé…) thì giữ lệnh mới
+  }
+
+  private func hoSoMay() async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    var h: HoSoMay?
+    do {
+      let d = try await api.mayChung("GET", "ho-so", nil)
+      h = HoSoMay.doc(d)
+      if let h { cauHinh.hoSoMay = h; _ = try? kho.sua { $0.hoSoMay = h } }
+    } catch let e as LoiApi where !e.laMang {
+      return .loi(ma: e.ma ?? "ho_so_loi", chu: e.chu)
+    } catch {}
+    guard var kq = (h ?? cauHinh.hoSoMay) else { return .loi(ma: "chua_co_ho_so", chu: "Máy chưa lấy được danh sách các bé. Cần nối mạng một lần đã nhé.") }
+    if h == nil {                                       // mất mạng: lượt chờ do máy tự đếm
+      let now = dongHo(), sai = cauHinh.saiPin ?? BoDemSaiPin()
+      kq.con = kq.con.map { var b = $0; let g = sai.choGiay(con: b.id, now: now); b.choGiay = g > 0 ? g : nil; b.khoaDen = g > 0 ? sai.khoaDen[b.id] : nil; return b }
+    }
+    guard let d = try? IPCMa.encoder.encode(kq.anChoTray()) else { return .loi(ma: "ho_so_loi", chu: "Chưa đọc được danh sách.") }
+    return .duLieu(json: String(decoding: d, as: UTF8.self))
+  }
+
+  private func dangNhapBe(con: String, pin: String?) async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    let pinSach = pin.map { String($0.filter { $0.isASCII && $0.isNumber }) }
+    if let p = pinSach, !p.isEmpty, !PinBe.hopLe(p) { return .pin(ketQua: "pin_sai_dang", conLan: nil, choGiay: nil, chu: "PIN là 4 số nhé.") }
+    var than: [String: Any] = ["con": con]
+    if let p = pinSach, !p.isEmpty { than["pin"] = p }
+    do {
+      let d = try await api.mayChung("POST", "dang-nhap-be", than)
+      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+      let c = o?["con"] as? [String: Any]
+      let ten = c?["ten"] as? String ?? cauHinh.hoSoMay?.con.first { $0.id == con }?.ten ?? ""
+      datMayChu(.con(id: JsonMem.chuoi(c?["id"]) ?? con, ten: ten))
+      var sai = cauHinh.saiPin ?? BoDemSaiPin(); sai.xoa(con: con); cauHinh.saiPin = sai; _ = try? kho.sua { $0.saiPin = sai }
+      dongBoSom()
+      return .pin(ketQua: "ok", conLan: nil, choGiay: nil, chu: ten)
+    } catch let e as LoiApi where !e.laMang {
+      switch e.ma {
+      case "pin_sai": return .pin(ketQua: "pin_sai", conLan: e.conLan, choGiay: nil, chu: "Chưa đúng · còn \(e.conLan ?? 0) lần thử")
+      case "pin_tam_khoa": return .pin(ketQua: "pin_tam_khoa", conLan: 0, choGiay: e.choGiay ?? PinBe.choGiay, chu: "Sai 5 lần rồi")
+      case "can_pin": return .pin(ketQua: "can_pin", conLan: nil, choGiay: nil, chu: "Con nhập PIN 4 số nhé.")
+      default: return .loi(ma: e.ma ?? "dang_nhap_loi", chu: e.chu)
+      }
+    } catch {
+      return dangNhapOffline(con: con, pin: pinSach ?? "")
+    }
+  }
+
+  /// Mất mạng: kiểm PIN bằng vân PIN đã nhớ, tự đếm sai 5 lần / chờ 15 giây.
+  private func dangNhapOffline(con: String, pin: String) -> TraLoi {
+    let now = dongHo()
+    guard let be = cauHinh.hoSoMay?.con.first(where: { $0.id == con }) else {
+      return .loi(ma: "khong_thay", chu: "Máy đang mất mạng và chưa nhớ bé này. Nhờ Ba Mẹ nhập mã nhé.")
+    }
+    var sai = cauHinh.saiPin ?? BoDemSaiPin()
+    defer { cauHinh.saiPin = sai; _ = try? kho.sua { $0.saiPin = sai } }
+    if be.coPin {
+      let cho = sai.choGiay(con: con, now: now)
+      if cho > 0 { return .pin(ketQua: "pin_tam_khoa", conLan: 0, choGiay: cho, chu: "Sai 5 lần rồi") }
+      guard PinBe.hopLe(pin) else { return .pin(ketQua: "can_pin", conLan: nil, choGiay: nil, chu: "Con nhập PIN 4 số nhé.") }
+      guard be.vanPin != nil, !(policy?.maOfflineBiMat ?? "").isEmpty else {
+        return .loi(ma: "chua_kiem_duoc", chu: "Máy đang mất mạng nên chưa kiểm được PIN. Nhờ Ba Mẹ nhập mã nhé.")
+      }
+      guard PinBe.kiem(biMat: policy?.maOfflineBiMat, con: con, pin: pin, van: be.vanPin) else {
+        let (conLan, cho) = sai.ghiSai(con: con, now: now, saiToiDa: cauHinh.hoSoMay?.pinSaiToiDa ?? PinBe.saiToiDa,
+                                       choGiay: cauHinh.hoSoMay?.pinChoGiay ?? PinBe.choGiay)
+        if cho > 0 { return .pin(ketQua: "pin_tam_khoa", conLan: 0, choGiay: cho, chu: "Sai 5 lần rồi") }
+        return .pin(ketQua: "pin_sai", conLan: conLan, choGiay: nil, chu: "Chưa đúng · còn \(conLan) lần thử")
+      }
+    }
+    sai.xoa(con: con)
+    datCucBo(.con(id: con, ten: be.ten))
+    datLenhCho("dang-nhap-be", be.coPin ? ["con": con, "pin": pin] : ["con": con])
+    heThong.ghiLog("Mất mạng — \(be.ten) vào máy bằng PIN kiểm tại máy.")
+    return .pin(ketQua: "ok", conLan: nil, choGiay: nil, chu: be.ten)
+  }
+
+  private func quenPin(con: String) async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    do {
+      let d = try await api.mayChung("POST", "quen-pin", ["con": con])
+      let lapLai = ((try? JSONSerialization.jsonObject(with: d)) as? [String: Any])?["lapLai"] as? Bool ?? false
+      return .thongBao(chu: lapLai ? "Đã báo Ba Mẹ rồi. Chờ Ba Mẹ đặt PIN mới nhé." : "Đã báo Ba Mẹ! Có PIN mới thì con nhập lại nhé.")
+    } catch let e as LoiApi { return .loi(ma: e.ma ?? "quen_pin_loi", chu: BoMay.cauLoiCon(e)) }
+    catch { return .loi(ma: "quen_pin_loi", chu: "Chưa báo được. Con thử lại nhé.") }
+  }
+
+  /// «Ba Mẹ nhập mã»: có mạng ⇒ máy chủ; mất mạng ⇒ tự kiểm mã mở máy (biến thể 60 / 30 / 15 phút), một mã một lượt.
+  private func baMeMo(ma: String) async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    let sach = String(ma.filter { $0.isASCII && $0.isNumber })
+    guard sach.count == MaOffline.soChuSo else { return .pin(ketQua: "ma_sai", conLan: nil, choGiay: nil, chu: "Mã có 6 số.") }
+    do {
+      let d = try await api.mayChung("POST", "ba-me-mo", ["ma": sach])
+      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+      let den = ((o?["baMeDung"] as? [String: Any]).flatMap { NgayGio.doc($0["den"] as? String) })
+      datMayChu(.baMe(den: den))
+      dongBoSom()
+      return .thongBao(chu: "Ba Mẹ đang dùng máy" + ((o?["phut"] as? NSNumber).map { " · \($0.intValue) phút" } ?? ""))
+    } catch let e as LoiApi where !e.laMang {
+      switch e.ma {
+      case "ma_sai": return .pin(ketQua: "ma_sai", conLan: e.conLan, choGiay: nil, chu: "Mã chưa đúng" + (e.conLan.map { " · còn \($0) lần thử" } ?? ""))
+      case "ma_tam_khoa": return .pin(ketQua: "ma_tam_khoa", conLan: 0, choGiay: e.choGiay, chu: "Sai nhiều lần rồi. Chờ một chút nhé.")
+      case "ma_da_dung": return .pin(ketQua: "ma_da_dung", conLan: nil, choGiay: nil, chu: "Mã này dùng rồi. Ba Mẹ lấy mã mới nhé.")
+      default: return .loi(ma: e.ma ?? "ma_loi", chu: e.chu)
+      }
+    } catch {
+      let now = dongHo()
+      var st = cauHinh.moTamOffline ?? MoTamOffline()
+      let kq = st.thuMo(biMat: policy?.maOfflineBiMat, ma: sach, now: now)
+      let cau = st.cau(kq, now: now)
+      cauHinh.moTamOffline = st; _ = try? kho.sua { $0.moTamOffline = st }
+      if kq == .chuaCoBiMat { return .loi(ma: "chua_co_bi_mat", chu: cau) }
+      guard kq == .daMo || kq == .dangMo else {
+        let ketQua = kq == .choThuLai ? "ma_tam_khoa" : kq == .daDung ? "ma_da_dung" : "ma_sai"
+        return .pin(ketQua: ketQua, conLan: kq == .sai ? max(0, MoTamOffline.saiToiDa - st.saiLuc.count) : nil,
+                    choGiay: kq == .choThuLai ? st.choGiay(now) : nil, chu: cau)
+      }
+      datCucBo(.baMe(den: st.moDen), baMeOffline: true)
+      // máy chủ còn ghi bé cũ đang dùng: có mạng lại thì thả bé đó ra (hết lượt Ba Mẹ ⇒ màn chọn tên, không vào lại phiên bé không PIN)
+      datLenhCho("khoa-lai", [:])
+      themSuKien("mo_ma_offline", ["den": NgayGio.viet(st.moDen ?? now), "baMe": "1"])
+      heThong.ghiLog("Mất mạng — Ba Mẹ mở máy bằng mã tới \(NgayGio.viet(st.moDen ?? now)).")
+      return .thongBao(chu: "Ba Mẹ đang dùng máy")
+    }
+  }
+
+  /// «Đổi bé / Đăng xuất» (bé) và «Khoá lại» (Ba Mẹ): về màn chọn tên NGAY tại máy; máy chủ nhận ngay hoặc khi có mạng lại.
+  private func roiMay(path: String) async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    if moTamDangMo() {                                 // lượt mở bằng mã (Ba Mẹ / con) kết thúc theo
+      cauHinh.moTamOffline?.moDen = dongHo()
+      let m = cauHinh.moTamOffline; _ = try? kho.sua { $0.moTamOffline = m }
+    }
+    if !matMang, !dangDongBo {                         // gửi giờ đã dùng của bé đang ra TRƯỚC (không thì phút cuối tính cho bé sau / mất)
+      dangDongBo = true; await dongBo(); dangDongBo = false
+    }
+    datCucBo(.chua)
+    let id = UUID(); lenhCho = (path, [:], id)
+    do { _ = try await api.mayChung("POST", path, [:]); if lenhCho?.id == id { lenhCho = nil }; datMayChu(.chua); dongBoSom() }
+    catch let e as LoiApi where !e.laMang { if lenhCho?.id == id { lenhCho = nil }; heThong.ghiLog("\(path) bị từ chối: \(e.chu)") }
+    catch {}
+    return .ok(id: nil)
   }
 
   // MARK: tự cập nhật
@@ -926,7 +1132,8 @@ public actor BoMay {
     // Báo máy chủ «đã gỡ xong» TRƯỚC khi xoá token (sau đó token không còn dùng được). Lỗi mạng thì bỏ qua — máy chủ chờ tối đa 7 ngày rồi cho xoá hẳn.
     do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
     // Thả hoàn toàn: xoá token + Policy (cả trong bộ nhớ lẫn đĩa) ⇒ các vòng sau coi như chưa ghép, không áp lại plist/hosts/đóng app.
-    _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0 }
+    _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0; $0.hoSoMay = nil; $0.phienMay = nil; $0.saiPin = nil }
+    lenhCho = nil
     quenDanhSachApp()
     cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
     api.datPhien(mayChu: cauHinh.mayChu, token: "")
@@ -1129,6 +1336,13 @@ public actor BoMay {
         k.hasPrefix(homNay) && giay >= 60 && !k.hasSuffix("|" + DemPhut.khongRo) ? MucDung(muc: String(k.dropFirst(homNay.count)), phut: Int(giay / 60), day: String(homNay.dropLast())) : nil
       }.sorted { $0.phut != $1.phut ? $0.phut > $1.phut : $0.muc < $1.muc }
       tt.chanSeq = chanSeq
+      tt.gioNgu = p?.gioNgu; tt.gioHoc = p?.gioHoc
+      if let nd = nguoiDungHieuLuc() {
+        tt.nguoiDung = nd.loai
+        if case let .con(id, ten) = nd { tt.beId = id; tt.beTen = ten.isEmpty ? cauHinh.hoSoMay?.con.first { $0.id == id }?.ten : ten }
+        if case let .baMe(den) = nd { tt.baMeDungDen = den }
+        tt.mayRieng = cauHinh.hoSoMay?.mayRieng
+      }
       if let c = chanCuoi { tt.chanApp = c.bundle; tt.chanTen = c.ten; tt.chanLyDo = c.lyDo }
     }
     return tt
