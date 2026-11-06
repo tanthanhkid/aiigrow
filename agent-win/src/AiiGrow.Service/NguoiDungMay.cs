@@ -74,6 +74,7 @@ public sealed class NguoiDungMay
         var be = _rt.DangNhap().HoSo?.Con.FirstOrDefault(c => c.Id == conId);
         using var api = Api();
         if (api == null) return Loi("chua_ghep", "Máy chưa ghép với Ba Mẹ");
+        await _rt.KhoaDoiNguoi.WaitAsync(ct);
         try
         {
             var kq = await api.DangNhapBeAsync(conId, pin, ct);
@@ -113,6 +114,7 @@ public sealed class NguoiDungMay
         {
             return Loi("loi", e.Message);
         }
+        finally { _rt.KhoaDoiNguoi.Release(); }
     }
 
     /// <summary>«Báo Ba Mẹ giúp con» (quên PIN).</summary>
@@ -139,6 +141,7 @@ public sealed class NguoiDungMay
         if (sach.Length != MaOffline.SoChuSo) return Loi("ma_sai", "Mã có 6 số.");
         using var api = Api();
         if (api == null) return Loi("chua_ghep", "Máy chưa ghép với Ba Mẹ");
+        await _rt.KhoaDoiNguoi.WaitAsync(ct);
         try
         {
             var kq = await api.BaMeMoAsync(sach, ct);
@@ -163,6 +166,7 @@ public sealed class NguoiDungMay
         {
             return Loi("loi", e.Message);
         }
+        finally { _rt.KhoaDoiNguoi.Release(); }
     }
 
     /// <summary>«Đổi bé / Đăng xuất» / «Khoá lại»: máy về màn chọn tên NGAY; báo máy chủ ở lượt đồng bộ kế (≤5 giây) — lượt đó gửi nốt phút dùng của bé
@@ -209,17 +213,21 @@ public sealed class NguoiDungMay
             viec = v;
             return doi;
         });
-        // vừa có bé vào lúc lượt đồng bộ đang chạy ⇒ thôi báo (dang-xuat lúc này sẽ đá bé mới khỏi máy chủ)
-        if (viec == ViecSauDongBo.BaoRoi && _rt.DangNhap() is { } dn && dn.Loai == LoaiNguoiDung.Con && !dn.CanBaoRoi) viec = ViecSauDongBo.KhongCo;
         if (viec == ViecSauDongBo.BaoRoi)
         {
+            // giữ khoá đổi người suốt lượt báo: bé / Ba Mẹ vào trong lúc này chờ dang-xuat xong rồi mới tới máy chủ (không bị đá ra)
+            await _rt.KhoaDoiNguoi.WaitAsync(ct);
             try
             {
+                // vừa có bé / Ba Mẹ vào lúc lượt đồng bộ đang chạy ⇒ thôi báo
+                var dn = _rt.DangNhap();
+                if (!dn.CanBaoRoi && DangNhapView.HienTai(dn, DateTimeOffset.Now) != LoaiNguoiDung.Chua && !(dn.Loai == LoaiNguoiDung.BaMe && dn.BaMeOffline)) return;
                 await api.RoiMayAsync(khoaLai: false, ct);
                 _rt.CapNhatDangNhap(d => { if (!d.CanBaoRoi) return false; d.CanBaoRoi = false; return true; });
                 _log.LogInformation("Đã báo máy chủ: máy về màn chọn tên");
             }
             catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Báo đăng xuất lỗi, để lần sau: {m}", e.Message); }
+            finally { _rt.KhoaDoiNguoi.Release(); }
         }
         if (DangNhapView.CanHoiHoSo(_rt.DangNhap(), now, _rt.HoSoHoiLuc))
         {

@@ -833,14 +833,16 @@ internal sealed class AppForm : Form
             _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Diem, ngan: true), null, KhoiApp.ChipCho("Chờ trao")));
         // 06/11 (L14 — con-ngay-thuong 24): voucher AiiCafe Ba Mẹ đã trao — mã (= QR quầy quét) + hạn, «Còn 49 ngày»
         // voucher hiện từ danh sách voucher (có mã, hạn, trạng thái) ⇒ dòng «đã trao» loại voucher bỏ, không hiện đôi
-        var vc = (_viQua?.Voucher ?? new List<HvVoucherVi>()).OrderByDescending(v => v.DungDuoc).ToList();
+        // còn dùng được: hết; đã dùng / hết hạn: 3 cái gần nhất (máy chủ trả mới trước)
+        var vcAll = _viQua?.Voucher ?? new List<HvVoucherVi>();
+        var vc = vcAll.Where(v => v.DungDuoc).Concat(vcAll.Where(v => !v.DungDuoc).Take(3)).ToList();
         var da = (_viQua?.DaTrao ?? new List<HvQuaDaTrao>()).Where(d => d.Loai != "voucher").ToList();
         _content.Controls.Add(KhoiApp.NhanMuc("Đã nhận", _cw));
         if (da.Count == 0 && vc.Count == 0) _content.Controls.Add(T(_viQua == null ? "Đang tải…" : "Ba Mẹ trao quà là con thấy ở đây.", 11.5f, false, UI.Muted));
         foreach (var v in vc)
             _content.Controls.Add(v.DungDuoc
                 ? KhoiApp.Dong(_cw, "the_qua", AppConView.TenVoucher(v), AppConView.PhuVoucher(v), Clay.NgocInk, KhoiApp.ChipNgoc($"Còn {v.ConNgay} ngày"))
-                : KhoiApp.Dong(_cw, "the_qua", AppConView.TenVoucher(v), AppConView.TrangThaiVoucher(v), null, KhoiApp.ChipCho(AppConView.TrangThaiVoucher(v))));
+                : KhoiApp.Dong(_cw, "the_qua", AppConView.TenVoucher(v), $"Mã {v.Ma}", null, KhoiApp.ChipCho(AppConView.TrangThaiVoucher(v))));
         foreach (var d in da)
             _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", d.Ten, $"{d.Diem} sao" + (d.XuLyLuc is { } x ? " · Ba Mẹ trao " + x.ToLocalTime().ToString("dd/MM") : ""), null, KhoiApp.ChipNgoc("Đã nhận")));
     }

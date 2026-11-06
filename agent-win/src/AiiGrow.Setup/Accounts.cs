@@ -19,7 +19,9 @@ internal static class Accounts
         var tao = string.IsNullOrEmpty(password)
             // -NoPassword có thể để cờ «phải đổi mật khẩu lần đầu» ⇒ tắt hẳn bằng net user (không yêu cầu mật khẩu, không bắt đổi lúc đăng nhập)
             ? $"New-LocalUser -Name {q} -NoPassword -AccountNeverExpires | Out-Null; " +
-              $"& net.exe user {q} /passwordreq:no /logonpasswordchg:no | Out-Null; if ($LASTEXITCODE -ne 0) {{ throw 'net user /passwordreq:no lỗi ' + $LASTEXITCODE }}; "
+              // không để mật khẩu (rỗng) hết hạn sau 42 ngày; lỗi phần này không chặn cài (tài khoản đã tạo — chạy lại sẽ báo trùng tên)
+              $"try {{ Set-LocalUser -Name {q} -PasswordNeverExpires $true }} catch {{}}; " +
+              $"& net.exe user {q} /passwordreq:no /logonpasswordchg:no 2>$null | Out-Null; "
             : "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
               $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; ";
         var r = Shell.PowerShell(

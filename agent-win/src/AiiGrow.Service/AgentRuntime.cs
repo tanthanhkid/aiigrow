@@ -373,12 +373,20 @@ public sealed class AgentRuntime
     /// <summary>con | ba_me | chua lúc <paramref name="now"/>.</summary>
     public string NguoiDung(DateTimeOffset now) { lock (_gate) return DangNhapCoHieuLuc(now) ? DangNhapView.HienTai(Config?.DangNhap, now) : LoaiNguoiDung.Con; }
 
-    /// <summary>Chọn tên + PIN chỉ áp khi máy CHẶN THẬT: giám sát / máy mồ côi không khoá màn nào (ChoKhayGiamSat) ⇒ coi như bé đang dùng
-    /// (vẫn đếm giờ, khay vẫn có tin) — không thì máy kẹt «chưa ai» mãi mà không có màn chọn tên. Gọi trong khoá.</summary>
-    private bool DangNhapCoHieuLuc(DateTimeOffset now) => AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo) && !MoCoi.La(Config, now);
+    /// <summary>Chọn tên + PIN áp cả khi máy chủ gửi «giam-sat»: máy chủ gửi đúng «giam-sat» khi máy dùng chung CHƯA có bé (lenh-may.ts › cheDoGuiMay) —
+    /// đó chính là lúc cần màn chọn tên (BuildState giữ màn khoá chọn tên cả ở giám sát). Chỉ máy mồ côi / đang gỡ mới bỏ hẳn (coi như bé đang dùng). Gọi trong khoá.</summary>
+    private bool DangNhapCoHieuLuc(DateTimeOffset now) => !DangGo && !MoCoi.La(Config, now);
 
-    /// <summary>Lần hỏi ho-so gần nhất (chỉ trong bộ nhớ — không ghi cấu hình mỗi lần hỏi).</summary>
-    public DateTimeOffset? HoSoHoiLuc { get; set; }
+    private long _hoSoHoiTick = long.MinValue;
+    /// <summary>Lần hỏi ho-so gần nhất (chỉ trong bộ nhớ — không ghi cấu hình mỗi lần hỏi). Đọc / ghi nguyên tử (pipe + vòng đồng bộ).</summary>
+    public DateTimeOffset? HoSoHoiLuc
+    {
+        get { var t = Interlocked.Read(ref _hoSoHoiTick); return t == long.MinValue ? null : new DateTimeOffset(t, TimeSpan.Zero); }
+        set => Interlocked.Exchange(ref _hoSoHoiTick, value?.UtcTicks ?? long.MinValue);
+    }
+
+    /// <summary>Một việc đổi người với máy chủ một lúc (dang-nhap-be / ba-me-mo ↔ dang-xuat báo bù) — dang-xuat đến sau không đá bé vừa vào.</summary>
+    public SemaphoreSlim KhoaDoiNguoi { get; } = new(1, 1);
 
     /// <summary>Bản sao trạng thái đăng nhập (đọc ngoài khoá).</summary>
     public DangNhapMay DangNhap()
@@ -614,6 +622,8 @@ public sealed class AgentRuntime
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
             // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.
             if (!AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo)) AiiGrow.Core.CheDoHieuLuc.ChoKhayGiamSat(s);
+            // máy dùng chung chưa có bé: máy chủ gửi «giam-sat» nhưng màn chọn tên vẫn phải hiện (không có nó thì không bé nào vào được)
+            if (coDn && s.NguoiDung == LoaiNguoiDung.Chua) { s.Locked = true; s.LockReason = LockReasons.ChonTen; s.LockGraceLeftSec = null; }
             return s;
         }
     }
