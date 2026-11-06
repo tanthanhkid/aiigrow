@@ -128,6 +128,7 @@ public actor BoMay {
         $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0
         $0.phienBu = nil; $0.moTamOffline = nil; $0.demPhut = [:]
       }
+      $0.hoSoMay = nil; $0.phienMay = nil; $0.saiPin = nil      // bé, vân PIN, ai đang dùng: luôn của lần ghép này
     }
     heThong.xoaTep(DuongDan.tokenGoi); tokenGoiNho = nil   // chỉ xoá token gói SAU khi đã lưu được token máy (ghi lỗi thì còn token để biết)
     cauHinh = kho.doc() ?? cauHinh
@@ -251,7 +252,7 @@ public actor BoMay {
       policy = kq.policy
       if kq.nguoiDung != nil {
         var pm = cauHinh.phienMay ?? PhienMay()
-        pm.nhanMayChu(kq.nguoiDung, guiLuc: guiLuc, now: dongHo())
+        pm.nhanMayChu(kq.nguoiDung, guiLuc: guiLuc, now: dongHo(), daGuiHet: choGuiMayChung.isEmpty)
         if pm != cauHinh.phienMay { cauHinh.phienMay = pm; _ = try? kho.sua { $0.phienMay = pm } }
       }
       matMang = false
@@ -381,7 +382,10 @@ public actor BoMay {
         nho[app + "|" + bundle] = v
         return v
       }
-      var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep, trinhDuyet: trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
+      // màn chọn tên (chưa bé nào vào): kể cả trình duyệt đã lọc cũng đóng — không dựa vào lớp che của tray
+      let chuaAi = nguoiDungHieuLuc() == .chua
+      var can = QuyetDinhApp.canDong(ds, uidCon: uidCon, chiAppHoc: hl.chiAppHoc, choPhep: choPhep,
+                                     trinhDuyet: chuaAi ? [] : trinhDuyet.subtracting(trinhDuyetCanDong), tinCay: tinCay)
       can += BoMay.safariKhongLocDuoc(ds, uidCon: uidCon, p: p, now: now, chiAppHoc: hl.chiAppHoc, daCo: Set(can.map(\.pid)))
       let biChan = appBiChanCanDong(ds, uidCon: uidCon, p: p, chan: true, daCo: Set(can.map(\.pid)))     // app Ba Mẹ «Chặn»: MỌI mode
       // trình duyệt chỉ bị đóng MỘT lần để nạp luật lọc mới (trinhDuyetCanDong) — Con mở lại được ngay ⇒ không hiện màn «chưa được mở»
@@ -657,7 +661,8 @@ public actor BoMay {
 
   private func datMayChu(_ n: NguoiDungMay) {
     var pm = cauHinh.phienMay ?? PhienMay()
-    pm.mayChu = n; pm.cucBo = nil; pm.cucBoLuc = nil
+    // máy chủ vừa nhận lệnh: ghi như ghi đè CÓ MỐC giờ — lượt dong-bo đang bay (gửi trước lệnh) về muộn không đè được
+    pm.mayChu = n; pm.cucBo = n; pm.cucBoLuc = dongHo()
     cauHinh.phienMay = pm
     _ = try? kho.sua { $0.phienMay = pm }
   }
@@ -788,6 +793,9 @@ public actor BoMay {
                     choGiay: kq == .choThuLai ? st.choGiay(now) : nil, chu: cau)
       }
       datCucBo(.baMe(den: st.moDen))
+      // máy chủ còn ghi bé cũ đang dùng: có mạng lại thì thả bé đó ra (hết lượt Ba Mẹ ⇒ màn chọn tên, không vào lại phiên bé không PIN)
+      choGuiMayChung.removeAll { $0.path == "dang-nhap-be" || $0.path == "dang-xuat" || $0.path == "khoa-lai" }
+      choGuiMayChung.append(("khoa-lai", [:]))
       themSuKien("mo_ma_offline", ["den": NgayGio.viet(st.moDen ?? now), "baMe": "1"])
       heThong.ghiLog("Mất mạng — Ba Mẹ mở máy bằng mã tới \(NgayGio.viet(st.moDen ?? now)).")
       return .thongBao(chu: "Ba Mẹ đang dùng máy")
@@ -1117,7 +1125,8 @@ public actor BoMay {
     // Báo máy chủ «đã gỡ xong» TRƯỚC khi xoá token (sau đó token không còn dùng được). Lỗi mạng thì bỏ qua — máy chủ chờ tối đa 7 ngày rồi cho xoá hẳn.
     do { try await api.baoXongLenh(id: lenhId) } catch { heThong.ghiLog("Không báo được «xong lệnh gỡ» (\(error)) — vẫn gỡ tại máy.") }
     // Thả hoàn toàn: xoá token + Policy (cả trong bộ nhớ lẫn đĩa) ⇒ các vòng sau coi như chưa ghép, không áp lại plist/hosts/đóng app.
-    _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0 }
+    _ = try? kho.sua { $0.token = ""; $0.policyCuoi = nil; $0.policyLuc = nil; $0.daDungGiayTuSync = 0; $0.hoSoMay = nil; $0.phienMay = nil; $0.saiPin = nil }
+    choGuiMayChung = []
     quenDanhSachApp()
     cauHinh = kho.doc() ?? { var c = cauHinh; c.token = ""; c.policyCuoi = nil; return c }()
     api.datPhien(mayChu: cauHinh.mayChu, token: "")

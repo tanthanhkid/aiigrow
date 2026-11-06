@@ -25,6 +25,9 @@ final class PinBeTests: XCTestCase {
     XCTAssertEqual(d.choGiay(con: "c2", now: t0.addingTimeInterval(6)), 0, "đếm theo từng bé")
     XCTAssertEqual(d.choGiay(con: "c1", now: t0.addingTimeInterval(21)), 0)
     XCTAssertEqual(d.ghiSai(con: "c1", now: t0.addingTimeInterval(22)).conLan, 4, "hết chờ thì đếm lại từ đầu")
+    for i in 23...25 { _ = d.ghiSai(con: "c1", now: t0.addingTimeInterval(Double(i))) }
+    XCTAssertEqual(d.ghiSai(con: "c1", now: t0.addingTimeInterval(26)).choGiay, 30, "khoá lần 2 liên tiếp ⇒ chờ gấp đôi (chống dò PIN lúc mất mạng)")
+    d.xoa(con: "c1"); XCTAssertNil(d.lanKhoa["c1"])
     // lượt sai cũ hơn 15 phút không cộng dồn
     var e = BoDemSaiPin()
     for i in 0..<4 { _ = e.ghiSai(con: "c1", now: t0.addingTimeInterval(Double(i))) }
@@ -70,6 +73,8 @@ final class PinBeTests: XCTestCase {
     var p2 = PhienMay(); p2.mayChu = .con(id: "c1", ten: "A"); p2.datCucBo(.chua, now: t)
     p2.nhanMayChu(.con(id: "c1", ten: "A"), guiLuc: t.addingTimeInterval(-5), now: t)
     XCTAssertEqual(p2.hieuLuc(now: t), .chua, "đồng bộ gửi TRƯỚC lúc Đổi bé không ghi đè")
+    p2.nhanMayChu(.con(id: "c1", ten: "A"), guiLuc: t.addingTimeInterval(5), now: t, daGuiHet: false)
+    XCTAssertEqual(p2.hieuLuc(now: t), .chua, "lệnh Đổi bé chưa tới máy chủ ⇒ giữ màn chọn tên")
     p2.nhanMayChu(.chua, guiLuc: t.addingTimeInterval(5), now: t)
     XCTAssertNil(p2.cucBo)
 
@@ -183,6 +188,14 @@ final class PinBeTests: XCTestCase {
     let t1b = await trangThai(b)
     XCTAssertEqual(t1b?.nguoiDung, "ba_me"); XCTAssertEqual(t1b?.baMeDungDen, dh.thuc.addingTimeInterval(1800))
     XCTAssertNotEqual(t1.cheDo, .khoa)
+    // có mạng lại: lệnh thả bé cũ (khoa-lai) gửi TRƯỚC dong-bo
+    api.matMang = false; api.mayChungTra["POST khoa-lai"] = .success(Data("{}".utf8))
+    api.dongBoLoi = nil; api.dongBoTraVe = kq
+    dh.tien(700); _ = await b.motVong()
+    XCTAssertTrue(api.lanMayChung.contains { $0.0 == "POST khoa-lai" })
+    let t1c = await trangThai(b)
+    XCTAssertEqual(t1c?.nguoiDung, "ba_me", "Ba Mẹ mở offline giữ tới hạn")
+    api.matMang = true; api.dongBoTraVe = nil; api.dongBoLoi = LoiApi(chu: "mất mạng")
     // mã đã dùng không mở lại
     _ = await b.xuLyIPC(.khoaLai, uidGoi: 501)
     let t2 = await trangThai(b)

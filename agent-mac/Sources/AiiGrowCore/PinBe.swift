@@ -85,7 +85,10 @@ public enum PinBe {
 public struct BoDemSaiPin: Codable, Equatable, Sendable {
   public var sai: [String: [Date]] = [:]
   public var khoaDen: [String: Date] = [:]
+  /// Số lần bị khoá liên tiếp (chưa đúng lần nào) — mất mạng thì chờ gấp đôi mỗi lần (15 giây → tối đa 15 phút) để không dò hết 10.000 PIN.
+  public var lanKhoa: [String: Int] = [:]
   public init() {}
+  public static let choToiDa = 15 * 60
 
   /// Giây còn phải chờ (0 = thử được).
   public func choGiay(con: String, now: Date) -> Int {
@@ -99,14 +102,17 @@ public struct BoDemSaiPin: Codable, Equatable, Sendable {
     ds.append(now)
     if ds.count >= saiToiDa {
       sai[con] = []
-      khoaDen[con] = now.addingTimeInterval(TimeInterval(choGiay))
-      return (0, choGiay)
+      let lan = (lanKhoa[con] ?? 0) + 1
+      lanKhoa[con] = lan
+      let cho = min(BoDemSaiPin.choToiDa, choGiay << min(lan - 1, 10))
+      khoaDen[con] = now.addingTimeInterval(TimeInterval(cho))
+      return (0, cho)
     }
     sai[con] = ds
     return (saiToiDa - ds.count, 0)
   }
 
-  public mutating func xoa(con: String) { sai[con] = nil; khoaDen[con] = nil }
+  public mutating func xoa(con: String) { sai[con] = nil; khoaDen[con] = nil; lanKhoa[con] = nil }
 }
 
 /// Ai đang dùng máy — từ khối `nguoiDung` của dong-bo / nhip (máy chủ) hoặc trạng thái cục bộ lúc mất mạng.
@@ -153,11 +159,12 @@ public struct PhienMay: Codable, Equatable, Sendable {
 
   /// Máy chủ trả khối mới (đồng bộ bắt đầu SAU lúc ghi cục bộ) ⇒ bỏ phần cục bộ. Riêng «Ba Mẹ mở bằng mã lúc mất mạng» giữ tới hạn
   /// (máy chủ không biết lượt mở offline — có mạng lại không cắt ngang Ba Mẹ đang dùng).
-  public mutating func nhanMayChu(_ n: NguoiDungMay?, guiLuc: Date, now: Date) {
+  /// `daGuiHet` = mọi lệnh máy dùng chung làm lúc mất mạng đã tới máy chủ — chưa tới thì giữ phần cục bộ (máy chủ còn trạng thái cũ).
+  public mutating func nhanMayChu(_ n: NguoiDungMay?, guiLuc: Date, now: Date, daGuiHet: Bool = true) {
     guard let n else { return }
     mayChu = n
     if case let .baMe(den)? = cucBo, let den, den > now, n.loai != "ba_me" { return }
-    if let l = cucBoLuc, guiLuc >= l { cucBo = nil; cucBoLuc = nil }
+    if daGuiHet, let l = cucBoLuc, guiLuc >= l { cucBo = nil; cucBoLuc = nil }
   }
 
   /// Giờ / quỹ của con chỉ tính khi một bé đang dùng (hoặc máy chủ cũ không nói gì).

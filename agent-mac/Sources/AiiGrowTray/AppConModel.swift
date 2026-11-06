@@ -117,14 +117,18 @@ final class AppConModel: ObservableObject {
     return (kq, nil)
   }
 
-  func doiQua(_ q: HvQua, dsChoi: [String]) async {
-    guard !dangBan, let id = HocVienPaths.doan(q.id) else { return }
+  /// true = máy chủ đã nhận lời đổi.
+  @discardableResult
+  func doiQua(_ q: HvQua, dsChoi: [String]) async -> Bool {
+    guard !dangBan else { return false }
+    guard let id = HocVienPaths.doan(q.id) else { noi("Quà này chưa đổi được. Con chọn quà khác nhé.", loi: true); return false }
     dangBan = true; noi("Đang đổi quà…")
     let (d, loi) = await hoi("POST", "hoc-vien/doi/\(id)")
     dangBan = false
-    guard let d, let kq = HvDoiKq.doc(d) else { noi(loi ?? "Chưa đổi được. Con thử lại nhé.", loi: true); return }
+    guard let d, let kq = HvDoiKq.doc(d) else { noi(loi ?? "Chưa đổi được. Con thử lại nhé.", loi: true); return false }
     await lamMoi(dsChoi: dsChoi)
     noi(HocVienView.doiThongBao(kq, tenQua: q.ten))
+    return true
   }
 
   func traLoi(_ l: HvLoiKhen, _ cau: String, dsChoi: [String]) async {

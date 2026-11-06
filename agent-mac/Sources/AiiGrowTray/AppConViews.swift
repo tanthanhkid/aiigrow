@@ -118,7 +118,7 @@ struct AppConView: View {
     .frame(minWidth: 880, minHeight: 600)
     .nenClay()
     .sheet(item: $quaHoi) { q in
-      DoiQuaView(q: q, sao: app.ch?.soDu ?? app.tq?.soDu ?? 0, app: app, dong: { quaHoi = nil },
+      DoiQuaView(q: q, sao: app.ch?.soDu ?? app.tq?.soDu ?? 0, app: app, dsChoi: dsChoi, dong: { quaHoi = nil },
                  lamThem: { quaHoi = nil; app.chon(.nhiemVu) }, xemQua: { quaHoi = nil; app.chon(.phanQua) })
     }
     .sheet(isPresented: $hoiDoiBe) { doiBeSheet }
@@ -737,6 +737,7 @@ struct DoiQuaView: View {
   let q: HvQua
   let sao: Int
   @ObservedObject var app: AppConModel
+  var dsChoi: [String] = []
   var dong: () -> Void = {}
   var lamThem: () -> Void = {}
   var xemQua: () -> Void = {}
@@ -766,7 +767,7 @@ struct DoiQuaView: View {
         Chu(du ? "Gửi Ba Mẹ · Ba Mẹ trao quà mới trừ sao" : "Đủ sao thì gửi Ba Mẹ · Ba Mẹ trao quà mới trừ sao", co: 13, mau: ClayMau.chu3, dong: 2)
         Button(dangGui ? "Đang gửi…" : "Gửi Ba Mẹ: đổi \(q.diem) sao") {
           dangGui = true
-          Task { await app.doiQua(q, dsChoi: []); dangGui = false; daGui = !app.thongBaoLoi }
+          Task { daGui = await app.doiQua(q, dsChoi: dsChoi); dangGui = false }
         }
         .buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(!du || dangGui)
         if app.thongBaoLoi, !app.thongBao.isEmpty { Chu(app.thongBao, co: 13, dam: .semibold, mau: ClayMau.loi, dong: 2) }

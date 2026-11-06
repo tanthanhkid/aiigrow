@@ -14,6 +14,9 @@ final class ChonTenModel: ObservableObject {
   @Published var cauLoi = false
   /// Đang bị chờ (sai 5 lần) tới lúc này.
   @Published var choDen: Date?
+  /// Hạn chờ theo từng bé (mốc tuyệt đối) — chọn lại tên không làm mất / làm sai đồng hồ chờ.
+  var choDenBe: [String: Date] = [:]
+  private var taiLuc = Date()
   @Published var ma = ""
   @Published var dangGui = false
   /// Lần đăng nhập vừa xong (tray hỏi lại trạng thái để gỡ màn).
@@ -26,7 +29,10 @@ final class ChonTenModel: ObservableObject {
   var dsBe: [HoSoBe] { hoSo?.con ?? [] }
 
   func tai() async {
-    if case let .duLieu(j) = await goi(.hoSo), let h = try? IPCMa.decoder.decode(HoSoMay.self, from: Data(j.utf8)) { hoSo = h }
+    if case let .duLieu(j) = await goi(.hoSo), let h = try? IPCMa.decoder.decode(HoSoMay.self, from: Data(j.utf8)) {
+      hoSo = h; taiLuc = Date()
+      for b in h.con { if let d = b.khoaDen ?? b.choGiay.map({ taiLuc.addingTimeInterval(TimeInterval($0)) }), d > (choDenBe[b.id] ?? .distantPast) { choDenBe[b.id] = d } }
+    }
     else if hoSo == nil { cau = "Chưa lấy được danh sách các bé. Con thử lại sau vài giây nhé."; cauLoi = true }
   }
 
@@ -36,7 +42,7 @@ final class ChonTenModel: ObservableObject {
 
   func chon(_ b: HoSoBe) {
     cau = nil; cauLoi = false; pin.lamLai()
-    choDen = b.choGiay.map { Date().addingTimeInterval(TimeInterval($0)) }
+    choDen = choDenBe[b.id].flatMap { $0 > Date() ? $0 : nil }
     if b.coPin { buoc = .pin(b) } else { Task { await dangNhap(b, pin: nil) } }      // bé chưa có PIN: chạm tên vào thẳng
   }
 
@@ -52,7 +58,7 @@ final class ChonTenModel: ObservableObject {
     case let .pin(kq, conLan, cho, chu):
       if kq == "ok" { cau = nil; xong(); return }
       pin.lamLai()
-      if let cho, cho > 0 { choDen = Date().addingTimeInterval(TimeInterval(cho)); cau = nil }
+      if let cho, cho > 0 { choDen = Date().addingTimeInterval(TimeInterval(cho)); choDenBe[b.id] = choDen; cau = nil }
       else { cau = ManMac.cauPin(kq, conLan: conLan) ?? chu; cauLoi = true }
     case let .loi(_, chu): pin.lamLai(); cau = chu; cauLoi = true
     default: pin.lamLai(); cau = "Chưa vào được. Con thử lại nhé."; cauLoi = true
