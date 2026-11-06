@@ -37,7 +37,7 @@ async function mo(): Promise<Db> {
     };
   }
   // Vercel/serverless không có đĩa bền: thiếu DATABASE_URL thì báo rõ, đừng lặng lẽ ghi vào thư mục tạm rồi mất dữ liệu.
-  if (process.env.VERCEL || process.env.AIIGROW_BAT_BUOC_DB === "1") throw new Error("Thiếu DATABASE_URL — trên Vercel phải dùng Postgres thật (Neon/Supabase…)");
+  if (process.env.VERCEL || process.env.AIIGROW_BAT_BUOC_DB === "1") throw new Error("Thiếu DATABASE_URL — prod (Vercel/VPS) phải dùng Postgres thật (Neon/Supabase…)");
   const { PGlite } = await import("@electric-sql/pglite");
   const dir = process.env.PGLITE_DIR || (process.env.NODE_ENV === "test" ? undefined : ".data/pg");
   if (dir) (await import("node:fs")).mkdirSync(dir, { recursive: true });

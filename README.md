@@ -28,7 +28,7 @@ versionCode = số commit (luôn tăng), versionName = `<version package.json>+<
 
 **Từ 06/11/2026 prod `aiigrow.aiilab.vn` chạy trên VPS của Thanh, không còn Vercel** (team Vercel Hobby bị chặn mềm vì vượt fair-use CPU).
 VPS: `ssh trinity-crm` (1 vCPU, 2 GB) — nginx `/etc/nginx/sites-enabled/aiigrow.conf` (TLS certbot) → pm2 `aiigrow` ở `127.0.0.1:3320`;
-mã ở `/opt/aiigrow/releases/<sha>` (`current` trỏ bản đang chạy, giữ 3 bản); biến môi trường ở `/etc/aiigrow/aiigrow.env` (root, chmod 600, có `AIIGROW_BAT_BUOC_DB=1` ⇒ thiếu `DATABASE_URL` thì báo lỗi chứ không lặng lẽ dùng PGlite;
+mã ở `/opt/aiigrow/releases/<sha>` (`current` trỏ bản đang chạy, giữ 3 bản); biến môi trường ở `/etc/aiigrow/aiigrow.env` (root, chmod 600, có `AIIGROW_APP_URL=https://aiigrow.aiilab.vn` + `AIIGROW_BAT_BUOC_DB=1` ⇒ thiếu `DATABASE_URL` thì báo lỗi chứ không lặng lẽ dùng PGlite;
 không nằm trong git); cron dọn kiểm toán ở `/etc/cron.d/aiigrow` (thay `crons` của `server/vercel.json`). CSDL vẫn là Neon.
 
 Merge vào `main` **không** tự deploy. Làm xong một lô tính năng thì chạy `scripts/deploy-prod.sh --chi-kiem` trên bản sạch của `origin/main`

@@ -26,15 +26,24 @@ fi
 
 echo "== Dựng $SHA"
 ( cd server
-  [ -d node_modules/next ] || { pnpm install --frozen-lockfile || true; rm -f pnpm-workspace.yaml; }   # pnpm 10 trả lỗi IGNORED_BUILDS dù cài xong
+  # pnpm 10 trả mã lỗi IGNORED_BUILDS (@sentry/cli) dù cài xong ⇒ chỉ bỏ qua đúng lỗi đó (cùng luật với deploy-prod.sh)
+  o="$(pnpm install --frozen-lockfile 2>&1)" || { grep -oE 'ERR_PNPM_[A-Z_]+' <<<"$o" | grep -vq '^ERR_PNPM_IGNORED_BUILDS$' && { tail -20 <<<"$o"; exit 1; }; }
+  rm -f pnpm-workspace.yaml; [ -d node_modules/next ] || { echo "pnpm install lỗi"; exit 1; }
   [ -d ../mobile/node_modules ] || (cd ../mobile && npm ci)
+  # Bản web Expo lấy client OAuth từ mobile/.env.local (gitignore) — thiếu thì nút Google/Facebook biến mất lặng lẽ
+  for k in EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID EXPO_PUBLIC_FACEBOOK_APP_ID; do grep -q "^$k=." ../mobile/.env.local 2>/dev/null || { echo "Thiếu $k trong mobile/.env.local (chép từ ~/OFFLINE_FILES/Code/aiigrow/mobile/.env.local)"; exit 1; }; done
   node scripts/build-app.mjs                                   # app Expo web ⇒ public/app (gọi pnpm build:app bị kiểm deps của pnpm chặn)
   rm -rf .next
   AIIGROW_STANDALONE=1 NEXT_TELEMETRY_DISABLED=1 ./node_modules/.bin/next build )
 GOI=server/.next/standalone
 [ -f "$GOI/server.js" ] || { echo "Không thấy $GOI/server.js — next.config.ts chưa bật output standalone?"; exit 1; }
 cp -R server/.next/static "$GOI/.next/static"                   # standalone không tự chép .next/static và public/
-rm -rf "$GOI/public"; cp -R server/public "$GOI/public"
+# public/ chỉ lấy tệp có trong git + bản web Expo vừa dựng (public/app) — không mang tệp lạ trên máy (gói cài .exe/.pkg/.apk…) lên VPS đĩa nhỏ
+rm -rf "$GOI/public"; mkdir -p "$GOI/public"
+git ls-files server/public | sed "s|^server/public/||" | COPYFILE_DISABLE=1 tar cf - -C server/public -T - | tar xf - -C "$GOI/public"
+cp -R server/public/app "$GOI/public/app"
+# sharp (tối ưu ảnh) bị trace bản darwin — app không dùng next/image; bỏ để không mang nhị phân macOS sang Linux
+rm -rf "$GOI"/node_modules/.pnpm/@img+sharp-*darwin*
 echo "$SHA" > "$GOI/BAN"
 du -sh "$GOI"
 [ $CHI_DUNG = 1 ] && { echo "(chỉ dựng, không đẩy)"; exit 0; }
@@ -56,17 +65,18 @@ chay() {   # chay <thư mục bản>: delete + start (pm2 reload không đổi �
   PORT=3320 HOSTNAME=127.0.0.1 pm2 start "$1/server.js" --name aiigrow --cwd "$1" \
     --node-args="--env-file=/etc/aiigrow/aiigrow.env --max-old-space-size=384" --max-memory-restart 450M >/dev/null
 }
-khoe() { for i in $(seq 30); do curl -fsS -o /dev/null http://127.0.0.1:3320/api/m/cau-hinh-dang-nhap && return 0; sleep 1; done; return 1; }
+# /api/suc-khoe chạy `select 1` ⇒ bản thiếu/sai DATABASE_URL không qua được cổng
+khoe() { for i in $(seq 30); do curl -fsS -o /dev/null http://127.0.0.1:3320/api/suc-khoe && return 0; sleep 1; done; return 1; }
 chay "/opt/aiigrow/releases/$BAN"
 if ! khoe; then
   echo "Bản mới KHÔNG lên (log dưới) — quay lại ${CU:-<không có bản cũ>}"; pm2 logs aiigrow --lines 30 --nostream 2>&1 | tail -30
-  [ -n "$CU" ] && { chay "$CU"; khoe && pm2 save >/dev/null; }
+  if [ -n "$CU" ]; then chay "$CU"; khoe && pm2 save >/dev/null; else pm2 delete aiigrow >/dev/null 2>&1 || true; fi
   rm -rf "releases/$BAN"; exit 1
 fi
 ln -sfn "/opt/aiigrow/releases/$BAN" current
 pm2 save >/dev/null
 # giữ 3 bản gần nhất (đĩa VPS nhỏ); không xoá bản đang chạy
 ls -1t releases | tail -n +4 | while read -r b; do [ "/opt/aiigrow/releases/$b" = "$(readlink current)" ] || rm -rf "releases/$b"; done
-curl -fsS http://127.0.0.1:3320/api/m/cau-hinh-dang-nhap; echo
+curl -fsS http://127.0.0.1:3320/api/m/cau-hinh-dang-nhap; echo; curl -fsS http://127.0.0.1:3320/api/suc-khoe; echo
 TREN_VPS
 echo "== Xong: https://aiigrow.aiilab.vn ($BAN)"
