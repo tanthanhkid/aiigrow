@@ -5,7 +5,8 @@ import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { luuThietLap, napAppGoiY, type AppGoiY } from "@/lib/ghep-may";
-import { Anh3D, DauMan, OApp, OThemApp, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
+import { Anh3D, DauMan, OApp, OThemApp, TieuDe } from "@/lib/lan-dau";
+import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { coMa, datTl, layTl, type AppChon } from "@/lib/thiet-lap";
 import { BaoLoi, Chu, Icon3D, M, Man, Nut, The, useLam } from "@/lib/ui";
 
@@ -29,7 +30,7 @@ export default function ChonApp() {
     router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
   }, { hangDoi: true });
   return (
-    <Man dau={<DauMan ve="/thiet-lap/gio" phai={<ThanhBuoc dang={2} ic="khien" />} />}
+    <Man dau={<DauMan ve="/thiet-lap/gio" phai={<ThanhBuoc5 dang={3} ic="khien" />} />}
       day={<><BaoLoi loi={loi} /><Nut chu={`Cho ${ten} dùng ${apps.length} app này`} rong dangChay={dangChay} bam={luu} /></>}>
       <TieuDe chu="Con được dùng app nào?" />
       <Pressable onPress={() => router.back()} accessibilityRole="button" style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: "#dcebe6" }}>

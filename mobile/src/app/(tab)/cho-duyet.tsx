@@ -4,14 +4,15 @@
 //    · «Cho, trừ giờ chơi» · «Không cho» (lib/hom-nay-xin)
 //  • Cần để ý · n — máy chưa được bảo vệ đủ (tuan-thu?nhe=1) → /may/<id>
 //  • Con đã nộp · n — «Duyệt cả n · +S sao» (duyet-hang-loat) + từng việc → màn bằng chứng /duyet/<id>
-//  • Quà chờ trao — «Đã trao» (phieu/:id/trao)
+//  • Quà chờ trao — «Trao quà» ⇒ bảng them-5otw85h4 (lib/trao-qua: Đã trao trừ sao / Huỷ & hoàn sao / voucher QR + hạn)
 //  • Đã xử lý hôm nay — việc tự cộng sao (AiiRob tự chấm / tự cộng sao)
 // Trống ⇒ «Ba Mẹ duyệt xong hết rồi!» + «Giao một nhiệm vụ». Mất mạng ⇒ khung ChoTai (Rob chờ, tự tải lại).
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, type TuanThuMay } from "@/lib/api";
-import { hinhNv, hoanTacThemGio, SaoVien, TieuMuc, HangViec, type ChoDuyetMoi } from "@/lib/hang-ngay";
+import { hinhNv, hoanTacThemGio, SaoVien, TieuMuc, HangViec, type ChoDuyetMoi, type PhieuCho } from "@/lib/hang-ngay";
+import { BangTraoQua } from "@/lib/trao-qua";
 import { tenMayXin, TheXin, type KetQua } from "@/lib/hom-nay-xin";
 import { KHOA_TAB } from "@/lib/tab-ba-me";
 import {
@@ -26,6 +27,7 @@ const napCho = async () => {
 export default function ChoDuyet() {
   const { d, loi, matMang, tai } = useTai(napCho, `${KHOA_TAB.choDuyet}:05-11`);
   const [chon, setChon] = useState("ca");
+  const [trao, setTrao] = useState<PhieuCho | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
   if (!d) return <Man tieuLon="Chờ duyệt" lui={{ chu: "Hôm nay", ve: "/hom-nay" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -56,17 +58,16 @@ export default function ChoDuyet() {
     bao(`Đã duyệt ${r.daDuyet} việc · +${r.sao} sao`);
     await tai();
   }, { hangDoi: true });
-  const trao = (id: string, ten: string, con: string) => lam(async () => {
-    await bm.goi(`phieu/${id}/trao`, {});
-    bao(`Đã trao «${ten}» cho ${con}`);
-    await tai();
-  });
   const saoCa = nv.reduce((n, x) => n + (x.sao ?? x.diem), 0);
 
   const chip = tenCon.size ? (
     <ChonMot ds={[{ gia: "ca", chu: `Cả nhà ${tatCa}` }, ...[...tenCon].map(([id, ten]) => ({ gia: id, chu: `${ten} ${dem(id)}` }))]} gia={chon} doi={setChon} />
   ) : null;
 
+  // Bảng trao quà (Modal) đứng NGOÀI hai nhánh, cùng vị trí ⇒ trao quà cuối là voucher thì danh sách rỗng nhưng bảng QR + mã không bị dựng lại / mất
+  const bang = <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />;
+  return <>{noiDung()}{bang}</>;
+  function noiDung() {
   if (!tong) {
     return (
       <Man tieuLon="Chờ duyệt" lui={{ chu: "Hôm nay", ve: "/hom-nay" }} tai={tai} vongTai noi={noi}>
@@ -123,8 +124,8 @@ export default function ChoDuyet() {
         <>
           <TieuMuc chu={`Quà chờ trao · ${qua.length}`} />
           <The>{qua.map((x, k) => (
-            <HangViec key={x.id} dau={k === 0} ic="qua" mau="cam" tieu={x.ten} phu={`${x.ten_con} đổi ${x.diem} sao · ${truoc(x.created_at)}`}
-              phai={<Nut chu="Đã trao" nho dangChay={dangChay} bam={() => trao(x.id, x.ten, x.ten_con)} />} />
+            <HangViec key={x.id} dau={k === 0} ic="qua" mau="cam" tieu={x.ten} phu={`${x.ten_con} · đang giữ ${x.diem} sao · ${truoc(x.created_at)}`}
+              phai={<Nut chu="Trao quà" nho bam={() => setTrao(x)} nhanDoc={`Trao ${x.ten} cho ${x.ten_con}`} />} />
           ))}</The>
         </>
       ) : null}
@@ -132,6 +133,7 @@ export default function ChoDuyet() {
       {tuDong.length ? <DaXuLy ds={tuDong} /> : null}
     </Man>
   );
+  }
 }
 
 function DaXuLy({ ds }: { ds: NonNullable<ChoDuyetMoi["tuDong"]> }) {

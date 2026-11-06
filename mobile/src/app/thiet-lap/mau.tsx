@@ -1,12 +1,13 @@
-// bm1-ob-mau «Giao việc cho X» (bước 2/4, thiết kế chốt 04/11, L9): chọn bộ việc (GET nhiem-vu/bo — Tự lập, Phụ việc nhà, Học tập, Khoẻ mạnh),
+// bm1-ob-mau «Giao việc cho X» (bước 2/5, thiết kế chốt 04/11 + 06/11 sang Chọn quà, L9 L15): chọn bộ việc (GET nhiem-vu/bo — Tự lập, Phụ việc nhà, Học tập, Khoẻ mạnh),
 // mỗi việc một dòng (hình, lặp lại, số sao, bỏ / giữ tick), «Thêm việc riêng», tổng «Đủ N việc ⭐ X sao → đổi X phút chơi» (10 sao = 10 phút).
-// «Giao N việc cho X» ⇒ POST nhiem-vu/bo {bo, con, chon} ⇒ Giờ chơi.
+// «Giao N việc cho X» ⇒ POST nhiem-vu/bo {bo, con, chon} ⇒ Chọn quà (them-s416tfdj, /thiet-lap/qua).
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, ScrollView, View } from "react-native";
 import { bm } from "@/lib/api";
 import { BONG } from "@/lib/clay";
-import { DauMan, LienKet, ThanhBuoc, TieuDe } from "@/lib/lan-dau";
+import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
+import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { layTl } from "@/lib/thiet-lap";
 import { BaoLoi, ChoTai, Chu, Icon, Icon3D, M, Man, Nhan, Nut, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
@@ -33,12 +34,12 @@ export default function ObMau() {
   const giao = () => lam(async () => {
     if (!tl.conId) throw new Error("Chưa biết giao việc cho con nào — quay lại bước hồ sơ con.");
     await bm.goi("nhiem-vu/bo", { bo: b!.ma, con: tl.conId, chon: chon.map((v) => v.ten) });
-    router.push("/thiet-lap/gio");
+    router.push("/thiet-lap/qua");
   });
-  const dau = <DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc dang={1} />} />;
+  const dau = <DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc5 dang={1} />} />;
   if (!b) {
     return (
-      <Man dau={dau} day={d ? <Nut chu="Sang Giờ chơi" rong bam={() => router.push("/thiet-lap/gio")} /> : undefined}>
+      <Man dau={dau} day={d ? <Nut chu="Sang chọn quà" rong bam={() => router.push("/thiet-lap/qua")} /> : undefined}>
         <TieuDe chu={`Giao việc cho ${ten}`} />
         {d ? <Chu co={14.5} mau={M.chu2}>Chưa có bộ việc nào — giao việc sau ở tab Nhiệm vụ.</Chu> : <ChoTai loi={loiTai} matMang={matMang} tai={tai} />}
       </Man>
@@ -53,7 +54,7 @@ export default function ObMau() {
             <Nhan loai="diem" ic="sao" chu={`${tong} sao`} /><Chu co={13.5} mau={M.chu2}>→ đổi</Chu><Nhan chu={`${tong} phút chơi`} />
           </View>
         </View>
-        <Nut chu={chon.length ? `Giao ${chon.length} việc cho ${ten}` : "Để sau, sang Giờ chơi"} rong dangChay={dangChay} bam={chon.length ? giao : () => router.push("/thiet-lap/gio")} /></>}>
+        <Nut chu={chon.length ? `Giao ${chon.length} việc, sang chọn quà` : "Để sau, sang chọn quà"} rong dangChay={dangChay} bam={chon.length ? giao : () => router.push("/thiet-lap/qua")} /></>}>
       <TieuDe chu={`Giao việc cho ${ten}`} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4, paddingRight: 8 }}>
         {dsBo.map((x, i) => (

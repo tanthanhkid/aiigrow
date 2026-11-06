@@ -40,7 +40,8 @@ export type ChoDuyetMoi = { nhiemVu: LuotChoMoi[]; yeuCau: YeuCauMoi[]; phieu?: 
   tuDong?: { id: string; child_id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null; duyet_luc: string }[] };
 /** Bằng chứng (GET luot/:id/bang-chung). */
 export type BangChung = { id: string; mime: string; loai: "anh" | "ghi_am"; base64: string; chupLuc: string };
-export type ConCt = ConChiTiet & { cheDoChan?: "chi_app_duoc_phep" | "mo_het"; sao?: number; saoChoDuyet?: number };
+export type ConCt = ConChiTiet & { cheDoChan?: "chi_app_duoc_phep" | "mo_het"; sao?: number; saoChoDuyet?: number;
+  /** S3 06/11: bé đã có PIN vào máy + lúc đặt; may[] thêm matMang (máy im lặng >10 phút hôm nay) */ coPin?: boolean; pinDatLuc?: string | null };
 
 // ---------------------------------------------------------------- quyền (L6): Ba Mẹ làm được hết · Người trông giúp xem / duyệt / khoá máy
 

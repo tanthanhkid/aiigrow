@@ -86,12 +86,15 @@ export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; cap
   phutChoi: number; tranNgay: number; nhiemVuCho: number; yeuCauCho: number; phieuCho?: number; nhiemVuXong: number; homNayConDa: string[];
   /** «≈ X phút chơi»: số dư đổi được bao nhiêu phút trò chơi (giá của nhà, không quá phần trần ngày/tuần còn lại); máy chủ cũ không gửi */ phutDoiDuoc?: number;
   /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ); máy chủ cũ không gửi */ conPhut?: number };
-export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon };
-export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[] };
+export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon;
+  /** S3 06/11 (docs/API.md «S3»): bé có PIN vào máy · máy mất mạng hôm nay (dòng «Máy mất mạng · Laptop ›») · sao đang giữ chờ trao */
+  coPin?: boolean; matMang?: { mayId: string; ten: string; nen: string; tu: string; phut: number }[]; saoGiu?: number };
+export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[]; /** S3: số trên chuông */ soChuong?: number };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
   lanCuoi: string | null; truc: boolean; lechGiay: number | null;
   /** Quyền bảo vệ còn thiếu + cách khắc phục (server/lib/gia-dinh.ts › chiTietBaoVe); baoVeCau = một câu giải thích. */
-  baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string };
+  baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string;
+  /** S3 06/11: máy im lặng > 10 phút hôm nay (không phải tắt / ngủ) */ matMang?: boolean };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
 export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa" | "phutDoiDuoc" | "conPhut"> & {

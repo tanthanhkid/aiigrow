@@ -1,5 +1,5 @@
 // bm2-ho-so «Hồ sơ con» (thiết kế chốt 05/11, bm-hang-ngay/15): chip đổi con; đầu màn ảnh + tên + tuổi + sao, tóm tắt hôm nay; mỗi cài đặt MỘT
-// dòng có giá trị hiện tại (Giờ chơi, Giờ ngủ, Giờ học, App được dùng, Máy, Nhiệm vụ & sao); sửa / xoá hồ sơ ở cuối. Bỏ PIN (L5).
+// dòng có giá trị hiện tại (Giờ chơi, Giờ ngủ, Giờ học, App được dùng, Máy, Nhiệm vụ & sao); sửa / xoá hồ sơ ở cuối. PIN 06/11 (L13): dòng «PIN vào máy · Đặt lại» ⇒ /ho-so/<id>/pin (them-z2fyhohj).
 // Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
@@ -96,6 +96,8 @@ export default function HoSoCon() {
       {d.trongGiup ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : (
         <The dem style={{ paddingVertical: 4 }}>
           <HangViec dau ic="but" mau="lam" tieu="Sửa tên, tuổi, ảnh" bam={() => router.push(`/ho-so/sua?id=${id}` as never)} />
+          <HangViec ic="mo_khoa" mau="xanh" tieu="PIN vào máy" phu={c.coPin ? undefined : "Chưa đặt · chạm tên là vào thẳng"}
+            phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>{c.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>} bam={() => router.push(`/ho-so/${id}/pin` as never)} />
           <HangViec ic="x" mau="do" tieu={`Xoá hồ sơ ${c.ten}`} bam={() => setXoa(true)} />
         </The>
       )}

@@ -1,4 +1,4 @@
-// Nút chuông Thông báo (FR-08.01) — tròn 44, số đỏ = thông báo chưa đọc của Ba/Mẹ này. Tải lại mỗi lần màn chứa nó được mở lại.
+// Nút chuông Thông báo (FR-08.01) — tròn 44, số đỏ = số mục «Cần Ba Mẹ để ý» (`soChuong`, L19 06/11; máy chủ cũ: thông báo chưa đọc). Tải lại mỗi lần màn chứa nó được mở lại.
 import { memo, useCallback, useState } from "react";
 import { Text } from "react-native";
 import Animated from "react-native-reanimated";
@@ -6,6 +6,7 @@ import { BONG, KHOI, MEN } from "./clay";
 import { useBat, useKhiTang, useRung } from "./chuyen-dong";
 import { router, useFocusEffect } from "expo-router";
 import { bm } from "./api";
+import { soTrenChuong } from "./s3";
 import { F, Icon3D, M, NhanMen } from "./ui";
 
 /** memo: màn chứa nó vẽ lại (toast, vòng tải) không kéo chuông vẽ lại theo. */
@@ -16,7 +17,7 @@ export const ChuongTb = memo(function ChuongTb() {
   const { st: stSo, bat } = useBat();
   useKhiTang(nap, useCallback(() => { rung(); bat(); }, [rung, bat]));   // có việc mới ⇒ chuông rung (lần tải đầu không rung)
   useFocusEffect(useCallback(() => {
-    bm.goi<{ chuaDoc: number }>("thong-bao").then((r) => setSo(r.chuaDoc)).catch(() => {});
+    bm.goi<{ chuaDoc: number; soChuong?: number }>("thong-bao").then((r) => setSo(soTrenChuong(r))).catch(() => {});
   }, []));
   return (
     <NhanMen onPress={() => router.push("/thong-bao")} accessibilityRole="button" accessibilityLabel={so ? `Thông báo, ${so} mới` : "Thông báo"} muc="chip" sang men={MEN.sang}

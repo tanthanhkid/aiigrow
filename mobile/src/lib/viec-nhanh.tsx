@@ -66,7 +66,7 @@ export function TheMay({ m, tai, bao, xem }: { m: TuanThuMay; tai: () => void; b
           {/* chờ vì máy chưa đồng bộ lần nào (máy mới ghép) ⇒ vẫn cho đổi ngay sang Chỉ theo dõi */}
           {coCheDo && m.cheDo && !dangGo && (!cho || !m.daDongBo) ? <Nut chu={doiSang === "chan" ? "Bật chặn thật" : "Chỉ theo dõi"} nho loai="vien" dangChay={dangChay} bam={doi} /> : null}
           {dangKhan || dangGo ? null : <Nut chu="Mở khẩn cấp" ic="mo_khoa" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=khan`)} />}
-          {coMaOff(m) ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push(`/may/${m.id}?mo=offline`)} /> : null}
+          {coMaOff(m) ? <Nut chu="Mã khi mất mạng" nho loai="vien" bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id: m.id } })} /> : null}
         </HaiNut>
       </View>}
       <BaoLoi loi={loi} />
