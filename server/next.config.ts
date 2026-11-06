@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
+  // Bản chạy trên VPS (scripts/deploy-vps.sh) dựng `output: "standalone"`; Vercel không đặt biến này ⇒ dựng như cũ.
+  ...(process.env.AIIGROW_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   serverExternalPackages: ["@electric-sql/pglite"],
   poweredByHeader: false,
   agentRules: false,
