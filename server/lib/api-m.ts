@@ -276,7 +276,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (p[0] === "phieu" && p[1] && p[2] === "xac-nhan" && post) return json({ ok: true, ...(await pt.xacNhanPhieu(fam, p[1], bm.id)) });   // 06/11: kèm voucher {ma, qr, hetHan}
     if (p[0] === "phieu" && p[1] && p[2] === "huy" && post) { await pt.huyPhieu(fam, p[1], bm.id); return json({ ok: true }); }
     if (d === "phieu" && get)
-      return json({ ds: await q(`select r.*, c.ten as ten_con, w.hinh from redemptions r join children c on c.id = r.child_id left join rewards w on w.id = r.reward_id where c.family_id = $1 and r.trang_thai = 'giu' order by r.created_at`, [fam]) });
+      return json({ ds: await pt.dsPhieuCho(fam) });
     if (d === "quy" && get)
       return json({ soDu: (await one<{ quy_voucher: number }>(`select quy_voucher from families where id = $1`, [fam]))!.quy_voucher,
         giaoDich: await q(`select so_tien, loai, ghi_chu, created_at from quy_gd where family_id = $1 order by created_at desc limit 50`, [fam]) });

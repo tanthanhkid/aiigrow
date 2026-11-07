@@ -1,7 +1,7 @@
 // node --test src/lib/thiet-lap.test.ts — thân POST thiet-lap không được tự đổi chế độ chặn của Con (B1 06/11).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { thanThietLap } from "./thiet-lap.ts";
+import { appsRobChonSan, thanThietLap } from "./thiet-lap.ts";
 
 const MAC = { quy: 60, cuoiTuan: (p: number) => p + 30, ngu: { tu: "21:30", den: "06:30" } };
 
@@ -22,4 +22,13 @@ test("Ba Mẹ đã chọn «Mở hết» ⇒ gửi đúng mo_het; app theo mã /
 test("quỹ cuối tuần đã nạp từ máy chủ được giữ; Ba Mẹ chọn quỹ khác (cuoiTuan xoá) ⇒ tính lại +30", () => {
   assert.deepEqual(thanThietLap({ conId: "c1", quy: 30, cuoiTuan: 120 }, MAC).gioChoi, { ngayThuong: 30, cuoiTuan: 120 });
   assert.deepEqual(thanThietLap({ conId: "c1", quy: 90, cuoiTuan: undefined }, MAC).gioChoi, { ngayThuong: 90, cuoiTuan: 120 });
+});
+
+test("Thêm con: áp sẵn app Rob gợi ý hợp tuổi, chỉ lấy app `chon`; không có thì không gửi apps", () => {
+  const ds = [{ ma: "a", ten: "A", chon: true }, { ma: "b", ten: "B", chon: false }, { ma: "c", ten: "C", chon: true }];
+  const apps = appsRobChonSan(ds);
+  assert.deepEqual(apps, [{ ma: "a", ten: "A" }, { ma: "c", ten: "C" }]);
+  assert.deepEqual(thanThietLap({ conId: "c1", apps }, MAC).apps, [{ ma: "a" }, { ma: "c" }]);
+  assert.equal(appsRobChonSan([{ ma: "b", ten: "B", chon: false }]), undefined);
+  assert.equal("apps" in thanThietLap({ conId: "c1", apps: appsRobChonSan([]) }, MAC), false);
 });

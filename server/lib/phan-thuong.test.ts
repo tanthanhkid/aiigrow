@@ -99,6 +99,7 @@ test("phiếu quà Con đổi hiện trong «Chờ duyệt» của Ba Mẹ (cả
   const ds = await pt.dsPhieuCho(fam);
   assert.deepEqual(ds.map((x) => x.id).sort(), [r1.phieu, r2.phieu].sort());
   assert.equal(ds[0].ten_con, "Bo");
+  assert.ok(ds.every((x) => x.trang_thai === "giu" && "hinh" in x), "gồm trạng thái + hình quà (GET phieu dùng chung hàm này)");
   await pt.xacNhanPhieu(fam, r1.phieu, bm);
   await pt.huyPhieu(fam, r2.phieu, bm);
   assert.equal((await pt.dsPhieuCho(fam)).length, 0);
