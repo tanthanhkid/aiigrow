@@ -106,9 +106,12 @@ const coBan = {
   "GET nhiem-vu": { ds: [["Đọc sách 50 trang", "doc_sach", 10, "anh", 1], ["Rửa chén sau bữa ăn", "viec_nha", 10, "anh", 3], ["Lau sàn nhà", "viec_nha", 10, "anh", 1],
     ["Học 1 bài với AiiRob", "hoc_tap", 20, "tu_dong", null], ["Tập thể dục 30 phút", "van_dong", 10, "anh", 1]].map(([ten, nhom, diem, bang_chung, toi_da_ngay], i) =>
     ({ id: `t${i}`, ten, mo_ta: "", nhom, diem, bang_chung, kieu: "thuong", toi_da_ngay, toi_da_tuan: null, phut_toi_thieu: 0, tu_duyet: bang_chung === "tu_dong", giao_cho: null, han: null, bat: true })) },
-  "GET qua": { ds: [{ id: "q1", ten: "Phiếu quà AiiCafe 50.000đ", loai: "voucher", diem: 500, menh_gia: 50000, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: false, bat: true },
+  // L14 (thiết kế chốt 06/11): quà = bảng giá sao; «Thêm 30 phút» KHÔNG nằm trong danh sách quà (là nút đổi sao ra phút riêng của con)
+  "GET qua": { ds: [{ id: "q1", ten: "Kem", loai: "dac_quyen", diem: 100, menh_gia: null, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: false, bat: true },
     { id: "q2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, menh_gia: null, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: true, bat: true },
     { id: "q3", ten: "Chọn thực đơn bữa tối", loai: "dac_quyen", diem: 50, menh_gia: null, ton_kho: null, toi_da_thang: 2, chi_cuoi_tuan: false, bat: true }] },
+  // S3: «Cần Ba Mẹ để ý» + máy mất mạng — mặc định không có mục nào
+  "GET can-de-y": { ds: [], soChuong: 0 }, "GET may-mat-mang": { ds: [] },
   "GET quy": { soDu: 30000, giaoDich: [{ so_tien: 200000, loai: "nap", ghi_chu: "Tiền mặt", created_at: luc(4000) }, { so_tien: -50000, loai: "phat_hanh", ghi_chu: "Phiếu quà 50k", created_at: luc(300) }] },
   "GET luat": { ds: [{ child_id: "", muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" }, { child_id: "", muc: "khanacademy.org", ten: "Khan", loai: "hoc", nhom: "khac" }],
     heThong: ["winword.exe"], chuaXep: [{ muc: "tiktok.com", ten: "tiktok.com", phut: 12 }, { muc: "capcut.exe", ten: "Capcut", phut: 4 }, { muc: "minecraft.launcher.exe", ten: "Minecraft launcher", phut: 30 }],
@@ -477,10 +480,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-giao-nv-sua", "/giao-nv/sua?id=t0", "Dọn phòng"),
     M("bm-vi", "/vi/c1", "Tuần này kiếm"),
     M("bm-vi (điều chỉnh)", "/vi/c1", "Điều chỉnh sao của", { truoc: async () => { await di("/vi/c1"); await doi("± Điều chỉnh"); await bam("± Điều chỉnh"); } }),
-    M("bm-qua", "/vi/qua", "Thêm 30 phút chơi"),
+    M("bm-qua", "/vi/qua", "Con chọn quà → sao được giữ lại"),
     M("bm-qua (chưa có quà)", "/vi/qua", "quà", { kb: { "GET qua": { ds: [] } } }),
     M("bm-qua-sua", "/vi/qua-sua?id=q2", "Đi xem phim cuối tuần"),
-    M("bm-quy", "/quy", "Quà con đổi bằng sao"),
+    M("bm-quy", "/quy", "Con chọn quà → sao được giữ lại"),
     M("bm-bao-cao", "/bao-cao", "Dùng nhiều nhất"),
     // Ứng dụng & web (bm-ung-dung — L4)
     M("bm-app-web", "/app-web", "Chỉ app được phép"),
