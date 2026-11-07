@@ -1,6 +1,6 @@
 // Ví quà của bé đang đăng nhập trên MÁY CON — GET /api/device/vi-qua (màn «Quà» / «Ví quà» của Win, Mac, ĐT; thiết kế chốt 06/11 L14).
 // Một lượt gom: sao + sao giữ, quà bảng giá áp cho bé (kèm điều kiện còn hợp lệ), phiếu chờ trao, quà đã trao (kèm voucher QR + hạn), huy hiệu đã đạt.
-// Chỉ ĐỌC, dựng trên các hàm có sẵn (phan-thuong.ts viQua / cuaHang, thanh-tich.ts HUY_HIEU) — không sửa luật đổi quà.
+// Chỉ ĐỌC (trừ việc đánh dấu voucher quá hạn của pt.viQua), dựng trên các hàm có sẵn (phan-thuong.ts viQua / cuaHang, thanh-tich.ts HUY_HIEU) — không sửa luật đổi quà.
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan } from "./gio.ts";
@@ -36,14 +36,14 @@ export async function viQuaMay(con: string, now = new Date()) {
       conNgay: con ? Math.max(0, Math.ceil((new Date(v.het_han).getTime() - now.getTime()) / 86_400_000)) : 0 };
   };
   const got = (await q<{ id: string; ten: string; loai: string; diem: number; xu_ly_luc: Date }>(
-    `select id, ten, loai, diem, coalesce(xu_ly_luc, created_at) as xu_ly_luc from redemptions where child_id = $1 and trang_thai in ('da_trao', 'xong') and loai <> 'phut' order by 5 desc limit 30`, [con]));
+    `select id, ten, loai, diem, coalesce(xu_ly_luc, created_at) as xu_ly_luc from redemptions where child_id = $1 and trang_thai in ('da_trao', 'xong') order by coalesce(xu_ly_luc, created_at) desc limit 30`, [con]));
   const huy = await q<{ ma: string; dat_luc: Date }>(`select ma, dat_luc from badges where child_id = $1 order by dat_luc desc`, [con]);
   return {
     con: { id: c.id, ten: c.ten, avatar: c.avatar },
     sao: ch.sao, saoGiu: ch.saoGiu,
     qua,
     phieuCho: vi.phieu.map((p) => ({ id: p.id, ten: p.ten, loai: p.loai, sao: p.diem, doiLuc: iso(p.created_at) })),
-    daTrao: got.map((p) => { const v = vPhieu.get(p.id); return { id: p.id, ten: p.ten, loai: p.loai, sao: p.diem, traoLuc: iso(p.xu_ly_luc), voucher: v ? voucherRa(v) : null }; }),
+    daTrao: got.map((p) => { const v = vPhieu.get(p.id); const hien = v && ["da_phat_hanh", "da_dung", "het_han"].includes(v.trang_thai); return { id: p.id, ten: p.ten, loai: p.loai, sao: p.diem, traoLuc: iso(p.xu_ly_luc), voucher: hien ? voucherRa(v!) : null }; }),
     voucher: vi.voucher.map((v) => ({ ten: v.ten, ...voucherRa(v), dungLuc: iso(v.dung_luc) })),
     huyHieu: huy.filter((h) => HUY_HIEU[h.ma]).map((h) => ({ ma: h.ma, ten: HUY_HIEU[h.ma].ten, moTa: HUY_HIEU[h.ma].mo_ta, datLuc: iso(h.dat_luc) })),
   };
