@@ -1,87 +1,76 @@
-// «Ai đang dùng máy?» (FR-01.03, thiết kế 05/11 L5 — bỏ PIN): máy dùng chung nhiều Con — chạm tên mình là vào (POST /api/device/chon-con).
-// Máy chưa ghép ⇒ nhập mã ghép 6 số Ba Mẹ đưa.
+// «Máy đang khoá · Ai đang dùng máy?» (con-dt-khac 05 them-28ir0qe4, PIN theo bé 06/11 — L13): chạm tên ⇒ nhập PIN 4 số (/tre/pin);
+// bé chưa có PIN ⇒ vào thẳng (máy chủ trả `canDatPin`, Ba Mẹ được nhắc đặt). «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã mở máy (/tre/ba-me).
+// Máy chưa ghép ⇒ /tre/ghep. Ba Mẹ đang dùng máy (ho-so › baMeDung) ⇒ /tre/ba-me (màn «Ba Mẹ đang dùng»).
 import { useState } from "react";
-import { Platform, Pressable } from "react-native";
-import { router } from "expo-router";
+import { Platform, Pressable, View } from "react-native";
+import { Redirect, router } from "expo-router";
 import { usePhien } from "@/lib/phien";
-import { Avt, BaoLoi, Canh, ChoTai, Chu, Luoi2, M, MAU_CON, Ma6, Nut, useLam, useTai } from "@/lib/ui";
-import { ManTre, useTre } from "@/lib/ui-tre";
-import { may, nenMay } from "@/lib/api-tre";
+import { Rob, useLam, useTai } from "@/lib/ui";
+import { useTre } from "@/lib/ui-tre";
+import { may, type HoSoBe, type HoSoMay } from "@/lib/api-tre";
+import { D } from "@/lib/diu";
+import { chuAvt } from "@/lib/con-diu";
+import { AvtD, ChoD, ChuD, LoiD, ManD, NutD, PillD } from "@/lib/ui-diu";
 
-type HoSo = { id: string; ten: string; avatar: string };
-
-export default function ChonHoSo() {
-  const [coMay, setCoMay] = useState(may.co());
-  return coMay ? <ChonTen /> : <GhepMay xong={() => setCoMay(true)} />;
+export default function ChonTen() {
+  if (!may.co()) return <Redirect href="/tre/ghep" />;
+  return <DanhSach />;
 }
 
-function GhepMay({ xong }: { xong: () => void }) {
-  const [ma, setMa] = useState("");
-  const { dangChay, loi, lam, setLoi } = useLam();
-  const ghep = () => (ma.length < 6 ? setLoi("Nhập đủ 6 số Ba Mẹ đưa nhé") : lam(async () => {
-    const r = await may.goi<{ token: string }>("ghep", { ma, nen: nenMay(), tenMay: "AiiGrow Kid" });
-    await may.dat(r.token);
-    xong();
-  }));
-  return (
-    <ManTre day={<Nut chu="Ghép máy" ic="tick" rong bam={ghep} dangChay={dangChay} />}>
-      <Canh lv="rob-goc" mau="vang" tieu="Ghép máy với AiiGrow" loi="Nhờ Ba Mẹ tạo mã ghép trong app, rồi nhập 6 số vào đây nhé." />
-      <Ma6 gia={ma} doi={setMa} nhan="Mã ghép 6 số" />
-      <BaoLoi loi={loi} />
-      {Platform.OS !== "web" ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Máy đã cài AiiGrow Con? Mở app đó rồi chạm «Nhiệm vụ & quà» — không cần mã.</Chu> : null}
-      <VeBaMe />
-    </ManTre>
-  );
-}
-
-function ChonTen() {
+function DanhSach() {
   const { vao } = useTre();
-  const { d, loi, matMang, tai } = useTai(() => may.goi<{ con: HoSo[] }>("ho-so"));
+  // Ba Mẹ còn đang dùng máy (ho-so › baMeDung) — xét lúc tải, không gọi Date.now() khi vẽ
+  const { d, loi, matMang, tai } = useTai(async () => { const r = await may.goi<HoSoMay>("ho-so"); return { ...r, baMeCon: !!r.baMeDung && Date.parse(r.baMeDung.den) > Date.now() }; });
   const [chon, setChon] = useState<string | null>(null);
   const { dangChay, loi: loiVao, lam } = useLam();
-  const ds = d?.con ?? [];
-  // chạm tên là vào (không PIN — thiết kế 05/11)
-  const chonCon = (id: string) => {
-    setChon(id);
+  if (!d) return <ManD><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
+  if (d.baMeCon && d.baMeDung) return <Redirect href={`/tre/ba-me?den=${encodeURIComponent(d.baMeDung.den)}`} />;
+  const ds = d.con;
+  const cham = (c: HoSoBe, i: number) => {
+    if (c.coPin !== false || c.khoaDen) { router.push(`/tre/pin?con=${c.id}&i=${i}`); return; }
+    // bé chưa có PIN (S3: chạm tên vào thẳng)
+    setChon(c.id);
     lam(async () => {
-      const r = await may.goi<{ phienCon: string }>("chon-con", { con: id });
-      await vao(r.phienCon);
+      const r = await may.goi<{ phienCon: string }>("dang-nhap-be", { con: c.id });
+      await vao(r.phienCon, i);
     });
   };
-  if (!d) return <ManTre><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
   return (
-    <ManTre>
-      <Canh lv="rob-goc" mau="vang" tieu="Ai đang dùng máy?" loi="Chạm vào tên mình là vào nhé." />
-      {!ds.length ? <Chu co={15} mau={M.chu2} style={{ textAlign: "center" }}>Máy này chưa có hồ sơ Con nào — nhờ Ba Mẹ thêm trong app nhé.</Chu> : null}
-      <Luoi2>
+    <ManD day={<NutD chu="Ba Mẹ dùng máy" loai="phu" ic="khoa" bam={() => router.push("/tre/ba-me")} />}>
+      <View style={{ alignSelf: "flex-start" }}><PillD chu="Máy đang khoá" ic="khoa" /></View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Rob ten="rob-goc" co={110} />
+        <View style={{ flex: 1, backgroundColor: D.the, borderRadius: 20, borderWidth: 1, borderColor: D.vien, padding: 14 }}>
+          <ChuD kieu="den" co={18}>Ai đang dùng máy?</ChuD>
+          <ChuD co={14} mau={D.chu2}>Chạm vào tên của con nhé.</ChuD>
+        </View>
+      </View>
+      {!ds.length ? <ChuD co={15} mau={D.chu2} giua>Máy này chưa có hồ sơ con nào — nhờ Ba Mẹ thêm trong app nhé.</ChuD> : null}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
         {ds.map((c, i) => {
-          const dang = c.id === chon;
+          const dang = chon === c.id && dangChay;
           return (
-            <Pressable key={c.id} onPress={() => chonCon(c.id)} disabled={dangChay} accessibilityRole="button" accessibilityState={{ selected: dang, busy: dang && dangChay }}
-              accessibilityLabel={`Mình là ${c.ten}`}
-              style={{ flexBasis: "46%", flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 8, padding: 16, borderRadius: 26, minHeight: 120,
-                backgroundColor: "#fff", borderWidth: dang ? 2 : 1, borderColor: dang ? M.chinh : M.vien,
-                shadowColor: M.chu, shadowOpacity: 0.06, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 1 }}>
-              <Avt ten={c.ten} mau={MAU_CON[i % MAU_CON.length]} co={60} />
-              <Chu kieu="rat" co={19} dong={1}>{c.ten}</Chu>
+            <Pressable key={c.id} onPress={() => cham(c, i)} disabled={dangChay} accessibilityRole="button" accessibilityLabel={`Mình là ${c.ten}`}
+              accessibilityState={{ busy: dang }}
+              style={({ pressed }) => ({ flexBasis: "46%", flexGrow: 1, alignItems: "center", gap: 10, paddingVertical: 18, borderRadius: 24, backgroundColor: D.the,
+                borderWidth: dang ? 2 : 1, borderColor: dang ? D.xanh : D.vien, boxShadow: "0px 2px 8px rgba(30,30,20,0.06)", opacity: pressed ? 0.9 : 1 })}>
+              <AvtD ten={c.ten} i={i} co={80} chu={chuAvt(c.ten, ds.map((x) => x.ten))} />
+              <ChuD kieu="den" co={18} dong={1}>{c.ten}</ChuD>
             </Pressable>
           );
         })}
-      </Luoi2>
-      {dangChay ? <Chu kieu="dam" co={14} mau={M.chu3} style={{ textAlign: "center" }}>Đang mở…</Chu> : null}
-      <BaoLoi loi={loiVao} />
+      </View>
+      {dangChay ? <ChuD kieu="rat" co={14} mau={D.chu2} giua>Đang mở…</ChuD> : null}
+      <LoiD loi={loiVao} />
+      <ChuD co={13.5} mau={D.chu2} giua>Chưa ai vào thì máy chỉ mở màn này.</ChuD>
       <VeBaMe />
-    </ManTre>
+    </ManD>
   );
 }
 
-/** App native: lối Ba Mẹ đăng nhập lại (luôn qua mật khẩu / OTP — Con không tự vào app Ba Mẹ). Web (khung Kid trên máy tính) không hiện. */
+/** App native: lối Ba Mẹ đăng nhập app Ba Mẹ (luôn qua mật khẩu / OTP). Web (khung Kid trên máy tính) không hiện. */
 function VeBaMe() {
   const { co } = usePhien();
   if (Platform.OS === "web" || co) return null;
-  return (
-    <Pressable onPress={() => router.push("/dang-nhap")} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-      <Chu co={13} mau={M.chu3}>Ba Mẹ? <Chu kieu="rat" co={13} mau={M.chinhInk}>Đăng nhập app Ba Mẹ</Chu></Chu>
-    </Pressable>
-  );
+  return <NutD chu="Ba Mẹ? Đăng nhập app Ba Mẹ" loai="chu" bam={() => router.push("/dang-nhap")} />;
 }

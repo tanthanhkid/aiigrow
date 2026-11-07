@@ -86,7 +86,7 @@ class ManTre : Activity() {
         }
         web = w
         setContentView(FrameLayout(this).apply {
-            setBackgroundColor(Clay.NEN)
+            setBackgroundColor(Diu.NEN)
             addView(w, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             setOnApplyWindowInsetsListener { v, i -> @Suppress("DEPRECATION") v.setPadding(0, i.systemWindowInsetTop, 0, i.systemWindowInsetBottom); i }
         })

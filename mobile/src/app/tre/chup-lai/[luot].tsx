@@ -1,37 +1,42 @@
-// con-chup-lai «Ba Mẹ nhờ làm lại» (thiết kế 05/11 con-ngay-thuong «Ba Mẹ nhờ bổ sung bài» — L9): lời nhắn / lý do của Ba Mẹ, Con không mất sao
-// nào, một nút nộp lại bằng chứng MỚI (ảnh / ghi âm / viết — theo cách nộp của việc). Ba Mẹ duyệt xong mới có sao.
+// «Ba Mẹ nhờ làm lại» bản «Dịu» (con-dt-ngay 13 cdt-chup-lai, L9): «Sửa chút xíu là xong. Cố lên!», thẻ việc + «↺ Làm lại», lời Ba Mẹ,
+// «Làm lại xong vẫn được +10 sao», nút nộp lại bằng chứng MỚI (ảnh / ghi âm / viết theo cách nộp của việc) + «Nhắn Ba Mẹ».
 import { router, useLocalSearchParams } from "expo-router";
-import { BaoLoi, CanhGiua, ChoTai, Nut, useLam } from "@/lib/ui";
-import { DiemTren, ManTre, useTaiTre, useTre } from "@/lib/ui-tre";
-import { kid, nopBai, type LuotTre, type NhaTre, type NvTreSao } from "@/lib/api-tre";
+import { View } from "react-native";
+import { kid, nopBai, type LuotTre, type NvTreSao } from "@/lib/api-tre";
+import { useLam } from "@/lib/ui";
+import { CamXuc, ChoD, ChuD, LoiD, ManD, NutD, PillD, SaoD, TheD } from "@/lib/ui-diu";
+import { useTaiTre } from "@/lib/ui-tre";
 
 export default function ChupLai() {
   const { luot, nv } = useLocalSearchParams<{ luot: string; nv?: string }>();
-  const { ten } = useTre();
   const { d, loi, matMang, tai } = useTaiTre(`lai-${luot}`, async () => {
-    const [nha, ls, ds] = await Promise.all([kid.goi<NhaTre>("nha"), kid.goi<{ ds: LuotTre[] }>("luot"),
+    const [ls, ds] = await Promise.all([kid.goi<{ ds: LuotTre[] }>("luot"),
       kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1").catch(() => ({ ds: [] as NvTreSao[] }))]);
-    return { nha, l: ls.ds.find((x) => x.id === luot) ?? null, v: ds.ds.find((x) => x.id === nv) ?? null };
+    return { l: ls.ds.find((x) => x.id === luot) ?? null, v: ds.ds.find((x) => x.id === nv) ?? null };
   });
   const { dangChay, loi: loiNop, lam } = useLam();
-  if (!d) return <ManTre tab="nhiem-vu"><ChoTai loi={loi} matMang={matMang} tai={tai} /></ManTre>;
+  if (!d) return <ManD lui="/tre/nhiem-vu"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   const loiNhan = d.v?.loi_nhan?.trim() || d.l?.ly_do?.trim() || d.v?.ly_do?.trim();
   const bc = d.v?.bang_chung;
-  const [chu, ic] = bc === "van_ban" ? ["Viết lại", "but"] as const : bc === "ghi_am" ? ["Ghi âm lại", "tin"] as const : ["Chụp lại", "camera"] as const;
+  const chu = bc === "van_ban" ? "Viết lại" : bc === "ghi_am" ? "Ghi âm lại" : bc === "xong" ? "Làm lại xong rồi!" : "Chụp lại ảnh";
+  const tenViec = d.l?.ten ?? d.v?.ten ?? "Nhiệm vụ";
+  const diem = d.v?.sao ?? d.v?.diem;
+  const nop = () => (bc === "xong" ? lam(async () => {
+    const r = await nopBai(luot, {});
+    router.replace(r.trang_thai === "duoc_duyet" ? `/tre/duoc-duyet/${luot}` : `/tre/cho-duyet?ten=${encodeURIComponent(tenViec)}${r.daXepHang ? "&xep=1" : ""}`);
+  }) : router.push(`/tre/chup/${luot}?nv=${nv ?? ""}`));
   return (
-    <ManTre tab="nhiem-vu">
-      <DiemTren n={d.nha.soDu} chuoi={d.nha.chuoiNgay} />
-      <CanhGiua lv="trong-loi" tieu="Ba Mẹ nhờ con làm lại"
-        loi={`${loiNhan ? `Ba Mẹ nhắn: “${loiNhan}”. ` : ""}${d.l?.ten ? `Làm lại “${d.l.ten}” rồi nộp bài mới nhé` : "Làm lại rồi nộp bài mới nhé"} — ${ten} không mất sao nào!`}>
-        <BaoLoi loi={loiNop} />
-        {bc === "xong" ? (
-          <Nut chu="Làm lại xong rồi!" ic="tick" dangChay={dangChay} bam={() => lam(async () => {
-            const r = await nopBai(luot, {});
-            router.replace(r.trang_thai === "duoc_duyet" ? `/tre/duoc-duyet/${luot}` : `/tre/cho-duyet${r.daXepHang ? "?xep=1" : ""}`);
-          })} />
-        ) : <Nut chu={chu} ic={ic} bam={() => router.push(`/tre/chup/${luot}?nv=${nv ?? ""}`)} />}
-        <Nut chu="Để sau" loai="ma" bam={() => router.replace("/tre/nhiem-vu")} />
-      </CanhGiua>
-    </ManTre>
+    <ManD lui="/tre/nhiem-vu" day={<><LoiD loi={loiNop} /><NutD chu={chu} bam={nop} dangChay={dangChay} />
+      <NutD chu="Nhắn Ba Mẹ" loai="chu" bam={() => router.push("/tre/tin")} /></>}>
+      <CamXuc lv="chi" co={130} tieu="Ba Mẹ nhờ làm lại" phu="Sửa chút xíu là xong. Cố lên!" />
+      <TheD>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <ChuD kieu="den" co={16} style={{ flex: 1 }}>{tenViec}</ChuD>
+          <PillD chu="↺ Làm lại" loai="loi" />
+        </View>
+        {loiNhan ? <ChuD kieu="rat" co={16}>{`Ba Mẹ: «${loiNhan}»`}</ChuD> : null}
+      </TheD>
+      {diem ? <View style={{ alignSelf: "center" }}><SaoD chu={`Làm lại xong vẫn được +${diem} sao`} /></View> : null}
+    </ManD>
   );
 }

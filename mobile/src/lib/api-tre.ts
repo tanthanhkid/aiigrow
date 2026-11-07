@@ -32,7 +32,7 @@ export const may = {
     }
     const j = await r.json().catch(() => ({}));
     if (r.status === 401 && j.error === "token_sai") await may.dat(null);
-    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status);
+    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status, j);
     return j as T;
   },
 };
@@ -47,6 +47,11 @@ export function nenMay(): "windows" | "mac" | "ios" | "android" {
   if (/mac os/i.test(ua)) return "mac";
   return "windows";
 }
+
+/** Máy dùng chung (S3 06/11, `GET|POST /api/device/ho-so`): bé trên máy, ai đang dùng, Ba Mẹ đang dùng tới lúc nào. */
+export type HoSoBe = { id: string; ten: string; avatar: string; coPin?: boolean; khoaDen?: string; choGiay?: number };
+export type HoSoMay = { con: HoSoBe[]; mayRieng?: boolean; dangDung?: { id: string; ten: string } | null; baMeDung?: { den: string; tu?: string | null } | null;
+  pinSaiToiDa?: number; pinChoGiay?: number };
 
 // ------------------------------------------------------------------ kiểu dữ liệu (khớp server/lib/api-con.ts + choi-tre.ts)
 export type NhomTre = "nhi" | "teen";

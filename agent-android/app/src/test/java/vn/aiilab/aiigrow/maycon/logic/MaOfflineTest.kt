@@ -123,4 +123,32 @@ class MaOfflineTest {
         assertNull(docPhanHoiNhip("""{"chinhSach":{}}""").maOfflineBiMat)
         assertTrue(matMang(0, 1)); assertFalse(matMang(1000, 1000 + 60_000)); assertTrue(matMang(1000, 1000 + 4 * 60_000))
     }
+
+    // 06/11 (L19): mã mang số phút — vector tính bằng server/lib/ma-offline.ts › maOfflinePhut (node --experimental-strip-types)
+    @Test fun maPhut_cungMayChu_thu60_30_15() {
+        val bm = "abcDEF_123-xyz"; val t = 1761400000000
+        assertEquals("831732", MaOffline.maPhut(bm, 60, t))      // 60 phút = bí mật gốc = mã cũ
+        assertEquals("197949", MaOffline.maPhut(bm, 30, t))
+        assertEquals("051980", MaOffline.maPhut(bm, 15, t))
+        assertEquals(60, MaOffline.kiemPhut(bm, "831732", t))
+        assertEquals(30, MaOffline.kiemPhut(bm, "197949", t + 300_000))   // ±1 bước như mã cũ
+        assertEquals(15, MaOffline.kiemPhut(bm, "051 980", t))
+        assertNull(MaOffline.kiemPhut(bm, "000000", t))
+        assertNull(MaOffline.kiemPhut(null, "831732", t))
+    }
+
+    @Test fun moTam_moDungSoPhutCuaMa_hetHanKhongTinhSai() {
+        val bm = "abcDEF_123-xyz"; val t = 1761400000000
+        val (kq30, st30) = MoTamOffline().thu(bm, "197949", t)
+        assertEquals(KetQuaMoOffline.DA_MO, kq30); assertEquals(t + 30 * 60_000L, st30.moDen)
+        val (kq15, st15) = MoTamOffline().thu(bm, "051980", t)
+        assertEquals(KetQuaMoOffline.DA_MO, kq15); assertEquals(t + 15 * 60_000L, st15.moDen)
+        assertTrue(cauMoOffline(kq15, st15, t) { "10:00" }.startsWith("Đã mở 15 phút"))
+        // mã của 30 phút trước (quá ±1 bước) ⇒ «hết hạn», không cộng lần sai
+        val (kqCu, stCu) = MoTamOffline().thu(bm, "197949", t + 30 * 60_000L)
+        assertEquals(KetQuaMoOffline.HET_HAN, kqCu); assertTrue(stCu.saiLuc.isEmpty())
+        val (kqSai, stSai) = MoTamOffline().thu(bm, "123456", t)
+        assertEquals(KetQuaMoOffline.SAI, kqSai); assertEquals(4, stSai.conLanThu(t))
+        assertTrue(cauMoOffline(kqSai, stSai, t) { "" }.contains("Còn 4 lần thử"))
+    }
 }

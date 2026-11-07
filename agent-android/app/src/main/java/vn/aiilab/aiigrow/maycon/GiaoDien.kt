@@ -1,17 +1,19 @@
 package vn.aiilab.aiigrow.maycon
 
 import android.content.Context
-import android.graphics.Typeface
-import android.graphics.Rect
-import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.ColorDrawable
+import android.os.Handler
+import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.TextView
+import vn.aiilab.aiigrow.maycon.logic.Cong
+import vn.aiilab.aiigrow.maycon.logic.KetQuaMoOffline
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.mmss
@@ -20,35 +22,31 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * Giao diện dựng bằng code (không thư viện UI), ngôn ngữ «Clay gương» (docs/THIET-KE-CLAY.md, vẽ ở Clay.kt): khối đất sét bo lớn,
- * nút than chì / ngọc tráng men, icon Fluent 3D trong viên clay. Vùng chạm ≥ 48dp, chữ tiếng Việt có dấu.
+ * Giao diện dựng bằng code (không thư viện UI). 06/11: phía Con chuyển sang bản «Dịu» (Diu.kt — L16): nền kem, một màu nhấn xanh,
+ * thẻ trắng viền mảnh, nút 52dp màu đặc, Nunito. Vùng chạm ≥ 48dp, chữ tiếng Việt có dấu. Hàm ở đây giữ chữ ký cũ để ManChinh / ManKhoa /
+ * TroNang dùng chung; vẽ thật ở Diu.kt.
  */
 object GiaoDien {
-    const val XANH = Clay.CHINH
-    const val XANH_NHAT = Clay.CHINH_SOFT
-    const val NEN = Clay.NEN
-    const val CHU = Clay.CHU
-    const val CHU_PHU = Clay.CHU3
-    const val TRANG = 0xFFFFFFFF.toInt()
+    const val XANH = Diu.XANH
+    const val XANH_NHAT = Diu.XANH_NHAT
+    const val NEN = Diu.NEN
+    const val CHU = Diu.CHU
+    const val CHU_PHU = Diu.CHU2
+    const val TRANG = Diu.TRANG
 
-    fun dp(c: Context, v: Int) = (v * c.resources.displayMetrics.density).toInt()
+    fun dp(c: Context, v: Int) = Diu.dp(c, v)
 
-    /** Nền màn: hơi ngả ngọc ở đỉnh như mẫu (radial-gradient #e3ebe7 → nền). */
-    fun nenMan() = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(Clay.NEN_DINH, NEN, NEN))
+    /** Nền màn: kem phẳng. */
+    fun nenMan() = ColorDrawable(NEN)
 
     fun cot(c: Context, pad: Int = 20) = LinearLayout(c).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(c, pad), dp(c, pad), dp(c, pad), dp(c, pad))
     }
 
-    fun chu(c: Context, s: String, co: Float = 16f, mau: Int = CHU, dam: Boolean = false) = TextView(c).apply {
-        text = s; textSize = co; setTextColor(mau)
-        if (dam) setTypeface(typeface, Typeface.BOLD)
-        if (co >= 24f) letterSpacing = -0.02f
-        setLineSpacing(0f, 1.15f)
-    }
+    fun chu(c: Context, s: String, co: Float = 16f, mau: Int = CHU, dam: Boolean = false) = Diu.chu(c, s, co, mau, dam && co >= 20f)
 
-    /** Dòng báo dưới nút (lỗi / đang gửi): rỗng thì ẩn hẳn, không để một khoảng trống ~20dp làm đáy thẻ dày hơn đỉnh. */
+    /** Dòng báo dưới nút (lỗi / đang gửi): rỗng thì ẩn hẳn. */
     fun dongBao(c: Context, mau: Int) = chu(c, "", 14f, mau).apply {
         visibility = View.GONE; setPadding(0, dp(c, 8), 0, 0)
         addTextChangedListener(object : android.text.TextWatcher {
@@ -58,65 +56,36 @@ object GiaoDien {
         })
     }
 
-    /** Khối đất sét. `nen` = XANH ⇒ khối ngọc tráng men (chữ trắng); màu khác ⇒ khối sáng nhuốm màu đó. */
-    fun the(c: Context, nen: Int = TRANG) = LinearLayout(c).apply {
-        orientation = LinearLayout.VERTICAL
-        background = when (nen) {
-            XANH -> ClayDrawable(c, Clay.Kieu.NGOC, boDp = 32f, dem = 20, leThe = true)
-            TRANG -> ClayDrawable(c, Clay.Kieu.THE)
-            else -> ClayDrawable(c, Clay.Kieu.THE, nen)
-        }
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 6) }
-    }
+    /** Thẻ: trắng (mặc định) hoặc thẻ màu nhạt (mọi màu khác ⇒ xanh nhạt — Dịu chỉ có một màu nhấn). */
+    fun the(c: Context, nen: Int = TRANG) = Diu.the(c, if (nen == TRANG) TRANG else XANH_NHAT)
 
-    /** Hàng tiêu đề khối: icon Fluent 3D trong viên clay + chữ. */
-    fun dauKhoi(c: Context, hinh: Int, s: String, nenVien: Int = Clay.THE, co: Float = 20f, mau: Int = CHU) = LinearLayout(c).apply {
+    /** Hàng tiêu đề thẻ: icon nhỏ trong vòng xanh nhạt + chữ (Dịu: không khối clay). */
+    fun dauKhoi(c: Context, hinh: Int, s: String, @Suppress("UNUSED_PARAMETER") nenVien: Int = 0, co: Float = 18f, mau: Int = CHU) = LinearLayout(c).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
-        addView(Clay.vien(c, hinh, nenVien, 44))
-        addView(chu(c, s, co, mau, true).apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(c, 8) }
+        addView(FrameLayout(c).apply {
+            background = Diu.tron(XANH_NHAT)
+            addView(ImageView(c).apply { setImageResource(hinh); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO },
+                FrameLayout.LayoutParams(dp(c, 22), dp(c, 22), Gravity.CENTER))
+            layoutParams = LinearLayout.LayoutParams(dp(c, 36), dp(c, 36))
         })
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(c, 4) }
+        addView(Diu.chu(c, s, co, mau, true).apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(c, 10) }
+        })
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(c, 6) }
     }
 
-    private fun nenNut(c: Context, kieu: Clay.Kieu) = ClayDrawable(c, kieu, dem = 8)
+    /** Nút 52dp. Chính = xanh đặc; `phu` = trắng viền chữ xanh đậm; `ngoc` (cũ) = chính. */
+    fun nut(c: Context, s: String, phu: Boolean = false, @Suppress("UNUSED_PARAMETER") ngoc: Boolean = false, onClick: (View) -> Unit) =
+        Diu.nut(c, s, if (phu) Diu.KieuNut.PHU else Diu.KieuNut.CHINH, onClick)
 
-    /** Nút kẹo dẻo tráng men, cao 56dp (không kể bóng). Chính = than chì; `ngoc` = điểm nhấn ngọc; `phu` = nút sáng chữ ngọc. */
-    fun nut(c: Context, s: String, phu: Boolean = false, ngoc: Boolean = false, onClick: (View) -> Unit) = Button(c).apply {
-        text = s; isAllCaps = false; textSize = 16f
-        // chữ dài (tên con / tên máy / cỡ chữ hệ thống lớn): tối đa 2 dòng căn giữa, quá nữa thì «…» cuối — không cắt nửa chữ, không đẩy khối
-        maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; gravity = android.view.Gravity.CENTER
-        setTypeface(typeface, Typeface.BOLD)
-        val kieu = if (phu) Clay.Kieu.VIEN else if (ngoc) Clay.Kieu.NGOC else Clay.Kieu.THAN
-        background = nenNut(c, kieu)
-        setTextColor(if (phu) Clay.CHINH_INK else TRANG)
-        val bong = Rect().also { background.getPadding(it) }
-        val cao = dp(c, 56) + bong.top + bong.bottom - dp(c, 16)   // 56dp phần khối + lề bóng
-        minHeight = cao; minimumHeight = cao
-        minWidth = 0; minimumWidth = 0   // Button mặc định tối thiểu 88dp ⇒ ba nút một hàng tràn khỏi thẻ ở máy 360dp
-        // chữ cách mép khối ≥ 16dp hai bên (nền chỉ đệm 8 cho cân chiều cao 56)
-        setPadding(bong.left + dp(c, 8), bong.top, bong.right + dp(c, 8), bong.bottom)
-        backgroundTintList = null
-        stateListAnimator = null
-        Clay.nhan(this)
-        setOnClickListener(onClick)
-        // cao theo nội dung (tối thiểu 56dp khối): nhãn dài / cỡ chữ hệ thống lớn rớt 2 dòng thì khối cao ra, không bị cắt chữ
-        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 6) }
-    }
-
-    fun chonTrongNhom(c: Context, b: Button, chon: Boolean) {
-        b.setTextColor(if (chon) TRANG else Clay.CHINH_INK)
-        // đổi kiểu ngay trên nền đang có để vệt men vừa bắt đầu lúc nhấn vẫn chạy
-        (b.background as? ClayDrawable)?.kieu = if (chon) Clay.Kieu.NGOC else Clay.Kieu.VIEN
-        if (chon && b.isLaidOut) Clay.batNhe(b)
-    }
+    fun chonTrongNhom(c: Context, b: Button, chon: Boolean) = Diu.chon(c, b, chon)
 
     fun gio(ms: Long): String = DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()))
 
     fun tieuDeKhoa(t: String) = when (t) {
         TrangThai.KHOA_NGAY.name -> "Ba Mẹ đang khoá máy"
         TrangThai.GIO_NGU.name -> "Đến giờ ngủ rồi"
-        TrangThai.HET_GIO.name -> "Hết giờ chơi hôm nay"
+        TrangThai.HET_GIO.name -> "Hết giờ chơi"
         TrangThai.NGOAI_KHUNG.name -> "Chưa tới giờ chơi"
         TrangThai.GIO_HOC.name -> "Đang giờ học"
         else -> "AiiGrow"
@@ -125,13 +94,13 @@ object GiaoDien {
     /** Dòng đếm ngược trên màn khoá. */
     fun dongDemNguoc(ht: HienThi, now: Long = System.currentTimeMillis()): String = when {
         ht.demNguoc > 0 -> "Khoá sau ${mmss(ht.demNguoc)}"
-        ht.moLaiLuc > now -> "Mở lại sau ${mmssDai(((ht.moLaiLuc - now) / 1000).toInt())} (lúc ${gio(ht.moLaiLuc)})"
+        ht.moLaiLuc > now -> mmssDai(((ht.moLaiLuc - now) / 1000).toInt())
         else -> "Chờ Ba Mẹ mở"
     }
 
     fun mmssDai(giay: Int): String = if (giay >= 3600) "%d:%02d:%02d".format(giay / 3600, giay % 3600 / 60, giay % 60) else mmss(giay)
 
-    /** Icon Fluent 3D theo lý do khoá. */
+    /** Icon Fluent 3D theo lý do khoá (Dịu: icon nhỏ trong vòng xanh nhạt, không robot ở màn khoá thường). */
     fun hinhKhoa(t: String, chanApp: Boolean) = when {
         chanApp -> R.drawable.fl_khoa
         t == TrangThai.GIO_NGU.name -> R.drawable.fl_trang
@@ -140,82 +109,153 @@ object GiaoDien {
         else -> R.drawable.fl_khoa
     }
 
-    /** Nội dung màn khoá / màn chặn dùng chung cho ManKhoa (activity) và TroNang (lớp phủ trợ năng). */
-    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> String)? = null,
+    /**
+     * Màn khoá / màn chặn dùng chung cho ManKhoa (activity) và TroNang (lớp phủ trợ năng) — khớp `con-dt-gio/09-cdt-android-khoa`
+     * («Ba Mẹ đang khoá máy · 30:00 · Mở lại lúc 20:10 · Xin Ba Mẹ mở máy · Mất mạng? Nhập mã của Ba Mẹ · Ba Mẹ mở máy»), ô mã offline
+     * theo `con-dt-chan/04..07` (6 ô + bàn phím to, «Mã chưa đúng», «Mã hết hạn rồi», «Máy mở rồi!»). Máy ở cổng PIN (chọn tên) ⇒ hiện ManPin.
+     * Giờ ngủ ⇒ nền tối dịu. Bàn phím tự vẽ ⇒ lớp phủ trợ năng không cần bàn phím hệ thống.
+     */
+    class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> Triple<KetQuaMoOffline, Long?, String>)? = null,
                       /** 05/11: app chưa được Ba Mẹ cho phép ⇒ «Xin Ba Mẹ duyệt» gửi thẳng (api/device/xin-duyet), không mở màn xin giờ. */
                       val onDuyet: ((String) -> Unit)? = null) {
-        /** Gói app đang hiện trên màn chặn mà Con xin duyệt được (null = màn khoá / hết giờ). */
+        private val h = Handler(Looper.getMainLooper())
         private var goiDuyet: String? = null
-        private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER; setPadding(dp(c, 22), dp(c, 24), dp(c, 22), dp(c, 24)) }
-        /** Gốc cuộn được: máy nhỏ / cỡ chữ lớn thì nút «Xin Ba Mẹ thêm giờ» vẫn kéo tới được, không rơi khỏi đáy màn. Tràn viền (targetSdk 35):
-         *  chừa thanh trạng thái / thanh điều hướng bằng insets thật thay vì đoán 48dp. */
+        private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(dp(c, 20), dp(c, 20), dp(c, 20), dp(c, 20)) }
         val goc = ScrollView(c).apply {
             background = nenMan(); isFillViewport = true; clipToPadding = false
             addView(cot, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            // lớp phủ Trợ năng có thể không nhận insets ⇒ luôn chừa tối thiểu 24dp (thanh trạng thái / điều hướng 3 nút)
             val toiThieu = dp(c, 24)
             setPadding(0, toiThieu, 0, toiThieu)
             setOnApplyWindowInsetsListener { v, i -> @Suppress("DEPRECATION") v.setPadding(0, maxOf(toiThieu, i.systemWindowInsetTop), 0, maxOf(toiThieu, i.systemWindowInsetBottom)); i }
         }
-        private val khoi = the(c).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        private val vien = Clay.vien(c, R.drawable.fl_khoa, Clay.CHINH_SOFT, 92).apply { (layoutParams as ViewGroup.MarginLayoutParams).bottomMargin = dp(c, 10) }
-        private val anh = vien.getChildAt(0) as ImageView
-        val tieuDe = chu(c, "", 28f, CHU, true).apply { gravity = Gravity.CENTER }
-        val dem = chu(c, "", 44f, CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 12), 0, dp(c, 12)); fontFeatureSettings = "tnum" }
-        val cau = chu(c, "", 18f, Clay.CHU2).apply { gravity = Gravity.CENTER }
-        val ghi = chu(c, "Máy này do Ba Mẹ quản lý bằng AiiGrow.", 14f, CHU_PHU).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 20), 0, 0) }
-        // nút chừa lề bóng 4dp, thẻ 6dp ⇒ lùi nút 2dp mỗi bên để mép khối nút thẳng mép khối thẻ
-        val nutXin = nut(c, "Xin Ba Mẹ thêm giờ", ngoc = true) { val g = goiDuyet; val f = onDuyet; if (g != null && f != null) f(g) else onXin() }.apply { (layoutParams as LinearLayout.LayoutParams).apply { topMargin = dp(c, 16); marginStart = dp(c, 2); marginEnd = dp(c, 2) } }
-        val nutVe = onVe?.let { f -> nut(c, "Về màn hình chính", phu = true) { f() }.apply { (layoutParams as LinearLayout.LayoutParams).apply { marginStart = dp(c, 2); marginEnd = dp(c, 2) } } }
-        private var hinhDangHien = 0
+        /** Phần khoá thường (ẩn khi máy ở cổng chọn tên). */
+        private val phanKhoa = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
+        private val anh = ImageView(c).apply { setImageResource(R.drawable.fl_khoa); importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO }
+        private val vien = FrameLayout(c).apply {
+            background = Diu.tron(XANH_NHAT)
+            addView(anh, FrameLayout.LayoutParams(dp(c, 48), dp(c, 48), Gravity.CENTER))
+            layoutParams = LinearLayout.LayoutParams(dp(c, 88), dp(c, 88)).apply { gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(c, 12) }
+        }
+        val tieuDe = Diu.chu(c, "", 26f, CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 14), 0, 0) }
+        val cau = Diu.chu(c, "", 16f, Diu.CHU2).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 6), 0, 0) }
+        private val theDem = Diu.the(c).apply { gravity = Gravity.CENTER_HORIZONTAL }
+        val dem = Diu.chu(c, "", 44f, CHU, true).apply { gravity = Gravity.CENTER; fontFeatureSettings = "tnum" }
+        private val moLai = Diu.chu(c, "", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER }
+        private val goiY = Diu.chu(c, "Đọc sách hoặc ra ngoài chơi nhé!", 15f, Diu.XANH_DAM).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 6), 0, 0) }
+        val nutXin = Diu.nut(c, "Xin Ba Mẹ mở máy") { val g = goiDuyet; val f = onDuyet; if (g != null && f != null) f(g) else onXin() }
+        private val linkMa = Diu.nut(c, "Mất mạng? Nhập mã của Ba Mẹ", Diu.KieuNut.CHU) { moNhapMa(false) }
+        private val linkBaMe = Diu.nut(c, "Ba Mẹ mở máy", Diu.KieuNut.CHU) { moNhapMa(true) }
+        val nutVe = onVe?.let { f -> Diu.nut(c, "Về màn hình chính", Diu.KieuNut.PHU) { f() } }
+        val ghi = Diu.chu(c, "Vẫn gọi được Ba Mẹ · Máy do Ba Mẹ quản lý bằng AiiGrow", 13f, Diu.CHU3).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 16), 0, 0) }
 
-        /** Mã mở khi mất mạng (MaOffline.kt): Ba Mẹ xem mã trong app AiiGrow, đọc cho Con gõ. Chỉ hiện khi máy mất mạng và đang khoá. */
-        val oMa = android.widget.EditText(c).apply {
-            hint = "000000"; contentDescription = "Mã mở 6 số của Ba Mẹ"; inputType = android.text.InputType.TYPE_CLASS_NUMBER
-            filters = arrayOf(android.text.InputFilter.LengthFilter(6)); textSize = 24f; gravity = Gravity.CENTER; letterSpacing = 0.25f
-            minHeight = dp(c, 56); background = ClayDrawable(c, Clay.Kieu.LOM); setTextColor(CHU); setHintTextColor(CHU_PHU)
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 10) }
-        }
-        val baoMa = dongBao(c, Clay.CHINH_INK)
-        val theMa = the(c).apply {
-            (layoutParams as LinearLayout.LayoutParams).topMargin = dp(c, 14)
-            addView(chu(c, "Máy đang mất mạng?", 18f, CHU, true))
-            addView(chu(c, "Nhờ Ba Mẹ mở app AiiGrow › Máy › «Mã mở khi mất mạng» rồi đọc mã cho con gõ vào đây.", 15f, CHU_PHU))
-            addView(oMa)
-            addView(nut(c, "Mở bằng mã", phu = true) {
-                val f = onMa ?: return@nut
-                baoMa.text = f(oMa.text.toString()); oMa.setText("")
-            })
+        // ---- nhập mã (mất mạng: mã mở máy của Con; «Ba Mẹ mở máy»: chế độ Ba Mẹ dùng máy)
+        private var maBaMe = false
+        private var maGo = ""
+        private var dangGui = false
+        /** Vừa mở bằng mã offline ⇒ giữ thẻ «Máy mở rồi!» thay vì ẩn khi ô mã hết cần. */
+        private var daMoBangMa = false
+        private val oMa = Diu.OMa(c)
+        private val tieuMa = Diu.chu(c, "", 20f, CHU, true).apply { gravity = Gravity.CENTER }
+        private val phuMa = Diu.chu(c, "", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 4), 0, 0) }
+        private val baoMa = Diu.chu(c, "", 15f, Diu.LOI_DAM, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 8), 0, 0); visibility = View.GONE }
+        private val theMa = Diu.the(c).apply {
+            gravity = Gravity.CENTER_HORIZONTAL; visibility = View.GONE
+            addView(tieuMa); addView(phuMa); addView(oMa.goc)
             addView(baoMa)
-            visibility = View.GONE
+            addView(Diu.banPhim(c, { s -> if (maGo.length < 6 && !dangGui) { maGo += s; veMa(false) } }, { if (maGo.isNotEmpty()) { maGo = maGo.dropLast(1); veMa(false) } }))
+            addView(Diu.nut(c, "Mở máy bằng mã") { guiMa() })
+            addView(Diu.nut(c, "Đóng", Diu.KieuNut.CHU) { visibility = View.GONE; maGo = "" })
         }
+
+        /** Cổng PIN (chọn tên → PIN …) — ManPin.kt. */
+        val pin = ManPin(c)
 
         init {
-            khoi.addView(vien); khoi.addView(tieuDe); khoi.addView(dem); khoi.addView(cau)
-            cot.addView(khoi); cot.addView(nutXin); nutVe?.let(cot::addView); cot.addView(theMa); cot.addView(ghi)
+            phanKhoa.addView(vien); phanKhoa.addView(tieuDe); phanKhoa.addView(cau)
+            theDem.addView(dem); theDem.addView(moLai); theDem.addView(goiY)
+            phanKhoa.addView(theDem); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
+            phanKhoa.addView(linkMa); phanKhoa.addView(linkBaMe); phanKhoa.addView(theMa); phanKhoa.addView(ghi)
+            cot.addView(phanKhoa); cot.addView(pin.goc)
+            pin.goc.visibility = View.GONE
+            oMa.ve("")
         }
 
-        /** Hiện / ẩn ô nhập mã (gọi mỗi lần vẽ lại). */
+        private fun moNhapMa(baMe: Boolean) {
+            maBaMe = baMe; maGo = ""; daMoBangMa = false; baoMa.visibility = View.GONE
+            tieuMa.text = if (baMe) "Ba Mẹ nhập mã" else "Mất mạng"
+            phuMa.text = if (baMe) "Mở app AiiGrow của Ba Mẹ → Mã mở máy" else "Ba Mẹ ở cạnh con? Nhờ Ba Mẹ đọc mã 6 số trong AiiGrow."
+            theMa.visibility = View.VISIBLE; veMa(false)
+            goc.post { goc.smoothScrollTo(0, theMa.top + phanKhoa.top) }
+        }
+
+        private fun veMa(sai: Boolean) = oMa.ve(maGo, sai)
+
+        private fun guiMa() {
+            if (maGo.length != 6 || dangGui) { baoMa.text = "Mã gồm đúng 6 chữ số."; baoMa.visibility = View.VISIBLE; return }
+            val ma = maGo
+            if (!maBaMe) {
+                val f = onMa ?: return
+                val (kq, _, s) = f(ma)
+                val dung = kq == KetQuaMoOffline.DA_MO || kq == KetQuaMoOffline.DANG_MO
+                daMoBangMa = dung
+                baoMa.text = if (dung) "Máy mở rồi! $s" else s
+                baoMa.setTextColor(if (dung) Diu.XANH_DAM else Diu.LOI_DAM); baoMa.visibility = View.VISIBLE
+                maGo = ""; veMa(!dung)
+                return
+            }
+            dangGui = true; baoMa.text = "Đang kiểm mã…"; baoMa.setTextColor(Diu.CHU2); baoMa.visibility = View.VISIBLE
+            Thread {
+                val loi = PinMay.baMeMo(c, ma)
+                h.post {
+                    dangGui = false; maGo = ""
+                    baoMa.text = loi ?: "Đã mở máy cho Ba Mẹ."
+                    baoMa.setTextColor(if (loi == null) Diu.XANH_DAM else Diu.LOI_DAM); veMa(loi != null)
+                    if (loi == null) theMa.visibility = View.GONE
+                }
+            }.start()
+        }
+
+        /** Hiện / ẩn đường nhập mã mất mạng (gọi mỗi lần vẽ lại). */
         fun hienMa(hien: Boolean) {
             val v = if (hien && onMa != null) View.VISIBLE else View.GONE
-            if (theMa.visibility != v) theMa.visibility = v
+            if (linkMa.visibility != v) linkMa.visibility = v
+            if (!hien && !maBaMe && theMa.visibility == View.VISIBLE && !daMoBangMa) theMa.visibility = View.GONE
+        }
+
+        private var demToi = false
+        private fun datToi(toi: Boolean) {
+            if (toi == demToi) return
+            demToi = toi
+            goc.background = ColorDrawable(if (toi) Diu.DEM_NEN else NEN)
+            tieuDe.setTextColor(if (toi) Diu.DEM_CHU else CHU); cau.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU2)
+            theDem.background = Diu.khoi(c, if (toi) Diu.DEM_THE else TRANG, 24, if (toi) null else Diu.VIEN)
+            dem.setTextColor(if (toi) Diu.DEM_CHU else CHU); moLai.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU2)
+            vien.background = Diu.tron(if (toi) Diu.DEM_THE else XANH_NHAT)
+            ghi.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU3)
         }
 
         fun ve(ht: HienThi, goiChan: String? = null) {
+            val congPin = ht.cong == Cong.CHON_TEN.name && goiChan == null
+            pin.goc.visibility = if (congPin) View.VISIBLE else View.GONE
+            phanKhoa.visibility = if (congPin) View.GONE else View.VISIBLE
+            if (congPin) { datToi(false); pin.ve(); return }
+            pin.dung()
             val chanApp = goiChan != null && !ht.dangKhoaThat
             val duyet = chanApp && goiChan in ht.goiChuaXep
             val goiMoi = if (duyet) goiChan else null
             nutXin.text = when {
                 duyet -> "Xin Ba Mẹ duyệt"
-                chiNgoaiLe(ht.trangThai) -> "Xin Ba Mẹ mở ngoại lệ"
-                ht.trangThai == TrangThai.HET_GIO.name -> "Thêm giờ chơi"
+                chiNgoaiLe(ht.trangThai) -> "Xin Ba Mẹ mở máy"
+                ht.trangThai == TrangThai.HET_GIO.name -> "Xin Ba Mẹ thêm giờ"
                 else -> "Xin Ba Mẹ thêm giờ"
             }
+            // «Ba Mẹ mở máy» chỉ khi máy chủ có PIN theo bé (cổng ≠ MO) và đang khoá thật
+            linkBaMe.visibility = if (!chanApp && ht.cong != Cong.MO.name) View.VISIBLE else View.GONE
+            datToi(!chanApp && ht.trangThai == TrangThai.GIO_NGU.name)
             if (chanApp) {
                 tieuDe.text = "Ứng dụng này đang bị chặn"
-                dem.text = DoPhut.tenApp(c, goiChan!!)
-                dem.textSize = 26f
-                // giữ câu «Đã gửi Ba Mẹ…» khi vẽ lại cùng app (vẽ mỗi giây)
+                dem.text = DoPhut.tenApp(c, goiChan!!); dem.textSize = 24f
+                moLai.visibility = View.GONE; goiY.visibility = View.GONE
                 if (goiMoi == null || goiMoi != goiDuyet) cau.text = if (duyet) "App này chưa được Ba Mẹ cho phép. Con xin Ba Mẹ duyệt nhé."
                     else if (ht.trangThai == TrangThai.HET_GIO.name) "Hôm nay con đã chơi hết giờ. Con dùng sao hoặc xin Ba Mẹ thêm giờ nhé."
                     else "Ba Mẹ chưa cho dùng ứng dụng này lúc này. Con có thể xin Ba Mẹ nhé."
@@ -223,15 +263,18 @@ object GiaoDien {
             } else {
                 goiDuyet = null
                 tieuDe.text = tieuDeKhoa(ht.trangThai)
-                dem.text = dongDemNguoc(ht); dem.textSize = if (ht.demNguoc > 0) 44f else 24f
                 cau.text = ht.cauCon
+                val now = System.currentTimeMillis()
+                dem.text = dongDemNguoc(ht, now); dem.textSize = if (ht.demNguoc > 0 || ht.moLaiLuc > now) 44f else 24f
+                moLai.text = if (ht.demNguoc == 0 && ht.moLaiLuc > now) "Mở lại lúc ${gio(ht.moLaiLuc)}" else ""
+                moLai.visibility = if (moLai.text.isEmpty()) View.GONE else View.VISIBLE
+                goiY.text = if (ht.trangThai == TrangThai.GIO_NGU.name) "Ngủ ngon nhé! Mai chơi tiếp." else "Đọc sách hoặc ra ngoài chơi nhé!"
+                goiY.visibility = if (ht.demNguoc > 0) View.GONE else View.VISIBLE
             }
-            // ổ khoá «đóng sập» mỗi lần lý do đổi (lần đầu hiện cũng tính)
-            val h = hinhKhoa(ht.trangThai, chanApp)
-            if (h != hinhDangHien) {
-                hinhDangHien = h; anh.setImageResource(h)
-                goc.post { Clay.dongSap(anh, khoi) }
-            }
+            ht.tenCon?.let { ghi.text = "Vẫn gọi được Ba Mẹ · $it" }
+            val hinh = hinhKhoa(ht.trangThai, chanApp)
+            if (hinh != hinhDangHien) { hinhDangHien = hinh; anh.setImageResource(hinh) }
         }
+        private var hinhDangHien = 0
     }
 }

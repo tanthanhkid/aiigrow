@@ -7,7 +7,8 @@ import java.net.URL
 
 /** Gọi /api/device/… (server/lib/api-may.ts). Chỉ gọi từ luồng nền. */
 class MayChu(private val goc: String, private val token: String?) {
-    class Loi(val ma: String, val cau: String, val http: Int) : IOException(cau)
+    /** `than` = cả thân lỗi (S3 06/11: trường phụ cạnh {error, message} — `conLan`, `choGiay`, `khoaDen`). */
+    class Loi(val ma: String, val cau: String, val http: Int, val than: JSONObject = JSONObject()) : IOException(cau)
 
     fun goi(duong: String, than: JSONObject? = null): JSONObject {
         val c = (URL(goc.trimEnd('/') + "/api/device/" + duong).openConnection() as HttpURLConnection).apply {
@@ -28,7 +29,7 @@ class MayChu(private val goc: String, private val token: String?) {
             val o = try { JSONObject(s) } catch (_: Exception) { JSONObject() }
             if (ma !in 200..299) {
                 // server/lib/api.ts › loi(): { error, message }
-                throw Loi(o.optString("error", "http_$ma"), o.optString("message", "Máy chủ trả lỗi $ma"), ma)
+                throw Loi(o.optString("error", "http_$ma"), o.optString("message", "Máy chủ trả lỗi $ma"), ma, o)
             }
             return o
         } finally { c.disconnect() }
@@ -47,4 +48,11 @@ class MayChu(private val goc: String, private val token: String?) {
     fun suKien(than: JSONObject) = goi("su-kien", than)
     /** Danh sách app đã cài thật (DanhSachApp.kt): đủ / phần đổi; 409 can_gui_du ⇒ gửi đủ. */
     fun ungDung(than: JSONObject) = goi("ung-dung", than)
+    /** L13 PIN theo bé (docs/API.md «S3 thiết kế chốt 06/11»): ai đang dùng máy, bé vào bằng tên + PIN, quên PIN, Ba Mẹ nhập mã, đăng xuất / khoá lại. */
+    fun hoSo() = goi("ho-so")
+    fun dangNhapBe(con: String, pin: String?) = goi("dang-nhap-be", JSONObject().put("con", con).apply { pin?.let { put("pin", it) } })
+    fun quenPin(con: String) = goi("quen-pin", JSONObject().put("con", con))
+    fun baMeMo(ma: String) = goi("ba-me-mo", JSONObject().put("ma", ma))
+    fun dangXuat() = goi("dang-xuat", JSONObject())
+    fun khoaLai() = goi("khoa-lai", JSONObject())
 }

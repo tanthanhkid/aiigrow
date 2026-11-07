@@ -9,7 +9,7 @@ import vn.aiilab.aiigrow.maycon.logic.matMang
 
 /**
  * Con gõ mã mở offline Ba Mẹ đọc (giống agent-win AgentRuntime.TryMaOffline): kiểm ngay trên máy bằng bí mật đã nhớ, không cần máy chủ.
- * Đúng ⇒ mở 60 phút + sự kiện «mo_ma_offline»; sai 5 lần trong 10 phút ⇒ chờ + sự kiện «sai_ma_offline». Có mạng lại ⇒ DichVuNhip kết thúc lượt mở.
+ * Đúng ⇒ mở đúng số phút mã mang (60 / 30 / 15 — 06/11 L19, logic/MaOffline.kt › kiemPhut) + sự kiện «mo_ma_offline»; sai 5 lần trong 10 phút ⇒ chờ + sự kiện «sai_ma_offline». Có mạng lại ⇒ DichVuNhip kết thúc lượt mở.
  */
 object MoMaOffline {
     private val khoa = Any()
@@ -25,11 +25,13 @@ object MoMaOffline {
     /** Máy rời gia đình / ghép lại ⇒ quên bí mật + lượt mở cũ (mã của gia đình cũ không mở được máy nữa). */
     fun quen(k: Kho) = synchronized(khoa) { k.maOfflineBiMat = null; k.moTamOffline = null }
 
-    fun thu(ctx: Context, ma: String): String = synchronized(khoa) {
+    /** Con / Ba Mẹ gõ mã: trả kết quả + lúc hết mở (giờ máy — «Ba Mẹ nhập mã» lúc mất mạng dùng hạn này) + câu cho Con.
+     *  `choBaMe` ⇒ chỉ ghi dấu mã đã dùng + bộ đếm sai, KHÔNG mở cửa sổ của Con (hạn Ba Mẹ giữ ở PinMay; «Khoá lại» xong bé vào không hưởng). */
+    fun thuMa(ctx: Context, ma: String, choBaMe: Boolean = false): Triple<KetQuaMoOffline, Long?, String> = synchronized(khoa) {
         val k = Kho(ctx)
         val now = System.currentTimeMillis()
         val (kq, st) = MoTamOffline.doc(k.moTamOffline).thu(k.maOfflineBiMat, ma, now, lechMs = if (k.cheDoThu) 0 else k.lechGioMs)
-        k.moTamOffline = st.json()
+        k.moTamOffline = (if (choBaMe && kq == KetQuaMoOffline.DA_MO) st.copy(moDen = now) else st).json()
         val tenMay = android.os.Build.MODEL ?: "Android"
         when {
             kq == KetQuaMoOffline.DA_MO -> {
@@ -41,7 +43,13 @@ object MoMaOffline {
                 NhatKy.suKien(ctx, "sai_ma_offline", mapOf("may" to tenMay, "soLan" to MoTamOffline.SAI_TOI_DA, "phut" to MoTamOffline.CUA_SO_SAI_PHUT))
         }
         NhatKy.tin("AiiGrowMaOffline", "gõ mã offline: $kq")
-        cauMoOffline(kq, st, now) { GiaoDien.gio(it) }
+        Triple(kq, st.moDen.takeIf { kq == KetQuaMoOffline.DA_MO }, cauMoOffline(kq, st, now) { GiaoDien.gio(it) })
+    }
+
+    /** Bé rời máy (Đổi bé / Đăng xuất / Khoá lại) ⇒ cửa sổ mở bằng mã offline đang chạy kết thúc (giữ dấu mã đã dùng) — bé sau không hưởng. */
+    fun dongCuaSo(ctx: Context) = synchronized(khoa) {
+        val k = Kho(ctx)
+        MoTamOffline.doc(k.moTamOffline).ketThucKhiCoMang(System.currentTimeMillis())?.let { k.moTamOffline = it.json() }
     }
 
     /** Nhịp máy chủ thành công ⇒ kết thúc lượt mở đang chạy (như agent-win MoTamOffline.KetThucKhiCoMang) + sự kiện «het_ma_offline». */

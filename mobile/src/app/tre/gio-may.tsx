@@ -1,53 +1,54 @@
-// con-gio-may «Giờ máy không đúng» (Teen, FR-01.05, BRD 6.7): lệch giờ ⇒ khoá trò chơi, app học vẫn dùng; nói rõ quy tắc nào, giọng trung tính,
-// tôn trọng riêng tư («chỉ kiểm đồng hồ»). Nút «Nhắn Ba Mẹ» gửi yêu cầu kèm số phút lệch.
+// «Giờ trên máy bị lệch» bản «Dịu» (con-dt-gio 01 cdt-gio-may, FR-01.05): «Giờ chơi tạm dừng đếm đến khi chỉnh lại», «Máy đang để 15:10 ·
+// Sai 4 tiếng 20 phút» / «Giờ đúng 19:30 · Theo máy chủ AiiGrow», hướng dẫn «Cài đặt › Giờ · Bật «Đặt tự động»», «Đã chỉnh xong, thử lại» /
+// «Nhờ Ba Mẹ giúp» (gửi yêu cầu kèm số phút lệch). Agent mở `/tre/gio-may?lech=<phút>`.
 import { useState } from "react";
-import { Linking, Platform, View, useWindowDimensions } from "react-native";
-import { BangTruot, Bao, BaoLoi, Chu, M, Nhan, Nut, Rob, useLam } from "@/lib/ui";
-import { ManTre } from "@/lib/ui-tre";
+import { Linking, Platform, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
 import { kid } from "@/lib/api-tre";
-import { useLocalSearchParams } from "expo-router";
+import { D } from "@/lib/diu";
+import { useLam } from "@/lib/ui";
+import { BuocD, CamXuc, ChuD, LoiD, ManD, NutD, PillD, TheD } from "@/lib/ui-diu";
+import { gioCua } from "@/lib/ui-tre";
+
+const tieng = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} tiếng${p % 60 ? ` ${p % 60} phút` : ""}` : `${p} phút`);
 
 export default function GioMay() {
   const { lech } = useLocalSearchParams<{ lech?: string }>();
-  const phut = Math.abs(Math.round(Number(lech) || 0));
-  const { width } = useWindowDimensions();
-  const rong = width >= 760;
-  const [huongDan, setHuongDan] = useState(false);
+  const lechPhut = Math.round(Number(lech) || 0);
+  const phut = Math.abs(lechPhut);
   const [daNhan, setDaNhan] = useState(false);
   const { dangChay, loi, lam } = useLam();
+  const may = new Date();
+  const dung = new Date(may.getTime() - lechPhut * 60_000);
   const chinh = () => {
-    if (Platform.OS === "android") Linking.sendIntent("android.settings.DATE_SETTINGS").catch(() => setHuongDan(true));
-    else setHuongDan(true);
+    if (Platform.OS === "android") Linking.sendIntent("android.settings.DATE_SETTINGS").catch(() => {});
+    else router.replace("/tre/nha");
   };
   const nhan = () => lam(async () => {
-    await kid.goi("yeu-cau", { loai: "khac", giaTri: phut ? `Giờ máy lệch ${phut} phút — nhờ Ba Mẹ kiểm tra` : "Giờ máy không đúng — nhờ Ba Mẹ kiểm tra", lyDo: "Giờ máy không đúng" });
+    await kid.goi("yeu-cau", { loai: "khac", giaTri: phut ? `Giờ máy lệch ${tieng(phut)} — nhờ Ba Mẹ kiểm tra` : "Giờ máy không đúng — nhờ Ba Mẹ kiểm tra", lyDo: "Giờ máy không đúng" });
     setDaNhan(true);
   });
   return (
-    <ManTre>
-      <View style={{ flexDirection: rong ? "row" : "column", alignItems: "center", gap: rong ? 40 : 12, paddingVertical: rong ? 40 : 8, maxWidth: 980, alignSelf: "center" }}>
-        <Rob ten="trong-loi" co={rong ? 320 : 180} />
-        <View style={{ flex: rong ? 1 : undefined, gap: 8, alignSelf: "stretch" }}>
-          <Nhan chu="Quy tắc: giờ máy phải đúng giờ thật" loai="canh" />
-          <Chu kieu="rat" co={rong ? 34 : 26} style={{ letterSpacing: -0.6 }}>Giờ máy không đúng, hãy nhờ Ba Mẹ</Chu>
-          <Chu co={rong ? 18 : 16} mau={M.chu2}>
-            {`${phut ? `Đồng hồ máy lệch ${phut} phút. ` : ""}AiiGrow tạm khoá trò chơi — Word, AiiRob, trình duyệt học tập vẫn dùng bình thường.`}
-          </Chu>
-          <Chu co={15} mau={M.chu3}>AiiGrow không đọc nội dung của bạn — chỉ kiểm đồng hồ.</Chu>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 12 }}>
-            <Nut chu="Chỉnh lại giờ tự động" bam={chinh} />
-            {daNhan ? null : <Nut chu="Nhắn Ba Mẹ" loai="vien" bam={nhan} dangChay={dangChay} />}
-          </View>
-          {daNhan ? <Bao loai="ok" ic="tick" tieu="Đã báo Ba Mẹ" loi="Ba Mẹ xem trong mục Chờ duyệt và trả lời sớm." /> : null}
-          <BaoLoi loi={loi} />
-        </View>
+    <ManD lui="/tre/nha" day={<><LoiD loi={loi} /><NutD chu="Đã chỉnh xong, thử lại" bam={chinh} />
+      {daNhan ? <View style={{ alignSelf: "center" }}><PillD chu="Đã báo Ba Mẹ" loai="xanh" ic="tick" /></View> : <NutD chu="Nhờ Ba Mẹ giúp" loai="chu" bam={nhan} dangChay={dangChay} />}</>}>
+      <CamXuc lv="trong-loi" co={120} tieu="Giờ trên máy bị lệch" phu="Giờ chơi tạm dừng đếm đến khi chỉnh lại." />
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <TheD style={{ flex: 1, alignItems: "center" }}>
+          <ChuD kieu="rat" co={13} mau={D.chu2}>Máy đang để</ChuD>
+          <ChuD kieu="den" co={28} mau={D.loi} so>{gioCua(may.toISOString())}</ChuD>
+          {phut ? <ChuD kieu="rat" co={12.5} mau={D.loi} giua>{`Sai ${tieng(phut)}`}</ChuD> : null}
+        </TheD>
+        <TheD style={{ flex: 1, alignItems: "center" }}>
+          <ChuD kieu="rat" co={13} mau={D.chu2}>Giờ đúng</ChuD>
+          <ChuD kieu="den" co={28} mau={D.xanhD} so>{gioCua(dung.toISOString())}</ChuD>
+          <ChuD kieu="rat" co={12.5} mau={D.chu2} giua>Theo máy chủ AiiGrow</ChuD>
+        </TheD>
       </View>
-      <BangTruot mo={huongDan} dong={() => setHuongDan(false)} tieu="Chỉnh giờ tự động">
-        <Chu co={15} mau={M.chu2}>Windows: Cài đặt → Thời gian và ngôn ngữ → Ngày và giờ → bật «Đặt giờ tự động», rồi bấm «Đồng bộ ngay».</Chu>
-        <Chu co={15} mau={M.chu2}>Máy tính bảng / điện thoại: Cài đặt → Ngày và giờ → bật «Tự động».</Chu>
-        <Chu co={15} mau={M.chu2}>Giờ đúng lại thì trò chơi tự mở trong vài phút.</Chu>
-        <Nut chu="Đã hiểu" rong bam={() => setHuongDan(false)} />
-      </BangTruot>
-    </ManTre>
+      <TheD style={{ gap: 12 }}>
+        <BuocD n={1} tieu="Cài đặt › Ngày và giờ" />
+        <BuocD n={2} tieu="Bật «Đặt tự động»" cuoi />
+      </TheD>
+      <ChuD co={13} mau={D.chu3} giua>AiiGrow chỉ kiểm đồng hồ, không đọc nội dung của con.</ChuD>
+    </ManD>
   );
 }
