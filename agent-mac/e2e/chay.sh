@@ -149,9 +149,9 @@ dat 4.1b 'Long-poll cho-thay-doi áp nhanh: ≤ 20 giây' "$([ "$G" -le 20 ] && 
 TEN_CHAN="chan-thu-e2e.vn"
 api POST "/api/m/con/$CON_ID/web/trang" "{\"muc\":\"$TEN_CHAN\",\"trangThai\":\"chan\"}" "$TOKEN_BM"
 CO_CHAN() { trang_thai | jq -e --arg d "$TEN_CHAN" '(.trangChan // []) | map(select(contains($d))) | length > 0' >/dev/null; }
-CO_SAO() { trang_thai | jq -e '(.trangChan // []) | index("*") != null' >/dev/null; }
-cho 60 2 CO_SAO
-dat 4.2 'Ở «Chỉ app được phép» web chặn «*» (trừ trang cho phép) — status.trangChan' "$(CO_SAO && echo 1 || echo 0)" "$(trang_thai | jq -c '(.trangChan // []) | {so: length, sao: (index("*") != null), dau: .[0:3]}' 2>/dev/null)"
+CO_DS() { trang_thai | jq -e '(.trangChan // []) | length > 0' >/dev/null; }
+cho 60 2 CO_DS
+dat 4.2 'Chính sách web về daemon: status.trangChan có danh sách web cấm luôn chặn' "$(CO_DS && echo 1 || echo 0)" "$(trang_thai | jq -c '(.trangChan // []) | {so: length, dau: .[0:3]}' 2>/dev/null) (ở «Chỉ app được phép» «*» nằm ở luật trình duyệt, không ở trangChan)"
 sleep 8
 if grep -q "$TEN_CHAN" /etc/hosts 2>/dev/null; then ghi 4.3 'Khối /etc/hosts có mốc # AiiGrow + tên miền chặn' PASS "$(grep -c '# AiiGrow' /etc/hosts) dòng"
 else bo 4.3 'Khối /etc/hosts / chính sách trình duyệt áp cho Con' "daemon chỉ đặt hosts + Managed Preferences khi Con đang ở màn hình (phienConsole); runner không có phiên đăng nhập của Con"; fi
@@ -166,14 +166,17 @@ done
 dat 5.1 'App thật quét từ /Applications lên máy chủ (E2EChan)' "$([ -n "$KHOA_APP" ] && echo 1 || echo 0)" "khoa «${KHOA_APP}» · $(jqr "$API_THAN" '[.ds[]? | (.ten // .khoa)] | join(",")' | cut -c1-200) · sau $((SECONDS-T0)) giây"
 if [ -n "$KHOA_APP" ]; then
   # chạy app dưới uid Con TRƯỚC, kiểm còn sống, rồi mới chặn (vòng áp 5 giây có thể đóng nó trước khi kịp kiểm)
+  api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"mo_het"}' "$TOKEN_BM"; cho 60 1 cho_che_do tu_do
   : > /tmp/e2echan.log; chmod 666 /tmp/e2echan.log
   sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" 3000 >>/tmp/e2echan.log 2>&1 &
   sleep 1
-  DANG_CHAY() { ps -u "$UID_CON" -o comm= 2>/dev/null | grep -q e2echan; }
+  DANG_CHAY() { ps -axo uid=,comm= 2>/dev/null | awk -v u="$UID_CON" '$1==u' | grep -q e2echan; }
   SONG0=$(DANG_CHAY && echo 1 || echo 0)
+  [ "$SONG0" = 1 ] || { sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" 1 >>/tmp/e2echan.log 2>&1; echo "chạy đồng bộ: mã $?" >>/tmp/e2echan.log; }
   log "E2EChan chạy dưới uid Con: $SONG0 · log: $(cat /tmp/e2echan.log | head -c 200) · ps: $(ps -u "$UID_CON" -o pid=,comm= | head -5 | tr '\n' ';')"
   api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"chan\"}" "$TOKEN_BM"; log "ung-dung/dat chan HTTP $API_MA"
-  T0=$SECONDS; cho 90 2 sh -c "! ps -u $UID_CON -o comm= | grep -q e2echan"; G=$((SECONDS-T0))
+  api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"chi_app_duoc_phep"}' "$TOKEN_BM"
+  T0=$SECONDS; cho 90 2 sh -c "! ps -axo uid=,comm= | awk -v u=$UID_CON '\$1==u' | grep -q e2echan"; G=$((SECONDS-T0))
   if [ "$SONG0" != 1 ]; then bo 5.2 'App chặn đang chạy dưới uid Con bị đóng' "không khởi chạy được tiến trình E2EChan dưới uid Con: $(head -c 200 /tmp/e2echan.log)"
   elif DANG_CHAY; then ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' FAIL "E2EChan (uid Con) còn chạy sau 90 giây · mode $(tt_truong cheDo) · chanApp $(tt_truong chanApp)"
   else ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' PASS "bị đóng sau ~$G giây · chanApp $(tt_truong chanApp) chanLyDo $(tt_truong chanLyDo)"; fi
