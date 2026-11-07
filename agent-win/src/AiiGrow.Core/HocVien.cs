@@ -371,6 +371,8 @@ public static class HocVienPaths
     {
         if (string.IsNullOrWhiteSpace(path)) return false;
         var m = (method ?? "").ToUpperInvariant();
+        // 07/11 (V1): ví quà của bé đang đăng nhập — GET api/device/vi-qua (ngoài nhánh hoc-vien/), chỉ đọc, không tham số
+        if (path == ViQuaMayView.Duong) return m == "GET";
         var q = path.IndexOf('?');
         var query = q >= 0 ? path[(q + 1)..] : "";
         var p = q >= 0 ? path[..q] : path;
@@ -380,7 +382,7 @@ public static class HocVienPaths
         return (m, s.Length) switch
         {
             // 05/11: quy (quỹ giờ chơi + sao), nhiem-vu?tuCham=1 (kèm việc AiiRob tự chấm), vi-qua (quà đã trao) · doi-sao (đổi sao lấy phút)
-            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang" or "quy" or "nhiem-vu" or "vi-qua",
+            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang" or "quy" or "nhiem-vu",
             ("POST", 1) => s[0] == "doi-sao",
             ("POST", 2) => s[0] == "doi",
             ("POST", 3) => (s[0] == "nhiem-vu" && s[2] == "bat-dau") || (s[0] == "luot" && s[2] == "nop") || (s[0] == "loi-khen" && s[2] == "phan-hoi"),

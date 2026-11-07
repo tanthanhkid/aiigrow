@@ -222,6 +222,31 @@ internal static class ChupMain
 
     // =========================================================== các màn
 
+    /// <summary>Ví quà mẫu (con-ngay-thuong 23/24/38): quà có điều kiện, phiếu chờ trao, voucher còn dùng + đã dùng, huy hiệu.</summary>
+    private static ViQuaMay ViQuaMau() => new()
+    {
+        Con = new() { Id = "c1", Ten = "Bảo Anh" }, Sao = 450, SaoGiu = 50,
+        Qua = new()
+        {
+            new() { Id = "q1", Ten = "Chọn món bữa tối", Loai = "dac_quyen", Sao = 50, Du = true, ChoTraoTu = DateTimeOffset.Now.AddHours(-2), ConHopLe = true },
+            new() { Id = "q2", Ten = "Đi xem phim", Loai = "dac_quyen", Sao = 300, Du = true, DieuKien = new() { ChiCuoiTuan = true }, ConHopLe = false, LyDoKhong = "chi_cuoi_tuan" },
+            new() { Id = "q3", Ten = "AiiCafe 20k", Loai = "voucher", Sao = 200, MenhGia = 20000, LaVoucher = true, Du = true, ConHopLe = true, DoiDuoc = true },
+            new() { Id = "q4", Ten = "AiiCafe 50k", Loai = "voucher", Sao = 500, MenhGia = 50000, LaVoucher = true, Du = false, ConThieu = 50, ConHopLe = true },
+        },
+        PhieuCho = new() { new() { Id = "p1", Ten = "Chọn món bữa tối", Loai = "dac_quyen", Sao = 50, DoiLuc = DateTimeOffset.Now.AddHours(-2) } },
+        DaTrao = new() { new() { Id = "p2", Ten = "Thêm 30 phút chơi", Loai = "phut", Sao = 60, TraoLuc = DateTimeOffset.Now.AddDays(-3) } },
+        Voucher = new()
+        {
+            new() { Ten = "AiiCafe 50k", Ma = "AG7K3M9PQR2X", Qr = "AG7K3M9PQR2X", MenhGia = 50000, TrangThai = "da_phat_hanh", HetHan = DateTimeOffset.Now.AddDays(49), ConNgay = 49 },
+            new() { Ten = "AiiCafe 20k", Ma = "AG2P8Q4WZ6TN", MenhGia = 20000, TrangThai = "da_dung", HetHan = DateTimeOffset.Now.AddDays(10), DungLuc = DateTimeOffset.Now.AddDays(-5) },
+        },
+        HuyHieu = new()
+        {
+            new() { Ma = "sieng_doc", Ten = "Siêng đọc sách", MoTa = "Đọc sách 5 ngày liền", DatLuc = DateTimeOffset.Now.AddDays(-2) },
+            new() { Ma = "tu_lap", Ten = "Bé tự lập", MoTa = "Làm đủ 5 việc trong 1 ngày", DatLuc = DateTimeOffset.Now.AddDays(-9) },
+        },
+    };
+
     private static async Task ManApp(string ten, MucApp muc, TrayState s, bool coDuLieu, KetNoiInfo? kn = null, string? loiTai = null, bool quaCuaCon = false)
     {
         var f = new AppForm();
@@ -232,11 +257,7 @@ internal static class ChupMain
             DatTruong(f, "_ch", CuaHang());
             DatTruong(f, "_tin", Tin());
             DatTruong(f, "_tuCham", new List<HvNvDong> { new() { Id = "t9", Ten = "Học 1 bài với AiiRob", Diem = 20, Sao = 20, TuCham = true, Bo = "tu_lap" } });
-            DatTruong(f, "_viQua", new HvViQua
-            {
-                DaTrao = new() { new() { Id = "r1", Ten = "AiiCafe 50k", Loai = "voucher", Diem = 500, XuLyLuc = DateTimeOffset.Now.AddDays(-11) } },
-                Voucher = new() { new() { Ma = "AG7K3M9PQR2X", MenhGia = 50000, TrangThai = "da_phat_hanh", HetHan = DateTimeOffset.Now.AddDays(49), Ten = "AiiCafe 50k", Qr = "AG7K3M9PQR2X", ConNgay = 49 } },
-            });
+            DatTruong(f, "_viQua", ViQuaMau());
         }
         if (quaCuaCon) DatTruong(f, "_xemQuaCuaCon", true);
         DatTruong(f, "_loiTai", loiTai);
