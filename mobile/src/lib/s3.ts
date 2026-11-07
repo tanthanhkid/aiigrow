@@ -167,3 +167,5 @@ export const soTrenChuong = (r: { soChuong?: number | null; chuaDoc?: number | n
 export const CHIP_TUOI = [{ chu: "4–5", tuoi: 5 }, { chu: "6–7", tuoi: 7 }, { chu: "8–9", tuoi: 9 }, { chu: "10–12", tuoi: 11 }, { chu: "13+", tuoi: 13 }] as const;
 /** Năm sinh gửi máy chủ cho một chip tuổi (null = chưa chọn). */
 export const namTuChipTuoi = (i: number | null, nam = new Date().getFullYear()) => (i === null || !CHIP_TUOI[i] ? null : nam - CHIP_TUOI[i].tuoi);
+/** Bộ việc giao sẵn theo chip tuổi (server/lib/bo-nhiem-vu.ts): 4–7 Học tập · 8–9 Tự lập · 10+ Phụ việc nhà; chưa chọn tuổi ⇒ Tự lập (bộ đầu ở bước Lần đầu). */
+export const boTheoTuoi = (i: number | null) => (i === null ? "tu_lap" : i <= 1 ? "hoc_tap" : i === 2 ? "tu_lap" : "viec_nha");

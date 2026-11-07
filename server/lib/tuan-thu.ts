@@ -361,7 +361,8 @@ export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string,
 export async function moBangMaSau(fam: string, mayId: string, sau: string | null, now = new Date()) {
   const m = await mayCua(fam, mayId);
   const so = sau && /^\d+$/.test(sau) ? Number(sau) : sau ? Date.parse(sau) : NaN;
-  const tu = new Date(Number.isFinite(so) ? so : now.getTime() - 10 * 60_000);
+  const tuSo = new Date(so);
+  const tu = Number.isNaN(tuSo.getTime()) ? new Date(now.getTime() - 10 * 60_000) : tuSo;   // NaN / ngoài tầm Date ⇒ 10 phút trước
   const suKien = await q<{ loai: string; chi_tiet: Record<string, unknown>; created_at: Date }>(`select loai, chi_tiet, created_at from events
       where family_id = $1 and device_id = $2 and loai = 'may_mo_ma_offline' and created_at > $3 order by created_at desc, seq desc limit 20`, [fam, m.id, tu]);
   return { suKien, bayGio: now.toISOString() };

@@ -8,7 +8,7 @@ import { bm } from "@/lib/api";
 import { cuoiTuanCua, NGU_MAC_DINH, QUY_MAC_DINH } from "@/lib/ghep-may";
 import { BONG, KHOI } from "@/lib/clay";
 import { MAU_HO_SO, OLom } from "@/lib/lan-dau";
-import { CHIP_TUOI, kiemPin, namTuChipTuoi } from "@/lib/s3";
+import { boTheoTuoi, CHIP_TUOI, kiemPin, namTuChipTuoi } from "@/lib/s3";
 import { OPin } from "@/lib/ui-s3";
 import { BaoLoi, Chu, chuTren, Icon, M, Man, Nut, Rob, useLam } from "@/lib/ui";
 
@@ -24,15 +24,16 @@ export default function ThemCon() {
   const namSinh = namTuChipTuoi(tuoi);
   const loiPin = kiemPin(pin, null, namSinh);
   const [dam] = MAU_HO_SO[mau];
+  const [conId, setConId] = useState<string | null>(null);   // đã tạo (lời đáp lỗi sau đó) ⇒ bấm lại chỉ sửa Con này, không tạo Con thứ hai
   const tao = () => lam(async () => {
-    const r = await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) });
-    // «Rob cài sẵn giờ chơi, nhiệm vụ»: cùng mặc định các bước Lần đầu (bộ việc đầu = Tự lập, 60 phút / ngày, ngủ 21:30–06:30). Hồ sơ đã tạo ⇒
-    // lỗi phần cài sẵn không chặn (Ba Mẹ chỉnh ở Hồ sơ), không tạo lại Con.
-    await Promise.allSettled([
-      bm.goi("nhiem-vu/bo", { bo: "tu_lap", con: r.id }),
-      bm.goi("thiet-lap", { con: { id: r.id }, gioChoi: { ngayThuong: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua(QUY_MAC_DINH) }, ngu: NGU_MAC_DINH }),
-    ]);
-    router.replace(`/ho-so/${r.id}` as never);
+    // MỘT lời thiet-lap như bước Lần đầu: tạo Con (hoặc sửa Con vừa tạo) + giờ chơi + giờ ngủ mặc định («Rob cài sẵn giờ chơi»)
+    const r = await bm.goi<{ conId: string }>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}` },
+      gioChoi: { ngayThuong: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua(QUY_MAC_DINH) }, ngu: NGU_MAC_DINH });
+    setConId(r.conId);
+    if (pin) await bm.goi(`con/${r.conId}/pin`, { pin });
+    // «nhiệm vụ theo tuổi»: bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ giao việc ở Hồ sơ), bộ đã giao không giao trùng (máy chủ bỏ việc đã có)
+    await bm.goi("nhiem-vu/bo", { bo: boTheoTuoi(tuoi), con: r.conId }).catch(() => null);
+    router.replace(`/ho-so/${r.conId}` as never);
   });
   return (
     <Man lui={{ chu: "", ve: "/cai-dat" }} tieu="Thêm con"

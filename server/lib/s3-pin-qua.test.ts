@@ -373,24 +373,30 @@ test("M5 thư viện theo Con: mẫu đang áp riêng cho Con khác ⇒ áp thê
   assert.equal((await one<{ ap_cho: string[] | null }>(`select ap_cho from rewards where id = $1`, [sach]))!.ap_cho, null);
 });
 
-test("M5 «Dùng 7 quà Rob gợi ý» bật lại quà mặc định đã cất; có `con` ⇒ quà áp riêng Con khác được áp thêm Con này", async () => {
+test("M5 «Dùng 7 quà Rob gợi ý» theo Con: bật lại quà đã cất chỉ cho Con đó, không đụng quà Ba Mẹ cất cho anh chị em; thiết lập (không con) không bật lại", async () => {
   const { tokBm, anh, minh } = await nha();
   const ds = (await m(tokBm, "qua")).body.ds;
   for (const x of ds) await m(tokBm, `qua/${x.id}`, { bat: false });
   const lego = ds.find((x: any) => x.mau === "lego");
   await m(tokBm, `qua/${lego.id}`, { apCho: [minh] });
   assert.ok((await m(tokBm, `qua/thu-vien?con=${anh}`)).body.nhom.flatMap((x: any) => x.ds).every((x: any) => !x.daCo), "quà đã cất ⇒ thư viện hiện «+»");
+  // bước «Chọn quà» lúc thiết lập (không con) ⇒ KHÔNG bật lại quà đã cất, không đổi «Áp cho»
+  await m(tokBm, "qua/mac-dinh", { chon: ["bua_toi", "an_kem", "aiicafe_20k", "do_choi_nho", "xem_phim", "aiicafe_50k", "lego"] });
+  assert.equal((await m(tokBm, "qua")).body.ds.filter((x: any) => x.bat).length, 0);
+  assert.equal((await m(tokBm, "qua/mac-dinh", { con: [] })).status, 200, "con rỗng = cả nhà, không 500");
+  // xoá «Đi xem phim» rồi «Dùng 7 quà» cho Bảo Anh ⇒ tạo lại CHỈ cho Bảo Anh
+  const phim = ds.find((x: any) => x.mau === "xem_phim");
+  await m(tokBm, `qua/${phim.id}/xoa`, {});
   const sau = (await m(tokBm, "qua/mac-dinh", { con: anh })).body.ds;
   assert.equal(sau.length, 7);
-  assert.ok(sau.every((x: any) => x.bat), "cả 7 bật lại cho Bảo Anh");
-  assert.equal((await m(tokBm, "qua")).body.ds.length, 7, "không tạo trùng");
-  assert.deepEqual((await one<{ ap_cho: string[] }>(`select ap_cho from rewards where id = $1`, [lego.id]))!.ap_cho.sort(), [anh, minh].sort());
-  // quà cả nhà đã cất, bật lại theo Bảo Anh ⇒ CHỈ Bảo Anh (Bảo Minh không tự hiện lại)
-  assert.equal((await m(tokBm, `qua?con=${minh}`)).body.ds.filter((x: any) => x.bat).map((x: any) => x.mau).join(), "lego");
-  // cả nhà (không con) ⇒ áp mọi Con
-  const lai = (await m(tokBm, "qua/mac-dinh", {})).body.ds;
-  assert.ok(lai.every((x: any) => x.apCho === null));
-  assert.equal((await m(tokBm, "qua/mac-dinh", { con: [] })).status, 200, "con rỗng = cả nhà, không 500");
+  assert.ok(sau.every((x: any) => x.bat), "cả 7 có lại cho Bảo Anh");
+  // quà cả nhà đã cất ⇒ bật lại CHỈ cho Bảo Anh; Lego Ba Mẹ cất riêng cho Bảo Minh ⇒ dòng riêng mới cho Bảo Anh, Lego của Minh vẫn cất
+  assert.deepEqual((await m(tokBm, `qua?con=${minh}`)).body.ds.filter((x: any) => x.bat), []);
+  assert.deepEqual(Object.values((await one<{ bat: boolean; ap_cho: string[] }>(`select bat, ap_cho from rewards where id = $1`, [lego.id]))!), [false, [minh]]);
+  assert.ok(sau.filter((x: any) => x.mau !== "lego").every((x: any) => x.apCho?.length === 1 && x.apCho[0] === anh));
+  // gọi lại ⇒ không đổi gì, không tạo trùng
+  assert.equal((await m(tokBm, "qua/mac-dinh", { con: anh })).body.ds.length, 7);
+  assert.equal((await m(tokBm, "qua")).body.ds.length, 8, "7 + Lego cũ của Minh");
 });
 
 test("M5 màn Mã mở máy: đường nhẹ mo-bang-ma?sau= chỉ trả sự kiện mở bằng mã mới; xem lại cùng mã không ghi xem_ma_offline trùng", async () => {
@@ -414,6 +420,7 @@ test("M5 màn Mã mở máy: đường nhẹ mo-bang-ma?sau= chỉ trả sự ki
   assert.ok(r.bayGio);
   // sau = mili giây sau sự kiện ⇒ rỗng; máy nhà khác ⇒ 404
   assert.deepEqual((await m(tokBm, `may/${rieng.id}/mo-bang-ma?sau=${Date.now() + 60_000}`)).body.suKien, []);
+  assert.equal((await m(tokBm, `may/${rieng.id}/mo-bang-ma?sau=99999999999999999`)).status, 200, "sau ngoài tầm ⇒ 10 phút trước, không 500");
   const khac = await taoPhien((await taoNha()).bm);
   assert.equal((await m(khac, `may/${rieng.id}/mo-bang-ma`)).status, 404);
   assert.equal(await dem(), 2, "đường nhẹ không ghi gì");

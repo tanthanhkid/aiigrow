@@ -124,7 +124,8 @@ export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unkno
   for (const m of ma) {
     const cung = co.filter((x) => x.mau === m);
     if (!cung.length) { ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: con ? [con] : null })); continue; }
-    if (await apDungChoCon(cung, con)) ids.push(cung[0].id);
+    const id = await apDungChoCon(fam, cung, con, m);
+    if (id) ids.push(id);
   }
   if (ids.length) await ghiSuKien(fam, "them_qua", { so: ids.length, mau: ma }, { con, nguoi });
   return { taoMoi: ids.length, ids: [...new Set(ids)] };
@@ -132,21 +133,27 @@ export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unkno
 
 type CungMau = { id: string; mau: string; ap_cho: string[] | null; bat: boolean };
 
-/** Cho quà cùng mẫu (`cung`, ≥ 1 dòng) hiện với `con` (null = mọi Con). → true nếu đã đổi (Con / cả nhà có thêm quà này), false nếu vốn đã có.
+/** Cho quà mẫu `mau` (đã có các dòng `cung`, ≥ 1) hiện với `con` (null = mọi Con). → id quà Con / cả nhà vừa có thêm, null nếu vốn đã có.
  *  • có dòng đang BẬT áp cho Con (hoặc mọi Con) ⇒ không đổi gì.
- *  • dòng mọi Con đang CẤT: thêm cho cả nhà ⇒ bật lại; thêm cho một Con ⇒ bật lại CHỈ cho Con đó (anh chị em không tự hiện lại quà Ba Mẹ đã cất).
- *  • chỉ có dòng áp riêng Con khác ⇒ áp thêm Con này (một quà, `ap_cho` nhiều Con — không nhân bản); thêm cho cả nhà ⇒ áp mọi Con.
- *  Gộp `ap_cho` trong MỘT câu update (jsonb) — hai lần thêm song song cho hai Con không đè nhau. Đưa dòng được đổi lên đầu `cung`. */
-async function apDungChoCon(cung: CungMau[], con: string | null) {
+ *  • cả nhà: bật lại dòng mọi Con (hoặc mở dòng áp riêng thành mọi Con).
+ *  • một Con: dòng riêng của Con đang cất ⇒ bật lại; dòng mọi Con đang cất ⇒ bật lại CHỈ cho Con này; dòng áp riêng Con khác đang BẬT ⇒ áp thêm
+ *    Con này (một quà, `ap_cho` nhiều Con); chỉ còn dòng Con khác đã cất ⇒ tạo dòng mới riêng Con này (không bật lại quà Ba Mẹ cất cho anh chị em).
+ *  `ap_cho` tính trong MỘT câu update (jsonb, theo giá trị đang lưu) — hai lần thêm song song cho hai Con không đè nhau. */
+async function apDungChoCon(fam: string, cung: CungMau[], con: string | null, mau: string): Promise<string | null> {
   const hop = (x: CungMau) => !x.ap_cho || (con !== null && x.ap_cho.includes(con));
-  if (cung.some((x) => x.bat && hop(x))) return false;
-  const r = cung.find((x) => !x.ap_cho) ?? cung.find(hop) ?? cung[0];
-  if (con === null) await q(`update rewards set bat = true, ap_cho = null where id = $1`, [r.id]);
-  else if (!r.ap_cho && !r.bat) await q(`update rewards set bat = true, ap_cho = $2::text::jsonb where id = $1`, [r.id, JSON.stringify([con])]);
-  else await q(`update rewards set bat = true, ap_cho = case when ap_cho is null or ap_cho ? $2 then ap_cho else ap_cho || jsonb_build_array($2::text) end
-      where id = $1`, [r.id, con]);
-  cung.splice(cung.indexOf(r), 1); cung.unshift(r);
-  return true;
+  if (cung.some((x) => x.bat && hop(x))) return null;
+  if (con === null) {
+    const r = cung.find((x) => !x.ap_cho) ?? cung[0];
+    await q(`update rewards set bat = true, ap_cho = null where id = $1`, [r.id]);
+    return r.id;
+  }
+  const rieng = cung.find((x) => !x.bat && x.ap_cho?.length === 1 && x.ap_cho[0] === con);
+  if (rieng) { await q(`update rewards set bat = true where id = $1`, [rieng.id]); return rieng.id; }
+  const r = cung.find((x) => !x.ap_cho && !x.bat) ?? cung.find((x) => x.bat && x.ap_cho);
+  if (!r) return pt.taoQua(fam, { ...theoMa.get(mau)!, mau, ap_cho: [con] });
+  await q(`update rewards set bat = true, ap_cho = case when ap_cho is null and not bat then jsonb_build_array($2::text)
+      when ap_cho is null or ap_cho ? $2 then ap_cho else ap_cho || jsonb_build_array($2::text) end where id = $1`, [r.id, con]);
+  return r.id;
 }
 
 /** Bước «Chọn quà» lúc thiết lập (them-s416tfdj): giữ quà mặc định được tick, bỏ quà mặc định bị bỏ tick (chưa ai đổi) — `chon` = mã mẫu.
@@ -160,9 +167,10 @@ export async function luuQuaMacDinh(fam: string, b: { chon?: unknown; con?: unkn
   for (const m of QUA_MAC_DINH) {
     const cung = co.filter((x) => x.mau === m.ma);
     const r = cung.find((x) => !x.ap_cho || (con !== null && x.ap_cho.includes(con))) ?? cung[0];
-    if (chon.includes(m.ma) && !r) await pt.taoQua(fam, { ...m, mau: m.ma });
-    // «Dùng 7 quà Rob gợi ý»: quà mặc định đã cất ⇒ bật lại (theo Con đang chọn nếu có); áp riêng Con khác ⇒ áp thêm Con này (lệch #201)
-    if (chon.includes(m.ma) && r) await apDungChoCon(cung, con);
+    if (chon.includes(m.ma) && !r) await pt.taoQua(fam, { ...m, mau: m.ma, ap_cho: con ? [con] : null });
+    // «Dùng 7 quà Rob gợi ý» trên danh sách quà của MỘT Con (gửi `con`): quà đã cất / áp riêng Con khác ⇒ có lại cho Con này (lệch #201).
+    // Không `con` (bước «Chọn quà» lúc thiết lập, app cũ qua/mau) ⇒ chỉ tạo quà thiếu — không bật lại quà Ba Mẹ đã cất, không đổi «Áp cho».
+    if (chon.includes(m.ma) && r && con) await apDungChoCon(fam, cung, con, m.ma);
     if (!chon.includes(m.ma) && r && !(await one(`select 1 from redemptions where reward_id = $1 limit 1`, [r.id]))) await q(`delete from rewards where id = $1`, [r.id]);
   }
   await ghiSuKien(fam, "chon_qua", { chon }, { nguoi });
