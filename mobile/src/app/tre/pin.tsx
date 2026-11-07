@@ -42,6 +42,7 @@ function NhapPin({ con, i }: { con: string; i: number }) {
       setPin("");
       if (k.loai === "sai") setConLan(k.conLan);
       else if (k.loai === "cho") { setDen(k.denMs); setConLan(0); }
+      else if (k.loai === "can_pin") { setLoi("Ba Mẹ vừa đặt PIN mới — nhập PIN 4 số nhé."); hs.tai(); }
       else if (k.loai === "loi") setLoi(e instanceof LoiApi && e.ma === "mat_mang" ? "Mất mạng rồi — bật Wi‑Fi rồi nhập lại nhé." : k.cau);
     } finally { setDangGui(false); }
   };

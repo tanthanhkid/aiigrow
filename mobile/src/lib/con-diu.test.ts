@@ -25,8 +25,8 @@ test("PIN theo bé: vào / sai còn N lần / sai 5 lần chờ 15 giây / cần
   const now = Date.parse("2026-11-06T12:30:00Z");
   assert.deepEqual(ketQuaPin(null), { loai: "vao" });
   assert.deepEqual(ketQuaPin({ ma: "pin_sai", them: { conLan: 3 } }), { loai: "sai", conLan: 3 });
-  assert.deepEqual(ketQuaPin({ ma: "pin_tam_khoa", them: { choGiay: 15, khoaDen: "2026-11-06T12:30:15.000Z" } }, now), { loai: "cho", denMs: now + 15_000 });
-  // thiếu khoaDen ⇒ đếm từ choGiay
+  assert.deepEqual(ketQuaPin({ ma: "pin_tam_khoa", them: { choGiay: 15, khoaDen: "2026-11-06T12:32:15.000Z" } }, now), { loai: "cho", denMs: now + 15_000 });   // đồng hồ máy lệch 2 phút: vẫn 15 giây
+  assert.deepEqual(ketQuaPin({ ma: "pin_tam_khoa", them: { khoaDen: "2026-11-06T12:30:15.000Z" } }, now), { loai: "cho", denMs: now + 15_000 });
   assert.deepEqual(ketQuaPin({ ma: "pin_tam_khoa", them: { choGiay: 11 } }, now), { loai: "cho", denMs: now + 11_000 });
   assert.deepEqual(ketQuaPin({ ma: "can_pin" }), { loai: "can_pin" });
   assert.equal(ketQuaPin({ ma: "khong_thay", message: "Không thấy hồ sơ này trên máy" }).loai, "loi");
@@ -35,6 +35,7 @@ test("PIN theo bé: vào / sai còn N lần / sai 5 lần chờ 15 giây / cần
 test("ho-so: bé đang bị chờ ⇒ mốc hết chờ", () => {
   const now = Date.parse("2026-11-06T12:30:00Z");
   assert.equal(choTuHoSo({ khoaDen: "2026-11-06T12:30:15.000Z" }, now), now + 15_000);
+  assert.equal(choTuHoSo({ khoaDen: "2026-11-06T12:40:00.000Z", choGiay: 9 }, now), now + 9_000);
   assert.equal(choTuHoSo({ khoaDen: "2026-11-06T12:29:00.000Z" }, now), null);
   assert.equal(choTuHoSo({ choGiay: 5 }, now), now + 5_000);
   assert.equal(choTuHoSo({}, now), null);

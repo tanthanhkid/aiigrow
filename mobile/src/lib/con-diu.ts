@@ -36,9 +36,11 @@ export function ketQuaPin(loi: { ma?: string; message?: string; them?: Record<st
   const them = loi.them ?? {};
   if (loi.ma === "pin_sai") return { loai: "sai", conLan: Math.max(0, Number(them.conLan ?? 0)) };
   if (loi.ma === "pin_tam_khoa") {
+    // ưu tiên choGiay (khoảng tương đối — không lệch theo đồng hồ máy); thiếu mới dùng khoaDen (giờ máy chủ)
+    const giay = Number(them.choGiay);
+    if (Number.isFinite(giay) && giay > 0) return { loai: "cho", denMs: now + giay * 1000 };
     const den = typeof them.khoaDen === "string" ? Date.parse(them.khoaDen) : NaN;
-    const giay = Number(them.choGiay ?? 15);
-    return { loai: "cho", denMs: Number.isFinite(den) ? den : now + Math.max(1, giay) * 1000 };
+    return { loai: "cho", denMs: Number.isFinite(den) ? den : now + 15_000 };
   }
   if (loi.ma === "can_pin") return { loai: "can_pin" };
   return { loai: "loi", cau: loi.message || "Chưa vào được — thử lại nhé." };
@@ -46,8 +48,8 @@ export function ketQuaPin(loi: { ma?: string; message?: string; them?: Record<st
 
 /** Bé đang bị chờ (ho-so trả `khoaDen` / `choGiay`) ⇒ mốc hết chờ (ms) hoặc null. */
 export function choTuHoSo(c: { khoaDen?: string; choGiay?: number }, now = Date.now()): number | null {
+  if (c.choGiay && c.choGiay > 0) return now + c.choGiay * 1000;      // tương đối — không lệch theo đồng hồ máy
   if (c.khoaDen) { const d = Date.parse(c.khoaDen); if (Number.isFinite(d) && d > now) return d; }
-  if (c.choGiay && c.choGiay > 0) return now + c.choGiay * 1000;
   return null;
 }
 

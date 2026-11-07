@@ -410,7 +410,8 @@ export function useDemNguoc(denMs: number | null) {
   const [bay, setBay] = useState(() => Date.now());
   useEffect(() => {
     if (!denMs) return;
-    const t = setInterval(() => setBay(Date.now()), 250);
+    // dừng hẳn khi đã qua mốc (không vẽ lại 4 lần/giây mãi)
+    const t = setInterval(() => { const b = Date.now(); setBay(b); if (b >= denMs) clearInterval(t); }, 250);
     return () => clearInterval(t);
   }, [denMs]);
   return denMs ? Math.max(0, Math.ceil((denMs - bay) / 1000)) : 0;
