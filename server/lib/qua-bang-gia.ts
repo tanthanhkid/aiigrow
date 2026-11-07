@@ -143,10 +143,17 @@ async function apDungChoCon(fam: string, cung: CungMau[], con: string | null, ma
   const hop = (x: CungMau) => !x.ap_cho || (con !== null && x.ap_cho.includes(con));
   if (cung.some((x) => x.bat && hop(x))) return null;
   if (con === null) {
-    const r = cung.find((x) => !x.ap_cho) ?? cung[0];
+    // cả nhà: dòng mọi Con (đang cất) ⇒ bật lại; chỉ có dòng áp riêng ⇒ mở dòng đang BẬT ra mọi Con; chỉ còn dòng riêng đã cất ⇒ tạo dòng mọi Con mới
+    // (không bật lại quà Ba Mẹ cất cho một Con)
+    const r = cung.find((x) => !x.ap_cho) ?? cung.find((x) => x.bat);
+    if (!r) return pt.taoQua(fam, { ...theoMa.get(mau)!, mau });
     await q(`update rewards set bat = true, ap_cho = null where id = $1`, [r.id]);
     return r.id;
   }
+  // nhà chỉ một Con: quà mọi Con đang cất ⇒ bật lại cho mọi Con (không thu hẹp về một Con — Con thêm sau vẫn có quà)
+  const motCon = (await q(`select 1 from children where family_id = $1 limit 2`, [fam])).length === 1;
+  const caNha = motCon ? cung.find((x) => !x.ap_cho && !x.bat) : undefined;
+  if (caNha) { await q(`update rewards set bat = true where id = $1`, [caNha.id]); return caNha.id; }
   const rieng = cung.find((x) => !x.bat && x.ap_cho?.length === 1 && x.ap_cho[0] === con);
   if (rieng) { await q(`update rewards set bat = true where id = $1`, [rieng.id]); return rieng.id; }
   const r = cung.find((x) => !x.ap_cho && !x.bat) ?? cung.find((x) => x.bat && x.ap_cho);
@@ -166,11 +173,12 @@ export async function luuQuaMacDinh(fam: string, b: { chon?: unknown; con?: unkn
   const co = await q<CungMau>(`select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, QUA_MAC_DINH.map((m) => m.ma)]);
   for (const m of QUA_MAC_DINH) {
     const cung = co.filter((x) => x.mau === m.ma);
-    const r = cung.find((x) => !x.ap_cho || (con !== null && x.ap_cho.includes(con))) ?? cung[0];
-    if (chon.includes(m.ma) && !r) await pt.taoQua(fam, { ...m, mau: m.ma, ap_cho: con ? [con] : null });
+    // có `con`: chỉ dòng áp cho Con đó / mọi Con (bỏ tick không xoá quà riêng của anh chị em)
+    const r = cung.find((x) => !x.ap_cho || (con !== null && x.ap_cho.includes(con))) ?? (con ? undefined : cung[0]);
+    if (chon.includes(m.ma) && !cung.length) await pt.taoQua(fam, { ...m, mau: m.ma, ap_cho: con ? [con] : null });
     // «Dùng 7 quà Rob gợi ý» trên danh sách quà của MỘT Con (gửi `con`): quà đã cất / áp riêng Con khác ⇒ có lại cho Con này (lệch #201).
     // Không `con` (bước «Chọn quà» lúc thiết lập, app cũ qua/mau) ⇒ chỉ tạo quà thiếu — không bật lại quà Ba Mẹ đã cất, không đổi «Áp cho».
-    if (chon.includes(m.ma) && r && con) await apDungChoCon(fam, cung, con, m.ma);
+    if (chon.includes(m.ma) && cung.length && con) await apDungChoCon(fam, cung, con, m.ma);
     if (!chon.includes(m.ma) && r && !(await one(`select 1 from redemptions where reward_id = $1 limit 1`, [r.id]))) await q(`delete from rewards where id = $1`, [r.id]);
   }
   await ghiSuKien(fam, "chon_qua", { chon }, { nguoi });
