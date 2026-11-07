@@ -178,9 +178,10 @@ if [ -n "$KHOA_APP" ]; then
   log "E2EChan chạy dưới uid Con: $SONG0 · log: $(cat /tmp/e2echan.log | head -c 200) · ps: $(ps -u "$UID_CON" -o pid=,comm= | head -5 | tr '\n' ';')"
   api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"chan\"}" "$TOKEN_BM"; log "ung-dung/dat chan HTTP $API_MA"
   api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"chi_app_duoc_phep"}' "$TOKEN_BM"
-  T0=$SECONDS; cho 90 2 sh -c "! ps -axo uid=,comm= | awk -v u=$UID_CON '\$1==u' | grep -q e2echan"; G=$((SECONDS-T0))
+  T0=$SECONDS; cho 40 2 sh -c "! ps -axo uid=,comm= | awk -v u=$UID_CON '\$1==u' | grep -q e2echan"; G=$((SECONDS-T0))
   if [ "$SONG0" != 1 ]; then bo 5.2 'App chặn đang chạy dưới uid Con bị đóng' "không khởi chạy được tiến trình E2EChan dưới uid Con: $(head -c 200 /tmp/e2echan.log)"
-  elif DANG_CHAY; then ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' FAIL "E2EChan (uid Con) còn chạy sau 90 giây · mode $(tt_truong cheDo) · chanApp $(tt_truong chanApp)"
+  elif DANG_CHAY && [ "$(stat -f %Su /dev/console 2>/dev/null)" != "$TEN_CON" ]; then bo 5.2 'App chặn đang chạy dưới uid Con bị đóng' "daemon chỉ áp chính sách (đóng app) khi Con là người dùng console (BoMay.apChinhSachTho: laCon = phienConsole.uid == uidCon); console runner = $(stat -f %Su /dev/console), không đăng nhập phiên GUI của Con được trên runner · tiến trình còn chạy sau 40 giây (mode $(tt_truong cheDo))"
+  elif DANG_CHAY; then ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' FAIL "E2EChan (uid Con) còn chạy sau 40 giây dù Con là console · mode $(tt_truong cheDo) · chanApp $(tt_truong chanApp)"
   else ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' PASS "bị đóng sau ~$G giây · chanApp $(tt_truong chanApp) chanLyDo $(tt_truong chanLyDo)"; fi
   pkill -u "$UID_CON" e2echan 2>/dev/null
   api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"bo\"}" "$TOKEN_BM" || true
