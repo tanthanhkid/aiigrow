@@ -6,7 +6,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { cuoiTuanCua, NGU_MAC_DINH, QUY_MAC_DINH, type AppGoiY } from "@/lib/ghep-may";
-import { appsRobChonSan } from "@/lib/thiet-lap";
+import { appsRobChonSan, thanThietLap } from "@/lib/thiet-lap";
 import { BONG, KHOI } from "@/lib/clay";
 import { MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { boTheoTuoi, CHIP_TUOI, kiemPin, namTuChipTuoi } from "@/lib/s3";
@@ -32,10 +32,10 @@ export default function ThemCon() {
     setConId(id);
     // «Rob cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
     // Thiết kế không có bước Chọn app ⇒ áp sẵn app Rob gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
-    const apps = await bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds)).catch(() => undefined);
+    const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));
+    const apps = layApps().catch(layApps).catch(() => undefined);   // thử lại một lần; vẫn lỗi ⇒ Con không có app sẵn, Ba Mẹ chọn ở App & web
     await Promise.allSettled([
-      bm.goi("thiet-lap", { con: { id }, gioChoi: { ngayThuong: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua(QUY_MAC_DINH) }, ngu: NGU_MAC_DINH,
-        ...(apps ? { apps: apps.map((a) => ("ma" in a ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio })) } : {}) }),
+      apps.then((ds) => bm.goi("thiet-lap", thanThietLap({ conId: id, tenCon: tenGon, ...(ds ? { apps: ds } : {}) }, { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH }))),
       bm.goi("nhiem-vu/bo", { bo: boTheoTuoi(tuoi), con: id }),
     ]);
     router.replace(`/ho-so/${id}` as never);

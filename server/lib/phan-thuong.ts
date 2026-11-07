@@ -200,7 +200,7 @@ export async function xacNhanPhieu(fam: string, phieu: string, nguoi: string, no
 export const dsPhieuCho = (fam: string) =>
   q<{ id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: Date; hinh: string | null }>(
     // `hinh` (hình quà, null khi quà đã xoá) — ô hình to giữa bảng «Trao quà» (them-5otw85h4). Một câu truy vấn duy nhất: GET /api/m/phieu cũng dùng hàm này.
-    `select r.*, c.ten as ten_con, w.hinh from redemptions r join children c on c.id = r.child_id
+    `select r.id, r.child_id, r.ten, r.loai, r.diem, r.trang_thai, r.created_at, c.ten as ten_con, w.hinh from redemptions r join children c on c.id = r.child_id
      left join rewards w on w.id = r.reward_id
      where c.family_id = $1 and r.trang_thai = 'giu' order by r.created_at`, [fam]);
 
