@@ -179,13 +179,98 @@ public struct HvQua: Equatable, Identifiable {
   public var moTa = "", hinh = ""
   public var choTraoTu: Date?
   public var tonKho: Int?
+  /// 07/11 (`GET device/vi-qua`): điều kiện đổi do máy chủ tính — `conHopLe` (mặc định true), `lyDoKhong` (`chi_cuoi_tuan` | `du_thang`), `doiDuoc` (nil = chưa biết ⇒ lấy `du`).
+  public var conHopLe = true
+  public var lyDoKhong: String?
+  public var doiDuoc: Bool?
   public init() {}
   init(_ o: [String: Any]) {
+    // JSON null (NSNull) = chưa biết: conHopLe ⇒ true, doiDuoc ⇒ nil (lấy `du`)
+    conHopLe = (o["conHopLe"] is NSNull || o["conHopLe"] == nil) ? true : JsonMem.dung(o["conHopLe"]); lyDoKhong = o["lyDoKhong"] as? String
+    doiDuoc = (o["doiDuoc"] is NSNull || o["doiDuoc"] == nil) ? nil : JsonMem.dung(o["doiDuoc"])
     id = JsonMem.chuoi(o["id"]) ?? ""; ten = o["ten"] as? String ?? ""; loai = o["loai"] as? String ?? "qua"
     diem = JsonMem.so(o["sao"]) ?? JsonMem.so(o["diem"]) ?? 0; du = JsonMem.dung(o["du"]); conThieu = JsonMem.so(o["conThieu"]) ?? 0; chiCuoiTuan = JsonMem.dung(o["chiCuoiTuan"])
     moTa = o["moTa"] as? String ?? ""; hinh = o["hinh"] as? String ?? ""
     choTraoTu = NgayGio.doc(o["choTraoTu"] as? String); tonKho = JsonMem.so(o["tonKho"])
+    if let dk = o["dieuKien"] as? [String: Any] {          // vi-qua: điều kiện nằm trong `dieuKien`
+      if dk["chiCuoiTuan"] != nil { chiCuoiTuan = JsonMem.dung(dk["chiCuoiTuan"]) }
+      if tonKho == nil { tonKho = JsonMem.so(dk["tonKho"]) }
+    }
   }
+}
+
+/// Voucher AiiCafe trong ví quà: `qr` chỉ có khi còn dùng được (máy tự sinh ảnh QR từ chuỗi này).
+public struct HvVoucher: Equatable {
+  public var ten = "", ma = "", qr: String?, trangThai = ""
+  public var menhGia: Int?
+  public var hetHan: Date?
+  public var conNgay: Int?
+  public init() {}
+  init(_ o: [String: Any]) {
+    ten = o["ten"] as? String ?? ""; ma = o["ma"] as? String ?? ""; qr = (o["qr"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+    trangThai = o["trangThai"] as? String ?? ""; menhGia = JsonMem.so(o["menhGia"]); hetHan = JsonMem.ngay(o["hetHan"]); conNgay = JsonMem.so(o["conNgay"])
+  }
+}
+
+/// Một quà đã trao (30 gần nhất); quà voucher kèm `voucher`.
+public struct HvQuaDaTrao: Equatable, Identifiable {
+  public var id = "", ten = "", loai = ""
+  public var sao = 0
+  public var traoLuc: Date?
+  public var voucher: HvVoucher?
+  public init() {}
+  init(_ o: [String: Any]) {
+    id = JsonMem.chuoi(o["id"]) ?? ""; ten = o["ten"] as? String ?? ""; loai = o["loai"] as? String ?? ""
+    sao = JsonMem.so(o["sao"]) ?? 0; traoLuc = JsonMem.ngay(o["traoLuc"])
+    voucher = (o["voucher"] as? [String: Any]).map(HvVoucher.init)
+  }
+}
+
+/// Phiếu đang chờ Ba Mẹ trao (sao đang giữ).
+public struct HvPhieuCho: Equatable, Identifiable {
+  public var id = "", ten = "", loai = ""
+  public var sao = 0
+  public var doiLuc: Date?
+  public init() {}
+  init(_ o: [String: Any]) {
+    id = JsonMem.chuoi(o["id"]) ?? ""; ten = o["ten"] as? String ?? ""; loai = o["loai"] as? String ?? ""
+    sao = JsonMem.so(o["sao"]) ?? 0; doiLuc = JsonMem.ngay(o["doiLuc"])
+  }
+}
+
+public struct HvHuyHieu: Equatable, Identifiable {
+  public var ma = "", ten = "", moTa = ""
+  public var datLuc: Date?
+  public var id: String { ma }
+  public init() {}
+  init(_ o: [String: Any]) {
+    ma = o["ma"] as? String ?? ""; ten = o["ten"] as? String ?? ""; moTa = o["moTa"] as? String ?? ""; datLuc = JsonMem.ngay(o["datLuc"])
+  }
+}
+
+/// GET device/vi-qua (V1, 07/11): ví quà của bé đang đăng nhập — quà áp cho bé kèm điều kiện, phiếu chờ trao, quà đã trao, voucher + QR, huy hiệu.
+public struct HvViQua: Equatable {
+  public var tenCon = ""
+  public var sao = 0, saoGiu = 0
+  public var qua: [HvQua] = []
+  public var phieuCho: [HvPhieuCho] = []
+  public var daTrao: [HvQuaDaTrao] = []
+  public var voucher: [HvVoucher] = []
+  public var huyHieu: [HvHuyHieu] = []
+  public init() {}
+  public static func doc(_ raw: Data) -> HvViQua? {
+    guard let o = JsonMem.doc(raw), o["qua"] != nil, o["sao"] != nil else { return nil }
+    var v = HvViQua()
+    v.tenCon = (o["con"] as? [String: Any])?["ten"] as? String ?? ""
+    v.sao = JsonMem.so(o["sao"]) ?? 0; v.saoGiu = JsonMem.so(o["saoGiu"]) ?? 0
+    v.qua = JsonMem.ds(o["qua"]).map(HvQua.init)
+    v.phieuCho = JsonMem.ds(o["phieuCho"]).map(HvPhieuCho.init)
+    v.daTrao = JsonMem.ds(o["daTrao"]).map(HvQuaDaTrao.init)
+    v.voucher = JsonMem.ds(o["voucher"]).map(HvVoucher.init)
+    v.huyHieu = JsonMem.ds(o["huyHieu"]).map(HvHuyHieu.init)
+    return v
+  }
+  public var coGi: Bool { !phieuCho.isEmpty || !daTrao.isEmpty || !voucher.isEmpty || !huyHieu.isEmpty }
 }
 
 /// GET hoc-vien/cua-hang.
@@ -336,6 +421,31 @@ public enum HocVienView {
 
   public static func quaTrangThai(_ q: HvQua) -> String { q.du ? "Đủ sao" : "Còn thiếu \(q.conThieu) sao" }
 
+  /// Đổi được ngay? Có `doiDuoc` từ máy chủ (vi-qua) thì theo nó; không thì chỉ cần đủ sao.
+  public static func doiDuoc(_ q: HvQua) -> Bool { q.choTraoTu == nil && (q.doiDuoc ?? q.du) }
+
+  /// Lý do chưa đổi được (điều kiện máy chủ): «Chỉ đổi vào cuối tuần» / «Tháng này con đã đổi đủ lượt»; nil = hợp lệ.
+  public static func lyDoKhongDoi(_ q: HvQua) -> String? {
+    guard !q.conHopLe else { return nil }
+    switch q.lyDoKhong {
+    case "chi_cuoi_tuan": return "Chỉ đổi vào cuối tuần"
+    case "du_thang": return "Tháng này con đã đổi đủ lượt"
+    default: return "Quà này chưa đổi được lúc này"
+    }
+  }
+
+  /// «Còn 49 ngày» / «Hết hạn hôm nay» / «Đã hết hạn» cho voucher; nil = không rõ hạn.
+  /// Tính theo `hetHan` và giờ hiện tại (bản lưu lúc mất mạng vẫn đúng); không có `hetHan` thì dùng `conNgay` của máy chủ.
+  public static func hanVoucher(_ v: HvVoucher, bayGio: Date = Date()) -> String? {
+    if v.trangThai == "da_dung" { return "Đã dùng" }
+    if v.trangThai == "het_han" || voucherHetHan(v, bayGio: bayGio) { return "Đã hết hạn" }
+    guard let n = v.hetHan.map({ h -> Int in let s = h.timeIntervalSince(bayGio); return s < 86_400 ? 0 : Int((s / 86_400).rounded(.up)) }) ?? v.conNgay else { return nil }
+    return n <= 0 ? "Hết hạn hôm nay" : "Còn \(n) ngày"
+  }
+
+  /// Quá `hetHan` ⇒ không còn dùng được, dù bản lưu từng có `qr`.
+  public static func voucherHetHan(_ v: HvVoucher, bayGio: Date = Date()) -> Bool { v.hetHan.map { $0 <= bayGio } ?? false }
+
   public static func doiThongBao(_ r: HvDoiKq, tenQua: String) -> String {
     switch r.trangThai {
     case "da_phat_hanh": return r.maPhieu.map { "Đã đổi «\(tenQua)». Mã phiếu: \($0)" } ?? "Đã đổi «\(tenQua)»."
@@ -460,6 +570,7 @@ public enum HocVienPaths {
   public static func duoc(method: String?, path: String?) -> Bool {
     guard let path, !path.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
     let m = (method ?? "").uppercased()
+    if m == "GET" && path == "vi-qua" { return true }      // 07/11 V1: `GET api/device/vi-qua` — ví quà của bé đang đăng nhập (chỉ đọc, không tham số)
     let tach = path.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
     let p = String(tach[0]), query = tach.count > 1 ? String(tach[1]) : ""
     if (m != "GET" && !query.isEmpty) || !p.hasPrefix(goc) || query.contains("..") || p.contains("..") { return false }
