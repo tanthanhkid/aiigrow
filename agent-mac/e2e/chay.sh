@@ -84,7 +84,7 @@ api POST /api/m/con "{\"ten\":\"Con E2E\",\"namSinh\":$(( $(date +%Y) - 10 )),\"
 dat 1.3 'Tạo Con' "$([ -n "$CON_ID" ] && echo 1 || echo 0)" "con $CON_ID"
 # giờ ngủ dời xa giờ hiện tại (+11h..+12h theo UTC+7) để kết quả không phụ thuộc lúc chạy
 TU=$(TZ=Asia/Ho_Chi_Minh date -v+11H +%H:00); DEN=$(TZ=Asia/Ho_Chi_Minh date -v+12H +%H:00)
-api POST "/api/m/con/$CON_ID/lich" "{\"ngu\":{\"tu\":\"$TU\",\"den\":\"$DEN\"}}" "$TOKEN_BM"; log "giờ ngủ thử $TU–$DEN (HTTP $API_MA)"
+api POST "/api/m/con/$CON_ID/lich" "{\"ngu\":{\"tu\":\"$TU\",\"den\":\"$DEN\"}}" "$TOKEN_BM"; log "giờ ngủ thử ${TU}–${DEN} (HTTP $API_MA)"
 MK_CON="Aa1!$(uuidgen | tr -d -)"
 sudo sysadminctl -addUser "$TEN_CON" -fullName 'Con E2E' -password "$MK_CON" >"$LOG/sysadminctl.log" 2>&1
 UID_CON=$(id -u "$TEN_CON" 2>/dev/null); LA_ADMIN=$(id -Gn "$TEN_CON" 2>/dev/null | grep -qw admin && echo 1 || echo 0)
@@ -159,7 +159,7 @@ while [ $((SECONDS-T0)) -lt 240 ]; do
   api GET "/api/m/may/$MAY_ID/ung-dung" "" "$TOKEN_BM"; KHOA_APP=$(jqr "$API_THAN" '[.ds[]? | select((.ten // "" | test("E2EChan")) or (.khoa // "" | test("e2e"; "i")))][0].khoa // empty')
   [ -n "$KHOA_APP" ] && break; sleep 10
 done
-dat 5.1 'App thật quét từ /Applications lên máy chủ (E2EChan)' "$([ -n "$KHOA_APP" ] && echo 1 || echo 0)" "khoa «$KHOA_APP» · $(jqr "$API_THAN" '[.ds[]?.ten] | length') app · sau $((SECONDS-T0)) giây"
+dat 5.1 'App thật quét từ /Applications lên máy chủ (E2EChan)' "$([ -n "$KHOA_APP" ] && echo 1 || echo 0)" "khoa «${KHOA_APP}» · $(jqr "$API_THAN" '[.ds[]?.ten] | length') app · sau $((SECONDS-T0)) giây"
 if [ -n "$KHOA_APP" ]; then
   api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"chan\"}" "$TOKEN_BM"; log "ung-dung/dat chan HTTP $API_MA"
   sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" 3000 >/dev/null 2>&1 &
