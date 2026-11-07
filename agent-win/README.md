@@ -168,3 +168,9 @@ Khi chưa áp được AppLocker (Windows Home), còn lớp dự phòng đóng t
 - Chạy offline: giờ còn lại tính theo phút đã đếm từ lần sync cuối; không tự đổi ngày/lịch ngủ khi mất mạng.
 - Safe Mode với tài khoản Standard, kiểm `LegalNoticeText` trên Home: thuộc danh sách cần thử trên máy thật (KHA-THI mục 7).
 - Chưa ký số (code signing): Windows SmartScreen sẽ cảnh báo bộ cài; cần chứng chỉ trước khi phát hành.
+
+## Ví quà (V1, 07/11)
+
+«Sao & quà» / «Quà của con» lấy dữ liệu từ `GET /api/device/vi-qua` (qua pipe `HocVien`, đường `vi-qua` — `HocVienPaths.Duong`): quà theo bảng giá kèm điều kiện (`conHopLe` / `lyDoKhong` / `doiDuoc`),
+phiếu chờ trao, quà đã trao, voucher AiiCafe và huy hiệu. Ảnh QR voucher vẽ tại máy từ trường `qr` (QRCoder, MIT, chỉ dùng bộ sinh ma trận; `UI.AnhQr` tự vẽ) — voucher đã dùng / hết hạn không có `qr` thì chỉ hiện dòng chữ.
+Nút «‹» của màn PIN / quên PIN / Ba Mẹ nhập mã nằm ở góc thẻ (24 px) như HTML thiết kế, không còn hàng riêng. Chưa thử trên Windows thật; CI `chup-man-win` chụp `app-phan-qua`, `app-qua-cua-con`.

@@ -48,7 +48,8 @@ internal sealed class AppForm : Form
     private HvTongQuan? _tq;
     private List<HvNvDong>? _tuCham;
     private HvCuaHang? _ch;
-    private HvViQua? _viQua;
+    private ViQuaMay? _viQua;
+    private readonly List<Image> _anhQr = new();   // ảnh QR của lần vẽ trước — PictureBox.Dispose không huỷ Image ⇒ tự huỷ khi vẽ lại
     private HvTinDs? _tin;
     /// <summary>Đang gửi một việc Con bấm (nhận việc, trả lời) — tách khỏi lượt tải nền <see cref="_dangTai"/> để bấm không bị nuốt im lặng.</summary>
     private bool _busy;
@@ -331,7 +332,7 @@ internal sealed class AppForm : Form
             var tinT = HvApi.GetAsync<HvTinDs>("hoc-vien/tin");
             var quaCan = _muc == MucApp.PhanQua || _ch == null;
             var chT = quaCan ? HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang") : null;
-            var vqT = quaCan ? HvApi.GetAsync<HvViQua>("hoc-vien/vi-qua") : null;
+            var vqT = quaCan ? HvApi.GetAsync<ViQuaMay>(ViQuaMayView.Duong) : null;
             var (tc, _) = await tcT;
             if (tc != null) _tuCham = tc.Ds.Where(x => x.TuCham).ToList();
             var (tin, _) = await tinT;
@@ -768,37 +769,66 @@ internal sealed class AppForm : Form
         _content.Controls.Add(luat);
 
         // «Đang chờ Ba Mẹ trao»: phiếu đang giữ sao
-        var cho = _tq.PhieuCho;
+        var cho = _viQua?.PhieuCho.Select(p => (p.Ten, p.Sao)).ToList() ?? _tq.PhieuCho.Select(p => (p.Ten, Sao: p.Diem)).ToList();
         if (cho.Count > 0)
         {
             _content.Controls.Add(KhoiApp.NhanMuc("Đang chờ Ba Mẹ trao", _cw));
             foreach (var p in cho)
-                _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Diem), Clay.Canh, KhoiApp.ChipSao(AppConView.Sao(p.Diem))));
+                _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Sao), Clay.Canh, KhoiApp.ChipSao(AppConView.Sao(p.Sao))));
         }
 
-        var qua = _ch?.Qua ?? new List<HvQua>();
+        // 07/11 (V1): quà + điều kiện lấy từ GET api/device/vi-qua (conHopLe / lyDoKhong / doiDuoc); chưa tải được thì rơi về hoc-vien/cua-hang
         _content.Controls.Add(KhoiApp.NhanMuc("Quà con đổi được", _cw));
-        if (_ch == null) _content.Controls.Add(T("Đang tải danh sách quà…", 12f, false, UI.Muted));
-        else if (qua.Count == 0) _content.Controls.Add(T("Ba Mẹ chưa đặt quà nào. Con làm nhiệm vụ để có sao nhé!", 12f, false, UI.Muted));
-        // bảng giá: rẻ trước (như màn thiết kế); bấm dòng nào cũng mở hộp đổi (chưa đủ sao ⇒ hộp nói còn thiếu bao nhiêu)
-        foreach (var q in qua.OrderBy(q => q.SoSao))
-        {
-            var (chu, du) = AppConView.TrangThaiDoi(q, sao);
-            var nhan = AppConView.NhanQua(q);
-            var ph = new List<Control>();
-            var qq = q;
-            if (du)
+        var viQuaQua = _viQua?.Qua;
+        if (viQuaQua == null && _ch == null) _content.Controls.Add(T("Đang tải danh sách quà…", 12f, false, UI.Muted));
+        else if ((viQuaQua?.Count ?? _ch!.Qua.Count) == 0) _content.Controls.Add(T("Ba Mẹ chưa đặt quà nào. Con làm nhiệm vụ để có sao nhé!", 12f, false, UI.Muted));
+        // bảng giá: rẻ trước (như màn thiết kế); quà đủ điều kiện bấm vào đâu cũng mở hộp đổi (chưa đủ sao ⇒ hộp nói còn thiếu bao nhiêu);
+        // quà bị điều kiện chặn (cuối tuần / đủ lượt tháng) hoặc đang chờ trao: dòng chỉ cho xem, nói rõ lý do
+        if (viQuaQua != null)
+            foreach (var vq in viQuaQua.OrderBy(q => q.Sao))
             {
-                var b = KhoiApp.NutGon($"Đổi {q.SoSao} sao", true, "qua", 40, 10.5f);
-                b.Click += (_, _) => MoDoiQua(qq, sao);
-                ph.Add(b);
+                var (chu, du) = ViQuaMayView.TrangThaiDoi(vq);
+                var q = ChoHoQua(vq);
+                var chan = vq.ChoTraoTu != null || (vq.Du && !vq.ConHopLe);
+                var nhan = AppConView.NhanQua(q);
+                var ph = new List<Control>();
+                if (du)
+                {
+                    var b = KhoiApp.NutGon($"Đổi {vq.Sao} sao", true, "qua", 40, 10.5f);
+                    b.Click += (_, _) => MoDoiQua(q, sao);
+                    ph.Add(b);
+                }
+                else ph.Add(chan ? KhoiApp.ChipCho(vq.ChoTraoTu != null ? "Chờ trao" : "Chưa đổi được") : KhoiApp.ChipSao(AppConView.Sao(vq.Sao)));
+                var dong = KhoiApp.Dong(_cw, AppConView.IconQua(q), nhan != null ? $"{q.Ten}  ·  {nhan}" : q.Ten, chu, du ? Clay.NgocInk : null, ph.ToArray());
+                if (!chan) BamCaDong(dong, () => MoDoiQua(q, sao));
+                _content.Controls.Add(dong);
             }
-            else ph.Add(KhoiApp.ChipSao(AppConView.Sao(q.SoSao)));
-            var dong = KhoiApp.Dong(_cw, AppConView.IconQua(q), nhan != null ? $"{q.Ten}  ·  {nhan}" : q.Ten, chu, du ? Clay.NgocInk : null, ph.ToArray());
-            BamCaDong(dong, () => MoDoiQua(qq, sao));
-            _content.Controls.Add(dong);
-        }
+        else
+            foreach (var q in _ch!.Qua.OrderBy(q => q.SoSao))
+            {
+                var (chu, du) = AppConView.TrangThaiDoi(q, sao);
+                var nhan = AppConView.NhanQua(q);
+                var ph = new List<Control>();
+                var qq = q;
+                if (du)
+                {
+                    var b = KhoiApp.NutGon($"Đổi {q.SoSao} sao", true, "qua", 40, 10.5f);
+                    b.Click += (_, _) => MoDoiQua(qq, sao);
+                    ph.Add(b);
+                }
+                else ph.Add(KhoiApp.ChipSao(AppConView.Sao(q.SoSao)));
+                var dong = KhoiApp.Dong(_cw, AppConView.IconQua(q), nhan != null ? $"{q.Ten}  ·  {nhan}" : q.Ten, chu, du ? Clay.NgocInk : null, ph.ToArray());
+                BamCaDong(dong, () => MoDoiQua(qq, sao));
+                _content.Controls.Add(dong);
+            }
     }
+
+    /// <summary>Quà của ví quà → quà của hộp đổi.</summary>
+    private static HvQua ChoHoQua(ViQuaQua v) => new()
+    {
+        Id = v.Id, Ten = v.Ten, Loai = v.Loai, Diem = v.Sao, Sao = v.Sao, Du = v.Du, ConThieu = v.ConThieu, ChiCuoiTuan = v.DieuKien.ChiCuoiTuan,
+        MenhGia = v.MenhGia, MoTa = v.MoTa, Hinh = v.Hinh, ToiDaThang = v.DieuKien.ToiDaThang, TonKho = v.DieuKien.TonKho, ChoTraoTu = v.ChoTraoTu,
+    };
 
     /// <summary>Bấm vào đâu trên dòng quà cũng mở hộp đổi (trừ nút riêng của dòng).</summary>
     private static void BamCaDong(Control c, Action bam)
@@ -819,32 +849,60 @@ internal sealed class AppForm : Form
         _ = RefreshAsync();
     }
 
-    /// <summary>con-ngay-thuong 16 «Quà của con»: chờ Ba Mẹ trao + đã nhận.</summary>
+    /// <summary>con-ngay-thuong 16 / 24 «Quà của con»: chờ Ba Mẹ trao · đã nhận · voucher AiiCafe có mã QR vẽ tại máy · huy hiệu.</summary>
     private void RenderQuaCuaCon()
     {
+        foreach (var a in _anhQr) a.Dispose();
+        _anhQr.Clear();
         _title.Text = "Quà của con";
         _sub.Text = "";
         _content.Controls.Add(KhoiCon.LienKet("‹ Đổi thêm quà", null, () => { _xemQuaCuaCon = false; Render(); }));
         var now = DateTimeOffset.Now;
-        var cho = _tq?.PhieuCho ?? new List<HvPhieu>();
+        var vi = _viQua;
         _content.Controls.Add(KhoiApp.NhanMuc("Chờ Ba Mẹ trao", _cw));
+        var cho = vi?.PhieuCho.Select(p => (p.Ten, p.Sao)).ToList() ?? (_tq?.PhieuCho ?? new List<HvPhieu>()).Select(p => (p.Ten, Sao: p.Diem)).ToList();
         if (cho.Count == 0) _content.Controls.Add(T("Chưa có quà nào đang chờ.", 11.5f, false, UI.Muted));
         foreach (var p in cho)
-            _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Diem, ngan: true), null, KhoiApp.ChipCho("Chờ trao")));
-        // 06/11 (L14 — con-ngay-thuong 24): voucher AiiCafe Ba Mẹ đã trao — mã (= QR quầy quét) + hạn, «Còn 49 ngày»
-        // voucher hiện từ danh sách voucher (có mã, hạn, trạng thái) ⇒ dòng «đã trao» loại voucher bỏ, không hiện đôi
-        // còn dùng được: hết; đã dùng / hết hạn: 3 cái gần nhất (máy chủ trả mới trước)
-        var vcAll = _viQua?.Voucher ?? new List<HvVoucherVi>();
-        var vc = vcAll.Where(v => v.DungDuoc).Concat(vcAll.Where(v => !v.DungDuoc).Take(3)).ToList();
-        var da = (_viQua?.DaTrao ?? new List<HvQuaDaTrao>()).Where(d => d.Loai != "voucher").ToList();
+            _content.Controls.Add(KhoiApp.Dong(_cw, "qua", p.Ten, AppConView.DangGiu(p.Sao, ngan: true), null, KhoiApp.ChipCho("Chờ trao")));
+
+        // Voucher: còn dùng được ⇒ thẻ có ảnh QR (nội dung = trường qr, quầy quét) + mã + hạn; đã dùng / hết hạn ⇒ dòng gọn (3 phiếu gần nhất)
+        var vc = ViQuaMayView.SapXepVoucher(vi?.Voucher ?? new List<ViQuaVoucher>(), now);
+        var da = (vi?.DaTrao ?? new List<ViQuaDaTrao>()).Where(d => d.Voucher == null).ToList();
         _content.Controls.Add(KhoiApp.NhanMuc("Đã nhận", _cw));
-        if (da.Count == 0 && vc.Count == 0) _content.Controls.Add(T(_viQua == null ? "Đang tải…" : "Ba Mẹ trao quà là con thấy ở đây.", 11.5f, false, UI.Muted));
+        if (da.Count == 0 && vc.Count == 0) _content.Controls.Add(T(vi == null ? "Đang tải…" : "Ba Mẹ trao quà là con thấy ở đây.", 11.5f, false, UI.Muted));
         foreach (var v in vc)
-            _content.Controls.Add(v.DungDuoc
-                ? KhoiApp.Dong(_cw, "the_qua", AppConView.TenVoucher(v), AppConView.PhuVoucher(v), Clay.NgocInk, KhoiApp.ChipNgoc($"Còn {v.ConNgay} ngày"))
-                : KhoiApp.Dong(_cw, "the_qua", AppConView.TenVoucher(v), $"Mã {v.Ma}", null, KhoiApp.ChipCho(AppConView.TrangThaiVoucher(v))));
+            _content.Controls.Add(ViQuaMayView.DungDuoc(v, now) ? PhieuQr(v, now)
+                : KhoiApp.Dong(_cw, "the_qua", ViQuaMayView.TenVoucher(v), $"Mã {v.Ma}", null, KhoiApp.ChipCho(ViQuaMayView.TrangThaiCu(v))));
         foreach (var d in da)
-            _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", d.Ten, $"{d.Diem} sao" + (d.XuLyLuc is { } x ? " · Ba Mẹ trao " + x.ToLocalTime().ToString("dd/MM") : ""), null, KhoiApp.ChipNgoc("Đã nhận")));
+            _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", d.Ten, $"{d.Sao} sao" + (d.TraoLuc is { } x ? " · Ba Mẹ trao " + x.ToLocalTime().ToString("dd/MM") : ""), null, KhoiApp.ChipNgoc("Đã nhận")));
+
+        if (vi?.HuyHieu.Count > 0)
+        {
+            _content.Controls.Add(KhoiApp.NhanMuc("Huy hiệu", _cw));
+            foreach (var h in ViQuaMayView.HuyHieuMoiTruoc(vi.HuyHieu))
+                _content.Controls.Add(KhoiApp.Dong(_cw, "the_qua", h.Ten, h.MoTa, null, KhoiApp.ChipNgoc("Đã đạt")));
+        }
+    }
+
+    /// <summary>Thẻ phiếu còn dùng được: tên + «Còn N ngày», ảnh QR vẽ tại máy (ô đen trên nền trắng, có lề trắng), mã chữ, hạn.</summary>
+    private Control PhieuQr(ViQuaVoucher v, DateTimeOffset now)
+    {
+        var the = TheDay(vang: false);
+        var r = Trong(_cw);
+        the.Controls.Add(KhoiApp.Dong(r, "the_qua", ViQuaMayView.TenVoucher(v), "Đưa mã QR này ở quầy AiiCafe", Clay.NgocInk, KhoiApp.ChipNgoc(ViQuaMayView.ConNgay(v, now))));
+        var co = Px(220);
+        Image? anh = null;
+        try { anh = UI.AnhQr(MaQr.MaTran(v.Qr!), co); } catch (Exception e) when (e is ArgumentException or InvalidOperationException or OverflowException) { /* nội dung lạ: vẫn hiện mã chữ */ }
+        if (anh != null)
+        {
+            _anhQr.Add(anh);
+            var pb = new PictureBox { Image = anh, Size = new Size(co, co), SizeMode = PictureBoxSizeMode.Normal, BackColor = Color.White, Margin = new Padding(Math.Max(0, (r - co) / 2), Px(6), 0, Px(6)), AccessibleName = "Mã QR " + v.Ma };
+            the.Controls.Add(pb);
+        }
+        var ma = T(ViQuaMayView.PhuVoucher(v), 11f, true, UI.Muted, r);
+        ma.AutoSize = false; ma.Width = r; ma.TextAlign = ContentAlignment.TopCenter;
+        the.Controls.Add(ma);
+        return the;
     }
 
     // ---------------------------------------------------------------- Tin nhắn (con-ngay-thuong 17)

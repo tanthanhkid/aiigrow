@@ -424,17 +424,4 @@ public class QuaBangGiaTests
         Assert.Equal("Đang giữ 50 sao · chờ Ba Mẹ trao", AppConView.DangGiu(50));
         Assert.Equal("Đang giữ 50 sao · Ba Mẹ trao mới trừ", AppConView.DangGiu(50, ngan: true));
     }
-
-    [Fact]
-    public void Voucher_da_trao_co_ma_va_han()
-    {
-        var v = System.Text.Json.JsonSerializer.Deserialize<HvViQua>(
-            """{"daTrao":[],"voucher":[{"ma":"AG7K3M9PQR2X","menh_gia":50000,"trang_thai":"da_phat_hanh","het_han":"2026-12-25T05:00:00.000Z","ten":"AiiCafe 50k","qr":"AG7K3M9PQR2X","conNgay":49}]}""",
-            Json.Options)!;
-        var x = v.Voucher.Single();
-        Assert.True(x.DungDuoc);
-        Assert.Equal("Voucher AiiCafe 50k", AppConView.TenVoucher(x));
-        Assert.StartsWith("Mã AG7K3M9PQR2X · đưa mã QR ở quầy · hạn ", AppConView.PhuVoucher(x));
-        Assert.False(new HvVoucherVi { TrangThai = "da_dung", ConNgay = 3 }.DungDuoc);
-    }
 }

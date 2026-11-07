@@ -243,10 +243,17 @@ internal sealed partial class LockForm
         return c;
     }
 
-    private Control NutLui()
+    /// <summary>Nút «‹» ở GÓC thẻ (thiết kế .lui: cách mép trái / trên thẻ 24 px, tròn 52) — không chiếm hàng riêng trong dòng chảy:
+    /// lề âm kéo nút về góc và trả lại đúng chiều cao nó chiếm, nên Rob / tên bé bên dưới vẫn bắt đầu ở đỉnh thẻ như HTML (nút nằm đè lên trên).</summary>
+    private Control NutLui(ClayFlow the)
     {
+        var rong = UI.Px(52) + VeNut.LeBong.Horizontal;
+        var cao = UI.Px(52) + VeNut.LeBong.Vertical;
         var b = new ClayButton { Text = "‹", Font = UI.F(20f, FontStyle.Bold), ForeColor = Clay.NgocInk, BackColor = Clay.The, BoGoc = UI.Px(26),
-            Size = new Size(UI.Px(52) + VeNut.LeBong.Horizontal, UI.Px(52) + VeNut.LeBong.Vertical), Margin = Padding.Empty, TabStop = false };
+            Size = new Size(rong, cao), TabStop = false };
+        var trai = UI.Px(24) + VeThe.LeBong.Left - VeNut.LeBong.Left - the.Padding.Left;
+        var tren = UI.Px(24) + VeThe.LeBong.Top - VeNut.LeBong.Top - the.Padding.Top;
+        b.Margin = new Padding(trai, tren, 0, -(tren + cao));
         b.Click += (_, _) => Lui();
         return b;
     }
@@ -315,7 +322,7 @@ internal sealed partial class LockForm
     /// <summary>Viên + tên bé ở đầu các thẻ PIN (viên 120, tên 28px).</summary>
     private void DauBe(ClayFlow the, int w)
     {
-        the.Controls.Add(NutLui());
+        the.Controls.Add(NutLui(the));
         if (_ct.Be is not { } be) return;
         var v = Vien(be, 120);
         the.Controls.Add(Giua(v, w));
@@ -379,7 +386,7 @@ internal sealed partial class LockForm
     private Control TheQuen()
     {
         var (the, w) = The(600);
-        the.Controls.Add(NutLui());
+        the.Controls.Add(NutLui(the));
         the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", 150), w));
         the.Controls.Add(ChuGiua(ManChonTenView.TieuQuen, 31.5f, true, UI.Ink, w, 10));
         the.Controls.Add(ChuGiua(ManChonTenView.PhuQuen, 16.5f, false, UI.Muted, w, 6));
@@ -417,7 +424,7 @@ internal sealed partial class LockForm
     private Control TheBaMe()
     {
         var (the, w) = The(600);
-        the.Controls.Add(NutLui());
+        the.Controls.Add(NutLui(the));
         the.Controls.Add(Giua(new ClayIcon { Size = new Size(UI.Px(110), UI.Px(110)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("khien") }, w));
         the.Controls.Add(ChuGiua(ManChonTenView.TieuBaMe, 31.5f, true, UI.Ink, w, 10));
         the.Controls.Add(ChuGiua(ManChonTenView.PhuBaMe, 16.5f, false, UI.Muted, w, 6));

@@ -371,6 +371,8 @@ public static class HocVienPaths
     {
         if (string.IsNullOrWhiteSpace(path)) return false;
         var m = (method ?? "").ToUpperInvariant();
+        // 07/11 (V1): ví quà của bé đang đăng nhập — GET api/device/vi-qua (ngoài nhánh hoc-vien/), chỉ đọc, không tham số
+        if (path == ViQuaMayView.Duong) return m == "GET";
         var q = path.IndexOf('?');
         var query = q >= 0 ? path[(q + 1)..] : "";
         var p = q >= 0 ? path[..q] : path;
