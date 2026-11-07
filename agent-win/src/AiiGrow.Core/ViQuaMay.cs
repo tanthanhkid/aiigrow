@@ -102,8 +102,6 @@ public static class ViQuaMayView
     /// <summary>Đường gọi qua dịch vụ (PipeCmd.HocVien) — máy chủ: <c>api/device/vi-qua</c>.</summary>
     public const string Duong = "vi-qua";
 
-    public static string Tien(int n) => n.ToString("#,0", CultureInfo.InvariantCulture).Replace(',', '.') + "đ";
-
     public static string TenVoucher(ViQuaVoucher v) =>
         !string.IsNullOrWhiteSpace(v.Ten) ? (v.Ten!.StartsWith("Voucher", StringComparison.OrdinalIgnoreCase) ? v.Ten! : "Voucher " + v.Ten)
         : v.MenhGia is int m && m > 0 ? $"Voucher AiiCafe {m / 1000}k" : "Voucher AiiCafe";
@@ -138,6 +136,7 @@ public static class ViQuaMayView
     {
         if (q.ChoTraoTu != null) return ("Con đã chọn, chờ Ba Mẹ trao", false);
         if (q.Du && LyDoKhong(q) is { } ly) return (ly, false);
+        if (q.Du && !q.DoiDuoc) return ("Chưa đổi được lúc này", false);   // máy chủ chặn vì lý do khác (vd hết hàng)
         return q.Du ? ("Đủ sao rồi!", q.DoiDuoc) : ($"Còn thiếu {Math.Max(0, q.ConThieu)} sao", false);
     }
 

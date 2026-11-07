@@ -236,7 +236,7 @@ public class AppConTests
     [Theory]
     [InlineData("GET", "hoc-vien/quy", true)]
     [InlineData("GET", "hoc-vien/nhiem-vu?tuCham=1", true)]
-    [InlineData("GET", "hoc-vien/vi-qua", true)]
+    [InlineData("GET", "hoc-vien/vi-qua", false)]
     [InlineData("POST", "hoc-vien/doi-sao", true)]
     [InlineData("GET", "hoc-vien/doi-sao", false)]
     [InlineData("POST", "hoc-vien/quy", false)]

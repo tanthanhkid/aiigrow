@@ -376,6 +376,8 @@ internal sealed class AppForm : Form
         _content.SuspendLayout();
         _nhan.Parent?.Controls.Remove(_nhan);
         foreach (var c in _content.Controls.Cast<Control>().ToList()) { _content.Controls.Remove(c); c.Dispose(); }
+        foreach (var a in _anhQr) a.Dispose();   // ảnh QR của PictureBox vừa huỷ
+        _anhQr.Clear();
         _lblConPhut = _lblDaChoi = _lblApp = null;
         _thanh = null;
         switch (_muc)
@@ -789,7 +791,7 @@ internal sealed class AppForm : Form
             {
                 var (chu, du) = ViQuaMayView.TrangThaiDoi(vq);
                 var q = ChoHoQua(vq);
-                var chan = vq.ChoTraoTu != null || (vq.Du && !vq.ConHopLe);
+                var chan = vq.ChoTraoTu != null || (vq.Du && !vq.DoiDuoc);
                 var nhan = AppConView.NhanQua(q);
                 var ph = new List<Control>();
                 if (du)
@@ -892,7 +894,7 @@ internal sealed class AppForm : Form
         the.Controls.Add(KhoiApp.Dong(r, "the_qua", ViQuaMayView.TenVoucher(v), "Đưa mã QR này ở quầy AiiCafe", Clay.NgocInk, KhoiApp.ChipNgoc(ViQuaMayView.ConNgay(v, now))));
         var co = Px(220);
         Image? anh = null;
-        try { anh = UI.AnhQr(MaQr.MaTran(v.Qr!), co); } catch (Exception e) when (e is ArgumentException or InvalidOperationException or OverflowException) { /* nội dung lạ: vẫn hiện mã chữ */ }
+        try { anh = UI.AnhQr(MaQr.MaTran(v.Qr!), co); } catch (Exception) { /* nội dung lạ / quá dài cho QR: vẫn hiện mã chữ, không hỏng cả màn */ }
         if (anh != null)
         {
             _anhQr.Add(anh);

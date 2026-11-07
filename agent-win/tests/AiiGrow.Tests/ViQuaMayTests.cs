@@ -81,7 +81,7 @@ public class ViQuaMayTests
     [InlineData("GET", "vi-qua", true)]
     [InlineData("POST", "vi-qua", false)]
     [InlineData("GET", "vi-qua?x=1", false)]
-    [InlineData("GET", "hoc-vien/vi-qua", true)]
+    [InlineData("GET", "hoc-vien/vi-qua", false)]
     [InlineData("GET", "ho-so", false)]
     public void DuongViQuaMay(string m, string p, bool ok) => Assert.Equal(ok, HocVienPaths.Allowed(m, p));
 }
