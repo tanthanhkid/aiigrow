@@ -25,10 +25,43 @@ final class AppConModel: ObservableObject {
   private var canTaiLai = false
   private var dsChoiLai: [String] = []
 
+  /// Ví quà của bé đang đăng nhập (`GET device/vi-qua`, V1 07/11); `viQuaDaLuu` = đang hiện bản đã lưu vì chưa tải được (mất mạng).
+  @Published var viQua: HvViQua?
+  @Published var viQuaDaLuu = false
+  /// Tên bé đang dùng máy — khoá bản lưu ví quà theo bé (máy dùng chung không lẫn ví của bé khác).
+  var tenBe = ""
+
   /// Gửi một lệnh IPC tới daemon — tiêm được (test / chụp ảnh không mở socket).
   let goi: (YeuCauTray) async -> TraLoi
+  let kho: UserDefaults
 
-  init(goi: @escaping (YeuCauTray) async -> TraLoi = AppConModel.goiThat) { self.goi = goi }
+  init(goi: @escaping (YeuCauTray) async -> TraLoi = AppConModel.goiThat, kho: UserDefaults = .standard) { self.goi = goi; self.kho = kho }
+
+  /// Tải ví quà; lỗi (mất mạng, máy chủ cũ) ⇒ giữ / nạp bản đã lưu của đúng bé này. 409 `chua_chon_con` ⇒ bỏ ví, không dùng bản lưu.
+  func taiViQua() async {
+    let khoa = AppConModel.khoaViQua(tenBe)
+    switch await goi(.hocVien(method: "GET", path: "vi-qua", than: nil)) {
+    case .duLieu(let json):
+      if let v = HvViQua.doc(Data(json.utf8)) {
+        viQua = v; viQuaDaLuu = false
+        if let khoa { kho.set(json, forKey: khoa) }
+        return
+      }
+    case .loi(let ma, _) where ma == "chua_chon_con":
+      viQua = nil; viQuaDaLuu = false; return
+    default: break
+    }
+    if viQua == nil, let khoa, let json = kho.string(forKey: khoa), let v = HvViQua.doc(Data(json.utf8)) { viQua = v }
+    viQuaDaLuu = viQua != nil
+  }
+
+  static func khoaViQua(_ ten: String) -> String? {
+    let t = ten.trimmingCharacters(in: .whitespaces)
+    return t.isEmpty ? nil : "aiigrow.viqua.v1." + t
+  }
+
+  /// Danh sách quà hiện trong «Sao & quà»: ưu tiên `qua[]` của ví quà (có điều kiện + doiDuoc), chưa có thì `cua-hang`.
+  var quaHienThi: [HvQua] { viQua?.qua ?? ch?.qua ?? [] }
 
   /// Lệnh đi máy chủ chờ tới 25 giây; daemon chỉ nhận 4 kết nối mỗi uid (SocketIPC.toiDaMoiUid) ⇒ tray chỉ cho 2 lệnh loại này cùng lúc,
   /// còn chỗ cho `trangThai` 5 giây/lần (không thì mạng chậm làm tray tưởng daemon chết).
@@ -75,6 +108,7 @@ final class AppConModel: ObservableObject {
   }
 
   private func taiMotLuot(dsChoi: [String]) async {
+    await taiViQua()
     let (d, loi) = await hoi("GET", "hoc-vien/tong-quan")
     guard let d, let t = HvTongQuan.doc(d) else {
       loiTai = loi ?? "Máy chủ trả dữ liệu lạ. Con thử lại nhé."

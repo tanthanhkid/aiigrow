@@ -130,6 +130,7 @@ public enum ManMac {
     }
     var phan: [String] = []
     if q.chiCuoiTuan { phan.append("Chỉ cuối tuần") }
+    if !q.conHopLe && q.lyDoKhong == "du_thang" { phan.append("Tháng này đã đổi đủ lượt") }
     if !q.moTa.isEmpty && !q.chiCuoiTuan { phan.append(q.moTa) }
     if q.conThieu > 0 { phan.append(phan.isEmpty ? "Còn thiếu \(q.conThieu) sao" : "còn thiếu \(q.conThieu) sao") }
     else if phan.isEmpty { phan.append("Đủ sao rồi") }

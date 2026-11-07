@@ -3,11 +3,11 @@
 # (Tiếp tục → Cài đặt → mật khẩu Mac) → AiiGrow mở cửa sổ Ghép máy. GIỮ .pkg (daemon root + tự cập nhật chỉ nhận .pkg ký Developer ID
 # Installer — README mục Tự cập nhật); .dmg chỉ là vỏ tải về cho quen tay Mac, kèm lối tắt Applications để Ba Mẹ thấy app nằm đâu.
 # Chỉ build, KHÔNG cài, không mount.
-#   Thử:      THU=1 BAN=0.1.9 ./build-dmg.sh            (cần ra/AiiGrow-0.1.9.pkg — chạy build-pkg.sh trước)
-#   Phát hành: BAN=0.1.9 KY_APP="Developer ID Application: TAN THANH TRAN (ADUL7HT969)" NOTARY=1 ./build-dmg.sh
+#   Thử:      THU=1 BAN=0.1.10 ./build-dmg.sh            (cần ra/AiiGrow-0.1.10.pkg — chạy build-pkg.sh trước)
+#   Phát hành: BAN=0.1.10 KY_APP="Developer ID Application: TAN THANH TRAN (ADUL7HT969)" NOTARY=1 ./build-dmg.sh
 set -euo pipefail
 GOI="$(cd "$(dirname "$0")" && pwd)"; MAC="$(dirname "$GOI")"; RA="$MAC/ra"
-: "${BAN:?đặt BAN=<bản>, vd BAN=0.1.9}"
+: "${BAN:?đặt BAN=<bản>, vd BAN=0.1.10}"
 PKG="$RA/AiiGrow-$BAN.pkg"
 [ -f "$PKG" ] || { echo "Chưa có $PKG — chạy build-pkg.sh trước." >&2; exit 1; }
 if [ "${NOTARY:-}" != 1 ] && [ "${THU:-}" != 1 ]; then

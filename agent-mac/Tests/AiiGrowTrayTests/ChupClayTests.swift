@@ -157,6 +157,8 @@ final class ChupClayTests: XCTestCase {
       app.muc = m
       chup(AppConView(app: app, tray: tray), ten, co, dir: dir)
     }
+    app.viQua = ViQuaTests.mau()
+    chup(AppConView(app: app, tray: tray, moViQuaLucDau: true), "26-vi-qua", co, dir: dir)
     chup(DoiQuaView(q: ch.qua[2], sao: 30, app: app), "24-doi-qua", dir: dir)
     let cm = ChoiModel(goi: goi)
     chup(ChoiBangDiemView(phut10Sao: 10, sao: 30, m: cm, conPhut: 18, xinThem: {}, lamNhiemVu: {}), "49-doi-sao-lay-gio", dir: dir)

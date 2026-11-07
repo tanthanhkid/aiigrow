@@ -192,6 +192,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   /// Bé đang dùng đổi (vào / ra): bỏ dữ liệu của bé trước (sao, nhiệm vụ, tin, lời xin) — không hiện số của bé khác.
   func doiBeXong(moi t: TrangThai) {
     appCon.tq = nil; appCon.ch = nil; appCon.tin = nil; appCon.tinMoi = 0; appCon.phutChoi = nil
+    appCon.viQua = nil; appCon.viQuaDaLuu = false; appCon.tenBe = t.beTen ?? t.tenCon ?? ""
     tinTheo = TinTracker(); xin.moi(); nhac = NhacGio()
     if t.nguoiDung == "con" { Task { await appCon.lamMoi(dsChoi: t.dsChoi ?? []) } }   // màn khoá / nhắc giờ cần số sao của bé mới
   }
@@ -269,6 +270,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       w.center(); w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
       cuaSoApp = w
     }
+    if let t = model.tt { appCon.tenBe = t.beTen ?? t.tenCon ?? "" }
     Task { await appCon.lamMoi(dsChoi: model.tt?.dsChoi ?? []) }
   }
 

@@ -86,6 +86,8 @@ struct AppConView: View {
   @State private var quaHoi: HvQua?
   @State private var hoiDoiBe = false
   @State private var quaCuaCon = false
+  /// Mở thẳng «Quà của con» (chụp màn 26).
+  var moViQuaLucDau = false
   /// Máy dùng chung có màn chọn tên (daemon mới + máy chủ S3).
   private var coDoiBe: Bool { tt?.nguoiDung != nil && tt?.mayRieng != true }
 
@@ -122,16 +124,17 @@ struct AppConView: View {
     .nenClay()
     .sheet(item: $quaHoi) { q in
       DoiQuaView(q: q, sao: app.ch?.soDu ?? app.tq?.soDu ?? 0, app: app, dsChoi: dsChoi, dong: { quaHoi = nil },
-                 lamThem: { quaHoi = nil; app.chon(.nhiemVu) }, xemQua: { quaHoi = nil; app.chon(.phanQua) })
+                 lamThem: { quaHoi = nil; app.chon(.nhiemVu) }, xemQua: { quaHoi = nil; app.chon(.phanQua); quaCuaCon = true })
     }
     .sheet(isPresented: $hoiDoiBe) { doiBeSheet }
+    .onAppear { if moViQuaLucDau { app.muc = .phanQua; quaCuaCon = true } }
   }
 
   private var tieuDe: String {
     switch app.muc {
     case .homNay: return "Hôm nay"
     case .nhiemVu: return "Nhiệm vụ của con"
-    case .phanQua: return "Sao & quà"
+    case .phanQua: return quaCuaCon ? "Quà của con" : "Sao & quà"
     case .tinNhan: return "Tin nhắn"
     }
   }
@@ -153,7 +156,7 @@ struct AppConView: View {
         .padding(.bottom, 6)
       ForEach(Array(AppConView.dsMuc.enumerated()), id: \.offset) { _, m in
         let n = m.0 == .nhiemVu ? (app.tq.map(HocVienView.soViecMo) ?? 0) : (m.0 == .tinNhan ? app.tinMoi : 0)
-        Button { withAnimation(ClayMotion.bat) { app.chon(m.0) } } label: {
+        Button { withAnimation(ClayMotion.bat) { quaCuaCon = false; app.chon(m.0) } } label: {
           HStack(spacing: 10) {
             HinhFluent(ten: m.2, duPhong: "circle.fill", co: 24)
             Text(m.1).lineLimit(1).truncationMode(.tail).frame(maxWidth: .infinity, alignment: .leading)
@@ -416,6 +419,11 @@ struct AppConView: View {
   // ---- Phần quà & điểm
 
   @ViewBuilder private var phanQua: some View {
+    if quaCuaCon { ViQuaView(app: app, quay: { quaCuaCon = false }) }
+    else { phanBangGia }
+  }
+
+  @ViewBuilder private var phanBangGia: some View {
     chuaCo(chuaGhep: "Máy chưa ghép với Ba Mẹ nên chưa có phần quà.", dangTai: "Đang tải…")
     if let tq = app.tq {
       TheCon(nen: ClayMau.diemSoft) {
@@ -440,34 +448,19 @@ struct AppConView: View {
       HStack {
         Chu("Đổi quà", co: 17, dam: .bold, dong: 1)
         Spacer()
-        if !tq.phieuCho.isEmpty {
+        if !tq.phieuCho.isEmpty || app.viQua?.coGi == true {
           Button("Quà của con ›") { quaCuaCon.toggle() }.buttonStyle(.plain).font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.ngocInk)
         }
       }
       .padding(.top, 2)
-      if quaCuaCon {
-        ForEach(tq.phieuCho, id: \.id) { p in
-          TheCon {
-            HStack(spacing: 12) {
-              VienClay(ten: "wrapped_gift", duPhong: "gift.fill", nen: ClayMau.the, co: 44)
-              VStack(alignment: .leading, spacing: 2) {
-                Chu(p.ten, co: 16, dam: .bold, dong: 1)
-                Chu("Đang giữ \(p.diem) sao · Ba Mẹ trao mới trừ", co: 13, mau: ClayMau.chu3, dong: 1)
-              }
-              Text("Chờ trao").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.canh)
-                .padding(.horizontal, 12).padding(.vertical, 6).background(Capsule().fill(ClayMau.canhSoft)).fixedSize()
-            }
-          }
-        }
-      }
-      if let ch = app.ch, !ch.qua.isEmpty {
-        ForEach(Array(ch.qua.enumerated()), id: \.element.id) { i, q in
+      if !app.quaHienThi.isEmpty {
+        ForEach(Array(app.quaHienThi.enumerated()), id: \.element.id) { i, q in
           TheCon {
             HStack(spacing: 12) {
               VienClay(ten: "wrapped_gift", duPhong: "gift.fill", nen: ClayMau.the, co: 44)
               VStack(alignment: .leading, spacing: 2) {
                 Chu(q.ten, co: 17, dam: .bold, dong: 1)
-                Chu(ManMac.dongQua(q), co: 13, dam: .semibold, mau: q.choTraoTu != nil ? ClayMau.ngocInk : (q.du ? ClayMau.ngocInk : ClayMau.canh), dong: 1)
+                Chu(ManMac.dongQua(q), co: 13, dam: .semibold, mau: q.choTraoTu != nil ? ClayMau.ngocInk : (HocVienView.doiDuoc(q) ? ClayMau.ngocInk : ClayMau.canh), dong: 1)
               }
               if q.conThieu > 0, q.choTraoTu == nil {
                 GeometryReader { geo in
@@ -480,18 +473,18 @@ struct AppConView: View {
               }
               Text("\(q.diem) sao").font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
                 .padding(.horizontal, 14).padding(.vertical, 6).background(Capsule().fill(ClayMau.diemSoft)).fixedSize()
-              if q.du, q.choTraoTu == nil {
+              if HocVienView.doiDuoc(q) {
                 Button("Đổi \(q.diem) sao") { quaHoi = q }.buttonStyle(NutClayStyle(kieu: .sang, bo: 18, cao: 44)).frame(width: 170)
                   .disabled(app.dangBan || tt?.matMang == true)
               }
             }
             .contentShape(Rectangle())
-            .onTapGesture { if q.choTraoTu == nil { quaHoi = q } }
+            .onTapGesture { if q.choTraoTu == nil && q.conHopLe { quaHoi = q } }
           }
           .vaoLanLuot(min(i + 1, 6))
         }
       } else {
-        Chu(app.ch == nil ? "Chưa tải được danh sách quà." : "Ba Mẹ chưa đặt phần quà nào. Con cứ làm nhiệm vụ để nhận sao nhé!", co: 15, mau: ClayMau.chu3)
+        Chu(app.ch == nil && app.viQua == nil ? "Chưa tải được danh sách quà." : "Ba Mẹ chưa đặt phần quà nào. Con cứ làm nhiệm vụ để nhận sao nhé!", co: 15, mau: ClayMau.chu3)
       }
     }
   }
