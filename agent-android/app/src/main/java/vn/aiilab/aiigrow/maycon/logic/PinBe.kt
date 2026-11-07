@@ -212,26 +212,43 @@ fun guiLanLuot(doc: () -> ViecCho?, gui: (ViecCho) -> KetQuaGui, ghi: (ViecCho, 
     return daGui
 }
 
-/** Mốc phút giải trí cả máy lúc bé `conId` vào (máy DÙNG CHUNG): phút của bé = phút cả máy − mốc ⇒ bé sau không bị tính phút của bé trước / Ba Mẹ.
- *  `luc` = lúc đổi người tại máy (Kho.lanDoiNguoi) khi đặt mốc — bé vào lại (kể cả cùng bé, sau Ba Mẹ dùng) ⇒ mốc mới. */
-data class MocPhut(val conId: String, val ngay: String, val phut: Int, val luc: Long = 0) {
-    fun json(): String = JSONObject().put("conId", conId).put("ngay", ngay).put("phut", phut).put("luc", luc).toString()
+/** Mốc phút giải trí cả máy KHÔNG tính cho bé. Máy DÙNG CHUNG: mốc = phút cả máy lúc bé vào (bé trước / Ba Mẹ dùng không tính cho bé sau).
+ *  Máy RIÊNG: mốc = tổng phút trong lúc Ba Mẹ dùng hôm nay (`baMeTu` = phút cả máy lúc Ba Mẹ bắt đầu dùng, null = Ba Mẹ không dùng).
+ *  `luc` = lúc đổi người tại máy (Kho.lanDoiNguoi) khi đặt mốc — bé vào lại (kể cả cùng bé, sau Ba Mẹ dùng) ⇒ mốc mới (máy dùng chung). */
+data class MocPhut(val conId: String, val ngay: String, val phut: Int, val luc: Long = 0, val baMeTu: Int? = null) {
+    fun json(): String = JSONObject().put("conId", conId).put("ngay", ngay).put("phut", phut).put("luc", luc)
+        .apply { baMeTu?.let { put("baMeTu", it) } }.toString()
     companion object {
-        fun doc(s: String?): MocPhut? = try { if (s.isNullOrBlank()) null else JSONObject(s).let { MocPhut(it.getString("conId"), it.getString("ngay"), it.optInt("phut"), it.optLong("luc")) } }
+        fun doc(s: String?): MocPhut? = try { if (s.isNullOrBlank()) null else JSONObject(s).let {
+            MocPhut(it.getString("conId"), it.getString("ngay"), it.optInt("phut"), it.optLong("luc"), if (it.has("baMeTu")) it.optInt("baMeTu") else null) } }
             catch (_: Exception) { null }
     }
 }
 
-/** Cập nhật mốc: máy dùng chung + bé đang dùng (CON) mà mốc khác bé / khác ngày / khác lượt vào ⇒ mốc mới = phút cả máy lúc này.
- *  Không dùng chung ⇒ null (máy riêng: cả máy là của bé). Cổng khác (chọn tên / Ba Mẹ) ⇒ giữ nguyên. */
-fun capNhatMoc(moc: MocPhut?, dungChung: Boolean, cong: Cong, conId: String?, ngay: String, phutCaMay: Int, lucVao: Long): MocPhut? {
-    if (!dungChung) return null
-    if (cong != Cong.CON || conId == null) return moc
-    return if (moc == null || moc.conId != conId || moc.ngay != ngay || moc.luc != lucVao) MocPhut(conId, ngay, phutCaMay, lucVao) else moc
+/** Cập nhật mốc. `coCong` = máy chủ có PIN theo bé (có nguoiDung + hồ sơ); không ⇒ null (máy chủ cũ: cả máy là của bé).
+ *  Dùng chung: bé đang dùng (CON) mà mốc khác bé / ngày / lượt vào ⇒ mốc mới = phút cả máy; cổng khác ⇒ giữ.
+ *  Riêng: sang ngày ⇒ 0; Ba Mẹ bắt đầu dùng ⇒ nhớ `baMeTu`; Ba Mẹ thôi dùng ⇒ mốc += phút trong lúc Ba Mẹ dùng. */
+fun capNhatMoc(moc: MocPhut?, coCong: Boolean, dungChung: Boolean, cong: Cong, conId: String?, ngay: String, phutCaMay: Int, lucVao: Long): MocPhut? {
+    if (!coCong) return null
+    if (dungChung) {
+        if (cong != Cong.CON || conId == null) return moc
+        return if (moc == null || moc.conId != conId || moc.ngay != ngay || moc.luc != lucVao || moc.baMeTu != null)
+            MocPhut(conId, ngay, phutCaMay, lucVao) else moc
+    }
+    val m = if (moc == null || moc.ngay != ngay || moc.conId.isNotEmpty()) MocPhut("", ngay, 0) else moc
+    return when {
+        cong == Cong.BA_ME && m.baMeTu == null -> m.copy(baMeTu = phutCaMay)
+        cong != Cong.BA_ME && m.baMeTu != null -> m.copy(phut = m.phut + (phutCaMay - m.baMeTu).coerceAtLeast(0), baMeTu = null)
+        else -> m
+    }
 }
 
 /** Phút của bé = phút cả máy − mốc (≥ 0). */
 fun truMoc(phut: Int, moc: MocPhut?): Int = (phut - (moc?.phut ?: 0)).coerceAtLeast(0)
+
+/** Việc chờ giữ tối đa 24 giờ (ViecCho «vao» chứa PIN thô của bé — không để lâu trong SharedPreferences). */
+const val VIEC_CHO_HAN_MS = 24 * 60 * 60_000L
+fun viecConHan(v: ViecCho, now: Long): Boolean = now - v.luc in 0..VIEC_CHO_HAN_MS
 
 /** Hạn «Ba Mẹ dùng» máy chủ gửi (giờ máy chủ) → giờ máy (`lechMs` = giờ máy chủ − giờ máy). Mọi so sánh cổng dùng giờ máy. */
 fun denTheoGioMay(denMayChu: Long?, lechMs: Long): Long? = denMayChu?.let { it - lechMs }

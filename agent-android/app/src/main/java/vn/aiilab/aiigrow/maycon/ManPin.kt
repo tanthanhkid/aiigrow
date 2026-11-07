@@ -129,6 +129,8 @@ class ManPin(val c: Context) {
             if (go.length == 4) vao(b, go)
         }, { if (go.isNotEmpty() && !dangGui) { go = go.dropLast(1); ve() } }))
         goc.addView(Diu.nut(c, "Quên PIN?", Diu.KieuNut.CHU) { buoc = Buoc.QUEN; loi = null; ve() }.apply { setTextColor(Diu.XANH_DAM) })
+        // mọi máy (kể cả máy riêng một bé — màn chọn tên bị bỏ qua) đều có lối Ba Mẹ mở máy bằng mã
+        goc.addView(Diu.nut(c, "Ba Mẹ dùng máy", Diu.KieuNut.CHU) { buoc = Buoc.BA_ME; go = ""; loi = null; ve() })
     }
 
     private fun vao(b: BeHoSo, pin: String?) {
@@ -194,7 +196,8 @@ class ManPin(val c: Context) {
 
     // ---- 11 Ba Mẹ nhập mã
     private fun veBaMe() {
-        goc.addView(nutLui { buoc = if (be != null && PinMay.hoSo(Kho(c))?.mayRieng == true) Buoc.PIN else Buoc.CHON_TEN; go = ""; loi = null; ve() })
+        // vào từ màn PIN (có bé đang chọn — gồm máy riêng) ⇒ về PIN; vào từ màn chọn tên ⇒ về chọn tên
+        goc.addView(nutLui { buoc = if (be != null) Buoc.PIN else Buoc.CHON_TEN; go = ""; loi = null; ve() })
         goc.addView(chu("Ba Mẹ nhập mã", 26f, dac = true))
         goc.addView(chu("Dùng khi cần mở máy gấp", 16f, Diu.CHU2))
         goc.addView(chu("Mở app AiiGrow của Ba Mẹ → Mã mở máy", 15f, Diu.XANH_DAM, dac = true).apply {

@@ -145,7 +145,8 @@ class DichVuNhip : Service() {
         //     Mốc phút lúc nhịp cũng trừ cùng mốc ⇒ phần «đếm thêm từ nhịp cuối» trong QuyetDinh không đổi. Máy riêng / máy chủ cũ: mốc null.
         val phutCaMay = phutGiaiTri(dung, goiAndroid(cs.giaiTri))
         val mocCu = MocPhut.doc(k.mocBe)
-        val moc = capNhatMoc(mocCu, anhCong.hs?.mayRieng == false, cong, anhCong.nd?.conId,
+        //     Máy riêng: mốc = phút trong lúc Ba Mẹ dùng (không trừ giờ bé).
+        val moc = capNhatMoc(mocCu, anhCong.hs != null && anhCong.nd != null, anhCong.hs?.mayRieng == false, cong, anhCong.nd?.conId,
             gioDiaPhuong(now, cs.tz).zdt.toLocalDate().toString(), phutCaMay, k.lanDoiNguoi)
         if (moc != mocCu) k.mocBe = moc?.json()
         val phutGT = truMoc(phutCaMay, moc)

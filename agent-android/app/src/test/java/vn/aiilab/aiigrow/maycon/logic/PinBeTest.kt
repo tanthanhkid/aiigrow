@@ -142,16 +142,33 @@ class PinBeTest {
 
     @Test fun mocPhut_mayDungChung() {
         val ngay = "2026-11-06"
-        assertNull("máy riêng ⇒ không mốc", capNhatMoc(null, false, Cong.CON, "c1", ngay, 40, 1))
-        val a = capNhatMoc(null, true, Cong.CON, "c1", ngay, 40, 1)!!
+        assertNull("máy chủ cũ (không cổng) ⇒ không mốc", capNhatMoc(null, false, true, Cong.CON, "c1", ngay, 40, 1))
+        val a = capNhatMoc(null, true, true, Cong.CON, "c1", ngay, 40, 1)!!
         assertEquals(0, truMoc(40, a)); assertEquals(15, truMoc(55, a))
-        assertEquals("cùng lượt vào ⇒ giữ mốc", a, capNhatMoc(a, true, Cong.CON, "c1", ngay, 55, 1))
-        assertEquals("chọn tên / Ba Mẹ ⇒ giữ", a, capNhatMoc(a, true, Cong.BA_ME, null, ngay, 70, 2))
-        val b = capNhatMoc(a, true, Cong.CON, "c2", ngay, 70, 3)!!
+        assertEquals("cùng lượt vào ⇒ giữ mốc", a, capNhatMoc(a, true, true, Cong.CON, "c1", ngay, 55, 1))
+        assertEquals("chọn tên / Ba Mẹ ⇒ giữ", a, capNhatMoc(a, true, true, Cong.BA_ME, null, ngay, 70, 2))
+        val b = capNhatMoc(a, true, true, Cong.CON, "c2", ngay, 70, 3)!!
         assertEquals("bé sau không bị tính 70 phút của bé trước + Ba Mẹ", 0, truMoc(70, b))
-        assertEquals("cùng bé vào lại sau Ba Mẹ ⇒ mốc mới", 90, capNhatMoc(b, true, Cong.CON, "c2", ngay, 90, 4)!!.phut)
-        assertEquals("sang ngày ⇒ mốc mới", 2, capNhatMoc(b, true, Cong.CON, "c2", "2026-11-07", 2, 3)!!.phut)
+        assertEquals("cùng bé vào lại sau Ba Mẹ ⇒ mốc mới", 90, capNhatMoc(b, true, true, Cong.CON, "c2", ngay, 90, 4)!!.phut)
+        assertEquals("sang ngày ⇒ mốc mới", 2, capNhatMoc(b, true, true, Cong.CON, "c2", "2026-11-07", 2, 3)!!.phut)
         assertEquals(b, MocPhut.doc(b.json()))
+    }
+
+    // review lượt 3: máy RIÊNG — phút Ba Mẹ dùng không trừ giờ bé, phút bé trước đó trong ngày vẫn tính
+    @Test fun mocPhut_mayRieng_truPhutBaMe() {
+        val ngay = "2026-11-06"
+        var m = capNhatMoc(null, true, false, Cong.CON, "c1", ngay, 30, 1)
+        assertEquals("bé đã chơi 30 phút ⇒ vẫn tính đủ", 30, truMoc(30, m))
+        m = capNhatMoc(m, true, false, Cong.BA_ME, null, ngay, 30, 2)            // Ba Mẹ bắt đầu dùng ở phút 30
+        m = capNhatMoc(m, true, false, Cong.BA_ME, null, ngay, 45, 2)
+        m = capNhatMoc(m, true, false, Cong.CHON_TEN, null, ngay, 50, 3)         // Ba Mẹ thôi ở phút 50 ⇒ 20 phút của Ba Mẹ
+        assertEquals(20, m!!.phut); assertNull(m.baMeTu)
+        m = capNhatMoc(m, true, false, Cong.CON, "c1", ngay, 60, 4)
+        assertEquals("bé: 30 trước + 10 sau, không tính 20 phút Ba Mẹ", 40, truMoc(60, m))
+        assertEquals(m, MocPhut.doc(m!!.json()))
+        assertEquals("sang ngày ⇒ 0", 0, capNhatMoc(m, true, false, Cong.CON, "c1", "2026-11-07", 3, 4)!!.phut)
+        assertTrue(viecConHan(ViecCho("vao", "c1", "4821", t), t + 23 * 3_600_000L))
+        assertTrue("quá 24 giờ ⇒ bỏ (PIN thô không giữ lâu)", !viecConHan(ViecCho("vao", "c1", "4821", t), t + 25 * 3_600_000L))
     }
 
     @Test fun viecCho_json() {
