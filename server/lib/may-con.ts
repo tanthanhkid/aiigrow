@@ -114,7 +114,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
   const ph = c ? await phienDang(c.id) : undefined;
   const qy = c ? await quyHomNay(c.id, now) : null;
-  return {
+  return apMoHet({
     serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now)], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
     allowlistHeThong: allowlistHieuLuc(),
@@ -129,7 +129,18 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
     ngoaiLe: c ? await ngoaiLeDangMo(c.id, now) : [],
-  };
+  });
+}
+
+/** Giờ ngủ «tắt»: khung tu = den không bao giờ trúng (lib/gio.ts › trongKhung; agent Windows / Android cùng luật). */
+const NGU_TAT = { tu: "00:00", den: "00:00" };
+
+/** Nghi 07/11: «Mở hết» = máy Con dùng như bình thường. Mọi máy (Windows, Mac, Android, iOS) nhận chính sách không giới hạn:
+ *  không quỹ giờ chơi, không giờ ngủ, không giờ học; app / trang Giải trí bỏ khỏi luật ⇒ thành «chưa xếp» = cho phép (chuaXep cho_phep).
+ *  VẪN chặn: mục Ba Mẹ đặt «Chặn», web luôn chặn (người lớn, cờ bạc, bạo lực) và «Khoá ngay». Thời gian dùng vẫn ghi để báo cáo. */
+export function apMoHet(p: Policy): Policy {
+  if (p.cheDoChan !== "mo_het" || !p.con) return p;
+  return { ...p, luat: p.luat.filter((l) => l.loai !== "giai_tri"), lich: { ...p.lich, ngu: NGU_TAT, hoc: null }, quy: null };
 }
 
 /** Ba Mẹ «Khoá ngay» / «Mở lại» (FR-02.04) — có hiệu lực ở lần đồng bộ / nhịp kế tiếp của mọi thiết bị của Con. */
