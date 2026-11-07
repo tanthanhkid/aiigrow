@@ -1,7 +1,8 @@
 // them-rz77kk45 «Mã mở máy cho Bảo Anh» + them-s8nltlaa «Bảo Anh đã mở máy bằng mã» (thiết kế chốt 06/11, L19). Chip «Laptop · mất mạng», 6 số to,
 // «Máy không cần mạng vẫn nhập được», «Mã đổi sau N phút», «Mở máy trong 15 / 30 / 60 phút» (số phút nằm trong mã — máy tự kiểm khi offline),
 // «Gửi mã cho con» (chia sẻ Zalo / Tin nhắn…), «Sao chép mã». GET may/:id/ma-offline?phut= (docs/API.md «S3»).
-// Khi máy có mạng lại và báo đã mở bằng mã (sự kiện may_mo_ma_offline sau lúc mở màn) ⇒ bảng «đã mở máy bằng mã» (kiểm mỗi 30 giây khi màn đang mở).
+// Khi máy có mạng lại và báo đã mở bằng mã (sự kiện may_mo_ma_offline sau lúc mở màn) ⇒ bảng «đã mở máy bằng mã» (kiểm mỗi 30 giây khi màn đang mở,
+// qua đường nhẹ GET may/:id/mo-bang-ma?sau= — chỉ sự kiện mới, không dò cả tuan-thu).
 // Đây cũng là `den` của mục «máy mất mạng» trong «Cần Ba Mẹ để ý».
 import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -10,7 +11,7 @@ import { bm, type ChiTietTuanThu, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { IC_MAY } from "@/lib/hang-ngay";
 import { saoChep } from "@/lib/luu-tep";
-import { cauDoiSau, chiaMa, loiGuiMa, PHUT_MO, suKienMoMa, type MaOfflineS3 } from "@/lib/s3";
+import { cauDoiSau, chiaMa, LECH_DONG_HO_MS, loiGuiMa, PHUT_MO, suKienMoMa, type MaOfflineS3 } from "@/lib/s3";
 import { BangTruot, BaoLoi, cauLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
 import { OMa6 } from "@/lib/ui-s3";
 
@@ -50,7 +51,8 @@ export default function MaMoMay() {
   // máy báo «đã mở bằng mã» (khi có mạng lại) ⇒ bảng them-s8nltlaa — một lần mỗi lượt mở màn
   useFocusEffect(useCallback(() => {
     if (daBao) return;
-    const kiem = () => bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`).then((m) => {
+    const sau = new Date(moLuc - LECH_DONG_HO_MS).toISOString();      // đồng hồ máy Ba Mẹ có thể lệch máy chủ — lấy rộng, suKienMoMa lọc lại
+    const kiem = () => bm.goi<{ suKien: ChiTietTuanThu["suKien"] }>(`may/${id}/mo-bang-ma?sau=${encodeURIComponent(sau)}`).then((m) => {
       const x = suKienMoMa(m.suKien, moLuc);
       if (x) { setDaMo(x); setDaBao(true); thongTin.tai(); }
     }, () => {});

@@ -100,7 +100,7 @@ export default function CaiDat() {
           </NhanMen>
         ))}
         {laBaMe ? (
-          <NhanMen onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm con" muc="khoi" sang
+          <NhanMen onPress={() => router.push("/ho-so/them" as never)} accessibilityRole="button" accessibilityLabel="Thêm con" muc="khoi" sang
             style={{ width: "31%", flexGrow: 1, maxWidth: 160, alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
             <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon ten="cong" mau={M.chinhInk} co={22} /></View>
             <Chu kieu="rat" co={14.5} mau={M.chinhInk}>Thêm con</Chu>

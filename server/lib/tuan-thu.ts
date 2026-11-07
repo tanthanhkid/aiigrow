@@ -346,7 +346,24 @@ export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string,
   const ma = maOfflinePhut(bm, phut, now);
   const doiSauGiay = BUOC_GIAY - Math.floor((now.getTime() / 1000) % BUOC_GIAY);
   const conGiay = BUOC_GIAY * DUNG_SAI + doiSauGiay;
-  await ghiSuKien(fam, "xem_ma_offline", { phut }, { con: m.child_id, may: m.id, nguoi });
+  // Nhật ký «xem mã»: một dòng mỗi (người, số phút, bước mã) — màn mã tải lại cùng mã (đổi 15/30/60 qua lại, quay lại màn) không ghi trùng
+  const buoc = Math.floor(now.getTime() / 1000 / BUOC_GIAY);
+  if (!(await one(`select 1 from events where family_id = $6 and device_id = $1 and loai = 'xem_ma_offline' and created_at > $2 and nguoi is not distinct from $3
+      and chi_tiet->>'phut' = $4 and chi_tiet->>'buoc' = $5 limit 1`, [m.id, new Date(now.getTime() - 2 * BUOC_GIAY * 1000), nguoi, String(phut), String(buoc), fam])))
+    await ghiSuKien(fam, "xem_ma_offline", { phut, buoc }, { con: m.child_id, may: m.id, nguoi });
   return { ma, maHien: `${ma.slice(0, 3)} ${ma.slice(3)}`, conGiay, doiSauGiay, hieuLucPhut: Math.round((BUOC_GIAY * (2 * DUNG_SAI + 1)) / 60),
     phutMo: phut, chonPhut: [15, 30, 60], may: { id: m.id, ten: m.name, nen: m.platform } };
+}
+
+/** Đường nhẹ cho màn «Mã mở máy» (them-s8nltlaa): chỉ sự kiện «máy đã mở bằng mã» (`may_mo_ma_offline`) máy chủ nhận SAU `sau`
+ *  (ISO hoặc mili giây; thiếu/sai ⇒ 10 phút trước). Thay việc dò cả `may/:id/tuan-thu` mỗi 30 giây. → `{suKien: [{loai, chi_tiet, created_at}], bayGio}`
+ *  — cùng dạng phần tử `suKien` của tuan-thu (app dùng chung hàm đọc). Không ghi gì. */
+export async function moBangMaSau(fam: string, mayId: string, sau: string | null, now = new Date()) {
+  const m = await mayCua(fam, mayId);
+  const so = sau && /^\d+$/.test(sau) ? Number(sau) : sau ? Date.parse(sau) : NaN;
+  const tuSo = new Date(so);
+  const tu = Number.isNaN(tuSo.getTime()) ? new Date(now.getTime() - 10 * 60_000) : tuSo;   // NaN / ngoài tầm Date ⇒ 10 phút trước
+  const suKien = await q<{ loai: string; chi_tiet: Record<string, unknown>; created_at: Date }>(`select loai, chi_tiet, created_at from events
+      where family_id = $1 and device_id = $2 and loai = 'may_mo_ma_offline' and created_at > $3 order by created_at desc, seq desc limit 20`, [fam, m.id, tu]);
+  return { suKien, bayGio: now.toISOString() };
 }

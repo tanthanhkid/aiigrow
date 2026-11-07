@@ -160,3 +160,12 @@ export function suKienMoMa(ds: { loai: string; chi_tiet: Record<string, unknown>
 
 /** Số trên chuông: `soChuong` của máy chủ mới (= số mục Cần Ba Mẹ để ý); máy chủ cũ ⇒ số thông báo chưa đọc. */
 export const soTrenChuong = (r: { soChuong?: number | null; chuaDoc?: number | null }) => Math.max(0, r.soChuong ?? r.chuaDoc ?? 0);
+
+// ---------------------------------------------------------------- «Thêm con» từ Cả nhà (them-9ozp26pq): chip tuổi thay ô năm sinh
+
+/** Chip «Con mấy tuổi?» (4–5 … 13+) — `tuoi` = tuổi đại diện gửi lên máy chủ dạng năm sinh (máy chủ tính nhóm Nhí / Teen từ năm sinh, ≥ 11 = Teen). */
+export const CHIP_TUOI = [{ chu: "4–5", tuoi: 5 }, { chu: "6–7", tuoi: 7 }, { chu: "8–9", tuoi: 9 }, { chu: "10–12", tuoi: 11 }, { chu: "13+", tuoi: 13 }] as const;
+/** Năm sinh gửi máy chủ cho một chip tuổi (null = chưa chọn). */
+export const namTuChipTuoi = (i: number | null, nam = new Date().getFullYear()) => (i === null || !CHIP_TUOI[i] ? null : nam - CHIP_TUOI[i].tuoi);
+/** Bộ việc giao sẵn theo chip tuổi (server/lib/bo-nhiem-vu.ts): 4–7 Học tập · 8–9 Tự lập · 10+ Phụ việc nhà; chưa chọn tuổi ⇒ Tự lập (bộ đầu ở bước Lần đầu). */
+export const boTheoTuoi = (i: number | null) => (i === null ? "tu_lap" : i <= 1 ? "hoc_tap" : i === 2 ? "tu_lap" : "viec_nha");

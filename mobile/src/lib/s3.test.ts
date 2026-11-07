@@ -2,8 +2,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buocGia, cauDatPin, cauDoiSau, cauHanVoucher, cauLuuQuaLanDau, cauNgayDoi, cauThemQua, chiaMa, doiChonMau, icQua, kiemPin, locPin, loiGuiMa, phuQua,
-  saoMoiNgay, soTrenChuong, suKienMoMa, thanSuaQua,
+  boTheoTuoi, buocGia, CHIP_TUOI, cauDatPin, cauDoiSau, cauHanVoucher, cauLuuQuaLanDau, cauNgayDoi, cauThemQua, chiaMa, doiChonMau, icQua, kiemPin, locPin, loiGuiMa, phuQua,
+  namTuChipTuoi, saoMoiNgay, soTrenChuong, suKienMoMa, thanSuaQua,
 } from "./s3.ts";
 
 test("PIN: chỉ giữ 4 chữ số", () => {
@@ -128,4 +128,14 @@ test("chuông: soChuong thắng chuaDoc (máy chủ cũ chỉ có chuaDoc)", () 
   assert.equal(soTrenChuong({ soChuong: 0, chuaDoc: 9 }), 0);
   assert.equal(soTrenChuong({ chuaDoc: 3 }), 3);
   assert.equal(soTrenChuong({}), 0);
+});
+
+test("Thêm con từ Cả nhà: chip tuổi ⇒ năm sinh đại diện; 10–12 rơi vào Teen (≥ 11 tuổi); chưa chọn ⇒ null (them-9ozp26pq)", () => {
+  assert.deepEqual(CHIP_TUOI.map((c) => c.chu), ["4–5", "6–7", "8–9", "10–12", "13+"]);
+  assert.equal(namTuChipTuoi(2, 2026), 2017);
+  assert.ok(2026 - namTuChipTuoi(3, 2026)! >= 11);
+  assert.equal(namTuChipTuoi(0, 2026), 2021);
+  assert.equal(namTuChipTuoi(null), null);
+  assert.equal(namTuChipTuoi(9), null);
+  assert.deepEqual([null, 0, 2, 3, 4].map((i) => boTheoTuoi(i)), ["tu_lap", "hoc_tap", "tu_lap", "viec_nha", "viec_nha"]);
 });

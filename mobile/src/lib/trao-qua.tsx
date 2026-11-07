@@ -8,7 +8,7 @@ import { type PhieuCho } from "./hang-ngay";
 import { MaQr } from "./qr";
 import { cauHanVoucher, icQua, type KqTrao, type VoucherPhat } from "./s3";
 import { BangTruot, BaoLoi, Chu, M, Nut, tien, useLam } from "./ui";
-import { GiaSao, OHinhQua } from "./ui-s3";
+import { GiaSao, OHinhQuaTo } from "./ui-s3";
 
 const khiNao = (iso: string) => {
   const t = new Date(iso), h = new Date();
@@ -49,14 +49,12 @@ export function BangTraoQua({ p, dong, xong }: {
     );
   }
   return (
-    <BangTruot mo={!!p} dong={dongHet} tieu={p ? `Đã trao «${p.ten}» cho ${p.ten_con} chưa?` : ""}>
+    <BangTruot mo={!!p} dong={dongHet} tieu={p ? `Đã trao «${p.ten}» cho ${p.ten_con} chưa?` : ""} giua
+      dauBang={p ? <OHinhQuaTo ic={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten })} /> : null}>
       {p ? <>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <OHinhQua ic={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten })} co={56} />
-          <View style={{ flex: 1, gap: 4 }}>
-            <Chu co={14} mau={M.chu2}>{`Con chọn ${khiNao(p.created_at)} · đang giữ`}</Chu>
-            <View style={{ alignSelf: "flex-start" }}><GiaSao n={p.diem} /></View>
-          </View>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6 }}>
+          <Chu co={15} mau={M.chu2}>{`Con chọn ${khiNao(p.created_at)} · đang giữ`}</Chu>
+          <GiaSao n={p.diem} />
         </View>
         <View style={{ padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
           <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{`Bấm «Đã trao» thì mới trừ ${p.diem} sao, Rob báo con và chúc mừng con.`}</Chu>

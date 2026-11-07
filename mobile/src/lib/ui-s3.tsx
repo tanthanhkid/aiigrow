@@ -65,6 +65,13 @@ export const OHinhQua = ({ ic, co = 46 }: { ic: string; co?: number }) => (
   </View>
 );
 
+/** Ô hình quà TO giữa bảng «Trao quà cho con» (them-5otw85h4 .hinh: 110×110, bo 34, nền vàng nhạt, khối clay, icon 72). */
+export const OHinhQuaTo = ({ ic }: { ic: string }) => (
+  <View style={{ alignSelf: "center", width: 110, height: 110, borderRadius: 34, backgroundColor: "#fdeab0", alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+    <Icon3D ten={ic as TenIcon} co={72} />
+  </View>
+);
+
 /** Nhãn sao vàng «⭐ 100 sao». */
 export const GiaSao = ({ n, chu }: { n: number; chu?: string }) => (
   <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: 6, paddingRight: 10, paddingVertical: 4, borderRadius: 14, backgroundColor: M.diemSoft }}>

@@ -39,7 +39,7 @@ function DsQuaCon({ c, dsCon, baMe, quyVoucher, doiCon, taiG }: { c: GiaDinh["co
   const ten = c?.ten;
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={TIEU} noi={noi} tai={() => { taiG(); q.tai(); }}
-      day={!ds.length && baMe ? <><BaoLoi loi={loiLam} /><Nut chu="Dùng 7 quà Rob gợi ý" rong dangChay={dangChay} bam={() => lam(async () => { await bm.goi("qua/mac-dinh", {}); await q.tai(); })} /></>
+      day={!ds.length && baMe ? <><BaoLoi loi={loiLam} /><Nut chu="Dùng 7 quà Rob gợi ý" rong dangChay={dangChay} bam={() => lam(async () => { await bm.goi("qua/mac-dinh", conId ? { con: conId } : {}); await q.tai(); })} /></>
         : <Nut chu={`Lưu ${ds.length} quà${ten ? ` cho ${ten}` : ""}`} rong bam={ve} />}>
       {dsCon.length > 1 && c ? <ChipCon ds={dsCon} chon={c.id} doi={(x) => doiCon(x.id)} /> : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
