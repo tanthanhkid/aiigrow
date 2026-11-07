@@ -6,14 +6,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /** Gọi /api/device/… (server/lib/api-may.ts). Chỉ gọi từ luồng nền. */
-class MayChu(private val goc: String, private val token: String?) {
+class MayChu(private val goc: String, private val token: String?, private val docMs: Int = 20_000) {
     /** `than` = cả thân lỗi (S3 06/11: trường phụ cạnh {error, message} — `conLan`, `choGiay`, `khoaDen`). */
     class Loi(val ma: String, val cau: String, val http: Int, val than: JSONObject = JSONObject()) : IOException(cau)
 
     fun goi(duong: String, than: JSONObject? = null): JSONObject {
         val c = (URL(goc.trimEnd('/') + "/api/device/" + duong).openConnection() as HttpURLConnection).apply {
             requestMethod = if (than != null) "POST" else "GET"
-            connectTimeout = 15_000; readTimeout = 20_000
+            connectTimeout = 15_000; readTimeout = docMs
             setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "AiiGrowCon-Android/${BuildConfig.VERSION_NAME}")
             token?.let { setRequestProperty("Authorization", "Bearer $it") }
@@ -38,6 +38,8 @@ class MayChu(private val goc: String, private val token: String?) {
     fun ghep(than: JSONObject) = goi("ghep", than)
     fun ghepGoi(than: JSONObject) = goi("ghep-goi", than)
     fun nhip(than: JSONObject) = goi("nhip", than)
+    /** P1 07/11: long-poll — máy chủ giữ ≤ ~25 giây, trả ngay khi Ba Mẹ đổi gì. Dùng `MayChu(…, docMs = 40_000)`. */
+    fun choThayDoi(ver: Long?) = goi(vn.aiilab.aiigrow.maycon.logic.duongChoThayDoi(ver))
     fun xinThemGio(than: JSONObject) = goi("yeu-cau", than)
     /** 05/11: Con «Xin Ba Mẹ duyệt» app lạ (máy chủ tự xếp app / web; lời xin trùng trả lại lời xin cũ). */
     fun xinDuyet(than: JSONObject) = goi("xin-duyet", than)

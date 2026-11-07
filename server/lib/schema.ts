@@ -672,6 +672,8 @@ export const SCHEMA_S3 = [
   `alter table rewards add column if not exists ap_cho jsonb`,
   `alter table rewards add column if not exists mau text`,
   `alter table families add column if not exists qua_seed_luc timestamptz`,
+  // P1 (07/11): số phiên bản «Ba Mẹ vừa đổi gì» của gia đình — long-poll /api/device/cho-thay-doi (lib/cho-thay-doi.ts)
+  `alter table families add column if not exists phien_ban_doi bigint not null default 0`,
   `alter table vouchers add column if not exists trao_tay boolean not null default false`,
   // pin_sai.cap_nhat: lần thử cuối — lượt sai cũ hơn 15 phút không cộng dồn (lib/pin-be.ts › giuLuot)
   `alter table pin_sai add column if not exists cap_nhat timestamptz`,

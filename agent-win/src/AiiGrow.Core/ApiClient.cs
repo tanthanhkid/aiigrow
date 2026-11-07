@@ -46,11 +46,11 @@ public sealed class ApiClient : IDisposable
 {
     private readonly HttpClient _http;
 
-    public ApiClient(string server, string? token = null, HttpMessageHandler? handler = null)
+    public ApiClient(string server, string? token = null, HttpMessageHandler? handler = null, int timeoutGiay = 20)
     {
         _http = handler == null ? new HttpClient() : new HttpClient(handler);
         _http.BaseAddress = new Uri(NormalizeServer(server) + "/");
-        _http.Timeout = TimeSpan.FromSeconds(20);
+        _http.Timeout = TimeSpan.FromSeconds(timeoutGiay);
         _http.DefaultRequestHeaders.TryAddWithoutValidation("X-AiiGrow-Ban", TuCapNhat.BanHienTai().ToString(3));   // máy chủ ghi bản đang chạy
         if (!string.IsNullOrEmpty(token))
             _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -173,6 +173,14 @@ public sealed class ApiClient : IDisposable
         }
         else if (method == HttpMethod.Post) body = new { };
         return SendAsync(method, path, body, ct);
+    }
+
+    /// <summary>P1 (07/11): giữ một yêu cầu «chờ thay đổi» tới khi Ba Mẹ đổi gì (≤ ~25 giây). `ver` null ⇒ lấy mốc ngay. Dùng ApiClient có `timeoutGiay` ≥ 40.
+    /// Máy chủ cũ (404) ⇒ ApiException 404 — nơi gọi lùi lâu.</summary>
+    public async Task<KetQuaCho> ChoThayDoiAsync(long? ver, CancellationToken ct = default)
+    {
+        var raw = await SendAsync(HttpMethod.Get, "api/device/cho-thay-doi" + (ver is long v ? "?ver=" + v : ""), null, ct);
+        return ChoThayDoi.Doc(raw) ?? throw new ApiException("Máy chủ trả «chờ thay đổi» không đúng định dạng");
     }
 
     /// <summary>Thăm dò nhẹ: có tới được máy chủ không (TCP/TLS + một yêu cầu GET gốc, hạn 8 giây; client mang sẵn token như mọi lời gọi khác). Mọi phản hồi HTTP (kể cả 404/401) tính là «tới được»;

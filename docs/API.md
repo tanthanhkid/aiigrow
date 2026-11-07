@@ -632,3 +632,28 @@ chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_co
 ### S4 — giờ dùng ghi theo bé (06/11, L13)
 `usage` có khoá `(device_id, child_id, ngay, muc)` (trước: `(device_id, ngay, muc)` ⇒ hai bé dùng chung máy + cùng app bị gộp phút vào bé ghi trước). Migration chỉ thêm ở cuối `SCHEMA_S3` (đổi khoá, giữ hàng cũ — mỗi hàng đã mang `child_id`).
 Agent gửi TỔNG phút của máy theo app/ngày (không phân bé); máy chủ ghi cho bé đang dùng (X-Phien-Con, chủ máy riêng, hoặc `devices.con_dang_dung`) phần = tổng − phần các bé khác đã ghi trên máy ấy; agent không cần gửi thêm trường. «Ba Mẹ đang dùng máy» ⇒ `usage` bị bỏ. Quỹ phút, báo cáo Ba Mẹ, «Hôm nay» đều đã lọc `child_id`.
+
+## P1 (07/11) — «Ba Mẹ bấm ⇒ máy Con áp ≤5 giây»: long-poll chờ thay đổi (`server/lib/cho-thay-doi.ts`, test `cho-thay-doi.test.ts`)
+Thanh 07/11: *«khi chặn có effect liền ở máy trẻ em ko, phải có»*. Trước đây máy Con chỉ hỏi máy chủ theo vòng; giờ thêm đường «gõ cửa»:
+
+- `GET /api/device/cho-thay-doi?ver=<số đã thấy>` (Bearer = token thiết bị, mọi nền) → `{phienBanThayDoi, doi, quaTai?}`. Máy chủ giữ yêu cầu tối đa ~25 giây và trả NGAY khi số phiên bản của gia đình ≠ `ver` (`doi: true`).
+  Thiếu `ver` ⇒ trả ngay số hiện tại (`doi:false`) để agent lấy mốc. Quá `AIIGROW_CHO_TOI_DA_YC` (400) yêu cầu đang giữ ⇒ `{quaTai:true}` ngay, agent lùi 5 giây.
+- Số phiên bản = `families.phien_ban_doi` (cột mới, tự thêm khi khởi động). MỌI lời gọi ghi (POST) của Ba Mẹ ở `/api/m/*` (trừ `thong-bao/*`) tăng nó ở cuối `xuLyM` — khoá máy, chế độ chặn, chặn app/web, duyệt / từ chối xin, giờ, sao, quà, PIN… không cần liệt kê từng chỗ.
+- Trong tiến trình: `EventEmitter` đánh thức tức thì. Khác tiến trình (nhiều instance / khởi động lại): mỗi `AIIGROW_CHO_KIEM_DB_MS` (4 giây) đọc lại số bằng một câu SELECT theo khoá chính — KHÔNG giữ kết nối DB trong lúc chờ.
+- `dong-bo` và `nhip` trả thêm `phienBanThayDoi` (đọc TRƯỚC khi dựng chính sách ⇒ đổi sau đó thì số khác, không lọt).
+- nginx mẫu (`scripts/vps/aiigrow-proxy.conf`) đã có `proxy_read_timeout 120s` ≥ 25 giây + `proxy_http_version 1.1` + `Connection ""` ⇒ không cần sửa VPS.
+- Chỉ là «gõ cửa»: nội dung chính sách vẫn do `dong-bo` / `nhip` trả. Mất kết nối / máy chủ cũ (404) ⇒ agent lùi dần 2→30 giây (404: 5 phút) và vòng theo `nextCheckSec` / 60 giây vẫn là dự phòng.
+
+Agent: Windows `ChoThayDoiWorker` (⇒ `AgentRuntime.RequestSyncSoon`) · Mac `BoMay.vongChoThayDoi` (Task riêng của daemon) · Android `DichVuNhip.vongChoThayDoi` (luồng riêng ⇒ `vong(true)`) · iOS `MoHinhApp.batDauCho` (chỉ khi app đang mở).
+
+| Từ lúc Ba Mẹ bấm tới lúc máy áp | Trước P1 | Sau P1 (có mạng) |
+|---|---|---|
+| Windows | 30 giây khi có phiên / đang mở; **120 giây** khi nhàn rỗi (`nhipDongBo`) | ≈ 1–2 giây (long-poll trả <1 giây + đồng bộ + áp cùng vòng) |
+| Mac | như Windows (30 / 120 giây, vòng đồng bộ ngủ 1 giây) | ≈ 1–2 giây |
+| Android | tới 60 giây (`DichVuNhip` gọi nhịp mỗi 60 giây; trung bình ~30) | ≈ 1–2 giây |
+| iOS, app đang mở | chỉ khi mở app / `scenePhase` active (không có vòng) | ≈ 1–2 giây khi app còn mở |
+| iOS, app ở nền | BGAppRefresh ≥15 phút, iOS quyết (thường vài chục phút – vài giờ) | **không đổi** — giới hạn nền tảng |
+
+**Giới hạn iOS**: app ở nền không giữ kết nối được ⇒ chưa đạt ≤5 giây khi app tắt / ở nền. Bước sau (chưa làm, cần khoá APNs của Apple Developer — KHÔNG tự tạo): máy chủ gửi *silent push* (`content-available`) khi `baoThayDoi` ⇒ iOS đánh thức app chạy `dongBoNgay(nen: true)` (Apple không bảo đảm thời gian, thường vài giây – vài chục giây, bị giới hạn lượt/giờ).
+
+Thay đổi theo THỜI GIAN (hết giờ chơi, tới giờ ngủ, hết hạn mở) không phải việc Ba Mẹ bấm — agent tự tính từ chính sách đã nhớ; không cần gõ cửa.

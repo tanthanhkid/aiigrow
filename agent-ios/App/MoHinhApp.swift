@@ -186,6 +186,37 @@ final class MoHinhApp: ObservableObject {
     if !matMang && !dangKhoaChoTen && !baMeDangDung { await taiNgay(); await guiBaiCho() }
   }
 
+  // MARK: chờ thay đổi (khi app đang mở)
+  private var viecCho: Task<Void, Never>?
+  /// P1 (07/11): app đang mở ⇒ giữ long-poll tới máy chủ; Ba Mẹ đổi gì ⇒ đồng bộ + áp khiên ngay (≤5 giây). Ở nền iOS không cho giữ kết nối — xem ConCore/ChoThayDoi.swift.
+  func batDauCho() {
+    guard demo == nil, viecCho == nil else { return }
+    viecCho = Task { [weak self] in await self?.vongCho() }
+  }
+  func dungCho() { viecCho?.cancel(); viecCho = nil }
+
+  private func vongCho() async {
+    var ver: Int?, loi = 0
+    while !Task.isCancelled {
+      var nghi = 0.0
+      if KhoBiMat.doc() == nil { ver = nil; nghi = 5 }
+      else {
+        let t0 = Date()
+        do {
+          let kq = try await api.choThayDoi(ver: ver)
+          loi = 0
+          if ver != nil && kq.doi { await dongBoNgay() }
+          ver = kq.phienBan
+          nghi = ChoThayDoi.choLai(loiLienTiep: 0, kq: kq, daCho: Date().timeIntervalSince(t0))
+        } catch let e as LoiApi {
+          if case .mayChu(_, _, 404) = e { loi = 0; nghi = 300 } else { loi += 1; nghi = ChoThayDoi.choLai(loiLienTiep: loi, kq: nil, daCho: 0) }
+        } catch { loi += 1; nghi = ChoThayDoi.choLai(loiLienTiep: loi, kq: nil, daCho: 0) }
+      }
+      if nghi > 0 { try? await Task.sleep(nanoseconds: UInt64(nghi * 1_000_000_000)) }
+    }
+    viecCho = nil
+  }
+
   /// Dữ liệu hằng ngày của bé đang dùng máy.
   func taiNgay() async {
     guard demo == nil else { return }

@@ -49,6 +49,7 @@ import { xuLyMSao } from "./api-sao.ts";
 import { xuLyMS3 } from "./api-s3.ts";
 import { canDeY, mayMatMang } from "./can-de-y.ts";
 import { baMeDen } from "./pin-be.ts";
+import { baoThayDoi } from "./cho-thay-doi.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -75,7 +76,14 @@ async function chiTietCon(bm: BaMe, id: string) {
   };
 }
 
+/** Mọi lời gọi ghi (POST) của Ba Mẹ ⇒ tăng phiên bản gia đình + đánh thức máy Con đang chờ (lib/cho-thay-doi.ts): máy áp trong ≤5 giây. */
 export async function xuLyM(req: Request, p: string[]): Promise<Response> {
+  const ngu: { fam?: string } = {};
+  try { return await xuLyMTrong(req, p, ngu); }
+  finally { if (ngu.fam) await baoThayDoi(ngu.fam); }   // bắn sau khi việc ghi đã xong (cả khi lỗi giữa chừng: báo thừa vô hại)
+}
+
+async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Promise<Response> {
   try {
     const get = req.method === "GET", post = req.method === "POST";
     const d = p.join("/");
@@ -112,6 +120,7 @@ export async function xuLyM(req: Request, p: string[]): Promise<Response> {
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
       throw new LoiNghiepVu("chi_xem", "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ nhé", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
+    if (post && p[0] !== "thong-bao") ngu.fam = fam;
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
     { const r = await xuLyMS3(bm, req, p, b); if (r) return r; }            // 06/11: PIN theo bé, quà bảng giá, chuông
     { const r = await xuLyMSao(bm, req, p, b); if (r) return r; }           // 05/11: sao, quỹ giờ chơi, bộ nhiệm vụ, làm lại, trao quà

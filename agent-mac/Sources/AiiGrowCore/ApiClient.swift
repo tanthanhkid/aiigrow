@@ -63,6 +63,8 @@ public protocol MayChuApi: AnyObject {
   /// Máy dùng chung — PIN theo bé (L13, docs/API.md «S3»): `GET ho-so` · `POST dang-nhap-be {con, pin}` · `POST quen-pin {con}` ·
   /// `POST ba-me-mo {ma}` · `POST dang-xuat` · `POST khoa-lai`. Chỉ các đường trong `DuongMayChung`.
   func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data
+  /// P1 (07/11): long-poll `GET cho-thay-doi?ver=N` — máy chủ giữ ≤ ~25 giây, trả ngay khi Ba Mẹ đổi gì. `ver` nil ⇒ lấy mốc ngay.
+  func choThayDoi(ver: Int?) async throws -> KetQuaCho
 }
 
 /// Đường máy dùng chung daemon được gọi (không cho đi đường tuỳ ý).
@@ -90,6 +92,7 @@ public struct KetQuaMoChoi: Equatable, Sendable {
 
 public extension MayChuApi {
   func datPhien(mayChu: String, token: String) {}
+  func choThayDoi(ver: Int?) async throws -> KetQuaCho { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa có chờ thay đổi") }
   func baoXongLenh(id: String) async throws {}
   func banMoi() async throws -> BanMoi? { nil }
   func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp { throw LoiApi(maHttp: 404, ma: "not_found", chu: "Máy chủ chưa có danh sách app") }
@@ -120,6 +123,8 @@ public final class ApiClient: MayChuApi {
   private var _mayChu: String
   private var _token: String?
   private let session: URLSession
+  /// Phiên riêng cho long-poll (hạn đọc 40 giây > thời gian máy chủ giữ ~25 giây); test truyền `session` thì dùng chung.
+  private let phienCho: URLSession
   public var mayChu: String { khoaPhien.lock(); defer { khoaPhien.unlock() }; return _mayChu }
   private var token: String? { khoaPhien.lock(); defer { khoaPhien.unlock() }; return _token }
 
@@ -132,11 +137,15 @@ public final class ApiClient: MayChuApi {
   public init(mayChu: String = ApiClient.mayChuMacDinh, token: String? = nil, session: URLSession? = nil) {
     self._mayChu = ApiClient.chuanMayChu(mayChu)
     self._token = (token?.isEmpty ?? true) ? nil : token
-    if let session { self.session = session } else {
+    if let session { self.session = session; self.phienCho = session } else {
       let c = URLSessionConfiguration.ephemeral
       c.timeoutIntervalForRequest = 20
       c.timeoutIntervalForResource = 30
       self.session = URLSession(configuration: c)
+      let d = URLSessionConfiguration.ephemeral
+      d.timeoutIntervalForRequest = 40
+      d.timeoutIntervalForResource = 45
+      self.phienCho = URLSession(configuration: d)
     }
   }
 
@@ -153,6 +162,12 @@ public final class ApiClient: MayChuApi {
   }
 
   public func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws { _ = try await gui("POST", "api/device/" + duong, than) }
+
+  public func choThayDoi(ver: Int?) async throws -> KetQuaCho {
+    let d = try await guiTho("GET", ChoThayDoi.duong(ver: ver), nil, phien: phienCho)
+    guard let kq = KetQuaCho.doc(d) else { throw LoiApi(chu: "Máy chủ trả «chờ thay đổi» không đúng định dạng") }
+    return kq
+  }
 
   public func hoSoDns() async throws -> Data { try await gui("GET", "api/device/ho-so-dns", nil) }
 
@@ -298,7 +313,7 @@ public final class ApiClient: MayChuApi {
     try await guiTho(method, path, try body.map { try JSONSerialization.data(withJSONObject: $0) })
   }
 
-  private func guiTho(_ method: String, _ path: String, _ body: Data?) async throws -> Data {
+  private func guiTho(_ method: String, _ path: String, _ body: Data?, phien: URLSession? = nil) async throws -> Data {
     let mayChu = self.mayChu, token = self.token
     guard let url = URL(string: mayChu + "/" + path) else { throw LoiApi(chu: "Địa chỉ máy chủ sai") }
     var req = URLRequest(url: url)
@@ -311,7 +326,7 @@ public final class ApiClient: MayChuApi {
       req.httpBody = body
     }
     let data: Data, resp: URLResponse
-    do { (data, resp) = try await session.data(for: req) } catch {
+    do { (data, resp) = try await (phien ?? session).data(for: req) } catch {
       throw LoiApi(chu: "Không kết nối được máy chủ: \(error.localizedDescription)")
     }
     let ma = (resp as? HTTPURLResponse)?.statusCode ?? 0

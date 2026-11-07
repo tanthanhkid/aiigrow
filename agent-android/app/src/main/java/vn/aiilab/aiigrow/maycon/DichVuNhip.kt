@@ -19,6 +19,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import vn.aiilab.aiigrow.maycon.logic.Cong
+import vn.aiilab.aiigrow.maycon.logic.KetQuaCho
+import vn.aiilab.aiigrow.maycon.logic.choLaiMs
+import vn.aiilab.aiigrow.maycon.logic.docKetQuaCho
 import vn.aiilab.aiigrow.maycon.logic.MocPhut
 import vn.aiilab.aiigrow.maycon.logic.capNhatMoc
 import vn.aiilab.aiigrow.maycon.logic.truMoc
@@ -50,6 +53,7 @@ import java.time.Instant
  */
 class DichVuNhip : Service() {
     private lateinit var luong: HandlerThread
+    @Volatile private var dangChay = false     // luồng «chờ thay đổi» (P1 07/11)
     private lateinit var h: Handler
     private var lanGoiMayChu = 0L
     private var lanGuiHangDoi = 0L
@@ -82,6 +86,8 @@ class DichVuNhip : Service() {
             addDataScheme("package") },
             ContextCompat.RECEIVER_NOT_EXPORTED)
         h.post(::lap)
+        dangChay = true
+        Thread(::vongChoThayDoi, "aiigrow-cho").apply { isDaemon = true; start() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -91,6 +97,7 @@ class DichVuNhip : Service() {
     }
 
     override fun onDestroy() {
+        dangChay = false
         try { unregisterReceiver(nhanCaiApp) } catch (_: Exception) {}
         dsApp.dung()
         luong.quitSafely()
@@ -101,6 +108,36 @@ class DichVuNhip : Service() {
         try { vong(false) } catch (e: Exception) { NhatKy.canh(TAG, "vòng nhịp lỗi", e) }
         val k = Kho(this)
         h.postDelayed(::lap, if (k.cheDoThu) 3_000 else 5_000)
+    }
+
+    /**
+     * P1 (07/11): «Ba Mẹ bấm ⇒ máy Con áp trong ≤5 giây». Giữ MỘT long-poll liên tục tới /api/device/cho-thay-doi (máy chủ giữ ≤ ~25 giây);
+     * Ba Mẹ đổi gì ⇒ máy chủ trả ngay ⇒ ép vòng nhịp (gọi nhip + áp). Vòng 60 giây trong `vong()` vẫn là dự phòng. Lỗi ⇒ lùi dần 2–30 giây;
+     * máy chủ cũ (404) ⇒ nghỉ 5 phút. Luồng riêng: mạng treo ở đây không chặn việc áp luật.
+     */
+    private fun vongChoThayDoi() {
+        var ver: Long? = null
+        var loi = 0
+        var tokenCu: String? = null
+        while (dangChay) {
+            var cho = 0L
+            try {
+                val k = Kho(this)
+                if (k.cheDoThu || k.token == null) { ver = null; Thread.sleep(5_000); continue }
+                if (k.token != tokenCu) { ver = null; tokenCu = k.token }   // ghép lại ⇒ lấy mốc mới
+                val t0 = System.currentTimeMillis()
+                val r: KetQuaCho = docKetQuaCho(MayChu(k.mayChu, k.token, docMs = 40_000).choThayDoi(ver).toString())
+                    ?: throw java.io.IOException("cho-thay-doi trả sai định dạng")
+                loi = 0
+                if (ver != null && r.doi) { Log.i(TAG, "Ba Mẹ vừa đổi gì đó (v${r.phienBan}) — nhịp ngay"); if (::h.isInitialized) h.post { vong(true) } }
+                ver = r.phienBan
+                cho = choLaiMs(0, r, System.currentTimeMillis() - t0)
+            } catch (e: InterruptedException) { return
+            } catch (e: MayChu.Loi) {
+                if (e.http == 404) { cho = 300_000; loi = 0 } else { loi++; cho = choLaiMs(loi, null, 0) }
+            } catch (e: Exception) { loi++; cho = choLaiMs(loi, null, 0) }
+            if (cho > 0) try { Thread.sleep(cho) } catch (_: InterruptedException) { return }
+        }
     }
 
     private fun batTienCanh() {

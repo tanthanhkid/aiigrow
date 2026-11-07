@@ -180,6 +180,35 @@ public actor BoMay {
     if let s = syncSom { syncLuc = min(syncLuc, s); syncSom = nil }
   }
 
+  /// P1 (07/11): một lượt «chờ thay đổi» (Task riêng của daemon, vòng liên tục). Giữ long-poll ≤ ~25 giây; Ba Mẹ đổi gì ⇒ đồng bộ NGAY (≤1 giây — vòng đồng bộ ngủ 1 giây).
+  /// Trả số giây daemon nên nghỉ trước lượt kế (0 = vòng lại ngay; lỗi lùi dần 2–30; máy chủ cũ 404 ⇒ 300). Vòng nextCheckSec vẫn là dự phòng.
+  public func vongChoThayDoi() async -> Double {
+    guard cauHinh.daGhep, !dangGo else { verCho = nil; return 5 }
+    let the = theHeGhep
+    let t0 = donDieu()
+    do {
+      let kq = try await api.choThayDoi(ver: verCho)
+      guard the == theHeGhep else { verCho = nil; return 0 }
+      loiCho = 0
+      if verCho != nil && kq.doi { heThong.ghiLog("Ba Mẹ vừa đổi gì đó (phiên bản \(kq.phienBan)) — đồng bộ ngay."); dongBoNgay() }
+      verCho = kq.phienBan
+      return ChoThayDoi.choLai(loiLienTiep: 0, kq: kq, daCho: donDieu() - t0)
+    } catch let e as LoiApi where e.maHttp == 404 {
+      loiCho = 0; return 300
+    } catch {
+      loiCho += 1
+      return ChoThayDoi.choLai(loiLienTiep: loiCho, kq: nil, daCho: 0)
+    }
+  }
+  private var verCho: Int?
+  private var loiCho = 0
+
+  /// Đồng bộ ngay lượt kế (cả khi một lượt đang dở — lượt đó sẽ ghi đè syncLuc nên đặt cả syncSom).
+  private func dongBoNgay() {
+    syncLuc = min(syncLuc, donDieu())
+    if dangDongBo { syncSom = min(syncSom ?? .infinity, donDieu()) }
+  }
+
   /// Vòng ÁP (Task riêng, 5 giây một lần): chỉ dùng Policy đã cache, KHÔNG BAO GIỜ await mạng — đóng app, hosts/plist, trừ giờ, đếm ngược khoá.
   @discardableResult
   public func vongAp() -> TrangThai { apChinhSach() }

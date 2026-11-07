@@ -22,6 +22,7 @@
 		3BE0FA3E6E078E15673A1E80 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		3E228456488DEFC7D8638772 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		3FFC414646CF7565447798BC /* ManPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F577865D8885DE6017105C9 /* ManPin.swift */; };
+		400733D3F58185B7D23E5EDE /* ChoThayDoi.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDE22D8F1C424142ADD2C41F /* ChoThayDoi.swift */; };
 		433DB63728ECDC25F05BCBD1 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		4856764C0F76CA0AB1DC293C /* ManNgay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7EE9AD685CC98CF518FD6EC /* ManNgay.swift */; };
 		4C2AA5B5FA3E431A90E7676B /* LienKet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E65912DFAF91EA72A33274A /* LienKet.swift */; };
@@ -193,6 +194,7 @@
 		CAF89B0B57449BB5298F33DB /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
 		CCA88494FC68D6427FFE6491 /* ConCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = ConCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1971798E0318EECB517180E /* ConCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ConCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		DDE22D8F1C424142ADD2C41F /* ChoThayDoi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChoThayDoi.swift; sourceTree = "<group>"; };
 		DEC2405D2D9B36CD398214ED /* Monitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Monitor.entitlements; sourceTree = "<group>"; };
 		E65F7FA55C48519DB255B735 /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		EDF2C276C422EBE1C458A291 /* ShieldActionExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldActionExtension.swift; sourceTree = "<group>"; };
@@ -260,6 +262,7 @@
 			isa = PBXGroup;
 			children = (
 				CAF89B0B57449BB5298F33DB /* ApiClient.swift */,
+				DDE22D8F1C424142ADD2C41F /* ChoThayDoi.swift */,
 				C50779F36DEB2CEE60A100CA /* DongBo.swift */,
 				9E960A58199D950378153D24 /* HocVien.swift */,
 				C1BD5472CA0F11099C79606C /* KeHoach.swift */,
@@ -578,6 +581,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				988DE4DFECB0AB318CC35550 /* ApiClient.swift in Sources */,
+				400733D3F58185B7D23E5EDE /* ChoThayDoi.swift in Sources */,
 				9704E1739ABF09F84077DBB5 /* DongBo.swift in Sources */,
 				809B935FBAFC24A8237D9200 /* HocVien.swift in Sources */,
 				6FB26C633F922B41C602F5B6 /* KeHoach.swift in Sources */,

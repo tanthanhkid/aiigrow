@@ -760,3 +760,31 @@ final class PinBeRa2Tests: XCTestCase {
     XCTAssertEqual(kho.doc(PhienMay.self, Khoa.phienMay)?.loai, .chua)
   }
 }
+
+// MARK: P1 (07/11) chờ thay đổi
+final class ChoThayDoiTests: XCTestCase {
+  func testDocVaChoLai() {
+    XCTAssertEqual(KetQuaCho.doc(Data(#"{"phienBanThayDoi":12,"doi":true}"#.utf8)), KetQuaCho(phienBan: 12, doi: true))
+    XCTAssertNil(KetQuaCho.doc(Data(#"{"doi":true}"#.utf8)))
+    XCTAssertEqual([1, 2, 3, 4, 5, 9].map { ChoThayDoi.choLai(loiLienTiep: $0, kq: nil, daCho: 0) }, [2, 4, 8, 16, 30, 30])
+    XCTAssertEqual(ChoThayDoi.choLai(loiLienTiep: 0, kq: KetQuaCho(phienBan: 2, doi: true), daCho: 0.1), 0)
+    XCTAssertEqual(ChoThayDoi.choLai(loiLienTiep: 0, kq: KetQuaCho(phienBan: 2, doi: false), daCho: 25), 0)
+    XCTAssertEqual(ChoThayDoi.choLai(loiLienTiep: 0, kq: KetQuaCho(phienBan: 2, doi: false), daCho: 0.3), 5)
+    XCTAssertEqual(ChoThayDoi.choLai(loiLienTiep: 0, kq: KetQuaCho(phienBan: 2, doi: false, quaTai: true), daCho: 30), 5)
+  }
+
+  func testClientGoiDungDuongVaVer() async throws {
+    let vc = VanChuyenGia()
+    vc.tra["GET /api/device/cho-thay-doi"] = (Data(#"{"phienBanThayDoi":7,"doi":true}"#.utf8), 200)
+    let api = ApiClient(goc: URL(string: "https://may.chu")!, token: "tk", vanChuyen: vc)
+    let kq = try await api.choThayDoi(ver: 6)
+    XCTAssertEqual(kq, KetQuaCho(phienBan: 7, doi: true))
+    XCTAssertEqual(vc.da.last?.url?.query, "ver=6")
+    XCTAssertEqual(vc.da.last?.timeoutInterval, 40)
+    XCTAssertEqual(vc.da.last?.value(forHTTPHeaderField: "Authorization"), "Bearer tk")
+    _ = try await api.choThayDoi(ver: nil)
+    XCTAssertNil(vc.da.last?.url?.query)
+    vc.tra["GET /api/device/cho-thay-doi"] = (Data(#"{"error":"khong_co_duong","message":"x"}"#.utf8), 404)
+    do { _ = try await api.choThayDoi(ver: 1); XCTFail("phải ném 404") } catch let e as LoiApi { XCTAssertEqual(e, LoiApi.mayChu(ma: "khong_co_duong", cau: "x", http: 404)) }
+  }
+}
