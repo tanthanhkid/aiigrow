@@ -49,6 +49,7 @@ final class AppConModel: ObservableObject {
       }
     case .loi(let ma, _) where ma == "chua_chon_con":
       viQua = nil; viQuaDaLuu = false; return
+    case .loi(let ma, _) where ["hoc_vien_loi", "ipc"].contains(ma): break      // mất mạng / daemon chưa trả lời ⇒ bản lưu
     default: break
     }
     if viQua == nil, let khoa, let json = kho.string(forKey: khoa), let v = HvViQua.doc(Data(json.utf8)) { viQua = v }
@@ -108,13 +109,13 @@ final class AppConModel: ObservableObject {
   }
 
   private func taiMotLuot(dsChoi: [String]) async {
-    await taiViQua()
     let (d, loi) = await hoi("GET", "hoc-vien/tong-quan")
     guard let d, let t = HvTongQuan.doc(d) else {
       loiTai = loi ?? "Máy chủ trả dữ liệu lạ. Con thử lại nhé."
       return
     }
     tq = t; loiTai = nil
+    await taiViQua()
     if let c = await hoi("GET", "hoc-vien/cua-hang").0.flatMap(HvCuaHang.doc) { ch = c }
     if let x = await hoi("GET", "hoc-vien/tin").0.flatMap(HvTinDs.doc) { tin = x }
     await lamMoiPhutChoi(dsChoi: dsChoi)

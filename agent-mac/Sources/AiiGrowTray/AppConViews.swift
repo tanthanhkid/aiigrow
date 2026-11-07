@@ -128,6 +128,7 @@ struct AppConView: View {
     }
     .sheet(isPresented: $hoiDoiBe) { doiBeSheet }
     .onAppear { if moViQuaLucDau { app.muc = .phanQua; quaCuaCon = true } }
+    .onChange(of: app.muc) { _ in if app.muc != .phanQua { quaCuaCon = false } }
   }
 
   private var tieuDe: String {
@@ -479,7 +480,7 @@ struct AppConView: View {
               }
             }
             .contentShape(Rectangle())
-            .onTapGesture { if q.choTraoTu == nil && q.conHopLe { quaHoi = q } }
+            .onTapGesture { if HocVienView.doiDuoc(q) { quaHoi = q } }
           }
           .vaoLanLuot(min(i + 1, 6))
         }

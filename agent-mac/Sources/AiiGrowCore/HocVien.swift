@@ -185,8 +185,9 @@ public struct HvQua: Equatable, Identifiable {
   public var doiDuoc: Bool?
   public init() {}
   init(_ o: [String: Any]) {
-    conHopLe = o["conHopLe"] == nil ? true : JsonMem.dung(o["conHopLe"]); lyDoKhong = o["lyDoKhong"] as? String
-    doiDuoc = o["doiDuoc"] == nil ? nil : JsonMem.dung(o["doiDuoc"])
+    // JSON null (NSNull) = chưa biết: conHopLe ⇒ true, doiDuoc ⇒ nil (lấy `du`)
+    conHopLe = (o["conHopLe"] is NSNull || o["conHopLe"] == nil) ? true : JsonMem.dung(o["conHopLe"]); lyDoKhong = o["lyDoKhong"] as? String
+    doiDuoc = (o["doiDuoc"] is NSNull || o["doiDuoc"] == nil) ? nil : JsonMem.dung(o["doiDuoc"])
     id = JsonMem.chuoi(o["id"]) ?? ""; ten = o["ten"] as? String ?? ""; loai = o["loai"] as? String ?? "qua"
     diem = JsonMem.so(o["sao"]) ?? JsonMem.so(o["diem"]) ?? 0; du = JsonMem.dung(o["du"]); conThieu = JsonMem.so(o["conThieu"]) ?? 0; chiCuoiTuan = JsonMem.dung(o["chiCuoiTuan"])
     moTa = o["moTa"] as? String ?? ""; hinh = o["hinh"] as? String ?? ""
@@ -434,12 +435,16 @@ public enum HocVienView {
   }
 
   /// «Còn 49 ngày» / «Hết hạn hôm nay» / «Đã hết hạn» cho voucher; nil = không rõ hạn.
-  public static func hanVoucher(_ v: HvVoucher) -> String? {
+  /// Tính theo `hetHan` và giờ hiện tại (bản lưu lúc mất mạng vẫn đúng); không có `hetHan` thì dùng `conNgay` của máy chủ.
+  public static func hanVoucher(_ v: HvVoucher, bayGio: Date = Date()) -> String? {
     if v.trangThai == "da_dung" { return "Đã dùng" }
-    if v.trangThai == "het_han" { return "Đã hết hạn" }
-    guard let n = v.conNgay else { return nil }
+    if v.trangThai == "het_han" || voucherHetHan(v, bayGio: bayGio) { return "Đã hết hạn" }
+    guard let n = v.hetHan.map({ Int((($0.timeIntervalSince(bayGio)) / 86_400).rounded(.up)) }) ?? v.conNgay else { return nil }
     return n <= 0 ? "Hết hạn hôm nay" : "Còn \(n) ngày"
   }
+
+  /// Quá `hetHan` ⇒ không còn dùng được, dù bản lưu từng có `qr`.
+  public static func voucherHetHan(_ v: HvVoucher, bayGio: Date = Date()) -> Bool { v.hetHan.map { $0 <= bayGio } ?? false }
 
   public static func doiThongBao(_ r: HvDoiKq, tenQua: String) -> String {
     switch r.trangThai {

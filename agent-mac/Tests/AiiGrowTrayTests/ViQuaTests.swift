@@ -43,7 +43,7 @@ final class ViQuaTests: XCTestCase {
     XCTAssertFalse(HocVienView.doiDuoc(q[0])); XCTAssertEqual(HocVienView.lyDoKhongDoi(q[0]), "Chỉ đổi vào cuối tuần")
     XCTAssertEqual(HocVienView.lyDoKhongDoi(q[1]), "Tháng này con đã đổi đủ lượt")
     XCTAssertTrue(HocVienView.doiDuoc(q[2])); XCTAssertNil(HocVienView.lyDoKhongDoi(q[2]))
-    XCTAssertEqual(ManMac.dongQua(q[0]), "Chỉ cuối tuần"); XCTAssertEqual(ManMac.dongQua(q[1]), "Tháng này đã đổi đủ lượt")
+    XCTAssertEqual(ManMac.dongQua(q[0]), "Chỉ cuối tuần"); XCTAssertEqual(ManMac.dongQua(q[1]), "Tháng này con đã đổi đủ lượt")
     // cửa hàng cũ không có doiDuoc ⇒ theo đủ sao
     var c = HvQua(); c.du = true; XCTAssertTrue(HocVienView.doiDuoc(c)); c.du = false; XCTAssertFalse(HocVienView.doiDuoc(c))
     c.du = true; c.choTraoTu = Date(); XCTAssertFalse(HocVienView.doiDuoc(c), "đã đổi, chờ trao")
@@ -54,6 +54,15 @@ final class ViQuaTests: XCTestCase {
     XCTAssertEqual(HocVienView.hanVoucher(v), "Còn 49 ngày")
     v.conNgay = 0; XCTAssertEqual(HocVienView.hanVoucher(v), "Hết hạn hôm nay")
     v.trangThai = "het_han"; XCTAssertEqual(HocVienView.hanVoucher(v), "Đã hết hạn")
+    // bản lưu cũ: tính theo hetHan, không theo conNgay cũ
+    let now = Date()
+    var c = HvVoucher(); c.trangThai = "da_phat_hanh"; c.conNgay = 49; c.hetHan = now.addingTimeInterval(86_400 * 3 - 60)
+    XCTAssertEqual(HocVienView.hanVoucher(c, bayGio: now), "Còn 3 ngày")
+    c.hetHan = now.addingTimeInterval(-10)
+    XCTAssertEqual(HocVienView.hanVoucher(c, bayGio: now), "Đã hết hạn"); XCTAssertTrue(HocVienView.voucherHetHan(c, bayGio: now))
+    // null = chưa biết
+    let q = HvViQua.doc(Data(#"{"sao":1,"qua":[{"id":"a","sao":5,"du":true,"conHopLe":null,"doiDuoc":null}]}"#.utf8))?.qua.first
+    XCTAssertEqual(q?.conHopLe, true); XCTAssertNil(q?.doiDuoc); XCTAssertTrue(HocVienView.doiDuoc(q!))
     v.trangThai = "da_dung"; XCTAssertEqual(HocVienView.hanVoucher(v), "Đã dùng")
   }
 

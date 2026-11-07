@@ -8,7 +8,10 @@ import AiiGrowCore
 
 /// Ảnh QR từ chuỗi (CIQRCodeGenerator, sửa lỗi mức M), phóng nguyên điểm ảnh (không mờ) để quét được.
 enum QrAnh {
-  static func tao(_ chuoi: String, canh: CGFloat = 132) -> NSImage? {
+  static func tao(_ chuoi: String, canh: CGFloat = 132) -> NSImage? { sinh(chuoi, canh: canh)?.anh }
+
+  /// (ảnh, số điểm ảnh mỗi mô-đun). Ảnh phóng nguyên số lần nên mô-đun đều; viền lặng chuẩn = 4 mô-đun.
+  static func sinh(_ chuoi: String, canh: CGFloat) -> (anh: NSImage, he: Int)? {
     guard !chuoi.isEmpty else { return nil }
     let f = CIFilter.qrCodeGenerator()
     f.message = Data(chuoi.utf8); f.correctionLevel = "M"
@@ -17,7 +20,7 @@ enum QrAnh {
     let to = out.transformed(by: CGAffineTransform(scaleX: CGFloat(he), y: CGFloat(he)))
     let rep = NSCIImageRep(ciImage: to)
     let img = NSImage(size: rep.size); img.addRepresentation(rep)
-    return img
+    return (img, he)
   }
 }
 
@@ -112,9 +115,10 @@ struct ViQuaView: View {
   private func theVoucher(ten: String, sao: Int?, traoLuc: Date?, _ x: HvVoucher) -> some View {
     TheCon {
       HStack(alignment: .center, spacing: 14) {
-        if let qr = x.qr, let img = QrAnh.tao(qr, canh: 132) {
-          Image(nsImage: img).interpolation(.none).resizable().frame(width: 132, height: 132)
-            .padding(8).background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+        if let qr = x.qr, !HocVienView.voucherHetHan(x), let (img, he) = QrAnh.sinh(qr, canh: 132) {
+          // cỡ hiển thị = đúng cỡ ảnh (mô-đun nguyên điểm ảnh) + viền lặng ≥ 4 mô-đun
+          Image(nsImage: img).interpolation(.none).resizable().frame(width: img.size.width, height: img.size.height)
+            .padding(CGFloat(4 * he)).background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
             .accessibilityLabel("Mã QR của \(ten)")
         } else {
           VienClay(ten: "wrapped_gift", duPhong: "gift.fill", nen: ClayMau.the, co: 44)
@@ -122,9 +126,9 @@ struct ViQuaView: View {
         VStack(alignment: .leading, spacing: 4) {
           Chu(ten.isEmpty ? "Voucher AiiCafe" : ten, co: 16, dam: .bold, dong: 2)
           Chu(ViQuaView.dongVoucher(sao: sao, x), co: 14, mau: ClayMau.chu3, dong: 3)
-          if x.qr != nil, !x.ma.isEmpty { Chu("Mã: " + x.ma, co: 14, dam: .semibold, mau: ClayMau.ngocInk, dong: 1) }
+          if x.qr != nil, !HocVienView.voucherHetHan(x), !x.ma.isEmpty { Chu("Mã: " + x.ma, co: 14, dam: .semibold, mau: ClayMau.ngocInk, dong: 1) }
         }
-        let het = x.trangThai == "het_han" || x.trangThai == "da_dung"
+        let het = x.trangThai == "het_han" || x.trangThai == "da_dung" || HocVienView.voucherHetHan(x)
         nhan(HocVienView.hanVoucher(x) ?? "Đã nhận", chu: het ? ClayMau.canh : ClayMau.ngocInk, nen: het ? ClayMau.canhSoft : ClayMau.ngocSoft)
       }
     }
