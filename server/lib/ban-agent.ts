@@ -12,27 +12,29 @@ import type { May } from "./gia-dinh.ts";
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT = 15;
 
+// 0.2.14 (07/11, lô 2: Win UI mượt, long-poll áp chặn ≤5s, PIN theo bé): exe từ CI agent-win run 42336098449 (job build goc, c8b8d87), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.14.
 // 0.2.13 (05/11, khớp thiết kế đã chốt 05/11: bộ cài mới, màn chặn/khoá, app Con, quỹ phút tại máy, 2 chế độ chặn — PR #180 #184 #187 #188): exe từ CI
 // agent-win run 41965898883 (job build goc, PR #190 head 3a43ca0 = tag phathanh-0511-src, trên main 87be9d6), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.13.
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.2.13",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.13.exe",
-  sha256: "553ecae9c34ae88cdef1599775954724180c5dba0c5b6ef747db24f935dd5fb7",
+  version: "0.2.14",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.14.exe",
+  sha256: "a58f45e9f7ad93a06cb5f6afe0b8da4dea177a49903c955649481ddf94d1ef83",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + theo chuKyKiemPhut từ 0.1.6, bản cũ hơn mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
+// 0.1.10 (07/11, ví quà /vi-qua): build-pkg.sh từ c8b8d87, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.10.
 // 0.1.8 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN — PR #185): build-pkg.sh trên Mac của Thanh từ commit 3a43ca0 (tag phathanh-0511-src, PR #190, trên main 87be9d6),
 // notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.8. (0.1.7: commit 562fabc, PR #174 + #176.)
 export const BAN_AGENT_MAC = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.1.8",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.8.pkg",
-  sha256: "867acff999709d1732cb291768d807b9a9f2c8d53d23fab81978a927e27bf87a",
+  version: "0.1.10",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.10.pkg",
+  sha256: "00f7b67e8589363bc96083e33bae8e870c8d3bcb0751b5585c8604dadc1b8d0b",
 } as const;
 
 /** Bản app Con Android (agent-android, vn.aiilab.aiigrow.con, APK ký khoá phát hành aiigrow-con — chứng chỉ SHA-256 ED:65:…:C5:93).
@@ -42,13 +44,14 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+// 0.2.5 (07/11, bản Dịu + PIN theo bé): assembleRelease khoá aiigrow-con từ c8b8d87; sha256 đo trên tệp tải về từ Release con-android-0.2.5.
 // 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (tag phathanh-0511-src, PR #190);
 // sha256 đo trên tệp tải về từ Release con-android-0.2.4. (0.2.3: commit 68d44f6, PR #128.)
 export const BAN_CON_ANDROID = {
-  version: "0.2.4",
-  versionCode: 6,
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.2.4.apk",
-  sha256: "d596099495e2b511c191ee85519c0accb2cfca85df02ffc73ae381320de5fdf8",
+  version: "0.2.5",
+  versionCode: 7,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.2.5.apk",
+  sha256: "0cd4fa6acb6e111627f5c34b4f0c15a5940503278dad9a86ecad889e306386ee",
 } as const;
 
 /** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
