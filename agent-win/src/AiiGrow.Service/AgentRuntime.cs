@@ -95,6 +95,7 @@ public sealed class AgentRuntime
             // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
             if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(ApiClient.LayWindows(Config?.LastPolicyJson ?? ""), out var p) && p != null)
             {
+                p.CheDo = DangNhapView.CheDoMayChung(p.CheDo, Config?.LastPolicyJson);
                 _policy = p;
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
             }
@@ -213,6 +214,8 @@ public sealed class AgentRuntime
 
     public void SetPolicy(Policy p, string raw)
     {
+        // 06/11 (L13): «giam-sat» của máy chung chưa có bé ⇒ vẫn chặn (màn chọn tên); chỉ lệnh gỡ mới thả
+        p.CheDo = DangNhapView.CheDoMayChung(p.CheDo, raw);
         lock (_gate)
         {
             var vtDoiDiem = VanTayDoiDiem(p);
@@ -373,9 +376,9 @@ public sealed class AgentRuntime
     /// <summary>con | ba_me | chua lúc <paramref name="now"/>.</summary>
     public string NguoiDung(DateTimeOffset now) { lock (_gate) return DangNhapCoHieuLuc(now) ? DangNhapView.HienTai(Config?.DangNhap, now) : LoaiNguoiDung.Con; }
 
-    /// <summary>Chọn tên + PIN áp cả khi máy chủ gửi «giam-sat»: máy chủ gửi đúng «giam-sat» khi máy dùng chung CHƯA có bé (lenh-may.ts › cheDoGuiMay) —
-    /// đó chính là lúc cần màn chọn tên (BuildState giữ màn khoá chọn tên cả ở giám sát). Chỉ máy mồ côi / đang gỡ mới bỏ hẳn (coi như bé đang dùng). Gọi trong khoá.</summary>
-    private bool DangNhapCoHieuLuc(DateTimeOffset now) => !DangGo && !MoCoi.La(Config, now);
+    /// <summary>Chọn tên + PIN áp khi máy chặn thật («giam-sat» của máy chung chưa có bé đã đổi thành chặn ở <see cref="DangNhapView.CheDoMayChung"/>).
+    /// Máy mồ côi / đang gỡ / giám sát vì lệnh gỡ ⇒ bỏ hẳn (coi như bé đang dùng, không kẹt màn chọn tên). Gọi trong khoá.</summary>
+    private bool DangNhapCoHieuLuc(DateTimeOffset now) => !DangGo && AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo) && !MoCoi.La(Config, now);
 
     private long _hoSoHoiTick = long.MinValue;
     /// <summary>Lần hỏi ho-so gần nhất (chỉ trong bộ nhớ — không ghi cấu hình mỗi lần hỏi). Đọc / ghi nguyên tử (pipe + vòng đồng bộ).</summary>
@@ -622,8 +625,6 @@ public sealed class AgentRuntime
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
             // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.
             if (!AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo)) AiiGrow.Core.CheDoHieuLuc.ChoKhayGiamSat(s);
-            // máy dùng chung chưa có bé: máy chủ gửi «giam-sat» nhưng màn chọn tên vẫn phải hiện (không có nó thì không bé nào vào được)
-            if (coDn && s.NguoiDung == LoaiNguoiDung.Chua) { s.Locked = true; s.LockReason = LockReasons.ChonTen; s.LockGraceLeftSec = null; }
             return s;
         }
     }

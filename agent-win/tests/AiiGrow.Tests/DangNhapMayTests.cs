@@ -205,6 +205,29 @@ public class DangNhapMayTests
     }
 
     [Fact]
+    public void Giam_sat_cua_may_chung_chua_co_be_van_chan_tru_khi_dang_go()
+    {
+        Assert.Equal(CheDoAgent.Chan, DangNhapView.CheDoMayChung(CheDoAgent.GiamSat, """{"nguoiDung":{"loai":"chua"},"lenh":[]}"""));
+        Assert.Equal(CheDoAgent.GiamSat, DangNhapView.CheDoMayChung(CheDoAgent.GiamSat, """{"nguoiDung":{"loai":"chua"},"lenh":[{"id":"l1","loai":"go"}]}"""));
+        Assert.Equal(CheDoAgent.GiamSat, DangNhapView.CheDoMayChung(CheDoAgent.GiamSat, """{"windows":{}}"""));   // máy chủ cũ
+        Assert.Equal(CheDoAgent.Chan, DangNhapView.CheDoMayChung(CheDoAgent.Chan, null));
+        Assert.Null(DangNhapView.CheDoMayChung(null, "{}"));
+    }
+
+    [Fact]
+    public void Bao_roi_sau_khi_giu_khoa_chi_khi_con_can()
+    {
+        var d = new DangNhapMay();
+        Assert.True(DangNhapView.CanBaoRoiSau(d, Moc));                       // chưa ai
+        DangNhapView.VaoCon(d, "c2", "Bảo Minh", null, Moc);
+        Assert.False(DangNhapView.CanBaoRoiSau(d, Moc));                      // bé vừa vào ⇒ thôi
+        DangNhapView.Roi(d, Moc, baoMayChu: true);
+        Assert.True(DangNhapView.CanBaoRoiSau(d, Moc));
+        DangNhapView.VaoBaMe(d, Moc.AddMinutes(15), offline: true, Moc);
+        Assert.True(DangNhapView.CanBaoRoiSau(d, Moc));                       // Ba Mẹ mở lúc mất mạng: máy chủ chưa biết
+    }
+
+    [Fact]
     public void Doc_nguoiDung_tu_dong_bo()
     {
         var con = NguoiDungMayChu.Doc("""{"windows":{},"nguoiDung":{"loai":"con","con":{"id":"c1","ten":"Bảo Anh","coPin":true}}}""");

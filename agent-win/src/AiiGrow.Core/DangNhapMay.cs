@@ -277,6 +277,27 @@ public static class DangNhapView
         }
     }
 
+    /// <summary>Ngay trước khi gửi dang-xuat báo bù (đã giữ khoá đổi người): còn cần báo không — bé / Ba Mẹ vừa vào trong lúc đồng bộ ⇒ thôi.</summary>
+    public static bool CanBaoRoiSau(DangNhapMay d, DateTimeOffset now)
+        => d.CanBaoRoi || HienTai(d, now) == LoaiNguoiDung.Chua || d.Loai == LoaiNguoiDung.BaMe && d.BaMeOffline;
+
+    /// <summary>Máy chủ gửi «giam-sat» cho máy dùng chung CHƯA có bé (server lenh-may.ts › cheDoGuiMay) — từ 05/11 máy luôn chặn thật, nên khi đó agent
+    /// vẫn chặn (màn chọn tên + danh sách app); chỉ «giam-sat» vì đang có lệnh gỡ (`lenh` loai go) mới thả. → chế độ nên áp.</summary>
+    public static string? CheDoMayChung(string? cheDoMayChu, string? raw)
+    {
+        if (cheDoMayChu != CheDoAgent.GiamSat || string.IsNullOrEmpty(raw)) return cheDoMayChu;
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("nguoiDung", out _)) return cheDoMayChu;   // máy chủ cũ: giữ nguyên
+            if (doc.RootElement.TryGetProperty("lenh", out var l) && l.ValueKind == JsonValueKind.Array
+                && l.EnumerateArray().Any(x => x.ValueKind == JsonValueKind.Object && x.TryGetProperty("loai", out var lo) && lo.ValueKind == JsonValueKind.String && lo.GetString() == "go"))
+                return cheDoMayChu;
+            return CheDoAgent.Chan;
+        }
+        catch (JsonException) { return cheDoMayChu; }
+    }
+
     // ------------------------------------------------------------------ PIN lúc mất mạng
 
     /// <summary>Vân PIN như máy chủ (pin-be.ts › vanPin): HMAC-SHA256(khoá UTF-8 = bí mật, «&lt;id&gt;:&lt;PIN&gt;») hex chữ thường.</summary>

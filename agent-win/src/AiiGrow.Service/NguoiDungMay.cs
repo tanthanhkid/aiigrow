@@ -74,7 +74,7 @@ public sealed class NguoiDungMay
         var be = _rt.DangNhap().HoSo?.Con.FirstOrDefault(c => c.Id == conId);
         using var api = Api();
         if (api == null) return Loi("chua_ghep", "Máy chưa ghép với Ba Mẹ");
-        await _rt.KhoaDoiNguoi.WaitAsync(ct);
+        if (!await _rt.KhoaDoiNguoi.WaitAsync(TimeSpan.FromSeconds(6), ct)) return Loi("ban", "Máy đang bận một chút — con thử lại nhé.");
         try
         {
             var kq = await api.DangNhapBeAsync(conId, pin, ct);
@@ -141,7 +141,7 @@ public sealed class NguoiDungMay
         if (sach.Length != MaOffline.SoChuSo) return Loi("ma_sai", "Mã có 6 số.");
         using var api = Api();
         if (api == null) return Loi("chua_ghep", "Máy chưa ghép với Ba Mẹ");
-        await _rt.KhoaDoiNguoi.WaitAsync(ct);
+        if (!await _rt.KhoaDoiNguoi.WaitAsync(TimeSpan.FromSeconds(6), ct)) return Loi("ban", "Máy đang bận một chút — thử lại nhé.");
         try
         {
             var kq = await api.BaMeMoAsync(sach, ct);
@@ -184,10 +184,14 @@ public sealed class NguoiDungMay
     /// <summary>Trước lượt dong-bo: bé đăng nhập lúc mất mạng ⇒ báo máy chủ (giờ, sao tính đúng bé). PIN Ba Mẹ vừa đổi (máy chủ từ chối) ⇒ bé ra màn chọn tên.</summary>
     public async Task TruocDongBoAsync(ApiClient api, CancellationToken ct)
     {
+        if (_rt.DangNhap().ChoMang == null) return;
+        // khoá đổi người: không chạy song song lượt bé khác vào qua màn khoá (bận ⇒ để lượt đồng bộ sau, không chặn vòng thực thi)
+        if (!await _rt.KhoaDoiNguoi.WaitAsync(0, ct)) return;
         var d = _rt.DangNhap();
-        if (d.ChoMang is not { } cho || d.Loai != LoaiNguoiDung.Con || d.ConId != cho.ConId) return;
+        var cho = d.ChoMang;
         try
         {
+            if (cho == null || d.Loai != LoaiNguoiDung.Con || d.ConId != cho.ConId) return;
             await api.DangNhapBeAsync(cho.ConId, cho.Pin, ct);
             _rt.CapNhatDangNhap(x => { if (x.ChoMang?.ConId != cho.ConId) return false; x.ChoMang = null; return true; });
             _log.LogInformation("Có mạng: đã báo máy chủ bé {ten} đang dùng máy (vào lúc mất mạng)", d.TenCon);
@@ -195,9 +199,10 @@ public sealed class NguoiDungMay
         catch (ApiException e) when (!e.LaLoiDuongTruyen && e.StatusCode is >= 400 and < 500 && !e.LaTokenSai)
         {
             _log.LogWarning("Có mạng: máy chủ không nhận lượt vào của {ten} lúc mất mạng ({m}) — về màn chọn tên", d.TenCon, e.Message);
-            _rt.CapNhatDangNhap(x => { if (x.ChoMang?.ConId != cho.ConId) return false; DangNhapView.Roi(x, DateTimeOffset.Now, baoMayChu: false); return true; });
+            _rt.CapNhatDangNhap(x => { if (x.ChoMang?.ConId != cho!.ConId) return false; DangNhapView.Roi(x, DateTimeOffset.Now, baoMayChu: false); return true; });
         }
         catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Báo bé vào máy lỗi, để lần sau: {m}", e.Message); }
+        finally { _rt.KhoaDoiNguoi.Release(); }
     }
 
     /// <summary>Sau lượt dong-bo thành công: áp «ai đang dùng» của máy chủ, báo đăng xuất còn treo, làm mới danh sách bé (vân PIN cho lúc mất mạng).</summary>
@@ -216,12 +221,12 @@ public sealed class NguoiDungMay
         if (viec == ViecSauDongBo.BaoRoi)
         {
             // giữ khoá đổi người suốt lượt báo: bé / Ba Mẹ vào trong lúc này chờ dang-xuat xong rồi mới tới máy chủ (không bị đá ra)
-            await _rt.KhoaDoiNguoi.WaitAsync(ct);
+            // bận (bé đang vào qua màn khoá) ⇒ để lượt sau (CanBaoRoi / lệch vẫn còn), không chặn vòng thực thi
+            if (!await _rt.KhoaDoiNguoi.WaitAsync(0, ct)) return;
             try
             {
                 // vừa có bé / Ba Mẹ vào lúc lượt đồng bộ đang chạy ⇒ thôi báo
-                var dn = _rt.DangNhap();
-                if (!dn.CanBaoRoi && DangNhapView.HienTai(dn, DateTimeOffset.Now) != LoaiNguoiDung.Chua && !(dn.Loai == LoaiNguoiDung.BaMe && dn.BaMeOffline)) return;
+                if (!DangNhapView.CanBaoRoiSau(_rt.DangNhap(), DateTimeOffset.Now)) return;
                 await api.RoiMayAsync(khoaLai: false, ct);
                 _rt.CapNhatDangNhap(d => { if (!d.CanBaoRoi) return false; d.CanBaoRoi = false; return true; });
                 _log.LogInformation("Đã báo máy chủ: máy về màn chọn tên");

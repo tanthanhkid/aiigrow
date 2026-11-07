@@ -21,7 +21,7 @@ internal static class Accounts
             ? $"New-LocalUser -Name {q} -NoPassword -AccountNeverExpires | Out-Null; " +
               // không để mật khẩu (rỗng) hết hạn sau 42 ngày; lỗi phần này không chặn cài (tài khoản đã tạo — chạy lại sẽ báo trùng tên)
               $"try {{ Set-LocalUser -Name {q} -PasswordNeverExpires $true }} catch {{}}; " +
-              $"& net.exe user {q} /passwordreq:no /logonpasswordchg:no 2>$null | Out-Null; "
+              $"try {{ & net.exe user {q} /passwordreq:no /logonpasswordchg:no 2>&1 | Out-Null }} catch {{}}; "
             : "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
               $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; ";
         var r = Shell.PowerShell(
