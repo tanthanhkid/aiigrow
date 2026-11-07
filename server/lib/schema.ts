@@ -210,7 +210,7 @@ create table if not exists usage (
   muc text not null,
   loai text not null,
   phut int not null,
-  primary key (device_id, ngay, muc)
+  primary key (device_id, child_id, ngay, muc)
 );
 create table if not exists play_sessions (
   id text primary key,
@@ -675,4 +675,13 @@ export const SCHEMA_S3 = [
   `alter table vouchers add column if not exists trao_tay boolean not null default false`,
   // pin_sai.cap_nhat: lần thử cuối — lượt sai cũ hơn 15 phút không cộng dồn (lib/pin-be.ts › giuLuot)
   `alter table pin_sai add column if not exists cap_nhat timestamptz`,
+  // S4 (L13 giờ tính theo bé): usage từng có khoá (device_id, ngay, muc) ⇒ hai bé dùng chung máy + cùng app bị gộp phút vào bé ghi trước.
+  // Đổi khoá thành (device_id, child_id, ngay, muc); hàng cũ đã mang child_id (bé được gán máy / bé ghi trước) nên giữ nguyên. Chạy lại được.
+  `do $$ begin
+     lock table usage in access exclusive mode;
+     if not exists (select 1 from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+                    where c.conrelid = 'usage'::regclass and c.contype = 'p' and a.attname = 'child_id') then
+       alter table usage drop constraint if exists usage_pkey, add primary key (device_id, child_id, ngay, muc);
+     end if;
+   end $$`,
 ];

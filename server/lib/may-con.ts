@@ -57,9 +57,13 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       // Mac báo bundle id giữ chữ hoa (com.roblox.RobloxPlayer) mà luật luôn chữ thường (luat-app.ts › chuanMuc) ⇒ hạ chữ thường để «Chưa xếp» khớp luật
       const muc = may.platform === "mac" ? String(u.muc).toLowerCase() : String(u.muc);
       const pl = await phanLoai(may.family_id, con, muc);
+      // Agent gửi TỔNG phút của MÁY theo app trong ngày (không phân bé) ⇒ phần của bé này = tổng − phần các bé khác đã ghi trên máy (L13/S4)
+      const tong = Math.max(0, Math.min(1440, Math.round(u.phut)));
+      const khac = Number((await q<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from usage where device_id = $1 and ngay = $2 and muc = $3 and child_id <> $4`,
+        [may.id, ngay, muc.slice(0, 200), con]))[0]?.p ?? 0);
       await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,$5,$6)
-               on conflict (device_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai`,
-        [may.id, con, ngay, muc.slice(0, 200), pl.loai, Math.max(0, Math.min(1440, Math.round(u.phut)))]);
+               on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai`,
+        [may.id, con, ngay, muc.slice(0, 200), pl.loai, Math.max(0, tong - khac)]);
     }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };

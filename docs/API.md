@@ -624,3 +624,6 @@ chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_co
   "voucher": [ { "ten": "AiiCafe 20k", "ma": "AGK3M9X2PQ7R", "qr": "AGK3M9X2PQ7R", "menhGia": 20000, "trangThai": "da_phat_hanh", "hetHan": "2027-01-06T03:05:00.000Z", "conNgay": 60, "dungLuc": null } ],
   "huyHieu": [ { "ma": "khoi_dau", "ten": "Khởi đầu", "moTa": "Nhiệm vụ đầu tiên được Ba Mẹ duyệt", "datLuc": "2026-11-07T03:00:00.000Z" } ] }
 ```
+### S4 — giờ dùng ghi theo bé (06/11, L13)
+`usage` có khoá `(device_id, child_id, ngay, muc)` (trước: `(device_id, ngay, muc)` ⇒ hai bé dùng chung máy + cùng app bị gộp phút vào bé ghi trước). Migration chỉ thêm ở cuối `SCHEMA_S3` (đổi khoá, giữ hàng cũ — mỗi hàng đã mang `child_id`).
+Agent gửi TỔNG phút của máy theo app/ngày (không phân bé); máy chủ ghi cho bé đang dùng (X-Phien-Con, chủ máy riêng, hoặc `devices.con_dang_dung`) phần = tổng − phần các bé khác đã ghi trên máy ấy; agent không cần gửi thêm trường. «Ba Mẹ đang dùng máy» ⇒ `usage` bị bỏ. Quỹ phút, báo cáo Ba Mẹ, «Hôm nay» đều đã lọc `child_id`.
