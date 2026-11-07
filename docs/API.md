@@ -595,3 +595,32 @@ tham số mục 10, 30–365). `GET /api/kid/vi-qua` › `voucher[]`: chỉ phi�
 **Màn Con** `/api/kid/cua-hang` và khay `/api/device/hoc-vien/cua-hang`: voucher hiện lại; mỗi quà thêm `moTa, hinh, menhGia, chiCuoiTuan, toiDaThang, tonKho`;
 gốc thêm `saoGiu`. `POST /api/kid/doi/:id` → `{phieu, trang_thai: "cho_trao", saoGiu, …}` (voucher cũng `cho_trao`); khay `hoc-vien/doi/:id` → `{phieu, trangThai, saoGiu, voucher: null}`.
 Quyền: mọi `POST qua*`, `con/:id/pin` = đổi cài đặt ⇒ chỉ Ba Mẹ; `phieu/:id/trao|huy` Người trông giúp làm được (như S1).
+
+### Ví quà của bé đang đăng nhập trên máy con (V1, 07/11) — `GET /api/device/vi-qua`
+
+Bearer = token máy. Bé xác định như mọi lệnh khác của máy (máy riêng ⇒ chủ máy · header `X-Phien-Con` · không header ⇒ bé đang đăng nhập `devices.con_dang_dung`);
+chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_con`. Chỉ đọc (trừ việc đánh dấu voucher quá hạn thành `het_han`, như `kid/vi-qua`). Xử lý: `lib/vi-qua-may.ts`. Dùng cho màn «Ví quà» / «Quà» (Win, Mac, ĐT).
+Đổi quà vẫn qua `POST hoc-vien/doi/:quaId` (trả `{phieu, trangThai, saoGiu}`); `hoc-vien/vi-qua` / `hoc-vien/cua-hang` cũ giữ nguyên.
+
+| Trường | Ý |
+|---|---|
+| `con` | `{id, ten, avatar}` |
+| `sao`, `saoGiu` | sao đang có (đã trừ phần giữ) · sao đang giữ chờ Ba Mẹ trao |
+| `qua[]` | quà bảng giá ÁP CHO bé, đang bật, còn hàng (xếp theo sao). `du` (đủ sao), `conThieu`, `choTraoTu` (ISO nếu bé đã đổi, đang chờ trao), `dieuKien {chiCuoiTuan, toiDaThang, daDoiThang, tonKho}`, `conHopLe` + `lyDoKhong` (`chi_cuoi_tuan` \| `du_thang` \| null), `doiDuoc` = đủ sao && hợp lệ |
+| `phieuCho[]` | phiếu đang chờ Ba Mẹ trao (sao giữ): `{id, ten, loai, sao, doiLuc}` |
+| `daTrao[]` | quà đã trao (30 gần nhất); quà voucher kèm `voucher` (mã QR = mã phiếu + hạn), quà khác `voucher: null` |
+| `voucher[]` | mọi voucher AiiCafe đã phát: `{ten, ma, qr (chỉ khi còn dùng được), menhGia, trangThai (da_phat_hanh \| da_dung \| het_han), hetHan, conNgay, dungLuc}` |
+| `huyHieu[]` | huy hiệu bé đã đạt: `{ma, ten, moTa, datLuc}` |
+
+```json
+{ "con": { "id": "c1", "ten": "Bảo Anh", "avatar": "rob" }, "sao": 450, "saoGiu": 50,
+  "qua": [ { "id": "q3", "ten": "Đi xem phim", "loai": "dac_quyen", "sao": 300, "hinh": "phim", "moTa": "Chỉ cuối tuần", "menhGia": null, "laVoucher": false,
+             "du": true, "conThieu": 0, "choTraoTu": null,
+             "dieuKien": { "chiCuoiTuan": true, "toiDaThang": null, "daDoiThang": 0, "tonKho": null },
+             "conHopLe": false, "lyDoKhong": "chi_cuoi_tuan", "doiDuoc": false } ],
+  "phieuCho": [ { "id": "p1", "ten": "Chọn món bữa tối", "loai": "dac_quyen", "sao": 50, "doiLuc": "2026-11-07T03:00:00.000Z" } ],
+  "daTrao": [ { "id": "p2", "ten": "AiiCafe 20k", "loai": "voucher", "sao": 200, "traoLuc": "2026-11-07T03:05:00.000Z",
+                "voucher": { "ma": "AGK3M9X2PQ7R", "qr": "AGK3M9X2PQ7R", "menhGia": 20000, "trangThai": "da_phat_hanh", "hetHan": "2027-01-06T03:05:00.000Z", "conNgay": 60 } } ],
+  "voucher": [ { "ten": "AiiCafe 20k", "ma": "AGK3M9X2PQ7R", "qr": "AGK3M9X2PQ7R", "menhGia": 20000, "trangThai": "da_phat_hanh", "hetHan": "2027-01-06T03:05:00.000Z", "conNgay": 60, "dungLuc": null } ],
+  "huyHieu": [ { "ma": "khoi_dau", "ten": "Khởi đầu", "moTa": "Nhiệm vụ đầu tiên được Ba Mẹ duyệt", "datLuc": "2026-11-07T03:00:00.000Z" } ] }
+```
