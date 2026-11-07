@@ -9,10 +9,10 @@ import { useTaiTre, useTre } from "@/lib/ui-tre";
 
 export default function Gio() {
   const { ten } = useTre();
-  const { d, loi, matMang, tai, cu } = useTaiTre("gio", async () => {
-    const [quy, tc] = await Promise.all([kid.goi<QuyCon>("quy"), kid.goi<{ ds: TroChoi[] }>("tro-choi").catch(() => ({ ds: [] as TroChoi[] }))]);
-    return { quy, tc: tc.ds };
-  });
+  // cùng khoá nhớ «quy» với màn Hết giờ ⇒ hai màn không chuyển qua lại theo hai bản nhớ lệch nhau lúc mất mạng
+  const { d: quy, loi, matMang, tai, cu } = useTaiTre("quy", () => kid.goi<QuyCon>("quy"));
+  const tc = useTaiTre("tro-choi", () => kid.goi<{ ds: TroChoi[] }>("tro-choi").catch(() => ({ ds: [] as TroChoi[] })));
+  const d = quy ? { quy, tc: tc.d?.ds ?? [] } : null;
   if (!d) return <ManD lui="/tre/nha" tieu="Giờ chơi"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   const q = d.quy.quy;
   const ly = lyDoKhoa(q);

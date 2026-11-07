@@ -59,7 +59,8 @@ export function chipDoiSao(sao: number, tyLe: { sao: number; phut: number }, con
   const ts = Math.max(1, tyLe.sao), tp = Math.max(1, tyLe.phut);
   return buoc.map((s) => {
     const phut = Math.floor((s * tp) / ts);
-    return { sao: s, phut, thieu: s > sao, quaHan: phut > conDoiDuoc };
+    const tru = Math.ceil((phut * ts) / tp);       // máy chủ trừ ceil(phút × sao / phút) — hiện đúng số sao bị trừ
+    return { sao: s, phut, tru, thieu: tru > sao || phut <= 0, quaHan: phut > conDoiDuoc };
   });
 }
 

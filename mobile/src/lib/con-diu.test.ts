@@ -43,7 +43,10 @@ test("ho-so: bé đang bị chờ ⇒ mốc hết chờ", () => {
 
 test("chip đổi sao: 10 sao = 10 phút; thiếu sao / quá phần còn đổi được hôm nay", () => {
   assert.deepEqual(chipDoiSao(30, { sao: 10, phut: 10 }, 60), [
-    { sao: 10, phut: 10, thieu: false, quaHan: false }, { sao: 20, phut: 20, thieu: false, quaHan: false }, { sao: 30, phut: 30, thieu: false, quaHan: false }]);
+    { sao: 10, phut: 10, tru: 10, thieu: false, quaHan: false }, { sao: 20, phut: 20, tru: 20, thieu: false, quaHan: false },
+    { sao: 30, phut: 30, tru: 30, thieu: false, quaHan: false }]);
+  // 15 sao = 10 phút: chip 10 sao ⇒ 6 phút, máy chủ trừ 9 sao
+  assert.deepEqual(chipDoiSao(25, { sao: 15, phut: 10 }, 60, [10, 15]).map((x) => [x.phut, x.tru]), [[6, 9], [10, 15]]);
   const c = chipDoiSao(15, { sao: 10, phut: 5 }, 10);
   assert.deepEqual(c.map((x) => [x.phut, x.thieu, x.quaHan]), [[5, false, false], [10, true, false], [15, true, true]]);
 });

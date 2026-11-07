@@ -46,7 +46,7 @@ export default function DoiSao() {
       </ManD>
     );
   }
-  const chips = chipDoiSao(d.sao, q.tyLe, q.doiSao.conDoiDuoc);
+  const chips = chipDoiSao(d.sao, q.tyLe, q.doiSao.conDoiDuoc, [...new Set([10, 20, 30, chon])].sort((a, b) => a - b));
   const c = chips.find((x) => x.sao === chon) ?? chips[0];
   const duSao = Math.floor(d.sao / Math.max(1, q.tyLe.sao)) * q.tyLe.sao;      // số sao lớn nhất đổi được tròn bội tỷ lệ
   if (thieu) {
@@ -60,8 +60,8 @@ export default function DoiSao() {
         <View style={{ alignItems: "center", gap: 8 }}>
           <Icon3D ten="sao" co={90} />
           <TieuD chu="Chưa đủ sao" giua />
-          <ChuD kieu="rat" co={16} mau={D.chu2} giua>{`Cần ${c.sao} sao · con có ${d.sao}`}</ChuD>
-          <ChuD co={14.5} mau={D.chu2} giua>{`Thiếu ${c.sao - d.sao} sao — làm thêm nhiệm vụ nhé.${duPhut ? ` Hoặc đổi ${duSao} sao lấy ${duPhut} phút.` : ""}`}</ChuD>
+          <ChuD kieu="rat" co={16} mau={D.chu2} giua>{`Cần ${c.tru} sao · con có ${d.sao}`}</ChuD>
+          <ChuD co={14.5} mau={D.chu2} giua>{`Thiếu ${Math.max(0, c.tru - d.sao)} sao — làm thêm nhiệm vụ nhé.${duPhut ? ` Hoặc đổi ${duSao} sao lấy ${duPhut} phút.` : ""}`}</ChuD>
         </View>
       </ManD>
     );
@@ -72,7 +72,7 @@ export default function DoiSao() {
       try {
         const r = await kid.goi<{ phut?: number; sao?: number; soDu?: number; conPhut?: number }>("doi-sao", { phut: c.phut });
         const phut = r.phut ?? c.phut;
-        setXong({ phut, sao: r.soDu ?? d.sao - c.sao, truoc: q.conPhut, con: r.conPhut ?? q.conPhut + phut, tru: r.sao ?? c.sao });
+        setXong({ phut, sao: r.soDu ?? d.sao - c.tru, truoc: q.conPhut, con: r.conPhut ?? q.conPhut + phut, tru: r.sao ?? c.tru });
       } catch (e) {
         if (e instanceof LoiApi && e.ma === "khong_them_gio") { await tai(); return; }
         if (laMatMang(e)) throw new LoiApi("mat_mang", `Mất mạng — chưa đổi được, sao của ${ten} không bị trừ.`, 0);
@@ -82,7 +82,7 @@ export default function DoiSao() {
   };
   return (
     <ManD lui={true} tieu="Đổi sao lấy giờ chơi" day={<><LoiD loi={loiLam} />
-      <NutD chu={`Đổi ${c.sao} sao lấy ${c.phut} phút`} bam={doi} dangChay={dangChay} tat={c.quaHan && !c.thieu} />
+      <NutD chu={`Đổi ${c.tru} sao lấy ${c.phut} phút`} bam={doi} dangChay={dangChay} tat={c.quaHan && !c.thieu} />
       <NutD chu="Đổi quà" loai="chu" bam={() => router.push("/tre/cua-hang")} />
     </>}>
       <TheD vang>
@@ -106,8 +106,8 @@ export default function DoiSao() {
           <ChuD kieu="rat" co={15} mau={D.chu2}>phút</ChuD>
         </View>
         <ChuD kieu="rat" co={13.5} mau={c.thieu ? D.loi : D.xanhD}>
-          {c.thieu ? `Chưa đủ sao · còn thiếu ${c.sao - d.sao} sao` : c.quaHan ? `Hôm nay con còn đổi được ${q.doiSao.conDoiDuoc} phút thôi`
-            : `Còn ${d.sao - c.sao} sao · không cần chờ Ba Mẹ`}
+          {c.thieu ? `Chưa đủ sao · còn thiếu ${Math.max(0, c.tru - d.sao)} sao` : c.quaHan ? `Hôm nay con còn đổi được ${q.doiSao.conDoiDuoc} phút thôi`
+            : `Còn ${d.sao - c.tru} sao · không cần chờ Ba Mẹ`}
         </ChuD>
       </TheD>
       {q.choXinThem ? <NutD chu="Xin Ba Mẹ thêm giờ ›" loai="chu" bam={() => router.push("/tre/them-gio")} /> : null}

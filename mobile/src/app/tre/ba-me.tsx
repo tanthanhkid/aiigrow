@@ -25,7 +25,9 @@ export default function BaMe() {
   const cho = useDemNguoc(choDen);
   const khoaLai = async () => {
     setDang(true);
-    try { await may.goi("khoa-lai", {}); } catch { /* mất mạng: máy vẫn về màn chọn tên */ } finally { setDang(false); }
+    try { await may.goi("khoa-lai", {}); }
+    catch (e) { setDang(false); setLoi(e instanceof LoiApi ? `Chưa khoá được: ${e.message}` : "Chưa khoá được — thử lại nhé."); return; }   // máy chủ còn giữ «Ba Mẹ dùng» ⇒ đừng giả vờ đã khoá
+    setDang(false);
     router.replace("/tre/chon-ten");
   };
   useEffect(() => { if (den && con === 0) router.replace("/tre/chon-ten"); }, [den, con]);
@@ -36,8 +38,9 @@ export default function BaMe() {
     dangGui.current = true;
     setDang(true); setLoi(null);
     try {
-      const r = await may.goi<{ baMeDung: { den: string } }>("ba-me-mo", { ma: v });
-      setDen(Date.parse(r.baMeDung.den));
+      const r = await may.goi<{ baMeDung?: { den: string }; phut?: number }>("ba-me-mo", { ma: v });
+      const d = r.baMeDung?.den ? Date.parse(r.baMeDung.den) : NaN;
+      setDen(Number.isFinite(d) ? d : Date.now() + (r.phut ?? 15) * 60_000);
     } catch (e) {
       setMa("");
       if (e instanceof LoiApi && e.ma === "ma_tam_khoa") setChoDen(Date.now() + Number(e.them?.choGiay ?? 600) * 1000);
@@ -47,7 +50,7 @@ export default function BaMe() {
 
   if (den) {
     return (
-      <ManD day={<><NutD chu="Khoá lại" ic="khoa" bam={khoaLai} dangChay={dang} /><ChuD co={13.5} mau={D.chu2} giua>Xong việc thì bấm «Khoá lại»</ChuD></>}>
+      <ManD day={<><LoiD loi={loi} /><NutD chu="Khoá lại" ic="khoa" bam={khoaLai} dangChay={dang} /><ChuD co={13.5} mau={D.chu2} giua>Xong việc thì bấm «Khoá lại»</ChuD></>}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <VongD ti={1} so={mmss(con)} co={84} day={8} />
           <View style={{ flex: 1 }}>
