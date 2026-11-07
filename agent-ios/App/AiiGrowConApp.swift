@@ -5,8 +5,8 @@ import BackgroundTasks
 import UserNotifications
 import ConCore
 
-/// Ngọc lục bảo — điểm nhấn của bảng màu Clay (docs/THIET-KE-CLAY.md).
-let mauChinh = Clay.chinh
+/// Xanh lá — MỘT màu nhấn của bản «Dịu» (App/Diu.swift).
+let mauChinh = Diu.xanh
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
   static let tacVuNhip = "vn.aiilab.aiigrow.con.nhip"
@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
       Self.lenLich()
       let viec = Task { @MainActor in
         let m = MoHinhApp()
-        await m.dongBoNgay()
+        await m.dongBoNgay(nen: true)
         t.setTaskCompleted(success: m.loi == nil)
       }
       t.expirationHandler = { viec.cancel() }
@@ -53,7 +53,7 @@ struct AiiGrowConApp: App {
       ManGoc()
         .environmentObject(m)
         .tint(mauChinh)
-        .preferredColorScheme(.light)   // Clay gương chỉ có bảng sáng
+        .preferredColorScheme(.light)   // bản «Dịu» chỉ có bảng sáng (nền kem)
         .onOpenURL { m.moLienKet($0) }
         .onChange(of: pha) { p in
           if p == .active { Task { await m.dongBoNgay() } }

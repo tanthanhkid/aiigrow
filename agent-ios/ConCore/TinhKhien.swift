@@ -1,12 +1,14 @@
 // Logic THUẦN: kế hoạch + giờ hiện tại + phút đã dùng hôm nay ⇒ khiên cần có NGAY BÂY GIỜ.
 // App (lúc đồng bộ) và extension DeviceActivityMonitor (lúc chuông lịch kêu) đều gọi đúng hàm này ⇒ hai nơi không lệch nhau.
-// Thứ tự thắng: mở bằng mã offline > Khoá ngay > giờ ngủ > thêm giờ đã duyệt > phiên điểm > không tuân thủ > hết trần phút > ngoài khung.
+// Thứ tự thắng: mở bằng mã offline > Ba Mẹ đang dùng máy (06/11) > máy khoá chờ chọn tên + PIN (06/11) > ngoại lệ cả máy > Khoá ngay > giờ ngủ > thêm giờ đã duyệt > phiên điểm > không tuân thủ > hết trần phút > ngoài khung.
 import Foundation
 
 public enum MucKhien: String, Codable { case khong, giaiTri = "giai_tri", moiApp = "moi_app" }
 
 public enum LyDoKhien: String, Codable {
   case khong, khoaNgay = "khoa_ngay", ngu, khongTuanThu = "khong_tuan_thu", hetGio = "het_gio", ngoaiGio = "ngoai_gio", gioHoc = "gio_hoc"
+  /// 06/11 (L13): máy khoá — chưa bé nào vào (chạm tên + PIN trong app AiiGrow Con).
+  case chuaVao = "chua_vao"
 
   /// Câu cho Con — hiện trên màn chặn (ShieldConfiguration) và màn chính.
   public var cauChoCon: String {
@@ -18,6 +20,7 @@ public enum LyDoKhien: String, Codable {
     case .hetGio: return "Hôm nay con chơi hết giờ rồi. Con dùng sao hoặc xin Ba Mẹ thêm giờ nhé."
     case .ngoaiGio: return "Bây giờ chưa phải giờ chơi."
     case .gioHoc: return "Đang giờ học. App học vẫn dùng được."
+    case .chuaVao: return "Máy đang khoá. Mở AiiGrow Con, chạm tên con rồi nhập PIN nhé."
     }
   }
 }
@@ -35,6 +38,8 @@ public struct KhienMuonCo: Codable, Equatable {
   public var dangMoOffline: Bool? = nil
   /// Đang trong ngoại lệ cả máy Ba Mẹ mở (05/11).
   public var dangNgoaiLe: Bool? = nil
+  /// 06/11: Ba Mẹ đang dùng máy (mở bằng mã Ba Mẹ) — không tính giờ con.
+  public var dangBaMe: Bool? = nil
 }
 
 extension LyDoKhien {
@@ -97,10 +102,18 @@ public enum TinhKhien {
   /// (như agent Windows MoTamOffline.ApDung: không để máy kẹt khoá khi không có mạng); web bị chặn vẫn chặn.
   /// `dungSai`: giây coi như đã hết sớm — iOS có thể gọi intervalDidEnd hơi trước `den` (mốc làm tròn phút) ⇒ khi hết lịch gọi với dung sai
   /// để cửa sổ đang kết thúc không còn được tính là mở.
-  public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?, moOfflineDen: Date? = nil, dungSai: TimeInterval = 0) -> KhienMuonCo {
+  /// `phien`: ai đang dùng máy (PinBe.swift) — nil = không biết (máy chủ cũ / app cũ) ⇒ không khoá theo PIN.
+  public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?, moOfflineDen: Date? = nil, phien: PhienMay? = nil,
+                            dungSai: TimeInterval = 0) -> KhienMuonCo {
     let moc = now.addingTimeInterval(dungSai)
     if let den = moOfflineDen, den > moc {
       return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangMoOffline: true)
+    }
+    if let phien, phien.baMeDangDung(moc) {
+      return KhienMuonCo(muc: .khong, lyDo: .khong, webChan: kh.webChan, chanCaiApp: kh.chanCaiApp, dangThemGio: false, dangBaMe: true)
+    }
+    if let phien, phien.khoa(moc) {
+      return KhienMuonCo(muc: .moiApp, lyDo: .chuaVao, webChan: kh.webChan + kh.webGiaiTri, chanCaiApp: kh.chanCaiApp, dangThemGio: false)
     }
     let d = diaPhuong(now, tz: kh.tz)
     let themGio = (kh.moDen.map { $0 > moc }) ?? false

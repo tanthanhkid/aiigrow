@@ -146,6 +146,8 @@ public struct NhipTraVe: Codable {
   /// Bí mật mã mở offline (TOTP, server/lib/ma-offline.ts) — app nhớ trong Keychain để tự kiểm mã Ba Mẹ đọc khi mất mạng.
   /// Chỉ gửi khi vân app báo (`NhipGui.maOfflineVan`) lệch; máy chủ cũ: nil.
   public var maOfflineBiMat: String?
+  /// 06/11 (S3): ai đang dùng máy (con | ba_me | chua) — máy chủ cũ: nil.
+  public var nguoiDung: NguoiDungMay?
 }
 
 public enum NgayISO {

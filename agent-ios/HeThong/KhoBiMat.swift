@@ -1,6 +1,7 @@
 // Token thiết bị + bí mật mã mở offline trong Keychain (chỉ app đọc; extension không gọi mạng, không kiểm mã nên không cần).
 import Foundation
 import Security
+import ConCore
 
 public enum KhoBiMat {
   static let dichVu = "vn.aiilab.aiigrow.con", tai = "token-may"
@@ -14,7 +15,7 @@ public enum KhoBiMat {
   public static func doc() -> String? { doc(tai) }
   public static func ghi(_ token: String?) {
     ghi(token, tai)
-    if token == nil { ghi(nil, taiOffline) }      // rời gia đình ⇒ quên luôn bí mật mã offline
+    if token == nil { ghi(nil, taiOffline); ghi(nil, "kho.\(Khoa.viecChoMang)") }      // rời gia đình ⇒ quên luôn bí mật mã offline
   }
   public static func docBiMatOffline() -> String? { doc(taiOffline) }
   public static func ghiBiMatOffline(_ s: String) { if doc(taiOffline) != s { ghi(s, taiOffline) } }
@@ -36,4 +37,11 @@ public enum KhoBiMat {
     q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
     SecItemAdd(q as CFDictionary, nil)
   }
+}
+
+/// Kho giá trị trong Keychain (chỉ app đọc) — hàng chờ đăng nhập lúc mất mạng có PIN thô (ConCore/PinBe.swift › VaoMay.khoCho).
+public final class KhoKeychain: KhoGiaTri {
+  public init() {}
+  public func data(_ khoa: String) -> Data? { KhoBiMat.doc("kho.\(khoa)").flatMap { Data(base64Encoded: $0) } }
+  public func ghi(_ d: Data?, _ khoa: String) { KhoBiMat.ghi(d?.base64EncodedString(), "kho.\(khoa)") }
 }

@@ -43,6 +43,8 @@ public final class DongBo {
   /// Đọc / nhớ bí mật mã mở offline (app: Keychain). nil = bỏ qua.
   let docBiMatOffline: (() -> String?)?
   let luuBiMatOffline: ((String) -> Void)?
+  /// Kho hàng chờ có PIN (app: Keychain) — xem VaoMay.khoCho.
+  public var khoCho: KhoGiaTri?
 
   public init(api: ApiClient, kho: KhoGiaTri, khien: HeThongKhien, lich: HeThongLich, uyQuyen: HeThongUyQuyen,
               chon: NguonLuaChon, xoaToken: @escaping () -> Void,
@@ -67,13 +69,18 @@ public final class DongBo {
 
   @discardableResult
   public func chay(now: Date = Date(), nguon: String = "bat") async throws -> KetQuaDongBo {
+    // 06/11: đăng nhập / đăng xuất làm lúc mất mạng ⇒ báo máy chủ TRƯỚC nhip (nhip trả «ai đang dùng» đã đúng)
+    let bm = docBiMatOffline
+    await VaoMay(api: api, kho: kho, khoCho: khoCho, biMat: { bm?() }).phatLai(now: now)
+    await guiXinChoMang()
     let tra = try await api.nhip(nhipGui(now: now, nguon: nguon))
     // Lệnh «go» (gỡ từ xa): thu hồi quyền, gỡ khiên + lịch, báo xong, quên token. iOS không cho app tự xoá ⇒ màn hướng dẫn xoá biểu tượng.
     if let go = tra.lenh.first(where: { $0.loai == "go" }) {
       lich.dungHet(); khien.goHet()
       await uyQuyen.thuHoi()
       try? await api.xongLenh(go.id)
-      for k in [Khoa.keHoach, Khoa.nhatKyDung, Khoa.khienDangAp, Khoa.thongTinMay, Khoa.yeuCauDangCho, Khoa.moTamOffline, Khoa.suKienCho] { kho.ghi(nil, k) }
+      for k in [Khoa.keHoach, Khoa.nhatKyDung, Khoa.khienDangAp, Khoa.thongTinMay, Khoa.yeuCauDangCho, Khoa.moTamOffline, Khoa.suKienCho,
+                Khoa.phienMay, Khoa.hoSoMay, Khoa.demSai, Khoa.viecChoMang, Khoa.xinChoMang] { kho.ghi(nil, k) }
       xoaToken()
       return .daGo
     }
@@ -83,7 +90,11 @@ public final class DongBo {
       kho.luu(mt, Khoa.moTamOffline)
       kho.xepSuKien(SuKienMay(loai: "het_ma_offline", luc: now, chiTiet: ["ket_thuc": "co_mang", "conPhut": String(con)]))
     }
+    ghiPhien(tra.nguoiDung, now: now)
     var kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    let conCuoi = kho.doc(String.self, Khoa.conCuoi)
+    if let id = tra.chinhSach.con?.id, conCuoi != nil, conCuoi != id { kh.daDungMayChu = nil; kh.ngayDaDung = nil }   // chính sách của bé khác (phản hồi cũ)
+    if let den = kho.doc(PhienMay.self, Khoa.phienMay)?.baMeDen, den > now { kh.lich = LapKeHoach.themLich(kh.lich, LapKeHoach.lichMotLan("bame", den: den, now: now)) }
     if kh.daDungMayChu != nil { kh.dungTaiChoLucDongBo = TinhKhien.phutDoTaiCho(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) }
     kho.luu(kh, Khoa.keHoach)
     kho.luu(now, Khoa.lanDongBo)
@@ -92,6 +103,37 @@ public final class DongBo {
     await capNhatYeuCau()
     await guiSuKienCho()
     return .xong(kh)
+  }
+
+  /// Ai đang dùng máy theo máy chủ. Máy RIÊNG của bé vừa «Đăng xuất» tại máy: máy chủ vẫn coi chủ máy đang dùng ⇒ giữ khoá tại máy
+  /// tới khi bé nhập lại PIN (thiết kế: «Đăng xuất thì máy khoá lại. Vào lại bằng tên + PIN.»).
+  func ghiPhien(_ n: NguoiDungMay?, now: Date) {
+    let cu = kho.doc(PhienMay.self, Khoa.phienMay)
+    // tại máy vừa đổi người SAU lúc gửi nhip, hoặc còn việc chờ phát lại ⇒ phản hồi này đã cũ, giữ trạng thái tại máy
+    if let cu, cu.luc > now, cu.luc < now.addingTimeInterval(600) { return }    // (đồng hồ bị lùi xa ⇒ không đóng băng, theo máy chủ)
+    if let v = (khoCho ?? kho).doc([ViecChoMang].self, Khoa.viecChoMang), !v.isEmpty { return }
+    // Ba Mẹ mở bằng mã lúc mất mạng: máy chủ không biết ⇒ giữ tới hạn
+    if let cu, cu.offline == true, cu.baMeDangDung(now), n?.loai != "ba_me" { return }
+    guard let moi = PhienMay.tu(n, now: now) else {
+      // máy chủ chưa có PIN theo bé (chưa deploy S3 / quay lui) ⇒ không giữ khoá «chưa ai vào» mà không ai mở được
+      if cu?.loai == .chua { kho.ghi(nil, Khoa.phienMay) }
+      return
+    }
+    let mayRieng = kho.doc(HoSoMay.self, Khoa.hoSoMay)?.mayRieng ?? (kho.doc(ThongTinMay.self, Khoa.thongTinMay).map { !$0.dungChung } ?? false)
+    // máy riêng: máy chủ luôn báo chủ máy ⇒ khoá tại máy (đăng xuất / Ba Mẹ dùng đã hết) giữ tới khi bé nhập lại PIN
+    if let cu, cu.khoa(now), moi.loai == .con, mayRieng { if cu.loai != .chua { kho.luu(PhienMay(loai: .chua, luc: now), Khoa.phienMay) }; return }
+    VaoMay.luuPhien(moi, kho: kho)       // bé khác ⇒ phút đo tại máy + phút máy chủ của bé trước không tính
+  }
+
+  /// Lời xin thêm giờ lưu lúc mất mạng ⇒ gửi khi có mạng.
+  public func guiXinChoMang(now: Date = Date()) async {
+    guard let x = kho.doc(YeuCauDangCho.self, Khoa.xinChoMang) else { return }
+    do {
+      let r = x.trangThai == "ngoai_le" ? try await api.xinNgoaiLe(phut: x.phut, loiNhan: x.loiNhan) : try await api.xinThemGio(phut: x.phut, loiNhan: x.loiNhan)
+      kho.luu(YeuCauDangCho(id: r.id, phut: x.phut, loiNhan: x.loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho"), Khoa.yeuCauDangCho)
+      kho.ghi(nil, Khoa.xinChoMang)
+    } catch let e as LoiApi where e.tamThoi || e.ma == "chua_chon_con" {
+    } catch { kho.ghi(nil, Khoa.xinChoMang) }
   }
 
   /// Hạn mở bằng mã offline lúc `now` + ghi «giờ đã thấy» (chống lùi đồng hồ). Dùng chung app / extension Monitor.
@@ -118,7 +160,7 @@ public final class DongBo {
     let cau = mt.cau(kq, now: now)
     kho.luu(mt, Khoa.moTamOffline)
     if kq == .daMo, let den = mt.moDen {
-      kho.xepSuKien(SuKienMay(loai: "mo_ma_offline", luc: now, chiTiet: ["den": NgayISO.viet(den), "phut": String(MoTamOffline.phutMoMacDinh)]))
+      kho.xepSuKien(SuKienMay(loai: "mo_ma_offline", luc: now, chiTiet: ["den": NgayISO.viet(den), "phut": String(mt.phutMo ?? MoTamOffline.phutMoMacDinh)]))
       if let kh = kho.doc(KeHoach.self, Khoa.keHoach) {
         try? lich.theoDoi(LapKeHoach.themLich(kh.lich, LapKeHoach.lichMotLan("mooffline", den: den, now: now)))
       }
@@ -133,7 +175,8 @@ public final class DongBo {
   @discardableResult
   public func apLucNay(_ kh: KeHoach? = nil, now: Date = Date()) -> KhienMuonCo? {
     guard let kh = kh ?? kho.doc(KeHoach.self, Khoa.keHoach) else { return nil }
-    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: Self.hanMoOffline(kho, now))
+    let k = TinhKhien.lucNay(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), moOfflineDen: Self.hanMoOffline(kho, now),
+                             phien: kho.doc(PhienMay.self, Khoa.phienMay))
     khien.ap(k)
     kho.luu(k, Khoa.khienDangAp)
     return k

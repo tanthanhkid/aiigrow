@@ -9,14 +9,14 @@ chính hãng, không ẩn mình — app luôn hiện dòng «Ba Mẹ quản lý 
 |---|---|---|
 | `ConCore/` | framework `ConCore` (chỉ Foundation) | mô hình phản hồi `nhip`, **lập kế hoạch** nenTang ⇒ lịch DeviceActivity + sự kiện đo phút (`KeHoach.swift`), **suy khiên lúc này** (`TinhKhien.swift`), API client, link ghép, kho app group, một lượt đồng bộ sau protocol (`DongBo.swift`) |
 | `HeThong/` | dịch vào app + Monitor | bản thật của protocol: `KhienThat` (ManagedSettingsStore), `LichThat` (DeviceActivityCenter), `UyQuyenThat` (AuthorizationCenter), `LuaChonApp` (FamilyActivitySelection trong app group), Keychain |
-| `App/` | `AiiGrowCon` (vn.aiilab.aiigrow.con) | SwiftUI: chưa ghép · nhập mã · màn chính · xin thêm giờ · cấp quyền · Ba Mẹ chọn app · đã gỡ. BGAppRefreshTask `vn.aiilab.aiigrow.con.nhip` |
+| `App/` | `AiiGrowCon` (vn.aiilab.aiigrow.con) | SwiftUI bản «Dịu» 06/11 (`docs/thiet-ke-chot/con-dt-*`, L16): Rob chào · chưa ghép · mã 6 số / QR (sai · hết hạn · mất mạng) · cấp quyền · **máy khoá: chọn tên + PIN** (sai 5 lần chờ 15 giây, Quên PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng, Đổi bé / Đăng xuất) · 4 tab Hôm nay / Nhiệm vụ (nộp ảnh · ghi âm · viết, mất mạng lưu ở máy) / Sao & quà (giữ sao, voucher QR, cửa hàng bảng giá) / Tin nhắn · đổi sao lấy phút · xin thêm giờ / ngoại lệ (mất mạng lưu lời xin) · màn khoá theo lý do · mở bằng mã · DNS · Ba Mẹ chọn app. BGAppRefreshTask `vn.aiilab.aiigrow.con.nhip` |
 | `Monitor/` | DeviceActivityMonitor ext | chuông lịch / ngưỡng phút ⇒ ghi phút đã dùng ⇒ suy lại khiên (không gọi mạng) |
 | `ShieldConfig/` | ShieldConfiguration ext | màn chặn tiếng Việt theo lý do + nút «Xin thêm giờ» |
 | `ShieldAction/` | ShieldAction ext | «Xin thêm giờ» ⇒ thông báo cục bộ, chạm vào mở app ở màn xin giờ |
 | `Tests/` | `ConCoreTests` | 33 test logic thuần + client/đồng bộ với bản giả |
-| `App/Clay.swift` | — | ngôn ngữ «Clay gương» (`docs/THIET-KE-CLAY.md`): `NenClay`, `NutClay` (bẹp-nảy lò xo + vệt men), `IconClay`, `vaoLanLuot`; Giảm chuyển động ⇒ chỉ mờ |
-| `TaiNguyen/` | app | `Fluent.xcassets` icon Fluent Emoji 3D (Microsoft, MIT — `FLUENT-EMOJI-LICENSE.txt`, đóng gói vào app); màn chặn dùng 4 icon riêng ở `ShieldConfig/ManChan.xcassets` |
-| `chup/` | — | ảnh chụp simulator iPhone 17 + iPad Pro 11" (iOS 26.5), dữ liệu giả (Clay gương, chụp lại 25/10) |
+| `App/Diu.swift` | — | ngôn ngữ «Dịu»: nền kem #fbf8f2, MỘT màu nhấn xanh #2f9e5f, vàng chỉ cho sao, thẻ trắng viền mảnh, nút 52pt, chữ `.rounded` (Nunito không có trong repo) |
+| `TaiNguyen/` | app | `Diu.xcassets` (icon 3D Fluent Emoji MIT + Rob, chép PNG từ `mobile/assets/icon3d`, `linh-vat`); `Fluent.xcassets` cũ; màn chặn dùng icon ở `ShieldConfig/ManChan.xcassets` |
+| `chup/diu/` | — | ảnh chụp simulator iPhone (iOS 26.5) các màn bản Dịu với `-demo <màn>` (06/11); `canh-cdt-chinh-ios.png` = thiết kế cạnh app. `chup/*.png` cũ = Clay 25/10 |
 
 App group `group.vn.aiilab.aiigrow.con`; entitlement `com.apple.developer.family-controls` ở app + 3 extension; associated domain
 `applinks:aiigrow.aiilab.vn`; scheme `aiigrowcon://`.
@@ -48,13 +48,23 @@ App group `group.vn.aiilab.aiigrow.con`; entitlement `com.apple.developer.family
 - Lịch chỉ là chuông: mỗi lần chuông kêu extension gọi `TinhKhien.lucNay(kếHoạch, giờ)` — cùng hàm app dùng ⇒ không lệch.
   Thứ tự thắng: mở bằng mã offline (Ba Mẹ đọc mã ⇒ gỡ mọi khoá tới hạn) > Khoá ngay > giờ ngủ > thêm giờ > phiên Chơi bằng điểm > không tuân thủ > hết phút > ngoài khung.
 
+## PIN theo bé (L13, 06/11 — `ConCore/PinBe.swift`, docs/API.md mục «S3»)
+- Ghép xong ⇒ máy khoá (`PhienMay.chua`) ⇒ «Ai đang dùng máy?» (`GET ho-so`) ⇒ PIN (`POST dang-nhap-be`). Bé chưa có PIN chạm tên vào thẳng.
+- Máy khoá / chưa ai vào ⇒ `TinhKhien` khiên MỌI app, lý do `chua_vao` (màn chặn «Máy đang khoá»). Ba Mẹ đang dùng (mã 15/30/60) ⇒ gỡ khoá tới hạn, lịch «bame» khoá lại đúng giờ.
+- Mất mạng: PIN kiểm bằng `vanPin` (HMAC-SHA256 với bí mật mã offline), tự đếm 5 lần / 15 giây; mã Ba Mẹ kiểm TOTP biến thể 60 → 30 → 15 (`MaOffline.kiemPhut`);
+  đăng nhập / đăng xuất làm lúc mất mạng xếp hàng, phát lại trước `nhip`. Máy riêng vừa «Đăng xuất» tại máy: giữ khoá tới khi nhập lại PIN.
+- Hằng ngày qua `/api/device/hoc-vien/*` (`ConCore/HocVien.swift`) — không còn mở app AiiGrow / web `/tre` cho nhiệm vụ & quà.
+- «Mở hết» (B1): iOS chỉ khiên app Giải trí khi hết quỹ / ngủ / khoá + app Ba Mẹ gắn «Chặn» ⇒ không cần sửa; test `testMoHetKhongKhoaApp`.
+
 ## Build / test (máy Mac)
 ```bash
 cd agent-ios && xcodegen generate
 xcodebuild -scheme AiiGrowCon -destination 'generic/platform=iOS Simulator' -derivedDataPath .build-dd -jobs 2 build
 xcodebuild -scheme AiiGrowCon -destination 'generic/platform=iOS' -derivedDataPath .build-dd -jobs 2 CODE_SIGNING_ALLOWED=NO build
 xcodebuild -scheme AiiGrowCon -destination 'platform=iOS Simulator,name=AiiGrow Con iPhone' -derivedDataPath .build-dd -jobs 2 test
-# chụp màn với dữ liệu giả: xcrun simctl launch <sim> vn.aiilab.aiigrow.con -demo chuaGhep|nhapMa|chinh|xinThem|quyen
+# chụp màn với dữ liệu giả: xcrun simctl launch <sim> vn.aiilab.aiigrow.con -demo <màn> (MoHinhApp.napDemo: chao chuaGhep nhapMa maGhepSai
+#   quetQR quyen chuaChoPhep chonTen nhapPin pinSai choPin quenPin baMeMa baMeDung doiBe chinh nhiemVu nvChiTiet saoQua cuaHang tin doiSao xinThem
+#   conDangXin xinCai hetGio gioNgu khoaMay maOffline luuXin matMang dns daGo)
 ```
 Kết quả 24/10: build Simulator ✅, build máy thật không ký ✅, 33/33 test ✅ (25/10: 37/37). Chạy trên máy thật: đặt `DEVELOPMENT_TEAM` trong
 `project.yml`, đăng ký app group + 4 bundle id trong tài khoản Apple Developer.
@@ -92,5 +102,5 @@ Không có APNs nên app chỉ biết Ba Mẹ bấm Khoá ngay / duyệt thêm g
 | Con tự bỏ chọn app trong màn Ba Mẹ | — | ⚠️ màn chọn app chưa khoá bằng mật khẩu Ba Mẹ (CAN-SERVER mục 5); với `.individual`, Con có thể thu hồi quyền trong Cài đặt — máy chủ thấy qua nhịp (`appQuanLyBat=false`) |
 
 ## Chưa làm / việc chờ
-- Máy dùng chung (chọn hồ sơ + PIN), phiên điểm trên iOS.
+- Huy hiệu (cdt-huy-hieu), Quy tắc nhà mình, hoàn tác đổi sao (máy chủ chưa có đường cho Con), tên app bị khiên (iOS chỉ có token mờ ⇒ Con gõ tên khi xin).
 - Chạy thật trên iPhone/iPad (cần team ký + entitlement); chưa cài lên máy của Thanh, chưa đẩy TestFlight.

@@ -16,23 +16,31 @@
 		21F2E73438190A453F08A3BF /* MonitorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B33E75DFC364549394209585 /* MonitorExtension.swift */; };
 		22178AEB14B78839900CED21 /* KhoBiMat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90B6AFD95F95538BDC1D56AC /* KhoBiMat.swift */; };
 		2346F2F852024B6279A6CF07 /* AiiGrowConShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7900E3A57BAB26B230A60E43 /* AiiGrowConShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2710D9CE40F7DB897EB31538 /* ManCai.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13108F5ED62BAA7EC7E20B27 /* ManCai.swift */; };
+		343624AB6A8AA29201B5D184 /* ManGio.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B30E10A0A852DC972AA2F96 /* ManGio.swift */; };
 		352E2F4BA47955B0E860D7E3 /* MoHinh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186FA46CA2DBC124F41E70B7 /* MoHinh.swift */; };
 		3BE0FA3E6E078E15673A1E80 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
-		3D3827E43C52FCC7F938F37C /* ManHinh.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFDA2084344ACE7832D30647 /* ManHinh.swift */; };
 		3E228456488DEFC7D8638772 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
+		3FFC414646CF7565447798BC /* ManPin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F577865D8885DE6017105C9 /* ManPin.swift */; };
 		433DB63728ECDC25F05BCBD1 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
+		4856764C0F76CA0AB1DC293C /* ManNgay.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7EE9AD685CC98CF518FD6EC /* ManNgay.swift */; };
 		4C2AA5B5FA3E431A90E7676B /* LienKet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E65912DFAF91EA72A33274A /* LienKet.swift */; };
 		4EBCD7E1D9FE7B4A96A544E4 /* ManHinhThoiGian.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01CDA7A363166F1E9A3FE8A6 /* ManHinhThoiGian.swift */; };
 		6301FC39E493FE0CBC964BD5 /* LuaChon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFD40AF087F473E45244388 /* LuaChon.swift */; };
 		6762EA84EDFFA951214099D7 /* ManChan.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C69CFB8D8236538848F53826 /* ManChan.xcassets */; };
+		6D2C390112B3FEB141735242 /* Diu.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 435F039D1CB2850C8C4BDBED /* Diu.xcassets */; };
 		6FB26C633F922B41C602F5B6 /* KeHoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BD5472CA0F11099C79606C /* KeHoach.swift */; };
+		78DED865739B8597881DBE90 /* Diu.swift in Sources */ = {isa = PBXBuildFile; fileRef = B547176C46042D8B63F6E32F /* Diu.swift */; };
+		809B935FBAFC24A8237D9200 /* HocVien.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E960A58199D950378153D24 /* HocVien.swift */; };
+		8D096D74448B2F0B3C48552C /* ManGoc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 949E1BF7AB0C21158B74B59B /* ManGoc.swift */; };
 		8F08909C53CFFE9C36791B21 /* AiiGrowConShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0F5B157A8303D4BFAF56737F /* AiiGrowConShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9704E1739ABF09F84077DBB5 /* DongBo.swift in Sources */ = {isa = PBXBuildFile; fileRef = C50779F36DEB2CEE60A100CA /* DongBo.swift */; };
 		988DE4DFECB0AB318CC35550 /* ApiClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAF89B0B57449BB5298F33DB /* ApiClient.swift */; };
 		9CA570F73B57D23F393AE7E6 /* ConCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1971798E0318EECB517180E /* ConCore.framework */; };
 		9DCDB2A1D3C6D28CE53E9AED /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = E65F7FA55C48519DB255B735 /* ShieldConfigurationExtension.swift */; };
 		A1C3B955DD2441829440E129 /* AiiGrowConApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FCF14C6B32CB1815B0A7A1 /* AiiGrowConApp.swift */; };
-		B2913E338812A2D33BBF6EE0 /* Clay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D2008392A03ECC87824D2C8 /* Clay.swift */; };
+		A2274A1314E03846DC87960A /* ManNop.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B444117AAA00788020E808 /* ManNop.swift */; };
+		A44184C0CC37CCF080FE7812 /* PinBe.swift in Sources */ = {isa = PBXBuildFile; fileRef = F817D6DBCCFCB74245E09F95 /* PinBe.swift */; };
 		B5EA1A0FB7A15E6A14829181 /* ThongBao.swift in Sources */ = {isa = PBXBuildFile; fileRef = B32AB58F4225D4C2973AB38D /* ThongBao.swift */; };
 		B78741E74B6DE8D908D64E12 /* MaOffline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EAFF5CFB9AFF463F6DDE4E /* MaOffline.swift */; };
 		C30177CE7D5304AFAC2B5DEA /* Fluent.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 215DFF84E68F40D4D195F82C /* Fluent.xcassets */; };
@@ -148,11 +156,13 @@
 		0049E69A390F9D3EC18CD797 /* AiiGrowCon.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AiiGrowCon.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		01CDA7A363166F1E9A3FE8A6 /* ManHinhThoiGian.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManHinhThoiGian.swift; sourceTree = "<group>"; };
 		0F5B157A8303D4BFAF56737F /* AiiGrowConShieldAction.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AiiGrowConShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		13108F5ED62BAA7EC7E20B27 /* ManCai.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManCai.swift; sourceTree = "<group>"; };
 		186FA46CA2DBC124F41E70B7 /* MoHinh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoHinh.swift; sourceTree = "<group>"; };
 		215DFF84E68F40D4D195F82C /* Fluent.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Fluent.xcassets; sourceTree = "<group>"; };
 		21BB7B368505942043957F3A /* AiiGrowCon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AiiGrowCon.entitlements; sourceTree = "<group>"; };
 		23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "FLUENT-EMOJI-LICENSE.txt"; sourceTree = "<group>"; };
 		2FFD40AF087F473E45244388 /* LuaChon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LuaChon.swift; sourceTree = "<group>"; };
+		435F039D1CB2850C8C4BDBED /* Diu.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Diu.xcassets; sourceTree = "<group>"; };
 		52EAFF5CFB9AFF463F6DDE4E /* MaOffline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaOffline.swift; sourceTree = "<group>"; };
 		61FCF14C6B32CB1815B0A7A1 /* AiiGrowConApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiiGrowConApp.swift; sourceTree = "<group>"; };
 		637B26E31A58EA96636B1160 /* MayChuHoSo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MayChuHoSo.swift; sourceTree = "<group>"; };
@@ -165,12 +175,17 @@
 		82A54B5514AE8E4D95FBAF05 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		86C0BB868A7690A1A6199015 /* ConCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConCoreTests.swift; sourceTree = "<group>"; };
 		8E65912DFAF91EA72A33274A /* LienKet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LienKet.swift; sourceTree = "<group>"; };
+		8F577865D8885DE6017105C9 /* ManPin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManPin.swift; sourceTree = "<group>"; };
 		8F5D3BD62AD835AAC1EB82DA /* AiiGrowConMonitor.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = AiiGrowConMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		90B6AFD95F95538BDC1D56AC /* KhoBiMat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KhoBiMat.swift; sourceTree = "<group>"; };
-		9D2008392A03ECC87824D2C8 /* Clay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Clay.swift; sourceTree = "<group>"; };
+		949E1BF7AB0C21158B74B59B /* ManGoc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManGoc.swift; sourceTree = "<group>"; };
+		9B30E10A0A852DC972AA2F96 /* ManGio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManGio.swift; sourceTree = "<group>"; };
+		9E960A58199D950378153D24 /* HocVien.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HocVien.swift; sourceTree = "<group>"; };
+		A1B444117AAA00788020E808 /* ManNop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManNop.swift; sourceTree = "<group>"; };
 		A6FF5989EB66F1D733E4B180 /* MoHinhApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoHinhApp.swift; sourceTree = "<group>"; };
 		B32AB58F4225D4C2973AB38D /* ThongBao.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThongBao.swift; sourceTree = "<group>"; };
 		B33E75DFC364549394209585 /* MonitorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorExtension.swift; sourceTree = "<group>"; };
+		B547176C46042D8B63F6E32F /* Diu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Diu.swift; sourceTree = "<group>"; };
 		BF4E25D5AFE0EC15DC0F36DA /* TinhKhien.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinhKhien.swift; sourceTree = "<group>"; };
 		C1BD5472CA0F11099C79606C /* KeHoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeHoach.swift; sourceTree = "<group>"; };
 		C50779F36DEB2CEE60A100CA /* DongBo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DongBo.swift; sourceTree = "<group>"; };
@@ -181,7 +196,8 @@
 		DEC2405D2D9B36CD398214ED /* Monitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Monitor.entitlements; sourceTree = "<group>"; };
 		E65F7FA55C48519DB255B735 /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		EDF2C276C422EBE1C458A291 /* ShieldActionExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldActionExtension.swift; sourceTree = "<group>"; };
-		EFDA2084344ACE7832D30647 /* ManHinh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManHinh.swift; sourceTree = "<group>"; };
+		F7EE9AD685CC98CF518FD6EC /* ManNgay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManNgay.swift; sourceTree = "<group>"; };
+		F817D6DBCCFCB74245E09F95 /* PinBe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinBe.swift; sourceTree = "<group>"; };
 		FF9B76B70C98269C095CD359 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -245,11 +261,13 @@
 			children = (
 				CAF89B0B57449BB5298F33DB /* ApiClient.swift */,
 				C50779F36DEB2CEE60A100CA /* DongBo.swift */,
+				9E960A58199D950378153D24 /* HocVien.swift */,
 				C1BD5472CA0F11099C79606C /* KeHoach.swift */,
 				7E3BECEEB34774A71E77E1CD /* KhoChung.swift */,
 				8E65912DFAF91EA72A33274A /* LienKet.swift */,
 				52EAFF5CFB9AFF463F6DDE4E /* MaOffline.swift */,
 				186FA46CA2DBC124F41E70B7 /* MoHinh.swift */,
+				F817D6DBCCFCB74245E09F95 /* PinBe.swift */,
 				BF4E25D5AFE0EC15DC0F36DA /* TinhKhien.swift */,
 			);
 			path = ConCore;
@@ -258,6 +276,7 @@
 		45039037C4869BAD7CD1E343 /* TaiNguyen */ = {
 			isa = PBXGroup;
 			children = (
+				435F039D1CB2850C8C4BDBED /* Diu.xcassets */,
 				23B243DB36CDD12BF7188712 /* FLUENT-EMOJI-LICENSE.txt */,
 				215DFF84E68F40D4D195F82C /* Fluent.xcassets */,
 			);
@@ -316,9 +335,14 @@
 			children = (
 				21BB7B368505942043957F3A /* AiiGrowCon.entitlements */,
 				61FCF14C6B32CB1815B0A7A1 /* AiiGrowConApp.swift */,
-				9D2008392A03ECC87824D2C8 /* Clay.swift */,
+				B547176C46042D8B63F6E32F /* Diu.swift */,
 				FF9B76B70C98269C095CD359 /* Info.plist */,
-				EFDA2084344ACE7832D30647 /* ManHinh.swift */,
+				13108F5ED62BAA7EC7E20B27 /* ManCai.swift */,
+				9B30E10A0A852DC972AA2F96 /* ManGio.swift */,
+				949E1BF7AB0C21158B74B59B /* ManGoc.swift */,
+				F7EE9AD685CC98CF518FD6EC /* ManNgay.swift */,
+				A1B444117AAA00788020E808 /* ManNop.swift */,
+				8F577865D8885DE6017105C9 /* ManPin.swift */,
 				637B26E31A58EA96636B1160 /* MayChuHoSo.swift */,
 				A6FF5989EB66F1D733E4B180 /* MoHinhApp.swift */,
 			);
@@ -540,6 +564,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6D2C390112B3FEB141735242 /* Diu.xcassets in Resources */,
 				0C0A9010EF742F74ED7F183C /* FLUENT-EMOJI-LICENSE.txt in Resources */,
 				C30177CE7D5304AFAC2B5DEA /* Fluent.xcassets in Resources */,
 			);
@@ -554,11 +579,13 @@
 			files = (
 				988DE4DFECB0AB318CC35550 /* ApiClient.swift in Sources */,
 				9704E1739ABF09F84077DBB5 /* DongBo.swift in Sources */,
+				809B935FBAFC24A8237D9200 /* HocVien.swift in Sources */,
 				6FB26C633F922B41C602F5B6 /* KeHoach.swift in Sources */,
 				D8815C1C93DDC8C569D38770 /* KhoChung.swift in Sources */,
 				4C2AA5B5FA3E431A90E7676B /* LienKet.swift in Sources */,
 				B78741E74B6DE8D908D64E12 /* MaOffline.swift in Sources */,
 				352E2F4BA47955B0E860D7E3 /* MoHinh.swift in Sources */,
+				A44184C0CC37CCF080FE7812 /* PinBe.swift in Sources */,
 				01BBAFCF41708D5B39E359D9 /* TinhKhien.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -584,11 +611,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1C3B955DD2441829440E129 /* AiiGrowConApp.swift in Sources */,
-				B2913E338812A2D33BBF6EE0 /* Clay.swift in Sources */,
+				78DED865739B8597881DBE90 /* Diu.swift in Sources */,
 				22178AEB14B78839900CED21 /* KhoBiMat.swift in Sources */,
 				0F7A8A4D6016DF4CCC15CCFA /* LuaChon.swift in Sources */,
-				3D3827E43C52FCC7F938F37C /* ManHinh.swift in Sources */,
+				2710D9CE40F7DB897EB31538 /* ManCai.swift in Sources */,
+				343624AB6A8AA29201B5D184 /* ManGio.swift in Sources */,
+				8D096D74448B2F0B3C48552C /* ManGoc.swift in Sources */,
 				F4621B384F01C11AE628D75F /* ManHinhThoiGian.swift in Sources */,
+				4856764C0F76CA0AB1DC293C /* ManNgay.swift in Sources */,
+				A2274A1314E03846DC87960A /* ManNop.swift in Sources */,
+				3FFC414646CF7565447798BC /* ManPin.swift in Sources */,
 				ECBFB751A43D0A4FE3FD022C /* MayChuHoSo.swift in Sources */,
 				E5CE7CC8C17004840AF97C76 /* MoHinhApp.swift in Sources */,
 				001DB3C95F4721939D2F47F6 /* ThongBao.swift in Sources */,

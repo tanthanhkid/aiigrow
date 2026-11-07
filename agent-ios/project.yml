@@ -54,6 +54,9 @@ targets:
           - CFBundleURLName: vn.aiilab.aiigrow.con
             CFBundleURLSchemes: [aiigrowcon]
         ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Chụp ảnh nộp nhiệm vụ cho Ba Mẹ và quét mã QR ghép máy.
+        NSMicrophoneUsageDescription: Ghi âm nộp nhiệm vụ (ví dụ đọc sách cho Ba Mẹ nghe).
+        NSPhotoLibraryUsageDescription: Chọn ảnh có sẵn để nộp nhiệm vụ.
     entitlements:
       path: App/AiiGrowCon.entitlements
       properties:

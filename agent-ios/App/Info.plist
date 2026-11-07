@@ -39,6 +39,12 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Chụp ảnh nộp nhiệm vụ cho Ba Mẹ và quét mã QR ghép máy.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ghi âm nộp nhiệm vụ (ví dụ đọc sách cho Ba Mẹ nghe).</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Chọn ảnh có sẵn để nộp nhiệm vụ.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

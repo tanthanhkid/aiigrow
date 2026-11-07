@@ -36,6 +36,15 @@ public enum Khoa {
   public static let chonChan = "chon.chan"
   public static let moTamOffline = "moTamOffline"
   public static let suKienCho = "suKienCho"
+  // 06/11 PIN theo bé (PinBe.swift)
+  public static let phienMay = "phienMay"
+  public static let hoSoMay = "hoSoMay"
+  public static let demSai = "demSai"
+  public static let viecChoMang = "viecChoMang"
+  /// Bé đăng nhập gần nhất — đổi bé thì xoá nhật ký phút tại máy.
+  public static let conCuoi = "conCuoi"
+  /// Lời xin thêm giờ lưu lúc mất mạng — gửi khi có mạng (màn «Đã lưu lời xin»).
+  public static let xinChoMang = "xinChoMang"
 }
 
 /// Sự kiện agent (POST api/device/su-kien, server/lib/may-con.ts › SU_KIEN_MAY): `ma` một lần ⇒ gửi lại khi có mạng không ghi trùng.
