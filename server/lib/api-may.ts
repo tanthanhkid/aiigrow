@@ -28,6 +28,7 @@ import { xuLyConSao } from "./api-sao.ts";
 // S3 thiết kế 06/11 (L13): PIN theo bé, Ba Mẹ dùng máy, bé đang đăng nhập trên máy dùng chung
 import { xuLyMayS3 } from "./api-s3.ts";
 import { baMeDen, nguoiDungMay } from "./pin-be.ts";
+import { viQuaMay } from "./vi-qua-may.ts";
 import { chinhSachWebCho } from "./web.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
@@ -136,6 +137,8 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       return json(await buPhien(may, cb, b));
     }
     if (!con) throw new LoiNghiepVu("chua_chon_con", "Chọn tên con trước", 409);
+    // 07/11 (V1): ví quà của bé đang đăng nhập trên máy — lib/vi-qua-may.ts
+    if (d === "vi-qua" && req.method === "GET") return json(await viQuaMay(con));
     // L4: Con bấm «Xin Ba Mẹ mở …» trên màn chặn — app / web lạ ⇒ yêu cầu chờ Ba Mẹ duyệt (lý do không bắt buộc; bấm lại không gửi trùng)
     if (d === "xin-duyet" && req.method === "POST") return json(await xinDuyet(con, may.id, b));
     // Khay của học viên (agent-win Tray): nhận việc, làm + nộp, xem điểm/quà, thông báo — cổng mỏng trên các hàm của màn Con (lib/hoc-vien.ts).
