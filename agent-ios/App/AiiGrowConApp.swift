@@ -56,8 +56,8 @@ struct AiiGrowConApp: App {
         .preferredColorScheme(.light)   // bản «Dịu» chỉ có bảng sáng (nền kem)
         .onOpenURL { m.moLienKet($0) }
         .onChange(of: pha) { p in
-          if p == .active { Task { await m.dongBoNgay() } }
-          if p == .background { AppDelegate.lenLich() }
+          if p == .active { Task { await m.dongBoNgay() }; m.batDauCho() }   // app mở ⇒ giữ long-poll «Ba Mẹ đổi gì ⇒ áp ≤5 giây»
+          if p == .background { m.dungCho(); AppDelegate.lenLich() }
         }
     }
   }

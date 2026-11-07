@@ -30,6 +30,7 @@ import { xuLyMayS3 } from "./api-s3.ts";
 import { baMeDen, nguoiDungMay } from "./pin-be.ts";
 import { viQuaMay } from "./vi-qua-may.ts";
 import { chinhSachWebCho } from "./web.ts";
+import { choThayDoi, phienBanDoi } from "./cho-thay-doi.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -45,6 +46,11 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     if (p[0] === "lenh" && p[1] && p[2] === "xong" && req.method === "POST") return json(await xongLenh(bearer(req), p[1]));
     const may = await (async () => { const t = bearer(req); return t ? mayTuToken(t) : undefined; })();
     if (!may) return loi("token_sai", "Thiết bị chưa ghép hoặc đã bị gỡ khỏi gia đình", 401);
+    // P1 (07/11): long-poll «chờ thay đổi» — Ba Mẹ đổi gì thì trả ngay (≤ ~25 giây giữ), agent gọi dong-bo/nhip rồi áp (lib/cho-thay-doi.ts)
+    if (d === "cho-thay-doi" && req.method === "GET") {
+      const v = new URL(req.url).searchParams.get("ver");
+      return json(await choThayDoi(may.family_id, v == null || v.trim() === "" ? null : Number(v), { signal: req.signal }));
+    }
     const b = await docJson(req);
     // Con đang dùng: máy riêng ⇒ chủ máy; máy dùng chung ⇒ phiên Con (chọn tên + PIN) gửi kèm header X-Phien-Con, không kèm ⇒ bé đang đăng nhập
     // trên máy (06/11 L13: devices.con_dang_dung — giờ, sao, nhiệm vụ, chính sách tính theo bé này). «Ba Mẹ đang dùng máy» ⇒ không bé nào.
@@ -60,6 +66,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     { const r = await xuLyMayS3(may, req, p, b); if (r) return r; }
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
+      const phienBanThayDoi = await phienBanDoi(may.family_id);   // đọc TRƯỚC khi dựng chính sách (agent có thể dùng làm mốc `ver`; hiện agent lấy mốc từ cho-thay-doi không ver)
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
       // Lỗi ở nhịp phiên không được làm hỏng cả lượt đồng bộ (agent giữ Policy cũ, thay đổi của Ba Mẹ không tới máy) ⇒ nuốt + ghi log.
       // 0.2.4: tính đúng `status.playSeconds` agent đếm (app chơi ở nền trước, màn hình mở); máy dùng chung lấy Con từ phiên mở trên máy (lib/phien-windows.ts).
@@ -100,12 +107,13 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
         delete windows.quyConPhut; delete windows.khoaKhiHetNgoaiLe;
       }
       const nguoiDung = await nguoiDungMay(may, con);
-      return json({ ...pol, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
+      return json({ ...pol, phienBanThayDoi, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
         ...(danhSachApp ? { danhSachApp } : {}) });
     }
     if (d === "nhip") {
       // L13: nhịp trả chính sách của bé đang đăng nhập (`con`) + ai đang dùng máy; Ba Mẹ dùng ⇒ `baMeDung` + grantEndsAt tới hạn (máy mở hết)
-      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), nguoiDung: await nguoiDungMay(may, con) };
+      const phienBanThayDoi = await phienBanDoi(may.family_id);   // trước chính sách (như dong-bo)
+      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), phienBanThayDoi, nguoiDung: await nguoiDungMay(may, con) };
       if (bmDen) {
         const den = [r.grantEndsAt, bmDen.toISOString()].filter((x): x is string => typeof x === "string").sort().pop()!;
         Object.assign(r, { baMeDung: { den: bmDen.toISOString() }, grantEndsAt: den, moDen: den });

@@ -53,6 +53,13 @@ if motVong {
       try? await Task.sleep(nanoseconds: 1 * 1_000_000_000)
     }
   }
+  // P1 07/11: «Ba Mẹ bấm ⇒ áp ≤5 giây» — long-poll liên tục (máy chủ giữ ≤ ~25 giây); đổi gì thì kích vòng đồng bộ ở trên ngay. Task riêng: mạng treo không chặn áp.
+  Task {
+    while true {
+      let nghi = await boMay.vongChoThayDoi()
+      if nghi > 0 { try? await Task.sleep(nanoseconds: UInt64(nghi * 1_000_000_000)) }
+    }
+  }
   // Log + sự kiện + lịch sử web (5 phút một lần, tự kiểm hạn) — Task riêng.
   Task {
     while true {

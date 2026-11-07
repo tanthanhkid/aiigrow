@@ -41,6 +41,7 @@ builder.Services.AddSingleton<AgentRuntime>();
 builder.Services.AddSingleton<AppLockerController>();
 builder.Services.AddSingleton<IProcessControl, WindowsProcessControl>();
 builder.Services.AddHostedService<AgentWorker>();
+builder.Services.AddHostedService<ChoThayDoiWorker>();   // P1 07/11: long-poll «Ba Mẹ đổi gì ⇒ đồng bộ ngay» (≤5 giây)
 builder.Services.AddHostedService<PipeServer>();
 
 // Giám sát + lọc WEB (Chrome/Edge/Brave): ghi lịch sử tên miền Con vào lên máy chủ (mọi chế độ) và áp URLBlocklist/URLAllowlist (chỉ «Chặn thật»).

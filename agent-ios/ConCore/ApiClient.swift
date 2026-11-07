@@ -142,6 +142,25 @@ public final class ApiClient {
     try await goi("POST", "api/device/nhip", try JSONEncoder().encode(b), NhipTraVe.self)
   }
 
+  /// P1 (07/11): long-poll «chờ thay đổi» — máy chủ giữ ≤ ~25 giây (hạn yêu cầu 40 giây). `ver` nil ⇒ lấy mốc ngay. Chỉ gọi khi app đang mở.
+  public func choThayDoi(ver: Int?) async throws -> KetQuaCho {
+    var comp = URLComponents(url: goc.appendingPathComponent(ChoThayDoi.duong), resolvingAgainstBaseURL: false)!
+    let qi = ChoThayDoi.query(ver: ver)
+    if !qi.isEmpty { comp.queryItems = qi }
+    var r = URLRequest(url: comp.url!)
+    r.httpMethod = "GET"
+    r.timeoutInterval = 40
+    if let token { r.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+    let (d, ma): (Data, Int)
+    do { (d, ma) = try await vc.gui(r) } catch { throw LoiApi.mang(error.localizedDescription) }
+    guard (200..<300).contains(ma) else {
+      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+      throw LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)", cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)).", http: ma)
+    }
+    guard let kq = KetQuaCho.doc(d) else { throw LoiApi.giaiMa }
+    return kq
+  }
+
   public func xinThemGio(phut: Int, loiNhan: String) async throws -> KetQuaYeuCau {
     let ly = loiNhan.trimmingCharacters(in: .whitespacesAndNewlines)
     return try await goi("POST", "api/device/yeu-cau",
