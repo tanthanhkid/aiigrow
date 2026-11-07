@@ -15,5 +15,5 @@ Không dùng secret ký / notarize: gói build ở chế độ `THU=1` (ký ad-h
 
 ## Giới hạn của runner (không có phiên GUI của Con, không cấp được TCC)
 
-BỎ có lý do: màn «chưa được mở» + thông báo (tray, quyền Thông báo), đếm thời gian dùng app theo app tiền cảnh + Screen Time (Accessibility/Screen Recording),
+BỎ có lý do: **đóng app ngoài danh sách (5.2)** — daemon chỉ áp chính sách khi Con là người dùng console (`BoMay.apChinhSachTho`), runner không đăng nhập GUI của Con được; harness chỉ kiểm được quét app lên máy chủ (5.1) + chế độ/khoá/«Mở hết» qua IPC; màn «chưa được mở» + thông báo (tray, quyền Thông báo), đếm thời gian dùng app theo app tiền cảnh + Screen Time (Accessibility/Screen Recording),
 màn khoá toàn màn hình / ngắt phiên Con, hosts + Managed Preferences khi Con không ở màn hình. Tự cập nhật không kiểm (gói thử không có chữ ký Developer ID Installer).

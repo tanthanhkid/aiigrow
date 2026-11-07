@@ -6,6 +6,7 @@ name: agent-mac
 #   chup-man — testChupManMac (CHUP_CLAY=thư mục) chụp màn Mac, kiểm ảnh có đủ + không rỗng ⇒ artifact `man-mac`
 #   e2e      — cài .pkg chưa ký bằng `sudo installer` TRÊN runner, máy chủ Next cục bộ (PGlite) + agent-mac/e2e/chay.sh: ghép một chạm, đồng bộ,
 #              chặn app/web, khoá, «Mở hết», long-poll, gỡ. Ca cần TCC / phiên GUI của Con ⇒ BỎ kèm lý do. Xem agent-mac/e2e/README.md.
+# CHI PHÍ: macOS miễn phí chỉ khi repo PUBLIC (aiigrow public tạm tới golive). Khi đóng private, runner macOS tính phút ×10 ⇒ thu hẹp `paths`/chỉ chạy workflow_dispatch trước khi đóng.
 # Gói THỬ không qua được kiểm chữ ký của tự cập nhật (cố ý) ⇒ KHÔNG dùng artifact này để phát hành; phát hành vẫn ký + notarize ở máy Thanh.
 on:
   pull_request:
@@ -139,7 +140,7 @@ jobs:
       - name: Kiểm ảnh
         run: |
           python3 - <<'PY'
-          import glob, os, sys, zlib
+          import glob, os, sys
           fs = sorted(glob.glob('man-mac/*.png'))
           print(len(fs), 'ảnh')
           loi = 0

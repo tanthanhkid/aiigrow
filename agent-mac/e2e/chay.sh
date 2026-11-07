@@ -13,7 +13,6 @@ DATA="/Library/Application Support/AiiGrow"
 TEN_CON=aiicon
 KQ="$LOG/ket-qua.tsv"; : > "$KQ"
 FAILS=0
-declare -a CHUNG
 
 log() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 ghi() { # ma ten ketqua chitiet
@@ -57,7 +56,7 @@ ket_thuc() {
   cat "$f"
   [ -n "${GITHUB_STEP_SUMMARY:-}" ] && cat "$f" >> "$GITHUB_STEP_SUMMARY"
   sudo cp -R "/Library/Logs/AiiGrow" "$LOG/aiigrow-logs" 2>/dev/null; sudo chmod -R a+r "$LOG" 2>/dev/null
-  [ -n "${PID_SERVER:-}" ] && kill "$PID_SERVER" 2>/dev/null; pkill -P "${PID_SERVER:-0}" 2>/dev/null
+  [ -n "${PID_SERVER:-}" ] && { pkill -P "$PID_SERVER" 2>/dev/null; kill "$PID_SERVER" 2>/dev/null; }
   [ "$fail" -gt 0 ] && exit 1; exit 0
 }
 
@@ -120,7 +119,7 @@ BAN_APP=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applic
 dat 2.4 'Bản app = bản build' "$([ "$BAN_APP" = "$BAN" ] && echo 1 || echo 0)" "Info.plist $BAN_APP, mong $BAN"
 dat 2.5 'Socket IPC /var/run/aiigrow.sock có' "$(cho 30 2 test -S /var/run/aiigrow.sock && echo 1 || echo 0)" "$(ls -l /var/run/aiigrow.sock 2>&1)"
 QUYEN=$(sudo stat -f '%Sp %Su' "$DATA" 2>&1); dat 2.6 'Thư mục dữ liệu root 0700' "$([ "$QUYEN" = 'drwx------ root' ] && echo 1 || echo 0)" "$QUYEN"
-dat 2.7 'Token gói cài (goi-cai-token) root 0600 trước khi ghép' "$(sudo test -f "$DATA/goi-cai-token" -o -f "$DATA/config.json" && echo 1 || echo 0)" "$(sudo ls -l "$DATA" | tail -n +2 | awk '{print $1,$3,$9}' | tr '\n' ';')"
+dat 2.7 'Token gói cài (goi-cai-token) root 0600 trước khi ghép' "$([ "$(sudo stat -f '%Sp %Su' "$DATA/goi-cai-token" 2>/dev/null)" = '-rw------- root' ] && echo 1 || echo 0)" "$(sudo ls -l "$DATA" | tail -n +2 | awk '{print $1,$3,$9}' | tr '\n' ';')"
 
 # ------------------------------------------------------------------ KB3 — ghép một chạm qua IPC (như nút «Ghép máy» của tray, người gọi là admin)
 R=$($IPC "{\"ghep\":{\"ma\":\"\",\"taiKhoanCon\":\"$TEN_CON\"}}" 60 2>&1)
@@ -174,7 +173,7 @@ if [ -n "$KHOA_APP" ]; then
   sleep 1
   DANG_CHAY() { ps -axo uid=,comm= 2>/dev/null | awk -v u="$UID_CON" '$1==u' | grep -q e2echan; }
   SONG0=$(DANG_CHAY && echo 1 || echo 0)
-  [ "$SONG0" = 1 ] || { sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" 1 >>/tmp/e2echan.log 2>&1; echo "chạy đồng bộ: mã $?" >>/tmp/e2echan.log; }
+  [ "$SONG0" = 1 ] || { sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" >>/tmp/e2echan.log 2>&1 & DP=$!; sleep 2; kill "$DP" 2>/dev/null; wait "$DP" 2>/dev/null; echo "chạy thử 2 giây: mã $?" >>/tmp/e2echan.log; }
   log "E2EChan chạy dưới uid Con: $SONG0 · log: $(cat /tmp/e2echan.log | head -c 200) · ps: $(ps -u "$UID_CON" -o pid=,comm= | head -5 | tr '\n' ';')"
   api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"chan\"}" "$TOKEN_BM"; log "ung-dung/dat chan HTTP $API_MA"
   api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"chi_app_duoc_phep"}' "$TOKEN_BM"
@@ -194,9 +193,9 @@ api POST "/api/m/con/$CON_ID/khoa" '{"khoa":true}' "$TOKEN_BM"; T0=$SECONDS
 cho 60 1 cho_che_do khoa; G=$((SECONDS-T0))
 dat 6.1 'Khoá ngay ⇒ daemon mode khoa (≤ 20 giây, long-poll)' "$([ "$(tt_truong cheDo)" = khoa ] && [ "$G" -le 20 ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) lyDoKhoa $(tt_truong lyDoKhoa) sau $G giây"
 api POST "/api/m/con/$CON_ID/khoa" '{"khoa":false}' "$TOKEN_BM"; T0=$SECONDS
-khong_khoa() { [ "$(tt_truong cheDo)" != khoa ]; }
+khong_khoa() { local c; c=$(tt_truong cheDo); [ -n "$c" ] && [ "$c" != khoa ]; }
 cho 60 1 khong_khoa; G=$((SECONDS-T0))
-dat 6.2 'Mở lại ⇒ hết khoá' "$([ "$(tt_truong cheDo)" != khoa ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) sau $G giây"
+dat 6.2 'Mở lại ⇒ hết khoá' "$(khong_khoa && echo 1 || echo 0)" "mode $(tt_truong cheDo) sau $G giây"
 bo 6.3 'Màn khoá toàn màn hình / ngắt phiên Con (dongPhien)' 'cần phiên đăng nhập của Con (loginwindow/tray) — runner không có'
 
 # ------------------------------------------------------------------ KB7 — «Mở hết»
