@@ -439,7 +439,7 @@ public enum HocVienView {
   public static func hanVoucher(_ v: HvVoucher, bayGio: Date = Date()) -> String? {
     if v.trangThai == "da_dung" { return "Đã dùng" }
     if v.trangThai == "het_han" || voucherHetHan(v, bayGio: bayGio) { return "Đã hết hạn" }
-    guard let n = v.hetHan.map({ Int((($0.timeIntervalSince(bayGio)) / 86_400).rounded(.up)) }) ?? v.conNgay else { return nil }
+    guard let n = v.hetHan.map({ h -> Int in let s = h.timeIntervalSince(bayGio); return s < 86_400 ? 0 : Int((s / 86_400).rounded(.up)) }) ?? v.conNgay else { return nil }
     return n <= 0 ? "Hết hạn hôm nay" : "Còn \(n) ngày"
   }
 

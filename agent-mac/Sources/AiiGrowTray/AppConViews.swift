@@ -480,7 +480,7 @@ struct AppConView: View {
               }
             }
             .contentShape(Rectangle())
-            .onTapGesture { if HocVienView.doiDuoc(q) { quaHoi = q } }
+            .onTapGesture { if q.choTraoTu == nil && q.conHopLe { quaHoi = q } }
           }
           .vaoLanLuot(min(i + 1, 6))
         }

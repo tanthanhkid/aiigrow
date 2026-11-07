@@ -36,7 +36,7 @@ struct ViQuaView: View {
   }
   private var daTrao: [HvQuaDaTrao] { v.daTrao }
   /// Voucher đã trao đi kèm trong `daTrao`; voucher không nằm trong đó (thu hồi / quá hạn…) vẫn hiện riêng để Con thấy trạng thái.
-  private var voucherLe: [HvVoucher] { v.voucher.filter { x in !daTrao.contains { $0.voucher?.ma == x.ma } } }
+  private var voucherLe: [HvVoucher] { v.voucher.filter { x in x.ma.isEmpty || !daTrao.contains { $0.voucher?.ma == x.ma } } }
 
   var body: some View {
     HStack {
@@ -63,7 +63,7 @@ struct ViQuaView: View {
     }
     if !daTrao.isEmpty || !voucherLe.isEmpty {
       Chu("Đã nhận", co: 18, dam: .bold, dong: 1).padding(.top, 4)
-      ForEach(daTrao) { q in theDaTrao(q) }
+      ForEach(Array(daTrao.enumerated()), id: \.offset) { _, q in theDaTrao(q) }
       ForEach(Array(voucherLe.enumerated()), id: \.offset) { _, x in
         theVoucher(ten: x.ten, sao: nil, traoLuc: nil, x)
       }

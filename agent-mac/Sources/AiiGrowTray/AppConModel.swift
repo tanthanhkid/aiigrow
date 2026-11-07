@@ -115,9 +115,10 @@ final class AppConModel: ObservableObject {
       return
     }
     tq = t; loiTai = nil
-    await taiViQua()
+    async let viQuaXong: Void = taiViQua()          // song song với cua-hang / tin (GioiHanIPC giữ tối đa 2 lệnh)
     if let c = await hoi("GET", "hoc-vien/cua-hang").0.flatMap(HvCuaHang.doc) { ch = c }
     if let x = await hoi("GET", "hoc-vien/tin").0.flatMap(HvTinDs.doc) { tin = x }
+    await viQuaXong
     await lamMoiPhutChoi(dsChoi: dsChoi)
   }
 
