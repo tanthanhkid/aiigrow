@@ -319,10 +319,10 @@ class ManChinh : Activity() {
         return v
     }
 
-    /** Số phút cho 10 sao (tỷ lệ nhà) — tổng quan hoặc chính sách nhịp; mặc định 10. */
-    private fun phut10Sao(k: Kho): Int {
+    /** Tỷ lệ nhà «sao sao = phut phút» (tổng quan quy.tyLe, mặc định 10 = 10) — giữ nguyên hai số, không chia trước (lệch như máy chủ). */
+    private fun tyLeSao(k: Kho): Pair<Int, Int> {
         val ty = try { k.hvTongQuan?.let { org.json.JSONObject(it) }?.optJSONObject("quy")?.optJSONObject("tyLe") } catch (_: Exception) { null }
-        return ty?.let { (it.optInt("phut", 10) * 10 / it.optInt("sao", 10).coerceAtLeast(1)).coerceAtLeast(1) } ?: chinhSach(k)?.quy?.phut10Sao ?: 10
+        return ty?.let { it.optInt("sao", 10).coerceAtLeast(1) to it.optInt("phut", 10).coerceAtLeast(1) } ?: (10 to (chinhSach(k)?.quy?.phut10Sao ?: 10).coerceAtLeast(1))
     }
 
     /** «Đổi sao lấy giờ chơi» (con-dt-android/02) → «+10 phút chơi!» (03) / «Chưa đủ sao» (04). Màn toàn trang trên nền kem. */
@@ -337,7 +337,8 @@ class ManChinh : Activity() {
             cot.removeAllViews()
             val coSao = saoHienCo(k) ?: 0
             val conPhut = HienThi.doc(k.hienThi)?.conPhut ?: 0
-            val x = xemDoiSao(chon, coSao, conPhut, phut10Sao(k))
+            val (saoTy, phutTy) = tyLeSao(k)
+            val x = xemDoiSao(chon, coSao, conPhut, phutTy, saoTy)
             cot.addView(Diu.nut(this, "‹  Quay lại", Diu.KieuNut.CHU) { d.dismiss() }.apply {
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT) })
             if (!x.du) {
@@ -354,7 +355,7 @@ class ManChinh : Activity() {
             val the = Diu.the(this)
             the.addView(Diu.chu(this, "Con đang có", 15f, Diu.CHU2))
             the.addView(Diu.chipSao(this, coSao, to = true))
-            the.addView(Diu.chu(this, "10 sao = ${phut10Sao(k)} phút", 15f, Diu.CHU2).apply { setPadding(0, G.dp(this@ManChinh, 6), 0, 0) })
+            the.addView(Diu.chu(this, "${tyLeSao(k).first} sao = ${tyLeSao(k).second} phút", 15f, Diu.CHU2).apply { setPadding(0, G.dp(this@ManChinh, 6), 0, 0) })
             cot.addView(the)
             cot.addView(Diu.chu(this, "Con muốn đổi", 17f, Diu.CHU, true).apply { setPadding(0, G.dp(this@ManChinh, 14), 0, 0) })
             val hang = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }

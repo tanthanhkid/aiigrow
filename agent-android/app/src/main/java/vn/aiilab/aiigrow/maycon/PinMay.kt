@@ -11,6 +11,8 @@ import vn.aiilab.aiigrow.maycon.logic.KetQuaPin
 import vn.aiilab.aiigrow.maycon.logic.LoaiNguoiDung
 import vn.aiilab.aiigrow.maycon.logic.NguoiDung
 import vn.aiilab.aiigrow.maycon.logic.ViecCho
+import vn.aiilab.aiigrow.maycon.logic.KetQuaGui
+import vn.aiilab.aiigrow.maycon.logic.guiLanLuot
 import vn.aiilab.aiigrow.maycon.logic.boViecCho
 import vn.aiilab.aiigrow.maycon.logic.denTheoGioMay
 import vn.aiilab.aiigrow.maycon.logic.viecConLai
@@ -61,27 +63,37 @@ object PinMay {
 
     // ------------------------------------------------------------------ đồng bộ với nhịp (luồng nhịp của DichVuNhip)
 
+    /** Khoá GỬI riêng (không phải khoá Kho): chỉ luồng nền (nhịp, roiMay) giữ qua lời gọi mạng ⇒ việc chờ tới máy chủ tuần tự, «roi» luôn sau «vao». */
+    private val khoaGui = Any()
+
     /** Gửi bù việc làm lúc mất mạng (bé vào bằng PIN kiểm offline / đăng xuất / khoá lại) — trước mỗi nhịp và ngay sau «rời máy».
-     *  KHÔNG giữ khoá qua lời gọi mạng (luồng UI cũng lấy khoá — giữ 35 giây ⇒ ANR). Chỉ bỏ việc khi máy chủ từ chối nghiệp vụ (4xx);
-     *  5xx / mạng ⇒ giữ, lần sau thử lại. Trong lúc gửi có việc mới ⇒ giữ việc mới (viecConLai). */
-    fun guiViecCho(k: Kho) {
-        val v = synchronized(khoa) { ViecCho.doc(k.viecCho) } ?: return
+     *  Khoá Kho chỉ giữ lúc đọc / ghi (luồng UI cũng lấy — giữ qua mạng 35 giây ⇒ ANR). Chỉ bỏ việc khi máy chủ từ chối nghiệp vụ (4xx);
+     *  5xx / mạng ⇒ giữ, lần sau thử lại. Trong lúc gửi có việc mới ⇒ gửi tiếp việc mới (logic/PinBe.kt › guiLanLuot).
+     *  Trả false nếu MẤT MẠNG (nhịp vòng này bỏ luôn, khỏi chờ thêm một lần hết hạn kết nối). Chỉ gọi trên luồng nền. */
+    fun guiViecCho(k: Kho): Boolean = synchronized(khoaGui) {
+        if (synchronized(khoa) { k.viecCho } == null) return@synchronized true
+        var matMang = false
         val may = MayChu(k.mayChu, k.token)
-        try {
-            when (v.loai) {
-                "vao" -> v.conId?.let { may.dangNhapBe(it, v.pin) }
-                else -> may.dangXuat()
-            }
-            synchronized(khoa) { k.viecCho = viecConLai(ViecCho.doc(k.viecCho), v)?.json() }
-        } catch (e: MayChu.Loi) {
-            if (!boViecCho(e.http)) return   // 5xx / 408 / 429 ⇒ giữ để thử lại
-            synchronized(khoa) {
-                val conLai = viecConLai(ViecCho.doc(k.viecCho), v)
-                k.viecCho = conLai?.json()
-                // PIN đã đổi / bé bị gỡ khỏi máy ⇒ về màn chọn tên (chỉ khi chưa có việc mới chen vào)
-                if (v.loai == "vao" && conLai == null) { NhatKy.canh(TAG, "gửi bù dang-nhap-be bị từ chối: ${e.ma}"); datNguoi(k, NguoiDung(LoaiNguoiDung.CHUA), null) }
-            }
-        } catch (_: IOException) { /* còn mất mạng — giữ lại */ }
+        guiLanLuot(
+            doc = { synchronized(khoa) { ViecCho.doc(k.viecCho) } },
+            gui = { v ->
+                try {
+                    when (v.loai) { "vao" -> v.conId?.let { may.dangNhapBe(it, v.pin) }; else -> may.dangXuat() }
+                    KetQuaGui.XONG
+                } catch (e: MayChu.Loi) {
+                    if (boViecCho(e.http)) { NhatKy.canh(TAG, "việc chờ ${v.loai} bị máy chủ từ chối: ${e.ma}"); KetQuaGui.BO } else KetQuaGui.GIU
+                } catch (_: IOException) { matMang = true; KetQuaGui.GIU }
+            },
+            ghi = { v, kq ->
+                synchronized(khoa) {
+                    val conLai = viecConLai(ViecCho.doc(k.viecCho), v)
+                    k.viecCho = conLai?.json()
+                    // PIN đã đổi / bé bị gỡ khỏi máy ⇒ về màn chọn tên (chỉ khi chưa có việc mới chen vào)
+                    if (kq == KetQuaGui.BO && v.loai == "vao" && conLai == null) datNguoi(k, NguoiDung(LoaiNguoiDung.CHUA), null)
+                }
+            },
+        )
+        !matMang
     }
 
     /** Sau nhịp thành công: nhận `nguoiDung` (trừ khi tại máy vừa đổi người sau lúc nhịp bắt đầu, hoặc còn việc chưa gửi), lấy lại hồ sơ khi cần.
@@ -131,18 +143,20 @@ object PinMay {
             MayChu(k.mayChu, k.token).dangNhapBe(be.id, if (be.coPin) pin else null)
             synchronized(khoa) {
                 k.viecCho = null; k.baMeDen = 0
-                k.demPin = DemPin.doc(k.demPin).thu(be.id, true, System.currentTimeMillis()).second.json()
+                k.demPin = DemPin.doc(k.demPin).xoa(be.id).json()   // máy chủ nhận PIN ⇒ xoá hẳn khoá cục bộ của bé
                 datNguoi(k, NguoiDung(LoaiNguoiDung.CON, be.id, be.ten, be.coPin), be.id)
             }
             NhatKy.tin(TAG, "bé vào máy (máy chủ kiểm)")
             DichVuNhip.lamMoi(ctx)
             return KetQuaVao.Vao
         } catch (e: MayChu.Loi) {
-            val kq = docLoiPin(e.ma, e.than, hoSo(k)?.pinSaiToiDa ?: 5)
-            if (kq is KetQuaPin.TamKhoa) synchronized(khoa) {
-                k.demPin = DemPin.doc(k.demPin).khoaTheoMayChu(be.id, System.currentTimeMillis() + kq.choGiay * 1000L).json()
+            if (e.http < 500) {   // 5xx / 502 (máy chủ hỏng) ⇒ như mất mạng: kiểm tại máy
+                val kq = docLoiPin(e.ma, e.than, hoSo(k)?.pinSaiToiDa ?: 5)
+                if (kq is KetQuaPin.TamKhoa) synchronized(khoa) {
+                    k.demPin = DemPin.doc(k.demPin).khoaTheoMayChu(be.id, System.currentTimeMillis() + kq.choGiay * 1000L).json()
+                }
+                return KetQuaVao.Loi(kq, if (kq != null) cauPin(kq) else e.cau)
             }
-            return KetQuaVao.Loi(kq, if (kq != null) cauPin(kq) else e.cau)
         } catch (_: IOException) { /* mất mạng ⇒ kiểm tại máy */ }
         val now = System.currentTimeMillis()
         val hs = hoSo(k)
@@ -171,6 +185,8 @@ object PinMay {
                 k.baMeDen = 0; datNguoi(k, NguoiDung(LoaiNguoiDung.CHUA), null)
                 if (!k.cheDoThu) k.viecCho = viecSauRoi(ViecCho.doc(k.viecCho), System.currentTimeMillis()).json()
             }
+            // cửa sổ mở bằng mã offline (của bé trước) kết thúc — bé sau không hưởng (vượt giờ ngủ)
+            MoMaOffline.dongCuaSo(ctx)
             DichVuNhip.apNgay(ctx)
             if (!k.cheDoThu) guiViecCho(k)
         }.start()
@@ -201,14 +217,15 @@ object PinMay {
             DichVuNhip.lamMoi(ctx)
             return null
         } catch (e: MayChu.Loi) {
-            return when (e.ma) {
+            if (e.http < 500) return when (e.ma) {   // 5xx / 502 ⇒ như mất mạng: tự kiểm
                 "ma_sai" -> "Mã chưa đúng · còn ${e.than.optInt("conLan")} lần thử"
                 "ma_tam_khoa" -> "Nhập sai nhiều lần — thử lại sau ${maxOf(1, (e.than.optInt("choGiay", 600) + 59) / 60)} phút."
                 "ma_da_dung" -> "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới."
                 else -> e.cau
             }
         } catch (_: IOException) { /* mất mạng ⇒ tự kiểm */ }
-        val (kq, den, cau) = MoMaOffline.thuMa(ctx, sach)
+        // choBaMe: chỉ ghi dấu mã đã dùng + bộ đếm sai, KHÔNG mở cửa sổ mã offline của Con (Khoá lại xong bé vào không hưởng cửa sổ đó)
+        val (kq, den, cau) = MoMaOffline.thuMa(ctx, sach, choBaMe = true)
         if (kq != KetQuaMoOffline.DA_MO || den == null) return cau
         synchronized(khoa) {
             k.baMeDen = den
@@ -221,6 +238,6 @@ object PinMay {
 
     /** Máy rời gia đình / ghép lại ⇒ quên hồ sơ, người dùng, bộ đếm. */
     fun quen(k: Kho) = synchronized(khoa) {
-        k.hoSo = null; k.lanHoSo = 0; k.nguoiDung = null; k.baMeDen = 0; k.demPin = null; k.viecCho = null; k.lanDoiNguoi = 0
+        k.hoSo = null; k.lanHoSo = 0; k.nguoiDung = null; k.baMeDen = 0; k.demPin = null; k.viecCho = null; k.lanDoiNguoi = 0; k.mocBe = null
     }
 }

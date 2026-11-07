@@ -133,6 +133,9 @@ data class DemPin(val sai: Map<String, List<Long>> = emptyMap(), val khoaDen: Ma
         return KetQuaPin.Sai(toiDa - ds.size) to copy(sai = sai + (conId to ds))
     }
 
+    /** Máy chủ nhận PIN đúng ⇒ xoá HẲN mọi dấu sai / hạn chờ tại máy của bé (không đi qua thu() — thu() bị chặn khi đang chờ). */
+    fun xoa(conId: String): DemPin = copy(sai = sai - conId, khoaDen = khoaDen - conId)
+
     /** Máy chủ báo bé đang bị chờ (`khoaDen`) ⇒ nhớ để mất mạng ngay sau đó vẫn chờ đúng. */
     fun khoaTheoMayChu(conId: String, den: Long): DemPin = if ((khoaDen[conId] ?: 0) >= den) this else copy(khoaDen = khoaDen + (conId to den))
 
@@ -189,6 +192,46 @@ fun viecSauRoi(@Suppress("UNUSED_PARAMETER") cu: ViecCho?, now: Long): ViecCho =
 
 /** Sau khi gửi xong `daGui`: việc đang chờ còn đúng là việc đó thì xoá; trong lúc gửi đã có việc mới (vd bé vừa đăng xuất) thì giữ việc mới. */
 fun viecConLai(hienTai: ViecCho?, daGui: ViecCho): ViecCho? = if (hienTai == daGui) null else hienTai
+
+enum class KetQuaGui { XONG, BO, GIU }
+
+/**
+ * Gửi việc chờ TUẦN TỰ (người gọi giữ một khoá gửi riêng): lấy việc đang chờ → gửi → ghi kết quả; trong lúc gửi mà việc chờ đã đổi
+ * (vd «vao» đang bay thì bé bấm Đăng xuất ⇒ «roi») thì gửi tiếp việc mới ⇒ máy chủ luôn nhận «roi» SAU «vao». GIU (5xx / mạng) ⇒ dừng.
+ * `ghi(daGui, kq)` cập nhật kho (XONG / BO ⇒ viecConLai). Trả danh sách việc đã gửi theo thứ tự.
+ */
+fun guiLanLuot(doc: () -> ViecCho?, gui: (ViecCho) -> KetQuaGui, ghi: (ViecCho, KetQuaGui) -> Unit, toiDa: Int = 3): List<ViecCho> {
+    val daGui = mutableListOf<ViecCho>()
+    repeat(toiDa) {
+        val v = doc() ?: return daGui
+        val kq = gui(v)
+        daGui += v
+        if (kq == KetQuaGui.GIU) return daGui
+        ghi(v, kq)
+    }
+    return daGui
+}
+
+/** Mốc phút giải trí cả máy lúc bé `conId` vào (máy DÙNG CHUNG): phút của bé = phút cả máy − mốc ⇒ bé sau không bị tính phút của bé trước / Ba Mẹ.
+ *  `luc` = lúc đổi người tại máy (Kho.lanDoiNguoi) khi đặt mốc — bé vào lại (kể cả cùng bé, sau Ba Mẹ dùng) ⇒ mốc mới. */
+data class MocPhut(val conId: String, val ngay: String, val phut: Int, val luc: Long = 0) {
+    fun json(): String = JSONObject().put("conId", conId).put("ngay", ngay).put("phut", phut).put("luc", luc).toString()
+    companion object {
+        fun doc(s: String?): MocPhut? = try { if (s.isNullOrBlank()) null else JSONObject(s).let { MocPhut(it.getString("conId"), it.getString("ngay"), it.optInt("phut"), it.optLong("luc")) } }
+            catch (_: Exception) { null }
+    }
+}
+
+/** Cập nhật mốc: máy dùng chung + bé đang dùng (CON) mà mốc khác bé / khác ngày / khác lượt vào ⇒ mốc mới = phút cả máy lúc này.
+ *  Không dùng chung ⇒ null (máy riêng: cả máy là của bé). Cổng khác (chọn tên / Ba Mẹ) ⇒ giữ nguyên. */
+fun capNhatMoc(moc: MocPhut?, dungChung: Boolean, cong: Cong, conId: String?, ngay: String, phutCaMay: Int, lucVao: Long): MocPhut? {
+    if (!dungChung) return null
+    if (cong != Cong.CON || conId == null) return moc
+    return if (moc == null || moc.conId != conId || moc.ngay != ngay || moc.luc != lucVao) MocPhut(conId, ngay, phutCaMay, lucVao) else moc
+}
+
+/** Phút của bé = phút cả máy − mốc (≥ 0). */
+fun truMoc(phut: Int, moc: MocPhut?): Int = (phut - (moc?.phut ?: 0)).coerceAtLeast(0)
 
 /** Hạn «Ba Mẹ dùng» máy chủ gửi (giờ máy chủ) → giờ máy (`lechMs` = giờ máy chủ − giờ máy). Mọi so sánh cổng dùng giờ máy. */
 fun denTheoGioMay(denMayChu: Long?, lechMs: Long): Long? = denMayChu?.let { it - lechMs }

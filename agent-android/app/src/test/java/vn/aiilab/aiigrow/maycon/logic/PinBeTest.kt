@@ -110,6 +110,50 @@ class PinBeTest {
         assertEquals("Sai 3 lần rồi", cauPin(KetQuaPin.TamKhoa(15, 3)))
     }
 
+    // review lượt 2 (#205): 4) gửi tuần tự — «roi» luôn tới máy chủ sau «vao»; 6) máy chủ nhận PIN ⇒ xoá hẳn khoá cục bộ; 2) mốc phút máy dùng chung
+    @Test fun guiLanLuot_roiSauVao() {
+        var cho: ViecCho? = ViecCho("vao", "c1", "4821", t)
+        val roi = ViecCho("roi", luc = t + 5)
+        val mayChu = mutableListOf<String>()
+        val da = guiLanLuot(
+            doc = { cho },
+            gui = { v -> mayChu += v.loai; if (v.loai == "vao") cho = roi; KetQuaGui.XONG },   // bé bấm Đăng xuất lúc «vao» đang bay
+            ghi = { v, _ -> cho = viecConLai(cho, v) },
+        )
+        assertEquals(listOf("vao", "roi"), mayChu)
+        assertEquals(listOf("vao", "roi"), da.map { it.loai })
+        assertNull("gửi hết ⇒ không còn việc", cho)
+        // 5xx / mạng ⇒ GIU: dừng, giữ việc
+        var c2: ViecCho? = roi
+        assertEquals(1, guiLanLuot({ c2 }, { KetQuaGui.GIU }, { v, _ -> c2 = viecConLai(c2, v) }).size)
+        assertEquals(roi, c2)
+        assertTrue(guiLanLuot({ null }, { KetQuaGui.XONG }, { _, _ -> }).isEmpty())
+    }
+
+    @Test fun demPin_xoaHanKhiMayChuNhan() {
+        var d = DemPin()
+        repeat(5) { d = d.thu("c1", false, t + it).second }
+        assertTrue(d.choGiay("c1", t + 10) > 0)
+        assertEquals("thu(dung) bị chặn khi đang chờ", KetQuaPin.TamKhoa(15), d.thu("c1", true, t + 10).first)
+        val x = d.xoa("c1")
+        assertEquals(0, x.choGiay("c1", t + 10)); assertTrue(x.sai["c1"] == null)
+        assertEquals(KetQuaPin.Sai(4), x.thu("c1", false, t + 20).first)
+    }
+
+    @Test fun mocPhut_mayDungChung() {
+        val ngay = "2026-11-06"
+        assertNull("máy riêng ⇒ không mốc", capNhatMoc(null, false, Cong.CON, "c1", ngay, 40, 1))
+        val a = capNhatMoc(null, true, Cong.CON, "c1", ngay, 40, 1)!!
+        assertEquals(0, truMoc(40, a)); assertEquals(15, truMoc(55, a))
+        assertEquals("cùng lượt vào ⇒ giữ mốc", a, capNhatMoc(a, true, Cong.CON, "c1", ngay, 55, 1))
+        assertEquals("chọn tên / Ba Mẹ ⇒ giữ", a, capNhatMoc(a, true, Cong.BA_ME, null, ngay, 70, 2))
+        val b = capNhatMoc(a, true, Cong.CON, "c2", ngay, 70, 3)!!
+        assertEquals("bé sau không bị tính 70 phút của bé trước + Ba Mẹ", 0, truMoc(70, b))
+        assertEquals("cùng bé vào lại sau Ba Mẹ ⇒ mốc mới", 90, capNhatMoc(b, true, Cong.CON, "c2", ngay, 90, 4)!!.phut)
+        assertEquals("sang ngày ⇒ mốc mới", 2, capNhatMoc(b, true, Cong.CON, "c2", "2026-11-07", 2, 3)!!.phut)
+        assertEquals(b, MocPhut.doc(b.json()))
+    }
+
     @Test fun viecCho_json() {
         val v = ViecCho("vao", "c1", "4821", t)
         assertEquals(v, ViecCho.doc(v.json()))
@@ -126,5 +170,16 @@ class DoiSaoTest {
         assertTrue(!y.du); assertEquals(10, y.thieu); assertEquals(30, y.doiDuocToiDa)
         assertEquals("Thiếu 10 sao = 1 nhiệm vụ", cauThieuSao(10))
         assertEquals("tỷ lệ 10 sao = 15 phút", 30, xemDoiSao(20, 30, 0, 15).phut)
+        // review lượt 2: đúng công thức máy chủ — phút = floor(sao·phut/10), sao trừ = ceil(phút·10/phut)
+        val z = xemDoiSao(10, 30, 0, 7)            // 10 sao = 7 phút
+        assertEquals(7, z.phut); assertEquals(10, z.sao)
+        val w = xemDoiSao(10, 30, 0, 15, 10)      // 10 sao → 15 phút → trừ ceil(150/15)=10
+        assertEquals(15, w.phut); assertEquals(10, w.sao)
+        val u = xemDoiSao(20, 30, 0, 3)            // 20 sao → 6 phút → trừ ceil(60/3)=20
+        assertEquals(6, u.phut); assertEquals(20, u.sao)
+        val v = xemDoiSao(10, 30, 0, 4)            // 10 sao → 4 phút → trừ 10
+        assertEquals(4, v.phut); assertEquals(10, v.sao); assertEquals(20, v.conLaiSao)
+        assertEquals("tỷ lệ 3 sao = 10 phút: 10 sao → 33 phút → trừ ceil(99/10)=10", 10, xemDoiSao(10, 30, 0, 10, 3).sao)
+        assertEquals(33, xemDoiSao(10, 30, 0, 10, 3).phut)
     }
 }

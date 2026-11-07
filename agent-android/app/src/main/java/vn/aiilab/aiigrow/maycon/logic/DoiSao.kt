@@ -9,12 +9,15 @@ data class XemDoiSao(val sao: Int, val phut: Int, val du: Boolean, val thieu: In
                      /** chưa đủ ⇒ số sao lớn nhất (bội 10) đổi được ngay — nút «Đổi 30 sao». */
                      val doiDuocToiDa: Int)
 
-/** `phut10` = số phút cho 10 sao (tỷ lệ của nhà). `saoMoiViec` ≈ sao một nhiệm vụ để nói «Thiếu 10 sao = 1 nhiệm vụ». */
-fun xemDoiSao(sao: Int, coSao: Int, conPhut: Int, phut10: Int): XemDoiSao {
-    val p10 = phut10.coerceAtLeast(1)
-    val phut = sao * p10 / 10
-    val du = coSao >= sao
-    return XemDoiSao(sao, phut, du, maxOf(0, sao - coSao), maxOf(0, coSao - sao), conPhut, conPhut + phut, (coSao / 10) * 10)
+/** Tỷ lệ của nhà «`saoTyLe` sao = `phutTyLe` phút» (hoc-vien/tong-quan › quy.tyLe = {sao: 10, phut}). Tính ĐÚNG như máy chủ
+ *  (server/lib/quy-gio.ts): phút nhận = floor(sao · phut / saoTyLe) (phutChoSao), sao bị trừ = ceil(phút · saoTyLe / phut) (saoChoPhut) —
+ *  không chia nguyên hai lần (lệch số sao hiển thị). Máy chủ nhận số PHÚT. */
+fun xemDoiSao(sao: Int, coSao: Int, conPhut: Int, phutTyLe: Int, saoTyLe: Int = 10): XemDoiSao {
+    val p = phutTyLe.coerceAtLeast(1).toLong(); val s = saoTyLe.coerceAtLeast(1).toLong()
+    val phut = (maxOf(0, sao) * p / s).toInt()
+    val saoTru = ((phut * s + p - 1) / p).toInt()
+    val du = coSao >= saoTru
+    return XemDoiSao(saoTru, phut, du, maxOf(0, saoTru - coSao), maxOf(0, coSao - saoTru), conPhut, conPhut + phut, (coSao / 10) * 10)
 }
 
 /** «Thiếu 10 sao = 1 nhiệm vụ» (làm tròn lên theo sao trung bình một việc, mặc định 10). */
