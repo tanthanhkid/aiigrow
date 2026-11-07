@@ -93,6 +93,16 @@ api POST /api/m/goi-cai "{\"con\":\"$CON_ID\",\"nen\":\"mac\"}" "$TOKEN_BM"; TOK
 [ -n "$TOKEN_GOI" ] && echo "::add-mask::$TOKEN_GOI"
 dat 1.5 'Gói cài một chạm (goi-cai, nền mac)' "$([ "${#TOKEN_GOI}" = 43 ] && echo 1 || echo 0)" "độ dài token ${#TOKEN_GOI} (cần 43 để tên gói AiiGrow_<token>.pkg khớp postinstall) · HTTP $API_MA"
 
+# App giả «ngoài danh sách» tạo TRƯỚC khi cài/ghép: daemon quét /Applications lúc ghép, sau đó chỉ quét lại khi Ba Mẹ bấm «Làm mới».
+APP="/Applications/E2EChan.app"
+sudo mkdir -p "$APP/Contents/MacOS"
+sudo cp /bin/sleep "$APP/Contents/MacOS/e2echan"
+sudo tee "$APP/Contents/Info.plist" >/dev/null <<'PL'
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>vn.e2e.chan</string><key>CFBundleName</key><string>E2EChan</string><key>CFBundleExecutable</key><string>e2echan</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>1.0</string></dict></plist>
+PL
+sudo codesign --force -s - "$APP" >/dev/null 2>&1
+
 # ------------------------------------------------------------------ KB2 — cài gói chưa ký bằng installer
 # Máy chủ thử: đặt mayChu = máy chủ cục bộ vào config.json TRƯỚC khi cài (ghép một chạm gọi api.mayChu; không có tuỳ chọn khác để đổi). Đây là đồ giả của harness.
 sudo mkdir -p "$DATA"; sudo chmod 0700 "$DATA"
@@ -121,7 +131,7 @@ dat 3.3 'Token gói cài đã xoá sau ghép' "$(sudo test ! -f "$DATA/goi-cai-t
 T0=$SECONDS; MAY=""
 while [ $((SECONDS-T0)) -lt 180 ]; do
   api GET /api/m/tuan-thu "" "$TOKEN_BM"; MAY=$(jqr "$API_THAN" '[.ds[]? | select(.nen=="mac")][0] // empty')
-  [ -n "$MAY" ] && [ "$(jqr "$MAY" .lanCuoi)" != null ] && [ -n "$(jqr "$MAY" .phienBan)" ] && break; sleep 5
+  [ -n "$MAY" ] && [ "$(jqr "$MAY" .lanCuoi)" != null ] && [ "$(jqr "$MAY" .phienBan)" != null ] && break; sleep 5
 done
 MAY_ID=$(jqr "$MAY" .id)
 dat 3.4 'Máy Mac trong tuan-thu, đã đồng bộ' "$([ -n "$MAY_ID" ] && echo 1 || echo 0)" "sau $((SECONDS-T0)) giây · id $MAY_ID ten $(jqr "$MAY" .ten) lanCuoi $(jqr "$MAY" .lanCuoi)"
@@ -145,21 +155,13 @@ if grep -q "$TEN_CHAN" /etc/hosts 2>/dev/null; then ghi 4.3 'Khối /etc/hosts c
 else bo 4.3 'Khối /etc/hosts / chính sách trình duyệt áp cho Con' "daemon chỉ đặt hosts + Managed Preferences khi Con đang ở màn hình (phienConsole); runner không có phiên đăng nhập của Con"; fi
 
 # ------------------------------------------------------------------ KB5 — chặn app thật: app ngoài danh sách đang chạy dưới uid Con bị đóng
-APP="/Applications/E2EChan.app"
-sudo mkdir -p "$APP/Contents/MacOS"
-sudo cp /bin/sleep "$APP/Contents/MacOS/e2echan"
-sudo tee "$APP/Contents/Info.plist" >/dev/null <<'PL'
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict><key>CFBundleIdentifier</key><string>vn.e2e.chan</string><key>CFBundleName</key><string>E2EChan</string><key>CFBundleExecutable</key><string>e2echan</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>1.0</string></dict></plist>
-PL
-sudo codesign --force -s - "$APP" >/dev/null 2>&1
 # danh sách app: daemon quét /Applications ở lần đồng bộ kế ⇒ Ba Mẹ thấy E2EChan
 KHOA_APP=""; T0=$SECONDS
 while [ $((SECONDS-T0)) -lt 240 ]; do
   api GET "/api/m/may/$MAY_ID/ung-dung" "" "$TOKEN_BM"; KHOA_APP=$(jqr "$API_THAN" '[.ds[]? | select((.ten // "" | test("E2EChan")) or (.khoa // "" | test("e2e"; "i")))][0].khoa // empty')
   [ -n "$KHOA_APP" ] && break; sleep 10
 done
-dat 5.1 'App thật quét từ /Applications lên máy chủ (E2EChan)' "$([ -n "$KHOA_APP" ] && echo 1 || echo 0)" "khoa «${KHOA_APP}» · $(jqr "$API_THAN" '[.ds[]?.ten] | length') app · sau $((SECONDS-T0)) giây"
+dat 5.1 'App thật quét từ /Applications lên máy chủ (E2EChan)' "$([ -n "$KHOA_APP" ] && echo 1 || echo 0)" "khoa «${KHOA_APP}» · $(jqr "$API_THAN" '[.ds[]? | (.ten // .khoa)] | join(",")' | cut -c1-200) · sau $((SECONDS-T0)) giây"
 if [ -n "$KHOA_APP" ]; then
   api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"chan\"}" "$TOKEN_BM"; log "ung-dung/dat chan HTTP $API_MA"
   sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" 3000 >/dev/null 2>&1 &
