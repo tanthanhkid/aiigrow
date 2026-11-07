@@ -97,6 +97,43 @@ public class DangNhapMayTests
         Assert.Equal(LockReasons.ChonTen, DangNhapView.ApDung(Mo(), null, Moc).LockReason);
     }
 
+    // E2E 6.1 / 5.2 (CI agent-win từ #204): runner không có khay nên không bé nào «vào máy» ⇒ máy ở «chưa ai» và luôn khoá chọn tên + AppLocker,
+    // kể cả sau «Mở hết» (tu_do) hay «Mở lại». Đó là thiết kế L13; kịch bản e2e phải cho một bé vào máy trước (BeVaoMay).
+    [Fact]
+    public void MoHet_nhung_chua_ai_vao_may_van_chon_ten_va_AppLocker_con_nguyen()
+    {
+        var moHet = PolicyEvaluator.Evaluate(new Policy { Mode = Modes.TuDo }, Moc, 0);
+        Assert.False(moHet.Locked);
+        Assert.False(moHet.AppLockerWanted);
+        var chua = DangNhapView.ApDung(moHet, new DangNhapMay(), Moc);
+        Assert.True(chua.Locked);
+        Assert.Equal(LockReasons.ChonTen, chua.LockReason);
+        Assert.True(chua.AppLockerWanted);
+    }
+
+    [Fact]
+    public void MoHet_khi_be_da_vao_may_khong_khoa_va_go_het_luat_AppLocker()
+    {
+        var d = new DangNhapMay();
+        DangNhapView.VaoCon(d, "c1", "Bảo Anh", null, Moc);
+        var e = DangNhapView.ApDung(PolicyEvaluator.Evaluate(new Policy { Mode = Modes.TuDo }, Moc, 0), d, Moc);
+        Assert.False(e.Locked);
+        Assert.False(e.AppLockerWanted);
+    }
+
+    [Fact]
+    public void MoLai_sau_khoa_ngay_khi_be_da_vao_may_het_khoa()
+    {
+        var d = new DangNhapMay();
+        DangNhapView.VaoCon(d, "c1", "Bảo Anh", null, Moc);
+        var khoa = DangNhapView.ApDung(PolicyEvaluator.Evaluate(new Policy { Mode = Modes.Khoa, Locked = true }, Moc, 0), d, Moc);
+        Assert.True(khoa.Locked);
+        Assert.Equal(LockReasons.Khoa, khoa.LockReason);
+        var moLai = DangNhapView.ApDung(PolicyEvaluator.Evaluate(new Policy { Mode = Modes.Hoc, MinutesLeft = 30 }, Moc, 0), d, Moc);
+        Assert.False(moLai.Locked);
+        Assert.Null(moLai.LockReason);
+    }
+
     [Fact]
     public void Be_dang_dung_giu_nguyen_Policy_cua_be()
     {

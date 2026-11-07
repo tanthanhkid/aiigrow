@@ -569,8 +569,27 @@ KichBan 'KB11' 'Chặn app chọn từ danh sách app thật của máy' {
 }
 
 # ------------------------------------------------------------------ KB5 — Khoá ngay / mở lại
+# Từ W3 (06/11, L13) máy dùng chung CHƯA có bé đăng nhập luôn ở màn «Ai đang dùng máy?» (khoá chon_ten + AppLocker, kể cả «Mở hết»/mở lại — DangNhapView.ApDung).
+# Runner không có khay nên không gõ tên + PIN được ⇒ báo máy chủ «bé vào máy» bằng token máy (đúng lời gọi khay làm) rồi ghi trạng thái «bé đang dùng» vào cấu hình.
+function BeVaoMay {
+  $cfg = DocConfig
+  [void](Api POST '/api/device/dang-nhap-be' @{ con = $Chung.ConId; pin = '1234' } $cfg.token)
+  Stop-Service $Svc -Force
+  $json = DocConfigJson
+  $tu = (Get-Date).ToUniversalTime().ToString('o')
+  $dn = '"dangNhap":{"loai":"con","conId":"' + $Chung.ConId + '","tenCon":"Con E2E","tu":"' + $tu + '"'
+  if ($json -match '"dangNhap":\{"loai":"[a-z_]*"') { $json = [regex]::Replace($json, '"dangNhap":\{"loai":"[a-z_]*"', { param($m) $dn }, 1) }
+  else { $json = $json.TrimEnd().TrimEnd('}') + ',' + $dn + '}}' }
+  GhiConfigJson $json
+  Start-Service $Svc
+  [void](Cho { DangChay } 30 2)
+  Start-Sleep -Seconds 3
+}
+
 KichBan 'KB5' 'Khoá ngay rồi mở lại' {
   if (-not $Chung.MayId) { Bo 'KB5' 'Khoá ngay' 'chưa có máy'; return }
+  BeVaoMay
+  Log "KB5: bé đã vào máy, nguoiDung = $((TrangThai).nguoiDung)"
   [void](Api POST "/api/m/con/$($Chung.ConId)/khoa" @{ khoa = $true } $Chung.TokenBaMe)
   DongBoNgay
   $st = Cho { $x = TrangThai; if ($x.locked -and $x.mode -eq 'khoa') { $x } } 60 3
