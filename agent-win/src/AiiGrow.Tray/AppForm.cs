@@ -390,6 +390,7 @@ internal sealed class AppForm : Form
     private void Render()
     {
         _dauDaVe = DauDuLieu();
+        _banDo = false;
         ComputeWidths();
         _content.SuspendLayout();
         _nhan.Parent?.Controls.Remove(_nhan);

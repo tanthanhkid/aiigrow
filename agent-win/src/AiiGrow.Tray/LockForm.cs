@@ -102,9 +102,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             using var pg = new PathGradientBrush(qp) { CenterColor = Color.FromArgb(70, 0x5f, 0xc9, 0xb2), SurroundColors = new[] { Color.FromArgb(0, 0x13, 0x4a, 0x41) } };
             bg.FillEllipse(pg, q);
         }
-        g.CompositingMode = CompositingMode.SourceCopy;
-        g.DrawImageUnscaled(_nenBmp, 0, 0);
-        g.CompositingMode = CompositingMode.SourceOver;
+        g.DrawImage(_nenBmp, new Rectangle(0, 0, r.Width, r.Height));   // theo ô pixel, không theo dpi của bitmap (màn 125–200%)
     }
 
     protected override void Dispose(bool disposing)

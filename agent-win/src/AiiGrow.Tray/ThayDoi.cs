@@ -16,7 +16,7 @@ internal static class ThayDoi
     public static string Bam(params object?[] phan)
     {
         var sb = new StringBuilder();
-        foreach (var p in phan)
+        foreach (var p in phan ?? new object?[] { null })
         {
             sb.Append(p is string s ? s : JsonSerializer.Serialize(p, Json.Options)).Append('\u001f');
         }
