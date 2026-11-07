@@ -1,0 +1,161 @@
+name: agent-mac
+
+# Agent macOS AiiGrow trên Mac thật (macos-15, arm64; repo public ⇒ runner miễn phí). KHÔNG dùng secret ký/notarize — gói build ở chế độ THỬ (THU=1, ký ad-hoc):
+#   unit     — swift test (AiiGrowCoreTests + AiiGrowTrayTests)
+#   build    — goi/build-pkg.sh + build-dmg.sh THU=1 (universal arm64+x86_64) ⇒ artifact `goi-mac` (.pkg + .dmg, chưa ký — chỉ để thử)
+#   chup-man — testChupManMac (CHUP_CLAY=thư mục) chụp màn Mac, kiểm ảnh có đủ + không rỗng ⇒ artifact `man-mac`
+#   e2e      — cài .pkg chưa ký bằng `sudo installer` TRÊN runner, máy chủ Next cục bộ (PGlite) + agent-mac/e2e/chay.sh: ghép một chạm, đồng bộ,
+#              chặn app/web, khoá, «Mở hết», long-poll, gỡ. Ca cần TCC / phiên GUI của Con ⇒ BỎ kèm lý do. Xem agent-mac/e2e/README.md.
+# Gói THỬ không qua được kiểm chữ ký của tự cập nhật (cố ý) ⇒ KHÔNG dùng artifact này để phát hành; phát hành vẫn ký + notarize ở máy Thanh.
+on:
+  pull_request:
+    paths: &duong_agent
+      - 'agent-mac/**'
+      - '.github/workflows/agent-mac.yml'
+      - 'server/app/api/device/**'
+      - 'server/app/api/agent/**'
+      - 'server/app/api/m/**'
+      - 'server/app/api/suc-khoe/**'
+      - 'server/lib/**'
+      - '!server/lib/**/*.test.ts'
+      - 'server/package.json'
+      - 'server/pnpm-lock.yaml'
+      - 'server/next.config.ts'
+      - 'server/tsconfig.json'
+      - 'server/instrumentation.ts'
+      - 'server/middleware.ts'
+      - 'server/proxy.ts'
+  push:
+    branches: [main]
+    paths: *duong_agent
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: agent-mac/.build
+          key: swift-unit-${{ runner.os }}-${{ hashFiles('agent-mac/Package.swift', 'agent-mac/Package.resolved') }}
+          restore-keys: swift-unit-${{ runner.os }}-
+      - name: swift test
+        working-directory: agent-mac
+        run: |
+          mkdir -p ../test-results
+          swift test --xunit-output ../test-results/unit.xml 2>&1 | tee ../test-results/unit.log
+          exit ${PIPESTATUS[0]}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-mac
+          path: test-results
+          if-no-files-found: ignore
+
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    outputs:
+      ban: ${{ steps.ban.outputs.ban }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Số bản trong mã
+        id: ban
+        run: echo "ban=$(sed -nE 's#.*hienTai = "([^"]+)".*#\1#p' agent-mac/Sources/AiiGrowCore/MoHinh.swift | head -n 1)" >> "$GITHUB_OUTPUT"
+      - name: Build .pkg + .dmg (THỬ, không ký, universal)
+        working-directory: agent-mac/goi
+        run: |
+          THU=1 BAN='${{ steps.ban.outputs.ban }}' ./build-pkg.sh
+          THU=1 BAN='${{ steps.ban.outputs.ban }}' ./build-dmg.sh
+          ls -la ../ra
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goi-mac
+          path: |
+            agent-mac/ra/*.pkg
+            agent-mac/ra/*.dmg
+          if-no-files-found: error
+          retention-days: 7
+
+  e2e:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: goi-mac
+          path: e2e-bin
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - name: pnpm install (server)
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+      - name: E2E (cài, ghép, đồng bộ, chặn, khoá, mở hết, gỡ)
+        run: agent-mac/e2e/chay.sh "$PWD/e2e-bin/AiiGrow-${{ needs.build.outputs.ban }}.pkg" '${{ needs.build.outputs.ban }}'
+      - name: Gom log còn lại
+        if: always()
+        run: |
+          mkdir -p e2e-logs/con-lai
+          sudo cp -R /Library/Logs/AiiGrow e2e-logs/con-lai/ 2>/dev/null || true
+          sudo launchctl list 2>/dev/null | grep -i aiigrow > e2e-logs/con-lai/launchctl.txt || true
+          sudo chmod -R a+rX e2e-logs 2>/dev/null || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-mac
+          path: e2e-logs
+          if-no-files-found: warn
+
+  # Chụp các màn Mac (agent-mac Tests/AiiGrowTrayTests › ChupClayTests.testChupManMac, ảnh PNG) và KIỂM: đủ ảnh, ảnh không rỗng/không một màu.
+  chup-man:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Chụp
+        working-directory: agent-mac
+        run: |
+          mkdir -p ../man-mac
+          CHUP_CLAY="$PWD/../man-mac" swift test --filter 'ChupClayTests/testChupManMac' 2>&1 | tee ../man-mac/chup.log
+          exit ${PIPESTATUS[0]}
+      - name: Kiểm ảnh
+        run: |
+          python3 - <<'PY'
+          import glob, os, sys, zlib
+          fs = sorted(glob.glob('man-mac/*.png'))
+          print(len(fs), 'ảnh')
+          loi = 0
+          if len(fs) < 10:
+              print('::error::chỉ có', len(fs), 'ảnh (cần ≥ 10)'); loi += 1
+          for f in fs:
+              n = os.path.getsize(f)
+              print(f'  {os.path.basename(f)} {n} byte')
+              if n < 4000:
+                  print(f'::error::{f}: ảnh quá nhỏ ({n} byte) — nghi rỗng / một màu'); loi += 1
+          sys.exit(1 if loi else 0)
+          PY
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: man-mac
+          path: man-mac
+          if-no-files-found: warn
+          retention-days: 14
