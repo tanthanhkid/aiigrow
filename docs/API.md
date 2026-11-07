@@ -642,7 +642,7 @@ Thanh 07/11: *«khi chặn có effect liền ở máy trẻ em ko, phải có»*
 - Trong tiến trình: `EventEmitter` đánh thức tức thì. Khác tiến trình (nhiều instance / khởi động lại): mỗi `AIIGROW_CHO_KIEM_DB_MS` (4 giây) đọc lại số bằng một câu SELECT theo khoá chính — KHÔNG giữ kết nối DB trong lúc chờ.
 - `dong-bo` và `nhip` trả thêm `phienBanThayDoi` (đọc TRƯỚC khi dựng chính sách ⇒ đổi sau đó thì số khác, không lọt).
 - nginx mẫu (`scripts/vps/aiigrow-proxy.conf`) đã có `proxy_read_timeout 120s` ≥ 25 giây + `proxy_http_version 1.1` + `Connection ""` ⇒ không cần sửa VPS.
-- Chỉ là «gõ cửa»: nội dung chính sách vẫn do `dong-bo` / `nhip` trả. Mất kết nối / máy chủ cũ (404) ⇒ agent lùi dần 2→30 giây (404: 5 phút) và vòng theo `nextCheckSec` / 60 giây vẫn là dự phòng.
+- Chỉ là «gõ cửa»: nội dung chính sách vẫn do `dong-bo` / `nhip` trả. Mất kết nối / máy chủ cũ (404) ⇒ agent lùi dần 2→30 giây (404: 60 giây) và vòng theo `nextCheckSec` / 60 giây vẫn là dự phòng.
 
 Agent: Windows `ChoThayDoiWorker` (⇒ `AgentRuntime.RequestSyncSoon`) · Mac `BoMay.vongChoThayDoi` (Task riêng của daemon) · Android `DichVuNhip.vongChoThayDoi` (luồng riêng ⇒ `vong(true)`) · iOS `MoHinhApp.batDauCho` (chỉ khi app đang mở).
 

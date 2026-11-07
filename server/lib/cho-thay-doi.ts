@@ -63,7 +63,7 @@ export async function choThayDoi(fam: string, ver: number | null, o: { toiDaMs?:
       try {
         cur = await phienBanDoi(fam);
         if (cur !== ver) return { phienBanThayDoi: cur, doi: true };
-        if (!bao) await new Promise<void>((xong) => {
+        if (!bao && !o.signal?.aborted) await new Promise<void>((xong) => {
           const end = () => { clearTimeout(t); o.signal?.removeEventListener("abort", end); xong(); };
           const t = setTimeout(end, Math.min(con, kiem));
           danh = end;

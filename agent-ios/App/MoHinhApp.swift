@@ -209,7 +209,7 @@ final class MoHinhApp: ObservableObject {
           ver = kq.phienBan
           nghi = ChoThayDoi.choLai(loiLienTiep: 0, kq: kq, daCho: Date().timeIntervalSince(t0))
         } catch let e as LoiApi {
-          if case .mayChu(_, _, 404) = e { loi = 0; nghi = 300 } else { loi += 1; nghi = ChoThayDoi.choLai(loiLienTiep: loi, kq: nil, daCho: 0) }
+          if case .mayChu(_, _, 404) = e { loi = 0; nghi = 60 } else { loi += 1; nghi = ChoThayDoi.choLai(loiLienTiep: loi, kq: nil, daCho: 0) }
         } catch { loi += 1; nghi = ChoThayDoi.choLai(loiLienTiep: loi, kq: nil, daCho: 0) }
       }
       if nghi > 0 { try? await Task.sleep(nanoseconds: UInt64(nghi * 1_000_000_000)) }

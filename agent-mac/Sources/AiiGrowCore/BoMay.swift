@@ -181,7 +181,7 @@ public actor BoMay {
   }
 
   /// P1 (07/11): một lượt «chờ thay đổi» (Task riêng của daemon, vòng liên tục). Giữ long-poll ≤ ~25 giây; Ba Mẹ đổi gì ⇒ đồng bộ NGAY (≤1 giây — vòng đồng bộ ngủ 1 giây).
-  /// Trả số giây daemon nên nghỉ trước lượt kế (0 = vòng lại ngay; lỗi lùi dần 2–30; máy chủ cũ 404 ⇒ 300). Vòng nextCheckSec vẫn là dự phòng.
+  /// Trả số giây daemon nên nghỉ trước lượt kế (0 = vòng lại ngay; lỗi lùi dần 2–30; máy chủ cũ / đang deploy 404 ⇒ 60). Vòng nextCheckSec vẫn là dự phòng.
   public func vongChoThayDoi() async -> Double {
     guard cauHinh.daGhep, !dangGo else { verCho = nil; return 5 }
     let the = theHeGhep
@@ -194,7 +194,7 @@ public actor BoMay {
       verCho = kq.phienBan
       return ChoThayDoi.choLai(loiLienTiep: 0, kq: kq, daCho: donDieu() - t0)
     } catch let e as LoiApi where e.maHttp == 404 {
-      loiCho = 0; return 300
+      loiCho = 0; return 60
     } catch {
       loiCho += 1
       return ChoThayDoi.choLai(loiLienTiep: loiCho, kq: nil, daCho: 0)

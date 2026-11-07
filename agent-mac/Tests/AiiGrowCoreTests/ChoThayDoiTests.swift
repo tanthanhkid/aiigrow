@@ -54,6 +54,6 @@ final class ChoThayDoiTests: XCTestCase {
     XCTAssertEqual([l1, l2], [2, 4])
     HttpMock.dat { _, _ in HttpMock.json(404, ["error": "khong_co_duong", "message": "x"]) }
     let n404 = await b.vongChoThayDoi()
-    XCTAssertEqual(n404, 300)
+    XCTAssertEqual(n404, 60)
   }
 }

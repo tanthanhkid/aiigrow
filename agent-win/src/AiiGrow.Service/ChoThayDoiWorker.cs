@@ -5,7 +5,7 @@ namespace AiiGrow.Service;
 /// <summary>
 /// P1 (07/11): «Ba Mẹ bấm ⇒ máy Con áp trong ≤5 giây». Giữ MỘT long-poll liên tục tới `api/device/cho-thay-doi`; máy chủ trả ngay khi Ba Mẹ đổi gì
 /// (khoá máy, chế độ chặn, chặn app/web, duyệt/từ chối xin, giờ…) ⇒ gọi <see cref="AgentRuntime.RequestSyncSoon"/> ⇒ AgentWorker đồng bộ + áp ngay vòng đó.
-/// Vòng đồng bộ theo nextCheckSec của AgentWorker VẪN chạy làm dự phòng (mạng chặn kết nối dài, máy chủ cũ…). Lỗi ⇒ lùi dần 2–30 giây; 404 (máy chủ cũ) ⇒ 5 phút.
+/// Vòng đồng bộ theo nextCheckSec của AgentWorker VẪN chạy làm dự phòng (mạng chặn kết nối dài, máy chủ cũ…). Lỗi ⇒ lùi dần 2–30 giây; 404 (máy chủ cũ / đang deploy) ⇒ 60 giây.
 /// </summary>
 public sealed class ChoThayDoiWorker : BackgroundService
 {
@@ -43,7 +43,7 @@ public sealed class ChoThayDoiWorker : BackgroundService
             catch (Exception e)
             {
                 loi++;
-                if (e is ApiException { StatusCode: 404 }) { cho = TimeSpan.FromMinutes(5); loi = 0; _log.LogDebug("Máy chủ chưa có cho-thay-doi — chỉ dùng vòng đồng bộ định kỳ"); }
+                if (e is ApiException { StatusCode: 404 }) { cho = TimeSpan.FromSeconds(60); loi = 0; _log.LogDebug("Máy chủ chưa có cho-thay-doi — chỉ dùng vòng đồng bộ định kỳ"); }
                 else { cho = ChoThayDoi.ChoLai(loi, null, TimeSpan.Zero); _log.LogDebug("Chờ thay đổi lỗi ({m}) — thử lại sau {s}s", e.Message, (int)cho.TotalSeconds); }
             }
             if (cho > TimeSpan.Zero) { try { await Task.Delay(cho, ct); } catch (OperationCanceledException) { break; } }

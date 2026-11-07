@@ -136,7 +136,7 @@ class DichVuNhip : Service() {
                 cho = choLaiMs(0, r, System.currentTimeMillis() - t0)
             } catch (e: InterruptedException) { return
             } catch (e: MayChu.Loi) {
-                if (e.http == 404) { cho = 300_000; loi = 0 } else { loi++; cho = choLaiMs(loi, null, 0) }
+                if (e.http == 404) { cho = 60_000; loi = 0 } else { loi++; cho = choLaiMs(loi, null, 0) }
             } catch (e: Exception) { loi++; cho = choLaiMs(loi, null, 0) }
             if (cho > 0) try { Thread.sleep(cho) } catch (_: InterruptedException) { return }
         }
