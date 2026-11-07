@@ -1,7 +1,7 @@
 // Ghép máy (L8, docs/API.md › «Ghép máy»): một nội dung cho cả Lần đầu và Ghép thêm máy. Giữ kết quả `POST ghep-may` trong bộ nhớ
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
 import { bm } from "./api";
-import { datTl, layTl, thanThietLap } from "./thiet-lap";
+import { appsRobChonSan, datTl, layTl, thanThietLap } from "./thiet-lap";
 
 export type KqGhep = {
   ma: string; maHien: string; het: string; hanPhut: number; conGiay: number; lienKet: string; qr: string; tokenGoi: string; hetGoi: string;
