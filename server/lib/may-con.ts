@@ -58,7 +58,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       const muc = may.platform === "mac" ? String(u.muc).toLowerCase() : String(u.muc);
       const pl = await phanLoai(may.family_id, con, muc);
       await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,$5,$6)
-               on conflict (device_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai`,
+               on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai`,
         [may.id, con, ngay, muc.slice(0, 200), pl.loai, Math.max(0, Math.min(1440, Math.round(u.phut)))]);
     }
   }
