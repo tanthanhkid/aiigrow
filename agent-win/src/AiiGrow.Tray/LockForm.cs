@@ -82,18 +82,33 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     /// <summary>Nền tối ngọc sâu: gradient dọc + quầng sáng mềm sau thẻ (thiết kế: radial rgba(95,201,178,.275) ở 960,459).</summary>
     protected override void OnPaintBackground(PaintEventArgs e) => VeNenRieng(e.Graphics, true);
 
+    private Bitmap? _nenBmp;   // nền gradient + quầng sáng dựng MỘT lần theo cỡ màn hình, mỗi lần vẽ chỉ chép ra
+
     public void VeNenRieng(Graphics g, bool ngoaiCung)
     {
         var r = ClientRectangle;
         if (r.Width <= 0 || r.Height <= 0) return;
-        using (var lg = new LinearGradientBrush(r, Color.FromArgb(0x13, 0x4a, 0x41), Color.FromArgb(0x07, 0x24, 0x20), 90f))
-            g.FillRectangle(lg, r);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        var q = new RectangleF(r.Width * 0.2f, r.Height * 0.05f, r.Width * 0.6f, r.Height * 0.75f);
-        using var qp = new GraphicsPath();
-        qp.AddEllipse(q);
-        using var pg = new PathGradientBrush(qp) { CenterColor = Color.FromArgb(70, 0x5f, 0xc9, 0xb2), SurroundColors = new[] { Color.FromArgb(0, 0x13, 0x4a, 0x41) } };
-        g.FillEllipse(pg, q);
+        if (_nenBmp == null || _nenBmp.Width != r.Width || _nenBmp.Height != r.Height)
+        {
+            _nenBmp?.Dispose();
+            _nenBmp = new Bitmap(r.Width, r.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            using var bg = Graphics.FromImage(_nenBmp);
+            using (var lg = new LinearGradientBrush(r, Color.FromArgb(0x13, 0x4a, 0x41), Color.FromArgb(0x07, 0x24, 0x20), 90f))
+                bg.FillRectangle(lg, r);
+            bg.SmoothingMode = SmoothingMode.AntiAlias;
+            var q = new RectangleF(r.Width * 0.2f, r.Height * 0.05f, r.Width * 0.6f, r.Height * 0.75f);
+            using var qp = new GraphicsPath();
+            qp.AddEllipse(q);
+            using var pg = new PathGradientBrush(qp) { CenterColor = Color.FromArgb(70, 0x5f, 0xc9, 0xb2), SurroundColors = new[] { Color.FromArgb(0, 0x13, 0x4a, 0x41) } };
+            bg.FillEllipse(pg, q);
+        }
+        g.DrawImage(_nenBmp, new Rectangle(0, 0, r.Width, r.Height));   // theo ô pixel, không theo dpi của bitmap (màn 125–200%)
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) { _nenBmp?.Dispose(); _nenBmp = null; }
+        base.Dispose(disposing);
     }
 
     public void Apply(TrayState s)

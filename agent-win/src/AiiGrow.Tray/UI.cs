@@ -153,7 +153,12 @@ internal static class UI
     }
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
 
-    /// <summary>App đang ở tiền cảnh của phiên này: (tên exe, tên hiển thị). Rỗng nếu không có cửa sổ (vd màn hình khoá).</summary>
+    private sealed record FgNho(int Pid, DateTime Bat, string Id, string Name);
+    private static volatile FgNho? _fgNho;   // bất biến, thay nguyên khối ⇒ luồng nào đọc cũng không thấy nửa này nửa kia
+
+    /// <summary>App đang ở tiền cảnh của phiên này: (tên exe, tên hiển thị). Rỗng nếu không có cửa sổ (vd màn hình khoá).
+    /// <c>MainModule.FileVersionInfo</c> mở tệp exe (chậm 10–100 ms, có khi hơn khi diệt virus quét) ⇒ nhớ theo pid, và khay gọi hàm này
+    /// ngoài luồng giao diện (<c>Task.Run</c>) — trước đây chạy ngay trên luồng UI mỗi 3 giây làm app giật.</summary>
     public static (string Id, string Name) Foreground()
     {
         try
@@ -163,6 +168,10 @@ internal static class UI
             GetWindowThreadProcessId(h, out var pid);
             if (pid == 0) return ("", "");
             using var p = Process.GetProcessById((int)pid);
+            DateTime? bat = null;
+            try { bat = p.StartTime; } catch { }   // app chạy quyền cao: không đọc được ⇒ khỏi nhớ, vẫn trả tên tiến trình như trước
+            var nho = _fgNho;
+            if (bat != null && nho != null && nho.Pid == (int)pid && nho.Bat == bat) return (nho.Id, nho.Name);
             var id = p.ProcessName.ToLowerInvariant() + ".exe";
             var name = p.ProcessName;
             try
@@ -171,6 +180,7 @@ internal static class UI
                 if (!string.IsNullOrWhiteSpace(d)) name = d!;
             }
             catch { }
+            if (bat != null) _fgNho = new FgNho((int)pid, bat.Value, id, name);
             return (id, name);
         }
         catch

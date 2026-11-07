@@ -446,7 +446,7 @@ internal sealed class TrayContext : ApplicationContext
         _polling = true;
         try
         {
-            var fg = UI.Foreground();
+            var fg = await Task.Run(UI.Foreground);   // mở tệp exe lấy tên ⇒ không trên luồng UI
             var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Foreground, AppId = fg.Id, AppName = fg.Name });
             if (!res.Ok || res.State == null)
             {

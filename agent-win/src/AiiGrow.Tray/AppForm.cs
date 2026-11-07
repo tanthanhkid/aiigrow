@@ -58,6 +58,8 @@ internal sealed class AppForm : Form
     private bool _xemQuaCuaCon;
     /// <summary>Lần tải tổng quan học viên gần nhất lỗi (null = chưa lỗi / đã tải được).</summary>
     private string? _loiTai;
+    private string? _dauDaVe;   // dấu vân tay dữ liệu ở lần dựng nội dung gần nhất (ThayDoi) — dữ liệu y nguyên thì không dựng lại
+    private bool _banDo;        // trạng thái khay đổi khi app đang ẩn ⇒ dựng lại lúc hiện, không dựng ngầm
     private int _cw, _lastW;
     private string _sig = "";
     // số trên Hôm nay cập nhật tại chỗ (không vẽ lại cả trang mỗi lần dịch vụ báo)
@@ -122,7 +124,12 @@ internal sealed class AppForm : Form
         _auto.Start();
 
         FormClosing += (_, e) => { if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); } };
-        VisibleChanged += async (_, _) => { if (Visible) await RefreshAsync(); };
+        VisibleChanged += async (_, _) =>
+        {
+            if (!Visible) return;
+            if (_banDo) { _banDo = false; Render(); }
+            await RefreshAsync();
+        };
 
         Render();
         ApplyKetNoiUi();
@@ -226,8 +233,12 @@ internal sealed class AppForm : Form
         _kn = kn;
         ApplyKetNoiUi();
         var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.QuyConPhut.HasValue}|{_s.NgoaiLeDen}|{_s.DangGioHoc}|{_s.GrantEndsAt}|{(_s.QuyConPhut ?? 1) <= 0}|{_s.BaiChoMang}";
-        if (sig != _sig) { _sig = sig; Render(); }
-        else CapNhatSo();
+        if (sig != _sig)
+        {
+            _sig = sig;
+            if (Visible) Render(); else _banDo = true;   // app ẩn: khay vẫn đẩy trạng thái mỗi 3 giây, đừng dựng lại control vô hình
+        }
+        else if (Visible) CapNhatSo();
     }
 
     private void ApplyKetNoiUi()
@@ -243,9 +254,9 @@ internal sealed class AppForm : Form
         _pill.ForeColor = _kn.DungIconKetNoi ? UI.GreenDark : _kn.Loai == KetNoi.MatKetNoi ? Clay.Canh : UI.Error;
         var ten = TenCon();
         _name.Text = string.IsNullOrWhiteSpace(ten) ? "AiiGrow" : ten;
-        _avt.Chu = DangNhapView.ChuDau(string.IsNullOrWhiteSpace(ten) ? "?" : ten);
-        _avt.Visible = !string.IsNullOrWhiteSpace(ten);
-        _avt.Invalidate();
+        var chuDau = DangNhapView.ChuDau(string.IsNullOrWhiteSpace(ten) ? "?" : ten);
+        var coTen = !string.IsNullOrWhiteSpace(ten);
+        if (_avt.Chu != chuDau || _avt.Visible != coTen) { _avt.Chu = chuDau; _avt.Visible = coTen; _avt.Invalidate(); }
         SetMascot();
     }
 
@@ -255,7 +266,11 @@ internal sealed class AppForm : Form
 
     private bool XongHet() => _tq != null && Viec().All(v => v.Nhom == "cho_duyet");
 
-    private void SetMascot() => _mascot.Image = UI.Mascot(MascotView.Chon(_muc, _kn.Loai, XongHet()));
+    private void SetMascot()
+    {
+        var anh = UI.Mascot(MascotView.Chon(_muc, _kn.Loai, XongHet()));
+        if (!ReferenceEquals(_mascot.Image, anh)) _mascot.Image = anh;   // gán lại ảnh cũ vẫn vẽ lại PictureBox
+    }
 
     private void UpdateNav()
     {
@@ -309,6 +324,8 @@ internal sealed class AppForm : Form
         _msg.Visible = s.Length > 0;
     }
 
+    private string DauDuLieu() => ThayDoi.Bam(_tq, _tuCham, _tin, _ch, _viQua, _loiTai, _muc.ToString(), _xemQuaCuaCon.ToString());
+
     public async Task RefreshAsync()
     {
         if (_dangTai) { _taiLai = true; return; }   // đang tải ⇒ tải lại một lượt nữa ngay sau (không nuốt lượt sau khi nộp bài / đổi quà)
@@ -320,12 +337,12 @@ internal sealed class AppForm : Form
             if (tq == null)
             {
                 _loiTai = string.IsNullOrWhiteSpace(loi) ? "Chưa tải được. Con thử lại nhé." : loi;
-                Render();
+                if (DauDuLieu() != _dauDaVe) Render();
                 return;
             }
             _tq = tq;
             _loiTai = null;
-            Render();
+            if (DauDuLieu() != _dauDaVe) Render();   // «tổng quan» về trước ⇒ hiện sớm; y nguyên thì giữ màn đang có
             ApplyKetNoiUi();
             // bốn lượt sau chạy song song (dịch vụ nhận nhiều kết nối pipe); quà chỉ tải khi Con ở / đã mở «Sao & quà»
             var tcT = HvApi.GetAsync<HvNvDs>("hoc-vien/nhiem-vu?tuCham=1");
@@ -339,7 +356,7 @@ internal sealed class AppForm : Form
             if (tin != null) _tin = tin;
             if (chT != null && (await chT).Data is { } ch) _ch = ch;
             if (vqT != null && (await vqT).Data is { } vq) _viQua = vq;
-            if (!IsDisposed) Render();
+            if (!IsDisposed && DauDuLieu() != _dauDaVe) Render();
         }
         finally
         {
@@ -372,6 +389,8 @@ internal sealed class AppForm : Form
 
     private void Render()
     {
+        _dauDaVe = DauDuLieu();
+        _banDo = false;
         ComputeWidths();
         _content.SuspendLayout();
         _nhan.Parent?.Controls.Remove(_nhan);
