@@ -96,7 +96,9 @@ dat 1.5 'Gói cài một chạm (goi-cai, nền mac)' "$([ "${#TOKEN_GOI}" = 43 
 # App giả «ngoài danh sách» tạo TRƯỚC khi cài/ghép: daemon quét /Applications lúc ghép, sau đó chỉ quét lại khi Ba Mẹ bấm «Làm mới».
 APP="/Applications/E2EChan.app"
 sudo mkdir -p "$APP/Contents/MacOS"
-sudo cp /bin/sleep "$APP/Contents/MacOS/e2echan"
+# bản sao /bin/sleep bị SIGKILL (137) vì mất chữ ký nền tảng ⇒ biên dịch một tệp nhị phân nhỏ (linker tự ký ad-hoc trên arm64)
+printf '#include <unistd.h>\nint main(void){for(;;)sleep(60);}\n' > /tmp/e2echan.c
+cc -o /tmp/e2echan /tmp/e2echan.c && sudo cp /tmp/e2echan "$APP/Contents/MacOS/e2echan"
 sudo tee "$APP/Contents/Info.plist" >/dev/null <<'PL'
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict><key>CFBundleIdentifier</key><string>vn.e2e.chan</string><key>CFBundleName</key><string>E2EChan</string><key>CFBundleExecutable</key><string>e2echan</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleShortVersionString</key><string>1.0</string></dict></plist>
