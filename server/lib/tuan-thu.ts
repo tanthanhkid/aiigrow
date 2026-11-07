@@ -348,8 +348,8 @@ export async function maOfflineChoMay(fam: string, mayId: string, nguoi: string,
   const conGiay = BUOC_GIAY * DUNG_SAI + doiSauGiay;
   // Nhật ký «xem mã»: một dòng mỗi (người, số phút, bước mã) — màn mã tải lại cùng mã (đổi 15/30/60 qua lại, quay lại màn) không ghi trùng
   const buoc = Math.floor(now.getTime() / 1000 / BUOC_GIAY);
-  if (!(await one(`select 1 from events where device_id = $1 and loai = 'xem_ma_offline' and created_at > $2 and nguoi is not distinct from $3
-      and chi_tiet->>'phut' = $4 and chi_tiet->>'buoc' = $5 limit 1`, [m.id, new Date(now.getTime() - 2 * BUOC_GIAY * 1000), nguoi, String(phut), String(buoc)])))
+  if (!(await one(`select 1 from events where family_id = $6 and device_id = $1 and loai = 'xem_ma_offline' and created_at > $2 and nguoi is not distinct from $3
+      and chi_tiet->>'phut' = $4 and chi_tiet->>'buoc' = $5 limit 1`, [m.id, new Date(now.getTime() - 2 * BUOC_GIAY * 1000), nguoi, String(phut), String(buoc), fam])))
     await ghiSuKien(fam, "xem_ma_offline", { phut, buoc }, { con: m.child_id, may: m.id, nguoi });
   return { ma, maHien: `${ma.slice(0, 3)} ${ma.slice(3)}`, conGiay, doiSauGiay, hieuLucPhut: Math.round((BUOC_GIAY * (2 * DUNG_SAI + 1)) / 60),
     phutMo: phut, chonPhut: [15, 30, 60], may: { id: m.id, ten: m.name, nen: m.platform } };

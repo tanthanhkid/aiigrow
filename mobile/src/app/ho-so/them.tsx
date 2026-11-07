@@ -5,6 +5,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
+import { cuoiTuanCua, NGU_MAC_DINH, QUY_MAC_DINH } from "@/lib/ghep-may";
 import { BONG, KHOI } from "@/lib/clay";
 import { MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { CHIP_TUOI, kiemPin, namTuChipTuoi } from "@/lib/s3";
@@ -25,6 +26,12 @@ export default function ThemCon() {
   const [dam] = MAU_HO_SO[mau];
   const tao = () => lam(async () => {
     const r = await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) });
+    // «Rob cài sẵn giờ chơi, nhiệm vụ»: cùng mặc định các bước Lần đầu (bộ việc đầu = Tự lập, 60 phút / ngày, ngủ 21:30–06:30). Hồ sơ đã tạo ⇒
+    // lỗi phần cài sẵn không chặn (Ba Mẹ chỉnh ở Hồ sơ), không tạo lại Con.
+    await Promise.allSettled([
+      bm.goi("nhiem-vu/bo", { bo: "tu_lap", con: r.id }),
+      bm.goi("thiet-lap", { con: { id: r.id }, gioChoi: { ngayThuong: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua(QUY_MAC_DINH) }, ngu: NGU_MAC_DINH }),
+    ]);
     router.replace(`/ho-so/${r.id}` as never);
   });
   return (
@@ -70,7 +77,9 @@ export default function ThemCon() {
           </Pressable>
         </View>
         <OPin gia={pin} doi={setPin} an={!hien} nhan={`PIN để ${goi || "con"} vào máy`} />
-        {loiPin && pin ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
+        {/* đang gõ dở: nhắc nhẹ (nút tắt vì sao); đủ 4 số mà sai (năm sinh) mới báo đỏ — như ten-con */}
+        {pin && pin.length < 4 ? <Chu co={13} mau={M.chu3}>PIN cần đủ 4 số — hoặc xoá trống để đặt sau.</Chu>
+          : loiPin && pin ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
         <Rob ten="chi" co={40} />

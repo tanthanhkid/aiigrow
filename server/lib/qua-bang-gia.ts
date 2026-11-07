@@ -95,7 +95,7 @@ export async function dsQua(fam: string, con?: string | null) {
 /** Thư viện mẫu theo 5 nhóm, đánh dấu «Đã có» (cùng mã mẫu, hoặc cùng tên) trong nhà / với Con. */
 export async function thuVien(fam: string, con?: string | null) {
   const co = await q<{ mau: string | null; ten: string }>(
-    `select mau, ten from rewards where family_id = $1 and ($2::text is null or ap_cho is null or ap_cho ? $2)`, [fam, con ?? null]);
+    `select mau, ten from rewards where family_id = $1 and bat and ($2::text is null or ap_cho is null or ap_cho ? $2)`, [fam, con ?? null]);   // quà đã cất ⇒ hiện «+» (thêm = bật lại)
   const coMau = new Set(co.map((x) => x.mau).filter(Boolean)), coTen = new Set(co.map((x) => x.ten.toLowerCase()));
   return { nhom: NHOM_THU_VIEN.map((g) => ({ ...g, ds: THU_VIEN.filter((m) => m.nhom === g.ma).map((m) => ({ ma: m.ma, ten: m.ten, moTa: m.mo_ta ?? null,
     hinh: m.hinh ?? null, sao: m.diem, loai: m.loai, menhGia: m.menh_gia ?? null, chiCuoiTuan: !!m.chi_cuoi_tuan, tonKho: m.ton_kho ?? null,
@@ -118,25 +118,35 @@ const apChoVao = async (fam: string, v: unknown): Promise<string[] | null> => {
 export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unknown }, nguoi: string) {
   const ma = [...new Set((Array.isArray(b.mau) ? b.mau : [b.mau]).map(String))].filter(Boolean);
   if (!ma.length || ma.some((x) => !theoMa.has(x))) throw new LoiNghiepVu("mau_sai", "Chọn quà trong thư viện");
-  const ap = await apChoVao(fam, b.con);
-  const co = await q<{ id: string; mau: string; ap_cho: string[] | null; bat: boolean }>(
-    `select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, ma]);
+  const con = (await apChoVao(fam, b.con))?.[0] ?? null;     // màn thư viện mở theo MỘT Con (hoặc cả nhà)
+  const co = await q<CungMau>(`select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, ma]);
   const ids: string[] = [];
   for (const m of ma) {
     const cung = co.filter((x) => x.mau === m);
-    if (!cung.length) { ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: ap })); continue; }
-    const apDung = ap ? cung.find((x) => !x.ap_cho || x.ap_cho.includes(ap[0])) : cung.find((x) => !x.ap_cho) ?? cung[0];
-    if (apDung) {
-      if (!apDung.bat) { await q(`update rewards set bat = true where id = $1`, [apDung.id]); ids.push(apDung.id); }
-      continue;
-    }
-    // chỉ còn quà cùng mẫu áp riêng cho Con khác ⇒ áp thêm Con này
-    const x = cung[0];
-    await q(`update rewards set ap_cho = $2::text::jsonb, bat = true where id = $1`, [x.id, JSON.stringify([...new Set([...(x.ap_cho ?? []), ...ap!])])]);
-    ids.push(x.id);
+    if (!cung.length) { ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: con ? [con] : null })); continue; }
+    if (await apDungChoCon(cung, con)) ids.push(cung[0].id);
   }
-  if (ids.length) await ghiSuKien(fam, "them_qua", { so: ids.length, mau: ma }, { con: ap?.[0] ?? null, nguoi });
-  return { taoMoi: ids.length, ids };
+  if (ids.length) await ghiSuKien(fam, "them_qua", { so: ids.length, mau: ma }, { con, nguoi });
+  return { taoMoi: ids.length, ids: [...new Set(ids)] };
+}
+
+type CungMau = { id: string; mau: string; ap_cho: string[] | null; bat: boolean };
+
+/** Cho quà cùng mẫu (`cung`, ≥ 1 dòng) hiện với `con` (null = mọi Con). → true nếu đã đổi (Con / cả nhà có thêm quà này), false nếu vốn đã có.
+ *  • có dòng đang BẬT áp cho Con (hoặc mọi Con) ⇒ không đổi gì.
+ *  • dòng mọi Con đang CẤT: thêm cho cả nhà ⇒ bật lại; thêm cho một Con ⇒ bật lại CHỈ cho Con đó (anh chị em không tự hiện lại quà Ba Mẹ đã cất).
+ *  • chỉ có dòng áp riêng Con khác ⇒ áp thêm Con này (một quà, `ap_cho` nhiều Con — không nhân bản); thêm cho cả nhà ⇒ áp mọi Con.
+ *  Gộp `ap_cho` trong MỘT câu update (jsonb) — hai lần thêm song song cho hai Con không đè nhau. Đưa dòng được đổi lên đầu `cung`. */
+async function apDungChoCon(cung: CungMau[], con: string | null) {
+  const hop = (x: CungMau) => !x.ap_cho || (con !== null && x.ap_cho.includes(con));
+  if (cung.some((x) => x.bat && hop(x))) return false;
+  const r = cung.find((x) => !x.ap_cho) ?? cung.find(hop) ?? cung[0];
+  if (con === null) await q(`update rewards set bat = true, ap_cho = null where id = $1`, [r.id]);
+  else if (!r.ap_cho && !r.bat) await q(`update rewards set bat = true, ap_cho = $2::text::jsonb where id = $1`, [r.id, JSON.stringify([con])]);
+  else await q(`update rewards set bat = true, ap_cho = case when ap_cho is null or ap_cho ? $2 then ap_cho else ap_cho || jsonb_build_array($2::text) end
+      where id = $1`, [r.id, con]);
+  cung.splice(cung.indexOf(r), 1); cung.unshift(r);
+  return true;
 }
 
 /** Bước «Chọn quà» lúc thiết lập (them-s416tfdj): giữ quà mặc định được tick, bỏ quà mặc định bị bỏ tick (chưa ai đổi) — `chon` = mã mẫu.
@@ -145,23 +155,18 @@ export async function luuQuaMacDinh(fam: string, b: { chon?: unknown; con?: unkn
   const chon = b.chon === undefined ? QUA_MAC_DINH.map((m) => m.ma) : [...new Set((Array.isArray(b.chon) ? b.chon : []).map(String))];
   if (chon.some((x) => !QUA_MAC_DINH.some((m) => m.ma === x))) throw new LoiNghiepVu("mau_sai", "Chọn trong 7 quà Rob gợi ý");
   await q(`update families set qua_seed_luc = coalesce(qua_seed_luc, now()) where id = $1`, [fam]);
-  const con = b.con ? (await apChoVao(fam, b.con))![0] : null;
-  const co = await q<{ id: string; mau: string; ap_cho: string[] | null; bat: boolean }>(
-    `select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, QUA_MAC_DINH.map((m) => m.ma)]);
+  const con = (await apChoVao(fam, b.con))?.[0] ?? null;
+  const co = await q<CungMau>(`select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, QUA_MAC_DINH.map((m) => m.ma)]);
   for (const m of QUA_MAC_DINH) {
     const cung = co.filter((x) => x.mau === m.ma);
-    // quà cùng mẫu áp cho Con đang chọn (hoặc mọi Con) — có `con` thì ưu tiên quà đó, không thì quà đầu
     const r = cung.find((x) => !x.ap_cho || (con !== null && x.ap_cho.includes(con))) ?? cung[0];
     if (chon.includes(m.ma) && !r) await pt.taoQua(fam, { ...m, mau: m.ma });
-    // «Dùng 7 quà Rob gợi ý»: quà mặc định đã cất (bat=false) ⇒ bật lại; đang áp riêng cho Con khác ⇒ áp thêm Con đang chọn (lệch #201)
-    if (chon.includes(m.ma) && r) {
-      const apMoi = con && r.ap_cho && !r.ap_cho.includes(con) ? [...r.ap_cho, con] : null;
-      if (!r.bat || apMoi) await q(`update rewards set bat = true, ap_cho = coalesce($2::text::jsonb, ap_cho) where id = $1`, [r.id, apMoi ? JSON.stringify(apMoi) : null]);
-    }
+    // «Dùng 7 quà Rob gợi ý»: quà mặc định đã cất ⇒ bật lại (theo Con đang chọn nếu có); áp riêng Con khác ⇒ áp thêm Con này (lệch #201)
+    if (chon.includes(m.ma) && r) await apDungChoCon(cung, con);
     if (!chon.includes(m.ma) && r && !(await one(`select 1 from redemptions where reward_id = $1 limit 1`, [r.id]))) await q(`delete from rewards where id = $1`, [r.id]);
   }
   await ghiSuKien(fam, "chon_qua", { chon }, { nguoi });
-  return dsQua(fam, b.con ? String(b.con) : null);
+  return dsQua(fam, con);
 }
 
 /** Ba Mẹ tạo quà riêng («Tự đặt quà riêng») — voucher AiiCafe được tạo lại (06/11). */
