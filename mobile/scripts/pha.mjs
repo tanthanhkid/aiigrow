@@ -106,12 +106,9 @@ const coBan = {
   "GET nhiem-vu": { ds: [["Đọc sách 50 trang", "doc_sach", 10, "anh", 1], ["Rửa chén sau bữa ăn", "viec_nha", 10, "anh", 3], ["Lau sàn nhà", "viec_nha", 10, "anh", 1],
     ["Học 1 bài với AiiRob", "hoc_tap", 20, "tu_dong", null], ["Tập thể dục 30 phút", "van_dong", 10, "anh", 1]].map(([ten, nhom, diem, bang_chung, toi_da_ngay], i) =>
     ({ id: `t${i}`, ten, mo_ta: "", nhom, diem, bang_chung, kieu: "thuong", toi_da_ngay, toi_da_tuan: null, phut_toi_thieu: 0, tu_duyet: bang_chung === "tu_dong", giao_cho: null, han: null, bat: true })) },
-  // L14 (thiết kế chốt 06/11): quà = bảng giá sao; «Thêm 30 phút» KHÔNG nằm trong danh sách quà (là nút đổi sao ra phút riêng của con)
-  "GET qua": { ds: [{ id: "q1", ten: "Kem", loai: "dac_quyen", diem: 100, menh_gia: null, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: false, bat: true },
+  "GET qua": { ds: [{ id: "q1", ten: "Phiếu quà AiiCafe 50.000đ", loai: "voucher", diem: 500, menh_gia: 50000, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: false, bat: true },
     { id: "q2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, menh_gia: null, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: true, bat: true },
     { id: "q3", ten: "Chọn thực đơn bữa tối", loai: "dac_quyen", diem: 50, menh_gia: null, ton_kho: null, toi_da_thang: 2, chi_cuoi_tuan: false, bat: true }] },
-  // S3: «Cần Ba Mẹ để ý» + máy mất mạng — mặc định không có mục nào
-  "GET can-de-y": { ds: [], soChuong: 0 }, "GET may-mat-mang": { ds: [] },
   "GET quy": { soDu: 30000, giaoDich: [{ so_tien: 200000, loai: "nap", ghi_chu: "Tiền mặt", created_at: luc(4000) }, { so_tien: -50000, loai: "phat_hanh", ghi_chu: "Phiếu quà 50k", created_at: luc(300) }] },
   "GET luat": { ds: [{ child_id: "", muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" }, { child_id: "", muc: "khanacademy.org", ten: "Khan", loai: "hoc", nhom: "khac" }],
     heThong: ["winword.exe"], chuaXep: [{ muc: "tiktok.com", ten: "tiktok.com", phut: 12 }, { muc: "capcut.exe", ten: "Capcut", phut: 4 }, { muc: "minecraft.launcher.exe", ten: "Minecraft launcher", phut: 30 }],
@@ -261,10 +258,13 @@ Object.assign(coBan, {
   "POST luot/l1/lam-lai": { trangThai: "lam_lai" }, "POST luot/l3/lam-lai": { trangThai: "lam_lai" },
   "POST duyet-hang-loat": (b) => ({ daDuyet: b?.ids?.length ?? 0, sao: 10 * (b?.ids?.length ?? 0) }),
   "POST them-gio/g-moi/hoan-tac": { ok: true },
-  // L10: quà trao tay — không còn phiếu AiiCafe; quỹ phiếu quà đã bỏ (410)
-  "GET qua": { ds: [{ id: "q1", ten: "Thêm 30 phút chơi", loai: "phut", phut: 30, diem: 30, menh_gia: null, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: false, bat: true },
-    { id: "q2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, menh_gia: null, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: true, bat: true },
-    { id: "q3", ten: "Chọn thực đơn bữa tối", loai: "dac_quyen", diem: 50, menh_gia: null, ton_kho: null, toi_da_thang: 2, chi_cuoi_tuan: false, bat: true }] },
+  // L10 + L14 (thiết kế chốt 06/11): quà = bảng giá sao, khoá camelCase như máy chủ; «Thêm 30 phút» KHÔNG nằm trong danh sách quà (nút đổi sao ra phút riêng của con)
+  "GET qua": { ds: [
+    { id: "q1", ten: "Kem", loai: "dac_quyen", sao: 100, diem: 100, moTa: null, hinh: null, menhGia: null, tonKho: null, toiDaThang: null, chiCuoiTuan: false, canXacNhan: true, apCho: null, mau: null, dangGiu: 0, laVoucher: false, bat: true },
+    { id: "q2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", sao: 300, diem: 300, moTa: null, hinh: null, menhGia: null, tonKho: null, toiDaThang: null, chiCuoiTuan: true, canXacNhan: true, apCho: null, mau: null, dangGiu: 0, laVoucher: false, bat: true },
+    { id: "q3", ten: "Chọn thực đơn bữa tối", loai: "dac_quyen", sao: 50, diem: 50, moTa: null, hinh: null, menhGia: null, tonKho: null, toiDaThang: 2, chiCuoiTuan: false, canXacNhan: true, apCho: null, mau: null, dangGiu: 0, laVoucher: false, bat: true }] },
+  // S3: «Cần Ba Mẹ để ý» + máy mất mạng — mặc định không có mục nào
+  "GET can-de-y": { ds: [], soChuong: 0 }, "GET may-mat-mang": { ds: [] },
   "GET quy": { status: 410, body: { error: "da_bo", message: "Quỹ phiếu quà AiiCafe đã ngừng" } },
   "GET phieu": { ds: [{ id: "ph1", child_id: "c2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, ten_con: BILL, created_at: luc(90) }] },
   "POST phieu/ph1/trao": { ok: true, trangThai: "da_trao" },
