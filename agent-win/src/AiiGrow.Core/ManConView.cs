@@ -73,19 +73,22 @@ public sealed record ManKhoa(string Rob, string Tieu, string Phu, string? Phu2, 
 public static class ManKhoaView
 {
     public const string DoiSao = "doi_sao", XinThemGio = "xin_them_gio", XinNgoaiLe = "xin_ngoai_le", NhanBaMe = "nhan_ba_me", BaMeDungMay = "ba_me_dung_may";
+    /// <summary>06/11 (L13): «Đổi bé» trên màn hết giờ của máy dùng chung ⇒ đăng xuất, về «Ai đang dùng máy?».</summary>
+    public const string DoiBe = "doi_be";
 
     /// <summary>10 sao = 10 phút (L1) — nút đổi nhanh trên màn khoá / nhắc 5 phút.</summary>
     public const string NutDoiSao = "Đổi 10 sao lấy 10 phút";
 
-    public static string ChanTrang(string tenCon) =>
-        "AiiGrow · " + (string.IsNullOrWhiteSpace(tenCon) ? "Máy của con" : "Máy của " + tenCon) + " · máy do Ba Mẹ quản lý";
+    /// <summary>06/11: «AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý» (máy dùng chung — không còn «Laptop của Bảo Anh»).</summary>
+    public static string ChanTrang(string tenCon) => DangNhapView.ChanTrang(tenCon);
 
     /// <param name="graceLeft">Giây đếm ngược trước khi khoá (dịch vụ); &gt;0 ⇒ màn «Sắp hết giờ chơi».</param>
     /// <param name="sao">Số sao của Con (null = máy chủ chưa gửi — S1).</param>
     /// <param name="quyPhut">Quỹ phút chơi hôm nay (null = chưa có — S1).</param>
     /// <param name="moLaiLuc">Giờ máy mở lại sau giờ ngủ «HH:mm» (null = chưa có).</param>
     /// <param name="doiSaoDuoc">Máy chủ cho đổi sao lấy phút (Policy.CanExchangePoints).</param>
-    public static ManKhoa For(string? lyDo, int? graceLeft, string tenCon, int? sao, int? quyPhut, string? moLaiLuc, bool doiSaoDuoc, bool offline)
+    /// <param name="doiBe">06/11: máy dùng chung có bé đang đăng nhập ⇒ màn hết giờ có «Đổi bé» + «Ba Mẹ mở máy» (con-het-gio 07).</param>
+    public static ManKhoa For(string? lyDo, int? graceLeft, string tenCon, int? sao, int? quyPhut, string? moLaiLuc, bool doiSaoDuoc, bool offline, bool doiBe = false)
     {
         var ten = string.IsNullOrWhiteSpace(tenCon) ? "con" : tenCon.Trim();
         var saoDong = sao is { } s ? $"Con có {s} sao" : null;
@@ -129,8 +132,10 @@ public static class ManKhoaView
                 }
                 Them(XinNgoaiLe, "Xin mở ngoại lệ", "mo_khoa");
                 Them(NhanBaMe, "Nhắn Ba Mẹ", "tin");
-                Them(BaMeDungMay, "Ba Mẹ dùng máy", "khoa");
-                var da = quyPhut is { } qp ? $"Con đã chơi đủ {qp} / {qp} phút. Giỏi lắm!" : "Con đã chơi đủ giờ hôm nay. Giỏi lắm!";
+                if (doiBe) Them(DoiBe, "Đổi bé", "nguoi");
+                Them(BaMeDungMay, doiBe ? "Ba Mẹ mở máy" : "Ba Mẹ dùng máy", "khoa");
+                var ai = doiBe && !string.IsNullOrWhiteSpace(tenCon) ? ten : "Con";
+                var da = quyPhut is { } qp ? $"{ai} đã chơi đủ {qp} / {qp} phút. Giỏi lắm!" : $"{ai} đã chơi đủ giờ hôm nay. Giỏi lắm!";
                 return new ManKhoa("nghi", "Hết giờ chơi hôm nay", da, null, false, saoDong, nut, false);
         }
     }

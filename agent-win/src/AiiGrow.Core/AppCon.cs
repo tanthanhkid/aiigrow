@@ -87,6 +87,7 @@ public sealed class HvQuaDaTrao
 {
     public string Id { get; set; } = "";
     public string Ten { get; set; } = "";
+    public string? Loai { get; set; }
     public int Diem { get; set; }
     [JsonPropertyName("xu_ly_luc")] public DateTimeOffset? XuLyLuc { get; set; }
 }
@@ -95,6 +96,21 @@ public sealed class HvQuaDaTrao
 public sealed class HvViQua
 {
     public List<HvQuaDaTrao> DaTrao { get; set; } = new();
+    /// <summary>06/11 (L14): voucher AiiCafe đã phát khi Ba Mẹ trao — mã (= nội dung QR) + hạn.</summary>
+    public List<HvVoucherVi> Voucher { get; set; } = new();
+}
+
+/// <summary>Một voucher AiiCafe của GET hoc-vien/vi-qua (máy chủ phan-thuong.ts › viQua — khoá snake_case).</summary>
+public sealed class HvVoucherVi
+{
+    public string Ma { get; set; } = "";
+    [JsonPropertyName("menh_gia")] public int MenhGia { get; set; }
+    [JsonPropertyName("trang_thai")] public string TrangThai { get; set; } = "";
+    [JsonPropertyName("het_han")] public DateTimeOffset? HetHan { get; set; }
+    public string? Ten { get; set; }
+    public string? Qr { get; set; }
+    public int ConNgay { get; set; }
+    public bool DungDuoc => TrangThai == "da_phat_hanh" && ConNgay > 0;
 }
 
 /// <summary>Một dòng việc trên màn Nhiệm vụ / thẻ Hôm nay.</summary>
@@ -281,9 +297,42 @@ public static class AppConView
         return thieu <= 0 ? ("Đủ sao rồi!", true, false) : ($"Còn thiếu {thieu} sao", false, false);
     }
 
+    // ------------------------------------------------------------------ 06/11 (L14) quà bảng giá
+
+    /// <summary>Nhãn nhỏ cạnh tên quà (con-ngay-thuong 23): voucher «Mã QR», «Chỉ cuối tuần», tồn kho ít «Còn 1 bộ». Không có ⇒ null.</summary>
+    public static string? NhanQua(HvQua q) =>
+        q.Loai == "voucher" || q.MenhGia is > 0 ? "Mã QR"
+        : q.ChiCuoiTuan ? "Chỉ cuối tuần"
+        : q.TonKho is int t && t > 0 && t <= 3 ? $"Còn {t} bộ"
+        : null;
+
+    /// <summary>Dòng phụ quà trong «Quà con đổi được»: «Đủ sao rồi!» / «Còn thiếu 20 sao» (không lẫn trạng thái chờ trao — mục riêng ở trên).</summary>
+    public static (string Chu, bool Du) TrangThaiDoi(HvQua q, int sao)
+    {
+        var thieu = q.SoSao - sao;
+        return thieu <= 0 ? ("Đủ sao rồi!", true) : ($"Còn thiếu {thieu} sao", false);
+    }
+
+    /// <summary>Dòng phụ quà đang chờ trao: «Đang giữ 50 sao · chờ Ba Mẹ trao».</summary>
+    public static string DangGiu(int sao, bool ngan = false) => ngan ? $"Đang giữ {sao} sao · Ba Mẹ trao mới trừ" : $"Đang giữ {sao} sao · chờ Ba Mẹ trao";
+
+    /// <summary>Dòng phụ voucher đã nhận: «Mã AG… · đưa mã QR ở quầy · hạn 25/12».</summary>
+    public static string PhuVoucher(HvVoucherVi v) =>
+        $"Mã {v.Ma} · đưa mã QR ở quầy" + (v.HetHan is { } h ? " · hạn " + h.ToLocalTime().ToString("dd/MM") : "");
+
+    /// <summary>Voucher không còn dùng được: «Đã dùng» / «Hết hạn».</summary>
+    public static string TrangThaiVoucher(HvVoucherVi v) => v.TrangThai == "da_dung" ? "Đã dùng" : "Hết hạn";
+
+    public static string TenVoucher(HvVoucherVi v) =>
+        !string.IsNullOrWhiteSpace(v.Ten) ? (v.Ten!.StartsWith("Voucher", StringComparison.OrdinalIgnoreCase) ? v.Ten! : "Voucher " + v.Ten) : $"Voucher AiiCafe {v.MenhGia / 1000}k";
+
+    /// <summary>Hộp đổi quà: «Con có 30 sao · còn thiếu 20 sao» (chưa đủ) hoặc null (đủ — hiện «30 sao → còn 0 sao»).</summary>
+    public static string? ThieuSao(HvQua q, int sao) => sao >= q.SoSao ? null : $"Con có {sao} sao · còn thiếu {q.SoSao - sao} sao";
+
     public static string IconQua(HvQua q) => q.Phut is > 0 || q.Loai == "phut" ? "dongho" : q.Ten.ToLowerInvariant() switch
     {
         var t when t.Contains("kem") => "coc",
+        var t when t.Contains("aiicafe") || t.Contains("voucher") => "the_qua",
         var t when t.Contains("phim") => "the_qua",
         _ => "qua",
     };

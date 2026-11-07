@@ -11,13 +11,21 @@ internal static class Accounts
     public static List<LocalAccount> List() => TaiKhoanCon.DocMay();
 
     /// <summary>Tạo tài khoản Standard mới (mật khẩu truyền qua biến môi trường, không lên dòng lệnh). Trả SID.</summary>
+    /// <param name="password">Rỗng ⇒ tài khoản KHÔNG mật khẩu (06/11 L13: tài khoản chung của các bé — AiiGrow nhận bé bằng tên + PIN trên màn khoá).</param>
     public static string CreateStandard(string name, string password)
     {
         if (!IsValidName(name)) throw new ArgumentException("Tên tài khoản chỉ gồm chữ, số, dấu . _ - (tối đa 20 ký tự)");
         var q = Shell.PsQuote(name);
+        var tao = string.IsNullOrEmpty(password)
+            // -NoPassword có thể để cờ «phải đổi mật khẩu lần đầu» ⇒ tắt hẳn bằng net user (không yêu cầu mật khẩu, không bắt đổi lúc đăng nhập)
+            ? $"New-LocalUser -Name {q} -NoPassword -AccountNeverExpires | Out-Null; " +
+              // không để mật khẩu (rỗng) hết hạn sau 42 ngày; lỗi phần này không chặn cài (tài khoản đã tạo — chạy lại sẽ báo trùng tên)
+              $"try {{ Set-LocalUser -Name {q} -PasswordNeverExpires $true }} catch {{}}; " +
+              $"try {{ & net.exe user {q} /passwordreq:no /logonpasswordchg:no 2>&1 | Out-Null }} catch {{}}; "
+            : "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
+              $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; ";
         var r = Shell.PowerShell(
-            "$pw = ConvertTo-SecureString $env:AIIG_PW -AsPlainText -Force; " +
-            $"New-LocalUser -Name {q} -Password $pw -PasswordNeverExpires -AccountNeverExpires | Out-Null; " +
+            tao +
             $"try {{ Add-LocalGroupMember -SID S-1-5-32-545 -Member {q} }} catch {{}}; " +
             $"(Get-LocalUser -Name {q}).SID.Value",
             60000, new Dictionary<string, string> { ["AIIG_PW"] = password });

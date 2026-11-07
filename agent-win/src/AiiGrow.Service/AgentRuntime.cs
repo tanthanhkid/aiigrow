@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AiiGrow.Core;
 
 namespace AiiGrow.Service;
@@ -94,6 +95,7 @@ public sealed class AgentRuntime
             // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
             if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(ApiClient.LayWindows(Config?.LastPolicyJson ?? ""), out var p) && p != null)
             {
+                p.CheDo = DangNhapView.CheDoMayChung(p.CheDo, Config?.LastPolicyJson);
                 _policy = p;
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
             }
@@ -212,6 +214,8 @@ public sealed class AgentRuntime
 
     public void SetPolicy(Policy p, string raw)
     {
+        // 06/11 (L13): «giam-sat» của máy chung chưa có bé ⇒ vẫn chặn (màn chọn tên); chỉ lệnh gỡ mới thả
+        p.CheDo = DangNhapView.CheDoMayChung(p.CheDo, raw);
         lock (_gate)
         {
             var vtDoiDiem = VanTayDoiDiem(p);
@@ -362,9 +366,63 @@ public sealed class AgentRuntime
         {
             var p = ThucThi(now);
             if (p == null) return null;
-            return MoTamOffline.ApDung(PolicyEvaluator.Evaluate(p, now, _usedSeconds), MoTamDangMo(now));
+            var eff = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(p, now, _usedSeconds), MoTamDangMo(now));
+            return DangNhapCoHieuLuc(now) ? DangNhapView.ApDung(eff, Config?.DangNhap, now) : eff;
         }
     }
+
+    // ================================================================ 06/11 (L13): ai đang dùng máy (chọn tên + PIN, Ba Mẹ nhập mã)
+
+    /// <summary>con | ba_me | chua lúc <paramref name="now"/>.</summary>
+    public string NguoiDung(DateTimeOffset now) { lock (_gate) return DangNhapCoHieuLuc(now) ? DangNhapView.HienTai(Config?.DangNhap, now) : LoaiNguoiDung.Con; }
+
+    /// <summary>Chọn tên + PIN áp khi máy chặn thật («giam-sat» của máy chung chưa có bé đã đổi thành chặn ở <see cref="DangNhapView.CheDoMayChung"/>).
+    /// Máy mồ côi / đang gỡ / giám sát vì lệnh gỡ ⇒ bỏ hẳn (coi như bé đang dùng, không kẹt màn chọn tên). Gọi trong khoá.</summary>
+    private bool DangNhapCoHieuLuc(DateTimeOffset now) => !DangGo && AiiGrow.Core.CheDoHieuLuc.LaChan(_cheDo) && !MoCoi.La(Config, now);
+
+    private long _hoSoHoiTick = long.MinValue;
+    /// <summary>Lần hỏi ho-so gần nhất (chỉ trong bộ nhớ — không ghi cấu hình mỗi lần hỏi). Đọc / ghi nguyên tử (pipe + vòng đồng bộ).</summary>
+    public DateTimeOffset? HoSoHoiLuc
+    {
+        get { var t = Interlocked.Read(ref _hoSoHoiTick); return t == long.MinValue ? null : new DateTimeOffset(t, TimeSpan.Zero); }
+        set => Interlocked.Exchange(ref _hoSoHoiTick, value?.UtcTicks ?? long.MinValue);
+    }
+
+    /// <summary>Một việc đổi người với máy chủ một lúc (dang-nhap-be / ba-me-mo ↔ dang-xuat báo bù) — dang-xuat đến sau không đá bé vừa vào.</summary>
+    public SemaphoreSlim KhoaDoiNguoi { get; } = new(1, 1);
+
+    /// <summary>Bản sao trạng thái đăng nhập (đọc ngoài khoá).</summary>
+    public DangNhapMay DangNhap()
+    {
+        lock (_gate)
+        {
+            var d = Config?.DangNhap ?? new DangNhapMay();
+            return JsonSerializer.Deserialize<DangNhapMay>(JsonSerializer.Serialize(d, Json.Options), Json.Options) ?? new DangNhapMay();
+        }
+    }
+
+    /// <summary>Đọc – sửa – ghi trạng thái đăng nhập trong khoá của ConfigStore (<paramref name="f"/> trả true = có đổi ⇒ ghi). Ghi lỗi ⇒ vẫn đổi bản trong bộ nhớ.
+    /// Đổi người dùng ⇒ quỹ đếm tại máy của bé trước không áp cho bé sau.</summary>
+    public bool CapNhatDangNhap(Func<DangNhapMay, bool> f)
+    {
+        lock (_gate)
+        {
+            var truoc = Config?.DangNhap is { } d0 ? (d0.Loai, d0.ConId) : (LoaiNguoiDung.Chua, null);
+            bool doi = false;
+            AgentConfig? moi = null;
+            try { moi = Store.UpdateIf(c => { c.DangNhap ??= new DangNhapMay(); doi = f(c.DangNhap); return doi; }); } catch { moi = null; }
+            if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+            else if (Config != null) { Config.DangNhap ??= new DangNhapMay(); doi = f(Config.DangNhap); }
+            var sau = Config?.DangNhap is { } d1 ? (d1.Loai, d1.ConId) : (LoaiNguoiDung.Chua, null);
+            // KHÔNG đặt lại quỹ đếm tại máy khi đổi người: lúc mất mạng Policy đang giữ vẫn là bản cũ ⇒ đăng xuất / vào lại không được thêm giờ;
+            // có mạng, lượt đồng bộ ngay sau (RequestSyncSoon) mang Policy + quỹ của bé mới và đặt lại bộ đếm (SetPolicy).
+            if (sau != truoc) _lockStartedAt = null;
+            return doi;
+        }
+    }
+
+    /// <summary>Máy chỉ gán một bé (ho-so.mayRieng; chưa hỏi được ⇒ theo lúc ghép).</summary>
+    public bool MayRieng { get { lock (_gate) return Config?.DangNhap?.HoSo?.MayRieng ?? Config?.DungChung == false; } }
 
     private bool MoTamDangMo(DateTimeOffset now) => Config?.MoTamOffline?.IsUnlocked(now) == true;
 
@@ -372,7 +430,8 @@ public sealed class AgentRuntime
     /// Con gõ mã mở offline Ba Mẹ đọc. Kiểm ngay trên máy bằng bí mật đã lưu (Config.MaOfflineBiMat), không cần máy chủ.
     /// Mở được ⇒ lưu hạn mở + ghi sự kiện «mo_ma_offline» vào hàng đợi offline; sai đủ ngưỡng ⇒ sự kiện «sai_ma_offline».
     /// </summary>
-    public (bool Ok, string Message) TryMaOffline(string? code, DateTimeOffset now)
+    /// <param name="choBaMe">06/11 (L13): «Ba Mẹ nhập mã» lúc mất mạng ⇒ mã đúng thì «Ba Mẹ đang dùng máy» (đúng số phút trong mã), không phải mở tạm cho Con.</param>
+    public (bool Ok, string Message) TryMaOffline(string? code, DateTimeOffset now, bool choBaMe = false)
     {
         lock (_gate)
         {
@@ -398,11 +457,23 @@ public sealed class AgentRuntime
                     daKiem = true;
                     var may = Environment.MachineName;
                     if (kq == KetQuaMoOffline.DaMo)
+                    {
                         c.Queue.Add(new SuKien
                         {
                             Loai = "mo_ma_offline", Luc = now.ToUniversalTime(),
-                            ChiTiet = new() { ["may"] = may, ["phut"] = ((int)Math.Round((st.UnlockUntil!.Value - now).TotalMinutes)).ToString(), ["den"] = st.UnlockUntil!.Value.ToUniversalTime().ToString("o") },
+                            ChiTiet = new() { ["may"] = may, ["phut"] = ((int)Math.Round((st.UnlockUntil!.Value - now).TotalMinutes)).ToString(), ["den"] = st.UnlockUntil!.Value.ToUniversalTime().ToString("o"),
+                                ["baMe"] = choBaMe ? "1" : "0" },
                         });
+                        if (choBaMe)
+                        {
+                            // Ba Mẹ dùng máy: không phải lượt «mở tạm» của Con (có mạng không cắt ngang) — giữ mã đã dùng để không dùng lại
+                            var den = st.UnlockUntil!.Value;
+                            st.UnlockUntil = now;
+                            c.DangNhap ??= new DangNhapMay();
+                            DangNhapView.VaoBaMe(c.DangNhap, den, true, now);
+                            cau = $"Ba Mẹ dùng máy tới {den.ToLocalTime():HH:mm}.";
+                        }
+                    }
                     else if (kq == KetQuaMoOffline.Sai && st.WaitSeconds(now) > 0)
                         c.Queue.Add(new SuKien
                         {
@@ -425,7 +496,8 @@ public sealed class AgentRuntime
             }
             Config = moi;
             _cfgStamp = Store.LastWriteUtc;
-            return (kq is KetQuaMoOffline.DaMo or KetQuaMoOffline.DangMo, cau);
+            if (choBaMe && kq == KetQuaMoOffline.DaMo) _lockStartedAt = null;
+            return (kq == KetQuaMoOffline.DaMo || (kq == KetQuaMoOffline.DangMo && !choBaMe), cau);
         }
     }
 
@@ -488,7 +560,8 @@ public sealed class AgentRuntime
     {
         lock (_gate)
         {
-            if (!locked || !sessionActive) { _lockStartedAt = null; return; }
+            // màn «Ai đang dùng máy?» không đếm ngược, không ngắt phiên Windows (các bé chọn tên ngay trên màn này)
+            if (!locked || !sessionActive || reason == LockReasons.ChonTen) { _lockStartedAt = null; return; }
             _lockStartedAt ??= now;
             _lockGraceSec = reason == LockReasons.HetGio ? 60 : 10;
         }
@@ -513,9 +586,17 @@ public sealed class AgentRuntime
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);
             var tt = ThucThi(now)!;
-            var eff = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(tt, now, _usedSeconds), moTam);
+            var dn = Config?.DangNhap;
+            var coDn = DangNhapCoHieuLuc(now);
+            var eff0 = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(tt, now, _usedSeconds), moTam);
+            var eff = coDn ? DangNhapView.ApDung(eff0, dn, now) : eff0;
             if (moTam) s.MoOfflineDen = Config!.MoTamOffline.UnlockUntil;
             s.ChildName = string.IsNullOrEmpty(_policy.ChildName) ? (Config?.ChildName ?? "") : _policy.ChildName;
+            // 06/11 (L13): ai đang dùng máy — tên trên màn là bé đang đăng nhập (Policy có thể còn của lượt đồng bộ trước)
+            s.NguoiDung = coDn ? DangNhapView.HienTai(dn, now) : LoaiNguoiDung.Con;
+            s.MayRieng = dn?.HoSo?.MayRieng ?? Config?.DungChung == false;
+            if (s.NguoiDung == LoaiNguoiDung.Con) { s.BeId = dn!.ConId; s.BeTen = dn.TenCon; if (!string.IsNullOrWhiteSpace(dn.TenCon)) s.ChildName = dn.TenCon!; }
+            else if (s.NguoiDung == LoaiNguoiDung.BaMe) s.BaMeDen = dn!.BaMeDen;
             s.Mode = tt.Mode;
             s.Locked = eff.Locked;
             s.LockReason = eff.LockReason;

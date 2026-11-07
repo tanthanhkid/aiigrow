@@ -9,10 +9,26 @@ public sealed class ApiException : Exception
     public int? StatusCode { get; }
     /// <summary>Mã lỗi máy chủ (`error`) — AiiGrow thêm, vd "token_sai".</summary>
     public string? Code { get; }
-    public ApiException(string message, int? statusCode = null, Exception? inner = null, string? code = null) : base(message, inner)
+    /// <summary>Thân lỗi máy chủ (JSON) — đọc trường phụ như `conLan`, `choGiay` (06/11 PIN theo bé).</summary>
+    public string? Body { get; }
+    public ApiException(string message, int? statusCode = null, Exception? inner = null, string? code = null, string? body = null) : base(message, inner)
     {
         StatusCode = statusCode;
         Code = code;
+        Body = body;
+    }
+
+    /// <summary>Trường số phụ trong thân lỗi (vd «conLan», «choGiay»); không có ⇒ null.</summary>
+    public int? SoPhu(string ten)
+    {
+        if (string.IsNullOrWhiteSpace(Body)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(Body);
+            return doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty(ten, out var v) && v.ValueKind == JsonValueKind.Number
+                && v.TryGetDouble(out var d) && double.IsFinite(d) ? (int)Math.Round(d) : null;
+        }
+        catch (JsonException) { return null; }
     }
     public bool IsUnauthorized => StatusCode is 401 or 403;
     /// <summary>Không tới được máy chủ / máy chủ lỗi ⇒ chạy offline, giữ hàng đợi.</summary>
@@ -121,6 +137,28 @@ public sealed class ApiClient : IDisposable
         return Deserialize<RequestStatus>(raw);
     }
 
+    // ---- 06/11 (L13 — docs/API.md mục «S3»): máy dùng chung — chọn tên + PIN, quên PIN, Ba Mẹ nhập mã, đổi bé / khoá lại
+
+    /// <summary>GET ho-so — «Ai đang dùng máy?» (danh sách bé + vân PIN để kiểm lúc mất mạng).</summary>
+    public async Task<HoSoMay> HoSoAsync(CancellationToken ct = default)
+        => Deserialize<HoSoMay>(await SendAsync(HttpMethod.Get, "api/device/ho-so", null, ct));
+
+    /// <summary>POST dang-nhap-be {con, pin?} → {phienCon, con, coPin, canDatPin?}. Sai ⇒ ApiException pin_sai (conLan) / pin_tam_khoa (choGiay) / can_pin / khong_thay.</summary>
+    public Task<DangNhapBeKq> DangNhapBeAsync(string con, string? pin, CancellationToken ct = default)
+        => PostAsync<DangNhapBeKq>("api/device/dang-nhap-be", new { con, pin = string.IsNullOrEmpty(pin) ? null : pin }, ct);
+
+    /// <summary>POST quen-pin {con} → {daGui, lapLai}.</summary>
+    public Task<QuenPinKq> QuenPinAsync(string con, CancellationToken ct = default)
+        => PostAsync<QuenPinKq>("api/device/quen-pin", new { con }, ct);
+
+    /// <summary>POST ba-me-mo {ma} → {baMeDung: {den, tu}, phut}. Sai ⇒ ma_sai (conLan) / ma_tam_khoa (choGiay) / ma_da_dung.</summary>
+    public Task<BaMeMoKq> BaMeMoAsync(string ma, CancellationToken ct = default)
+        => PostAsync<BaMeMoKq>("api/device/ba-me-mo", new { ma }, ct);
+
+    /// <summary>POST dang-xuat (bé «Đổi bé / Đăng xuất») | khoa-lai (Ba Mẹ «Khoá lại») → {ok, khoa}.</summary>
+    public Task<string> RoiMayAsync(bool khoaLai, CancellationToken ct = default)
+        => SendAsync(HttpMethod.Post, khoaLai ? "api/device/khoa-lai" : "api/device/dang-xuat", new { }, ct);
+
     /// <summary>Khay học viên: gọi một đường <c>api/device/…</c> đã qua <see cref="HocVienPaths.Allowed"/>; trả thân JSON nguyên văn.</summary>
     public Task<string> RawAsync(HttpMethod method, string path, string? bodyJson, CancellationToken ct = default)
         => SendRawAsync(method, path, bodyJson, ct);
@@ -191,7 +229,7 @@ public sealed class ApiClient : IDisposable
             if (!resp.IsSuccessStatusCode)
             {
                 var (code, msg) = ExtractError(text);
-                throw new ApiException(msg ?? code ?? ("Máy chủ báo lỗi " + (int)resp.StatusCode), (int)resp.StatusCode, code: code);
+                throw new ApiException(msg ?? code ?? ("Máy chủ báo lỗi " + (int)resp.StatusCode), (int)resp.StatusCode, code: code, body: text);
             }
             return text;
         }

@@ -88,33 +88,6 @@ internal sealed class KetQuaHop : HopKhayCoBan
     }
 }
 
-/// <summary>«Ba Mẹ dùng máy?» (con-ngay-thuong 18): khoá nhanh Win + L rồi đăng nhập tài khoản của Ba Mẹ; giờ của Con không bị trừ.</summary>
-internal sealed class BaMeDungMayHop : HopKhayCoBan
-{
-    public BaMeDungMayHop() : base("AiiGrow", UI.Px(425))
-    {
-        Flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Trang, "Ba Mẹ dùng máy?", "Khoá nhanh, rồi đăng nhập của Ba Mẹ.", W));
-        var phim = KhoiCon.Hang();
-        phim.Margin = new Padding(0, 0, 0, UI.Px(12));
-        foreach (var (chu, i) in new[] { ("Win", 0), ("+", 1), ("L", 2) })
-        {
-            if (i == 1) { var c = UI.Text("+", 16f, true, UI.Muted, UI.Px(40)); c.Margin = new Padding(UI.Px(4), UI.Px(10), UI.Px(4), 0); phim.Controls.Add(c); continue; }
-            var k = new ChipClay(chu, Clay.The, UI.Ink) { Font = UI.F(15f, FontStyle.Bold) };
-            k.Size = new Size(Math.Max(UI.Px(64), k.Width + UI.Px(12)), UI.Px(48));
-            phim.Controls.Add(k);
-        }
-        Flow.Controls.Add(phim);
-        Flow.Controls.Add(KhoiCon.DongIcon("khoa", "1. Khoá máy — bấm cùng lúc 2 phím", W));
-        Flow.Controls.Add(KhoiCon.DongIcon("nguoi", "2. Chọn tài khoản của Ba Mẹ — đăng nhập như thường ngày", W));
-        var l = UI.Text("Giờ của con không bị trừ khi Ba Mẹ dùng.", 10.5f, true, Clay.NgocInk, W);
-        l.Margin = new Padding(0, UI.Px(4), 0, UI.Px(10));
-        Flow.Controls.Add(l);
-        var ve = KhoiCon.Nut("Về Hôm nay", true, W, "nha");
-        ve.Click += (_, _) => Close();
-        Flow.Controls.Add(ve);
-    }
-}
-
 /// <summary>«Đổi quà bằng sao» (con-ngay-thuong 30 → 28): xác nhận gửi Ba Mẹ → «Đã gửi Ba Mẹ · chờ Ba Mẹ trao quà».</summary>
 internal sealed class DoiQuaHop : HopKhayCoBan
 {
@@ -142,14 +115,22 @@ internal sealed class DoiQuaHop : HopKhayCoBan
         Flow.Controls.Add(KhoiCon.Dau(AppConView.IconQua(_qua), KhoiCon.Mau.Vang, _qua.Ten, null, W));
         var hang = KhoiCon.Hang();
         hang.Margin = new Padding(0, 0, 0, UI.Px(10));
-        hang.Controls.Add(KhoiApp.ChipSao(AppConView.Sao(_sao)));
-        var mui = UI.Text("→", 14f, true, UI.Muted, UI.Px(40)); mui.Margin = new Padding(UI.Px(6), UI.Px(2), UI.Px(6), 0);
-        hang.Controls.Add(mui);
-        var con = UI.Text("còn " + AppConView.Sao(Math.Max(0, _sao - _qua.SoSao)), 12f, true, Clay.DiemInk, UI.Px(160)); con.Margin = new Padding(0, UI.Px(4), 0, 0);
-        hang.Controls.Add(con);
+        // 06/11 (con-ngay-thuong 38): chưa đủ sao ⇒ «Con có 30 sao · còn thiếu 20 sao», nút gửi khoá
+        var thieu = AppConView.ThieuSao(_qua, _sao);
+        hang.Controls.Add(KhoiApp.ChipSao(AppConView.Sao(_qua.SoSao)));
+        if (thieu == null)
+        {
+            var mui = UI.Text("→", 14f, true, UI.Muted, UI.Px(40)); mui.Margin = new Padding(UI.Px(6), UI.Px(2), UI.Px(6), 0);
+            hang.Controls.Add(mui);
+            var con = UI.Text("còn " + AppConView.Sao(Math.Max(0, _sao - _qua.SoSao)), 12f, true, Clay.DiemInk, UI.Px(160)); con.Margin = new Padding(0, UI.Px(4), 0, 0);
+            hang.Controls.Add(con);
+        }
         Flow.Controls.Add(hang);
-        Flow.Controls.Add(UI.Text("Ba Mẹ trao quà thì mới trừ sao", 10.5f, false, UI.Muted, W));
+        if (thieu != null) Flow.Controls.Add(UI.Text(thieu, 11f, true, Clay.Canh, W));
+        if (AppConView.NhanQua(_qua) is { } nhan) Flow.Controls.Add(UI.Text(nhan + (_qua.MoTa is { Length: > 0 } mt ? " · " + mt : ""), 10.5f, true, Clay.NgocInk, W));
+        Flow.Controls.Add(UI.Text(thieu != null ? "Đủ sao thì gửi Ba Mẹ · Ba Mẹ trao quà mới trừ sao" : "Ba Mẹ trao quà thì mới trừ sao", 10.5f, false, UI.Muted, W));
         var gui = KhoiCon.Nut($"Gửi Ba Mẹ: đổi {_qua.SoSao} sao", true, W, "gui");
+        gui.Enabled = thieu == null;
         gui.Click += async (_, _) => await GuiAsync(gui);
         Flow.Controls.Add(gui);
         var khac = KhoiCon.Nut("Chọn quà khác", false, W, "qua");

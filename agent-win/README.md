@@ -58,6 +58,31 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   được phép ngay (không chờ máy chủ, cả khi mất mạng); ngoại lệ hết hạn ⇒ khoá lại theo `windows.khoaKhiHetNgoaiLe`; mất mạng ⇒ tự xét giờ ngủ / giờ học theo
   đồng hồ máy. Bài nộp lúc mất mạng lưu ở `ProgramData\AiiGrow\bai-cho` (mỗi bài một tệp), có mạng tự gửi (`BaiChoMang`, 12 giờ / 3 lần lỗi / 4xx bỏ).
 
+## Máy dùng chung — chọn tên + PIN, quà bảng giá (thiết kế chốt 06/11, L13 L14 — `docs/KE-HOACH-KHOP-THIET-KE-0611.md`)
+
+- **Một tài khoản Windows giới hạn dùng chung** cho các bé (bộ cài bước 3: «Các con dùng chung 1 tài khoản giới hạn»; tạo mới = tài khoản `con` KHÔNG mật khẩu
+  Windows — `New-LocalUser -NoPassword`). Cài xong: «Máy đã sẵn sàng cho cả nhà!» → «Mở màn chọn tên» (khoá phiên, vào tài khoản Con là thấy màn chọn tên).
+- **Ai đang dùng máy** (`Core/DangNhapMay.cs`, lưu `config.DangNhap`): chưa ai ⇒ dịch vụ khoá lý do `chon_ten` (không đếm ngược, KHÔNG ngắt phiên Windows, không
+  tính giờ) ⇒ màn khoá «Ai đang dùng máy?» (`Tray/LockForm.ChonTen.cs`): chạm tên → PIN 4 số (bàn phím số trên màn hoặc bàn phím thật) → «Chưa đúng · còn N
+  lần thử» → sai 5 lần chờ 15 giây → «Quên PIN rồi à?» («Báo Ba Mẹ giúp con» = `POST quen-pin`) · «Ba Mẹ dùng máy» → «Ba Mẹ nhập mã» (6 số). Máy riêng
+  (một bé) vào thẳng ô PIN. Bé chưa có PIN chạm tên là vào (khay nhắc Ba Mẹ đặt PIN).
+- Lệnh pipe mới (`PipeCmd.HoSo / DangNhapBe / QuenPin / BaMeMo / DangXuat / KhoaLai`, chỉ khay đã cài) ⇒ dịch vụ (`Service/NguoiDungMay.cs`) gọi
+  `/api/device/ho-so | dang-nhap-be | quen-pin | ba-me-mo | dang-xuat | khoa-lai` (docs/API.md mục «S3»). Máy chủ ghi bé đang dùng ⇒ `dong-bo`, `hoc-vien/*`
+  không cần header vẫn tính giờ, sao, nhiệm vụ theo bé đó. **Đổi bé / Đăng xuất / Khoá lại**: máy về màn chọn tên NGAY; báo máy chủ sau lượt `dong-bo` kế
+  (lượt đó gửi nốt phút dùng của bé vừa ra). Máy chủ báo `nguoiDung.loai = chua` (phiên bé hết 12 giờ) ⇒ về màn chọn tên.
+- **Mất mạng**: PIN kiểm tại máy bằng vân PIN của `ho-so` (HMAC-SHA256 bằng bí mật mã offline, máy tự đếm 5 lần / 15 giây), lượt vào chờ báo máy chủ
+  (`DangNhapCho`, PIN giữ trong cấu hình DPAPI tới khi báo được); mã Ba Mẹ kiểm TOTP thử biến thể **60 → 30 → 15 phút** (`MaOffline.KiemPhut`, cũng áp cho ô mã
+  trên màn mất mạng).
+- **Ba Mẹ đang dùng máy**: mở hết (không danh sách app, không chặn app, gỡ luật web khi mở lúc mất mạng), KHÔNG tính giờ con, hộp nổi góc phải dưới + viên
+  trên đầu màn hình, «Khoá lại» (hộp / menu khay) ⇒ màn chọn tên; hết hạn ⇒ tự khoá (không chờ mạng).
+- App Con: thanh bên viên chữ + tên bé, «Đổi bé / Đăng xuất» (hộp con-ngay-thuong 08), «Ba Mẹ dùng máy» (→ nhập mã). Màn hết giờ máy dùng chung thêm
+  «Đổi bé · Ba Mẹ mở máy». Đổi bé ⇒ khay xoá tin / app của bé trước.
+- **Sao & quà = bảng giá** (L14): «Con chọn quà → Ba Mẹ trao → mới trừ sao», mục «Đang chờ Ba Mẹ trao» (đang giữ N sao), «Quà con đổi được» xếp theo
+  giá (nhãn «Mã QR» / «Chỉ cuối tuần» / «Còn 1 bộ»), bấm quà chưa đủ sao ⇒ «Con có 30 sao · còn thiếu 20 sao». «Quà của con»: voucher AiiCafe Ba Mẹ đã
+  trao hiện mã (= nội dung QR quầy quét) + hạn + «Còn N ngày».
+- Chưa thử trên Windows thật: `New-LocalUser -NoPassword` + đăng nhập không mật khẩu, màn chọn tên toàn màn hình, phím số. Ảnh: `chup-man` (CI `chup-man-win`)
+  thêm `chon-ten*`, `khoa-het-gio-doi-be`, `ba-me-dung-may`, `ba-me-nhap-ma-app`, `doi-be`, `doi-qua-chua-du`.
+
 ## Build
 
 Cần .NET 8 SDK. Trên Windows:

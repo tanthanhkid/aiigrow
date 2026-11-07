@@ -141,8 +141,19 @@ internal static class ChupMain
             .Loi("Ba Mẹ", "Con đọc to hơn chút nhé, Mẹ nghe chưa rõ.").Chip("+10 sao", true, "Chưa cộng sao · ghi lại để nhận").Nut("Ghi âm lại cho Ba Mẹ", true, "tai", null).LienKet("Để sau", null, null)));
         await Mot("ket-qua-trao-qua", () => ManHop("ket-qua-trao-qua", () => new KetQuaHop("Quà").Dau("qua", KhoiCon.Mau.Vang, "Ba Mẹ đã trao quà!", "Thêm 30 phút chơi")
             .Chip("+30 phút", false, "18 phút → 48 phút").Dong("Còn 0 sao · làm nhiệm vụ để có thêm", false, AiiGrow.ClayUi.Clay.DiemInk).Nut("Chơi tiếp", true, "game", null).LienKet("Xem quà của con", "qua", null)));
-        await Mot("doi-qua", () => ManHop("doi-qua", () => new DoiQuaHop(CuaHang().Qua[1], 30)));
-        await Mot("ba-me-dung-may", () => ManHop("ba-me-dung-may", () => new BaMeDungMayHop()));
+        await Mot("doi-qua", () => ManHop("doi-qua", () => new DoiQuaHop(CuaHang().Qua[0], 60)));
+        await Mot("doi-qua-chua-du", () => ManHop("doi-qua-chua-du", () => new DoiQuaHop(CuaHang().Qua[0], 30)));
+        // 06/11 (L13 — con-ngay-thuong 01–08): máy dùng chung, chọn tên + PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng máy, Đổi bé / Đăng xuất
+        await Mot("chon-ten", () => ManChonTen("chon-ten", null));
+        await Mot("chon-ten-nhap-pin", () => ManChonTen("chon-ten-nhap-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.So = "48"; }));
+        await Mot("chon-ten-pin-sai", () => ManChonTen("chon-ten-pin-sai", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.ConLan = 3; }));
+        await Mot("chon-ten-tam-khoa", () => ManChonTen("chon-ten-tam-khoa", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.Buoc = BuocChonTen.TamKhoa; st.ChoDen = DateTimeOffset.Now.AddSeconds(15); }));
+        await Mot("chon-ten-quen-pin", () => ManChonTen("chon-ten-quen-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); ManChonTenView.MoQuen(st); }));
+        await Mot("chon-ten-ba-me-ma", () => ManChonTen("chon-ten-ba-me-ma", st => { ManChonTenView.MoBaMe(st, false); st.So = "48"; }));
+        await Mot("khoa-het-gio-doi-be", () => ManKhoa("khoa-het-gio-doi-be", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.HetGio; s.MinutesLeft = 0; s.LockGraceLeftSec = null; s.NguoiDung = LoaiNguoiDung.Con; s.BeId = "c1"; s.BeTen = "Bảo Anh"; })));
+        await Mot("ba-me-dung-may", () => ManHop("ba-me-dung-may", () => { var f = new BaMeDungForm(); f.Den(DateTimeOffset.Now.AddMinutes(28)); return f; }));
+        await Mot("ba-me-nhap-ma-app", () => ManHop("ba-me-nhap-ma-app", () => new BaMeMaHop()));
+        await Mot("doi-be", () => ManHop("doi-be", () => new DoiBeHop("Bảo Anh", false)));
 
         await Mot("khay-menu", ManMenuKhay);
         // Bóng báo khay («Còn 5 phút»…): runner Windows Server không hiện thông báo (đã thử, ảnh chỉ có màn nền) ⇒ không chụp được ở đây.
@@ -221,7 +232,11 @@ internal static class ChupMain
             DatTruong(f, "_ch", CuaHang());
             DatTruong(f, "_tin", Tin());
             DatTruong(f, "_tuCham", new List<HvNvDong> { new() { Id = "t9", Ten = "Học 1 bài với AiiRob", Diem = 20, Sao = 20, TuCham = true, Bo = "tu_lap" } });
-            DatTruong(f, "_viQua", new HvViQua { DaTrao = new() { new() { Id = "r1", Ten = "Xem phim cả nhà", Diem = 40, XuLyLuc = DateTimeOffset.Now.AddDays(-10) } } });
+            DatTruong(f, "_viQua", new HvViQua
+            {
+                DaTrao = new() { new() { Id = "r1", Ten = "AiiCafe 50k", Loai = "voucher", Diem = 500, XuLyLuc = DateTimeOffset.Now.AddDays(-11) } },
+                Voucher = new() { new() { Ma = "AG7K3M9PQR2X", MenhGia = 50000, TrangThai = "da_phat_hanh", HetHan = DateTimeOffset.Now.AddDays(49), Ten = "AiiCafe 50k", Qr = "AG7K3M9PQR2X", ConNgay = 49 } },
+            });
         }
         if (quaCuaCon) DatTruong(f, "_xemQuaCuaCon", true);
         DatTruong(f, "_loiTai", loiTai);
@@ -253,6 +268,32 @@ internal static class ChupMain
         }
         finally { f.Dispose(); }
     }
+
+    /// <summary>«Ai đang dùng máy?» với 2 bé mẫu; <paramref name="buoc"/> đặt bước (PIN, sai, chờ 15 giây, quên PIN, Ba Mẹ nhập mã) rồi vẽ lại.</summary>
+    private static async Task ManChonTen(string ten, Action<ManChonTenState>? buoc)
+    {
+        var f = new LockForm();
+        f.WindowState = FormWindowState.Normal;
+        DatCuaSo(f, _man, laClient: false);
+        try
+        {
+            DatTruong(f, "_hs", HoSoMau());
+            f.Show();
+            f.Apply(TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.ChonTen; s.NguoiDung = LoaiNguoiDung.Chua; s.MinutesLeft = null; }));
+            await Cho(3500);   // lượt hỏi ho-so (không có dịch vụ) hết giờ trước khi đặt bước
+            DatTruong(f, "_hs", HoSoMau());
+            if (buoc != null) buoc((ManChonTenState)Lay(f, "_ct")!);
+            Goi(f, "VeChonTen");
+            await Cho(1200);
+            Chup(f, ten);
+        }
+        finally { f.CloseForReal(); f.Dispose(); }
+    }
+
+    private static HoSoMay HoSoMau() => new()
+    {
+        Con = new() { new() { Id = "c1", Ten = "Bảo Anh", CoPin = true }, new() { Id = "c2", Ten = "Bảo Minh", CoPin = true } },
+    };
 
     private static async Task ManKhoa(string ten, TrayState s)
     {
@@ -440,7 +481,7 @@ internal static class ChupMain
             new() { Id = "k1", NoiDung = "Phòng con gọn ghê! Mẹ xem ảnh rồi nhé.", Luc = DateTimeOffset.Now.AddMinutes(-45) },
             new() { Id = "k2", NoiDung = "Cuối tuần này cả nhà mình đi công viên Tao Đàn nhé.", PhanHoi = "Con yêu Ba Mẹ", Luc = DateTimeOffset.Now.AddDays(-1) },
         },
-        PhieuCho = new() { new() { Id = "p1", Ten = "Đi ăn kem", Diem = 50, Luc = DateTimeOffset.Now.AddDays(-1) } },
+        PhieuCho = new() { new() { Id = "p1", Ten = "Chọn món bữa tối", Diem = 50, Luc = DateTimeOffset.Now.AddHours(-2) } },
     };
 
     private static HvCuaHang CuaHang() => new()
@@ -448,10 +489,14 @@ internal static class ChupMain
         SoDu = 30, Sao = 30,
         Qua = new()
         {
-            new() { Id = "q1", Ten = "Đi ăn kem", Diem = 50, ChoTraoTu = DateTimeOffset.Now.AddDays(-1) },
-            new() { Id = "q2", Ten = "Thêm 30 phút chơi", Loai = "phut", Phut = 30, Diem = 30, Du = true },
-            new() { Id = "q3", Ten = "Xem phim cả nhà", Diem = 40, ConThieu = 10 },
-            new() { Id = "q4", Ten = "Đồ chơi nhỏ", Diem = 100, ConThieu = 70 },
+            // 06/11 (L14): 7 quà mặc định = bảng giá sao (con-ngay-thuong 23)
+            new() { Id = "q1", Ten = "Chọn món bữa tối", Loai = "dac_quyen", Diem = 50, ConThieu = 20, ChoTraoTu = DateTimeOffset.Now.AddHours(-2) },
+            new() { Id = "q2", Ten = "Đi ăn kem", Loai = "dac_quyen", Diem = 100, ConThieu = 70 },
+            new() { Id = "q3", Ten = "AiiCafe 20k", Loai = "voucher", MenhGia = 20000, Diem = 200, ConThieu = 170, MoTa = "Voucher QR · 60 ngày" },
+            new() { Id = "q4", Ten = "Đồ chơi nhỏ", Diem = 200, ConThieu = 170 },
+            new() { Id = "q5", Ten = "Đi xem phim", Loai = "dac_quyen", Diem = 300, ConThieu = 270, ChiCuoiTuan = true },
+            new() { Id = "q6", Ten = "AiiCafe 50k", Loai = "voucher", MenhGia = 50000, Diem = 500, ConThieu = 470 },
+            new() { Id = "q7", Ten = "Bộ Lego", Diem = 800, ConThieu = 770, TonKho = 1 },
         },
     };
 

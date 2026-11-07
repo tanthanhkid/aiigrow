@@ -7,13 +7,13 @@ namespace AiiGrow.Tray;
 /// <summary>
 /// Màn khoá toàn màn hình theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-het-gio 06–10, con-mat-mang 02–04), khung 1920×1080:
 /// nền ngọc sâu, đồng hồ góc phải, MỘT thẻ đất sét ở giữa (Rob 170 · tiêu đề 44px · câu phụ · [đếm ngược] · [chip sao] · 2 nút lớn · liên kết chữ),
-/// chân «AiiGrow · Máy của &lt;con&gt; · máy do Ba Mẹ quản lý».
+/// chân «AiiGrow · &lt;tên bé&gt; · máy do Ba Mẹ quản lý». 06/11: chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (LockForm.ChonTen.cs); «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã.
 ///   • Sắp hết giờ (đếm ngược) / Hết giờ chơi: «Đổi 10 sao lấy 10 phút» · «Xin Ba Mẹ thêm giờ» (+ ngoại lệ, nhắn, Ba Mẹ dùng máy).
 ///   • Giờ ngủ / Ba Mẹ khoá: KHÔNG thêm giờ — chỉ «Xin Ba Mẹ mở ngoại lệ» (1 app hoặc cả máy, có hạn phút) · nhắn · Ba Mẹ dùng máy.
 ///   • Mất mạng: Rob ngủ bên trái «Mất mạng, luật vẫn vậy nhé!», thẻ trái-căn: lời xin lưu lại (có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
 /// Nút chỉ báo ra ngoài (sự kiện) — khay mở hộp tương ứng; chữ / nút lấy từ lớp thuần <see cref="ManKhoaView"/>.
 /// </summary>
-internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
+internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
 {
     private readonly Label _gio = new() { AutoSize = true, ForeColor = Color.FromArgb(0xe6, 0xf2, 0xee), BackColor = Color.Transparent, Font = UI.F(21f, FontStyle.Bold) };
     private readonly Label _chan = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(12f) };
@@ -53,7 +53,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         Controls.Add(_chan);
         _chan.BringToFront();
         Resize += (_, _) => DatGocChu();
-        _dongHo.Tick += (_, _) => { _gio.Text = DateTime.Now.ToString("HH:mm"); DatGocChu(); };
+        _dongHo.Tick += (_, _) => { _gio.Text = DateTime.Now.ToString("HH:mm"); DatGocChu(); NhipChonTen(); };
         _dongHo.Start();
         _gio.Text = DateTime.Now.ToString("HH:mm");
 
@@ -62,6 +62,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         keep.Tick += (_, _) => { if (!_allowClose && OwnedForms.Length == 0 && Form.ActiveForm == null) { TopMost = true; Activate(); } };
         keep.Start();
         FormClosing += (_, e) => { if (!_allowClose) e.Cancel = true; };
+        KhoiTaoChonTen();
         FormClosed += (_, _) => { keep.Dispose(); _dongHo.Dispose(); };
     }
 
@@ -69,6 +70,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     {
         _gio.Location = new Point(ClientSize.Width - _gio.Width - UI.Px(40), UI.Px(28));
         _chan.Location = new Point(UI.Px(24), ClientSize.Height - _chan.Height - UI.Px(20));
+        DatGocChonTen();
     }
 
     private void GiuaKhoi()
@@ -98,10 +100,12 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
     {
         bool dem = s.LockGraceLeftSec is > 0;
         _matMangTu = s.OfflineSince;
+        // 06/11 (L13): chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (chọn tên + PIN / Ba Mẹ nhập mã) — LockForm.ChonTen.cs
+        if (ApChonTen(s)) return;
         var m = ManKhoaView.For(s.LockReason, s.LockGraceLeftSec, s.ChildName, s.Sao, s.QuyPhut, s.MoLaiLuc, s.CanExchangePoints,
-            s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason));
-        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma)), s.ChildName);
-        if (khoa != _khoa)
+            s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason), doiBe: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng);
+        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu)), s.ChildName);
+        if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
             _khoa = khoa;
             _chan.Text = ManKhoaView.ChanTrang(s.ChildName);
@@ -209,10 +213,11 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
             the.Controls.Add(b);
         }
         var con = m.Nut.Where(n => !lon.Contains(n)).ToList();
-        var xanh = con.Where(n => n.Ma != ManKhoaView.BaMeDungMay).ToList();
+        // hàng 2 (chữ xám): «Đổi bé · Ba Mẹ mở máy» (con-het-gio 07) / «Ba Mẹ dùng máy»
+        static bool HangHai(NutKhoa n) => n.Ma is ManKhoaView.BaMeDungMay or ManKhoaView.DoiBe;
+        var xanh = con.Where(n => !HangHai(n)).ToList();
         if (xanh.Count > 0) the.Controls.Add(HangLienKet(xanh, w, UI.Px(14)));
-        if (con.Any(n => n.Ma == ManKhoaView.BaMeDungMay))
-            the.Controls.Add(HangLienKet(con.Where(n => n.Ma == ManKhoaView.BaMeDungMay).ToList(), w, UI.Px(2)));
+        if (con.Any(HangHai)) the.Controls.Add(HangLienKet(con.Where(HangHai).ToList(), w, UI.Px(2)));
         return the;
     }
 
@@ -221,7 +226,7 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
         var hang = KhoiCon.Hang();
         foreach (var n in ds)
         {
-            var mau = n.Ma == ManKhoaView.BaMeDungMay ? Clay.Chu2 : Color.FromArgb(0x19, 0x65, 0x59);
+            var mau = n.Ma is ManKhoaView.BaMeDungMay or ManKhoaView.DoiBe ? Clay.Chu2 : Color.FromArgb(0x19, 0x65, 0x59);
             var lk = KhoiCon.LienKet(n.Chu, n.Icon, () => BamNut(n.Ma), _gon ? 11.5f : 15f, mau);
             lk.Margin = new Padding(UI.Px(20), 0, UI.Px(20), 0);
             hang.Controls.Add(lk);
@@ -233,7 +238,8 @@ internal sealed class LockForm : Form, IVeNenRieng   // nền gradient: nền đ
 
     private void BamNut(string ma)
     {
-        if (ma == ManKhoaView.BaMeDungMay) { UI.NhuongMayChoBaMe(); return; }   // #70 §1: khoá phiên (Win+L), KHÔNG đăng xuất
+        // 06/11 (L13): «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã mở máy ngay trên màn khoá (con-ngay-thuong 06) — không còn Win+L
+        if (ma == ManKhoaView.BaMeDungMay) { MoBaMeNhapMa(tuManKhoa: true); return; }
         Bam?.Invoke(ma);
     }
 

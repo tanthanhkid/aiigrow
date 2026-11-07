@@ -35,6 +35,20 @@ public static class PipeCmd
     public const string KiemCapNhat = "kiem-cap-nhat";
     /// <summary>«Cập nhật để sửa lỗi»: dịch vụ chạy lượt tự cập nhật ngay (tải, kiểm sha256, chạy bộ cài --capnhat --im-lang).</summary>
     public const string CapNhatNgay = "cap-nhat-ngay";
+    // ---- 06/11 (L13): máy dùng chung — chọn tên + PIN, quên PIN, Ba Mẹ nhập mã, đổi bé / khoá lại (dịch vụ gọi /api/device/* bằng token máy;
+    //      mất mạng ⇒ tự kiểm PIN / mã tại máy). Trả lỗi ở Status (pin_sai | pin_tam_khoa | can_pin | khong_thay | ma_sai | ma_tam_khoa | ma_da_dung | …)
+    //      kèm ConLan / ChoGiay; HoSo trả danh sách bé ở Data (JSON HoSoMay, không có vân PIN).
+    public const string HoSo = "ho-so";
+    /// <summary>Id = id bé, Code = PIN (trống khi bé chưa có PIN).</summary>
+    public const string DangNhapBe = "dang-nhap-be";
+    /// <summary>Id = id bé ⇒ «Báo Ba Mẹ giúp con».</summary>
+    public const string QuenPin = "quen-pin";
+    /// <summary>Code = mã mở máy 6 số Ba Mẹ gõ ⇒ «Ba Mẹ đang dùng máy».</summary>
+    public const string BaMeMo = "ba-me-mo";
+    /// <summary>«Đổi bé / Đăng xuất» của bé.</summary>
+    public const string DangXuat = "dang-xuat";
+    /// <summary>«Khoá lại» của Ba Mẹ.</summary>
+    public const string KhoaLai = "khoa-lai";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
@@ -99,6 +113,15 @@ public sealed class TrayState
     public string? NguLuc { get; set; }
     /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
     public int BaiChoMang { get; set; }
+    // ---- 06/11 (L13): ai đang dùng máy
+    /// <summary>con | ba_me | chua (<see cref="LoaiNguoiDung"/>). chua ⇒ màn khoá «Ai đang dùng máy?» (LockReason chon_ten).</summary>
+    public string NguoiDung { get; set; } = LoaiNguoiDung.Con;
+    public string? BeId { get; set; }
+    public string? BeTen { get; set; }
+    /// <summary>«Ba Mẹ đang dùng máy» tới lúc này (null = không).</summary>
+    public DateTimeOffset? BaMeDen { get; set; }
+    /// <summary>Máy chỉ gán một bé (không có «Đổi bé»).</summary>
+    public bool MayRieng { get; set; }
 }
 
 public sealed class PipeRequest
@@ -136,6 +159,10 @@ public sealed class PipeResponse
     public string? Data { get; set; }
     /// <summary>Lệnh <see cref="PipeCmd.PlayInfo"/>: số phút chơi tối đa đổi được bằng điểm hiện có (null = chưa biết).</summary>
     public int? PlayMinutes { get; set; }
+    /// <summary>06/11: PIN / mã sai ⇒ còn bao nhiêu lần thử.</summary>
+    public int? ConLan { get; set; }
+    /// <summary>06/11: sai đủ lần ⇒ chờ bao nhiêu giây.</summary>
+    public int? ChoGiay { get; set; }
 }
 
 /// <summary>Client named pipe cho tray: mỗi lệnh một kết nối, một dòng JSON hỏi, một dòng JSON đáp.</summary>
