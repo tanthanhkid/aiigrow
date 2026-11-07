@@ -29,16 +29,15 @@ test("S4 hai bé một máy, cùng app Giải trí: usage ghi riêng từng bé,
   const tokBm = await taoPhien(bm);
   const anh = (await m(tokBm, "con", { ten: "Bảo Anh", pin: "4821" })).body.id as string;
   const minh = (await m(tokBm, "con", { ten: "Bảo Minh", pin: "1357" })).body.id as string;
-  for (const c of [anh, minh]) await q(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom) values ($1,'',$2,$2,'giai_tri','khac') on conflict do nothing`, [fam, "roblox.exe"]).catch(() => {});
+  await q(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom) values ($1,'',$2,$2,'giai_tri','khac')`, [fam, "roblox.exe"]);
   const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC phòng khách");
   const tok = chung.token as string, id = chung.deviceId as string;
 
   await dv(tok, "dang-nhap-be", { con: anh, pin: "4821" });
   await dv(tok, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 20 }] });
   await dv(tok, "dang-nhap-be", { con: minh, pin: "1357" });
-  await dv(tok, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 7 }] });
-  // agent gửi lại số tích luỹ của bé trước (không đổi) + thêm cho bé sau ⇒ chỉ tăng đúng bé đó
-  await dv(tok, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 9 }] });
+  await dv(tok, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 27 }] });   // agent báo TỔNG của máy: 20 (anh) + 7 (minh)
+  await dv(tok, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 29 }] });   // minh chơi thêm 2 phút
 
   const hang = await q<{ child_id: string; phut: number }>(`select child_id, phut from usage where device_id = $1 order by phut desc`, [id]);
   assert.deepEqual(hang.map((x) => [x.child_id, x.phut]), [[anh, 20], [minh, 9]]);

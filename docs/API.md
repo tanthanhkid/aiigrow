@@ -626,4 +626,4 @@ chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_co
 ```
 ### S4 — giờ dùng ghi theo bé (06/11, L13)
 `usage` có khoá `(device_id, child_id, ngay, muc)` (trước: `(device_id, ngay, muc)` ⇒ hai bé dùng chung máy + cùng app bị gộp phút vào bé ghi trước). Migration chỉ thêm ở cuối `SCHEMA_S3` (đổi khoá, giữ hàng cũ — mỗi hàng đã mang `child_id`).
-Bé nhận phút = bé đang đăng nhập trên máy (`devices.con_dang_dung`, hoặc phiên Con / chủ máy riêng) lúc agent gửi `dong-bo.usage`; agent không cần gửi thêm trường. «Ba Mẹ đang dùng máy» ⇒ `usage` bị bỏ. Quỹ phút, báo cáo Ba Mẹ, «Hôm nay» đều đã lọc `child_id`.
+Agent gửi TỔNG phút của máy theo app/ngày (không phân bé); máy chủ ghi cho bé đang dùng (X-Phien-Con, chủ máy riêng, hoặc `devices.con_dang_dung`) phần = tổng − phần các bé khác đã ghi trên máy ấy; agent không cần gửi thêm trường. «Ba Mẹ đang dùng máy» ⇒ `usage` bị bỏ. Quỹ phút, báo cáo Ba Mẹ, «Hôm nay» đều đã lọc `child_id`.
