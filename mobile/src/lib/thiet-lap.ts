@@ -35,3 +35,10 @@ export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) =>
     ...(t.apps ? { apps: t.apps.map((a) => (coMa(a) ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio })) } : {}),
   };
 }
+
+/** Con mới tạo từ «Thêm con» (không qua bước Chọn app): áp sẵn các app Rob gợi ý hợp tuổi (`chon`) — như màn Chọn app của Lần đầu khi Ba Mẹ không đổi gì.
+ *  Không có app nào được chọn thì trả undefined (không gửi `apps`, máy chủ giữ mặc định). */
+export function appsRobChonSan(ds: { ma: string; ten: string; chon: boolean }[]): AppChon[] | undefined {
+  const r = ds.filter((a) => a.chon).map((a) => ({ ma: a.ma, ten: a.ten }));
+  return r.length ? r : undefined;
+}

@@ -5,7 +5,8 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
-import { cuoiTuanCua, NGU_MAC_DINH, QUY_MAC_DINH } from "@/lib/ghep-may";
+import { cuoiTuanCua, NGU_MAC_DINH, QUY_MAC_DINH, type AppGoiY } from "@/lib/ghep-may";
+import { appsRobChonSan, thanThietLap } from "@/lib/thiet-lap";
 import { BONG, KHOI } from "@/lib/clay";
 import { MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { boTheoTuoi, CHIP_TUOI, kiemPin, namTuChipTuoi } from "@/lib/s3";
@@ -30,8 +31,13 @@ export default function ThemCon() {
     const id = conId ?? (await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) })).id;
     setConId(id);
     // «Rob cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
+    // Thiết kế không có bước Chọn app ⇒ áp sẵn app Rob gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
+    const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));
+    // Lỗi lấy app gợi ý KHÔNG nuốt: Con đã tạo (conId) nên báo lỗi, Ba Mẹ bấm lại chỉ làm tiếp bước này — không để Con nằm không có app nào mà im lặng.
+    const apps = await layApps().catch(() => new Promise((r) => setTimeout(r, 600)).then(layApps));
+    const mac = { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH };
     await Promise.allSettled([
-      bm.goi("thiet-lap", { con: { id }, gioChoi: { ngayThuong: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua(QUY_MAC_DINH) }, ngu: NGU_MAC_DINH }),
+      bm.goi("thiet-lap", thanThietLap({ conId: id, ...(apps ? { apps } : {}) }, mac)),
       bm.goi("nhiem-vu/bo", { bo: boTheoTuoi(tuoi), con: id }),
     ]);
     router.replace(`/ho-so/${id}` as never);
