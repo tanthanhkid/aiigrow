@@ -190,7 +190,7 @@ public actor BoMay {
       let kq = try await api.choThayDoi(ver: verCho)
       guard the == theHeGhep else { verCho = nil; return 0 }
       loiCho = 0
-      if verCho != nil && kq.doi { heThong.ghiLog("Ba Mẹ vừa đổi gì đó (phiên bản \(kq.phienBan)) — đồng bộ ngay."); dongBoNgay() }
+      if verCho != nil && kq.doi { heThong.ghiLog("Ba Mẹ vừa đổi gì đó (phiên bản \(kq.phienBan)) — đồng bộ ngay."); dongBoSom(sau: 0) }
       verCho = kq.phienBan
       return ChoThayDoi.choLai(loiLienTiep: 0, kq: kq, daCho: donDieu() - t0)
     } catch let e as LoiApi where e.maHttp == 404 {
@@ -202,12 +202,6 @@ public actor BoMay {
   }
   private var verCho: Int?
   private var loiCho = 0
-
-  /// Đồng bộ ngay lượt kế (cả khi một lượt đang dở — lượt đó sẽ ghi đè syncLuc nên đặt cả syncSom).
-  private func dongBoNgay() {
-    syncLuc = min(syncLuc, donDieu())
-    if dangDongBo { syncSom = min(syncSom ?? .infinity, donDieu()) }
-  }
 
   /// Vòng ÁP (Task riêng, 5 giây một lần): chỉ dùng Policy đã cache, KHÔNG BAO GIỜ await mạng — đóng app, hosts/plist, trừ giờ, đếm ngược khoá.
   @discardableResult
@@ -1005,9 +999,9 @@ public actor BoMay {
   }
 
   /// Xin đồng bộ trong ≤ 2 giây (kể cả khi một lượt đồng bộ đang dở — lượt đó sẽ ghi đè syncLuc nên đặt cả syncSom).
-  private func dongBoSom() {
-    syncLuc = min(syncLuc, donDieu() + 2)
-    if dangDongBo { syncSom = min(syncSom ?? .infinity, donDieu() + 2) }
+  private func dongBoSom(sau: Double = 2) {
+    syncLuc = min(syncLuc, donDieu() + sau)
+    if dangDongBo { syncSom = min(syncSom ?? .infinity, donDieu() + sau) }
   }
 
   /// Mất mạng giữa phiên chơi: cộng giây «đang chơi thật» (app của phiên ở tiền cảnh) để gửi bù khi có mạng lại — trong giới hạn

@@ -53,6 +53,7 @@ import java.time.Instant
  */
 class DichVuNhip : Service() {
     private lateinit var luong: HandlerThread
+    private var threadCho: Thread? = null
     @Volatile private var dangChay = false     // luồng «chờ thay đổi» (P1 07/11)
     private lateinit var h: Handler
     private var lanGoiMayChu = 0L
@@ -87,7 +88,7 @@ class DichVuNhip : Service() {
             ContextCompat.RECEIVER_NOT_EXPORTED)
         h.post(::lap)
         dangChay = true
-        Thread(::vongChoThayDoi, "aiigrow-cho").apply { isDaemon = true; start() }
+        threadCho = Thread(::vongChoThayDoi, "aiigrow-cho").apply { isDaemon = true; start() }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -98,6 +99,7 @@ class DichVuNhip : Service() {
 
     override fun onDestroy() {
         dangChay = false
+        threadCho?.interrupt()
         try { unregisterReceiver(nhanCaiApp) } catch (_: Exception) {}
         dsApp.dung()
         luong.quitSafely()

@@ -214,7 +214,6 @@ final class MoHinhApp: ObservableObject {
       }
       if nghi > 0 { try? await Task.sleep(nanoseconds: UInt64(nghi * 1_000_000_000)) }
     }
-    viecCho = nil
   }
 
   /// Dữ liệu hằng ngày của bé đang dùng máy.

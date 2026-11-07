@@ -79,8 +79,9 @@ async function chiTietCon(bm: BaMe, id: string) {
 /** Mọi lời gọi ghi (POST) của Ba Mẹ ⇒ tăng phiên bản gia đình + đánh thức máy Con đang chờ (lib/cho-thay-doi.ts): máy áp trong ≤5 giây. */
 export async function xuLyM(req: Request, p: string[]): Promise<Response> {
   const ngu: { fam?: string } = {};
-  try { return await xuLyMTrong(req, p, ngu); }
-  finally { if (ngu.fam) await baoThayDoi(ngu.fam); }   // bắn sau khi việc ghi đã xong (cả khi lỗi giữa chừng: báo thừa vô hại)
+  const kq = await xuLyMTrong(req, p, ngu);
+  if (ngu.fam && kq.status < 400) await baoThayDoi(ngu.fam);   // chỉ khi ghi thành công (lỗi 4xx/5xx không đánh thức máy Con)
+  return kq;
 }
 
 async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Promise<Response> {
@@ -120,7 +121,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
       throw new LoiNghiepVu("chi_xem", "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ nhé", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
-    if (post && p[0] !== "thong-bao") ngu.fam = fam;
+    if (post && !["thong-bao", "dang-xuat", "dat-mat-khau", "xoa-tai-khoan"].includes(p[0])) ngu.fam = fam;
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
     { const r = await xuLyMS3(bm, req, p, b); if (r) return r; }            // 06/11: PIN theo bé, quà bảng giá, chuông
     { const r = await xuLyMSao(bm, req, p, b); if (r) return r; }           // 05/11: sao, quỹ giờ chơi, bộ nhiệm vụ, làm lại, trao quà

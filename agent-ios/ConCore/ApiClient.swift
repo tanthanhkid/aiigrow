@@ -144,7 +144,7 @@ public final class ApiClient {
 
   /// P1 (07/11): long-poll «chờ thay đổi» — máy chủ giữ ≤ ~25 giây (hạn yêu cầu 40 giây). `ver` nil ⇒ lấy mốc ngay. Chỉ gọi khi app đang mở.
   public func choThayDoi(ver: Int?) async throws -> KetQuaCho {
-    var comp = URLComponents(url: goc.appendingPathComponent(ChoThayDoi.duong(ver: ver)), resolvingAgainstBaseURL: false)!
+    var comp = URLComponents(url: goc.appendingPathComponent(ChoThayDoi.duong), resolvingAgainstBaseURL: false)!
     let qi = ChoThayDoi.query(ver: ver)
     if !qi.isEmpty { comp.queryItems = qi }
     var r = URLRequest(url: comp.url!)

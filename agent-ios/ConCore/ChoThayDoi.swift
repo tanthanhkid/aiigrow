@@ -18,7 +18,7 @@ public struct KetQuaCho: Equatable {
 }
 
 public enum ChoThayDoi {
-  public static func duong(ver: Int?) -> String { "api/device/cho-thay-doi" }
+  public static let duong = "api/device/cho-thay-doi"
   public static func query(ver: Int?) -> [URLQueryItem] { ver.map { [URLQueryItem(name: "ver", value: String($0))] } ?? [] }
 
   /// Chờ bao lâu (giây) trước lần hỏi kế: lỗi ⇒ lùi dần 2, 4, 8, 16, 30; quá tải / trả nhanh không đổi gì ⇒ 5; có thay đổi hoặc đã giữ đủ lâu ⇒ 0.

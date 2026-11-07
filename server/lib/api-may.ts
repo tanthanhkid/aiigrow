@@ -66,7 +66,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     { const r = await xuLyMayS3(may, req, p, b); if (r) return r; }
     // M4b: dong-bo trả thêm «lenh» (lệnh đang chờ, vd gỡ từ xa) · nhịp + tuân thủ ⇒ chính sách chung + cấu hình nền tảng + lệnh
     if (d === "dong-bo") {
-      const phienBanThayDoi = await phienBanDoi(may.family_id);   // đọc TRƯỚC khi dựng chính sách: đổi sau đó ⇒ số khác ⇒ agent chờ-thay-đổi trả ngay
+      const phienBanThayDoi = await phienBanDoi(may.family_id);   // đọc TRƯỚC khi dựng chính sách (agent có thể dùng làm mốc `ver`; hiện agent lấy mốc từ cho-thay-doi không ver)
       // agent-win không gửi phien/nhip ⇒ đồng bộ của máy Windows mở phiên là nhịp phiên (trước dongBo ⇒ Policy thấy phiên đã đóng ngay lượt này)
       // Lỗi ở nhịp phiên không được làm hỏng cả lượt đồng bộ (agent giữ Policy cũ, thay đổi của Ba Mẹ không tới máy) ⇒ nuốt + ghi log.
       // 0.2.4: tính đúng `status.playSeconds` agent đếm (app chơi ở nền trước, màn hình mở); máy dùng chung lấy Con từ phiên mở trên máy (lib/phien-windows.ts).

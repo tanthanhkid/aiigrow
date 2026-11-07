@@ -13,7 +13,8 @@ export const KIEM_DB_MS = Number(process.env.AIIGROW_CHO_KIEM_DB_MS) || 4_000;
 /** Số yêu cầu chờ cùng lúc tối đa (VPS 1 vCPU / 2 GB): quá ⇒ trả ngay `{doi:false, quaTai:true}`, agent lùi lại. */
 export const CHO_TOI_DA_YC = Number(process.env.AIIGROW_CHO_TOI_DA_YC) || 400;
 
-const bus = new EventEmitter();
+const g = globalThis as unknown as { __aiigChoBus?: EventEmitter };
+const bus = (g.__aiigChoBus ??= new EventEmitter());   // globalThis: /api/m và /api/device có thể là hai bản module (Next dev/HMR)
 bus.setMaxListeners(0);
 let dangCho = 0;
 export const soDangCho = () => dangCho;
@@ -55,15 +56,22 @@ export async function choThayDoi(fam: string, ver: number | null, o: { toiDaMs?:
     while (!o.signal?.aborted) {
       const con = han - Date.now();
       if (con <= 0) break;
-      await new Promise<void>((xong) => {
-        const end = () => { clearTimeout(t); bus.off(fam, end); o.signal?.removeEventListener("abort", end); xong(); };
-        const t = setTimeout(end, Math.min(con, kiem));
-        bus.once(fam, end);
-        o.signal?.addEventListener("abort", end, { once: true });
-      });
+      // đăng ký nghe TRƯỚC khi đọc số ⇒ emit rơi vào giữa chừng không bị lỡ (đọc lại sau khi đã nghe)
+      let bao = false, danh: () => void = () => {};
+      const nghe = () => { bao = true; danh(); };
+      bus.once(fam, nghe);
+      try {
+        cur = await phienBanDoi(fam);
+        if (cur !== ver) return { phienBanThayDoi: cur, doi: true };
+        if (!bao) await new Promise<void>((xong) => {
+          const end = () => { clearTimeout(t); o.signal?.removeEventListener("abort", end); xong(); };
+          const t = setTimeout(end, Math.min(con, kiem));
+          danh = end;
+          o.signal?.addEventListener("abort", end, { once: true });
+        });
+      } finally { bus.off(fam, nghe); }
       if (o.signal?.aborted) break;
-      cur = await phienBanDoi(fam);
-      if (cur !== ver) return { phienBanThayDoi: cur, doi: true };
+      if (bao) { cur = await phienBanDoi(fam); if (cur !== ver) return { phienBanThayDoi: cur, doi: true }; }
     }
     return { phienBanThayDoi: cur, doi: false };
   } finally { dangCho--; }

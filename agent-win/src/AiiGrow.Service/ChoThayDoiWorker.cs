@@ -19,6 +19,7 @@ public sealed class ChoThayDoiWorker : BackgroundService
         long? ver = null;
         string? gocCu = null, tokenCu = null;
         int loi = 0;
+        ApiClient? api = null;
         while (!ct.IsCancellationRequested)
         {
             TimeSpan cho = TimeSpan.Zero;
@@ -26,8 +27,7 @@ public sealed class ChoThayDoiWorker : BackgroundService
             {
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true } || _rt.DangGo) { ver = null; await Task.Delay(TimeSpan.FromSeconds(5), ct); continue; }
-                if (cfg.Server != gocCu || cfg.Token != tokenCu) { ver = null; gocCu = cfg.Server; tokenCu = cfg.Token; }   // ghép lại ⇒ lấy mốc mới
-                using var api = new ApiClient(cfg.Server, cfg.Token, timeoutGiay: 40);
+                if (api == null || cfg.Server != gocCu || cfg.Token != tokenCu) { api?.Dispose(); api = new ApiClient(cfg.Server, cfg.Token, timeoutGiay: 40); ver = null; gocCu = cfg.Server; tokenCu = cfg.Token; }   // ghép lại ⇒ client + mốc mới (giữ kết nối giữa các lượt)
                 var t0 = DateTimeOffset.UtcNow;
                 var kq = await api.ChoThayDoiAsync(ver, ct);
                 loi = 0;
