@@ -570,7 +570,7 @@ KichBan 'KB11' 'Chặn app chọn từ danh sách app thật của máy' {
 
 # ------------------------------------------------------------------ KB5 — Khoá ngay / mở lại
 # Từ W3 (06/11, L13) máy dùng chung CHƯA có bé đăng nhập luôn ở màn «Ai đang dùng máy?» (khoá chon_ten + AppLocker, kể cả «Mở hết»/mở lại — DangNhapView.ApDung).
-# Runner không có khay nên không gõ tên + PIN được ⇒ báo máy chủ «bé vào máy» bằng token máy (đúng lời gọi khay làm) rồi ghi trạng thái «bé đang dùng» vào cấu hình.
+# KB6 trở đi chạy với bé đã vào máy (như máy thật sau khi bé chọn tên). Runner không có khay nên không gõ tên + PIN được ⇒ báo máy chủ «bé vào máy» bằng token máy (đúng lời gọi khay làm) rồi ghi trạng thái «bé đang dùng» vào cấu hình.
 function BeVaoMay {
   $cfg = DocConfig
   [void](Api POST '/api/device/dang-nhap-be' @{ con = $Chung.ConId; pin = '1234' } $cfg.token)
@@ -578,12 +578,15 @@ function BeVaoMay {
   $json = DocConfigJson
   $tu = (Get-Date).ToUniversalTime().ToString('o')
   $dn = '"dangNhap":{"loai":"con","conId":"' + $Chung.ConId + '","tenCon":"Con E2E","tu":"' + $tu + '"'
-  if ($json -match '"dangNhap":\{"loai":"[a-z_]*"') { $json = [regex]::Replace($json, '"dangNhap":\{"loai":"[a-z_]*"', { param($m) $dn }, 1) }
-  else { $json = $json.TrimEnd().TrimEnd('}') + ',' + $dn + '}}' }
+  # cấu hình mới cài: dangNhap chỉ có «loai»: «chua» (mọi trường khác null ⇒ không ghi) ⇒ thay đúng một chỗ; không khớp ⇒ dừng rõ, không ghi JSON hỏng
+  $re = [regex]::new('"dangNhap":\{"loai":"[a-z_]*"')
+  if (-not $re.IsMatch($json)) { Start-Service $Svc; throw 'BeVaoMay: config không có khối dangNhap dạng {"loai":...} — sửa regex' }
+  $json = $re.Replace($json, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $dn }, 1)
+  $null = ConvertFrom-Json $json   # còn đọc được
   GhiConfigJson $json
   Start-Service $Svc
   [void](Cho { DangChay } 30 2)
-  Start-Sleep -Seconds 3
+  [void](Cho { (TrangThai).nguoiDung -eq 'con' } 60 2)
 }
 
 KichBan 'KB5' 'Khoá ngay rồi mở lại' {
