@@ -599,7 +599,7 @@ Quyền: mọi `POST qua*`, `con/:id/pin` = đổi cài đặt ⇒ chỉ Ba Mẹ
 ### Ví quà của bé đang đăng nhập trên máy con (V1, 07/11) — `GET /api/device/vi-qua`
 
 Bearer = token máy. Bé xác định như mọi lệnh khác của máy (máy riêng ⇒ chủ máy · header `X-Phien-Con` · không header ⇒ bé đang đăng nhập `devices.con_dang_dung`);
-chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_con`. Chỉ đọc. Xử lý: `lib/vi-qua-may.ts`. Dùng cho màn «Ví quà» / «Quà» (Win, Mac, ĐT).
+chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_con`. Chỉ đọc (trừ việc đánh dấu voucher quá hạn thành `het_han`, như `kid/vi-qua`). Xử lý: `lib/vi-qua-may.ts`. Dùng cho màn «Ví quà» / «Quà» (Win, Mac, ĐT).
 Đổi quà vẫn qua `POST hoc-vien/doi/:quaId` (trả `{phieu, trangThai, saoGiu}`); `hoc-vien/vi-qua` / `hoc-vien/cua-hang` cũ giữ nguyên.
 
 | Trường | Ý |
