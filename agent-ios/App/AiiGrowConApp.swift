@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
       Self.lenLich()
       let viec = Task { @MainActor in
         let m = MoHinhApp()
-        await m.dongBoNgay()
+        await m.dongBoNgay(nen: true)
         t.setTaskCompleted(success: m.loi == nil)
       }
       t.expirationHandler = { viec.cancel() }

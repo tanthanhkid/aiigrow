@@ -173,7 +173,7 @@ struct ManBaMeNhapMa: View {
       OSo(so: ma, dai: 6, loi: cau != nil)
       Text(cau ?? "Mã 6 số · đổi sau 10 phút").font(Diu.t2).foregroundColor(cau == nil ? Diu.chu3 : Diu.doChu).multilineTextAlignment(.center)
       BanPhimSo(so: $ma, toiDa: 6, tat: m.dangBan)
-        .onChange(of: ma) { _ in cau = nil }
+        .onChange(of: ma) { v in if !v.isEmpty { cau = nil } }
       Button {
         Task {
           switch await m.baMeMo(ma) {
@@ -196,7 +196,11 @@ struct ManBaMeNhapMa: View {
 // MARK: Ba Mẹ đang dùng máy (them-f2mt6vfr)
 struct ManBaMeDung: View {
   @EnvironmentObject var m: MoHinhApp
+  let dongHo = Timer.publish(every: 10, on: .main, in: .common).autoconnect()
   var body: some View {
+    noi.onReceive(dongHo) { _ in if !m.baMeDangDung { m.apLaiKhien() } }   // hết giờ Ba Mẹ ⇒ về màn chọn tên
+  }
+  var noi: some View {
     KhungMan {
       HStack {
         NhanNho(chu: "Ba Mẹ đang dùng", icon: "ic_nguoi", mau: Diu.xanhDam, nen: Diu.xanhNhat)

@@ -305,7 +305,7 @@ struct ManMaOffline: View {
         Text("Ba Mẹ ở cạnh con? Nhờ Ba Mẹ đọc mã 6 số trong AiiGrow.").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       }
       OSo(so: ma, dai: 6, loi: kq == .sai)
-      BanPhimSo(so: $ma, toiDa: 6).onChange(of: ma) { _ in if kq == .sai { kq = nil } }
+      BanPhimSo(so: $ma, toiDa: 6).onChange(of: ma) { v in if kq == .sai, !v.isEmpty { kq = nil } }
       Button {
         let r = m.moBangMa(ma); kq = r.0; cau = r.1; if r.0 != .daMo { ma = "" }
       } label: { Label { Text("Mở máy bằng mã") } icon: { Anh(ten: "ic_mo_khoa", co: 26) } }

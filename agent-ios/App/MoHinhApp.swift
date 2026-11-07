@@ -163,7 +163,8 @@ final class MoHinhApp: ObservableObject {
   }
 
   // MARK: đồng bộ
-  func dongBoNgay() async {
+  /// `nen`: BGAppRefreshTask (~30 giây) — chỉ nhip + áp khiên, bỏ phần hằng ngày / hồ sơ / gửi bài.
+  func dongBoNgay(nen: Bool = false) async {
     guard demo == nil, KhoBiMat.doc() != nil else { return }
     do {
       if case .daGo = try await dongBo().chay() { man = .daGo; napTuKho(); return }
@@ -180,6 +181,7 @@ final class MoHinhApp: ObservableObject {
     }
     napTuKho()
     if kho.doc(Date.self, Khoa.xinTuManChan) != nil { kho.ghi(nil, Khoa.xinTuManChan); moXinTuManChan() }
+    if nen { return }
     if dungChung || phien != nil { hoSo = await vaoMay().taiHoSo().0 }
     if !matMang && !dangKhoaChoTen && !baMeDangDung { await taiNgay(); await guiBaiCho() }
   }

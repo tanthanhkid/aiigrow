@@ -110,7 +110,7 @@ public final class DongBo {
   func ghiPhien(_ n: NguoiDungMay?, now: Date) {
     let cu = kho.doc(PhienMay.self, Khoa.phienMay)
     // tại máy vừa đổi người SAU lúc gửi nhip, hoặc còn việc chờ phát lại ⇒ phản hồi này đã cũ, giữ trạng thái tại máy
-    if let cu, cu.luc > now { return }
+    if let cu, cu.luc > now, cu.luc < now.addingTimeInterval(600) { return }    // (đồng hồ bị lùi xa ⇒ không đóng băng, theo máy chủ)
     if let v = (khoCho ?? kho).doc([ViecChoMang].self, Khoa.viecChoMang), !v.isEmpty { return }
     // Ba Mẹ mở bằng mã lúc mất mạng: máy chủ không biết ⇒ giữ tới hạn
     if let cu, cu.offline == true, cu.baMeDangDung(now), n?.loai != "ba_me" { return }
