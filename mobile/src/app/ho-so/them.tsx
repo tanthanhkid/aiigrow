@@ -33,9 +33,11 @@ export default function ThemCon() {
     // «Rob cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
     // Thiết kế không có bước Chọn app ⇒ áp sẵn app Rob gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
     const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));
-    const apps = layApps().catch(layApps).catch(() => undefined);   // thử lại một lần; vẫn lỗi ⇒ Con không có app sẵn, Ba Mẹ chọn ở App & web
+    // Lỗi lấy app gợi ý KHÔNG nuốt: Con đã tạo (conId) nên báo lỗi, Ba Mẹ bấm lại chỉ làm tiếp bước này — không để Con nằm không có app nào mà im lặng.
+    const apps = await layApps().catch(() => new Promise((r) => setTimeout(r, 600)).then(layApps));
+    const mac = { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH };
     await Promise.allSettled([
-      apps.then((ds) => bm.goi("thiet-lap", thanThietLap({ conId: id, tenCon: tenGon, ...(ds ? { apps: ds } : {}) }, { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH }))),
+      bm.goi("thiet-lap", thanThietLap({ conId: id, ...(apps ? { apps } : {}) }, mac)),
       bm.goi("nhiem-vu/bo", { bo: boTheoTuoi(tuoi), con: id }),
     ]);
     router.replace(`/ho-so/${id}` as never);

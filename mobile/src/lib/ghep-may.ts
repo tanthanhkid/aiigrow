@@ -47,7 +47,7 @@ export const cuoiTuanCua = (p: number) => p + 30;
 /** Lưới app gợi ý (GET app-goi-y) + điền sẵn lựa chọn của Rob vào trạng thái Lần đầu nếu Ba Mẹ chưa chọn. */
 export async function napAppGoiY(con: string) {
   const r = await bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(con)}`);
-  if (!layTl().apps) datTl({ apps: r.ds.filter((a) => a.chon).map((a) => ({ ma: a.ma, ten: a.ten })) });
+  if (!layTl().apps) datTl({ apps: appsRobChonSan(r.ds) ?? [] });
   return r.ds;
 }
 
