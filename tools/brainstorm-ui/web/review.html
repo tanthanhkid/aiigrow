@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 <link rel="stylesheet" href="/realtime.css">
 <link rel="stylesheet" href="/review.css">
+<link rel="stylesheet" href="/but-khoanh.css">
 </head>
 <body>
 <header class="tren">
@@ -34,10 +35,35 @@
       <button type="button" id="nut-play" aria-pressed="false" title="Bấm nút trong màn để đi tiếp như app thật">▶ Play</button>
       <button type="button" id="nut-ghim" aria-pressed="false" title="Bấm lên màn để ghim góp ý vào đúng chỗ">📌 Ghim góp ý</button>
     </div>
+    <div id="hang-but" class="hang-but"></div>
     <div id="vung" class="vung">
+      <button type="button" id="b-but" class="b-but" title="Phím tắt: B"></button>
+      <div id="mach" class="mach" hidden>
+        <div>Thấy chỗ nào trên màn chưa đúng?<br>Bấm <b>✏️ Khoanh chỗ sai</b>, vẽ vòng quanh chỗ đó rồi ghi góp ý.</div>
+        <button type="button" id="mach-hieu" class="nut-nhe">Đã hiểu</button>
+      </div>
+      <div id="thanh-but" class="thanh-but" hidden>
+        <button type="button" class="bat" data-kieu="tay">〰 Khoanh tay</button>
+        <button type="button" data-kieu="cn">▭ Khung</button>
+        <span class="mau bat" data-mau="#e5484d" style="background:#e5484d" title="Đỏ"></span>
+        <span class="mau" data-mau="#f59e0b" style="background:#f59e0b" title="Cam"></span>
+        <span class="mau" data-mau="#7c5cff" style="background:#7c5cff" title="Tím"></span>
+      </div>
       <div id="san" class="san">
         <iframe id="khung" title="Màn đang xem" sandbox="allow-same-origin"></iframe>
+        <svg id="svg-vung" class="svg-vung" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
         <div id="lop-ghim" class="lop-ghim"></div>
+        <svg id="svg-ve" class="svg-ve" viewBox="0 0 100 100" preserveAspectRatio="none" hidden></svg>
+        <div id="bang-but" class="bang-but" hidden>✏️ Vẽ vòng quanh chỗ sai → thả tay → ghi góp ý</div>
+      </div>
+      <div id="hop-but" class="hop-but" hidden>
+        <div class="loai-but">
+          <button type="button" class="bat" data-muc="loi">Lỗi</button>
+          <button type="button" data-muc="de-xuat">Đề xuất</button>
+          <button type="button" data-muc="cau-hoi">Câu hỏi</button>
+        </div>
+        <textarea id="but-noi" rows="3" maxlength="2000" placeholder="Chỗ này sai gì? Sửa thế nào?"></textarea>
+        <div class="nut-hang"><button type="button" id="but-huy" class="nut-nhe">Huỷ</button><button type="button" id="but-luu" class="nut-chinh">Lưu góp ý</button></div>
       </div>
       <img id="qt-anh" class="qt-anh" alt="Sơ đồ quy trình của hành trình" hidden>
       <div id="qt-trong" class="trong" hidden>Hành trình này chưa có sơ đồ quy trình.</div>

@@ -330,7 +330,7 @@ export function taoMcp(C) {
   async function gopYMo(req0, ht, key) {
     try {
       const r = await goiJ(req0, 'GET', '/api/review');
-      return (r.gopY?.[ht] || []).filter((g) => g.tt !== 'xong' && (!key || g.key === key)).map((g) => ({ id: g.id, key: g.key, muc: g.muc, ten: g.ten, noi: g.noi, ghim: g.ghim || undefined, tl: (g.tl || []).map((t) => ({ ten: t.ten, noi: t.noi })) }));
+      return (r.gopY?.[ht] || []).filter((g) => g.tt !== 'xong' && (!key || g.key === key)).map((g) => ({ id: g.id, key: g.key, muc: g.muc, ten: g.ten, noi: g.noi, ghim: g.ghim || undefined, vung: g.vung || undefined, tl: (g.tl || []).map((t) => ({ ten: t.ten, noi: t.noi })) }));
     } catch (e) { return { khongDoc: e.message }; }
   }
   const assetsTxt = async (req0) => vanBanAssets(await goiJ(req0, 'GET', '/api/assets'));

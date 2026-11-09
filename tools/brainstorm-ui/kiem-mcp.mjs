@@ -88,6 +88,20 @@ let ma = '';
 await buoc('tao_link_gop_y', async () => { const { data } = await goi('tao_link_gop_y', { hanh_trinh: ht, ghi_chu: 'kiểm' }); ma = data.ma; can(ma, JSON.stringify(data)); });
 await buoc('ds_link_gop_y', async () => { const { data } = await goi('ds_link_gop_y', { hanh_trinh: ht }); can(JSON.stringify(data).includes(ma), JSON.stringify(data).slice(0, 300)); });
 let gy = '', gy2 = '';
+await buoc('góp ý có vung (bút khoanh) → ds_gop_y thấy vung đã làm sạch + ghim góc trên-phải', async () => {
+  const r = await fetch(U + '/api/review/r/' + ma + '/gop-y', { method: 'POST', headers: { 'content-type': 'application/json', origin: U }, body: JSON.stringify({ key, noi: 'khoanh kiểm', muc: 'loi', ten: 'Kiểm', vung: { k: 'cn', x: 10.04, y: 20, w: 30, h: 15, mau: '#123456' } }) });
+  const g = await r.json(); can(r.ok && g.vung?.k === 'cn' && g.vung.mau === '#e5484d' && g.vung.x === 10 && g.ghim?.x === 40 && g.ghim?.y === 20, JSON.stringify(g).slice(0, 300));
+  const ds = (await goi('ds_gop_y', { hanh_trinh: ht })).data; const t = JSON.stringify(ds); can(t.includes('"vung"') && t.includes('khoanh kiểm'), t.slice(0, 300));
+  await goi('xoa_gop_y', { hanh_trinh: ht, id: g.id });
+});
+await buoc('góp ý từ bàn chính (POST /api/review/gop-y/<ht>, bút trong Play) có vung → ds_gop_y thấy, ma=null', async () => {
+  const r = await fetch(U + '/api/review/gop-y/' + encodeURIComponent(ht), { method: 'POST', headers: { 'content-type': 'application/json', origin: U, 'x-bs-nguoi': encodeURIComponent('Kiểm bàn') }, body: JSON.stringify({ key, noi: 'khoanh từ bàn chính', muc: 'loi', ten: 'Kiểm bàn', vung: { k: 'tay', d: [[10, 10], [30, 12], [32, 30], [12, 28]], mau: '#f59e0b' } }) });
+  const g = await r.json(); can(r.ok && g.ma === null && g.v === null && g.nguon === 'ban' && g.vung?.k === 'tay' && g.ghim?.x === 32 && g.ghim?.y === 10, JSON.stringify(g).slice(0, 300));
+  const ds = (await goi('ds_gop_y', { hanh_trinh: ht })).data; const t = JSON.stringify(ds); can(t.includes('khoanh từ bàn chính') && t.includes('"vung"'), t.slice(0, 300));
+  const x = await fetch(U + '/api/review/gop-y/khong-co-ht', { method: 'POST', headers: { 'content-type': 'application/json', origin: U }, body: JSON.stringify({ key, noi: 'x' }) }); can(x.status === 404, 'ht lạ phải 404: ' + x.status);
+  const y = await fetch(U + '/api/review/gop-y/' + encodeURIComponent(ht), { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: JSON.stringify({ key, noi: 'x' }) }); can(y.status === 403, 'origin lạ phải 403: ' + y.status);
+  await goi('xoa_gop_y', { hanh_trinh: ht, id: g.id });
+});
 await buoc('them_gop_y → sua_gop_y → xoa_gop_y', async () => {
   const g = (await goi('them_gop_y', { key, noi: 'góp ý kiểm', ma_link: ma })).data; gy = g.id; can(gy, JSON.stringify(g));
   const g2 = (await goi('them_gop_y', { key, noi: 'góp ý cho đề xuất', ma_link: ma })).data; gy2 = g2.id;

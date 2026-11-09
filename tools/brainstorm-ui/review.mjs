@@ -13,9 +13,41 @@ const MUC = new Set(['loi', 'de-xuat', 'cau-hoi']);
 const MA = /^[a-f0-9]{32}$/;
 const ID = /^[a-z0-9]{6,40}$/;
 
+// «Bút khoanh chỗ sai»: vùng vẽ lên màn, toạ độ % khung (0..100, làm tròn 0.1). Sai dạng ⇒ null (bỏ vùng, không lỗi).
+const MAU_VUNG = new Set(['#e5484d', '#f59e0b', '#7c5cff']);
+const pc = (v) => { const n = typeof v === 'number' || typeof v === 'string' ? Number(v) : NaN; return Number.isFinite(n) ? Math.round(Math.min(100, Math.max(0, n)) * 10) / 10 : null; };
+function sachVung(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const mau = MAU_VUNG.has(v.mau) ? v.mau : '#e5484d';
+  if (v.k === 'cn') {
+    const [x, y, w, h] = [pc(v.x), pc(v.y), pc(v.w), pc(v.h)];
+    if ([x, y, w, h].some((n) => n === null) || w < 0.5 || h < 0.5) return null;
+    return { k: 'cn', x, y, w: Math.round(Math.min(w, 100 - x) * 10) / 10, h: Math.round(Math.min(h, 100 - y) * 10) / 10, mau };
+  }
+  if (v.k === 'tay' && Array.isArray(v.d) && v.d.length >= 2) {
+    let d = v.d.slice(0, 5000).map((p) => (Array.isArray(p) ? [pc(p[0]), pc(p[1])] : null));
+    if (d.some((p) => !p || p[0] === null || p[1] === null)) return null;
+    if (d.length > 300) { const b = (d.length - 1) / 299; d = Array.from({ length: 300 }, (_, i) => d[Math.round(i * b)]); } // rút gọn đều, giữ đầu + cuối
+    return { k: 'tay', d, mau };
+  }
+  return null;
+}
+// điểm ghim của một vùng = góc trên-phải (để «Tới» ghim, xuất Markdown, MCP vẫn dùng được `ghim`)
+const ghimCuaVung = (v) => {
+  if (v.k === 'cn') return { x: Math.round((v.x + v.w) * 10) / 10, y: v.y, sel: '' };
+  const xs = v.d.map((p) => p[0]), ys = v.d.map((p) => p[1]);
+  return { x: Math.max(...xs), y: Math.min(...ys), sel: '' };
+};
 const sachChu = (v, n) => (typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, n) : '');
 const ten40 = (v) => sachChu(v, 40).replace(/\s+/g, ' ') || 'Khách';
 const idMoi = () => Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
+// dựng một góp ý mới (ghim, vùng, mức, nội dung, tên đều làm sạch ở đây) — dùng chung cho link /r/ (goc = {ma, v}) và bàn chính (goc = {ma: null, v: null, nguon: 'ban'})
+function gopYMoi(t, key, noi, goc) {
+  let gh = t.ghim && key ? { x: Math.min(100, Math.max(0, Number(t.ghim.x) || 0)), y: Math.min(100, Math.max(0, Number(t.ghim.y) || 0)), sel: sachChu(t.ghim.sel, 300) } : null;
+  const vung = key ? sachVung(t.vung) : null;
+  if (vung && !gh) gh = ghimCuaVung(vung);
+  return { id: idMoi(), ma: goc.ma, v: goc.v, ...(goc.nguon ? { nguon: goc.nguon } : {}), key, ghim: gh, ...(vung ? { vung } : {}), muc: MUC.has(t.muc) ? t.muc : 'de-xuat', tt: 'mo', ten: ten40(t.ten), noi, t: new Date().toISOString(), tl: [], ycBt: false };
+}
 const ngu = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // C: { THIET_KE, hanhTrinh() → Map(id → {id, ten, buoc:[key]}), hopLeNguon(req), json(res, ma, obj), docThan(req, gioiHan), ghiAtomic(tep, nd),
@@ -234,8 +266,7 @@ export function taoReview(C) {
             } else {
               const key = t.key == null || t.key === '' ? null : String(t.key);
               if (key && !keySnap.has(key)) return json(res, 400, { loi: 'Màn không thuộc link này' }), true;
-              const gh = t.ghim && key ? { x: Math.min(100, Math.max(0, Number(t.ghim.x) || 0)), y: Math.min(100, Math.max(0, Number(t.ghim.y) || 0)), sel: sachChu(t.ghim.sel, 300) } : null;
-              moi = { id: idMoi(), ma: s.ma, v: s.v, key, ghim: gh, muc: MUC.has(t.muc) ? t.muc : 'de-xuat', tt: 'mo', ten: ten40(t.ten), noi, t: new Date().toISOString(), tl: [], ycBt: false };
+              moi = gopYMoi(t, key, noi, { ma: s.ma, v: s.v });
               g.ds.push(moi);
               ev = { loai: 'gop-y.tao', dt: { ht: s.ht, id: moi.id, key: key || undefined, ma: s.ma }, truoc: null, sau: sao(moi) };
             }
@@ -283,6 +314,27 @@ export function taoReview(C) {
           } finally { mo(); }
         }
         return json(res, 404, { loi: 'Không có' }), true;
+      }
+
+      // ===== bàn chính: góp ý ngay trong Play (bút khoanh) — POST /api/review/gop-y/<ht> =====
+      // Quyền như các thao tác cộng tác viên khác của bàn chính: đã qua cổng mật khẩu chung; khoaBang bật ⇒ qua tên miền phải có mã chủ quản.
+      if (a === 'gop-y' && ghiVao && b && !c) {
+        if (khoaBang() && !laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true }), true;
+        if (!choGhi(req, 'gy-ban', 60)) return json(res, 429, { loi: 'Gửi nhanh quá — đợi chút' }), true;
+        const HTb = await C.hanhTrinh(); if (!HTb.has(b)) return json(res, 404, { loi: 'Không có hành trình này' }), true;
+        const t = await docBody(16 * 1024);
+        const noi = sachChu(t.noi, 2000); if (!noi) return json(res, 400, { loi: 'Góp ý trống' }), true;
+        const key = typeof t.key === 'string' && /^[A-Za-z0-9_.-]{1,80}$/.test(t.key) ? t.key : null; if (!key) return json(res, 400, { loi: 'Thiếu màn để góp ý' }), true;
+        const mo = await khoa();
+        try {
+          const g = docJson(tepGopY(b), () => ({ ds: [] }));
+          if (g.ds.length >= TOI_DA.gopY) return json(res, 409, { loi: 'Hành trình này đã quá nhiều góp ý' }), true;
+          const moi = gopYMoi(t, key, noi, { ma: null, v: null, nguon: 'ban' });
+          g.ds.push(moi); ghi(tepGopY(b), g);
+          AU.ghi({ loai: 'gop-y.tao', dt: { ht: b, id: moi.id, key, ma: null }, ai: aiCua(req, { ten: moi.ten }), truoc: null, sau: sao(moi) });
+          bao(b, 'gop-y');
+          return json(res, 200, moi), true;
+        } finally { mo(); }
       }
 
       // ===== phía chủ quản (bàn chính) =====

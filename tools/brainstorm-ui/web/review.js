@@ -6,6 +6,7 @@ import { heThong, loiNguoiDung, tachKetQua, HUONG } from './prompt.js';
 import { goiClaude, goiMock, mockSua, chayLoat, lamSach, taiAssets } from './claude.js';
 import { taoAnXuLy, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
 import { ganToi, apLop, phatVideo } from './gan-toi.js';
+import { MAU_BUT, NHAN_BUT, diemGop, hinhSvg, khungCua, rutGon } from './but-khoanh.js';
 
 const $ = (s) => document.querySelector(s);
 const MA = (location.pathname.match(/^\/r\/([a-f0-9]{32})\/?$/) || [])[1] || '';
@@ -150,6 +151,8 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
     let j = R.goi.man.findIndex((x, n) => n > i && !daXoa(x.key)); if (j < 0) j = R.goi.man.findLastIndex((x) => !daXoa(x.key));
     return j >= 0 ? mo(R.goi.man[j].key, j, ghi) : mo('chung', -1, ghi);
   }
+  if (B.bat && key !== R.mo) datBut(false); // sang màn khác: tắt bút (góp ý gắn đúng màn đang khoanh)
+  if (key !== R.mo) B.chon = null;
   R.mo = key; R.i = R.goi.man[i]?.key === key ? i : -1; R.ghimCho = null; capNhatGhimCho();
   // Play: mọi đường đổi màn (nút trong màn, ◀ ▶, danh sách, đi theo) đều vào lịch sử để «Quay lại» đúng; lùi thì không ghi
   if (R.play && !manCua(key)) datCheDo('xem'); // Quy trình / Góp ý chung: không có màn để Play
@@ -172,7 +175,7 @@ function mo(key, i = R.goi.man.findIndex((x) => x.key === key), ghi = true) {
   $('#nut-truoc').disabled = !R.goi.man.some((x, n) => n < i && !daXoa(x.key)) && !(R.play && R.lich.length > 1); $('#nut-sau').disabled = i < 0 || !R.goi.man.some((x, n) => n > i && !daXoa(x.key));
   $('#gy-noi').placeholder = m ? `Góp ý cho màn «${m.ten}»…` : 'Góp ý cho cả hành trình…';
   $('#hop-gy').hidden = key === 'qt';
-  veDsMan(); veGopY(); veGhim();
+  veDsMan(); veGopY(); veGhim(); vitriBut();
   rt?.khiDoiView();
 }
 const buoc = (d) => { let i = R.i + d; while (R.goi.man[i] && daXoa(R.goi.man[i].key)) i += d; const m = R.goi.man[i]; if (R.i >= 0 && m) mo(m.key, i); }; // bỏ qua màn đã xoá
@@ -187,6 +190,7 @@ function vuaKhung() {
   const x = Math.round((v.width - m.w * z) / 2), y = Math.round(Math.max(24, (v.height - m.h * z) / 2));
   const s = $('#san'); s.style.width = `${m.w}px`; s.style.height = `${m.h}px`; s.style.transform = `translate(${x}px,${y}px) scale(${z})`;
   st.view = { x, y, z };
+  vitriBut();
   rt?.khiDoiView();
 }
 addEventListener('resize', vuaKhung);
@@ -202,6 +206,7 @@ function cheDoTrongKhung() {
   d.documentElement.classList.toggle('play', R.play);
 }
 function datCheDo(c) {
+  if (c === 'ghim' && B.bat) datBut(false);
   R.play = c === 'play'; R.ghim = c === 'ghim';
   for (const [id, b] of [['#nut-play', R.play], ['#nut-ghim', R.ghim]]) { $(id).setAttribute('aria-pressed', b); $(id).classList.toggle('bat', b); }
   $('#nut-play').textContent = R.play ? '■ Dừng Play' : '▶ Play';
@@ -280,9 +285,11 @@ function phimCheDo(e) {
   if ([...document.querySelectorAll('.lop')].some((l) => !l.hidden)) return;
   const k = e.key.toLowerCase();
   if ((k === 'p' || k === 'g') && e.repeat) { e.preventDefault(); return; }
-  if (k === 'p') { e.preventDefault(); $('#nut-play').click(); }
+  if (k === 'b' && !e.repeat) { e.preventDefault(); $('#b-but').click(); }
+  else if (k === 'p') { e.preventDefault(); $('#nut-play').click(); }
   else if (k === 'g') { e.preventDefault(); $('#nut-ghim').click(); }
   else if (e.key === 'Escape' && rt?.dangTheo()) { e.preventDefault(); rt.boTheo(); } // Esc trước hết thôi «đi theo», giữ chế độ
+  else if (e.key === 'Escape' && B.bat) { e.preventDefault(); datBut(false); toast('Đã tắt bút.'); }
   else if (e.key === 'Escape' && (R.play || R.ghim)) { e.preventDefault(); datCheDo('xem'); toast('Chế độ Xem.'); }
   else if (e.key === 'ArrowLeft' || (R.play && e.key === 'Backspace')) { e.preventDefault(); $('#nut-truoc').click(); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); $('#nut-sau').click(); }
@@ -314,17 +321,125 @@ function capNhatGhimCho() {
   c.onclick = () => { R.ghimCho = null; capNhatGhimCho(); veGhim(); };
 }
 function veGhim() {
-  const l = $('#lop-ghim'); l.innerHTML = '';
+  const l = $('#lop-ghim'); l.innerHTML = ''; veVungDaLuu();
   // số ghim đánh trên MỌI ghim (kể cả đang ẩn) để «ghim 3» không đổi nghĩa khi có ghim được xử lý
   gopYCua(R.mo).filter((g) => g.ghim).forEach((g, i) => {
     if (!hienGy(g)) return;
     const b = tao('button', `ghim muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '') + (g.v !== R.goi.v ? ' cu' : ''), String(i + 1));
     b.type = 'button'; b.style.left = `${g.ghim.x}%`; b.style.top = `${g.ghim.y}%`; b.title = `${g.ten}: ${g.noi}`;
-    b.onclick = (e) => { e.stopPropagation(); const el = document.querySelector(`[data-gy="${g.id}"]`); el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); el?.classList.add('nhay'); setTimeout(() => el?.classList.remove('nhay'), 1200); };
+    if (g.vung && B.chon === g.id) b.classList.add('vung-dam');
+    b.onclick = (e) => { e.stopPropagation(); if (g.vung) chonVung(g.id); const el = document.querySelector(`[data-gy="${g.id}"]`); el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); el?.classList.add('nhay'); setTimeout(() => el?.classList.remove('nhay'), 1200); };
     l.append(b);
   });
   if (R.ghimCho) { const b = tao('span', 'ghim moi', '+'); b.style.left = `${R.ghimCho.x}%`; b.style.top = `${R.ghimCho.y}%`; l.append(b); }
 }
+
+// ---------- bút khoanh chỗ sai (vẽ vòng/khung quanh chỗ sai → góp ý có «vung») ----------
+// vung = { k:'tay', d:[[x,y],…], mau } hoặc { k:'cn', x,y,w,h, mau } — toạ độ % khung màn (0..100), máy chủ làm sạch lại.
+// Bật được cả trong Play: màn đứng yên (lớp vẽ phủ lên màn), tắt bút thì Play chạy tiếp như cũ.
+const KHOA_MACH = 'bs.r-but-mach';
+const B = { bat: false, kieu: 'tay', mau: '#e5484d', muc: 'loi', dang: null, cho: null, chon: null };
+const daThayMach = () => { try { return !!localStorage.getItem(KHOA_MACH); } catch { return false; } };
+const ghiThayMach = () => { try { localStorage.setItem(KHOA_MACH, '1'); } catch { /* bỏ qua */ } };
+function veNhanBut() { const b = $('#b-but'); b.innerHTML = NHAN_BUT(B.bat); b.classList.toggle('bat', B.bat); b.setAttribute('aria-pressed', String(B.bat)); }
+// Nút sát bên phải khung màn; màn hẹp (không đủ chỗ) thì về dòng thường phía trên khung.
+function vitriBut() {
+  const m = manCua(R.mo); const b = $('#b-but'), mach = $('#mach'), tb = $('#thanh-but'), hang = $('#hang-but');
+  b.hidden = !m;
+  if (!m) { mach.hidden = true; tb.hidden = true; hang.classList.remove('co'); return; }
+  const v = $('#vung').getBoundingClientRect(); const phai = st.view.x + m.w * st.view.z;
+  const du = v.width - phai - 14 >= 250;
+  for (const e of [b, mach, tb]) e.classList.toggle('tinh', !du);
+  if (du) {
+    for (const e of [b, mach, tb]) if (e.parentElement !== $('#vung')) $('#vung').append(e);
+    hang.classList.remove('co');
+    const x = Math.round(phai + 14), y = st.view.y;
+    b.style.left = `${x}px`; b.style.top = `${y + 40}px`;
+    mach.style.left = `${x}px`; mach.style.top = `${y + 118}px`;
+    tb.style.left = `${x}px`; tb.style.top = `${y + 118}px`;
+  } else {
+    for (const e of [b, mach, tb]) { hang.append(e); e.style.left = e.style.top = ''; }
+    hang.classList.add('co');
+  }
+  mach.hidden = B.bat || daThayMach();
+  tb.hidden = !B.bat;
+}
+function veVungDaLuu() {
+  const s = $('#svg-vung'); s.replaceChildren();
+  for (const g of gopYCua(R.mo)) { if (g.vung && hienGy(g)) s.append(hinhSvg(g.vung, B.chon === g.id)); }
+}
+function veNetDangVe() {
+  const s = $('#svg-ve'); s.replaceChildren();
+  const v = B.dang || B.cho; if (v) s.append(hinhSvg({ ...v, mau: B.mau }, true));
+}
+function datBut(bat) {
+  if (bat && !manCua(R.mo)) { toast('Mở một màn rồi mới khoanh được.'); return; }
+  if (bat && R.ghim) datCheDo('xem');
+  B.bat = !!bat; B.dang = null; if (!bat) huyHopBut();
+  $('#svg-ve').toggleAttribute('hidden', !B.bat); $('#bang-but').hidden = !B.bat; $('#san').classList.toggle('dang-but', B.bat);
+  if (B.bat && !daThayMach()) ghiThayMach(); // đã bấm bút = hiểu rồi
+  veNhanBut(); vitriBut(); veNetDangVe();
+}
+function huyHopBut() { B.cho = null; $('#hop-but').hidden = true; veNetDangVe(); }
+// toạ độ % theo đúng khung màn (getBoundingClientRect đã gồm scale) — cùng hệ với ghim
+const phanTram = (e) => { const r = $('#san').getBoundingClientRect(); const c = (v) => Math.round(Math.max(0, Math.min(100, v)) * 10) / 10; return [c(((e.clientX - r.left) / r.width) * 100), c(((e.clientY - r.top) / r.height) * 100)]; };
+const svgVe = $('#svg-ve');
+svgVe.addEventListener('pointerdown', (e) => {
+  if (!B.bat || e.button > 0) return;
+  e.preventDefault(); if (B.cho) huyHopBut();
+  try { svgVe.setPointerCapture(e.pointerId); } catch { /* bỏ qua */ }
+  const p = phanTram(e);
+  B.dang = B.kieu === 'tay' ? { k: 'tay', d: [p] } : { k: 'cn', x0: p[0], y0: p[1], x: p[0], y: p[1], w: 0, h: 0 };
+  veNetDangVe();
+});
+svgVe.addEventListener('pointermove', (e) => {
+  const v = B.dang; if (!v) return; const p = phanTram(e);
+  if (v.k === 'tay') { for (const ev of diemGop(e)) { const r = phanTram(ev), q = v.d.at(-1); if (Math.abs(r[0] - q[0]) + Math.abs(r[1] - q[1]) >= 0.2 && v.d.length < 2000) v.d.push(r); } }
+  else { v.x = Math.min(v.x0, p[0]); v.y = Math.min(v.y0, p[1]); v.w = Math.abs(p[0] - v.x0); v.h = Math.abs(p[1] - v.y0); }
+  veNetDangVe();
+});
+const xongVe = (e, huy) => {
+  const v = B.dang; if (!v) return; B.dang = null;
+  if (!huy && v.k === 'tay') v.d.push(phanTram(e));
+  const b = khungCua(v);
+  const nho = v.k === 'tay' ? v.d.length < 4 || b.w + b.h < 2 : b.w < 2 || b.h < 1; // nét quá nhỏ: bỏ
+  if (huy || nho) { veNetDangVe(); return; }
+  B.cho = v.k === 'cn' ? { k: 'cn', x: v.x, y: v.y, w: v.w, h: v.h } : { k: 'tay', d: v.d };
+  veNetDangVe(); moHopBut(b);
+};
+svgVe.addEventListener('pointerup', (e) => xongVe(e, false));
+svgVe.addEventListener('pointercancel', (e) => xongVe(e, true));
+// ô góp ý mở cạnh vùng vừa vẽ (toạ độ px trong #vung)
+function moHopBut(b) {
+  const m = manCua(R.mo); const h = $('#hop-but'); const vg = $('#vung').getBoundingClientRect(); const z = st.view.z;
+  h.hidden = false;
+  const rong = h.offsetWidth || 260, cao = h.offsetHeight || 190;
+  const trai = st.view.x + (b.x / 100) * m.w * z, duoi = st.view.y + ((b.y + b.h) / 100) * m.h * z, tren = st.view.y + (b.y / 100) * m.h * z;
+  h.style.left = `${Math.round(Math.max(8, Math.min(vg.width - rong - 8, trai)))}px`;
+  h.style.top = `${Math.round(Math.max(8, Math.min(vg.height - cao - 8, duoi + 10 + cao > vg.height ? tren - cao - 10 : duoi + 10)))}px`;
+  $('#but-noi').value = ''; $('#but-noi').focus();
+}
+$('#b-but').onclick = () => datBut(!B.bat);
+$('#mach-hieu').onclick = () => { ghiThayMach(); $('#mach').hidden = true; };
+document.querySelectorAll('[data-kieu]').forEach((b) => { b.onclick = () => { B.kieu = b.dataset.kieu; document.querySelectorAll('[data-kieu]').forEach((x) => x.classList.toggle('bat', x === b)); }; });
+document.querySelectorAll('.mau').forEach((b) => { b.onclick = () => { B.mau = b.dataset.mau; document.querySelectorAll('.mau').forEach((x) => x.classList.toggle('bat', x === b)); veNetDangVe(); }; });
+document.querySelectorAll('[data-muc]').forEach((b) => { b.onclick = () => { B.muc = b.dataset.muc; document.querySelectorAll('[data-muc]').forEach((x) => x.classList.toggle('bat', x === b)); }; });
+$('#but-huy').onclick = huyHopBut;
+$('#but-luu').onclick = async () => {
+  const noi = $('#but-noi').value.trim(); if (!noi) { $('#but-noi').focus(); return; }
+  if (!B.cho || !manCua(R.mo) || !canTen()) return;
+  const btn = $('#but-luu'); btn.disabled = true;
+  try {
+    const j = await guiApi(`/api/review/r/${MA}/gop-y`, { key: R.mo, vung: { ...B.cho, ...(B.cho.k === 'tay' ? { d: rutGon(B.cho.d) } : {}), mau: B.mau }, muc: B.muc, noi, ten: rt.ten() });
+    if (!j) return;
+    R.goi.gopY.push(j); huyHopBut(); B.chon = j.id;
+    veDsMan(); veGopY(); veGhim();
+    hoiBienThe(j);
+  } finally { btn.disabled = false; }
+};
+veNhanBut();
+// làm đậm vùng đã lưu khi bấm số / bấm góp ý trong danh sách
+function chonVung(id) { B.chon = B.chon === id ? null : id; veGhim(); document.querySelectorAll('[data-gy]').forEach((a) => a.classList.toggle('vung-dam', a.dataset.gy === B.chon)); }
 
 // ---------- góp ý ----------
 const gopYCua = (mo) => (R.goi?.gopY || []).filter((g) => (mo === 'chung' ? !g.key : g.key === mo));
@@ -350,11 +465,12 @@ function veGopY() {
     const av = tao('span', 'avt nho', ([...g.ten][0] || '?').toUpperCase()); av.style.setProperty('--mau', mauTen(g.ten));
     dau.append(av, tao('b', '', g.ten), tao('span', `chip muc`, MUC_TEN[g.muc] || g.muc));
     if (g.ghim) dau.append(tao('span', 'chip', `📌 ${soGhim.get(g.id)}`));
-    if (g.v !== R.goi.v) dau.append(tao('span', 'chip cu', `từ v${g.v}`));
+    if (g.v !== R.goi.v) dau.append(tao('span', 'chip cu', g.v != null ? `từ v${g.v}` : 'từ bàn chính'));
     dau.append(tao('span', 'chip ' + (g.tt === 'xong' ? 'ok' : 'mo'), g.tt === 'xong' ? 'Đã xử lý' : 'Mở'));
     if (g.ycBt) dau.append(tao('span', 'chip', 'Đã yêu cầu biến thể'));
     const moi = XL.moiSauXl(g).length; if (moi) dau.append(tao('span', 'chip cu', `↩ ${moi} trả lời sau khi xử lý`));
     dau.append(tao('span', 'phu gio', gioVN(g.t)));
+    if (g.vung) { dau.append(tao('span', 'chip', '✏️ khoanh')); the.dataset.coVung = '1'; if (B.chon === g.id) the.classList.add('vung-dam'); the.onclick = (ev) => { if (!ev.target.closest('button,form,textarea,a')) chonVung(g.id); }; }
     the.append(dau, tao('p', 'gy-noi', g.noi));
     for (const t of g.tl || []) {
       const tl = tao('div', 'tl' + (t.chuQuan ? ' chu' : ''));
