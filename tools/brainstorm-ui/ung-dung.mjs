@@ -51,7 +51,7 @@ export function taoUngDung(O = {}) {
   const PB_TOI_DA = 300;               // số phiên bản tối đa mỗi màn
   const PB_CO = 6 * 1024 * 1024;       // cỡ tối đa một bản HTML
   const TEP_MT = () => path.join(PHIEN_BAN, 'man-them.json'); // màn thêm trên bàn (web/man-them.js)
-  const MT_TOI_DA = 300;               // số màn thêm tối đa cả bàn
+  const MT_TOI_DA = 500;               // số màn thêm tối đa cả bàn (chỉ đếm màn chưa xoá)
   // tệp chưa có ⇒ kho rỗng; tệp hỏng ⇒ ném lỗi (không bao giờ ghi đè bằng kho rỗng)
   function docMt() { let tho; try { tho = fs.readFileSync(TEP_MT(), 'utf8'); } catch (e) { if (e.code === 'ENOENT') return MT.KHO_RONG(); throw e; } return MT.chuanKho(JSON.parse(tho)); }
   // bản nhớ theo dấu tệp (mtime + cỡ): đường nóng (keyMan, laThem, MCP) không đọc + parse lại tệp mỗi lần. Chính máy chủ ghi ⇒ ghiMt xoá dấu.
@@ -629,7 +629,7 @@ export function taoUngDung(O = {}) {
       if (viec === 'them') {
         const ht = htCua(String(t.ht || '')); if (!ht) return json(res, 400, { loi: 'Không có hành trình này' });
         if (!ten) return json(res, 400, { loi: 'Cần tên màn' });
-        if (Object.keys(mt.man).length >= MT_TOI_DA) return json(res, 409, { loi: `Bàn đã có ${MT_TOI_DA} màn thêm` });
+        if (Object.keys(mt.man).filter((k) => !daXoaKey(k)).length >= MT_TOI_DA) return json(res, 409, { loi: `Bàn đã có ${MT_TOI_DA} màn thêm (chưa xoá)` });
         const tt = thuTuCua(ht.id); const i = MT.chiSoChen(tt, t.sau ?? null);
         if (i < 0) return json(res, 400, { loi: 'Vị trí chèn không thuộc hành trình này' });
         const cach0 = t.cach;
