@@ -263,6 +263,9 @@ body.co-pn-gy #bang{right:432px}
 .ben-muc .dem-gy{margin-left:6px;background:#8a3c0c;color:#fff;border-radius:99px;font:800 11px Inter;padding:2px 7px;white-space:nowrap}
 .ghim-tam{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50% 50% 50% 4px;background:#f5b70a;box-shadow:0 0 0 3px #fff,0 6px 14px rgba(0,0,0,.3);z-index:5;pointer-events:auto;animation:ghim-nhay 1s ease-in-out 3}
 @keyframes ghim-nhay{50%{transform:scale(1.35)}}
+.vung-tam{position:absolute;left:0;right:0;bottom:0;top:var(--dau-khung,34px);z-index:4;pointer-events:none;animation:vung-nhay 1s ease-in-out 3}
+.vung-tam svg{width:100%;height:100%;display:block;overflow:visible}
+@keyframes vung-nhay{50%{opacity:.45}}
 .hop-dx{width:min(1400px,100%);max-height:calc(100vh - 32px);overflow:auto;display:flex;flex-direction:column;gap:10px}
 .dx-luoi{display:flex;gap:16px;overflow:auto;align-items:flex-start;padding:4px 2px 8px}
 .dx-o{margin:0;display:flex;flex-direction:column;gap:8px;flex:none}

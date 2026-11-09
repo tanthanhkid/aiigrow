@@ -1,0 +1,62 @@
+:root{--loi2:#e5484d}
+/* Bút khoanh chỗ sai — dùng chung trang /r/ (review.html) và Play của bàn chính (index.html) */
+.hang-but{display:none;padding:0 16px 8px}
+.hang-but.co{display:block}
+.b-but{position:absolute;display:flex;gap:10px;align-items:center;text-align:left;white-space:nowrap;z-index:6;min-height:0;padding:10px 16px 10px 12px;border-radius:14px;background:var(--loi2);color:#fff;box-shadow:0 6px 18px #e5484d55;animation:nhip 1.8s ease-in-out 3}
+.b-but:hover:not(:disabled){background:#d63b40}
+.b-but .ic{font-size:24px;line-height:1}.b-but small{display:block;font-size:12px;font-weight:500;opacity:.92}
+.b-but.bat{background:var(--chu);box-shadow:none;animation:none;color:#fff}
+.b-but.tinh{position:static;margin-bottom:8px}
+.mach.tinh,.thanh-but.tinh{position:static;margin-bottom:8px;width:auto}
+.mach.tinh::before{display:none}
+.thanh-but.tinh{display:inline-flex}
+@keyframes nhip{50%{transform:scale(1.07)}}
+.mach{position:absolute;z-index:7;width:230px;background:var(--chu);color:#fff;border-radius:12px;padding:12px;font-size:14px}
+.mach[hidden]{display:none}
+.mach::before{content:"";position:absolute;top:-7px;left:26px;border:7px solid transparent;border-top:0;border-bottom-color:var(--chu)}
+.mach button{margin-top:8px;min-height:30px;font-size:13px;color:var(--chu)}
+.thanh-but{position:absolute;z-index:6;display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:230px;background:var(--the);border-radius:10px;padding:6px 8px;box-shadow:var(--bong)}
+.thanh-but[hidden]{display:none}
+.thanh-but button{min-height:30px;font-size:13px;padding:0 9px}
+.mau{width:22px;height:22px;border-radius:50%;border:2px solid #fff;outline:1px solid var(--vien);cursor:pointer;display:inline-block}
+.mau.bat{outline:2px solid var(--chu)}
+.svg-vung,.svg-ve{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:18px;overflow:visible}
+.svg-ve{z-index:3}
+.svg-ve:not([hidden]){pointer-events:auto;cursor:crosshair;touch-action:none}
+.svg-ve[hidden]{display:none}
+.bang-but{position:absolute;top:0;left:0;right:0;z-index:4;background:var(--loi2);color:#fff;font-size:13px;text-align:center;padding:7px;border-radius:18px 18px 0 0;pointer-events:none}
+.bang-but[hidden]{display:none}
+.san.dang-but{outline:3px solid var(--loi2);outline-offset:3px}
+.hop-but{position:absolute;z-index:8;width:260px;background:var(--the);border-radius:14px;padding:10px;box-shadow:0 8px 24px #0003;display:flex;flex-direction:column;gap:8px}
+.hop-but[hidden]{display:none}
+.hop-but textarea{min-height:64px}
+.loai-but{display:flex;gap:6px}.loai-but button{flex:1;min-height:30px;font-size:13px;padding:0 6px}
+.hop-but .nut-chinh{min-height:34px;border-radius:10px}
+.ghim.vung-dam{box-shadow:0 0 0 3px #fff,0 0 0 6px #f5b70a,0 6px 14px rgba(0,0,0,.3)}
+.gy.vung-dam{box-shadow:0 0 0 2px #f5b70a,var(--bong)}
+.gy[data-co-vung]{cursor:pointer}
+
+/* Play của bàn chính (#lop-play, nền tối): nút đỏ nổi rõ, lớp phủ đúng vùng màn */
+.lop-play .b-but{color:#fff;box-shadow:0 0 0 2px #fff6,0 6px 18px #e5484d88}
+.lop-play .b-but.bat{background:var(--loi2);box-shadow:0 0 0 3px #fff;animation:none}
+.lop-play .mach button,.lop-play .hop-but button{color:#0f1312}
+.lop-play .mach,.lop-play .thanh-but,.lop-play .hop-but{position:absolute}
+.lop-play .hop-but,.lop-play .thanh-but{color:#0f1312}
+.lop-play .hop-but input{width:100%;min-height:34px;border-radius:8px;border:1px solid var(--vien,#d9d9d4);padding:0 8px}
+.lop-play .hop-but textarea{width:100%;resize:vertical}
+.lop-play .hop-but .nut-hang{display:flex;gap:8px;justify-content:flex-end}
+.lop-play .loai-but button.bat{background:#0f1312;color:#fff}
+.bk-khung{position:absolute;z-index:5;pointer-events:none;border-radius:14px}
+.bk-khung[hidden]{display:none}
+.bk-khung.dang-but{outline:3px solid var(--loi2);outline-offset:3px}
+.bk-khung .svg-vung,.bk-khung .svg-ve{border-radius:14px}
+.bk-khung .svg-ve:not([hidden]){pointer-events:auto}
+.bk-so{position:absolute;inset:0;pointer-events:none;z-index:4}
+.bk-so .ghim{position:absolute;width:30px;height:30px;min-height:30px;padding:0;margin:-15px 0 0 -15px;border-radius:50% 50% 50% 4px;background:#0f6b5c;color:#fff;font:800 13px Inter,system-ui,sans-serif;pointer-events:auto;box-shadow:0 0 0 3px #fff,0 6px 14px rgba(0,0,0,.3)}
+.bk-so .ghim.muc-loi{background:#b42318}.bk-so .ghim.muc-cau-hoi{background:#3d5a99}
+.bk-so .ghim.vung-dam{box-shadow:0 0 0 3px #fff,0 0 0 6px #f5b70a,0 6px 14px rgba(0,0,0,.3)}
+.bk-bong{position:absolute;z-index:9;width:240px;background:#fbfbf9;color:#0f1312;border-radius:12px;padding:10px 12px;box-shadow:0 8px 24px #0005;font-size:13px}
+.bk-bong[hidden]{display:none}
+.bk-bong p{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.bk-bong-dau{display:flex;gap:8px;align-items:center}
+.bk-bong .chip{font-size:11px;background:#e4e3df;border-radius:99px;padding:1px 8px}

@@ -10,6 +10,7 @@ import * as Sua from './che-do-sua.js';
 import { taoRealtime } from './realtime.js';
 import * as CL from './claude.js';
 import { ganGopY, dauChuQuan } from './gop-y.js';
+import { ganButPlay } from './but-khoanh.js';
 import { ganLichSu } from './lich-su.js';
 
 const $ = (s) => document.querySelector(s);
@@ -982,11 +983,12 @@ function moPlay(id, lanId) {
   play.lich = [f.id];
   $('#pl-anh').checked = caiDat.anhThat;
   $('#lop-play').hidden = false;
+  if (typeof GY !== 'undefined' && GY && !GY.du() && laChuQuan(true)) GY.tai(); // nạp góp ý để hiện vùng khoanh đang mở
   vePlay('');
   dongBoPhienBan(); // màn vừa được người khác thay mà lỡ tin realtime: đổi ngay trong Play (vePlay lại khi có khác)
 }
 function dongPlay() {
-  $('#lop-play').hidden = true; $('#pl-thiet-bi').innerHTML = '';
+  BK?.dongPlay(); $('#lop-play').hidden = true; $('#pl-thiet-bi').innerHTML = '';
   const f = timKhung(play.lich.at(-1)); const sec = f && secCuaLan(lanCuaKhung(f));
   if (sec && sec !== st.sec && st.cheDo !== 'qt') { doiSec(sec, { bay: false }); st.chon.clear(); st.chon.add(f.id); veTatCa(false); vuaMan([f.id]); toast(`Đã sang section «${SECTIONS.find((x) => x.id === sec).ten}» — màn cuối khi Play.`); }
 }
@@ -1035,6 +1037,7 @@ function vePlay(huong) {
   const l0 = timLan(play.lan); const l = l0 && { ...l0, buoc: l0.buoc.filter((k) => !daXoa(k)) }; const viTri = l ? l.buoc.indexOf(keyCua(f)) : -1; // đếm bước bỏ màn đã xoá
   $('#pl-truoc').disabled = viTri <= 0; $('#pl-ke').disabled = viTri < 0 || viTri >= l.buoc.length - 1;
   $('#pl-buoc').textContent = l && viTri >= 0 ? `${l.goc ? l.ten : 'Phương án ' + l.k} · bước ${viTri + 1}/${l.buoc.length}${toiCon(keyCua(f), l.buoc) ? ' · tiếp: ' + toiCon(keyCua(f), l.buoc) : ''}` : `${tenCua(f)} (ngoài hành trình)`;
+  BK?.khiVe();
 }
 function ganBamPlay(ifr, f) {
   let tl; try { tl = ifr.contentDocument; } catch { return; }
@@ -1070,6 +1073,8 @@ function buocLan(d) {
 function luiPlay() { if (play.lich.length > 1) { play.lich.pop(); vePlay('trai'); } }
 function phimPlay(e) {
   if (dangGo(e)) return;
+  if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); if (!e.repeat) BK?.doi(); return; }
+  if (e.key === 'Escape' && BK?.dangBat()) { e.preventDefault(); BK.bat(false); return; } // Esc: tắt bút trước, không thoát Play
   if (e.key === 'Escape') dongPlay();
   else if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); luiPlay(); }
   else if (e.key === 'ArrowRight') buocLan(1);
@@ -1082,6 +1087,12 @@ $('#pl-anh').onchange = () => vePlay('');
 $('#nut-play').onclick = () => moPlay();
 $('#nut-play-bang').onclick = () => { const f = khungChon(); if (f) moPlay(f.id); else if (st.lanChon) { const l = timLan(st.lanChon); moPlay(khungCuaLan(l, l.buoc[0])?.id, l.id); } };
 addEventListener('resize', () => { if (!$('#lop-play').hidden) vePlay(''); });
+// bút khoanh chỗ sai ngay trong Play (dùng chung bộ vẽ với trang /r/): góp ý đi POST /api/review/gop-y/<hành trình>
+const BK = ganButPlay({ lop: $('#lop-play'),
+  iframe: () => [...document.querySelectorAll('#pl-thiet-bi .man-play iframe')].at(-1) || null, thietBi: () => $('#pl-thiet-bi'), anh: () => $('#pl-anh-that'),
+  key: () => { const f = timKhung(play.lich.at(-1)); return f ? keyCua(f) : null; }, ht: () => play.lan || '',
+  gopYMo: (ht, key) => GY?.cuaMan(ht, key) || [], gui: (ht, than) => GY.guiGopY(ht, than),
+  tenNguoi: () => rt?.ten() || '', datTen: (v) => { $('#ten-nhap').value = v; $('#hop-ten').requestSubmit(); }, toast });
 
 // ---------- xuất / lưu ----------
 const dataUrlDem = new Map();
@@ -1950,7 +1961,7 @@ function nhanSu(m, p) {
 }
 GY = ganGopY({ donKhungDeXuat: (ds) => { if (donKhungDeXuat(ds)) veTatCa(); }, MAN, LAN_GOC, timLan, timKhung, st, dom, PB, toast, vuaMan, veTatCa, veBen, doiSec: (sec, cheDo) => doiSec(sec, { bay: false, cheDo }), secCuaLan, lamSach,
   moLichSuAudit: (loc) => LS.mo(loc), daMoKhoa: () => laChuQuan(true),
-  tenNguoi: () => rt?.ten() || '', phien: PHIEN,
+  tenNguoi: () => rt?.ten() || '', phien: PHIEN, khiDoiGopY: () => { if (!$('#lop-play').hidden) BK.veLai(); },
   svgHanhTrinh: (id) => qt.svgHanhTrinh(id),
   napLai: (key) => napLaiPhienBan(key),
   // «✨ Sửa theo góp ý»: chọn màn gốc, điền ý = các góp ý, chạy luồng sinh biến thể như thường (prompt caching)

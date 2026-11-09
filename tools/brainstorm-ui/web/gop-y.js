@@ -2,6 +2,7 @@
 // «✨ Sửa theo góp ý» (luồng biến thể sẵn có), duyệt «Đề xuất thay đổi» của người review (Accept = Thay màn / Từ chối / Sửa tiếp), xuất Markdown.
 // Quyền chủ quản kiểm ở MÁY CHỦ: 127.0.0.1 gõ thẳng, hoặc mã chủ quản (chu-quan.json ngoài git) gửi qua header x-bs-chu-quan.
 import { taoAnXuLy, truotRa, huyTruot, daXuLyGy, daXuLyDx } from './an-xu-ly.js';
+import { hinhSvg } from './but-khoanh.js';
 
 const $ = (s) => document.querySelector(s);
 const KHOA_MA = 'bs.chu-quan';
@@ -36,7 +37,7 @@ export function ganGopY(A) {
         try { const du = await goi('/api/review'); await D.truot; D.du = du; D.canMa = false; } catch { /* đã hiện lý do */ } // đang trượt thẻ: vẽ lại sau khi trượt xong
       } while (D.lai);
       A.donKhungDeXuat?.(Object.values(D.du?.deXuat || {}).flat()); // đề xuất đã Accept/Từ chối ⇒ khung «Sửa tiếp» của nó rời bàn
-      ve(); A.veBen(); A.veTatCa(false);
+      ve(); A.veBen(); A.veTatCa(false); A.khiDoiGopY?.();
     })().finally(() => { D.dangTai = null; });
     return D.dangTai;
   }
@@ -130,7 +131,7 @@ export function ganGopY(A) {
   function theGopY(g) {
     const the = tao('article', `pn-the muc-${g.muc}` + (g.tt === 'xong' ? ' xong' : '')); the.dataset.gy = `${g.ht}/${g.id}`;
     const dau = tao('div', 'pn-gy-dau');
-    dau.append(tao('b', '', g.ten), tao('span', 'chip muc', MUC_TEN[g.muc] || g.muc), tao('span', 'chip', `v${g.v}`));
+    dau.append(tao('b', '', g.ten), tao('span', 'chip muc', MUC_TEN[g.muc] || g.muc), tao('span', 'chip', g.v != null ? `v${g.v}` : 'bàn chính'));
     if (g.ghim) dau.append(tao('span', 'chip', '📌 ghim'));
     if (g.ycBt) dau.append(tao('span', 'chip vang', 'Yêu cầu biến thể'));
     if (g.tt === 'xong') dau.append(tao('span', 'chip chap', 'Đã xử lý'));
@@ -198,6 +199,12 @@ export function ganGopY(A) {
     setTimeout(() => {
       const el = A.dom.get(g.key)?.el; if (!el) return;
       el.querySelectorAll('.ghim-tam').forEach((x) => x.remove());
+      if (g.vung) { // bút khoanh: vẽ lại vùng (SVG % khung màn) như ghim tạm
+        const NS = 'http://www.w3.org/2000/svg'; const lop = tao('div', 'vung-tam'); const sv = document.createElementNS(NS, 'svg');
+        sv.setAttribute('viewBox', '0 0 100 100'); sv.setAttribute('preserveAspectRatio', 'none');
+        const f = hinhSvg(g.vung, true); f.style.strokeWidth = '4px';
+        sv.append(f); lop.append(sv); lop.title = `${g.ten}: ${g.noi}`; el.append(lop); setTimeout(() => lop.remove(), 6000);
+      }
       if (!g.ghim) return;
       const p = tao('div', 'ghim-tam'); p.title = `${g.ten}: ${g.noi}`;
       p.style.left = `${g.ghim.x}%`; p.style.top = `calc(var(--dau-khung, 34px) + (100% - var(--dau-khung, 34px)) * ${g.ghim.y / 100})`;
@@ -218,7 +225,7 @@ export function ganGopY(A) {
     for (const g of ds.sort((a, b) => (a.ht + (a.key || '')).localeCompare(b.ht + (b.key || '')) || a.t.localeCompare(b.t))) {
       if (g.ht !== htCu) { dong.push(`## ${tenHt(g.ht)}`, ''); htCu = g.ht; keyCu = null; }
       if (g.key !== keyCu) { dong.push(`### ${tenMan(g.key)}`, ''); keyCu = g.key; }
-      dong.push(`- [${g.tt === 'xong' ? 'x' : ' '}] **${MUC_TEN[g.muc] || g.muc}** · ${sach(g.ten)} · v${g.v} · ${gioVN(g.t)}${g.ghim ? ` · 📌 ${g.ghim.x}%/${g.ghim.y}%` : ''} — ${sach(g.noi)}`);
+      dong.push(`- [${g.tt === 'xong' ? 'x' : ' '}] **${MUC_TEN[g.muc] || g.muc}** · ${sach(g.ten)} · ${g.v != null ? `v${g.v}` : 'bàn chính'} · ${gioVN(g.t)}${g.ghim ? ` · 📌 ${g.ghim.x}%/${g.ghim.y}%` : ''} — ${sach(g.noi)}`);
       for (const t of g.tl || []) dong.push(`  - ${sach(t.ten)}${t.chuQuan ? ' (phụ trách)' : ''}: ${sach(t.noi)}`);
     }
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([dong.join('\n') + '\n'], { type: 'text/markdown' }));
@@ -342,5 +349,8 @@ export function ganGopY(A) {
     nhanRv(m) {
       if (m.loai === 'thay' && m.key && m.tu !== A.phien) A.napLai(m.key).then(() => { if (m.ten && !m.im && m.tu !== A.phien && A.MAN[m.key]) A.toast(`${m.ten} vừa đổi phiên bản màn «${A.MAN[m.key].ten}».`); }); clearTimeout(this.hen); this.hen = setTimeout(tai, 250); },
     du: () => D.du,
+    // Play: góp ý của một màn trong hành trình (bút khoanh ở bàn chính) + gửi góp ý mới (POST /api/review/gop-y/<ht>)
+    cuaMan: (ht, key) => gopYCua(ht).filter((g) => g.key === key),
+    async guiGopY(ht, than) { const j = await goi(`/api/review/gop-y/${encodeURIComponent(ht)}`, than); tai(); return j; },
   };
 }
