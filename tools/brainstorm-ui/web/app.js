@@ -25,10 +25,10 @@ const KHOA_LUU = 'bs.v2', KHOA_KEY = 'bs.key', KHOA_CD = 'bs.cai-dat';
 const ZOOM_SONG = 0.4;   // dưới mức này dùng ảnh thu nhỏ thay iframe
 const LE_AO = 500;       // lề (px màn hình) quanh viewport vẫn giữ iframe
 // Section kiểu Pages của Figma: chỉ dựng section đang mở.
-const SEC_MAP = { 'bm-lan-dau': 'bm-dau', 'bm-thiet-lap-con': 'bm-dau', 'bm-ghep-lan-dau': 'bm-dau', 'bm-dang-nhap': 'bm-dau', 'bm-duoc-moi': 'bm-dau', 'bm-ghep-may': 'bm-dau', 'bm-hang-ngay': 'bm-ngay', 'bm-may-con': 'bm-ngay', 'bm-gio-ho-so': 'bm-ngay', 'bm-con-xin': 'bm-ngay', 'bm-viec-duyet': 'bm-ngay', 'bm-sao-qua': 'bm-ngay', 'bm-bao-cao-ngay': 'bm-ngay', 'bm-ca-nha': 'bm-ngay', 'bm-ung-dung': 'bm-ngay',
+const SEC_MAP = { 'bm-lan-dau': 'bm-dau', 'bm-thiet-lap-con': 'bm-dau', 'bm-ghep-lan-dau': 'bm-dau', 'bm-dang-nhap': 'bm-vao', 'bm-duoc-moi': 'bm-vao', 'bm-ghep-may': 'bm-ngay', 'bm-hang-ngay': 'bm-ngay', 'bm-may-con': 'bm-ngay', 'bm-gio-ho-so': 'bm-ngay', 'bm-con-xin': 'bm-nv', 'bm-viec-duyet': 'bm-nv', 'bm-sao-qua': 'bm-nv', 'bm-bao-cao-ngay': 'bm-nv', 'bm-ca-nha': 'bm-cd', 'bm-ung-dung': 'bm-ngay',
   'bm-duyet': 'bm-nv', 'bm-nhiem-vu': 'bm-nv', 'bm-bao-cao': 'bm-nv', 'bm-cai-dat': 'bm-cd',
   'web-tai': 'bo-cai', 'con-cai-win': 'bo-cai', 'con-cai-mac': 'bo-cai', 'con-dt-cai': 'bo-cai' };
-const SEC_TEN = { 'bm-dau': 'Ba Mẹ · Lần đầu & ghép máy', 'bm-ngay': 'Ba Mẹ · Hằng ngày', 'bm-nv': 'Ba Mẹ · Duyệt, nhiệm vụ & báo cáo',
+const SEC_TEN = { 'bm-dau': 'Ba Mẹ · Lần đầu dùng', 'bm-vao': 'Ba Mẹ · Đăng nhập & được mời', 'bm-ngay': 'Ba Mẹ · Hằng ngày', 'bm-nv': 'Ba Mẹ · Duyệt, nhiệm vụ, quà & báo cáo',
   'bm-cd': 'Ba Mẹ · Cài đặt & hỗ trợ', 'bo-cai': 'Bộ cài & trang tải' };
 
 // ---------- lưu trữ cục bộ (mọi truy cập bọc try/catch) ----------
@@ -130,6 +130,9 @@ const nhomCua = (f) => { const l = timLan(MAN[keyCua(f)]?.lan); return l ? `${l.
 const maSec = (l) => SEC_MAP[l.id] || `${l.vai}-${l.nen}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/gi, 'd').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 const SECTIONS = [];
 for (const l of LAN_GOC) { const id = maSec(l); let s = SECTIONS.find((x) => x.id === id); if (!s) SECTIONS.push(s = { id, ten: SEC_TEN[id] || `${l.vai} · ${l.nen}`, lan: [] }); s.lan.push(l.id); }
+// hành trình nằm ở tệp khác nhưng muốn đứng ngay sau một hành trình trong cùng section
+{ const SAU_LAN = { 'bm-ghep-may': 'bm-may-con' };
+  for (const s of SECTIONS) for (const [id, sau] of Object.entries(SAU_LAN)) { const i = s.lan.indexOf(id); if (i < 0 || !s.lan.includes(sau)) continue; s.lan.splice(i, 1); s.lan.splice(s.lan.indexOf(sau) + 1, 0, id); } }
 { const thu = Object.keys(SEC_TEN); const hang = (x) => (x.id === 'bo-cai' ? 99 : thu.includes(x.id) ? thu.indexOf(x.id) : 50); SECTIONS.sort((p, q) => hang(p) - hang(q)); }
 const secCuaLan = (l) => { const g = l && (l.goc ? l : timLan(l.tu)); return g ? maSec(g) : ''; };
 const secTu = (id) => (SECTIONS.some((x) => x.id === id) ? id : '');
