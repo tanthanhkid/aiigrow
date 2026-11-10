@@ -31,7 +31,7 @@ export async function taiHanhTrinh(lay = (u) => fetch(u)) {
   // key trùng giữa các tệp → giữ bản đầu, báo lỗi
   const da = new Set();
   for (const h of ds) h.buoc = h.buoc.filter((b) => { if (da.has(b.key)) { loi.push(`trùng key ${b.key}`); return false; } da.add(b.key); return true; });
-  return { ds: ds.filter((h) => h.buoc.length), loi };
+  return { ds: ds.filter((h) => h.buoc.length || h.chiThem), loi }; // chiThem: hành trình chỉ chứa màn thêm trên bàn (chưa có màn trong mã)
 }
 
 // Màn «giống thật»: DOM chụp từ app Expo chạy thật (Ba Mẹ + Con /tre, iPhone 375×812) nằm ở web/that/ — xem DO-KHOP.md.
