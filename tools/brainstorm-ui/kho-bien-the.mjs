@@ -184,21 +184,24 @@ export function taoKhoBienThe(C) {
     xoaTep(t); xoaTep(tepRac(l, id, 'html')); xoaTep(tepRac(l, id, 'phu'));
     return null;
   }
-  function donRac() {
+  function donRac(ngay = false, ai0 = null) { // ngay: xoá vĩnh viễn MỌI mục trong thùng rác, không chờ 7 ngày (chủ quản bấm «Xoá hẳn»)
+    const da0 = [];
     let ten; try { ten = fs.readdirSync(dir('rac')); } catch { return; }
     for (const t of ten) {
       const mm = t.match(/^([kl])-([\w-]{1,120})\.json$/); if (!mm) continue;
       const m = docJson(path.join(dir('rac'), t));
-      if (m && Date.now() - (m.tXoa || 0) <= RAC_GIU) continue;
+      if (m && !ngay && Date.now() - (m.tXoa || 0) <= RAC_GIU) continue;
       // xoá vĩnh viễn: «giành» mục bằng đổi tên (chỉ MỘT tiến trình 5178/5181 thắng), ghi đủ nội dung vào audit (blob),
       // CHỈ xoá tệp khi audit đã ghi được — không thì trả tên cũ, lượt dọn sau thử lại
       const [, l, id] = mm; const giu = path.join(dir('rac'), `${t}.don-${process.pid}`);
       if (!doiTen(path.join(dir('rac'), t), giu)) continue;
-      const da = m ? A.ghi({ loai: l === 'k' ? 'bien-the.xoa-vinh-vien' : 'phuong-an.xoa-vinh-vien', dt: dtCua(l, { ...m, id }), ai: { ten: 'máy chủ', vai: 'he-thong' },
-        truoc: { ...trangThai(l, id, m, true), tXoa: m.tXoa, nguoiXoa: m.nguoiXoa }, sau: null, ghiChu: 'dọn thùng rác sau 7 ngày' }, { hoan: true }) : []; // hoan: không xếp hàng — lượt dọn sau tự ghi lại
+      const da = m ? A.ghi({ loai: l === 'k' ? 'bien-the.xoa-vinh-vien' : 'phuong-an.xoa-vinh-vien', dt: dtCua(l, { ...m, id }), ai: ai0 || { ten: 'máy chủ', vai: 'he-thong' },
+        truoc: { ...trangThai(l, id, m, true), tXoa: m.tXoa, nguoiXoa: m.nguoiXoa }, sau: null, ghiChu: ngay ? 'xoá hẳn thùng rác theo yêu cầu' : 'dọn thùng rác sau 7 ngày' }, { hoan: true }) : []; // hoan: không xếp hàng — lượt dọn sau tự ghi lại
       if (m && !da.length) { doiTen(giu, path.join(dir('rac'), t)); continue; }
       xoaTep(giu); for (const d of ['html', 'phu']) xoaTep(tepRac(l, id, d));
+      da0.push(`${l}-${id}`);
     }
+    return da0;
   }
   // C.motTienTrinh (Cloudflare: một Durable Object duy nhất ghi kho): không hẹn giờ (DO được ngủ đông); dọn rác lúc DO thức dậy + tối đa 1 lần/giờ khi có ghi
   let donLuc = Date.now(); donRac();
@@ -314,6 +317,12 @@ export function taoKhoBienThe(C) {
       A.ghi(evs);
       if (ra.khung.length || ra.lan.length) phat({ loai: 'ghi', ...ra, tu: phien, ten: nguoi });
       return json(res, 200, { ...ra, loi, tuChoi, xungDot, boQua });
+    }
+    if (p === '/api/bien-the/rac/don-ngay') { // xoá vĩnh viễn cả thùng rác (cổng /api/bien-the đã đòi mã chủ quản khi khoá bảng; ở đây đòi luôn)
+      if (C.laChuQuan && !C.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
+      if (than?.xacNhan !== 'xoa-han') return json(res, 400, { loi: 'Thiếu xacNhan: "xoa-han"' });
+      const da = donRac(true, ai);
+      return json(res, 200, { daXoaHan: da.length });
     }
     if (p === '/api/bien-the/xoa') {
       const ra = { khung: [], lan: [] };

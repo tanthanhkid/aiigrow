@@ -10,7 +10,7 @@ const TOI_TAY = JSON.parse(process.env.TOI_TAY || "{}"); // key → chữ trên 
 const refs = JSON.parse(readFileSync(join(RA, "refs.json"), "utf8"));
 const bang = JSON.parse(readFileSync(join(RA, "bang.json"), "utf8"));
 const buoc = [];
-for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) {
+for (const t of ["bm-1", "bm-2", "con-dien-thoai"]) {
   const m = await import(pathToFileURL(join(BS, "web/hanh-trinh", t + ".js")).href);
   for (const h of m.default) h.buoc.forEach((b, i) => buoc.push({ key: b.key, toi: b.toi, ke: h.buoc[i + 1], ten: b.ten }));
 }

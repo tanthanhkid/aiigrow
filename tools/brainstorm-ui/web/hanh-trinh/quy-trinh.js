@@ -112,7 +112,7 @@ export default [
       ['bm-bd', 'bm-khoa'], ['bm-khoa', 'lenh', 'Khoá máy'], ['lenh', 'khoa'], ['khoa', 'bm-man'], ['bm-man', 'kt'], ['ngu', 'khoa'], ['khoa', 'ngu-man'], ['ngu-man', 'kt']],
   },
   {
-    id: 'qt-nhiem-vu', ten: 'Nhiệm vụ → nộp bài → duyệt → điểm → đổi điểm chơi', sec: ['bm-nv', 'con-windows'], hanh: ['bm-viec-duyet', 'bm-sao-qua', 'bm-nhiem-vu'],
+    id: 'qt-nhiem-vu', ten: 'Nhiệm vụ → nộp bài → duyệt → điểm → đổi điểm chơi', sec: ['bm-nv', 'con-windows'], hanh: ['bm-viec-duyet', 'bm-sao-qua'],
     nut: [
       n('bd', 'bd', 'bm', 'Giao việc cho Con'),
       n('giao', 'man', 'bm', 'Giao nhiệm vụ', 'bm3-nv-giao'),

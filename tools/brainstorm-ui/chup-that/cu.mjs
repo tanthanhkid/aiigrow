@@ -4,7 +4,7 @@ import pixelmatch from "pixelmatch"; import { PNG } from "pngjs";
 const [BS, RA] = process.argv.slice(2).map((x) => resolve(x));
 const CONG = process.env.CONG; if (!CONG) throw new Error("đặt CONG=<cổng server.mjs đang chạy từ chính thư mục này>"); const R = process.env.BS_THIET_KE || process.env.HOME + "/OFFLINE_FILES/Code/aiigrow-thiet-ke";
 const ds = JSON.parse(readFileSync(join(BS, "web/that/ds.json"), "utf8"));
-const cu = {}; for (const t of ["bm-1", "bm-2", "bm-3", "con-dien-thoai"]) for (const h of (await import(pathToFileURL(join(BS, "web/hanh-trinh", t + ".js")).href)).default) for (const b of h.buoc) cu[b.key] = b;
+const cu = {}; for (const t of ["bm-1", "bm-2", "con-dien-thoai"]) for (const h of (await import(pathToFileURL(join(BS, "web/hanh-trinh", t + ".js")).href)).default) for (const b of h.buoc) cu[b.key] = b;
 const TMP = join(BS, "web/_cu"); mkdirSync(TMP, { recursive: true }); mkdirSync(join(RA, "cu"), { recursive: true });
 const CDP = 9695; const hoSo = mkdtempSync(join(tmpdir(), "aiig-cu-"));
 const chrome = spawn("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run", "--hide-scrollbars", "--force-color-profile=srgb", "about:blank"], { stdio: "ignore" });

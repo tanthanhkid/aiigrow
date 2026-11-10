@@ -252,7 +252,6 @@ export default [
     ] },
   { id: 'bm-ghep-lan-dau', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Lần đầu · Ghép máy', mo: 'Cuối thiết lập: ghép máy của con (QR / mã 6 số / gửi link), chờ máy con, xong rồi.',
     buoc: [
-      B('bm1-ob-may', 'Bước 2 · Thiết bị', may, 'ss-bm-ob-may.jpg', 'Bấm «Tiếp: ghép máy»'),
       B('bm1-ob-ghep', 'Bước 3 · Ghép máy', ghep, 'ss-bm-ob-ghep.jpg', 'Bấm «Tiếp: nhiệm vụ & quà»'),
       B('bm1-ob-xong', 'Xong rồi', xong, 'ss-bm-ob-xong.jpg', 'Bấm «Vào Trang chủ»'),
     ] },

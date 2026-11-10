@@ -89,8 +89,8 @@ function rmSync(p, o = {}) {
   if (KHOA.has(p)) { KHOA.delete(p); return; }
   const d = dong(p); if (!d) { if (o.force) return; throw loi('ENOENT', p); }
   if (d.thu && !o.recursive) throw loi('EISDIR', p);
-  const duoi = `${p}/%`;
-  sql.exec('DELETE FROM manh WHERE p = ? OR p LIKE ?', p, duoi); sql.exec('DELETE FROM tep WHERE p = ? OR p LIKE ?', p, duoi);
+  const duoi = `${p}/`; // substr thay LIKE: LIKE của DO SQLite giới hạn độ dài mẫu (đường dẫn dài ⇒ «pattern too complex»), lại hiểu sai _ và %
+  sql.exec('DELETE FROM manh WHERE p = ? OR substr(p, 1, ?) = ?', p, duoi.length, duoi); sql.exec('DELETE FROM tep WHERE p = ? OR substr(p, 1, ?) = ?', p, duoi.length, duoi);
 }
 function unlinkSync(p) {
   p = chuan(p); const d = dong(p); if (!d) throw loi('ENOENT', p); if (d.thu) throw loi('EISDIR', p);
