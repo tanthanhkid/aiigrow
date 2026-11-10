@@ -237,19 +237,31 @@ const cai = web(`${hdr('Cài AiiGrow Con cho iPhone/iPad', 'Đây là link ghép
 const B = (key, ten, html, anh, toi, w = 390, h = 844) => ({ key, ten, w, h, html, ...(anh ? { anh: A + anh } : {}), ...(toi ? { toi } : {}) });
 
 export default [
-  { id: 'bm-lan-dau', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Lần đầu dùng', mo: 'Ba Mẹ mở app lần đầu, đăng ký bằng số điện thoại, xác thực mã 6 số, rồi thiết lập hồ sơ Con, máy, nhiệm vụ & quà, giờ chơi.',
+  { id: 'bm-lan-dau', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Lần đầu · Đăng ký', mo: 'Ba Mẹ mở app lần đầu, đăng ký bằng số điện thoại, xác thực mã 6 số. Xong thì sang «Lần đầu · Thiết lập con».',
     buoc: [
       B('bm1-welcome', 'Welcome — mở app lần đầu', welcome, '', 'Bấm «Bắt đầu»'),
       B('bm1-chao', 'Chào', chao, 'ss-bm-chao.jpg', 'Bấm «Bắt đầu bằng số điện thoại»'),
       B('bm1-dang-ky', 'Đăng ký', dangKy, 'ss-bm-dang-ky.jpg', 'Bấm «Gửi mã»'),
       B('bm1-otp', 'Nhập mã 6 số', otp, 'ss-bm-otp.jpg', 'Bấm «Xác nhận»'),
+    ] },
+  { id: 'bm-thiet-lap-con', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Lần đầu · Thiết lập con', mo: 'Sau khi đăng ký: hồ sơ Con, nhiệm vụ, quà, giờ chơi, app & web được dùng.',
+    buoc: [
       B('bm1-ob-ten-con', 'Bước 1 · Con', tenCon, 'ss-bm-ob-ten-con.jpg', 'Bấm «Tiếp: chọn thiết bị»'),
-      B('bm1-ob-may', 'Bước 2 · Thiết bị', may, 'ss-bm-ob-may.jpg', 'Bấm «Tiếp: ghép máy»'),
-      B('bm1-ob-ghep', 'Bước 3 · Ghép máy', ghep, 'ss-bm-ob-ghep.jpg', 'Bấm «Tiếp: nhiệm vụ & quà»'),
       B('bm1-ob-mau', 'Bước 4 · Nhiệm vụ & quà', mau, 'ss-bm-ob-mau.jpg', 'Bấm «Dùng mẫu này»'),
       B('bm1-ob-gio', 'Bước 5 · Giờ chơi', gio, 'ss-bm-ob-gio.jpg', 'Bấm «Lưu và gửi xuống máy»'),
+    ] },
+  { id: 'bm-ghep-lan-dau', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Lần đầu · Ghép máy', mo: 'Cuối thiết lập: ghép máy của con (QR / mã 6 số / gửi link), chờ máy con, xong rồi.',
+    buoc: [
+      B('bm1-ob-may', 'Bước 2 · Thiết bị', may, 'ss-bm-ob-may.jpg', 'Bấm «Tiếp: ghép máy»'),
+      B('bm1-ob-ghep', 'Bước 3 · Ghép máy', ghep, 'ss-bm-ob-ghep.jpg', 'Bấm «Tiếp: nhiệm vụ & quà»'),
       B('bm1-ob-xong', 'Xong rồi', xong, 'ss-bm-ob-xong.jpg', 'Bấm «Vào Trang chủ»'),
+    ] },
+  { id: 'bm-dang-nhap', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Đăng nhập & quên mật khẩu', mo: 'Ba Mẹ đã có tài khoản: đăng nhập lại, quên mật khẩu, đặt mật khẩu mới.',
+    buoc: [
       B('bm1-dang-nhap', 'Đăng nhập lại (nhánh)', dangNhap, 'ss-bm-dang-nhap.jpg', 'Bấm «Đăng nhập»'),
+    ] },
+  { id: 'bm-duoc-moi', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Được mời vào nhà', mo: 'Người nhà được mời: nhận lời mời, đăng ký, xác thực, nhập mã mời — không tạo con.',
+    buoc: [
       B('bm1-moi', 'Nhập mã mời (nhánh)', moi, 'ss-bm-moi.jpg'),
     ] },
   { id: 'bm-ghep-may', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Ghép thêm máy', mo: 'Từ «Máy của con», Ba Mẹ chọn loại máy, mở trang tải trên máy Con, nhập mã ghép 6 số và thấy máy mới chạy «Chặn thật».',

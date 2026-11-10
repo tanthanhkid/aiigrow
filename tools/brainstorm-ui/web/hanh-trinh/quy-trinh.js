@@ -17,7 +17,7 @@ const n = (id, loai, lan, ten, man) => ({ id, loai, lan, ten, ...(man ? { man } 
 
 export default [
   {
-    id: 'qt-lan-dau', ten: 'Lần đầu dùng: đăng ký → thiết lập → máy nhận luật', sec: ['bm-dau'], hanh: ['bm-lan-dau'],
+    id: 'qt-lan-dau', ten: 'Lần đầu dùng: đăng ký → thiết lập → máy nhận luật', sec: ['bm-dau'], hanh: ['bm-lan-dau', 'bm-thiet-lap-con', 'bm-ghep-lan-dau'],
     nut: [
       n('bd', 'bd', 'bm', 'Tải app'),
       n('welcome', 'man', 'bm', 'Welcome', 'bm1-welcome'),
