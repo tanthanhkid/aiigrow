@@ -655,22 +655,35 @@ export function taoUngDung(O = {}) {
       const doi = []; const au = [];
       if (t.ten != null && !ten) return json(res, 400, { loi: 'Cần tên màn' });
       let ttMoi = null; const tt0 = thuTuCua(ht.id);
-      if ('sau' in t) { // kiểm vị trí TRƯỚC mọi thay đổi (sai ⇒ 400, không ghi gì, không audit)
+      const htDich = t.ht != null && String(t.ht) !== m.ht ? htCua(String(t.ht)) : null;
+      if (t.ht != null && String(t.ht) !== m.ht && !htDich) return json(res, 400, { loi: 'Không có hành trình đích này' });
+      if (htDich) { // chuyển màn sang hành trình khác (vị trí: sau | cuối); thứ tự cũ bỏ key này
+        const ttDich0 = thuTuCua(htDich.id);
+        const tt = ttDich0.filter((k) => k !== key);
+        const i = 'sau' in t ? MT.chiSoChen(tt, t.sau ?? null) : tt.length;
+        if (i < 0) return json(res, 400, { loi: 'Vị trí mới không thuộc hành trình đích' });
+        tt.splice(i, 0, key);
+        const ttCu = tt0.filter((k) => k !== key);
+        au.push({ loai: 'man.doi-hanh-trinh', dt: { key, ht: htDich.id, htCu: ht.id, viTri: i + 1 }, ai, truoc: { ht: ht.id, thuTu: tt0 }, sau: { ht: htDich.id, thuTu: tt } });
+        doi.push('hanh-trinh');
+        ttMoi = { [ht.id]: ttCu, [htDich.id]: tt };
+      } else if ('sau' in t) { // kiểm vị trí TRƯỚC mọi thay đổi (sai ⇒ 400, không ghi gì, không audit)
         const tt = tt0.filter((k) => k !== key);
         const i = t.sau === key ? -1 : MT.chiSoChen(tt, t.sau ?? null);
         if (i < 0) return json(res, 400, { loi: 'Vị trí mới không thuộc hành trình này' });
         tt.splice(i, 0, key);
-        if (tt.join() !== tt0.join()) { ttMoi = tt; au.push({ loai: 'man.doi-cho', dt: { key, ht: ht.id, sau: i === 0 ? '' : tt[i - 1], viTri: i + 1 }, ai, truoc: { ht: ht.id, thuTu: tt0 }, sau: { ht: ht.id, thuTu: tt } }); doi.push('cho'); }
+        if (tt.join() !== tt0.join()) { ttMoi = { [ht.id]: tt }; au.push({ loai: 'man.doi-cho', dt: { key, ht: ht.id, sau: i === 0 ? '' : tt[i - 1], viTri: i + 1 }, ai, truoc: { ht: ht.id, thuTu: tt0 }, sau: { ht: ht.id, thuTu: tt } }); doi.push('cho'); }
       }
       if (t.ten != null && ten !== m.ten) { au.unshift({ loai: 'man.doi-ten', dt: { key, ht: ht.id, tenCu: m.ten, ten }, ai, truoc: { ten: m.ten }, sau: { ten } }); doi.unshift('ten'); }
       if (doi.length) {
         if (doi.includes('ten')) m.ten = ten;
-        if (ttMoi) mt.thuTu[ht.id] = ttMoi;
+        if (ttMoi) Object.assign(mt.thuTu, ttMoi);
+        if (htDich) m.ht = htDich.id;
         ghiMt(mt); audit.ghi(au); // ghi tệp xong mới audit (ghi lỗi ⇒ ném, không để audit sai)
         if (doi.includes('ten')) sauKhoa = () => capNhatKhungTrong(key, ai); // chạy SAU khi nhả khoá man-them (ghiPhienBan có thể chờ khoá dùng chung lâu)
-        baoManThem({ key, ht: ht.id, viec: doi.join(','), ten: ai.ten || '', tu: ai.phien || '' });
+        baoManThem({ key, ht: m.ht, ...(htDich ? { htCu: ht.id } : {}), viec: doi.join(','), ten: ai.ten || '', tu: ai.phien || '' });
       }
-      kq = { key, man: m, thuTu: thuTuCua(ht.id), doi };
+      kq = { key, man: m, thuTu: thuTuCua(m.ht), doi };
     } finally { mo(); if (sauKhoa) await sauKhoa(); }
     if (kq) return json(res, 200, kq); // trả lời sau khi khung trống đã cập nhật (nhả khoá man-them trước)
   }

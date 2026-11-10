@@ -502,10 +502,10 @@ export function taoMcp(C) {
         return [chu({ key: r.key, ten: r.man.ten, hanhTrinh: l.id, viTri: r.thuTu.indexOf(r.key) + 1, thuTu: r.thuTu, w: r.man.w, h: r.man.h, dangDung: `v${r.manifest?.hien || 1}`,
           goiY: 'Nối nút từ màn khác tới màn này: sua_lien_ket (key màn nguồn, toi = key màn mới). Xem: anh_man.' })];
       });
-    T('sua_man', 'Đổi tên và/hoặc đổi chỗ một màn đã THÊM trên bàn (màn trong mã không đổi được). vi_tri: dau | cuoi | key màn mà màn này đứng ngay sau (cùng hành trình).',
-      { key: z.string(), ten: z.string().min(1).max(80).optional(), vi_tri: z.string().optional() }, async (a) => {
-        if (a.ten == null && a.vi_tri == null) throw LOI('Cần ten hoặc vi_tri');
-        const r = await goiJ(req0, 'POST', '/api/man-them/sua', { key: a.key, ...(a.ten != null ? { ten: a.ten } : {}), ...(a.vi_tri != null ? { sau: sauTu(a.vi_tri) } : {}) });
+    T('sua_man', 'Đổi tên, đổi chỗ và/hoặc CHUYỂN sang hành trình khác một màn đã THÊM trên bàn (màn trong mã không đổi được). vi_tri: dau | cuoi | key màn mà màn này đứng ngay sau (trong hành trình đích). hanh_trinh: id hành trình đích (bỏ trống = giữ nguyên); liên kết data-toi giữ nguyên.',
+      { key: z.string(), ten: z.string().min(1).max(80).optional(), vi_tri: z.string().optional(), hanh_trinh: z.string().optional() }, async (a) => {
+        if (a.ten == null && a.vi_tri == null && a.hanh_trinh == null) throw LOI('Cần ten, vi_tri hoặc hanh_trinh');
+        const r = await goiJ(req0, 'POST', '/api/man-them/sua', { key: a.key, ...(a.ten != null ? { ten: a.ten } : {}), ...(a.vi_tri != null ? { sau: sauTu(a.vi_tri) } : {}), ...(a.hanh_trinh != null ? { ht: a.hanh_trinh } : {}) });
         return [chu({ key: r.key, ten: r.man.ten, hanhTrinh: r.man.ht, viTri: r.thuTu.indexOf(r.key) + 1, thuTu: r.thuTu, daDoi: r.doi.length ? r.doi : 'không có gì đổi' })];
       });
 
