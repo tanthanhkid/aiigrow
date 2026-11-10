@@ -141,7 +141,7 @@ export function taoUngDung(O = {}) {
     let lenh = ''; if (REQ_MCP.has(req) && req.headers['x-bs-tro-ly']) { let s = String(req.headers['x-bs-tro-ly']); for (let k = 0; k < 16 && !lenh && s; k++) { try { lenh = decodeURIComponent(s).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) || '(trống)'; } catch { s = s.slice(0, Math.max(0, s.lastIndexOf('%'))); } } lenh ||= '(lệnh hỏng)'; }
     return { ten, vai: them.vai || review.vaiCua(req), ip: review.ipCua(req), ua: uaNgan(req.headers['user-agent']), phien: chuNgan(String(req.headers['x-bs-phien'] || ''), 40) || undefined, cong: cong(), ...(REQ_MCP.has(req) ? { nguon: lenh ? 'tro-ly-ai' : 'mcp', ...(lenh ? { lenh } : {}) } : {}), ...them };
   }
-  const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong, motTienTrinh: O.motTienTrinh });
+  const khoBt = taoKhoBienThe({ THIET_KE, audit, ai: (...a) => aiCua(...a), hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a), docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), phat: phatPhong, motTienTrinh: O.motTienTrinh, laChuQuan: (req) => review.laChuQuan(req) });
   const review = taoReview({ THIET_KE, audit, coNoiBo: O.coNoiBo, ai: (...a) => aiCua(...a), hanhTrinh: async () => { await keyMan(); return HANH_TRINH; }, hopLeNguon: (req) => hopLeNguon(req), json: (...a) => json(...a),
     docThan: (...a) => docThan(...a), ghiAtomic: (...a) => ghiAtomic(...a), ghiPhienBan: (...a) => ghiPhienBan(...a), phat: phatPhong, dsPhong, dongPhong });
 
@@ -612,7 +612,8 @@ export function taoUngDung(O = {}) {
     }
     if (req.method !== 'POST') return json(res, 405, { loi: 'Không hỗ trợ' });
     const viec = p.slice('/api/man-them/'.length);
-    if (!['them', 'sua'].includes(viec)) return json(res, 404, { loi: 'Không có' });
+    if (!['them', 'sua', 'xoa-han'].includes(viec)) return json(res, 404, { loi: 'Không có' });
+    if (viec === 'xoa-han' && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
     if (!hopLeNguon(req) || !(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 403, { loi: 'Nguồn không hợp lệ' });
     if (review.khoaBang() && !review.laChuQuan(req)) return json(res, 403, { loi: 'Cần mã chủ quản', canMa: true });
     let t; try { t = JSON.parse(await docThan(req, PB_CO + 64 * 1024)); } catch (e) { return json(res, e.ma || 400, { loi: e.ma === 413 ? 'Bản HTML quá lớn' : 'Không đọc được yêu cầu' }); }
@@ -625,6 +626,32 @@ export function taoUngDung(O = {}) {
       let mt; try { mt = docMt(); } catch { return json(res, 500, { loi: 'Tệp màn thêm (man-them.json) hỏng — sửa tay trước khi ghi tiếp' }); }
       const htCua = (id) => DS0.find((x) => x.id === id);
       const thuTuCua = (id) => MT.thuTuHt(htCua(id).buoc.map((b) => b.key), id, mt);
+      if (viec === 'xoa-han') { // XOÁ VĨNH VIỄN màn ĐÃ xoá mềm: màn thêm bỏ khỏi kho + mọi thứ tự; mọi màn bỏ thư mục phiên bản. Màn còn trong mã thì từ chối (bỏ khỏi mã trước).
+        if (t.xacNhan !== 'xoa-han') return json(res, 400, { loi: 'Thiếu xacNhan: "xoa-han"' });
+        const keys = Array.isArray(t.keys) ? [...new Set(t.keys.map(String))].slice(0, 300) : [];
+        const trongMa = new Set(DS0.flatMap((h) => h.buoc.map((b) => b.key)));
+        const da = [], bo = [], au = [];
+        for (const key of keys) {
+          if (!KEY_HL.test(key)) { bo.push({ key, lyDo: 'key lạ' }); continue; }
+          const laMt = !!mt.man[key];
+          if (!laMt && trongMa.has(key)) { bo.push({ key, lyDo: 'màn còn trong mã — bỏ khỏi mã trước' }); continue; }
+          let mf; try { mf = docManifest(key); } catch { bo.push({ key, lyDo: 'manifest hỏng' }); continue; }
+          const cuoi = mf.ds.find((x) => x.v === mf.hien);
+          if (laMt ? !cuoi?.xoa : (cuoi && !cuoi.xoa)) { bo.push({ key, lyDo: 'màn chưa bị xoá' }); continue; }
+          if (!laMt && !mf.ds.length) { bo.push({ key, lyDo: 'không có dữ liệu' }); continue; }
+          let html = ''; try { if (cuoi?.tep) html = fs.readFileSync(path.join(thuMucPb(key), `v${cuoi.tep}.html`), 'utf8'); } catch { /* không có tệp */ }
+          au.push({ loai: 'man.xoa-vinh-vien', dt: { key, ht: mt.man[key]?.ht || '' }, ai, truoc: { man: mt.man[key] || null, soPhienBan: mf.ds.length, html }, sau: null, ghiChu: 'xoá hẳn màn đã xoá (chủ quản)' });
+          if (laMt) { delete mt.man[key]; for (const h of Object.keys(mt.thuTu)) mt.thuTu[h] = mt.thuTu[h].filter((k) => k !== key); }
+          da.push(key);
+        }
+        if (da.length) {
+          ghiMt(mt); audit.ghi(au); // ghi kho + audit (giữ nội dung bản cuối) trước, rồi mới bỏ tệp phiên bản
+          for (const key of da) { try { fs.rmSync(thuMucPb(key), { recursive: true, force: true }); } catch (e) { bo.push({ key, lyDo: 'bỏ thư mục lỗi: ' + e.message }); } }
+          baoManThem({ keys: da, viec: 'xoa-han', ten: ai.ten || '', tu: ai.phien || '' });
+        }
+        mo(); mo = () => {}; // nhả khoá ngay (finally gọi bản rỗng)
+        return json(res, 200, { daXoaHan: da, boQua: bo });
+      }
       const ten = sachTen(t.ten);
       if (viec === 'them') {
         const ht = htCua(String(t.ht || '')); if (!ht) return json(res, 400, { loi: 'Không có hành trình này' });

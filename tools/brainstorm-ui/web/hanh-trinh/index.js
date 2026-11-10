@@ -3,7 +3,7 @@ import { MAN } from './co-san.js';
 
 // import() với chuỗi cố định: trình duyệt nạp từng tệp (tệp lỗi thì bỏ qua), bộ gói của bản Cloudflare (wrangler/esbuild) gom được vào Worker.
 const NAP = {
-  './bm-1.js': () => import('./bm-1.js'), './bm-2.js': () => import('./bm-2.js'), './bm-3.js': () => import('./bm-3.js'),
+  './bm-1.js': () => import('./bm-1.js'), './bm-2.js': () => import('./bm-2.js'),
   './con-may-tinh.js': () => import('./con-may-tinh.js'), './con-dien-thoai.js': () => import('./con-dien-thoai.js'),
 };
 const TEP = Object.keys(NAP);

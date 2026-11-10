@@ -256,6 +256,5 @@ export default [
   { id: 'con-dt-khac', vai: 'Con', nen: 'Điện thoại', ten: 'Quy tắc & PIN', mo: 'Con xem quy tắc nhà mình và ghép máy, chọn tên rồi nhập PIN khi dùng chung một điện thoại.',
     buoc: [
       { key: 'cdt-quy-tac', ten: 'Quy tắc nhà mình', w: 390, h: 844, html: quyTac, anh: A + 'quy-tac.png', toi: 'Mở màn ghép máy' },
-      { key: 'cdt-pin-ghep', ten: 'Ghép máy', w: 390, h: 844, html: pinGhep, anh: A + 'pin.png', toi: 'Chọn tên rồi nhập PIN' },
-      { key: 'cdt-pin-ai', ten: 'Ai đang dùng máy?', w: 390, h: 844, html: pinAi, anh: 'man-dienthoai-2510/expo-con-pin.jpg' }] },
+      { key: 'cdt-pin-ghep', ten: 'Ghép máy', w: 390, h: 844, html: pinGhep, anh: A + 'pin.png', toi: 'Chọn tên rồi nhập PIN' }] },
 ];

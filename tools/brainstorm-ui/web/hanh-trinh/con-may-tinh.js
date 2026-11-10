@@ -38,24 +38,13 @@ export default [
       S('hom-nay', 'Hôm nay', 'Chọn «Nhiệm vụ»'),
       S('nhiem-vu-loi-tai', 'Nhiệm vụ: chưa tải được', 'Bấm «Thử lại»'),
       S('nhiem-vu', 'Nhiệm vụ', 'Bấm «Nộp bài»'),
-      S('nop-bai-viet', 'Nộp bài: viết kể lại', 'Bấm «Nộp cho Ba Mẹ»; Ba Mẹ nhờ bổ sung ảnh thì nộp lại'),
-      S('nop-bai-anh-bo-sung', 'Nộp lại: chọn ảnh bổ sung', 'Bấm «Nộp cho Ba Mẹ», rồi sang Phần quà & điểm'),
       S('phan-qua', 'Phần quà & điểm', 'Bấm «Đổi quà», rồi xem Ví quà'),
       S('vi-qua', 'Ví quà & huy hiệu', 'Sang «Tin nhắn»'),
       S('tin-nhan', 'Tin nhắn', 'Có tin mới thì hiện thông báo ở góc màn hình (Mac)'),
-      S('mac-tin-moi', 'Thông báo tin mới'),
-      S('mac-app-hom-nay', 'Mac: Hôm nay', 'Chọn «Nhiệm vụ»'),
-      S('mac-app-nhiem-vu', 'Mac: Nhiệm vụ', 'Bấm «Nộp bài»'),
-      S('mac-nop-bai', 'Mac: Nộp bài'),
-      S('mac-app-phan-qua', 'Mac: Phần quà & điểm'),
-      S('mac-app-tin-nhan', 'Mac: Tin nhắn'),
     ] },
 
   { id: 'con-het-gio', vai: 'Con', nen: 'Windows', ten: 'Sắp hết giờ', mo: 'Máy nhắc còn 5 phút, đếm ngược rồi khoá khi hết giờ, giờ ngủ hoặc Ba Mẹ khoá; Con có thể xin thêm giờ.',
     buoc: [
-      S('mac-nhac-5-phut', 'Nhắc còn 5 phút', 'Hết 5 phút, máy đếm ngược'),
-      S('mac-dem-nguoc', 'Đếm ngược trên Mac', 'Hết giờ thì khoá'),
-      S('mac-man-khoa', 'Mac: màn khoá hết giờ'),
       S('khoa-het-gio-dem-nguoc', 'Đếm ngược trên Windows', 'Hết đếm ngược'),
       S('khoa-gio-ngu', 'Khoá giờ nghỉ / giờ ngủ', 'Ba Mẹ bấm khoá từ điện thoại'),
       S('khoa-ba-me-khoa', 'Ba Mẹ khoá máy'),
@@ -63,32 +52,17 @@ export default [
 
   { id: 'con-xin', vai: 'Con', nen: 'Windows', ten: 'Xin thêm giờ · xin mở · chơi bằng điểm', mo: 'Con xin Ba Mẹ thêm giờ, xin mở trang hoặc app, hoặc tự đổi điểm lấy giờ chơi.',
     buoc: [
-      S('xin-them-gio', 'Xin thêm giờ', 'Bấm «Xin bố mẹ»; trên Mac giống vậy'),
-      S('mac-xin-them', 'Xin thêm giờ (Mac)', 'Bấm «Xin Ba Mẹ»; có điểm thì hiện thêm nút đổi điểm'),
-      S('mac-xin-them-doi-diem', 'Xin thêm giờ (Mac) + đổi điểm', 'Hoặc xin mở trang hoặc app'),
-      S('mac-xin-mo', 'Xin mở trang hoặc app', 'Hoặc dùng điểm để chơi'),
-      S('choi-bang-diem', 'Chơi bằng điểm'),
-      S('mac-choi-bang-diem', 'Chơi bằng điểm (Mac)'),
     ] },
 
   { id: 'con-bi-chan', vai: 'Con', nen: 'Windows', ten: 'Bị chặn app/web', mo: 'Con mở app chưa được Ba Mẹ phân loại thì bị chặn; Con dùng điểm, xin phép hoặc xin thêm giờ.',
     buoc: [
-      S('chan-app', 'App chưa được mở', 'Hết điểm chơi thì hiện thông báo khác'),
-      S('chan-app-het-diem', 'Hết điểm chơi hôm nay', 'Bấm «Xin phép Ba Mẹ» rồi xin thêm giờ'),
-      S('xin-them-gio-tu-man-chan', 'Xin thêm giờ từ màn chặn'),
-      S('mac-chan-app', 'Mac: app chưa được mở'),
     ] },
 
   { id: 'con-mat-mang', vai: 'Con', nen: 'Windows', ten: 'Mất mạng & sự cố', mo: 'Khi máy mất mạng hoặc dịch vụ AiiGrow tắt: máy vẫn chạy theo giờ đã lưu, Con nhập mã mở của Ba Mẹ, thử kết nối lại hoặc cập nhật.',
     buoc: [
       S('hom-nay-mat-mang', 'Hôm nay khi mất mạng', 'Hết giờ lúc đang mất mạng'),
       S('khoa-mat-mang', 'Khoá khi mất mạng: nhập mã', 'Trên Mac: nhập mã 6 số của Ba Mẹ'),
-      S('mac-man-khoa-ma-offline', 'Mac: khoá, nhập mã mở', 'Nhập đúng mã thì máy mở tạm'),
       S('hom-nay-mo-bang-ma', 'Đang mở tạm bằng mã', 'Dịch vụ AiiGrow bị tắt'),
       S('hom-nay-dich-vu-tat', 'Dịch vụ AiiGrow không chạy', 'Mất mạng khi bị chặn app'),
-      S('chan-app-mat-mang', 'Chặn app khi mất mạng', 'Có bản mới thì hỏi cập nhật'),
-      S('cap-nhat', 'Cập nhật AiiGrow', 'Mở nhanh từ khay hệ thống'),
-      S('cap-nhat-da-moi-nhat', 'Đã là bản mới nhất', 'Mở nhanh từ khay hệ thống'),
-      S('khay-menu', 'Menu khay hệ thống'),
     ] },
 ];

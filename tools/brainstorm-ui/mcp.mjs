@@ -890,6 +890,18 @@ export function taoMcp(C) {
         return [chu(ds.length ? { ds, tong: r.ds.length } : 'Thùng rác trống.')];
       });
 
+    T('xoa_han_thung_rac', 'XOÁ VĨNH VIỄN mọi biến thể/phương án trong 🗑 Thùng rác ngay (không chờ 7 ngày) — CHỈ chủ quản, KHÔNG khôi phục được trên bàn (audit vẫn giữ). Phải truyền xac_nhan = "xoa-han".',
+      { xac_nhan: z.literal('xoa-han') }, async () => {
+        const r = await goiJ(req0, 'POST', '/api/bien-the/rac/don-ngay', { xacNhan: 'xoa-han' });
+        return [chu(r)];
+      });
+
+    T('xoa_han_man', 'XOÁ VĨNH VIỄN các màn ĐÃ xoá mềm (màn thêm: bỏ khỏi kho; màn đã bỏ khỏi mã: bỏ lịch sử phiên bản) — CHỈ chủ quản, KHÔNG khôi phục được trên bàn (audit giữ bản cuối). Phải truyền xac_nhan = "xoa-han".',
+      { keys: z.array(z.string()).min(1).max(300), xac_nhan: z.literal('xoa-han') }, async (a) => {
+        const r = await goiJ(req0, 'POST', '/api/man-them/xoa-han', { keys: a.keys, xacNhan: 'xoa-han' });
+        return [chu(r)];
+      });
+
     T('khoi_phuc_bien_the', 'Khôi phục biến thể và/hoặc phương án từ 🗑 Thùng rác về bàn (như nút «Khôi phục» trong Thùng rác). Biến thể đã dùng để Thay màn thì nằm trong phiên bản màn — dùng khoi_phuc_phien_ban thay vì cách này.',
       { ids: z.array(z.string()).max(200).optional(), phuong_an: z.array(z.string()).max(200).optional() }, async (a) => {
         if (!a.ids?.length && !a.phuong_an?.length) throw LOI('Cần ids (biến thể) hoặc phuong_an — xem ds_thung_rac');

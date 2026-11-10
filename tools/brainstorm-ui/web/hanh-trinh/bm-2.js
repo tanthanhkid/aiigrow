@@ -175,17 +175,10 @@ export default [
       { key: 'bm2-app-web', ten: 'Ứng dụng (chưa xếp)', w: 390, h: 844, html: APP_WEB, anh: A + 'sau-bm-app-web.png', toi: 'Sang Trang web' },
       { key: 'bm2-web', ten: 'Trang web', w: 390, h: 844, html: WEB, anh: A + 'sau-bm-web.png', toi: 'Con xin mở trang mới' },
       { key: 'bm2-yeu-cau-web', ten: 'Yêu cầu mở web', w: 390, h: 844, html: YC_WEB, anh: A + 'sau-bm-yeu-cau-web.png' }] },
-  { id: 'bm-bao-cao', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Báo cáo', mo: 'Xem báo cáo tuần, thời gian màn hình theo mục và ví điểm của con.',
-    buoc: [
-      { key: 'bm2-bao-cao', ten: 'Báo cáo tuần', w: 390, h: 844, html: BM_BAO_CAO, anh: A + 'sau-bm-bao-cao.png', toi: 'Chạm «Thời gian màn hình»' },
-      { key: 'bm2-man-hinh', ten: 'Thời gian màn hình', w: 390, h: 844, html: MAN_HINH, anh: A + 'sau-bm-man-hinh.png', toi: 'Mở ví điểm' },
-      { key: 'bm2-vi', ten: 'Ví điểm', w: 390, h: 844, html: VI, anh: A + 'sau-bm-vi.png' }] },
   { id: 'bm-cai-dat', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Cài đặt & hỗ trợ', mo: 'Quản lý thành viên, thông báo, quỹ phiếu quà và chat với AiiLab.',
     buoc: [
       { key: 'bm2-gia-dinh', ten: 'Gia đình', w: 390, h: 844, html: GIA_DINH, anh: A + 'sau-bm-gia-dinh.png', toi: 'Chạm «Thành viên»' },
       { key: 'bm2-thanh-vien', ten: 'Thành viên', w: 390, h: 844, html: THANH_VIEN, anh: A + 'sau-bm-thanh-vien.png', toi: 'Chạm «Thông báo»' },
-      { key: 'bm2-thong-bao', ten: 'Thông báo', w: 390, h: 844, html: THONG_BAO, anh: A + 'sau-bm-thong-bao.png', toi: 'Chạm «Cài đặt»' },
-      { key: 'bm2-thong-bao-cai-dat', ten: 'Cài đặt thông báo', w: 390, h: 844, html: TB_CAI_DAT, anh: A + 'sau-bm-thong-bao-cai-dat.png', toi: 'Chat với AiiLab' },
       { key: 'bm2-ho-tro', ten: 'AiiLab hỗ trợ', w: 390, h: 844, html: HO_TRO, anh: A + 'sau-bm-ho-tro.png', toi: 'Mở Quỹ phiếu quà' },
       { key: 'bm2-quy', ten: 'Quỹ phiếu quà', w: 390, h: 844, html: QUY, anh: A + 'sau-bm-quy.png', toi: 'Quản trị mở hộp thư hỗ trợ' },
       { key: 'bm2-admin-ho-tro', ten: 'Hộp thư hỗ trợ (quản trị)', w: 390, h: 844, html: ADMIN, anh: A + 'sau-bm-admin-ho-tro.png' }] },
