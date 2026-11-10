@@ -25,10 +25,10 @@ const KHOA_LUU = 'bs.v2', KHOA_KEY = 'bs.key', KHOA_CD = 'bs.cai-dat';
 const ZOOM_SONG = 0.4;   // dưới mức này dùng ảnh thu nhỏ thay iframe
 const LE_AO = 500;       // lề (px màn hình) quanh viewport vẫn giữ iframe
 // Section kiểu Pages của Figma: chỉ dựng section đang mở.
-const SEC_MAP = { 'bm-lan-dau': 'bm-dau', 'bm-thiet-lap-con': 'bm-dau', 'bm-ghep-lan-dau': 'bm-dau', 'bm-dang-nhap': 'bm-dau', 'bm-duoc-moi': 'bm-dau', 'bm-ghep-may': 'bm-dau', 'bm-hang-ngay': 'bm-ngay', 'bm-may-con': 'bm-ngay', 'bm-gio-ho-so': 'bm-ngay', 'bm-con-xin': 'bm-ngay', 'bm-viec-duyet': 'bm-ngay', 'bm-sao-qua': 'bm-ngay', 'bm-bao-cao-ngay': 'bm-ngay', 'bm-ca-nha': 'bm-ngay', 'bm-ung-dung': 'bm-ngay',
+const SEC_MAP = { 'bm-lan-dau': 'bm-dau', 'bm-thiet-lap-con': 'bm-dau', 'bm-ghep-lan-dau': 'bm-dau', 'bm-dang-nhap': 'bm-dau', 'bm-duoc-moi': 'bm-dau', 'bm-ghep-may': 'bm-dau', 'bm-hang-ngay': 'bm-ngay', 'bm-may-con': 'bm-ngay', 'bm-gio-ho-so': 'bm-ngay', 'bm-con-xin': 'bm-nv', 'bm-viec-duyet': 'bm-nv', 'bm-sao-qua': 'bm-nv', 'bm-bao-cao-ngay': 'bm-nv', 'bm-ca-nha': 'bm-cd', 'bm-ung-dung': 'bm-ngay',
   'bm-duyet': 'bm-nv', 'bm-nhiem-vu': 'bm-nv', 'bm-bao-cao': 'bm-nv', 'bm-cai-dat': 'bm-cd',
   'web-tai': 'bo-cai', 'con-cai-win': 'bo-cai', 'con-cai-mac': 'bo-cai', 'con-dt-cai': 'bo-cai' };
-const SEC_TEN = { 'bm-dau': 'Ba Mẹ · Lần đầu & ghép máy', 'bm-ngay': 'Ba Mẹ · Hằng ngày', 'bm-nv': 'Ba Mẹ · Duyệt, nhiệm vụ & báo cáo',
+const SEC_TEN = { 'bm-dau': 'Ba Mẹ · Lần đầu & ghép máy', 'bm-ngay': 'Ba Mẹ · Hằng ngày', 'bm-nv': 'Ba Mẹ · Duyệt, nhiệm vụ, quà & báo cáo',
   'bm-cd': 'Ba Mẹ · Cài đặt & hỗ trợ', 'bo-cai': 'Bộ cài & trang tải' };
 
 // ---------- lưu trữ cục bộ (mọi truy cập bọc try/catch) ----------

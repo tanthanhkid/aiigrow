@@ -64,7 +64,7 @@ export default [
       ['nhap', 'con-han', 'Ghép'], ['con-han', 'loi', 'Hết hạn'], ['loi', 'ma', 'Xin mã mới'], ['con-han', 'ghep', 'Còn hạn'], ['ghep', 'cai'], ['ghep', 'bao'], ['bao', 'moi'], ['moi', 'kt']],
   },
   {
-    id: 'qt-xin-them-gio', ten: 'Xin thêm giờ → Ba Mẹ duyệt → máy mở thêm giờ', sec: ['con-windows', 'bm-nv'], hanh: ['con-xin'],
+    id: 'qt-xin-them-gio', ten: 'Xin thêm giờ → Ba Mẹ duyệt → máy mở thêm giờ', sec: ['con-windows', 'bm-nv'], hanh: ['con-xin', 'bm-con-xin'],
     nut: [
       n('bd', 'bd', 'con', 'Con muốn chơi thêm'),
       n('xin', 'man', 'con', 'Xin thêm giờ', 'cmt-xin-them-gio'),
@@ -112,7 +112,7 @@ export default [
       ['bm-bd', 'bm-khoa'], ['bm-khoa', 'lenh', 'Khoá máy'], ['lenh', 'khoa'], ['khoa', 'bm-man'], ['bm-man', 'kt'], ['ngu', 'khoa'], ['khoa', 'ngu-man'], ['ngu-man', 'kt']],
   },
   {
-    id: 'qt-nhiem-vu', ten: 'Nhiệm vụ → nộp bài → duyệt → điểm → đổi điểm chơi', sec: ['bm-nv', 'con-windows'], hanh: ['bm-nhiem-vu'],
+    id: 'qt-nhiem-vu', ten: 'Nhiệm vụ → nộp bài → duyệt → điểm → đổi điểm chơi', sec: ['bm-nv', 'con-windows'], hanh: ['bm-viec-duyet', 'bm-sao-qua', 'bm-nhiem-vu'],
     nut: [
       n('bd', 'bd', 'bm', 'Giao việc cho Con'),
       n('giao', 'man', 'bm', 'Giao nhiệm vụ', 'bm3-nv-giao'),
