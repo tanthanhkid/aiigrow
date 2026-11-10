@@ -43,7 +43,7 @@ export default [
       ['cai', 'ghep-xong'], ['ghep-xong', 'mau', 'Đã ghép'], ['mau', 'gio'], ['gio', 'luu', 'Lưu và gửi'], ['luu', 'ap'], ['luu', 'xong'], ['xong', 'kt']],
   },
   {
-    id: 'qt-ghep-may', ten: 'Ghép thêm máy', sec: ['bm-dau', 'bo-cai'], hanh: ['bm-ghep-may'],
+    id: 'qt-ghep-may', ten: 'Ghép thêm máy', sec: ['bm-ngay', 'bo-cai'], hanh: ['bm-ghep-may'],
     nut: [
       n('bd', 'bd', 'bm', 'Thêm máy cho Con'),
       n('ds', 'man', 'bm', 'Máy của con', 'bm1-may-ds'),
