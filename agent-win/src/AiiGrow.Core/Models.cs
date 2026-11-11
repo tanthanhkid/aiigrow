@@ -102,6 +102,8 @@ public sealed class Policy
     public List<NgoaiLeMay> NgoaiLe { get; set; } = new();
     /// <summary>Ngoại lệ đang mở trong lúc Ba Mẹ khoá / giờ ngủ: hết ngoại lệ thì khoá lại với lý do này («khoa» | «ngu»); null = không khoá.</summary>
     public string? KhoaKhiHetNgoaiLe { get; set; }
+    /// <summary>11/11 (dong-bo.windows.moHet): Con ở «Mở hết» ⇒ HostsWorker gỡ dòng chặn 0.0.0.0 / :: trong tệp hosts do phần mềm khác đặt.</summary>
+    public bool MoHet { get; set; }
 
     /// <summary>Bản sao nông (QuyTaiCho thay danh sách mới ở bản sao, không sửa Policy đang giữ).</summary>
     public Policy SaoNong() => (Policy)MemberwiseClone();

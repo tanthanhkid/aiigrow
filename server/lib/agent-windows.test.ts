@@ -161,3 +161,10 @@ test("05/11: ngoại lệ trong lúc khoá / giờ ngủ ⇒ khoaKhiHetNgoaiLe �
   assert.equal(chinhSachWindows(goc()).sao, 40);   // khay: «con có 40 sao»
 });
 
+
+test("11/11 moHet: Con «Mở hết» ⇒ agent gỡ chặn trong hosts — kể cả lúc khoá (chế độ Ba Mẹ chọn, không theo trạng thái khoá)", () => {
+  assert.equal(chinhSachWindows(goc({ cheDoChan: "mo_het" }), undefined, "chan").moHet, true);
+  assert.equal(chinhSachWindows(goc({ cheDoChan: "mo_het", khoaNgay: true }), undefined, "chan").moHet, true);
+  assert.equal(chinhSachWindows(goc({ cheDoChan: "chi_app_duoc_phep" }), undefined, "chan").moHet, undefined);
+  assert.equal(chinhSachWindows(goc({ cheDoChan: "mo_het", con: null }), undefined, "chan").moHet, undefined);   // máy dùng chung chưa chọn Con
+});

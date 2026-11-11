@@ -222,6 +222,9 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   da_sua_appx: { muc: null, cau: (t) => `AiiGrow đã tự sửa lỗi Start menu trên ${t}` },
   // Có mạng lại ⇒ agent kết thúc lượt mở offline (mã chỉ dành cho lúc mất mạng); chỉ ghi nhật ký, không báo.
   het_ma_offline: { muc: null, cau: (t) => `${t} có mạng lại — kết thúc lượt mở bằng mã offline` },
+  // 11/11: Con «Mở hết» ⇒ agent gỡ dòng chặn 0.0.0.0 / :: trong tệp hosts do phần mềm khác đặt (YouTube, TikTok… báo «Không thể truy cập»).
+  // chiTiet: { soDong, tenMien: [...≤20], saoLuu } — Ba Mẹ cần biết vì có thể là chặn cố ý của IT / nhà trường.
+  go_chan_hosts: { muc: "thong_tin", cau: (t) => `Đã gỡ chặn web ngoài AiiGrow (tệp hosts) trên ${t} vì Con đang ở «Mở hết»` },
   // GỠ TỪ XA gặp trục trặc (agent báo trước khi máy rời gia đình) — Ba Mẹ cần thấy để biết chưa gỡ xong sạch:
   go_loi_applocker: {
     muc: "chu_y",
