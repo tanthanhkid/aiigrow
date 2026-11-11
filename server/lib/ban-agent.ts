@@ -12,6 +12,7 @@ import type { May } from "./gia-dinh.ts";
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT = 15;
 
+// 0.2.16 (11/11, «Mở hết» gỡ chặn web ngoài AiiGrow trong tệp hosts; PR #229): exe từ CI agent-win run 42979852301 (job build goc, PR head trên main 339e67b), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.16.
 // 0.2.15 (11/11, gửi maMay khi ghép — máy ghép sang nhà khác ⇒ nhà cũ được báo; PR #227): exe từ CI agent-win run 42964403362 (job build goc, PR head trên main aaff680), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.15.
 // 0.2.14 (07/11, lô 2: Win UI mượt, long-poll áp chặn ≤5s, PIN theo bé): exe từ CI agent-win run 42336098449 (job build goc, c8b8d87), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.14.
 // 0.2.13 (05/11, khớp thiết kế đã chốt 05/11: bộ cài mới, màn chặn/khoá, app Con, quỹ phút tại máy, 2 chế độ chặn — PR #180 #184 #187 #188): exe từ CI
@@ -19,9 +20,9 @@ export const CHU_KY_KIEM_PHUT = 15;
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.2.15",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.15.exe",
-  sha256: "0692cc3433a0d0eae703f0cd791333a06fff13c014d3223b728c3d360d3a1972",
+  version: "0.2.16",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.16.exe",
+  sha256: "6a1375803177f009dbd632afc35f6d0d8572472c2c8e85580d916b52cd736dc1",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
