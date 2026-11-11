@@ -16,7 +16,7 @@
 // máy Windows/Mac riêng của Con ghép từ 25/10 có sẵn lựa chọn «chan» (gia-dinh.ts › cheDoMayMoi) ⇒ chặn thật từ lần đồng bộ đầu.
 import { kieuMuc } from "./chinh-sach.ts";
 import { gioDiaPhuong, phutCua, trongKhung } from "./gio.ts";
-import type { Policy } from "./may-con.ts";
+import { laMoHet, type Policy } from "./may-con.ts";
 import { nhipToiKhoaLai } from "./cau-hinh.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 import { laWebCam } from "./chan-co-ban.ts";
@@ -68,6 +68,9 @@ export type PolicyWindows = {
   /** Có ngoại lệ trong lúc máy đang bị khoá (Ba Mẹ khoá ⇒ "khoa", giờ ngủ ⇒ "ngu"): mọi ngoại lệ hết hạn thì agent khoá lại với lý do này
    *  — kể cả khi mất mạng (agent-win QuyTaiCho). Không có ⇒ hết ngoại lệ thì về luật thường. */
   khoaKhiHetNgoaiLe?: "khoa" | "ngu";
+  /** 11/11: Con ở «Mở hết» (chế độ Ba Mẹ chọn, không đổi theo khoá / giờ ngủ) ⇒ agent gỡ dòng chặn kiểu 0.0.0.0 trong tệp hosts do phần mềm khác đặt
+   *  (agent-win HostsChan.cs) — «Mở hết» là không chặn gì ngoài web luôn chặn. Không có / false ⇒ agent không đụng hosts. */
+  moHet?: boolean;
   /** Số sao hiện có của Con (05/11, = số dư điểm) — chỉ khi đã biết Con. */
   sao?: number;
 };
@@ -195,6 +198,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(nl.length && khoaGoc ? { khoaKhiHetNgoaiLe: p.khoaNgay ? "khoa" as const : "ngu" as const } : {}),
     playChoices: [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && (laApp(l.muc) || kieuMuc(l.muc.toLowerCase()) === "web")).map((l) => (laApp(l.muc) ? chuan(l.muc) : l.muc.toLowerCase())))].sort().slice(0, 40),   // 40: đủ mọi mục Giải trí thường gặp (khay cuộn); agent chỉ nhận mục trong danh sách này
     ...(cheDo ? { cheDo } : {}),
+    ...(laMoHet(p) ? { moHet: true } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
     // play* CHỈ cho máy sở hữu phiên (mo.phienTien do api-may đặt khi play_sessions.device_id = máy này) — Con có 2 PC thì PC kia không đếm.
     ...(p.phien && mo.phienTien && (choi.length || phienWeb) ? {

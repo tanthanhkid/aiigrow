@@ -47,6 +47,8 @@ builder.Services.AddHostedService<PipeServer>();
 // Giám sát + lọc WEB (Chrome/Edge/Brave): ghi lịch sử tên miền Con vào lên máy chủ (mọi chế độ) và áp URLBlocklist/URLAllowlist (chỉ «Chặn thật»).
 builder.Services.AddHostedService<WebHistoryWorker>();
 builder.Services.AddHostedService<WebGuardWorker>();
+// 11/11: Con «Mở hết» ⇒ gỡ dòng chặn 0.0.0.0 trong tệp hosts do phần mềm khác đặt (HostsWorker.cs).
+builder.Services.AddHostedService<HostsWorker>();
 
 // Danh sách app đã cài THẬT ⇒ POST /api/device/ung-dung (Ba Mẹ chọn app thật để chặn / cho phép) — DanhSachAppWorker.cs.
 builder.Services.AddHostedService<DanhSachAppWorker>();
