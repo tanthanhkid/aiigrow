@@ -45,7 +45,7 @@ public sealed class HostsWorker : BackgroundService
     {
         var cfg = _store.Load();
         if (cfg is not { Paired: true } || _rt?.DangGo == true) return 0;
-        if (!PolicyParser.TryParse(cfg.LastPolicyJson, out var p) || p is not { MoHet: true }) return 0;
+        if (!HostsChan.LaMoHet(cfg.LastPolicyJson)) return 0;
         if (!File.Exists(_tep)) return 0;
         var kq = HostsChan.Loc(File.ReadAllText(_tep, MaByte));
         if (kq.SoDong == 0) return 0;

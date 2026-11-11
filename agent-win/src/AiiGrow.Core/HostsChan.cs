@@ -27,6 +27,11 @@ public static class HostsChan
         return new KetQua(so == 0 ? noiDung : string.Join('\n', giu), so, ten);
     }
 
+    /// <summary>Con đang «Mở hết» theo phản hồi đồng bộ đã lưu (AgentConfig.LastPolicyJson). LastPolicyJson là CẢ phản hồi dong-bo ⇒ cờ nằm ở
+    /// khối <c>windows.moHet</c> (0.2.16 đọc lớp ngoài nên không bao giờ gỡ — sửa 0.2.17); nhận cả dạng phẳng cũ (ApiClient.LayWindows).</summary>
+    public static bool LaMoHet(string? lastPolicyJson) =>
+        !string.IsNullOrWhiteSpace(lastPolicyJson) && PolicyParser.TryParse(ApiClient.LayWindows(lastPolicyJson), out var p) && p is { MoHet: true };
+
     /// <summary>Dòng <c>0.0.0.0 a.com b.com # chú thích</c> ⇒ true + [a.com, b.com]. Dòng có localhost (vd «0.0.0.0 localhost») ⇒ giữ.</summary>
     public static bool LaDongChan(string dong, out string[] tenMien)
     {
