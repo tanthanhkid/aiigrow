@@ -81,7 +81,7 @@ public sealed class EnrollClient : IEnroller
         if (!pkg.Valid) throw new ApiException("Gói cài thiếu địa chỉ máy chủ hoặc token");
         using var http = DeviceHttp.New(pkg.Server, null, _handler);
         var raw = await DeviceHttp.SendAsync(http, HttpMethod.Post, "api/device/ghep-goi",
-            new { token = pkg.Token, nen = "windows", tenMay }, ct);
+            new { token = pkg.Token, nen = "windows", tenMay, maMay = MaMay.Doc() }, ct);
         var res = DeviceHttp.Parse<EnrollResult>(raw);
         if (string.IsNullOrEmpty(res.Token)) throw new ApiException("Máy chủ không trả token thiết bị");
         return res;

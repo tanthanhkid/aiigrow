@@ -124,6 +124,26 @@ export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; 
 
 // ---------------------------------------------------------------- dịch sang agent Windows
 
+/** Tên miền ĐI KÈM: trang chính tải video/ảnh/đăng nhập từ tên miền KHÁC (không phải tên miền con) ⇒ ở «Chỉ app được phép»
+ *  (URLBlocklist «*») cho mỗi youtube.com thì video/ảnh bị chặn, YouTube báo «kiểm tra kết nối Internet» (Nghi 11/11).
+ *  Khoá khớp chính nó + tên miền con (classroom.google.com ⇒ khoá google.com). Chỉ thêm vào `cho`, không mở cả google.com. */
+export const TEN_MIEN_DI_KEM: Record<string, string[]> = {
+  "youtube.com": ["googlevideo.com", "ytimg.com", "ggpht.com", "youtubei.googleapis.com", "youtube-nocookie.com", "youtu.be", "accounts.google.com", "gstatic.com"],
+  "google.com": ["accounts.google.com", "gstatic.com", "googleapis.com", "googleusercontent.com"],
+  "office.com": ["login.microsoftonline.com", "login.live.com", "office.net", "officeapps.live.com", "sharepoint.com"],
+  "microsoft.com": ["login.microsoftonline.com", "login.live.com", "office.net"],
+  "khanacademy.org": ["kastatic.org", "kasandbox.org"],
+  "canva.com": ["canva-apps.com", "canva.dev"],
+};
+
+/** Tên miền đi kèm của các mục `ds` (không lặp lại mục đã có). */
+export function tenMienDiKem(ds: string[]): string[] {
+  const co = new Set(ds), ra = new Set<string>();
+  for (const m of ds) for (const [k, kem] of Object.entries(TEN_MIEN_DI_KEM))
+    if (m === k || m.endsWith("." + k)) for (const x of kem) if (!co.has(x)) ra.add(x);
+  return [...ra];
+}
+
 export type ChinhSachWeb = {
   /** mo: chỉ chặn trang trong `chan` · chi_cho_phep: chặn tất cả trừ `cho`. */
   cheDo: "mo" | "chi_cho_phep";
@@ -151,6 +171,11 @@ export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "p
   const theoPhien = (m: string) => phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));
   const choKhiMo = (o.moCoHan ?? o.moGiaiTri) ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
   const chanHet = [...chan, ...WEB_LUON_CHAN];
-  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chanHet)].sort(), cho: [...new Set(cho)].filter((m) => !laWebCam(m)).sort(),
-    ...(choKhiMo.length ? { choKhiMo: [...new Set(choKhiMo)].sort() } : {}) };
+  // tên miền đi kèm (TEN_MIEN_DI_KEM) — trừ trang Ba Mẹ chặn đích danh; kèm của trang chỉ mở nhờ cửa sổ có hạn cũng vào choKhiMo
+  const kem = (ds: string[]) => tenMienDiKem(ds).filter((m) => !chan.includes(m));
+  const choLau = cho.filter((m) => !choKhiMo.includes(m)), kemLau = new Set(kem(choLau));
+  const kemKhiMo = kem(choKhiMo.filter((m) => cho.includes(m))).filter((m) => !kemLau.has(m));
+  const choHet = [...cho, ...kemLau, ...kemKhiMo], khiMoHet = [...choKhiMo, ...kemKhiMo];
+  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chanHet)].sort(), cho: [...new Set(choHet)].filter((m) => !laWebCam(m)).sort(),
+    ...(khiMoHet.length ? { choKhiMo: [...new Set(khiMoHet)].sort() } : {}) };
 }

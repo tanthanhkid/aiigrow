@@ -68,9 +68,10 @@ public sealed class ApiClient : IDisposable
         CancellationToken ct = default, HttpMessageHandler? handler = null)
     {
         using var api = new ApiClient(server, null, handler);
-        // Máy chủ AiiGrow: POST /api/device/ghep {ma, nen, tenMay} → {deviceId, token, dungChung} (mã 6 số Ba Mẹ tạo trong app).
+        // Máy chủ AiiGrow: POST /api/device/ghep {ma, nen, tenMay, maMay?} → {deviceId, token, dungChung} (mã 6 số Ba Mẹ tạo trong app).
+        // maMay (MaMay.cs): máy chủ thu hồi bản ghi cũ của chính máy này nếu máy từng ghép nhà khác; null ⇒ bỏ khỏi JSON.
         var res = await api.PostAsync<PairResult>("api/device/ghep",
-            new { ma = code.Trim(), nen = "windows", tenMay = deviceName }, ct);
+            new { ma = code.Trim(), nen = "windows", tenMay = deviceName, maMay = MaMay.Doc() }, ct);
         if (string.IsNullOrEmpty(res.Token)) throw new ApiException("Máy chủ không trả token");
         res.Server = string.IsNullOrWhiteSpace(res.Server) ? NormalizeServer(server) : NormalizeServer(res.Server!);
         return res;

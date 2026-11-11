@@ -33,7 +33,7 @@ export async function taoGoiCai(fam: string, b: { con?: unknown; nen?: unknown }
 }
 
 /** Agent đổi token gói cài ⇒ token máy (một lần). */
-export async function doiGoiCai(token: string, nen: string, tenMay: string, now = new Date()) {
+export async function doiGoiCai(token: string, nen: string, tenMay: string, now = new Date(), maMay?: unknown) {
   await bangM4b();
   const h = sha(String(token ?? ""));
   const g = await one<{ family_id: string; child_id: string | null; platform: string; expires_at: Date; used_at: Date | null; giong_may: string | null; ma_ghep: string | null }>(
@@ -51,7 +51,7 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   if (g.ma_ghep) await q(`update pair_codes set used_at = coalesce(used_at, $3) where code = $1 and goi_cai = $2`, [g.ma_ghep, h, now]);
   let kq: Awaited<ReturnType<typeof ghepMayGd>>;
   try {
-    kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay);
+    kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay, maMay);
   } catch (e) {
     // ghép hỏng ⇒ trả lại link + mã cùng phiên (không để «Đang chờ» treo mãi, không đốt cả hai đường)
     await q(`update goi_cai set used_at = null where token_hash = $1 and device_id is null`, [h]);

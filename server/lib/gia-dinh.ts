@@ -5,7 +5,7 @@ import { coTacTu } from "./chuyen-doi.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { ghiSuKien } from "./nhat-ky.ts";
+import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { saoChepCaiDat } from "./ghep-may.ts";
 
 export const NEN_TANG = ["windows", "mac", "ios", "android"] as const;
@@ -148,13 +148,13 @@ const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan
 /** Ghép máy bằng mã 6 số. Mỗi `nguon` (IP gọi) được tối đa 10 lần sai trong một khung 15 phút, quá ⇒ khoá tới hết khung — chặn dò mã
  *  (chốt BRD #56 câu 3). Khung cố định theo giờ ⇒ gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Giữ chỗ lượt thử TRƯỚC khi thử (một upsert
  *  nguyên tử) ⇒ gửi song song cũng chỉ ≤ 10 lượt lọt; ghép đúng hoặc lỗi không phải sai mã thì trả lại lượt. */
-export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?", now = Date.now()) {
+export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?", now = Date.now(), maMay?: unknown) {
   const khoa = `ghep:${nguon}:${Math.floor(now / GHEP_KHUNG_MS)}`;
   const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
   if (s.so_lan > GHEP_SAI_TOI_DA) throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
   try {
-    const kq = await ghepMayGd(code, platform, tenMay);
+    const kq = await ghepMayGd(code, platform, tenMay, maMay);
     await traLuot(khoa);
     return kq;
   } catch (e) {
@@ -177,8 +177,34 @@ export function nguonGoi(h: Headers) {
  *  cả nhà); khi Con chọn tên trên máy, máy chủ gửi «chan» (lenh-may.ts › cheDoGuiMay). Nền khác (điện thoại) ⇒ null. */
 export const cheDoMayMoi = (nen: string, conId: string | null): "chan" | null => (coTacTu(nen) && conId ? "chan" : null);
 
+/** Định danh máy agent gửi lúc ghép (SHA-256 hex của MachineGuid / IOPlatformUUID + muối — không phải mã thô). Sai dạng ⇒ bỏ qua (như không gửi). */
+export function maMayHopLe(v: unknown): string | null {
+  const s = String(v ?? "").trim().toLowerCase();
+  return /^[0-9a-f]{16,64}$/.test(s) ? s : null;
+}
+
+/** «Hai nhà một máy» (11/11): máy vừa ghép (id `moi`) mang `maMay` ⇒ mọi bản ghi devices KHÁC cùng ma_may là chính máy này ghép trước đó
+ *  (nhà cũ, hoặc cùng nhà ghép lại) ⇒ xử lý như gỡ máy (lenh-may.ts › daGoTaiMay): huỷ lệnh chờ, xoá dòng máy (token cũ 401, máy biến mất khỏi
+ *  danh sách + An toàn), ghi sự kiện + cảnh báo «may_chuyen_nha» cho nhà cũ — KHÔNG lộ nhà mới. */
+async function thuHoiMayCu(t: Q, maMay: string, moi: string, famMoi: string) {
+  const cu = await t<{ id: string; family_id: string; child_id: string | null; name: string }>(
+    `select id, family_id, child_id, name from devices where ma_may = $1 and id <> $2 for update`, [maMay, moi]);
+  for (const m of cu) {
+    const cungNha = m.family_id === famMoi;
+    await t(`update lenh_may set trang_thai = 'huy' where device_id = $1 and trang_thai = 'cho'`, [m.id]);
+    await t(`delete from devices where id = $1`, [m.id]);
+    await ghiSuKien(m.family_id, "may_chuyen_nha", { ten: m.name, ...(cungNha ? { cungNha: true } : {}) }, { con: m.child_id, may: m.id }, t);
+    await canhBao(m.family_id, "may_chuyen_nha", cungNha ? "thong_tin" : "chu_y",
+      cungNha ? `${m.name} vừa được ghép lại — bản cũ đã bỏ khỏi danh sách`
+        : `${m.name} đã ghép sang tài khoản khác — AiiGrow không còn quản lý máy này cho nhà mình`,
+      { con: m.child_id, may: m.id, khoa: `chuyen_nha:${m.id}` }, t);
+  }
+  return cu.length;
+}
+
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
-export function ghepMayGd(code: string, platform: string, tenMay: string) {
+export function ghepMayGd(code: string, platform: string, tenMay: string, maMayVao?: unknown) {
+  const maMay = maMayHopLe(maMayVao);
   return tx(async (t) => {
     code = String(code ?? "").trim();
     const m = (await t<{ family_id: string; child_id: string | null; platform: NenTang | ""; expires_at: Date; used_at: Date | null;
@@ -198,9 +224,10 @@ export function ghepMayGd(code: string, platform: string, tenMay: string) {
     // Máy MỚI có tác tử (Windows/Mac) vào thẳng «Chặn thật» (Thanh 25/10: «cài xong là vô chặn được luôn»; thiết kế 05/11: máy luôn chặn thật,
     // kể cả máy dùng chung): ghi sẵn che_do = chan + che_do_ba_me ⇒ lần đồng bộ đầu agent (Win/Mac) đổi ngay. Máy cũ: lenh-may.ts › cheDoGuiMay luôn gửi «chan».
     const cheDo = cheDoMayMoi(platform, m.child_id);
-    await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen, che_do, che_do_ba_me)
-             values ($1,$2,$3,$4,$5,$6,$7, now(), $8, $9)`,
-      [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id, cheDo ?? "giam-sat", !!cheDo]);
+    await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen, che_do, che_do_ba_me, ma_may)
+             values ($1,$2,$3,$4,$5,$6,$7, now(), $8, $9, $10)`,
+      [id, m.child_id, m.family_id, platform, tenLuu, sha(token), !m.child_id, cheDo ?? "giam-sat", !!cheDo, maMay]);
+    if (maMay) await thuHoiMayCu(t, maMay, id, m.family_id);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
     // link bộ cài đi kèm mã này (cùng một lần «Ghép máy») hết dùng — máy đã ghép bằng mã
     if (m.goi_cai) await t(`update goi_cai set device_id = coalesce(device_id, $2) where token_hash = $1`, [m.goi_cai, id]);
