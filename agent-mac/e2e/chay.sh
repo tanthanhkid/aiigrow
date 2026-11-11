@@ -202,8 +202,10 @@ bo 6.3 'Màn khoá toàn màn hình / ngắt phiên Con (dongPhien)' 'cần phi�
 api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"mo_het"}' "$TOKEN_BM"; T0=$SECONDS
 cho 60 1 cho_che_do tu_do; G=$((SECONDS-T0))
 dat 7.1 '«Mở hết» ⇒ daemon mode tu_do (≤ 20 giây)' "$([ "$(tt_truong cheDo)" = tu_do ] && [ "$G" -le 20 ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) sau $G giây"
-sleep 8
-dat 7.2 'Trang Ba Mẹ chặn vẫn nằm trong trangChan khi Mở hết' "$(CO_CHAN && echo 1 || echo 0)" "trangChan: $(trang_thai | jq -c '.trangChan' 2>/dev/null | cut -c1-200)"
+# 11/11 (#226) «Mở hết» mở THẬT hết: trang Ba Mẹ chặn bỏ khỏi trangChan, web cấm luôn chặn vẫn còn
+het_chan_bm() { ! CO_CHAN && CO_DS; }
+cho 60 2 het_chan_bm
+dat 7.2 'Mở hết: trang Ba Mẹ chặn được mở, web cấm vẫn chặn' "$(het_chan_bm && echo 1 || echo 0)" "trangChan: $(trang_thai | jq -c '.trangChan' 2>/dev/null | cut -c1-200)"
 api POST "/api/m/may/$MAY_ID/che-do" '{"cheDo":"giam-sat"}' "$TOKEN_BM"
 dat 7.3 'Máy chủ từ chối «Giám sát» (409 che_do_bo)' "$([ "$API_MA" = 409 ] && printf '%s' "$API_THAN" | grep -q che_do_bo && echo 1 || echo 0)" "HTTP $API_MA $API_THAN"
 
