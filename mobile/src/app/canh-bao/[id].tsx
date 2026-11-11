@@ -13,7 +13,7 @@ const homNay = (iso: string) => new Date(iso).toDateString() === new Date().toDa
 const TIEU: Record<string, (ten: string) => string> = {
   lech_gio: (t) => `Giờ trên máy của ${t} bị đổi`, ngung_chay: (t) => `AiiGrow trên máy ${t} bị tắt`, go_may: (t) => `Có người gỡ AiiGrow trên máy của ${t}`,
   may_thu_go: (t) => `Có người thử gỡ AiiGrow trên máy của ${t}`, tai_khoan_la: (t) => `Tài khoản lạ trên máy ${t}`, offline_lau: (t) => `Máy của ${t} không báo về lâu`,
-  may_ngoai_vong: (t) => `Máy của ${t} chưa được bảo vệ đủ`, safe_mode: (t) => `Máy của ${t} vào Safe Mode`, bang_chung_trung: (t) => `Ảnh của ${t} giống ảnh cũ`,
+  may_chuyen_nha: (t) => `Máy của ${t} đã ghép sang tài khoản khác`, may_ngoai_vong: (t) => `Máy của ${t} chưa được bảo vệ đủ`, safe_mode: (t) => `Máy của ${t} vào Safe Mode`, bang_chung_trung: (t) => `Ảnh của ${t} giống ảnh cũ`,
 };
 /** Cảnh báo về web bị chặn (loại có «web» — người lớn, cờ bạc, luôn chặn). */
 const laWeb = (x: CanhBao) => /web|nguoi_lon|co_bac/.test(x.loai);

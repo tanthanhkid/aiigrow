@@ -41,6 +41,36 @@ public class EnrollClientTests
     }
 
     [Fact]
+    public void MaMay_BamCoMuoi_KhongLoMaTho()
+    {
+        const string guid = "0f8fad5b-d9cb-469f-a165-70867728950e";
+        var h = MaMay.Bam(guid)!;
+        Assert.Matches("^[0-9a-f]{64}$", h);
+        Assert.Equal(h, MaMay.Bam("  " + guid + " "));
+        Assert.NotEqual(h, MaMay.Bam("khac"));
+        Assert.DoesNotContain(guid, h);
+        Assert.Null(MaMay.Bam(null));
+        Assert.Null(MaMay.Bam("   "));
+        var may = MaMay.Doc();                       // máy chạy test (Windows) có MachineGuid; nơi khác ⇒ null, không ném
+        if (may != null) Assert.Matches("^[0-9a-f]{64}$", may);
+    }
+
+    [Fact]
+    public async Task Ghep_GuiMaMayKhiDocDuoc()
+    {
+        var h = new FakeHandler { Reply = """{"deviceId": "d1", "token": "dev-token"}""" };
+        await new EnrollClient(h).EnrollAsync(new EnrollmentPackage { Server = "https://aiigrow.vn", Token = "goi-tk" }, "PC");
+        var may = MaMay.Doc();
+        if (may != null) Assert.Contains($"\"maMay\":\"{may}\"", h.Body);
+        else Assert.DoesNotContain("maMay", h.Body);
+        var h2 = new FakeHandler { Reply = """{"deviceId": "d2", "token": "dev-token"}""" };
+        await ApiClient.PairAsync("https://aiigrow.vn", "123456", "PC", default, h2);
+        Assert.Equal("/api/device/ghep", h2.Path);
+        if (may != null) Assert.Contains($"\"maMay\":\"{may}\"", h2.Body);
+        else Assert.DoesNotContain("maMay", h2.Body);
+    }
+
+    [Fact]
     public async Task Enroll_MayChuBaoLoi_NemApiException()
     {
         var h = new FakeHandler { Status = HttpStatusCode.Conflict, Reply = """{"error":"ma_da_dung","message":"Gói cài đã dùng rồi"}""" };

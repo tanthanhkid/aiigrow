@@ -686,4 +686,8 @@ export const SCHEMA_S3 = [
        alter table usage drop constraint if exists usage_pkey, add primary key (device_id, child_id, ngay, muc);
      end if;
    end $$`,
+  // 11/11 «hai nhà một máy»: devices.ma_may = SHA-256 hex(MachineGuid / IOPlatformUUID + muối) agent gửi lúc ghép (tuỳ chọn). Ghép lại cùng ma_may
+  // ⇒ bản ghi cũ (nhà cũ hoặc cùng nhà) bị xoá như gỡ máy + sự kiện «may_chuyen_nha» (lib/gia-dinh.ts › ghepMayGd). Agent cũ không gửi ⇒ null.
+  `alter table devices add column if not exists ma_may text`,
+  `create index if not exists devices_ma_may on devices(ma_may) where ma_may is not null`,
 ];

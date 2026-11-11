@@ -10,7 +10,7 @@ import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, HaiNut, M, Man, Nhan, Nut, The,
 
 /** Loại cảnh báo AiiGrow đã tự xử lý (máy tự khoá / tự ghi nhận) — còn lại Ba Mẹ cần xem / sửa. */
 const TU_XU_LY = ["lech_gio", "bang_chung_trung", "doi_che_do", "mo_khan_cap", "nhac_duyet", "dns_vuot_gio"];
-const IC: Record<string, TenIcon> = { lech_gio: "dongho", offline_lau: "wifi", may_ngoai_vong: "wifi", bang_chung_trung: "camera", go_may: "thoat", may_thu_go: "thoat" };
+const IC: Record<string, TenIcon> = { lech_gio: "dongho", offline_lau: "wifi", may_ngoai_vong: "wifi", bang_chung_trung: "camera", go_may: "thoat", may_thu_go: "thoat", may_chuyen_nha: "thoat" };
 
 export default function DsCanhBao() {
   const { d, loi, matMang, tai } = useTai(async () => {

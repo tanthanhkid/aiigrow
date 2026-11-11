@@ -107,7 +107,8 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   const trua = "2026-10-22T03:00:00.000Z";
   const mo = chinhSachWindows({ ...db, serverTime: trua }, undefined, undefined, { moDen: new Date(new Date(trua).getTime() + 30 * 60000) });
   assert.ok(mo.web.cho.includes("youtube.com"));
-  assert.deepEqual(mo.web.choKhiMo, ["youtube.com"]);
+  // tên miền đi kèm của youtube.com (googlevideo, ytimg…) cũng chỉ mở theo cửa sổ có hạn
+  assert.ok(mo.web.choKhiMo?.includes("youtube.com") && mo.web.choKhiMo.includes("googlevideo.com") && mo.web.choKhiMo.includes("ytimg.com"));
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");
   // Ba Mẹ chọn «Mở hết» ⇒ web mở (chỉ chặn trang Ba Mẹ chặn + web luôn chặn), trang Giải trí mở
   assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" })).status, 200);
@@ -142,4 +143,14 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await goiBm(`con/${con}/cau-hinh`, tokBm, { web_chi_cho_phep: 1 });
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "chi_cho_phep");
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");
+});
+
+test("Chỉ app được phép + cho youtube.com ⇒ kèm tên miền video/ảnh (googlevideo, ytimg…); Ba Mẹ chặn đích danh thì không kèm", () => {
+  const luat = (muc: string, loai: string) => ({ muc, loai }) as never;
+  const p = { luat: [luat("youtube.com", "hoc"), luat("gstatic.com", "chan")], allowlistHeThong: ["classroom.google.com", "explorer.exe"], phien: null, webChiChoPhep: true } as never;
+  const w = web.chinhSachWebCho(p);
+  for (const m of ["youtube.com", "googlevideo.com", "ytimg.com", "ggpht.com", "accounts.google.com", "googleapis.com"]) assert.ok(w.cho.includes(m), m);
+  assert.ok(!w.cho.includes("gstatic.com"), "Ba Mẹ chặn gstatic.com ⇒ không tự mở lại");
+  assert.ok(!w.cho.includes("google.com"), "không mở cả google.com");
+  assert.deepEqual(web.tenMienDiKem(["scratch.mit.edu"]), []);
 });
