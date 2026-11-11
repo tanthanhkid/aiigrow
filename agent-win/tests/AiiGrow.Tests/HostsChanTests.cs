@@ -62,6 +62,18 @@ public class HostsChanTests
     }
 
     [Fact]
+    public void LaMoHet_DocTuKhoiWindowsCuaPhanHoiDongBo()
+    {
+        // đúng dạng AgentConfig.LastPolicyJson: CẢ phản hồi dong-bo, moHet nằm trong `windows` (lỗi 0.2.16: đọc lớp ngoài ⇒ luôn false)
+        Assert.True(HostsChan.LaMoHet("""{"ok":true,"phienBan":37,"windows":{"mode":"tu_do","moHet":true,"web":{"cheDo":"mo","chan":[],"cho":[]}}}"""));
+        Assert.False(HostsChan.LaMoHet("""{"ok":true,"windows":{"mode":"hoc","web":{"cheDo":"chi_cho_phep","chan":[],"cho":[]}}}"""));
+        Assert.False(HostsChan.LaMoHet("""{"ok":true,"moHet":true,"windows":{"mode":"hoc"}}"""));   // cờ lạc ở lớp ngoài không tính
+        Assert.True(HostsChan.LaMoHet("""{"mode":"tu_do","moHet":true}"""));                          // dạng phẳng cũ
+        Assert.False(HostsChan.LaMoHet(null));
+        Assert.False(HostsChan.LaMoHet("không phải json"));
+    }
+
+    [Fact]
     public void Policy_DocCoMoHet()
     {
         Assert.True(PolicyParser.Parse("""{"mode":"tu_do","moHet":true}""").MoHet);
