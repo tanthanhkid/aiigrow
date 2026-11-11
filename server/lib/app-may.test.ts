@@ -100,6 +100,16 @@ test("Ba Mẹ đặt Chặn theo định danh thật ⇒ blockedApps của máy 
   assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("youtube.com"));
   await goiMay("ung-dung", tok, { du: false, bamTruoc: "c".repeat(64), bam: "a".repeat(64), them: [], bo: ["x"] });
   assert.equal(db.danhSachApp.yeuCau, null);
+  // Nghi 11/11: «Mở hết» mở thật hết — app / trang Ba Mẹ từng «Chặn» không còn chặn; về «Chỉ app Ba Mẹ chọn» thì chặn lại
+  assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" })).status, 200);
+  const mh = (await goiMay("dong-bo", tok, {})).body;
+  assert.deepEqual([mh.windows.mode, mh.windows.blockedApps], ["tu_do", []]);
+  assert.ok(!mh.windows.web.chan.includes("youtube.com"), "Mở hết: youtube.com Ba Mẹ từng chặn được mở");
+  assert.ok(mh.windows.web.chan.includes("pornhub.com"), "Mở hết vẫn chặn web người lớn");
+  assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "chi_app_duoc_phep" })).status, 200);
+  const lai = (await goiMay("dong-bo", tok, {})).body;
+  assert.equal(lai.windows.blockedApps.length, 1);
+  assert.ok(lai.windows.web.chan.includes("youtube.com"));
   // «Cho phép» tính Tiện ích ở thời gian màn hình, «Học tập» tính Học tập
   const luat = [{ child_id: "", muc: "microsoft.minecraftuwp", ten: "Minecraft", loai: "hoc", nhom: "cho_phep" }, { child_id: "", muc: "scratch 3.exe", ten: "Scratch", loai: "hoc", nhom: "khac" }] as any;
   assert.equal(xepMuc("microsoft.minecraftuwp", luat).muc, "tien_ich");

@@ -137,11 +137,16 @@ const NGU_TAT = { tu: "00:00", den: "00:00" };
 
 /** Nghi 07/11: «Mở hết» = máy Con dùng như bình thường. Mọi máy (Windows, Mac, Android, iOS) nhận chính sách không giới hạn:
  *  không quỹ giờ chơi, không giờ ngủ, không giờ học; app / trang Giải trí bỏ khỏi luật ⇒ thành «chưa xếp» = cho phép (chuaXep cho_phep).
- *  VẪN chặn: mục Ba Mẹ đặt «Chặn», web luôn chặn (người lớn, cờ bạc, bạo lực) và «Khoá ngay». Thời gian dùng vẫn ghi để báo cáo. */
+ *  Nghi 11/11: «Mở hết» mở THẬT hết — luật «Chặn» (thường do Ba Mẹ gạt tắt app lúc còn «Chỉ app Ba Mẹ chọn», vd youtube.com) cũng bỏ khỏi
+ *  chính sách gửi máy, khớp chữ «Mở hết · chỉ chặn web người lớn» trên app Ba Mẹ. Luật vẫn nằm trong CSDL ⇒ về «Chỉ app Ba Mẹ chọn» thì chặn lại.
+ *  CHỈ còn chặn: web luôn chặn (người lớn, cờ bạc, bạo lực) và «Khoá ngay». Thời gian dùng vẫn ghi để báo cáo. */
 export function apMoHet(p: Policy): Policy {
-  if (p.cheDoChan !== "mo_het" || !p.con) return p;
-  return { ...p, luat: p.luat.filter((l) => l.loai !== "giai_tri"), lich: { ...p.lich, ngu: NGU_TAT, hoc: null }, quy: null };
+  if (!laMoHet(p)) return p;
+  return { ...p, luat: p.luat.filter((l) => l.loai === "hoc"), lich: { ...p.lich, ngu: NGU_TAT, hoc: null }, quy: null };
 }
+
+/** Con đang ở «Mở hết» (máy dùng chung chưa chọn Con ⇒ không). */
+export const laMoHet = (p: Pick<Policy, "cheDoChan" | "con">) => p.cheDoChan === "mo_het" && !!p.con;
 
 /** Ba Mẹ «Khoá ngay» / «Mở lại» (FR-02.04) — có hiệu lực ở lần đồng bộ / nhịp kế tiếp của mọi thiết bị của Con. */
 /** `hoanTac`: Hoàn tác «Mở lại máy» ⇒ bật lại cờ khoá, giữ nguyên hạn khoá + mốc mở tạm ĐANG LƯU trên máy chủ (Mở lại chỉ bỏ cờ, không xoá chúng;

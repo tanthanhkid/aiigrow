@@ -86,7 +86,7 @@ export default function AppWeb() {
       <Nhom>
         <Dong dau tieu="Web người lớn, cờ bạc" phu="AiiGrow tự cập nhật" trai={<OIcon ic="khien" />} phai={<NhanLuon />} bam={() => router.push("/web/luon-chan")} />
         {daChan.map((l) => (
-          <Dong key={l.muc} tieu={l.ten || l.muc} phu={l.child_id ? "Ba Mẹ chặn" : "Ba Mẹ chặn cả nhà"} trai={<OIcon ic={icCuaApp(`${l.ten} ${l.muc}`)} />}
+          <Dong key={l.muc} tieu={l.ten || l.muc} phu={cheDo === "mo_het" ? "Đang Mở hết nên tạm dùng được" : l.child_id ? "Ba Mẹ chặn" : "Ba Mẹ chặn cả nhà"} trai={<OIcon ic={icCuaApp(`${l.ten} ${l.muc}`)} />}
             phai={d.xem ? undefined : <CongTac bat={false} nhan={`${l.ten}: đang chặn`} doi={() => datLoai(l, "giai_tri")} />} bam={() => moApp(l)} />
         ))}
       </Nhom>
