@@ -115,8 +115,9 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   const mh = (await goiMay("dong-bo", tok, {})).body;
   assert.equal(mh.windows.web.cheDo, "mo");
   assert.equal(mh.windows.mode, "tu_do");
-  // Nghi 07/11: «Mở hết» = dùng như bình thường — hết quỹ (đặt 0 ở đầu test) cũng KHÔNG chặn trang Giải trí; chỉ trang Ba Mẹ «Chặn» + web luôn chặn
-  assert.deepEqual(rieng(mh.windows.web.chan), ["gamek.vn"], "«Mở hết» hết quỹ vẫn xem youtube.com");
+  // Nghi 07/11: «Mở hết» = dùng như bình thường — hết quỹ (đặt 0 ở đầu test) cũng KHÔNG chặn trang Giải trí.
+  // Nghi 11/11: trang Ba Mẹ từng «Chặn» (gamek.vn) cũng mở — chỉ còn web luôn chặn
+  assert.deepEqual(rieng(mh.windows.web.chan), [], "«Mở hết» hết quỹ vẫn xem youtube.com, trang Ba Mẹ từng chặn cũng mở");
   assert.ok(mh.windows.web.chan.includes("xnxx.com"), "web luôn chặn vẫn chặn");
   assert.deepEqual([mh.windows.appTinhGio, mh.windows.quyConPhut, mh.quy], [undefined, undefined, null], "«Mở hết»: không quỹ giờ");
   // giờ ngủ + giờ học đang diễn ra cũng không chặn ở «Mở hết»
@@ -124,13 +125,17 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await q(`update children set lich = lich || $2::jsonb where id = $1`, [con, JSON.stringify({ ngu: caNgay, hoc: { ...caNgay, thu: [0, 1, 2, 3, 4, 5, 6] } })]);
   const dem = (await goiMay("dong-bo", tok, {})).body;
   assert.deepEqual([dem.windows.mode, dem.windows.locked, dem.windows.dangGioHoc, dem.windows.gioHoc], ["tu_do", false, undefined, null]);
-  assert.deepEqual(rieng(dem.windows.web.chan), ["gamek.vn"]);
+  assert.deepEqual(rieng(dem.windows.web.chan), []);
   // «Khoá ngay» của Ba Mẹ vẫn khoá
   assert.equal((await goiBm(`con/${con}/khoa`, tokBm, {})).status, 200);
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.mode, "khoa");
   await goiBm(`con/${con}/khoa`, tokBm, { khoa: false });
   await luonChoiDuoc(con);
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "mo");
+  // về «Chỉ app Ba Mẹ chọn» ⇒ luật «Chặn» vẫn lưu nên chặn lại ngay
+  assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "chi_app_duoc_phep" })).status, 200);
+  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("gamek.vn"), "về Chỉ app Ba Mẹ chọn: gamek.vn chặn lại");
+  await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" });
   // Con cũ (che_do_chan null) ⇒ vẫn theo tham số web_chi_cho_phep như trước
   await q(`update children set che_do_chan = null where id = $1`, [con]);
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "mo");
