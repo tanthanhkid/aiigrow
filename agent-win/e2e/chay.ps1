@@ -627,9 +627,10 @@ KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật qu
   Dat '6.1' 'Mở hết ⇒ agent mode tu_do + AppLocker không còn luật AiiGrow' ([bool]$tuDo -and $het) "cheDoChan $($cd.cheDoChan) · mode tu_do: $([bool]$tuDo) · còn $(@(LuatAiiGrow (AppLocker)).Count) luật (mode agent $($st.mode), cheDo $($st.cheDo))"
   Dat '6.2' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
   function XetWebMo($k) { $m = @(MucAiiGrow $k 'URLBlocklist'); [pscustomobject]@{ Sao = [bool]@($m | Where-Object { $_.GiaTri -eq '*' }).Count; Cam = [bool]@($m | Where-Object { $_.GiaTri -eq $WebCam }).Count; Chan = [bool]@($m | Where-Object { $_.GiaTri -like "*$TenMienChan*" }).Count; So = $m.Count } }
-  $webMo = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $x = XetWebMo $k; if ($x.Sao -or -not $x.Cam -or -not $x.Chan) { $all = $false } }; $all } 90 5
+  $webMo = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $x = XetWebMo $k; if ($x.Sao -or -not $x.Cam -or $x.Chan) { $all = $false } }; $all } 90 5
   $ct = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $x = XetWebMo $_.Value; "$($_.Key): «*»=$($x.Sao) $WebCam=$($x.Cam) $TenMienChan=$($x.Chan) ($($x.So) mục)" }) -join ' · '
-  Dat '6.3' "Web về «mở» (không «*»), trang Ba Mẹ chặn ($TenMienChan) + web cấm ($WebCam) vẫn chặn" $webMo $ct
+  # 11/11 (#226, Nghi chốt «Mở thật hết»): Mở hết bỏ cả luật «Chặn» của Ba Mẹ — chỉ web cấm (người lớn/cờ bạc/bạo lực) còn chặn
+  Dat '6.3' "Web về «mở» (không «*»), trang Ba Mẹ chặn ($TenMienChan) được mở, web cấm ($WebCam) vẫn chặn" $webMo $ct
   $it = MucIT; Dat '6.4' 'Mục web «IT» vẫn còn' $it.Ok $it.ChiTiet
 }
 
