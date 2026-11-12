@@ -69,15 +69,46 @@ test("không có thay đổi ⇒ hết hạn giữ trả doi:false; huỷ kết 
   assert.equal(ct.soDangCho(), 0);
 });
 
-test("đổi do tiến trình khác (chỉ ghi DB, không emit) ⇒ vòng kiểm DB vẫn bắt được", async () => {
+test("cách A: đổi do tiến trình khác (UPDATE + pg_notify, không emit trong tiến trình) ⇒ kết nối nghe DB đánh thức ngay", async () => {
   const { fam } = await nha();
   const { q } = await import("./db.ts");
-  const dangCho = ct.choThayDoi(fam, 0, { toiDaMs: 5000, kiemDbMs: 200 });
+  await ct.batNghe();
+  assert.equal(ct.dangNgheDb(), true);
+  // kiemDbMs rất dài: nếu còn dựa vào vòng đọc DB thì không thể trả trong <800ms
+  const dangCho = ct.choThayDoi(fam, 0, { toiDaMs: 5000, kiemDbMs: 60_000 });
   await new Promise((r) => setTimeout(r, 100));
-  await q(`update families set phien_ban_doi = phien_ban_doi + 1 where id = $1`, [fam]);
+  await q(`with u as (update families set phien_ban_doi = phien_ban_doi + 1 where id = $1 returning id, phien_ban_doi)
+           select pg_notify('${ct.KENH}', id || ':' || phien_ban_doi) from u`, [fam]);
   const t = Date.now();
   const r = await dangCho;
-  assert.equal(r.doi, true); assert.ok(Date.now() - t < 800);
+  assert.equal(r.doi, true); assert.equal(r.phienBanThayDoi, 1); assert.ok(Date.now() - t < 800, `trả sau ${Date.now() - t}ms`);
+});
+
+test("cách A: đang nghe DB thì máy chờ không đọc DB (số lấy từ bộ nhớ)", async () => {
+  const { fam } = await nha();
+  const { q } = await import("./db.ts");
+  await ct.batNghe();
+  assert.equal(await ct.phienBanDoi(fam), 0);
+  // ghi thẳng DB, KHÔNG báo ⇒ bộ nhớ vẫn giữ số cũ (chứng tỏ không đọc DB); báo xong thì thấy số mới
+  await q(`update families set phien_ban_doi = 7 where id = $1`, [fam]);
+  assert.equal(await ct.phienBanDoi(fam), 0);
+  await q(`select pg_notify('${ct.KENH}', $1)`, [`${fam}:7`]);
+  await new Promise((r) => setTimeout(r, 50));
+  assert.equal(await ct.phienBanDoi(fam), 7);
+});
+
+test("mất nghe DB ⇒ quay về cách cũ: vòng đọc DB vẫn bắt được đổi không có báo", async () => {
+  const { fam } = await nha();
+  const { q } = await import("./db.ts");
+  ct._giaMatNghe(true);
+  try {
+    const dangCho = ct.choThayDoi(fam, 0, { toiDaMs: 5000, kiemDbMs: 200 });
+    await new Promise((r) => setTimeout(r, 100));
+    await q(`update families set phien_ban_doi = phien_ban_doi + 1 where id = $1`, [fam]);
+    const t = Date.now();
+    const r = await dangCho;
+    assert.equal(r.doi, true); assert.ok(Date.now() - t < 800);
+  } finally { ct._giaMatNghe(false); }
 });
 
 test("dong-bo / nhip trả phienBanThayDoi (mốc đọc trước chính sách)", async () => {
