@@ -8,7 +8,9 @@ import { napHeThong } from "./he-thong.ts";
 export type Row = Record<string, any>;
 export type Q = <T = Row>(sql: string, params?: unknown[]) => Promise<T[]>;
 
-type Db = { q: Q; tx: <T>(fn: (q: Q) => Promise<T>) => Promise<T> };
+/** LISTEN một kênh Postgres. `khiNghe` gọi mỗi lần (re)LISTEN xong — postgres.js tự nối lại kết nối nghe; báo rơi trong lúc rớt mạng thì mất ⇒ bên dùng tự đọc lại DB. */
+export type Nghe = (kenh: string, khiBao: (payload: string) => void, khiNghe?: () => void) => Promise<void>;
+type Db = { q: Q; tx: <T>(fn: (q: Q) => Promise<T>) => Promise<T>; nghe: Nghe };
 
 const BAM_LUOC_DO = createHash("sha256").update([SCHEMA, SCHEMA_M5, ...SCHEMA_M4B, ...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3].join("\n;\n")).digest("hex").slice(0, 16);
 
@@ -34,6 +36,8 @@ async function mo(): Promise<Db> {
     return {
       q,
       tx: (fn) => sql.begin((t) => fn(async (s, p = []) => (await t.unsafe(s, p as any[])) as any)) as any,
+      // postgres.js giữ MỘT kết nối riêng cho mọi LISTEN (ngoài hồ max 5), tự nối lại rồi gọi lại khiNghe
+      nghe: async (kenh, khiBao, khiNghe) => { await sql.listen(kenh, khiBao, khiNghe); },
     };
   }
   // Vercel/serverless không có đĩa bền: thiếu DATABASE_URL thì báo rõ, đừng lặng lẽ ghi vào thư mục tạm rồi mất dữ liệu.
@@ -51,6 +55,7 @@ async function mo(): Promise<Db> {
   return {
     q,
     tx: (fn) => pg.transaction((t) => fn(async (s, p = []) => (await t.query(s, p as any[])).rows as any)),
+    nghe: async (kenh, khiBao, khiNghe) => { await pg.listen(kenh, khiBao); khiNghe?.(); },
   };
 }
 
@@ -66,6 +71,7 @@ function db() {
 export const sanSang = async () => { await db(); };
 export const q: Q = async (s, p) => (await db()).q(s, p);
 export const tx = async <T>(fn: (q: Q) => Promise<T>) => (await db()).tx(fn);
+export const nghe: Nghe = async (k, f, n) => (await db()).nghe(k, f, n);
 export const one = async <T = Row>(s: string, p?: unknown[]) => (await q<T>(s, p))[0] as T | undefined;
 
 export const newId = () => crypto.randomUUID().replace(/-/g, "").slice(0, 20);
