@@ -84,7 +84,9 @@ test("nhat-ky?ca-nha=1: câu đời thường, tên người lớn, đếm «cho
   const ba = await taoBaMe(fam, "Bà Hoa", "trong_giup");
   const con2 = await g.taoCon(fam, { ten: "Bảo Minh" });
   await ghiSuKien(fam, "them_gio", { phut: 30 }, { con: con2, nguoi: ba });
-  await ghiSuKien(fam, "dong_y_yeu_cau", { loai: "mo_web" }, { con, nguoi: ba });
+  await ghiSuKien(fam, "dong_y_yeu_cau", { loai: "mo_web", ngoai_le: true, tru_diem: null }, { con, nguoi: ba });
+  // đồng ý THEO quy tắc (con trả sao) ⇒ hiện trong nhật ký nhưng không phải «ngoài quy tắc» (review PR #241)
+  await ghiSuKien(fam, "dong_y_yeu_cau", { loai: "them_gio", ngoai_le: false, tru_diem: true }, { con, nguoi: bm });
   await ghiSuKien(fam, "them_gio", { phut: 15 }, { con, nguoi: bm });
   await ghiSuKien(fam, "duyet_nhiem_vu", { ten: "Xếp cặp", diem: 10 }, { con, nguoi: bm });
   await ghiSuKien(fam, "doi_che_do_chan", { tu: "mo_het", sang: "chi_app_duoc_phep" }, { con, nguoi: bm });
@@ -92,8 +94,9 @@ test("nhat-ky?ca-nha=1: câu đời thường, tên người lớn, đếm «cho
 
   const r = await nhatKyCaNha(fam);
   assert.equal(r.soNgay, 7);
-  assert.equal(r.ds.length, 5);
+  assert.equal(r.ds.length, 6);
   assert.equal(r.ngoaiQuyTac.so, 3);
+  assert.ok(r.ds.some((x) => x.tieu === "Mẹ Lan cho thêm giờ" && x.nhan === "Trừ sao" && x.kieu === "thuong"));
   assert.deepEqual(r.ngoaiQuyTac.theoNguoi, [{ ten: "Bà Hoa", so: 2 }, { ten: "Mẹ Lan", so: 1 }]);
   assert.ok(r.ds.some((x) => x.tieu === "Mẹ Lan duyệt «Xếp cặp»" && x.nhan === "+10" && x.kieu === "tot"));
   assert.ok(r.ds.some((x) => x.tieu === "Bà Hoa cho thêm 30 phút" && x.nhan === "Ngoài quy tắc" && x.tenCon === "Bảo Minh"));
@@ -101,4 +104,42 @@ test("nhat-ky?ca-nha=1: câu đời thường, tên người lớn, đếm «cho
   const chiCon = await nhatKyCaNha(fam, { con: con2 });
   assert.equal(chiCon.ds.length, 1);
   assert.equal(cauSuKien("mo_phien", {}, null), null);
+});
+
+test("review PR #241: hoàn tác thêm giờ trừ lại «ngoài quy tắc»; sự kiện kỹ thuật không chiếm chỗ danh sách; lời xin quá hạn không còn «đang xin»", async () => {
+  const { fam, bm, con, may } = await nha();
+  await ghiSuKien(fam, "them_gio", { phut: 15 }, { con, nguoi: bm });
+  await ghiSuKien(fam, "hoan_tac_them_gio", { phut: 15 }, { con, nguoi: bm });
+  await ghiSuKien(fam, "duyet_nhiem_vu", { ten: "Xếp cặp", diem: 10 }, { con, nguoi: bm });
+  for (let i = 0; i < 260; i++) await ghiSuKien(fam, "mo_phien", { muc: "x" }, { con });   // nhiều sự kiện kỹ thuật MỚI hơn
+  const r = await nhatKyCaNha(fam);
+  assert.equal(r.ngoaiQuyTac.so, 0, "đã hoàn tác ⇒ không còn tính");
+  assert.ok(r.ds.some((x) => x.tieu === "Mẹ Lan duyệt «Xếp cặp»"), "sự kiện kỹ thuật lọc trong SQL trước limit");
+
+  await q(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, het_han) values ($1,$2,$3,'mo_web',30,'het-han.vn', now() - interval '1 minute')`, [newId(), con, may]);
+  await q(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, het_han) values ($1,$2,$3,'mo_web',30,'con-han.vn', now() + interval '1 hour')`, [newId(), con, may]);
+  const h = await homNayDung(fam, con);
+  assert.ok(h.biChan.some((x) => x.ten === "con-han.vn" && x.ly === "dang_xin"));
+  assert.ok(!h.biChan.some((x) => x.ten === "het-han.vn"), "quá hạn ⇒ không hiện «đang xin»");
+});
+
+test("review PR #241: dau_luc — agent gửi dauLuc thì lấy, gửi lại giữ giờ SỚM nhất; máy dùng nhiều nhất theo tổng (app, máy)", async () => {
+  const { fam, con, may } = await nha();
+  const { dongBo } = await import("./may-con.ts");
+  const m = (await q<Record<string, unknown>>(`select * from devices where id = $1`, [may]))[0] as Parameters<typeof dongBo>[0];
+  const n = homNay();
+  const som = new Date(Date.now() - 90 * 60_000).toISOString(), muon = new Date(Date.now() - 30 * 60_000).toISOString();
+  await dongBo(m, { usage: [{ muc: "minecraft.exe", phut: 5, day: n, dauLuc: muon }] });
+  await dongBo(m, { usage: [{ muc: "minecraft.exe", phut: 9, day: n, dauLuc: som }] });
+  await dongBo(m, { usage: [{ muc: "minecraft.exe", phut: 12, day: n }] });
+  const u = (await q<{ dau_luc: Date; phut: number }>(`select dau_luc, phut from usage where device_id = $1 and muc = 'minecraft.exe'`, [may]))[0];
+  assert.equal(u.phut, 12);
+  assert.equal(new Date(u.dau_luc).toISOString(), som);
+
+  // máy B: nhiều dòng nhỏ (tổng 60) · máy A: một dòng lớn (40) ⇒ máy dùng nhiều nhất = B
+  const b = (await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "PC phòng khách")).deviceId;
+  for (let i = 0; i < 4; i++) await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'roblox.exe','giai_tri',15)`, [b, con, congNgay(n, -i)]);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'roblox.exe','giai_tri',40)`, [may, con, n]);
+  const r = await baoCaoTuan(fam, con, new Date(), true);
+  assert.equal(r.tuanNay.dungNhieu.find((x: { muc: string }) => x.muc === "roblox.exe")?.may, "PC phòng khách");
 });

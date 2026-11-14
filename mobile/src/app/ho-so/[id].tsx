@@ -6,13 +6,13 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, ChipCon, gioGon, HangViec, mauCon, quyenToi, SaoVien, tuoiCua, cauThu, type ConCt, type GioChoi, type GioHoc, type NhiemVuMoi,
+  CAU_TRONG_GIUP, ChipCon, gioGon, HangViec, mauCon, quyenToi, SaoVien, soAppDuocMo, tuoiCua, cauThu, type ConCt, type LuatDem, type GioChoi, type GioHoc, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
 import { Avt, ChoTai, Chu, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 
-type Luat = { ds: { child_id: string | null; loai: string }[] };
+type Luat = { ds: LuatDem[] };
 
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,7 +24,7 @@ export default function HoSoCon() {
       bm.goi<Luat>("luat").catch(() => null),
     ]);
     // «Được mở N app»: luật Xanh / Vàng (hoc, giai_tri, cho_phep) của con này hoặc chung cả nhà (N3)
-    const duocMo = luat ? luat.ds.filter((x) => (!x.child_id || x.child_id === id) && ["hoc", "giai_tri", "cho_phep"].includes(x.loai)).length : null;
+    const duocMo = luat ? soAppDuocMo(luat.ds, id) : null;
     return { con, g, gio, nv: nv?.ds.filter((x) => x.bat && (!x.giao_cho || x.giao_cho === id)) ?? null, trongGiup: quyen === "trong_giup", duocMo };
   });
   // M6: mã liên kết AiiRob «<family_id>.<child_id>» — thiết kế 05/11 không nói ⇒ giữ (không có mã thì Ba Mẹ không nối được AiiRob).

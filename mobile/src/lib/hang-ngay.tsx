@@ -7,6 +7,7 @@ import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet, type LuotCho, type MayCon, type YeuCau } from "./api";
 import { BONG, KHOI, MEN } from "./clay";
 import { datKhoa } from "./khoa-may";
+import { khoaTen, laWeb } from "./ui-bm3";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, ChonMot, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
 } from "./ui";
@@ -101,6 +102,21 @@ export const hinhNv = (x: { hinh?: string | null; nhom?: string; bang_chung?: st
   (x.bang_chung === "tu_dong" ? ["game", "tim"] : HINH[x.hinh ?? ""] ?? NHOM_HINH[x.nhom ?? ""] ?? ["sao", "vang"]);
 /** Biểu tượng loại máy. */
 export const IC_MAY: Record<MayCon["nen"], TenIcon> = { windows: "laptop", mac: "laptop", ios: "tablet", android: "dt" };
+
+/** Luật app tối thiểu (GET luat › ds) để đếm «N app được mở». */
+export type LuatDem = { child_id: string | null; muc: string; ten?: string | null; loai: string };
+/** «Được mở N app» của một Con — MỘT cách đếm cho Trang chủ, Hồ sơ con, «đang xin phép» (review PR #241):
+ *  bỏ trang web (lib/ui-bm3 › laWeb), luật riêng Con thắng luật cả nhà cùng mục, chỉ đèn Xanh / Vàng (khác «chan»), gom app nhiều định danh cùng tên. */
+export function soAppDuocMo(ds: LuatDem[], con: string) {
+  const theoMuc = new Map<string, LuatDem>();
+  for (const l of ds) {
+    if (l.child_id && l.child_id !== con) continue;
+    if (laWeb(l.muc)) continue;
+    const cu = theoMuc.get(l.muc);
+    if (!cu || (!cu.child_id && l.child_id)) theoMuc.set(l.muc, l);
+  }
+  return new Set([...theoMuc.values()].filter((l) => l.loai !== "chan").map((l) => khoaTen({ ten: l.ten ?? "", muc: l.muc }))).size;
+}
 
 // ---------------------------------------------------------------- thành phần
 
@@ -197,17 +213,19 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   dang?: Record<string, { chu: string; mo?: boolean }>;
   xong: (chu: string, hoan: () => Promise<void>) => void;
 }) {
-  const [han, setHan] = useState<"30" | "60" | "sang">("30");
+  type Han = "30" | "60" | "sang" | "mo";
+  const [han, setHan] = useState<Han>("30");
   const { lam, loi, dangChay } = useLam();
-  const now = new Date();
-  const denLuc = (h: "30" | "60" | "sang") => (h === "sang" ? null : new Date(now.getTime() + Number(h) * 60_000));
-  const cauDen = (h: "30" | "60" | "sang") => (h === "sang" ? "tới 7:00" : `tới ${gioPhut(denLuc(h)!.toISOString())}`);
-  const lua: { gia: "30" | "60" | "sang"; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
+  // giờ hiện trên nút chỉ để xem trước; hạn THẬT tính lúc bấm (bảng có thể mở lâu — review PR #241)
+  const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
+  const cauDen = (h: Han, tu = new Date()) => (h === "mo" ? "tới khi Ba Mẹ mở" : h === "sang" ? "tới 7:00" : `tới ${gioPhut(denLuc(h, tu)!.toISOString())}`);
+  const lua: { gia: Han; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
   const khoa = () => lam(async () => {
-    const den = han === "sang" ? "sang" : denLuc(han)!;
+    const luc = new Date();
+    const den = han === "sang" ? "sang" : han === "mo" ? null : denLuc(han, luc)!;
     await datKhoa(con, true, den);
     dong();
-    xong(`Đã khoá máy của ${ten} ${cauDen(han)}`, () => datKhoa(con, false, null));
+    xong(`Đã khoá máy của ${ten} ${cauDen(han, luc)}`, () => datKhoa(con, false, null));
   });
   const ngan = (t: string) => t.replace(/ của .*$/, "");
   return (
@@ -243,6 +261,12 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
           );
         })}
       </View>
+      {/* thiết kế 05 chỉ vẽ 3 lựa chọn; giữ «Tới khi Ba Mẹ mở» (khoá không hạn — có từ trước, Trang chủ hiện «Khoá tới khi Ba Mẹ mở») dạng dòng nhỏ */}
+      <Pressable onPress={() => setHan("mo")} accessibilityRole="radio" accessibilityState={{ checked: han === "mo" }}
+        style={[{ minHeight: 48, borderRadius: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+          han === "mo" ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
+        <Chu kieu="rat" co={14.5} mau={han === "mo" ? "#fff" : M.chu}>Tới khi Ba Mẹ mở</Chu>
+      </Pressable>
       <BaoLoi loi={loi} />
       <Nut chu={`Khoá ${may.length > 1 ? `${may.length} máy` : "máy"} ${cauDen(han)}`} ic="khoa" loai="huy" rong dangChay={dangChay} bam={khoa} />
       <Nut chu="Thôi, để con chơi tiếp" loai="ma" rong bam={dong} />

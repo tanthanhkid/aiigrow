@@ -58,9 +58,11 @@ async function tuan(con: string, tz: string, dau: string) {
       `select muc, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 and loai = 'giai_tri' group by muc order by phut desc limit 5`,
       [con, dau, het]),
     q<{ muc: string; loai: string; phut: number; may: string | null }>(
-      `select u.muc, max(u.loai) as loai, sum(u.phut)::int as phut, (array_agg(d.name order by u.phut desc))[1] as may
-         from usage u left join devices d on d.id = u.device_id where u.child_id = $1 and u.ngay >= $2 and u.ngay < $3 and u.loai in ('hoc', 'giai_tri')
-       group by u.muc order by phut desc limit 5`, [con, dau, het]),
+      // máy = máy có TỔNG phút (cả 7 ngày) lớn nhất cho app đó — cộng theo (app, máy) trước rồi mới lấy máy lớn nhất
+      `with m as (select u.muc, u.device_id, max(u.loai) as loai, sum(u.phut)::int as phut from usage u
+                   where u.child_id = $1 and u.ngay >= $2 and u.ngay < $3 and u.loai in ('hoc', 'giai_tri') group by u.muc, u.device_id)
+       select m.muc, max(m.loai) as loai, sum(m.phut)::int as phut, (array_agg(d.name order by m.phut desc))[1] as may
+         from m left join devices d on d.id = m.device_id group by m.muc order by phut desc limit 5`, [con, dau, het]),
     // 14/11 «Sao và giờ thêm»: số lần con xin thêm giờ / Ba Mẹ cho
     one<{ so: number; cho: number; sao: number }>(`select count(*)::int as so, count(*) filter (where trang_thai in ('dong_y', 'da_thuc_thi'))::int as cho,
          (select coalesce(sum(delta), 0)::int from points where child_id = $1 and delta > 0 and loai <> 'hoan' and created_at >= $2 and created_at < $3) as sao

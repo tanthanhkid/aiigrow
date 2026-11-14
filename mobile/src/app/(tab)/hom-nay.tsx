@@ -18,8 +18,8 @@ import { ThanhClay } from "@/lib/bieu-do";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
 import {
-  BangKhoaMay, BangThemGio, ChipCon, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
-  type ChoDuyetMoi, type ConCt, type QuyCon,
+  BangKhoaMay, BangThemGio, ChipCon, soAppDuocMo, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
+  type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon,
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { type MucCanDeY } from "@/lib/s3";
@@ -31,10 +31,6 @@ const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm",
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 /** «21:30» → phút trong ngày. */
 const phutCua = (g: string | null | undefined) => { const m = /^(\d{1,2}):(\d{2})/.exec(g ?? ""); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
-/** Luật app trong GET luat › ds (đủ để đếm «N app được mở»). */
-type LuatNgan = { child_id: string | null; muc: string; loai: string };
-/** Như lib/ui-bm3 › laWeb (không import tệp nhánh chan): tệp .exe/.app và gói com.x.y là app; còn lại có đuôi tên miền là web. */
-const laTenMien = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|app)$/i.test(muc) && !/^(com|vn|org|net|io|me|tv|co|app|dev)\.[^.]+\.[^.]+/i.test(muc);
 
 export default function HomNay() {
   const { d, loi, matMang, tai } = useTai(async () => {
@@ -42,7 +38,7 @@ export default function HomNay() {
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: CanhBao[] }>("canh-bao").catch(() => null),
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),
       // app mới chưa xếp loại vẫn là việc chờ Ba Mẹ (issue #70 §2.3) ⇒ một mục «Cần Ba Mẹ để ý»; ds = luật để đếm «N app được mở»
-      bm.goi<{ ds: LuatNgan[]; chuaXep: AppChuaXep[] }>("luat").catch(() => null),
+      bm.goi<{ ds: LuatDem[]; chuaXep: AppChuaXep[] }>("luat").catch(() => null),
       // «Cần Ba Mẹ để ý» của máy chủ (mất mạng, quên PIN…) — máy chủ cũ không có ⇒ bỏ qua
       bm.goi<{ ds: MucCanDeY[] }>("can-de-y").catch(() => null),
     ]);
@@ -82,7 +78,7 @@ export default function HomNay() {
   );
 }
 
-type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; luat: LuatNgan[]; appMoi: AppChuaXep[]; cdy: MucCanDeY[] };
+type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; luat: LuatDem[]; appMoi: AppChuaXep[]; cdy: MucCanDeY[] };
 /** Một mục «Cần Ba Mẹ để ý» (không phải lời xin — lời xin vẽ bằng TheXin). */
 type MucDeY = { id: string; ic: TenIcon; tieu: string; phu: string; nut: string; den: string; maMay?: string };
 
@@ -128,7 +124,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
   // ---- 3. đang bị chặn gì
   const moHet = ct.d?.cheDoChan === "mo_het";
-  const soApp = new Set(d.luat.filter((l) => (!l.child_id || l.child_id === conId) && l.loai !== "chan" && !laTenMien(l.muc)).map((l) => l.muc)).size;
+  const soApp = soAppDuocMo(d.luat, conId);
   const bayGio = new Date().getHours() * 60 + new Date().getMinutes();
   const hocDen = phutCua(q?.gioHoc?.den);
   const hocHomNay = !!q?.gioHoc && q.gioHoc.thu.includes(new Date().getDay());

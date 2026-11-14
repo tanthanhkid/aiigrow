@@ -6,13 +6,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { HangViec, SaoVien, TieuMuc, type ChoDuyetMoi, type ConCt, type QuyCon } from "@/lib/hang-ngay";
+import { HangViec, SaoVien, soAppDuocMo, TieuMuc, type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon } from "@/lib/hang-ngay";
 import { laAppWeb, laThemGio, tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, M, Man, Nhan, Nut, The, useLam, useTai } from "@/lib/ui";
 import type { HomNayDung } from "../da-dung/[con]";
 
-type LuatNgan = { child_id: string | null; muc: string; loai: string };
-const laTenMien = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|app)$/i.test(muc) && !/^(com|vn|org|net|io|me|tv|co|app|dev)\.[^.]+\.[^.]+/i.test(muc);
 
 export default function DangXin() {
   const { con } = useLocalSearchParams<{ con?: string }>();
@@ -20,8 +18,8 @@ export default function DangXin() {
     const cd = await bm.goi<ChoDuyetMoi>("cho-duyet");
     const id = con ?? cd.yeuCau[0]?.child_id;
     const [ct, qy, hn, luat] = id ? await Promise.all([bm.goi<ConCt>(`con/${id}`), bm.goi<QuyCon>(`con/${id}/quy`).catch(() => null),
-      bm.goi<HomNayDung>(`con/${id}/hom-nay`).catch(() => null), bm.goi<{ ds: LuatNgan[] }>("luat").catch(() => null)]) : [null, null, null, null];
-    const soApp = id && luat ? new Set(luat.ds.filter((l) => (!l.child_id || l.child_id === id) && l.loai !== "chan" && !laTenMien(l.muc)).map((l) => l.muc)).size : null;
+      bm.goi<HomNayDung>(`con/${id}/hom-nay`).catch(() => null), bm.goi<{ ds: LuatDem[] }>("luat").catch(() => null)]) : [null, null, null, null];
+    const soApp = id && luat ? soAppDuocMo(luat.ds, id) : null;
     return { id, ds: cd.yeuCau.filter((y) => !id || y.child_id === id), ct, qy, daTraLoi: (hn?.biChan ?? []).filter((x) => x.ly === "chua_cho"), soApp };
   });
   const { lam, loi: loiLam, dangChay } = useLam();

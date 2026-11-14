@@ -13,7 +13,11 @@ import { CAU_TRONG_GIUP, gioGon, HangViec, quyenToi, type GioChoi } from "@/lib/
 import { BaoLoi, baoKhiVe, ChoTai, Chu, CongTac, Icon, Icon3D, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
 
 const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-const BUOC = 15, MIN = 0, MAX = 600;
+// giới hạn như máy chủ (server/lib/cau-hinh.ts): quy_ngay_thuong 0–600, quy_cuoi_tuan 0–720
+const BUOC = 15, MIN = 0, MAX_THUONG = 600, MAX_CUOI = 720;
+/** ± bám bội 15: 50 → «−» 45, «+» 60 (không thành 35 / 65). */
+const giam = (p: number) => Math.max(MIN, Math.ceil(p / BUOC) * BUOC - BUOC);
+const tang = (p: number, max: number) => Math.min(max, Math.floor(p / BUOC) * BUOC + BUOC);
 
 /** Nút tròn lõm −/+ (thiết kế `.st`). */
 function NutSo({ ic, bam, tat, nhan }: { ic: "tru" | "cong"; bam: () => void; tat?: boolean; nhan: string }) {
@@ -27,7 +31,7 @@ function NutSo({ ic, bam, tat, nhan }: { ic: "tru" | "cong"; bam: () => void; ta
 }
 
 /** Hàng «Thứ 2 – Thứ 6: 60 phút» + dòng nhỏ + nút −/+. */
-function HangQuy({ tieu, phut, phu, nay, doi, xem, dau }: { tieu: string; phut: number; phu: string; nay?: boolean; doi: (p: number) => void; xem?: boolean; dau?: boolean }) {
+function HangQuy({ tieu, phut, phu, nay, doi, xem, dau, max }: { tieu: string; phut: number; phu: string; nay?: boolean; doi: (p: number) => void; xem?: boolean; dau?: boolean; max: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 64, borderTopWidth: dau ? 0 : 1.5, borderTopColor: "#ecebe7" }}>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -35,8 +39,8 @@ function HangQuy({ tieu, phut, phu, nay, doi, xem, dau }: { tieu: string; phut: 
         <Chu kieu={nay ? "rat" : "dam"} co={12.5} mau={nay ? M.chinhInk : M.chu2}>{phu}</Chu>
       </View>
       {xem ? null : <>
-        <NutSo ic="tru" nhan={`Giảm ${BUOC} phút ${tieu}`} tat={phut <= MIN} bam={() => doi(Math.max(MIN, phut - BUOC))} />
-        <NutSo ic="cong" nhan={`Tăng ${BUOC} phút ${tieu}`} tat={phut >= MAX} bam={() => doi(Math.min(MAX, phut + BUOC))} />
+        <NutSo ic="tru" nhan={`Giảm ${BUOC} phút ${tieu}`} tat={phut <= MIN} bam={() => doi(giam(phut))} />
+        <NutSo ic="cong" nhan={`Tăng ${BUOC} phút ${tieu}`} tat={phut >= max} bam={() => doi(tang(phut, max))} />
       </>}
     </View>
   );
@@ -94,8 +98,8 @@ export default function GioChoiCon() {
 
       <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Mỗi ngày chơi bao lâu?</Chu>
       <The dem style={{ paddingVertical: 4 }}>
-        <HangQuy dau tieu="Thứ 2 – Thứ 6" phut={t} doi={setThuong} xem={xem} nay={!cuoiTuan} phu={!cuoiTuan ? "Hôm nay áp mức này" : "Ngày đi học"} />
-        <HangQuy tieu="Thứ 7, CN" phut={cn} doi={setCuoi} xem={xem} nay={cuoiTuan}
+        <HangQuy dau tieu="Thứ 2 – Thứ 6" max={MAX_THUONG} phut={t} doi={setThuong} xem={xem} nay={!cuoiTuan} phu={!cuoiTuan ? "Hôm nay áp mức này" : "Ngày đi học"} />
+        <HangQuy tieu="Thứ 7, CN" max={MAX_CUOI} phut={cn} doi={setCuoi} xem={xem} nay={cuoiTuan}
           phu={cuoiTuan ? "Hôm nay áp mức này" : cn > t ? "Cuối tuần chơi thêm" : cn < t ? "Cuối tuần chơi ít hơn" : "Bằng ngày thường"} />
       </The>
 

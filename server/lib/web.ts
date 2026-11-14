@@ -21,7 +21,7 @@ const TEN_MIEN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?
 export const GIU_NGAY = 90;
 const TOI_DA_MOT_LAN = 500;
 
-export type DongWeb = { ngay?: unknown; tenMien?: unknown; soLan?: unknown; giay?: unknown; lanCuoi?: unknown };
+export type DongWeb = { ngay?: unknown; tenMien?: unknown; soLan?: unknown; giay?: unknown; lanCuoi?: unknown; /** giờ bắt đầu dùng trong ngày (ISO, tuỳ chọn) */ dauLuc?: unknown };
 
 /** Tên miền hợp lệ (không IP, không localhost) hoặc null. */
 export function tenMienSach(v: unknown): string | null {
@@ -43,11 +43,15 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
     const giay = Math.max(0, Math.min(86_400, Math.round(Number(x.giay) || 0)));
     const lc = x.lanCuoi ? new Date(String(x.lanCuoi)) : null;
     const lanCuoi = lc && Number.isFinite(lc.getTime()) && lc.getTime() <= now.getTime() + 3_600_000 ? lc : null;
-    await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi) values ($1,$2,$3,$4,$5,$6,$7)
+    // dau_luc: agent gửi `dauLuc` thì lấy; không thì giờ nhận lần đầu nếu là HÔM NAY (ngày cũ gửi bù ⇒ null). Giữ giờ sớm nhất.
+    const dl = x.dauLuc ? new Date(String(x.dauLuc)) : null;
+    const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 3_600_000 ? dl : ngay === hom ? now : null;
+    await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc) values ($1,$2,$3,$4,$5,$6,$7,$8)
              on conflict (device_id, ngay, ten_mien) do update set so_lan = greatest(web_nhat_ky.so_lan, excluded.so_lan),
                giay = greatest(web_nhat_ky.giay, excluded.giay), child_id = coalesce(excluded.child_id, web_nhat_ky.child_id),
-               lan_cuoi = greatest(web_nhat_ky.lan_cuoi, excluded.lan_cuoi)`,
-      [may.id, con, ngay, mien, soLan, giay, lanCuoi]);
+               lan_cuoi = greatest(web_nhat_ky.lan_cuoi, excluded.lan_cuoi),
+               dau_luc = least(coalesce(web_nhat_ky.dau_luc, excluded.dau_luc), coalesce(excluded.dau_luc, web_nhat_ky.dau_luc))`,
+      [may.id, con, ngay, mien, soLan, giay, lanCuoi, dauLuc]);
     n++;
   }
   await q(`delete from web_nhat_ky where device_id = $1 and ngay < $2`, [may.id, congNgay(hom, -GIU_NGAY)]);
