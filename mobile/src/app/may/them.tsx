@@ -8,6 +8,7 @@ import { bm, type GiaDinh, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { tomTat, type TomTat } from "@/lib/ghep-may";
 import { Anh3D, DauMan, gioGon, mauHoSo } from "@/lib/lan-dau";
+import { tenGoi } from "@/lib/hang-ngay";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, Rob, useTai, type TenIcon } from "@/lib/ui";
 
 export default function GhepThemMay() {
@@ -63,7 +64,7 @@ export default function GhepThemMay() {
               <View style={{ padding: 3, borderRadius: 34, borderWidth: 3, borderColor: chon ? M.chinh : "transparent" }}>
                 <Avt ten={x.ten} mau={mauHoSo(x.avatar)[0]} co={50} />
               </View>
-              <Chu kieu="rat" co={13} mau={chon ? M.chinhInk : M.chu2} dong={1}>{x.ten.trim().split(/\s+/).slice(-2).join(" ")}</Chu>
+              <Chu kieu="rat" co={13} mau={chon ? M.chinhInk : M.chu2} dong={1}>{tenGoi(x.ten)}</Chu>
             </Pressable>
           );
         })}

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { mauCon, TieuMuc } from "@/lib/hang-ngay";
+import { mauCon, tenGoi, TieuMuc } from "@/lib/hang-ngay";
 import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, NhanMen, The, useTai } from "@/lib/ui";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 
@@ -44,7 +44,7 @@ export default function NhatKyCaNha() {
                 style={[{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingLeft: c.id ? 4 : 14, paddingRight: 14, borderRadius: 20 },
                   on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
                 {c.id ? <Avt ten={c.ten} mau={mauCon(c.avatar, thuCon(c.id))} co={28} /> : null}
-                <Chu kieu="rat" co={14} mau={on ? "#fff" : M.chu}>{c.id ? c.ten.trim().split(/\s+/).slice(-2).join(" ") : c.ten}</Chu>
+                <Chu kieu="rat" co={14} mau={on ? "#fff" : M.chu}>{c.id ? tenGoi(c.ten) : c.ten}</Chu>
               </NhanMen>
             );
           })}
