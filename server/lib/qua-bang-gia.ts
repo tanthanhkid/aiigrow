@@ -25,32 +25,37 @@ export const QUA_MAC_DINH: MauQua[] = [
   { ma: "lego", ten: "Bộ Lego", loai: "qua", diem: 800, ton_kho: 1, mo_ta: "Còn 1 bộ", hinh: "lego" },
 ];
 
-/** Thư viện mẫu 5 loại (them-dlul0jlr). `nhom` = tab. Mẫu trùng mã với quà mặc định = cùng một quà («Đã có»). */
+/** Thư viện mẫu — thiết kế 14/11 «Thêm quà cho Bảo Anh» (bm-sao-qua/04 them-dlul0jlr): HAI nhóm theo đúng thứ tự trên màn.
+ *  • «Quà Ba Mẹ mua · trả tiền» — voucher AiiGrow (AiiCafe, sách / workshop AiiLab — có `menh_gia` = giá Ba Mẹ trả) + quà vật lý tồn kho (Lego).
+ *  • «Quà nhà · không tốn tiền» — Ba Mẹ tự trao.
+ *  Mẫu trùng mã với quà mặc định = cùng một quà («Đã có»). Thay 5 nhóm của 06/11 (thoi_gian · voucher · qua_vat_ly · dac_quyen · tiet_kiem). */
 export const NHOM_THU_VIEN = [
-  { ma: "thoi_gian", ten: "Thời gian chơi", phu: "giá gợi ý" },
-  { ma: "voucher", ten: "Voucher AiiCafe", phu: "mã QR · 60 ngày" },
-  { ma: "qua_vat_ly", ten: "Quà vật lý", phu: "Ba Mẹ mua" },
-  { ma: "dac_quyen", ten: "Đặc quyền", phu: "trải nghiệm cả nhà" },
-  { ma: "tiet_kiem", ten: "Tiết kiệm", phu: "sao thành tiền heo đất" },
+  { ma: "ba_me_mua", ten: "Quà Ba Mẹ mua · trả tiền", phu: "Ba Mẹ mua trước, con đủ sao thì nhận" },
+  { ma: "qua_nha", ten: "Quà nhà · không tốn tiền", phu: "Ba Mẹ tự trao, tự đặt số sao" },
 ] as const;
 export const THU_VIEN: (MauQua & { nhom: (typeof NHOM_THU_VIEN)[number]["ma"] })[] = [
-  { nhom: "thoi_gian", ma: "thuc_them_30", ten: "Thức thêm 30 phút", loai: "dac_quyen", diem: 100, mo_ta: "Tối thứ 7", hinh: "dong_ho" },
-  { nhom: "thoi_gian", ma: "game_cung_ba", ten: "Chơi game cùng Ba", loai: "dac_quyen", diem: 150, mo_ta: "1 giờ · cuối tuần", chi_cuoi_tuan: true, hinh: "game" },
-  { nhom: "voucher", ...QUA_MAC_DINH[2] },
-  { nhom: "voucher", ...QUA_MAC_DINH[5] },
-  { nhom: "voucher", ma: "aiicafe_100k", ten: "AiiCafe 100k", loai: "voucher", diem: 1000, menh_gia: 100_000, mo_ta: "Ba Mẹ duyệt khi con đổi", can_xac_nhan: true, hinh: "aiicafe" },
-  { nhom: "qua_vat_ly", ma: "sach_moi", ten: "Sách mới con chọn", loai: "qua", diem: 150, hinh: "sach" },
-  { nhom: "qua_vat_ly", ...QUA_MAC_DINH[3] },
-  { nhom: "qua_vat_ly", ...QUA_MAC_DINH[6] },
-  { nhom: "dac_quyen", ...QUA_MAC_DINH[0] },
-  { nhom: "dac_quyen", ...QUA_MAC_DINH[1] },
-  { nhom: "dac_quyen", ...QUA_MAC_DINH[4], ten: "Đi xem phim cuối tuần" },
-  { nhom: "dac_quyen", ma: "ngu_nuong", ten: "Ngủ nướng Chủ nhật", loai: "dac_quyen", diem: 80, hinh: "ngu" },
-  { nhom: "tiet_kiem", ma: "heo_dat_10k", ten: "Bỏ heo đất 10.000đ", loai: "tiet_kiem", diem: 100, hinh: "heo_dat" },
-  { nhom: "tiet_kiem", ma: "quy_xe_dap", ten: "Góp quỹ mua xe đạp", loai: "tiet_kiem", diem: 300, mo_ta: "Ba Mẹ đặt mục tiêu", hinh: "xe_dap" },
+  { nhom: "ba_me_mua", ...QUA_MAC_DINH[2] },
+  { nhom: "ba_me_mua", ...QUA_MAC_DINH[5] },
+  { nhom: "ba_me_mua", ...QUA_MAC_DINH[6], mo_ta: "Có tồn kho · hết thì ẩn" },
+  { nhom: "ba_me_mua", ma: "aiicafe_100k", ten: "AiiCafe 100k", loai: "voucher", diem: 1000, menh_gia: 100_000, mo_ta: "Ba Mẹ duyệt khi con đổi", can_xac_nhan: true, hinh: "aiicafe" },
+  { nhom: "ba_me_mua", ma: "sach_aiilab", ten: "Sách AiiLab con chọn", loai: "voucher", diem: 150, menh_gia: 60_000, mo_ta: "Giao tận nhà", hinh: "sach" },
+  { nhom: "ba_me_mua", ma: "workshop_aiilab", ten: "Workshop AiiLab", loai: "voucher", diem: 600, menh_gia: 150_000, mo_ta: "Một buổi ở AiiLab", hinh: "robot" },
+  { nhom: "qua_nha", ...QUA_MAC_DINH[0] },
+  { nhom: "qua_nha", ...QUA_MAC_DINH[1] },
+  { nhom: "qua_nha", ...QUA_MAC_DINH[3], mo_ta: "Ba Mẹ tự mua" },
+  { nhom: "qua_nha", ...QUA_MAC_DINH[4], ten: "Đi xem phim cuối tuần", mo_ta: "Chỉ Thứ 7, Chủ nhật" },
+  { nhom: "qua_nha", ma: "game_cung_ba", ten: "Chơi game cùng Ba", loai: "dac_quyen", diem: 150, mo_ta: "1 giờ · cuối tuần", chi_cuoi_tuan: true, hinh: "game" },
+  { nhom: "qua_nha", ma: "thuc_them_30", ten: "Thức thêm 30 phút", loai: "dac_quyen", diem: 100, mo_ta: "Tối thứ 7", hinh: "dong_ho" },
+  { nhom: "qua_nha", ma: "ngu_nuong", ten: "Ngủ nướng Chủ nhật", loai: "dac_quyen", diem: 80, hinh: "ngu" },
+];
+/** Mẫu của thư viện 06/11 không còn trên màn 14/11 — vẫn nhận mã (app bản cũ gửi lên), không hiện. */
+const MAU_CU: MauQua[] = [
+  { ma: "sach_moi", ten: "Sách mới con chọn", loai: "qua", diem: 150, hinh: "sach" },
+  { ma: "heo_dat_10k", ten: "Bỏ heo đất 10.000đ", loai: "tiet_kiem", diem: 100, hinh: "heo_dat" },
+  { ma: "quy_xe_dap", ten: "Góp quỹ mua xe đạp", loai: "tiet_kiem", diem: 300, mo_ta: "Ba Mẹ đặt mục tiêu", hinh: "xe_dap" },
 ];
 
-const theoMa = new Map([...QUA_MAC_DINH, ...THU_VIEN].map((m) => [m.ma, m]));
+const theoMa = new Map([...QUA_MAC_DINH, ...MAU_CU, ...THU_VIEN].map((m) => [m.ma, m]));
 
 /** Đổi thân API (camelCase của app mới hoặc snake_case cũ) ⇒ dạng kiemQua (phan-thuong.ts) hiểu. Chỉ khoá có gửi mới có mặt (sửa từng phần). */
 export function thanQua(b: Record<string, unknown>) {
@@ -92,7 +97,7 @@ export async function dsQua(fam: string, con?: string | null) {
   return { ds: ds.map((x) => quaRa(x, n.get(x.id) ?? 0)) };
 }
 
-/** Thư viện mẫu theo 5 nhóm, đánh dấu «Đã có» (cùng mã mẫu, hoặc cùng tên) trong nhà / với Con. */
+/** Thư viện mẫu theo nhóm (14/11: Ba Mẹ mua · Quà nhà), đánh dấu «Đã có» (cùng mã mẫu, hoặc cùng tên) trong nhà / với Con. */
 export async function thuVien(fam: string, con?: string | null) {
   const co = await q<{ mau: string | null; ten: string }>(
     `select mau, ten from rewards where family_id = $1 and bat and ($2::text is null or ap_cho is null or ap_cho ? $2)`, [fam, con ?? null]);   // quà đã cất ⇒ hiện «+» (thêm = bật lại)

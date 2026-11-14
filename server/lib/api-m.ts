@@ -2,7 +2,7 @@
 // của người gọi (lib/* trả «không thấy» như không tồn tại). Quyền (L6, lib/quyen.ts): «Người trông giúp» GET hết, POST chỉ xem / duyệt / khoá máy.
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
-import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, hienDinhDanh, TIEN_TO_FB, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
+import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, hienDinhDanh, sha, TIEN_TO_FB, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { lichCua, sachCauHinh, thamSo, khoaGoc, khoaDen, moTamDen } from "./cau-hinh.ts";
@@ -36,11 +36,11 @@ import * as gt from "./api-gia-dinh.ts";
 import * as hta from "./ho-tro-admin.ts";
 import { ghiKiemToan } from "./admin.ts";
 import { xoaTaiKhoan } from "./xoa-tai-khoan.ts";
-import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, lienKetMxh } from "./dang-nhap-mxh.ts";
+import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, doiMatKhau, lienKetMxh } from "./dang-nhap-mxh.ts";
 // S2 thiết kế 05/11 (L4–L8): quyền 2 mức, chế độ chặn theo Con, thiết lập lần đầu, phiên ghép máy
 import { baMeTuToken } from "./auth.ts";
 import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
-import { loiMoiChoToi } from "./thanh-vien.ts";
+import { doiTenToi, loiMoiChoToi } from "./thanh-vien.ts";
 import { datAppChoPhep, datCheDoChan, luoiApp, TEN_CHE_DO_CHAN, WEB_CAM } from "./che-do-chan.ts";
 import { cheDoChanCua } from "./chan-co-ban.ts";
 import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
@@ -119,6 +119,9 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if ((d === "lien-ket/google" || d === "lien-ket/facebook") && post)
       return json(await lienKetMxh(bm, p[1] as "google" | "facebook", await docJson(req), gd.nguonGoi(req.headers)));
     if (d === "xoa-tai-khoan" && post) return json(await xoaTaiKhoan(bm, await docJson(req)));
+    // «Tài khoản của bạn» (thiết kế 14/11 bm-ca-nha/08–09): đổi tên hiển thị · đổi mật khẩu — mọi vai (việc của riêng mình)
+    if (d === "toi/ten" && post) return json(await doiTenToi(bm, (await docJson(req)).ten));
+    if (d === "doi-mat-khau" && post) return json(await doiMatKhau(bm, await docJson(req), (() => { const t = bearer(req); return t ? sha(t) : null; })()));
     // L6: Người trông giúp — POST chỉ các việc xem / duyệt / khoá máy (lib/quyen.ts › trongGiupDuoc); còn lại là đổi cài đặt.
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
       throw new LoiNghiepVu("chi_xem", "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ nhé", 403);

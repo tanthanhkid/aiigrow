@@ -243,13 +243,15 @@ test("L14 7 quà mặc định gieo MỘT lần khi tạo Con (đúng tên + sao
   assert.equal((await m(tokBm, "qua")).body.ds.length, 0);
 });
 
-test("L14 thư viện 5 loại + «Đã có»; thêm từ thư viện; quà áp cho riêng một Con; tự đặt quà riêng (voucher được tạo lại)", async () => {
+test("L14 thư viện (14/11: Ba Mẹ mua · Quà nhà) + «Đã có»; thêm từ thư viện; quà áp cho riêng một Con; tự đặt quà riêng (voucher được tạo lại)", async () => {
   const { tokBm, anh, minh, rieng } = await nha();
   const tv = (await m(tokBm, "qua/thu-vien")).body;
-  assert.deepEqual(tv.nhom.map((x: any) => x.ma), ["thoi_gian", "voucher", "qua_vat_ly", "dac_quyen", "tiet_kiem"]);
+  assert.deepEqual(tv.nhom.map((x: any) => x.ma), ["ba_me_mua", "qua_nha"]);
   const tat = tv.nhom.flatMap((x: any) => x.ds);
   assert.deepEqual(tat.filter((x: any) => x.daCo).map((x: any) => x.ma).sort(), ["aiicafe_20k", "aiicafe_50k", "an_kem", "bua_toi", "do_choi_nho", "lego", "xem_phim"]);
   assert.equal(tat.find((x: any) => x.ma === "aiicafe_100k").sao, 1000);
+  assert.equal(tat.find((x: any) => x.ma === "sach_aiilab").menhGia, 60_000);
+  assert.ok(!tat.some((x: any) => x.ma === "sach_moi"), "mẫu 06/11 bỏ khỏi màn — vẫn nhận mã (app cũ)");
   const them = (await m(tokBm, "qua/thu-vien", { mau: ["sach_moi", "ngu_nuong", "bua_toi"], con: minh })).body;
   assert.equal(them.taoMoi, 2, "đã có thì bỏ qua");
   assert.equal((await m(tokBm, "qua/thu-vien", { mau: ["xx"] })).body.error, "mau_sai");
@@ -347,19 +349,19 @@ test("L14 điều kiện quà: chỉ cuối tuần, tối đa X lần / tháng, 
 
 test("M5 thư viện theo Con: mẫu đang áp riêng cho Con khác ⇒ áp thêm cho Con đang chọn (không còn «Đã thêm 0 quà»); quà đã cất ⇒ bật lại", async () => {
   const { tokBm, anh, minh, rieng } = await nha();
-  const choMinh = (await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"], con: minh })).body;
+  const choMinh = (await m(tokBm, "qua/thu-vien", { mau: ["sach_aiilab"], con: minh })).body;
   assert.equal(choMinh.taoMoi, 1);
   const sach = choMinh.ids[0];
   // thư viện của Bảo Anh: sách chưa «có»
   const tvAnh = (await m(tokBm, `qua/thu-vien?con=${anh}`)).body.nhom.flatMap((x: any) => x.ds);
-  assert.equal(tvAnh.find((x: any) => x.ma === "sach_moi").daCo, false);
-  const choAnh = (await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"], con: anh })).body;
+  assert.equal(tvAnh.find((x: any) => x.ma === "sach_aiilab").daCo, false);
+  const choAnh = (await m(tokBm, "qua/thu-vien", { mau: ["sach_aiilab"], con: anh })).body;
   assert.deepEqual([choAnh.taoMoi, choAnh.ids], [1, [sach]], "một quà, áp thêm Bảo Anh — không nhân bản");
   assert.deepEqual((await one<{ ap_cho: string[] }>(`select ap_cho from rewards where id = $1`, [sach]))!.ap_cho.sort(), [anh, minh].sort());
   assert.ok((await m(tokBm, `qua?con=${anh}`)).body.ds.some((x: any) => x.id === sach));
   assert.ok((await dv(rieng.tok, "hoc-vien/cua-hang")).body.qua.some((x: any) => x.id === sach), "Bảo Anh đổi được");
   // thêm lại lần nữa ⇒ 0 (đã có thật)
-  assert.equal((await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"], con: anh })).body.taoMoi, 0);
+  assert.equal((await m(tokBm, "qua/thu-vien", { mau: ["sach_aiilab"], con: anh })).body.taoMoi, 0);
   // quà mặc định đã cất ⇒ thêm từ thư viện bật lại
   const kem = (await m(tokBm, "qua")).body.ds.find((x: any) => x.mau === "an_kem");
   await m(tokBm, `qua/${kem.id}`, { bat: false });
@@ -368,7 +370,7 @@ test("M5 thư viện theo Con: mẫu đang áp riêng cho Con khác ⇒ áp thê
   assert.deepEqual(Object.values((await one<{ bat: boolean; ap_cho: string[] }>(`select bat, ap_cho from rewards where id = $1`, [kem.id]))!), [true, [anh]],
     "bật lại chỉ cho Bảo Anh");
   // thư viện cả nhà khi chỉ có quà áp riêng ⇒ áp mọi Con (không «Đã thêm 0 quà»)
-  const caNha = (await m(tokBm, "qua/thu-vien", { mau: ["sach_moi"] })).body;
+  const caNha = (await m(tokBm, "qua/thu-vien", { mau: ["sach_aiilab"] })).body;
   assert.deepEqual([caNha.taoMoi, caNha.ids], [1, [sach]]);
   assert.equal((await one<{ ap_cho: string[] | null }>(`select ap_cho from rewards where id = $1`, [sach]))!.ap_cho, null);
 });

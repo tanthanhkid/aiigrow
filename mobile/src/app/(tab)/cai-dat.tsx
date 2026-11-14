@@ -1,69 +1,33 @@
-// bm-cai-dat «Cả nhà» (thiết kế chốt 05/11: docs/thiet-ke-chot/bm-cai-dat/01-bm2-gia-dinh.html = 03 «Tab Cả nhà»): các con · người lớn trông con
-// (2 quyền Ba Mẹ / Người trông giúp, lời mời đang chờ hàng vàng «Gửi lại», «+ Mời người nhà») · máy của con · cài đặt chung (thông báo, quà đổi
-// bằng sao, Hỏi AiiGrow) · Đăng xuất. Giữ «Xoá tài khoản» (Apple 5.1.1(v), server/lib/xoa-tai-khoan.ts) dưới Đăng xuất. Bỏ vai Ba/Mẹ, mã mời, PIN.
+// Tab «Cả nhà» (thiết kế 14/11 bm-ca-nha/01 them-h60stad7 = bm-cai-dat/01 bm2-gia-dinh, 02): các con (+ Thêm con) · người lớn trông con (dòng của mình
+// «Bạn · tài khoản của bạn» ⇒ /tai-khoan; lời mời đang chờ hàng vàng «Chưa nhận lời mời · Gửi lại»; người khác «Vào nhà từ dd/mm» ⇒ /thanh-vien;
+// «Mời người nhà») · máy của con · cài đặt chung (Thông báo, Quà con đổi bằng sao, Hỏi AiiGrow) · Đăng xuất.
+// 14/11: «Xoá tài khoản» chuyển vào «Tài khoản của bạn» (bm-ca-nha/08, 11); bỏ dòng «Cảnh báo & quy tắc tự động» (không còn trên thiết kế — các màn
+// bm3-duyet-canh-bao* đã xoá; cảnh báo từng cái vẫn mở từ Hôm nay).
 import { useState } from "react";
 import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
-import { bm, LoiApi } from "@/lib/api";
+import { bm } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { IC_QUYEN, KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauMay } from "@/lib/viec-nhanh";
 import { BONG, KHOI } from "@/lib/clay";
 import {
-  Avt, BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon, Icon3D, M, MAU_CON, Man, NhanMen, Nhom, Nut, ONhap, TickDong, cauLoi, tien, useHoanTac, useLam, useTai,
+  Avt, BangTruot, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, MAU_CON, Man, NhanMen, Nhom, Nut, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 const TEN_NEN = { windows: "Laptop", mac: "MacBook", ios: "iPad", android: "Điện thoại" } as const;
+/** «20/10». */
+const ngayThang = (iso: string) => { const t = new Date(iso); return Number.isNaN(t.getTime()) ? "" : `${t.getDate()}/${t.getMonth() + 1}`; };
 
 export default function CaiDat() {
   const { ra } = usePhien();
-  const [moXoa, setMoXoa] = useState(false);
-  const [mk, setMk] = useState("");
-  // Máy chủ chặn xoá (chủ còn Ba/Mẹ khác / còn máy đã ghép — server/lib/xoa-tai-khoan.ts): mã + câu hướng dẫn của máy chủ
-  const [chan, setChan] = useState<{ ma: string; cau: string } | null>(null);
-  const [dangKiem, setDangKiem] = useState(false);
   const [moiMo, setMoiMo] = useState<LoiMoiCho | null>(null);
-  const { dangChay, loi: loiXoa, lam, setLoi } = useLam();
   const moi = useLam();
   const { bao, noi } = useHoanTac();
   const { d, loi, matMang, tai } = useTai(napCaNha, KHOA_CA_NHA);
   if (!d) return <Man tieuLon="Cả nhà"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const khac = d.tv.ds.filter((x) => !x.laToi);
-  const laChu = d.toi.baMe.laChuNha ?? d.toi.baMe.vai === "chu", chuConNguoi = laChu && khac.length > 0;
   const laBaMe = (d.toi.baMe.quyen ?? (d.toi.baMe.vai === "xem" ? "trong_giup" : "ba_me")) === "ba_me";
-  const khongMk = d.toi.baMe.coMatKhau === false;
-  const dongXoa = () => { setMoXoa(false); setMk(""); setLoi(null); };
-  const laChan = (e: unknown): e is LoiApi => e instanceof LoiApi && (e.ma === "con_may" || e.ma === "con_thanh_vien");
-  // hỏi máy chủ trước (không cần mật khẩu) ⇒ bị chặn thì hiện hướng dẫn ngay, không bắt nhập mật khẩu vô ích
-  const moBangXoa = async () => {
-    if (dangKiem) return;
-    setDangKiem(true);
-    setChan(null);
-    try {
-      await bm.goi("xoa-tai-khoan", { kiemTra: true });
-    } catch (e) {
-      if (e instanceof LoiApi && e.status === 401) return;        // hết phiên: api đã đưa về màn Chào
-      setChan(laChan(e) ? { ma: e.ma, cau: e.message } : { ma: "loi", cau: cauLoi(e) });
-    } finally {
-      setDangKiem(false);
-    }
-    setMoXoa(true);
-  };
-  const xoa = () => lam(async () => {
-    let r: { xoa: "tai_khoan" | "gia_dinh" };
-    try {
-      r = await bm.goi("xoa-tai-khoan", { matKhau: mk });
-    } catch (e) {
-      // Không đảo được: mất mạng lúc chờ phản hồi thì KHÔNG nói «chưa có gì thay đổi» — máy chủ có thể đã xoá xong.
-      if (e instanceof LoiApi && e.ma === "mat_mang") throw new LoiApi("mat_mang_xoa", "Mất kết nối giữa chừng — chưa rõ tài khoản đã xoá xong chưa. Có mạng lại thì bấm «Xoá vĩnh viễn» lần nữa: nếu app đưa về màn chào là đã xoá.", 0);
-      if (laChan(e)) { setChan({ ma: e.ma, cau: e.message }); setMk(""); return; }
-      throw e;
-    }
-    baoKhiVe(r.xoa === "gia_dinh" ? "Đã xoá tài khoản và toàn bộ dữ liệu gia đình" : "Đã xoá tài khoản của bạn");
-    setMoXoa(false);
-    await ra({ daXoa: true });
-  });
   const guiLai = (m: LoiMoiCho) => moi.lam(async () => {
     const r = await bm.goi<{ chiaSe: { tieuDe: string; noiDung: string } }>(`thanh-vien/moi/${m.id}/gui-lai`, {});
     await tai();
@@ -77,11 +41,11 @@ export default function CaiDat() {
     bao(`Đã huỷ lời mời ${tenMoi(m)}`);
   });
   const dongNguoi = (x: (typeof d.tv.ds)[number], i: number) => (
-    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? `Bạn · ${TEN_QUYEN[x.quyen]}` : TEN_QUYEN[x.quyen]}
+    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? "Bạn · tài khoản của bạn" : x.vaoLuc ? `Vào nhà từ ${ngayThang(x.vaoLuc)}` : TEN_QUYEN[x.quyen]}
       trai={<Avt ten={x.ten} mau={MAU_CON[(i + 2) % MAU_CON.length]} />}
       phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }} accessibilityLabel={TEN_QUYEN[x.quyen]}>
-        <Icon3D ten={IC_QUYEN[x.quyen]} co={22} />{x.laToi && x.laChuNha ? null : <Icon ten="phai" mau="#b3b5b1" co={18} />}</View>}
-      bam={x.laToi && x.laChuNha ? undefined : () => router.push({ pathname: "/thanh-vien", params: { id: x.id } })} />
+        <Icon3D ten={IC_QUYEN[x.quyen]} co={22} /><Icon ten="phai" mau="#b3b5b1" co={18} /></View>}
+      bam={() => (x.laToi ? router.push("/tai-khoan") : router.push({ pathname: "/thanh-vien", params: { id: x.id } }))} />
   );
   const may = d.may ?? [];
   const canSua = may.filter((m) => mauMay(m) !== "xanh").length;
@@ -118,7 +82,7 @@ export default function CaiDat() {
             <Avt ten={tenMoi(m)} mau="#8f9894" />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
-              <Chu kieu="dam" co={12.5} mau={M.diemInk} dong={1}>Đang chờ nhận lời mời</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.diemInk} dong={1}>Chưa nhận lời mời</Chu>
             </View>
             {laBaMe ? (
               <NhanMen onPress={() => guiLai(m)} disabled={moi.dangChay} accessibilityRole="button" accessibilityLabel={`Gửi lại lời mời cho ${tenMoi(m)}`} muc="chip" sang
@@ -155,18 +119,14 @@ export default function CaiDat() {
       <MucTieu chu="Cài đặt chung" />
       <Nhom>
         <Dong dau tieu="Thông báo" phu={d.tatTb === null ? "Báo ngay việc cần Ba Mẹ" : tatTb ? `Đã tắt ${tatTb} loại` : "Đang nhận hết"} trai={<OIcon ic="chuong" />} bam={() => router.push("/thong-bao/cai-dat")} />
-        <Dong tieu="Cảnh báo & quy tắc tự động" phu="Ngoại lệ, gợi ý, an toàn thiết bị" trai={<OIcon ic="tia" />} bam={() => router.push("/canh-bao")} />
-        <Dong tieu="Quà con đổi bằng sao" phu={d.soQua === null ? "Con đủ sao thì tự đổi" : `${d.soQua} món quà`} trai={<OIcon ic="coc" />} bam={() => router.push("/quy")} />
-        <Dong tieu="Hỏi AiiGrow" phu="Chat, gọi, hướng dẫn" trai={<OIcon ic="tin" />} bam={() => router.push("/ho-tro")} />
+        <Dong tieu="Quà con đổi bằng sao" phu={d.soQua === null ? "Con đủ sao thì tự đổi" : `${d.soQua} món quà`} trai={<OIcon ic="coc" />} bam={() => router.push("/vi/qua")} />
+        <Dong tieu="Hỏi AiiGrow" phu="Nhắn tin, gọi, hướng dẫn" trai={<OIcon ic="tin" />} bam={() => router.push("/hoi-aiigrow")} />
         {d.toi.laAdmin ? <Dong tieu="Hộp thư hỗ trợ" phu="Tin các gia đình gửi AiiGrow — quản trị" trai={<OIcon ic="tin" nen={M.timSoft} />} bam={() => router.push("/admin-ho-tro")} /> : null}
       </Nhom>
 
       <View style={{ alignItems: "center", gap: 2, marginTop: 6 }}>
         <Pressable onPress={() => ra()} accessibilityRole="button" hitSlop={6} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 16 }}>
           <Chu kieu="rat" co={15} mau={M.loi}>Đăng xuất</Chu>
-        </Pressable>
-        <Pressable onPress={moBangXoa} accessibilityRole="button" hitSlop={6} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 16 }}>
-          <Chu kieu="dam" co={13} mau={M.chu3}>{chuConNguoi ? "Xoá tài khoản (mời người nhà ra trước)" : "Xoá tài khoản"}</Chu>
         </Pressable>
       </View>
 
@@ -175,44 +135,6 @@ export default function CaiDat() {
         <BaoLoi loi={moi.loi} />
         {moiMo ? <Nut chu="Gửi lại lời mời" rong dangChay={moi.dangChay} bam={() => guiLai(moiMo)} /> : null}
         {moiMo ? <Nut chu="Huỷ lời mời" loai="huy" rong tat={moi.dangChay} bam={() => huyMoi(moiMo)} /> : null}
-      </BangTruot>
-      <BangTruot mo={moXoa} dong={dongXoa} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản người tạo nhà" : laChu ? "Xoá tài khoản và cả gia đình?" : "Xoá tài khoản của bạn?"}>
-        {chan ? (
-          <>
-            <Chu mau={M.chu2}>{chan.cau}</Chu>
-            {chan.ma === "con_may" ? <Nut chu="Xem các máy" loai="vien" rong bam={() => { dongXoa(); router.push("/may"); }} />
-              : chan.ma === "con_thanh_vien" ? <Nut chu="Xem người lớn trong nhà" loai="vien" rong bam={dongXoa} />
-                : <Nut chu="Thử lại" loai="vien" rong dangChay={dangKiem} bam={moBangXoa} />}
-            <View style={{ marginTop: 8 }}><Nut chu="Đóng" loai="ma" rong bam={dongXoa} /></View>
-          </>
-        ) : (
-          <>
-            <Chu mau={M.chu2}>Việc xoá có hiệu lực ngay và không khôi phục được:</Chu>
-            <View>
-              {laChu ? (
-                <>
-                  <TickDong trang="x" chu={`Hồ sơ ${d.g.con.length ? `${d.g.con.length} Con` : "các Con"}, nhiệm vụ, ảnh bằng chứng, sao, quà và luật`} />
-                  {d.g.quyVoucher > 0 ? <TickDong trang="x" chu={`Quỹ phiếu quà AiiCafe còn ${tien(d.g.quyVoucher)} và các phiếu chưa dùng`} phu="Muốn hoàn tiền thì chat với AiiLab TRƯỚC khi xoá" /> : null}
-                  <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
-                  {/* câu lưu giữ luôn hiện (nhà đã tiêu hết quỹ vẫn có nhật ký cũ); phiếu AiiCafe ngừng phát (L10) ⇒ không gọi tên phiếu quà */}
-                  <Chu mau={M.chu2}>Nhật ký giao dịch cũ (nếu có) được AiiLab giữ tối đa 90 ngày để xử lý khiếu nại, sau đó xoá hẳn.</Chu>
-                </>
-              ) : (
-                <>
-                  <TickDong trang="x" chu="Tài khoản và mọi phiên đăng nhập của bạn" />
-                  <TickDong trang="x" chu="Gia đình, các Con và dữ liệu vẫn giữ nguyên" phu="Người tạo nhà tiếp tục quản lý" />
-                </>
-              )}
-            </View>
-            {/* tài khoản vào bằng Google / Facebook chưa có mật khẩu ⇒ đặt mật khẩu trước (xác minh lại bằng Google / Facebook — app/dat-mat-khau.tsx) */}
-            {khongMk ? <Nut chu="Đặt mật khẩu để xác nhận" loai="vien" rong bam={() => { dongXoa(); router.push("/dat-mat-khau"); }} /> : <>
-              <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
-              <BaoLoi loi={loiXoa} />
-              <Nut chu="Xoá vĩnh viễn" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
-            </>}
-            <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="ma" rong bam={dongXoa} /></View>
-          </>
-        )}
       </BangTruot>
     </Man>
   );

@@ -76,3 +76,29 @@ test("POST nhiem-vu/danh-muc: thiếu con / chưa chọn / mã sai / con nhà kh
   assert.equal((await m(tok, "nhiem-vu/danh-muc", { con: a, viec: ["khong:1"] })).status, 400);
   assert.equal((await m(tok, "nhiem-vu/danh-muc", { con: khac.a, viec: [VIEC_DM[0].ma] })).status, 404);
 });
+
+// «Tài khoản của bạn» (bm-ca-nha/08–09): đổi tên hiển thị, đổi mật khẩu (giữ phiên đang dùng, đăng xuất máy khác)
+test("POST toi/ten + doi-mat-khau", async () => {
+  const { bm } = await taoNha();
+  const tok = await taoPhien(bm), tok2 = await taoPhien(bm);
+  const { bamMatKhau } = await import("./auth.ts");
+  const { q } = await import("./db.ts");
+  assert.equal((await m(tok, "toi/ten", { ten: "  " })).status, 400);
+  assert.equal((await m(tok, "toi/ten", { ten: "Mẹ Lan" })).body.ten, "Mẹ Lan");
+  assert.equal((await m(tok, "toi")).body.baMe.ten, "Mẹ Lan");
+  const tv = (await m(tok, "thanh-vien")).body.ds[0];
+  assert.ok(tv.vaoLuc, "thành viên có vaoLuc (Vào nhà từ …)");
+
+  // chưa có mật khẩu (Google / Facebook) ⇒ 409
+  assert.equal((await m(tok, "doi-mat-khau", { matKhau: "x", matKhauMoi: "12345678" })).body.error, "chua_co_mat_khau");
+  await q(`update parents set pass_hash = $2 where id = $1`, [bm, await bamMatKhau("matkhau-cu")]);
+  assert.equal((await m(tok, "doi-mat-khau", { matKhau: "matkhau-cu", matKhauMoi: "ngan" })).body.error, "mk_ngan");
+  assert.equal((await m(tok, "doi-mat-khau", { matKhau: "sai-roi", matKhauMoi: "matkhau-moi" })).status, 401);
+  const r = await m(tok, "doi-mat-khau", { matKhau: "matkhau-cu", matKhauMoi: "matkhau-moi" });
+  assert.equal(r.status, 200);
+  assert.equal((await m(tok, "toi")).status, 200, "phiên đang dùng còn");
+  assert.equal((await m(tok2, "toi")).status, 401, "máy khác bị đăng xuất");
+  const { dangNhap } = await import("./auth.ts");
+  const dn = (await q<{ dinh_danh: string }>(`select dinh_danh from parents where id = $1`, [bm]))[0].dinh_danh;
+  assert.equal(await dangNhap(dn, "matkhau-moi"), bm);
+});

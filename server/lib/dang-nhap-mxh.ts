@@ -169,9 +169,9 @@ export async function vaoBangMxh(dt: DanhTinh): Promise<{ id: string; moi: boole
 
 export const KHUNG_PHUT = 15;
 /** Trần mỗi khung 15 phút. IP rộng hơn tài khoản (nhiều người chung NAT / wifi quán). */
-export const TRAN = { dangNhapIp: 30, dangNhapTk: 10, datMkIp: 10, datMkTk: 5, lienKetIp: 10, lienKetTk: 5 } as const;
+export const TRAN = { dangNhapIp: 30, dangNhapTk: 10, datMkIp: 10, datMkTk: 5, lienKetIp: 10, lienKetTk: 5, doiMkTk: 5 } as const;
 const khung = (now: number) => Math.floor(now / (KHUNG_PHUT * 60_000));
-const TIEN_TO = ["mxh_ip", "mxh_tk", "dat_mk_ip", "dat_mk_tk", "lien_ket_ip", "lien_ket_tk"];
+const TIEN_TO = ["mxh_ip", "mxh_tk", "dat_mk_ip", "dat_mk_tk", "lien_ket_ip", "lien_ket_tk", "doi_mk_tk"];
 /** Dọn tài khoản Facebook bản cũ tạo (trước bản vá, hoặc bản cũ chạy song song lúc deploy sau khi SCHEMA_S2 đã chạy). Lỗi không chặn cron. */
 export async function chuyenFbCu() {
   try { for (const c of SQL_CHUYEN_FB) await q(c); } catch (e) { console.error("chuyenFbCu", e); }
@@ -237,6 +237,25 @@ export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "
   const r = await q(`update parents set pass_hash = $2 where id = $1 and pass_hash is null returning id`, [bm.id, bam]);
   if (!r.length) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
   await q(`delete from pin_sai where khoa like $1`, [`dat_mk_tk:${bm.id}:%`]);
+}
+
+/** POST doi-mat-khau {matKhau, matKhauMoi} — màn «Đổi mật khẩu» (thiết kế 14/11 bm-ca-nha/09 them-o4k6oei0): đúng mật khẩu đang dùng ⇒
+ *  đặt mật khẩu mới (≥ 8 ký tự), đăng xuất các máy KHÁC (phiên đang dùng `giuPhien` giữ lại). Chưa có mật khẩu (Google / Facebook) ⇒ 409
+ *  `chua_co_mat_khau`. Sai ⇒ 401 `sai_mat_khau`; bộ đếm riêng 5 lượt / 15 phút (như lien-ket — không đụng khoá đăng nhập). */
+export async function doiMatKhau(bm: BaMe, b: Record<string, unknown>, giuPhien: string | null, now = Date.now()) {
+  const mk = String(b.matKhauMoi ?? "");
+  if (mk.length < 8) throw new LoiNghiepVu("mk_ngan", "Mật khẩu cần ít nhất 8 ký tự");
+  await giuLuot(`doi_mk_tk:${bm.id}`, khung(now), TRAN.doiMkTk);
+  const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1 and vai <> 'roi'`, [bm.id]);
+  if (!p) throw new LoiNghiepVu("chua_dang_nhap", "Phiên đăng nhập đã hết — đăng nhập lại nhé", 401);
+  chuaCoMatKhau(p);
+  if (!(await dungMatKhau(String(b.matKhau ?? ""), p.pass_hash!))) throw new LoiNghiepVu("sai_mat_khau", "Mật khẩu đang dùng chưa đúng", 401);
+  const bam = await bamMatKhau(mk);
+  await tx(async (t) => {
+    await t(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null where id = $1`, [bm.id, bam]);
+    await t(`delete from sessions where parent_id = $1 and id <> $2`, [bm.id, giuPhien ?? ""]);
+  });
+  return { ok: true };
 }
 
 /** POST lien-ket/google {idToken, matKhau} | lien-ket/facebook {accessToken, matKhau} (đã đăng nhập): gắn tài khoản Google / Facebook vào

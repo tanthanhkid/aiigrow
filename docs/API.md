@@ -653,6 +653,22 @@ Màn «Giao việc» (bm-viec-duyet/03): ba mục **Học** (7 việc) · **Vậ
 - Lỗi: `thieu_con` 400, `chua_chon` 400, `viec_sai` 400 (mã không có trong danh mục), `khong_thay` 404 (con không thuộc nhà).
 - Tên việc tối đa 90 ký tự (`TEN_NV_TOI_DA`, trước là 60) — vài việc trong danh mục dài hơn 60.
 
+## Khớp thiết kế 14/11 — Quà, Tài khoản (PR #236; test `khop-1411-duyet-ca-nha.test.ts`, `s3-pin-qua.test.ts`)
+
+**Thư viện quà** (`GET/POST qua/thu-vien`, màn «Thêm quà cho Bảo Anh» bm-sao-qua/04): còn **2 nhóm** theo màn —
+`ba_me_mua` «Quà Ba Mẹ mua · trả tiền» (AiiCafe 20k 200 · 50k 500 · Bộ Lego 800 · AiiCafe 100k 1.000 · **Sách AiiLab con chọn** 150 sao / 60.000đ (`sach_aiilab`) ·
+**Workshop AiiLab** 600 sao / 150.000đ (`workshop_aiilab`) — hai mẫu mới là `loai: voucher`, `menhGia` = giá Ba Mẹ trả) và `qua_nha` «Quà nhà · không tốn tiền»
+(Chọn món bữa tối 50 · Đi ăn kem 100 · Đồ chơi nhỏ 200 · Đi xem phim cuối tuần 300 · Chơi game cùng Ba 150 · Thức thêm 30 phút 100 · Ngủ nướng Chủ nhật 80).
+Thay 5 nhóm 06/11. Mã mẫu cũ không còn trên màn (`sach_moi`, `heo_dat_10k`, `quy_xe_dap`) vẫn nhận khi POST (app bản cũ). 7 quà mặc định không đổi (N12).
+App «Quà của <Con>» tab «Voucher AiiGrow» = mẫu `loai: voucher`; «Mua» hiện = POST qua/thu-vien (cho vào kho của con) — **chưa có cổng thanh toán**.
+
+| Phương thức | Đường dẫn | Vào | Ra |
+|---|---|---|---|
+| POST | `/api/m/toi/ten` | `{ten}` (1–40 ký tự) | `{ok, ten}` — đổi tên hiển thị của chính mình (mọi quyền). Rỗng ⇒ 400 `thieu_ten` |
+| POST | `/api/m/doi-mat-khau` | `{matKhau, matKhauMoi}` | `{ok}` — mật khẩu mới ≥ 8 (400 `mk_ngan`); sai mật khẩu đang dùng ⇒ 401 `sai_mat_khau`; chưa có mật khẩu (Google/Facebook) ⇒ 409 `chua_co_mat_khau`; 5 lượt / 15 phút (429 `qua_nhieu_lan`). Đăng xuất các phiên KHÁC, giữ phiên đang gọi |
+
+`GET thanh-vien` › `ds[]` thêm `vaoLuc` (ISO — «Vào nhà từ 20/10»).
+
 ## P1 (07/11) — «Ba Mẹ bấm ⇒ máy Con áp ≤5 giây»: long-poll chờ thay đổi (`server/lib/cho-thay-doi.ts`, test `cho-thay-doi.test.ts`)
 Thanh 07/11: *«khi chặn có effect liền ở máy trẻ em ko, phải có»*. Trước đây máy Con chỉ hỏi máy chủ theo vòng; giờ thêm đường «gõ cửa»:
 
