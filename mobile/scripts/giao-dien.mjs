@@ -60,6 +60,7 @@ export const DO = String.raw`(() => {
   const daBao = new Set();
   for (const n of tn) {
     const el = n.parentElement, cs = getComputedStyle(el), chu = n.textContent.trim().slice(0,50);
+    if (hopTren && !hopTren.contains(el)) continue;   // chữ sau hộp thoại đang mở (bị nền mờ phủ) — không ai đọc, không xét
     const co = parseFloat(cs.fontSize), dam = +cs.fontWeight >= 700, lon = co >= 24 || (co >= 18.66 && dam);
     // 1. tương phản (lượt đã cuộn hết chỉ xét ảnh nổi đè chữ)
     // chữ trong SVG (<text>) tô bằng fill, không bằng color — đọc đúng màu thật của nó (trước đây lấy color ⇒ báo sai chữ trắng thành đen)
@@ -83,7 +84,7 @@ export const DO = String.raw`(() => {
     const kc = khungCat(el);
     for (const r0 of dongCua(n)) { const r = { left: Math.max(r0.left, kc.left), top: Math.max(r0.top, kc.top), right: Math.min(r0.right, kc.right), bottom: Math.min(r0.bottom, kc.bottom) };
       r.width = r.right - r.left; r.height = r.bottom - r.top; if (r.width <= 0 || r.height <= 0) continue;   // ngưỡng 15% tính trên phần THẤY của dòng
-      for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi || (hopTren && !hopTren.contains(el))) continue; const q = thayDuoc(a); if (!q) continue;
+      for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
       const x = Math.min(r.right,q.right)-Math.max(r.left,q.left), y = Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
       if (x > 4 && y > 4 && x*y > 0.15*r.width*r.height) { const k='da'+chu+ten(a); if (!daBao.has(k)) { daBao.add(k); L.push({luat:'DE-ANH', chu, el:ten(el), anh: ten(a) + (a.src? ' '+a.src.split('/').pop().split('.')[0]:'' )}); } } } }
     // 4. tràn khung có nền/viền

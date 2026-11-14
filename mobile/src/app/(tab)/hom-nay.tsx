@@ -10,7 +10,7 @@
 // Bỏ so với 05/11 (N8): danh sách nhiệm vụ hôm nay (tab Nhiệm vụ), «Hôm nay con dùng» (tab Báo cáo › Hôm nay con dùng gì), «Cài cho con», «Con khác»
 // (chip đổi con ở đầu màn đã đủ; hồ sơ con mở từ tab Cả nhà / Báo cáo).
 // Người trông giúp vẫn khoá máy / cho thêm giờ / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type AppChuaXep, type CanhBao, type GiaDinh, type PhienDang, type TuanThuMay } from "@/lib/api";
@@ -75,7 +75,8 @@ export default function HomNay() {
       <Man tai={tai} vongTai noi={noi}>
         {dau}
         {/* N9: nhà nhiều con — dải avatar tròn (thiết kế bm2-trang-chu 14/11: tên + «còn 18′» dưới, số lời xin góc trên, ＋ Thêm con cuối dải) */}
-        {d.g.con.length > 1 ? <DaiConTrangChu d={d} chon={c.id} doi={setChon} /> : null}
+        {/* key theo danh sách con: thêm / bớt con ⇒ dựng lại (useTai giữ hàm tải của lần đầu) */}
+        {d.g.con.length > 1 ? <DaiConTrangChu key={d.g.con.map((x) => x.id).join(",")} d={d} chon={c.id} doi={setChon} /> : null}
         <BangCon key={c.id} conId={c.id} d={d} taiLai={tai} bao={bao} />
       </Man>
     </View>
@@ -89,6 +90,10 @@ export default function HomNay() {
 function DaiConTrangChu({ d, chon, doi }: { d: DuLieu & { quyen?: string }; chon: string; doi: (id: string) => void }) {
   const qs = useTai(() => Promise.all(d.g.con.map((x) => bm.goi<QuyCon>(`con/${x.id}/quy`).then((r) => [x.id, r.quy] as const, () => [x.id, null] as const))),
     `tab:hom-nay:quy:${d.g.con.map((x) => x.id).join(",")}`);
+  // Trang chủ tải lại (kéo để tải, sau Khoá máy / Cho thêm giờ) ⇒ `d` đổi ⇒ tải lại trạng thái từng con (bỏ lần đầu: useTai đã tải)
+  const dau = useRef(true);
+  const taiQs = qs.tai;
+  useEffect(() => { if (dau.current) { dau.current = false; return; } taiQs(); }, [d, taiQs]);
   const quy = Object.fromEntries(qs.d ?? []);
   const tt = Object.fromEntries(d.g.con.map((x) => {
     const q = quy[x.id], con = q?.conPhut ?? x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi);
