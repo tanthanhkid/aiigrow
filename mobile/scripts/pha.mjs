@@ -528,7 +528,6 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-web", "/web/c1", "Thêm trang web cho"),
     M("bm-web-trang", "/web/trang?con=c1&muc=facebook.com", "Lưu cho facebook.com"),
     M("bm-web-them", "/web/them?con=c1", "Thêm web cho"),
-    M("bm-web-luon-chan", "/web/luon-chan", "Luôn chặn"),
     M("bm-yeu-cau-web-moi", "/yeu-cau-web/y1", "Ba Mẹ trả lời", { kb: { "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [yc("y1", "mo_web", { child_id: "c1", ten_con: KEN, phut: 30, gia_tri: "tiktok.com", ly_do: "Con xem video hướng dẫn làm bài", created_at: luc(4) })] } } }),
     M("bm-ung-dung-may", "/ung-dung/m1", "Mọi app trên máy"),
     M("bm-ung-dung-may (chưa có danh sách)", "/ung-dung/m1", "Máy chưa gửi danh sách ứng dụng", { kb: { "GET may/m1/ung-dung": { ...coBan["GET may/m1/ung-dung"], capNhatLuc: null, ds: [] } } }),
@@ -898,7 +897,6 @@ await kichBan("Web ⇒ trang Ba Mẹ chặn cả nhà (tiktok.com) ⇒ «Gỡ ch
   await di("/web/c1");
   await doi("Đang chặn 2 trang");
   xet((await chu()).includes("Ba Mẹ chặn cả nhà"), "dòng trang chặn cả nhà ghi rõ «Ba Mẹ chặn cả nhà»");
-  xet(await doi("Luôn chặn"), "luôn có dòng «Luôn chặn» (không gỡ được)");
   await bamChon(nhanNut("Gỡ chặn tiktok.com"));
   xet(await doi(`${KEN} vào tiktok.com thế nào?`), "«Gỡ chặn» mở màn chọn đèn của trang");
   xet(await doi("Đang theo luật chung của cả nhà"), "nói rõ đang theo luật cả nhà, Lưu là áp riêng");

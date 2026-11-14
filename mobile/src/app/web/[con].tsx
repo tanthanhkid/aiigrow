@@ -4,7 +4,7 @@
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type ConChiTiet, type ThongKeWeb, type YeuCau } from "@/lib/api";
-import { DongDen, HangLuonChan, HangVang, MucDen, NhomDen, OIcon, denCua, icCuaApp, lucNgan, veHoac, type Den } from "@/lib/ui-bm3";
+import { DongDen, HangVang, MucDen, NhomDen, OIcon, denCua, icCuaApp, lucNgan, veHoac, type Den } from "@/lib/ui-bm3";
 import { ChoTai, Chu, M, Man, Nut, gioPhut, useTai } from "@/lib/ui";
 
 type LuatWeb = ThongKeWeb["luat"][number];
@@ -72,7 +72,6 @@ export default function WebCon() {
           <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 6, marginTop: 6 }}>Gỡ chặn xong, Ba Mẹ chọn đèn xanh hoặc vàng cho trang đó.</Chu>
         </View>
       ) : null}
-      <HangLuonChan them=" · không gỡ được" />
     </Man>
   );
 }

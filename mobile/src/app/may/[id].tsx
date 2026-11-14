@@ -153,7 +153,7 @@ export default function AnToanMay() {
 
       <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Cài đặt máy</Chu>
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={d.ct?.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : "App, web mới con phải xin Ba Mẹ"}
+        <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={d.ct?.cheDoChan === "mo_het" ? "Không chặn app, web nào" : "App, web mới con phải xin Ba Mẹ"}
           phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push((m.con ? `/app-web?con=${m.con}` : "/app-web") as never)} />
         {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — chặn hoặc cho phép"
           bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
