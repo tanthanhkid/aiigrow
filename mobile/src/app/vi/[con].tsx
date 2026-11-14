@@ -6,7 +6,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type Diem, type Qua } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
-import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, ONhap, The, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, ONhap, Rob, The, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { OLomIcon } from "@/lib/ui-viec";
 import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi, type QuyCon } from "@/lib/hang-ngay";
 
 type Vi = { soDu: number; sao?: number; lichSu: Diem[] };
@@ -50,23 +51,33 @@ export default function ViSao() {
   return (
     <Man lui={{ chu: "Nhiệm vụ" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
       phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
-      <View style={[{ alignItems: "center", gap: 4, padding: 20, borderRadius: 30, backgroundColor: M.diemSoft }, KHOI.the]}>
-        <Icon3D ten="sao" co={56} mau={M.diemInk} />
-        <Chu kieu="rat" co={30} mau={M.diemInk} so style={{ textAlign: "center" }}>{`${sao} sao = ${phut} phút chơi`}</Chu>
-        <Chu co={13.5} mau={M.diemInk}>{`Tuần này kiếm ${kiem} sao`}</Chu>
+      {/* thiết kế .vi: thẻ vàng cao 164 — «⭐ 30 sao» 50/800 trái, «= 30 phút chơi», «Tuần này kiếm N sao»; Grow «xong» 118 tràn góc phải dưới */}
+      <View style={[{ height: 164, padding: 20, borderRadius: 28, backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf1d3, #fbecc0)", overflow: "hidden" }, KHOI.the]}
+        accessible accessibilityLabel={`${sao} sao, bằng ${phut} phút chơi. Tuần này kiếm ${kiem} sao`}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 100 }}>
+          <Icon3D ten="sao" co={48} />
+          <Chu kieu="rat" co={50} so style={{ lineHeight: 56, letterSpacing: -1 }}>{String(sao)}</Chu>
+          <Chu kieu="rat" co={22} style={{ marginTop: 10 }}>sao</Chu>
+        </View>
+        <Chu kieu="rat" co={16} mau="#6e4300" style={{ marginTop: 6 }}>{`= ${phut} phút chơi`}</Chu>
+        <Chu kieu="dam" co={13} mau="#6e4300" style={{ marginTop: 4 }}>{`Tuần này kiếm ${kiem} sao`}</Chu>
+        <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -22 }}><Rob ten="xong" co={118} /></View>
       </View>
-      <Chu co={14} mau={M.chu2} style={{ marginHorizontal: 4 }}>
-        {tuDoi ? `10 sao đổi được ${tyLe} phút chơi. Con tự đổi trên máy, không cần xin Ba Mẹ.` : `10 sao = ${tyLe} phút chơi. Con tự đổi sao đang tắt — bật ở «Giờ chơi».`}
-      </Chu>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#dcebe6" }}>
+        <Icon3D ten="dongho" co={32} />
+        <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1, lineHeight: 20 }}>
+          {tuDoi ? `10 sao đổi được ${tyLe} phút chơi. Con tự đổi trên máy, không cần xin Ba Mẹ.` : `10 sao = ${tyLe} phút chơi. Con tự đổi sao đang tắt — bật ở «Giờ chơi».`}
+        </Chu>
+      </View>
 
       <TieuMuc chu="Con đổi sao lấy quà" phai={{ chu: d.baMe ? "Sửa quà ›" : "Quà ›", bam: () => router.push({ pathname: "/vi/qua", params: { con, tab: "nha" } }) }} />
       <The>
         {d.phieu.map((p, i) => (
-          <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Đã đổi ${p.diem} sao`} phai={<Nhan loai="canh" chu="Chờ Ba Mẹ trao" />}
+          <HangViec key={p.id} dau={i === 0} trai={<OLomIcon ic="coc" />} tieu={p.ten} phu={`Đã đổi ${p.diem} sao`} phai={<Nhan loai="canh" chu="Chờ Ba Mẹ trao" />}
             bam={() => router.push("/diem-qua" as never)} />
         ))}
         {d.qua.filter((q) => !d.phieu.some((p) => p.ten === q.ten)).map((q, i) => (
-          <HangViec key={q.id} dau={!d.phieu.length && i === 0} ic="qua" mau={sao >= q.diem ? "xanh" : "xam"} tieu={q.ten}
+          <HangViec key={q.id} dau={!d.phieu.length && i === 0} trai={<OLomIcon ic="qua" />} tieu={q.ten}
             phu={sao >= q.diem ? `Cần ${q.diem} sao · con tự đổi trên máy` : `Cần ${q.diem} sao · còn thiếu ${q.diem - Math.max(0, sao)}`}
             phai={<Nhan loai={sao >= q.diem ? "ok" : "xam"} chu={sao >= q.diem ? "Đủ sao" : "Chưa đủ"} />} />
         ))}
@@ -76,9 +87,9 @@ export default function ViSao() {
       <TieuMuc chu="Sao vào, sao ra" />
       <The>
         {d.vi.lichSu.length ? d.vi.lichSu.slice(0, 40).map((x, i) => (
-          <HangViec key={i} dau={i === 0} ic={x.delta > 0 ? "sao" : x.loai === "doi_qua" ? "qua" : "dongho"} mau={x.delta > 0 ? "vang" : "xam"}
+          <HangViec key={i} dau={i === 0} trai={<OLomIcon ic={x.delta > 0 ? (x.nguoi ? "mu" : "may_tinh") : x.loai === "doi_qua" ? "coc" : "dongho"} />}
             tieu={x.ly_do} phu={`${ngay(x.created_at)} · ${gioPhut(x.created_at)}${x.ten_nguoi ? ` · ${x.ten_nguoi}` : ""}`}
-            phai={<Chu kieu="rat" so mau={x.delta > 0 ? M.chinh : M.chu}>{`${x.delta > 0 ? "+" : "−"}${Math.abs(x.delta)}`}</Chu>} />
+            phai={<Nhan loai={x.delta > 0 ? "diem" : "xam"} chu={`${x.delta > 0 ? "+" : "−"}${Math.abs(x.delta)} sao`} />} />
         )) : <Chu co={14} mau={M.chu2}>{`Ví của ${d.ten} còn trống — sao đầu tiên đến khi con làm xong việc đầu tiên.`}</Chu>}
       </The>
 

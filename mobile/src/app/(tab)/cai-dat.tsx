@@ -8,14 +8,19 @@ import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { IC_QUYEN, KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
+import { KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauMay } from "@/lib/viec-nhanh";
+import { mauCon } from "@/lib/hang-ngay";
 import { BONG, KHOI } from "@/lib/clay";
 import {
-  Avt, BangTruot, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, MAU_CON, Man, NhanMen, Nhom, Nut, useHoanTac, useLam, useTai,
+  Avt, BangTruot, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, Nut, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
+/** Màu avatar người lớn theo thiết kế (.ng: hồng, nâu, xám xanh…). */
+const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#3f9a86", "#b5838d"];
+/** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh» (tên gọi dưới avatar: 2 chữ cuối). */
+const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 const TEN_NEN = { windows: "Laptop", mac: "MacBook", ios: "iPad", android: "Điện thoại" } as const;
 /** «20/10». */
 const ngayThang = (iso: string) => { const t = new Date(iso); return Number.isNaN(t.getTime()) ? "" : `${t.getDate()}/${t.getMonth() + 1}`; };
@@ -42,9 +47,8 @@ export default function CaiDat() {
   });
   const dongNguoi = (x: (typeof d.tv.ds)[number], i: number) => (
     <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? "Bạn · tài khoản của bạn" : x.vaoLuc ? `Vào nhà từ ${ngayThang(x.vaoLuc)}` : TEN_QUYEN[x.quyen]}
-      trai={<Avt ten={x.ten} mau={MAU_CON[(i + 2) % MAU_CON.length]} />}
-      phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }} accessibilityLabel={TEN_QUYEN[x.quyen]}>
-        <Icon3D ten={IC_QUYEN[x.quyen]} co={22} /><Icon ten="phai" mau="#b3b5b1" co={18} /></View>}
+      trai={<Avt ten={x.ten} mau={MAU_NGUOI[i % MAU_NGUOI.length]} co={40} />}
+      phai={<View accessibilityLabel={TEN_QUYEN[x.quyen]}><Icon ten="phai" mau="#b3b5b1" co={18} /></View>}
       bam={() => (x.laToi ? router.push("/tai-khoan") : router.push({ pathname: "/thanh-vien", params: { id: x.id } }))} />
   );
   const may = d.may ?? [];
@@ -54,21 +58,21 @@ export default function CaiDat() {
   return (
     <Man tieuLon="Cả nhà" noi={noi} tai={tai} vongTai>
       <MucTieu chu="Các con" />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+      {/* thiết kế .cac-con: lưới 5 cột, avatar tròn 54 + tên 13/800 dưới (không thẻ, không số sao); «＋ Thêm con» avatar sáng nổi */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 8, paddingTop: 6 }}>
         {d.g.con.map((c, i) => (
-          <NhanMen key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`} muc="khoi" sang
-            style={{ width: "31%", flexGrow: 1, maxWidth: 160, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
-            <Avt ten={c.ten} mau={MAU_CON[i % MAU_CON.length]} co={52} />
-            <Chu kieu="rat" co={14.5} dong={1}>{c.ten}</Chu>
-            <Chu kieu="dam" co={12} mau={M.chu3}>{`${(c as { sao?: number }).sao ?? c.soDu} sao`}</Chu>
-          </NhanMen>
+          <Pressable key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`}
+            style={{ width: "20%", alignItems: "center", gap: 6, minHeight: 84 }}>
+            <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} />
+            <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>{tenGoi(c.ten)}</Chu>
+          </Pressable>
         ))}
         {laBaMe ? (
-          <NhanMen onPress={() => router.push("/ho-so/them" as never)} accessibilityRole="button" accessibilityLabel="Thêm con" muc="khoi" sang
-            style={{ width: "31%", flexGrow: 1, maxWidth: 160, alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon ten="cong" mau={M.chinhInk} co={22} /></View>
-            <Chu kieu="rat" co={14.5} mau={M.chinhInk}>Thêm con</Chu>
-          </NhanMen>
+          <Pressable onPress={() => router.push("/ho-so/them" as never)} accessibilityRole="button" accessibilityLabel="Thêm con"
+            style={{ width: "20%", alignItems: "center", gap: 6, minHeight: 84 }}>
+            <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon ten="cong" mau={M.chinhInk} co={22} /></View>
+            <Chu kieu="rat" co={13} mau={M.chinhInk} dong={1}>Thêm con</Chu>
+          </Pressable>
         ) : null}
       </View>
 
@@ -78,16 +82,16 @@ export default function CaiDat() {
         {/* lời mời đang chờ nằm ngay trong danh sách (hàng vàng «Đang chờ nhận lời mời · Gửi lại») */}
         {d.tv.loiMoi.map((m) => (
           <NhanMen key={m.id} onPress={laBaMe ? () => setMoiMo(m) : undefined} disabled={!laBaMe} accessibilityRole="button" accessibilityLabel={`${tenMoi(m)}, đang chờ nhận lời mời`} muc="khoi"
-            style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 10, paddingLeft: 10, paddingRight: 10, borderRadius: 20, backgroundColor: M.diemSoft }}>
-            <Avt ten={tenMoi(m)} mau="#8f9894" />
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 8, paddingLeft: 10, paddingRight: 10, borderRadius: 22, backgroundColor: "#f9e7d2" }}>
+            <Avt ten={tenMoi(m)} mau="#9aa6a1" co={40} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
-              <Chu kieu="dam" co={12.5} mau={M.diemInk} dong={1}>Chưa nhận lời mời</Chu>
+              <Chu kieu="dam" co={12.5} mau="#8a3c0c" dong={1}>Chưa nhận lời mời</Chu>
             </View>
             {laBaMe ? (
               <NhanMen onPress={() => guiLai(m)} disabled={moi.dangChay} accessibilityRole="button" accessibilityLabel={`Gửi lại lời mời cho ${tenMoi(m)}`} muc="chip" sang
                 style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: "#fff", justifyContent: "center", ...KHOI.nho }}>
-                <Chu kieu="rat" co={13.5} mau={M.diemInk}>Gửi lại</Chu>
+                <Chu kieu="rat" co={13.5} mau={M.chu}>Gửi lại</Chu>
               </NhanMen>
             ) : null}
           </NhanMen>
@@ -95,11 +99,11 @@ export default function CaiDat() {
         {d.tv.ds.slice(1).map((x, i) => dongNguoi(x, i + 1))}
         {laBaMe ? (
           <NhanMen onPress={() => router.push("/moi-nguoi-nha")} accessibilityRole="button" muc="khoi" sang
-            style={{ flexDirection: "row", alignItems: "center", gap: 12, margin: 10, marginTop: 6, padding: 10, borderRadius: 22, backgroundColor: M.the, ...KHOI.the }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, margin: 10, marginTop: 6, paddingLeft: 10, paddingRight: 12, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center" }}>
               <Icon ten="cong" mau={M.chinhInk} co={20} />
             </View>
-            <Chu kieu="rat" co={16} mau={M.chinhInk} style={{ flex: 1 }}>Mời người nhà</Chu>
+            <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ flex: 1 }}>Mời người nhà</Chu>
             <Icon ten="phai" mau={M.chinhInk} co={18} />
           </NhanMen>
         ) : null}
@@ -124,11 +128,10 @@ export default function CaiDat() {
         {d.toi.laAdmin ? <Dong tieu="Hộp thư hỗ trợ" phu="Tin các gia đình gửi AiiGrow — quản trị" trai={<OIcon ic="tin" nen={M.timSoft} />} bam={() => router.push("/admin-ho-tro")} /> : null}
       </Nhom>
 
-      <View style={{ alignItems: "center", gap: 2, marginTop: 6 }}>
-        <Pressable onPress={() => ra()} accessibilityRole="button" hitSlop={6} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 16 }}>
-          <Chu kieu="rat" co={15} mau={M.loi}>Đăng xuất</Chu>
-        </Pressable>
-      </View>
+      <NhanMen onPress={() => ra()} accessibilityRole="button" muc="khoi" sang
+        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, minHeight: 48, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
+        <Icon3D ten="thoat" co={22} /><Chu kieu="rat" co={15} mau={M.chu2}>Đăng xuất</Chu>
+      </NhanMen>
 
       <BangTruot mo={!!moiMo} dong={() => setMoiMo(null)} tieu={moiMo ? tenMoi(moiMo) : ""}>
         {moiMo ? <Chu mau={M.chu2}>{`Đang chờ nhận lời mời · ${TEN_QUYEN[moiMo.quyen]}${moiMo.dinhDanh && moiMo.tenGoi ? ` · ${moiMo.dinhDanh}` : ""}. «Gửi lại» tạo link mới, link cũ hết dùng.`}</Chu> : null}

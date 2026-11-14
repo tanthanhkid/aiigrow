@@ -23,24 +23,28 @@ export default function DangNhap() {
     await vaoSau(await bm.goi<KetQuaVao>("dang-nhap", { dinhDanh: dd, matKhau: mk }));
   });
   return (
-    <Man noi={noi} dau={<DauMan ve="/chao" phai={<CanGiup />} />}>
-      <CanhRob lv="chi" tieu="Chào Ba Mẹ!" loi="Đăng nhập để xem con đang làm gì." cao={140} />
+    <Man noi={noi} dau={<DauMan ve="/chao" phai={<CanGiup />} />} day={
+      // thiết kế: nút «Đăng nhập vào nhà mình» + «hoặc» Google / Facebook ghim đáy màn
+      <View style={{ gap: 12 }}>
+        <Nut chu="Đăng nhập vào nhà mình" rong dangChay={dangChay} tat={!dd || !mk} bam={di} />
+        {co.google || co.facebook ? <>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} /><Chu co={13} mau={M.chu3}>hoặc</Chu><View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} />
+          </View>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {co.google ? <NutDangNhapMxh loai="google" bao={bao} nc={nc} /> : null}
+            {co.facebook ? <NutDangNhapMxh loai="facebook" bao={bao} nc={nc} /> : null}
+          </View>
+        </> : null}
+      </View>
+    }>
+      <CanhRob lv="chi" tieu="Chào Ba Mẹ!" loi="Đăng nhập để xem con đang làm gì." chuTo />
       <OLom nhan="Số điện thoại" value={dd} onChangeText={setDd} keyboardType="email-address" autoCapitalize="none" autoComplete="username" textContentType="username" placeholder="0912 345 678" />
       <OLom nhan="Mật khẩu" matKhau value={mk} onChangeText={setMk} autoComplete="current-password" textContentType="password" onSubmitEditing={() => dd && mk && di()} />
       <View style={{ alignItems: "flex-end", marginTop: -6 }}>
         <LienKet chu="Quên mật khẩu?" bam={() => router.push({ pathname: "/quen-mat-khau", params: dd ? { dd } : {} })} />
       </View>
       <BaoLoi loi={loi} />
-      <Nut chu="Đăng nhập vào nhà mình" rong dangChay={dangChay} tat={!dd || !mk} bam={di} />
-      {co.google || co.facebook ? <>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6 }}>
-          <View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} /><Chu co={13} mau={M.chu3}>hoặc</Chu><View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} />
-        </View>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          {co.google ? <NutDangNhapMxh loai="google" bao={bao} nc={nc} /> : null}
-          {co.facebook ? <NutDangNhapMxh loai="facebook" bao={bao} nc={nc} /> : null}
-        </View>
-      </> : null}
     </Man>
   );
 }

@@ -4,9 +4,10 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
-import { ChonGio } from "@/lib/gio-chon";
+import { BanhXeGio } from "@/lib/lan-dau";
+import { KHOI } from "@/lib/clay";
 import { CAU_TRONG_GIUP, gioGon, HangViec, quyenToi, TieuMuc, type GioChoi } from "@/lib/hang-ngay";
-import { BaoLoi, baoKhiVe, Canh, ChoTai, Chips, Chu, M, Man, Nhan, Nut, The, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, baoKhiVe, Canh, ChoTai, Chips, Chu, Icon3D, M, Man, NhanMen, Nhan, Nut, The, useLam, useTai } from "@/lib/ui";
 
 const NGAY = [1, 2, 3, 4, 5, 6, 0].map((x) => ({ gia: x, chu: x === 0 ? "CN" : `T${x + 1}` }));
 type Luat = { ds: { child_id: string | null; muc: string; ten?: string | null; loai: string }[] };
@@ -22,6 +23,7 @@ export default function GioHocCon() {
   const [tu, setTu] = useState<string | null>(null);
   const [den, setDen] = useState<string | null>(null);
   const [thu, setThu] = useState<number[] | null>(null);
+  const [sua, setSua] = useState<"tu" | "den" | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man lui={{ chu: "Giờ chơi" }} tieu="Giờ học"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const a = tu ?? d.hoc?.tu ?? "17:00", b = den ?? d.hoc?.den ?? "18:00", ng = thu ?? d.hoc?.thu ?? [1, 2, 3, 4, 5];
@@ -36,8 +38,20 @@ export default function GioHocCon() {
       <Nut chu={`Lưu giờ học ${gioGon(a)} – ${gioGon(b)}`} rong dangChay={dangChay} tat={a === b || !ng.length} bam={() => luu()} />
       {d.hoc ? <Nut chu="Bỏ giờ học" loai="ma" rong bam={() => luu(true)} /> : null}
     </>}>
-      <ChonGio nhan="Bắt đầu" gia={a} doi={setTu} tat={d.xem} />
-      <ChonGio nhan="Kết thúc" gia={b} doi={setDen} tat={d.xem} />
+      {/* thiết kế 03: hai ô nổi cạnh nhau «Bắt đầu 17:00» · «Kết thúc 18:00» (icon 3D + nhãn nhỏ + giờ 22/800); chạm ⇒ bảng bánh xe giờ */}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {([["tu", "Bắt đầu", "sach", a], ["den", "Kết thúc", "dongho", b]] as const).map(([k, nhan, ic, g]) => (
+          <NhanMen key={k} onPress={() => setSua(k)} disabled={d.xem} accessibilityRole="button" accessibilityLabel={`${nhan} ${gioGon(g)}, chạm để đổi`} muc="khoi" sang
+            style={[{ flex: 1, gap: 2, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten={ic} co={18} /><Chu kieu="dam7" co={12.5} mau="#565c59">{nhan}</Chu></View>
+            <Chu kieu="rat" co={24} so style={{ letterSpacing: -0.5 }}>{gioGon(g)}</Chu>
+          </NhanMen>
+        ))}
+      </View>
+      <BangTruot mo={sua !== null} dong={() => setSua(null)} tieu={sua === "den" ? "Kết thúc lúc" : "Bắt đầu lúc"}>
+        {sua ? <BanhXeGio gio={sua === "tu" ? a : b} doi={sua === "tu" ? setTu : setDen} /> : null}
+        <Nut chu="Xong" rong bam={() => setSua(null)} />
+      </BangTruot>
       <View style={{ gap: 8 }}>
         <Chu kieu="rat" co={14}>Áp cho các ngày</Chu>
         <Chips ds={NGAY} chon={ng} doi={(v) => !d.xem && setThu(ng.includes(v) ? ng.filter((x) => x !== v) : [...ng, v])} />

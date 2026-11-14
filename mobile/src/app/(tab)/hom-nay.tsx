@@ -75,13 +75,33 @@ export default function HomNay() {
       <Man tai={tai} vongTai noi={noi}>
         {dau}
         {/* N9: nhà nhiều con — dải avatar tròn (thiết kế bm2-trang-chu 14/11: tên + «còn 18′» dưới, số lời xin góc trên, ＋ Thêm con cuối dải) */}
-        {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)}
-          so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))}
-          phu={Object.fromEntries(d.g.con.map((x) => [x.id, `còn ${x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi)}′`]))}
-          nhanSo="lời xin" them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} /> : null}
+        {d.g.con.length > 1 ? <DaiConTrangChu d={d} chon={c.id} doi={setChon} /> : null}
         <BangCon key={c.id} conId={c.id} d={d} taiLai={tai} bao={bao} />
       </Man>
     </View>
+  );
+}
+
+/**
+ * Dải avatar Trang chủ (thiết kế bm2-trang-chu 14/11 .cac-con): số lời xin góc trên, ICON TRẠNG THÁI nhỏ góc dưới (🎮 đang chơi «còn 18′» ·
+ * 📖 «đang học» · 🔒 «đã khoá» · 🌙 «chưa dùng» / «đang ngủ»), ＋ Thêm con cuối dải. Trạng thái lấy từ con/:id/quy từng con (+ phiên đang chơi).
+ */
+function DaiConTrangChu({ d, chon, doi }: { d: DuLieu & { quyen?: string }; chon: string; doi: (id: string) => void }) {
+  const qs = useTai(() => Promise.all(d.g.con.map((x) => bm.goi<QuyCon>(`con/${x.id}/quy`).then((r) => [x.id, r.quy] as const, () => [x.id, null] as const))),
+    `tab:hom-nay:quy:${d.g.con.map((x) => x.id).join(",")}`);
+  const quy = Object.fromEntries(qs.d ?? []);
+  const tt = Object.fromEntries(d.g.con.map((x) => {
+    const q = quy[x.id], con = q?.conPhut ?? x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi);
+    const dangChoi = d.choi.some((p) => p.con === x.id);
+    const [ic, chu]: [TenIcon | null, string] = q?.khoa ? ["khoa", "đã khoá"] : dangChoi ? ["game", `còn ${con}′`] : q?.dangHoc ? ["sach", "đang học"]
+      : q?.dangNgu ? ["trang_ngu", "đang ngủ"] : !x.phutChoi ? ["trang_ngu", "chưa dùng"] : [null, `còn ${con}′`];
+    return [x.id, { ic, chu }];
+  }));
+  return (
+    <DaiCon ds={d.g.con} chon={chon} doi={(x) => doi(x.id)}
+      so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))}
+      phu={Object.fromEntries(d.g.con.map((x) => [x.id, tt[x.id].chu]))} ic={Object.fromEntries(d.g.con.map((x) => [x.id, tt[x.id].ic]))}
+      nhanSo="lời xin" them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} />
   );
 }
 

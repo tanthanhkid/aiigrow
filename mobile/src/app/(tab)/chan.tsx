@@ -71,9 +71,9 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
         {chips}
         {/* thẻ lớn chế độ (.hero) — chế độ đang bật thấy đầu tiên, công tắc ngay trên thẻ */}
         <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI.the }}>
-          <LinearGradient colors={["#cfe6de", "#e8f2ee"]} style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
+          <LinearGradient colors={moHet ? ["#f6e6d2", "#faf2e8"] : ["#cfe6de", "#e8f2ee"]} style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
             <View pointerEvents="none" style={{ position: "absolute", right: ROB_PHAI, top: 56 }}><Rob ten={moHet ? "nghi" : "chi"} co={ROB_CO} /></View>
-            <Chu kieu="dam" co={13} mau={M.chinhInk}>{`Máy của ${ten} đang ở chế độ`}</Chu>
+            <Chu kieu="dam7" co={13} mau={moHet ? "#8a3c0c" : M.chinhInk}>{`Máy của ${ten} đang ở chế độ`}</Chu>
             {/* chừa chỗ Grow (phải, từ top 56): tên chế độ 25px ở khổ 320 đè lên Grow (cổng DE-ANH) */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB }} accessibilityRole="header">
               <Icon3D ten={IC_CHE_DO[cheDo]} co={32} />
@@ -90,9 +90,11 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
                 const on = k === cheDo;
                 return (
                   <NhanMen key={k} onPress={() => doiCheDo(k)} disabled={d.xem || dangChay} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: d.xem }} aria-checked={on}
-                    accessibilityLabel={TEN_CHE_DO[k]} muc="chip" sang={!on} men={on ? MEN.ngoc : undefined}
+                    accessibilityLabel={TEN_CHE_DO[k]} muc="chip" sang={!on} men={on && !moHet ? MEN.ngoc : undefined}
                     style={[{ flex: k === "mo_het" ? 1 : 1.25, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 48, borderRadius: 20 },
-                      on && { backgroundColor: M.chinh, boxShadow: BONG.ngoc }]}>
+                      on && (moHet  // thiết kế 02 «Mở hết»: viên đang chọn màu nâu đất #8a3c0c
+                        ? { backgroundColor: "#8a3c0c", boxShadow: "0px 10px 16px -10px rgba(138,60,12,0.7), inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -6px 10px -4px rgba(0,0,0,0.25)" }
+                        : { backgroundColor: M.chinh, boxShadow: BONG.ngoc })]}>
                     <View style={{ opacity: on ? 1 : 0.6 }}><Icon3D ten={IC_CHE_DO[k]} co={22} /></View>
                     <Chu kieu="rat" co={14.5} mau={on ? "#fff" : M.chu2} dong={1}>{TEN_CHE_DO[k]}</Chu>
                   </NhanMen>
@@ -118,7 +120,12 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           <HangIcon nhan="App" ic={app.map((l) => icCuaApp(`${l.ten} ${l.muc}`))} trong="Chưa cho app nào" sua={!moHet} bam={moApp} />
           <View style={{ height: 1.5, backgroundColor: "#ecebe7" }} />
           <HangIcon nhan="Web" ic={web.map((l) => { const i = icCuaApp(l.muc); return i === "web" ? "sach" : i; })} trong="Chưa cho trang nào" sua={!moHet} bam={moWeb} />
-          {moHet ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginTop: 6, marginBottom: 4, marginHorizontal: 4 }}>Đang tạm nghỉ, vẫn được giữ nguyên. Bật lại «Chặn app & web» là dùng tiếp.</Chu> : null}
+          {moHet ? (
+            // thiết kế .tam: ô lõm xám
+            <View style={{ marginTop: 6, marginBottom: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+              <Chu kieu="dam" co={13.5} mau={M.chu2}>Đang tạm nghỉ, vẫn được giữ nguyên. Bật lại «Chặn app & web» là dùng tiếp.</Chu>
+            </View>
+          ) : null}
         </View>
 
         <HangLuonChan />

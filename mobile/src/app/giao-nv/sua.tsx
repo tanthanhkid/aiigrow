@@ -111,7 +111,7 @@ export default function SuaViec() {
           <Nut chu="Xoá việc này" ic="x" loai="huy" rong bam={() => setXoa(true)} />
         </>
       ) : <Bao loai="lam" ic="khoa" tieu={v.ten} loi={CAU_TRONG_GIUP} />}
-      <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá việc «${v.ten}»?`}>
+      <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá việc «${v.ten}»?`} hinh="lau">
         <View>
           <TickDong chu={`${tenCon} không thấy việc này nữa`} />
           <TickDong chu={conCua ? `${conCua.soDu} sao con đang có vẫn giữ nguyên` : "Sao con đang có vẫn giữ nguyên"} />
@@ -119,7 +119,7 @@ export default function SuaViec() {
         </View>
         <BaoLoi loi={loiLam} />
         <Nut chu={`Xoá «${v.ten}»`} loai="huy" rong dangChay={dangChay} bam={tat} />
-        <Nut chu="Giữ lại việc này" loai="ma" rong bam={() => setXoa(false)} />
+        <Nut chu="Giữ lại việc này" loai="vien" rong bam={() => setXoa(false)} />
       </BangTruot>
     </Man>
   );

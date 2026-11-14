@@ -27,7 +27,7 @@ export type TenIcon = keyof typeof ICON;
 
 // ---------------------------------------------------------------- chữ, icon, mascot
 
-type Kieu = "thuong" | "dam" | "rat" | "den";
+type Kieu = "thuong" | "dam" | "dam7" | "rat" | "den";
 /** Tên miền (≥ 14 ký tự, đuôi toàn chữ cái như .com/.vn — không đụng số «1.000.000» hay mã «3f9a….c1d2…» để chép): chèn chỗ bẻ dòng vô hình (U+200B) sau mỗi
  *  dấu chấm — trong bong bóng hẹp dòng gãy ở «.» (và «-», trình duyệt / iOS tự bẻ sau gạch nối) thay vì cắt giữa chữ («scratch.mit.ed|u»). */
 const DUOI_TEP = /\.(pdf|png|jpe?g|webp|gif|heic|docx?|xlsx?|pptx?|zip|exe|apk|pkg|dmg|msi|txt|csv|json|md|html?)$/i;
@@ -176,13 +176,14 @@ export function The({ children, dem, sat, style, thu }: { children: ReactNode; d
 }
 
 type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
+// Nhãn trạng thái = `.tag` thiết kế 14/11: viên PHẲNG (không nổi) bo 11, chữ 12.5/800; bảng màu đúng các .tag.choi/.hoc/.cam/.sao của HTML chốt.
 const MAU_NHAN: Record<LoaiNhan, [string, string]> = {
-  ok: [M.chinhSoft, M.chinhInk], canh: [M.canhSoft, M.canh], loi: [M.loiSoft, M.loi], xam: [M.xamSoft, M.chu2], lam: [M.lamSoft, M.lam],
-  diem: [M.diemSoft, M.diemInk], tim: [M.timSoft, "#4b3cc4"],
+  ok: ["#dcebe6", M.chinhInk], canh: ["#f9e7d2", "#8a3c0c"], loi: [M.loiSoft, M.loi], xam: ["#ecebe7", "#3a403d"], lam: [M.lamSoft, M.lam],
+  diem: ["#fbecc0", "#6e4300"], tim: [M.timSoft, "#4b3cc4"],
 };
 export const Nhan = memo(function Nhan({ chu, loai = "ok", cham, ic }: { chu: string; loai?: LoaiNhan; cham?: boolean; ic?: TenIcon }) {
   return (
-    <View style={[s.nhan, { backgroundColor: MAU_NHAN[loai][0] }, KHOI.nho]}>
+    <View style={[s.nhan, { backgroundColor: MAU_NHAN[loai][0] }]}>
       {cham ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MAU_NHAN[loai][1] }} /> : null}
       {ic ? <Icon ten={ic} mau={MAU_NHAN[loai][1]} co={14} /> : null}
       <Text numberOfLines={1} ellipsizeMode="tail" style={{ flexShrink: 1, fontFamily: F.rat, fontSize: 12.5, color: MAU_NHAN[loai][1], lineHeight: 18 }}>{chu}</Text>
@@ -509,14 +510,16 @@ export function BongChat({ toi, noiDung, luc, style }: { toi?: boolean; noiDung:
 /** Ô soạn tin dính đáy cho màn chat (đặt trong `day` của Man để tránh bàn phím). */
 export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t: string) => void; gui: () => void; dangChay?: boolean; nhan: string }) {
   const co = !!gia.trim();
+  // thiết kế 14/11 (bm-cai-dat/11, bm-ca-nha/14): ô lõm nhập tin + nút gửi TRÒN THAN CHÌ 48 đứng riêng bên phải
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#e9e8e4", borderRadius: 26, paddingLeft: 18, minHeight: 52, boxShadow: BONG.lom }}>
-      <TextInput value={gia} onChangeText={doi} placeholder="Nhập tin nhắn…" placeholderTextColor={M.chu3} multiline maxLength={1000} accessibilityLabel={nhan}
-        style={{ flex: 1, fontFamily: F.thuong, fontSize: 16, color: M.chu, paddingVertical: 12, maxHeight: 120 }} />
-      <NhanMen onPress={gui} disabled={!co || dangChay} accessibilityRole="button" accessibilityLabel="Gửi" sang={!co} men={co ? MEN.ngoc : MEN.vien}
-        style={[{ width: 44, height: 44, borderRadius: 22, margin: 4, backgroundColor: co ? M.chinh : M.chinhSoft, alignItems: "center", justifyContent: "center" },
-          co ? { boxShadow: BONG.ngoc } : KHOI.vien]}>
-        <Icon ten="gui" mau={co ? "#fff" : M.chinhInk} />
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+      <View style={{ flex: 1, backgroundColor: "#e9e8e4", borderRadius: 26, paddingHorizontal: 18, minHeight: 52, boxShadow: BONG.lom, justifyContent: "center" }}>
+        <TextInput value={gia} onChangeText={doi} placeholder="Nhập tin nhắn…" placeholderTextColor={M.chu3} multiline maxLength={1000} accessibilityLabel={nhan}
+          style={{ fontFamily: F.thuong, fontSize: 16, color: M.chu, paddingVertical: 12, maxHeight: 120 }} />
+      </View>
+      <NhanMen onPress={gui} disabled={!co || dangChay} accessibilityRole="button" accessibilityLabel="Gửi" men={MEN.toi}
+        style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: M.nut, alignItems: "center", justifyContent: "center", boxShadow: BONG.toi, opacity: co ? 1 : 0.85 }}>
+        <Icon ten="gui" mau="#fff" />
       </NhanMen>
     </View>
   );
@@ -533,8 +536,9 @@ function NutChat() {
 }
 
 /** Bảng trượt từ đáy (kit .phu + .bang-truot): nền phía sau tối mờ, bấm nền để đóng. */
-export function BangTruot({ mo, dong, tieu, children, dauBang, giua }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
-  /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean }) {
+export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+  /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean;
+  /** thiết kế 14/11 .sheet .hinh: ô ngọc nhạt 76 bo 26 + icon 3D 48 giữa, tiêu đề 23/800 canh giữa */ hinh?: TenIcon }) {
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -542,7 +546,11 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua }: { mo: boo
       <View style={s.bangTruot}>
         <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "#d4d5d1", alignSelf: "center" }} />
         {dauBang}
-        <Chu kieu="rat" co={21} style={[{ marginTop: 4, letterSpacing: -0.3 }, giua && { textAlign: "center" }]}>{tieu}</Chu>
+        {hinh ? (
+          <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#e2efea",
+            backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}><Icon3D ten={hinh} co={48} /></View>
+        ) : null}
+        <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu>
         {children}
       </View>
       </KeyboardAvoidingView>
@@ -760,7 +768,7 @@ const s = StyleSheet.create({
   nutNho: { minHeight: 44, paddingHorizontal: 15, borderRadius: 22 },
   the: { backgroundColor: M.the, borderRadius: BO_CLAY.the, ...KHOI.the },
   theLe: { padding: 16 },
-  nhan: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", flexShrink: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, alignSelf: "flex-start" },
+  nhan: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", flexShrink: 1, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, alignSelf: "flex-start" },
   diemPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.diemSoft, borderRadius: 99, paddingLeft: 5, paddingRight: 13, paddingVertical: 4, alignSelf: "flex-start", ...KHOI.vien },
   bieuTron: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   nhom: { backgroundColor: M.the, borderRadius: BO_CLAY.the, overflow: "hidden", ...KHOI.the },

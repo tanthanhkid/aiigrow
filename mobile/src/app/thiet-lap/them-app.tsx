@@ -32,9 +32,9 @@ export default function ThemApp() {
     <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} ic="khien" />} />}
       day={<Nut chu="Xong" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/app"))} />}>
       <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu }}>{`Thêm app\ncho ${ten}`}</Text>
-      <View style={{ borderRadius: 26, backgroundColor: "#f7f6f3", padding: 16, gap: 10, ...KHOI.the }}>
+      <View style={{ borderRadius: 26, backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf3dc, #fbe9b8)", padding: 16, gap: 10, ...KHOI.the }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="tim_kiem" co={20} /><Chu kieu="rat" co={14.5} mau={M.chu2}>Gõ tên app trên máy con</Chu></View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, borderRadius: 26, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingLeft: 16, paddingRight: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, borderRadius: 26, backgroundColor: "#fffaf0", boxShadow: BONG.lom, paddingLeft: 16, paddingRight: 6 }}>
           <Text style={{ fontSize: 16 }}>🔍</Text>
           <TextInput value={go} onChangeText={setGo} autoFocus placeholder="Duolingo, Zoom, Khan Academy…" placeholderTextColor={M.chu3} accessibilityLabel="Tên app" autoCorrect={false}
             style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />

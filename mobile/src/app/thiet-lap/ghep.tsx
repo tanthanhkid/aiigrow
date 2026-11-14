@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
-import { KHOI, MEN } from "@/lib/clay";
+import { BONG, KHOI, MEN } from "@/lib/clay";
 import { layMaGhep, xemGhep, type KqGhep } from "@/lib/ghep-may";
 import { DauMan, DongTrangThai, HangChiaSe, KhoiTrangThaiGhep, LienKet, NutHoi } from "@/lib/lan-dau";
 import { MaQr } from "@/lib/qr";
@@ -94,11 +94,15 @@ export default function GhepMay() {
     <Man noi={noi} dau={<DauMan tieu={`Ghép máy của ${ten}`} bamLui={lui} phai={<NutHoi />} />}
       day={<>
         <BaoLoi loi={loi} />
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 24 }} accessibilityLiveRegion="polite">
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.chinh }} />
-          <Chu kieu="dam" co={13} mau={M.chinhInk}>Đang chờ máy con… ghép xong tự chuyển</Chu>
+        {/* thiết kế 01/03: viên lõm «● Đang chờ máy con…» rồi nút trắng «Để sau, ghép máy sau» */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}
+          accessibilityLiveRegion="polite">
+          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: M.chinh }} />
+          </View>
+          <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ flex: 1 }}>Đang chờ máy con… ghép xong tự chuyển</Chu>
         </View>
-        <LienKet chu="Để sau, ghép máy sau" bam={deSau} />
+        <Nut chu="Để sau, ghép máy sau" loai="vien" rong bam={deSau} />
       </>}>
       <View style={{ borderRadius: 32, backgroundColor: "#dcebe6", paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", gap: 6, ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={32} />

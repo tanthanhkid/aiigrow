@@ -10,7 +10,7 @@ import { datKhoa, datKhoaMay } from "./khoa-may";
 import { cachKhoa, cauKhoaMay, mayDangKhoa } from "./noi-1411";
 import { khoaTen, laWeb } from "./ui-bm3";
 import {
-  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, ChonMot, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
+  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
 } from "./ui";
 
 // ---------------------------------------------------------------- kiểu dữ liệu (docs/API.md «Thiết kế chốt 05/11»)
@@ -175,11 +175,11 @@ export function HangViec({ ic, mau, trai, tieu, phu, phai, bam, dau, nhanDoc }: 
   return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={nhanDoc} style={({ pressed }) => pressed && { opacity: 0.7 }}>{noi}</Pressable> : noi;
 }
 
-/** Tiêu đề mục trong thân màn (thiết kế: chữ đậm 17 + nút chữ «Tất cả ›» bên phải). */
+/** Tiêu đề mục trong thân màn (thiết kế 14/11 .muc: 15/800 #3a403d, lề trái 22 — 66 màn thống nhất) + nút chữ «Tất cả ›» bên phải. */
 export function TieuMuc({ chu, so, phai }: { chu: string; so?: number; phai?: { chu: string; bam: () => void } }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 4 }}>
-      <Chu kieu="rat" co={17} style={{ flexShrink: 1 }}>{chu}</Chu>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6 }}>
+      <Chu kieu="rat" co={15} mau={M.chu2} style={{ flexShrink: 1 }}>{chu}</Chu>
       {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: M.huy, alignItems: "center", justifyContent: "center" }}>
         <Chu kieu="rat" co={12} mau="#fff" so>{String(so)}</Chu></View> : null}
       <View style={{ flex: 1 }} />
@@ -257,52 +257,54 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   const dongBang = () => { setBoChon(new Set()); dong(); };
   const doiChon = (id: string) => setBoChon((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
-    <BangTruot mo={mo} dong={dongBang} tieu={`Khoá máy ${ten}?`}>
+    <BangTruot mo={mo} dong={dongBang} tieu={`Khoá máy ${ten}?`} hinh="khoa">
       {may.length ? (
-        <View style={{ gap: 8 }}>
-          {may.map((m) => {
+        // thiết kế .ds: một thẻ, mỗi máy một hàng (ô icon lõm · tên · trạng thái · ô tick ngọc 30)
+        <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+          {may.map((m, k) => {
             const x = dang?.[m.id];
             const on = m.dungChung ? cach?.kieu === "con" : !boChon.has(m.id);
             const kh = m.dungChung && !on ? "Máy dùng chung · chỉ khoá khi chọn đủ máy" : cauKhoaMay(m.khoaMay);
             return (
               <Pressable key={m.id} onPress={m.dungChung ? undefined : () => doiChon(m.id)} disabled={m.dungChung} accessibilityRole="checkbox"
                 accessibilityState={{ checked: on, disabled: m.dungChung }} accessibilityLabel={`Khoá ${ngan(m.ten)}`}
-                style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
                 <BieuTron ic={IC_MAY[m.nen]} mau="xam" />
                 <View style={{ flex: 1 }}>
                   <Chu kieu="rat">{ngan(m.ten)}</Chu>
-                  <Chu co={13} mau={x?.mo ? M.chinhInk : M.chu3}>{(m.dungChung && !on ? kh : x?.chu) ?? kh ?? (m.truc ? "Đang mở" : "Đang tắt · khoá khi máy mở lên")}</Chu>
+                  <Chu kieu="dam" co={12.5} mau={x?.mo ? M.chinhInk : "#565c59"}>{(m.dungChung && !on ? kh : x?.chu) ?? kh ?? (m.truc ? "Đang mở" : "Đang tắt · khoá khi máy mở lên")}</Chu>
                 </View>
-                {on ? <Icon ten="tick" co={18} mau={M.chinhInk} />
-                  : <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: M.chu3 }} />}
+                {/* ô tick ngọc 30 (thiết kế .chk); bỏ chọn ⇒ ô lõm trống */}
+                {on ? <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Icon ten="tick" co={16} mau="#fff" /></View>
+                  : <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: "#ecebe7", boxShadow: BONG.lom }} />}
               </Pressable>
             );
           })}
         </View>
       ) : null}
-      <Chu kieu="rat" co={15}>Khoá bao lâu?</Chu>
+      <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Khoá bao lâu?</Chu>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
         {lua.map((x) => {
           const on = x.gia === han;
           return (
             <Pressable key={x.gia} onPress={() => setHan(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }}
-              style={[{ flex: 1, minHeight: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-              <Chu kieu="rat" co={15} mau={on ? "#fff" : M.chu}>{x.chu}</Chu>
-              <Chu kieu="dam" co={12.5} mau={on ? "#fff" : M.chu3}>{cauDen(x.gia)}</Chu>
+              style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+              <Chu kieu="rat" co={16} mau={on ? "#fff" : M.chu}>{x.chu}</Chu>
+              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>{cauDen(x.gia)}</Chu>
             </Pressable>
           );
         })}
       </View>
       {/* thiết kế 05 chỉ vẽ 3 lựa chọn; giữ «Tới khi Ba Mẹ mở» (khoá không hạn — có từ trước, Trang chủ hiện «Khoá tới khi Ba Mẹ mở») dạng dòng nhỏ */}
-      <Pressable onPress={() => setHan("mo")} accessibilityRole="radio" accessibilityState={{ checked: han === "mo" }}
-        style={[{ minHeight: 48, borderRadius: 20, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-          han === "mo" ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-        <Chu kieu="rat" co={14.5} mau={han === "mo" ? "#fff" : M.chu}>Tới khi Ba Mẹ mở</Chu>
+      <Pressable onPress={() => setHan(han === "mo" ? "30" : "mo")} accessibilityRole="radio" accessibilityState={{ checked: han === "mo" }} hitSlop={4}
+        style={{ minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        {han === "mo" ? <Icon ten="tick" co={14} mau={M.chinhInk} /> : null}
+        <Chu kieu="rat" co={13.5} mau={M.chinhInk}>Khoá tới khi Ba Mẹ mở</Chu>
       </Pressable>
       <BaoLoi loi={loi} />
-      <Nut chu={`Khoá ${soChon > 1 ? `${soChon} máy` : "máy"} ${cauDen(han)}`} ic="khoa" loai="huy" rong dangChay={dangChay} tat={!cach} bam={khoa} />
-      <Nut chu="Thôi, để con chơi tiếp" loai="ma" rong bam={dongBang} />
+      <Nut chu={`Khoá ${soChon > 1 ? `${soChon} máy` : "máy"} ${cauDen(han)}`} ic="khoa" ic3d rong dangChay={dangChay} tat={!cach} bam={khoa} />
+      <Nut chu="Thôi, để con chơi tiếp" loai="vien" rong bam={dongBang} />
     </BangTruot>
   );
 }
@@ -323,18 +325,34 @@ export function BangThemGio({ mo, dong, con, ten, sao, phutDoiDuoc, conPhut, xon
     xong(`Đã cho ${ten} thêm ${phut} phút · còn ${r.quy.conPhut} phút hôm nay`, r.id, phut);
   });
   return (
-    <BangTruot mo={mo} dong={dong} tieu={`Cho ${ten} thêm giờ`}>
-      <Chu co={14.5} mau={M.chu2}>{coCon ? `Đang còn ${conPhut} phút · chỉ tính hôm nay` : "Chỉ tính cho hôm nay."}</Chu>
-      <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
+    <BangTruot mo={mo} dong={dong} tieu={`Cho ${ten} thêm giờ`} hinh="dongho">
+      <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>{coCon ? `Đang còn ${conPhut} phút · chỉ tính hôm nay` : "Chỉ tính cho hôm nay."}</Chu>
+      {/* thiết kế .chon: 3 ô lõm cao 76 — số 28/800 + «phút»; ô chọn ngọc */}
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }} accessibilityRole="radiogroup">
+        {[15, 30, 60].map((x) => {
+          const on = x === phut;
+          return (
+            <Pressable key={x} onPress={() => setPhut(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${x} phút`}
+              style={[{ flex: 1, height: 76, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+              <Chu kieu="rat" co={28} so mau={on ? "#fff" : M.chu} style={{ lineHeight: 30 }}>{String(x)}</Chu>
+              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>phút</Chu>
+            </Pressable>
+          );
+        })}
+      </View>
       {sao ? (
-        <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, padding: 16, borderRadius: 20, backgroundColor: M.diemSoft }, KHOI.vien]}>
-          <Chu co={14} mau={M.diemInk} style={{ flex: 1 }}>Con có <Chu kieu="rat" co={14} mau={M.diemInk}>{`${sao} sao`}</Chu>{phutDoiDuoc ? ` tự đổi ra ${phutDoiDuoc} phút được` : " tự đổi ra phút được"}</Chu>
-          <Icon3D ten="sao" co={24} mau={M.diemInk} />
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+          <Chu kieu="dam" co={13} mau="#565c59">Con có</Chu>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingVertical: 3, paddingLeft: 5, paddingRight: 9, borderRadius: 12, backgroundColor: "#fbecc0" }}>
+            <Icon3D ten="sao" co={16} /><Chu kieu="rat" co={13} mau="#6e4300">{`${sao} sao`}</Chu>
+          </View>
+          <Chu kieu="dam" co={13} mau="#565c59">{phutDoiDuoc ? `tự đổi ra ${phutDoiDuoc} phút được` : "tự đổi ra phút được"}</Chu>
         </View>
       ) : null}
       <BaoLoi loi={loi} />
       <Nut chu={coCon ? `Cho thêm ${phut} phút · còn ${conPhut! + phut}′` : `Cho thêm ${phut} phút`} rong dangChay={dangChay} bam={cho} />
-      <Nut chu="Thôi" loai="ma" rong bam={dong} />
+      <Nut chu="Thôi" loai="vien" rong bam={dong} />
     </BangTruot>
   );
 }
