@@ -44,7 +44,10 @@ export default function AnToanMay() {
     const xin = (m?.con ? cd?.yeuCau.filter((y) => y.child_id === m.con) ?? [] : [])
       .sort((a, b) => Number((b as { device_id?: string | null }).device_id === id) - Number((a as { device_id?: string | null }).device_id === id));
     const app = m ? ph?.ds.find((p) => p.may && ngan(p.may) === ngan(m.ten) && (!m.con || p.con === m.con)) ?? null : null;
-    return { m, con: m?.dungChung && m.nen === "windows" ? g.con : [], ct, xin, quy: qy?.quy ?? null, app, chu: !xem, xem, coMk };
+    // khoá riêng máy (khoaMay) chỉ có ở GET con/:id › may[] — máy dùng chung chưa gắn Con có trong may[] của MỌI Con ⇒ hỏi Con đầu tiên
+    const ctMay = m?.con ? ct : m && g.con[0] ? await bm.goi<ConCt>(`con/${g.con[0].id}`).catch(() => null) : null;
+    const km = ctMay?.may.find((x) => x.id === id)?.khoaMay ?? null;
+    return { m, con: m?.dungChung && m.nen === "windows" ? g.con : [], ct, xin, quy: qy?.quy ?? null, app, chu: !xem, xem, coMk, km };
   });
   const [mo, setMo] = useState<"khan" | "go" | "xoa" | "tai_may" | "ten" | "sua" | "khoa" | null>(null);
   const [phut, setPhut] = useState(30);
@@ -106,7 +109,7 @@ export default function AnToanMay() {
   const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
   const cheDo = d.ct?.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web";
   // khoá RIÊNG máy này (PR #253 may/:id/khoa) — trạng thái lấy từ GET con/:id › may[].khoaMay (máy dùng chung chưa có Con ⇒ không biết, ẩn)
-  const km = d.ct?.may.find((x) => x.id === id)?.khoaMay;
+  const km = d.km;
   const khoaRieng = mayDangKhoa(km);
   const cauKhoaRieng = cauKhoaMay(km);
   // khoá theo Con vẫn còn ⇒ mở khoá riêng xong máy VẪN khoá — nói rõ
@@ -181,7 +184,7 @@ export default function AnToanMay() {
           {!m.dangGo ? <Nut chu="Gỡ máy này" loai="huy" bam={() => setMo(m.daDongBo ? "go" : "xoa")} /> : null}
         </HaiNut>
       )}
-      {d.ct && m.con && khoaRieng && cauKhoaRieng ? (
+      {khoaRieng && cauKhoaRieng ? (
         <Bao loai="lam" ic="khoa" tieu={`${ngan} ${cauKhoaRieng.charAt(0).toLowerCase()}${cauKhoaRieng.slice(1)}`} loi="Chỉ máy này khoá — máy khác của con vẫn dùng bình thường.">
           <Nut chu={`Mở khoá ${ngan}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={moKhoaRieng} />
         </Bao>
@@ -331,7 +334,7 @@ export default function AnToanMay() {
           <View style={{ gap: 8 }}>
             {[...d.ct.may].sort((a, b) => Number(b.id === id) - Number(a.id === id)).map((x) => (
               <HangViec key={x.id} dau ic={IC_MAY[x.nen]} mau={x.id === id ? "do" : "xam"} tieu={x.ten.replace(/ của .*$/, "")}
-                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : cauKhoaMay(x.khoaMay) ?? "Dùng bình thường"}
+                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : conConKhoa ? `Đang khoá theo khoá của ${tenCon}` : cauKhoaMay(x.khoaMay) ?? "Dùng bình thường"}
                 phai={<Chu kieu="rat" co={13} mau={x.id === id ? M.loi : M.chu3}>{x.id === id ? "Sẽ khoá" : "Không đổi gì"}</Chu>} />
             ))}
           </View>

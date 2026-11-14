@@ -48,8 +48,9 @@ export function loiTraoLuon(ma: string, ten: string): string | null {
 
 /** Quà trong kho (`GET qua` — dòng bảng rewards) khớp mẫu thư viện `ma` cho Con: đang bật, áp cho mọi Con hoặc có Con này. */
 export type DongQua = { id: string; mau?: string | null; ten: string; loai: string; bat: boolean; ap_cho?: string[] | null };
-export const quaTrongKho = (ds: DongQua[], ma: string, ten: string, con?: string | null) =>
-  ds.find((x) => x.bat && (x.mau === ma || (!x.mau && x.ten.toLowerCase() === ten.toLowerCase())) && (!x.ap_cho || !con || x.ap_cho.includes(con))) ?? null;
+/** Quà cũ chưa có `mau` chỉ khớp khi CÙNG tên lẫn cùng loại (tránh trao nhầm quà tự đặt trùng tên). */
+export const quaTrongKho = (ds: DongQua[], ma: string, ten: string, con?: string | null, loai?: string | null) =>
+  ds.find((x) => x.bat && (x.mau === ma || (!x.mau && !!loai && x.loai === loai && x.ten.toLowerCase() === ten.toLowerCase())) && (!x.ap_cho || !con || x.ap_cho.includes(con))) ?? null;
 
 /** Hộp thư hỗ trợ (`GET admin/ho-tro`). */
 export type DongHoTro = { family_id: string; ten: string; tu: string; noi_dung: string; created_at: string; chua_tra_loi: boolean;

@@ -36,7 +36,7 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
   const tho = (d?.ds ?? []).map((x) => ({ ...x, gap: laGap(x) }));
   const ds = !cu ? tho : loc === "cho" ? tho.filter((x) => x.chua_tra_loi).sort((x, y) => x.created_at.localeCompare(y.created_at))
     : loc === "da_tra_loi" ? tho.filter((x) => !x.chua_tra_loi) : tho.filter((x) => x.cua_toi);
-  const soCho = d?.soCho ?? ds.filter((x) => x.chua_tra_loi).length;
+  const soCho = d?.soCho ?? tho.filter((x) => x.chua_tra_loi).length;
   const { gap, dangCho } = chiaHopThu(ds);
   const the = (x: Dong1, i: number) => {
     const p = phutCho(x), g = !!x.gap && p !== null;

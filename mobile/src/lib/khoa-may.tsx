@@ -27,7 +27,7 @@ export function cauMoTam(moTamDen: string | null | undefined, khoaDen?: string |
 /** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 6:30 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con).
  *  `hoanTac`: Hoàn tác «Mở lại máy» — máy chủ bật lại đúng khoá đang lưu (hạn + mốc mở tạm), không dựa dữ liệu màn (Ba Mẹ khác có thể vừa đổi). */
 export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, hoanTac = false) {
-  await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && hoanTac ? { hoanTac } : {}) });
+  await bm.goi(`con/${con}/khoa`, { ...thanKhoaMay(khoa, den), ...(khoa && hoanTac ? { hoanTac } : {}) });
 }
 
 /** «Mở lại máy» (trang chủ + Giờ dùng máy). Hoàn tác = máy chủ bật lại khoá đang lưu (hạn đã qua thì tự hết); lỗi thì báo. */

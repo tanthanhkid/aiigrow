@@ -73,6 +73,8 @@ function KetQua({ kq, conKhac }: { kq: KqXoa; conKhac: { id: string; ten: string
   const { bao, noi } = useHoanTac();
   const { lam, loi, dangChay } = useLam();
   const [daGan, setDaGan] = useState<Record<string, string>>({});
+  // đã bấm «Gỡ máy này» ⇒ thôi mời gắn máy đó cho Con khác (máy đang / đã gỡ)
+  const [daGo, setDaGo] = useState<ReadonlySet<string>>(new Set());
   const xong = veTrangChu;
   const ganCon = (may: string, con: { id: string; ten: string }) => lam(async () => {
     await bm.goi(`may/${may}/gan-con`, { con: con.id });
@@ -88,11 +90,12 @@ function KetQua({ kq, conKhac }: { kq: KqXoa; conKhac: { id: string; ten: string
       {may.map((m) => (
         <The key={m.id} style={{ gap: 8 }}>
           <Chu kieu="rat" co={16}>{m.ten}</Chu>
-          <Chu co={13.5} mau={M.chu2}>{daGan[m.id] ? `Giờ là máy của ${daGan[m.id]}` : "Máy dùng chung · bé dùng máy chọn tên mình khi vào"}</Chu>
-          {daGan[m.id] ? null : (
+          <Chu co={13.5} mau={M.chu2}>{daGan[m.id] ? `Giờ là máy của ${daGan[m.id]}` : daGo.has(m.id) ? "Đang gỡ — xem ở màn của máy này"
+            : "Máy dùng chung · bé dùng máy chọn tên mình khi vào"}</Chu>
+          {daGan[m.id] || daGo.has(m.id) ? null : (
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
               {conKhac.map((c) => <Nut key={c.id} chu={`Máy của ${c.ten}`} loai="vien" nho dangChay={dangChay} bam={() => ganCon(m.id, c)} />)}
-              <Nut chu="Gỡ máy này" loai="huy" nho bam={() => router.push({ pathname: "/may/[id]", params: { id: m.id, mo: "go" } })} />
+              <Nut chu="Gỡ máy này" loai="huy" nho bam={() => { setDaGo((s) => new Set(s).add(m.id)); router.push({ pathname: "/may/[id]", params: { id: m.id, mo: "go" } }); }} />
             </View>
           )}
         </The>

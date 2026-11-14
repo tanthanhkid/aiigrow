@@ -27,7 +27,7 @@ export default function QuaBaMeMua() {
     ]);
     const m = tv.nhom.flatMap((x) => x.ds).find((x) => x.ma === ma) ?? null;
     // quà (dòng rewards) đã ở kho của con ⇒ id để «Trao luôn»
-    const trongKho = m && kho ? quaTrongKho(kho.ds, m.ma, m.ten, con) : null;
+    const trongKho = m && kho ? quaTrongKho(kho.ds, m.ma, m.ten, con, m.loai) : null;
     return { m, c: g.con.find((x) => x.id === con) ?? null, sao: vi ? vi.sao ?? vi.soDu : null, baMe: quyen === "ba_me", trongKho };
   });
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();

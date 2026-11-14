@@ -55,7 +55,9 @@ test("tìm quà trong kho theo mẫu thư viện: đang bật, đúng Con", () =
     { id: "q3", mau: null, ten: "Đi ăn kem", loai: "dac_quyen", bat: true }];
   assert.equal(quaTrongKho(ds, "lego", "Bộ Lego", "c1")?.id, "q2");
   assert.equal(quaTrongKho(ds, "lego", "Bộ Lego", "c3"), null);
-  assert.equal(quaTrongKho(ds, "an_kem", "đi ăn kem", "c1")?.id, "q3");
+  assert.equal(quaTrongKho(ds, "an_kem", "đi ăn kem", "c1", "dac_quyen")?.id, "q3");
+  assert.equal(quaTrongKho(ds, "an_kem", "đi ăn kem", "c1", "qua"), null);
+  assert.equal(quaTrongKho(ds, "an_kem", "đi ăn kem", "c1"), null);
 });
 
 test("hộp thư hỗ trợ: «Chờ N′», chia Gấp / Đang chờ giữ thứ tự", () => {
