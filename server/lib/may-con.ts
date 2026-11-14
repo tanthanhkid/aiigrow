@@ -209,11 +209,13 @@ export const LENH_GO_TAY_APPLOCKER =
   "@($p.AppLockerPolicy.RuleCollection.ChildNodes | ?{ $_.Name -like 'AiiGrow: *' }) | %{ [void]$_.ParentNode.RemoveChild($_) }; " +
   "$f=\"$env:TEMP\\aiigrow-applocker.xml\"; $p.Save($f); Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop";
 
-export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" | null; cau: (ten: string) => string }> = {
+/** `lapPhut`: cùng máy (+ cùng bé) đã có sự kiện loại này trong N phút ⇒ chỉ ghi nhật ký, không báo lại (Con mở / đóng hộp nhiều lần). */
+export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" | null; cau: (ten: string) => string; lapPhut?: number }> = {
   lech_gio: { muc: "chu_y", cau: (t) => `Có dấu hiệu đổi giờ hệ thống trên ${t}` },
   thu_go: { muc: "nghiem_trong", cau: (t) => `Có người thử gỡ AiiGrow trên ${t}` },
   // 14/11 (con-ngay-thuong 24, con-cai-mac 60 — FR-01.05): Con bấm «Thoát AiiGrow…» ⇒ máy hỏi mã 6 số của Ba Mẹ; Ba Mẹ được báo ngay.
-  con_muon_thoat: { muc: "chu_y", cau: (t) => `Con muốn tắt / gỡ AiiGrow trên ${t} — cần mã của Ba Mẹ` },
+  //   Mở «Thoát AiiGrow…» nhiều lần liền ⇒ chỉ báo một lần mỗi 10 phút / máy / bé (máy cũng tự chặn lặp; đây là chốt cuối).
+  con_muon_thoat: { muc: "chu_y", cau: (t) => `Con muốn tắt / gỡ AiiGrow trên ${t} — cần mã của Ba Mẹ`, lapPhut: 10 },
   dung_dich_vu: { muc: "nghiem_trong", cau: (t) => `Dịch vụ AiiGrow trên ${t} bị dừng` },
   khay_tat: { muc: null, cau: (t) => `Biểu tượng AiiGrow trên ${t} bị tắt` },
   safe_mode: { muc: "chu_y", cau: (t) => `${t} vừa khởi động ở Chế độ an toàn` },
@@ -255,8 +257,10 @@ export async function nhanSuKien(may: May, con: string | null, ds: SuKienVao[]) 
     const luc = Number.isFinite(new Date(e.luc as string).getTime()) ? new Date(e.luc as string).toISOString() : null;
     let chiTiet: Record<string, unknown> = {};
     if (e.chiTiet && typeof e.chiTiet === "object" && JSON.stringify(e.chiTiet).length <= 2000) chiTiet = e.chiTiet as Record<string, unknown>;
-    await ghiSuKien(may.family_id, `may_${loai}`, { ...chiTiet, ma, luc }, { con, may: may.id });
-    if (dn.muc) await canhBao(may.family_id, `may_${loai}`, dn.muc, dn.cau(may.name), { con, may: may.id, khoa: `may_${loai}:${may.id}:${ma}`, chiTiet: { ...chiTiet, luc } });
+    const lap = !!dn.lapPhut && !!(await one(`select 1 from events where device_id = $1 and loai = $2 and child_id is not distinct from $3
+      and created_at > now() - make_interval(mins => $4::int)`, [may.id, `may_${loai}`, con, dn.lapPhut]));
+    await ghiSuKien(may.family_id, `may_${loai}`, { ...chiTiet, ma, luc, ...(lap ? { lap: true } : {}) }, { con, may: may.id });
+    if (dn.muc && !lap) await canhBao(may.family_id, `may_${loai}`, dn.muc, dn.cau(may.name), { con, may: may.id, khoa: `may_${loai}:${may.id}:${ma}`, chiTiet: { ...chiTiet, luc } });
     moi++;
   }
   return moi;

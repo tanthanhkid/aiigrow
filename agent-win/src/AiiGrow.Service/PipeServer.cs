@@ -23,6 +23,7 @@ public sealed class PipeServer : BackgroundService
 
     /// <summary>06/11 (L13): chọn tên + PIN, quên PIN, Ba Mẹ nhập mã, đổi bé / khoá lại.</summary>
     private readonly NguoiDungMay _nd;
+    private readonly ChanBaoLap _baoThoat = new();   // 14/11: «Thoát AiiGrow…» báo Ba Mẹ tối đa 1 lần / bé / 10 phút
 
     /// <summary>Mặc định: exe của tiến trình khách (GetNamedPipeClientProcessId) = AiiGrow.Tray.exe (hoặc bản cũ «.cu-…» lúc cập nhật) cùng
     /// thư mục với dịch vụ. Dịch vụ chạy ngoài thư mục cài (bản dev) ⇒ không kiểm (<see cref="KhayThat.LaBanDev"/>).</summary>
@@ -381,6 +382,8 @@ public sealed class PipeServer : BackgroundService
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con làm được" };
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với Ba Mẹ" };
+                var be = cfg.DangNhap?.ConId;
+                if (_baoThoat.DaBao(be, now) is { } st) return new PipeResponse { Ok = true, Status = st };   // vừa báo rồi — không báo lặp
                 var e = new SuKien { Loai = "con_muon_thoat", Luc = now.ToUniversalTime(), ChiTiet = new() { ["may"] = Environment.MachineName, ["tu"] = "khay" } };
                 try
                 {
@@ -389,6 +392,7 @@ public sealed class PipeServer : BackgroundService
                     cts.CancelAfter(TimeSpan.FromSeconds(8));
                     await api.SuKienAsync(new[] { e }, cts.Token);
                     _log.LogInformation("Con bấm «Thoát AiiGrow…»: đã báo Ba Mẹ");
+                    _baoThoat.Ghi(be, now, "da_bao");
                     return new PipeResponse { Ok = true, Status = "da_bao" };
                 }
                 catch (Exception ex) when (!ct.IsCancellationRequested)
@@ -397,6 +401,7 @@ public sealed class PipeServer : BackgroundService
                     try { var moi = _rt.Store.Update(c => c.Queue.Add(e)); if (moi != null) _rt.NapLaiConfig(moi); }
                     catch (Exception ex2) { _log.LogWarning("Không lưu được sự kiện con_muon_thoat: {m}", ex2.Message); }
                     _log.LogInformation("Con bấm «Thoát AiiGrow…»: chưa gửi được ({m}) — đã lưu chờ mạng", ex.Message);
+                    _baoThoat.Ghi(be, now, "cho_mang");
                     return new PipeResponse { Ok = true, Status = "cho_mang" };
                 }
             }

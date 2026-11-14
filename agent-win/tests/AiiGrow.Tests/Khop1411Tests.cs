@@ -94,4 +94,37 @@ public class Khop1411Tests
         Assert.Equal(2, t.Chuoi.Tuan[1].Thu);
         Assert.Null(HocVienView.Parse<HvTongQuan>("""{"soDu":1}""")!.Chuoi);
     }
+
+    [Fact]
+    public void Thoat_menu_chi_hien_o_phien_con_da_ghep_co_be_dung()
+    {
+        Assert.True(ThoatView.HienMenu(new TrayState { Paired = true, PhienCon = true, NguoiDung = LoaiNguoiDung.Con }));
+        Assert.False(ThoatView.HienMenu(new TrayState { Paired = false, PhienCon = true, NguoiDung = LoaiNguoiDung.Con }));
+        Assert.False(ThoatView.HienMenu(new TrayState { Paired = true, PhienCon = false, NguoiDung = LoaiNguoiDung.Con }), "tài khoản Ba Mẹ");
+        Assert.False(ThoatView.HienMenu(new TrayState { Paired = true, PhienCon = true, NguoiDung = LoaiNguoiDung.BaMe }), "Ba Mẹ đang dùng máy");
+        Assert.False(ThoatView.HienMenu(new TrayState { Paired = true, PhienCon = true, NguoiDung = LoaiNguoiDung.Chua }), "chưa ai vào");
+        Assert.False(ThoatView.HienMenu(null), "dịch vụ không trả lời");
+    }
+
+    [Fact]
+    public void Thoat_bao_Ba_Me_mot_lan_moi_be_moi_10_phut()
+    {
+        var c = new ChanBaoLap();
+        var t = new DateTimeOffset(2026, 11, 3, 19, 41, 0, TimeSpan.FromHours(7));
+        Assert.Null(c.DaBao("c1", t));
+        c.Ghi("c1", t, "da_bao");
+        Assert.Equal("da_bao", c.DaBao("c1", t.AddMinutes(9)));
+        Assert.Null(c.DaBao("c2", t.AddMinutes(1)), "bé khác vẫn được báo");
+        Assert.Null(c.DaBao("c1", t.AddMinutes(10)), "quá 10 phút báo lại");
+    }
+
+    [Fact]
+    public void Gioi_lam_moi_ngay_mot_lan_theo_be()
+    {
+        var m = new MungChuoi();
+        var c = Chuoi(5, false, false, true, true, true, true, true);
+        m.Ghi("c1", "2026-11-03");
+        Assert.False(ChuoiView.NenHien(c, m.DaMung("c1")));
+        Assert.True(ChuoiView.NenHien(c, m.DaMung("c2")), "bé thứ hai trên máy dùng chung vẫn được mừng");
+    }
 }

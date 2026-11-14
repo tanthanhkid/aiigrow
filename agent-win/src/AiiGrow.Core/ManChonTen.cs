@@ -184,6 +184,10 @@ public static class ThoatView
     public const string DaMo = "Ba Mẹ đang dùng máy";
     public const string DaMoPhu = "AiiGrow tạm thôi giới hạn. Xong việc Ba Mẹ bấm «Khoá lại».";
 
+    /// <summary>Menu «Thoát AiiGrow…» chỉ hiện khi dịch vụ trả trạng thái tươi, máy đã ghép, đây là phiên của Con và đang có bé dùng máy
+    /// (không hiện lúc Ba Mẹ đang dùng / chưa ai vào — ngang Mac ThoatMac.hienMenu).</summary>
+    public static bool HienMenu(TrayState? st) => st is { Paired: true, PhienCon: true } && st.NguoiDung == LoaiNguoiDung.Con;
+
     /// <summary>Viên ghi dưới ô mã theo kết quả báo Ba Mẹ: null = đang báo (ngọc); «da_bao» / «cho_mang» / lỗi (cam — thiết kế «.ghi.cam»). → (chữ, icon, cam).</summary>
     public static (string Chu, string Icon, bool Cam) ChipBao(bool? ok, string? status) => ok switch
     {
@@ -192,4 +196,24 @@ public static class ThoatView
         true => ("Ba Mẹ đã nhận thông báo", "chuong", true),   // thiết kế 24 / Mac 60: viên «.ghi.cam» (cam nhạt)
         false => ("Chưa báo được Ba Mẹ", "canh_bao", true),
     };
+}
+
+/// <summary>14/11: chặn báo lặp «Con muốn thoát AiiGrow» — mở hộp nhiều lần trong <see cref="Cach"/> chỉ gửi Ba Mẹ một lần mỗi bé
+/// (máy chủ cũng chặn lặp 10 phút — server/lib/may-con.ts SU_KIEN_MAY.con_muon_thoat.lapPhut).</summary>
+public sealed class ChanBaoLap
+{
+    public static readonly TimeSpan Cach = TimeSpan.FromMinutes(10);
+    private readonly Dictionary<string, (DateTimeOffset Luc, string Status)> _da = new();
+
+    /// <summary>Trạng thái lần báo trước (da_bao / cho_mang) nếu còn trong khoảng chặn; null = được gửi.</summary>
+    public string? DaBao(string? be, DateTimeOffset now) => _da.TryGetValue(be ?? "", out var x) && now - x.Luc < Cach ? x.Status : null;
+    public void Ghi(string? be, DateTimeOffset now, string status) => _da[be ?? ""] = (now, status);
+}
+
+/// <summary>14/11: «Giỏi lắm!» mỗi ngày một lần THEO BÉ (máy dùng chung: bé thứ hai vẫn được mừng).</summary>
+public sealed class MungChuoi
+{
+    private readonly Dictionary<string, string> _ngay = new();
+    public string? DaMung(string? be) => _ngay.TryGetValue(be ?? "", out var n) ? n : null;
+    public void Ghi(string? be, string ngay) => _ngay[be ?? ""] = ngay;
 }

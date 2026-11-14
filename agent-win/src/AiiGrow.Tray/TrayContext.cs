@@ -6,7 +6,7 @@ namespace AiiGrow.Tray;
 internal sealed class TrayContext : ApplicationContext
 {
     private readonly NotifyIcon _ni;
-    private readonly ToolStripMenuItem _statusItem, _retryItem, _hoiItem, _doiBeItem, _khoaLaiItem;
+    private readonly ToolStripMenuItem _statusItem, _retryItem, _hoiItem, _doiBeItem, _khoaLaiItem, _thoatItem;
     private const string ChuDongBo = "Đồng bộ ngay";
     /// <summary>App lạ đã tự gửi lời xin duyệt trong phiên khay — Con mở lại liên tục không gửi lặp (máy chủ cũng gộp lời xin chờ).</summary>
     private readonly HashSet<string> _daXin = new(StringComparer.OrdinalIgnoreCase);
@@ -57,7 +57,8 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", Anh3D.Icon("nha"), (_, _) => OpenApp(MucApp.HomNay)));
         menu.Items.Add("Xin Ba Mẹ thêm giờ…", Anh3D.Icon("gui"), (_, _) => OpenRequest());
         menu.Items.Add("Kiểm tra cập nhật", Anh3D.Icon("tai"), (_, _) => OpenCapNhat());
-        menu.Items.Add(ThoatView.Menu, Anh3D.Icon("khien"), (_, _) => OpenThoat());
+        _thoatItem = new ToolStripMenuItem(ThoatView.Menu, Anh3D.Icon("khien"), (_, _) => OpenThoat()) { Visible = false };   // ThoatView.HienMenu
+        menu.Items.Add(_thoatItem);
         menu.Items.Add(_hoiItem);
         // 06/11 (L13): máy dùng chung — «Đổi bé / Đăng xuất» khi bé đang dùng, «Khoá lại» khi Ba Mẹ đang dùng
         _doiBeItem = new ToolStripMenuItem("Đổi bé / Đăng xuất…", Anh3D.Icon("nguoi"), (_, _) => MoDoiBe()) { Visible = false };
@@ -182,6 +183,7 @@ internal sealed class TrayContext : ApplicationContext
         _ni.Text = KetNoiView.Tooltip(info, stateFresh ? _state : null, _at, DateTimeOffset.Now);
         _statusItem.Text = "● " + info.Dong;
         _hoiItem.Visible = !info.DungIconKetNoi;
+        _thoatItem.Visible = stateFresh && ThoatView.HienMenu(_state);   // dịch vụ không trả lời / Ba Mẹ đang dùng / chưa ai vào ⇒ ẩn
         PushApp();
     }
 
@@ -280,36 +282,38 @@ internal sealed class TrayContext : ApplicationContext
             _ => HopThemGio(kq, tq),
         };
         _ketQua = h;
-        h.FormClosed += (_, _) =>
+        h.FormClosed += (_, e) =>
         {
-            var dongX = !h.DaBam;
+            // chỉ coi là «bấm ×» khi người dùng đóng (không phải tắt máy / thoát app / khay tự đóng lúc đổi bé — DongLang) và máy không khoá
+            var dongX = !h.DaBam && e.CloseReason == CloseReason.UserClosing && !_state.Locked;
             h.Dispose();
             if (_ketQua == h) _ketQua = null;
             // 14/11 (con-ngay-thuong 14 → 25): đóng «Ba Mẹ duyệt rồi!» bằng × ⇒ «Giỏi lắm! N ngày liền» (mỗi ngày một lần)
-            if (dongX && kq.Loai == "duyet" && tq != null && ChuoiView.NenHien(tq.Chuoi, _ngayChuoi) && !_state.Locked) HienChuoi(tq, kq.Sao ?? 0);
+            if (dongX && kq.Loai == "duyet" && tq != null && ChuoiView.NenHien(tq.Chuoi, _mung.DaMung(_beId)) && !_state.Locked) HienChuoi(tq, kq.Sao ?? 0);
         };
         h.Show();
     }
 
-    private string? _ngayChuoi;   // ngày (giờ gia đình) đã hiện «Giỏi lắm!» — mỗi ngày một lần
+    private readonly MungChuoi _mung = new();   // ngày (giờ gia đình) đã hiện «Giỏi lắm!» — mỗi ngày một lần, theo từng bé
 
     /// <summary>«Giỏi lắm!» (con-ngay-thuong 25 them-jonn19rd, 428×400): Rob sao · «5 ngày liền!» · 7 ô ngày · Cấp (Mới lên!) → cấp sau · +N · «Tuyệt! Nhận N sao».</summary>
     private void HienChuoi(HvTongQuan tq, int vuaCong)
     {
         var c = tq.Chuoi!;
-        _ngayChuoi = c.Tuan[^1].Ngay;
+        _mung.Ghi(_beId, c.Tuan[^1].Ngay);
         var h = new KetQuaHop("Giỏi lắm!")
             .Rob("sao", c.SoNgay.ToString(), "ngày liền!", ChuoiView.Phu(c.SoNgay))
             .Tuan(c.Tuan)
             .Cap(tq.CapDo.Cap, ChuoiView.MoiLenCap(tq.CapDo, tq.TongKiem, vuaCong), vuaCong);
         h.Nut(vuaCong > 0 ? $"Tuyệt! Nhận {vuaCong} sao" : "Tuyệt!", true, "sao", () => OpenApp(MucApp.NhiemVu));
         _ketQua = h;
-        h.FormClosed += (_, _) =>
+        h.FormClosed += (_, e) =>
         {
-            var dongX = !h.DaBam;
+            // chỉ coi là «bấm ×» khi người dùng đóng (không phải tắt máy / thoát app / khay tự đóng lúc đổi bé — DongLang) và máy không khoá
+            var dongX = !h.DaBam && e.CloseReason == CloseReason.UserClosing && !_state.Locked;
             h.Dispose();
             if (_ketQua == h) _ketQua = null;
-            if (dongX) OpenApp(MucApp.HomNay);   // × ⇒ Hôm nay (thiết kế .xa → cmt-hom-nay)
+            if (dongX) OpenApp(MucApp.HomNay);   // người bấm × ⇒ Hôm nay (thiết kế .xa → cmt-hom-nay)
         };
         h.Show();
     }
@@ -566,6 +570,7 @@ internal sealed class TrayContext : ApplicationContext
         if (_app is { IsDisposed: false }) { _app.Hide(); _app.Dispose(); }
         _app = null;
         if (_ketQua is { IsDisposed: false }) _ketQua.DongLang();
+        if (_thoat is { IsDisposed: false }) _thoat.Close();   // «Cần mã của Ba Mẹ» của bé trước
         if (_nhac is { IsDisposed: false }) _nhac.Close();
         _warned5 = _warned1 = false;
         if (id != null) _ = HocVienTickAsync();

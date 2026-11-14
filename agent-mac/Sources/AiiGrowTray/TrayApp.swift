@@ -43,7 +43,8 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   var cuaSoBaMe: NSPanel?
   // 14/11: «Thoát AiiGrow…» ⇒ «Cần mã của Ba Mẹ» (con-cai-mac 60); «Giỏi lắm! N ngày liền» sau tin duyệt (con-ngay-thuong 25, mỗi ngày một lần).
   var cuaSoThoat: NSWindow?, cuaSoChuoi: NSWindow?
-  var ngayChuoi: String?
+  /// Ngày đã hiện «Giỏi lắm!» theo bé (máy dùng chung: bé thứ hai vẫn được mừng).
+  var mungChuoi: [String: String] = [:]
   var chuoiDaBam = false
 
   func applicationDidFinishLaunching(_ n: Notification) {
@@ -200,6 +201,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   /// Bé đang dùng đổi (vào / ra): bỏ dữ liệu của bé trước (sao, nhiệm vụ, tin, lời xin) — không hiện số của bé khác.
   func doiBeXong(moi t: TrangThai) {
     if cuaSoChuoi != nil { chuoiDaBam = true; cuaSoChuoi?.close() }   // «Giỏi lắm!» của bé trước: đóng lặng, không mở app
+    cuaSoThoat?.close()                                                  // «Cần mã của Ba Mẹ» của bé trước
     appCon.tq = nil; appCon.ch = nil; appCon.tin = nil; appCon.tinMoi = 0; appCon.phutChoi = nil
     appCon.viQua = nil; appCon.viQuaDaLuu = false; appCon.tenBe = t.beTen ?? t.tenCon ?? ""
     tinTheo = TinTracker(); xin.moi(); nhac = NhacGio()
@@ -247,8 +249,8 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   /// Tin «Ba Mẹ duyệt» vừa tới: chuỗi ≥ 2 ngày và hôm nay chưa chúc ⇒ «Giỏi lắm!» (thay bảng tin). true = đã hiện.
   func hienChuoi(vuaCong: Int) async -> Bool {
     guard cuaSoChuoi == nil, let d = await appCon.hoi("GET", "hoc-vien/tong-quan").0, let tq = HvTongQuan.doc(d),
-          ChuoiView.nenHien(tq.chuoi, daHienNgay: ngayChuoi), let c = tq.chuoi else { return false }
-    ngayChuoi = c.tuan.last?.ngay
+          ChuoiView.nenHien(tq.chuoi, daHienNgay: mungChuoi[model.tt?.beId ?? ""]), let c = tq.chuoi else { return false }
+    mungChuoi[model.tt?.beId ?? ""] = c.tuan.last?.ngay
     chuoiDaBam = false
     hienCuaSo(&cuaSoChuoi, "AiiGrow · Giỏi lắm!", GioiLamView(chuoi: c, cap: tq.capDo.cap,
       moiLen: ChuoiView.moiLenCap(tq.capDo, tongKiem: tq.tongKiem, vuaCong: vuaCong), sao: vuaCong,
@@ -344,9 +346,14 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         moApp(.nhiemVu)
       } else if !khoa {
         // 14/11 (con-ngay-thuong 25): Ba Mẹ vừa duyệt + chuỗi ≥ 2 ngày ⇒ «Giỏi lắm! N ngày liền» thay bảng tin
-        if let duyet = moi.last(where: { $0.loai == "duyet_nhiem_vu" }), await hienChuoi(vuaCong: ChuoiView.saoTrongTin(duyet.noi)) { return }
-        let (tieu, noi) = HocVienView.thongBaoTin(moi)
-        baoTinMoi(tieu, noi, muc: HocVienView.mucChoTin(moi))
+        // chỉ bỏ báo của tin duyệt đó — tin khác trong cùng lô vẫn báo
+        var conLai = moi
+        if let duyet = moi.last(where: { $0.loai == "duyet_nhiem_vu" }), await hienChuoi(vuaCong: ChuoiView.saoTrongTin(duyet.noi)) {
+          conLai.removeAll { $0.id == duyet.id }
+        }
+        guard !conLai.isEmpty else { return }
+        let (tieu, noi) = HocVienView.thongBaoTin(conLai)
+        baoTinMoi(tieu, noi, muc: HocVienView.mucChoTin(conLai))
       }
     }
   }
