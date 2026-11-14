@@ -79,9 +79,10 @@ export async function suaQua(fam: string, id: string, b: Record<string, unknown>
       v.mo_ta, v.hinh, v.ap_cho ? JSON.stringify(v.ap_cho) : null, v.loai]);
 }
 
+/** Lần CON đổi trong tháng — phiếu 0 sao («Trao luôn», traoLuon) là Ba Mẹ trao, không tính vào «tối đa / tháng». */
 async function soLanThang(t: Q, con: string, qua: string, tz: string, now: Date) {
   const ngay = gioDiaPhuong(now, tz).ngay;
-  return (await t<{ n: number }>(`select count(*)::int as n from redemptions where child_id = $1 and reward_id = $2 and trang_thai <> 'huy' and created_at >= $3`,
+  return (await t<{ n: number }>(`select count(*)::int as n from redemptions where child_id = $1 and reward_id = $2 and trang_thai <> 'huy' and diem > 0 and created_at >= $3`,
     [con, qua, dauNgayUtc(`${ngay.slice(0, 8)}01`, tz)]))[0].n;
 }
 

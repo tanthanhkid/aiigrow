@@ -99,13 +99,19 @@ test("khoá riêng máy dùng chung (chưa bé nào) vẫn khoá; Ba Mẹ đang 
   await q(`update devices set ba_me_den = now() + interval '10 minutes' where id = $1`, [chung.deviceId]);
   const may = (await one<any>(`select * from devices where id = $1`, [chung.deviceId]))!;
   assert.equal((await mc.taoPolicy(may, null, { gioMaySai: false })).khoaNgay, false, "Ba Mẹ đang dùng máy");
-  // máy riêng: Con khoá có hạn + máy khoá không hạn ⇒ khoaHetLuc theo Con
+  // máy riêng: Con khoá có hạn + máy khoá không hạn ⇒ không hạn (khoá máy giữ tới khi Ba Mẹ mở); máy có hạn muộn hơn ⇒ hạn của máy
   const rieng = await ghepMay(fam, a, "Laptop");
   const den = new Date(Date.now() + 3600_000);
   await mc.khoaNgay(fam, a, true, "x", den);
   await m(`may/${rieng.deviceId}/khoa`, { tok, body: { khoa: true } });
   const p = (await dv("dong-bo", { tok: rieng.token, body: {} })).body;
-  assert.deepEqual([p.khoaNgay, p.khoaHetLuc], [true, den.toISOString()]);
+  assert.deepEqual([p.khoaNgay, p.khoaHetLuc], [true, null]);
+  const denMay = new Date(Date.now() + 2 * 3600_000);
+  await m(`may/${rieng.deviceId}/khoa`, { tok, body: { khoa: true, den: denMay.toISOString() } });
+  assert.equal((await dv("dong-bo", { tok: rieng.token, body: {} })).body.khoaHetLuc, denMay.toISOString());
+  const denSom = new Date(Date.now() + 1800_000);
+  await m(`may/${rieng.deviceId}/khoa`, { tok, body: { khoa: true, den: denSom.toISOString() } });
+  assert.equal((await dv("dong-bo", { tok: rieng.token, body: {} })).body.khoaHetLuc, den.toISOString(), "hạn Con muộn hơn");
 });
 
 // ---------------------------------------------------------------- 1. xoá hồ sơ Con
@@ -209,4 +215,39 @@ test("admin/ho-tro: lọc cho / da_tra_loi / cua_toi, soCho, soGap, người g�
   } finally {
     if (cu === undefined) delete process.env.AIIGROW_ADMIN_ID; else process.env.AIIGROW_ADMIN_ID = cu;
   }
+});
+
+// ---------------------------------------------------------------- vòng review 1
+test("khoá riêng máy thắng ngoại lệ cả máy đang mở của Con (chỉ máy đó); phiên chơi trên máy khoá bị từ chối", async () => {
+  const { fam, a, tok } = await nha();
+  const m1 = await ghepMay(fam, a, "Laptop");
+  const m2 = await ghepMay(fam, a, "PC");
+  await q(`insert into grants(id, child_id, phut, ngoai_le, ngay, nguon, den) values ($1,$2,60,true,$3,'ngoai_le', now() + interval '1 hour')`,
+    [newId(), a, gioDiaPhuong(new Date(), "Asia/Ho_Chi_Minh").ngay]);
+  assert.equal((await dv("dong-bo", { tok: m1.token, body: {} })).body.windows.mode, "tu_do", "ngoại lệ cả máy mở");
+  await m(`may/${m1.deviceId}/khoa`, { tok, body: { khoa: true } });
+  const p1 = (await dv("dong-bo", { tok: m1.token, body: {} })).body;
+  assert.deepEqual([p1.khoaNgay, p1.ngoaiLe, p1.khoaLaiLuc, p1.windows.locked, p1.windows.mode], [true, [], null, true, "khoa"]);
+  assert.equal((await dv("dong-bo", { tok: m2.token, body: {} })).body.windows.mode, "tu_do", "máy khác vẫn theo ngoại lệ");
+  const { xetMoPhien } = await import("./phien.ts");
+  await q(`insert into app_rules(family_id, child_id, muc, ten, loai) values ($1,'','roblox.exe','Roblox','giai_tri')`, [fam]);
+  assert.equal((await xetMoPhien(a, "roblox.exe", { mayId: m1.deviceId })).lyDo, "ba_me_khoa");
+});
+
+test("Trao luôn không tính vào «tối đa / tháng» của con; xoá Con dọn khoá PIN; Con cuối còn máy dùng chung ⇒ 409", async () => {
+  const { fam, a, b, tok } = await nha();
+  const qd = newId();
+  await q(`insert into rewards(id, family_id, ten, loai, diem, toi_da_thang) values ($1,$2,'Kem','dac_quyen',1,1)`, [qd, fam]);
+  assert.equal((await m(`qua/${qd}/trao-luon`, { tok, body: { con: a } })).status, 200);
+  const { doiQua } = await import("./phan-thuong.ts");
+  const { dieuChinhTay } = await import("./vi.ts");
+  await dieuChinhTay(fam, a, 5, "test", "x");
+  assert.equal((await doiQua(a, qd)).trang_thai, "cho_trao", "con vẫn đổi được lần của mình");
+  await q(`insert into pin_sai(khoa, so_lan) values ($1, 3)`, [`pin:may1:${a}`]);
+  assert.equal((await m(`con/${a}/xoa`, { tok, body: { xacNhan: true } })).status, 200);
+  assert.equal((await q(`select 1 from pin_sai where khoa = $1`, [`pin:may1:${a}`])).length, 0);
+  const chung = await ghepMay(fam, null, "PC chung");
+  await q(`update devices set dung_chung = true where id = $1`, [chung.deviceId]);
+  const r = await m(`con/${b}/xoa`, { tok, body: { xacNhan: true } });
+  assert.deepEqual([r.status, r.body.error], [409, "con_may"]);
 });

@@ -699,4 +699,6 @@ export const SCHEMA_S3 = [
   // 14/11 «Khoá riêng máy này» (lib/khoa-may.ts): khoá MỘT máy, cùng khoá như children.cau_hinh ({khoa_ngay, khoa_den}) ⇒ taoPolicy gộp vào
   // Policy.khoaNgay sẵn có — agent mọi OS không phải phát lại.
   `alter table devices add column if not exists khoa_may jsonb not null default '{}'`,
+  // hộp thư hỗ trợ quản trị (ho-tro-admin.ts › dsHoTro): tin mới nhất / trả lời cuối theo gia đình
+  `create index if not exists ho_tro_fam_seq on ho_tro(family_id, seq)`,
 ];

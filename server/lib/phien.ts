@@ -8,7 +8,7 @@
 // Phút «thêm giờ» Ba Mẹ đã cho hôm nay (grants) được dùng TRƯỚC và không trừ điểm.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { NHOM_GIA, dangKhoa, lichCua, thamSo, type ThamSo } from "./cau-hinh.ts";
+import { NHOM_GIA, dangKhoa, lichCua, thamSo, type ThamSo, khoaMayHieuLuc } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, trongKhung } from "./gio.ts";
 import { ghiDiem, khoaCon, soDu } from "./vi.ts";
 import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
@@ -20,6 +20,13 @@ export type LyDoTuChoi = "khong_phai_giai_tri" | "bi_chan" | "chua_phan_loai" | 
   | "may_dang_choi" | "gio_hoc" | "het_gio";
 
 type BoiCanh = { fam: string; tz: string; ts: ThamSo; lich: ReturnType<typeof lichCua>; khoa: boolean };
+
+/** 14/11: máy của phiên đang «Khoá riêng máy này» (cau-hinh.ts › khoaMayHieuLuc). Không biết máy (app web) ⇒ false. */
+async function mayKhoaRieng(t: Q, mayId: string | null | undefined, now: Date) {
+  if (!mayId) return false;
+  return khoaMayHieuLuc((await t<{ khoa_may: Record<string, unknown> | null; ba_me_den: Date | null }>(
+    `select khoa_may, ba_me_den from devices where id = $1`, [mayId]))[0], now);
+}
 
 async function boiCanh(t: Q, con: string, now = new Date()): Promise<BoiCanh> {
   const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown> }>(
@@ -54,7 +61,7 @@ export async function xetMoPhien(con: string, mucTho: string, o: { gioMaySai?: b
   if (pl.loai === "chan") return { duoc: false, lyDo: "bi_chan" };
   if (pl.loai === "chua_phan_loai") return { duoc: false, lyDo: "chua_phan_loai" };
   if (pl.loai !== "giai_tri") return { duoc: false, lyDo: "khong_phai_giai_tri" };
-  if (b.khoa) return { duoc: false, lyDo: "ba_me_khoa" };
+  if (b.khoa || await mayKhoaRieng(t, o.mayId, now)) return { duoc: false, lyDo: "ba_me_khoa" };   // + khoá riêng máy (14/11)
   if (o.gioMaySai) return { duoc: false, lyDo: "gio_may_sai" };
   const g = gioDiaPhuong(now, b.tz);
   if (trongKhung(g.phut, b.lich.ngu)) return { duoc: false, lyDo: "gio_ngu" };
@@ -145,7 +152,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
     }
     const g = gioDiaPhuong(now, b.tz);
     let toiDa = p.toi_da_phut;
-    if (!ket && b.khoa) ket = "ba_me_khoa";
+    if (!ket && (b.khoa || await mayKhoaRieng(t, (p as { device_id?: string | null }).device_id, now))) ket = "ba_me_khoa";
     if (!ket && trongKhung(g.phut, b.lich.ngu)) ket = "gio_ngu";
     if (!ket && trongGioHoc(b.lich.hoc, g.thu, g.phut)) ket = "gio_hoc";
     if (!ket) {

@@ -5,7 +5,7 @@
 import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, khoaDen, khoaGoc, lichCua, moTamDen, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
+import { dangKhoa, khoaDen, khoaGoc, khoaMayHieuLuc, lichCua, moTamDen, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, dsLuat, phanLoai } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
@@ -120,7 +120,10 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   const ph = c ? await phienDang(c.id) : undefined;
   const qy = c ? await quyHomNay(c.id, now) : null;
   // khoá riêng máy (lib/khoa-may.ts) — Ba Mẹ đang dùng máy bằng mã (pin-be.ts › baMeMoMay) thì máy mở cho Ba Mẹ như mọi khoá khác
-  const mayKhoa = !(may.ba_me_den && new Date(may.ba_me_den).getTime() > now.getTime()) && dangKhoa(may.khoa_may, now);
+  const mayKhoa = khoaMayHieuLuc(may, now), conKhoa = dangKhoa(c?.cau_hinh, now);
+  // cả hai cùng khoá ⇒ hạn = hạn MUỘN hơn (một bên không hạn ⇒ không hạn); chỉ máy khoá ⇒ hạn của máy, không «mở tạm» của Con
+  const denMay = mayKhoa ? khoaDen(may.khoa_may, now) : null, denCon = khoaDen(c?.cau_hinh, now);
+  const khoaHetLuc = !mayKhoa ? denCon : !conKhoa ? denMay : denMay && denCon ? (Date.parse(denMay) > Date.parse(denCon) ? denMay : denCon) : null;
   return apMoHet({
     serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now), khoaDen(may.khoa_may, now)], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
@@ -128,8 +131,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai, nhom: l.loai === "giai_tri" ? l.nhom : null,
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
     // 14/11 «Khoá riêng máy này»: khoá của MÁY gộp vào cùng trường khoaNgay (agent mọi OS đã đọc) — khoá của Con thắng (giữ mở tạm / hạn của Con)
-    lich: lichCua(c?.lich as never), khoaNgay: dangKhoa(c?.cau_hinh, now) || mayKhoa,
-    khoaLaiLuc: moTamDen(c?.cau_hinh, now), khoaHetLuc: mayKhoa && !dangKhoa(c?.cau_hinh, now) ? khoaDen(may.khoa_may, now) : khoaDen(c?.cau_hinh, now),
+    lich: lichCua(c?.lich as never), khoaNgay: conKhoa || mayKhoa,
+    khoaLaiLuc: mayKhoa ? null : moTamDen(c?.cau_hinh, now), khoaHetLuc,
     soDu: c ? await soDu(c.id) : 0,
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
@@ -138,7 +141,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     cheDoChan, webLuonChan: WEB_LUON_CHAN,
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
-    ngoaiLe: c ? await ngoaiLeDangMo(c.id, now) : [],
+    // máy đang khoá riêng ⇒ ngoại lệ đang mở của Con (cấp cho cả các máy) không mở máy NÀY — khoá máy thắng (agent-windows: nlCaMay thắng khoaNgay)
+    ngoaiLe: c && !mayKhoa ? await ngoaiLeDangMo(c.id, now) : [],
   });
 }
 

@@ -7,7 +7,7 @@
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
 import { one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, thamSo, type ThamSo } from "./cau-hinh.ts";
+import { dangKhoa, khoaMayHieuLuc, thamSo, type ThamSo } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { chiTietBaoVe, type May } from "./gia-dinh.ts";
@@ -231,7 +231,7 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
       coMaOffline: coMaOffline(m.platform),   // app Ba Mẹ hiện «Mã mở khi mất mạng» theo cờ này (máy chủ cũ không gửi ⇒ chỉ Windows)
       // hạn «đang mở» thật của máy Windows (mở khẩn cấp hoặc thêm giờ đã duyệt) — app hiện «Đang mở tới …» + «Khoá lại ngay»
       // Con đang bị khoá thì cửa sổ không có tác dụng (khoá thắng — agent-windows) ⇒ không báo «Đang mở tới …»
-      moDen: coCuaSoThemGio(m.platform) && !(m.child_id && dangKhoa(cfgCon.get(m.child_id), now)) ? (await hanMoCuaMay(m, m.child_id, now))?.toISOString() ?? null : null,
+      moDen: coCuaSoThemGio(m.platform) && !(m.child_id && dangKhoa(cfgCon.get(m.child_id), now)) && !khoaMayHieuLuc(m, now) ? (await hanMoCuaMay(m, m.child_id, now))?.toISOString() ?? null : null,
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
       // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn

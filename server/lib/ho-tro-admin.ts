@@ -36,9 +36,15 @@ export async function dsHoTro(o: { loc?: string | null; toi?: string | null } = 
   // «Chờ trả lời»: gấp trước, rồi chờ lâu trước
   ds.sort((a, b) => Number(!!b.cho_tu) - Number(!!a.cho_tu) || Number(b.gap) - Number(a.gap) || (b.cho_phut ?? 0) - (a.cho_phut ?? 0));
   const loc = o.loc && (LOC_HO_TRO as readonly string[]).includes(o.loc) ? o.loc : null;
+  // số đếm trên CẢ hộp thư (không bị cắt bởi limit 200 của danh sách)
+  const dem = (await q<{ so_cho: number; so_gap: number }>(
+    `select count(*) filter (where cho_tu is not null)::int as so_cho, count(*) filter (where cho_tu <= $1)::int as so_gap
+       from (select (select min(x.created_at) from ho_tro x where x.family_id = h.family_id and x.tu = 'ba_me'
+                      and x.seq > coalesce((select max(y.seq) from ho_tro y where y.family_id = h.family_id and y.tu = 'aiilab'), 0)) as cho_tu
+               from (select distinct family_id from ho_tro) h) z`, [new Date(now.getTime() - GAP_PHUT * 60_000)]))[0];
   return {
     ds: !loc ? ds : ds.filter((x) => (loc === "cho" ? !!x.cho_tu : loc === "da_tra_loi" ? !x.cho_tu : x.cua_toi)),
-    soCho: ds.filter((x) => x.cho_tu).length, soGap: ds.filter((x) => x.gap).length,
+    soCho: dem?.so_cho ?? 0, soGap: dem?.so_gap ?? 0,
   };
 }
 

@@ -43,7 +43,7 @@ import { traoLuon } from "./phan-thuong.ts";
 import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, doiMatKhau, lienKetMxh } from "./dang-nhap-mxh.ts";
 // S2 thiết kế 05/11 (L4–L8): quyền 2 mức, chế độ chặn theo Con, thiết lập lần đầu, phiên ghép máy
 import { baMeTuToken } from "./auth.ts";
-import { chiBaMe, laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
+import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
 import { doiTenToi, loiMoiChoToi } from "./thanh-vien.ts";
 import { datAppChoPhep, datCheDoChan, luoiApp, TEN_CHE_DO_CHAN, WEB_CAM } from "./che-do-chan.ts";
 import { cheDoChanCua } from "./chan-co-ban.ts";
@@ -161,7 +161,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       await gd.conCua(fam, id);
       if (sau === "sua" && post) { await gd.suaCon(fam, id, b, bm.id); return json({ ok: true }); }
       // 14/11: xoá hồ sơ Con (chỉ quyền Ba Mẹ — trongGiupDuoc không có) — lib/xoa-con.ts
-      if (sau === "xoa" && post) { chiBaMe(bm, "xoá hồ sơ Con"); return json(await xoaCon(fam, id, b, bm.id)); }
+      if (sau === "xoa" && post) return json(await xoaCon(fam, id, b, bm.id));
       // L4: chế độ chặn theo Con (Mở hết / Chặn app & web) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
       if (sau === "che-do-chan" && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
