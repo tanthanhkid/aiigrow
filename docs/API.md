@@ -730,3 +730,4 @@ Cột mới: `usage.dau_luc`, `web_nhat_ky.dau_luc` (timestamptz — giờ con b
 
 «Sáng mai» = **6:30** (`server/lib/may-con.ts › SANG_MAI_PHUT`, trước 7:00) cho `con/:id/khoa {den: "sang"}` và `may/:id/khoa {den: "sang"}`.
 Phía app (chưa sửa — 2 agent khác đang làm màn): `mobile/src/lib/hang-ngay.tsx:221` («tới 7:00») và `mobile/src/lib/khoa-may.tsx:51` («mở lúc 7:00»), `:67` («tới 7:00 sáng»).
+App Ba Mẹ đã nối (logic thuần `mobile/src/lib/noi-1411.ts`, test `noi-1411.test.ts`): bảng «Khoá máy <Con>?» chọn từng máy (đủ máy ⇒ `con/:id/khoa`, một phần ⇒ `may/:id/khoa`), màn máy khoá / mở riêng (`may/[id].tsx`), xoá hồ sơ (`ho-so/[id]/xoa.tsx` — kết quả gắn máy dùng chung cho Con khác / gỡ), «Trao luôn» (`vi/qua-mua.tsx`, voucher ẩn nút), hộp thư (`admin-ho-tro.tsx` ?loc=).
