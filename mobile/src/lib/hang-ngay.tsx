@@ -7,7 +7,7 @@ import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet, type LuotCho, type MayCon, type YeuCau } from "./api";
 import { BONG, KHOI, MEN } from "./clay";
 import { datKhoa, datKhoaMay } from "./khoa-may";
-import { cachKhoa, cauKhoaMay } from "./noi-1411";
+import { cachKhoa, cauKhoaMay, mayDangKhoa } from "./noi-1411";
 import { khoaTen, laWeb } from "./ui-bm3";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, ChonMot, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
@@ -234,19 +234,28 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
     const den = han === "sang" ? "sang" : han === "mo" ? null : denLuc(han, luc)!;
     if (cach.kieu === "con") {
       await datKhoa(con, true, den);
-      dong();
+      dongBang();
       xong(`Đã khoá máy của ${ten} ${cauDen(han, luc)}`, () => datKhoa(con, false, null));
       return;
     }
-    const ids = cach.ids;
-    await Promise.all(ids.map((id) => datKhoaMay(id, true, den)));
-    dong();
-    const tenMay = may.filter((m) => ids.includes(m.id)).map((m) => ngan(m.ten)).join(", ");
-    xong(`Đã khoá ${tenMay} của ${ten} ${cauDen(han, luc)}`, async () => { await Promise.all(ids.map((id) => datKhoaMay(id, false))); });
+    // khoá riêng từng máy: máy nào lỗi thì báo, máy đã khoá vẫn có Hoàn tác; Hoàn tác trả lại khoá riêng CŨ (nếu có), không mở trắng
+    const truocDo = new Map(may.map((m) => [m.id, m.khoaMay]));
+    const kq = await Promise.allSettled(cach.ids.map((id) => datKhoaMay(id, true, den)));
+    const ok = cach.ids.filter((_, i) => kq[i].status === "fulfilled");
+    const hong = cach.ids.filter((_, i) => kq[i].status === "rejected");
+    if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
+    dongBang();
+    const tenCua = (ids: string[]) => may.filter((m) => ids.includes(m.id)).map((m) => ngan(m.ten)).join(", ");
+    xong(`Đã khoá ${tenCua(ok)} của ${ten} ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${tenCua(hong)}, thử lại` : ""}`, async () => {
+      await Promise.all(ok.map((id) => { const cu = truocDo.get(id);
+        return mayDangKhoa(cu) ? datKhoaMay(id, true, cu!.den ? new Date(cu!.den) : null) : datKhoaMay(id, false); }));
+    });
   });
+  // đóng bảng ⇒ lần mở sau chọn lại đủ máy (không giữ máy đã bỏ chọn lần trước)
+  const dongBang = () => { setBoChon(new Set()); dong(); };
   const doiChon = (id: string) => setBoChon((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
-    <BangTruot mo={mo} dong={dong} tieu={`Khoá máy ${ten}?`}>
+    <BangTruot mo={mo} dong={dongBang} tieu={`Khoá máy ${ten}?`}>
       {may.length ? (
         <View style={{ gap: 8 }}>
           {may.map((m) => {
@@ -290,7 +299,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
       </Pressable>
       <BaoLoi loi={loi} />
       <Nut chu={`Khoá ${soChon > 1 ? `${soChon} máy` : "máy"} ${cauDen(han)}`} ic="khoa" loai="huy" rong dangChay={dangChay} tat={!cach} bam={khoa} />
-      <Nut chu="Thôi, để con chơi tiếp" loai="ma" rong bam={dong} />
+      <Nut chu="Thôi, để con chơi tiếp" loai="ma" rong bam={dongBang} />
     </BangTruot>
   );
 }

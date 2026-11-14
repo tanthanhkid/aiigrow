@@ -31,7 +31,11 @@ function DanhSach({ chon }: { chon: (f: Dong1) => void }) {
 function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro) => void; chon: (f: Dong1) => void }) {
   const { d, loi, matMang, tai } = useTai(() => bm.goi<HopThu>(`admin/ho-tro?loc=${loc}`), `admin-ho-tro:${loc}`);
   useEffect(() => { const t = setInterval(tai, 15_000); return () => clearInterval(t); }, [tai]);
-  const ds = (d?.ds ?? []).map((x) => ({ ...x, gap: laGap(x) }));
+  // máy chủ cũ (trước PR #253) bỏ qua ?loc= và không có soCho ⇒ lọc + xếp tại máy như trước
+  const cu = !!d && d.soCho === undefined;
+  const tho = (d?.ds ?? []).map((x) => ({ ...x, gap: laGap(x) }));
+  const ds = !cu ? tho : loc === "cho" ? tho.filter((x) => x.chua_tra_loi).sort((x, y) => x.created_at.localeCompare(y.created_at))
+    : loc === "da_tra_loi" ? tho.filter((x) => !x.chua_tra_loi) : tho.filter((x) => x.cua_toi);
   const soCho = d?.soCho ?? ds.filter((x) => x.chua_tra_loi).length;
   const { gap, dangCho } = chiaHopThu(ds);
   const the = (x: Dong1, i: number) => {

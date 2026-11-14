@@ -35,6 +35,7 @@ test("lỗi xoá hồ sơ Con ⇒ câu dễ hiểu + lối đi tiếp", () => {
   assert.match(loiXoaCon("con_may", "Bảo Anh")!.cau, /Bảo Anh là bé cuối cùng/);
   assert.equal(loiXoaCon("con_thiet_bi_mang", "Bảo Anh")?.loi, "ho_tro");
   assert.match(loiXoaCon("con_thiet_bi_mang", "Bảo Anh")!.cau, /thiết bị lọc mạng/);
+  assert.equal(loiXoaCon("khong_thay", "Bảo Anh")?.loi, "ve");
   assert.equal(loiXoaCon("loi", "Bảo Anh"), null);
 });
 

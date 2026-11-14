@@ -27,11 +27,11 @@ export function cachKhoa(tatCa: string[], chon: Iterable<string>): { kieu: "con"
 }
 
 /** Lỗi `POST con/:id/xoa` ⇒ câu dễ hiểu + lối đi tiếp. null = để câu máy chủ. */
-export function loiXoaCon(ma: string, ten: string): { cau: string; loi: "may" | "ho_tro" | null } | null {
+export function loiXoaCon(ma: string, ten: string): { cau: string; loi: "may" | "ho_tro" | "ve" | null } | null {
   if (ma === "con_may") return { cau: `${ten} là bé cuối cùng trong nhà mà nhà vẫn còn máy đã ghép — các máy đó sẽ không còn bé nào để trông. Gỡ máy trước, hoặc thêm con khác rồi mới xoá hồ sơ.`, loi: "may" };
   if (ma === "con_thiet_bi_mang") return { cau: `${ten} còn thiết bị lọc mạng riêng (TV, máy chơi game…). Thiết bị này không dùng chung được nên cần xoá trước — nhắn AiiGrow để được giúp.`, loi: "ho_tro" };
   if (ma === "can_xac_nhan") return { cau: "Chưa xác nhận xoá — bấm lại «Xoá hồ sơ» nhé.", loi: null };
-  if (ma === "khong_thay") return { cau: `Hồ sơ ${ten} không còn — có thể người lớn khác vừa xoá.`, loi: null };
+  if (ma === "khong_thay") return { cau: `Hồ sơ ${ten} không còn — có thể người lớn khác vừa xoá.`, loi: "ve" };
   return null;
 }
 

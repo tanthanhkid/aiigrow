@@ -11,16 +11,19 @@ import { CAU_TRONG_GIUP, ManKetQua, quyenToi, type ConCt } from "@/lib/hang-ngay
 import { loiXoaCon } from "@/lib/noi-1411";
 import { Bao, BaoLoi, CanhGiua, ChoTai, Chu, M, Man, Nut, The, TickDong, useHoanTac, useLam, useTai } from "@/lib/ui";
 
+/** Hồ sơ đã xoá ⇒ bỏ cả ngăn xếp (không «quay lại» về /ho-so/<id> đã mất) rồi về Trang chủ. */
+const veTrangChu = () => { if (router.canDismiss()) router.dismissAll(); router.replace("/hom-nay"); };
+
 type KqXoa = { ok: true; ten: string; mayChuyenDungChung: { id: string; ten: string }[] };
 
 export default function XoaHoSo() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [con, q, g] = await Promise.all([bm.goi<ConCt>(`con/${id}`), quyenToi(), bm.goi<GiaDinh>("gia-dinh").catch(() => null)]);
-    return { con, xem: q === "trong_giup", conKhac: (g?.con ?? []).filter((x) => x.id !== id).map((x) => ({ id: x.id, ten: x.ten })) };
+    const [con, q, g] = await Promise.all([bm.goi<ConCt>(`con/${id}`), quyenToi(), bm.goi<GiaDinh>("gia-dinh")]);
+    return { con, xem: q === "trong_giup", conKhac: g.con.filter((x) => x.id !== id).map((x) => ({ id: x.id, ten: x.ten })) };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
-  const [loiXoa, setLoiXoa] = useState<{ cau: string; loi: "may" | "ho_tro" | null } | null>(null);
+  const [loiXoa, setLoiXoa] = useState<{ cau: string; loi: "may" | "ho_tro" | "ve" | null } | null>(null);
   const [kq, setKq] = useState<KqXoa | null>(null);
   const ve = () => (router.canGoBack() ? router.back() : router.replace(`/ho-so/${id}` as never));
   if (kq) return <KetQua kq={kq} conKhac={d?.conKhac ?? []} />;
@@ -45,6 +48,7 @@ export default function XoaHoSo() {
         {loiXoa.loi === "may" ? <Nut chu="Xem các máy" loai="vien" nho bam={() => router.push("/may")} /> : null}
         {loiXoa.loi === "may" ? <Nut chu="Thêm con" loai="vien" nho bam={() => router.push("/ho-so/them")} /> : null}
         {loiXoa.loi === "ho_tro" ? <Nut chu="Nhắn AiiGrow" loai="vien" nho bam={() => router.push("/ho-tro")} /> : null}
+        {loiXoa.loi === "ve" ? <Nut chu="Về trang chủ" loai="vien" nho bam={veTrangChu} /> : null}
         {loiXoa.loi === null ? <Nut chu="Thử lại" loai="vien" nho bam={xoa} /> : null}
       </Bao>
       <Nut chu="Giữ lại" loai="ma" rong bam={ve} />
@@ -69,7 +73,7 @@ function KetQua({ kq, conKhac }: { kq: KqXoa; conKhac: { id: string; ten: string
   const { bao, noi } = useHoanTac();
   const { lam, loi, dangChay } = useLam();
   const [daGan, setDaGan] = useState<Record<string, string>>({});
-  const xong = () => router.replace("/hom-nay");
+  const xong = veTrangChu;
   const ganCon = (may: string, con: { id: string; ten: string }) => lam(async () => {
     await bm.goi(`may/${may}/gan-con`, { con: con.id });
     setDaGan((s) => ({ ...s, [may]: con.ten }));

@@ -9,7 +9,7 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-rou
 import { View } from "react-native";
 import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu } from "@/lib/api";
 import { HangViec, IC_MAY, quyenToi, type ChoDuyetMoi, type ConCt, type QuyCon } from "@/lib/hang-ngay";
-import { datKhoaMay } from "@/lib/khoa-may";
+import { cauMoTam, conHan, datKhoaMay } from "@/lib/khoa-may";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
@@ -108,9 +108,12 @@ export default function AnToanMay() {
   // khoá RIÊNG máy này (PR #253 may/:id/khoa) — trạng thái lấy từ GET con/:id › may[].khoaMay (máy dùng chung chưa có Con ⇒ không biết, ẩn)
   const km = d.ct?.may.find((x) => x.id === id)?.khoaMay;
   const khoaRieng = mayDangKhoa(km);
+  const cauKhoaRieng = cauKhoaMay(km);
+  // khoá theo Con vẫn còn ⇒ mở khoá riêng xong máy VẪN khoá — nói rõ
+  const conConKhoa = !!d.ct?.khoaNgay && conHan(d.ct.khoaDen) && !cauMoTam(d.ct.moTamDen, d.ct.khoaDen);
   const moKhoaRieng = () => lam(async () => {
     await datKhoaMay(id, false);
-    bao(`Đã mở khoá ${ngan}`, () => { datKhoaMay(id, true, km?.den ? new Date(km.den) : null).then(tai, tai); }); await tai();
+    bao(conConKhoa ? `Đã bỏ khoá riêng ${ngan} — máy vẫn khoá theo khoá của ${tenCon}` : `Đã mở khoá ${ngan}`, () => { datKhoaMay(id, true, km?.den ? new Date(km.den) : null).then(tai, tai); }); await tai();
   });
   const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
   return (
@@ -178,8 +181,8 @@ export default function AnToanMay() {
           {!m.dangGo ? <Nut chu="Gỡ máy này" loai="huy" bam={() => setMo(m.daDongBo ? "go" : "xoa")} /> : null}
         </HaiNut>
       )}
-      {d.ct && m.con && khoaRieng ? (
-        <Bao loai="lam" ic="khoa" tieu={`${ngan} ${cauKhoaMay(km)!.charAt(0).toLowerCase()}${cauKhoaMay(km)!.slice(1)}`} loi="Chỉ máy này khoá — máy khác của con vẫn dùng bình thường.">
+      {d.ct && m.con && khoaRieng && cauKhoaRieng ? (
+        <Bao loai="lam" ic="khoa" tieu={`${ngan} ${cauKhoaRieng.charAt(0).toLowerCase()}${cauKhoaRieng.slice(1)}`} loi="Chỉ máy này khoá — máy khác của con vẫn dùng bình thường.">
           <Nut chu={`Mở khoá ${ngan}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={moKhoaRieng} />
         </Bao>
       ) : d.ct && m.con ? <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" loai="huy" rong bam={() => setMo("khoa")} /> : null}
