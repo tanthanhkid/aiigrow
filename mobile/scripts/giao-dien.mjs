@@ -79,8 +79,8 @@ export const DO = String.raw`(() => {
     // dòng chữ cũng cắt theo khung cuộn chứa nó: chữ đã cuộn ra ngoài ScrollView (khuất dưới thanh đầu) không đè được ảnh của thanh đầu
     // (báo nhầm 14/11: «Nay» của biểu đồ Báo cáo, cuộn hết, «đè» nút chat Grow ở thanh đầu cố định)
     const kc = khungCat(el);
-    for (const r0 of dongCua(n)) { const r = { left: Math.max(r0.left, kc.left), top: Math.max(r0.top, kc.top), right: Math.min(r0.right, kc.right), bottom: Math.min(r0.bottom, kc.bottom),
-      width: r0.width, height: r0.height }; if (r.right - r.left <= 0 || r.bottom - r.top <= 0) continue;
+    for (const r0 of dongCua(n)) { const r = { left: Math.max(r0.left, kc.left), top: Math.max(r0.top, kc.top), right: Math.min(r0.right, kc.right), bottom: Math.min(r0.bottom, kc.bottom) };
+      r.width = r.right - r.left; r.height = r.bottom - r.top; if (r.width <= 0 || r.height <= 0) continue;   // ngưỡng 15% tính trên phần THẤY của dòng
       for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
       const x = Math.min(r.right,q.right)-Math.max(r.left,q.left), y = Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
       if (x > 4 && y > 4 && x*y > 0.15*r.width*r.height) { const k='da'+chu+ten(a); if (!daBao.has(k)) { daBao.add(k); L.push({luat:'DE-ANH', chu, el:ten(el), anh: ten(a) + (a.src? ' '+a.src.split('/').pop().split('.')[0]:'' )}); } } } }

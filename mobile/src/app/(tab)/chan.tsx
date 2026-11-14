@@ -12,6 +12,9 @@ import { BONG, KHOI, MEN } from "@/lib/clay";
 import { HangLuonChan, HangVang, IC_CHE_DO, TEN_CHE_DO, gomTheoTen, icCuaApp, laWeb, lucNgan, luatCuaCon, type CheDoChan, type LuatApp } from "@/lib/ui-bm3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
+// Grow ở thẻ chế độ: cỡ + lệch phải; tên chế độ (25px) chừa phần Grow nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
+const ROB_CO = 104, ROB_PHAI = -4, CHUA_ROB = ROB_CO + ROB_PHAI - 16;
+
 export default function TabChan() {
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"), "tab:chan");
   const { con: conVao } = useLocalSearchParams<{ con?: string }>();
@@ -69,10 +72,10 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
         {/* thẻ lớn chế độ (.hero) — chế độ đang bật thấy đầu tiên, công tắc ngay trên thẻ */}
         <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI.the }}>
           <LinearGradient colors={["#cfe6de", "#e8f2ee"]} style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
-            <View pointerEvents="none" style={{ position: "absolute", right: -4, top: 56 }}><Rob ten={moHet ? "nghi" : "chi"} co={104} /></View>
+            <View pointerEvents="none" style={{ position: "absolute", right: ROB_PHAI, top: 56 }}><Rob ten={moHet ? "nghi" : "chi"} co={ROB_CO} /></View>
             <Chu kieu="dam" co={13} mau={M.chinhInk}>{`Máy của ${ten} đang ở chế độ`}</Chu>
             {/* chừa chỗ Grow (phải, từ top 56): tên chế độ 25px ở khổ 320 đè lên Grow (cổng DE-ANH) */}
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: 92 }} accessibilityRole="header">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB }} accessibilityRole="header">
               <Icon3D ten={IC_CHE_DO[cheDo]} co={32} />
               <Chu kieu="rat" co={25} style={{ letterSpacing: -0.5, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
             </View>
@@ -137,7 +140,7 @@ function TieuMuc({ chu, so }: { chu: string; so?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, marginHorizontal: 6, marginBottom: -4 }}>
       <Chu kieu="rat" co={15} mau={M.chu2}>{chu}</Chu>
-      {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: "#bf530a" /* #e2660f + chữ trắng 3.42:1 < 4.5 */ }}><Chu kieu="rat" co={12} mau="#fff">{String(so)}</Chu></View> : null}
+      {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: M.camDam /* #e2660f + chữ trắng 3.42:1 < 4.5 */ }}><Chu kieu="rat" co={12} mau="#fff">{String(so)}</Chu></View> : null}
     </View>
   );
 }

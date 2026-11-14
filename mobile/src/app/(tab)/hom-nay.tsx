@@ -26,7 +26,9 @@ import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 // Grow ở thẻ đầu: cỡ + lệch phải (âm = ló ra ngoài thẻ). Chữ chừa = phần Grow nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
-const ROB_CO = 116, ROB_PHAI = -6, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
+const ROB_CO = 116, ROB_PHAI = -6, ROB_TREN = 44, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
+// chip «đang làm gì» (cao 38) + lề trên thẻ 16 + khoảng 16 tới khối tiêu đề ⇒ khối tiêu đề bắt đầu ở 70 (đo từ mép thẻ)
+const CHIP_CAO = 38, TIEU_TU = 16 + CHIP_CAO + 16;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 /** «21:30» → phút trong ngày. */
@@ -161,16 +163,16 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
     <>
       {/* 1. thẻ con */}
       <The style={{ backgroundColor: M.chinhSoft, minHeight: 236, overflow: "visible" }}>
-        <View style={{ position: "absolute", right: ROB_PHAI, top: 44 }} pointerEvents="none"><Rob ten={khoa ? "nghi" : q?.dangNgu ? "ngu" : "chi"} co={ROB_CO} /></View>
+        <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><Rob ten={khoa ? "nghi" : q?.dangNgu ? "ngu" : "chi"} co={ROB_CO} /></View>
         <Pressable onPress={() => router.push((mayDang ? `/may/${mayDang.id}` : `/may?con=${conId}`) as never)} accessibilityRole="button"
-          style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 38, paddingLeft: 8, paddingRight: 12, borderRadius: 19, backgroundColor: M.the, maxWidth: "72%" }}>
+          style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: CHIP_CAO, paddingLeft: 8, paddingRight: 12, borderRadius: 19, backgroundColor: M.the, maxWidth: "72%" }}>
           {choi && !khoa ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.chinh }} /> : null}
           <Icon3D ten={chipIc} co={20} mau={M.chu2} />
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{`${chipChu} ›`}</Chu>
         </Pressable>
         {/* máy đang khoá: không có vạch quỹ ⇒ câu «Đang khoá · còn N phút chơi ›» (cả bề ngang) lên cao, ở khổ 320 đè Grow «nghi» (cổng DE-ANH)
-            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow (top 44 + 116 − chip 54 − lề 16) */}
-        <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_CO + 44 - 54 - 16 : undefined }}>
+            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow */}
+        <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_TREN + ROB_CO - TIEU_TU : undefined }}>
           {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
           {tieuLon ? <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
             : <Chu kieu="rat" co={40} so style={{ letterSpacing: -1 }}>{String(conPhut)}<Chu kieu="rat" co={18} mau={M.chu2}> phút</Chu></Chu>}

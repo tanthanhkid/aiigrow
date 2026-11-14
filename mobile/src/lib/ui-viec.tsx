@@ -27,7 +27,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
             <View style={[{ borderRadius: 34, padding: 3 }, on ? { borderWidth: 3, borderColor: M.chinh } : { borderWidth: 3, borderColor: "transparent" }]}>
               <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} />
               {n ? (
-                <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: "#bf530a",   // thiết kế #e2660f + chữ trắng 12px chỉ 3.42:1 (WCAG cần 4.5) ⇒ cam đậm hơn 4.71:1
+                <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.camDam,   // thiết kế #e2660f + chữ trắng 12px chỉ 3.42:1 (WCAG cần 4.5) ⇒ token cam đậm (≈5.2:1)
                   alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: M.nen }}>
                   <Chu kieu="rat" co={12} mau="#fff" so>{n}</Chu>
                 </View>
