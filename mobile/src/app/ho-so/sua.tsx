@@ -1,4 +1,4 @@
-// «Sửa hồ sơ <Con>» (thiết kế chốt 05/11, bm-hang-ngay/16): tên gọi, năm sinh, màu của con (avatar «mau-N», cùng bảng luồng Lần đầu).
+// «Sửa hồ sơ <Con>» (thiết kế chốt 14/11, bm-gio-ho-so/06 — giống 05/11): tên gọi, năm sinh, màu của con (avatar «mau-N», cùng bảng luồng Lần đầu).
 // Ảnh của con: hiện chỉ có «Chữ cái» — chụp / chọn ảnh chưa có ở máy chủ (lệch ghi trong PR M2). Lưu = POST con/:id/sua.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";

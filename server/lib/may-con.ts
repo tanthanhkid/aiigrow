@@ -25,7 +25,7 @@ import { ngoaiLeDangMo, quyHomNay, type NgoaiLeMo } from "./quy-gio.ts";
 export type DongBoVao = {
   status?: Record<string, unknown>;
   clientTime?: string | number;
-  usage?: { muc: string; phut: number; day?: string }[];
+  usage?: { muc: string; phut: number; day?: string; /** giờ bắt đầu dùng app trong ngày (ISO, tuỳ chọn) */ dauLuc?: string }[];
   conDangDung?: string | null;               // máy dùng chung: Con đang dùng (chọn tên — không còn PIN)
 };
 
@@ -61,9 +61,14 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       const tong = Math.max(0, Math.min(1440, Math.round(u.phut)));
       const khac = Number((await q<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from usage where device_id = $1 and ngay = $2 and muc = $3 and child_id <> $4`,
         [may.id, ngay, muc.slice(0, 200), con]))[0]?.p ?? 0);
-      await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,$5,$6)
-               on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai`,
-        [may.id, con, ngay, muc.slice(0, 200), pl.loai, Math.max(0, tong - khac)]);
+      // dau_luc (giờ con bắt đầu dùng app trong ngày — «đã dùng gì»): agent gửi `dauLuc` thì lấy; không thì giờ đồng bộ đầu tiên của HÔM NAY
+      // (dòng ngày cũ gửi bù khi máy offline ⇒ null, không đoán). Gửi lại nhiều lần ⇒ giữ giờ SỚM nhất.
+      const dl = u?.dauLuc ? new Date(String(u.dauLuc)) : null;
+      const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 300_000 ? dl : ngay === nay ? now : null;
+      await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6,$7)
+               on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai,
+                 dau_luc = least(coalesce(usage.dau_luc, excluded.dau_luc), coalesce(excluded.dau_luc, usage.dau_luc))`,
+        [may.id, con, ngay, muc.slice(0, 200), pl.loai, Math.max(0, tong - khac), dauLuc]);
     }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };

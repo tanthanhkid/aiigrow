@@ -1,13 +1,14 @@
-// bm1-may-ds / bm2-may-ds «Máy của X» (thiết kế chốt 04/11): mỗi máy một thẻ lớn — hình máy (icon 3D), tên, nhãn «✓ Đang bảo vệ» /
-// «! Chưa bảo vệ», một dòng trạng thái, liên kết «Xem máy ›» / «Sửa <máy> ›» (⇒ chi tiết /may/:id: chế độ, mở khẩn cấp, mã offline, gỡ).
-// Đáy: «+ Ghép thêm máy cho X» (⇒ /may/them) và «Khoá tất cả máy ngay» (bảng Khoá máy). Không có ?con ⇒ mọi máy trong nhà.
+// bm2-may-ds «Máy của X» (thiết kế chốt 14/11, bm-may-con/01): máy chia nhóm «Cần sửa N» (chưa bảo vệ — lên đầu) · «Đang bảo vệ N» · «Đang tắt N»;
+// mỗi máy một thẻ lớn — hình máy (icon 3D), tên, nhãn «✓ Đang bảo vệ» / «! Chưa bảo vệ», dòng app đang mở («● Roblox · đang mở») + chế độ
+// («Chặn app & web» / «Mở hết»), liên kết «Xem máy ›» / «Sửa <máy> ›» (⇒ /may/:id). Đáy: «+ Ghép thêm máy cho X» (⇒ /may/them),
+// «Khoá tất cả máy ngay» (bảng them-sll7clha — lib/hang-ngay › BangKhoaMay), câu «Giờ chơi tính chung mọi máy: còn N phút.» (N3). Không có ?con ⇒ mọi máy trong nhà.
 // Bỏ «Chặn thật / Giám sát» khỏi màn Ba Mẹ (L4 — máy luôn chặn thật). Dữ liệu: GET tuan-thu (+ GET con/:id khi có ?con).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm, type ConChiTiet, type TuanThuMay } from "@/lib/api";
+import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
-import { BangKhoa } from "@/lib/khoa-may";
+import { BangKhoaMay, type ConCt, type QuyCon } from "@/lib/hang-ngay";
 import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
 import { ChoTai, Chu, gioPhut, Icon, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai, type TenIcon } from "@/lib/ui";
 
@@ -35,50 +36,77 @@ export default function MayCuaCon() {
   const [khoa, setKhoa] = useState(false);
   const { bao, noi } = useHoanTac();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [tt, c] = await Promise.all([bm.goi<{ ds: TuanThuMay[] }>("tuan-thu"), con ? bm.goi<ConChiTiet>(`con/${con}`) : Promise.resolve(null)]);
-    return { ds: c ? tt.ds.filter((m) => m.con === c.id || m.dungChung) : tt.ds, c };
+    const [tt, c, qy, ph] = await Promise.all([bm.goi<{ ds: TuanThuMay[] }>("tuan-thu"), con ? bm.goi<ConCt>(`con/${con}`) : Promise.resolve(null),
+      con ? bm.goi<QuyCon>(`con/${con}/quy`).catch(() => null) : Promise.resolve(null), bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null)]);
+    return { ds: c ? tt.ds.filter((m) => m.con === c.id || m.dungChung) : tt.ds, c, quy: qy?.quy ?? null, phien: ph?.ds ?? [] };
   });
   const tieu = d?.c ? `Máy của ${d.c.ten}` : "Máy của các con";
   if (!d) return <Man dau={<DauMan ve="/hom-nay" />}><TieuDe chu={tieu} /><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const c = d.c;
-  // chưa bảo vệ lên trước (việc Ba Mẹ cần làm)
-  const ds = [...d.ds].sort((a, b) => Number(dangBaoVe(a) || trungTinh(a)) - Number(dangBaoVe(b) || trungTinh(b)));
+  const ngan = (t: string) => t.replace(/ của .*$/, "");
+  // app đang mở trên từng máy (phiên chơi đang chạy — khớp theo tên máy)
+  const appMo = (m: TuanThuMay) => d.phien.find((p) => p.may && (p.may === m.ten || ngan(p.may) === ngan(m.ten)) && (!c || p.con === c.id));
+  const cheDo = c?.cheDoChan === "mo_het" ? "Mở hết" : c ? "Chặn app & web" : null;
+  const canSua = d.ds.filter((m) => !dangBaoVe(m) && !trungTinh(m));
+  const baoVe = d.ds.filter(dangBaoVe);
+  const tat = d.ds.filter((m) => trungTinh(m) && !dangBaoVe(m));
+  const dang = Object.fromEntries((c?.may ?? []).map((m) => { const p = d.phien.find((x) => x.con === c?.id && x.may && ngan(x.may) === ngan(m.ten)); return [m.id, p ? { chu: `● ${p.tenApp} · đang mở`, mo: true } : null]; })
+    .filter((x) => x[1])) as Record<string, { chu: string; mo: boolean }>;
+  const nhom = (chu: string, ds: TuanThuMay[]) => ds.length ? (
+    <View key={chu} style={{ gap: 10 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginHorizontal: 4 }}>
+        <Chu kieu="rat" co={16}>{chu}</Chu>
+        <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}>
+          <Chu kieu="rat" co={12} mau={M.chu2} so>{String(ds.length)}</Chu>
+        </View>
+      </View>
+      {ds.map((m) => <TheMay key={m.id} m={m} app={appMo(m)?.tenApp ?? null} cheDo={cheDo} />)}
+    </View>
+  ) : null;
   return (
     <Man noi={noi} tai={tai} dau={<DauMan ve="/hom-nay" />}
       day={<>
         <Nut chu={c ? `+ Ghép thêm máy cho ${c.ten}` : "+ Ghép thêm máy"} rong bam={() => router.push({ pathname: "/may/them", params: c ? { con: c.id } : {} })} />
-        {c && ds.length ? (
+        {c && d.ds.length ? (
           <Pressable onPress={() => setKhoa(true)} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 44 }}>
             <Icon3D ten="khoa" co={20} /><Chu kieu="rat" co={14.5} mau={M.chu}>Khoá tất cả máy ngay</Chu>
           </Pressable>
         ) : null}
+        {c && d.quy && d.ds.length ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`Giờ chơi tính chung mọi máy: còn ${d.quy.conPhut} phút.`}</Chu> : null}
       </>}>
-      <TieuDe chu={tieu} phu={ds.length ? undefined : "Chưa có máy nào — ghép bằng mã 6 số, chưa tới 2 phút."} />
-      {ds.map((m) => {
-        const ok = dangBaoVe(m), tt = trungTinh(m);
-        return (
-          <Pressable key={m.id} onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${ok ? "đang bảo vệ" : "chưa bảo vệ"}`}>
-            <View style={{ flexDirection: "row", gap: 14, padding: 12, borderRadius: 28, backgroundColor: "#fff", ...KHOI.the }}>
-              <LopMen men={MEN.the} bo={28} />
-              <View style={{ width: 112, height: 112, borderRadius: 22, backgroundColor: NEN_O[m.nen], alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
-                <Icon3D ten={IC[m.nen]} co={78} />
-                {ok ? <View style={{ position: "absolute", right: 6, bottom: 6 }}><Icon3D ten="khien" co={36} /></View> : null}
-              </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 6, justifyContent: "center" }}>
-                <Chu kieu="rat" co={19} dong={1}>{m.ten}</Chu>
-                <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: ok ? M.chinhSoft : tt ? M.xamSoft : M.canhSoft }}>
-                  {ok ? <Icon ten="tick" mau={M.chinhInk} co={13} /> : tt ? null : <Chu kieu="rat" co={12.5} mau={M.canh}>!</Chu>}
-                  <Chu kieu="rat" co={12.5} mau={ok ? M.chinhInk : tt ? M.chu2 : M.canh}>{ok ? "Đang bảo vệ" : tt ? (m.trangThai === "tat_may" ? "Đang tắt" : "Chưa có báo cáo") : dangMo(m) ? "Đang mở" : "Chưa bảo vệ"}</Chu>
-                </View>
-                <Chu co={13} mau={M.chu2}>{cauTrangThai(m)}{m.dungChung ? " · máy dùng chung" : ""}</Chu>
-                <Chu kieu="rat" co={13.5} mau={ok || tt ? M.chinhInk : M.canh}>{ok || tt ? "Xem máy ›" : `Sửa ${m.ten} ›`}</Chu>
-              </View>
-            </View>
-          </Pressable>
-        );
-      })}
-      {!ds.length ? <LienKet chu="Máy của con cài AiiGrow ở đâu?" bam={() => router.push("/ho-tro")} /> : null}
-      {c ? <BangKhoa mo={khoa} dong={() => setKhoa(false)} con={c.id} ten={c.ten} xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} /> : null}
+      <TieuDe chu={tieu} phu={d.ds.length ? undefined : "Chưa có máy nào — ghép bằng mã 6 số, chưa tới 2 phút."} />
+      {nhom("Cần sửa", canSua)}
+      {nhom("Đang bảo vệ", baoVe)}
+      {nhom("Đang tắt", tat)}
+      {!d.ds.length ? <LienKet chu="Máy của con cài AiiGrow ở đâu?" bam={() => router.push("/ho-tro")} /> : null}
+      {c ? <BangKhoaMay mo={khoa} dong={() => setKhoa(false)} con={c.id} ten={c.ten} may={c.may} dang={dang}
+        xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} /> : null}
     </Man>
+  );
+}
+
+function TheMay({ m, app, cheDo }: { m: TuanThuMay; app: string | null; cheDo: string | null }) {
+  const ok = dangBaoVe(m), tt = trungTinh(m);
+  const ngan = m.ten.replace(/ của .*$/, "");
+  return (
+    <Pressable onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${ok ? "đang bảo vệ" : "chưa bảo vệ"}`}>
+      <View style={{ flexDirection: "row", gap: 14, padding: 12, borderRadius: 28, backgroundColor: "#fff", ...KHOI.the }}>
+        <LopMen men={MEN.the} bo={28} />
+        <View style={{ width: 112, height: 112, borderRadius: 22, backgroundColor: NEN_O[m.nen], alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+          <Icon3D ten={IC[m.nen]} co={78} />
+          {ok ? <View style={{ position: "absolute", right: 6, bottom: 6 }}><Icon3D ten="khien" co={36} /></View> : null}
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 6, justifyContent: "center" }}>
+          <Chu kieu="rat" co={19} dong={1}>{ngan}</Chu>
+          <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 99, backgroundColor: ok ? M.chinhSoft : tt ? M.xamSoft : M.canhSoft }}>
+            {ok ? <Icon ten="tick" mau={M.chinhInk} co={13} /> : tt ? null : <Chu kieu="rat" co={12.5} mau={M.canh}>!</Chu>}
+            <Chu kieu="rat" co={12.5} mau={ok ? M.chinhInk : tt ? M.chu2 : M.canh}>{ok ? "Đang bảo vệ" : tt ? (m.trangThai === "tat_may" ? "Đang tắt" : "Chưa có báo cáo") : dangMo(m) ? "Đang mở" : "Chưa bảo vệ"}</Chu>
+          </View>
+          {ok && app ? <Chu co={13} mau={M.chu2}><Chu kieu="rat" co={13} mau={M.chinhInk}>{`● ${app}`}</Chu> · đang mở</Chu> : null}
+          <Chu co={13} mau={M.chu2}>{ok ? `${cheDo ?? cauTrangThai(m)}${m.dungChung ? " · máy dùng chung" : ""}` : `${cauTrangThai(m)}${m.dungChung ? " · máy dùng chung" : ""}`}</Chu>
+          <Chu kieu="rat" co={13.5} mau={ok || tt ? M.chinhInk : M.canh}>{ok || tt ? "Xem máy ›" : `Sửa ${ngan} ›`}</Chu>
+        </View>
+      </View>
+    </Pressable>
   );
 }

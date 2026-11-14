@@ -1,4 +1,4 @@
-// «Giờ ngủ của <Con>» (thiết kế chốt 05/11, bm-hang-ngay/13): máy khoá lúc / mở lại lúc, lưu = POST con/:id/gio-choi {gioNgu}.
+// «Giờ ngủ của <Con>» (thiết kế chốt 14/11, bm-gio-ho-so/02): máy khoá lúc / mở lại lúc, lưu = POST con/:id/gio-choi {gioNgu}.
 // Giờ ngủ ở máy chủ áp MỌI ngày (lich.ngu không có ngày) ⇒ không có chip «Áp cho các ngày» của thiết kế (lệch ghi trong PR M2).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";

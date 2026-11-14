@@ -18,6 +18,8 @@ import { dieuChinhTay, lichSu, tomTatVi } from "./vi.ts";
 import { thanhTich } from "./thanh-tich.ts";
 import { baoCaoTuan, homNay } from "./bao-cao.ts";
 import { thoiGianManHinh } from "./man-hinh.ts";
+import { homNayDung } from "./hom-nay-dung.ts";
+import { nhatKyCaNha } from "./nhat-ky-ca-nha.ts";
 import { khoaNgay } from "./may-con.ts";
 import { dsCanhBao, dsSuKien, ghiSuKien } from "./nhat-ky.ts";
 import { newId } from "./db.ts";
@@ -175,7 +177,9 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
         b.hoanTac === true); return json({ ok: true }); }
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
-      if (sau === "bao-cao" && get) return json(await baoCaoTuan(fam, id));
+      if (sau === "bao-cao" && get) return json(await baoCaoTuan(fam, id, new Date(), new URL(req.url).searchParams.get("bay") === "1"));
+      // 14/11: «<Con> đã dùng gì» hôm nay — app/trang + giờ bắt đầu + máy + Chơi/Học, bị chặn hôm nay (lib/hom-nay-dung.ts)
+      if (sau === "hom-nay" && get) return json(await homNayDung(fam, id));
       if (sau === "man-hinh" && get) return json(await thoiGianManHinh(fam, id, Number(new URL(req.url).searchParams.get("lui")) || 0));
       if (sau === "thanh-tich" && get) return json(await thanhTich(id));
       // M6: mã liên kết AiiRob «<family_id>.<child_id>» Ba Mẹ dán vào AiiRob (webhook gửi lại giaDinh + con, xem lib/aiirob.ts)
@@ -396,7 +400,12 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
         .map((x) => ({ ...x, dinh_danh: hienDinhDanh(x.dinh_danh), laFacebook: x.dinh_danh.startsWith(TIEN_TO_FB) })) });
     if (d === "canh-bao" && get) return json({ ds: await dsCanhBao(fam) });
     if (p[0] === "canh-bao" && p[2] === "doc" && post) { await q(`update alerts set da_doc = true where id = $1 and family_id = $2`, [p[1], fam]); return json({ ok: true }); }
-    if (d === "nhat-ky" && get) return json({ ds: await dsSuKien(fam, new URL(req.url).searchParams.get("con")) });
+    // 14/11 «Nhật ký cả nhà»: ?ca-nha=1 [&con=&ngay=7] ⇒ câu đời thường + «cho ngoài quy tắc» (lib/nhat-ky-ca-nha.ts); không có ⇒ sự kiện thô như cũ
+    if (d === "nhat-ky" && get) {
+      const u = new URL(req.url).searchParams;
+      if (u.get("ca-nha") === "1") return json(await nhatKyCaNha(fam, { con: u.get("con") || null, ngay: Number(u.get("ngay")) || 7 }));
+      return json({ ds: await dsSuKien(fam, u.get("con")) });
+    }
     if (d === "cau-hinh" && get) return json({ thamSo: thamSo((await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [fam]))!.cau_hinh) });
     if (d === "cau-hinh" && post) {
       const moi = sachCauHinh(b);
