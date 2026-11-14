@@ -23,6 +23,8 @@ export default function ObGio() {
   const [tu, setTu] = useState(() => tl.quy != null && (!(QUY_CHIP as readonly number[]).includes(tl.quy) || (tl.cuoiTuan != null && tl.cuoiTuan !== cuoiTuanCua(tl.quy))));
   const [ngu, setNgu] = useState(tl.ngu ?? NGU_MAC_DINH);
   const [suaNgu, setSuaNgu] = useState<"tu" | "den" | null>(null);
+  const [nhap, setNhap] = useState(ngu);          // bảng giờ ngủ sửa bản nháp: chỉ «Lưu» (giờ khoá ≠ giờ mở) mới đổi giờ ngủ thật
+  const moNgu = (k: "tu" | "den") => { setNhap(ngu); setSuaNgu(k); };
   // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng quỹ / giờ ngủ đang có (mục Ba Mẹ đã chọn giữ nguyên; lỗi thì lần sau nạp lại)
   useFocusEffect(useCallback(() => {
     napCaiDatCon().then(() => {
@@ -88,7 +90,7 @@ export default function ObGio() {
         {(["tu", "den"] as const).map((k, i) => (
           <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {i ? <Chu kieu="rat" co={14} mau={M.chu2}>→</Chu> : null}
-            <Pressable onPress={() => setSuaNgu(k)} accessibilityRole="button" accessibilityLabel={k === "tu" ? `Máy khoá lúc ${ngu.tu}` : `Mở lại lúc ${ngu.den}`}
+            <Pressable onPress={() => moNgu(k)} accessibilityRole="button" accessibilityLabel={k === "tu" ? `Máy khoá lúc ${ngu.tu}` : `Mở lại lúc ${ngu.den}`}
               style={{ minHeight: 44, minWidth: 62, paddingHorizontal: 8, borderRadius: 14, backgroundColor: "#ebeae6", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
               <Chu kieu="rat" co={17} so>{gioGon(ngu[k])}</Chu>
             </Pressable>
@@ -106,12 +108,13 @@ export default function ObGio() {
             <Pressable key={k} onPress={() => setSuaNgu(k)} accessibilityRole="tab" accessibilityState={{ selected: suaNgu === k }}
               style={{ flex: 1, minHeight: 56, borderRadius: 18, alignItems: "center", justifyContent: "center", ...(suaNgu === k ? { backgroundColor: "#fff", ...KHOI.nho } : {}) }}>
               <Chu co={12.5} mau={M.chu3}>{k === "tu" ? "Máy khoá lúc" : "Mở lại lúc"}</Chu>
-              <Chu kieu="rat" co={19} so>{gioGon(ngu[k])}</Chu>
+              <Chu kieu="rat" co={19} so>{gioGon(nhap[k])}</Chu>
             </Pressable>
           ))}
         </View>
-        {suaNgu ? <BanhXeGio key={suaNgu} gio={ngu[suaNgu]} doi={(g) => { if (suaNgu) setNgu({ ...ngu, [suaNgu]: g }); }} /> : null}
-        <Nut chu={`Lưu giờ ngủ ${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} rong tat={ngu.tu === ngu.den} bam={() => { datTl({ ngu }); setSuaNgu(null); }} />
+        {suaNgu ? <BanhXeGio key={suaNgu} gio={nhap[suaNgu]} doi={(g) => { if (suaNgu) setNhap({ ...nhap, [suaNgu]: g }); }} /> : null}
+        {nhap.tu === nhap.den ? <Chu kieu="dam" co={13} mau={M.loi}>Giờ khoá máy phải khác giờ mở lại.</Chu> : null}
+        <Nut chu={`Lưu giờ ngủ ${gioGon(nhap.tu)} – ${gioGon(nhap.den)}`} rong tat={nhap.tu === nhap.den} bam={() => { setNgu(nhap); datTl({ ngu: nhap }); setSuaNgu(null); }} />
       </BangTruot>
     </Man>
   );

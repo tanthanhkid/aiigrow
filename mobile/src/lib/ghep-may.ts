@@ -24,7 +24,8 @@ export async function layMaGhep(con: string | null, giongMay: string | null, moi
   if (!moi && cu && Date.parse(cu.het) - Date.now() > 60_000) {
     // mã đã dùng (máy đã ghép) hoặc của phiên / gia đình khác (đổi tài khoản trên cùng thẻ) ⇒ lấy mã mới
     const g = await xemGhep(cu.ma).catch(() => null);
-    if (g && !g.daGhep && !g.hetHan && g.conGiay > 60) return cu;
+    // dùng lại mã còn hạn: số giây còn lại lấy theo máy chủ (đồng hồ máy Ba Mẹ có thể lệch)
+    if (g && !g.daGhep && !g.hetHan && g.conGiay > 60) return { ...cu, conGiay: g.conGiay };
   }
   const r = await bm.goi<KqGhep>("ghep-may", { ...(con ? { con } : {}), ...(giongMay ? { giongMay } : {}) });
   nho = { ...nho, [k]: r };

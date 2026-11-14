@@ -12,7 +12,8 @@ import { lichCua } from "./cau-hinh.ts";
 import { datAppChoPhep, datCheDoChan } from "./che-do-chan.ts";
 import { CHE_DO_CHAN, cheDoChanCua } from "./chan-co-ban.ts";
 import { APP_GOI_Y } from "./che-do-chan.ts";
-import { allowlistHieuLuc, datLuat, khoaSo } from "./luat-app.ts";
+import { allowlistHieuLuc, datLuat, khoaSo, xoaLuat } from "./luat-app.ts";
+import { kieuMuc } from "./chinh-sach.ts";
 import { laWebCam } from "./chan-co-ban.ts";
 import { tenMienSach } from "./web.ts";
 
@@ -56,8 +57,9 @@ const WEB_TOI_DA = 60;
 /** Kiểm + chuẩn hoá danh sách web Lần đầu: tên miền sạch, không thuộc nhóm luôn chặn, không trùng. → [{muc, tinhGio}]. */
 export function webLanDau(v: unknown): { muc: string; tinhGio: boolean }[] {
   if (!Array.isArray(v)) throw new LoiNghiepVu("thieu_web", "Gửi danh sách trang web");
+  if (v.length > WEB_TOI_DA) throw new LoiNghiepVu("qua_nhieu_web", `Chọn tối đa ${WEB_TOI_DA} trang web`);
   const ra = new Map<string, boolean>();
-  for (const x of v.slice(0, WEB_TOI_DA)) {
+  for (const x of v) {
     const o = (typeof x === "string" ? { muc: x } : x ?? {}) as { muc?: unknown; tinhGio?: unknown };
     const muc = tenMienSach(o.muc);
     if (!muc) throw new LoiNghiepVu("ten_mien_sai", `«${String(o.muc ?? "").slice(0, 60)}» không phải địa chỉ web (dạng ten.com)`);
@@ -90,11 +92,27 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
   const ngu = b.ngu ? await datGioNgu(conId, b.ngu) : null;
   const cheDo = b.cheDoChan !== undefined ? (await datCheDoChan(fam, conId, b.cheDoChan, nguoi)).cheDoChan : null;
   const app = b.apps !== undefined ? await tx((t) => datAppChoPhep(fam, conId, b.apps, nguoi, t)) : { daDat: [], choKhop: [] };
-  // trang web Ba Mẹ chọn: xanh «Vào thoải mái» (hoc, không trừ giờ chơi) / vàng «Tính giờ» (giai_tri) — N3; tên hiển thị = tên miền (ten = muc)
-  // trang hệ thống (luôn mở sẵn) bỏ qua — datLuat từ chối «he_thong»
-  const he = allowlistHieuLuc();
-  if (web?.length) await tx(async (t) => { for (const w of web) if (!khoaSo(w.muc).some((k) => he.includes(k))) await datLuat(fam, { con: conId, muc: w.muc, ten: w.muc, loai: w.tinhGio ? "giai_tri" : "hoc" }, t); });
-  await ghiSuKien(fam, "thiet_lap_lan_dau", { quy, ngu, che_do_chan: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: web?.length ?? 0 }, { con: conId, nguoi });
+  // trang web Ba Mẹ chọn: xanh «Vào thoải mái» (hoc, không trừ giờ chơi) / vàng «Tính giờ» (giai_tri) — N3; tên hiển thị = tên miền (ten = muc).
+  // Trang hệ thống (luôn mở sẵn) bỏ qua — datLuat từ chối «he_thong». Danh sách trang Lần đầu đã ghi giữ ở cau_hinh.web_lan_dau: gửi lại với
+  // con.id ⇒ gỡ luật trang ĐÃ bỏ tick (chỉ trang Lần đầu ghi — không đụng trang Ba Mẹ duyệt / xếp ở nơi khác).
+  let soWebGhi = 0;
+  if (web) {
+    const he = allowlistHieuLuc();
+    const ghi = web.filter((w) => !khoaSo(w.muc).some((k) => he.includes(k)));
+    soWebGhi = ghi.length;
+    await tx(async (t) => {
+      const cu = (await t<{ ds: unknown }>(`select cau_hinh->'web_lan_dau' as ds from children where id = $1`, [conId]))[0]?.ds;
+      const moi = new Set(ghi.map((w) => w.muc));
+      const bo = (Array.isArray(cu) ? cu.map(String) : []).filter((m) => !moi.has(m));
+      // chỉ gỡ khi luật vẫn là luật Lần đầu đã ghi (mở, ten = muc, không hạn) — Ba Mẹ đã đổi sang «Chặn» ở tab Chặn thì giữ
+      const con = bo.length ? await t<{ muc: string }>(`select muc from app_rules where family_id = $1 and child_id = $2 and muc = any($3::text[]) and loai <> 'chan'
+        and ten = muc and het is null`, [fam, conId, bo]) : [];
+      for (const r of con) await xoaLuat(fam, { con: conId, muc: r.muc }, t);
+      for (const w of ghi) await datLuat(fam, { con: conId, muc: w.muc, ten: w.muc, loai: w.tinhGio ? "giai_tri" : "hoc" }, t);
+      await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('web_lan_dau', $2::jsonb) where id = $1`, [conId, JSON.stringify([...moi])]);
+    });
+  }
+  await ghiSuKien(fam, "thiet_lap_lan_dau", { quy, ngu, che_do_chan: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: soWebGhi }, { con: conId, nguoi });
   return tomTatThietLap(fam, conId, app);
 }
 
@@ -103,9 +121,11 @@ export async function tomTatThietLap(fam: string, conId: string, app?: { daDat: 
   const c = await one<{ ten: string; che_do_chan: string | null; cau_hinh: Record<string, unknown>; lich: Record<string, unknown> }>(
     `select ten, che_do_chan, cau_hinh, lich from children where id = $1 and family_id = $2`, [conId, fam]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  // luật trang web (ten = muc — tên miền) đếm riêng ở soWeb, không cộng vào số app (thiết kế 14/11: app và web 2 màn)
-  const dem = (await one<{ app: number; web: number }>(`select count(distinct ten) filter (where ten <> muc)::int as app, count(*) filter (where ten = muc)::int as web
-    from app_rules where family_id = $1 and child_id = $2 and loai <> 'chan' and het is null`, [fam, conId]))!;
+  // Đếm app / web: luật web = mục dạng tên miền (kieuMuc «web») mà tên hiển thị chính là tên miền (trang Ba Mẹ chọn / duyệt). App có tên
+  // miền trong lưới (duolingo.com ⇒ «Duolingo») vẫn là app. Gói / .exe (kể cả luật duyệt «cai_app» có ten = muc) luôn là app.
+  const luat = await q<{ muc: string; ten: string }>(`select muc, ten from app_rules where family_id = $1 and child_id = $2 and loai <> 'chan' and het is null`, [fam, conId]);
+  const laWeb = (l: { muc: string; ten: string }) => l.ten === l.muc && kieuMuc(l.muc) === "web";
+  const dem = { app: new Set(luat.filter((l) => !laWeb(l)).map((l) => l.ten)).size, web: luat.filter(laWeb).length };
   const soApp = dem.app + (await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1 and khop_luc is null`, [conId]))!.n;
   const num = (v: unknown) => (typeof v === "number" ? v : null);
   return { conId, ten: c.ten, cheDoChan: cheDoChanCua(c.che_do_chan),

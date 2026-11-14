@@ -136,10 +136,12 @@ export function BongGrow({ tieu, phu, lv = "chi" }: { tieu: string; phu?: string
 
 /** Bỏ dấu, chữ thường — so chữ Ba Mẹ gõ với tên app / tên miền. */
 export const boDau = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").trim();
-/** «https://www.KhanAcademy.org/math?x» ⇒ «khanacademy.org»; không giống tên miền ⇒ null. */
+/** «https://www.KhanAcademy.org/math?x» ⇒ «khanacademy.org»; không giống tên miền / là IP ⇒ null. Trang luôn chặn do máy chủ kiểm (thiet-lap/kiem-web). */
+export const WEB_TOI_DA = 60;
 export const tenMien = (t: string) => {
   const s = t.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").split(/[/?#\s]/)[0];
-  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s) ? s : null;
+  // cùng luật máy chủ (server/lib/web.ts › tenMienSach): nhãn không bắt đầu/kết thúc bằng «-», ≤ 100 ký tự, không phải địa chỉ IP
+  return s.length <= 100 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(s) && !/^\d+(\.\d+)+$/.test(s) ? s : null;
 };
 
 /** Mục danh mục thuộc nhóm giải trí («Giải trí · Ba Mẹ cân nhắc») ⇒ tính vào giờ chơi (vàng «Tính giờ» — N3); nhóm khác dùng thoải mái. */

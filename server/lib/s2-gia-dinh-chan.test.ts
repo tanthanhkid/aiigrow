@@ -84,6 +84,21 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: ["khong phai web"] } })).body.error, "ten_mien_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Z" }, web: ["pornhub.com"] } })).body.error, "web_cam");
   assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "web sai không để lại Con");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: Array.from({ length: 61 }, (_, i) => `t${i}.vn`) } })).body.error, "qua_nhieu_web");
+  // gửi lại: trang đã bỏ tick bị gỡ (chỉ trang Lần đầu ghi); trang Ba Mẹ đổi sang «Chặn» ở nơi khác giữ nguyên
+  await q(`update app_rules set loai = 'chan' where child_id = $1 and muc = 'poki.com'`, [con]);
+  const w2 = await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: ["olm.vn"] } });
+  assert.equal(w2.body.soWeb, 1);
+  const con2 = await q<{ muc: string; loai: string }>(`select muc, loai from app_rules where child_id = $1 and muc in ('khanacademy.org','poki.com','olm.vn') order by muc`, [con]);
+  assert.deepEqual(con2.map((x) => [x.muc, x.loai]), [["olm.vn", "hoc"], ["poki.com", "chan"]]);
+  // luật app Ba Mẹ duyệt (cai_app) có ten = muc (mã gói) vẫn đếm là app, không phải web
+  await q(`insert into app_rules(family_id, child_id, muc, ten, loai) select family_id, id, 'com.vng.game', 'com.vng.game', 'giai_tri' from children where id = $1`, [con]);
+  const w3 = (await m(`con/${con}/thiet-lap`, { tok: bm })).body;
+  assert.deepEqual([w3.soApp, w3.soWeb], [5, 1]);
+  // kiểm một địa chỉ trước khi thêm (màn «Thêm web»)
+  assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "https://www.Vi.KhanAcademy.org/math" } })).body.muc, "vi.khanacademy.org");
+  assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "m.pornhub.com" } })).body.error, "web_cam");
+  assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "192.168.1.1" } })).body.error, "ten_mien_sai");
 });
 
 test("L8 phiên ghép: mã 6 số 10 phút + link bộ cài (không gắn loại máy) + QR + chia sẻ; máy mở link tự ghép ⇒ mã cũng hết dùng; «Đang chờ» thấy đã ghép", async () => {

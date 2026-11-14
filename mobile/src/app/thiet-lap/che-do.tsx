@@ -2,7 +2,7 @@
 //  · «Chặn app & web» (chi_app_duoc_phep — thiết kế ghi «Chỉ những gì Ba Mẹ chọn»; N2 đổi tên hiển thị) ⇒ Tiếp: App ⇒ Web ⇒ Ghép máy.
 //  · «Mở hết» (mo_het — thiết kế «Dùng tất cả») ⇒ không cần chọn app/web: lưu một lần (POST thiet-lap) rồi sang Ghép máy.
 // Đã chọn: tiêu đề theo tên chế độ N2 (luật «ở MỌI chỗ hiển thị»), câu giải thích lấy nguyên văn thiết kế 34.
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
@@ -24,9 +24,11 @@ export default function ObCheDo() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
   const [cheDo, setCheDo] = useState<CheDo>(tl.cheDoChan ?? "chi_app_duoc_phep");
+  const daBam = useRef(!!tl.cheDoChan);        // Ba Mẹ đã chọn (lần này hoặc trước) ⇒ chế độ nạp từ máy chủ không được đè
   const { lam, loi, dangChay } = useLam();
-  // đi lại Lần đầu cho Con đã có chế độ ⇒ hiện đúng chế độ đang có (Ba Mẹ đã chọn thì giữ)
-  useFocusEffect(useCallback(() => { napCaiDatCon().then(() => { const n = layTl().cheDoChan; if (n) setCheDo(n); }).catch(() => {}); }, []));
+  // đi lại Lần đầu cho Con đã có chế độ ⇒ hiện đúng chế độ đang có — chỉ khi Ba Mẹ chưa bấm chọn
+  useFocusEffect(useCallback(() => { napCaiDatCon().then(() => { const n = layTl().cheDoChan; if (n && !daBam.current) setCheDo(n); }).catch(() => {}); }, [setCheDo]));
+  const chon = (v: CheDo) => { daBam.current = true; setCheDo(v); };
   const tiep = () => {
     datTl({ cheDoChan: cheDo });
     if (cheDo === "chi_app_duoc_phep") { router.push("/thiet-lap/app"); return; }
@@ -49,7 +51,7 @@ export default function ObCheDo() {
         {O.map((o) => {
           const on = cheDo === o.v;
           return (
-            <Pressable key={o.v} onPress={() => setCheDo(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.tieu}: ${o.phu}. ${o.loi}`}
+            <Pressable key={o.v} onPress={() => chon(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.tieu}: ${o.phu}. ${o.loi}`}
               style={{ borderRadius: 26, padding: 16, gap: 10, backgroundColor: on ? "#f3faf7" : "#f7f6f3", ...KHOI.the, ...(on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.the}` } : {}) }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", ...(on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }) }}>
