@@ -46,7 +46,8 @@ internal sealed class TrayContext : ApplicationContext
     {
         // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
         var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
-        // Thiết kế chốt 05/11 (con-mat-mang 21): ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật · dòng chân.
+        // Thiết kế chốt 14/11 (con-mat-mang 13 them-g4d1cfk1): ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật
+        // · Thoát AiiGrow… (⇒ «Cần mã của Ba Mẹ», con-ngay-thuong 24) · dòng chân.
         // «Hỏi AiiGrow…» chỉ hiện khi mất mạng / AiiGrow lỗi (con-mat-mang 08–10).
         _statusItem = new ToolStripMenuItem("● " + _kn.Dong) { Enabled = false };
         _retryItem = new ToolStripMenuItem(ChuDongBo, Anh3D.Icon("lap"), async (_, _) => await RetryAsync());
@@ -56,6 +57,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", Anh3D.Icon("nha"), (_, _) => OpenApp(MucApp.HomNay)));
         menu.Items.Add("Xin Ba Mẹ thêm giờ…", Anh3D.Icon("gui"), (_, _) => OpenRequest());
         menu.Items.Add("Kiểm tra cập nhật", Anh3D.Icon("tai"), (_, _) => OpenCapNhat());
+        menu.Items.Add(ThoatView.Menu, Anh3D.Icon("khien"), (_, _) => OpenThoat());
         menu.Items.Add(_hoiItem);
         // 06/11 (L13): máy dùng chung — «Đổi bé / Đăng xuất» khi bé đang dùng, «Khoá lại» khi Ba Mẹ đang dùng
         _doiBeItem = new ToolStripMenuItem("Đổi bé / Đăng xuất…", Anh3D.Icon("nguoi"), (_, _) => MoDoiBe()) { Visible = false };
@@ -278,7 +280,37 @@ internal sealed class TrayContext : ApplicationContext
             _ => HopThemGio(kq, tq),
         };
         _ketQua = h;
-        h.FormClosed += (_, _) => { h.Dispose(); if (_ketQua == h) _ketQua = null; };
+        h.FormClosed += (_, _) =>
+        {
+            var dongX = !h.DaBam;
+            h.Dispose();
+            if (_ketQua == h) _ketQua = null;
+            // 14/11 (con-ngay-thuong 14 → 25): đóng «Ba Mẹ duyệt rồi!» bằng × ⇒ «Giỏi lắm! N ngày liền» (mỗi ngày một lần)
+            if (dongX && kq.Loai == "duyet" && tq != null && ChuoiView.NenHien(tq.Chuoi, _ngayChuoi) && !_state.Locked) HienChuoi(tq, kq.Sao ?? 0);
+        };
+        h.Show();
+    }
+
+    private string? _ngayChuoi;   // ngày (giờ gia đình) đã hiện «Giỏi lắm!» — mỗi ngày một lần
+
+    /// <summary>«Giỏi lắm!» (con-ngay-thuong 25 them-jonn19rd, 428×400): Rob sao · «5 ngày liền!» · 7 ô ngày · Cấp (Mới lên!) → cấp sau · +N · «Tuyệt! Nhận N sao».</summary>
+    private void HienChuoi(HvTongQuan tq, int vuaCong)
+    {
+        var c = tq.Chuoi!;
+        _ngayChuoi = c.Tuan[^1].Ngay;
+        var h = new KetQuaHop("Giỏi lắm!")
+            .Rob("sao", c.SoNgay.ToString(), "ngày liền!", ChuoiView.Phu(c.SoNgay))
+            .Tuan(c.Tuan)
+            .Cap(tq.CapDo.Cap, ChuoiView.MoiLenCap(tq.CapDo, tq.TongKiem, vuaCong), vuaCong);
+        h.Nut(vuaCong > 0 ? $"Tuyệt! Nhận {vuaCong} sao" : "Tuyệt!", true, "sao", () => OpenApp(MucApp.NhiemVu));
+        _ketQua = h;
+        h.FormClosed += (_, _) =>
+        {
+            var dongX = !h.DaBam;
+            h.Dispose();
+            if (_ketQua == h) _ketQua = null;
+            if (dongX) OpenApp(MucApp.HomNay);   // × ⇒ Hôm nay (thiết kế .xa → cmt-hom-nay)
+        };
         h.Show();
     }
 
@@ -331,6 +363,22 @@ internal sealed class TrayContext : ApplicationContext
             .Dau("phao_hoa", KhoiCon.Mau.Ngoc, "Ba Mẹ cho thêm giờ!", null)
             .Chip($"+{kq.Phut} phút", false, con is double c ? "Giờ chơi còn " + AppConView.Phut(c) : null)
             .Nut(con is double c2 ? $"Chơi tiếp {AppConView.Phut(c2)}" : "Chơi tiếp", true, "game", null);
+    }
+
+    private ThoatForm? _thoat;
+
+    /// <summary>«Thoát AiiGrow…» (14/11, con-ngay-thuong 24): hộp «Cần mã của Ba Mẹ» — một hộp một lúc. Đúng mã ⇒ «Ba Mẹ đang dùng máy».</summary>
+    internal void OpenThoat()
+    {
+        if (_thoat is { IsDisposed: false }) { _thoat.Activate(); return; }
+        _thoat = new ThoatForm();
+        _thoat.DaMo += r =>
+        {
+            if (r.State != null) ApDungTrangThai(r.State);
+            Toast(6000, ThoatView.DaMo, ThoatView.DaMoPhu, ToolTipIcon.Info, MucApp.HomNay);
+        };
+        _thoat.FormClosed += (_, _) => { _thoat?.Dispose(); _thoat = null; };
+        _thoat.Show();
     }
 
     private CapNhatKhayForm? _capNhat;

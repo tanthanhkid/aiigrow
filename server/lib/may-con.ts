@@ -212,6 +212,8 @@ export const LENH_GO_TAY_APPLOCKER =
 export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" | null; cau: (ten: string) => string }> = {
   lech_gio: { muc: "chu_y", cau: (t) => `Có dấu hiệu đổi giờ hệ thống trên ${t}` },
   thu_go: { muc: "nghiem_trong", cau: (t) => `Có người thử gỡ AiiGrow trên ${t}` },
+  // 14/11 (con-ngay-thuong 24, con-cai-mac 60 — FR-01.05): Con bấm «Thoát AiiGrow…» ⇒ máy hỏi mã 6 số của Ba Mẹ; Ba Mẹ được báo ngay.
+  con_muon_thoat: { muc: "chu_y", cau: (t) => `Con muốn tắt / gỡ AiiGrow trên ${t} — cần mã của Ba Mẹ` },
   dung_dich_vu: { muc: "nghiem_trong", cau: (t) => `Dịch vụ AiiGrow trên ${t} bị dừng` },
   khay_tat: { muc: null, cau: (t) => `Biểu tượng AiiGrow trên ${t} bị tắt` },
   safe_mode: { muc: "chu_y", cau: (t) => `${t} vừa khởi động ở Chế độ an toàn` },

@@ -156,12 +156,40 @@ public static class ManChonTenView
         st.DangGui = false;
         if (ok) { VeDau(st); return; }
         st.So = "";
-        st.Loi = status switch
-        {
-            "ma_sai" => conLan is int n ? $"Mã chưa đúng · còn {n} lần thử" : "Mã chưa đúng — xem lại trong app Ba Mẹ nhé.",
-            "ma_tam_khoa" => $"Nhập sai nhiều lần — đợi {Math.Max(1, ((choGiay ?? 600) + 59) / 60)} phút rồi thử lại.",
-            "ma_da_dung" => "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới.",
-            _ => string.IsNullOrWhiteSpace(loi) ? "Chưa mở được. Thử lại nhé." : loi,
-        };
+        st.Loi = CauLoiMa(status, conLan, choGiay, loi);
     }
+
+    /// <summary>Câu lỗi khi mã 6 số của Ba Mẹ chưa mở được (dùng chung «Ba Mẹ nhập mã» và «Thoát AiiGrow…»).</summary>
+    public static string CauLoiMa(string? status, int? conLan, int? choGiay, string? loi) => status switch
+    {
+        "ma_sai" => conLan is int n ? $"Mã chưa đúng · còn {n} lần thử" : "Mã chưa đúng — xem lại trong app Ba Mẹ nhé.",
+        "ma_tam_khoa" => $"Nhập sai nhiều lần — đợi {Math.Max(1, ((choGiay ?? 600) + 59) / 60)} phút rồi thử lại.",
+        "ma_da_dung" => "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới.",
+        _ => string.IsNullOrWhiteSpace(loi) ? "Chưa mở được. Thử lại nhé." : loi,
+    };
+}
+
+/// <summary>
+/// 14/11 «Con định tắt/gỡ AiiGrow» (docs/thiet-ke-chot/con-ngay-thuong 24 them-8ae0e45r — FR-01.05): menu khay «Thoát AiiGrow…» ⇒ hộp «Cần mã của Ba Mẹ».
+/// Mở hộp là báo Ba Mẹ ngay (pipe bao-thoat ⇒ sự kiện con_muon_thoat ⇒ cảnh báo trên app Ba Mẹ). Tắt / gỡ chỉ khi Ba Mẹ gõ đúng mã 6 số
+/// (cùng mã «Ba Mẹ nhập mã» — pipe ba-me-mo ⇒ «Ba Mẹ đang dùng máy»: AiiGrow thôi giới hạn tới hạn của mã; gỡ hẳn thì Ba Mẹ vào Cài đặt › Ứng dụng bằng mật khẩu quản trị).
+/// </summary>
+public static class ThoatView
+{
+    public const string Menu = "Thoát AiiGrow…";
+    public const string Tieu = "Cần mã của Ba Mẹ";
+    public const string Phu = "Tắt hoặc gỡ AiiGrow phải có Ba Mẹ đồng ý";
+    public const string GhiMa = "Mã 6 số trong app AiiGrow của Ba Mẹ";
+    public const string Quay = "Thôi, quay lại";
+    public const string DaMo = "Ba Mẹ đang dùng máy";
+    public const string DaMoPhu = "AiiGrow tạm thôi giới hạn. Xong việc Ba Mẹ bấm «Khoá lại».";
+
+    /// <summary>Viên ghi dưới ô mã theo kết quả báo Ba Mẹ: null = đang báo; «da_bao» / «cho_mang» / lỗi. → (chữ, icon, cam).</summary>
+    public static (string Chu, string Icon, bool Cam) ChipBao(bool? ok, string? status) => ok switch
+    {
+        null => ("Đang báo Ba Mẹ…", "gui", false),
+        true when status == "cho_mang" => ("Có mạng là Ba Mẹ nhận thông báo", "wifi", true),
+        true => ("Ba Mẹ đã nhận thông báo", "chuong", false),
+        false => ("Chưa báo được Ba Mẹ", "canh_bao", true),
+    };
 }

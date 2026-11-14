@@ -78,7 +78,7 @@ public sealed class PipeServer : BackgroundService
                     var h = pipe.SafePipeHandle.DangerousGetHandle();
                     var clientSession = SessionHelper.PipeClientSession(h);
                     bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo or PipeCmd.XinDuyet
-                                     or PipeCmd.HoSo or PipeCmd.DangNhapBe or PipeCmd.QuenPin or PipeCmd.BaMeMo or PipeCmd.DangXuat or PipeCmd.KhoaLai
+                                     or PipeCmd.HoSo or PipeCmd.DangNhapBe or PipeCmd.QuenPin or PipeCmd.BaMeMo or PipeCmd.DangXuat or PipeCmd.KhoaLai or PipeCmd.BaoThoat
                                  || (req?.Cmd == PipeCmd.Request && (LoaiXin.LaXinMo(req.Kind) || req.Kind == LoaiXin.NgoaiLe))) && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
@@ -371,6 +371,34 @@ public sealed class PipeServer : BackgroundService
                 };
                 r.State = TrangThaiChoPhien(DateTimeOffset.Now, clientSession);
                 return r;
+            }
+
+            case PipeCmd.BaoThoat:
+            {
+                // 14/11 (con-ngay-thuong 24): Con định tắt / gỡ AiiGrow ⇒ báo Ba Mẹ (cảnh báo «chú ý» trên app Ba Mẹ). Không tắt gì ở đây —
+                // muốn tắt / gỡ thì Ba Mẹ gõ mã 6 số (ba-me-mo ⇒ «Ba Mẹ đang dùng máy»).
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy làm được" };
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con làm được" };
+                var cfg = _rt.Config;
+                if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với Ba Mẹ" };
+                var e = new SuKien { Loai = "con_muon_thoat", Luc = now.ToUniversalTime(), ChiTiet = new() { ["may"] = Environment.MachineName, ["tu"] = "khay" } };
+                try
+                {
+                    using var api = new HeartbeatClient(cfg.Server, cfg.Token);
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    cts.CancelAfter(TimeSpan.FromSeconds(8));
+                    await api.SuKienAsync(new[] { e }, cts.Token);
+                    _log.LogInformation("Con bấm «Thoát AiiGrow…»: đã báo Ba Mẹ");
+                    return new PipeResponse { Ok = true, Status = "da_bao" };
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    // mất mạng / máy chủ lỗi ⇒ vào hàng đợi offline (HeartbeatWorker gửi khi có mạng; mã một lần nên không báo lặp)
+                    try { var moi = _rt.Store.Update(c => c.Queue.Add(e)); if (moi != null) _rt.NapLaiConfig(moi); }
+                    catch (Exception ex2) { _log.LogWarning("Không lưu được sự kiện con_muon_thoat: {m}", ex2.Message); }
+                    _log.LogInformation("Con bấm «Thoát AiiGrow…»: chưa gửi được ({m}) — đã lưu chờ mạng", ex.Message);
+                    return new PipeResponse { Ok = true, Status = "cho_mang" };
+                }
             }
 
             default:

@@ -99,6 +99,57 @@ public sealed class HvTongQuan
     public HvQuy? Quy { get; set; }
     public int SoSao => Sao ?? SoDu;
     public int SoSaoChoDuyet => SaoChoDuyet ?? DiemChoDuyet;
+    /// <summary>14/11: chuỗi ngày + 7 ô ngày gần nhất (máy chủ cũ không gửi ⇒ null, khay không hiện màn chúc mừng chuỗi).</summary>
+    public HvChuoi? Chuoi { get; set; }
+}
+
+public sealed class HvChuoi
+{
+    public int SoNgay { get; set; }
+    /// <summary>7 ngày, cũ → hôm nay.</summary>
+    public List<HvNgayChuoi> Tuan { get; set; } = new();
+}
+
+public sealed class HvNgayChuoi
+{
+    public string Ngay { get; set; } = "";
+    /// <summary>0 = Chủ nhật … 6 = Thứ Bảy (giờ gia đình).</summary>
+    public int Thu { get; set; }
+    public bool Co { get; set; }
+    public bool Bang { get; set; }
+}
+
+/// <summary>
+/// 14/11 «Chuỗi 5 ngày · lên Cấp 3» (docs/thiet-ke-chot/con-ngay-thuong 25 them-jonn19rd — FR-03.06): đóng hộp «Ba Mẹ duyệt rồi!» (×) ⇒ hộp «Giỏi lắm!»:
+/// «5 ngày liền!», 7 ô ngày (🔥 ngày có việc được duyệt, ô cuối «Nay»), cấp hiện tại (+ «Mới lên!» khi lần duyệt này vừa qua ngưỡng) → cấp sau, «+N» sao vừa nhận.
+/// Chỉ hiện khi chuỗi ≥ 2 ngày và hôm nay đã có việc được duyệt; mỗi ngày một lần (khay nhớ ngày đã hiện).
+/// </summary>
+public static class ChuoiView
+{
+    private static readonly string[] TenThu = { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+
+    public static string Thu(HvNgayChuoi d, bool homNay) => homNay ? "Nay" : TenThu[((d.Thu % 7) + 7) % 7];
+
+    public static bool NenHien(HvChuoi? c, string? daHienNgay)
+    {
+        if (c is not { SoNgay: >= 2 } || c.Tuan.Count == 0) return false;
+        var nay = c.Tuan[^1];
+        return nay.Co && nay.Ngay != daHienNgay;
+    }
+
+    public static string Phu(int soNgay)
+    {
+        var du = soNgay % 7;
+        return du == 0 ? $"Làm đủ việc mỗi ngày · tròn {soNgay / 7} tuần rồi!" : $"Làm đủ việc mỗi ngày · thêm {7 - du} ngày nữa là tròn tuần";
+    }
+
+    /// <summary>Lần duyệt vừa rồi (+<paramref name="vuaCong"/> sao) đưa Con qua ngưỡng cấp hiện tại? Cấp c bắt đầu ở 100·(c−1)·c/2 sao kiếm được (server/lib/vi.ts › capDo).</summary>
+    public static bool MoiLenCap(HvCapDo cap, int tongKiem, int vuaCong)
+    {
+        if (cap.Cap <= 1 || vuaCong <= 0) return false;
+        var nguong = 100 * (cap.Cap - 1) * cap.Cap / 2;
+        return tongKiem >= nguong && tongKiem - vuaCong < nguong;
+    }
 }
 
 public sealed class HvQua

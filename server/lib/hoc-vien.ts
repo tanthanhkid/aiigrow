@@ -8,6 +8,7 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { nop, nvCuaCon, type AnhNop } from "./nhiem-vu.ts";
 import { cuaHang, doiQua } from "./phan-thuong.ts";
 import { tomTatVi } from "./vi.ts";
+import { tuanChuoi } from "./thanh-tich.ts";
 import { quyHomNay } from "./quy-gio.ts";
 
 export type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
@@ -30,6 +31,8 @@ export async function tongQuan(con: string) {
     soDu: vi.soDu, tongKiem: vi.tongKiem, capDo: vi.capDo, diemChoDuyet: vi.diemChoDuyet,
     // 05/11: sao (= điểm) + quỹ giờ chơi hôm nay (lib/quy-gio.ts) cho khay mới «Hôm nay»: «Giờ chơi còn lại 18 phút · Đã chơi 42 / 60»
     sao: vi.soDu, saoChoDuyet: vi.diemChoDuyet,
+    // 14/11 (con-ngay-thuong 25): «5 ngày liền!» + 7 ô ngày — máy Con hiện sau «Ba Mẹ duyệt rồi!»
+    chuoi: await tuanChuoi(con),
     quy: { conPhut: qy.conPhut, daDung: qy.daDung, tongPhut: qy.tongPhut, quyNgayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, dangNgu: qy.dangNgu,
       dangHoc: qy.dangHoc, khoa: qy.khoa, gioNgu: qy.gioNgu, gioHoc: qy.gioHoc, tyLe: qy.tyLe, doiSao: qy.doiSao, choXinThem: qy.choXinThem },
     nhiemVu: ds.map((x) => ({

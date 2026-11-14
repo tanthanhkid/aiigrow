@@ -11,6 +11,71 @@ internal sealed class KetQuaHop : HopKhayCoBan
 {
     public KetQuaHop(string tieuCuaSo) : base("AiiGrow · " + tieuCuaSo, UI.Px(425)) { }
 
+    /// <summary>Con đã bấm một nút / liên kết của hộp (false = đóng bằng × / Esc) — khay dùng để nối màn sau theo thiết kế (× ⇒ màn khác).</summary>
+    public bool DaBam { get; private set; }
+
+    /// <summary>14/11 (con-ngay-thuong 25): Rob + số lớn («5») + chữ đậm («ngày liền!») + dòng phụ, canh giữa.</summary>
+    public KetQuaHop Rob(string rob, string so, string chu, string? phu)
+    {
+        var r = KhoiThietKe.Rob(rob, 96);
+        r.Margin = new Padding(Math.Max(0, (W - r.Width) / 2), 0, 0, UI.Px(4));
+        Flow.Controls.Add(r);
+        var hang = KhoiCon.Hang();
+        var a = UI.Text(so, 30f, true, Clay.Canh, UI.Px(120)); a.Margin = Padding.Empty;
+        var b = UI.Text(chu, 16f, true, UI.Ink, W); b.Margin = new Padding(UI.Px(6), UI.Px(18), 0, 0);
+        hang.Controls.Add(a); hang.Controls.Add(b);
+        hang.PerformLayout();
+        hang.Margin = new Padding(Math.Max(0, (W - hang.PreferredSize.Width) / 2), 0, 0, UI.Px(2));
+        Flow.Controls.Add(hang);
+        if (phu != null)
+        {
+            var p = UI.Text(phu, 10f, false, UI.Muted, W);
+            p.Margin = new Padding(Math.Max(0, (W - p.PreferredSize.Width) / 2), 0, 0, UI.Px(10));
+            Flow.Controls.Add(p);
+        }
+        return this;
+    }
+
+    /// <summary>14/11: 7 ô ngày (cũ → hôm nay): ô có việc được duyệt = 🔥 trên nền cam nhạt, ô cuối ghi «Nay».</summary>
+    public KetQuaHop Tuan(IReadOnlyList<HvNgayChuoi> tuan)
+    {
+        var hang = KhoiCon.Hang();
+        var o = (W - UI.Px(6) * 6) / 7;
+        for (int i = 0; i < tuan.Count; i++)
+        {
+            var d = tuan[i];
+            var cot = KhoiCon.Cot();
+            cot.Margin = new Padding(0, 0, i < tuan.Count - 1 ? UI.Px(6) : 0, 0);
+            var v = new ClayIcon
+            {
+                Size = new Size(o, o), MauVien = d.Co ? Clay.CanhSoft : Clay.Lom, Hinh = d.Co ? Anh3D.Icon("lua") : d.Bang ? Anh3D.Icon("khien") : null,
+                Margin = Padding.Empty,
+            };
+            cot.Controls.Add(v);
+            var t = UI.Text(ChuoiView.Thu(d, i == tuan.Count - 1), 9f, i == tuan.Count - 1, i == tuan.Count - 1 ? Clay.Canh : UI.Muted, o);
+            t.AutoSize = false; t.Size = new Size(o, UI.Px(18)); t.TextAlign = ContentAlignment.MiddleCenter; t.Margin = new Padding(0, UI.Px(2), 0, 0);
+            cot.Controls.Add(t);
+            hang.Controls.Add(cot);
+        }
+        hang.Margin = new Padding(0, 0, 0, UI.Px(10));
+        Flow.Controls.Add(hang);
+        return this;
+    }
+
+    /// <summary>14/11: «Cấp 3 · Mới lên!» → «Cấp 4» + chip «+N» sao vừa nhận.</summary>
+    public KetQuaHop Cap(int cap, bool moiLen, int sao)
+    {
+        var hang = KhoiCon.Hang();
+        hang.Margin = new Padding(0, 0, 0, UI.Px(8));
+        hang.Controls.Add(new ChipClay("Cấp " + cap, Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("mu")) { Font = UI.F(11f, FontStyle.Bold) });
+        if (moiLen) hang.Controls.Add(new ChipClay("Mới lên!", Clay.CanhSoft, Clay.Canh, Anh3D.Icon("lap_lanh")) { Font = UI.F(10f, FontStyle.Bold) });
+        var mui = UI.Text("→ Cấp " + (cap + 1), 11f, true, UI.Muted, UI.Px(110)); mui.Margin = new Padding(UI.Px(4), UI.Px(6), UI.Px(6), 0);
+        hang.Controls.Add(mui);
+        if (sao > 0) hang.Controls.Add(KhoiApp.ChipSao("+" + sao));
+        Flow.Controls.Add(hang);
+        return this;
+    }
+
     public KetQuaHop Dau(string icon, KhoiCon.Mau mau, string tieu, string? phu = null)
     {
         Flow.Controls.Add(KhoiCon.Dau(icon, mau, tieu, phu, W));
@@ -67,14 +132,14 @@ internal sealed class KetQuaHop : HopKhayCoBan
     public KetQuaHop Nut(string chu, bool chinh, string? icon, Action? bam)
     {
         var b = KhoiCon.Nut(chu, chinh, W, icon);
-        b.Click += (_, _) => { Close(); bam?.Invoke(); };
+        b.Click += (_, _) => { DaBam = true; Close(); bam?.Invoke(); };
         Flow.Controls.Add(b);
         return this;
     }
 
     public KetQuaHop LienKet(string chu, string? icon, Action? bam)
     {
-        Flow.Controls.Add(KhoiCon.LienKet(chu, icon, () => { Close(); bam?.Invoke(); }));
+        Flow.Controls.Add(KhoiCon.LienKet(chu, icon, () => { DaBam = true; Close(); bam?.Invoke(); }));
         return this;
     }
 
