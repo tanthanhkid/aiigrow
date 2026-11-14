@@ -40,8 +40,8 @@ export default function ObCon() {
   const tuoi = tuoiSo && tuoiSo >= 1 && tuoiSo <= 25 ? `${tuoiSo} tuổi` : null;
   const tenGon = ten.trim();
   const loiPin = kiemPin(pin, null, namSo);
-  // chỉ báo lỗi khi đã gõ đủ 4 số (không mắng lúc đang gõ) — PIN dở dang thì nút Lưu tắt, câu dưới ô nói vì sao
-  const hienLoiPin = !!loiPin && pin.length > 0;
+  // không mắng lúc đang gõ: PIN đủ 4 số mà sai luật ⇒ báo lỗi; PIN dở dang ⇒ nút Lưu tắt + câu nhắc «Gõ đủ 4 số»
+  const hienLoiPin = !!loiPin && pin.length === 4;
   const luu = async () => {
     const r = await bm.goi<KqThietLap>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, namSinh: namSo, avatar: `mau-${mau}` } });
     // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai
@@ -119,7 +119,7 @@ export default function ObCon() {
         </View>
         <OPin gia={pin} doi={setPin} nhan="Đặt PIN 4 số" />
         <Chu co={13} mau={M.chu2}><Chu kieu="rat" co={13}>Bé dùng PIN này để vào máy</Chu> · không dùng ngày sinh</Chu>
-        {hienLoiPin ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
+        {hienLoiPin ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : pin.length > 0 && pin.length < 4 ? <Chu kieu="dam" co={13} mau={M.chu3}>Gõ đủ 4 số, hoặc xoá hết để đặt sau</Chu> : null}
       </View>
       <BangTruot mo={chonNam !== null} dong={() => setChonNam(null)} tieu="Năm sinh">
         <View style={{ alignItems: "center" }}>
