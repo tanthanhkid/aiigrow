@@ -5,8 +5,8 @@ import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
 import { Avt, Bao, BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, Man, M, MAU_CON, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
-import { ma0, noiTen, type XemMoi } from "@/lib/moi";
-import { KHOI } from "@/lib/clay";
+import { cauTrong, ma0, type XemMoi } from "@/lib/moi";
+import { BONG, KHOI } from "@/lib/clay";
 
 type LoiMoiToi = XemMoi & { id: string };
 
@@ -46,28 +46,26 @@ export default function VaoNha() {
     <Man dau={<DauMan ve="/" khongLui />}
       day={<><BaoLoi loi={loiLam} /><Nut chu={`Vào nhà cùng ${ai}`} rong dangChay={dangChay} bam={vao} />
         <LienKet chu={d.coNha ? "Ở lại nhà mình" : "Không phải tôi"} bam={() => router.replace(d.coNha ? "/" : "/thiet-lap/ten-con")} /></>}>
-      <View style={{ height: 250, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
-        <View style={{ position: "absolute", top: 16, flexDirection: "row", gap: 4 }}>
-          {[ai, ...con.slice(0, 3), "Tôi"].map((t, i, ds) => (
-            <View key={t + i} style={{ borderRadius: 30, padding: 3, backgroundColor: i === ds.length - 1 ? "#f5c94a" : "transparent" }}>
-              <Avt ten={t === "Tôi" ? "T" : t} mau={MAU_CON[i % MAU_CON.length]} co={50} />
+      {/* thiết kế 14/11: hàng chữ cái người mời + các bé (tối đa 4) + «T» (bạn, viền ngọc) trên khối ngọc, Grow đứng dưới */}
+      <View style={{ height: 300, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
+        <View style={{ position: "absolute", top: 24, flexDirection: "row", alignItems: "center" }}>
+          {[ai, ...con.slice(0, 4)].map((t, i) => (
+            <View key={t + i} style={{ marginLeft: i ? -6 : 0, borderRadius: 31, borderWidth: 4, borderColor: "#eef4f1" }}>
+              <Avt ten={t} mau={MAU_CON[i % MAU_CON.length]} co={con.length > 3 ? 44 : 50} />
             </View>
           ))}
+          <View style={{ marginLeft: 10, borderRadius: 34, padding: 3, backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.nho}` }}>
+            <Avt ten="T" mau={M.chinh} co={con.length > 3 ? 50 : 56} />
+          </View>
         </View>
-        <Rob ten="chi" co={170} />
+        <Rob ten="chi" co={190} />
       </View>
-      <TieuDe chu={`${ai} mời bạn vào nhà`} phu={con.length ? `Cùng trông ${noiTen(con, true)}` : x.tenGiaDinh} giua />
-      {/* nhãn viên tự làm (không dùng Nhan): chữ cách mép viên ≥ 14 — viên rộng có bóng ngoài được tính là thẻ clay (cổng LE-THE) */}
-      <View style={{ alignItems: "center" }}>
-        <View style={{ maxWidth: "100%", paddingHorizontal: 14, paddingVertical: 4, borderRadius: 99, backgroundColor: M.chinhSoft, ...KHOI.nho }}>
-          <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>{con.length ? `Bạn cùng trông ${noiTen(con)}` : x.tenQuyen ? `Quyền ${x.tenQuyen}` : "Người trong nhà"}</Chu>
-        </View>
-      </View>
+      <TieuDe chu={`${ai} mời bạn vào nhà`} phu={con.length ? cauTrong(con, true) : x.tenQuyen ? `Quyền ${x.tenQuyen}` : x.tenGiaDinh} giua />
       {d.coNha ? <Bao tieu="Tài khoản này đã có nhà riêng" loi="Chỉ vào nhà khác được khi tài khoản chưa có con, máy hay người nhà nào. Muốn vào nhà này: đăng xuất rồi tạo tài khoản bằng số khác." /> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         {viec.map(([ic, chu]) => (
-          <The key={chu} style={{ flex: 1, alignItems: "center", gap: 6, paddingVertical: 14, paddingHorizontal: 8 }}>
-            <Icon3D ten={ic} co={30} />
+          <The key={chu} style={{ flex: 1, alignItems: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 8 }}>
+            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={30} /></View>
             <Chu kieu="rat" co={13} style={{ textAlign: "center" }}>{chu}</Chu>
           </The>
         ))}

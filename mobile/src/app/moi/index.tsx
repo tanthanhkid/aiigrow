@@ -23,7 +23,7 @@ export default function DuocMoi() {
   const ai = d ? d.nguoiMoi ?? d.tenGiaDinh : null;
   const sdt = () => router.push({ pathname: "/dang-ky", params: m && d ? { moi: m, tenNha: ai ?? "", tenGoi: d.tenGoi ?? "" } : { duocMoi: "1" } });
   return (
-    <Man noi={noi} dau={<DauMan ve="/chao" />}
+    <Man noi={noi} dau={<DauMan ve="/chao" tieu="Tạo tài khoản" />}
       day={<><ChonCachTaoTk tieu={ai ? `Vào nhà cùng ${ai}` : "Vào nhà cùng người nhà"} loi="Chọn một cách để tạo tài khoản, chưa tới 1 phút." sdt={sdt} bao={bao} nc={m ? { moi: m } : { duocMoi: true }} />
         <LienKet chu="Tôi đã có tài khoản" bam={() => router.push({ pathname: "/dang-nhap", params: { moi: m || "1" } })} /></>}>
       {d ? <KhoiRob lv="chi" cao={350} tren={<TheLoiMoi x={d} />} /> : (

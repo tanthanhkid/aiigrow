@@ -74,7 +74,7 @@ export default function GhepThemMay() {
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4, marginTop: 4 }}>Cài cho máy mới</Chu>
       {truoc ? oChon(giong, () => setGiong(true), null, `Giống ${chuTruoc}`, "Y như máy trước · nên chọn",
         tt ? <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", paddingLeft: 38 }}>
-          {chip("dongho", `${tt.gioChoi.ngayThuong ?? "—"} phút`)}{chip("khoa", tt.cheDoChan === "mo_het" ? "Mở hết" : `${tt.soApp} app`)}{chip("trang_ngu", `Ngủ ${gioGon(tt.ngu.tu)} – ${gioGon(tt.ngu.den)}`)}
+          {chip("dongho", `${tt.gioChoi.ngayThuong ?? "—"} phút`)}{chip("khien", tt.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web")}{chip("trang_ngu", `Ngủ ${gioGon(tt.ngu.tu)} – ${gioGon(tt.ngu.den)}`)}
         </View> : undefined) : null}
       {oChon(!giong || !truoc, () => setGiong(false), <Icon3D ten="banhrang" co={30} />, "Cài riêng cho máy này", "Chỉnh sau khi ghép xong")}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
