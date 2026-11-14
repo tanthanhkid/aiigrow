@@ -41,9 +41,14 @@ internal sealed class TrayContext : ApplicationContext
     private DateTimeOffset _toastAt = DateTimeOffset.MinValue;
     private readonly BatNhiemVu _bat = new();
     private bool AppDangHien => _app is { IsDisposed: false, Visible: true } a && a.WindowState != FormWindowState.Minimized;
+    // Tự chạy lại bằng bản mới sau cập nhật (TheoDoiExe): dấu tệp exe lúc khay bật; _moLai = mục app cần mở lại khi khay cũ vừa chạy lại lúc app đang mở.
+    private readonly TheoDoiExe? _exe = string.IsNullOrEmpty(Environment.ProcessPath) ? null : new TheoDoiExe(Environment.ProcessPath, TheoDoiExe.DocDia);
+    private MucApp? _moLai;
+    private bool _dangChayLai;
 
-    public TrayContext()
+    public TrayContext(MucApp? moLai = null)
     {
+        _moLai = moLai;
         // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
         var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
         // Thiết kế chốt 14/11 (con-mat-mang 13 them-g4d1cfk1): ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ thêm giờ… · Kiểm tra cập nhật
@@ -149,6 +154,8 @@ internal sealed class TrayContext : ApplicationContext
         if (_state.Locked && !tuManKhoa) { Toast(4000, "Máy đang khoá", "Khi máy mở lại, con xem nhiệm vụ và sao nhé.", ToolTipIcon.Info, MucApp.HomNay); return; }
         // 06/11 (L13): Ba Mẹ đang dùng máy ⇒ app của Con không có bé nào để hiện
         if (_state.NguoiDung == LoaiNguoiDung.BaMe) { Toast(5000, "Ba Mẹ đang dùng máy", "Không trừ giờ của con. Xong việc Ba Mẹ bấm «Khoá lại».", ToolTipIcon.Info, MucApp.HomNay); return; }
+        // exe đã bị bộ cập nhật thay mà khay này chưa kịp chạy lại ⇒ dựng app ở bản cũ sẽ nạp thư viện hỏng (lỗi máy 04) ⇒ chạy lại ngay, bản mới mở đúng mục này
+        if ((_app == null || _app.IsDisposed) && _exe?.DaKhacGoc() == true && ChayLai(muc)) return;
         if (_app == null || _app.IsDisposed)
         {
             _app = new AppForm();
@@ -493,6 +500,38 @@ internal sealed class TrayContext : ApplicationContext
         _xinMo.Show();
     }
 
+    /// <summary>Mỗi nhịp (3 giây): exe đã được thay bằng bản mới và chép xong ⇒ tự chạy lại ngay, không chờ khởi động lại máy.
+    /// Chỉ hoãn khi Con đang ở một cửa sổ khác app to (màn khoá, màn chặn, đang nộp bài, đang xin giờ…) để không cắt ngang — đóng xong là chạy lại.
+    /// App to đang mở thì vẫn chạy lại và mở lại đúng mục.</summary>
+    private void KiemBanMoi()
+    {
+        if (_exe == null || _dangChayLai || !_exe.DaCoBanMoi()) return;
+        foreach (Form f in Application.OpenForms)
+            if (f.Visible && !ReferenceEquals(f, _app)) return;
+        ChayLai(AppDangHien ? _app!.Muc : null);
+    }
+
+    /// <summary>Bật bản mới (chờ khay này nhả khoá — Program «--chay-lai») rồi thoát. Không bật được ⇒ giữ khay cũ, trả false.</summary>
+    private bool ChayLai(MucApp? moLai)
+    {
+        if (_exe == null || _dangChayLai) return false;
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo(_exe.Duong) { UseShellExecute = false };
+            psi.ArgumentList.Add(Program.ThamSoChayLai);
+            if (moLai is { } m) psi.ArgumentList.Add(m.ToString());
+            System.Diagnostics.Process.Start(psi)?.Dispose();
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); return false; }
+        _dangChayLai = true;
+        _timer.Stop();
+        _hvTimer.Stop();
+        _ni.Visible = false;
+        _ni.Dispose();
+        ExitThread();
+        return true;
+    }
+
     private async Task TickAsync()
     {
         if (_polling) return;
@@ -513,12 +552,17 @@ internal sealed class TrayContext : ApplicationContext
             _pipeFail = 0;
             _daBietPhien = true;
             ApDungTrangThai(res.State);
+            if (_moLai is { } mo) { _moLai = null; if (!_anPhienKhac) OpenApp(mo, tuManKhoa: _state.Locked); }   // khay vừa chạy lại lúc app đang mở ⇒ mở lại đúng mục
         }
         catch (Exception e)
         {
             System.Diagnostics.Debug.WriteLine(e);
         }
-        finally { _polling = false; }
+        finally
+        {
+            _polling = false;
+            KiemBanMoi();   // cả khi dịch vụ không trả lời (dịch vụ đang khởi động lại sau cập nhật)
+        }
     }
 
     private string? _beId;
