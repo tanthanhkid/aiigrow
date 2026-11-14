@@ -333,7 +333,7 @@ const nhatKy = [];
 
 // ---------------------------------------------------------------- Chrome + CDP
 const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
-const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
+const chrome = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
   "--no-default-browser-check", "--window-size=420,900", "--lang=vi-VN", "about:blank"], { stdio: "ignore" });
 let trang;
 for (let i = 0; i < 60 && !trang; i++) {
