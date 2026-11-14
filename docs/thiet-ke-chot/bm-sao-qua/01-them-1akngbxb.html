@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 40px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.vi{position:relative;height:164px;padding:20px;border-radius:28px;background:linear-gradient(#fdf1d3,#fbecc0);box-shadow:var(--clay);overflow:hidden}
+.vi strong{display:flex;align-items:center;gap:8px;font-size:50px;line-height:56px;font-weight:800;letter-spacing:-1px;color:#0f1312}
+.vi strong img{width:48px;height:48px}.vi strong em{font-style:normal;font-size:22px;letter-spacing:0}
+.vi p{margin-top:6px;font-size:16px;font-weight:800;color:#6e4300}
+.vi small{display:block;margin-top:4px;font-size:13px;font-weight:600;color:#6e4300}
+.vi .rob{position:absolute;right:-8px;bottom:-22px;width:118px;height:auto}
+.doi{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px 14px;border-radius:24px;background:#dcebe6;font-size:14px;font-weight:700;color:#0a5246;line-height:20px}
+.doi img{flex:none;width:32px;height:32px}
+.muc{display:flex;align-items:center;justify-content:space-between;margin:18px 6px 4px;font-size:15px;font-weight:800;color:#3a403d}
+.muc span{min-height:44px;padding-left:12px;display:flex;align-items:center;font-size:14px;color:#0a5246}
+.ds{padding:6px 14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;min-height:64px}
+.dong+.dong{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.dong p{flex:1;min-width:0;font-size:15px;font-weight:800;line-height:20px}.dong p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.tag{flex:none;padding:4px 10px;border-radius:12px;font-size:12.5px;font-weight:800;white-space:nowrap}
+.tag.cong{background:#fbecc0;color:#6e4300}
+.tag.tru{background:#ecebe7;color:#3a403d}
+.tag.cho{background:#f9e7d2;color:#8a3c0c}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-e91jg28j"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Ví sao của Bảo Anh</h1></div>
+<div class="cuon">
+<div class="vi"><strong><img src="/assets/icon3d/sao.webp" alt="">30 <em>sao</em></strong><p>= 30 phút chơi</p><small>Tuần này kiếm 120 sao</small><img class="rob" src="/assets/rob/xong.webp" alt=""></div>
+<div class="doi"><img src="/assets/icon3d/dongho.webp" alt="">10 sao đổi được 10 phút chơi. Con tự đổi trên máy, không cần xin Ba Mẹ.</div>
+<p class="muc">Con đổi sao lấy quà<span role="button" tabindex="0" data-toi="them-473f52w6">Sửa quà ›</span></p>
+<div class="ds">
+<div class="dong"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Chọn món bữa tối<small>Đã đổi 50 sao</small></p><span class="tag cho">Chờ Ba Mẹ trao</span></div>
+<div class="dong"><span class="ic"><img src="/assets/icon3d/lich.webp" alt=""></span><p>Đi ăn kem<small>Cần 100 sao · còn thiếu 70</small></p><span class="tag tru">Chưa đủ</span></div>
+</div>
+<p class="muc">Sao vào, sao ra</p>
+<div class="ds">
+<div class="dong"><span class="ic"><img src="/assets/icon3d/mu.webp" alt=""></span><p>Tự xếp cặp<small>Hôm nay · Mẹ Lan duyệt</small></p><span class="tag cong">+10 sao</span></div>
+<div class="dong"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><p>Học 1 bài với AiiRob<small>Hôm qua · tự chấm</small></p><span class="tag cong">+20 sao</span></div>
+<div class="dong"><span class="ic"><img src="/assets/icon3d/dongho.webp" alt=""></span><p>Đổi 20 phút chơi<small>Hôm qua · Laptop</small></p><span class="tag tru">−20 sao</span></div>
+<div class="dong"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Đổi «Chọn món bữa tối»<small>Hôm qua</small></p><span class="tag tru">−50 sao</span></div>
+</div>
+</div>
+</div></body></html>

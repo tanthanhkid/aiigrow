@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 40px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.san{position:relative;height:210px;border-radius:28px;background:linear-gradient(#f9dcc0,#fdeedd);box-shadow:var(--clay);overflow:hidden}
+.san .may{position:absolute;left:22px;top:56px;width:104px;height:104px}
+.dau{position:absolute;left:108px;top:48px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#e2660f;color:#fff;font-size:24px;font-weight:800;box-shadow:0 6px 10px -4px rgba(161,75,0,.6),inset 0 1.5px 0 rgba(255,255,255,.4)}
+.rob{position:absolute;right:-10px;bottom:-34px;width:136px;height:auto}
+.bong{position:absolute;left:16px;top:14px;z-index:2;padding:8px 12px;border-radius:16px 16px 16px 4px;background:#fff;font-size:13.5px;line-height:18px;font-weight:800;white-space:nowrap;box-shadow:0 6px 10px -6px rgba(28,32,30,.26)}
+.cap{position:absolute;left:16px;bottom:14px;padding:5px 11px;border-radius:12px;background:#fff;color:#8a3c0c;font-size:12.5px;font-weight:800;white-space:nowrap}
+.chu{margin-top:16px;padding:0 6px}
+.chu h2{font-size:20px;line-height:26px;font-weight:800;letter-spacing:-.3px}
+.chu p{margin-top:4px;font-size:14px;line-height:20px;font-weight:600;color:#3a403d}
+.muc{margin:16px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.vi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.vi div{height:88px;border-radius:20px;background:#ecebe7;box-shadow:var(--lom);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:800;color:#3a403d;text-align:center;line-height:16px}
+.vi img{width:28px;height:28px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:22px;height:22px}
+.nut.phu{height:48px;font-size:14.5px;color:#0f1312;background:#fff;box-shadow:var(--clay)}
+.nut.phu.do{color:#b42318}
+.chinh{margin-top:18px}
+.hai{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-may-ds"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>iPad của Bảo Anh</h1></div>
+<div class="cuon">
+<div class="san"><img class="may" src="/assets/icon3d/tablet.webp" alt=""><span class="dau">!</span><img class="rob" src="/assets/rob/so-tay.webp" alt=""><div class="bong">iPad chưa có mật mã!</div><span class="cap">Hôm nay 3 phút · vẫn tính giờ</span></div>
+<div class="chu"><h2>iPad chưa được bảo vệ</h2><p>Grow vẫn tính giờ, nhưng iPad chưa đặt mật mã Thời gian sử dụng nên con tự tắt được.</p></div>
+<p class="muc">Nếu để vậy</p>
+<div class="vi">
+<div><img src="/assets/icon3d/mo_khoa.webp" alt="">Con tự tắt<br>được Grow</div>
+<div><img src="/assets/icon3d/game.webp" alt="">App lạ<br>mở được</div>
+<div><img src="/assets/icon3d/trang_ngu.webp" alt="">Giờ ngủ<br>bị bỏ qua</div>
+</div>
+<span class="nut chinh" role="button" tabindex="0" data-toi="them-slv33bgc">Sửa iPad trong 3 bước</span>
+<div class="hai"><span class="nut phu" role="button" tabindex="0" data-toi="them-4e4o5c72"><img src="/assets/icon3d/but.webp" alt="">Đổi tên máy</span><span class="nut phu do" role="button" tabindex="0" data-toi="them-18q14mik">Gỡ máy này</span></div>
+<span class="nut phu" style="margin-top:10px" role="button" tabindex="0" data-toi="bm2-trang-chu">Để sau</span>
+</div>
+</div></body></html>

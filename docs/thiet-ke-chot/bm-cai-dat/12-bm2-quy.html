@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.3),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.tab{position:absolute;left:16px;right:16px;top:100px;height:52px;display:flex;gap:4px;padding:4px;border-radius:26px;background:#ecebe7;box-shadow:var(--lom);z-index:3}
+.tab span{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:22px;font-size:14px;font-weight:800;color:#565c59;white-space:nowrap}
+.tab span img{width:20px;height:20px}
+.tab span[aria-selected="true"]{background:#f7f6f3;color:#0a5246;box-shadow:var(--nho)}
+.cuon{position:absolute;left:0;right:0;top:160px;bottom:0;overflow-y:auto;padding:6px 16px 124px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.ghi{font-size:13px;line-height:18px;font-weight:600;color:#565c59;margin:4px 6px 12px}
+.ds{display:flex;flex-direction:column;gap:10px}
+.ve{display:flex;align-items:center;gap:12px;min-height:76px;padding:10px 14px 10px 10px;border-radius:24px;background:#f7f6f3;box-shadow:var(--clay)}
+.ic{flex:none;width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:34px;height:34px}
+.giua{flex:1;min-width:0}
+.giua b{display:block;font-size:15px;line-height:20px;font-weight:800}
+.giua small{display:flex;align-items:center;gap:6px;margin-top:3px;font-size:12.5px;font-weight:700;color:#565c59}
+.sao{display:inline-flex;align-items:center;gap:3px;padding:2px 8px 2px 4px;border-radius:10px;background:#fbecc0;color:#6e4300;font-weight:800}.sao img{width:14px;height:14px}
+.tag{flex:none;height:32px;padding:0 12px;border-radius:16px;display:flex;align-items:center;font-size:13px;font-weight:800;white-space:nowrap}
+.tag.mua{background:#f7f6f3;color:#0a5246;box-shadow:var(--nho)}
+.tag.da{background:#dcebe6;color:#0a5246}
+.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 30px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 20px);z-index:5}
+.nut{display:flex;align-items:center;justify-content:center;width:100%;height:52px;border:0;border-radius:26px;font:800 16px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Quà của Bảo Anh</h1></div>
+<div class="tab" role="tablist"><span role="tab" tabindex="0" aria-selected="true"><img src="/assets/icon3d/the_qua.webp" alt="">Voucher AiiGrow</span><span role="tab" tabindex="0" aria-selected="false"><img src="/assets/icon3d/but.webp" alt="">Ba Mẹ tự điền</span></div>
+<div class="cuon">
+<p class="ghi">Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi.</p>
+<div class="ds">
+<div class="ve" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><div class="giua"><b>Voucher AiiCafe 20k</b><small>20.000đ · <span class="sao"><img src="/assets/icon3d/sao.webp" alt="">200</span></small></div><span class="tag da">Đã mua</span></div>
+<div class="ve" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><div class="giua"><b>Voucher AiiCafe 50k</b><small>50.000đ · <span class="sao"><img src="/assets/icon3d/sao.webp" alt="">500</span></small></div><span class="tag mua">Mua</span></div>
+<div class="ve" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><div class="giua"><b>Voucher AiiCafe 100k</b><small>100.000đ · <span class="sao"><img src="/assets/icon3d/sao.webp" alt="">1.000</span></small></div><span class="tag mua">Mua</span></div>
+<div class="ve" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><div class="giua"><b>Sách AiiLab con chọn</b><small>60.000đ · <span class="sao"><img src="/assets/icon3d/sao.webp" alt="">150</span></small></div><span class="tag mua">Mua</span></div>
+<div class="ve" role="button" tabindex="0"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><div class="giua"><b>Workshop AiiLab</b><small>150.000đ · <span class="sao"><img src="/assets/icon3d/sao.webp" alt="">600</span></small></div><span class="tag mua">Mua</span></div>
+</div>
+</div>
+<div class="day"><button class="nut" type="button">Xong</button></div>
+</div></body></html>

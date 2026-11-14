@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 40px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.toi{padding:14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.dau{display:flex;align-items:center;gap:12px}
+.av{flex:none;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:24px;font-weight:800;background:#e98aa6;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 10px 16px -8px rgba(0,0,0,.35)}
+.dau p{flex:1;font-size:13px;font-weight:700;color:#565c59}
+.cac{display:flex;margin-top:4px}
+.cac i{width:24px;height:24px;margin-left:-5px;border-radius:50%;display:grid;place-items:center;border:2px solid #f7f6f3;font-style:normal;font-size:11.5px;font-weight:800;color:#fff}
+.cac i:first-child{margin-left:0}
+.a{background:#f08a3c}.m{background:#5b7fd6}.n{background:#d86a8f}.k{background:#3f9a86}
+.nhan{margin:14px 6px 6px;font-size:13.5px;font-weight:800;color:#3a403d}
+.hang{display:flex;gap:8px}
+.lom{flex:1;min-width:0;display:flex;align-items:center;height:50px;padding:0 18px;border-radius:25px;background:#ecebe7;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 17px Inter,sans-serif;color:#0f1312}
+.nut{flex:none;display:flex;align-items:center;justify-content:center;height:50px;padding:0 18px;border-radius:25px;font-size:15px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.muc{margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.ds{padding:4px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.lg{display:flex;align-items:center;gap:12px;min-height:64px}
+.lg+.lg{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.lg p{flex:1;min-width:0;font-size:15px;font-weight:800}
+.lg p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.lg.do p{color:#b42318}
+.lg.do .ic{background:#f6e3df}
+.mui{flex:none;width:18px;height:18px;fill:#8a908d}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-h60stad7"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Tài khoản của bạn</h1></div>
+<div class="cuon">
+<div class="toi">
+<div class="dau"><span class="av">L</span><p>Bạn cùng trông 4 con<span class="cac"><i class="a">B</i><i class="m">M</i><i class="n">N</i><i class="k">K</i></span></p></div>
+<p class="nhan">Tên hiển thị</p>
+<div class="hang"><div class="lom"><input type="text" aria-label="Tên hiển thị" value="Mẹ Lan"></div><span class="nut" role="button" tabindex="0" data-toi="them-h60stad7">Lưu tên</span></div>
+</div>
+<p class="muc">Đăng nhập</p>
+<div class="ds">
+<div class="lg"><span class="ic"><img src="/assets/icon3d/dt.webp" alt=""></span><p>Số điện thoại<small>0912 345 678 · dùng để đăng nhập</small></p></div>
+<div class="lg" role="button" tabindex="0" data-toi="them-o4k6oei0"><span class="ic"><img src="/assets/icon3d/khoa.webp" alt=""></span><p>Đổi mật khẩu</p><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+</div>
+<p class="muc">Rời đi</p>
+<div class="ds">
+<div class="lg" role="button" tabindex="0" data-toi="bm1-welcome"><span class="ic"><img src="/assets/icon3d/thoat.webp" alt=""></span><p>Đăng xuất<small>Trên điện thoại này</small></p><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="lg" role="button" tabindex="0" data-toi="them-liz6hzww"><span class="ic"><img src="/assets/icon3d/nha.webp" alt=""></span><p>Rời nhà<small>Không trông 4 con nữa</small></p><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="lg do" role="button" tabindex="0" data-toi="them-4vj35r7c"><span class="ic"><img src="/assets/icon3d/x.webp" alt=""></span><p>Xoá tài khoản<small>Xoá hẳn, không lấy lại được</small></p><svg class="mui" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+</div>
+</div>
+</div></body></html>

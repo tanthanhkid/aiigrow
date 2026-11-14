@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.tim{position:absolute;left:16px;right:16px;top:100px;height:52px;display:flex;align-items:center;gap:8px;padding:0 4px 0 18px;border-radius:26px;background:#ecebe7;box-shadow:var(--lom);z-index:3}
+.tim span{flex:1;font-size:16px;font-weight:700;color:#0f1312}
+.tim span:after{content:"";display:inline-block;width:2px;height:18px;margin-left:2px;vertical-align:-3px;background:#0f6b5c}
+.xoa{flex:none;width:44px;height:44px;display:grid;place-items:center;font-size:16px;font-weight:800;color:#565c59}
+.cuon{position:absolute;left:0;right:0;top:160px;bottom:0;overflow-y:auto;padding:0 16px 108px;scrollbar-width:none}
+.muc{margin:12px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.muc b{color:#0a5246}
+.ds{padding:2px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.lg{display:flex;align-items:center;gap:10px;min-height:62px}
+.ds>*+*{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.lg p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lg p small{display:block;font-size:12.5px;font-weight:600;color:#565c59;overflow:hidden;text-overflow:ellipsis}
+.c{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--clay);font-size:22px;font-weight:800;color:#0a5246}
+.c.ok{background:#0f6b5c;color:#fff;font-size:18px}
+.da{flex:none;padding:4px 9px;border-radius:11px;background:#dcebe6;color:#0a5246;font-size:12.5px;font-weight:800;white-space:nowrap}
+.chon{padding-bottom:12px}
+.hoi{margin:2px 2px 6px;font-size:13px;font-weight:800;color:#3a403d}
+.den{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border-radius:20px;background:#ecebe7;box-shadow:var(--lom)}
+.den div{display:flex;align-items:center;gap:8px;min-height:52px;padding:6px 10px;border-radius:16px;font-size:13.5px;font-weight:800;color:#3a403d;line-height:16px}
+.den div small{display:block;font-size:11.5px;font-weight:600;color:#565c59}
+.den i{flex:none;width:12px;height:12px;border-radius:50%}
+.den .x i{background:#1f9d6a}.den .v i{background:#f2b218}
+.den .x[aria-checked=true]{background:#fff;box-shadow:var(--clay),inset 0 0 0 2px #1f9d6a;color:#0a5246}
+.den .v[aria-checked=true]{background:#fdf3d8;box-shadow:var(--clay),inset 0 0 0 2px #e0a20c;color:#6b4800}
+.bar{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:14px 16px 26px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 26%)}
+.nut{display:flex;align-items:center;justify-content:center;height:52px;border-radius:26px;color:#fff;font-size:16px;font-weight:800;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-g7g1cel5"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm app cho Bảo Anh</h1></div>
+<div class="tim" role="searchbox" tabindex="0"><span>Minecraft</span><b class="xoa" role="button" tabindex="0" aria-label="Xoá chữ">✕</b></div>
+<div class="cuon">
+<p class="muc">Kết quả cho <b>«Minecraft»</b></p>
+<div class="ds">
+<div class="chon">
+<div class="lg" role="checkbox" aria-checked="true" tabindex="0"><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><p>Minecraft<small>Xây thế giới khối</small></p><span class="c ok">✓</span></div>
+<p class="hoi">Cho Bảo Anh dùng thế nào?</p>
+<div class="den" role="radiogroup"><div class="x" role="radio" aria-checked="false" tabindex="0"><i></i><span>Dùng thoải mái<small>Không trừ giờ chơi</small></span></div><div class="v" role="radio" aria-checked="true" tabindex="0"><i></i><span>Tính giờ<small>Trừ vào giờ chơi</small></span></div></div>
+</div>
+<div class="lg" role="checkbox" aria-checked="false" tabindex="0"><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><p>Minecraft Education<small>Học qua thế giới khối</small></p><span class="c">+</span></div>
+<div class="lg" role="checkbox" aria-checked="false" tabindex="0"><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><p>Minecraft Dungeons<small>Game phiêu lưu</small></p><span class="c">+</span></div>
+<div class="lg" role="checkbox" aria-checked="false" tabindex="0"><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><p>Minecraft Legends<small>Game chiến thuật</small></p><span class="c">+</span></div>
+</div>
+</div>
+<div class="bar"><div class="nut" role="button" tabindex="0" data-toi="them-g7g1cel5">Lưu Minecraft</div></div>
+</div></body></html>

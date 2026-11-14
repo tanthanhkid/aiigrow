@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:0 16px 40px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.hd{display:flex;align-items:center;gap:14px;padding:4px 4px 0}
+.hd .to{flex:none;width:72px;height:72px;border-radius:26px;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--clay)}.hd .to img{width:46px;height:46px}
+.hd h2{font-size:24px;font-weight:800}
+.hd small{display:block;margin-top:2px;font-size:13.5px;font-weight:600;color:#565c59}
+.hoi{margin:22px 6px 10px;font-size:15px;font-weight:800;color:#3a403d}
+.den{display:flex;flex-direction:column;gap:10px}
+.o{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.bong{flex:none;width:48px;height:48px;border-radius:50%;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -8px 12px -4px rgba(0,0,0,.25),0 8px 14px -8px rgba(0,0,0,.4);opacity:.35}
+.x .bong{background:#1f9d6a}.v .bong{background:#f2b218}.d .bong{background:#d23b2a}
+.o p{flex:1;min-width:0;font-size:16px;font-weight:800}
+.o p small{display:block;margin-top:2px;font-size:13px;font-weight:600;color:#565c59;line-height:1.35}
+.tick{flex:none;width:26px;height:26px;border-radius:13px;box-shadow:var(--lom);background:#ecebe7}
+.o.on .bong{opacity:1}
+.o.on .tick{background:#0f6b5c;box-shadow:none;display:grid;place-items:center;color:#fff;font-size:15px;font-weight:800}
+.v.on{background:#fdf3d8;box-shadow:0 0 0 3px #e0a20c,var(--clay)}
+.nut{display:flex;align-items:center;justify-content:center;height:52px;margin-top:22px;border-radius:26px;color:#fff;font-size:16px;font-weight:800;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body data-lk-sua=""><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-g7g1cel5"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>App của Bảo Anh</h1></div>
+<div class="cuon">
+<div class="hd"><span class="to"><img src="/assets/icon3d/game.webp" alt=""></span><div><h2>Roblox</h2><small>Hôm nay đã chơi 39 phút · Laptop</small></div></div>
+<p class="hoi">Bảo Anh dùng Roblox thế nào?</p>
+<div class="den" role="radiogroup" aria-label="Đèn">
+<div class="o x" role="radio" aria-checked="false" tabindex="0"><span class="bong"></span><p>Dùng thoải mái<small>Không trừ giờ chơi</small></p><span class="tick"></span></div>
+<div class="o v on" role="radio" aria-checked="true" tabindex="0"><span class="bong"></span><p>Tính giờ<small>Trừ vào giờ chơi</small></p><span class="tick">✓</span></div>
+<div class="o d" role="radio" aria-checked="false" tabindex="0"><span class="bong"></span><p>Chặn<small>Con không mở được</small></p><span class="tick"></span></div>
+</div>
+<div class="nut" role="button" tabindex="0" data-toi="them-g7g1cel5">Lưu cho Roblox</div>
+</div>
+</div></body></html>

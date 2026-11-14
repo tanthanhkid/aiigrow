@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.sau{position:absolute;inset:0;background:linear-gradient(#e3efeb,#f4f4f2 300px)}
+.sau .top{position:absolute;left:8px;top:44px;height:56px;display:flex;align-items:center;gap:2px}
+.sau .top i{width:44px;height:44px;display:grid;place-items:center}.sau .top svg{width:24px;height:24px;fill:#0a5246}
+.sau .top b{font-size:22px;font-weight:800}
+.sau .k1{position:absolute;left:16px;right:16px;top:104px;height:170px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.sau .k1 span{position:absolute;left:14px;top:14px;width:56px;height:56px;border-radius:50%;background:#cfd8d4}
+.sau .k2{position:absolute;left:16px;right:16px;top:318px;height:136px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.mo{position:absolute;inset:0;background:rgba(15,19,18,.34);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.sheet{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 26px;border-radius:34px 34px 0 0;background:#f4f4f2;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+.keo{width:44px;height:5px;margin:0 auto 14px;border-radius:3px;background:#cfcec9}
+.hinh{width:88px;height:88px;margin:0 auto;border-radius:30px;display:grid;place-items:center;background:linear-gradient(#f3d6b8,#f9e7d2);box-shadow:var(--clay)}
+.hinh img{width:54px;height:54px}
+h1{margin-top:14px;text-align:center;font-size:22px;line-height:28px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.phu-de{margin:4px 10px 0;text-align:center;font-size:14.5px;line-height:21px;font-weight:600;color:#3a403d}
+.ds{margin-top:16px;padding:4px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.lg{display:flex;align-items:center;gap:12px;min-height:60px;font-size:14.5px;font-weight:700;color:#3a403d}
+.lg+.lg{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.day{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.nut{display:flex;align-items:center;justify-content:center;height:54px;border-radius:28px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap}
+.nut.do{background:linear-gradient(#cf3b30,#a01f17);box-shadow:0 14px 20px -10px rgba(168,35,27,.55),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -6px 10px -4px rgba(0,0,0,.35)}
+.nut.phu{height:48px;background:#fff;color:#0f1312;box-shadow:var(--clay)}
+</style></head>
+<body><div class="app">
+<div class="sau" aria-hidden="true"><div class="top"><i><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></i><b>Tài khoản của bạn</b></div><div class="k1"><span></span></div><div class="k2"></div></div>
+<div class="mo" role="button" tabindex="0" aria-label="Đóng" data-toi="them-ncmuuqav"></div>
+<div class="sheet">
+<div class="keo"></div>
+<div class="hinh"><img src="/assets/icon3d/nha.webp" alt=""></div>
+<h1>Rời khỏi nhà này?</h1>
+<p class="phu-de">Bạn sẽ không xem, cho giờ hay khoá máy của 4 con nữa.</p>
+<div class="ds"><div class="lg"><span class="ic"><img src="/assets/icon3d/nguoi.webp" alt=""></span>Ba Tuấn, Bà Hoa vẫn trông 4 con</div><div class="lg"><span class="ic"><img src="/assets/icon3d/gui.webp" alt=""></span>Muốn vào lại thì nhờ người trong nhà mời</div></div>
+<div class="day">
+<span class="nut do" role="button" tabindex="0" data-toi="bm1-welcome">Rời nhà</span>
+<span class="nut phu" role="button" tabindex="0" data-toi="them-ncmuuqav">Ở lại</span>
+</div>
+</div>
+</div></body></html>

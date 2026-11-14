@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;padding:4px 16px 40px}
+.hinh{width:112px;height:112px;margin:8px auto 0;border-radius:32px;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--clay)}
+.hinh img{width:76px;height:76px}
+.muc{margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.lom{display:flex;align-items:center;height:56px;padding:0 20px;border-radius:28px;background:#ecebe7;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 18px Inter,sans-serif;color:#0f1312}
+.goi{display:flex;align-items:center;gap:10px;margin-top:16px;padding:10px 14px 10px 10px;border-radius:24px;background:#f9e7d2;box-shadow:var(--clay);font-size:13px;line-height:18px;font-weight:700;color:#8a3c0c}
+.goi img{flex:none;width:48px;height:48px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:52px;margin-top:20px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-may-m2"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Đổi tên máy</h1></div>
+<div class="cuon">
+<div class="hinh"><img src="/assets/icon3d/tablet.webp" alt=""></div>
+<p class="muc">Tên máy</p>
+<div class="lom"><input type="text" aria-label="Tên máy" value="iPad của Bảo Anh"></div>
+<div class="goi"><img src="/assets/rob/chi.webp" alt="">Tên này hiện trên app của Ba Mẹ và trên màn khoá của con.</div>
+<span class="nut" role="button" tabindex="0" data-toi="bm2-may-m2">Lưu tên máy</span>
+</div>
+</div></body></html>
