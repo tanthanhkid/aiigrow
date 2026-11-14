@@ -42,6 +42,8 @@ internal sealed class AppForm : Form
 
     // ---- dữ liệu
     private MucApp _muc = MucApp.HomNay;
+    /// <summary>Mục đang hiện — khay chạy lại sau cập nhật mở lại đúng mục này.</summary>
+    public MucApp Muc => _muc;
     private TrayState _s = new();
     private DateTimeOffset _at = DateTimeOffset.Now;
     private KetNoiInfo _kn = KetNoiView.Chon(false, null);
