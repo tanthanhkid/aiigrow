@@ -78,7 +78,7 @@ export default function HomNay() {
         {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)}
           so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))}
           phu={Object.fromEntries(d.g.con.map((x) => [x.id, `còn ${x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi)}′`]))}
-          them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} /> : null}
+          nhanSo="lời xin" them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} /> : null}
         <BangCon key={c.id} conId={c.id} d={d} taiLai={tai} bao={bao} />
       </Man>
     </View>

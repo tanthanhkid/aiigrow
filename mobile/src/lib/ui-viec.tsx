@@ -13,9 +13,10 @@ const chuCai = (ten: string) => (ten.trim().split(/\s+/).pop() ?? "?").charAt(0)
  * Dải các con (thiết kế .cac-con): avatar tròn 56, tên dưới, con đang chọn có vòng ngọc, số việc chờ (cam) góc trên.
  * Nhà 1 con thì gọi chỗ khác không vẽ dải này (N9: chỉ hiện chọn con khi > 1 con).
  */
-export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, them }: {
+export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, them, nhanSo = "việc chờ duyệt" }: {
   ds: T[]; chon?: string | null; doi?: (c: T) => void; /** số việc chờ theo id con */ so?: Record<string, number>;
   /** dòng nhỏ dưới tên theo id con (Trang chủ: «còn 18′») */ phu?: Record<string, string>; /** ô «＋ Thêm con» cuối dải */ them?: () => void;
+  /** chữ đọc màn hình cho số góc trên (Trang chủ: «lời xin») */ nhanSo?: string;
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 6, paddingRight: 8 }} accessibilityRole="tablist">
@@ -24,7 +25,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
         const n = so?.[x.id] ?? 0;
         return (
           <Pressable key={x.id} onPress={doi ? () => doi(x) : undefined} disabled={!doi} accessibilityRole="tab" accessibilityState={{ selected: on }}
-            accessibilityLabel={n ? `${x.ten}, ${n} việc chờ duyệt` : x.ten} style={{ width: 72, alignItems: "center", gap: 5 }}>
+            accessibilityLabel={[x.ten, n ? `${n} ${nhanSo}` : "", phu?.[x.id] ?? ""].filter(Boolean).join(", ")} style={{ width: 72, alignItems: "center", gap: 5 }}>
             <View style={[{ borderRadius: 34, padding: 3 }, on ? { borderWidth: 3, borderColor: M.chinh } : { borderWidth: 3, borderColor: "transparent" }]}>
               <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} />
               {n ? (
