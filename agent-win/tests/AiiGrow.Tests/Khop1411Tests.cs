@@ -114,8 +114,8 @@ public class Khop1411Tests
         Assert.Null(c.DaBao("c1", t));
         c.Ghi("c1", t, "da_bao");
         Assert.Equal("da_bao", c.DaBao("c1", t.AddMinutes(9)));
-        Assert.Null(c.DaBao("c2", t.AddMinutes(1)), "bé khác vẫn được báo");
-        Assert.Null(c.DaBao("c1", t.AddMinutes(10)), "quá 10 phút báo lại");
+        Assert.Null(c.DaBao("c2", t.AddMinutes(1)));   // bé khác vẫn được báo
+        Assert.Null(c.DaBao("c1", t.AddMinutes(10)));   // quá 10 phút báo lại
     }
 
     [Fact]
