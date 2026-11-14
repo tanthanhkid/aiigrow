@@ -1,7 +1,7 @@
 // Huy hiệu, chuỗi ngày, cấp độ, điểm chào mừng (FR-03.06, BRD 6.1 bước 7). Huy hiệu/cấp độ KHÔNG quy ra điểm (không phá cân bằng).
 // Chuỗi ngày = số ngày liên tiếp (theo giờ gia đình, tính tới hôm nay hoặc hôm qua) có ≥ 1 nhiệm vụ được duyệt.
 import { one, q, tx } from "./db.ts";
-import { gioDiaPhuong } from "./gio.ts";
+import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { demChuoi, ngayDongBang, trangThaiDongBang } from "./dong-bang.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { ghiDiem, khoaCon, tomTatVi } from "./vi.ts";
@@ -22,13 +22,32 @@ async function tzCon(con: string) {
   return (await one<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]))?.tz ?? "Asia/Ho_Chi_Minh";
 }
 
-export async function chuoiNgay(con: string, now = new Date()) {
-  const tz = await tzCon(con);
-  const ngay = new Set((await q<{ duyet_luc: Date }>(
-    `select duyet_luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc > now() - interval '400 days'`, [con]))
+/** Ngày (giờ gia đình) có ≥ 1 nhiệm vụ được duyệt, trong `lui` ngày gần nhất. */
+async function ngayDuyet(con: string, tz: string, lui: number) {
+  return new Set((await q<{ duyet_luc: Date }>(
+    `select duyet_luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc > now() - make_interval(days => $2::int)`, [con, lui]))
     .map((r) => gioDiaPhuong(new Date(r.duyet_luc), tz).ngay));
-  // ngày Ba Mẹ «đóng băng» (lib/dong-bang.ts, tối đa 1 lần/tuần) không làm đứt chuỗi
-  return demChuoi(ngay, await ngayDongBang(con), gioDiaPhuong(now, tz).ngay);
+}
+
+/** Chuỗi ngày + 7 ô ngày gần nhất (cũ → hôm nay) — MỘT nguồn cho `chuoiNgay` (huy hiệu, app Con ĐT) và `hoc-vien/tong-quan.chuoi`
+ *  (14/11, con-ngay-thuong 25 «Giỏi lắm! N ngày liền» trên máy Con). `co` = ngày có ≥ 1 nhiệm vụ được duyệt; `bang` = ngày Ba Mẹ đóng băng
+ *  (không đứt chuỗi); `thu`: 0 = CN … 6 = T7 (giờ gia đình). Đọc 40 ngày trước (máy Con hỏi tong-quan thường xuyên); chuỗi chạm gần mép
+ *  (≥ 30 ngày) mới đọc đủ 400 ngày. */
+export async function tuanChuoi(con: string, now = new Date()) {
+  const tz = await tzCon(con);
+  const g = gioDiaPhuong(now, tz);
+  let [lam, bang] = await Promise.all([ngayDuyet(con, tz, 40), ngayDongBang(con)]);
+  let soNgay = demChuoi(lam, bang, g.ngay);
+  if (soNgay >= 30) { lam = await ngayDuyet(con, tz, 400); soNgay = demChuoi(lam, bang, g.ngay); }
+  const tuan = Array.from({ length: 7 }, (_, i) => {
+    const ngay = congNgay(g.ngay, i - 6);
+    return { ngay, thu: (g.thu + 7 + i - 6) % 7, co: lam.has(ngay), bang: bang.has(ngay) };
+  });
+  return { soNgay, tuan };
+}
+
+export async function chuoiNgay(con: string, now = new Date()) {
+  return (await tuanChuoi(con, now)).soNgay;
 }
 
 /** Sau mỗi lần duyệt: trao huy hiệu mới đạt. → mã huy hiệu mới. */

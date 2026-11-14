@@ -74,6 +74,11 @@ test("khay học viên: giao việc ⇒ thấy việc + thông báo ⇒ nhận v
   assert.equal(sau.soDu, 20);
   assert.equal(sau.gan[0].trangThai, "duoc_duyet");
   assert.equal(sau.loiKhen[0].noiDung, "Giỏi lắm!");
+  // 14/11 (con-ngay-thuong 25): chuỗi ngày + 7 ô (cũ → hôm nay), hôm nay có việc được duyệt
+  assert.equal(sau.chuoi.soNgay, 1);
+  assert.equal(sau.chuoi.tuan.length, 7);
+  assert.deepEqual(sau.chuoi.tuan.map((x: any) => x.co), [false, false, false, false, false, false, true]);
+  assert.equal(tq.chuoi.soNgay, 0, "chưa duyệt việc nào ⇒ chuỗi 0");
   assert.ok(!sau.nhiemVu.some((x: any) => x.id === riengId && x.kieu === "mot_lan"), "việc một lần đã xong thì ẩn");
   const tin2 = (await goi(tok, `hoc-vien/tin?sau=${encodeURIComponent(mocDuyet)}`)).body;
   assert.ok(tin2.ds.some((x: any) => x.loai === "duyet_nhiem_vu" && x.noi.includes("+20")));

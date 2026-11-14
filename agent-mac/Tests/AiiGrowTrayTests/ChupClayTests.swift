@@ -198,4 +198,16 @@ final class ChupClayTests: XCTestCase {
     let trung = w.contentView?.superview?.hitTest(giua) ?? host.hitTest(giua)
     XCTAssertTrue(trung === p, "bấm giữa ô phải trúng pop-up, trúng \(String(describing: trung))")
   }
+
+  /// 14/11: «Cần mã của Ba Mẹ» (con-cai-mac 60) + «Giỏi lắm! 5 ngày liền» (con-ngay-thuong 25) — dữ liệu mẫu, không gọi daemon.
+  func testChupKhop1411() throws {
+    guard let p = ProcessInfo.processInfo.environment["CHUP_CLAY"] else { throw XCTSkip("đặt CHUP_CLAY=<thư mục> để chụp") }
+    let dir = URL(fileURLWithPath: p)
+    let m = ThoatModel(goi: { _ in .thongBao(chu: "da_bao") })
+    m.baoOk = true; m.baoStatus = "da_bao"
+    chup(ThoatMacView(m: m), "mac-thoat-can-ma", CGSize(width: 440, height: 402), dir: dir)
+    let ngay = ["2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03"]
+    let c = HvChuoi(soNgay: 5, tuan: ngay.enumerated().map { HvNgayChuoi(ngay: $0.element, thu: (3 + $0.offset) % 7, co: $0.offset >= 2) })
+    chup(GioiLamView(chuoi: c, cap: 3, moiLen: true, sao: 10), "mac-gioi-lam-chuoi", dir: dir)
+  }
 }

@@ -153,6 +153,8 @@ public struct HvTongQuan: Equatable {
   public var phieuCho: [HvPhieu] = []
   /// Quỹ giờ chơi hôm nay (05/11) — nil = máy chủ cũ.
   public var quy: HvQuy?
+  /// 14/11: chuỗi ngày + 7 ô ngày gần nhất (máy chủ cũ không gửi ⇒ nil, không hiện «Giỏi lắm!»).
+  public var chuoi: HvChuoi?
   public init() {}
   public static func doc(_ raw: Data) -> HvTongQuan? {
     guard let o = JsonMem.doc(raw), o["nhiemVu"] != nil || o["soDu"] != nil else { return nil }
@@ -165,7 +167,57 @@ public struct HvTongQuan: Equatable {
     t.loiKhen = JsonMem.ds(o["loiKhen"]).map(HvLoiKhen.init)
     t.phieuCho = JsonMem.ds(o["phieuCho"]).map(HvPhieu.init)
     if let q = o["quy"] as? [String: Any] { t.quy = HvQuy(q) }
+    if let c = o["chuoi"] as? [String: Any] { t.chuoi = HvChuoi(c) }
     return t
+  }
+}
+
+/// 14/11 `tong-quan.chuoi` (server/lib/thanh-tich.ts › tuanChuoi): số ngày liền + 7 ô (cũ → hôm nay, giờ gia đình).
+public struct HvChuoi: Equatable {
+  public var soNgay = 0
+  public var tuan: [HvNgayChuoi] = []
+  public init(soNgay: Int = 0, tuan: [HvNgayChuoi] = []) { self.soNgay = soNgay; self.tuan = tuan }
+  init(_ o: [String: Any]) {
+    soNgay = JsonMem.so(o["soNgay"]) ?? 0
+    tuan = JsonMem.ds(o["tuan"]).map { HvNgayChuoi(ngay: $0["ngay"] as? String ?? "", thu: JsonMem.so($0["thu"]) ?? 0, co: JsonMem.dung($0["co"]), bang: JsonMem.dung($0["bang"])) }
+  }
+}
+
+/// Một ô ngày: `thu` 0 = CN … 6 = T7; `co` = có việc được duyệt; `bang` = Ba Mẹ đóng băng (không đứt chuỗi).
+public struct HvNgayChuoi: Equatable {
+  public var ngay: String, thu: Int, co: Bool, bang: Bool
+  public init(ngay: String, thu: Int, co: Bool, bang: Bool = false) { self.ngay = ngay; self.thu = thu; self.co = co; self.bang = bang }
+}
+
+/// 14/11 «Giỏi lắm! N ngày liền» (con-ngay-thuong 25 them-jonn19rd — FR-03.06; bản Windows: agent-win ChuoiView): chữ + luật thuần.
+/// Mac không có hộp «Ba Mẹ duyệt rồi!» riêng (tin mới là bảng nhỏ góc phải) ⇒ hiện «Giỏi lắm!» thay bảng tin khi tin duyệt tới.
+public enum ChuoiView {
+  static let tenThu = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+
+  public static func thu(_ d: HvNgayChuoi, homNay: Bool) -> String { homNay ? "Nay" : tenThu[((d.thu % 7) + 7) % 7] }
+
+  /// Chuỗi ≥ 2 ngày, hôm nay đã có việc được duyệt, chưa hiện hôm nay.
+  public static func nenHien(_ c: HvChuoi?, daHienNgay: String?) -> Bool {
+    guard let c, c.soNgay >= 2, let nay = c.tuan.last else { return false }
+    return nay.co && nay.ngay != daHienNgay
+  }
+
+  public static func phu(_ soNgay: Int) -> String {
+    let du = soNgay % 7
+    return du == 0 ? "Làm đủ việc mỗi ngày · tròn \(soNgay / 7) tuần rồi!" : "Làm đủ việc mỗi ngày · thêm \(7 - du) ngày nữa là tròn tuần"
+  }
+
+  /// Lần duyệt vừa rồi (+`vuaCong` sao) đưa Con qua ngưỡng cấp hiện tại? Cấp c bắt đầu ở 100·(c−1)·c/2 sao kiếm được (server/lib/vi.ts › capDo).
+  public static func moiLenCap(_ cap: HvCapDo, tongKiem: Int, vuaCong: Int) -> Bool {
+    guard cap.cap > 1, vuaCong > 0 else { return false }
+    let nguong = 100 * (cap.cap - 1) * cap.cap / 2
+    return tongKiem >= nguong && tongKiem - vuaCong < nguong
+  }
+
+  /// «+N sao» trong lời tin duyệt («… +20 sao …») — như agent-win AppConView.DocTin.
+  public static func saoTrongTin(_ noi: String) -> Int {
+    guard let r = noi.range(of: #"\+(\d+)\s*sao"#, options: .regularExpression) else { return 0 }
+    return Int(noi[r].filter(\.isNumber)) ?? 0
   }
 }
 

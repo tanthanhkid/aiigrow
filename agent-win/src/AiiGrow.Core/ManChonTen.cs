@@ -156,12 +156,64 @@ public static class ManChonTenView
         st.DangGui = false;
         if (ok) { VeDau(st); return; }
         st.So = "";
-        st.Loi = status switch
-        {
-            "ma_sai" => conLan is int n ? $"Mã chưa đúng · còn {n} lần thử" : "Mã chưa đúng — xem lại trong app Ba Mẹ nhé.",
-            "ma_tam_khoa" => $"Nhập sai nhiều lần — đợi {Math.Max(1, ((choGiay ?? 600) + 59) / 60)} phút rồi thử lại.",
-            "ma_da_dung" => "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới.",
-            _ => string.IsNullOrWhiteSpace(loi) ? "Chưa mở được. Thử lại nhé." : loi,
-        };
+        st.Loi = CauLoiMa(status, conLan, choGiay, loi);
     }
+
+    /// <summary>Câu lỗi khi mã 6 số của Ba Mẹ chưa mở được (dùng chung «Ba Mẹ nhập mã» và «Thoát AiiGrow…»).</summary>
+    public static string CauLoiMa(string? status, int? conLan, int? choGiay, string? loi) => status switch
+    {
+        "ma_sai" => conLan is int n ? $"Mã chưa đúng · còn {n} lần thử" : "Mã chưa đúng — xem lại trong app Ba Mẹ nhé.",
+        "ma_tam_khoa" => $"Nhập sai nhiều lần — đợi {Math.Max(1, ((choGiay ?? 600) + 59) / 60)} phút rồi thử lại.",
+        "ma_da_dung" => "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới.",
+        _ => string.IsNullOrWhiteSpace(loi) ? "Chưa mở được. Thử lại nhé." : loi,
+    };
+}
+
+/// <summary>
+/// 14/11 «Con định tắt/gỡ AiiGrow» (docs/thiet-ke-chot/con-ngay-thuong 24 them-8ae0e45r — FR-01.05): menu khay «Thoát AiiGrow…» ⇒ hộp «Cần mã của Ba Mẹ».
+/// Mở hộp là báo Ba Mẹ ngay (pipe bao-thoat ⇒ sự kiện con_muon_thoat ⇒ cảnh báo trên app Ba Mẹ). Tắt / gỡ chỉ khi Ba Mẹ gõ đúng mã 6 số
+/// (cùng mã «Ba Mẹ nhập mã» — pipe ba-me-mo ⇒ «Ba Mẹ đang dùng máy»: AiiGrow thôi giới hạn tới hạn của mã; gỡ hẳn thì Ba Mẹ vào Cài đặt › Ứng dụng bằng mật khẩu quản trị).
+/// </summary>
+public static class ThoatView
+{
+    public const string Menu = "Thoát AiiGrow…";
+    public const string Tieu = "Cần mã của Ba Mẹ";
+    public const string Phu = "Tắt hoặc gỡ AiiGrow phải có Ba Mẹ đồng ý";
+    public const string GhiMa = "Mã 6 số trong app AiiGrow của Ba Mẹ";
+    public const string Quay = "Thôi, quay lại";
+    public const string DaMo = "Ba Mẹ đang dùng máy";
+    public const string DaMoPhu = "AiiGrow tạm thôi giới hạn. Xong việc Ba Mẹ bấm «Khoá lại».";
+
+    /// <summary>Menu «Thoát AiiGrow…» chỉ hiện khi dịch vụ trả trạng thái tươi, máy đã ghép, đây là phiên của Con và đang có bé dùng máy
+    /// (không hiện lúc Ba Mẹ đang dùng / chưa ai vào — ngang Mac ThoatMac.hienMenu).</summary>
+    public static bool HienMenu(TrayState? st) => st is { Paired: true, PhienCon: true } && st.NguoiDung == LoaiNguoiDung.Con;
+
+    /// <summary>Viên ghi dưới ô mã theo kết quả báo Ba Mẹ: null = đang báo (ngọc); «da_bao» / «cho_mang» / lỗi (cam — thiết kế «.ghi.cam»). → (chữ, icon, cam).</summary>
+    public static (string Chu, string Icon, bool Cam) ChipBao(bool? ok, string? status) => ok switch
+    {
+        null => ("Đang báo Ba Mẹ…", "gui", false),
+        true when status == "cho_mang" => ("Có mạng là Ba Mẹ nhận thông báo", "wifi", true),
+        true => ("Ba Mẹ đã nhận thông báo", "chuong", true),   // thiết kế 24 / Mac 60: viên «.ghi.cam» (cam nhạt)
+        false => ("Chưa báo được Ba Mẹ", "canh_bao", true),
+    };
+}
+
+/// <summary>14/11: chặn báo lặp «Con muốn thoát AiiGrow» — mở hộp nhiều lần trong <see cref="Cach"/> chỉ gửi Ba Mẹ một lần mỗi bé
+/// (máy chủ cũng chặn lặp 10 phút — server/lib/may-con.ts SU_KIEN_MAY.con_muon_thoat.lapPhut).</summary>
+public sealed class ChanBaoLap
+{
+    public static readonly TimeSpan Cach = TimeSpan.FromMinutes(10);
+    private readonly Dictionary<string, (DateTimeOffset Luc, string Status)> _da = new();
+
+    /// <summary>Trạng thái lần báo trước (da_bao / cho_mang) nếu còn trong khoảng chặn; null = được gửi.</summary>
+    public string? DaBao(string? be, DateTimeOffset now) => _da.TryGetValue(be ?? "", out var x) && now - x.Luc < Cach ? x.Status : null;
+    public void Ghi(string? be, DateTimeOffset now, string status) => _da[be ?? ""] = (now, status);
+}
+
+/// <summary>14/11: «Giỏi lắm!» mỗi ngày một lần THEO BÉ (máy dùng chung: bé thứ hai vẫn được mừng).</summary>
+public sealed class MungChuoi
+{
+    private readonly Dictionary<string, string> _ngay = new();
+    public string? DaMung(string? be) => _ngay.TryGetValue(be ?? "", out var n) ? n : null;
+    public void Ghi(string? be, string ngay) => _ngay[be ?? ""] = ngay;
 }

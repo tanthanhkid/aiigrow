@@ -156,3 +156,34 @@ public enum ManMac {
     return "\(thu[((c.weekday ?? 1) - 1) % 7]) · " + String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0)
   }
 }
+
+/// 14/11 «Con định tắt/gỡ AiiGrow (Mac)» (docs/thiet-ke-chot/con-cai-mac 60 them-xe0zv9p7 — FR-01.05; bản Windows: agent-win ThoatView):
+/// menu «Thoát AiiGrow…» ⇒ cửa sổ «Cần mã của Ba Mẹ». Mở là báo Ba Mẹ (IPC `baoThoat` ⇒ sự kiện `con_muon_thoat`). Gõ đúng mã 6 số của Ba Mẹ
+/// (cùng mã «Ba Mẹ nhập mã», IPC `baMeMo`) ⇒ «Ba Mẹ đang dùng máy»: AiiGrow thôi giới hạn tới hạn của mã. Tray KHÔNG tự thoát / tự gỡ —
+/// gỡ hẳn vẫn cần tài khoản quản trị của Ba Mẹ (go-cai.sh).
+public enum ThoatMac {
+  public static let menu = "Thoát AiiGrow…"
+  public static let tieu = "Cần mã của Ba Mẹ"
+  public static let phu = "Thoát hoặc gỡ AiiGrow phải có Ba Mẹ đồng ý."
+  public static let ghiMa = "Mã 6 số trong app AiiGrow của Ba Mẹ"
+  public static let quay = "Thôi, quay lại"
+
+  /// Menu chỉ có ở phiên Con đã ghép (lệnh IPC chỉ nhận từ uid Con).
+  public static func hienMenu(_ t: TrangThai?) -> Bool { t?.laPhienCon == true && t?.daGhep == true }
+
+  /// Viên dưới ô mã theo kết quả báo Ba Mẹ: nil = đang báo (ngọc); «da_bao» / «cho_mang» / lỗi (cam — thiết kế «.chip.cam»). → (chữ, icon Fluent, cam).
+  public static func chipBao(ok: Bool?, status: String?) -> (chu: String, icon: String, cam: Bool) {
+    switch ok {
+    case nil: return ("Đang báo Ba Mẹ…", "send", false)
+    case true? where status == "cho_mang": return ("Có mạng là Ba Mẹ nhận thông báo", "wifi", true)
+    case true?: return ("Ba Mẹ đã nhận thông báo", "bell", true)
+    case false?: return ("Chưa báo được Ba Mẹ", "warning", true)
+    }
+  }
+
+  /// Kết quả IPC `baoThoat` → (ok, status).
+  public static func docBao(_ r: TraLoi?) -> (ok: Bool, status: String?) {
+    if case let .thongBao(c)? = r { return (true, c) }
+    return (false, nil)
+  }
+}

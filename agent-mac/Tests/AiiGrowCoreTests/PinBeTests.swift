@@ -209,4 +209,27 @@ final class PinBeTests: XCTestCase {
     api.mayChungTra["POST ba-me-mo"] = .failure(LoiApi(maHttp: 429, ma: "ma_tam_khoa", chu: "x", choGiay: 600))
     if case let .pin(k, _, cho, _) = await b.xuLyIPC(.baMeMo(ma: "123456"), uidGoi: 501) { XCTAssertEqual(k, "ma_tam_khoa"); XCTAssertEqual(cho, 600) } else { XCTFail() }
   }
+
+  /// 14/11 (con-cai-mac 60): «Thoát AiiGrow…» ⇒ báo Ba Mẹ ngay (sự kiện con_muon_thoat); mất mạng ⇒ vào hàng đợi; chỉ uid Con.
+  func testDaemonBaoThoatBaoBaMe() async throws {
+    let api = MayChuGia()
+    let p = policyMau(mode: "tu_do", now: Date(timeIntervalSince1970: 1_760_000_000))
+    let (b, kho, _, dh, tm) = try dung(api, p)
+    defer { try? FileManager.default.removeItem(atPath: tm) }
+    _ = await b.motVong()
+    do { let r = await b.xuLyIPC(.baoThoat, uidGoi: 501); XCTAssertEqual(r, .thongBao(chu: "da_bao")) }
+    // mở lại hộp trong 10 phút ⇒ không gửi lặp
+    do { let r = await b.xuLyIPC(.baoThoat, uidGoi: 501); XCTAssertEqual(r, .thongBao(chu: "da_bao")) }
+    let gui = api.lanNhatKy.filter { $0.0 == "su-kien" }
+    XCTAssertEqual(gui.count, 1)
+    let ds = gui.first?.1["ds"] as? [[String: Any]]
+    XCTAssertEqual(ds?.first?["loai"] as? String, "con_muon_thoat")
+    // quá 10 phút + mất mạng ⇒ «cho_mang», sự kiện nằm trong hàng đợi (vongNhatKy gửi sau)
+    dh.tien(601)
+    api.matMang = true
+    do { let r = await b.xuLyIPC(.baoThoat, uidGoi: 501); XCTAssertEqual(r, .thongBao(chu: "cho_mang")) }
+    XCTAssertTrue(kho.doc()?.hangDoiSuKien.contains { $0.loai == "con_muon_thoat" } ?? false)
+    // tài khoản khác (Ba Mẹ) không gọi được
+    if case let .loi(ma, _) = await b.xuLyIPC(.baoThoat, uidGoi: 502) { XCTAssertEqual(ma, "khong_phai_con") } else { XCTFail() }
+  }
 }

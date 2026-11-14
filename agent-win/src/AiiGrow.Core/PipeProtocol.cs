@@ -49,6 +49,9 @@ public static class PipeCmd
     public const string DangXuat = "dang-xuat";
     /// <summary>«Khoá lại» của Ba Mẹ.</summary>
     public const string KhoaLai = "khoa-lai";
+    /// <summary>14/11 (con-ngay-thuong 24 — FR-01.05): Con bấm «Thoát AiiGrow…» ⇒ dịch vụ báo Ba Mẹ ngay (sự kiện con_muon_thoat, mất mạng thì vào hàng đợi).
+    /// Trả Status = da_bao | cho_mang. Tắt / gỡ chỉ được khi Ba Mẹ gõ mã 6 số (<see cref="BaMeMo"/>).</summary>
+    public const string BaoThoat = "bao-thoat";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>

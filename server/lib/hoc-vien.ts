@@ -8,6 +8,7 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { nop, nvCuaCon, type AnhNop } from "./nhiem-vu.ts";
 import { cuaHang, doiQua } from "./phan-thuong.ts";
 import { tomTatVi } from "./vi.ts";
+import { tuanChuoi } from "./thanh-tich.ts";
 import { quyHomNay } from "./quy-gio.ts";
 
 export type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
@@ -19,17 +20,22 @@ const KHONG_LAM_DUOC = new Set(["da_xong"]);
 export async function tongQuan(con: string) {
   const c = await one<{ id: string; ten: string; family_id: string }>(`select id, ten, family_id from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  const vi = await tomTatVi(con);
-  const ds = (await nvCuaCon(con)).filter((x) => !KHONG_LAM_DUOC.has(x.trang_thai_con));
-  const boSung = await q<{ task_id: string; ly_do: string | null }>(
-    `select distinct on (task_id) task_id, ly_do from submissions where child_id = $1 and trang_thai = 'can_bo_sung' order by task_id, created_at desc`, [con]);
+  // 14/11: chuỗi ngày (thanh-tich.tuanChuoi) chạy song song với phần còn lại — máy Con hỏi tong-quan thường xuyên
+  const [vi, nvs, boSung, qy, chuoi] = await Promise.all([
+    tomTatVi(con), nvCuaCon(con),
+    q<{ task_id: string; ly_do: string | null }>(
+      `select distinct on (task_id) task_id, ly_do from submissions where child_id = $1 and trang_thai = 'can_bo_sung' order by task_id, created_at desc`, [con]),
+    quyHomNay(con), tuanChuoi(con),
+  ]);
+  const ds = nvs.filter((x) => !KHONG_LAM_DUOC.has(x.trang_thai_con));
   const lyDo = new Map(boSung.map((x) => [x.task_id, x.ly_do]));
-  const qy = await quyHomNay(con);
   return {
     con: { id: c.id, ten: c.ten },
     soDu: vi.soDu, tongKiem: vi.tongKiem, capDo: vi.capDo, diemChoDuyet: vi.diemChoDuyet,
     // 05/11: sao (= điểm) + quỹ giờ chơi hôm nay (lib/quy-gio.ts) cho khay mới «Hôm nay»: «Giờ chơi còn lại 18 phút · Đã chơi 42 / 60»
     sao: vi.soDu, saoChoDuyet: vi.diemChoDuyet,
+    // 14/11 (con-ngay-thuong 25): «5 ngày liền!» + 7 ô ngày — máy Con hiện sau «Ba Mẹ duyệt rồi!»
+    chuoi,
     quy: { conPhut: qy.conPhut, daDung: qy.daDung, tongPhut: qy.tongPhut, quyNgayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, dangNgu: qy.dangNgu,
       dangHoc: qy.dangHoc, khoa: qy.khoa, gioNgu: qy.gioNgu, gioHoc: qy.gioHoc, tyLe: qy.tyLe, doiSao: qy.doiSao, choXinThem: qy.choXinThem },
     nhiemVu: ds.map((x) => ({

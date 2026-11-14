@@ -74,6 +74,21 @@ test("sự kiện agent: gửi bù không ghi trùng (cùng mã), loại lạ b�
   assert.equal((await q(`select 1 from events where family_id = $1 and loai like 'may_%'`, [fam])).length, 2);
 });
 
+test("sự kiện «Con muốn thoát AiiGrow» (14/11): Ba Mẹ nhận cảnh báo chú ý, gửi lại / mở lại trong 10 phút không báo lặp", async () => {
+  const { fam, token } = await nha(0);
+  const ds = [{ ma: "t1", loai: "con_muon_thoat", luc: new Date().toISOString(), chiTiet: { tu: "khay" } }];
+  assert.equal((await dv("su-kien", { tok: token, body: { ds } })).body.nhan, 1);
+  assert.equal((await dv("su-kien", { tok: token, body: { ds } })).body.nhan, 0);
+  const cb = await q<{ loai: string; muc: string; noi_dung: string }>(`select loai, muc, noi_dung from alerts where family_id = $1`, [fam]);
+  assert.deepEqual(cb.map((x) => [x.loai, x.muc]), [["may_con_muon_thoat", "chu_y"]]);
+  assert.match(cb[0].noi_dung, /cần mã của Ba Mẹ/);
+  // mở lại hộp (mã mới) trong 10 phút ⇒ chỉ ghi nhật ký, không thêm cảnh báo
+  const ds2 = [{ ma: "t2", loai: "con_muon_thoat", luc: new Date().toISOString(), chiTiet: { tu: "khay" } }];
+  assert.equal((await dv("su-kien", { tok: token, body: { ds: ds2 } })).body.nhan, 1);
+  assert.equal((await q(`select 1 from alerts where family_id = $1`, [fam])).length, 1);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'may_con_muon_thoat'`, [fam])).length, 2);
+});
+
 test("sự kiện mã offline: mở ⇒ báo thông tin; có mạng lại kết thúc (het_ma_offline) ⇒ chỉ ghi nhật ký, không báo", async () => {
   const { fam, token } = await nha(0);
   const luc = new Date().toISOString();

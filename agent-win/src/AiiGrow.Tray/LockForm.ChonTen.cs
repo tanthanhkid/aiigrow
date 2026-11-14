@@ -441,7 +441,7 @@ internal sealed partial class LockForm
     }
 
     /// <summary>Viên ghi chú bo tròn cao 44 (thiết kế «.ghi»): nền ngọc nhạt (hoặc cam) + icon 24 + chữ đậm 17px.</summary>
-    private static ClayFlow VienGhi(string chu, string icon, bool cam)
+    internal static ClayFlow VienGhi(string chu, string icon, bool cam)
     {
         var v = new ClayFlow { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = UI.Px(22),
             BackColor = cam ? Clay.CanhSoft : Clay.NgocSoft, Padding = VeThe.Pad(UI.Px(16), UI.Px(9), UI.Px(18), UI.Px(9)), Margin = Padding.Empty };

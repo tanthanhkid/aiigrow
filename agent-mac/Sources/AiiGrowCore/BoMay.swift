@@ -655,6 +655,8 @@ public actor BoMay {
       return await roiMay(path: "dang-xuat")
     case .khoaLai:
       return await roiMay(path: "khoa-lai")
+    case .baoThoat:
+      return await baoThoat()
     case .hoSoDns:
       do { return .duLieu(json: String(decoding: try await api.hoSoDns(), as: UTF8.self)) }
       catch let e as LoiApi { return .loi(ma: e.ma ?? "dns_loi", chu: e.chu) }
@@ -788,6 +790,40 @@ public actor BoMay {
     } catch let e as LoiApi { return .loi(ma: e.ma ?? "quen_pin_loi", chu: BoMay.cauLoiCon(e)) }
     catch { return .loi(ma: "quen_pin_loi", chu: "Chưa báo được. Con thử lại nhé.") }
   }
+
+  /// 14/11 (con-cai-mac 60 — FR-01.05, ngang agent-win PipeCmd.BaoThoat): Con mở «Cần mã của Ba Mẹ» ⇒ báo Ba Mẹ NGAY (sự kiện
+  /// `con_muon_thoat` ⇒ cảnh báo «chú ý» trên app Ba Mẹ). Mất mạng / máy chủ lỗi ⇒ vào hàng đợi sự kiện (vongNhatKy gửi khi có mạng; mã một lần nên
+  /// máy chủ không báo lặp). Không tắt / gỡ gì ở đây.
+  private func baoThoat() async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    let be: String
+    if case let .con(id, _)? = nguoiDungHieuLuc() { be = id } else { be = "" }
+    let bayGio = donDieu()
+    // mở hộp nhiều lần ⇒ báo Ba Mẹ tối đa 1 lần / bé / 10 phút (máy chủ cũng chặn lặp — SU_KIEN_MAY.con_muon_thoat.lapPhut)
+    if let cu = baoThoatLuc[be], bayGio - cu.luc < BoMay.giayChanBaoThoat { return .thongBao(chu: cu.status) }
+    let e = SuKienMay(loai: "con_muon_thoat", luc: dongHo(), chiTiet: ["may": heThong.tenMay(), "tu": "menu"])
+    let api = self.api, than = NhatKyMay.thanSuKien([e])
+    do {
+      guard !matMang else { throw LoiApi(chu: "mất mạng") }
+      // tối đa 8 giây như agent-win (Con đang nhìn hộp «Đang báo Ba Mẹ…»)
+      try await withThrowingTaskGroup(of: Void.self) { g in
+        g.addTask { try await api.guiNhatKy("su-kien", than) }
+        g.addTask { try await Task.sleep(nanoseconds: 8_000_000_000); throw LoiApi(chu: "quá 8 giây") }
+        try await g.next(); g.cancelAll()
+      }
+      heThong.ghiLog("Con bấm «Thoát AiiGrow…»: đã báo Ba Mẹ.")
+      baoThoatLuc[be] = (bayGio, "da_bao")
+      return .thongBao(chu: "da_bao")
+    } catch {
+      xepSuKien(e)
+      heThong.ghiLog("Con bấm «Thoát AiiGrow…»: chưa gửi được — đã lưu chờ mạng.")
+      baoThoatLuc[be] = (bayGio, "cho_mang")
+      return .thongBao(chu: "cho_mang")
+    }
+  }
+  /// Lần báo «Thoát AiiGrow…» gần nhất theo bé (đồng hồ đơn điệu) — chặn báo lặp.
+  private var baoThoatLuc: [String: (luc: Double, status: String)] = [:]
+  static let giayChanBaoThoat: Double = 600
 
   /// «Ba Mẹ nhập mã»: có mạng ⇒ máy chủ; mất mạng ⇒ tự kiểm mã mở máy (biến thể 60 / 30 / 15 phút), một mã một lượt.
   private func baMeMo(ma: String) async -> TraLoi {
@@ -1028,8 +1064,13 @@ public actor BoMay {
   private var lichSuLuc: Double = 0
 
   private func themSuKien(_ loai: String, _ chiTiet: [String: String] = [:]) {
+    xepSuKien(SuKienMay(loai: loai, luc: dongHo(), chiTiet: chiTiet.merging(["may": heThong.tenMay()]) { a, _ in a }))
+  }
+
+  /// Đưa một sự kiện vào hàng đợi (vongNhatKy gửi khi tới hạn + có mạng).
+  private func xepSuKien(_ e: SuKienMay) {
     var q = cauHinh.hangDoiSuKien
-    NhatKyMay.them(&q, SuKienMay(loai: loai, luc: dongHo(), chiTiet: chiTiet.merging(["may": heThong.tenMay()]) { a, _ in a }))
+    NhatKyMay.them(&q, e)
     cauHinh.hangDoiSuKien = q
     _ = try? kho.sua { $0.hangDoiSuKien = q }
   }
