@@ -156,30 +156,32 @@ test("con/:id/xoa: Người trông giúp ⇒ 403; nhà khác ⇒ 404; Con cuối
 });
 
 // ---------------------------------------------------------------- 4. «Trao luôn cho con»
-test("qua/:id/trao-luon: voucher Ba Mẹ mua ⇒ phát mã QR ngay, không trừ sao, trừ tồn kho; quà phút ⇒ cộng quỹ", async () => {
+test("qua/:id/trao-luon: quà Ba Mẹ mua ⇒ trao ngay, không trừ sao, trừ tồn kho; quà phút ⇒ cộng quỹ; voucher ⇒ 409 (cần thanh toán)", async () => {
   const { fam, a, b, tok, tg } = await nha();
-  const vc = newId();
-  await q(`insert into rewards(id, family_id, ten, loai, diem, menh_gia, ton_kho, ap_cho) values ($1,$2,'AiiCafe 20k','voucher',200,20000,1,$3::text::jsonb)`,
-    [vc, fam, JSON.stringify([a])]);
+  const lego = newId();
+  await q(`insert into rewards(id, family_id, ten, loai, diem, ton_kho, ap_cho) values ($1,$2,'Bộ Lego','qua',800,1,$3::text::jsonb)`, [lego, fam, JSON.stringify([a])]);
   const sao = await soDu(a);
-  assert.equal((await m(`qua/${vc}/trao-luon`, { tok: tg, body: { con: a } })).status, 403, "Người trông giúp không trao luôn (quyết chi quà)");
-  assert.equal((await m(`qua/${vc}/trao-luon`, { tok, body: { con: b } })).status, 404, "quà không áp cho Con này");
-  const r = await m(`qua/${vc}/trao-luon`, { tok, body: { con: a } });
-  assert.equal(r.status, 200);
-  assert.equal(r.body.saoTru, 0);
-  assert.equal(r.body.trangThai, "xong");
-  assert.ok(r.body.voucher?.ma && r.body.voucher.qr === r.body.voucher.ma && Date.parse(r.body.voucher.hetHan) > Date.now());
+  assert.equal((await m(`qua/${lego}/trao-luon`, { tok: tg, body: { con: a } })).status, 403, "Người trông giúp không trao luôn (quyết chi quà)");
+  assert.equal((await m(`qua/${lego}/trao-luon`, { tok, body: { con: b } })).status, 404, "quà không áp cho Con này");
+  const r = await m(`qua/${lego}/trao-luon`, { tok, body: { con: a } });
+  assert.deepEqual([r.status, r.body.saoTru, r.body.trangThai], [200, 0, "da_trao"]);
+  assert.ok(r.body.phieu);
   assert.equal(await soDu(a), sao, "không trừ sao");
-  assert.equal((await one<{ ton_kho: number }>(`select ton_kho from rewards where id = $1`, [vc]))!.ton_kho, 0);
-  assert.equal((await one<{ trang_thai: string }>(`select trang_thai from vouchers where ma = $1`, [r.body.voucher.ma]))!.trang_thai, "da_phat_hanh");
-  assert.equal((await m(`qua/${vc}/trao-luon`, { tok, body: { con: a } })).status, 409, "hết tồn kho");
+  assert.equal((await one<{ ton_kho: number }>(`select ton_kho from rewards where id = $1`, [lego]))!.ton_kho, 0);
+  assert.equal((await one<{ trang_thai: string; diem: number }>(`select trang_thai, diem from redemptions where id = $1`, [r.body.phieu]))!.trang_thai, "da_trao");
+  assert.equal((await m(`qua/${lego}/trao-luon`, { tok, body: { con: a } })).status, 409, "hết tồn kho");
+  const vc = newId();
+  await q(`insert into rewards(id, family_id, ten, loai, diem, menh_gia) values ($1,$2,'AiiCafe 20k','voucher',200,20000)`, [vc, fam]);
+  const rv = await m(`qua/${vc}/trao-luon`, { tok, body: { con: a } });
+  assert.deepEqual([rv.status, rv.body.error], [409, "voucher_can_thanh_toan"]);
+  assert.equal((await q(`select 1 from vouchers where family_id = $1`, [fam])).length, 0, "không phát phiếu 0 sao");
   // quà phút ⇒ +phút vào quỹ hôm nay
   const qp = newId();
   await q(`insert into rewards(id, family_id, ten, loai, diem, phut) values ($1,$2,'Thêm 30 phút','phut',30,30)`, [qp, fam]);
   const r2 = await m(`qua/${qp}/trao-luon`, { tok, body: { con: b } });
   assert.deepEqual([r2.status, r2.body.trangThai, r2.body.phut], [200, "da_trao", 30]);
   const ev = await q<{ chi_tiet: any }>(`select chi_tiet from events where family_id = $1 and loai = 'xac_nhan_qua'`, [fam]);
-  assert.ok(ev.every((e) => e.chi_tiet.trao_luon === true));
+  assert.ok(ev.length === 2 && ev.every((e) => e.chi_tiet.trao_luon === true));
   assert.equal((await m(`qua/khong-co/trao-luon`, { tok, body: { con: a } })).status, 404);
 });
 
@@ -262,4 +264,20 @@ test("con/:id/xoa: Con còn thiết bị lọc mạng đứng riêng (TV) ⇒ 40
   assert.deepEqual([r.status, r.body.error], [409, "con_thiet_bi_mang"]);
   assert.throws(() => mc.hanKhoa("Asia/Ho_Chi_Minh", new Date("abc")), /không hợp lệ/);
   assert.equal(mc.hanKhoa("Asia/Ho_Chi_Minh", null), null);
+});
+
+// ---------------------------------------------------------------- vòng review 3
+test("khoá máy + khoá Con đang mở tạm ⇒ khoaHetLuc tính cả khoá Con (không hạn ⇒ null); xoá Con xoá gói cài chưa dùng", async () => {
+  const { fam, a, b, tok } = await nha();
+  const may = await ghepMay(fam, a, "Laptop");
+  await q(`update children set cau_hinh = cau_hinh || $2::text::jsonb where id = $1`,
+    [a, JSON.stringify({ khoa_ngay: true, khoa_mo_tam_den: new Date(Date.now() + 600_000).toISOString() })]);
+  await m(`may/${may.deviceId}/khoa`, { tok, body: { khoa: true, den: new Date(Date.now() + 3600_000).toISOString() } });
+  const p = (await dv("dong-bo", { tok: may.token, body: {} })).body;
+  assert.deepEqual([p.khoaNgay, p.khoaHetLuc, p.khoaLaiLuc], [true, null, null]);
+  const { bangM4b } = await import("./tuan-thu.ts");
+  await bangM4b();
+  await q(`insert into goi_cai(token_hash, family_id, child_id, platform, expires_at) values ($1,$2,$3,'windows', now() + interval '1 day')`, [newId(), fam, b]);
+  assert.equal((await m(`con/${b}/xoa`, { tok, body: { xacNhan: true } })).status, 200);
+  assert.equal((await q(`select 1 from goi_cai where family_id = $1`, [fam])).length, 0);
 });

@@ -58,6 +58,8 @@ import { baMeDen } from "./pin-be.ts";
 import { baoThayDoi } from "./cho-thay-doi.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
+/** `den` của con/:id/khoa và may/:id/khoa: "sang" | ISO | không có (không hạn) — kiểm ở may-con.ts › hanKhoa. */
+const hanTuBody = (den: unknown): Date | "sang" | null => (den === "sang" ? "sang" : typeof den === "string" ? new Date(den) : null);
 
 async function chiTietCon(bm: BaMe, id: string) {
   const c = await gd.conCua(bm.family_id, id);
@@ -184,7 +186,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
         await ghiSuKien(fam, "doi_luat_web", { muc: r.muc, trang_thai: r.trangThai }, { con: id, nguoi: bm.id });
         return json(r);
       }
-      if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id, b.den === "sang" ? "sang" : typeof b.den === "string" ? new Date(b.den) : null, new Date(),
+      if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id, hanTuBody(b.den), new Date(),
         b.hoanTac === true); return json({ ok: true }); }
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
@@ -229,7 +231,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "doi-ten" && post) return json(await gd.doiTenMay(fam, p[1], b.ten, bm.id));
       // 14/11 «Khoá riêng máy này»: {khoa, den?: "sang" | ISO} — Người trông giúp được (khoá máy) — lib/khoa-may.ts
       if (sau === "khoa" && post)
-        return json(await khoaMay(fam, p[1], b.khoa !== false, bm.id, b.den === "sang" ? "sang" : typeof b.den === "string" ? new Date(b.den) : null));
+        return json(await khoaMay(fam, p[1], b.khoa !== false, bm.id, hanTuBody(b.den)));
       if (sau === "gan-con" && post) return json(await gd.ganConMay(fam, p[1], b.con, bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       // L6: Người trông giúp được duyệt lời xin (mở máy) ⇒ cũng được đọc mã mở offline cho Con lúc máy mất mạng

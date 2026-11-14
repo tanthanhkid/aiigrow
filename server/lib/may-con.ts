@@ -123,7 +123,9 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   const mayKhoa = khoaMayHieuLuc(may, now), conKhoa = dangKhoa(c?.cau_hinh, now);
   // cả hai cùng khoá ⇒ hạn = hạn MUỘN hơn (một bên không hạn ⇒ không hạn); chỉ máy khoá ⇒ hạn của máy, không «mở tạm» của Con
   const denMay = mayKhoa ? khoaDen(may.khoa_may, now) : null, denCon = khoaDen(c?.cau_hinh, now);
-  const khoaHetLuc = !mayKhoa ? denCon : !conKhoa ? denMay : denMay && denCon ? (Date.parse(denMay) > Date.parse(denCon) ? denMay : denCon) : null;
+  // Con khoá GỐC (kể cả đang mở tạm — khoá Con trở lại lúc mở tạm hết) cũng tính: agent offline không được mở máy ở hạn máy khi khoá Con còn
+  const conGoc = khoaGoc(c?.cau_hinh, now);
+  const khoaHetLuc = !mayKhoa ? denCon : !conGoc ? denMay : denMay && denCon ? (Date.parse(denMay) > Date.parse(denCon) ? denMay : denCon) : null;
   return apMoHet({
     serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now), khoaDen(may.khoa_may, now)], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,

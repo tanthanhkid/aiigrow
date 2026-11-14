@@ -41,7 +41,11 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
     // máy riêng ⇒ dùng chung (chọn tên); máy dùng chung đang có bé này đăng nhập ⇒ thả ra
     await t(`update devices set child_id = null, dung_chung = true where family_id = $1 and child_id = $2`, [fam, con]);
     await t(`update devices set con_dang_dung = null, dang_nhap_luc = null where family_id = $1 and con_dang_dung = $2`, [fam, con]);
+    // gói cài CHƯA dùng của Con ⇒ xoá (link còn hạn không ghép được máy mới vào nhà không còn Con); đã dùng ⇒ chỉ bỏ gắn
+    await t(`delete from goi_cai where family_id = $1 and child_id = $2 and used_at is null`, [fam, con]);
     await t(`update goi_cai set child_id = null where family_id = $1 and child_id = $2`, [fam, con]);
+    // voucher chưa phát (chờ trao — phiếu gốc xoá theo Con) ⇒ xoá; đã phát / đã dùng ⇒ giữ (child_id null) cho quầy + đối soát
+    await t(`delete from vouchers where family_id = $1 and child_id = $2 and trang_thai = 'cho_xac_nhan'`, [fam, con]);
     await t(`update dns_thiet_bi set child_id = null where family_id = $1 and child_id = $2`, [fam, con]);
     await t(`delete from app_rules where family_id = $1 and child_id = $2`, [fam, con]);
     await t(`delete from alerts where family_id = $1 and child_id = $2`, [fam, con]);
