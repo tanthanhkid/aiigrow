@@ -124,7 +124,7 @@ export default function TaiKhoan() {
         <Nut chu="Ở lại" loai="ma" rong bam={dong} />
       </BangTruot>
 
-      <BangTruot mo={mo === "xoa"} dong={dong} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản người tạo nhà" : `Xoá tài khoản ${toi.ten}?`}>
+      <BangTruot mo={mo === "xoa"} dong={dong} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản người tạo nhà" : laChu ? "Xoá tài khoản và cả gia đình?" : `Xoá tài khoản ${toi.ten}?`}>
         {chan ? (
           <>
             <Chu mau={M.chu2}>{chan.cau}</Chu>
@@ -135,7 +135,8 @@ export default function TaiKhoan() {
           </>
         ) : (
           <>
-            <Chu mau={M.chu2}>Xoá hẳn, không lấy lại được.</Chu>
+            <Chu mau={M.chu2}>{laChu ? "Bạn là người tạo nhà: xoá tài khoản là xoá luôn cả gia đình — mọi dữ liệu dưới đây mất ngay, không lấy lại được."
+              : "Xoá hẳn, không lấy lại được."}</Chu>
             <View>
               {laChu ? (
                 <>

@@ -102,3 +102,20 @@ test("POST toi/ten + doi-mat-khau", async () => {
   const dn = (await q<{ dinh_danh: string }>(`select dinh_danh from parents where id = $1`, [bm]))[0].dinh_danh;
   assert.equal(await dangNhap(dn, "matkhau-moi"), bm);
 });
+
+// Sửa việc «Áp cho» (review PR #243): một giao dịch; bản sao giữ bang_chung / tu_duyet gốc (việc AiiRob tự chấm vẫn tu_dong)
+test("POST nhiem-vu/:id/luu — Áp cho chép đủ cột, giữ tự chấm; lỗi thì không để nửa chừng", async () => {
+  const { a, b, tok } = await nha();
+  const id = (await m(tok, "nhiem-vu", { ten: "Học 1 bài với AiiRob", diem: 20, bang_chung: "tu_dong", tu_duyet: true, giao_cho: a, gio_nhac: "19:00" })).body.id;
+  const r = await m(tok, `nhiem-vu/${id}/luu`, { sua: { diem: 25 }, apCho: [a, b] });
+  assert.deepEqual([r.status, r.body.taoMoi, r.body.tat], [200, 1, false]);
+  const ds = (await m(tok, "nhiem-vu")).body.ds as any[];
+  const banSao = ds.find((x) => x.giao_cho === b && x.ten === "Học 1 bài với AiiRob");
+  assert.deepEqual([banSao.bang_chung, banSao.tu_duyet, banSao.diem, banSao.gio_nhac], ["tu_dong", true, 25, "19:00"]);
+  // bỏ Bảo Anh ⇒ tắt việc gốc
+  assert.equal((await m(tok, `nhiem-vu/${id}/luu`, { apCho: [b] })).body.tat, true);
+  // id Con lạ ⇒ 404, và phần «sua» trong cùng lượt không được ghi
+  const id2 = (await m(tok, "nhiem-vu", { ten: "Dọn phòng", diem: 10, giao_cho: a })).body.id;
+  assert.equal((await m(tok, `nhiem-vu/${id2}/luu`, { sua: { diem: 30 }, apCho: ["khong-co"] })).status, 404);
+  assert.equal(((await m(tok, "nhiem-vu")).body.ds as any[]).find((x) => x.id === id2).diem, 10, "rollback");
+});

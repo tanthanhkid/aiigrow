@@ -669,6 +669,11 @@ App «Quà của <Con>» tab «Voucher AiiGrow» = mẫu `loai: voucher`; «Mua�
 
 `GET thanh-vien` › `ds[]` thêm `vaoLuc` (ISO — «Vào nhà từ 20/10»).
 
+`POST /api/m/nhiem-vu/:id/luu {sua?: {…trường như POST nhiem-vu/:id}, apCho?: [id Con]}` → `{ok, taoMoi, tat}` — «Lưu việc» ở màn Sửa việc trong MỘT giao dịch:
+sửa trường đã đổi, rồi «Áp cho»: Con mới chọn nhận bản sao chép đủ cột (giữ `bang_chung`/`tu_duyet` gốc — việc AiiRob `tu_dong` vẫn tự chấm), Con đã có
+việc cùng tên bỏ qua, con của việc gốc (hoặc cả nhà) không còn trong danh sách ⇒ tắt việc gốc. `apCho: []` ⇒ 400 `chua_chon`; id Con lạ ⇒ 404 (không ghi gì).
+`POST nhiem-vu/danh-muc` chạy trong một giao dịch. Sự kiện đổi tên người lớn: `doi_ten_ba_me {tu, den}`.
+
 ## P1 (07/11) — «Ba Mẹ bấm ⇒ máy Con áp ≤5 giây»: long-poll chờ thay đổi (`server/lib/cho-thay-doi.ts`, test `cho-thay-doi.test.ts`)
 Thanh 07/11: *«khi chặn có effect liền ở máy trẻ em ko, phải có»*. Trước đây máy Con chỉ hỏi máy chủ theo vòng; giờ thêm đường «gõ cửa»:
 

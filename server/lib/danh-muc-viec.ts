@@ -4,7 +4,7 @@
 // chung cả nhà (như bo-nhiem-vu.ts). Tên + số sao lấy đúng màn; «12+» = việc nặng, nên giao cho bé từ 12 tuổi (chỉ là nhãn).
 // Cách con nộp mặc định theo màn «Ba Mẹ tự thêm» (them-6pjz1stu): Ghi âm cho đọc / tiếng Anh / học thuộc, Bấm «Xong» cho vận động và việc nhỏ 5 sao,
 // còn lại Chụp ảnh. Hợp đồng: docs/API.md «Danh mục việc».
-import { q } from "./db.ts";
+import { q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { taoNv } from "./nhiem-vu.ts";
 
@@ -203,15 +203,18 @@ export async function themTuDanhMuc(fam: string, b: { con?: unknown; viec?: unkn
   if (!Array.isArray(b.viec) || !b.viec.length) throw new LoiNghiepVu("chua_chon", "Chạm ＋ ở ít nhất một việc");
   const ds = [...new Set(b.viec.map(String))].map((ma) => theoMa.get(ma)).filter((v): v is ViecDm => !!v);
   if (!ds.length) throw new LoiNghiepVu("viec_sai", "Việc đã chọn không còn trong danh sách");
-  const co = await q<CoSan>(`select ten, giao_cho, bang_chung from tasks where family_id = $1 and bat`, [fam]);
-  const ids: string[] = [];
-  let boQua = 0;
-  for (const v of ds) {
-    if (daCo(co, v, con)) { boQua++; continue; }
-    const tu = v.bangChung === "tu_dong";
-    ids.push(await taoNv(fam, { ten: v.ten, diem: v.sao, nhom: v.nhom, hinh: v.hinh, bang_chung: v.bangChung, lap_lai: "hang_ngay", toi_da_ngay: 1,
-      tu_duyet: tu, giao_cho: tu ? null : con, bo: v.muc }, nguoi, q, true));
-    co.push({ ten: v.ten, giao_cho: tu ? null : con, bang_chung: v.bangChung });
-  }
-  return { taoMoi: ids.length, ids, boQua };
+  // một giao dịch: lỗi giữa chừng không để lại nửa số việc (review PR #243)
+  return tx(async (t) => {
+    const co = await t<CoSan>(`select ten, giao_cho, bang_chung from tasks where family_id = $1 and bat`, [fam]);
+    const ids: string[] = [];
+    let boQua = 0;
+    for (const v of ds) {
+      if (daCo(co, v, con)) { boQua++; continue; }
+      const tu = v.bangChung === "tu_dong";
+      ids.push(await taoNv(fam, { ten: v.ten, diem: v.sao, nhom: v.nhom, hinh: v.hinh, bang_chung: v.bangChung, lap_lai: "hang_ngay", toi_da_ngay: 1,
+        tu_duyet: tu, giao_cho: tu ? null : con, bo: v.muc }, nguoi, t, true));
+      co.push({ ten: v.ten, giao_cho: tu ? null : con, bang_chung: v.bangChung });
+    }
+    return { taoMoi: ids.length, ids, boQua };
+  });
 }

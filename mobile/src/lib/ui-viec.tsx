@@ -1,7 +1,6 @@
 // Mảnh giao diện dùng chung cho các màn Nhiệm vụ · Quà · Cả nhà theo thiết kế 14/11 (bm-viec-duyet, bm-sao-qua, bm-ca-nha):
 // dải avatar các con (tròn, tên dưới, số việc chờ góc trên), thanh mục dạng viên (Học · Vận động · Giúp Ba Mẹ / Voucher · Ba Mẹ tự điền),
 // nút ＋ tròn lõm (chạm = chọn, hiện tick ngọc), ô chọn số sao, ô icon lõm. Token Clay (mau.ts, clay.ts) — không chép CSS thô của HTML.
-import type { ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { BONG, KHOI, MEN } from "./clay";
 import { Avt, Chu, Icon, Icon3D, M, NhanMen, type TenIcon } from "./ui";
@@ -110,13 +109,13 @@ export function SaoNho({ n, dau }: { n: number; dau?: string }) {
 }
 
 /** Hàng ô chọn lõm (thiết kế «Con nhận ⭐5 ⭐10 …», «Con đổi bằng …»): ô đang chọn = teal nhạt viền ngọc. */
-export function ChonO<T extends string | number>({ ds, chon, doi, sao }: { ds: { gia: T; chu: string; ic?: TenIcon }[]; chon: T | null; doi: (v: T) => void; sao?: boolean }) {
+export function ChonO<T extends string | number>({ ds, chon, doi, sao }: { ds: { gia: T; chu: string; ic?: TenIcon; nhan?: string }[]; chon: T | null; doi: (v: T) => void; sao?: boolean }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup">
       {ds.map((x) => {
         const on = x.gia === chon;
         return (
-          <Pressable key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={sao ? `${x.chu} sao` : x.chu}
+          <Pressable key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={x.nhan ?? (sao ? `${x.chu} sao` : x.chu)}
             style={[{ flexGrow: 1, minWidth: 64, minHeight: 44, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 10 },
               on ? { backgroundColor: "#dcebe6", borderWidth: 2, borderColor: M.chinh } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
             {sao ? <Icon3D ten="sao" co={18} /> : x.ic ? <Icon3D ten={x.ic} co={18} /> : null}
@@ -124,18 +123,6 @@ export function ChonO<T extends string | number>({ ds, chon, doi, sao }: { ds: {
           </Pressable>
         );
       })}
-    </View>
-  );
-}
-
-/** Tiêu đề mục (.muc 15/800) + phần phải (vd «Chọn tất cả», số). */
-export function MucTieu({ chu, phu, phai }: { chu: string; phu?: string; phai?: ReactNode }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4, marginTop: 6 }}>
-      <Chu kieu="rat" co={15}>{chu}</Chu>
-      {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu> : null}
-      <View style={{ flex: 1 }} />
-      {phai}
     </View>
   );
 }

@@ -37,6 +37,8 @@ export async function xuLyMSao(bm: { id: string; family_id: string }, req: Reque
   if (d === "nhiem-vu/kho" && post) return json(await giaoKho(fam, { con: b.con, chon: b.chon }, bm.id));
   // «Giao việc» 14/11: danh mục Học · Vận động · Giúp Ba Mẹ (danh-muc-viec.ts)
   if (d === "nhiem-vu/danh-muc" && get) return json(await xemDanhMuc(fam, new URL(req.url).searchParams.get("con")));
+  // «Lưu việc» ở Sửa việc: sửa + «Áp cho» trong một giao dịch (nhiem-vu.ts › luuNv)
+  if (p[0] === "nhiem-vu" && p[1] && p[2] === "luu" && p.length === 3 && post) return json(await nv.luuNv(fam, p[1], { sua: b.sua, apCho: b.apCho }, bm.id));
   if (d === "nhiem-vu/danh-muc" && post) return json(await themTuDanhMuc(fam, { con: b.con, viec: b.viec }, bm.id));
   if (d === "nhiem-vu" && post && Array.isArray(b.giao_cho)) {
     const ds = [...new Set((b.giao_cho as unknown[]).map(String))].slice(0, 10);

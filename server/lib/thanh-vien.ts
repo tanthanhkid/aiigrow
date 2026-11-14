@@ -291,7 +291,7 @@ export async function doiTenToi(bm: BaMe, v: unknown) {
   if (!ten) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi trong gia đình (vd Mẹ Lan, Ba Tuấn)");
   if (ten === bm.ten) return { ok: true, ten };
   await q(`update parents set ten = $2 where id = $1`, [bm.id, ten]);
-  await ghiSuKien(bm.family_id, "doi_ten", { tu: bm.ten, thanh: ten }, { nguoi: bm.id });
+  await ghiSuKien(bm.family_id, "doi_ten_ba_me", { tu: bm.ten, den: ten }, { nguoi: bm.id });
   return { ok: true, ten };
 }
 

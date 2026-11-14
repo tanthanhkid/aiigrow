@@ -7,7 +7,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
-import { ChuNut, DaiCon, MucTieu, NutCongTick, OLomIcon, SaoNho, ThanhMuc } from "@/lib/ui-viec";
+import { DaiCon, NutCongTick, OLomIcon, SaoNho, ThanhMuc } from "@/lib/ui-viec";
+import { MucTieu } from "@/lib/ui-bm3";
 import type { TenIcon } from "@/lib/ui";
 
 type ViecDm = { ma: string; ten: string; sao: number; tu12: boolean; bangChung: string; hinh: string; daCo: boolean };
@@ -72,11 +73,11 @@ function GiaoCho({ c, dsCon, doiCon }: { c: GiaDinh["con"][number]; dsCon: GiaDi
         </View>
       </View>
       <ThanhMuc ds={dm.d.muc.map((x) => ({ gia: x.ma, chu: x.ten, ic: IC_MUC[x.ma] }))} chon={m.ma} doi={setMuc} />
-      {nhieuChuDe ? <MucTieu chu={m.ten} phu={`${m.soViec} · ${m.chuDe.length} chủ đề`} /> : null}
+      {nhieuChuDe ? <MucTieu chu={`${m.ten} · ${m.soViec} · ${m.chuDe.length} chủ đề`} /> : null}
       {m.chuDe.map((cd) => (
         <View key={cd.ma} style={{ gap: 6 }}>
-          <MucTieu chu={cd.ten} phu={nhieuChuDe ? undefined : `${cd.viec.length}`}
-            phai={conLai(cd).length ? <ChuNut chu={conLai(cd).every((x) => chon.includes(x)) ? "Bỏ chọn" : "Chọn tất cả"} bam={() => chonHet(cd)} /> : null} />
+          <MucTieu chu={nhieuChuDe ? cd.ten : `${cd.ten} · ${cd.viec.length}`}
+            phai={conLai(cd).length ? { chu: conLai(cd).every((x) => chon.includes(x)) ? "Bỏ chọn" : "Chọn tất cả", bam: () => chonHet(cd) } : undefined} />
           <The sat>
             {cd.viec.map((v, i) => (
               <View key={v.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 58, paddingVertical: 6, paddingLeft: 14, paddingRight: 6,

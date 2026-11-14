@@ -240,7 +240,7 @@ export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "
 }
 
 /** POST doi-mat-khau {matKhau, matKhauMoi} — màn «Đổi mật khẩu» (thiết kế 14/11 bm-ca-nha/09 them-o4k6oei0): đúng mật khẩu đang dùng ⇒
- *  đặt mật khẩu mới (≥ 8 ký tự), đăng xuất các máy KHÁC (phiên đang dùng `giuPhien` giữ lại). Chưa có mật khẩu (Google / Facebook) ⇒ 409
+ *  đặt mật khẩu mới (≥ 8 ký tự), đăng xuất các máy KHÁC (phiên đang dùng `giuPhien` giữ lại; không biết phiên ⇒ không đăng xuất ai). Chưa có mật khẩu (Google / Facebook) ⇒ 409
  *  `chua_co_mat_khau`. Sai ⇒ 401 `sai_mat_khau`; bộ đếm riêng 5 lượt / 15 phút (như lien-ket — không đụng khoá đăng nhập). */
 export async function doiMatKhau(bm: BaMe, b: Record<string, unknown>, giuPhien: string | null, now = Date.now()) {
   const mk = String(b.matKhauMoi ?? "");
@@ -253,7 +253,8 @@ export async function doiMatKhau(bm: BaMe, b: Record<string, unknown>, giuPhien:
   const bam = await bamMatKhau(mk);
   await tx(async (t) => {
     await t(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null where id = $1`, [bm.id, bam]);
-    await t(`delete from sessions where parent_id = $1 and id <> $2`, [bm.id, giuPhien ?? ""]);
+    // chỉ đăng xuất máy khác khi biết phiên đang gọi (id = sha(bearer) đã xác thực ở api-m) — không bao giờ xoá luôn phiên của chính người gọi
+    if (giuPhien) await t(`delete from sessions where parent_id = $1 and id <> $2`, [bm.id, giuPhien]);
   });
   return { ok: true };
 }

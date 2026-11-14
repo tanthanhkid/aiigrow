@@ -10,7 +10,8 @@ import { BONG } from "@/lib/clay";
 import { BaoLoi, baoKhiVe, Chips, ChoTai, Chu, Icon3D, M, Man, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { hinhNv } from "@/lib/hang-ngay";
 import { tenHopLe } from "@/lib/form-viec";
-import { ChonO, MucTieu, OLomIcon } from "@/lib/ui-viec";
+import { ChonO, OLomIcon } from "@/lib/ui-viec";
+import { MucTieu } from "@/lib/ui-bm3";
 
 const GOI_Y = ["Tưới cây", "Tập đàn 15 phút", "Cho cún ăn", "Vẽ 1 bức tranh", "Tự tắm"];
 const HINH = ["choi", "sach", "day", "but", "cay", "bat"];
