@@ -61,7 +61,7 @@ export default function ObGio() {
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
       day={<Nut chu="Tiếp: chọn app cho con" rong bam={tiep} />}>
       <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy\nbao lâu mỗi ngày?`}</Text>
-      <View style={{ borderRadius: 28, backgroundColor: "#f7f6f3", padding: 14, gap: 12, ...KHOI.the }}>
+      <View style={{ borderRadius: 28, backgroundColor: "#f7f6f3", padding: 16, gap: 12, ...KHOI.the }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="dongho" co={22} /><Chu kieu="rat" co={14.5} mau={M.chu2}>Hết giờ, máy tự khoá</Chu></View>
         <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="radiogroup">
           {QUY_CHIP.map((p) => {
@@ -77,14 +77,14 @@ export default function ObGio() {
           </Pressable>
         </View>
         {tu ? (
-          <View style={{ borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 4, ...KHOI.nho }}>
+          <View style={{ borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 4, ...KHOI.nho }}>
             {dongTu("Ngày thường", "Thứ 2 – Thứ 6", quy, (p) => dat(p, ct), "ngày thường")}
             <View style={{ height: 1, backgroundColor: "#ecebe7" }} />
             {dongTu("Cuối tuần", "Thứ 7, Chủ nhật", ct, (p) => dat(quy, p), "cuối tuần")}
           </View>
         ) : null}
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, backgroundColor: "#f7f6f3", padding: 12, ...KHOI.the }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, backgroundColor: "#f7f6f3", paddingVertical: 12, paddingHorizontal: 16, ...KHOI.the }}>
         <Icon3D ten="trang_ngu" co={28} />
         <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>Giờ đi ngủ</Chu><Chu co={12} mau={M.chu3}>Máy khoá cả đêm</Chu></View>
         {(["tu", "den"] as const).map((k, i) => (

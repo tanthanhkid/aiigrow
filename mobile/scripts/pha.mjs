@@ -443,7 +443,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-them-web", "/thiet-lap/them-web", "Gõ tên hoặc dán link", { truoc: diTl("/thiet-lap/them-web") }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
-    M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "Đã ghép"),
+    M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "đã ghép!"),
     M("bm-ob-mau", "/thiet-lap/mau", "Một ngày của", { truoc: diTl("/thiet-lap/mau") }),
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
