@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;right:16px;top:44px;height:48px;display:flex;align-items:center;justify-content:space-between;z-index:3}
+.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.buoc{display:flex;gap:8px}.buoc i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e6e5e1;box-shadow:var(--lom)}.buoc i img{width:20px;height:20px;opacity:.45}.buoc i.on{background:#fbecc0;box-shadow:0 0 0 2.5px #0f6b5c,var(--clay)}.buoc i.on img{opacity:1}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:122px;overflow-y:auto;overflow-x:hidden;padding:0 16px 28px;scrollbar-width:none;z-index:1}
+.cuon::-webkit-scrollbar{display:none}
+.the{position:relative;height:196px;border-radius:34px;background:linear-gradient(135deg,#ffe9cc,#f9cf9a);box-shadow:var(--clay);overflow:hidden}
+.the::before{content:"";position:absolute;left:16px;right:16px;top:3px;height:56px;border-radius:32px 32px 80px 80px;background:linear-gradient(rgba(255,255,255,.7),rgba(255,255,255,0))}
+.the .rob{position:absolute;right:-10px;bottom:-14px;width:150px;height:auto}
+.avt{position:absolute;left:20px;top:18px;width:78px;height:78px;border-radius:50%;display:grid;place-items:center;background:#6fa8e8;box-shadow:0 0 0 4px rgba(255,255,255,.85),0 10px 16px -8px rgba(20,60,110,.45);font-size:34px;font-weight:800;color:#fff}
+.cam{position:absolute;left:80px;top:72px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 6px 10px -6px rgba(28,32,30,.4)}.cam svg{width:18px;height:18px;fill:#6e4300}
+.ten{position:absolute;left:22px;bottom:20px}
+.ten b{display:block;font-size:26px;line-height:30px;font-weight:800;letter-spacing:-.5px;color:#3d2600}
+.ten span{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:3px 12px 3px 4px;border-radius:16px;background:rgba(255,255,255,.8);font-size:13.5px;font-weight:800;color:#6e4300}
+.ten span i{font-style:normal;font-size:20px;line-height:24px}
+.nd{padding-top:14px}
+.nhan{margin:0 0 8px 6px;font-size:14px;font-weight:700}
+.nhan.sau{margin-top:12px}
+.lom{display:flex;align-items:center;height:50px;padding:0 20px;border-radius:25px;background:#e6e5e1;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 20px Inter,sans-serif;color:#0f1312}
+.lom.chon{justify-content:space-between;font:700 20px Inter,sans-serif;cursor:pointer}
+.lom.chon svg{width:20px;height:20px;fill:#0a5246}
+.mau{display:flex;gap:14px;align-items:center;padding-left:4px}
+.mau i{width:44px;height:44px;border-radius:50%;box-shadow:0 6px 10px -6px rgba(28,32,30,.4),inset 0 2px 0 rgba(255,255,255,.5)}
+.mau i.chon{box-shadow:0 0 0 3px #f4f4f2,0 0 0 6px #0f6b5c}
+.pin{position:relative;margin-top:14px;padding:12px 12px 14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay);overflow:hidden}
+.pin .dau{position:relative;display:flex;align-items:center;gap:8px;height:20px;margin:0 0 8px 4px;font-size:14px;font-weight:800}
+.pin .dau img{width:22px;height:22px}
+.pin .dau em{margin-left:auto;margin-right:4px;font-style:normal;font-size:12.5px;font-weight:700;color:#565c59}
+.o4{position:relative;display:flex;gap:10px}
+.o4 i{flex:1;height:50px;border-radius:20px;background:#e6e5e1;box-shadow:var(--lom);display:grid;place-items:center;font-style:normal;font-size:22px;font-weight:800;color:#0f1312}
+.o4 i.dang{box-shadow:0 0 0 2.5px #0f6b5c,var(--lom)}
+.goi{position:relative;margin:8px 2px 0;font-size:12px;line-height:17px;font-weight:600;color:#3a403d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.goi b{color:#0a5246;font-weight:800}
+.day{position:absolute;left:0;right:0;bottom:0;padding:10px 16px 18px;display:flex;flex-direction:column;gap:2px;z-index:3;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 12px)}
+.nut{position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut span{position:relative}
+.lk{min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+</style></head>
+<body data-lk-sua=""><div class="app">
+<div class="top">
+<div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-ob-ten-con"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div>
+<div class="buoc" aria-label="Bước 1 trên 5: Con"><i class="on"><img src="/assets/icon3d/tick.webp" alt=""></i><i><img src="/assets/icon3d/sao.webp" alt=""></i><i><img src="/assets/icon3d/qua.webp" alt=""></i><i><img src="/assets/icon3d/dongho.webp" alt=""></i><i><img src="/assets/icon3d/may_tinh.webp" alt=""></i></div>
+</div>
+<div class="cuon">
+<div class="the" aria-label="Xem trước hồ sơ của con">
+<div class="avt">B</div>
+<div class="cam" role="button" tabindex="0" aria-label="Thêm ảnh của con"><svg viewBox="0 0 256 256"><path d="M208,52H182.42L170,33.34A12,12,0,0,0,160,28H96a12,12,0,0,0-10,5.34L73.57,52H48A28,28,0,0,0,20,80V192a28,28,0,0,0,28,28H208a28,28,0,0,0,28-28V80A28,28,0,0,0,208,52ZM128,180a44,44,0,1,1,44-44A44.05,44.05,0,0,1,128,180Z"></path></svg></div>
+<div class="ten"><b>Bảo Minh</b><span aria-label="6 tuổi, theo năm sinh 2020"><i>🐭</i>6 tuổi</span></div>
+<img class="rob" src="/assets/rob/chi.webp" alt="">
+</div>
+<div class="nd">
+<div class="nhan">Tên gọi ở nhà</div>
+<div class="lom"><input aria-label="Tên gọi ở nhà của con" value="Bảo Minh"></div>
+<div class="nhan sau">Năm sinh</div>
+<div class="lom chon" role="button" tabindex="0" aria-label="Chọn năm sinh của con" data-toi="them-hjjdppuw"><span>2020</span><svg viewBox="0 0 256 256"><path d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z"></path></svg></div>
+<div class="nhan sau">Màu của con</div>
+<div class="mau" aria-label="Chọn màu để nhận ra con"><i style="background:#f5a957"></i><i class="chon" style="background:#6fa8e8"></i><i style="background:#e98bab"></i><i style="background:#5cb98f"></i><i style="background:#a58be0"></i></div>
+<div class="pin" aria-label="Mã PIN vào máy của Bảo Minh">
+<div class="dau"><img src="/assets/icon3d/khoa.webp" alt="">Mã PIN vào máy<em>4 số</em></div>
+<div class="o4" aria-label="Đặt PIN 4 số, hiện số"><i>7</i><i>3</i><i class="dang"></i><i></i></div>
+<div class="goi"><b>Bé dùng PIN này để vào máy</b> · không dùng ngày sinh</div>
+</div>
+</div>
+</div>
+<div class="day">
+<button class="nut" type="button" data-toi="bm1-ob-mau"><span>Lưu hồ sơ Bảo Minh</span></button>
+<div class="lk" role="button" tabindex="0" data-toi="bm1-ob-mau">Xong, giao việc cho Bảo Anh trước</div>
+</div>
+</div></body></html>

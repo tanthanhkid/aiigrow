@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.nen{position:absolute;inset:0;padding:100px 16px 0}
+.the{position:relative;height:196px;border-radius:34px;background:linear-gradient(135deg,#ffe9cc,#f9cf9a);box-shadow:var(--clay)}
+.avt{position:absolute;left:20px;top:18px;width:78px;height:78px;border-radius:50%;display:grid;place-items:center;background:#f5a957;box-shadow:0 0 0 4px rgba(255,255,255,.85);font-size:34px;font-weight:800;color:#fff}
+.tenc{position:absolute;left:22px;bottom:24px;font-size:26px;font-weight:800;color:#3d2600}
+.nhan{margin:14px 0 8px 6px;font-size:14px;font-weight:700}
+.lom{height:50px;padding:0 20px;border-radius:25px;background:#e6e5e1;box-shadow:var(--lom);display:flex;align-items:center;font:700 20px Inter,sans-serif}
+.lom.dang{box-shadow:0 0 0 2.5px #0f6b5c,var(--lom)}
+.mo{position:absolute;inset:0;background:rgba(15,19,18,.45);z-index:2}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 20px 22px;border-radius:32px 32px 0 0;background:#f7f6f3;box-shadow:0 -10px 30px -10px rgba(0,0,0,.35)}
+.keo{width:44px;height:5px;margin:0 auto 14px;border-radius:3px;background:#cfcdc7}
+.ns-dau{display:flex;align-items:center;justify-content:space-between;margin:0 4px 6px}
+.ns-dau b{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.ns-dau span{font-size:14px;font-weight:700;color:#565c59}
+.ns-chuyen{display:flex;align-items:center;justify-content:space-between;margin:6px 0 12px}
+.ns-chuyen i{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;background:#ebeae6}
+.ns-chuyen i svg{width:20px;height:20px;fill:#0a5246}
+.ns-chuyen em{font-style:normal;font-size:15px;font-weight:800;color:#3a403d}
+.ns-luoi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ns-luoi i{height:52px;border-radius:26px;display:grid;place-items:center;font-style:normal;font-size:18px;font-weight:700;color:#0f1312;background:#ecebe7}
+.ns-luoi i.ns-chon{background:#0f6b5c;color:#fff;font-weight:800;box-shadow:0 10px 16px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.ns-luoi i.ns-nay{box-shadow:inset 0 0 0 2px #0f6b5c;color:#0a5246}
+.ns-nut{display:flex;gap:12px;margin-top:20px}
+.ns-huy{flex:0 0 108px;height:58px;border-radius:30px;display:grid;place-items:center;font-size:16px;font-weight:800;color:#0a5246;background:#ebeae6}
+.nut{flex:1;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+
+.bx{position:relative;perspective:600px;overflow:hidden}
+.bx-dai{position:absolute;left:0;right:0;border-radius:14px;background:#e3efeb}
+.bx-cot{position:relative}
+.bx i{display:flex;align-items:center;justify-content:center;height:44px;font-style:normal;font-size:20px;font-weight:600;color:#1c201e}
+.bx i.ch{font-size:23px;font-weight:800;color:#0a5246}
+.bx::before,.bx::after{content:"";position:absolute;left:0;right:0;height:64px;z-index:2;pointer-events:none}
+.bx::before{top:0;background:linear-gradient(var(--bxn),rgba(244,244,242,0))}
+.bx::after{bottom:0;background:linear-gradient(rgba(244,244,242,0),var(--bxn))}
+.sheet{--bxn:#f4f4f2}.bx{margin:4px 0 0;--bxn:#f7f6f3}.bx-ghi{margin:0 4px 6px;font-size:12.5px;font-weight:700;color:#565c59}
+</style></head>
+<body><div class="app">
+<div class="nen" aria-hidden="true">
+<div class="the"><div class="avt">B</div><div class="tenc">Bảo Anh</div></div>
+<div class="nhan">Tên gọi ở nhà</div><div class="lom">Bảo Anh</div>
+<div class="nhan">Năm sinh</div><div class="lom dang">2017</div>
+</div>
+<div class="mo" role="button" tabindex="0" aria-label="Đóng bảng chọn năm" data-toi="bm1-ob-ten-con"></div>
+<div class="sheet" role="dialog" aria-label="Chọn năm sinh của Bảo Anh">
+<div class="keo"></div>
+<div class="ns-dau"><b>Năm sinh</b></div>
+<div class="bx" role="listbox" aria-label="Năm sinh, 2009 đến 2024" style="height:308px"><div class="bx-dai" style="top:132px;height:44px"></div><div class="bx-cot"><i style="transform:rotateX(54deg) scale(0.85);opacity:0.2">2014</i><i style="transform:rotateX(36deg) scale(0.90);opacity:0.38">2015</i><i style="transform:rotateX(18deg) scale(0.95);opacity:0.62">2016</i><i style="transform:rotateX(0deg) scale(1.00);opacity:1" class="ch" aria-selected="true">2017</i><i style="transform:rotateX(-18deg) scale(0.95);opacity:0.62">2018</i><i style="transform:rotateX(-36deg) scale(0.90);opacity:0.38">2019</i><i style="transform:rotateX(-54deg) scale(0.85);opacity:0.2">2020</i></div></div><div class="ns-nut">
+
+<button class="nut" type="button" data-toi="bm1-ob-ten-con">Chọn 2017</button>
+</div>
+</div>
+</div></body></html>

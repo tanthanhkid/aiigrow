@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:320px;background:linear-gradient(#efe9df,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 20px 0;z-index:4}
+.top h1{font-size:28px;font-weight:800;letter-spacing:-.6px;white-space:nowrap;line-height:32px}
+.top small{display:block;font-size:13px;font-weight:700;color:#565c59}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:84px;overflow-y:auto;padding:0 16px 24px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.be-ds{display:flex;gap:8px;padding:6px 0 4px}
+.be{flex:none;display:flex;align-items:center;gap:6px;height:44px;padding:0 14px 0 5px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:14px;font-weight:800;color:#3a403d;white-space:nowrap}
+.be i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;font-size:15px;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -5px 8px -4px rgba(0,0,0,.2)}
+.be.on{background:#0f6b5c;color:#fff}
+.be.nho{padding:0 5px}
+.hero{position:relative;margin-top:14px;padding:18px 16px 16px;border-radius:34px;background:linear-gradient(#f6e6d2,#faf2e8);box-shadow:var(--clay);overflow:hidden}
+.hero::before{content:"";position:absolute;left:16px;right:16px;top:4px;height:44px;border-radius:30px 30px 70px 70px;background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,0))}
+.hero .grow{position:absolute;right:-6px;top:6px;width:124px;height:124px;object-fit:contain}
+.hero .nho{position:relative;font-size:13px;font-weight:700;color:#8a3c0c}
+.hero h2{position:relative;margin-top:4px;display:flex;align-items:center;gap:8px;font-size:26px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
+.hero h2 img{width:32px;height:32px}
+.y{position:relative;margin-top:12px;margin-right:100px;display:flex;flex-direction:column;gap:8px}
+.y p{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;font-weight:700;line-height:1.35}
+.y p i{flex:none;width:22px;height:22px;border-radius:11px;display:grid;place-items:center;font-style:normal;font-size:12px;color:#fff}
+.y p i.ok{background:#0f6b5c}.y p i.ko{background:#8a3c0c}
+.cong{position:relative;margin-top:16px;display:grid;grid-template-columns:1fr 1.25fr;gap:4px;padding:4px;border-radius:24px;background:rgba(255,255,255,.55);box-shadow:var(--lom)}
+.cong span{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;border-radius:20px;font-size:14.5px;font-weight:800;color:#3a403d;white-space:nowrap}
+.cong span img{width:22px;height:22px;opacity:.6}
+.cong span.on{color:#fff;background:#8a3c0c;box-shadow:0 10px 16px -10px rgba(138,60,12,.7),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -6px 10px -4px rgba(0,0,0,.25)}
+.cong span.on img{opacity:1}
+.muc{display:flex;align-items:center;margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.giu{padding:8px 12px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.hang{display:flex;align-items:center;gap:10px;min-height:60px;opacity:.55}
+.hang+.hang{border-top:1.5px solid #ecebe7}
+.hang .nhan{flex:none;width:44px;font-size:14px;font-weight:800;color:#3a403d}
+.icons{flex:1;display:flex;gap:6px;min-width:0}
+.icons i{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#fff;box-shadow:0 8px 12px -8px rgba(28,32,30,.3)}
+.icons i img{width:24px;height:24px}
+.giu p.gc{display:flex;gap:8px;align-items:flex-start;margin-top:6px;padding:10px 12px;border-radius:18px;background:#ecebe7;box-shadow:var(--lom);font-size:13px;font-weight:600;color:#3a403d;line-height:1.4}
+.luon{display:flex;align-items:center;gap:10px;margin-top:14px;padding:4px 12px 4px 14px;border-radius:22px;background:#ecebe7;box-shadow:var(--lom)}
+.luon img{width:24px;height:24px;flex:none}
+.luon p{flex:1;font-size:13px;font-weight:600;color:#3a403d;line-height:1.4}.luon p b{color:#0f1312;font-weight:800}
+.luon span{flex:none;min-height:44px;display:flex;align-items:center;font-size:13px;font-weight:800;color:#0a5246}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:#f7f6f3;box-shadow:0 -1px 0 #e4e3df,0 -12px 18px -12px rgba(28,32,30,.25);z-index:4}
+.tab div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;color:#565c59;white-space:nowrap}
+.tab img{width:26px;height:26px;opacity:.5}
+.tab .on{color:#0a5246;font-weight:800}.tab .on img{opacity:1}
+</style></head>
+<body><div class="app">
+<div class="top"><h1>Chặn</h1><small>App và trang web của con</small></div>
+<div class="cuon">
+<div class="be-ds" aria-label="Chọn con">
+<span class="be on" role="button" tabindex="0"><i style="background:#f08a3c">B</i>Bảo Anh</span>
+<span class="be nho" role="button" tabindex="0" aria-label="Bảo Minh"><i style="background:#5b7fd6">M</i></span>
+<span class="be nho" role="button" tabindex="0" aria-label="Bảo Ngọc"><i style="background:#d86a8f">N</i></span>
+<span class="be nho" role="button" tabindex="0" aria-label="Khang"><i style="background:#3f9a86">K</i></span>
+</div>
+<div class="hero">
+<img class="grow" src="/assets/rob/nghi.webp" alt="Grow">
+<p class="nho">Máy của Bảo Anh đang ở chế độ</p>
+<h2><img src="/assets/icon3d/mo_khoa.webp" alt="">Mở hết</h2>
+<div class="y">
+<p><i class="ok">✓</i>Con mở được mọi app, mọi trang web</p>
+<p><i class="ko">🔒</i>Grow chỉ chặn web người lớn, cờ bạc, bạo lực</p>
+</div>
+<div class="cong" role="radiogroup" aria-label="Chế độ chặn">
+<span class="on" role="radio" aria-checked="true" tabindex="0"><img src="/assets/icon3d/mo_khoa.webp" alt="">Mở hết</span>
+<span role="radio" aria-checked="false" tabindex="0" data-toi="bm2-ung-dung-may"><img src="/assets/icon3d/khien.webp" alt="">Chặn app &amp; web</span>
+</div>
+</div>
+<p class="muc">Danh sách Ba Mẹ đã chọn</p>
+<div class="giu">
+<div class="hang"><span class="nhan">App</span><span class="icons"><i><img src="/assets/icon3d/game.webp" alt=""></i><i><img src="/assets/icon3d/may_tinh.webp" alt=""></i><i><img src="/assets/icon3d/sach.webp" alt=""></i><i><img src="/assets/icon3d/camera.webp" alt=""></i></span></div>
+<div class="hang"><span class="nhan">Web</span><span class="icons"><i><img src="/assets/icon3d/sach.webp" alt=""></i><i><img src="/assets/icon3d/but.webp" alt=""></i><i><img src="/assets/icon3d/game.webp" alt=""></i></span></div>
+<p class="gc">Đang tạm nghỉ, vẫn được giữ nguyên. Bật lại «Chặn app &amp; web» là dùng tiếp.</p>
+</div>
+<div class="luon"><img src="/assets/icon3d/khoa.webp" alt=""><p><b>Luôn chặn</b> web người lớn, cờ bạc, bạo lực</p><span role="button" tabindex="0" data-toi="them-1g0mpf21">Xem ›</span></div>
+</div>
+<nav class="tab">
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
+<div role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Nhiệm vụ</div>
+<div class="on" role="button" tabindex="0"><img src="/assets/icon3d/khien.webp" alt="">Chặn</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+</nav>
+</div></body></html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:320px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 16px 0 20px;display:flex;align-items:center;gap:10px;z-index:4;background:linear-gradient(#e3efeb 70%,rgba(227,239,235,0))}
+.top h1{flex:1;font-size:28px;font-weight:800;letter-spacing:-.6px;white-space:nowrap}
+.dem{flex:none;padding:5px 10px;border-radius:12px;background:#e2660f;color:#fff;font-size:13px;font-weight:800;white-space:nowrap}
+.loc{position:absolute;left:16px;right:16px;top:102px;display:grid;grid-template-columns:repeat(3,1fr);padding:4px;border-radius:24px;background:#ecebe7;box-shadow:var(--lom);z-index:3}
+.loc span{height:40px;border-radius:20px;display:grid;place-items:center;font-size:14px;font-weight:800;color:#565c59;white-space:nowrap}
+.loc .on{background:#f7f6f3;color:#0f1312;box-shadow:var(--clay)}
+.muc{display:flex;align-items:center;gap:6px;margin:14px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.muc em{font-style:normal;padding:2px 8px;border-radius:10px;font-size:12px;background:#ecebe7;color:#3a403d}
+.muc em.do{background:#b42318;color:#fff}
+.cuon{position:absolute;left:0;right:0;top:152px;bottom:0;overflow-y:auto;padding:0 16px 30px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.ds{padding:4px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.cc{display:flex;align-items:center;gap:12px;min-height:76px;padding:8px 0}
+.cc+.cc{border-top:1.5px solid #ecebe7}
+.av{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:800;color:#fff;background:#e98aa6;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -5px 8px -4px rgba(0,0,0,.18)}
+.av.x{background:#5b7fd6}.av.v{background:#0f6b5c}.av.g{background:#7d8783}
+.cc p{flex:1;min-width:0;font-size:15px;font-weight:800;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc p small{display:block;font-size:12.5px;font-weight:600;line-height:17px;color:#565c59;overflow:hidden;text-overflow:ellipsis}
+.cc p small.nha{font-weight:800;color:#3a403d}
+.nhan{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.nhan i{padding:4px 9px;border-radius:11px;background:#f9e7d2;color:#8a3c0c;font-style:normal;font-size:12.5px;font-weight:800;white-space:nowrap}
+.nhan i.gap{background:#b42318;color:#fff}
+.nhan b{display:flex;align-items:center;min-height:30px;font-size:13.5px;font-weight:800;color:#0a5246;white-space:nowrap}
+</style></head>
+<body><div class="app">
+<div class="top"><h1>Hộp thư hỗ trợ</h1><span class="dem">4 chờ</span></div>
+<div class="loc"><span class="on" role="button" tabindex="0" data-toi="bm2-admin-ho-tro">Chờ trả lời</span><span role="button" tabindex="0" data-toi="bm2-admin-ho-tro">Đã trả lời</span><span role="button" tabindex="0" data-toi="bm2-admin-ho-tro">Của tôi</span></div>
+<div class="cuon">
+<p class="muc">Gấp<em class="do">2</em></p>
+<div class="ds">
+<div class="cc" role="button" tabindex="0" data-toi="bm2-ho-tro"><span class="av x">H</span><p>Bà Hoa<small class="nha">nhà Bảo Anh</small><small>Máy Laptop không hiện bảo vệ</small></p><div class="nhan"><i class="gap">Chờ 42′</i><b>Mở chat ›</b></div></div>
+<div class="cc" role="button" tabindex="0" data-toi="bm2-ho-tro"><span class="av v">T</span><p>Ba Tuấn<small class="nha">nhà Bảo Anh</small><small>Không nhận được lời mời vào nhà</small></p><div class="nhan"><i class="gap">Chờ 35′</i><b>Mở chat ›</b></div></div>
+</div>
+<p class="muc">Đang chờ<em>2</em></p>
+<div class="ds">
+<div class="cc" role="button" tabindex="0" data-toi="bm2-ho-tro"><span class="av">L</span><p>Mẹ Lan<small class="nha">nhà Bảo Anh</small><small>iPad báo «cần sửa», làm sao ạ?</small></p><div class="nhan"><i>Chờ 12′</i><b>Mở chat ›</b></div></div>
+<div class="cc" role="button" tabindex="0" data-toi="bm2-ho-tro"><span class="av g">N</span><p>Cô Ngọc<small class="nha">nhà Bé Na</small><small>Đổi sao ra phút ở đâu ạ?</small></p><div class="nhan"><i>Chờ 5′</i><b>Mở chat ›</b></div></div>
+</div>
+</div>
+</div></body></html>

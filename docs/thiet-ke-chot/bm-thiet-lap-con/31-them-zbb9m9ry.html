@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.3),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.nut{position:relative;width:100%;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+.top{position:absolute;left:8px;right:16px;top:44px;height:48px;display:flex;align-items:center;justify-content:space-between;z-index:3}
+.lui{width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.buoc{display:flex;gap:8px}.buoc i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#e6e5e1;box-shadow:var(--lom)}.buoc i img{width:20px;height:20px;opacity:.45}.buoc i.xong img{opacity:1}.buoc i.on{background:#dcebe6;box-shadow:0 0 0 2.5px #0f6b5c,var(--clay)}.buoc i.on img{opacity:1}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:260px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.c6-rob{position:absolute;left:10px;right:16px;top:92px;height:76px;display:flex;align-items:center;gap:6px}
+.c6-rob img{width:72px;height:72px;object-fit:contain;flex:none}
+.c6-rob div{flex:1;background:#f7f6f3;border-radius:22px;box-shadow:var(--clay);padding:10px 14px;font-size:17px;line-height:22px;font-weight:800}
+.c6-rob small{display:block;font-size:12.5px;font-weight:700;color:#565c59}
+.c6-cuon{position:absolute;left:0;right:0;top:178px;bottom:120px;overflow-y:auto;padding:4px 16px 30px;scrollbar-width:none}
+.c6-cuon::-webkit-scrollbar{display:none}
+.c6-dau{display:flex;align-items:center;gap:8px;margin:14px 4px 10px}
+.c6-dau b{flex:1;font-size:16px;font-weight:800;white-space:nowrap}
+.c6-all{flex:none;height:34px;padding:0 14px;border-radius:17px;display:flex;align-items:center;background:#dcebe6;color:#0a5246;font-size:13px;font-weight:800;white-space:nowrap}
+.c6-day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 8px;z-index:5;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25)}
+.c6-them{min-height:40px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0a5246}
+
+.a-top{position:absolute;left:8px;right:16px;top:44px;height:52px;display:flex;align-items:center;gap:4px;z-index:3}
+.a-top .lui{width:44px;height:44px;display:grid;place-items:center;color:#1c201e}
+.a-top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.c6-cuon{top:100px;bottom:96px}
+.k-nhan{font-size:13px;font-weight:800;color:#565c59;margin:16px 4px 8px}
+.k-the{border-radius:24px;background:#f7f6f3;box-shadow:var(--clay);padding:14px}
+/* 2 chế độ chặn */
+.k-che{display:flex;gap:8px}
+.k-che div{flex:1;border-radius:20px;background:#f7f6f3;box-shadow:var(--nho);padding:12px 10px;text-align:center;position:relative}
+.k-che em{display:block;font-style:normal;font-size:30px;margin-bottom:4px}
+.k-che b{display:block;font-size:14px;line-height:18px;font-weight:800}
+.k-che small{display:block;font-size:11.5px;line-height:15px;font-weight:700;color:#565c59;margin-top:2px}
+.k-che div[aria-checked="true"]{box-shadow:0 0 0 2.5px #0f6b5c,var(--nho);background:#eef6f3}
+.k-che div[aria-checked="true"]::after{content:"✓";position:absolute;top:8px;right:8px;width:20px;height:20px;border-radius:50%;background:#0f6b5c;color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center}
+/* giờ ngủ */
+.k-ngu{display:flex;align-items:center;gap:10px}
+.k-ngu>em{font-style:normal;font-size:26px}
+.k-ngu>b{flex:1;font-size:14.5px;font-weight:800}
+.k-ngu>b small{display:block;font-size:12px;font-weight:700;color:#565c59}
+.k-g{height:44px;padding:0 12px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom);font-size:15px;font-weight:800;color:#0a5246}
+.c6-day{padding-bottom:22px}
+
+.m-h{font-size:24px;line-height:30px;font-weight:800;letter-spacing:-.5px;margin:4px 4px 4px}
+.m-p{font-size:13.5px;line-height:19px;font-weight:700;color:#565c59;margin:0 4px 12px}
+
+.bx{position:relative;flex:1;overflow:hidden}
+.bx-dai{position:absolute;left:0;right:0;border-radius:14px;background:#e3efeb}
+.bx-cot{position:relative}
+.bx i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;color:#1c201e}
+.bx i.ch{font-weight:800;color:#0a5246}
+.bx::before,.bx::after{content:"";position:absolute;left:0;right:0;height:38%;z-index:2;pointer-events:none}
+.bx::before{top:0;background:linear-gradient(var(--bxn),rgba(255,255,255,0))}
+.bx::after{bottom:0;background:linear-gradient(rgba(255,255,255,0),var(--bxn))}
+.bx-hai{display:flex;gap:8px}
+
+.l-the{border-radius:24px;background:#f7f6f3;box-shadow:var(--clay);overflow:hidden;margin-bottom:12px}
+.l-dau{font-size:13px;font-weight:800;color:#565c59;margin:14px 6px 8px}
+.l-d{display:flex;align-items:center;gap:12px;min-height:66px;padding:8px 14px}
+.l-d+.l-d{border-top:1px solid #e9e8e3}
+.l-d em{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-style:normal;font-size:23px}
+.l-d div{flex:1}
+.l-d b{display:block;font-size:15.5px;font-weight:800}
+.l-d small{display:block;font-size:12px;font-weight:700;color:#565c59}
+.l-d span{flex:none;height:38px;padding:0 12px;border-radius:13px;display:flex;align-items:center;gap:4px;background:#ecebe7;box-shadow:var(--lom);font-size:14px;font-weight:800;color:#8b908d}
+.l-ghi{display:flex;gap:8px;align-items:center;padding:10px 12px;border-radius:16px;background:#fbf1d9;font-size:12.5px;line-height:17px;font-weight:700;color:#6e4300}
+
+.s-mo{position:absolute;inset:0;background:rgba(28,32,30,.45);z-index:20}
+.s-tam{position:absolute;left:0;right:0;bottom:0;z-index:21;border-radius:32px 32px 0 0;background:#f4f4f2;box-shadow:0 -10px 30px rgba(0,0,0,.2);padding:0 20px 24px;--bxn:#f4f4f2}
+.s-keo{width:44px;height:5px;border-radius:3px;background:#c9c8c2;margin:10px auto 12px}
+.s-tam h3{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.s-tam p{font-size:13px;font-weight:700;color:#565c59;margin:2px 0 10px}
+.s-kq{text-align:center;font-size:15px;font-weight:800;color:#0a5246;margin:10px 0 14px}
+.s-ten{display:flex;gap:8px;margin-bottom:2px}.s-ten span{flex:1;text-align:center;font-size:12px;font-weight:800;color:#8b908d}
+</style></head><body><div class="app"><div class="a-top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256" width="24" height="24" fill="currentColor"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1></h1></div><div class="c6-cuon" style="top:96px"><h2 class="m-h">Giờ chơi của Bảo Anh</h2><p class="m-p">Ba Mẹ chạm từng dòng để chọn giờ.</p><p class="l-dau">⏰ MỖI NGÀY ĐƯỢC CHƠI</p><div class="l-the"><div class="l-d" role="button" tabindex="0"><em style="background:#dcebe6">📚</em><div><b>Ngày đi học</b><small>Thứ 2 – Thứ 6</small></div><span>Chọn ›</span></div><div class="l-d" role="button" tabindex="0"><em style="background:#e1e8f4">🎉</em><div><b>Cuối tuần</b><small>Thứ 7, Chủ nhật</small></div><span>Chọn ›</span></div></div><p class="l-dau">🌙 BAN ĐÊM MÁY KHOÁ</p><div class="l-the"><div class="l-d" role="button" tabindex="0"><em style="background:#2b3a55">🌙</em><div><b>Đi ngủ lúc</b><small>Máy khoá từ giờ này</small></div><span>Chọn ›</span></div><div class="l-d" role="button" tabindex="0"><em style="background:#fbeccb">☀️</em><div><b>Thức dậy lúc</b><small>Máy mở lại</small></div><span>Chọn ›</span></div></div><p class="l-ghi">⭐ Hết giờ, con đổi sao lấy thêm phút hoặc xin Ba Mẹ.</p></div><div class="c6-day"><button class="nut" type="button"><span>Tiếp</span></button></div><div class="s-mo" role="button" tabindex="0" aria-label="Đóng" data-toi="bm1-ob-gio"></div><div class="s-tam" role="dialog" aria-label="Chọn giờ chơi ngày đi học"><div class="s-keo"></div><h3>📚 Ngày đi học</h3><p>Thứ 2 – Thứ 6, mỗi ngày Bảo Anh được chơi</p><div class="s-ten"><span>Tiếng</span><span>Phút</span></div><div class="bx-hai"><div class="bx" role="listbox" aria-label="Số tiếng" style="height:220px"><div class="bx-dai" style="top:88px;height:44px"></div><div class="bx-cot"><i style="height:44px;font-size:17px;opacity:0.25;transform:scale(0.92)"></i><i style="height:44px;font-size:17px;opacity:0.5;transform:scale(0.96)">0</i><i style="height:44px;font-size:20px;opacity:1;transform:scale(1.00)" class="ch">1 tiếng</i><i style="height:44px;font-size:17px;opacity:0.5;transform:scale(0.96)">2</i><i style="height:44px;font-size:17px;opacity:0.25;transform:scale(0.92)">3</i></div></div><div class="bx" role="listbox" aria-label="Số phút" style="height:220px"><div class="bx-dai" style="top:88px;height:44px"></div><div class="bx-cot"><i style="height:44px;font-size:17px;opacity:0.25;transform:scale(0.92)">00</i><i style="height:44px;font-size:17px;opacity:0.5;transform:scale(0.96)">15</i><i style="height:44px;font-size:20px;opacity:1;transform:scale(1.00)" class="ch">30 phút</i><i style="height:44px;font-size:17px;opacity:0.5;transform:scale(0.96)">45</i><i style="height:44px;font-size:17px;opacity:0.25;transform:scale(0.92)"></i></div></div></div><p class="s-kq">= 1 tiếng 30 phút mỗi ngày</p><button class="nut" type="button" data-toi="bm1-ob-gio"><span>Xong</span></button></div></div></body></html>

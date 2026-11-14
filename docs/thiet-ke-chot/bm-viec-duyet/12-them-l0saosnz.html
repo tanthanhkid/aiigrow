@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.sau{position:absolute;inset:0;filter:blur(5px);background:linear-gradient(#e3efeb,#f4f4f2 300px)}
+.sau .t{position:absolute;left:56px;top:58px;font-size:22px;font-weight:800}
+.sau .k{position:absolute;left:16px;right:16px;top:104px;height:300px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.sau .k i{position:absolute;left:10px;right:10px;top:10px;height:220px;border-radius:22px;background:linear-gradient(135deg,#d6e9e2,#eef4f1)}
+.sau .b{position:absolute;left:16px;right:16px;top:430px;height:70px;border-radius:24px;background:#fff}
+.mo{position:absolute;inset:0;background:rgba(15,19,18,.38);z-index:2}
+.bang{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 16px 26px;border-radius:32px 32px 0 0;background:#f4f4f2;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+.keo{width:40px;height:5px;border-radius:3px;background:#d4d3cf;margin:0 auto 14px}
+.dau{display:flex;align-items:center;gap:12px}
+.dau img{flex:none;width:60px;height:auto}
+.dau h2{font-size:20px;line-height:26px;font-weight:800;letter-spacing:-.3px}
+.dau h2 small{display:block;font-size:13px;line-height:18px;font-weight:600;color:#565c59;letter-spacing:0;margin-top:2px}
+.muc{margin:18px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.chip{display:flex;flex-wrap:wrap;gap:8px}
+.chip span{height:44px;padding:0 16px;border-radius:22px;display:flex;align-items:center;background:#f7f6f3;box-shadow:var(--clay);font-size:14.5px;font-weight:800;color:#3a403d;white-space:nowrap}
+.chip span.on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.35)}
+.lom{display:flex;align-items:center;min-height:56px;padding:10px 18px;border-radius:22px;background:#ecebe7;box-shadow:var(--lom);font-size:15.5px;font-weight:700;line-height:22px}
+.ghi{display:flex;align-items:center;gap:8px;margin:10px 6px 0;font-size:12.5px;font-weight:700;color:#565c59}
+.ghi img{width:18px;height:18px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;margin-top:18px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:22px;height:22px}
+.lk{display:flex;align-items:center;justify-content:center;min-height:44px;margin-top:4px;font-size:15px;font-weight:800;color:#0a5246}
+</style></head>
+<body><div class="app">
+<div class="sau" aria-hidden="true"><p class="t">Đọc sách 20 phút</p><div class="k"><i></i></div><div class="b"></div></div>
+<div class="mo" role="button" tabindex="0" aria-label="Đóng" data-toi="them-d40e3495"></div>
+<div class="bang">
+<div class="keo"></div>
+<div class="dau"><img src="/assets/rob/chi.webp" alt=""><h2>Nhờ Bảo Anh đọc lại<small>Con chưa nhận sao. Nộp ghi âm mới thì Ba Mẹ duyệt tiếp.</small></h2></div>
+<p class="muc">Vì sao?</p>
+<div class="chip"><span class="on" role="button" tabindex="0">Nghe chưa rõ</span><span role="button" tabindex="0">Chưa đủ 20 phút</span><span role="button" tabindex="0">Nhầm bài</span></div>
+<p class="muc">Nhắn con</p>
+<div class="lom">Con đọc to hơn một chút nhé!</div>
+<p class="ghi"><img src="/assets/icon3d/tim.webp" alt="">Nói nhẹ nhàng để con vui vẻ làm lại</p>
+<span class="nut" role="button" tabindex="0" data-toi="them-4u3doee9"><img src="/assets/icon3d/gui.webp" alt="">Gửi lời nhắn cho Bảo Anh</span>
+<span class="lk" role="button" tabindex="0" data-toi="them-d40e3495">Thôi, quay lại nghe ghi âm</span>
+</div>
+</div></body></html>

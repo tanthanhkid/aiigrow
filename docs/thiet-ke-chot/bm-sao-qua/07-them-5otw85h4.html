@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.sau{position:absolute;inset:0;filter:blur(5px);background:linear-gradient(#e3efeb,#f4f4f2 300px)}
+.sau .t{position:absolute;left:20px;top:52px;font-size:28px;font-weight:800}
+.sau .av{position:absolute;top:104px;width:56px;height:56px;border-radius:50%}
+.sau .k{position:absolute;left:16px;right:16px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.mo{position:absolute;inset:0;background:rgba(15,19,18,.38);z-index:2}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 16px 26px;border-radius:32px 32px 0 0;background:#f4f4f2;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+.keo{width:40px;height:5px;margin:0 auto 14px;border-radius:3px;background:#d4d3cf}
+.hinh{width:104px;height:104px;margin:0 auto;border-radius:32px;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--clay)}
+.hinh img{width:68px;height:68px}
+h1{margin-top:14px;text-align:center;font-size:22px;line-height:28px;font-weight:800;letter-spacing:-.4px}
+.phu{margin-top:8px;display:flex;justify-content:center;align-items:center;gap:6px;font-size:14.5px;line-height:21px;color:#3a403d;font-weight:600}
+.phu b{display:flex;align-items:center;gap:3px;padding:4px 10px 4px 5px;border-radius:12px;background:#fbecc0;color:#6e4300;font-weight:800}
+.phu b img{width:18px;height:18px}
+.the{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 14px;border-radius:24px;background:#dcebe6;font-size:14px;font-weight:700;color:#0a5246;line-height:20px}
+.the img{flex:none;width:48px;height:auto}
+.day{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.nut{display:flex;align-items:center;justify-content:center;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.hai{display:flex;gap:10px}
+.thoi{flex:1;display:flex;align-items:center;justify-content:center;height:46px;border-radius:23px;background:#fff;box-shadow:var(--clay);font-size:14.5px;font-weight:800;color:#3a403d;white-space:nowrap}
+.thoi.huy{color:#b42318}
+</style></head>
+<body><div class="app">
+<div class="sau" aria-hidden="true"><p class="t">Nhiệm vụ</p><i class="av" style="left:20px;background:#f08a3c"></i><i class="av" style="left:88px;background:#5b7fd6"></i><i class="av" style="left:156px;background:#d86a8f"></i><i class="av" style="left:224px;background:#3f9a86"></i><div class="k" style="top:186px;height:150px"></div><div class="k" style="top:356px;height:220px"></div></div>
+<div class="mo" role="button" tabindex="0" aria-label="Đóng" data-toi="them-e91jg28j"></div>
+<div class="sheet">
+<div class="keo"></div>
+<div class="hinh"><img src="/assets/icon3d/chen.webp" alt=""></div>
+<h1>Đã trao «Chọn món bữa tối»<br>cho Bảo Anh chưa?</h1>
+<p class="phu">Con chọn hôm nay · đang giữ <b><img src="/assets/icon3d/sao.webp" alt="">50 sao</b></p>
+<div class="the"><img src="/assets/rob/xong.webp" alt="">Bấm «Đã trao» thì mới trừ 50 sao. Grow báo con và chúc mừng con.</div>
+<div class="day">
+<span class="nut" role="button" tabindex="0" data-toi="them-e91jg28j">Đã trao, trừ 50 sao</span>
+<div class="hai"><span class="thoi" role="button" tabindex="0" data-toi="them-e91jg28j">Chưa, để tối mai</span><span class="thoi huy" role="button" tabindex="0" data-toi="them-e91jg28j">Huỷ &amp; hoàn sao</span></div>
+</div>
+</div>
+</div></body></html>

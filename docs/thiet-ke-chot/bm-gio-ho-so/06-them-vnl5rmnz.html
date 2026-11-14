@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;padding:10px 16px 40px}
+.av{position:relative;width:88px;height:88px;margin:0 auto;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:36px;font-weight:800;background:#f08a3c;box-shadow:0 0 0 4px #f4f4f2,0 0 0 7px #0f6b5c,0 14px 20px -10px rgba(28,32,30,.4),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -8px 12px -6px rgba(0,0,0,.18)}
+.av img{position:absolute;right:-8px;bottom:-6px;width:38px;height:38px}
+.muc{margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.the{padding:14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.nhan{margin:0 6px 6px;font-size:13px;font-weight:700;color:#565c59}
+.lom{display:flex;align-items:center;height:52px;padding:0 16px;border-radius:26px;background:#ecebe7;box-shadow:var(--lom)}
+.lom input{flex:1;width:100%;min-width:0;border:0;outline:0;background:transparent;font:700 17px Inter,sans-serif;color:#0f1312}
+.hai{display:grid;grid-template-columns:minmax(0,1fr) 104px;gap:10px}
+.hai>div{min-width:0}
+.mau{display:flex;justify-content:space-between;padding:12px 14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.mau span{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 10px -4px rgba(0,0,0,.18)}
+.mau .on{box-shadow:0 0 0 3px #f7f6f3,0 0 0 6px #0f6b5c,inset 0 2px 0 rgba(255,255,255,.35)}
+.chon{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.chon span{height:84px;border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:#f7f6f3;box-shadow:var(--clay);font-size:13.5px;font-weight:800;color:#3a403d;white-space:nowrap}
+.chon span img{width:30px;height:30px}
+.chon span i{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#f08a3c;color:#fff;font-size:15px}
+.chon .on{background:#dcebe6;color:#0a5246;box-shadow:0 0 0 2.5px #0f6b5c,var(--clay)}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;height:52px;margin-top:22px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-ho-so"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Sửa hồ sơ Bảo Anh</h1></div>
+<div class="cuon">
+<div class="av">B<img src="/assets/icon3d/but.webp" alt=""></div>
+<div class="the" style="margin-top:22px"><div class="hai"><div><p class="nhan">Tên gọi</p><div class="lom"><input type="text" aria-label="Tên gọi" value="Bảo Anh"></div></div><div><p class="nhan">Năm sinh</p><div class="lom"><input type="text" aria-label="Năm sinh" value="2017"></div></div></div></div>
+<p class="muc">Màu của con</p>
+<div class="mau"><span class="on" role="button" tabindex="0" aria-label="Cam" style="background:#f08a3c"></span><span role="button" tabindex="0" aria-label="Xanh" style="background:#5b7fd6"></span><span role="button" tabindex="0" aria-label="Hồng" style="background:#d86a8f"></span><span role="button" tabindex="0" aria-label="Xanh lục" style="background:#3f9a86"></span><span role="button" tabindex="0" aria-label="Tím" style="background:#9b7bd6"></span></div>
+<p class="muc">Ảnh của con</p>
+<div class="chon"><span class="on" role="button" tabindex="0"><i>B</i>Chữ cái B</span><span role="button" tabindex="0"><img src="/assets/icon3d/camera.webp" alt="">Chụp ảnh</span><span role="button" tabindex="0"><img src="/assets/icon3d/lap_lanh.webp" alt="">Chọn ảnh</span></div>
+<span class="nut" role="button" tabindex="0" data-toi="bm2-ho-so">Lưu hồ sơ Bảo Anh</span>
+</div>
+</div></body></html>

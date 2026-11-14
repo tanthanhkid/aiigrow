@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:320px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 12px 0 20px;display:flex;align-items:center;gap:10px;z-index:4;background:linear-gradient(#e3efeb 70%,rgba(227,239,235,0))}
+.top h1{flex:1;font-size:28px;font-weight:800;letter-spacing:-.6px}
+.them{display:flex;align-items:center;gap:6px;height:44px;padding:0 16px 0 12px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.them svg{width:18px;height:18px;fill:#0a5246}
+.cuon{position:absolute;left:0;right:0;top:92px;bottom:84px;overflow-y:auto;padding:0 0 28px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.pad{padding:0 16px}
+.cac-con{display:flex;gap:6px;padding:12px 16px 4px;overflow:hidden;white-space:nowrap}
+.be{flex:none;width:70px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.av{position:relative;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:800;color:#fff;box-shadow:0 8px 14px -8px rgba(28,32,30,.4),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 10px -4px rgba(0,0,0,.18)}
+.av.a{background:#f08a3c}.av.m{background:#5b7fd6}.av.n{background:#d86a8f}.av.k{background:#3f9a86}
+.be.on .av{box-shadow:0 0 0 3px #f4f4f2,0 0 0 6px #0f6b5c,0 10px 16px -8px rgba(10,82,70,.6)}
+.av em{position:absolute;right:-4px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#e2660f;color:#fff;font-style:normal;font-size:12px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px #f4f4f2}
+.be b{font-size:13px;font-weight:800;color:#3a403d}
+.be.on b{color:#0a5246}
+.vi{position:relative;margin-top:12px;padding:16px 18px;border-radius:28px;background:linear-gradient(#fdf0c9,#fbecc0);box-shadow:var(--clay);overflow:hidden}
+.vi::before{content:"";position:absolute;left:14px;right:14px;top:3px;height:36px;border-radius:26px 26px 60px 60px;background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,0))}
+.vi>*{position:relative}
+.vi small{display:block;font-size:13.5px;font-weight:700;color:#6e4300}
+.vi strong{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:40px;line-height:46px;font-weight:800;letter-spacing:-1px}
+.vi strong img{width:38px;height:38px}
+.vi strong em{font-style:normal;font-size:18px;letter-spacing:0}
+.vi p{margin-top:6px;display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:16px;background:#fff;font-size:13px;font-weight:800;color:#6e4300}
+.vi .rob{position:absolute;right:0;bottom:-14px;width:112px;height:auto}
+.muc{display:flex;align-items:center;justify-content:space-between;margin:18px 22px 4px;font-size:15px;font-weight:800;color:#3a403d}
+.muc .t{display:flex;align-items:center;gap:6px;min-height:44px}
+.muc a{min-height:44px;display:flex;align-items:center;font-size:14px;color:#0a5246;text-decoration:none}
+.muc em{font-style:normal;padding:2px 8px;border-radius:10px;background:#e2660f;color:#fff;font-size:12px}
+.xong{padding:6px 10px 10px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.viec{display:flex;align-items:center;gap:12px;height:60px;padding:0 4px}
+.viec+.viec{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.viec p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viec p small{display:block;font-size:13px;font-weight:600;color:#565c59;overflow:hidden;text-overflow:ellipsis}
+.diem{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:13px;font-weight:800;white-space:nowrap}
+.diem img{width:16px;height:16px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:25px;font-size:15px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:20px;height:20px}
+.xong .nut{margin-top:6px}
+.qua{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.qua .ic{width:48px;height:48px;border-radius:16px}.qua .ic img{width:30px;height:30px}
+.qua p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qua p small{display:block;font-size:13px;font-weight:600;color:#565c59}
+.qua .nut{flex:none;height:46px;padding:0 16px;font-size:14px}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:#f7f6f3;box-shadow:0 -1px 0 #e4e3df,0 -12px 18px -12px rgba(28,32,30,.25);z-index:4}
+.tab div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;color:#565c59;white-space:nowrap}
+.tab img{width:26px;height:26px;opacity:.5}
+.tab .on{color:#0a5246;font-weight:800}.tab .on img{opacity:1}
+</style></head>
+<body><div class="app">
+<div class="top"><h1>Nhiệm vụ</h1><span class="them" role="button" tabindex="0" data-toi="them-1jii7k19"><svg viewBox="0 0 24 24"><path d="M10.5 4.5a1.5 1.5 0 0 1 3 0v6h6a1.5 1.5 0 0 1 0 3h-6v6a1.5 1.5 0 0 1-3 0v-6h-6a1.5 1.5 0 0 1 0-3h6Z"></path></svg>Thêm việc</span></div>
+<div class="cuon">
+<div class="cac-con" aria-label="Chọn con">
+<div class="be on" role="button" tabindex="0"><span class="av a">B<em>2</em></span><b>Bảo Anh</b></div>
+<div class="be" role="button" tabindex="0" data-toi="them-e44cwmvu"><span class="av m">M</span><b>Bảo Minh</b></div>
+<div class="be" role="button" tabindex="0"><span class="av n">N</span><b>Bảo Ngọc</b></div>
+<div class="be" role="button" tabindex="0"><span class="av k">K</span><b>Khang</b></div>
+</div>
+<div class="pad">
+<div class="vi" role="button" tabindex="0" data-toi="them-1akngbxb"><small>Bảo Anh đang có</small><strong><img src="/assets/icon3d/sao.webp" alt="">30 <em>sao</em></strong><p>Đổi được 30 phút chơi ›</p><img class="rob" src="/assets/rob/xong.webp" alt=""></div>
+</div>
+<p class="muc"><span class="t">Chờ Ba Mẹ duyệt<em>2</em></span></p>
+<div class="pad"><div class="xong">
+<div class="viec" role="button" tabindex="0" data-toi="them-qwuifjry"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>2 ảnh · 18:40</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-d40e3495"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>Ghi âm · 17:15</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<span class="nut" role="button" tabindex="0" data-toi="them-nl1nwszs"><img src="/assets/icon3d/sao.webp" alt="">Xem và duyệt 2 việc</span>
+</div></div>
+<p class="muc"><span class="t">Con đã đổi quà, chờ trao</span><a role="button" tabindex="0" data-toi="them-473f52w6">Quà ›</a></p>
+<div class="pad"><div class="qua"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Chọn món bữa tối<small>Đổi 50 sao · hôm qua</small></p><span class="nut" role="button" tabindex="0" data-toi="them-5otw85h4">Trao quà</span></div></div>
+<p class="muc"><span class="t">Việc mỗi ngày · 5 việc</span><a style="color:#565c59;font-weight:700;font-size:13px">Chạm để sửa</a></p>
+<div class="pad"><div class="xong">
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>Mỗi ngày · chụp ảnh</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/tick.webp" alt=""></span><p>Tự đánh răng<small>Sáng và tối</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>Mỗi ngày · ghi âm</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/mu.webp" alt=""></span><p>Tự xếp cặp<small>Thứ 2 – Thứ 6 · chụp ảnh</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><p>Học 1 bài với AiiRob<small>Tự chấm · không cần duyệt</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">20 sao</span></div>
+</div></div>
+</div>
+<nav class="tab">
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
+<div class="on" role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Nhiệm vụ</div>
+<div role="button" tabindex="0" data-toi="bm2-ung-dung-may"><img src="/assets/icon3d/khien.webp" alt="">Chặn</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+</nav>
+</div></body></html>
