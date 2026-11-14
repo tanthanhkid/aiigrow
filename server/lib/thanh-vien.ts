@@ -61,7 +61,8 @@ export async function dsThanhVien(fam: string) {
 
 /** Dòng thành viên cho API: `quyen` (mới) + `vai` kiểu cũ (app bản trước) + `laChuNha`. */
 export const tvRa = (x: DongTv, toi: string) => ({ id: x.id, ten: x.ten, quyen: quyenTuVai(x.vai) ?? "trong_giup", tenQuyen: TEN_QUYEN[quyenTuVai(x.vai) ?? "trong_giup"],
-  vai: vaiCu({ vai: x.vai, la_chu: x.la_chu }), laChuNha: x.la_chu, dinh_danh: hienDinhDanh(x.dinh_danh), laFacebook: x.dinh_danh.startsWith(TIEN_TO_FB), laToi: x.id === toi });
+  vai: vaiCu({ vai: x.vai, la_chu: x.la_chu }), laChuNha: x.la_chu, dinh_danh: hienDinhDanh(x.dinh_danh), laFacebook: x.dinh_danh.startsWith(TIEN_TO_FB), laToi: x.id === toi,
+  /** «Vào nhà từ 20/10» (thiết kế 14/11 bm-ca-nha/01, 06) — lúc tài khoản được tạo trong nhà. */ vaoLuc: x.created_at });
 export const moiRaApi = (x: DongMoi) => ({ id: x.id, quyen: quyenTuVai(x.vai) ?? "trong_giup", vai: quyenTuVai(x.vai) === "trong_giup" ? "xem" : "duyet",
   tenGoi: x.ten_goi, dinhDanh: x.dinh_danh, het: new Date(x.het).toISOString(), guiLuc: new Date(x.gui_luc ?? x.created_at).toISOString() });
 
@@ -282,6 +283,16 @@ export async function moiRa(bm: BaMe, id: string) {
     await t(`delete from ba_me_mxh where parent_id = $1`, [id]);     // vào lại bằng Google / Facebook không quay về nhà vừa mời ra
     await ghiSuKien(bm.family_id, "moi_ra", { ten: p.ten }, { nguoi: bm.id }, t);
   });
+}
+
+/** POST toi/ten {ten} — «Tên hiển thị · Lưu tên» (thiết kế 14/11 bm-ca-nha/08 «Tài khoản của bạn»): đổi tên của chính mình (mọi quyền). */
+export async function doiTenToi(bm: BaMe, v: unknown) {
+  const ten = String(v ?? "").trim().slice(0, 40);
+  if (!ten) throw new LoiNghiepVu("thieu_ten", "Cho biết tên gọi trong gia đình (vd Mẹ Lan, Ba Tuấn)");
+  if (ten === bm.ten) return { ok: true, ten };
+  await q(`update parents set ten = $2 where id = $1`, [bm.id, ten]);
+  await ghiSuKien(bm.family_id, "doi_ten_ba_me", { tu: bm.ten, den: ten }, { nguoi: bm.id });
+  return { ok: true, ten };
 }
 
 /** «Rời nhà?» (màn Tài khoản): người lớn KHÔNG phải người tạo nhà rời khỏi nhà, giữ tài khoản — sang một nhà trống mới của riêng mình

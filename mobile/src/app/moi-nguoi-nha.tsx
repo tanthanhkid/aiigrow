@@ -1,11 +1,12 @@
-// Mời người nhà (thiết kế chốt bm-cai-dat/04 «Mời người nhà» → 05 «Đã mời» / 08 «Chưa có app, gửi link»): SĐT hoặc email, chọn 1 trong 2 quyền
-// (Ba Mẹ / Người trông giúp — S2 L6), «Gửi lời mời». Không mã mời: người được mời đăng nhập bằng đúng SĐT / email là thấy lời mời (moi/cho-toi),
+// Mời người nhà (thiết kế 14/11 bm-ca-nha/04 them-5hzkl6p5 = bm-cai-dat/03 «Mời người nhà» → 05 «Đã mời» / bm-cai-dat/07 «Chưa có app, gửi link»):
+// SĐT hoặc email, «<tên> làm được như bạn — Cho giờ, duyệt việc, đổi cài đặt», «Gửi lời mời». 14/11: thiết kế bỏ chọn quyền khi mời (chỉ còn
+// «làm được như bạn») ⇒ luôn mời quyền Ba Mẹ; người «Người trông giúp» cũ vẫn giữ quyền, đổi ở màn Thành viên. «Chọn từ danh bạ» chưa làm. Không mã mời: người được mời đăng nhập bằng đúng SĐT / email là thấy lời mời (moi/cho-toi),
 // hoặc bấm link. Máy chủ chưa gửi SMS / email và chưa biết người được mời có app chưa ⇒ màn «Đã mời» gộp luôn bước «gửi link» của thiết kế (08):
 // nút gửi link qua Zalo / Tin nhắn (share sheet, câu soạn sẵn `chiaSe`).
 import { useState } from "react";
 import { Pressable, Share, TextInput, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { IC_QUYEN, MO_TA_QUYEN, TEN_QUYEN, chuDau, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
+import { IC_QUYEN, chuDau, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
 import { veHoac } from "@/lib/ui-bm3";
 import { BONG, KHOI } from "@/lib/clay";
 import { BaoLoi, Chu, F, Icon, Icon3D, M, MAU_CON, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
@@ -24,7 +25,7 @@ export default function MoiNguoiNha() {
   const [cach, setCach] = useState<"sdt" | "email">("sdt");
   const [dd, setDd] = useState("");
   const [ten, setTen] = useState("");
-  const [quyen, setQuyen] = useState<Quyen>("ba_me");
+  const quyen: Quyen = "ba_me";
   const [kq, setKq] = useState<KqMoi | null>(null);
   const { lam, loi, dangChay } = useLam();
   const ve = () => veHoac("/cai-dat");
@@ -32,6 +33,7 @@ export default function MoiNguoiNha() {
   const hop = cach === "sdt" ? SDT.test(sach) : EMAIL.test(sach);
   const goi = ten.trim() || (hop ? sach : "");
   const tenCon = d?.con.length ? d.con.join(", ") : "các con";
+  const soCon = d?.con.length ? `${d.con.length} bé` : "các con";
 
   const gui = () => lam(async () => {
     const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
@@ -77,7 +79,7 @@ export default function MoiNguoiNha() {
             <Chu co={12} mau="#d9dedc">bây giờ</Chu>
           </View>
           <Chu kieu="rat" co={15} mau="#fff">{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
-          <Chu co={13.5} mau="#eef1f0">{`Cùng trông ${tenCon}. Bấm để vào.`}</Chu>
+          <Chu co={13.5} mau="#eef1f0">{`Cùng trông ${soCon} nhà mình. Bấm để vào.`}</Chu>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 4 }}>
           <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: M.diem }} />
@@ -108,7 +110,7 @@ export default function MoiNguoiNha() {
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
         </View>
-        <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ textAlign: "center" }}>{`Bạn cùng trông ${tenCon}`}</Chu>
+        <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ textAlign: "center" }}>{`Cùng trông ${d?.con.length ? `${d.con.length} con` : tenCon} với ${d?.toi ?? "bạn"}`}</Chu>
       </View>
       <Chu kieu="rat" co={26} style={{ letterSpacing: -0.5, marginHorizontal: 4, marginTop: 4 }}>Mời người nhà</Chu>
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
@@ -129,17 +131,12 @@ export default function MoiNguoiNha() {
         <TextInput value={ten} onChangeText={setTen} placeholder="Gọi là gì trong nhà? (Ba Tuấn, Bà nội…)" placeholderTextColor={M.chu3} maxLength={30}
           accessibilityLabel="Gọi là gì trong nhà" style={{ fontFamily: F.thuong, fontSize: 15.5, color: M.chu, paddingVertical: 12 }} />
       </View>
-      <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 4 }}>Cho làm gì</Chu>
-      <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
-        {(["ba_me", "trong_giup"] as const).map((q) => (
-          <NhanMen key={q} onPress={() => setQuyen(q)} accessibilityRole="radio" accessibilityState={{ checked: quyen === q }} accessibilityLabel={`${TEN_QUYEN[q]}, ${MO_TA_QUYEN[q]}`}
-            muc="khoi" sang style={[{ flex: 1, minWidth: 0, paddingVertical: 12, paddingHorizontal: 16, gap: 4, borderRadius: 24, backgroundColor: M.the, ...KHOI.the },
-              quyen === q && { boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.the}` }]}>
-            <Icon3D ten={IC_QUYEN[q]} co={30} />
-            <Chu kieu="rat" co={14.5}>{TEN_QUYEN[q]}</Chu>
-            <Chu kieu="dam" co={12} mau={M.chu3}>{MO_TA_QUYEN[q]}</Chu>
-          </NhanMen>
-        ))}
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 24, backgroundColor: M.the }, KHOI.nho]}>
+        <Icon3D ten={IC_QUYEN.ba_me} co={34} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Chu kieu="rat" co={15}>{`${ten.trim() || "Người được mời"} làm được như bạn`}</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu3}>Cho giờ, duyệt việc, đổi cài đặt</Chu>
+        </View>
       </View>
     </Man>
   );

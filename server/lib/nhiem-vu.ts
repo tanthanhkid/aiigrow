@@ -63,9 +63,11 @@ export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nh
 
 /** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ chép hằng số này ở mobile/src/lib/api.ts › TEN_NV_TOI_THIEU (đổi thì đổi cả hai). */
 export const TEN_NV_TOI_THIEU = 3;
+/** Tên dài nhất — 90 để việc dài nhất của danh mục «Giúp Ba Mẹ» (danh-muc-viec.ts, ~70 ký tự) không bị cắt (cắt thì trùng tên không nhận ra). */
+export const TEN_NV_TOI_DA = 90;
 
 function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
-  const ten = String(b.ten ?? "").trim().slice(0, 60);
+  const ten = String(b.ten ?? "").trim().slice(0, TEN_NV_TOI_DA);
   if (!ten) throw new LoiNghiepVu("thieu_ten", "Đặt tên nhiệm vụ");
   if (kiemDoDai && [...ten].length < TEN_NV_TOI_THIEU) throw new LoiNghiepVu("ten_ngan", `Tên nhiệm vụ cần ít nhất ${TEN_NV_TOI_THIEU} ký tự để Con hiểu việc cần làm`);
   const diem = Math.round(Number(b.diem));
@@ -118,18 +120,47 @@ export async function apDungMau(fam: string, nhom: "nhi" | "teen") {
   return n;
 }
 
-export async function suaNv(fam: string, id: string, b: Record<string, unknown>) {
-  const cu = await one<Nv>(`select * from tasks where id = $1 and family_id = $2`, [id, fam]);
+export async function suaNv(fam: string, id: string, b: Record<string, unknown>, t: Q = q) {
+  const cu = (await t<Nv>(`select * from tasks where id = $1 and family_id = $2`, [id, fam]))[0];
   if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ", 404);
   // nhiệm vụ cũ tên ngắn (trước luật 3 ký tự) vẫn sửa điểm / tắt được: chỉ kiểm độ dài khi Ba Mẹ đổi tên
-  const doiTen = b.ten !== undefined && String(b.ten ?? "").trim().slice(0, 60) !== cu.ten;
+  const doiTen = b.ten !== undefined && String(b.ten ?? "").trim().slice(0, TEN_NV_TOI_DA) !== cu.ten;
   // bỏ «Một lần» (lap_lai khác mot_lan) mà không gửi kieu ⇒ không còn là việc một lần
   const boMotLan = b.lap_lai !== undefined && b.lap_lai !== "mot_lan" && b.kieu === undefined && cu.kieu === "mot_lan";
   const v = kiemNv({ ...cu, ...b, ...(boMotLan ? { kieu: "thuong" } : {}) }, doiTen);
-  await q(`update tasks set ten=$2, mo_ta=$3, nhom=$4, diem=$5, bang_chung=$6, kieu=$7, toi_da_ngay=$8, toi_da_tuan=$9, phut_toi_thieu=$10,
+  await t(`update tasks set ten=$2, mo_ta=$3, nhom=$4, diem=$5, bang_chung=$6, kieu=$7, toi_da_ngay=$8, toi_da_tuan=$9, phut_toi_thieu=$10,
            tu_duyet=$11, bat=$12, hinh=$13, lap_lai=$14, gio_nhac=$15, bo=$16 where id = $1`,
     [id, v.ten, v.mo_ta, v.nhom, v.diem, v.bang_chung, v.kieu, v.toi_da_ngay, v.toi_da_tuan, v.phut_toi_thieu, v.tu_duyet, b.bat === undefined ? cu.bat : b.bat === true,
       v.hinh, v.lap_lai, v.gio_nhac, v.bo]);
+}
+
+/** POST nhiem-vu/:id/luu {sua?, apCho?: id Con[]} — «Lưu việc» ở màn Sửa việc (thiết kế 14/11 bm-viec-duyet/06) trong MỘT giao dịch (review PR #243):
+ *  sửa các trường đã đổi (như POST nhiem-vu/:id), rồi «Áp cho»: mỗi việc của máy chủ thuộc MỘT Con (hoặc cả nhà) ⇒ Con mới chọn nhận một BẢN SAO
+ *  chép đủ mọi cột của việc (giữ `bang_chung` / `tu_duyet` gốc — việc AiiRob tự chấm vẫn `tu_dong`, không thành «Bấm Xong» tự cộng sao); Con đã có
+ *  việc đang bật cùng tên (của riêng Con hoặc cả nhà) thì bỏ qua; con của việc này (hoặc «cả nhà») không còn trong danh sách ⇒ tắt việc này.
+ *  → {ok, taoMoi, tat}. `apCho` rỗng ⇒ 400 `chua_chon`; id Con lạ ⇒ 404. */
+export async function luuNv(fam: string, id: string, b: { sua?: unknown; apCho?: unknown }, nguoi?: string) {
+  return tx(async (t) => {
+    const sua = b.sua && typeof b.sua === "object" ? (b.sua as Record<string, unknown>) : {};
+    if (Object.keys(sua).length) await suaNv(fam, id, sua, t);
+    const v = (await t<Nv>(`select * from tasks where id = $1 and family_id = $2`, [id, fam]))[0];
+    if (!v) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ", 404);
+    if (b.apCho === undefined || b.apCho === null) return { ok: true, taoMoi: 0, tat: false };
+    const ap = [...new Set((Array.isArray(b.apCho) ? b.apCho : [b.apCho]).map(String))];
+    if (!ap.length) throw new LoiNghiepVu("chua_chon", "Chọn ít nhất một con");
+    if ((await t(`select id from children where family_id = $1 and id = any($2::text[])`, [fam, ap])).length !== ap.length)
+      throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+    const giu = !!v.giao_cho && ap.includes(v.giao_cho);
+    const co = await t<{ ten: string; giao_cho: string | null }>(`select ten, giao_cho from tasks where family_id = $1 and bat and id <> $2`, [fam, id]);
+    const moi = ap.filter((c) => c !== (giu ? v.giao_cho : null) && !co.some((x) => x.ten === v.ten && (x.giao_cho === c || x.giao_cho === null)));
+    for (const c of moi) {
+      await taoNv(fam, { ten: v.ten, mo_ta: v.mo_ta, nhom: v.nhom, diem: v.diem, bang_chung: v.bang_chung, kieu: v.kieu, toi_da_ngay: v.toi_da_ngay,
+        toi_da_tuan: v.toi_da_tuan, phut_toi_thieu: v.phut_toi_thieu, tu_duyet: v.tu_duyet, hinh: v.hinh, lap_lai: v.lap_lai, gio_nhac: v.gio_nhac, bo: v.bo,
+        han: v.han, giao_cho: c }, nguoi, t, true);
+    }
+    if (!giu) await t(`update tasks set bat = false where id = $1`, [id]);
+    return { ok: true, taoMoi: moi.length, tat: !giu };
+  });
 }
 
 async function tz(fam: string, t: Q = q) {

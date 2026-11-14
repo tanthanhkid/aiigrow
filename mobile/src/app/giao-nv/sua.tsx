@@ -1,13 +1,24 @@
-// «Sửa việc» (thiết kế chốt 05/11 bm-hang-ngay/38) + bảng trượt «Xoá việc «X»?» (39): lưu = POST nhiem-vu/:id, xoá = tắt việc (bat: false —
-// sao con đang có giữ nguyên, lịch sử giữ). Một việc giao một Con hoặc cả nhà. Người trông giúp: chỉ xem (máy chủ cũng trả 403).
+// «Sửa việc» (thiết kế 14/11 bm-viec-duyet/06 them-ncq0jtzo) + bảng «Xoá việc «X»?» (07 them-4axhvgpl): hình + tên, Con nhận ⭐5/10/20/30,
+// Làm khi nào?, Con báo xong bằng (Chụp ảnh · Ghi âm · Bấm «Xong»), «Ba Mẹ xem rồi mới cộng sao», «Áp cho» các con (nhà > 1 con), «Xoá việc này»,
+// «Lưu việc «X»». Lưu = POST nhiem-vu/:id/luu {sua (chỉ trường đã đổi), apCho?} — MỘT giao dịch ở máy chủ (nhiem-vu.ts › luuNv): «Áp cho» thêm
+// bản sao chép đủ cột của việc (giữ bang_chung / tu_duyet gốc — việc AiiRob tự chấm vẫn tự chấm) cho con mới chọn + tắt việc này nếu con của nó bị bỏ.
+// Đã chọn (review PR #243): thiết kế chỉ có hình ở đầu màn và không có giờ nhắc ⇒ giữ hai thứ này ở dạng gọn — dải chọn hình dưới icon, chip «Nhắc con».
+// Xoá = tắt việc (bat: false — sao con đang có giữ nguyên, lịch sử giữ). Người trông giúp (dữ liệu cũ): chỉ xem.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { BangTruot, Bao, BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, TickDong, useLam, useTai } from "@/lib/ui";
-import { CAU_TRONG_GIUP, quyenToi, type NhiemVuMoi } from "@/lib/hang-ngay";
-import { TEN_BO } from "@/lib/nv-tab";
-import { NhapViec, tenHopLe, thanViec, type FormViec } from "@/lib/form-viec";
+import { BangTruot, Bao, BaoLoi, baoKhiVe, Chips, ChoTai, Chu, CongTac, M, Man, Nut, ONhap, The, TickDong, useLam, useTai } from "@/lib/ui";
+import { CAU_TRONG_GIUP, hinhNv, quyenToi, type NhiemVuMoi } from "@/lib/hang-ngay";
+import { viecCuaCon } from "@/lib/nv-tab";
+import { tenHopLe } from "@/lib/form-viec";
+import { ChonO, OLomIcon } from "@/lib/ui-viec";
+import { MucTieu } from "@/lib/ui-bm3";
+
+const LAP = [{ gia: "hang_ngay", chu: "Mỗi ngày" }, { gia: "ngay_thuong", chu: "Thứ 2 – Thứ 6" }, { gia: "cuoi_tuan", chu: "Cuối tuần" }];
+const HINH = ["choi", "sach", "day", "but", "cay", "bat", "ban_chai", "cap", "ao", "ban_hoc", "rau", "ngu"];
+const NHAC = ["07:00", "17:00", "19:00", "20:00"];
+const BAO = [{ gia: "anh", chu: "Chụp ảnh", ic: "camera" as const }, { gia: "ghi_am", chu: "Ghi âm", ic: "tai" as const }, { gia: "xong", chu: "Bấm «Xong»", ic: "tick" as const }];
 
 export default function SuaViec() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,25 +26,49 @@ export default function SuaViec() {
     const [nv, g, quyen] = await Promise.all([bm.goi<{ ds: NhiemVuMoi[] }>("nhiem-vu"), bm.goi<GiaDinh>("gia-dinh"), quyenToi()]);
     return { v: nv.ds.find((x) => x.id === id) ?? null, ds: nv.ds, con: g.con, baMe: quyen === "ba_me" };
   });
-  const [f, setF] = useState<FormViec | null>(null);
+  const [ten, setTen] = useState<string | null>(null);
+  const [hinh, setHinh] = useState<string | null>(null);
+  const [nhac, setNhac] = useState<string | null>(null);
+  const [sao, setSao] = useState<number | null>(null);
+  const [lap, setLap] = useState<string | null>(null);
+  const [bc, setBc] = useState<string | null>(null);
+  const [duyet, setDuyet] = useState<boolean | null>(null);
+  const [apCho, setApCho] = useState<string[] | null>(null);
   const [xoa, setXoa] = useState(false);
   const { lam, loi: loiLam, dangChay } = useLam();
-  if (!d) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Sửa việc"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const tieu = "Sửa việc";
+  if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const v = d.v;
-  if (!v) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Sửa việc"><Bao loai="lam" ic="tick" tieu="Việc này không còn nữa" loi="Có thể người khác trong nhà đã xoá." /></Man>;
-  const goc: FormViec = { ten: v.ten, hinh: v.hinh ?? "choi", sao: v.diem, lapLai: v.lap_lai ?? ((v as { kieu?: string }).kieu === "mot_lan" ? "mot_lan" : "hang_ngay"),
-    gioNhac: v.gio_nhac ?? "", bangChung: v.bang_chung === "tu_dong" ? "xong" : v.bang_chung, duyet: !v.tu_duyet, giaoCho: v.giao_cho ? [v.giao_cho] : [] };
-  const form = f ?? goc;
-  const tenCon = v.giao_cho ? d.con.find((c) => c.id === v.giao_cho)?.ten ?? "Con" : "Các con";
-  const conLai = v.bo ? d.ds.filter((x) => x.bat && x.bo === v.bo && x.id !== v.id && x.giao_cho === v.giao_cho).length : null;
+  if (!v) return <Man lui={{ chu: "" }} tieu={tieu}><Bao loai="lam" ic="tick" tieu="Việc này không còn nữa" loi="Có thể người khác trong nhà đã xoá." /></Man>;
+  const lapGoc = v.lap_lai ?? ((v as { kieu?: string }).kieu === "mot_lan" ? "mot_lan" : "hang_ngay");
+  const bcGoc = v.bang_chung === "tu_dong" ? "xong" : v.bang_chung;
+  const goc = { ten: v.ten, sao: v.diem, lap: lapGoc, bc: bcGoc, duyet: !v.tu_duyet, apCho: v.giao_cho ? [v.giao_cho] : d.con.map((c) => c.id),
+    hinh: v.hinh ?? "", nhac: v.gio_nhac ?? "" };
+  const f = { ten: ten ?? goc.ten, sao: sao ?? goc.sao, lap: lap ?? goc.lap, bc: bc ?? goc.bc, duyet: duyet ?? goc.duyet, apCho: apCho ?? goc.apCho,
+    hinh: hinh ?? goc.hinh, nhac: nhac ?? goc.nhac };
+  const dsHinh = goc.hinh && !HINH.includes(goc.hinh) ? [goc.hinh, ...HINH] : HINH;
+  const dsNhac = [{ gia: "", chu: "Không nhắc" }, ...[...new Set([...NHAC, ...(goc.nhac ? [goc.nhac] : [])])].sort().map((x) => ({ gia: x, chu: x.replace(/^0/, "") }))];
+  const dsLap = LAP.some((x) => x.gia === lapGoc) ? LAP : [...LAP, { gia: lapGoc, chu: lapGoc === "mot_lan" ? "Một lần" : "Các thứ đã chọn" }];
+  const dsBao = BAO.some((x) => x.gia === bcGoc) ? BAO : [...BAO, { gia: bcGoc, chu: bcGoc === "van_ban" ? "Viết" : bcGoc, ic: "but" as const }];
+  const dsSao = [5, 10, 20, 30].includes(goc.sao) ? [5, 10, 20, 30] : [...[5, 10, 20, 30], goc.sao].sort((a, b) => a - b);
+  const conCua = v.giao_cho ? d.con.find((c) => c.id === v.giao_cho) : null;
+  const tenCon = conCua?.ten ?? "Các con";
+  const conLai = conCua ? viecCuaCon(d.ds, conCua.id).filter((x) => x.id !== v.id).length : null;
+  const [ic] = hinhNv({ ...v, hinh: f.hinh || v.hinh });
+
   const luu = () => lam(async () => {
-    // chỉ gửi trường Ba Mẹ ĐÃ đổi: suaNv ghép lên bản cũ ⇒ giữ nguyên toi_da_ngay, nhom, hình trống, việc AiiRob tự chấm (review PR #183).
-    // «Áp cho» không sửa được (suaNv không ghi giao_cho) nên màn sửa không hiện mục đó.
-    const moi = thanViec(form), cu = thanViec(goc), than: Record<string, unknown> = {};
-    for (const k of ["ten", "hinh", "diem", "lap_lai", "gio_nhac", "bang_chung", "tu_duyet"] as const) if (moi[k] !== cu[k]) than[k] = moi[k];
-    if (than.lap_lai === "mot_lan") than.toi_da_ngay = null;
-    if (Object.keys(than).length) await bm.goi(`nhiem-vu/${v.id}`, than);
-    baoKhiVe(`Đã lưu việc «${form.ten.trim()}»`);
+    // chỉ gửi trường Ba Mẹ ĐÃ đổi: suaNv ghép lên bản cũ ⇒ giữ nguyên toi_da_ngay, nhom, việc AiiRob tự chấm (review PR #183)
+    const than: Record<string, unknown> = {};
+    if (f.ten.trim() !== goc.ten) than.ten = f.ten.trim();
+    if (f.sao !== goc.sao) than.diem = f.sao;
+    if (f.lap !== goc.lap) { than.lap_lai = f.lap; if (goc.lap === "mot_lan") than.toi_da_ngay = 1; }
+    if (f.bc !== goc.bc) than.bang_chung = f.bc;
+    if (f.duyet !== goc.duyet) than.tu_duyet = !f.duyet;
+    if (f.hinh !== goc.hinh) than.hinh = f.hinh;
+    if (f.nhac !== goc.nhac) than.gio_nhac = f.nhac || null;
+    const doiApCho = f.apCho.length !== goc.apCho.length || f.apCho.some((x) => !goc.apCho.includes(x));
+    if (Object.keys(than).length || doiApCho) await bm.goi(`nhiem-vu/${v.id}/luu`, { sua: than, ...(doiApCho ? { apCho: f.apCho } : {}) });
+    baoKhiVe(`Đã lưu việc «${f.ten.trim()}»`);
     router.back();
   });
   const tat = () => lam(async () => {
@@ -43,24 +78,48 @@ export default function SuaViec() {
     router.back();
   });
   return (
-    <Man lui={{ chu: "Nhiệm vụ" }} tieu="Sửa việc"
-      day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${form.ten.trim() || v.ten}»`} rong dangChay={dangChay} tat={!tenHopLe(form.ten)} bam={luu} /></> : undefined}>
+    <Man lui={{ chu: "" }} tieu={tieu}
+      day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${f.ten.trim() || v.ten}»`} ic="tick" rong dangChay={dangChay}
+        tat={!tenHopLe(f.ten) || !f.apCho.length} bam={luu} /></> : undefined}>
       {d.baMe ? (
         <>
-          <NhapViec f={form} doi={setF} con={[]} goiY={false} />
-          <Nut chu="Xoá việc này" loai="huy" rong bam={() => setXoa(true)} />
+          <View style={{ alignItems: "center" }}><OLomIcon ic={ic} co={72} nen="#f9e7d2" /></View>
+          <ChonO ds={dsHinh.map((h) => ({ gia: h, chu: "", ic: hinhNv({ hinh: h })[0], nhan: `Hình ${h}` }))} chon={f.hinh || null} doi={setHinh} />
+          <ONhap nhan="Tên việc" value={f.ten} onChangeText={setTen} maxLength={90} />
+          <MucTieu chu="Con nhận bao nhiêu sao?" />
+          <ChonO ds={dsSao.map((x) => ({ gia: x, chu: `${x}` }))} chon={f.sao} doi={setSao} sao />
+          <MucTieu chu="Làm khi nào?" />
+          <ChonO ds={dsLap} chon={f.lap} doi={setLap} />
+          <MucTieu chu="Nhắc con" />
+          <Chips ds={dsNhac} chon={[f.nhac]} doi={setNhac} />
+          <MucTieu chu="Con báo xong bằng" />
+          <ChonO ds={dsBao} chon={f.bc} doi={setBc} />
+          <The style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Chu kieu="rat">Ba Mẹ xem rồi mới cộng sao</Chu>
+              <Chu co={13} mau={M.chu3}>Tắt thì con báo xong là nhận sao</Chu>
+            </View>
+            <CongTac nhan="Ba Mẹ xem rồi mới cộng sao" bat={f.duyet} doi={setDuyet} />
+          </The>
+          {d.con.length > 1 ? (
+            <>
+              <MucTieu chu="Áp cho" />
+              <Chips ds={d.con.map((c) => ({ gia: c.id, chu: c.ten }))} chon={f.apCho}
+                doi={(c) => setApCho(f.apCho.includes(c) ? f.apCho.filter((x) => x !== c) : [...f.apCho, c])} />
+            </>
+          ) : null}
+          <Nut chu="Xoá việc này" ic="x" loai="huy" rong bam={() => setXoa(true)} />
         </>
       ) : <Bao loai="lam" ic="khoa" tieu={v.ten} loi={CAU_TRONG_GIUP} />}
       <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá việc «${v.ten}»?`}>
         <View>
           <TickDong chu={`${tenCon} không thấy việc này nữa`} />
-          <TickDong chu="Sao con đang có vẫn giữ nguyên" />
-          {conLai !== null && v.bo ? <TickDong chu={`Bộ ${TEN_BO[v.bo] ?? v.bo} còn ${conLai} việc`} /> : null}
+          <TickDong chu={conCua ? `${conCua.soDu} sao con đang có vẫn giữ nguyên` : "Sao con đang có vẫn giữ nguyên"} />
+          {conCua && conLai !== null ? <TickDong chu={`Ngày của ${conCua.ten} còn ${conLai} việc`} /> : null}
         </View>
         <BaoLoi loi={loiLam} />
         <Nut chu={`Xoá «${v.ten}»`} loai="huy" rong dangChay={dangChay} bam={tat} />
         <Nut chu="Giữ lại việc này" loai="ma" rong bam={() => setXoa(false)} />
-        <Chu co={12.5} mau={M.chu3}>Lịch sử việc đã làm vẫn giữ trong báo cáo.</Chu>
       </BangTruot>
     </Man>
   );

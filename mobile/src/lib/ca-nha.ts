@@ -11,7 +11,8 @@ export const MO_TA_QUYEN: Record<Quyen, string> = {
 /** Icon mỗi quyền (dùng ở danh sách người lớn và màn mời). */
 export const IC_QUYEN = { ba_me: "nha", trong_giup: "mat" } as const;
 
-export type NguoiLon = { id: string; ten: string; quyen: Quyen; tenQuyen: string; laChuNha: boolean; dinh_danh: string; laFacebook?: boolean; laToi: boolean };
+export type NguoiLon = { id: string; ten: string; quyen: Quyen; tenQuyen: string; laChuNha: boolean; dinh_danh: string; laFacebook?: boolean; laToi: boolean;
+  /** lúc vào nhà (máy chủ 14/11 — «Vào nhà từ 20/10»); máy chủ cũ không có */ vaoLuc?: string };
 export type LoiMoiCho = { id: string; quyen: Quyen; tenGoi: string | null; dinhDanh: string | null; het: string; guiLuc: string };
 export type DsThanhVien = { ds: NguoiLon[]; loiMoi: LoiMoiCho[]; toi: { id: string; quyen: Quyen; laChuNha: boolean }; hanGio: number };
 export type ToiCaNha = { baMe: { id: string; ten: string; dinhDanh: string; quyen?: Quyen; laChuNha?: boolean; vai: string; coMatKhau?: boolean }; laAdmin?: boolean };
@@ -24,7 +25,7 @@ export const napCaNha = async () => {
     bm.goi<{ tat: string[] }>("thong-bao/cai-dat").catch(() => null),
     bm.goi<{ ds: { id: string; loai: string; bat: boolean }[] }>("qua").catch(() => null),
   ]);
-  return { toi, g, tv, may: may?.ds ?? null, tatTb: tb?.tat ?? null, soQua: qua ? qua.ds.filter((x) => x.loai !== "voucher" && x.bat).length : null };
+  return { toi, g, tv, may: may?.ds ?? null, tatTb: tb?.tat ?? null, soQua: qua ? qua.ds.filter((x) => x.bat).length : null };
 };
 
 /** «Mẹ Lan» → «L»: chữ cái cuối tên (như Avt). */

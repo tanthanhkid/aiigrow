@@ -57,7 +57,7 @@ export function BangTraoQua({ p, dong, xong }: {
           <GiaSao n={p.diem} />
         </View>
         <View style={{ padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
-          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{`Bấm «Đã trao» thì mới trừ ${p.diem} sao, Grow báo con và chúc mừng con.`}</Chu>
+          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{`Bấm «Đã trao» thì mới trừ ${p.diem} sao. Grow báo con và chúc mừng con.`}</Chu>
         </View>
         <BaoLoi loi={loi} />
         <Nut chu={`Đã trao, trừ ${p.diem} sao`} ic="qua" rong dangChay={dangChay} bam={() => trao(p)} />

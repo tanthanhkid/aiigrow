@@ -1,7 +1,8 @@
-// «Cài đặt thông báo» (thiết kế chốt bm-hang-ngay/57 them-2ru3t5iw — bm-cai-dat/15 đã gộp vào đây) của RIÊNG Ba Mẹ đang dùng:
-// «Báo ngay» (con xin · con nộp bài · máy mất bảo vệ & cảnh báo nội dung xấu — Luôn bật), «Để biết» (đổi sao lấy quà · việc người lớn khác làm ·
-// người nhà vào / rời nhà), «Giờ yên lặng» (không rung, cảnh báo vẫn báo ngay; chạm để đổi giờ). Ghi GET/POST thong-bao/cai-dat {yenLang, tat[]}.
-// Nhóm `canh_bao` luôn bật (không gửi vào `tat`). «Con sắp hết giờ chơi», «Báo cáo tuần» của thiết kế chưa có nhóm ở máy chủ — chưa hiện.
+// «Cài đặt thông báo» (thiết kế 14/11 bm-ca-nha/12 them-2ru3t5iw) của RIÊNG Ba Mẹ đang dùng:
+// «Báo ngay» (con xin · con nộp ảnh nhiệm vụ · máy mất bảo vệ & cảnh báo nội dung xấu — Luôn bật), «Để biết» (con đổi sao lấy quà),
+// «Giờ yên lặng» (không rung, cảnh báo vẫn báo ngay; chạm để đổi giờ). Ghi GET/POST thong-bao/cai-dat {yenLang, tat[]}.
+// Nhóm `canh_bao` luôn bật (không gửi vào `tat`). 14/11 bỏ khỏi màn: huy hiệu, việc người lớn khác làm, người nhà vào/rời (thiết kế không còn — giữ lựa chọn cũ
+// ở máy chủ). «Con sắp hết giờ chơi», «Báo cáo tuần» của thiết kế chưa có nhóm thông báo ở máy chủ — chưa hiện (không để công tắc chết).
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
@@ -12,13 +13,10 @@ type CaiDat = { yenLang: { bat: boolean; tu: string; den: string }; tat: string[
 type Hang = { ma: string; ten: string; phu?: string; ic: TenIcon };
 const BAO_NGAY: Hang[] = [
   { ma: "yeu_cau", ten: "Con xin dùng app, web, thêm giờ", ic: "game" },
-  { ma: "nhiem_vu", ten: "Con nộp bài nhiệm vụ", ic: "sao" },
+  { ma: "nhiem_vu", ten: "Con nộp ảnh nhiệm vụ", ic: "camera" },
 ];
 const DE_BIET: Hang[] = [
-  { ma: "qua", ten: "Con đổi sao lấy quà", ic: "coc" },
-  { ma: "thanh_tich", ten: "Con xong việc, nhận huy hiệu", ic: "sao" },
-  { ma: "ba_me_khac", ten: "Việc người lớn khác làm", phu: "Duyệt, khoá máy, cho thêm giờ", ic: "nguoi" },
-  { ma: "gia_dinh", ten: "Người nhà vào, rời nhà", ic: "nha" },
+  { ma: "qua", ten: "Con đổi sao lấy quà", ic: "qua" },
 ];
 const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -35,7 +33,7 @@ export default function CaiDatThongBao() {
     if (!coTatCanhBao || !d) return;
     bm.goi<CaiDat>("thong-bao/cai-dat", { yenLang: d.yenLang, tat: d.tat.filter((x) => x !== "canh_bao") }).then(setD, () => {});
   }, [coTatCanhBao]);     // eslint-disable-line react-hooks/exhaustive-deps
-  if (!d) return <Man lui={{ chu: "" }} tieu="Thông báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "" }} tieu="Cài đặt thông báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const luu = (moi: Partial<CaiDat>, chu: string) => lam(async () => {
     const tat = (moi.tat ?? d.tat).filter((x) => x !== "canh_bao");
     const r = await bm.goi<CaiDat>("thong-bao/cai-dat", { yenLang: moi.yenLang ?? d.yenLang, tat });
@@ -49,7 +47,7 @@ export default function CaiDatThongBao() {
   };
   const yl = d.yenLang;
   return (
-    <Man lui={{ chu: "" }} tieu="Thông báo" noi={noi}>
+    <Man lui={{ chu: "" }} tieu="Cài đặt thông báo" noi={noi}>
       <MucTieu chu="Báo ngay" />
       <Nhom>
         {BAO_NGAY.map(hang)}

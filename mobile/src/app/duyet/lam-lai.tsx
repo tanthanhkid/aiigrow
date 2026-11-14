@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { ManKetQua, type BangChung } from "@/lib/hang-ngay";
-import { BaoLoi, Canh, ChoTai, Chips, Chu, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, Canh, ChoTai, Chips, Chu, gioPhut, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 
 type Luot = { id: string; child_id: string; ten_con: string; ten: string; nhom: string; trang_thai: string };
 
@@ -26,14 +26,15 @@ export default function NhoLamLai() {
   });
   const [viSao, setViSao] = useState<string | null>(null);
   const [nhan, setNhan] = useState<string | null>(null);
-  const [daGui, setDaGui] = useState(false);
+  const [daGui, setDaGui] = useState<{ nhan: string; luc: Date } | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man lui={{ chu: "Bằng chứng" }} tieu="Nhờ làm lại"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const l = d.l;
   if (daGui) {
     return (
-      <ManKetQua lv="nghi" tieu={`Đã nhắn ${l.ten_con} làm lại`} loi="Con thấy lời nhắn ngay trên máy. Nộp lại xong, Ba Mẹ nhận thông báo để duyệt."
-        dong={[`Lời nhắn đã tới máy của ${l.ten_con}`, `Chưa cộng sao${d.sao !== null ? ` · ví vẫn ${d.sao} sao` : ""}`]}
+      <ManKetQua lv="nghi" tieu={`Đã nhắn ${l.ten_con} ${d.ghiAm ? "đọc lại" : "làm lại"}`} loi="Con thấy lời nhắn ngay trên máy. Nộp lại xong, Ba Mẹ nhận thông báo để duyệt."
+        dong={[daGui.nhan ? `Lời nhắn đã tới máy con · «${daGui.nhan}» · ${gioPhut(daGui.luc)}` : `Lời nhắn đã tới máy của ${l.ten_con}`,
+          `Chưa cộng sao${d.sao !== null ? ` · Ví ${l.ten_con} vẫn ${d.sao} sao` : ""}`]}
         chinh={{ chu: "Xem việc còn chờ duyệt", bam: () => router.replace(`/duyet?con=${l.child_id}` as never) }}
         phu={{ chu: "Về Trang chủ", bam: () => router.replace("/hom-nay" as never) }} />
     );
@@ -42,7 +43,7 @@ export default function NhoLamLai() {
   const loiNhan = (nhan ?? (d.ghiAm ? NHAN_AM : NHAN_ANH)).trim();
   const gui = () => lam(async () => {
     await bm.goi(`luot/${id}/lam-lai`, { lyDo: viSao ?? undefined, loiNhan: loiNhan || undefined });
-    setDaGui(true);
+    setDaGui({ nhan: loiNhan, luc: new Date() });
   }, { hangDoi: true });
   return (
     <Man lui={{ chu: "Bằng chứng" }} tieu={l.ten} day={<>
