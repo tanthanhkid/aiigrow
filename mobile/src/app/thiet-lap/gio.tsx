@@ -1,121 +1,106 @@
-// bm1-ob-gio «Giờ chơi» (bước 3/4, thiết kế chốt 04/11 — Nghi: «Giờ chơi phải có lại phần chặn app»):
-//   · khối «Chặn app» 2 chế độ (L4): Chỉ app được phép (mặc định, Rob gợi ý) / Mở hết (chỉ tính giờ) + 4 app đầu + «Thêm hoặc bớt app» ⇒ Chọn app;
-//   · Giờ chơi mỗi ngày: chip 30 / 60 / 90 phút, cuối tuần +30 (L2 — quỹ phút, hết giờ máy tự khoá);
-//   · Giờ ngủ: hai ô giờ, bấm mở bánh xe (them-hijzsz0z).
-// «Lưu và ghép máy của X» ⇒ POST thiet-lap (một lần) ⇒ Ghép máy.
+// bm1-ob-gio «X chơi máy bao lâu mỗi ngày?» (bước 4/5 Lần đầu, thiết kế chốt 14/11): chip 30p · 60p · 90p (cuối tuần +30) + «Tự chọn»
+// (hai dòng Ngày thường / Cuối tuần, mỗi lần bấm ±15 phút), «Giờ đi ngủ» hai ô giờ ⇒ bảng them-hijzsz0z (bánh xe), câu tóm tắt.
+// «Tiếp: chọn app cho con» ⇒ them-35vyl4cx «X dùng được gì?» (/thiet-lap/che-do) ⇒ App ⇒ Web ⇒ lưu một lần (POST thiet-lap) ⇒ Ghép máy.
+// Khối chặn app cũ (bản 04/11) đã tách sang màn che-do + app + web. Quỹ giờ tính chung mọi máy (L2); hết giờ máy tự khoá.
 import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { cuoiTuanCua, luuThietLap, napAppGoiY, napCaiDatCon, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
-import { BanhXeGio, DauMan, gioGon, OApp, TieuDe } from "@/lib/lan-dau";
+import { cuoiTuanCua, napCaiDatCon, NGU_MAC_DINH, QUY_CHIP, QUY_MAC_DINH } from "@/lib/ghep-may";
+import { BanhXeGio, DauMan, gioGon } from "@/lib/lan-dau";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { coMa, datTl, layTl } from "@/lib/thiet-lap";
-import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Man, Nut, Rob, The, useLam } from "@/lib/ui";
+import { datTl, layTl } from "@/lib/thiet-lap";
+import { BangTruot, Chu, F, Icon3D, M, Man, Nut } from "@/lib/ui";
+
+const BUOC = 15, TOI_DA = 480;
+const kep = (p: number) => Math.max(0, Math.min(TOI_DA, p));
 
 export default function ObGio() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
-  const [cheDo, setCheDo] = useState(tl.cheDoChan ?? "chi_app_duoc_phep");
   const [quy, setQuy] = useState(tl.quy ?? QUY_MAC_DINH);
+  const [ct, setCt] = useState(tl.cuoiTuan ?? cuoiTuanCua(tl.quy ?? QUY_MAC_DINH));
+  const [tu, setTu] = useState(() => tl.quy != null && (!(QUY_CHIP as readonly number[]).includes(tl.quy) || (tl.cuoiTuan != null && tl.cuoiTuan !== cuoiTuanCua(tl.quy))));
   const [ngu, setNgu] = useState(tl.ngu ?? NGU_MAC_DINH);
-  const [apps, setApps] = useState(tl.apps);
   const [suaNgu, setSuaNgu] = useState<"tu" | "den" | null>(null);
-  // nạp cài đặt thật của Con (lib/ghep-may › napCaiDatCon) rồi hiện lên màn — mục Ba Mẹ đã chọn giữ nguyên
-  const napCaiDat = () => napCaiDatCon().then(() => {
-    const n = layTl();
-    if (n.cheDoChan) setCheDo(n.cheDoChan);
-    if (n.quy != null) setQuy(n.quy);
-    if (n.ngu) setNgu(n.ngu);
-  });
-  const { lam, loi, dangChay } = useLam();
-  // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Rob (app-goi-y)
+  const [nhap, setNhap] = useState(ngu);          // bảng giờ ngủ sửa bản nháp: chỉ «Lưu» (giờ khoá ≠ giờ mở) mới đổi giờ ngủ thật
+  const moNgu = (k: "tu" | "den") => { setNhap(ngu); setSuaNgu(k); };
+  // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng quỹ / giờ ngủ đang có (mục Ba Mẹ đã chọn giữ nguyên; lỗi thì lần sau nạp lại)
   useFocusEffect(useCallback(() => {
-    const t = layTl();
-    setApps(t.apps);
-    if (t.conId && !t.apps) napAppGoiY(t.conId).then(() => setApps(layTl().apps)).catch(() => {});
-    // 06/11 (B1): đi lại Lần đầu cho Con đã có cài đặt ⇒ hiện đúng chế độ chặn / quỹ / giờ ngủ đang có (lỗi thì lần mở màn sau nạp lại)
-    napCaiDat().catch(() => {});
-  }, []));
-  const doi = (x: Parameters<typeof datTl>[0]) => datTl(x);
-  const luu = () => lam(async () => {
-    const con = await luuThietLap();
-    router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
-  }, { hangDoi: true });
-  const chiApp = cheDo === "chi_app_duoc_phep";
-  const soApp = apps?.length ?? 0;
+    napCaiDatCon().then(() => {
+      const n = layTl();
+      if (n.quy != null) {
+        const c = n.cuoiTuan ?? cuoiTuanCua(n.quy);
+        setQuy(n.quy); setCt(c);
+        setTu(!(QUY_CHIP as readonly number[]).includes(n.quy) || c !== cuoiTuanCua(n.quy));
+      }
+      if (n.ngu) setNgu(n.ngu);
+    }).catch(() => {});
+  }, [setQuy, setCt, setTu, setNgu]));
+  const dat = (q: number, c: number) => { setQuy(q); setCt(c); datTl({ quy: q, cuoiTuan: c }); };
+  const chip = (p: number) => { setTu(false); dat(p, cuoiTuanCua(p)); };
+  const tiep = () => { datTl({ quy, cuoiTuan: ct, ngu }); router.push("/thiet-lap/che-do"); };
+  const oChip = (on: boolean) => ({ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center" as const, justifyContent: "center" as const, paddingHorizontal: 2,
+    backgroundColor: on ? "#fff" : "#ebeae6", boxShadow: on ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.lom });
+  const dongTu = (tieu: string, phu: string, gia: number, doi: (p: number) => void, nhan: string) => (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 56 }}>
+      <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{tieu}</Chu><Chu co={12} mau={M.chu3}>{phu}</Chu></View>
+      {(["−", "＋"] as const).map((k, i) => {
+        const moi = kep(gia + (i ? BUOC : -BUOC));
+        const nut = (
+          <Pressable key={k} onPress={() => doi(moi)} disabled={moi === gia} accessibilityRole="button" accessibilityLabel={`${i ? "Tăng" : "Giảm"} 15 phút ${nhan}`}
+            style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#ecebe7", boxShadow: BONG.nho, opacity: moi === gia ? 0.4 : 1 }}>
+            <Chu kieu="rat" co={20} mau={M.chinhInk}>{k}</Chu>
+          </Pressable>
+        );
+        return i ? [<Text key="so" style={{ minWidth: 74, textAlign: "center", fontFamily: F.rat, fontSize: 20, color: M.chu }}>{gia} <Text style={{ fontSize: 13, color: M.chu3 }}>phút</Text></Text>, nut] : nut;
+      })}
+    </View>
+  );
   return (
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
-      day={<><BaoLoi loi={loi} /><Nut chu={`Lưu và ghép máy của ${ten}`} rong dangChay={dangChay} bam={luu} /></>}>
-      <TieuDe chu={`${ten} được dùng app nào?`} phu={chiApp ? "Ngoài các app này, máy của con sẽ bị chặn." : "Mọi app đều mở, chỉ tính vào giờ chơi."} />
-      <View style={{ borderRadius: 30, backgroundColor: "#f7faf8", padding: 12, gap: 12, boxShadow: `0px 0px 0px 2px ${M.chinh}, ${BONG.the}` }}>
-        <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
-          <View style={{ alignItems: "center", gap: 4 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.chinh, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3 }}>
-              <Icon ten="khien" mau="#fff" co={13} /><Chu kieu="rat" co={12} mau="#fff">Chặn app</Chu>
-            </View>
-            <Rob ten="hoc" co={78} />
-          </View>
-          <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 18, padding: 12, ...KHOI.nho }}>
-            <Chu co={13.5} mau={M.chu2}>{chiApp
-              ? <>Rob chọn sẵn <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{`${soApp} app`}</Chu> hợp tuổi con. App mới con tải sẽ <Chu kieu="rat" co={13.5} mau={M.chinhInk}>xin Ba Mẹ duyệt</Chu> trước.</>
-              : "Mở hết: con dùng được mọi app, chỉ tính giờ chơi. Web cờ bạc / người lớn vẫn luôn chặn."}</Chu>
-          </View>
+      day={<Nut chu="Tiếp: chọn app cho con" rong bam={tiep} />}>
+      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy\nbao lâu mỗi ngày?`}</Text>
+      <View style={{ borderRadius: 28, backgroundColor: "#f7f6f3", padding: 14, gap: 12, ...KHOI.the }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="dongho" co={22} /><Chu kieu="rat" co={14.5} mau={M.chu2}>Hết giờ, máy tự khoá</Chu></View>
+        <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="radiogroup">
+          {QUY_CHIP.map((p) => {
+            const on = !tu && quy === p && ct === cuoiTuanCua(p);
+            return (
+              <Pressable key={p} onPress={() => chip(p)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${p} phút, thứ 7 chủ nhật ${cuoiTuanCua(p)} phút`} style={oChip(on)}>
+                <Chu kieu="rat" co={17}>{`${p}p`}</Chu><Chu co={11} mau={M.chu3} dong={1}>{`T7, CN ${cuoiTuanCua(p)}p`}</Chu>
+              </Pressable>
+            );
+          })}
+          <Pressable onPress={() => setTu(true)} accessibilityRole="radio" accessibilityState={{ checked: tu }} style={oChip(tu)}>
+            <Chu kieu="rat" co={15} dong={1}>Tự chọn</Chu><Chu co={11} mau={M.chu3} dong={1}>{`${quy}p · ${ct}p`}</Chu>
+          </Pressable>
         </View>
-        <View style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 24, backgroundColor: "#ebeae6", boxShadow: BONG.lom }} accessibilityRole="radiogroup">
-          {([["chi_app_duoc_phep", "Chỉ app được phép", "Rob gợi ý · nên chọn"], ["mo_het", "Mở hết", "Chỉ tính giờ"]] as const).map(([v, t, p]) => (
-            <Pressable key={v} onPress={() => { setCheDo(v); doi({ cheDoChan: v }); }} accessibilityRole="radio" accessibilityState={{ checked: cheDo === v }}
-              style={{ flex: 1, minHeight: 54, borderRadius: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 6,
-                ...(cheDo === v ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : {}) }}>
-              <Chu kieu="rat" co={14.5} mau={cheDo === v ? "#fff" : M.chu}>{t}</Chu>
-              <Chu co={11.5} mau={cheDo === v ? "#d8efe9" : M.chu3}>{p}</Chu>
-            </Pressable>
-          ))}
-        </View>
-        {chiApp ? (
-          <>
-            <View style={{ flexDirection: "row" }}>
-              {(apps ?? []).slice(0, 4).map((a) => <OApp key={a.ten} ma={coMa(a) ? a.ma : undefined} ten={a.ten} />)}
-            </View>
-            <Pressable onPress={() => router.push("/thiet-lap/app")} accessibilityRole="button"
-              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 48, paddingHorizontal: 14, borderRadius: 18, backgroundColor: "#fff", ...KHOI.nho }}>
-              <Chu kieu="rat" co={14.5} mau={M.chinhInk}>{`Thêm hoặc bớt app · ${soApp} app`}</Chu>
-              <Icon ten="phai" mau={M.chinhInk} co={18} />
-            </Pressable>
-          </>
+        {tu ? (
+          <View style={{ borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 12, paddingVertical: 4, ...KHOI.nho }}>
+            {dongTu("Ngày thường", "Thứ 2 – Thứ 6", quy, (p) => dat(p, ct), "ngày thường")}
+            <View style={{ height: 1, backgroundColor: "#ecebe7" }} />
+            {dongTu("Cuối tuần", "Thứ 7, Chủ nhật", ct, (p) => dat(quy, p), "cuối tuần")}
+          </View>
         ) : null}
       </View>
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
-        <Icon3D ten="dongho" co={24} /><Chu kieu="rat" co={16}>Giờ chơi mỗi ngày</Chu>
-        <Chu co={12.5} mau={M.chu3} style={{ marginLeft: "auto" }}>Hết giờ, máy tự khoá</Chu>
-      </View>
-      <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-        {QUY_CHIP.map((p) => (
-          <Pressable key={p} onPress={() => { setQuy(p); doi({ quy: p, cuoiTuan: undefined }); }} accessibilityRole="radio" accessibilityState={{ checked: quy === p }}
-            style={{ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center", justifyContent: "center",
-              backgroundColor: quy === p ? "#fff" : "#ebeae6", boxShadow: quy === p ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.lom }}>
-            <Chu kieu="rat" co={16}>{`${p} phút`}</Chu>
-            <Chu co={11.5} mau={M.chu3}>{`T7, CN: ${p === quy && layTl().quy === p && layTl().cuoiTuan != null ? layTl().cuoiTuan : cuoiTuanCua(p)} phút`}</Chu>
-          </Pressable>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, backgroundColor: "#f7f6f3", padding: 12, ...KHOI.the }}>
+        <Icon3D ten="trang_ngu" co={28} />
+        <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>Giờ đi ngủ</Chu><Chu co={12} mau={M.chu3}>Máy khoá cả đêm</Chu></View>
+        {(["tu", "den"] as const).map((k, i) => (
+          <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            {i ? <Chu kieu="rat" co={14} mau={M.chu2}>→</Chu> : null}
+            <Pressable onPress={() => moNgu(k)} accessibilityRole="button" accessibilityLabel={k === "tu" ? `Máy khoá lúc ${ngu.tu}` : `Mở lại lúc ${ngu.den}`}
+              style={{ minHeight: 44, minWidth: 62, paddingHorizontal: 8, borderRadius: 14, backgroundColor: "#ebeae6", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+              <Chu kieu="rat" co={17} so>{gioGon(ngu[k])}</Chu>
+            </Pressable>
+          </View>
         ))}
       </View>
-
-      <The>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Icon3D ten="trang_ngu" co={30} />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={15.5}>Giờ ngủ</Chu><Chu co={12.5} mau={M.chu3}>Máy khoá · mọi ngày</Chu></View>
-          {(["tu", "den"] as const).map((k, i) => (
-            <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              {i ? <Chu co={14} mau={M.chu3}>–</Chu> : null}
-              <Pressable onPress={() => setSuaNgu(k)} accessibilityRole="button" accessibilityLabel={k === "tu" ? `Máy khoá lúc ${ngu.tu}` : `Mở lại lúc ${ngu.den}`}
-                style={{ minHeight: 44, minWidth: 64, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "#ebeae6", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
-                <Chu kieu="rat" co={17} so>{gioGon(ngu[k])}</Chu>
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      </The>
+      <Chu co={13.5} mau={M.chu2} style={{ paddingHorizontal: 4 }}>
+        Thứ 2 – Thứ 6: chơi <Chu kieu="rat" co={13.5}>{`${quy} phút`}</Chu>, cuối tuần <Chu kieu="rat" co={13.5}>{`${ct} phút`}</Chu>.
+        {tu ? " Mỗi lần bấm tăng/giảm 15 phút;" : ""} Ba Mẹ đổi lại được bất cứ lúc nào trong mục Giờ chơi.
+      </Chu>
 
       <BangTruot mo={!!suaNgu} dong={() => setSuaNgu(null)} tieu={`Giờ ngủ của ${ten}`}>
         <View style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 22, backgroundColor: "#ebeae6", boxShadow: BONG.lom }}>
@@ -123,12 +108,13 @@ export default function ObGio() {
             <Pressable key={k} onPress={() => setSuaNgu(k)} accessibilityRole="tab" accessibilityState={{ selected: suaNgu === k }}
               style={{ flex: 1, minHeight: 56, borderRadius: 18, alignItems: "center", justifyContent: "center", ...(suaNgu === k ? { backgroundColor: "#fff", ...KHOI.nho } : {}) }}>
               <Chu co={12.5} mau={M.chu3}>{k === "tu" ? "Máy khoá lúc" : "Mở lại lúc"}</Chu>
-              <Chu kieu="rat" co={19} so>{gioGon(ngu[k])}</Chu>
+              <Chu kieu="rat" co={19} so>{gioGon(nhap[k])}</Chu>
             </Pressable>
           ))}
         </View>
-        {suaNgu ? <BanhXeGio key={suaNgu} gio={ngu[suaNgu]} doi={(g) => { if (!suaNgu) return; const moi = { ...ngu, [suaNgu]: g }; setNgu(moi); if (moi.tu !== moi.den) doi({ ngu: moi }); }} /> : null}
-        <Nut chu={`Lưu giờ ngủ ${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} rong tat={ngu.tu === ngu.den} bam={() => { doi({ ngu }); setSuaNgu(null); }} />
+        {suaNgu ? <BanhXeGio key={suaNgu} gio={nhap[suaNgu]} doi={(g) => { if (suaNgu) setNhap({ ...nhap, [suaNgu]: g }); }} /> : null}
+        {nhap.tu === nhap.den ? <Chu kieu="dam" co={13} mau={M.loi}>Giờ khoá máy phải khác giờ mở lại.</Chu> : null}
+        <Nut chu={`Lưu giờ ngủ ${gioGon(nhap.tu)} – ${gioGon(nhap.den)}`} rong tat={nhap.tu === nhap.den} bam={() => { setNgu(nhap); datTl({ ngu: nhap }); setSuaNgu(null); }} />
       </BangTruot>
     </Man>
   );

@@ -4,6 +4,7 @@
 import { q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { taoNv } from "./nhiem-vu.ts";
+import { CHU_DE_GIUP, KHO_VIEC, type ViecKho } from "./kho-viec.ts";
 
 type Viec = { ten: string; mo_ta?: string; nhom: string; diem: number; bang_chung: string; lap_lai: string; hinh: string; toi_da_ngay?: number;
   phut_toi_thieu?: number; tu_duyet?: boolean; nhan?: string };
@@ -67,6 +68,50 @@ export async function giaoBo(fam: string, b: { bo?: unknown; con?: unknown; chon
     if (v.bang_chung === "tu_dong" && coAiiRob) continue;
     if (co.some((x) => x.ten === v.ten && (con === null || x.giao_cho === con || x.giao_cho === null))) continue;
     ids.push(await taoNv(fam, { ...v, giao_cho: v.bang_chung === "tu_dong" ? null : con, bo: bo.ma }, nguoi, q, true));
+  }
+  return { taoMoi: ids.length, ids };
+}
+
+// ---------------------------------------------------------------- kho việc «Một ngày của <Con>» (thiết kế chốt 14/11)
+
+/** Tên việc trong kho dài quá 60 ký tự (giới hạn tên nhiệm vụ) ⇒ bỏ phần ví dụ trong ngoặc, còn dài thì cắt ở khoảng trắng; tên đủ ghi ở mô tả. */
+export const tenNgan = (t: string) => {
+  if ([...t].length <= 60) return t;
+  const bo = t.replace(/\s*\(.*$/, "").trim();
+  if (bo.length >= 3 && [...bo].length <= 60) return bo;
+  return t.slice(0, 60).replace(/\s+\S*$/, "");
+};
+const NHOM_KHO: Record<ViecKho["muc"], string> = { hoc: "hoc_tap", van_dong: "van_dong", giup: "viec_nha" };
+const HINH_KHO: Record<ViecKho["muc"], string> = { hoc: "sach", van_dong: "the_duc", giup: "ban_an" };
+
+/** Một việc trong kho ⇒ thân taoNv: đọc sách nộp ghi âm, AiiRob tự chấm, vận động bấm «Xong», việc nhà / học nộp ảnh; hằng ngày, 1 lượt/ngày. */
+export function viecTuKho(v: ViecKho) {
+  const aiirob = /AiiRob/.test(v.ten), doc = /^Đọc sách/.test(v.ten);
+  return {
+    ten: tenNgan(v.ten), mo_ta: tenNgan(v.ten) !== v.ten ? v.ten : "", nhom: doc ? "doc_sach" : NHOM_KHO[v.muc], diem: v.sao,
+    bang_chung: aiirob ? "tu_dong" : doc ? "ghi_am" : v.muc === "van_dong" ? "xong" : "anh", tu_duyet: aiirob,
+    lap_lai: "hang_ngay", toi_da_ngay: 1, hinh: aiirob ? "rob" : HINH_KHO[v.muc], bo: `kho_${v.muc}`,
+  };
+}
+
+/** GET nhiem-vu/kho — 117 việc + 10 chủ đề Giúp Ba Mẹ. */
+export const dsKho = () => ({ chuDe: CHU_DE_GIUP, ds: KHO_VIEC.map((v) => ({ ...v, lon: !!v.lon })) });
+
+/** POST nhiem-vu/kho {con, chon: [ma]} — giao các việc Ba Mẹ chạm ＋ cho Con (trống ⇒ cả nhà). Việc Con đã có cùng tên bỏ qua. */
+export async function giaoKho(fam: string, b: { con?: unknown; chon?: unknown }, nguoi?: string) {
+  if (!Array.isArray(b.chon)) throw new LoiNghiepVu("thieu_viec", "Chọn ít nhất một việc");
+  const chon = new Set(b.chon.map(String));
+  const ds = KHO_VIEC.filter((v) => chon.has(v.ma));
+  if (ds.length !== chon.size) throw new LoiNghiepVu("viec_sai", "Có việc không còn trong danh sách — tải lại màn");
+  const con = b.con ? String(b.con) : null;
+  const co = await q<{ ten: string; giao_cho: string | null; bang_chung: string }>(`select ten, giao_cho, bang_chung from tasks where family_id = $1 and bat`, [fam]);
+  const coAiiRob = co.some((x) => x.bang_chung === "tu_dong");
+  const ids: string[] = [];
+  for (const v of ds) {
+    const x = viecTuKho(v);
+    if (x.bang_chung === "tu_dong" && coAiiRob) continue;
+    if (co.some((c) => c.ten === x.ten && (con === null || c.giao_cho === con || c.giao_cho === null))) continue;
+    ids.push(await taoNv(fam, { ...x, giao_cho: x.bang_chung === "tu_dong" ? null : con }, nguoi, q, true));
   }
   return { taoMoi: ids.length, ids };
 }

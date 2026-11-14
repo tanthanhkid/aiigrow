@@ -1,5 +1,6 @@
 // bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt: chế độ chặn + số app, giờ chơi + giờ ngủ, số việc mỗi ngày;
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
+// Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Chặn app & web» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
@@ -41,11 +42,11 @@ export default function ObXong() {
       : <Nut chu="Vào Trang chủ" rong bam={() => router.replace("/hom-nay")} />}>
       <View style={{ alignItems: "center", gap: 6, paddingTop: 8 }}>
         <Rob ten="xong" co={170} />
-        <TieuDe chu="Xong rồi!" phu={coMay ? `Rob bắt đầu trông ${d!.may[0].ten} của ${ten}.` : `${ten} đã có việc và giờ chơi.`} giua />
+        <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten} của ${ten}.` : `${ten} đã có việc và giờ chơi.`} giua />
       </View>
       {d ? (
         <The>
-          {dong("khien", d.t.cheDoChan === "mo_het" ? "Mở hết · chỉ tính giờ" : `Chỉ app được phép · ${d.t.soApp} app`)}
+          {dong("khien", d.t.cheDoChan === "mo_het" ? "Mở hết · chỉ tính giờ" : `Chặn app & web · ${d.t.soApp} app`)}
           {dong("dongho", `Chơi ${d.t.gioChoi.ngayThuong ?? "—"} phút · ngủ ${gioGon(d.t.ngu.tu)}`)}
           {dong("sao", `${d.soViec} việc mỗi ngày`)}
         </The>
@@ -64,7 +65,7 @@ export default function ObXong() {
       ) : (
         <View style={{ borderRadius: 26, backgroundColor: "#fff1c9", padding: 16, gap: 10, ...KHOI.the }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="may_tinh" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Chưa có máy nào</Chu></View>
-          <Chu co={13.5} mau={M.chu2}>{`Rob chỉ trông được khi máy của ${ten} đã ghép`}</Chu>
+          <Chu co={13.5} mau={M.chu2}>{`Grow chỉ trông được khi máy của ${ten} đã ghép`}</Chu>
           <Nut chu={`Ghép máy cho ${ten}`} loai="ngoc" rong bam={() => router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } })} />
         </View>
       )}

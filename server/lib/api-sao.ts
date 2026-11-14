@@ -7,7 +7,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import * as qg from "./quy-gio.ts";
 import * as nv from "./nhiem-vu.ts";
 import * as pt from "./phan-thuong.ts";
-import { dsBo, giaoBo } from "./bo-nhiem-vu.ts";
+import { dsBo, dsKho, giaoBo, giaoKho } from "./bo-nhiem-vu.ts";
 import { soDu } from "./vi.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
@@ -31,6 +31,9 @@ export async function xuLyMSao(bm: { id: string; family_id: string }, req: Reque
   // Nhiệm vụ theo bộ + thêm việc riêng cho nhiều Con
   if (d === "nhiem-vu/bo" && get) return json({ ds: dsBo() });
   if (d === "nhiem-vu/bo" && post) return json(await giaoBo(fam, { bo: b.bo, con: b.con, chon: b.chon }, bm.id));
+  // Kho việc «Một ngày của <Con>» (thiết kế chốt 14/11): Học · Vận động · Giúp Ba Mẹ 100 việc
+  if (d === "nhiem-vu/kho" && get) return json(dsKho());
+  if (d === "nhiem-vu/kho" && post) return json(await giaoKho(fam, { con: b.con, chon: b.chon }, bm.id));
   if (d === "nhiem-vu" && post && Array.isArray(b.giao_cho)) {
     const ds = [...new Set((b.giao_cho as unknown[]).map(String))].slice(0, 10);
     const ids: string[] = [];

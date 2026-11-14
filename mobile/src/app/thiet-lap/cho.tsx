@@ -1,11 +1,13 @@
 // them-z8femhpg (Lần đầu) / them-jfyrm0t5 · them-mkcwr3q1 (Ghép thêm máy) «Đang chờ máy của X» + them-7ss7o7lz «Mã đã hết hạn».
 // Hỏi máy chủ mỗi 3 giây (GET ghep-may/:ma): máy nhập mã / mở link là sang «Đã ghép». Đếm ngược theo hạn mã (10 phút).
-import { useCallback, useEffect, useState } from "react";
+// Thiết kế 14/11: Lần đầu mã hết hạn ⇒ them-q44uxha5 «Mã đã hết hạn · Mã cũ đã bị huỷ» (như màn Ghép); chờ quá 5 phút ⇒ them-ytmgijqo «Chưa thấy máy».
+import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { kqTheoMa, xemGhep } from "@/lib/ghep-may";
-import { BuocMayCon, CanhRob, DauMan, demNguoc, hienMa, LienKet, linkNgan, TieuDe } from "@/lib/lan-dau";
+import { BuocMayCon, CanhRob, DauMan, demNguoc, DongTrangThai, hienMa, KhoiTrangThaiGhep, LienKet, linkNgan, TieuDe } from "@/lib/lan-dau";
+import { xoaTl } from "@/lib/thiet-lap";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { BaoLoi, Chu, Icon3D, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
 
@@ -19,6 +21,9 @@ export default function ChoMayCon() {
   const [con0, setCon0] = useState(() => (kq ? Math.round((Date.parse(kq.het) - Date.now()) / 1000) : 600));
   const [loi, setLoi] = useState<string | null>(null);
   const [linkCon, setLinkCon] = useState(false);          // mã 6 số hết hạn nhưng link đã gửi vẫn tự ghép được (48 giờ)
+  // mốc bắt đầu chờ: lúc mã được tạo (biết từ kết quả đã giữ), không có thì lúc mở màn; «Thử lại, chờ máy con» đặt lại
+  const [moc, setMoc] = useState(() => Date.now());
+  const mocTheoMay = useRef(false);        // lần hỏi đầu: mốc chờ = lúc mã được tạo, tính theo số giây còn lại máy chủ trả (không theo đồng hồ máy)
   const { bao, noi } = useHoanTac();
   const { d: c } = useTai(() => (con ? bm.goi<ConChiTiet>(`con/${con}`) : Promise.resolve(null)));
   const ten = c?.ten ?? "con";
@@ -28,10 +33,11 @@ export default function ChoMayCon() {
     const g = await xemGhep(ma);
     if (g.daGhep) { sangXong(g.may?.id, g.con); return true; }
     setHet(Date.now() + g.conGiay * 1000);
+    if (!mocTheoMay.current) { mocTheoMay.current = true; const han = (kq?.hanPhut ?? 10) * 60; setMoc(Date.now() - Math.max(0, han - g.conGiay) * 1000); }
     setLinkCon(!!g.linkConHan);
     if (g.hetHan) throw new Error("het_han");          // mã + link đều hết ⇒ ngừng hỏi
     return false;
-  }, [ma, sangXong]);
+  }, [ma, sangXong, kq]);
   useEffect(() => {
     if (!ma) return;
     const t0 = setTimeout(() => { hoi().catch((e) => { if (e?.message !== "het_han") { setLoi(e?.message ?? null); setHet(Date.now()); } }); }, 0);
@@ -47,6 +53,26 @@ export default function ChoMayCon() {
   const guiLai = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon } }));
   const daNhap = () => hoi().then((ok) => { if (!ok) bao(`Máy ${nguon === "them" ? "mới" : "của con"} chưa nhập mã — làm 3 bước trên máy đó nhé`); }, (e) => setLoi(e?.message ?? null));
   const may = nguon === "them" ? "máy mới" : "máy con";
+  const chuaThay = !hetHan && het != null && het - con0 * 1000 - moc >= 5 * 60_000;
+  if (hetHan && nguon === "lan-dau") return (
+    <Man dau={<DauMan bamLui={guiLai} />}
+      day={<><Nut chu={`Lấy mã mới cho ${ten}`} rong bam={layMoi} /><LienKet chu="Để sau, vào trang chủ" bam={() => { xoaTl(); router.replace("/hom-nay"); }} /></>}>
+      <KhoiTrangThaiGhep lv="cho" ic="dong_ho_cat" tieu="Mã đã hết hạn" phu="Mã chỉ dùng được 10 phút">
+        <DongTrangThai ic="khien" chu="Mã 6 số cũ không dùng được nữa" phu={`Chưa máy nào ghép vào nhà bằng mã này${linkCon ? " · link đã gửi vẫn dùng được trong 48 giờ" : ""}`} />
+      </KhoiTrangThaiGhep>
+    </Man>
+  );
+  if (chuaThay) return (
+    <Man dau={<DauMan bamLui={guiLai} />}
+      day={<><Nut chu="Thử lại, chờ máy con" rong bam={() => setMoc(Date.now())} /><LienKet chu="Hỏi AiiGrow" bam={() => router.push("/ho-tro")} /></>}>
+      <KhoiTrangThaiGhep lv="nghi" ic="canh_bao" tieu={nguon === "them" ? "Chưa thấy máy mới" : "Chưa thấy máy của con"} phu="Đã chờ 5 phút, máy chưa trả lời">
+        <Chu kieu="rat" co={15} style={{ paddingHorizontal: 4 }}>Thử một trong 3 việc</Chu>
+        <DongTrangThai ic="wifi" chu="Máy con có mạng chưa?" />
+        <DongTrangThai ic="tai" chu="Đã cài AiiGrow chưa?" />
+        <DongTrangThai ic="dau_hoi" chu="Mã nhập đúng chưa?" phu={`Mã đang dùng: ${maHien}`} />
+      </KhoiTrangThaiGhep>
+    </Man>
+  );
   return (
     <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" ? <ThanhBuoc5 dang={4} /> : undefined} />}
       day={<>
