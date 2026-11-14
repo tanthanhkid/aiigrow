@@ -14,7 +14,7 @@ import { layMaGhep, xemGhep, type KqGhep } from "@/lib/ghep-may";
 import { DauMan, DongTrangThai, HangChiaSe, KhoiTrangThaiGhep, LienKet, NutHoi } from "@/lib/lan-dau";
 import { MaQr } from "@/lib/qr";
 import { xoaTl } from "@/lib/thiet-lap";
-import { BangTruot, BaoLoi, Chu, LopMen, M, Man, Nut, The, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, Chu, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { bm, type ConChiTiet } from "@/lib/api";
 
 const CHO_PHUT = 5;
@@ -114,7 +114,10 @@ export default function GhepMay() {
         <Chu kieu="rat" co={15}>Hoặc gửi link cho con</Chu>
         <Chu co={12} mau={M.chu3}>Vuốt ngang để xem thêm · «Thêm…» gửi qua mọi app</Chu>
       </View>
-      <The sat>{kq ? <View style={{ paddingVertical: 8, paddingLeft: 8 }}><HangChiaSe chiaSe={kq.chiaSe} bao={bao} daGui={sangCho} /></View> : <View style={{ height: 76 }} />}</The>
+      {/* hàng cuộn ngang: ô ló khỏi mép là chủ ý (vuốt xem thêm) ⇒ nền phẳng, không làm thẻ clay (cổng LE-THE đo lề trong thẻ) */}
+      <View style={{ borderRadius: 24, backgroundColor: M.the, paddingVertical: 10, paddingLeft: 12, overflow: "hidden" }}>
+        {kq ? <HangChiaSe chiaSe={kq.chiaSe} bao={bao} daGui={sangCho} /> : <View style={{ height: 76 }} />}
+      </View>
       <BangTruot mo={qrTo} dong={() => setQrTo(false)} tieu="Quét bằng camera máy của con">
         <View style={{ alignItems: "center", gap: 10 }}>
           {kq ? <MaQr noiDung={kq.qr} co={260} /> : null}
