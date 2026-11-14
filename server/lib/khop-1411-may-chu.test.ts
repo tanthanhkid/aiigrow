@@ -251,3 +251,15 @@ test("Trao luôn không tính vào «tối đa / tháng» của con; xoá Con d�
   const r = await m(`con/${b}/xoa`, { tok, body: { xacNhan: true } });
   assert.deepEqual([r.status, r.body.error], [409, "con_may"]);
 });
+
+// ---------------------------------------------------------------- vòng review 2
+test("con/:id/xoa: Con còn thiết bị lọc mạng đứng riêng (TV) ⇒ 409 con_thiet_bi_mang; hạn khoá sai ⇒ 400 qua hanKhoa chung", async () => {
+  const { fam, a, tok } = await nha();
+  const { bangMang } = await import("./dns-gia-dinh.ts");
+  await bangMang();
+  await q(`insert into dns_thiet_bi(id, family_id, child_id, ten, loai, nhan) values ($1,$2,$3,'TV phòng khách','tv',$4)`, [newId(), fam, a, newId().slice(0, 10)]);
+  const r = await m(`con/${a}/xoa`, { tok, body: { xacNhan: true } });
+  assert.deepEqual([r.status, r.body.error], [409, "con_thiet_bi_mang"]);
+  assert.throws(() => mc.hanKhoa("Asia/Ho_Chi_Minh", new Date("abc")), /không hợp lệ/);
+  assert.equal(mc.hanKhoa("Asia/Ho_Chi_Minh", null), null);
+});

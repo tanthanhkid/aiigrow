@@ -20,32 +20,34 @@ export type DongHoTro = { family_id: string; ten: string; tu: string; noi_dung: 
 /** Hộp thư: mỗi gia đình một dòng (tin mới nhất). `o.loc`: cho (chờ trả lời) · da_tra_loi · cua_toi (mình trả lời gần nhất); `o.toi` = mã người gọi
  *  dạng `nguoi` của ho_tro («admin:<id>» / «admin-app:<id>»). → {ds, soCho, soGap}: số đếm luôn tính trên cả hộp thư (không theo bộ lọc). */
 export async function dsHoTro(o: { loc?: string | null; toi?: string | null } = {}, now = new Date()) {
-  const r = await q<Omit<DongHoTro, "cho_phut" | "gap" | "cua_toi">>(
-    `select f.id as family_id, f.ten, h.tu, h.noi_dung, h.created_at, (h.tu = 'ba_me') as chua_tra_loi, g.ten as nguoi_gui,
-       (select min(x.created_at) from ho_tro x where x.family_id = f.id and x.tu = 'ba_me' and x.seq > coalesce(a.seq, 0)) as cho_tu,
-       a.nguoi as nguoi_tra_loi
-     from families f
-     join lateral (select tu, noi_dung, created_at from ho_tro x where x.family_id = f.id order by x.created_at desc, x.seq desc limit 1) h on true
-     left join lateral (select y.seq, y.nguoi from ho_tro y where y.family_id = f.id and y.tu = 'aiilab' order by y.seq desc limit 1) a on true
-     left join lateral (select p.ten from ho_tro x join parents p on p.id = x.nguoi where x.family_id = f.id and x.tu = 'ba_me' order by x.seq desc limit 1) g on true
-     order by (h.tu = 'ba_me') desc, h.created_at desc limit 200`);
+  const loc = o.loc && (LOC_HO_TRO as readonly string[]).includes(o.loc) ? o.loc : null;
+  const moc = new Date(now.getTime() - GAP_PHUT * 60_000);
+  // MỘT CTE tính cho_tu / người trả lời cuối theo gia đình; danh sách (lọc + xếp TRƯỚC limit 200) và số đếm cùng lấy từ đó
+  const cte = `with g as (
+      select f.id as family_id, f.ten, a.nguoi as nguoi_tra_loi,
+        (select min(x.created_at) from ho_tro x where x.family_id = f.id and x.tu = 'ba_me' and x.seq > coalesce(a.seq, 0)) as cho_tu
+      from families f
+      left join lateral (select y.seq, y.nguoi from ho_tro y where y.family_id = f.id and y.tu = 'aiilab' order by y.seq desc limit 1) a on true
+      where exists (select 1 from ho_tro z where z.family_id = f.id))`;
+  const [r, dem] = await Promise.all([
+    q<Omit<DongHoTro, "cho_phut" | "gap" | "cua_toi">>(
+      `${cte}
+       select g.family_id, g.ten, h.tu, h.noi_dung, h.created_at, (h.tu = 'ba_me') as chua_tra_loi, n.ten as nguoi_gui, g.cho_tu, g.nguoi_tra_loi
+       from g
+       join lateral (select tu, noi_dung, created_at from ho_tro x where x.family_id = g.family_id order by x.seq desc limit 1) h on true
+       left join lateral (select p.ten from ho_tro x join parents p on p.id = x.nguoi where x.family_id = g.family_id and x.tu = 'ba_me' order by x.seq desc limit 1) n on true
+       where ($1::text is null or ($1 = 'cho' and g.cho_tu is not null) or ($1 = 'da_tra_loi' and g.cho_tu is null)
+              or ($1 = 'cua_toi' and g.nguoi_tra_loi = $2))
+       -- đang chờ lên đầu: gấp (chờ ≥ GAP_PHUT) trước, chờ lâu trước; rồi tin mới nhất
+       order by (g.cho_tu is not null) desc, g.cho_tu asc nulls last, h.created_at desc limit 200`, [loc, o.toi ?? ""]),
+    q<{ so_cho: number; so_gap: number }>(`${cte} select count(*) filter (where cho_tu is not null)::int as so_cho,
+       count(*) filter (where cho_tu <= $1)::int as so_gap from g`, [moc]),
+  ]);
   const ds: DongHoTro[] = r.map((x) => {
     const choPhut = x.cho_tu ? Math.max(0, Math.floor((now.getTime() - new Date(x.cho_tu).getTime()) / 60_000)) : null;
     return { ...x, cho_phut: choPhut, gap: choPhut !== null && choPhut >= GAP_PHUT, cua_toi: !!o.toi && x.nguoi_tra_loi === o.toi };
   });
-  // «Chờ trả lời»: gấp trước, rồi chờ lâu trước
-  ds.sort((a, b) => Number(!!b.cho_tu) - Number(!!a.cho_tu) || Number(b.gap) - Number(a.gap) || (b.cho_phut ?? 0) - (a.cho_phut ?? 0));
-  const loc = o.loc && (LOC_HO_TRO as readonly string[]).includes(o.loc) ? o.loc : null;
-  // số đếm trên CẢ hộp thư (không bị cắt bởi limit 200 của danh sách)
-  const dem = (await q<{ so_cho: number; so_gap: number }>(
-    `select count(*) filter (where cho_tu is not null)::int as so_cho, count(*) filter (where cho_tu <= $1)::int as so_gap
-       from (select (select min(x.created_at) from ho_tro x where x.family_id = h.family_id and x.tu = 'ba_me'
-                      and x.seq > coalesce((select max(y.seq) from ho_tro y where y.family_id = h.family_id and y.tu = 'aiilab'), 0)) as cho_tu
-               from (select distinct family_id from ho_tro) h) z`, [new Date(now.getTime() - GAP_PHUT * 60_000)]))[0];
-  return {
-    ds: !loc ? ds : ds.filter((x) => (loc === "cho" ? !!x.cho_tu : loc === "da_tra_loi" ? !x.cho_tu : x.cua_toi)),
-    soCho: dem?.so_cho ?? 0, soGap: dem?.so_gap ?? 0,
-  };
+  return { ds, soCho: dem[0]?.so_cho ?? 0, soGap: dem[0]?.so_gap ?? 0 };
 }
 
 export async function chiTietHoTro(fam: string) {

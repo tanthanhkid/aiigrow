@@ -166,14 +166,9 @@ export const laMoHet = (p: Pick<Policy, "cheDoChan" | "con">) => p.cheDoChan ===
 /** `hoanTac`: Hoàn tác «Mở lại máy» ⇒ bật lại cờ khoá, giữ nguyên hạn khoá + mốc mở tạm ĐANG LƯU trên máy chủ (Mở lại chỉ bỏ cờ, không xoá chúng;
  *  không có cờ thì khoaGoc false nên chúng vô hiệu). Không dựa dữ liệu màn của Ba Mẹ — người khác có thể vừa đổi. Hạn đã qua ⇒ khoá lại cũng tự hết. */
 export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string, hanVao: Date | "sang" | null = null, now = new Date(), hoanTac = false) {
-  let den: Date | null = null;
-  if (khoa && hoanTac) { /* Hoàn tác không cần giờ: máy chủ dùng hạn đang lưu */ }
-  else if (khoa && hanVao === "sang") den = sangMaiCua((await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh", now);
-  else if (khoa && hanVao instanceof Date) {
-    if (Number.isNaN(hanVao.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại không hợp lệ", 400);
-    if (!(hanVao.getTime() > now.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
-    den = hanVao;
-  }
+  // Hoàn tác không cần giờ: máy chủ dùng hạn đang lưu
+  const den = khoa && !hoanTac && hanVao !== null
+    ? hanKhoa(hanVao === "sang" ? (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh" : "", hanVao, now) : null;
   // khoá mới thay hạn và xoá phần «mở tạm» của lần duyệt thêm giờ trước (yeu-cau.ts › dongY)
   const r = await q(`update children set cau_hinh = case when not $3 then cau_hinh - 'khoa_ngay'
                        when $5 then cau_hinh || '{"khoa_ngay": true}'::jsonb
@@ -188,6 +183,15 @@ export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: s
   if (khoa && hoanTac && !khoaGoc(c, now)) return;
   const hd = khoa && hoanTac ? khoaDen(c, now) : den?.toISOString() ?? null;
   await ghiSuKien(fam, khoa ? "khoa_ngay" : "mo_lai", { ...(hd ? { den: hd } : {}), ...(khoa && hoanTac ? { hoanTac: true } : {}) }, { con, nguoi });
+}
+
+/** Hạn «Khoá ngay» (Con — khoaNgay, hoặc riêng máy — khoa-may.ts): "sang" = 6:30 sáng mai giờ gia đình `tz` · Date phải hợp lệ và sau bây giờ · null = không hạn. */
+export function hanKhoa(tz: string, hanVao: Date | "sang" | null, now = new Date()): Date | null {
+  if (hanVao === "sang") return sangMaiCua(tz || "Asia/Ho_Chi_Minh", now);
+  if (!(hanVao instanceof Date)) return null;
+  if (Number.isNaN(hanVao.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại không hợp lệ", 400);
+  if (!(hanVao.getTime() > now.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
+  return hanVao;
 }
 
 /** «Sáng mai» = 6:30 (thiết kế 14/11 bm-hang-ngay «Khoá máy <Con>?» — trước 14/11 là 7:00). Phút trong ngày theo giờ gia đình. */

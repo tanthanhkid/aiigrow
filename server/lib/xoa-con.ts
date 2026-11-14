@@ -5,6 +5,7 @@
 // (rewards.ap_cho = [con]; quà áp cho nhiều Con ⇒ chỉ bỏ id này); goi_cai / dns_thiet_bi ⇒ bỏ gắn Con.
 // Máy đã ghép của Con (devices.child_id) KHÔNG gỡ (gỡ cần lệnh an toàn tới agent — lenh-may.ts): chuyển thành máy DÙNG CHUNG (bé khác chọn tên
 // đăng nhập; chưa ai đăng nhập ⇒ chặn «chỉ app được phép» như mọi máy dùng chung) + trả danh sách để app gợi ý «Gắn cho Con khác / Gỡ máy».
+// Thiết bị lọc mạng đứng riêng (TV, console) của Con ⇒ 409 con_thiet_bi_mang (không có «dùng chung» cho DNS).
 // Con CUỐI CÙNG của nhà mà nhà còn máy (kể cả máy dùng chung) ⇒ 409 con_may (máy dùng chung không còn bé nào để chọn): gỡ máy hoặc thêm Con khác trước.
 // Ghi: sự kiện «xoa_con» (nhật ký gia đình, không gắn child_id — dòng gắn Con đã xoá theo) + kiểm toán (audit) «xoa_con» như «xoa_gia_dinh».
 import { tx, type Q } from "./db.ts";
@@ -27,8 +28,14 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
     if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
     const may = await t<{ id: string; name: string }>(`select id, name from devices where family_id = $1 and child_id = $2 order by created_at`, [fam, con]);
     const conKhac = (await t(`select 1 from children where family_id = $1 and id <> $2 limit 1`, [fam, con])).length > 0;
-    // Con cuối: MỌI máy của nhà (cả máy dùng chung sẵn có) sẽ không còn bé nào để chọn ⇒ chặn
-    const mayNha = conKhac ? [] : await t<{ name: string }>(`select name from devices where family_id = $1 order by created_at`, [fam]);
+    // Thiết bị mạng đứng riêng (TV, console — dns_thiet_bi không có máy AiiGrow) gắn Con này: bỏ gắn ⇒ resolver dựng chính sách «không Con»
+    // gần như mở hết ⇒ chặn, Ba Mẹ gắn cho Con khác / xoá thiết bị mạng trước
+    const tbMang = await t<{ ten: string }>(`select ten from dns_thiet_bi where family_id = $1 and child_id = $2 and device_id is null order by created_at`, [fam, con]);
+    if (tbMang.length) throw new LoiNghiepVu("con_thiet_bi_mang",
+      `${c.ten} còn ${tbMang.length} thiết bị lọc mạng: ${tbMang.map((x) => x.ten).join(", ")}. Xoá thiết bị đó (Mạng › thiết bị › Xoá) rồi mới xoá hồ sơ.`, 409);
+    // Con cuối: MỌI máy của nhà (cả máy dùng chung sẵn có, cả thiết bị mạng) sẽ không còn bé nào để chọn ⇒ chặn
+    const mayNha = conKhac ? [] : await t<{ name: string }>(`select name from devices where family_id = $1
+      union all select ten from dns_thiet_bi where family_id = $1 and device_id is null`, [fam]);
     if (mayNha.length) throw new LoiNghiepVu("con_may",
       `Nhà còn ${mayNha.length} máy đã ghép: ${mayNha.map((m) => m.name).join(", ")}. ${c.ten} là bé cuối — gỡ máy trước (mở máy › Gỡ máy này) hoặc thêm Con khác rồi mới xoá hồ sơ.`, 409);
     // máy riêng ⇒ dùng chung (chọn tên); máy dùng chung đang có bé này đăng nhập ⇒ thả ra

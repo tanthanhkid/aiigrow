@@ -119,8 +119,9 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
     const fam = await khoaCon(t, con);
     const p = (await t<{ id: string; trang_thai: string; gia_phan_nghin: number; toi_da_phut: number; nhip_cuoi: Date; phut_dung: number;
       phan_nghin_tru: number; diem_tru: number; phut_thuong: number; muc: string; ly_do_ket: string | null; nghi_den: Date | null;
-      tam_tu: Date | null }>(
-      `select * from play_sessions where id = $1 and child_id = $2 for update`, [phienId, con]))[0];
+      tam_tu: Date | null; khoa_may: Record<string, unknown> | null; ba_me_den: Date | null }>(
+      `select p.*, d.khoa_may, d.ba_me_den from play_sessions p left join devices d on d.id = p.device_id
+        where p.id = $1 and p.child_id = $2 for update of p`, [phienId, con]))[0];
     if (!p) throw new LoiNghiepVu("khong_thay", "Không thấy phiên", 404);
     const b = await boiCanh(t, con, now);
     if (p.trang_thai === "ket_thuc")
@@ -152,7 +153,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
     }
     const g = gioDiaPhuong(now, b.tz);
     let toiDa = p.toi_da_phut;
-    if (!ket && (b.khoa || await mayKhoaRieng(t, (p as { device_id?: string | null }).device_id, now))) ket = "ba_me_khoa";
+    if (!ket && (b.khoa || khoaMayHieuLuc(p, now))) ket = "ba_me_khoa";   // + khoá riêng máy của phiên (14/11)
     if (!ket && trongKhung(g.phut, b.lich.ngu)) ket = "gio_ngu";
     if (!ket && trongGioHoc(b.lich.hoc, g.thu, g.phut)) ket = "gio_hoc";
     if (!ket) {

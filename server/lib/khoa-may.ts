@@ -6,27 +6,22 @@ import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { dangKhoa, khoaDen } from "./cau-hinh.ts";
-import { sangMaiCua } from "./may-con.ts";
+import { hanKhoa } from "./may-con.ts";
 
 /** `hanVao`: "sang" = 6:30 sáng mai giờ gia đình (như khoá Con) · Date = mở lại lúc đó · null = tới khi Ba Mẹ mở. → trạng thái khoá mới của máy. */
 export async function khoaMay(fam: string, mayId: string, khoa: boolean, nguoi: string, hanVao: Date | "sang" | null = null, now = new Date()) {
   const m = await one<{ name: string; child_id: string | null; tz: string }>(
     `select d.name, d.child_id, f.tz from devices d join families f on f.id = d.family_id where d.id = $1 and d.family_id = $2`, [mayId, fam]);
   if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
-  let den: Date | null = null;
-  if (khoa && hanVao === "sang") den = sangMaiCua(m.tz, now);
-  else if (khoa && hanVao instanceof Date) {
-    if (Number.isNaN(hanVao.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại không hợp lệ", 400);
-    if (!(hanVao.getTime() > now.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
-    den = hanVao;
-  }
+  const den = khoa ? hanKhoa(m.tz, hanVao, now) : null;
   const cfg = khoa ? { khoa_ngay: true, ...(den ? { khoa_den: den.toISOString() } : {}) } : {};
   await q(`update devices set khoa_may = $3::text::jsonb where id = $1 and family_id = $2`, [mayId, fam, JSON.stringify(cfg)]);
   await ghiSuKien(fam, khoa ? "khoa_may" : "mo_khoa_may", { ten: m.name, ...(den ? { den: den.toISOString() } : {}) }, { con: m.child_id, may: mayId, nguoi });
   return trangThaiKhoaMay(cfg, now);
 }
 
-/** {khoa, den} để app hiện «Đang khoá · tới 6:30» — hạn đã qua ⇒ khoa false (tự hết, không cần tiến trình nền). */
+/** {khoa, den} để app hiện «Đang khoá · tới 6:30» — hạn đã qua ⇒ khoa false (tự hết, không cần tiến trình nền). Là khoá Ba Mẹ ĐẶT:
+ *  lúc Ba Mẹ đang dùng máy bằng mã (ba_me_den) Policy tạm không khoá, hết lượt dùng thì khoá lại — app tự hiện «Ba Mẹ đang dùng» từ `baMeDungDen`. */
 export function trangThaiKhoaMay(cfg: Record<string, unknown> | null | undefined, now = new Date()) {
   return { khoa: dangKhoa(cfg, now), den: khoaDen(cfg, now) };
 }
