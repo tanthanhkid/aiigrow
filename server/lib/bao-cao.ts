@@ -6,6 +6,7 @@ import { congNgay, dauNgayUtc, dauTuan, gioDiaPhuong } from "./gio.ts";
 import { tomTatVi } from "./vi.ts";
 import { conTheoTran } from "./phien.ts";
 import { phutChoSao } from "./quy-gio.ts";
+import { tenDoc } from "./man-hinh.ts";
 
 const NHOM_NV_CHU: Record<string, string> = { doc_sach: "đọc sách", viec_nha: "việc nhà", hoc_tap: "học tập", van_dong: "vận động", ky_nang: "kỹ năng", khac: "việc khác" };
 
@@ -93,6 +94,6 @@ export async function baoCaoTuan(fam: string, con: string, now = new Date(), bay
   if (nay.ngoaiLe) cau.push(`Có ${nay.ngoaiLe} lần ngoại lệ trong tuần`);
   // «Dùng nhiều nhất» kèm % so tuần trước (thiết kế bm-bao-cao); mục mới tuần này ⇒ lech null
   const dungNhieu = nay.dungNhieu.map((x) => { const cu = truoc.dungNhieu.find((y) => y.muc === x.muc)?.phut;
-    return { ...x, lech: cu ? Math.round(((x.phut - cu) / cu) * 100) : null }; });
+    return { ...x, ten: tenDoc(x.muc, "app"), lech: cu ? Math.round(((x.phut - cu) / cu) * 100) : null }; });
   return { ten: c.ten, tuanNay: { ...nay, dungNhieu }, tuanTruoc: truoc, chuGiai: cau.slice(0, 4) };
 }

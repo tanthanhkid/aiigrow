@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet, type LuotCho, type MayCon, type YeuCau } from "./api";
 import { BONG, KHOI, MEN } from "./clay";
+import { datKhoa } from "./khoa-may";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, ChonMot, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
 } from "./ui";
@@ -188,65 +189,94 @@ export function ManKetQua({ lv = "xong", tieu, loi, dong, chinh, phu, noi, child
   );
 }
 
-/** Bảng trượt «Khoá máy <Con> ngay?» (them-sll7clha): liệt kê máy, khoá tới khi Ba Mẹ mở. `xong(chu, hoan)` ⇒ toast + Hoàn tác (mở lại). */
-export function BangKhoaMay({ mo, dong, con, ten, may, xong }: {
+/** Bảng trượt «Khoá máy <Con>?» (thiết kế 14/11 them-sll7clha): liệt kê máy (app đang mở / lần dùng gần nhất), «Khoá bao lâu?» 30 phút · 1 giờ · Sáng mai,
+ *  nút «Khoá N máy tới HH:MM». POST con/:id/khoa {khoa, den} (máy chủ tự hết khoá khi qua hạn; «sang» = 7:00 theo múi giờ gia đình).
+ *  `dang`: dòng phụ từng máy (vd «● Roblox · từ 19:02») — không có thì «Đang mở» / «Đang tắt». `xong(chu, hoan)` ⇒ toast + Hoàn tác (mở lại). */
+export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   mo: boolean; dong: () => void; con: string; ten: string; may: Pick<MayCon, "id" | "ten" | "nen" | "truc">[];
+  dang?: Record<string, { chu: string; mo?: boolean }>;
   xong: (chu: string, hoan: () => Promise<void>) => void;
 }) {
+  const [han, setHan] = useState<"30" | "60" | "sang">("30");
   const { lam, loi, dangChay } = useLam();
+  const now = new Date();
+  const denLuc = (h: "30" | "60" | "sang") => (h === "sang" ? null : new Date(now.getTime() + Number(h) * 60_000));
+  const cauDen = (h: "30" | "60" | "sang") => (h === "sang" ? "tới 7:00" : `tới ${gioPhut(denLuc(h)!.toISOString())}`);
+  const lua: { gia: "30" | "60" | "sang"; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
   const khoa = () => lam(async () => {
-    await bm.goi(`con/${con}/khoa`, { khoa: true });
+    const den = han === "sang" ? "sang" : denLuc(han)!;
+    await datKhoa(con, true, den);
     dong();
-    xong(`Đã khoá máy của ${ten}`, async () => { await bm.goi(`con/${con}/khoa`, { khoa: false }); });
+    xong(`Đã khoá máy của ${ten} ${cauDen(han)}`, () => datKhoa(con, false, null));
   });
+  const ngan = (t: string) => t.replace(/ của .*$/, "");
   return (
-    <BangTruot mo={mo} dong={dong} tieu={`Khoá máy ${ten} ngay?`}>
-      <Chu co={14.5} mau={M.chu2}>Máy hiện màn khoá tới khi Ba Mẹ mở.</Chu>
+    <BangTruot mo={mo} dong={dong} tieu={`Khoá máy ${ten}?`}>
       {may.length ? (
         <View style={{ gap: 8 }}>
-          {may.map((m) => (
-            <View key={m.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
-              <BieuTron ic={IC_MAY[m.nen]} mau="xam" />
-              <View style={{ flex: 1 }}>
-                <Chu kieu="rat">{m.ten}</Chu>
-                <Chu co={13} mau={M.chu3}>{m.truc ? "Đang mở" : "Đang tắt — khoá khi máy mở lên"}</Chu>
+          {may.map((m) => {
+            const x = dang?.[m.id];
+            return (
+              <View key={m.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
+                <BieuTron ic={IC_MAY[m.nen]} mau="xam" />
+                <View style={{ flex: 1 }}>
+                  <Chu kieu="rat">{ngan(m.ten)}</Chu>
+                  <Chu co={13} mau={x?.mo ? M.chinhInk : M.chu3}>{x?.chu ?? (m.truc ? "Đang mở" : "Đang tắt · khoá khi máy mở lên")}</Chu>
+                </View>
+                <Icon ten="tick" co={18} mau={M.chinhInk} />
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       ) : null}
+      <Chu kieu="rat" co={15}>Khoá bao lâu?</Chu>
+      <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
+        {lua.map((x) => {
+          const on = x.gia === han;
+          return (
+            <Pressable key={x.gia} onPress={() => setHan(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }}
+              style={[{ flex: 1, minHeight: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
+              <Chu kieu="rat" co={15} mau={on ? "#fff" : M.chu}>{x.chu}</Chu>
+              <Chu kieu="dam" co={12.5} mau={on ? "#fff" : M.chu3}>{cauDen(x.gia)}</Chu>
+            </Pressable>
+          );
+        })}
+      </View>
       <BaoLoi loi={loi} />
-      <Nut chu={may.length > 1 ? `Khoá ${may.length} máy của ${ten}` : `Khoá máy của ${ten}`} ic="khoa" loai="huy" rong dangChay={dangChay} bam={khoa} />
+      <Nut chu={`Khoá ${may.length > 1 ? `${may.length} máy` : "máy"} ${cauDen(han)}`} ic="khoa" loai="huy" rong dangChay={dangChay} bam={khoa} />
       <Nut chu="Thôi, để con chơi tiếp" loai="ma" rong bam={dong} />
     </BangTruot>
   );
 }
 
-/** Bảng trượt «Cho <Con> thêm giờ» (them-6wjhze1d): 15 / 30 / 60 phút, chỉ hôm nay; nhắc số sao con tự đổi được. POST con/:id/them-gio.
+/** Bảng trượt «Cho <Con> thêm giờ» (thiết kế 14/11 them-6wjhze1d): «Đang còn N phút · chỉ tính hôm nay», 15 / 30 / 60 phút, nhắc sao con tự đổi được,
+ *  nút «Cho thêm 30 phút · còn 48′». POST con/:id/them-gio. `conPhut`: phút chơi còn hôm nay (không có ⇒ bỏ phần «còn»).
  *  `xong(chu, grantId, phut)` ⇒ màn gọi hiện toast «Hoàn tác» (them-gio/:id/hoan-tac, 60 giây). */
-export function BangThemGio({ mo, dong, con, ten, sao, phutDoiDuoc, xong }: {
-  mo: boolean; dong: () => void; con: string; ten: string; sao?: number | null; phutDoiDuoc?: number | null;
+export function BangThemGio({ mo, dong, con, ten, sao, phutDoiDuoc, conPhut, xong }: {
+  mo: boolean; dong: () => void; con: string; ten: string; sao?: number | null; phutDoiDuoc?: number | null; conPhut?: number | null;
   xong: (chu: string, grantId: string, phut: number) => void;
 }) {
   const [phut, setPhut] = useState(30);
   const { lam, loi, dangChay } = useLam();
+  const coCon = typeof conPhut === "number";
   const cho = () => lam(async () => {
     const r = await bm.goi<{ id: string; phut: number; quy: Quy }>(`con/${con}/them-gio`, { phut });
     dong();
-    xong(`Đã cho ${ten} thêm ${phut} phút · hôm nay ${r.quy.tongPhut} phút`, r.id, phut);
+    xong(`Đã cho ${ten} thêm ${phut} phút · còn ${r.quy.conPhut} phút hôm nay`, r.id, phut);
   });
   return (
     <BangTruot mo={mo} dong={dong} tieu={`Cho ${ten} thêm giờ`}>
-      <Chu co={14.5} mau={M.chu2}>Chỉ tính cho hôm nay.</Chu>
+      <Chu co={14.5} mau={M.chu2}>{coCon ? `Đang còn ${conPhut} phút · chỉ tính hôm nay` : "Chỉ tính cho hôm nay."}</Chu>
       <ChonMot ds={[15, 30, 60].map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
       {sao ? (
         <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, padding: 16, borderRadius: 20, backgroundColor: M.diemSoft }, KHOI.vien]}>
+          <Chu co={14} mau={M.diemInk} style={{ flex: 1 }}>Con có <Chu kieu="rat" co={14} mau={M.diemInk}>{`${sao} sao`}</Chu>{phutDoiDuoc ? ` tự đổi ra ${phutDoiDuoc} phút được` : " tự đổi ra phút được"}</Chu>
           <Icon3D ten="sao" co={24} mau={M.diemInk} />
-          <Chu co={14} mau={M.diemInk} style={{ flex: 1 }}>{phutDoiDuoc ? `Con đang có ${sao} sao, tự đổi được ${phutDoiDuoc} phút chơi mà không cần xin.` : `Con đang có ${sao} sao.`}</Chu>
         </View>
       ) : null}
       <BaoLoi loi={loi} />
-      <Nut chu={`Cho thêm ${phut} phút ngay`} rong dangChay={dangChay} bam={cho} />
+      <Nut chu={coCon ? `Cho thêm ${phut} phút · còn ${conPhut! + phut}′` : `Cho thêm ${phut} phút`} rong dangChay={dangChay} bam={cho} />
       <Nut chu="Thôi" loai="ma" rong bam={dong} />
     </BangTruot>
   );

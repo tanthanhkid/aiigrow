@@ -1,22 +1,43 @@
-// bm2-gio «Giờ chơi của <Con>» (thiết kế chốt 05/11, bm-hang-ngay/12 — L2): quỹ phút ngày thường (ô số + chip 30/60/90), tỷ lệ sao đổi phút,
-// giờ máy tự khoá (giờ ngủ, giờ học — màn riêng), ngày nghỉ T7–CN, «Khi hết giờ» (cho xin thêm giờ, cho tự đổi sao). Lưu = POST con/:id/gio-choi.
-// Khoá máy / Cho thêm giờ nằm ở Hôm nay. Người trông giúp: chỉ xem (máy chủ trả 403 khi lưu).
+// bm2-gio «Giờ chơi của <Con>» (thiết kế chốt 14/11, bm-gio-ho-so/01): thẻ HÔM NAY (Còn N phút trong M phút · vạch · Đã dùng / Còn),
+// «Mỗi ngày chơi bao lâu?» 2 hàng nút −/+ 15 phút (Thứ 2 – Thứ 6 · Thứ 7, CN; hàng của hôm nay ghi «Hôm nay áp mức này»),
+// «Giờ máy tự đổi chế độ»: Giờ ngủ 21:30 → 6:30 (chạm giờ ⇒ /gio/ngu), câu «Giờ học không trừ giờ chơi…», nút «Lưu giờ chơi».
+// N3: một QUỸ giờ chơi chung mọi máy, mọi app «Tính giờ» — không có phút riêng từng app.
+// Đã chọn GIỮ «Khi hết giờ» (cho xin thêm giờ / cho tự đổi sao) dạng gọn cuối màn dù thiết kế 14/11 bỏ: thiết kế không nói tắt ⇒ giữ hành vi,
+// và nhà đã tắt thì không còn chỗ bật lại. Giờ học đặt ở Hồ sơ con (dòng «Giờ học») như thiết kế. Người trông giúp: chỉ xem (máy chủ 403 khi lưu).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { TextInput, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
-import { CAU_TRONG_GIUP, cauThu, gioGon, HangViec, quyenToi, type GioChoi } from "@/lib/hang-ngay";
-import { BaoLoi, baoKhiVe, ChoTai, Chu, ChonMot, CongTac, F, Icon3D, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
+import { CAU_TRONG_GIUP, gioGon, HangViec, quyenToi, type GioChoi } from "@/lib/hang-ngay";
+import { BaoLoi, baoKhiVe, ChoTai, Chu, CongTac, Icon, Icon3D, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
 
-/** Ô nhập số phút (thiết kế: ô lõm «60» + chữ «phút»). */
-function OPhut({ gia, doi, nhan, tat }: { gia: string; doi: (v: string) => void; nhan: string; tat?: boolean }) {
+const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+const BUOC = 15, MIN = 0, MAX = 600;
+
+/** Nút tròn lõm −/+ (thiết kế `.st`). */
+function NutSo({ ic, bam, tat, nhan }: { ic: "tru" | "cong"; bam: () => void; tat?: boolean; nhan: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <TextInput value={gia} onChangeText={(t) => doi(t.replace(/\D/g, "").slice(0, 3))} keyboardType="number-pad" editable={!tat} accessibilityLabel={nhan}
-        style={{ width: 76, minHeight: 48, borderRadius: 16, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, boxShadow: BONG.lom, textAlign: "center",
-          fontFamily: F.rat, fontSize: 22, color: M.chu }} />
-      <Chu kieu="dam" co={15} mau={M.chu2}>phút</Chu>
+    <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={nhan} hitSlop={4}
+      style={({ pressed }) => [{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center",
+        opacity: tat ? 0.4 : pressed ? 0.7 : 1 }]}>
+      <Icon ten={ic} co={18} mau={M.chinhInk} />
+    </Pressable>
+  );
+}
+
+/** Hàng «Thứ 2 – Thứ 6: 60 phút» + dòng nhỏ + nút −/+. */
+function HangQuy({ tieu, phut, phu, nay, doi, xem, dau }: { tieu: string; phut: number; phu: string; nay?: boolean; doi: (p: number) => void; xem?: boolean; dau?: boolean }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 64, borderTopWidth: dau ? 0 : 1.5, borderTopColor: "#ecebe7" }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Chu kieu="rat" co={15} so>{`${tieu}: ${phut} phút`}</Chu>
+        <Chu kieu={nay ? "rat" : "dam"} co={12.5} mau={nay ? M.chinhInk : M.chu2}>{phu}</Chu>
+      </View>
+      {xem ? null : <>
+        <NutSo ic="tru" nhan={`Giảm ${BUOC} phút ${tieu}`} tat={phut <= MIN} bam={() => doi(Math.max(MIN, phut - BUOC))} />
+        <NutSo ic="cong" nhan={`Tăng ${BUOC} phút ${tieu}`} tat={phut >= MAX} bam={() => doi(Math.min(MAX, phut + BUOC))} />
+      </>}
     </View>
   );
 }
@@ -27,65 +48,83 @@ export default function GioChoiCon() {
     const [g, c, q] = await Promise.all([bm.goi<GioChoi>(`con/${con}/gio-choi`), bm.goi<ConChiTiet>(`con/${con}`), quyenToi()]);
     return { g, ten: c.ten, trongGiup: q === "trong_giup" };
   });
-  const [thuong, setThuong] = useState<string | null>(null);
-  const [cuoi, setCuoi] = useState<string | null>(null);
+  const [thuong, setThuong] = useState<number | null>(null);
+  const [cuoi, setCuoi] = useState<number | null>(null);
   const [xin, setXin] = useState<boolean | null>(null);
   const [doiSao, setDoiSao] = useState<boolean | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man lui={{ chu: "Hồ sơ con" }} tieu="Giờ chơi"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const g = d.g;
-  const t = thuong ?? String(g.quyNgayThuong), cn = cuoi ?? String(g.quyCuoiTuan);
+  const g = d.g, nay = g.homNay;
+  const t = thuong ?? g.quyNgayThuong, cn = cuoi ?? g.quyCuoiTuan;
   const x = xin ?? g.choXinThemGio, ds = doiSao ?? g.doiSaoBat;
   const xem = d.trongGiup;
+  const cuoiTuan = nay?.cuoiTuan ?? [0, 6].includes(new Date().getDay());
+  const tong = nay?.tongPhut ?? (cuoiTuan ? g.quyCuoiTuan : g.quyNgayThuong);
+  const daDung = nay?.daDung ?? 0, con0 = nay?.conPhut ?? Math.max(0, tong - daDung);
+  const ti = tong > 0 ? Math.min(1, daDung / tong) : 1;
   const luu = () => lam(async () => {
     await bm.goi(`con/${con}/gio-choi`, { quyNgayThuong: t, quyCuoiTuan: cn, choXinThemGio: x, doiSaoBat: ds });
     baoKhiVe(`Đã lưu giờ chơi cho ${d.ten} — máy nhận ở lần đồng bộ kế`);
     router.back();
   }, { hangDoi: true });
+  const moNgu = () => router.push(`/gio/ngu?con=${con}` as never);
   return (
     <Man lui={{ chu: "Hồ sơ con" }} tieu={`Giờ chơi của ${d.ten}`} tai={tai} day={xem ? <Chu co={13.5} mau={M.chu3}>{CAU_TRONG_GIUP}</Chu> : <>
       <BaoLoi loi={loiLam} />
-      <Nut chu={`Lưu giờ chơi cho ${d.ten}`} rong dangChay={dangChay} tat={!t || !cn} bam={luu} />
+      <Nut chu="Lưu giờ chơi" rong dangChay={dangChay} bam={luu} />
     </>}>
-      <The dem style={{ gap: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <Chu kieu="rat" co={16} style={{ flex: 1 }}>Ngày thường được chơi</Chu>
-          <OPhut gia={t} doi={setThuong} nhan="Phút chơi ngày thường" tat={xem} />
+      {/* thẻ hôm nay (.quy) */}
+      <View style={[{ padding: 14, borderRadius: 28, backgroundColor: M.chinhSoft, gap: 4 }, KHOI.the]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Icon3D ten="dongho" co={24} mau={M.chinhInk} />
+          <Chu kieu="dam" co={13.5} mau={M.chu2}>{`Hôm nay · ${THU_DAI[new Date().getDay()]}`}</Chu>
         </View>
-        {xem ? null : <ChonMot ds={[30, 60, 90].map((p) => ({ gia: String(p), chu: String(p) }))} gia={t} doi={setThuong} />}
-        <Chu co={13.5} mau={M.chu3}>Hết giờ, máy tự khoá app chơi. App học không tính giờ.</Chu>
-      </The>
-
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 26, backgroundColor: M.diemSoft }, KHOI.vien]}>
-        <Icon3D ten="sao" co={34} mau={M.diemInk} />
-        <View style={{ flex: 1 }}>
-          <Chu kieu="rat" co={18} mau={M.diemInk}>{`10 sao = ${g.phut10Sao} phút`}</Chu>
-          <Chu co={13.5} mau={M.diemInk}>Làm nhiệm vụ được sao, đổi ra phút chơi</Chu>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+          <Chu kieu="rat" co={26} so mau={M.chinhInk}>{`Còn ${con0} phút`}</Chu>
+          <Chu kieu="dam" co={14} mau={M.chu2}>{`trong ${tong} phút`}</Chu>
+        </View>
+        <View accessibilityLabel={`Đã dùng ${daDung} trên ${tong} phút`} style={{ marginTop: 6, height: 10, borderRadius: 5, backgroundColor: "#e3e2de", boxShadow: BONG.lom, overflow: "hidden" }}>
+          <View style={{ width: `${Math.round(ti * 100)}%`, height: "100%", borderRadius: 5, backgroundColor: M.chinh }} />
+        </View>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+          <Chu kieu="dam" co={12.5} mau={M.chu2}>Đã dùng <Chu kieu="rat" co={12.5} mau={M.chinhInk}>{`${daDung} phút`}</Chu></Chu>
+          <Chu kieu="dam" co={12.5} mau={M.chu2}>Còn <Chu kieu="rat" co={12.5} mau={M.chinhInk}>{`${con0} phút`}</Chu></Chu>
         </View>
       </View>
 
-      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Giờ máy tự khoá</Chu>
+      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Mỗi ngày chơi bao lâu?</Chu>
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="trang_ngu" mau="tim" tieu="Giờ ngủ" phu={`${gioGon(g.gioNgu.tu)} – ${gioGon(g.gioNgu.den)} · mỗi ngày`}
-          bam={() => router.push(`/gio/ngu?con=${con}` as never)} />
-        <HangViec ic="mu" mau="xanh" tieu="Giờ học, chỉ mở app học" phu={g.gioHoc ? `${gioGon(g.gioHoc.tu)} – ${gioGon(g.gioHoc.den)} · ${cauThu(g.gioHoc.thu)}` : "Chưa đặt"}
-          bam={() => router.push(`/gio/hoc?con=${con}` as never)} />
+        <HangQuy dau tieu="Thứ 2 – Thứ 6" phut={t} doi={setThuong} xem={xem} nay={!cuoiTuan} phu={!cuoiTuan ? "Hôm nay áp mức này" : "Ngày đi học"} />
+        <HangQuy tieu="Thứ 7, CN" phut={cn} doi={setCuoi} xem={xem} nay={cuoiTuan}
+          phu={cuoiTuan ? "Hôm nay áp mức này" : cn > t ? "Cuối tuần chơi thêm" : cn < t ? "Cuối tuần chơi ít hơn" : "Bằng ngày thường"} />
       </The>
 
-      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Ngày nghỉ</Chu>
-      <The dem style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <View style={{ flex: 1 }}>
-          <Chu kieu="rat" co={15.5}>Thứ 7, Chủ nhật chơi</Chu>
-          <Chu co={13.5} mau={M.chu3}>{Number(cn) > Number(t) ? "Nhiều hơn ngày thường" : Number(cn) < Number(t) ? "Ít hơn ngày thường" : "Bằng ngày thường"}</Chu>
+      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Giờ máy tự đổi chế độ</Chu>
+      <The dem style={{ paddingVertical: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 68 }}>
+          <Icon3D ten="trang_ngu" co={30} mau={M.chu2} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Chu kieu="rat" co={15}>Giờ ngủ</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.chu2}>Máy khoá cả đêm</Chu>
+          </View>
+          {[g.gioNgu.tu, g.gioNgu.den].map((h, k) => (
+            <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {k ? <Chu kieu="rat" co={15} mau={M.chu3}>→</Chu> : null}
+              <Pressable onPress={moNgu} accessibilityRole="button" accessibilityLabel={k ? `Mở lại lúc ${gioGon(h)}` : `Máy khoá lúc ${gioGon(h)}`}
+                style={{ height: 44, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, justifyContent: "center" }}>
+                <Chu kieu="rat" co={15} so mau={M.chinhInk}>{gioGon(h)}</Chu>
+              </Pressable>
+            </View>
+          ))}
         </View>
-        <OPhut gia={cn} doi={setCuoi} nhan="Phút chơi Thứ 7, Chủ nhật" tat={xem} />
       </The>
+      <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>Giờ học không trừ giờ chơi. Hết giờ chơi, con đổi sao lấy phút hoặc xin Ba Mẹ.</Chu>
 
-      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Khi hết giờ</Chu>
+      <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginTop: 6, marginHorizontal: 4 }}>Khi hết giờ</Chu>
       <The dem style={{ paddingVertical: 4 }}>
         <HangViec dau ic="tin" mau="cam" tieu="Cho con xin thêm giờ" phu="Điện thoại Ba Mẹ sẽ báo"
           phai={<CongTac bat={x} doi={(v) => !xem && setXin(v)} nhan="Cho con xin thêm giờ" />} />
-        <HangViec ic="sao" mau="vang" tieu="Cho con tự đổi sao" phu={`Tối đa ${g.doiSaoToiDaNgay} phút mỗi ngày`}
+        <HangViec ic="sao" mau="vang" tieu="Cho con tự đổi sao" phu={`10 sao = ${g.phut10Sao} phút · tối đa ${g.doiSaoToiDaNgay} phút mỗi ngày`}
           phai={<CongTac bat={ds} doi={(v) => !xem && setDoiSao(v)} nhan="Cho con tự đổi sao" />} />
       </The>
     </Man>

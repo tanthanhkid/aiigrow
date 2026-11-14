@@ -1,6 +1,7 @@
-// them-rz77kk45 «Mã mở máy cho Bảo Anh» + them-s8nltlaa «Bảo Anh đã mở máy bằng mã» (thiết kế chốt 06/11, L19). Chip «Laptop · mất mạng», 6 số to,
-// «Máy không cần mạng vẫn nhập được», «Mã đổi sau N phút», «Mở máy trong 15 / 30 / 60 phút» (số phút nằm trong mã — máy tự kiểm khi offline),
-// «Gửi mã cho con» (chia sẻ Zalo / Tin nhắn…), «Sao chép mã». GET may/:id/ma-offline?phut= (docs/API.md «S3»).
+// them-rz77kk45 «Mã mở máy cho Bảo Anh» + them-s8nltlaa «Bảo Anh đã mở máy bằng mã» (thiết kế chốt 14/11, bm-hang-ngay/07–08). Chip «Laptop · mất mạng», 6 số to,
+// «Con nhập mã trên Laptop, không cần mạng», «Mã đổi sau N phút», «Mở máy trong 15 / 30 / 60 phút · tới HH:MM» (số phút nằm trong mã — máy tự kiểm khi offline),
+// 2 dòng giải thích (hết giờ máy tự khoá lại · có mạng lại giờ chơi tự cập nhật), «Gửi mã, mở N phút» (chia sẻ Zalo / Tin nhắn…), «Sao chép mã».
+// GET may/:id/ma-offline?phut= (docs/API.md «S3»).
 // Khi máy có mạng lại và báo đã mở bằng mã (sự kiện may_mo_ma_offline sau lúc mở màn) ⇒ bảng «đã mở máy bằng mã» (kiểm mỗi 30 giây khi màn đang mở,
 // qua đường nhẹ GET may/:id/mo-bang-ma?sau= — chỉ sự kiện mới, không dò cả tuan-thu).
 // Đây cũng là `den` của mục «máy mất mạng» trong «Cần Ba Mẹ để ý».
@@ -74,7 +75,7 @@ export default function MaMoMay() {
     <Man lui={{ chu: "", ve: `/may/${id}` }} tieu={tieu} noi={noi}
       day={<>
         <BaoLoi loi={loiMa} />
-        <Nut chu="Gửi mã cho con" ic="chuong" ic3d rong tat={!ma} bam={gui} />
+        <Nut chu={`Gửi mã, mở ${phut} phút`} ic="chuong" ic3d rong tat={!ma} bam={gui} />
         <Nut chu="Sao chép mã" loai="vien" rong tat={!ma} bam={() => ma && saoChep(ma.ma).then((ok) => ok && bao("Đã sao chép mã — dán vào Zalo cho con"))} />
       </>}>
       <View style={{ alignItems: "center", gap: 14, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.chinhSoft, ...KHOI.the }}>
@@ -84,7 +85,7 @@ export default function MaMoMay() {
           <Chu kieu="dam" co={14}>{`${ngan}${tt.matMang ? " · mất mạng" : ""}`}</Chu>
         </View>
         {ma ? <OMa6 so={so} /> : <ChoTai loi={loiMa} tai={() => setLan((n) => n + 1)} />}
-        <Chu kieu="dam" co={14.5} mau={M.chinhInk}>Máy không cần mạng vẫn nhập được</Chu>
+        <Chu kieu="dam" co={14.5} mau={M.chinhInk}>{`Con nhập mã trên ${ngan}, không cần mạng`}</Chu>
         {ma ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: M.the }}>
             <Icon3D ten="dongho" co={18} /><Chu kieu="dam" co={13.5} mau={M.chu2}>{cauDoiSau(conGiay)}</Chu>
@@ -101,17 +102,27 @@ export default function MaMoMay() {
               style={[{ flex: 1, minHeight: 72, borderRadius: 22, alignItems: "center", justifyContent: "center" },
                 on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
               <Chu kieu="rat" co={24} so mau={on ? "#fff" : M.chu}>{String(p)}</Chu>
-              <Chu kieu="dam" co={12.5} mau={on ? "#fff" : M.chu3}>phút</Chu>
+              <Chu kieu="dam" co={12.5} mau={on ? "#fff" : M.chu3}>{`phút · tới ${gioPhut(new Date(bayGio + p * 60_000).toISOString())}`}</Chu>
             </Pressable>
           );
         })}
+      </View>
+      <View style={{ gap: 8, marginTop: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: M.the, ...KHOI.nho }}>
+          <Icon3D ten="khoa" co={28} />
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết giờ, ${ngan} tự khoá lại`}</Chu><Chu co={13} mau={M.chu3}>Không cần mạng</Chu></View>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: M.the, ...KHOI.nho }}>
+          <Icon3D ten="wifi" co={28} />
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, giờ chơi tự cập nhật</Chu><Chu co={13} mau={M.chu3}>Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
+        </View>
       </View>
 
       <BangTruot mo={!!daMo} dong={() => setDaMo(null)} tieu={`${tenCon ?? "Con"} đã mở máy bằng mã`}>
         {daMo ? <>
           <View style={{ alignItems: "center", gap: 6 }}>
             <View><Icon3D ten={IC_MAY[m.nen]} co={64} /><View style={{ position: "absolute", right: -6, bottom: -4 }}><Icon3D ten="tick" co={28} /></View></View>
-            <Chu kieu="dam" co={14} mau={M.chu2}>{`lúc ${gioPhut(daMo.luc)}${daMo.phut ? ` · ${daMo.phut} phút` : ""}`}</Chu>
+            <Chu kieu="dam" co={14} mau={M.chu2}>{`Lúc ${gioPhut(daMo.luc)}${daMo.phut ? ` · mở ${daMo.phut} phút` : ""}`}</Chu>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 20, backgroundColor: M.the, ...KHOI.nho }}>
             <Icon3D ten="khoa" co={30} />
@@ -119,12 +130,13 @@ export default function MaMoMay() {
               <Chu kieu="rat" co={15}>{`${ngan}${tenCon ? ` của ${tenCon}` : ""}`}</Chu>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.chinh }} />
-                <Chu co={13} mau={M.chinhInk}>{`Có mạng lại · ${gioPhut(daMo.coMangLuc)}`}</Chu>
+                <Chu co={13} mau={M.chinhInk}>{`Có mạng lại · ${gioPhut(daMo.coMangLuc)}${daMo.phut ? ` · tới ${gioPhut(new Date(Date.parse(daMo.luc) + daMo.phut * 60_000).toISOString())}` : ""}`}</Chu>
               </View>
             </View>
+            <Chu kieu="rat" co={13} mau={M.chinhInk}>Đang mở</Chu>
           </View>
-          <Nut chu="Xem máy" ic="laptop" rong bam={() => { setDaMo(null); router.replace(`/may/${id}` as never); }} />
-          <Nut chu="Đóng" loai="ma" rong bam={() => setDaMo(null)} />
+          <Nut chu={`Xem ${ngan}`} ic="laptop" rong bam={() => { setDaMo(null); router.replace(`/may/${id}` as never); }} />
+          <Nut chu="Về Hôm nay" loai="ma" rong bam={() => { setDaMo(null); router.replace("/hom-nay" as never); }} />
         </> : null}
       </BangTruot>
     </Man>

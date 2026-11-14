@@ -68,7 +68,8 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc }: {
     <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: "#efefec" }}>
       <View>
         <Chu kieu="rat" co={16}>{tieuXin(y)}</Chu>
-        <Chu co={13.5} mau={M.chu3}>{`Lúc ${gioPhut(y.created_at)}${may ? ` · trên ${may}` : ""}`}</Chu>
+        {/* thiết kế 14/11: «19:20 · con đang chờ trên Laptop» */}
+        <Chu co={13.5} mau={M.chu3}>{`${gioPhut(y.created_at)} · con đang chờ${may ? ` trên ${may.replace(/ của .*$/, "")}` : ""}`}</Chu>
       </View>
       {y.ly_do?.trim() ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
       {phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}

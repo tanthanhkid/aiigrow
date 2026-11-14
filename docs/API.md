@@ -660,3 +660,13 @@ Agent: Windows `ChoThayDoiWorker` (⇒ `AgentRuntime.RequestSyncSoon`) · Mac `B
 **Giới hạn iOS**: app ở nền không giữ kết nối được ⇒ chưa đạt ≤5 giây khi app tắt / ở nền. Bước sau (chưa làm, cần khoá APNs của Apple Developer — KHÔNG tự tạo): máy chủ gửi *silent push* (`content-available`) khi `baoThayDoi` ⇒ iOS đánh thức app chạy `dongBoNgay(nen: true)` (Apple không bảo đảm thời gian, thường vài giây – vài chục giây, bị giới hạn lượt/giờ).
 
 Thay đổi theo THỜI GIAN (hết giờ chơi, tới giờ ngủ, hết hạn mở) không phải việc Ba Mẹ bấm — agent tự tính từ chính sách đã nhớ; không cần gõ cửa.
+
+## Khớp thiết kế 14/11 — Hằng ngày / Báo cáo (`server/lib/hom-nay-dung.ts`, `nhat-ky-ca-nha.ts`, `bao-cao.ts`; test `khop-1411-hang-ngay.test.ts`, chỉ thêm)
+
+| Đường | Trả về |
+|---|---|
+| `GET con/:id/hom-nay` | «<Con> đã dùng gì» hôm nay (màn `bm-bao-cao-ngay/03`): `{ten, ngay, choi: {daDung, tongPhut, conPhut}, hoc: {phut, khung: {tu, den} \| null}, dung[], biChan[]}`. `dung[]` = `{luc, ten, muc, kieu: "app"\|"web", may, nen, mayId, phut, tinhGio, dangMo, matMang}` — một dòng mỗi app / trang (gộp các máy; máy = máy dùng nhiều nhất; `luc` = lần đầu thấy hôm nay, null = không rõ), mới trước. `tinhGio` = đèn Vàng (luật `giai_tri` / `chan`, hoặc chưa có luật mà `usage.loai` ≠ hoc/he_thong) — N3: đèn Xanh (`hoc`) không trừ quỹ giờ chơi. `biChan[]` = `{luc, ten, may, ly: "dang_xin"\|"chua_cho"\|"grow_chan", yeuCau, phut}` — lời xin app / web / ngoại lệ hôm nay đang chờ hoặc bị từ chối + tên miền Grow chặn ở tầng DNS. Chỉ tên app / tên miền + thời lượng |
+| `GET con/:id/bao-cao?bay=1` | như `GET con/:id/bao-cao` nhưng cửa sổ = **7 ngày tính tới hôm nay** (so với 7 ngày trước đó) cho tab Báo cáo «7 ngày qua». Thêm (cả hai chế độ): `tuanNay.xinThemGio {so, cho}` (số lần con xin thêm giờ / được cho), `tuanNay.saoKiem` (sao kiếm, không tính hoàn), `dungNhieu[].ten` (tên dễ đọc), `dungNhieu[].may` (máy dùng app đó nhiều nhất) |
+| `GET nhat-ky?ca-nha=1[&con=][&ngay=7]` | «Nhật ký cả nhà» (màn `bm-bao-cao-ngay/04`): `{soNgay, ds[], ngoaiQuyTac: {so, theoNguoi[{ten, so}]}}`. `ds[]` = `{luc, ngay, con, tenCon, nguoi, tenNguoi, tieu, phu, nhan, kieu: "tot"\|"xau"\|"cho"\|"ngoai"\|"thuong"}` — câu đời thường dịch từ bảng `events` (ai cho giờ, ai duyệt, ai đổi cài đặt, con xin / nộp / đổi sao), mới trước, ≤150 dòng, `ngay` 1–30 (mặc định 7). «Ngoài quy tắc» = người lớn cho thêm giờ / đồng ý lời xin. Không có `ca-nha=1` ⇒ `{ds}` sự kiện thô như cũ |
+
+Cột mới: `usage.dau_luc`, `web_nhat_ky.dau_luc` (timestamptz, mặc định `now()` khi dòng được tạo — lần đầu thấy app / trang trong ngày; dòng có trước bản này để null).
