@@ -27,6 +27,8 @@ export type May = {
   che_do_ba_me?: boolean;
   /** 06/11 L13 (SCHEMA_S3): bé đang đăng nhập trên máy dùng chung · «Ba Mẹ đang dùng máy» tới lúc này (lib/pin-be.ts). */
   con_dang_dung?: string | null; dang_nhap_luc?: Date | null; ba_me_den?: Date | null; ba_me_tu?: Date | null;
+  /** 14/11 «Khoá riêng máy này» (lib/khoa-may.ts): {khoa_ngay, khoa_den} như children.cau_hinh — gộp vào Policy.khoaNgay. */
+  khoa_may?: Record<string, unknown> | null;
 };
 
 /** Nhí (6–10) / Teen (11–16) đề xuất theo tuổi (FR-01.02); không rõ tuổi ⇒ Nhí. */

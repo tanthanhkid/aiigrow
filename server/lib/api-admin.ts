@@ -118,7 +118,7 @@ export async function xuLyAdmin(req: Request, p: string[]): Promise<Response> {
       return json({ tu: k.tu, den: k.den, ds, tong });
     }
 
-    if (d === "ho-tro" && get) return json({ ds: await dsHoTro() });
+    if (d === "ho-tro" && get) return json(await dsHoTro({ loc: u.get("loc"), toi: `admin:${nv.id}` }));   // {ds, soCho, soGap} — 14/11
     if (p[0] === "ho-tro" && p[1] && get) return json(await chiTietHoTro(p[1]));
     if (p[0] === "ho-tro" && p[1] && post) {
       const doDai = await traLoiHoTro(p[1], `admin:${nv.id}`, s(b.noiDung, 1000));

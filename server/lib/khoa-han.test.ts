@@ -37,9 +37,9 @@ test("khoaNgay: đặt hạn, khoá lại không hạn thì xoá hạn cũ, mở
   await assert.rejects(mc.khoaNgay(fam, con, true, bm, new Date(Date.now() - 1000)), /sau bây giờ/);
 });
 
-test("«Tới sáng mai» = 7:00 kế tiếp theo múi giờ gia đình; hạn sai định dạng bị từ chối", async () => {
-  assert.equal(mc.sangMaiCua("Asia/Ho_Chi_Minh", new Date("2026-10-24T14:00:00Z")).toISOString(), "2026-10-25T00:00:00.000Z");   // 21:00 VN ⇒ 7:00 hôm sau
-  assert.equal(mc.sangMaiCua("Asia/Ho_Chi_Minh", new Date("2026-10-24T20:00:00Z")).toISOString(), "2026-10-25T00:00:00.000Z");   // 3:00 VN ⇒ 7:00 cùng ngày
+test("«Tới sáng mai» = 6:30 kế tiếp theo múi giờ gia đình; hạn sai định dạng bị từ chối", async () => {
+  assert.equal(mc.sangMaiCua("Asia/Ho_Chi_Minh", new Date("2026-10-24T14:00:00Z")).toISOString(), "2026-10-24T23:30:00.000Z");   // 21:00 VN ⇒ 6:30 hôm sau (thiết kế 14/11; trước là 7:00)
+  assert.equal(mc.sangMaiCua("Asia/Ho_Chi_Minh", new Date("2026-10-24T20:00:00Z")).toISOString(), "2026-10-24T23:30:00.000Z");   // 3:00 VN ⇒ 6:30 cùng ngày
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   await mc.khoaNgay(fam, con, true, bm, "sang");
@@ -49,12 +49,12 @@ test("«Tới sáng mai» = 7:00 kế tiếp theo múi giờ gia đình; hạn s
   await mc.khoaNgay(fam, con, false, bm, new Date("abc"));   // mở lại bỏ qua hạn, không lỗi
 });
 
-test("«tới sáng mai» đúng 7:00 cả ngày đổi giờ mùa hè (Europe/Berlin 25/10/2026: 3:00 → 2:00)", async () => {
+test("«tới sáng mai» đúng 6:30 cả ngày đổi giờ mùa hè (Europe/Berlin 25/10/2026: 3:00 → 2:00)", async () => {
   const { sangMaiCua } = await import("./may-con.ts");
   const { gioDiaPhuong } = await import("./gio.ts");
   const d = sangMaiCua("Europe/Berlin", new Date("2026-10-24T20:00:00Z"));
-  assert.equal(gioDiaPhuong(d, "Europe/Berlin").phut, 7 * 60);
-  assert.equal(d.toISOString(), "2026-10-25T06:00:00.000Z");
+  assert.equal(gioDiaPhuong(d, "Europe/Berlin").phut, 6 * 60 + 30);
+  assert.equal(d.toISOString(), "2026-10-25T05:30:00.000Z");
 });
 
 test("nhịp đồng bộ không quá lúc mở tạm hết (máy khoá lại đúng giờ)", async () => {

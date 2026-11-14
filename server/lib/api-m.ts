@@ -36,6 +36,10 @@ import * as gt from "./api-gia-dinh.ts";
 import * as hta from "./ho-tro-admin.ts";
 import { ghiKiemToan } from "./admin.ts";
 import { xoaTaiKhoan } from "./xoa-tai-khoan.ts";
+// 14/11: xoá hồ sơ Con · khoá riêng một máy · «Trao luôn» quà Ba Mẹ mua
+import { xoaCon } from "./xoa-con.ts";
+import { khoaMay, trangThaiKhoaMay } from "./khoa-may.ts";
+import { traoLuon } from "./phan-thuong.ts";
 import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, doiMatKhau, lienKetMxh } from "./dang-nhap-mxh.ts";
 // S2 thiết kế 05/11 (L4–L8): quyền 2 mức, chế độ chặn theo Con, thiết lập lần đầu, phiên ghép máy
 import { baMeTuToken } from "./auth.ts";
@@ -54,6 +58,8 @@ import { baMeDen } from "./pin-be.ts";
 import { baoThayDoi } from "./cho-thay-doi.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
+/** `den` của con/:id/khoa và may/:id/khoa: "sang" | ISO | không có (không hạn) — kiểm ở may-con.ts › hanKhoa. */
+const hanTuBody = (den: unknown): Date | "sang" | null => (den === "sang" ? "sang" : typeof den === "string" ? new Date(den) : null);
 
 async function chiTietCon(bm: BaMe, id: string) {
   const c = await gd.conCua(bm.family_id, id);
@@ -74,7 +80,9 @@ async function chiTietCon(bm: BaMe, id: string) {
       truc: !!m.last_seen && Date.now() - new Date(m.last_seen).getTime() < 3 * 60_000, lechGiay: m.status?.lechGiay ?? null,
       // 06/11 (L13, L19): ai đang dùng máy dùng chung · Ba Mẹ đang dùng tới · máy mất mạng hôm nay
       dangDung: m.con_dang_dung && conPhien.has(`${m.id}:${m.con_dang_dung}`) ? m.con_dang_dung : null, baMeDungDen: baMeDen(m)?.toISOString() ?? null,
-      matMang: matMang.has(m.id) })),
+      matMang: matMang.has(m.id),
+      // 14/11: khoá riêng máy này (lib/khoa-may.ts) — {khoa, den}
+      khoaMay: trangThaiKhoaMay(m.khoa_may) })),
   };
 }
 
@@ -154,6 +162,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (!sau && get) return json(await chiTietCon(bm, id));
       await gd.conCua(fam, id);
       if (sau === "sua" && post) { await gd.suaCon(fam, id, b, bm.id); return json({ ok: true }); }
+      // 14/11: xoá hồ sơ Con (chỉ quyền Ba Mẹ — trongGiupDuoc không có) — lib/xoa-con.ts
+      if (sau === "xoa" && post) return json(await xoaCon(fam, id, b, bm.id));
       // L4: chế độ chặn theo Con (Mở hết / Chặn app & web) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
       if (sau === "che-do-chan" && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
@@ -176,7 +186,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
         await ghiSuKien(fam, "doi_luat_web", { muc: r.muc, trang_thai: r.trangThai }, { con: id, nguoi: bm.id });
         return json(r);
       }
-      if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id, b.den === "sang" ? "sang" : typeof b.den === "string" ? new Date(b.den) : null, new Date(),
+      if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id, hanTuBody(b.den), new Date(),
         b.hoanTac === true); return json({ ok: true }); }
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
@@ -219,6 +229,9 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "cau-hinh-nen-tang" && get) return json(await cauHinhNenTangMay(fam, p[1]));
       if (sau === "mo-khan-cap" && post) return json(await tt.moKhanCap(fam, p[1], b, bm.id));
       if (sau === "doi-ten" && post) return json(await gd.doiTenMay(fam, p[1], b.ten, bm.id));
+      // 14/11 «Khoá riêng máy này»: {khoa, den?: "sang" | ISO} — Người trông giúp được (khoá máy) — lib/khoa-may.ts
+      if (sau === "khoa" && post)
+        return json(await khoaMay(fam, p[1], b.khoa !== false, bm.id, hanTuBody(b.den)));
       if (sau === "gan-con" && post) return json(await gd.ganConMay(fam, p[1], b.con, bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       // L6: Người trông giúp được duyệt lời xin (mở máy) ⇒ cũng được đọc mã mở offline cho Con lúc máy mất mạng
@@ -293,6 +306,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (d === "qua" && post) return json({ id: await pt.taoQua(fam, b) });
     if (d === "qua/mau" && post) return json({ taoMoi: await pt.apDungMauQua(fam) });
     if (p[0] === "qua" && p[1] && p.length === 2 && post) { await pt.suaQua(fam, p[1], b); return json({ ok: true }); }
+    // 14/11 «Trao luôn cho <Con>» (quà Ba Mẹ mua): trao ngay, không trừ sao — {con} ⇒ {phieu, trangThai, voucher?, phut?, saoTru: 0} (phan-thuong.ts › traoLuon)
+    if (p[0] === "qua" && p[1] && p[2] === "trao-luon" && p.length === 3 && post) return json({ ok: true, ...(await traoLuon(fam, p[1], s(b.con, 40), bm.id)) });
     if (p[0] === "phieu" && p[1] && p[2] === "xac-nhan" && post) return json({ ok: true, ...(await pt.xacNhanPhieu(fam, p[1], bm.id)) });   // 06/11: kèm voucher {ma, qr, hetHan}
     if (p[0] === "phieu" && p[1] && p[2] === "huy" && post) { await pt.huyPhieu(fam, p[1], bm.id); return json({ ok: true }); }
     if (d === "phieu" && get)
@@ -382,7 +397,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
 
     if (p[0] === "admin" && p[1] === "ho-tro") {       // hộp thư hỗ trợ của AiiLab: chỉ Ba Mẹ có cờ admin
       if (!hta.laQuanTri(bm.id)) return loi("khong_du_quyen", "Tính năng này chỉ dành cho quản trị AiiLab", 403);
-      if (p.length === 2 && get) return json({ ds: await hta.dsHoTro() });
+      // 14/11 (bm-cai-dat/13): ?loc=cho|da_tra_loi|cua_toi ⇒ {ds[+nguoi_gui, cho_tu, cho_phut, gap, nguoi_tra_loi, cua_toi], soCho, soGap}
+      if (p.length === 2 && get) return json(await hta.dsHoTro({ loc: new URL(req.url).searchParams.get("loc"), toi: `admin-app:${bm.id}` }));
       if (p.length === 3 && get) return json(await hta.chiTietHoTro(p[2]));
       if (p.length === 3 && post) {
         const doDai = await hta.traLoiHoTro(p[2], `admin-app:${bm.id}`, s(b.noiDung, 1000));

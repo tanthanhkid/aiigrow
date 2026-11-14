@@ -136,6 +136,10 @@ export function moTamDen(cfg: Record<string, unknown> | null | undefined, now = 
 }
 /** Máy Con phải khoá lúc này? = khoá gốc trừ lúc đang mở tạm. */
 export const dangKhoa = (cfg: Record<string, unknown> | null | undefined, now = new Date()) => khoaGoc(cfg, now) && !moTamDen(cfg, now);
+/** 14/11 «Khoá riêng máy này» (lib/khoa-may.ts): devices.khoa_may đang khoá máy? «Ba Mẹ đang dùng máy» (devices.ba_me_den — cùng luật
+ *  pin-be.ts › baMeDen; không nhập pin-be để module lá này khỏi vòng nhập) ⇒ không khoá. Một chỗ cho taoPolicy, phiên chơi, tuân thủ. */
+export const khoaMayHieuLuc = (may: { khoa_may?: Record<string, unknown> | null; ba_me_den?: Date | string | null } | null | undefined, now = new Date()) =>
+  !!may && !(may.ba_me_den && new Date(may.ba_me_den).getTime() > now.getTime()) && dangKhoa(may.khoa_may, now);
 /** Hạn khoá còn hiệu lực (ISO) hoặc null = khoá tới khi Ba Mẹ mở / không khoá. */
 export const khoaDen = (cfg: Record<string, unknown> | null | undefined, now = new Date()) =>
   khoaGoc(cfg, now) && typeof cfg?.khoa_den === "string" ? cfg.khoa_den : null;

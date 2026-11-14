@@ -5,7 +5,7 @@
 import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, khoaDen, khoaGoc, lichCua, moTamDen, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
+import { dangKhoa, khoaDen, khoaGoc, khoaMayHieuLuc, lichCua, moTamDen, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, dsLuat, phanLoai } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
@@ -119,13 +119,23 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
   const ph = c ? await phienDang(c.id) : undefined;
   const qy = c ? await quyHomNay(c.id, now) : null;
+  // khoá riêng máy (lib/khoa-may.ts) — Ba Mẹ đang dùng máy bằng mã (pin-be.ts › baMeMoMay) thì máy mở cho Ba Mẹ như mọi khoá khác
+  const mayKhoa = khoaMayHieuLuc(may, now), conKhoa = dangKhoa(c?.cau_hinh, now);
+  // cả hai cùng khoá ⇒ hạn = hạn MUỘN hơn (một bên không hạn ⇒ không hạn); chỉ máy khoá ⇒ hạn của máy, không «mở tạm» của Con
+  const denMay = mayKhoa ? khoaDen(may.khoa_may, now) : null, denCon = khoaDen(c?.cau_hinh, now);
+  // Con khoá GỐC (kể cả đang mở tạm — khoá Con trở lại lúc mở tạm hết) cũng tính: agent offline không được mở máy ở hạn máy khi khoá Con còn
+  const conGoc = khoaGoc(c?.cau_hinh, now);
+  const khoaHetLuc = !mayKhoa ? denCon : !conGoc ? denMay : denMay && denCon ? (Date.parse(denMay) > Date.parse(denCon) ? denMay : denCon) : null;
   return apMoHet({
-    serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now)], now), gioMaySai: o.gioMaySai,
+    serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now), khoaDen(may.khoa_may, now)], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
     allowlistHeThong: allowlistHieuLuc(),
     luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai, nhom: l.loai === "giai_tri" ? l.nhom : null,
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
-    lich: lichCua(c?.lich as never), khoaNgay: dangKhoa(c?.cau_hinh, now), khoaLaiLuc: moTamDen(c?.cau_hinh, now), khoaHetLuc: khoaDen(c?.cau_hinh, now), soDu: c ? await soDu(c.id) : 0,
+    // 14/11 «Khoá riêng máy này»: khoá của MÁY gộp vào cùng trường khoaNgay (agent mọi OS đã đọc) — khoá của Con thắng (giữ mở tạm / hạn của Con)
+    lich: lichCua(c?.lich as never), khoaNgay: conKhoa || mayKhoa,
+    khoaLaiLuc: mayKhoa ? null : moTamDen(c?.cau_hinh, now), khoaHetLuc,
+    soDu: c ? await soDu(c.id) : 0,
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
     // Con đã có chế độ rõ (Con mới / Ba Mẹ đã chọn) ⇒ web theo chế độ; Con cũ (null) ⇒ tham số web_chi_cho_phep như trước
@@ -133,7 +143,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     cheDoChan, webLuonChan: WEB_LUON_CHAN,
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
-    ngoaiLe: c ? await ngoaiLeDangMo(c.id, now) : [],
+    // máy đang khoá riêng ⇒ ngoại lệ đang mở của Con (cấp cho cả các máy) không mở máy NÀY — khoá máy thắng (agent-windows: nlCaMay thắng khoaNgay)
+    ngoaiLe: c && !mayKhoa ? await ngoaiLeDangMo(c.id, now) : [],
   });
 }
 
@@ -157,14 +168,9 @@ export const laMoHet = (p: Pick<Policy, "cheDoChan" | "con">) => p.cheDoChan ===
 /** `hoanTac`: Hoàn tác «Mở lại máy» ⇒ bật lại cờ khoá, giữ nguyên hạn khoá + mốc mở tạm ĐANG LƯU trên máy chủ (Mở lại chỉ bỏ cờ, không xoá chúng;
  *  không có cờ thì khoaGoc false nên chúng vô hiệu). Không dựa dữ liệu màn của Ba Mẹ — người khác có thể vừa đổi. Hạn đã qua ⇒ khoá lại cũng tự hết. */
 export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: string, hanVao: Date | "sang" | null = null, now = new Date(), hoanTac = false) {
-  let den: Date | null = null;
-  if (khoa && hoanTac) { /* Hoàn tác không cần giờ: máy chủ dùng hạn đang lưu */ }
-  else if (khoa && hanVao === "sang") den = sangMaiCua((await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh", now);
-  else if (khoa && hanVao instanceof Date) {
-    if (Number.isNaN(hanVao.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại không hợp lệ", 400);
-    if (!(hanVao.getTime() > now.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
-    den = hanVao;
-  }
+  // Hoàn tác không cần giờ: máy chủ dùng hạn đang lưu
+  const den = khoa && !hoanTac && hanVao !== null
+    ? hanKhoa(hanVao === "sang" ? (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh" : "", hanVao, now) : null;
   // khoá mới thay hạn và xoá phần «mở tạm» của lần duyệt thêm giờ trước (yeu-cau.ts › dongY)
   const r = await q(`update children set cau_hinh = case when not $3 then cau_hinh - 'khoa_ngay'
                        when $5 then cau_hinh || '{"khoa_ngay": true}'::jsonb
@@ -181,12 +187,24 @@ export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: s
   await ghiSuKien(fam, khoa ? "khoa_ngay" : "mo_lai", { ...(hd ? { den: hd } : {}), ...(khoa && hoanTac ? { hoanTac: true } : {}) }, { con, nguoi });
 }
 
-/** «Tới sáng mai»: 7:00 kế tiếp theo múi giờ GIA ĐÌNH (không theo giờ máy Ba Mẹ — Ba Mẹ đi nước ngoài vẫn đúng giờ của Con). */
+/** Hạn «Khoá ngay» (Con — khoaNgay, hoặc riêng máy — khoa-may.ts): "sang" = 6:30 sáng mai giờ gia đình `tz` · Date phải hợp lệ và sau bây giờ · null = không hạn. */
+export function hanKhoa(tz: string, hanVao: Date | "sang" | null, now = new Date()): Date | null {
+  if (hanVao === "sang") return sangMaiCua(tz || "Asia/Ho_Chi_Minh", now);
+  if (!(hanVao instanceof Date)) return null;
+  if (Number.isNaN(hanVao.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại không hợp lệ", 400);
+  if (!(hanVao.getTime() > now.getTime())) throw new LoiNghiepVu("sai_gio", "Giờ mở lại phải ở sau bây giờ", 400);
+  return hanVao;
+}
+
+/** «Sáng mai» = 6:30 (thiết kế 14/11 bm-hang-ngay «Khoá máy <Con>?» — trước 14/11 là 7:00). Phút trong ngày theo giờ gia đình. */
+export const SANG_MAI_PHUT = 6 * 60 + 30;
+
+/** «Tới sáng mai»: 6:30 kế tiếp theo múi giờ GIA ĐÌNH (không theo giờ máy Ba Mẹ — Ba Mẹ đi nước ngoài vẫn đúng giờ của Con). */
 export function sangMaiCua(tz: string, now = new Date()) {
   const g = gioDiaPhuong(now, tz);
-  const ngay = g.phut < 7 * 60 ? g.ngay : congNgay(g.ngay, 1);
-  const t = new Date(dauNgayUtc(ngay, tz).getTime() + 7 * 3600_000);
-  return new Date(t.getTime() + (7 * 60 - gioDiaPhuong(t, tz).phut) * 60_000);   // ngày đổi giờ mùa hè: nửa đêm + 7h lệch 1 giờ ⇒ chỉnh về đúng 7:00
+  const ngay = g.phut < SANG_MAI_PHUT ? g.ngay : congNgay(g.ngay, 1);
+  const t = new Date(dauNgayUtc(ngay, tz).getTime() + SANG_MAI_PHUT * 60_000);
+  return new Date(t.getTime() + (SANG_MAI_PHUT - gioDiaPhuong(t, tz).phut) * 60_000);   // ngày đổi giờ mùa hè: nửa đêm + 6h30 lệch 1 giờ ⇒ chỉnh về đúng 6:30
 }
 
 
