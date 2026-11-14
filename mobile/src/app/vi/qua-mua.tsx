@@ -2,11 +2,13 @@
 // con đổi bằng N sao, «<Con> đang tích sao · Đang có X · Còn thiếu Y», cách dùng (QR khi đổi xong · 60 ngày · đưa mã ở quầy).
 // Chưa có trong kho ⇒ «Thêm vào kho quà của <Con>» (POST qua/thu-vien {mau, con}); đã có ⇒ «Để con tự tích sao».
 // Đã chọn (PR #236): CHƯA có cổng thanh toán trong app (màn «Thanh toán» bm-thiet-lap-con/27 cần cổng tiền thật — việc của Thanh/Nghi quyết) ⇒
-// «Mua» = cho quà vào kho của con như voucher 06/11 (trao tay, không thu tiền trong app); màn ghi rõ chưa thu tiền. «Trao luôn cho con» chưa làm
-// (máy chủ chưa có lệnh trao quà không qua phiếu con đổi).
+// «Mua» = cho quà vào kho của con như voucher 06/11 (trao tay, không thu tiền trong app); màn ghi rõ chưa thu tiền.
+// «Trao luôn cho <Con>» (quà đã ở kho của con) ⇒ POST qua/:id/trao-luon {con} (PR #253: trao ngay, không trừ sao). Voucher AiiCafe máy chủ chặn
+// 409 `voucher_can_thanh_toan` (cần thanh toán — chưa có) ⇒ ẩn nút, ghi một câu; lỗi khác ⇒ câu dễ hiểu (lib/noi-1411 › loiTraoLuon).
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, type GiaDinh } from "@/lib/api";
+import { bm, LoiApi, type GiaDinh } from "@/lib/api";
+import { loiTraoLuon, quaTrongKho, traoLuonDuoc, type DongQua } from "@/lib/noi-1411";
 import { KHOI } from "@/lib/clay";
 import { quyenToi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher, type NhomThuVien } from "@/lib/s3";
@@ -18,14 +20,17 @@ export default function QuaBaMeMua() {
   const { ma, con } = useLocalSearchParams<{ ma: string; con?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
     const tham = con ? `?con=${encodeURIComponent(con)}` : "";
-    const [tv, g, vi, quyen] = await Promise.all([
+    const [tv, g, vi, quyen, kho] = await Promise.all([
       bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${tham}`), bm.goi<GiaDinh>("gia-dinh"),
       con ? bm.goi<{ soDu: number; sao?: number }>(`con/${con}/vi`).catch(() => null) : null, quyenToi(),
+      con ? bm.goi<{ ds: DongQua[] }>("qua").catch(() => null) : null,
     ]);
-    return { m: tv.nhom.flatMap((x) => x.ds).find((x) => x.ma === ma) ?? null, c: g.con.find((x) => x.id === con) ?? null,
-      sao: vi ? vi.sao ?? vi.soDu : null, baMe: quyen === "ba_me" };
+    const m = tv.nhom.flatMap((x) => x.ds).find((x) => x.ma === ma) ?? null;
+    // quà (dòng rewards) đã ở kho của con ⇒ id để «Trao luôn»
+    const trongKho = m && kho ? quaTrongKho(kho.ds, m.ma, m.ten, con) : null;
+    return { m, c: g.con.find((x) => x.id === con) ?? null, sao: vi ? vi.sao ?? vi.soDu : null, baMe: quyen === "ba_me", trongKho };
   });
-  const { lam, loi: loiLam, dangChay } = useLam();
+  const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const tieu = "Quà Ba Mẹ mua";
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const m = d.m;
@@ -38,9 +43,35 @@ export default function QuaBaMeMua() {
     baoKhiVe(`Đã cho ${tenVoucher(m.ten)} vào kho quà của ${ten}`);
     router.back();
   });
+  const qk = d.trongKho;
+  // «Trao luôn»: chỉ Ba Mẹ, quà đã ở kho của con, không phải voucher (máy chủ 409 voucher_can_thanh_toan)
+  const traoDuoc = d.baMe && m.daCo && !!con && !!qk && traoLuonDuoc(qk.loai);
+  const voucherCho = d.baMe && m.daCo && !!con && !!qk && !traoLuonDuoc(qk.loai);
+  const trao = () => lam(async () => {
+    try {
+      const r = await bm.goi<{ phut?: number }>(`qua/${qk!.id}/trao-luon`, { con });
+      baoKhiVe(`Đã trao ${tenVoucher(m.ten)} cho ${ten}${r.phut ? ` · +${r.phut} phút chơi hôm nay` : ""}`);
+      router.back();
+    } catch (e) {
+      const cau = e instanceof LoiApi ? loiTraoLuon(e.ma, ten) : null;
+      if (cau) { setLoi(cau); return; }
+      throw e;
+    }
+  });
   return (
     <Man lui={{ chu: "" }} tieu={tieu} day={
-      m.daCo || !d.baMe ? <Nut chu="Để con tự tích sao" rong bam={() => router.back()} /> : (
+      traoDuoc ? (
+        <>
+          <BaoLoi loi={loiLam} />
+          <Nut chu={`Trao luôn cho ${ten}`} rong dangChay={dangChay} bam={trao} />
+          <Nut chu="Để con tự tích sao" loai="vien" rong bam={() => router.back()} />
+        </>
+      ) : m.daCo || !d.baMe ? (
+        <>
+          {voucherCho ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Voucher cần Ba Mẹ thanh toán trong app mới trao luôn được — phần này sắp có.</Chu> : null}
+          <Nut chu="Để con tự tích sao" rong bam={() => router.back()} />
+        </>
+      ) : (
         <>
           <BaoLoi loi={loiLam} />
           <Nut chu={`Cho vào kho quà của ${ten}`} rong dangChay={dangChay} tat={!con} bam={them} />

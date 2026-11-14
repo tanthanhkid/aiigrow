@@ -345,6 +345,34 @@ coBan["GET qua/thu-vien"] = { nhom: [
 coBan["POST qua/thu-vien"] = (b) => ({ taoMoi: b?.mau?.length ?? 0, ids: [] });
 coBan["GET may/m2/ung-dung"] = { ...coBan["GET may/m1/ung-dung"], capNhatLuc: null, ds: [] };
 
+// ---------------------------------------------------------------- PR #253 nối app: khoá riêng máy, xoá hồ sơ Con, «Trao luôn», hộp thư hỗ trợ (lib/noi-1411)
+for (const k of ["GET con/c1", "GET con/c2"]) for (const m of coBan[k].may) m.khoaMay = { khoa: false, den: null };
+const khoaMayGia = (b) => ({ khoa: b?.khoa === true, den: b?.khoa && b?.den ? (b.den === "sang" ? luc(-600) : b.den) : null });
+coBan["POST may/m1/khoa"] = khoaMayGia; coBan["POST may/m2/khoa"] = khoaMayGia;
+/** GET con/c1 với Laptop (m1) đang khoá riêng tới 1 giờ nữa. */
+const CON_KHOA_M1 = { "GET con/c1": { ...conCt("c1", KEN), may: conCt("c1", KEN).may.map((m) => ({ ...m, khoaMay: m.id === "m1" ? { khoa: true, den: luc(-60) } : { khoa: false, den: null } })) } };
+coBan["POST con/c1/xoa"] = (b) => b?.xacNhan === true
+  ? { ok: true, ten: KEN, mayChuyenDungChung: [{ id: "m1", ten: `Laptop của ${KEN} · Windows 11` }, { id: "m2", ten: `iPad của ${KEN}` }] }
+  : { status: 400, body: { error: "can_xac_nhan", message: "Xác nhận xoá hồ sơ (gửi xacNhan: true)" } };
+coBan["POST may/m1/gan-con"] = { ok: true }; coBan["POST may/m2/gan-con"] = { ok: true };
+const XOA_CON_MAY = { "POST con/c1/xoa": { status: 409, body: { error: "con_may", message: "Nhà còn 2 máy đã ghép: Laptop, iPad. Bảo Anh là bé cuối — gỡ máy trước" } } };
+const XOA_CON_MANG = { "POST con/c1/xoa": { status: 409, body: { error: "con_thiet_bi_mang", message: "Bảo Anh còn 1 thiết bị lọc mạng: TV phòng khách." } } };
+// kho quà có Lego (quà Ba Mẹ mua — trao luôn được) + voucher AiiCafe 20k (409 voucher_can_thanh_toan) đã áp cho c1
+const QUA_KHO = {
+  "GET qua": { ds: [...coBan["GET qua"].ds, { id: "q4", mau: "lego", ten: "Bộ Lego", loai: "qua", diem: 800, menh_gia: null, ton_kho: 1, toi_da_thang: null, chi_cuoi_tuan: false, bat: true, ap_cho: null },
+    { id: "q5", mau: "aiicafe_20k", ten: "AiiCafe 20k", loai: "voucher", diem: 200, menh_gia: 20000, ton_kho: null, toi_da_thang: null, chi_cuoi_tuan: false, bat: true, ap_cho: ["c1"] }] },
+  "GET qua/thu-vien": { nhom: coBan["GET qua/thu-vien"].nhom.map((n) => ({ ...n, ds: n.ds.map((x) => (["lego", "aiicafe_20k"].includes(x.ma) ? { ...x, daCo: true } : x)) })) },
+  "POST qua/q4/trao-luon": { ok: true, phieu: "r-tl", trangThai: "da_trao", saoTru: 0 },
+  "POST qua/q5/trao-luon": { status: 409, body: { error: "voucher_can_thanh_toan", message: "Voucher AiiCafe chưa trao luôn được" } },
+};
+const htDong = (family_id, ten, nguoi_gui, noi_dung, cho_phut, o = {}) => ({ family_id, ten, tu: "ba_me", noi_dung, created_at: luc(cho_phut ?? 300), chua_tra_loi: cho_phut !== null,
+  nguoi_gui, cho_tu: cho_phut === null ? null : luc(cho_phut), cho_phut, gap: cho_phut !== null && cho_phut >= 30, nguoi_tra_loi: null, cua_toi: false, ...o });
+coBan["GET admin/ho-tro"] = { soCho: 4, soGap: 2, ds: [htDong("f1", "Nhà Bảo Anh", "Bà Hoa", "Máy Laptop không hiện bảo vệ", 42),
+  htDong("f2", "Nhà Gia Huy", "Ba Tuấn", "Không nhận được lời mời vào nhà", 35), htDong("f3", "Nhà Mẹ Lan", "Mẹ Lan", "iPad báo «cần sửa», làm sao ạ?", 12),
+  htDong("f4", "Nhà Bé Na", "Cô Ngọc", "Đổi sao ra phút ở đâu ạ?", 5)] };
+coBan["GET admin/ho-tro?loc=cua_toi"] = { soCho: 4, soGap: 2, ds: [htDong("f5", "Nhà Bé Bi", "Ba Minh", "AiiGrow đã cộng giúp 10 phút rồi ạ", null, { tu: "aiilab", cua_toi: true, nguoi_tra_loi: "admin-app:p1" })] };
+coBan["GET admin/ho-tro/f1"] = { ten: "Nhà Bảo Anh", tin: [{ id: "h1", tu: "ba_me", noi_dung: "Máy Laptop không hiện bảo vệ", created_at: luc(42), ten_nguoi: "Bà Hoa" }] };
+
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -369,10 +397,11 @@ ws.onmessage = async (e) => {
   if (m.id && cho[m.id]) { cho[m.id](m.result ?? m.error); delete cho[m.id]; return; }
   if (m.method !== "Fetch.requestPaused") return;
   const { requestId, request } = m.params;
-  const d = new URL(request.url).pathname.replace(/^\/api\/(m|kid)\//, "");
-  const khoa = `${request.method} ${d}`;
+  const url = new URL(request.url), d = url.pathname.replace(/^\/api\/(m|kid)\//, ""), qs = url.search;
+  // khoá có chuỗi hỏi («GET admin/ho-tro?loc=cua_toi») thắng khoá chỉ đường dẫn; nhật ký giữ chuỗi hỏi ở `q`
+  const khoa = kb[`${request.method} ${d}${qs}`] !== undefined ? `${request.method} ${d}${qs}` : `${request.method} ${d}`;
   let body = null; try { body = request.postData ? JSON.parse(request.postData) : null; } catch { /* không JSON */ }
-  nhatKy.push({ m: request.method, d, body });
+  nhatKy.push({ m: request.method, d, q: qs, body });
   if (request.method === "OPTIONS") return goi("Fetch.fulfillRequest", { requestId, responseCode: 204, responseHeaders: [] });
   const tl0 = matMang ? "mat_mang" : kb[khoa], tl = typeof tl0 === "function" ? tl0(body) : tl0;      // hàm: trả theo body
   if (tl === "mat_mang") return goi("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
@@ -450,6 +479,9 @@ if (process.argv.includes("--giao-dien")) {
     await goi("Page.navigate", { url: `${GOC}${duong}` }); };
   // Xoá tài khoản ở màn «Tài khoản của bạn» (thiết kế 14/11 bm-ca-nha/08 → 11), không còn ở tab Cả nhà
   const moXoaTk = async () => { await di("/tai-khoan"); await doi("Xoá hẳn, không lấy lại được"); await sleep(300); await bam("Xoá tài khoản"); };
+  // nút «Xoá hồ sơ <tên>» (lượt chữ dài đổi tên con ⇒ không bấm theo KEN): lá chữ cuối bắt đầu «Xoá hồ sơ », không phải tiêu đề «…?»
+  const bamXoaHs = async () => nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length
+    && e.innerText?.trim().startsWith("Xoá hồ sơ ") && !e.innerText.trim().endsWith("?") && e.getBoundingClientRect().width > 0).pop()`));
   const dsMan = [
     // Lần đầu (bm-lan-dau, bm-ghep-may — L7, L8)
     M("bm-chao", "/chao", "Bắt đầu cho con nhà mình", { token: null }),
@@ -482,6 +514,19 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
+    // PR #253 nối app (lib/noi-1411): khoá riêng máy (bm-may-con/03), xoá hồ sơ Con (bm-gio-ho-so/07), «Trao luôn» (bm-sao-qua/03), hộp thư (bm-cai-dat/13)
+    M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay"); } }),
+    M("bm-may (đang khoá riêng)", "/may/m1", "Mở khoá Laptop", { kb: CON_KHOA_M1 }),
+    M("bm-trang (bảng khoá máy · bỏ chọn iPad)", "/hom-nay", "Khoá máy tới", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy");
+      await doi("Khoá bao lâu?"); // bamChon định nghĩa sau khối cổng ⇒ bấm trực tiếp bằng viTriYen + nhanChuot
+      await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="Khoá iPad"]')`)); } }),
+    M("bm-ho-so-xoa", "/ho-so/c1/xoa", "Xoá rồi không lấy lại được."),
+    M("bm-ho-so-xoa (bé cuối còn máy)", "/ho-so/c1/xoa", "Xem các máy", { kb: XOA_CON_MAY, truoc: async () => { await di("/ho-so/c1/xoa"); await doi("Giữ lại"); await bamXoaHs(); } }),
+    M("bm-ho-so-xoa (đã xoá · máy dùng chung)", "/ho-so/c1/xoa", "thành máy dùng chung — gắn", { truoc: async () => { await di("/ho-so/c1/xoa"); await doi("Giữ lại"); await bamXoaHs(); } }),
+    M("bm-qua-mua (trao luôn)", "/vi/qua-mua?ma=lego&con=c1", "Trao luôn cho", { kb: QUA_KHO }),
+    M("bm-qua-mua (voucher chưa trao luôn)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "mới trao luôn được", { kb: QUA_KHO }),
+    M("admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
+    M("admin-ho-tro (của tôi)", "/admin-ho-tro", "AiiGrow đã cộng giúp", { truoc: async () => { await di("/admin-ho-tro"); await doi("Của tôi"); await bam("Của tôi"); } }),
     M("bm-gio", "/gio/c1", "Giờ chơi của"),
     M("bm-gio-ngu", "/gio/ngu?con=c1", "Giờ ngủ"),
     M("bm-gio-hoc", "/gio/hoc?con=c1", "Giờ học"),
@@ -1181,6 +1226,89 @@ await kichBan("Đổi tên máy: mở từ màn máy, gửi POST may/m1/doi-ten,
   await bam("Lưu tên máy");
   xet(await doi("Đã đổi tên máy thành Máy học bài"), "báo đã đổi tên máy");
   xet(nhatKy.some((x) => x.d === "may/m1/doi-ten" && x.m === "POST" && x.body?.ten === "Máy học bài"), "gửi tên máy đã chuẩn hoá");
+});
+
+// ---------------------------------------------------------------- PR #253 nối app (docs/API.md «Khớp thiết kế 14/11 — phần máy chủ còn lệch»)
+await kichBan("Khoá máy <Con>? bỏ chọn iPad ⇒ khoá RIÊNG Laptop (may/m1/khoa, không khoá theo Con) ⇒ Hoàn tác mở đúng máy đó", async () => {
+  await di("/hom-nay");
+  await doi("Khoá máy"); await bam("Khoá máy");
+  xet(await doi("Khoá bao lâu?"), "mở bảng «Khoá máy <Con>?»");
+  xet(await bamChon('[role="checkbox"][aria-label="Khoá iPad"]'), "bỏ chọn iPad");
+  await bamChon('[role="radio"][aria-label^="1 giờ"]');
+  nhatKy.length = 0;
+  xet(await bamDauCo("Khoá máy tới "), "nút đổi thành «Khoá máy tới HH:MM» (1 máy)");
+  xet(await choGoi((x) => x.d === "may/m1/khoa" && x.m === "POST" && x.body?.khoa === true && !!x.body?.den), "gửi khoá riêng Laptop kèm hạn");
+  xet(!nhatKy.some((x) => x.d === "con/c1/khoa" || x.d === "may/m2/khoa"), "không khoá theo Con, không khoá iPad");
+  xet(await doi("Đã khoá Laptop của"), "báo đã khoá Laptop");
+  await bam("Hoàn tác");
+  xet(await choGoi((x) => x.d === "may/m1/khoa" && x.body?.khoa === false), "Hoàn tác ⇒ mở khoá Laptop");
+});
+
+await kichBan("Màn máy: «Khoá Laptop ngay» ⇒ bảng 03 (máy khác «Không đổi gì») ⇒ may/m1/khoa; máy đang khoá riêng ⇒ «Mở khoá Laptop»", async () => {
+  await di("/may/m1");
+  await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay");
+  xet(await doi("Không đổi gì"), "bảng 03: iPad «Không đổi gì»");
+  nhatKy.length = 0;
+  await bam("Khoá Laptop ngay");
+  xet(await choGoi((x) => x.d === "may/m1/khoa" && x.m === "POST" && x.body?.khoa === true && !x.body?.den), "gửi khoá riêng Laptop (tới khi Ba Mẹ mở)");
+  xet(!nhatKy.some((x) => x.d === "con/c1/khoa"), "không khoá theo Con");
+  kb = { ...kb, ...CON_KHOA_M1 };
+  await di("/may/m1");
+  xet(await doi("Mở khoá Laptop"), "máy đang khoá riêng ⇒ hiện «Đang khoá tới …» + «Mở khoá Laptop»");
+  nhatKy.length = 0;
+  await bam("Mở khoá Laptop");
+  xet(await choGoi((x) => x.d === "may/m1/khoa" && x.body?.khoa === false), "mở khoá riêng Laptop");
+  xet(await doi("Đã mở khoá Laptop"), "báo đã mở khoá");
+});
+
+await kichBan("Xoá hồ sơ Con ⇒ con/c1/xoa {xacNhan:true} ⇒ máy thành dùng chung ⇒ «Máy của Bill» gắn lại (gan-con)", async () => {
+  await di("/ho-so/c1/xoa");
+  xet(await doi("Xoá rồi không lấy lại được."), "màn xác nhận «Xoá hồ sơ <Con>?»");
+  nhatKy.length = 0;
+  await bam(`Xoá hồ sơ ${KEN}`);
+  xet(await choGoi((x) => x.d === "con/c1/xoa" && x.m === "POST" && x.body?.xacNhan === true), "gửi xoá kèm xacNhan");
+  xet(await doi(`Đã xoá hồ sơ ${KEN}`), "màn kết quả đã xoá");
+  xet(await doi("thành máy dùng chung"), "nói rõ máy thành máy dùng chung");
+  await bamDau(`Máy của ${BILL}`);
+  xet(await choGoi((x) => x.d === "may/m1/gan-con" && x.body?.con === "c2"), "gắn Laptop cho Bill");
+  xet(await doi(`Giờ là máy của ${BILL}`), "thẻ máy đổi thành «Giờ là máy của Bill»");
+});
+
+await kichBan("Xoá hồ sơ Con: 409 con_may / con_thiet_bi_mang ⇒ câu dễ hiểu + lối đi tiếp, vẫn ở màn xác nhận", async () => {
+  kb = { ...kb, ...XOA_CON_MAY };
+  await di("/ho-so/c1/xoa");
+  await doi("Giữ lại"); await bam(`Xoá hồ sơ ${KEN}`);
+  xet(await doi("là bé cuối cùng trong nhà"), "con_may ⇒ câu bé cuối cùng");
+  xet(await doi("Xem các máy"), "có lối «Xem các máy»");
+  kb = { ...kb, ...XOA_CON_MANG };
+  await di("/ho-so/c1/xoa");
+  await doi("Giữ lại"); await bam(`Xoá hồ sơ ${KEN}`);
+  xet(await doi("thiết bị lọc mạng riêng"), "con_thiet_bi_mang ⇒ câu thiết bị lọc mạng");
+  xet(await doi("Nhắn AiiGrow"), "có lối «Nhắn AiiGrow»");
+});
+
+await kichBan("Quà Ba Mẹ mua: «Trao luôn cho <Con>» ⇒ qua/q4/trao-luon {con}; voucher AiiCafe ⇒ không có nút, nói rõ cần thanh toán", async () => {
+  kb = { ...kb, ...QUA_KHO };
+  await di("/vi/qua-mua?ma=lego&con=c1");
+  xet(await doi(`Trao luôn cho ${KEN}`), "nút «Trao luôn cho <Con>»");
+  nhatKy.length = 0;
+  await bam(`Trao luôn cho ${KEN}`);
+  xet(await choGoi((x) => x.d === "qua/q4/trao-luon" && x.m === "POST" && x.body?.con === "c1"), "gửi trao luôn đúng quà + Con");
+  await di("/vi/qua-mua?ma=aiicafe_20k&con=c1");
+  xet(await doi("mới trao luôn được"), "voucher ⇒ câu cần thanh toán");
+  xet(!(await chu()).includes("Trao luôn cho"), "voucher ⇒ không có nút «Trao luôn»");
+});
+
+await kichBan("Hộp thư hỗ trợ (admin): ?loc=cho ⇒ «4 chờ», «Gấp 2» + «Chờ 42′», người gửi; tab «Của tôi» ⇒ ?loc=cua_toi", async () => {
+  await di("/admin-ho-tro");
+  xet(await doi("Chờ 42′"), "dòng «Chờ 42′» từ cho_phut");
+  xet(await choGoi((x) => x.d === "admin/ho-tro" && x.q === "?loc=cho"), "tải ?loc=cho");
+  const c = await chu();
+  xet(c.includes("4 chờ") && c.includes("Gấp") && c.includes("Đang chờ") && c.includes("Bà Hoa"), "huy hiệu soCho, mục Gấp / Đang chờ, tên người gửi");
+  nhatKy.length = 0;
+  await bam("Của tôi");
+  xet(await choGoi((x) => x.d === "admin/ho-tro" && x.q === "?loc=cua_toi"), "tab «Của tôi» ⇒ ?loc=cua_toi");
+  xet(await doi("AiiGrow đã cộng giúp"), "hiện thư mình đã trả lời");
 });
 
 ws.close();

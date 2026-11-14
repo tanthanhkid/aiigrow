@@ -9,7 +9,8 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-rou
 import { View } from "react-native";
 import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu } from "@/lib/api";
 import { HangViec, IC_MAY, quyenToi, type ChoDuyetMoi, type ConCt, type QuyCon } from "@/lib/hang-ngay";
-import { datKhoa } from "@/lib/khoa-may";
+import { datKhoaMay } from "@/lib/khoa-may";
+import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
   BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, M, Man, Nhom, NhomTieu, Nut, ONhap, The, TickDong, truoc, useHoanTac, useLam, useTai,
@@ -61,6 +62,8 @@ export default function AnToanMay() {
     // đang mở khẩn cấp / đang gỡ ⇒ không mở bảng (màn này cũng ẩn nút đó): khỏi tạo/kéo dài mở khẩn cấp thứ hai
     const dangKhan = !!d.m.moKhanCapDen && new Date(d.m.moKhanCapDen) > new Date();
     if (moSan === "khan" && !d.xem && !dangKhan && !d.m.dangGo) setMo("khan");
+    // «Gỡ máy này» từ màn kết quả xoá hồ sơ Con (máy thành dùng chung — ho-so/[id]/xoa)
+    if (moSan === "go" && d.chu && !d.m.dangGo) setMo(d.m.daDongBo ? "go" : "xoa");
   }
   const dangGo = !!d?.m?.dangGo;
   // Đang chờ máy nhận lệnh gỡ ⇒ tự tải lại mỗi 20 giây để thấy «đã gỡ» ngay khi máy báo xong — chỉ khi màn đang hiện
@@ -102,6 +105,13 @@ export default function AnToanMay() {
   // Windows: «đang mở» gồm cả thêm giờ đã duyệt (moDen) — «Khoá lại ngay» đóng cả hai
   const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
   const cheDo = d.ct?.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web";
+  // khoá RIÊNG máy này (PR #253 may/:id/khoa) — trạng thái lấy từ GET con/:id › may[].khoaMay (máy dùng chung chưa có Con ⇒ không biết, ẩn)
+  const km = d.ct?.may.find((x) => x.id === id)?.khoaMay;
+  const khoaRieng = mayDangKhoa(km);
+  const moKhoaRieng = () => lam(async () => {
+    await datKhoaMay(id, false);
+    bao(`Đã mở khoá ${ngan}`, () => { datKhoaMay(id, true, km?.den ? new Date(km.den) : null).then(tai, tai); }); await tai();
+  });
   const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
   return (
     <Man lui={{ chu: "Quay lại" }} tieu={m.ten} noi={noi} tai={tai}>
@@ -168,7 +178,11 @@ export default function AnToanMay() {
           {!m.dangGo ? <Nut chu="Gỡ máy này" loai="huy" bam={() => setMo(m.daDongBo ? "go" : "xoa")} /> : null}
         </HaiNut>
       )}
-      {d.ct && m.con ? <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" loai="huy" rong bam={() => setMo("khoa")} /> : null}
+      {d.ct && m.con && khoaRieng ? (
+        <Bao loai="lam" ic="khoa" tieu={`${ngan} ${cauKhoaMay(km)!.charAt(0).toLowerCase()}${cauKhoaMay(km)!.slice(1)}`} loi="Chỉ máy này khoá — máy khác của con vẫn dùng bình thường.">
+          <Nut chu={`Mở khoá ${ngan}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={moKhoaRieng} />
+        </Bao>
+      ) : d.ct && m.con ? <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" loai="huy" rong bam={() => setMo("khoa")} /> : null}
 
       <NhomTieu chu="An toàn & sự cố" />
       {win && m.dungChung ? (
@@ -307,22 +321,21 @@ export default function AnToanMay() {
         <Nut chu="Làm không được? Hỏi AiiGrow" loai="ma" rong bam={() => { dong(); router.push("/ho-tro"); }} />
       </BangTruot>
 
-      {/* 03 «Khoá <máy> của <Con>?»: máy chủ khoá theo CON (con/:id/khoa — chưa có khoá riêng từng máy) ⇒ ghi rõ máy khác của con cũng khoá */}
+      {/* 03 «Khoá <máy> của <Con>?»: khoá RIÊNG máy này (POST may/:id/khoa — PR #253); máy khác của con «Không đổi gì · Dùng bình thường» */}
       {d.ct && m.con ? (
         <BangTruot mo={mo === "khoa"} dong={dong} tieu={`Khoá ${ngan} của ${tenCon}?`}>
           <Chu mau={M.chu2}>{d.app ? `${d.app.tenApp} sẽ đóng, con thấy màn khoá.` : "Con thấy màn khoá tới khi Ba Mẹ mở."}</Chu>
           <View style={{ gap: 8 }}>
             {[...d.ct.may].sort((a, b) => Number(b.id === id) - Number(a.id === id)).map((x) => (
               <HangViec key={x.id} dau ic={IC_MAY[x.nen]} mau={x.id === id ? "do" : "xam"} tieu={x.ten.replace(/ của .*$/, "")}
-                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : "Cũng khoá — Grow khoá mọi máy của con"}
-                phai={<Chu kieu="rat" co={13} mau={x.id === id ? M.loi : M.chu3}>Sẽ khoá</Chu>} />
+                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : cauKhoaMay(x.khoaMay) ?? "Dùng bình thường"}
+                phai={<Chu kieu="rat" co={13} mau={x.id === id ? M.loi : M.chu3}>{x.id === id ? "Sẽ khoá" : "Không đổi gì"}</Chu>} />
             ))}
           </View>
           <BaoLoi loi={loiLam} />
           <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
-            const con = m.con!;
-            await datKhoa(con, true, null); dong();
-            bao(`Đã khoá máy của ${tenCon}`, () => { datKhoa(con, false, null).then(tai, tai); }); await tai();
+            await datKhoaMay(id, true); dong();
+            bao(`Đã khoá ${ngan} của ${tenCon}`, () => { datKhoaMay(id, false).then(tai, tai); }); await tai();
           })} />
           <Nut chu="Để sau" loai="ma" rong bam={dong} />
         </BangTruot>

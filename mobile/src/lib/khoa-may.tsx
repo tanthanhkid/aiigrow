@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
+import { thanKhoaMay, type KhoaMayTt } from "@/lib/noi-1411";
 import { BangTruot, BaoLoi, BieuTron, Chu, M, Nut, OChon, gioPhut, useLam } from "@/lib/ui";
 
 type Han = "15" | "60" | "sang" | "mo";
@@ -68,4 +69,9 @@ export function BangKhoa({ mo, dong, con, ten, xong }: {
       })} />
     </BangTruot>
   );
+}
+
+/** Khoá / mở RIÊNG một máy (PR #253 `POST may/:id/khoa {khoa, den?}`) — không đụng hồ sơ Con; «sang» = 6:30 theo múi giờ gia đình. */
+export async function datKhoaMay(may: string, khoa: boolean, den: Date | "sang" | null = null) {
+  return bm.goi<KhoaMayTt>(`may/${may}/khoa`, thanKhoaMay(khoa, den));
 }

@@ -95,7 +95,8 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
   lanCuoi: string | null; truc: boolean; lechGiay: number | null;
   /** Quyền bảo vệ còn thiếu + cách khắc phục (server/lib/gia-dinh.ts › chiTietBaoVe); baoVeCau = một câu giải thích. */
   baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string;
-  /** S3 06/11: máy im lặng > 10 phút hôm nay (không phải tắt / ngủ) */ matMang?: boolean };
+  /** S3 06/11: máy im lặng > 10 phút hôm nay (không phải tắt / ngủ) */ matMang?: boolean;
+  /** 14/11 (PR #253): khoá RIÊNG máy này do Ba Mẹ đặt (POST may/:id/khoa) — den null = tới khi Ba Mẹ mở; máy chủ cũ không gửi */ khoaMay?: { khoa: boolean; den: string | null } };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
 export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa" | "phutDoiDuoc" | "conPhut"> & {
