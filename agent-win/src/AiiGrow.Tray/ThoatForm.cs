@@ -92,12 +92,14 @@ internal sealed class ThoatForm : HopKhayCoBan
         Flow.Controls.Add(Giua(new OMa { Ma = _so, Size = new Size(UI.Px(6 * 64 + 5 * 12), UI.Px(78)) }, w, 22));
         Flow.Controls.Add(ChuGiua(_dangGui ? "Đang kiểm mã…" : _loi ?? ThoatView.GhiMa, 11.25f, _loi != null, _loi != null ? Clay.Canh : UI.Muted, w, 12));
         var (chu, icon, cam) = ThoatView.ChipBao(_baoOk, _baoStatus);
-        Flow.Controls.Add(Giua(LockForm.VienGhi(chu, icon, cam), w, 14));
-        var quay = KhoiCon.Nut(ThoatView.Quay, false, w, "nha", 64, 16.5f);
+        var chip = Giua(LockForm.VienGhi(chu, icon, cam), w, 14);
+        Flow.Controls.Add(chip);
+        var quay = KhoiCon.Nut(ThoatView.Quay, true, w, "nha", 64, 16.5f);   // thiết kế «.nutk.g»: nút ngọc đặc
         quay.Margin = new Padding(0, UI.Px(24), 0, 0);
         quay.Click += (_, _) => { Close(); QuayLai?.Invoke(); };
         Flow.Controls.Add(quay);
         Xong();
+        chip.Margin = new Padding(Math.Max(0, (w - chip.Width) / 2), chip.Margin.Top, 0, 0);   // viên tự co: canh giữa theo bề rộng thật sau khi xếp
         ActiveControl = null;   // phím số vào hộp (KeyPreview), không vào nút đang có tiêu điểm
     }
 

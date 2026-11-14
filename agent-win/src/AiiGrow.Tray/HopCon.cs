@@ -25,7 +25,7 @@ internal sealed class KetQuaHop : HopKhayCoBan
         Flow.Controls.Add(r);
         var hang = KhoiCon.Hang();
         var a = UI.Text(so, 30f, true, Clay.Canh, UI.Px(120)); a.Margin = Padding.Empty;
-        var b = UI.Text(chu, 16f, true, UI.Ink, W); b.Margin = new Padding(UI.Px(6), UI.Px(18), 0, 0);
+        var b = UI.Text(chu, 16f, true, UI.Ink, W); b.Margin = new Padding(0, UI.Px(18), 0, 0);
         hang.Controls.Add(a); hang.Controls.Add(b);
         hang.PerformLayout();
         hang.Margin = new Padding(Math.Max(0, (W - hang.PreferredSize.Width) / 2), 0, 0, UI.Px(2));
