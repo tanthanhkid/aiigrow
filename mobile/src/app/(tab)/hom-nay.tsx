@@ -5,7 +5,7 @@
 //  2. «Cần Ba Mẹ để ý N» — CHỈ 1 mục gấp nhất + «Tất cả ›» (→ Thông báo): máy mất mạng (+ «Lấy mã mở máy») › lời xin của con (Không cho / Cho N phút)
 //     › máy chưa được bảo vệ › quên PIN › cảnh báo › app mới chờ xếp. N = tổng các mục của con này.
 //  3. «<Con> đang bị chặn gì»: chế độ chặn (Chặn app & web / Mở hết — «Đổi ›» → App & web), dải giờ trong ngày (Giờ học ✓ · Bây giờ: giờ chơi còn N ·
-//     Giờ ngủ khoá HH:MM), «Web người lớn luôn bị chặn».
+//     Giờ ngủ khoá HH:MM). 14/11 bỏ «Web người lớn luôn bị chặn» (không hứa điều không làm được).
 //  4. «<Con> vừa làm xong N» (≤ 3 việc chờ duyệt / tự cộng hôm nay) → màn bằng chứng; «Xem và duyệt N việc».
 // Bỏ so với 05/11 (N8): danh sách nhiệm vụ hôm nay (tab Nhiệm vụ), «Hôm nay con dùng» (tab Báo cáo › Hôm nay con dùng gì), «Cài cho con», «Con khác»
 // (chip đổi con ở đầu màn đã đủ; hồ sơ con mở từ tab Cả nhà / Báo cáo).
@@ -223,7 +223,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
       <TieuMuc chu={`${c.ten} đang bị chặn gì`} />
       <The>
         <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Chặn app & web"}
-          phu={moHet ? "Chỉ chặn web người lớn" : `${soApp} app được mở · app mới phải xin`}
+          phu={moHet ? "Không chặn app, web nào" : `${soApp} app được mở · app mới phải xin`}
           phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push(`/app-web?con=${conId}` as never)} />
         {q ? (
           <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
@@ -236,10 +236,6 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
             <MocGio ic="trang_ngu" tieu="Giờ ngủ" phu={`khoá ${gioGon(q.gioNgu.tu)}`} nay={q.dangNgu} bam={() => router.push(`/gio/ngu?con=${conId}` as never)} />
           </View>
         ) : null}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 }}>
-          <Icon3D ten="khien" co={18} mau={M.chu2} />
-          <Chu kieu="dam" co={13.5} mau={M.chu2}>Web người lớn luôn bị chặn</Chu>
-        </View>
       </The>
 
       {/* 4. vừa làm xong */}

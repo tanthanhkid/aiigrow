@@ -1,6 +1,6 @@
 // Tab «Chặn» (thiết kế chốt 14/11 bm-ung-dung/01 bm2-ung-dung-may · 02 them-98obxv7x — N1, N2): chọn bé, thẻ lớn «Máy của <con> đang ở chế độ»
 // (chế độ đang bật thấy ĐẦU TIÊN) + công tắc «Mở hết / Chặn app & web» ngay trên thẻ, «Con đang xin» (Trả lời ›), «<con> được mở» hai hàng App / Web
-// (icon + «Sửa ›» ⇒ danh sách đèn), «Luôn chặn» (Xem ›). Đang Mở hết ⇒ «Danh sách Ba Mẹ đã chọn» (tạm nghỉ, giữ nguyên).
+// (icon + «Sửa ›» ⇒ danh sách đèn). Đang Mở hết ⇒ «Danh sách Ba Mẹ đã chọn» (tạm nghỉ, giữ nguyên).
 // Ghi: POST con/:id/che-do-chan {cheDo}. Đọc: gia-dinh, con/:id, luat (luật riêng + cả nhà), cho-duyet.
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type ConChiTiet, type GiaDinh, type YeuCau } from "@/lib/api";
 import { ChipCon } from "@/lib/hang-ngay";
 import { BONG, KHOI, MEN } from "@/lib/clay";
-import { HangLuonChan, HangVang, IC_CHE_DO, TEN_CHE_DO, gomTheoTen, icCuaApp, laWeb, lucNgan, luatCuaCon, type CheDoChan, type LuatApp } from "@/lib/ui-bm3";
+import { HangVang, IC_CHE_DO, TEN_CHE_DO, gomTheoTen, icCuaApp, laWeb, lucNgan, luatCuaCon, type CheDoChan, type LuatApp } from "@/lib/ui-bm3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 // Grow ở thẻ chế độ: cỡ + lệch phải; tên chế độ (25px) chừa phần Grow nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
@@ -82,7 +82,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
             <View style={{ marginTop: 12, marginRight: 96, gap: 8 }}>
               <DongY ic="tick" nen={M.chinh} chu={moHet ? "Con mở được mọi app, mọi trang web"
                 : `Chỉ mở được ${app.length} app, ${web.length} trang web Ba Mẹ chọn`} />
-              <DongY ic="khoa" nen="#8a3c0c" chu={moHet ? "Grow chỉ chặn web người lớn, cờ bạc, bạo lực" : "App, web mới: con phải xin Ba Mẹ"} />
+              <DongY ic="khoa" nen="#8a3c0c" chu={moHet ? "Không chặn app, web nào" : "App, web mới: con phải xin Ba Mẹ"} />
             </View>
             <View style={{ flexDirection: "row", gap: 4, marginTop: 16, padding: 4, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.55)", boxShadow: BONG.lom }}
               accessibilityRole="radiogroup" accessibilityLabel="Chế độ chặn">
@@ -121,7 +121,6 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           {moHet ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginTop: 6, marginBottom: 4, marginHorizontal: 4 }}>Đang tạm nghỉ, vẫn được giữ nguyên. Bật lại «Chặn app & web» là dùng tiếp.</Chu> : null}
         </View>
 
-        <HangLuonChan />
       </Man>
     </View>
   );

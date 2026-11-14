@@ -82,7 +82,7 @@ export default function HoSoCon() {
         <HangViec ic="mu" mau="xanh" tieu="Giờ học" phu={hoc ? `${gioGon(hoc.tu)} – ${gioGon(hoc.den)} · ${cauThu(hoc.thu)}` : "Chưa đặt"}
           bam={() => router.push(`/gio/hoc?con=${id}` as never)} />
         <HangViec ic="khien" mau="lam" tieu="App & web"
-          phu={c.cheDoChan === "mo_het" ? "Mở hết · chỉ chặn web người lớn" : `Chặn app & web${d.duocMo !== null ? ` · Được mở ${d.duocMo} app` : ""}`}
+          phu={c.cheDoChan === "mo_het" ? "Mở hết · không chặn app, web nào" : `Chặn app & web${d.duocMo !== null ? ` · Được mở ${d.duocMo} app` : ""}`}
           bam={() => router.push(`/app-web?con=${id}` as never)} />
         <HangViec ic="laptop" mau="xam" tieu={`Máy của ${c.ten}`}
           phu={c.may.length ? `${c.may.length} máy${canSua.length ? ` · ${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : " · đang được bảo vệ"}` : "Chưa ghép máy nào"}

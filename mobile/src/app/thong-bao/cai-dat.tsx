@@ -52,7 +52,7 @@ export default function CaiDatThongBao() {
       <Nhom>
         {BAO_NGAY.map(hang)}
         <Dong tieu="Máy của con mất bảo vệ" phu="Để con an toàn" trai={<OIcon ic="khien" />} phai={<NhanLuon />} />
-        <Dong tieu="Cảnh báo nội dung xấu" phu="Con vào web, app người lớn" trai={<OIcon ic="khien" />} phai={<NhanLuon />} />
+        <Dong tieu="Cảnh báo nội dung xấu" phu="Con mở trang bị chặn" trai={<OIcon ic="khien" />} phai={<NhanLuon />} />
       </Nhom>
       <MucTieu chu="Để biết" />
       <Nhom>{DE_BIET.map(hang)}</Nhom>

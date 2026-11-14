@@ -202,19 +202,6 @@ export function OTim({ gia, doi, goiY, nhan, url }: { gia: string; doi: (t: stri
   );
 }
 
-/** Hàng lõm «Luôn chặn web người lớn, cờ bạc, bạo lực — Xem ›» (.luon) ở tab Chặn và danh sách Web. */
-export function HangLuonChan({ them }: { them?: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4, paddingLeft: 14, paddingRight: 12, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
-      <Icon3D ten="khoa" co={24} />
-      <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}><Chu kieu="rat" co={13}>Luôn chặn</Chu>{` web người lớn, cờ bạc, bạo lực${them ?? ""}`}</Chu>
-      <Pressable onPress={() => router.push("/web/luon-chan")} accessibilityRole="button" accessibilityLabel="Xem Luôn chặn" hitSlop={6} style={{ minHeight: 44, justifyContent: "center" }}>
-        <Chu kieu="rat" co={13} mau={M.chinhInk}>Xem ›</Chu>
-      </Pressable>
-    </View>
-  );
-}
-
 /** Nút tròn ＋ / ✓ (.c) của một dòng kết quả. */
 export const NutCong = ({ chon }: { chon: boolean }) => (
   <View style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#fff", ...KHOI.the }]}>

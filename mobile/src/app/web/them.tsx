@@ -109,7 +109,7 @@ export default function ThemWeb() {
         </>
       ) : !ngoai.length ? (
         <Chu kieu="dam" co={14} mau={M.chu3} style={{ marginHorizontal: 6 }}>
-          {muc.length >= 2 ? "Gõ đủ địa chỉ trang, vd tiktok.com." : `Gõ địa chỉ trang web ${d.ten} được vào. Web người lớn, cờ bạc, bạo lực luôn bị chặn.`}
+          {muc.length >= 2 ? "Gõ đủ địa chỉ trang, vd tiktok.com." : `Gõ địa chỉ trang web ${d.ten} được vào.`}
         </Chu>
       ) : null}
     </Man>
