@@ -21,14 +21,16 @@ internal sealed class ThoatForm : HopKhayCoBan
 
     /// <summary>Ba Mẹ gõ đúng mã — trạng thái mới từ dịch vụ (khay áp ngay, không chờ lượt hỏi 3 giây).</summary>
     public event Action<PipeResponse>? DaMo;
+    /// <summary>«Thôi, quay lại» — thiết kế nối về Hôm nay (cmt-hom-nay). Đóng bằng × / Esc thì chỉ đóng.</summary>
+    public event Action? QuayLai;
 
-    /// <param name="baoNgay">false = không gọi dịch vụ (công cụ chụp màn dựng thẳng).</param>
+    /// <param name="baoNgay">false = không gọi dịch vụ, không phủ tối màn (công cụ chụp màn agent-win/chup-man dựng thẳng).</param>
     public ThoatForm(bool baoNgay = true) : base("AiiGrow", UI.Px(560))
     {
         Flow.Padding = new Padding(UI.Px(40), UI.Px(28), UI.Px(40), UI.Px(24));
         KeyPreview = true;
         KeyDown += Phim;
-        Load += (_, _) => { try { _phu = new ManPhu(); _phu.Show(); BringToFront(); Activate(); } catch { _phu = null; } };
+        if (baoNgay) Load += (_, _) => { try { _phu = new ManPhu(); _phu.Show(); BringToFront(); Activate(); } catch { _phu = null; } };
         FormClosed += (_, _) => { try { _phu?.Close(); _phu?.Dispose(); } catch { } };
         Ve();
         if (baoNgay) Shown += async (_, _) => await BaoAsync();
@@ -93,9 +95,8 @@ internal sealed class ThoatForm : HopKhayCoBan
         Flow.Controls.Add(Giua(LockForm.VienGhi(chu, icon, cam), w, 14));
         var quay = KhoiCon.Nut(ThoatView.Quay, false, w, "nha", 64, 16.5f);
         quay.Margin = new Padding(0, UI.Px(24), 0, 0);
-        quay.Click += (_, _) => Close();
+        quay.Click += (_, _) => { Close(); QuayLai?.Invoke(); };
         Flow.Controls.Add(quay);
-        CancelButton = quay;
         Xong();
         ActiveControl = null;   // phím số vào hộp (KeyPreview), không vào nút đang có tiêu điểm
     }

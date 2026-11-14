@@ -19,7 +19,8 @@ public class Khop1411Tests
     public void Thoat_vien_bao_Ba_Me_theo_ket_qua()
     {
         Assert.Equal("Đang báo Ba Mẹ…", ThoatView.ChipBao(null, null).Chu);
-        Assert.Equal(("Ba Mẹ đã nhận thông báo", "chuong", false), ThoatView.ChipBao(true, "da_bao"));
+        Assert.Equal(("Ba Mẹ đã nhận thông báo", "chuong", true), ThoatView.ChipBao(true, "da_bao"));
+        Assert.False(ThoatView.ChipBao(null, null).Cam);
         var cho = ThoatView.ChipBao(true, "cho_mang");
         Assert.True(cho.Cam);
         Assert.Contains("Có mạng", cho.Chu);

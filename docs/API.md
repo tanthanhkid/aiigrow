@@ -708,3 +708,13 @@ Thay đổi theo THỜI GIAN (hết giờ chơi, tới giờ ngủ, hết hạn 
 | `GET nhat-ky?ca-nha=1[&con=][&ngay=7]` | «Nhật ký cả nhà» (màn `bm-bao-cao-ngay/04`): `{soNgay, ds[], ngoaiQuyTac: {so, theoNguoi[{ten, so}]}}`. `ds[]` = `{luc, ngay, con, tenCon, nguoi, tenNguoi, tieu, phu, nhan, kieu: "tot"\|"xau"\|"cho"\|"ngoai"\|"thuong"}` — câu đời thường dịch từ bảng `events` (ai cho giờ, ai duyệt, ai đổi cài đặt, con xin / nộp / đổi sao), mới trước, ≤200 dòng (chỉ loại sự kiện có câu — lọc trong SQL), `ngay` 1–30 (mặc định 7). «Ngoài quy tắc» = người lớn cho thêm giờ (`them_gio`) hoặc đồng ý lời xin như ngoại lệ (`ngoai_le` true, không trừ sao); đồng ý theo quy tắc (trừ sao) không tính; `hoan_tac_them_gio` trừ lại 1 lần — đếm trên cả cửa sổ, không phụ thuộc giới hạn danh sách. Không có `ca-nha=1` ⇒ `{ds}` sự kiện thô như cũ |
 
 Cột mới: `usage.dau_luc`, `web_nhat_ky.dau_luc` (timestamptz — giờ con bắt đầu dùng app / trang trong ngày; dòng có trước bản này để null). Agent gửi được `usage[].dauLuc` (đồng bộ máy) / `dauLuc` (lịch sử web), ISO, tuỳ chọn; không gửi ⇒ máy chủ lấy giờ nhận lần đầu nếu là dòng HÔM NAY (dòng ngày cũ gửi bù ⇒ null). Gửi lại nhiều lần giữ giờ SỚM nhất (`least`). Còn lệch: agent chưa gửi `dauLuc` ⇒ máy offline rồi có mạng lại thì giờ bắt đầu = lúc đồng bộ lại.
+
+## Khớp thiết kế 14/11 — phía Con (máy Windows / Mac) (`docs/thiet-ke-chot/DOI-1411.md`)
+- `GET /api/device/hoc-vien/tong-quan` thêm `chuoi: {soNgay, tuan: [{ngay: "YYYY-MM-DD", thu: 0 (CN)…6 (T7), co, bang}]}` — chuỗi ngày (như
+  `thanh-tich.chuoiNgay`) + 7 ô ngày gần nhất (cũ → hôm nay, giờ gia đình): `co` = ngày có ≥ 1 nhiệm vụ được duyệt, `bang` = ngày Ba Mẹ đóng băng.
+  Máy Con hiện «Giỏi lắm! N ngày liền» (con-ngay-thuong 25) khi chuỗi ≥ 2 và hôm nay có việc được duyệt, mỗi ngày một lần
+  (Windows: sau khi đóng «Ba Mẹ duyệt rồi!» bằng ×; Mac: thay bảng tin khi tin `duyet_nhiem_vu` tới). Lib: `server/lib/thanh-tich.ts › tuanChuoi`.
+- `POST /api/device/su-kien` nhận loại mới `con_muon_thoat` (`SU_KIEN_MAY` trong `server/lib/may-con.ts`) ⇒ cảnh báo `may_con_muon_thoat`,
+  mức `chu_y`: «Con muốn tắt / gỡ AiiGrow trên <máy> — cần mã của Ba Mẹ». Máy gửi khi Con mở «Thoát AiiGrow…» (Windows con-ngay-thuong 24,
+  Mac con-cai-mac 60); mất mạng thì vào hàng đợi sự kiện, cùng `ma` ⇒ máy chủ không báo lặp. Tắt / gỡ chỉ khi Ba Mẹ gõ mã mở máy 6 số
+  (`POST /api/device/ba-me-mo`, như «Ba Mẹ nhập mã») ⇒ «Ba Mẹ đang dùng máy».

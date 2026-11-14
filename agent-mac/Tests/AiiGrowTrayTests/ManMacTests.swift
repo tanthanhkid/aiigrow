@@ -78,4 +78,44 @@ final class ManMacTests: XCTestCase {
     let r = ManMac.nhomNhiemVu([nv("1", "du_hom_nay", cho: 1), nv("2", "san_sang"), nv("3", "dang_lam"), nv("4", "du_hom_nay")])
     XCTAssertEqual(r.choDuyet.map(\.id), ["1"]); XCTAssertEqual(r.chuaLam.map(\.id), ["2", "3"])
   }
+
+  /// 14/11 (con-cai-mac 60): «Thoát AiiGrow…» ⇒ «Cần mã của Ba Mẹ».
+  func testThoatCanMaBaMe() {
+    XCTAssertEqual(ThoatMac.menu, "Thoát AiiGrow…")
+    XCTAssertEqual(ThoatMac.tieu, "Cần mã của Ba Mẹ")
+    XCTAssertEqual(ThoatMac.phu, "Thoát hoặc gỡ AiiGrow phải có Ba Mẹ đồng ý.")
+    XCTAssertTrue(ThoatMac.hienMenu(tt("con")))
+    var chuaGhep = tt("con"); chuaGhep.daGhep = false
+    XCTAssertFalse(ThoatMac.hienMenu(chuaGhep))
+    var baMe = tt(nil); baMe.laPhienCon = false
+    XCTAssertFalse(ThoatMac.hienMenu(baMe), "tài khoản Ba Mẹ không có mục này")
+    XCTAssertEqual(ThoatMac.chipBao(ok: nil, status: nil).cam, false)
+    XCTAssertTrue(ThoatMac.chipBao(ok: true, status: "da_bao") == ("Ba Mẹ đã nhận thông báo", "bell", true))
+    XCTAssertTrue(ThoatMac.chipBao(ok: true, status: "cho_mang").chu.contains("Có mạng"))
+    XCTAssertTrue(ThoatMac.chipBao(ok: false, status: nil).cam)
+    XCTAssertTrue(ThoatMac.docBao(.thongBao(chu: "da_bao")) == (true, "da_bao"))
+    XCTAssertTrue(ThoatMac.docBao(.loi(ma: "khong_phai_con", chu: "x")) == (false, nil))
+    XCTAssertTrue(ThoatMac.docBao(nil) == (false, nil))
+  }
+
+  @MainActor
+  func testThoatModelGoDuMaLaGui() async {
+    var lenh: [YeuCauTray] = []
+    let m = ThoatModel(goi: { yc in
+      lenh.append(yc)
+      if case .baMeMo = yc { return .thongBao(chu: "Ba Mẹ đang dùng máy") }
+      return .thongBao(chu: "da_bao")
+    })
+    var daMo = false
+    m.daMo = { daMo = true }
+    await m.bao()
+    XCTAssertEqual(m.baoOk, true); XCTAssertEqual(m.baoStatus, "da_bao")
+    for c in "12a34" { m.bam(c) }
+    XCTAssertEqual(m.ma, "1234")
+    m.bam("\u{8}"); XCTAssertEqual(m.ma, "123")
+    m.ma = "123456"
+    await m.gui()
+    XCTAssertTrue(daMo)
+    XCTAssertEqual(lenh, [.baoThoat, .baMeMo(ma: "123456")])
+  }
 }

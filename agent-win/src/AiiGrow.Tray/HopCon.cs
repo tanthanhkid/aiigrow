@@ -14,6 +14,9 @@ internal sealed class KetQuaHop : HopKhayCoBan
     /// <summary>Con đã bấm một nút / liên kết của hộp (false = đóng bằng × / Esc) — khay dùng để nối màn sau theo thiết kế (× ⇒ màn khác).</summary>
     public bool DaBam { get; private set; }
 
+    /// <summary>Khay tự đóng hộp (đổi bé / máy khoá) — không coi là bấm ×, không nối màn sau (vd «Giỏi lắm!» của bé trước).</summary>
+    public void DongLang() { DaBam = true; Close(); }
+
     /// <summary>14/11 (con-ngay-thuong 25): Rob + số lớn («5») + chữ đậm («ngày liền!») + dòng phụ, canh giữa.</summary>
     public KetQuaHop Rob(string rob, string so, string chu, string? phu)
     {

@@ -655,6 +655,8 @@ public actor BoMay {
       return await roiMay(path: "dang-xuat")
     case .khoaLai:
       return await roiMay(path: "khoa-lai")
+    case .baoThoat:
+      return await baoThoat()
     case .hoSoDns:
       do { return .duLieu(json: String(decoding: try await api.hoSoDns(), as: UTF8.self)) }
       catch let e as LoiApi { return .loi(ma: e.ma ?? "dns_loi", chu: e.chu) }
@@ -787,6 +789,27 @@ public actor BoMay {
       return .thongBao(chu: lapLai ? "Đã báo Ba Mẹ rồi. Chờ Ba Mẹ đặt PIN mới nhé." : "Đã báo Ba Mẹ! Có PIN mới thì con nhập lại nhé.")
     } catch let e as LoiApi { return .loi(ma: e.ma ?? "quen_pin_loi", chu: BoMay.cauLoiCon(e)) }
     catch { return .loi(ma: "quen_pin_loi", chu: "Chưa báo được. Con thử lại nhé.") }
+  }
+
+  /// 14/11 (con-cai-mac 60 — FR-01.05, ngang agent-win PipeCmd.BaoThoat): Con mở «Cần mã của Ba Mẹ» ⇒ báo Ba Mẹ NGAY (sự kiện
+  /// `con_muon_thoat` ⇒ cảnh báo «chú ý» trên app Ba Mẹ). Mất mạng / máy chủ lỗi ⇒ vào hàng đợi sự kiện (vongNhatKy gửi khi có mạng; mã một lần nên
+  /// máy chủ không báo lặp). Không tắt / gỡ gì ở đây.
+  private func baoThoat() async -> TraLoi {
+    guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
+    let e = SuKienMay(loai: "con_muon_thoat", luc: dongHo(), chiTiet: ["may": heThong.tenMay(), "tu": "menu"])
+    do {
+      guard !matMang else { throw LoiApi(chu: "mất mạng") }
+      try await api.guiNhatKy("su-kien", NhatKyMay.thanSuKien([e]))
+      heThong.ghiLog("Con bấm «Thoát AiiGrow…»: đã báo Ba Mẹ.")
+      return .thongBao(chu: "da_bao")
+    } catch {
+      var q = cauHinh.hangDoiSuKien
+      NhatKyMay.them(&q, e)
+      cauHinh.hangDoiSuKien = q
+      _ = try? kho.sua { $0.hangDoiSuKien = q }
+      heThong.ghiLog("Con bấm «Thoát AiiGrow…»: chưa gửi được — đã lưu chờ mạng.")
+      return .thongBao(chu: "cho_mang")
+    }
   }
 
   /// «Ba Mẹ nhập mã»: có mạng ⇒ máy chủ; mất mạng ⇒ tự kiểm mã mở máy (biến thể 60 / 30 / 15 phút), một mã một lượt.

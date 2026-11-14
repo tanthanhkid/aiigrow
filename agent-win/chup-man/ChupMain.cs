@@ -154,6 +154,25 @@ internal static class ChupMain
         await Mot("ba-me-dung-may", () => ManHop("ba-me-dung-may", () => { var f = new BaMeDungForm(); f.Den(DateTimeOffset.Now.AddMinutes(28)); return f; }));
         await Mot("ba-me-nhap-ma-app", () => ManHop("ba-me-nhap-ma-app", () => new BaMeMaHop()));
         await Mot("doi-be", () => ManHop("doi-be", () => new DoiBeHop("Bảo Anh", false)));
+        // 14/11 (docs/thiet-ke-chot/DOI-1411.md): con-ngay-thuong 24 «Cần mã của Ba Mẹ» (menu khay «Thoát AiiGrow…») + 25 «Giỏi lắm! 5 ngày liền»
+        await Mot("thoat-can-ma", () => ManHop("thoat-can-ma", () =>
+        {
+            var f = new ThoatForm(false);
+            DatTruong(f, "_baoOk", (bool?)true);
+            DatTruong(f, "_baoStatus", "da_bao");
+            Goi(f, "Ve");
+            return f;
+        }));
+        await Mot("gioi-lam-chuoi", () => ManHop("gioi-lam-chuoi", () =>
+        {
+            // 5 ngày liền T6 → hôm nay (Thứ Ba 03/11), vừa lên Cấp 3 nhờ +10 sao
+            var tuan = Enumerable.Range(0, 7).Select(i => new HvNgayChuoi
+            {
+                Ngay = new DateOnly(2026, 11, 3).AddDays(i - 6).ToString("yyyy-MM-dd"), Thu = (2 + 7 + i - 6) % 7, Co = i >= 2,
+            }).ToList();
+            return new KetQuaHop("Giỏi lắm!").Rob("sao", "5", "ngày liền!", ChuoiView.Phu(5)).Tuan(tuan).Cap(3, true, 10)
+                .Nut("Tuyệt! Nhận 10 sao", true, "sao", null);
+        }));
 
         await Mot("khay-menu", ManMenuKhay);
         // Bóng báo khay («Còn 5 phút»…): runner Windows Server không hiện thông báo (đã thử, ảnh chỉ có màn nền) ⇒ không chụp được ở đây.

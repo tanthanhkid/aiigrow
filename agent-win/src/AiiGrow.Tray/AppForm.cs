@@ -617,7 +617,7 @@ internal sealed class AppForm : Form
         var r = Trong(_cw);
         c.Controls.Add(KhoiCon.Dau("canh_bao", KhoiCon.Mau.Cam, "AiiGrow bị trục trặc", "Không sao, máy vẫn giữ luật cũ.", r));
         var con = ConPhutHienTai();
-        c.Controls.Add(T((con is double p ? $"Còn {AppConView.Phut(p)} chơi · " : "") + "vẫn chặn app lạ.", 11.5f, true, Clay.Chu2, r));
+        c.Controls.Add(T((con is double p ? $"Còn {AppConView.Phut(p)} chơi · " : "") + "vẫn chặn app & web lạ.", 11.5f, true, Clay.Chu2, r));
         var bat = KhoiCon.Nut("Bật lại AiiGrow", true, r, "banhrang");
         bat.Click += (_, _) => { bat.Enabled = false; RetryClicked?.Invoke(); };
         c.Controls.Add(bat);

@@ -152,6 +152,12 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
     guard let r = mayChungTra[method + " " + path] else { throw LoiApi(chu: "mất mạng") }
     return try r.get()
   }
+  /// Log / sự kiện gửi lên (`su-kien`, `log`…) — `matMang` ⇒ lỗi mạng.
+  @Khoa var lanNhatKy: [(String, [String: Any])] = []
+  func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws {
+    if matMang { throw LoiApi(chu: "mất mạng") }
+    lanNhatKy.append((duong, than))
+  }
 }
 
 /// Đồng hồ điều khiển được cho test.

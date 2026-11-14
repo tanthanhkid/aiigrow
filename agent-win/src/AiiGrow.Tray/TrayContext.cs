@@ -377,6 +377,7 @@ internal sealed class TrayContext : ApplicationContext
             if (r.State != null) ApDungTrangThai(r.State);
             Toast(6000, ThoatView.DaMo, ThoatView.DaMoPhu, ToolTipIcon.Info, MucApp.HomNay);
         };
+        _thoat.QuayLai += () => OpenApp(MucApp.HomNay);
         _thoat.FormClosed += (_, _) => { _thoat?.Dispose(); _thoat = null; };
         _thoat.Show();
     }
@@ -564,7 +565,7 @@ internal sealed class TrayContext : ApplicationContext
         _tinMoi = 0;
         if (_app is { IsDisposed: false }) { _app.Hide(); _app.Dispose(); }
         _app = null;
-        if (_ketQua is { IsDisposed: false }) _ketQua.Close();
+        if (_ketQua is { IsDisposed: false }) _ketQua.DongLang();
         if (_nhac is { IsDisposed: false }) _nhac.Close();
         _warned5 = _warned1 = false;
         if (id != null) _ = HocVienTickAsync();

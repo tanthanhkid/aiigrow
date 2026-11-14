@@ -184,12 +184,12 @@ public static class ThoatView
     public const string DaMo = "Ba Mẹ đang dùng máy";
     public const string DaMoPhu = "AiiGrow tạm thôi giới hạn. Xong việc Ba Mẹ bấm «Khoá lại».";
 
-    /// <summary>Viên ghi dưới ô mã theo kết quả báo Ba Mẹ: null = đang báo; «da_bao» / «cho_mang» / lỗi. → (chữ, icon, cam).</summary>
+    /// <summary>Viên ghi dưới ô mã theo kết quả báo Ba Mẹ: null = đang báo (ngọc); «da_bao» / «cho_mang» / lỗi (cam — thiết kế «.ghi.cam»). → (chữ, icon, cam).</summary>
     public static (string Chu, string Icon, bool Cam) ChipBao(bool? ok, string? status) => ok switch
     {
         null => ("Đang báo Ba Mẹ…", "gui", false),
         true when status == "cho_mang" => ("Có mạng là Ba Mẹ nhận thông báo", "wifi", true),
-        true => ("Ba Mẹ đã nhận thông báo", "chuong", false),
+        true => ("Ba Mẹ đã nhận thông báo", "chuong", true),   // thiết kế 24 / Mac 60: viên «.ghi.cam» (cam nhạt)
         false => ("Chưa báo được Ba Mẹ", "canh_bao", true),
     };
 }

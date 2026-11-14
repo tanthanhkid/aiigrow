@@ -60,6 +60,9 @@ public enum YeuCauTray: Codable, Equatable {
   case dangXuat
   /// «Khoá lại» khi Ba Mẹ dùng xong ⇒ máy về màn chọn tên.
   case khoaLai
+  /// 14/11 (con-cai-mac 60 — FR-01.05): Con bấm «Thoát AiiGrow…» ⇒ daemon báo Ba Mẹ ngay (sự kiện `con_muon_thoat`, mất mạng thì vào
+  /// hàng đợi sự kiện). Trả `.thongBao("da_bao" | "cho_mang")`. Không tắt gì — tắt / gỡ chỉ khi Ba Mẹ gõ mã 6 số (`baMeMo`).
+  case baoThoat
 }
 
 /// Chế độ máy đang áp — cùng nghĩa với `mode` của server (tu_do / hoc / khoa).

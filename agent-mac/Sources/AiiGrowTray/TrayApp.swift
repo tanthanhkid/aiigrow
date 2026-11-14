@@ -41,6 +41,10 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   enum LoaiManToan: Equatable { case khong, chonTen, khoa }
   var loaiManHien: LoaiManToan = .khong
   var cuaSoBaMe: NSPanel?
+  // 14/11: «Thoát AiiGrow…» ⇒ «Cần mã của Ba Mẹ» (con-cai-mac 60); «Giỏi lắm! N ngày liền» sau tin duyệt (con-ngay-thuong 25, mỗi ngày một lần).
+  var cuaSoThoat: NSWindow?, cuaSoChuoi: NSWindow?
+  var ngayChuoi: String?
+  var chuoiDaBam = false
 
   func applicationDidFinishLaunching(_ n: Notification) {
     item = NSStatusItem.systemStatusItem
@@ -178,6 +182,10 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       muc("Kiểm tra cập nhật", #selector(kiemCapNhat))
       muc("Cài hồ sơ DNS gia đình…", #selector(caiHoSoDns))
     }
+    if ThoatMac.hienMenu(t), !model.matKetNoi {
+      muc(ThoatMac.menu, #selector(moThoat))      // thiết kế 14/11 (con-mat-mang 13, con-cai-mac 60): cần mã của Ba Mẹ
+      m.addItem(.separator())
+    }
     dong(TrayLogic.dongBanDangChay(t))
     dong(TrayLogic.dongDangBat)
     return m
@@ -191,6 +199,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   }
   /// Bé đang dùng đổi (vào / ra): bỏ dữ liệu của bé trước (sao, nhiệm vụ, tin, lời xin) — không hiện số của bé khác.
   func doiBeXong(moi t: TrangThai) {
+    if cuaSoChuoi != nil { chuoiDaBam = true; cuaSoChuoi?.close() }   // «Giỏi lắm!» của bé trước: đóng lặng, không mở app
     appCon.tq = nil; appCon.ch = nil; appCon.tin = nil; appCon.tinMoi = 0; appCon.phutChoi = nil
     appCon.viQua = nil; appCon.viQuaDaLuu = false; appCon.tenBe = t.beTen ?? t.tenCon ?? ""
     tinTheo = TinTracker(); xin.moi(); nhac = NhacGio()
@@ -225,6 +234,28 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     p.orderFrontRegardless()
     cuaSoBaMe = p
   }
+  /// «Thoát AiiGrow…» (14/11, con-cai-mac 60): một cửa sổ một lúc; mở là báo Ba Mẹ. Đúng mã ⇒ đóng + hỏi lại trạng thái
+  /// (bảng «Ba Mẹ đang dùng máy»); «Thôi, quay lại» ⇒ Hôm nay (thiết kế nối them-z86gsj81 = app Con · Hôm nay).
+  @objc func moThoat() {
+    if let w = cuaSoThoat { w.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
+    let m = ThoatModel()
+    m.daMo = { [weak self] in self?.cuaSoThoat?.close(); self?.hoi() }
+    hienCuaSo(&cuaSoThoat, "AiiGrow", ThoatMacView(m: m, quayLai: { [weak self] in self?.cuaSoThoat?.close(); self?.moApp(.homNay) }))
+    Task { await m.bao() }
+  }
+
+  /// Tin «Ba Mẹ duyệt» vừa tới: chuỗi ≥ 2 ngày và hôm nay chưa chúc ⇒ «Giỏi lắm!» (thay bảng tin). true = đã hiện.
+  func hienChuoi(vuaCong: Int) async -> Bool {
+    guard cuaSoChuoi == nil, let d = await appCon.hoi("GET", "hoc-vien/tong-quan").0, let tq = HvTongQuan.doc(d),
+          ChuoiView.nenHien(tq.chuoi, daHienNgay: ngayChuoi), let c = tq.chuoi else { return false }
+    ngayChuoi = c.tuan.last?.ngay
+    chuoiDaBam = false
+    hienCuaSo(&cuaSoChuoi, "AiiGrow · Giỏi lắm!", GioiLamView(chuoi: c, cap: tq.capDo.cap,
+      moiLen: ChuoiView.moiLenCap(tq.capDo, tongKiem: tq.tongKiem, vuaCong: vuaCong), sao: vuaCong,
+      tuyet: { [weak self] in self?.chuoiDaBam = true; self?.cuaSoChuoi?.close(); self?.moApp(.nhiemVu) }))
+    return true
+  }
+
   /// Giờ học: chỉ xin mở ngoại lệ (cả máy, có hạn).
   func moXinNgoaiLe() { cuaSoXin?.close(); cuaSoXin = nil; hien(&cuaSoXin, "AiiGrow · Xin mở ngoại lệ", XinThemCuaSo(tray: model, xin: xin, ngoaiLe: true)) }
   @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở trang hoặc app", XinMoView(tray: model, xin: xin)) }
@@ -312,6 +343,8 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       if batNv.nhan(coNvMoi: HocVienView.coNhiemVuMoi(moi), khoa: khoa, appDangHien: appDangHien, bayGio: Date()) {
         moApp(.nhiemVu)
       } else if !khoa {
+        // 14/11 (con-ngay-thuong 25): Ba Mẹ vừa duyệt + chuỗi ≥ 2 ngày ⇒ «Giỏi lắm! N ngày liền» thay bảng tin
+        if let duyet = moi.last(where: { $0.loai == "duyet_nhiem_vu" }), await hienChuoi(vuaCong: ChuoiView.saoTrongTin(duyet.noi)) { return }
         let (tieu, noi) = HocVienView.thongBaoTin(moi)
         baoTinMoi(tieu, noi, muc: HocVienView.mucChoTin(moi))
       }
@@ -385,6 +418,11 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       Task { @MainActor in
         if self?.cuaSoChoi === w { self?.cuaSoChoi = nil }
         if self?.cuaSoNop === w { self?.cuaSoNop = nil }
+        if self?.cuaSoThoat === w { self?.cuaSoThoat = nil }
+        if let self, self.cuaSoChuoi === w {
+          self.cuaSoChuoi = nil
+          if !self.chuoiDaBam { self.moApp(.homNay) }   // × ⇒ Hôm nay (thiết kế 25: .xa → cmt-hom-nay)
+        }
       }
     }
   }
