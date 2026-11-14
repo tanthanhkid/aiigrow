@@ -348,9 +348,10 @@ Chính sách chung (`chinh-sach.ts`, Android / iOS / DNS): `ungDung.cheDoChan`, 
 
 ### Thiết lập lần đầu (L7)
 
-`POST thiet-lap {con: {id?, ten, namSinh?, avatar?}, gioChoi?: {ngayThuong, cuoiTuan}, ngu?: {tu: "HH:MM", den: "HH:MM"}, cheDoChan?, apps?: [...]}` — một lệnh cho màn tên Con + Giờ chơi + Chọn app. Gửi lại với `con.id` ⇒ sửa, không tạo Con thứ hai. → `{conId, ten, cheDoChan, gioChoi{ngayThuong, cuoiTuan}, ngu{tu, den}, soApp, app{daDat, choKhop}}`. `GET con/:id/thiet-lap` → cùng tóm tắt (màn «Đã ghép máy» / «Xong rồi»).
+`POST thiet-lap {con: {id?, ten, namSinh?, avatar?}, gioChoi?: {ngayThuong, cuoiTuan}, ngu?: {tu: "HH:MM", den: "HH:MM"}, cheDoChan?, apps?: [...], web?: [{muc, tinhGio?} | "ten.com"]}` — một lệnh cho màn tên Con + Giờ chơi + Chọn app + Chọn web. Gửi lại với `con.id` ⇒ sửa, không tạo Con thứ hai. → `{conId, ten, cheDoChan, gioChoi{ngayThuong, cuoiTuan}, ngu{tu, den}, soApp, soWeb, app{daDat, choKhop}}`.
+**Web (thiết kế chốt 14/11, them-3xbscpzm / them-ubomxl31):** mỗi tên miền (dán cả link cũng được — máy chủ rút tên miền, bỏ `www.`) ⇒ luật `app_rules` của Con với `ten = muc`: `tinhGio` false/bỏ trống ⇒ `hoc` (xanh «Vào thoải mái», không trừ giờ chơi), true ⇒ `giai_tri` (vàng «Tính giờ»). Trang hệ thống luôn mở bỏ qua; trang nhóm luôn chặn ⇒ 409 `web_cam`; không phải tên miền ⇒ 400 `ten_mien_sai` (kiểm trước khi tạo Con). `soApp` không đếm luật web (`ten = muc`) — đếm ở `soWeb`. `GET con/:id/thiet-lap` → cùng tóm tắt (màn «Đã ghép máy» / «Xong rồi»).
 **Quỹ giờ chơi** lưu ở `children.cau_hinh`: `quy_ngay_thuong`, `quy_cuoi_tuan` (phút / ngày, 0–480 ở thiết lập; tham số mục 10 — S1 tính quỹ, xem mục «Thiết kế chốt 05/11 — sao, quỹ giờ chơi»). `ghep-may.ts` chép nguyên `cau_hinh`. Giờ ngủ ghi `children.lich.ngu`.
-Lỗi: `phut_sai`, `gio_sai`, `che_do_chan_sai`, `app_sai`. Nhánh «Tôi được mời vào nhà» không gọi đường này (xem `moi/cho-toi`, `moi/nhan`).
+Lỗi: `phut_sai`, `gio_sai`, `che_do_chan_sai`, `app_sai`, `ten_mien_sai`, `web_cam`. Nhánh «Tôi được mời vào nhà» không gọi đường này (xem `moi/cho-toi`, `moi/nhan`).
 
 ### Ghép máy (L8)
 
@@ -411,6 +412,8 @@ iPhone / Android — `hanMoCuaMay`, như mở khẩn cấp) và **thắng giờ 
 | `POST them-gio/:id/hoan-tac` | «Hoàn tác» trong 60 giây, đúng người cho (cả grant duyệt lời xin — lời xin về «chờ»). Quá hạn ⇒ 409 `het_hoan_tac` |
 | `GET nhiem-vu/bo` | bộ nhiệm vụ (Tự lập, Phụ việc nhà, Học tập, Khoẻ mạnh) ⇒ `{ds: [{ma, ten, tuoi, soViec, saoToiDaNgay, viec: [{ten, moTa, sao, bangChung, tuCham, lapLai, hinh, nhan, toiDaNgay}]}]}` |
 | `POST nhiem-vu/bo {bo, con?, chon?: [tên việc giữ tick]}` | «Giao N việc cho <Con>» ⇒ `{taoMoi, ids}`; việc trùng tên đã có / việc AiiRob tự chấm đã có thì bỏ qua. 400 `bo_sai` |
+| `GET nhiem-vu/kho` | kho việc màn «Một ngày của <Con>» (thiết kế chốt 14/11 bm1-ob-mau): Học 7 · Vận động 10 · Giúp Ba Mẹ 100 việc chia 10 chủ đề ⇒ `{chuDe: [{ten, e}], ds: [{ma, muc: hoc\|van_dong\|giup, chuDe, e, ten, sao, lon}]}` (`lon` = việc cho bé 12+). Kho viết sẵn ở `server/lib/kho-viec.ts` |
+| `POST nhiem-vu/kho {con, chon: [ma]}` | giao các việc Ba Mẹ chạm ＋ cho Con ⇒ `{taoMoi, ids}`: hằng ngày, 1 lượt/ngày; đọc sách nộp ghi âm, vận động bấm «Xong», việc khác nộp ảnh, AiiRob tự chấm (giao cả nhà, chỉ một việc). Tên > 60 ký tự rút gọn (bỏ ví dụ trong ngoặc), tên đủ ghi ở mô tả. Việc trùng tên đã có bỏ qua. 400 `thieu_viec`, `viec_sai` |
 | `POST nhiem-vu {…, hinh?, lap_lai?, gio_nhac?, giao_cho?: id \| id[]}` | «Thêm việc riêng»: `giao_cho` mảng ⇒ một việc mỗi Con ⇒ `{id, ids}`. `lap_lai`: `mot_lan \| hang_ngay \| ngay_thuong \| cuoi_tuan \| thu:1,3,5` (0 = CN; sai ⇒ 400 `lap_lai_sai`) · `gio_nhac` «HH:MM» (sai ⇒ `gio_nhac_sai`) · `hinh` mã hình ≤ 40 ký tự · `bang_chung`: `anh \| ghi_am \| xong` (bấm «Xong») `\| viet` (= `van_ban`) `\| tu_cham` (= `tu_dong`, AiiRob) · `tu_duyet` = «Tự cộng sao». Cũng nhận ở `POST nhiem-vu/:id` |
 | `POST luot/:id/lam-lai {lyDo?, loiNhan?}` | «Nhờ làm lại» ⇒ `{trangThai: "lam_lai"}`; Con chưa nhận sao, phải nộp bằng chứng MỚI rồi Ba Mẹ duyệt tiếp. Nhật ký `lam_lai_nhiem_vu` |
 | `GET luot/:id/bang-chung` | `{ds: [{id, mime, loai: anh \| ghi_am, base64, chupLuc}]}` (đường cũ `luot/:id/anh` vẫn trả mọi tệp) |

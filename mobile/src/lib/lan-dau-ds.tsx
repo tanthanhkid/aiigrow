@@ -141,3 +141,12 @@ export const tenMien = (t: string) => {
   const s = t.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").split(/[/?#\s]/)[0];
   return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(s) ? s : null;
 };
+
+/** Mục danh mục thuộc nhóm giải trí («Giải trí · Ba Mẹ cân nhắc») ⇒ tính vào giờ chơi (vàng «Tính giờ» — N3); nhóm khác dùng thoải mái. */
+export const tinhGioDm = (m: { nhom: string }) => m.nhom.startsWith("Giải trí");
+/** Danh mục chia nhóm theo thứ tự xuất hiện. */
+export function theoNhom<T extends { nhom: string; eN: string }>(ds: T[]) {
+  const ra: { nhom: string; eN: string; ds: T[] }[] = [];
+  for (const x of ds) { const n = ra.find((g) => g.nhom === x.nhom); if (n) n.ds.push(x); else ra.push({ nhom: x.nhom, eN: x.eN, ds: [x] }); }
+  return ra;
+}

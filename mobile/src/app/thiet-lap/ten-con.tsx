@@ -1,17 +1,25 @@
 // bm1-ob-ten-con (bước 1/5, thiết kế chốt 04/11 + PIN 06/11 L13): thẻ hồ sơ (chữ cái + màu + «9 tuổi · khoảng lớp 4»), tên gọi ở nhà, năm sinh, màu của con.
 // «Lưu hồ sơ X» ⇒ POST thiet-lap {con} (tạo Con; gửi lại có con.id ⇒ sửa, không tạo trùng) ⇒ Giao việc. «Thêm con khác» (them-4sujddkb):
 // lưu Con này rồi điền Con tiếp theo; màn Con thứ hai có «Xong, giao việc cho <Con đầu> trước». Bỏ chọn nhóm Nhí/Teen (máy chủ tự tính theo tuổi).
-// PIN 06/11 (đảo L5): «Mã PIN vào máy · 4 số» + «Nhập lại PIN» — bỏ trống = chưa đặt (máy hỏi Ba Mẹ đặt sau); có PIN ⇒ POST con/:id/pin sau khi lưu hồ sơ.
+// PIN 06/11 (đảo L5): «Mã PIN vào máy · 4 số» — bỏ trống = chưa đặt (máy hỏi Ba Mẹ đặt sau); có PIN ⇒ POST con/:id/pin sau khi lưu hồ sơ.
+// Thiết kế chốt 14/11 (bm1-ob-ten-con «Sửa tay», them-hjjdppuw, them-4sujddkb): thẻ hồ sơ «Bảo Anh · 🐓 9 tuổi» (con giáp theo năm sinh — N11),
+// ô năm sinh là nút mở bảng «Năm sinh» (bánh xe năm, «Chọn 2017»); PIN một ô (thiết kế bỏ «Nhập lại PIN» — PIN hiện số khi gõ nên không cần gõ lại).
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { BO_CLAY, BONG, KHOI, MEN } from "@/lib/clay";
-import { Anh3D, cauTuoi, DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
+import { Anh3D, BanhXe, DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { kiemPin } from "@/lib/s3";
 import { OPin, ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
-import { BaoLoi, Chu, chuTren, Icon, LopMen, M, Man, Nut, Rob, useLam } from "@/lib/ui";
+import { BangTruot, BaoLoi, Chu, chuTren, Icon, LopMen, M, Man, Nut, Rob, useLam } from "@/lib/ui";
+
+/** Con giáp theo năm sinh (âm lịch xấp xỉ theo năm dương — đủ cho thẻ hồ sơ): 2020 ⇒ Tý 🐭, 2017 ⇒ Dậu 🐓. */
+const GIAP = [["Tý", "🐭"], ["Sửu", "🐃"], ["Dần", "🐯"], ["Mão", "🐱"], ["Thìn", "🐲"], ["Tỵ", "🐍"], ["Ngọ", "🐴"], ["Mùi", "🐐"], ["Thân", "🐵"], ["Dậu", "🐓"], ["Tuất", "🐶"], ["Hợi", "🐷"]] as const;
+const conGiap = (nam: number) => GIAP[(((nam - 2020) % 12) + 12) % 12];
+/** Năm chọn được: bé 2–18 tuổi. */
+const namDs = () => { const y = new Date().getFullYear(); return Array.from({ length: 17 }, (_, k) => String(y - 18 + k)); };
 
 type KqThietLap = { conId: string; ten: string };
 
@@ -24,15 +32,16 @@ export default function ObCon() {
   const [mau, setMau] = useState(sua ? tl0.mau ?? 0 : (tl0.daLuu?.length ?? 0) % MAU_HO_SO.length);
   const [conId, setConId] = useState<string | undefined>(sua ? tl0.conId : undefined);
   const [pin, setPin] = useState("");
-  const [pin2, setPin2] = useState("");
+  const [chonNam, setChonNam] = useState<string | null>(null);      // bảng «Năm sinh» đang mở (giá trị đang xoay)
   const daLuu = (tl0.daLuu ?? []).filter((c) => c.id !== conId);
   const { lam, loi, dangChay, setLoi } = useLam();
   const namSo = /^\d{4}$/.test(nam) ? Number(nam) : null;
-  const tuoi = cauTuoi(namSo);
+  const tuoiSo = namSo ? new Date().getFullYear() - namSo : null;
+  const tuoi = tuoiSo && tuoiSo >= 1 && tuoiSo <= 25 ? `${tuoiSo} tuổi` : null;
   const tenGon = ten.trim();
-  const loiPin = kiemPin(pin, pin2, namSo);
-  // chỉ báo lỗi khi Ba Mẹ đã gõ xong ô nhập lại (hoặc PIN chưa đủ mà đã sang ô nhập lại) — không mắng lúc đang gõ
-  const hienLoiPin = !!loiPin && pin.length > 0 && (pin.length === 4 || pin2.length > 0);   // nút Lưu tắt thì luôn có câu nói vì sao
+  const loiPin = kiemPin(pin, null, namSo);
+  // chỉ báo lỗi khi đã gõ đủ 4 số (không mắng lúc đang gõ) — PIN dở dang thì nút Lưu tắt, câu dưới ô nói vì sao
+  const hienLoiPin = !!loiPin && pin.length > 0;
   const luu = async () => {
     const r = await bm.goi<KqThietLap>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, namSinh: namSo, avatar: `mau-${mau}` } });
     // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai
@@ -44,13 +53,13 @@ export default function ObCon() {
   const tiep = () => lam(async () => {
     const { r, ds } = await luu();
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
-      apps: undefined, cheDoChan: undefined, quy: undefined, cuoiTuan: undefined, ngu: undefined });
+      apps: undefined, webs: undefined, cheDoChan: undefined, quy: undefined, cuoiTuan: undefined, ngu: undefined });
     router.push("/thiet-lap/mau");
   });
   const themCon = () => lam(async () => {
     const { ds } = await luu();
     datTl({ daLuu: ds, conId: undefined });
-    setTen(""); setNam(""); setConId(undefined); setPin(""); setPin2(""); setMau(ds.length % MAU_HO_SO.length);
+    setTen(""); setNam(""); setConId(undefined); setPin(""); setMau(ds.length % MAU_HO_SO.length);
   });
   const conDau = daLuu[0];
   const [dam, nhat] = MAU_HO_SO[mau];
@@ -59,7 +68,7 @@ export default function ObCon() {
       day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || !!loiPin} bam={tiep} />
         {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => lam(async () => {
           if (tenGon) { if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
-          datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, cheDoChan: undefined, quy: undefined, cuoiTuan: undefined, ngu: undefined });
+          datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, webs: undefined, cheDoChan: undefined, quy: undefined, cuoiTuan: undefined, ngu: undefined });
           router.push("/thiet-lap/mau");
         })} />
           : <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />}</>}>
@@ -71,12 +80,24 @@ export default function ObCon() {
             <Chu kieu="rat" co={38} mau={chuTren(dam)}>{(tenGon.split(/\s+/).pop() ?? "").charAt(0).toUpperCase() || "?"}</Chu>
           </View>
           <Chu kieu="rat" co={22}>{tenGon || "Con nhà mình"}</Chu>
-          {tuoi ? <View style={{ backgroundColor: dam, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3 }}><Chu kieu="rat" co={12} mau={chuTren(dam)}>{tuoi}</Chu></View> : null}
+          {tuoi && namSo ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#fff", borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3, boxShadow: BONG.nho }}
+              accessibilityLabel={`${tuoi}, tuổi ${conGiap(namSo)[0]}, theo năm sinh ${namSo}`}>
+              <Chu co={13}>{conGiap(namSo)[1]}</Chu><Chu kieu="rat" co={12.5}>{tuoi}</Chu>
+            </View>
+          ) : null}
         </View>
         <View pointerEvents="none" style={{ position: "absolute", right: 6, bottom: 0, top: 6, width: "48%", alignItems: "flex-end", justifyContent: "flex-end" }}><Rob ten="chi" co={150} /></View>
       </View>
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Bảo Anh" maxLength={30} autoComplete="off" />
-      <OLom nhan="Năm sinh" value={nam} onChangeText={(t) => setNam(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="2017" />
+      <View style={{ gap: 6 }}>
+        <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Năm sinh</Chu>
+        <Pressable onPress={() => setChonNam(nam || String(new Date().getFullYear() - 9))} accessibilityRole="button" accessibilityLabel={`Chọn năm sinh của con${nam ? `, đang là ${nam}` : ""}`}
+          style={{ minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", paddingHorizontal: 18 }}>
+          <Chu kieu={nam ? "rat" : "dam"} co={16} mau={nam ? M.chu : M.chu3} so style={{ flex: 1 }}>{nam || "Chọn năm sinh"}</Chu>
+          <Icon ten="lich" mau={M.chu3} co={18} />
+        </Pressable>
+      </View>
       <View style={{ gap: 8 }}>
         <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Màu của con</Chu>
         <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }} accessibilityRole="radiogroup">
@@ -98,10 +119,15 @@ export default function ObCon() {
         </View>
         <OPin gia={pin} doi={setPin} nhan="Đặt PIN 4 số" />
         <Chu co={13} mau={M.chu2}><Chu kieu="rat" co={13}>Bé dùng PIN này để vào máy</Chu> · không dùng ngày sinh</Chu>
-        <Chu kieu="rat" co={14} style={{ marginTop: 4 }}>Nhập lại PIN</Chu>
-        <OPin gia={pin2} doi={setPin2} an nhan="Nhập lại PIN" />
         {hienLoiPin ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
       </View>
+      <BangTruot mo={chonNam !== null} dong={() => setChonNam(null)} tieu="Năm sinh">
+        <View style={{ alignItems: "center" }}>
+          <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 80, height: 40, borderRadius: 14, backgroundColor: "#e3efeb" }} />
+          {chonNam !== null ? <BanhXe ds={namDs()} gia={chonNam} doi={setChonNam} nhan="Năm sinh" /> : null}
+        </View>
+        <Nut chu={`Chọn ${chonNam ?? ""}`} rong bam={() => { if (chonNam) setNam(chonNam); setChonNam(null); }} />
+      </BangTruot>
     </Man>
   );
 }

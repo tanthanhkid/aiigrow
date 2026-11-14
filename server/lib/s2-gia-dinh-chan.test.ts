@@ -74,6 +74,16 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
   // tóm tắt cho màn «Đã ghép máy»
   assert.equal((await m(`con/${con}/thiet-lap`, { tok: bm })).body.gioChoi.ngayThuong, 60);
+  // thiết kế 14/11 «Web cho <Con>»: web Ba Mẹ chọn ⇒ luật web (Vào thoải mái = hoc · Tính giờ = giai_tri), đếm ở soWeb, không cộng vào soApp
+  const w = await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: [{ muc: "https://www.KhanAcademy.org/math" }, { muc: "poki.com", tinhGio: true }, "olm.vn", "olm.vn"] } });
+  assert.equal(w.status, 200, JSON.stringify(w.body));
+  assert.equal(w.body.soWeb, 3);
+  assert.equal(w.body.soApp, 4, "web không cộng vào số app");
+  const lw = await q<{ muc: string; loai: string; ten: string }>(`select muc, loai, ten from app_rules where child_id = $1 and muc in ('khanacademy.org','poki.com','olm.vn') order by muc`, [con]);
+  assert.deepEqual(lw.map((x) => [x.muc, x.loai, x.ten]), [["khanacademy.org", "hoc", "khanacademy.org"], ["olm.vn", "hoc", "olm.vn"], ["poki.com", "giai_tri", "poki.com"]]);
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: ["khong phai web"] } })).body.error, "ten_mien_sai");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Z" }, web: ["pornhub.com"] } })).body.error, "web_cam");
+  assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "web sai không để lại Con");
 });
 
 test("L8 phiên ghép: mã 6 số 10 phút + link bộ cài (không gắn loại máy) + QR + chia sẻ; máy mở link tự ghép ⇒ mã cũng hết dùng; «Đang chờ» thấy đã ghép", async () => {
