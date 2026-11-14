@@ -27,7 +27,7 @@ export type TenIcon = keyof typeof ICON;
 
 // ---------------------------------------------------------------- chữ, icon, mascot
 
-type Kieu = "thuong" | "dam" | "rat";
+type Kieu = "thuong" | "dam" | "rat" | "den";
 /** Tên miền (≥ 14 ký tự, đuôi toàn chữ cái như .com/.vn — không đụng số «1.000.000» hay mã «3f9a….c1d2…» để chép): chèn chỗ bẻ dòng vô hình (U+200B) sau mỗi
  *  dấu chấm — trong bong bóng hẹp dòng gãy ở «.» (và «-», trình duyệt / iOS tự bẻ sau gạch nối) thay vì cắt giữa chữ («scratch.mit.ed|u»). */
 const DUOI_TEP = /\.(pdf|png|jpe?g|webp|gif|heic|docx?|xlsx?|pptx?|zip|exe|apk|pkg|dmg|msi|txt|csv|json|md|html?)$/i;
@@ -114,10 +114,10 @@ export function CanhGiua({ lv, tieu, loi, children }: { lv: LinhVat; tieu: strin
   return (
     <View style={{ flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 8, paddingHorizontal: 12 }}>
       <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: "62%", maxWidth: 260, aspectRatio: 1 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
-      <View style={[s.bong, { maxWidth: 310, alignItems: "center", paddingHorizontal: 18 }]}>
-        <Chu kieu="rat" co={20} style={{ textAlign: "center" }}>{tieu}</Chu>
-        {loi ? <Chu co={15} mau={M.chu2} style={{ marginTop: 4, textAlign: "center" }}>{loi}</Chu> : null}
-        <View style={s.duoiBongTren} />
+      {/* thiết kế 14/11 (màn kết quả / trống: «Duyệt hết rồi!», «+10 sao cho Bảo Anh!»): tiêu đề to giữa màn 26 ExtraBold + một câu — không bong bóng thoại */}
+      <View style={{ maxWidth: 330, alignItems: "center", gap: 6 }}>
+        <Chu kieu="den" co={26} style={{ textAlign: "center", letterSpacing: -0.6 }}>{tieu}</Chu>
+        {loi ? <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center" }}>{loi}</Chu> : null}
       </View>
       {children ? <View style={{ alignSelf: "stretch", alignItems: "center", gap: 8 }}>{children}</View> : null}
     </View>
@@ -138,8 +138,9 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
  *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ quá dài
  *  thì «…» ở cuối — không co chữ (người chọn cỡ chữ lớn phải được chữ lớn, WCAG 1.4.4), không cắt nửa chữ, không đẩy nút bên cạnh.
  *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên. */
-export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc }: {
+export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat }: {
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
+  /** đệm ngang hẹp (12) — hai nút chia đôi một thẻ (Trang chủ «Khoá máy» / «Cho thêm giờ») giữ chữ một dòng như thiết kế */ sat?: boolean;
 }) {
   const m = MAU_NUT[loai];
   const mo = tat || dangChay;
@@ -147,13 +148,13 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
   return (
     <NhanMen onPress={bam} disabled={mo} accessibilityRole="button" muc="nut" sang={m.sang || !!tat} men={tat ? undefined : m.men}
       accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
-      style={[s.nut, nho && s.nutNho, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
+      style={[s.nut, nho && s.nutNho, sat && { paddingHorizontal: 12 }, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
         tat ? { backgroundColor: "#dcdcd8", boxShadow: BONG.lom } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
           <Text numberOfLines={rong ? 2 : 1} ellipsizeMode="tail"
-            style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
+            style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.den, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
         </View>
       )}
     </NhanMen>
@@ -199,9 +200,17 @@ export const DiemPill = ({ n }: { n: number }) => (
 
 const MAU_BT = { xanh: [M.chinhSoft, M.chinhInk], vang: [M.diemSoft, M.diemInk], do: [M.loiSoft, M.loi], cam: [M.canhSoft, M.canh], lam: [M.lamSoft, M.lam], tim: [M.timSoft, "#4b3cc4"], xam: [M.xamSoft, M.chu2] } as const;
 export type MauBt = keyof typeof MAU_BT;
-/** Viên clay tròn chứa icon minh hoạ 3D (Fluent Emoji). `co` tuỳ chọn cho viên to hơn (ô lớn màn Con). */
+/** Nền ô icon lõm (thiết kế chốt 14/11 `.ic`): xám #ecebe7, các biến thể màu thiết kế dùng (cam #f3d6b8, đỏ #f6e3df, vàng #f6dc95). */
+const NEN_IC: Record<MauBt, string> = { xanh: "#ecebe7", xam: "#ecebe7", lam: "#ecebe7", tim: "#ecebe7", vang: "#f6dc95", cam: "#f3d6b8", do: "#f6e3df" };
+/** Ô icon minh hoạ 3D (Fluent Emoji). Cỡ thường = ô LÕM vuông bo 14, 40×40, icon 24 — `.ic` của mọi màn Ba Mẹ thiết kế 14/11 (trước đây là viên
+ *  tròn phồng 44 màu nhạt ⇒ lệch rõ ở mọi danh sách trên iOS). `lon` / `co` (ô lớn màn Con, màn kết quả) giữ viên clay tròn. */
 export const BieuTron = memo(function BieuTron({ ic, mau = "xanh", lon, co }: { ic: TenIcon; mau?: MauBt; lon?: boolean; co?: number }) {
-  const d = co ?? (lon ? 56 : 44);
+  if (!lon && !co) return (
+    <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: NEN_IC[mau], boxShadow: BONG.lom }}>
+      <Icon3D ten={ic} co={24} mau={MAU_BT[mau][1]} />
+    </View>
+  );
+  const d = co ?? 56;
   return (
     <View style={[s.bieuTron, { width: d, height: d, borderRadius: d / 2, backgroundColor: MAU_BT[mau][0], backgroundImage: mau === "xam" ? MEN.sang : MEN.vien }, KHOI.nho]}>
       <Icon3D ten={ic} co={Math.round(d * 0.6)} mau={MAU_BT[mau][1]} />
@@ -291,9 +300,10 @@ export function Chips<T extends string | number>({ ds, chon, doi }: { ds: { gia:
       {ds.map((x) => {
         const c = chon.includes(x.gia);
         return (
-          <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="checkbox" accessibilityState={{ checked: c }} muc="chip" sang men={c ? undefined : MEN.sang}
-            style={[s.chip, c && { borderColor: M.chinh, backgroundColor: "#eef5f2" }]}>
-            <Text numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: "100%", fontFamily: F.dam, fontSize: 14.5, color: c ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
+          // chip đã chọn = viên ngọc đặc chữ trắng (thiết kế 14/11: «T2…T6» Giờ học, «Mỗi ngày» Tự đặt việc, «Còn bừa một chỗ» Nhờ làm lại)
+          <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="checkbox" accessibilityState={{ checked: c }} muc="chip" sang={!c} men={c ? MEN.ngoc : MEN.sang}
+            style={[s.chip, c && { backgroundColor: M.chinh, boxShadow: BONG.ngoc }]}>
+            <Text numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: "100%", fontFamily: F.rat, fontSize: 14.5, color: c ? "#fff" : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
           </NhanMen>
         );
       })}
@@ -392,7 +402,7 @@ export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string
   return (
     <Pressable onPress={() => ref.current?.focus()} accessibilityLabel={nhan} style={{ flexDirection: "row", gap: 6, justifyContent: "center" }}>
       {Array.from({ length: 6 }, (_, k) => (
-        <View key={k} style={[s.ma6, k === Math.min(gia.length, 5) && s.oDang]}><Chu kieu="rat" co={24} so>{gia[k] ?? ""}</Chu></View>
+        <View key={k} style={[s.ma6, k === Math.min(gia.length, 5) && s.ma6Dang]}><Chu kieu="rat" co={24} so>{gia[k] ?? ""}</Chu></View>
       ))}
       <TextInput ref={ref} value={gia} onChangeText={(t) => doi(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" autoComplete="one-time-code"
         textContentType="oneTimeCode" maxLength={6} accessibilityLabel={nhan} autoFocus
@@ -431,26 +441,30 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
   const ve = () => (lui?.bam ? lui.bam() : lui?.ve ? router.replace(lui.ve as never) : router.canGoBack() ? router.back() : router.replace("/"));
   // Nút chat Grow nằm TRONG hàng tiêu đề (cạnh tiêu đề lớn, hoặc góc phải thanh đầu) — không nổi đè nội dung / nút khi cuộn (TestFlight build 6).
   const nutChat = chat ? <NutChat /> : null;
-  const chatTrenDau = !!nutChat && !tieuLon;
-  const phaiDau = !tieuLon && phaiTieu ? phaiTieu : null;          // không có tiêu đề lớn ⇒ nút của hàng tiêu đề lên thanh đầu, không rơi mất
-  const dauMan = lui || tieu || phai || chatTrenDau || phaiDau ? (
+  // Thiết kế chốt 14/11 (.top của mọi màn con bm-*): mũi tên lùi 44 (icon 24 ngọc đậm, KHÔNG kèm chữ — chữ cũ chỉ còn là nhãn đọc màn hình),
+  // tiêu đề CANH TRÁI cạnh mũi tên, 22 ExtraBold, giãn chữ −0,4; hàng cao 56 dưới thanh trạng thái. Màn con có `tieuLon` (vd «Nhật ký cả nhà»)
+  // ⇒ tiêu đề lên hàng này (thiết kế không có tiêu đề lớn thứ hai dưới mũi tên).
+  const tieuDau = tieu ?? (lui && tieuLon ? tieuLon : undefined);
+  const lonRieng = tieuLon && !(lui && !tieu) ? tieuLon : undefined;
+  const chatTrenDau2 = !!nutChat && !lonRieng;
+  const phaiDau2 = !lonRieng && phaiTieu ? phaiTieu : null;
+  const dauMan = lui || tieuDau || phai || chatTrenDau2 || phaiDau2 ? (
     <View style={s.dau}>
       {lui ? (
-        <Pressable onPress={ve} accessibilityRole="button" accessibilityLabel={lui.chu} hitSlop={6} style={s.lui}>
-          <Icon ten="trai" mau={M.chinhInk} />
-          <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 16, color: M.chinhInk }}>{lui.chu}</Text>
+        <Pressable onPress={ve} accessibilityRole="button" accessibilityLabel={lui.chu || "Quay lại"} hitSlop={6} style={s.lui}>
+          <Icon ten="trai" mau={M.chinhInk} co={24} />
         </Pressable>
       ) : null}
-      {/* tiêu đề giữa chỉ đệm phải (cân với nút lùi) khi bên phải trống — có nút phải mà vẫn đệm 44 thì tiêu đề bị bóp còn «Thôn…» */}
-      {tieu ? <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, textAlign: "center", fontFamily: F.rat, fontSize: 17, color: M.chu, paddingRight: lui && !phai && !chatTrenDau && !phaiDau ? 44 : 0 }}>{tieu}</Text> : <View style={{ flex: 1 }} />}
-      {phai || chatTrenDau || phaiDau ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center" }}>{phai}{phaiDau}{chatTrenDau ? nutChat : null}</View> : null}
+      {tieuDau ? <Text numberOfLines={1} accessibilityRole="header" style={{ flex: 1, minWidth: 0, fontFamily: F.den, fontSize: 22, lineHeight: 28, letterSpacing: -0.4, color: M.chu,
+        paddingLeft: lui ? 2 : 8 }}>{tieuDau}</Text> : <View style={{ flex: 1 }} />}
+      {phai || chatTrenDau2 || phaiDau2 ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center", paddingRight: 4 }}>{phai}{phaiDau2}{chatTrenDau2 ? nutChat : null}</View> : null}
     </View>
   ) : null;
   const than = (
     <>
-      {tieuLon ? (
+      {lonRieng ? (
         <View style={s.hangTieu}>
-          <Text style={[s.tieuLon, { flex: 1 }]} accessibilityRole="header">{tieuLon}</Text>
+          <Text style={[s.tieuLon, { flex: 1 }]} accessibilityRole="header">{lonRieng}</Text>
           {phaiTieu}
           {nutChat}
         </View>
@@ -496,7 +510,7 @@ export function BongChat({ toi, noiDung, luc, style }: { toi?: boolean; noiDung:
 export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t: string) => void; gui: () => void; dangChay?: boolean; nhan: string }) {
   const co = !!gia.trim();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, borderRadius: 26, paddingLeft: 16, minHeight: 52, boxShadow: BONG.lom }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#e9e8e4", borderRadius: 26, paddingLeft: 18, minHeight: 52, boxShadow: BONG.lom }}>
       <TextInput value={gia} onChangeText={doi} placeholder="Nhập tin nhắn…" placeholderTextColor={M.chu3} multiline maxLength={1000} accessibilityLabel={nhan}
         style={{ flex: 1, fontFamily: F.thuong, fontSize: 16, color: M.chu, paddingVertical: 12, maxHeight: 120 }} />
       <NhanMen onPress={gui} disabled={!co || dangChay} accessibilityRole="button" accessibilityLabel="Gửi" sang={!co} men={co ? MEN.ngoc : MEN.vien}
@@ -730,19 +744,20 @@ export const Z = { base: 0, sticky: 10, dropdown: 20, modal: 30, toast: 40 } as 
 
 const s = StyleSheet.create({
   than: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24, gap: 12 },
-  dau: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingTop: 2, minHeight: 48 },
-  lui: { flexDirection: "row", alignItems: "center", gap: 2, minHeight: 44, paddingHorizontal: 6 },
-  tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 30, lineHeight: 34, fontFamily: F.rat, color: M.chu, letterSpacing: -0.6 },
+  dau: { flexDirection: "row", alignItems: "center", gap: 2, paddingHorizontal: 8, minHeight: 56 },
+  lui: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  // tiêu đề tab (thiết kế .top h1): 28 ExtraBold, giãn −0,6
+  tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 28, lineHeight: 34, fontFamily: F.den, color: M.chu, letterSpacing: -0.6 },
   bongChat: { paddingVertical: 10, paddingLeft: 16, paddingRight: 18, borderRadius: 22, maxWidth: "78%" },   // phải 18: web bẻ dòng giữ dấu cách cuối dòng (~4 px) trong khung chữ ⇒ chữ vẫn cách mép ≥ 12
   hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },
   day: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24, gap: 8, backgroundColor: M.nen },
   canh: { position: "relative", borderRadius: BO_CLAY.the, padding: 18, marginBottom: 26, flexDirection: "row", alignItems: "center", boxShadow: BONG.the },
   bong: { position: "relative", zIndex: 3, backgroundColor: "#fff", borderRadius: 24, paddingVertical: 14, paddingHorizontal: 16, maxWidth: "56%", boxShadow: BONG.nho },
   duoiBong: { position: "absolute", right: -6, top: "50%", marginTop: -8, width: 16, height: 16, backgroundColor: "#fff", transform: [{ rotate: "45deg" }], borderRadius: 3 },
-  duoiBongTren: { position: "absolute", top: -7, left: "50%", marginLeft: -8, width: 16, height: 16, backgroundColor: "#fff", transform: [{ rotate: "45deg" }], borderRadius: 3 },
   canhRob: { position: "absolute", right: -4, bottom: -34, aspectRatio: 1, zIndex: 2 },
-  nut: { minHeight: 52, paddingHorizontal: 20, borderRadius: BO_CLAY.nut, alignItems: "center", justifyContent: "center" },
-  nutNho: { minHeight: 44, paddingHorizontal: 15, borderRadius: BO_CLAY.nutNho },
+  // nút viên thuốc (thiết kế .nut 14/11: cao 52–58, bo tròn hết, chữ 800)
+  nut: { minHeight: 54, paddingHorizontal: 20, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  nutNho: { minHeight: 44, paddingHorizontal: 15, borderRadius: 22 },
   the: { backgroundColor: M.the, borderRadius: BO_CLAY.the, ...KHOI.the },
   theLe: { padding: 16 },
   nhan: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", flexShrink: 1, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, alignSelf: "flex-start" },
@@ -763,10 +778,12 @@ const s = StyleSheet.create({
   bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 16, borderRadius: BO_CLAY.vien },
   dauTd: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   oSo: { padding: 16, borderRadius: BO_CLAY.o, backgroundColor: "#fff", gap: 4, flexGrow: 1, minWidth: 140, ...KHOI.the },
-  o: { backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.oNhap, borderRadius: 18, paddingHorizontal: 14, minHeight: 52, fontSize: 16, fontFamily: F.thuong, color: M.chu, boxShadow: BONG.lom },
-  oDang: { borderColor: M.chinh, shadowColor: M.chinh, shadowOpacity: 0.16, shadowRadius: 4, shadowOffset: { width: 0, height: 0 } },
+  // ô nhập LÕM (thiết kế chốt 14/11 `.lom`: nền xám ấn lõm, bo tròn hết, không viền; đang gõ ⇒ viền ngọc 2) — cùng kiểu OLom (lib/lan-dau)
+  o: { backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", borderRadius: 27, paddingHorizontal: 18, minHeight: 54, fontSize: 17, fontFamily: F.dam, color: M.chu, boxShadow: BONG.lom },
+  oDang: { borderColor: M.chinh },
   oSai: { borderColor: M.loi },
-  ma6: { width: 42, height: 54, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1.5, borderColor: M.vien2, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
+  ma6: { width: 46, height: 56, borderRadius: 16, backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
+  ma6Dang: { backgroundColor: "#f7f6f3", borderColor: M.chinh },
   chat: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#fff", ...KHOI.nho },
   chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },
   chatCham: { position: "absolute", right: -1, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: M.chinh, borderWidth: 2, borderColor: "#fff" },

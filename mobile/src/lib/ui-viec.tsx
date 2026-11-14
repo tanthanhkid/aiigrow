@@ -13,8 +13,9 @@ const chuCai = (ten: string) => (ten.trim().split(/\s+/).pop() ?? "?").charAt(0)
  * Dải các con (thiết kế .cac-con): avatar tròn 56, tên dưới, con đang chọn có vòng ngọc, số việc chờ (cam) góc trên.
  * Nhà 1 con thì gọi chỗ khác không vẽ dải này (N9: chỉ hiện chọn con khi > 1 con).
  */
-export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so }: {
+export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, them }: {
   ds: T[]; chon?: string | null; doi?: (c: T) => void; /** số việc chờ theo id con */ so?: Record<string, number>;
+  /** dòng nhỏ dưới tên theo id con (Trang chủ: «còn 18′») */ phu?: Record<string, string>; /** ô «＋ Thêm con» cuối dải */ them?: () => void;
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 6, paddingRight: 8 }} accessibilityRole="tablist">
@@ -33,10 +34,19 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
                 </View>
               ) : null}
             </View>
-            <Chu kieu="rat" co={13} mau={on ? M.chinhInk : M.chu2} dong={1}>{x.ten}</Chu>
+            <Chu kieu={on ? "den" : "rat"} co={13} mau={on ? M.chinhInk : M.chu2} dong={1}>{x.ten}</Chu>
+            {phu?.[x.id] ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1} style={{ marginTop: -5 }}>{phu[x.id]}</Chu> : null}
           </Pressable>
         );
       })}
+      {them ? (
+        <Pressable onPress={them} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: 72, alignItems: "center", gap: 5 }}>
+          <View style={{ margin: 6, width: 50, height: 50, borderRadius: 25, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+            <Icon ten="cong" mau={M.chinhInk} co={22} />
+          </View>
+          <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>Thêm con</Chu>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }

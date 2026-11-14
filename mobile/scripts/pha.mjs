@@ -472,10 +472,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
-    M("bm-trang", "/hom-nay", "còn chơi 18 phút"),
+    M("bm-trang", "/hom-nay", "Còn 18 phút chơi"),
     M("bm-trang (trống)", "/hom-nay", "Chưa có con nào", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] } } }),
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
-    M("bm-trang (bảng khoá máy)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy con"); await bam("Khoá máy con"); } }),
+    M("bm-trang (bảng khoá máy)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy"); } }),
     M("bm-trang (bảng thêm giờ)", "/hom-nay", "chỉ tính hôm nay", { truoc: async () => { await di("/hom-nay"); await doi("Cho thêm giờ"); await bam("Cho thêm giờ"); } }),
     M("bm-trang (đang khoá)", "/hom-nay", "đang khoá", { kb: { "GET con/c1": { ...conCt("c1", KEN), cheDoChan: "chi_app_duoc_phep", khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
     M("bm-trang (giờ ngủ)", "/hom-nay", "đang giờ ngủ", { kb: { "GET con/c1/quy": { quy: quyGia(0, 60, { dangNgu: true }), sao: 145, ngoaiLe: [] } } }),
@@ -629,7 +629,7 @@ const choGoi = async (dk, ms = 6000) => { for (let t = 0; t < ms; t += 100) { if
 const coChon = async (chon, ms = 6000) => { for (let t = 0; t < ms; t += 250) { if (await js(`!!document.querySelector(${JSON.stringify(chon)})`)) return true; await sleep(250); } return false; };
 
 // ---- khối A (fork A): kịch bản luồng nhóm A theo thiết kế chốt 05/11 (cần bamChon / choGoi / coChon định nghĩa TRƯỚC khối này)
-const HOM_NAY_TAI = `${KEN} còn chơi 18 phút`;     // thẻ đầu Trang chủ «Hôm nay» (quỹ giờ chơi — con/c1/quy)
+const HOM_NAY_TAI = "Còn 18 phút chơi";     // thẻ đầu Trang chủ «Hôm nay» (quỹ giờ chơi — con/c1/quy)
 
 await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào bước 1 thiết lập (tên con)", async () => {
   await dangKyToiOtp();
@@ -911,7 +911,7 @@ await kichBan("Web ⇒ trang Ba Mẹ chặn cả nhà (tiktok.com) ⇒ «Gỡ ch
 
 await kichBan("Hôm nay ⇒ «Khoá máy con» mở bảng «Khoá máy <Con>?» liệt kê máy + «Khoá bao lâu?» ⇒ khoá ⇒ báo + Hoàn tác mở lại (thiết kế 14/11 bm-hang-ngay/05)", async () => {
   await di("/hom-nay");
-  await doi("Khoá máy con"); await bam("Khoá máy con");
+  await doi("Khoá máy"); await bam("Khoá máy");
   xet(await doi(`Khoá máy ${KEN}?`), "mở bảng «Khoá máy <Con>?»");
   xet(await doi("Đang tắt · khoá khi máy mở lên"), "bảng liệt kê máy + trạng thái (máy tắt khoá khi mở lên)");
   xet(await doi("Khoá bao lâu?"), "chọn khoá bao lâu");
@@ -935,7 +935,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   xet(await doi(`Duyệt · ${KEN} nhận 10 sao`), "việc vừa làm xong mở THẲNG màn bằng chứng (nút duyệt nói rõ số sao)");
   // Bill: lời xin thêm giờ là mục gấp nhất
   await di("/hom-nay");
-  await doi("Khoá máy con");
+  await doi("Khoá máy");
   await bam(BILL);
   xet(await doi("Thêm 15 phút chơi"), "chọn Bill ⇒ lời xin thêm giờ có tiêu đề rõ số phút");
   xet(await doi("«Con đang xây dở nhà»"), "hiện lời nhắn của con");
@@ -947,7 +947,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   await bam("Hoàn tác");
   xet(await choGoi((x) => x.d === "them-gio/g2/hoan-tac"), "Hoàn tác ⇒ gọi them-gio/:grant/hoan-tac");
   await di("/hom-nay");
-  await doi("Khoá máy con");
+  await doi("Khoá máy");
   await bam(BILL);
   await doi("Thêm 15 phút chơi");
   nhatKy.length = 0;
@@ -957,7 +957,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   // lời xin ngoại lệ một app (Mở YouTube) là mục gấp nhất ⇒ phải «Xem rồi cho», không cho mù một chạm
   kb["GET cho-duyet"] = { ...coBan["GET cho-duyet"], yeuCau: coBan["GET cho-duyet"].yeuCau.filter((y) => y.id === "y3") };
   await di("/hom-nay");
-  await doi("Khoá máy con");
+  await doi("Khoá máy");
   await bam(BILL);
   xet(await doi("Mở YouTube 30 phút"), "lời xin ngoại lệ một app có tiêu đề rõ app + phút");
   nhatKy.length = 0;
@@ -969,11 +969,11 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
 
 await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm được + cuộn được (TestFlight build 10: Trang chủ đứng)", async () => {
   await di("/hom-nay");
-  xet(await doi("Khoá máy con"), "Hôm nay đã tải");
+  xet(await doi("Khoá máy"), "Hôm nay đã tải");
   // màn đang mở = chữ đặc trưng của tab nằm trong khung nhìn (màn tab khác vẫn gắn nhưng trượt ra ngoài / ẩn)
   // (lỗi gốc chỉ có ở bản native — react-native-screens + native driver; web không tái hiện được, kịch bản này giữ hành vi đổi tab ở web.)
   const tab = (t) => `[role="tab"][aria-label^="${t}"]`;
-  const DAU = { "Hôm nay": "Khoá máy con", "Nhiệm vụ": "Việc mỗi ngày", "Báo cáo": "Sao và giờ thêm", "Cả nhà": "Người lớn trông con" };
+  const DAU = { "Hôm nay": "Khoá máy", "Nhiệm vụ": "Việc mỗi ngày", "Báo cáo": "Sao và giờ thêm", "Cả nhà": "Người lớn trông con" };
   const dangMo = async (t) => { for (const het = Date.now() + 5000; Date.now() < het;) {
     if (await js(`[...document.querySelectorAll("div,span")].some((e) => e.innerText?.trim().startsWith(${JSON.stringify(DAU[t])}) && e.children.length <= 1 && (() => { const b = e.getBoundingClientRect();
       return b.width > 0 && b.left >= 0 && b.right <= innerWidth + 1 && b.top < innerHeight && b.bottom > 0 && document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2) !== null && e.contains(document.elementFromPoint(b.x + b.width / 2, Math.min(b.y + b.height / 2, innerHeight - 1))); })())`)) return true;
@@ -990,7 +990,7 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   xet(await doi("Thêm 15 phút chơi"), "bấm chip Bill ⇒ hiện lời xin của Bill");
   // cuộn: lăn chuột giữa màn ⇒ khung cuộn của Hôm nay phải đổi vị trí
   const khung = `(() => [...document.querySelectorAll("div")].filter((e) => e.scrollHeight > e.clientHeight + 40 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)
-    && e.innerText.includes("Khoá máy con") && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
+    && e.innerText.includes("Khoá máy") && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
   await js(`${khung}?.scrollTo(0, 0)`); await sleep(200);
   const dau = await js(`${khung}?.scrollTop ?? -1`);
   await goi("Input.dispatchMouseEvent", { type: "mouseWheel", x: 195, y: 420, deltaX: 0, deltaY: 500 });
@@ -1033,7 +1033,7 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
 
 await kichBan("Hôm nay: thẻ «còn chơi X phút» (quỹ) + «Cho thêm giờ» bảng trượt ⇒ cộng quỹ + Hoàn tác; đang chơi; app mới chờ xếp; không chữ cũ", async () => {
   await di("/hom-nay");
-  xet(await doi(`${KEN} còn chơi 18 phút`), "thẻ đầu: «<Con> còn chơi N phút» theo quỹ hôm nay");
+  xet(await doi("Còn 18 phút chơi"), "thẻ đầu: «Còn N phút chơi» theo quỹ hôm nay");
   xet((await chu()).includes("trong 60 phút hôm nay"), "ghi tổng quỹ hôm nay");
   xet((await chu()).includes("Roblox · Laptop"), "dòng con đang làm gì (app đang chơi · máy)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }

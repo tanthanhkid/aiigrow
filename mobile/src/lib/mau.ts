@@ -26,5 +26,7 @@ export const BO = { nho: 12, vua: 18, the: 24 } as const;
 /** Inter. iOS gọi theo tên PostScript trong tệp font nhúng (Inter-Regular…); Android theo tên tệp trong assets/fonts (plugin expo-font);
  * web theo tên @font-face mà useFonts đặt (phong-chu.web.ts). Cả ba trỏ cùng ba tệp của @expo-google-fonts/inter ⇒ chữ y hệt. */
 export const F = Platform.OS === "ios"
-  ? ({ thuong: "Inter-Regular", dam: "Inter-SemiBold", rat: "Inter-Bold" } as const)
-  : ({ thuong: "Inter_400Regular", dam: "Inter_600SemiBold", rat: "Inter_700Bold" } as const);
+  ? ({ thuong: "Inter-Regular", dam: "Inter-SemiBold", rat: "Inter-ExtraBold", den: "Inter-ExtraBold", dam7: "Inter-Bold" } as const)
+  : ({ thuong: "Inter_400Regular", dam: "Inter_600SemiBold", rat: "Inter_800ExtraBold", den: "Inter_800ExtraBold", dam7: "Inter_700Bold" } as const);
+// 14/11 (khớp iOS): thiết kế chốt khai chữ đậm 800 ở ~1.390 / 2.000 chỗ (tiêu đề, tên dòng, nút, số) — 700 chỉ cho dòng phụ nhỏ ⇒ `rat` (đậm) = Inter
+// ExtraBold 800 (trước: Bold 700, chữ iOS mảnh hơn thiết kế). `den` giữ tên riêng cho chỗ cố ý 800; `dam7` = Bold 700 (chữ tab chưa chọn, dòng phụ đậm).
