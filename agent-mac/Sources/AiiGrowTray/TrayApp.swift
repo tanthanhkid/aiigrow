@@ -95,7 +95,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: nd, trigger: nil))
   }
 
-  /// Biểu tượng thanh menu = Rob (Mascot/rob-goc.png, 18pt); thiếu tệp ⇒ lá cây SF Symbol như trước.
+  /// Biểu tượng thanh menu = Grow (Mascot/rob-goc.png, 18pt); thiếu tệp ⇒ lá cây SF Symbol như trước.
   static func iconThanhMenu() -> NSImage? {
     guard let rob = FluentIcon.anh("rob-goc", thuMuc: "Mascot") else { return NSImage(systemSymbolName: "leaf.fill", accessibilityDescription: "AiiGrow") }
     let co = NSSize(width: 18, height: 18)

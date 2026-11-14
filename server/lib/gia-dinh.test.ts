@@ -12,7 +12,7 @@ const { taoNha } = await import("./test-fixtures/nha.ts");
 
 const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 
-test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi gia đình; PIN 4 số lưu (06/11 L13); Con mới «Chỉ app được phép»", async () => {
+test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi gia đình; PIN 4 số lưu (06/11 L13); Con mới «Chặn app & web»", async () => {
   const { fam } = await taoNha();
   const nam = new Date().getFullYear();
   const ken = await g.taoCon(fam, { ten: "Ken", namSinh: nam - 9, pin: "1234" });

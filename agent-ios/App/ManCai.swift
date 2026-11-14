@@ -1,4 +1,4 @@
-// Cài & ghép (docs/thiet-ke-chot/con-dt-cai): Rob chào → chưa ghép → gõ mã 6 số / quét QR (mã sai · hết hạn · mất mạng) →
+// Cài & ghép (docs/thiet-ke-chot/con-dt-cai): Grow chào → chưa ghép → gõ mã 6 số / quét QR (mã sai · hết hạn · mất mạng) →
 // đã ghép + cấp quyền Thời gian sử dụng (chưa cho phép) → máy khoá, chọn tên + PIN.
 import SwiftUI
 import AVFoundation
@@ -10,7 +10,7 @@ struct ManChao: View {
     KhungMan {
       Spacer(minLength: 24)
       Anh(ten: "rob_rob_goc", co: 150)
-      Text("Chào con! Mình là Rob").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+      Text("Chào con! Mình là Grow").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
       Text("Mình giữ giờ chơi cùng con.").font(Diu.phu).foregroundColor(Diu.chu2)
       VStack(spacing: 0) {
         HangDs(icon: "ic_tick", t1: "Làm nhiệm vụ", t2: "Được sao")

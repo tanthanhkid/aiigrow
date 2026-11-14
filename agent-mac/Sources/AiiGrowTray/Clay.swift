@@ -60,7 +60,7 @@ enum FluentIcon {
 
   /// Tìm `<ten>.png`: gói phát hành chép vào `AiiGrow.app/Contents/Resources/Fluent/` (goi/build-pkg.sh);
   /// lúc dev/test lấy từ bundle tài nguyên SwiftPM cạnh tệp chạy. KHÔNG dùng `Bundle.module` (thiếu bundle là fatalError).
-  /// `thuMuc`: «Fluent» (icon 3D) hoặc «Mascot» (Rob của app Con) — cùng cách tìm.
+  /// `thuMuc`: «Fluent» (icon 3D) hoặc «Mascot» (Grow của app Con) — cùng cách tìm.
   static func anh(_ ten: String, thuMuc goc: String = "Fluent") -> NSImage? {
     let khoa = goc + "/" + ten
     if let c = cache[khoa] { return c }    // c: NSImage? — nil đã nhớ thì không dò đĩa lại

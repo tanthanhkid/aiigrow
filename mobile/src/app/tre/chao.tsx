@@ -1,4 +1,4 @@
-// «Rob chào» bản «Dịu» (con-dt-cai 01 cdt-chao — lần đầu bé vào máy, BRD 6.1 bước 7): «Chào Bảo Anh! Mình là Rob · Mình giữ giờ chơi cùng con»
+// «Grow chào» bản «Dịu» (con-dt-cai 01 cdt-chao — lần đầu bé vào máy, BRD 6.1 bước 7): «Chào Bảo Anh! Mình là Grow · Mình giữ giờ chơi cùng con»
 // + 3 dòng (Làm nhiệm vụ → được sao · 10 sao = 10 phút · Muốn thêm? Xin Ba Mẹ), tặng sao chào mừng một lần, đọc to được (web).
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
@@ -16,8 +16,8 @@ export default function Chao() {
   return (
     <ManD giua day={<>
       <NutD chu={sao ? `Nhận ${sao} sao · vào thôi` : "Vào thôi"} bam={() => router.replace("/tre/nha")} />
-      {coDocTo() ? <NutD chu="Rob đọc to cho con nghe" loai="chu"
-        bam={() => docTo(`Chào ${ten}! Mình là Rob. Mình giữ giờ chơi cùng con. Làm nhiệm vụ thì được sao. 10 sao bằng 10 phút chơi. Muốn thêm thì xin Ba Mẹ.`)} /> : null}
+      {coDocTo() ? <NutD chu="Grow đọc to cho con nghe" loai="chu"
+        bam={() => docTo(`Chào ${ten}! Mình là Grow. Mình giữ giờ chơi cùng con. Làm nhiệm vụ thì được sao. 10 sao bằng 10 phút chơi. Muốn thêm thì xin Ba Mẹ.`)} /> : null}
     </>}>
       <RobChao ten={ten || undefined} />
     </ManD>

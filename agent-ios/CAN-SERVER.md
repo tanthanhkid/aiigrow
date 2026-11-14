@@ -13,7 +13,7 @@ lưu phần `ios` của nhịp (`luuIosNhip`).
 
 ## Giới hạn của iOS / còn thiếu
 1. **2 chế độ chặn chưa áp trên iPhone**: Screen Time chỉ biết app Ba Mẹ chọn trong FamilyActivityPicker (token mờ) — app lạ không tự
-   «Xin Ba Mẹ duyệt» được. «Chỉ app được phép» cần khiên `.all(except: app học + giải trí đã chọn)`; chưa làm (cần thử trên máy thật).
+   «Xin Ba Mẹ duyệt» được. «Chặn app & web» cần khiên `.all(except: app học + giải trí đã chọn)`; chưa làm (cần thử trên máy thật).
 2. Ngoại lệ **một app**: iOS không ánh xạ được tên app ⇒ token ⇒ bỏ qua (chỉ ngoại lệ cả máy).
 3. Đếm quỹ dùng chung nhiều máy: ngưỡng DeviceActivity chỉ đo máy này ⇒ phút dùng ở máy khác chỉ trừ khi app đồng bộ (mở app / nền).
 4. Vẫn nên có: background push (APNs) để Ba Mẹ khoá / duyệt tới ngay; `nhipGiay` iOS ≥ 3600 + ngưỡng mất nhịp ≥ 24 giờ.

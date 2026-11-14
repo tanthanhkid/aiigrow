@@ -30,8 +30,8 @@ export default function ThemCon() {
     // POST con tạo Con + PIN trong MỘT lời (PIN sai ⇒ không tạo gì). Đã tạo (lỗi ở bước sau) ⇒ bấm lại không tạo Con thứ hai.
     const id = conId ?? (await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) })).id;
     setConId(id);
-    // «Rob cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
-    // Thiết kế không có bước Chọn app ⇒ áp sẵn app Rob gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
+    // «Grow cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
+    // Thiết kế không có bước Chọn app ⇒ áp sẵn app Grow gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
     const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));
     // Lỗi lấy app gợi ý KHÔNG nuốt: Con đã tạo (conId) nên báo lỗi, Ba Mẹ bấm lại chỉ làm tiếp bước này — không để Con nằm không có app nào mà im lặng.
     const apps = await layApps().catch(() => new Promise((r) => setTimeout(r, 600)).then(layApps));
@@ -91,7 +91,7 @@ export default function ThemCon() {
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
         <Rob ten="chi" co={40} />
-        <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>{`Rob cài sẵn giờ chơi, nhiệm vụ theo tuổi. ${goi || "Con"} chạm tên + PIN để vào máy.`}</Chu>
+        <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>{`Grow cài sẵn giờ chơi, nhiệm vụ theo tuổi. ${goi || "Con"} chạm tên + PIN để vào máy.`}</Chu>
       </View>
     </Man>
   );

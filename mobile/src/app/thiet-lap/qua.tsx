@@ -1,4 +1,4 @@
-// them-s416tfdj «Sao đổi được quà gì?» (bước 3/5 Lần đầu, thiết kế chốt 06/11 — L14 L15): Rob chọn sẵn 7 quà theo bảng giá (GET qua/mac-dinh),
+// them-s416tfdj «Sao đổi được quà gì?» (bước 3/5 Lần đầu, thiết kế chốt 06/11 — L14 L15): Grow chọn sẵn 7 quà theo bảng giá (GET qua/mac-dinh),
 // Ba Mẹ bỏ tick món không hợp; «Lưu N quà, sang giờ chơi» ⇒ POST qua/mac-dinh {chon} (tạo món được tick còn thiếu, bỏ món bị bỏ tick chưa ai đổi) ⇒ Giờ chơi.
 // Quay lại màn này: tick theo quà nhà đang có (`daCo`). Giá sửa sau ở Hồ sơ › Quà.
 import { useState } from "react";
@@ -45,7 +45,7 @@ export default function ObQua() {
       day={<><BaoLoi loi={loi} />
         <Chu kieu="dam" co={13.5} mau={M.chu2} style={{ textAlign: "center" }}>Con chọn quà → Ba Mẹ trao → mới trừ sao</Chu>
         <Nut chu={cauLuuQuaLanDau(chon.length)} rong dangChay={dangChay} bam={luu} /></>}>
-      <TieuDe chu="Sao đổi được quà gì?" phu={`Rob chọn sẵn ${ds.length} quà cho ${ten}. Bỏ tick món không hợp, sửa giá sau cũng được.`} />
+      <TieuDe chu="Sao đổi được quà gì?" phu={`Grow chọn sẵn ${ds.length} quà cho ${ten}. Bỏ tick món không hợp, sửa giá sau cũng được.`} />
       <The sat>
         {ds.map((m, i) => {
           const co = !boTick[m.ma];

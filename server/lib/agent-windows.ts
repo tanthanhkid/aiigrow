@@ -33,7 +33,7 @@ export type PolicyWindows = {
   cheDo?: "giam-sat" | "chan";
   /** Lọc web theo tên miền (lib/web.ts): agent ghi chính sách Chrome/Edge URLBlocklist/URLAllowlist — CHỈ khi chế độ hiệu lực là «chan»; giám sát ⇒ gỡ chính sách. */
   web: ChinhSachWeb;
-  /** Agent 0.2.6: app (.exe) / trang web Ba Mẹ đã xếp Giải trí — khay Rob cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ vẫn quyết ở phien/xet). */
+  /** Agent 0.2.6: app (.exe) / trang web Ba Mẹ đã xếp Giải trí — khay Grow cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ vẫn quyết ở phien/xet). */
   playChoices: string[];
   /** App Ba Mẹ đặt «Chặn» kèm định danh thật của chính máy này (lib/app-may.ts › appChanCuaMay) — agent đóng ở MỌI mode khi chế độ «chan». */
   blockedApps?: { muc: string; duongDan?: string; thuMuc?: string; sha256?: string; nhaPhatHanh?: string; teamId?: string }[];

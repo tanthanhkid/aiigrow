@@ -22,7 +22,7 @@ test("bình thường: chỉ Allowlist hệ thống (.exe) + app Học tập; gi
   assert.deepEqual(w.learningApps, ["scratch.exe"]);
   assert.equal(w.minutesLeft, null);
   assert.equal(w.childName, "Ken");
-  assert.deepEqual(w.playChoices, ["roblox.exe"]);   // 0.2.6: Rob liệt kê app Giải trí cho nút «Chơi bằng điểm»
+  assert.deepEqual(w.playChoices, ["roblox.exe"]);   // 0.2.6: Grow liệt kê app Giải trí cho nút «Chơi bằng điểm»
 });
 
 test("đang có phiên chơi bằng điểm cho Roblox ⇒ Roblox được chạy; phiên cho app không phải giải trí thì không", () => {
@@ -135,7 +135,7 @@ test("B1 06/11 «Mở hết» + quỹ: còn quỹ ⇒ tu_do, Giải trí tính g
   const cu = chinhSachWindows(goc({ cheDoChan: "mo_het", gioMaySai: true, luat: [...goc().luat, { muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan", giaPhanNghin: 1000 }] }), undefined, "chan");
   assert.deepEqual([cu.mode, cu.appTinhGio], ["tu_do", undefined]);
   assert.ok(cu.web.cho.includes("youtube.com"));
-  // «Chỉ app được phép» hết quỹ: như cũ (mode hoc, appTinhGio rỗng — Giải trí đã ngoài allowedApps)
+  // «Chặn app & web» hết quỹ: như cũ (mode hoc, appTinhGio rỗng — Giải trí đã ngoài allowedApps)
   const chi = chinhSachWindows(goc({ cheDoChan: "chi_app_duoc_phep", quy: quy(0) }), undefined, "chan");
   assert.deepEqual([chi.mode, chi.appTinhGio], ["hoc", []]);
 });

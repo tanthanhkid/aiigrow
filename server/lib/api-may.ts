@@ -98,7 +98,7 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const windows = chinhSachWindows(ghep?.pol ?? pol, biMatOffline ?? undefined, cheDo,
         { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, appThat, appNen, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
       if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay
-      // «Mở hết» (Nghi 11/11): không đóng app Ba Mẹ từng «Chặn» — luật vẫn lưu, về «Chỉ app Ba Mẹ chọn» thì chặn lại
+      // «Mở hết» (Nghi 11/11): không đóng app Ba Mẹ từng «Chặn» — luật vẫn lưu, về «Chặn app & web» thì chặn lại
       if (coTacTu(may.platform)) windows.blockedApps = laMoHet(pol) ? [] : blockedApps;
       // L13: «Ba Mẹ đang dùng máy» ⇒ máy mở hết tới hạn (thắng giờ ngủ / khoá — Ba Mẹ mở bằng mã), không đếm quỹ của con
       if (bmDen) {

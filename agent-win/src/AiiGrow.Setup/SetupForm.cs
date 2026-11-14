@@ -6,7 +6,7 @@ namespace AiiGrow.Setup;
 
 /// <summary>
 /// Bộ cài theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-cai-win, 12 màn): Ba Mẹ chạy trên máy của con, mỗi màn một việc, câu ngắn nói với Ba Mẹ,
-/// icon 3D + Rob thay chữ, nút chính nói rõ kết quả. Khung 723×672 (theo DPI). Luồng: 1 Chào → 2 Đồng ý → 3 Tài khoản (có sẵn / tạo mới /
+/// icon 3D + Grow thay chữ, nút chính nói rõ kết quả. Khung 723×672 (theo DPI). Luồng: 1 Chào → 2 Đồng ý → 3 Tài khoản (có sẵn / tạo mới /
 /// «chỉ 1 tài khoản quản trị») → 4 Ghép máy (mã 6 số hạn 10 phút — dự phòng; mở từ link Ba Mẹ gửi thì tự ghép) → 5 Cài (lỗi: mã sai / mã hết hạn /
 /// mất mạng) → Xong. Toạ độ trong mã = toạ độ px của HTML thiết kế (đã trừ thanh tiêu đề 30px), nhân DPI qua Clay.Si.
 /// </summary>

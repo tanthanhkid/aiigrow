@@ -22,7 +22,7 @@ export const xoaTl = () => { tl = {}; try { kho()?.removeItem(KHOA); } catch { /
 export const coMa = (a: AppChon): a is { ma: string; ten: string } => "ma" in a;
 
 /** Thân POST thiet-lap (Lần đầu, màn Giờ chơi) — hàm thuần. 06/11 (B1): chế độ chặn CHỈ gửi khi Ba Mẹ đã chọn / màn đã nạp chế độ thật của Con;
- *  trước đây thiếu thì gửi «chi_app_duoc_phep» ⇒ đi lại Lần đầu cho Con đang «Mở hết» là lặng lẽ đổi về «Chỉ app được phép» (máy Con khoá lại).
+ *  trước đây thiếu thì gửi «chi_app_duoc_phep» ⇒ đi lại Lần đầu cho Con đang «Mở hết» là lặng lẽ đổi về «Chặn app & web» (máy Con khoá lại).
  *  Con mới tạo đã có «chi_app_duoc_phep» sẵn ở máy chủ (gia-dinh.ts › taoCon) nên bỏ trống vẫn đúng mặc định.
  *  Quỹ cuối tuần: giữ số thật đã nạp (`cuoiTuan`) tới khi Ba Mẹ chọn quỹ khác. */
 export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) => number; ngu: { tu: string; den: string } }) {
@@ -36,7 +36,7 @@ export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) =>
   };
 }
 
-/** Con mới tạo từ «Thêm con» (không qua bước Chọn app): áp sẵn các app Rob gợi ý hợp tuổi (`chon`) — như màn Chọn app của Lần đầu khi Ba Mẹ không đổi gì.
+/** Con mới tạo từ «Thêm con» (không qua bước Chọn app): áp sẵn các app Grow gợi ý hợp tuổi (`chon`) — như màn Chọn app của Lần đầu khi Ba Mẹ không đổi gì.
  *  Không có app nào được chọn thì trả undefined (không gửi `apps`, máy chủ giữ mặc định). */
 export function appsRobChonSan(ds: { ma: string; ten: string; chon: boolean }[]): AppChon[] | undefined {
   const r = ds.filter((a) => a.chon).map((a) => ({ ma: a.ma, ten: a.ten }));

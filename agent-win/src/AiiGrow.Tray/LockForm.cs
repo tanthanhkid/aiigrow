@@ -6,11 +6,11 @@ namespace AiiGrow.Tray;
 
 /// <summary>
 /// Màn khoá toàn màn hình theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-het-gio 06–10, con-mat-mang 02–04), khung 1920×1080:
-/// nền ngọc sâu, đồng hồ góc phải, MỘT thẻ đất sét ở giữa (Rob 170 · tiêu đề 44px · câu phụ · [đếm ngược] · [chip sao] · 2 nút lớn · liên kết chữ),
+/// nền ngọc sâu, đồng hồ góc phải, MỘT thẻ đất sét ở giữa (Grow 170 · tiêu đề 44px · câu phụ · [đếm ngược] · [chip sao] · 2 nút lớn · liên kết chữ),
 /// chân «AiiGrow · &lt;tên bé&gt; · máy do Ba Mẹ quản lý». 06/11: chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (LockForm.ChonTen.cs); «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã.
 ///   • Sắp hết giờ (đếm ngược) / Hết giờ chơi: «Đổi 10 sao lấy 10 phút» · «Xin Ba Mẹ thêm giờ» (+ ngoại lệ, nhắn, Ba Mẹ dùng máy).
 ///   • Giờ ngủ / Ba Mẹ khoá: KHÔNG thêm giờ — chỉ «Xin Ba Mẹ mở ngoại lệ» (1 app hoặc cả máy, có hạn phút) · nhắn · Ba Mẹ dùng máy.
-///   • Mất mạng: Rob ngủ bên trái «Mất mạng, luật vẫn vậy nhé!», thẻ trái-căn: lời xin lưu lại (có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
+///   • Mất mạng: Grow ngủ bên trái «Mất mạng, luật vẫn vậy nhé!», thẻ trái-căn: lời xin lưu lại (có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
 /// Nút chỉ báo ra ngoài (sự kiện) — khay mở hộp tương ứng; chữ / nút lấy từ lớp thuần <see cref="ManKhoaView"/>.
 /// </summary>
 internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
@@ -26,7 +26,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     private bool _locking;
     private OfflineCodePanel? _code;
     private DateTimeOffset? _matMangTu;
-    /// <summary>Màn thấp (1366×768 / 1024×768 ở 150%): thẻ thiết kế cao hơn chỗ trống ⇒ dựng bản gọn (Rob nhỏ, chữ / nút nhỏ hơn) thay vì cuộn.</summary>
+    /// <summary>Màn thấp (1366×768 / 1024×768 ở 150%): thẻ thiết kế cao hơn chỗ trống ⇒ dựng bản gọn (Grow nhỏ, chữ / nút nhỏ hơn) thay vì cuộn.</summary>
     private bool _gon;
     private ManKhoa? _m;
 
@@ -258,7 +258,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         Bam?.Invoke(ma);
     }
 
-    /// <summary>Mất mạng (con-mat-mang 02): Rob ngủ + bong bóng bên trái, thẻ 640 trái-căn bên phải.</summary>
+    /// <summary>Mất mạng (con-mat-mang 02): Grow ngủ + bong bóng bên trái, thẻ 640 trái-căn bên phải.</summary>
     private Control DungMatMang(ManKhoa m)
     {
         var hang = KhoiCon.Hang();

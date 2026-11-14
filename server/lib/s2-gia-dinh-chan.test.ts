@@ -162,7 +162,7 @@ test("L7 «Thêm app khác» theo tên: máy gửi danh sách app thật ⇒ kh�
 test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
   const bm = await dangKy("Ba Khoa");
   const con = (await m("con", { tok: bm, body: { ten: "Na" } })).body.id;
-  assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "chi_app_duoc_phep", "Con mới: Chỉ app được phép");
+  assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "chi_app_duoc_phep", "Con mới: Chặn app & web");
   const pg = (await m("ghep-may", { tok: bm, body: { con } })).body;
   const may = (await dv("ghep", { body: { ma: pg.ma, nen: "windows", tenMay: "PC của Na" } })).body.token;
   await luonChoiDuoc(con);

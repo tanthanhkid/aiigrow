@@ -1,5 +1,5 @@
 // «Quy tắc nhà mình» bản «Dịu» (con-dt-khac 01 cdt-quy-tac, PIN 06/11): chip «Bảo Anh ▾»; giờ chơi 60 phút / cuối tuần 90; 10 sao = 10 phút
-// (làm nhiệm vụ để có sao); giờ học (chỉ mở app học); giờ ngủ (máy nghỉ); «Chỉ app được phép · app mới xin Ba Mẹ»; «Vào máy bằng tên + PIN ·
+// (làm nhiệm vụ để có sao); giờ học (chỉ mở app học); giờ ngủ (máy nghỉ); «Chặn app & web · app mới xin Ba Mẹ»; «Vào máy bằng tên + PIN ·
 // Giờ chơi tính riêng cho con». «Con hiểu rồi». Công khai — ai cũng thấy giống nhau (BRD 8.1, FR-06.05).
 import { router } from "expo-router";
 import { View } from "react-native";
@@ -24,7 +24,7 @@ export default function QuyTacNha() {
     ["sao", `10 sao = ${qt.phut10Sao ?? 10} phút`, "Làm nhiệm vụ để có sao"],
     ...(hoc ? [["sach", `Giờ học ${hoc.tu} – ${hoc.den}`, "Chỉ mở app học"] as [Parameters<typeof IcO>[0]["ic"], string, string]] : []),
     ["trang_ngu", `Giờ ngủ ${qt.lich.ngu.tu} – ${qt.lich.ngu.den}`, "Máy nghỉ"],
-    ["khien", "Chỉ app được phép", "App mới xin Ba Mẹ"],
+    ["khien", "Chặn app & web", "App mới xin Ba Mẹ"],
     ["nguoi", "Vào máy bằng tên + PIN", "Giờ chơi tính riêng cho con"],
   ];
   return (

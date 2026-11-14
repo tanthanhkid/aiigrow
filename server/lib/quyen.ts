@@ -50,7 +50,7 @@ export function trongGiupDuoc(p: string[]): boolean {
   if (p[0] === "luot" && p[1] && p.length === 3 && ["duyet", "tu-choi", "hoan-tac", "lam-lai"].includes(p[2])) return true;   // + «Nhờ làm lại» (S1)
   if (p[0] === "con" && p[1] && p.length === 3 && p[2] === "them-gio") return true;                    // «Cho thêm giờ» trên thẻ Hôm nay (S1)
   if (p[0] === "them-gio" && p[1] && p[2] === "hoan-tac" && p.length === 3) return true;
-  if (p[0] === "yeu-cau" && p[1] && p.length === 3 && ["dong-y", "tu-choi"].includes(p[2])) return true;
+  if (p[0] === "yeu-cau" && p[1] && p.length === 3 && ["dong-y", "tu-choi", "mo-lai"].includes(p[2])) return true;
   if (p[0] === "phieu" && p[1] && p.length === 3 && ["xac-nhan", "huy", "trao"].includes(p[2])) return true;   // trao quà
   if (p[0] === "phien" && p[1] && p[2] === "dung" && p.length === 3) return true;                     // dừng phiên = khoá máy
   return false;

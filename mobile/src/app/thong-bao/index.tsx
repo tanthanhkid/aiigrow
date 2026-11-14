@@ -46,7 +46,7 @@ export default function DsThongBaoMan() {
   if (!d.ds.length && !d.canDeY?.length) {
     return (
       <Man lui={{ chu: "" }} tieu="Thông báo" phai={phai}>
-        <CanhGiua lv="ngu" tieu="Chưa có gì mới" loi="Khi con xin, nộp bài hay đổi quà, Rob báo Ba Mẹ ở đây." />
+        <CanhGiua lv="ngu" tieu="Chưa có gì mới" loi="Khi con xin, nộp bài hay đổi quà, Grow báo Ba Mẹ ở đây." />
       </Man>
     );
   }

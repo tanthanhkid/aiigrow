@@ -74,7 +74,7 @@ export default function HoSoCon() {
         <HangViec ic="trang_ngu" mau="tim" tieu="Giờ ngủ" phu={`${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} bam={() => router.push(`/gio/ngu?con=${id}` as never)} />
         <HangViec ic="mu" mau="xanh" tieu="Giờ học" phu={hoc ? `${gioGon(hoc.tu)} – ${gioGon(hoc.den)} · ${cauThu(hoc.thu)}` : "Chưa đặt"}
           bam={() => router.push(`/gio/hoc?con=${id}` as never)} />
-        <HangViec ic="luoi" mau="lam" tieu="App được dùng" phu={c.cheDoChan === "mo_het" ? "Mở hết · chỉ chặn web người lớn" : "Chỉ app được phép"}
+        <HangViec ic="luoi" mau="lam" tieu="App được dùng" phu={c.cheDoChan === "mo_het" ? "Mở hết · chỉ chặn web người lớn" : "Chặn app & web"}
           bam={() => router.push(`/app-web?con=${id}` as never)} />
         <HangViec ic="laptop" mau="xam" tieu={`Máy của ${c.ten}`}
           phu={c.may.length ? `${c.may.length} máy${canSua.length ? ` · ${canSua.map((m) => m.ten).join(", ")} cần sửa` : " · đang được bảo vệ"}` : "Chưa ghép máy nào"}
@@ -105,7 +105,7 @@ export default function HoSoCon() {
       <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá hồ sơ ${c.ten}?`}>
         <Chu co={14.5} mau={M.chu2}>Xoá rồi không lấy lại được.</Chu>
         <View>
-          {c.may.length ? <TickDong trang="x" chu={`Gỡ Rob khỏi ${c.may.map((m) => m.ten).join(" và ")} của ${c.ten}`} /> : null}
+          {c.may.length ? <TickDong trang="x" chu={`Gỡ Grow khỏi ${c.may.map((m) => m.ten).join(" và ")} của ${c.ten}`} /> : null}
           <TickDong trang="x" chu={`Mất ${sao} sao và quà đang chờ trao`} />
           <TickDong trang="x" chu="Mất báo cáo, nhiệm vụ, giờ chơi đã đặt" />
         </View>

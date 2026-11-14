@@ -1,5 +1,5 @@
 // them-pxgipoxg (Lần đầu) / bm1-may-moi (Ghép thêm máy) «Đã ghép máy của X!» — máy mới được bảo vệ ngay; «Máy chạy sẵn» Mở hết /
-// Chỉ app được phép (đổi được tại chỗ — POST con/:id/che-do-chan), 3 ô: phút mỗi ngày · app được phép · giờ đi ngủ (GET con/:id/thiet-lap).
+// Chặn app & web (đổi được tại chỗ — POST con/:id/che-do-chan), 3 ô: phút mỗi ngày · app được phép · giờ đi ngủ (GET con/:id/thiet-lap).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -45,9 +45,9 @@ export default function DaGhep() {
       </View>
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Máy chạy sẵn</Chu>
       <View style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 26, backgroundColor: "#ebeae6", boxShadow: BONG.lom }} accessibilityRole="radiogroup">
-        {([["mo_het", "Mở hết"], ["chi_app_duoc_phep", "Chỉ app được phép"]] as const).map(([v, t]) => {
+        {([["mo_het", "Mở hết"], ["chi_app_duoc_phep", "Chặn app & web"]] as const).map(([v, t]) => {
           const c = (cho ?? d?.cheDoChan) === v;
-          // ô «Chỉ app được phép» rộng hơn (có icon + chữ dài) để nhãn một dòng ở máy 320 px
+          // ô «Chặn app & web» rộng hơn (có icon + chữ dài) để nhãn một dòng ở máy 320 px
           return (
             <Pressable key={v} onPress={() => doiCheDo(v)} accessibilityRole="radio" accessibilityState={{ checked: c }}
               style={{ flex: v === "chi_app_duoc_phep" ? 1.6 : 1, minHeight: 50, borderRadius: 21, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", ...(c ? { backgroundColor: "#fff", ...KHOI.nho } : {}) }}>

@@ -1,5 +1,5 @@
 // bm1-ob-gio «Giờ chơi» (bước 3/4, thiết kế chốt 04/11 — Nghi: «Giờ chơi phải có lại phần chặn app»):
-//   · khối «Chặn app» 2 chế độ (L4): Chỉ app được phép (mặc định, Rob gợi ý) / Mở hết (chỉ tính giờ) + 4 app đầu + «Thêm hoặc bớt app» ⇒ Chọn app;
+//   · khối «Chặn app» 2 chế độ (L4): Chặn app & web (mặc định, Grow gợi ý) / Mở hết (chỉ tính giờ) + 4 app đầu + «Thêm hoặc bớt app» ⇒ Chọn app;
 //   · Giờ chơi mỗi ngày: chip 30 / 60 / 90 phút, cuối tuần +30 (L2 — quỹ phút, hết giờ máy tự khoá);
 //   · Giờ ngủ: hai ô giờ, bấm mở bánh xe (them-hijzsz0z).
 // «Lưu và ghép máy của X» ⇒ POST thiet-lap (một lần) ⇒ Ghép máy.
@@ -29,7 +29,7 @@ export default function ObGio() {
     if (n.ngu) setNgu(n.ngu);
   });
   const { lam, loi, dangChay } = useLam();
-  // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Rob (app-goi-y)
+  // quay về từ màn Chọn app ⇒ đọc lại lựa chọn; lần đầu chưa có ⇒ lấy lựa chọn sẵn của Grow (app-goi-y)
   useFocusEffect(useCallback(() => {
     const t = layTl();
     setApps(t.apps);
@@ -58,12 +58,12 @@ export default function ObGio() {
           </View>
           <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 18, padding: 12, ...KHOI.nho }}>
             <Chu co={13.5} mau={M.chu2}>{chiApp
-              ? <>Rob chọn sẵn <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{`${soApp} app`}</Chu> hợp tuổi con. App mới con tải sẽ <Chu kieu="rat" co={13.5} mau={M.chinhInk}>xin Ba Mẹ duyệt</Chu> trước.</>
+              ? <>Grow chọn sẵn <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{`${soApp} app`}</Chu> hợp tuổi con. App mới con tải sẽ <Chu kieu="rat" co={13.5} mau={M.chinhInk}>xin Ba Mẹ duyệt</Chu> trước.</>
               : "Mở hết: con dùng được mọi app, chỉ tính giờ chơi. Web cờ bạc / người lớn vẫn luôn chặn."}</Chu>
           </View>
         </View>
         <View style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 24, backgroundColor: "#ebeae6", boxShadow: BONG.lom }} accessibilityRole="radiogroup">
-          {([["chi_app_duoc_phep", "Chỉ app được phép", "Rob gợi ý · nên chọn"], ["mo_het", "Mở hết", "Chỉ tính giờ"]] as const).map(([v, t, p]) => (
+          {([["chi_app_duoc_phep", "Chặn app & web", "Grow gợi ý · nên chọn"], ["mo_het", "Mở hết", "Chỉ tính giờ"]] as const).map(([v, t, p]) => (
             <Pressable key={v} onPress={() => { setCheDo(v); doi({ cheDoChan: v }); }} accessibilityRole="radio" accessibilityState={{ checked: cheDo === v }}
               style={{ flex: 1, minHeight: 54, borderRadius: 20, alignItems: "center", justifyContent: "center", paddingHorizontal: 6,
                 ...(cheDo === v ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : {}) }}>

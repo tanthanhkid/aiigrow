@@ -57,7 +57,7 @@ test("agent gửi lịch sử web: lưu tổng theo ngày, gửi lại không c�
   assert.equal(tk.theoNgay.length, 7);
   assert.equal(tk.theoNgay.at(-1).ngay, HOM);
   assert.equal(tk.top[0].trangThai, "chua_xep");
-  assert.equal(tk.cheDoWeb, "chi_cho_phep", "Con mới «Chỉ app được phép» (L4) ⇒ web chỉ cho phép");
+  assert.equal(tk.cheDoWeb, "chi_cho_phep", "Con mới «Chặn app & web» (L4) ⇒ web chỉ cho phép");
   assert.equal(tk.mayLoc.length, 1);
 });
 
@@ -86,7 +86,7 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "khanacademy.org", trangThai: "cho_phep" });
   await goiBm("luat", tokBm, { con, muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan" });
   const db = (await goiMay("dong-bo", tok, {})).body;
-  // L4: Con mới «Chỉ app được phép» ⇒ web chỉ cho phép; web luôn chặn (người lớn / cờ bạc / bạo lực) có trong chan ở mọi chế độ
+  // L4: Con mới «Chặn app & web» ⇒ web chỉ cho phép; web luôn chặn (người lớn / cờ bạc / bạo lực) có trong chan ở mọi chế độ
   assert.equal(db.windows.web.cheDo, "chi_cho_phep");
   assert.equal(db.cheDoChan, "chi_app_duoc_phep");
   const rieng = (ds: string[]) => ds.filter((m) => !laWebCam(m));
@@ -133,9 +133,9 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await goiBm(`con/${con}/khoa`, tokBm, { khoa: false });
   await luonChoiDuoc(con);
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "mo");
-  // về «Chỉ app Ba Mẹ chọn» ⇒ luật «Chặn» vẫn lưu nên chặn lại ngay
+  // về «Chặn app & web» ⇒ luật «Chặn» vẫn lưu nên chặn lại ngay
   assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "chi_app_duoc_phep" })).status, 200);
-  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("gamek.vn"), "về Chỉ app Ba Mẹ chọn: gamek.vn chặn lại");
+  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("gamek.vn"), "về Chặn app & web: gamek.vn chặn lại");
   await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" });
   // Con cũ (che_do_chan null) ⇒ vẫn theo tham số web_chi_cho_phep như trước
   await q(`update children set che_do_chan = null where id = $1`, [con]);
@@ -145,7 +145,7 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");
 });
 
-test("Chỉ app được phép + cho youtube.com ⇒ kèm tên miền video/ảnh (googlevideo, ytimg…); Ba Mẹ chặn đích danh thì không kèm", () => {
+test("Chặn app & web + cho youtube.com ⇒ kèm tên miền video/ảnh (googlevideo, ytimg…); Ba Mẹ chặn đích danh thì không kèm", () => {
   const luat = (muc: string, loai: string) => ({ muc, loai }) as never;
   const p = { luat: [luat("youtube.com", "hoc"), luat("gstatic.com", "chan")], allowlistHeThong: ["classroom.google.com", "explorer.exe"], phien: null, webChiChoPhep: true } as never;
   const w = web.chinhSachWebCho(p);

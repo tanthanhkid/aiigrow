@@ -1,5 +1,5 @@
 // «Cảnh báo» (thiết kế chốt 05/11, bm-duyet/04 — chữ «sao»): «Ba Mẹ cần sửa · n» (máy mất bảo vệ, bị gỡ, ngoài vòng…) / «AiiGrow đã tự xử lý · n»
-// (giờ máy bị đổi đã khoá trò chơi, ảnh trùng…) / «Rob gợi ý · Ba Mẹ chọn» khi ngoại lệ tăng (giao thêm nhiệm vụ, cho con tự đổi sao khi hết giờ).
+// (giờ máy bị đổi đã khoá trò chơi, ảnh trùng…) / «Grow gợi ý · Ba Mẹ chọn» khi ngoại lệ tăng (giao thêm nhiệm vụ, cho con tự đổi sao khi hết giờ).
 // Bấm một cảnh báo ⇒ chi tiết (canh-bao/[id]). AiiGrow không đọc tin nhắn hay nội dung trang web.
 import { useState } from "react";
 import { router } from "expo-router";
@@ -57,7 +57,7 @@ export default function DsCanhBao() {
       ) : null}
       {ngoaiLe.length && conNl ? (
         <>
-          <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Rob gợi ý · Ba Mẹ chọn</Chu>
+          <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Grow gợi ý · Ba Mẹ chọn</Chu>
           <Chu co={13.5} mau={M.chu2} style={{ marginHorizontal: 4 }}>{ngoaiLe[0].noi_dung}</Chu>
           {boQua.includes("giao") ? null : (
             <The dem style={{ gap: 8 }}>

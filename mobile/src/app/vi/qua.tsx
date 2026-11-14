@@ -1,4 +1,4 @@
-// them-473f52w6 «Danh sách quà» (thiết kế chốt 06/11, BRD FR-04 — L14; cũng là bm-cai-dat/17 bm2-quy): chọn con, Rob nói «Con chọn quà → sao được giữ
+// them-473f52w6 «Danh sách quà» (thiết kế chốt 06/11, BRD FR-04 — L14; cũng là bm-cai-dat/17 bm2-quy): chọn con, Grow nói «Con chọn quà → sao được giữ
 // lại. Ba Mẹ trao xong mới trừ sao.», mỗi quà một dòng (hình · tên + điều kiện · giá sao · ›) theo bảng giá 7 quà mặc định, «+ Thêm quà» (thư viện mẫu),
 // cuộn. Bấm một quà ⇒ «Sửa quà» (/vi/qua-sua?id=). Không còn «Thêm 30 phút» (đổi sao ra phút là nút riêng của con). GET qua?con= (docs/API.md «S3»).
 // Người trông giúp: chỉ xem.
@@ -39,7 +39,7 @@ function DsQuaCon({ c, dsCon, baMe, quyVoucher, doiCon, taiG }: { c: GiaDinh["co
   const ten = c?.ten;
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={TIEU} noi={noi} tai={() => { taiG(); q.tai(); }}
-      day={!ds.length && baMe ? <><BaoLoi loi={loiLam} /><Nut chu="Dùng 7 quà Rob gợi ý" rong dangChay={dangChay} bam={() => lam(async () => { await bm.goi("qua/mac-dinh", conId ? { con: conId } : {}); await q.tai(); })} /></>
+      day={!ds.length && baMe ? <><BaoLoi loi={loiLam} /><Nut chu="Dùng 7 quà Grow gợi ý" rong dangChay={dangChay} bam={() => lam(async () => { await bm.goi("qua/mac-dinh", conId ? { con: conId } : {}); await q.tai(); })} /></>
         : <Nut chu={`Lưu ${ds.length} quà${ten ? ` cho ${ten}` : ""}`} rong bam={ve} />}>
       {dsCon.length > 1 && c ? <ChipCon ds={dsCon} chon={c.id} doi={(x) => doiCon(x.id)} /> : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
@@ -49,7 +49,7 @@ function DsQuaCon({ c, dsCon, baMe, quyVoucher, doiCon, taiG }: { c: GiaDinh["co
       <The sat>
         {ds.length ? ds.map((x, i) => (
           <DongQua key={x.id} q={x} dau={i === 0} bam={baMe ? () => router.push({ pathname: "/vi/qua-sua", params: { id: x.id, ...(conId ? { con: conId } : {}) } }) : undefined} />
-        )) : <View style={{ padding: 16 }}><Chu co={14} mau={M.chu2}>Chưa có quà nào. Rob có sẵn 7 quà theo bảng giá — bấm nút dưới để dùng.</Chu></View>}
+        )) : <View style={{ padding: 16 }}><Chu co={14} mau={M.chu2}>Chưa có quà nào. Grow có sẵn 7 quà theo bảng giá — bấm nút dưới để dùng.</Chu></View>}
       </The>
       {baMe ? (
         <NhanMen onPress={() => router.push({ pathname: "/vi/qua-thu-vien", params: conId ? { con: conId } : {} })} accessibilityRole="button" accessibilityLabel="Thêm quà"

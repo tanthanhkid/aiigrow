@@ -1,5 +1,5 @@
 // them-at57ypdc «Thêm app cho X» (thiết kế chốt 04/11): gõ tên ⇒ «Chọn đúng app» (app trong lưới khớp tên + đúng tên Ba Mẹ gõ),
-// «Có tính vào giờ chơi?» (app học ⇒ Rob gợi ý không tính). App ngoài lưới gửi theo tên — máy chủ khớp với app thật máy của Con đã báo
+// «Có tính vào giờ chơi?» (app học ⇒ Grow gợi ý không tính). App ngoài lưới gửi theo tên — máy chủ khớp với app thật máy của Con đã báo
 // (docs/API.md › app-cho-phep). Xong ⇒ quay về Chọn app.
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
@@ -81,7 +81,7 @@ export default function ThemApp() {
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 18, backgroundColor: "#dcebe6", padding: 10 }}>
               <Rob ten="chi" co={36} />
-              <Chu co={13} mau={M.chinhInk} style={{ flex: 1 }}>{goiY ? "App giải trí, Rob gợi ý tính vào giờ chơi." : "App học, Rob gợi ý không tính giờ."}</Chu>
+              <Chu co={13} mau={M.chinhInk} style={{ flex: 1 }}>{goiY ? "App giải trí, Grow gợi ý tính vào giờ chơi." : "App học, Grow gợi ý không tính giờ."}</Chu>
             </View>
           </View>
         </The>

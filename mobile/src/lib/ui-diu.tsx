@@ -367,7 +367,7 @@ export function ManD({ children, lui, tieu, tieuNho, phai, tab, soTin, day, toi,
   );
 }
 
-/** Màn cảm xúc căn giữa: Rob (chỉ ở màn chào / chờ / lỗi / xong) + tiêu đề + câu phụ + phần thêm. */
+/** Màn cảm xúc căn giữa: Grow (chỉ ở màn chào / chờ / lỗi / xong) + tiêu đề + câu phụ + phần thêm. */
 export function CamXuc({ lv, ic, tieu, phu, children, co = 150, toi }: { lv?: LinhVat; ic?: TenIcon; tieu: string; phu?: string; children?: ReactNode; co?: number; toi?: boolean }) {
   return (
     <View style={{ alignItems: "center", gap: 8 }}>

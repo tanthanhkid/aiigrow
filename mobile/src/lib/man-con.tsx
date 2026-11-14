@@ -1,4 +1,4 @@
-// Mảnh màn dùng chung của phía Con bản «Dịu» (nhiều màn con-dt-* lặp lại): Rob chào 3 quy tắc, chip «Bảo Anh ▾», thẻ giờ chơi có vòng,
+// Mảnh màn dùng chung của phía Con bản «Dịu» (nhiều màn con-dt-* lặp lại): Grow chào 3 quy tắc, chip «Bảo Anh ▾», thẻ giờ chơi có vòng,
 // thẻ sao vàng, dòng chân màn khoá «AiiGrow · Bảo Anh · Ba Mẹ quản lý».
 import { router } from "expo-router";
 import { View } from "react-native";
@@ -8,7 +8,7 @@ import { D } from "./diu";
 import { useTre } from "./ui-tre";
 import type { QuyTre } from "./api-tre";
 
-/** Rob chào (cdt-chao): «Chào con! Mình là Rob» + 3 dòng quy tắc bằng icon. */
+/** Grow chào (cdt-chao): «Chào con! Mình là Grow» + 3 dòng quy tắc bằng icon. */
 export function RobChao({ ten }: { ten?: string }) {
   const dong: [Parameters<typeof Icon3D>[0]["ten"], string, string][] = [
     ["sao", "Làm nhiệm vụ", "Được sao"], ["dongho", "10 sao = 10 phút", "Đổi sao ra giờ chơi"], ["tin", "Muốn thêm?", "Xin Ba Mẹ"],
@@ -16,7 +16,7 @@ export function RobChao({ ten }: { ten?: string }) {
   return (
     <View style={{ alignItems: "center", gap: 10 }}>
       <Rob ten="xong" co={170} />
-      <TieuD chu={ten ? `Chào ${ten}! Mình là Rob` : "Chào con! Mình là Rob"} giua />
+      <TieuD chu={ten ? `Chào ${ten}! Mình là Grow` : "Chào con! Mình là Grow"} giua />
       <ChuD co={15} mau={D.chu2} giua>Mình giữ giờ chơi cùng con.</ChuD>
       <TheD style={{ alignSelf: "stretch", gap: 12 }}>
         {dong.map(([ic, a, b]) => (

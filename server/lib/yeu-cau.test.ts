@@ -282,3 +282,19 @@ test("mở tạm (ngoại lệ cả máy lúc Ba Mẹ khoá): cửa sổ theo nh
   assert.equal((await cfg()).khoa_mo_tam_den, phut(75).toISOString());
   assert.equal(dangKhoa(await cfg(), phut(80)), false);
 });
+
+test("14/11: xin mở web — «Cho 30 phút» (lan_nay + phút) mở đúng 30 phút; «Không cho» hoàn tác được trong 10 phút", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const a = await yc.guiYeuCau(con, null, { loai: "mo_web", giaTri: "youtube.com", phut: 30, lyDo: "Xem video vẽ" }, T);
+  await yc.dongY(fam, a.id, bm, { phanLoai: "hoc", phamVi: "lan_nay", phut: 30 }, T);
+  const l = await one<{ het: Date }>(`select het from app_rules where family_id = $1 and child_id = $2 and muc = 'youtube.com'`, [fam, con]);
+  assert.equal(new Date(l!.het).getTime(), T.getTime() + 30 * 60_000);
+  const b = await yc.guiYeuCau(con, null, { loai: "mo_web", giaTri: "tiktok.com" }, T);
+  await loi(yc.dongY(fam, b.id, bm, { phanLoai: "hoc", phamVi: "lan_nay", phut: 1 }, T), "phut_sai");
+  await yc.tuChoiYc(fam, b.id, bm, "Ba Mẹ chưa cho mở lúc này", T);
+  await yc.moLaiYc(fam, b.id, bm, new Date(T.getTime() + 60_000));
+  assert.equal((await yc.dsChoYc(fam, new Date(T.getTime() + 60_000))).some((x) => x.id === b.id), true);
+  await yc.tuChoiYc(fam, b.id, bm, "Ba Mẹ chưa cho mở lúc này", new Date(T.getTime() + 60_000));
+  await loi(yc.moLaiYc(fam, b.id, bm, new Date(T.getTime() + 30 * 60_000)), "khong_mo_lai");
+});

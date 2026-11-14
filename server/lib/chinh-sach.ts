@@ -36,7 +36,7 @@ export type ChinhSachChung = {
     ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung;
     tranNgayPhut: number; tranTuanPhut: number; phienToiDaPhut: number; nghiGiuaPhut: number; tuDongDongPhut: number;
   };
-  /** chuaXep: app / web chưa xếp loại — «chan» (chế độ Chỉ app được phép: Con «Xin Ba Mẹ duyệt») | «cho_phep» (Mở hết). L4 thiết kế 05/11.
+  /** chuaXep: app / web chưa xếp loại — «chan» (chế độ Chặn app & web: Con «Xin Ba Mẹ duyệt») | «cho_phep» (Mở hết). L4 thiết kế 05/11.
    *  cheDoChan: chế độ chặn của Con · webLuonChan: tên miền luôn chặn ở mọi chế độ (người lớn, cờ bạc, bạo lực). */
   ungDung: { heThong: string[]; hoc: MucChung[]; giaiTri: MucChung[]; chan: MucChung[]; chuaXep: "chan" | "cho_phep"; cheDoChan: CheDoChan; webLuonChan: string[] };
   phienDiem: { soDu: number; phien: Policy["phien"]; giaTheoNhom: Record<NhomGiaiTri, number> };

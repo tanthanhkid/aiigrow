@@ -152,7 +152,7 @@ function GhiAm({ ten, gui, dangChay, loi, viet, doi }: { ten: string; gui: (a: A
           borderColor: trang === "ghi" ? D.xanh : D.vien, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontFamily: FD.den, fontSize: 38, color: D.chu, fontVariant: ["tabular-nums"] }}>{mmss(giay)}</Text>
         </View>
-        <ChuD kieu="rat" co={15} mau={D.chu2} giua>{trang === "ghi" ? "Rob đang nghe… nói xong bấm Dừng nhé!" : trang === "xong" ? "Nghe lại rồi gửi Ba Mẹ nhé!" : "Kể lại hoặc đọc to cho Ba Mẹ nghe"}</ChuD>
+        <ChuD kieu="rat" co={15} mau={D.chu2} giua>{trang === "ghi" ? "Grow đang nghe… nói xong bấm Dừng nhé!" : trang === "xong" ? "Nghe lại rồi gửi Ba Mẹ nhé!" : "Kể lại hoặc đọc to cho Ba Mẹ nghe"}</ChuD>
       </View>
       {trang === "xong" && bai ? (
         <View style={{ gap: 10 }}>

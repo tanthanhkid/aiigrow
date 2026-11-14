@@ -63,7 +63,7 @@ export async function thanhTich(con: string) {
   };
 }
 
-/** Lần đầu Con mở app (Rob chào): tặng điểm chào mừng MỘT lần (mục 10, mặc định 10). → số điểm đã tặng (0 nếu đã nhận). */
+/** Lần đầu Con mở app (Grow chào): tặng điểm chào mừng MỘT lần (mục 10, mặc định 10). → số điểm đã tặng (0 nếu đã nhận). */
 export async function chaoMung(con: string) {
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
@@ -72,7 +72,7 @@ export async function chaoMung(con: string) {
     const f = (await t<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [fam]))[0];
     const diem = thamSo(f.cau_hinh, c.cau_hinh).diem_chao_mung;
     await t(`update children set chao_luc = now() where id = $1`, [con]);
-    if (diem > 0) await ghiDiem(t, con, diem, "chao_mung", "Quà chào mừng của Rob");
+    if (diem > 0) await ghiDiem(t, con, diem, "chao_mung", "Quà chào mừng của Grow");
     return diem;
   });
 }

@@ -1,5 +1,5 @@
 // Ghép máy Con với Ba Mẹ — bản «Dịu» (con-dt-cai 01–10 + con-dt-khac 02/03, thiết kế chốt 06/11):
-// Rob chào → «Máy này chưa ghép» (3 bước) → gõ mã 6 số (bàn phím to, «Mã còn N phút») hoặc quét QR trên máy Ba Mẹ → lỗi: mã chưa đúng
+// Grow chào → «Máy này chưa ghép» (3 bước) → gõ mã 6 số (bàn phím to, «Mã còn N phút») hoặc quét QR trên máy Ba Mẹ → lỗi: mã chưa đúng
 // (còn N lần thử) / mã hết hạn (10 phút) / mất mạng → «Đã ghép» → máy dùng chung: giải thích tên + PIN → cho AiiGrow giữ giờ chơi
 // (Thời gian sử dụng / Truy cập dữ liệu sử dụng) → màn Chọn tên (máy khoá). POST /api/device/ghep {ma} hoặc ghep-goi {token} (QR).
 import { useEffect, useRef, useState } from "react";

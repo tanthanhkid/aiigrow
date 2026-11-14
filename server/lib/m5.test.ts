@@ -214,7 +214,7 @@ const guiAiiRob = async (than: unknown, o: { khoa?: string; ts?: number; chuKy?:
 };
 
 test("webhook AiiRob: thiếu khoá ⇒ 503; chữ ký sai / quá cũ ⇒ 401, không cộng điểm", async () => {
-  const { fam } = await taoNha("Rob");
+  const { fam } = await taoNha("Grow");
   const con = await g.taoCon(fam, { ten: "Su" });
   const bai = { suKien: "bai_dat", giaDinh: fam, con, maBai: "EN-1", tenBai: "Chào hỏi", diemSo: 95 };
   delete process.env.AIIROB_WEBHOOK_SECRET;

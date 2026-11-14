@@ -14,7 +14,7 @@ export { CHE_DO_CHAN, cheDoChanCua, laWebCam, TEN_CHE_DO_CHAN, WEB_CAM, type Che
 
 /** POST /api/m/con/:id/che-do-chan {cheDo: mo_het | chi_app_duoc_phep}. Máy nhận ở lần đồng bộ kế. */
 export async function datCheDoChan(fam: string, con: string, v: unknown, nguoi?: string) {
-  if (!(CHE_DO_CHAN as readonly string[]).includes(String(v))) throw new LoiNghiepVu("che_do_chan_sai", "Chọn «Mở hết» hoặc «Chỉ app được phép»");
+  if (!(CHE_DO_CHAN as readonly string[]).includes(String(v))) throw new LoiNghiepVu("che_do_chan_sai", "Chọn «Mở hết» hoặc «Chặn app & web»");
   const c = await conCua(fam, con);
   const moi = v as CheDoChan, cu = cheDoChanCua((c as { che_do_chan?: unknown }).che_do_chan);
   await q(`update children set che_do_chan = $2 where id = $1`, [con, moi]);
@@ -57,7 +57,7 @@ export const khoaTen = (s: unknown) => {
 };
 const laHeThong = (muc: string, he = allowlistHieuLuc()) => khoaSo(chuanMuc(muc)).some((k) => he.includes(k));
 
-/** GET /api/m/app-goi-y?con=… — lưới app; `chon` = Rob chọn sẵn theo nhóm tuổi của Con (nhi / teen). */
+/** GET /api/m/app-goi-y?con=… — lưới app; `chon` = Grow chọn sẵn theo nhóm tuổi của Con (nhi / teen). */
 export async function luoiApp(fam: string, con?: string | null) {
   const nhom = con ? (await conCua(fam, con)).nhom : "nhi";
   return { ds: APP_GOI_Y.map((a) => ({ ma: a.ma, ten: a.ten, tinhGio: a.tinhGio, chon: !!a.goiY?.includes(nhom) })) };

@@ -364,7 +364,7 @@ struct GhepMayView: View {
   }
 }
 
-/// Màn toàn màn hình theo bé (thiết kế con-cai-mac 32 đếm ngược, 33 hết giờ, 35–39 giờ ngủ, 58 mất mạng): nền sáng, Rob bên trái,
+/// Màn toàn màn hình theo bé (thiết kế con-cai-mac 32 đếm ngược, 33 hết giờ, 35–39 giờ ngủ, 58 mất mạng): nền sáng, Grow bên trái,
 /// tiêu đề + câu, thẻ sao «Đổi 10 sao», «Xin Ba Mẹ thêm giờ» / «Xin Ba Mẹ mở ngoại lệ», «Nhắn Ba Mẹ», link nhỏ «Mất mạng? Mở bằng mã
 /// của Ba Mẹ ›» · «Đổi bé ›» · «Ba Mẹ mở máy ›». Khối xin / đổi sao / mã mở ra NGAY trên màn (cửa sổ khác không nổi trên màn khoá).
 struct ManKhoaView: View {

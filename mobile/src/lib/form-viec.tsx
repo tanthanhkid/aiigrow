@@ -66,7 +66,7 @@ export function NhapViec({ f, doi, con, motCon, goiY = true }: {
       <Muc chu="Làm khi nào?">
         <Chips ds={LAP} chon={[f.lapLai]} doi={(x) => set({ lapLai: x })} />
       </Muc>
-      <Muc chu="Rob nhắc con lúc">
+      <Muc chu="Grow nhắc con lúc">
         <Chips ds={NHAC} chon={[f.gioNhac]} doi={(x) => set({ gioNhac: x })} />
       </Muc>
       <Muc chu="Con báo xong bằng">

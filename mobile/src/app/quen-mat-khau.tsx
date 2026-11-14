@@ -49,7 +49,7 @@ export default function QuenMatKhau() {
   return (
     <Man dau={<DauMan ve="/dang-nhap" phai={<CanGiup />} />}
       day={<><BaoLoi loi={loi} /><Nut chu="Xác nhận mã" rong tat={!gui || ma.length < 6} bam={() => setBuoc2(true)} /></>}>
-      <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Rob giúp lấy lại nè!" cao={150} />
+      <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Grow giúp lấy lại nè!" cao={150} />
       <TieuDe chu="Quên mật khẩu" giua />
       <SoBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>

@@ -1,5 +1,5 @@
 // «Chọn bộ nhiệm vụ» (thiết kế chốt 05/11 bm-hang-ngay/41, L9): chip bộ (Tự lập · Phụ việc nhà · Học tập · Khoẻ mạnh — GET nhiem-vu/bo),
-// Rob chọn sẵn cả bộ, Ba Mẹ bỏ tick việc không muốn giao rồi «Giao N việc cho <Con>» = POST nhiem-vu/bo {bo, con, chon}.
+// Grow chọn sẵn cả bộ, Ba Mẹ bỏ tick việc không muốn giao rồi «Giao N việc cho <Con>» = POST nhiem-vu/bo {bo, con, chon}.
 // Việc trùng tên Con đã có / việc AiiRob tự chấm đã có thì máy chủ bỏ qua. «+ Tự đặt việc khác» → /giao-nv/tu-dat.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
@@ -34,7 +34,7 @@ export default function ChonBo() {
     <Man lui={{ chu: "Nhiệm vụ" }} tieu="Chọn bộ nhiệm vụ"
       day={<><BaoLoi loi={loiLam} /><Nut chu={`Giao ${chon.length} việc cho ${c.ten}`} rong dangChay={dangChay} tat={!chon.length} bam={giao} /></>}>
       <Chips ds={d.bo.map((x) => ({ gia: x.ma, chu: `${x.ten} · ${x.soViec} việc` }))} chon={[b.ma]} doi={setMa} />
-      <Chu co={14.5} mau={M.chu2}>{`Rob chọn sẵn việc hợp với ${b.tuoi}. Bỏ tick việc nào không muốn giao.`}</Chu>
+      <Chu co={14.5} mau={M.chu2}>{`Grow chọn sẵn việc hợp với ${b.tuoi}. Bỏ tick việc nào không muốn giao.`}</Chu>
       <The>
         <Chu kieu="rat" co={15}>{`Bộ ${b.ten} tối đa ${b.saoToiDaNgay} sao/ngày`}</Chu>
         {b.viec.map((v, i) => {

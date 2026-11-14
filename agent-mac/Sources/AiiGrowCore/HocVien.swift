@@ -497,7 +497,7 @@ public enum HocVienView {
   static func cat(_ s: String, _ toiDa: Int) -> String { s.count <= toiDa ? s : String(s.prefix(toiDa - 1)) + "…" }
 }
 
-/// Mascot Rob theo mục (agent-win MascotView): chưa nối được ⇒ «trong-loi» ở Hôm nay.
+/// Mascot Grow theo mục (agent-win MascotView): chưa nối được ⇒ «trong-loi» ở Hôm nay.
 public enum MascotView {
   public static func chon(_ muc: MucApp, daNoi: Bool, xongHetViec: Bool) -> String {
     if !daNoi && muc == .homNay { return "trong-loi" }

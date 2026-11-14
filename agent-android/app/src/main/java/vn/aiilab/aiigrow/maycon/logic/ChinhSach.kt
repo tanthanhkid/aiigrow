@@ -57,7 +57,7 @@ data class ChinhSach(
     val quy: Quy? = null,
     val gioHoc: GioHoc? = null,
     val ngoaiLeMo: List<NgoaiLeMo> = emptyList(),
-    /** Chế độ «Mở hết»: app chưa xếp được dùng (ungDung.chuaXep = cho_phep). Mặc định «Chỉ app được phép» ⇒ chặn + Con xin Ba Mẹ duyệt. */
+    /** Chế độ «Mở hết»: app chưa xếp được dùng (ungDung.chuaXep = cho_phep). Mặc định «Chặn app & web» ⇒ chặn + Con xin Ba Mẹ duyệt. */
     val chuaXepChoPhep: Boolean = false,
     /** Web luôn chặn (người lớn, cờ bạc, bạo lực) — chặn ở mọi chế độ. */
     val webLuonChan: List<String> = emptyList(),

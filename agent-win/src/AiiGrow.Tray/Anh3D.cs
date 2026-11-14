@@ -2,7 +2,7 @@ namespace AiiGrow.ClayUi;
 
 /// <summary>
 /// Ảnh của thiết kế đã chốt 05/11 (docs/thiet-ke-chot/con-*): icon 3D (Fluent Emoji 3D, MIT — Assets/icon3d/NGUON.md, cùng bộ với app Ba Mẹ
-/// mobile/assets/icon3d) và Rob (Assets/mascot). Nhúng trong exe (LogicalName «icon3d.&lt;tên&gt;.png», «mascot.&lt;tên&gt;.png») — dùng chung khay + bộ cài
+/// mobile/assets/icon3d) và Grow (Assets/mascot). Nhúng trong exe (LogicalName «icon3d.&lt;tên&gt;.png», «mascot.&lt;tên&gt;.png») — dùng chung khay + bộ cài
 /// (AiiGrow.Setup.csproj link tệp này). Thiếu tài nguyên ⇒ null, giao diện vẫn chạy (chỉ thiếu hình).
 /// </summary>
 internal static class Anh3D
@@ -12,7 +12,7 @@ internal static class Anh3D
     /// <summary>Icon 3D theo tên thiết kế (khoa, sao, tin, gui, mo_khoa, dong_ho_cat…).</summary>
     public static Image? Icon(string ten) => Lay("icon3d." + ten + ".png");
 
-    /// <summary>Rob theo tên (rob-goc, cho, xong, chi, nghi, ngu, so-tay, trong-loi, qua).</summary>
+    /// <summary>Grow theo tên (rob-goc, cho, xong, chi, nghi, ngu, so-tay, trong-loi, qua).</summary>
     public static Image? Rob(string ten) => Lay("mascot." + ten + ".png");
 
     private static Image? Lay(string res)
@@ -32,7 +32,7 @@ internal static class Anh3D
     }
 }
 
-/// <summary>Khối dựng lặp lại trong mọi màn thiết kế 05/11: viên icon 3D + hai dòng chữ (đậm + phụ), Rob đứng, dòng chữ có độ rộng tối đa.</summary>
+/// <summary>Khối dựng lặp lại trong mọi màn thiết kế 05/11: viên icon 3D + hai dòng chữ (đậm + phụ), Grow đứng, dòng chữ có độ rộng tối đa.</summary>
 internal static class KhoiThietKe
 {
     /// <summary>Viên tròn 3D cỡ <paramref name="co"/> (px 96 dpi) chứa icon; <paramref name="ngoc"/> = viên ngọc nhạt (mục đang nói tới).</summary>
@@ -71,7 +71,7 @@ internal static class KhoiThietKe
         return hang;
     }
 
-    /// <summary>Rob đứng (ảnh trong suốt, không viên) cao <paramref name="cao"/> px 96 dpi, giữ tỉ lệ ảnh.</summary>
+    /// <summary>Grow đứng (ảnh trong suốt, không viên) cao <paramref name="cao"/> px 96 dpi, giữ tỉ lệ ảnh.</summary>
     public static HinhRob Rob(string ten, int cao)
     {
         var img = Anh3D.Rob(ten);
@@ -80,7 +80,7 @@ internal static class KhoiThietKe
     }
 }
 
-/// <summary>Ảnh Rob giữ tỉ lệ, nền là nền thật của cha (thẻ Clay vẽ tay) — như ClayIcon nhưng không kéo méo ảnh đứng.</summary>
+/// <summary>Ảnh Grow giữ tỉ lệ, nền là nền thật của cha (thẻ Clay vẽ tay) — như ClayIcon nhưng không kéo méo ảnh đứng.</summary>
 internal sealed class HinhRob : Control
 {
     private readonly NenCache _nen;

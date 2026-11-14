@@ -23,7 +23,7 @@ export default function DangXin() {
   const phutDoi = q && q.quy.doiSao.bat ? Math.min(Math.floor((q.sao * q.quy.tyLe.phut) / 10), q.quy.doiSao.conDoiDuoc) : 0;
   return (
     <Man lui={{ chu: "Hôm nay" }} tieuLon={d.ds.length ? `${ten} đang xin ${d.ds.length}` : `${ten} không xin gì`} tai={tai} vongTai day={ve}>
-      {!d.ds.length ? <CanhGiua lv="canh-trong" tieu="Không có lời xin nào" loi={`Khi ${ten} xin thêm giờ hay xin mở app, Rob báo Ba Mẹ ngay.`} /> : null}
+      {!d.ds.length ? <CanhGiua lv="canh-trong" tieu="Không có lời xin nào" loi={`Khi ${ten} xin thêm giờ hay xin mở app, Grow báo Ba Mẹ ngay.`} /> : null}
       <BaoLoi loi={loiLam} />
       {d.ds.map((y) => (
         <The key={y.id}>

@@ -1,5 +1,5 @@
-// them-mdujxlg2 «Con được dùng app nào?» (thiết kế chốt 04/11): lưới icon app (Rob chọn sẵn theo tuổi, bấm để đổi), ô tìm / «Thêm app»,
-// ô «+ Thêm app khác» ⇒ them-at57ypdc. «Cho X dùng N app này» ⇒ lưu (POST thiet-lap) ⇒ Ghép máy. Chỉ gặp ở chế độ «Chỉ app được phép».
+// them-mdujxlg2 «Con được dùng app nào?» (thiết kế chốt 04/11): lưới icon app (Grow chọn sẵn theo tuổi, bấm để đổi), ô tìm / «Thêm app»,
+// ô «+ Thêm app khác» ⇒ them-at57ypdc. «Cho X dùng N app này» ⇒ lưu (POST thiet-lap) ⇒ Ghép máy. Chỉ gặp ở chế độ «Chặn app & web».
 import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -34,7 +34,7 @@ export default function ChonApp() {
       day={<><BaoLoi loi={loi} /><Nut chu={`Cho ${ten} dùng ${apps.length} app này`} rong dangChay={dangChay} bam={luu} /></>}>
       <TieuDe chu="Con được dùng app nào?" />
       <Pressable onPress={() => router.back()} accessibilityRole="button" style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 40, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: "#dcebe6" }}>
-        <Icon3D ten="khoa" co={22} /><Chu kieu="rat" co={13.5} mau={M.chinhInk}>Chỉ app được phép <Chu kieu="dam" co={12.5} mau={M.chu2}>· đổi ở Giờ chơi</Chu></Chu>
+        <Icon3D ten="khoa" co={22} /><Chu kieu="rat" co={13.5} mau={M.chinhInk}>Chặn app & web <Chu kieu="dam" co={12.5} mau={M.chu2}>· đổi ở Giờ chơi</Chu></Chu>
       </Pressable>
       <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
         <Pressable onPress={() => router.push("/thiet-lap/them-app")} accessibilityRole="search" style={{ flex: 1, minHeight: 50, borderRadius: 25, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, justifyContent: "center", paddingHorizontal: 18 }}>
@@ -46,7 +46,7 @@ export default function ChonApp() {
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
         <Anh3D ten="lap_lanh" co={22} />
-        <Chu kieu="rat" co={14} mau={M.chinhInk}>{`Rob chọn sẵn ${soRob} app hợp tuổi${tuoi ? ` ${tuoi}` : ""} · bấm để đổi`}</Chu>
+        <Chu kieu="rat" co={14} mau={M.chinhInk}>{`Grow chọn sẵn ${soRob} app hợp tuổi${tuoi ? ` ${tuoi}` : ""} · bấm để đổi`}</Chu>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
         {(luoi ?? []).map((a) => <OApp key={a.ma} ma={a.ma} ten={a.ten} chon={apps.some((x) => coMa(x) && x.ma === a.ma)} bam={() => bat(a)} />)}

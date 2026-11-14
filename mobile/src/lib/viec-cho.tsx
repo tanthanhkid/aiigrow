@@ -164,7 +164,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
           )}
         </Animated.View>
       )) : (
-        <View style={{ paddingHorizontal: 2, paddingBottom: 4 }}><Dong tieu="Khi Con nộp hay xin phép, Rob báo Ba Mẹ ngay" phu="Xem hộp Chờ duyệt" bam={() => router.push("/cho-duyet")} /></View>
+        <View style={{ paddingHorizontal: 2, paddingBottom: 4 }}><Dong tieu="Khi Con nộp hay xin phép, Grow báo Ba Mẹ ngay" phu="Xem hộp Chờ duyệt" bam={() => router.push("/cho-duyet")} /></View>
       )}
       </LayoutAnimationConfig>
       {con.length ? <View style={{ height: 5 }} /> : null}
@@ -176,7 +176,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
             <View style={{ gap: 8 }}>
               {LY_DO_NV.map((x, i) => <OChon key={x.chu} chon={lyDo === i} bam={() => setLyDo(i)} tieu={x.chu} phu={x.phu} />)}
             </View>
-            <Chu co={13} mau={M.chu3}>{`${ten} không bị trừ điểm. Rob nói với ${ten} bằng giọng vui.`}</Chu>
+            <Chu co={13} mau={M.chu3}>{`${ten} không bị trừ điểm. Grow nói với ${ten} bằng giọng vui.`}</Chu>
           </>
         ) : (
           <>

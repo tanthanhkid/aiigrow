@@ -44,7 +44,7 @@ export const NGU_MAC_DINH = { tu: "21:30", den: "06:30" };
 export const QUY_CHIP = [30, 60, 90] as const;
 export const cuoiTuanCua = (p: number) => p + 30;
 
-/** Lưới app gợi ý (GET app-goi-y) + điền sẵn lựa chọn của Rob vào trạng thái Lần đầu nếu Ba Mẹ chưa chọn. */
+/** Lưới app gợi ý (GET app-goi-y) + điền sẵn lựa chọn của Grow vào trạng thái Lần đầu nếu Ba Mẹ chưa chọn. */
 export async function napAppGoiY(con: string) {
   const r = await bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(con)}`);
   if (!layTl().apps) datTl({ apps: appsRobChonSan(r.ds) ?? [] });

@@ -1,5 +1,5 @@
 // Chi tiết một máy của con (thiết kế chốt 05/11, bm-hang-ngay/05 tuân thủ · 08 lệch chuẩn · 06/09 đổi tên · 07/10 gỡ · 11 hướng dẫn sửa):
-// thẻ trạng thái «✓ Rob đang trông máy này» / «! <máy> chưa được bảo vệ» + hậu quả, «Chỉ app Ba Mẹ cho phép», lời xin đang chờ của con, Đổi tên / Gỡ máy,
+// thẻ trạng thái «✓ Grow đang trông máy này» / «! <máy> chưa được bảo vệ» + hậu quả, «Chặn app & web», lời xin đang chờ của con, Đổi tên / Gỡ máy,
 // «Sửa <máy> trong 3 bước», «Khoá mọi máy của <Con> ngay». Mục «An toàn & sự cố» giữ các tính năng an toàn cũ: mở khẩn cấp,
 // gán con cho máy dùng chung, gỡ từ xa (nhập lại mật khẩu — máy chỉ rời danh sách khi agent báo đã gỡ), gỡ tại máy, nhật ký.
 // 06/11 (L19): hàng «Mã mở máy khi mất mạng» ⇒ màn them-rz77kk45 (/may/<id>/ma-offline). Bỏ «Giám sát / Chặn thật» (L4: máy luôn chặn thật). Người trông giúp: xem, khoá máy, xem mã mất mạng; không đổi tên / gỡ.
@@ -96,14 +96,14 @@ export default function AnToanMay() {
   const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
   return (
     <Man lui={{ chu: "Quay lại" }} tieu={m.ten} noi={noi} tai={tai}>
-      {/* thẻ trạng thái (05 / 08): xanh khi Rob trông đủ, cam khi chưa được bảo vệ + hậu quả */}
+      {/* thẻ trạng thái (05 / 08): xanh khi Grow trông đủ, cam khi chưa được bảo vệ + hậu quả */}
       <The dem style={{ gap: 10, backgroundColor: tot ? M.chinhSoft : M.canhSoft }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <BieuTron ic={IC_MAY[m.nen]} mau={tot ? "xanh" : "cam"} lon />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Chu kieu="rat" co={17} mau={tot ? M.chinhInk : M.canh}>{tot ? "✓ Rob đang trông máy này" : `! ${ngan} chưa được bảo vệ`}</Chu>
+            <Chu kieu="rat" co={17} mau={tot ? M.chinhInk : M.canh}>{tot ? "✓ Grow đang trông máy này" : `! ${ngan} chưa được bảo vệ`}</Chu>
             <Chu co={13.5} mau={M.chu2}>{tot ? `Đồng bộ ${truoc(m.lanCuoi) || "chưa lần nào"}${m.dungChung ? " · máy dùng chung" : ""}`
-              : m.baoVeCau ?? `Rob vẫn tính giờ, nhưng máy chưa được khoá đủ nên con tự tắt được. Báo về ${truoc(m.lanCuoi) || "chưa lần nào"}.`}</Chu>
+              : m.baoVeCau ?? `Grow vẫn tính giờ, nhưng máy chưa được khoá đủ nên con tự tắt được. Báo về ${truoc(m.lanCuoi) || "chưa lần nào"}.`}</Chu>
           </View>
         </View>
         {!tot && m.baoVeThieu?.length ? (
@@ -113,7 +113,7 @@ export default function AnToanMay() {
       </The>
 
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="luoi" mau="tim" tieu={d.ct?.cheDoChan === "mo_het" ? "Mở hết · chỉ chặn web người lớn" : "Chỉ app Ba Mẹ cho phép"}
+        <HangViec dau ic="luoi" mau="tim" tieu={d.ct?.cheDoChan === "mo_het" ? "Mở hết · chỉ chặn web người lớn" : "Chặn app & web"}
           phu="Xem app & web con được dùng" bam={() => router.push((m.con ? `/app-web?con=${m.con}` : "/app-web") as never)} />
         {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — chặn hoặc cho phép"
           bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
@@ -209,7 +209,7 @@ export default function AnToanMay() {
       </BangTruot>
 
       <BangTruot mo={mo === "go"} dong={dong} tieu={`Gỡ ${m.ten}?`}>
-        <Chu mau={M.chu2}>Rob thôi trông máy này. Con dùng máy sẽ không bị tính giờ, không bị chặn.</Chu>
+        <Chu mau={M.chu2}>Grow thôi trông máy này. Con dùng máy sẽ không bị tính giờ, không bị chặn.</Chu>
         <View>
           <TickDong chu="Lịch sử dùng máy vẫn giữ trong báo cáo" />
           <TickDong chu="Muốn trông lại thì ghép lại bằng mã 6 số" />
@@ -267,7 +267,7 @@ export default function AnToanMay() {
             </View>
           ))}
         </View>
-        <Nut chu="Đã làm xong, kiểm tra lại" rong bam={() => { dong(); tai(); bao("Rob kiểm lại ở lần máy báo về kế tiếp (thường dưới 3 phút)"); }} />
+        <Nut chu="Đã làm xong, kiểm tra lại" rong bam={() => { dong(); tai(); bao("Grow kiểm lại ở lần máy báo về kế tiếp (thường dưới 3 phút)"); }} />
         <Nut chu="Làm không được? Hỏi AiiGrow" loai="ma" rong bam={() => { dong(); router.push("/ho-tro"); }} />
       </BangTruot>
 

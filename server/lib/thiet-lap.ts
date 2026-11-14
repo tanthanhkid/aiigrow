@@ -53,7 +53,7 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
   // Kiểm MỌI dữ liệu TRƯỚC khi tạo Con: lỗi giữa chừng không để lại Con (app chưa nhận con.id ⇒ gửi lại sẽ tạo Con thứ hai)
   if (b.gioChoi) { if (b.gioChoi.ngayThuong !== undefined) phutHopLe(b.gioChoi.ngayThuong, "ngày thường"); if (b.gioChoi.cuoiTuan !== undefined) phutHopLe(b.gioChoi.cuoiTuan, "cuối tuần"); }
   if (b.ngu) { const tu = String(b.ngu.tu ?? ""), den = String(b.ngu.den ?? ""); if (!GIO.test(tu) || !GIO.test(den) || tu === den) throw new LoiNghiepVu("gio_sai", "Giờ ngủ dạng HH:MM, giờ khoá khác giờ mở"); }
-  if (b.cheDoChan !== undefined && !(CHE_DO_CHAN as readonly string[]).includes(String(b.cheDoChan))) throw new LoiNghiepVu("che_do_chan_sai", "Chọn «Mở hết» hoặc «Chỉ app được phép»");
+  if (b.cheDoChan !== undefined && !(CHE_DO_CHAN as readonly string[]).includes(String(b.cheDoChan))) throw new LoiNghiepVu("che_do_chan_sai", "Chọn «Mở hết» hoặc «Chặn app & web»");
   if (b.apps !== undefined) {
     if (!Array.isArray(b.apps)) throw new LoiNghiepVu("thieu_app", "Gửi danh sách app");
     for (const a of b.apps as { ma?: unknown }[]) if (a?.ma && !APP_GOI_Y.some((x) => x.ma === String(a.ma))) throw new LoiNghiepVu("app_sai", `Không có app «${a.ma}» trong lưới`);

@@ -14,7 +14,7 @@ Xử lý nằm ở `server/lib/api-m.ts`, `api-con.ts`, `api-may.ts` (route Next
 | Nhiệm vụ | `GET/POST nhiem-vu` · `POST nhiem-vu/mau {nhom: nhi\|teen}` · `POST nhiem-vu/:id` (sửa, bật/tắt) |
 | Chờ duyệt | `GET cho-duyet` → `{nhiemVu[], yeuCau[], phieu[] (quà Con đổi đang chờ trao/xác nhận, kèm `hinh` của quà — null khi quà đã xoá: `POST phieu/:id/xac-nhan` · `POST phieu/:id/huy`), tuDong[]}` · `GET luot/:id/anh` · `POST luot/:id/duyet {diem?, loiKhen?}` · `POST luot/:id/tu-choi {lyDo, boSung?}` · `POST duyet-hang-loat {ids[]}` |
 | Quản trị trong app | `GET toi` có thêm `laAdmin` (`parents.id` nằm trong env `AIIGROW_ADMIN_ID`, cách nhau dấu phẩy; không so email/SĐT; không đặt env ⇒ không ai là admin; lấy id bằng `GET toi` → `baMe.id`) · `GET admin/ho-tro` → `{ds[{family_id, ten, tu, noi_dung, created_at, chua_tra_loi}]}` · `GET admin/ho-tro/:fam` → `{ten, tin[]}` · `POST admin/ho-tro/:fam {noiDung}`. Ba Mẹ thường gọi ⇒ 403 `khong_du_quyen` |
-| Yêu cầu | `GET yeu-cau/:id/xem-truoc` → cảnh báo ngoại lệ trước khi xác nhận · `POST yeu-cau/:id/dong-y {truDiem?, phut?, phanLoai?, nhom?, phamVi?}` · `POST yeu-cau/:id/tu-choi {lyDo}` |
+| Yêu cầu | `GET yeu-cau/:id/xem-truoc` → cảnh báo ngoại lệ trước khi xác nhận · `POST yeu-cau/:id/dong-y {truDiem?, phut?, phanLoai?, nhom?, phamVi?}` · `POST yeu-cau/:id/tu-choi {lyDo}` · `POST yeu-cau/:id/mo-lai` (14/11: «Hoàn tác» lời xin vừa «Không cho» trong 10 phút ⇒ về «chờ»; quá ⇒ 409 `khong_mo_lai`) · mo_web/cai_app `phamVi: "lan_nay"` kèm `phut` (5–240) ⇒ mở đúng N phút (thiếu `phut` ⇒ 1 giờ) |
 | Phần thưởng | `GET/POST qua` · `POST qua/mau` · `POST qua/:id` · `GET phieu` (chờ trao / chờ xác nhận) · `POST phieu/:id/xac-nhan` · `POST phieu/:id/huy` · `GET quy` |
 | Phân loại | `GET luat` → luật gia đình + Allowlist hệ thống · `POST luat {con?, muc, ten?, loai: hoc\|giai_tri\|chan, nhom?}` |
 | Theo dõi | `GET canh-bao` · `POST canh-bao/:id/doc` · `GET nhat-ky?con=` |
@@ -284,7 +284,7 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 
 - `parents.vai`: **`ba_me`** (làm được hết) · **`trong_giup`** (Người trông giúp) · `roi`. Dữ liệu cũ đã đổi: `chu`, `duyet` ⇒ `ba_me`; `xem` ⇒ `trong_giup`. Người tạo nhà: `families.chu_id` (chỉ người này xoá được cả nhà; không ai đổi quyền / mời ra người này).
 - `GET toi` → `baMe {id, ten, dinhDanh, quyen, laChuNha, vai}` — `vai` là giá trị **kiểu cũ** cho app bản trước (`chu` = người tạo nhà, `duyet` = Ba Mẹ khác, `xem` = Người trông giúp).
-- Người trông giúp: mọi `GET`; `POST` chỉ: `con/:id/khoa`, `con/:id/loi-khen`, `luot/:id/duyet|tu-choi|hoan-tac`, `duyet-hang-loat`, `yeu-cau/:id/dong-y|tu-choi`, `phieu/:id/xac-nhan|huy`, `phien/:id/dung`, `thong-bao/*`, `moi/nhan`, `thanh-vien/roi-nha`, `dang-xuat`, `xoa-tai-khoan` (danh sách: `quyen.ts` › `trongGiupDuoc` — đường POST mới thuộc loại «xem / duyệt / khoá máy» phải thêm vào đây). Còn lại ⇒ 403 `chi_xem`. `GET may/:id/ma-offline` mở cho cả Người trông giúp.
+- Người trông giúp: mọi `GET`; `POST` chỉ: `con/:id/khoa`, `con/:id/loi-khen`, `luot/:id/duyet|tu-choi|hoan-tac`, `duyet-hang-loat`, `yeu-cau/:id/dong-y|tu-choi|mo-lai`, `phieu/:id/xac-nhan|huy`, `phien/:id/dung`, `thong-bao/*`, `moi/nhan`, `thanh-vien/roi-nha`, `dang-xuat`, `xoa-tai-khoan` (danh sách: `quyen.ts` › `trongGiupDuoc` — đường POST mới thuộc loại «xem / duyệt / khoá máy» phải thêm vào đây). Còn lại ⇒ 403 `chi_xem`. `GET may/:id/ma-offline` mở cho cả Người trông giúp.
 - Gỡ máy (`may/:id/go`, `go-tu-xa`) và gỡ tại máy bằng mật khẩu: mọi **Ba Mẹ** (trước: chỉ Chủ).
 
 ### Mời người nhà (L6) — bỏ mã gõ tay

@@ -81,7 +81,7 @@ public sealed class Policy
     public bool PlayWeb { get; set; }
     /// <summary>Số phút tối đa được chơi tiếp khi mất mạng (máy chủ tính từ phút còn lại của phiên, số dư, phút thưởng, giá phiên).</summary>
     public double? PlayOfflineMinutes { get; set; }
-    /// <summary>0.2.6: app / trang Giải trí Ba Mẹ đã xếp (chữ thường: .exe hoặc tên miền) — Rob cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
+    /// <summary>0.2.6: app / trang Giải trí Ba Mẹ đã xếp (chữ thường: .exe hoặc tên miền) — Grow cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
     public List<AppBiChan> BlockedApps { get; set; } = new();
@@ -215,7 +215,7 @@ public sealed class PlayCheck
     public string? LyDo { get; set; }
     /// <summary>Câu hiển thị cho con (do máy chủ soạn).</summary>
     public string? Cau { get; set; }
-    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Rob hiện «≈ X phút chơi». Số điểm KHÔNG sang khay.
+    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Grow hiện «≈ X phút chơi». Số điểm KHÔNG sang khay.
     /// Số THỰC: máy chủ cộng phút thưởng (real) nên có thể lẻ (22.5) — int? thì đọc JSON lỗi ⇒ cả «Dùng điểm để chơi» hỏng (review #75).
     /// Hiển thị bằng <see cref="PhutHienThi"/>.</summary>
     public double? PhutToiDa { get; set; }

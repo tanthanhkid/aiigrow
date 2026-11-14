@@ -68,7 +68,7 @@ export default function ObMau() {
       <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
         <Nhan loai="xam" chu={`Hợp ${b.tuoi}`} />
         <Nhan loai="xam" chu={`~${Math.max(15, chon.length * 6)} phút/ngày`} />
-        <Nhan loai="ok" chu="Rob gợi ý" />
+        <Nhan loai="ok" chu="Grow gợi ý" />
       </View>
       <The sat>
         {b.viec.map((v, i) => {

@@ -1,6 +1,6 @@
 // Tab «Báo cáo» (thiết kế chốt 05/11, bm-hang-ngay/44): khoảng tuần, chip đổi con, «Tuần này <Con> dùng máy» (giờ giải trí / quỹ cả tuần, so tuần trước),
 // biểu đồ 7 cột (trong quỹ · quá giờ · vạch quỹ mỗi ngày), «Dùng nhiều nhất», «Sao và giờ thêm» (sao kiếm tuần này, việc đã làm, phút đã đổi; lần xin
-// thêm giờ), gợi ý của Rob khi có ngày quá giờ. Số liệu: GET con/:id/bao-cao, con/:id/gio-choi, con/:id/vi. Chỉ tên app/tên miền + thời lượng.
+// thêm giờ), gợi ý của Grow khi có ngày quá giờ. Số liệu: GET con/:id/bao-cao, con/:id/gio-choi, con/:id/vi. Chỉ tên app/tên miền + thời lượng.
 // «Xuất CSV» giữ (một dòng nhỏ cuối màn).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
