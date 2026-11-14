@@ -21,7 +21,7 @@ export default function YeuCauWeb() {
     const [cd, xem] = await Promise.all([bm.goi<{ yeuCau: Yc[] }>("cho-duyet"), laChiXem()]);
     const y = cd.yeuCau.find((x) => x.id === id) ?? null;
     const ct = y ? await bm.goi<ConChiTiet>(`con/${y.child_id}`).catch(() => null) : null;
-    return { y, ct, xem };
+    return { y, ct, xem, luc: Date.now() };
   });
   const [kq, setKq] = useState<(KetQua & { y: Yc }) | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -66,7 +66,7 @@ export default function YeuCauWeb() {
   if (!d) return <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.y) return <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở"><ChoTai loi="Lời xin này đã được trả lời (hoặc đã hết hạn)." tai={ve} /></Man>;
   const y = d.y, ten = y.gia_tri ?? "App mới", tenCon = d.ct?.ten ?? y.ten_con, may = tenMay(y);
-  const cho = Math.max(0, Math.round((Date.now() - new Date(y.created_at).getTime()) / 60000));
+  const cho = Math.max(0, Math.round((d.luc - new Date(y.created_at).getTime()) / 60000));
   const dongY = (loai: "phut" | "hom_nay" | "tinh_gio") => lam(async () => {
     const cu = (await bm.goi<{ ds: (LuatApp & { het?: string | null })[] }>("luat").catch(() => null))?.ds.find((l) => l.child_id === y.child_id && l.muc === y.gia_tri);
     const truoc: LuatTruoc = cu ? { con: y.child_id, muc: cu.muc, ten: cu.ten, loai: cu.loai, nhom: cu.nhom, het: cu.het ?? null } : null;

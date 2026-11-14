@@ -1,6 +1,6 @@
 // Thành phần riêng cho hành trình Ba Mẹ «Ứng dụng & web» + «Cài đặt & hỗ trợ» (docs/thiet-ke-chot/bm-ung-dung, bm-cai-dat — thiết kế chốt 05/11).
 // Chỉ THÊM (không đổi thành phần chung trong ui.tsx): tiêu đề mục chữ thường đậm (.muc), hàng vàng «Con đang xin» (.xin), ô icon lõm (.ic),
-// đèn 3 màu cho app / web (14/11), ô tìm, màn kết quả (Rob + .tin + Hoàn tác), ba nút quyết (.ba). Dùng token Clay (mau.ts, clay.ts).
+// đèn 3 màu cho app / web (14/11), ô tìm, màn kết quả (Grow + .tin + Hoàn tác), ba nút quyết (.ba). Dùng token Clay (mau.ts, clay.ts).
 import type { ReactNode } from "react";
 import { Image, Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";

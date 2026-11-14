@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet } from "@/lib/api";
-import { ChonDenNgang, DongDen, NhomDen, NutCong, OIcon, OTim, icCuaApp, khoaTen, laWeb, luatCuaCon, veHoac, type Den, type LuatApp } from "@/lib/ui-bm3";
+import { ChonDenNgang, DongDen, NhomDen, NutCong, OIcon, OTim, icCuaApp, laWeb, luatCuaCon, veHoac, type Den, type LuatApp } from "@/lib/ui-bm3";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 type GoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };
