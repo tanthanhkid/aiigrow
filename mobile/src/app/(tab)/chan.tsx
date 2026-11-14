@@ -114,7 +114,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           <HangIcon nhan="App" ic={app.map((l) => icCuaApp(`${l.ten} ${l.muc}`))} trong="Chưa cho app nào" sua={!moHet} bam={moApp} />
           <View style={{ height: 1.5, backgroundColor: "#ecebe7" }} />
           <HangIcon nhan="Web" ic={web.map((l) => { const i = icCuaApp(l.muc); return i === "web" ? "sach" : i; })} trong="Chưa cho trang nào" sua={!moHet} bam={moWeb} />
-          {moHet ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginTop: 6, marginBottom: 4 }}>Đang tạm nghỉ, vẫn được giữ nguyên. Bật lại «Chặn app & web» là dùng tiếp.</Chu> : null}
+          {moHet ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginTop: 6, marginBottom: 4, marginHorizontal: 4 }}>Đang tạm nghỉ, vẫn được giữ nguyên. Bật lại «Chặn app & web» là dùng tiếp.</Chu> : null}
         </View>
 
         <HangLuonChan />

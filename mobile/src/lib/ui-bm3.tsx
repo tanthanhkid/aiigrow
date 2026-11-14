@@ -144,7 +144,7 @@ export function MucDen({ den, chu, phai }: { den: Den; chu: string; phai?: strin
 
 /** Khối một nhóm đèn (.ds / .ds.vang / .ds.do): các dòng cách nhau vạch mảnh. */
 export function NhomDen({ den = "x", children }: { den?: Den; children: ReactNode }) {
-  return <View style={{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 26, backgroundColor: NEN_DEN[den], ...KHOI.the }}>{children}</View>;
+  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 26, backgroundColor: NEN_DEN[den], ...KHOI.the }}>{children}</View>;
 }
 
 /** Một dòng trong nhóm đèn (.lg): icon, tên, phụ; bên phải «›», nút «Gỡ chặn» (`go`) hoặc phần tuỳ ý (`phai`). */
