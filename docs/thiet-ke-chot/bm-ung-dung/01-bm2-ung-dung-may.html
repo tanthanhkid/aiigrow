@@ -3,51 +3,93 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
 .app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:340px;background:linear-gradient(#e3efeb,#f4f4f2)}
-.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
-.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
-.top h1{font-size:21px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
-.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 110px;scrollbar-width:none}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:320px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 20px 0;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.top h1{font-size:28px;font-weight:800;letter-spacing:-.6px;white-space:nowrap;line-height:32px}
+.top small{display:block;font-size:13px;font-weight:700;color:#565c59}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:84px;overflow-y:auto;padding:0 16px 24px;scrollbar-width:none}
 .cuon::-webkit-scrollbar{display:none}
-.che{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:26px;background:#f7f6f3;box-shadow:0 0 0 3px #0f6b5c,var(--clay)}
-.che img{width:40px;height:40px}
-.che p{flex:1;font-size:15.5px;font-weight:800;line-height:20px}.che p small{display:block;font-size:12px;font-weight:600;color:#565c59}
-.doi{flex:none;min-height:44px;padding:0 14px;border-radius:22px;background:#dcebe6;color:#0a5246;font-size:13.5px;font-weight:800;display:flex;align-items:center;white-space:nowrap}
-.xin{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px 12px 12px;border-radius:24px;background:#fbecc0;box-shadow:var(--clay)}
-.xin .ic{background:#f6dc95}
-.xin p{flex:1;font-size:15px;font-weight:800;color:#6e4300;line-height:19px}.xin p small{display:block;font-size:12.5px;font-weight:600}
-.xin b{font-size:14px;font-weight:800;color:#6e4300;white-space:nowrap}
-.muc{margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
-.ds{padding:4px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
-.dong{display:flex;align-items:center;gap:12px;height:62px}
-.dong+.dong{border-top:1.5px solid #ecebe7}
-.ic{flex:none;width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:28px;height:28px}
-.dong p{flex:1;min-width:0;font-size:15px;font-weight:800}.dong p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
-.tg{flex:none;padding:4px 10px;border-radius:11px;font-size:12px;font-weight:800;white-space:nowrap}
-.tg.v{background:#fbecc0;color:#6e4300}.tg.x{background:#dcebe6;color:#0a5246}
-.mui{flex:none;color:#8b918e;font-size:22px;font-weight:600}
-.bar{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:10px 16px 26px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 30%)}
-.nut{display:flex;align-items:center;justify-content:center;min-height:54px;border-radius:24px;color:#fff;font-size:16px;font-weight:800;white-space:nowrap;background:linear-gradient(rgba(255,255,255,.22),rgba(255,255,255,.05) 46%,rgba(255,255,255,0) 50%),linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -8px rgba(18,22,21,.5),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -4px 6px rgba(0,0,0,.35)}
+.be-ds{display:flex;gap:8px;padding:6px 0 4px}
+.be{flex:none;display:flex;align-items:center;gap:6px;height:44px;padding:0 14px 0 5px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:14px;font-weight:800;color:#3a403d;white-space:nowrap}
+.be i{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;font-size:15px;box-shadow:inset 0 2px 0 rgba(255,255,255,.35),inset 0 -5px 8px -4px rgba(0,0,0,.2)}
+.be.on{background:#0f6b5c;color:#fff}
+.be.nho{padding:0 5px}
+.hero{position:relative;margin-top:14px;padding:18px 16px 16px;border-radius:34px;background:linear-gradient(#cfe6de,#e8f2ee);box-shadow:var(--clay);overflow:hidden}
+.hero::before{content:"";position:absolute;left:16px;right:16px;top:4px;height:44px;border-radius:30px 30px 70px 70px;background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,0))}
+.hero .grow{position:absolute;right:-4px;top:62px;width:104px;height:104px;object-fit:contain}
+.hero .nho{position:relative;font-size:13px;font-weight:700;color:#0a5246}
+.hero h2{position:relative;margin-top:4px;display:flex;align-items:center;gap:8px;font-size:25px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
+.hero h2 img{width:32px;height:32px}
+.y{position:relative;margin-top:12px;margin-right:96px;display:flex;flex-direction:column;gap:8px}
+.y p{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;font-weight:700;line-height:1.35}
+.y p i{flex:none;width:22px;height:22px;border-radius:11px;display:grid;place-items:center;font-style:normal;font-size:12px;color:#fff}
+.y p i.ok{background:#0f6b5c}.y p i.ko{background:#8a3c0c}
+.cong{position:relative;margin-top:16px;display:grid;grid-template-columns:1fr 1.25fr;gap:4px;padding:4px;border-radius:24px;background:rgba(255,255,255,.55);box-shadow:var(--lom)}
+.cong span{display:flex;align-items:center;justify-content:center;gap:6px;height:48px;border-radius:20px;font-size:14.5px;font-weight:800;color:#3a403d;white-space:nowrap}
+.cong span img{width:22px;height:22px;opacity:.6}
+.cong span.on{color:#fff;background:#0f6b5c;box-shadow:0 10px 16px -10px rgba(10,82,70,.7),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -6px 10px -4px rgba(0,0,0,.25)}
+.cong span.on img{opacity:1}
+.muc{display:flex;align-items:center;margin:20px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.muc em{font-style:normal;margin-left:6px;padding:2px 8px;border-radius:10px;background:#e2660f;color:#fff;font-size:12px}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#f3d6b8;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.xin{display:flex;align-items:center;gap:10px;min-height:64px;padding:0 12px;border-radius:28px;background:#f9e7d2;box-shadow:var(--clay)}
+.xin p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.xin p small{display:block;font-size:12.5px;font-weight:600;color:#8a3c0c}
+.xin b{flex:none;font-size:14px;font-weight:800;color:#8a3c0c;white-space:nowrap}
+.duoc{padding:8px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.hang{display:flex;align-items:center;gap:10px;min-height:60px}
+.hang+.hang{border-top:1.5px solid #ecebe7}
+.hang .nhan{flex:none;width:44px;font-size:14px;font-weight:800;color:#3a403d}
+.icons{flex:1;display:flex;gap:6px;min-width:0}
+.icons i{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#fff;box-shadow:0 8px 12px -8px rgba(28,32,30,.3),inset 0 -4px 8px -4px rgba(40,44,42,.12)}
+.icons i img{width:24px;height:24px}
+.sua{flex:none;min-height:44px;padding:0 4px 0 8px;display:flex;align-items:center;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.luon{display:flex;align-items:center;gap:10px;margin-top:14px;padding:4px 12px 4px 14px;border-radius:22px;background:#ecebe7;box-shadow:var(--lom)}
+.luon img{width:24px;height:24px;flex:none}
+.luon p{flex:1;font-size:13px;font-weight:600;color:#3a403d;line-height:1.4}.luon p b{color:#0f1312;font-weight:800}
+.luon span{flex:none;min-height:44px;display:flex;align-items:center;font-size:13px;font-weight:800;color:#0a5246}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:#f7f6f3;box-shadow:0 -1px 0 #e4e3df,0 -12px 18px -12px rgba(28,32,30,.25);z-index:4}
+.tab div{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:700;color:#565c59;white-space:nowrap}
+.tab img{width:26px;height:26px;opacity:.5}
+.tab .on{color:#0a5246;font-weight:800}.tab .on img{opacity:1}
 </style></head>
 <body><div class="app">
-<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-8h2msmht"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>App trên Laptop của Bảo Anh</h1></div>
+<div class="top"><h1>Chặn</h1><small>App và trang web của con</small></div>
 <div class="cuon">
-<div class="che"><img src="/assets/icon3d/khoa.webp" alt=""><p>Chỉ app được phép<small>App mới phải xin Ba Mẹ</small></p><span class="doi" role="button" tabindex="0" data-toi="them-8h2msmht">Đổi chế độ</span></div>
-<div class="xin" role="button" tabindex="0" data-toi="bm2-yeu-cau-web"><span class="ic"><img src="/assets/icon3d/chuong.webp" alt=""></span><p>Con đang xin mở YouTube<small>30 phút · lúc 19:20</small></p><b>Xem ›</b></div>
-<p class="muc">Được dùng · 4 app · 42/60 phút giờ chơi</p>
-<div class="ds">
-<div class="dong" role="button" tabindex="0" data-toi="bm2-app-web"><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><p>Roblox<small>Đang chơi · 30 phút nay</small></p><span class="tg v">Tính vào giờ chơi</span><span class="mui">›</span></div>
-<div class="dong" role="button" tabindex="0" data-toi="bm2-app-web"><span class="ic"><img src="/assets/icon3d/web.webp" alt=""></span><p>YouTube Kids<small>12 phút nay (iPad)</small></p><span class="tg v">Tính vào giờ chơi</span><span class="mui">›</span></div>
-<div class="dong" role="button" tabindex="0" data-toi="bm2-app-web"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><p>Học với AiiRob<small>Chưa dùng hôm nay</small></p><span class="tg x">Không tính giờ</span><span class="mui">›</span></div>
-<div class="dong" role="button" tabindex="0" data-toi="bm2-app-web"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Từ điển<small>10 phút nay</small></p><span class="tg x">Không tính giờ</span><span class="mui">›</span></div>
+<div class="be-ds" aria-label="Chọn con">
+<span class="be on" role="button" tabindex="0"><i style="background:#f08a3c">B</i>Bảo Anh</span>
+<span class="be nho" role="button" tabindex="0" aria-label="Bảo Minh"><i style="background:#5b7fd6">M</i></span>
+<span class="be nho" role="button" tabindex="0" aria-label="Bảo Ngọc"><i style="background:#d86a8f">N</i></span>
+<span class="be nho" role="button" tabindex="0" aria-label="Khang"><i style="background:#3f9a86">K</i></span>
 </div>
-<p class="muc">Trang web &amp; luôn chặn</p>
-<div class="ds">
-<div class="dong" role="button" tabindex="0" data-toi="bm2-web"><span class="ic"><img src="/assets/icon3d/web.webp" alt=""></span><p>Trang web<small>3 trang được phép</small></p><span class="mui">›</span></div>
-<div class="dong" role="button" tabindex="0" data-toi="them-1g0mpf21"><span class="ic"><img src="/assets/icon3d/khien.webp" alt=""></span><p>Luôn chặn<small>Web người lớn, cờ bạc, bạo lực</small></p><span class="mui">›</span></div>
+<div class="hero">
+<img class="grow" src="/assets/rob/chi.webp" alt="Grow">
+<p class="nho">Máy của Bảo Anh đang ở chế độ</p>
+<h2><img src="/assets/icon3d/khien.webp" alt="">Chặn app &amp; web</h2>
+<div class="y">
+<p><i class="ok">✓</i>Chỉ mở được 4 app, 3 trang web Ba Mẹ chọn</p>
+<p><i class="ko">✋</i>App, web mới: con phải xin Ba Mẹ</p>
+</div>
+<div class="cong" role="radiogroup" aria-label="Chế độ chặn">
+<span role="radio" aria-checked="false" tabindex="0" data-toi="them-98obxv7x"><img src="/assets/icon3d/mo_khoa.webp" alt="">Mở hết</span>
+<span class="on" role="radio" aria-checked="true" tabindex="0"><img src="/assets/icon3d/khien.webp" alt="">Chặn app &amp; web</span>
 </div>
 </div>
-<div class="bar"><div class="nut" role="button" tabindex="0" data-toi="them-vw103x88">Thêm app cho Bảo Anh</div></div>
+<p class="muc">Con đang xin<em>1</em></p>
+<div class="xin" role="button" tabindex="0" data-toi="bm2-yeu-cau-web"><span class="ic"><img src="/assets/icon3d/web.webp" alt=""></span><p>YouTube · 30 phút<small>19:20 · Bảo Anh đang chờ</small></p><b>Trả lời ›</b></div>
+<p class="muc">Bảo Anh được mở</p>
+<div class="duoc">
+<div class="hang" role="button" tabindex="0" data-toi="them-g7g1cel5"><span class="nhan">App</span><span class="icons"><i><img src="/assets/icon3d/game.webp" alt=""></i><i><img src="/assets/icon3d/may_tinh.webp" alt=""></i><i><img src="/assets/icon3d/sach.webp" alt=""></i><i><img src="/assets/icon3d/camera.webp" alt=""></i></span><span class="sua">Sửa ›</span></div>
+<div class="hang" role="button" tabindex="0" data-toi="bm2-web"><span class="nhan">Web</span><span class="icons"><i><img src="/assets/icon3d/sach.webp" alt=""></i><i><img src="/assets/icon3d/but.webp" alt=""></i><i><img src="/assets/icon3d/game.webp" alt=""></i></span><span class="sua">Sửa ›</span></div>
+</div>
+<div class="luon"><img src="/assets/icon3d/khoa.webp" alt=""><p><b>Luôn chặn</b> web người lớn, cờ bạc, bạo lực</p><span role="button" tabindex="0" data-toi="them-1g0mpf21">Xem ›</span></div>
+</div>
+<nav class="tab">
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
+<div role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Nhiệm vụ</div>
+<div class="on" role="button" tabindex="0"><img src="/assets/icon3d/khien.webp" alt="">Chặn</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+</nav>
 </div></body></html>

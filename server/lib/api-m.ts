@@ -41,7 +41,7 @@ import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
 import { loiMoiChoToi } from "./thanh-vien.ts";
 import { datAppChoPhep, datCheDoChan, luoiApp, TEN_CHE_DO_CHAN, WEB_CAM } from "./che-do-chan.ts";
 import { cheDoChanCua } from "./chan-co-ban.ts";
-import { thietLapLanDau, tomTatThietLap } from "./thiet-lap.ts";
+import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
 import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";
 // Thiết kế chốt 05/11 (S1): sao, quỹ giờ chơi, nhiệm vụ theo bộ, làm lại, quà trao tay — lib/api-sao.ts
 import { xuLyMSao } from "./api-sao.ts";
@@ -194,6 +194,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (p[0] === "ghep-may" && p[1] && p.length === 2 && get) return json(await trangThaiGhep(fam, p[1]));
     // L7: thiết lập lần đầu (tên Con + giờ chơi + giờ ngủ + chế độ chặn + app) · lưới app gợi ý · nhóm web luôn chặn
     if (d === "thiet-lap" && post) return json(await thietLapLanDau(fam, b, bm.id));
+    // Lần đầu «Thêm web»: kiểm một địa chỉ Ba Mẹ dán TRƯỚC khi thêm (cùng luật với thiet-lap › web) ⇒ {muc} hoặc ten_mien_sai / web_cam
+    if (d === "thiet-lap/kiem-web" && post) return json({ muc: webLanDau([b.muc])[0].muc });
     if (d === "app-goi-y" && get) return json(await luoiApp(fam, new URL(req.url).searchParams.get("con")));
     if (d === "luon-chan" && get) return json({ nhom: Object.entries(WEB_CAM).map(([ma, n]) => ({ ma, ten: n.ten, soTrang: n.mien.length })),
       cheDo: Object.entries(TEN_CHE_DO_CHAN).map(([ma, ten]) => ({ ma, ten })) });

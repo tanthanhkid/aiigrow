@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e3efeb 75%,rgba(227,239,235,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 124px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.dau{display:flex;align-items:center;gap:12px}
+.dau .ic{flex:none;width:60px;height:60px;border-radius:20px;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--clay)}.dau .ic img{width:38px;height:38px}
+.lom{flex:1;display:flex;align-items:center;height:56px;padding:0 20px;border-radius:28px;background:#ecebe7;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:800 18px Inter,sans-serif;color:#0f1312}
+.muc{margin:18px 6px 8px;font-size:15px;font-weight:800;color:#3a403d}
+.chon{display:flex;gap:8px;flex-wrap:wrap}
+.chon span{display:flex;align-items:center;justify-content:center;gap:4px;min-width:62px;height:46px;padding:0 16px;border-radius:23px;background:#f7f6f3;box-shadow:var(--clay);font-size:15px;font-weight:800;color:#3a403d;white-space:nowrap}
+.chon span img{width:18px;height:18px}
+.chon .on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.chon i{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:800;color:#fff;margin-left:-8px}
+.chon i.a{background:#f08a3c}.chon i.m{background:#5b7fd6}.chon i.n{background:#d86a8f}.chon i.k{background:#3f9a86}
+.chon .on i{box-shadow:0 0 0 2px #fff}
+.ds{margin-top:18px;padding:4px 14px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.dong{display:flex;align-items:center;gap:12px;min-height:68px}
+.dong p{flex:1;min-width:0;font-size:15.5px;font-weight:800}.dong p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.gat{flex:none;position:relative;width:52px;height:32px;border-radius:16px;background:#0f6b5c;box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
+.gat::after{content:"";position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:13px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.xoa{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:22px;height:50px;border-radius:25px;background:#f7f6f3;box-shadow:var(--clay);font-size:15px;font-weight:800;color:#b42318}
+.xoa img{width:20px;height:20px}
+.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 30px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 20px);z-index:4}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:22px;height:22px}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-e91jg28j"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Sửa việc</h1></div>
+<div class="cuon">
+<div class="dau"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><div class="lom" style="flex: 0 0 auto; width: 268px; max-width: none; height: 48px;"><input type="text" aria-label="Tên việc" value="Dọn phòng"></div></div>
+<p class="muc">Con nhận bao nhiêu sao?</p>
+<div class="chon"><span><img src="/assets/icon3d/sao.webp" alt="">5</span><span class="on"><img src="/assets/icon3d/sao.webp" alt="">10</span><span><img src="/assets/icon3d/sao.webp" alt="">20</span><span><img src="/assets/icon3d/sao.webp" alt="">30</span></div>
+<p class="muc">Làm khi nào?</p>
+<div class="chon"><span class="on">Mỗi ngày</span><span>Thứ 2 – Thứ 6</span><span>Cuối tuần</span></div>
+<p class="muc">Con báo xong bằng</p>
+<div class="chon"><span class="on"><img src="/assets/icon3d/camera.webp" alt="">Chụp ảnh</span><span><img src="/assets/icon3d/tai.webp" alt="">Ghi âm</span><span><img src="/assets/icon3d/tick.webp" alt="">Bấm «Xong»</span></div>
+<div class="ds"><div class="dong"><p>Ba Mẹ xem rồi mới cộng sao<small>Tắt thì con báo xong là nhận sao</small></p><span class="gat" role="switch" aria-checked="true" tabindex="0"></span></div></div>
+<p class="muc">Áp cho</p>
+<div class="chon"><span class="on"><i class="a">B</i>Bảo Anh</span><span><i class="m">M</i>Bảo Minh</span><span><i class="n">N</i>Bảo Ngọc</span><span><i class="k">K</i>Khang</span></div>
+<div class="xoa" role="button" tabindex="0" data-toi="them-4axhvgpl"><img src="/assets/icon3d/x.webp" alt="">Xoá việc này</div>
+</div>
+<div class="day"><span class="nut" role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/tick.webp" alt="">Lưu việc «Dọn phòng»</span></div>
+</div></body></html>

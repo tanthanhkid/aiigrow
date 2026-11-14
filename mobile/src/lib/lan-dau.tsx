@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { Image } from "expo-image";
 import { ICON_3D, type Ten3D } from "./icon-3d";
-import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, useWindowDimensions, View, type TextInputProps } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View, type TextInputProps } from "react-native";
 import { router } from "expo-router";
 import { SvgXml } from "react-native-svg";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
@@ -190,39 +190,74 @@ async function chiaSeHeThong(c: ChiaSe) {
   return false;
 }
 
-/** Hàng chia sẻ kiểu iPhone: Zalo · Tin nhắn · Messenger · Sao chép link · Khác…  Zalo không có đường chia sẻ chữ ra ngoài ⇒ bảng chia sẻ
- *  của máy (chọn Zalo) — web: chép sẵn nội dung để dán. `bao` hiện toast. */
-export function HangChiaSe({ chiaSe, bao }: { chiaSe: ChiaSe; bao: (chu: string) => void }) {
+const MAIL = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zm2 .8v.4l7 4.6 7-4.6v-.4zm0 2.8V17h14v-6.9l-7 4.6z"/></svg>`;
+const TELE = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M20.7 4.2 3.4 10.9c-1.2.5-1.2 1.2-.2 1.5l4.4 1.4 1.7 5.2c.2.6.4.8.8.8.5 0 .7-.2 1-.5l2.1-2.1 4.5 3.3c.8.5 1.4.2 1.6-.8l2.9-13.8c.3-1.2-.4-1.8-1.5-1.3zM8.6 13.5l9.6-6.1-7.5 7-.3 3.2z"/></svg>`;
+
+/** Hàng chia sẻ (thiết kế chốt 14/11 bm1-ob-ghep): cuộn ngang Zalo · Messenger · Tin nhắn · Email · Telegram · Sao chép, ô «Thêm…» đứng yên bên
+ *  phải (bảng chia sẻ của máy — gửi qua mọi app). Zalo không có đường chia sẻ chữ ra ngoài ⇒ bảng chia sẻ của máy (chọn Zalo) — web: chép sẵn
+ *  nội dung để dán. `bao` hiện toast; `daGui` gọi sau khi đã mở app gửi (màn Ghép chuyển sang «Đang chờ máy của con»). */
+export function HangChiaSe({ chiaSe, bao, daGui }: { chiaSe: ChiaSe; bao: (chu: string) => void; daGui?: () => void }) {
   const chep = (chu: string, cau: string) => saoChep(chu).then((ok) => { if (ok) bao(cau); });
+  const mo = (url: string, duPhong: string) => Linking.openURL(url).then(() => daGui?.(), () => chep(chiaSe.noiDung, duPhong));
   const muc: { ten: string; nen: string; ve: ReactNode; bam: () => void }[] = [
     { ten: "Zalo", nen: "#0068ff", ve: <SvgXml xml={ZALO} width={44} height={44} />,
-      bam: () => (Platform.OS === "web" ? chep(chiaSe.noiDung, "Đã chép link — mở Zalo, dán gửi sang máy của con") : chiaSeHeThong(chiaSe)) },
-    { ten: "Tin nhắn", nen: "#34c759", ve: <SvgXml xml={TIN} width={28} height={28} />,
-      bam: () => { Linking.openURL(`sms:${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(chiaSe.noiDung)}`).catch(() => chep(chiaSe.noiDung, "Đã chép link — dán vào tin nhắn")); } },
+      bam: () => (Platform.OS === "web" ? chep(chiaSe.noiDung, "Đã chép link — mở Zalo, dán gửi sang máy của con") : chiaSeHeThong(chiaSe).then(() => daGui?.())) },
     { ten: "Messenger", nen: "#7b5cff", ve: <SvgXml xml={MES} width={28} height={28} />,
       bam: () => {
         if (Platform.OS === "web") { chep(chiaSe.noiDung, "Đã chép link — mở Messenger, dán gửi sang máy của con"); return; }
-        Linking.openURL(`fb-messenger://share/?link=${encodeURIComponent(chiaSe.lienKet)}`).catch(() => chiaSeHeThong(chiaSe));
+        Linking.openURL(`fb-messenger://share/?link=${encodeURIComponent(chiaSe.lienKet)}`).then(() => daGui?.(), () => chiaSeHeThong(chiaSe));
       } },
-    { ten: "Chép link", nen: M.the, ve: <Icon3D ten="lap" co={28} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
-    { ten: "Khác…", nen: M.the, ve: <View style={{ flexDirection: "row", gap: 4 }}>{[0, 1, 2].map((i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: M.chu2 }} />)}</View>,
-      bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); }) },
+    { ten: "Tin nhắn", nen: "#34c759", ve: <SvgXml xml={TIN} width={28} height={28} />,
+      bam: () => { mo(`sms:${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(chiaSe.noiDung)}`, "Đã chép link — dán vào tin nhắn"); } },
+    { ten: "Email", nen: "#e2574c", ve: <SvgXml xml={MAIL} width={28} height={28} />,
+      bam: () => { mo(`mailto:?subject=${encodeURIComponent(chiaSe.tieuDe)}&body=${encodeURIComponent(chiaSe.noiDung)}`, "Đã chép link — dán vào email"); } },
+    { ten: "Telegram", nen: "#27a6e5", ve: <SvgXml xml={TELE} width={28} height={28} />,
+      bam: () => { mo(`https://t.me/share/url?url=${encodeURIComponent(chiaSe.lienKet)}&text=${encodeURIComponent(chiaSe.tieuDe)}`, "Đã chép link — dán vào Telegram"); } },
+    { ten: "Sao chép", nen: M.the, ve: <Icon3D ten="lap" co={28} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
   ];
-  // Khổ hẹp (< 60 px mỗi ô — máy 320–360 px): 3 ô một hàng, «Messenger» không gãy 2 dòng; khổ rộng: một hàng 5 ô như bảng chia sẻ iPhone.
-  // trước lần đo đầu: ước theo bề ngang cửa sổ (lề màn + thẻ ≈ 64 px) ⇒ khung đầu tiên đã đúng kiểu, không nháy từ 1 hàng sang 3 + 2
-  const { width: cuaSo, fontScale: cuaSoCo } = useWindowDimensions();
-  const [rong, setRong] = useState(0);
-  // ngưỡng nhân cỡ chữ hệ thống (Dynamic Type / font scale): chữ to hơn thì cần ô rộng hơn mới giữ «Messenger» một dòng
-  const hep = (rong || cuaSo - 64) / muc.length < 60 * Math.max(1, cuaSoCo);
+  const o = (m: { ten: string; nen: string; ve: ReactNode; bam: () => void }) => (
+    <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten === "Sao chép" ? "Sao chép link" : m.ten === "Thêm…" ? "Thêm cách chia sẻ" : `Gửi qua ${m.ten}`}
+      style={{ width: 64, alignItems: "center", gap: 6, minHeight: 44 }}>
+      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
+      <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
+    </Pressable>
+  );
   return (
-    <View onLayout={(e) => setRong(e.nativeEvent.layout.width)} style={{ flexDirection: "row", flexWrap: hep ? "wrap" : "nowrap", justifyContent: hep ? "center" : "space-between", rowGap: 12 }}
-      accessibilityLabel="Chia sẻ link ghép máy">
-      {muc.map((m) => (
-        <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten} style={[{ alignItems: "center", gap: 6, minHeight: 44 }, hep ? { width: "33.33%" } : { flex: 1 }]}>
-          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
-          <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
-        </Pressable>
-      ))}
+    <View style={{ flexDirection: "row", alignItems: "flex-start" }} accessibilityLabel="Chia sẻ link ghép máy">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 4, paddingRight: 16, paddingVertical: 4 }}>
+        {muc.map(o)}
+      </ScrollView>
+      <View style={{ width: 1, alignSelf: "stretch", marginVertical: 8, backgroundColor: "#e4e3df" }} />
+      {o({ ten: "Thêm…", nen: M.the, ve: <View style={{ flexDirection: "row", gap: 4 }}>{[0, 1, 2].map((i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: M.chu2 }} />)}</View>,
+        bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); else daGui?.(); }) })}
+    </View>
+  );
+}
+
+/** Màn trạng thái ghép (MỚI 14/11 them-q44uxha5 «Mã đã hết hạn», them-ytmgijqo «Chưa thấy máy của con»): Grow + icon, tiêu đề, câu phụ,
+ *  nội dung (thẻ / danh sách), nút chính + liên kết. Dùng chung cho màn Ghép (Lần đầu, Ghép thêm máy) và «Đang chờ». */
+export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat; ic: TenIcon; tieu: string; phu: string; children?: ReactNode }) {
+  return (
+    <View style={{ gap: 14 }}>
+      <View style={{ alignItems: "center", gap: 4, paddingTop: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+          <Rob ten={lv} co={150} />
+          <View style={{ marginLeft: -28, marginBottom: 12 }}><Icon3D ten={ic} co={48} /></View>
+        </View>
+        <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 25, letterSpacing: -0.4, color: M.chu, textAlign: "center" }}>{tieu}</Text>
+        <Chu co={14.5} mau={M.chu2} style={{ textAlign: "center" }}>{phu}</Chu>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** Một dòng thẻ trạng thái: ô icon lõm + chữ (+ dòng phụ). */
+export function DongTrangThai({ ic, chu, phu }: { ic: TenIcon; chu: string; phu?: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the, ...KHOI.the }}>
+      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#eeede9", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={28} /></View>
+      <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{chu}</Chu>{phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}</View>
     </View>
   );
 }

@@ -4,7 +4,10 @@ type TL = { conId?: string; tenCon?: string; nhom?: "nhi" | "teen"; nen?: "windo
   /** Lần đầu (thiết kế 05/11): năm sinh + màu hồ sơ, các Con đã lưu trong lượt này, lựa chọn màn Giờ chơi / Chọn app (gửi một lần POST thiet-lap). */
   namSinh?: number | null; mau?: number; daLuu?: { id: string; ten: string; mau?: number; namSinh?: number | null }[];
   cheDoChan?: "chi_app_duoc_phep" | "mo_het"; quy?: number; cuoiTuan?: number; ngu?: { tu: string; den: string };
-  apps?: AppChon[] };
+  apps?: AppChon[];
+  /** Thiết kế 14/11 «Web cho <Con>» (them-3xbscpzm): tên miền Ba Mẹ chọn; `tinhGio` = trang giải trí (vàng «Tính giờ»). */
+  webs?: WebChon[] };
+export type WebChon = { muc: string; tinhGio: boolean };
 /** Một app Ba Mẹ cho Con dùng: app trong lưới (`ma`) hoặc «Thêm app khác» theo tên. */
 export type AppChon = { ma: string; ten: string } | { ten: string; tinhGio: boolean };
 const KHOA = "aiigrow.thiet-lap";
@@ -33,6 +36,7 @@ export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) =>
     ngu: t.ngu ?? mac.ngu,
     ...(t.cheDoChan ? { cheDoChan: t.cheDoChan } : {}),
     ...(t.apps ? { apps: t.apps.map((a) => (coMa(a) ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio })) } : {}),
+    ...(t.webs ? { web: t.webs.map((w) => ({ muc: w.muc, tinhGio: w.tinhGio })) } : {}),
   };
 }
 

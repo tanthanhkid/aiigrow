@@ -1,5 +1,6 @@
 // bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt: chế độ chặn + số app, giờ chơi + giờ ngủ, số việc mỗi ngày;
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
+// Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Chặn app & web» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.3),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0a5246}
+.top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.loai{position:absolute;left:0;right:0;top:100px;height:60px;display:flex;gap:8px;padding:4px 16px 0;z-index:3}
+.loai span{flex:none;display:flex;align-items:center;gap:6px;height:44px;padding:0 14px;border-radius:22px;background:#f7f6f3;box-shadow:var(--clay);font-size:14px;font-weight:800;color:#3a403d;white-space:nowrap}
+.loai span img{width:20px;height:20px}
+.loai .on{background:#0f6b5c;color:#fff;box-shadow:0 8px 14px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.cuon{position:absolute;left:0;right:0;top:160px;bottom:0;overflow-y:auto;padding:4px 16px 130px;scrollbar-width:none}
+.cuon::-webkit-scrollbar{display:none}
+.khoi{margin-top:16px;padding:14px 14px 4px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.khoi:first-child{margin-top:4px}
+.kd{display:flex;align-items:center;gap:12px}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.kd b{display:block;font-size:15px;font-weight:800}
+.kd small{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:#565c59}
+.dong{display:flex;align-items:center;gap:10px;min-height:62px}
+.dong+.dong{border-top:1.5px solid #ecebe7}
+.kd+.dong{margin-top:6px}
+.dong p{flex:1;min-width:0;font-size:15px;font-weight:800;line-height:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dong p small{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:#565c59}
+.dong p small em{font-style:normal;font-weight:800;color:#3a403d}
+.dong b{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:12.5px;font-weight:800;white-space:nowrap}
+.dong b img{width:16px;height:16px}
+.cong{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--nho)}
+.cong svg{width:18px;height:18px;fill:#0a5246}
+.cong.on{background:#0f6b5c;box-shadow:0 8px 14px -8px rgba(15,107,92,.7),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.cong.on svg{fill:#fff}
+.co{flex:none;min-width:44px;height:44px;display:grid;place-items:center;font-size:12.5px;font-weight:800;color:#565c59}
+.tu{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;margin:8px 0 10px;border-radius:26px;background:#ecebe7;box-shadow:var(--lom);font-size:15px;font-weight:800;color:#0a5246}
+.tu img{width:22px;height:22px}
+.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 30px;background:linear-gradient(rgba(244,244,242,0),#f4f4f2 20px);z-index:4}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-473f52w6"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm quà cho Bảo Anh</h1></div>
+<div class="loai" aria-label="Loại quà"><span class="on" role="button" tabindex="0">Tất cả</span><span role="button" tabindex="0"><img src="/assets/icon3d/the_qua.webp" alt="">Ba Mẹ mua</span><span role="button" tabindex="0"><img src="/assets/icon3d/nha.webp" alt="">Quà nhà</span></div>
+<div class="cuon">
+<div class="khoi">
+<div class="kd"><span class="ic"><img src="/assets/icon3d/the_qua.webp" alt=""></span><div><b>Quà Ba Mẹ mua · trả tiền</b><small>Ba Mẹ mua trước, con đủ sao thì nhận</small></div></div>
+<div class="dong"><p>AiiCafe 20k<small><em>20.000đ</em> · QR 60 ngày</small></p><b><img src="/assets/icon3d/sao.webp" alt="">200 sao</b><span class="co">Đã có</span></div>
+<div class="dong"><p>AiiCafe 50k<small><em>50.000đ</em> · QR 60 ngày</small></p><b><img src="/assets/icon3d/sao.webp" alt="">500 sao</b><span class="cong on" role="button" tabindex="0" aria-label="Đã chọn"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="dong"><p>Bộ Lego<small>Có tồn kho · hết thì ẩn</small></p><b><img src="/assets/icon3d/sao.webp" alt="">800 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>AiiCafe 100k<small><em>100.000đ</em> · Ba Mẹ duyệt</small></p><b><img src="/assets/icon3d/sao.webp" alt="">1.000 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>Sách AiiLab con chọn<small><em>60.000đ</em> · giao tận nhà</small></p><b><img src="/assets/icon3d/sao.webp" alt="">150 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>Workshop AiiLab<small><em>150.000đ</em></small></p><b><img src="/assets/icon3d/sao.webp" alt="">600 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+</div>
+<div class="khoi">
+<div class="kd"><span class="ic"><img src="/assets/icon3d/nha.webp" alt=""></span><div><b>Quà nhà · không tốn tiền</b><small>Ba Mẹ tự trao, tự đặt số sao</small></div></div>
+<div class="dong"><p>Chọn món bữa tối</p><b><img src="/assets/icon3d/sao.webp" alt="">50 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>Đi ăn kem</p><b><img src="/assets/icon3d/sao.webp" alt="">100 sao</b><span class="co">Đã có</span></div>
+<div class="dong"><p>Đồ chơi nhỏ<small>Ba Mẹ tự mua</small></p><b><img src="/assets/icon3d/sao.webp" alt="">200 sao</b><span class="cong on" role="button" tabindex="0" aria-label="Đã chọn"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="dong"><p>Đi xem phim cuối tuần<small>Chỉ Thứ 7, Chủ nhật</small></p><b><img src="/assets/icon3d/sao.webp" alt="">300 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>Chơi game cùng Ba<small>1 giờ · cuối tuần</small></p><b><img src="/assets/icon3d/sao.webp" alt="">150 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>Thức thêm 30 phút<small>Tối thứ 7</small></p><b><img src="/assets/icon3d/sao.webp" alt="">100 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="dong"><p>Ngủ nướng Chủ nhật</p><b><img src="/assets/icon3d/sao.webp" alt="">80 sao</b><span class="cong" role="button" tabindex="0" aria-label="Thêm"><svg viewBox="0 0 256 256"><path d="M228,128a12,12,0,0,1-12,12H140v76a12,12,0,0,1-24,0V140H40a12,12,0,0,1,0-24h76V40a12,12,0,0,1,24,0v76h76A12,12,0,0,1,228,128Z"></path></svg></span></div>
+<div class="tu" role="button" tabindex="0" data-toi="them-f0fnp733"><img src="/assets/icon3d/but.webp" alt="">Tự đặt quà nhà</div>
+</div>
+</div>
+<div class="day"><span class="nut" role="button" tabindex="0" data-toi="them-473f52w6">Thêm 2 quà · trả 50.000đ</span></div>
+</div></body></html>

@@ -32,3 +32,9 @@ test("Thêm con: áp sẵn app Grow gợi ý hợp tuổi, chỉ lấy app `chon
   assert.equal(appsRobChonSan([{ ma: "b", ten: "B", chon: false }]), undefined);
   assert.equal("apps" in thanThietLap({ conId: "c1", apps: appsRobChonSan([]) }, MAC), false);
 });
+
+test("thiết kế 14/11: web Ba Mẹ chọn gửi kèm (muc + tinhGio); chưa vào màn Web thì không gửi", () => {
+  assert.deepEqual(thanThietLap({ conId: "c1", webs: [{ muc: "olm.vn", tinhGio: false }, { muc: "poki.com", tinhGio: true }] }, MAC).web,
+    [{ muc: "olm.vn", tinhGio: false }, { muc: "poki.com", tinhGio: true }]);
+  assert.equal("web" in thanThietLap({ conId: "c1" }, MAC), false);
+});

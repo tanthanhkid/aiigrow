@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#f4f4f2;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.nen{position:absolute;inset:-12px;background:linear-gradient(#e3efeb,#f4f4f2 320px);filter:blur(6px)}
+.n-top{display:flex;align-items:center;gap:10px;padding:58px 20px 0;font-size:22px;font-weight:800}
+.n-top i{width:28px;height:28px;border-radius:10px;background:#0a5246;opacity:.5}
+.n-san{margin:22px 28px 0;height:116px;border-radius:28px;background:linear-gradient(#d6e9e2,#eef4f1);box-shadow:var(--clay)}
+.n-hai{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 28px 0}
+.n-hai i{height:104px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.n-xin{margin:12px 28px 0;height:66px;border-radius:28px;background:#f9e7d2;box-shadow:var(--clay)}
+.n-the{margin:14px 28px 0;height:132px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.mo{position:absolute;inset:0;background:rgba(15,19,18,.34)}
+.sheet{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 30px;border-radius:34px 34px 0 0;background:#f4f4f2;box-shadow:0 -10px 30px rgba(0,0,0,.2)}
+.keo{width:44px;height:5px;margin:0 auto 12px;border-radius:3px;background:#cfcec9}
+.hinh{position:relative;width:76px;height:76px;margin:0 auto;border-radius:26px;display:grid;place-items:center;background:linear-gradient(#d6e9e2,#eef4f1);box-shadow:var(--clay)}
+.hinh img{width:48px;height:48px}
+.hinh .huy{position:absolute;right:-6px;bottom:-6px;width:32px;height:32px}
+h1{margin-top:12px;text-align:center;font-size:23px;line-height:29px;font-weight:800;letter-spacing:-.4px}
+.phu{margin-top:4px;text-align:center;font-size:13.5px;font-weight:600;color:#565c59}
+.ds{margin-top:14px;padding:4px 12px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay)}
+.may{display:flex;align-items:center;gap:12px;min-height:62px}
+.may+.may{border-top:1.5px solid #ecebe7}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.may p{flex:1;min-width:0;font-size:15px;font-weight:800}.may p small{display:block;font-size:12.5px;font-weight:600;color:#565c59}
+.may p small b{color:#1aa37a;font-weight:800}
+.nh{flex:none;padding:6px 10px;border-radius:14px;font-size:12.5px;font-weight:800;white-space:nowrap}
+.nh.khoa{background:#0f1312;color:#fff}
+.nh.dung{background:#dcebe6;color:#0a5246}
+.day{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:28px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 12px 18px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut img{width:22px;height:22px}
+.nut.trang{height:50px;color:#0f1312;background:#fff;box-shadow:var(--clay)}
+</style></head>
+<body><div class="app">
+<div class="nen" aria-hidden="true"><div class="n-top"><i></i>Laptop của Bảo Anh</div><div class="n-san"></div><div class="n-hai"><i></i><i></i></div><div class="n-xin"></div><div class="n-the"></div></div>
+<div class="mo" role="button" tabindex="0" aria-label="Đóng" data-toi="bm2-may-m1"></div>
+<div class="sheet">
+<div class="keo"></div>
+<div class="hinh"><img src="/assets/icon3d/laptop.webp" alt=""><img class="huy" src="/assets/icon3d/khoa.webp" alt=""></div>
+<h1>Khoá Laptop của Bảo Anh?</h1>
+<p class="phu">Roblox sẽ đóng, con thấy màn khoá</p>
+<div class="ds">
+<div class="may"><span class="ic"><img src="/assets/icon3d/laptop.webp" alt=""></span><p>Laptop<small><b>● Roblox</b> · còn 18 phút</small></p><span class="nh khoa">Sẽ khoá</span></div>
+<div class="may"><span class="ic"><img src="/assets/icon3d/tablet.webp" alt=""></span><p>iPad<small>Không đổi gì</small></p><span class="nh dung">Dùng bình thường</span></div>
+</div>
+<div class="day">
+<span class="nut" role="button" tabindex="0" data-toi="bm2-may-m1"><img src="/assets/icon3d/khoa.webp" alt="">Khoá Laptop ngay</span>
+<span class="nut trang" role="button" tabindex="0" data-toi="bm2-may-m1">Để sau</span>
+</div>
+</div>
+</div></body></html>

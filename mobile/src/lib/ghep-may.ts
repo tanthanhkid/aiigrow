@@ -10,7 +10,7 @@ export type KqGhep = {
 export type TrangGhep = { daGhep: boolean; hetHan: boolean; conGiay: number; /** mã 6 số hết 10 phút */ maHetHan?: boolean; /** link cài (48 giờ) còn dùng được */ linkConHan?: boolean; con: string | null; may: { id: string; ten: string; nen: string } | null };
 /** Tóm tắt thiết lập của một Con (GET con/:id/thiet-lap) — màn «Đã ghép», «Xong rồi», «Cài giống máy trước». */
 export type TomTat = { conId: string; ten: string; cheDoChan: "chi_app_duoc_phep" | "mo_het"; gioChoi: { ngayThuong: number | null; cuoiTuan: number | null };
-  ngu: { tu: string; den: string }; soApp: number };
+  ngu: { tu: string; den: string }; soApp: number; /** số trang web được vào (thiết kế 14/11 — máy chủ cũ không có) */ soWeb?: number };
 
 const KHOA = "aiigrow.ghep-may";
 const kho = () => { try { return globalThis.sessionStorage ?? null; } catch { return null; } };
@@ -24,7 +24,8 @@ export async function layMaGhep(con: string | null, giongMay: string | null, moi
   if (!moi && cu && Date.parse(cu.het) - Date.now() > 60_000) {
     // mã đã dùng (máy đã ghép) hoặc của phiên / gia đình khác (đổi tài khoản trên cùng thẻ) ⇒ lấy mã mới
     const g = await xemGhep(cu.ma).catch(() => null);
-    if (g && !g.daGhep && !g.hetHan && g.conGiay > 60) return cu;
+    // dùng lại mã còn hạn: số giây còn lại lấy theo máy chủ (đồng hồ máy Ba Mẹ có thể lệch)
+    if (g && !g.daGhep && !g.hetHan && g.conGiay > 60) return { ...cu, conGiay: g.conGiay };
   }
   const r = await bm.goi<KqGhep>("ghep-may", { ...(con ? { con } : {}), ...(giongMay ? { giongMay } : {}) });
   nho = { ...nho, [k]: r };

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.26),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.top{position:absolute;left:8px;top:44px;height:48px;display:flex;align-items:center;z-index:5}
+.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
+.may{position:absolute;left:50%;margin-left:-90px;top:100px;width:180px;height:200px;border-radius:30px;background:linear-gradient(#2e3533,#121615);box-shadow:var(--clay);padding:10px}
+.may .mh{width:100%;height:100%;border-radius:22px;background:radial-gradient(90% 70% at 50% 30%,#e9f4f0,#cfe5dd);position:relative;overflow:hidden}
+.may .mh img{position:absolute;left:50%;margin-left:-62px;top:18px;width:124px}
+.tk{position:absolute;right:-22px;top:-18px;width:84px;height:84px;z-index:3;filter:drop-shadow(0 8px 8px rgba(15,107,92,.3))}
+h1{position:absolute;left:0;right:0;top:318px;text-align:center;font-size:24px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.sub{position:absolute;left:0;right:0;top:352px;text-align:center;font-size:14px;font-weight:700;color:#0a5246}
+.luat{position:absolute;left:16px;right:16px;top:394px;display:flex;gap:8px}
+.luat div{flex:1;height:138px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:17px;font-weight:800;white-space:nowrap}
+.luat small{font-size:12px;font-weight:700;color:#565c59}
+.bt{width:52px;height:52px;border-radius:26px;display:grid;place-items:center;background:#dcebe6;box-shadow:var(--nho)}.bt img{width:34px;height:34px}
+.nhan{position:absolute;left:16px;right:16px;top:546px;display:flex;align-items:center;gap:8px;justify-content:center;font-size:13px;font-weight:700;color:#565c59}.nhan img{width:22px;height:22px}
+.day{position:absolute;left:0;right:0;bottom:0;padding:14px 16px 16px;display:flex;flex-direction:column;gap:4px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:6}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;display:flex;align-items:center;justify-content:center;gap:10px;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span,.nut img{position:relative}.nut img{width:24px;height:24px}
+.lk{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#0a5246;white-space:nowrap}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>
+<div class="may"><img class="tk" src="/assets/icon3d/tick.webp" alt=""><div class="mh"><img src="/assets/rob/xong.webp" alt=""></div></div>
+<h1>Máy Bảo Anh đã ghép!</h1>
+<p class="sub">Máy con đã nhận luật</p>
+<div class="luat"><div><span class="bt"><img src="/assets/icon3d/dongho.webp" alt=""></span>60 phút<small>mỗi ngày</small></div><div><span class="bt"><img src="/assets/icon3d/khoa.webp" alt=""></span>4 app<small>được phép</small></div><div><span class="bt"><img src="/assets/icon3d/trang_ngu.webp" alt=""></span>21:30<small>máy đi ngủ</small></div></div>
+<p class="nhan"><img src="/assets/icon3d/gui.webp" alt="">App mới con tải sẽ xin Ba Mẹ duyệt</p>
+<div class="day"><span class="nut" role="button" tabindex="0"><img src="/assets/icon3d/tick.webp" alt=""><span>Xong rồi</span></span><span class="lk" role="button" tabindex="0">+ Ghép thêm máy khác</span></div>
+</div></body></html>

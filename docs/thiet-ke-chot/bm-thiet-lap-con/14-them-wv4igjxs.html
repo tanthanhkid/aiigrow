@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}
+:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--nho:0 6px 10px -6px rgba(28,32,30,.3),inset 0 1.5px 0 #fff,inset 0 -6px 10px -5px rgba(40,44,42,.14);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
+.nut{position:relative;width:100%;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
+.nut span{position:relative}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:260px;background:linear-gradient(#e3efeb,#f4f4f2)}
+.vh-top{position:absolute;left:0;right:0;top:0;height:96px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:6;background:#e3efeb}
+.vh-lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.vh-lui svg{width:24px;height:24px;fill:#0a5246}
+.vh-top h1{font-size:20px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.vh-tab{position:absolute;left:16px;right:16px;top:98px;display:flex;gap:6px;z-index:6}
+.vh-tab span{flex:1;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:#f7f6f3;box-shadow:var(--nho);font-size:13px;font-weight:800;color:#3a403d;white-space:nowrap}
+.vh-tab span.on{flex:1.5;color:#fff;background:linear-gradient(#13806e,#0a5246);box-shadow:0 8px 12px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.3)}
+.vh-chip{position:absolute;left:0;right:0;top:148px;height:44px;display:flex;gap:6px;padding:0 16px;overflow:hidden;z-index:6}
+.vh-chip span{flex:none;height:36px;padding:0 12px;border-radius:18px;display:flex;align-items:center;background:#ecebe7;box-shadow:var(--lom);font-size:13px;font-weight:800;color:#3a403d;white-space:nowrap}
+.vh-chip span.on{background:#dcebe6;color:#0a5246;box-shadow:0 0 0 2px #0f6b5c}
+.vh-cuon{position:absolute;left:0;right:0;top:196px;bottom:96px;overflow-y:auto;padding:0 16px 40px;scrollbar-width:none}
+.vh-cuon::-webkit-scrollbar{display:none}
+.vh-rob{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 6px;border-radius:22px;background:#dcebe6;font-size:13px;font-weight:700;color:#0a5246}
+.vh-rob img{width:38px;height:38px}
+.vh-muc{display:flex;align-items:baseline;gap:8px;margin:16px 6px 8px;white-space:nowrap;overflow:hidden}
+.vh-muc b{font-size:16px;font-weight:800}.vh-muc small{font-size:12px;font-weight:700;color:#565c59;overflow:hidden;text-overflow:ellipsis}
+.vh-ds{padding:4px;border-radius:26px;background:#f7f6f3;box-shadow:var(--clay)}
+.vh-v{display:flex;align-items:center;gap:8px;min-height:60px;padding:6px 8px 6px 6px;border-radius:20px}
+.vh-v+.vh-v{border-top:1px solid #e9e8e3}
+.vh-v.vh-chon{background:#eef6f3}
+.vh-so{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#ecebe7;box-shadow:var(--lom);font-size:11.5px;font-weight:800;color:#565c59}
+.vh-v p{flex:1;min-width:0;font-size:14px;line-height:18px;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vh-lon{display:block;font-style:normal;font-size:11.5px;font-weight:700;color:#8a3c0c}
+.vh-sao{flex:none;padding:4px 8px;border-radius:12px;background:#fbecc0;color:#6e4300;font-size:12px;font-weight:800;white-space:nowrap}
+.vh-cong{flex:none;width:46px;height:28px;border-radius:14px;background:#0f6b5c;position:relative;box-shadow:inset 0 2px 4px rgba(0,0,0,.3)}
+.vh-cong::after{content:"";position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.vh-cong.tat{background:#d9d8d3;box-shadow:var(--lom)}.vh-cong.tat::after{right:auto;left:3px}
+.vh-day{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 22px;background:#f4f4f2;box-shadow:0 -12px 18px -12px rgba(28,32,30,.25);z-index:6}
+.vh-tab span{cursor:pointer}
+.vh-nav{position:absolute;left:16px;right:16px;top:146px;height:46px;display:flex;align-items:center;gap:8px;z-index:6}
+.vh-nav i{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#f7f6f3;box-shadow:var(--nho);font-style:normal;font-size:22px;font-weight:800;color:#0a5246}
+.vh-nav i.tat{opacity:.35}
+.vh-nav div{flex:1;min-width:0;text-align:center}
+.vh-nav b{display:block;font-size:16px;font-weight:800;white-space:nowrap}
+.vh-nav small{display:block;font-size:11.5px;font-weight:700;color:#565c59;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vh-cuon.cd{top:146px;bottom:84px;padding-bottom:8px}.cd .vh-v{min-height:52px;padding:3px 6px 3px 4px;gap:6px}.cd .vh-so{width:24px;height:24px;font-size:10.5px}.cd .vh-v p{font-size:13px;line-height:16px;-webkit-line-clamp:3}.cd .vh-sao{padding:3px 6px;font-size:11.5px}.cd .vh-cong{width:42px;height:26px}.cd .vh-cong::after{width:20px;height:20px}.vh-12{flex:none;padding:3px 5px;border-radius:9px;background:#f9e7d2;color:#8a3c0c;font-size:11px;font-weight:800}
+.vh-hd{position:absolute;left:4px;right:8px;top:44px;height:52px;display:flex;align-items:center;gap:4px;z-index:7;background:#e3efeb}.vh-hd .vh-nav{position:static;flex:1;height:auto;gap:4px}.vh-hd .vh-nav i{width:38px;height:38px;font-size:20px}.vh-hd .vh-nav b{font-size:15.5px}
+.vh-v{min-height:54px}.vh-v p{font-size:13.5px;-webkit-line-clamp:3}.og div{height:86px}
+.og{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+.og div{position:relative;height:84px;border-radius:24px;background:#f7f6f3;box-shadow:var(--clay);padding:10px 12px}
+.og em{font-style:normal;font-size:28px;line-height:32px}
+.og b{display:block;margin-top:2px;font-size:14.5px;font-weight:800;white-space:nowrap}
+.og small{display:block;font-size:12px;font-weight:700;color:#565c59}
+.og small u{text-decoration:none;color:#0a5246;font-weight:800}
+.og div::after{content:"›";position:absolute;right:12px;top:8px;font-size:20px;font-weight:800;color:#0a5246}
+.vh-all{display:flex;align-items:center;justify-content:space-between;margin:2px 4px 8px;font-size:12.5px;font-weight:800;color:#565c59}.vh-all span{height:34px;padding:0 12px 0 8px;border-radius:17px;display:flex;align-items:center;gap:6px;background:#dcebe6;color:#0a5246;font-size:13px}.vh-all span::before{content:"";width:16px;height:16px;border-radius:5px;border:2px solid #0a5246;background:#fff}
+</style></head><body><div class="app"><div class="vh-top"><div class="vh-lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-ob-mau"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Bộ Vận động</h1></div><div class="vh-tab" role="tablist"><span role="tab" data-toi="them-5e30929l">📚 Học tập</span><span class="on" role="tab" aria-selected="true">🏃 Vận động</span><span role="tab" data-toi="them-ws974ond">🏠 Phụ giúp · 100</span></div><div class="vh-cuon" style="top:150px"><div class="vh-rob"><img src="/assets/rob/chi.webp" alt="">Ba Mẹ chọn việc nào cũng được</div><div class="vh-muc"><b>🏃 Vận động</b><small>10 việc</small></div><div class="vh-all">Đã chọn 0/10<span role="button" tabindex="0">Chọn tất cả</span></div><div class="vh-ds"><div class="vh-v"><span class="vh-so">1</span><p>Nhảy dây 100 cái</p><span class="vh-sao">⭐ 10</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">2</span><p>Đạp xe 15 phút</p><span class="vh-sao">⭐ 15</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">3</span><p>Tập thể dục buổi sáng 10 phút</p><span class="vh-sao">⭐ 5</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">4</span><p>Chạy bộ 15 phút</p><span class="vh-sao">⭐ 10</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">5</span><p>Đi bộ cùng Ba Mẹ 20 phút</p><span class="vh-sao">⭐ 10</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">6</span><p>Đá cầu hoặc cầu lông 20 phút</p><span class="vh-sao">⭐ 10</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">7</span><p>Đá bóng với bạn 30 phút</p><span class="vh-sao">⭐ 15</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">8</span><p>Bơi 30 phút (có người lớn)</p><span class="vh-sao">⭐ 20</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">9</span><p>Yoga trẻ em 10 phút</p><span class="vh-sao">⭐ 10</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div><div class="vh-v"><span class="vh-so">10</span><p>Hít đất, gập bụng 3 hiệp</p><span class="vh-sao">⭐ 10</span><span class="vh-cong tat" role="switch" aria-checked="false"></span></div></div></div><div class="vh-day"><button class="nut" type="button" data-toi="bm1-ob-mau"><span>Lưu việc đã chọn</span></button></div></div></body></html>
