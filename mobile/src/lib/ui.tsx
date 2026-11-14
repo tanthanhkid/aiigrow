@@ -390,7 +390,7 @@ export function ONhap({ nhan, loi, ...p }: TextInputProps & { nhan: string; loi?
     <View>
       <Chu kieu="rat" co={14} style={{ marginBottom: 6 }}>{nhan}</Chu>
       <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} onFocus={() => setDang(true)} onBlur={() => setDang(false)}
-        {...p} style={[s.o, dang && s.oDang, loi && s.oSai, p.style]} />
+        {...p} style={[s.o, p.multiline && { borderRadius: 22, paddingVertical: 12 }, dang && s.oDang, loi && s.oSai, p.style]} />
       {loi ? <Chu kieu="dam" co={13.5} mau={M.loi} style={{ marginTop: 6 }}>{loi}</Chu> : null}
     </View>
   );
@@ -782,7 +782,7 @@ const s = StyleSheet.create({
   o: { backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", borderRadius: 27, paddingHorizontal: 18, minHeight: 54, fontSize: 17, fontFamily: F.dam, color: M.chu, boxShadow: BONG.lom },
   oDang: { borderColor: M.chinh },
   oSai: { borderColor: M.loi },
-  ma6: { width: 46, height: 56, borderRadius: 16, backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
+  ma6: { flex: 1, maxWidth: 46, height: 56, borderRadius: 16, backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
   ma6Dang: { backgroundColor: "#f7f6f3", borderColor: M.chinh },
   chat: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#fff", ...KHOI.nho },
   chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },

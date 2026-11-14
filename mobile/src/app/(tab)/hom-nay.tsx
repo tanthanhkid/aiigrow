@@ -18,7 +18,7 @@ import { ThanhClay } from "@/lib/bieu-do";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
 import {
-  BangKhoaMay, BangThemGio, soAppDuocMo, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
+  BangKhoaMay, BangThemGio, quyenToi, soAppDuocMo, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
   type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon,
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
@@ -37,15 +37,16 @@ const phutCua = (g: string | null | undefined) => { const m = /^(\d{1,2}):(\d{2}
 
 export default function HomNay() {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [g, cd, cb, choi, tt, luat, cdy] = await Promise.all([
+    const [g, cd, cb, choi, tt, luat, cdy, quyen] = await Promise.all([
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: CanhBao[] }>("canh-bao").catch(() => null),
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),
       // app mới chưa xếp loại vẫn là việc chờ Ba Mẹ (issue #70 §2.3) ⇒ một mục «Cần Ba Mẹ để ý»; ds = luật để đếm «N app được mở»
       bm.goi<{ ds: LuatDem[]; chuaXep: AppChuaXep[] }>("luat").catch(() => null),
       // «Cần Ba Mẹ để ý» của máy chủ (mất mạng, quên PIN…) — máy chủ cũ không có ⇒ bỏ qua
       bm.goi<{ ds: MucCanDeY[] }>("can-de-y").catch(() => null),
+      quyenToi(),         // «＋ Thêm con» ở dải avatar chỉ cho Ba Mẹ (như tab Cả nhà)
     ]);
-    return { g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], luat: luat?.ds ?? [], appMoi: luat?.chuaXep ?? [], cdy: cdy?.ds ?? [] };
+    return { quyen, g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], luat: luat?.ds ?? [], appMoi: luat?.chuaXep ?? [], cdy: cdy?.ds ?? [] };
   });
   const [chon, setChon] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
@@ -76,8 +77,8 @@ export default function HomNay() {
         {/* N9: nhà nhiều con — dải avatar tròn (thiết kế bm2-trang-chu 14/11: tên + «còn 18′» dưới, số lời xin góc trên, ＋ Thêm con cuối dải) */}
         {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)}
           so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))}
-          phu={Object.fromEntries(d.g.con.map((x) => [x.id, `còn ${Math.max(0, x.tranNgay - x.phutChoi)}′`]))}
-          them={() => router.push("/ho-so/them" as never)} /> : null}
+          phu={Object.fromEntries(d.g.con.map((x) => [x.id, `còn ${x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi)}′`]))}
+          them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} /> : null}
         <BangCon key={c.id} conId={c.id} d={d} taiLai={tai} bao={bao} />
       </Man>
     </View>
@@ -176,7 +177,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{`${chipChu} ›`}</Chu>
         </Pressable>
         {/* máy đang khoá: không có vạch quỹ ⇒ câu «Đang khoá · còn N phút chơi ›» (cả bề ngang) lên cao, ở khổ 320 đè Grow «nghi» (cổng DE-ANH)
-            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow. Tiêu đề số «Còn N phút chơi» (.so strong 800, giãn −1) KHÔNG đè Grow (cổng DE-ANH) ⇒ Grow 100 + chữ 26: một dòng từ khổ 375 */}
+            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow. Tiêu đề số «Còn N phút chơi» (.so strong 800, giãn −1) KHÔNG đè Grow (cổng DE-ANH) ⇒ Grow 100 + chữ 26: một dòng từ khổ 375 khi số phút 1–2 chữ số (3 chữ số / chữ hệ thống to thì xuống dòng) */}
         <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_TREN + ROB_CO - TIEU_TU : undefined }}>
           {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
           {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>

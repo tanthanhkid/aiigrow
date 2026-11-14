@@ -23,7 +23,7 @@ export function cauMoTam(moTamDen: string | null | undefined, khoaDen?: string |
   return khoaDen && Date.parse(khoaDen) <= Date.parse(moTamDen) ? `đã mở — khoá hết lúc ${gioPhut(khoaDen)}` : `mở tạm tới ${gioPhut(moTamDen)}, rồi khoá lại`;
 }
 
-/** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 7:00 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con).
+/** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 6:30 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con).
  *  `hoanTac`: Hoàn tác «Mở lại máy» — máy chủ bật lại đúng khoá đang lưu (hạn + mốc mở tạm), không dựa dữ liệu màn (Ba Mẹ khác có thể vừa đổi). */
 export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, hoanTac = false) {
   await bm.goi(`con/${con}/khoa`, { khoa, ...(khoa && den ? { den: den === "sang" ? "sang" : den.toISOString() } : {}), ...(khoa && hoanTac ? { hoanTac } : {}) });
@@ -48,7 +48,7 @@ export function BangKhoa({ mo, dong, con, ten, xong }: {
   const lua: { gia: Han; tieu: string; phu?: string; ic: "dongho" | "trang_ngu" | "khoa" }[] = [
     { gia: "15", tieu: "15 phút", phu: `tới ${gioPhut(denCua("15", now))}`, ic: "dongho" },
     { gia: "60", tieu: "1 giờ", phu: `tới ${gioPhut(denCua("60", now))}`, ic: "dongho" },
-    { gia: "sang", tieu: "Tới sáng mai", phu: "mở lúc 7:00", ic: "trang_ngu" },
+    { gia: "sang", tieu: "Tới sáng mai", phu: "mở lúc 6:30", ic: "trang_ngu" },
     { gia: "mo", tieu: "Cho tới khi tôi mở", ic: "khoa" },
   ];
   return (
@@ -64,7 +64,7 @@ export function BangKhoa({ mo, dong, con, ten, xong }: {
         const den = han === "sang" ? "sang" : denCua(han);
         await datKhoa(con, true, den);
         dong();
-        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 7:00 sáng" : den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
+        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 6:30 sáng" : den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
       })} />
     </BangTruot>
   );
