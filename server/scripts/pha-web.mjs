@@ -110,7 +110,7 @@ console.log(`dữ liệu: 2 gia đình, ${phieu.length + 1} phiếu quà, máy c
 // ---------------------------------------------------------------- Chrome + CDP
 const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-web-"));
 // --disable-gpu: Mac tắt màn hình / máy bận thì GPU headless có lúc treo Page.captureScreenshot vô hạn
-const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
+const chrome = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", "--disable-gpu", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
   "--no-default-browser-check", "--window-size=1440,900", "--lang=vi-VN", "--mute-audio", "about:blank"], { stdio: "ignore" });
 don.tienTrinh.push(chrome); don.thuMuc.push(hoSo);
 let trang;
