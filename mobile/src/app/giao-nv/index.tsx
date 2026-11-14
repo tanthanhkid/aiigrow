@@ -79,8 +79,9 @@ function GiaoCho({ c, dsCon, doiCon }: { c: GiaDinh["con"][number]; dsCon: GiaDi
           <MucTieu chu={nhieuChuDe ? cd.ten : `${cd.ten} · ${cd.viec.length}`}
             phai={conLai(cd).length ? { chu: conLai(cd).every((x) => chon.includes(x)) ? "Bỏ chọn" : "Chọn tất cả", bam: () => chonHet(cd) } : undefined} />
           <The sat>
+            {/* lề hàng 16 hai bên (cổng LE-THE: nút ＋ cách mép thẻ ≥ 15.5 — trước 6) */}
             {cd.viec.map((v, i) => (
-              <View key={v.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 58, paddingVertical: 6, paddingLeft: 14, paddingRight: 6,
+              <View key={v.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 58, paddingVertical: 6, paddingLeft: 16, paddingRight: 16,
                 borderTopWidth: i ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
                 <OLomIcon ic={v.hinh === "rob" ? "may_tinh" : IC_VIEC[m.ma]} nen={v.hinh === "rob" ? "#dcebe6" : NEN_MUC[m.ma]} />
                 <View style={{ flex: 1, minWidth: 0, flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 6 }}>

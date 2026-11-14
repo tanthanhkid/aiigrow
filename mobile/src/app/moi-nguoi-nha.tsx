@@ -131,7 +131,8 @@ export default function MoiNguoiNha() {
         <TextInput value={ten} onChangeText={setTen} placeholder="Gọi là gì trong nhà? (Ba Tuấn, Bà nội…)" placeholderTextColor={M.chu3} maxLength={30}
           accessibilityLabel="Gọi là gì trong nhà" style={{ fontFamily: F.thuong, fontSize: 15.5, color: M.chu, paddingVertical: 12 }} />
       </View>
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 24, backgroundColor: M.the }, KHOI.nho]}>
+      {/* lề thẻ 16 (cổng LE-THE: ảnh cách mép thẻ ≥ 15.5 — trước 14) */}
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 24, backgroundColor: M.the }, KHOI.nho]}>
         <Icon3D ten={IC_QUYEN.ba_me} co={34} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15}>{`${ten.trim() || "Người được mời"} làm được như bạn`}</Chu>

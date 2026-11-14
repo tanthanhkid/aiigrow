@@ -47,6 +47,12 @@ export const DO = String.raw`(() => {
       if (k !== a && (ks.overflowX !== 'visible' || ks.overflowY !== 'visible')) { const c = k.getBoundingClientRect();
         L0 = Math.max(L0, c.left); T0 = Math.max(T0, c.top); R0 = Math.min(R0, c.right); B0 = Math.min(B0, c.bottom); } }
     return R0 - L0 > 0 && B0 - T0 > 0 ? { left: L0, top: T0, right: R0, bottom: B0 } : null; };
+  // Khung thấy được của phần tử: giao các khung tổ tiên có overflow ≠ visible (tới phần tử fixed) — như thayDuoc nhưng không tính chính nó.
+  const khungCat = (e) => { let L0 = -1e9, T0 = -1e9, R0 = 1e9, B0 = 1e9;
+    for (let k = e.parentElement; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k);
+      if (ks.overflowX !== 'visible' || ks.overflowY !== 'visible') { const c = k.getBoundingClientRect(); L0 = Math.max(L0, c.left); T0 = Math.max(T0, c.top); R0 = Math.min(R0, c.right); B0 = Math.min(B0, c.bottom); }
+      if (ks.position === 'fixed') break; }
+    return { left: L0, top: T0, right: R0, bottom: B0 }; };
   const cuaNo = (a, el) => { const nut = el.closest('[role=button],[role=link]'); if (nut && nut.contains(a)) return true;
     const k = a.parentElement; return !!k && k.contains(el) && dienTich(k) <= 2 * dienTich(a); };
   const daBao = new Set();
@@ -70,9 +76,14 @@ export const DO = String.raw`(() => {
     const motHang = nut && nut.parentElement && nut.getBoundingClientRect().width >= 0.9 * longCha(nut.parentElement);
     if (!cuoi && motNhan && chu.split(/\s+/).length <= 8) { const tops = new Set(dongCua(n).map(r => Math.round(r.top))); if (tops.size > (motHang ? 2 : 1)) L.push({luat:'NUT-2-DONG', chu, el:ten(nut), dong: tops.size, rong: Math.round(nut.getBoundingClientRect().width)}); }
     // 3. đè ảnh
-    for (const r of dongCua(n)) for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
+    // dòng chữ cũng cắt theo khung cuộn chứa nó: chữ đã cuộn ra ngoài ScrollView (khuất dưới thanh đầu) không đè được ảnh của thanh đầu
+    // (báo nhầm 14/11: «Nay» của biểu đồ Báo cáo, cuộn hết, «đè» nút chat Grow ở thanh đầu cố định)
+    const kc = khungCat(el);
+    for (const r0 of dongCua(n)) { const r = { left: Math.max(r0.left, kc.left), top: Math.max(r0.top, kc.top), right: Math.min(r0.right, kc.right), bottom: Math.min(r0.bottom, kc.bottom) };
+      r.width = r.right - r.left; r.height = r.bottom - r.top; if (r.width <= 0 || r.height <= 0) continue;   // ngưỡng 15% tính trên phần THẤY của dòng
+      for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
       const x = Math.min(r.right,q.right)-Math.max(r.left,q.left), y = Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
-      if (x > 4 && y > 4 && x*y > 0.15*r.width*r.height) { const k='da'+chu+ten(a); if (!daBao.has(k)) { daBao.add(k); L.push({luat:'DE-ANH', chu, el:ten(el), anh: ten(a) + (a.src? ' '+a.src.split('/').pop().split('.')[0]:'' )}); } } }
+      if (x > 4 && y > 4 && x*y > 0.15*r.width*r.height) { const k='da'+chu+ten(a); if (!daBao.has(k)) { daBao.add(k); L.push({luat:'DE-ANH', chu, el:ten(el), anh: ten(a) + (a.src? ' '+a.src.split('/').pop().split('.')[0]:'' )}); } } } }
     // 4. tràn khung có nền/viền
     if (!cuoi) for (let k = el; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k);
       if (mau(ks.backgroundColor)[3] > 0 || parseFloat(ks.borderTopWidth) > 0 || ks.overflow !== 'visible') { const q = k.getBoundingClientRect();
