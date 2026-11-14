@@ -71,7 +71,8 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           <LinearGradient colors={["#cfe6de", "#e8f2ee"]} style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
             <View pointerEvents="none" style={{ position: "absolute", right: -4, top: 56 }}><Rob ten={moHet ? "nghi" : "chi"} co={104} /></View>
             <Chu kieu="dam" co={13} mau={M.chinhInk}>{`Máy của ${ten} đang ở chế độ`}</Chu>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }} accessibilityRole="header">
+            {/* chừa chỗ Grow (phải, từ top 56): tên chế độ 25px ở khổ 320 đè lên Grow (cổng DE-ANH) */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: 92 }} accessibilityRole="header">
               <Icon3D ten={IC_CHE_DO[cheDo]} co={32} />
               <Chu kieu="rat" co={25} style={{ letterSpacing: -0.5, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
             </View>
@@ -136,7 +137,7 @@ function TieuMuc({ chu, so }: { chu: string; so?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, marginHorizontal: 6, marginBottom: -4 }}>
       <Chu kieu="rat" co={15} mau={M.chu2}>{chu}</Chu>
-      {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: "#e2660f" }}><Chu kieu="rat" co={12} mau="#fff">{String(so)}</Chu></View> : null}
+      {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: "#bf530a" /* #e2660f + chữ trắng 3.42:1 < 4.5 */ }}><Chu kieu="rat" co={12} mau="#fff">{String(so)}</Chu></View> : null}
     </View>
   );
 }

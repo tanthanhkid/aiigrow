@@ -168,7 +168,9 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <Icon3D ten={chipIc} co={20} mau={M.chu2} />
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{`${chipChu} ›`}</Chu>
         </Pressable>
-        <View style={{ marginTop: 16, marginRight: CHUA_ROB }}>
+        {/* máy đang khoá: không có vạch quỹ ⇒ câu «Đang khoá · còn N phút chơi ›» (cả bề ngang) lên cao, ở khổ 320 đè Grow «nghi» (cổng DE-ANH)
+            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow (top 44 + 116 − chip 54 − lề 16) */}
+        <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_CO + 44 - 54 - 16 : undefined }}>
           {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
           {tieuLon ? <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
             : <Chu kieu="rat" co={40} so style={{ letterSpacing: -1 }}>{String(conPhut)}<Chu kieu="rat" co={18} mau={M.chu2}> phút</Chu></Chu>}
@@ -181,13 +183,14 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
           <Chu kieu="dam" co={14} mau={M.chinhInk}>{phuGio}</Chu>
         </Pressable>
-        {/* 2 nút chia đều bề ngang (nút «nho» co theo chữ bị cắt «Khoá máy c…» ở khổ 375) */}
-        <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-          <View style={{ flex: 1 }}>
+        {/* 2 nút chia đều bề ngang (nút «nho» co theo chữ bị cắt «Khoá máy c…» ở khổ 375); máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút
+            một dòng chữ (cổng giao diện NUT-2-DONG: ở 320 hai nút cạnh nhau chỉ còn 124px ⇒ «Khoá máy con» rớt 3 dòng) */}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+          <View style={{ flexGrow: 1, flexBasis: 140 }}>
             {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" rong dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
               : <Nut chu="Khoá máy con" ic="khoa" rong tat={!ct.d} bam={() => setBang("khoa")} />}
           </View>
-          <View style={{ flex: 1 }}>
+          <View style={{ flexGrow: 1, flexBasis: 140 }}>
             {khoa ? <Nut chu="Đổi giờ" ic="dongho" rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
               : <Nut chu="Cho thêm giờ" ic="dongho" rong loai="vien" bam={() => setBang("gio")} />}
           </View>

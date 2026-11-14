@@ -77,8 +77,8 @@ export default function GioChoiCon() {
       <BaoLoi loi={loiLam} />
       <Nut chu="Lưu giờ chơi" rong dangChay={dangChay} bam={luu} />
     </>}>
-      {/* thẻ hôm nay (.quy) */}
-      <View style={[{ padding: 14, borderRadius: 28, backgroundColor: M.chinhSoft, gap: 4 }, KHOI.the]}>
+      {/* thẻ hôm nay (.quy) — lề thẻ 16 (cổng LE-THE: icon cách mép ≥ 15.5) */}
+      <View style={[{ padding: 16, borderRadius: 28, backgroundColor: M.chinhSoft, gap: 4 }, KHOI.the]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Icon3D ten="dongho" co={24} mau={M.chinhInk} />
           <Chu kieu="dam" co={13.5} mau={M.chu2}>{`Hôm nay · ${THU_DAI[new Date().getDay()]}`}</Chu>

@@ -102,7 +102,7 @@ export default function ChiTietCanhBao() {
         : <Nut chu={x.loai === "lech_gio" ? "Để khoá, đã xem" : kieu === "tat" ? "Ba Mẹ tắt đấy, bỏ qua" : "Đã biết"} loai={kieu === "web" || kieu === "tat" ? "ma" : "vien"} rong dangChay={dangChay} bam={daBiet} />}
     </>}>
       {/* đầu màn: hình máy / web + biểu tượng, tiêu đề, giờ · máy, viên kết quả */}
-      <View style={{ alignItems: "center", gap: 8, paddingVertical: 16, paddingHorizontal: 12, borderRadius: 28, backgroundColor: kieu === "web" ? M.chinhSoft : M.canhSoft, ...KHOI.the }}>
+      <View style={{ alignItems: "center", gap: 8, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 28, backgroundColor: kieu === "web" ? M.chinhSoft : M.canhSoft, ...KHOI.the }}>
         <View>
           <Icon3D ten={kieu === "web" ? "web" : icMay} co={72} />
           <View style={{ position: "absolute", right: -10, bottom: -6 }}>
