@@ -100,7 +100,7 @@ test("Ba Mẹ đặt Chặn theo định danh thật ⇒ blockedApps của máy 
   assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("youtube.com"));
   await goiMay("ung-dung", tok, { du: false, bamTruoc: "c".repeat(64), bam: "a".repeat(64), them: [], bo: ["x"] });
   assert.equal(db.danhSachApp.yeuCau, null);
-  // Nghi 11/11: «Mở hết» mở thật hết — app / trang Ba Mẹ từng «Chặn» không còn chặn; về «Chỉ app Ba Mẹ chọn» thì chặn lại
+  // Nghi 11/11: «Mở hết» mở thật hết — app / trang Ba Mẹ từng «Chặn» không còn chặn; về «Chặn app & web» thì chặn lại
   assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" })).status, 200);
   const mh = (await goiMay("dong-bo", tok, {})).body;
   assert.deepEqual([mh.windows.mode, mh.windows.blockedApps], ["tu_do", []]);

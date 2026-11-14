@@ -1,6 +1,6 @@
 // Phần dùng chung của app Ba Mẹ «Hằng ngày» + «Duyệt» theo thiết kế đã chốt 05/11 (docs/thiet-ke-chot/bm-hang-ngay, bm-duyet —
 // docs/KE-HOACH-KHOP-THIET-KE-0511.md L1–L3, L9, L10, L12): kiểu dữ liệu các đường S1/S2 mới (docs/API.md cuối tệp), quyền «Người trông giúp»,
-// chip đổi Con, hàng việc có sao, màn kết quả (Rob + dòng tick + 2 nút), bảng trượt «Khoá máy ngay?» và «Cho thêm giờ».
+// chip đổi Con, hàng việc có sao, màn kết quả (Grow + dòng tick + 2 nút), bảng trượt «Khoá máy ngay?» và «Cho thêm giờ».
 // Chữ: «sao» (không «điểm»), «Ba Mẹ». Chỉ THÊM — không đổi chữ ký thành phần cũ của lib/ui.
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
@@ -171,7 +171,7 @@ export function TieuMuc({ chu, so, phai }: { chu: string; so?: number; phai?: { 
   );
 }
 
-/** Màn kết quả (thiết kế «Đã cho…», «Duyệt xong», «Đã nhắn làm lại»): Rob lớn + tiêu đề + câu, các dòng tick, 1–2 nút ở đáy. */
+/** Màn kết quả (thiết kế «Đã cho…», «Duyệt xong», «Đã nhắn làm lại»): Grow lớn + tiêu đề + câu, các dòng tick, 1–2 nút ở đáy. */
 export function ManKetQua({ lv = "xong", tieu, loi, dong, chinh, phu, noi, children }: {
   lv?: LinhVat; tieu: string; loi?: string; dong?: string[]; chinh: { chu: string; bam: () => void }; phu?: { chu: string; bam: () => void; tat?: boolean };
   noi?: ReactNode; children?: ReactNode;

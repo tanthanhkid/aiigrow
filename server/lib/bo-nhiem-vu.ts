@@ -1,4 +1,4 @@
-// Bộ nhiệm vụ (thiết kế chốt 05/11, L9 — bm-lan-dau «Giao việc cho Bảo Anh», bm-hang-ngay «Chọn bộ nhiệm vụ»): Rob chọn sẵn việc hợp tuổi theo
+// Bộ nhiệm vụ (thiết kế chốt 05/11, L9 — bm-lan-dau «Giao việc cho Bảo Anh», bm-hang-ngay «Chọn bộ nhiệm vụ»): Grow chọn sẵn việc hợp tuổi theo
 // bộ; Ba Mẹ bỏ tick việc không muốn giao rồi «Giao N việc». Mỗi việc tạo thành một nhiệm vụ (tasks.bo = mã bộ) giao riêng cho Con đã chọn.
 // «Học 1 bài với AiiRob» là việc tự chấm (bang_chung tu_dong) — gia đình đã có thì không tạo thêm (webhook AiiRob dùng việc tự chấm đầu tiên).
 import { q } from "./db.ts";

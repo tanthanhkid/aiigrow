@@ -134,7 +134,7 @@ function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean
       </View>
       {baMe ? (
         <View style={{ marginTop: 8 }}>
-          <HangViec dau ic="luoi" mau="tim" tieu="Chọn bộ việc có sẵn" phu={t ? `Rob gợi ý hợp với ${t} tuổi` : "Rob gợi ý hợp với tuổi của con"}
+          <HangViec dau ic="luoi" mau="tim" tieu="Chọn bộ việc có sẵn" phu={t ? `Grow gợi ý hợp với ${t} tuổi` : "Grow gợi ý hợp với tuổi của con"}
             bam={() => router.push(`/giao-nv?con=${con}` as never)} />
           <HangViec ic="but" mau="xanh" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv/tu-dat?con=${con}` as never)} />
         </View>

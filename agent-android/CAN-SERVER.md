@@ -9,7 +9,7 @@ Tác tử máy Con dùng gói **`vn.aiilab.aiigrow.con`**. Mục cũ (24/10) đ�
   (máy chủ cũ) ⇒ luật cũ.
 - `gioHoc {tu, den, thu}` ⇒ trạng thái `GIO_HOC` (chỉ app Học). `ngoaiLeMo[]` lọc `nhom` = `android`: `muc` null = cả máy (thắng giờ ngủ /
   khoá), `muc` = gói ⇒ chỉ mở gói đó lúc ngủ / khoá.
-- `ungDung.chuaXep = cho_phep` («Mở hết») ⇒ app chưa xếp được dùng; mặc định «Chỉ app được phép» ⇒ tạm dừng + màn chặn «Xin Ba Mẹ duyệt»
+- `ungDung.chuaXep = cho_phep` («Mở hết») ⇒ app chưa xếp được dùng; mặc định «Chặn app & web» ⇒ tạm dừng + màn chặn «Xin Ba Mẹ duyệt»
   (`POST /api/device/xin-duyet {muc, ten}`). `ungDung.webLuonChan` cộng vào URLBlocklist.
 - Hết giờ: «Dùng sao» `POST /api/device/hoc-vien/doi-sao {phut}` (15/30/60) hoặc «Xin Ba Mẹ thêm giờ» (`yeu-cau them_gio`).
   Giờ ngủ / khoá: chỉ `yeu-cau {loai: ngoai_le, phamVi: ca_may, phut, lyDo?}`.

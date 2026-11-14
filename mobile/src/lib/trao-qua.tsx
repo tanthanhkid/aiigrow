@@ -28,7 +28,7 @@ export function BangTraoQua({ p, dong, xong }: {
     const r = await bm.goi<KqTrao>(`phieu/${x.id}/trao`, {});
     if (r.voucher) setVc({ v: r.voucher, ten: x.ten, con: x.ten_con });
     else dong();
-    xong(`Đã trao «${x.ten}» — trừ ${r.saoTru ?? x.diem} sao, Rob đã báo ${x.ten_con}`);
+    xong(`Đã trao «${x.ten}» — trừ ${r.saoTru ?? x.diem} sao, Grow đã báo ${x.ten_con}`);
   });
   const huy = (x: PhieuCho) => lam(async () => {
     await bm.goi(`phieu/${x.id}/huy`, {});
@@ -57,7 +57,7 @@ export function BangTraoQua({ p, dong, xong }: {
           <GiaSao n={p.diem} />
         </View>
         <View style={{ padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
-          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{`Bấm «Đã trao» thì mới trừ ${p.diem} sao, Rob báo con và chúc mừng con.`}</Chu>
+          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{`Bấm «Đã trao» thì mới trừ ${p.diem} sao, Grow báo con và chúc mừng con.`}</Chu>
         </View>
         <BaoLoi loi={loi} />
         <Nut chu={`Đã trao, trừ ${p.diem} sao`} ic="qua" rong dangChay={dangChay} bam={() => trao(p)} />

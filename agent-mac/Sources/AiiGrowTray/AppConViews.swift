@@ -7,14 +7,14 @@ import AiiGrowCore
 
 // MARK: - Mảnh dùng chung
 
-/// Ảnh Rob theo tên (Mascot/<ten>.png); thiếu tệp ⇒ viên clay mầm cây.
+/// Ảnh Grow theo tên (Mascot/<ten>.png); thiếu tệp ⇒ viên clay mầm cây.
 struct RobView: View {
   let ten: String
   var cao: CGFloat = 180
   var body: some View {
     if let img = FluentIcon.anh(ten, thuMuc: "Mascot") {
       Image(nsImage: img).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
-        .frame(maxWidth: .infinity).frame(height: cao).accessibilityLabel("Rob")
+        .frame(maxWidth: .infinity).frame(height: cao).accessibilityLabel("Grow")
     } else {
       VienClay(ten: "seedling", duPhong: "leaf.fill", nen: ClayMau.ngocSoft, co: min(cao, 96)).frame(maxWidth: .infinity).frame(height: cao)
     }

@@ -373,7 +373,7 @@ test("M5 thư viện theo Con: mẫu đang áp riêng cho Con khác ⇒ áp thê
   assert.equal((await one<{ ap_cho: string[] | null }>(`select ap_cho from rewards where id = $1`, [sach]))!.ap_cho, null);
 });
 
-test("M5 «Dùng 7 quà Rob gợi ý» theo Con: bật lại quà đã cất chỉ cho Con đó, không đụng quà Ba Mẹ cất cho anh chị em; thiết lập (không con) không bật lại", async () => {
+test("M5 «Dùng 7 quà Grow gợi ý» theo Con: bật lại quà đã cất chỉ cho Con đó, không đụng quà Ba Mẹ cất cho anh chị em; thiết lập (không con) không bật lại", async () => {
   const { tokBm, anh, minh } = await nha();
   const ds = (await m(tokBm, "qua")).body.ds;
   for (const x of ds) await m(tokBm, `qua/${x.id}`, { bat: false });

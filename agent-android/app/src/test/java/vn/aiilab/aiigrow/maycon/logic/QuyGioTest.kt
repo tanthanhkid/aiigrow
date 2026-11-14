@@ -85,11 +85,11 @@ class QuyGioTest {
     }
 
     @Test fun moHetKhongCanQuy() {
-        // máy chủ gửi cho_phep mà không kèm `quy` (luật cũ) ⇒ vẫn là «Mở hết», không khoá app lạ như «Chỉ app được phép»
+        // máy chủ gửi cho_phep mà không kèm `quy` (luật cũ) ⇒ vẫn là «Mở hết», không khoá app lạ như «Chặn app & web»
         val q = quyetDinh(cs.copy(quy = null, chuaXepChoPhep = true), vn("18:00"), 0, daCai, null)
         assertFalse("com.la.game" in q.goiChan)
         assertTrue(q.goiChuaXep.isEmpty())
-        // «Chỉ app được phép» (mặc định) vẫn chặn app lạ
+        // «Chặn app & web» (mặc định) vẫn chặn app lạ
         assertTrue("com.la.game" in quyetDinh(cs.copy(quy = null), vn("18:00"), 0, daCai, null).goiChan)
     }
 

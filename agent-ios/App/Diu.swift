@@ -1,7 +1,7 @@
 // Ngôn ngữ «Dịu» (thiết kế chốt 06/11, L16 — docs/thiet-ke-chot/con-dt-*, kit `condt-tre/kit-diu.css`): nền kem phẳng, MỘT màu nhấn xanh
 // lá (nút chính, tab chọn, vòng giờ), vàng CHỈ cho sao; thẻ trắng viền mảnh bóng xám mềm, ≤ 1 thẻ màu nhạt mỗi màn; nút 52pt màu đặc;
-// chữ tròn (Nunito không có trong repo ⇒ font hệ thống kiểu .rounded); Rob chỉ ở màn có cảm xúc (chào, chờ, lỗi, đã ghép).
-// Icon 3D: Fluent Emoji (MIT — TaiNguyen/FLUENT-EMOJI-LICENSE.txt) + Rob của AiiLab, chép từ mobile/assets ⇒ TaiNguyen/Diu.xcassets.
+// chữ tròn (Nunito không có trong repo ⇒ font hệ thống kiểu .rounded); Grow chỉ ở màn có cảm xúc (chào, chờ, lỗi, đã ghép).
+// Icon 3D: Fluent Emoji (MIT — TaiNguyen/FLUENT-EMOJI-LICENSE.txt) + Grow của AiiLab, chép từ mobile/assets ⇒ TaiNguyen/Diu.xcassets.
 import SwiftUI
 
 extension Color {
@@ -79,7 +79,7 @@ struct NutDiu: ButtonStyle {
   }
 }
 
-/// Ảnh 3D (icon / Rob) trong Diu.xcassets.
+/// Ảnh 3D (icon / Grow) trong Diu.xcassets.
 struct Anh: View {
   let ten: String
   var co: CGFloat = 30

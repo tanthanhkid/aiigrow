@@ -49,7 +49,7 @@ export default function DuyetDs() {
         <Nut chu={`Giao việc mới cho ${d.ten}`} ic="cong" rong bam={() => router.push((d.conId ? `/giao-nv?con=${d.conId}` : "/giao-nv") as never)} />
         <Nut chu="Về Trang chủ" loai="vien" rong bam={() => router.replace("/hom-nay" as never)} />
       </>}>
-        <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Rob sẽ báo ngay.">
+        <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Grow sẽ báo ngay.">
           {d.sao !== null ? (
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.diemSoft }, KHOI.vien]}>
               <Chu kieu="rat" co={15} mau={M.diemInk}>{`${d.ten} có ${d.sao} sao = ${phutCua(d.sao)} phút chơi`}</Chu>

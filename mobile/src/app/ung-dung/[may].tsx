@@ -1,14 +1,13 @@
-// bm2-ung-dung-may «App trên <máy> của <con>» (thiết kế chốt bm-ung-dung/01): chế độ đang chạy + «Đổi chế độ», hàng vàng «Con đang xin», «Được dùng ·
-// N app · x/y phút giờ chơi» (nhãn «Tính vào giờ chơi» / «Không tính giờ»), «Trang web & luôn chặn», nút «Thêm app cho <con>».
-// Danh sách là APP ĐÃ CÀI THẬT do agent trên máy Con gửi lên (Thanh 25/10: chọn đúng app của máy, không đoán tên) — GET may/:id/ung-dung.
-// «Mọi app trên máy» mở danh sách đủ (tìm, Làm mới, xếp từng app) cho máy dùng chung / app chưa xếp. Không còn «Học tập / Giải trí — trừ điểm».
+// «Mọi app trên máy» (mở từ màn Máy — may/[id]): danh sách APP ĐÃ CÀI THẬT do agent trên máy Con gửi lên (Thanh 25/10: chọn đúng app của máy,
+// không đoán tên) — GET may/:id/ung-dung; tìm, «Làm mới», chọn đèn từng app (thiết kế 14/11 — N3: Dùng thoải mái · Tính giờ · Chặn).
+// Màn tóm tắt theo con đã chuyển sang tab «Chặn» (N1) ⇒ màn này chỉ còn danh sách đủ của một máy.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, View } from "react-native";
-import { bm, laChiXem, type ConChiTiet, type GiaDinh, type ThongKeWeb, type YeuCau } from "@/lib/api";
-import { HangVang, MucTieu, NhanGio, OIcon, TheCheDoNgan, gioChoi, icCuaApp, napQuyCon, phuXin, tieuXin, type CheDoChan } from "@/lib/ui-bm3";
+import { bm } from "@/lib/api";
+import { BongDen } from "@/lib/ui-bm3";
 import {
-  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, MAU_CON, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
+  Avt, BangTruot, BaoLoi, CanhGiua, MAU_CON, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 type TrangThai = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
@@ -20,8 +19,8 @@ type DsMay = { may: { id: string; ten: string; nen: string; dungChung: boolean; 
 type LuatCu = { con: string; muc: string; ten: string; loai: string; nhom: string; het: string | null } | null;
 
 const TT: Record<TrangThai, { chu: string; nhan: "ok" | "lam" | "diem" | "loi" | "xam" | "canh" }> = {
-  he_thong: { chu: "Hệ thống", nhan: "xam" }, cho_phep: { chu: "Cho phép", nhan: "ok" }, hoc: { chu: "Không tính giờ", nhan: "ok" },
-  giai_tri: { chu: "Tính vào giờ chơi", nhan: "diem" }, chan: { chu: "Không cho dùng", nhan: "loi" }, chua_xep: { chu: "Chưa xếp", nhan: "canh" },
+  he_thong: { chu: "Hệ thống", nhan: "xam" }, cho_phep: { chu: "Dùng thoải mái", nhan: "ok" }, hoc: { chu: "Dùng thoải mái", nhan: "ok" },
+  giai_tri: { chu: "Tính giờ", nhan: "diem" }, chan: { chu: "Chặn", nhan: "loi" }, chua_xep: { chu: "Chưa xếp", nhan: "canh" },
 };
 const NGUON: Record<string, string> = {
   registry: "Đã cài", start: "Menu Start", store: "Microsoft Store", applications: "Thư mục Ứng dụng", "user-applications": "Ứng dụng của Con", launcher: "Màn hình chính",
@@ -52,23 +51,6 @@ const phuCua = (a: AppMay) => [a.nhaPhatHanh, a.nguon ? NGUON[a.nguon] : null, a
 export default function UngDungMay() {
   const { may } = useLocalSearchParams<{ may: string }>();
   const { d, loi, matMang, tai } = useTai(() => bm.goi<DsMay>(`may/${may}/ung-dung`));
-  // phần đầu màn: con dùng máy (chế độ chặn, quỹ giờ chơi hôm nay, lời xin đang chờ, số trang web được phép)
-  const conId = d?.may.con ?? null;
-  const conRef = useRef(conId);
-  const ph = useTai(async () => {
-    const conId = conRef.current;
-    if (!conId) return null;
-    const [ct, g, cd, web, xem] = await Promise.all([
-      bm.goi<ConChiTiet & { cheDoChan?: CheDoChan }>(`con/${conId}`), bm.goi<GiaDinh>("gia-dinh"),
-      bm.goi<{ yeuCau: YeuCau[] }>("cho-duyet").catch(() => ({ yeuCau: [] as YeuCau[] })), bm.goi<ThongKeWeb>(`con/${conId}/web?ngay=1`).catch(() => null), laChiXem(),
-    ]);
-    const quy = await napQuyCon(conId);
-    return { ct, quy, ngan: g.con.find((c) => c.id === conId), xin: cd.yeuCau.filter((y) => y.child_id === conId && (y.loai === "cai_app" || y.loai === "mo_web")),
-      soWeb: web ? web.luat.filter((l) => l.trangThai === "cho_phep" || l.trangThai === "giai_tri").length : null, xem };
-  });
-  // useTai giữ hàm tải của lần dựng đầu ⇒ hàm tải đọc con qua ref; đổi con thì cập nhật ref rồi tải lại
-  useEffect(() => { conRef.current = conId; if (conId) ph.tai(); }, [conId]);      // eslint-disable-line react-hooks/exhaustive-deps
-  const [tatCa, setTatCa] = useState(false);
   const [tim, setTim] = useState("");
   const [loc, setLoc] = useState<Loc>("tat_ca");
   const [chon, setChon] = useState<AppMay | null>(null);
@@ -104,7 +86,7 @@ export default function UngDungMay() {
     { gia: "tat_ca", chu: `Tất cả (${d.ds.length})` },
     ...(["chua_xep", "chan", "cho_phep", "hoc", "giai_tri"] as TrangThai[]).filter((t) => dem(t) > 0 || t === "chan").map((t) => ({ gia: t as Loc, chu: `${TT[t].chu} (${dem(t)})` })),
   ];
-  const cho = d.may.dungChung ? "mọi Con dùng máy này" : "Con trên máy này";
+  const cho = d.may.dungChung ? "mọi con dùng máy này" : "con trên máy này";
 
   const moChon = (a: AppMay) => {
     setChon(a);
@@ -137,39 +119,9 @@ export default function UngDungMay() {
     setChoMay(Date.now());
   });
 
-  const capNhatNgan = d.capNhatLuc ? `Máy gửi lúc ${gioPhut(d.capNhatLuc)} · tìm, làm mới, xếp từng app` : "Máy chưa gửi danh sách ứng dụng";
-  const p = conId && ph.d?.ct.id === conId ? ph.d : null;
-  if (!tatCa && conId) {
-    const duoc = d.ds.filter((a) => a.trangThai === "cho_phep" || a.trangThai === "hoc" || a.trangThai === "giai_tri");
-    const tenCon = p?.ct.ten ?? "con";
-    return (
-      <Man lui={{ chu: "" }} tieu={`App trên ${d.may.ten}${p ? ` của ${tenCon}` : ""}`} noi={noi} tai={tai} vongTai
-        day={p?.xem ? undefined : <Nut chu={`Thêm app cho ${tenCon}`} rong bam={() => router.push({ pathname: "/ung-dung/them", params: { may, con: conId } })} />}>
-        {p ? <TheCheDoNgan cheDo={p.ct.cheDoChan ?? "chi_app_duoc_phep"} doi={p.xem ? undefined : () => router.push(`/app-web?con=${conId}`)} /> : null}
-        {p?.xin.map((y) => <HangVang key={y.id} tieu={tieuXin(y)} phu={phuXin(y)} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />)}
-        <MucTieu chu={`Được dùng · ${duoc.length} app${p?.ngan ? ` · ${gioChoi(p.ngan, p.quy).da}/${gioChoi(p.ngan, p.quy).tong} phút giờ chơi` : ""}`} />
-        <Nhom>
-          {duoc.map((a, i) => (
-            <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={a.theoCaNha ? "Luật cả nhà" : a.nhaPhatHanh ?? undefined} trai={<OIcon ic={icCuaApp(`${a.ten} ${a.muc}`)} anh={a.icon} />}
-              phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}><NhanGio tinh={a.trangThai === "giai_tri"} /><Icon ten="phai" mau="#b3b5b1" co={18} /></View>}
-              bam={() => router.push({ pathname: "/ung-dung/app", params: { con: conId, muc: a.muc, ten: a.ten } })} />
-          ))}
-          <Dong dau={!duoc.length} tieu={`Mọi app trên máy (${d.ds.length})`} phu={choMay !== null ? "Đang chờ máy gửi danh sách mới…" : capNhatNgan} trai={<OIcon ic="luoi" />}
-            bam={() => setTatCa(true)} />
-        </Nhom>
-        <MucTieu chu="Trang web & luôn chặn" />
-        <Nhom>
-          <Dong dau tieu="Trang web" phu={p?.soWeb === null || p?.soWeb === undefined ? "Trang được phép, trang đã chặn" : `${p.soWeb} trang được phép`} trai={<OIcon ic="web" />}
-            bam={() => router.push(`/web/${conId}`)} />
-          <Dong tieu="Luôn chặn" phu="Web người lớn, cờ bạc, bạo lực" trai={<OIcon ic="khien" />} bam={() => router.push("/web/luon-chan")} />
-        </Nhom>
-      </Man>
-    );
-  }
-
   const capNhat = d.capNhatLuc ? `Cập nhật lúc ${gioPhut(d.capNhatLuc)} (${truoc(d.capNhatLuc)})` : "Máy chưa gửi danh sách ứng dụng";
   return (
-    <Man lui={{ chu: "", bam: conId ? () => setTatCa(false) : undefined }} tieu="Mọi app trên máy" noi={noi} tai={tai} vongTai>
+    <Man lui={{ chu: "" }} tieu="Mọi app trên máy" noi={noi} tai={tai} vongTai>
       <View style={{ gap: 4 }}>
         <Chu kieu="dam" co={22}>Ứng dụng trên máy {d.may.ten}</Chu>
         <Chu co={14} mau={M.chu3}>Danh sách lấy thẳng từ máy — chọn đúng app để chặn hoặc cho phép.</Chu>
@@ -202,7 +154,7 @@ export default function UngDungMay() {
               </Nhom>
             </>
           ) : <Chu co={14} mau={M.chu3}>{q ? "Không có app nào khớp — thử tên khác, hoặc bấm Làm mới nếu Con vừa cài app." : "Không có app nào ở mục này."}</Chu>}
-          <Chu co={13} mau={M.chu3}>Ở chế độ «Chỉ app được phép», app «Chưa xếp» chưa mở được — con bấm «Xin Ba Mẹ» trên máy. Thay đổi tới máy ở lần đồng bộ kế (≤ 2 phút khi online).</Chu>
+          <Chu co={13} mau={M.chu3}>Ở chế độ «Chặn app & web», app «Chưa xếp» chưa mở được — con bấm «Xin Ba Mẹ» trên máy. Thay đổi tới máy ở lần đồng bộ kế (≤ 2 phút khi online).</Chu>
         </>
       )}
 
@@ -216,14 +168,14 @@ export default function UngDungMay() {
           </View>
         ) : null}
         {chon?.trangThai === "he_thong" ? (
-          <Chu co={14.5}>App hệ thống luôn được dùng, không tính giờ — Ba Mẹ không cần làm gì.</Chu>
+          <Chu co={14.5}>App hệ thống luôn được dùng, không trừ giờ chơi — Ba Mẹ không cần làm gì.</Chu>
         ) : (
           <>
             {/* cùng các bước, cùng chữ với luồng xếp loại cũ (màn Ứng dụng / thẻ «app mới chờ xếp loại») — chỉ khác nguồn danh sách là app thật của máy */}
             <View style={{ gap: 8 }}>
-              <OChon chon={dat === "hoc"} bam={() => setDat("hoc")} trai={<BieuTron ic="sach" />} tieu="Cho dùng, không tính giờ" phu="Học, tra cứu — dùng cả ngoài giờ chơi" />
-              <OChon chon={dat === "giai_tri"} bam={() => setDat("giai_tri")} trai={<BieuTron ic="game" mau="vang" />} tieu="Cho dùng, tính vào giờ chơi" phu="Chỉ trong giờ chơi của ngày" />
-              <OChon chon={dat === "chan"} bam={() => setDat("chan")} trai={<BieuTron ic="khoa" mau="do" />} tieu="Không cho dùng" phu="Con không mở được" />
+              <OChon chon={dat === "hoc"} bam={() => setDat("hoc")} trai={<BongDen den="x" co={40} />} tieu="Dùng thoải mái" phu="Không trừ giờ chơi" />
+              <OChon chon={dat === "giai_tri"} bam={() => setDat("giai_tri")} trai={<BongDen den="v" co={40} />} tieu="Tính giờ" phu="Trừ vào giờ chơi" />
+              <OChon chon={dat === "chan"} bam={() => setDat("chan")} trai={<BongDen den="d" co={40} />} tieu="Chặn" phu="Con không mở được" />
             </View>
             <BaoLoi loi={loiLam} />
             <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}><Icon ten="dongho" mau={M.chu3} co={16} />

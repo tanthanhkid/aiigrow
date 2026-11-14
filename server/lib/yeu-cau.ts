@@ -154,7 +154,11 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
       const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";
       const phamVi = o.phamVi ?? "vinh_vien";
-      const het = phamVi === "vinh_vien" ? null : phamVi === "hom_nay" ? dauNgayUtc(ngay, f.tz) : new Date(now.getTime() + 3600_000);
+      // «Lần này»: mở đúng số phút Ba Mẹ cho (thiết kế 14/11 «Cho 30 phút YouTube») — không gửi phút ⇒ 1 giờ như trước
+      const phutLan = Math.round(Number(o.phut));
+      if (phamVi === "lan_nay" && o.phut !== undefined && !(phutLan >= 5 && phutLan <= 240)) throw new LoiNghiepVu("phut_sai", "Chọn thời lượng");
+      const het = phamVi === "vinh_vien" ? null : phamVi === "hom_nay" ? dauNgayUtc(ngay, f.tz)
+        : new Date(now.getTime() + (o.phut !== undefined ? phutLan * 60_000 : 3600_000));
       const hetThat = phamVi === "hom_nay" ? new Date(het!.getTime() + 86_400_000) : het;
       await datLuat(fam, { con: r.child_id, muc: r.gia_tri, ten: r.gia_tri, loai, nhom: o.nhom, het: hetThat }, t);
       if (phamVi !== "vinh_vien") { ngoaiLe = true; await ghiNgoaiLe(fam, r.child_id, nguoi, "mo_ngoai_quy_tac", r.id, t, now); }
@@ -171,8 +175,25 @@ export async function tuChoiYc(fam: string, id: string, nguoi: string, lyDo: str
   if (!ly) throw new LoiNghiepVu("thieu_ly_do", "Chọn hoặc ghi lý do để Con hiểu");
   return tx(async (t) => {
     const r = await layYc(t, fam, id, now);
-    await t(`update requests set trang_thai = 'tu_choi', nguoi_duyet = $2, xu_ly_luc = now(), ly_do_tu_choi = $3 where id = $1`, [r.id, nguoi, ly]);
+    await t(`update requests set trang_thai = 'tu_choi', nguoi_duyet = $2, xu_ly_luc = $4, ly_do_tu_choi = $3 where id = $1`, [r.id, nguoi, ly, now]);
     await ghiSuKien(fam, "tu_choi_yeu_cau", { loai: r.loai, ly_do: ly }, { con: r.child_id, nguoi }, t);
+  });
+}
+
+/** «Hoàn tác, xem lại lời xin» (thiết kế 14/11 bm-ung-dung/12): Ba Mẹ vừa «Không cho» ⇒ đưa lời xin về «chờ» để trả lời lại.
+ *  Chỉ trong 10 phút sau khi từ chối và khi lời xin chưa hết hạn; người khác đã trả lời lại / quá hạn ⇒ 409. */
+export const MO_LAI_PHUT = 10;
+export async function moLaiYc(fam: string, id: string, nguoi: string, now = new Date()) {
+  return tx(async (t) => {
+    const r = (await t<Yc & { xu_ly_luc: Date | null }>(
+      `select r.* from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2 for update of r`, [id, fam]))[0];
+    if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy yêu cầu", 404);
+    if (r.trang_thai !== "tu_choi" || !r.xu_ly_luc || now.getTime() - new Date(r.xu_ly_luc).getTime() > MO_LAI_PHUT * 60_000)
+      throw new LoiNghiepVu("khong_mo_lai", "Lời xin này không hoàn tác được nữa", 409);
+    if (new Date(r.het_han) <= now) throw new LoiNghiepVu("het_han", "Yêu cầu đã hết hạn", 409);
+    await t(`update requests set trang_thai = 'cho', nguoi_duyet = null, xu_ly_luc = null, ly_do_tu_choi = null where id = $1`, [r.id]);
+    await ghiSuKien(fam, "mo_lai_yeu_cau", { loai: r.loai }, { con: r.child_id, nguoi }, t);
+    return { ok: true };
   });
 }
 

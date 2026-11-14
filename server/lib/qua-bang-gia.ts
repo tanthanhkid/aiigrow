@@ -14,7 +14,7 @@ import * as pt from "./phan-thuong.ts";
 export type MauQua = { ma: string; ten: string; loai: "qua" | "dac_quyen" | "voucher" | "tiet_kiem"; diem: number; mo_ta?: string; hinh?: string;
   menh_gia?: number; chi_cuoi_tuan?: boolean; ton_kho?: number; toi_da_thang?: number; can_xac_nhan?: boolean };
 
-/** 7 quà Rob chọn sẵn (them-s416tfdj + them-473f52w6). Thứ tự = thứ tự trên màn. */
+/** 7 quà Grow chọn sẵn (them-s416tfdj + them-473f52w6). Thứ tự = thứ tự trên màn. */
 export const QUA_MAC_DINH: MauQua[] = [
   { ma: "bua_toi", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, mo_ta: "Con chọn, Ba Mẹ nấu", hinh: "bua_toi" },
   { ma: "an_kem", ten: "Đi ăn kem", loai: "dac_quyen", diem: 100, mo_ta: "Ba Mẹ trao", hinh: "kem" },
@@ -167,7 +167,7 @@ async function apDungChoCon(fam: string, cung: CungMau[], con: string | null, ma
  *  Thiếu quà mặc định (nhà cũ) ⇒ tạo. `chon` bỏ trống ⇒ cả 7. → danh sách quà sau khi lưu. */
 export async function luuQuaMacDinh(fam: string, b: { chon?: unknown; con?: unknown }, nguoi: string) {
   const chon = b.chon === undefined ? QUA_MAC_DINH.map((m) => m.ma) : [...new Set((Array.isArray(b.chon) ? b.chon : []).map(String))];
-  if (chon.some((x) => !QUA_MAC_DINH.some((m) => m.ma === x))) throw new LoiNghiepVu("mau_sai", "Chọn trong 7 quà Rob gợi ý");
+  if (chon.some((x) => !QUA_MAC_DINH.some((m) => m.ma === x))) throw new LoiNghiepVu("mau_sai", "Chọn trong 7 quà Grow gợi ý");
   await q(`update families set qua_seed_luc = coalesce(qua_seed_luc, now()) where id = $1`, [fam]);
   const con = (await apChoVao(fam, b.con))?.[0] ?? null;
   const co = await q<CungMau>(`select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, QUA_MAC_DINH.map((m) => m.ma)]);
@@ -176,7 +176,7 @@ export async function luuQuaMacDinh(fam: string, b: { chon?: unknown; con?: unkn
     // có `con`: chỉ dòng áp cho Con đó / mọi Con (bỏ tick không xoá quà riêng của anh chị em)
     const r = cung.find((x) => !x.ap_cho || (con !== null && x.ap_cho.includes(con))) ?? (con ? undefined : cung[0]);
     if (chon.includes(m.ma) && !cung.length) await pt.taoQua(fam, { ...m, mau: m.ma, ap_cho: con ? [con] : null });
-    // «Dùng 7 quà Rob gợi ý» trên danh sách quà của MỘT Con (gửi `con`): quà đã cất / áp riêng Con khác ⇒ có lại cho Con này (lệch #201).
+    // «Dùng 7 quà Grow gợi ý» trên danh sách quà của MỘT Con (gửi `con`): quà đã cất / áp riêng Con khác ⇒ có lại cho Con này (lệch #201).
     // Không `con` (bước «Chọn quà» lúc thiết lập, app cũ qua/mau) ⇒ chỉ tạo quà thiếu — không bật lại quà Ba Mẹ đã cất, không đổi «Áp cho».
     if (chon.includes(m.ma) && cung.length && con) await apDungChoCon(fam, cung, con, m.ma);
     if (!chon.includes(m.ma) && r && !(await one(`select 1 from redemptions where reward_id = $1 limit 1`, [r.id]))) await q(`delete from rewards where id = $1`, [r.id]);

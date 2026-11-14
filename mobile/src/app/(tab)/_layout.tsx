@@ -1,4 +1,4 @@
-// Thanh điều hướng Ba Mẹ (thiết kế chốt 05/11 bm-hang-ngay): bốn mục — Hôm nay · Nhiệm vụ · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
+// Thanh điều hướng Ba Mẹ (thiết kế chốt 14/11 — N1): năm mục — Hôm nay · Nhiệm vụ · Chặn (icon khiên, bm-ung-dung) · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
 // tab (/cho-duyet, mở từ Thông báo / Hôm nay) nhưng không có nút trên thanh; số đỏ ở Nhiệm vụ = nhiệm vụ + quà đang chờ, ở Hôm nay = lời xin của mọi Con.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
@@ -42,7 +42,7 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
 }
 
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
-  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, "bao-cao": { ic: "cot", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
+  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, chan: { ic: "khien", chu: "Chặn" }, "bao-cao": { ic: "cot", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
   "cai-dat": { ic: "nguoi", chu: "Cả nhà" },
 };
 
@@ -116,6 +116,7 @@ export default function TabLayout() {
       <Tabs.Screen name="hom-nay" />
       <Tabs.Screen name="cho-duyet" />
       <Tabs.Screen name="diem-qua" />
+      <Tabs.Screen name="chan" />
       <Tabs.Screen name="bao-cao" />
       <Tabs.Screen name="cai-dat" />
     </Tabs>

@@ -5,7 +5,7 @@ namespace AiiGrow.Tray;
 
 /// <summary>
 /// Khối dựng của các hộp Con theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-bi-chan, con-het-gio, con-mat-mang — CSS «#hop»):
-/// đầu hộp (viên icon 3D + tiêu đề 20px + dòng phụ), Rob + bong bóng nói, chip (đang chờ / chưa mở được), dòng icon nhỏ + chữ, nút có icon 3D, liên kết chữ.
+/// đầu hộp (viên icon 3D + tiêu đề 20px + dòng phụ), Grow + bong bóng nói, chip (đang chờ / chưa mở được), dòng icon nhỏ + chữ, nút có icon 3D, liên kết chữ.
 /// </summary>
 internal static class KhoiCon
 {
@@ -35,7 +35,7 @@ internal static class KhoiCon
         return hang;
     }
 
-    /// <summary>Rob (84 px) + bong bóng nói: câu đậm + dòng nhỏ (thiết kế «.rob .bong»).</summary>
+    /// <summary>Grow (84 px) + bong bóng nói: câu đậm + dòng nhỏ (thiết kế «.rob .bong»).</summary>
     public static FlowLayoutPanel RobNoi(string rob, string cau, string? nho, int rong)
     {
         var hang = Hang();

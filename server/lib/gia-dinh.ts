@@ -66,7 +66,7 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
   const id = newId();
   // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
-  // L4: Con mới chạy «Chỉ app được phép» (chi_app_duoc_phep) — đặt rõ để web cũng theo chế độ (Con cũ null ⇒ web theo tham số cũ).
+  // L4: Con mới chạy «Chặn app & web» (chi_app_duoc_phep) — đặt rõ để web cũng theo chế độ (Con cũ null ⇒ web theo tham số cũ).
   await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
             values ($1,$2,$3,$4,$5,$6,'chi_app_duoc_phep',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin, pin ? new Date() : null]);
   await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}) }, { con: id, nguoi });

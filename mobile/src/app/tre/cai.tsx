@@ -1,4 +1,4 @@
-// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Chỉ app được phép · Minecraft cần Ba Mẹ cho phép»,
+// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Chặn app & web · Minecraft cần Ba Mẹ cho phép»,
 // «Con muốn cài để làm gì?» (chip «Học xây nhà» / «Chơi với bạn» + tự viết — không bắt buộc), «Nếu được cho phép: tính vào giờ chơi · còn N phút»,
 // «Gửi Ba Mẹ xin cài Minecraft» / «Thôi, để sau». Agent mở `/tre/cai?tep=MinecraftInstaller.exe` hoặc `?ten=Minecraft`.
 import { useState } from "react";
@@ -29,7 +29,7 @@ export default function XinCai() {
   return (
     <ManD lui={true} day={<><LoiD loi={loi} /><NutD chu={`Gửi Ba Mẹ xin cài ${ten}`} ic="gui" bam={xin} dangChay={dangChay} />
       <NutD chu="Thôi, để sau" loai="chu" bam={() => (router.canGoBack() ? router.back() : router.replace("/tre/nha"))} /></>}>
-      <View style={{ alignSelf: "flex-start" }}><PillD chu="Chỉ app được phép" ic="khien" /></View>
+      <View style={{ alignSelf: "flex-start" }}><PillD chu="Chặn app & web" ic="khien" /></View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <IcO ic="game" co={64} />
         <View style={{ flex: 1 }}>

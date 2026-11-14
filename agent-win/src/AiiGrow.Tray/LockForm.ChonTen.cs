@@ -244,7 +244,7 @@ internal sealed partial class LockForm
     }
 
     /// <summary>Nút «‹» ở GÓC thẻ (thiết kế .lui: cách mép trái / trên thẻ 24 px, tròn 52) — không chiếm hàng riêng trong dòng chảy:
-    /// lề âm kéo nút về góc và trả lại đúng chiều cao nó chiếm, nên Rob / tên bé bên dưới vẫn bắt đầu ở đỉnh thẻ như HTML (nút nằm đè lên trên).</summary>
+    /// lề âm kéo nút về góc và trả lại đúng chiều cao nó chiếm, nên Grow / tên bé bên dưới vẫn bắt đầu ở đỉnh thẻ như HTML (nút nằm đè lên trên).</summary>
     private Control NutLui(ClayFlow the)
     {
         var rong = UI.Px(52) + VeNut.LeBong.Horizontal;
@@ -273,7 +273,7 @@ internal sealed partial class LockForm
         return l;
     }
 
-    /// <summary>01 «Ai đang dùng máy?» — thẻ 800, Rob 150, tiêu đề 42px, lưới thẻ tên 240×236 (viên chữ 120 + tên 28px).</summary>
+    /// <summary>01 «Ai đang dùng máy?» — thẻ 800, Grow 150, tiêu đề 42px, lưới thẻ tên 240×236 (viên chữ 120 + tên 28px).</summary>
     private Control TheChonTen()
     {
         var (the, w) = The(800);

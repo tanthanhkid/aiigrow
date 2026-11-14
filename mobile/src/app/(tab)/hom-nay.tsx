@@ -23,7 +23,7 @@ import {
   Avt, BaoLoi, CanhGiua, ChoTai, Chu, Icon, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
-// Rob ở thẻ đầu: cỡ + lệch phải (âm = ló ra ngoài thẻ). Chữ chừa = phần Rob nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
+// Grow ở thẻ đầu: cỡ + lệch phải (âm = ló ra ngoài thẻ). Chữ chừa = phần Grow nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
 const ROB_CO = 124, ROB_PHAI = -6, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
@@ -154,7 +154,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao, doiCon }: {
           <Icon ten="phai" co={14} mau={M.chu3} />
         </Pressable>
         )}
-        {/* chừa đúng phần Rob chiếm trong thẻ — maxWidth % ở khổ 320 / tên dài vẫn chồng chữ lên Rob (cổng DE-ANH) */}
+        {/* chừa đúng phần Grow chiếm trong thẻ — maxWidth % ở khổ 320 / tên dài vẫn chồng chữ lên Grow (cổng DE-ANH) */}
         <View style={{ marginTop: 18, marginRight: CHUA_ROB }}>
           <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
           <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center" }}>

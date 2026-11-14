@@ -124,7 +124,7 @@ export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; 
 
 // ---------------------------------------------------------------- dịch sang agent Windows
 
-/** Tên miền ĐI KÈM: trang chính tải video/ảnh/đăng nhập từ tên miền KHÁC (không phải tên miền con) ⇒ ở «Chỉ app được phép»
+/** Tên miền ĐI KÈM: trang chính tải video/ảnh/đăng nhập từ tên miền KHÁC (không phải tên miền con) ⇒ ở «Chặn app & web»
  *  (URLBlocklist «*») cho mỗi youtube.com thì video/ảnh bị chặn, YouTube báo «kiểm tra kết nối Internet» (Nghi 11/11).
  *  Khoá khớp chính nó + tên miền con (classroom.google.com ⇒ khoá google.com). Chỉ thêm vào `cho`, không mở cả google.com. */
 export const TEN_MIEN_DI_KEM: Record<string, string[]> = {

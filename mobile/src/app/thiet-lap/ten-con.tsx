@@ -74,7 +74,7 @@ export default function ObCon() {
           : <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />}</>}>
       <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={30} />
-        {/* cột trái ≤ 44%: tên dài xuống dòng trước khi chạm Rob bên phải (cổng DE-ANH) */}
+        {/* cột trái ≤ 44%: tên dài xuống dòng trước khi chạm Grow bên phải (cổng DE-ANH) */}
         <View style={{ gap: 10, alignItems: "flex-start", maxWidth: "44%" }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: dam, alignItems: "center", justifyContent: "center", borderWidth: 4, borderColor: "#fff", boxShadow: BONG.nho }}>
             <Chu kieu="rat" co={38} mau={chuTren(dam)}>{(tenGon.split(/\s+/).pop() ?? "").charAt(0).toUpperCase() || "?"}</Chu>

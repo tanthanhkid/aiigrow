@@ -149,7 +149,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (!sau && get) return json(await chiTietCon(bm, id));
       await gd.conCua(fam, id);
       if (sau === "sua" && post) { await gd.suaCon(fam, id, b, bm.id); return json({ ok: true }); }
-      // L4: chế độ chặn theo Con (Mở hết / Chỉ app được phép) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
+      // L4: chế độ chặn theo Con (Mở hết / Chặn app & web) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
       if (sau === "che-do-chan" && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
       if (sau === "thiet-lap" && get) return json(await tomTatThietLap(fam, id));
@@ -279,6 +279,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1]));
       if (p[2] === "dong-y" && post) return json(await yc.dongY(fam, p[1], bm.id, b as yc.DongY));
       if (p[2] === "tu-choi" && post) { await yc.tuChoiYc(fam, p[1], bm.id, s(b.lyDo)); return json({ ok: true }); }
+      if (p[2] === "mo-lai" && post) return json(await yc.moLaiYc(fam, p[1], bm.id));
     }
 
     if (d === "qua" && get) return json({ ds: await q(`select * from rewards where family_id = $1 order by diem`, [fam]) });

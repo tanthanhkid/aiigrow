@@ -30,7 +30,7 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - Safari ở «chỉ cho phép» (không phải giờ học) bị đóng — hosts chỉ chặn được danh sách đen.
 - Ghép một chạm: postinstall lấy token từ tên `AiiGrow_<token>.pkg` ⇒ `goi-cai-token` (root 0600) ⇒ cửa sổ Ghép chỉ hỏi tài khoản Con (`ghep-goi`); token hỏng ⇒ quay về mã 6 số.
 - Hồ sơ DNS gia đình: menu Ba Mẹ «Cài hồ sơ DNS gia đình…» ⇒ IPC `hoSoDns` ⇒ lưu .mobileconfig vào Tải về và mở.
-- Tray: icon thanh menu = Rob; Hôm nay theo app (`homNayTheoApp`); «Ba Mẹ dùng máy» (khoá màn hình); «Hoặc đổi điểm lấy giờ chơi» trong Xin thêm giờ; tin mới qua UNUserNotification (trong AiiGrow.app).
+- Tray: icon thanh menu = Grow; Hôm nay theo app (`homNayTheoApp`); «Ba Mẹ dùng máy» (khoá màn hình); «Hoặc đổi điểm lấy giờ chơi» trong Xin thêm giờ; tin mới qua UNUserNotification (trong AiiGrow.app).
 
 ### 3d. Mac của cả nhà — PIN theo bé (06/11, L13, `docs/thiet-ke-chot/con-cai-mac` 60 màn)
 - Một tài khoản macOS giới hạn cho các bé (tài khoản chọn lúc ghép); AiiGrow nhận từng bé bằng **tên + PIN 4 số**. Máy chủ gửi `nguoiDung`

@@ -63,7 +63,7 @@ export const Icon = memo(function Icon({ ten, mau = M.chu2, co = 20 }: { ten: Te
   return <SvgAst ast={cayIcon(`<svg viewBox="0 0 256 256" fill="${mau}">${ICON[ten]}</svg>`)} override={{ width: co, height: co }} />;
 });
 
-// Ảnh gói trong app (icon 3D, Rob): cachePolicy «memory-disk» ⇒ màn mới dựng (tab trượt vào, màn con) lấy ảnh đã giải mã trong bộ nhớ,
+// Ảnh gói trong app (icon 3D, Grow): cachePolicy «memory-disk» ⇒ màn mới dựng (tab trượt vào, màn con) lấy ảnh đã giải mã trong bộ nhớ,
 // không hiện ô trống một nhịp rồi ảnh mới «bụp» ra.
 /** Icon minh hoạ 3D (Fluent Emoji 3D, assets/icon3d) — dùng trong viên clay. Tên chưa có bản 3D ⇒ icon đặc màu `mau`. */
 export const Icon3D = memo(function Icon3D({ ten, co = 26, mau = M.chu2 }: { ten: TenIcon; co?: number; mau?: string }) {
@@ -88,10 +88,10 @@ export const Rob = memo(function Rob({ ten, co = 72 }: { ten: LinhVat; co?: numb
 const MAU_CANH = { xanh: M.chinhSoft, vang: "#ffeab0", hong: "#fde3dc", tim: M.timSoft, xam: "#ecece8" } as const;
 export type MauCanh = keyof typeof MAU_CANH;
 
-/** CẢNH đầu màn (kit.canh): bong bóng thoại trắng (tiêu đề + 1 câu) bên trái ≤ 56%, Rob to tràn mép dưới bên phải. `children` nằm
- * TRONG bong bóng (nhãn, nút nhỏ). Rob chờm 34 dưới cảnh ⇒ cảnh có marginBottom 26 + khoảng cách cột 12 để nội dung sau không bị đè. */
+/** CẢNH đầu màn (kit.canh): bong bóng thoại trắng (tiêu đề + 1 câu) bên trái ≤ 56%, Grow to tràn mép dưới bên phải. `children` nằm
+ * TRONG bong bóng (nhãn, nút nhỏ). Grow chờm 34 dưới cảnh ⇒ cảnh có marginBottom 26 + khoảng cách cột 12 để nội dung sau không bị đè. */
 export function Canh({ lv, tieu, loi, mau = "xanh", thap, children }: { lv: LinhVat; tieu: string; loi?: string; mau?: MauCanh; thap?: boolean; children?: ReactNode }) {
-  // Cỡ chữ hệ thống lớn (≥ 130%): bong bóng 56% chỉ còn một chữ mỗi dòng, tên dài gãy giữa chữ ⇒ bong bóng rộng hết cảnh, Rob nhỏ dưới góc phải.
+  // Cỡ chữ hệ thống lớn (≥ 130%): bong bóng 56% chỉ còn một chữ mỗi dòng, tên dài gãy giữa chữ ⇒ bong bóng rộng hết cảnh, Grow nhỏ dưới góc phải.
   const to = useWindowDimensions().fontScale >= 1.3;
   return (
     <View style={[s.canh, { backgroundColor: MAU_CANH[mau], minHeight: thap ? 140 : 172 }, to && { flexDirection: "column", alignItems: "stretch", minHeight: 0 }]}>
@@ -109,7 +109,7 @@ export function Canh({ lv, tieu, loi, mau = "xanh", thap, children }: { lv: Linh
   );
 }
 
-/** Cảnh giữa màn cho trống / lỗi / chờ (kit.canh_giua): Rob lớn, bong bóng ngay dưới, nút hành động dưới nữa. */
+/** Cảnh giữa màn cho trống / lỗi / chờ (kit.canh_giua): Grow lớn, bong bóng ngay dưới, nút hành động dưới nữa. */
 export function CanhGiua({ lv, tieu, loi, children }: { lv: LinhVat; tieu: string; loi?: string; children?: ReactNode }) {
   return (
     <View style={{ flexGrow: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 8, paddingHorizontal: 12 }}>
@@ -429,7 +429,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
     return () => sk.remove();
   }, [cuonCuoi]);
   const ve = () => (lui?.bam ? lui.bam() : lui?.ve ? router.replace(lui.ve as never) : router.canGoBack() ? router.back() : router.replace("/"));
-  // Nút chat Rob nằm TRONG hàng tiêu đề (cạnh tiêu đề lớn, hoặc góc phải thanh đầu) — không nổi đè nội dung / nút khi cuộn (TestFlight build 6).
+  // Nút chat Grow nằm TRONG hàng tiêu đề (cạnh tiêu đề lớn, hoặc góc phải thanh đầu) — không nổi đè nội dung / nút khi cuộn (TestFlight build 6).
   const nutChat = chat ? <NutChat /> : null;
   const chatTrenDau = !!nutChat && !tieuLon;
   const phaiDau = !tieuLon && phaiTieu ? phaiTieu : null;          // không có tiêu đề lớn ⇒ nút của hàng tiêu đề lên thanh đầu, không rơi mất
@@ -508,7 +508,7 @@ export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t:
   );
 }
 
-/** Nút chat (kit .noi-chat): mặt Rob mở chat hỗ trợ với người thật của AiiLab — viên 46 trong hàng tiêu đề, không nổi đè nội dung. */
+/** Nút chat (kit .noi-chat): mặt Grow mở chat hỗ trợ với người thật của AiiLab — viên 46 trong hàng tiêu đề, không nổi đè nội dung. */
 function NutChat() {
   return (
     <NhanMen onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Chat với AiiLab" muc="chip" sang style={s.chat}>
@@ -561,7 +561,7 @@ export const BangMang = ({ chu }: { chu: string }) => (
   </View>
 );
 
-/** Chưa có dữ liệu: đang tải ⇒ khung xương; tải hỏng ⇒ cảnh lỗi + Thử lại (không quay mãi); mất mạng ⇒ Rob chờ + câu nói rõ. */
+/** Chưa có dữ liệu: đang tải ⇒ khung xương; tải hỏng ⇒ cảnh lỗi + Thử lại (không quay mãi); mất mạng ⇒ Grow chờ + câu nói rõ. */
 export function ChoTai({ loi, matMang, tai }: { loi?: string | null; matMang?: boolean; tai: () => void }) {
   if (!loi) return <XuongTai />;
   return (

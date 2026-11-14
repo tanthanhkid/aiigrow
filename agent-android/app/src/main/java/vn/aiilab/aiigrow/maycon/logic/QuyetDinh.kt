@@ -32,7 +32,7 @@ data class QuyetDinh(
     /** Lúc mở lại (nếu biết): hết giờ ngủ / đầu khung kế tiếp / hết thêm giờ. */
     val moLaiLuc: Instant?,
     val cauCon: String,
-    /** App bị tạm dừng vì CHƯA được Ba Mẹ cho phép (chế độ «Chỉ app được phép») — màn chặn hiện «Xin Ba Mẹ duyệt». */
+    /** App bị tạm dừng vì CHƯA được Ba Mẹ cho phép (chế độ «Chặn app & web») — màn chặn hiện «Xin Ba Mẹ duyệt». */
     val goiChuaXep: Set<String> = emptySet(),
 )
 

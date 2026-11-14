@@ -15,7 +15,7 @@ const HAY_GAP: { hoi: string; dap: string; di?: { chu: string; toi: string } }[]
   { hoi: "Máy của con báo «cần sửa»", dap: "Máy chưa đủ quyền bảo vệ nên con tự tắt được. Mở máy đó trong «Máy của con» và làm theo các bước sửa.", di: { chu: "Xem máy của con", toi: "/may" } },
   { hoi: "Ghép thêm máy cho con", dap: "Vào «Máy của con» › «Ghép thêm máy», gửi link cài cho máy của con — mã 6 số dùng khi link không mở được.", di: { chu: "Mở Máy của con", toi: "/may" } },
   { hoi: "Đổi sao ra phút chơi", dap: "Con đổi sao trên máy của con: mỗi sao thành phút chơi, cộng vào giờ chơi hôm nay. Ba Mẹ không cần làm gì." },
-  { hoi: "Con xin mở app, web lạ", dap: "Ở chế độ «Chỉ app được phép», app / web lạ con phải xin. Lời xin hiện ở Hôm nay và «App & web» — Ba Mẹ cho mở hoặc không.", di: { chu: "Mở App & web", toi: "/app-web" } },
+  { hoi: "Con xin mở app, web lạ", dap: "Ở chế độ «Chặn app & web», app / web lạ con phải xin. Lời xin hiện ở Hôm nay và «App & web» — Ba Mẹ cho mở hoặc không.", di: { chu: "Mở App & web", toi: "/app-web" } },
   { hoi: "Mời người nhà cùng trông con", dap: "Tab Cả nhà › «Mời người nhà», gõ SĐT hoặc email và chọn quyền. Người được mời mở AiiGrow là thấy lời mời.", di: { chu: "Mời người nhà", toi: "/moi-nguoi-nha" } },
 ];
 

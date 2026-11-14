@@ -58,7 +58,7 @@ final class QuyGioTests: XCTestCase {
     r = QuyGio.apDung(p, quyGiay: 600, now: gocNgay, matMang: false)
     XCTAssertEqual(r.policy.allowedApps, ["com.apple.textedit"], "hết quỹ ⇒ bỏ app tính giờ, app Học giữ")
     XCTAssertEqual(r.hetQuy, ["com.roblox.roblox"])
-    XCTAssertTrue(r.policy.blockedApps.isEmpty, "chế độ «Chỉ app được phép» đã đóng app ngoài danh sách — không cần chặn thêm")
+    XCTAssertTrue(r.policy.blockedApps.isEmpty, "chế độ «Chặn app & web» đã đóng app ngoài danh sách — không cần chặn thêm")
     XCTAssertTrue(QuyGio.laAppTinhGio(p, tienCanh: "com.Roblox.Roblox"))
     XCTAssertFalse(QuyGio.laAppTinhGio(p, tienCanh: "com.apple.textedit"))
 

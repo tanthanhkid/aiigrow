@@ -1,4 +1,4 @@
-// «<App> chưa mở» bản «Dịu» (con-dt-gio 08 them-4e5fwl16, L4): «Ba Mẹ chưa cho phép app này.», nhãn «Chỉ app được phép», «Xin Ba Mẹ mở <App>»
+// «<App> chưa mở» bản «Dịu» (con-dt-gio 08 them-4e5fwl16, L4): «Ba Mẹ chưa cho phép app này.», nhãn «Chặn app & web», «Xin Ba Mẹ mở <App>»
 // một chạm (POST /api/kid/xin-duyet {muc, ten?, lyDo?} — không dùng sao để mở app), «Về trang chính». Web cờ bạc / người lớn ⇒ «luôn bị chặn».
 // Agent / link sâu mở: /tre/chan-app?muc=<định danh>&ten=<tên đẹp>.
 import { useState } from "react";
@@ -43,7 +43,7 @@ export default function ChanApp() {
       <NutD chu="Về trang chính" loai="chu" bam={() => router.replace("/tre/nha")} />
       <ChanMan chu={`AiiGrow · ${ten} · Ba Mẹ quản lý`} /></>}>
       <CamXuc lv="chi" co={140} tieu={`${tenApp} chưa mở`} phu="Ba Mẹ chưa cho phép app này." />
-      <View style={{ alignSelf: "center" }}><PillD chu="Chỉ app được phép" ic="khien" /></View>
+      <View style={{ alignSelf: "center" }}><PillD chu="Chặn app & web" ic="khien" /></View>
       <ChuD co={13.5} mau={D.chu2} giua>Không dùng sao để mở app — xin Ba Mẹ là được.</ChuD>
     </ManD>
   );

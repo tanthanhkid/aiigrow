@@ -133,7 +133,7 @@ export function useTaiTre<T>(khoa: string, fn: () => Promise<T>) {
   return { ...t, d: t.d ?? (t.matMang ? cu : null), cu: !t.d && t.matMang && !!cu };
 }
 
-// ---------------------------------------------------------------- Rob đọc to (Nhí: BRD 8.2 — hướng dẫn bằng giọng)
+// ---------------------------------------------------------------- Grow đọc to (Nhí: BRD 8.2 — hướng dẫn bằng giọng)
 
 const coGiong = () => Platform.OS === "web" && typeof globalThis.speechSynthesis !== "undefined";
 export const coDocTo = coGiong;

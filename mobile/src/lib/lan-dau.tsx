@@ -73,7 +73,7 @@ export const TieuDe = ({ chu, phu, giua, co = 27 }: { chu: string; phu?: string;
   </View>
 );
 
-/** Cảnh đầu màn kiểu thiết kế mới: khối ngọc nhạt, bong bóng trắng (tiêu đề + 1 câu) bên trái, Rob bên phải. */
+/** Cảnh đầu màn kiểu thiết kế mới: khối ngọc nhạt, bong bóng trắng (tiêu đề + 1 câu) bên trái, Grow bên phải. */
 export function CanhRob({ lv, tieu, loi, ic, cao = 150 }: { lv: LinhVat; tieu: string; loi?: string; ic?: TenIcon; cao?: number }) {
   return (
     <View style={{ borderRadius: BO_CLAY.the, backgroundColor: "#dcebe6", minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
@@ -379,10 +379,10 @@ export function BanhXeGio({ gio, doi }: { gio: string; doi: (g: string) => void 
 /** «06:30» ⇒ «6:30» như thiết kế. */
 export const gioGon = (g: string) => g.replace(/^0(\d):/, "$1:");
 
-/** Khối minh hoạ lớn đầu màn: nền ngọc nhạt bo tròn, Rob to giữa, bong bóng thoại góc trên trái (tuỳ chọn), `tren` = thẻ nổi phía trên. */
+/** Khối minh hoạ lớn đầu màn: nền ngọc nhạt bo tròn, Grow to giữa, bong bóng thoại góc trên trái (tuỳ chọn), `tren` = thẻ nổi phía trên. */
 export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhVat; thoai?: string; tren?: ReactNode; cao?: number }) {
-  // Bong bóng thoại / thẻ phía trên nằm TRONG dòng chảy, Rob lấp phần còn lại bên dưới — không chồng lên hình (cổng DE-ANH): đo chiều cao
-  // khối trên rồi thu Rob cho vừa (thẻ lời mời có tên con dài ở 320px cao tới 4–5 dòng).
+  // Bong bóng thoại / thẻ phía trên nằm TRONG dòng chảy, Grow lấp phần còn lại bên dưới — không chồng lên hình (cổng DE-ANH): đo chiều cao
+  // khối trên rồi thu Grow cho vừa (thẻ lời mời có tên con dài ở 320px cao tới 4–5 dòng).
   const [hTren, setHTren] = useState(thoai || tren ? 72 : 0);
   const coRob = Math.max(110, cao - 30 - (thoai || tren ? hTren + 12 : 0));
   return (

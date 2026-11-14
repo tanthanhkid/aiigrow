@@ -7,7 +7,7 @@
 
 export const CHE_DO_CHAN = ["chi_app_duoc_phep", "mo_het"] as const;
 export type CheDoChan = (typeof CHE_DO_CHAN)[number];
-export const TEN_CHE_DO_CHAN: Record<CheDoChan, string> = { chi_app_duoc_phep: "Chỉ app được phép", mo_het: "Mở hết" };
+export const TEN_CHE_DO_CHAN: Record<CheDoChan, string> = { chi_app_duoc_phep: "Chặn app & web", mo_het: "Mở hết" };
 
 /** children.che_do_chan ⇒ chế độ hiệu lực. null (Con tạo trước 05/11) ⇒ chi_app_duoc_phep — đúng cách máy đã chặn từ trước. */
 export const cheDoChanCua = (v: unknown): CheDoChan => (v === "mo_het" ? "mo_het" : "chi_app_duoc_phep");

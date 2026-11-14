@@ -153,7 +153,7 @@ export const cheDoMayBao = (m: Pick<May, "status">): CheDo | null => (laCheDo(m.
 /** Chế độ hiển thị: lựa chọn của Ba Mẹ nếu có, không thì chế độ máy báo; null = chưa biết (không đoán «giám sát» cho máy cài sẵn «chặn»). */
 export const cheDoCua = (m: MayCheDo): CheDo | null => cheDoBaMeChon(m) ?? cheDoMayBao(m);
 /** Giá trị gửi agent trong dong-bo.windows.cheDo: đang gỡ ⇒ luôn giam-sat (gỡ hỏng giữa chừng cũng không còn chặn); còn lại LUÔN «chan»
- *  (thiết kế 05/11: bỏ «Giám sát / Chặn thật» khỏi màn Ba Mẹ — máy luôn chặn thật; mức chặn theo Con: Mở hết / Chỉ app được phép, lib/chan-co-ban.ts).
+ *  (thiết kế 05/11: bỏ «Giám sát / Chặn thật» khỏi màn Ba Mẹ — máy luôn chặn thật; mức chặn theo Con: Mở hết / Chặn app & web, lib/chan-co-ban.ts).
  *  Máy cũ Ba Mẹ từng để «Giám sát» cũng chuyển sang chặn ở lần đồng bộ kế. `m` giữ trong chữ ký cho nơi gọi cũ. */
 export const cheDoGuiMay = (m: MayCheDo, dangGo: boolean, coCon = true): CheDo | undefined =>
   dangGo ? "giam-sat" : coCon ? "chan" : cheDoBaMeChon(m) ?? "giam-sat";
@@ -165,7 +165,7 @@ export async function datCheDo(fam: string, mayId: string, b: { cheDo?: unknown 
   await bangM4b();
   const sang = String(b.cheDo ?? "") as CheDo;
   if (!laCheDo(sang)) throw new LoiNghiepVu("che_do_sai", "Chọn Giám sát hoặc Chặn thật");
-  // Thiết kế 05/11: máy luôn chặn thật — không còn «Giám sát». Mức chặn đổi ở hồ sơ Con (POST con/:id/che-do-chan: Mở hết / Chỉ app được phép).
+  // Thiết kế 05/11: máy luôn chặn thật — không còn «Giám sát». Mức chặn đổi ở hồ sơ Con (POST con/:id/che-do-chan: Mở hết / Chặn app & web).
   if (sang === "giam-sat") throw new LoiNghiepVu("che_do_bo", "Máy luôn chặn thật. Muốn con dùng thoải mái hơn: hồ sơ con › Chặn app › «Mở hết»", 409);
   const m = await one<May>(`select * from devices where id = $1 and family_id = $2`, [mayId, fam]);
   if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);

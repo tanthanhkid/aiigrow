@@ -6,7 +6,7 @@
 //  • Con đã nộp · n — «Duyệt cả n · +S sao» (duyet-hang-loat) + từng việc → màn bằng chứng /duyet/<id>
 //  • Quà chờ trao — «Trao quà» ⇒ bảng them-5otw85h4 (lib/trao-qua: Đã trao trừ sao / Huỷ & hoàn sao / voucher QR + hạn)
 //  • Đã xử lý hôm nay — việc tự cộng sao (AiiRob tự chấm / tự cộng sao)
-// Trống ⇒ «Ba Mẹ duyệt xong hết rồi!» + «Giao một nhiệm vụ». Mất mạng ⇒ khung ChoTai (Rob chờ, tự tải lại).
+// Trống ⇒ «Ba Mẹ duyệt xong hết rồi!» + «Giao một nhiệm vụ». Mất mạng ⇒ khung ChoTai (Grow chờ, tự tải lại).
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";

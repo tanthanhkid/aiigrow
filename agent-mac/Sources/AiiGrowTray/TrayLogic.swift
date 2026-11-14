@@ -165,7 +165,7 @@ public enum TrayLogic {
   public static let luaChonPhut = [10, 20, 30]
 
   public static func tenMucNguoiDung(_ cheDo: CheDo) -> String {
-    switch cheDo { case .tuDo: return "Mở hết"; case .hoc: return "Chỉ app được phép"; case .khoa: return "Đang khoá" }
+    switch cheDo { case .tuDo: return "Mở hết"; case .hoc: return "Chặn app & web"; case .khoa: return "Đang khoá" }
   }
 
   // MARK: tài khoản trên máy

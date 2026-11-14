@@ -1,4 +1,4 @@
-// Chi tiết một cảnh báo (thiết kế chốt 05/11): trang bị chặn (bm-hang-ngay/34 — «<Con> vừa mở một trang web người lớn · ✓ Rob đã chặn», lúc nào,
+// Chi tiết một cảnh báo (thiết kế chốt 05/11): trang bị chặn (bm-hang-ngay/34 — «<Con> vừa mở một trang web người lớn · ✓ Grow đã chặn», lúc nào,
 // trên máy nào, «Nói chuyện với con», «Xem lịch sử <Con> dùng máy», «Đã biết»), giờ máy bị đổi (bm-duyet/05 — «Chuyện gì đã xảy ra» + Ba Mẹ chọn mở khoá
 // sau khi nói chuyện hoặc để khoá). Bỏ «Trừ điểm» (L1). AiiGrow không đọc nội dung của con.
 import { router, useLocalSearchParams } from "expo-router";
@@ -46,7 +46,7 @@ export default function ChiTietCanhBao() {
       ) : x.child_id ? <Nut chu={`Xem lịch sử ${x.ten} dùng máy`} rong bam={() => router.push(`/man-hinh/${x.child_id}` as never)} /> : null}
       <Nut chu={x.loai === "lech_gio" ? "Để khoá, đã xem" : "Đã biết"} loai="vien" rong dangChay={dangChay} bam={daBiet} />
     </>}>
-      <Canh lv="trong-loi" mau="hong" thap tieu={tieu} loi={laWeb(x) ? "✓ Rob đã chặn, con không xem được" : x.noi_dung} />
+      <Canh lv="trong-loi" mau="hong" thap tieu={tieu} loi={laWeb(x) ? "✓ Grow đã chặn, con không xem được" : x.noi_dung} />
       <The dem style={{ paddingVertical: 4 }}>
         <HangViec dau ic="dongho" mau="lam" tieu={luc} phu={ngayDai(x.created_at)} />
         {may || mayId ? <HangViec ic="laptop" mau="xam" tieu={`Trên ${may ?? "máy"} của ${x.ten}`} phu={laWeb(x) ? "Mở từ trình duyệt" : undefined}

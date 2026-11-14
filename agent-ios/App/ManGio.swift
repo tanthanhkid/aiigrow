@@ -244,7 +244,7 @@ struct ManXinCai: View {
         Text("Ba Mẹ trả lời là máy báo con ngay.").font(Diu.phu).foregroundColor(Diu.chu2)
         Button("Về trang chính") { dong() }.buttonStyle(NutDiu())
       } else {
-        HStack { NhanNho(chu: "Chỉ app được phép", icon: "ic_khien"); Spacer() }
+        HStack { NhanNho(chu: "Chặn app & web", icon: "ic_khien"); Spacer() }
         VStack(alignment: .leading, spacing: 8) {
           Text("App con muốn dùng").font(Diu.t1).foregroundColor(Diu.chu2)
           TextField("Ví dụ: Minecraft", text: $ten).font(Diu.chu(18, .heavy)).padding(.horizontal, 14).frame(minHeight: 52)

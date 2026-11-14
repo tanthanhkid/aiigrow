@@ -1,4 +1,4 @@
-// bm1-chao «Tạo tài khoản Ba Mẹ» (thiết kế chốt 04/11): Rob chào + 3 cách — Google, Facebook (lib/dang-nhap-mxh.tsx — chưa bật thì ẩn), Số điện thoại.
+// bm1-chao «Tạo tài khoản Ba Mẹ» (thiết kế chốt 04/11): Grow chào + 3 cách — Google, Facebook (lib/dang-nhap-mxh.tsx — chưa bật thì ẩn), Số điện thoại.
 import { router } from "expo-router";
 import { DauMan, KhoiRob } from "@/lib/lan-dau";
 import { ChonCachTaoTk } from "@/lib/dang-nhap-mxh";
