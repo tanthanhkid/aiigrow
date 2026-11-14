@@ -40,7 +40,7 @@ async function tuan(con: string, tz: string, dau: string) {
   const tu = dauNgayUtc(dau, tz), den = dauNgayUtc(congNgay(dau, 7), tz), het = congNgay(dau, 7);
   const ngayDs = Array.from({ length: 7 }, (_, i) => congNgay(dau, i));
   // 8 câu độc lập ⇒ chạy song song (mỗi câu là một vòng mạng tới DB)
-  const [dung, choi, kiem, tieu, duyet0, nl, top, dungNhieu] = await Promise.all([
+  const [dung, choi, kiem, tieu, duyet0, nl, top, dungNhieu, xin0] = await Promise.all([
     q<{ ngay: string; loai: string; phut: number }>(
       `select ngay, loai, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 group by ngay, loai`, [con, dau, het]),
     q<{ phut: number; bat_dau: Date }>(`select phut_dung as phut, bat_dau from play_sessions where child_id = $1 and bat_dau >= $2 and bat_dau < $3`, [con, tu, den]),
@@ -56,9 +56,14 @@ async function tuan(con: string, tz: string, dau: string) {
     q<{ muc: string; phut: number }>(
       `select muc, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 and loai = 'giai_tri' group by muc order by phut desc limit 5`,
       [con, dau, het]),
-    q<{ muc: string; loai: string; phut: number }>(
-      `select muc, max(loai) as loai, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 and loai in ('hoc', 'giai_tri')
-       group by muc order by phut desc limit 5`, [con, dau, het]),
+    q<{ muc: string; loai: string; phut: number; may: string | null }>(
+      `select u.muc, max(u.loai) as loai, sum(u.phut)::int as phut, (array_agg(d.name order by u.phut desc))[1] as may
+         from usage u left join devices d on d.id = u.device_id where u.child_id = $1 and u.ngay >= $2 and u.ngay < $3 and u.loai in ('hoc', 'giai_tri')
+       group by u.muc order by phut desc limit 5`, [con, dau, het]),
+    // 14/11 «Sao và giờ thêm»: số lần con xin thêm giờ / Ba Mẹ cho
+    one<{ so: number; cho: number; sao: number }>(`select count(*)::int as so, count(*) filter (where trang_thai in ('dong_y', 'da_thuc_thi'))::int as cho,
+         (select coalesce(sum(delta), 0)::int from points where child_id = $1 and delta > 0 and loai <> 'hoan' and created_at >= $2 and created_at < $3) as sao
+       from requests where child_id = $1 and loai = 'them_gio' and created_at >= $2 and created_at < $3`, [con, tu, den]),
   ]);
   const duyet = duyet0!, ngoaiLe = nl!.n;
   const giaiTriNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
@@ -67,14 +72,16 @@ async function tuan(con: string, tz: string, dau: string) {
   const hocNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
   for (const x of dung) if (x.loai === "hoc" || x.loai === "he_thong") hocNgay[x.ngay] = (hocNgay[x.ngay] ?? 0) + x.phut;
   return { dau, hocTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: hocNgay[d] })), dungNhieu, giaiTriTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: giaiTriNgay[d] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
-    phutHoc: hoc, diemKiemTheoNhom: kiem, diemTieuTheoLoai: tieu, duyet, ngoaiLe, top };
+    phutHoc: hoc, diemKiemTheoNhom: kiem, diemTieuTheoLoai: tieu, duyet, ngoaiLe, top, xinThemGio: { so: xin0?.so ?? 0, cho: xin0?.cho ?? 0 }, saoKiem: xin0?.sao ?? 0 };
 }
 
-export async function baoCaoTuan(fam: string, con: string, now = new Date()) {
+/** Báo cáo tuần (thứ Hai → nay) — hoặc `bay` = 7 ngày qua tính tới hôm nay (Tab Báo cáo thiết kế 14/11: «7 ngày qua», so với 7 ngày trước đó). */
+export async function baoCaoTuan(fam: string, con: string, now = new Date(), bay = false) {
   const [f0, c0] = await Promise.all([one<{ tz: string }>(`select tz from families where id = $1`, [fam]),
     one<{ ten: string }>(`select ten from children where id = $1 and family_id = $2`, [con, fam])]);
   const f = f0!, c = c0!;
-  const dau = dauTuan(gioDiaPhuong(now, f.tz).ngay);
+  const nay0 = gioDiaPhuong(now, f.tz).ngay;
+  const dau = bay ? congNgay(nay0, -6) : dauTuan(nay0);
   const [nay, truoc] = await Promise.all([tuan(con, f.tz, dau), tuan(con, f.tz, congNgay(dau, -7))]);
   const cau: string[] = [];
   for (const k of nay.diemKiemTheoNhom) {
