@@ -13,7 +13,7 @@ import { cauMoTam, conHan, datKhoaMay } from "@/lib/khoa-may";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, Icon3D, M, Man, NhanMen, Nhom, NhomTieu, Nut, ONhap, Rob, The, TickDong, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhan, NhanMen, Nhom, NhomTieu, Nut, ONhap, Rob, The, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 import { BONG, KHOI } from "@/lib/clay";
 
@@ -383,20 +383,23 @@ export default function AnToanMay() {
       {/* 03 «Khoá <máy> của <Con>?»: khoá RIÊNG máy này (POST may/:id/khoa — PR #253); máy khác của con «Không đổi gì · Dùng bình thường» */}
       {d.ct && m.con ? (
         <BangTruot mo={mo === "khoa"} dong={dong} hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} tieu={`Khoá ${ngan} của ${tenCon}?`}>
-          <Chu mau={M.chu2}>{d.app ? `${d.app.tenApp} sẽ đóng, con thấy màn khoá.` : "Con thấy màn khoá tới khi Ba Mẹ mở."}</Chu>
-          <View style={{ gap: 8 }}>
-            {[...d.ct.may].sort((a, b) => Number(b.id === id) - Number(a.id === id)).map((x) => (
-              <HangViec key={x.id} dau ic={IC_MAY[x.nen]} mau={x.id === id ? "do" : "xam"} tieu={x.ten.replace(/ của .*$/, "")}
-                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : conConKhoa ? `Đang khoá theo khoá của ${tenCon}` : cauKhoaMay(x.khoaMay) ?? "Dùng bình thường"}
-                phai={<Chu kieu="rat" co={13} mau={x.id === id ? M.loi : M.chu3}>{x.id === id ? "Sẽ khoá" : "Không đổi gì"}</Chu>} />
+          <Chu kieu="dam" mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>{d.app ? `${d.app.tenApp} sẽ đóng, con thấy màn khoá.` : "Con thấy màn khoá tới khi Ba Mẹ mở."}</Chu>
+          {/* thiết kế bm-may-con/03: một thẻ, mỗi máy một hàng; nhãn viên «Sẽ khoá» (than chì) / «Dùng bình thường» (ngọc nhạt) */}
+          <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+            {[...d.ct.may].sort((a, b) => Number(b.id === id) - Number(a.id === id)).map((x, k) => (
+              <HangViec key={x.id} dau={k === 0} ic={IC_MAY[x.nen]} mau="xam" tieu={x.ten.replace(/ của .*$/, "")}
+                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : conConKhoa ? `Đang khoá theo khoá của ${tenCon}` : cauKhoaMay(x.khoaMay) ?? "Không đổi gì"}
+                phai={x.id === id
+                  ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11, backgroundColor: M.nut }}><Chu kieu="rat" co={12.5} mau="#fff">Sẽ khoá</Chu></View>
+                  : <Nhan chu="Dùng bình thường" loai="ok" />} />
             ))}
           </View>
           <BaoLoi loi={loiLam} />
-          <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
+          <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" ic3d rong dangChay={dangChay} bam={() => lam(async () => {
             await datKhoaMay(id, true); dong();
             bao(`Đã khoá ${ngan} của ${tenCon}`, () => { datKhoaMay(id, false).then(tai, tai); }); await tai();
           })} />
-          <Nut chu="Để sau" loai="ma" rong bam={dong} />
+          <Nut chu="Để sau" loai="vien" rong bam={dong} />
         </BangTruot>
       ) : null}
     </Man>
