@@ -983,7 +983,7 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   xet(du, `mỗi lần bấm tab đều mở đúng tab (12 lần)${saiTab.length ? ` — sai ${saiTab.join(" ")}` : ""}`);
   await js(`document.querySelectorAll("div").forEach((e) => { if (e.scrollTop) e.scrollTop = 0; })`); await sleep(200);
   // bấm: điểm giữa chip «Bill» phải là chính nó (không bị màn tab khác trong suốt đè lên) và bấm thì đổi Con
-  const chip = `() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText?.trim().endsWith(${JSON.stringify(BILL)}) && e.getBoundingClientRect().width > 0)`;
+  const chip = `() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText?.split("\\n").map((x) => x.trim()).includes(${JSON.stringify(BILL)}) && e.getBoundingClientRect().width > 0)`;     // dải avatar (14/11): «B · 1 · Bill · còn 18′»
   const r = await viTriYen(chip);
   xet(!!r?.trung, "chip Con không bị lớp nào che (elementFromPoint trúng chip)");
   if (r) await nhanChuot(r);

@@ -27,7 +27,7 @@ import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 // Grow ở thẻ đầu: cỡ + lệch phải (âm = ló ra ngoài thẻ). Chữ chừa = phần Grow nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
-const ROB_CO = 116, ROB_PHAI = -6, ROB_TREN = 44, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
+const ROB_CO = 100, ROB_PHAI = -6, ROB_TREN = 44, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
 // chip «đang làm gì» (cao 38) + lề trên thẻ 16 + khoảng 16 tới khối tiêu đề ⇒ khối tiêu đề bắt đầu ở 70 (đo từ mép thẻ)
 const CHIP_CAO = 38, TIEU_TU = 16 + CHIP_CAO + 16;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -176,11 +176,11 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{`${chipChu} ›`}</Chu>
         </Pressable>
         {/* máy đang khoá: không có vạch quỹ ⇒ câu «Đang khoá · còn N phút chơi ›» (cả bề ngang) lên cao, ở khổ 320 đè Grow «nghi» (cổng DE-ANH)
-            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow. Tiêu đề số (.so strong 28/800, giãn −1, một dòng) chạy dưới khoảng của Grow (chỉ chừa thân Grow) */}
-        <View style={{ marginTop: 16, marginRight: tieuLon || tieuNho ? CHUA_ROB : 48, minHeight: khoa ? ROB_TREN + ROB_CO - TIEU_TU : undefined }}>
+            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow. Tiêu đề số «Còn N phút chơi» (.so strong 800, giãn −1) KHÔNG đè Grow (cổng DE-ANH) ⇒ Grow 100 + chữ 26: một dòng từ khổ 375 */}
+        <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_TREN + ROB_CO - TIEU_TU : undefined }}>
           {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
           {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>
-            : <Chu kieu="den" co={28} so dong={1} style={{ letterSpacing: -1 }}>{`Còn ${conPhut} phút chơi`}</Chu>}
+            : <Chu kieu="den" co={26} so style={{ letterSpacing: -1 }}>{`Còn ${conPhut} phút chơi`}</Chu>}
         </View>
         {!khoa && tongPhut ? (
           <View style={{ marginTop: 8, marginRight: CHUA_ROB - 24 }}>
