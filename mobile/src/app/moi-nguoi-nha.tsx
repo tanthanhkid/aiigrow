@@ -6,10 +6,11 @@
 import { useState } from "react";
 import { Pressable, Share, TextInput, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { IC_QUYEN, chuDau, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
+import { type Quyen, type ToiCaNha } from "@/lib/ca-nha";
 import { veHoac } from "@/lib/ui-bm3";
 import { BONG, KHOI } from "@/lib/clay";
-import { BaoLoi, Chu, F, Icon, Icon3D, M, MAU_CON, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
+import { mauCon } from "@/lib/hang-ngay";
 
 type KqMoi = { id: string; tenGoi: string | null; dinhDanh: string | null; quyen: Quyen; chiaSe: { tieuDe: string; noiDung: string; lienKet: string } };
 /** như máy chủ (auth.ts › chuanDinhDanh): bỏ cách / chấm / gạch / ngoặc, +84 / 84 → 0, đúng 10 số */
@@ -91,28 +92,23 @@ export default function MoiNguoiNha() {
   }
 
   return (
-    <Man lui={{ chu: "", bam: ve }} day={<>
-      <BaoLoi loi={loi} />
-      <Nut chu={goi ? `Gửi lời mời cho ${goi}` : "Gửi lời mời"} rong dangChay={dangChay} tat={!hop} bam={gui} />
-      <Pressable onPress={guiLink} disabled={!hop || dangChay} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-        <Chu kieu="dam" co={13.5} mau={M.chu3}>{`${ten.trim() || "Người nhà"} chưa có app? `}<Chu kieu="rat" co={13.5} mau={hop ? M.chinhInk : M.chu3}>Gửi link mời</Chu></Chu>
-      </Pressable>
-    </>}>
-      <View style={{ alignItems: "center", gap: 10, paddingVertical: 18, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.chinhSoft, ...KHOI.the }}>
+    // thiết kế: tiêu đề «Mời người nhà» ở hàng đầu (cạnh nút lùi); nút «Gửi lời mời cho <tên>» + «… chưa có app? Xem cách gửi link» ngay dưới thẻ quyền
+    <Man lui={{ chu: "", bam: ve }} tieu="Mời người nhà">
+      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: "#e3efeb",
+        backgroundImage: "linear-gradient(#e9f3ef, #d6e9e2)", ...KHOI.the }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 3).map((t, i) => (
-            <View key={i} style={{ width: 54, height: 54, borderRadius: 27, marginLeft: i ? -10 : 0, borderWidth: 3, borderColor: M.nen, backgroundColor: MAU_CON[(i + 2) % MAU_CON.length],
-              alignItems: "center", justifyContent: "center" }}>
-              <Chu kieu="rat" co={20} mau="#fff">{chuDau(t)}</Chu>
+          {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 5).map((t, i) => (
+            // Avt tự chọn màu chữ đủ tương phản trên nền (cổng TUONG-PHAN)
+            <View key={i} style={{ marginLeft: i ? -6 : 0, borderRadius: 25, borderWidth: 3, borderColor: "#fff" }}>
+              <Avt ten={t} mau={i ? mauCon(null, i - 1) : "#d0668a"} co={44} />
             </View>
           ))}
-          <View style={{ width: 54, height: 54, borderRadius: 27, marginLeft: -10, borderWidth: 3, borderColor: M.nen, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 4, borderWidth: 2.5, borderStyle: "dashed", borderColor: M.chinhInk, alignItems: "center", justifyContent: "center" }}>
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
         </View>
         <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ textAlign: "center" }}>{`Cùng trông ${d?.con.length ? `${d.con.length} con` : tenCon} với ${d?.toi ?? "bạn"}`}</Chu>
       </View>
-      <Chu kieu="rat" co={26} style={{ letterSpacing: -0.5, marginHorizontal: 4, marginTop: 4 }}>Mời người nhà</Chu>
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
         {(["sdt", "email"] as const).map((k) => (
           <NhanMen key={k} onPress={() => { setCach(k); setDd(""); }} accessibilityRole="tab" accessibilityState={{ selected: cach === k }} muc="chip" sang
@@ -121,24 +117,30 @@ export default function MoiNguoiNha() {
           </NhanMen>
         ))}
       </View>
-      <View style={{ minHeight: 56, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom, paddingHorizontal: 18, justifyContent: "center" }}>
+      <View style={{ height: 56, borderRadius: 28, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
         <TextInput value={dd} onChangeText={setDd} placeholder={cach === "sdt" ? "0909 876 543" : "ten@email.com"} placeholderTextColor={M.chu3}
           keyboardType={cach === "sdt" ? "phone-pad" : "email-address"} autoCapitalize="none" autoComplete={cach === "sdt" ? "tel" : "email"}
           accessibilityLabel={cach === "sdt" ? "Số điện thoại người được mời" : "Email người được mời"}
-          style={{ fontFamily: F.dam, fontSize: 17, color: M.chu, paddingVertical: 14 }} />
+          style={{ fontFamily: F.dam7, fontSize: 20, letterSpacing: 0.3, color: M.chu }} />
       </View>
-      <View style={{ minHeight: 52, borderRadius: 22, backgroundColor: "#fff", ...KHOI.nho, paddingHorizontal: 18, justifyContent: "center" }}>
+      {/* «Gọi là gì trong nhà?» không có trên thiết kế (thiết kế lấy tên từ danh bạ — «Chọn từ danh bạ» chưa làm) ⇒ giữ ô lõm nhỏ để có tên trên lời mời */}
+      <View style={{ height: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
         <TextInput value={ten} onChangeText={setTen} placeholder="Gọi là gì trong nhà? (Ba Tuấn, Bà nội…)" placeholderTextColor={M.chu3} maxLength={30}
           accessibilityLabel="Gọi là gì trong nhà" style={{ fontFamily: F.thuong, fontSize: 15.5, color: M.chu, paddingVertical: 12 }} />
       </View>
       {/* lề thẻ 16 (cổng LE-THE: ảnh cách mép thẻ ≥ 15.5 — trước 14) */}
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 24, backgroundColor: M.the }, KHOI.nho]}>
-        <Icon3D ten={IC_QUYEN.ba_me} co={34} />
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+        <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15}>{`${ten.trim() || "Người được mời"} làm được như bạn`}</Chu>
-          <Chu kieu="dam" co={13} mau={M.chu3}>Cho giờ, duyệt việc, đổi cài đặt</Chu>
+          <Chu kieu="dam" co={12.5} mau={M.chu2}>Cho giờ, duyệt việc, đổi cài đặt</Chu>
         </View>
       </View>
+      <BaoLoi loi={loi} />
+      <View style={{ marginTop: 6 }}><Nut chu={goi ? `Gửi lời mời cho ${goi}` : "Gửi lời mời"} ic="gui" rong dangChay={dangChay} tat={!hop} bam={gui} /></View>
+      <Pressable onPress={guiLink} disabled={!hop || dangChay} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+        <Chu kieu="dam" co={14} mau={M.chu2}>{`${ten.trim() || "Người nhà"} chưa có app? `}<Chu kieu="rat" co={14} mau={hop ? M.chinhInk : M.chu3}>Xem cách gửi link</Chu></Chu>
+      </Pressable>
     </Man>
   );
 }

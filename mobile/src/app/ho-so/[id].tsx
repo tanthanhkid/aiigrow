@@ -6,9 +6,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, gioGon, HangViec, mauCon, quyenToi, SaoVien, soAppDuocMo, tuoiCua, cauThu, type ConCt, type LuatDem, type GioChoi, type GioHoc, type NhiemVuMoi,
+  CAU_TRONG_GIUP, gioGon, HangViec, mauCon, TieuMuc, quyenToi, SaoVien, soAppDuocMo, tuoiCua, cauThu, type ConCt, type LuatDem, type GioChoi, type GioHoc, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
-import { Avt, ChoTai, Chu, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
+import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
 import { DaiCon } from "@/lib/ui-viec";
 import { BONG, KHOI, MEN } from "@/lib/clay";
@@ -75,21 +75,22 @@ export default function HoSoCon() {
         </NhanMen>
       </The>
 
-      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>{`Cài đặt của ${c.ten}`}</Chu>
+      <TieuMuc chu={`Cài đặt của ${c.ten}`} />
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="dongho" mau="cam" tieu="Giờ chơi" phu={d.gio ? `${d.gio.quyNgayThuong} phút/ngày · T7, CN ${d.gio.quyCuoiTuan} phút` : "Quỹ phút mỗi ngày"}
+        {/* thiết kế .lg: tên mục bên trái, giá trị (1–2 dòng nhỏ) canh phải + › */}
+        <HangViec dau ic="dongho" mau="cam" tieu="Giờ chơi" phai={<GiaPhai tren={d.gio ? `${d.gio.quyNgayThuong} phút/ngày` : "Quỹ mỗi ngày"} duoi={d.gio ? `T7, CN ${d.gio.quyCuoiTuan} phút` : undefined} />}
           bam={() => router.push(`/gio/${id}` as never)} />
-        <HangViec ic="trang_ngu" mau="tim" tieu="Giờ ngủ" phu={`${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} bam={() => router.push(`/gio/ngu?con=${id}` as never)} />
-        <HangViec ic="mu" mau="xanh" tieu="Giờ học" phu={hoc ? `${gioGon(hoc.tu)} – ${gioGon(hoc.den)} · ${cauThu(hoc.thu)}` : "Chưa đặt"}
+        <HangViec ic="trang_ngu" mau="tim" tieu="Giờ ngủ" phai={<GiaPhai tren={`${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} />} bam={() => router.push(`/gio/ngu?con=${id}` as never)} />
+        <HangViec ic="mu" mau="xanh" tieu="Giờ học" phai={<GiaPhai tren={hoc ? `${gioGon(hoc.tu)} – ${gioGon(hoc.den)}` : "Chưa đặt"} duoi={hoc ? cauThu(hoc.thu) : undefined} />}
           bam={() => router.push(`/gio/hoc?con=${id}` as never)} />
         <HangViec ic="khien" mau="lam" tieu="App & web"
-          phu={c.cheDoChan === "mo_het" ? "Mở hết · chỉ chặn web người lớn" : `Chặn app & web${d.duocMo !== null ? ` · Được mở ${d.duocMo} app` : ""}`}
+          phai={<GiaPhai tren={c.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web"} duoi={c.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
           bam={() => router.push(`/app-web?con=${id}` as never)} />
         <HangViec ic="laptop" mau="xam" tieu={`Máy của ${c.ten}`}
-          phu={c.may.length ? `${c.may.length} máy${canSua.length ? ` · ${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : " · đang được bảo vệ"}` : "Chưa ghép máy nào"}
+          phai={<GiaPhai tren={c.may.length ? `${c.may.length} máy` : "Chưa ghép"} duoi={canSua.length ? `${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : undefined} canh={!!canSua.length} />}
           bam={() => router.push(`/may?con=${id}` as never)} />
         <HangViec ic="sao" mau="vang" tieu="Nhiệm vụ & sao"
-          phu={d.nv ? (d.nv.length ? `${d.nv.length} việc mỗi ngày` : "Chưa giao việc nào") : `${sao} sao`}
+          phai={<GiaPhai tren={d.nv ? (d.nv.length ? `${d.nv.length} việc mỗi ngày` : "Chưa giao việc") : `${sao} sao`} />}
           bam={() => router.push("/diem-qua")} />
       </The>
 
@@ -101,7 +102,7 @@ export default function HoSoCon() {
         </The>
       ) : null}
 
-      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>{`Về ${c.ten}`}</Chu>
+      <TieuMuc chu={`Về ${c.ten}`} />
       {d.trongGiup ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : (
         <The dem style={{ paddingVertical: 4 }}>
           <HangViec dau ic="but" mau="lam" tieu="Sửa tên, năm sinh, ảnh" bam={() => router.push(`/ho-so/sua?id=${id}` as never)} />
@@ -112,5 +113,18 @@ export default function HoSoCon() {
       )}
 
     </Man>
+  );
+}
+
+/** Giá trị bên phải hàng cài đặt (thiết kế: 12.5/700 xám, dòng dưới cam khi «cần sửa») + mũi tên. */
+function GiaPhai({ tren, duoi, canh }: { tren: string; duoi?: string; canh?: boolean }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "58%" }}>
+      <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
+        <Chu kieu="dam7" co={12.5} mau={M.chu2} dong={1}>{tren}</Chu>
+        {duoi ? <Chu kieu="dam7" co={12.5} mau={canh ? "#8a3c0c" : "#565c59"} dong={1}>{duoi}</Chu> : null}
+      </View>
+      <Icon ten="phai" mau="#b3b5b1" co={18} />
+    </View>
   );
 }

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, chuanHoaTen } from "@/lib/api";
-import { KHOI } from "@/lib/clay";
+import { BONG, KHOI } from "@/lib/clay";
 import { mauCon, type ConCt } from "@/lib/hang-ngay";
-import { Avt, BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, NhanMen, Nut, ONhap, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, baoKhiVe, ChoTai, Chu, Icon3D, M, Man, NhanMen, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 
 const SO_MAU = 5;
 
@@ -35,27 +35,44 @@ export default function SuaHoSo() {
       <BaoLoi loi={loiLam} />
       <Nut chu={`Lưu hồ sơ ${chuanHoaTen(tenG) || d.ten}`} rong dangChay={dangChay} tat={!chuanHoaTen(tenG) || !namDung} bam={luu} />
     </>}>
-      <View style={{ alignItems: "center", paddingVertical: 8 }}>
+      {/* thiết kế 06: avatar 88 viền ngọc + bút 3D góc; thẻ «Tên gọi» | «Năm sinh» (104) cạnh nhau; màu; «Ảnh của con» 3 ô */}
+      <View style={{ alignSelf: "center", marginVertical: 8, borderRadius: 54, padding: 4, borderWidth: 3, borderColor: M.chinh }}>
         <Avt ten={tenG || d.ten} mau={mauG !== null ? mauCon(`mau-${mauG}`) : mauCon(d.avatar)} co={88} />
+        <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -6 }}><Icon3D ten="but" co={38} /></View>
       </View>
-      <ONhap nhan="Tên gọi" value={tenG} onChangeText={setTen} autoCapitalize="words" maxLength={30} />
-      {/* máy chủ (gia-dinh.ts › suaCon) chưa lưu năm sinh khi sửa ⇒ ô chỉ đọc, không báo «đã lưu» sai (review PR #183 — câu mở) */}
-      <ONhap nhan="Năm sinh" value={namG} editable={false} placeholder="Chưa có" />
-      <Chu co={13} mau={M.chu3}>Đổi năm sinh: nhắn AiiGrow trong «Hỏi AiiGrow».</Chu>
+      <View style={[{ flexDirection: "row", gap: 10, padding: 14, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+        <View style={{ flex: 1, minWidth: 0 }}><ONhap nhan="Tên gọi" value={tenG} onChangeText={setTen} autoCapitalize="words" maxLength={30} /></View>
+        {/* máy chủ (gia-dinh.ts › suaCon) chưa lưu năm sinh khi sửa ⇒ ô chỉ đọc, không báo «đã lưu» sai (review PR #183 — câu mở) */}
+        <View style={{ width: 104 }}><ONhap nhan="Năm sinh" value={namG} editable={false} placeholder="Chưa có" /></View>
+      </View>
+      <Chu co={13} mau={M.chu3} style={{ marginHorizontal: 6, marginTop: -4 }}>Đổi năm sinh: nhắn AiiGrow trong «Hỏi AiiGrow».</Chu>
       <View style={{ gap: 8 }}>
-        <Chu kieu="rat" co={14}>Màu của con</Chu>
-        <View style={{ flexDirection: "row", gap: 12 }} accessibilityRole="radiogroup">
+        <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Màu của con</Chu>
+        <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }} accessibilityRole="radiogroup">
           {Array.from({ length: SO_MAU }, (_, k) => (
             <NhanMen key={k} onPress={() => setMau(k)} accessibilityRole="radio" accessibilityState={{ checked: mauG === k }} accessibilityLabel={`Màu ${k + 1}`} muc="chip"
-              style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: mauCon(`mau-${k}`), borderWidth: 3, borderColor: mauG === k ? M.chu : "transparent" }, KHOI.nho]}>
-              <View />
+              style={{ width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: mauG === k ? M.chinh : "transparent" }}>
+              <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: mauCon(`mau-${k}`), boxShadow: BONG.nho }} />
             </NhanMen>
           ))}
         </View>
       </View>
-      <View style={{ gap: 4 }}>
-        <Chu kieu="rat" co={14}>Ảnh của con</Chu>
-        <Chu co={13.5} mau={M.chu3}>{`Đang dùng chữ cái «${(chuanHoaTen(tenG) || d.ten).split(" ").pop()?.charAt(0).toUpperCase() ?? ""}». Chụp ảnh / chọn ảnh sắp có.`}</Chu>
+      <View style={{ gap: 8 }}>
+        <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ảnh của con</Chu>
+        {/* «Chụp ảnh» / «Chọn ảnh» của thiết kế: máy chủ chưa lưu ảnh con ⇒ hai ô mờ, đọc màn hình báo «sắp có» */}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={[{ flex: 1, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#dcebe6", borderWidth: 2.5, borderColor: M.chinh }, KHOI.nho]}
+            accessibilityLabel="Ảnh của con: đang dùng chữ cái">
+            <Avt ten={tenG || d.ten} mau={mauG !== null ? mauCon(`mau-${mauG}`) : mauCon(d.avatar)} co={26} />
+            <Chu kieu="rat" co={12.5} mau={M.chinhInk}>{`Chữ cái ${(chuanHoaTen(tenG) || d.ten).split(" ").pop()?.charAt(0).toUpperCase() ?? ""}`}</Chu>
+          </View>
+          {([["camera", "Chụp ảnh"], ["tia", "Chọn ảnh"]] as const).map(([ic, chu]) => (
+            <View key={chu} style={[{ flex: 1, height: 72, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#f7f6f3", opacity: 0.55 }, KHOI.nho]}
+              accessibilityLabel={`${chu} — sắp có`}>
+              <Icon3D ten={ic} co={24} /><Chu kieu="rat" co={12.5} mau={M.chu2}>{chu}</Chu>
+            </View>
+          ))}
+        </View>
       </View>
     </Man>
   );

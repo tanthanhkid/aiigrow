@@ -39,7 +39,7 @@ export default function QuenMatKhau() {
     return (
       <Man dau={<DauMan bamLui={() => setBuoc2(false)} phai={<CanGiup />} />}
         day={<><BaoLoi loi={loi} /><Nut chu="Lưu mật khẩu và vào app" rong dangChay={dangChay} tat={!khop} bam={luu} /></>}>
-        <CanhRob lv="xong" ic="mo_khoa" tieu="Gần xong rồi! Chọn mật khẩu mới nhé." cao={150} />
+        <CanhRob lv="xong" ic="mo_khoa" tieu="Gần xong rồi! Chọn mật khẩu mới nhé." cao={200} />
         <TieuDe chu="Đặt mật khẩu mới" giua />
         <OLom nhan="Mật khẩu mới" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
         <OLom nhan="Nhập lại mật khẩu mới" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" />
@@ -49,7 +49,7 @@ export default function QuenMatKhau() {
   return (
     <Man dau={<DauMan ve="/dang-nhap" phai={<CanGiup />} />}
       day={<><BaoLoi loi={loi} /><Nut chu="Xác nhận mã" rong tat={!gui || ma.length < 6} bam={() => setBuoc2(true)} /></>}>
-      <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Grow giúp lấy lại nè!" cao={150} />
+      <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Grow giúp lấy lại nè!" cao={200} />
       <TieuDe chu="Quên mật khẩu" giua />
       <SoBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>

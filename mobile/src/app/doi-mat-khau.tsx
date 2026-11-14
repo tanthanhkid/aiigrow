@@ -4,7 +4,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { BaoLoi, baoKhiVe, Chu, Icon, M, Man, Nut, ONhap, useLam } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, Chu, M, Man, Nut, ONhap, Rob, useLam } from "@/lib/ui";
 
 export default function DoiMatKhau() {
   const [cu, setCu] = useState("");
@@ -19,15 +19,17 @@ export default function DoiMatKhau() {
     if (router.canGoBack()) router.back(); else router.replace("/tai-khoan");
   });
   return (
-    <Man lui={{ chu: "Tài khoản" }} tieu="Đổi mật khẩu"
-      day={<><BaoLoi loi={loi} /><Nut chu="Lưu mật khẩu mới" rong dangChay={dangChay} tat={!cu || !khop} bam={luu} /></>}>
+    // thiết kế 09: nút «Lưu mật khẩu mới» ngay dưới ô ghi chú (không ghim đáy)
+    <Man lui={{ chu: "Tài khoản" }} tieu="Đổi mật khẩu">
       <ONhap nhan="Mật khẩu đang dùng" value={cu} onChangeText={setCu} secureTextEntry autoCapitalize="none" autoComplete="current-password" textContentType="password" />
       <ONhap nhan="Mật khẩu mới" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" />
       <ONhap nhan="Nhập lại mật khẩu mới" value={mk2} onChangeText={setMk2} secureTextEntry autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" loi={ghi} />
-      <View style={{ flexDirection: "row", gap: 10, padding: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
-        <Icon ten="khoa" mau={M.chinhInk} co={20} />
-        <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>Ít nhất 8 ký tự. Quên mật khẩu cũ thì đăng xuất rồi chọn «Quên mật khẩu».</Chu>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#dcebe6" }}>
+        <Rob ten="chi" co={52} />
+        <Chu kieu="dam7" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>Ít nhất 8 ký tự. Quên mật khẩu cũ thì đăng xuất rồi chọn «Quên mật khẩu».</Chu>
       </View>
+      <BaoLoi loi={loi} />
+      <Nut chu="Lưu mật khẩu mới" rong dangChay={dangChay} tat={!cu || !khop} bam={luu} />
     </Man>
   );
 }

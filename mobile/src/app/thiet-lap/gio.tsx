@@ -41,15 +41,16 @@ export default function ObGio() {
   const chip = (p: number) => { setTu(false); dat(p, cuoiTuanCua(p)); };
   const tiep = () => { datTl({ quy, cuoiTuan: ct, ngu }); router.push("/thiet-lap/che-do"); };
   const oChip = (on: boolean) => ({ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center" as const, justifyContent: "center" as const, paddingHorizontal: 2,
-    backgroundColor: on ? "#fff" : "#ebeae6", boxShadow: on ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.lom });
+    // thiết kế 07 (clay-kit): ô chưa chọn trắng nổi, ô chọn ngọc đặc chữ trắng + viền ngoài sáng
+    backgroundColor: on ? M.chinh : "#fff", boxShadow: on ? `0px 0px 0px 3px #fdf3dc, 0px 0px 0px 5.5px ${M.chinh}` : BONG.nho });
   const dongTu = (tieu: string, phu: string, gia: number, doi: (p: number) => void, nhan: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 56 }}>
-      <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{tieu}</Chu><Chu co={12} mau={M.chu3}>{phu}</Chu></View>
+      <View style={{ flex: 1 }}><Chu kieu="rat" co={15} mau="#6e4300">{tieu}</Chu><Chu kieu="dam" co={12} mau="#8a5a12">{phu}</Chu></View>
       {(["−", "＋"] as const).map((k, i) => {
         const moi = kep(gia + (i ? BUOC : -BUOC));
         const nut = (
           <Pressable key={k} onPress={() => doi(moi)} disabled={moi === gia} accessibilityRole="button" accessibilityLabel={`${i ? "Tăng" : "Giảm"} 15 phút ${nhan}`}
-            style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#ecebe7", boxShadow: BONG.nho, opacity: moi === gia ? 0.4 : 1 }}>
+            style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", boxShadow: BONG.nho, opacity: moi === gia ? 0.4 : 1 }}>
             <Chu kieu="rat" co={20} mau={M.chinhInk}>{k}</Chu>
           </Pressable>
         );
@@ -61,23 +62,26 @@ export default function ObGio() {
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
       day={<Nut chu="Tiếp: chọn app cho con" rong bam={tiep} />}>
       <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy\nbao lâu mỗi ngày?`}</Text>
-      <View style={{ borderRadius: 28, backgroundColor: "#f7f6f3", padding: 16, gap: 12, ...KHOI.the }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="dongho" co={22} /><Chu kieu="rat" co={14.5} mau={M.chu2}>Hết giờ, máy tự khoá</Chu></View>
+      <View style={{ borderRadius: 28, backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf3dc, #fbe9b8)", padding: 16, gap: 12, ...KHOI.the }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="dongho" co={24} /></View>
+          <Chu kieu="rat" co={15} mau="#6e4300">Hết giờ, máy tự khoá</Chu>
+        </View>
         <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="radiogroup">
           {QUY_CHIP.map((p) => {
             const on = !tu && quy === p && ct === cuoiTuanCua(p);
             return (
               <Pressable key={p} onPress={() => chip(p)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${p} phút, thứ 7 chủ nhật ${cuoiTuanCua(p)} phút`} style={oChip(on)}>
-                <Chu kieu="rat" co={17}>{`${p}p`}</Chu><Chu co={11} mau={M.chu3} dong={1}>{`T7, CN ${cuoiTuanCua(p)}p`}</Chu>
+                <Chu kieu="rat" co={17} mau={on ? "#fff" : M.chu}>{`${p}p`}</Chu><Chu kieu="dam" co={11} mau={on ? "#dcebe6" : M.chu3} dong={1}>{`T7, CN ${cuoiTuanCua(p)}p`}</Chu>
               </Pressable>
             );
           })}
           <Pressable onPress={() => setTu(true)} accessibilityRole="radio" accessibilityState={{ checked: tu }} style={oChip(tu)}>
-            <Chu kieu="rat" co={15} dong={1}>Tự chọn</Chu><Chu co={11} mau={M.chu3} dong={1}>{`${quy}p · ${ct}p`}</Chu>
+            <Chu kieu="rat" co={15} dong={1} mau={tu ? "#fff" : M.chu}>Tự chọn</Chu><Chu kieu="dam" co={11} mau={tu ? "#dcebe6" : M.chu3} dong={1}>{`${quy}p · ${ct}p`}</Chu>
           </Pressable>
         </View>
         {tu ? (
-          <View style={{ borderRadius: 22, backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 4, ...KHOI.nho }}>
+          <View style={{ borderRadius: 22, backgroundColor: "rgba(255,255,255,0.55)", paddingHorizontal: 16, paddingVertical: 4, boxShadow: BONG.lom }}>
             {dongTu("Ngày thường", "Thứ 2 – Thứ 6", quy, (p) => dat(p, ct), "ngày thường")}
             <View style={{ height: 1, backgroundColor: "#ecebe7" }} />
             {dongTu("Cuối tuần", "Thứ 7, Chủ nhật", ct, (p) => dat(quy, p), "cuối tuần")}

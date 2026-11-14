@@ -11,7 +11,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn, ReduceMotion, type SharedValue, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle } from "react-native-svg";
+import Svg, { Circle, Defs, Line, Pattern, Rect } from "react-native-svg";
 import { BONG, MEN, VET } from "./clay";
 import { EASE } from "./chuyen-dong";
 import { F, M } from "./mau";
@@ -106,6 +106,76 @@ function Cot({ thu, cao, phan, giam }: { thu: number; cao: number; phan: PhanCot
         {giam ? null : <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundImage: VET.doc }, stVet]} />}
       </View>
     </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------- cột giờ chơi (Báo cáo 14/11)
+
+export type CotChoi = { khoa: string; nhan: string; doc: string; phut: number; quy: number | null; nay?: boolean };
+
+/**
+ * Biểu đồ «Giờ chơi của <Con>» (thiết kế bm-bao-cao-ngay/01 .bieu): cột đặc rộng (không rãnh), ngọc khi trong quỹ, CAM cả cột khi quá quỹ,
+ * hôm nay sọc chéo ngọc; vạch ĐỨT ngang ở mức quỹ ngày. Cao 120, đỉnh ứng với `max`. Mọc từ chân như CotClay.
+ */
+export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotChoi[]; max: number; cao?: number; nhanDoc?: string;
+  /** mức vạch đứt (Báo cáo: quỹ NGÀY THƯỜNG — khớp chú giải «Quỹ 60′/ngày»); cột vẫn tô cam theo quỹ của chính ngày đó */ quyVach?: number | null }) {
+  const giam = useReducedMotion();
+  const dinh = Math.max(1, max);
+  const quy = quyVach ?? ds.find((x) => x.quy !== null)?.quy ?? null;
+  const yQuy = quy !== null ? Math.min(1, quy / dinh) * cao : null;
+  return (
+    <View accessible accessibilityLabel={[nhanDoc, ...ds.map((x) => x.doc)].filter(Boolean).join("; ")} style={{ marginTop: 16 }}>
+      <View style={{ height: cao, flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 2 }}>
+        {yQuy !== null ? (
+          <Svg pointerEvents="none" width="100%" height={2} style={{ position: "absolute", left: 0, right: 0, bottom: yQuy }}>
+            <Line x1="0" y1="1" x2="100%" y2="1" stroke="#8fb3a8" strokeWidth={2} strokeDasharray="5 4" />
+          </Svg>
+        ) : null}
+        {ds.map((x, i) => <CotDac key={x.khoa} thu={i} h={Math.min(1, x.phut / dinh) * cao} qua={x.quy !== null && x.phut > x.quy} nay={!!x.nay} giam={giam} />)}
+      </View>
+      <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 2, marginTop: 6 }}>
+        {ds.map((x) => (
+          <Text key={x.khoa} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={2}
+            style={{ flex: 1, fontFamily: x.nay ? F.rat : F.dam7, fontSize: 12, lineHeight: 14, color: x.nay ? M.chinhInk : "#565c59", textAlign: "center" }}>{x.nhan}</Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function CotDac({ thu, h, qua, nay, giam }: { thu: number; h: number; qua: boolean; nay: boolean; giam: boolean }) {
+  const cao = h <= 0 ? 0 : Math.max(8, h);
+  const { p } = useMoc(giam, thu * SO_LE, 380, 450, cao > 0);
+  const st = useAnimatedStyle(() => ({ transform: [{ scaleY: Math.max(0, p.value) }] }));
+  if (!cao) return <View style={{ flex: 1 }} />;
+  return (
+    <Animated.View style={[{ flex: 1, height: cao, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, overflow: "hidden",
+      transformOrigin: "bottom", boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.35)",
+      backgroundImage: qua ? "linear-gradient(#f2a05e, #e2660f)" : "linear-gradient(#2a8f7c, #0f6b5c)" }, st]}>
+      {nay && !qua ? (
+        <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
+          <Defs><Pattern id="soc" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">
+            <Rect x="0" y="0" width="6" height="12" fill="#2a8f7c" /><Rect x="6" y="0" width="6" height="12" fill="#0f6b5c" />
+          </Pattern></Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#soc)" />
+        </Svg>
+      ) : null}
+    </Animated.View>
+  );
+}
+
+/** Chú giải kiểu Báo cáo 14/11: ô vuông 10 bo 3, vạch đứt (quỹ), hoặc chữ trơn. */
+export function ChuGiaiVuong({ ds }: { ds: { chu: string; mau?: string; dut?: boolean }[] }) {
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 6, marginTop: 12 }}>
+      {ds.map((x) => (
+        <View key={x.chu} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          {x.dut ? <Svg width={14} height={2}><Line x1="0" y1="1" x2="14" y2="1" stroke="#8fb3a8" strokeWidth={2} strokeDasharray="4 2" /></Svg>
+            : x.mau ? <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: x.mau }} /> : null}
+          <Text style={{ fontFamily: F.dam7, fontSize: 12, lineHeight: 16, color: "#565c59" }}>{x.chu}</Text>
+        </View>
+      ))}
+    </View>
   );
 }
 

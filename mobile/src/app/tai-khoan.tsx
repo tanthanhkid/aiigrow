@@ -4,13 +4,14 @@
 // Xoá tài khoản (chuyển từ tab Cả nhà — Apple 5.1.1(v), server/lib/xoa-tai-khoan.ts: hỏi máy chủ trước, bị chặn thì hiện hướng dẫn, rồi nhập mật khẩu).
 import { useState } from "react";
 import { router } from "expo-router";
-import { View } from "react-native";
+import { TextInput, View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { chuDau, KHOA_CA_NHA, napCaNha } from "@/lib/ca-nha";
 import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
-import { KHOI } from "@/lib/clay";
-import { Avt, BangTruot, BaoLoi, baoKhiVe, cauLoi, ChoTai, Chu, Dong, M, MAU_CON, Man, Nhom, Nut, ONhap, TickDong, tien, useLam, useTai } from "@/lib/ui";
+import { BONG, KHOI } from "@/lib/clay";
+import { ChuCaiCon } from "@/lib/ui-viec";
+import { BangTruot, BaoLoi, baoKhiVe, cauLoi, ChoTai, Chu, Dong, F, M, Man, Nhom, Nut, ONhap, TickDong, tien, useLam, useTai } from "@/lib/ui";
 
 export default function TaiKhoan() {
   const { ra } = usePhien();
@@ -77,26 +78,29 @@ export default function TaiKhoan() {
 
   return (
     <Man lui={{ chu: "Cả nhà", bam: ve }} tieu="Tài khoản của bạn" tai={tai}>
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
-        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: MAU_CON[2 % MAU_CON.length], alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={28} mau="#fff">{chuDau(toi.ten)}</Chu>
-        </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
-          <Chu kieu="rat" co={16}>{soCon ? `Bạn cùng trông ${soCon} con` : "Nhà chưa có con nào"}</Chu>
-          <View style={{ flexDirection: "row", gap: 4 }}>
-            {d.g.con.slice(0, 6).map((c, i) => <Avt key={c.id} ten={c.ten} mau={MAU_CON[i % MAU_CON.length]} co={28} />)}
+      {/* thiết kế .the: một thẻ — avatar 64 + «Bạn cùng trông N con» + chữ cái các con chồng nhẹ; «Tên hiển thị» ô lõm + nút «Lưu tên» cùng hàng */}
+      <View style={[{ gap: 12, padding: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#d0668a", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
+            <Chu kieu="rat" co={26} mau="#fff">{chuDau(toi.ten)}</Chu>
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+            <Chu kieu="dam" co={14} mau={M.chu2}>{soCon ? `Bạn cùng trông ${soCon} con` : "Nhà chưa có con nào"}</Chu>
+            {soCon ? <ChuCaiCon ds={d.g.con.slice(0, 6)} co={26} /> : null}
           </View>
         </View>
-      </View>
-
-      <View style={{ gap: 8 }}>
-        <ONhap nhan="Tên hiển thị" value={t} onChangeText={setTen} maxLength={40} placeholder="Mẹ Lan" />
-        {ten !== null && ten.trim() !== toi.ten ? (
-          <>
-            <BaoLoi loi={luuTen.loi} />
-            <Nut chu="Lưu tên" rong dangChay={luuTen.dangChay} tat={!t.trim()} bam={doiTen} />
-          </>
-        ) : null}
+        <View style={{ gap: 6 }}>
+          <Chu kieu="rat" co={14} style={{ paddingHorizontal: 6 }}>Tên hiển thị</Chu>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <TextInput value={t} onChangeText={setTen} maxLength={40} placeholder="Mẹ Lan" placeholderTextColor={M.chu3} accessibilityLabel="Tên hiển thị"
+                style={{ height: 54, borderRadius: 27, paddingHorizontal: 20, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 18, color: M.chu }} />
+            </View>
+            {/* nút gọn theo chữ (Nut không «rong» thì giãn chia đôi hàng) */}
+            <View style={{ width: 112 }}><Nut chu="Lưu tên" dangChay={luuTen.dangChay} tat={!t.trim() || t.trim() === toi.ten} bam={doiTen} /></View>
+          </View>
+          <BaoLoi loi={luuTen.loi} />
+        </View>
       </View>
 
       <MucTieu chu="Đăng nhập" />
@@ -113,7 +117,7 @@ export default function TaiKhoan() {
         <Dong tieu="Xoá tài khoản" phu="Xoá hẳn, không lấy lại được" trai={<OIcon ic="x" nen={M.loiSoft} />} nguyHiem bam={moXoa} />
       </Nhom>
 
-      <BangTruot mo={mo === "roi"} dong={dong} tieu="Rời khỏi nhà này?">
+      <BangTruot mo={mo === "roi"} dong={dong} tieu="Rời khỏi nhà này?" hinh="nha">
         <Chu mau={M.chu2}>{`Bạn sẽ không xem, cho giờ hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
         <View>
           {conLai ? <TickDong chu={`${conLai} vẫn trông ${soCon ? `${soCon} con` : "các con"}`} /> : null}
@@ -121,7 +125,7 @@ export default function TaiKhoan() {
         </View>
         <BaoLoi loi={loiLam} />
         <Nut chu="Rời nhà" loai="huy" rong dangChay={dangChay} bam={roi} />
-        <Nut chu="Ở lại" loai="ma" rong bam={dong} />
+        <Nut chu="Ở lại" loai="vien" rong bam={dong} />
       </BangTruot>
 
       <BangTruot mo={mo === "xoa"} dong={dong} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản người tạo nhà" : laChu ? "Xoá tài khoản và cả gia đình?" : `Xoá tài khoản ${toi.ten}?`}>
@@ -159,7 +163,7 @@ export default function TaiKhoan() {
               <BaoLoi loi={loiLam} />
               <Nut chu="Xoá tài khoản của tôi" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
             </>}
-            <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="ma" rong bam={dong} /></View>
+            <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="vien" rong bam={dong} /></View>
           </>
         )}
       </BangTruot>
