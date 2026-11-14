@@ -6,7 +6,7 @@
 //  • Con đã nộp · n — «Duyệt cả n · +S sao» (duyet-hang-loat) + từng việc → màn bằng chứng /duyet/<id>
 //  • Quà chờ trao — «Trao quà» ⇒ bảng them-5otw85h4 (lib/trao-qua: Đã trao trừ sao / Huỷ & hoàn sao / voucher QR + hạn)
 //  • Đã xử lý hôm nay — việc tự cộng sao (AiiRob tự chấm / tự cộng sao)
-// Trống ⇒ «Ba Mẹ duyệt xong hết rồi!» + «Giao một nhiệm vụ». Mất mạng ⇒ khung ChoTai (Grow chờ, tự tải lại).
+// Trống ⇒ «Duyệt hết rồi!» + «Thêm việc cho <Con>» · «Về Trang chủ» (thiết kế 14/11 bm-viec-duyet/16). Mất mạng ⇒ khung ChoTai (Grow chờ, tự tải lại).
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
@@ -72,8 +72,11 @@ export default function ChoDuyet() {
     return (
       <Man tieuLon="Chờ duyệt" lui={{ chu: "Hôm nay", ve: "/hom-nay" }} tai={tai} vongTai noi={noi}>
         {chip}
-        <CanhGiua lv="xong" tieu="Ba Mẹ duyệt xong hết rồi!" loi="Khi con nộp nhiệm vụ, xin thêm giờ hay xin app mới, AiiGrow báo Ba Mẹ ngay.">
-          <Nut chu="Giao một nhiệm vụ" ic="cong" bam={() => router.push("/giao-nv" as never)} />
+        {/* thiết kế bm-viec-duyet/16: «Duyệt hết rồi!» + câu, nút than chì «＋ Thêm việc cho …», liên kết «Về Trang chủ» */}
+        <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Grow sẽ báo ngay.">
+          <Nut chu={chon !== "ca" && tenCon.get(chon) ? `Thêm việc cho ${tenCon.get(chon)}` : "Thêm việc cho con"} ic="cong" rong
+            bam={() => router.push((chon !== "ca" ? `/giao-nv?con=${chon}` : "/giao-nv") as never)} />
+          <Nut chu="Về Trang chủ" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} />
         </CanhGiua>
         {tuDong.length ? <DaXuLy ds={tuDong} /> : null}
       </Man>

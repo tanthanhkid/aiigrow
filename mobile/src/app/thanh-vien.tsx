@@ -10,7 +10,11 @@ import { bm, type GiaDinh } from "@/lib/api";
 import { IC_QUYEN, MO_TA_QUYEN, TEN_QUYEN, chuDau, type DsThanhVien, type Quyen } from "@/lib/ca-nha";
 import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
-import { Avt, BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, MAU_CON, Man, Nhom, Nut, OChon, TickDong, useLam, useTai } from "@/lib/ui";
+import { ChuCaiCon } from "@/lib/ui-viec";
+import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, TickDong, useLam, useTai } from "@/lib/ui";
+
+/** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
+const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#3f9a86", "#b5838d"];
 
 export default function ThanhVien() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -50,22 +54,25 @@ export default function ThanhVien() {
       <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" rong bam={() => setMo("roi")} />
       <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho giờ được nữa.`}</Chu>
     </> : undefined}>
-      <View style={{ alignItems: "center", gap: 6, paddingTop: 8 }}>
-        <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: MAU_CON[(i + 2) % MAU_CON.length], alignItems: "center", justifyContent: "center", ...KHOI.the }}>
-          <Chu kieu="rat" co={40} mau="#fff">{chuDau(x.ten)}</Chu>
+      {/* thiết kế 06 (bm-ca-nha) / 10 (bm-cai-dat): thẻ ngang — avatar 56 · tên · «Vào nhà từ 20/10» · nhãn quyền ngọc */}
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: MAU_NGUOI[i % MAU_NGUOI.length], alignItems: "center", justifyContent: "center" }}>
+          <Chu kieu="rat" co={24} mau="#fff">{chuDau(x.ten)}</Chu>
         </View>
-        <Chu kieu="rat" co={26} style={{ letterSpacing: -0.4, textAlign: "center" }}>{x.ten}</Chu>
-        <Chu kieu="dam" co={14} mau={M.chu3} style={{ textAlign: "center" }}>
-          {[x.laChuNha ? "Người tạo nhà" : vao && !Number.isNaN(vao.getTime()) ? `Vào nhà từ ${vao.getDate()}/${vao.getMonth() + 1}` : "Đã vào nhà",
-            x.quyen === "ba_me" ? "Làm được như Ba Mẹ" : "Xem, duyệt, khoá máy"].join(" · ")}
-        </Chu>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Chu kieu="rat" co={17} dong={1}>{x.ten}</Chu>
+          <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>{x.laChuNha ? "Người tạo nhà" : vao && !Number.isNaN(vao.getTime()) ? `Vào nhà từ ${vao.getDate()}/${vao.getMonth() + 1}` : "Đã vào nhà"}</Chu>
+          <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: "#dcebe6" }}>
+            <Chu kieu="rat" co={12} mau={M.chinhInk}>{x.quyen === "ba_me" ? "Làm được như Ba Mẹ" : "Xem, duyệt, khoá máy"}</Chu>
+          </View>
+        </View>
       </View>
       <MucTieu chu={`${x.ten} trong nhà`} />
       <Nhom>
         <Dong dau tieu={fb ? "Đăng nhập bằng" : email ? "Email" : "Số điện thoại"} phu={dd ? dd.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : "Chưa có"} trai={<OIcon ic={email || fb ? "tin" : "dt"} />} />
         <Dong tieu="Quyền" phu={TEN_QUYEN[x.quyen]} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
         <Dong tieu="Cùng trông" phu={soCon ? (soCon > 1 ? `Cả ${soCon} con` : d.con[0].ten) : "Chưa có con nào"} trai={<OIcon ic="nguoi" />}
-          phai={soCon ? <View style={{ flexDirection: "row", gap: 2 }}>{d.con.slice(0, 4).map((c, k) => <Avt key={c.id} ten={c.ten} mau={MAU_CON[k % MAU_CON.length]} co={24} />)}</View> : undefined} />
+          phai={soCon ? <ChuCaiCon ds={d.con.slice(0, 4)} co={24} /> : undefined} />
       </Nhom>
 
       <BangTruot mo={mo === "quyen"} dong={dong} tieu={`Quyền của ${x.ten}`}>
@@ -74,12 +81,12 @@ export default function ThanhVien() {
         ))}
         <BaoLoi loi={loiLam} />
       </BangTruot>
-      <BangTruot mo={mo === "roi"} dong={dong} tieu={`Mời ${x.ten} rời nhà?`}>
+      <BangTruot mo={mo === "roi"} dong={dong} tieu={`Mời ${x.ten} rời nhà?`} hinh="thoat">
         <Chu mau={M.chu2}>{`${x.ten} sẽ không xem, cho giờ hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
         <TickDong trang="sau" chu="Muốn mời lại thì gửi lời mời mới" />
         <BaoLoi loi={loiLam} />
         <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" rong dangChay={dangChay} bam={roi} />
-        <Nut chu={`Thôi, giữ ${x.ten}`} loai="ma" rong bam={dong} />
+        <Nut chu={`Thôi, giữ ${x.ten}`} loai="vien" rong bam={dong} />
       </BangTruot>
     </Man>
   );

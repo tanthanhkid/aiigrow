@@ -8,12 +8,13 @@ import { useCallback, useState } from "react";
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu } from "@/lib/api";
-import { HangViec, IC_MAY, quyenToi, type ChoDuyetMoi, type ConCt, type QuyCon } from "@/lib/hang-ngay";
+import { HangViec, IC_MAY, quyenToi, TieuMuc, type ChoDuyetMoi, type ConCt, type QuyCon } from "@/lib/hang-ngay";
 import { datKhoa } from "@/lib/khoa-may";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, M, Man, Nhom, NhomTieu, Nut, ONhap, The, TickDong, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, Icon3D, M, Man, NhanMen, Nhom, NhomTieu, Nut, ONhap, Rob, The, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
+import { BONG, KHOI } from "@/lib/clay";
 
 const PHUT = [15, 30, 60, 120];
 const SU_KIEN: Record<string, string> = {
@@ -105,32 +106,59 @@ export default function AnToanMay() {
   const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
   return (
     <Man lui={{ chu: "Quay lại" }} tieu={m.ten} noi={noi} tai={tai}>
-      {/* thẻ trạng thái (05 / 08): xanh khi Grow trông đủ, cam khi chưa được bảo vệ + hậu quả */}
-      <The dem style={{ gap: 10, backgroundColor: tot ? M.chinhSoft : M.canhSoft }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <BieuTron ic={IC_MAY[m.nen]} mau={tot ? "xanh" : "cam"} lon />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Chu kieu="rat" co={17} mau={tot ? M.chinhInk : M.canh}>{tot ? "Grow đang trông máy này ✓" : `! ${ngan} chưa được bảo vệ`}</Chu>
-            <Chu co={13.5} mau={M.chu2}>{tot ? `Đang bảo vệ${d.ct ? ` · ${cheDo}` : ""}${m.dungChung ? " · máy dùng chung" : ""}`
-              : m.baoVeCau ?? `Grow vẫn tính giờ, nhưng máy chưa được khoá đủ nên con tự tắt được. Báo về ${truoc(m.lanCuoi) || "chưa lần nào"}.`}</Chu>
+      {/* thẻ trạng thái (05 / 08): xanh khi Grow trông đủ */}
+      {tot ? (
+        <The dem style={{ gap: 10, backgroundColor: M.chinhSoft }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <BieuTron ic={IC_MAY[m.nen]} mau="xanh" lon />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={17} mau={M.chinhInk}>Grow đang trông máy này ✓</Chu>
+              <Chu co={13.5} mau={M.chu2}>{`Đang bảo vệ${d.ct ? ` · ${cheDo}` : ""}${m.dungChung ? " · máy dùng chung" : ""}`}</Chu>
+            </View>
           </View>
-        </View>
-        {!tot && m.baoVeThieu?.length ? (
-          <View>{m.baoVeThieu.map((x) => <TickDong key={x.ma} trang="x" chu={x.ten} />)}</View>
-        ) : null}
-        {!tot && m.vanDe.length && !m.baoVeThieu?.length ? <View>{m.vanDe.map((v) => <TickDong key={v.loai} trang="x" chu={v.cauBaMe} />)}</View> : null}
-      </The>
+        </The>
+      ) : (
+        // bm-may-con/06 «lệch chuẩn»: cảnh đào cao 210 — bong bóng việc thiếu đầu tiên, máy 3D + dấu «!» cam, Grow «so-tay» góc phải, chip «… · vẫn tính giờ»;
+        // dưới là tiêu đề «<máy> chưa được bảo vệ» 20/800 + một câu
+        <>
+          <View style={{ height: 210, borderRadius: 28, backgroundColor: "#fbe5ce", backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", overflow: "hidden", ...KHOI.the }}
+            accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <View style={{ position: "absolute", left: 22, top: 56 }}><Icon3D ten={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} co={104} /></View>
+            <View style={{ position: "absolute", left: 108, top: 48, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
+              boxShadow: "0px 6px 10px -4px rgba(161,75,0,0.6), inset 0px 1.5px 0px rgba(255,255,255,0.4)" }}>
+              <Chu kieu="rat" co={24} mau="#fff">!</Chu>
+            </View>
+            <View style={{ position: "absolute", right: -10, bottom: -34 }}><Rob ten="so-tay" co={136} /></View>
+            {m.baoVeThieu?.[0] || m.vanDe[0] ? (
+              <View style={{ position: "absolute", left: 16, top: 14, right: 16, alignSelf: "flex-start" }}>
+                <View style={{ alignSelf: "flex-start", paddingVertical: 8, paddingHorizontal: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderBottomRightRadius: 16, borderBottomLeftRadius: 4,
+                  backgroundColor: "#fff", boxShadow: "0px 6px 10px -6px rgba(28,32,30,0.26)" }}>
+                  <Chu kieu="rat" co={13.5} dong={2} style={{ lineHeight: 18 }}>{`${(m.baoVeThieu?.[0]?.ten ?? m.vanDe[0]?.cauBaMe ?? "").replace(/[.!]$/, "")}!`}</Chu>
+                </View>
+              </View>
+            ) : null}
+            <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: "#fff" }}>
+              <Chu kieu="rat" co={12.5} mau="#8a3c0c">{`Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn tính giờ`}</Chu>
+            </View></View>
+          </View>
+          <View style={{ paddingHorizontal: 6, gap: 4 }}>
+            <Chu kieu="rat" co={20} style={{ lineHeight: 26, letterSpacing: -0.3 }}>{`${ngan} chưa được bảo vệ`}</Chu>
+            <Chu kieu="dam" co={14} mau={M.chu2} style={{ lineHeight: 20 }}>{m.baoVeCau && !/việc cần sửa/.test(m.baoVeCau) ? m.baoVeCau
+              : `Grow vẫn tính giờ, nhưng ${ngan} chưa được khoá đủ nên con tự tắt được.`}</Chu>
+          </View>
+        </>
+      )}
 
-      {/* 06 «Nếu để vậy»: 3 hậu quả khi máy chưa được bảo vệ */}
+      {/* 06 «Nếu để vậy»: 3 hậu quả khi máy chưa được bảo vệ — ô lõm xám 88 (thiết kế .vi) */}
       {!tot && !m.dangGo ? (
         <>
-          <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Nếu để vậy</Chu>
+          <TieuMuc chu="Nếu để vậy" />
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {([["mo_khoa", "Con tự tắt được Grow"], ["game", "App lạ mở được"], ["trang_ngu", "Giờ ngủ bị bỏ qua"]] as const).map(([ic, chu]) => (
-              <The key={ic} style={{ flex: 1, alignItems: "center", gap: 6, padding: 12 }}>
-                <BieuTron ic={ic} mau="cam" />
-                <Chu kieu="dam" co={13} style={{ textAlign: "center" }}>{chu}</Chu>
-              </The>
+            {([["mo_khoa", "Con tự tắt\nđược Grow"], ["game", "App lạ\nmở được"], ["trang_ngu", "Giờ ngủ\nbị bỏ qua"]] as const).map(([ic, chu]) => (
+              <View key={ic} style={{ flex: 1, height: 88, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <Icon3D ten={ic} co={28} />
+                <Chu kieu="rat" co={12.5} mau={M.chu2} style={{ textAlign: "center", lineHeight: 16 }}>{chu}</Chu>
+              </View>
             ))}
           </View>
         </>
@@ -138,20 +166,37 @@ export default function AnToanMay() {
 
       {/* 02: app đang mở + giờ chơi còn lại (quỹ chung mọi máy) + lời xin đang chờ */}
       {d.app || d.quy || d.xin.length ? (
-        <The dem style={{ paddingVertical: 4 }}>
-          {d.app ? <HangViec dau ic="game" mau="tim" tieu={d.app.tenApp} phu="Đang mở trên máy này" phai={<Chu kieu="rat" co={13.5} mau={M.chinhInk}>● Đang mở</Chu>} /> : null}
-          {d.quy ? <HangViec dau={!d.app} ic="dongho" mau="lam" tieu={`Giờ chơi còn ${d.quy.conPhut}′`} phu="Còn lại hôm nay · tính chung mọi máy"
-            bam={m.con ? () => router.push(`/gio/${m.con}` as never) : undefined} /> : null}
-          {d.xin.slice(0, 2).map((y, k) => {
+        <>
+          {/* thiết kế 02: hai ô nổi cạnh nhau — app đang mở · giờ chơi còn (số to) */}
+          {d.app || d.quy ? (
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              {d.app ? (
+                <View style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="game" co={18} /><Chu kieu="dam7" co={12.5} mau="#565c59" dong={1}>{d.app.tenApp}</Chu></View>
+                  <Chu kieu="rat" co={22} mau={M.chinhInk}>Đang mở</Chu>
+                  <Chu kieu="dam7" co={12} mau={M.chinhInk}>● trên máy này</Chu>
+                </View>
+              ) : null}
+              {d.quy ? (
+                <NhanMen onPress={m.con ? () => router.push(`/gio/${m.con}` as never) : undefined} disabled={!m.con} accessibilityRole="button" muc="khoi" sang
+                  style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="dongho" co={18} /><Chu kieu="dam7" co={12.5} mau="#565c59">Giờ chơi</Chu></View>
+                  <Chu kieu="rat" co={26} so style={{ letterSpacing: -0.5 }}>{`${d.quy.conPhut}′`}</Chu>
+                  <Chu kieu="dam7" co={12} mau="#565c59">còn lại hôm nay</Chu>
+                </NhanMen>
+              ) : null}
+            </View>
+          ) : null}
+          {d.xin.length ? <The dem style={{ paddingVertical: 4 }}>{d.xin.slice(0, 2).map((y, k) => {
             const tren = (y as { device_id?: string | null }).device_id === id;
-            return <HangViec key={y.id} dau={!d.app && !d.quy && k === 0} ic={y.loai === "them_gio" ? "dongho" : "web"} mau="cam" tieu={`Xin ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}`}
+            return <HangViec key={y.id} dau={k === 0} ic={y.loai === "them_gio" ? "dongho" : "web"} mau="cam" tieu={`Xin ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}`}
               phu={`${gioPhut(y.created_at)} · ${tren ? "con đang chờ trên máy này" : "con đang chờ"}`} phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Xem ›</Chu>}
               bam={() => router.push(`/yeu-cau/${y.id}` as never)} />;
-          })}
-        </The>
+          })}</The> : null}
+        </>
       ) : null}
 
-      <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Cài đặt máy</Chu>
+      <TieuMuc chu="Cài đặt máy" />
       <The dem style={{ paddingVertical: 4 }}>
         <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={d.ct?.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : "App, web mới con phải xin Ba Mẹ"}
           phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push((m.con ? `/app-web?con=${m.con}` : "/app-web") as never)} />
@@ -164,7 +209,7 @@ export default function AnToanMay() {
       {!tot && !d.xem && m.baoVeThieu?.length ? <Nut chu={`Sửa ${ngan} trong ${m.baoVeThieu.length} bước`} rong bam={() => setMo("sua")} /> : null}
       {d.xem ? null : (
         <HaiNut>
-          <Nut chu="Đổi tên máy" loai="vien" bam={() => { setTenMoi(m.ten); setMo("ten"); }} />
+          <Nut chu="Đổi tên máy" ic="but" ic3d loai="vien" bam={() => { setTenMoi(m.ten); setMo("ten"); }} />
           {!m.dangGo ? <Nut chu="Gỡ máy này" loai="huy" bam={() => setMo(m.daDongBo ? "go" : "xoa")} /> : null}
         </HaiNut>
       )}
@@ -218,7 +263,7 @@ export default function AnToanMay() {
         </>
       ) : null}
 
-      <BangTruot mo={mo === "ten"} dong={dong} tieu="Đổi tên máy">
+      <BangTruot mo={mo === "ten"} dong={dong} tieu="Đổi tên máy" hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"}>
         <ONhap nhan="Tên máy" value={tenMoi} onChangeText={setTenMoi} autoCapitalize="sentences" placeholder="VD: Laptop của Bảo Anh" maxLength={80} />
         <Chu co={13} mau={M.chu3}>Tên này hiện trên app của Ba Mẹ và trên màn khoá của con.</Chu>
         <BaoLoi loi={loiLam} />
@@ -244,7 +289,7 @@ export default function AnToanMay() {
         })} />
       </BangTruot>
 
-      <BangTruot mo={mo === "go"} dong={dong} tieu={`Gỡ ${ngan}${tenCon ? ` của ${tenCon}` : ""}?`}>
+      <BangTruot mo={mo === "go"} dong={dong} hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} tieu={`Gỡ ${ngan}${tenCon ? ` của ${tenCon}` : ""}?`}>
         <Chu mau={M.chu2}>{`Grow thôi trông máy này. Con dùng ${ngan} sẽ không bị tính giờ, không bị chặn.`}</Chu>
         <View>
           <TickDong chu="Báo cáo cũ vẫn giữ" phu="Lịch sử dùng máy không mất" />
@@ -256,7 +301,7 @@ export default function AnToanMay() {
         </View>
         <BaoLoi loi={loiLam} />
         {d.coMk ? <Nut chu={`Gỡ ${ngan} khỏi AiiGrow`} loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(false)} /> : <Nut chu="Đặt mật khẩu để gỡ máy" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} />}
-        <View style={{ marginTop: 8 }}><Nut chu="Giữ máy này" loai="ma" rong bam={dong} /></View>
+        <View style={{ marginTop: 8 }}><Nut chu="Giữ máy này" loai="vien" rong bam={dong} /></View>
       </BangTruot>
 
       <BangTruot mo={mo === "xoa"} dong={dong} tieu={`Xoá hẳn ${m.ten} khỏi danh sách?`}>
@@ -294,12 +339,16 @@ export default function AnToanMay() {
       <BangTruot mo={mo === "sua"} dong={dong} tieu={`Sửa trên ${ngan} của con`}>
         <Chu mau={M.chu2}>{`Cầm ${ngan} lên, làm theo ${m.baoVeThieu?.length ?? 0} bước`}</Chu>
         <View style={{ gap: 10 }}>
+          {/* thiết kế 09: mỗi bước một thẻ nổi — ô hình 3D lõm 72 có số ngọc góc, tên bước 15/800 + cách làm */}
           {(m.baoVeThieu ?? []).map((x, k) => (
-            <View key={x.ma} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-              <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
-                <Chu kieu="rat" co={15} mau="#fff">{String(k + 1)}</Chu>
+            <View key={x.ma} style={[{ flexDirection: "row", gap: 14, alignItems: "center", padding: 12, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+              <View style={{ width: 72, height: 72, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
+                <Icon3D ten={(["banhrang", "dong_ho_cat", "khoa"] as const)[k % 3]} co={44} />
+                <View style={{ position: "absolute", left: -6, top: -6, width: 26, height: 26, borderRadius: 13, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
+                  <Chu kieu="rat" co={13} mau="#fff">{String(k + 1)}</Chu>
+                </View>
               </View>
-              <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{x.ten}</Chu><Chu co={13.5} mau={M.chu3}>{x.cach}</Chu></View>
+              <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{x.ten}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">{x.cach}</Chu></View>
             </View>
           ))}
         </View>
@@ -309,7 +358,7 @@ export default function AnToanMay() {
 
       {/* 03 «Khoá <máy> của <Con>?»: máy chủ khoá theo CON (con/:id/khoa — chưa có khoá riêng từng máy) ⇒ ghi rõ máy khác của con cũng khoá */}
       {d.ct && m.con ? (
-        <BangTruot mo={mo === "khoa"} dong={dong} tieu={`Khoá ${ngan} của ${tenCon}?`}>
+        <BangTruot mo={mo === "khoa"} dong={dong} hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} tieu={`Khoá ${ngan} của ${tenCon}?`}>
           <Chu mau={M.chu2}>{d.app ? `${d.app.tenApp} sẽ đóng, con thấy màn khoá.` : "Con thấy màn khoá tới khi Ba Mẹ mở."}</Chu>
           <View style={{ gap: 8 }}>
             {[...d.ct.may].sort((a, b) => Number(b.id === id) - Number(a.id === id)).map((x) => (

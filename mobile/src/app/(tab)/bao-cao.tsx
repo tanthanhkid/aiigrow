@@ -9,9 +9,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type Diem, type GiaDinh } from "@/lib/api";
 import { HangViec, TieuMuc, type GioChoi, type QuyCon } from "@/lib/hang-ngay";
-import { DaiCon } from "@/lib/ui-viec";
-import { BaoLoi, Canh, CanhGiua, ChoTai, Chu, M, Man, Nhan, The, useLam, useTai } from "@/lib/ui";
-import { ChuGiai, CotClay } from "@/lib/bieu-do";
+import { DaiCon, OLomIcon } from "@/lib/ui-viec";
+import { BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, M, Man, NhanMen, Rob, The, useLam, useTai } from "@/lib/ui";
+import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
+import { KHOI } from "@/lib/clay";
 import { luuTepChu } from "@/lib/luu-tep";
 
 type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number }[]; tongGiaiTri: number; phutHoc: number; duyet: { duoc: number; tu_choi: number }; ngoaiLe: number;
@@ -24,6 +25,8 @@ const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ N�
 const gio = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${String(p % 60).padStart(2, "0")}` : ""}` : `${p} phút`);
 const gioNgan = (p: number) => (p >= 60 ? `${Math.floor(p / 60)}g ${String(p % 60).padStart(2, "0")}` : `${p}′`);
 const ngayNgan = (ngay: string) => `${Number(ngay.slice(8, 10))}/${Number(ngay.slice(5, 7))}`;
+/** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh» (thiết kế gọi con bằng tên gọi). */
+const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 const thuCua = (ngay: string) => new Date(`${ngay}T12:00:00`).getDay();
 
 export default function TabBaoCao() {
@@ -35,9 +38,12 @@ export default function TabBaoCao() {
   if (conVao !== vaoCu) { setVaoCu(conVao); setChon(null); }
   const con = chon ?? (conVao && g.d?.con.some((c) => c.id === conVao) ? conVao : g.d?.con[0]?.id) ?? null;
   const dau = (
-    <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, marginHorizontal: 4, marginTop: 4 }}>
-      <Chu kieu="den" co={28} style={{ letterSpacing: -0.6 }}>Báo cáo</Chu>
-      <Chu kieu="dam" co={14} mau={M.chu2}>7 ngày qua</Chu>
+    // thiết kế .top: «Báo cáo» 28/800 + viên «7 ngày qua» nổi bên phải
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 4, marginTop: 4 }}>
+      <Chu kieu="den" co={28} style={{ flex: 1, letterSpacing: -0.6 }}>Báo cáo</Chu>
+      <View style={{ height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#f7f6f3", justifyContent: "center", ...KHOI.nho }}>
+        <Chu kieu="rat" co={13} mau={M.chinhInk}>7 ngày qua</Chu>
+      </View>
     </View>
   );
   if (!g.d) return <View style={{ flex: 1 }}><Man>{dau}<ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
@@ -82,63 +88,95 @@ function BaoCaoCon({ id }: { id: string }) {
   const xemDung = () => router.push(`/da-dung/${id}` as never);
   return (
     <>
-      <The dem style={{ gap: 8 }}>
-        <Chu kieu="dam" co={13.5} mau={M.chu3}>{`Giờ chơi của ${bc.ten}${ngay.length ? ` · ${ngayNgan(ngay[0].ngay)} – ${ngayNgan(ngay[ngay.length - 1].ngay)}` : ""}`}</Chu>
-        <Chu kieu="rat" co={26} so>{gio(nay.tongGiaiTri)}{tongQuy ? <Chu kieu="dam" co={15} mau={M.chu3}>{` / quỹ ${gio(tongQuy)}`}</Chu> : null}</Chu>
-        {!qua.length && nay.tongGiaiTri ? <Chu co={13.5} mau={M.chinhInk}>Trong quỹ cả 7 ngày</Chu>
-          : bc.tuanTruoc.tongGiaiTri ? <Chu co={13.5} mau={lech > 0 ? M.loi : M.chinhInk}>{lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${gio(Math.abs(lech))}`}</Chu> : null}
-        <CotClay max={max} cao={128} nhanDoc="Giờ chơi theo ngày"
-          ds={ngay.map((x) => {
-            const q = quyNgay(x.ngay), trong = q === null ? x.phut : Math.min(x.phut, q), ngoai = x.phut - trong;
-            const nhan = x.ngay === homNay ? "Nay" : THU[thuCua(x.ngay)];
-            return { khoa: x.ngay, nhan, doc: `${nhan}: ${gio(x.phut)}${ngoai ? `, quá ${gio(ngoai)}` : ""}`,
-              phan: [{ gia: trong, mau: M.chinh }, { gia: ngoai, mau: M.huy }] };
-          })} />
-        <ChuGiai ds={[{ chu: "Trong quỹ", mau: M.chinh }, { chu: "Quá giờ", mau: M.huy }]} />
-        {gc || quyHn ? (
-          <Chu co={13} mau={M.chu3}>
-            {[gc ? `Quỹ ${gc.quyNgayThuong}′/ngày` : null, quyHn ? `Nay: ${quyHn.daDung}′, còn ${quyHn.conPhut}′` : null].filter(Boolean).join(" · ")}
-          </Chu>
-        ) : null}
-      </The>
+      <Pressable onPress={xemDung} accessibilityRole="button" accessibilityHint="Mở «Hôm nay con dùng gì»">
+        <The dem style={{ gap: 2, padding: 18 }}>
+          <Chu kieu="dam7" co={14} mau="#565c59">{`Giờ chơi của ${tenGoi(bc.ten)}${ngay.length ? ` · ${ngayNgan(ngay[0].ngay)} – ${ngayNgan(ngay[ngay.length - 1].ngay)}` : ""}`}</Chu>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <Chu kieu="rat" co={38} so style={{ letterSpacing: -1 }}>{gio(nay.tongGiaiTri)}</Chu>
+            {tongQuy ? <Chu kieu="dam7" co={15} mau="#565c59">{`/ quỹ ${gio(tongQuy)}`}</Chu> : null}
+          </View>
+          {(() => {
+            const cau = !qua.length && nay.tongGiaiTri ? "Trong quỹ cả 7 ngày"
+              : bc.tuanTruoc.tongGiaiTri ? (lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${gio(Math.abs(lech))}`) : null;
+            const xau = lech > 0 && !!qua.length;
+            return cau ? (
+              <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: xau ? "#fbe3d3" : "#dcebe6" }}>
+                <Chu kieu="rat" co={13} mau={xau ? "#8a3c0c" : M.chinhInk}>{cau}</Chu>
+              </View>
+            ) : null;
+          })()}
+          <CotGioChoi max={max} nhanDoc="Giờ chơi theo ngày"
+            ds={ngay.map((x) => {
+              const q = quyNgay(x.ngay), ngoai = q === null ? 0 : Math.max(0, x.phut - q);
+              const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
+              return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: q, doc: `${nhan}: ${gio(x.phut)}${ngoai ? `, quá ${gio(ngoai)}` : ""}` };
+            })} />
+          <ChuGiaiVuong ds={[{ chu: "Trong quỹ", mau: M.chinh }, { chu: "Quá giờ", mau: "#e2660f" },
+            ...(gc ? [{ chu: `Quỹ ${gc.quyNgayThuong}′/ngày`, dut: true }] : []), ...(quyHn ? [{ chu: `Nay: ${quyHn.daDung}′, còn ${quyHn.conPhut}′` }] : [])]} />
+        </The>
+      </Pressable>
 
       {dung.length ? (
         <>
           <TieuMuc chu="Dùng nhiều nhất" phai={{ chu: "Xem hết ›", bam: xemDung }} />
-          <The dem style={{ paddingVertical: 4 }}>
-            {dung.map((x, k) => (
-              <HangViec key={x.muc} dau={k === 0} ic={x.loai === "hoc" ? "may_tinh" : "game"} mau={x.loai === "hoc" ? "xanh" : "tim"} tieu={x.ten ?? x.muc}
-                phu={x.may ? x.may.replace(/ của .*$/, "") : x.loai === "hoc" ? "Không trừ giờ chơi" : "Tính vào giờ chơi"}
-                phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Nhan chu={x.loai === "hoc" ? "Học" : "Chơi"} loai={x.loai === "hoc" ? "ok" : "canh"} />
-                  <Chu kieu="rat" co={14} so>{gioNgan(x.phut)}</Chu>
-                </View>}
-                bam={xemDung} />
-            ))}
+          <The dem style={{ paddingVertical: 4, paddingHorizontal: 12 }}>
+            {dung.map((x, k) => {
+              const hoc = x.loai === "hoc";
+              return (
+                <HangViec key={x.muc} dau={k === 0} trai={<OLomIcon ic={hoc ? (/điển|sách/i.test(x.ten ?? x.muc) ? "sach" : "may_tinh") : "game"} />} tieu={x.ten ?? x.muc}
+                  phu={x.may ? x.may.replace(/ của .*$/, "").replace(/ · .*$/, "") : hoc ? "Không trừ giờ chơi" : "Tính vào giờ chơi"}
+                  phai={<View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: hoc ? "#ecebe7" : "#dcebe6" }}>
+                    <Chu kieu="rat" co={12.5} so mau={hoc ? M.chu2 : M.chinhInk}>{`${hoc ? "Học" : "Chơi"} ${gioNgan(x.phut)}`}</Chu>
+                  </View>}
+                  bam={xemDung} />
+              );
+            })}
           </The>
         </>
       ) : null}
 
       <TieuMuc chu="Sao và giờ thêm" />
-      <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="sao" mau="vang" tieu={`${saoTuan} sao`}
-          phu={`Làm ${nay.duyet.duoc} việc · ${phutDoi ? `đã đổi ${phutDoi} phút chơi` : "chưa đổi"}`} bam={() => router.push(`/vi/${id}` as never)} />
-        <HangViec ic="dongho" mau="cam" tieu={`${xin.so} lần`} phu={`Con xin thêm giờ · Ba Mẹ cho ${xin.cho} lần`} bam={() => router.push(`/yeu-cau?con=${id}` as never)} />
-      </The>
+      {/* thiết kế .hai: hai ô cạnh nhau — ô vàng «N sao» (→ Ví sao) · ô «N lần» con xin thêm giờ (→ Con xin dùng) */}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" muc="khoi" sang
+          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: "#fdeab0", backgroundImage: "linear-gradient(#ffe39a, #fbecc0)", ...KHOI.the }}>
+          <Icon3D ten="sao" co={32} />
+          <Chu kieu="rat" co={26} so style={{ marginTop: 6, letterSpacing: -0.5 }}>{`${saoTuan} sao`}</Chu>
+          <Chu kieu="dam7" co={12.5} mau="#6e4300" style={{ lineHeight: 17 }}>{`Làm ${nay.duyet.duoc} việc · ${phutDoi ? `đã đổi ${phutDoi} phút chơi` : "chưa đổi"} ›`}</Chu>
+        </NhanMen>
+        <NhanMen onPress={() => router.push(`/yeu-cau?con=${id}` as never)} accessibilityRole="button" muc="khoi" sang
+          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+          <Icon3D ten="dongho" co={32} />
+          <Chu kieu="rat" co={26} so style={{ marginTop: 6, letterSpacing: -0.5 }}>{`${xin.so} lần`}</Chu>
+          <Chu kieu="dam7" co={12.5} mau="#565c59" style={{ lineHeight: 17 }}>{`Con xin thêm giờ · Ba Mẹ cho ${xin.cho} lần ›`}</Chu>
+        </NhanMen>
+      </View>
 
-      {qua.length ? (
-        <Pressable onPress={() => router.push(`/gio/ngu?con=${id}` as never)} accessibilityRole="button">
-          <Canh lv="chi" thap mau="vang" tieu={`${THU_DAI[thuCua(qua[0].ngay)]} ${bc.ten} chơi quá ${gio(qua[0].qua)}.`} loi="Đặt giờ ngủ sớm hơn ›" />
-        </Pressable>
-      ) : !nay.duyet.duoc && nay.tongGiaiTri ? (
-        <Pressable onPress={() => router.push(`/giao-nv?con=${id}` as never)} accessibilityRole="button">
-          <Canh lv="chi" thap mau="vang" tieu={`Ngày của ${bc.ten} còn trống.`} loi="Thêm vào ngày của con ›" />
-        </Pressable>
+      {qua.length || (!nay.duyet.duoc && nay.tongGiaiTri) ? (
+        // thiết kế .rob: thẻ ngọc nhạt, Grow 58 trái, câu 14/700 + liên kết đậm
+        <NhanMen onPress={() => router.push((qua.length ? `/gio/ngu?con=${id}` : `/giao-nv?con=${id}`) as never)} accessibilityRole="button" muc="khoi" sang
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 28, backgroundColor: "#dcebe6", ...KHOI.the }}>
+          <Rob ten="chi" co={58} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ lineHeight: 20 }}>
+              {qua.length ? `${THU_DAI[thuCua(qua[0].ngay)]} ${tenGoi(bc.ten)} chơi quá ${gio(qua[0].qua)}.` : `Ngày của ${tenGoi(bc.ten)} còn trống.`}
+            </Chu>
+            <View style={{ minHeight: 32, justifyContent: "center" }}>
+              <Chu kieu="rat" co={14} mau={M.chinhInk}>{qua.length ? "Đặt giờ ngủ sớm hơn ›" : "Thêm vào ngày của con ›"}</Chu>
+            </View>
+          </View>
+        </NhanMen>
       ) : null}
 
-      <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="lich" mau="lam" tieu="Nhật ký cả nhà" phu="Ai cho giờ, ai duyệt, ai đổi cài đặt" bam={() => router.push("/nhat-ky" as never)} />
-      </The>
+      <NhanMen onPress={() => router.push("/nhat-ky" as never)} accessibilityRole="button" muc="khoi" sang
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, minHeight: 68, paddingLeft: 12, paddingRight: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+        <OLomIcon ic="lich" />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Chu kieu="rat" co={15}>Nhật ký cả nhà</Chu>
+          <Chu kieu="dam" co={12.5} mau="#565c59">Ai cho giờ, ai duyệt, ai đổi cài đặt</Chu>
+        </View>
+        <Chu kieu="rat" co={18} mau={M.chinhInk}>›</Chu>
+      </NhanMen>
 
       {!nay.tongGiaiTri && !nay.duyet.duoc ? <CanhGiua lv="canh-trong" tieu="Chưa đủ dữ liệu" loi="Báo cáo đầy đủ có sau vài ngày con dùng máy." /> : null}
       <BaoLoi loi={xuat.loi} />

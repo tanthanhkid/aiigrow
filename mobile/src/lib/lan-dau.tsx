@@ -44,7 +44,7 @@ export function DauMan({ ve, phai, khongLui, bamLui, tieu }: { ve?: string; phai
           <Icon ten="trai" mau={M.chinhInk} co={24} />
         </Pressable>
       )}
-      {tieu ? <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, minWidth: 0, fontFamily: F.rat, fontSize: 20, color: M.chu, letterSpacing: -0.3 }}>{tieu}</Text> : null}
+      {tieu ? <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, minWidth: 0, fontFamily: F.rat, fontSize: 22, color: M.chu, letterSpacing: -0.4 }}>{tieu}</Text> : null}
       {phai}
     </View>
   );
@@ -73,17 +73,29 @@ export const TieuDe = ({ chu, phu, giua, co = 27 }: { chu: string; phu?: string;
   </View>
 );
 
-/** Cảnh đầu màn kiểu thiết kế mới: khối ngọc nhạt, bong bóng trắng (tiêu đề + 1 câu) bên trái, Grow bên phải. */
-export function CanhRob({ lv, tieu, loi, ic, cao = 150 }: { lv: LinhVat; tieu: string; loi?: string; ic?: TenIcon; cao?: number }) {
+/** Cảnh đầu màn kiểu thiết kế mới: khối ngọc nhạt, bong bóng trắng (tiêu đề + 1 câu) bên trái, Grow bên phải.
+ *  `chuTo`: kiểu «Đăng nhập» (bm-dang-nhap/01) — không bong bóng, tiêu đề 26/800 + câu 14.5 thẳng trên thẻ cao 176, Grow 150 tràn đáy. */
+export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai }: { lv: LinhVat; tieu: string; loi?: string; ic?: TenIcon; cao?: number; chuTo?: boolean;
+  /** Grow bên TRÁI, bong bóng bên phải (thiết kế «Đang chờ máy của con» bm-ghep-lan-dau/02, bm-ghep-may/04) */ robTrai?: boolean }) {
+  if (chuTo) return (
+    <View style={{ borderRadius: 34, backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", backgroundColor: "#e2efea", height: 176, overflow: "hidden", ...KHOI.the }}>
+      <LopMen men={MEN.vien} bo={34} />
+      <View style={{ position: "absolute", left: 22, top: 40, right: 150 }}>
+        <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: M.chu }}>{tieu}</Text>
+        {loi ? <Chu kieu="dam" co={14.5} mau="#3a403d" style={{ marginTop: 6, lineHeight: 20 }}>{loi}</Chu> : null}
+      </View>
+      <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -26 }}><Rob ten={lv} co={150} /></View>
+    </View>
+  );
   return (
-    <View style={{ borderRadius: BO_CLAY.the, backgroundColor: "#dcebe6", minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
+    <View style={{ borderRadius: BO_CLAY.the, backgroundColor: "#dcebe6", minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: robTrai ? "flex-end" : undefined, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
       {ic ? <View style={{ position: "absolute", left: 14, bottom: 12 }}><Icon3D ten={ic} co={44} /></View> : null}
-      <View style={{ maxWidth: "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
+      <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
         <Chu kieu="rat" co={16}>{tieu}</Chu>
         {loi ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 2 }}>{loi}</Chu> : null}
       </View>
-      <View pointerEvents="none" style={{ position: "absolute", right: 4, bottom: 0, top: 4, width: "36%", alignItems: "flex-end", justifyContent: "flex-end" }}>
+      <View pointerEvents="none" style={{ position: "absolute", ...(robTrai ? { left: 4 } : { right: 4 }), bottom: 0, top: 4, width: "36%", alignItems: robTrai ? "flex-start" : "flex-end", justifyContent: "flex-end" }}>
         <Rob ten={lv} co={Math.min(cao - 6, 130)} />
       </View>
     </View>
@@ -218,17 +230,20 @@ export function HangChiaSe({ chiaSe, bao, daGui }: { chiaSe: ChiaSe; bao: (chu: 
   const o = (m: { ten: string; nen: string; ve: ReactNode; bam: () => void }) => (
     <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten === "Sao chép" ? "Sao chép link" : m.ten === "Thêm…" ? "Thêm cách chia sẻ" : `Gửi qua ${m.ten}`}
       style={{ width: 64, alignItems: "center", gap: 6, minHeight: 44 }}>
-      <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
+      <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
       <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
     </Pressable>
   );
   return (
+    // thiết kế 14/11 (bm-ghep-may/03): ô tròn; «Thêm…» tròn than chì. Giữ màu thương hiệu từng app
+    // (thiết kế vẽ icon đơn sắc ngọc — đã chọn giữ logo màu vì Ba Mẹ nhận ra app nhanh hơn)
+    // (thẻ nền của thiết kế bỏ: hàng cuộn ngang tràn mép thẻ — cổng LE-THE)
     <View style={{ flexDirection: "row", alignItems: "flex-start" }} accessibilityLabel="Chia sẻ link ghép máy">
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 4, paddingRight: 16, paddingVertical: 4 }}>
         {muc.map(o)}
       </ScrollView>
       <View style={{ width: 1, alignSelf: "stretch", marginVertical: 8, backgroundColor: "#e4e3df" }} />
-      {o({ ten: "Thêm…", nen: M.the, ve: <View style={{ flexDirection: "row", gap: 4 }}>{[0, 1, 2].map((i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: M.chu2 }} />)}</View>,
+      {o({ ten: "Thêm…", nen: M.nut, ve: <View style={{ flexDirection: "row", gap: 4 }}>{[0, 1, 2].map((i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" }} />)}</View>,
         bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); else daGui?.(); }) })}
     </View>
   );
@@ -352,7 +367,7 @@ export function BanhXe({ ds, gia, doi, nhan }: { ds: string[]; gia: string; doi:
         {ds.map((x) => (
           <Pressable key={x} onPress={() => { doi(x); ref.current?.scrollTo({ y: ds.indexOf(x) * CAO_O, animated: true }); }} accessibilityRole="button" accessibilityLabel={`${nhan} ${x}`}
             style={{ height: CAO_O, alignItems: "center", justifyContent: "center" }}>
-            <Chu kieu={x === gia ? "rat" : "dam"} co={x === gia ? 26 : 19} mau={x === gia ? M.chu : "#9a9f9c"} so>{x}</Chu>
+            <Chu kieu={x === gia ? "rat" : "dam"} co={x === gia ? 26 : 19} mau={x === gia ? M.chu : M.chu3} so>{x}</Chu>
           </Pressable>
         ))}
       </ScrollView>
@@ -384,15 +399,16 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
   // Bong bóng thoại / thẻ phía trên nằm TRONG dòng chảy, Grow lấp phần còn lại bên dưới — không chồng lên hình (cổng DE-ANH): đo chiều cao
   // khối trên rồi thu Grow cho vừa (thẻ lời mời có tên con dài ở 320px cao tới 4–5 dòng).
   const [hTren, setHTren] = useState(thoai || tren ? 72 : 0);
-  const coRob = Math.max(110, cao - 30 - (thoai || tren ? hTren + 12 : 0));
+  // ảnh Grow dọc (520×740) vẽ trong ô vuông `co` ⇒ chừa đáy 4 như thiết kế (.rob bottom:4), không trừ thêm 30 (Grow bé hơn HTML — vòng 2)
+  const coRob = Math.max(110, cao - 8 - (thoai || tren ? hTren + 12 : 0));
   return (
     <View style={{ minHeight: cao, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={34} />
       {thoai || tren ? (
         <View onLayout={(e) => setHTren(Math.ceil(e.nativeEvent.layout.height))} style={{ alignSelf: "stretch", paddingHorizontal: 12, paddingTop: 12 }}>
           {thoai ? (
-            <View style={{ alignSelf: "flex-start", marginLeft: 4, marginTop: 4, maxWidth: "80%", backgroundColor: "#fff", borderRadius: 20, paddingVertical: 10, paddingHorizontal: 16, boxShadow: BONG.nho }}>
-              <Chu kieu="rat" co={14}>{thoai}</Chu>
+            <View style={{ alignSelf: "flex-start", marginLeft: 6, marginTop: 8, maxWidth: 220, backgroundColor: "#fff", borderRadius: 22, paddingVertical: 11, paddingHorizontal: 16, boxShadow: BONG.nho }}>
+              <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{thoai}</Chu>
             </View>
           ) : null}
           {tren}

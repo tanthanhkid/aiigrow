@@ -13,9 +13,10 @@ const chuCai = (ten: string) => (ten.trim().split(/\s+/).pop() ?? "?").charAt(0)
  * Dải các con (thiết kế .cac-con): avatar tròn 56, tên dưới, con đang chọn có vòng ngọc, số việc chờ (cam) góc trên.
  * Nhà 1 con thì gọi chỗ khác không vẽ dải này (N9: chỉ hiện chọn con khi > 1 con).
  */
-export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, them, nhanSo = "việc chờ duyệt" }: {
+export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, ic, them, nhanSo = "việc chờ duyệt" }: {
   ds: T[]; chon?: string | null; doi?: (c: T) => void; /** số việc chờ theo id con */ so?: Record<string, number>;
   /** dòng nhỏ dưới tên theo id con (Trang chủ: «còn 18′») */ phu?: Record<string, string>; /** ô «＋ Thêm con» cuối dải */ them?: () => void;
+  /** icon trạng thái nhỏ góc dưới phải avatar (Trang chủ 14/11 .av i: chơi / học / khoá / chưa dùng) */ ic?: Record<string, TenIcon | null>;
   /** chữ đọc màn hình cho số góc trên (Trang chủ: «lời xin») */ nhanSo?: string;
 }) {
   return (
@@ -32,6 +33,12 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
                 <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.camDam,   // thiết kế #e2660f + chữ trắng 12px chỉ 3.42:1 (WCAG cần 4.5) ⇒ token cam đậm (≈5.2:1)
                   alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: M.nen }}>
                   <Chu kieu="rat" co={12} mau="#fff" so>{n}</Chu>
+                </View>
+              ) : null}
+              {ic?.[x.id] ? (
+                <View style={{ position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+                  boxShadow: "0px 2px 4px rgba(0,0,0,0.18)" }}>
+                  <Icon3D ten={ic[x.id]!} co={15} />
                 </View>
               ) : null}
             </View>

@@ -51,8 +51,9 @@ function TabVoucher() {
                 <Chu kieu="dam" co={12.5} mau={M.chu3}>💳 {dong(v.gia)} ·</Chu><Icon3D ten="sao" co={14} /><Chu kieu="rat" co={12.5} mau="#6e4300" so>{soCham(v.sao)}</Chu>
               </View>
             </View>
-            <View style={{ minHeight: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
-              <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: "#fff" }}>Mua</Text>
+            {/* thiết kế 06 .tag.mua: viên sáng nổi chữ ngọc */}
+            <View style={{ minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+              <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: M.chinhInk }}>Mua</Text>
             </View>
           </Pressable>
         ))}

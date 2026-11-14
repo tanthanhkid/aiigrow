@@ -66,10 +66,8 @@ export default function DaDung() {
                 {[x.matMang ? "● Mất mạng" : x.dangMo ? "● Đang mở" : null, tenNgan(x.may) || (x.nen ? x.nen : null)].filter(Boolean).join(" · ")}
               </Chu>
             </View>
-            <View style={{ alignItems: "flex-end", gap: 2 }}>
-              <Nhan chu={x.tinhGio ? "Chơi" : "Học"} loai={x.tinhGio ? "canh" : "ok"} />
-              <Chu kieu="rat" co={14} so>{`${x.phut}′`}</Chu>
-            </View>
+            {/* thiết kế 03 .tag: một viên «Chơi 39′» (ngọc nhạt) / «Học 10′» (xám) */}
+            <Nhan chu={`${x.tinhGio ? "Chơi" : "Học"} ${x.phut}′`} loai={x.tinhGio ? "ok" : "xam"} />
           </Pressable>
         ))}
       </The>

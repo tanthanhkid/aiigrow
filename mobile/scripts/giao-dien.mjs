@@ -37,6 +37,8 @@ export const DO = String.raw`(() => {
   const noi = a => { let abs = false; for (let e = a; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e);
     if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight) return false; if (cs.position === 'fixed' || cs.position === 'absolute') abs = true; } return abs; };
   const cuoi = !!window.__gdCuoi;
+  // hộp thoại trên cùng đang mở: chữ PHÍA SAU nó bị phủ (như ảnh ở trên) ⇒ không xét chữ đó bị ảnh trong hộp thoại «đè» (ô hình đầu bảng trượt 14/11)
+  const hopTren = [...document.querySelectorAll('[aria-modal=true]')].filter(hien).pop();
   // Ảnh là đồ hoạ CỦA chữ: cùng một thành phần bấm được (thẻ «Cần giúp?»), hoặc ảnh là nền của khung nhỏ chứa chữ (vòng tiến độ).
   const dienTich = e => { const r = e.getBoundingClientRect(); return r.width * r.height; };
   // Phần ảnh THẤY ĐƯỢC: cắt theo mọi khung tổ tiên có overflow ≠ visible (ScrollView). Ảnh cuộn xuống dưới thanh tab / nút đáy cố định
@@ -81,7 +83,7 @@ export const DO = String.raw`(() => {
     const kc = khungCat(el);
     for (const r0 of dongCua(n)) { const r = { left: Math.max(r0.left, kc.left), top: Math.max(r0.top, kc.top), right: Math.min(r0.right, kc.right), bottom: Math.min(r0.bottom, kc.bottom) };
       r.width = r.right - r.left; r.height = r.bottom - r.top; if (r.width <= 0 || r.height <= 0) continue;   // ngưỡng 15% tính trên phần THẤY của dòng
-      for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi) continue; const q = thayDuoc(a); if (!q) continue;
+      for (const a of anhs) { if (a.contains(el) || el.contains(a) || cuaNo(a, el) || noi(a) !== cuoi || (hopTren && !hopTren.contains(el))) continue; const q = thayDuoc(a); if (!q) continue;
       const x = Math.min(r.right,q.right)-Math.max(r.left,q.left), y = Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
       if (x > 4 && y > 4 && x*y > 0.15*r.width*r.height) { const k='da'+chu+ten(a); if (!daBao.has(k)) { daBao.add(k); L.push({luat:'DE-ANH', chu, el:ten(el), anh: ten(a) + (a.src? ' '+a.src.split('/').pop().split('.')[0]:'' )}); } } } }
     // 4. tràn khung có nền/viền

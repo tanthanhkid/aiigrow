@@ -53,22 +53,25 @@ export default function GhepThemMay() {
   return (
     <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />} day={<Nut chu={`Lấy mã ghép máy mới cho ${c?.ten ?? "con"}`} rong tat={!c} bam={lay} />}>
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Máy mới của ai?</Chu>
-      <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
+      {/* thiết kế 02 / 06: dải avatar tròn 54 + tên (con đang chọn có vòng ngọc), «＋ Thêm con» cuối dải */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 8 }} accessibilityRole="radiogroup">
         {d.con.map((x) => {
           const chon = x.id === c?.id;
           return (
-            <Pressable key={x.id} onPress={() => setCon(x.id)} accessibilityRole="radio" accessibilityState={{ checked: chon }}
-              style={{ width: 96, minHeight: 96, borderRadius: 24, alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: chon ? "#f3faf7" : "#fff",
-                boxShadow: chon ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` : BONG.nho }}>
-              <Avt ten={x.ten} mau={mauHoSo(x.avatar)[0]} co={46} />
-              <Chu kieu="rat" co={13.5} dong={1}>{x.ten}</Chu>
+            <Pressable key={x.id} onPress={() => setCon(x.id)} accessibilityRole="radio" accessibilityState={{ checked: chon }} accessibilityLabel={x.ten}
+              style={{ width: "20%", alignItems: "center", gap: 5 }}>
+              <View style={{ padding: 3, borderRadius: 34, borderWidth: 3, borderColor: chon ? M.chinh : "transparent" }}>
+                <Avt ten={x.ten} mau={mauHoSo(x.avatar)[0]} co={50} />
+              </View>
+              <Chu kieu="rat" co={13} mau={chon ? M.chinhInk : M.chu2} dong={1}>{x.ten.trim().split(/\s+/).slice(-2).join(" ")}</Chu>
             </Pressable>
           );
         })}
-        <Pressable onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button"
-          style={{ width: 96, minHeight: 96, borderRadius: 24, alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fff", boxShadow: BONG.nho }}>
-          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#f1f0ec", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon ten="cong" mau={M.chu2} co={20} /></View>
-          <Chu kieu="rat" co={13.5}>Thêm con</Chu>
+        <Pressable onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: "20%", alignItems: "center", gap: 5 }}>
+          <View style={{ margin: 6, width: 50, height: 50, borderRadius: 25, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+            <Icon ten="cong" mau={M.chinhInk} co={22} />
+          </View>
+          <Chu kieu="rat" co={12} mau={M.chinhInk} dong={1}>Thêm con</Chu>
         </Pressable>
       </View>
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4, marginTop: 4 }}>Cài cho máy mới</Chu>

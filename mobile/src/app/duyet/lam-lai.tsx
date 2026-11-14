@@ -2,10 +2,11 @@
 // Con chưa nhận sao, nộp bằng chứng MỚI thì Ba Mẹ duyệt tiếp. Gửi xong ⇒ 28 «Đã nhắn <Con> làm lại» (ManKetQua). `?id=` = lượt nộp.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { TextInput, View } from "react-native";
+import { BONG } from "@/lib/clay";
 import { bm } from "@/lib/api";
 import { ManKetQua, type BangChung } from "@/lib/hang-ngay";
-import { BaoLoi, Canh, ChoTai, Chips, Chu, gioPhut, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, ChoTai, Chips, Chu, F, gioPhut, Icon3D, M, Man, Nut, Rob, useLam, useTai } from "@/lib/ui";
 
 type Luot = { id: string; child_id: string; ten_con: string; ten: string; nhom: string; trang_thai: string };
 
@@ -49,22 +50,35 @@ export default function NhoLamLai() {
     <Man lui={{ chu: "Bằng chứng" }} tieu={l.ten} day={<>
       <BaoLoi loi={loiLam} />
       <Nut chu={`Gửi lời nhắn cho ${l.ten_con}`} ic="gui" rong dangChay={dangChay} tat={l.trang_thai !== "cho_duyet"} bam={gui} />
-      <Nut chu={d.ghiAm ? "Thôi, quay lại nghe ghi âm" : "Thôi, quay lại xem ảnh"} loai="ma" rong bam={() => router.back()} />
+      <Nut chu={d.ghiAm ? "Thôi, quay lại nghe ghi âm" : "Thôi, quay lại xem ảnh"} loai="vien" rong bam={() => router.back()} />
       {/* bài nộp không đúng việc / nộp trùng ⇒ đóng hẳn, không cộng sao (luot/:id/tu-choi, boSung false) — review PR #183 */}
       <Nut chu="Không đúng việc · không tính lần này" loai="huy" rong tat={l.trang_thai !== "cho_duyet"} dangChay={dangChay} bam={() => lam(async () => {
         await bm.goi(`luot/${id}/tu-choi`, { lyDo: viSao ?? "Không đúng nhiệm vụ", boSung: false });
         router.replace((`/duyet?con=${l.child_id}`) as never);
       })} />
     </>}>
-      <Canh lv="nghi" thap tieu={`Nhờ ${l.ten_con} ${dongTu(l.ten)} lại`}
-        loi={`Con chưa nhận sao, nộp ${d.ghiAm ? "ghi âm" : "ảnh"} mới thì Ba Mẹ duyệt tiếp`} />
+      {/* thiết kế 10 .dau: Grow 60 trái + «Nhờ <Con> dọn lại» 20/800 + câu phụ (không bong bóng) */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Rob ten="nghi" co={60} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Chu kieu="rat" co={20} style={{ lineHeight: 26, letterSpacing: -0.3 }}>{`Nhờ ${l.ten_con} ${dongTu(l.ten)} lại`}</Chu>
+          <Chu kieu="dam" co={13} mau="#565c59" style={{ lineHeight: 18 }}>{`Con chưa nhận sao. Nộp ${d.ghiAm ? "ghi âm" : "ảnh"} mới thì Ba Mẹ duyệt tiếp.`}</Chu>
+        </View>
+      </View>
       {l.trang_thai !== "cho_duyet" ? <BaoLoi loi="Việc này đã được xử lý — có thể người khác trong nhà đã duyệt trước." /> : null}
       <View style={{ gap: 8 }}>
-        <Chu kieu="rat" co={15}>Vì sao?</Chu>
+        <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Vì sao?</Chu>
         <Chips ds={dsViSao.map((x) => ({ gia: x, chu: x }))} chon={viSao ? [viSao] : []} doi={(v) => setViSao(viSao === v ? null : v)} />
       </View>
-      <ONhap nhan="Nhắn con" value={nhan ?? (d.ghiAm ? NHAN_AM : NHAN_ANH)} onChangeText={setNhan} maxLength={200} multiline />
-      <Chu co={13.5} mau={M.chu3}>Nói nhẹ nhàng để con vui vẻ làm lại</Chu>
+      <View style={{ gap: 8 }}>
+        <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Nhắn con</Chu>
+        <TextInput value={nhan ?? (d.ghiAm ? NHAN_AM : NHAN_ANH)} onChangeText={setNhan} maxLength={200} multiline accessibilityLabel="Nhắn con"
+          style={{ minHeight: 52, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 15, color: M.chu }} />
+      </View>
+      {/* thiết kế .ghi: dải đào nhắc nhẹ */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#f9e7d2" }}>
+        <Icon3D ten="tim" co={20} /><Chu kieu="dam7" co={13} mau="#8a3c0c" style={{ flex: 1 }}>Nói nhẹ nhàng để con vui vẻ làm lại</Chu>
+      </View>
     </Man>
   );
 }

@@ -40,8 +40,9 @@ export function OPin({ gia, doi, an, nhan, tuDong }: { gia: string; doi?: (v: st
         const so = gia[i];
         const dang = !!doi && focus && (i === gia.length || (gia.length === 4 && i === 3));
         return (
-          <View key={i} style={{ flex: 1, maxWidth: 84, height: 58, borderRadius: 18, backgroundColor: so ? M.the : "#eeede9", alignItems: "center", justifyContent: "center",
-            boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}` : so ? BONG.nho : BONG.lom }}>
+          // thiết kế 14/11 (.o4 / PIN của con): ô LÕM xám bo 20 cả khi đã có số; ô đang gõ viền ngọc
+          <View key={i} style={{ flex: 1, maxWidth: 84, height: 58, borderRadius: 20, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center",
+            boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : BONG.lom }}>
             <Chu kieu="rat" co={26} so>{so ? (an ? "•" : so) : ""}</Chu>
           </View>
         );

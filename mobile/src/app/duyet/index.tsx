@@ -10,7 +10,7 @@ import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import { cachBao, SaoVien, type BangChung, type ChoDuyetMoi, type LuotChoMoi } from "@/lib/hang-ngay";
 import { SongAm } from "@/lib/song-am";
-import { BangMang, BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon, M, Man, NhanMen, Nut, TickDong, useLam, useTai } from "@/lib/ui";
+import { BangMang, BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, TickDong, useLam, useTai } from "@/lib/ui";
 
 const KHEN_LOAT = "Giỏi lắm con!";
 
@@ -90,7 +90,7 @@ export default function DuyetDs() {
         </>
       ) : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
-          <Icon ten="mat" mau={M.chinhInk} co={22} />
+          <Rob ten="chi" co={40} />
           <Chu kieu="dam" co={14} mau={M.chinhInk} style={{ flex: 1 }}>Xem ảnh, nghe ghi âm con nộp. Thấy ổn thì duyệt, con nhận sao.</Chu>
         </View>
       )}
@@ -116,9 +116,10 @@ const TheLuot = memo(function TheLuot({ x, nhieuCon }: { x: LuotChoMoi; nhieuCon
           <View style={{ marginTop: 6 }}><SaoVien n={x.sao ?? x.diem} nho /></View>
         </View>
       </View>
-      <View style={{ minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, backgroundColor: "#ecebe7" }}>
-        <Chu kieu="rat" co={15} mau={M.chinhInk}>{ghiAm ? "Nghe ghi âm để duyệt" : x.so_anh ? "Xem ảnh để duyệt" : "Xem để duyệt"}</Chu>
-        <Icon ten="phai" mau={M.chinhInk} co={16} />
+      {/* thiết kế 08: viên TRẮNG nổi + icon 3D (máy ảnh / micro) «Xem ảnh để duyệt ›» */}
+      <View style={[{ minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, backgroundColor: "#fff" }, KHOI.nho]}>
+        <Icon3D ten={ghiAm ? "tai" : "camera"} co={20} />
+        <Chu kieu="rat" co={14.5} mau={M.chu}>{`${ghiAm ? "Nghe ghi âm để duyệt" : x.so_anh ? "Xem ảnh để duyệt" : "Xem để duyệt"} ›`}</Chu>
       </View>
     </NhanMen>
   );

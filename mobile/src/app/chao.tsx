@@ -29,12 +29,18 @@ export default function Chao() {
             // trang chủ web: lối sang trang tải bộ cài cho máy của con (thiết kế không vẽ — giữ chữ nhỏ)
             <LkChao chu="Tải AiiGrow cho máy của con" bam={() => globalThis.location?.assign("/tai")} canh="center" />
           ) : null}
-          {Platform.OS !== "web" ? (
-            // App gốc cũng là app của Con trên điện thoại / máy tính bảng chưa ghép (thiết kế không vẽ — giữ lối vào màn Con, chữ nhỏ)
-            <LkChao chu="Đây là máy của con? Mở màn của con" bam={() => router.push("/tre")} canh="center" />
-          ) : null}
         </View>
       </SafeAreaView>
+      {Platform.OS !== "web" ? (
+        // App gốc cũng là app của Con trên điện thoại / máy tính bảng chưa ghép. Thiết kế không vẽ lối này ⇒ đặt chữ nhỏ ở GÓC TRÊN PHẢI
+        // (14/11 vòng 2: để ở đáy thì đẩy nút lên che dòng «Ươm mầm thói quen số» của ảnh; đáy giữ đúng nút + 2 liên kết như HTML)
+        <SafeAreaView pointerEvents="box-none" style={{ position: "absolute", top: 24, right: 8 }} edges={["top"]}>
+          <Pressable onPress={() => router.push("/tre")} accessibilityRole="link" accessibilityLabel="Đây là máy của con? Mở màn của con" hitSlop={6}
+            style={{ minHeight: 44, paddingHorizontal: 10, justifyContent: "center" }}>
+            <Text style={{ fontFamily: F.rat, fontSize: 13, color: M.chinhInk, textDecorationLine: "underline" }}>Máy của con?</Text>
+          </Pressable>
+        </SafeAreaView>
+      ) : null}
       </NenChao>
       {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: 140 }}>{noi}</View> : null}
     </View>
