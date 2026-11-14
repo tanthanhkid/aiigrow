@@ -46,7 +46,7 @@ export default function DuyetDs() {
     // 31 «Không còn việc chờ duyệt»
     return (
       <Man lui={{ chu: "Nhiệm vụ" }} tieu="Chờ duyệt" day={<>
-        <Nut chu={`Giao việc mới cho ${d.ten}`} ic="cong" rong bam={() => router.push((d.conId ? `/giao-nv?con=${d.conId}` : "/giao-nv") as never)} />
+        <Nut chu={`Thêm việc cho ${d.ten}`} ic="cong" rong bam={() => router.push((d.conId ? `/giao-nv?con=${d.conId}` : "/giao-nv") as never)} />
         <Nut chu="Về Trang chủ" loai="vien" rong bam={() => router.replace("/hom-nay" as never)} />
       </>}>
         <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Grow sẽ báo ngay.">
@@ -81,11 +81,11 @@ export default function DuyetDs() {
       </>}>
       {choMang ? (
         <>
-          <BangMang chu="Điện thoại đang mất mạng · Lựa chọn của bạn vẫn được giữ, có mạng là tự gửi." />
+          <BangMang chu="Điện thoại đang mất mạng · Lựa chọn của Ba Mẹ vẫn được giữ, có mạng là tự gửi." />
           <View style={[{ padding: 16, borderRadius: 28, backgroundColor: M.the, gap: 2 }, KHOI.the]}>
-            <Chu kieu="rat" co={16}>Đã duyệt, chờ gửi</Chu>
+            <Chu kieu="rat" co={16}>{`Đã duyệt, chờ gửi · ${d.ds.length} việc`}</Chu>
             {d.ds.map((x) => <TickDong key={x.id} trang="cho" chu={x.ten} phu={`+${x.sao ?? x.diem} sao · kèm lời khen · Chờ mạng`} />)}
-            <Chu co={13.5} mau={M.chu3}>{`${ten} sẽ nhận ${tong} sao ngay khi gửi xong. Bạn không cần duyệt lại.`}</Chu>
+            <Chu co={13.5} mau={M.chu3}>{`${ten} sẽ nhận ${tong} sao ngay khi gửi xong. Ba Mẹ không cần duyệt lại.`}</Chu>
           </View>
         </>
       ) : (

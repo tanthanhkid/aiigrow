@@ -636,6 +636,23 @@ chưa ai đăng nhập hoặc «Ba Mẹ đang dùng máy» ⇒ 409 `chua_chon_co
 `usage` có khoá `(device_id, child_id, ngay, muc)` (trước: `(device_id, ngay, muc)` ⇒ hai bé dùng chung máy + cùng app bị gộp phút vào bé ghi trước). Migration chỉ thêm ở cuối `SCHEMA_S3` (đổi khoá, giữ hàng cũ — mỗi hàng đã mang `child_id`).
 Agent gửi TỔNG phút của máy theo app/ngày (không phân bé); máy chủ ghi cho bé đang dùng (X-Phien-Con, chủ máy riêng, hoặc `devices.con_dang_dung`) phần = tổng − phần các bé khác đã ghi trên máy ấy; agent không cần gửi thêm trường. «Ba Mẹ đang dùng máy» ⇒ `usage` bị bỏ. Quỹ phút, báo cáo Ba Mẹ, «Hôm nay» đều đã lọc `child_id`.
 
+## Khớp thiết kế 14/11 — «Giao việc» từ danh mục (`server/lib/danh-muc-viec.ts`, test `khop-1411-duyet-ca-nha.test.ts`)
+
+Màn «Giao việc» (bm-viec-duyet/03): ba mục **Học** (7 việc) · **Vận động** (10) · **Giúp Ba Mẹ** (100 việc, 10 chủ đề). Danh mục nằm trong mã
+(chép từ thiết kế), mỗi việc có mã ổn định `<chủ đề>:<thứ tự>`. Chỉ thêm, không đổi API cũ.
+
+| Phương thức | Đường dẫn | Vào | Ra |
+|---|---|---|---|
+| GET | `/api/m/nhiem-vu/danh-muc?con=<id>` | — | `{muc:[{ma:"hoc"\|"van_dong"\|"giup_ba_me", ten, soViec, chuDe:[{ma, ten, viec:[{ma, ten, sao, tu12, bangChung, hinh, daCo}]}]}]}` |
+| POST | `/api/m/nhiem-vu/danh-muc` | `{con, viec: ma[]}` | `{taoMoi, ids, boQua}` |
+
+- `daCo`: Con đã có việc đang bật cùng tên (của riêng con hoặc cả nhà) ⇒ màn hiện «Đã có», POST bỏ qua (đếm vào `boQua`).
+- Việc tạo ra: `giao_cho = con`, `bo = mã mục`, `lap_lai = hang_ngay`, `toi_da_ngay = 1`, Ba Mẹ duyệt (`tu_duyet = false`).
+  Cách nộp mặc định: đọc / từ vựng / ôn bài = `ghi_am`; vận động và việc 5 sao = `xong`; còn lại `anh`.
+- «Học 1 bài với AiiRob» = `tu_dong`, `tu_duyet = true`, cả nhà (`giao_cho = null`), không tạo trùng.
+- Lỗi: `thieu_con` 400, `chua_chon` 400, `viec_sai` 400 (mã không có trong danh mục), `khong_thay` 404 (con không thuộc nhà).
+- Tên việc tối đa 90 ký tự (`TEN_NV_TOI_DA`, trước là 60) — vài việc trong danh mục dài hơn 60.
+
 ## P1 (07/11) — «Ba Mẹ bấm ⇒ máy Con áp ≤5 giây»: long-poll chờ thay đổi (`server/lib/cho-thay-doi.ts`, test `cho-thay-doi.test.ts`)
 Thanh 07/11: *«khi chặn có effect liền ở máy trẻ em ko, phải có»*. Trước đây máy Con chỉ hỏi máy chủ theo vòng; giờ thêm đường «gõ cửa»:
 

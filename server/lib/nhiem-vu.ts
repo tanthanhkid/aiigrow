@@ -63,9 +63,11 @@ export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nh
 
 /** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ chép hằng số này ở mobile/src/lib/api.ts › TEN_NV_TOI_THIEU (đổi thì đổi cả hai). */
 export const TEN_NV_TOI_THIEU = 3;
+/** Tên dài nhất — 90 để việc dài nhất của danh mục «Giúp Ba Mẹ» (danh-muc-viec.ts, ~70 ký tự) không bị cắt (cắt thì trùng tên không nhận ra). */
+export const TEN_NV_TOI_DA = 90;
 
 function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
-  const ten = String(b.ten ?? "").trim().slice(0, 60);
+  const ten = String(b.ten ?? "").trim().slice(0, TEN_NV_TOI_DA);
   if (!ten) throw new LoiNghiepVu("thieu_ten", "Đặt tên nhiệm vụ");
   if (kiemDoDai && [...ten].length < TEN_NV_TOI_THIEU) throw new LoiNghiepVu("ten_ngan", `Tên nhiệm vụ cần ít nhất ${TEN_NV_TOI_THIEU} ký tự để Con hiểu việc cần làm`);
   const diem = Math.round(Number(b.diem));
@@ -122,7 +124,7 @@ export async function suaNv(fam: string, id: string, b: Record<string, unknown>)
   const cu = await one<Nv>(`select * from tasks where id = $1 and family_id = $2`, [id, fam]);
   if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy nhiệm vụ", 404);
   // nhiệm vụ cũ tên ngắn (trước luật 3 ký tự) vẫn sửa điểm / tắt được: chỉ kiểm độ dài khi Ba Mẹ đổi tên
-  const doiTen = b.ten !== undefined && String(b.ten ?? "").trim().slice(0, 60) !== cu.ten;
+  const doiTen = b.ten !== undefined && String(b.ten ?? "").trim().slice(0, TEN_NV_TOI_DA) !== cu.ten;
   // bỏ «Một lần» (lap_lai khác mot_lan) mà không gửi kieu ⇒ không còn là việc một lần
   const boMotLan = b.lap_lai !== undefined && b.lap_lai !== "mot_lan" && b.kieu === undefined && cu.kieu === "mot_lan";
   const v = kiemNv({ ...cu, ...b, ...(boMotLan ? { kieu: "thuong" } : {}) }, doiTen);

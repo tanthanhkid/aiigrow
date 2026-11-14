@@ -1,16 +1,17 @@
-// Tab «Nhiệm vụ» (thiết kế chốt 05/11 bm-hang-ngay/36, trống 37): chip đổi Con → ví sao (đổi được bao nhiêu phút) → việc chờ Ba Mẹ duyệt
-// (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — 06/11: sao GIỮ, trao mới trừ, huỷ hoàn; lib/trao-qua) → việc mỗi ngày theo bộ
-// (bấm một việc để sửa) → «Giao thêm việc». Người trông giúp: duyệt + trao quà được; giao / sửa việc ẩn (đổi cài đặt — quyen.ts).
+// Tab «Nhiệm vụ» (thiết kế 14/11 bm-viec-duyet/01 them-e91jg28j, trống 02 them-e44cwmvu): «Thêm việc» cạnh tiêu đề (→ Giao việc), dải các con
+// (nhà > 1 con, số việc chờ góc trên) → ví sao (đổi được bao nhiêu phút) → việc chờ Ba Mẹ duyệt (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi
+// chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — sao GIỮ, trao mới trừ, huỷ hoàn; lib/trao-qua) → «Việc mỗi ngày · N việc · Chạm để sửa».
+// Người trông giúp (dữ liệu cũ): duyệt + trao quà được; giao / sửa việc ẩn.
 import { useMemo, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import {
-  BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, The, useHoanTac, useTai,
+  BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, Rob, The, useHoanTac, useTai,
 } from "@/lib/ui";
-import { cachBao, cauLapLai, ChipCon, HangViec, hinhNv, SaoVien, TieuMuc, tuoiCua, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
-import { KHOA_NV_TAB, napNvTab, TEN_BO, viecCuaCon } from "@/lib/nv-tab";
+import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
+import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
+import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { BangTraoQua } from "@/lib/trao-qua";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
@@ -20,10 +21,10 @@ const khiNao = (iso: string) => {
   h.setDate(h.getDate() - 1);
   return t.toDateString() === h.toDateString() ? "hôm qua" : `${t.getDate()}/${t.getMonth() + 1}`;
 };
-/** «2 ảnh · nộp lúc 18:40» / «Ghi âm · nộp lúc 17:15». */
+/** «2 ảnh · 18:40» / «Ghi âm · 17:15» (14/11). */
 const phuLuot = (x: LuotChoMoi) => {
   const bc = x.so_ghi_am ? "Ghi âm" : x.so_anh ? `${x.so_anh} ảnh` : x.bang_chung === "xong" ? "Bấm «Xong»" : x.ghi_chu ? "Con viết" : "";
-  return [bc, `nộp lúc ${gioPhut(x.nop_luc)}`].filter(Boolean).join(" · ");
+  return [bc, gioPhut(x.nop_luc)].filter(Boolean).join(" · ");
 };
 
 export default function TabNhiemVu() {
@@ -35,9 +36,8 @@ export default function TabNhiemVu() {
   const cua = useMemo(() => {
     if (!d || !c) return null;
     const viec = viecCuaCon(d.nv, c.id);
-    const bo = viec.find((x) => x.bo)?.bo ?? null;
     return {
-      viec, bo,
+      viec,
       cho: d.cd.nhiemVu.filter((x) => x.child_id === c.id),
       phieu: (d.cd.phieu ?? []).filter((x) => x.child_id === c.id),
     };
@@ -51,10 +51,13 @@ export default function TabNhiemVu() {
     );
   }
   const baMe = d.quyen === "ba_me";
+  const soCho: Record<string, number> = {};
+  for (const x of d.cd.nhiemVu) soCho[x.child_id] = (soCho[x.child_id] ?? 0) + 1;
   const sao = (c as { sao?: number }).sao ?? c.soDu;
   return (
-    <Man tieuLon="Nhiệm vụ" chat tai={tai} vongTai noi={noi}>
-      <ChipCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} />
+    <Man tieuLon="Nhiệm vụ" chat tai={tai} vongTai noi={noi}
+      phaiTieu={baMe ? <Nut chu="Thêm việc" ic="cong" nho bam={() => router.push(`/giao-nv?con=${c.id}` as never)} /> : undefined}>
+      {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} so={soCho} /> : null}
 
       <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}`}
         style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 28, backgroundColor: M.diemSoft }, KHOI.the]}>
@@ -76,7 +79,7 @@ export default function TabNhiemVu() {
                 phai={<SaoVien n={x.sao ?? x.diem} nho />} bam={() => router.push(`/duyet/${x.id}` as never)} nhanDoc={`Xem bằng chứng ${x.ten}`} />;
             })}
             <View style={{ marginTop: 10 }}>
-              <Nut chu={`Xem bằng chứng, duyệt ${cua.cho.length} việc`} ic="tick" rong bam={() => router.push(`/duyet?con=${c.id}` as never)} />
+              <Nut chu={`Xem và duyệt ${cua.cho.length} việc`} ic="sao" ic3d rong bam={() => router.push(`/duyet?con=${c.id}` as never)} />
             </View>
           </The>
         </>
@@ -87,7 +90,7 @@ export default function TabNhiemVu() {
           <TieuMuc chu="Con đã đổi quà, chờ trao" phai={{ chu: "Quà ›", bam: () => router.push("/vi/qua" as never) }} />
           <The>
             {cua.phieu.map((p, i) => (
-              <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Đang giữ ${p.diem} sao · ${khiNao(p.created_at)}`}
+              <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Đổi ${p.diem} sao · ${khiNao(p.created_at)}`}
                 phai={<View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>} />
             ))}
           </The>
@@ -96,12 +99,11 @@ export default function TabNhiemVu() {
 
       {cua.viec.length ? (
         <>
-          <TieuMuc chu={`Việc mỗi ngày · ${cua.viec.length} việc`} phai={baMe ? { chu: "Đổi bộ ›", bam: () => router.push(`/giao-nv?con=${c.id}` as never) } : undefined} />
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, paddingHorizontal: 4 }}>
+            <Chu kieu="rat" co={17}>{`Việc mỗi ngày · ${cua.viec.length} việc`}</Chu>
+            {baMe ? <Chu kieu="dam" co={12.5} mau={M.chu3}>Chạm để sửa</Chu> : null}
+          </View>
           <The>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6, marginBottom: 2 }}>
-              <Chu kieu="rat" co={15}>{cua.bo ? `Bộ ${TEN_BO[cua.bo] ?? cua.bo}` : "Việc riêng của nhà"}</Chu>
-              {baMe ? <Chu co={13} mau={M.chu3}>Bấm một việc để sửa</Chu> : null}
-            </View>
             {cua.viec.map((x, i) => {
               const [ic, mau] = hinhNv(x);
               const tu = x.bang_chung === "tu_dong";
@@ -110,7 +112,6 @@ export default function TabNhiemVu() {
                 phai={<SaoVien n={x.diem} nho />} bam={baMe ? () => router.push(`/giao-nv/sua?id=${x.id}` as never) : undefined} />;
             })}
           </The>
-          {baMe ? <Nut chu={`Giao thêm việc cho ${c.ten}`} ic="cong" loai="vien" rong bam={() => router.push(`/giao-nv?con=${c.id}` as never)} /> : null}
         </>
       ) : (
         <ViecTrong con={c.id} ten={c.ten} baMe={baMe} />
@@ -121,24 +122,36 @@ export default function TabNhiemVu() {
   );
 }
 
-/** Con chưa có việc nào (37): hai lối — chọn bộ có sẵn / tự đặt một việc. */
+/** Con chưa có việc nào (them-e44cwmvu 14/11): Grow + «Ngày của <Con> còn trống», hai lối — chọn từ danh sách / tự đặt một việc. */
 function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean }) {
-  const ct = useTai(() => bm.goi<{ namSinh: number | null }>(`con/${con}`).catch(() => null));
-  const t = tuoiCua(ct.d?.namSinh);
   return (
-    <The>
-      <View style={{ alignItems: "center", gap: 6, paddingVertical: 6 }}>
-        <BieuTron ic="sao" mau="vang" lon />
-        <Chu kieu="rat" co={18} style={{ textAlign: "center" }}>{`${ten} chưa có việc nào`}</Chu>
-        <Chu co={14} mau={M.chu2} style={{ textAlign: "center" }}>Giao vài việc nhỏ. Con làm xong nhận sao, đổi ra phút chơi.</Chu>
+    <View style={{ gap: 12 }}>
+      <View style={{ alignItems: "center", gap: 4, marginTop: 8 }}>
+        <Rob ten="chi" co={150} />
+        <Chu kieu="rat" co={22} style={{ textAlign: "center", lineHeight: 28 }}>{`Ngày của ${ten} còn trống`}</Chu>
+        <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center" }}>Con làm xong nhận sao, đổi ra phút chơi.</Chu>
       </View>
       {baMe ? (
-        <View style={{ marginTop: 8 }}>
-          <HangViec dau ic="luoi" mau="tim" tieu="Chọn bộ việc có sẵn" phu={t ? `Grow gợi ý hợp với ${t} tuổi` : "Grow gợi ý hợp với tuổi của con"}
-            bam={() => router.push(`/giao-nv?con=${con}` as never)} />
-          <HangViec ic="but" mau="xanh" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv/tu-dat?con=${con}` as never)} />
+        <View style={{ gap: 12 }}>
+          <ChonLoi ic="qua" tieu="Chọn từ danh sách" phu="Học · Vận động · Giúp Ba Mẹ" bam={() => router.push(`/giao-nv?con=${con}` as never)} />
+          <ChonLoi ic="but" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv/tu-dat?con=${con}` as never)} />
         </View>
-      ) : <Chu co={13} mau={M.chu3} style={{ marginTop: 8, textAlign: "center" }}>Nhờ Ba Mẹ giao việc cho con.</Chu>}
-    </The>
+      ) : <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Nhờ Ba Mẹ giao việc cho con.</Chu>}
+    </View>
+  );
+}
+
+/** Thẻ lựa chọn (.chon): ô icon lõm 52 · tên + dòng phụ · ›. */
+function ChonLoi({ ic, tieu, phu, bam }: { ic: "qua" | "but"; tieu: string; phu: string; bam: () => void }) {
+  return (
+    <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={tieu}
+      style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 14, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+      <OLomIcon ic={ic} co={52} nen={ic === "but" ? "#dcebe6" : "#ecebe7"} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Chu kieu="rat" co={16}>{tieu}</Chu>
+        <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu>
+      </View>
+      <Icon ten="phai" mau={M.chu3} co={18} />
+    </Pressable>
   );
 }
