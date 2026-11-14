@@ -206,7 +206,7 @@ export function ManKetQua({ lv = "xong", tieu, loi, dong, chinh, phu, noi, child
 }
 
 /** Bảng trượt «Khoá máy <Con>?» (thiết kế 14/11 them-sll7clha): liệt kê máy (app đang mở / lần dùng gần nhất), «Khoá bao lâu?» 30 phút · 1 giờ · Sáng mai,
- *  nút «Khoá N máy tới HH:MM». POST con/:id/khoa {khoa, den} (máy chủ tự hết khoá khi qua hạn; «sang» = 7:00 theo múi giờ gia đình).
+ *  nút «Khoá N máy tới HH:MM». POST con/:id/khoa {khoa, den} (máy chủ tự hết khoá khi qua hạn; «sang» = 6:30 theo múi giờ gia đình).
  *  `dang`: dòng phụ từng máy (vd «● Roblox · từ 19:02») — không có thì «Đang mở» / «Đang tắt». `xong(chu, hoan)` ⇒ toast + Hoàn tác (mở lại). */
 export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   mo: boolean; dong: () => void; con: string; ten: string; may: Pick<MayCon, "id" | "ten" | "nen" | "truc">[];
@@ -218,7 +218,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   const { lam, loi, dangChay } = useLam();
   // giờ hiện trên nút chỉ để xem trước; hạn THẬT tính lúc bấm (bảng có thể mở lâu — review PR #241)
   const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
-  const cauDen = (h: Han, tu = new Date()) => (h === "mo" ? "tới khi Ba Mẹ mở" : h === "sang" ? "tới 7:00" : `tới ${gioPhut(denLuc(h, tu)!.toISOString())}`);
+  const cauDen = (h: Han, tu = new Date()) => (h === "mo" ? "tới khi Ba Mẹ mở" : h === "sang" ? "tới 6:30" : `tới ${gioPhut(denLuc(h, tu)!.toISOString())}`);
   const lua: { gia: Han; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
   const khoa = () => lam(async () => {
     const luc = new Date();

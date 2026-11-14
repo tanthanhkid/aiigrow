@@ -6,10 +6,9 @@ import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { bm } from "@/lib/api";
-import { F, Icon, LopMen, M, NhanMen, napTruoc, type TenIcon } from "@/lib/ui";
+import { F, Icon3D, M, NhanMen, napTruoc, type TenIcon } from "@/lib/ui";
 import { KHOA_CA_NHA, napCaNha } from "@/lib/ca-nha";
 import { KHOA_NV_TAB, napNvTab } from "@/lib/nv-tab";
-import { BONG, MEN } from "@/lib/clay";
 import { useBat, useKhiTang } from "@/lib/chuyen-dong";
 import Animated, { useReducedMotion } from "react-native-reanimated";
 
@@ -41,8 +40,12 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
   }, [ds, dang, giam]);
 }
 
+// Thiết kế chốt 14/11 (mọi màn tab bm-*: .tab): thanh PHẲNG sát đáy cao 84 (6 trên · 24 dưới), nền #f7f6f3, viền trên 1px #e4e3df + bóng mờ lên trên;
+// icon 3D 26 (Fluent — nha · sao · khien · lich · nguoi), chưa chọn mờ 50%; chữ 11 đậm #565c59, đang chọn #0a5246 ExtraBold. Bản cũ (phiến clay nổi
+// + icon Phosphor + ô chọn lõm) lệch thiết kế rõ nhất trên iOS (Nghi 14/11) ⇒ đổi theo HTML chốt; THIET-KE-CLAY §2 «icon tab Phosphor» bị HTML 14/11 thay.
+// Số đỏ chờ duyệt / lời xin giữ như cũ (thiết kế không vẽ, hành vi cũ giữ — KE-HOACH-KHOP-THIET-KE-1411 §0).
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
-  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, chan: { ic: "khien", chu: "Chặn" }, "bao-cao": { ic: "cot", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
+  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, chan: { ic: "khien", chu: "Chặn" }, "bao-cao": { ic: "lich", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
   "cai-dat": { ic: "nguoi", chu: "Cả nhà" },
 };
 
@@ -61,32 +64,30 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
     bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => { setSo(r.nhiemVu.length + (r.phieu?.length ?? 0)); setSoXin(r.yeuCau.length); }).catch(() => {});
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt
   return (
-    <View style={{ backgroundColor: M.nen, paddingHorizontal: 10, paddingTop: 6, paddingBottom: Math.max(ins.bottom - 6, 10) }}>
-    {/* phiến đất sét nổi (docs/clay: .tab) — ô đang chọn ấn lõm màu ngọc nhạt */}
-    <View style={{ flexDirection: "row", backgroundColor: M.the, borderRadius: 34, padding: 6, boxShadow: BONG.noi }}
-      accessibilityRole="tablist">
-      <LopMen men={MEN.the} bo={34} />
+    <View accessibilityRole="tablist" style={{ flexDirection: "row", backgroundColor: "#f7f6f3", paddingHorizontal: 4, paddingTop: 6,
+      // đáy: thiết kế 24 trên khung có thanh home 34 ⇒ chừa (inset − 10), máy không có thanh home vẫn 10
+      paddingBottom: ins.bottom > 0 ? Math.max(ins.bottom - 10, 10) : 10,
+      boxShadow: "0px -1px 0px #e4e3df, 0px -12px 18px -12px rgba(28,32,30,0.25)" }}>
       {state.routes.map((r, i) => {
         const m = MUC[r.name];
         if (!m) return null;
         const dang = state.index === i;
+        const soDo = r.name === "diem-qua" ? so : r.name === "hom-nay" ? soXin : 0;
         return (
-          <NhanMen key={r.key} onPress={() => navigateToTab(r.key)} accessibilityRole="tab" accessibilityState={{ selected: dang }} muc="chip" sang men={dang ? MEN.day : undefined}
+          <NhanMen key={r.key} onPress={() => navigateToTab(r.key)} accessibilityRole="tab" accessibilityState={{ selected: dang }} muc="chip"
             accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : r.name === "hom-nay" && soXin ? `${m.chu}, ${soXin} lời xin` : m.chu}
-            style={[{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 58, minWidth: 0, borderRadius: 26 },
-              dang && { backgroundColor: M.chinhSoft, boxShadow: BONG.lom }]}>
-            <Icon ten={m.ic} co={24} mau={dang ? M.chinhInk : M.chu3} />
-            <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11.5, color: dang ? M.chinhInk : M.chu3 }}>{m.chu}</Text>
-            {(r.name === "diem-qua" ? so : r.name === "hom-nay" ? soXin : 0) ? (
-              <Animated.View style={[{ position: "absolute", top: 3, left: "56%", backgroundColor: M.huy, minWidth: 19, height: 19, borderRadius: 10, paddingHorizontal: 5,
-                alignItems: "center", justifyContent: "center", boxShadow: BONG.do }, stSo]}>
-                <Text style={{ fontFamily: F.rat, fontSize: 11, color: "#fff" }}>{r.name === "diem-qua" ? so : soXin}</Text>
+            style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 54, minWidth: 0 }}>
+            <View style={{ opacity: dang ? 1 : 0.5 }}><Icon3D ten={m.ic} co={26} /></View>
+            <Text numberOfLines={1} style={{ fontFamily: dang ? F.den : F.dam7, fontSize: 11, lineHeight: 15, color: dang ? M.chinhInk : "#565c59" }}>{m.chu}</Text>
+            {soDo ? (
+              <Animated.View style={[{ position: "absolute", top: 0, left: "54%", backgroundColor: M.huy, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5,
+                alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#f7f6f3" }, stSo]}>
+                <Text style={{ fontFamily: F.rat, fontSize: 10.5, lineHeight: 13, color: "#fff" }}>{soDo}</Text>
               </Animated.View>
             ) : null}
           </NhanMen>
         );
       })}
-    </View>
     </View>
   );
 }

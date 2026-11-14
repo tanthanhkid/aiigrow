@@ -6,10 +6,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, ChipCon, gioGon, HangViec, mauCon, quyenToi, SaoVien, soAppDuocMo, tuoiCua, cauThu, type ConCt, type LuatDem, type GioChoi, type GioHoc, type NhiemVuMoi,
+  CAU_TRONG_GIUP, gioGon, HangViec, mauCon, quyenToi, SaoVien, soAppDuocMo, tuoiCua, cauThu, type ConCt, type LuatDem, type GioChoi, type GioHoc, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
 import { Avt, ChoTai, Chu, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
+import { DaiCon } from "@/lib/ui-viec";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 
 type Luat = { ds: LuatDem[] };
@@ -43,7 +44,7 @@ export default function HoSoCon() {
   const ngu = d.gio?.gioNgu ?? c.lich.ngu;
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
-      {d.g.con.length > 1 ? <ChipCon ds={d.g.con} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
+      {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
       <The dem style={{ gap: 14 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>

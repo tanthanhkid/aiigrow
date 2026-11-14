@@ -42,10 +42,10 @@ export default function TabNhiemVu() {
       phieu: (d.cd.phieu ?? []).filter((x) => x.child_id === c.id),
     };
   }, [d, c]);
-  if (!d) return <Man tieuLon="Nhiệm vụ" chat><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man tieuLon="Nhiệm vụ"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!c || !cua) {
     return (
-      <Man tieuLon="Nhiệm vụ" chat>
+      <Man tieuLon="Nhiệm vụ">
         <The><Chu mau={M.chu2}>Chưa có hồ sơ con nào. Thêm con ở «Cả nhà» để giao việc.</Chu></The>
       </Man>
     );
@@ -55,8 +55,8 @@ export default function TabNhiemVu() {
   for (const x of d.cd.nhiemVu) soCho[x.child_id] = (soCho[x.child_id] ?? 0) + 1;
   const sao = (c as { sao?: number }).sao ?? c.soDu;
   return (
-    <Man tieuLon="Nhiệm vụ" chat tai={tai} vongTai noi={noi}
-      phaiTieu={baMe ? <Nut chu="Thêm việc" ic="cong" nho bam={() => router.push(`/giao-nv?con=${c.id}` as never)} /> : undefined}>
+    <Man tieuLon="Nhiệm vụ" tai={tai} vongTai noi={noi}
+      phaiTieu={baMe ? <Nut chu="Thêm việc" ic="cong" loai="vien" nho bam={() => router.push(`/giao-nv?con=${c.id}` as never)} /> : undefined}>
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} so={soCho} /> : null}
 
       <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}`}

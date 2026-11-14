@@ -18,15 +18,16 @@ import { ThanhClay } from "@/lib/bieu-do";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
 import {
-  BangKhoaMay, BangThemGio, ChipCon, soAppDuocMo, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
+  BangKhoaMay, BangThemGio, quyenToi, soAppDuocMo, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
   type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon,
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
+import { DaiCon } from "@/lib/ui-viec";
 import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 // Grow ở thẻ đầu: cỡ + lệch phải (âm = ló ra ngoài thẻ). Chữ chừa = phần Grow nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
-const ROB_CO = 116, ROB_PHAI = -6, ROB_TREN = 44, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
+const ROB_CO = 100, ROB_PHAI = -6, ROB_TREN = 44, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
 // chip «đang làm gì» (cao 38) + lề trên thẻ 16 + khoảng 16 tới khối tiêu đề ⇒ khối tiêu đề bắt đầu ở 70 (đo từ mép thẻ)
 const CHIP_CAO = 38, TIEU_TU = 16 + CHIP_CAO + 16;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -36,21 +37,22 @@ const phutCua = (g: string | null | undefined) => { const m = /^(\d{1,2}):(\d{2}
 
 export default function HomNay() {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [g, cd, cb, choi, tt, luat, cdy] = await Promise.all([
+    const [g, cd, cb, choi, tt, luat, cdy, quyen] = await Promise.all([
       bm.goi<GiaDinh>("gia-dinh"), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: CanhBao[] }>("canh-bao").catch(() => null),
       bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),
       // app mới chưa xếp loại vẫn là việc chờ Ba Mẹ (issue #70 §2.3) ⇒ một mục «Cần Ba Mẹ để ý»; ds = luật để đếm «N app được mở»
       bm.goi<{ ds: LuatDem[]; chuaXep: AppChuaXep[] }>("luat").catch(() => null),
       // «Cần Ba Mẹ để ý» của máy chủ (mất mạng, quên PIN…) — máy chủ cũ không có ⇒ bỏ qua
       bm.goi<{ ds: MucCanDeY[] }>("can-de-y").catch(() => null),
+      quyenToi(),         // «＋ Thêm con» ở dải avatar chỉ cho Ba Mẹ (như tab Cả nhà)
     ]);
-    return { g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], luat: luat?.ds ?? [], appMoi: luat?.chuaXep ?? [], cdy: cdy?.ds ?? [] };
+    return { quyen, g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], luat: luat?.ds ?? [], appMoi: luat?.chuaXep ?? [], cdy: cdy?.ds ?? [] };
   });
   const [chon, setChon] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
   const dau = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 4, marginTop: 4 }}>
-      <Chu kieu="rat" co={28} style={{ letterSpacing: -0.6 }}>Hôm nay</Chu>
+      <Chu kieu="den" co={28} style={{ letterSpacing: -0.6 }}>Hôm nay</Chu>
       <Chu kieu="dam" co={14} mau={M.chu2} style={{ flex: 1, paddingTop: 6 }}>{ngayHomNay()}</Chu>
       <ChuongTb />
     </View>
@@ -72,8 +74,11 @@ export default function HomNay() {
     <View style={{ flex: 1 }}>
       <Man tai={tai} vongTai noi={noi}>
         {dau}
-        {/* N9: nhà nhiều con — chip đổi con (thiết kế 13/14: «B Bảo Anh · M Bảo Minh») */}
-        {d.g.con.length > 1 ? <ChipCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} /> : null}
+        {/* N9: nhà nhiều con — dải avatar tròn (thiết kế bm2-trang-chu 14/11: tên + «còn 18′» dưới, số lời xin góc trên, ＋ Thêm con cuối dải) */}
+        {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)}
+          so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))}
+          phu={Object.fromEntries(d.g.con.map((x) => [x.id, `còn ${x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi)}′`]))}
+          nhanSo="lời xin" them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} /> : null}
         <BangCon key={c.id} conId={c.id} d={d} taiLai={tai} bao={bao} />
       </Man>
     </View>
@@ -154,7 +159,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
     const p = d.choi.find((x) => x.con === conId && x.may === m.ten);
     if (p) dangTheoMay[m.id] = { chu: `● ${p.tenApp}`, mo: true };
   }
-  const tieuNho = khoa ? null : q?.dangNgu ? `${c.ten} đang giờ ngủ` : conPhut ? `${c.ten} còn chơi` : null;
+  // thiết kế bm2-trang-chu 14/11: một dòng to «Còn 18 phút chơi» (không «<Con> còn chơi» + số riêng)
+  const tieuNho = khoa ? null : q?.dangNgu ? `${c.ten} đang giờ ngủ` : null;
   const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : q?.dangNgu ? `Mở lại lúc ${gioGon(q.gioNgu.den)}`
     : conPhut ? null : `${c.ten} hết giờ chơi hôm nay`;
   const phuGio = khoa ? `Đang khoá · còn ${conPhut} phút chơi ›` : `trong ${tongPhut} phút hôm nay ›`;
@@ -171,11 +177,11 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{`${chipChu} ›`}</Chu>
         </Pressable>
         {/* máy đang khoá: không có vạch quỹ ⇒ câu «Đang khoá · còn N phút chơi ›» (cả bề ngang) lên cao, ở khổ 320 đè Grow «nghi» (cổng DE-ANH)
-            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow */}
+            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow. Tiêu đề số «Còn N phút chơi» (.so strong 800, giãn −1) KHÔNG đè Grow (cổng DE-ANH) ⇒ Grow 100 + chữ 26: một dòng từ khổ 375 khi số phút 1–2 chữ số (3 chữ số / chữ hệ thống to thì xuống dòng) */}
         <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_TREN + ROB_CO - TIEU_TU : undefined }}>
           {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
-          {tieuLon ? <Chu kieu="rat" co={24} so>{tieuLon}</Chu>
-            : <Chu kieu="rat" co={40} so style={{ letterSpacing: -1 }}>{String(conPhut)}<Chu kieu="rat" co={18} mau={M.chu2}> phút</Chu></Chu>}
+          {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>
+            : <Chu kieu="den" co={26} so style={{ letterSpacing: -1 }}>{`Còn ${conPhut} phút chơi`}</Chu>}
         </View>
         {!khoa && tongPhut ? (
           <View style={{ marginTop: 8, marginRight: CHUA_ROB - 24 }}>
@@ -185,16 +191,15 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
           <Chu kieu="dam" co={14} mau={M.chinhInk}>{phuGio}</Chu>
         </Pressable>
-        {/* 2 nút chia đều bề ngang (nút «nho» co theo chữ bị cắt «Khoá máy c…» ở khổ 375); máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút
-            một dòng chữ (cổng giao diện NUT-2-DONG: ở 320 hai nút cạnh nhau chỉ còn 124px ⇒ «Khoá máy con» rớt 3 dòng) */}
+        {/* 2 nút chia đều bề ngang; máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút một dòng chữ (cổng NUT-2-DONG). Nhãn + icon 3D theo thiết kế 14/11 */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           <View style={{ flexGrow: 1, flexBasis: 140 }}>
-            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" rong dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-              : <Nut chu="Khoá máy con" ic="khoa" rong tat={!ct.d} bam={() => setBang("khoa")} />}
+            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
           </View>
           <View style={{ flexGrow: 1, flexBasis: 140 }}>
-            {khoa ? <Nut chu="Đổi giờ" ic="dongho" rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
-              : <Nut chu="Cho thêm giờ" ic="dongho" rong loai="vien" bam={() => setBang("gio")} />}
+            {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d sat rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
+              : <Nut chu="Cho thêm giờ" ic="dongho" ic3d sat rong loai="vien" bam={() => setBang("gio")} />}
           </View>
         </View>
         <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />

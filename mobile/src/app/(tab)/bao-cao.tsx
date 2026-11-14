@@ -8,7 +8,8 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type Diem, type GiaDinh } from "@/lib/api";
-import { ChipCon, HangViec, TieuMuc, type GioChoi, type QuyCon } from "@/lib/hang-ngay";
+import { HangViec, TieuMuc, type GioChoi, type QuyCon } from "@/lib/hang-ngay";
+import { DaiCon } from "@/lib/ui-viec";
 import { BaoLoi, Canh, CanhGiua, ChoTai, Chu, M, Man, Nhan, The, useLam, useTai } from "@/lib/ui";
 import { ChuGiai, CotClay } from "@/lib/bieu-do";
 import { luuTepChu } from "@/lib/luu-tep";
@@ -35,17 +36,17 @@ export default function TabBaoCao() {
   const con = chon ?? (conVao && g.d?.con.some((c) => c.id === conVao) ? conVao : g.d?.con[0]?.id) ?? null;
   const dau = (
     <View style={{ flexDirection: "row", alignItems: "baseline", gap: 10, marginHorizontal: 4, marginTop: 4 }}>
-      <Chu kieu="rat" co={28} style={{ letterSpacing: -0.6 }}>Báo cáo</Chu>
+      <Chu kieu="den" co={28} style={{ letterSpacing: -0.6 }}>Báo cáo</Chu>
       <Chu kieu="dam" co={14} mau={M.chu2}>7 ngày qua</Chu>
     </View>
   );
-  if (!g.d) return <View style={{ flex: 1 }}><Man chat>{dau}<ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
-  if (!g.d.con.length) return <View style={{ flex: 1 }}><Man chat>{dau}<CanhGiua lv="canh-trong" tieu="Chưa có con nào" loi="Thêm hồ sơ con để có báo cáo." /></Man></View>;
+  if (!g.d) return <View style={{ flex: 1 }}><Man>{dau}<ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
+  if (!g.d.con.length) return <View style={{ flex: 1 }}><Man>{dau}<CanhGiua lv="canh-trong" tieu="Chưa có con nào" loi="Thêm hồ sơ con để có báo cáo." /></Man></View>;
   return (
     <View style={{ flex: 1 }}>
-      <Man chat tai={g.tai}>
+      <Man tai={g.tai}>
         {dau}
-        {g.d.con.length > 1 ? <ChipCon ds={g.d.con} chon={con!} doi={(x) => setChon(x.id)} /> : null}
+        {g.d.con.length > 1 ? <DaiCon ds={g.d.con} chon={con!} doi={(x) => setChon(x.id)} /> : null}
         {con ? <BaoCaoCon key={con} id={con} /> : null}
       </Man>
     </View>

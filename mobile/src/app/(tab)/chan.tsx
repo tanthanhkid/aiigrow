@@ -24,8 +24,8 @@ export default function TabChan() {
   if (conVao !== vaoCu) { setVaoCu(conVao); setChon(null); }
   const con = chon ?? (conVao && g.d?.con.some((c) => c.id === conVao) ? conVao : g.d?.con[0]?.id) ?? null;
   const dau = <Chu kieu="rat" co={13} mau={M.chu3} style={{ marginTop: -12, marginLeft: 4 }}>App và trang web của con</Chu>;
-  if (!g.d) return <View style={{ flex: 1 }}><Man tieuLon="Chặn" chat>{dau}<ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
-  if (!g.d.con.length) return <View style={{ flex: 1 }}><Man tieuLon="Chặn" chat>{dau}<CanhGiua lv="canh-trong" tieu="Chưa có con nào" loi="Thêm hồ sơ con ở tab Cả nhà." /></Man></View>;
+  if (!g.d) return <View style={{ flex: 1 }}><Man tieuLon="Chặn">{dau}<ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
+  if (!g.d.con.length) return <View style={{ flex: 1 }}><Man tieuLon="Chặn">{dau}<CanhGiua lv="canh-trong" tieu="Chưa có con nào" loi="Thêm hồ sơ con ở tab Cả nhà." /></Man></View>;
   return <ChanCon key={con!} id={con!} ds={g.d.con} dau={dau} doi={setChon} />;
 }
 
@@ -45,7 +45,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
   const chips = ds.length > 1 ? <ChipCon ds={ds} chon={id} doi={(x) => doi(x.id)} /> : null;
-  if (!d) return <View style={{ flex: 1 }}><Man tieuLon="Chặn" chat>{dau}{chips}<ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
+  if (!d) return <View style={{ flex: 1 }}><Man tieuLon="Chặn">{dau}{chips}<ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
 
   const ten = d.ct.ten;
   const cheDo: CheDoChan = d.ct.cheDoChan ?? "chi_app_duoc_phep";
@@ -66,7 +66,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
 
   return (
     <View style={{ flex: 1 }}>
-      <Man tieuLon="Chặn" chat tai={tai} vongTai noi={noi}>
+      <Man tieuLon="Chặn" tai={tai} vongTai noi={noi}>
         {dau}
         {chips}
         {/* thẻ lớn chế độ (.hero) — chế độ đang bật thấy đầu tiên, công tắc ngay trên thẻ */}
