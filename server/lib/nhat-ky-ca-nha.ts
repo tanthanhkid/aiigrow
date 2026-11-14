@@ -17,7 +17,8 @@ export const laNgoaiQuyTac = (loai: string, ct: Record<string, unknown>) =>
 /** Loại sự kiện có câu trong nhật ký (cauSuKien) — lọc trong SQL TRƯỚC limit để sự kiện kỹ thuật không chiếm chỗ. */
 export const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "them_gio", "hoan_tac_them_gio", "doi_sao_lay_gio", "nop_nhiem_vu",
   "duyet_nhiem_vu", "tu_duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "lam_lai_nhiem_vu", "hoan_tac_duyet", "giao_nhiem_vu", "doi_qua", "xac_nhan_qua",
-  "huy_qua", "doi_che_do_chan", "cho_phep_app", "doi_luat_web", "dat_luat_app", "doi_gio_choi", "doi_lich", "khoa_ngay", "mo_lai", "dat_pin", "go_may", "doi_ten_may"];
+  "huy_qua", "doi_che_do_chan", "cho_phep_app", "doi_luat_web", "dat_luat_app", "doi_gio_choi", "doi_lich", "khoa_ngay", "mo_lai", "dat_pin", "go_may", "doi_ten_may",
+  "khoa_may", "mo_khoa_may", "xoa_con"];
 const s = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
 const n = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
 
@@ -61,6 +62,10 @@ export function cauSuKien(loai: string, ct: Record<string, unknown>, ai: string 
     case "dat_pin": return { tieu: `${nguoi} đặt PIN mới`, nhan: null, kieu: "thuong" };
     case "go_may": return { tieu: `${nguoi} gỡ ${s(ct.ten) || "một máy"}`, nhan: null, kieu: "thuong" };
     case "doi_ten_may": return { tieu: `${nguoi} đổi tên máy`, nhan: null, kieu: "thuong" };
+    // 14/11: khoá riêng một máy (lib/khoa-may.ts) · xoá hồ sơ Con (lib/xoa-con.ts)
+    case "khoa_may": return { tieu: `${nguoi} khoá ${s(ct.ten) || "một máy"}`, nhan: null, kieu: "thuong" };
+    case "mo_khoa_may": return { tieu: `${nguoi} mở khoá ${s(ct.ten) || "một máy"}`, nhan: null, kieu: "thuong" };
+    case "xoa_con": return { tieu: `${nguoi} xoá hồ sơ ${s(ct.ten) || "một bé"}`, nhan: null, kieu: "thuong" };
     default: return null;
   }
 }

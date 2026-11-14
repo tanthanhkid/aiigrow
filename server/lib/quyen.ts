@@ -53,5 +53,6 @@ export function trongGiupDuoc(p: string[]): boolean {
   if (p[0] === "yeu-cau" && p[1] && p.length === 3 && ["dong-y", "tu-choi", "mo-lai"].includes(p[2])) return true;
   if (p[0] === "phieu" && p[1] && p.length === 3 && ["xac-nhan", "huy", "trao"].includes(p[2])) return true;   // trao quà
   if (p[0] === "phien" && p[1] && p[2] === "dung" && p.length === 3) return true;                     // dừng phiên = khoá máy
+  if (p[0] === "may" && p[1] && p[2] === "khoa" && p.length === 3) return true;                      // 14/11 khoá / mở riêng một máy
   return false;
 }

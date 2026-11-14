@@ -696,4 +696,7 @@ export const SCHEMA_S3 = [
   // ⇒ bản ghi cũ (nhà cũ hoặc cùng nhà) bị xoá như gỡ máy + sự kiện «may_chuyen_nha» (lib/gia-dinh.ts › ghepMayGd). Agent cũ không gửi ⇒ null.
   `alter table devices add column if not exists ma_may text`,
   `create index if not exists devices_ma_may on devices(ma_may) where ma_may is not null`,
+  // 14/11 «Khoá riêng máy này» (lib/khoa-may.ts): khoá MỘT máy, cùng khoá như children.cau_hinh ({khoa_ngay, khoa_den}) ⇒ taoPolicy gộp vào
+  // Policy.khoaNgay sẵn có — agent mọi OS không phải phát lại.
+  `alter table devices add column if not exists khoa_may jsonb not null default '{}'`,
 ];
