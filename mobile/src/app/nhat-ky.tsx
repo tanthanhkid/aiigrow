@@ -4,10 +4,10 @@
 // Số liệu: GET nhat-ky?ca-nha=1[&con=] (server/lib/nhat-ky-ca-nha.ts). Mở từ Báo cáo «Nhật ký cả nhà ›» (?con= để lọc sẵn một con).
 import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { mauCon, TieuMuc } from "@/lib/hang-ngay";
-import { Avt, BieuTron, Canh, ChoTai, Chu, M, Man, Nhan, NhanMen, The, useTai } from "@/lib/ui";
+import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, NhanMen, The, useTai } from "@/lib/ui";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 
 type Dong = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
@@ -35,7 +35,8 @@ export default function NhatKyCaNha() {
   return (
     <Man lui={{ chu: "Báo cáo" }} tieuLon="Nhật ký cả nhà" tai={g.tai}>
       {cacCon.length > 1 ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="tablist">
+        // thiết kế 04: một hàng chip cuộn ngang (không xuống dòng)
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4, paddingRight: 8 }} accessibilityRole="tablist">
           {[{ id: null as string | null, ten: "Tất cả", avatar: null as string | null }, ...cacCon].map((c) => {
             const on = loc === c.id;
             return (
@@ -43,11 +44,11 @@ export default function NhatKyCaNha() {
                 style={[{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingLeft: c.id ? 4 : 14, paddingRight: 14, borderRadius: 20 },
                   on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
                 {c.id ? <Avt ten={c.ten} mau={mauCon(c.avatar, thuCon(c.id))} co={28} /> : null}
-                <Chu kieu="rat" co={14} mau={on ? "#fff" : M.chu}>{c.ten}</Chu>
+                <Chu kieu="rat" co={14} mau={on ? "#fff" : M.chu}>{c.id ? c.ten.trim().split(/\s+/).slice(-2).join(" ") : c.ten}</Chu>
               </NhanMen>
             );
           })}
-        </View>
+        </ScrollView>
       ) : null}
       <DanhSach key={loc ?? ""} loc={loc} cacCon={cacCon} />
     </Man>
@@ -68,8 +69,14 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : (
         <>
           {d.ngoaiQuyTac.so ? (
-            <Canh lv="chi" thap mau="vang" tieu={`${d.soNgay} ngày qua cho ngoài quy tắc ${d.ngoaiQuyTac.so} lần`}
-              loi={d.ngoaiQuyTac.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")} />
+            // thiết kế 04: dải đào nổi — ô icon cảnh báo · «7 ngày qua cho ngoài quy tắc 4 lần» · «Bà Hoa 3 · Mẹ Lan 1»
+            <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#f9e7d2" }, KHOI.the]}>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}><Icon3D ten="canh_bao" co={24} /></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Chu kieu="rat" co={14.5}>{`${d.soNgay} ngày qua cho ngoài quy tắc ${d.ngoaiQuyTac.so} lần`}</Chu>
+                <Chu kieu="dam" co={12.5} mau="#8a3c0c">{d.ngoaiQuyTac.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")}</Chu>
+              </View>
+            </View>
           ) : null}
           {!d.ds.length ? <Chu co={14} mau={M.chu3} style={{ marginHorizontal: 6 }}>{`${d.soNgay} ngày qua chưa có việc gì.`}</Chu> : null}
           {theoNgay.map((n) => (

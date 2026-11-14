@@ -287,15 +287,15 @@ export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui, loi
   );
 }
 
-/** Ba nút quyết lớn (.ba): `x` ngọc (đồng ý), `c` vàng (cho thêm), `d` sáng chữ đỏ (không cho). */
+/** Ba nút quyết lớn (.ba — thiết kế 14/11 bm-ung-dung/13): `x` than chì chữ trắng (đồng ý), `c` trắng chữ đậm (cho mở, tính giờ), `d` trắng chữ đỏ (không cho). */
 export function NutQuyet({ loai, ic, chu, phu, bam, dangChay }: { loai: "x" | "c" | "d"; ic: TenIcon; chu: string; phu?: string; bam: () => void; dangChay?: boolean }) {
-  const nen = loai === "x" ? M.chinh : loai === "c" ? M.diemSoft : M.the;
-  const mau = loai === "x" ? "#fff" : loai === "c" ? M.diemInk : M.loi;
+  const nen = loai === "x" ? M.nut : M.the;
+  const mau = loai === "x" ? "#fff" : loai === "c" ? M.chu : M.loi;
   return (
     <NhanMen onPress={bam} disabled={dangChay} accessibilityRole="button" accessibilityLabel={phu ? `${chu}, ${phu}` : chu} muc="khoi" sang={loai !== "x"}
-      men={loai === "x" ? MEN.ngoc : MEN.sang}
+      men={loai === "x" ? MEN.toi : MEN.sang}
       style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 10, paddingHorizontal: 16, borderRadius: BO_CLAY.o, backgroundColor: nen,
-        boxShadow: loai === "x" ? BONG.ngoc : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
+        boxShadow: loai === "x" ? BONG.toi : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
       <Icon3D ten={ic} co={32} mau={mau} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={16} mau={mau}>{chu}</Chu>

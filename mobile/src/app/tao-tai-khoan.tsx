@@ -9,7 +9,7 @@ export default function TaoTaiKhoan() {
   return (
     <Man noi={noi} dau={<DauMan ve="/chao" />}
       day={<ChonCachTaoTk tieu="Tạo tài khoản Ba Mẹ" loi="Chọn một cách, mất chưa tới 1 phút." sdt={() => router.push("/dang-ky")} bao={bao} />}>
-      <KhoiRob thoai="Chào Ba Mẹ! Giờ dùng máy cứ để Grow lo." cao={360} />
+      <KhoiRob thoai="Chào Ba Mẹ! Giờ dùng máy cứ để Grow lo." cao={380} />
     </Man>
   );
 }

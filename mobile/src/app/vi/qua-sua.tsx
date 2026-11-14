@@ -9,7 +9,7 @@ import { bm, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { type NhiemVuMoi } from "@/lib/hang-ngay";
 import { buocGia, cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
-import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const SO_LAN = [1, 2, 4, 8];
 
@@ -154,12 +154,13 @@ export default function SuaQua() {
         </View>
       ) : null}
 
-      <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá quà ${q?.ten ?? ""}?`}>
-        <Chu co={14.5} mau={M.chu2}>Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất.</Chu>
+      {/* thiết kế 06: Grow «suy nghĩ» giữa đầu bảng, tiêu đề + câu canh giữa, nút «Giữ lại quà» trắng */}
+      <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá quà ${q?.ten ?? ""}?`} giua dauBang={<View style={{ alignItems: "center" }}><Rob ten="chi" co={110} /></View>}>
+        <Chu kieu="dam" co={14.5} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất.</Chu>
         {q?.dangGiu ? <Chu co={14} mau={M.chu2}>{`${q.dangGiu} phiếu đang chờ trao sẽ được huỷ và hoàn sao cho con.`}</Chu> : null}
         <BaoLoi loi={loiLam} />
         <Nut chu={`Xoá quà ${q?.ten ?? ""}`} loai="huy" rong dangChay={dangChay} bam={xoaQua} />
-        <Nut chu="Giữ lại quà" loai="ma" rong bam={() => setXoa(false)} />
+        <Nut chu="Giữ lại quà" loai="vien" rong bam={() => setXoa(false)} />
       </BangTruot>
     </Man>
   );

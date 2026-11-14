@@ -663,7 +663,7 @@ await kichBan("Nhờ làm lại: chọn vì sao + lời nhắn ⇒ Con chưa nh�
   await doi("↺ Nhờ con làm lại");
   await bam("↺ Nhờ con làm lại");
   xet(await doi(`Nhờ ${KEN} làm lại`), "mở màn Nhờ làm lại");
-  xet(await doi("Con chưa nhận sao, nộp ảnh mới"), "nói rõ chưa cộng sao");
+  xet(await doi("Con chưa nhận sao. Nộp ảnh mới"), "nói rõ chưa cộng sao");
   await bam("Ảnh mờ, chụp lại");
   await bam(`Gửi lời nhắn cho ${KEN}`);
   xet(await choGoi((x) => x.d === "luot/l1/lam-lai" && x.body?.lyDo === "Ảnh mờ, chụp lại" && x.body?.loiNhan === "Con làm lại rồi chụp ảnh mới cho Ba Mẹ nhé!"), "gửi lam-lai kèm vì sao + lời nhắn");
@@ -1041,7 +1041,7 @@ await kichBan("Hôm nay: thẻ «còn chơi X phút» (quỹ) + «Cho thêm gi�
   xet(await doi(`Cho ${KEN} thêm giờ`), "mở bảng «Cho <Con> thêm giờ»");
   xet(await doi("Đang còn 18 phút · chỉ tính hôm nay"), "nói rõ còn bao nhiêu, chỉ tính hôm nay");
   xet(await doi("tự đổi ra 30 phút được"), "nhắc số sao con tự đổi được (145 sao, tối đa 30 phút/ngày)");
-  await bamTrong('[role="radio"]', "15 phút");
+  await bamTrong('[role="radio"]', "15");   // ô «15 / phút» hai dòng (thiết kế .chon)
   nhatKy.length = 0;
   await bam("Cho thêm 15 phút · còn 33′");
   xet(await choGoi((x) => x.d === "con/c1/them-gio" && x.m === "POST" && x.body?.phut === 15), "gửi them-gio đúng số phút");
@@ -1146,7 +1146,7 @@ await kichBan("Máy của con và Hồ sơ Con báo CÙNG một mức bảo vệ
   xet(await doi("Chưa bảo vệ"), "danh sách máy: iPad «Chưa bảo vệ»");
   xet(await doi("Đang bảo vệ"), "danh sách máy: Laptop «Đang bảo vệ»");
   await di("/ho-so/c1");
-  xet(await doi("2 máy · iPad cần sửa"), "Hồ sơ Con cũng báo đúng máy cần sửa (iPad)");
+  xet(await doi("iPad cần sửa"), "Hồ sơ Con cũng báo đúng máy cần sửa (iPad)");
   xet(!(await chu()).includes("đang được bảo vệ"), "không khen «đang được bảo vệ» khi còn máy cần sửa");
 });
 

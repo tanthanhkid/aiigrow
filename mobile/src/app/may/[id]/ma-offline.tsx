@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, Share, View } from "react-native";
+import { OLomIcon } from "@/lib/ui-viec";
 import { bm, type ChiTietTuanThu, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { IC_MAY } from "@/lib/hang-ngay";
@@ -93,28 +94,30 @@ export default function MaMoMay() {
         ) : null}
       </View>
 
-      <Chu kieu="rat" co={15} style={{ paddingHorizontal: 4, marginTop: 4 }}>Mở máy trong</Chu>
+      <Chu kieu="rat" co={15} mau={M.chu2} style={{ paddingHorizontal: 6, marginTop: 4 }}>Mở máy trong</Chu>
       <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
         {(ma?.chonPhut ?? [...PHUT_MO]).map((p) => {
           const on = p === phut;
           return (
             <Pressable key={p} onPress={() => { if (p !== phut) { setMa(null); setPhut(p); } }} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${p} phút`}
-              style={[{ flex: 1, minHeight: 72, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-              <Chu kieu="rat" co={24} so mau={on ? "#fff" : M.chu}>{String(p)}</Chu>
-              <Chu kieu="dam" co={12.5} mau={on ? "#fff" : M.chu3}>{`phút · tới ${gioPhut(new Date(bayGio + p * 60_000).toISOString())}`}</Chu>
+              // thiết kế 07: ô lõm cao 64 — «30 phút» 16/800 + «tới 20:10»; ô chọn ngọc
+              style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+              <Chu kieu="rat" co={16} so mau={on ? "#fff" : M.chu}>{`${p} phút`}</Chu>
+              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>{`tới ${gioPhut(new Date(bayGio + p * 60_000).toISOString())}`}</Chu>
             </Pressable>
           );
         })}
       </View>
-      <View style={{ gap: 8, marginTop: 4 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: M.the, ...KHOI.nho }}>
-          <Icon3D ten="khoa" co={28} />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết giờ, ${ngan} tự khoá lại`}</Chu><Chu co={13} mau={M.chu3}>Không cần mạng</Chu></View>
+      {/* thiết kế 07: một thẻ hai dòng (ô icon lõm · chữ), cách bằng vạch mảnh */}
+      <View style={[{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60 }}>
+          <OLomIcon ic="khoa" />
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết giờ, ${ngan} tự khoá lại`}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Không cần mạng</Chu></View>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: M.the, ...KHOI.nho }}>
-          <Icon3D ten="wifi" co={28} />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, giờ chơi tự cập nhật</Chu><Chu co={13} mau={M.chu3}>Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: 1.5, borderTopColor: "#ecebe7" }}>
+          <OLomIcon ic="wifi" />
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, giờ chơi tự cập nhật</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
         </View>
       </View>
 

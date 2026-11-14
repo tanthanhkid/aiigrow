@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { KHOI } from "@/lib/clay";
 import {
-  BieuTron, ChoTai, Chu, gioPhut, Icon, M, Man, Nut, Rob, The, useHoanTac, useTai,
+  ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai,
 } from "@/lib/ui";
 import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
@@ -56,17 +56,28 @@ export default function TabNhiemVu() {
   const sao = (c as { sao?: number }).sao ?? c.soDu;
   return (
     <Man tieuLon="Nhiệm vụ" tai={tai} vongTai noi={noi}
-      phaiTieu={baMe ? <Nut chu="Thêm việc" ic="cong" loai="vien" nho bam={() => router.push(`/giao-nv?con=${c.id}` as never)} /> : undefined}>
+      phaiTieu={baMe ? (
+        // thiết kế .them: viên sáng 44, «＋ Thêm việc» 14/800 ngọc — gọn để tiêu đề «Nhiệm vụ» không bẻ dòng
+        <NhanMen onPress={() => router.push(`/giao-nv?con=${c.id}` as never)} accessibilityRole="button" muc="chip" sang
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 22, backgroundColor: "#f7f6f3", ...KHOI.nho }}>
+          <Icon ten="cong" co={18} mau={M.chinhInk} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Thêm việc</Chu>
+        </NhanMen>
+      ) : undefined}>
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} so={soCho} /> : null}
 
-      <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}`}
-        style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 28, backgroundColor: M.diemSoft }, KHOI.the]}>
-        <BieuTron ic="sao" mau="vang" lon />
-        <View style={{ flex: 1 }}>
-          <Chu kieu="rat" co={17} mau={M.diemInk}>{`${c.ten} đang có ${sao} sao`}</Chu>
-          <Chu co={13.5} mau={M.diemInk}>{c.phutDoiDuoc !== undefined ? `Đổi được ${c.phutDoiDuoc} phút chơi` : "Xem ví sao"}</Chu>
+      {/* thiết kế .vi: thẻ vàng — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «Đổi được 30 phút chơi ›»; Grow vui góc phải */}
+      <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${sao} sao`}
+        style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbecc0)", overflow: "hidden" }, KHOI.the]}>
+        <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
+        <Chu kieu="dam7" co={13.5} mau="#6e4300" dong={1} style={{ marginRight: 116 }}>{`${c.ten} đang có`}</Chu>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
+          <Icon3D ten="sao" co={38} />
+          <Chu kieu="rat" co={40} so style={{ lineHeight: 46, letterSpacing: -1 }}>{String(sao)}</Chu>
+          <Chu kieu="rat" co={18} style={{ marginTop: 8 }}>sao</Chu>
         </View>
-        <Icon ten="phai" mau={M.diemInk} co={18} />
+        <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#fff", justifyContent: "center" }}>
+          <Chu kieu="rat" co={13} mau="#6e4300">{c.phutDoiDuoc !== undefined ? `Đổi được ${c.phutDoiDuoc} phút chơi ›` : "Xem ví sao ›"}</Chu>
+        </View>
       </Pressable>
 
       {cua.cho.length ? (

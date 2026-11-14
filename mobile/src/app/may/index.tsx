@@ -9,7 +9,7 @@ import { Pressable, View } from "react-native";
 import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 import { BangKhoaMay, type ConCt, type QuyCon } from "@/lib/hang-ngay";
-import { DauMan, LienKet, TieuDe } from "@/lib/lan-dau";
+import { DauMan, LienKet } from "@/lib/lan-dau";
 import { ChoTai, Chu, gioPhut, Icon, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai, type TenIcon } from "@/lib/ui";
 
 const IC: Record<TuanThuMay["nen"], TenIcon> = { windows: "laptop", mac: "laptop", ios: "tablet", android: "dt" };
@@ -41,7 +41,7 @@ export default function MayCuaCon() {
     return { ds: c ? tt.ds.filter((m) => m.con === c.id || m.dungChung) : tt.ds, c, quy: qy?.quy ?? null, phien: ph?.ds ?? [] };
   });
   const tieu = d?.c ? `Máy của ${d.c.ten}` : "Máy của các con";
-  if (!d) return <Man dau={<DauMan ve="/hom-nay" />}><TieuDe chu={tieu} /><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man dau={<DauMan ve="/hom-nay" tieu={tieu} />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const c = d.c;
   const ngan = (t: string) => t.replace(/ của .*$/, "");
   // app đang mở trên từng máy (phiên chơi đang chạy — khớp theo tên máy)
@@ -64,17 +64,16 @@ export default function MayCuaCon() {
     </View>
   ) : null;
   return (
-    <Man noi={noi} tai={tai} dau={<DauMan ve="/hom-nay" />}
+    // thiết kế bm-ghep-may/01: tiêu đề «Máy của <Con>» ở hàng đầu cạnh nút lùi (22/800), không tiêu đề lớn trong thân
+    <Man noi={noi} tai={tai} dau={<DauMan ve="/hom-nay" tieu={tieu} />}
       day={<>
         <Nut chu={c ? `+ Ghép thêm máy cho ${c.ten}` : "+ Ghép thêm máy"} rong bam={() => router.push({ pathname: "/may/them", params: c ? { con: c.id } : {} })} />
         {c && d.ds.length ? (
-          <Pressable onPress={() => setKhoa(true)} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 44 }}>
-            <Icon3D ten="khoa" co={20} /><Chu kieu="rat" co={14.5} mau={M.chu}>Khoá tất cả máy ngay</Chu>
-          </Pressable>
+          <Nut chu="Khoá tất cả máy ngay" ic="khoa" ic3d loai="vien" rong bam={() => setKhoa(true)} />
         ) : null}
         {c && d.quy && d.ds.length ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`Giờ chơi tính chung mọi máy: còn ${d.quy.conPhut} phút.`}</Chu> : null}
       </>}>
-      <TieuDe chu={tieu} phu={d.ds.length ? undefined : "Chưa có máy nào — ghép bằng mã 6 số, chưa tới 2 phút."} />
+      {d.ds.length ? null : <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Chưa có máy nào — ghép bằng mã 6 số, chưa tới 2 phút.</Chu>}
       {nhom("Cần sửa", canSua)}
       {nhom("Đang bảo vệ", baoVe)}
       {nhom("Đang tắt", tat)}

@@ -37,6 +37,8 @@ export const DO = String.raw`(() => {
   const noi = a => { let abs = false; for (let e = a; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e);
     if (/(auto|scroll)/.test(cs.overflowY) && e.scrollHeight > e.clientHeight) return false; if (cs.position === 'fixed' || cs.position === 'absolute') abs = true; } return abs; };
   const cuoi = !!window.__gdCuoi;
+  // hộp thoại trên cùng đang mở: chữ PHÍA SAU nó bị phủ (như ảnh ở trên) ⇒ không xét chữ đó bị ảnh trong hộp thoại «đè» (ô hình đầu bảng trượt 14/11)
+  const hopTren = [...document.querySelectorAll('[aria-modal=true]')].filter(hien).pop();
   // Ảnh là đồ hoạ CỦA chữ: cùng một thành phần bấm được (thẻ «Cần giúp?»), hoặc ảnh là nền của khung nhỏ chứa chữ (vòng tiến độ).
   const dienTich = e => { const r = e.getBoundingClientRect(); return r.width * r.height; };
   // Phần ảnh THẤY ĐƯỢC: cắt theo mọi khung tổ tiên có overflow ≠ visible (ScrollView). Ảnh cuộn xuống dưới thanh tab / nút đáy cố định
@@ -58,6 +60,7 @@ export const DO = String.raw`(() => {
   const daBao = new Set();
   for (const n of tn) {
     const el = n.parentElement, cs = getComputedStyle(el), chu = n.textContent.trim().slice(0,50);
+    if (hopTren && !hopTren.contains(el)) continue;   // chữ sau hộp thoại đang mở (bị nền mờ phủ) — không ai đọc, không xét
     const co = parseFloat(cs.fontSize), dam = +cs.fontWeight >= 700, lon = co >= 24 || (co >= 18.66 && dam);
     // 1. tương phản (lượt đã cuộn hết chỉ xét ảnh nổi đè chữ)
     // chữ trong SVG (<text>) tô bằng fill, không bằng color — đọc đúng màu thật của nó (trước đây lấy color ⇒ báo sai chữ trắng thành đen)
