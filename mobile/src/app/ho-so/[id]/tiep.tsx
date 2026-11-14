@@ -4,15 +4,16 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
-import { mauCon } from "@/lib/hang-ngay";
+import { mauCon, tenGoi } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { BONG, KHOI } from "@/lib/clay";
-import { Chu, Icon, M, Man, Nut, Rob, useTai, type TenIcon } from "@/lib/ui";
+import { ChoTai, Chu, Icon, M, Man, Nut, Rob, useTai, type TenIcon } from "@/lib/ui";
 
 export default function BuocTiep() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { d } = useTai(() => bm.goi<ConChiTiet & { coPin?: boolean }>(`con/${id}`));
-  const ten = d?.ten.trim().split(/\s+/).slice(-2).join(" ") ?? "con";
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet & { coPin?: boolean }>(`con/${id}`));
+  if (!d) return <Man><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  const ten = tenGoi(d.ten);
   const buoc: [TenIcon, string, string, string][] = [
     ["lich", `Một ngày của ${ten}`, "Học · Vận động · Giúp Ba Mẹ", `/giao-nv?con=${id}`],
     ["qua", `Quà của ${ten}`, "Voucher hoặc Ba Mẹ tự điền", `/vi/qua?con=${id}`],
@@ -33,14 +34,14 @@ export default function BuocTiep() {
           borderBottomRightRadius: 20, borderBottomLeftRadius: 6, backgroundColor: "#fff", ...KHOI.the }}>
           <Chu kieu="rat" co={14} style={{ lineHeight: 19 }}>{`Chào ${ten}! Còn 5 bước nữa nhé`}</Chu>
         </View>
-        <View style={{ position: "absolute", right: 12, top: 52, width: 60, height: 60, borderRadius: 30, backgroundColor: mauCon(d?.avatar, 0), alignItems: "center", justifyContent: "center",
+        <View style={{ position: "absolute", right: 12, top: 52, width: 60, height: 60, borderRadius: 30, backgroundColor: mauCon(d.avatar, 0), alignItems: "center", justifyContent: "center",
           boxShadow: BONG.nho }}>
           <Chu kieu="rat" co={26} mau="#fff">{ten.split(/\s+/).pop()?.charAt(0).toUpperCase() ?? "?"}</Chu>
         </View>
       </View>
       <View style={{ alignItems: "center", gap: 2 }}>
         <Chu kieu="rat" co={24} style={{ letterSpacing: -0.4, textAlign: "center" }}>{`Đã tạo hồ sơ ${ten}`}</Chu>
-        <Chu kieu="dam" co={14} mau={M.chu2}>{d?.coPin === false ? "Chưa đặt PIN vào máy" : "PIN vào máy đã đặt"}</Chu>
+        <Chu kieu="dam" co={14} mau={M.chu2}>{d.coPin ? "PIN vào máy đã đặt" : "Chưa đặt PIN vào máy"}</Chu>
       </View>
       <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
         {buoc.map(([ic, tieu, phu, den], k) => (

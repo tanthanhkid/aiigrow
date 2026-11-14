@@ -8,7 +8,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type Diem, type GiaDinh } from "@/lib/api";
-import { HangViec, TieuMuc, type GioChoi, type QuyCon } from "@/lib/hang-ngay";
+import { HangViec, tenGoi, TieuMuc, type GioChoi, type QuyCon } from "@/lib/hang-ngay";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, M, Man, NhanMen, Rob, The, useLam, useTai } from "@/lib/ui";
 import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
@@ -25,8 +25,6 @@ const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ N�
 const gio = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${String(p % 60).padStart(2, "0")}` : ""}` : `${p} phút`);
 const gioNgan = (p: number) => (p >= 60 ? `${Math.floor(p / 60)}g ${String(p % 60).padStart(2, "0")}` : `${p}′`);
 const ngayNgan = (ngay: string) => `${Number(ngay.slice(8, 10))}/${Number(ngay.slice(5, 7))}`;
-/** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh» (thiết kế gọi con bằng tên gọi). */
-const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 const thuCua = (ngay: string) => new Date(`${ngay}T12:00:00`).getDay();
 
 export default function TabBaoCao() {
@@ -105,7 +103,7 @@ function BaoCaoCon({ id }: { id: string }) {
               </View>
             ) : null;
           })()}
-          <CotGioChoi max={max} nhanDoc="Giờ chơi theo ngày"
+          <CotGioChoi max={max} nhanDoc="Giờ chơi theo ngày" quyVach={gc?.quyNgayThuong ?? null}
             ds={ngay.map((x) => {
               const q = quyNgay(x.ngay), ngoai = q === null ? 0 : Math.max(0, x.phut - q);
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];

@@ -117,10 +117,11 @@ export type CotChoi = { khoa: string; nhan: string; doc: string; phut: number; q
  * Biểu đồ «Giờ chơi của <Con>» (thiết kế bm-bao-cao-ngay/01 .bieu): cột đặc rộng (không rãnh), ngọc khi trong quỹ, CAM cả cột khi quá quỹ,
  * hôm nay sọc chéo ngọc; vạch ĐỨT ngang ở mức quỹ ngày. Cao 120, đỉnh ứng với `max`. Mọc từ chân như CotClay.
  */
-export function CotGioChoi({ ds, max, cao = 120, nhanDoc }: { ds: CotChoi[]; max: number; cao?: number; nhanDoc?: string }) {
+export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotChoi[]; max: number; cao?: number; nhanDoc?: string;
+  /** mức vạch đứt (Báo cáo: quỹ NGÀY THƯỜNG — khớp chú giải «Quỹ 60′/ngày»); cột vẫn tô cam theo quỹ của chính ngày đó */ quyVach?: number | null }) {
   const giam = useReducedMotion();
   const dinh = Math.max(1, max);
-  const quy = ds.find((x) => x.quy !== null)?.quy ?? null;
+  const quy = quyVach ?? ds.find((x) => x.quy !== null)?.quy ?? null;
   const yQuy = quy !== null ? Math.min(1, quy / dinh) * cao : null;
   return (
     <View accessible accessibilityLabel={[nhanDoc, ...ds.map((x) => x.doc)].filter(Boolean).join("; ")} style={{ marginTop: 16 }}>

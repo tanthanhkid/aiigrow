@@ -64,6 +64,8 @@ export const tuoiCua = (namSinh: number | null | undefined) => {
 };
 /** 5 màu hồ sơ Con «mau-<số>» — trùng bảng của luồng Lần đầu (M1 lib/lan-dau › MAU_HO_SO); avatar cũ (không «mau-») ⇒ màu theo thứ tự. */
 const MAU_HO_SO = ["#f29a4a", "#6aa3ef", "#ec8db2", "#5bbf95", "#a98bea"];
+/** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh»: tên gọi (2 chữ cuối) — thiết kế 14/11 gọi con bằng tên gọi ở dải avatar, Báo cáo, «bước tiếp». */
+export const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 export const mauCon = (avatar: string | null | undefined, thu = 0) => {
   const k = Number(/^mau-(\d)$/.exec(avatar ?? "")?.[1]);
   return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : thu % MAU_HO_SO.length];
@@ -215,6 +217,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
 }) {
   type Han = "30" | "60" | "sang" | "mo";
   const [han, setHan] = useState<Han>("30");
+  const [hanTruoc, setHanTruoc] = useState<Han>("30");   // lựa chọn trước khi bấm «Khoá tới khi Ba Mẹ mở» — bỏ tick là trả lại
   const { lam, loi, dangChay } = useLam();
   // giờ hiện trên nút chỉ để xem trước; hạn THẬT tính lúc bấm (bảng có thể mở lâu — review PR #241)
   const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
@@ -263,7 +266,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
         })}
       </View>
       {/* thiết kế 05 chỉ vẽ 3 lựa chọn; giữ «Tới khi Ba Mẹ mở» (khoá không hạn — có từ trước, Trang chủ hiện «Khoá tới khi Ba Mẹ mở») dạng dòng nhỏ */}
-      <Pressable onPress={() => setHan(han === "mo" ? "30" : "mo")} accessibilityRole="radio" accessibilityState={{ checked: han === "mo" }} hitSlop={4}
+      <Pressable onPress={() => { if (han === "mo") setHan(hanTruoc); else { setHanTruoc(han); setHan("mo"); } }} accessibilityRole="radio" accessibilityState={{ checked: han === "mo" }} hitSlop={4}
         style={{ minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
         {han === "mo" ? <Icon ten="tick" co={14} mau={M.chinhInk} /> : null}
         <Chu kieu="rat" co={13.5} mau={M.chinhInk}>Khoá tới khi Ba Mẹ mở</Chu>

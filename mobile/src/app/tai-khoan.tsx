@@ -97,7 +97,7 @@ export default function TaiKhoan() {
                 style={{ height: 54, borderRadius: 27, paddingHorizontal: 20, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 18, color: M.chu }} />
             </View>
             {/* nút gọn theo chữ (Nut không «rong» thì giãn chia đôi hàng) */}
-            <View style={{ width: 112 }}><Nut chu="Lưu tên" dangChay={luuTen.dangChay} tat={!t.trim()} bam={doiTen} /></View>
+            <View style={{ width: 112 }}><Nut chu="Lưu tên" dangChay={luuTen.dangChay} tat={!t.trim() || t.trim() === toi.ten} bam={doiTen} /></View>
           </View>
           <BaoLoi loi={luuTen.loi} />
         </View>

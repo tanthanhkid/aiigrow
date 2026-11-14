@@ -6,10 +6,10 @@
 import { useState } from "react";
 import { Pressable, Share, TextInput, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { chuDau, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
+import { type Quyen, type ToiCaNha } from "@/lib/ca-nha";
 import { veHoac } from "@/lib/ui-bm3";
 import { BONG, KHOI } from "@/lib/clay";
-import { BaoLoi, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
 import { mauCon } from "@/lib/hang-ngay";
 
 type KqMoi = { id: string; tenGoi: string | null; dinhDanh: string | null; quyen: Quyen; chiaSe: { tieuDe: string; noiDung: string; lienKet: string } };
@@ -98,9 +98,9 @@ export default function MoiNguoiNha() {
         backgroundImage: "linear-gradient(#e9f3ef, #d6e9e2)", ...KHOI.the }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 5).map((t, i) => (
-            <View key={i} style={{ width: 50, height: 50, borderRadius: 25, marginLeft: i ? -6 : 0, borderWidth: 3, borderColor: "#fff", backgroundColor: i ? mauCon(null, i - 1) : "#d0668a",
-              alignItems: "center", justifyContent: "center" }}>
-              <Chu kieu="rat" co={19} mau="#fff">{chuDau(t)}</Chu>
+            // Avt tự chọn màu chữ đủ tương phản trên nền (cổng TUONG-PHAN)
+            <View key={i} style={{ marginLeft: i ? -6 : 0, borderRadius: 25, borderWidth: 3, borderColor: "#fff" }}>
+              <Avt ten={t} mau={i ? mauCon(null, i - 1) : "#d0668a"} co={44} />
             </View>
           ))}
           <View style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 4, borderWidth: 2.5, borderStyle: "dashed", borderColor: M.chinhInk, alignItems: "center", justifyContent: "center" }}>

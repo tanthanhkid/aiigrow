@@ -380,7 +380,7 @@ export function BanhXeGio({ gio, doi }: { gio: string; doi: (g: string) => void 
   const [h, m] = gio.split(":");
   const gioDs = Array.from({ length: 24 }, (_, k) => String(k).padStart(2, "0"));
   const phutDs = Array.from({ length: 12 }, (_, k) => String(k * 5).padStart(2, "0"));
-  const mm = phutDs.includes(m) ? m : phutDs[Math.round(Number(m) / 5) % 12];
+  const mm = phutDs.includes(m) ? m : phutDs[Math.floor(Number(m) / 5) % 12];   // làm tròn XUỐNG: 21:58 ⇒ 21:55 (tròn lên 60 không cộng giờ ⇒ nhảy về 21:00)
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
       <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: CAO_O * 2, height: CAO_O, borderRadius: 14, backgroundColor: "#e3efeb" }} />

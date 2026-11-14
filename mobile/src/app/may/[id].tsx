@@ -123,8 +123,9 @@ export default function AnToanMay() {
         <>
           <View style={{ height: 210, borderRadius: 28, backgroundColor: "#fbe5ce", backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", overflow: "hidden", ...KHOI.the }}
             accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <View style={{ position: "absolute", left: 22, top: 56 }}><Icon3D ten={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} co={104} /></View>
-            <View style={{ position: "absolute", left: 108, top: 48, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
+            <View style={{ position: "absolute", left: 22, top: 54 }}><Icon3D ten={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} co={80} /></View>
+            {/* máy 80 (HTML 104): chip «Báo về … · vẫn tính giờ» xuống 2–3 dòng khi giãn chữ (WCAG 1.4.12) không chạm máy — cổng DE-ANH */}
+            <View style={{ position: "absolute", left: 88, top: 48, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
               boxShadow: "0px 6px 10px -4px rgba(161,75,0,0.6), inset 0px 1.5px 0px rgba(255,255,255,0.4)" }}>
               <Chu kieu="rat" co={24} mau="#fff">!</Chu>
             </View>
@@ -138,13 +139,16 @@ export default function AnToanMay() {
               </View>
             ) : null}
             <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: "#fff" }}>
-              <Chu kieu="rat" co={12.5} mau="#8a3c0c">{`Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn tính giờ`}</Chu>
+              <Chu kieu="rat" co={12.5} mau="#8a3c0c" dong={2}>{`Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn tính giờ`}</Chu>
             </View></View>
           </View>
           <View style={{ paddingHorizontal: 6, gap: 4 }}>
             <Chu kieu="rat" co={20} style={{ lineHeight: 26, letterSpacing: -0.3 }}>{`${ngan} chưa được bảo vệ`}</Chu>
             <Chu kieu="dam" co={14} mau={M.chu2} style={{ lineHeight: 20 }}>{m.baoVeCau && !/việc cần sửa/.test(m.baoVeCau) ? m.baoVeCau
               : `Grow vẫn tính giờ, nhưng ${ngan} chưa được khoá đủ nên con tự tắt được.`}</Chu>
+            {/* bong bóng chỉ nêu việc đầu ⇒ các việc còn lại (và vấn đề tuân thủ khi không có danh sách việc thiếu) liệt kê ở đây */}
+            {(m.baoVeThieu?.length ?? 0) > 1 ? <View>{m.baoVeThieu!.slice(1).map((x) => <TickDong key={x.ma} trang="x" chu={x.ten} />)}</View> : null}
+            {!m.baoVeThieu?.length && m.vanDe.length ? <View>{m.vanDe.map((v) => <TickDong key={v.loai} trang="x" chu={v.cauBaMe} />)}</View> : null}
           </View>
         </>
       )}

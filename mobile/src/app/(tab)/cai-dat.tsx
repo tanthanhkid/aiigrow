@@ -11,7 +11,7 @@ import { usePhien } from "@/lib/phien";
 import { KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauMay } from "@/lib/viec-nhanh";
-import { mauCon } from "@/lib/hang-ngay";
+import { mauCon, tenGoi } from "@/lib/hang-ngay";
 import { BONG, KHOI } from "@/lib/clay";
 import {
   Avt, BangTruot, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, Nut, useHoanTac, useLam, useTai,
@@ -19,8 +19,6 @@ import {
 
 /** Màu avatar người lớn theo thiết kế (.ng: hồng, nâu, xám xanh…). */
 const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#3f9a86", "#b5838d"];
-/** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh» (tên gọi dưới avatar: 2 chữ cuối). */
-const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 const TEN_NEN = { windows: "Laptop", mac: "MacBook", ios: "iPad", android: "Điện thoại" } as const;
 /** «20/10». */
 const ngayThang = (iso: string) => { const t = new Date(iso); return Number.isNaN(t.getTime()) ? "" : `${t.getDate()}/${t.getMonth() + 1}`; };

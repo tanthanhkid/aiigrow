@@ -79,7 +79,7 @@ export default function DsThongBaoMan() {
 
 /** Thẻ nhóm (thiết kế .de-y đào / .ds sáng): các dòng cách nhau bằng vạch mảnh. */
 function NhomTb({ deY, children }: { deY?: boolean; children: ReactNode }) {
-  return <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: deY ? "#f9e7d2" : "#f7f6f3" }, KHOI.the]}>{children}</View>;
+  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: deY ? "#f9e7d2" : "#f7f6f3" }, KHOI.the]}>{children}</View>;
 }
 
 /** Một dòng thông báo (.lg): giờ (cột 40) · ô icon lõm · tiêu đề + dòng phụ · hành động («Trả lời» viên than chì, còn lại chữ «Xem ›»). */
@@ -88,7 +88,7 @@ function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boo
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={[tieu, phu, luc].filter(Boolean).join(", ")}
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? "#f3d6b8" : "#ecebe7" }}>
-      <Chu kieu="rat" co={13} mau="#565c59" style={{ width: 40 }} dong={1}>{luc}</Chu>
+      <Chu kieu="rat" co={13} mau="#565c59" style={{ width: 44 }} dong={2}>{luc}</Chu>
       <OLomIcon ic={ic} nen={deY ? "#f3d6b8" : "#ecebe7"} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15} dong={2}>{tieu}</Chu>
