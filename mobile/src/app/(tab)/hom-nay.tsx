@@ -185,11 +185,16 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
           <Chu kieu="dam" co={14} mau={M.chinhInk}>{phuGio}</Chu>
         </Pressable>
+        {/* 2 nút chia đều bề ngang (nút «nho» co theo chữ bị cắt «Khoá máy c…» ở khổ 375) */}
         <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-          {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" nho dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-            : <Nut chu="Khoá máy con" ic="khoa" nho tat={!ct.d} bam={() => setBang("khoa")} />}
-          {khoa ? <Nut chu="Đổi giờ" ic="dongho" nho loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
-            : <Nut chu="Cho thêm giờ" ic="dongho" nho loai="vien" bam={() => setBang("gio")} />}
+          <View style={{ flex: 1 }}>
+            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" rong dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+              : <Nut chu="Khoá máy con" ic="khoa" rong tat={!ct.d} bam={() => setBang("khoa")} />}
+          </View>
+          <View style={{ flex: 1 }}>
+            {khoa ? <Nut chu="Đổi giờ" ic="dongho" rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
+              : <Nut chu="Cho thêm giờ" ic="dongho" rong loai="vien" bam={() => setBang("gio")} />}
+          </View>
         </View>
         <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />
       </The>
