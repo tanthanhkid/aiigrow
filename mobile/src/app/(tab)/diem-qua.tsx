@@ -69,7 +69,7 @@ export default function TabNhiemVu() {
       <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${sao} sao`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbecc0)", overflow: "hidden" }, KHOI.the]}>
         <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
-        <Chu kieu="dam7" co={13.5} mau="#6e4300" dong={1} style={{ marginRight: 96 }}>{`${c.ten} đang có`}</Chu>
+        <Chu kieu="dam7" co={13.5} mau="#6e4300" dong={1} style={{ marginRight: 116 }}>{`${c.ten} đang có`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
           <Icon3D ten="sao" co={38} />
           <Chu kieu="rat" co={40} so style={{ lineHeight: 46, letterSpacing: -1 }}>{String(sao)}</Chu>
