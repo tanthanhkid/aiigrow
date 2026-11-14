@@ -212,7 +212,7 @@ export function ManKetQua({ lv = "xong", tieu, loi, dong, chinh, phu, noi, child
  *  Máy đang khoá riêng hiện «Đang khoá tới HH:MM» (`may[].khoaMay`).
  *  `dang`: dòng phụ từng máy (vd «● Roblox · từ 19:02») — không có thì «Đang mở» / «Đang tắt». `xong(chu, hoan)` ⇒ toast + Hoàn tác (mở lại). */
 export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
-  mo: boolean; dong: () => void; con: string; ten: string; may: Pick<MayCon, "id" | "ten" | "nen" | "truc" | "khoaMay">[];
+  mo: boolean; dong: () => void; con: string; ten: string; may: Pick<MayCon, "id" | "ten" | "nen" | "truc" | "khoaMay" | "dungChung">[];
   dang?: Record<string, { chu: string; mo?: boolean }>;
   xong: (chu: string, hoan: () => Promise<void>) => void;
 }) {
@@ -220,8 +220,10 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   const [han, setHan] = useState<Han>("30");
   // máy Ba Mẹ BỎ chọn (mặc định chọn hết — danh sách máy có thể về sau khi bảng đã dựng)
   const [boChon, setBoChon] = useState<ReadonlySet<string>>(new Set());
-  const cach = cachKhoa(may.map((m) => m.id), may.map((m) => m.id).filter((id) => !boChon.has(id)));
-  const soChon = may.filter((m) => !boChon.has(m.id)).length;
+  // máy dùng chung không khoá riêng được cho MỘT Con (khoá máy ⇒ mọi bé trên máy đó) ⇒ không tự chọn; chỉ khoá khi chọn đủ máy riêng (khoá theo Con)
+  const rieng = may.filter((m) => !m.dungChung).map((m) => m.id);
+  const cach = cachKhoa(rieng, rieng.filter((id) => !boChon.has(id)));
+  const soChon = cach?.kieu === "con" ? may.length : cach ? cach.ids.length : 0;
   const { lam, loi, dangChay } = useLam();
   // giờ hiện trên nút chỉ để xem trước; hạn THẬT tính lúc bấm (bảng có thể mở lâu — review PR #241)
   const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
@@ -260,15 +262,16 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
         <View style={{ gap: 8 }}>
           {may.map((m) => {
             const x = dang?.[m.id];
-            const on = !boChon.has(m.id);
-            const kh = cauKhoaMay(m.khoaMay);
+            const on = m.dungChung ? cach?.kieu === "con" : !boChon.has(m.id);
+            const kh = m.dungChung && !on ? "Máy dùng chung · chỉ khoá khi chọn đủ máy" : cauKhoaMay(m.khoaMay);
             return (
-              <Pressable key={m.id} onPress={() => doiChon(m.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`Khoá ${ngan(m.ten)}`}
+              <Pressable key={m.id} onPress={m.dungChung ? undefined : () => doiChon(m.id)} disabled={m.dungChung} accessibilityRole="checkbox"
+                accessibilityState={{ checked: on, disabled: m.dungChung }} accessibilityLabel={`Khoá ${ngan(m.ten)}`}
                 style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
                 <BieuTron ic={IC_MAY[m.nen]} mau="xam" />
                 <View style={{ flex: 1 }}>
                   <Chu kieu="rat">{ngan(m.ten)}</Chu>
-                  <Chu co={13} mau={x?.mo ? M.chinhInk : M.chu3}>{x?.chu ?? kh ?? (m.truc ? "Đang mở" : "Đang tắt · khoá khi máy mở lên")}</Chu>
+                  <Chu co={13} mau={x?.mo ? M.chinhInk : M.chu3}>{(m.dungChung && !on ? kh : x?.chu) ?? kh ?? (m.truc ? "Đang mở" : "Đang tắt · khoá khi máy mở lên")}</Chu>
                 </View>
                 {on ? <Icon ten="tick" co={18} mau={M.chinhInk} />
                   : <View style={{ width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: M.chu3 }} />}

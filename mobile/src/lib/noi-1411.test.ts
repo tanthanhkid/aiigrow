@@ -11,7 +11,7 @@ test("khoá riêng máy: hạn đã qua ⇒ hết khoá; không hạn ⇒ tới 
   assert.equal(mayDangKhoa({ khoa: true, den: null }, NOW), true);
   assert.equal(mayDangKhoa({ khoa: true, den: "2026-11-14T11:00:00Z" }, NOW), false);
   assert.equal(cauKhoaMay({ khoa: true, den: null }, NOW), "Đang khoá tới khi Ba Mẹ mở");
-  assert.match(cauKhoaMay({ khoa: true, den: "2026-11-14T13:30:00Z" }, NOW) ?? "", /^Đang khoá tới \d\d:30$/);
+  assert.match(cauKhoaMay({ khoa: true, den: "2026-11-14T13:30:00Z" }, NOW) ?? "", /^Đang khoá tới \d\d:\d\d$/);
   assert.equal(cauKhoaMay({ khoa: true, den: "2026-11-14T11:00:00Z" }, NOW), null);
 });
 

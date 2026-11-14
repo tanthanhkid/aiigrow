@@ -57,7 +57,8 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
   return (
     <Man lui={{ chu: "" }} tieu="Hộp thư hỗ trợ" tai={tai} vongTai
       phai={soCho ? <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.canhSoft }}><Chu kieu="rat" co={13} mau={M.canh}>{`${soCho} chờ`}</Chu></View> : undefined}>
-      <ChonMot ds={LOC_HO_TRO.map((x) => ({ gia: x.gia, chu: x.chu }))} gia={loc} doi={setLoc} />
+      {/* máy chủ cũ không biết «Của tôi» ⇒ ẩn tab đó */}
+      <ChonMot ds={LOC_HO_TRO.filter((x) => !cu || x.gia !== "cua_toi").map((x) => ({ gia: x.gia, chu: x.chu }))} gia={loc} doi={setLoc} />
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : !ds.length ? (
         <CanhGiua lv="canh-trong" tieu={loc === "cho" ? "Đã trả lời hết" : loc === "cua_toi" ? "Bạn chưa trả lời ai" : "Chưa có tin nào"} loi="Khi gia đình nhắn AiiGrow, tin hiện ở đây." />
       ) : loc === "cho" ? (

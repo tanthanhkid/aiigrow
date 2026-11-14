@@ -3,9 +3,9 @@
 // «Xoá hồ sơ X» ⇒ POST con/:id/xoa {xacNhan: true} (PR #253 — xoá HẲN). Máy chủ KHÔNG gỡ máy: máy đã ghép của Con thành máy dùng chung
 // (`mayChuyenDungChung`) ⇒ màn kết quả gợi ý từng máy «Máy của <Con khác>» (POST may/:id/gan-con) hoặc «Gỡ máy này» (⇒ /may/<id>?mo=go).
 // Lỗi 409 `con_may` (bé cuối, nhà còn máy) / `con_thiet_bi_mang` (TV, console lọc mạng) ⇒ câu dễ hiểu + lối đi tiếp (lib/noi-1411 › loiXoaCon).
-import { useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { BackHandler, View } from "react-native";
 import { bm, LoiApi, type GiaDinh } from "@/lib/api";
 import { CAU_TRONG_GIUP, ManKetQua, quyenToi, type ConCt } from "@/lib/hang-ngay";
 import { loiXoaCon } from "@/lib/noi-1411";
@@ -18,15 +18,20 @@ type KqXoa = { ok: true; ten: string; mayChuyenDungChung: { id: string; ten: str
 
 export default function XoaHoSo() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  // đã xoá ⇒ thôi tải lại hồ sơ (useTai tải lại mỗi lần màn hiện — hồ sơ không còn ⇒ 404 vô ích)
+  const daXoa = useRef<{ con: ConCt; xem: boolean } | null>(null);
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [con, q, g] = await Promise.all([bm.goi<ConCt>(`con/${id}`), quyenToi(), bm.goi<GiaDinh>("gia-dinh")]);
-    return { con, xem: q === "trong_giup", conKhac: g.con.filter((x) => x.id !== id).map((x) => ({ id: x.id, ten: x.ten })) };
+    if (daXoa.current) return daXoa.current;
+    const [con, q] = await Promise.all([bm.goi<ConCt>(`con/${id}`), quyenToi()]);
+    return { con, xem: q === "trong_giup" };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   const [loiXoa, setLoiXoa] = useState<{ cau: string; loi: "may" | "ho_tro" | "ve" | null } | null>(null);
   const [kq, setKq] = useState<KqXoa | null>(null);
+  // quay lại màn (vd sau «Thêm con» / gỡ máy) ⇒ bỏ lỗi 409 cũ, hiện lại nút xoá
+  useFocusEffect(useCallback(() => { setLoiXoa(null); }, []));
   const ve = () => (router.canGoBack() ? router.back() : router.replace(`/ho-so/${id}` as never));
-  if (kq) return <KetQua kq={kq} conKhac={d?.conKhac ?? []} />;
+  if (kq) return <KetQua kq={kq} />;
   if (!d) return <Man lui={{ chu: "Hồ sơ", ve: `/ho-so/${id}` }} tieu="Xoá hồ sơ"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const c = d.con;
   const sao = c.sao ?? c.soDu;
@@ -34,7 +39,9 @@ export default function XoaHoSo() {
   const xoa = () => lam(async () => {
     setLoiXoa(null);
     try {
-      setKq(await bm.goi<KqXoa>(`con/${id}/xoa`, { xacNhan: true }));
+      const r = await bm.goi<KqXoa>(`con/${id}/xoa`, { xacNhan: true });
+      daXoa.current = d;
+      setKq(r);
     } catch (e) {
       const l = e instanceof LoiApi ? loiXoaCon(e.ma, c.ten) : null;
       if (l) { setLoiXoa(l); return; }
@@ -69,8 +76,13 @@ export default function XoaHoSo() {
 }
 
 /** Đã xoá: máy của Con thành máy dùng chung ⇒ mỗi máy một thẻ: «Máy của <Con khác>» (gan-con) / «Gỡ máy này». */
-function KetQua({ kq, conKhac }: { kq: KqXoa; conKhac: { id: string; ten: string }[] }) {
+function KetQua({ kq }: { kq: KqXoa }) {
   const { bao, noi } = useHoanTac();
+  // Con còn lại (tải SAU khi xoá — đúng danh sách mới); lỗi ⇒ chỉ thiếu nút gắn, vẫn gỡ được
+  const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"));
+  const conKhac = (g.d?.con ?? []).map((x) => ({ id: x.id, ten: x.ten }));
+  // hồ sơ đã mất ⇒ Back Android về Trang chủ (không về /ho-so/<id>); iOS tắt vuốt lui (Stack.Screen dưới)
+  useEffect(() => { const h = BackHandler.addEventListener("hardwareBackPress", () => { veTrangChu(); return true; }); return () => h.remove(); }, []);
   const { lam, loi, dangChay } = useLam();
   const [daGan, setDaGan] = useState<Record<string, string>>({});
   // đã bấm «Gỡ máy này» ⇒ thôi mời gắn máy đó cho Con khác (máy đang / đã gỡ)
@@ -86,7 +98,8 @@ function KetQua({ kq, conKhac }: { kq: KqXoa; conKhac: { id: string; ten: string
     <ManKetQua lv="rob-goc" tieu={`Đã xoá hồ sơ ${kq.ten}`} noi={noi}
       loi={may.length ? `${may.length} máy của ${kq.ten} thành máy dùng chung — gắn cho con khác hoặc gỡ máy.` : "Báo cáo, sao và cài đặt của con đã xoá."}
       chinh={{ chu: may.length ? "Xong" : "Về trang chủ", bam: xong }}>
-      <BaoLoi loi={loi} />
+      <Stack.Screen options={{ gestureEnabled: false }} />
+      <BaoLoi loi={loi ?? (g.loi && may.length ? `Chưa tải được danh sách con để gắn máy — ${g.loi}` : null)} />
       {may.map((m) => (
         <The key={m.id} style={{ gap: 8 }}>
           <Chu kieu="rat" co={16}>{m.ten}</Chu>
