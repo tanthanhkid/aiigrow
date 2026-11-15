@@ -1,22 +1,23 @@
 namespace AiiGrow.Core;
 
-/// <summary>Cộng dồn giây dùng theo (ngày, app); xuất ra phút nguyên khi sync, phần lẻ để lại.</summary>
+/// <summary>Cộng dồn giây dùng theo (ngày, app, bé); xuất ra phút nguyên khi sync, phần lẻ để lại. 15/11 (#267): máy chung ⇒ mỗi bé một dòng (`usage[].con`).</summary>
 public sealed class UsageTracker
 {
-    private readonly Dictionary<(string Day, string App), (string Name, double Sec)> _d = new();
+    private readonly Dictionary<(string Day, string App, string Con), (string Name, double Sec)> _d = new();
     /// <summary>Tổng giây đã dùng TRONG NGÀY theo app (không bị Drain trừ) — cho thẻ «Đã dùng hôm nay» của khay. Chỉ giữ ngày mới nhất.
     /// Dịch vụ khởi động lại ⇒ đếm lại từ 0 (máy chủ vẫn giữ số lớn hơn bằng greatest).</summary>
-    private readonly Dictionary<string, (string Name, double Sec)> _homNay = new();
+    private readonly Dictionary<(string Con, string App), (string Name, double Sec)> _homNay = new();
     private string _ngayHomNay = "";
     private readonly object _gate = new();
 
     /// <summary>Định danh dùng khi khay chết (không biết app tiền cảnh) — không hiện ở «đã dùng theo app».</summary>
     public const string KhongRo = "khong-ro";
 
-    public void Add(DateTimeOffset localNow, string appId, string appName, double seconds)
+    /// <param name="con">Id bé đang dùng máy (null / trống = không biết).</param>
+    public void Add(DateTimeOffset localNow, string appId, string appName, double seconds, string? con = null)
     {
         if (seconds <= 0 || string.IsNullOrWhiteSpace(appId)) return;
-        var key = (localNow.DateTime.ToString("yyyy-MM-dd"), appId.Trim().ToLowerInvariant());
+        var key = (localNow.DateTime.ToString("yyyy-MM-dd"), appId.Trim().ToLowerInvariant(), con?.Trim() ?? "");
         lock (_gate)
         {
             _d.TryGetValue(key, out var cur);
@@ -27,8 +28,8 @@ public sealed class UsageTracker
                 _homNay.Clear();
                 _ngayHomNay = key.Item1;
             }
-            _homNay.TryGetValue(key.Item2, out var hn);
-            _homNay[key.Item2] = (string.IsNullOrWhiteSpace(appName) ? (hn.Name ?? appId) : appName, hn.Sec + seconds);
+            _homNay.TryGetValue((key.Item3, key.Item2), out var hn);
+            _homNay[(key.Item3, key.Item2)] = (string.IsNullOrWhiteSpace(appName) ? (hn.Name ?? appId) : appName, hn.Sec + seconds);
         }
     }
 
@@ -40,16 +41,19 @@ public sealed class UsageTracker
             ? TrayView.FriendlyAppName(id, null) : ten;
     }
 
-    /// <summary>Phút đã dùng hôm nay theo app, nhiều nhất trước (bỏ «không rõ» và app dưới 1 phút), tối đa <paramref name="toiDa"/> dòng.</summary>
-    public List<DungApp> DungHomNay(DateTimeOffset localNow, int toiDa = 8)
+    /// <summary>Phút đã dùng hôm nay theo app CỦA BÉ <paramref name="con"/> (null = mọi bé), nhiều nhất trước (bỏ «không rõ» và app dưới 1 phút),
+    /// tối đa <paramref name="toiDa"/> dòng.</summary>
+    public List<DungApp> DungHomNay(DateTimeOffset localNow, int toiDa = 8, string? con = null)
     {
         var ngay = localNow.DateTime.ToString("yyyy-MM-dd");
         lock (_gate)
         {
             if (ngay != _ngayHomNay) return new List<DungApp>();
-            return _homNay.Where(x => x.Key != KhongRo && x.Value.Sec >= 60)
-                .OrderByDescending(x => x.Value.Sec).ThenBy(x => x.Key, StringComparer.Ordinal).Take(Math.Max(0, toiDa))
-                .Select(x => new DungApp { AppId = x.Key, Ten = TenDep(x.Key, x.Value.Name), Phut = (int)(x.Value.Sec / 60) })
+            return _homNay.Where(x => con == null || x.Key.Con == con.Trim())
+                .GroupBy(x => x.Key.App).Select(g => (App: g.Key, Name: g.First().Value.Name, Sec: g.Sum(x => x.Value.Sec)))
+                .Where(x => x.App != KhongRo && x.Sec >= 60)
+                .OrderByDescending(x => x.Sec).ThenBy(x => x.App, StringComparer.Ordinal).Take(Math.Max(0, toiDa))
+                .Select(x => new DungApp { AppId = x.App, Ten = TenDep(x.App, x.Name), Phut = (int)(x.Sec / 60) })
                 .ToList();
         }
     }
@@ -64,7 +68,7 @@ public sealed class UsageTracker
                 var v = _d[k];
                 int m = (int)(v.Sec / 60.0);
                 if (m <= 0) continue;
-                res.Add(new UsageEntry(k.Day, k.App, v.Name, m));
+                res.Add(new UsageEntry(k.Day, k.App, v.Name, m, k.Con.Length > 0 ? k.Con : null));
                 _d[k] = (v.Name, v.Sec - m * 60.0);
             }
         }
@@ -78,7 +82,7 @@ public sealed class UsageTracker
         {
             foreach (var e in entries)
             {
-                var key = (e.Day, e.AppId);
+                var key = (e.Day, e.AppId, e.Con ?? "");
                 _d.TryGetValue(key, out var cur);
                 _d[key] = (e.AppName, cur.Sec + e.Minutes * 60.0);
             }

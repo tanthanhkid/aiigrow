@@ -5,13 +5,13 @@ using AiiGrow.Core;
 namespace AiiGrow.Tray;
 
 /// <summary>
-/// Màn khoá toàn màn hình theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-het-gio 06–10, con-mat-mang 02–04), khung 1920×1080:
-/// nền ngọc sâu, đồng hồ góc phải, MỘT thẻ đất sét ở giữa (Grow 170 · tiêu đề 44px · câu phụ · [đếm ngược] · [chip sao] · 2 nút lớn · liên kết chữ),
-/// chân «AiiGrow · &lt;tên bé&gt; · máy do Ba Mẹ quản lý». 06/11: chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (LockForm.ChonTen.cs); «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã.
-///   • Sắp hết giờ (đếm ngược) / Hết giờ chơi: «Đổi 10 sao lấy 10 phút» · «Xin Ba Mẹ thêm giờ» (+ ngoại lệ, nhắn, Ba Mẹ dùng máy).
-///   • Giờ ngủ / Ba Mẹ khoá: KHÔNG thêm giờ — chỉ «Xin Ba Mẹ mở ngoại lệ» (1 app hoặc cả máy, có hạn phút) · nhắn · Ba Mẹ dùng máy.
-///   • Mất mạng: Grow ngủ bên trái «Mất mạng, luật vẫn vậy nhé!», thẻ trái-căn: lời xin lưu lại (có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
-/// Nút chỉ báo ra ngoài (sự kiện) — khay mở hộp tương ứng; chữ / nút lấy từ lớp thuần <see cref="ManKhoaView"/>.
+/// Màn toàn màn hình theo bàn thiết kế (bản 15/11), khung 1920×1080: nền ngọc sâu, đồng hồ góc phải, MỘT thẻ đất sét ở giữa
+/// (Grow 170 · tiêu đề 44px · câu phụ · [đếm ngược] · [chip sao] · 2 nút lớn · liên kết chữ), chân «AiiGrow · &lt;tên bé&gt; · máy do Ba Mẹ quản lý».
+///   • Khoá máy (cmt-khoa-ba-me-khoa): «Ba Mẹ đang khoá máy» · Nhắn Ba Mẹ · Ba Mẹ dùng máy. 06/11: chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (LockForm.ChonTen.cs).
+///   • 15/11 «Sắp hết sao rồi» (đếm ngược, cmt-khoa-het-gio-dem-nguoc) → «Hết sao rồi» (them-uqukvnas): <see cref="ChiBao"/> — KHÔNG khoá máy (app «Không tính phút»
+///     vẫn dùng được, Esc / «Làm nhiệm vụ» đóng màn): Làm nhiệm vụ · Xin Ba Mẹ cho vay sao · Nhắn Ba Mẹ · Đổi bé · Ba Mẹ mở máy.
+///   • Mất mạng (cmt-khoa-mat-mang): Grow ngủ bên trái «Mất mạng, luật vẫn vậy nhé!», thẻ trái-căn: lời xin lưu lại (có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
+/// Không còn giờ ngủ, hết giờ chơi, «đổi sao lấy giờ», ngoại lệ. Nút chỉ báo ra ngoài (sự kiện) — khay mở hộp tương ứng; chữ / nút lấy từ <see cref="ManKhoaView"/> / <see cref="HetSaoView"/>.
 /// </summary>
 internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
 {
@@ -30,12 +30,15 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     private bool _gon;
     private ManKhoa? _m;
 
-    /// <summary>Con bấm một nút trên màn khoá (mã <see cref="ManKhoaView"/>: doi_sao, xin_them_gio, xin_ngoai_le, nhan_ba_me). «Ba Mẹ dùng máy» màn tự xử lý (Win+L).</summary>
+    /// <summary>Con bấm một nút (mã <see cref="ManKhoaView"/> / <see cref="HetSaoView"/>: xin_vay, lam_nhiem_vu, nhan_ba_me, doi_be). «Ba Mẹ dùng máy» màn tự xử lý (nhập mã).</summary>
     public event Action<string>? Bam;
 
-    /// <param name="canExchange">giữ chữ ký cũ cho chỗ gọi; nút đổi sao theo <see cref="TrayState.CanExchangePoints"/> lúc <see cref="Apply"/>.</param>
-    public LockForm(bool canExchange = false)
+    /// <summary>15/11: màn «Hết sao» — chỉ báo, không khoá máy (đóng được bằng Esc; không gọi LockWorkStation).</summary>
+    public bool ChiBao { get; }
+
+    public LockForm(bool chiBao = false)
     {
+        ChiBao = chiBao;
         AiiGrow.ClayUi.Clay.KhongMnemonic(this);
         FormBorderStyle = FormBorderStyle.None;
         WindowState = FormWindowState.Maximized;
@@ -61,7 +64,8 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         var keep = new System.Windows.Forms.Timer { Interval = 2000 };
         keep.Tick += (_, _) => { if (!_allowClose && OwnedForms.Length == 0 && Form.ActiveForm == null) { TopMost = true; Activate(); } };
         keep.Start();
-        FormClosing += (_, e) => { if (!_allowClose) e.Cancel = true; };
+        FormClosing += (_, e) => { if (!_allowClose && !ChiBao) e.Cancel = true; };
+        if (chiBao) { KeyPreview = true; KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape && !DangNhapMaTuManKhoa) CloseForReal(); }; }
         KhoiTaoChonTen();
         FormClosed += (_, _) => { keep.Dispose(); _dongHo.Dispose(); };
     }
@@ -117,8 +121,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         _matMangTu = s.OfflineSince;
         // 06/11 (L13): chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (chọn tên + PIN / Ba Mẹ nhập mã) — LockForm.ChonTen.cs
         if (ApChonTen(s)) return;
-        var m = ManKhoaView.For(s.LockReason, s.LockGraceLeftSec, s.ChildName, s.Sao, s.QuyPhut, s.MoLaiLuc, s.CanExchangePoints,
-            s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason), doiBe: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng);
+        var m = ManKhoaView.For(s.LockReason, s.ChildName, s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason));
         var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu)), s.ChildName);
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
@@ -133,6 +136,20 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             UI.LockWorkStation();
         }
         else if (dem) _locking = false;
+    }
+
+    /// <summary>15/11 màn «Sắp hết sao» / «Hết sao» (<see cref="ChiBao"/>): khay dựng nội dung (<see cref="HetSaoView"/>), <paramref name="giayCon"/> = đếm ngược.</summary>
+    public void ApHetSao(ManKhoa m, string tenCon, int? giayCon, DateTimeOffset? matMangTu)
+    {
+        _matMangTu = matMangTu;
+        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu)), tenCon);
+        if (khoa != _khoa && !DangNhapMaTuManKhoa)
+        {
+            _khoa = khoa;
+            _chan.Text = ManKhoaView.ChanTrang(tenCon);
+            Dung(m);
+        }
+        if (giayCon is int g) _count.Text = TrayView.FormatClock(g);
     }
 
     // ------------------------------------------------------------------ dựng
@@ -217,8 +234,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             the.Controls.Add(sao);
         }
         // Hai nút lớn (cao 64, chữ 22px) rồi hàng liên kết chữ.
-        var lon = m.Nut.Where(n => n.Ma is ManKhoaView.DoiSao or ManKhoaView.XinThemGio).ToList();
-        if (lon.Count == 0 && m.Nut.FirstOrDefault(n => n.Ma == ManKhoaView.XinNgoaiLe) is { } nl) lon.Add(nl);   // giờ ngủ / Ba Mẹ khoá: ngoại lệ là nút chính
+        var lon = m.Nut.Where(n => n.Ma is HetSaoView.LamNhiemVu or HetSaoView.XinVay).ToList();
         for (int i = 0; i < lon.Count; i++)
         {
             var n = lon[i];

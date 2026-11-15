@@ -1,15 +1,22 @@
 namespace AiiGrow.Core;
 
-// Chữ + luật hiển thị của các màn Con trên Windows theo thiết kế đã chốt 05/11 (docs/thiet-ke-chot/con-bi-chan, con-het-gio, con-mat-mang).
+// Chữ + luật hiển thị của các màn Con trên Windows theo thiết kế đã chốt (bàn aiigrow-figma: con-bi-chan, con-het-gio, con-mat-mang — bản 15/11).
 // Lớp THUẦN (không WinForms) để test. Luật chung: «sao» (không «điểm»), «Ba Mẹ», mỗi màn một việc, nút nói rõ kết quả, không dùng sao để mở app (L4).
 
 /// <summary>Màn «app chưa được mở» (con-bi-chan 04–10, 16–22; mất mạng: con-mat-mang 12, 14).</summary>
 public static class ManChanView
 {
-    public static string TieuDe(string ten) => ten + " chưa được mở";
-    public const string Phu = "Máy chỉ mở app Ba Mẹ cho phép";
-    public static string DangDung(int soApp) => $"Con đang dùng được {soApp} app:";
-    public static string NutXin(string ten) => "Xin Ba Mẹ mở " + ten;
+    // 15/11 (#262, them-vc4dmaei / them-dnm1pzqs): «Theo danh sách» = danh sách trắng — app / trang ngoài danh sách chưa mở, Con xin Ba Mẹ THÊM.
+    public static string TieuDe(string ten) => ten + " chưa được thêm";
+    public const string Phu = "Chưa có trong danh sách của con";
+    public const string ChuThichDs = "Danh sách · xanh: không tính phút · vàng: tính phút";
+    public static string DangDung(int soApp) => ChuThichDs;
+    public static string NutXin(string ten) => "Xin Ba Mẹ thêm " + ten;
+    public const string WebTieu = "Trang này chưa có trong danh sách";
+    public const string WebVui1 = "Con xin Ba Mẹ mở nhé!";
+    public const string WebVui2 = "Ba Mẹ sẽ thấy lời xin của con ngay.";
+    public const string WebNutXin = "Xin Ba Mẹ mở";
+    public const string VeTrangChinh = "Về trang chính";
     public const string VeHomNay = "Về Hôm nay";
     public const string Dong = "Đóng";
     /// <summary>Tối đa số app lạ khay tự gửi lời xin trong một phiên khay — quá thì chỉ hiện nút (không tiêu hết hạn mức lời xin của Con).</summary>
@@ -31,14 +38,13 @@ public static class ManChanView
 
     public static (string Tieu, string Phu) DaGui(string ten, bool web, bool tuGui, DateTimeOffset luc) => web
         ? ("Đã gửi xin mở " + ten, $"Trang mới · gửi lúc {luc:HH:mm}")
-        : ("Đã gửi Ba Mẹ duyệt " + ten, (tuGui ? "App mới" : "App chưa được phép") + $" · gửi lúc {luc:HH:mm}");
+        : ("Đã gửi Ba Mẹ duyệt " + ten, (tuGui ? "App mới cài" : "Chưa có trong danh sách") + $" · gửi lúc {luc:HH:mm}");
 
     /// <summary>Ba Mẹ đã cho (tiêu đề, giờ duyệt, câu vui, câu phụ, nút).</summary>
     public static (string Tieu, string Luc, string Vui, string? Phu, string Nut) Duoc(string ten, bool web, DateTimeOffset luc) => web
         ? ("Ba Mẹ đã mở " + ten, $"Ba Mẹ duyệt lúc {luc:HH:mm}", $"Con vào {ten} được rồi!", null, "Mở " + ten)
         : ("Ba Mẹ đã cho " + ten, $"Ba Mẹ duyệt lúc {luc:HH:mm}", $"Giờ con mở {ten} được rồi!", "Lần sau không cần xin nữa.", "Mở " + ten);
 
-    public const string TinhGioChoi = "Tính vào giờ chơi";
 
     public static (string Tieu, string Luc, string VanKhoa) ChuaCho(string ten, bool web, DateTimeOffset luc) =>
         (web ? "Ba Mẹ chưa mở " + ten : "Ba Mẹ chưa cho " + ten, $"Ba Mẹ trả lời lúc {luc:HH:mm}", ten + " vẫn khoá trên máy này");
@@ -53,8 +59,8 @@ public static class ManChanView
     public const string WebCamMoiMay = "Chặn trên mọi máy, không xin mở được";
 
     // Mất mạng (con-mat-mang 12, 14): vẫn chặn; lời xin lưu lại, có mạng tự gửi; Ba Mẹ ở cạnh thì đọc mã 6 số.
-    public static string MatMangTieu(string ten) => ten + " chưa được phép";
-    public const string MatMangPhu = "Mất mạng vẫn chặn như cũ nhé.";
+    public static string MatMangTieu(string ten) => ten + " chưa có trong danh sách";
+    public const string MatMangPhu = "Mất mạng vẫn dùng danh sách cũ nhé.";
     public const string CoMangLaGui = "Có mạng là gửi Ba Mẹ ngay.";
     public const string BaMeOCanh = "Ba Mẹ ở cạnh? Nhờ đọc mã 6 số";
     public const string MoApp = "Mở app";
@@ -64,93 +70,43 @@ public static class ManChanView
     public const string KhongCanGuiLai = "Không cần bấm gửi lại đâu.";
 }
 
-/// <summary>Một nút trên màn khoá. <see cref="Ma"/>: doi_sao | xin_them_gio | xin_ngoai_le | nhan_ba_me | ba_me_dung_may.</summary>
+/// <summary>Một nút trên màn khoá. <see cref="Ma"/>: nhan_ba_me | ba_me_dung_may | doi_be | xin_vay | lam_nhiem_vu.</summary>
 public sealed record NutKhoa(string Ma, string Chu, string Icon);
 
-/// <summary>Nội dung màn khoá toàn màn hình (con-het-gio 06–10, con-mat-mang 02).</summary>
+/// <summary>Nội dung màn khoá toàn màn hình (cmt-khoa-ba-me-khoa, cmt-khoa-mat-mang) và màn «Hết sao» (<see cref="HetSaoView"/>).</summary>
 public sealed record ManKhoa(string Rob, string Tieu, string Phu, string? Phu2, bool DemNguoc, string? SaoDong, IReadOnlyList<NutKhoa> Nut, bool MatMang);
 
+/// <summary>Màn khoá: 15/11 chỉ còn «Ba Mẹ đang khoá máy» (Ba Mẹ khoá ngay) và màn mất mạng — không còn giờ ngủ, hết giờ chơi, ngoại lệ
+/// (hết sao KHÔNG khoá máy: <see cref="HetSaoView"/>). Lý do cũ «ngu» / «het_gio» (máy chủ cũ) hiện như Ba Mẹ khoá.</summary>
 public static class ManKhoaView
 {
-    public const string DoiSao = "doi_sao", XinThemGio = "xin_them_gio", XinNgoaiLe = "xin_ngoai_le", NhanBaMe = "nhan_ba_me", BaMeDungMay = "ba_me_dung_may";
-    /// <summary>06/11 (L13): «Đổi bé» trên màn hết giờ của máy dùng chung ⇒ đăng xuất, về «Ai đang dùng máy?».</summary>
+    public const string NhanBaMe = "nhan_ba_me", BaMeDungMay = "ba_me_dung_may", XinVay = "xin_vay";
+    /// <summary>06/11 (L13): «Đổi bé» (máy dùng chung) ⇒ đăng xuất, về «Ai đang dùng máy?».</summary>
     public const string DoiBe = "doi_be";
 
-    /// <summary>10 sao = 10 phút (L1) — nút đổi nhanh trên màn khoá / nhắc 5 phút.</summary>
-    public const string NutDoiSao = "Đổi 10 sao lấy 10 phút";
-
-    /// <summary>06/11: «AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý» (máy dùng chung — không còn «Laptop của Bảo Anh»).</summary>
+    /// <summary>06/11: «AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý».</summary>
     public static string ChanTrang(string tenCon) => DangNhapView.ChanTrang(tenCon);
 
-    /// <param name="graceLeft">Giây đếm ngược trước khi khoá (dịch vụ); &gt;0 ⇒ màn «Sắp hết giờ chơi».</param>
-    /// <param name="sao">Số sao của Con (null = máy chủ chưa gửi — S1).</param>
-    /// <param name="quyPhut">Quỹ phút chơi hôm nay (null = chưa có — S1).</param>
-    /// <param name="moLaiLuc">Giờ máy mở lại sau giờ ngủ «HH:mm» (null = chưa có).</param>
-    /// <param name="doiSaoDuoc">Máy chủ cho đổi sao lấy phút (Policy.CanExchangePoints).</param>
-    /// <param name="doiBe">06/11: máy dùng chung có bé đang đăng nhập ⇒ màn hết giờ có «Đổi bé» + «Ba Mẹ mở máy» (con-het-gio 07).</param>
-    public static ManKhoa For(string? lyDo, int? graceLeft, string tenCon, int? sao, int? quyPhut, string? moLaiLuc, bool doiSaoDuoc, bool offline, bool doiBe = false)
+    /// <param name="khoaLuc">«Mẹ Lan khoá lúc 19:30.» khi biết (null = không ghi).</param>
+    /// <param name="hetSao">Mất mạng mà Con đang hết sao ⇒ thẻ «Hết sao rồi» + «Xin Ba Mẹ cho vay sao» (lưu, có mạng tự gửi) + mã 6 số (cmt-khoa-mat-mang).</param>
+    public static ManKhoa For(string? lyDo, string tenCon, bool offline, string? khoaLuc = null, bool hetSao = false)
     {
-        var ten = string.IsNullOrWhiteSpace(tenCon) ? "con" : tenCon.Trim();
-        var saoDong = sao is { } s ? $"Con có {s} sao" : null;
-        var doi = doiSaoDuoc && (sao is null || sao >= 10);
         var nut = new List<NutKhoa>();
-        void Them(string ma, string chu, string icon) => nut.Add(new NutKhoa(ma, chu, icon));
-
         if (offline)
         {
-            // Mất mạng: luật vẫn giữ, chỉ còn lời xin (lưu, có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
-            var (tieu, phu) = lyDo switch
+            if (hetSao)
             {
-                LockReasons.Ngu => ("Đến giờ ngủ rồi", MoLai(moLaiLuc)),
-                LockReasons.Khoa => ("Ba Mẹ đang khoá máy", "Mở lại là máy báo con ngay"),
-                _ => ("Hết giờ chơi hôm nay", (quyPhut is { } q ? $"Đã chơi {q} / {q} phút. " : "") + "Lưu bài đang làm nhé."),
-            };
-            if (lyDo is LockReasons.Ngu or LockReasons.Khoa) Them(XinNgoaiLe, "Xin Ba Mẹ mở ngoại lệ", "mo_khoa");
-            else Them(XinThemGio, "Xin Ba Mẹ thêm giờ", "gui");
-            return new ManKhoa("ngu", tieu, phu, "Có mạng là AiiGrow gửi Ba Mẹ ngay.", false, null, nut, true);
+                nut.Add(new NutKhoa(XinVay, "Xin Ba Mẹ cho vay sao", "gui"));
+                return new ManKhoa("ngu", "Hết sao rồi", "Con còn 0 sao · app «Tính phút» tạm khoá.", "Có mạng là AiiGrow gửi Ba Mẹ ngay.", false, null, nut, true);
+            }
+            return new ManKhoa("ngu", "Ba Mẹ đang khoá máy", "Mở lại là máy báo con ngay", null, false, null, nut, true);
         }
-
-        switch (lyDo)
-        {
-            case LockReasons.Ngu:
-                Them(XinNgoaiLe, "Xin Ba Mẹ mở ngoại lệ", "mo_khoa");
-                Them(NhanBaMe, "Nhắn Ba Mẹ", "tin");
-                Them(BaMeDungMay, "Ba Mẹ dùng máy", "khoa");
-                return new ManKhoa("ngu", "Đến giờ ngủ rồi", MoLai(moLaiLuc), $"Chúc {ten} ngủ ngon!", false, null, nut, false);
-            case LockReasons.Khoa:
-                Them(XinNgoaiLe, "Xin Ba Mẹ mở ngoại lệ", "mo_khoa");
-                Them(NhanBaMe, "Nhắn Ba Mẹ", "tin");
-                Them(BaMeDungMay, "Ba Mẹ dùng máy", "khoa");
-                return new ManKhoa("cho", "Ba Mẹ đang khoá máy", "Mở lại là máy báo con ngay", null, false, null, nut, false);
-            default:
-                if (doi) Them(DoiSao, NutDoiSao, "sao");
-                Them(XinThemGio, "Xin Ba Mẹ thêm giờ", "gui");
-                if (graceLeft is > 0)
-                {
-                    Them(BaMeDungMay, "Ba Mẹ dùng máy", "khoa");
-                    return new ManKhoa("chi", "Sắp hết giờ chơi", "Lưu bài đang làm nhé. Máy khoá sau", null, true, saoDong, nut, false);
-                }
-                Them(XinNgoaiLe, "Xin mở ngoại lệ", "mo_khoa");
-                Them(NhanBaMe, "Nhắn Ba Mẹ", "tin");
-                if (doiBe) Them(DoiBe, "Đổi bé", "nguoi");
-                Them(BaMeDungMay, doiBe ? "Ba Mẹ mở máy" : "Ba Mẹ dùng máy", "khoa");
-                var ai = doiBe && !string.IsNullOrWhiteSpace(tenCon) ? ten : "Con";
-                var da = quyPhut is { } qp ? $"{ai} đã chơi đủ {qp} / {qp} phút. Giỏi lắm!" : $"{ai} đã chơi đủ giờ hôm nay. Giỏi lắm!";
-                return new ManKhoa("nghi", "Hết giờ chơi hôm nay", da, null, false, saoDong, nut, false);
-        }
+        nut.Add(new NutKhoa(NhanBaMe, "Nhắn Ba Mẹ", "tin"));
+        nut.Add(new NutKhoa(BaMeDungMay, "Ba Mẹ dùng máy", "khoa"));
+        return new ManKhoa("cho", "Ba Mẹ đang khoá máy", khoaLuc ?? "Mở lại là máy báo con ngay", khoaLuc != null ? "Mở lại là máy báo con ngay" : null, false, null, nut, false);
     }
 
-    /// <summary>«06:30» ⇒ «6:30» (cách thiết kế ghi giờ); «00:30» giữ; trống ⇒ null.</summary>
-    public static string? GioGon(string? hhmm)
-    {
-        var t = hhmm?.Trim();
-        if (string.IsNullOrEmpty(t)) return null;
-        return t.Length == 5 && t[0] == '0' && t[1] != '0' ? t[1..] : t;
-    }
-
-    private static string MoLai(string? luc) => luc is { Length: > 0 } ? $"Máy mở lại lúc {luc} sáng mai." : "Máy mở lại sáng mai.";
-
-    // Mất mạng (con-mat-mang 02–04)
+    // Mất mạng (cmt-khoa-mat-mang, them-dsrf5ift)
     public const string MatMangDau = "Mất mạng, luật vẫn vậy nhé!";
     public static string MatMangChip(DateTimeOffset luc) => $"● Mất mạng · {luc:HH:mm}";
     public const string BaMeOCanh = "Ba Mẹ ở cạnh con?";
@@ -158,73 +114,7 @@ public static class ManKhoaView
     public const string MoBangMa = "Mở máy bằng mã của Ba Mẹ";
     public const string WinL = "Ba Mẹ cần dùng máy? Bấm Win + L";
     public const string MaSai = "Mã chưa đúng. Nhờ Ba Mẹ đọc lại nhé.";
-    public const string DaLuuThemGio = "Đã lưu lời xin thêm giờ";
-    public const string DaLuuThemGioPhu = "Có mạng là AiiGrow tự gửi Ba Mẹ.";
     public const string VeManKhoa = "Về màn khoá";
-}
-
-/// <summary>«Xin Ba Mẹ mở ngoại lệ» khi giờ ngủ / Ba Mẹ khoá / hết giờ (con-het-gio 12–19, L3): mở MỘT app hoặc cả máy, có hạn phút.</summary>
-public static class NgoaiLeView
-{
-    public const string CaMay = "ca_may";
-    /// <summary>Tối đa 60 = mặc định máy chủ <c>ngoai_le_toi_da_phut</c> (S1); máy chủ vẫn kẹp theo cấu hình Ba Mẹ.</summary>
-    public const int PhutMacDinh = 15, PhutMin = 5, PhutMax = 60, Buoc = 5;
-    public static readonly string[] LyDoNhanh = { "Con chưa xong bài", "Mai nộp cô" };
-    public const string TuViet = "Tự viết…";
-
-    public const string Tieu = "Con cần mở gì?";
-    public const string Phu = "Ba Mẹ đồng ý thì máy mới mở";
-    public const string MoBaoLau = "Mở bao lâu?";
-    public const string ViSao = "Vì sao con cần?";
-    public const string KhongTru = "Không trừ giờ chơi, không trừ sao";
-    public static string NutGui(int phut) => $"Gửi Ba Mẹ: mở {phut} phút";
-    public static string Phut(int phut) => phut + " phút";
-
-    public static int Tang(int phut) => Math.Min(PhutMax, Kep(phut) + Buoc);
-    public static int Giam(int phut) => Math.Max(PhutMin, Kep(phut) - Buoc);
-    public static int Kep(int phut) => Math.Clamp(phut, PhutMin, PhutMax);
-
-    /// <summary>Lựa chọn mở: tối đa 2 app học Ba Mẹ cho phép (chữ thường .exe) + «Cả máy».</summary>
-    public static List<(string Ma, string Ten)> LuaChon(IEnumerable<string>? appHoc)
-    {
-        var ds = (appHoc ?? Enumerable.Empty<string>())
-            .Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(2)
-            .Select(a => (a, TrayView.FriendlyAppName(a, null))).ToList();
-        ds.Add((CaMay, "Cả máy"));
-        return ds;
-    }
-
-    /// <summary>Lý do gửi kèm: chip đã chọn hoặc chữ Con tự viết; trống ⇒ câu mặc định (máy chủ bắt buộc có lý do cho ngoại lệ).</summary>
-    public static string LyDo(string? chon, string? tuViet)
-    {
-        var t = (string.IsNullOrWhiteSpace(tuViet) ? chon : tuViet)?.Trim();
-        if (string.IsNullOrEmpty(t)) t = "Con xin Ba Mẹ mở ngoại lệ";
-        return t.Length > 100 ? t[..100] : t;
-    }
-
-    public const string DaGui = "Đã gửi Ba Mẹ";
-    public const string ChoXem = "Chờ Ba Mẹ xem…";
-    public static string DongCho(string ten, int phut) => $"{ten} · {phut} phút";
-    public const string VeManKhoaCho = "Về màn khoá chờ Ba Mẹ";
-
-    public static string DuocTieu(int phut) => $"Ba Mẹ cho mở {phut} phút";
-    public static string DuocChiMo(string ma, string ten, DateTimeOffset den) =>
-        ma == CaMay ? $"Mở cả máy, đến {den:HH:mm}" : $"Chỉ mở {ten}, đến {den:HH:mm}";
-    public const string TuKhoaLai = "Hết giờ máy tự khoá lại";
-    public static string NutMo(string ma, string ten) => ma == CaMay ? "Vào máy" : "Mở " + ten;
-    public const string NhacLuuBai = "Còn 5 phút máy nhắc con lưu bài";
-
-    public const string ChuaChoTieu = "Ba Mẹ chưa cho lúc này";
-    public const string ChuaChoPhu = "Ba Mẹ đã xem và trả lời con";
-    public const string NhanLai = "Nhắn lại Ba Mẹ";
-}
-
-/// <summary>Nhắc «Còn 5 phút chơi» góc phải màn hình (con-het-gio 05).</summary>
-public static class NhacGioView
-{
-    public const string Tieu = "Còn 5 phút chơi";
-    public static string Phu(int? sao) => "Lưu bài đang làm nhé" + (sao is { } s ? $" · con có {s} sao" : "");
-    public const string XinThemGio = "Xin Ba Mẹ thêm giờ";
 }
 
 /// <summary>«Kiểm tra cập nhật» từ khay (con-mat-mang 17, 19).</summary>
@@ -232,7 +122,7 @@ public static class CapNhatKhayView
 {
     public const string CoBanMoiTieu = "AiiGrow tìm ra cách sửa rồi!";
     public static string CoBanMoiPhu(string ban) => $"Có bản mới {ban} sửa lỗi này.";
-    public const string GiuNguyen = "Giờ chơi, sao và luật giữ nguyên.";
+    public const string GiuNguyen = "Sao và luật giữ nguyên.";
     public const string MotPhut = "Mất khoảng 1 phút, không cần ghép lại.";
     public const string NutCapNhat = "Cập nhật để sửa lỗi";
     public const string DeSau = "Để sau";
@@ -240,7 +130,7 @@ public static class CapNhatKhayView
     public const string DangPhu = "Mất khoảng 1 phút · đừng tắt máy nhé. AiiGrow tự chạy lại.";
     public const string MoiNhatTieu = "AiiGrow đã là bản mới nhất";
     public static string MoiNhatPhu(string ban) => $"Bản {ban} · mới nhất";
-    public const string NhuCu = "Giờ chơi, sao và luật vẫn như cũ.";
+    public const string NhuCu = "Sao và luật vẫn như cũ.";
     public const string OKhay = "AiiGrow ở khay góc phải ›";
     public const string VeHomNay = "Về Hôm nay";
     public const string DangKiem = "Đang kiểm bản mới…";
@@ -253,7 +143,7 @@ public static class HoiAiiGrowView
     /// <summary>Thẻ: mã hành động (thu_lai | ma_mo | bat_lai | cap_nhat), icon 3D, tiêu đề, dòng phụ.</summary>
     public static readonly (string Ma, string Icon, string Tieu, string Phu)[] The =
     {
-        ("thu_lai", "wifi", "Mất mạng?", "Máy vẫn giữ giờ chơi"),
+        ("thu_lai", "wifi", "Mất mạng?", "Máy vẫn trừ sao đúng luật"),
         ("ma_mo", "khoa", "Máy bị khoá?", "Xin Ba Mẹ mã mở máy"),
         ("bat_lai", "canh_bao", "AiiGrow báo lỗi?", "Bấm «Bật lại AiiGrow»"),
         ("cap_nhat", "banhrang", "Cần cập nhật?", "Bấm cập nhật, chờ 1 phút"),

@@ -129,10 +129,10 @@ public static class GuiBu
     /// <summary>Một lượt đồng bộ của vòng thực thi: gửi bù (nếu có) rồi dong-bo. <paramref name="sauBu"/> chạy NGAY sau bước gửi bù
     /// (kể cả khi dong-bo lỗi sau đó) để người gọi xoá / giữ đoạn.</summary>
     public static async Task<(Policy Policy, string Raw)> DongBoAsync(ApiClient api, PhienOffline? doan, Action<KetQuaBu, ApiException?> sauBu,
-        AgentStatus status, IReadOnlyList<UsageEntry> usage, CancellationToken ct = default)
+        AgentStatus status, IReadOnlyList<UsageEntry> usage, CancellationToken ct = default, int phutBoiMa = 0)
     {
         var (kq, loi) = await GuiAsync(api, doan, ct);
         sauBu(kq, loi);
-        return await api.SyncAsync(status, usage, ct);
+        return await api.SyncAsync(status, usage, ct, phutBoiMa);
     }
 }

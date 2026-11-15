@@ -196,16 +196,44 @@ internal sealed class DoiQuaHop : HopKhayCoBan
         Flow.Controls.Add(hang);
         if (thieu != null) Flow.Controls.Add(UI.Text(thieu, 11f, true, Clay.Canh, W));
         if (AppConView.NhanQua(_qua) is { } nhan) Flow.Controls.Add(UI.Text(nhan + (_qua.MoTa is { Length: > 0 } mt ? " · " + mt : ""), 10.5f, true, Clay.NgocInk, W));
-        Flow.Controls.Add(UI.Text(thieu != null ? "Đủ sao thì gửi Ba Mẹ · Ba Mẹ trao quà mới trừ sao" : "Ba Mẹ trao quà thì mới trừ sao", 10.5f, false, UI.Muted, W));
-        var gui = KhoiCon.Nut($"Gửi Ba Mẹ: đổi {_qua.SoSao} sao", true, W, "gui");
-        gui.Enabled = thieu == null;
-        gui.Click += async (_, _) => await GuiAsync(gui);
-        Flow.Controls.Add(gui);
+        // 15/11 (them-1zxa6ip0): chưa đủ sao ⇒ «Con sẽ nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước» + «Xin Ba Mẹ cho vay 20 sao» (vay để đổi quà)
+        var canVay = Math.Max(0, _qua.SoSao - Math.Max(0, _sao));
+        Flow.Controls.Add(UI.Text(thieu != null ? $"Con sẽ nợ Ba Mẹ {canVay} sao · sao nhiệm vụ trả nợ trước" : "Ba Mẹ trao quà thì mới trừ sao", 10.5f, thieu != null, thieu != null ? Clay.Canh : UI.Muted, W));
+        if (thieu != null)
+        {
+            var vay = KhoiCon.Nut(XinVayView.Nut(canVay), true, W, "gui");
+            vay.Click += async (_, _) => await VayAsync(vay, canVay);
+            Flow.Controls.Add(vay);
+        }
+        else
+        {
+            var gui = KhoiCon.Nut($"Gửi Ba Mẹ: đổi {_qua.SoSao} sao", true, W, "gui");
+            gui.Click += async (_, _) => await GuiAsync(gui);
+            Flow.Controls.Add(gui);
+        }
         var khac = KhoiCon.Nut("Chọn quà khác", false, W, "qua");
         khac.Click += (_, _) => Close();
         Flow.Controls.Add(khac);
         Flow.Controls.Add(KhoiCon.LienKet("Làm thêm sao", "tick", () => { Close(); LamThemSao?.Invoke(); }));
         Flow.Controls.Add(_loi);
+        Xong();
+    }
+
+    /// <summary>Xin Ba Mẹ cho vay đúng số sao còn thiếu để đổi quà (yeu-cau vay_sao, mucDich qua, quaId) — mất mạng thì lưu, có mạng tự gửi.</summary>
+    private async Task VayAsync(Button b, int soSao)
+    {
+        if (_busy) return;
+        _busy = true; b.Enabled = false; _loi.Text = "";
+        var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Request, Kind = LoaiXin.VaySao, Minutes = soSao, Id = _qua.Id, Note = "Con xin vay để đổi " + _qua.Ten });
+        _busy = false;
+        if (IsDisposed) return;
+        if (!r.Ok) { _loi.Text = r.Error ?? "Chưa gửi được. Con thử lại nhé."; b.Enabled = true; return; }
+        XoaHet();
+        Flow.Controls.Add(KhoiCon.Dau("gui", KhoiCon.Mau.Ngoc, r.Status == "cho_mang" ? XinVayView.DaLuu : XinVayView.DaGui, XinVayView.ConXin(soSao) + " · " + _qua.Ten, W));
+        Flow.Controls.Add(UI.Text(r.Status == "cho_mang" ? XinVayView.DaLuuPhu : XinVayView.TraLoiBaoNgay, 11f, false, UI.Muted, W));
+        var ve = KhoiCon.Nut("Về Sao & quà", false, W, "sao");
+        ve.Click += (_, _) => Close();
+        Flow.Controls.Add(ve);
         Xong();
     }
 

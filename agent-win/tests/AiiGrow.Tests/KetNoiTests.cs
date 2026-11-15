@@ -35,8 +35,8 @@ public class KetNoiTests
         var k = KetNoiView.Chon(true, s);
         Assert.Equal(KetNoi.MatKetNoi, k.Loai);
         Assert.Equal($"Mất mạng · {Hm(Now.AddMinutes(-12))}", k.Dong);
-        Assert.Equal("AiiGrow · " + k.Dong + " — máy vẫn tính giờ", k.Tooltip);
-        Assert.Contains("vẫn tính giờ", k.Huong);
+        Assert.Equal("AiiGrow · " + k.Dong + " — máy vẫn trừ sao đúng luật", k.Tooltip);
+        Assert.Contains("vẫn trừ sao", k.Huong);
         Assert.False(k.DungIconKetNoi);
     }
 

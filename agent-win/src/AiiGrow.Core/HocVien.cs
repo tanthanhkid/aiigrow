@@ -93,12 +93,15 @@ public sealed class HvTongQuan
     public List<HvLuot> Gan { get; set; } = new();
     public List<HvLoiKhen> LoiKhen { get; set; } = new();
     public List<HvPhieu> PhieuCho { get; set; } = new();
-    // ---- 05/11 (S1): sao + quỹ giờ chơi hôm nay
+    // ---- 05/11 (S1): sao; 15/11 sổ sao (số dư âm khi nợ)
     public int? Sao { get; set; }
     public int? SaoChoDuyet { get; set; }
-    public HvQuy? Quy { get; set; }
-    public int SoSao => Sao ?? SoDu;
-    public int SoSaoChoDuyet => SaoChoDuyet ?? DiemChoDuyet;
+    /// <summary>15/11: sổ sao (`soSao {sao, no, phutCon, hetSao…}`) — null = máy chủ cũ.</summary>
+    [JsonPropertyName("soSao")] public HvSao? SoSaoCt { get; set; }
+    /// <summary>15/11 (#262): «theo_danh_sach» | «mo_het» (null = máy chủ cũ).</summary>
+    public string? CheDo { get; set; }
+    [JsonIgnore] public int SoSao => Sao ?? SoDu;
+    [JsonIgnore] public int SoSaoChoDuyet => SaoChoDuyet ?? DiemChoDuyet;
     /// <summary>14/11: chuỗi ngày + 7 ô ngày gần nhất (máy chủ cũ không gửi ⇒ null, khay không hiện màn chúc mừng chuỗi).</summary>
     public HvChuoi? Chuoi { get; set; }
 }
@@ -432,9 +435,8 @@ public static class HocVienPaths
         if (s.Any(x => x.Length == 0 || !x.All(c => char.IsLetterOrDigit(c) || c is '-' or '_'))) return false;
         return (m, s.Length) switch
         {
-            // 05/11: quy (quỹ giờ chơi + sao), nhiem-vu?tuCham=1 (kèm việc AiiRob tự chấm), vi-qua (quà đã trao) · doi-sao (đổi sao lấy phút)
-            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang" or "quy" or "nhiem-vu",
-            ("POST", 1) => s[0] == "doi-sao",
+            // nhiem-vu?tuCham=1 (kèm việc AiiRob tự chấm) · 15/11: sao (sổ sao) — «xin vay» đi lệnh Request (mất mạng thì lưu chờ). Bỏ quy / doi-sao (quỹ ngày, đổi sao lấy giờ).
+            ("GET", 1) => s[0] is "tong-quan" or "tin" or "cua-hang" or "nhiem-vu" or "sao",
             ("POST", 2) => s[0] == "doi",
             ("POST", 3) => (s[0] == "nhiem-vu" && s[2] == "bat-dau") || (s[0] == "luot" && s[2] == "nop") || (s[0] == "loi-khen" && s[2] == "phan-hoi"),
             _ => false,

@@ -11,13 +11,14 @@ internal sealed class DoiBeHop : HopKhayCoBan
     /// <summary>true = «Đổi bé», false = «Đăng xuất» (cả hai ⇒ máy về «Ai đang dùng máy?»); null = Ở lại.</summary>
     public bool? Chon { get; private set; }
 
-    public DoiBeHop(string tenBe, bool mayRieng) : base("AiiGrow", UI.Px(400))
+    /// <param name="sao">15/11 (them-7puhbc72): «● Đang dùng · còn 18 sao» — null = không ghi số.</param>
+    public DoiBeHop(string tenBe, bool mayRieng, int? sao = null) : base("AiiGrow", UI.Px(400))
     {
         var v = new VienTen { Chu = DangNhapView.ChuDau(tenBe), Size = new Size(UI.Px(72), UI.Px(72)) };
         v.Margin = new Padding((W - v.Width) / 2, UI.Px(6), 0, 0);
         Flow.Controls.Add(v);
         Flow.Controls.Add(Giua(UI.Text(string.IsNullOrWhiteSpace(tenBe) ? "Con" : tenBe, 15f, true, UI.Ink, W), 8));
-        Flow.Controls.Add(Giua(UI.Text("● Đang dùng máy này", 10.5f, true, Clay.NgocInk, W), 2));
+        Flow.Controls.Add(Giua(UI.Text(sao is int s0 ? "● Đang dùng · còn " + SaoView.SoDu(s0) : "● Đang dùng máy này", 10.5f, true, Clay.NgocInk, W), 2));
         var hai = KhoiCon.Hang();
         hai.Margin = new Padding(0, UI.Px(18), 0, 0);
         var rong = mayRieng ? W : (W - UI.Px(12)) / 2;
@@ -33,7 +34,7 @@ internal sealed class DoiBeHop : HopKhayCoBan
         ra.Click += (_, _) => { Chon = false; Close(); };
         hai.Controls.Add(ra);
         Flow.Controls.Add(hai);
-        var ghi = UI.Text("Đăng xuất thì máy khoá lại.\nVào lại bằng tên + PIN.", 10.5f, false, UI.Muted, W);
+        var ghi = UI.Text((mayRieng ? "Đăng xuất là dừng trừ sao" : "Đổi bé là dừng trừ sao") + $" của {(string.IsNullOrWhiteSpace(tenBe) ? "con" : tenBe.Trim())}.\nVào lại bằng tên + PIN.", 10.5f, false, UI.Muted, W);
         Flow.Controls.Add(Giua(ghi, 10));
         var o = KhoiCon.Nut("Ở lại", true, W, "nha", 48, 12f);
         o.Margin = new Padding(0, UI.Px(12), 0, 0);
@@ -51,7 +52,7 @@ internal sealed class DoiBeHop : HopKhayCoBan
     }
 }
 
-/// <summary>«Ba Mẹ dùng máy» từ app của Con (con-ngay-thuong 06): Ba Mẹ gõ mã mở máy 6 số ⇒ «Ba Mẹ đang dùng máy» (không trừ giờ của con).</summary>
+/// <summary>«Ba Mẹ dùng máy» từ app của Con (con-ngay-thuong 06): Ba Mẹ gõ mã mở máy 6 số ⇒ «Ba Mẹ đang dùng máy» (không trừ sao của con).</summary>
 internal sealed class BaMeMaHop : HopKhayCoBan
 {
     private readonly TextBox _o = new() { Font = UI.F(20f, FontStyle.Bold), MaxLength = 6, TextAlign = HorizontalAlignment.Center, ShortcutsEnabled = true };
@@ -144,7 +145,7 @@ internal sealed class BaMeVienForm : Form
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
         BackColor = Color.FromArgb(0x0a, 0x52, 0x46);
-        var chu = "Ba Mẹ đang dùng · không trừ giờ của con";
+        var chu = "Ba Mẹ đang dùng · không trừ sao của con";
         var f = UI.F(12.75f, FontStyle.Bold);
         var w = TextRenderer.MeasureText(chu, f).Width + UI.Px(70);
         Size = new Size(w, UI.Px(44));

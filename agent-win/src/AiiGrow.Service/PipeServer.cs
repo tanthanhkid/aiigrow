@@ -80,7 +80,7 @@ public sealed class PipeServer : BackgroundService
                     var clientSession = SessionHelper.PipeClientSession(h);
                     bool khay = (req?.Cmd is PipeCmd.Foreground or PipeCmd.Play or PipeCmd.PlayInfo or PipeCmd.XinDuyet
                                      or PipeCmd.HoSo or PipeCmd.DangNhapBe or PipeCmd.QuenPin or PipeCmd.BaMeMo or PipeCmd.DangXuat or PipeCmd.KhoaLai or PipeCmd.BaoThoat
-                                 || (req?.Cmd == PipeCmd.Request && (LoaiXin.LaXinMo(req.Kind) || req.Kind == LoaiXin.NgoaiLe))) && _laKhayThat(h);
+                                 || (req?.Cmd == PipeCmd.Request && (LoaiXin.LaXinMo(req.Kind) || req.Kind == LoaiXin.VaySao))) && _laKhayThat(h);
                     resp = req == null ? new PipeResponse { Ok = false, Error = "Lệnh rỗng" } : await DispatchAsync(req, clientSession, khay, cts.Token);
                 }
                 catch (Exception e)
@@ -186,38 +186,22 @@ public sealed class PipeServer : BackgroundService
                     }
                     catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
                 }
-                // 05/11 (L3): xin mở ngoại lệ — một app hoặc cả máy, có hạn phút; mất mạng ⇒ lưu, có mạng tự gửi (L11).
-                if (req.Kind == LoaiXin.NgoaiLe)
-                {
-                    // như «xin mở»: chỉ khay đã cài — tiến trình lạ trong phiên Con không gửi được lời xin mở cả máy bằng token máy (review #75)
-                    if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được gửi lời xin này" };
-                    var muc = string.IsNullOrWhiteSpace(req.AppId) ? NgoaiLeView.CaMay : req.AppId!.Trim();
-                    var lyDo = NgoaiLeView.LyDo(req.Note, null);
-                    try
-                    {
-                        using var api = new ApiClient(cfg.Server, cfg.Token);
-                        var res = await api.CreateNgoaiLeAsync(req.Minutes, muc, lyDo, ct);
-                        if (res.KetQua != "cho") _rt.RequestSyncSoon();
-                        return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
-                    }
-                    catch (ApiException e) when (e.LaLoiDuongTruyen)
-                    {
-                        return LuuChoMang(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = muc, Ten = req.AppName, Phut = NgoaiLeView.Kep(req.Minutes), LyDo = lyDo, Luc = now });
-                    }
-                    catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
-                }
-                var kind = req.Kind == LoaiXin.DoiDiem ? LoaiXin.DoiDiem : LoaiXin.ThemGio;
-                int minutes = req.Minutes is >= 5 and <= 240 ? req.Minutes : 30;
+                // 15/11 (#263/#265): «Xin Ba Mẹ cho vay sao» (số sao ở Minutes) — thay «xin thêm giờ» / «ngoại lệ»; mất mạng ⇒ lưu, có mạng tự gửi (L11).
+                if (req.Kind != LoaiXin.VaySao) return new PipeResponse { Ok = false, Error = "Lời xin này không còn dùng nữa. Con xin Ba Mẹ cho vay sao nhé." };
+                // như «xin mở»: chỉ khay đã cài — tiến trình lạ trong phiên Con không gửi được lời xin bằng token máy (review #75)
+                if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được gửi lời xin này" };
+                var soSao = XinVayView.Kep(req.Minutes > 0 ? req.Minutes : XinVayView.MacDinh);
+                var nhan = XinVayView.LyDo(req.Note);
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
-                    var res = await api.CreateRequestAsync(kind, minutes, req.AppId, req.AppName, req.Note, ct);
-                    if (res.KetQua != "cho") _rt.RequestSyncSoon();
-                    return new PipeResponse { Ok = true, Id = res.Id, Status = res.KetQua };
+                    var res = await api.XinVayAsync(soSao, nhan, string.IsNullOrWhiteSpace(req.Id) ? null : req.Id!.Trim(), ct);
+                    if (res.KetQua is not ("cho" or "")) _rt.RequestSyncSoon();
+                    return new PipeResponse { Ok = true, Id = res.Id, Status = string.IsNullOrEmpty(res.KetQua) ? "cho" : res.KetQua };
                 }
-                catch (ApiException e) when (e.LaLoiDuongTruyen && kind == LoaiXin.ThemGio)
+                catch (ApiException e) when (e.LaLoiDuongTruyen)
                 {
-                    return LuuChoMang(new LoiXinCho { Loai = LoaiXin.ThemGio, Muc = req.AppId, Ten = req.AppName, Phut = minutes, LyDo = req.Note, Luc = now });
+                    return LuuChoMang(new LoiXinCho { Loai = LoaiXin.VaySao, Muc = string.IsNullOrWhiteSpace(req.Id) ? null : req.Id!.Trim(), Phut = soSao, LyDo = nhan, Luc = now });
                 }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
@@ -303,7 +287,7 @@ public sealed class PipeServer : BackgroundService
                     var st = await api.GetRequestAsync(req.Id!, ct);
                     // chỉ ép đồng bộ khi vừa được duyệt (để thả chặn ngay) — không ép mỗi lần khay hỏi lại
                     if (TrayView.XinGio(st.Status) == TrayView.KetQuaXin.Duoc) _rt.RequestSyncSoon();
-                    return new PipeResponse { Ok = true, Id = req.Id, Status = st.Status, GrantEndsAt = st.GrantEndsAt };
+                    return new PipeResponse { Ok = true, Id = req.Id, Status = st.Status, GrantEndsAt = st.GrantEndsAt, KetQua = st };
                 }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }

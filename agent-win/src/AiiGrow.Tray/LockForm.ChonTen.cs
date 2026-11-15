@@ -279,8 +279,8 @@ internal sealed partial class LockForm
         var (the, w) = The(800);
         the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", 150), w));
         the.Controls.Add(ChuGiua(ManChonTenView.TieuChon, 31.5f, true, UI.Ink, w, 10));
-        the.Controls.Add(ChuGiua(ManChonTenView.PhuChon, 16.5f, false, UI.Muted, w, 6));
         var ds = _hs?.Con ?? new List<HoSoBe>();
+        the.Controls.Add(ChuGiua(ManChonTenView.DanhCho(ds.Select(c => c.Ten).ToList()) ?? ManChonTenView.PhuChon, 16.5f, false, UI.Muted, w, 6));
         if (ds.Count == 0)
         {
             the.Controls.Add(ChuGiua(_hs == null && _hsLoi == null ? "Đang tải tên các bé…" : _hsLoi ?? "Ba Mẹ chưa thêm con nào trong app.", 13f, false, UI.Muted, w, 26));
@@ -299,8 +299,9 @@ internal sealed partial class LockForm
             for (int i = 0; i < ds.Count; i++)
             {
                 var be = ds[i];
+                var coSao = ds.Any(c => c.Sao.HasValue);
                 var o = new ClayFlow { FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(32), Cursor = Cursors.Hand,
-                    Size = new Size(UI.Px(240) + VeThe.LeBong.Horizontal, UI.Px(236) + VeThe.LeBong.Vertical), Padding = VeThe.Pad(0, UI.Px(32), 0, 0),
+                    Size = new Size(UI.Px(240) + VeThe.LeBong.Horizontal, UI.Px(coSao ? 276 : 236) + VeThe.LeBong.Vertical), Padding = VeThe.Pad(0, UI.Px(coSao ? 26 : 32), 0, 0),
                     Margin = new Padding(UI.Px(i == 0 ? 0 : 14), UI.Px(26), UI.Px(14), 0) };
                 var v = new VienTen { Chu = chu[i], Mau = i, Size = new Size(UI.Px(120), UI.Px(120)), Margin = new Padding((UI.Px(240) - UI.Px(120)) / 2, 0, 0, 0), Cursor = Cursors.Hand };
                 var t = Chu(be.Ten, 21f, true, UI.Ink, UI.Px(240), true);
@@ -309,13 +310,27 @@ internal sealed partial class LockForm
                 o.Controls.Add(v); o.Controls.Add(t);
                 void Bam(object? _, EventArgs __) => _ = ChonBeAsync(be);
                 o.Click += Bam; v.Click += Bam; t.Click += Bam;
+                // 15/11 (them-x8kmmyl5): sao từng bé — «18 sao» vàng / «−20 sao» cam (đang nợ)
+                if (be.Sao is int sb)
+                {
+                    var chip = new ChipClay(SaoView.SoDu(sb), sb < 0 ? Clay.CanhSoft : Clay.DiemSoft, sb < 0 ? Clay.Canh : Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(12f, FontStyle.Bold), Cursor = Cursors.Hand };
+                    chip.Size = new Size(TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(48), UI.Px(34));
+                    chip.Margin = new Padding((UI.Px(240) - chip.Width) / 2, UI.Px(6), 0, 0);
+                    chip.Click += Bam;
+                    o.Controls.Add(chip);
+                }
                 luoi.Controls.Add(o);
             }
             luoi.PerformLayout();
             the.Controls.Add(Giua(luoi, w));
         }
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 12));
-        the.Controls.Add(ChuGiua(ManChonTenView.GhiChon, 11.25f, false, UI.Muted, w, 22));
+        if (ds.Count > 0 && !(_hs?.MayRieng ?? false))
+        {
+            the.Controls.Add(ChuGiua(ManChonTenView.KhongThayTen, 12f, true, Clay.Chu2, w, 22));
+            the.Controls.Add(ChuGiua(ManChonTenView.NhoBaMeThem, 11.25f, false, UI.Muted, w, 2));
+        }
+        else the.Controls.Add(ChuGiua(ManChonTenView.GhiChon, 11.25f, false, UI.Muted, w, 22));
         return the;
     }
 

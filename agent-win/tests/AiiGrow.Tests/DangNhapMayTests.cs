@@ -426,39 +426,24 @@ public class ManChonTenTests
     }
 
     [Fact]
-    public void Man_het_gio_may_dung_chung_co_Doi_be_va_Ba_Me_mo_may()
+    public void Man_het_sao_may_dung_chung_co_Doi_be_va_Ba_Me_mo_may()
     {
-        var m = ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", 30, 60, null, true, false, doiBe: true);
-        Assert.Equal("Bảo Anh đã chơi đủ 60 / 60 phút. Giỏi lắm!", m.Phu);
+        var m = HetSaoView.For(null, null, null, doiBe: true);
         Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.DoiBe && n.Chu == "Đổi bé");
         Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.BaMeDungMay && n.Chu == "Ba Mẹ mở máy");
-        var rieng = ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", 30, 60, null, true, false);
+        var rieng = HetSaoView.For(null, null, null, doiBe: false);
         Assert.DoesNotContain(rieng.Nut, n => n.Ma == ManKhoaView.DoiBe);
-        Assert.Equal("Con đã chơi đủ 60 / 60 phút. Giỏi lắm!", rieng.Phu);
-    }
-}
-
-/// <summary>06/11 (L14): quà = bảng giá sao, giữ sao chờ trao, voucher AiiCafe có mã + hạn.</summary>
-public class QuaBangGiaTests
-{
-    [Fact]
-    public void Nhan_qua_theo_dieu_kien()
-    {
-        Assert.Equal("Mã QR", AppConView.NhanQua(new HvQua { Ten = "AiiCafe 20k", Loai = "voucher", MenhGia = 20000 }));
-        Assert.Equal("Chỉ cuối tuần", AppConView.NhanQua(new HvQua { Ten = "Đi xem phim", ChiCuoiTuan = true }));
-        Assert.Equal("Còn 1 bộ", AppConView.NhanQua(new HvQua { Ten = "Bộ Lego", TonKho = 1 }));
-        Assert.Null(AppConView.NhanQua(new HvQua { Ten = "Đồ chơi nhỏ", TonKho = 20 }));
+        Assert.Contains(rieng.Nut, n => n.Chu == "Ba Mẹ dùng máy");
     }
 
     [Fact]
-    public void Doi_qua_du_hay_thieu_sao()
+    public void Chon_ten_hien_sao_tung_be()
     {
-        var bua = new HvQua { Ten = "Chọn món bữa tối", Diem = 50 };
-        Assert.Equal(("Còn thiếu 20 sao", false), AppConView.TrangThaiDoi(bua, 30));
-        Assert.Equal(("Đủ sao rồi!", true), AppConView.TrangThaiDoi(bua, 50));
-        Assert.Equal("Con có 30 sao · còn thiếu 20 sao", AppConView.ThieuSao(bua, 30));
-        Assert.Null(AppConView.ThieuSao(bua, 80));
-        Assert.Equal("Đang giữ 50 sao · chờ Ba Mẹ trao", AppConView.DangGiu(50));
-        Assert.Equal("Đang giữ 50 sao · Ba Mẹ trao mới trừ", AppConView.DangGiu(50, ngan: true));
+        Assert.Equal("Máy này dành cho Bảo Anh và Bảo Minh · sao tính riêng từng con.", ManChonTenView.DanhCho(new[] { "Bảo Anh", "Bảo Minh" }));
+        Assert.Null(ManChonTenView.DanhCho(new[] { "Bảo Anh" }));
+        var hs = new HoSoMay { Con = { new HoSoBe { Id = "a", Ten = "Bảo Anh", Sao = 18, VanPin = "x" }, new HoSoBe { Id = "b", Ten = "Bảo Minh", Sao = -20 } } };
+        var k = hs.ChoKhay();
+        Assert.Equal(new int?[] { 18, -20 }, k.Con.Select(c => c.Sao));
+        Assert.All(k.Con, c => Assert.Null(c.VanPin));
     }
 }

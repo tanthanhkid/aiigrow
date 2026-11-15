@@ -48,7 +48,7 @@ public static class TrayView
         if (s.GrantEndsAt.HasValue && s.GrantEndsAt.Value > now)
         {
             var rem = (s.GrantEndsAt.Value - now).TotalSeconds;
-            return (FormatClock(rem), "đang được bố mẹ thêm giờ", rem);
+            return (FormatClock(rem), "Ba Mẹ đang mở có hạn", rem);
         }
         if (s.MinutesLeft.HasValue)
         {

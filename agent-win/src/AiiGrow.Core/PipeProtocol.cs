@@ -54,7 +54,7 @@ public static class PipeCmd
     public const string BaoThoat = "bao-thoat";
 }
 
-/// <summary>Trạng thái dịch vụ gửi cho tray. KHÔNG chứa số điểm; chỉ cờ có nút Đổi điểm hay không.</summary>
+/// <summary>Trạng thái dịch vụ gửi cho tray (15/11: có số sao — sao = phút chơi, Con thấy số dư của mình).</summary>
 public sealed class TrayState
 {
     public bool Paired { get; set; }
@@ -94,26 +94,24 @@ public sealed class TrayState
     public List<DungApp> DungTheoApp { get; set; } = new();
     /// <summary>05/11: app vừa bị đóng là app Ba Mẹ ĐẶT «Chặn» (blockedApps) — màn chặn chỉ hiện nút xin; false = app lạ ⇒ khay tự gửi lời xin duyệt.</summary>
     public bool BlockedBoiBaMe { get; set; }
-    /// <summary>05/11: app học Ba Mẹ cho phép (Policy.LearningApps, chữ thường .exe) — màn chặn «Con đang dùng được N app», chọn app khi xin ngoại lệ.</summary>
+    /// <summary>App «Không tính phút» Ba Mẹ cho phép (Policy.LearningApps, chữ thường .exe) — màn chặn «danh sách của con», «Từ điển vẫn mở».</summary>
     public List<string> AppDuocPhep { get; set; } = new();
     /// <summary>05/11 (L11): số lời xin Con gửi lúc mất mạng còn chờ có mạng để gửi.</summary>
     public int XinChoMang { get; set; }
-    /// <summary>05/11 (L1): số sao của Con (dong-bo.windows.sao — S1). null = máy chủ chưa gửi ⇒ khay không ghi số.</summary>
+    /// <summary>15/11: số dư sao Con thấy (ÂM khi nợ), đã trừ phần đếm tại máy. null = máy chủ chưa gửi ⇒ khay không ghi số.</summary>
     public int? Sao { get; set; }
-    /// <summary>05/11 (L2): quỹ phút chơi hôm nay (dong-bo.windows.quyPhut — S1). null = chưa có.</summary>
-    public int? QuyPhut { get; set; }
-    /// <summary>05/11: giờ máy mở lại sau giờ ngủ «HH:mm» (dong-bo.windows.moLaiLuc — S1). null = chưa có.</summary>
-    public string? MoLaiLuc { get; set; }
-    /// <summary>05/11: phút chơi còn lại hôm nay, đã trừ phần đếm tại máy (QuyTaiCho) — «Giờ chơi còn lại 18 phút». null = máy chủ cũ.</summary>
+    /// <summary>15/11: số sao đang nợ Ba Mẹ (0 = không nợ; null = máy chủ cũ).</summary>
+    public int? No { get; set; }
+    /// <summary>15/11: phút «Tính phút» còn chơi = sao tiêu được, đã trừ phần đếm tại máy (QuyTaiCho). 0 = hết sao. null = máy chủ cũ / chưa chọn bé.</summary>
     public double? QuyConPhut { get; set; }
-    public double? QuyTongPhut { get; set; }
-    /// <summary>Đã chơi hôm nay (máy chủ + phần đếm tại máy).</summary>
-    public double? QuyDaDung { get; set; }
-    public bool DangGioHoc { get; set; }
-    /// <summary>Ngoại lệ cả máy đang mở tới lúc này (null = không).</summary>
-    public DateTimeOffset? NgoaiLeDen { get; set; }
-    /// <summary>Giờ ngủ «HH:mm» bắt đầu (dòng «ngủ lúc 21:30»). null = chưa đặt.</summary>
-    public string? NguLuc { get; set; }
+    /// <summary>15/11 (#262): Con đang «Mở hết» (không chặn, không trừ sao).</summary>
+    public bool MoHet { get; set; }
+    /// <summary>15/11: mục «Tính phút» Ba Mẹ đã xếp (app .exe / tên miền) — «Roblox, YouTube Kids đang khoá», nhắc «hết sao là Roblox đóng».</summary>
+    public List<string> AppTinhPhut { get; set; } = new();
+    /// <summary>15/11: app tiền cảnh (lượt báo gần nhất của khay) là app «Tính phút» đang trừ sao ⇒ nhắc 5 sao / đếm ngược hết sao.</summary>
+    public bool DangChoiTinhPhut { get; set; }
+    /// <summary>Tên đẹp app tiền cảnh khi <see cref="DangChoiTinhPhut"/> («Roblox»).</summary>
+    public string? AppDangChoi { get; set; }
     /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
     public int BaiChoMang { get; set; }
     // ---- 06/11 (L13): ai đang dùng máy
@@ -132,11 +130,12 @@ public sealed class PipeRequest
     public string Cmd { get; set; } = PipeCmd.State;
     public string? AppId { get; set; }
     public string? AppName { get; set; }
-    /// <summary>Lệnh <see cref="PipeCmd.Request"/>: <see cref="LoaiXin"/> — them_gio (mặc định) | doi_diem | mo_web | cai_app.
+    /// <summary>Lệnh <see cref="PipeCmd.Request"/>: <see cref="LoaiXin"/> — vay_sao (số sao ở <see cref="Minutes"/>, lời nhắn ở <see cref="Note"/>) | mo_web | cai_app.
     /// Hai loại «mở»: giá trị (địa chỉ trang / tên app) ở <see cref="AppId"/>, tên hiển thị ở <see cref="AppName"/>.</summary>
     public string? Kind { get; set; }
     public int Minutes { get; set; }
     public string? Note { get; set; }
+    /// <summary>Lệnh <see cref="PipeCmd.Status"/>: id lời xin. Lệnh Request vay_sao: id quà muốn đổi (vay để đổi quà), trống = vay để chơi.</summary>
     public string? Id { get; set; }
     /// <summary>Mã mở offline 6 số (lệnh <see cref="PipeCmd.MaOffline"/>).</summary>
     public string? Code { get; set; }
@@ -156,6 +155,8 @@ public sealed class PipeResponse
     public string? Id { get; set; }
     public string? Status { get; set; }
     public DateTimeOffset? GrantEndsAt { get; set; }
+    /// <summary>15/11 lệnh <see cref="PipeCmd.Status"/>: kết quả đầy đủ của lời xin (ketQua, nhóm, người duyệt, lời nhắn, mở tạm).</summary>
+    public RequestStatus? KetQua { get; set; }
     /// <summary>Câu nhắc do máy chủ trả (ví dụ kết quả «Dùng điểm để chơi»). Không chứa số điểm.</summary>
     public string? Message { get; set; }
     /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: thân JSON máy chủ trả (nguyên văn).</summary>

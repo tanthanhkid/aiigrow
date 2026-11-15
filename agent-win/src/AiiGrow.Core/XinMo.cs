@@ -3,16 +3,13 @@ namespace AiiGrow.Core;
 /// <summary>Loại lời xin khay gửi dịch vụ (<see cref="PipeRequest.Kind"/>). Hai loại «mở» khớp <c>requests.loai</c> của máy chủ (server/lib/yeu-cau.ts).</summary>
 public static class LoaiXin
 {
-    public const string ThemGio = "them_gio";
-    public const string DoiDiem = "doi_diem";
+    /// <summary>15/11 (#263/#265): «Xin Ba Mẹ cho vay sao» (POST yeu-cau {loai: vay_sao, soSao}) — thay «xin thêm giờ» / «xin mở ngoại lệ» cũ.</summary>
+    public const string VaySao = "vay_sao";
     /// <summary>Xin mở một trang web (giá trị = địa chỉ / tên miền).</summary>
     public const string MoWeb = "mo_web";
     /// <summary>Xin mở / cài một app (giá trị = tên exe hoặc tên app).</summary>
     public const string CaiApp = "cai_app";
-    /// <summary>Thiết kế 05/11 (L3): xin Ba Mẹ mở NGOẠI LỆ lúc giờ ngủ / Ba Mẹ khoá / hết giờ — một app hoặc cả máy, có hạn phút
-    /// (POST yeu-cau {loai: ngoai_le, phut, giaTri: app | ca_may, lyDo}). Không trừ giờ chơi, không trừ sao.</summary>
-    public const string NgoaiLe = "ngoai_le";
-    /// <summary>Thiết kế 05/11 (L4): Con «Xin Ba Mẹ duyệt» app / web lạ — POST /api/device/xin-duyet {muc, ten?, lyDo?}; máy chủ tự xếp app / web,
+    /// <summary>Thiết kế 05/11 (L4): Con «Xin Ba Mẹ duyệt» app / web ngoài danh sách — POST /api/device/xin-duyet {muc, ten?, lyDo?}; máy chủ tự xếp app / web,
     /// web luôn chặn ⇒ 409 web_cam. Lời xin chờ cùng mục ⇒ máy chủ trả lại lời xin cũ (daCo).</summary>
     public const string XinDuyet = "xin_duyet";
 

@@ -51,26 +51,23 @@ internal sealed class HopThongBao : HopKhayCoBan
     }
 }
 
-/// <summary>Nhắc «Còn 5 phút chơi» góc phải dưới (con-het-gio 05, 400×236): đổi 10 sao lấy 10 phút / xin Ba Mẹ thêm giờ. Tự tắt sau 30 giây.</summary>
-internal sealed class NhacGioForm : HopKhayCoBan
+/// <summary>Nhắc «Còn 5 sao = 5 phút chơi» góc phải dưới (them-da3zy02w): Làm nhiệm vụ kiếm sao / Xin Ba Mẹ cho vay sao. Tự tắt sau 30 giây.</summary>
+internal sealed class NhacSaoForm : HopKhayCoBan
 {
-    public event Action? DoiSao;
-    public event Action? XinThemGio;
+    public event Action? LamNhiemVu;
+    public event Action? XinVay;
 
-    public NhacGioForm(int? sao, bool doiSaoDuoc) : base("AiiGrow · bây giờ", UI.Px(368))
+    public NhacSaoForm(int conSao, string? app) : base("AiiGrow · bây giờ", UI.Px(368))
     {
         StartPosition = FormStartPosition.Manual;
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         Flow.Padding = new Padding(UI.Px(16), UI.Px(10), UI.Px(16), UI.Px(10));
-        Flow.Controls.Add(KhoiCon.Dau("dong_ho_cat", KhoiCon.Mau.Trang, NhacGioView.Tieu, NhacGioView.Phu(sao), W));
-        if (doiSaoDuoc && (sao is null or >= 10))
-        {
-            var doi = KhoiCon.Nut(ManKhoaView.NutDoiSao, true, W, "sao");
-            doi.Click += (_, _) => { DoiSao?.Invoke(); Close(); };
-            Flow.Controls.Add(doi);
-        }
-        var xin = KhoiCon.Nut(NhacGioView.XinThemGio, !doiSaoDuoc, W, "gui");
-        xin.Click += (_, _) => { XinThemGio?.Invoke(); Close(); };
+        Flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, NhacSaoView.Tieu(conSao), NhacSaoView.Phu(app), W));
+        var lam = KhoiCon.Nut(NhacSaoView.LamNhiemVu, true, W, "tick");
+        lam.Click += (_, _) => { LamNhiemVu?.Invoke(); Close(); };
+        Flow.Controls.Add(lam);
+        var xin = KhoiCon.Nut(NhacSaoView.XinVay, false, W, "gui");
+        xin.Click += (_, _) => { XinVay?.Invoke(); Close(); };
         Flow.Controls.Add(xin);
         Load += (_, _) => KhoiCon.GocPhaiDuoi(this);
         var tat = new System.Windows.Forms.Timer { Interval = 30_000 };
@@ -80,6 +77,41 @@ internal sealed class NhacGioForm : HopKhayCoBan
     }
 
     protected override bool ShowWithoutActivation => true;   // không cướp phím của game / bài Con đang làm
+}
+
+/// <summary>Nội dung «Đã lưu lời xin» lúc mất mạng (them-a86wn24i, them-dsrf5ift, them-rn7iaunn) — dùng chung cho màn khoá, hộp xin vay.</summary>
+internal static class HopDaLuu
+{
+    public static void Ve(FlowLayoutPanel flow, int w, string tieu, string dong, int choMang, Action ve, string chuNut)
+    {
+        flow.Controls.Add(KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, tieu, XinVayView.DaLuuPhu, w));
+        flow.Controls.Add(KhoiCon.Chips(w, new ChipClay(ManChanView.ChoCoMang(choMang), Clay.CanhSoft, Clay.Canh, chamCho: true)));
+        flow.Controls.Add(KhoiCon.DongIcon("gui", dong + $" · vừa xong · {DateTime.Now:HH:mm}", w));
+        flow.Controls.Add(UI.Text(ManChanView.KhongCanGuiLai, 9.75f, false, UI.Muted, w));
+        var b = KhoiCon.Nut(chuNut, false, w, "nha");
+        b.Click += (_, _) => ve();
+        flow.Controls.Add(b);
+    }
+
+    /// <summary>Hộp riêng (màn khoá mất mạng › «Xin Ba Mẹ cho vay sao»).</summary>
+    public static Form Hop(string tieu, string dong, int choMang, string chuNut)
+    {
+        var f = new Form
+        {
+            Text = "AiiGrow", Icon = UI.AppIcon(), FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false,
+            StartPosition = FormStartPosition.CenterScreen, TopMost = true, ShowInTaskbar = false, BackColor = UI.Paper,
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        };
+        AiiGrow.ClayUi.Clay.KhongMnemonic(f);
+        var flow = new FlowLayoutPanel
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
+            Padding = new Padding(UI.Px(24), UI.Px(18), UI.Px(24), UI.Px(14)), BackColor = UI.Paper,
+        };
+        Ve(flow, UI.Px(340), tieu, dong, choMang, f.Close, chuNut);
+        f.Controls.Add(flow);
+        return f;
+    }
 }
 
 /// <summary>«Hỏi AiiGrow» (con-mat-mang 10): mỗi thẻ một lỗi hay gặp + cách sửa; cuối «Gọi Ba Mẹ giúp».</summary>

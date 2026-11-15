@@ -2,164 +2,196 @@ using AiiGrow.Core;
 
 namespace AiiGrow.Tests;
 
-/// <summary>App Con theo thiết kế chốt 05/11 (W1): quỹ giờ chơi tại máy (QuyTaiCho), chữ màn Con (AppConView), đường khay mới.</summary>
+/// <summary>App Con (bản 15/11): sổ sao tại máy (QuyTaiCho — 1 sao = 1 phút «Tính phút»), chữ sao / vay / kết quả (SoSao.cs), chữ màn Con (AppConView).</summary>
 public class AppConTests
 {
-    private static readonly TimeSpan VN = TimeSpan.FromHours(7);
-    // QuyTaiCho đọc giờ ĐỊA PHƯƠNG của máy chạy test ⇒ dựng mốc theo giờ máy để test không phụ thuộc múi giờ của runner
-    private static DateTimeOffset Luc(int h, int m, int ngay = 5) => new DateTimeOffset(new DateTime(2026, 11, ngay, h, m, 0, DateTimeKind.Local));
-
     private static Policy Goc(Action<Policy>? sua = null)
     {
         var p = PolicyParser.Parse("""
         {"mode":"hoc","locked":false,"allowedApps":["explorer.exe","scratch.exe","roblox.exe","minecraft.exe"],"learningApps":["scratch.exe"],
-         "quyConPhut":18,"quyTongPhut":60,"quyDaDung":42,"appTinhGio":["Roblox.exe","minecraft.exe"],
-         "gioNgu":{"tu":"21:30","den":"06:30"},"gioHoc":{"tu":"08:00","den":"11:00","thu":[1,2,3,4,5]}}
+         "quyConPhut":18,"appTinhGio":["Roblox.exe","minecraft.exe"],"playChoices":["roblox.exe","minecraft.exe","youtube.com"],"sao":18,
+         "gioNgu":{"tu":"00:00","den":"00:00"},"ngoaiLe":[]}
         """);
         sua?.Invoke(p);
         return p;
     }
 
     [Fact]
-    public void PolicyParser_DocTruongQuyMoi()
+    public void PolicyParser_DocSaoVaTruongCu()
     {
         var p = Goc();
         Assert.Equal(18, p.QuyConPhut);
+        Assert.Equal(18, p.Sao);
         Assert.Equal(new[] { "roblox.exe", "minecraft.exe" }, p.AppTinhGio);   // chữ thường như AllowedApps
-        Assert.Equal("21:30", p.GioNgu!.Tu);
-        Assert.Equal(new[] { 1, 2, 3, 4, 5 }, p.GioHoc!.Thu);
-        Assert.Empty(p.NgoaiLe);
-        Assert.Null(p.KhoaKhiHetNgoaiLe);
+        Assert.Null(p.SoSao);
+        Assert.False(CheDoCon.La(p));
     }
 
     [Fact]
-    public void Quy_DemTaiMay_HetQuyThiBoAppChoi_ConQuyGiuNguyen()
+    public void PolicyParser_TuDongBo_DocSaoGocVaCheDo()
+    {
+        var p = PolicyParser.TuDongBo("""
+        {"windows":{"mode":"tu_do","allowedApps":[],"sao":-15,"quyConPhut":0,"appTinhGio":[]},
+         "sao":{"sao":-15,"no":15,"phutCon":0,"saoVayChuaTieu":0,"hetSao":true,"canhBaoNo":false,"cau":{"soDu":"−15 sao"}},"cheDo":"theo_danh_sach"}
+        """);
+        Assert.Equal(-15, p.Sao);
+        Assert.Equal(15, p.SoSao!.No);
+        Assert.True(p.SoSao.HetSao);
+        Assert.Equal(CheDoCon.TheoDanhSach, p.CheDoCon);
+        var mh = PolicyParser.TuDongBo("""{"windows":{"mode":"tu_do"},"cheDo":"mo_het"}""");
+        Assert.True(CheDoCon.La(mh));
+        Assert.True(CheDoCon.La(PolicyParser.TuDongBo("""{"windows":{"mode":"tu_do","moHet":true}}""")));   // máy chủ cũ: cờ windows.moHet
+        Assert.True(PolicyParser.TryParse("""{"windows":{"mode":"hoc"},"sao":{"sao":3,"no":0,"phutCon":3}}""", out var t) && t!.SoSao!.PhutCon == 3);
+    }
+
+    [Fact]
+    public void Sao_DemTaiMay_HetSaoThiBoAppTinhPhut_ConSaoGiuNguyen()
     {
         var p = Goc();
-        var now = Luc(19, 30);
-        Assert.Same(p, QuyTaiCho.ApDung(p, 17 * 60, now, offline: false));   // còn 1 phút ⇒ không đổi gì
+        Assert.Same(p, QuyTaiCho.ApDung(p, 17 * 60));   // còn 1 sao ⇒ không đổi gì
         Assert.Equal(1, QuyTaiCho.ConPhut(p, 17 * 60)!.Value, 3);
-        var het = QuyTaiCho.ApDung(p, 18 * 60, now, offline: true);
+        var het = QuyTaiCho.ApDung(p, 18 * 60);
         Assert.Equal(new[] { "explorer.exe", "scratch.exe" }, het.AllowedApps);
         Assert.Empty(het.AppTinhGio);
-        Assert.False(het.Locked);                                                 // hết giờ chơi KHÔNG khoá cả máy — app học vẫn dùng
+        Assert.False(het.Locked);                                                 // hết sao KHÔNG khoá cả máy — app «Không tính phút» vẫn dùng
         Assert.Equal(4, p.AllowedApps.Count);                                     // Policy gốc không bị sửa
         Assert.True(QuyTaiCho.TinhGio(p, "ROBLOX.EXE"));
         Assert.False(QuyTaiCho.TinhGio(p, "scratch.exe"));
     }
 
     [Fact]
-    public void Quy_MayChuCu_KhongCoQuy_KhongDoi()
+    public void Sao_ModeTuDo_HetSao_DongBangDanhSachChan()
+    {
+        var p = Goc(x => { x.Mode = Modes.TuDo; x.QuyConPhut = 0; });
+        var q = QuyTaiCho.ApDung(p, 0);
+        Assert.Contains(q.BlockedApps, b => b.Muc == "roblox.exe");
+    }
+
+    [Fact]
+    public void MoHet_KhongDem_KhongDong()
+    {
+        var p = Goc(x => { x.MoHet = true; x.QuyConPhut = 0; x.Mode = Modes.TuDo; });
+        Assert.Same(p, QuyTaiCho.ApDung(p, 9999));
+        Assert.False(QuyTaiCho.TinhGio(p, "roblox.exe"));
+    }
+
+    [Fact]
+    public void MoBangMa_ThaAppTinhPhut_KhongTruSao()
+    {
+        var p = Goc(x => { x.QuyConPhut = 0; x.AllowedApps = new() { "explorer.exe", "scratch.exe" }; x.AppTinhGio = new(); });
+        var m = QuyTaiCho.ApDung(p, 0, moBangMa: true);
+        Assert.Contains("roblox.exe", m.AllowedApps);
+        Assert.Contains("minecraft.exe", m.AllowedApps);
+        Assert.DoesNotContain("youtube.com", m.AllowedApps);   // tên miền không vào danh sách exe
+    }
+
+    [Fact]
+    public void Sao_MayChuCu_KhongCoSao_KhongDoi()
     {
         var p = PolicyParser.Parse("""{"mode":"hoc","allowedApps":["a.exe"]}""");
         Assert.Null(QuyTaiCho.ConPhut(p, 9999));
-        Assert.Same(p, QuyTaiCho.ApDung(p, 9999, Luc(22, 0), offline: true));
+        Assert.Same(p, QuyTaiCho.ApDung(p, 9999));
     }
 
     [Fact]
-    public void MatMang_DenGioNgu_TuKhoa_GioHoc_ChiAppHoc()
+    public void ChuSao_TheoMauThongNhat()
     {
-        var p = Goc();
-        var ngu = QuyTaiCho.ApDung(p, 0, Luc(22, 0), offline: true);
-        Assert.True(ngu.Locked);
-        Assert.Equal(LockReasons.Ngu, ngu.LockReason);
-        Assert.True(QuyTaiCho.ApDung(p, 0, Luc(5, 0), offline: true).Locked);   // qua nửa đêm vẫn là giờ ngủ
-        Assert.False(QuyTaiCho.ApDung(p, 0, Luc(22, 0), offline: false).Locked, "có mạng: máy chủ xét giờ ngủ, không theo đồng hồ máy");
-        // 05/11/2026 là thứ Năm ⇒ trong giờ học
-        var hoc = QuyTaiCho.ApDung(p, 0, Luc(9, 0), offline: true);
-        Assert.False(hoc.Locked);
-        Assert.DoesNotContain("roblox.exe", hoc.AllowedApps);
-        Assert.Contains("scratch.exe", hoc.AllowedApps);
-        // Chủ nhật 08/11 không có giờ học
-        Assert.Contains("roblox.exe", QuyTaiCho.ApDung(p, 0, Luc(9, 0, ngay: 8), offline: true).AllowedApps);
-    }
-
-    [Fact]
-    public void NgoaiLe_HetHan_TuKhoaLai_ConHan_Thang()
-    {
-        var now = Luc(19, 0);
-        // Ba Mẹ đang khoá, mở ngoại lệ cả máy tới 19:20 (máy chủ: mode tu_do + grantEndsAt + khoaKhiHetNgoaiLe)
-        var p = Goc(x =>
-        {
-            x.Mode = Modes.TuDo; x.GrantEndsAt = now.AddMinutes(20); x.KhoaKhiHetNgoaiLe = "khoa";
-            x.NgoaiLe = new() { new NgoaiLeMay { Den = now.AddMinutes(20), App = null } };
-        });
-        Assert.False(QuyTaiCho.ApDung(p, 0, now, offline: true).Locked);
-        var het = QuyTaiCho.ApDung(p, 0, now.AddMinutes(21), offline: true);
-        Assert.True(het.Locked);
-        Assert.Equal(LockReasons.Khoa, het.LockReason);
-        Assert.True(PolicyEvaluator.Evaluate(het, now.AddMinutes(21), 0).Locked);
-
-        // ngoại lệ một app trong giờ ngủ: còn hạn ⇒ app đó chạy, không khoá; hết hạn ⇒ bỏ app + khoá «ngu»
-        var app = Goc(x =>
-        {
-            x.KhoaKhiHetNgoaiLe = "ngu"; x.AllowedApps = new() { "explorer.exe", "scratch.exe" }; x.AppTinhGio = new();
-            x.NgoaiLe = new() { new NgoaiLeMay { Den = Luc(22, 30), App = "scratch.exe" } };
-        });
-        var con = QuyTaiCho.ApDung(app, 0, Luc(22, 0), offline: true);
-        Assert.False(con.Locked);
-        Assert.Contains("scratch.exe", con.AllowedApps);
-        var hetApp = QuyTaiCho.ApDung(app, 0, Luc(22, 31), offline: false);
-        Assert.True(hetApp.Locked);
-        Assert.Equal(LockReasons.Ngu, hetApp.LockReason);
-        Assert.DoesNotContain("scratch.exe", hetApp.AllowedApps);
-
-        // ngoại lệ một app lúc không khoá: hết hạn chỉ bỏ app đó
-        var thuong = Goc(x => { x.AllowedApps.Add("capcut.exe"); x.NgoaiLe = new() { new NgoaiLeMay { Den = now.AddMinutes(-1), App = "capcut.exe" }, new NgoaiLeMay { Den = now.AddMinutes(-1), App = "minecraft.exe" } }; });
-        var t = QuyTaiCho.ApDung(thuong, 0, now, offline: false);
-        Assert.False(t.Locked);
-        Assert.DoesNotContain("capcut.exe", t.AllowedApps);
-        Assert.Contains("minecraft.exe", t.AllowedApps);   // app chơi còn quỹ: hết ngoại lệ vẫn chơi được bằng quỹ
-    }
-
-    [Theory]
-    [InlineData("21:30", "06:30", 21, 29, false)]
-    [InlineData("21:30", "06:30", 21, 30, true)]
-    [InlineData("21:30", "06:30", 6, 29, true)]
-    [InlineData("21:30", "06:30", 6, 30, false)]
-    [InlineData("08:00", "11:00", 10, 59, true)]
-    [InlineData("08:00", "08:00", 8, 0, false)]
-    [InlineData("xx", "11:00", 9, 0, false)]
-    public void TrongKhung_NhuMayChu(string tu, string den, int h, int m, bool mong)
-        => Assert.Equal(mong, QuyTaiCho.TrongKhung(new KhungGio { Tu = tu, Den = den }, new DateTime(2026, 11, 5, h, m, 0)));
-
-    [Fact]
-    public void ChuHomNay()
-    {
-        Assert.Equal("Chào Bảo Anh!", AppConView.Chao(" Bảo Anh "));
-        Assert.Equal("Thứ Năm · 19:30", AppConView.NgayGio(new DateTime(2026, 11, 5, 19, 30, 0)));
-        Assert.Equal("18 phút", AppConView.Phut(18.9));
-        Assert.Equal("0 phút", AppConView.Phut(-3));
-        Assert.Equal("Đã chơi 42 / 60 phút", AppConView.DaChoi(42.2, 60));
-        Assert.Equal(0.7, AppConView.TiLe(42, 60), 3);
-        Assert.Equal("10 sao = 10 phút chơi", AppConView.TyLe(null));
-        Assert.Equal("Đổi 10 sao lấy 15 phút", AppConView.NutDoiSao(new HvTyLe { Sao = 10, Phut = 15 }));
+        Assert.Equal("18 sao", SaoView.SoDu(18));
+        Assert.Equal("\u221215 sao", SaoView.SoDu(-15));
+        Assert.Equal("còn 18 sao = 18 phút chơi", SaoView.ConPhut(18.9));
+        Assert.Equal("hết sao · còn 0 phút chơi", SaoView.ConPhut(0));
+        Assert.Equal("Đang nợ Ba Mẹ 15 sao · sao nhiệm vụ trả nợ trước", SaoView.No(15));
+        Assert.Null(SaoView.No(0));
+        Assert.Equal("Hôm nay đã chơi 42 phút · \u221242 sao", SaoView.DaChoi(42));
+        Assert.EndsWith("· mất mạng vẫn trừ", SaoView.DaChoi(42, true));
+        Assert.Equal("Duyệt xong +20 sao (đang nợ thì trả nợ trước)", SaoView.ChoDuyet(20, 0));
+        Assert.Equal("Trả nợ 15 sao trước · con còn 5 sao", SaoView.ChoDuyet(20, 15));
+        Assert.Equal("Hết sao để chơi · Roblox, Minecraft đang khoá", SaoView.HetSaoKhoa(new[] { "roblox.exe", "minecraft.exe", "youtube.com" }));
+        Assert.Equal("Từ điển vẫn mở · không tính phút", SaoView.VanMo(new[] { "Từ điển" }));
         var dung = new List<DungApp>
         {
             new() { AppId = "roblox.exe", Ten = "Roblox", Phut = 30 }, new() { AppId = "youtubekids.exe", Ten = "YouTube Kids", Phut = 12 },
             new() { AppId = "tudien.exe", Ten = "Từ điển", Phut = 5 },
         };
-        Assert.Equal("Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính giờ", AppConView.DungTheoApp(dung, new[] { "tudien.exe" }));
+        Assert.Equal("Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính phút", SaoView.DungTheoApp(dung, new[] { "tudien.exe" }));
+        Assert.Equal(42, SaoView.PhutTinh(dung, new[] { "tudien.exe" }));
+        Assert.Equal("Chào Bảo Anh!", AppConView.Chao(" Bảo Anh "));
+        Assert.Equal("Thứ Năm · 19:30", AppConView.NgayGio(new DateTime(2026, 11, 5, 19, 30, 0)));
     }
 
     [Fact]
-    public void DoiSao_TinhSaoVaToiDa()
+    public void SoDuTaiMay_TruPhanDaChoi_DungLucHetSao()
     {
-        Assert.Equal(10, AppConView.SaoChoPhut(10, null));
-        Assert.Equal(40, AppConView.SaoChoPhut(40, new HvTyLe()));
-        Assert.Equal(7, AppConView.SaoChoPhut(10, new HvTyLe { Sao = 10, Phut = 15 }));   // làm tròn lên
-        var q = new HvQuy { DoiSao = new HvDoiSaoCau { Bat = true, ToiDaNgay = 30, ConDoiDuoc = 20 } };
-        Assert.Equal(20, AppConView.PhutDoiToiDa(30, q));   // còn đổi được 20 phút hôm nay
-        Assert.Equal(15, AppConView.PhutDoiToiDa(15, q));   // 15 sao
-        Assert.Equal("Còn 20 sao · giờ chơi thành 28 phút", AppConView.SauKhiDoi(30, 10, 18, null));
-        Assert.True(AppConView.KhongThemGio(new HvQuy { DangNgu = true }));
-        Assert.False(AppConView.KhongThemGio(new HvQuy()));
+        Assert.Equal(15, SaoView.SoDuTaiMay(18, 18, 15.2));
+        Assert.Equal(0, SaoView.SoDuTaiMay(18, 18, 0));
+        Assert.Equal(-15, SaoView.SoDuTaiMay(-15, 0, 0));   // đang nợ, hết sao ⇒ không trừ thêm
+        Assert.Null(SaoView.SoDuTaiMay(null, 5, 4));
+    }
+
+    [Fact]
+    public void XinVay_ChuVaKep()
+    {
+        Assert.Equal(new[] { 10, 15, 30 }, XinVayView.Muc);
+        Assert.Equal(15, XinVayView.MacDinh);
+        Assert.Equal(1000, XinVayView.Kep(5000));
+        Assert.Equal(1, XinVayView.Kep(0));
+        Assert.Equal("Xin Ba Mẹ cho vay 15 sao", XinVayView.Nut(15));
+        Assert.Equal("Con hết sao rồi · 1 sao = 1 phút chơi", XinVayView.Phu(0));
+        Assert.Equal("Mẹ Lan cho vay rồi!", XinVayView.ChoVayTieu("Mẹ Lan"));
+        Assert.Equal("Ba Mẹ cho vay rồi!", XinVayView.ChoVayTieu(null));
+        Assert.Equal("Ba Mẹ cho vay 15 sao · Con đang nợ 15 sao", XinVayView.ChoVayDong(15, 15));
+        Assert.Equal("Chơi tiếp 15 phút", XinVayView.ChoiTiep(15));
+        Assert.Null(XinVayView.LyDo("  "));
+    }
+
+    [Fact]
+    public void NhacSao_VaHetSao_TheoMoc()
+    {
+        Assert.True(NhacSaoView.NenNhac(5, true, false));
+        Assert.False(NhacSaoView.NenNhac(5, false, false));   // không chơi app «Tính phút» thì không nhắc
+        Assert.False(NhacSaoView.NenNhac(0.8, true, false));  // ≤ 1 ⇒ đếm ngược, không nhắc
+        Assert.Equal("Còn 5 sao = 5 phút chơi", NhacSaoView.Tieu(5));
+        Assert.Equal("Lưu bài nhé · hết sao là Roblox đóng", NhacSaoView.Phu("Roblox"));
+        Assert.True(HetSaoView.DemNguoc(0.75, true));
+        Assert.False(HetSaoView.DemNguoc(0, true));
+        var dem = HetSaoView.For(45, "Roblox", null, doiBe: false);
+        Assert.Equal("Sắp hết sao rồi", dem.Tieu);
+        Assert.True(dem.DemNguoc);
+        Assert.Equal(new[] { "Làm nhiệm vụ kiếm sao", "Xin Ba Mẹ cho vay sao", "Ba Mẹ dùng máy" }, dem.Nut.Select(n => n.Chu));
+        var het = HetSaoView.For(null, null, new[] { "Từ điển" }, doiBe: true);
+        Assert.Equal("Hết sao rồi", het.Tieu);
+        Assert.Equal("App «Tính phút» tạm khoá nhé.", het.Phu);
+        Assert.Equal("Con còn 0 sao · 1 sao = 1 phút chơi", het.SaoDong);
+        Assert.Equal(new[] { "Làm nhiệm vụ", "Xin Ba Mẹ cho vay sao", "Nhắn Ba Mẹ", "Đổi bé", "Ba Mẹ mở máy" }, het.Nut.Select(n => n.Chu));
+    }
+
+    [Theory]
+    [InlineData("da_them", "duoc", KetQuaXinView.Loai.DaThem)]
+    [InlineData("mo_tam", "duoc", KetQuaXinView.Loai.MoTam)]
+    [InlineData("chua_them", "tu_choi", KetQuaXinView.Loai.ChuaThem)]
+    [InlineData("cho", "cho", KetQuaXinView.Loai.Cho)]
+    [InlineData(null, "duoc", KetQuaXinView.Loai.DaThem)]      // máy chủ cũ: chỉ status
+    [InlineData(null, "tu_choi", KetQuaXinView.Loai.ChuaThem)]
+    [InlineData("het_han", "tu_choi", KetQuaXinView.Loai.HetHan)]
+    public void KetQuaXin_DocKetQuaVaStatusCu(string? ketQua, string status, KetQuaXinView.Loai mong)
+        => Assert.Equal(mong, KetQuaXinView.Doc(ketQua, status));
+
+    [Fact]
+    public void KetQuaXin_Chu()
+    {
+        Assert.Equal("Ba Mẹ đã thêm CapCut", KetQuaXinView.DaThemTieu("CapCut"));
+        Assert.Equal("Nhóm «Tính phút»", KetQuaXinView.Nhom(false, false));
+        Assert.Equal("Nhóm «Không tính phút»", KetQuaXinView.Nhom(true, true));
+        Assert.Equal("Không trừ sao", KetQuaXinView.NhomPhu(true, 18));
+        Assert.Equal("Còn 18 sao = 18 phút", KetQuaXinView.NhomPhu(false, 18));
+        Assert.Equal("Con vào y8.com thoải mái nhé!", KetQuaXinView.DaThemVui("y8.com", true, true));
+        Assert.Equal("Ba Mẹ cho mở 30 phút", KetQuaXinView.MoTamTieu(30));
+        Assert.Equal("Ba Mẹ chưa thêm CapCut lúc này.", KetQuaXinView.ChuaThemCau("CapCut"));
     }
 
     private const string TongQuanMoi = """
     {"con":{"id":"c1","ten":"Bảo Anh"},"soDu":30,"sao":30,"saoChoDuyet":20,"diemChoDuyet":20,
-     "quy":{"conPhut":18,"daDung":42,"tongPhut":60,"quyNgayPhut":60,"themPhut":0,"dangNgu":false,"dangHoc":false,"khoa":false,
-            "gioNgu":{"tu":"21:30","den":"06:30"},"gioHoc":null,"tyLe":{"sao":10,"phut":10},"doiSao":{"bat":true,"toiDaNgay":30,"conDoiDuoc":30},"choXinThem":true},
+     "soSao":{"sao":30,"no":0,"phutCon":30,"hetSao":false},"cheDo":"theo_danh_sach",
      "nhiemVu":[
        {"id":"t1","ten":"Dọn phòng","diem":10,"sao":10,"bangChung":"anh","trangThai":"du_hom_nay","luot":null,"dangCho":1,"hinh":"choi","bo":"tu_lap"},
        {"id":"t2","ten":"Đọc sách 20 phút","diem":10,"sao":10,"bangChung":"ghi_am","trangThai":"can_bo_sung","luot":"l2","lamLai":true,"loiNhan":"Con đọc to hơn chút nhé","bo":"tu_lap"},
@@ -177,7 +209,8 @@ public class AppConTests
         var tq = HocVienView.Parse<HvTongQuan>(TongQuanMoi)!;
         Assert.Equal(30, tq.SoSao);
         Assert.Equal(20, tq.SoSaoChoDuyet);
-        Assert.Equal(18, tq.Quy!.ConPhut);
+        Assert.Equal(30, tq.SoSaoCt!.PhutCon);
+        Assert.Equal(CheDoCon.TheoDanhSach, tq.CheDo);
         var tuCham = HocVienView.Parse<HvNvDs>("""{"ds":[{"id":"t9","ten":"Học 1 bài với AiiRob","diem":20,"sao":20,"tu_cham":true,"trang_thai_con":"san_sang","bo":"tu_lap"},{"id":"t3","ten":"Tự đánh răng","diem":10,"tu_cham":false,"trang_thai_con":"san_sang"}]}""")!;
         var ds = AppConView.DanhSach(tq, tuCham.Ds);
         Assert.Equal(new[] { "lam_lai", "cho_duyet", "chua_lam", "chua_lam", "tu_cham" }, ds.Select(x => x.Nhom));
@@ -201,7 +234,7 @@ public class AppConTests
     [Fact]
     public void Qua_TrangThai()
     {
-        var now = new DateTimeOffset(2026, 11, 5, 19, 30, 0, VN);
+        var now = new DateTimeOffset(2026, 11, 5, 19, 30, 0, TimeSpan.FromHours(7));
         var cho = new HvQua { Ten = "Đi ăn kem", Diem = 50, ChoTraoTu = now.AddDays(-1) };
         Assert.Equal(("Đã đổi hôm qua · chờ Ba Mẹ trao", false, true), AppConView.TrangThaiQua(cho, 30, now));
         Assert.Equal(("Đủ sao rồi!", true, false), AppConView.TrangThaiQua(new HvQua { Diem = 30, Sao = 30 }, 30, now));
@@ -222,25 +255,29 @@ public class AppConTests
         Assert.Equal("Con đọc to hơn chút nhé", lai.LoiNhan);
         Assert.Null(AppConView.DocTin(new HvTin { Loai = "lam_lai_nhiem_vu", Noi = "«Đọc sách»" })!.LoiNhan);
         Assert.Equal(new KetQuaTin("trao_qua", "Thêm 30 phút chơi", null, 30, null), AppConView.DocTin(new HvTin { Loai = "xac_nhan_qua", Noi = "Thêm 30 phút chơi · +30 phút" }));
-        Assert.Equal(new KetQuaTin("them_gio", "", null, 20, null), AppConView.DocTin(new HvTin { Loai = "them_gio", Noi = "+20 phút chơi hôm nay" }));
+        Assert.Null(AppConView.DocTin(new HvTin { Loai = "them_gio", Noi = "+20 phút chơi hôm nay" }));   // 15/11: không còn «cho thêm giờ»
+        Assert.Equal(new KetQuaTin("da_them", "Roblox", null, null, "Chơi vừa thôi nhé", "tinh_phut", "Mẹ Lan"),
+            AppConView.DocTin(new HvTin { Loai = "dong_y_yeu_cau", Tieu = "Mẹ Lan đã thêm Roblox", Noi = "Nhóm «Tính phút» · 1 sao = 1 phút · «Chơi vừa thôi nhé»" }));
+        Assert.Equal("khong_tinh_phut", AppConView.DocTin(new HvTin { Loai = "dong_y_yeu_cau", Tieu = "Ba Mẹ đã thêm y8.com", Noi = "Nhóm «Không tính phút» · không trừ sao" })!.Nhom);
+        Assert.Equal(new KetQuaTin("chua_them", "tiktok.com", null, null, null, null, "Lan"),
+            AppConView.DocTin(new HvTin { Loai = "bo_qua_yeu_cau", Tieu = "Lan chưa thêm tiktok.com lúc này", Noi = "Con xin lại sau được nhé" }));
         Assert.Null(AppConView.DocTin(new HvTin { Loai = "loi_khen", Noi = "Giỏi lắm" }));
         var moi = new List<HvTin>
         {
             new() { Loai = "duyet_nhiem_vu", Noi = "«A» · +10 sao", Luc = new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero) },
-            new() { Loai = "them_gio", Noi = "+15 phút chơi hôm nay", Luc = new DateTimeOffset(2026, 11, 5, 11, 0, 0, TimeSpan.Zero) },
+            new() { Loai = "bo_qua_yeu_cau", Tieu = "Mẹ chưa thêm CapCut lúc này", Luc = new DateTimeOffset(2026, 11, 5, 11, 0, 0, TimeSpan.Zero) },
             new() { Loai = "loi_khen", Noi = "x", Luc = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero) },
         };
-        Assert.Equal("them_gio", AppConView.ChonKetQua(moi)!.Loai);
+        Assert.Equal("chua_them", AppConView.ChonKetQua(moi)!.Loai);
     }
 
     [Theory]
-    [InlineData("GET", "hoc-vien/quy", true)]
+    [InlineData("GET", "hoc-vien/sao", true)]
     [InlineData("GET", "hoc-vien/nhiem-vu?tuCham=1", true)]
     [InlineData("GET", "hoc-vien/vi-qua", false)]
-    [InlineData("POST", "hoc-vien/doi-sao", true)]
-    [InlineData("GET", "hoc-vien/doi-sao", false)]
-    [InlineData("POST", "hoc-vien/quy", false)]
-    [InlineData("POST", "hoc-vien/doi-sao?phut=10", false)]
+    [InlineData("GET", "hoc-vien/quy", false)]          // 15/11: bỏ quỹ ngày
+    [InlineData("POST", "hoc-vien/doi-sao", false)]     // 15/11: bỏ đổi sao lấy giờ
+    [InlineData("POST", "hoc-vien/sao", false)]
     public void HocVienPaths_DuongMoi(string method, string path, bool mong) => Assert.Equal(mong, HocVienPaths.Allowed(method, path));
 
     [Fact]
@@ -250,7 +287,7 @@ public class AppConTests
         try
         {
             var h = new BaiChoMang(dir);
-            var now = new DateTimeOffset(2026, 11, 5, 19, 0, 0, VN);
+            var now = new DateTimeOffset(2026, 11, 5, 19, 0, 0, TimeSpan.FromHours(7));
             Assert.True(BaiChoMang.LaNop("POST", "hoc-vien/luot/l1/nop"));
             Assert.False(BaiChoMang.LaNop("GET", "hoc-vien/luot/l1/nop"));
             Assert.False(BaiChoMang.LaNop("POST", "hoc-vien/doi/q1"));
@@ -274,24 +311,11 @@ public class AppConTests
     }
 
     [Fact]
-    public void Quy_QuaNuaDem_MoHet_KhoaNguCu()
+    public void Sao_QuaNuaDem_KhongTuDayLai()
     {
-        // Policy đồng bộ 20:00 hôm qua (còn 5 phút) — mất mạng qua đêm ⇒ hôm nay quỹ lại 60 phút trừ phần chơi từ nửa đêm
-        var p = Goc(x => x.ServerTime = Luc(20, 0, ngay: 4));
-        Assert.Equal(18, QuyTaiCho.ConPhut(p, 0)!.Value, 3);
-        Assert.Equal(50, QuyTaiCho.ConPhut(p, 99999, Luc(9, 0), giayHomNay: 600)!.Value, 3);
-        Assert.True(QuyTaiCho.NgayMoi(p, Luc(0, 1)));
-        // «Mở hết» (tu_do không hạn) hết quỹ ⇒ app chơi vào danh sách chặn
-        var mh = Goc(x => { x.Mode = Modes.TuDo; x.ServerTime = Luc(19, 0); });
-        var het = QuyTaiCho.ApDung(mh, 18 * 60, Luc(19, 30), offline: false);
-        Assert.Contains(het.BlockedApps, a => a.Muc == "roblox.exe");
-        Assert.Empty(mh.BlockedApps);
-        // khoá «ngu» lúc đồng bộ đêm qua, mất mạng tới 7:00 sáng ⇒ mở lại (chỉ app được phép), không khoá cả buổi sáng
-        var ngu = Goc(x => { x.Locked = true; x.LockReason = LockReasons.Ngu; x.Mode = Modes.Khoa; });
-        var sang = QuyTaiCho.ApDung(ngu, 0, Luc(7, 0), offline: true);
-        Assert.False(sang.Locked);
-        Assert.Equal(Modes.Hoc, sang.Mode);
-        Assert.True(QuyTaiCho.ApDung(ngu, 0, Luc(7, 0), offline: false).Locked, "có mạng: máy chủ quyết");
+        // 15/11: sao dồn nhiều ngày, không có quỹ ngày ⇒ mất mạng qua đêm không được thêm phút
+        var p = Goc(x => x.ServerTime = new DateTimeOffset(2026, 11, 4, 20, 0, 0, TimeSpan.FromHours(7)));
+        Assert.Equal(8, QuyTaiCho.ConPhut(p, 600)!.Value, 3);
     }
 
     [Fact]
@@ -317,14 +341,28 @@ public class AppConTests
     }
 
     [Fact]
-    public void NgoaiLeHetHan_AppVonDuocPhep_GiuNguyen_KhayChetVanTruQuy()
+    public void KhayChet_VanTruSao()
     {
-        var now = Luc(19, 0);
-        var p = Goc(x => { x.Mode = Modes.TuDo; x.NgoaiLe = new() { new NgoaiLeMay { Den = now.AddMinutes(-1), App = "scratch.exe" } }; });
-        var q = QuyTaiCho.ApDung(p, 0, now, offline: true);
-        Assert.Contains("scratch.exe", q.AllowedApps);
-        Assert.Empty(q.BlockedApps);
+        var p = Goc();
         Assert.True(QuyTaiCho.TinhGio(p, UsageTracker.KhongRo));
         Assert.False(QuyTaiCho.TinhGio(Goc(x => x.AppTinhGio = new()), UsageTracker.KhongRo));
+    }
+
+    [Fact]
+    public void Usage_TheoBe_GuiCon()
+    {
+        var t = new UsageTracker();
+        var now = new DateTimeOffset(2026, 11, 15, 19, 0, 0, TimeSpan.FromHours(7));
+        t.Add(now, "roblox.exe", "Roblox", 120, "be-a");
+        t.Add(now, "roblox.exe", "Roblox", 60, "be-b");
+        t.Add(now, "roblox.exe", "Roblox", 60);
+        var ds = t.Drain();
+        Assert.Contains(ds, u => u.Con == "be-a" && u.Minutes == 2);
+        Assert.Contains(ds, u => u.Con == "be-b" && u.Minutes == 1);
+        Assert.Contains(ds, u => u.Con == null && u.Minutes == 1);
+        Assert.Equal(2, t.DungHomNay(now, con: "be-a").Single().Phut);
+        Assert.Equal(4, t.DungHomNay(now).Single().Phut);
+        var tong = new UsageTotals().Add(new[] { new UsageEntry("2026-11-15", "roblox.exe", "Roblox", 2, "be-a"), new UsageEntry("2026-11-15", "roblox.exe", "Roblox", 1, "be-b") });
+        Assert.Equal(2, tong.Count);
     }
 }

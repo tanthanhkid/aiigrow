@@ -169,7 +169,8 @@ public sealed class AgentWorker : BackgroundService
         // Tray báo không có cửa sổ tiền cảnh (màn hình đã khoá): không tính giờ.
         if (fresh && string.IsNullOrEmpty(id)) return;
         // Tray chết: vẫn tính giờ phiên con dưới tên "không rõ" (con không thể ngưng đồng hồ bằng cách tắt tray).
-        _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed);
+        var be = _rt.DangNhap() is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;   // 15/11 (#267): phút ghi theo bé
+        _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed, be);
     }
 
     private async Task<DateTimeOffset> SyncAsync(AgentConfig cfg, bool active, DateTimeOffset now, CancellationToken ct)
@@ -184,14 +185,16 @@ public sealed class AgentWorker : BackgroundService
             // 0.2.4: có phút chơi khi mất mạng chưa gửi ⇒ gửi phien/bu TRƯỚC dong-bo (máy chủ đo thời gian thật từ nhịp cuối).
             var doan = _rt.DoanCanBu();
             var status = _rt.BuildStatus(active);
+            var boiMa = _rt.PhutBoiMa;   // 15/11: phút «Tính phút» lúc mở bằng mã — máy chủ không trừ sao
             var (policy, raw) = await GuiBu.DongBoAsync(api, doan, (kq, loi) =>
             {
                 if (kq == KetQuaBu.DaGui) _log.LogInformation("Đã gửi bù {phut} phút chơi khi mất mạng (phiên {id})", doan!.PhutChoi, doan.PhienId);
                 else if (kq == KetQuaBu.Bo) _log.LogWarning("Bỏ gửi bù phút chơi offline (phiên {id}): máy chủ từ chối {code} {m}", doan!.PhienId, loi?.StatusCode, loi?.Message);
                 else if (kq == KetQuaBu.GiuLai) _log.LogDebug("Gửi bù phút chơi offline lỗi, giữ lại: {m}", loi?.Message);
                 _rt.GhiKetQuaBu(doan, kq);
-            }, status, usage, ct);
+            }, status, usage, ct, boiMa);
             _rt.SetPolicy(policy, raw);
+            _rt.DaGuiBoiMa(boiMa);
             _rt.DaGuiGiayChoi(status);
             // 06/11 (L13): «ai đang dùng máy» của máy chủ (bé hết phiên 12 giờ ⇒ về màn chọn tên), đăng xuất còn treo, danh sách bé cho lúc mất mạng
             try { await _nd.SauDongBoAsync(api, raw, guiLuc, ct); }
@@ -214,7 +217,7 @@ public sealed class AgentWorker : BackgroundService
         }
     }
 
-    /// <summary>05/11 (L11): có mạng lại ⇒ gửi các lời xin Con bấm lúc mất mạng (thêm giờ, ngoại lệ, xin duyệt app / web). Lỗi mạng ⇒ giữ lần sau;
+    /// <summary>05/11 (L11): có mạng lại ⇒ gửi các lời xin Con bấm lúc mất mạng (xin vay sao, xin thêm app / web). Lỗi mạng ⇒ giữ lần sau;
     /// máy chủ từ chối (4xx) ⇒ bỏ. Không làm hỏng lượt đồng bộ vừa xong.</summary>
     private async Task GuiXinChoMang(ApiClient api, CancellationToken ct)
     {
@@ -228,8 +231,8 @@ public sealed class AgentWorker : BackgroundService
                 try
                 {
                     if (x.Loai == LoaiXin.XinDuyet) await api.XinDuyetAsync(x.Muc ?? "", x.Ten, x.LyDo, ct);
-                    else if (x.Loai == LoaiXin.NgoaiLe) await api.CreateNgoaiLeAsync(x.Phut, x.Muc ?? NgoaiLeView.CaMay, NgoaiLeView.LyDo(x.LyDo, null), ct);
-                    else await api.CreateRequestAsync(LoaiXin.ThemGio, x.Phut, x.Muc, x.Ten, x.LyDo, ct);
+                    else if (x.Loai == LoaiXin.VaySao) await api.XinVayAsync(x.Phut, x.LyDo, x.Muc, ct);   // Muc = quà muốn đổi (vay để đổi quà) hoặc trống
+                    else { _log.LogInformation("Bỏ lời xin chờ mạng loại cũ {loai} (đã bỏ từ 15/11)", x.Loai); return KetQuaGuiXin.Bo; }
                     _log.LogInformation("Có mạng: đã gửi lời xin {loai} {muc} lưu lúc {luc}", x.Loai, x.Muc, x.Luc);
                     return KetQuaGuiXin.DaGui;
                 }

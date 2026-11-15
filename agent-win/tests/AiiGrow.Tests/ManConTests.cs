@@ -3,7 +3,7 @@ using Xunit;
 
 namespace AiiGrow.Tests;
 
-/// <summary>Màn Con Windows theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-bi-chan, con-het-gio, con-mat-mang).</summary>
+/// <summary>Màn Con Windows theo bàn thiết kế (bản 15/11 — con-bi-chan, con-het-gio, con-mat-mang).</summary>
 public class ManConTests
 {
     private static readonly DateTimeOffset Luc = new(2026, 11, 3, 19, 30, 0, TimeSpan.FromHours(7));
@@ -23,112 +23,48 @@ public class ManConTests
     [Fact]
     public void ManChan_Chu_DungThietKe()
     {
-        Assert.Equal("YouTube chưa được mở", ManChanView.TieuDe("YouTube"));
-        Assert.Equal("Xin Ba Mẹ mở YouTube", ManChanView.NutXin("YouTube"));
-        Assert.Equal("Con đang dùng được 4 app:", ManChanView.DangDung(4));
-        Assert.Equal(("Đã gửi Ba Mẹ duyệt CapCut", "App mới · gửi lúc 19:30"), ManChanView.DaGui("CapCut", false, true, Luc));
+        Assert.Equal("YouTube chưa được thêm", ManChanView.TieuDe("YouTube"));
+        Assert.Equal("Chưa có trong danh sách của con", ManChanView.Phu);
+        Assert.Equal("Xin Ba Mẹ thêm YouTube", ManChanView.NutXin("YouTube"));
+        Assert.Equal("Danh sách · xanh: không tính phút · vàng: tính phút", ManChanView.ChuThichDs);
+        Assert.Equal("Trang này chưa có trong danh sách", ManChanView.WebTieu);
+        Assert.Equal(("Đã gửi Ba Mẹ duyệt CapCut", "App mới cài · gửi lúc 19:30"), ManChanView.DaGui("CapCut", false, true, Luc));
         Assert.Equal(("Đã gửi xin mở y8.com", "Trang mới · gửi lúc 19:30"), ManChanView.DaGui("y8.com", true, false, Luc));
         Assert.Equal("Ba Mẹ đã cho CapCut", ManChanView.Duoc("CapCut", false, Luc).Tieu);
         Assert.Equal("Ba Mẹ chưa mở y8.com", ManChanView.ChuaCho("y8.com", true, Luc).Tieu);
         Assert.Equal("Chờ có mạng (2)", ManChanView.ChoCoMang(2));
     }
 
-    [Fact]
-    public void ManKhoa_HetGio_DemNguoc_RoiHetGio()
-    {
-        var dem = ManKhoaView.For(LockReasons.HetGio, 45, "Bảo Anh", 30, 60, null, doiSaoDuoc: true, offline: false);
-        Assert.True(dem.DemNguoc);
-        Assert.Equal("Sắp hết giờ chơi", dem.Tieu);
-        Assert.Equal("Con có 30 sao", dem.SaoDong);
-        Assert.Equal(new[] { ManKhoaView.DoiSao, ManKhoaView.XinThemGio, ManKhoaView.BaMeDungMay }, dem.Nut.Select(n => n.Ma));
-
-        var het = ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", 30, 60, null, true, false);
-        Assert.False(het.DemNguoc);
-        Assert.Equal("Hết giờ chơi hôm nay", het.Tieu);
-        Assert.Equal("Con đã chơi đủ 60 / 60 phút. Giỏi lắm!", het.Phu);
-        Assert.Equal(new[] { ManKhoaView.DoiSao, ManKhoaView.XinThemGio, ManKhoaView.XinNgoaiLe, ManKhoaView.NhanBaMe, ManKhoaView.BaMeDungMay }, het.Nut.Select(n => n.Ma));
-    }
-
-    [Fact]
-    public void ManKhoa_KhongDuSao_HoacMayChuKhongCho_KhongCoNutDoiSao()
-    {
-        Assert.DoesNotContain(ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", 5, 60, null, true, false).Nut, n => n.Ma == ManKhoaView.DoiSao);
-        Assert.DoesNotContain(ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", 30, 60, null, false, false).Nut, n => n.Ma == ManKhoaView.DoiSao);
-        // máy chủ chưa gửi số sao (S1) ⇒ vẫn cho đổi nếu máy chủ cho đổi, không ghi số sao
-        var chuaBiet = ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", null, null, null, true, false);
-        Assert.Contains(chuaBiet.Nut, n => n.Ma == ManKhoaView.DoiSao);
-        Assert.Null(chuaBiet.SaoDong);
-        Assert.Equal("Con đã chơi đủ giờ hôm nay. Giỏi lắm!", chuaBiet.Phu);
-    }
-
     [Theory]
-    [InlineData(LockReasons.Ngu, "Đến giờ ngủ rồi")]
-    [InlineData(LockReasons.Khoa, "Ba Mẹ đang khoá máy")]
-    public void ManKhoa_GioNgu_BaMeKhoa_ChiXinNgoaiLe_KhongThemGio(string lyDo, string tieu)
+    [InlineData(LockReasons.Khoa)]
+    [InlineData(LockReasons.Ngu)]       // máy chủ cũ còn gửi «ngu» / «het_gio» ⇒ hiện như Ba Mẹ khoá (không còn giờ ngủ)
+    [InlineData(LockReasons.HetGio)]
+    public void ManKhoa_ChiConBaMeKhoa_KhongNgoaiLe_KhongThemGio(string lyDo)
     {
-        var m = ManKhoaView.For(lyDo, null, "Bảo Anh", 30, 60, "6:30", true, false);
-        Assert.Equal(tieu, m.Tieu);
-        Assert.Equal(new[] { ManKhoaView.XinNgoaiLe, ManKhoaView.NhanBaMe, ManKhoaView.BaMeDungMay }, m.Nut.Select(n => n.Ma));
-        Assert.DoesNotContain(m.Nut, n => n.Ma is ManKhoaView.DoiSao or ManKhoaView.XinThemGio);
+        var m = ManKhoaView.For(lyDo, "Bảo Anh", offline: false);
+        Assert.Equal("Ba Mẹ đang khoá máy", m.Tieu);
+        Assert.Equal(new[] { ManKhoaView.NhanBaMe, ManKhoaView.BaMeDungMay }, m.Nut.Select(n => n.Ma));
+        Assert.False(m.DemNguoc);
     }
 
     [Fact]
-    public void ManKhoa_GioNgu_GioMoLai()
+    public void ManKhoa_MatMang_HetSao_XinVayLuuLai()
     {
-        Assert.Equal("Máy mở lại lúc 6:30 sáng mai.", ManKhoaView.For(LockReasons.Ngu, null, "Bảo Anh", null, null, "6:30", false, false).Phu);
-        Assert.Equal("Máy mở lại sáng mai.", ManKhoaView.For(LockReasons.Ngu, null, "Bảo Anh", null, null, null, false, false).Phu);
-        Assert.Equal("Chúc Bảo Anh ngủ ngon!", ManKhoaView.For(LockReasons.Ngu, null, "Bảo Anh", null, null, null, false, false).Phu2);
-    }
-
-    [Theory]
-    [InlineData("06:30", "6:30")]
-    [InlineData("21:30", "21:30")]
-    [InlineData("00:30", "00:30")]
-    [InlineData(null, null)]
-    [InlineData(" ", null)]
-    public void ManKhoa_GioGon(string? vao, string? ra) => Assert.Equal(ra, ManKhoaView.GioGon(vao));
-
-    [Fact]
-    public void ManKhoa_MatMang_VanGiuLuat_LoiXinLuuLai()
-    {
-        var m = ManKhoaView.For(LockReasons.HetGio, 0, "Bảo Anh", 30, 60, null, true, offline: true);
+        var m = ManKhoaView.For(null, "Bảo Anh", offline: true, hetSao: true);
         Assert.True(m.MatMang);
-        Assert.Equal("Hết giờ chơi hôm nay", m.Tieu);
-        Assert.Equal(new[] { ManKhoaView.XinThemGio }, m.Nut.Select(n => n.Ma));      // không đổi sao (cần máy chủ)
-        Assert.Equal(new[] { ManKhoaView.XinNgoaiLe }, ManKhoaView.For(LockReasons.Ngu, null, "Bảo Anh", 30, 60, null, true, true).Nut.Select(n => n.Ma));
+        Assert.Equal("Hết sao rồi", m.Tieu);
+        Assert.Equal("Con còn 0 sao · app «Tính phút» tạm khoá.", m.Phu);
+        Assert.Equal(new[] { ManKhoaView.XinVay }, m.Nut.Select(n => n.Ma));
+        Assert.Empty(ManKhoaView.For(LockReasons.Khoa, "Bảo Anh", offline: true).Nut);
     }
 
     [Fact]
-    public void NgoaiLe_Phut_Kep_Va_LuaChon()
+    public void ChuCu_DaGo()
     {
-        Assert.Equal(20, NgoaiLeView.Tang(15));
-        Assert.Equal(10, NgoaiLeView.Giam(15));
-        Assert.Equal(NgoaiLeView.PhutMin, NgoaiLeView.Giam(NgoaiLeView.PhutMin));
-        Assert.Equal(NgoaiLeView.PhutMax, NgoaiLeView.Tang(NgoaiLeView.PhutMax));
-        Assert.Equal(60, NgoaiLeView.PhutMax);   // mặc định máy chủ ngoai_le_toi_da_phut
-        Assert.Equal("Gửi Ba Mẹ: mở 15 phút", NgoaiLeView.NutGui(15));
-        var ds = NgoaiLeView.LuaChon(new[] { "hocvoiairob.exe", "tudien.exe", "khac.exe" });
-        Assert.Equal(3, ds.Count);                                   // tối đa 2 app + «Cả máy»
-        Assert.Equal((NgoaiLeView.CaMay, "Cả máy"), ds[^1]);
-        Assert.Single(NgoaiLeView.LuaChon(null));
-        Assert.Equal("Chỉ mở Từ điển, đến 21:45", NgoaiLeView.DuocChiMo("tudien.exe", "Từ điển", Luc.AddMinutes(135)));
-        Assert.Equal("Mở cả máy, đến 21:45", NgoaiLeView.DuocChiMo(NgoaiLeView.CaMay, "Cả máy", Luc.AddMinutes(135)));
-    }
-
-    [Fact]
-    public void NgoaiLe_LyDo_TuVietThang_TrongCoCauMacDinh()
-    {
-        Assert.Equal("Con chưa xong bài", NgoaiLeView.LyDo("Con chưa xong bài", null));
-        Assert.Equal("Thi vẽ", NgoaiLeView.LyDo("Mai nộp cô", " Thi vẽ "));
-        Assert.Equal("Con xin Ba Mẹ mở ngoại lệ", NgoaiLeView.LyDo(null, " "));
-        Assert.Equal(100, NgoaiLeView.LyDo(new string('a', 300), null).Length);
-    }
-
-    [Fact]
-    public void NhacGio_SaoChiHienKhiBiet()
-    {
-        Assert.Equal("Lưu bài đang làm nhé · con có 30 sao", NhacGioView.Phu(30));
-        Assert.Equal("Lưu bài đang làm nhé", NhacGioView.Phu(null));
+        Assert.Equal("Mất mạng?", HoiAiiGrowView.The[0].Tieu);
+        Assert.Equal("Máy vẫn trừ sao đúng luật", HoiAiiGrowView.The[0].Phu);
+        Assert.DoesNotContain("giờ", CapNhatKhayView.GiuNguyen);
+        Assert.DoesNotContain("giờ", CapNhatKhayView.NhuCu);
     }
 
     [Fact]
@@ -137,8 +73,8 @@ public class ManConTests
         var h = new HangXinCho();
         h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "capcut.exe", Luc = DateTimeOffset.Now });
         h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "CAPCUT.EXE", Luc = DateTimeOffset.Now });   // Con bấm lại ⇒ không thành hai lời xin
-        h.Them(new LoiXinCho { Loai = LoaiXin.ThemGio, Phut = 20 });
-        h.Them(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = "ca_may", Phut = 15 });
+        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15 });
+        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Muc = "qua-1", Phut = 20 });
         Assert.Equal(3, h.Items.Count);
 
         foreach (var x in h.Items) x.Luc = DateTimeOffset.Now;
@@ -146,7 +82,7 @@ public class ManConTests
         var (xong, loi) = await h.GuiAsync(x => Task.FromResult(++goi switch { 1 => KetQuaGuiXin.DaGui, 2 => KetQuaGuiXin.LoiMang, _ => KetQuaGuiXin.DaGui }), DateTimeOffset.Now);
         Assert.Single(xong);                    // lời xin thứ 2 lỗi mạng ⇒ dừng, giữ lại 2 lời xin sau
         Assert.Equal(2, h.Items.Count);
-        Assert.Equal(LoaiXin.ThemGio, h.Items[0].Loai);
+        Assert.Equal(LoaiXin.VaySao, h.Items[0].Loai);
         Assert.Equal(h.Items[0].Ma, loi);
         Assert.Equal(1, h.Items[0].LanLoi);
 
@@ -160,8 +96,8 @@ public class ManConTests
     {
         var h = new HangXinCho();
         var now = DateTimeOffset.Now;
-        h.Them(new LoiXinCho { Loai = LoaiXin.ThemGio, Phut = 20, Luc = now.AddDays(-3) });   // mất mạng 3 ngày ⇒ không gửi nữa
-        h.Them(new LoiXinCho { Loai = LoaiXin.NgoaiLe, Muc = "ca_may", Phut = 15, Luc = now, LanLoi = HangXinCho.ThuToiDa - 1 });
+        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15, Luc = now.AddDays(-3) });   // mất mạng 3 ngày ⇒ không gửi nữa
+        h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "capcut.exe", Luc = now, LanLoi = HangXinCho.ThuToiDa - 1 });
         int goi = 0;
         var (xong, loi) = await h.GuiAsync(x => { goi++; return Task.FromResult(KetQuaGuiXin.LoiMang); }, now);
         Assert.Equal(1, goi);                    // lời xin quá hạn không gửi
