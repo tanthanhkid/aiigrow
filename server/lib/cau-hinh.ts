@@ -43,8 +43,7 @@ export const THAM_SO = {
   // M4b mạng (chỉ thêm): thiết bị mạng không còn đi qua resolver quá X phút ⇒ báo; số truy vấn ngoài giờ trong ngày để báo «vượt giờ».
   dns_mat_truy_van_phut: s(180, 30, 1440),
   dns_vuot_gio_nguong: s(20, 1, 1000),
-  // Web trên máy Windows (lib/web.ts): 0 = mở (mọi trang mở được, trừ trang Ba Mẹ chặn) · 1 = chỉ cho phép (chỉ trang Ba Mẹ cho phép + danh sách hệ thống).
-  web_chi_cho_phep: s(0, 0, 1),
+  // web_chi_cho_phep (cũ) BỎ — #262: web theo chế độ Con (Theo danh sách ⇒ chỉ cho phép, Mở hết ⇒ mở); migration SCHEMA_APP_WEB xoá khoá cũ.
   // 15/11 (#264/#265, lib/so-sao.ts): quỹ phút mỗi ngày, tỷ lệ sao/phút, đổi sao lấy giờ, xin thêm giờ, ngoại lệ (+ ngưỡng cảnh báo ngoại lệ)
   // ĐÃ BỎ — 1 sao = 1 phút «Tính phút»; cấu hình cũ của các nhà xoá ở migration SCHEMA_SAO.
 } satisfies Record<string, So>;
@@ -104,13 +103,6 @@ export function lichCua(l: Partial<Lich> | null | undefined): Lich {
   };
 }
 
-/** Kiểm một khung giờ học (cũ — chỉ còn để nhận dữ liệu app cũ gửi mà không báo lỗi; không lưu). */
-export function sachGioHoc(h: unknown): GioHoc | null {
-  const x = h as Partial<GioHoc> | null | undefined;
-  if (!x || !GIO.test(String(x.tu)) || !GIO.test(String(x.den)) || x.tu === x.den) return null;
-  const thu = [...new Set((Array.isArray(x.thu) ? x.thu : [1, 2, 3, 4, 5]).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))].sort();
-  return thu.length ? { tu: x.tu!, den: x.den!, thu } : null;
-}
 
 export const NHOM_GIA: Record<string, TenThamSo> = {
   game: "gia_game", video_ngan: "gia_video_ngan", mxh: "gia_mxh", phim_gd: "gia_phim_gd", khac: "gia_khac",

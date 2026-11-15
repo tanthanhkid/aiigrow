@@ -101,7 +101,7 @@ export async function tomTatThietLap(fam: string, conId: string, app?: { daDat: 
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   // Đếm app / web: luật web = mục dạng tên miền (kieuMuc «web») mà tên hiển thị chính là tên miền (trang Ba Mẹ chọn / duyệt). App có tên
   // miền trong lưới (duolingo.com ⇒ «Duolingo») vẫn là app. Gói / .exe (kể cả luật duyệt «cai_app» có ten = muc) luôn là app.
-  const luat = await q<{ muc: string; ten: string }>(`select muc, ten from app_rules where family_id = $1 and child_id = $2 and loai <> 'chan' and het is null`, [fam, conId]);
+  const luat = await q<{ muc: string; ten: string }>(`select muc, ten from app_rules where family_id = $1 and child_id = $2 and loai in ('hoc', 'giai_tri') and het is null`, [fam, conId]);
   const laWeb = (l: { muc: string; ten: string }) => l.ten === l.muc && kieuMuc(l.muc) === "web";
   const dem = { app: new Set(luat.filter((l) => !laWeb(l)).map((l) => l.ten)).size, web: luat.filter(laWeb).length };
   const soApp = dem.app + (await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1 and khop_luc is null`, [conId]))!.n;

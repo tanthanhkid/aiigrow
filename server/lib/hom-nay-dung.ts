@@ -21,7 +21,7 @@ export type DongChan = { luc: string; ten: string; may: string | null; ly: "dang
 /** «Tính giờ» (đèn Vàng, trừ quỹ giờ chơi chung) hay «Dùng thoải mái» (đèn Xanh, luật hoc / cho_phep) — N3 14/11.
  *  Luật Đỏ «chan» không có giờ dùng (đã chặn) nhưng nếu có thì coi như tính giờ. App hệ thống / chưa xếp ⇒ theo `usage.loai` agent ghi. */
 export function tinhGioCua(loaiUsage: string | null, luat: { loai: string } | undefined) {
-  if (luat) return luat.loai !== "hoc";
+  if (luat && luat.loai !== "loai_tru") return luat.loai !== "hoc";
   return loaiUsage !== "hoc" && loaiUsage !== "he_thong";
 }
 

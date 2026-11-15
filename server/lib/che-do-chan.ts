@@ -6,9 +6,9 @@ import { q, one, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { conCua, type May } from "./gia-dinh.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, khoaLuat, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
-import { guiYeuCau } from "./yeu-cau.ts";
+import { dsBoQua, guiYeuCau } from "./yeu-cau.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { tenMienSach } from "./web.ts";
 import {
@@ -172,20 +172,20 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
   const ngay = gioDiaPhuong(now, tz).ngay;
   const [luat, choKhop, app, web, xin, boQua] = await Promise.all([
     q<{ child_id: string; muc: string; ten: string; loai: string }>(`select child_id, muc, ten, loai from app_rules where family_id = $1 and child_id in ('', $2)
-       and loai in ('hoc', 'giai_tri') and (het is null or het > $3) order by ten, muc`, [fam, con, now]),
+       and loai in ('hoc', 'giai_tri', 'loai_tru') and (het is null or het > $3) order by ten, muc`, [fam, con, now]),
     q<{ ten: string; tinh_gio: boolean }>(`select ten, tinh_gio from app_theo_ten where child_id = $1 and khop_luc is null order by ten`, [con]),
     q<{ muc: string; phut: number }>(`select lower(muc) as muc, sum(phut)::int as phut from usage where child_id = $1 and ngay = $2 group by lower(muc)`, [con, ngay]),
     q<{ ten_mien: string; giay: number }>(`select w.ten_mien, sum(w.giay)::int as giay from web_nhat_ky w left join devices d on d.id = w.device_id
-       where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and d.family_id = $2 and w.ngay = $3 group by w.ten_mien`, [con, fam, ngay]),
+       where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and w.ngay = $2 group by w.ten_mien`, [con, ngay]),
     q<{ id: string; loai: string; gia_tri: string | null; ly_do: string; created_at: Date; may: string | null }>(
       `select r.id, r.loai, r.gia_tri, r.ly_do, r.created_at, d.name as may from requests r left join devices d on d.id = r.device_id
         where r.child_id = $1 and r.loai in ('mo_web', 'cai_app') and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [con, now]),
-    one<{ n: number }>(`select count(distinct gia_tri)::int as n from requests where child_id = $1 and loai in ('mo_web', 'cai_app')
-       and trang_thai in ('bo_qua', 'tu_choi') and coalesce(xu_ly_luc, created_at) > $2::timestamptz - interval '30 days'`, [con, now]),
+    dsBoQua(fam, con, now),                     // cùng điều kiện với màn «Lời xin đã bỏ qua» (yeu-cau.ts)
   ]);
   // luật riêng của Con đè luật cả nhà cùng mục
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of [...luat].sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
+  for (const [k, l] of theoMuc) if (l.loai === "loai_tru") theoMuc.delete(k);       // mục cả nhà Ba Mẹ đã bỏ khỏi danh sách của Con này
   const phutApp = new Map(app.map((x) => [x.muc, x.phut]));
   const gop = new Map<string, DongDanhSach>();
   for (const l of theoMuc.values()) {
@@ -219,7 +219,7 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
     soMuc: { app: tat.filter((x) => x.kieu === "app").length, web: tat.filter((x) => x.kieu === "web").length, tinhPhut: tat.filter((x) => x.nhom === "tinh_phut").length },
     dangXin: xin.map((r) => ({ id: r.id, loai: r.loai, kieu: r.loai === "mo_web" ? "web" : "app", muc: r.gia_tri, ten: r.gia_tri, lyDo: r.ly_do || null,
       luc: new Date(r.created_at).toISOString(), may: r.may })),
-    boQua: { so: boQua?.n ?? 0 },
+    boQua: { so: boQua.ds.length },
     nhom: Object.entries(TEN_NHOM_DS).map(([ma, ten]) => ({ ma, ten })),
   };
 }
@@ -261,18 +261,6 @@ export async function themVaoDanhSach(fam: string, con: string, b: MucThem & { d
 
 const dsMuc = (v: unknown) => [...new Set((Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]).map((m) => chuanMuc(m)).filter(Boolean))].slice(0, 60);
 
-/** Tách một luật CẢ NHÀ thành luật riêng của từng Con KHÁC (chưa có luật riêng cho mục đó) rồi xoá luật cả nhà — để đổi / bỏ ở danh sách
- *  của Con này không đổi danh sách các Con khác. */
-async function tachLuatCaNha(t: Q, fam: string, muc: string) {
-  await khoaLuat(t, fam, "", muc);
-  const r = (await t<{ ten: string; loai: string; nhom: string; het: Date | null }>(`select ten, loai, nhom, het from app_rules where family_id = $1 and child_id = '' and muc = $2`, [fam, muc]))[0];
-  if (!r) return;
-  await t(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom, het)
-           select $1, c.id, $2, $3, $4, $5, $6 from children c where c.family_id = $1 on conflict (family_id, child_id, muc) do nothing`,
-    [fam, muc, r.ten, r.loai, r.nhom, r.het]);
-  await t(`delete from app_rules where family_id = $1 and child_id = '' and muc = $2`, [fam, muc]);
-}
-
 /** POST /api/m/con/:id/danh-sach/doi {muc: string | string[], nhom, ten?} — đổi nhóm một hàng (mọi định danh của app đó). `ten` (app chờ khớp
  *  theo tên, chưa có `muc`) ⇒ đổi nhóm lời chờ khớp. → { muc[], nhom }. */
 export async function doiNhomDanhSach(fam: string, con: string, b: { muc?: unknown; nhom?: unknown; ten?: unknown }, nguoi?: string) {
@@ -297,7 +285,8 @@ export async function doiNhomDanhSach(fam: string, con: string, b: { muc?: unkno
   });
 }
 
-/** POST /api/m/con/:id/danh-sach/bo {muc: string | string[], ten?} — bỏ khỏi danh sách (Con xin lại được). Luật cả nhà ⇒ chỉ bỏ cho Con này.
+/** POST /api/m/con/:id/danh-sach/bo {muc: string | string[], ten?} — bỏ khỏi danh sách (Con xin lại được). Luật cả nhà ⇒ chỉ bỏ cho Con này
+ *  bằng luật riêng «loai_tru» (luat-app.ts › boMucChoCon) — luật cả nhà giữ cho máy dùng chung + Con khác + Con tạo sau.
  *  `ten`: bỏ cả lời chờ khớp app theo tên. → { bo: số mục đã bỏ }. */
 export async function boKhoiDanhSach(fam: string, con: string, b: { muc?: unknown; ten?: unknown }, nguoi?: string) {
   await conCua(fam, con);
@@ -305,11 +294,7 @@ export async function boKhoiDanhSach(fam: string, con: string, b: { muc?: unknow
   if (!ds.length && !b.ten) throw new LoiNghiepVu("thieu_muc", "Chọn app hoặc trang web");
   return tx(async (t) => {
     let n = 0;
-    for (const muc of ds) {
-      await khoaLuat(t, fam, con, muc);
-      if ((await t(`select 1 from app_rules where family_id = $1 and child_id = '' and muc = $2`, [fam, muc])).length) await tachLuatCaNha(t, fam, muc);
-      n += (await t(`delete from app_rules where family_id = $1 and child_id = $2 and muc = $3 returning muc`, [fam, con, muc])).length;
-    }
+    for (const muc of ds) if (await boMucChoCon(t, fam, con, muc)) n++;
     if (b.ten) n += (await t(`delete from app_theo_ten where child_id = $1 and ten_khoa = $2 returning ten`, [con, khoaTen(b.ten)])).length;
     await ghiSuKien(fam, "bo_khoi_danh_sach", { muc: ds, ten: b.ten ? String(b.ten).slice(0, 60) : null }, { con, nguoi }, t);
     return { bo: n };

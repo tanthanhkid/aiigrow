@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { one, q, tx, type Q } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { allowlistHieuLuc, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
 import type { NhomDs } from "./chan-co-ban.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 
@@ -136,7 +136,7 @@ export function trangThaiApp(mucTho: string, con: string, luat: LuatGon[], allow
   if (khoa.some((k) => allow.includes(k))) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || (con && l.child_id === con)))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
-  if (!r) return { trangThai: "chua_xep" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
+  if (!r || r.loai === "loai_tru") return { trangThai: "chua_xep" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   const tt: TrangThaiApp = r.loai === "hoc" ? (r.nhom === "cho_phep" ? "cho_phep" : "hoc") : r.loai;
   // nhomDs (#262): nhóm của danh sách — tinh_phut | khong_tinh_phut; null = ngoài danh sách / hệ thống
   return { trangThai: tt, nhom: r.loai === "giai_tri" ? r.nhom : null, nhomDs: nhomDsCua(tt), theoCaNha: !r.child_id && !!con, tamThoi: !!r.het };
@@ -183,7 +183,8 @@ export async function datTrangThaiApp(fam: string, mayId: string, b: Record<stri
   const con = may.dung_chung ? "" : may.child_id ?? "";
   return tx(async (t) => {
     const truoc = await luatHienCo(fam, con, app.muc, t, true);
-    if (tt === "bo") await xoaLuat(fam, { con, muc: app.muc }, t);
+    // «bỏ» ở máy riêng của Con: luật cả nhà cùng mục chỉ bị loại trừ cho Con đó (luat-app.ts › boMucChoCon)
+    if (tt === "bo") { if (con) await boMucChoCon(t, fam, con, app.muc); else await xoaLuat(fam, { con, muc: app.muc }, t); }
     else {
       const nhom = tt === "cho_phep" ? "cho_phep" : tt === "giai_tri" ? ((NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "game") : "khac";
       await datLuat(fam, { con, muc: app.muc, ten: app.ten, loai: tt === "cho_phep" ? "hoc" : tt, nhom }, t);

@@ -795,7 +795,8 @@ export const SCHEMA_SAO = [
 // ---- App & web: «Mở hết» / «Theo danh sách» (#262 / #258, 15/11/2026 — lib/chan-co-ban.ts, che-do-chan.ts). Chạy lại được (mọi câu tự kiểm điều kiện).
 // children.che_do_chan: theo_danh_sach (mới, thay chi_app_duoc_phep — code vẫn đọc giá trị cũ) | mo_het. null (Con trước 05/11) ⇒ theo_danh_sach.
 // app_rules = danh sách trắng: loai giai_tri = «Tính phút», hoc = «Không tính phút» (mục «Cho phép» cũ — hoc + nhom cho_phep — đã là «Không tính
-//   phút», giữ nguyên). Luật «chan» (Chặn / Luôn chặn) XOÁ — ở «Theo danh sách» mục ngoài danh sách vốn không mở.
+//   phút», giữ nguyên). Luật «chan» (Chặn / Luôn chặn) XOÁ — ở «Theo danh sách» mục ngoài danh sách vốn không mở. Luật mới «loai_tru» (riêng
+//   một Con, đè luật cả nhà = «không có trong danh sách của Con này») KHÔNG bị câu xoá đụng tới.
 // children.lich: bỏ giờ ngủ (ngu) + giờ học (hoc) — lichCua luôn trả giờ ngủ «tắt».
 // requests.trang_thai thêm «bo_qua» (Ba Mẹ «Bỏ qua» lời xin app / web — không ghi gì, Con xin lại được) · requests.loi_nhan: lời Ba Mẹ nhắn Con.
 export const SCHEMA_APP_WEB = [
@@ -804,4 +805,7 @@ export const SCHEMA_APP_WEB = [
   `delete from app_rules where loai = 'chan'`,
   `update children set lich = lich - 'ngu' - 'hoc' where lich ?| array['ngu', 'hoc']`,
   `create index if not exists requests_con_gia_tri on requests(child_id, gia_tri) where loai in ('mo_web', 'cai_app')`,
+  // tham số web_chi_cho_phep bỏ (web theo chế độ Con)
+  `update children set cau_hinh = cau_hinh - 'web_chi_cho_phep' where cau_hinh ? 'web_chi_cho_phep'`,
+  `update families set cau_hinh = cau_hinh - 'web_chi_cho_phep' where cau_hinh ? 'web_chi_cho_phep'`,
 ];

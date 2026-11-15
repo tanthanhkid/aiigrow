@@ -8,7 +8,7 @@
 import { coTacTu } from "./chuyen-doi.ts";
 import { q, tx } from "./db.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, phanLoai, xoaLuat } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, phanLoai, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { mucAppThat } from "./app-may.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -108,8 +108,10 @@ export async function thongKeWeb(fam: string, con: string, soNgay = 7, now = new
   trang.sort((a, b) => b.giay - a.giay || b.soLan - a.soLan || a.tenMien.localeCompare(b.tenMien));
   const appThat = await mucAppThat(fam);           // gói Store / bundle id máy gửi không phải tên miền
   const luat = (await q<{ child_id: string; muc: string; loai: string }>(
-    `select child_id, muc, loai from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3) and loai in ('hoc', 'giai_tri') order by muc`,
-    [fam, con, now]))
+    `select child_id, muc, loai from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3) and loai in ('hoc', 'giai_tri', 'loai_tru')
+      order by muc, child_id`, [fam, con, now]))
+    // luật riêng của Con đè luật cả nhà cùng mục (order by child_id: '' trước ⇒ dòng sau thắng); loai_tru = đã bỏ cho Con này
+    .filter((r, i, a) => a[i + 1]?.muc !== r.muc && r.loai !== "loai_tru")
     .filter((r) => kieuMuc(r.muc) === "web" && !appThat.has(r.muc.toLowerCase()))
     .map((r) => ({ tenMien: r.muc, trangThai: doiLoai(r.loai), nhom: nhomTuLoai(r.loai), nguon: r.child_id ? "con" as const : "gia_dinh" as const }));
   const c = (await q<{ che_do_chan: string | null }>(`select che_do_chan from children where id = $1`, [con]))[0];
@@ -136,7 +138,8 @@ export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; 
   if (!muc) throw new LoiNghiepVu("ten_mien_sai", "Nhập tên miền dạng ten.com (không cần https://)");
   const tt = String(b.trangThai ?? "");
   if (b.nhom === undefined && (tt === "mac_dinh" || tt === "chan" || tt === "bo")) {
-    await tx((t) => xoaLuat(fam, { con, muc }, t));   // khoá (nhà, Con, mục) như mọi đường ghi luật
+    // khoá (nhà, Con, mục) như mọi đường ghi luật; của một Con ⇒ luật cả nhà cùng mục chỉ bị loại trừ cho Con đó
+    await tx(async (t) => { if (con) await boMucChoCon(t, fam, con, muc); else await xoaLuat(fam, { con, muc }, t); });
     return { muc, trangThai: "mac_dinh" as const, nhom: null };
   }
   const nhom = nhanNhom(b.nhom ?? tt);

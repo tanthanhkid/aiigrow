@@ -77,6 +77,8 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
     `select id, loai, chi_tiet, created_at from events where child_id = $1 and created_at > $2
      and loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
                   'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau')
+       -- #258: «Bỏ qua» chỉ báo Con sau 60 giây (Ba Mẹ còn Hoàn tác được — hoàn tác thì sự kiện bị thu hồi)
+       and (loai <> 'bo_qua_yeu_cau' or created_at <= now() - interval '60 seconds')
      order by created_at desc limit 50`, [con, tu]);
   const moi = await q<{ id: string; ten: string; diem: number; created_at: Date }>(
     `select id, ten, diem, created_at from tasks where family_id = $1 and bat and giao_cho is null and bang_chung <> 'tu_dong' and created_at > $2
@@ -101,7 +103,8 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
       case "huy_hieu": them("Huy hiệu mới", s(d.ten ?? d.ma)); break;
       // #258: kết quả lời xin app / web — «Mẹ Lan đã thêm Roblox · Tính phút» / «Ba Mẹ chưa thêm Roblox lúc này. Con xin lại sau được nhé»
       case "dong_y_yeu_cau":
-        if (d.gia_tri && d.nhom) them(`${s(d.ten_nguoi) || "Ba Mẹ"} đã thêm ${s(d.gia_tri)}`,
+        if (d.gia_tri && d.mo_tam) them(`${s(d.ten_nguoi) || "Ba Mẹ"} cho mở ${s(d.gia_tri)} ${s(d.phut)} phút`, "Lần này thôi · chưa thêm vào danh sách");
+        else if (d.gia_tri && d.nhom) them(`${s(d.ten_nguoi) || "Ba Mẹ"} đã thêm ${s(d.gia_tri)}`,
           d.nhom === "khong_tinh_phut" ? `Nhóm «${TEN_NHOM_DS.khong_tinh_phut}» · không trừ sao${d.loi_nhan ? ` · «${s(d.loi_nhan)}»` : ""}`
             : `Nhóm «${TEN_NHOM_DS.tinh_phut}» · 1 sao = 1 phút${d.loi_nhan ? ` · «${s(d.loi_nhan)}»` : ""}`);
         break;

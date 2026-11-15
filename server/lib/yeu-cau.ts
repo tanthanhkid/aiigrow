@@ -11,7 +11,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { khoaCon } from "./vi.ts";
-import { chuanMuc, datLuat, phanLoai } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, phanLoaiTu } from "./luat-app.ts";
 import { loaiTuNhom, nhanNhom, nhomTuLoai, type NhomDs } from "./chan-co-ban.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { choVay, trangThaiSao, VAY_TOI_DA, xemTruocVay, type MucDichVay } from "./so-sao.ts";
@@ -112,6 +112,8 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
     let grantId: string | null = null;
     let vay: Awaited<ReturnType<typeof choVay>> | null = null;
     let nhomThem: NhomDs | null = null;
+    let moTam: { den: Date; phut: number } | null = null;
+    let phanLoaiCu: string | null = null;
     if (LOAI_VAY.has(r.loai)) {
       const n = Math.round(Number(o.soSao ?? o.phut ?? r.phut));
       const mucDich: MucDichVay = r.muc_dich === "qua" ? "qua" : "choi";
@@ -126,7 +128,6 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
         await themMucDanhSach(t, fam, r, nhomDs);
       } else {
         const loai = o.phanLoai === "hoc" ? "hoc" : "giai_tri";
-        nhomThem = nhomTuLoai(loai);
         const phamVi = o.phamVi ?? "vinh_vien";
         // «Lần này»: mở đúng số phút Ba Mẹ cho (thiết kế 14/11 «Cho 30 phút YouTube») — không gửi phút ⇒ 1 giờ như trước
         const phutLan = Math.round(Number(o.phut));
@@ -135,15 +136,21 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
           : new Date(now.getTime() + (o.phut !== undefined ? phutLan * 60_000 : 3600_000));
         const hetThat = phamVi === "hom_nay" ? new Date(het!.getTime() + 86_400_000) : het;
         await datLuat(fam, { con: r.child_id, muc: r.gia_tri, ten: r.gia_tri, loai, nhom: o.nhom, het: hetThat }, t);
+        // đường cũ: vĩnh viễn = đã thêm vào danh sách; «Lần này» / «Hôm nay» = chỉ MỞ TẠM tới `hetThat` — không báo «đã thêm vào danh sách»
+        if (hetThat) moTam = { den: hetThat, phut: Math.round((hetThat.getTime() - now.getTime()) / 60_000) };
+        else nhomThem = nhomTuLoai(loai);
+        phanLoaiCu = loai;
       }
     }
     const loiNhan = sachLoiNhan(o.loiNhan);
-    const phanLoaiGhi = nhomThem ? loaiTuNhom(nhomThem) : o.phanLoai ?? null;
+    const phanLoaiGhi = nhomThem ? loaiTuNhom(nhomThem) : phanLoaiCu ?? o.phanLoai ?? null;
     await t(`update requests set trang_thai = 'dong_y', nguoi_duyet = $2, xu_ly_luc = $3, tru_diem = null, ngoai_le = false, pham_vi = coalesce($4, pham_vi), phan_loai = $5,
-             tu_dong = $6, loi_nhan = $7 where id = $1`, [r.id, nguoi, now, nhomThem && !o.phamVi ? "vinh_vien" : o.phamVi ?? null, phanLoaiGhi, nguoi === null, loiNhan]);
+             tu_dong = $6, loi_nhan = $7 where id = $1`, [r.id, nguoi, now, (nhomThem || moTam) && !o.phamVi ? "vinh_vien" : o.phamVi ?? null, phanLoaiGhi, nguoi === null, loiNhan]);
     await ghiSuKien(fam, "dong_y_yeu_cau", { loai: r.loai, ...(vay ? { vay: true, so_sao: vay.soSao } : {}),
-      ...(nhomThem ? { gia_tri: r.gia_tri, nhom: nhomThem, ten_nguoi: await tenNguoi(t, nguoi), ...(loiNhan ? { loi_nhan: loiNhan } : {}) } : {}) }, { con: r.child_id, nguoi }, t);
-    return { ngoaiLe: false, ...(grantId ? { grantId } : {}), ...(vay ? { vay } : {}), ...(nhomThem ? { nhom: nhomThem, muc: r.gia_tri } : {}) };
+      ...(nhomThem ? { gia_tri: r.gia_tri, nhom: nhomThem, ten_nguoi: await tenNguoi(t, nguoi), ...(loiNhan ? { loi_nhan: loiNhan } : {}) } : {}),
+      ...(moTam ? { gia_tri: r.gia_tri, mo_tam: true, phut: moTam.phut, den: moTam.den.toISOString(), ten_nguoi: await tenNguoi(t, nguoi) } : {}) }, { con: r.child_id, nguoi }, t);
+    return { ngoaiLe: false, ...(grantId ? { grantId } : {}), ...(vay ? { vay } : {}), ...(nhomThem ? { nhom: nhomThem, muc: r.gia_tri } : {}),
+      ...(moTam ? { moTam: { den: moTam.den.toISOString(), phut: moTam.phut }, muc: r.gia_tri } : {}) };
   });
 }
 
@@ -169,7 +176,7 @@ export async function boQuaYc(fam: string, id: string, nguoi: string, b: { loiNh
     if (r.loai !== "mo_web" && r.loai !== "cai_app") throw new LoiNghiepVu("khong_bo_qua", "Chỉ bỏ qua được lời xin mở app / trang web", 409);
     const loiNhan = sachLoiNhan(b.loiNhan);
     await t(`update requests set trang_thai = 'bo_qua', nguoi_duyet = $2, xu_ly_luc = $3, loi_nhan = $4 where id = $1`, [r.id, nguoi, now, loiNhan]);
-    await ghiSuKien(fam, "bo_qua_yeu_cau", { loai: r.loai, gia_tri: r.gia_tri, ten_nguoi: await tenNguoi(t, nguoi), ...(loiNhan ? { loi_nhan: loiNhan } : {}) },
+    await ghiSuKien(fam, "bo_qua_yeu_cau", { yeu_cau: r.id, loai: r.loai, gia_tri: r.gia_tri, ten_nguoi: await tenNguoi(t, nguoi), ...(loiNhan ? { loi_nhan: loiNhan } : {}) },
       { con: r.child_id, nguoi }, t);
     return { ok: true, trangThai: "bo_qua" as const, hoanTacDen: new Date(now.getTime() + BO_QUA_HOAN_TAC_GIAY * 1000).toISOString() };
   });
@@ -180,13 +187,14 @@ export async function boQuaYc(fam: string, id: string, nguoi: string, b: { loiNh
 export async function themLuonYc(fam: string, id: string, nguoi: string, b: { nhom?: unknown; loiNhan?: unknown }, now = new Date()) {
   const nhom = nhanNhom(b.nhom ?? "tinh_phut");
   if (!nhom) throw new LoiNghiepVu("nhom_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
-  const cho = await one<{ trang_thai: string }>(`select r.trang_thai from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2`, [id, fam]);
+  const cho = await one<{ trang_thai: string; het_han: Date }>(`select r.trang_thai, r.het_han from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2`, [id, fam]);
   if (!cho) throw new LoiNghiepVu("khong_thay", "Không thấy yêu cầu", 404);
-  if (cho.trang_thai === "cho") return { ok: true, ...(await dongY(fam, id, nguoi, { nhom, loiNhan: b.loiNhan }, now)) };
+  // còn chờ và chưa hết hạn ⇒ như đồng ý; hết hạn (dù trang_thai còn «cho») ⇒ thêm luôn như lời xin đã bỏ qua
+  if (cho.trang_thai === "cho" && new Date(cho.het_han) > now) return { ok: true, ...(await dongY(fam, id, nguoi, { nhom, loiNhan: b.loiNhan }, now)) };
   return tx(async (t) => {
     const r = (await t<Yc>(`select r.* from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2 for update of r`, [id, fam]))[0];
     if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy yêu cầu", 404);
-    if ((r.loai !== "mo_web" && r.loai !== "cai_app") || !["bo_qua", "tu_choi", "het_han"].includes(r.trang_thai))
+    if ((r.loai !== "mo_web" && r.loai !== "cai_app") || !["bo_qua", "tu_choi", "het_han", "cho"].includes(r.trang_thai))
       throw new LoiNghiepVu("da_xu_ly", "Lời xin này đã được xử lý", 409);
     await khoaCon(t, r.child_id);
     await themMucDanhSach(t, fam, r, nhom);
@@ -211,10 +219,12 @@ export async function dsBoQua(fam: string, con: string | null, now = new Date())
         and not exists (select 1 from requests x where x.child_id = r.child_id and x.gia_tri = r.gia_tri and x.loai = r.loai
                          and x.created_at > r.created_at and (x.trang_thai in ('dong_y', 'da_thuc_thi') or (x.trang_thai = 'cho' and x.het_han > $3)))
       order by r.child_id, r.gia_tri, r.created_at desc`, [fam, con, now]);
+  const luat = r.length ? await dsLuat(fam) : [];          // phân loại trong bộ nhớ — một lần đọc luật cho cả danh sách
+  const allow = allowlistHieuLuc();
   const ds = [];
   for (const x of r) {
-    const pl = await phanLoai(fam, x.child_id, x.gia_tri);
-    if (pl.loai === "hoc" || pl.loai === "giai_tri" || pl.loai === "he_thong") continue;     // đã vào danh sách bằng đường khác
+    const pl = phanLoaiTu(luat, x.child_id, x.gia_tri, allow);
+    if (pl === "hoc" || pl === "giai_tri" || pl === "he_thong") continue;     // đã vào danh sách bằng đường khác
     ds.push({ id: x.id, con: x.child_id, tenCon: x.ten_con, loai: x.loai, kieu: x.loai === "mo_web" ? "web" : "app", muc: x.gia_tri, ten: x.gia_tri,
       lyDo: x.ly_do || null, luc: new Date(x.luc).toISOString(), nguoiBoQua: x.ten_nguoi, may: x.device });
   }
@@ -244,6 +254,8 @@ export async function moLaiYc(fam: string, id: string, nguoi: string, now = new 
       throw new LoiNghiepVu("khong_mo_lai", "Lời xin này không hoàn tác được nữa", 409);
     if (new Date(r.het_han) <= now) throw new LoiNghiepVu("het_han", "Yêu cầu đã hết hạn", 409);
     await t(`update requests set trang_thai = 'cho', nguoi_duyet = null, xu_ly_luc = null, ly_do_tu_choi = null, loi_nhan = null where id = $1`, [r.id]);
+    // Hoàn tác «Bỏ qua»: thu hồi sự kiện bo_qua (tin khay «chưa thêm» của Con, nhật ký, thông báo) — Con không thấy gì
+    if (r.trang_thai === "bo_qua") await t(`delete from events where family_id = $1 and child_id = $2 and loai = 'bo_qua_yeu_cau' and chi_tiet->>'yeu_cau' = $3`, [fam, r.child_id, r.id]);
     await ghiSuKien(fam, "mo_lai_yeu_cau", { loai: r.loai, tu: r.trang_thai }, { con: r.child_id, nguoi }, t);
     return { ok: true };
   });
@@ -276,12 +288,16 @@ export async function dsYcCuaCon(con: string) {
   return r.map(({ ten_nguoi, ...x }) => ({ ...x, ...ketQuaYc(x), tenNguoiDuyet: ten_nguoi }));
 }
 
-/** Kết quả lời xin app / web cho Con / agent: cho | da_them | chua_them | het_han | huy (lời xin khác ⇒ null). */
-export function ketQuaYc(r: { loai: string; trang_thai: string; phan_loai?: string | null; loi_nhan?: string | null }) {
+/** Kết quả lời xin app / web cho Con / agent: cho | da_them | mo_tam (đường cũ «Lần này» / «Hôm nay» — chỉ mở tạm, không vào danh sách) |
+ *  chua_them | het_han | huy (lời xin khác ⇒ null). «Bỏ qua» trong 60 giây đầu (Ba Mẹ còn Hoàn tác được) vẫn là «cho» với Con. */
+export function ketQuaYc(r: { loai: string; trang_thai: string; phan_loai?: string | null; loi_nhan?: string | null; pham_vi?: string | null; xu_ly_luc?: Date | string | null },
+  now = new Date()) {
   if (r.loai !== "mo_web" && r.loai !== "cai_app") return { ketQua: null, nhom: null, loiNhan: r.loi_nhan ?? null };
-  const ketQua = r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? "da_them" : r.trang_thai === "bo_qua" || r.trang_thai === "tu_choi" ? "chua_them"
+  const boQuaMoi = r.trang_thai === "bo_qua" && !!r.xu_ly_luc && now.getTime() - new Date(r.xu_ly_luc).getTime() < BO_QUA_HOAN_TAC_GIAY * 1000;
+  const ketQua = r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? (r.pham_vi === "lan_nay" || r.pham_vi === "hom_nay" ? "mo_tam" : "da_them")
+    : boQuaMoi ? "cho" : r.trang_thai === "bo_qua" || r.trang_thai === "tu_choi" ? "chua_them"
     : r.trang_thai === "cho" ? "cho" : r.trang_thai === "huy" ? "huy" : "het_han";
-  return { ketQua, nhom: ketQua === "da_them" ? nhomTuLoai(r.phan_loai ?? "giai_tri") : null, loiNhan: r.loi_nhan ?? null };
+  return { ketQua, nhom: ketQua === "da_them" ? nhomTuLoai(r.phan_loai ?? "giai_tri") : null, loiNhan: ketQua === "cho" ? null : r.loi_nhan ?? null };
 }
 
 /** Chi tiết một yêu cầu cho màn xử lý: yêu cầu + tên Con + sổ sao (số dư âm được, nợ, phút còn chơi) + xem trước bảng cho vay.

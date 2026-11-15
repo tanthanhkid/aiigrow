@@ -172,13 +172,16 @@ test("lời xin mở app / web: Tính phút · Không tính phút · Bỏ qua (+
   assert.ok(Date.parse(r.body.hoanTacDen) > Date.now());
   assert.equal((await la.phanLoai(fam, con, "tiktok.com")).loai, "chua_phan_loai", "Bỏ qua không ghi gì vào danh sách");
   let kc = (await dv(may.token, `yeu-cau/${c.id}`)).body;
-  assert.deepEqual([kc.status, kc.trangThai, kc.ketQua, kc.nhom], ["tu_choi", "bo_qua", "chua_them", null], "agent cũ thấy tu_choi");
+  assert.deepEqual([kc.status, kc.trangThai, kc.ketQua, kc.nhom], ["cho", "cho", "cho", null], "60 giây đầu (còn Hoàn tác) Con vẫn thấy chờ");
   r = await m(tok, `yeu-cau/${c.id}/hoan-tac`, {});
   assert.equal(r.status, 200);
   assert.equal((await one<{ t: string }>(`select trang_thai as t from requests where id = $1`, [c.id]))!.t, "cho");
   // quá 60 giây ⇒ không hoàn tác được
   await yc.boQuaYc(fam, c.id, bm, { loiNhan: "Để cuối tuần nhé" });
   await loi(yc.moLaiYc(fam, c.id, bm, new Date(Date.now() + 61_000)), "khong_mo_lai");
+  await q(`update requests set xu_ly_luc = now() - interval '2 minutes' where id = $1`, [c.id]);     // qua 60 giây
+  kc = (await dv(may.token, `yeu-cau/${c.id}`)).body;
+  assert.deepEqual([kc.status, kc.trangThai, kc.ketQua], ["tu_choi", "bo_qua", "chua_them"], "agent cũ thấy tu_choi");
   // Con thấy «chưa thêm» (màn Con)
   const cua = await yc.dsYcCuaCon(con);
   const dongC = cua.find((x) => x.id === c.id)!;
@@ -202,6 +205,7 @@ test("lời xin mở app / web: Tính phút · Không tính phút · Bỏ qua (+
   // Con xin lại sau khi bị bỏ qua ⇒ lời xin mới; dòng bỏ qua cũ không còn hiện
   const d1 = (await dv(may.token, "xin-duyet", { muc: "poki.com" })).body;
   await yc.boQuaYc(fam, d1.id, bm);
+  await q(`update events set created_at = now() - interval '2 minutes' where loai = 'bo_qua_yeu_cau'`);
   const d2 = (await dv(may.token, "xin-duyet", { muc: "poki.com", lyDo: "Chơi cùng bạn" })).body;
   assert.notEqual(d2.id, d1.id);
   assert.deepEqual((await yc.dsBoQua(fam, con)).ds, [], "Con đang xin lại ⇒ dòng bỏ qua cũ ẩn");
@@ -239,4 +243,95 @@ test("Mở hết: phút app «Tính phút» không trừ sao; về Theo danh sá
   assert.equal(hn.khongTinhPhut.phut, 30);
   assert.equal(hn.hoc.khung, null);
   assert.ok(!hn.biChan.some((x) => x.ly === "grow_chan"));
+});
+
+test("review #270: giờ ngủ «tắt» (tu = den) là khung RỖNG ở luật nền tảng — Windows đăng nhập cả ngày, không lý do gio_ngu, router không chặn 24 giờ", async () => {
+  const { chuyenDoi, giaiTriLucNay, gioDangNhapWindows, luatMang, lichMo } = await import("./chuyen-doi.ts");
+  assert.equal(gioDangNhapWindows({ tu: "00:00", den: "00:00" }), "M-Su,00:00-24:00");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "An" });
+  await v.dieuChinhTay(fam, con, 30, "Thưởng", bm);
+  const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");
+  const dev = (await one<any>(`select * from devices where id = $1`, [may.deviceId]))!;
+  for (const gio of ["2026-10-21T22:30:00+07:00", "2026-10-21T03:00:00+07:00", "2026-10-21T18:00:00+07:00"]) {
+    const cs = await chinhSachChung(dev, con, tuanThu, new Date(gio));
+    const w = chuyenDoi(cs, "windows");
+    const ngu = w.muc.find((m) => m.khaNang === "gio_ngu")!;
+    assert.deepEqual([ngu.cauHinh!.ngu, ngu.cauHinh!.netUserTimes], [null, "M-Su,00:00-24:00"], gio);
+    for (const nen of ["ios", "android", "mac", "mang"] as const) assert.equal(chuyenDoi(cs, nen).muc.find((m) => m.khaNang === "gio_ngu")?.cauHinh?.ngu ?? null, null);
+    assert.notEqual(giaiTriLucNay(cs).lyDo, "gio_ngu");
+    // khung mở = khung giờ chơi cũ (không bị giờ ngủ trừ thành rỗng) ⇒ router không chặn Internet cả ngày
+    assert.ok(lichMo(cs).ngayThuong.length > 0);
+    const l = luatMang(cs, { mac: "AA:BB:CC:DD:EE:01" });
+    const chanTrongNgay = l.router.filter((r) => r.ngay === "T2-T6").reduce((a, r) => a + (Number(r.den.slice(0, 2)) * 60 + Number(r.den.slice(3))) - (Number(r.tu.slice(0, 2)) * 60 + Number(r.tu.slice(3))), 0);
+    assert.ok(chanTrongNgay < 1440, "không chặn 24 giờ");
+  }
+});
+
+test("review #270: bỏ mục cả nhà / app cũ «Chặn» chỉ loại trừ cho Con đó — luật cả nhà giữ cho máy chung + Con tạo sau; Hoàn tác kiểu cũ không 409", async () => {
+  const { fam, bm } = await taoNha();
+  const tok = await taoPhien(bm);
+  const a = await g.taoCon(fam, { ten: "An" }), b = await g.taoCon(fam, { ten: "Bình" });
+  await la.datLuat(fam, { muc: "scratch.mit.edu", ten: "scratch.mit.edu", loai: "hoc" });
+  assert.equal((await m(tok, `con/${a}/danh-sach/bo`, { muc: "scratch.mit.edu" })).body.bo, 1);
+  assert.equal((await la.phanLoai(fam, a, "scratch.mit.edu")).loai, "chua_phan_loai");
+  assert.equal((await la.phanLoai(fam, b, "scratch.mit.edu")).loai, "hoc");
+  assert.ok(await one(`select 1 from app_rules where family_id = $1 and child_id = '' and muc = 'scratch.mit.edu'`, [fam]), "luật cả nhà giữ nguyên");
+  const c = await g.taoCon(fam, { ten: "Chi" });
+  assert.equal((await la.phanLoai(fam, c, "scratch.mit.edu")).loai, "hoc", "Con tạo sau vẫn có mục cả nhà");
+  assert.ok(!(await cd.danhSachCon(fam, a)).web.khongTinhPhut.some((x) => x.ten === "scratch.mit.edu"));
+  const may = await g.ghepMay(await g.taoMaGhep(fam, a, "windows"), "windows", "Laptop");
+  const p = await taoPolicy((await one<any>(`select * from devices where id = $1`, [may.deviceId]))!, a, { gioMaySai: false });
+  assert.ok(!p.luat.some((l) => l.muc === "scratch.mit.edu"), "policy Con An không có mục đã bỏ");
+  // thêm lại cho An ⇒ luật riêng đè loai_tru
+  await m(tok, `con/${a}/danh-sach`, { muc: "scratch.mit.edu", nhom: "tinh_phut" });
+  assert.equal((await la.phanLoai(fam, a, "scratch.mit.edu")).loai, "giai_tri");
+  // app cũ: «Chặn» luật cả nhà cho một Con rồi Hoàn tác (neuLoai chan)
+  await la.datLuat(fam, { muc: "khanacademy.org", ten: "khanacademy.org", loai: "hoc" });
+  const r = await m(tok, "luat", { con: b, muc: "khanacademy.org", loai: "chan" });
+  assert.equal(r.status, 200);
+  assert.equal((await la.phanLoai(fam, b, "khanacademy.org")).loai, "chua_phan_loai", "gỡ cả luật cả nhà cho Con đó");
+  assert.equal((await la.phanLoai(fam, a, "khanacademy.org")).loai, "hoc");
+  const h = await m(tok, "luat/xoa", { con: b, muc: "khanacademy.org", neuLoai: "chan" });
+  assert.equal(h.status, 200, "Hoàn tác cũ không 409");
+  assert.equal((await la.phanLoai(fam, b, "khanacademy.org")).loai, "hoc", "khôi phục mục");
+});
+
+test("review #270: đồng ý kiểu cũ «Lần này» = mở tạm (không báo đã thêm); Bỏ qua chỉ hiện với Con sau 60 giây, Hoàn tác thì thu hồi; Thêm luôn nhận lời xin quá hạn còn «cho»; boQua.so = dsBoQua", async () => {
+  const { fam, bm } = await taoNha("Lan");
+  const con = await g.taoCon(fam, { ten: "An" });
+  const tok = await taoPhien(bm);
+  const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");
+  const a = (await dv(may.token, "xin-duyet", { muc: "y8.com" })).body;
+  const r = await m(tok, `yeu-cau/${a.id}/dong-y`, { phanLoai: "giai_tri", phamVi: "lan_nay", phut: 30 });
+  assert.deepEqual([r.status, r.body.nhom, r.body.moTam?.phut], [200, undefined, 30]);
+  const kq = (await dv(may.token, `yeu-cau/${a.id}`)).body;
+  assert.deepEqual([kq.status, kq.ketQua, kq.nhom], ["duoc", "mo_tam", null]);
+  // bỏ qua ⇒ 60 giây đầu Con vẫn thấy «chờ», không có tin khay
+  const b = (await dv(may.token, "xin-duyet", { muc: "poki.com" })).body;
+  await m(tok, `yeu-cau/${b.id}/bo-qua`, { loiNhan: "Để mai nhé" });
+  let kb = (await dv(may.token, `yeu-cau/${b.id}`)).body;
+  assert.deepEqual([kb.status, kb.ketQua, kb.loiNhan], ["cho", "cho", null]);
+  assert.equal((await yc.dsYcCuaCon(con)).find((x) => x.id === b.id)!.ketQua, "cho");
+  const { tinCho } = await import("./hoc-vien.ts");
+  assert.ok(!(await tinCho(con)).ds.some((x) => /chưa thêm poki/.test(x.tieu)));
+  // hoàn tác ⇒ sự kiện bị thu hồi
+  await m(tok, `yeu-cau/${b.id}/hoan-tac`, {});
+  assert.equal(await one(`select 1 from events where loai = 'bo_qua_yeu_cau' and chi_tiet->>'yeu_cau' = $1`, [b.id]), undefined);
+  // bỏ qua lại, giả như đã qua 60 giây ⇒ Con thấy «chưa thêm» + tin khay
+  await m(tok, `yeu-cau/${b.id}/bo-qua`, {});
+  await q(`update requests set xu_ly_luc = now() - interval '2 minutes' where id = $1`, [b.id]);
+  await q(`update events set created_at = now() - interval '2 minutes' where loai = 'bo_qua_yeu_cau' and chi_tiet->>'yeu_cau' = $1`, [b.id]);
+  kb = (await dv(may.token, `yeu-cau/${b.id}`)).body;
+  assert.deepEqual([kb.status, kb.ketQua], ["tu_choi", "chua_them"]);
+  assert.ok((await tinCho(con)).ds.some((x) => x.tieu === "Lan chưa thêm poki.com lúc này"));
+  // số «đã bỏ qua» ở danh sách = màn Lời xin đã bỏ qua
+  assert.equal((await cd.danhSachCon(fam, con)).boQua.so, (await yc.dsBoQua(fam, con)).ds.length);
+  assert.equal((await yc.dsBoQua(fam, con)).ds.length, 1);
+  // lời xin quá hạn mà trang_thai còn «cho» ⇒ Thêm luôn được
+  const c = (await dv(may.token, "xin-duyet", { muc: "code.org" })).body;
+  await q(`update requests set het_han = now() - interval '1 minute' where id = $1`, [c.id]);
+  const tl = await m(tok, `yeu-cau/${c.id}/them-luon`, { nhom: "khong_tinh_phut" });
+  assert.deepEqual([tl.status, tl.body.nhom], [200, "khong_tinh_phut"]);
+  assert.equal((await la.phanLoai(fam, con, "code.org")).loai, "hoc");
 });

@@ -180,7 +180,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
       if (sau === "thiet-lap" && get) return json(await tomTatThietLap(fam, id));
       if (sau === "lich" && post) {
-        const l = lichCua(b as never);
+        // #258: giờ ngủ / giờ học bỏ — chỉ lưu khung giờ chơi cũ (không ghi lại ngu / hoc vào CSDL)
+        const { ngu: _ngu, hoc: _hoc, ...l } = lichCua(b as never);
         await q(`update children set lich = $2::text::jsonb where id = $1`, [id, JSON.stringify(l)]);
         await ghiSuKien(fam, "doi_lich", l, { con: id, nguoi: bm.id });
         return json({ lich: l });
@@ -368,7 +369,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       const ten = (muc: string) => tenThat.get(muc) ?? tenApp(muc);
       const daThay = thay.filter((x) => !la.khoaSo(x.muc).some((k) => he.includes(k)))
         .map((x) => ({ muc: x.muc, ten: ten(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
-      return json({ ds, heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: ten(x.muc) })), ...(canThay ? { daThay } : {}) });
+      return json({ ds: ds.filter((r) => r.loai !== la.LOAI_TRU), heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: ten(x.muc) })), ...(canThay ? { daThay } : {}) });
     }
     // Thẻ «Đang chơi» ở Trang chủ: phiên giải trí đang chạy / tạm của cả nhà (Con, máy, app, phút còn lại). «Dừng» = như Khoá ngay một phiên.
     if (d === "phien-dang" && get) {
@@ -398,7 +399,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // người khác đổi trong lúc đó thì không đè (kiểm và ghi không bị chen giữa)
       const kq = await tx(async (t) => {
         const truoc = await la.luatHienCo(fam, con, b.muc, t, true);
-        if (b.neuLoai !== undefined && truoc?.loai !== b.neuLoai) return null;
+        if (b.neuLoai !== undefined && !la.dungLoaiHoanTac(truoc?.loai, b.neuLoai)) return null;
         return { muc: await la.datLuat(fam, { con, muc: b.muc, ten: b.ten, loai: b.loai, nhom: b.nhom, het }, t), truoc };
       });
       if (!kq) return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);
@@ -409,7 +410,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (d === "luat/xoa" && post) {
       const con = b.con ? s(b.con, 40) : "";
       const muc = await tx(async (t) => {
-        if (b.neuLoai !== undefined && (await la.luatHienCo(fam, con, b.muc, t, true))?.loai !== b.neuLoai) return null;
+        if (b.neuLoai !== undefined && !la.dungLoaiHoanTac((await la.luatHienCo(fam, con, b.muc, t, true))?.loai, b.neuLoai)) return null;
         return la.xoaLuat(fam, { con, muc: b.muc }, t);
       });
       if (!muc) return loi("da_doi", "Luật này vừa được đổi ở nơi khác — không hoàn tác nữa", 409);

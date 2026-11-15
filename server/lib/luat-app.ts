@@ -8,8 +8,11 @@ import { heThong } from "./he-thong.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { laWebCam } from "./chan-co-ban.ts";
 
-/** «chan» chỉ còn trong kiểu để đọc dữ liệu / lời gọi cũ — không ghi mới. */
-export type LoaiMuc = "hoc" | "giai_tri" | "chan";
+/** «chan» chỉ còn trong kiểu để đọc dữ liệu / lời gọi cũ — không ghi mới.
+ *  «loai_tru» (#262): luật RIÊNG một Con đè luật cả nhà cùng mục — «mục này không nằm trong danh sách của Con này» (luật cả nhà vẫn giữ cho máy
+ *  dùng chung chưa chọn Con + Con tạo sau). Mọi chỗ đọc coi như «chưa xếp». */
+export type LoaiMuc = "hoc" | "giai_tri" | "chan" | "loai_tru";
+export const LOAI_TRU = "loai_tru";
 export type NhomGiaiTri = "game" | "video_ngan" | "mxh" | "phim_gd" | "khac";
 export const NHOM_GT: NhomGiaiTri[] = ["game", "video_ngan", "mxh", "phim_gd", "khac"];
 
@@ -67,7 +70,32 @@ export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q =
   // khớp cụ thể hơn thắng (mục dài hơn), luật riêng của Con thắng luật gia đình
   ds.sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0));
   const r = ds[0];
-  return r ? { loai: r.loai, nhom: r.loai === "giai_tri" ? r.nhom : null, nguon: r.child_id ? "con" : "gia_dinh" } : { loai: "chua_phan_loai", nhom: null, nguon: null };
+  return r && r.loai !== LOAI_TRU ? { loai: r.loai, nhom: r.loai === "giai_tri" ? r.nhom : null, nguon: r.child_id ? "con" : "gia_dinh" } : { loai: "chua_phan_loai", nhom: null, nguon: null };
+}
+
+/** phanLoai trong bộ nhớ trên `luat` đã đọc (dsLuat) — cùng thứ tự: hệ thống → khớp cụ thể hơn → luật riêng Con → cả nhà; loai_tru ⇒ chưa xếp. */
+export function phanLoaiTu(luat: { child_id: string; muc: string; loai: string }[], con: string, mucTho: unknown, allow = allowlistHieuLuc()): LoaiMuc | "he_thong" | "chua_phan_loai" {
+  const khoa = khoaSo(chuanMuc(mucTho));
+  if (khoa.some((k) => allow.includes(k))) return "he_thong";
+  const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || l.child_id === con))
+    .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
+  return r && r.loai !== LOAI_TRU ? (r.loai as LoaiMuc) : "chua_phan_loai";
+}
+
+/** Bỏ `muc` khỏi danh sách của MỘT Con (#262): có luật cả nhà cùng mục ⇒ ghi luật riêng «loai_tru» cho Con đó (luật cả nhà giữ nguyên cho máy
+ *  dùng chung + Con khác + Con tạo sau); không có ⇒ xoá luật riêng của Con. → true nếu có thay đổi. */
+export async function boMucChoCon(t: Q, fam: string, con: string, mucTho: unknown) {
+  const muc = chuanMuc(mucTho);
+  if (!muc) return false;
+  await khoaLuat(t, fam, con, muc);
+  const caNha = (await t<{ ten: string }>(`select ten from app_rules where family_id = $1 and child_id = '' and muc = $2 and loai in ('hoc', 'giai_tri')
+    and (het is null or het > now())`, [fam, muc]))[0];
+  if (caNha) {
+    const r = await t(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom, het) values ($1,$2,$3,$4,'loai_tru','khac',null)
+      on conflict (family_id, child_id, muc) do update set loai = 'loai_tru', het = null where app_rules.loai <> 'loai_tru' returning muc`, [fam, con, muc, caNha.ten]);
+    return r.length > 0;
+  }
+  return (await t(`delete from app_rules where family_id = $1 and child_id = $2 and muc = $3 and loai <> 'loai_tru' returning muc`, [fam, con, muc])).length > 0;
 }
 
 /** Ba Mẹ thêm / đổi nhóm một mục của danh sách (FR-02.02). `con` '' = cả gia đình. `het` = hết hạn (phê duyệt Lần này / Hôm nay — cũ).
@@ -76,7 +104,11 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên ứng dụng hoặc website");
   if (khoaSo(muc).some((k) => allowlistHieuLuc().includes(k))) throw new LoiNghiepVu("he_thong", "Mục này thuộc danh sách hệ thống, luôn được dùng", 409);
-  if (b.loai === "chan") return xoaLuat(fam, { con: b.con, muc }, t);
+  // app cũ «Chặn» = bỏ khỏi danh sách: của một Con ⇒ boMucChoCon (đè cả luật cả nhà cho Con đó); cả nhà ⇒ xoá luật cả nhà
+  if (b.loai === "chan" || b.loai === LOAI_TRU) {
+    if (b.con) { await boMucChoCon(t, fam, b.con, muc); return muc; }
+    return xoaLuat(fam, { con: "", muc }, t);
+  }
   const loai = b.loai === "tinh_phut" ? "giai_tri" : b.loai === "khong_tinh_phut" ? "hoc" : ["hoc", "giai_tri"].includes(String(b.loai)) ? String(b.loai) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
   // lưới an toàn chung (lib/chan-co-ban.ts › WEB_CAM): các trang này không vào được danh sách
@@ -124,3 +156,10 @@ export const dsLuat = (fam: string, t: Q = q) =>
 
 /** Allowlist hệ thống hiệu lực: danh sách trong mã + mục Admin AiiLab thêm ở /admin. */
 export const allowlistHieuLuc = () => (heThong.allowlistThem.length ? [...ALLOWLIST_HE_THONG, ...heThong.allowlistThem] : ALLOWLIST_HE_THONG);
+
+/** Hoàn tác kiểu cũ (`neuLoai`): luật hiện tại còn đúng loại vừa đặt? App cũ đặt «chan» (nay = bỏ khỏi danh sách) ⇒ hiện tại là «không có» hoặc
+ *  «loai_tru» cũng là đúng — Hoàn tác được, không 409. */
+export function dungLoaiHoanTac(hienTai: string | undefined | null, neuLoai: unknown) {
+  if (neuLoai === "chan" || neuLoai === LOAI_TRU) return !hienTai || hienTai === LOAI_TRU || hienTai === "chan";
+  return hienTai === neuLoai;
+}

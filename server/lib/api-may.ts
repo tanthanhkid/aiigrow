@@ -191,13 +191,17 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // #258: kèm kết quả lời xin app / web — ketQua (cho | da_them | chua_them | het_han | huy), nhom (tinh_phut | khong_tinh_phut), muc,
     // tenNguoiDuyet («Mẹ Lan»), loiNhan, luc (lúc Ba Mẹ trả lời) — màn «Ba Mẹ đã thêm Roblox · Tính phút» / «Ba Mẹ chưa thêm Roblox · Xin lại».
     if (p[0] === "yeu-cau" && p[1] && req.method === "GET") {
-      const r = await one<{ trang_thai: string; loai: string; gia_tri: string | null; phan_loai: string | null; loi_nhan: string | null; xu_ly_luc: Date | null; ten: string | null }>(
-        `select r.trang_thai, r.loai, r.gia_tri, r.phan_loai, r.loi_nhan, r.xu_ly_luc, p.ten from requests r left join parents p on p.id = r.nguoi_duyet
+      const r = await one<{ trang_thai: string; loai: string; gia_tri: string | null; phan_loai: string | null; loi_nhan: string | null; xu_ly_luc: Date | null;
+        pham_vi: string | null; ten: string | null }>(
+        `select r.trang_thai, r.loai, r.gia_tri, r.phan_loai, r.loi_nhan, r.xu_ly_luc, r.pham_vi, p.ten from requests r left join parents p on p.id = r.nguoi_duyet
           where r.id = $1 and r.device_id = $2`, [p[1], may.id]);
       if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy lời xin", 404);
       // `status` theo từ của khay 0.2.0/0.2.1 (RequestForm hiểu duoc | tu_choi | cho); `trangThai` nguyên văn cho bản mới (bo_qua ⇒ status tu_choi)
-      const st = r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? "duoc" : r.trang_thai === "cho" ? "cho" : "tu_choi";
-      return json({ status: st, trangThai: r.trang_thai, ...ketQuaYc(r), muc: r.gia_tri, tenNguoiDuyet: r.ten,
+      // «Bỏ qua» trong 60 giây đầu (Ba Mẹ còn Hoàn tác được) ⇒ máy Con vẫn thấy «chờ»
+      const kq = ketQuaYc(r);
+      const tt = kq.ketQua === "cho" ? "cho" : r.trang_thai;
+      const st = tt === "dong_y" || tt === "da_thuc_thi" ? "duoc" : tt === "cho" ? "cho" : "tu_choi";
+      return json({ status: st, trangThai: tt, ...kq, muc: r.gia_tri, tenNguoiDuyet: kq.ketQua === "cho" ? null : r.ten,
         luc: r.xu_ly_luc ? new Date(r.xu_ly_luc).toISOString() : null });
     }
     // M4: phiên Con cho khung Kid (WebView2) · bù phút chơi khi mất mạng

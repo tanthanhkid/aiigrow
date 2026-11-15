@@ -161,10 +161,11 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
   const cheDo = cheDoCua(c?.che_do_chan), cheDoChan = cheDoChanCua(cheDo);
   // danh sách trắng của Con (#262): chỉ «Tính phút» (giai_tri) / «Không tính phút» (hoc); lưới an toàn không bao giờ là mục mở — kể cả luật cũ
-  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id) && (l.loai === "hoc" || l.loai === "giai_tri") && !laWebCam(l.muc)) : [];
-  // luật riêng của Con đè luật gia đình cùng mục
+  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id) && !laWebCam(l.muc)) : [];
+  // luật riêng của Con đè luật gia đình cùng mục — «loai_tru» (Ba Mẹ bỏ mục cả nhà khỏi danh sách của Con này) đè rồi bỏ ra
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
+  for (const [k, l] of theoMuc) if (l.loai !== "hoc" && l.loai !== "giai_tri") theoMuc.delete(k);
   const ph = c ? await phienDang(c.id) : undefined;
   const qy = c ? await quyHomNay(c.id, now) : null;
   // khoá riêng máy (lib/khoa-may.ts) — Ba Mẹ đang dùng máy bằng mã (pin-be.ts › baMeMoMay) thì máy mở cho Ba Mẹ như mọi khoá khác
@@ -178,7 +179,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now), khoaDen(may.khoa_may, now)], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
     allowlistHeThong: allowlistHieuLuc(),
-    luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai, nhom: l.loai === "giai_tri" ? l.nhom : null,
+    luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai as "hoc" | "giai_tri", nhom: l.loai === "giai_tri" ? l.nhom : null,
       giaPhanNghin: l.loai === "giai_tri" ? giaPhut(ts, l.nhom) : null })),
     // 14/11 «Khoá riêng máy này»: khoá của MÁY gộp vào cùng trường khoaNgay (agent mọi OS đã đọc) — khoá của Con thắng (giữ mở tạm / hạn của Con)
     lich: lichCua(c?.lich as never), khoaNgay: conKhoa || mayKhoa,

@@ -34,10 +34,13 @@ export type CauHinhNenTang = {
 
 // ---------------------------------------------------------------- khung giờ dạng khoảng phút (thuần)
 type Kh = [number, number];
+/** tu = den ⇒ khung RỖNG (giờ ngủ «tắt» — cau-hinh.ts › NGU_TAT, #258), không phải cả ngày. */
 const khoang = (k: Khung): Kh[] => {
   const a = phutCua(k.tu), b = phutCua(k.den);
-  return a < b ? [[a, b]] : [[a, 1440], [0, b]];
+  return a === b ? [] : a < b ? [[a, b]] : [[a, 1440], [0, b]];
 };
+/** Giờ ngủ còn bật? (#258: luôn tắt — giữ cho dữ liệu dựng tay trong test / agent). */
+const coNgu = (k: Khung | null | undefined): k is Khung => !!k && k.tu !== k.den;
 const gop = (ds: Kh[]): Kh[] => {
   const s = [...ds].filter(([a, b]) => b > a).sort((x, y) => x[0] - y[0]);
   const ra: Kh[] = [];
@@ -88,7 +91,7 @@ export function giaiTriLucNay(cs: ChinhSachChung): { mo: boolean; lyDo: string |
   if (cs.khoaNgay) return { mo: false, lyDo: "khoa_ngay" };
   if (!cs.hieuLuc.giaiTriDuocMo) return { mo: false, lyDo: cs.hieuLuc.lyDo[0] ?? "khoa" };
   const g = gioDiaPhuong(new Date(cs.serverTime), cs.tz);
-  if (trongDs(g.phut, [cs.gioChoi.ngu])) return { mo: false, lyDo: "gio_ngu" };
+  if (coNgu(cs.gioChoi.ngu) && trongDs(g.phut, [cs.gioChoi.ngu])) return { mo: false, lyDo: "gio_ngu" };
   const l = lichMo(cs);
   return trongDs(g.phut, laCuoiTuan(g.thu) ? l.cuoiTuan : l.ngayThuong) ? { mo: true, lyDo: null } : { mo: false, lyDo: "ngoai_khung" };
 }
@@ -162,7 +165,8 @@ function dongNen(nen: NenChuyenDoi, cs: ChinhSachChung): Dong[] {
   const app = (ds: { muc: string; kieu: string }[]) => ds.filter((x) => x.kieu === "app" && (nen === "windows") === x.muc.endsWith(".exe")).map((x) => x.muc);
   const lm = lichMo(cs);
   const gt = cs.ungDung.giaiTri, chan = cs.ungDung.chan, hoc = cs.ungDung.hoc;
-  const kNgu = { ngu: cs.gioChoi.ngu };
+  // #258: giờ ngủ tắt ⇒ cauHinh.ngu null (agent không dựng lịch ngủ — iOS rơi về gioChoi.ngu tu = den ⇒ không có), giờ đăng nhập cả ngày
+  const kNgu = { ngu: coNgu(cs.gioChoi.ngu) ? cs.gioChoi.ngu : null };
   const tran = { tranNgayPhut: cs.gioChoi.tranNgayPhut, tranTuanPhut: cs.gioChoi.tranTuanPhut };
   const khoa = { khoaGiaiTri: !cs.hieuLuc.giaiTriDuocMo, lyDo: cs.hieuLuc.lyDo };
   switch (nen) {

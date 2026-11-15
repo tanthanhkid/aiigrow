@@ -844,6 +844,8 @@ số sao. `soDu` (Policy, ví, `toi`) = sao tiêu được (không âm). `window
 - **Mở hết** = không chặn gì, không tính phút (không trừ sao). Danh sách giữ nguyên («tạm nghỉ»), bật lại «Theo danh sách» là dùng tiếp.
 - **Bỏ hẳn**: luật «Chặn» (`loai = chan`), màn «Luôn chặn web người lớn, cờ bạc, bạo lực», giờ ngủ, giờ học. Tên miền nhóm cũ «luôn chặn» (`WEB_CAM`) chỉ còn
   là lưới an toàn chung: không thêm được vào danh sách (409 `web_cam`), Con không gửi lời xin được; «Mở hết» không chặn chúng.
+- **Giờ ngủ «tắt»** = khung `tu = den` ({00:00, 00:00}) — mọi chỗ đọc khung (máy chủ `chuyen-doi.ts`, `quy-gio.ts`, `agent-windows.ts`; agent Android / iOS / Windows) coi là RỖNG. Luật nền tảng gửi `cauHinh.ngu: null`, Windows `netUserTimes: "M-Su,00:00-24:00"`.
+- **`loai_tru`**: luật riêng một Con đè luật cả nhà cùng mục = «không có trong danh sách của Con này»; mọi chỗ đọc coi như chưa xếp. Tham số `web_chi_cho_phep` bỏ.
 - **Chuyển dữ liệu** (`SCHEMA_APP_WEB`, chạy lại được): `che_do_chan` `chi_app_duoc_phep` / null ⇒ `theo_danh_sach`; XOÁ mọi luật `chan`; mục «Cho phép» cũ
   (`hoc` + nhom `cho_phep`) / Học ⇒ Không tính phút, Giải trí ⇒ Tính phút (không đổi dữ liệu — cùng `loai`); bỏ `lich.ngu` + `lich.hoc`; `requests.loi_nhan`;
   `requests.trang_thai` thêm `bo_qua`.
@@ -856,16 +858,16 @@ số sao. `soDu` (Policy, ví, `toi`) = sao tiêu được (không âm). `window
 | `GET con/:id/danh-sach` | Màn «App & web» / «App của <Con>» / «Web của <Con>»: `{con {id, ten}, cheDo, cheDoChan, tenCheDo, tamNghi (= Mở hết), app {tinhPhut[], khongTinhPhut[]}, web {tinhPhut[], khongTinhPhut[]}, soMuc {app, web, tinhPhut}, dangXin[{id, loai, kieu: app\|web, muc, ten, lyDo, luc, may}], boQua {so}, nhom[{ma, ten}]}`. Mỗi hàng: `{ten, kieu, nhom, muc[] (mọi định danh của app: exe / bundle / gói / tên miền đi kèm), phutHomNay (nhóm Tính phút = số sao đã trừ hôm nay), theoCaNha, choKhop?}` — `choKhop` = app thêm theo tên, máy chưa báo app trùng tên |
 | `POST con/:id/danh-sach {nhom, ma? \| ten? \| muc?, kieu?}` hoặc `{ds: [...]}` | Thêm (đã có ⇒ đổi nhóm). `ma` = app trong lưới (`GET app-goi-y`); `ten` không `muc` = «Thêm app khác» theo tên (khớp app thật của máy, chưa thấy ⇒ chờ khớp); `muc` = tên miền / link (`kieu: web`, mọi trang con theo cùng nhóm) hoặc định danh app. ⇒ `{daDat[{ten, muc[], nhom}], choKhop[ten]}`. Lỗi `nhom_sai`, `ten_mien_sai`, `web_cam` 409, `he_thong` 409 |
 | `POST con/:id/danh-sach/doi {muc: string \| string[], nhom, ten?}` | Đổi nhóm một hàng (gửi đủ `muc[]` của hàng). `ten` = hàng `choKhop`. ⇒ `{muc[], nhom}`; không còn mục ⇒ 404 |
-| `POST con/:id/danh-sach/bo {muc: string \| string[], ten?}` | «Bỏ khỏi danh sách» (Con xin lại được). Luật cả nhà ⇒ tách thành luật riêng các Con khác rồi bỏ cho Con này. ⇒ `{bo}` |
-| `POST yeu-cau/:id/dong-y {nhom: tinh_phut\|khong_tinh_phut, loiNhan?}` | Lời xin app / web ⇒ thêm LÂU DÀI vào danh sách của Con, đúng nhóm (app: tên thật máy báo). ⇒ `{ngoaiLe: false, nhom, muc}`. Không gửi `nhom` ⇒ đường cũ (`phanLoai`, `phamVi`) |
-| `POST yeu-cau/:id/bo-qua {loiNhan?}` | «Bỏ qua» — chỉ lời xin `mo_web` / `cai_app` (khác ⇒ 409 `khong_bo_qua`): không ghi gì vào danh sách, không chặn thêm, Con được báo «chưa thêm», xin lại được ⇒ `{ok, trangThai: "bo_qua", hoanTacDen}` |
-| `POST yeu-cau/:id/hoan-tac` (= `mo-lai`) | Trong 60 giây sau «Bỏ qua» (10 phút sau «Không cho» kiểu cũ) ⇒ lời xin về «chờ». Quá hạn / đã trả lời lại ⇒ 409 `khong_mo_lai`; lời xin hết hạn ⇒ 409 `het_han` |
+| `POST con/:id/danh-sach/bo {muc: string \| string[], ten?}` | «Bỏ khỏi danh sách» (Con xin lại được). Luật cả nhà ⇒ ghi luật riêng `loai_tru` cho Con này (luật cả nhà GIỮ cho máy dùng chung chưa chọn Con + Con khác + Con tạo sau); thêm lại ⇒ luật riêng đè. ⇒ `{bo}` |
+| `POST yeu-cau/:id/dong-y {nhom: tinh_phut\|khong_tinh_phut, loiNhan?}` | Lời xin app / web ⇒ thêm LÂU DÀI vào danh sách của Con, đúng nhóm (app: tên thật máy báo). ⇒ `{ngoaiLe: false, nhom, muc}`. Không gửi `nhom` ⇒ đường cũ (`phanLoai`, `phamVi`): `vinh_vien` = đã thêm; `lan_nay`/`hom_nay` = chỉ MỞ TẠM ⇒ `{moTam {den, phut}, muc}`, Con thấy `ketQua: mo_tam` («Ba Mẹ cho mở N phút»), không phải «đã thêm» |
+| `POST yeu-cau/:id/bo-qua {loiNhan?}` | «Bỏ qua» — chỉ lời xin `mo_web` / `cai_app` (khác ⇒ 409 `khong_bo_qua`): không ghi gì vào danh sách, không chặn thêm, xin lại được ⇒ `{ok, trangThai: "bo_qua", hoanTacDen}`. **Con chỉ thấy «chưa thêm» sau 60 giây** (trong 60 giây đầu `ketQua`/`status` vẫn `cho`, tin khay chưa phát) |
+| `POST yeu-cau/:id/hoan-tac` (= `mo-lai`) | Trong 60 giây sau «Bỏ qua» (10 phút sau «Không cho» kiểu cũ) ⇒ lời xin về «chờ»; sự kiện `bo_qua_yeu_cau` bị thu hồi (Con không thấy gì). Quá hạn / đã trả lời lại ⇒ 409 `khong_mo_lai`; lời xin hết hạn ⇒ 409 `het_han` |
 | `GET yeu-cau/bo-qua[?con=]` | «Lời xin đã bỏ qua» (30 ngày, mỗi (Con, mục) một dòng mới nhất; bỏ dòng đã vào danh sách / Con đang xin lại): `{ds[{id, con, tenCon, loai, kieu, muc, ten, lyDo, luc, nguoiBoQua, may}]}` |
-| `POST yeu-cau/:id/them-luon {nhom, loiNhan?}` | «Thêm luôn» một lời xin đã bỏ qua (hoặc «Không cho» cũ, hết hạn cũng được) ⇒ thêm vào danh sách, lời xin thành `dong_y` ⇒ `{ok, nhom, muc}`. Lời xin còn chờ ⇒ như `dong-y`. Đã thêm ⇒ 409 `da_xu_ly` |
+| `POST yeu-cau/:id/them-luon {nhom, loiNhan?}` | «Thêm luôn» một lời xin đã bỏ qua (hoặc «Không cho» cũ; hết hạn — kể cả lời xin quá hạn còn ghi «cho» — cũng được) ⇒ thêm vào danh sách, lời xin thành `dong_y` ⇒ `{ok, nhom, muc}`. Lời xin còn chờ trong hạn ⇒ như `dong-y`. Đã thêm ⇒ 409 `da_xu_ly` |
 | `GET con/:id/web` | `luat[]`, `top[]` thêm `nhom`; `cheDo`; `cheDoWeb` theo chế độ (Theo danh sách ⇒ `chi_cho_phep`) |
 | `POST con/:id/web/trang {muc, nhom}` | (cũ) `trangThai` `cho_phep` = Không tính phút, `giai_tri` = Tính phút, `chan`/`mac_dinh`/`bo` = bỏ khỏi danh sách |
 | `POST may/:id/ung-dung/dat {khoa, trangThai}` | `trangThai` thêm `tinh_phut` \| `khong_tinh_phut`; `chan` (cũ) = bỏ khỏi danh sách. `GET may/:id/ung-dung` mỗi app thêm `nhomDs` |
-| `POST luat {loai}` | `loai` thêm `tinh_phut` \| `khong_tinh_phut`; `chan` (cũ) = bỏ khỏi danh sách. `GET luat` không còn luật `chan` |
+| `POST luat {loai}` | `loai` thêm `tinh_phut` \| `khong_tinh_phut`; `chan` (cũ) = bỏ khỏi danh sách (có `con` ⇒ như `danh-sach/bo`, gỡ cả mục cả nhà cho Con đó). Hoàn tác kiểu cũ `neuLoai: "chan"` (POST luat / luat/xoa) khớp khi mục đang «không có» ⇒ không 409. `GET luat` không trả luật `chan` / `loai_tru` |
 | `POST app-cho-phep` · `POST thiet-lap` | `apps[].nhom`, `web[].nhom` (đè `tinhGio` cũ); `thiet-lap {cheDo}` (cũ `cheDoChan` vẫn nhận); `ngu` nhận mà không lưu; tóm tắt thêm `cheDo` |
 | `GET luon-chan` | (cũ) `{nhom: [], cheDo: [{ma: theo_danh_sach\|mo_het, ten}]}` |
 | `GET con/:id/bao-cao` | `tuanNay`/`tuanTruoc` thêm `phutKhongTinhPhut`, `khongTinhPhutTheoNgay[]` (ô «Giờ học» ⇒ «Không tính phút»; `phutHoc`/`hocTheoNgay` cũ = cùng số); `dungNhieu[].nhom` |
@@ -878,7 +880,7 @@ Quyền «Người trông giúp»: được `yeu-cau/:id/bo-qua`, `hoan-tac`, `t
 | Đường | Mô tả |
 |---|---|
 | `POST xin-duyet {muc, lyDo?}` | như cũ — «Xin Ba Mẹ mở» app / web ngoài danh sách (bị bỏ qua thì xin lại được, lời xin mới) |
-| `GET /api/device/yeu-cau/:id` | thêm kết quả: `ketQua: cho\|da_them\|chua_them\|het_han\|huy`, `nhom` (khi `da_them`), `muc`, `tenNguoiDuyet` («Mẹ Lan»), `loiNhan`, `luc`. `status` (cũ) — `bo_qua` ⇒ `tu_choi` |
+| `GET /api/device/yeu-cau/:id` | thêm kết quả: `ketQua: cho\|da_them\|mo_tam\|chua_them\|het_han\|huy`, `nhom` (khi `da_them`), `muc`, `tenNguoiDuyet` («Mẹ Lan»), `loiNhan`, `luc`. `status` (cũ) — `bo_qua` ⇒ `tu_choi` |
 | `GET /api/kid/yeu-cau` | mỗi lời xin thêm `ketQua`, `nhom`, `loiNhan`, `tenNguoiDuyet` |
 | `GET /api/kid/toi` · `GET tong-quan` (khay) | thêm `cheDo` («Hôm nay Ba Mẹ để chế độ Mở hết · không tính phút») |
 | `GET tin` (khay) | tin mới: «Lan đã thêm Roblox» / «Nhóm «Tính phút» · 1 sao = 1 phút · «lời nhắn»», «Lan chưa thêm Roblox lúc này» / «Con xin lại sau được nhé» |
